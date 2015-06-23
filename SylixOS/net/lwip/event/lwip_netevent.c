@@ -531,10 +531,12 @@ VOID  netEventIfUp (struct netif *pnetif)
     
     _netEventDevPutMsg(ucBuffer, sizeof(ucBuffer));
     
+#if LW_CFG_HOTPLUG_EN > 0
     if (pnetif->flags & NETIF_FLAG_LINK_UP) {
         API_HotplugEventMessage(LW_HOTPLUG_MSG_NETLINK_CHANGE,
                                 LW_TRUE, (PCHAR)&ucBuffer[4], 0, 0, 0, 0);
     }
+#endif                                                                  /*  LW_CFG_HOTPLUG_EN > 0       */
 }
 /*********************************************************************************************************
 ** 函数名称: netEventIfDown
@@ -552,8 +554,10 @@ VOID  netEventIfDown (struct netif *pnetif)
     
     _netEventDevPutMsg(ucBuffer, sizeof(ucBuffer));
     
+#if LW_CFG_HOTPLUG_EN > 0
     API_HotplugEventMessage(LW_HOTPLUG_MSG_NETLINK_CHANGE,
                             LW_FALSE, (PCHAR)&ucBuffer[4], 0, 0, 0, 0);
+#endif                                                                  /*  LW_CFG_HOTPLUG_EN > 0       */
 }
 /*********************************************************************************************************
 ** 函数名称: netEventIfLink
@@ -571,10 +575,12 @@ VOID  netEventIfLink (struct netif *pnetif)
     
     _netEventDevPutMsg(ucBuffer, sizeof(ucBuffer));
     
+#if LW_CFG_HOTPLUG_EN > 0
     if (pnetif->flags & NETIF_FLAG_UP) {
         API_HotplugEventMessage(LW_HOTPLUG_MSG_NETLINK_CHANGE,
                                 LW_TRUE, (PCHAR)&ucBuffer[4], 0, 0, 0, 0);
     }
+#endif                                                                  /*  LW_CFG_HOTPLUG_EN > 0       */
 }
 /*********************************************************************************************************
 ** 函数名称: netEventIfUnlink
@@ -592,8 +598,10 @@ VOID  netEventIfUnlink (struct netif *pnetif)
     
     _netEventDevPutMsg(ucBuffer, sizeof(ucBuffer));
     
+#if LW_CFG_HOTPLUG_EN > 0
     API_HotplugEventMessage(LW_HOTPLUG_MSG_NETLINK_CHANGE,
                             LW_FALSE, (PCHAR)&ucBuffer[4], 0, 0, 0, 0);
+#endif                                                                  /*  LW_CFG_HOTPLUG_EN > 0       */
 }
 /*********************************************************************************************************
 ** 函数名称: netEventIfUnlink
