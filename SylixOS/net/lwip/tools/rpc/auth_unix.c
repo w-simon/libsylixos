@@ -81,6 +81,8 @@ static char *rcsid = "$Id: auth_unix.c,v 1.3 2001/01/17 19:05:42 majka Exp $";
 #include "rpc/auth.h"
 #include "rpc/auth_unix.h"
 
+#if LW_CFG_NET_RPC_EN > 0
+
 /*
  * Unix authenticator operations vector
  */
@@ -365,3 +367,5 @@ marshal_new_auth(auth)
 	}
 	XDR_DESTROY(xdrs);
 }
+
+#endif /* LW_CFG_NET_RPC_EN > 0 */

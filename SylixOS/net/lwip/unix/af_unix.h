@@ -25,6 +25,7 @@
 /*********************************************************************************************************
   AF_UNIX 接收数据节点扩展数据
 *********************************************************************************************************/
+#if LW_CFG_NET_EN > 0 && LW_CFG_NET_UNIX_EN > 0
 
 typedef struct af_unix_node_ex {
     PCHAR               UNIE_pcMsgEx;                                   /*  扩展消息                    */
@@ -135,6 +136,8 @@ INT         unix_getsockopt(AF_UNIX_T  *pafunix, int level, int optname,
                             void *optval, socklen_t *optlen);
 INT         unix_ioctl(AF_UNIX_T  *pafunix, INT  iCmd, PVOID  pvArg);
 
+#endif                                                                  /*  LW_CFG_NET_EN > 0           */
+                                                                        /*  LW_CFG_NET_UNIX_EN > 0      */
 #endif                                                                  /*  __AF_UNIX_H                 */
 /*********************************************************************************************************
   END

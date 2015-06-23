@@ -180,8 +180,10 @@ VOID  API_NetInit (VOID)
                       
     tcpip_init(LW_NULL, LW_NULL);                                       /*  以多任务形式初始化 lwip     */
     
+#if LW_CFG_NET_UNIX_EN > 0
     unix_init();                                                        /*  初始化 AF_UNIX 域协议       */
-    
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
+
     packet_init();                                                      /*  初始化 AF_PACKET 协议       */
     
     __socketInit();                                                     /*  初始化 socket 系统          */

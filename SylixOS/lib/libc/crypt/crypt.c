@@ -45,6 +45,8 @@ __RCSID("$NetBSD: crypt.c,v 1.26 2007/01/17 23:24:22 hubertf Exp $");
 #include "stdlib.h"
 #include "unistd.h"
 
+#if LW_CFG_SHELL_PASS_CRYPT_EN > 0
+
 #include "crypt_internal.h"
 
 /*
@@ -1016,3 +1018,4 @@ prtab(s, t, num_rows)
 }
 #endif
 
+#endif /* LW_CFG_SHELL_PASS_CRYPT_EN > 0 */

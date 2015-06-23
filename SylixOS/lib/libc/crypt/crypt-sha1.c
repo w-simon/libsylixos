@@ -43,6 +43,8 @@ __RCSID("$NetBSD: crypt-sha1.c,v 1.3 2006/10/27 18:22:56 drochner Exp $");
 #include "string.h"
 #include "time.h"
 
+#if LW_CFG_SHELL_PASS_CRYPT_EN > 0
+
 #include "crypt_internal.h"
 
 #ifndef __UNCONST
@@ -202,3 +204,5 @@ __crypt_sha1 (const char *pw, const char *salt)
 
     return passwd;
 }	
+
+#endif /* LW_CFG_SHELL_PASS_CRYPT_EN > 0 */

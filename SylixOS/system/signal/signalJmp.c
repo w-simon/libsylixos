@@ -21,10 +21,6 @@
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
 #include "../SylixOS/system/include/s_system.h"
-/*********************************************************************************************************
-  裁剪控制
-*********************************************************************************************************/
-#if LW_CFG_SIGNAL_EN > 0
 #include "setjmp.h"
 /*********************************************************************************************************
 ** 函数名称: __sigsetjmpSetup
@@ -37,11 +33,13 @@
 *********************************************************************************************************/
 VOID  __sigsetjmpSetup (sigjmp_buf sigjmpEnv, INT iSaveSigs)
 {
+#if LW_CFG_SIGNAL_EN > 0
     sigjmpEnv[0].__mask_was_saved = iSaveSigs;
     
     if (iSaveSigs) {
         sigprocmask(SIG_BLOCK, LW_NULL, &sigjmpEnv[0].__saved_mask);
     }
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
 }
 /*********************************************************************************************************
 ** 函数名称: __siglongjmpSetup
@@ -54,11 +52,12 @@ VOID  __sigsetjmpSetup (sigjmp_buf sigjmpEnv, INT iSaveSigs)
 *********************************************************************************************************/
 VOID  __siglongjmpSetup (sigjmp_buf sigjmpEnv, INT iVal)
 {
+#if LW_CFG_SIGNAL_EN > 0
     if (sigjmpEnv[0].__mask_was_saved) {
         sigprocmask(SIG_SETMASK, &sigjmpEnv[0].__saved_mask, (sigset_t *) NULL);
     }
-}
 #endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
+}
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

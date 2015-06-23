@@ -51,6 +51,8 @@ __RCSID("$NetBSD: pw_gensalt.c,v 1.6 2007/01/17 23:24:22 hubertf Exp $");
 #include "time.h"
 #include "errno.h"
 
+#if LW_CFG_SHELL_PASS_CRYPT_EN > 0
+
 #include "crypt_internal.h"
 
 void
@@ -186,3 +188,5 @@ pw_gensalt(char *salt, size_t saltlen, const char *type, const char *option)
 	errno = EINVAL;
 	return -1;
 }
+
+#endif /* LW_CFG_SHELL_PASS_CRYPT_EN > 0 */

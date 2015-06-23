@@ -136,6 +136,7 @@ static VOID  __tshellGroupShow (VOID)
 *********************************************************************************************************/
 static VOID  __tshellUserGenpass (VOID)
 {
+#if LW_CFG_SHELL_PASS_CRYPT_EN > 0
     INT             i;
     PCHAR           pcGet;
     CHAR            cPass[PASS_MAX];
@@ -190,6 +191,9 @@ __re_input_pass:
     crypt_safe(cPass, cSalt, cBuffer, sizeof(cBuffer));
     
     printf("%s\n", cBuffer);
+#else
+    printf("LW_CFG_SHELL_PASS_CRYPT_EN is 0, can not support genpass operate.\n");
+#endif                                                                  /* LW_CFG_SHELL_PASS_CRYPT_EN   */
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: __tshellUserCmdUser

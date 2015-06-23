@@ -89,7 +89,9 @@ typedef struct {
     
     union {
         INT             SOCKF_iLwipFd;                                  /*  lwip 文件描述符             */
+#if LW_CFG_NET_UNIX_EN > 0
         AF_UNIX_T      *SOCKF_pafunix;                                  /*  AF_UNIX 控制块              */
+#endif
         AF_PACKET_T    *SOCKF_pafpacket;                                /*  AF_PACKET 控制块            */
     } SOCK_family;
     
@@ -128,7 +130,9 @@ static LW_LIST_LINE_HEADER  _G_plineSocket[__SOCKET_HASH_SIZE];
   lwip 与 unix 内部函数 (相关域实现代码只有在事件有效时才能更新 piSoErr)
 *********************************************************************************************************/
 extern int              __lwip_have_event(int s, int type, int *piSoErr);
+#if LW_CFG_NET_UNIX_EN > 0
 extern int              __unix_have_event(AF_UNIX_T *pafunix, int type, int *piSoErr);
+#endif
 extern int              __packet_have_event(AF_PACKET_T *pafpacket, int type, int  *piSoErr);
 /*********************************************************************************************************
   socket fd 有效性检查
@@ -187,6 +191,8 @@ void  __lwip_socket_event (int  lwipfd, LW_SEL_TYPE type, INT  iSoErr)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if LW_CFG_NET_UNIX_EN > 0
+
 void  __unix_socket_event (AF_UNIX_T  *pafunix, LW_SEL_TYPE type, INT  iSoErr)
 {
     INT             iHash = __SOCKET_UNIX_HASH(pafunix);
@@ -205,6 +211,8 @@ void  __unix_socket_event (AF_UNIX_T  *pafunix, LW_SEL_TYPE type, INT  iSoErr)
         }
     }
 }
+
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
 /*********************************************************************************************************
 ** 函数名称: __packet_socket_event
 ** 功能描述: packet socket 产生事件
@@ -1073,11 +1081,13 @@ static INT  __socketClose (SOCKET_T *psock)
 {
     switch (psock->SOCK_iFamily) {
     
+#if LW_CFG_NET_UNIX_EN > 0
     case AF_UNIX:                                                       /*  UNIX 域协议                 */
         if (psock->SOCK_pafunix) {
             unix_close(psock->SOCK_pafunix);
         }
         break;
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
         
     case AF_PACKET:                                                     /*  PACKET                      */
         if (psock->SOCK_pafpacket) {
@@ -1119,13 +1129,15 @@ static ssize_t  __socketRead (SOCKET_T *psock, PVOID  pvBuffer, size_t  stLen)
     ssize_t     sstNum = 0;
 
     switch (psock->SOCK_iFamily) {
-    
+
+#if LW_CFG_NET_UNIX_EN > 0
     case AF_UNIX:                                                       /*  UNIX 域协议                 */
         if (psock->SOCK_pafunix) {
             sstNum = unix_recvfrom(psock->SOCK_pafunix, pvBuffer, stLen, 0, LW_NULL, LW_NULL);
         }
         break;
-        
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
+
     case AF_PACKET:                                                     /*  PACKET                      */
         if (psock->SOCK_pafpacket) {
             sstNum = packet_recvfrom(psock->SOCK_pafpacket, pvBuffer, stLen, 0, LW_NULL, LW_NULL);
@@ -1156,13 +1168,15 @@ static ssize_t  __socketWrite (SOCKET_T *psock, CPVOID  pvBuffer, size_t  stLen)
     ssize_t     sstNum = 0;
 
     switch (psock->SOCK_iFamily) {
-    
+
+#if LW_CFG_NET_UNIX_EN > 0
     case AF_UNIX:                                                       /*  UNIX 域协议                 */
         if (psock->SOCK_pafunix) {
             sstNum = unix_sendto(psock->SOCK_pafunix, pvBuffer, stLen, 0, LW_NULL, 0);
         }
         break;
-        
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
+
     case AF_PACKET:                                                     /*  PACKET                      */
         if (psock->SOCK_pafpacket) {
             sstNum = packet_sendto(psock->SOCK_pafpacket, pvBuffer, stLen, 0, LW_NULL, 0);
@@ -1218,6 +1232,7 @@ static INT  __socketIoctl (SOCKET_T *psock, INT  iCmd, PVOID  pvArg)
         _ErrorHandle(ENOSYS);
         break;
     
+#if LW_CFG_NET_UNIX_EN > 0
     case AF_UNIX:                                                       /*  UNIX 域协议                 */
         if (psock->SOCK_pafunix) {
             switch (iCmd) {
@@ -1244,6 +1259,7 @@ static INT  __socketIoctl (SOCKET_T *psock, INT  iCmd, PVOID  pvArg)
             }
         }
         break;
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
         
     case AF_PACKET:                                                     /*  PACKET                      */
         if (psock->SOCK_pafpacket) {
@@ -1603,6 +1619,7 @@ static ssize_t  lwip_recvmsg (int  s, struct msghdr *msg, int flags)
 LW_API 
 int  socketpair (int domain, int type, int protocol, int sv[2])
 {
+#if LW_CFG_NET_UNIX_EN > 0
     INT          iError;
     SOCKET_T    *psock[2];
     
@@ -1644,6 +1661,11 @@ int  socketpair (int domain, int type, int protocol, int sv[2])
                      domain, type, protocol, sv[0], sv[1], LW_NULL);
     
     return  (ERROR_NONE);
+    
+#else
+    _ErrorHandle(ENOSYS);
+    return  (PX_ERROR);
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
 }
 /*********************************************************************************************************
 ** 函数名称: socket
@@ -1664,7 +1686,9 @@ int  socket (int domain, int type, int protocol)
     INT          iLwipFd = PX_ERROR;
     
     SOCKET_T    *psock     = LW_NULL;
+#if LW_CFG_NET_UNIX_EN > 0
     AF_UNIX_T   *pafunix   = LW_NULL;
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
     AF_PACKET_T *pafpacket = LW_NULL;
     
     INT          iCloExec;
@@ -1686,7 +1710,8 @@ int  socket (int domain, int type, int protocol)
 
     __KERNEL_SPACE_ENTER();
     switch (domain) {
-    
+
+#if LW_CFG_NET_UNIX_EN > 0
     case AF_UNIX:                                                       /*  UNIX 域协议                 */
         pafunix = unix_socket(domain, type, protocol);
         if (pafunix == LW_NULL) {
@@ -1694,7 +1719,8 @@ int  socket (int domain, int type, int protocol)
             goto    __error_handle;
         }
         break;
-        
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
+
     case AF_PACKET:                                                     /*  PACKET                      */
         pafpacket = packet_socket(domain, type, protocol);
         if (pafpacket == LW_NULL) {
@@ -1730,12 +1756,14 @@ int  socket (int domain, int type, int protocol)
     psock->SOCK_iFamily = domain;
     
     switch (domain) {
-    
+
+#if LW_CFG_NET_UNIX_EN > 0
     case AF_UNIX:                                                       /*  UNIX 域协议                 */
         psock->SOCK_pafunix = pafunix;
         iHash = __SOCKET_UNIX_HASH(pafunix);
         break;
-        
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
+
     case AF_PACKET:                                                     /*  PACKET                      */
         psock->SOCK_pafpacket = pafpacket;
         iHash = __SOCKET_PACKET_HASH(pafpacket);
@@ -1771,15 +1799,20 @@ __error_handle:
     if (iFd >= 0) {
         close(iFd);
     }
+    
+#if LW_CFG_NET_UNIX_EN > 0
     if (pafunix) {
         unix_close(pafunix);
-        
-    } else if (pafpacket) {
+    }
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
+
+    if (pafpacket) {
         packet_close(pafpacket);
         
     } else if (iLwipFd >= 0) {
         lwip_close(iLwipFd);
     }
+    
     return  (PX_ERROR);
 }
 /*********************************************************************************************************
@@ -1802,7 +1835,10 @@ int  accept4 (int s, struct sockaddr *addr, socklen_t *addrlen, int flags)
     SOCKET_T    *psockNew;
     INT          iType;
     
+#if LW_CFG_NET_UNIX_EN > 0
     AF_UNIX_T   *pafunix   = LW_NULL;
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
+
     AF_PACKET_T *pafpacket = LW_NULL;
     INT          iRet      = PX_ERROR;
     INT          iFdNew    = PX_ERROR;
@@ -1829,6 +1865,7 @@ int  accept4 (int s, struct sockaddr *addr, socklen_t *addrlen, int flags)
     __KERNEL_SPACE_ENTER();
     switch (psock->SOCK_iFamily) {
     
+#if LW_CFG_NET_UNIX_EN > 0
     case AF_UNIX:                                                       /*  UNIX 域协议                 */
         pafunix = unix_accept(psock->SOCK_pafunix, addr, addrlen);
         if (pafunix == LW_NULL) {
@@ -1836,6 +1873,7 @@ int  accept4 (int s, struct sockaddr *addr, socklen_t *addrlen, int flags)
             goto    __error_handle;
         }
         break;
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
         
     case AF_PACKET:                                                     /*  PACKET                      */
         pafpacket = packet_accept(psock->SOCK_pafpacket, addr, addrlen);
@@ -1864,11 +1902,13 @@ int  accept4 (int s, struct sockaddr *addr, socklen_t *addrlen, int flags)
     
     switch (psockNew->SOCK_iFamily) {
     
+#if LW_CFG_NET_UNIX_EN > 0
     case AF_UNIX:                                                       /*  UNIX 域协议                 */
         psockNew->SOCK_pafunix = pafunix;
         iHash = __SOCKET_UNIX_HASH(pafunix);
         break;
-        
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
+
     case AF_PACKET:                                                     /*  PACKET                      */
         psockNew->SOCK_pafpacket = pafpacket;
         iHash = __SOCKET_PACKET_HASH(pafpacket);
@@ -1902,10 +1942,14 @@ int  accept4 (int s, struct sockaddr *addr, socklen_t *addrlen, int flags)
     
 __error_handle:
     psock->SOCK_iSoErr = errno;
+    
+#if LW_CFG_NET_UNIX_EN > 0
     if (pafunix) {
         unix_close(pafunix);
+    }
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
     
-    } else if (pafpacket) {
+    if (pafpacket) {
         packet_close(pafpacket);
     
     } else if (iRet >= 0) {
@@ -1952,11 +1996,13 @@ int  bind (int s, const struct sockaddr *name, socklen_t namelen)
     
     __KERNEL_SPACE_ENTER();
     switch (psock->SOCK_iFamily) {
-    
+
+#if LW_CFG_NET_UNIX_EN > 0
     case AF_UNIX:                                                       /*  UNIX 域协议                 */
         iRet = unix_bind(psock->SOCK_pafunix, name, namelen);
         break;
-        
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
+
     case AF_PACKET:                                                     /*  PACKET                      */
         iRet = packet_bind(psock->SOCK_pafpacket, name, namelen);
         break;
@@ -1999,10 +2045,12 @@ int  shutdown (int s, int how)
     __KERNEL_SPACE_ENTER();
     switch (psock->SOCK_iFamily) {
     
+#if LW_CFG_NET_UNIX_EN > 0
     case AF_UNIX:                                                       /*  UNIX 域协议                 */
         iRet = unix_shutdown(psock->SOCK_pafunix, how);
         break;
-        
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
+
     case AF_PACKET:                                                     /*  PACKET                      */
         iRet = packet_shutdown(psock->SOCK_pafpacket, how);
         break;
@@ -2048,10 +2096,12 @@ int  connect (int s, const struct sockaddr *name, socklen_t namelen)
     __KERNEL_SPACE_ENTER();
     switch (psock->SOCK_iFamily) {
     
+#if LW_CFG_NET_UNIX_EN > 0
     case AF_UNIX:                                                       /*  UNIX 域协议                 */
         iRet = unix_connect(psock->SOCK_pafunix, name, namelen);
         break;
-        
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
+
     case AF_PACKET:                                                     /*  PACKET                      */
         iRet = packet_connect(psock->SOCK_pafpacket, name, namelen);
         break;
@@ -2095,10 +2145,12 @@ int  getsockname (int s, struct sockaddr *name, socklen_t *namelen)
     __KERNEL_SPACE_ENTER();
     switch (psock->SOCK_iFamily) {
     
+#if LW_CFG_NET_UNIX_EN > 0
     case AF_UNIX:                                                       /*  UNIX 域协议                 */
         iRet = unix_getsockname(psock->SOCK_pafunix, name, namelen);
         break;
-        
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
+
     case AF_PACKET:                                                     /*  PACKET                      */
         iRet = packet_getsockname(psock->SOCK_pafpacket, name, namelen);
         break;
@@ -2138,10 +2190,12 @@ int  getpeername (int s, struct sockaddr *name, socklen_t *namelen)
     __KERNEL_SPACE_ENTER();
     switch (psock->SOCK_iFamily) {
     
+#if LW_CFG_NET_UNIX_EN > 0
     case AF_UNIX:                                                       /*  UNIX 域协议                 */
         iRet = unix_getpeername(psock->SOCK_pafunix, name, namelen);
         break;
-        
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
+
     case AF_PACKET:                                                     /*  PACKET                      */
         iRet = packet_getpeername(psock->SOCK_pafpacket, name, namelen);
         break;
@@ -2183,10 +2237,12 @@ int  setsockopt (int s, int level, int optname, const void *optval, socklen_t op
     __KERNEL_SPACE_ENTER();
     switch (psock->SOCK_iFamily) {
     
+#if LW_CFG_NET_UNIX_EN > 0
     case AF_UNIX:                                                       /*  UNIX 域协议                 */
         iRet = unix_setsockopt(psock->SOCK_pafunix, level, optname, optval, optlen);
         break;
-        
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
+
     case AF_PACKET:                                                     /*  PACKET                      */
         iRet = packet_setsockopt(psock->SOCK_pafpacket, level, optname, optval, optlen);
         break;
@@ -2244,10 +2300,12 @@ int  getsockopt (int s, int level, int optname, void *optval, socklen_t *optlen)
     __KERNEL_SPACE_ENTER();
     switch (psock->SOCK_iFamily) {
     
+#if LW_CFG_NET_UNIX_EN > 0
     case AF_UNIX:                                                       /*  UNIX 域协议                 */
         iRet = unix_getsockopt(psock->SOCK_pafunix, level, optname, optval, optlen);
         break;
-        
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
+
     case AF_PACKET:                                                     /*  PACKET                      */
         iRet = packet_getsockopt(psock->SOCK_pafpacket, level, optname, optval, optlen);
         break;
@@ -2286,10 +2344,12 @@ int listen (int s, int backlog)
     __KERNEL_SPACE_ENTER();
     switch (psock->SOCK_iFamily) {
     
+#if LW_CFG_NET_UNIX_EN > 0
     case AF_UNIX:                                                       /*  UNIX 域协议                 */
         iRet = unix_listen(psock->SOCK_pafunix, backlog);
         break;
-        
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
+
     case AF_PACKET:                                                     /*  PACKET                      */
         iRet = packet_listen(psock->SOCK_pafpacket, backlog);
         break;
@@ -2336,10 +2396,12 @@ ssize_t  recv (int s, void *mem, size_t len, int flags)
     __KERNEL_SPACE_ENTER();
     switch (psock->SOCK_iFamily) {
     
+#if LW_CFG_NET_UNIX_EN > 0
     case AF_UNIX:                                                       /*  UNIX 域协议                 */
         sstRet = (ssize_t)unix_recv(psock->SOCK_pafunix, mem, len, flags);
         break;
-        
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
+
     case AF_PACKET:                                                     /*  PACKET                      */
         sstRet = (ssize_t)packet_recv(psock->SOCK_pafpacket, mem, len, flags);
         break;
@@ -2389,10 +2451,12 @@ ssize_t  recvfrom (int s, void *mem, size_t len, int flags,
     __KERNEL_SPACE_ENTER();
     switch (psock->SOCK_iFamily) {
     
+#if LW_CFG_NET_UNIX_EN > 0
     case AF_UNIX:                                                       /*  UNIX 域协议                 */
         sstRet = (ssize_t)unix_recvfrom(psock->SOCK_pafunix, mem, len, flags, from, fromlen);
         break;
-        
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
+
     case AF_PACKET:                                                     /*  PACKET                      */
         sstRet = (ssize_t)packet_recvfrom(psock->SOCK_pafpacket, mem, len, flags, from, fromlen);
         break;
@@ -2438,10 +2502,12 @@ ssize_t  recvmsg (int  s, struct msghdr *msg, int flags)
     __KERNEL_SPACE_ENTER();
     switch (psock->SOCK_iFamily) {
     
+#if LW_CFG_NET_UNIX_EN > 0
     case AF_UNIX:                                                       /*  UNIX 域协议                 */
         sstRet = (ssize_t)unix_recvmsg(psock->SOCK_pafunix, msg, flags);
         break;
-        
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
+
     case AF_PACKET:                                                     /*  PACKET                      */
         sstRet = (ssize_t)packet_recvmsg(psock->SOCK_pafpacket, msg, flags);
         break;
@@ -2488,10 +2554,12 @@ ssize_t  send (int s, const void *data, size_t size, int flags)
     __KERNEL_SPACE_ENTER();
     switch (psock->SOCK_iFamily) {
     
+#if LW_CFG_NET_UNIX_EN > 0
     case AF_UNIX:                                                       /*  UNIX 域协议                 */
         sstRet = (ssize_t)unix_send(psock->SOCK_pafunix, data, size, flags);
         break;
-        
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
+
     case AF_PACKET:                                                     /*  PACKET                      */
         sstRet = (ssize_t)packet_send(psock->SOCK_pafpacket, data, size, flags);
         break;
@@ -2539,10 +2607,12 @@ ssize_t  sendto (int s, const void *data, size_t size, int flags,
     __KERNEL_SPACE_ENTER();
     switch (psock->SOCK_iFamily) {
     
+#if LW_CFG_NET_UNIX_EN > 0
     case AF_UNIX:                                                       /*  UNIX 域协议                 */
         sstRet = (ssize_t)unix_sendto(psock->SOCK_pafunix, data, size, flags, to, tolen);
         break;
-        
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
+
     case AF_PACKET:                                                     /*  PACKET                      */
         sstRet = (ssize_t)packet_sendto(psock->SOCK_pafpacket, data, size, flags, to, tolen);
         break;
@@ -2588,10 +2658,12 @@ ssize_t  sendmsg (int  s, const struct msghdr *msg, int flags)
     __KERNEL_SPACE_ENTER();
     switch (psock->SOCK_iFamily) {
     
+#if LW_CFG_NET_UNIX_EN > 0
     case AF_UNIX:                                                       /*  UNIX 域协议                 */
         sstRet = (ssize_t)unix_sendmsg(psock->SOCK_pafunix, msg, flags);
         break;
-        
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
+
     case AF_PACKET:                                                     /*  PACKET                      */
         sstRet = (ssize_t)packet_sendmsg(psock->SOCK_pafpacket, msg, flags);
         break;

@@ -36,7 +36,10 @@
 *********************************************************************************************************/
 #if LW_CFG_SIGNAL_EN > 0
 #define MAX_EXC_MSG_NUM     (NSIG + LW_CFG_MAX_EXCEMSGS + LW_CFG_MAX_THREADS)
-                                                                        /*  消息队列消息数量            */
+#else
+#define MAX_EXC_MSG_NUM     LW_CFG_MAX_EXCEMSGS
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
+
 static LW_JOB_QUEUE         _G_jobqExc;
 static LW_JOB_MSG           _G_jobmsgExc[MAX_EXC_MSG_NUM];
 /*********************************************************************************************************
@@ -65,11 +68,11 @@ INT  _excInit (VOID)
                         (LW_OPTION_THREAD_STK_CHK | LW_OPTION_THREAD_SAFE | LW_OPTION_OBJECT_GLOBAL), 
                         LW_NULL);
                         
-    _S_ulThreadSignalId = API_ThreadCreate("t_except",
+    _S_ulThreadExceId = API_ThreadCreate("t_except",
                                      (PTHREAD_START_ROUTINE)_ExcThread,
                                      &threadattr,
                                      LW_NULL);                          /*  建立异常处理线程            */
-    if (!_S_ulThreadSignalId) {
+    if (!_S_ulThreadExceId) {
         _jobQueueFinit(&_G_jobqExc);
         return  (PX_ERROR);
     }
@@ -162,7 +165,6 @@ size_t  _ExcGetLost (VOID)
 {
     return  (_jobQueueLost(&_G_jobqExc));
 }
-#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0 &&     */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

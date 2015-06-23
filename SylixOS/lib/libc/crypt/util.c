@@ -8,6 +8,8 @@ __RCSID("$NetBSD: util.c,v 1.1 2004/07/02 00:05:23 sjg Exp $");
 
 #include "sys/types.h"
 
+#if LW_CFG_SHELL_PASS_CRYPT_EN > 0
+
 #include "crypt_internal.h"
 
 static const unsigned char itoa64[] =		/* 0 ... 63 => ascii - 64 */
@@ -22,3 +24,5 @@ __crypt_to64(char *s, u_int32_t v, int n)
 		v >>= 6;
 	}
 }
+
+#endif /* LW_CFG_SHELL_PASS_CRYPT_EN > 0 */

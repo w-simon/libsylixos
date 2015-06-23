@@ -87,8 +87,10 @@ long  sysconf (int name)
     case _SC_PRIORITY_SCHEDULING:
         return  (1);
         
+#if LW_CFG_SIGNAL_EN > 0
     case _SC_RTSIG_MAX:
         return  (SIGRTMAX - SIGRTMIN);
+#endif
         
     case _SC_REALTIME_SIGNALS:
         return  (1);

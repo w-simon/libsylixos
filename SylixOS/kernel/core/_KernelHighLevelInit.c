@@ -99,7 +99,10 @@ static VOID  _CreateITimerThread (VOID)
 VOID  _KernelHighLevelInit (VOID)
 {
     VOID  _HookListInit(VOID);
+    
+#if LW_CFG_SIGNAL_EN > 0
     VOID  _signalInit(VOID);
+#endif                                                                  /*  LW_CFG_SIGNAL_EN            */
     
     REGISTER INT    iErr;
     

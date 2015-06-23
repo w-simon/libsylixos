@@ -725,7 +725,11 @@ static VOID  __tshellRestart (LW_OBJECT_HANDLE  ulThread)
     __KERNEL_EXIT();                                                    /*  退出内核                    */
     
     if (ulJoin) {
+#if LW_CFG_SIGNAL_EN > 0
         kill(ulJoin, SIGKILL);                                          /*  杀死等待的线程/进程         */
+#else
+        API_ThreadForceDelete(ulJoin, LW_NULL);
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
         iMsg = API_IoTaskStdGet(ulThread, STD_OUT);
         if (iMsg >= 0) {
             fdprintf(iMsg, "[sh]Warning: Program is kill by shell.\n"

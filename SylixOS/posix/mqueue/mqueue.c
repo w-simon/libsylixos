@@ -140,6 +140,8 @@ mq_attr_t  mq_attr_default = {O_RDWR, 128, 64, 0};
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if LW_CFG_SIGNAL_EN > 0
+
 static VOID  __mqueueSignalNotify (__PX_MSG  *pmq)
 {
     if (pmq->PMSG_pmsgntf.PMSGNTF_ulThreadId == LW_OBJECT_HANDLE_INVALID) {
@@ -149,6 +151,8 @@ static VOID  __mqueueSignalNotify (__PX_MSG  *pmq)
     _doSigEvent(pmq->PMSG_pmsgntf.PMSGNTF_ulThreadId,
                 &pmq->PMSG_pmsgntf.PMSGNTF_sigevent, SI_MESGQ);         /*  发送 sigevent               */
 }
+
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
 /*********************************************************************************************************
 ** 函数名称: __mqueueSeekPrio
 ** 功能描述: 确定消息队列中最高优先级消息的优先级.
@@ -241,9 +245,11 @@ static INT  __mqueueSend (__PX_MSG  *pmq, const char  *msg, size_t  msglen,
     pmq->PMSG_mqattr.mq_curmsgs++;                                      /*  缓存的消息数量++            */
     __PX_MQ_RPOST(pmq);                                                 /*  消息队列可读                */
     
+#if LW_CFG_SIGNAL_EN > 0
     if (pmq->PMSG_mqattr.mq_curmsgs == 1) {                             /*  信号异步通知可读            */
         __mqueueSignalNotify(pmq);
     }
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
     
     if (pmq->PMSG_pmsgmem.PMSGM_pringFreeList) {
         __PX_MQ_WPOST(pmq);                                             /*  可写                        */
@@ -1211,6 +1217,7 @@ ssize_t  mq_reltimedreceive_np (mqd_t  mqd, char  *msg, size_t  msglen,
 LW_API 
 int  mq_notify (mqd_t  mqd, const struct sigevent  *pnotify)
 {
+#if LW_CFG_SIGNAL_EN > 0
     __PX_MSG           *pmq;
     __PX_MSG_FILE      *pmqfile;
 
@@ -1239,7 +1246,13 @@ int  mq_notify (mqd_t  mqd, const struct sigevent  *pnotify)
     }
 
     return  (ERROR_NONE);
+    
+#else
+    errno = ENOSYS;
+    return  (PX_ERROR);
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
 }
+
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
 /*********************************************************************************************************
   END

@@ -390,6 +390,7 @@ __continue_write:
     pspipedev->SPIPEDEV_iAbortFlag &= ~OPT_WABORT;                      /*  清除 abort                  */
     
     if (pspipedev->SPIPEDEV_uiReadCnt == 0) {                           /*  没有读端                    */
+#if LW_CFG_SIGNAL_EN > 0
         sigevent_t  sigeventPipe;
         
         sigeventPipe.sigev_signo           = SIGPIPE;
@@ -397,7 +398,7 @@ __continue_write:
         sigeventPipe.sigev_notify          = SIGEV_SIGNAL;
         
         _doSigEvent(API_ThreadIdSelf(), &sigeventPipe, SI_MESGQ);       /*  产生 SIGPIPE 信号           */
-        
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
         _ErrorHandle(EPIPE);
         return  (PX_ERROR);
     }

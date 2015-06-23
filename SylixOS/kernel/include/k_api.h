@@ -1003,9 +1003,7 @@ LW_API LW_OBJECT_HANDLE API_KernelGetIdle(VOID);                        /*  获得
 LW_API LW_OBJECT_HANDLE API_KernelGetItimer(VOID);                      /*  获得定时器扫描线程句柄      */
 #endif
 
-#if LW_CFG_SIGNAL_EN > 0
 LW_API LW_OBJECT_HANDLE API_KernelGetExc(VOID);                         /*  获得异常截获线程句柄        */
-#endif
 
 LW_API UINT8            API_KernelGetPriorityMax(VOID);                 /*  获得最低优先级              */
 

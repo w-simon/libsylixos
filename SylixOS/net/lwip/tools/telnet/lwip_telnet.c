@@ -142,7 +142,10 @@ static INT __telnetIacProcesser (LW_OBJECT_HANDLE   ulShell,
             if ((pucIACBuff + 4) < pucTemp) {
                 INT             iFd = API_IoTaskStdGet(ulShell, STD_OUT);
                 struct winsize  ws;
+                
+#if LW_CFG_SIGNAL_EN > 0
                 struct sigevent sigevent;
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
                 
                 ws.ws_row = (unsigned short)(((INT)pucIACBuff[5] << 8) + pucIACBuff[6]);
                 ws.ws_col = (unsigned short)(((INT)pucIACBuff[3] << 8) + pucIACBuff[4]);
@@ -150,10 +153,12 @@ static INT __telnetIacProcesser (LW_OBJECT_HANDLE   ulShell,
                 ws.ws_ypixel = (unsigned short)(ws.ws_row * 16);
                 ioctl(iFd, TIOCSWINSZ, &ws);                            /*  设置新的窗口大小            */
                 
+#if LW_CFG_SIGNAL_EN > 0
                 sigevent.sigev_signo           = SIGWINCH;
                 sigevent.sigev_value.sival_ptr = LW_NULL;
                 sigevent.sigev_notify          = SIGEV_NONE;
                 API_TShellSigEvent(ulShell, &sigevent, SIGWINCH);       /*  通知应用程序                */
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
             }
             break;
         }

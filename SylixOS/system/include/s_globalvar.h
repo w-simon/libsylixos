@@ -73,9 +73,7 @@ __SYSTEM_EXT  LW_CLASS_OBJECT_RESRC _S_resrcThreadPool;                 /*  线程
 /*********************************************************************************************************
     服务线程相关
 *********************************************************************************************************/
-#if LW_CFG_SIGNAL_EN > 0
-__SYSTEM_EXT  LW_OBJECT_ID          _S_ulThreadSignalId;                /*  信号服务线程                */
-#endif
+__SYSTEM_EXT  LW_OBJECT_ID          _S_ulThreadExceId;                  /*  信号服务线程                */
 
 #if LW_CFG_LOG_LIB_EN > 0
 __SYSTEM_EXT  LW_OBJECT_ID          _S_ulThreadLogId;                   /*  日志服务线程                */

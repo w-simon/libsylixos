@@ -49,11 +49,18 @@ static void init_etc_shadow (void)
    */
   if (access("/etc/shadow", R_OK) < 0) {
     if ((fp = fopen("/etc/shadow", "w")) != NULL) {
+#if LW_CFG_SHELL_PASS_CRYPT_EN > 0
       fprintf( fp, "root:$1$qY9g/6K4$/FKP3w1BsziKGCP3uLDnG.:0:0:99999:7:::\n"
                    "sylixos:$1$qY9g/6K4$WFEx17sxu/3aL3wE.u8NZ1:0:0:99999:7:::\n"
                    "apps:$1$qY9g/6K4$buV57yqE0kMbApOVI/jKM1:0:0:99999:7:::\n"
                    "hanhui:$1$qY9g/6K4$M/MZBr3WwSdMzIoXbVQGA.:0:0:99999:7:::\n"
                    "anonymous:!!:0:0:99999:7:::\n");
+#else
+      fprintf( fp, "root:root:0:0:99999:7:::\n"
+                   "sylixos:hanhui:0:0:99999:7:::\n"
+                   "apps:apps:0:0:99999:7:::\n"
+                   "anonymous:!!:0:0:99999:7:::\n");
+#endif /* LW_CFG_SHELL_PASS_CRYPT_EN > 0 */
       fclose(fp);
       chmod("/etc/shadow", S_IRUSR);
     }
@@ -272,7 +279,12 @@ int passwdcheck (const char *name, const char *pass)
         break;
       }
     
+#if LW_CFG_SHELL_PASS_CRYPT_EN > 0
       crypt_safe(pass, spwd.sp_pwdp, cCryptBuf, sizeof(cCryptBuf));
+#else
+      strlcpy(cCryptBuf, pass, sizeof(cCryptBuf));
+#endif /* LW_CFG_SHELL_PASS_CRYPT_EN > 0 */
+      
       if (!strcmp(cCryptBuf, spwd.sp_pwdp)) {
         ret = 0;
         break;

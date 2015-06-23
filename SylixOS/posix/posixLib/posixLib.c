@@ -35,7 +35,11 @@
 #if LW_CFG_PROCFS_EN > 0
 VOID  __procFsPosixInfoInit(VOID);
 #endif                                                                  /*  LW_CFG_PROCFS_EN > 0        */
+
+#if LW_CFG_SIGNAL_EN > 0
 VOID  _posixAioInit(VOID);
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
+
 VOID  _posixSyslogInit(VOID);
 /*********************************************************************************************************
   posix lock
@@ -155,7 +159,10 @@ VOID  API_PosixInit (VOID)
     __procFsPosixInfoInit();
 #endif                                                                  /*  LW_CFG_PROCFS_EN > 0        */
 
+#if LW_CFG_SIGNAL_EN > 0
     _posixAioInit();
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
+
     _posixSyslogInit();
     
 #if LW_CFG_SHELL_EN > 0

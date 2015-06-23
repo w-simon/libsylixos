@@ -31,6 +31,8 @@ __RCSID("$NetBSD: md5crypt.c,v 1.9 2007/01/17 23:24:22 hubertf Exp $");
 #include "stdio.h"
 #include "string.h"
 
+#if LW_CFG_SHELL_PASS_CRYPT_EN > 0
+
 typedef UINT32  u32_t;
 #include "polarssl/md5.h"
 
@@ -164,3 +166,5 @@ __md5crypt(const char *pw, const char *salt)
 	memset(final, 0, sizeof(final));
 	return (passwd);
 }
+
+#endif /* LW_CFG_SHELL_PASS_CRYPT_EN > 0 */

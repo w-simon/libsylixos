@@ -75,6 +75,7 @@ static LW_VMM_STATUS      _K_vmmStatus;
 *********************************************************************************************************/
 static VOID   __vmmAbortKill(PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx);
 static VOID   __vmmAbortAccess(PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx);
+static PCHAR  __vmmAbortTypeStr(ULONG  ulAbortType);
 /*********************************************************************************************************
   操作锁
 *********************************************************************************************************/
@@ -470,46 +471,6 @@ static INT  __vmmAbortShare (PLW_VMM_PAGE         pvmpageVirtual,
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: __vmmAbortTypeStr
-** 功能描述: 当 __vmmAbortShell() 无法执行时, 打印调试信息
-** 输　入  : ulAbortType       异常类型
-** 输　出  : 异常类型字串
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-static PCHAR  __vmmAbortTypeStr (ULONG  ulAbortType)
-{
-    switch (ulAbortType) {
-    
-    case LW_VMM_ABORT_TYPE_TERMINAL:
-        return  ("cpu extremity error");
-        
-    case LW_VMM_ABORT_TYPE_MAP:
-        return  ("memory map");
-    
-    case LW_VMM_ABORT_TYPE_WRITE:
-        return  ("can not write");
-    
-    case LW_VMM_ABORT_TYPE_FPE:
-        return  ("float points");
-    
-    case LW_VMM_ABORT_TYPE_BUS:
-        return  ("bus");
-    
-    case LW_VMM_ABORT_TYPE_BREAK:
-        return  ("break points");
-    
-    case LW_VMM_ABORT_TYPE_SYS:
-        return  ("syscall");
-    
-    case LW_VMM_ABORT_TYPE_UNDEF:
-        return  ("undefined instruction");
-    
-    default:
-        return  ("unknown");
-    }
-}
-/*********************************************************************************************************
 ** 函数名称: __vmmAbortDump
 ** 功能描述: 当 __vmmAbortShell() 无法执行时, 打印调试信息
 ** 输　入  : pvmpagefailctx    page fail 上下文
@@ -702,6 +663,46 @@ __abort_return:
    以下函数没有 MMU 时也可使用, 主要用来处理各种异常
 *********************************************************************************************************/
 /*********************************************************************************************************
+** 函数名称: __vmmAbortTypeStr
+** 功能描述: 当 __vmmAbortShell() 无法执行时, 打印调试信息
+** 输　入  : ulAbortType       异常类型
+** 输　出  : 异常类型字串
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static PCHAR  __vmmAbortTypeStr (ULONG  ulAbortType)
+{
+    switch (ulAbortType) {
+    
+    case LW_VMM_ABORT_TYPE_TERMINAL:
+        return  ("cpu extremity error");
+        
+    case LW_VMM_ABORT_TYPE_MAP:
+        return  ("memory map");
+    
+    case LW_VMM_ABORT_TYPE_WRITE:
+        return  ("can not write");
+    
+    case LW_VMM_ABORT_TYPE_FPE:
+        return  ("float points");
+    
+    case LW_VMM_ABORT_TYPE_BUS:
+        return  ("bus");
+    
+    case LW_VMM_ABORT_TYPE_BREAK:
+        return  ("break points");
+    
+    case LW_VMM_ABORT_TYPE_SYS:
+        return  ("syscall");
+    
+    case LW_VMM_ABORT_TYPE_UNDEF:
+        return  ("undefined instruction");
+    
+    default:
+        return  ("unknown");
+    }
+}
+/*********************************************************************************************************
 ** 函数名称: __vmmAbortKill
 ** 功能描述: 向当前线程产生一个信号
 ** 输　入  : pvmpagefailctx    page fail 上下文
@@ -711,10 +712,12 @@ __abort_return:
 *********************************************************************************************************/
 static VOID  __vmmAbortKill (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
 {
+#if LW_CFG_SIGNAL_EN > 0
     ULONG            ulAbortType = pvmpagefailctx->PAGEFCTX_ulAbortType;
     struct sigevent  sigeventAbort;
     INT              iSigCode;
-    
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
+
 #if LW_CFG_GDB_EN > 0
     if (!__KERNEL_ISENTER()) {
         if (API_DtraceAbortTrap(pvmpagefailctx->PAGEFCTX_ulRetAddr) == 
@@ -724,6 +727,7 @@ static VOID  __vmmAbortKill (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
     }
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
     
+#if LW_CFG_SIGNAL_EN > 0
     switch (ulAbortType) {
     
     case 0:
@@ -767,6 +771,7 @@ static VOID  __vmmAbortKill (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
     sigeventAbort.sigev_notify          = SIGEV_SIGNAL;
     
     _doSigEvent(pvmpagefailctx->PAGEFCTX_ulSelf, &sigeventAbort, iSigCode);
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
     
     if (__KERNEL_ISENTER()) {                                           /*  出现致命错误                */
         for (;;);

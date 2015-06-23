@@ -22,6 +22,7 @@
                  
 2012.11.09  lib_nlreent_init() 修正错误的缓冲类型.
 2014.11.08  加入 __getreent() 函数, 支持 newlib 使用 __DYNAMIC_REENT__ 编译支持 SMP 系统.
+2015.06.23  减少内存使用量.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -40,18 +41,21 @@ typedef struct __nl_reent {
      *  因为 newlib errno 的定义为 *__errno() 与 SylixOS 相同, 所以如果使用了 errno 就一定会定位到 SylixOS
      *  中的 __errno() 函数.
      */
-    int     _errno_notuse;                                              /*  not use!                    */
-    
-    FILE    *_stdin, *_stdout, *_stderr;                                /*  三个标准文件                */
-
-    void    *_pad_notuse[48];                                           /*  not use!                    */
-    
-    FILE     _file[3];                                                  /*  三个标准文件                */
+    int         _errno_notuse;                                          /*  not use!                    */
+    FILE       *_stdin, *_stdout, *_stderr;                             /*  三个标准文件                */
 } __NL_REENT;
+
+typedef struct __lw_reent {
+    FILE        _file[3];                                               /*  三个标准文件                */
+    /*
+     *  以下变量为 newlib 兼容部分.
+     */
+    __NL_REENT  _nl_com;
+} __LW_REENT;
 /*********************************************************************************************************
   newlib compatible reent for all thread
 *********************************************************************************************************/
-static __NL_REENT _G_nlreentTbl[LW_CFG_MAX_THREADS];                    /*  每个任务都拥有一个 reent    */
+static __LW_REENT _G_lwreentTbl[LW_CFG_MAX_THREADS];                    /*  每个任务都拥有一个 reent    */
 /*********************************************************************************************************
   newlib compatible reent (此方法不支持 SMP 系统)
 *********************************************************************************************************/
@@ -70,11 +74,14 @@ extern int fclose_nfree_fp(FILE *fp);
 *********************************************************************************************************/
 struct __nl_reent *__getreent (VOID)
 {
-    PLW_CLASS_TCB   ptcbCur;
+    REGISTER PLW_CLASS_TCB   ptcbCur;
+    REGISTER __LW_REENT     *plwreent;
 
     LW_TCB_GET_CUR_SAFE(ptcbCur);
     
-    return  (&_G_nlreentTbl[_ObjectGetIndex(ptcbCur->TCB_ulId)]);
+    plwreent = &_G_lwreentTbl[ptcbCur->TCB_usIndex];
+    
+    return  (&plwreent->_nl_com);
 }
 /*********************************************************************************************************
 ** 函数名称: __nlreent_swtich_hook
@@ -84,12 +91,14 @@ struct __nl_reent *__getreent (VOID)
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : 适用于单核模式.
 *********************************************************************************************************/
 static VOID  __nlreent_swtich_hook (LW_OBJECT_HANDLE  ulOldThread, LW_OBJECT_HANDLE  ulNewThread)
 {
-    __NL_REENT *pnlreent = &_G_nlreentTbl[_ObjectGetIndex(ulNewThread)];
+    REGISTER __LW_REENT  *plwreent;
     
-    _impure_ptr = pnlreent;
+    plwreent    = &_G_lwreentTbl[_ObjectGetIndex(ulNewThread)];
+    _impure_ptr = &plwreent->_nl_com;
 }
 /*********************************************************************************************************
 ** 函数名称: __nlreent_delete_hook
@@ -102,14 +111,15 @@ static VOID  __nlreent_swtich_hook (LW_OBJECT_HANDLE  ulOldThread, LW_OBJECT_HAN
 static VOID  __nlreent_delete_hook (LW_OBJECT_HANDLE  ulThread)
 {
     INT          i;
-    __NL_REENT  *pnlreent = &_G_nlreentTbl[_ObjectGetIndex(ulThread)];
+    __LW_REENT  *plwreent = &_G_lwreentTbl[_ObjectGetIndex(ulThread)];
+    __NL_REENT  *pnlreent = &plwreent->_nl_com;
     
     /*
      *  注意, 当 stdin stdout 或 stderr 被重定向了, 就不用关闭了, 这里只关闭最原始的三个 std 文件.
      */
     for (i = 0; i < 3; i++) {
-        if (pnlreent->_file[i]._flags) {
-            fclose_nfree_fp(&pnlreent->_file[i]);
+        if (plwreent->_file[i]._flags) {
+            fclose_nfree_fp(&plwreent->_file[i]);
         }
     }
     
@@ -130,7 +140,8 @@ VOID  lib_nlreent_init (LW_OBJECT_HANDLE  ulThread)
     static BOOL  bSwpHook = LW_FALSE;
     static BOOL  bDelHook = LW_FALSE;
     
-    __NL_REENT  *pnlreent = &_G_nlreentTbl[_ObjectGetIndex(ulThread)];
+    __LW_REENT  *plwreent = &_G_lwreentTbl[_ObjectGetIndex(ulThread)];
+    __NL_REENT  *pnlreent = &plwreent->_nl_com;
     
     if (bSwpHook == LW_FALSE) {
         if (API_SystemHookAdd(__nlreent_swtich_hook, LW_OPTION_THREAD_SWAP_HOOK) == ERROR_NONE) {
@@ -144,9 +155,9 @@ VOID  lib_nlreent_init (LW_OBJECT_HANDLE  ulThread)
         }
     }
     
-    pnlreent->_stdin  = &pnlreent->_file[STDIN_FILENO];
-    pnlreent->_stdout = &pnlreent->_file[STDOUT_FILENO];
-    pnlreent->_stderr = &pnlreent->_file[STDERR_FILENO];
+    pnlreent->_stdin  = &plwreent->_file[STDIN_FILENO];
+    pnlreent->_stdout = &plwreent->_file[STDOUT_FILENO];
+    pnlreent->_stderr = &plwreent->_file[STDERR_FILENO];
     
     __stdioFileCreate(pnlreent->_stdin);
     __stdioFileCreate(pnlreent->_stdout);
@@ -188,13 +199,15 @@ VOID  lib_nlreent_init (LW_OBJECT_HANDLE  ulThread)
 *********************************************************************************************************/
 FILE **lib_nlreent_stdfile (LW_OBJECT_HANDLE  ulThread, INT  FileNo)
 {
-    __NL_REENT *pnlreent;
+    REGISTER __LW_REENT  *plwreent;
+    REGISTER __NL_REENT  *pnlreent;
 
     if (!ulThread) {
         return  (LW_NULL);
     }
     
-    pnlreent = &_G_nlreentTbl[_ObjectGetIndex(ulThread)];
+    plwreent = &_G_lwreentTbl[_ObjectGetIndex(ulThread)];
+    pnlreent = &plwreent->_nl_com;
     
     switch (FileNo) {
     

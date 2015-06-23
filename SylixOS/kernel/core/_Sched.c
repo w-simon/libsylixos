@@ -208,14 +208,12 @@ VOID _SchedSwp (PLW_CLASS_CPU pcpuCur)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-#if LW_CFG_COROUTINE_EN > 0
-
 VOID _SchedCrSwp (PLW_CLASS_CPU pcpuCur)
 {
+#if LW_CFG_COROUTINE_EN > 0
     pcpuCur->CPU_pcrcbCur = pcpuCur->CPU_pcrcbNext;                     /*  切换协程                    */
-}
-
 #endif                                                                  /*  LW_CFG_COROUTINE_EN > 0     */
+}
 /*********************************************************************************************************
 ** 函数名称: Schedule
 ** 功能描述: 内核退出时, 会调用此调度函数 (进入内核状态并关中断被调用)

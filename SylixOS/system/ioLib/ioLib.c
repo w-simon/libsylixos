@@ -347,7 +347,10 @@ VOID  _IosEnvDelete (PLW_IO_ENV  pioe)
 PLW_IO_ENV  _IosEnvGetDef (VOID)
 {
     PLW_CLASS_TCB   ptcbCur;
+    
+#if LW_CFG_MODULELOADER_EN > 0
     PLW_IO_ENV      pioe;
+#endif
     
     if (LW_CPU_GET_CUR_NESTING()) {                                     /*  在中断中调用                */
         return  (&_S_ioeIoGlobalEnv);                                   /*  使用全局 IO 环境            */
@@ -537,7 +540,7 @@ INT  _IosInit (VOID)
     eventfdDevCreate();
 #endif                                                                  /*  LW_CFG_EVENTFD_EN > 0       */
     
-#if LW_CFG_TIMERFD_EN > 0
+#if LW_CFG_PTIMER_EN > 0 && LW_CFG_TIMERFD_EN > 0
     timerfdDrv();
     timerfdDevCreate();
     hstimerfdDrv();

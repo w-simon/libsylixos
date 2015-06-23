@@ -48,10 +48,12 @@ LW_API VOID                 API_TShellScrClear(INT  iFd);               /*  清屏
 
 LW_API INT                  API_TShellSetStackSize(size_t  stNewSize, size_t  *pstOldSize);
                                                                         /*  设置堆栈大小                */
+#if LW_CFG_SIGNAL_EN > 0
 LW_API ULONG                API_TShellSigEvent(LW_OBJECT_HANDLE  ulShell, 
                                                struct sigevent  *psigevent, 
                                                INT               iSigCode);
                                                                         /*  向 shell 发送信号           */
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
 LW_API LW_OBJECT_HANDLE     API_TShellCreate(INT  iTtyFd, 
                                              ULONG  ulOption);          /*  创建一个 tshell 终端        */
 

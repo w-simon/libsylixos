@@ -211,6 +211,8 @@ VOID  API_TShellInit (VOID)
 ** 调用模块: 
                                            API 函数
 *********************************************************************************************************/
+#if LW_CFG_SIGNAL_EN > 0
+
 LW_API  
 ULONG  API_TShellSigEvent (LW_OBJECT_HANDLE  ulShell, struct sigevent *psigevent, INT  iSigCode)
 {
@@ -243,6 +245,8 @@ ULONG  API_TShellSigEvent (LW_OBJECT_HANDLE  ulShell, struct sigevent *psigevent
     
     return  (ERROR_NONE);
 }
+
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
 /*********************************************************************************************************
 ** 函数名称: API_TShellCreateEx
 ** 功能描述: 创建一个 ttiny shell 系统, SylixOS 支持多个终端设备同时运行.

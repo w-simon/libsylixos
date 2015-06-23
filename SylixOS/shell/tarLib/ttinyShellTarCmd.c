@@ -33,7 +33,9 @@
 #include <stddef.h>
 #include "stdio.h"
 #include "tar.h"
+#ifndef  __SYLIXOS_LITE
 #include "zlib.h"
+#endif                                                                  /*  __SYLIXOS_LITE              */
 /*********************************************************************************************************
 ** 函数名称: __untarOctal2Long
 ** 功能描述: ascii (octal) to long
@@ -215,6 +217,8 @@ static INT  __untarFile (CPCHAR  pcTarFile, CPCHAR  pcDestPath)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#ifndef  __SYLIXOS_LITE
+
 static INT  __untargzFile (CPCHAR  pcTargzFile, CPCHAR  pcDestPath)
 {
     INT     iFdTar;
@@ -339,6 +343,8 @@ static INT  __untargzFile (CPCHAR  pcTargzFile, CPCHAR  pcDestPath)
 
     return  (iRetVal);
 }
+
+#endif                                                                  /*  __SYLIXOS_LITE              */
 /*********************************************************************************************************
 ** 函数名称: __tshellFsCmdUntar
 ** 功能描述: 系统命令 "untar"
@@ -364,7 +370,12 @@ static INT  __tshellFsCmdUntar (INT  iArgC, PCHAR  ppcArgV[])
     
     if (lib_strstr(ppcArgV[1], ".tar.gz") ||
         lib_strstr(ppcArgV[1], ".tgz")) {
+#ifndef  __SYLIXOS_LITE
         iError = __untargzFile(ppcArgV[1], pcDest);
+#else
+        fprintf(stderr, "can not support untar zip file!\n");
+        return  (PX_ERROR);
+#endif                                                                  /*  __SYLIXOS_LITE              */
     
     } else {
         iError = __untarFile(ppcArgV[1], pcDest);

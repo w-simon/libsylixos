@@ -28,17 +28,26 @@
 * 依存关系: 1: SylixOS 线程的所有服务
             2: 各种信号量服务
             3: rtc支持 
-            4: 信号支持
-            5: 动态装载库
-            6: 类 POSIX 线程高级操作功能管理
+            4: 类 POSIX 线程高级操作功能管理
 *********************************************************************************************************/
 
 #define LW_CFG_POSIX_EN                     1                           /*  是否使能 posix 兼容库       */
 #define LW_CFG_POSIXEX_EN                   1                           /*  是否是能 posix 扩展库       */
 #define LW_CFG_POSIX_INTER_EN               1                           /*  是否使能 sem mqueue 信号中断*/
+#define LW_CFG_PTHREAD_DEFAULT_STK_SIZE     (8 * LW_CFG_KB_SIZE)        /*  posix 线程默认堆栈大小      */
+
+/*********************************************************************************************************
+*                                        posix 异步 I/O 兼容库
+*
+* 依存关系: 1: SylixOS 线程的所有服务
+            2: 各种信号量服务
+            3: 信号支持
+            4: 类 POSIX 线程高级操作功能管理
+*********************************************************************************************************/
+
+#define LW_CFG_POSIX_AIO_EN                 1                           /*  是否使能 AIO                */
 #define LW_CFG_POSIX_AIO_STK_SIZE           (8 * LW_CFG_KB_SIZE)        /*  aio 代理线程默认堆栈大小    */
 #define LW_CFG_POSIX_AIO_MAX_THREAD         5                           /*  posix aio 最多的代理线程数量*/
-#define LW_CFG_PTHREAD_DEFAULT_STK_SIZE     (8 * LW_CFG_KB_SIZE)        /*  posix 线程默认堆栈大小      */
 
 #endif                                                                  /*  __POSIX_CFG_H               */
 /*********************************************************************************************************

@@ -538,6 +538,8 @@ static INT  __tshellSysCmdMems (INT  iArgC, PCHAR  ppcArgV[])
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if LW_CFG_SIGNAL_EN > 0
+
 static INT  __tshellSysCmdKill (INT  iArgC, PCHAR  ppcArgV[])
 {
     LW_OBJECT_HANDLE  ulId    = LW_OBJECT_HANDLE_INVALID;
@@ -622,6 +624,8 @@ static INT  __tshellSysCmdSigqueue (INT  iArgC, PCHAR  ppcArgV[])
         return  (-1);
     }
 }
+
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
 /*********************************************************************************************************
 ** 函数名称: __tshellSysCmdTimes
 ** 功能描述: 系统命令 "times"
@@ -1542,6 +1546,8 @@ static INT  __tshellSysCmdShStack (INT  iArgC, PCHAR  ppcArgV[])
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if LW_CFG_SHELL_PASS_CRYPT_EN > 0
+
 static INT  __tshellSysCmdCrypt (INT  iArgC, PCHAR  ppcArgV[])
 {
     PCHAR   pcRes;
@@ -1559,6 +1565,8 @@ static INT  __tshellSysCmdCrypt (INT  iArgC, PCHAR  ppcArgV[])
     
     return  (ERROR_NONE);
 }
+
+#endif                                                                  /*  LW_CFG_SHELL_PASS_CRYPT_EN  */
 /*********************************************************************************************************
 ** 函数名称: __tshellSysCmdHostname
 ** 功能描述: 系统命令 "hostname"
@@ -2098,6 +2106,7 @@ VOID  __tshellSysCmdInit (VOID)
                               " if no [rid] is show system heap information.\n"
                               "notice : rid is HEX.\n");
     
+#if LW_CFG_SIGNAL_EN > 0
     API_TShellKeywordAdd("kill", __tshellSysCmdKill);
     API_TShellFormatAdd("kill", " [-n signum tid/pid] | [tid/pid]");
     API_TShellHelpAdd("kill", "kill a thread or send a signal to a thread.\n"
@@ -2107,6 +2116,7 @@ VOID  __tshellSysCmdInit (VOID)
     API_TShellFormatAdd("sigqueue", " [-n signum tid/pid] | [tid/pid]");
     API_TShellHelpAdd("sigqueue", "sigqueue a thread or send a signal to a thread.\n"
                                   "notice : tid is HEX, pid is DEC.\n");
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
     
     API_TShellKeywordAdd("times", __tshellSysCmdTimes);
     API_TShellFormatAdd("times", " [-utc]");
@@ -2236,9 +2246,11 @@ VOID  __tshellSysCmdInit (VOID)
     API_TShellFormatAdd("shstack", " [new stack size]");
     API_TShellHelpAdd("shstack", "show or set sh stack size.\n");
     
+#if LW_CFG_SHELL_PASS_CRYPT_EN > 0
     API_TShellKeywordAdd("crypt", __tshellSysCmdCrypt);
     API_TShellFormatAdd("crypt", " [key] [salt]");
     API_TShellHelpAdd("crypt", "crypt() in libcrypt.\n");
+#endif                                                                  /*  LW_CFG_SHELL_PASS_CRYPT_EN  */
     
     API_TShellKeywordAdd("hostname", __tshellSysCmdHostname);
     API_TShellFormatAdd("hostname", " [hostname]");

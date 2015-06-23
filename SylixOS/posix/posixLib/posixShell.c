@@ -35,12 +35,16 @@
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
+#if LW_CFG_VMM_EN > 0
+
 static INT  __tshellMmaps (INT  iArgC, PCHAR  *ppcArgV)
 {
     API_VmmMmapShow();
     
     return  (ERROR_NONE);
 }
+
+#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 /*********************************************************************************************************
 ** 函数名称: __tshellPosixInit
 ** 功能描述: 注册 posix 系统命令
@@ -51,8 +55,10 @@ static INT  __tshellMmaps (INT  iArgC, PCHAR  *ppcArgV)
 *********************************************************************************************************/
 VOID  __tshellPosixInit (VOID)
 {
+#if LW_CFG_VMM_EN > 0
     API_TShellKeywordAdd("mmaps", __tshellMmaps);
     API_TShellHelpAdd("mmaps",   "show all mmap() file message.\n");
+#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 }
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
                                                                         /*  LW_CFG_SHELL_EN > 0         */

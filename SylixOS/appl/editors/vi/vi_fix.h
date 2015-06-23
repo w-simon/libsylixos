@@ -43,7 +43,11 @@ typedef  int    smallint;
 
 #define  ENABLE_FEATURE_VI_8BIT                 1
 #define  ENABLE_FEATURE_VI_OPTIMIZE_CURSOR      1
+#if LW_CFG_SIGNAL_EN > 0
 #define  ENABLE_FEATURE_VI_USE_SIGNALS          1
+#else
+#define  ENABLE_FEATURE_VI_USE_SIGNALS          0
+#endif
 #define  ENABLE_FEATURE_VI_CRASHME              0
 #define  ENABLE_FEATURE_VI_DOT_CMD              1
 #define  ENABLE_FEATURE_VI_YANKMARK             1

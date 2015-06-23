@@ -1559,6 +1559,8 @@ static ssize_t  __procFsNetRouteRead (PLW_PROCFS_NODE  p_pfsn,
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if LW_CFG_NET_UNIX_EN > 0
+
 static VOID  __procFsNetUnixGetCnt (AF_UNIX_T  *pafunix, size_t  *pstNeedBufferSize)
 {
     *pstNeedBufferSize += lib_strlen(pafunix->UNIX_cFile) + 70;
@@ -1616,6 +1618,8 @@ static VOID  __procFsNetUnixPrint (AF_UNIX_T  *pafunix, PCHAR  pcBuffer,
                            pafunix->UNIX_cFile);
     }
 }
+
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
 /*********************************************************************************************************
 ** 函数名称: __procFsNetUnixRead
 ** 功能描述: procfs 读一个读取网络 unix 文件
@@ -1632,6 +1636,7 @@ static ssize_t  __procFsNetUnixRead (PLW_PROCFS_NODE  p_pfsn,
                                      size_t           stMaxBytes,
                                      off_t            oft)
 {
+#if LW_CFG_NET_UNIX_EN > 0
     const CHAR      cUnixInfoHdr[] = 
     "TYPE      FLAG STATUS  SHUTD      NREAD MAX_BUFFER PATH\n";
           PCHAR     pcFileBuffer;
@@ -1674,6 +1679,10 @@ static ssize_t  __procFsNetUnixRead (PLW_PROCFS_NODE  p_pfsn,
     lib_memcpy(pcBuffer, (CPVOID)(pcFileBuffer + oft), (UINT)stCopeBytes);
     
     return  ((ssize_t)stCopeBytes);
+    
+#else
+    return  (0);
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
 }
 /*********************************************************************************************************
 ** 函数名称: __procFsNetGetIfFlag

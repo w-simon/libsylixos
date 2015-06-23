@@ -35,7 +35,6 @@
 /*********************************************************************************************************
   系统函数声明
 *********************************************************************************************************/
-#if LW_CFG_SIGNAL_EN > 0
 INT  _excJobAdd(VOIDFUNCPTR  pfunc, 
                 PVOID        pvArg0,
                 PVOID        pvArg1,
@@ -43,7 +42,6 @@ INT  _excJobAdd(VOIDFUNCPTR  pfunc,
                 PVOID        pvArg3,
                 PVOID        pvArg4,
                 PVOID        pvArg5);
-#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
 VOID _cppRtUninit(VOID);
 /*********************************************************************************************************
   全局变量
@@ -120,12 +118,10 @@ VOID   API_KernelRebootEx (INT  iRebootType, addr_t  ulStartAddress)
     INTREG  iregInterLevel;
     ULONG   ulI;
 
-#if LW_CFG_SIGNAL_EN > 0
     if (LW_CPU_GET_CUR_NESTING() || (API_ThreadIdSelf() != API_KernelGetExc())) {
         _excJobAdd(API_KernelRebootEx, (PVOID)iRebootType, (PVOID)ulStartAddress, 0, 0, 0, 0);
         return;
     }
-#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
 
     _DebugHandle(__LOGMESSAGE_LEVEL, "kernel rebooting...\r\n");
     

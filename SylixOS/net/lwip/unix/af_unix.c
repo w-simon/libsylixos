@@ -49,7 +49,7 @@
 /*********************************************************************************************************
   裁剪控制
 *********************************************************************************************************/
-#if LW_CFG_NET_EN > 0
+#if LW_CFG_NET_EN > 0 && LW_CFG_NET_UNIX_EN > 0
 #include "limits.h"
 #include "sys/socket.h"
 #include "sys/un.h"
@@ -968,6 +968,7 @@ static VOID __unixTicksToTv (ULONG  ulTicks, struct timeval *ptv)
 *********************************************************************************************************/
 static VOID __unixSignalNotify (INT  iFlag)
 {
+#if LW_CFG_SIGNAL_EN > 0
     sigevent_t      sigeventPipe;
     
     if ((iFlag & MSG_NOSIGNAL) == 0) {                                  /*  没有 MSG_NOSIGNAL 标志      */
@@ -977,6 +978,7 @@ static VOID __unixSignalNotify (INT  iFlag)
     
         _doSigEvent(API_ThreadIdSelf(), &sigeventPipe, SI_MESGQ);       /*  产生 SIGPIPE 信号           */
     }
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
 }
 /*********************************************************************************************************
 ** 函数名称: unix_init
@@ -2381,7 +2383,9 @@ int __unix_have_event (AF_UNIX_T *pafunix, int type, int  *piSoErr)
     
     return  (iEvent);
 }
+
 #endif                                                                  /*  LW_CFG_NET_EN               */
+                                                                        /*  LW_CFG_NET_UNIX_EN > 0      */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

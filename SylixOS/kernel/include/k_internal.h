@@ -636,6 +636,8 @@ INT            _doSigEvent(LW_OBJECT_HANDLE  ulId,
 INT            _doSigEventEx(LW_OBJECT_HANDLE  ulId, 
                              struct sigevent  *psigevent, 
                              struct siginfo   *psiginfo);
+#else
+#define _sigTimeOutRecalc(a, b) LW_OPTION_NOT_WAIT
 #endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
 
 /*********************************************************************************************************

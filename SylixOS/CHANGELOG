@@ -4,6 +4,15 @@ HISTORY
 
 ++ New features:
 
+    2015-06-23: han.hui
+    加入 SYLIXOS LITE 裁剪支持, 主要面向 ARM Cortex-M 系列微控制器.
+    
+++ Bugfixes:
+
+(STABLE-1.1.1)
+
+++ New features:
+
     2015-04-05: han.hui
     加入高分辨率时钟获取接口.
     

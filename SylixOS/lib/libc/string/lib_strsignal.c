@@ -45,7 +45,7 @@ PCHAR  lib_strsignal (INT  iSigNo)
         "SIG_RT_61", "SIG_RT_62", "SIG_RT_63", 
     };
     
-    if (!__issig(iSigNo)) {
+    if (1 <= (iSigNo) && (iSigNo) <= 63) {
         return  (LW_NULL);
     }
     

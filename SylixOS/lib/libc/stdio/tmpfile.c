@@ -58,7 +58,10 @@ mkstemp(char *path);
 FILE *
 tmpfile()
 {
+#if LW_CFG_SIGNAL_EN > 0
 	sigset_t set, oset;
+#endif
+	
 	FILE *fp;
 	int fd, sverrno;
 #define	TRAILER	"tmp.XXXXXXXXXX"
@@ -67,14 +70,18 @@ tmpfile()
 	(void)memcpy(buf, _PATH_TMP, sizeof(_PATH_TMP) - 1);
 	(void)memcpy(buf + sizeof(_PATH_TMP) - 1, TRAILER, sizeof(TRAILER));
 
+#if LW_CFG_SIGNAL_EN > 0
 	sigfillset(&set);
 	(void)sigprocmask(SIG_BLOCK, &set, &oset);
+#endif
 
 	fd = mkstemp(buf);
 	if (fd != -1)
 		(void)unlink(buf);
 
+#if LW_CFG_SIGNAL_EN > 0
 	(void)sigprocmask(SIG_SETMASK, &oset, NULL);
+#endif
 
 	if (fd == -1)
 		return (NULL);

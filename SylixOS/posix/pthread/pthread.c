@@ -303,6 +303,8 @@ int  pthread_yield (void)
 ** 调用模块: 
                                            API 函数
 *********************************************************************************************************/
+#if LW_CFG_SIGNAL_EN > 0
+
 LW_API 
 int  pthread_kill (pthread_t  thread, int signo)
 {
@@ -340,6 +342,8 @@ int  pthread_sigmask (int  how, const sigset_t  *newmask, sigset_t *oldmask)
         return  (error);
     }
 }
+
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
 /*********************************************************************************************************
 ** 函数名称: pthread_cleanup_pop
 ** 功能描述: 将一个压栈函数运行并释放

@@ -65,6 +65,8 @@ static char *rcsid = "$FreeBSD: src/lib/libc/rpc/clnt_tcp.c,v 1.14 2000/01/27 23
 #include "sys/select.h"
 #include "sys/param.h"
 
+#if LW_CFG_NET_RPC_EN > 0
+
 #define MCALL_MSG_SIZE 24
 
 /* sylixos fix */
@@ -601,3 +603,5 @@ writetcp(
 	}
 	return (len);
 }
+
+#endif /* LW_CFG_NET_RPC_EN > 0 */

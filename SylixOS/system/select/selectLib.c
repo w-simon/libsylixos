@@ -233,8 +233,9 @@ INT     pselect (INT                     iWidth,
     REGISTER LW_SEL_CONTEXT     *pselctx;
              PLW_CLASS_TCB       ptcbCur;
              
+#if LW_CFG_SIGNAL_EN > 0
              sigset_t            sigsetMaskOld;
-             
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
              LW_SEL_WAKEUPNODE   selwunNode;                            /*  生成的 NODE 模板            */
              ULONG               ulError;
     
@@ -353,16 +354,20 @@ INT     pselect (INT                     iWidth,
         return  (PX_ERROR);
     }
     
+#if LW_CFG_SIGNAL_EN > 0
     if (sigsetMask) {
         sigprocmask(SIG_SETMASK, sigsetMask, &sigsetMaskOld);
     }
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
     
     API_SemaphoreBPend(pselctx->SELCTX_hSembWakeup, ulWaitTime);        /*  开始等待                    */
     ulError = API_GetLastError();
     
+#if LW_CFG_SIGNAL_EN > 0
     if (sigsetMask) {
         sigprocmask(SIG_SETMASK, &sigsetMaskOld, LW_NULL);
     }
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
     
     if (pfdsetRead) {                                                   /*  检查读文件集                */
         REGISTER INT    iTemp;

@@ -200,8 +200,12 @@ LW_API int          pthread_equal(pthread_t  thread1, pthread_t  thread2);
 LW_API void         pthread_exit(void *status);
 LW_API pthread_t    pthread_self(void);
 LW_API int          pthread_yield(void);
+
+#if LW_CFG_SIGNAL_EN > 0
 LW_API int          pthread_kill(pthread_t  thread, int signo);
 LW_API int          pthread_sigmask(int  how, const sigset_t  *newmask, sigset_t *oldmask);
+#endif
+
 LW_API void         pthread_cleanup_pop(int  iNeedRun);
 LW_API void         pthread_cleanup_push(void (*pfunc)(void *), void *arg);
 LW_API int          pthread_getschedparam(pthread_t            thread, 

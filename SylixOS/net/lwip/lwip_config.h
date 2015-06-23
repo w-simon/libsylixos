@@ -66,7 +66,7 @@ extern "C" {
 #elif MEM_SIZE >= (128 * LW_CFG_KB_SIZE)
 #define MEMP_NUM_REASSDATA              20
 #else
-#define MEMP_NUM_REASSDATA              10
+#define MEMP_NUM_REASSDATA              5
 #endif                                                                  /*  MEM_SIZE >= ...             */
 
 /*********************************************************************************************************
@@ -287,7 +287,16 @@ extern  UINT32  __inetHostTableGetItem(CPCHAR  pcHost);                 /*  ±¾µØ
 #define LWIP_WND_SCALE                  1
 #define TCP_RCV_SCALE                   LW_CFG_LWIP_TCP_RCV_SCALE
 
+#if MEM_SIZE >= (512 * LW_CFG_KB_SIZE)
 #define TCP_SND_BUF                     ((64 * LW_CFG_KB_SIZE) - 1)     /*  tcp snd buf size (max size) */
+#elif  MEM_SIZE >= (128 * LW_CFG_KB_SIZE)
+#define TCP_SND_BUF                     ((32 * LW_CFG_KB_SIZE) - 1)
+#elif  MEM_SIZE >= (64 * LW_CFG_KB_SIZE)
+#define TCP_SND_BUF                     ((8 * LW_CFG_KB_SIZE) - 1)
+#else
+#define TCP_SND_BUF                     ((4 * LW_CFG_KB_SIZE) - 1)
+#endif
+
 #define MEMP_NUM_TCP_SEG                (8 * TCP_SND_QUEUELEN)
 
 #define LWIP_TCP_KEEPALIVE              1

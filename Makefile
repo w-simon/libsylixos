@@ -52,20 +52,40 @@ AR  = $(TOOLCHAIN_PREFIX)ar
 LD  = $(TOOLCHAIN_PREFIX)g++
 
 #*********************************************************************************************************
+# debug options (debug or release)
+#*********************************************************************************************************
+DEBUG_LEVEL = debug
+
+#*********************************************************************************************************
+# build with lite mode (SylixOS Lite)
+# do you want build SylixOS with Lite Mode
+#*********************************************************************************************************
+BUILD_LITE_TARGET = 0
+
+#*********************************************************************************************************
 # build options
 # do you want build process support library
 #*********************************************************************************************************
+ifeq ($(BUILD_LITE_TARGET), 0)
 BUILD_PROCESS_SUP_LIB = 1
+else
+BUILD_PROCESS_SUP_LIB = 0
+endif
 
 #*********************************************************************************************************
 # do you want build some usefull kernel module
 #*********************************************************************************************************
+ifeq ($(BUILD_LITE_TARGET), 0)
 BUILD_KERNEL_MODULE = 1
+else
+BUILD_KERNEL_MODULE = 0
+endif
 
 #*********************************************************************************************************
 # do not change the following code
 # buildin internal application source
 #*********************************************************************************************************
+ifeq ($(BUILD_LITE_TARGET), 0)
 APPL_SRCS = \
 SylixOS/appl/editors/vi/vi_fix.c \
 SylixOS/appl/editors/vi/vi_sylixos.c \
@@ -135,6 +155,12 @@ SylixOS/appl/zip/zlib/src/minigzip.c \
 SylixOS/appl/zip/zlib/src/trees.c \
 SylixOS/appl/zip/zlib/src/uncompr.c \
 SylixOS/appl/zip/zlib/src/zutil.c
+else
+APPL_SRCS = \
+SylixOS/appl/editors/vi/vi_fix.c \
+SylixOS/appl/editors/vi/vi_sylixos.c \
+SylixOS/appl/editors/vi/src/vi.c 
+endif
 
 #*********************************************************************************************************
 # arch source
@@ -1271,6 +1297,10 @@ INCDIR += -I"./SylixOS/include/inet"
 # compiler preprocess
 #*********************************************************************************************************
 DSYMBOL  = -DSYLIXOS
+
+ifeq ($(BUILD_LITE_TARGET), 1)
+DSYMBOL += -D__SYLIXOS_LITE
+endif
 
 #*********************************************************************************************************
 # compiler optimize

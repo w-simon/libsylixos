@@ -3,9 +3,11 @@
 /*
  * hmac_sha1 - using HMAC from RFC 2104
  */
+#include "unistd.h"
+
+#if LW_CFG_SHELL_PASS_CRYPT_EN > 0
 
 #include "polarssl/sha1.h"
-#include "unistd.h"
 #include "crypt_internal.h"
 
 #define HMAC_HASH sha1
@@ -23,3 +25,5 @@
 #define HASH_Final(v, x)        sha1_finish((x), (v))
 
 #include "hmac.h"
+
+#endif /* LW_CFG_SHELL_PASS_CRYPT_EN > 0 */

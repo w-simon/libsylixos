@@ -83,7 +83,11 @@ ULONG  API_ThreadCancel (LW_OBJECT_HANDLE  *pulId)
         
         } else {                                                        /*  异步取消                    */
             __KERNEL_EXIT_IRQ(iregInterLevel);                          /*  退出内核并打开中断          */
+#if LW_CFG_SIGNAL_EN > 0
             kill(ulId, SIGCANCEL);                                      /*  立即发送取消信号            */
+#else
+            return  (API_ThreadDelete(ulId, LW_NULL));
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
         }
     
     } else {

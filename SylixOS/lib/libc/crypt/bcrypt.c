@@ -59,6 +59,8 @@ __RCSID("$NetBSD: bcrypt.c,v 1.9 2006/10/27 19:39:11 drochner Exp $");
 #include "errno.h"
 #include "limits.h"
 
+#if LW_CFG_SHELL_PASS_CRYPT_EN > 0
+
 #include "crypt_internal.h"
 #include "cblowfish.h"
 
@@ -376,3 +378,5 @@ main()
 	printf("Passwd entry: %s\n", p);
 }
 #endif
+
+#endif  /* LW_CFG_SHELL_PASS_CRYPT_EN > 0 */
