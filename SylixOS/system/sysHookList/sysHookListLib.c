@@ -31,6 +31,7 @@
 2013.12.12  中断 hook 加入向量与嵌套层数参数.
 2014.01.07  修正部分 hook 函数参数.
 2015.05.15  不同的 hook 使用不同的锁.
+2016.06.26  调用 hook 为反序调用, 同时 delete hook 时不产生空洞.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -43,21 +44,16 @@
 #define __HOOK_TEMPLATE_SPIN(phookcb, param) \
         do { \
             INT             i; \
-            UINT            cnt = 0; \
             INTREG          iregInterLevel; \
             LW_HOOK_FUNC    pfuncHook; \
              \
             LW_SPIN_LOCK_QUICK(&((phookcb)->HOOKCB_slHook), &iregInterLevel); \
-            for (i = 0; i < LW_SYS_HOOK_SIZE; i++) { \
+            for (i = (phookcb->HOOKCB_uiCnt - 1); i >= 0; i--) { \
                 if ((phookcb)->HOOKCB_pfuncnode[i]) { \
                     pfuncHook = (phookcb)->HOOKCB_pfuncnode[i]->FUNCNODE_hookfunc; \
                     LW_SPIN_UNLOCK_QUICK(&((phookcb)->HOOKCB_slHook), iregInterLevel); \
                     pfuncHook param; \
                     LW_SPIN_LOCK_QUICK(&((phookcb)->HOOKCB_slHook), &iregInterLevel); \
-                    cnt++; \
-                    if (cnt >= phookcb->HOOKCB_uiCnt) { \
-                        break; \
-                    } \
                 } \
             } \
             LW_SPIN_UNLOCK_QUICK(&((phookcb)->HOOKCB_slHook), iregInterLevel); \
@@ -68,20 +64,37 @@
 #define __HOOK_TEMPLATE(phookcb, param) \
         do { \
             INT             i; \
-            UINT            cnt = 0; \
             LW_HOOK_FUNC    pfuncHook; \
              \
-            for (i = 0; i < LW_SYS_HOOK_SIZE; i++) { \
+            for (i = (phookcb->HOOKCB_uiCnt - 1); i >= 0; i--) { \
                 if ((phookcb)->HOOKCB_pfuncnode[i]) { \
                     pfuncHook = (phookcb)->HOOKCB_pfuncnode[i]->FUNCNODE_hookfunc; \
                     pfuncHook param; \
-                    cnt++; \
-                    if (cnt >= phookcb->HOOKCB_uiCnt) { \
-                        break; \
-                    } \
                 } \
             } \
         } while (0)
+/*********************************************************************************************************
+** 函数名称: _HookAdjTemplate
+** 功能描述: 调整模板, 删除空洞项
+** 输　入  : phookcb       回调控制块
+**           iHole         删除的空洞位置
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static VOID  _HookAdjTemplate (PLW_HOOK_CB  phookcb, INT  iHole)
+{
+    INT  i;
+    
+    for (i = (iHole + 1); i < LW_SYS_HOOK_SIZE; i++) {
+        if (phookcb->HOOKCB_pfuncnode[i]) {
+            phookcb->HOOKCB_pfuncnode[i - 1] = phookcb->HOOKCB_pfuncnode[i];
+            phookcb->HOOKCB_pfuncnode[i]     = LW_NULL;
+        } else {
+            break;
+        }
+    }
+}
 /*********************************************************************************************************
 ** 函数名称: _HookAddTemplate
 ** 功能描述: HOOK 加入一个调用模板
@@ -134,6 +147,8 @@ static PLW_FUNC_NODE  _HookDelTemplate (PLW_HOOK_CB  phookcb, LW_HOOK_FUNC  hook
                 phookcb->HOOKCB_uiCnt--;
                 if (!phookcb->HOOKCB_uiCnt) {
                     *bEmpty = LW_TRUE;
+                } else {
+                    _HookAdjTemplate(phookcb, i);
                 }
                 break;
             }
