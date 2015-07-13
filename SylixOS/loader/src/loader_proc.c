@@ -191,7 +191,10 @@ static ssize_t  __procFsProcMemRead (PLW_PROCFS_NODE  p_pfsn,
         LW_LIST_RING       *pringTemp;
         LW_LD_EXEC_MODULE  *pmodTemp;
         
+#if LW_CFG_VMM_EN == 0
         PLW_CLASS_HEAP      pheapVpPatch;
+#endif                                                                  /*  LW_CFG_VMM_EN == 0          */
+
         PVOID               pvVmem[LW_LD_VMEM_MAX];
         
         LW_LD_LOCK();
@@ -222,28 +225,26 @@ static ssize_t  __procFsProcMemRead (PLW_PROCFS_NODE  p_pfsn,
         stStatic = stTotalMem;
         
         if (stTotalMem) {                                               /*  至少存在一个模块            */
-            pmodTemp     = _LIST_ENTRY(pvproc->VP_ringModules, LW_LD_EXEC_MODULE, EMOD_ringModules);
+            pmodTemp = _LIST_ENTRY(pvproc->VP_ringModules, LW_LD_EXEC_MODULE, EMOD_ringModules);
+            ulPages  = 0;
+            
+#if LW_CFG_VMM_EN > 0
+            iNum = __moduleVpPatchVmem(pmodTemp, pvVmem, LW_LD_VMEM_MAX);
+            if (iNum > 0) {
+                for (i = 0; i < iNum; i++) {
+                    if (API_VmmPCountInArea(pvVmem[i], 
+                                            &ulPages) == ERROR_NONE) {
+                        stTotalMem += (size_t)(ulPages 
+                                    *  LW_CFG_VMM_PAGE_SIZE);
+                    }
+                }
+            }
+#else
             pheapVpPatch = (PLW_CLASS_HEAP)__moduleVpPatchHeap(pmodTemp);
             if (pheapVpPatch) {                                         /*  获得 vp 进程私有 heap       */
-#if LW_CFG_VMM_EN > 0
-                ulPages = 0;
-                iNum = __moduleVpPatchVmem(pmodTemp, pvVmem, LW_LD_VMEM_MAX);
-                if (iNum > 0) {
-                    for (i = 0; i < iNum; i++) {
-                        if (API_VmmPCountInArea(pvVmem[i], 
-                                                &ulPages) == ERROR_NONE) {
-                            stTotalMem += (size_t)(ulPages 
-                                        *  LW_CFG_VMM_PAGE_SIZE);
-                        }
-                    }
-                } else if (API_VmmPCountInArea(pheapVpPatch->HEAP_pvStartAddress, 
-                                               &ulPages) == ERROR_NONE) {
-                    stTotalMem += (size_t)(ulPages * LW_CFG_VMM_PAGE_SIZE);
-                }
-#else
                 stTotalMem += (size_t)(pheapVpPatch->HEAP_stTotalByteSize);
-#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
             }
+#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
         }
         LW_VP_UNLOCK(pvproc);
         LW_LD_UNLOCK();
@@ -302,9 +303,8 @@ static ssize_t  __procFsProcModulesRead (PLW_PROCFS_NODE  p_pfsn,
         
         LW_LIST_RING       *pringTemp;
         LW_LD_EXEC_MODULE  *pmodTemp;
-        
-        PLW_CLASS_HEAP      pheapVpPatch;
-        
+        PCHAR               pcVpVersion;
+
         LW_LD_LOCK();
         pvproc = (LW_LD_VPROC *)p_pfsn->PFSN_pvValue;
         if (!pvproc) {
@@ -360,11 +360,11 @@ static ssize_t  __procFsProcModulesRead (PLW_PROCFS_NODE  p_pfsn,
         }
         
         if (stRealSize) {                                               /*  有模块信息                  */
-            pmodTemp     = _LIST_ENTRY(pvproc->VP_ringModules, LW_LD_EXEC_MODULE, EMOD_ringModules);
-            pheapVpPatch = (PLW_CLASS_HEAP)__moduleVpPatchHeap(pmodTemp);
-            if (pheapVpPatch) {
+            pmodTemp    = _LIST_ENTRY(pvproc->VP_ringModules, LW_LD_EXEC_MODULE, EMOD_ringModules);
+            pcVpVersion = __moduleVpPatchVersion(pmodTemp);
+            if (pcVpVersion) {
                 stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
-                   "<VP Ver:%s>\n", __moduleVpPatchVersion(pmodTemp));
+                   "<VP Ver:%s>\n", pcVpVersion);
             }
         }
         LW_VP_UNLOCK(pvproc);

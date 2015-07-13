@@ -575,7 +575,10 @@ static INT  __tshellModuleShow (INT  iArgC, PCHAR  *ppcArgV)
     LW_LD_VPROC        *pvproc;
     LW_LD_EXEC_MODULE  *pmodTemp;
     
+#if LW_CFG_VMM_EN == 0
     PLW_CLASS_HEAP      pheapVpPatch;
+#endif                                                                  /*  LW_CFG_VMM_EN == 0          */
+    
     CHAR                cVpVersion[128] = "";
     
     INT                 i, iNum;
@@ -628,31 +631,27 @@ static INT  __tshellModuleShow (INT  iArgC, PCHAR  *ppcArgV)
         }
         
         if (stTotalMem) {                                               /*  至少存在一个模块            */
-            pmodTemp     = _LIST_ENTRY(pvproc->VP_ringModules, LW_LD_EXEC_MODULE, EMOD_ringModules);
-            pheapVpPatch = (PLW_CLASS_HEAP)__moduleVpPatchHeap(pmodTemp);
-            if (pheapVpPatch) {                                         /*  获得 vp 进程私有 heap       */
+            pmodTemp = _LIST_ENTRY(pvproc->VP_ringModules, LW_LD_EXEC_MODULE, EMOD_ringModules);
+            ulPages  = 0;
 #if LW_CFG_VMM_EN > 0
-                ulPages = 0;
-                iNum = __moduleVpPatchVmem(pmodTemp, pvVmem, LW_LD_VMEM_MAX);
-                if (iNum > 0) {
-                    for (i = 0; i < iNum; i++) {
-                        if (API_VmmPCountInArea(pvVmem[i], 
-                                                &ulPages) == ERROR_NONE) {
-                            stTotalMem += (size_t)(ulPages 
-                                        *  LW_CFG_VMM_PAGE_SIZE);
-                        }
+            iNum = __moduleVpPatchVmem(pmodTemp, pvVmem, LW_LD_VMEM_MAX);
+            if (iNum > 0) {
+                for (i = 0; i < iNum; i++) {
+                    if (API_VmmPCountInArea(pvVmem[i], 
+                                            &ulPages) == ERROR_NONE) {
+                        stTotalMem += (size_t)(ulPages 
+                                    *  LW_CFG_VMM_PAGE_SIZE);
                     }
-                } else if (API_VmmPCountInArea(pheapVpPatch->HEAP_pvStartAddress, 
-                                               &ulPages) == ERROR_NONE) {
-                    stTotalMem += (size_t)(ulPages * LW_CFG_VMM_PAGE_SIZE);
                 }
-#else
-                stTotalMem += (size_t)(pheapVpPatch->HEAP_stTotalByteSize);
-#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
                 lib_strlcpy(cVpVersion, __moduleVpPatchVersion(pmodTemp), sizeof(cVpVersion));
             }
-        } else {
-            pheapVpPatch = LW_NULL;
+#else
+            pheapVpPatch = (PLW_CLASS_HEAP)__moduleVpPatchHeap(pmodTemp);
+            if (pheapVpPatch) {                                         /*  获得 vp 进程私有 heap       */
+                stTotalMem += (size_t)(pheapVpPatch->HEAP_stTotalByteSize);
+                lib_strlcpy(cVpVersion, __moduleVpPatchVersion(pmodTemp), sizeof(cVpVersion));
+            }
+#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
         }
         LW_VP_UNLOCK(pvproc);
 
@@ -661,8 +660,9 @@ static INT  __tshellModuleShow (INT  iArgC, PCHAR  *ppcArgV)
                pvproc->VP_pid,
                stTotalMem);
                
-        if (pheapVpPatch) {
+        if (cVpVersion[0] != PX_EOS) {
             printf("<vp ver:%s>\n", cVpVersion);
+        
         } else {
             printf("\n");
         }
@@ -719,7 +719,9 @@ static INT  __tshellVProcShow (INT  iArgC, PCHAR  *ppcArgV)
     LW_LD_VPROC        *pvproc;
     LW_LD_EXEC_MODULE  *pmodTemp;
     
+#if LW_CFG_VMM_EN == 0
     PLW_CLASS_HEAP      pheapVpPatch;
+#endif                                                                  /*  LW_CFG_VMM_EN == 0          */
     
     INT                 i, iNum;
     ULONG               ulPages;
@@ -774,30 +776,26 @@ static INT  __tshellVProcShow (INT  iArgC, PCHAR  *ppcArgV)
         }
         
         if (stTotalMem) {                                               /*  至少存在一个模块            */
-            pmodTemp     = _LIST_ENTRY(pvproc->VP_ringModules, LW_LD_EXEC_MODULE, EMOD_ringModules);
+            pmodTemp = _LIST_ENTRY(pvproc->VP_ringModules, LW_LD_EXEC_MODULE, EMOD_ringModules);
+            ulPages  = 0;
+            
+#if LW_CFG_VMM_EN > 0
+            iNum = __moduleVpPatchVmem(pmodTemp, pvVmem, LW_LD_VMEM_MAX);
+            if (iNum > 0) {
+                for (i = 0; i < iNum; i++) {
+                    if (API_VmmPCountInArea(pvVmem[i], 
+                                            &ulPages) == ERROR_NONE) {
+                        stTotalMem += (size_t)(ulPages 
+                                    *  LW_CFG_VMM_PAGE_SIZE);
+                    }
+                }
+            }
+#else
             pheapVpPatch = (PLW_CLASS_HEAP)__moduleVpPatchHeap(pmodTemp);
             if (pheapVpPatch) {                                         /*  获得 vp 进程私有 heap       */
-#if LW_CFG_VMM_EN > 0
-                ulPages = 0;
-                iNum = __moduleVpPatchVmem(pmodTemp, pvVmem, LW_LD_VMEM_MAX);
-                if (iNum > 0) {
-                    for (i = 0; i < iNum; i++) {
-                        if (API_VmmPCountInArea(pvVmem[i], 
-                                                &ulPages) == ERROR_NONE) {
-                            stTotalMem += (size_t)(ulPages 
-                                        *  LW_CFG_VMM_PAGE_SIZE);
-                        }
-                    }
-                } else if (API_VmmPCountInArea(pheapVpPatch->HEAP_pvStartAddress, 
-                                               &ulPages) == ERROR_NONE) {
-                    stTotalMem += (size_t)(ulPages * LW_CFG_VMM_PAGE_SIZE);
-                }
-#else
                 stTotalMem += (size_t)(pheapVpPatch->HEAP_stTotalByteSize);
-#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
             }
-        } else {
-            pheapVpPatch = LW_NULL;
+#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
         }
         LW_VP_UNLOCK(pvproc);
         

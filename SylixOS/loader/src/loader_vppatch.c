@@ -128,6 +128,8 @@ PCHAR __moduleVpPatchVersion (LW_LD_EXEC_MODULE *pmodule)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
+#if LW_CFG_VMM_EN == 0
+
 PVOID __moduleVpPatchHeap (LW_LD_EXEC_MODULE *pmodule)
 {
     PVOIDFUNCPTR    funcVpHeap;
@@ -140,6 +142,8 @@ PVOID __moduleVpPatchHeap (LW_LD_EXEC_MODULE *pmodule)
     
     return  (pvHeap);
 }
+
+#endif                                                                  /*  LW_CFG_VMM_EN == 0          */
 /*********************************************************************************************************
 ** 函数名称: __moduleVpPatchVmem
 ** 功能描述: vp 补丁获得虚拟地址空间

@@ -7,6 +7,10 @@ HISTORY
     2015-06-23: han.hui
     加入 SYLIXOS LITE 裁剪支持, 主要面向 ARM Cortex-M 系列微控制器.
     
+    2015-07-12: han.hui
+    可以通过 LW_CFG_VP_HEAP_ALGORITHM 宏选择 vpmpdm 进程补丁内存管理算法.
+    支持首次适应立即聚合、TLSF 时间复杂度为 O(1) 内存管理算法、DLmalloc 内存管理算法.
+    
 ++ Bugfixes:
 
     2015-06-26: han.hui

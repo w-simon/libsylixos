@@ -21,24 +21,58 @@
 #include <assert.h>
 #include <wchar.h>
 
+/*
+ * select heap memory algorithm.
+ */
+#if LW_CFG_VP_HEAP_ALGORITHM == 0
+#include "orig/orig_malloc.h"
+#define MALLOC_ALGORITHM "orig-malloc"
+#define NEED_CALL_SBRK 1
+
+#elif LW_CFG_VP_HEAP_ALGORITHM == 1
+#include "tlsf/tlsf_malloc.h"
+#define MALLOC_ALGORITHM "tlsf-malloc"
+#define NEED_CALL_SBRK 1
+
+#elif LW_CFG_VP_HEAP_ALGORITHM == 2
+#include "dlmalloc/dl_malloc.h"
+#define MALLOC_ALGORITHM "dl-malloc"
+#define NEED_CALL_SBRK 0
+
+#else
+#error LW_CFG_VP_HEAP_ALGORITHM set error.
+#endif /* LW_CFG_VP_HEAP_ALGORITHM */
+
+/*
+ * fixed gcc for arm.
+ */
 #ifdef LW_CFG_CPU_ARCH_ARM
 #include "./loader/include/loader_lib.h" /* need _Unwind_Ptr */
 #endif /* LW_CFG_CPU_ARCH_ARM */
 
-#define __VP_PATCH_VERSION      "1.3.4" /* vp patch version */
+#define __VP_PATCH_VERSION      "1.4.0" /* vp patch version */
 
+/*
+ * fixed gcc old version.
+ */
 #ifdef __GNUC__
 #if __GNUC__ < 2  || (__GNUC__ == 2 && __GNUC_MINOR__ < 5)
 #error must use GCC include "__attribute__((...))" function.
 #endif /*  __GNUC__ < 2  || ...        */
 #endif /*  __GNUC__                    */
 
+/*
+ * fixed error handle.
+ */
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_FIO_LIB_EN > 0)
 #define __LIB_PERROR(s) perror(s)
 #else
 #define __LIB_PERROR(s)
 #endif /*  (LW_CFG_DEVICE_EN > 0)...   */
 
+/*
+ * config orig heap memory algorithm safety check.
+ */
 #if LW_CFG_USER_HEAP_SAFETY
 #define __HEAP_CHECK    TRUE
 #else
@@ -112,7 +146,7 @@ char *__vp_patch_version (void *pvproc)
 {
     (void)pvproc;
 
-    return  (__VP_PATCH_VERSION);
+    return  (__VP_PATCH_VERSION " " MALLOC_ALGORITHM);
 }
 
 /*
@@ -120,6 +154,7 @@ char *__vp_patch_version (void *pvproc)
  */
 void *__vp_patch_heap (void *pvproc)
 {
+    VP_MEM_INFO(&ctx.heap);
     return  ((void *)&ctx.heap);
 }
 
@@ -185,7 +220,7 @@ void __vp_patch_ctor (void *pvproc)
 
     if (ctx.vmem[0]) {
         lib_itoa(getpid(), ctx.heap.HEAP_cHeapName, 10);
-        _HeapCtor(&ctx.heap, ctx.vmem[0], ctx.blksize);
+        VP_MEM_CTOR(&ctx.heap, ctx.vmem[0], ctx.blksize);
         ctx.allc_en = 1;
     }
 }
@@ -199,7 +234,7 @@ void __vp_patch_dtor (void *pvproc)
 #if LW_CFG_VMM_EN > 0
     int i;
     if (ctx.allc_en) {
-        _HeapDtor(&ctx.heap, FALSE);
+        VP_MEM_DTOR(&ctx.heap);
         for (i = 0; i < MAX_MEM_BLKS; i++) {
             if (ctx.vmem[i]) {
 #if LW_CFG_VMM_EN > 0
@@ -218,6 +253,42 @@ void __vp_patch_dtor (void *pvproc)
     }
 
     ctx.proc = NULL;
+}
+
+/*
+ *  vp patch heap memory extern
+ */
+void __vp_patch_sbrk (BOOL lock)
+{
+    int i;
+    volatile char  temp;
+
+    if (ctx.allc_en) {
+        if (lock) {
+            __vp_patch_lock();
+        }
+
+        for (i = 0; i < MAX_MEM_BLKS; i++) {
+            if (ctx.vmem[i] == NULL) {
+#if LW_CFG_VMM_EN > 0
+                ctx.vmem[i] = vmmMallocArea(ctx.blksize, NULL, NULL);
+#else
+                ctx.vmem[i] = __SHEAP_ALLOC(ctx.blksize);
+#endif /* LW_CFG_VMM_EN > 0 */
+                if (ctx.vmem[i]) {
+                    temp = *(char *)ctx.vmem[i];    /* vmm alloc physical page */
+                    VP_MEM_ADD(&ctx.heap, ctx.vmem[i], ctx.blksize);
+                }
+                break;
+            }
+        }
+
+        if (lock) {
+            __vp_patch_unlock();
+        }
+    }
+
+    (void)temp; /* no warning for this variable */
 }
 
 /*
@@ -296,36 +367,6 @@ static void  pre_alloc_phy (const void *pmem, size_t nbytes)
 }
 
 /*
- *  add new memory to heap
- */
-static void  heap_mem_extern (void)
-{
-    int i;
-    volatile char  temp;
-
-    if (ctx.allc_en) {
-        __vp_patch_lock();
-        for (i = 0; i < MAX_MEM_BLKS; i++) {
-            if (ctx.vmem[i] == NULL) {
-#if LW_CFG_VMM_EN > 0
-                ctx.vmem[i] = vmmMallocArea(ctx.blksize, NULL, NULL);
-#else
-                ctx.vmem[i] = __SHEAP_ALLOC(ctx.blksize);
-#endif /* LW_CFG_VMM_EN > 0 */
-                if (ctx.vmem[i]) {
-                    temp = *(char *)ctx.vmem[i];    /* vmm alloc physical page */
-                    _HeapAddMemory(&ctx.heap, ctx.vmem[i], ctx.blksize);
-                }
-                break;
-            }
-        }
-        __vp_patch_unlock();
-    }
-
-    (void)temp; /* no warning for this variable */
-}
-
-/*
  *  lib_malloc
  */
 void *lib_malloc (size_t  nbytes)
@@ -337,15 +378,17 @@ void *lib_malloc (size_t  nbytes)
 
     if (ctx.allc_en) {
 __re_try:
-        pmem = _HeapAllocate(&ctx.heap, nbytes, __func__);
+        pmem = VP_MEM_ALLOC(&ctx.heap, nbytes);
         if (pmem) {
             pre_alloc_phy(pmem, nbytes);
+
         } else {
-            if (mextern) {
+            if (mextern && !NEED_CALL_SBRK) {
                 errno = ENOMEM;
+
             } else {
                 mextern = 1;
-                heap_mem_extern();
+                __vp_patch_sbrk(TRUE);
                 goto    __re_try;
             }
         }
@@ -395,15 +438,17 @@ void *lib_mallocalign (size_t  nbytes, size_t align)
 
     if (ctx.allc_en) {
 __re_try:
-        pmem = _HeapAllocateAlign(&ctx.heap, nbytes, align, __func__);
+        pmem = VP_MEM_ALLOC_ALIGN(&ctx.heap, nbytes, align);
         if (pmem) {
             pre_alloc_phy(pmem, nbytes);
+
         } else {
-            if (mextern) {
+            if (mextern && !NEED_CALL_SBRK) {
                 errno = ENOMEM;
+
             } else {
                 mextern = 1;
-                heap_mem_extern();
+                __vp_patch_sbrk(TRUE);
                 goto    __re_try;
             }
         }
@@ -484,7 +529,7 @@ void *xmemalign (size_t align, size_t  nbytes)
 void lib_free (void *ptr)
 {
     if (ptr && ctx.allc_en) {
-        _HeapFree(&ctx.heap, ptr, __HEAP_CHECK, __func__);
+        VP_MEM_FREE(&ctx.heap, ptr, __HEAP_CHECK);
     }
 }
 
@@ -543,15 +588,17 @@ void *lib_realloc (void *ptr, size_t  new_size)
     
     if (ctx.allc_en) {
 __re_try:
-        pmem = _HeapRealloc(&ctx.heap, ptr, new_size, __HEAP_CHECK, __func__);
+        pmem = VP_MEM_REALLOC(&ctx.heap, ptr, new_size, __HEAP_CHECK);
         if (pmem) {
             pre_alloc_phy(pmem, new_size);
+
         } else {
-            if (mextern) {
+            if (mextern && !NEED_CALL_SBRK) {
                 errno = ENOMEM;
+
             } else {
                 mextern = 1;
-                heap_mem_extern();
+                __vp_patch_sbrk(TRUE);
                 goto    __re_try;
             }
         }
@@ -630,16 +677,18 @@ void *lib_malloc_new (size_t  nbytes)
 
     if (ctx.allc_en) {
 __re_try:
-        p = _HeapAllocate(&ctx.heap, nbytes, "process C++ new");
+        p = VP_MEM_ALLOC(&ctx.heap, nbytes);
         if (p) {
             pre_alloc_phy(p, nbytes);
+
         } else {
-            if (mextern) {
+            if (mextern && !NEED_CALL_SBRK) {
                 __LIB_PERROR("process C++ new() not enough memory");
                 errno = ENOMEM;
+
             } else {
                 mextern = 1;
-                heap_mem_extern();
+                __vp_patch_sbrk(TRUE);
                 goto    __re_try;
             }
         }

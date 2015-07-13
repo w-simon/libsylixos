@@ -1165,6 +1165,9 @@ SylixOS/dsohandle/dsohandle.c
 # libvpmpdm source
 #*********************************************************************************************************
 VPMPDM_SRCS = \
+SylixOS/vpmpdm/dlmalloc/dl_malloc.c \
+SylixOS/vpmpdm/dlmalloc/dlmalloc.c \
+SylixOS/vpmpdm/tlsf/tlsf.c \
 SylixOS/vpmpdm/vpmpdm_backtrace.c \
 SylixOS/vpmpdm/vpmpdm_cpp.cpp \
 SylixOS/vpmpdm/vpmpdm_lm.c \
@@ -1442,6 +1445,18 @@ $(DSOH_TARGET): $(OBJS_DSOH)
 #*********************************************************************************************************
 # compile PIC code
 #*********************************************************************************************************
+$(OBJPATH)/SylixOS/vpmpdm/dlmalloc/dl_malloc.o: ./SylixOS/vpmpdm/dlmalloc/dl_malloc.c
+		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
+		$(COMPILE_PIC.c) $< -o $@
+
+$(OBJPATH)/SylixOS/vpmpdm/dlmalloc/dlmalloc.o: ./SylixOS/vpmpdm/dlmalloc/dlmalloc.c
+		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
+		$(COMPILE_PIC.c) $< -o $@
+
+$(OBJPATH)/SylixOS/vpmpdm/tlsf/tlsf.o: ./SylixOS/vpmpdm/tlsf/tlsf.c
+		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
+		$(COMPILE_PIC.c) $< -o $@
+
 $(OBJPATH)/SylixOS/vpmpdm/vpmpdm_backtrace.o: ./SylixOS/vpmpdm/vpmpdm_backtrace.c
 		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
 		$(COMPILE_PIC.c) $< -o $@
