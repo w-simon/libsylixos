@@ -30,15 +30,16 @@
 
 #include <stdio.h>
 #include <errno.h>
-#include <SylixOS.h>
+#include <unistd.h>
+#include <sys/mman.h>
 
 void *dlmalloc_sbrk(int  size);
 
 /* use dl prefix */
-#define USE_DL_PREFIX 1
+#define USE_DL_PREFIX           1
 
 /* big page size */
-#define malloc_getpagesize (16 * 1024)
+#define malloc_getpagesize      ((size_t)16U * (size_t)1024U)
 
 /* Use the supplied emulation of sbrk */
 #define MORECORE                dlmalloc_sbrk
@@ -46,12 +47,16 @@ void *dlmalloc_sbrk(int  size);
 #define MORECORE_FAILURE        ((void*)(-1))
 #define MORECORE_CANNOT_TRIM    1
 
-/* Not use mmap and munmap. */
-#define HAVE_MMAP           0
-#define USE_MEMCPY          1
-#define USE_LOCKS           1
-#define USE_SPIN_LOCKS      0
-#define USE_RECURSIVE_LOCKS 1
+/* Have mmap to allocate large memory */
+#if LW_CFG_VMM_EN > 0
+#define HAVE_MMAP               1
+#define HAVE_MREMAP             1
+#endif /* LW_CFG_VMM_EN > 0 */
+
+/* Use some mutex locks */
+#define USE_LOCKS               1
+#define USE_SPIN_LOCKS          0
+#define USE_RECURSIVE_LOCKS     1
 
 #endif /* SYLIXOS */
 

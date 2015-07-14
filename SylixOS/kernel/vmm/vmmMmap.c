@@ -374,7 +374,7 @@ static PVOID  __vmmMmapNew (size_t  stLen, INT  iFlags, ULONG  ulFlag, int  iFd,
             _ErrorHandle(EBADF);
             return  (LW_VMM_MAP_FAILED);
         }
-        if (off >= stat64Fd.st_size) {                                  /*  off 越界                    */
+        if (off > stat64Fd.st_size) {                                   /*  off 越界                    */
             _ErrorHandle(ENXIO);
             return  (LW_VMM_MAP_FAILED);
         }
