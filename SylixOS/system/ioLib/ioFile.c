@@ -281,6 +281,10 @@ INT  _IosFileDup (PLW_FD_ENTRY pfdentry, INT iMinFd)
         }
     
     } else {
+        if (iMinFd >= 3) {                                              /*  内核 IO 环境 0 1 2 为映射符 */
+            iMinFd = STD_UNFIX(iMinFd);
+        }
+    
         for (i = iMinFd; i < LW_CFG_MAX_FILES; i++) {
             pfddesc = &_G_fddescTbl[i];
             if (!pfddesc->FDDESC_pfdentry) {

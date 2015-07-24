@@ -243,7 +243,7 @@ __LW_RETU_FUNC_DEFINE(int, clock_nanosleep, (clockid_t  clockid, int  iFlags,
                            (clockid, iFlags, rqtp, rmtp))
 
 __LW_RETU_FUNC_DEFINE(int, gettimeofday, (struct timeval *tv, struct timezone *tz), (tv, tz))
-__LW_RETU_FUNC_DEFINE(int, settimeofday, (struct timeval *tv, const struct timezone *tz), (tv, tz))
+__LW_RETU_FUNC_DEFINE(int, settimeofday, (const struct timeval *tv, const struct timezone *tz), (tv, tz))
 
 __LW_VOID_FUNC_DEFINE(tzset, (void), ())
 

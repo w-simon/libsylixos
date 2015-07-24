@@ -15,6 +15,12 @@ HISTORY
 
     2015-06-26: han.hui
     修正 HOOK 调用顺序.
+    
+    2015-07-24: han.hui
+    修正 mq_send 优先级为 0 的错误.
+    
+    2015-07-24: han.hui
+    修正 fcntl F_DUPFD 的错误.
 
 (STABLE-1.1.1)
 

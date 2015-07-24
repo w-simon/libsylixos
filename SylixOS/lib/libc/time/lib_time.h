@@ -93,7 +93,7 @@ INT          lib_clock_nanosleep(clockid_t  clockid, int  iFlags,
                                  const struct timespec  *rqtp, struct timespec  *rmtp);
 
 INT          lib_gettimeofday(struct timeval *tv, struct timezone *tz);
-INT          lib_settimeofday(struct timeval *tv, const struct timezone *tz);
+INT          lib_settimeofday(const struct timeval *tv, const struct timezone *tz);
 
 VOID         lib_tzset(VOID);
 

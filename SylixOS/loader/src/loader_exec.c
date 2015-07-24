@@ -29,6 +29,7 @@
 2013.04.01  修正 GCC 4.7.3 引发的新 warning.
 2013.06.07  进程创建参数加入工作目录选项.
 2013.09.21  exec 在当前进程上下文中运行新的文件不再切换主线程.
+2015.07.24  修正 spawnle execle 函数对环境变量表操作错误.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_STDARG
@@ -575,6 +576,7 @@ int spawnle (int mode, const char *path, const char *argv0, ...)
     INT                 i;
     va_list             valist;
     CPCHAR              pcArg;
+    char * const       *envp;
     
     if (!path) {
         errno = EINVAL;
@@ -615,16 +617,18 @@ int spawnle (int mode, const char *path, const char *argv0, ...)
         }
         psarg->SA_iArgs = i;
         
+        envp = (char * const *)va_arg(valist, char * const *);
+        
         for (i = 0; i < LW_CFG_SHELL_MAX_PARAMNUM; i++) {               /*  循环读取环境变量            */
-            pcArg = (CPCHAR)va_arg(valist, const char *);
-            if (pcArg == LW_NULL) {
+            if (envp[i]) {
+                psarg->SA_pcpcEvn[i] = lib_strdup(envp[i]);
+                if (!psarg->SA_pcpcEvn[i]) {
+                    __spawnArgFree(psarg);
+                    errno = ENOMEM;
+                    return  (PX_ERROR);
+                }
+            } else {
                 break;
-            }
-            psarg->SA_pcpcEvn[i] = lib_strdup(pcArg);
-            if (!psarg->SA_pcpcEvn[i]) {
-                __spawnArgFree(psarg);
-                errno = ENOMEM;
-                return  (PX_ERROR);
             }
         }
         psarg->SA_iEvns = i;
@@ -1053,10 +1057,10 @@ int execl (const char *path, const char *arg0, ...)
 LW_API  
 int execle (const char *path, const char *arg0, ...)
 {
-    INT         i;
-    va_list     valist;
-    CPCHAR      pcParamList[LW_CFG_SHELL_MAX_PARAMNUM];                 /*  参数列表                    */
-    CPCHAR      pcEvn[LW_CFG_SHELL_MAX_PARAMNUM];
+    INT            i;
+    va_list        valist;
+    CPCHAR         pcParamList[LW_CFG_SHELL_MAX_PARAMNUM];              /*  参数列表                    */
+    char * const  *envp;
     
     if (!path) {
         errno = EINVAL;
@@ -1077,16 +1081,11 @@ int execle (const char *path, const char *arg0, ...)
         }
     }
     
-    for (i = 0; i < LW_CFG_SHELL_MAX_PARAMNUM; i++) {                   /*  循环读取环境变量            */
-        pcEvn[i] = (CPCHAR)va_arg(valist, const char *);
-        if (pcEvn[i] == LW_NULL) {
-            break;
-        }
-    }
+    envp = (char * const *)va_arg(valist, char * const *);              /*  获取环境变量数组            */
     
     va_end(valist);
                                                                         /*  替换当前环境运行进程        */
-    return  (spawnve(P_OVERLAY, path, (char * const *)pcParamList, (char * const *)pcEvn));
+    return  (spawnve(P_OVERLAY, path, (char * const *)pcParamList, envp));
 }
 /*********************************************************************************************************
 ** 函数名称: execlp

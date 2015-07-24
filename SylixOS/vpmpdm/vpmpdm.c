@@ -50,7 +50,7 @@
 #include "./loader/include/loader_lib.h" /* need _Unwind_Ptr */
 #endif /* LW_CFG_CPU_ARCH_ARM */
 
-#define __VP_PATCH_VERSION      "1.4.0" /* vp patch version */
+#define __VP_PATCH_VERSION      "1.4.1" /* vp patch version */
 
 /*
  * fixed gcc old version.
@@ -383,7 +383,7 @@ __re_try:
             pre_alloc_phy(pmem, nbytes);
 
         } else {
-            if (mextern && !NEED_CALL_SBRK) {
+            if (mextern || !NEED_CALL_SBRK) {
                 errno = ENOMEM;
 
             } else {
@@ -443,7 +443,7 @@ __re_try:
             pre_alloc_phy(pmem, nbytes);
 
         } else {
-            if (mextern && !NEED_CALL_SBRK) {
+            if (mextern || !NEED_CALL_SBRK) {
                 errno = ENOMEM;
 
             } else {
@@ -593,7 +593,7 @@ __re_try:
             pre_alloc_phy(pmem, new_size);
 
         } else {
-            if (mextern && !NEED_CALL_SBRK) {
+            if (mextern || !NEED_CALL_SBRK) {
                 errno = ENOMEM;
 
             } else {
@@ -682,7 +682,7 @@ __re_try:
             pre_alloc_phy(p, nbytes);
 
         } else {
-            if (mextern && !NEED_CALL_SBRK) {
+            if (mextern || !NEED_CALL_SBRK) {
                 __LIB_PERROR("process C++ new() not enough memory");
                 errno = ENOMEM;
 

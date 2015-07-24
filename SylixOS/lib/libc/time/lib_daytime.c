@@ -57,7 +57,7 @@ INT  lib_gettimeofday (struct timeval *tv, struct timezone *tz)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-INT  lib_settimeofday (struct timeval *tv, const struct timezone *tz)
+INT  lib_settimeofday (const struct timeval *tv, const struct timezone *tz)
 {
     struct timespec  timespecNew;
 

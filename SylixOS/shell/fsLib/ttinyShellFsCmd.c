@@ -1701,6 +1701,10 @@ static INT  __tshellFsCmdShowmount (INT  iArgC, PCHAR  ppcArgV[])
 static INT  __tshellFsCmdLn (INT  iArgC, PCHAR  ppcArgV[])
 {
     if (iArgC == 3) {
+        if (ppcArgV[1][0] == '-') {
+            fprintf(stderr, "argments error!\n");
+            return  (-ERROR_TSHELL_EPARAM);
+        }
         if (symlink(ppcArgV[1], ppcArgV[2]) != ERROR_NONE) {
             fprintf(stderr, "symlink error : %s\n", lib_strerror(errno));
         }

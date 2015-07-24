@@ -24,6 +24,7 @@
 2013.06.11  vprocIoFileGetInherit() 继承所有文件描述符, 包括 FD_CLOEXE 属性的文件, 直到进程开始运行指定的
             可执行文件前, 在关闭 FD_CLOEXE 属性的文件.
 2013.11.18  vprocIoFileDup() 加入一个参数, 可以控制最小文件描述符数值.
+2015.07.24  修正 vprocIoFileDup() 循环错误.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -426,10 +427,10 @@ INT  vprocIoFileDup (PLW_FD_ENTRY pfdentry, INT iMinFd)
 {
     INT             i;
     PLW_FD_DESC     pfddesc;
-    
-    pfddesc = &__LW_VP_GET_CUR_PROC()->VP_fddescTbl[0];
+    LW_LD_VPROC    *pvproc = __LW_VP_GET_CUR_PROC();
     
     for (i = iMinFd; i < LW_VP_MAX_FILES; i++, pfddesc++) {
+        pfddesc = &pvproc->VP_fddescTbl[i];
         if (!pfddesc->FDDESC_pfdentry) {
             pfddesc->FDDESC_pfdentry = pfdentry;
             pfddesc->FDDESC_bCloExec = LW_FALSE;

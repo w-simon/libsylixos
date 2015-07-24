@@ -25,13 +25,6 @@ enum tlsf_private
 #if defined (TLSF_64BIT)
 	/* All allocation sizes and addresses are aligned to 8 bytes. */
 	ALIGN_SIZE_LOG2 = 3,
-#elif defined (SYLIXOS)
-    /* All allocation sizes and addresses are aligned to 2 * sizeof(size_t). */
-# if LW_CFG_CPU_WORD_LENGHT == 32
-    ALIGN_SIZE_LOG2 = 3,
-# else
-    ALIGN_SIZE_LOG2 = 4,
-# endif
 #else
 	/* All allocation sizes and addresses are aligned to 4 bytes. */
 	ALIGN_SIZE_LOG2 = 2,

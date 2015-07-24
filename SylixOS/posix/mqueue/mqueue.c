@@ -32,6 +32,7 @@
 2013.04.01  加入创建 mode 的保存, 为未来权限操作提供基础.
 2013.12.12  使用 archFindLsb() 来确定消息优先级.
 2014.05.30  使用 ROUND_UP 代替除法.
+2015.07.24  修正 mq_send 优先级为 0 时的错误.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDARG
 #define  __SYLIXOS_KERNEL
@@ -59,6 +60,10 @@
 #else
 #define __PX_MQUEUE_OPTION          (LW_OPTION_DEFAULT | LW_OPTION_OBJECT_GLOBAL)
 #endif                                                                  /*  LW_CFG_POSIX_INTER_EN > 0   */
+/*********************************************************************************************************
+  优先级转换
+*********************************************************************************************************/
+#define __PX_MQ_PRIO_CONVERT(prio)  ((MQ_PRIO_MAX - 1) - (prio))
 /*********************************************************************************************************
   一个消息节点
 *********************************************************************************************************/
@@ -335,7 +340,7 @@ static ssize_t  __mqueueRecv (__PX_MSG  *pmq, char  *msg, size_t  msglen,
     }
     
     if (pmsgprio) {
-        *pmsgprio = MQ_PRIO_MAX - uiRealPrio;                           /*  回写消息优先级              */
+        *pmsgprio = __PX_MQ_PRIO_CONVERT(uiRealPrio);                   /*  回写消息优先级              */
     }
     
     /*
@@ -825,7 +830,7 @@ int  mq_send (mqd_t  mqd, const char  *msg, size_t  msglen, unsigned msgprio)
         errno = EINVAL;
         return  (PX_ERROR);
     }
-    uiRealPrio = MQ_PRIO_MAX - msgprio;                                 /*  计算真实优先级              */
+    uiRealPrio = __PX_MQ_PRIO_CONVERT(msgprio);                         /*  计算真实优先级              */
     
     pmqfile = (__PX_MSG_FILE *)mqd;
     pmq = pmqfile->PMSGF_pmg;
@@ -897,7 +902,7 @@ int  mq_timedsend (mqd_t  mqd, const char  *msg, size_t  msglen,
         errno = EINVAL;
         return  (PX_ERROR);
     }
-    uiRealPrio = MQ_PRIO_MAX - msgprio;                                 /*  计算真实优先级              */
+    uiRealPrio = __PX_MQ_PRIO_CONVERT(msgprio);                         /*  计算真实优先级              */
     
     pmqfile = (__PX_MSG_FILE *)mqd;
     pmq = pmqfile->PMSGF_pmg;
@@ -975,7 +980,7 @@ int  mq_reltimedsend_np (mqd_t  mqd, const char  *msg, size_t  msglen,
         errno = EINVAL;
         return  (PX_ERROR);
     }
-    uiRealPrio = MQ_PRIO_MAX - msgprio;                                 /*  计算真实优先级              */
+    uiRealPrio = __PX_MQ_PRIO_CONVERT(msgprio);                         /*  计算真实优先级              */
     
     pmqfile = (__PX_MSG_FILE *)mqd;
     pmq = pmqfile->PMSGF_pmg;

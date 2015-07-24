@@ -172,7 +172,7 @@ int  mprotect (void  *pvAddr, size_t  stLen, int  iProt)
             ulFlag |= LW_VMM_FLAG_EXEC;                                 /*  可执行                      */
         }
     } else {
-        ulFlag |= LW_VMM_FLAG_FAIL;                                     /*  不允许访问                  */
+        ulFlag = LW_VMM_FLAG_FAIL;                                      /*  不允许访问                  */
     }
     
     if (API_VmmSetFlag(pvAddr, ulFlag) == ERROR_NONE) {                 /*  重新设置新的 flag           */

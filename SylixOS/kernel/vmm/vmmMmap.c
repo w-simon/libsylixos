@@ -17,6 +17,9 @@
 ** 文件创建日期: 2015 年 05 月 26 日
 **
 ** 描        述: 进程内存映射管理.
+**
+** BUG:
+2015.07.20  msync() 仅针对 SHARED 类型映射才回写文件.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -909,7 +912,7 @@ INT  API_VmmMsync (PVOID  pvAddr, size_t  stLen, INT  iInval)
     if (iInval) {
         API_VmmInvalidateArea(pmapn->MAPN_pvAddr, pvAddr, stLen);       /*  释放对应的物理内存          */
         
-    } else {
+    } else if (pmapn->MAPN_iFlags == LW_VMM_SHARED_CHANGE) {            /*  SHARED 类型可以回写文件     */
         INT        i;
         ULONG      ulPageNum;
         size_t     stExcess;

@@ -62,7 +62,7 @@ __LW_RETU_FUNC_DECLARE(int, clock_nanosleep, (clockid_t  clockid, int  iFlags,
                             const struct timespec  *rqtp, struct timespec  *rmtp))
 
 __LW_RETU_FUNC_DECLARE(int, gettimeofday, (struct timeval *tv, struct timezone *tz))
-__LW_RETU_FUNC_DECLARE(int, settimeofday, (struct timeval *tv, const struct timezone *tz))
+__LW_RETU_FUNC_DECLARE(int, settimeofday, (const struct timeval *tv, const struct timezone *tz))
 
 __LW_RETU_FUNC_DECLARE(void, tzset, (void))
 
