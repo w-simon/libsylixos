@@ -430,7 +430,7 @@ LW_API ULONG            API_CoroutineStackCheck(PVOID      pvCrcb,
 
 #if ((LW_CFG_SEMB_EN > 0) || (LW_CFG_SEMC_EN > 0) || (LW_CFG_SEMM_EN > 0)) && (LW_CFG_MAX_EVENTS > 0)
 LW_API ULONG            API_SemaphorePend(LW_OBJECT_HANDLE  ulId, 
-                                          ULONG             ulTimeOut); /*  等待任意信号量              */
+                                          ULONG             ulTimeout); /*  等待任意信号量              */
 
 LW_API ULONG            API_SemaphorePost(LW_OBJECT_HANDLE  ulId);      /*  释放任意信号量              */
 
@@ -443,11 +443,11 @@ LW_API ULONG            API_SemaphoreDelete(LW_OBJECT_HANDLE  *pulId);  /*  删除
 #if ((LW_CFG_SEMB_EN > 0) || (LW_CFG_SEMM_EN > 0)) && (LW_CFG_MAX_EVENTS > 0)
 LW_API ULONG            API_SemaphorePostBPend(LW_OBJECT_HANDLE  ulIdPost, 
                                                LW_OBJECT_HANDLE  ulId,
-                                               ULONG             ulTimeOut);
+                                               ULONG             ulTimeout);
                                                                         /*  原子释放获取二值信号量      */
 LW_API ULONG            API_SemaphorePostCPend(LW_OBJECT_HANDLE  ulIdPost, 
                                                LW_OBJECT_HANDLE  ulId,
-                                               ULONG             ulTimeOut);
+                                               ULONG             ulTimeout);
                                                                         /*  原子释放获取二值信号量      */
 #endif
 
@@ -470,7 +470,7 @@ LW_API LW_OBJECT_HANDLE API_SemaphoreCCreate(CPCHAR             pcName,
 LW_API ULONG            API_SemaphoreCDelete(LW_OBJECT_HANDLE  *pulId); /*  删除计数型信号量            */
 
 LW_API ULONG            API_SemaphoreCPend(LW_OBJECT_HANDLE  ulId, 
-                                           ULONG             ulTimeOut);/*  等待计数型信号量            */
+                                           ULONG             ulTimeout);/*  等待计数型信号量            */
 
 LW_API ULONG            API_SemaphoreCTryPend(LW_OBJECT_HANDLE  ulId);  /*  无阻塞等待计数型信号量      */
 
@@ -511,10 +511,10 @@ LW_API LW_OBJECT_HANDLE API_SemaphoreBCreate(CPCHAR             pcName,
 LW_API ULONG            API_SemaphoreBDelete(LW_OBJECT_HANDLE  *pulId); /*  删除二进制信号量            */
 
 LW_API ULONG            API_SemaphoreBPend(LW_OBJECT_HANDLE  ulId, 
-                                           ULONG             ulTimeOut);/*  等待二进制信号量            */
+                                           ULONG             ulTimeout);/*  等待二进制信号量            */
 
 LW_API ULONG            API_SemaphoreBPendEx(LW_OBJECT_HANDLE  ulId, 
-                                             ULONG             ulTimeOut,
+                                             ULONG             ulTimeout,
                                              PVOID            *ppvMsgPtr);
                                                                         /*  等待二进制信号量消息        */
 
@@ -556,7 +556,7 @@ LW_API LW_OBJECT_HANDLE API_SemaphoreMCreate(CPCHAR             pcName,
 LW_API ULONG            API_SemaphoreMDelete(LW_OBJECT_HANDLE  *pulId); /*  删除互斥信号量              */
 
 LW_API ULONG            API_SemaphoreMPend(LW_OBJECT_HANDLE  ulId, 
-                                           ULONG             ulTimeOut);/*  等待互斥信号量              */
+                                           ULONG             ulTimeout);/*  等待互斥信号量              */
 
 LW_API ULONG            API_SemaphoreMPost(LW_OBJECT_HANDLE  ulId);     /*  释放互斥信号量              */
 
@@ -591,14 +591,14 @@ LW_API ULONG            API_MsgQueueReceive(LW_OBJECT_HANDLE  ulId,
                                             PVOID             pvMsgBuffer,
                                             size_t            stMaxByteSize,
                                             size_t           *pstMsgLen,
-                                            ULONG             ulTimeOut);
+                                            ULONG             ulTimeout);
                                                                         /*  从消息队列中获取一条消息    */
 
 LW_API ULONG            API_MsgQueueReceiveEx(LW_OBJECT_HANDLE    ulId,
                                               PVOID               pvMsgBuffer,
                                               size_t              stMaxByteSize,
                                               size_t             *pstMsgLen,
-                                              ULONG               ulTimeOut,
+                                              ULONG               ulTimeout,
                                               ULONG               ulOption);
                                                                         /*  带有选项的获取消息          */
 
@@ -663,12 +663,12 @@ LW_API ULONG            API_EventSetSet(LW_OBJECT_HANDLE  ulId,
 LW_API ULONG            API_EventSetGet(LW_OBJECT_HANDLE  ulId, 
                                         ULONG             ulEvent,
                                         ULONG             ulOption,
-                                        ULONG             ulTimeOut);   /*  接收事件                    */
+                                        ULONG             ulTimeout);   /*  接收事件                    */
                                         
 LW_API ULONG            API_EventSetGetEx(LW_OBJECT_HANDLE  ulId, 
                                           ULONG             ulEvent,
                                           ULONG             ulOption,
-                                          ULONG             ulTimeOut,
+                                          ULONG             ulTimeout,
                                           ULONG            *pulEvent);  /*  接收事件扩展接口            */
 
 LW_API ULONG            API_EventSetTryGet(LW_OBJECT_HANDLE  ulId, 

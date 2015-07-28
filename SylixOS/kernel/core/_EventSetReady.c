@@ -49,8 +49,8 @@ BOOL  _EventSetDeleteReady (PLW_CLASS_EVENTSETNODE    pesn)
         __DEL_FROM_WAKEUP_LINE(ptcb);                                   /*  从等待链中删除              */
     
     } else {
-        if (ptcb->TCB_ucWaitTimeOut == LW_WAIT_TIME_OUT) {              /*  已经被超时扫描就绪了        */
-            ptcb->TCB_ucWaitTimeOut =  LW_WAIT_TIME_CLEAR;
+        if (ptcb->TCB_ucWaitTimeout == LW_WAIT_TIME_OUT) {              /*  已经被超时扫描就绪了        */
+            ptcb->TCB_ucWaitTimeout =  LW_WAIT_TIME_CLEAR;
             ptcb->TCB_ulEventSets   =  0ul;
             
             _EventSetUnlink(pesn);                                      /*  event set 解链              */
@@ -93,8 +93,8 @@ BOOL  _EventSetThreadReady (PLW_CLASS_EVENTSETNODE    pesn,
         __DEL_FROM_WAKEUP_LINE(ptcb);                                   /*  从等待链中删除              */
     
     } else {
-        if (ptcb->TCB_ucWaitTimeOut == LW_WAIT_TIME_OUT) {              /*  已经被超时扫描就绪了        */
-            ptcb->TCB_ucWaitTimeOut =  LW_WAIT_TIME_CLEAR;
+        if (ptcb->TCB_ucWaitTimeout == LW_WAIT_TIME_OUT) {              /*  已经被超时扫描就绪了        */
+            ptcb->TCB_ucWaitTimeout =  LW_WAIT_TIME_CLEAR;
             ptcb->TCB_ulEventSets   =  ulEventsReady;
             
             _EventSetUnlink(pesn);                                      /*  event set 解链              */

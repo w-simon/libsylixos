@@ -61,7 +61,7 @@
 **           ulId            事件集句柄
 **           ulEvent         等待事件
 **           ulOption        等待方法选项
-**           ulTimeOut       等待时间
+**           ulTimeout       等待时间
 **           pulEvent        接收到的事件
 ** 输　出  : 事件句柄
 ** 全局变量: 
@@ -76,7 +76,7 @@ LW_API
 ULONG  API_EventSetGetEx (LW_OBJECT_HANDLE  ulId, 
                           ULONG             ulEvent,
                           ULONG             ulOption,
-                          ULONG             ulTimeOut,
+                          ULONG             ulTimeout,
                           ULONG            *pulEvent)
 {
     LW_CLASS_EVENTSETNODE          esnNode;
@@ -107,10 +107,10 @@ ULONG  API_EventSetGetEx (LW_OBJECT_HANDLE  ulId,
     ucWaitType = (UINT8)(ulOption & 0x0F);                              /*  获得等待类型                */
     
 __wait_again:
-    if (ulTimeOut == LW_OPTION_WAIT_INFINITE) {
+    if (ulTimeout == LW_OPTION_WAIT_INFINITE) {
         ulWaitTime = 0ul;
     } else {
-        ulWaitTime = ulTimeOut;
+        ulWaitTime = ulTimeout;
     }
     
 #if LW_CFG_ARG_CHK_EN > 0
@@ -155,7 +155,7 @@ __wait_again:
             return  (ERROR_NONE);
             
         } else {
-            if (ulTimeOut == LW_OPTION_NOT_WAIT) {                      /*  不等待                      */
+            if (ulTimeout == LW_OPTION_NOT_WAIT) {                      /*  不等待                      */
                 __EVENTSET_NOT_READY();
             }                                                           /*  阻塞线程                    */
             __KERNEL_TIME_GET_NO_SPINLOCK(ulTimeSave, ULONG);           /*  记录系统时间                */
@@ -179,7 +179,7 @@ __wait_again:
             return  (ERROR_NONE);
         
         } else {
-            if (ulTimeOut == LW_OPTION_NOT_WAIT) {                      /*  不等待                      */
+            if (ulTimeout == LW_OPTION_NOT_WAIT) {                      /*  不等待                      */
                 __EVENTSET_NOT_READY();
             }                                                           /*  阻塞线程                    */
             __KERNEL_TIME_GET_NO_SPINLOCK(ulTimeSave, ULONG);           /*  记录系统时间                */
@@ -203,7 +203,7 @@ __wait_again:
             return  (ERROR_NONE);
         
         } else {
-            if (ulTimeOut == LW_OPTION_NOT_WAIT) {                      /*  不等待                      */
+            if (ulTimeout == LW_OPTION_NOT_WAIT) {                      /*  不等待                      */
                 __EVENTSET_NOT_READY();
             }                                                           /*  阻塞线程                    */
             __KERNEL_TIME_GET_NO_SPINLOCK(ulTimeSave, ULONG);           /*  记录系统时间                */
@@ -227,7 +227,7 @@ __wait_again:
             return  (ERROR_NONE);
         
         } else {
-            if (ulTimeOut == LW_OPTION_NOT_WAIT) {                      /*  不等待                      */
+            if (ulTimeout == LW_OPTION_NOT_WAIT) {                      /*  不等待                      */
                 __EVENTSET_NOT_READY();
             }                                                           /*  阻塞线程                    */
             __KERNEL_TIME_GET_NO_SPINLOCK(ulTimeSave, ULONG);           /*  记录系统时间                */
@@ -246,7 +246,7 @@ __wait_again:
     ulEventSetOption = pes->EVENTSET_ulOption;
     
     MONITOR_EVT_LONG4(MONITOR_EVENT_ID_ESET, MONITOR_EVENT_ESET_PEND, 
-                      ulId, ulEvent, ulOption, ulTimeOut, LW_NULL);
+                      ulId, ulEvent, ulOption, ulTimeout, LW_NULL);
     
     iSchedRet = __KERNEL_EXIT();                                        /*  调度器解锁                  */
     if (iSchedRet == LW_SIGNAL_EINTR) {
@@ -254,18 +254,18 @@ __wait_again:
             _ErrorHandle(EINTR);
             return  (EINTR);
         }
-        ulTimeOut = _sigTimeOutRecalc(ulTimeSave, ulTimeOut);           /*  重新计算超时时间            */
+        ulTimeout = _sigTimeoutRecalc(ulTimeSave, ulTimeout);           /*  重新计算超时时间            */
         goto    __wait_again;
     
     } else if (iSchedRet == LW_SIGNAL_RESTART) {
-        ulTimeOut = _sigTimeOutRecalc(ulTimeSave, ulTimeOut);           /*  重新计算超时时间            */
+        ulTimeout = _sigTimeoutRecalc(ulTimeSave, ulTimeout);           /*  重新计算超时时间            */
         goto    __wait_again;
     }
     
     LW_SPIN_LOCK_QUICK(&pes->EVENTSET_slLock, &iregInterLevel);         /*  关闭中断同时锁住 spinlock   */
     __KERNEL_ENTER();                                                   /*  进入内核                    */
-    if (ptcbCur->TCB_ucWaitTimeOut == LW_WAIT_TIME_OUT) {               /*  等待超时                    */
-        ptcbCur->TCB_ucWaitTimeOut =  LW_WAIT_TIME_CLEAR;
+    if (ptcbCur->TCB_ucWaitTimeout == LW_WAIT_TIME_OUT) {               /*  等待超时                    */
+        ptcbCur->TCB_ucWaitTimeout =  LW_WAIT_TIME_CLEAR;
         _EventSetUnlink(&esnNode);
         LW_SPIN_UNLOCK_QUICK(&pes->EVENTSET_slLock, iregInterLevel);    /*  打开中断, 同时打开 spinlock */
         __KERNEL_EXIT();                                                /*  退出内核                    */
@@ -320,7 +320,7 @@ __wait_again:
 **           ulId            事件集句柄
 **           ulEvent         等待事件
 **           ulOption        等待方法选项
-**           ulTimeOut       等待时间
+**           ulTimeout       等待时间
 ** 输　出  : 事件句柄
 ** 全局变量: 
 ** 调用模块: 
@@ -332,9 +332,9 @@ LW_API
 ULONG  API_EventSetGet (LW_OBJECT_HANDLE  ulId, 
                         ULONG             ulEvent,
                         ULONG             ulOption,
-                        ULONG             ulTimeOut)
+                        ULONG             ulTimeout)
 {
-    return  (API_EventSetGetEx(ulId, ulEvent, ulOption, ulTimeOut, LW_NULL));
+    return  (API_EventSetGetEx(ulId, ulEvent, ulOption, ulTimeout, LW_NULL));
 }
 
 #endif                                                                  /*  (LW_CFG_EVENTSET_EN > 0)    */

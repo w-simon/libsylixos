@@ -60,7 +60,7 @@ int  aio_suspend (const struct aiocb * const list[], int nent, const struct time
 {
     AIO_WAIT_CHAIN     *paiowc;
     struct aiowait     *paiowait;
-    ULONG               ulTimeOut;
+    ULONG               ulTimeout;
     
     BOOL                bNeedWait = LW_FALSE;
     
@@ -83,9 +83,9 @@ int  aio_suspend (const struct aiocb * const list[], int nent, const struct time
     }
     
     if (timeout == LW_NULL) {                                           /*  永久等待                    */
-        ulTimeOut = LW_OPTION_WAIT_INFINITE;
+        ulTimeout = LW_OPTION_WAIT_INFINITE;
     } else {
-        ulTimeOut = __timespecToTick(timeout);
+        ulTimeout = __timespecToTick(timeout);
     }
     
     paiowc = __aioCreateWaitChain(nent, LW_TRUE);                       /*  创建等待队列                */
@@ -134,7 +134,7 @@ int  aio_suspend (const struct aiocb * const list[], int nent, const struct time
     if ((iCnt == nent) && bNeedWait) {                                  /*  是否需要等待                */
         API_ThreadCleanupPush(__aioWaitCleanup, paiowc);
         
-        iRet = (INT)API_ThreadCondWait(&paiowc->aiowc_cond, _G_aioqueue.aioq_mutex, ulTimeOut);
+        iRet = (INT)API_ThreadCondWait(&paiowc->aiowc_cond, _G_aioqueue.aioq_mutex, ulTimeout);
         
         API_ThreadCleanupPop(LW_FALSE);                                 /*  这里已经锁定 _G_aioqueue    */
                                                                         /*  不能运行 __aioWaitCleanup   */

@@ -96,10 +96,10 @@ VOID  _ThreadTick (VOID)
     
     if (ptcb->TCB_usStatus & LW_THREAD_STATUS_PEND_ANY) {               /*  检查是否在等待事件          */
         ptcb->TCB_usStatus &= (~LW_THREAD_STATUS_PEND_ANY);             /*  等待超时清除事件等待位      */
-        ptcb->TCB_ucWaitTimeOut = LW_WAIT_TIME_OUT;                     /*  等待超时                    */
+        ptcb->TCB_ucWaitTimeout = LW_WAIT_TIME_OUT;                     /*  等待超时                    */
     
     } else {
-        ptcb->TCB_ucWaitTimeOut = LW_WAIT_TIME_CLEAR;                   /*  没有等待事件                */
+        ptcb->TCB_ucWaitTimeout = LW_WAIT_TIME_CLEAR;                   /*  没有等待事件                */
     }
     
     if (__LW_THREAD_IS_READY(ptcb)) {                                   /*  检查是否就绪                */

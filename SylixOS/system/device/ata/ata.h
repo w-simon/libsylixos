@@ -153,7 +153,7 @@ typedef struct atachan_paparm {
     INT         ATACP_iBytesPerSector;                                  /*  每扇区字节数                */
     INT         ATACP_iConfigType;                                      /*  配置标志                    */
     BOOL        ATACP_bIntEnable;                                       /*  系统中断使能标志            */
-    ULONG       ATACP_ulSyncSemTimeOut;                                 /*  同步等待超时时间(系统时钟)  */
+    ULONG       ATACP_ulSyncSemTimeout;                                 /*  同步等待超时时间(系统时钟)  */
     ATA_REG     ATACP_atareg;                                           /*  ATA任务文件寄存器           */
 } ATA_CHAN_PARAM;
 typedef ATA_CHAN_PARAM *PATA_CHAN_PARAM;

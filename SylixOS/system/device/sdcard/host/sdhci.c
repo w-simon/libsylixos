@@ -381,17 +381,17 @@ static LW_INLINE VOID __sdhciSdmaAddrUpdate (__PSDHCI_HOST psdhcihost, LONG lSys
 
 static LW_INLINE VOID __sdhciHostReset (__PSDHCI_HOST psdhcihost, UINT8 ucBitMask)
 {
-    INT     iTimeOut = 1000;
+    INT     iTimeout = 1000;
 
     SDHCI_WRITEB(&psdhcihost->SDHCIHS_sdhcihostattr,
                  SDHCI_SOFTWARE_RESET,
                  ucBitMask);
     while ((SDHCI_READB(&psdhcihost->SDHCIHS_sdhcihostattr,
-                        SDHCI_SOFTWARE_RESET) & ucBitMask) && iTimeOut) {
-        iTimeOut--;
+                        SDHCI_SOFTWARE_RESET) & ucBitMask) && iTimeout) {
+        iTimeout--;
     }
 
-    if (iTimeOut <= 0) {
+    if (iTimeout <= 0) {
         SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "host rest timeout.\r\n");
     }
 }
@@ -1215,7 +1215,7 @@ static INT __sdhciClockSet (__PSDHCI_HOST  psdhcihost, UINT32 uiSetClk)
     UINT32              uiBaseClk      = psdhcihost->SDHCIHS_sdhcicap.SDHCICAP_uiBaseClkFreq;
 
     UINT16              usDivClk       = 0;
-    UINT                uiTimeOut      = 30;
+    UINT                uiTimeout      = 30;
 
     if ((uiSetClk == psdhcihost->SDHCIHS_uiClkCurr) &&
         (psdhcihost->SDHCIHS_bClkEnable)) {
@@ -1279,8 +1279,8 @@ static INT __sdhciClockSet (__PSDHCI_HOST  psdhcihost, UINT32 uiSetClk)
             break;
         }
 
-        uiTimeOut--;
-        if (uiTimeOut == 0) {
+        uiTimeout--;
+        if (uiTimeout == 0) {
             SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "wait internal clock to be stable timeout.\r\n");
             return  (PX_ERROR);
         }
@@ -1731,7 +1731,7 @@ static INT  __sdhciCmdSend (__PSDHCI_HOST   psdhcihost,
     PLW_SDHCI_HOST_ATTR   psdhcihostattr = &psdhcihost->SDHCIHS_sdhcihostattr;
     __PSDHCI_TRANS        psdhcitrans    = psdhcihost->SDHCIHS_psdhcitrans;
     UINT32                uiMask;
-    UINT                  uiTimeOut;
+    UINT                  uiTimeout;
     INT                   iCmdFlg;
 
     struct timespec       tvOld;
@@ -1746,11 +1746,12 @@ static INT  __sdhciCmdSend (__PSDHCI_HOST   psdhcihost,
         /*
          * 等待命令(数据)线空闲
          */
-        uiTimeOut = 0;
+        uiTimeout = 0;
         lib_clock_gettime(CLOCK_MONOTONIC, &tvOld);
+        
         while (SDHCI_READL(psdhcihostattr, SDHCI_PRESENT_STATE) & uiMask) {
-            uiTimeOut++;
-            if (uiTimeOut > __SDHCI_CMD_RETRY) {
+            uiTimeout++;
+            if (uiTimeout > __SDHCI_CMD_RETRY) {
                 goto    __timeout;
             }
 

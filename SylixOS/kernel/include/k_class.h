@@ -512,7 +512,7 @@ typedef struct __lw_tcb {
     UINT8                 TCB_ucPriority;                               /*  线程优先级                  */
     UINT16                TCB_usStatus;                                 /*  线程当前状态                */
     
-    UINT8                 TCB_ucWaitTimeOut;                            /*  等待超时                    */
+    UINT8                 TCB_ucWaitTimeout;                            /*  等待超时                    */
     UINT8                 TCB_ucIsEventDelete;                          /*  事件是否被删除              */
     
     ULONG                 TCB_ulSuspendNesting;                         /*  线程挂起嵌套层数            */
@@ -707,7 +707,7 @@ typedef struct __lw_tcb_desc {
     UINT8                 TCBD_ucPriority;                              /*  线程优先级                  */
     UINT16                TCBD_usStatus;                                /*  线程当前状态                */
     
-    UINT8                 TCBD_ucWaitTimeOut;                           /*  等待超时                    */
+    UINT8                 TCBD_ucWaitTimeout;                           /*  等待超时                    */
     
     ULONG                 TCBD_ulSuspendNesting;                        /*  线程挂起嵌套层数            */
     INT                   TCBD_iDeleteProcStatus;                       /*  是否正在被删除或者重启      */

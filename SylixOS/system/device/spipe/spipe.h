@@ -61,8 +61,8 @@ typedef struct {
     UINT                  SPIPEDEV_uiReadCnt;                           /*  读端打开数量                */
     UINT                  SPIPEDEV_uiWriteCnt;                          /*  写端打开数量                */
     
-    ULONG                 SPIPEDEV_ulRTimeOut;                          /*  读操作超时时间              */
-    ULONG                 SPIPEDEV_ulWTimeOut;                          /*  写操作超时时间              */
+    ULONG                 SPIPEDEV_ulRTimeout;                          /*  读操作超时时间              */
+    ULONG                 SPIPEDEV_ulWTimeout;                          /*  写操作超时时间              */
     
     INT                   SPIPEDEV_iAbortFlag;                          /*  abort 异常标志              */
     time_t                SPIPEDEV_timeCreate;                          /*  创建时间                    */

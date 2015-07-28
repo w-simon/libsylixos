@@ -31,7 +31,7 @@ typedef struct {
     LW_OBJECT_HANDLE        PTYDDEV_hRdSyncSemB;                        /*  读同步                      */
     BOOL                    PTYDDEV_bIsClose;                           /*  是否关闭了                  */
     LW_SEL_WAKEUPLIST       PTYDDEV_selwulList;                         /*  select() 链表               */
-    ULONG                   PTYDDEV_ulRTimeOut;                         /*  读操作超时时间              */
+    ULONG                   PTYDDEV_ulRTimeout;                         /*  读操作超时时间              */
     INT                     PTYDDEV_iAbortFlag;                         /*  abort 标志                  */
     time_t                  PTYDDEV_timeCreate;                         /*  创建时间                    */
 } PTY_D_DEV;

@@ -57,7 +57,7 @@
        API_SemaphoreMPost();
 *********************************************************************************************************/
 /*********************************************************************************************************
-ulTimeOut 取值：
+ulTimeout 取值：
     
     LW_OPTION_NOT_WAIT                       不进行等待
     LW_OPTION_WAIT_A_TICK                    等待一个系统时钟
@@ -69,7 +69,7 @@ ulTimeOut 取值：
 ** 功能描述: 等待互斥信号量            由于 mutext post 操作不能在中断中进行，可大大缩短关中断时间
 ** 输　入  : 
 **           ulId            事件句柄
-**           ulTimeOut       等待时间
+**           ulTimeout       等待时间
 ** 输　出  : 
 ** 全局变量: 
 ** 调用模块: 
@@ -80,7 +80,7 @@ ulTimeOut 取值：
 #if (LW_CFG_SEMM_EN > 0) && (LW_CFG_MAX_EVENTS > 0)
 
 LW_API  
-ULONG  API_SemaphoreMPend (LW_OBJECT_HANDLE  ulId, ULONG  ulTimeOut)
+ULONG  API_SemaphoreMPend (LW_OBJECT_HANDLE  ulId, ULONG  ulTimeout)
 {
              INTREG                iregInterLevel;
              
@@ -163,7 +163,7 @@ __wait_again:
         }
     }
 
-    if (ulTimeOut == LW_OPTION_NOT_WAIT) {                              /*  不等待                      */
+    if (ulTimeout == LW_OPTION_NOT_WAIT) {                              /*  不等待                      */
         LW_SPIN_UNLOCK(&pevent->EVENT_slLock);                          /*  打开 spinlock               */
         __KERNEL_EXIT();                                                /*  退出内核                    */
         _ErrorHandle(ERROR_THREAD_WAIT_TIMEOUT);                        /*  超时                        */
@@ -185,12 +185,12 @@ __wait_again:
     iregInterLevel = KN_INT_DISABLE();                                  /*  关闭中断                    */
     
     ptcbCur->TCB_usStatus      |= LW_THREAD_STATUS_SEM;                 /*  写状态位，开始等待          */
-    ptcbCur->TCB_ucWaitTimeOut  = LW_WAIT_TIME_CLEAR;                   /*  清空等待时间                */
+    ptcbCur->TCB_ucWaitTimeout  = LW_WAIT_TIME_CLEAR;                   /*  清空等待时间                */
     
-    if (ulTimeOut == LW_OPTION_WAIT_INFINITE) {                         /*  是否是无穷等待              */
+    if (ulTimeout == LW_OPTION_WAIT_INFINITE) {                         /*  是否是无穷等待              */
         ptcbCur->TCB_ulDelay = 0ul;
     } else {
-        ptcbCur->TCB_ulDelay = ulTimeOut;                               /*  设置超时时间                */
+        ptcbCur->TCB_ulDelay = ulTimeout;                               /*  设置超时时间                */
     }
     __KERNEL_TIME_GET_NO_SPINLOCK(ulTimeSave, ULONG);                   /*  记录系统时间                */
     
@@ -210,7 +210,7 @@ __wait_again:
     ulEventOption = pevent->EVENT_ulOption;
     
     MONITOR_EVT_LONG2(MONITOR_EVENT_ID_SEMM, MONITOR_EVENT_SEM_PEND, 
-                      ulId, ulTimeOut, LW_NULL);
+                      ulId, ulTimeout, LW_NULL);
     
     iSchedRet = __KERNEL_EXIT();                                        /*  调度器解锁                  */
     if (iSchedRet == LW_SIGNAL_EINTR) {
@@ -218,18 +218,18 @@ __wait_again:
             _ErrorHandle(EINTR);
             return  (EINTR);
         }
-        ulTimeOut = _sigTimeOutRecalc(ulTimeSave, ulTimeOut);           /*  重新计算超时时间            */
+        ulTimeout = _sigTimeoutRecalc(ulTimeSave, ulTimeout);           /*  重新计算超时时间            */
         goto    __wait_again;
     
     } else if (iSchedRet == LW_SIGNAL_RESTART) {
-        ulTimeOut = _sigTimeOutRecalc(ulTimeSave, ulTimeOut);           /*  重新计算超时时间            */
+        ulTimeout = _sigTimeoutRecalc(ulTimeSave, ulTimeout);           /*  重新计算超时时间            */
         goto    __wait_again;
     }
     
-    if (ptcbCur->TCB_ucWaitTimeOut == LW_WAIT_TIME_OUT) {               /*  等待超时                    */
+    if (ptcbCur->TCB_ucWaitTimeout == LW_WAIT_TIME_OUT) {               /*  等待超时                    */
         LW_SPIN_LOCK(&pevent->EVENT_slLock);                            /*  锁定 spinlock               */
         __KERNEL_ENTER();                                               /*  进入内核                    */
-        if (ptcbCur->TCB_ucWaitTimeOut == LW_WAIT_TIME_CLEAR) {         /*  是否在上面瞬间被激活        */
+        if (ptcbCur->TCB_ucWaitTimeout == LW_WAIT_TIME_CLEAR) {         /*  是否在上面瞬间被激活        */
             LW_SPIN_UNLOCK(&pevent->EVENT_slLock);                      /*  打开 spinlock               */
             __KERNEL_EXIT();                                            /*  退出内核                    */
             if (pevent->EVENT_ulOption & LW_OPTION_DELETE_SAFE) {       /*  安全模式设定                */

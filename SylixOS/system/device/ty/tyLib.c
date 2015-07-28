@@ -153,8 +153,8 @@ INT  _TyDevInit (TY_DEV_ID  ptyDev,
 
     lib_bzero((PVOID)ptyDev, sizeof(TY_DEV));                           /*  清零内存                    */
 
-    ptyDev->TYDEV_ulRTimeOut = LW_OPTION_WAIT_INFINITE;                 /*  初始化为永久等待            */
-    ptyDev->TYDEV_ulWTimeOut = LW_OPTION_WAIT_INFINITE;                 /*  初始化为永久等待            */
+    ptyDev->TYDEV_ulRTimeout = LW_OPTION_WAIT_INFINITE;                 /*  初始化为永久等待            */
+    ptyDev->TYDEV_ulWTimeout = LW_OPTION_WAIT_INFINITE;                 /*  初始化为永久等待            */
     
     ptyDev->TYDEV_vxringidWrBuf = rngCreate((INT)stWrtBufSize);         /*  创建写缓冲区                */
     if (ptyDev->TYDEV_vxringidWrBuf == LW_NULL) {                       /*  创建失败                    */
@@ -661,26 +661,26 @@ INT  _TyIoctl (TY_DEV_ID  ptyDev,
         
     case FIORTIMEOUT:                                                   /*  设置读超时时间              */
         {
-            struct timeval *ptvTimeOut = (struct timeval *)lArg;
+            struct timeval *ptvTimeout = (struct timeval *)lArg;
             REGISTER ULONG  ulTick;
-            if (ptvTimeOut) {
-                ulTick = __timevalToTick(ptvTimeOut);                   /*  获得 tick 数量              */
-                ptyDev->TYDEV_ulRTimeOut = ulTick;
+            if (ptvTimeout) {
+                ulTick = __timevalToTick(ptvTimeout);                   /*  获得 tick 数量              */
+                ptyDev->TYDEV_ulRTimeout = ulTick;
             } else {
-                ptyDev->TYDEV_ulRTimeOut = LW_OPTION_WAIT_INFINITE;
+                ptyDev->TYDEV_ulRTimeout = LW_OPTION_WAIT_INFINITE;
             }
         }
         break;
         
     case FIOWTIMEOUT:                                                   /*  设置写超时时间              */
         {
-            struct timeval *ptvTimeOut = (struct timeval *)lArg;
+            struct timeval *ptvTimeout = (struct timeval *)lArg;
             REGISTER ULONG  ulTick;
-            if (ptvTimeOut) {
-                ulTick = __timevalToTick(ptvTimeOut);                   /*  获得 tick 数量              */
-                ptyDev->TYDEV_ulWTimeOut = ulTick;
+            if (ptvTimeout) {
+                ulTick = __timevalToTick(ptvTimeout);                   /*  获得 tick 数量              */
+                ptyDev->TYDEV_ulWTimeout = ulTick;
             } else {
-                ptyDev->TYDEV_ulWTimeOut = LW_OPTION_WAIT_INFINITE;
+                ptyDev->TYDEV_ulWTimeout = LW_OPTION_WAIT_INFINITE;
             }
         }
         break;
@@ -801,7 +801,7 @@ ssize_t  _TyWrite (TY_DEV_ID  ptyDev,
     ptyDev->TYDEV_iAbortFlag &= ~OPT_WABORT;                            /*  清除 abort                  */
     
     while (stNBytes > 0) {
-        ulError = API_SemaphoreBPend(ptyDev->TYDEV_hWrtSyncSemB, ptyDev->TYDEV_ulWTimeOut);
+        ulError = API_SemaphoreBPend(ptyDev->TYDEV_hWrtSyncSemB, ptyDev->TYDEV_ulWTimeout);
         if (ulError) {
             _ErrorHandle(ERROR_IO_DEVICE_TIMEOUT);                      /*   超时                       */
             return  (sstNbStart - stNBytes);
@@ -1017,7 +1017,7 @@ __re_read:
         if (__TTY_CC(ptyDev, VMIN) == 0) {                              /*  无需等待                    */
             ulError = API_SemaphoreBTryPend(ptyDev->TYDEV_hRdSyncSemB);
         } else {                                                        /*  普通调用                    */
-            ulError = API_SemaphoreBPend(ptyDev->TYDEV_hRdSyncSemB, ptyDev->TYDEV_ulRTimeOut);
+            ulError = API_SemaphoreBPend(ptyDev->TYDEV_hRdSyncSemB, ptyDev->TYDEV_ulRTimeout);
         }
         if (ulError) {
             _ErrorHandle(ERROR_IO_DEVICE_TIMEOUT);                      /*  超时                        */

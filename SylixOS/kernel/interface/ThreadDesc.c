@@ -99,7 +99,7 @@ ULONG  API_ThreadDesc (LW_OBJECT_HANDLE  ulId, PLW_CLASS_TCB_DESC  ptcbdesc)
     ptcbdesc->TCBD_ucPriority = ptcb->TCB_ucPriority;
     ptcbdesc->TCBD_usStatus   = ptcb->TCB_usStatus;
     
-    ptcbdesc->TCBD_ucWaitTimeOut = ptcb->TCB_ucWaitTimeOut;
+    ptcbdesc->TCBD_ucWaitTimeout = ptcb->TCB_ucWaitTimeout;
     
     ptcbdesc->TCBD_ulSuspendNesting  = ptcb->TCB_ulSuspendNesting;
     ptcbdesc->TCBD_iDeleteProcStatus = ptcb->TCB_iDeleteProcStatus;

@@ -255,9 +255,12 @@ INT API_SdioCoreDevWriteThenReadByte (PLW_SDCORE_DEVICE   psdcoredev,
 INT API_SdioCoreDevFuncEn (PLW_SDCORE_DEVICE   psdcoredev,
                            SDIO_FUNC          *psdiofunc)
 {
-    INT     iRet;
-    UINT8   ucReg;
-    ULONG   ulTimeOut;
+    INT               iRet;
+    UINT8             ucReg;
+    
+    struct timespec   tvDead;
+    struct timespec   tvTimeout;
+    struct timespec   tvNow;
 
     iRet = API_SdioCoreDevRwDirect(psdcoredev, 0, 0, SDIO_CCCR_IOEX, 0, &ucReg);
     if (iRet) {
@@ -270,8 +273,11 @@ INT API_SdioCoreDevFuncEn (PLW_SDCORE_DEVICE   psdcoredev,
         goto    __err;
     }
 
-    ulTimeOut = psdiofunc->FUNC_uiEnableTimeOut;
-    ulTimeOut = LW_MSECOND_TO_TICK_1(ulTimeOut) + lib_clock();
+    tvTimeout.tv_sec  = (time_t)(psdiofunc->FUNC_uiEnableTimeout / 1000);
+    tvTimeout.tv_nsec = (LONG)((psdiofunc->FUNC_uiEnableTimeout % 1000) * 1000 * 1000);
+    
+    lib_clock_gettime(CLOCK_MONOTONIC, &tvDead);
+    __timespecAdd(&tvDead, &tvTimeout);
 
     while (1) {
         iRet = API_SdioCoreDevRwDirect(psdcoredev, 0, 0, SDIO_CCCR_IORX, 0, &ucReg);
@@ -284,8 +290,8 @@ INT API_SdioCoreDevFuncEn (PLW_SDCORE_DEVICE   psdcoredev,
         }
 
         iRet = PX_ERROR;
-
-        if (lib_clock() > ulTimeOut) {
+        lib_clock_gettime(CLOCK_MONOTONIC, &tvNow);
+        if (__timespecLeftTime(&tvDead, &tvNow)) {
             goto    __err;
         }
     }
@@ -1212,9 +1218,9 @@ static INT __cistplParseFunceFuncN (SDIO_FUNC *psdiofunc, const UINT8 *cpucData,
     psdiofunc->FUNC_ulMaxBlkSize = cpucData[12] | (cpucData[13] << 8);
 
     if (uiVsn > SDIO_SDIO_REV_1_00) {
-        psdiofunc->FUNC_uiEnableTimeOut = (cpucData[28] | (cpucData[29] << 8)) * 10;
+        psdiofunc->FUNC_uiEnableTimeout = (cpucData[28] | (cpucData[29] << 8)) * 10;
     } else {
-        psdiofunc->FUNC_uiEnableTimeOut = 1000;
+        psdiofunc->FUNC_uiEnableTimeout = 1000;
     }
 
     return  (ERROR_NONE);

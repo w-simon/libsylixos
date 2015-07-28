@@ -270,7 +270,7 @@ ssize_t  _SpipeRead (PLW_SPIPE_FILE  pspipefil,
     if (pspipefil->SPIPEFIL_iFlags & O_NONBLOCK) {                      /*  非阻塞 IO                   */
         ulTimeout = LW_OPTION_NOT_WAIT;
     } else {
-        ulTimeout = pspipedev->SPIPEDEV_ulRTimeOut;
+        ulTimeout = pspipedev->SPIPEDEV_ulRTimeout;
     }
     
     for (;;) {
@@ -406,7 +406,7 @@ __continue_write:
     if (pspipefil->SPIPEFIL_iFlags & O_NONBLOCK) {                      /*  非阻塞 IO                   */
         ulTimeout = LW_OPTION_NOT_WAIT;
     } else {
-        ulTimeout = pspipedev->SPIPEDEV_ulWTimeOut;
+        ulTimeout = pspipedev->SPIPEDEV_ulWTimeout;
     }
     
     for (;;) {
@@ -607,26 +607,26 @@ INT  _SpipeIoctl (PLW_SPIPE_FILE pspipefil,
         
     case FIORTIMEOUT:                                                   /*  设置读超时时间              */
         {
-            struct timeval *ptvTimeOut = (struct timeval *)piArgPtr;
+            struct timeval *ptvTimeout = (struct timeval *)piArgPtr;
             REGISTER ULONG  ulTick;
-            if (ptvTimeOut) {
-                ulTick = __timevalToTick(ptvTimeOut);                   /*  获得 tick 数量              */
-                pspipedev->SPIPEDEV_ulRTimeOut = ulTick;
+            if (ptvTimeout) {
+                ulTick = __timevalToTick(ptvTimeout);                   /*  获得 tick 数量              */
+                pspipedev->SPIPEDEV_ulRTimeout = ulTick;
             } else {
-                pspipedev->SPIPEDEV_ulRTimeOut = LW_OPTION_WAIT_INFINITE;
+                pspipedev->SPIPEDEV_ulRTimeout = LW_OPTION_WAIT_INFINITE;
             }
         }
         break;
         
     case FIOWTIMEOUT:
         {
-            struct timeval *ptvTimeOut = (struct timeval *)piArgPtr;
+            struct timeval *ptvTimeout = (struct timeval *)piArgPtr;
             REGISTER ULONG  ulTick;
-            if (ptvTimeOut) {
-                ulTick = __timevalToTick(ptvTimeOut);                   /*  获得 tick 数量              */
-                pspipedev->SPIPEDEV_ulWTimeOut = ulTick;
+            if (ptvTimeout) {
+                ulTick = __timevalToTick(ptvTimeout);                   /*  获得 tick 数量              */
+                pspipedev->SPIPEDEV_ulWTimeout = ulTick;
             } else {
-                pspipedev->SPIPEDEV_ulWTimeOut = LW_OPTION_WAIT_INFINITE;
+                pspipedev->SPIPEDEV_ulWTimeout = LW_OPTION_WAIT_INFINITE;
             }
         }
         break;

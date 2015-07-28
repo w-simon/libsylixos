@@ -56,7 +56,7 @@ LW_API ULONG    API_ThreadCondInit(PLW_THREAD_COND  ptcd, ULONG  ulAttr);
 LW_API ULONG    API_ThreadCondDestroy(PLW_THREAD_COND  ptcd);
 LW_API ULONG    API_ThreadCondSignal(PLW_THREAD_COND  ptcd);
 LW_API ULONG    API_ThreadCondBroadcast(PLW_THREAD_COND  ptcd);
-LW_API ULONG    API_ThreadCondWait(PLW_THREAD_COND  ptcd, LW_OBJECT_HANDLE  ulMutex, ULONG  ulTimeOut);
+LW_API ULONG    API_ThreadCondWait(PLW_THREAD_COND  ptcd, LW_OBJECT_HANDLE  ulMutex, ULONG  ulTimeout);
 
 #endif                                                                  /*  LW_CFG_THREAD_EXT_EN > 0    */
 #endif                                                                  /*  __THREADEXT_H               */

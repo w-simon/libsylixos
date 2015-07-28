@@ -52,7 +52,7 @@ VOID  _EventSetBlock (PLW_CLASS_EVENTSET        pes,
     LW_TCB_GET_CUR(ptcbCur);                                            /*  当前任务控制块              */
     
     ptcbCur->TCB_usStatus       |= LW_THREAD_STATUS_EVENTSET;
-    ptcbCur->TCB_ucWaitTimeOut   = LW_WAIT_TIME_CLEAR;
+    ptcbCur->TCB_ucWaitTimeout   = LW_WAIT_TIME_CLEAR;
     ptcbCur->TCB_ucIsEventDelete = LW_EVENT_EXIST;
     
     ptcbCur->TCB_ulDelay = ulWaitTime;

@@ -43,8 +43,8 @@ typedef struct {
     INT                    PIPEDEV_iFlags;                              /*  建立属性                    */
     INT                    PIPEDEV_iMode;                               /*  操作方式                    */
     
-    ULONG                  PIPEDEV_ulRTimeOut;                          /*  读操作超时时间              */
-    ULONG                  PIPEDEV_ulWTimeOut;                          /*  写操作超时时间              */
+    ULONG                  PIPEDEV_ulRTimeout;                          /*  读操作超时时间              */
+    ULONG                  PIPEDEV_ulWTimeout;                          /*  写操作超时时间              */
 
     INT                    PIPEDEV_iAbortFlag;                          /*  abort 标志                  */
     time_t                 PIPEDEV_timeCreate;                          /*  创建时间                    */

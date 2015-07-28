@@ -43,7 +43,7 @@
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
 /*********************************************************************************************************
-ulTimeOut 取值：
+ulTimeout 取值：
     
     LW_OPTION_NOT_WAIT                       不进行等待
     LW_OPTION_WAIT_A_TICK                    等待一个系统时钟
@@ -58,7 +58,7 @@ ulTimeOut 取值：
 **           pvMsgBuffer     消息缓冲区
 **           stMaxByteSize   消息缓冲区大小
 **           pstMsgLen       消息长度
-**           ulTimeOut       等待时间
+**           ulTimeout       等待时间
 ** 输　出  : ERROR_CODE
 ** 全局变量: 
 ** 调用模块: 
@@ -73,7 +73,7 @@ ULONG  API_MsgQueueReceive (LW_OBJECT_HANDLE    ulId,
                             PVOID               pvMsgBuffer,
                             size_t              stMaxByteSize,
                             size_t             *pstMsgLen,
-                            ULONG               ulTimeOut)
+                            ULONG               ulTimeout)
 
 {
              INTREG                iregInterLevel;
@@ -149,7 +149,7 @@ __wait_again:
         return  (ERROR_NONE);
     }
     
-    if (ulTimeOut == LW_OPTION_NOT_WAIT) {                              /*  不等待                      */
+    if (ulTimeout == LW_OPTION_NOT_WAIT) {                              /*  不等待                      */
         LW_SPIN_UNLOCK_QUICK(&pevent->EVENT_slLock, iregInterLevel);    /*  打开中断, 同时打开 spinlock */
         __KERNEL_EXIT();                                                /*  退出内核                    */
         _ErrorHandle(ERROR_THREAD_WAIT_TIMEOUT);                        /*  超时                        */
@@ -161,12 +161,12 @@ __wait_again:
     ptcbCur->TCB_pvMsgQueueMessage = pvMsgBuffer;                       /*  记录信息                    */
     
     ptcbCur->TCB_usStatus      |= LW_THREAD_STATUS_MSGQUEUE;            /*  写状态位，开始等待          */
-    ptcbCur->TCB_ucWaitTimeOut  = LW_WAIT_TIME_CLEAR;                   /*  清空等待时间                */
+    ptcbCur->TCB_ucWaitTimeout  = LW_WAIT_TIME_CLEAR;                   /*  清空等待时间                */
     
-    if (ulTimeOut == LW_OPTION_WAIT_INFINITE) {                         /*  是否是无穷等待              */
+    if (ulTimeout == LW_OPTION_WAIT_INFINITE) {                         /*  是否是无穷等待              */
         ptcbCur->TCB_ulDelay = 0ul;
     } else {
-        ptcbCur->TCB_ulDelay = ulTimeOut;                               /*  设置超时时间                */
+        ptcbCur->TCB_ulDelay = ulTimeout;                               /*  设置超时时间                */
     }
     __KERNEL_TIME_GET_NO_SPINLOCK(ulTimeSave, ULONG);                   /*  记录系统时间                */
     
@@ -186,7 +186,7 @@ __wait_again:
     ulEventOption = pevent->EVENT_ulOption;
     
     MONITOR_EVT_LONG2(MONITOR_EVENT_ID_MSGQ, MONITOR_EVENT_MSGQ_PEND, 
-                      ulId, ulTimeOut, LW_NULL);
+                      ulId, ulTimeout, LW_NULL);
     
     iSchedRet = __KERNEL_EXIT();                                        /*  调度器解锁                  */
     if (iSchedRet == LW_SIGNAL_EINTR) {
@@ -194,18 +194,18 @@ __wait_again:
             _ErrorHandle(EINTR);
             return  (EINTR);
         }
-        ulTimeOut = _sigTimeOutRecalc(ulTimeSave, ulTimeOut);           /*  重新计算超时时间            */
+        ulTimeout = _sigTimeoutRecalc(ulTimeSave, ulTimeout);           /*  重新计算超时时间            */
         goto    __wait_again;
     
     } else if (iSchedRet == LW_SIGNAL_RESTART) {
-        ulTimeOut = _sigTimeOutRecalc(ulTimeSave, ulTimeOut);           /*  重新计算超时时间            */
+        ulTimeout = _sigTimeoutRecalc(ulTimeSave, ulTimeout);           /*  重新计算超时时间            */
         goto    __wait_again;
     }
     
-    if (ptcbCur->TCB_ucWaitTimeOut == LW_WAIT_TIME_OUT) {
+    if (ptcbCur->TCB_ucWaitTimeout == LW_WAIT_TIME_OUT) {
         LW_SPIN_LOCK_QUICK(&pevent->EVENT_slLock, &iregInterLevel);     /*  关闭中断, 锁住 spinlock     */
         __KERNEL_ENTER();                                               /*  进入内核                    */
-        if (ptcbCur->TCB_ucWaitTimeOut == LW_WAIT_TIME_CLEAR) {         /*  是否在上面瞬间被激活        */
+        if (ptcbCur->TCB_ucWaitTimeout == LW_WAIT_TIME_CLEAR) {         /*  是否在上面瞬间被激活        */
             LW_SPIN_UNLOCK_QUICK(&pevent->EVENT_slLock, 
                                  iregInterLevel);                       /*  打开中断, 同时打开 spinlock */
             __KERNEL_EXIT();                                            /*  退出内核                    */
@@ -239,7 +239,7 @@ __wait_again:
 **           pvMsgBuffer     消息缓冲区
 **           stMaxByteSize   消息缓冲区大小
 **           pstMsgLen       消息长度
-**           ulTimeOut       等待时间
+**           ulTimeout       等待时间
 **           ulOption        接收选项
 ** 输　出  : ERROR_CODE
 ** 全局变量: 
@@ -253,7 +253,7 @@ ULONG  API_MsgQueueReceiveEx (LW_OBJECT_HANDLE    ulId,
                               PVOID               pvMsgBuffer,
                               size_t              stMaxByteSize,
                               size_t             *pstMsgLen,
-                              ULONG               ulTimeOut,
+                              ULONG               ulTimeout,
                               ULONG               ulOption)
 {
     
@@ -342,7 +342,7 @@ __wait_again:
         return  (ERROR_NONE);
     }
     
-    if (ulTimeOut == LW_OPTION_NOT_WAIT) {                              /*  不等待                      */
+    if (ulTimeout == LW_OPTION_NOT_WAIT) {                              /*  不等待                      */
         LW_SPIN_UNLOCK_QUICK(&pevent->EVENT_slLock, iregInterLevel);    /*  打开中断, 同时打开 spinlock */
         __KERNEL_EXIT();                                                /*  退出内核                    */
         _ErrorHandle(ERROR_THREAD_WAIT_TIMEOUT);                        /*  超时                        */
@@ -354,12 +354,12 @@ __wait_again:
     ptcbCur->TCB_pvMsgQueueMessage = pvMsgBuffer;                       /*  记录信息                    */
     
     ptcbCur->TCB_usStatus      |= LW_THREAD_STATUS_MSGQUEUE;            /*  写状态位，开始等待          */
-    ptcbCur->TCB_ucWaitTimeOut  = LW_WAIT_TIME_CLEAR;                   /*  清空等待时间                */
+    ptcbCur->TCB_ucWaitTimeout  = LW_WAIT_TIME_CLEAR;                   /*  清空等待时间                */
     
-    if (ulTimeOut == LW_OPTION_WAIT_INFINITE) {                         /*  是否是无穷等待              */
+    if (ulTimeout == LW_OPTION_WAIT_INFINITE) {                         /*  是否是无穷等待              */
         ptcbCur->TCB_ulDelay = 0ul;
     } else {
-        ptcbCur->TCB_ulDelay = ulTimeOut;                               /*  设置超时时间                */
+        ptcbCur->TCB_ulDelay = ulTimeout;                               /*  设置超时时间                */
     }
     __KERNEL_TIME_GET_NO_SPINLOCK(ulTimeSave, ULONG);                   /*  记录系统时间                */
     
@@ -379,7 +379,7 @@ __wait_again:
     ulEventOption = pevent->EVENT_ulOption;
     
     MONITOR_EVT_LONG2(MONITOR_EVENT_ID_MSGQ, MONITOR_EVENT_MSGQ_PEND, 
-                      ulId, ulTimeOut, LW_NULL);
+                      ulId, ulTimeout, LW_NULL);
     
     iSchedRet = __KERNEL_EXIT();                                        /*  调度器解锁                  */
     if (iSchedRet == LW_SIGNAL_EINTR) {
@@ -387,18 +387,18 @@ __wait_again:
             _ErrorHandle(EINTR);
             return  (EINTR);
         }
-        ulTimeOut = _sigTimeOutRecalc(ulTimeSave, ulTimeOut);           /*  重新计算超时时间            */
+        ulTimeout = _sigTimeoutRecalc(ulTimeSave, ulTimeout);           /*  重新计算超时时间            */
         goto    __wait_again;
     
     } else if (iSchedRet == LW_SIGNAL_RESTART) {
-        ulTimeOut = _sigTimeOutRecalc(ulTimeSave, ulTimeOut);           /*  重新计算超时时间            */
+        ulTimeout = _sigTimeoutRecalc(ulTimeSave, ulTimeout);           /*  重新计算超时时间            */
         goto    __wait_again;
     }
     
-    if (ptcbCur->TCB_ucWaitTimeOut == LW_WAIT_TIME_OUT) {
+    if (ptcbCur->TCB_ucWaitTimeout == LW_WAIT_TIME_OUT) {
         LW_SPIN_LOCK_QUICK(&pevent->EVENT_slLock, &iregInterLevel);     /*  关闭中断, 锁住 spinlock     */
         __KERNEL_ENTER();                                               /*  进入内核                    */
-        if (ptcbCur->TCB_ucWaitTimeOut == LW_WAIT_TIME_CLEAR) {         /*  是否在上面瞬间被激活        */
+        if (ptcbCur->TCB_ucWaitTimeout == LW_WAIT_TIME_CLEAR) {         /*  是否在上面瞬间被激活        */
             LW_SPIN_UNLOCK_QUICK(&pevent->EVENT_slLock, 
                                  iregInterLevel);                       /*  打开中断, 同时打开 spinlock */
             __KERNEL_EXIT();                                            /*  退出内核                    */

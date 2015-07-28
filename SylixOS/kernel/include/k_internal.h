@@ -628,8 +628,8 @@ ULONG          _RmsEndExpire(PLW_CLASS_RMS  prms);
 *********************************************************************************************************/
 
 #if LW_CFG_SIGNAL_EN > 0
-ULONG          _sigTimeOutRecalc(ULONG  ulOrgKernelTime, 
-                                 ULONG  ulOrgTimeOut);
+ULONG          _sigTimeoutRecalc(ULONG  ulOrgKernelTime, 
+                                 ULONG  ulOrgTimeout);
 INT            _doSigEvent(LW_OBJECT_HANDLE  ulId, 
                            struct sigevent  *psigevent, 
                            INT               iSigCode);
@@ -637,7 +637,7 @@ INT            _doSigEventEx(LW_OBJECT_HANDLE  ulId,
                              struct sigevent  *psigevent, 
                              struct siginfo   *psiginfo);
 #else
-#define _sigTimeOutRecalc(a, b) LW_OPTION_NOT_WAIT
+#define _sigTimeoutRecalc(a, b) LW_OPTION_NOT_WAIT
 #endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
 
 /*********************************************************************************************************

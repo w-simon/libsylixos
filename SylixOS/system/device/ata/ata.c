@@ -874,7 +874,7 @@ INT API_AtaDrv (ATA_CHAN  *patachan, ATA_CHAN_PARAM *patacp)
         return  (PX_ERROR);
     }
 
-    patactrl->ATACTRL_ulSyncSemTimeout = patacp->ATACP_ulSyncSemTimeOut;/*  保存同步信号量超时时间      */
+    patactrl->ATACTRL_ulSyncSemTimeout = patacp->ATACP_ulSyncSemTimeout;/*  保存同步信号量超时时间      */
 
     LW_SPIN_INIT(&patactrl->ATACTRL_slLock);                            /*  初始化自旋锁                */
 

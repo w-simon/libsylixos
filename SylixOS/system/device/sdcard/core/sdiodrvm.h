@@ -82,7 +82,7 @@ struct sdio_func {
     ULONG            FUNC_ulMaxBlkSize;
     ULONG            FUNC_ulCurBlkSize;
 
-    UINT32           FUNC_uiEnableTimeOut;                          /*  in milli second                 */
+    UINT32           FUNC_uiEnableTimeout;                          /*  in milli second                 */
 
     UINT32           FUNC_uiMaxDtr;                                 /*  仅功能0使用                     */
 

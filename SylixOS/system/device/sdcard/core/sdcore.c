@@ -933,6 +933,7 @@ LW_API INT  API_SdCoreSpiSendIfCond (PLW_SDCORE_DEVICE psdcoredevice)
     spimsg.SPIMSG_usFlag      = __SD_SPI_TMOD_RD;
 
     lib_clock_gettime(CLOCK_MONOTONIC, &tvOld);
+    
     while (iRetry++ < __SD_SPI_RSP_TIMEOUT) {
         iError = API_SpiDeviceTransfer(pcspidev->CSPIDEV_pspiDev,
                                        &spimsg,
@@ -944,6 +945,7 @@ LW_API INT  API_SdCoreSpiSendIfCond (PLW_SDCORE_DEVICE psdcoredevice)
         if (!(ucBuf[0] & 0x80)) {
             goto    __resp_accept;
         }
+        
         lib_clock_gettime(CLOCK_MONOTONIC, &tvNow);
         if ((tvNow.tv_sec - tvOld.tv_sec) >= __SD_SPI_RSP_WAITSEC) {    /*  超时退出                    */
             SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "get response timeout.\r\n");
@@ -1033,11 +1035,13 @@ LW_API INT  API_SdCoreSpiRegisterRead (PLW_SDCORE_DEVICE  psdcoredevice,
      * 等待数据起始令牌.
      */
     lib_clock_gettime(CLOCK_MONOTONIC, &tvOld);
+    
     while (iRetry++ < __SD_SPI_RSP_TIMEOUT) {
         __sdCoreSpiByteRd(pcspidevice, 1, &ucRdToken);
         if (ucRdToken != 0xff) {
             goto    __resp_accept;
         }
+        
         lib_clock_gettime(CLOCK_MONOTONIC, &tvNow);
         if ((tvNow.tv_sec - tvOld.tv_sec) >= __SD_SPI_RSP_WAITSEC) {    /*  超时退出                    */
             SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "wait read start token timeout.\r\n");
@@ -1838,6 +1842,7 @@ static INT __sdCoreSpiBlkRd (__PCORE_SPI_DEV pcspidevice,
      * 等待数据起始令牌.
      */
     lib_clock_gettime(CLOCK_MONOTONIC, &tvOld);
+    
     while (iRetry++ < __SD_SPI_RSP_TIMEOUT) {
         __sdCoreSpiByteRd(pcspidevice, 1, &ucRdToken);
         if (ucRdToken == SD_SPITOKEN_START_SIGBLK) {
@@ -1956,6 +1961,7 @@ static INT __sdCoreSpiBlkWrt (__PCORE_SPI_DEV pcspidevice,
      * 查看设备对写入数据的响应情况.
      */
     lib_clock_gettime(CLOCK_MONOTONIC, &tvOld);
+    
     iRetry = 0;
     while (iRetry++ < __SD_SPI_RSP_TIMEOUT) {
         __sdCoreSpiByteRd(pcspidevice, 1, &ucWrtToken);
@@ -2075,6 +2081,7 @@ static INT __sdCoreSpiWaitBusy (__PCORE_SPI_DEV pcspidevice)
     INT               iRetry = 0;
 
     lib_clock_gettime(CLOCK_MONOTONIC, &tvOld);
+    
     while (iRetry++ < __SD_SPI_RSP_TIMEOUT) {
         iError = __sdCoreSpiByteRd(pcspidevice, 1, &ucDatBsy);
         if (iError != ERROR_NONE) {

@@ -186,7 +186,7 @@ INT  API_PtyDevCreate (PCHAR   pcName,
     lib_bzero(&p_ptyddev->PTYDDEV_devhdrDevice, sizeof(LW_DEV_HDR));
     
     p_ptyddev->PTYDDEV_iAbortFlag = 0;
-    p_ptyddev->PTYDDEV_ulRTimeOut = LW_OPTION_WAIT_INFINITE;            /*  初始化为永久等待            */
+    p_ptyddev->PTYDDEV_ulRTimeout = LW_OPTION_WAIT_INFINITE;            /*  初始化为永久等待            */
     SEL_WAKE_UP_LIST_INIT(&p_ptyddev->PTYDDEV_selwulList);              /*  初始化设备端 sel 结构       */
     
     p_ptyddev->PTYDDEV_hRdSyncSemB = API_SemaphoreBCreate("ptyd_rsync",

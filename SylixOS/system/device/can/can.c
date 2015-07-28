@@ -79,8 +79,8 @@ typedef struct {
     __CAN_DEV_STATE     CAN_canstatWriteState;                          /*  写状态                      */
     UINT                CAN_uiBusState;                                 /*  总线状态                    */
 
-    ULONG               CAN_ulSendTimeOut;                              /*  发送超时时间                */
-    ULONG               CAN_ulRecvTimeOut;                              /*  接收超时时间                */
+    ULONG               CAN_ulSendTimeout;                              /*  发送超时时间                */
+    ULONG               CAN_ulRecvTimeout;                              /*  接收超时时间                */
 
     LW_SEL_WAKEUPLIST   CAN_selwulList;                                 /*  select() 等待链             */
 
@@ -468,8 +468,8 @@ static INT __canDevInit (__CAN_DEV *pcanDev,
 {
     REGISTER INT    iErrLevel = 0;
 
-    pcanDev->CAN_ulSendTimeOut = LW_OPTION_WAIT_INFINITE;               /*  初始化为永久等待            */
-    pcanDev->CAN_ulRecvTimeOut = LW_OPTION_WAIT_INFINITE;               /*  初始化为永久等待            */
+    pcanDev->CAN_ulSendTimeout = LW_OPTION_WAIT_INFINITE;               /*  初始化为永久等待            */
+    pcanDev->CAN_ulRecvTimeout = LW_OPTION_WAIT_INFINITE;               /*  初始化为永久等待            */
 
     pcanDev->CAN_pcanqRecvQueue = __canInitQueue(uiRdFrameSize);        /*  创建读缓冲区                */
     if (pcanDev->CAN_pcanqRecvQueue == LW_NULL) {                       /*  创建失败                    */
@@ -683,20 +683,20 @@ static INT __canIoctl (__CAN_DEV    *pcanDev, INT  cmd, LONG  lArg)
         case FIOWTIMEOUT:
             if (lArg) {
                 timevalTemp = (struct timeval *)lArg;
-                pcanDev->CAN_ulSendTimeOut = __timevalToTick(timevalTemp);
+                pcanDev->CAN_ulSendTimeout = __timevalToTick(timevalTemp);
                                                                         /*  转换为系统时钟              */
             } else {
-                pcanDev->CAN_ulSendTimeOut = LW_OPTION_WAIT_INFINITE;
+                pcanDev->CAN_ulSendTimeout = LW_OPTION_WAIT_INFINITE;
             }
             break;
 
         case FIORTIMEOUT:
             if (lArg) {
                 timevalTemp = (struct timeval *)lArg;
-                pcanDev->CAN_ulRecvTimeOut = __timevalToTick(timevalTemp);
+                pcanDev->CAN_ulRecvTimeout = __timevalToTick(timevalTemp);
                                                                         /*  转换为系统时钟              */
             } else {
-                pcanDev->CAN_ulRecvTimeOut = LW_OPTION_WAIT_INFINITE;
+                pcanDev->CAN_ulRecvTimeout = LW_OPTION_WAIT_INFINITE;
             }
             break;
 
@@ -791,7 +791,7 @@ static ssize_t __canWrite (__CAN_DEV        *pcanDev,
 
     while (stNumber > 0) {
         ulError = API_SemaphoreBPend(pcanDev->CAN_ulSendSemB,
-                                     pcanDev->CAN_ulSendTimeOut);
+                                     pcanDev->CAN_ulSendTimeout);
         if (ulError) {
             _ErrorHandle(ERROR_IO_DEVICE_TIMEOUT);                      /*   超时                       */
             return  ((ssize_t)(i * sizeof(CAN_FRAME)));
@@ -858,7 +858,7 @@ static ssize_t __canRead (__CAN_DEV       *pcanDev,
 
     for (;;) {
         ulError = API_SemaphoreBPend(pcanDev->CAN_ulRcvSemB,
-                                     pcanDev->CAN_ulRecvTimeOut);
+                                     pcanDev->CAN_ulRecvTimeout);
         if (ulError) {
            _ErrorHandle(ERROR_IO_DEVICE_TIMEOUT);                       /*  超时                        */
            return   (0);

@@ -127,7 +127,7 @@ ssize_t  _PipeRead (PLW_PIPE_DEV  p_pipedev,
                                       (PVOID)pcBuffer,
                                       stMaxBytes,
                                       &stTemp,
-                                      p_pipedev->PIPEDEV_ulRTimeOut);
+                                      p_pipedev->PIPEDEV_ulRTimeout);
     }
 
     sstNBytes = (ssize_t)stTemp;
@@ -182,7 +182,7 @@ ssize_t  _PipeWrite (PLW_PIPE_DEV  p_pipedev,
             p_pipedev->PIPEDEV_iAbortFlag &= ~OPT_WABORT;               /*  清除 abort 标志             */
         
             ulErrCodel = API_SemaphoreBPend(p_pipedev->PIPEDEV_hWriteLock,
-                                            p_pipedev->PIPEDEV_ulWTimeOut);
+                                            p_pipedev->PIPEDEV_ulWTimeout);
             if (ulErrCodel) {                                           /*  不可写                      */
                 return  (0);
             }
@@ -330,26 +330,26 @@ INT  _PipeIoctl (PLW_PIPE_DEV  p_pipedev,
         
     case FIORTIMEOUT:                                                   /*  设置读超时时间              */
         {
-            struct timeval *ptvTimeOut = (struct timeval *)piArgPtr;
+            struct timeval *ptvTimeout = (struct timeval *)piArgPtr;
             REGISTER ULONG  ulTick;
-            if (ptvTimeOut) {
-                ulTick = __timevalToTick(ptvTimeOut);                   /*  获得 tick 数量              */
-                p_pipedev->PIPEDEV_ulRTimeOut = ulTick;
+            if (ptvTimeout) {
+                ulTick = __timevalToTick(ptvTimeout);                   /*  获得 tick 数量              */
+                p_pipedev->PIPEDEV_ulRTimeout = ulTick;
             } else {
-                p_pipedev->PIPEDEV_ulRTimeOut = LW_OPTION_WAIT_INFINITE;
+                p_pipedev->PIPEDEV_ulRTimeout = LW_OPTION_WAIT_INFINITE;
             }
         }
         break;
         
     case FIOWTIMEOUT:                                                   /*  设置写超时时间              */
         {
-            struct timeval *ptvTimeOut = (struct timeval *)piArgPtr;
+            struct timeval *ptvTimeout = (struct timeval *)piArgPtr;
             REGISTER ULONG  ulTick;
-            if (ptvTimeOut) {
-                ulTick = __timevalToTick(ptvTimeOut);                   /*  获得 tick 数量              */
-                p_pipedev->PIPEDEV_ulWTimeOut = ulTick;
+            if (ptvTimeout) {
+                ulTick = __timevalToTick(ptvTimeout);                   /*  获得 tick 数量              */
+                p_pipedev->PIPEDEV_ulWTimeout = ulTick;
             } else {
-                p_pipedev->PIPEDEV_ulWTimeOut = LW_OPTION_WAIT_INFINITE;
+                p_pipedev->PIPEDEV_ulWTimeout = LW_OPTION_WAIT_INFINITE;
             }
         }
         break;

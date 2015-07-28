@@ -224,7 +224,7 @@ static INT  __mqueueSend (__PX_MSG  *pmq, const char  *msg, size_t  msglen,
         }
         __PX_MQ_UNLOCK(pmq);                                            /*  解锁消息队列                */
     
-        ulTimeout = _sigTimeOutRecalc(ulOrgKernelTime, ulTimeout);      /*  重新计算等待时间            */
+        ulTimeout = _sigTimeoutRecalc(ulOrgKernelTime, ulTimeout);      /*  重新计算等待时间            */
     } while (1);
     
     pringMsg = pmq->PMSG_pmsgmem.PMSGM_pringFreeList;
@@ -315,7 +315,7 @@ static ssize_t  __mqueueRecv (__PX_MSG  *pmq, char  *msg, size_t  msglen,
         }
         __PX_MQ_UNLOCK(pmq);                                            /*  解锁消息队列                */
     
-        ulTimeout = _sigTimeOutRecalc(ulOrgKernelTime, ulTimeout);      /*  重新计算等待时间            */
+        ulTimeout = _sigTimeoutRecalc(ulOrgKernelTime, ulTimeout);      /*  重新计算等待时间            */
     } while (1);
     
     uiRealPrio = __mqueueSeekPrio(pmq);                                 /*  确定优先级                  */

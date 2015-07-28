@@ -116,8 +116,8 @@ typedef struct {
     INT                     TYDEV_iProtoArg;                            /*  使用协议栈时的参数,         */
     INT                     TYDEV_iOpt;                                 /*  当前终端的工作参数及选项    */
     
-    ULONG                   TYDEV_ulRTimeOut;                           /*  读操作超时时间              */
-    ULONG                   TYDEV_ulWTimeOut;                           /*  写操作超时时间              */
+    ULONG                   TYDEV_ulRTimeout;                           /*  读操作超时时间              */
+    ULONG                   TYDEV_ulWTimeout;                           /*  写操作超时时间              */
     
     INT                     TYDEV_iAbortFlag;                           /*  abort 标志                  */
     

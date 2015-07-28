@@ -1180,7 +1180,7 @@ INT  sigtimedwait (const sigset_t *psigset, struct  siginfo  *psiginfo, const st
              struct siginfo         siginfo;
              LW_CLASS_SIGWAIT       sigwt;
              
-             ULONG                  ulTimeOut;
+             ULONG                  ulTimeout;
     
     if (!psigset) {
         _ErrorHandle(EINVAL);
@@ -1188,9 +1188,9 @@ INT  sigtimedwait (const sigset_t *psigset, struct  siginfo  *psiginfo, const st
     }
     
     if (ptv == LW_NULL) {                                               /*  永久等待                    */
-        ulTimeOut = LW_OPTION_WAIT_INFINITE;
+        ulTimeout = LW_OPTION_WAIT_INFINITE;
     } else {
-        ulTimeOut = __timespecToTick(ptv);
+        ulTimeout = __timespecToTick(ptv);
     }
     
     __THREAD_CANCEL_POINT();                                            /*  测试取消点                  */
@@ -1212,7 +1212,7 @@ INT  sigtimedwait (const sigset_t *psigset, struct  siginfo  *psiginfo, const st
         return  (siginfo.si_signo);
     }
     
-    if (ulTimeOut == LW_OPTION_NOT_WAIT) {                              /*  不进行等待                  */
+    if (ulTimeout == LW_OPTION_NOT_WAIT) {                              /*  不进行等待                  */
         __KERNEL_EXIT();                                                /*  退出内核                    */
         _ErrorHandle(EAGAIN);
         return  (PX_ERROR);
@@ -1220,13 +1220,13 @@ INT  sigtimedwait (const sigset_t *psigset, struct  siginfo  *psiginfo, const st
     
     iregInterLevel = KN_INT_DISABLE();                                  /*  关闭中断                    */
     ptcbCur->TCB_usStatus |= LW_THREAD_STATUS_SIGNAL;                   /*  等待信号                    */
-    ptcbCur->TCB_ucWaitTimeOut  = LW_WAIT_TIME_CLEAR;                   /*  清空等待时间                */
+    ptcbCur->TCB_ucWaitTimeout = LW_WAIT_TIME_CLEAR;                    /*  清空等待时间                */
     
     ppcb = _GetPcb(ptcbCur);
     __DEL_FROM_READY_RING(ptcbCur, ppcb);                               /*  从就绪表中删除              */
     
-    if (ulTimeOut != LW_OPTION_WAIT_INFINITE) {
-        ptcbCur->TCB_ulDelay = ulTimeOut;                               /*  设置超时时间                */
+    if (ulTimeout != LW_OPTION_WAIT_INFINITE) {
+        ptcbCur->TCB_ulDelay = ulTimeout;                               /*  设置超时时间                */
         __ADD_TO_WAKEUP_LINE(ptcbCur);                                  /*  加入等待扫描链              */
     } else {
         ptcbCur->TCB_ulDelay = 0ul;
@@ -1243,7 +1243,7 @@ INT  sigtimedwait (const sigset_t *psigset, struct  siginfo  *psiginfo, const st
     }
     
     __KERNEL_ENTER();                                                   /*  进入内核                    */
-    if (ptcbCur->TCB_ucWaitTimeOut == LW_WAIT_TIME_OUT) {               /*  等待超时                    */
+    if (ptcbCur->TCB_ucWaitTimeout == LW_WAIT_TIME_OUT) {               /*  等待超时                    */
         __KERNEL_EXIT();                                                /*  退出内核                    */
         _ErrorHandle(EAGAIN);
         return  (PX_ERROR);

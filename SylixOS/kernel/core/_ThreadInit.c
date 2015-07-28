@@ -145,7 +145,7 @@ VOID  _TCBBuild (UINT8                    ucPriority,
     ptcb->TCB_pstkStackLowAddr = pstkStackLowAddr;                      /*  包括 TCB 在内的堆栈基地址   */
 
     ptcb->TCB_iSchedRet     = ERROR_NONE;                               /*  初始化调度器返回值          */
-    ptcb->TCB_ucWaitTimeOut = LW_WAIT_TIME_CLEAR;                       /*  没有超时                    */
+    ptcb->TCB_ucWaitTimeout = LW_WAIT_TIME_CLEAR;                       /*  没有超时                    */
     
     ptcb->TCB_ulOption      = ulOption & (~LW_OPTION_THREAD_USED_FP);   /*  选项 (浮点标志由驱动管理)   */
     ptcb->TCB_ulId          = ulId;                                     /*  Id                          */

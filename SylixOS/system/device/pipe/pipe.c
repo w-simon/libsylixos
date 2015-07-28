@@ -108,8 +108,8 @@ INT  API_PipeDevCreate (PCHAR  pcName,
     lib_bzero(p_pipedev, sizeof(LW_PIPE_DEV));
     
     p_pipedev->PIPEDEV_iAbortFlag = 0;
-    p_pipedev->PIPEDEV_ulRTimeOut = LW_OPTION_WAIT_INFINITE;             /*  初始化为永久等待           */
-    p_pipedev->PIPEDEV_ulWTimeOut = LW_OPTION_WAIT_INFINITE;             /*  初始化为永久等待           */
+    p_pipedev->PIPEDEV_ulRTimeout = LW_OPTION_WAIT_INFINITE;             /*  初始化为永久等待           */
+    p_pipedev->PIPEDEV_ulWTimeout = LW_OPTION_WAIT_INFINITE;             /*  初始化为永久等待           */
     
     p_pipedev->PIPEDEV_hWriteLock = API_SemaphoreBCreate("pipe_wsync", 
                                                           LW_TRUE,

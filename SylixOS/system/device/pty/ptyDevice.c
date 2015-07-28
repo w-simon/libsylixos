@@ -126,7 +126,7 @@ ssize_t  _PtyDeviceRead (P_PTY_DEV     p_ptydev,
         
         if (iTemp == 0) {
             ulError = API_SemaphoreBPend(p_ptyddev->PTYDDEV_hRdSyncSemB, 
-                                         p_ptyddev->PTYDDEV_ulRTimeOut);
+                                         p_ptyddev->PTYDDEV_ulRTimeout);
             if (ulError) {                                              /*  产生超时或其他错误          */
                 return  ((ssize_t)iTemp);
             }
@@ -190,13 +190,13 @@ INT  _PtyDeviceIoctl (P_PTY_DEV     p_ptydev,
     
     case FIORTIMEOUT:                                                   /*  设置读超时时间              */
         {
-            struct timeval *ptvTimeOut = (struct timeval *)lArg;
+            struct timeval *ptvTimeout = (struct timeval *)lArg;
             REGISTER ULONG  ulTick;
-            if (ptvTimeOut) {
-                ulTick = __timevalToTick(ptvTimeOut);                   /*  获得 tick 数量              */
-                p_ptyddev->PTYDDEV_ulRTimeOut = ulTick;
+            if (ptvTimeout) {
+                ulTick = __timevalToTick(ptvTimeout);                   /*  获得 tick 数量              */
+                p_ptyddev->PTYDDEV_ulRTimeout = ulTick;
             } else {
-                p_ptyddev->PTYDDEV_ulRTimeOut = LW_OPTION_WAIT_INFINITE;
+                p_ptyddev->PTYDDEV_ulRTimeout = LW_OPTION_WAIT_INFINITE;
             }
         }
         break;

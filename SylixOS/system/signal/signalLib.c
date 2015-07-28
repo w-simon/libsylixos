@@ -398,9 +398,9 @@ static VOID  __sigMakeReady (PLW_CLASS_TCB  ptcb,
 #endif                                                                  /*  (LW_CFG_EVENTSET_EN > 0)... */
         }
         ptcb->TCB_usStatus &= (~LW_THREAD_STATUS_PEND_ANY);             /*  等待超时清除事件等待位      */
-        ptcb->TCB_ucWaitTimeOut = LW_WAIT_TIME_OUT;                     /*  等待超时                    */
+        ptcb->TCB_ucWaitTimeout = LW_WAIT_TIME_OUT;                     /*  等待超时                    */
     } else {
-        ptcb->TCB_ucWaitTimeOut = LW_WAIT_TIME_CLEAR;                   /*  没有等待事件                */
+        ptcb->TCB_ucWaitTimeout = LW_WAIT_TIME_CLEAR;                   /*  没有等待事件                */
     }
     ptcb->TCB_ucSchedActivate = LW_SCHED_ACT_INTERRUPT;
     
@@ -408,11 +408,11 @@ static VOID  __sigMakeReady (PLW_CLASS_TCB  ptcb,
         __ADD_TO_READY_RING(ptcb, ppcb);                                /*  加入就绪环                  */
     }
     
-    if ((ptcb->TCB_ucWaitTimeOut == LW_WAIT_TIME_OUT) ||
+    if ((ptcb->TCB_ucWaitTimeout == LW_WAIT_TIME_OUT) ||
         (bInWakeupQ)) {                                                 /*  主动等待事件或者睡眠        */
         *piSchedRet = iSaType;                                          /*  设置调度器返回值            */
-        if (ptcb->TCB_ucWaitTimeOut == LW_WAIT_TIME_OUT) {              /*  从等待队列中退出            */
-            ptcb->TCB_ucWaitTimeOut =  LW_WAIT_TIME_CLEAR;
+        if (ptcb->TCB_ucWaitTimeout == LW_WAIT_TIME_OUT) {              /*  从等待队列中退出            */
+            ptcb->TCB_ucWaitTimeout =  LW_WAIT_TIME_CLEAR;
             if (pevent) {
 #if (LW_CFG_EVENT_EN > 0) && (LW_CFG_MAX_EVENTS > 0)
                 _EventUnlink(ptcb);
@@ -974,22 +974,22 @@ BOOL  _sigPendRun (PLW_CLASS_TCB  ptcb)
     }
 }
 /*********************************************************************************************************
-** 函数名称: _sigTimeOutRecalc
+** 函数名称: _sigTimeoutRecalc
 ** 功能描述: 需要重新等待事件时, 重新计算等待时间.
 ** 输　入  : ulOrgKernelTime        开始等待时的系统时间
-**           ulOrgTimeOut           开始等待时的超时选项
+**           ulOrgTimeout           开始等待时的超时选项
 ** 输　出  : 新的等待时间
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-ULONG  _sigTimeOutRecalc (ULONG  ulOrgKernelTime, ULONG  ulOrgTimeOut)
+ULONG  _sigTimeoutRecalc (ULONG  ulOrgKernelTime, ULONG  ulOrgTimeout)
 {
              INTREG     iregInterLevel;
     REGISTER ULONG      ulTimeRun;
              ULONG      ulKernelTime;
     
-    if (ulOrgTimeOut == LW_OPTION_WAIT_INFINITE) {                      /*  无限等待                    */
-        return  (ulOrgTimeOut);
+    if (ulOrgTimeout == LW_OPTION_WAIT_INFINITE) {                      /*  无限等待                    */
+        return  (ulOrgTimeout);
     }
     
     LW_SPIN_LOCK_QUICK(&_K_slKernel, &iregInterLevel);
@@ -999,11 +999,11 @@ ULONG  _sigTimeOutRecalc (ULONG  ulOrgKernelTime, ULONG  ulOrgTimeOut)
                 (ulKernelTime + (__ARCH_ULONG_MAX - ulOrgKernelTime) + 1);
     LW_SPIN_UNLOCK_QUICK(&_K_slKernel, iregInterLevel);
     
-    if (ulTimeRun >= ulOrgTimeOut) {                                    /*  已经产生了超时              */
+    if (ulTimeRun >= ulOrgTimeout) {                                    /*  已经产生了超时              */
         return  (0);
     }
     
-    return  (ulOrgTimeOut - ulTimeRun);
+    return  (ulOrgTimeout - ulTimeRun);
 }
 /*********************************************************************************************************
 ** 函数名称: _doSignal

@@ -120,8 +120,8 @@ INT  API_SpipeDevCreate (PCHAR  pcName, size_t  stBufferByteSize)
     pspipedev->SPIPEDEV_uiReadCnt  = 0;
     pspipedev->SPIPEDEV_uiWriteCnt = 0;
     pspipedev->SPIPEDEV_iAbortFlag = 0;
-    pspipedev->SPIPEDEV_ulRTimeOut = LW_OPTION_WAIT_INFINITE;            /*  初始化为永久等待           */
-    pspipedev->SPIPEDEV_ulWTimeOut = LW_OPTION_WAIT_INFINITE;            /*  初始化为永久等待           */
+    pspipedev->SPIPEDEV_ulRTimeout = LW_OPTION_WAIT_INFINITE;            /*  初始化为永久等待           */
+    pspipedev->SPIPEDEV_ulWTimeout = LW_OPTION_WAIT_INFINITE;            /*  初始化为永久等待           */
     
     pspipedev->SPIPEDEV_hReadLock = API_SemaphoreBCreate("pipe_rsync",   /*  create lock                */
                                                          LW_FALSE, 

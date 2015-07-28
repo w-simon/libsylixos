@@ -86,7 +86,7 @@ __wait_again:
     __KERNEL_TIME_GET_NO_SPINLOCK(ulKernelTime, ULONG);                 /*  记录系统时间                */
     
     if (__KERNEL_EXIT_IRQ(iregInterLevel)) {                            /*  被信号激活                  */
-        ulTick = _sigTimeOutRecalc(ulKernelTime, ulTick);               /*  重新计算等待时间            */
+        ulTick = _sigTimeoutRecalc(ulKernelTime, ulTick);               /*  重新计算等待时间            */
         goto __wait_again;                                              /*  继续等待                    */
     }
 }
@@ -141,7 +141,7 @@ __wait_again:
             _ErrorHandle(EINTR);
             return  (EINTR);
         }
-        ulTick = _sigTimeOutRecalc(ulKernelTime, ulTick);               /*  重新计算等待时间            */
+        ulTick = _sigTimeoutRecalc(ulKernelTime, ulTick);               /*  重新计算等待时间            */
         goto __wait_again;                                              /*  继续等待                    */
     }
     
@@ -304,7 +304,7 @@ __wait_again:
     
     } else {
         if (iSchedRet == LW_SIGNAL_RESTART) {                           /*  信号要求重启等待            */
-            ulTick = _sigTimeOutRecalc(ulKernelTime, ulTick);           /*  重新计算等待时间            */
+            ulTick = _sigTimeoutRecalc(ulKernelTime, ulTick);           /*  重新计算等待时间            */
             if (ulTick != 0ul) {
                 goto    __wait_again;                                   /*  重新等待剩余的 tick         */
             }

@@ -109,7 +109,7 @@ VOID  _EventTimeoutFifo (PLW_CLASS_EVENT  pevent, PLW_LIST_RING  *ppringList)
     
     _DelTCBFromEventFifo(ptcbCur, pevent, ppringList);                  /*  从等待队列中删除            */
     ptcbCur->TCB_peventPtr      = LW_NULL;
-    ptcbCur->TCB_ucWaitTimeOut  = LW_WAIT_TIME_CLEAR;                   /*  清除超时标志位              */
+    ptcbCur->TCB_ucWaitTimeout  = LW_WAIT_TIME_CLEAR;                   /*  清除超时标志位              */
 }
 /*********************************************************************************************************
 ** 函数名称: _EventTimeoutPriority
@@ -128,7 +128,7 @@ VOID  _EventTimeoutPriority (PLW_CLASS_EVENT  pevent, PLW_LIST_RING  *ppringList
     
     _DelTCBFromEventPriority(ptcbCur, pevent, ppringList);
     ptcbCur->TCB_peventPtr      = LW_NULL;
-    ptcbCur->TCB_ucWaitTimeOut  = LW_WAIT_TIME_CLEAR;                   /*  清除超时标志位              */
+    ptcbCur->TCB_ucWaitTimeout  = LW_WAIT_TIME_CLEAR;                   /*  清除超时标志位              */
 }
 /*********************************************************************************************************
 ** 函数名称: _EventReadyFifoLowLevel
@@ -206,8 +206,8 @@ VOID  _EventReadyHighLevel (PLW_CLASS_TCB    ptcb, UINT16   usWaitType)
     
     ptcb->TCB_peventPtr = LW_NULL;
     
-    if (ptcb->TCB_ucWaitTimeOut) {
-        ptcb->TCB_ucWaitTimeOut = LW_WAIT_TIME_CLEAR;                   /*  清除超时位                  */
+    if (ptcb->TCB_ucWaitTimeout) {
+        ptcb->TCB_ucWaitTimeout = LW_WAIT_TIME_CLEAR;                   /*  清除超时位                  */
     
     } else {                                                            /*  清除相应等待位              */
         ptcb->TCB_usStatus = (UINT16)(ptcb->TCB_usStatus & (~usWaitType));

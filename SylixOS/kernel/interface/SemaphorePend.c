@@ -21,14 +21,14 @@
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
 /*********************************************************************************************************
-ulTimeOut 取值：
+ulTimeout 取值：
     
     LW_OPTION_NOT_WAIT                       不进行等待
     LW_OPTION_WAIT_A_TICK                    等待一个系统时钟
     LW_OPTION_WAIT_A_SECOND                  等待一秒
     LW_OPTION_WAIT_INFINITE                  永远等待，直到发生为止
     
-注意：当 ulTimeOut == LW_OPTION_NOT_WAIT 时 API_SemaphoreCPend 还是不同于 API_SemaphoreBTryPend
+注意：当 ulTimeout == LW_OPTION_NOT_WAIT 时 API_SemaphoreCPend 还是不同于 API_SemaphoreBTryPend
 
       API_SemaphoreBTryPend 可以在中断中使用，而 API_SemaphoreBPend 不行
     
@@ -38,7 +38,7 @@ ulTimeOut 取值：
 ** 功能描述: 等待信号量
 ** 输　入  : 
 **           ulId            事件句柄
-**           ulTimeOut       等待时间
+**           ulTimeout       等待时间
 ** 输　出  : 
 ** 全局变量: 
 ** 调用模块: 
@@ -49,7 +49,7 @@ ulTimeOut 取值：
 #if ((LW_CFG_SEMB_EN > 0) || (LW_CFG_SEMC_EN > 0) || (LW_CFG_SEMM_EN > 0)) && (LW_CFG_MAX_EVENTS > 0)
 
 LW_API  
-ULONG  API_SemaphorePend (LW_OBJECT_HANDLE  ulId, ULONG  ulTimeOut)
+ULONG  API_SemaphorePend (LW_OBJECT_HANDLE  ulId, ULONG  ulTimeout)
 {
     REGISTER ULONG      ulObjectClass;
     REGISTER ULONG      ulErrorCode;
@@ -60,19 +60,19 @@ ULONG  API_SemaphorePend (LW_OBJECT_HANDLE  ulId, ULONG  ulTimeOut)
     
 #if LW_CFG_SEMB_EN > 0
     case _OBJECT_SEM_B:
-        ulErrorCode = API_SemaphoreBPend(ulId, ulTimeOut);
+        ulErrorCode = API_SemaphoreBPend(ulId, ulTimeout);
         break;
 #endif                                                                  /*  LW_CFG_SEMB_EN > 0          */
 
 #if LW_CFG_SEMC_EN > 0
     case _OBJECT_SEM_C:
-        ulErrorCode = API_SemaphoreCPend(ulId, ulTimeOut);
+        ulErrorCode = API_SemaphoreCPend(ulId, ulTimeout);
         break;
 #endif                                                                  /*  LW_CFG_SEMC_EN > 0          */
 
 #if LW_CFG_SEMM_EN > 0
     case _OBJECT_SEM_M:
-        ulErrorCode = API_SemaphoreMPend(ulId, ulTimeOut);
+        ulErrorCode = API_SemaphoreMPend(ulId, ulTimeout);
         break;
 #endif                                                                  /*  LW_CFG_SEMM_EN > 0          */
     

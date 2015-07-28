@@ -599,7 +599,7 @@ static int do_semop (int semid, struct sembuf *tsops, size_t nsops, u_long timeo
             return  (IPC_ERROR);
         }
 
-        timeout = _sigTimeOutRecalc(org_time, timeout); /* recalculate timeout */
+        timeout = _sigTimeoutRecalc(org_time, timeout); /* recalculate timeout */
     } while (1);
 
     SEM_NOTIFY(sem);

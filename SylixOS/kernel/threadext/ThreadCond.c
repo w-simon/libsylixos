@@ -299,14 +299,14 @@ ULONG  API_ThreadCondBroadcast (PLW_THREAD_COND  ptcd)
 ** 功能描述: 等待条件变量.
 ** 输　入  : ptcd              条件变量控制块
 **           ulMutex           互斥信号量
-**           ulTimeOut         超时时间
+**           ulTimeout         超时时间
 ** 输　出  : ERROR CODE
 ** 全局变量: 
 ** 调用模块: 
                                            API 函数
 *********************************************************************************************************/
 LW_API  
-ULONG  API_ThreadCondWait (PLW_THREAD_COND  ptcd, LW_OBJECT_HANDLE  ulMutex, ULONG  ulTimeOut)
+ULONG  API_ThreadCondWait (PLW_THREAD_COND  ptcd, LW_OBJECT_HANDLE  ulMutex, ULONG  ulTimeout)
 {
              LW_OBJECT_HANDLE   ulOwerThread;
     REGISTER ULONG              ulError = ERROR_NONE;
@@ -351,7 +351,7 @@ ULONG  API_ThreadCondWait (PLW_THREAD_COND  ptcd, LW_OBJECT_HANDLE  ulMutex, ULO
     
     ulError = API_SemaphorePostBPend(ulMutex, 
                                      ptcd->TCD_ulSignal, 
-                                     ulTimeOut);                        /*  原子释放并等待信号量        */
+                                     ulTimeout);                        /*  原子释放并等待信号量        */
     if (ulError) {                                                      /*  如果等待超时                */
         API_SemaphoreMPend(ulMutex, LW_OPTION_WAIT_INFINITE);           /*  重新获取互斥量              */
         if (ulError != ERROR_EVENT_WAS_DELETED) {

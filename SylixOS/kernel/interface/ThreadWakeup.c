@@ -79,9 +79,9 @@ ULONG  API_ThreadWakeup (LW_OBJECT_HANDLE  ulId)
         
         if (ptcb->TCB_usStatus & LW_THREAD_STATUS_PEND_ANY) {
             ptcb->TCB_usStatus &= (~LW_THREAD_STATUS_PEND_ANY);
-            ptcb->TCB_ucWaitTimeOut = LW_WAIT_TIME_OUT;                 /*  等待超时                    */
+            ptcb->TCB_ucWaitTimeout = LW_WAIT_TIME_OUT;                 /*  等待超时                    */
         } else {
-            ptcb->TCB_ucWaitTimeOut = LW_WAIT_TIME_CLEAR;               /*  没有等待事件                */
+            ptcb->TCB_ucWaitTimeout = LW_WAIT_TIME_CLEAR;               /*  没有等待事件                */
         }
         
         if (__LW_THREAD_IS_READY(ptcb)) {                               /*  检查是否就绪                */
