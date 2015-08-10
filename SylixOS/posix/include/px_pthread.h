@@ -41,10 +41,9 @@ extern "C" {
   pthread once & cancel
 *********************************************************************************************************/
 
-typedef LW_OBJECT_HANDLE    pthread_t;
 typedef BOOL                pthread_once_t;
 
-#define PTHREAD_ONCE_INIT   LW_FALSE;
+#define PTHREAD_ONCE_INIT   LW_FALSE
 
 #ifndef PTHREAD_CANCEL_ASYNCHRONOUS
 #define PTHREAD_CANCEL_ASYNCHRONOUS         LW_THREAD_CANCEL_ASYNCHRONOUS
@@ -157,8 +156,8 @@ LW_API int          pthread_attr_init(pthread_attr_t  *pattr);
 LW_API int          pthread_attr_destroy(pthread_attr_t  *pattr);
 LW_API int          pthread_attr_setstack(pthread_attr_t *pattr, void *pvStackAddr, size_t stSize);
 LW_API int          pthread_attr_getstack(const pthread_attr_t *pattr, void **ppvStackAddr, size_t *pstSize);
-LW_API int          pthread_attr_setguradsize(pthread_attr_t  *pattr, size_t  stGuard);
-LW_API int          pthread_attr_getguradsize(pthread_attr_t  *pattr, size_t  *pstGuard);
+LW_API int          pthread_attr_setguardsize(pthread_attr_t  *pattr, size_t  stGuard);
+LW_API int          pthread_attr_getguardsize(pthread_attr_t  *pattr, size_t  *pstGuard);
 LW_API int          pthread_attr_setstacksize(pthread_attr_t  *pattr, size_t  stSize);
 LW_API int          pthread_attr_getstacksize(const pthread_attr_t  *pattr, size_t  *pstSize);
 LW_API int          pthread_attr_setstackaddr(pthread_attr_t  *pattr, void  *pvStackAddr);
@@ -221,6 +220,7 @@ LW_API int          pthread_setcancelstate(int  newstate, int  *poldstate);
 LW_API int          pthread_setcanceltype(int  newtype, int  *poldtype);
 LW_API int          pthread_setconcurrency(int  newlevel);
 LW_API int          pthread_getconcurrency(void);
+LW_API int          pthread_getcpuclockid(pthread_t thread, clockid_t *clock_id);
 
 LW_API int          pthread_barrierattr_init(pthread_barrierattr_t  *pbarrierattr);
 LW_API int          pthread_barrierattr_destroy(pthread_barrierattr_t  *pbarrierattr);
@@ -294,8 +294,12 @@ LW_API int          pthread_rwlock_init(pthread_rwlock_t  *prwlock, const pthrea
 LW_API int          pthread_rwlock_destroy(pthread_rwlock_t  *prwlock);
 LW_API int          pthread_rwlock_rdlock(pthread_rwlock_t  *prwlock);
 LW_API int          pthread_rwlock_tryrdlock(pthread_rwlock_t  *prwlock);
+LW_API int          pthread_rwlock_timedrdlock(pthread_rwlock_t *prwlock,
+                                               const struct timespec *abs_timeout);
 LW_API int          pthread_rwlock_wrlock(pthread_rwlock_t  *prwlock);
 LW_API int          pthread_rwlock_trywrlock(pthread_rwlock_t  *prwlock);
+LW_API int          pthread_rwlock_timedwrlock(pthread_rwlock_t *prwlock,
+                                               const struct timespec *abs_timeout);
 LW_API int          pthread_rwlock_unlock(pthread_rwlock_t  *prwlock);
 
 LW_API int          pthread_key_create(pthread_key_t  *pkey, void (*destructor)(void *));
@@ -306,6 +310,9 @@ LW_API void        *pthread_getspecific(pthread_key_t  key);
 #if LW_CFG_POSIXEX_EN > 0
 LW_API int          pthread_int_lock_np(pthread_int_t *irqctx);
 LW_API int          pthread_int_unlock_np(pthread_int_t irqctx);
+
+LW_API int          pthread_setaffinity_np(pthread_t  thread, size_t setsize, const cpu_set_t *set);
+LW_API int          pthread_getaffinity_np(pthread_t  thread, size_t setsize, cpu_set_t *set);
 #endif                                                                  /*  LW_CFG_POSIXEX_EN > 0       */
 
 #ifdef __cplusplus

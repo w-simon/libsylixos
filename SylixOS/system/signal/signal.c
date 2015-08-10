@@ -562,6 +562,25 @@ INT  sigrelse (INT  iSigNo)
     return  (sigprocmask(SIG_SETMASK, &sigset, LW_NULL));
 }
 /*********************************************************************************************************
+** 函数名称: sigpause
+** 功能描述: 在当前掩码中清除指定的信号等待信号的到来, 然后返回先前的信号掩码. 
+**           此 API 以被 sigsuspend 替代.
+** 输　入  : iSigMask                 掩码
+** 输　出  : ERROR
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+INT  sigpause (INT  iSigMask)
+{
+    sigset_t    sigset;
+    
+    sigset = (sigset_t)iSigMask;
+    
+    return  (sigsuspend(&sigset));
+}
+/*********************************************************************************************************
 ** 函数名称: sigset
 ** 功能描述: 此函数暂不支持
 ** 输　入  : iSigNo                   需要删除掩码的信号
@@ -686,7 +705,8 @@ INT  sigaltstack (const stack_t *ss, stack_t *oss)
         pstack = &psigctx->SIGCTX_stack;
         if (pstack->ss_flags & SS_ONSTACK) {                            /*  正在使用用户堆栈            */
             if ((ptcbCur->TCB_pstkStackNow >= (PLW_STACK)pstack->ss_sp) && 
-                (ptcbCur->TCB_pstkStackNow <  (PLW_STACK)(pstack->ss_sp + pstack->ss_size))) {
+                (ptcbCur->TCB_pstkStackNow <  (PLW_STACK)((size_t)pstack->ss_sp + 
+                                                          pstack->ss_size))) {
                 _ErrorHandle(EPERM);                                    /*  正在信号上下文中使用此堆栈  */
                 __KERNEL_EXIT();                                        /*  退出内核                    */
                 return  (PX_ERROR);

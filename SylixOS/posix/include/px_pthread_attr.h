@@ -31,6 +31,13 @@ extern "C" {
 #endif                                                                  /*  __cplusplus                 */
 
 #include "px_sched_param.h"                                             /*  调度参数                    */
+
+/*********************************************************************************************************
+  pthread 句柄
+*********************************************************************************************************/
+
+typedef LW_OBJECT_HANDLE    pthread_t;
+
 /*********************************************************************************************************
   pthread attr
 *********************************************************************************************************/
@@ -47,7 +54,7 @@ extern "C" {
 typedef struct {
     char                   *PTHREADATTR_pcName;                         /*  名字                        */
     void                   *PTHREADATTR_pvStackAddr;                    /*  指定堆栈地址                */
-    size_t                  PTHREADATTR_stStackGurad;                   /*  堆栈警戒区域大小            */
+    size_t                  PTHREADATTR_stStackGuard;                   /*  堆栈警戒区域大小            */
     size_t                  PTHREADATTR_stStackByteSize;                /*  堆栈大小                    */
     int                     PTHREADATTR_iSchedPolicy;                   /*  调度策略                    */
     int                     PTHREADATTR_iInherit;                       /*  是否继承调度参数            */

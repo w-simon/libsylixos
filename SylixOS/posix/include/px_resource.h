@@ -87,8 +87,10 @@ struct rusage {
 #define RLIMIT_MEMLOCK      6                                           /* locked-in-memory addr space  */
 #define RLIMIT_NPROC        7                                           /* number of processes          */
 #define RLIMIT_OFILE        8                                           /* number of open files         */
+#define RLIMIT_NOFILE       RLIMIT_OFILE
+#define RLIMIT_AS           9                                           /* Address space limit.         */
 
-#define RLIM_NLIMITS        9                                           /* number of resource limits    */
+#define RLIM_NLIMITS        15                                          /* number of resource limits    */
 
 #define RLIM_INFINITY       0x7fffffff
 

@@ -138,7 +138,7 @@ ULONG  API_ThreadForceDelete (LW_OBJECT_HANDLE  *pulId, PVOID  pvRetVal)
         if (ptcbCur == ptcbDel) {                                       /*  主线程自己删除自己          */
             if (pvprocDel->VP_iStatus != __LW_VP_EXIT) {
                 __KERNEL_EXIT();                                        /*  退出内核                    */
-                exit(0);                                                /*  进程退出, 此函数不返回      */
+                exit((INT)pvRetVal);                                    /*  进程退出, 此函数不返回      */
             }
         } else {                                                        /*  其他线程不允许删除主线程    */
             __KERNEL_EXIT();

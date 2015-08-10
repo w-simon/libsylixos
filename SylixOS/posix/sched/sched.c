@@ -317,7 +317,7 @@ int  sched_rr_get_interval (pid_t  pid, struct timespec  *interval)
     UINT16              usCounter = 0;
     LW_OBJECT_HANDLE    ulThread;
 
-    if (interval) {
+    if (!interval) {
         errno = EINVAL;
         return  (PX_ERROR);
     }

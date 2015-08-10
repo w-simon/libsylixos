@@ -58,7 +58,7 @@ static LW_OBJECT_HANDLE                 _G_ulCppRtLock = 0;
 static LW_THREAD_COND                   _G_condGuard = LW_THREAD_COND_INITIALIZER;
 #endif                                                                  /*  LW_CFG_THREAD_EXT_EN > 0    */
 /*********************************************************************************************************
-  gurad ºê²Ù×÷
+  guard ºê²Ù×÷
 *********************************************************************************************************/
 #define __LW_CPP_GUARD_GET(piGv)        (*((char *)(piGv)))
 #define __LW_CPP_GUARD_SET(piGv, x)     (*((char *)(piGv))  = x)

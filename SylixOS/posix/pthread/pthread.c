@@ -100,10 +100,10 @@ int  pthread_create (pthread_t              *pthread,
         }
         pcName = pattr->PTHREADATTR_pcName;                             /*  使用 attr 作为创建线程名    */
         
-        if (pattr->PTHREADATTR_stStackGurad > pattr->PTHREADATTR_stStackByteSize) {
+        if (pattr->PTHREADATTR_stStackGuard > pattr->PTHREADATTR_stStackByteSize) {
             lwattr.THREADATTR_stGuardSize = LW_CFG_THREAD_DEFAULT_GUARD_SIZE;
         } else {
-            lwattr.THREADATTR_stGuardSize = pattr->PTHREADATTR_stStackGurad;
+            lwattr.THREADATTR_stGuardSize = pattr->PTHREADATTR_stStackGuard;
         }
         
         if (pattr->PTHREADATTR_stStackByteSize == 0) {                  /*  继承创建者                  */
@@ -621,6 +621,28 @@ LW_API
 int  pthread_getconcurrency (void)
 {
     return  (LW_CFG_MAX_THREADS);
+}
+/*********************************************************************************************************
+** 函数名称: pthread_getcpuclockid
+** 功能描述: 获得线程 CPU 时间 clock id.
+** 输　入  : thread    线程句柄
+**           clock_id  时钟 id
+** 输　出  : ERROR or OK
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API 
+int  pthread_getcpuclockid (pthread_t thread, clockid_t *clock_id)
+{
+    if (!clock_id) {
+        _ErrorHandle(EINVAL);
+        return  (EINVAL);
+    }
+    
+    *clock_id = CLOCK_THREAD_CPUTIME_ID;
+    
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: pthread_setname_np

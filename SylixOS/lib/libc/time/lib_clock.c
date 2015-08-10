@@ -20,6 +20,7 @@
 
 ** BUG:
 2013.11.28  加入 lib_clock_nanosleep().
+2015.07.30  加入 lib_clock_getcpuclockid().
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -48,6 +49,25 @@
 clock_t  lib_clock (VOID)
 {
     return  ((clock_t)API_TimeGet());
+}
+/*********************************************************************************************************
+** 函数名称: clock_getcpuclockid
+** 功能描述: 
+** 输　入  : 
+** 输　出  : 
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+INT  lib_clock_getcpuclockid (pid_t pid, clockid_t *clock_id)
+{
+    if (!clock_id) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    *clock_id = CLOCK_PROCESS_CPUTIME_ID;
+    
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: lib_clock_getres
@@ -204,9 +224,7 @@ INT  lib_clock_nanosleep (clockid_t  clockid, int  iFlags,
         LW_TIME_HIGH_RESOLUTION(&tvNow);
         LW_SPIN_UNLOCK_QUICK(&_K_slKernel, iregInterLevel);
 
-        if ((rqtp->tv_sec < tvNow.tv_sec) ||
-            ((rqtp->tv_sec == tvNow.tv_sec) &&
-             (rqtp->tv_nsec < tvNow.tv_nsec))) {
+        if (__timespecLeftTime(rqtp, &tvNow)) {
             _ErrorHandle(EINVAL);
             return  (PX_ERROR);
         }

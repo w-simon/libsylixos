@@ -291,6 +291,86 @@ int  pthread_rwlock_tryrdlock (pthread_rwlock_t  *prwlock)
     }
 }
 /*********************************************************************************************************
+** 函数名称: pthread_rwlock_timedrdlock
+** 功能描述: 等待一个读写锁可读 (带有超时的阻塞).
+** 输　入  : prwlock        句柄
+**           abs_timeout    绝对超时时间
+** 输　出  : ERROR CODE
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API 
+int  pthread_rwlock_timedrdlock (pthread_rwlock_t *prwlock,
+                                 const struct timespec *abs_timeout)
+{
+    ULONG               ulTimeout;
+    ULONG               ulOrgKernelTime;
+    ULONG               ulError = ERROR_NONE;
+    struct timespec     tvNow;
+    struct timespec     tvWait  = {0, 0};
+    
+    if (prwlock == LW_NULL) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+    
+    if ((abs_timeout == LW_NULL) || (abs_timeout->tv_nsec >= __TIMEVAL_NSEC_MAX)) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+    
+    __pthread_rwlock_init_invisible(prwlock);
+    
+    lib_clock_gettime(CLOCK_REALTIME, &tvNow);                          /*  获得当前系统时间            */
+    if (__timespecLeftTime(&tvNow, abs_timeout)) {
+        tvWait = *abs_timeout;
+        __timespecSub(&tvWait, &tvNow);                                 /*  计算与当前等待的时间间隔    */
+    }
+    /*
+     *  注意: 当 tvWait 超过ulong tick范围时, 将自然产生溢出, 导致超时时间不准确.
+     */
+    ulTimeout = __timespecToTick(&tvWait);                              /*  变换为 tick                 */
+    
+    __PX_RWLOCK_LOCK(prwlock);                                          /*  锁定读写锁                  */
+    prwlock->PRWLOCK_uiRPendCounter++;                                  /*  等待读的数量++              */
+    do {
+        __KERNEL_TIME_GET(ulOrgKernelTime, ULONG);                      /*  记录系统时间                */
+        
+        if ((prwlock->PRWLOCK_uiStatus == __PX_RWLOCK_STATUS_READING) &&
+            (prwlock->PRWLOCK_uiWPendCounter == 0)) {
+            /*
+             *  如果写入器未持有读锁, 并且没有任何写入器基于改锁阻塞. 则调用线程立即获取读锁.
+             */
+            prwlock->PRWLOCK_uiOpCounter++;                             /*  正在操作数量++              */
+            prwlock->PRWLOCK_uiRPendCounter--;                          /*  退出等待模式                */
+            break;                                                      /*  直接跳出                    */
+        
+        } else {
+            /*
+             *  如果写入器正在操作或者, 或者有多个写入器正在等待该锁, 将阻塞.
+             */
+            __PX_RWLOCK_UNLOCK(prwlock);                                /*  解锁读写锁                  */
+            ulError = API_SemaphoreCPend(prwlock->PRWLOCK_ulRSemaphore,
+                                         ulTimeout);                    /*  等待读写锁状态变换          */
+            __PX_RWLOCK_LOCK(prwlock);                                  /*  锁定读写锁                  */
+            if (ulError) {
+                break;                                                  /*  直接跳出                    */
+            }
+        }
+        
+        ulTimeout = _sigTimeoutRecalc(ulOrgKernelTime, ulTimeout);      /*  重新计算等待时间            */
+    } while (1);
+    __PX_RWLOCK_UNLOCK(prwlock);                                        /*  解锁读写锁                  */
+    
+    if (ulError == ERROR_THREAD_WAIT_TIMEOUT) {
+        ulError = ETIMEDOUT;
+        errno   = ETIMEDOUT;
+    }
+    
+    return  ((INT)ulError);
+}
+/*********************************************************************************************************
 ** 函数名称: pthread_rwlock_wrlock
 ** 功能描述: 等待一个读写锁可写.
 ** 输　入  : prwlock        句柄
@@ -368,6 +448,90 @@ int  pthread_rwlock_trywrlock (pthread_rwlock_t  *prwlock)
         errno = EBUSY;
         return  (EBUSY);
     }
+}
+/*********************************************************************************************************
+** 函数名称: pthread_rwlock_wrlock
+** 功能描述: 等待一个读写锁可写 (带有超时的阻塞).
+** 输　入  : prwlock        句柄
+**           abs_timeout    绝对超时时间
+** 输　出  : ERROR CODE
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API 
+int  pthread_rwlock_timedwrlock (pthread_rwlock_t *prwlock,
+                                 const struct timespec *abs_timeout)
+{
+    ULONG               ulTimeout;
+    ULONG               ulOrgKernelTime;
+    ULONG               ulError = ERROR_NONE;
+    struct timespec     tvNow;
+    struct timespec     tvWait  = {0, 0};
+    
+    if (prwlock == LW_NULL) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+    
+    if ((abs_timeout == LW_NULL) || (abs_timeout->tv_nsec >= __TIMEVAL_NSEC_MAX)) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+    
+    __pthread_rwlock_init_invisible(prwlock);
+    
+    lib_clock_gettime(CLOCK_REALTIME, &tvNow);                          /*  获得当前系统时间            */
+    if (__timespecLeftTime(&tvNow, abs_timeout)) {
+        tvWait = *abs_timeout;
+        __timespecSub(&tvWait, &tvNow);                                 /*  计算与当前等待的时间间隔    */
+    }
+    /*
+     *  注意: 当 tvWait 超过ulong tick范围时, 将自然产生溢出, 导致超时时间不准确.
+     */
+    ulTimeout = __timespecToTick(&tvWait);                              /*  变换为 tick                 */
+    
+    __PX_RWLOCK_LOCK(prwlock);                                          /*  锁定读写锁                  */
+    prwlock->PRWLOCK_uiWPendCounter++;                                  /*  等待写的数量++              */
+    do {
+        __KERNEL_TIME_GET(ulOrgKernelTime, ULONG);                      /*  记录系统时间                */
+        
+        if (prwlock->PRWLOCK_uiOpCounter == 0) {
+            /*
+             *  没有正在操作的线程
+             */
+            prwlock->PRWLOCK_uiOpCounter++;                             /*  正在操作的线程++            */
+            prwlock->PRWLOCK_uiWPendCounter--;                          /*  退出等待状态                */
+            prwlock->PRWLOCK_uiStatus = __PX_RWLOCK_STATUS_WRITING;     /*  转换为写模式                */
+            break;
+            
+        } else {
+            /*
+             *  如果有等待写入的线程或者存在正在读取的线程.
+             */
+            __PX_RWLOCK_UNLOCK(prwlock);                                /*  解锁读写锁                  */
+            ulError = API_SemaphoreCPend(prwlock->PRWLOCK_ulWSemaphore,
+                                         ulTimeout);                    /*  等待读写锁状态变换          */
+            __PX_RWLOCK_LOCK(prwlock);                                  /*  锁定读写锁                  */
+            if (ulError) {
+                break;                                                  /*  直接跳出                    */
+            }
+        }
+        
+        ulTimeout = _sigTimeoutRecalc(ulOrgKernelTime, ulTimeout);      /*  重新计算等待时间            */
+    } while (1);
+    
+    if (ulError == ERROR_NONE) {
+        prwlock->PRWLOCK_ulOwner = API_ThreadIdSelf();                  /*  读写锁拥有者                */
+    }
+    __PX_RWLOCK_UNLOCK(prwlock);                                        /*  解锁读写锁                  */
+    
+    if (ulError == ERROR_THREAD_WAIT_TIMEOUT) {
+        ulError = ETIMEDOUT;
+        errno   = ETIMEDOUT;
+    }
+    
+    return  ((INT)ulError);
 }
 /*********************************************************************************************************
 ** 函数名称: pthread_rwlock_unlock

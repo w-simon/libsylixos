@@ -52,7 +52,7 @@ int  pthread_attr_init (pthread_attr_t  *pattr)
     
     pattr->PTHREADATTR_pcName          = "pthread";
     pattr->PTHREADATTR_pvStackAddr     = LW_NULL;                       /*  自动分配堆栈                */
-    pattr->PTHREADATTR_stStackGurad    = LW_CFG_THREAD_DEFAULT_GUARD_SIZE;
+    pattr->PTHREADATTR_stStackGuard    = LW_CFG_THREAD_DEFAULT_GUARD_SIZE;
     pattr->PTHREADATTR_stStackByteSize = 0;                             /*  0 表示继承创建者优先级      */
     pattr->PTHREADATTR_iSchedPolicy    = LW_OPTION_SCHED_RR;            /*  调度策略                    */
     pattr->PTHREADATTR_iInherit        = PTHREAD_EXPLICIT_SCHED;        /*  继承性                      */
@@ -141,7 +141,7 @@ int  pthread_attr_getstack (const pthread_attr_t *pattr, void **ppvStackAddr, si
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: pthread_attr_setguradsize
+** 函数名称: pthread_attr_setguardsize
 ** 功能描述: 设置一个线程属性块的堆栈警戒区大小.
 ** 输　入  : pattr         需要设置的 attr 指针.
 **           stGuard       堆栈警戒区大小
@@ -151,19 +151,19 @@ int  pthread_attr_getstack (const pthread_attr_t *pattr, void **ppvStackAddr, si
                                            API 函数
 *********************************************************************************************************/
 LW_API 
-int  pthread_attr_setguradsize (pthread_attr_t  *pattr, size_t  stGuard)
+int  pthread_attr_setguardsize (pthread_attr_t  *pattr, size_t  stGuard)
 {
     if (pattr == LW_NULL) {
         errno = EINVAL;
         return  (EINVAL);
     }
     
-    pattr->PTHREADATTR_stStackGurad = stGuard;
+    pattr->PTHREADATTR_stStackGuard = stGuard;
     
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: pthread_attr_getguradsize
+** 函数名称: pthread_attr_getguardsize
 ** 功能描述: 获取一个线程属性块的堆栈警戒区大小.
 ** 输　入  : pattr         需要获取的 attr 指针.
 **           pstSize       获取堆栈警戒区大小
@@ -173,14 +173,14 @@ int  pthread_attr_setguradsize (pthread_attr_t  *pattr, size_t  stGuard)
                                            API 函数
 *********************************************************************************************************/
 LW_API 
-int  pthread_attr_getguradsize (pthread_attr_t  *pattr, size_t  *pstGuard)
+int  pthread_attr_getguardsize (pthread_attr_t  *pattr, size_t  *pstGuard)
 {
     if ((pattr == LW_NULL) || (pstGuard == LW_NULL)) {
         errno = EINVAL;
         return  (EINVAL);
     }
     
-    *pstGuard = pattr->PTHREADATTR_stStackGurad;
+    *pstGuard = pattr->PTHREADATTR_stStackGuard;
     
     return  (ERROR_NONE);
 }
@@ -609,7 +609,7 @@ int  pthread_attr_get_np (pthread_t  thread, pthread_attr_t *pattr)
     
     pattr->PTHREADATTR_pcName          = LW_NULL;
     pattr->PTHREADATTR_pvStackAddr     = (PVOID)lwattr.THREADATTR_pstkLowAddr;
-    pattr->PTHREADATTR_stStackGurad    = lwattr.THREADATTR_stGuardSize;
+    pattr->PTHREADATTR_stStackGuard    = lwattr.THREADATTR_stGuardSize;
     pattr->PTHREADATTR_stStackByteSize = lwattr.THREADATTR_stStackByteSize;
     pattr->PTHREADATTR_iSchedPolicy    = (INT)ucPolicy;
     pattr->PTHREADATTR_iInherit        = PTHREAD_EXPLICIT_SCHED;        /*  目前不能确定                */

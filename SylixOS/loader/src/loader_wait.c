@@ -302,7 +302,7 @@ static INT __reclaimAChild (LW_LD_VPROC   *pvproc,
                 *pid = pvprocChild->VP_pid;
             }
             if (stat_loc) {
-                *stat_loc = SET_EXITSTATUS(pvproc->VP_iExitCode);       /*  子进程正常退出              */
+                *stat_loc = SET_EXITSTATUS(pvprocChild->VP_iExitCode);  /*  子进程正常退出              */
             }
             bHasEvent    = LW_TRUE;
             bNeedReclaim = LW_TRUE;

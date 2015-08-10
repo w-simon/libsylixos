@@ -267,8 +267,8 @@
 #define	SIGSTKSZ                12288
 
 typedef struct sigaltstack {
-    char        *ss_sp;
-    int          ss_size;
+    void        *ss_sp;
+    size_t       ss_size;
     int          ss_flags;
 } stack_t;
 
@@ -276,7 +276,7 @@ typedef struct sigaltstack {
 #define SS_DISABLE      0x00000002
 
 struct sigstack {
-    char        *ss_sp;                                                 /*  signal stack pointer        */
+    void        *ss_sp;                                                 /*  signal stack pointer        */
     int          ss_onstack;                                            /*  current status              */
 };
 
@@ -310,6 +310,7 @@ LW_API  INT             sigblock(INT    iBlock);
 LW_API  INT             sighold(INT  iSigNo);
 LW_API  INT             sigignore(INT  iSigNo);
 LW_API  INT             sigrelse(INT  iSigNo);
+LW_API  INT             sigpause(INT  iSigMask);
 
 LW_API  sighandler_t    sigset(INT  iSigNo, sighandler_t  disp);
 LW_API  INT             siginterrupt(INT  iSigNo, INT  iFlag);
@@ -326,6 +327,11 @@ LW_API  INT             sigwait(const sigset_t      *sigset, INT  *piSig);
 LW_API  INT             sigtimedwait(const sigset_t *sigset, struct siginfo *__value,
                                      const struct timespec *);
 LW_API  INT             sigwaitinfo(const sigset_t *sigset, struct  siginfo  *psiginfo);
+
+#if LW_CFG_POSIX_EN > 0
+LW_API  int             pthread_kill(pthread_t  thread, int signo);
+LW_API  int             pthread_sigmask(int  how, const sigset_t  *newmask, sigset_t *oldmask);
+#endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
 
 /*********************************************************************************************************
   SIGNAL ÄÚºËº¯Êý

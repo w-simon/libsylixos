@@ -43,6 +43,7 @@
 2013.05.21  module 更新符号表的保存与查找算法, 这里更新相关接口.
 2013.06.07  加入 API_ModuleShareRefresh 操作, 用来清除当前缓存的动态库或者应用的共享信息.
 2014.07.26  cache text update 操作放在每个模块加载之后.
+2015.07.20  修正 moduleDelAndDestory 中的无效链表指针操作.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -248,29 +249,39 @@ static INT moduleDelAndDestory (LW_LD_EXEC_MODULE *pmodule)
 
     pvproc = pmodule->EMOD_pvproc;
 
-    LW_VP_LOCK(pmodule->EMOD_pvproc);
+    LW_VP_LOCK(pvproc);
 
     pringTemp = pvproc->VP_ringModules;
     if (!pringTemp) {
-        LW_VP_UNLOCK(pmodule->EMOD_pvproc);
+        LW_VP_UNLOCK(pvproc);
         return  (ERROR_NONE);
     }
 
     do {
         pmodTemp = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);
 
+        /*
+         * 此处使用内嵌循环处理，
+         * 如果有更优算法，必须考虑pvproc->VP_ringModules可能会随着删除发生变化，
+         * 无法单纯地使用pringTemp != pvproc->VP_ringModules表达式判断已经遍历完毕。
+         */
         while (pvproc->VP_ringModules && pmodTemp->EMOD_ulRefs == 0) {
             pringTemp = _list_ring_get_next(pringTemp);
             _List_Ring_Del(&pmodTemp->EMOD_ringModules, &pvproc->VP_ringModules);
-            
+
             moduleDestory(pmodTemp);
-            pmodTemp = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);
+
+            if (pvproc->VP_ringModules) {
+			    pmodTemp = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);
+            }
         }
 
-        pringTemp = _list_ring_get_next(pringTemp);
+        if (pvproc->VP_ringModules) {
+            pringTemp = _list_ring_get_next(pringTemp);
+        }
     } while (pvproc->VP_ringModules && pringTemp != pvproc->VP_ringModules);
 
-    LW_VP_UNLOCK(pmodule->EMOD_pvproc);
+    LW_VP_UNLOCK(pvproc);
 
     return  (ERROR_NONE);
 }
