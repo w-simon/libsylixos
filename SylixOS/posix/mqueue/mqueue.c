@@ -885,7 +885,9 @@ int  mq_timedsend (mqd_t  mqd, const char  *msg, size_t  msglen,
     struct timespec     tvNow;
     struct timespec     tvWait = {0, 0};
     
-    if ((abs_timeout == LW_NULL) || (abs_timeout->tv_nsec >= __TIMEVAL_NSEC_MAX)) {
+    if ((abs_timeout == LW_NULL)    || 
+        (abs_timeout->tv_nsec <  0) ||
+        (abs_timeout->tv_nsec >= __TIMEVAL_NSEC_MAX)) {
         errno = EINVAL;
         return  (PX_ERROR);
     }
@@ -963,7 +965,9 @@ int  mq_reltimedsend_np (mqd_t  mqd, const char  *msg, size_t  msglen,
     ULONG               ulTimeout;
     INT                 iRet;
     
-    if ((rel_timeout == LW_NULL) || (rel_timeout->tv_nsec >= __TIMEVAL_NSEC_MAX)) {
+    if ((rel_timeout == LW_NULL)    || 
+        (rel_timeout->tv_nsec <  0) ||
+        (rel_timeout->tv_nsec >= __TIMEVAL_NSEC_MAX)) {
         errno = EINVAL;
         return  (PX_ERROR);
     }
@@ -1093,7 +1097,9 @@ ssize_t  mq_timedreceive (mqd_t  mqd, char  *msg, size_t  msglen,
     struct timespec     tvNow;
     struct timespec     tvWait = {0, 0};
     
-    if ((abs_timeout == LW_NULL) || (abs_timeout->tv_nsec >= __TIMEVAL_NSEC_MAX)) {
+    if ((abs_timeout == LW_NULL)    || 
+        (abs_timeout->tv_nsec <  0) ||
+        (abs_timeout->tv_nsec >= __TIMEVAL_NSEC_MAX)) {
         errno = EINVAL;
         return  (PX_ERROR);
     }
@@ -1165,7 +1171,9 @@ ssize_t  mq_reltimedreceive_np (mqd_t  mqd, char  *msg, size_t  msglen,
     ULONG               ulTimeout;
     ssize_t             sstRet;
     
-    if ((rel_timeout == LW_NULL) || (rel_timeout->tv_nsec >= __TIMEVAL_NSEC_MAX)) {
+    if ((rel_timeout == LW_NULL)    ||
+        (rel_timeout->tv_nsec <  0) ||
+        (rel_timeout->tv_nsec >= __TIMEVAL_NSEC_MAX)) {
         errno = EINVAL;
         return  (PX_ERROR);
     }

@@ -256,15 +256,12 @@ INT  nanosleep (const struct timespec  *rqtp, struct timespec  *rmtp)
              
              struct timespec    tvStart;
              struct timespec    tvTemp;
-             
-    if (!rqtp) {                                                        /*  指定时间为空                */
-        _ErrorHandle(EINVAL);
-        return (PX_ERROR);
-    }
     
-    if (rqtp->tv_nsec >= __TIMEVAL_NSEC_MAX) {                          /*  时间格式错误                */
+    if ((!rqtp)              ||
+        (rqtp->tv_nsec <  0) ||
+        (rqtp->tv_nsec >= __TIMEVAL_NSEC_MAX)) {                        /*  时间格式错误                */
         _ErrorHandle(EINVAL);
-        return (PX_ERROR);
+        return  (PX_ERROR);
     }
     
     ulTick = __timespecToTick((struct timespec *)rqtp);

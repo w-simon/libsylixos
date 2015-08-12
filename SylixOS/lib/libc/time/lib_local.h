@@ -48,8 +48,8 @@
 
 #define isleap(y)       ((((y) % 4) == 0 && ((y) % 100) != 0) || ((y) % 400) == 0)
 
-#define ASCBUF          "Day Mon dd hh:mm:ss yyyy\n\0"
-#define ASSFMT          "%s %s %02d %02d:%02d:%02d %04d"
+#define ASCBUF          "Day Mon dd hh:mm:ss yyyy\n"
+#define ASSFMT          "%s %s %02d %02d:%02d:%02d %04d\n"
 
 /*********************************************************************************************************
   时区信息转化

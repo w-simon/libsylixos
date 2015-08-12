@@ -109,7 +109,7 @@ int  munlock (const void  *pvAddr, size_t  stLen)
 /*********************************************************************************************************
 ** 函数名称: mlockall
 ** 功能描述: 锁定进程空间不进行换页处理.
-** 输　入  : iFlag         锁定选项 MCL_CURRENT/MCL_FUTURE
+** 输　入  : iFlag         锁定选项 MCL_CURRENT / MCL_FUTURE
 ** 输　出  : ERROR_NONE
 ** 全局变量: 
 ** 调用模块: 
@@ -225,10 +225,10 @@ void  *mmap (void  *pvAddr, size_t  stLen, int  iProt, int  iFlag, int  iFd, off
         iFd = PX_ERROR;
     }
     
-    if (iFlag & MAP_SHARED) {
+    if ((iFlag & MAP_SHARED) && ((iFlag & MAP_PRIVATE) == 0)) {
         iFlags = LW_VMM_SHARED_CHANGE;
     
-    } else if (iFlag & MAP_PRIVATE) {
+    } else if ((iFlag & MAP_PRIVATE) && ((iFlag & MAP_SHARED) == 0)) {
         iFlags = LW_VMM_PRIVATE_CHANGE;
     
     } else {

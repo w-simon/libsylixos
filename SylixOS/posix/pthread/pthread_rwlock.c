@@ -315,7 +315,9 @@ int  pthread_rwlock_timedrdlock (pthread_rwlock_t *prwlock,
         return  (EINVAL);
     }
     
-    if ((abs_timeout == LW_NULL) || (abs_timeout->tv_nsec >= __TIMEVAL_NSEC_MAX)) {
+    if ((abs_timeout == LW_NULL)    || 
+        (abs_timeout->tv_nsec <  0) ||
+        (abs_timeout->tv_nsec >= __TIMEVAL_NSEC_MAX)) {
         errno = EINVAL;
         return  (EINVAL);
     }
@@ -474,7 +476,9 @@ int  pthread_rwlock_timedwrlock (pthread_rwlock_t *prwlock,
         return  (EINVAL);
     }
     
-    if ((abs_timeout == LW_NULL) || (abs_timeout->tv_nsec >= __TIMEVAL_NSEC_MAX)) {
+    if ((abs_timeout == LW_NULL)    || 
+        (abs_timeout->tv_nsec <  0) ||
+        (abs_timeout->tv_nsec >= __TIMEVAL_NSEC_MAX)) {
         errno = EINVAL;
         return  (EINVAL);
     }

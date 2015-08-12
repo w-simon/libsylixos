@@ -68,9 +68,15 @@ long  sysconf (int name)
         
     case _SC_LINE_MAX:
         return  (LW_CFG_SHELL_MAX_COMMANDLEN);
+    
+    case _SC_CPUTIME:
+        return  (CLOCK_PROCESS_CPUTIME_ID);
         
     case _SC_LOGIN_NAME_MAX:
         return  (PATH_MAX);
+        
+    case _SC_MONOTONIC_CLOCK:
+        return  (CLOCK_MONOTONIC);
         
     case _SC_MQ_OPEN_MAX:
         return  (LW_CFG_MAX_EVENTS / 3);
@@ -138,6 +144,9 @@ long  sysconf (int name)
         return  (LW_NCPUS);
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
         
+    case _SC_THREAD_CPUTIME:
+        return  (CLOCK_THREAD_CPUTIME_ID);
+    
     case _SC_THREAD_DESTRUCTOR_ITERATIONS:
         return  (__ARCH_LONG_MAX);
         

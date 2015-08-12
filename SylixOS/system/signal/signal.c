@@ -745,11 +745,11 @@ INT  kill (LW_OBJECT_HANDLE  ulId, INT  iSigNo)
     usIndex = _ObjectGetIndex(ulId);
     
     if (!_ObjectClassOK(ulId, _OBJECT_THREAD)) {                        /*  检查 ID 类型有效性          */
-        _ErrorHandle(ERROR_KERNEL_HANDLE_NULL);
+        _ErrorHandle(ESRCH);
         return  (PX_ERROR);
     }
     if (_Thread_Index_Invalid(usIndex)) {                               /*  检查线程有效性              */
-        _ErrorHandle(ERROR_KERNEL_HANDLE_NULL);
+        _ErrorHandle(ESRCH);
         return  (PX_ERROR);
     }
     
@@ -774,7 +774,7 @@ INT  kill (LW_OBJECT_HANDLE  ulId, INT  iSigNo)
     __KERNEL_ENTER();                                                   /*  进入内核                    */
     if (_Thread_Invalid(usIndex)) {
         __KERNEL_EXIT();                                                /*  退出内核                    */
-        _ErrorHandle(EINVAL);
+        _ErrorHandle(ESRCH);
         return  (PX_ERROR);
     }
     
@@ -843,11 +843,11 @@ static INT  sigqueue_internal (LW_OBJECT_HANDLE  ulId, INT   iSigNo, PVOID  pvSi
     usIndex = _ObjectGetIndex(ulId);
     
     if (!_ObjectClassOK(ulId, _OBJECT_THREAD)) {                        /*  检查 ID 类型有效性          */
-        _ErrorHandle(ERROR_KERNEL_HANDLE_NULL);
+        _ErrorHandle(ESRCH);
         return  (PX_ERROR);
     }
     if (_Thread_Index_Invalid(usIndex)) {                               /*  检查线程有效性              */
-        _ErrorHandle(ERROR_KERNEL_HANDLE_NULL);
+        _ErrorHandle(ESRCH);
         return  (PX_ERROR);
     }
     
@@ -873,7 +873,7 @@ static INT  sigqueue_internal (LW_OBJECT_HANDLE  ulId, INT   iSigNo, PVOID  pvSi
     __KERNEL_ENTER();                                                   /*  进入内核                    */
     if (_Thread_Invalid(usIndex)) {
         __KERNEL_EXIT();                                                /*  退出内核                    */
-        _ErrorHandle(EINVAL);
+        _ErrorHandle(ESRCH);
         return  (PX_ERROR);
     }
     

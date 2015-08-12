@@ -80,7 +80,7 @@ INT  lib_clock_getcpuclockid (pid_t pid, clockid_t *clock_id)
 *********************************************************************************************************/
 INT  lib_clock_getres (clockid_t  clockid, struct timespec *res)
 {
-    if (!res) {
+    if ((clockid < 0) || (clockid > CLOCK_THREAD_CPUTIME_ID) || !res) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -205,7 +205,9 @@ INT  lib_clock_nanosleep (clockid_t  clockid, int  iFlags,
         return  (PX_ERROR);
     }
     
-    if (!rqtp) {
+    if ((!rqtp)              ||
+        (rqtp->tv_nsec <  0) ||
+        (rqtp->tv_nsec >= __TIMEVAL_NSEC_MAX)) {                        /*  时间格式错误                */
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }

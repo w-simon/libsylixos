@@ -456,7 +456,9 @@ int  pthread_mutex_timedlock (pthread_mutex_t  *pmutex, const struct timespec *a
     struct timespec     tvNow;
     struct timespec     tvWait = {0, 0};
     
-    if ((abs_timeout == LW_NULL) || (abs_timeout->tv_nsec >= __TIMEVAL_NSEC_MAX)) {
+    if ((abs_timeout == LW_NULL)    || 
+        (abs_timeout->tv_nsec <  0) ||
+        (abs_timeout->tv_nsec >= __TIMEVAL_NSEC_MAX)) {
         errno = EINVAL;
         return  (EINVAL);
     }
@@ -505,7 +507,9 @@ int  pthread_mutex_reltimedlock_np (pthread_mutex_t  *pmutex, const struct times
     ULONG               ulTimeout;
     ULONG               ulError;
     
-    if ((rel_timeout == LW_NULL) || (rel_timeout->tv_nsec >= __TIMEVAL_NSEC_MAX)) {
+    if ((rel_timeout == LW_NULL)    || 
+        (rel_timeout->tv_nsec <  0) ||
+        (rel_timeout->tv_nsec >= __TIMEVAL_NSEC_MAX)) {
         errno = EINVAL;
         return  (EINVAL);
     }
