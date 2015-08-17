@@ -45,7 +45,6 @@ LW_API
 VOID   API_TimeShow (VOID)
 {
     printf("time show >>\n\n");
-    
     printf("Kernel Ticks: %-63llu\n", API_TimeGet64());
     
 #if LW_CFG_RTC_EN > 0
@@ -53,11 +52,11 @@ VOID   API_TimeShow (VOID)
         CHAR    cTimeBuffer[32];
         time_t  time = lib_time(LW_NULL);
         
-        printf("%s\n", lib_ctime_r(&time, cTimeBuffer));
+        printf("%s", lib_ctime_r(&time, cTimeBuffer));
     }
-#endif                                                                  /*  LW_CFG_RTC_EN > 0           */
-
+#else
     printf("\n");
+#endif                                                                  /*  LW_CFG_RTC_EN > 0           */
 }
 #endif                                                                  /*  LW_CFG_FIO_LIB_EN > 0       */
 /*********************************************************************************************************

@@ -1059,6 +1059,7 @@ static INT  __tshellFsCmdLl (INT  iArgC, PCHAR  ppcArgV[])
              PCHAR           pcStat;
              CHAR            cDirName[MAX_FILENAME_LENGTH] = ".";
              CHAR            cTimeBuf[32];                              /*  bigger than sizeof(ASCBUF)  */
+             PCHAR           pcN;
              struct tm       tmBuf;
              
              size_t          stDirLen = 1;
@@ -1142,6 +1143,10 @@ static INT  __tshellFsCmdLl (INT  iArgC, PCHAR  ppcArgV[])
             
             lib_localtime_r(&statGet.st_mtime, &tmBuf);                 /*  转换为 tm 格式              */
             lib_asctime_r(&tmBuf, cTimeBuf);                            /*  生成字符串                  */
+            pcN = lib_index(cTimeBuf, '\n');
+            if (pcN) {
+                *pcN = PX_EOS;
+            }
             
             printf(" %s", cTimeBuf);                                    /*  打印修改时间                */
             

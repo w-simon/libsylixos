@@ -178,6 +178,7 @@ static VOID  __heapTracePrintResult (BOOL  bIsNeedDel)
     PLW_LIST_LINE           plineTemp;
     __PHEAP_TRACE_NODE      phtn;
     CHAR                    cTimeBuffer[32];
+    PCHAR                   pcN;
     
     printf(pcHeapTraceHdr);
     
@@ -187,10 +188,16 @@ static VOID  __heapTracePrintResult (BOOL  bIsNeedDel)
         phtn      = (__PHEAP_TRACE_NODE)plineTemp;
         plineTemp = _list_line_get_next(plineTemp);
         
+        lib_ctime_r(&phtn->HTN_timeAlloc, cTimeBuffer);
+        pcN = lib_index(cTimeBuffer, '\n');
+        if (pcN) {
+            *pcN = PX_EOS;                                              /*  È¥µô \n                     */
+        }
+        
         printf("%-14s %-14s %-24s %08lx %10zd %s\n",
                phtn->HTN_cHeapName,
                phtn->HTN_cThreadName,
-               lib_ctime_r(&phtn->HTN_timeAlloc, cTimeBuffer),
+               cTimeBuffer,
                (addr_t)phtn->HTN_pvMemAddr,
                phtn->HTN_stMemLen,
                phtn->HTN_cPurpose);

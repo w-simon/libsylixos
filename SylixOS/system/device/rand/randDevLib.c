@@ -149,7 +149,7 @@ INT  __randClose (PLW_RAND_FIL  prandfil)
 *********************************************************************************************************/
 ssize_t  __randRead (PLW_RAND_FIL  prandfil, PCHAR  pcBuffer, size_t  stMaxBytes)
 {
-    static INT32    iSeedInit = 0;
+    static INT32    iSeedInit = 1;
     
     INTREG          iregInterLevel;
     INT             i;
@@ -162,13 +162,15 @@ ssize_t  __randRead (PLW_RAND_FIL  prandfil, PCHAR  pcBuffer, size_t  stMaxBytes
     iSeedInit += (INT32)_G_tvLastInt.tv_nsec;                           /*  快速重复调用确保不相同      */
     LW_SPIN_UNLOCK_QUICK(&_G_slRandLock, iregInterLevel);
     
-    iSeed = iSeedInit;
+    iSeedInit = (iSeedInit >= 0) ? iSeedInit : (0 - iSeedInit);
+    iSeed     = iSeedInit;
     
     for (i = 0; i < iTimes; i++) {
         llTmp   = (INT64)((INT64)iSeed * 1103515245);
-        llTmp  += ((INT64)16807L ^ _G_i64IntCounter);
+        llTmp  += ((INT64)16807L ^ (_G_i64IntCounter + API_TimeGet64()));
         llTmp >>= 16;
         iSeed   = (INT32)(llTmp % __ARCH_UINT_MAX);
+        iSeed   = (iSeed >= 0) ? iSeed : (0 - iSeed);
         
         *pcBuffer++ = (CHAR)(iSeed >> 24);
         *pcBuffer++ = (CHAR)(iSeed >> 8);
@@ -178,15 +180,18 @@ ssize_t  __randRead (PLW_RAND_FIL  prandfil, PCHAR  pcBuffer, size_t  stMaxBytes
     
     if (iLefts) {
         llTmp   = (INT64)((INT64)iSeed * 1103515245);
-        llTmp  += ((INT64)16807L ^ _G_i64IntCounter);
+        llTmp  += ((INT64)16807L ^ (_G_i64IntCounter + API_TimeGet64()));
         llTmp >>= 16;
         iSeed   = (INT32)(llTmp % __ARCH_UINT_MAX);
+        iSeed   = (iSeed >= 0) ? iSeed : (0 - iSeed);
         
         for (i = 0; i < iLefts; i++) {
             *pcBuffer++ = (CHAR)(iSeed >> 24);
             iSeed <<= 8;
         }
     }
+    
+    iSeedInit = iSeed;
     
     return  ((ssize_t)stMaxBytes);
 }

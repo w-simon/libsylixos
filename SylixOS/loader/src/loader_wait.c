@@ -28,6 +28,7 @@
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
+#include "paths.h"
 #include "sys/wait.h"
 #include "sys/resource.h"
 /*********************************************************************************************************
@@ -319,6 +320,16 @@ static INT __reclaimAChild (LW_LD_VPROC   *pvproc,
                 bHasEvent = LW_TRUE;
                 break;
             }
+        
+        } else if (pvprocChild->VP_ulFeatrues & __LW_VP_FT_DAEMON) {    /*  子进程进入 deamon 状态      */
+            if (pid) {
+                *pid = pvprocChild->VP_pid;
+            }
+            if (stat_loc) {
+                *stat_loc = 0;                                          /*  子进程正常退出              */
+            }
+            bHasEvent = LW_TRUE;
+            break;
         }
     }
     LW_LD_UNLOCK();
@@ -460,14 +471,14 @@ int  waitid (idtype_t idtype, id_t id, siginfo_t *infop, int options)
         iError = __reclaimAChild(pvproc, pid, &pidChld, 
                                  &iStat, options, LW_NULL);             /*  试图回收一个子进程          */
         if (iError < 0) {
-            return  (iError);                                           /*  没有子线程                  */
+            return  (PX_ERROR);                                         /*  没有子线程                  */
         
         } else if (iError > 0) {
-            return  (pidChld);                                          /*  子线程已经被回收            */
+            return  (ERROR_NONE);                                       /*  子线程已经被回收            */
         }
         
         if (options & WNOHANG) {                                        /*  不等待                      */
-            return  (0);
+            return  (ERROR_NONE);
         }
         
         iError = sigwaitinfo(&sigsetSigchld, infop);                    /*  等待子进程信号              */
@@ -712,9 +723,10 @@ int detach (pid_t pid)
 LW_API
 int daemon (int nochdir, int noclose)
 {
-    INT     iFd;
-    pid_t   pid = getpid();
-
+    INT                 iFd;
+    pid_t               pid = getpid();
+    LW_OBJECT_HANDLE    ulId;
+    
     if (pid <= 0) {
         _ErrorHandle(ENOSYS);
         return  (PX_ERROR);
@@ -725,18 +737,23 @@ int daemon (int nochdir, int noclose)
     }
     
     if (!noclose) {
-        iFd = open("/dev/null", O_RDWR);
+        iFd = open(_PATH_DEVNULL, O_RDWR);
         if (iFd < 0) {
             return  (PX_ERROR);
         }
-        dup2(iFd, 0);
-        dup2(iFd, 1);
-        dup2(iFd, 2);
+        dup2(iFd, STD_IN);
+        dup2(iFd, STD_OUT);
+        dup2(iFd, STD_ERR);
         close(iFd);
     }
     
     detach(pid);                                                        /*  从父进程脱离                */
     setsid();
+    
+    ulId = vprocMainThread(pid);
+    if (ulId != LW_OBJECT_HANDLE_INVALID) {
+        API_ThreadDetach(ulId);                                         /*  主线程 detach               */
+    }
     
     return  (ERROR_NONE);
 }

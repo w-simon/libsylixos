@@ -1775,6 +1775,7 @@ VOID  API_INetFtpServerShow (VOID)
              INT                iSessionCounter = 0;
              
              CHAR               cTimeBuffer[32];
+             PCHAR              pcN;
     
     printf("ftpd show >>\n");
     printf("ftpd path: %s\n", (_G_pcFtpdRootPath != LW_NULL) ? (_G_pcFtpdRootPath) : "null");
@@ -1791,7 +1792,13 @@ VOID  API_INetFtpServerShow (VOID)
         lib_localtime_r(&pftpds->FTPDS_timeStart, &tmTime);             /*  格式化连接时间              */
         iAlive = (INT)(timeNow - pftpds->FTPDS_timeStart);              /*  计算存活时间                */
         
-        printf("%-15s %-24s %12d\n", cAddr, lib_asctime_r(&tmTime, cTimeBuffer), iAlive);
+        lib_asctime_r(&tmTime, cTimeBuffer);
+        pcN = lib_index(cTimeBuffer, '\n');
+        if (pcN) {
+            *pcN = PX_EOS;
+        }
+        
+        printf("%-15s %-24s %12d\n", cAddr, cTimeBuffer, iAlive);
                                                                         /*  打印会话信息                */
         iSessionCounter++;
     }

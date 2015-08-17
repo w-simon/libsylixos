@@ -247,7 +247,7 @@ static VOID  __signalStopHandle (INT  iSigNo, struct siginfo *psiginfo)
     
 #if LW_CFG_MODULELOADER_EN > 0
     if (pvproc) {
-        vprocNotifyParent(pvproc, CLD_STOPPED);
+        vprocNotifyParent(pvproc, CLD_STOPPED, LW_TRUE);
     }
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN      */
     
@@ -255,7 +255,7 @@ static VOID  __signalStopHandle (INT  iSigNo, struct siginfo *psiginfo)
     
 #if LW_CFG_MODULELOADER_EN > 0
     if (pvproc) {
-        vprocNotifyParent(pvproc, CLD_CONTINUED);
+        vprocNotifyParent(pvproc, CLD_CONTINUED, LW_TRUE);
     }
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN      */
 }

@@ -84,6 +84,9 @@ typedef struct lw_ld_vproc {
     INT                     VP_iExitCode;                               /*  结束代码                    */
     INT                     VP_iSigCode;                                /*  iSigCode                    */
     
+#define __LW_VP_FT_DAEMON   0x01                                        /*  daemon 进程                 */
+    ULONG                   VP_ulFeatrues;                              /*  进程 featrues               */
+    
     struct lw_ld_vproc     *VP_pvprocFather;                            /*  父亲 (NULL 表示孤儿进程)    */
     LW_LIST_LINE_HEADER     VP_plineChild;                              /*  儿子进程链表头              */
     LW_LIST_LINE            VP_lineBrother;                             /*  兄弟进程                    */
@@ -96,7 +99,7 @@ typedef struct lw_ld_vproc {
     LW_LD_VPROC_T           VP_vptimer[3];                              /*  REAL / VIRTUAL / PROF 定时器*/
     
     LW_LIST_LINE_HEADER     VP_plineMap;                                /*  虚拟内存空间                */
-    ULONG                   VP_ulPad[8];                                /*  预留                        */
+    ULONG                   VP_ulPad[7];                                /*  预留                        */
 } LW_LD_VPROC;
 
 /*********************************************************************************************************

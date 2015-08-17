@@ -243,12 +243,10 @@
 
 #define SIGEV_NONE             1                                        /*  No asynchronous notification*/
 #define SIGEV_SIGNAL           2                                        /*  A queued signal             */
-
-#if LW_CFG_POSIX_EN > 0
 #define SIGEV_THREAD           3                                        /*  invoke sigev_notify_function*/
                                                                         /*  as if it were the start     */
                                                                         /*  function of a new thread.   */
-
+#if LW_CFG_POSIX_EN > 0
 #ifdef __SYLIXOS_KERNEL
 #define SIGEV_NOTIFY_MASK      0x3
 #endif                                                                  /*  __SYLIXOS_KERNEL            */

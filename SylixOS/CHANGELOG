@@ -21,6 +21,9 @@ HISTORY
     
     2015-07-24: han.hui
     修正 fcntl F_DUPFD 的错误.
+    
+    2015-08-17: han.hui
+    修正 deamon 需要通知父进程.
 
 (STABLE-1.1.1)
 

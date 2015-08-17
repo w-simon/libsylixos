@@ -53,6 +53,7 @@
 2014.07.03  加入获取进程虚拟空间组的函数.
 2014.09.29  API_ModuleGetBase() 加入长度参数.
 2015.03.02  修正 vprocNotifyParent() 获取父系进程主线程错误.
+2015.08.17  vprocDetach() 需要通知父进程.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -347,7 +348,7 @@ pid_t  vprocGetFather (pid_t  pid)
 INT  vprocDetach (pid_t  pid)
 {
     LW_LD_VPROC *pvproc;
-    LW_LD_VPROC *pvprocFather;
+    LW_LD_VPROC *pvprocFather = LW_NULL;
     
     if ((pid < 1) || (pid > LW_CFG_MAX_THREADS)) {
         _ErrorHandle(EINVAL);
@@ -363,8 +364,15 @@ INT  vprocDetach (pid_t  pid)
                            &pvprocFather->VP_plineChild);               /*  从父系链表中退出            */
             pvproc->VP_pvprocFather = LW_NULL;
         }
+        pvproc->VP_ulFeatrues |= __LW_VP_FT_DAEMON;                     /*  进入 deamon 状态            */
     }
     LW_LD_UNLOCK();
+    
+    if (pvprocFather) {
+        pvproc->VP_iExitCode  |= SET_EXITSTATUS(0);
+        vprocNotifyParent(pvproc, CLD_EXITED, LW_FALSE);                /*  向父进程发送子进程退出信号  */
+        pvproc->VP_iExitCode   = 0;
+    }
     
     return  (ERROR_NONE);
 }
@@ -640,14 +648,15 @@ LW_OBJECT_HANDLE vprocMainThread (pid_t pid)
 /*********************************************************************************************************
 ** 函数名称: vprocNotifyParent
 ** 功能描述: 进程通知父系进程
-** 输　入  : pvproc     进程控制块指针
-**           sigevent   通知信息
-**           iSigCode   sigcode
+** 输　入  : pvproc         进程控制块指针
+**           sigevent       通知信息
+**           iSigCode       sigcode
+**           bUpDateStat    是否更新进程状态
 ** 输　出  : 是否成功
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-INT  vprocNotifyParent (LW_LD_VPROC *pvproc, INT  iSigCode)
+INT  vprocNotifyParent (LW_LD_VPROC *pvproc, INT  iSigCode, BOOL  bUpDateStat)
 {
     siginfo_t           siginfoChld;
     sigevent_t          sigeventChld;
@@ -664,16 +673,18 @@ INT  vprocNotifyParent (LW_LD_VPROC *pvproc, INT  iSigCode)
     LW_LD_LOCK();
     pvproc->VP_iSigCode = iSigCode;
     
-    if ((iSigCode == CLD_EXITED) || 
-        (iSigCode == CLD_KILLED) || 
-        (iSigCode == CLD_DUMPED)) {                                     /*  当前进程退出, 通知父亲      */
-        pvproc->VP_iStatus = __LW_VP_EXIT;
-    
-    } else if (iSigCode == CLD_CONTINUED) {                             /*  当前进程被恢复执行          */
-        pvproc->VP_iStatus = __LW_VP_RUN;
-    
-    } else {
-        pvproc->VP_iStatus = __LW_VP_STOP;                              /*  当前进程暂停                */
+    if (bUpDateStat) {
+        if ((iSigCode == CLD_EXITED) || 
+            (iSigCode == CLD_KILLED) || 
+            (iSigCode == CLD_DUMPED)) {                                 /*  当前进程退出, 通知父亲      */
+            pvproc->VP_iStatus = __LW_VP_EXIT;
+        
+        } else if (iSigCode == CLD_CONTINUED) {                         /*  当前进程被恢复执行          */
+            pvproc->VP_iStatus = __LW_VP_RUN;
+        
+        } else {
+            pvproc->VP_iStatus = __LW_VP_STOP;                          /*  当前进程暂停                */
+        }
     }
     
     siginfoChld.si_signo = SIGCHLD;
@@ -693,7 +704,9 @@ INT  vprocNotifyParent (LW_LD_VPROC *pvproc, INT  iSigCode)
     sigeventChld.sigev_notify          = SIGEV_SIGNAL;
     
 #if LW_CFG_GDB_EN > 0
-    API_DtraceChildSig(pvproc->VP_pid, &sigeventChld, &siginfoChld);    /*  发送给调试器                */
+    if (bUpDateStat) {
+        API_DtraceChildSig(pvproc->VP_pid, &sigeventChld, &siginfoChld);/*  发送给调试器                */
+    }
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
     
     if (pvproc->VP_pvprocFather) {
@@ -873,7 +886,7 @@ __recheck:
     }
     LW_LD_UNLOCK();
     
-    iError = vprocNotifyParent(pvproc, CLD_EXITED);                     /*  通知父亲, 子进程退出        */
+    iError = vprocNotifyParent(pvproc, CLD_EXITED, LW_TRUE);            /*  通知父亲, 子进程退出        */
     if (iError < 0) {                                                   /*  此进程为孤儿进程            */
         __resReclaimReq((PVOID)pvproc);                                 /*  请求释放进程资源            */
     }

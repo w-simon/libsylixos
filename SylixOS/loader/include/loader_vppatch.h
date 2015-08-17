@@ -63,7 +63,7 @@ LW_LD_VPROC        *vprocGet(pid_t  pid);
 pid_t               vprocGetPidByTcb(PLW_CLASS_TCB ptcb);
 pid_t               vprocGetPidByTcbdesc(PLW_CLASS_TCB_DESC  ptcbdesc);
 LW_OBJECT_HANDLE    vprocMainThread(pid_t pid);
-INT                 vprocNotifyParent(LW_LD_VPROC *pvproc, INT  iSigCode);
+INT                 vprocNotifyParent(LW_LD_VPROC *pvproc, INT  iSigCode, BOOL  bUpDateStat);
 VOID                vprocReclaim(LW_LD_VPROC *pvproc, BOOL  bFreeVproc);
 INT                 vprocSetForceTerm(pid_t  pid);
 VOID                vprocExit(LW_LD_VPROC *pvproc, LW_OBJECT_HANDLE  ulId, INT  iCode);

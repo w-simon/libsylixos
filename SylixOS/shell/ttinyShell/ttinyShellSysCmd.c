@@ -657,7 +657,7 @@ static INT  __tshellSysCmdTimes (INT  iArgC, PCHAR  ppcArgV[])
         lib_localtime_r(&tim, &tmTime);
     }
     
-    printf("%s\n", lib_asctime_r(&tmTime, cTimeBuffer));
+    printf("%s", lib_asctime_r(&tmTime, cTimeBuffer));
     
     return  (ERROR_NONE);
 }
@@ -767,7 +767,7 @@ __invalid_date:
     }
     
     
-    printf("%s\n", lib_asctime_r(&tmTime, cTimeBuffer));
+    printf("%s", lib_asctime_r(&tmTime, cTimeBuffer));
     
     return  (ERROR_NONE);
 }
@@ -1488,7 +1488,7 @@ static INT  __tshellSysCmdHwclock (INT  iArgC, PCHAR  ppcArgV[])
             fprintf(stderr, "can not get RTC info. error : %s\n", lib_strerror(errno));
             return  (PX_ERROR);
         } else {
-            printf("%s\n", lib_ctime_r(&time, cTimeBuffer));
+            printf("%s", lib_ctime_r(&time, cTimeBuffer));
         }
     
     } else if (lib_strcmp("--hctosys", ppcArgV[1]) == 0) {              /*  硬件时钟与系统时间同步      */
