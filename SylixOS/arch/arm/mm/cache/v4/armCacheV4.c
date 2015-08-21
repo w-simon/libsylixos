@@ -153,6 +153,7 @@ static INT	armCacheV4Invalidate (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t
     } else {
         if (stBytes > 0) {                                              /*  必须 > 0                    */
             addr_t  ulStart = (addr_t)pvAdrs;
+                    ulEnd   = ulStart + stBytes;
             
             if (ulStart & (ARMv4_CACHE_LINE_SIZE - 1)) {                /*  起始地址非 cache line 对齐  */
                 ulStart &= ~(ARMv4_CACHE_LINE_SIZE - 1);
@@ -160,7 +161,6 @@ static INT	armCacheV4Invalidate (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t
                 ulStart += ARMv4_CACHE_LINE_SIZE;
             }
             
-            ulEnd = ulStart + stBytes;
             if (ulEnd & (ARMv4_CACHE_LINE_SIZE - 1)) {                  /*  结束地址非 cache line 对齐  */
                 ulEnd &= ~(ARMv4_CACHE_LINE_SIZE - 1);
                 armDCacheClear((PVOID)ulEnd, (PVOID)ulEnd, ARMv4_CACHE_LINE_SIZE);
@@ -200,6 +200,7 @@ static INT	armCacheV4InvalidatePage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVOI
     } else {
         if (stBytes > 0) {                                              /*  必须 > 0                    */
             addr_t  ulStart = (addr_t)pvAdrs;
+                    ulEnd   = ulStart + stBytes;
             
             if (ulStart & (ARMv4_CACHE_LINE_SIZE - 1)) {                /*  起始地址非 cache line 对齐  */
                 ulStart &= ~(ARMv4_CACHE_LINE_SIZE - 1);
@@ -207,7 +208,6 @@ static INT	armCacheV4InvalidatePage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVOI
                 ulStart += ARMv4_CACHE_LINE_SIZE;
             }
             
-            ulEnd = ulStart + stBytes;
             if (ulEnd & (ARMv4_CACHE_LINE_SIZE - 1)) {                  /*  结束地址非 cache line 对齐  */
                 ulEnd &= ~(ARMv4_CACHE_LINE_SIZE - 1);
                 armDCacheClear((PVOID)ulEnd, (PVOID)ulEnd, ARMv4_CACHE_LINE_SIZE);

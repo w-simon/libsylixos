@@ -352,7 +352,6 @@ VOID  _TCBBuild (UINT8                    ucPriority,
     _K_ptcbTCBIdTable[_ObjectGetIndex(ulId)] = ptcb;                    /*  保存TCB控制块               */
     _List_Line_Add_Ahead(&ptcb->TCB_lineManage, 
                          &_K_plineTCBHeader);                           /*  进入 TCB 管理链表           */
-    _LIST_RING_INIT_IN_CODE(ptcb->TCB_ringReady);
     __KERNEL_EXIT();                                                    /*  退出内核                    */
 
 #if LW_CFG_MODULELOADER_EN > 0                                          /*  如果为 GLOBAL 则不属于进程  */

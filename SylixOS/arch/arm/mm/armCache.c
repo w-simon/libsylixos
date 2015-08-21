@@ -28,6 +28,7 @@
 #include "cache/v5/armCacheV5.h"
 #include "cache/v6/armCacheV6.h"
 #include "cache/v7/armCacheV7.h"
+#include "cache/v8/armCacheV8.h"
 /*********************************************************************************************************
 ** 函数名称: archCacheInit
 ** 功能描述: 初始化 CACHE 
@@ -65,6 +66,15 @@ VOID  archCacheInit (CACHE_MODE  uiInstruction, CACHE_MODE  uiData, CPCHAR  pcMa
         }
         armCacheV7Init(pcacheop, uiInstruction, uiData, pcMachineName);
     
+    } else if ((lib_strcmp(pcMachineName, ARM_MACHINE_A53)     == 0) ||
+               (lib_strcmp(pcMachineName, ARM_MACHINE_A57)     == 0) ||
+               (lib_strcmp(pcMachineName, ARM_MACHINE_FT1500A) == 0)) {
+        if (__SYLIXOS_ARM_ARCH__ < 8) {
+            _DebugHandle(__ERRORMESSAGE_LEVEL, "machine name is NOT fix with "
+                                               "compiler -mcpu or -march parameter.\r\n");
+        }
+        armCacheV8Init(pcacheop, uiInstruction, uiData, pcMachineName);
+    
     } else {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown machine name.\r\n");
     }
@@ -95,6 +105,11 @@ VOID  archCacheReset (CPCHAR  pcMachineName)
                (lib_strcmp(pcMachineName, ARM_MACHINE_A9)  == 0) ||
                (lib_strcmp(pcMachineName, ARM_MACHINE_A15) == 0)) {
         armCacheV7Reset(pcMachineName);
+    
+    } else if ((lib_strcmp(pcMachineName, ARM_MACHINE_A53)     == 0) ||
+               (lib_strcmp(pcMachineName, ARM_MACHINE_A57)     == 0) ||
+               (lib_strcmp(pcMachineName, ARM_MACHINE_FT1500A) == 0)) {
+        armCacheV8Reset(pcMachineName);
     
     } else {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown machine name.\r\n");

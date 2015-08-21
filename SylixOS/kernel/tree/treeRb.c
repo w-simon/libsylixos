@@ -36,11 +36,13 @@ static VOID  __tree_rb_rotate_left (PLW_TREE_RB_NODE  ptrbn, PLW_TREE_RB_ROOT  p
     if ((ptrbn->TRBN_ptrbnRight = ptrbnRight->TRBN_ptrbnLeft) != LW_NULL) {
         ptrbnRight->TRBN_ptrbnLeft->TRBN_ptrbnParent = ptrbn;
     }
+    
     ptrbnRight->TRBN_ptrbnLeft = ptrbn;
     
     if ((ptrbnRight->TRBN_ptrbnParent = ptrbn->TRBN_ptrbnParent) != LW_NULL) {
         if (ptrbn == ptrbn->TRBN_ptrbnParent->TRBN_ptrbnLeft) {
             ptrbn->TRBN_ptrbnParent->TRBN_ptrbnLeft = ptrbnRight;
+        
         } else {
             ptrbn->TRBN_ptrbnParent->TRBN_ptrbnRight = ptrbnRight;
         }
@@ -66,11 +68,13 @@ static VOID  __tree_rb_rotate_right (PLW_TREE_RB_NODE  ptrbn, PLW_TREE_RB_ROOT  
     if ((ptrbn->TRBN_ptrbnLeft = ptrbnLeft->TRBN_ptrbnRight) != LW_NULL) {
         ptrbnLeft->TRBN_ptrbnRight->TRBN_ptrbnParent = ptrbn;
     }
+    
     ptrbnLeft->TRBN_ptrbnRight = ptrbn;
     
     if ((ptrbnLeft->TRBN_ptrbnParent = ptrbn->TRBN_ptrbnParent) != LW_NULL) {
         if (ptrbn == ptrbn->TRBN_ptrbnParent->TRBN_ptrbnRight) {
             ptrbn->TRBN_ptrbnParent->TRBN_ptrbnRight = ptrbnLeft;
+        
         } else {
             ptrbn->TRBN_ptrbnParent->TRBN_ptrbnLeft = ptrbnLeft;
         }
@@ -100,10 +104,8 @@ static VOID  __tree_rb_erase_color (PLW_TREE_RB_NODE  ptrbn,
            ptrbn != ptrbr->TRBR_ptrbnNode) {
            
         if (ptrbnParent->TRBN_ptrbnLeft == ptrbn) {
-        
             ptrbnOther = ptrbnParent->TRBN_ptrbnRight;
             if (ptrbnOther->TRBN_iColor == LW_TREE_RB_RED) {
-            
                 ptrbnOther->TRBN_iColor = LW_TREE_RB_BLACK;
                 ptrbnParent->TRBN_iColor = LW_TREE_RB_RED;
                 __tree_rb_rotate_left(ptrbnParent, ptrbr);
@@ -114,17 +116,15 @@ static VOID  __tree_rb_erase_color (PLW_TREE_RB_NODE  ptrbn,
                 ptrbnOther->TRBN_ptrbnLeft->TRBN_iColor == LW_TREE_RB_BLACK) && 
                 (!ptrbnOther->TRBN_ptrbnRight ||
                 ptrbnOther->TRBN_ptrbnRight->TRBN_iColor == LW_TREE_RB_BLACK)) {
-                
                 ptrbnOther->TRBN_iColor = LW_TREE_RB_RED;
                 ptrbn = ptrbnParent;
                 ptrbnParent = ptrbn->TRBN_ptrbnParent;
             
             } else {
-                
                 if (!ptrbnOther->TRBN_ptrbnRight ||
                     ptrbnOther->TRBN_ptrbnRight->TRBN_iColor == LW_TREE_RB_BLACK) {
-                    
                     REGISTER PLW_TREE_RB_NODE  ptrbnOtherLeft;
+                    
                     if ((ptrbnOtherLeft = ptrbnOther->TRBN_ptrbnLeft) != LW_NULL) {
                         ptrbnOtherLeft->TRBN_iColor = LW_TREE_RB_BLACK;
                     }
@@ -145,8 +145,8 @@ static VOID  __tree_rb_erase_color (PLW_TREE_RB_NODE  ptrbn,
                 break;
             }
         } else {
-        
             ptrbnOther = ptrbnParent->TRBN_ptrbnLeft;
+            
             if (ptrbnOther->TRBN_iColor == LW_TREE_RB_RED) {
                 ptrbnOther->TRBN_iColor = LW_TREE_RB_BLACK;
                 ptrbnParent->TRBN_iColor = LW_TREE_RB_RED;
@@ -158,20 +158,18 @@ static VOID  __tree_rb_erase_color (PLW_TREE_RB_NODE  ptrbn,
                 ptrbnOther->TRBN_ptrbnLeft->TRBN_iColor == LW_TREE_RB_BLACK) && 
                 (!ptrbnOther->TRBN_ptrbnRight ||
                 ptrbnOther->TRBN_ptrbnRight->TRBN_iColor == LW_TREE_RB_BLACK)) {
-                
                 ptrbnOther->TRBN_iColor = LW_TREE_RB_RED;
                 ptrbn = ptrbnParent;
                 ptrbnParent = ptrbn->TRBN_ptrbnParent;
             
             } else {
-            
                 if (!ptrbnOther->TRBN_ptrbnLeft ||
                     ptrbnOther->TRBN_ptrbnLeft->TRBN_iColor == LW_TREE_RB_BLACK) {
-                    
                     REGISTER PLW_TREE_RB_NODE  ptrbnOtherRight;
                     if ((ptrbnOtherRight = ptrbnOther->TRBN_ptrbnRight) != LW_NULL) {
                         ptrbnOtherRight->TRBN_iColor = LW_TREE_RB_BLACK;
                     }
+                    
                     ptrbnOther->TRBN_iColor = LW_TREE_RB_RED;
                     __tree_rb_rotate_left(ptrbnOther, ptrbr);
                     ptrbnOther = ptrbnParent->TRBN_ptrbnLeft;
@@ -215,12 +213,10 @@ VOID  _Tree_Rb_Insert_Color (PLW_TREE_RB_NODE  ptrbn, PLW_TREE_RB_ROOT  ptrbr)
         ptrbnGparent = ptrbnParent->TRBN_ptrbnParent;
         
         if (ptrbnParent == ptrbnGparent->TRBN_ptrbnLeft) {
-        
             {
                 REGISTER PLW_TREE_RB_NODE   ptrbnUncle = ptrbnGparent->TRBN_ptrbnRight;
                 
                 if (ptrbnUncle && ptrbnUncle->TRBN_iColor == LW_TREE_RB_RED) {
-                    
                     ptrbnUncle->TRBN_iColor = LW_TREE_RB_BLACK;
                     ptrbnParent->TRBN_iColor = LW_TREE_RB_BLACK;
                     ptrbnGparent->TRBN_iColor = LW_TREE_RB_RED;
@@ -242,12 +238,10 @@ VOID  _Tree_Rb_Insert_Color (PLW_TREE_RB_NODE  ptrbn, PLW_TREE_RB_ROOT  ptrbr)
             __tree_rb_rotate_right(ptrbnGparent, ptrbr);
         
         } else {
-        
             {
                 REGISTER PLW_TREE_RB_NODE   ptrbnUncle = ptrbnGparent->TRBN_ptrbnLeft;
                 
                 if (ptrbnUncle && ptrbnUncle->TRBN_iColor == LW_TREE_RB_RED) {
-                    
                     ptrbnUncle->TRBN_iColor = LW_TREE_RB_BLACK;
                     ptrbnParent->TRBN_iColor = LW_TREE_RB_BLACK;
                     ptrbnGparent->TRBN_iColor = LW_TREE_RB_RED;
@@ -290,10 +284,11 @@ VOID  _Tree_Rb_Erase (PLW_TREE_RB_NODE  ptrbn, PLW_TREE_RB_ROOT  ptrbr)
              
     if (!ptrbn->TRBN_ptrbnLeft) {
         ptrbnChild = ptrbn->TRBN_ptrbnRight;
+    
     } else if (!ptrbn->TRBN_ptrbnRight) {
         ptrbnChild = ptrbn->TRBN_ptrbnLeft;
-    } else {
     
+    } else {
         REGISTER PLW_TREE_RB_NODE  ptrbnOld = ptrbn;
         REGISTER PLW_TREE_RB_NODE  ptrbnLeft;
         
@@ -312,9 +307,9 @@ VOID  _Tree_Rb_Erase (PLW_TREE_RB_NODE  ptrbn, PLW_TREE_RB_ROOT  ptrbr)
         }
         
         if (ptrbnParent) {
-        
             if (ptrbnParent->TRBN_ptrbnLeft == ptrbn) {
                 ptrbnParent->TRBN_ptrbnLeft = ptrbnChild;
+            
             } else {
                 ptrbnParent->TRBN_ptrbnRight = ptrbnChild;
             }
@@ -334,6 +329,7 @@ VOID  _Tree_Rb_Erase (PLW_TREE_RB_NODE  ptrbn, PLW_TREE_RB_ROOT  ptrbr)
         if (ptrbnOld->TRBN_ptrbnParent) {
             if (ptrbnOld->TRBN_ptrbnParent->TRBN_ptrbnLeft == ptrbnOld) {
                 ptrbnOld->TRBN_ptrbnParent->TRBN_ptrbnLeft = ptrbn;
+            
             } else {
                 ptrbnOld->TRBN_ptrbnParent->TRBN_ptrbnRight = ptrbn;
             }
@@ -342,6 +338,7 @@ VOID  _Tree_Rb_Erase (PLW_TREE_RB_NODE  ptrbn, PLW_TREE_RB_ROOT  ptrbr)
         }
         
         ptrbnOld->TRBN_ptrbnLeft->TRBN_ptrbnParent = ptrbn;
+        
         if (ptrbnOld->TRBN_ptrbnRight) {
             ptrbnOld->TRBN_ptrbnRight->TRBN_ptrbnParent = ptrbn;
         }
@@ -354,9 +351,11 @@ VOID  _Tree_Rb_Erase (PLW_TREE_RB_NODE  ptrbn, PLW_TREE_RB_ROOT  ptrbr)
     if (ptrbnChild) {
         ptrbnChild->TRBN_ptrbnParent = ptrbnParent;
     }
+    
     if (ptrbnParent) {
         if (ptrbnParent->TRBN_ptrbnLeft == ptrbn) {
             ptrbnParent->TRBN_ptrbnLeft = ptrbnChild;
+        
         } else {
             ptrbnParent->TRBN_ptrbnRight = ptrbnChild;
         }

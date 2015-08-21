@@ -494,7 +494,18 @@ static INT  __tshellSysCmdCpuus (INT  iArgC, PCHAR  ppcArgV[])
 *********************************************************************************************************/
 static INT  __tshellSysCmdInts (INT  iArgC, PCHAR  ppcArgV[])
 {
-    API_InterShow();
+    ULONG  ulCPUStart = 0;
+    ULONG  ulCPUEnd   = LW_NCPUS - 1;
+    
+    if (iArgC > 1) {
+        sscanf(ppcArgV[1], "%lx", &ulCPUStart);
+    }
+    
+    if (iArgC > 2) {
+        sscanf(ppcArgV[2], "%lx", &ulCPUEnd);
+    }
+    
+    API_InterShow(ulCPUStart, ulCPUEnd);
     
     return  (ERROR_NONE);
 }
@@ -2098,6 +2109,7 @@ VOID  __tshellSysCmdInit (VOID)
     API_TShellHelpAdd("top", "show cpu usage information, wait_seconds max is 10s.\n");
     
     API_TShellKeywordAdd("ints", __tshellSysCmdInts);
+    API_TShellFormatAdd("ints", " [cpuid start] [cpuid end]");
     API_TShellHelpAdd("ints", "show system interrupt vecter information.\n");
     
     API_TShellKeywordAdd("mems", __tshellSysCmdMems);

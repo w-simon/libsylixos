@@ -51,7 +51,7 @@
         defined(__ARM_ARCH_7EM__)
 #    define __SYLIXOS_ARM_ARCH__    7
 
-#  elif defined(__ARM_ARCH_8__)  || defined(__ARM_ARCH_8A__)
+#  elif defined(__ARM_ARCH_8__) || defined(__ARM_ARCH_8A__)
 #    define __SYLIXOS_ARM_ARCH__    8
 #  endif                                                                /*  user define only            */
 

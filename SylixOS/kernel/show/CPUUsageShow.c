@@ -105,7 +105,7 @@ VOID    API_CPUUsageShow (INT  iWaitSec, INT  iTimes)
             continue;
         }
         
-        for (i = iThreadNum - 1; i >= 0; i--) {                         /*  反向                        */
+        for (i = iThreadNum - 1; i >= 0; i--) {                         /*  反向显示                    */
             CHAR    cName[LW_CFG_OBJECT_NAME_SIZE];
             UINT8   ucPriority;
             

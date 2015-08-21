@@ -184,6 +184,11 @@ INT   sigaction (INT                      iSigNo,
         return  (PX_ERROR);
     }
     
+    if ((iSigNo == SIGKILL) || (iSigNo == SIGSTOP)) {                   /*  不能捕获和忽略              */
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
     LW_TCB_GET_CUR_SAFE(ptcbCur);
     
     psigctx    = _signalGetCtx(ptcbCur);

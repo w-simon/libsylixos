@@ -17,6 +17,9 @@
 ** 文件创建日期: 2013 年 12 月 09 日
 **
 ** 描        述: ARMv6 体系构架 CACHE 驱动.
+**
+** BUG:
+2015.08.21  修正 Invalidate 操作结束地址计算错误.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -156,6 +159,7 @@ static INT	armCacheV6Invalidate (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t
     } else {
         if (stBytes > 0) {                                              /*  必须 > 0                    */
             addr_t  ulStart = (addr_t)pvAdrs;
+                    ulEnd   = ulStart + stBytes;
             
             if (ulStart & (ARMv6_CACHE_LINE_SIZE - 1)) {                /*  起始地址非 cache line 对齐  */
                 ulStart &= ~(ARMv6_CACHE_LINE_SIZE - 1);
@@ -163,7 +167,6 @@ static INT	armCacheV6Invalidate (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t
                 ulStart += ARMv6_CACHE_LINE_SIZE;
             }
             
-            ulEnd = ulStart + stBytes;
             if (ulEnd & (ARMv6_CACHE_LINE_SIZE - 1)) {                  /*  结束地址非 cache line 对齐  */
                 ulEnd &= ~(ARMv6_CACHE_LINE_SIZE - 1);
                 armDCacheClear((PVOID)ulEnd, (PVOID)ulEnd, ARMv6_CACHE_LINE_SIZE);
@@ -203,14 +206,14 @@ static INT	armCacheV6InvalidatePage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVOI
     } else {
         if (stBytes > 0) {                                              /*  必须 > 0                    */
             addr_t  ulStart = (addr_t)pvAdrs;
-            
+                    ulEnd   = ulStart + stBytes;
+                    
             if (ulStart & (ARMv6_CACHE_LINE_SIZE - 1)) {                /*  起始地址非 cache line 对齐  */
                 ulStart &= ~(ARMv6_CACHE_LINE_SIZE - 1);
                 armDCacheClear((PVOID)ulStart, (PVOID)ulStart, ARMv6_CACHE_LINE_SIZE);
                 ulStart += ARMv6_CACHE_LINE_SIZE;
             }
             
-            ulEnd = ulStart + stBytes;
             if (ulEnd & (ARMv6_CACHE_LINE_SIZE - 1)) {                  /*  结束地址非 cache line 对齐  */
                 ulEnd &= ~(ARMv6_CACHE_LINE_SIZE - 1);
                 armDCacheClear((PVOID)ulEnd, (PVOID)ulEnd, ARMv6_CACHE_LINE_SIZE);

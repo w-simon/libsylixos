@@ -18,6 +18,9 @@
 **
 ** 描        述: ARM 体系构架 L2 CACHE 驱动
 ** 注        意: 无论处理器是大端还是小端, L2 控制器均为小端.
+**
+** BUG:
+2015.08.20  加入对 ARMv8 支持.
 *********************************************************************************************************/
 #define  __SYLIXOS_IO
 #define  __SYLIXOS_KERNEL
@@ -330,6 +333,19 @@ VOID armL2Init (CACHE_MODE   uiInstruction,
             (l2cdrv.L2CD_uiType == 0x03)) {                             /*  PL310 L2 Controler support  */
             armAuxControlFeatureEnable(AUX_CTRL_A9_L2_PREFETCH);        /*  L2: Prefetch Enable         */
         }
+    
+    } else if ((lib_strcmp(pcMachineName, ARM_MACHINE_A53)     == 0) ||
+               (lib_strcmp(pcMachineName, ARM_MACHINE_A57)     == 0) ||
+               (lib_strcmp(pcMachineName, ARM_MACHINE_FT1500A) == 0)) { /*  ARMv8                       */
+        l2cdrv.L2CD_pcName    = "ARMv8";
+        l2cdrv.L2CD_ulBase    = 0ul;
+        l2cdrv.L2CD_uiWayMask = 0;
+        l2cdrv.L2CD_uiAux     = 0;
+        l2cdrv.L2CD_uiType    = 0;
+        l2cdrv.L2CD_uiRelease = 0;
+
+        _DebugFormat(__LOGMESSAGE_LEVEL, "%s L2 cache controller initialization.\r\n",
+                     l2cdrv.L2CD_pcName);
     } else {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown machine name.\r\n");
     }

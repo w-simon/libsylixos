@@ -20,6 +20,7 @@
 **
 ** BUG:
 2014.11.12  L2 CACHE 只有 CPU 0 才能操作.
+2015.08.21  修正 Invalidate 操作结束地址计算错误.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -220,6 +221,7 @@ static INT	armCacheV7Invalidate (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t
     } else {
         if (stBytes > 0) {                                              /*  必须 > 0                    */
             addr_t  ulStart = (addr_t)pvAdrs;
+                    ulEnd   = ulStart + stBytes;
             
             if (ulStart & ((addr_t)uiArmV7CacheLineSize - 1)) {         /*  起始地址非 cache line 对齐  */
                 ulStart &= ~((addr_t)uiArmV7CacheLineSize - 1);
@@ -227,7 +229,6 @@ static INT	armCacheV7Invalidate (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t
                 ulStart += uiArmV7CacheLineSize;
             }
             
-            ulEnd = ulStart + stBytes;
             if (ulEnd & ((addr_t)uiArmV7CacheLineSize - 1)) {           /*  结束地址非 cache line 对齐  */
                 ulEnd &= ~((addr_t)uiArmV7CacheLineSize - 1);
                 armDCacheClear((PVOID)ulEnd, (PVOID)ulEnd, uiArmV7CacheLineSize);
@@ -271,14 +272,14 @@ static INT	armCacheV7InvalidatePage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVOI
     } else {
         if (stBytes > 0) {                                              /*  必须 > 0                    */
             addr_t  ulStart = (addr_t)pvAdrs;
-            
+                    ulEnd   = ulStart + stBytes;
+                    
             if (ulStart & ((addr_t)uiArmV7CacheLineSize - 1)) {         /*  起始地址非 cache line 对齐  */
                 ulStart &= ~((addr_t)uiArmV7CacheLineSize - 1);
                 armDCacheClear((PVOID)ulStart, (PVOID)ulStart, uiArmV7CacheLineSize);
                 ulStart += uiArmV7CacheLineSize;
             }
             
-            ulEnd = ulStart + stBytes;
             if (ulEnd & ((addr_t)uiArmV7CacheLineSize - 1)) {           /*  结束地址非 cache line 对齐  */
                 ulEnd &= ~((addr_t)uiArmV7CacheLineSize - 1);
                 armDCacheClear((PVOID)ulEnd, (PVOID)ulEnd, uiArmV7CacheLineSize);

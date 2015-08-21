@@ -195,6 +195,8 @@ SylixOS/arch/arm/mm/cache/v6/armCacheV6.c \
 SylixOS/arch/arm/mm/cache/v6/armCacheV6Asm.S \
 SylixOS/arch/arm/mm/cache/v7/armCacheV7.c \
 SylixOS/arch/arm/mm/cache/v7/armCacheV7Asm.S \
+SylixOS/arch/arm/mm/cache/v8/armCacheV8.c \
+SylixOS/arch/arm/mm/cache/v8/armCacheV8Asm.S \
 SylixOS/arch/arm/mm/cache/armCacheCommonAsm.S \
 SylixOS/arch/arm/mm/mmu/v4/armMmuV4.c \
 SylixOS/arch/arm/mm/mmu/v7/armMmuV7.c \
