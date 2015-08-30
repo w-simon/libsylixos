@@ -195,8 +195,6 @@ SylixOS/arch/arm/mm/cache/v6/armCacheV6.c \
 SylixOS/arch/arm/mm/cache/v6/armCacheV6Asm.S \
 SylixOS/arch/arm/mm/cache/v7/armCacheV7.c \
 SylixOS/arch/arm/mm/cache/v7/armCacheV7Asm.S \
-SylixOS/arch/arm/mm/cache/v8/armCacheV8.c \
-SylixOS/arch/arm/mm/cache/v8/armCacheV8Asm.S \
 SylixOS/arch/arm/mm/cache/armCacheCommonAsm.S \
 SylixOS/arch/arm/mm/mmu/v4/armMmuV4.c \
 SylixOS/arch/arm/mm/mmu/v7/armMmuV7.c \
@@ -215,6 +213,13 @@ SylixOS/arch/arm/mpcore/armSpinlock.c
 DEBUG_SRCS = \
 SylixOS/debug/dtrace/dtrace.c \
 SylixOS/debug/gdb/gdbserver.c
+
+#*********************************************************************************************************
+# drv source
+#*********************************************************************************************************
+DRV_SRCS = \
+SylixOS/driver/can/sja1000.c \
+SylixOS/driver/sio/16c550.c 
 
 #*********************************************************************************************************
 # file system source
@@ -1036,6 +1041,7 @@ SylixOS/system/bus/busSystem.c \
 SylixOS/system/device/ata/ata.c \
 SylixOS/system/device/ata/ataLib.c \
 SylixOS/system/device/block/blockIo.c \
+SylixOS/system/device/block/blockRaw.c \
 SylixOS/system/device/block/ramDisk.c \
 SylixOS/system/device/can/can.c \
 SylixOS/system/device/dma/dma.c \
@@ -1143,6 +1149,7 @@ SylixOS/cplusplus/cppRtLib/cppSupLib.cpp
 SRCS  = $(APPL_SRCS)
 SRCS += $(ARCH_SRCS)
 SRCS += $(DEBUG_SRCS)
+SRCS += $(DRV_SRCS)
 SRCS += $(FS_SRCS)
 SRCS += $(GUI_SRCS)
 SRCS += $(KERN_SRCS)
@@ -1246,6 +1253,7 @@ SYMBOL_TARGET_H = $(OUTPATH)/symbol.h
 OBJS_APPL    = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(APPL_SRCS))))
 OBJS_ARCH    = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(ARCH_SRCS))))
 OBJS_DEBUG   = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(DEBUG_SRCS))))
+OBJS_DRV     = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(DRV_SRCS))))
 OBJS_FS      = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(FS_SRCS))))
 OBJS_GUI     = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(GUI_SRCS))))
 OBJS_KERN    = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(KERN_SRCS))))
@@ -1419,6 +1427,7 @@ $(TARGET): $(OBJS)
 		$(AR) $(ARFLAGS) $(TARGET) $(OBJS_APPL)
 		$(AR) $(ARFLAGS) $(TARGET) $(OBJS_ARCH)
 		$(AR) $(ARFLAGS) $(TARGET) $(OBJS_DEBUG)
+		$(AR) $(ARFLAGS) $(TARGET) $(OBJS_DRV)
 		$(AR) $(ARFLAGS) $(TARGET) $(OBJS_FS)
 		$(AR) $(ARFLAGS) $(TARGET) $(OBJS_GUI)
 		$(AR) $(ARFLAGS) $(TARGET) $(OBJS_KERN)

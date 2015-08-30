@@ -37,9 +37,11 @@
 /*********************************************************************************************************
   定义驱动安装回调函数时的命令
 *********************************************************************************************************/
+#ifdef __SYLIXOS_KERNEL
 #define   CAN_CALLBACK_GET_TX_DATA                 1                    /*  安装发送数据时的回调        */
 #define   CAN_CALLBACK_PUT_RCV_DATA                2                    /*  安装接收数据时的回调        */
 #define   CAN_CALLBACK_PUT_BUS_STATE               3                    /*  安装总线状态改变时的回调    */
+#endif                                                                  /*  __SYLIXOS_KERNEL            */
 /*********************************************************************************************************
   总线状态宏定义
 *********************************************************************************************************/
@@ -52,23 +54,43 @@
 /*********************************************************************************************************
   CAN 设备 ioctl 驱动应当实现命令定义
 *********************************************************************************************************/
+#ifdef __SYLIXOS_KERNEL
 #define   CAN_DEV_OPEN                             201                  /*  CAN 设备打开命令            */
 #define   CAN_DEV_CLOSE                            202                  /*  CAN 设备关闭命令            */
+#endif                                                                  /*  __SYLIXOS_KERNEL            */
+
 #define   CAN_DEV_GET_BUS_STATE                    203                  /*  获取 CAN 控制器状态         */
 #define   CAN_DEV_REST_CONTROLLER                  205                  /*  复位 CAN 控制器             */
 #define   CAN_DEV_SET_BAUD                         206                  /*  设置 CAN 波特率             */
 #define   CAN_DEV_SET_FLITER                       207                  /*  设置 CAN 验收滤波器         */
 #define   CAN_DEV_STARTUP                          208                  /*  启动 CAN 控制器             */
+#define   CAN_DEV_SET_MODE                         209                  /*  0: BASIC CAN 1: PELI CAN    */
 /*********************************************************************************************************
-  注意: CAN 设备的 read() 与 write() 操作, 第三个参数与返回值为字节数, 不是 CAN 帧的个数.
+  注意: 以上 ioctl 中 CAN_DEV_OPEN 与 CAN_DEV_CLOSE 为操作系统自己使用的 ioctl 命令.
+        CAN 设备的 read() 与 write() 操作, 第三个参数与返回值为字节数, 不是 CAN 帧的个数.
         ioctl() FIONREAD 与 FIONWRITE 结果的单位都是字节.
   例如:
         CAN_FRAME   canframe[10];
         ssize_t     size;
         ssize_t     frame_num;
+        long        status;
         ...
+        
+        can_fd = open("/dev/can0", O_RDWR);
+        
+        ioctl(can_fd, CAN_DEV_SET_MODE, 1);
+        ioctl(can_fd, CAN_DEV_SET_BAUD, *);
+        ioctl(can_fd, CAN_DEV_STARTUP);
+        
         size      = read(can_fd, canframe, 10 * sizeof(CAN_FRAME));
         frame_num = size / sizeof(CAN_FRAME);
+        
+        if (frame_num <= 0) {
+            ioctl(can_fd, CAN_DEV_GET_BUS_STATE, &status);
+            ...
+            ioctl(can_fd, CAN_DEV_REST_CONTROLLER);
+        }
+        
         ...
         size      = write(can_fd, canframe, 10 * sizeof(CAN_FRAME));
         frame_num = size / sizeof(CAN_FRAME);
@@ -77,8 +99,8 @@
   CAN 帧结构定义
 *********************************************************************************************************/
 typedef struct {
-    UINT            CAN_uiId;                                           /*  标识码                      */
-    UINT            CAN_uiChannel;                                      /*  通道号                      */
+    UINT32          CAN_uiId;                                           /*  标识码                      */
+    UINT32          CAN_uiChannel;                                      /*  通道号                      */
     BOOL            CAN_bExtId;                                         /*  是否是扩展帧                */
     BOOL            CAN_bRtr;                                           /*  是否是远程帧                */
     UCHAR           CAN_ucLen;                                          /*  数据长度                    */
