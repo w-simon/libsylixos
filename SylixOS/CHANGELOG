@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2015-09-01: han.hui
+    加入 video 摄像头驱动程序接口.
+
     2015-08-27: han.hui
     加入标准设备驱动程序.
 
@@ -47,21 +50,39 @@ HISTORY
 (STABLE-1.1.1)
 
 ++ New features:
+    
+    2015-05-25: han.hui
+    加入 _SC_PHYS_PAGES 与 _SC_AVPHYS_PAGES 支持.
+
+    2015-04-18: han.hui
+    系统 tick 频率等其他时间参数不再通过宏配置, 而是通过 bsp 传入的内核参数确定.
+    
+    2015-04-17: han.hui
+    加入 sched_rms 高精度单调周期接口, 可支持纳秒级精度周期控制.
 
     2015-04-05: han.hui
     加入高分辨率时钟获取接口.
     
-    2015-04-17: han.hui
-    加入 sched_rms 高精度单调周期接口, 可支持纳秒级精度周期控制.
-    
-    2015-04-18: han.hui
-    系统 tick 频率等其他时间参数不再通过宏配置, 而是通过 bsp 传入的内核参数确定.
-    
-    2015-05-25: han.hui
-    加入 _SC_PHYS_PAGES 与 _SC_AVPHYS_PAGES 支持.
-    
 ++ Bugfixes:
 
+    2015-05-25: han.hui
+    修正 AF_PACKET 接口接收超时错误.
+
+    2015-05-16: han.hui
+    重新设计回调系统.
+    
+    2015-05-15: han.hui
+    posix spin lock 不在使用内核 spin lock 实现.
+    
+    2015-05-14: han.hui
+    修正多核初始化死锁问题.
+    
+    2015-04-24: han.hui
+    修正多核调度就绪表问题.
+    
+    2015-04-17: han.hui
+    修正重定向文件描述符回收错误.
+    
     2015-04-07: han.hui
     修正 ARM 中断嵌套接口, 提高中断响应速度.
     
@@ -70,24 +91,6 @@ HISTORY
     
     2015-04-05: han.hui
     修正 SD 中断处理错误.
-    
-    2015-04-17: han.hui
-    修正重定向文件描述符回收错误.
-    
-    2015-04-24: han.hui
-    修正多核调度就绪表问题.
-    
-    2015-05-14: han.hui
-    修正多核初始化死锁问题.
-    
-    2015-05-15: han.hui
-    posix spin lock 不在使用内核 spin lock 实现.
-    
-    2015-05-16: han.hui
-    重新设计回调系统.
-    
-    2015-05-25: han.hui
-    修正 AF_PACKET 接口接收超时错误.
     
 (STABLE-1.0.0)
 

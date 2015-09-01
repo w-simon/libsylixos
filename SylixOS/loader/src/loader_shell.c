@@ -79,9 +79,15 @@ VOID          __moduleTraverseKernelSymHook(BOOL (*pfuncCb)(PVOID, PLW_SYMBOL), 
   全局变量
 *********************************************************************************************************/
 #if LW_CFG_SHELL_EN > 0
+#if LW_CFG_CPU_WORD_LENGHT == 64
+static const CHAR               _G_cModuleInfoHdr[] = "\n\
+            NAME                    HANDLE       TYPE  GLB       BASE         SIZE    SYMCNT\n\
+------------------------------ ---------------- ------ --- ---------------- -------- --------\n";
+#else
 static const CHAR               _G_cModuleInfoHdr[] = "\n\
             NAME                HANDLE   TYPE  GLB   BASE     SIZE    SYMCNT\n\
 ------------------------------ -------- ------ --- -------- -------- --------\n";
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT adj  */
 static const CHAR               _G_cVProcInfoHdr[] = "\n\
       NAME             FATHER        PID   GRP    MEMORY    UID   GID   USER\n\
 ----------------- ----------------- ----- ----- ---------- ----- ----- ------\n";
@@ -679,7 +685,11 @@ static INT  __tshellModuleShow (INT  iArgC, PCHAR  *ppcArgV)
 
             _PathLastName(pmodTemp->EMOD_pcModulePath, &pcModuleName);
 
+#if LW_CFG_CPU_WORD_LENGHT == 64
+            printf("+ %-28s %16lx %-6s %-3s %16lx %8lx %8ld\n",
+#else
             printf("+ %-28s %08lx %-6s %-3s %08lx %8lx %8ld\n",
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT adj  */
                    pcModuleName,
                    (addr_t)pmodTemp,
                    (((pmodTemp->EMOD_bIsGlobal) && (pmodTemp->EMOD_pcSymSection)) ? "KERNEL" : "USER"),
