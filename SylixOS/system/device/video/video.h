@@ -23,6 +23,7 @@
 #define __VIDEO_H
 
 #include "sys/types.h"
+#include "sys/ioctl.h"
 
 /*********************************************************************************************************
   video 接口说明:
@@ -81,6 +82,8 @@
   
   pcapmem = mmap(NULL, buf.size, PROT_READ, MAP_SHARED, fd, 0);
   
+  如果使用 read() 调用, 则每次读取的数据都是最近有效的一帧数据.
+  
   cap.channel = 0;
   cap.on      = 1;
   cap.flags   = 0;
@@ -101,22 +104,28 @@
   video ioctl command.
 *********************************************************************************************************/
 
-#define VIDIOC_DEVDESC          _IOR( 'v', 0, video_dev_desc)           /*  获得设备描述信息            */
-#define VIDIOC_CHANDESC         _IOWR('v', 1, video_channel_desc)       /*  获得指定通道的信息          */
-#define VIDIOC_FORMATDESC       _IOWR('v', 2, video_format_desc)        /*  获得指定通道支持的格式信息  */
+#define VIDIOC_DEVDESC          _IOR('v', 0, video_dev_desc)            /*  获得设备描述信息            */
+#define VIDIOC_CHANDESC         _IOR('v', 1, video_channel_desc)        /*  获得指定通道的信息          */
+#define VIDIOC_FORMATDESC       _IOR('v', 2, video_format_desc)         /*  获得指定通道支持的格式信息  */
 
 /*********************************************************************************************************
   video channel control.
 *********************************************************************************************************/
 
-#define VIDIOC_GCHANCTL         _IOR( 'v', 3, video_channel_ctl)        /*  获取通道控制字              */
-#define VIDIOC_SCHANCTL         _IOW( 'v', 3, video_channel_ctl)        /*  设置通道控制字              */
+#define VIDIOC_GCHANCTL         _IOR('v', 3, video_channel_ctl)         /*  获取通道控制字              */
+#define VIDIOC_SCHANCTL         _IOW('v', 3, video_channel_ctl)         /*  设置通道控制字              */
 
 /*********************************************************************************************************
   video prepair for mmap().
 *********************************************************************************************************/
 
-#define VIDIOC_MAPPREPAIR       _IOW( 'v', 4, video_buf_ctl)            /*  准备映射指定通道内存        */
+#define VIDIOC_MAPPREPAIR       _IOW('v', 4, video_buf_ctl)             /*  准备映射指定通道内存        */
+
+/*********************************************************************************************************
+  video capture info query
+*********************************************************************************************************/
+
+#define VIDEO_CAPINFO           _IOR('v', 5, video_cap_info)            /*  查询当前捕获信息            */
 
 /*********************************************************************************************************
   video capture on/off.
@@ -277,12 +286,27 @@ typedef struct video_cap_ctl {
     UINT32  channel;                                                    /*  视频通道号                  */
 #define VIDEO_CAP_ALLCHANNEL    0xffffffff
 
-    UINT32  on;
+    UINT32  on;                                                         /*  on / off                    */
     UINT32  flags;
 #define VIDEO_CAP_ONESHOT       1                                       /*  仅采集一帧                  */
     
     UINT32  reserve[8];
 } video_cap_ctl;
+
+/*********************************************************************************************************
+  video capture info query.
+*********************************************************************************************************/
+
+typedef struct video_cap_info {
+    UINT32  channel;                                                    /*  视频通道号                  */
+    
+    UINT32  on;                                                         /*  on / off                    */
+    UINT32  qindex_vaild;                                               /*  最近一帧有效画面的队列号    */
+    UINT32  qindex_cur;                                                 /*  正在采集的队列号            */
+#define VIDEO_CAP_QINVAL        0xffffffff
+    
+    UINT32  reserve[8];
+} video_cap_info;
 
 #endif                                                                  /*  __VIDEO_H                   */
 /*********************************************************************************************************
