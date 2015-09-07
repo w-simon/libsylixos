@@ -122,10 +122,10 @@
 #define VIDIOC_MAPPREPAIR       _IOW('v', 4, video_buf_ctl)             /*  准备映射指定通道内存        */
 
 /*********************************************************************************************************
-  video capture info query
+  video capture status query
 *********************************************************************************************************/
 
-#define VIDEO_CAPINFO           _IOR('v', 5, video_cap_info)            /*  查询当前捕获信息            */
+#define VIDEO_CAPSTAT           _IOR('v', 5, video_cap_stat)            /*  查询当前捕获信息            */
 
 /*********************************************************************************************************
   video capture on/off.
@@ -294,10 +294,10 @@ typedef struct video_cap_ctl {
 } video_cap_ctl;
 
 /*********************************************************************************************************
-  video capture info query.
+  video capture status query.
 *********************************************************************************************************/
 
-typedef struct video_cap_info {
+typedef struct video_cap_stat {
     UINT32  channel;                                                    /*  视频通道号                  */
     
     UINT32  on;                                                         /*  on / off                    */
@@ -306,7 +306,7 @@ typedef struct video_cap_info {
 #define VIDEO_CAP_QINVAL        0xffffffff
     
     UINT32  reserve[8];
-} video_cap_info;
+} video_cap_stat;
 
 #endif                                                                  /*  __VIDEO_H                   */
 /*********************************************************************************************************
