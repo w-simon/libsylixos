@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2015-09-08: han.hui
+    加入内核工作队列接口.
+
     2015-09-01: han.hui
     加入 video 摄像头驱动程序接口.
 

@@ -432,7 +432,7 @@ static INT sio16c550Ioctl (SIO16C550_CHAN *psiochan, INT cmd, LONG arg)
         break;
 
     case SIO_SWITCH_PIN_EN_SET:
-        if ((INT)arg) {
+        if (*(INT *)arg) {
             if (!psiochan->send_start) {
                 _ErrorHandle(ENOSYS);
                 error = PX_ERROR;
@@ -448,7 +448,7 @@ static INT sio16c550Ioctl (SIO16C550_CHAN *psiochan, INT cmd, LONG arg)
         break;
 
     case SIO_SWITCH_PIN_EN_GET:
-        *(LONG *)arg = psiochan->switch_en;
+        *(INT *)arg = psiochan->switch_en;
         break;
 
     default:

@@ -165,27 +165,27 @@ typedef LW_BLK_DEV         *BLK_DEV_ID;
   IOCTL 通用指令 (磁盘设备扩展)
 *********************************************************************************************************/
 
-#define LW_BLKD_CTRL_POWER          201                                 /*  控制设备电源                */
+#define LW_BLKD_CTRL_POWER          LW_OSIOD('b', 201, INT)             /*  控制设备电源                */
 #define LW_BLKD_POWER_OFF           0                                   /*  关闭磁盘电源                */
 #define LW_BLKD_POWER_ON            1                                   /*  打开磁盘电源                */
 
-#define LW_BLKD_CTRL_LOCK           202                                 /*  锁定设备(保留)              */
-#define LW_BLKD_CTRL_EJECT          203                                 /*  弹出设备(保留)              */
+#define LW_BLKD_CTRL_LOCK           LW_OSIOD('b', 202, INT)             /*  锁定设备(保留)              */
+#define LW_BLKD_CTRL_EJECT          LW_OSIOD('b', 203, INT)             /*  弹出设备(保留)              */
 
 /*********************************************************************************************************
   当 LW_BLK_DEV 相关字段为 0 时, 文件系统需要调用以下 ioctl 命令获取信息
 *********************************************************************************************************/
 
-#define LW_BLKD_GET_SECNUM          204                                 /*  获得设备扇区数量            */
-#define LW_BLKD_GET_SECSIZE         205                                 /*  获得扇区的大小, 单位:字节   */
-#define LW_BLKD_GET_BLKSIZE         206                                 /*  获得块大小 单位:字节        */
+#define LW_BLKD_GET_SECNUM          LW_OSIOR('b', 204, ULONG)           /*  获得设备扇区数量            */
+#define LW_BLKD_GET_SECSIZE         LW_OSIOR('b', 205, ULONG)           /*  获得扇区的大小, 单位:字节   */
+#define LW_BLKD_GET_BLKSIZE         LW_OSIOR('b', 206, ULONG)           /*  获得块大小 单位:字节        */
                                                                         /*  可以与扇区大小相同          */
 /*********************************************************************************************************
   BLOCK RAW 模式其他控制指令
 *********************************************************************************************************/
 
-#define LW_BLKD_CTRL_RESET          207                                 /*  复位磁盘                    */
-#define LW_BLKD_CTRL_STATUS         208                                 /*  检查磁盘状态                */
+#define LW_BLKD_CTRL_RESET          LW_OSIO('b', 207)                   /*  复位磁盘                    */
+#define LW_BLKD_CTRL_STATUS         LW_OSIO('b', 208)                   /*  检查磁盘状态                */
 
 #endif                                                                  /*  __BLOCKIO_H                 */
 /*********************************************************************************************************

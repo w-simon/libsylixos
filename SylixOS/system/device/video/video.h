@@ -42,6 +42,7 @@
   video_dev_desc      dev;
   video_channel_desc  channel;
   video_format_desc   format;
+  video_buf_cal       cal;
   video_buf_ctl       buf;
   video_cap_ctl       cap;
   
@@ -65,6 +66,8 @@
   channel.channel = 0;
   channel.xsize   = 640;
   channel.ysize   = 480;
+  channel.x_off   = 0;
+  channel.y_off   = 0;
   channel.queue   = 1;
   
   channel.source = 0;
@@ -72,10 +75,11 @@
   channel.order  = VIDEO_LSB_CRCB;
   
   ioctl(fd, VIDIOC_SCHANCTL, &channel);
+  ioctl(fd, VIDIOC_MAPCAL, &cal);
   
   buf.channel = 0;
   buf.mem     = NULL;
-  buf.size    = 640 * 480 * 4;
+  buf.size    = cal.size;
   buf.mtype   = VIDEO_MEMORY_AUTO;
   
   ioctl(fd, VIDIOC_MAPPREPAIR, &buf);
@@ -104,35 +108,36 @@
   video ioctl command.
 *********************************************************************************************************/
 
-#define VIDIOC_DEVDESC          _IOR('v', 0, video_dev_desc)            /*  获得设备描述信息            */
-#define VIDIOC_CHANDESC         _IOR('v', 1, video_channel_desc)        /*  获得指定通道的信息          */
-#define VIDIOC_FORMATDESC       _IOR('v', 2, video_format_desc)         /*  获得指定通道支持的格式信息  */
+#define VIDIOC_DEVDESC          _IOR( 'v', 0, video_dev_desc)           /*  获得设备描述信息            */
+#define VIDIOC_CHANDESC         _IOWR('v', 1, video_channel_desc)       /*  获得指定通道的信息          */
+#define VIDIOC_FORMATDESC       _IOWR('v', 2, video_format_desc)        /*  获得指定通道支持的格式信息  */
 
 /*********************************************************************************************************
   video channel control.
 *********************************************************************************************************/
 
-#define VIDIOC_GCHANCTL         _IOR('v', 3, video_channel_ctl)         /*  获取通道控制字              */
-#define VIDIOC_SCHANCTL         _IOW('v', 3, video_channel_ctl)         /*  设置通道控制字              */
+#define VIDIOC_GCHANCTL         _IOWR('v', 3, video_channel_ctl)        /*  获取通道控制字              */
+#define VIDIOC_SCHANCTL         _IOW( 'v', 3, video_channel_ctl)        /*  设置通道控制字              */
 
 /*********************************************************************************************************
   video prepair for mmap().
 *********************************************************************************************************/
 
-#define VIDIOC_MAPPREPAIR       _IOW('v', 4, video_buf_ctl)             /*  准备映射指定通道内存        */
+#define VIDIOC_MAPCAL           _IOWR('v', 4, video_buf_cal)            /*  读取内存需求情况            */
+#define VIDIOC_MAPPREPAIR       _IOW( 'v', 4, video_buf_ctl)            /*  准备映射指定通道内存        */
 
 /*********************************************************************************************************
   video capture status query
 *********************************************************************************************************/
 
-#define VIDEO_CAPSTAT           _IOR('v', 5, video_cap_stat)            /*  查询当前捕获信息            */
+#define VIDIOC_CAPSTAT          _IOWR('v', 5, video_cap_stat)           /*  查询当前捕获信息            */
 
 /*********************************************************************************************************
   video capture on/off.
 *********************************************************************************************************/
 
-#define VIDEO_GCAPCTL           _IOR('v', 10, video_cap_ctl)            /*  获得当前视频捕获状态        */
-#define VIDEO_SCAPCTL           _IOW('v', 10, video_cap_ctl)            /*  设置视频捕获状态 1:ON 0:OFF */
+#define VIDIOC_GCAPCTL          _IOWR('v', 10, video_cap_ctl)           /*  获得当前视频捕获状态        */
+#define VIDIOC_SCAPCTL          _IOW( 'v', 10, video_cap_ctl)           /*  设置视频捕获状态 1:ON 0:OFF */
 
 /*********************************************************************************************************
   video memory format.
@@ -253,8 +258,15 @@ typedef struct video_dev_desc {
 typedef struct video_channel_ctl {
     UINT32  channel;                                                    /*  视频通道号                  */
     
-    UINT32  xsize;                                                      /*  采集尺寸                    */
+    UINT32  xsize;                                                      /*  采集输出的尺寸              */
     UINT32  ysize;
+    
+    UINT32  x_off;                                                      /*  相对 size_max 采集起始偏移量*/
+    UINT32  y_off;
+    
+    UINT32  x_cut;                                                      /*  相对 size_max 采集结束偏移量*/
+    UINT32  y_cut;
+    
     UINT32  queue;                                                      /*  采集序列数                  */
     
     UINT32  source;                                                     /*  指定的视频输入源            */
@@ -263,6 +275,21 @@ typedef struct video_channel_ctl {
     
     UINT32  reserve[8];
 } video_channel_ctl;
+
+/*********************************************************************************************************
+  video buffer calculate. (设置完 channel ctl 后由驱动计算内存需求信息)
+*********************************************************************************************************/
+
+typedef struct video_buf_cal {
+    UINT32  channel;                                                    /*  视频通道号                  */
+    
+    size_t  align;                                                      /*  最小内存对齐要求            */
+    size_t  size;                                                       /*  该通道缓冲内存总大小        */
+    size_t  size_per_fq;                                                /*  队列中每一帧图像内存大小    */
+    size_t  size_per_line;                                              /*  一帧图像中每一行内存大小    */
+
+    UINT32  reserve[8];
+} video_buf_cal;
 
 /*********************************************************************************************************
   video buffer control. (如果指定为自动分配 mem size 均不关心)

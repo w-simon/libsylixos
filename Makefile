@@ -539,6 +539,7 @@ SylixOS/kernel/interface/TimerStatus.c \
 SylixOS/kernel/interface/TimeSleep.c \
 SylixOS/kernel/interface/TimeTod.c \
 SylixOS/kernel/interface/ugid.c \
+SylixOS/kernel/interface/WorkQueue.c \
 SylixOS/kernel/list/listEvent.c \
 SylixOS/kernel/list/listEventSet.c \
 SylixOS/kernel/list/listHeap.c \
