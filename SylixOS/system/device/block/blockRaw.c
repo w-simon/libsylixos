@@ -79,6 +79,7 @@ static INT  __blkRawIoctl (PLW_BLK_RAW  pblkraw, INT  iCmd, LONG  lArg)
         case FIOSYNC:
         case FIOFLUSH:
         case FIODATASYNC:
+        case FIOSYNCMETA:
             return  (ioctl(pblkraw->BLKRAW_iFd, iCmd, lArg));
             
         case FIOUNMOUNT:

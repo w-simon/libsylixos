@@ -184,15 +184,13 @@ static INT  __ramDiskIoctl (PLW_RAM_DISK  pramd, INT  iCmd, LONG  lArg)
     switch (iCmd) {
     
     /*
-     *  必须要支持的 4 个命令
+     *  必须要支持的命令
      */
     case FIOSYNC:
+    case FIODATASYNC:
+    case FIOSYNCMETA:
     case FIOFLUSH:                                                      /*  将缓存写入磁盘              */
-        break;
-    
     case FIOUNMOUNT:                                                    /*  卸载卷                      */
-        break;
-        
     case FIODISKINIT:                                                   /*  初始化磁盘                  */
         break;
     

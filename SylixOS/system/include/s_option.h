@@ -107,7 +107,8 @@
 #define  FIONFREE           LW_OSIOR('f', 30, INT)              /* get free byte count on device        */
 
 #ifdef __SYLIXOS_KERNEL
-#define  FIOTRIM            LW_OSIOW('f', 31, ULONG[2])         /* ATA TRIM command                     */
+#define  FIOTRIM            LW_OSIOW('f', 31, LW_BLK_RANGE)     /* ATA TRIM command                     */
+#define  FIOSYNCMETA        LW_OSIOW('f', 32, LW_BLK_RANGE)     /* sync range sector to disk            */
 #endif
 
 #define  FIOLABELGET        LW_OSIOR('f', 33, LW_PATHB)         /* get volume label                     */

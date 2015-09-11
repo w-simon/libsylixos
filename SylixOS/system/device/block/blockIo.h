@@ -141,25 +141,35 @@ typedef LW_BLK_DEV          BLK_DEV;
 typedef LW_BLK_DEV         *PLW_BLK_DEV;
 typedef LW_BLK_DEV         *BLK_DEV_ID;
 
+typedef struct {
+    ULONG       BLKR_ulStartSector;                                     /*  起始扇区                    */
+    ULONG       BLKR_ulEndSector;                                       /*  结束扇区                    */
+} LW_BLK_RANGE;
+typedef LW_BLK_RANGE       *PLW_BLK_RANGE;
+
 #endif                                                                  /* __SYLIXOS_KERNEL             */
 /*********************************************************************************************************
   磁盘设备必须要支持的通用 FIO 命令如下:
 
-  FIOSYNC       与 FIOFLUSH 相同.
-  FIOFLUSH      回写磁盘数据到物理磁盘.
-  FIOUNMOUNT    卸载磁盘     (系统在卸载此磁盘时将会调用此函数)
-  FIODISKINIT   初始化磁盘   (系统将会多次调用此函数, 例如: 挂载卷, 分析分区表, 格式化...)
+      FIOSYNC       与 FIOFLUSH 相同.
+      FIOFLUSH      回写磁盘数据到物理磁盘.
+      FIOUNMOUNT    卸载磁盘     (系统在卸载此磁盘时将会调用此函数)
+      FIODISKINIT   初始化磁盘   (系统将会多次调用此函数, 例如: 挂载卷, 分析分区表, 格式化...)
   
-  固态硬盘 SSD 需要支持的命令:
+  选择使用支持掉电保护的文件系统, 必须支持以下命令:
+      
+      FIOSYNCMETA   将指定范围的扇区数据完全写入磁盘.
   
-  FIOTRIM       针对固态硬盘回收指定范围的扇区.
+  固态硬盘(SSD)需要支持的命令:
+  
+      FIOTRIM       针对固态硬盘回收指定范围的扇区.
   
   可移动磁盘介质还需支持的命令:
   
-  FIODATASYNC   数据回写, 可以与 FIOSYNC 做相同处理.
-  FIOCANCEL     放弃还没写入磁盘的数据 (磁盘介质发生变化!)
-  FIODISKCHANGE 磁盘介质发生变化, 放弃还没写入磁盘的数据. 然后必须将 BLKD_bDiskChange 设置为 LW_TRUE 使
-                操作系统立即停止对相应卷的操作, 等待重新挂载.
+      FIODATASYNC   数据回写, 可以与 FIOSYNC 做相同处理.
+      FIOCANCEL     放弃还没写入磁盘的数据 (磁盘介质发生变化!)
+      FIODISKCHANGE 磁盘介质发生变化, 放弃还没写入磁盘的数据. 然后必须将 BLKD_bDiskChange 设置为 LW_TRUE 
+                    使操作系统立即停止对相应卷的操作, 等待重新挂载.
 *********************************************************************************************************/
 /*********************************************************************************************************
   IOCTL 通用指令 (磁盘设备扩展)

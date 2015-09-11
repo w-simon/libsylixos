@@ -1033,7 +1033,10 @@ static INT __sdMemIoctl (__PSD_BLK_DEV    psdblkdevice,
 
     switch (iCmd) {
 
+    case FIOSYNC:
+    case FIODATASYNC:
     case FIOFLUSH:                                                      /*  将缓存回写到磁盘            */
+    case FIOSYNCMETA:
     case FIOUNMOUNT:                                                    /*  卸载卷                      */
     case FIODISKINIT:                                                   /*  初始化设备                  */
     case FIODISKCHANGE:                                                 /*  磁盘媒质发生变化            */

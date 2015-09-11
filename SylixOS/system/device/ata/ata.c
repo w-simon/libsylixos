@@ -628,12 +628,11 @@ static INT __ataIoctl (__PATA_DEV patadev,
     
     switch (iCmd) {
 
+    case FIOSYNC:
+    case FIODATASYNC:
+    case FIOSYNCMETA:
     case FIOFLUSH:                                                      /*  将缓存回写到磁盘            */
-        break;
-
     case FIOUNMOUNT:                                                    /*  卸载卷                      */
-        break;
-
     case FIODISKINIT:                                                   /*  初始化ATA设备               */
         break;
 

@@ -38,33 +38,34 @@
   定义驱动安装回调函数时的命令
 *********************************************************************************************************/
 #ifdef __SYLIXOS_KERNEL
-#define   CAN_CALLBACK_GET_TX_DATA                 1                    /*  安装发送数据时的回调        */
-#define   CAN_CALLBACK_PUT_RCV_DATA                2                    /*  安装接收数据时的回调        */
-#define   CAN_CALLBACK_PUT_BUS_STATE               3                    /*  安装总线状态改变时的回调    */
+#define   CAN_CALLBACK_GET_TX_DATA      1                               /*  安装发送数据时的回调        */
+#define   CAN_CALLBACK_PUT_RCV_DATA     2                               /*  安装接收数据时的回调        */
+#define   CAN_CALLBACK_PUT_BUS_STATE    3                               /*  安装总线状态改变时的回调    */
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 /*********************************************************************************************************
   总线状态宏定义
 *********************************************************************************************************/
-#define   CAN_DEV_BUS_ERROR_NONE                   0X0000               /*  正常状态                    */
-#define   CAN_DEV_BUS_OVERRUN                      0X0001               /*  接收溢出                    */
-#define   CAN_DEV_BUS_OFF                          0X0002               /*  总线关闭                    */
-#define   CAN_DEV_BUS_LIMIT                        0X0004               /*  限定警告                    */
-#define   CAN_DEV_BUS_PASSIVE                      0x0008               /*  错误被动                    */
-#define   CAN_DEV_BUS_RXBUFF_OVERRUN               0X0010               /*  接收缓冲溢出                */
+#define   CAN_DEV_BUS_ERROR_NONE        0x0000                          /*  正常状态                    */
+#define   CAN_DEV_BUS_OVERRUN           0x0001                          /*  接收溢出                    */
+#define   CAN_DEV_BUS_OFF               0x0002                          /*  总线关闭                    */
+#define   CAN_DEV_BUS_LIMIT             0x0004                          /*  限定警告                    */
+#define   CAN_DEV_BUS_PASSIVE           0x0008                          /*  错误被动                    */
+#define   CAN_DEV_BUS_RXBUFF_OVERRUN    0x0010                          /*  接收缓冲溢出                */
 /*********************************************************************************************************
   CAN 设备 ioctl 驱动应当实现命令定义
 *********************************************************************************************************/
 #ifdef __SYLIXOS_KERNEL
-#define   CAN_DEV_OPEN                             201                  /*  CAN 设备打开命令            */
-#define   CAN_DEV_CLOSE                            202                  /*  CAN 设备关闭命令            */
+#define   CAN_DEV_OPEN                  LW_OSIO('c', 201)               /*  CAN 设备打开命令            */
+#define   CAN_DEV_CLOSE                 LW_OSIO('c', 202)               /*  CAN 设备关闭命令            */
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 
-#define   CAN_DEV_GET_BUS_STATE                    203                  /*  获取 CAN 控制器状态         */
-#define   CAN_DEV_REST_CONTROLLER                  205                  /*  复位 CAN 控制器             */
-#define   CAN_DEV_SET_BAUD                         206                  /*  设置 CAN 波特率             */
-#define   CAN_DEV_SET_FLITER                       207                  /*  设置 CAN 验收滤波器         */
-#define   CAN_DEV_STARTUP                          208                  /*  启动 CAN 控制器             */
-#define   CAN_DEV_SET_MODE                         209                  /*  0: BASIC CAN 1: PELI CAN    */
+#define   CAN_DEV_GET_BUS_STATE         LW_OSIOR('c', 203, LONG)        /*  获取 CAN 控制器状态         */
+#define   CAN_DEV_REST_CONTROLLER       LW_OSIO( 'c', 205)              /*  复位 CAN 控制器             */
+#define   CAN_DEV_SET_BAUD              LW_OSIOD('c', 206, ULONG)       /*  设置 CAN 波特率             */
+#define   CAN_DEV_SET_FLITER            LW_OSIO( 'c', 207)              /*  设置 CAN 滤波器 (暂不支持)  */
+#define   CAN_DEV_STARTUP               LW_OSIO( 'c', 208)              /*  启动 CAN 控制器             */
+#define   CAN_DEV_SET_MODE              LW_OSIOD('c', 209, INT)         /*  0: BASIC CAN 1: PELI CAN    */
+#define   CAN_DEV_LISTEN_ONLY           LW_OSIOD('c', 210, INT)
 /*********************************************************************************************************
   注意: 以上 ioctl 中 CAN_DEV_OPEN 与 CAN_DEV_CLOSE 为操作系统自己使用的 ioctl 命令.
         CAN 设备的 read() 与 write() 操作, 第三个参数与返回值为字节数, 不是 CAN 帧的个数.
