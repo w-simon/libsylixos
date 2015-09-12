@@ -219,6 +219,7 @@ LW_API PLW_BLK_DEV API_SdMemDevCreate (INT                       iAdapterType,
 
     pblkdevice = &psdblkdevice->SDBLKDEV_blkDev;
 
+    pblkdevice->BLKD_pcName            = "SD-MemCard";
     pblkdevice->BLKD_pfuncBlkRd        = __sdMemBlkRd;
     pblkdevice->BLKD_pfuncBlkWrt       = __sdMemBlkWrt;
     pblkdevice->BLKD_pfuncBlkIoctl     = __sdMemIoctl;

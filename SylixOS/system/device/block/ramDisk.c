@@ -85,6 +85,7 @@ ULONG  API_RamDiskCreate (PVOID  pvDiskAddr, UINT64  ullDiskSize, PLW_BLK_DEV  *
     
     pblkd = &pramd->RAMD_blkdRam;
     
+    pblkd->BLKD_pcName            = "ramDisk";
     pblkd->BLKD_pfuncBlkRd        = __ramDiskRd;
     pblkd->BLKD_pfuncBlkWrt       = __ramDiskWrt;
     pblkd->BLKD_pfuncBlkIoctl     = __ramDiskIoctl;
