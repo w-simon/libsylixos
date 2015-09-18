@@ -61,6 +61,67 @@
 #define SIO_MCTRL_OSIG_MASK                   LW_OSIOR('s', 0x1010, INT)/* mask of lines that can be set*/
 
 /*********************************************************************************************************
+  Ioctl cmds for reading/setting keyboard mode
+*********************************************************************************************************/
+
+#define SIO_KYBD_MODE_SET                     LW_OSIOD('s', 0x1011, INT)
+#define SIO_KYBD_MODE_GET                     LW_OSIOR('s', 0x1012, INT)
+
+/*********************************************************************************************************
+  options to SIO_KYBD_MODE_SET 
+ 
+  * These macros are used as arguments by the keyboard ioctl comands.
+  * When used with SIO_KYBD_MODE_SET they mean the following:
+  * 
+  * SIO_KYBD_MODE_SYLIXOS
+  *    Requests the keyboard driver to return keyboard.h format.
+  *
+  * SIO_KYBD_MODE_RAW:
+  *    Requests the keyboard driver to return raw key values as read
+  *    by the keyboard controller.
+  * 
+  * SIO_KYBD_MODE_ASCII:
+  *    Requests the keyboard driver to return ASCII codes read from a
+  *    known table that maps raw key values to ASCII.
+  *
+  * SIO_KYBD_MODE_UNICODE:
+  *    Requests the keyboard driver to return 16 bit UNICODE values for
+  *    multiple languages support.
+*********************************************************************************************************/
+
+#define SIO_KYBD_MODE_SYLIXOS                      0
+#define SIO_KYBD_MODE_RAW                          1
+#define SIO_KYBD_MODE_ASCII                        2
+#define SIO_KYBD_MODE_UNICODE                      3
+
+/*********************************************************************************************************
+  Ioctl cmds for reading/setting keyboard led state
+*********************************************************************************************************/
+
+#define SIO_KYBD_LED_SET                      LW_OSIOD('s', 0x1013, INT)
+#define SIO_KYBD_LED_GET                      LW_OSIOR('s', 0x1014, INT)
+
+/*********************************************************************************************************
+  options to SIO_KYBD_LED_SET
+ 
+  * These macros are used as arguments by the keyboard ioctl comands.
+  * When used with SIO_KYBD_LED_SET they mean the following:
+  * 
+  * SIO_KYBD_LED_NUM:
+  *    Sets the Num Lock LED on the keyboard - bit 1
+  * 
+  * SIO_KYBD_LED_CAP:
+  *    Sets the Caps Lock LED on the keyboard - bit 2
+  *
+  * SIO_KYBD_LED_SRC:
+  *    Sets the Scroll Lock LED on the keyboard - bit 4
+*********************************************************************************************************/
+
+#define SIO_KYBD_LED_NUM                           1
+#define SIO_KYBD_LED_CAP                           2
+#define SIO_KYBD_LED_SCR                           4
+
+/*********************************************************************************************************
   callback type codes
 *********************************************************************************************************/
 

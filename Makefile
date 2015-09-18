@@ -733,6 +733,7 @@ SylixOS/lib/libc/time/lib_time.c \
 SylixOS/lib/libc/time/lib_tzset.c \
 SylixOS/lib/libc/user/getpwent.c \
 SylixOS/lib/libc/user/getshadow.c \
+SylixOS/lib/libc/user/userdb.c \
 SylixOS/lib/libc/wchar/wchar.c \
 SylixOS/lib/libc/wchar/wcscasecmp.c \
 SylixOS/lib/libc/wchar/wcscat.c \

@@ -497,6 +497,12 @@ static INT  __tshellModuleUnreg (INT  iArgC, PCHAR  *ppcArgV)
     CHAR                cModule[MAX_FILENAME_LENGTH];
     INT                 iError;
 
+    BOOL                bStart;
+
+    LW_LIST_RING       *pringTemp;
+    LW_LD_VPROC        *pvproc;
+    LW_LD_EXEC_MODULE  *pmodTemp;
+
     if (iArgC < 2) {
         fprintf(stderr, "argments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
@@ -508,7 +514,25 @@ static INT  __tshellModuleUnreg (INT  iArgC, PCHAR  *ppcArgV)
     }
     
     pmod = (LW_LD_EXEC_MODULE *)ulModule;
-    if (!pmod || (pmod->EMOD_ulMagic != __LW_LD_EXEC_MODULE_MAGIC)) {
+
+    /*
+     *  判断参数是否为有效的内核模块句柄
+     */
+    pvproc = _LIST_ENTRY(_G_plineVProcHeader, LW_LD_VPROC, VP_lineManage);
+    LW_VP_LOCK(pvproc);
+    for (pringTemp  = pvproc->VP_ringModules, bStart = LW_TRUE;
+         pringTemp && (pringTemp != pvproc->VP_ringModules || bStart);
+         pringTemp  = _list_ring_get_next(pringTemp), bStart = LW_FALSE) {
+        pmodTemp = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);
+        if (pmod == pmodTemp) {
+            break;
+        }
+    }
+    LW_VP_UNLOCK(pvproc);
+
+    if (pmod == LW_NULL  ||
+        pmod != pmodTemp ||
+        (pmod->EMOD_ulMagic != __LW_LD_EXEC_MODULE_MAGIC)) {
         fprintf(stderr, "argments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }

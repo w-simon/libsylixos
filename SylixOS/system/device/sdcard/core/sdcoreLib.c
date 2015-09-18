@@ -30,6 +30,7 @@
 2011.03.30  修改 __sdCoreDecodeCID(), 加入对 MMC 卡 CID 的解析
 2011.04.12  修改 __sdCoreDevSendAppOpCond(). 其传入的参数 uiOCR 为 主控支持的电压,但是对于 memory 卡,其卡
             电压是有一定范围要求的.所以在发送命令时,将 uiOCR 进行处理后再作为参数发送.
+2015.09.15  更改 MMC 卡是否是块寻址的判断条件.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -1066,6 +1067,13 @@ INT API_SdCoreDevIsBlockAddr (PLW_SDCORE_DEVICE psdcoredevice, BOOL *pbResult)
     switch (ucType) {
     
     case SDDEV_TYPE_MMC  :
+        if (psdcoredevice->COREDEV_iDevSta & COREDEV_STA_HIGHCAP_OCR) {
+            *pbResult = LW_TRUE;
+        } else {
+            *pbResult = LW_FALSE;
+        }
+        break;
+
     case SDDEV_TYPE_SDSC :
         *pbResult = LW_FALSE;
         break;
