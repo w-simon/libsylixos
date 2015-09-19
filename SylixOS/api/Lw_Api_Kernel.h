@@ -379,7 +379,7 @@
 
 #define Lw_Time_Sleep                           API_TimeSleep
 #define Lw_Time_SleepEx                         API_TimeSleepEx
-#define Lw_Time_Delay                           API_TimeSleep
+#define Lw_Time_SleepUntil                      API_TimeSleepUntil
 
 #define Lw_Time_SSleep                          API_TimeSSleep
 #define Lw_Time_SDelay                          API_TimeSSleep
