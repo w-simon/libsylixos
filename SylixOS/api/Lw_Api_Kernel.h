@@ -47,6 +47,9 @@
 #define Lw_Object_GetNode                       API_ObjectGetNode
 #define Lw_Object_GetIndex                      API_ObjectGetIndex
 #define Lw_Object_IsGlobal                      API_ObjectIsGlobal
+#define Lw_Object_ShareAdd                      API_ObjectShareAdd
+#define Lw_Object_ShareDelete                   API_ObjectShareDelete
+#define Lw_Object_ShareFind                     API_ObjectShareFind
 
 /*********************************************************************************************************
   THREAD

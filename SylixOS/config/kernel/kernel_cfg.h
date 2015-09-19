@@ -92,6 +92,7 @@
 #define LW_CFG_CPU_HOOKS_EN                     1       /*  是否允许系统的钩子函数连接                  */
 #define LW_CFG_SOFTWARE_WATCHDOG_EN             1       /*  是否允许任务软件看门狗功能 (任务级)         */
 #define LW_CFG_OBJECT_NAME_SIZE                 32      /*  系统提供控件名字最大长度                    */
+#define LW_CFG_OBJECT_SHARE_EN                  1       /*  是否允许内核与应用共享内核对象              */
 #define LW_CFG_ERRORNO_AUTO_CLEAR               0       /*  是否在 API 正确时, 自动将 errno 清零        */
 #define LW_CFG_PANIC_FUNC                       1       /*  0: panic 系统重新启动, 1: 当前任务挂起      */
 #define LW_CFG_STK_EMPTY_FLAG                   0xab    /*  堆栈空闲区域填充字节内容(用于堆栈检查)      */

@@ -135,6 +135,14 @@ LW_API ULONG            API_ObjectGetNode(LW_OBJECT_HANDLE  ulId);      /*  获得
 
 LW_API ULONG            API_ObjectGetIndex(LW_OBJECT_HANDLE  ulId);     /*  获得对象缓冲区内地址        */
 
+#if LW_CFG_OBJECT_SHARE_EN > 0
+LW_API ULONG            API_ObjectShareAdd(LW_OBJECT_HANDLE  ulId, UINT64  u64Key);
+
+LW_API ULONG            API_ObjectShareDelete(UINT64  u64Key);
+
+LW_API LW_OBJECT_HANDLE API_ObjectShareFind(UINT64  u64Key);
+#endif                                                                  /*  LW_CFG_OBJECT_SHARE_EN > 0  */
+
 /*********************************************************************************************************
   THREAD
 *********************************************************************************************************/
