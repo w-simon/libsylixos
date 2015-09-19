@@ -1546,7 +1546,7 @@ static INT gdbVcmdHandle (LW_GDB_PARAM     *pparam,
 
             gdbUpdateThreadList(pparam);
             plineTemp = pparam->GDB_plistThd;
-            while (plineTemp) {                                     /* 记录线程状态                 */
+            while (plineTemp) {                                         /* 记录线程状态                 */
                 pthItem  = _LIST_ENTRY(plineTemp, LW_GDB_THREAD, TH_plistThLine);
                 if (pthItem->TH_ulId == pdmsg->DTM_ulThread) {
                     pthItem->TH_cStates = 'b';
@@ -1558,7 +1558,7 @@ static INT gdbVcmdHandle (LW_GDB_PARAM     *pparam,
             return  (ERROR_NONE);
         }
 
-        pparam->GDB_beNotifing = 0;                                        /* notify处理完毕               */
+        pparam->GDB_beNotifing = 0;                                     /* notify处理完毕               */
         gdbReplyOk(pcOutBuff);
     }
 

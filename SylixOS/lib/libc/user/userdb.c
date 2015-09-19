@@ -1066,6 +1066,7 @@ int  user_db_uadd (const char  *user, const char  *passwd, int enable,
     
     puser = passwd_find(user, uid);
     if (puser) {
+        user_db_close();
         errno = EEXIST;
         return  (PX_ERROR);
     }
@@ -1436,6 +1437,7 @@ int  user_db_gadd (const char  *group, gid_t  gid)
     
     pgrp = group_find(group, gid);
     if (pgrp) {
+        user_db_close();
         errno = EEXIST;
         return  (PX_ERROR);
     }
