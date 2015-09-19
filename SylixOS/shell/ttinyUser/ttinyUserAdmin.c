@@ -292,9 +292,10 @@ __argument_error:
                      ppcArgV[6], ppcArgV[7])) {
         if (errno == EEXIST) {
             fprintf(stderr, "User already exist.\n");
-        }
         
-        fprintf(stderr, "Can not create new user : %s\n", lib_strerror(errno));
+        } else {
+            fprintf(stderr, "Can not create new user : %s\n", lib_strerror(errno));
+        }
         return  (-1);
     }
     
@@ -325,9 +326,10 @@ static INT  __tshellUserCmdUdel (INT  iArgC, PCHAR  ppcArgV[])
     if (user_db_udel(ppcArgV[1])) {
         if (errno == EINVAL) {
             fprintf(stderr, "User Invalidate.\n");
-        }
         
-        fprintf(stderr, "Can not delete user : %s\n", lib_strerror(errno));
+        } else {
+            fprintf(stderr, "Can not delete user : %s\n", lib_strerror(errno));
+        }
         return  (-1);
     }
     
@@ -368,9 +370,10 @@ static INT  __tshellUserCmdUmod (INT  iArgC, PCHAR  ppcArgV[])
                      ppcArgV[3], ppcArgV[4])) {
         if (errno == EINVAL) {
             fprintf(stderr, "User Invalidate.\n");
-        }
         
-        fprintf(stderr, "Can not modify user : %s\n", lib_strerror(errno));
+        } else {
+            fprintf(stderr, "Can not modify user : %s\n", lib_strerror(errno));
+        }
         return  (-1);
     }
     
@@ -408,9 +411,10 @@ __argument_error:
     if (user_db_gadd(ppcArgV[1], gid)) {
         if (errno == EEXIST) {
             fprintf(stderr, "Group already exist.\n");
-        }
         
-        fprintf(stderr, "Can not create new group : %s\n", lib_strerror(errno));
+        } else {
+            fprintf(stderr, "Can not create new group : %s\n", lib_strerror(errno));
+        }
         return  (-1);
     }
     
@@ -444,9 +448,10 @@ static INT  __tshellUserCmdGdel (INT  iArgC, PCHAR  ppcArgV[])
         
         } else if (errno == ENOTEMPTY) {
             fprintf(stderr, "Group not empty.\n");
-        }
         
-        fprintf(stderr, "Can not delete group : %s\n", lib_strerror(errno));
+        } else {
+            fprintf(stderr, "Can not delete group : %s\n", lib_strerror(errno));
+        }
         return  (-1);
     }
     
@@ -477,9 +482,10 @@ static INT  __tshellUserCmdPmod (INT  iArgC, PCHAR  ppcArgV[])
     if (user_db_pmod(ppcArgV[1], ppcArgV[2], ppcArgV[3])) {
         if (errno == EINVAL) {
             fprintf(stderr, "User Invalidate.\n");
-        }
         
-        fprintf(stderr, "Can not modify password : %s\n", lib_strerror(errno));
+        } else {
+            fprintf(stderr, "Can not modify password : %s\n", lib_strerror(errno));
+        }
         return  (-1);
     }
     
