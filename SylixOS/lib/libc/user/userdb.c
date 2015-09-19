@@ -63,7 +63,7 @@ extern void init_etc_passwd_group(void);
  * User sync max retry times
  */
 #define USER_SYNC_RETRY_MAX     3
-#define USER_SYNC_RETRY_DELAY   500
+#define USER_SYNC_RETRY_DELAY   100
 
 /*
  * Resource
@@ -765,7 +765,7 @@ static int passwd_set (user_t *puser, uid_t  uid, gid_t  gid, const char *commen
 /*
  * Group set
  */
-static int group_set (group_t *pgrp, gid_t  gid, int  op, const char *member)
+static int group_set (group_t *pgrp, int  op, const char *member)
 {
 #define GROUP_SET_ADD_MEM   0
 #define GROUP_SET_DEL_MEM   1
@@ -1109,7 +1109,7 @@ int  user_db_uadd (const char  *user, const char  *passwd, int enable,
     /*
      *  set group struct
      */
-    if (group_set(pgrp, gid, GROUP_SET_ADD_MEM, puser->name)) {
+    if (group_set(pgrp, GROUP_SET_ADD_MEM, puser->name)) {
         goto    error;
     }
     
@@ -1325,9 +1325,10 @@ error:
  */
 int  user_db_udel (const char  *user)
 {
-    user_t   *puser;
-    group_t  *pgrp;
-    shadow_t *pshadow;
+    user_t        *puser;
+    group_t       *pgrp;
+    shadow_t      *pshadow;
+    PLW_LIST_LINE  pline;
     
     if (!user) {
         errno = EINVAL;
@@ -1357,9 +1358,6 @@ int  user_db_udel (const char  *user)
         goto    error;
     }
     
-    pgrp    = group_find(NULL, puser->gid);
-    pshadow = shadow_find(puser->name);
-    
     /*
      * remove user from list
      */
@@ -1368,16 +1366,21 @@ int  user_db_udel (const char  *user)
     }
     _List_Line_Del(&puser->list, &user_in);
     
-    if (pgrp) {
-        group_set(pgrp, pgrp->gid, GROUP_SET_DEL_MEM, puser->name);
+    /*
+     * remove user from group
+     */
+    for (pline  = group_in;
+         pline != NULL;
+         pline  = _list_line_get_next(pline)) {
+        
+        pgrp = _LIST_ENTRY(pline, group_t, list);
+        group_set(pgrp, GROUP_SET_DEL_MEM, puser->name);
     }
-    
-    passwd_unload_one(puser);
-    lib_free(puser);
     
     /*
      * remove shadow from list
      */
+    pshadow = shadow_find(puser->name);
     if (pshadow) {
         if (shadow_out == &pshadow->list) {
             shadow_out =  _list_line_get_prev(shadow_out);
@@ -1387,6 +1390,12 @@ int  user_db_udel (const char  *user)
         shadow_unload_one(pshadow);
         lib_free(pshadow);
     }
+    
+    /*
+     * free puser
+     */
+    passwd_unload_one(puser);
+    lib_free(puser);
     
     user_need_sync   = TRUE;
     group_need_sync  = TRUE;
