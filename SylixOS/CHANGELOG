@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2015-09-20: han.hui
+    加入标准网卡配置文件识别器, /etc/ifparam.ini.
+
     2015-09-19: han.hui
     加入内核对象共享注册与查询接口, 方便内核程序与应用程序通信.
     
