@@ -712,7 +712,7 @@ INT API_SdCoreDevSendAllCID (PLW_SDCORE_DEVICE psdcoredevice, LW_SDDEV_CID *psdc
     UINT8            ucType;
 
     if (!psdcid) {
-        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "param error.\r\n");
+        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "parameter error.\r\n");
         return  (PX_ERROR);
     }
 
@@ -765,7 +765,7 @@ INT API_SdCoreDevSendAllCSD (PLW_SDCORE_DEVICE psdcoredevice, LW_SDDEV_CSD *psdc
     UINT8            ucType;
 
     if (!psdcsd) {
-        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "param error.\r\n");
+        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "parameter error.\r\n");
         return  (PX_ERROR);
     }
 

@@ -195,7 +195,7 @@ LW_API
 int  if_param_getipaddr (void *pifparam, ip_addr_t *ipaddr)
 {
     char            key[128];
-    char           *value;
+    const char     *value;
     PLW_IFPARAM     pifp = (PLW_IFPARAM)pifparam;
 
     if (!pifp || !pifp->IFP_pdict || !ipaddr) {
@@ -231,7 +231,7 @@ LW_API
 int  if_param_getnetmask (void *pifparam, ip_addr_t *mask)
 {
     char            key[128];
-    char           *value;
+    const char     *value;
     PLW_IFPARAM     pifp = (PLW_IFPARAM)pifparam;
 
     if (!pifp || !pifp->IFP_pdict || !mask) {
@@ -267,7 +267,7 @@ LW_API
 int  if_param_getgw (void *pifparam, ip_addr_t *gw)
 {
     char            key[128];
-    char           *value;
+    const char     *value;
     PLW_IFPARAM     pifp = (PLW_IFPARAM)pifparam;
 
     if (!pifp || !pifp->IFP_pdict || !gw) {
@@ -304,7 +304,7 @@ LW_API
 int  if_param_getmac (void *pifparam, char *mac, size_t  sz)
 {
     char            key[128];
-    char           *value;
+    const char     *value;
     PLW_IFPARAM     pifp = (PLW_IFPARAM)pifparam;
 
     if (!pifp || !pifp->IFP_pdict) {
@@ -363,8 +363,10 @@ void  if_param_syncdns (void)
             if ((*cp != '\0') && (*cp != '\n')) {
                 ip_addr_t   addr;
                 if (ipaddr_aton(cp, &addr)) {
-                    dns_setserver(numdns, &addr);
-                    numdns++;
+                    if (numdns < DNS_MAX_SERVERS) {
+                        dns_setserver(numdns, &addr);
+                        numdns++;
+                    }
                 }
             }
         }
