@@ -277,7 +277,7 @@ PVOID  API_VmmMallocAlign (size_t  stSize, size_t  stAlign, ULONG  ulFlag)
         __pageLink(pvmpageVirtual, pvmpagePhysical);                    /*  将物理页面连接入虚拟空间    */
         
         ulPageNumTotal += ulPageNumOnce;
-        ulVirtualAddr  += (LW_CFG_VMM_PAGE_SIZE * ulPageNumOnce);
+        ulVirtualAddr  += (ulPageNumOnce << LW_CFG_VMM_PAGE_SHIFT);
         
     } while (ulPageNumTotal < ulPageNum);
     
@@ -795,7 +795,7 @@ ULONG  API_VmmSetFindShare (PVOID  pvVirtualMem, PVOIDFUNCPTR  pfuncFindShare, P
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: API_VmmCounterArea
+** 函数名称: API_VmmPCountInArea
 ** 功能描述: API_VmmMallocAreaEx 分配的连续虚拟内存中包含的物理页面个数 (此物理内存为缺页中断分配)
 ** 输　入  : pvVirtualMem    连续虚拟地址 (必须为 vmmMallocArea?? 返回地址)
 **           pulPageNum      返回物理页面的个数
@@ -933,7 +933,7 @@ ULONG  API_VmmPreallocArea (PVOID       pvVirtualMem,
     
     if ((pvSubMem < pvVirtualMem) ||
         (((addr_t)pvSubMem + stSize) > 
-        ((addr_t)pvVirtualMem + (pvmpageVirtual->PAGE_ulCount * LW_CFG_VMM_PAGE_SIZE)))) {
+        ((addr_t)pvVirtualMem + (pvmpageVirtual->PAGE_ulCount << LW_CFG_VMM_PAGE_SHIFT)))) {
         __VMM_UNLOCK();
         _ErrorHandle(ERROR_VMM_VIRTUAL_ADDR);                           /*  地址超出范围                */
         return  (ERROR_VMM_VIRTUAL_ADDR);
@@ -1095,8 +1095,8 @@ ULONG  API_VmmShareArea (PVOID      pvVirtualMem1,
         return  (ERROR_VMM_VIRTUAL_PAGE);
     }
     
-    if ((stStartOft1 > (pvmpageVirtual1->PAGE_ulCount * LW_CFG_VMM_PAGE_SIZE)) ||
-        (stStartOft2 > (pvmpageVirtual2->PAGE_ulCount * LW_CFG_VMM_PAGE_SIZE))) {
+    if ((stStartOft1 > (pvmpageVirtual1->PAGE_ulCount << LW_CFG_VMM_PAGE_SHIFT)) ||
+        (stStartOft2 > (pvmpageVirtual2->PAGE_ulCount << LW_CFG_VMM_PAGE_SHIFT))) {
         __VMM_UNLOCK();
         _ErrorHandle(EINVAL);                                           /*  偏移量越界                  */
         return  (EINVAL);

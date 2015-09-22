@@ -214,7 +214,7 @@ static INT  __vmmMapnFill (PLW_VMM_MAP_NODE    pmapn,
     offtRead  = (off_t)(ulMapPageAddr - ulMapStartAddr);                /*  内存地址偏移                */
     offtRead += pmapn->MAPN_off;                                        /*  加上文件起始偏移            */
     
-    stReadLen = (size_t)(ulPageNum * LW_CFG_VMM_PAGE_SIZE);             /*  需要获取的数据大小          */
+    stReadLen = (size_t)(ulPageNum << LW_CFG_VMM_PAGE_SHIFT);           /*  需要获取的数据大小          */
     
     {
         size_t   stZNum;
@@ -234,7 +234,7 @@ static INT  __vmmMapnFill (PLW_VMM_MAP_NODE    pmapn,
     
 __full_with_zero:
     lib_bzero((PVOID)ulDestPageAddr, 
-              (INT)(ulPageNum * LW_CFG_VMM_PAGE_SIZE));                 /*  全部清零                    */
+              (INT)(ulPageNum << LW_CFG_VMM_PAGE_SHIFT));               /*  全部清零                    */
     
     return  (ERROR_NONE);
 }
@@ -748,7 +748,7 @@ PVOID  API_VmmMremap (PVOID  pvAddr, size_t stOldSize, size_t stNewSize, INT  iM
     PLW_VMM_MAP_NODE    pmapn;
     PVOID               pvRet;
     
-    if (!ALIGNED(pvAddr,    LW_CFG_VMM_PAGE_SIZE) || (stNewSize == 0)) {
+    if (!ALIGNED(pvAddr, LW_CFG_VMM_PAGE_SIZE) || (stNewSize == 0)) {
         _ErrorHandle(EINVAL);
         return  (LW_VMM_MAP_FAILED);
     }
@@ -1021,6 +1021,48 @@ VOID  API_VmmMmapShow (VOID)
                pmapn->MAPN_iFd);
     }
     __VMM_MMAP_UNLOCK();
+}
+/*********************************************************************************************************
+** 函数名称: API_VmmMmapPCount
+** 功能描述: 统计一个进程使用 mmap 物理内存的用量.
+** 输　入  : pid          进程 ID 0 为内核
+**           pstPhySize   物理内存使用大小
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+INT  API_VmmMmapPCount (pid_t  pid, size_t  *pstPhySize)
+{
+             PLW_VMM_MAP_NODE    pmapn;
+             PLW_LIST_LINE       plineTemp;
+             ULONG               ulPageNum;
+    REGISTER size_t              stPhySize = 0;
+    
+    if ((pid < 0) || (pstPhySize == LW_NULL)) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    __VMM_MMAP_LOCK();
+    for (plineTemp  = _K_plineMapnMHeader;
+         plineTemp != LW_NULL;
+         plineTemp  = _list_line_get_next(plineTemp)) {
+         
+        pmapn = _LIST_ENTRY(plineTemp, LW_VMM_MAP_NODE, MAPN_lineManage);
+        if (pmapn->MAPN_pid == pid) {
+            if (API_VmmPCountInArea(pmapn->MAPN_pvAddr, 
+                                    &ulPageNum) == ERROR_NONE) {
+                stPhySize += (size_t)(ulPageNum << LW_CFG_VMM_PAGE_SHIFT);
+            }
+        }
+    }
+    __VMM_MMAP_UNLOCK();
+    
+    *pstPhySize = stPhySize;
+    
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: API_VmmMmapReclaim
