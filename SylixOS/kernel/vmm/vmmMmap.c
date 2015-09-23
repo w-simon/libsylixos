@@ -563,7 +563,7 @@ static PVOID  __vmmMmapShrink (PLW_VMM_MAP_NODE  pmapn, size_t stNewSize)
 static PVOID  __vmmMmapExpand (PLW_VMM_MAP_NODE  pmapn, size_t stNewSize, INT  iMoveEn)
 {
     PVOID               pvRetAddr;
-    PVOID               pvTmpAddr;
+    PVOID               pvOldAddr;
     LW_DEV_MMAP_AREA    dmap;
     INT                 iError;
     
@@ -606,11 +606,13 @@ static PVOID  __vmmMmapExpand (PLW_VMM_MAP_NODE  pmapn, size_t stNewSize, INT  i
         API_IosUnmap(pmapn->MAPN_iFd, &dmap);                           /*  调用设备驱动                */
     }
     
-    pvTmpAddr = pmapn->MAPN_pvAddr;
+    pvOldAddr = pmapn->MAPN_pvAddr;
     pmapn->MAPN_pvAddr = pvRetAddr;
     pmapn->MAPN_stLen  = stNewSize;
     
-    __vmmMapnFree(pvTmpAddr);                                           /*  释放之前的内存              */
+    API_VmmMoveArea(pvRetAddr, pvOldAddr);                              /*  将之前的物理页面映射到新内存*/
+    
+    __vmmMapnFree(pvOldAddr);                                           /*  释放之前的内存              */
 
     return  (pvRetAddr);
 }
