@@ -613,6 +613,10 @@ static PVOID  __vmmMmapExpand (PLW_VMM_MAP_NODE  pmapn, size_t stNewSize, INT  i
     API_VmmMoveArea(pvRetAddr, pvOldAddr);                              /*  将之前的物理页面映射到新内存*/
     
     __vmmMapnFree(pvOldAddr);                                           /*  释放之前的内存              */
+    
+    __vmmMapnUnlink(pmapn);                                             /*  重新插入管理链表            */
+    
+    __vmmMapnLink(pmapn);
 
     return  (pvRetAddr);
 }
@@ -765,7 +769,8 @@ PVOID  API_VmmMremap (PVOID  pvAddr, size_t stOldSize, size_t stNewSize, INT  iM
         return  (LW_VMM_MAP_FAILED);
     }
     
-    if (pmapn->MAPN_pvAddr != pvAddr) {
+    if ((pmapn->MAPN_pvAddr != pvAddr) ||
+        (pmapn->MAPN_stLen  != stOldSize)) {                            /*  只支持完整空间操作          */
         __VMM_MMAP_UNLOCK();
         _ErrorHandle(ENOTSUP);
         return  (LW_VMM_MAP_FAILED);

@@ -189,6 +189,8 @@ static VOID  __vmmMoveAreaHook (PLW_VMM_PAGE  pvmpagePhysical,
     __vmmLibPageMap(pvmpagePhysical->PAGE_ulPageAddr, 
                     ulNewMap, 1, pvmpageVirtualTo->PAGE_ulFlags);       /*  建立新的映射关系            */
                     
+    pvmpagePhysical->PAGE_ulMapPageAddr = ulNewMap;                     /*  记录新的映射关系            */
+                    
     __pageLink(pvmpageVirtualTo, pvmpagePhysical);                      /*  连接到目标虚拟分区          */
 }
 /*********************************************************************************************************

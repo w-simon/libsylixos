@@ -55,6 +55,7 @@ void *dlmalloc_mremap(void *pvAddr, size_t stOldSize, size_t stNewSize, int mv);
 #define HAVE_MREMAP             1
 
 #define MMAP                    dlmalloc_mmap
+#define DIRECT_MMAP             dlmalloc_mmap
 #define MREMAP                  dlmalloc_mremap
 #endif /* LW_CFG_VMM_EN > 0 */
 
