@@ -10,33 +10,28 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: fsCommon.h
+** 文   件   名: oemBlkIo.h
 **
 ** 创   建   人: Han.Hui (韩辉)
 **
-** 文件创建日期: 2009 年 07 月 05 日
+** 文件创建日期: 2015 年 10 月 14 日
 **
-** 描        述: 文件系统接口公共服务部分(这个部分加入的晚了, 导致很多文件系统公共行为没有很好的封装
-                                          在以后的版本中, 将会慢慢改进).
+** 描        述: OEM 磁盘自动生成 /dev/blk/xxx 文件.
+**
+** 注        意: blk io 文件必须单线程读写, 非多线程安全.
 *********************************************************************************************************/
 
-#ifndef __FSCOMMON_H
-#define __FSCOMMON_H
+#ifndef __OEMBLKIO_H
+#define __OEMBLKIO_H
 
 /*********************************************************************************************************
-  函数声明
+  API
 *********************************************************************************************************/
 
-INT      __fsRegister(CPCHAR   pcName, FUNCPTR  pfuncCreate);           /*  注册文件系统                */
-FUNCPTR  __fsCreateFuncGet(CPCHAR   pcName);                            /*  获得文件系统创建函数        */
+LW_API INT  API_OemBlkIoCreate(CPCHAR  pcBlkDev, PLW_BLK_DEV  pblkdDisk);
+LW_API INT  API_OemBlkIoDelete(PLW_BLK_DEV  pblkdDisk);
 
-INT      __fsCheckFileName(CPCHAR  pcName);                             /*  文件名正确性检查            */
-
-VOID     __fsDiskLinkCounterAdd(PLW_BLK_DEV  pblkd);                    /*  物理连接计数操作            */
-VOID     __fsDiskLinkCounterDec(PLW_BLK_DEV  pblkd);
-UINT     __fsDiskLinkCounterGet(PLW_BLK_DEV  pblkd);
-
-#endif
+#endif                                                                  /*  __OEMBLKIO_H                */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

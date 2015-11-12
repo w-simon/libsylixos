@@ -219,7 +219,9 @@ SylixOS/debug/gdb/gdbserver.c
 #*********************************************************************************************************
 DRV_SRCS = \
 SylixOS/driver/can/sja1000.c \
-SylixOS/driver/sio/16c550.c 
+SylixOS/driver/int/i8259a.c \
+SylixOS/driver/sio/16c550.c \
+SylixOS/driver/timer/i8254.c 
 
 #*********************************************************************************************************
 # file system source
@@ -258,7 +260,9 @@ SylixOS/fs/nfs/mount_xdr.c \
 SylixOS/fs/nfs/nfs_clnt.c \
 SylixOS/fs/nfs/nfs_sylixos.c \
 SylixOS/fs/nfs/nfs_xdr.c \
+SylixOS/fs/oemDisk/oemBlkIo.c \
 SylixOS/fs/oemDisk/oemDisk.c \
+SylixOS/fs/oemDisk/oemFdisk.c \
 SylixOS/fs/procFs/procFs.c \
 SylixOS/fs/procFs/procFsLib.c \
 SylixOS/fs/procFs/procBsp/procBsp.c \

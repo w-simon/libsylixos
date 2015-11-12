@@ -114,7 +114,7 @@ static VOID __vmmAbortCacheRefresh (BOOL    bSwapNeedLoad,
     }
     
     if (bSwapNeedLoad) {                                                /*  swap load 有可能是代码      */
-        if (bFlush) {
+        if (bFlush && (LW_NCPUS == 1)) {
             API_CacheInvalidate(INSTRUCTION_CACHE, (PVOID)ulVirtualPageAlign, stSize);
                                                                         /*  已经回写, 只需要无效 I-CACHE*/
         } else {

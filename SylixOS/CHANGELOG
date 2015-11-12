@@ -4,6 +4,12 @@ HISTORY
 
 ++ New features:
 
+    2015-10-28: han.hui
+    加入 Intel 8259A 与 8254 标准驱动.
+    
+    2015-09-25: han.hui
+    加入 fdisk 与 blk I/O 功能.
+
     2015-09-20: han.hui
     加入标准网卡配置文件识别器, /etc/ifparam.ini.
 
