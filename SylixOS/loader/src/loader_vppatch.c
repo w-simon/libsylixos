@@ -424,7 +424,7 @@ LW_LD_VPROC *vprocCreate (CPCHAR  pcFile)
         goto    __error_handle;
     }
     
-    pvproc->VP_ulWaitForExit = API_SemaphoreBCreate("vproc_waitforexit",
+    pvproc->VP_ulWaitForExit = API_SemaphoreBCreate("vproc_wfe",
                                                     LW_FALSE,
                                                     LW_OPTION_OBJECT_GLOBAL,
                                                     LW_NULL);

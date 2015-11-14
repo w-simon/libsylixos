@@ -47,9 +47,9 @@
 
 #define __SYLIXOS_MAKEVER(a, b, c)      (((a) << 16) + ((b) << 8) + (c))
 #define __SYLIXOS_VERSION               __SYLIXOS_MAKEVER(1, 2, 1)
-#define __SYLIXOS_VERPATCH              0x1                             /* 小于 0x10000 为测试版        */
+#define __SYLIXOS_VERPATCH              0x2                             /* 小于 0x10000 为测试版        */
                                                                         /* 等于 0x10000 为正式发布版本  */
-#define __SYLIXOS_VERSTR                "1.2.1-1"
+#define __SYLIXOS_VERSTR                "1.2.1-2"
 #define __SYLIXOS_RELSTR                "GEMINI(b)"
 
 #define __SYLIXOS_VERINFO               "SylixOS kernel version: "  \
@@ -69,7 +69,7 @@ __attribute__((weak)) char              __sylixos_version[] = __SYLIXOS_VERSTR;
   系统 LOGO
 *********************************************************************************************************/
 
-#define __SYLIXOS_LOGO                  "\n                          [[                          "    \
+#define __SYLIXOS_LOGO                  "\n                          [[                          (R)" \
                                         "\n [[[[           [[[[      [[             [[[[    [[[[ "    \
                                         "\n[[  [[            [[                    [[  [[  [[  [["    \
                                         "\n[[      [[  [[    [[    [[[[    [[  [[  [[  [[  [[    "    \
@@ -80,8 +80,8 @@ __attribute__((weak)) char              __sylixos_version[] = __SYLIXOS_VERSTR;
                                         "\n[[  [[  [[  [[    [[      [[    [[  [[  [[  [[  [[  [["    \
                                         "\n [[[[    [[[[   [[[[[[  [[[[[[  [[  [[   [[[[    [[[[ "    \
                                         "\n           [[                                         "    \
-                                        "\n          [[                                          "    \
-                                        "\n       [[[[       KERNEL: Long-Wing(C) 2006 - 2015\n\n"
+                                        "\n          [[    KERNEL: Long-Wing(C) " __SYLIXOS_VERSTR "" \
+                                        "\n       [[[[   COPYRIGHT ACONINF, Inc,. 2006 - 2015\n\n"
                                         
 /*********************************************************************************************************
   系统配置与裁减头文件
@@ -122,9 +122,9 @@ __attribute__((weak)) char              __sylixos_version[] = __SYLIXOS_VERSTR;
 #define LW_CFG_THREAD_DEL_EN       1                                    /*  支持删除                    */
 #endif
 
-#if     LW_CFG_OBJECT_NAME_SIZE < 32
+#if     LW_CFG_OBJECT_NAME_SIZE < 16
 #undef  LW_CFG_OBJECT_NAME_SIZE
-#define LW_CFG_OBJECT_NAME_SIZE   32                                    /*  对象名至少 32 字节          */
+#define LW_CFG_OBJECT_NAME_SIZE   16                                    /*  对象名至少 16 字节          */
 #endif
 
 #undef  LW_CFG_MSGQUEUE_EN

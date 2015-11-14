@@ -85,7 +85,9 @@ LW_API VOID             API_AtomicUnlock(INTREG  iregInterLevel);
 #if LW_CFG_SMP_EN > 0
 LW_API ULONG            API_CpuUp(ULONG  ulCPUId);
 
+#if LW_CFG_SMP_CPU_DOWN_EN > 0
 LW_API ULONG            API_CpuDown(ULONG  ulCPUId);
+#endif                                                                  /*  LW_CFG_SMP_CPU_DOWN_EN > 0  */
 
 LW_API BOOL             API_CpuIsUp(ULONG  ulCPUId);
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */

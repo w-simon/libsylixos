@@ -281,7 +281,7 @@ static VOID  __sigTaskCreateHook (LW_OBJECT_HANDLE  ulId)
     
 #if LW_CFG_SIGNALFD_EN > 0
     if (_K_hSigfdSelMutex == LW_OBJECT_HANDLE_INVALID) {
-        _K_hSigfdSelMutex =  API_SemaphoreMCreate("signalfdsel_lock", LW_PRIO_DEF_CEILING, 
+        _K_hSigfdSelMutex =  API_SemaphoreMCreate("sigfdsel_lock", LW_PRIO_DEF_CEILING, 
                                                   LW_OPTION_WAIT_PRIORITY | LW_OPTION_DELETE_SAFE |
                                                   LW_OPTION_INHERIT_PRIORITY | LW_OPTION_OBJECT_GLOBAL,
                                                   LW_NULL);
@@ -995,12 +995,12 @@ ULONG  _sigTimeoutRecalc (ULONG  ulOrgKernelTime, ULONG  ulOrgTimeout)
         return  (ulOrgTimeout);
     }
     
-    LW_SPIN_LOCK_QUICK(&_K_slKernel, &iregInterLevel);
+    LW_SPIN_KERN_LOCK_QUICK(&iregInterLevel);
     __KERNEL_TIME_GET_NO_SPINLOCK(ulKernelTime, ULONG);
     ulTimeRun = (ulKernelTime >= ulOrgKernelTime) ?
                 (ulKernelTime -  ulOrgKernelTime) :
                 (ulKernelTime + (__ARCH_ULONG_MAX - ulOrgKernelTime) + 1);
-    LW_SPIN_UNLOCK_QUICK(&_K_slKernel, iregInterLevel);
+    LW_SPIN_KERN_UNLOCK_QUICK(iregInterLevel);
     
     if (ulTimeRun >= ulOrgTimeout) {                                    /*  已经产生了超时              */
         return  (0);

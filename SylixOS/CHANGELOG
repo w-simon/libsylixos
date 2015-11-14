@@ -46,6 +46,12 @@ HISTORY
     
 ++ Bugfixes:
 
+    2015-11-13: han.hui
+    加入专用的内核锁操作方法, 修正 SMP debug 错误, 提高 SMP 实时性.
+
+    2015-11-12: han.hui
+    修正内核对象 SMP 并发操作错误.
+    
     2015-08-26: han.hui
     修正 bspIntVecter* 拼写错误.
 

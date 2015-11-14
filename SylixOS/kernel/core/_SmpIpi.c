@@ -47,10 +47,14 @@ VOID  _SmpSendIpi (ULONG  ulCPUId, ULONG  ulIPIVec, INT  iWait)
         return;
     }
     
+    LW_SPIN_LOCK_IGNIRQ(&pcpuDst->CPU_slIpi);
+    
     LW_CPU_ADD_IPI_PEND(ulCPUId, ulMask);
     KN_SMP_WMB();
     
     archMpInt(ulCPUId);
+    
+    LW_SPIN_UNLOCK_IGNIRQ(&pcpuDst->CPU_slIpi);
     
     if (iWait && (ulIPIVec != LW_IPI_SCHED)) {
         while (LW_CPU_GET_IPI_PEND(ulCPUId) & ulMask) {                 /*  µÈ´ý½áÊø                    */
@@ -277,7 +281,7 @@ static VOID  _SmpProcBoot (PLW_CLASS_CPU  pcpuCur)
 *********************************************************************************************************/
 static VOID  _SmpProcCallfunc (PLW_CLASS_CPU  pcpuCur)
 {
-#define LW_KERNEL_OWN_CPU()     (_K_slKernel.SL_pcpuOwner)
+#define LW_KERNEL_OWN_CPU()     (PLW_CLASS_CPU)(_K_klKernel.KERN_pvCpuOwner)
 
     UINT            i, uiCnt;
     PLW_IPI_MSG     pipim;

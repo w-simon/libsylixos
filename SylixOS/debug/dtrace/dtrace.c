@@ -1030,7 +1030,6 @@ ULONG API_DtraceThreadStepSet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, addr
     ptcb = _K_ptcbTCBIdTable[usIndex];
 
     ptcb->TCB_ulStepAddr = ulAddr;                                      /*  设置单步断点地址            */
-
     __KERNEL_EXIT();
 
     return  (ERROR_NONE);
@@ -1076,7 +1075,6 @@ ULONG API_DtraceThreadStepGet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, addr
     ptcb = _K_ptcbTCBIdTable[usIndex];
 
     *pulAddr = ptcb->TCB_ulStepAddr;                                    /*  返回单步断点地址            */
-
     __KERNEL_EXIT();
 
     return  (ERROR_NONE);

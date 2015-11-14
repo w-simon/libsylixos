@@ -23,6 +23,7 @@
 #define __ARCH_ARM_SUPPORT_H
 
 #define __LW_SCHEDULER_BUG_TRACE_EN                                     /*  测试多核调度器              */
+#define __LW_KERNLOCK_BUG_TRACE_EN                                      /*  测试内核锁                  */
 
 /*********************************************************************************************************
   汇编相关头文件
@@ -182,8 +183,17 @@ VOID    archSpinDelay(VOID);
 VOID    archSpinNotify(VOID);
 
 #define __ARCH_SPIN_INIT    archSpinInit
+
+#if __SYLIXOS_ARM_ARCH__ >= 7
 #define __ARCH_SPIN_DELAY   archSpinDelay
 #define __ARCH_SPIN_NOTIFY  archSpinNotify
+#else
+#define __ARCH_SPIN_DELAY() \
+        {   volatile INT i; \
+            for (i = 0; i < 10; i++);    \
+        }
+#define __ARCH_SPIN_NOTIFY()
+#endif                                                                  /*  __SYLIXOS_ARM_ARCH__ >= 7   */
 
 INT     archSpinLock(spinlock_t  *psl);
 INT     archSpinTryLock(spinlock_t  *psl);
@@ -405,7 +415,10 @@ ULONG   bspMmuPteMaxNum(VOID);
 #if LW_CFG_SMP_EN > 0
 VOID    bspMpInt(ULONG  ulCPUId);
 VOID    bspCpuUp(ULONG  ulCPUId);                                       /*  启动一个 CPU                */
+
+#if LW_CFG_SMP_CPU_DOWN_EN > 0
 VOID    bspCpuDown(ULONG  ulCPUId);                                     /*  停止一个 CPU                */
+#endif                                                                  /*  LW_CFG_SMP_CPU_DOWN_EN > 0  */
 #endif                                                                  /*  LW_CFG_SMP_EN               */
 
 /*********************************************************************************************************

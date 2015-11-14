@@ -90,6 +90,7 @@ static CACHE_MODE   _G_uiDCacheMode = CACHE_DISABLED;
   全局结构变量定义 
 *********************************************************************************************************/
 LW_CACHE_OP     _G_cacheopLib = {                                       /*  the cache primitives        */
+    0,
     CACHE_LOCATION_VIVT,
     CACHE_LOCATION_VIVT,
     32,
@@ -539,15 +540,15 @@ ULONG    API_CacheTextUpdate (PVOID  pvAdrs, size_t  stBytes)
     __CACHE_OP_EXIT(iregInterLevel);                                    /*  结束操作 cache              */
     
 #if LW_CFG_SMP_EN > 0
-    tuarg.TUA_pvAddr = pvAdrs;
-    tuarg.TUA_stSize = stBytes;
+    if (_G_cacheopLib.CACHEOP_ulOption & CACHE_TEXT_UPDATE_MP) {
+        tuarg.TUA_pvAddr = pvAdrs;
+        tuarg.TUA_stSize = stBytes;
     
-    iregInterLevel = KN_INT_DISABLE();
-    
-    _SmpCallFuncAllOther(__cacheTextUpdate, &tuarg, 
-                         LW_NULL, LW_NULL, IPIM_OPT_NORMAL);            /*  通知其他的 CPU              */
-    
-    KN_INT_ENABLE(iregInterLevel);
+        iregInterLevel = KN_INT_DISABLE();
+        _SmpCallFuncAllOther(__cacheTextUpdate, &tuarg, 
+                             LW_NULL, LW_NULL, IPIM_OPT_NORMAL);        /*  通知其他的 CPU              */
+        KN_INT_ENABLE(iregInterLevel);
+    }
 #endif                                                                  /*  LW_CFG_SMP_EN               */
 
     return  (ulError);

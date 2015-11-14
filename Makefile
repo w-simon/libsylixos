@@ -350,6 +350,7 @@ SylixOS/kernel/core/_Sched.c \
 SylixOS/kernel/core/_SchedCand.c \
 SylixOS/kernel/core/_SmpIpi.c \
 SylixOS/kernel/core/_SmpSpinlock.c \
+SylixOS/kernel/core/_SmpSpinlockKernel.c \
 SylixOS/kernel/core/_StackCheckInit.c \
 SylixOS/kernel/core/_ThreadAffinity.c \
 SylixOS/kernel/core/_ThreadFpu.c \
@@ -365,6 +366,7 @@ SylixOS/kernel/core/_ThreadVarLib.c \
 SylixOS/kernel/core/_TimerInit.c \
 SylixOS/kernel/core/_TimeTick.c \
 SylixOS/kernel/core/_UpSpinlock.c \
+SylixOS/kernel/core/_UpSpinlockKernel.c \
 SylixOS/kernel/core/_WakeupLine.c \
 SylixOS/kernel/interface/CoroutineCreate.c \
 SylixOS/kernel/interface/CoroutineDelete.c \

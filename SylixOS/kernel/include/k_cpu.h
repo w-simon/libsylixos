@@ -108,12 +108,14 @@ typedef struct __lw_cpu {
 #define LW_IPI_DOWN_MSK         (1 << LW_IPI_DOWN)
 #define LW_IPI_CALL_MSK         (1 << LW_IPI_CALL)
 
+#ifdef __LW_SPINLOCK_BUG_TRACE_EN
+    volatile ULONG           CPU_ulSpinNesting;                         /*  spinlock 加锁数量           */
+#endif                                                                  /*  __LW_SPINLOCK_BUG_TRACE_EN  */
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
+     
     /*
      *  spinlock 等待表
      */
-    volatile ULONG           CPU_ulSpinNesting;                         /*  spinlock 加锁数量           */
-#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
-     
     union {
         LW_LIST_LINE         CPUQ_lineSpinlock;                         /*  PRIORITY 等待表             */
         LW_LIST_RING         CPUQ_ringSpinlock;                         /*  FIFO 等待表                 */
@@ -196,10 +198,16 @@ extern LW_CLASS_CPU          _K_cpuTable[];                             /*  处理
 *********************************************************************************************************/
 
 #if LW_CFG_SMP_EN > 0
+#ifdef __LW_SPINLOCK_BUG_TRACE_EN
 #define LW_CPU_SPIN_NESTING_GET(pcpu)   ((pcpu)->CPU_ulSpinNesting)
 #define LW_CPU_SPIN_NESTING_INC(pcpu)   ((pcpu)->CPU_ulSpinNesting++)
 #define LW_CPU_SPIN_NESTING_DEC(pcpu)   ((pcpu)->CPU_ulSpinNesting--)
-#endif
+#else
+#define LW_CPU_SPIN_NESTING_GET(pcpu)
+#define LW_CPU_SPIN_NESTING_INC(pcpu)
+#define LW_CPU_SPIN_NESTING_DEC(pcpu)
+#endif                                                                  /*  __LW_SPINLOCK_BUG_TRACE_EN  */
+#endif                                                                  /*  LW_CFG_SMP_EN               */
 
 /*********************************************************************************************************
   CPU 状态
