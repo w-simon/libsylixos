@@ -54,6 +54,7 @@ VOID  _SmpKernelLock (VOID)
         
         iRet = __ARCH_SPIN_TRYLOCK(&LW_KERN_SL);
         if (iRet != LW_SPIN_OK) {
+            _SmpTryProcIpi(LW_CPU_GET_CUR());                           /*  尝试执行 IPI                */
             KN_INT_ENABLE(iregInterLevel);
             LW_SPINLOCK_DELAY();
             
@@ -109,13 +110,15 @@ VOID  _SmpKernelLockIgnIrq (VOID)
     PLW_CLASS_CPU   pcpuCur;
     INT             iRet;
     
+    pcpuCur = LW_CPU_GET_CUR();
+    
     for (;;) {
         iRet = __ARCH_SPIN_TRYLOCK(&LW_KERN_SL);
         if (iRet != LW_SPIN_OK) {
+            _SmpTryProcIpi(pcpuCur);                                    /*  尝试执行 IPI                */
             LW_SPINLOCK_DELAY();
             
         } else {
-            pcpuCur = LW_CPU_GET_CUR();
             if (!pcpuCur->CPU_ulInterNesting) {
                 __THREAD_LOCK_INC(pcpuCur->CPU_ptcbTCBCur);             /*  锁定任务在当前 CPU          */
             }
@@ -164,6 +167,7 @@ VOID  _SmpKernelLockQuick (INTREG  *piregInterLevel)
         
         iRet = __ARCH_SPIN_TRYLOCK(&LW_KERN_SL);
         if (iRet != LW_SPIN_OK) {
+            _SmpTryProcIpi(LW_CPU_GET_CUR());                           /*  尝试执行 IPI                */
             KN_INT_ENABLE(*piregInterLevel);
             LW_SPINLOCK_DELAY();
             

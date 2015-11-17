@@ -73,7 +73,7 @@ static VOID  _CandTableFill (PLW_CLASS_CPU   pcpu)
              UINT8              ucPriority;
 
     ppcbbmap = _SchedSeekPriority(pcpu, &ucPriority);
-    _BugHandle((ppcbbmap == LW_NULL), LW_TRUE, "serious error!.\r\n");  /*  就绪表不应该为 NULL         */
+    _BugHandle((ppcbbmap == LW_NULL), LW_TRUE, "serious error!\r\n");   /*  就绪表不应该为 NULL         */
     
     ptcb = _CandSeekThread(ppcbbmap, ucPriority);                       /*  确定可以候选运行的线程      */
     ppcb = &ppcbbmap->PCBM_pcb[ucPriority];

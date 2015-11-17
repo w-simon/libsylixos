@@ -280,6 +280,8 @@ LW_API ULONG            API_ThreadIsSuspend(LW_OBJECT_HANDLE    ulId);  /*  检查
 
 LW_API BOOL             API_ThreadIsReady(LW_OBJECT_HANDLE    ulId);    /*  检查线程是否就绪            */
 
+LW_API ULONG            API_ThreadIsRunning(LW_OBJECT_HANDLE   ulId, BOOL  *pbIsRunning);
+                                                                        /*  检查线程是否正在运行        */
 LW_API ULONG            API_ThreadSetName(LW_OBJECT_HANDLE  ulId, 
                                           CPCHAR            pcName);    /*  设置线程名                  */
 

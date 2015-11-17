@@ -58,6 +58,8 @@
 2014.09.30  SA_SIGINFO 加入对信号上下文参数的传递, 由于解除阻塞运行的信号, 则信号上下文参数为 LW_NULL.
 2014.10.31  支持 POSIX 定义的指定堆栈的信号上下文操作.
 2014.11.04  支持 SA_NOCLDWAIT 自动回收子进程.
+2015.11.16  __sigMakeReady() 仅需要关闭中断即可.
+            _sigPendAlloc() 与 _sigPendFree() 不需要关闭中断.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -341,7 +343,7 @@ static VOID    __sigTaskDeleteHook (LW_OBJECT_HANDLE  ulId)
 #endif                                                                  /*  LW_CFG_THREAD_DEL_EN > 0    */
 /*********************************************************************************************************
 ** 函数名称: __sigMakeReady
-** 功能描述: 将指定线程设置为就绪状态并且设置调度器的返回值为 LW_SIGNAL_RESTART
+** 功能描述: 将指定线程设置为就绪状态并且设置调度器的返回值为 LW_SIGNAL_RESTART (此函数在内核状态被调用)
 ** 输　入  : ptcb                   目的线程控制块
 **           iSigNo                 信号值
 **           piSchedRet             退出信号句柄后, 调度器返回值.
@@ -369,9 +371,9 @@ static VOID  __sigMakeReady (PLW_CLASS_TCB  ptcb,
     
     *piSchedRet = ERROR_NONE;                                           /*  默认为就绪状态              */
     
-    iregInterLevel = __KERNEL_ENTER_IRQ();                              /*  进入内核同时关闭中断        */
+    iregInterLevel = KN_INT_DISABLE();                                  /*  关闭中断                    */
     if (__LW_THREAD_IS_READY(ptcb)) {                                   /*  处于就绪状态, 直接退出      */
-        __KERNEL_EXIT_IRQ(iregInterLevel);                              /*  退出内核同时打开中断        */
+        KN_INT_ENABLE(iregInterLevel);                                  /*  打开中断                    */
         return;
     }
     
@@ -427,7 +429,7 @@ static VOID  __sigMakeReady (PLW_CLASS_TCB  ptcb,
             }
         }
     }
-    __KERNEL_EXIT_IRQ(iregInterLevel);                                  /*  退出内核同时打开中断        */
+    KN_INT_ENABLE(iregInterLevel);                                      /*  打开中断                    */
 }
 /*********************************************************************************************************
 ** 函数名称: __sigCtlCreate
@@ -717,18 +719,14 @@ PLW_CLASS_SIGCONTEXT  _signalGetCtx (PLW_CLASS_TCB  ptcb)
 *********************************************************************************************************/
 static PLW_CLASS_SIGPEND   _sigPendAlloc (VOID)
 {
-    INTREG              iregInterLevel;
     PLW_CLASS_SIGPEND   psigpendNew = LW_NULL;
     
-    iregInterLevel = KN_INT_DISABLE();
     if (_K_pringSigPendFreeHeader) {
-        psigpendNew = _LIST_ENTRY(_K_pringSigPendFreeHeader, 
-                                  LW_CLASS_SIGPEND, 
+        psigpendNew = _LIST_ENTRY(_K_pringSigPendFreeHeader, LW_CLASS_SIGPEND, 
                                   SIGPEND_ringSigQ);                    /*  获得空闲控制块的地址        */
         _List_Ring_Del(_K_pringSigPendFreeHeader, 
                        &_K_pringSigPendFreeHeader);                     /*  从空闲队列中删除            */
     }
-    KN_INT_ENABLE(iregInterLevel);
     
     return  (psigpendNew);
 }
@@ -742,12 +740,8 @@ static PLW_CLASS_SIGPEND   _sigPendAlloc (VOID)
 *********************************************************************************************************/
 VOID  _sigPendFree (PLW_CLASS_SIGPEND  psigpendFree)
 {
-    INTREG      iregInterLevel;
-    
-    iregInterLevel = KN_INT_DISABLE();
     _List_Ring_Add_Last(&psigpendFree->SIGPEND_ringSigQ, 
                         &_K_pringSigPendFreeHeader);                    /*  归还到空闲队列中            */
-    KN_INT_ENABLE(iregInterLevel);
 }
 /*********************************************************************************************************
 ** 函数名称: _sigPendInit
@@ -766,46 +760,8 @@ VOID  _sigPendInit (PLW_CLASS_SIGPEND  psigpend)
     psigpend->SIGPEND_psigctx = LW_NULL;
 }
 /*********************************************************************************************************
-** 函数名称: _sigPendUnlink
-** 功能描述: 清除一个信号队列节点. (仅从 pend 队列中删除, 此函数由其他产生信号的模块调用, 
-**                                  例如, timer, mqueue)
-** 输　入  : psigpend               需要清除的节点地址
-** 输　出  : 
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-INT  _sigPendUnlink (PLW_CLASS_SIGPEND  psigpend)
-{
-    PLW_CLASS_SIGCONTEXT  psigctx = psigpend->SIGPEND_psigctx;
-    REGISTER INT          iSigNo  = psigpend->SIGPEND_siginfo.si_signo;
-    REGISTER INT          iSigIndex = __sigindex(iSigNo);               /*  TCB_sigaction 下标          */
-    
-    if (LW_CPU_GET_CUR_NESTING()) {
-        return  (PX_ERROR);
-    }
-    
-    __KERNEL_ENTER();                                                   /*  进入内核                    */
-    psigpend->SIGPEND_uiTimes = 0;
-    if (psigpend->SIGPEND_ringSigQ.RING_plistNext) {                    /*  在队列中                    */
-        LW_LIST_RING_HEADER pringHeader = 
-                            psigctx->SIGCTX_pringSigQ[iSigIndex];
-                            
-        if (psigpend->SIGPEND_ringSigQ.RING_plistNext == 
-            psigpend->SIGPEND_ringSigQ.RING_plistPrev) {                /*  仅有这一个节点              */
-            psigctx->SIGCTX_sigsetPending &= 
-                (psigctx->SIGCTX_sigsetKill | (~__sigmask(iSigNo)));    /*  去掉相关的 pend 位          */
-                                                                        /*  如果 kill 存在的则保留      */
-        }
-        
-        _List_Ring_Del(&psigpend->SIGPEND_ringSigQ, &pringHeader);      /*  从队列中删除                */
-    }
-    __KERNEL_EXIT();                                                    /*  退出内核                    */
-
-    return  (ERROR_NONE);
-}
-/*********************************************************************************************************
 ** 函数名称: _sigPendGet
-** 功能描述: 获取一个需要被运行的信号, 
+** 功能描述: 获取一个需要被运行的信号, (此函数在进入内核后调用)
 ** 输　入  : psigctx               任务控制块中信号上下文
 **           psigset               需要检查的信号集
 **           psiginfo              需要运行的信号信息
@@ -821,7 +777,6 @@ INT  _sigPendGet (PLW_CLASS_SIGCONTEXT  psigctx, const sigset_t  *psigset, struc
     PLW_CLASS_SIGPEND   psigpend;
     
     sigsetNeedRun = *psigset & psigctx->SIGCTX_sigsetPending;
-    
     if (sigsetNeedRun == 0ull) {                                        /*  需要检查的信号集都不需要运行*/
         return  (0);
     }
@@ -887,7 +842,6 @@ static BOOL _sigPendRunSelf (VOID)
 
     psigctx = _signalGetCtx(ptcbCur);
     sigset  = ~psigctx->SIGCTX_sigsetSigBlockMask;                      /*  没有被屏蔽的信号            */
-    
     if (sigset == 0) {
         return  (LW_FALSE);                                             /*  没有需要被运行的信号        */
     }
@@ -912,6 +866,7 @@ static BOOL _sigPendRunSelf (VOID)
             
             psigctx->SIGCTX_sigsetSigBlockMask = sigsetOld;
             bIsRun = LW_TRUE;
+        
         } else {
             break;
         }
@@ -949,7 +904,6 @@ BOOL  _sigPendRun (PLW_CLASS_TCB  ptcb)
 
     psigctx = _signalGetCtx(ptcb);
     sigset  = ~psigctx->SIGCTX_sigsetSigBlockMask;                      /*  没有被屏蔽的信号            */
-    
     if (sigset == 0) {
         return  (LW_FALSE);                                             /*  没有需要被运行的信号        */
     }
@@ -1010,7 +964,7 @@ ULONG  _sigTimeoutRecalc (ULONG  ulOrgKernelTime, ULONG  ulOrgTimeout)
 }
 /*********************************************************************************************************
 ** 函数名称: _doSignal
-** 功能描述: 将指定信号句柄内嵌入指定的线程，不能向自己发送信号.
+** 功能描述: 将指定信号句柄内嵌入指定的线程，不能向自己发送信号. (此函数在内核状态被调用)
 ** 输　入  : ptcb                   目标线程控制块
 **           psigpend               信号等待处理信息
 ** 输　出  : 发送结果
@@ -1108,6 +1062,7 @@ LW_SEND_VAL  _doSignal (PLW_CLASS_TCB  ptcb, PLW_CLASS_SIGPEND   psigpend)
 /*********************************************************************************************************
 ** 函数名称: _doKill
 ** 功能描述: kill 函数将会调用这个函数产生一个 kill 的信号, 然后将会调用 doSignal 产生这个信号.
+             (此函数在内核状态被调用)
 ** 输　入  : ptcb                   目标线程控制块
 **           iSigNo                 信号
 ** 输　出  : 发送信号结果
@@ -1141,6 +1096,7 @@ LW_SEND_VAL  _doKill (PLW_CLASS_TCB  ptcb, INT  iSigNo)
 /*********************************************************************************************************
 ** 函数名称: _doSigQueue
 ** 功能描述: sigqueue 函数将会调用这个函数产生一个 queue 的信号, 然后将会调用 doSignal 产生这个信号.
+             (此函数在内核状态被调用)
 ** 输　入  : ptcb                   目标线程控制块
 **           iSigNo                 信号
 **           sigvalue               信号 value
@@ -1161,7 +1117,7 @@ LW_SEND_VAL  _doSigQueue (PLW_CLASS_TCB  ptcb, INT  iSigNo, const union sigval s
     psiginfo = &sigpend.SIGPEND_siginfo;
     psiginfo->si_signo = iSigNo;
     psiginfo->si_errno = errno;
-    psiginfo->si_code  = SI_QUEUE;                                       /*  不可排队                    */
+    psiginfo->si_code  = SI_QUEUE;                                       /*  排队信号                   */
     psiginfo->si_pid   = __tcb_pid(ptcbCur);
     psiginfo->si_uid   = ptcbCur->TCB_uid;
     psiginfo->si_value = sigvalue;

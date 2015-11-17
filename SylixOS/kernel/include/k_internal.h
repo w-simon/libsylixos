@@ -398,6 +398,7 @@ INT            _SmpCallFunc(ULONG  ulCPUId, FUNCPTR  pfunc, PVOID  pvArg,
 VOID           _SmpCallFuncAllOther(FUNCPTR  pfunc, PVOID  pvArg,
                                     VOIDFUNCPTR  pfuncAsync, PVOID  pvAsync, INT  iOpt);
 VOID           _SmpProcIpi(PLW_CLASS_CPU  pcpuCur);
+VOID           _SmpTryProcIpi(PLW_CLASS_CPU  pcpuCur);
 VOID           _SmpUpdateIpi(PLW_CLASS_CPU  pcpuCur);
 #endif                                                                  /* LW_CFG_SMP_EN                */
 
@@ -405,15 +406,15 @@ VOID           _SmpUpdateIpi(PLW_CLASS_CPU  pcpuCur);
   线程外壳
 *********************************************************************************************************/
 
-PVOID          _ThreadShell(PVOID      pvThreadStartAddress);
+PVOID          _ThreadShell(PVOID  pvThreadStartAddress);
 
 /*********************************************************************************************************
   协程外壳
 *********************************************************************************************************/
 
 #if LW_CFG_COROUTINE_EN > 0
-VOID           _CoroutineShell(PVOID    pvCoroutineStartAddress);
-VOID           _CoroutineFreeAll(PLW_CLASS_TCB    ptcb);
+VOID           _CoroutineShell(PVOID   pvCoroutineStartAddress);
+VOID           _CoroutineFreeAll(PLW_CLASS_TCB  ptcb);
 #endif                                                                  /*  LW_CFG_COROUTINE_EN > 0     */
 
 /*********************************************************************************************************

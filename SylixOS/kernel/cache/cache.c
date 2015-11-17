@@ -527,8 +527,8 @@ static INT __cacheTextUpdate (LW_CACHE_TU_ARG *ptuarg)
 LW_API  
 ULONG    API_CacheTextUpdate (PVOID  pvAdrs, size_t  stBytes)
 {
-    INTREG          iregInterLevel;
-    ULONG           ulError;
+    INTREG  iregInterLevel;
+    ULONG   ulError;
 
 #if LW_CFG_SMP_EN > 0
     LW_CACHE_TU_ARG tuarg;
@@ -552,6 +552,28 @@ ULONG    API_CacheTextUpdate (PVOID  pvAdrs, size_t  stBytes)
 #endif                                                                  /*  LW_CFG_SMP_EN               */
 
     return  (ulError);
+}
+/*********************************************************************************************************
+** 函数名称: API_CacheLocalTextUpdate
+** 功能描述: 清空(回写内存) D CACHE 无效(访问不命中) I CACHE (仅对当前 CPU 有效)
+** 输　入  : pvAdrs                        虚拟地址
+**           stBytes                       长度
+** 输　出  : BSP 函数返回值
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+ULONG    API_CacheLocalTextUpdate (PVOID  pvAdrs, size_t  stBytes)
+{
+    INTREG  iregInterLevel;
+    
+    __CACHE_OP_ENTER(iregInterLevel);                                   /*  开始操作 cache              */
+    (_G_cacheopLib.CACHEOP_pfuncTextUpdate == LW_NULL) ? ERROR_NONE :
+    (_G_cacheopLib.CACHEOP_pfuncTextUpdate)(pvAdrs, stBytes);
+    __CACHE_OP_EXIT(iregInterLevel);                                    /*  结束操作 cache              */
+    
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: API_CacheDmaMalloc

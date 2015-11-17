@@ -134,15 +134,17 @@ static VOID  _SmpCallIpiAllOther (PLW_IPI_MSG  pipim)
 {
     ULONG   i;
     ULONG   ulCPUId;
-    INT     iWait = pipim->IPIM_iWait;
+    INT     iWaitSave = pipim->IPIM_iWait;
     
     ulCPUId = LW_CPU_GET_CUR_ID();
     
     for (i = 0; i < LW_NCPUS; i++) {
         if (ulCPUId != i) {
             _SmpCallIpi(i, pipim);
-            pipim->IPIM_iWait = iWait;
-            KN_SMP_WMB();
+            
+            KN_SMP_MB();
+            pipim->IPIM_iWait = iWaitSave;
+            KN_SMP_MB();
         }
     }
 }
@@ -272,16 +274,29 @@ static VOID  _SmpProcBoot (PLW_CLASS_CPU  pcpuCur)
     LW_SPINLOCK_NOTIFY();
 }
 /*********************************************************************************************************
-** 函数名称: _SmpProcCallfunc
+** 函数名称: __smpProcCallfunc
 ** 功能描述: 处理核间中断调用函数
 ** 输　入  : pcpuCur       当前 CPU
+**           bIgnIrq       spinlock 加锁方式
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID  _SmpProcCallfunc (PLW_CLASS_CPU  pcpuCur)
+static VOID  __smpProcCallfunc (PLW_CLASS_CPU  pcpuCur, BOOL  bIgnIrq)
 {
 #define LW_KERNEL_OWN_CPU()     (PLW_CLASS_CPU)(_K_klKernel.KERN_pvCpuOwner)
+#define LW_SMP_PROC_LOCK()      \
+        if (bIgnIrq) {          \
+            LW_SPIN_LOCK_IGNIRQ(&pcpuCur->CPU_slIpi);   \
+        } else {                \
+            LW_SPIN_LOCK(&pcpuCur->CPU_slIpi);  \
+        }
+#define LW_SMP_PROC_UNLOCK()    \
+        if (bIgnIrq) {          \
+            LW_SPIN_UNLOCK_IGNIRQ(&pcpuCur->CPU_slIpi); \
+        } else {                \
+            LW_SPIN_UNLOCK(&pcpuCur->CPU_slIpi);  \
+        }
 
     UINT            i, uiCnt;
     PLW_IPI_MSG     pipim;
@@ -290,12 +305,14 @@ static VOID  _SmpProcCallfunc (PLW_CLASS_CPU  pcpuCur)
     VOIDFUNCPTR     pfuncAsync;
     PVOID           pvAsync;
     
-    LW_SPIN_LOCK(&pcpuCur->CPU_slIpi);
+    LW_SMP_PROC_LOCK();
     
     pringTemp = pcpuCur->CPU_pringMsg;
     uiCnt     = pcpuCur->CPU_uiMsgCnt;
     
     for (i = 0; i < uiCnt; i++) {
+        _BugHandle((!pcpuCur->CPU_pringMsg), LW_TRUE, "ipi call func error!\r\n");
+        
         pipim = _LIST_ENTRY(pringTemp, LW_IPI_MSG, IPIM_ringManage);
         if ((LW_KERNEL_OWN_CPU() == pcpuCur) &&
             (pipim->IPIM_iOption & IPIM_OPT_NOKERN)) {                  /*  此函数不能再内核锁定状态执行*/
@@ -307,7 +324,7 @@ static VOID  _SmpProcCallfunc (PLW_CLASS_CPU  pcpuCur)
         pringTemp   = _list_ring_get_next(pringTemp);
         _List_Ring_Del(pringDelete, &pcpuCur->CPU_pringMsg);            /*  删除一个节点                */
         pcpuCur->CPU_uiMsgCnt--;
-        LW_SPIN_UNLOCK(&pcpuCur->CPU_slIpi);
+        LW_SMP_PROC_UNLOCK();
         
         if (pipim->IPIM_pfuncCall) {
             pipim->IPIM_iRet = pipim->IPIM_pfuncCall(pipim->IPIM_pvArg);/*  执行同步调用                */
@@ -318,10 +335,10 @@ static VOID  _SmpProcCallfunc (PLW_CLASS_CPU  pcpuCur)
         
         KN_SMP_MB();
         pipim->IPIM_iWait = 0;                                          /*  调用结束                    */
+        KN_SMP_MB();
         LW_SPINLOCK_NOTIFY();
         
-        LW_SPIN_LOCK(&pcpuCur->CPU_slIpi);
-        
+        LW_SMP_PROC_LOCK();
         if (pfuncAsync) {
             pfuncAsync(pvAsync);                                        /*  执行异步调用                */
         }
@@ -333,7 +350,31 @@ static VOID  _SmpProcCallfunc (PLW_CLASS_CPU  pcpuCur)
         LW_SPINLOCK_NOTIFY();
     }
     
-    LW_SPIN_UNLOCK(&pcpuCur->CPU_slIpi);
+    LW_SMP_PROC_UNLOCK();
+}
+/*********************************************************************************************************
+** 函数名称: _SmpProcCallfuncNolockIrq
+** 功能描述: 处理核间中断调用函数
+** 输　入  : pcpuCur       当前 CPU
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static VOID  _SmpProcCallfuncNolockIrq (PLW_CLASS_CPU  pcpuCur)
+{
+    __smpProcCallfunc(pcpuCur, LW_FALSE);
+}
+/*********************************************************************************************************
+** 函数名称: _SmpProcCallfuncLockIrq
+** 功能描述: 处理核间中断调用函数 (已经关闭中断)
+** 输　入  : pcpuCur       当前 CPU
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static VOID  _SmpProcCallfuncLockIrq (PLW_CLASS_CPU  pcpuCur)
+{
+    __smpProcCallfunc(pcpuCur, LW_TRUE);
 }
 /*********************************************************************************************************
 ** 函数名称: _SmpProcIpi
@@ -351,18 +392,12 @@ VOID  _SmpProcIpi (PLW_CLASS_CPU  pcpuCur)
     if (LW_CPU_GET_IPI_PEND2(pcpuCur) & LW_IPI_FLUSH_TLB_MSK) {         /*  更新 MMU 快表               */
         _SmpProcFlushTlb(pcpuCur);
     }
-#else
-    KN_SMP_MB();
-    LW_CPU_CLR_IPI_PEND2(pcpuCur, LW_IPI_FLUSH_TLB_MSK);
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
     
 #if LW_CFG_CACHE_EN > 0
     if (LW_CPU_GET_IPI_PEND2(pcpuCur) & LW_IPI_FLUSH_CACHE_MSK) {       /*  回写 CACHE                  */
         _SmpProcFlushCache(pcpuCur);
     }
-#else
-    KN_SMP_MB();
-    LW_CPU_CLR_IPI_PEND2(pcpuCur, LW_IPI_FLUSH_CACHE_MSK);
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
 
     if (LW_CPU_GET_IPI_PEND2(pcpuCur) & LW_IPI_BOOT_MSK) {              /*  其他核正在启动              */
@@ -370,12 +405,32 @@ VOID  _SmpProcIpi (PLW_CLASS_CPU  pcpuCur)
     }
     
     if (LW_CPU_GET_IPI_PEND2(pcpuCur) & LW_IPI_CALL_MSK) {              /*  自定义调用 ?                */
-        _SmpProcCallfunc(pcpuCur);
+        _SmpProcCallfuncNolockIrq(pcpuCur);
     }
     
     KN_SMP_MB();
     LW_CPU_CLR_IPI_PEND2(pcpuCur, LW_IPI_NOP_MSK);                      /*  去掉 nop 类型核间中断       */
     LW_SPINLOCK_NOTIFY();
+}
+/*********************************************************************************************************
+** 函数名称: _SmpTryProcIpi
+** 功能描述: 尝试处理核间中断 (这里仅仅尝试执行 FLUSH_TLB 与 call 函数)
+** 输　入  : pcpuCur       当前 CPU
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+VOID  _SmpTryProcIpi (PLW_CLASS_CPU  pcpuCur)
+{
+#if LW_CFG_VMM_EN > 0
+    if (LW_CPU_GET_IPI_PEND2(pcpuCur) & LW_IPI_FLUSH_TLB_MSK) {         /*  更新 MMU 快表               */
+        _SmpProcFlushTlb(pcpuCur);
+    }
+#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
+
+    if (LW_CPU_GET_IPI_PEND2(pcpuCur) & LW_IPI_CALL_MSK) {              /*  自定义调用 ?                */
+        _SmpProcCallfuncLockIrq(pcpuCur);
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: _SmpUpdateIpi

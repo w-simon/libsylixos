@@ -460,17 +460,16 @@ static INT gdbRspPkgGet (LW_GDB_PARAM *pparam, PCHAR pcInBuff, struct signalfd_s
                 szLen = read(pparam->GDB_iSigFd, pfdsi,
                              sizeof(struct signalfd_siginfo));
                 if (szLen != sizeof(struct signalfd_siginfo)) {
+                    FD_SET(pparam->GDB_iCommFd, &fdset);
                     continue;
                 }
                 return  (ERROR_NONE);
             }
 
-            FD_ZERO(&fdset);
             FD_SET(pparam->GDB_iCommFd, &fdset);
             if (pparam->GDB_bNonStop) {
                 FD_SET(pparam->GDB_iSigFd, &fdset);
             }
-
         }
 
         cSend = '+';
@@ -1539,7 +1538,7 @@ static INT gdbVcmdHandle (LW_GDB_PARAM     *pparam,
 
             API_DtraceThreadStepGet(pparam->GDB_pvDtrace,
                                     pdmsg->DTM_ulThread, &addrNP);
-            if (addrNP != 0 && pdmsg->DTM_ulAddr == addrNP) {
+            if (addrNP != PX_ERROR && pdmsg->DTM_ulAddr == addrNP) {
                 API_DtraceThreadStepSet(pparam->GDB_pvDtrace,
                                         pdmsg->DTM_ulThread, PX_ERROR);
             }
@@ -1662,7 +1661,7 @@ static INT gdbRspPkgHandle (LW_GDB_PARAM    *pparam,
                                        pdmsg, 0) == ERROR_NONE) {
                 API_DtraceThreadStepGet(pparam->GDB_pvDtrace,
                                         pdmsg->DTM_ulThread, &addrNP);
-                if (addrNP != 0 && pdmsg->DTM_ulAddr == addrNP) {
+                if (addrNP != PX_ERROR && pdmsg->DTM_ulAddr == addrNP) {
                     API_DtraceThreadStepSet(pparam->GDB_pvDtrace,
                                             pdmsg->DTM_ulThread, PX_ERROR);
                 }
@@ -1743,7 +1742,7 @@ static INT gdbRspPkgHandle (LW_GDB_PARAM    *pparam,
                                        pdmsg, 0) == ERROR_NONE) {
                 API_DtraceThreadStepGet(pparam->GDB_pvDtrace,
                                         pdmsg->DTM_ulThread, &addrNP);
-                if (addrNP != 0 && pdmsg->DTM_ulAddr == addrNP) {
+                if (addrNP != PX_ERROR && pdmsg->DTM_ulAddr == addrNP) {
                     API_DtraceThreadStepSet(pparam->GDB_pvDtrace,
                                             pdmsg->DTM_ulThread, PX_ERROR);
                 }
@@ -1865,12 +1864,12 @@ static INT gdbWaitSig (LW_GDB_PARAM            *pparam,
                          pfdsi,
                          sizeof(struct signalfd_siginfo));              /* 中断                         */
             if (szLen != sizeof(struct signalfd_siginfo)) {
-                continue;
+                goto    __re_select;
             }
             return  (ERROR_NONE);
         }
 
-        FD_ZERO(&fdset);
+__re_select:
         FD_SET(pparam->GDB_iCommFd, &fdset);
         FD_SET(pparam->GDB_iSigFd, &fdset);
     }
@@ -2034,7 +2033,7 @@ static INT gdbEventLoop (LW_GDB_PARAM *pparam)
 
             API_DtraceThreadStepGet(pparam->GDB_pvDtrace,
                                     dmsg.DTM_ulThread, &addrNP);
-            if (addrNP != 0 && dmsg.DTM_ulAddr == addrNP) {             /* 自动移除单步断点             */
+            if (addrNP != PX_ERROR && dmsg.DTM_ulAddr == addrNP) {      /* 自动移除单步断点             */
                 API_DtraceThreadStepSet(pparam->GDB_pvDtrace,
                                         dmsg.DTM_ulThread, PX_ERROR);
                 if (gdbInStepRange(pparam, &dmsg)) {

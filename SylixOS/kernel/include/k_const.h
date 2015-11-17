@@ -86,10 +86,11 @@
   调试等级定义
 *********************************************************************************************************/
 
-#define __LOGMESSAGE_LEVEL          1                                   /*  系统运行状态信息            */
-#define __ERRORMESSAGE_LEVEL        2                                   /*  系统故障信息                */
-#define __BUGMESSAGE_LEVEL          4                                   /*  操作系统 BUG 信息           */
-#define __ALL_LEVEL                 7                                   /*  所有类型                    */
+#define __LOGMESSAGE_LEVEL          0x1                                 /*  系统运行状态信息            */
+#define __ERRORMESSAGE_LEVEL        0x2                                 /*  系统故障信息                */
+#define __BUGMESSAGE_LEVEL          0x4                                 /*  操作系统 BUG 信息           */
+#define __PRINTMESSAGE_LEVEL        0x8                                 /*  直接打印输出信息            */
+#define __ALL_LEVEL                 0xf                                 /*  所有类型                    */
 
 /*********************************************************************************************************
   CONST

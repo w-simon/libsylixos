@@ -327,7 +327,7 @@ VOID  _ScheduleInt (VOID)
         pcpuCur->CPU_bIsIntSwtich = LW_TRUE;                            /*  中断调度                    */
         pcpuCur->CPU_ptcbTCBHigh  = ptcbCand;
         archIntCtxLoad(pcpuCur);                                        /*  中断上下文中线程切换        */
-        _BugHandle(LW_TRUE, LW_TRUE, "serious error!.\r\n");
+        _BugHandle(LW_TRUE, LW_TRUE, "serious error!\r\n");
     }
 #if LW_CFG_SMP_EN > 0                                                   /*  SMP 系统                    */
       else {
