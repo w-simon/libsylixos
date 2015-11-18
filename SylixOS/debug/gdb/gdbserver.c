@@ -22,6 +22,7 @@
 2014.05.31  使用 LW_VPROC_EXIT_FORCE 删除进程.
 2014.06.03  使用 posix_spawnp 创建进程.
 2014.09.02  修正调试同时单步多线程问题.
+2015.11.18  加入 SMP 锁定 CPU 调试功能.
 *********************************************************************************************************/
 #define  __SYLIXOS_GDB
 #define  __SYLIXOS_STDIO
@@ -31,6 +32,9 @@
 #include "dtrace.h"
 #include "socket.h"
 #include "sys/signalfd.h"
+#if LW_CFG_SMP_EN > 0
+#include "sched.h"
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 /*********************************************************************************************************
   裁剪支持
 *********************************************************************************************************/
@@ -48,8 +52,8 @@
 /*********************************************************************************************************
   常量定义
 *********************************************************************************************************/
-#define GDB_RSP_MAX_LEN             0x1000                              /* rsp 缓冲区大小               */
-#define GDB_MAX_THREAD_NUM          LW_CFG_MAX_THREADS                  /* 最大线程数                   */
+#define GDB_RSP_MAX_LEN             0x1000                              /*  rsp 缓冲区大小              */
+#define GDB_MAX_THREAD_NUM          LW_CFG_MAX_THREADS                  /*  最大线程数                  */
 /*********************************************************************************************************
   链接 keepalive 参数配置
 *********************************************************************************************************/
@@ -2125,6 +2129,12 @@ static INT gdbMain (INT argc, CHAR **argv)
     LW_GDB_THREAD      *pthItem;
 
     LW_DTRACE_MSG       dmsg;
+    
+#if LW_CFG_SMP_EN > 0
+    CHAR                cValue[10];
+    cpu_set_t           cpuset;
+    BOOL                bLockCpu = LW_FALSE;
+#endif                                                                  /* #if LW_CFG_SMP_EN > 0        */
 
     pparam = (LW_GDB_PARAM *)LW_GDB_SAFEMALLOC(sizeof(LW_GDB_PARAM));
     if (LW_NULL == pparam) {
@@ -2201,6 +2211,17 @@ static INT gdbMain (INT argc, CHAR **argv)
         _ErrorHandle(ERROR_GDB_PARAM);
         return  (PX_ERROR);
     }
+    
+#if LW_CFG_SMP_EN > 0
+    CPU_ZERO(&cpuset);
+    if (API_TShellVarGetRt("DEBUG_CPU", cValue, sizeof(cValue)) > 0) {
+        INT    iCpu = lib_atoi(cValue);
+        if ((iCpu >= 0) && (iCpu < LW_NCPUS)) {
+            CPU_SET(iCpu, &cpuset);
+            bLockCpu = LW_TRUE;
+        }
+    }
+#endif                                                                  /* LW_CFG_SMP_EN > 0            */
 
     if (iBeAttach) {                                                    /* attach到现有进程             */
         if (sscanf(argv[iArgPos], "%d", &iPid) != 1) {
@@ -2223,6 +2244,7 @@ static INT gdbMain (INT argc, CHAR **argv)
             _ErrorHandle(ERROR_GDB_ATTACH_PROG);
             return  (PX_ERROR);
         }
+    
     } else {                                                            /* 启动程序并attach             */
         posix_spawnattr_init(&spawnattr);
         
@@ -2263,6 +2285,13 @@ static INT gdbMain (INT argc, CHAR **argv)
         }
     }
     
+#if LW_CFG_SMP_EN > 0
+    if (bLockCpu) {
+        sched_setaffinity(pparam->GDB_iPid, sizeof(cpu_set_t), &cpuset);
+        API_ThreadSetAffinity(API_ThreadIdSelf(), sizeof(cpu_set_t), &cpuset);
+    }
+#endif                                                                  /* LW_CFG_SMP_EN > 0            */
+
     if (vprocGetPath(pparam->GDB_iPid, 
                      pparam->GDB_cProgPath, 
                      MAX_FILENAME_LENGTH)) {
@@ -2348,7 +2377,14 @@ static INT gdbMain (INT argc, CHAR **argv)
         kill(pparam->GDB_iPid, SIGABRT);                                /* 强制进程停止                 */
         LW_GDB_MSG("[GDB]Warning: Process is kill by GDB server.\n"
                    "     Restart SylixOS is recommended!\n");
+    
+    } 
+#if LW_CFG_SMP_EN > 0
+    else if (bLockCpu) {
+        CPU_ZERO(&cpuset);
+        sched_setaffinity(pparam->GDB_iPid, sizeof(cpu_set_t), &cpuset);/* 被调对象取消锁定 CPU         */
     }
+#endif                                                                  /* LW_CFG_SMP_EN > 0            */
 
     gdbRelease(pparam);
 

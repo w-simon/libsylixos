@@ -338,10 +338,11 @@ static VOID  __smpProcCallfunc (PLW_CLASS_CPU  pcpuCur, BOOL  bIgnIrq)
         KN_SMP_MB();
         LW_SPINLOCK_NOTIFY();
         
-        LW_SMP_PROC_LOCK();
         if (pfuncAsync) {
             pfuncAsync(pvAsync);                                        /*  执行异步调用                */
         }
+        
+        LW_SMP_PROC_LOCK();
     }
     
     KN_SMP_MB();
@@ -353,26 +354,26 @@ static VOID  __smpProcCallfunc (PLW_CLASS_CPU  pcpuCur, BOOL  bIgnIrq)
     LW_SMP_PROC_UNLOCK();
 }
 /*********************************************************************************************************
-** 函数名称: _SmpProcCallfuncNolockIrq
+** 函数名称: _SmpProcCallfunc
 ** 功能描述: 处理核间中断调用函数
 ** 输　入  : pcpuCur       当前 CPU
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID  _SmpProcCallfuncNolockIrq (PLW_CLASS_CPU  pcpuCur)
+static VOID  _SmpProcCallfunc (PLW_CLASS_CPU  pcpuCur)
 {
     __smpProcCallfunc(pcpuCur, LW_FALSE);
 }
 /*********************************************************************************************************
-** 函数名称: _SmpProcCallfuncLockIrq
+** 函数名称: _SmpProcCallfuncIgnIrq
 ** 功能描述: 处理核间中断调用函数 (已经关闭中断)
 ** 输　入  : pcpuCur       当前 CPU
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID  _SmpProcCallfuncLockIrq (PLW_CLASS_CPU  pcpuCur)
+static VOID  _SmpProcCallfuncIgnIrq (PLW_CLASS_CPU  pcpuCur)
 {
     __smpProcCallfunc(pcpuCur, LW_TRUE);
 }
@@ -405,7 +406,7 @@ VOID  _SmpProcIpi (PLW_CLASS_CPU  pcpuCur)
     }
     
     if (LW_CPU_GET_IPI_PEND2(pcpuCur) & LW_IPI_CALL_MSK) {              /*  自定义调用 ?                */
-        _SmpProcCallfuncNolockIrq(pcpuCur);
+        _SmpProcCallfunc(pcpuCur);
     }
     
     KN_SMP_MB();
@@ -429,7 +430,7 @@ VOID  _SmpTryProcIpi (PLW_CLASS_CPU  pcpuCur)
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 
     if (LW_CPU_GET_IPI_PEND2(pcpuCur) & LW_IPI_CALL_MSK) {              /*  自定义调用 ?                */
-        _SmpProcCallfuncLockIrq(pcpuCur);
+        _SmpProcCallfuncIgnIrq(pcpuCur);
     }
 }
 /*********************************************************************************************************
