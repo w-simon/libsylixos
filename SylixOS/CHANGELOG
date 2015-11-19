@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2015-11-19: han.hui
+    加入 OpenOCD 硬件调试器接口代码.
+
     2015-10-28: han.hui
     加入 Intel 8259A 与 8254 标准驱动.
     

@@ -212,7 +212,8 @@ SylixOS/arch/arm/mpcore/armSpinlock.c
 #*********************************************************************************************************
 DEBUG_SRCS = \
 SylixOS/debug/dtrace/dtrace.c \
-SylixOS/debug/gdb/gdbserver.c
+SylixOS/debug/gdb/gdbserver.c \
+SylixOS/debug/hwdbg/openocd.c 
 
 #*********************************************************************************************************
 # drv source
