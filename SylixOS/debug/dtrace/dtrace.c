@@ -493,7 +493,7 @@ ULONG  API_DtraceGetRegs (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread,
 {
     REGISTER UINT16         usIndex;
     REGISTER PLW_CLASS_TCB  ptcb;
-    REGISTER ARCH_REG_T     regSp;
+    REGISTER ARCH_REG_CTX  *pregctxGet;
     
     PLW_DTRACE  pdtrace = (PLW_DTRACE)pvDtrace;
     
@@ -520,16 +520,8 @@ ULONG  API_DtraceGetRegs (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread,
     
     ptcb = _K_ptcbTCBIdTable[usIndex];
     
-    *pregctx = *(ARCH_REG_CTX *)ptcb->TCB_pstkStackNow;
-    regSp    =  (ARCH_REG_T)ptcb->TCB_pstkStackNow;
-    
-#if	CPU_STK_GROWTH == 0
-    regSp -= sizeof(ARCH_REG_CTX);
-#else
-    regSp += sizeof(ARCH_REG_CTX);
-#endif
-
-    *pregSp = regSp;
+    pregctxGet = archTaskRegsGet(ptcb->TCB_pstkStackNow, pregSp);
+    *pregctx   = *pregctxGet;
     __KERNEL_EXIT();                                                    /*  退出内核                    */
     
     return  (ERROR_NONE);
@@ -576,7 +568,7 @@ ULONG  API_DtraceSetRegs (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, const ARC
     
     ptcb = _K_ptcbTCBIdTable[usIndex];
     
-    *(ARCH_REG_CTX *)ptcb->TCB_pstkStackNow = *pregctx;
+    archTaskRegsSet(ptcb->TCB_pstkStackNow, pregctx);
     __KERNEL_EXIT();                                                    /*  退出内核                    */
     
     return  (ERROR_NONE);

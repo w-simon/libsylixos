@@ -50,35 +50,26 @@ FUNC_END(mipsVfp32Sid)
 
 FUNC_DEF(mipsVfp32Enable)
     MFC0(T0, CP0_STATUS)
-    MOV     T1, T0
-    AND     T1, M_StatusCU1
-    BEQ     T1, 1, 2f
-    NOP
     OR      T0, M_StatusCU1
     MTC0(T0, CP0_STATUS)
-2:
     JR      RA
     NOP
 FUNC_END(mipsVfp32Enable)
 
 FUNC_DEF(mipsVfp32Disable)
     MFC0(T0, CP0_STATUS)
-    MOV     T1, T0
-    AND     T1, M_StatusCU1
-    BEQ     T1, 0, 2f
-    NOP
     AND     T0, ~M_StatusCU1
     MTC0(T0, CP0_STATUS)
-2:
     JR      RA
     NOP
 FUNC_END(mipsVfp32Disable)
 
 FUNC_DEF(mipsVfp32IsEnable)
-    MFC0    T0, CP0_STATUS
     MOV     V0, ZERO                                                    ;/*  OK return value             */
+    MFC0(T0, CP0_STATUS)
     AND     T0, M_StatusCU1                                             ;/*  coprocessor 1 enabled       */
-    BNE     T0, ZERO, 2f
+    BEQ     T0, ZERO, 2f
+    NOP
     LI      V0, 1
 2:
     JR      RA
@@ -102,46 +93,52 @@ FUNC_END(mipsVfp32IsEnable)
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsVfp32Save16)
+    MFC0(T0, CP0_STATUS)
+    OR      T0, M_StatusCU1
+    MTC0(T0, CP0_STATUS)
     CFC1(T0,  CP1_STATUS)
     SW      T0,     0x00(A0)
-    SDC1    FP0,    0x04(A0)
-    SDC1    FP2,    0x0c(A0)
-    SDC1    FP4,    0x14(A0)
-    SDC1    FP6,    0x1c(A0)
-    SDC1    FP8,    0x24(A0)
-    SDC1    FP10,   0x2c(A0)
-    SDC1    FP12,   0x34(A0)
-    SDC1    FP14,   0x3c(A0)
-    SDC1    FP16,   0x44(A0)
-    SDC1    FP18,   0x4c(A0)
-    SDC1    FP20,   0x54(A0)
-    SDC1    FP22,   0x5c(A0)
-    SDC1    FP24,   0x64(A0)
-    SDC1    FP26,   0x6c(A0)
-    SDC1    FP28,   0x74(A0)
-    SDC1    FP30,   0x7c(A0)
+    SWC1    FP0,    0x04(A0)
+    SWC1    FP2,    0x0c(A0)
+    SWC1    FP4,    0x14(A0)
+    SWC1    FP6,    0x1c(A0)
+    SWC1    FP8,    0x24(A0)
+    SWC1    FP10,   0x2c(A0)
+    SWC1    FP12,   0x34(A0)
+    SWC1    FP14,   0x3c(A0)
+    SWC1    FP16,   0x44(A0)
+    SWC1    FP18,   0x4c(A0)
+    SWC1    FP20,   0x54(A0)
+    SWC1    FP22,   0x5c(A0)
+    SWC1    FP24,   0x64(A0)
+    SWC1    FP26,   0x6c(A0)
+    SWC1    FP28,   0x74(A0)
+    SWC1    FP30,   0x7c(A0)
     JR      RA
     LI      V0,     0
 FUNC_END(mipsVfp32Save16)
 
 FUNC_DEF(mipsVfp32Restore16)
+    MFC0(T0, CP0_STATUS)
+    OR      T0, M_StatusCU1
+    MTC0(T0, CP0_STATUS)
     LW      T0,     0X00(A0)
-    LDC1    FP0,    0x04(A0)
-    LDC1    FP2,    0x0c(A0)
-    LDC1    FP4,    0x14(A0)
-    LDC1    FP6,    0x1c(A0)
-    LDC1    FP8,    0x24(A0)
-    LDC1    FP10,   0x2c(A0)
-    LDC1    FP12,   0x34(A0)
-    LDC1    FP14,   0x3c(A0)
-    LDC1    FP16,   0x44(A0)
-    LDC1    FP18,   0x4c(A0)
-    LDC1    FP20,   0x54(A0)
-    LDC1    FP22,   0x5c(A0)
-    LDC1    FP24,   0x64(A0)
-    LDC1    FP26,   0x6c(A0)
-    LDC1    FP28,   0x74(A0)
-    LDC1    FP30,   0x7c(A0)
+    LWC1    FP0,    0x04(A0)
+    LWC1    FP2,    0x0c(A0)
+    LWC1    FP4,    0x14(A0)
+    LWC1    FP6,    0x1c(A0)
+    LWC1    FP8,    0x24(A0)
+    LWC1    FP10,   0x2c(A0)
+    LWC1    FP12,   0x34(A0)
+    LWC1    FP14,   0x3c(A0)
+    LWC1    FP16,   0x44(A0)
+    LWC1    FP18,   0x4c(A0)
+    LWC1    FP20,   0x54(A0)
+    LWC1    FP22,   0x5c(A0)
+    LWC1    FP24,   0x64(A0)
+    LWC1    FP26,   0x6c(A0)
+    LWC1    FP28,   0x74(A0)
+    LWC1    FP30,   0x7c(A0)
     CTC1(T0,     CP1_STATUS)                                            ;/*  restore fpp status reg      */
     JR      RA
     LI      V0,     0

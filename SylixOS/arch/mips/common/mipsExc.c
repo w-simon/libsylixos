@@ -187,7 +187,7 @@ VOID  archExceptionHandle (addr_t  ulRetAddr)
 
     case EX_CPU:                                                        /* CoProcessor Unusable         */
 #if LW_CFG_CPU_FPU_EN > 0
-        if (archFpuUndHandle() == ERROR_NONE) {                         /*  进行 FPU 指令探测           */
+        if (archFpuUndHandle(ptcbCur) == ERROR_NONE) {                  /*  进行 FPU 指令探测           */
             break;
         }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */

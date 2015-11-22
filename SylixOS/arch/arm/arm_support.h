@@ -44,17 +44,19 @@
   ARM 处理器断言
 *********************************************************************************************************/
 
-VOID        archAssert(INT  iCond, CPCHAR  pcFunc, CPCHAR  pcFile, INT  iLine);
+VOID    archAssert(INT  iCond, CPCHAR  pcFunc, CPCHAR  pcFile, INT  iLine);
 
 /*********************************************************************************************************
   ARM 处理器线程上下文相关接口
 *********************************************************************************************************/
 
-PLW_STACK   archTaskCtxCreate(PTHREAD_START_ROUTINE  pfuncTask,
-                              PVOID                  pvArg,
-                              PLW_STACK              pstkTop, 
-                              ULONG                  ulOpt);
-VOID        archTaskCtxSetFp(PLW_STACK  pstkDest, PLW_STACK  pstkSrc);
+PLW_STACK       archTaskCtxCreate(PTHREAD_START_ROUTINE  pfuncTask,
+                                  PVOID                  pvArg,
+                                  PLW_STACK              pstkTop, 
+                                  ULONG                  ulOpt);
+VOID            archTaskCtxSetFp(PLW_STACK  pstkDest, PLW_STACK  pstkSrc);
+ARCH_REG_CTX   *archTaskRegsGet(PLW_STACK  pstkTop, ARCH_REG_T *pregSp);
+VOID            archTaskRegsSet(PLW_STACK  pstkTop, const ARCH_REG_CTX  *pregctx);
 
 #if LW_CFG_DEVICE_EN > 0
 VOID        archTaskCtxShow(INT  iFd, PLW_STACK  pstkTop);
@@ -316,7 +318,7 @@ VOID    archFpuCtxShow(INT  iFd, PVOID pvFpuCtx);
 #define __ARCH_FPU_CTX_SHOW     archFpuCtxShow
 #endif                                                                  /*  #if LW_CFG_DEVICE_EN        */
 
-INT     archFpuUndHandle(VOID);
+INT     archFpuUndHandle(PLW_CLASS_TCB  ptcbCur);
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN           */
 
 /*********************************************************************************************************

@@ -65,7 +65,7 @@ PLW_STACK  archTaskCtxCreate (PTHREAD_START_ROUTINE  pfuncTask,
     pfpctx->FP_uiFP = (ARCH_REG_T)LW_NULL;
     pfpctx->FP_uiRA = (ARCH_REG_T)LW_NULL;
 
-    pregctx->REG_uiCP0_STATUS = uiCP0Status;
+    pregctx->REG_uiCP0Status = uiCP0Status;
 
     pregctx->REG_uiEPC = (ARCH_REG_T)pfuncTask;
 
@@ -124,6 +124,42 @@ VOID  archTaskCtxSetFp (PLW_STACK  pstkDest, PLW_STACK  pstkSrc)
     pfpctx->FP_uiRA = pregctxSrc->REG_uiRA;
 
     pregctxDest->REG_uiFP = (ARCH_REG_T)&pfpctx->FP_uiRA;
+}
+/*********************************************************************************************************
+** 函数名称: archTaskRegsGet
+** 功能描述: 通过栈顶指针获取寄存器表 (满栈结构)
+** 输　入  : pstkTop        堆栈顶点
+**           pregSp         SP 指针
+** 输　出  : 寄存器结构
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+ARCH_REG_CTX  *archTaskRegsGet (PLW_STACK  pstkTop, ARCH_REG_T *pregSp)
+{
+    ARCH_REG_T  regSp = (ARCH_REG_T)pstkTop;
+
+#if CPU_STK_GROWTH == 0
+    regSp -= sizeof(ARCH_REG_CTX);
+#else
+    regSp += sizeof(ARCH_REG_CTX);
+#endif
+
+    *pregSp = regSp;
+
+    return  ((ARCH_REG_CTX *)pstkTop);
+}
+/*********************************************************************************************************
+** 函数名称: archTaskRegsSet
+** 功能描述: 通过栈顶指针获取寄存器表 (满栈结构)
+** 输　入  : pstkTop        堆栈顶点
+**           pregctx        寄存器表
+** 输　出  : 寄存器结构
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  archTaskRegsSet (PLW_STACK  pstkTop, const ARCH_REG_CTX  *pregctx)
+{
+    *(ARCH_REG_CTX *)pstkTop = *pregctx;
 }
 /*********************************************************************************************************
 ** 函数名称: archTaskCtxShow

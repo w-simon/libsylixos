@@ -139,7 +139,8 @@ typedef struct __lw_cpu {
     
 #if LW_CFG_CPU_FPU_EN > 0
     /*
-     *  中断时使用的 FPU 上下文. 只有 _K_bInterFpuEn 有效时才进行中断状态的 FPU 上下文操作.
+     *  中断时使用的 FPU 上下文. 
+     *  只有 LW_KERN_FPU_EN_GET() 有效时才进行中断状态的 FPU 上下文操作.
      */
     LW_FPU_CONTEXT           CPU_fpuctxContext[LW_CFG_MAX_INTER_SRC];   /*  中断时使用的 FPU 上下文     */
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */

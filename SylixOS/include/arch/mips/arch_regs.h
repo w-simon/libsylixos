@@ -64,7 +64,7 @@ typedef struct {
 
     ARCH_REG_T REG_uiAT;                                                /*  汇编综合寄存器              */
 
-    ARCH_REG_T REG_uiCP0_STATUS;                                        /*  CP0 协处理器状态寄存器      */
+    ARCH_REG_T REG_uiCP0Status;                                         /*  CP0 协处理器状态寄存器      */
     ARCH_REG_T REG_uiEPC;                                               /*  程序计数器寄存器			*/
 } ARCH_REG_CTX;
 
