@@ -1093,8 +1093,7 @@ LW_API VOID             API_KernelResume(VOID);                         /*  内核
 LW_API ULONG            API_KernelHookSet(LW_HOOK_FUNC   hookfuncPtr, ULONG  ulOpt);     
                                                                         /*  设置系统钩子函数            */
 
-LW_API ULONG            API_KernelHookGet(LW_HOOK_FUNC   hookfuncPtr, ULONG  ulOpt);     
-                                                                        /*  获得系统钩子函数            */
+LW_API LW_HOOK_FUNC     API_KernelHookGet(ULONG  ulOpt);                /*  获得系统钩子函数            */
 
 LW_API ULONG            API_KernelHookDelete(ULONG  ulOpt);             /*  删除系统钩子函数            */
 

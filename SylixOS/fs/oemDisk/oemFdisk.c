@@ -142,7 +142,7 @@ static INT  __oemFdisk (INT                     iBlkFd,
         ST_DWORD(pucPartEntry + 12, uiPNSec);                           /*  Partition size              */
 
         uiBCyl += uiPCyl;                                               /*  Next partition              */
-        if (uiBCyl >= uiTotCyl) {
+        if (uiBCyl > uiTotCyl) {
             break;
         }
     }

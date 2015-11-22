@@ -26,90 +26,14 @@
 2012.12.18  加入进程私有 FD 表.
 2014.05.13  加入子线程链表.
 2014.09.30  加入进程定时器.
+2015.09.01  加入 MIPS 架构
 *********************************************************************************************************/
 
 #ifndef __LOADER_LIB_H
 #define __LOADER_LIB_H
 
-/*********************************************************************************************************
-  进程最大文件描述符 
-  (因为进程0 1 2标准文件与内核一样映射方式不用, 这里的标准文件为真实打开的文件, 所以没有 STD_UNFIX 操作.
-   为了继承内核文件描述符, 这里必须为 LW_CFG_MAX_FILES + 3)
-*********************************************************************************************************/
-
-#define LW_VP_MAX_FILES     (LW_CFG_MAX_FILES + 3)
-
-/*********************************************************************************************************
-  进程定时器
-*********************************************************************************************************/
-
-typedef struct lw_vproc_timer {
-    ULONG                   VPT_ulCounter;                              /*  定时器当前定时时间          */
-    ULONG                   VPT_ulInterval;                             /*  定时器自动装载值            */
-} LW_LD_VPROC_T;
-
-/*********************************************************************************************************
-  进程控制块
-*********************************************************************************************************/
-
-typedef struct lw_ld_vproc {
-    LW_LIST_LINE            VP_lineManage;                              /*  管理链表                    */
-    LW_LIST_RING_HEADER     VP_ringModules;                             /*  模块链表                    */
-    FUNCPTR                 VP_pfuncProcess;                            /*  进程主入口                  */
-    
-    LW_OBJECT_HANDLE        VP_ulModuleMutex;                           /*  进程模块链表锁              */
-    
-    BOOL                    VP_bRunAtExit;                              /*  是否允许 atexit 安装的函数  */
-    BOOL                    VP_bForceTerm;                              /*  是否是被强行退出            */
-    
-    pid_t                   VP_pid;                                     /*  进程号                      */
-    BOOL                    VP_bIssetugid;                              /*  是否设置的 ugid             */
-    PCHAR                   VP_pcName;                                  /*  进程名称                    */
-    LW_OBJECT_HANDLE        VP_ulMainThread;                            /*  主线程句柄                  */
-    PVOID                   VP_pvProcInfo;                              /*  proc 文件系统信息           */
-    
-    clock_t                 VP_clockUser;                               /*  times 对应的 utime          */
-    clock_t                 VP_clockSystem;                             /*  times 对应的 stime          */
-    clock_t                 VP_clockCUser;                              /*  times 对应的 cutime         */
-    clock_t                 VP_clockCSystem;                            /*  times 对应的 cstime         */
-    
-    PLW_IO_ENV              VP_pioeIoEnv;                               /*  I/O 环境                    */
-    LW_OBJECT_HANDLE        VP_ulWaitForExit;                           /*  主线程等待结束              */
-
-#define __LW_VP_INIT        0
-#define __LW_VP_RUN         1
-#define __LW_VP_EXIT        2
-#define __LW_VP_STOP        3
-    INT                     VP_iStatus;                                 /*  当前进程状态                */
-    INT                     VP_iExitCode;                               /*  结束代码                    */
-    INT                     VP_iSigCode;                                /*  iSigCode                    */
-    
-#define __LW_VP_FT_DAEMON   0x01                                        /*  daemon 进程                 */
-    ULONG                   VP_ulFeatrues;                              /*  进程 featrues               */
-    
-    struct lw_ld_vproc     *VP_pvprocFather;                            /*  父亲 (NULL 表示孤儿进程)    */
-    LW_LIST_LINE_HEADER     VP_plineChild;                              /*  儿子进程链表头              */
-    LW_LIST_LINE            VP_lineBrother;                             /*  兄弟进程                    */
-    pid_t                   VP_pidGroup;                                /*  组 id 号                    */
-    LW_LIST_LINE_HEADER     VP_plineThread;                             /*  子线程链表                  */
-    
-    LW_FD_DESC              VP_fddescTbl[LW_VP_MAX_FILES];              /*  进程 fd 表                  */
-    
-    INT                     VP_iExitMode;                               /*  退出模式                    */
-    LW_LD_VPROC_T           VP_vptimer[3];                              /*  REAL / VIRTUAL / PROF 定时器*/
-    
-    LW_LIST_LINE_HEADER     VP_plineMap;                                /*  虚拟内存空间                */
-    ULONG                   VP_ulPad[7];                                /*  预留                        */
-} LW_LD_VPROC;
-
-/*********************************************************************************************************
-  进程装载完成停止控制 (sigval.sival_int == 0 表明装载完成并停止, < 0 表示装载异常, 进程正在退出)
-*********************************************************************************************************/
-
-typedef struct {
-    INT                     VPS_iSigNo;                                 /*  装载完成后发送的信号        */
-    LW_OBJECT_HANDLE        VPS_ulId;                                   /*  目标线程 (或进程)           */
-} LW_LD_VPROC_STOP;
+#include "../elf/elf_type.h"
+#include "loader_vppatch.h"
 
 /*********************************************************************************************************
   模块运行时占用的内存段，卸载时需释放这些段
@@ -153,6 +77,20 @@ typedef struct {
 *********************************************************************************************************/
 
 #define __LW_LD_EXEC_MODULE_MAGIC   0x25ef68af
+
+#ifdef LW_CFG_CPU_ARCH_MIPS
+/*********************************************************************************************************
+  MIPS_HI16_RELOC_INFO 提供一种方法把 mipsElfHI16RelocateRela() 信息传递给 mipsElfLO16RelocateRela()
+*********************************************************************************************************/
+struct __MIPS_HI16_RELOC_INFO;
+typedef struct __MIPS_HI16_RELOC_INFO  MIPS_HI16_RELOC_INFO, *PMIPS_HI16_RELOC_INFO;
+
+struct __MIPS_HI16_RELOC_INFO {
+    Elf_Addr 			   *HI16_pAddr;
+    Elf_Addr                HI16_value;
+    PMIPS_HI16_RELOC_INFO   HI16_pNext;
+};
+#endif                                                                  /*  LW_CFG_CPU_ARCH_MIPS        */
 
 typedef struct {
     ULONG                   EMOD_ulMagic;                               /*  用于识别本结构体            */
@@ -203,13 +141,51 @@ typedef struct {
     PVOID                   EMOD_pvARMExidx;                            /*  ARM.exidx 段内存地址        */
 #endif                                                                  /*  LW_CFG_CPU_ARCH_ARM         */
 
+#ifdef LW_CFG_CPU_ARCH_MIPS
+    MIPS_HI16_RELOC_INFO   *EMOD_pMIPSHi16List;
+#endif                                                                  /*  LW_CFG_CPU_ARCH_MIPS        */
+
 } LW_LD_EXEC_MODULE;
 
 /*********************************************************************************************************
-  内核进程控制块
+  最大依赖库数目
 *********************************************************************************************************/
-
-extern LW_LD_VPROC          _G_vprocKernel;
+#define __LW_MAX_NEEDED_LIB     64
+/*********************************************************************************************************
+   解析后的dynamic段数据结构
+*********************************************************************************************************/
+typedef struct {
+    Elf_Sym     *psymTable;                                             /*  符号表指针                  */
+    ULONG        ulSymCount;                                            /*  符号数目                    */
+    PCHAR        pcStrTable;                                            /*  字符串表指针                */
+    Elf_Rel     *prelTable;                                             /*  rel重定位表指针             */
+    ULONG        ulRelSize;                                             /*  重定位表大小                */
+    ULONG        ulRelCount;                                            /*  重定位表项数目              */
+    Elf_Rela    *prelaTable;                                            /*  rel重定位表指针             */
+    ULONG        ulRelaSize;                                            /*  重定位表大小                */
+    ULONG        ulRelaCount;                                           /*  重定位表项数目              */
+    Elf_Hash    *phash;                                                 /*  hash表指针                  */
+    PCHAR        pvJmpRTable;                                           /*  plt重定位表指针             */
+    ULONG        ulPltRel;                                              /*  plt重定位表项类型           */
+    ULONG        ulJmpRSize;                                            /*  plt重定位表大小             */
+    Elf_Addr    *paddrInitArray;                                        /*  初始化函数数组              */
+    Elf_Addr    *paddrFiniArray;                                        /*  结束函数数组                */
+    ULONG        ulInitArrSize;                                         /*  初始化函数数组大小          */
+    ULONG        ulFiniArrSize;                                         /*  结束函数数组大小            */
+    Elf_Addr     addrInit;                                              /*  初始化函数                  */
+    Elf_Addr     addrFini;                                              /*  结束函数                    */
+    Elf_Addr     addrMin;                                               /*  最小虚拟地址                */
+    Elf_Addr     addrMax;                                               /*  最大虚拟地址                */
+    Elf_Word     wdNeededArr[__LW_MAX_NEEDED_LIB];
+    ULONG        ulNeededCnt;
+#ifdef  LW_CFG_CPU_ARCH_MIPS
+    Elf_Addr     ulPLTGOT;                                              /*  全局GOT的地址               */
+    ULONG        ulMIPSGOTSym;                                          /*  Dynsym 第一个GOT入口        */
+    ULONG        ulMIPSLocalGOTNO;                                      /*  MIPS Local GOT GOT入口数量  */
+    ULONG        ulMIPSSymTABNO;                                        /*  MIPS Dynsym 入口数量        */
+    ULONG        ulMIPSPLTGOT;                                          /*  MIPS .got.plt 地址          */
+#endif                                                                  /*  LW_CFG_CPU_ARCH_MIPS        */
+} ELF_DYN_DIR;
 
 /*********************************************************************************************************
   module 操作锁
@@ -219,9 +195,6 @@ extern LW_OBJECT_HANDLE     _G_ulVProcMutex;
 
 #define LW_LD_LOCK()        API_SemaphoreMPend(_G_ulVProcMutex, LW_OPTION_WAIT_INFINITE)
 #define LW_LD_UNLOCK()      API_SemaphoreMPost(_G_ulVProcMutex)
-
-#define LW_VP_LOCK(a)       API_SemaphoreMPend(a->VP_ulModuleMutex, LW_OPTION_WAIT_INFINITE)
-#define LW_VP_UNLOCK(a)     API_SemaphoreMPost(a->VP_ulModuleMutex)
 
 /*********************************************************************************************************
   调试信息打印
@@ -307,7 +280,7 @@ INT     __ldShareConfig(BOOL  bShareEn, BOOL  *pbPrev);
 *********************************************************************************************************/
 
 #define LW_LD_V2PADDR(vBase, pBase, vAddr)      \
-        ((size_t)pBase + (size_t)vAddr - (size_t)vBase)                 /*  计算物理地址                */
+        ((size_t)pBase + (size_t)vAddr - (size_t)vBase)                 /*  计算物理地址                */ 
 
 #define LW_LD_P2VADDR(vBase, pBase, pAddr)      \
         ((size_t)vBase + (size_t)pAddr - (size_t)pBase)                 /*  计算虚拟地址                */

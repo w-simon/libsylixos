@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2015-11-20: han.hui
+    加入对 MIPS 体系结构的支持.
+
     2015-11-19: han.hui
     加入 OpenOCD 硬件调试器接口代码.
 
@@ -48,6 +51,9 @@ HISTORY
     加入 SYLIXOS LITE 裁剪支持, 主要面向 ARM Cortex-M 系列微控制器.
     
 ++ Bugfixes:
+
+    2015-11-20: han.hui
+    修正 xinput & xsiipc 内核模块初始化函数返回值.
 
     2015-11-13: han.hui
     加入专用的内核锁操作方法, 修正 SMP debug 错误, 提高 SMP 实时性.
