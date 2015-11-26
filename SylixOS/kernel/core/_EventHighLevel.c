@@ -234,13 +234,8 @@ VOID  _EventPrioTryBoost (PLW_CLASS_EVENT  pevent, PLW_CLASS_TCB   ptcbCur)
 {
     PLW_CLASS_TCB    ptcbOwner = (PLW_CLASS_TCB)pevent->EVENT_pvTcbOwn;
     
-    if (ptcbOwner->TCB_iDeleteProcStatus) {                             /*  还没有释放信号量就被删除了  */
-        _BugFormat(LW_TRUE, LW_FALSE, 
-                   "mutex %s owner thread %s deleted"
-                   " before release this mutex.\r\n",
-                   pevent->EVENT_cEventName,
-                   ptcbOwner->TCB_cThreadName);
-        return;                                                         /*  此处为应用程序 bug          */
+    if (ptcbOwner->TCB_iDeleteProcStatus) {                             /*  任务已被删除或正在被删除    */
+        return;
     }
     
     if (LW_PRIO_IS_HIGH(ptcbCur->TCB_ucPriority, 
