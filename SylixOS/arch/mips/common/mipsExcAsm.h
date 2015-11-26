@@ -10,44 +10,64 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: arch_compiler.h
+** 文   件   名: mipsExcAsm.h
 **
 ** 创   建   人: Ryan.Xin (信金龙)
 **
 ** 文件创建日期: 2015 年 09 月 01 日
 **
-** 描        述: MIPS 编译器相关.
+** 描        述: MIPS 体系构架异常处理.
 *********************************************************************************************************/
 
-#ifndef __MIPS_ARCH_COMPILER_H
-#define __MIPS_ARCH_COMPILER_H
+#ifndef __MIPSEXCASM_H
+#define __MIPSEXCASM_H
 
 /*********************************************************************************************************
-  fast variable
+  Cache error exception
 *********************************************************************************************************/
 
-#ifndef REGISTER
-#define REGISTER                register                                /*  寄存器变量                  */
-#endif
+#define MIPS_CACHE_ERROR_HANDLE()       \
+    .set    push;                       \
+    .set    noat;                       \
+    .set    noreorder;                  \
+                                        \
+    LA      K0 , archCacheErrorEntry;   \
+    JR      K0;                         \
+    NOP;                                \
+                                        \
+    .set    pop
 
 /*********************************************************************************************************
-  inline function
+  General exception
 *********************************************************************************************************/
 
-#ifdef __GNUC__
-#define LW_INLINE               inline                                  /*  内联函数定义                */
-#else
-#define LW_INLINE               __inline
-#endif
+#define MIPS_EXCEPTION_HANDLE()         \
+    .set    push;                       \
+    .set    noat;                       \
+    .set    noreorder;                  \
+                                        \
+    LA      K0 , archExceptionEntry;    \
+    JR      K0;                         \
+    NOP;                                \
+                                        \
+    .set    pop
 
 /*********************************************************************************************************
-  shared object function call prepare (move funcptr to t9)
+  Catch interrupt exceptions
 *********************************************************************************************************/
 
-#define LW_SOFUNC_PREPARE(func)     \
-        __asm__ __volatile__ ("move " "$25" ", %0" : : "r"(func))
+#define MIPS_INTERRUPT_HANDLE()         \
+    .set    push;                       \
+    .set    noat;                       \
+    .set    noreorder;                  \
+                                        \
+    LA      K0 , archInterruptEntry;    \
+    JR      K0;                         \
+    NOP;                                \
+                                        \
+    .set    pop
 
-#endif                                                                  /*  __MIPS_ARCH_COMPILER_H      */
+#endif                                                                  /*  __MIPSEXCASM_H              */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

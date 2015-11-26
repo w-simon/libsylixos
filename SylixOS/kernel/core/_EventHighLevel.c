@@ -221,6 +221,58 @@ VOID  _EventReadyHighLevel (PLW_CLASS_TCB    ptcb, UINT16   usWaitType)
     KN_INT_ENABLE(iregInterLevel);                                      /*  开中断                      */
 }
 /*********************************************************************************************************
+** 函数名称: _EventPrioTryBoost
+** 功能描述: 互斥信号量提升拥有任务优先级.
+**           此函数在内核锁定状态被调用.
+** 输　入  : pevent        事件
+**           ptcbCur       当前任务控制块
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+VOID  _EventPrioTryBoost (PLW_CLASS_EVENT  pevent, PLW_CLASS_TCB   ptcbCur)
+{
+    PLW_CLASS_TCB    ptcbOwner = (PLW_CLASS_TCB)pevent->EVENT_pvTcbOwn;
+    
+    if (ptcbOwner->TCB_iDeleteProcStatus) {                             /*  还没有释放信号量就被删除了  */
+        _BugFormat(LW_TRUE, LW_FALSE, 
+                   "mutex %s owner thread %s deleted"
+                   " before release this mutex.\r\n",
+                   pevent->EVENT_cEventName,
+                   ptcbOwner->TCB_cThreadName);
+        return;                                                         /*  此处为应用程序 bug          */
+    }
+    
+    if (LW_PRIO_IS_HIGH(ptcbCur->TCB_ucPriority, 
+                        ptcbOwner->TCB_ucPriority)) {                   /*  需要改变优先级              */
+        if (pevent->EVENT_ulOption & LW_OPTION_INHERIT_PRIORITY) {      /*  优先级继承                  */
+            _SchedSetPrio(ptcbOwner, ptcbCur->TCB_ucPriority);
+        
+        } else if (LW_PRIO_IS_HIGH(pevent->EVENT_ucCeilingPriority,
+                                   ptcbOwner->TCB_ucPriority)) {        /*  优先级天花板                */
+            _SchedSetPrio(ptcbOwner, pevent->EVENT_ucCeilingPriority);
+        }
+    }
+}
+/*********************************************************************************************************
+** 函数名称: _EventPrioTryResume
+** 功能描述: 互斥信号量降低当前任务优先级.
+**           此函数在内核锁定状态被调用.
+** 输　入  : pevent        事件
+**           ptcbCur       当前任务控制块
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+VOID  _EventPrioTryResume (PLW_CLASS_EVENT  pevent, PLW_CLASS_TCB   ptcbCur)
+{
+    UINT8   ucPriorityOld = (UINT8)pevent->EVENT_ulMaxCounter;
+    
+    if (!LW_PRIO_IS_EQU(ptcbCur->TCB_ucPriority, ucPriorityOld)) {      /*  产生了优先级变换            */
+        _SchedSetPrio(ptcbCur, ucPriorityOld);                          /*  返回优先级                  */
+    }
+}
+/*********************************************************************************************************
 ** 函数名称: _EventUnlink
 ** 功能描述: 将一个线程从事件等待队列中解锁
 ** 输　入  : ptcb      任务控制块

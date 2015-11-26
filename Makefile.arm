@@ -774,6 +774,7 @@ SylixOS/loader/src/loader_proc.c \
 SylixOS/loader/src/loader_shell.c \
 SylixOS/loader/src/loader_symbol.c \
 SylixOS/loader/src/loader_vppatch.c \
+SylixOS/loader/src/loader_vpstack.c \
 SylixOS/loader/src/loader_vptimer.c \
 SylixOS/loader/src/loader_wait.c
 
@@ -1337,7 +1338,7 @@ ARFLAGS     = -r
 DEPEND          = $(CC)  $(DEPENDFLAG) $(CFLAGS)
 DEPEND.d        = $(subst -g ,,$(DEPEND))
 COMPILE.S       = $(AS)  $(ASFLAGS)
-COMPILE_VFP.S   = $(AS)  $(ASFLAGS) $(FPUFLAGS)
+COMPILE_VFP.S   = $(AS)  $(ASFLAGS) -mfloat-abi=softfp -mfpu=vfpv3
 COMPILE.c       = $(CC)  $(CFLAGS)
 COMPILE.cxx     = $(CXX) $(CXXFLAGS)
 
