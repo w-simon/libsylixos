@@ -35,8 +35,7 @@
 *********************************************************************************************************/
 static UINT32                           uiMIPS32CacheLineSize;
 #define MIPS32_CACHE_LOOP_OP_MAX_SIZE   (32 * LW_CFG_KB_SIZE)
-#define CACHE_SIZE                      16*1024
-#define CACHE_LINE_SIZE                 32
+#define CACHE_SIZE                      (16 * 1024)
 /*********************************************************************************************************
 ** 函数名称: mips32CacheEnable
 ** 功能描述: 使能 CACHE
