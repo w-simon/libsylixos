@@ -54,8 +54,8 @@ static VOID  mipsVfp32CtxShow (INT iFd, PVOID pvFpuCtx)
 {
     INT   i;
 
-    LW_FPU_CONTEXT          *pfpuCtx    = (LW_FPU_CONTEXT *)pvFpuCtx;
-    ARCH_CPU_FPU_CONTEXT    *pcpufpuCtx = &pfpuCtx->FPUCTX_fpuctxContext;
+    LW_FPU_CONTEXT  *pfpuCtx    = (LW_FPU_CONTEXT *)pvFpuCtx;
+    ARCH_FPU_CTX    *pcpufpuCtx = &pfpuCtx->FPUCTX_fpuctxContext;
 
     fdprintf(iFd, "FPCSR   = 0x%08x\n", pcpufpuCtx->FPUCTX_uiFpcsr);
 
