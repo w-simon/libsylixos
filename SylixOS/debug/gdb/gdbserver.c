@@ -2375,7 +2375,7 @@ static INT gdbMain (INT argc, CHAR **argv)
 
     if (!iBeAttach && !pparam->GDB_bExited) {                           /* 如果不是attch则停止进程      */
         kill(pparam->GDB_iPid, SIGABRT);                                /* 强制进程停止                 */
-        LW_GDB_MSG("[GDB]Warning: Process is kill by GDB server.\n"
+        LW_GDB_MSG("[GDB]Warning: Process is killed (SIGABRT) by GDB server.\n"
                    "     Restart SylixOS is recommended!\n");
     
     } 

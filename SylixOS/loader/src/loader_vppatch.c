@@ -854,7 +854,7 @@ VOID  vprocExit (LW_LD_VPROC *pvproc, LW_OBJECT_HANDLE  ulId, INT  iCode)
     pvproc->VP_iExitCode |= SET_EXITSTATUS(iCode);                      /*  保存结束代码                */
     
     if (pvproc->VP_ulMainThread != ulId) {                              /*  不是主线程                  */
-        API_ThreadForceDelete(&ulId, (PVOID)iCode);
+        API_ThreadDelete(&ulId, (PVOID)iCode);
         return;
     }
     
