@@ -48,8 +48,10 @@ INT         __natAliasAdd(const ip_addr_t  *pipaddrAlias,
                           const ip_addr_t  *ipaddrSLocalIp,
                           const ip_addr_t  *ipaddrELocalIp);
 INT         __natAliasDelete(const ip_addr_t  *pipaddrAlias);
-VOID        __natShowSummary(VOID);
-VOID        __natShowLocal(ip_addr_t  *pipaddr);
+
+#if LW_CFG_PROCFS_EN > 0
+VOID        __procFsNatInit(VOID);
+#endif                                                                  /*  LW_CFG_PROCFS_EN > 0        */
 
 #if LW_CFG_SHELL_EN > 0
 static INT  __tshellNat(INT  iArgC, PCHAR  ppcArgV[]);
@@ -104,6 +106,10 @@ VOID  API_INetNatInit (VOID)
                    (PTIMER_CALLBACK_ROUTINE)__natTimer,
                    LW_NULL);                                            /*  每分钟执行一次              */
     
+#if LW_CFG_PROCFS_EN > 0
+    __procFsNatInit();
+#endif                                                                  /*  LW_CFG_PROCFS_EN > 0        */
+    
 #if LW_CFG_SHELL_EN > 0
     API_TShellKeywordAdd("nat", __tshellNat);
     API_TShellFormatAdd("nat",  " [stop] | {[LAN netif] [WAN netif]}");
@@ -124,9 +130,7 @@ VOID  API_INetNatInit (VOID)
                                      "    natmap del 80 80 192.168.1.2 tcp (unmap webserver as 192..2)\n");
                                      
     API_TShellKeywordAdd("nats", __tshellNatShow);
-    API_TShellFormatAdd("nats", " [ip addr]");
-    API_TShellHelpAdd("nats",   "show NAT network.\n"
-                                "warning: do not use this commond in networking terminal!\n");
+    API_TShellHelpAdd("nats",   "show NAT networking infomation.\n");
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
     
     bIsInit = LW_TRUE;
@@ -509,22 +513,28 @@ __error:
 *********************************************************************************************************/
 static INT  __tshellNatShow (INT  iArgC, PCHAR  ppcArgV[])
 {
-    ip_addr_t   ipaddr;
+    INT     iFd;
+    CHAR    cBuffer[512];
+    ssize_t sstNum;
     
-    if (iArgC == 1) {
-        __natShowSummary();
-    
-    } else if (iArgC == 2) {
-        ipaddr.addr = inet_addr(ppcArgV[2]);
-        __natShowLocal(&ipaddr);
-    
-    } else {
-        fprintf(stderr, "option error!\n");
-        return  (-ERROR_TSHELL_EPARAM);
+    iFd = open("/proc/net/nat/info", O_RDONLY);
+    if (iFd < 0) {
+        fprintf(stderr, "can not open /proc/net/nat/info : %s\n", lib_strerror(errno));
+        return  (PX_ERROR);
     }
+    
+    do {
+        sstNum = read(iFd, cBuffer, sizeof(cBuffer));
+        if (sstNum > 0) {
+            write(STDOUT_FILENO, cBuffer, (size_t)sstNum);
+        }
+    } while (sstNum > 0);
+    
+    close(iFd);
     
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */

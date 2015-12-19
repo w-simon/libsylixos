@@ -962,165 +962,299 @@ VOID  nat_ip_input_hook (struct pbuf *p, struct netif *inp)
     }
 }
 /*********************************************************************************************************
-** 函数名称: __natShowSummary
-** 功能描述: 打印所有 NAT 代理概要信息
-** 输　入  : NONE
-** 输　出  : NONE
+  NAT proc
+*********************************************************************************************************/
+#if LW_CFG_PROCFS_EN > 0
+/*********************************************************************************************************
+  NAT proc 文件函数声明
+*********************************************************************************************************/
+static ssize_t  __procFsNatSummaryRead(PLW_PROCFS_NODE  p_pfsn, 
+                                       PCHAR            pcBuffer, 
+                                       size_t           stMaxBytes,
+                                       off_t            oft);
+static ssize_t  __procFsNatAssNodeRead(PLW_PROCFS_NODE  p_pfsn, 
+                                       PCHAR            pcBuffer, 
+                                       size_t           stMaxBytes,
+                                       off_t            oft);
+/*********************************************************************************************************
+  NAT proc 文件操作函数组
+*********************************************************************************************************/
+static LW_PROCFS_NODE_OP        _G_pfsnoNatSummaryFuncs = {
+    __procFsNatSummaryRead, LW_NULL
+};
+static LW_PROCFS_NODE_OP        _G_pfsnoNatAssNodeFuncs = {
+    __procFsNatAssNodeRead, LW_NULL
+};
+/*********************************************************************************************************
+  NAT proc 文件目录树
+*********************************************************************************************************/
+static LW_PROCFS_NODE           _G_pfsnNat[] = 
+{
+    LW_PROCFS_INIT_NODE("nat", 
+                        (S_IFDIR | S_IRUSR | S_IRGRP | S_IROTH), 
+                        LW_NULL, 
+                        LW_NULL,  
+                        0),
+                        
+    LW_PROCFS_INIT_NODE("info", 
+                        (S_IFREG | S_IRUSR | S_IRGRP | S_IROTH), 
+                        &_G_pfsnoNatSummaryFuncs, 
+                        "I",
+                        0),
+                        
+    LW_PROCFS_INIT_NODE("assnode", 
+                        (S_IFREG | S_IRUSR | S_IRGRP | S_IROTH), 
+                        &_G_pfsnoNatAssNodeFuncs, 
+                        "A",
+                        0),
+};
+/*********************************************************************************************************
+** 函数名称: __procFsNatSummaryRead
+** 功能描述: procfs 读一个内核 nat/info proc 文件
+** 输　入  : p_pfsn        节点控制块
+**           pcBuffer      缓冲区
+**           stMaxBytes    缓冲区大小
+**           oft           文件指针
+** 输　出  : 实际读取的数目
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-VOID  __natShowSummary (VOID)
+static ssize_t  __procFsNatSummaryRead (PLW_PROCFS_NODE  p_pfsn, 
+                                        PCHAR            pcBuffer, 
+                                        size_t           stMaxBytes,
+                                        off_t            oft)
 {
-    static const CHAR   cAliasInfoHeader[] = "\n"
+    const CHAR   cAliasInfoHeader[] = "\n"
     "     ALIAS        LOCAL START     LOCAL END\n"
     "--------------- --------------- ---------------\n";
 
-    static const CHAR   cMapInfoHeader[] = "\n"
+    const CHAR   cMapInfoHeader[] = "\n"
     " ASS PORT  LOCAL PORT    LOCAL IP      PROTO\n"
     "---------- ---------- --------------- --------\n";
     
-    UINT            uiAssNum = 0;
-    CHAR            cNetifAp[8];
-    CHAR            cNetifLocal[8];
-    PLW_LIST_LINE   plineTemp;
-    PCHAR           pcProto;
-    __PNAT_ALIAS    pnatalias;
-    __PNAT_MAP      pnatmap;
-    INT             iType = LW_DRV_TYPE_SOCKET;
-    
+          PCHAR     pcFileBuffer;
+          size_t    stRealSize;                                         /*  实际的文件内容大小          */
+          size_t    stCopeBytes;
+          
     /*
-     *  因为打印在 NAT_OP 锁中完成, 而协议栈内部也需要进入此锁, 所以, 不能在使用 socket 输出
+     *  由于预置内存大小为 0 , 所以打开后第一次读取需要手动开辟内存.
      */
-    iosFdGetType(STD_OUT, &iType);
-    if (iType == LW_DRV_TYPE_SOCKET) {
-        fprintf(stderr, "NAT networking show do not support out put by socket fd!\n");
-        return;
-    }
-
-    __NAT_OP_LOCK();                                                    /*  锁定 NAT 链表               */
-    if ((_G_pnetifNatAp    == LW_NULL) || 
-        (_G_pnetifNatLocal == LW_NULL)) {
+    pcFileBuffer = (PCHAR)API_ProcFsNodeBuffer(p_pfsn);
+    if (pcFileBuffer == LW_NULL) {                                      /*  还没有分配内存              */
+        size_t          stNeedBufferSize;
+        UINT            uiAssNum = 0;
+        CHAR            cNetifAp[8];
+        CHAR            cNetifLocal[8];
+        PLW_LIST_LINE   plineTemp;
+        PCHAR           pcProto;
+        __PNAT_ALIAS    pnatalias;
+        __PNAT_MAP      pnatmap;
+        
+        stNeedBufferSize = 512;                                         /*  初始大小                    */
+        
+        __NAT_OP_LOCK();                                                /*  锁定 NAT 链表               */
+        for (plineTemp  = _G_plineNatalias;
+             plineTemp != LW_NULL;
+             plineTemp  = _list_line_get_next(plineTemp)) {             /*  别名表                      */
+            stNeedBufferSize += 64;
+        }
+        for (plineTemp  = _G_plineNatmap;
+             plineTemp != LW_NULL;
+             plineTemp  = _list_line_get_next(plineTemp)) {
+            stNeedBufferSize += 64;
+        }
         __NAT_OP_UNLOCK();                                              /*  解锁 NAT 链表               */
-        printf("NAT networking off!\n");
-        return;
-    }
+        
+        if (API_ProcFsAllocNodeBuffer(p_pfsn, stNeedBufferSize)) {
+            _ErrorHandle(ENOMEM);
+            return  (0);
+        }
+        pcFileBuffer = (PCHAR)API_ProcFsNodeBuffer(p_pfsn);             /*  重新获得文件缓冲区地址      */
+        
+        __NAT_OP_LOCK();                                                /*  锁定 NAT 链表               */
+        if ((_G_pnetifNatAp    == LW_NULL) || 
+            (_G_pnetifNatLocal == LW_NULL)) {
+            __NAT_OP_UNLOCK();                                          /*  解锁 NAT 链表               */
+            stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, 0, 
+                                  "NAT networking off!\n");
+        
+        } else {
+            stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, 0, 
+                                  "NAT networking alias setting >>\n");
+            stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
+                                  "%s", cAliasInfoHeader);
+            
+            for (plineTemp  = _G_plineNatalias;
+                 plineTemp != LW_NULL;
+                 plineTemp  = _list_line_get_next(plineTemp)) {         /*  别名表                      */
+            
+                CHAR    cIpBuffer1[INET_ADDRSTRLEN];
+                CHAR    cIpBuffer2[INET_ADDRSTRLEN];
+                CHAR    cIpBuffer3[INET_ADDRSTRLEN];
+                
+                pnatalias  = _LIST_ENTRY(plineTemp, __NAT_ALIAS, NAT_lineManage);
+                stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
+                                      "%-15s %-15s %-15s\n", 
+                                      ipaddr_ntoa_r(&pnatalias->NAT_ipaddrAliasIp,
+                                                    cIpBuffer1, INET_ADDRSTRLEN),
+                                      ipaddr_ntoa_r(&pnatalias->NAT_ipaddrSLocalIp, 
+                                                    cIpBuffer2, INET_ADDRSTRLEN),
+                                      ipaddr_ntoa_r(&pnatalias->NAT_ipaddrELocalIp, 
+                                                    cIpBuffer3, INET_ADDRSTRLEN));
+            }
+            
+            stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
+                                  "\nNAT networking direct map setting >>\n");
+            stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
+                                  "%s", cMapInfoHeader);
+                                  
+            for (plineTemp  = _G_plineNatmap;
+                 plineTemp != LW_NULL;
+                 plineTemp  = _list_line_get_next(plineTemp)) {
+                
+                CHAR    cIpBuffer[INET_ADDRSTRLEN];
+                
+                pnatmap = _LIST_ENTRY(plineTemp, __NAT_MAP, NAT_lineManage);
+                switch (pnatmap->NAT_ucProto) {
+                
+                case IP_PROTO_ICMP: pcProto = "ICMP"; break;
+                case IP_PROTO_UDP:  pcProto = "UDP";  break;
+                case IP_PROTO_TCP:  pcProto = "TCP";  break;
+                default:            pcProto = "?";    break;
+                }
+                
+                stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
+                                      "%10d %10d %-15s %s\n",
+                                      ntohs(pnatmap->NAT_usAssPort),
+                                      ntohs(pnatmap->NAT_usLocalPort),
+                                      ipaddr_ntoa_r(&pnatmap->NAT_ipaddrLocalIp, 
+                                                    cIpBuffer, INET_ADDRSTRLEN),
+                                       pcProto);
+            }
+            
+            for (plineTemp  = _G_plineNatcbTcp;
+                 plineTemp != LW_NULL;
+                 plineTemp  = _list_line_get_next(plineTemp)) {
+                uiAssNum++;
+            }
+            for (plineTemp  = _G_plineNatcbUdp;
+                 plineTemp != LW_NULL;
+                 plineTemp  = _list_line_get_next(plineTemp)) {
+                uiAssNum++;
+            }
+            for (plineTemp  = _G_plineNatcbIcmp;
+                 plineTemp != LW_NULL;
+                 plineTemp  = _list_line_get_next(plineTemp)) {
+                uiAssNum++;
+            }
+            
+            cNetifAp[0] = _G_pnetifNatAp->name[0];
+            cNetifAp[1] = _G_pnetifNatAp->name[1];
+            cNetifAp[2] = (CHAR)(_G_pnetifNatAp->num + '0');
+            cNetifAp[3] = PX_EOS;
+            
+            cNetifLocal[0] = _G_pnetifNatLocal->name[0];
+            cNetifLocal[1] = _G_pnetifNatLocal->name[1];
+            cNetifLocal[2] = (CHAR)(_G_pnetifNatLocal->num + '0');
+            cNetifLocal[3] = PX_EOS;
+            __NAT_OP_UNLOCK();                                          /*  解锁 NAT 链表               */
     
-    printf("NAT networking alias setting >>\n");
-    printf("%s", cAliasInfoHeader);
-    for (plineTemp  = _G_plineNatalias;
-         plineTemp != LW_NULL;
-         plineTemp  = _list_line_get_next(plineTemp)) {                 /*  别名表                      */
-    
-        CHAR    cIpBuffer1[INET_ADDRSTRLEN];
-        CHAR    cIpBuffer2[INET_ADDRSTRLEN];
-        CHAR    cIpBuffer3[INET_ADDRSTRLEN];
-        
-        pnatalias = _LIST_ENTRY(plineTemp, __NAT_ALIAS, NAT_lineManage);
-        printf("%-15s %-15s %-15s\n", 
-               ipaddr_ntoa_r(&pnatalias->NAT_ipaddrAliasIp,  cIpBuffer1, INET_ADDRSTRLEN),
-               ipaddr_ntoa_r(&pnatalias->NAT_ipaddrSLocalIp, cIpBuffer2, INET_ADDRSTRLEN),
-               ipaddr_ntoa_r(&pnatalias->NAT_ipaddrELocalIp, cIpBuffer3, INET_ADDRSTRLEN));
-    }
-    
-    printf("\nNAT networking direct map setting >>\n");
-    printf("%s", cMapInfoHeader);
-    for (plineTemp  = _G_plineNatmap;
-         plineTemp != LW_NULL;
-         plineTemp  = _list_line_get_next(plineTemp)) {
-        
-        CHAR    cIpBuffer[INET_ADDRSTRLEN];
-        
-        pnatmap = _LIST_ENTRY(plineTemp, __NAT_MAP, NAT_lineManage);
-        switch (pnatmap->NAT_ucProto) {
-        
-        case IP_PROTO_ICMP: pcProto = "ICMP"; break;
-        case IP_PROTO_UDP:  pcProto = "UDP";  break;
-        case IP_PROTO_TCP:  pcProto = "TCP";  break;
-        default:            pcProto = "?";    break;
+            stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
+                                  "\nNAT networking summary >>\n");
+            stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
+                                  "    LAN: %s WAN: %s\n", cNetifLocal, cNetifAp);
+            stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
+                                  "    Total Ass-node: %d\n", LW_CFG_NET_NAT_MAX_SESSION);
+            stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
+                                  "    Used  Ass-node: %d\n", uiAssNum);
         }
         
-        printf("%10d %10d %-15s %s\n",
-               ntohs(pnatmap->NAT_usAssPort),
-               ntohs(pnatmap->NAT_usLocalPort),
-               ipaddr_ntoa_r(&pnatmap->NAT_ipaddrLocalIp,  cIpBuffer, INET_ADDRSTRLEN),
-               pcProto);
+        API_ProcFsNodeSetRealFileSize(p_pfsn, stRealSize);
+    } else {
+        stRealSize = API_ProcFsNodeGetRealFileSize(p_pfsn);
+    }
+    if (oft >= stRealSize) {
+        _ErrorHandle(ENOSPC);
+        return  (0);
     }
     
-    for (plineTemp  = _G_plineNatcbTcp;
-         plineTemp != LW_NULL;
-         plineTemp  = _list_line_get_next(plineTemp)) {
-        uiAssNum++;
-    }
-    for (plineTemp  = _G_plineNatcbUdp;
-         plineTemp != LW_NULL;
-         plineTemp  = _list_line_get_next(plineTemp)) {
-        uiAssNum++;
-    }
-    for (plineTemp  = _G_plineNatcbIcmp;
-         plineTemp != LW_NULL;
-         plineTemp  = _list_line_get_next(plineTemp)) {
-        uiAssNum++;
-    }
+    stCopeBytes  = __MIN(stMaxBytes, (size_t)(stRealSize - oft));       /*  计算实际拷贝的字节数        */
+    lib_memcpy(pcBuffer, (CPVOID)(pcFileBuffer + oft), (UINT)stCopeBytes);
     
-    cNetifAp[0] = _G_pnetifNatAp->name[0];
-    cNetifAp[1] = _G_pnetifNatAp->name[1];
-    cNetifAp[2] = (CHAR)(_G_pnetifNatAp->num + '0');
-    cNetifAp[3] = PX_EOS;
-    
-    cNetifLocal[0] = _G_pnetifNatLocal->name[0];
-    cNetifLocal[1] = _G_pnetifNatLocal->name[1];
-    cNetifLocal[2] = (CHAR)(_G_pnetifNatLocal->num + '0');
-    cNetifLocal[3] = PX_EOS;
-    __NAT_OP_UNLOCK();                                                  /*  解锁 NAT 链表               */
-    
-    printf("\nNAT networking summary >>\n");
-    printf("    LAN: %s WAN: %s\n", cNetifLocal, cNetifAp);
-    printf("    Total Ass-node: %d\n", LW_CFG_NET_NAT_MAX_SESSION);
-    printf("    Used  Ass-node: %d\n", uiAssNum);
+    return  ((ssize_t)stCopeBytes);
 }
 /*********************************************************************************************************
-** 函数名称: __natShowLocal
-** 功能描述: 打印指定 local NAT 代理信息
-** 输　入  : pipaddr        指定的 IP 地址
-** 输　出  : NONE
+** 函数名称: __procFsNatAssNodeRead
+** 功能描述: procfs 读一个内核 nat/assnode proc 文件
+** 输　入  : p_pfsn        节点控制块
+**           pcBuffer      缓冲区
+**           stMaxBytes    缓冲区大小
+**           oft           文件指针
+** 输　出  : 实际读取的数目
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-VOID  __natShowLocal (ip_addr_t  *pipaddr)
+static ssize_t  __procFsNatAssNodeRead (PLW_PROCFS_NODE  p_pfsn, 
+                                        PCHAR            pcBuffer, 
+                                        size_t           stMaxBytes,
+                                        off_t            oft)
 {
-    static const CHAR   natInfoHeader[] = "\n"
+    const CHAR   cNatInfoHeader[] = "\n"
     "    LOCAL IP    LOCAL PORT ASS PORT PROTO IDLE(min)  STATUS\n"
     "--------------- ---------- -------- ----- --------- --------\n";
     
-    PCHAR           pcProto;
-    PCHAR           pcStatus;
-    __PNAT_CB       pnatcb = LW_NULL;
-    PLW_LIST_LINE   plineTemp;
-    INT             iType = LW_DRV_TYPE_SOCKET;
-    
-    printf("NAT networking show >>\n");
-    printf("%s", natInfoHeader);
-    
+          PCHAR     pcFileBuffer;
+          size_t    stRealSize;                                         /*  实际的文件内容大小          */
+          size_t    stCopeBytes;
+          
     /*
-     *  因为打印在 NAT_OP 锁中完成, 而协议栈内部也需要进入此锁, 所以, 不能在使用 socket 输出
+     *  由于预置内存大小为 0 , 所以打开后第一次读取需要手动开辟内存.
      */
-    iosFdGetType(STD_OUT, &iType);
-    if (iType == LW_DRV_TYPE_SOCKET) {
-        fprintf(stderr, "NAT networking show do not support out put by socket fd!\n");
-        return;
-    }
-    
-    __NAT_OP_LOCK();                                                    /*  锁定 NAT 链表               */
-    for (plineTemp  = _G_plineNatcbTcp;
-         plineTemp != LW_NULL;
-         plineTemp  = _list_line_get_next(plineTemp)) {
+    pcFileBuffer = (PCHAR)API_ProcFsNodeBuffer(p_pfsn);
+    if (pcFileBuffer == LW_NULL) {                                      /*  还没有分配内存              */
+        size_t          stNeedBufferSize;
+        PCHAR           pcProto;
+        PCHAR           pcStatus;
+        __PNAT_CB       pnatcb = LW_NULL;
+        PLW_LIST_LINE   plineTemp;
         
-        pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
-        if ((pipaddr->addr == INADDR_ANY) ||
-            (pipaddr->addr == pnatcb->NAT_ipaddrLocalIp.addr)) {
+        stNeedBufferSize = 256;                                         /*  初始大小                    */
+        
+        __NAT_OP_LOCK();                                                /*  锁定 NAT 链表               */
+        for (plineTemp  = _G_plineNatcbTcp;
+             plineTemp != LW_NULL;
+             plineTemp  = _list_line_get_next(plineTemp)) {
+            stNeedBufferSize += 64;
+        }
+        for (plineTemp  = _G_plineNatcbUdp;
+             plineTemp != LW_NULL;
+             plineTemp  = _list_line_get_next(plineTemp)) {
+            stNeedBufferSize += 64;
+        }
+        for (plineTemp  = _G_plineNatcbIcmp;
+             plineTemp != LW_NULL;
+             plineTemp  = _list_line_get_next(plineTemp)) {
+            stNeedBufferSize += 64;
+        }
+        __NAT_OP_UNLOCK();                                              /*  解锁 NAT 链表               */
+    
+        if (API_ProcFsAllocNodeBuffer(p_pfsn, stNeedBufferSize)) {
+            _ErrorHandle(ENOMEM);
+            return  (0);
+        }
+        pcFileBuffer = (PCHAR)API_ProcFsNodeBuffer(p_pfsn);             /*  重新获得文件缓冲区地址      */
+        
+        stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, 0, cNatInfoHeader); 
+                                                                        /*  打印头信息                  */
+        __NAT_OP_LOCK();                                                /*  锁定 NAT 链表               */
+        for (plineTemp  = _G_plineNatcbTcp;
+             plineTemp != LW_NULL;
+             plineTemp  = _list_line_get_next(plineTemp)) {
+            
             struct in_addr  inaddr;
             CHAR            cIpBuffer[INET_ADDRSTRLEN];
             
+            pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
             inaddr.s_addr = pnatcb->NAT_ipaddrLocalIp.addr;
             if (pnatcb->NAT_iStatus == __NAT_STATUS_OPEN) {
                 pcStatus = "OPEN";
@@ -1133,27 +1267,24 @@ VOID  __natShowLocal (ip_addr_t  *pipaddr)
             }
             
             inet_ntoa_r(inaddr, cIpBuffer, INET_ADDRSTRLEN);
-            printf("%-15s %10d %8d %-5s %9ld %-8s\n", cIpBuffer,
-                                                      ntohs(pnatcb->NAT_usLocalPort),
-                                                      ntohs(pnatcb->NAT_usAssPort),
-                                                      "TCP",
-                                                      pnatcb->NAT_ulIdleTimer,
-                                                      pcStatus);
+            stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
+                                  "%-15s %10d %8d %-5s %9ld %-8s\n", cIpBuffer,
+                                  ntohs(pnatcb->NAT_usLocalPort),
+                                  ntohs(pnatcb->NAT_usAssPort),
+                                  "TCP",
+                                  pnatcb->NAT_ulIdleTimer,
+                                  pcStatus);
         }
-    }
-    
-    for (plineTemp  = _G_plineNatcbUdp;
-         plineTemp != LW_NULL;
-         plineTemp  = _list_line_get_next(plineTemp)) {
         
-        pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
-        if ((pipaddr->addr == INADDR_ANY) ||
-            (pipaddr->addr == pnatcb->NAT_ipaddrLocalIp.addr)) {
+        for (plineTemp  = _G_plineNatcbUdp;
+             plineTemp != LW_NULL;
+             plineTemp  = _list_line_get_next(plineTemp)) {
+            
             struct in_addr  inaddr;
             CHAR            cIpBuffer[INET_ADDRSTRLEN];
-            
+
+            pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
             inaddr.s_addr = pnatcb->NAT_ipaddrLocalIp.addr;
-            
             if (pnatcb->NAT_iStatus == __NAT_STATUS_OPEN) {
                 pcStatus = "OPEN";
             } else if (pnatcb->NAT_iStatus == __NAT_STATUS_FIN) {
@@ -1165,25 +1296,23 @@ VOID  __natShowLocal (ip_addr_t  *pipaddr)
             }
             
             inet_ntoa_r(inaddr, cIpBuffer, INET_ADDRSTRLEN);
-            printf("%-15s %10d %8d %-5s %9ld %-8s\n", cIpBuffer,
-                                                      ntohs(pnatcb->NAT_usLocalPort),
-                                                      ntohs(pnatcb->NAT_usAssPort),
-                                                      "UDP",
-                                                      pnatcb->NAT_ulIdleTimer,
-                                                      pcStatus);
+            stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
+                                  "%-15s %10d %8d %-5s %9ld %-8s\n", cIpBuffer,
+                                  ntohs(pnatcb->NAT_usLocalPort),
+                                  ntohs(pnatcb->NAT_usAssPort),
+                                  "UDP",
+                                  pnatcb->NAT_ulIdleTimer,
+                                  pcStatus);
         }
-    }
-    
-    for (plineTemp  = _G_plineNatcbIcmp;
-         plineTemp != LW_NULL;
-         plineTemp  = _list_line_get_next(plineTemp)) {
         
-        pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
-        if ((pipaddr->addr == INADDR_ANY) ||
-            (pipaddr->addr == pnatcb->NAT_ipaddrLocalIp.addr)) {
+        for (plineTemp  = _G_plineNatcbIcmp;
+             plineTemp != LW_NULL;
+             plineTemp  = _list_line_get_next(plineTemp)) {
+            
             struct in_addr  inaddr;
             CHAR            cIpBuffer[INET_ADDRSTRLEN];
             
+            pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
             inaddr.s_addr = pnatcb->NAT_ipaddrLocalIp.addr;
             if (pnatcb->NAT_ucProto == IP_PROTO_ICMP) {
                 pcProto = "ICMP";
@@ -1202,17 +1331,46 @@ VOID  __natShowLocal (ip_addr_t  *pipaddr)
             }
             
             inet_ntoa_r(inaddr, cIpBuffer, INET_ADDRSTRLEN);
-            printf("%-15s %10d %8d %-5s %9ld %-8s\n", cIpBuffer,
-                                                      ntohs(pnatcb->NAT_usLocalPort),
-                                                      ntohs(pnatcb->NAT_usAssPort),
-                                                      pcProto,
-                                                      pnatcb->NAT_ulIdleTimer,
-                                                      pcStatus);
+            stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
+                                  "%-15s %10d %8d %-5s %9ld %-8s\n", cIpBuffer,
+                                  ntohs(pnatcb->NAT_usLocalPort),
+                                  ntohs(pnatcb->NAT_usAssPort),
+                                  pcProto,
+                                  pnatcb->NAT_ulIdleTimer,
+                                  pcStatus);
         }
+        __NAT_OP_UNLOCK();                                              /*  解锁 NAT 链表               */
+        
+        API_ProcFsNodeSetRealFileSize(p_pfsn, stRealSize);
+    } else {
+        stRealSize = API_ProcFsNodeGetRealFileSize(p_pfsn);
     }
-    __NAT_OP_UNLOCK();                                                  /*  解锁 NAT 链表               */
+    if (oft >= stRealSize) {
+        _ErrorHandle(ENOSPC);
+        return  (0);
+    }
+    
+    stCopeBytes  = __MIN(stMaxBytes, (size_t)(stRealSize - oft));       /*  计算实际拷贝的字节数        */
+    lib_memcpy(pcBuffer, (CPVOID)(pcFileBuffer + oft), (UINT)stCopeBytes);
+    
+    return  ((ssize_t)stCopeBytes);
+}
+/*********************************************************************************************************
+** 函数名称: __procFsNatInit
+** 功能描述: procfs 初始化内核 NAT 文件
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+VOID  __procFsNatInit (VOID)
+{
+    API_ProcFsMakeNode(&_G_pfsnNat[0], "/net");
+    API_ProcFsMakeNode(&_G_pfsnNat[1], "/net/nat");
+    API_ProcFsMakeNode(&_G_pfsnNat[2], "/net/nat");
 }
 
+#endif                                                                  /*  LW_CFG_PROCFS_EN > 0        */
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */
                                                                         /*  LW_CFG_NET_NAT_EN > 0       */
 /*********************************************************************************************************
