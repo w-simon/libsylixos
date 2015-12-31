@@ -23,8 +23,12 @@
 #define __PCI_DEV_H
 
 #include "pciBus.h"
-#include "pciVendor.h"
+#include "pciIds.h"
+#include "pciMsi.h"
+#include "pciCap.h"
+#include "pciCapExt.h"
 #include "pciExpress.h"
+#include "pciAutoCfg.h"
 
 /*********************************************************************************************************
   裁剪宏
@@ -261,6 +265,7 @@ typedef struct {
 typedef struct pci_drv_funcs0 {
     INT     (*cfgRead)(INT iBus, INT iSlot, INT iFunc, INT iOft, INT iLen, PVOID pvRet);
     INT     (*cfgWrite)(INT iBus, INT iSlot, INT iFunc, INT iOft, INT iLen, UINT32 uiData);
+    INT     (*vpdRead)(INT iBus, INT iSlot, INT iFunc, INT iPos, UINT8 *pucBuf, INT iLen);
     INT     (*cfgSpcl)(INT iBus, UINT32 uiMsg);
 } PCI_DRV_FUNCS0;                                                       /*  PCI_MECHANISM_0             */
 
@@ -282,13 +287,13 @@ typedef struct pci_drv_funcs12 {
 *********************************************************************************************************/
 
 #define PCI_SLOTFN(slot, func)  ((((slot) & 0x1f) << 3) | ((func) & 0x07))
+#define PCI_DEVFN(slot, func)   PCI_SLOTFN(slot, func)
 #define PCI_SLOT(slotfn)        (((slotfn) >> 3) & 0x1f)
 #define PCI_FUNC(slotfn)        ((slotfn) & 0x07)
 
 /*********************************************************************************************************
   pack parameters for the PCI Configuration Address Register
 *********************************************************************************************************/
-
 #define PCI_PACKET(bus, slot, func) ((((bus) << 16) & 0x00ff0000) | \
                                     (((slot) << 11) & 0x0000f800) | \
                                     (((func) << 8)  & 0x00000700))
@@ -342,6 +347,9 @@ typedef struct {
     addr_t                      PCIC_ulConfigBase;                      /* only for PCI_MECHANISM_2     */
     
     LW_OBJECT_HANDLE            PCIC_ulLock;
+
+    INT                         PCIC_iIndex;
+    INT                         PCIC_iBusMax;
 } PCI_CONFIG;
 
 /*********************************************************************************************************
@@ -349,49 +357,63 @@ typedef struct {
   API_PciConfigInit() 必须在 BSP 初始化总线系统时被调用, 而且必须保证是第一个被正确调用的 PCI 系统函数.
 *********************************************************************************************************/
 
-LW_API INT      API_PciConfigInit(PCI_CONFIG *p_pcicfg);
-LW_API VOID     API_PciConfigReset(INT  iRebootType);
+LW_API INT          API_PciConfigInit(PCI_CONFIG *p_pcicfg);
+LW_API VOID         API_PciConfigReset(INT  iRebootType);
 
-LW_API INT      API_PciLock(VOID);
-LW_API INT      API_PciUnlock(VOID);
+LW_API INT          API_PciLock(VOID);
+LW_API INT          API_PciUnlock(VOID);
 
-LW_API INT      API_PciConfigInByte(INT iBus, INT iSlot, INT iFunc, INT iOft, UINT8 *pucValue);
-LW_API INT      API_PciConfigInWord(INT iBus, INT iSlot, INT iFunc, INT iOft, UINT16 *pusValue);
-LW_API INT      API_PciConfigInDword(INT iBus, INT iSlot, INT iFunc, INT iOft, UINT32 *puiValue);
+LW_API INT          API_PciConfigInByte(INT iBus, INT iSlot, INT iFunc, INT iOft, UINT8 *pucValue);
+LW_API INT          API_PciConfigInWord(INT iBus, INT iSlot, INT iFunc, INT iOft, UINT16 *pusValue);
+LW_API INT          API_PciConfigInDword(INT iBus, INT iSlot, INT iFunc, INT iOft, UINT32 *puiValue);
 
-LW_API INT      API_PciConfigOutByte(INT iBus, INT iSlot, INT iFunc, INT iOft, UINT8 ucValue);
-LW_API INT      API_PciConfigOutWord(INT iBus, INT iSlot, INT iFunc, INT iOft, UINT16 usValue);
-LW_API INT      API_PciConfigOutDword(INT iBus, INT iSlot, INT iFunc, INT iOft, UINT32 uiValue);
+LW_API INT          API_PciConfigOutByte(INT iBus, INT iSlot, INT iFunc, INT iOft, UINT8 ucValue);
+LW_API INT          API_PciConfigOutWord(INT iBus, INT iSlot, INT iFunc, INT iOft, UINT16 usValue);
+LW_API INT          API_PciConfigOutDword(INT iBus, INT iSlot, INT iFunc, INT iOft, UINT32 uiValue);
 
-LW_API INT      API_PciConfigModifyByte(INT iBus, INT iSlot, INT iFunc, INT iOft, 
-                                        UINT8 ucMask, UINT8 ucValue);
-LW_API INT      API_PciConfigModifyWord(INT iBus, INT iSlot, INT iFunc, INT iOft, 
-                                        UINT16 usMask, UINT16 usValue);
-LW_API INT      API_PciConfigModifyDword(INT iBus, INT iSlot, INT iFunc, INT iOft, 
-                                         UINT32 uiMask, UINT32 uiValue);
+LW_API INT          API_PciConfigModifyByte(INT iBus, INT iSlot, INT iFunc, INT iOft,
+                                            UINT8 ucMask, UINT8 ucValue);
+LW_API INT          API_PciConfigModifyWord(INT iBus, INT iSlot, INT iFunc, INT iOft,
+                                            UINT16 usMask, UINT16 usValue);
+LW_API INT          API_PciConfigModifyDword(INT iBus, INT iSlot, INT iFunc, INT iOft,
+                                             UINT32 uiMask, UINT32 uiValue);
                                          
-LW_API INT      API_PciSpecialCycle(INT iBus, UINT32 uiMsg);
+LW_API INT          API_PciSpecialCycle(INT iBus, UINT32 uiMsg);
 
-LW_API INT      API_PciFindDev(UINT16 usVendorId, UINT16 usDeviceId, INT  iInstance,
-                               INT *piBus, INT *piSlot, INT *piFunc);
-LW_API INT      API_PciFindClass(UINT16  usClassCode, INT  iInstance,
-                                 INT *piBus, INT *piSlot, INT *piFunc);
+LW_API INT          API_PciFindDev(UINT16 usVendorId, UINT16 usDeviceId, INT  iInstance,
+                                   INT *piBus, INT *piSlot, INT *piFunc);
+LW_API INT          API_PciFindClass(UINT16  usClassCode, INT  iInstance,
+                                     INT *piBus, INT *piSlot, INT *piFunc);
                                  
-LW_API INT      API_PciTraversal(INT (*pfuncCall)(), PVOID pvArg, INT iMaxBusNum);
-LW_API INT      API_PciTraversalDev(INT iBusStart, BOOL bSubBus, INT (*pfuncCall)(), PVOID pvArg);
+LW_API INT          API_PciTraversal(INT (*pfuncCall)(), PVOID pvArg, INT iMaxBusNum);
+LW_API INT          API_PciTraversalDev(INT iBusStart, BOOL bSubBus, INT (*pfuncCall)(), PVOID pvArg);
                                  
-LW_API INT      API_PciConfigDev(INT iBus, INT iSlot, INT iFunc, 
-                                 ULONG ulIoBase, pci_addr_t ulMemBase, 
-                                 UINT8 ucLatency, UINT32 uiCommand);
-LW_API INT      API_PciFuncDisable(INT iBus, INT iSlot, INT iFunc);
+LW_API INT          API_PciConfigDev(INT iBus, INT iSlot, INT iFunc,
+                                     ULONG ulIoBase, pci_addr_t ulMemBase,
+                                     UINT8 ucLatency, UINT32 uiCommand);
+
+LW_API INT          API_PciFuncDisable(INT iBus, INT iSlot, INT iFunc);
                                  
-LW_API INT      API_PciInterConnect(ULONG ulVector, PINT_SVR_ROUTINE pfuncIsr, 
-                                    PVOID pvArg, CPCHAR pcName);
-LW_API INT      API_PciInterDisconnect(ULONG ulVector, PINT_SVR_ROUTINE pfuncIsr, 
-                                       PVOID pvArg);
-                                       
-LW_API INT      API_PciGetHeader(INT iBus, INT iSlot, INT iFunc, PCI_HDR *p_pcihdr);
-                                       
+LW_API INT          API_PciInterConnect(ULONG ulVector, PINT_SVR_ROUTINE pfuncIsr,
+                                        PVOID pvArg, CPCHAR pcName);
+LW_API INT          API_PciInterDisconnect(ULONG ulVector, PINT_SVR_ROUTINE pfuncIsr,
+                                           PVOID pvArg);
+
+LW_API INT          API_PciGetHeader(INT iBus, INT iSlot, INT iFunc, PCI_HDR *p_pcihdr);
+LW_API INT          API_PciHeaderTypeGet(INT iBus, INT iSlot, INT iFunc, UINT8 *ucType);
+
+LW_API INT          API_PciVpdRead(INT iBus, INT iSlot, INT iFunc, INT iPos, UINT8 *pucBuf, INT iLen);
+
+LW_API INT          API_PciConfigFetch(INT iBus, INT iSlot, INT iFunc, UINT uiPos, UINT uiLen);
+
+LW_API PCI_CONFIG  *API_PciConfigHandleGet(INT iIndex);
+LW_API INT          API_PciConfigIndexGet(PCI_CONFIG *ppcHandle);
+LW_API INT          API_PciConfigBusMaxSet(INT  iIndex, UINT32  uiBusMax);
+LW_API INT          API_PciConfigBusMaxGet(INT iIndex);
+
+LW_API INT          API_PciIntxEnableSet(INT iBus, INT iSlot, INT iFunc, INT iEnable);
+LW_API INT          API_PciIntxMaskSupported(INT iBus, INT iSlot, INT iFunc, INT *piSupported);
+
 #define pciConfigInit           API_PciConfigInit
 #define pciConfigReset          API_PciConfigReset
 
@@ -425,6 +447,19 @@ LW_API INT      API_PciGetHeader(INT iBus, INT iSlot, INT iFunc, PCI_HDR *p_pcih
 #define pciInterDisconnect      API_PciInterDisconnect
 
 #define pciGetHeader            API_PciGetHeader
+#define pciHeaderTypeGet        API_PciHeaderTypeGet
+
+#define pciVpdRead              API_PciVpdRead
+
+#define pciConfigFetch          API_PciConfigFetch
+
+#define pciConfigHandleGet      API_PciConfigHandleGet
+#define pciConfigIndexGet       API_PciConfigIndexGet
+#define pciConfigBusMaxSet      API_PciConfigBusMaxSet
+#define pciConfigBusMaxGet      API_PciConfigBusMaxGet
+
+#define pciIntxEnableSet        API_PciIntxEnableSet
+#define pciIntxMaskSupported    API_PciIntxMaskSupported
 
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */
                                                                         /*  (LW_CFG_PCI_EN > 0)         */

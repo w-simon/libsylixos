@@ -10,26 +10,34 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: pciExpress.h
+** 文   件   名: pciCapExt.h
 **
-** 创   建   人: Han.Hui (韩辉)
+** 创   建   人: Gong.YuJian (弓羽箭)
 **
-** 文件创建日期: 2013 年 09 月 28 日
+** 文件创建日期: 2015 年 10 月 23 日
 **
-** 描        述: PCIE 相关定义.
+** 描        述: PCI 总线扩展功能管理的延伸.
 *********************************************************************************************************/
 
-#ifndef __PCI_EXPRESS_H
-#define __PCI_EXPRESS_H
+#ifndef __PCI_CAP_EXT_H
+#define __PCI_CAP_EXT_H
 
 /*********************************************************************************************************
   裁剪宏
 *********************************************************************************************************/
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_PCI_EN > 0)
 
+LW_API VOID     API_PciCapExtShow (INT  iBus, INT  iSlot, INT  iFunc);
+LW_API INT      API_PciCapExtFind (INT  iBus, INT  iSlot, INT  iFunc,
+                                   UINT8  ucExtCapId, UINT32 *puiOffset);
+
+#define pciCapExtShow           API_PciCapExtShow
+#define pciCapExtFind           API_PciCapExtFind
+
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */
                                                                         /*  (LW_CFG_PCI_EN > 0)         */
-#endif                                                                  /*  __PCI_EXPRESS_H             */
+#endif                                                                  /*  __PCI_CAP_EXT_H             */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/
+
