@@ -160,15 +160,19 @@ SylixOS/arch/mips/common/mipsExc.c \
 SylixOS/arch/mips/common/mipsExcAsm.S \
 SylixOS/arch/mips/common/mipsLib.c \
 SylixOS/arch/mips/common/mipsLibAsm.S \
+SylixOS/arch/mips/common/mipsBranch.c \
+SylixOS/arch/mips/common/mipsUnaligned.c \
 SylixOS/arch/mips/dbg/mipsDbg.c \
 SylixOS/arch/mips/dbg/mipsGdb.c \
 SylixOS/arch/mips/elf/mipsElf.c \
 SylixOS/arch/mips/fpu/fpu32/mipsVfp32.c \
+SylixOS/arch/mips/fpu/vfpnone/mipsVfpNone.c \
 SylixOS/arch/mips/fpu/fpu32/mipsVfp32Asm.S \
+SylixOS/arch/mips/fpu/fpu64/mipsVfp64.c \
+SylixOS/arch/mips/fpu/fpu64/mipsVfp64Asm.S \
 SylixOS/arch/mips/fpu/mipsFpu.c \
-SylixOS/arch/mips/mm/cache/mipsCacheCommon.c \
-SylixOS/arch/mips/mm/cache/mipsCacheCommonAsm.S \
-SylixOS/arch/mips/mm/cache/mips32/misp32Cache.c \
+SylixOS/arch/mips/mm/cache/mips32/mips32Cache.c \
+SylixOS/arch/mips/mm/cache/mips32/mips32CacheAsm.S \
 SylixOS/arch/mips/mm/mmu/mips32/mips32Mmu.c \
 SylixOS/arch/mips/mm/mipsCache.c \
 SylixOS/arch/mips/mm/mipsMmu.c \
@@ -1405,7 +1409,11 @@ $(OBJPATH)/%.o: %.cpp
 #*********************************************************************************************************
 # compile VFP source files
 #*********************************************************************************************************
-$(OBJPATH)/SylixOS/arch/mips/fpu/fpu32/mipsVfp32Asm.S: ./SylixOS/arch/mips/fpu/fpu32/mipsVfp32Asm.S
+$(OBJPATH)/SylixOS/arch/mips/fpu/fpu32/mipsVfp32Asm.o: ./SylixOS/arch/mips/fpu/fpu32/mipsVfp32Asm.S
+		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
+		$(COMPILE_VFP.S) $< -o $@
+
+$(OBJPATH)/SylixOS/arch/mips/fpu/fpu64/mipsVfp64Asm.o: ./SylixOS/arch/mips/fpu/fpu64/mipsVfp64Asm.S		
 		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
 		$(COMPILE_VFP.S) $< -o $@
 
@@ -1499,7 +1507,7 @@ $(VPMPDM_A_TARGET): $(OBJS_VPMPDM)
 # link libvpmpdm.so object files
 #*********************************************************************************************************
 $(VPMPDM_S_TARGET): $(OBJS_VPMPDM)
-		$(LD) $(CPUFLAGS) -nostdlib -fPIC -mabicalls -shared -o $(VPMPDM_S_TARGET) $(OBJS_VPMPDM) -lgcc
+		$(LD) $(CPUFLAGS) -fPIC -mabicalls -shared -o $(VPMPDM_S_TARGET) $(OBJS_VPMPDM) -lgcc
 
 #*********************************************************************************************************
 # compile -mlong-calls code

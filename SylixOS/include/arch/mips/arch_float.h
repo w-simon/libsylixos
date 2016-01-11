@@ -26,7 +26,7 @@
   Number of fp registers on coprocessor
 *********************************************************************************************************/
 
-#define FP_NUM_DREGS    16
+#define FP_NUM_DREGS    32
 
 typedef struct arch_fpu_ctx {                                           /* FP_CONTEXT иообнд            */
     UINT32              FPUCTX_uiFpcsr;                                 /* status and control register  */

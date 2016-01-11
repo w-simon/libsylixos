@@ -986,7 +986,7 @@ static INT gdbGoTo (LW_GDB_PARAM    *pparam,
 
     if (iBeStep) {                                                      /* 单步，在下一条指令设置断点   */
         archGdbRegsGet(pparam->GDB_pvDtrace, pdmsg->DTM_ulThread, &regset);
-        addrNP = archGdbGetNextPc(&regset);
+        addrNP = archGdbGetNextPc(pparam->GDB_pvDtrace, pdmsg->DTM_ulThread, &regset);
         API_DtraceThreadStepSet(pparam->GDB_pvDtrace, pdmsg->DTM_ulThread, addrNP);
     }
 
@@ -1009,6 +1009,7 @@ static INT gdbGoTo (LW_GDB_PARAM    *pparam,
 ** 输　出  : addrText      text段地址
 **           addrData      data段地址
 **           addrBss       bss段地址
+**           bSo           是否so文件
 **           返回值        ERROR_NONE 表示没有错误, PX_ERROR 表示错误
 ** 全局变量:
 ** 调用模块:
@@ -1017,7 +1018,8 @@ static INT gdbGetElfOffset (pid_t   pid,
                             PCHAR   pcModPath,
                             addr_t *addrText,
                             addr_t *addrData,
-                            addr_t *addrBss)
+                            addr_t *addrBss,
+                            BOOL   *bSo)
 {
     addr_t          addrBase;
     INT             iFd;
@@ -1026,6 +1028,7 @@ static INT gdbGetElfOffset (pid_t   pid,
 
     Elf_Ehdr        ehdr;
     Elf_Shdr       *pshdr;
+    Elf_Phdr       *pphdr;
     size_t          stHdSize;
     PCHAR           pcBuf    = NULL;
     PCHAR           pcShName = NULL;
@@ -1045,7 +1048,8 @@ static INT gdbGetElfOffset (pid_t   pid,
         return  (PX_ERROR);
     }
 
-    if (ehdr.e_type == ET_REL) {
+    if (ehdr.e_type == ET_REL) {                                        /*  ko 文件                     */
+        (*bSo)   = LW_FALSE;
         stHdSize = ehdr.e_shentsize * ehdr.e_shnum;
 
         pcBuf = (PCHAR)LW_GDB_SAFEMALLOC(stHdSize);
@@ -1103,10 +1107,49 @@ static INT gdbGetElfOffset (pid_t   pid,
                 (*addrBss) = addrBase + pshdr[i].sh_addr;
             }
         }
-    } else {                                                            /* so文件全部设置成模块基地址   */
-        (*addrText) = addrBase;
-        (*addrData) = addrBase;
-        (*addrBss)  = addrBase;
+    } else {                                                            /*  so 文件                     */
+        (*bSo)   = LW_TRUE;
+    	stHdSize = ehdr.e_phentsize * ehdr.e_phnum;
+        pcBuf    = (PCHAR)LW_GDB_SAFEMALLOC((stHdSize + ehdr.e_shentsize));
+
+        if (LW_NULL == pcBuf) {
+            close(iFd);
+            LW_GDB_SAFEFREE(pcBuf);
+            return  (PX_ERROR);
+        }
+
+        if (lseek(iFd, ehdr.e_phoff, SEEK_SET) < 0) {
+            close(iFd);
+            LW_GDB_SAFEFREE(pcBuf);
+            return  (PX_ERROR);
+        }
+
+        if (read(iFd, pcBuf, stHdSize) < stHdSize) {
+            close(iFd);
+            LW_GDB_SAFEFREE(pcBuf);
+            return  (PX_ERROR);
+        }
+
+        pphdr = (Elf_Phdr *)pcBuf;
+        (*addrText) = 0;
+        (*addrData) = 0;
+        (*addrBss)  = 0;
+        for (i = 0; i < ehdr.e_phnum; i++) {
+            if (PT_LOAD != pphdr[i].p_type) {                           /*  只处理可加载段              */
+                continue;
+            }
+
+            if ((*addrText) == 0) {                                     /*  第一个可加载段位代码段      */
+                (*addrText) = addrBase + pphdr[i].p_vaddr;
+                continue;
+            }
+
+            if ((*addrData) == 0) {                                     /*  第二个可加载段位数据段      */
+                (*addrData) = addrBase + pphdr[i].p_vaddr;
+                (*addrBss)  = addrBase + pphdr[i].p_vaddr;
+                break;
+            }
+        }
     }
 
     close(iFd);
@@ -1153,6 +1196,7 @@ static INT gdbCmdQuery (LW_GDB_PARAM *pparam, PCHAR pcInBuff, PCHAR pcOutBuff)
     addr_t            addrText = 0;
     addr_t            addrData = 0;
     addr_t            addrBss  = 0;
+    BOOL              bSo;
 
     UINT              i;
     UINT              uiStrLen = 0;
@@ -1161,29 +1205,46 @@ static INT gdbCmdQuery (LW_GDB_PARAM *pparam, PCHAR pcInBuff, PCHAR pcOutBuff)
 
     if (lib_strstr(pcInBuff, "Offsets") == pcInBuff) {                  /* 返回程序重定位信息           */
         if (gdbGetElfOffset(pparam->GDB_iPid, pparam->GDB_cProgPath,
-                            &addrText, &addrData, &addrBss) != ERROR_NONE) {
+                            &addrText, &addrData, &addrBss, &bSo) != ERROR_NONE) {
             pcOutBuff[0] = 0;
         }
+        /*
+         *  部分体系结构如mips需要返回64位的有符号偏移，而对于32位的体系结构如arm，gdb会自动截断.
+         *  为扩展符号位将地址先转换成LONG再转换成INT64
+         */
         if (addrText) {
-            sprintf(pcOutBuff, "Text=%lx;", (ULONG)addrText);
-            if (addrData) {
-                sprintf(pcOutBuff + lib_strlen(pcOutBuff), "Data=%lx;", (ULONG)addrData);
-                sprintf(pcOutBuff + lib_strlen(pcOutBuff), "Bss=%lx", (ULONG)addrData);
+            if (bSo) {
+                sprintf(pcOutBuff, "TextSeg=%llx;", (INT64)(LONG)addrText);
+                if (addrData) {
+                    sprintf(pcOutBuff + lib_strlen(pcOutBuff), "DataSeg=%llx", (INT64)(LONG)addrData);
+                }
+            } else {
+                sprintf(pcOutBuff, "Text=%llx;", (INT64)(LONG)addrText);
+                if (addrData) {
+                    sprintf(pcOutBuff + lib_strlen(pcOutBuff), "Data=%llx;", (INT64)(LONG)addrData);
+                    sprintf(pcOutBuff + lib_strlen(pcOutBuff), "Bss=%llx", (INT64)(LONG)addrData);
+                }
             }
         } else {
             pcOutBuff[0] = 0;
         }
     
     } else if (lib_strstr(pcInBuff, "Supported") == pcInBuff) {         /* 获取能力项                   */
+#ifdef LW_CFG_CPU_ARCH_MIPS
+        sprintf(pcOutBuff, "PacketSize=1000;"
+                           "qXfer:libraries:read+;"
+                           "QNonStop+");
+#else
         sprintf(pcOutBuff, "PacketSize=1000;"
                            "qXfer:features:read+;"
                            "qXfer:libraries:read+;"
                            "QNonStop+");
+#endif
     
-    }else if (lib_strstr(pcInBuff, "Xfer:features:read:target.xml") == pcInBuff) {
+    } else if (lib_strstr(pcInBuff, "Xfer:features:read:target.xml") == pcInBuff) {
         sprintf(pcOutBuff, archGdbTargetXml());
     
-    }else if (lib_strstr(pcInBuff, "Xfer:features:read:arm-core.xml") == pcInBuff) {
+    } else if (lib_strstr(pcInBuff, "Xfer:features:read:arch-core.xml") == pcInBuff) {
         sprintf(pcOutBuff, archGdbCoreXml());
     
     } else if (lib_strstr(pcInBuff, "Xfer:libraries:read") == pcInBuff) {
@@ -1458,7 +1519,7 @@ static INT gdbContHandle (LW_GDB_PARAM     *pparam,
                                     pthItem->TH_ulId, (PX_ERROR));
 
             archGdbRegsGet(pparam->GDB_pvDtrace, pthItem->TH_ulId, &regset);
-            if (!gdbIsBP(pparam, regset.regArr[15].GDBRA_ulValue)) {
+            if (!gdbIsBP(pparam, archGdbRegGetPc(&regset))) {
                 API_DtraceDelBreakInfo(pparam->GDB_pvDtrace,
                                        pthItem->TH_ulId,
                                        addrNP,
@@ -1470,7 +1531,7 @@ static INT gdbContHandle (LW_GDB_PARAM     *pparam,
         case 'S':
         case 's':
         case 'r':
-            addrNP = archGdbGetNextPc(&regset);
+            addrNP = archGdbGetNextPc(pparam->GDB_pvDtrace, pthItem->TH_ulId, &regset);
             API_DtraceThreadStepSet(pparam->GDB_pvDtrace,
                                     pthItem->TH_ulId, addrNP);
                                                                         /* 不需要break                  */
@@ -2043,7 +2104,7 @@ static INT gdbEventLoop (LW_GDB_PARAM *pparam)
                 if (gdbInStepRange(pparam, &dmsg)) {
 
                     archGdbRegsGet(pparam->GDB_pvDtrace, dmsg.DTM_ulThread, &regset);
-                    addrNP = archGdbGetNextPc(&regset);
+                    addrNP = archGdbGetNextPc(pparam->GDB_pvDtrace, dmsg.DTM_ulThread, &regset);
                     API_DtraceThreadStepSet(pparam->GDB_pvDtrace,
                                             dmsg.DTM_ulThread, addrNP);
                     if (pparam->GDB_lOpCThreadId <= 0) {

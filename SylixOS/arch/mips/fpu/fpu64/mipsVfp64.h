@@ -10,21 +10,22 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: mips32Mmu.h
+** 文   件   名: mipsVfp64.h
 **
-** 创   建   人: Jiao.JinXing (焦进星)
+** 创   建   人: Ryan.Xin (信金龙)
 **
-** 文件创建日期: 2015 年 10 月 12 日
+** 文件创建日期: 2015 年 12 月 01 日
 **
-** 描        述: MIPS32 体系构架 MMU 驱动.
+** 描        述: MIPS 体系架构 VPU64 支持.
 *********************************************************************************************************/
 
-#ifndef __MIPS32_MMU_H
-#define __MIPS32_MMU_H
+#ifndef __MIPSVFP64_H
+#define __MIPSVFP64_H
 
-VOID   mips32MmuInit(LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName);
+PMIPS_FPU_OP  mipsVfp64PrimaryInit(CPCHAR  pcMachineName, CPCHAR  pcFpuName);
+VOID          mipsVfp64SecondaryInit(CPCHAR  pcMachineName, CPCHAR  pcFpuName);
 
-#endif                                                                  /*  __MIPS32_MMU_H              */
+#endif                                                                  /*  __MIPSVFP64_H               */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

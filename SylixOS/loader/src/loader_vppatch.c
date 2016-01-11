@@ -1976,9 +1976,9 @@ ssize_t  vprocGetModsInfo (pid_t  pid, PCHAR  pcBuff, size_t stMaxLen)
         pmodTemp = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);
 
         stXmlLen = bnprintf(pcBuff, stMaxLen, stXmlLen, 
-                            "<library name=\"%s\"><segment address=\"0x%lx\"/></library>",
+                            "<library name=\"%s\"><segment address=\"0x%llx\"/></library>",
                             pmodTemp->EMOD_pcModulePath,
-                            (ULONG)pmodTemp->EMOD_pvBaseAddr);
+                            (INT64)(LONG)pmodTemp->EMOD_pvBaseAddr);
     }
     LW_VP_UNLOCK(pvproc);
     LW_LD_UNLOCK();

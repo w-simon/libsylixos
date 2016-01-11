@@ -82,6 +82,7 @@ VOID    archDbgAbInsert(addr_t   ulAddr, ULONG  *pulIns);
 VOID    archDbgBpRemove(addr_t   ulAddr, size_t stSize, ULONG   ulIns, BOOL  bLocal);
 VOID    archDbgBpPrefetch(addr_t ulAddr);
 UINT    archDbgTrapType(addr_t   ulAddr, PVOID   pvArch);
+VOID    archDbgBpAdjust(PVOID  pvDtrace, PVOID   pvtm);
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
 
 /*********************************************************************************************************
@@ -120,6 +121,7 @@ VOID    archReboot(INT  iRebootType, addr_t  ulStartAddress);
 *********************************************************************************************************/
 
 #define MIPS_MACHINE_24KF   "24kf"
+#define MIPS_MACHINE_LS1B   "loongson1b"
 
 #if LW_CFG_CACHE_EN > 0
 VOID    archCacheReset(CPCHAR     pcMachineName);
@@ -211,6 +213,7 @@ VOID    archMpInt(ULONG  ulCPUId);
 
 #define MIPS_FPU_VFP32    "vfp32"
 #define MIPS_FPU_VFP64    "vfp64"
+#define MIPS_FPU_NONE     "none"
 
 #if LW_CFG_CPU_FPU_EN > 0
 VOID    archFpuPrimaryInit(CPCHAR  pcMachineName, CPCHAR  pcFpuName);

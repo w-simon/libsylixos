@@ -59,7 +59,11 @@ INT     archGdbRegSetPc(PVOID              pvDtrace,
                         LW_OBJECT_HANDLE   ulThread, 
                         ULONG              uiPc);                       /*  设置pc寄存器                */
 
-ULONG   archGdbGetNextPc(GDB_REG_SET *pRegs);                           /*  获取下一个pc值，含分支预测  */
+ULONG   archGdbRegGetPc(GDB_REG_SET *pRegs);                            /*  获取 pc 寄存器值            */
+
+ULONG   archGdbGetNextPc(PVOID pvDtrace,
+                         LW_OBJECT_HANDLE ulThread,
+                         GDB_REG_SET *pRegs);                           /*  获取下一个pc值，含分支预测  */
 
 #endif                                                                  /*  __ARCH_ARM_GDB_H            */
 /*********************************************************************************************************

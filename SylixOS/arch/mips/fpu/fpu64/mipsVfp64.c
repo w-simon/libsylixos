@@ -10,13 +10,13 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: mipsVfp32.c
+** 文   件   名: mipsVfp64.c
 **
 ** 创   建   人: Ryan.Xin (信金龙)
 **
-** 文件创建日期: 2015 年 11 月 17 日
+** 文件创建日期: 2015 年 12 月 01 日
 **
-** 描        述: MIPS 体系架构 VPU32 支持.
+** 描        述: MIPS 体系架构 VPU64 支持.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -29,21 +29,21 @@
 /*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
-static MIPS_FPU_OP  _G_fpuopVfp32;
-static INT          _G_iVfp32DNum;
+static MIPS_FPU_OP  _G_fpuopVfp64;
+static INT          _G_iVfp64DNum;
 /*********************************************************************************************************
   实现函数
 *********************************************************************************************************/
-extern UINT32   mipsVfp32GetFIR(VOID);
-extern VOID     mipsVfp32Enable(VOID);
-extern VOID     mipsVfp32Disable(VOID);
-extern BOOL     mipsVfp32IsEnable(VOID);
-extern VOID     mipsVfp32Save16(PVOID pvFpuCtx);
-extern VOID     mipsVfp32Restore16(PVOID pvFpuCtx);
-extern VOID     mipsVfp32Save32(PVOID pvFpuCtx);
-extern VOID     mipsVfp32Restore32(PVOID pvFpuCtx);
+extern UINT32   mipsVfp64GetFIR(VOID);
+extern VOID     mipsVfp64Enable(VOID);
+extern VOID     mipsVfp64Disable(VOID);
+extern BOOL     mipsVfp64IsEnable(VOID);
+extern VOID     mipsVfp64Save16(PVOID pvFpuCtx);
+extern VOID     mipsVfp64Restore16(PVOID pvFpuCtx);
+extern VOID     mipsVfp64Save32(PVOID pvFpuCtx);
+extern VOID     mipsVfp64Restore32(PVOID pvFpuCtx);
 /*********************************************************************************************************
-** 函数名称: mipsVfp32CtxShow
+** 函数名称: mipsVfp64CtxShow
 ** 功能描述: 显示 VFP 上下文
 ** 输　入  : iFd       输出文件描述符
 **           pvFpuCtx  VFP 上下文
@@ -51,7 +51,7 @@ extern VOID     mipsVfp32Restore32(PVOID pvFpuCtx);
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  mipsVfp32CtxShow (INT iFd, PVOID pvFpuCtx)
+static VOID  mipsVfp64CtxShow (INT iFd, PVOID pvFpuCtx)
 {
     LW_FPU_CONTEXT *pfpuCtx    = (LW_FPU_CONTEXT *)pvFpuCtx;
     ARCH_FPU_CTX   *pcpufpuCtx = &pfpuCtx->FPUCTX_fpuctxContext;
@@ -59,13 +59,13 @@ static VOID  mipsVfp32CtxShow (INT iFd, PVOID pvFpuCtx)
 
     fdprintf(iFd, "FPCSR   = 0x%08x\n", pcpufpuCtx->FPUCTX_uiFpcsr);
 
-    for (i = 0; i < _G_iVfp32DNum; i += 2) {
+    for (i = 0; i < _G_iVfp64DNum; i += 2) {
         fdprintf(iFd, "FPS[%02d] = 0x%08x  ", i,     pcpufpuCtx->FPUCTX_uiDreg[i]);
         fdprintf(iFd, "FPS[%02d] = 0x%08x\n", i + 1, pcpufpuCtx->FPUCTX_uiDreg[i + 1]);
     }
 }
 /*********************************************************************************************************
-** 函数名称: mipsVfp32PrimaryInit
+** 函数名称: mipsVfp64PrimaryInit
 ** 功能描述: 初始化并获取 VFP 控制器操作函数集
 ** 输　入  : pcMachineName 机器名
 **           pcFpuName     浮点运算器名
@@ -73,28 +73,28 @@ static VOID  mipsVfp32CtxShow (INT iFd, PVOID pvFpuCtx)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-PMIPS_FPU_OP  mipsVfp32PrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
+PMIPS_FPU_OP  mipsVfp64PrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 {
-    if (mipsVfp32GetFIR() == 0) {
-        _G_iVfp32DNum = 32;
-        _G_fpuopVfp32.MFPU_pfuncSave    = mipsVfp32Save16;
-        _G_fpuopVfp32.MFPU_pfuncRestore = mipsVfp32Restore16;
+    if (mipsVfp64GetFIR() == 0) {
+        _G_iVfp64DNum = 32;
+        _G_fpuopVfp64.MFPU_pfuncSave    = mipsVfp64Save16;
+        _G_fpuopVfp64.MFPU_pfuncRestore = mipsVfp64Restore16;
 
     } else {
-        _G_iVfp32DNum = 64;
-        _G_fpuopVfp32.MFPU_pfuncSave    = mipsVfp32Save32;
-        _G_fpuopVfp32.MFPU_pfuncRestore = mipsVfp32Restore32;
+        _G_iVfp64DNum = 64;
+        _G_fpuopVfp64.MFPU_pfuncSave    = mipsVfp64Save32;
+        _G_fpuopVfp64.MFPU_pfuncRestore = mipsVfp64Restore32;
     }
 
-    _G_fpuopVfp32.MFPU_pfuncEnable   = mipsVfp32Enable;
-    _G_fpuopVfp32.MFPU_pfuncDisable  = mipsVfp32Disable;
-    _G_fpuopVfp32.MFPU_pfuncIsEnable = mipsVfp32IsEnable;
-    _G_fpuopVfp32.MFPU_pfuncCtxShow  = mipsVfp32CtxShow;
+    _G_fpuopVfp64.MFPU_pfuncEnable   = mipsVfp64Enable;
+    _G_fpuopVfp64.MFPU_pfuncDisable  = mipsVfp64Disable;
+    _G_fpuopVfp64.MFPU_pfuncIsEnable = mipsVfp64IsEnable;
+    _G_fpuopVfp64.MFPU_pfuncCtxShow  = mipsVfp64CtxShow;
 
-    return  (&_G_fpuopVfp32);
+    return  (&_G_fpuopVfp64);
 }
 /*********************************************************************************************************
-** 函数名称: mipsVfp32SecondaryInit
+** 函数名称: mipsVfp64SecondaryInit
 ** 功能描述: 初始化 VFP 控制器
 ** 输　入  : pcMachineName 机器名
 **           pcFpuName     浮点运算器名
@@ -102,7 +102,7 @@ PMIPS_FPU_OP  mipsVfp32PrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  mipsVfp32SecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
+VOID  mipsVfp64SecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 {
     (VOID)pcMachineName;
     (VOID)pcFpuName;

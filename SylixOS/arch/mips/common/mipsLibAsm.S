@@ -61,8 +61,8 @@
 
 FUNC_DEF(archIntDisable)
     MFC0(V0, CP0_STATUS)
-    AND     V1 , V0 , 0XFFFFFFFE
-    MTC0(V1, CP0_STATUS)
+    AND     T0 , V0 , ~M_StatusIE
+    MTC0(T0, CP0_STATUS)
     JR      RA
     NOP
 FUNC_END(archIntDisable)
@@ -70,8 +70,15 @@ FUNC_END(archIntDisable)
 ;/*********************************************************************************************************
 ;  MIPS 打开总中断
 ;*********************************************************************************************************/
+
 FUNC_DEF(archIntEnable)
-    MTC0(V0, CP0_STATUS)
+    AND     A0 , A0 , M_StatusIE
+    BEQ     A0 , 0 , 1f
+	NOP
+	MFC0(T0, CP0_STATUS)
+    OR      T1 , T0 , M_StatusIE
+    MTC0(T1, CP0_STATUS)
+1:
     JR      RA
     NOP
 FUNC_END(archIntEnable)
@@ -81,9 +88,9 @@ FUNC_END(archIntEnable)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archIntEnableForce)
-    MFC0(V0, CP0_STATUS)
-    OR      V1 , V0 , 1 << S_StatusIE
-    MTC0(V1, CP0_STATUS)
+    MFC0(T0, CP0_STATUS)
+    OR      T1 , T0 , M_StatusIE
+    MTC0(T1, CP0_STATUS)
     JR      RA
     NOP
 FUNC_END(archIntEnableForce)
@@ -99,14 +106,14 @@ FUNC_DEF(archFindLsb)
     CLZ     A0 , A0
     LI      V0 , 32
     J       RA
-    SUBU    V0, V0, A0
+    SUBU    V0 , V0 , A0
 FUNC_END(archFindLsb)
 
 FUNC_DEF(archFindMsb)
-    CLZ     A0, A0
-    LI      V0, 32
+    CLZ     A0 , A0
+    LI      V0 , 32
     J       RA
-    SUBU    V0, V0, A0
+    SUBU    V0 , V0 , A0
 FUNC_END(archFindMsb)
 #endif
 
@@ -132,33 +139,32 @@ FUNC_END(archFindMsb)
 ;*********************************************************************************************************/
 
 FUNC_DEF(sigsetjmp)
-    SUBU    SP, 16
-    SW      RA, 12(SP)
-    SW      A0, 8(SP)
-    SW      A1, 4(SP)
+    SUBU    SP , 16
+    SW      RA , 12(SP)
+    SW      A0 , 8(SP)
+    SW      A1 , 4(SP)
     JAL     __sigsetjmpSetup
     NOP
-    LW      A1, 4(SP)
-    LW      A0, 8(SP)
-    LW      RA, 12(SP)
-    ADDU    SP, 16
+    LW      A1 , 4(SP)
+    LW      A0 , 8(SP)
+    LW      RA , 12(SP)
+    ADDU    SP , 16
 
-    SW      S0,  0(A0)                                                  ;/* Save registers in jump buffer*/
-    SW      S1,  4(A0)
-    SW      S2,  8(A0)
-    SW      S3, 12(A0)
-    SW      S4, 16(A0)
-    SW      S5, 20(A0)
-    SW      S6, 24(A0)
-    SW      S7, 28(A0)
-    SW      GP, 32(A0)
-    SW      SP, 36(A0)
-    SW      FP, 40(A0)
-    SW      RA, 44(A0)
+    SW      S0 ,  0(A0)                                                 ;/*  Save registers in jump buf  */
+    SW      S1 ,  4(A0)
+    SW      S2 ,  8(A0)
+    SW      S3 , 12(A0)
+    SW      S4 , 16(A0)
+    SW      S5 , 20(A0)
+    SW      S6 , 24(A0)
+    SW      S7 , 28(A0)
+    SW      GP , 32(A0)
+    SW      SP , 36(A0)
+    SW      FP , 40(A0)
+    SW      RA , 44(A0)
 
-    MOV     V0, ZERO                                                    ;/* Return zero.                 */
     JR      RA
-    NOP
+    MOV     V0 , ZERO                                                   ;/*  Return zero.                */
 FUNC_END(sigsetjmp)
 
 ;/*********************************************************************************************************
@@ -166,31 +172,30 @@ FUNC_END(sigsetjmp)
 ;*********************************************************************************************************/
 
 FUNC_DEF(setjmp)
-    SUBU    SP, 12
-    SW      RA, 8(SP)
-    SW      A0, 4(SP)
+    SUBU    SP , 12
+    SW      RA , 8(SP)
+    SW      A0 , 4(SP)
     JAL     __setjmpSetup
     NOP
-    LW      A0, 4(SP)
-    LW      RA, 8(SP)
-    ADDU    SP, 12
+    LW      A0 , 4(SP)
+    LW      RA , 8(SP)
+    ADDU    SP , 12
 
-    SW      S0,  0(A0)                                                  ;/* Save registers in jump buffer*/
-    SW      S1,  4(A0)
-    SW      S2,  8(A0)
-    SW      S3, 12(A0)
-    SW      S4, 16(A0)
-    SW      S5, 20(A0)
-    SW      S6, 24(A0)
-    SW      S7, 28(A0)
-    SW      GP, 32(A0)
-    SW      SP, 36(A0)
-    SW      FP, 40(A0)
-    SW      RA, 44(A0)
+    SW      S0 ,  0(A0)                                                 ;/*  Save registers in jump buf  */
+    SW      S1 ,  4(A0)
+    SW      S2 ,  8(A0)
+    SW      S3 , 12(A0)
+    SW      S4 , 16(A0)
+    SW      S5 , 20(A0)
+    SW      S6 , 24(A0)
+    SW      S7 , 28(A0)
+    SW      GP , 32(A0)
+    SW      SP , 36(A0)
+    SW      FP , 40(A0)
+    SW      RA , 44(A0)
 
-    MOV     V0, ZERO                                                    ;/* Return zero.                 */
     JR      RA
-    NOP
+    MOV     V0 , ZERO                                                   ;/*  Return zero.                */
 FUNC_END(setjmp)
 
 ;/*********************************************************************************************************
@@ -198,36 +203,36 @@ FUNC_END(setjmp)
 ;*********************************************************************************************************/
 
 FUNC_DEF(siglongjmp)
-    SUBU    SP, 16
-    SW      RA, 12(SP)
-    SW      A0, 8(SP)
-    SW      A1, 4(SP)
+    SUBU    SP , 16
+    SW      RA , 12(SP)
+    SW      A0 , 8(SP)
+    SW      A1 , 4(SP)
     JAL     __siglongjmpSetup
     NOP
-    LW      A1, 4(SP)
-    LW      A0, 8(SP)
-    LW      RA, 12(SP)
-    ADDU    SP, 16
+    LW      A1 , 4(SP)
+    LW      A0 , 8(SP)
+    LW      RA , 12(SP)
+    ADDU    SP , 16
 
-    LW      S0,  0(A0)
-    LW      S1,  4(A0)
-    LW      S2,  8(A0)
-    LW      S3, 12(A0)
-    LW      S4, 16(A0)
-    LW      S5, 20(A0)
-    LW      S6, 24(A0)
-    LW      S7, 28(A0)
-    LW      GP, 32(A0)
-    LW      SP, 36(A0)
-    LW      FP, 40(A0)
-    LW      RA, 44(A0)
+    LW      S0 ,  0(A0)
+    LW      S1 ,  4(A0)
+    LW      S2 ,  8(A0)
+    LW      S3 , 12(A0)
+    LW      S4 , 16(A0)
+    LW      S5 , 20(A0)
+    LW      S6 , 24(A0)
+    LW      S7 , 28(A0)
+    LW      GP , 32(A0)
+    LW      SP , 36(A0)
+    LW      FP , 40(A0)
+    LW      RA , 44(A0)
 
-    MOV     V0, A1                                                      ;/* Return the result argument,  */
-    BNE     V0, 1, 2f                                                   ;/* or 1 if it is zero.          */
+    MOV     V0 , A1                                                     ;/*  Return the result argument, */
+    BNE     V0 , 0, 1f                                                  ;/*  or 1 if it is zero.         */
     NOP
-    LI      V0, 1
+    LI      V0 , 1
 
-2:
+1:
     JR      RA
     NOP
 FUNC_END(siglongjmp)
@@ -237,36 +242,36 @@ FUNC_END(siglongjmp)
 ;*********************************************************************************************************/
 
 FUNC_DEF(longjmp)
-    SUBU    SP, 16
-    SW      RA, 12(SP)
-    SW      A0, 8(SP)
-    SW      A1, 4(SP)
+    SUBU    SP , 16
+    SW      RA , 12(SP)
+    SW      A0 , 8(SP)
+    SW      A1 , 4(SP)
     JAL     __longjmpSetup
     NOP
-    LW      A1, 4(SP)
-    LW      A0, 8(SP)
-    LW      RA, 12(SP)
-    ADDU    SP, 16
+    LW      A1 , 4(SP)
+    LW      A0 , 8(SP)
+    LW      RA , 12(SP)
+    ADDU    SP , 16
 
-    LW      S0,  0(A0)
-    LW      S1,  4(A0)
-    LW      S2,  8(A0)
-    LW      S3, 12(A0)
-    LW      S4, 16(A0)
-    LW      S5, 20(A0)
-    LW      S6, 24(A0)
-    LW      S7, 28(A0)
-    LW      GP, 32(A0)
-    LW      SP, 36(A0)
-    LW      FP, 40(A0)
-    LW      RA, 44(A0)
+    LW      S0 ,  0(A0)
+    LW      S1 ,  4(A0)
+    LW      S2 ,  8(A0)
+    LW      S3 , 12(A0)
+    LW      S4 , 16(A0)
+    LW      S5 , 20(A0)
+    LW      S6 , 24(A0)
+    LW      S7 , 28(A0)
+    LW      GP , 32(A0)
+    LW      SP , 36(A0)
+    LW      FP , 40(A0)
+    LW      RA , 44(A0)
 
-    MOV     V0, A1                                                      ;/* Return the result argument,  */
-    BNE     V0, 1, 2f                                                   ;/* or 1 if it is zero.          */
+    MOV     V0 , A1                                                     ;/*  Return the result argument, */
+    BNE     V0 , 0, 1f                                                  ;/*  or 1 if it is zero.         */
     NOP
-    LI      V0, 1
+    LI      V0 , 1
 
-2:
+1:
     JR      RA
     NOP
 FUNC_END(longjmp)
@@ -276,7 +281,7 @@ FUNC_END(longjmp)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archReboot)
-    JAL     bspReboot                                                   ;/* 不再返回, 由 BSP 进行复位操作*/
+    JAL     bspReboot                                                   ;/*  由BSP进行复位操作, 不再返回 */
     NOP
 FUNC_END(archReboot)
 

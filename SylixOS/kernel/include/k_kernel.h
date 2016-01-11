@@ -48,9 +48,9 @@
 
 #define __SYLIXOS_MAKEVER(a, b, c)      (((a) << 16) + ((b) << 8) + (c))
 #define __SYLIXOS_VERSION               __SYLIXOS_MAKEVER(1, 2, 1)
-#define __SYLIXOS_VERPATCH              0x6                             /* 小于 0x10000 为测试版        */
+#define __SYLIXOS_VERPATCH              0x7                             /* 小于 0x10000 为测试版        */
                                                                         /* 等于 0x10000 为正式发布版本  */
-#define __SYLIXOS_VERSTR                "1.2.1-6"
+#define __SYLIXOS_VERSTR                "1.2.1-7"
 #define __SYLIXOS_RELSTR                "NeZha(a)"
 
 #define __SYLIXOS_VERINFO               "SylixOS kernel version: "  \
