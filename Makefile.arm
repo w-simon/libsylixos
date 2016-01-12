@@ -1062,8 +1062,12 @@ SylixOS/system/device/pci/pciAutoCfg.c \
 SylixOS/system/device/pci/pciCap.c \
 SylixOS/system/device/pci/pciCapExt.c \
 SylixOS/system/device/pci/pciDb.c \
+SylixOS/system/device/pci/pciDev.c \
+SylixOS/system/device/pci/pciDrv.c \
+SylixOS/system/device/pci/pciError.c \
 SylixOS/system/device/pci/pciLib.c \
 SylixOS/system/device/pci/pciMsi.c \
+SylixOS/system/device/pci/pciPm.c \
 SylixOS/system/device/pci/pciProc.c \
 SylixOS/system/device/pci/pciScan.c \
 SylixOS/system/device/pci/pciShow.c \

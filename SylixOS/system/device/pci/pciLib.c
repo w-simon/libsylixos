@@ -37,15 +37,17 @@ PCI_CONFIG      *_G_p_pciConfig;
 /*********************************************************************************************************
   PCI 主控器配置 IO 操作 PCI_MECHANISM_0
 *********************************************************************************************************/
-#define PCI_CFG_READ(iBus, iSlot, iFunc, iOft, iLen, pvRet)     \
+#define PCI_CFG_READ(iBus, iSlot, iFunc, iOft, iLen, pvRet)                                             \
         _G_p_pciConfig->PCIC_pDrvFuncs0->cfgRead(iBus, iSlot, iFunc, iOft, iLen, pvRet)
-#define PCI_CFG_WRITE(iBus, iSlot, iFunc, iOft, iLen, uiData)   \
+#define PCI_CFG_WRITE(iBus, iSlot, iFunc, iOft, iLen, uiData)                                           \
         _G_p_pciConfig->PCIC_pDrvFuncs0->cfgWrite(iBus, iSlot, iFunc, iOft, iLen, uiData)
-#define PCI_VPD_READ(iBus, iSlot, iFunc, iPos, pucBuf, iLen)     \
+#define PCI_VPD_READ(iBus, iSlot, iFunc, iPos, pucBuf, iLen)                                            \
         _G_p_pciConfig->PCIC_pDrvFuncs0->vpdRead(iBus, iSlot, iFunc, iPos, pucBuf, iLen)
-#define PCI_CFG_SPCL(iBus, uiMsg)                               \
+#define PCI_IRQ_GET(iBus, iSlot, iFunc, iMsiEn, iLine, iPin, pulVector)                                 \
+        _G_p_pciConfig->PCIC_pDrvFuncs0->irqGet(iBus, iSlot, iFunc, iMsiEn, iLine, iPin, pulVector)
+#define PCI_CFG_SPCL(iBus, uiMsg)                                                                       \
         _G_p_pciConfig->PCIC_pDrvFuncs0->cfgSpcl(iBus, uiMsg)
-#define PCI_CFG_SPCL_IS_EN()                                    \
+#define PCI_CFG_SPCL_IS_EN()                                                                            \
         _G_p_pciConfig->PCIC_pDrvFuncs0->cfgSpcl
 /*********************************************************************************************************
   PCI 主控器配置地址 PCI_MECHANISM_1 2
@@ -85,15 +87,19 @@ INT  API_PciConfigInit (PCI_CONFIG *p_pcicfg)
 #if LW_CFG_PROCFS_EN > 0
         __procFsPciInit();
 #endif                                                                  /*  LW_CFG_PROCFS_EN > 0        */
+
+        API_PciDevInit();
+        API_PciDevListCreate();
+        API_PciDrvInit();
     }
     
     if (_G_p_pciConfig->PCIC_ulLock == LW_OBJECT_HANDLE_INVALID) {
-        _G_p_pciConfig->PCIC_ulLock =  API_SemaphoreMCreate("pci_lock", LW_PRIO_DEF_CEILING, 
-                                                            LW_OPTION_WAIT_PRIORITY |
-                                                            LW_OPTION_DELETE_SAFE |
-                                                            LW_OPTION_INHERIT_PRIORITY |
-                                                            LW_OPTION_OBJECT_GLOBAL,
-                                                            LW_NULL);
+        _G_p_pciConfig->PCIC_ulLock = API_SemaphoreMCreate("pci_lock", LW_PRIO_DEF_CEILING,
+                                                           LW_OPTION_WAIT_PRIORITY |
+                                                           LW_OPTION_DELETE_SAFE |
+                                                           LW_OPTION_INHERIT_PRIORITY |
+                                                           LW_OPTION_OBJECT_GLOBAL,
+                                                           LW_NULL);
     }
     
     return  (_G_p_pciConfig) ? (ERROR_NONE) : (PX_ERROR);
@@ -1338,6 +1344,51 @@ INT  API_PciVpdRead (INT iBus, INT iSlot, INT iFunc, INT iPos, UINT8 *pucBuf, IN
 
     case PCI_MECHANISM_0:
         iRetVal = PCI_VPD_READ(iBus, iSlot, iFunc, iPos, pucBuf, iLen);
+        break;
+
+    case PCI_MECHANISM_1:
+        iRetVal = PX_ERROR;
+        break;
+
+    case PCI_MECHANISM_2:
+        iRetVal = PX_ERROR;
+        break;
+
+    default:
+        break;
+    }
+
+    KN_INT_ENABLE(iregInterLevel);
+
+    return  (iRetVal);
+}
+/*********************************************************************************************************
+** 函数名称: API_PciIrqGet
+** 功能描述: 获取总的向量
+** 输　入  : iBus           总线号
+**           iSlot          插槽
+**           iFunc          功能
+**           iMsiEn         是否使能 MSI
+**           iLine          中断线
+**           iPin           中断引脚
+**           pulVector      中断向量
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_PciIrqGet (INT iBus, INT iSlot, INT iFunc, INT iMsiEn, INT iLine, INT iPin, ULONG *pulVector)
+{
+    INTREG  iregInterLevel;
+    INT     iRetVal = PX_ERROR;
+
+    iregInterLevel = KN_INT_DISABLE();
+
+    switch (_G_p_pciConfig->PCIC_ucMechanism) {
+
+    case PCI_MECHANISM_0:
+        iRetVal = PCI_IRQ_GET(iBus, iSlot, iFunc, iMsiEn, iLine, iPin, pulVector);
         break;
 
     case PCI_MECHANISM_1:
