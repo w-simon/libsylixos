@@ -150,7 +150,7 @@ INT  API_ProcFsDrvInstall (VOID)
     
     _G_iProcDrvNum = iosDrvInstallEx(&fileop);
      
-    DRIVER_LICENSE(_G_iProcDrvNum,     "Dual BSD/GPL->Ver 1.0");
+    DRIVER_LICENSE(_G_iProcDrvNum,     "GPL->Ver 2.0");
     DRIVER_AUTHOR(_G_iProcDrvNum,      "Han.hui");
     DRIVER_DESCRIPTION(_G_iProcDrvNum, "procfs driver.");
     

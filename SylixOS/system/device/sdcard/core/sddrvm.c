@@ -450,6 +450,9 @@ LW_API INT  API_SdmEventNotify (PVOID pvSdmHost, INT iEvtType)
     }
 
     switch (iEvtType) {
+    case SDM_EVENT_BOOT_DEV_INSERT:
+        __sdmDevCreate(psdmhost);
+        break;
     
     case SDM_EVENT_DEV_INSERT:
         iError = hotplugEvent((VOIDFUNCPTR)__sdmDevCreate, (PVOID)psdmhost, 0, 0, 0, 0, 0);

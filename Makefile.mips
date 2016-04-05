@@ -248,6 +248,15 @@ SylixOS/fs/romFs/romFs.c \
 SylixOS/fs/romFs/romFsLib.c \
 SylixOS/fs/rootFs/rootFs.c \
 SylixOS/fs/rootFs/rootFsLib.c \
+SylixOS/fs/tpsFs/tpsfs_btree.c \
+SylixOS/fs/tpsFs/tpsfs_dev_buf.c \
+SylixOS/fs/tpsFs/tpsfs_dir.c \
+SylixOS/fs/tpsFs/tpsfs_inode.c \
+SylixOS/fs/tpsFs/tpsfs_log.c \
+SylixOS/fs/tpsFs/tpsfs_super.c \
+SylixOS/fs/tpsFs/tpsfs_sylixos.c \
+SylixOS/fs/tpsFs/tpsfs_trans.c \
+SylixOS/fs/tpsFs/tpsfs.c \
 SylixOS/fs/unique/unique.c \
 SylixOS/fs/yaffs2/yaffs_allocator.c \
 SylixOS/fs/yaffs2/yaffs_attribs.c \

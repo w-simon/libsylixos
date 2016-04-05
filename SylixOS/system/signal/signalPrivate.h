@@ -111,6 +111,10 @@ typedef struct {
     sigset_t              SIGCTLMSG_sigsetMask;                         /*  信号句柄退出需要恢复的掩码  */
     struct siginfo        SIGCTLMSG_siginfo;                            /*  信号相关信息                */
     errno_t               SIGCTLMSG_iLastErrno;                         /*  保存的原始错误号            */
+
+#if LW_CFG_CPU_FPU_EN > 0
+    LW_FPU_CONTEXT        SIGCTLMSG_fpuctxContext;                      /*  FPU 上下文                  */
+#endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 } LW_CLASS_SIGCTLMSG;
 typedef LW_CLASS_SIGCTLMSG  *PLW_CLASS_SIGCTLMSG;
 

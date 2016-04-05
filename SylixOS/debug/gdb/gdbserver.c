@@ -295,11 +295,17 @@ static INT gdbAscToByte (PCHAR pcAsc)
 *********************************************************************************************************/
 static VOID gdbWord2Asc (PCHAR pcAsc, UINT32 ui32Word)
 {
-    INT i;
-
-    for (i = 0; i < 4; i++) {
-        gdbByte2Asc(pcAsc + i * 2, (ui32Word >> (i * 8)) & 0xFF);
-    }
+#if LW_CFG_CPU_ENDIAN == 0
+    gdbByte2Asc(pcAsc + 0, (ui32Word >>  0) & 0xFF);
+    gdbByte2Asc(pcAsc + 2, (ui32Word >>  8) & 0xFF);
+    gdbByte2Asc(pcAsc + 4, (ui32Word >> 16) & 0xFF);
+    gdbByte2Asc(pcAsc + 6, (ui32Word >> 24) & 0xFF);
+#else
+    gdbByte2Asc(pcAsc + 0, (ui32Word >> 24) & 0xFF);
+    gdbByte2Asc(pcAsc + 2, (ui32Word >> 16) & 0xFF);
+    gdbByte2Asc(pcAsc + 4, (ui32Word >>  8) & 0xFF);
+    gdbByte2Asc(pcAsc + 6, (ui32Word >>  0) & 0xFF);
+#endif
 }
 /*********************************************************************************************************
 ** 函数名称: gdbAscToWord
@@ -311,13 +317,20 @@ static VOID gdbWord2Asc (PCHAR pcAsc, UINT32 ui32Word)
 *********************************************************************************************************/
 static UINT32 gdbAscToWord (char *pcAsc)
 {
-    INT         i;
-    UINT32      ui32Ret = 0;
+    UINT32      ui32Ret;
 
-    for (i = 3; i >= 0; i--) {
-        ui32Ret = (ui32Ret << 8) + gdbAscToByte(pcAsc + i * 2);
-    }
-    
+#if LW_CFG_CPU_ENDIAN == 0
+    ui32Ret  = gdbAscToByte(pcAsc + 0) <<  0;
+    ui32Ret += gdbAscToByte(pcAsc + 2) <<  8;
+    ui32Ret += gdbAscToByte(pcAsc + 4) << 16;
+    ui32Ret += gdbAscToByte(pcAsc + 6) << 24;
+#else
+    ui32Ret  = gdbAscToByte(pcAsc + 0) << 24;
+    ui32Ret += gdbAscToByte(pcAsc + 2) << 16;
+    ui32Ret += gdbAscToByte(pcAsc + 4) <<  8;
+    ui32Ret += gdbAscToByte(pcAsc + 6) <<  0;
+#endif
+
     return  (ui32Ret);
 }
 /*********************************************************************************************************
@@ -1171,8 +1184,17 @@ static INT gdbGetElfOffset (pid_t   pid,
 static INT gdbHandleQCmd (LW_GDB_PARAM *pparam, PCHAR pcInBuff, PCHAR pcOutBuff)
 {
     if (lib_strstr(pcInBuff, "NonStop:1") == pcInBuff) {
+#ifndef LW_CFG_CPU_ARCH_PPC
         pparam->GDB_bNonStop = 1;
         gdbReplyOk(pcOutBuff);
+#else
+        /*
+         * PowerPC 在设置 NonStop 模式后，单步时 GDB 会拷贝下一条指令到某个地址执行，
+         * 该方法在相对跳转的指令会有问题
+         */
+        pparam->GDB_bNonStop = 0;
+        gdbReplyError(pcOutBuff, 0);
+#endif
 
     } else if (lib_strstr(pcInBuff, "NonStop:0") == pcInBuff) {
         pparam->GDB_bNonStop = 0;
@@ -2257,7 +2279,7 @@ static INT gdbMain (INT argc, CHAR **argv)
         return  (PX_ERROR);
     }
 
-    pparam->GDB_pvDtrace = API_DtraceCreate(LW_DTRACE_PROCESS, LW_DTRACE_F_KBP,
+    pparam->GDB_pvDtrace = API_DtraceCreate(LW_DTRACE_PROCESS, LW_DTRACE_F_DEF,
                                             API_ThreadIdSelf());        /*  创建dtrace对象              */
     if (pparam->GDB_pvDtrace == NULL) {
         gdbRelease(pparam);
