@@ -107,6 +107,13 @@ LINE_LABEL(__ppcVfpIsEnable)
 ;*********************************************************************************************************/
 
 FUNC_DEF(ppcVfpSave)
+    MFMSR   R4                                                          ;/*  读取 MSR                    */
+    ISYNC
+    ORI     R4    , R4 , ARCH_PPC_MSR_FP                                ;/*  设置 FP 位                  */
+    ISYNC
+    MTMSR   R4                                                          ;/*  设置 MSR                    */
+    ISYNC                                                               ;/*  同步                        */
+
     STFD    FPR0  ,  XFPR(0)(R3)                                        ;/*  保存 FPR0                   */
     STFD    FPR1  ,  XFPR(1)(R3)                                        ;/*  保存 FPR1                   */
     STFD    FPR2  ,  XFPR(2)(R3)                                        ;/*  保存 FPR2                   */

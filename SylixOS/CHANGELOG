@@ -9,7 +9,10 @@ HISTORY
     
     2016-03-31: han.hui
     加入 PowerPC 体系结构支持.
-    
+
+    2016-04-06: han.hui
+    加入 yaffs 对 nor flash 支持.
+
 ++ Bugfixes:
 
     2016-03-09: han.hui

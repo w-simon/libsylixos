@@ -1354,6 +1354,7 @@ static INT __sdMemMmcBusWidthChange (PLW_SDCORE_DEVICE psdcoredevice, INT iCardC
     }
 
     if (iCardCap & SDHOST_CAP_DATA_8BIT_DDR) {
+        API_SdCoreDevCtl(psdcoredevice, SDBUS_CTRL_SETBUSWIDTH, SDARG_SETBUSWIDTH_8_DDR);
         iError = API_SdCoreDevSwitch(psdcoredevice,
                                      EXT_CSD_CMD_SET_NORMAL,
                                      EXT_CSD_BUS_WIDTH,
@@ -1363,9 +1364,9 @@ static INT __sdMemMmcBusWidthChange (PLW_SDCORE_DEVICE psdcoredevice, INT iCardC
             SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "switch to 8Bit-DDR mode failed.\r\n");
             return  (iError);
         }
-        API_SdCoreDevCtl(psdcoredevice, SDBUS_CTRL_SETBUSWIDTH, SDARG_SETBUSWIDTH_8_DDR);
 
     } else if (iCardCap & SDHOST_CAP_DATA_4BIT_DDR) {
+        API_SdCoreDevCtl(psdcoredevice, SDBUS_CTRL_SETBUSWIDTH, SDARG_SETBUSWIDTH_4_DDR);
         iError = API_SdCoreDevSwitch(psdcoredevice,
                                      EXT_CSD_CMD_SET_NORMAL,
                                      EXT_CSD_BUS_WIDTH,
@@ -1375,9 +1376,9 @@ static INT __sdMemMmcBusWidthChange (PLW_SDCORE_DEVICE psdcoredevice, INT iCardC
             SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "switch to 4Bit-DDR mode failed.\r\n");
             return  (iError);
         }
-        API_SdCoreDevCtl(psdcoredevice, SDBUS_CTRL_SETBUSWIDTH, SDARG_SETBUSWIDTH_4_DDR);
 
     } else if (iCardCap & SDHOST_CAP_DATA_8BIT) {
+        API_SdCoreDevCtl(psdcoredevice, SDBUS_CTRL_SETBUSWIDTH, SDARG_SETBUSWIDTH_8);
         iError = API_SdCoreDevSwitch(psdcoredevice,
                                      EXT_CSD_CMD_SET_NORMAL,
                                      EXT_CSD_BUS_WIDTH,
@@ -1387,9 +1388,9 @@ static INT __sdMemMmcBusWidthChange (PLW_SDCORE_DEVICE psdcoredevice, INT iCardC
             SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "switch to 8Bit mode failed.\r\n");
             return  (iError);
         }
-        API_SdCoreDevCtl(psdcoredevice, SDBUS_CTRL_SETBUSWIDTH, SDARG_SETBUSWIDTH_8);
 
     } else if (iCardCap & SDHOST_CAP_DATA_4BIT) {
+        API_SdCoreDevCtl(psdcoredevice, SDBUS_CTRL_SETBUSWIDTH, SDARG_SETBUSWIDTH_4);
         iError = API_SdCoreDevSwitch(psdcoredevice,
                                      EXT_CSD_CMD_SET_NORMAL,
                                      EXT_CSD_BUS_WIDTH,
@@ -1399,7 +1400,6 @@ static INT __sdMemMmcBusWidthChange (PLW_SDCORE_DEVICE psdcoredevice, INT iCardC
             SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "switch to 4Bit mode failed.\r\n");
             return  (iError);
         }
-        API_SdCoreDevCtl(psdcoredevice, SDBUS_CTRL_SETBUSWIDTH, SDARG_SETBUSWIDTH_4);
     }
 
     if (iCardCap & MMC_MODE_HS) {

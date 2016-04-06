@@ -286,6 +286,7 @@ SylixOS/fs/yaffs2/yaffs_guts.c \
 SylixOS/fs/yaffs2/yaffs_mtdif_multi.c \
 SylixOS/fs/yaffs2/yaffs_nameval.c \
 SylixOS/fs/yaffs2/yaffs_nand.c \
+SylixOS/fs/yaffs2/yaffs_nor.c \
 SylixOS/fs/yaffs2/yaffs_packedtags1.c \
 SylixOS/fs/yaffs2/yaffs_packedtags2.c \
 SylixOS/fs/yaffs2/yaffs_summary.c \

@@ -106,6 +106,9 @@
 #include "../SylixOS/fs/yaffs2/yaffs_trace.h"
 #include "../SylixOS/fs/yaffs2/yaffs_guts.h"
 #include "../SylixOS/fs/yaffs2/yaffs_nand.h"
+#if LW_CFG_YAFFS_NOR_EN > 0
+#include "../SylixOS/fs/yaffs2/yaffs_nor.h"
+#endif                                                                  /*  LW_CFG_YAFFS_NOR_EN > 0     */
 #ifdef   __SYLIXOS_YAFFS_MTD
 #include "../SylixOS/fs/yaffs2/yaffs_mtdif.h"
 #endif                                                                  /*  __SYLIXOS_YAFFS_MTD         */

@@ -142,6 +142,7 @@
 *********************************************************************************************************/
 
 #define LW_CFG_YAFFS_EN                     1                           /*  是否允许 YAFFS 文件系统     */
+#define LW_CFG_YAFFS_NOR_EN                 1                           /*  是否提供 nor flash 支持     */
 #define LW_CFG_YAFFS_MAX_FILES              100                         /*  可以同时打开的 YAFFS 文件数 */
 
 #define LW_CFG_YAFFS_UNMOUNT_VOL            1                           /*  卸载 YAFFS 卷时 unmount 操作*/
