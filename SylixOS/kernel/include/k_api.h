@@ -1113,6 +1113,8 @@ LW_API VOID             API_KernelSmpCallAllOther(FUNCPTR  pfunc, PVOID  pvArg,
 #ifdef __SYLIXOS_KERNEL
 LW_API ULONG            API_KernelStartParam(CPCHAR  pcParam);          /*  设置内核启动参数            */
 
+LW_API ssize_t          API_KernelStartParamGet(PCHAR  pcParam, size_t  stLen);
+
 #if LW_CFG_MEMORY_HEAP_CONFIG_TYPE > 0
 LW_API VOID             API_KernelPrimaryStart(PKERNEL_START_ROUTINE  pStartHook,
                                                PVOID                  pvKernelHeapMem,

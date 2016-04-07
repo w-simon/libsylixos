@@ -13,6 +13,9 @@ HISTORY
     2016-04-06: han.hui
     加入 yaffs 对 nor flash 支持.
 
+    2016-04-07: han.hui
+    加入 /proc/cmdline 与 /proc/dma 信息.
+
 ++ Bugfixes:
 
     2016-03-09: han.hui

@@ -564,9 +564,10 @@ static LONG  __yaffsOpen (PYAFFS_FSLIB    pyaffs,
                 return  (PX_ERROR);
             }
             iError = yaffs_open(pcName, O_RDONLY, iMode);               /*  打开目录                    */
+        
         } else {                                                        /*  打开或创建文件              */
-            iError = yaffs_open(pcName, iFlags, iMode);                 /*  打开普通文件                */
-        }
+            iError = yaffs_open(pcName, (iFlags & ~O_BINARY), iMode);   /*  打开普通文件                */
+        }                                                               /*  yaffs 打开目录不能有此选项  */
 
         pyaffile->YAFFIL_iFd = iError;
         pyaffile->YAFFIL_iFileType = __YAFFS_FILE_TYPE_NODE;            /*  可以被 close 掉             */

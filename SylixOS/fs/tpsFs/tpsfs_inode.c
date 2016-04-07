@@ -224,7 +224,7 @@ PTPS_INODE  tpsFsOpenInode (PTPS_SUPER_BLOCK psb, TPS_INUM inum)
 				   - sizeof(TPS_BTR_NODE)) / (sizeof(TPS_IBLK) * 2);
 	uiInodeSize *=  sizeof(TPS_BTR_KV);
 	uiInodeSize += (TPS_INODE_DATASTART + sizeof(TPS_BTR_NODE));
-    pinode = (PTPS_INODE)TPS_ALLOC(psb->SB_uiBlkSize);
+    pinode = (PTPS_INODE)TPS_ALLOC(uiInodeSize);
     if (LW_NULL == pinode) {
         TPS_FREE(pucBuff);
         return  (LW_NULL);
