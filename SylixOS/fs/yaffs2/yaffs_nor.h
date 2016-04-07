@@ -37,6 +37,8 @@
 
 /*
  * nor device
+ * 
+ * read, write functions 'addr' 32bits align, 'len' 16bits align
  */
 struct yaffs_devnor;
  

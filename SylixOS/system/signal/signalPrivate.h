@@ -113,6 +113,7 @@ typedef struct {
     errno_t               SIGCTLMSG_iLastErrno;                         /*  保存的原始错误号            */
 
 #if LW_CFG_CPU_FPU_EN > 0
+    BOOL                  SIGCTLMSG_bFpuRestore;                        /*  是否需要恢复 FPU 上下文     */
     LW_FPU_CONTEXT        SIGCTLMSG_fpuctxContext;                      /*  FPU 上下文                  */
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 } LW_CLASS_SIGCTLMSG;

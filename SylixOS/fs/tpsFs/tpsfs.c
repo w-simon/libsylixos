@@ -1010,14 +1010,7 @@ VOID  tpsFsStat (PTPS_SUPER_BLOCK  psb, PTPS_INODE  pinode, struct stat *pstat)
         pstat->st_ctime   = (time_t)TPS_UTC_TIME();
         pstat->st_blksize = 512;
         pstat->st_blocks  = (blkcnt_t)1;
-
-        pstat->st_mode = S_IFDIR;
-        if (psb->SB_uiFlags & TPS_MOUNT_FLAG_READ) {
-            pstat->st_mode |= S_IRUSR | S_IRGRP | S_IROTH;
-        }
-        if (psb->SB_uiFlags & TPS_MOUNT_FLAG_WRITE) {
-            pstat->st_mode |= S_IWUSR | S_IWGRP | S_IWOTH;
-        }
+        pstat->st_mode    = S_IFDIR | DEFAULT_DIR_PERM;
     }
 }
 

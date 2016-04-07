@@ -499,7 +499,8 @@ static VOID  __sigReturn (PLW_CLASS_SIGCONTEXT  psigctx,
     
     iregInterLevel = KN_INT_DISABLE();                                  /*  关闭当前 CPU 中断           */
 #if LW_CFG_CPU_FPU_EN > 0
-    if (ptcbCur->TCB_ulOption & LW_OPTION_THREAD_USED_FP) {
+    if (psigctlmsg->SIGCTLMSG_bFpuRestore &&
+        (ptcbCur->TCB_ulOption & LW_OPTION_THREAD_USED_FP)) {
         pvStackFP = &psigctlmsg->SIGCTLMSG_fpuctxContext;
         __ARCH_FPU_RESTORE(pvStackFP);                                  /*  恢复被信号中断前 FPU 上下文 */
     }
@@ -621,11 +622,15 @@ static VOID  __sigShell (PLW_CLASS_SIGCTLMSG  psigctlmsg)
     psigctx = &_K_sigctxTable[_ObjectGetIndex(ptcbCur->TCB_ulId)];
     
 #if LW_CFG_CPU_FPU_EN > 0
+    iregInterLevel = KN_INT_DISABLE();                                  /*  关闭当前 CPU 中断           */
     if (ptcbCur->TCB_ulOption & LW_OPTION_THREAD_USED_FP) {             /*  当前线程使用 FPU            */
-        iregInterLevel = KN_INT_DISABLE();                              /*  关闭当前 CPU 中断           */
+        psigctlmsg->SIGCTLMSG_bFpuRestore   = LW_TRUE;                  /*  拷贝 TCB 浮点上下文         */
         psigctlmsg->SIGCTLMSG_fpuctxContext = ptcbCur->TCB_fpuctxContext;
-        KN_INT_ENABLE(iregInterLevel);                                  /*  打开当前 CPU 中断           */
-    }                                                                   /*  拷贝 TCB 浮点上下文         */
+        
+    } else {
+        psigctlmsg->SIGCTLMSG_bFpuRestore   = LW_FALSE;                 /*  不需要恢复 FPU 上下文       */
+    }
+    KN_INT_ENABLE(iregInterLevel);                                      /*  打开当前 CPU 中断           */
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 
     MONITOR_EVT_LONG3(MONITOR_EVENT_ID_SIGNAL, MONITOR_EVENT_SIGNAL_SIGRUN, 
