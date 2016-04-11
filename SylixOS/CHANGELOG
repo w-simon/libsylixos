@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2016-04-11: han.hui
+    加入 /proc/hook 信息.
+
     2016-04-08: han.hui
     加入 net_perf_cfg.h 网络性能参数配置.
 

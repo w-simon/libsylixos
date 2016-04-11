@@ -164,6 +164,7 @@
 #define LW_CFG_PROCFS_EN                    1                           /*  是否允许 proc 文件系统      */
 #define LW_CFG_PROCFS_KERNEL_INFO           1                           /*  是否需要内核信息文件        */
 #define LW_CFG_PROCFS_SYSTEM_INFO           1                           /*  是否需要系统信息文件        */
+#define LW_CFG_PROCFS_HOOK_INFO             1                           /*  是否需要 hook 信息文件      */
 #define LW_CFG_PROCFS_BSP_INFO              1                           /*  是否需要BSP信息文件         */
 
 /*********************************************************************************************************

@@ -48,6 +48,9 @@
 #if LW_CFG_PROCFS_KERNEL_INFO > 0
 extern  VOID  __procFsKernelInfoInit(VOID);
 #endif                                                                  /*  LW_CFG_PROCFS_KERNEL_INFO   */
+#if LW_CFG_PROCFS_HOOK_INFO > 0
+extern VOID   __procFsHookInit(VOID);
+#endif                                                                  /*  LW_CFG_PROCFS_HOOK_INFO > 0 */
 #if LW_CFG_PROCFS_BSP_INFO > 0
 extern  VOID  __procFsBspInfoInit(VOID);
 #endif                                                                  /*  LW_CFG_PROCFS_BSP_INFO      */
@@ -187,6 +190,10 @@ INT  API_ProcFsDevCreate (VOID)
 #if LW_CFG_PROCFS_KERNEL_INFO > 0
     __procFsKernelInfoInit();                                           /*  建立内核信息节点            */
 #endif                                                                  /*  LW_CFG_PROCFS_KERNEL_INFO   */
+
+#if LW_CFG_PROCFS_HOOK_INFO > 0
+    __procFsHookInit();
+#endif                                                                  /*  LW_CFG_PROCFS_HOOK_INFO > 0 */
 
     __procFssupInit();
     

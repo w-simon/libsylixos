@@ -155,6 +155,9 @@ ULONG  API_DiskCacheCreate (PLW_BLK_DEV   pblkdDisk,
     
     if (iMaxBurstSector > 2) {
         iMaxRBurstSector = iMaxBurstSector >> 1;                        /*  读猝发长度默认被写少一半    */
+    
+    } else {
+        iMaxRBurstSector = iMaxBurstSector;
     }
     
     return  (API_DiskCacheCreateEx(pblkdDisk, 
