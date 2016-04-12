@@ -319,6 +319,11 @@ errno_t  tpsFsFormat (PTPS_DEV pdev, UINT uiBlkSize, UINT64 uiLogSize)
     if ((uiLogBlkCnt <= 0) || (uiLogBlkCnt >= (uiTotalBlkCnt / 10))) {
         return  (EINVAL);
     }
+    
+    /*
+     * SSD 回收空间
+     */
+    pdev->DEV_Trim(pdev, 0, (UINT64)pdev->DEV_SectorCnt(pdev));
 
     /*
      *  结构体赋值
