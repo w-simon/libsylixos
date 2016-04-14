@@ -980,6 +980,12 @@ SylixOS/posix/dlfcn/dlfcn.c \
 SylixOS/posix/execinfo/execinfo.c \
 SylixOS/posix/fmtmsg/fmtmsg.c \
 SylixOS/posix/fnmatch/fnmatch.c \
+SylixOS/posix/gjbext/gjb_devrel.c \
+SylixOS/posix/gjbext/gjb_fsrel.c \
+SylixOS/posix/gjbext/gjb_interrupt.c \
+SylixOS/posix/gjbext/gjb_memrel.c \
+SylixOS/posix/gjbext/gjb_netrel.c \
+SylixOS/posix/gjbext/gjb_timerel.c \
 SylixOS/posix/mman/mman.c \
 SylixOS/posix/mqueue/mqueue.c \
 SylixOS/posix/poll/poll.c \

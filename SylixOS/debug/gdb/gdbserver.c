@@ -1716,6 +1716,14 @@ static INT gdbRspPkgHandle (LW_GDB_PARAM    *pparam,
             LW_GDB_SAFEFREE(cOutBuff);
             LW_GDB_MSG("[GDB]Host close.\n");
             return  (PX_ERROR);
+        } else {
+            if (pdmsg->DTM_uiType == SIGQUIT &&
+                pparam->GDB_byCommType == COMM_TYPE_TTY) {              /* 串口模式不再等待客户端通知   */
+                LW_GDB_SAFEFREE(cInBuff);
+                LW_GDB_SAFEFREE(cOutBuff);
+                LW_GDB_MSG("[GDB]Host close.\n");
+                return  (PX_ERROR);
+            }
         }
     }
 

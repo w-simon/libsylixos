@@ -2619,6 +2619,7 @@ __redo:
         uiIntSta = SDHCI_READL(psdhcihostattr, SDHCI_INT_STATUS);
         if (uiIntSta) {
             __SDHCI_TRANS_UNLOCK(psdhcitrans);
+            bSdioInt = LW_FALSE;
             goto __redo;
         }
     }

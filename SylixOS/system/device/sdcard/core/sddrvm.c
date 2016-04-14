@@ -853,7 +853,7 @@ static VOID  __sdmHostDelete (__SDM_HOST *psdmhost)
 static VOID  __sdmHostExtOptInit (__SDM_HOST  *psdmhost)
 {
     psdmhost->SDMHSOT_lMaxBurstSector = 0;
-    psdmhost->SDMHSOT_lCacheSize      = 0;
+    psdmhost->SDMHSOT_lCacheSize      = 128 * 1024;
     psdmhost->SDMHSOT_lReserveSector  = 0;
 }
 /*********************************************************************************************************

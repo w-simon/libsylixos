@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2016-04-14: han.hui
+    加入 GJB7714-2012 军用嵌入式操作系统接口规范支持.
+
     2016-04-11: han.hui
     加入 /proc/hook 信息.
 
