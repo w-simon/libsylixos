@@ -1422,7 +1422,7 @@ static INT  __tshellFsCmdDf (INT  iArgC, PCHAR  ppcArgV[])
     }
     
     if (ullFree > ullTotal) {
-        printf("%-14s %7lu.%02lu%-2s        unknown---%% %-2s %s\n", ppcArgV[1], 
+        printf("%-14s %7lu.%02lu%-2s      unknown ---%% %-2s %s\n", ppcArgV[1], 
                ulTotalDisp, ulTotalPoint, 
                pcTotalUnit, pcRo, pcFsType);
     } else {

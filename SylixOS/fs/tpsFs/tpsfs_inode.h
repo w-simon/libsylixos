@@ -59,7 +59,7 @@
 /*********************************************************************************************************
   节点池定义，用于提高节点分配效率
 *********************************************************************************************************/
-#define TPS_BN_POOL_SIZE        4                                       /* 节点池大小                   */
+#define TPS_BN_POOL_SIZE        8                                       /* 节点池大小                   */
 #define TPS_BN_POOL_NULL        0                                       /* 节点为空，表示非分配         */
 #define TPS_BN_POOL_FREE        1                                       /* 节点已分配但未使用           */
 #define TPS_BN_POOL_BUSY        2                                       /* 节点正在使用                 */
@@ -89,9 +89,11 @@ typedef struct tps_inode {
     UINT                IND_uiDataStart;                                /* inode头块内的数据起始位置    */
     INT                 IND_iUid;                                       /* 用户ID                       */
     INT                 IND_iGid;                                       /* 用户组ID                     */
+    TPS_INUM            IND_inumDeleted;                                /* 已删除文件列表               */
     PUCHAR              IND_pucBuff;                                    /* 文件头序列化缓冲区           */
+    TPS_IBLK            IND_blkCnt;                                     /* 文件块数量                   */
     PTPS_BTR_NODE       IND_pBNPool[TPS_BN_POOL_SIZE];                  /* B+树节点池                   */
-    CHAR                IND_pBNStatus[TPS_BN_POOL_SIZE];                /* B+树节点池状态               */
+    INT                 IND_iBNRefCnt[TPS_BN_POOL_SIZE];               /* B+树节点池权值               */
     PVOID               IND_pvPriv;                                     /* inode私有数据                */
     CHAR                IND_attr[TPS_INODE_ATTRIZE];                    /* inode attr                   */
     union {
@@ -128,6 +130,8 @@ TPS_SIZE_T tpsFsInodeGetSize(PTPS_INODE pinode);
 TPS_RESULT tpsFsFlushInodeHead(PTPS_TRANS ptrans, PTPS_INODE pinode);
                                                                         /* 同步文件                     */
 TPS_RESULT tpsFsInodeSync(PTPS_INODE pinode);
+                                                                        /* flush超级块                  */
+TPS_RESULT tpsFsFlushSuperBlock(PTPS_TRANS ptrans, PTPS_SUPER_BLOCK psb);
 
 #endif                                                                  /* LW_CFG_TPSFS_EN > 0          */
 #endif                                                                  /* __TPSFS_INODE_H              */

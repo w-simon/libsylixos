@@ -367,10 +367,14 @@ VOID  armCacheV5Init (LW_CACHE_OP *pcacheop,
 {
     pcacheop->CACHEOP_ulOption = 0ul;
 
-    pcacheop->CACHEOP_iILoc         = CACHE_LOCATION_VIVT;
-    pcacheop->CACHEOP_iDLoc         = CACHE_LOCATION_VIVT;
-    pcacheop->CACHEOP_iCacheLine    = ARMv5_CACHE_LINE_SIZE;
-    pcacheop->CACHEOP_iCacheWaySize = (4 * LW_CFG_KB_SIZE);
+    pcacheop->CACHEOP_iILoc = CACHE_LOCATION_VIVT;
+    pcacheop->CACHEOP_iDLoc = CACHE_LOCATION_VIVT;
+    
+    pcacheop->CACHEOP_iICacheLine = ARMv5_CACHE_LINE_SIZE;
+    pcacheop->CACHEOP_iDCacheLine = ARMv5_CACHE_LINE_SIZE;
+    
+    pcacheop->CACHEOP_iICacheWaySize = (4 * LW_CFG_KB_SIZE);
+    pcacheop->CACHEOP_iDCacheWaySize = (4 * LW_CFG_KB_SIZE);
     
     pcacheop->CACHEOP_pfuncEnable  = armCacheV5Enable;
     pcacheop->CACHEOP_pfuncDisable = armCacheV5Disable;

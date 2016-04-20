@@ -600,34 +600,38 @@ VOID  ppc60xCacheInit (LW_CACHE_OP *pcacheop,
     pcacheop->CACHEOP_ulOption = 0ul;
 #endif                                                                  /*  LW_CFG_SMP_EN               */
 
-    if (_G_ICache.CACHE_uiLineSize && _G_DCache.CACHE_uiLineSize) {
-        pcacheop->CACHEOP_iCacheLine = min(_G_ICache.CACHE_uiLineSize, _G_DCache.CACHE_uiLineSize);
-    } else {
-        pcacheop->CACHEOP_iCacheLine = max(_G_ICache.CACHE_uiLineSize, _G_DCache.CACHE_uiLineSize);
-    }
+    pcacheop->CACHEOP_iILoc = CACHE_LOCATION_VIPT;
+    pcacheop->CACHEOP_iDLoc = CACHE_LOCATION_VIPT;
 
-    pcacheop->CACHEOP_iILoc                 = CACHE_LOCATION_VIPT;
-    pcacheop->CACHEOP_iDLoc                 = CACHE_LOCATION_VIPT;
-    pcacheop->CACHEOP_iCacheWaySize         = _G_DCache.CACHE_uiWayStep;
+    pcacheop->CACHEOP_iICacheLine = _G_ICache.CACHE_uiLineSize;
+    pcacheop->CACHEOP_iDCacheLine = _G_DCache.CACHE_uiLineSize;
 
-    pcacheop->CACHEOP_pfuncEnable           = ppc60xCacheEnable;
-    pcacheop->CACHEOP_pfuncDisable          = ppc60xCacheDisable;
+    pcacheop->CACHEOP_iICacheWaySize = _G_ICache.CACHE_uiWayStep;
+    pcacheop->CACHEOP_iDCacheWaySize = _G_DCache.CACHE_uiWayStep;
 
-    pcacheop->CACHEOP_pfuncLock             = ppc60xCacheLock;          /*  暂时不支持锁定操作          */
-    pcacheop->CACHEOP_pfuncUnlock           = ppc60xCacheUnlock;
+    _DebugFormat(__LOGMESSAGE_LEVEL, "PowerPC I-Cache line size = %d byte Way size = %d byte.\r\n",
+                 pcacheop->CACHEOP_iICacheLine, pcacheop->CACHEOP_iICacheWaySize);
+    _DebugFormat(__LOGMESSAGE_LEVEL, "PowerPC D-Cache line size = %d byte Way size = %d byte.\r\n",
+                 pcacheop->CACHEOP_iDCacheLine, pcacheop->CACHEOP_iDCacheWaySize);
 
-    pcacheop->CACHEOP_pfuncFlush            = ppc60xCacheFlush;
-    pcacheop->CACHEOP_pfuncFlushPage        = ppc60xCacheFlushPage;
-    pcacheop->CACHEOP_pfuncInvalidate       = ppc60xCacheInvalidate;
-    pcacheop->CACHEOP_pfuncInvalidatePage   = ppc60xCacheInvalidatePage;
-    pcacheop->CACHEOP_pfuncClear            = ppc60xCacheClear;
-    pcacheop->CACHEOP_pfuncClearPage        = ppc60xCacheClearPage;
-    pcacheop->CACHEOP_pfuncTextUpdate       = ppc60xCacheTextUpdate;
+    pcacheop->CACHEOP_pfuncEnable  = ppc60xCacheEnable;
+    pcacheop->CACHEOP_pfuncDisable = ppc60xCacheDisable;
+
+    pcacheop->CACHEOP_pfuncLock   = ppc60xCacheLock;                    /*  暂时不支持锁定操作          */
+    pcacheop->CACHEOP_pfuncUnlock = ppc60xCacheUnlock;
+
+    pcacheop->CACHEOP_pfuncFlush          = ppc60xCacheFlush;
+    pcacheop->CACHEOP_pfuncFlushPage      = ppc60xCacheFlushPage;
+    pcacheop->CACHEOP_pfuncInvalidate     = ppc60xCacheInvalidate;
+    pcacheop->CACHEOP_pfuncInvalidatePage = ppc60xCacheInvalidatePage;
+    pcacheop->CACHEOP_pfuncClear          = ppc60xCacheClear;
+    pcacheop->CACHEOP_pfuncClearPage      = ppc60xCacheClearPage;
+    pcacheop->CACHEOP_pfuncTextUpdate     = ppc60xCacheTextUpdate;
 
 #if LW_CFG_VMM_EN > 0
-    pcacheop->CACHEOP_pfuncDmaMalloc        = API_VmmDmaAlloc;
-    pcacheop->CACHEOP_pfuncDmaMallocAlign   = API_VmmDmaAllocAlign;
-    pcacheop->CACHEOP_pfuncDmaFree          = API_VmmDmaFree;
+    pcacheop->CACHEOP_pfuncDmaMalloc      = API_VmmDmaAlloc;
+    pcacheop->CACHEOP_pfuncDmaMallocAlign = API_VmmDmaAllocAlign;
+    pcacheop->CACHEOP_pfuncDmaFree        = API_VmmDmaFree;
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 }
 /*********************************************************************************************************

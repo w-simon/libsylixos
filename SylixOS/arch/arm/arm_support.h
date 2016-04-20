@@ -186,17 +186,8 @@ VOID    archSpinDelay(VOID);
 VOID    archSpinNotify(VOID);
 
 #define __ARCH_SPIN_INIT    archSpinInit
-
-#if __SYLIXOS_ARM_ARCH__ >= 7
 #define __ARCH_SPIN_DELAY   archSpinDelay
 #define __ARCH_SPIN_NOTIFY  archSpinNotify
-#else
-#define __ARCH_SPIN_DELAY() \
-        {   volatile INT i; \
-            for (i = 0; i < 10; i++);    \
-        }
-#define __ARCH_SPIN_NOTIFY()
-#endif                                                                  /*  __SYLIXOS_ARM_ARCH__ >= 7   */
 
 INT     archSpinLock(spinlock_t  *psl);
 INT     archSpinTryLock(spinlock_t  *psl);

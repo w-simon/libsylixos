@@ -257,8 +257,9 @@ PVOID  API_VmmMallocAlign (size_t  stSize, size_t  stAlign, ULONG  ulFlag)
     }
     
 #if LW_CFG_CACHE_EN > 0
-    if (API_CacheAliasProb() && (stAlign < API_CacheWaySize())) {       /*  有限修正 cache alias        */
-        stAlign = API_CacheWaySize();
+    if (API_CacheAliasProb() && 
+        (stAlign < API_CacheWaySize(DATA_CACHE))) {                     /*  有限修正 cache alias        */
+        stAlign = API_CacheWaySize(DATA_CACHE);
     }
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
     
@@ -425,8 +426,9 @@ PVOID  API_VmmMallocAreaAlign (size_t  stSize, size_t  stAlign,
     }
     
 #if LW_CFG_CACHE_EN > 0
-    if (API_CacheAliasProb() && (stAlign < API_CacheWaySize())) {       /*  有限修正 cache alias        */
-        stAlign = API_CacheWaySize();
+    if (API_CacheAliasProb() && 
+        (stAlign < API_CacheWaySize(DATA_CACHE))) {                     /*  有限修正 cache alias        */
+        stAlign = API_CacheWaySize(DATA_CACHE);
     }
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
 

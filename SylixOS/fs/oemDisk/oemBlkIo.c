@@ -114,7 +114,7 @@ static INT  __blkIoFsLStat (PLW_BLKIO_DEV  pdevblk, PCHAR  pcName, struct stat  
 
     pstat->st_dev     = (dev_t)pdevblk;
     pstat->st_ino     = (ino_t)0;
-    pstat->st_mode    = (S_IRUSR | S_IWUSR | S_IFBLK);
+    pstat->st_mode    = (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH | S_IFBLK);
     pstat->st_nlink   = 1;
     pstat->st_uid     = 0;
     pstat->st_gid     = 0;

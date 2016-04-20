@@ -27,6 +27,9 @@ HISTORY
 
 ++ Bugfixes:
 
+    2016-04-18: han.hui
+    为性能考虑 FAT 不在需要 trim 命令支持.
+
     2016-04-05: han.hui
     修正 O_APPEND 每一次写都是追加操作的问题.
     修正信号上下文中对浮点寄存器的保护.

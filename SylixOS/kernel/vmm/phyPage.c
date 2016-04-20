@@ -228,7 +228,7 @@ PLW_VMM_PAGE  __vmmPhysicalPageClone (PLW_VMM_PAGE  pvmpage)
     KN_COPY_PAGE((PVOID)pvirdesc->ulVirtualSwitch, 
                  (PVOID)pvmpage->PAGE_ulMapPageAddr);                   /*  拷贝页面内容                */
                
-    if (API_CacheLocation(DATA_CACHE) == CACHE_LOCATION_VIVT) {         /*  如果是虚拟地址 cache        */
+    if (API_CacheAliasProb()) {                                         /*  cache 别名可能              */
         API_CacheClear(DATA_CACHE, (PVOID)pvirdesc->ulVirtualSwitch,
                        LW_CFG_VMM_PAGE_SIZE);                           /*  将数据写入内存并不再命中    */
     }

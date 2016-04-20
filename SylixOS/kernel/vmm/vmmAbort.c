@@ -105,7 +105,7 @@ static VOID __vmmAbortCacheRefresh (BOOL    bSwapNeedLoad,
     BOOL                    bFlush   = LW_FALSE;
     size_t                  stSize   = (size_t)(ulAllocPageNum << LW_CFG_VMM_PAGE_SHIFT);
     
-    if (API_CacheLocation(DATA_CACHE) == CACHE_LOCATION_VIVT) {         /*  如果是虚拟地址 cache        */
+    if (API_CacheAliasProb()) {                                         /*  如果有可能产生 cache 别名   */
         API_CacheClear(DATA_CACHE, (PVOID)pvirdesc->ulVirtualSwitch,
                        stSize);                                         /*  将数据写入内存并不再命中    */
         API_CacheInvalidate(DATA_CACHE, (PVOID)ulVirtualPageAlign, 

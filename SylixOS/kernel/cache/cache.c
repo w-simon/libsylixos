@@ -89,8 +89,11 @@ LW_CACHE_OP     _G_cacheopLib = {                                       /*  the 
     0,
     CACHE_LOCATION_VIVT,
     CACHE_LOCATION_VIVT,
-    LW_CFG_VMM_PAGE_SIZE,                                               /*  def: No Cache Alias problem */
     32,
+    32,
+    LW_CFG_VMM_PAGE_SIZE,
+    LW_CFG_VMM_PAGE_SIZE,                                               /*  def: No Cache Alias problem */
+    
     LW_NULL,                                                            /*  cacheEnable()               */
     LW_NULL,                                                            /*  cacheDisable()              */
     LW_NULL,                                                            /*  cacheLock()                 */
@@ -208,33 +211,43 @@ INT  API_CacheLocation (LW_CACHE_TYPE  cachetype)
 ** 函数名称: API_CacheLine
 ** 功能描述: 获取 CACHE line 大小
 ** 输　入  : cachetype     cache 类型
-** 输　出  : BSP 提供的 CACHE 位置类型信息
+** 输　出  : CACHE 行大小
 ** 全局变量: 
 ** 调用模块: 
                                            API 函数
 *********************************************************************************************************/
 LW_API  
-INT  API_CacheLine (VOID)
+INT  API_CacheLine (LW_CACHE_TYPE  cachetype)
 {
-    return  (_G_cacheopLib.CACHEOP_iCacheLine);
+    if (cachetype == INSTRUCTION_CACHE) {
+        return  (_G_cacheopLib.CACHEOP_iICacheLine);
+    
+    } else {
+        return  (_G_cacheopLib.CACHEOP_iDCacheLine);
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: API_CacheWaySize
 ** 功能描述: 获取一路 DCACHE 大小
-** 输　入  : NONE
-** 输　出  : 一路 DCACHE 大小
+** 输　入  : cachetype     cache 类型
+** 输　出  : 一路 CACHE 大小
 ** 全局变量: 
 ** 调用模块: 
                                            API 函数
 *********************************************************************************************************/
 LW_API  
-size_t  API_CacheWaySize (VOID)
+size_t  API_CacheWaySize (LW_CACHE_TYPE  cachetype)
 {
-    return  (_G_cacheopLib.CACHEOP_iCacheWaySize);
+    if (cachetype == INSTRUCTION_CACHE) {
+        return  (_G_cacheopLib.CACHEOP_iICacheWaySize);
+    
+    } else {
+        return  (_G_cacheopLib.CACHEOP_iDCacheWaySize);
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: API_CacheAliasProb
-** 功能描述: VIPT CACHE 是否具有 alias 风险.
+** 功能描述: VIPT CACHE 是否具有 alias 风险. (两个 DCACHE 行映射同一物理地址)
 ** 输　入  : NONE
 ** 输　出  : LW_TRUE  有 alias 风险
 **           LW_FALSE 无 alias 风险
@@ -245,8 +258,16 @@ size_t  API_CacheWaySize (VOID)
 LW_API  
 BOOL  API_CacheAliasProb (VOID)
 {
+    if (_G_uiDCacheMode & CACHE_SNOOP_ENABLE) {
+        return  (LW_FALSE);
+    }
+    
+    if (_G_cacheopLib.CACHEOP_iDLoc == CACHE_LOCATION_VIVT) {
+        return  (LW_TRUE);
+    }
+    
     if ((_G_cacheopLib.CACHEOP_iDLoc == CACHE_LOCATION_VIPT) &&
-        (_G_cacheopLib.CACHEOP_iCacheWaySize > LW_CFG_VMM_PAGE_SIZE)) {
+        (_G_cacheopLib.CACHEOP_iDCacheWaySize > LW_CFG_VMM_PAGE_SIZE)) {
         return  (LW_TRUE);
     }
     

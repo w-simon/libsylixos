@@ -916,6 +916,11 @@ int  pthread_getname (pthread_t thread, char *name)
 {
     CHAR    cNameBuffer[LW_CFG_OBJECT_NAME_SIZE];
     
+    if (!name) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+    
     PX_ID_VERIFY(thread, pthread_t);
     
     if (API_ThreadGetName(thread, cNameBuffer)) {

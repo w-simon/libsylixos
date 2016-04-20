@@ -91,6 +91,14 @@ typedef struct tps_btr_node {
 typedef TPS_BTR_NODE        *PTPS_BTR_NODE;
 
 /*********************************************************************************************************
+  计算最大节点数 压力测试时使用#define MAX_NODE_CNT(size, type) 10
+*********************************************************************************************************/
+
+#define MAX_NODE_CNT(size, type) ((size) - sizeof(TPS_BTR_NODE)) / \
+                                 ((type) == TPS_BTR_NODE_LEAF ? \
+                                  sizeof(TPS_BTR_KV) : (sizeof(TPS_IBLK) * 2))
+
+/*********************************************************************************************************
   块缓冲区定义
 *********************************************************************************************************/
 
@@ -136,14 +144,14 @@ TPS_SIZE_T tpsFsBtreeGetBlkCnt(struct tps_inode *pinode);
                                                                     /* 读取块缓冲区                     */
 TPS_RESULT tpsFsBtreeReadBP(PTPS_SUPER_BLOCK psb);
                                                                     /* 初始化块缓冲区                   */
-TPS_RESULT tpsFsBtreeInitBP(PTPS_SUPER_BLOCK psb);
+TPS_RESULT tpsFsBtreeInitBP(PTPS_SUPER_BLOCK psb, TPS_IBLK blkStart, TPS_IBLK blkCnt);
                                                                     /* 调整块缓冲区                     */
 TPS_RESULT tpsFsBtreeAdjustBP(PTPS_TRANS ptrans, PTPS_SUPER_BLOCK psb);
                                                                     /* 序列化btree节点                  */
-VOID tpsSerialBtrNode(PTPS_BTR_NODE pbtrnode, PUCHAR pucBuff, UINT uiBlkSize,
+BOOL tpsSerialBtrNode(PTPS_BTR_NODE pbtrnode, PUCHAR pucBuff, UINT uiBlkSize,
                       UINT uiItemStart, UINT uiItemCnt, UINT *puiOffStart, UINT *puiOffEnd);
                                                                     /* 逆序列化btree节点                */
-VOID tpsUnserialBtrNode(PTPS_BTR_NODE pbtrnode, PUCHAR pucBuff, UINT uiBlkSize);
+BOOL tpsUnserialBtrNode(PTPS_BTR_NODE pbtrnode, PUCHAR pucBuff, UINT uiBlkSize);
                                                                     /* 打印整颗树                       */
 TPS_RESULT tpsFsBtreeDump(struct tps_inode *pinode, PTPS_BTR_NODE pbtrnode);
 

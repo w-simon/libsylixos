@@ -458,6 +458,10 @@ INT  API_TpsFsDevCreate (PCHAR   pcName, PLW_BLK_DEV  pblkd)
 
     _DebugFormat(__LOGMESSAGE_LEVEL, "disk \"%s\" mount ok.\r\n", pcName);
 
+    printf("Warning: volume \"%s\" "
+           "tpsFs is currently in testing stage, use caution please!\n",
+           pcName);                                                     /*  tps æØ∏Ê–≈œ¢                */
+
     return  (ERROR_NONE);
 
     /*

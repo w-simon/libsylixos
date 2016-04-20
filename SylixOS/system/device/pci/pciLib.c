@@ -1064,7 +1064,7 @@ INT  API_PciConfigDev (INT          iBus,
     }
     
 #if LW_CFG_CACHE_EN > 0
-    ucCacheLine = (API_CacheLine() >> 2);
+    ucCacheLine = (API_CacheLine(DATA_CACHE) >> 2);
 #else
     ucCacheLine = (32 >> 2);
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */

@@ -816,34 +816,33 @@ VOID  mips32CacheInit (LW_CACHE_OP *pcacheop,
     pcacheop->CACHEOP_ulOption = 0ul;
 #endif                                                                  /*  LW_CFG_SMP_EN               */
 
-    if (_G_ICache.CACHE_uiLineSize && _G_DCache.CACHE_uiLineSize) {
-        pcacheop->CACHEOP_iCacheLine = min(_G_ICache.CACHE_uiLineSize, _G_DCache.CACHE_uiLineSize);
-    } else {
-        pcacheop->CACHEOP_iCacheLine = max(_G_ICache.CACHE_uiLineSize, _G_DCache.CACHE_uiLineSize);
-    }
+    pcacheop->CACHEOP_iILoc = CACHE_LOCATION_VIPT;
+    pcacheop->CACHEOP_iDLoc = CACHE_LOCATION_VIPT;
 
-    pcacheop->CACHEOP_iILoc                 = CACHE_LOCATION_VIPT;
-    pcacheop->CACHEOP_iDLoc                 = CACHE_LOCATION_VIPT;
-    pcacheop->CACHEOP_iCacheWaySize 		= _G_DCache.CACHE_uiWayStep;
+    pcacheop->CACHEOP_iICacheLine = _G_ICache.CACHE_uiLineSize;
+    pcacheop->CACHEOP_iDCacheLine = _G_DCache.CACHE_uiLineSize;
 
-    pcacheop->CACHEOP_pfuncEnable           = mips32CacheEnable;
-    pcacheop->CACHEOP_pfuncDisable          = mips32CacheDisable;
+    pcacheop->CACHEOP_iICacheWaySize = _G_ICache.CACHE_uiWayStep;
+    pcacheop->CACHEOP_iDCacheWaySize = _G_DCache.CACHE_uiWayStep;
+
+    pcacheop->CACHEOP_pfuncEnable  = mips32CacheEnable;
+    pcacheop->CACHEOP_pfuncDisable = mips32CacheDisable;
     
-    pcacheop->CACHEOP_pfuncLock             = mips32CacheLock;          /*  暂时不支持锁定操作          */
-    pcacheop->CACHEOP_pfuncUnlock           = mips32CacheUnlock;
+    pcacheop->CACHEOP_pfuncLock   = mips32CacheLock;                    /*  暂时不支持锁定操作          */
+    pcacheop->CACHEOP_pfuncUnlock = mips32CacheUnlock;
     
-    pcacheop->CACHEOP_pfuncFlush            = mips32CacheFlush;
-    pcacheop->CACHEOP_pfuncFlushPage        = mips32CacheFlushPage;
-    pcacheop->CACHEOP_pfuncInvalidate       = mips32CacheInvalidate;
-    pcacheop->CACHEOP_pfuncInvalidatePage   = mips32CacheInvalidatePage;
-    pcacheop->CACHEOP_pfuncClear            = mips32CacheClear;
-    pcacheop->CACHEOP_pfuncClearPage        = mips32CacheClearPage;
-    pcacheop->CACHEOP_pfuncTextUpdate       = mips32CacheTextUpdate;
+    pcacheop->CACHEOP_pfuncFlush          = mips32CacheFlush;
+    pcacheop->CACHEOP_pfuncFlushPage      = mips32CacheFlushPage;
+    pcacheop->CACHEOP_pfuncInvalidate     = mips32CacheInvalidate;
+    pcacheop->CACHEOP_pfuncInvalidatePage = mips32CacheInvalidatePage;
+    pcacheop->CACHEOP_pfuncClear          = mips32CacheClear;
+    pcacheop->CACHEOP_pfuncClearPage      = mips32CacheClearPage;
+    pcacheop->CACHEOP_pfuncTextUpdate     = mips32CacheTextUpdate;
     
 #if LW_CFG_VMM_EN > 0
-    pcacheop->CACHEOP_pfuncDmaMalloc        = API_VmmDmaAlloc;
-    pcacheop->CACHEOP_pfuncDmaMallocAlign   = API_VmmDmaAllocAlign;
-    pcacheop->CACHEOP_pfuncDmaFree          = API_VmmDmaFree;
+    pcacheop->CACHEOP_pfuncDmaMalloc      = API_VmmDmaAlloc;
+    pcacheop->CACHEOP_pfuncDmaMallocAlign = API_VmmDmaAllocAlign;
+    pcacheop->CACHEOP_pfuncDmaFree        = API_VmmDmaFree;
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 }
 /*********************************************************************************************************
