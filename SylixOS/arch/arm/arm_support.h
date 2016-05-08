@@ -40,6 +40,11 @@
 /*********************************************************************************************************
   arch 已经提供的接口如下:
 *********************************************************************************************************/
+
+#define __ARCH_KERNEL_PARAM         archKernelParam
+
+VOID    archKernelParam(CPCHAR  pcParam);
+
 /*********************************************************************************************************
   ARM 处理器断言
 *********************************************************************************************************/
@@ -146,6 +151,7 @@ VOID    armSyncBusMode(VOID);
 #define ARM_MACHINE_A8      "A8"
 #define ARM_MACHINE_A9      "A9"
 #define ARM_MACHINE_A15     "A15"
+#define ARM_MACHINE_A17     "A17"
 #define ARM_MACHINE_A53     "A53"                                       /*  ARMv8                       */
 #define ARM_MACHINE_A57     "A57"
 #define ARM_MACHINE_FT1500A "FT1500A"                                   /*  China FT1500A CPU           */

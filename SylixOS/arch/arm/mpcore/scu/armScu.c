@@ -38,9 +38,10 @@ typedef struct {
     volatile UINT32     SCU_uiConfigure;                /*  SCU Configuration Register.                 */
     volatile UINT32     SCU_uiCpuPowerStatus;           /*  SCU CPU Power Status Register.              */
     volatile UINT32     SCU_uiInvalidateAll;            /*  SCU Invalidate All Registers in Secure State*/
-    volatile UINT32     SCU_uiReserves[12];             /*  Reserves.                                   */
+    volatile UINT32     SCU_uiReserves1[12];            /*  Reserves.                                   */
     volatile UINT32     SCU_uiFilteringStart;           /*  Filtering Start Address Register.           */
     volatile UINT32     SCU_uiFilteringEnd;             /*  Filtering End Address Register.             */
+    volatile UINT32     SCU_uiReserves2[2];
     volatile UINT32     SCU_uiSAC;                      /*  SCU Access Control (SAC) Register.          */
     volatile UINT32     SCU_uiSNSAC;                    /*  SCU Non-secure Access Control (SNSAC) Reg.  */
 } SCU_REGS;

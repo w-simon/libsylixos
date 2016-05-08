@@ -40,7 +40,7 @@
 *********************************************************************************************************/
 
 #define TPS_INODE_DATASTART     2048
-#define TPS_INODE_MAX_HEADSIZE  256
+#define TPS_INODE_MAX_HEADSIZE  512
 #define TPS_INODE_ATTRIZE       (TPS_INODE_DATASTART - TPS_INODE_MAX_HEADSIZE)
 
 /*********************************************************************************************************
@@ -96,10 +96,6 @@ typedef struct tps_inode {
     INT                 IND_iBNRefCnt[TPS_BN_POOL_SIZE];               /* B+树节点池权值               */
     PVOID               IND_pvPriv;                                     /* inode私有数据                */
     CHAR                IND_attr[TPS_INODE_ATTRIZE];                    /* inode attr                   */
-    union {
-        CHAR            IND_cData[1];                                   /* 保存数据                     */
-        TPS_BTR_NODE    IND_btrNode;                                    /* b树节点                      */
-    } IND_data;
 } TPS_INODE;
 typedef TPS_INODE      *PTPS_INODE;
 

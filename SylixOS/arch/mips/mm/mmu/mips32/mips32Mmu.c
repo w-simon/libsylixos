@@ -1,4 +1,4 @@
-/**********************************************************************************************************
+/*********************************************************************************************************
 **
 **                                    中国软件开源组织
 **
@@ -73,6 +73,12 @@ static BOOL                 _G_bIsIncITLB       = LW_FALSE;             /*  是否
 #define MIPS_MMU_TLB_WRITE()            MIPS_EXEC_INS("TLBWI"); MIPS_EXEC_INS ("EHB")
 #define MIPS_MMU_TLB_READ()             MIPS_EXEC_INS("TLBR");  MIPS_EXEC_INS ("EHB")
 #define MIPS_MMU_TLB_PROBE()            MIPS_EXEC_INS("TLBP");  MIPS_EXEC_INS ("EHB")
+/*********************************************************************************************************
+  CACHE 操作
+*********************************************************************************************************/
+#if LW_CFG_CACHE_EN > 0
+extern INT  mips32CacheDataUpdate(PVOID  pvAdrs, size_t  stBytes, BOOL  bInv);
+#endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
 /*********************************************************************************************************
 ** 函数名称: mips32MmuEnable
 ** 功能描述: 使能 MMU
@@ -632,7 +638,7 @@ static ULONG  mips32MmuFlagGet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr)
 ** 输　出  : ERROR or OK
 ** 全局变量: 
 ** 调用模块: 
-** 注  意  : 由于改变了单条目的页表, VMM 本身在这个函数并不无效快表, 所以这里需要无效指定条目的快表.
+** 注  意  : 这里不需要清除快表 TLB, 因为 VMM 自身会作此操作.
 *********************************************************************************************************/
 static INT  mips32MmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  ulFlag)
 {
@@ -658,7 +664,10 @@ static INT  mips32MmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  u
              */
             *p_pteentry = (LW_PTE_TRANSENTRY)mips32MmuBuildPtentry((UINT32)ulPhysicalAddr,
                                                                    ulFlag);
-            mips32MmuInvalidateTLBMVA(ulAddr);                          /*  无效 TLB                    */
+#if LW_CFG_CACHE_EN > 0
+            mips32CacheDataUpdate((PVOID)p_pteentry,
+                                  sizeof(LW_PTE_TRANSENTRY), LW_FALSE);
+#endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
             return  (ERROR_NONE);
 
         } else {
@@ -697,6 +706,10 @@ static VOID  mips32MmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
      */
     *p_pteentry = (LW_PTE_TRANSENTRY)mips32MmuBuildPtentry((UINT32)ulPhysicalAddr,
                                                            ulFlag);
+#if LW_CFG_CACHE_EN > 0
+    mips32CacheDataUpdate((PVOID)p_pteentry,
+                          sizeof(LW_PTE_TRANSENTRY), LW_FALSE);
+#endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
 }
 /*********************************************************************************************************
 ** 函数名称: mipsMmuTlbLoadStoreExcHandle
@@ -777,6 +790,30 @@ static VOID  mips32MmuMakeCurCtx (PLW_MMU_CONTEXT  pmmuctx)
     mipsCp0ContextWrite((UINT32)_G_pvPTETable);                         /*  将 PTE 表写入 Context 寄存器*/
 }
 /*********************************************************************************************************
+** 函数名称: mips32MmuInvTLB
+** 功能描述: 无效当前 CPU TLB
+** 输　入  : pmmuctx        mmu 上下文
+**           ulPageAddr     页面虚拟地址
+**           ulPageNum      页面个数
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  mips32MmuInvTLB (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulPageAddr, ULONG  ulPageNum)
+{
+    ULONG   i;
+
+    if (ulPageNum > 16) {
+        mips32MmuInvalidateTLB();                                       /*  全部清除 TLB                */
+
+    } else {
+        for (i = 0; i < ulPageNum; i++) {
+            mips32MmuInvalidateTLBMVA((addr_t)ulPageAddr);              /*  逐个页面清除 TLB            */
+            ulPageAddr += LW_CFG_VMM_PAGE_SIZE;
+        }
+    }
+}
+/*********************************************************************************************************
 ** 函数名称: mips32MmuInit
 ** 功能描述: MMU 系统初始化
 ** 输　入  : pmmuop            MMU 操作函数集
@@ -831,7 +868,7 @@ VOID  mips32MmuInit (LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName)
     
     pmmuop->MMUOP_pfuncMakeTrans     = mips32MmuMakeTrans;
     pmmuop->MMUOP_pfuncMakeCurCtx    = mips32MmuMakeCurCtx;
-    pmmuop->MMUOP_pfuncInvalidateTLB = mips32MmuInvalidateTLB;
+    pmmuop->MMUOP_pfuncInvalidateTLB = mips32MmuInvTLB;
     pmmuop->MMUOP_pfuncSetEnable     = mips32MmuEnable;
     pmmuop->MMUOP_pfuncSetDisable    = mips32MmuDisable;
 }

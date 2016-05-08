@@ -125,8 +125,7 @@ typedef struct {
 /*********************************************************************************************************
   全局变量定义
 *********************************************************************************************************/
-static const CHAR    GcHexChars[] = "0123456789abcdef";                 /* hex->asc转换表               */
-static      atomic_t GHookRefCnt  = {0};                                /* gdb hook 引用计数            */
+static atomic_t     GHookRefCnt = {0};                                  /* gdb hook 引用计数            */
 /*********************************************************************************************************
 ** 函数名称: gdbTcpSockInit
 ** 功能描述: 初始化socket
@@ -270,8 +269,11 @@ static INT gdbAsc2Hex (CHAR ch)
 *********************************************************************************************************/
 static VOID gdbByte2Asc (PCHAR pcAsc, BYTE iByte)
 {
-    pcAsc[0] = GcHexChars[(iByte >> 4) & 0xf];
-    pcAsc[1] = GcHexChars[iByte & 0xf];
+    BYTE  val = (iByte >> 4) & 0xf;
+
+    pcAsc[0] = val > 9 ? (val - 0xA + 'a') : (val + '0');
+    val = iByte & 0xf;
+    pcAsc[1] = val > 9 ? (val - 0xA + 'a') : (val + '0');
 }
 /*********************************************************************************************************
 ** 函数名称: gdbAscToByte
@@ -395,8 +397,8 @@ static INT gdbRspPkgPut (LW_GDB_PARAM *pparam, PCHAR pcOutBuff, BOOL bNotify)
     }
 
     pcOutBuff[iPkgLen++] = '#';
-    pcOutBuff[iPkgLen++] = GcHexChars[ucCheckSum >> 4];
-    pcOutBuff[iPkgLen++] = GcHexChars[ucCheckSum % 16];
+    gdbByte2Asc(&pcOutBuff[iPkgLen], ucCheckSum);
+    iPkgLen += 2;
 
     do {
         if (write(pparam->GDB_iCommFd, &cHeader, 1) < 0) {
@@ -2404,7 +2406,7 @@ static INT gdbMain (INT argc, CHAR **argv)
     }
 
     if (API_AtomicInc(&GHookRefCnt) == 1) {                             /* 第一次调用时添加HOOK         */
-        API_SystemHookAdd((LW_HOOK_FUNC)API_DtraceSchedHook,
+        API_SystemHookAdd(API_DtraceSchedHook,
                           LW_OPTION_THREAD_SWAP_HOOK);                  /* 添加线程切换HOOK，用于单步   */
     }
 
@@ -2480,7 +2482,7 @@ static INT gdbMain (INT argc, CHAR **argv)
     gdbRelease(pparam);
 
     if (API_AtomicDec(&GHookRefCnt) == 0) {                             /* 最后一次调用完成时清除HOOK   */
-        API_SystemHookDelete((LW_HOOK_FUNC)API_DtraceSchedHook,
+        API_SystemHookDelete(API_DtraceSchedHook,
                              LW_OPTION_THREAD_SWAP_HOOK);               /* 删除线程切换HOOK，           */
     }
 

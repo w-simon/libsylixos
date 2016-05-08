@@ -182,10 +182,11 @@ static PTPS_ENTRY  __tpsFsWalkPath (PTPS_SUPER_BLOCK psb, CPCHAR pcPath, PCHAR *
     }
     lib_bzero(pentry, sizeof(TPS_ENTRY) + lib_strlen(PX_STR_DIVIDER) + 1);
     
-    pentry->ENTRY_offset = 0;
-    pentry->ENTRY_psb    = psb;
-    pentry->ENTRY_uiLen  = sizeof(TPS_ENTRY) + lib_strlen(PX_STR_DIVIDER) + 1;
-    pentry->ENTRY_inum   = psb->SB_inumRoot;
+    pentry->ENTRY_offset    = 0;
+    pentry->ENTRY_psb       = psb;
+    pentry->ENTRY_uiLen     = sizeof(TPS_ENTRY) + lib_strlen(PX_STR_DIVIDER) + 1;
+    pentry->ENTRY_inum      = psb->SB_inumRoot;
+    pentry->ENTRY_inumDir   = 0;
     lib_strcpy(pentry->ENTRY_pcName, (PCHAR)PX_STR_DIVIDER);
 
     pentry->ENTRY_pinode = tpsFsOpenInode(pentry->ENTRY_psb, pentry->ENTRY_inum);
@@ -194,7 +195,6 @@ static PTPS_ENTRY  __tpsFsWalkPath (PTPS_SUPER_BLOCK psb, CPCHAR pcPath, PCHAR *
         TPS_FREE(pcPathDup);
         return  (LW_NULL);
     }
-    pentry->ENTRY_pinodeDir = LW_NULL;
 
     /*
      *  ФПТМВщев

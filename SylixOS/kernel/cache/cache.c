@@ -105,6 +105,7 @@ LW_CACHE_OP     _G_cacheopLib = {                                       /*  the 
     LW_NULL,                                                            /*  cacheClear()                */
     LW_NULL,                                                            /*  cacheClearPage()            */
     LW_NULL,                                                            /*  cacheTextUpdate()           */
+    LW_NULL,                                                            /*  cacheDataUpdate()           */
     LW_NULL,                                                            /*  cacheDmaMalloc()            */
     LW_NULL,                                                            /*  cacheDmaMallocAlign()       */
     LW_NULL,                                                            /*  cacheDmaFree()              */
@@ -126,7 +127,7 @@ typedef struct {
 extern VOID   __ARCH_CACHE_INIT(CACHE_MODE  uiInstruction, CACHE_MODE  uiData, CPCHAR  pcMachineName);
 /*********************************************************************************************************
 ** 函数名称: API_CacheGetLibBlock
-** 功能描述: 获得系统级 LW_CACHE_OP 结构，(用于 BSP 程序初始化 CACHE 系统)
+** 功能描述: 获得系统级 LW_CACHE_OP 结构, (用于 BSP 程序初始化 CACHE 系统)
 ** 输　入  : NONE
 ** 输　出  : &_G_cacheopLib
 ** 全局变量: 
@@ -139,8 +140,22 @@ LW_CACHE_OP *API_CacheGetLibBlock (VOID)
     return  (&_G_cacheopLib);
 }
 /*********************************************************************************************************
+** 函数名称: API_CacheGetOption
+** 功能描述: 获得系统级 LW_CACHE_OP 结构 OPTION 字段.
+** 输　入  : NONE
+** 输　出  : &_G_cacheopLib
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+ULONG  API_CacheGetOption (VOID)
+{
+    return  (_G_cacheopLib.CACHEOP_ulOption);
+}
+/*********************************************************************************************************
 ** 函数名称: API_CacheLibPrimaryInit
-** 功能描述: 初始化 CACHE 功能, CPU 构架相关。
+** 功能描述: 初始化 CACHE 功能, CPU 构架相关.
 ** 输　入  : uiInstruction                 初始指令 CACHE 模式
 **           uiData                        初始数据 CACHE 模式
 **           pcMachineName                 当前运行机器名称.
@@ -498,7 +513,7 @@ INT    API_CacheInvalidatePage (LW_CACHE_TYPE   cachetype,
 ** 调用模块: 
 *********************************************************************************************************/
 static INT    __cacheInsInvalidate (PVOID      pvAdrs, 
-                                      size_t     stBytes)
+                                    size_t     stBytes)
 {
     INTREG  iregInterLevel;
     INT     iError;
@@ -578,13 +593,14 @@ INT    API_CacheClearPage (LW_CACHE_TYPE   cachetype,
 static INT __cacheTextUpdate (LW_CACHE_TU_ARG *ptuarg)
 {
     INTREG  iregInterLevel;
-
+    INT     iError;
+    
     __CACHE_OP_ENTER(iregInterLevel);                                   /*  开始操作 cache              */
-    (_G_cacheopLib.CACHEOP_pfuncTextUpdate == LW_NULL) ? ERROR_NONE :
-    (_G_cacheopLib.CACHEOP_pfuncTextUpdate)(ptuarg->TUA_pvAddr, ptuarg->TUA_stSize);
+    iError = ((_G_cacheopLib.CACHEOP_pfuncTextUpdate == LW_NULL) ? ERROR_NONE :
+              (_G_cacheopLib.CACHEOP_pfuncTextUpdate)(ptuarg->TUA_pvAddr, ptuarg->TUA_stSize));
     __CACHE_OP_EXIT(iregInterLevel);                                    /*  结束操作 cache              */
     
-    return  (ERROR_NONE);
+    return  (iError);
 }
 
 #endif                                                                  /*  LW_CFG_SMP_EN               */
@@ -601,30 +617,55 @@ static INT __cacheTextUpdate (LW_CACHE_TU_ARG *ptuarg)
 LW_API  
 INT    API_CacheTextUpdate (PVOID  pvAdrs, size_t  stBytes)
 {
-    INTREG  iregInterLevel;
-    INT     iError;
-
+    INTREG          iregInterLevel;
+    INT             iError;
 #if LW_CFG_SMP_EN > 0
     LW_CACHE_TU_ARG tuarg;
+    BOOL            bLock;
 #endif                                                                  /*  LW_CFG_SMP_EN               */
     
     __CACHE_OP_ENTER(iregInterLevel);                                   /*  开始操作 cache              */
     iError = ((_G_cacheopLib.CACHEOP_pfuncTextUpdate == LW_NULL) ? ERROR_NONE :
               (_G_cacheopLib.CACHEOP_pfuncTextUpdate)(pvAdrs, stBytes));
     __CACHE_OP_EXIT(iregInterLevel);                                    /*  结束操作 cache              */
-    
+
 #if LW_CFG_SMP_EN > 0
-    if (_G_cacheopLib.CACHEOP_ulOption & CACHE_TEXT_UPDATE_MP) {
+    if ((_G_cacheopLib.CACHEOP_ulOption & CACHE_TEXT_UPDATE_MP) && 
+        (LW_NCPUS > 1)) {                                               /*  需要通知其他 CPU            */
         tuarg.TUA_pvAddr = pvAdrs;
         tuarg.TUA_stSize = stBytes;
-    
-        iregInterLevel = KN_INT_DISABLE();
-        _SmpCallFuncAllOther(__cacheTextUpdate, &tuarg, 
+        
+        bLock = __SMP_CPU_LOCK();                                       /*  锁定当前 CPU 执行           */
+        _SmpCallFuncAllOther(__cacheTextUpdate, &tuarg,
                              LW_NULL, LW_NULL, IPIM_OPT_NORMAL);        /*  通知其他的 CPU              */
-        KN_INT_ENABLE(iregInterLevel);
+        __SMP_CPU_UNLOCK(bLock);                                        /*  解锁当前 CPU 执行           */
     }
 #endif                                                                  /*  LW_CFG_SMP_EN               */
 
+    return  (iError);
+}
+/*********************************************************************************************************
+** 函数名称: API_CacheDataUpdate
+** 功能描述: 回写 D CACHE (仅回写 CPU 独享级 CACHE)
+** 输　入  : pvAdrs                        虚拟地址
+**           stBytes                       长度
+**           bInv                          是否为回写无效
+** 输　出  : BSP 函数返回值
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+INT    API_CacheDataUpdate (PVOID  pvAdrs, size_t  stBytes, BOOL  bInv)
+{
+    INTREG  iregInterLevel;
+    INT     iError;
+    
+    __CACHE_OP_ENTER(iregInterLevel);                                   /*  开始操作 cache              */
+    iError = ((_G_cacheopLib.CACHEOP_pfuncDataUpdate == LW_NULL) ? ERROR_NONE :
+              (_G_cacheopLib.CACHEOP_pfuncDataUpdate)(pvAdrs, stBytes, bInv));
+    __CACHE_OP_EXIT(iregInterLevel);                                    /*  结束操作 cache              */
+    
     return  (iError);
 }
 /*********************************************************************************************************

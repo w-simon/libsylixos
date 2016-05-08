@@ -1,4 +1,4 @@
-/**********************************************************************************************************
+/*********************************************************************************************************
 **
 **                                    中国软件开源组织
 **
@@ -615,15 +615,40 @@ static INT	mips32CacheTextUpdate (PVOID  pvAdrs, size_t  stBytes)
     	PVOID   pvAdrsBak = pvAdrs;
 
         MIPS_CACHE_GET_END(pvAdrs, stBytes, ulEnd, _G_DCache.CACHE_uiLineSize);
-
         mips32DCacheFlush(pvAdrs, (PVOID)ulEnd,
                           _G_DCache.CACHE_uiLineSize);                  /*  部分回写                    */
 
         MIPS_CACHE_GET_END(pvAdrsBak, stBytes, ulEnd, _G_ICache.CACHE_uiLineSize);
-
         mips32ICacheInvalidate(pvAdrsBak, (PVOID)ulEnd, _G_ICache.CACHE_uiLineSize);
     }
     
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: mips32CacheDataUpdate
+** 功能描述: 回写 D CACHE (仅回写 CPU 独享级 CACHE)
+** 输　入  : pvAdrs                        虚拟地址
+**           stBytes                       长度
+**           bInv                          是否为回写无效
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+** 注  意  : L2 cache 为统一 CACHE 所以 data update 不需要操作 L2 cache.
+*********************************************************************************************************/
+INT  mips32CacheDataUpdate (PVOID  pvAdrs, size_t  stBytes, BOOL  bInv)
+{
+    addr_t  ulEnd;
+
+    (VOID)bInv;                                                         /*  MIPS 不支持单纯回写操作     */
+
+    if (stBytes >= MIPS_CACHE_LOOP_OP_MAX_SIZE) {
+        mips32DCacheClearAll();                                         /*  全部回写                    */
+
+    } else {                                                            /*  部分回写                    */
+        MIPS_CACHE_GET_END(pvAdrs, stBytes, ulEnd, _G_DCache.CACHE_uiLineSize);
+        mips32DCacheClear(pvAdrs, (PVOID)ulEnd, _G_DCache.CACHE_uiLineSize);
+    }
+
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -838,6 +863,7 @@ VOID  mips32CacheInit (LW_CACHE_OP *pcacheop,
     pcacheop->CACHEOP_pfuncClear          = mips32CacheClear;
     pcacheop->CACHEOP_pfuncClearPage      = mips32CacheClearPage;
     pcacheop->CACHEOP_pfuncTextUpdate     = mips32CacheTextUpdate;
+    pcacheop->CACHEOP_pfuncDataUpdate     = mips32CacheDataUpdate;
     
 #if LW_CFG_VMM_EN > 0
     pcacheop->CACHEOP_pfuncDmaMalloc      = API_VmmDmaAlloc;

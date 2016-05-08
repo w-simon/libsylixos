@@ -140,6 +140,20 @@ int  pthread_create (pthread_t              *pthread,
      */
     ulId = API_ThreadInit(pcName, (PTHREAD_START_ROUTINE)start_routine, &lwattr, LW_NULL);
     if (ulId == 0) {
+        switch (errno) {
+        
+        case ERROR_THREAD_FULL:
+            errno = EAGAIN;
+            break;
+            
+        case ERROR_KERNEL_LOW_MEMORY:
+            errno = ENOMEM;
+            break;
+        
+        default:
+            break;
+        }
+        
         return  (errno);
     }
     
@@ -988,7 +1002,12 @@ int  pthread_delay (int  ticks)
 {
     ULONG   ulTick;
     
-    if (ticks <= 0) {
+    if (ticks < 0) {
+        return  (ERROR_NONE);
+    }
+    
+    if (ticks == 0) {
+        API_ThreadYield(API_ThreadIdSelf());
         return  (ERROR_NONE);
     }
     
@@ -1057,6 +1076,11 @@ boolean  pthread_is_ready (pthread_t thread)
 {
     PX_ID_VERIFY(thread, pthread_t);
     
+    if (!API_ThreadVerify(thread)) {
+        errno = ESRCH;
+        return  (LW_FALSE);
+    }
+    
     return  (API_ThreadIsReady(thread));
 }
 /*********************************************************************************************************
@@ -1072,6 +1096,11 @@ LW_API
 boolean  pthread_is_suspend (pthread_t thread)
 {
     PX_ID_VERIFY(thread, pthread_t);
+    
+    if (!API_ThreadVerify(thread)) {
+        errno = ESRCH;
+        return  (LW_FALSE);
+    }
     
     if (API_ThreadIsSuspend(thread)) {
         return  (LW_TRUE);
@@ -1166,6 +1195,11 @@ int  pthread_getregs (pthread_t thread, REG_SET *pregs)
     PLW_CLASS_TCB  ptcb;
     ARCH_REG_CTX  *pregctxGet;
     ARCH_REG_T     regSp;
+    
+    if (!pregs) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
 
     PX_ID_VERIFY(thread, pthread_t);
     

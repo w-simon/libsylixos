@@ -1,4 +1,4 @@
-;/**********************************************************************************************************
+;/*********************************************************************************************************
 ;**
 ;**                                    中国软件开源组织
 ;**
@@ -30,7 +30,11 @@
 
     FILE_BEGIN()
     
+    EXPORT_LABEL(armCacheV7CTR)
     EXPORT_LABEL(armCacheV7CCSIDR)
+    EXPORT_LABEL(armCacheV7CLDR)
+    EXPORT_LABEL(armCacheV7CSSELR)
+
     EXPORT_LABEL(armDCacheV7Disable)
     EXPORT_LABEL(armDCacheV7FlushPoU)
     EXPORT_LABEL(armDCacheV7FlushAll)
@@ -38,11 +42,26 @@
     EXPORT_LABEL(armDCacheV7InvalidateAll)
     
 ;/*********************************************************************************************************
-;  ARMv7 获得 CCSIDR 寄存器
+;  ARMv7 获得 CACHE 相关寄存器
 ;*********************************************************************************************************/
+
+FUNC_DEF(armCacheV7CTR)
+    MRC     p15, 0, R0, c0, c0, 1
+    BX      LR
+    FUNC_END()
 
 FUNC_DEF(armCacheV7CCSIDR)
     MRC     p15, 1, R0, c0, c0, 0
+    BX      LR
+    FUNC_END()
+
+FUNC_DEF(armCacheV7CLDR)
+    MRC     p15, 1, R0, c0, c0, 1
+    BX      LR
+    FUNC_END()
+
+FUNC_DEF(armCacheV7CSSELR)
+    MRC     p15, 2, R0, c0, c0, 0
     BX      LR
     FUNC_END()
 
@@ -170,16 +189,16 @@ FUNC_DEF(armDCacheV7FlushAll)
 ;*********************************************************************************************************/
 
 FUNC_DEF(armDCacheV7ClearAll)
-	armDCacheV7Op   ClearAll        c14
-	FUNC_END()
+    armDCacheV7Op   ClearAll        c14
+    FUNC_END()
 
 ;/*********************************************************************************************************
 ;  ARMv7 无效 DCACHE
 ;*********************************************************************************************************/
 
 FUNC_DEF(armDCacheV7InvalidateAll)
-	armDCacheV7Op   InvalidateAll   c6
-	FUNC_END()
+    armDCacheV7Op   InvalidateAll   c6
+    FUNC_END()
 
     FILE_END()
 

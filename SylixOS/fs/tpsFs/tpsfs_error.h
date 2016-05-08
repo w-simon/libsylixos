@@ -63,6 +63,7 @@ typedef enum {
     TPS_ERR_INODE_SYNC,                                                 /* 同步inode错误                */
     TPS_ERR_INODE_SERIAL,                                               /* 序列号inode错误              */
 
+    TPS_ERR_BTREE_INIT,                                                 /* 初始化b+tree                 */
     TPS_ERR_BTREE_INSERT,                                               /* 插入块到b+tree错误           */
     TPS_ERR_BTREE_TRUNC,                                                /* 截断b+tree错误               */
     TPS_ERR_BTREE_ALLOC,                                                /* 分配b+tree节点错误           */

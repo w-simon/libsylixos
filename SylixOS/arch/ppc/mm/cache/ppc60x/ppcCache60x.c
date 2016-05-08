@@ -486,6 +486,44 @@ static INT  ppc60xCacheTextUpdate (PVOID  pvAdrs, size_t  stBytes)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: ppc60xCacheDataUpdate
+** 功能描述: 回写 D CACHE (仅回写 CPU 独享级 CACHE)
+** 输　入  : pvAdrs                        虚拟地址
+**           stBytes                       长度
+**           bInv                          是否为回写无效
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+** 注  意  : L2 cache 为统一 CACHE 所以 data update 不需要操作 L2 cache.
+*********************************************************************************************************/
+INT  ppc60xCacheDataUpdate (PVOID  pvAdrs, size_t  stBytes, BOOL  bInv)
+{
+    addr_t  ulEnd;
+
+    if (bInv == LW_FALSE) {
+        if (stBytes >= PPC_CACHE_LOOP_OP_MAX_SIZE) {
+            ppc60xDCacheFlushAll();                                     /*  全部回写                    */
+
+        } else {
+            PPC_CACHE_GET_END(pvAdrs, stBytes, ulEnd, _G_DCache.CACHE_uiLineSize);
+            ppc60xDCacheFlush(pvAdrs, (PVOID)ulEnd,
+                              _G_DCache.CACHE_uiLineSize);              /*  部分回写                    */
+        }
+
+    } else {
+        if (stBytes >= PPC_CACHE_LOOP_OP_MAX_SIZE) {
+            ppc60xDCacheClearAll();                                     /*  全部回写                    */
+
+        } else {
+            PPC_CACHE_GET_END(pvAdrs, stBytes, ulEnd, _G_DCache.CACHE_uiLineSize);
+            ppc60xDCacheClear(pvAdrs, (PVOID)ulEnd,
+                              _G_DCache.CACHE_uiLineSize);              /*  部分回写                    */
+        }
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: ppc60xCacheProbe
 ** 功能描述: CACHE 探测
 ** 输　入  : NONE
@@ -609,9 +647,9 @@ VOID  ppc60xCacheInit (LW_CACHE_OP *pcacheop,
     pcacheop->CACHEOP_iICacheWaySize = _G_ICache.CACHE_uiWayStep;
     pcacheop->CACHEOP_iDCacheWaySize = _G_DCache.CACHE_uiWayStep;
 
-    _DebugFormat(__LOGMESSAGE_LEVEL, "PowerPC I-Cache line size = %d byte Way size = %d byte.\r\n",
+    _DebugFormat(__LOGMESSAGE_LEVEL, "PowerPC I-Cache line size = %d bytes Way size = %d bytes.\r\n",
                  pcacheop->CACHEOP_iICacheLine, pcacheop->CACHEOP_iICacheWaySize);
-    _DebugFormat(__LOGMESSAGE_LEVEL, "PowerPC D-Cache line size = %d byte Way size = %d byte.\r\n",
+    _DebugFormat(__LOGMESSAGE_LEVEL, "PowerPC D-Cache line size = %d bytes Way size = %d bytes.\r\n",
                  pcacheop->CACHEOP_iDCacheLine, pcacheop->CACHEOP_iDCacheWaySize);
 
     pcacheop->CACHEOP_pfuncEnable  = ppc60xCacheEnable;
@@ -627,6 +665,7 @@ VOID  ppc60xCacheInit (LW_CACHE_OP *pcacheop,
     pcacheop->CACHEOP_pfuncClear          = ppc60xCacheClear;
     pcacheop->CACHEOP_pfuncClearPage      = ppc60xCacheClearPage;
     pcacheop->CACHEOP_pfuncTextUpdate     = ppc60xCacheTextUpdate;
+    pcacheop->CACHEOP_pfuncDataUpdate     = ppc60xCacheDataUpdate;
 
 #if LW_CFG_VMM_EN > 0
     pcacheop->CACHEOP_pfuncDmaMalloc      = API_VmmDmaAlloc;

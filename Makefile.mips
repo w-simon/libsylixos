@@ -177,7 +177,8 @@ SylixOS/arch/mips/mm/mmu/mips32/mips32Mmu.c \
 SylixOS/arch/mips/mm/mipsCache.c \
 SylixOS/arch/mips/mm/mipsMmu.c \
 SylixOS/arch/mips/mpcore/mipsMpCoreAsm.S \
-SylixOS/arch/mips/mpcore/mipsSpinlock.c
+SylixOS/arch/mips/mpcore/mipsSpinlock.c \
+SylixOS/arch/mips/param/mipsParam.c 
 
 #*********************************************************************************************************
 # debug source
@@ -336,6 +337,7 @@ SylixOS/kernel/core/_SmpIpi.c \
 SylixOS/kernel/core/_SmpSpinlock.c \
 SylixOS/kernel/core/_SmpSpinlockKernel.c \
 SylixOS/kernel/core/_StackCheckInit.c \
+SylixOS/kernel/core/_StackMem.c \
 SylixOS/kernel/core/_ThreadAffinity.c \
 SylixOS/kernel/core/_ThreadFpu.c \
 SylixOS/kernel/core/_ThreadIdInit.c \

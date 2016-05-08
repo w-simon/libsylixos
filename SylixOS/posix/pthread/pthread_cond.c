@@ -453,6 +453,21 @@ int  pthread_cond_show (pthread_cond_t  *pcond, int  level)
         return  (EINVAL);
     }
     
+    if ((level != 0) && (level != 1)) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+    
+    if (LW_CPU_GET_CUR_NESTING()) {
+        errno = ECALLEDINISR;
+        return  (ECALLEDINISR);
+    }
+    
+    if (pcond->TCD_ulSignal == LW_OBJECT_HANDLE_INVALID) {
+        errno = EMNOTINITED;
+        return  (EMNOTINITED);
+    }
+    
     printf("cond show >>\n\n");
     printf("cond signal handle : %lx\n", pcond->TCD_ulSignal);
     printf("cond mutex  handle : %lx\n", pcond->TCD_ulMutex);
