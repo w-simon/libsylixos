@@ -370,6 +370,7 @@ SylixOS/kernel/interface/EventSetStatus.c \
 SylixOS/kernel/interface/EventSetTryGet.c \
 SylixOS/kernel/interface/GetLastError.c \
 SylixOS/kernel/interface/InterContext.c \
+SylixOS/kernel/interface/InterDefer.c \
 SylixOS/kernel/interface/InterEnterExit.c \
 SylixOS/kernel/interface/InterLock.c \
 SylixOS/kernel/interface/InterStack.c \
@@ -593,6 +594,7 @@ SylixOS/lib/libc/setjmp/setjmp.c \
 SylixOS/lib/libc/stdio/asprintf.c \
 SylixOS/lib/libc/stdio/clrerr.c \
 SylixOS/lib/libc/stdio/ctermid.c \
+SylixOS/lib/libc/stdio/cvtfloat.c \
 SylixOS/lib/libc/stdio/fclose.c \
 SylixOS/lib/libc/stdio/fdopen.c \
 SylixOS/lib/libc/stdio/fdprintf.c \

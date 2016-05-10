@@ -57,6 +57,7 @@ static INT      iCacheStatus = 0;
 extern VOID     armDCacheV7Disable(VOID);
 extern VOID     armDCacheV7FlushPoU(PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep);
 extern VOID     armDCacheV7FlushAll(VOID);
+extern VOID     armDCacheV7FlushAllPoU(VOID);
 extern VOID     armDCacheV7ClearAll(VOID);
 extern UINT32   armCacheV7CCSIDR(VOID);
 /*********************************************************************************************************
@@ -426,7 +427,7 @@ static INT	armCacheV7TextUpdate (PVOID  pvAdrs, size_t  stBytes)
     addr_t  ulEnd;
 
     if (stBytes >= ARMv7_CACHE_LOOP_OP_MAX_SIZE) {
-        armDCacheV7FlushAll();                                          /*  DCACHE 全部回写             */
+        armDCacheV7FlushAllPoU();                                       /*  DCACHE 全部回写             */
         armICacheInvalidateAll();                                       /*  ICACHE 全部无效             */
         
     } else {

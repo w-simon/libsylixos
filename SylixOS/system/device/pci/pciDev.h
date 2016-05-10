@@ -582,6 +582,7 @@ LW_API INT          API_PciConfigBusMaxGet(INT iIndex);
 LW_API INT          API_PciIntxEnableSet(INT iBus, INT iSlot, INT iFunc, INT iEnable);
 LW_API INT          API_PciIntxMaskSupported(INT iBus, INT iSlot, INT iFunc, INT *piSupported);
 
+LW_API VOID                 API_PciDrvBindEachDev(PCI_DRV_HANDLE hDrvHandle);
 LW_API INT                  API_PciDrvLoad(PCI_DRV_HANDLE       hDrvHandle,
                                            PCI_DEV_HANDLE       hDevHandle,
                                            PCI_DEVICE_ID_HANDLE hIdEntry);
@@ -591,9 +592,10 @@ LW_API INT                  API_PciDrvDevAdd(PCI_DRV_HANDLE hDrvHandle, PCI_DEV_
 LW_API PCI_DRV_HANDLE       API_PciDrvHandleGet(CPCHAR pcName);
 LW_API INT                  API_PciDrvDelete(PCI_DRV_HANDLE  hDrvHandle);
 LW_API INT                  API_PciDrvRegister(PCI_DRV_REGISTER_HANDLE hHandle);
-LW_API VOID                 API_PciDevBindEachDrv(PCI_DEV_HANDLE hDevHandle);
 LW_API INT                  API_PciDrvInit(VOID);
 
+LW_API PCI_DEVICE_ID_HANDLE API_PciDevMatchDrv(PCI_DEV_HANDLE hDevHandle, PCI_DRV_HANDLE hDrvHandle);
+LW_API VOID                 API_PciDevBindEachDrv(PCI_DEV_HANDLE hDevHandle);
 LW_API INT                  API_PciDevInterDisable(PCI_DEV_HANDLE   hHandle,
                                                    ULONG            ulVector,
                                                    PINT_SVR_ROUTINE pfuncIsr,
@@ -619,16 +621,13 @@ LW_API INT                  API_PciDevConfigWrite(PCI_DEV_HANDLE hHandle,
                                                   INT iPos, UINT8 *pucBuf, INT iLen);
 LW_API PCI_DEV_HANDLE       API_PciDevHandleGet(INT iBus, INT iDevice, INT iFunction);
 LW_API PCI_DEV_HANDLE       API_PciDevAdd(INT iBus, INT iDevice, INT iFunction);
-LW_API VOID                 API_PciDrvBindEachDev(PCI_DRV_HANDLE hDrvHandle);
 LW_API INT                  API_PciDevDelete(PCI_DEV_HANDLE hHandle);
 LW_API INT                  API_PciDevDrvDel(PCI_DEV_HANDLE  hDevHandle, PCI_DRV_HANDLE  hDrvHandle);
 LW_API INT                  API_PciDevDrvUpdate(PCI_DEV_HANDLE  hDevHandle, PCI_DRV_HANDLE  hDrvHandle);
 LW_API INT                  API_PciDevListCreate(VOID);
 LW_API INT                  API_PciDevInit(VOID);
+
 LW_API INT                  API_PciDevMsiEnableGet(PCI_DEV_HANDLE  hHandle, INT *piEnable);
-
-LW_API PCI_DEVICE_ID_HANDLE API_PciDevMatchDrv(PCI_DEV_HANDLE hDevHandle, PCI_DRV_HANDLE hDrvHandle);
-
 
 #define pciConfigInit           API_PciConfigInit
 #define pciConfigReset          API_PciConfigReset
@@ -687,9 +686,10 @@ LW_API PCI_DEVICE_ID_HANDLE API_PciDevMatchDrv(PCI_DEV_HANDLE hDevHandle, PCI_DR
 #define pciDrvHandleGet         API_PciDrvHandleGet
 #define pciDrvDelete            API_PciDrvDelete
 #define pciDrvRegister          API_PciDrvRegister
-#define pciDevBindEachDrv       API_PciDevBindEachDrv
 #define pciDrvInit              API_PciDrvInit
 
+#define pciDevMatchDrv          API_PciDevMatchDrv
+#define pciDevBindEachDrv       API_PciDevBindEachDrv
 #define pciDevInterDisable      API_PciDevInterDisable
 #define pciDevInterEnable       API_PciDevInterEnable
 #define pciDevInterDisonnect    API_PciDevInterDisonnect
@@ -699,7 +699,6 @@ LW_API PCI_DEVICE_ID_HANDLE API_PciDevMatchDrv(PCI_DEV_HANDLE hDevHandle, PCI_DR
 #define pciDevConfigWrite       API_PciDevConfigWrite
 #define pciHandleGet            API_PciDevHandleGet
 #define pciDevAdd               API_PciDevAdd
-#define pciDrvBindEachDev       API_PciDrvBindEachDev
 #define pciDevDelete            API_PciDevDelete
 #define pciDevDrvDel            API_PciDevDrvDel
 #define pciDevDrvUpdate         API_PciDevDrvUpdate
@@ -707,7 +706,6 @@ LW_API PCI_DEVICE_ID_HANDLE API_PciDevMatchDrv(PCI_DEV_HANDLE hDevHandle, PCI_DR
 #define pciDevInit              API_PciDevInit
 
 #define pciDevMsiEnableGet      API_PciDevMsiEnableGet
-#define pciDevMatchDrv          API_PciDevMatchDrv
 
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */
                                                                         /*  (LW_CFG_PCI_EN > 0)         */

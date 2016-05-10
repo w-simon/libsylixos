@@ -849,9 +849,9 @@ static LW_INLINE INT  __timespecLeftTime (const struct timespec  *ptv1, const st
             _K_hookKernel.HOOK_ThreadInit(ulId, ptcb);  \
         }
         
-#define __LW_THREAD_IDLE_HOOK() \
+#define __LW_THREAD_IDLE_HOOK(ulCPUId) \
         if (_K_hookKernel.HOOK_ThreadIdle) {    \
-            _K_hookKernel.HOOK_ThreadIdle();    \
+            _K_hookKernel.HOOK_ThreadIdle(ulCPUId); \
         }
         
 #define __LW_KERNEL_INIT_BEGIN_HOOK() \

@@ -74,12 +74,6 @@ static BOOL                 _G_bIsIncITLB       = LW_FALSE;             /*  是否
 #define MIPS_MMU_TLB_READ()             MIPS_EXEC_INS("TLBR");  MIPS_EXEC_INS ("EHB")
 #define MIPS_MMU_TLB_PROBE()            MIPS_EXEC_INS("TLBP");  MIPS_EXEC_INS ("EHB")
 /*********************************************************************************************************
-  CACHE 操作
-*********************************************************************************************************/
-#if LW_CFG_CACHE_EN > 0
-extern INT  mips32CacheDataUpdate(PVOID  pvAdrs, size_t  stBytes, BOOL  bInv);
-#endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
-/*********************************************************************************************************
 ** 函数名称: mips32MmuEnable
 ** 功能描述: 使能 MMU
 ** 输　入  : NONE
@@ -664,10 +658,6 @@ static INT  mips32MmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  u
              */
             *p_pteentry = (LW_PTE_TRANSENTRY)mips32MmuBuildPtentry((UINT32)ulPhysicalAddr,
                                                                    ulFlag);
-#if LW_CFG_CACHE_EN > 0
-            mips32CacheDataUpdate((PVOID)p_pteentry,
-                                  sizeof(LW_PTE_TRANSENTRY), LW_FALSE);
-#endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
             return  (ERROR_NONE);
 
         } else {
@@ -706,10 +696,6 @@ static VOID  mips32MmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
      */
     *p_pteentry = (LW_PTE_TRANSENTRY)mips32MmuBuildPtentry((UINT32)ulPhysicalAddr,
                                                            ulFlag);
-#if LW_CFG_CACHE_EN > 0
-    mips32CacheDataUpdate((PVOID)p_pteentry,
-                          sizeof(LW_PTE_TRANSENTRY), LW_FALSE);
-#endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
 }
 /*********************************************************************************************************
 ** 函数名称: mipsMmuTlbLoadStoreExcHandle

@@ -40,7 +40,7 @@ BUG:
 /*********************************************************************************************************
   SMP
 *********************************************************************************************************/
-#if (LW_CFG_SMP_EN > 0) && (LW_CFG_CACHE_EN > 0)
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_CACHE_EN > 0) && (LW_CFG_GDB_SMP_TU_LAZY > 0)
 static addr_t   ulLastBpAddr[LW_CFG_MAX_PROCESSORS];
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 /*********************************************************************************************************
@@ -142,7 +142,7 @@ UINT  archDbgTrapType (addr_t  ulAddr, PVOID   pvArch)
 {
     REGISTER UINT32  uiCpsr = (UINT32)pvArch;
     
-#if (LW_CFG_SMP_EN > 0) && (LW_CFG_CACHE_EN > 0)
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_CACHE_EN > 0) && (LW_CFG_GDB_SMP_TU_LAZY > 0)
              ULONG   ulCPUId;
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 
@@ -176,7 +176,7 @@ UINT  archDbgTrapType (addr_t  ulAddr, PVOID   pvArch)
         }
     }
     
-#if (LW_CFG_SMP_EN > 0) && (LW_CFG_CACHE_EN > 0)
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_CACHE_EN > 0) && (LW_CFG_GDB_SMP_TU_LAZY > 0)
     if (API_CacheGetOption() & CACHE_TEXT_UPDATE_MP) {
         ulCPUId = LW_CPU_GET_CUR_ID();
         if (ulLastBpAddr[ulCPUId] == ulAddr) {                          /*  不是断点的停止              */
@@ -191,6 +191,7 @@ UINT  archDbgTrapType (addr_t  ulAddr, PVOID   pvArch)
     } else
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
                                                                         /*  LW_CFG_CACHE_EN > 0         */
+                                                                        /*  LW_CFG_GDB_SMP_TU_LAZY > 0  */
     {
         return  (LW_TRAP_INVAL);
     }

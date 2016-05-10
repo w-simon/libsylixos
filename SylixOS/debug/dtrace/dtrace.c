@@ -1261,7 +1261,7 @@ VOID  API_DtraceSchedHook (LW_OBJECT_HANDLE  ulThreadOld, LW_OBJECT_HANDLE  ulTh
     ptcb    = __GET_TCB_FROM_INDEX(usIndex);
     if (ptcb && (ptcb->TCB_ulStepAddr != (addr_t)PX_ERROR) && !ptcb->TCB_bStepClear) {
         archDbgBpRemove(ptcb->TCB_ulStepAddr, sizeof(addr_t), 
-                        ptcb->TCB_ulStepInst, LW_TRUE);
+                        ptcb->TCB_ulStepInst, (LW_CFG_GDB_SMP_TU_LAZY) ? LW_TRUE : LW_FALSE);
         ptcb->TCB_bStepClear = LW_TRUE;                                 /*  单步断点已经被清除          */
         __DTRACE_MSG("[DTRACE] <HOOK> Clear thread 0x%lx Step-Breakpoint @ 0x%08lx CPU %ld.\r\n", 
                      ulThreadOld, ptcb->TCB_ulStepAddr, LW_CPU_GET_CUR_ID());

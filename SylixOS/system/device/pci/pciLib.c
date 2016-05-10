@@ -1680,13 +1680,16 @@ PCI_DEVICE_ID_HANDLE API_PciDevMatchDrv (PCI_DEV_HANDLE hDevHandle, PCI_DRV_HAND
 *********************************************************************************************************/
 static PCI_DEVICE_ID_HANDLE __pciDevMatchId (PCI_DEV_HANDLE hDevHandle, PCI_DEVICE_ID_HANDLE hId)
 {
-    PCI_DEV_HDR *phdr = &hDevHandle->PDT_phDevHdr.PCIH_pcidHdr;
+    PCI_DEV_HDR    *phdr       = &hDevHandle->PDT_phDevHdr.PCIH_pcidHdr;
+    UINT32          uiDevClass = (UINT32)((phdr->PCID_ucClassCode << 16) +
+                                          (phdr->PCID_ucSubClass  <<  8) +
+                                          phdr->PCID_ucProgIf);
 
     if (((hId->PDIT_uiVendor    == PCI_ANY_ID) || (hId->PDIT_uiVendor    == phdr->PCID_usVendorId))    &&
         ((hId->PDIT_uiDevice    == PCI_ANY_ID) || (hId->PDIT_uiDevice    == phdr->PCID_usDeviceId))    &&
         ((hId->PDIT_uiSubVendor == PCI_ANY_ID) || (hId->PDIT_uiSubVendor == phdr->PCID_usSubVendorId)) &&
         ((hId->PDIT_uiSubDevice == PCI_ANY_ID) || (hId->PDIT_uiSubDevice == phdr->PCID_usSubSystemId)) &&
-        !((hId->PDIT_uiClass ^ phdr->PCID_ucClassCode) & hId->PDIT_uiClassMask)) {
+        !((hId->PDIT_uiClass ^ uiDevClass) & hId->PDIT_uiClassMask)) {
         return  (hId);
     }
 

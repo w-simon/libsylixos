@@ -27,16 +27,17 @@
 2009.01.07  将 posix 系统放在外部初始化.
 2011.03.07  系统初始化有错误时, 打印相关错误说明.
 *********************************************************************************************************/
-#define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
 /*********************************************************************************************************
   声明
 *********************************************************************************************************/
-INT  _SysInit(VOID);                                                    /*  系统级初始化                */
-
+extern INT  _SysInit(VOID);                                             /*  系统级初始化                */
+#if LW_CFG_ISR_DEFER_EN > 0
+extern VOID _interDeferInit(VOID);
+#endif                                                                  /*  LW_CFG_ISR_DEFER_EN > 0     */
 #if LW_CFG_MPI_EN > 0
-VOID _mpiInit(VOID);                                                    /*  MPI 系统初始化              */
+extern VOID _mpiInit(VOID);                                             /*  MPI 系统初始化              */
 #endif                                                                  /*  LW_CFG_MPI_EN               */
 /*********************************************************************************************************
 ** 函数名称: _CreateIdleThread
@@ -50,7 +51,8 @@ VOID _mpiInit(VOID);                                                    /*  MPI 
 static VOID  _CreateIdleThread (VOID)
 {
 #if LW_CFG_SMP_EN > 0
-    REGISTER INT    i;
+    REGISTER INT             i;
+             LW_CLASS_CPUSET cpuset;
 #endif
 
     LW_CLASS_THREADATTR     threadattr;
@@ -58,24 +60,28 @@ static VOID  _CreateIdleThread (VOID)
     API_ThreadAttrBuild(&threadattr, 
                         LW_CFG_THREAD_IDLE_STK_SIZE, 
                         LW_PRIO_IDLE, 
-                        (LW_OPTION_THREAD_STK_CHK | LW_OPTION_THREAD_SAFE | LW_OPTION_OBJECT_GLOBAL), 
-                        LW_NULL);
-
+                        (LW_OPTION_THREAD_STK_CHK | 
+                        LW_OPTION_THREAD_SAFE | 
+                        LW_OPTION_OBJECT_GLOBAL | 
+                        LW_OPTION_THREAD_AFFINITY_ALWAYS), 
+                        (PVOID)0);
+                        
 #if LW_CFG_SMP_EN > 0
-    for (i = 0; i < LW_NCPUS; i++) {
-        CHAR    cIdle[LW_CFG_OBJECT_NAME_SIZE];
+    LW_CPU_ZERO(&cpuset);
 
-#if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_FIO_LIB_EN > 0)
-        snprintf(cIdle, LW_CFG_OBJECT_NAME_SIZE, "t_idle%d", i);
-#else
-        if (i == 0) {
-            lib_strcpy(cIdle, "t_idle");
-        }
-#endif                                                                  /* LW_CFG_DEVICE_EN > 0         */
-                                                                        /* LW_CFG_FIO_LIB_EN > 0        */
+    for (i = 0; i < LW_NCPUS; i++) {
+        CHAR    cIdle[LW_CFG_OBJECT_NAME_SIZE] = "t_idle";
+        
+        lib_itoa(i, &cIdle[6], 10);
+        API_ThreadAttrSetArg(&threadattr, (PVOID)i);
         _K_ulIdleId[i] = API_ThreadInit(cIdle, _IdleThread, &threadattr, LW_NULL);
         _K_ptcbIdle[i] = _K_ptcbTCBIdTable[_ObjectGetIndex(_K_ulIdleId[i])];
         _K_ptcbIdle[i]->TCB_ucSchedPolicy = LW_OPTION_SCHED_FIFO;       /* idle 必须是 FIFO 调度器      */
+        
+        LW_CPU_SET(i, &cpuset);                                         /*  锁定到指定 CPU              */
+        _ThreadSetAffinity(_K_ptcbIdle[i], sizeof(LW_CLASS_CPUSET), &cpuset);
+        LW_CPU_CLR(i, &cpuset);
+        
         API_ThreadStart(_K_ulIdleId[i]);
     }
 
@@ -138,6 +144,10 @@ VOID  _KernelHighLevelInit (VOID)
 
     _CreateIdleThread();                                                /*  建立空闲任务                */
     _CreateITimerThread();                                              /*  ITIMER 任务建立             */
+    
+#if LW_CFG_ISR_DEFER_EN > 0
+    _interDeferInit();
+#endif                                                                  /*  LW_CFG_ISR_DEFER_EN > 0     */
     
     iErr = _SysInit();
     if (iErr != ERROR_NONE) {
