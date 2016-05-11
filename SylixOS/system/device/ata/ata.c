@@ -300,11 +300,11 @@ __retry_rw:
             }
 
             iStatus = __ataWait(patactrl, __ATA_STAT_DRQ);
-             if (iStatus != ERROR_NONE) {
-                 ATA_DEBUG_MSG(("__ataRW() %d/%d: istatus = 0x%x read timed out\n",
-                                patactrl->ATACTRL_iCtrl, iDrive, istatus));
-                 return  (PX_ERROR);
-             }
+            if (iStatus != ERROR_NONE) {
+                ATA_DEBUG_MSG(("__ataRW() %d/%d: istatus = 0x%x read timed out\n",
+                               patactrl->ATACTRL_iCtrl, iDrive, istatus));
+                return  (PX_ERROR);
+            }
 
             if (patadrive->ATADRIVE_sRwBits == ATA_BITS_8) {            /*  8位操作                     */
                 INT8   *pcBuff      = (INT8 *)psBuf;
@@ -317,6 +317,7 @@ __retry_rw:
 
             } else if (patadrive->ATADRIVE_sRwBits == ATA_BITS_16) {    /*  16位操作                    */
                 __ATA_CTRL_OUTSTRING(patactrl, __ATA_DATA(patactrl), psBuf, iNWords);
+            
             } else {                                                    /*  32位操作                    */
                /*
                 *   TODO: 32位操作
@@ -396,6 +397,7 @@ __retry_rw:
 
             } else if (patadrive->ATADRIVE_sRwBits == ATA_BITS_16) {    /*  16位操作                    */
                 __ATA_CTRL_INSTRING(patactrl, __ATA_DATA(patactrl), psBuf, iNWords);
+            
             } else {                                                    /*  32位操作                    */
                 /*
                  *   TODO: 32位操作
@@ -824,7 +826,7 @@ INT API_AtaDrv (ATA_CHAN  *patachan, ATA_CHAN_PARAM *patacp)
 
     patactrl = __ataSearchNode(patacp->ATACP_iCtrlNum);
     if (patactrl != LW_NULL) {                                          /*  不为空,则已安装过驱动       */
-        goto __drive_init;
+        goto    __drive_init;
     }
 
     patactrl = (__PATA_CTRL)__SHEAP_ALLOC(sizeof(__ATA_CTRL));          /*  为该控制器分配内存          */
@@ -875,6 +877,8 @@ INT API_AtaDrv (ATA_CHAN  *patachan, ATA_CHAN_PARAM *patacp)
     __ATA_CTRL_CBINSTALL(patactrl, ATA_CALLBACK_CHECK_DEV,
                          (ATA_CALLBACK)__ataDevChk, (PVOID)patactrl);   /*  安装检测函数回调            */
 
+    patactrl->ATACTRL_bPreadBeSwap = patacp->ATACP_bPreadBeSwap;
+    
     if (patacp->ATACP_bIntEnable == LW_TRUE) {
         patactrl->ATACTRL_bIntDisable = LW_FALSE;                       /*  允许中断                    */
         __ATA_CTRL_CBINSTALL(patactrl, ATA_CALLBACK_WRITE_DATA,    \

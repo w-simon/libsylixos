@@ -494,6 +494,7 @@ struct __ata_ctrl {
     ATA_CHAN         *ATACTRL_pataChan;                                 /*  ata设备通道                 */
     __ATA_DRIVE       ATACTRL_ataDrive[__ATA_MAX_DRIVES];               /*  ata设备驱动器               */
     ATA_REG           ATACTRL_ataReg;                                   /*  ata任务文件寄存器           */
+    
     LW_OBJECT_HANDLE  ATACTRL_ulSyncSem;                                /*  同步信号量                  */
     LW_OBJECT_HANDLE  ATACTRL_ulMuteSem;                                /*  互斥信号量                  */
 
@@ -504,6 +505,7 @@ struct __ata_ctrl {
     INT               ATACTRL_iConfigType;                              /*  控制型配置类型              */
     ULONG             ATACTRL_ulSyncSemTimeout;                         /*  同步信号超时时间            */
 
+    BOOL              ATACTRL_bPreadBeSwap;                             /*  大端 CPU Pread 是否需要翻转 */
     BOOL              ATACTRL_bIntDisable;                              /*  如果禁止了中断,则为LW_TRUE  */
     BOOL              ATACTRL_bIsExist;                                 /*  如果卡存在, 则为LW_TRUE     */
 

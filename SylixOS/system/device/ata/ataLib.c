@@ -295,13 +295,17 @@ static INT __ataPread (__PATA_CTRL patactrler,
                        INT         iDrive,
                        PVOID       pvBuffer)
 {
-    __PATA_CTRL patactrl    = LW_NULL;
+    __PATA_CTRL patactrl = LW_NULL;
 
     INT         iRetry      = 1;
     INT         iRetryCount = 0;
     ULONG       ulSemStatus = 0;
 
-    INT16      *psBuf       = LW_NULL;
+#if LW_CFG_CPU_ENDIAN == 1
+    INT         i;
+#endif
+
+    INT16      *psBuf = LW_NULL;
 
     if ((!patactrler) || (!pvBuffer)) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "parameter error.\r\n");
@@ -334,6 +338,7 @@ static INT __ataPread (__PATA_CTRL patactrler,
             if (++iRetryCount > _G_iAtaRetry) {
                 return  (PX_ERROR);
             }
+        
         } else {
             iRetry = 0;
         }
@@ -345,6 +350,18 @@ static INT __ataPread (__PATA_CTRL patactrler,
 
     psBuf = (INT16 *)pvBuffer;
     __ATA_CTRL_INSTRING(patactrl, __ATA_DATA(patactrl), psBuf, 256);
+
+#if LW_CFG_CPU_ENDIAN == 1                                              /*  big-endian                  */
+#define __ATA_DATA_MSB(x)   (((x) >> 8) & 0xff)
+#define __ATA_DATA_LSB(x)   ((x) & 0xff)
+#define __ATA_DATA_SWAP(x)  ((__ATA_DATA_LSB(x) << 8) | __ATA_DATA_MSB(x))
+    
+    if (patactrl->ATACTRL_bPreadBeSwap) {
+        for (i = 0; i < 256; i++) {
+            psBuf[i] = (INT16)__ATA_DATA_SWAP(psBuf[i]);
+        }
+    }
+#endif
 
     ATA_DEBUG_MSG(("__ataPread() end :\n"));
 
