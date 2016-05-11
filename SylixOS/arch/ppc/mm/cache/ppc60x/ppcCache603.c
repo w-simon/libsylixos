@@ -24,7 +24,7 @@
   裁剪支持
 *********************************************************************************************************/
 #if LW_CFG_CACHE_EN > 0
-#include "ppcCache60x.h"
+#include "../common/ppcCache.h"
 /*********************************************************************************************************
   外部接口声明
 *********************************************************************************************************/
@@ -46,9 +46,26 @@ extern VOID     ppc603BranchPredictionDisable(VOID);
 extern VOID     ppc603BranchPredictionEnable(VOID);
 extern VOID     ppc603BranchPredictorInvalidate(VOID);
 /*********************************************************************************************************
+** 函数名称: ppc603CacheProbe
+** 功能描述: CACHE 探测
+** 输　入  : pcMachineName         机器名
+**           pICache               I-Cache 信息
+**           pDCache               D-Cache 信息
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT   ppc603CacheProbe (CPCHAR  pcMachineName, PPC_CACHE  *pICache, PPC_CACHE  *pDCache)
+{
+    return  (PX_ERROR);
+}
+/*********************************************************************************************************
   603 CACHE 驱动
 *********************************************************************************************************/
-PPC60X_L1C_DRIVER  G_ppc603CacheDriver = {
+PPC_L1C_DRIVER  G_ppc603CacheDriver = {
+    "603",
+    ppc603CacheProbe,
+
     ppc603DCacheDisable,
     ppc603DCacheEnable,
     ppc603ICacheDisable,

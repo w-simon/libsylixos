@@ -24,7 +24,6 @@
 #endif
 
 #include <arch/assembler.h>
-#include <config/cpu/cpu_cfg.h>
 #include <config/kernel/cache_cfg.h>
 
     FILE_BEGIN()

@@ -22,6 +22,7 @@
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
 #include "ppcSpr.h"
+#include "arch/ppc/param/ppcParam.h"
 /*********************************************************************************************************
 ** 函数名称: archTaskCtxCreate
 ** 功能描述: 创建任务上下文
@@ -43,23 +44,40 @@ PLW_STACK  archTaskCtxCreate (PTHREAD_START_ROUTINE  pfuncTask,
     ARCH_FP_CTX        *pfpctx;
     ARCH_REG_T          uiMsr;
     ARCH_REG_T          uiSrr1;
+    PPC_PARAM          *pParam;
 
-    uiMsr   =  ppcGetMSR();                                             /*  获得当前 MSR 的值           */
+    uiMsr  = ppcGetMSR();                                               /*  获得当前 MSR 的值           */
+    pParam = archKernelParamGet();
+    uiSrr1 = uiMsr;
+
+    if (pParam->PP_bGenericPPC32) {
+#define ARCH_PPC_MSR_VEC            0x0200                              /*  Bit 6 of MSR                */
+
+        uiSrr1 |=  ARCH_PPC_MSR_EE;                                     /*  使能中断                    */
+        uiSrr1 &= ~ARCH_PPC_MSR_PR;                                     /*  特权模式                    */
+        uiSrr1 &= ~ARCH_PPC_MSR_FP;                                     /*  禁能 FPU                    */
+        uiSrr1 &= ~(ARCH_PPC_MSR_VEC << 16);                            /*  禁能 ALTIVEC                */
 #if LW_CFG_VMM_EN > 0
-#if defined(ARCH_PPC_MSR_DR)
-    uiSrr1  = (uiMsr | ARCH_PPC_MSR_EE |
-               ARCH_PPC_MSR_IR | ARCH_PPC_MSR_DR);                      /*  使能中断和 MMU              */
-#elif defined(ARCH_PPC_MSR_DS)
-    uiSrr1  = (uiMsr | ARCH_PPC_MSR_EE |
-               ARCH_PPC_MSR_IS | ARCH_PPC_MSR_DS);                      /*  使能中断和 MMU              */
+        uiSrr1 |= ARCH_PPC_MSR_IR | ARCH_PPC_MSR_DR;                    /*  使能 MMU                    */
 #else
-#error "bit to enable mmu is not defined"
-#endif                                                                  /*  defined(ARCH_PPC_MSR_DR)    */
-#else
-    uiSrr1  = (uiMsr | ARCH_PPC_MSR_EE);                                /*  使能中断                    */
+        uiSrr1 &= ~(ARCH_PPC_MSR_IR | ARCH_PPC_MSR_DR);                 /*  禁能 MMU                    */
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
-    uiSrr1 &= ~ARCH_PPC_MSR_FP;                                         /*  禁能 FPU                    */
-    
+
+#undef  ARCH_PPC_MSR_VEC
+    } else {
+#define ARCH_PPC_MSR_SPE            0x02000000
+#define ARCH_PPC_MSR_IS             0x0020                              /*  insn address space selector */
+#define ARCH_PPC_MSR_DS             0x0010                              /*  data address space selector */
+
+        uiSrr1 |=  ARCH_PPC_MSR_EE;                                     /*  使能中断                    */
+        uiSrr1 &= ~ARCH_PPC_MSR_SPE;                                    /*  禁能 SPE                    */
+        uiSrr1 &= ~(ARCH_PPC_MSR_IS | ARCH_PPC_MSR_DS);                 /*  使用地址空间 0              */
+
+#undef  ARCH_PPC_MSR_SPE
+#undef  ARCH_PPC_MSR_IS
+#undef  ARCH_PPC_MSR_DS
+    }
+
     if ((addr_t)pstkTop & 0x7) {                                        /*  保证出栈后 CPU SP 8 字节对齐*/
         pstkTop = (PLW_STACK)((addr_t)pstkTop - 4);                     /*  向低地址推进 4 字节         */
     }

@@ -36,7 +36,7 @@ static PVOID                _G_pvPTETable       = LW_NULL;              /*  PTE 
 static UINT32               _G_uiTlbSize        = 0;                    /*  TLB 数组大小                */
 static INT32                _G_iHwNeverExecBit  = -1;                   /*  硬件的代码永不执行位        */
 static UINT32               _G_uiEntryLoPFNMask = 0;                    /*  ENTRYLO PFN 域掩码          */
-static BOOL                 _G_bIsIncITLB       = LW_FALSE;             /*  是否需要处理 ITLB           */
+static BOOL                 _G_bIsHasITLB       = LW_FALSE;             /*  是否带有处理 ITLB           */
 /*********************************************************************************************************
   ENTRYLO
 *********************************************************************************************************/
@@ -54,7 +54,7 @@ static BOOL                 _G_bIsIncITLB       = LW_FALSE;             /*  是否
 #define MIPS32_ENTRYHI_VPN_SHIFT        (13)
 
 #define MIPS32_PTE_EXEC_SHIFT           (0)
-#define MIPS32_FLUSH_ITLB               {  mipsCp0DiagWrite(0x04);  }
+#define MIPS32_FLUSH_ITLB()             mipsCp0DiagWrite(0x04)
 
 #define UNIQUE_ENTRYHI(idx)             (A_K1BASE + ((idx) << (LW_CFG_VMM_PAGE_SHIFT + 1)))
 
@@ -120,8 +120,8 @@ static VOID  mips32MmuInvalidateTLB (VOID)
 
     mipsCp0EntryHiWrite(uiEntryHiBak);
 
-    if (_G_bIsIncITLB) {
-        MIPS32_FLUSH_ITLB;
+    if (_G_bIsHasITLB) {
+        MIPS32_FLUSH_ITLB();
     }
 }
 /*********************************************************************************************************
@@ -155,8 +155,8 @@ VOID  mips32MmuDumpTLB (VOID)
 
     mipsCp0EntryHiWrite(uiEntryHiBak);
 
-    if (_G_bIsIncITLB) {
-        MIPS32_FLUSH_ITLB;
+    if (_G_bIsHasITLB) {
+        MIPS32_FLUSH_ITLB();
     }
 }
 /*********************************************************************************************************
@@ -193,8 +193,8 @@ static VOID  mips32MmuInvalidateTLBMVA (addr_t  ulAddr)
 
     mipsCp0EntryHiWrite(uiEntryHiBak);
 
-    if (_G_bIsIncITLB) {
-        MIPS32_FLUSH_ITLB;
+    if (_G_bIsHasITLB) {
+        MIPS32_FLUSH_ITLB();
     }
 }
 /*********************************************************************************************************
@@ -816,7 +816,7 @@ VOID  mips32MmuInit (LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName)
 
     } else {
         if (lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X) == 0) {
-            _G_bIsIncITLB = LW_TRUE;
+            _G_bIsHasITLB = LW_TRUE;
         }
 
         _G_iHwNeverExecBit  = -1;

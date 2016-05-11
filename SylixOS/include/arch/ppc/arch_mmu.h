@@ -62,8 +62,43 @@ typedef union {
         UINT        PTE_ucWIMG      :  4;                               /*  内存和 CACHE 属性位         */
         UINT        PTE_bReserved2  :  1;                               /*  保留                        */
         UINT        PTE_ucPP        :  2;                               /*  页保护权限位                */
-    };
+    };                                                                  /*  通用的 PPC32 PTE            */
     UINT32          PTE_uiValue;                                        /*  值                          */
+
+    struct {
+        /*
+         * 以下值用于 TLB MISS 时重装到 MAS2 MAS3 寄存器
+         */
+        UINT        MAS3_uiRPN      : 20;                               /*  物理页号                    */
+
+        UINT        MAS3_ucReserved0:  2;                               /*  保留                        */
+
+        /*
+         * 以下用户属性用于 TLB MISS 时重装到 MAS2 寄存器
+         *
+         * MAS2 寄存器还有 X0 X1 G E 位, G 和 E 位固定为 0
+         * X0 X1 位由 MAS4 寄存器的 X0D X1D 自动重装
+         */
+#define MAS3_bValid      MAS3_bUserAttr0                                /*  是否有效                    */
+#define MAS3_bWT         MAS3_bUserAttr1                                /*  是否写穿透                  */
+#define MAS3_bUnCache    MAS3_bUserAttr2                                /*  是否不可 Cache              */
+#define MAS3_bMemCoh     MAS3_bUserAttr3                                /*  是否多核内存一致性          */
+
+        UINT        MAS3_bUserAttr0 :  1;                               /*  用户属性 0                  */
+        UINT        MAS3_bUserAttr1 :  1;                               /*  用户属性 1                  */
+        UINT        MAS3_bUserAttr2 :  1;                               /*  用户属性 2                  */
+        UINT        MAS3_bUserAttr3 :  1;                               /*  用户属性 3                  */
+
+        UINT        MAS3_bUserExec  :  1;                               /*  用户可执行权限              */
+        UINT        MAS3_bSuperExec :  1;                               /*  管理员可执行权限            */
+
+        UINT        MAS3_bUserWrite :  1;                               /*  用户可写权限                */
+        UINT        MAS3_bSuperWrite:  1;                               /*  管理员可写权限              */
+
+        UINT        MAS3_bUserRead  :  1;                               /*  用户可读权限                */
+        UINT        MAS3_bSuperRead :  1;                               /*  管理员可读权限              */
+    };                                                                  /*  E500 PTE                    */
+    UINT32          MAS3_uiValue;                                       /*  值                          */
 } LW_PTE_TRANSENTRY;                                                    /*  页表条目类型                */
 
 #endif                                                                  /*  __PPC_ARCH_MMU_H            */

@@ -23,6 +23,7 @@
 #define __ARCH_PPCMMU_H
 
 VOID   ppcMmuInit(LW_MMU_OP *pmmuop, CPCHAR  pcMachineName);
+
 ULONG  ppcMmuPteMissHandle(addr_t  ulAddr);
 
 UINT32 ppcMmuGetSRR1(VOID);

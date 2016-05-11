@@ -25,6 +25,7 @@
 *********************************************************************************************************/
 #if LW_CFG_VMM_EN > 0
 #include "mmu/common/ppcMmu.h"
+#include "mmu/e500/ppcMmuE500.h"
 /*********************************************************************************************************
 ** 函数名称: archCacheInit
 ** 功能描述: 初始化 CACHE 
@@ -42,8 +43,16 @@ VOID  archMmuInit (CPCHAR  pcMachineName)
     _DebugFormat(__LOGMESSAGE_LEVEL, "%s MMU initialization.\r\n", pcMachineName);
 
     if ((lib_strcmp(pcMachineName, PPC_MACHINE_750)     == 0) ||
-        (lib_strcmp(pcMachineName, PPC_MACHINE_MPC83XX) == 0)) {
+        (lib_strcmp(pcMachineName, PPC_MACHINE_MPC83XX) == 0) ||
+        (lib_strcmp(pcMachineName, PPC_MACHINE_E300)    == 0) ||
+        (lib_strcmp(pcMachineName, PPC_MACHINE_E600)    == 0)) {
         ppcMmuInit(pmmuop, pcMachineName);
+
+    } else if (lib_strcmp(pcMachineName, PPC_MACHINE_E500)   == 0 ||
+               lib_strcmp(pcMachineName, PPC_MACHINE_E500V1) == 0 ||
+               lib_strcmp(pcMachineName, PPC_MACHINE_E500V2) == 0 ||
+               lib_strcmp(pcMachineName, PPC_MACHINE_E500MC) == 0) {
+        ppcE500MmuInit(pmmuop, pcMachineName);
 
     } else {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown machine name.\r\n");

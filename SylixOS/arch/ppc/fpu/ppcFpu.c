@@ -27,6 +27,8 @@
 #include "ppcFpu.h"
 #include "vfpnone/ppcVfpNone.h"
 #include "vfp/ppcVfp.h"
+#include "spe/ppcVfpSpe.h"
+#include "altivec/ppcVfpAltivec.h"
 /*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
@@ -47,10 +49,16 @@ VOID  archFpuPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
                  pcMachineName, pcFpuName);
 
     if (lib_strcmp(pcFpuName, PPC_FPU_NONE) == 0) {                     /*  选择 VFP 架构               */
-        _G_pfpuop = ppcVfpNonePrimaryInit(pcMachineName, pcFpuName);
-    
+        _G_pfpuop    = ppcVfpNonePrimaryInit(pcMachineName, pcFpuName);
+
     } else if (lib_strcmp(pcFpuName, PPC_FPU_VFP) == 0) {
-        _G_pfpuop = ppcVfpPrimaryInit(pcMachineName, pcFpuName);
+        _G_pfpuop    = ppcVfpPrimaryInit(pcMachineName, pcFpuName);
+
+    } else if (lib_strcmp(pcFpuName, PPC_FPU_SPE) == 0) {
+        _G_pfpuop    = ppcVfpSpePrimaryInit(pcMachineName, pcFpuName);
+
+    } else if (lib_strcmp(pcFpuName, PPC_FPU_ALTIVEC) == 0) {
+        _G_pfpuop    = ppcVfpAltivecPrimaryInit(pcMachineName, pcFpuName);
 
     } else {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown fpu name.\r\n");
@@ -67,8 +75,6 @@ VOID  archFpuPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
     
     PPC_VFP_SAVE(_G_pfpuop, (PVOID)&_G_fpuCtxInit);
     
-    _G_fpuCtxInit.FPUCTX_fpuctxContext.FPUCTX_uiFpscr = 0x00000000;     /*  Do not enable FPU           */
-
     PPC_VFP_DISABLE(_G_pfpuop);
 }
 /*********************************************************************************************************
@@ -89,9 +95,15 @@ VOID  archFpuSecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 
     if (lib_strcmp(pcFpuName, PPC_FPU_NONE) == 0) {                     /*  选择 VFP 架构               */
         ppcVfpNoneSecondaryInit(pcMachineName, pcFpuName);
-    
+
     } else if (lib_strcmp(pcFpuName, PPC_FPU_VFP) == 0) {
         ppcVfpSecondaryInit(pcMachineName, pcFpuName);
+
+    } else if (lib_strcmp(pcFpuName, PPC_FPU_SPE) == 0) {
+        ppcVfpSpeSecondaryInit(pcMachineName, pcFpuName);
+
+    } else if (lib_strcmp(pcFpuName, PPC_FPU_ALTIVEC) == 0) {
+        ppcVfpAltivecSecondaryInit(pcMachineName, pcFpuName);
 
     } else {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown fpu name.\r\n");
@@ -101,7 +113,7 @@ VOID  archFpuSecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 
 #endif                                                                  /*  LW_CFG_SMP_EN               */
 /*********************************************************************************************************
-** 函数名称: OSFpuInitCtx
+** 函数名称: archFpuCtxInit
 ** 功能描述: 初始化一个 Fpu 上下文控制块 (这里并没有使能 FPU)
 ** 输　入  : pvFpuCtx   FPU 上下文
 ** 输　出  : NONE
@@ -185,22 +197,13 @@ VOID  archFpuCtxShow (INT  iFd, PVOID pvFpuCtx)
 *********************************************************************************************************/
 INT  archFpuUndHandle (PLW_CLASS_TCB  ptcbCur)
 {
-    ARCH_REG_CTX  *pregctx;
-    ARCH_FPU_CTX  *pfpuctx;
-    ARCH_REG_T     regSp;
-
     if (PPC_VFP_ISENABLE(_G_pfpuop)) {                                  /*  如果当前上下文 FPU 使能     */
         return  (PX_ERROR);                                             /*  此未定义指令与 FPU 无关     */
     }
-    
-    pregctx = archTaskRegsGet(ptcbCur->TCB_pstkStackNow, &regSp);
-    pregctx->REG_uiSrr1 |= ARCH_PPC_MSR_FP;
 
-    pfpuctx = &ptcbCur->TCB_fpuctxContext.FPUCTX_fpuctxContext;
-    pfpuctx->FPUCTX_uiFpscr     = ARCH_PPC_FPSCR_INIT;
-    pfpuctx->FPUCTX_uiFpscrCopy = ARCH_PPC_FPSCR_INIT;
-
+    PPC_VFP_ENABLE_TASK(_G_pfpuop, ptcbCur);                            /*  任务使能 FPU                */
     ptcbCur->TCB_ulOption |= LW_OPTION_THREAD_USED_FP;
+
     PPC_VFP_ENABLE(_G_pfpuop);                                          /*  使能 FPU                    */
     
     return  (ERROR_NONE);

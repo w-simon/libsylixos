@@ -32,13 +32,13 @@
 *********************************************************************************************************/
 
 typedef struct {
-    ULONGFUNCPTR    PFPU_pfuncHwSid;
     VOIDFUNCPTR     PFPU_pfuncEnable;
     VOIDFUNCPTR     PFPU_pfuncDisable;
     BOOLFUNCPTR     PFPU_pfuncIsEnable;
     VOIDFUNCPTR     PFPU_pfuncSave;
     VOIDFUNCPTR     PFPU_pfuncRestore;
     VOIDFUNCPTR     PFPU_pfuncCtxShow;
+    VOIDFUNCPTR     PFPU_pfuncEnableTask;
 } PPC_FPU_OP;
 typedef PPC_FPU_OP *PPPC_FPU_OP;
 
@@ -46,13 +46,13 @@ typedef PPC_FPU_OP *PPPC_FPU_OP;
   PowerPC fpu »ù±¾²Ù×÷
 *********************************************************************************************************/
 
-#define PPC_VFP_HW_SID(op)              op->PFPU_pfuncHwSid()
 #define PPC_VFP_ENABLE(op)              op->PFPU_pfuncEnable()
 #define PPC_VFP_DISABLE(op)             op->PFPU_pfuncDisable()
 #define PPC_VFP_ISENABLE(op)            op->PFPU_pfuncIsEnable()
 #define PPC_VFP_SAVE(op, ctx)           op->PFPU_pfuncSave((ctx))
 #define PPC_VFP_RESTORE(op, ctx)        op->PFPU_pfuncRestore((ctx))
 #define PPC_VFP_CTXSHOW(op, fd, ctx)    op->PFPU_pfuncCtxShow((fd), (ctx))
+#define PPC_VFP_ENABLE_TASK(op, tcb)    op->PFPU_pfuncEnableTask((tcb))
 
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 #endif                                                                  /*  __ARCH_PPCFPU_H             */

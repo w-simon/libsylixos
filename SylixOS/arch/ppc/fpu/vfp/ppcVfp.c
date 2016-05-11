@@ -57,14 +57,32 @@ static VOID  ppcVfpCtxShow (INT iFd, PVOID pvFpuCtx)
     fdprintf(iFd, "FPSCR   = 0x%08x\n", pcpufpuCtx->FPUCTX_uiFpscr);
 
     for (i = 0; i < FP_DREG_NR; i += 2) {
-        fdprintf(iFd,
-                 "FPR%02d = %lf, FPR%02d = %lf\n",
-                 i,
-                 pcpufpuCtx->FPUCTX_dfDreg[i],
-                 i + 1,
-                 pcpufpuCtx->FPUCTX_dfDreg[i + 1]);
+        fdprintf(iFd, "FPR%02d = %lf, FPR%02d = %lf\n",
+                 i,     pcpufpuCtx->FPUCTX_dfDreg[i],
+                 i + 1, pcpufpuCtx->FPUCTX_dfDreg[i + 1]);
     }
 #endif
+}
+/*********************************************************************************************************
+** 函数名称: ppcVfpEnableTask
+** 功能描述: 系统发生 undef 异常时, 使能任务的 VFP
+** 输　入  : ptcbCur    当前任务控制块
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  ppcVfpEnableTask (PLW_CLASS_TCB  ptcbCur)
+{
+    ARCH_REG_CTX  *pregctx;
+    ARCH_FPU_CTX  *pfpuctx;
+    ARCH_REG_T     regSp;
+
+    pregctx = archTaskRegsGet(ptcbCur->TCB_pstkStackNow, &regSp);
+    pregctx->REG_uiSrr1 |= ARCH_PPC_MSR_FP;
+
+    pfpuctx = &ptcbCur->TCB_fpuctxContext.FPUCTX_fpuctxContext;
+    pfpuctx->FPUCTX_uiFpscr     = 0ul;
+    pfpuctx->FPUCTX_uiFpscrCopy = 0ul;
 }
 /*********************************************************************************************************
 ** 函数名称: ppcVfpPrimaryInit
@@ -77,12 +95,13 @@ static VOID  ppcVfpCtxShow (INT iFd, PVOID pvFpuCtx)
 *********************************************************************************************************/
 PPPC_FPU_OP  ppcVfpPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 {
-    _G_fpuopVfp.PFPU_pfuncSave     = ppcVfpSave;
-    _G_fpuopVfp.PFPU_pfuncRestore  = ppcVfpRestore;
-    _G_fpuopVfp.PFPU_pfuncEnable   = ppcVfpEnable;
-    _G_fpuopVfp.PFPU_pfuncDisable  = ppcVfpDisable;
-    _G_fpuopVfp.PFPU_pfuncIsEnable = ppcVfpIsEnable;
-    _G_fpuopVfp.PFPU_pfuncCtxShow  = ppcVfpCtxShow;
+    _G_fpuopVfp.PFPU_pfuncSave       = ppcVfpSave;
+    _G_fpuopVfp.PFPU_pfuncRestore    = ppcVfpRestore;
+    _G_fpuopVfp.PFPU_pfuncEnable     = ppcVfpEnable;
+    _G_fpuopVfp.PFPU_pfuncDisable    = ppcVfpDisable;
+    _G_fpuopVfp.PFPU_pfuncIsEnable   = ppcVfpIsEnable;
+    _G_fpuopVfp.PFPU_pfuncCtxShow    = ppcVfpCtxShow;
+    _G_fpuopVfp.PFPU_pfuncEnableTask = ppcVfpEnableTask;
 
     return  (&_G_fpuopVfp);
 }

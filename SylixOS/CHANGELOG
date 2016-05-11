@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2016-05-11: han.hui
+    加入 PowerPC E500 支持.
+
     2016-05-10: han.hui
     加入中断延迟队列处理能力, 类似 Linux 底半部中断处理.
 

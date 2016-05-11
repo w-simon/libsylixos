@@ -40,35 +40,42 @@
 ;  FPU 在 MSR 中的使能掩码
 ;*********************************************************************************************************/
 
-#define ARCH_PPC_MSR_BIT_FP 18
+#define ARCH_PPC_MSR_BIT_FP     18
 
 #define FPU_MASK(src, des) \
     RLWINM  des, src, 0, ARCH_PPC_MSR_BIT_FP+1, ARCH_PPC_MSR_BIT_FP-1
 
 ;/*********************************************************************************************************
-;  使能 FPU
+;  使能 FPU 宏
 ;*********************************************************************************************************/
 
-FUNC_DEF(ppcVfpEnable)
-    MFMSR   R3                                                          ;/*  读取 MSR                    */
+MACRO_DEF(ENABLE_VFP, Rn)
+    MFMSR   \Rn                                                         ;/*  读取 MSR                    */
     ISYNC
-    ORI     R3 , R3 , ARCH_PPC_MSR_FP                                   ;/*  设置 FP 位                  */
+    ORI     \Rn , \Rn , ARCH_PPC_MSR_FP                                 ;/*  设置 FP 位                  */
     ISYNC
-    MTMSR   R3                                                          ;/*  设置 MSR                    */
+    MTMSR   \Rn                                                         ;/*  设置 MSR                    */
     ISYNC
 
 #ifdef  ARCH_PPC_CCR0_BIT_DAPUIB_U
     ;/*
     ; * 确保复用处理器（包括 FP）被使能，通过清除 CCR0[DAPUIB] 位来完成
     ; */
-    MFSPR   R3 , CCR0
+    MFSPR   \Rn , CCR0
     ISYNC
-    RLWINM  R3 , R3 , 0 , ARCH_PPC_CCR0_BIT_DAPUIB_U+1 , ARCH_PPC_CCR0_BIT_DAPUIB_U-1
+    RLWINM  \Rn , \Rn , 0 , ARCH_PPC_CCR0_BIT_DAPUIB_U+1 , ARCH_PPC_CCR0_BIT_DAPUIB_U-1
     ISYNC
-    MTSPR   CCR0 , R3
+    MTSPR   CCR0 , \Rn
     ISYNC
 #endif                                                                  /*  ARCH_PPC_CCR0_BIT_DAPUIB_U  */
+    MACRO_END()
 
+;/*********************************************************************************************************
+;  使能 FPU
+;*********************************************************************************************************/
+
+FUNC_DEF(ppcVfpEnable)
+    ENABLE_VFP  R3
     BLR
     FUNC_END()
 
@@ -107,12 +114,7 @@ LINE_LABEL(__ppcVfpIsEnable)
 ;*********************************************************************************************************/
 
 FUNC_DEF(ppcVfpSave)
-    MFMSR   R4                                                          ;/*  读取 MSR                    */
-    ISYNC
-    ORI     R4    , R4 , ARCH_PPC_MSR_FP                                ;/*  设置 FP 位                  */
-    ISYNC
-    MTMSR   R4                                                          ;/*  设置 MSR                    */
-    ISYNC                                                               ;/*  同步                        */
+    ENABLE_VFP  R4
 
     STFD    FPR0  ,  XFPR(0)(R3)                                        ;/*  保存 FPR0                   */
     STFD    FPR1  ,  XFPR(1)(R3)                                        ;/*  保存 FPR1                   */
@@ -166,12 +168,7 @@ FUNC_DEF(ppcVfpSave)
 ;*********************************************************************************************************/
 
 FUNC_DEF(ppcVfpRestore)
-    MFMSR   R4                                                          ;/*  读取 MSR                    */
-    ISYNC
-    ORI     R4    , R4 , ARCH_PPC_MSR_FP                                ;/*  设置 FP                     */
-    ISYNC
-    MTMSR   R4                                                          ;/*  设置 MSR                    */
-    ISYNC                                                               ;/*  同步                        */
+    ENABLE_VFP  R4
 
     LWZ     R4    , XFPSCR(R3)                                          ;/*  读取已经保存的 FPSCR        */
     STW     R4    , XFPSCR_COPY(R3)                                     ;/*  拷贝它到 FpscrCopy          */

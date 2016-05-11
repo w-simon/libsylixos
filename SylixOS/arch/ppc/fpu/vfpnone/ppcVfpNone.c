@@ -31,18 +31,6 @@
 *********************************************************************************************************/
 static PPC_FPU_OP   _G_fpuopVfpNone;
 /*********************************************************************************************************
-** 函数名称: ppcVfpNoneSid
-** 功能描述: 获得 VFP SID
-** 输　入  : NONE
-** 输　出  : SID
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-static ULONG ppcVfpNoneSid (VOID)
-{
-    return  (0ul);
-}
-/*********************************************************************************************************
 ** 函数名称: ppcVfpNoneEnable
 ** 功能描述: 使能 VFP
 ** 输　入  : NONE
@@ -114,6 +102,17 @@ static VOID  ppcVfpNoneCtxShow (INT iFd, PVOID pvFpuCtx)
 #endif
 }
 /*********************************************************************************************************
+** 函数名称: ppcVfpNoneEnableTask
+** 功能描述: 系统发生 undef 异常时, 使能任务的 VFP
+** 输　入  : ptcbCur    当前任务控制块
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  ppcVfpNoneEnableTask (PLW_CLASS_TCB  ptcbCur)
+{
+}
+/*********************************************************************************************************
 ** 函数名称: ppcVfpNonePrimaryInit
 ** 功能描述: 获取 VFP 控制器操作函数集
 ** 输　入  : pcMachineName 机器名
@@ -123,13 +122,13 @@ static VOID  ppcVfpNoneCtxShow (INT iFd, PVOID pvFpuCtx)
 *********************************************************************************************************/
 PPPC_FPU_OP  ppcVfpNonePrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 {
-    _G_fpuopVfpNone.PFPU_pfuncHwSid    = ppcVfpNoneSid;
-    _G_fpuopVfpNone.PFPU_pfuncEnable   = ppcVfpNoneEnable;
-    _G_fpuopVfpNone.PFPU_pfuncDisable  = ppcVfpNoneDisable;
-    _G_fpuopVfpNone.PFPU_pfuncIsEnable = ppcVfpNoneIsEnable;
-    _G_fpuopVfpNone.PFPU_pfuncSave     = ppcVfpNoneSave;
-    _G_fpuopVfpNone.PFPU_pfuncRestore  = ppcVfpNoneRestore;
-    _G_fpuopVfpNone.PFPU_pfuncCtxShow  = ppcVfpNoneCtxShow;
+    _G_fpuopVfpNone.PFPU_pfuncEnable     = ppcVfpNoneEnable;
+    _G_fpuopVfpNone.PFPU_pfuncDisable    = ppcVfpNoneDisable;
+    _G_fpuopVfpNone.PFPU_pfuncIsEnable   = ppcVfpNoneIsEnable;
+    _G_fpuopVfpNone.PFPU_pfuncSave       = ppcVfpNoneSave;
+    _G_fpuopVfpNone.PFPU_pfuncRestore    = ppcVfpNoneRestore;
+    _G_fpuopVfpNone.PFPU_pfuncCtxShow    = ppcVfpNoneCtxShow;
+    _G_fpuopVfpNone.PFPU_pfuncEnableTask = ppcVfpNoneEnableTask;
 
     return  (&_G_fpuopVfpNone);
 }

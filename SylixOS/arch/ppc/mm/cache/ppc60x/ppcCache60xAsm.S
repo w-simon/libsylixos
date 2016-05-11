@@ -56,7 +56,7 @@
     EXPORT_LABEL(ppc60xBranchPredictionEnable)
     EXPORT_LABEL(ppc60xBranchPredictorInvalidate)
 
-    IMPORT_LABEL(G_pucPpc60xCacheReadBuffer)
+    IMPORT_LABEL(G_pucPpcCacheReadBuffer)
 
 ;/*********************************************************************************************************
 ;  ∂®“Â
@@ -261,14 +261,6 @@ FUNC_DEF(ppc60xDCacheAllOps)
     RLWINM. R5 , R4 , 0 , ARCH_PPC_HID0_BIT_DCE , ARCH_PPC_HID0_BIT_DCE
     BEQ     cache60xRetOK
 
-    ;/*
-     ;* Disable interrupts to avoid perturbing the cache during the
-     ;* operation.
-     ;*/
-    MFMSR   R3                                      ;/*  read msr                                        */
-    ARCH_PPC_INT_MASK(R3 , R7)                      ;/*  mask off ee bit                                 */
-    MTMSR   R7                                      ;/*  DISABLE INTERRUPT                               */
-
     ;/* "invalidate all" skips over loops */
     CMPWI   R8 , PPC_CACHE_OP_INVALID_ALL
     BEQ     cache60xInvalidateD
@@ -402,8 +394,8 @@ LINE_LABEL(cache60xDataDisableLTLB)
      ;*/
     SRWI    R5 , R6 , PPC_PAGE_ALIGN_SHIFT - ARCH_PPC_CACHE_ALIGN_SHIFT
     MTSPR   CTR , R5
-    LIS     R9 , HIADJ(G_pucPpc60xCacheReadBuffer)
-    LWZ     R9 , LO(G_pucPpc60xCacheReadBuffer)(R9)
+    LIS     R9 , HIADJ(G_pucPpcCacheReadBuffer)
+    LWZ     R9 , LO(G_pucPpcCacheReadBuffer)(R9)
     SUBI    R5 , R9 , PPC_PAGE_ALIGN_SIZE
 
     ;/*
@@ -475,7 +467,6 @@ LINE_LABEL(cache60xFlashInv)
 #endif      /* __SYLIXOS_PPC745X__ */
 
 LINE_LABEL(cache60xAllOpsDone)
-    MTMSR   R3                                      ;/*  restore MSR -- ENABLE INTERRUPT                 */
     B       cache60xRetOK                           ;/*  return OK                                       */
 
 ;/*

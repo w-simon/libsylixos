@@ -35,7 +35,7 @@
 
 #if LW_CFG_VMM_EN > 0
 
-#include <arch/ppc/arch_603.h>
+#include "arch/ppc/arch_603.h"
 
     FILE_BEGIN()
 

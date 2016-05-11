@@ -24,7 +24,7 @@
   裁剪支持
 *********************************************************************************************************/
 #if LW_CFG_CACHE_EN > 0
-#include "cache/ppc60x/ppcCache60x.h"
+#include "cache/common/ppcCache.h"
 /*********************************************************************************************************
 ** 函数名称: archCacheInit
 ** 功能描述: 初始化 CACHE
@@ -41,11 +41,7 @@ VOID  archCacheInit (CACHE_MODE  uiInstruction, CACHE_MODE  uiData, CPCHAR  pcMa
 
     _DebugFormat(__LOGMESSAGE_LEVEL, "%s L1 cache controller initialization.\r\n", pcMachineName);
 
-    if ((lib_strcmp(pcMachineName, PPC_MACHINE_750)     == 0) ||
-        (lib_strcmp(pcMachineName, PPC_MACHINE_MPC83XX) == 0)) {
-        ppc60xCacheInit(pcacheop, uiInstruction, uiData, pcMachineName);
-
-    } else {
+    if (ppcCacheInit(pcacheop, uiInstruction, uiData, pcMachineName) != ERROR_NONE) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown machine name.\r\n");
     }
 }
@@ -59,11 +55,7 @@ VOID  archCacheInit (CACHE_MODE  uiInstruction, CACHE_MODE  uiData, CPCHAR  pcMa
 *********************************************************************************************************/
 VOID  archCacheReset (CPCHAR  pcMachineName)
 {
-    if ((lib_strcmp(pcMachineName, PPC_MACHINE_750)     == 0) ||
-        (lib_strcmp(pcMachineName, PPC_MACHINE_MPC83XX) == 0)) {
-        ppc60xCacheReset(pcMachineName);
-
-    } else {
+    if (ppcCacheReset(pcMachineName) != ERROR_NONE) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown machine name.\r\n");
     }
 }

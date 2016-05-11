@@ -214,8 +214,9 @@
 
 #define DSISR       18                      /*  Data storage interrupt status                           */
 #define DAR         19                      /*  Data address register                                   */
-#define DEC         22                      /*  Decrement register                                      */
 #define SDR1        25                      /*  Storage description register 1                          */
+
+#define DEC         22                      /*  Decrement register                                      */
 
 #define SRR0        26                      /*  Save and restore register 0                             */
 #define SRR1        27                      /*  Save and restore register 1                             */

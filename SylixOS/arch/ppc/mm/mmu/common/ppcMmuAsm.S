@@ -51,13 +51,7 @@
 FUNC_DEF(ppcMmuEnable)
     MFMSR   R3
     ISYNC
-#if defined(ARCH_PPC_MSR_DR)
     ORI     R3 , R3 , ARCH_PPC_MSR_DR | ARCH_PPC_MSR_IR
-#elif defined(ARCH_PPC_MSR_DS)
-    ORI     R3 , R3 , ARCH_PPC_MSR_DS | ARCH_PPC_MSR_IS
-#else
-#error "bit to enable mmu is not defined"
-#endif
     ISYNC
     MTMSR   R3
     ISYNC

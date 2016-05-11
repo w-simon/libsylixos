@@ -41,8 +41,8 @@ static LW_OBJECT_HANDLE     _G_hPGDPartition;                           /*  系统
 static LW_OBJECT_HANDLE     _G_hPTEPartition;                           /*  PTE 缓冲区                  */
 static PLW_MMU_CONTEXT      _G_pMmuContext;                             /*  上下文                      */
 static UINT                 _G_uiTlbNr;                                 /*  TLB 数目                    */
-static UCHAR                _G_ucWIM4CacheBuffer;
-static UCHAR                _G_ucWIM4Cache;
+static UINT8                _G_ucWIM4CacheBuffer;
+static UINT8                _G_ucWIM4Cache;
 /*********************************************************************************************************
   访问权限 PP
 *********************************************************************************************************/
@@ -107,7 +107,7 @@ static  VOID  ppcMmuInvalidateTLB (VOID)
 *********************************************************************************************************/
 static INT  ppcMmuFlags2Attr (ULONG  ulFlag, UINT8  *pucPP, UINT8  *pucWIMG,  UINT8  *pucExec)
 {
-    UCHAR ucWIMG;
+    UINT8  ucWIMG;
 
     if (!(ulFlag & LW_VMM_FLAG_VALID)) {                                /*  无效的映射关系              */
         return  (PX_ERROR);
@@ -133,11 +133,6 @@ static INT  ppcMmuFlags2Attr (ULONG  ulFlag, UINT8  *pucPP, UINT8  *pucWIMG,  UI
 
     } else {
         ucWIMG = I_BIT | M_BIT;
-    }
-
-    if ((ulFlag & LW_VMM_FLAG_GUARDED) &&
-       !(ulFlag & LW_VMM_FLAG_EXECABLE)) {
-        ucWIMG |= G_BIT;
     }
 
     *pucWIMG = ucWIMG;
@@ -187,9 +182,7 @@ static INT  ppcMmuAttr2Flags (UINT8  ucPP, UINT8  ucWIMG, UINT8  ucExec, ULONG *
         *pulFlag |= LW_VMM_FLAG_CACHEABLE;
     }
 
-    if (ucWIMG & G_BIT) {
-        *pulFlag |= LW_VMM_FLAG_GUARDED;
-    }
+    *pulFlag |= LW_VMM_FLAG_GUARDED;
 
     if (ucExec) {
         *pulFlag |= LW_VMM_FLAG_EXECABLE;
@@ -771,7 +764,7 @@ VOID  ppcMmuInit (LW_MMU_OP *pmmuop, CPCHAR  pcMachineName)
         _G_ucWIM4Cache       = W_BIT;
     }
 
-    pmmuop->MMUOP_ulOption           = LW_VMM_MMU_FLUSH_TLB_MP;
+    pmmuop->MMUOP_ulOption           = 0ul;                             /*  tlbsync 指令会自动多核同步  */
     pmmuop->MMUOP_pfuncMemInit       = ppcMmuMemInit;
     pmmuop->MMUOP_pfuncGlobalInit    = ppcMmuGlobalInit;
 

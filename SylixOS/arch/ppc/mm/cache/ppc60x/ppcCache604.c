@@ -24,7 +24,7 @@
   裁剪支持
 *********************************************************************************************************/
 #if LW_CFG_CACHE_EN > 0
-#include "ppcCache60x.h"
+#include "../common/ppcCache.h"
 /*********************************************************************************************************
   外部接口声明
 *********************************************************************************************************/
@@ -46,9 +46,45 @@ extern VOID     ppc604BranchPredictionDisable(VOID);
 extern VOID     ppc604BranchPredictionEnable(VOID);
 extern VOID     ppc604BranchPredictorInvalidate(VOID);
 /*********************************************************************************************************
+** 函数名称: ppc604CacheProbe
+** 功能描述: CACHE 探测
+** 输　入  : pcMachineName         机器名
+**           pICache               I-Cache 信息
+**           pDCache               D-Cache 信息
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT   ppc604CacheProbe (CPCHAR  pcMachineName, PPC_CACHE  *pICache, PPC_CACHE  *pDCache)
+{
+    if (lib_strcmp(pcMachineName, PPC_MACHINE_750) == 0) {
+
+        pICache->CACHE_uiLineSize  = 32;
+        pICache->CACHE_uiWayNr     = 8;
+        pICache->CACHE_uiSetNr     = 128;
+        pICache->CACHE_uiSize      = pICache->CACHE_uiSetNr * pICache->CACHE_uiWayNr * \
+                                     pICache->CACHE_uiLineSize;
+        pICache->CACHE_uiWaySize   = pICache->CACHE_uiSetNr * pICache->CACHE_uiLineSize;
+
+        pDCache->CACHE_uiLineSize  = 32;
+        pDCache->CACHE_uiWayNr     = 8;
+        pDCache->CACHE_uiSetNr     = 128;
+        pDCache->CACHE_uiSize      = pDCache->CACHE_uiSetNr * pDCache->CACHE_uiWayNr * \
+                                     pDCache->CACHE_uiLineSize;
+        pDCache->CACHE_uiWaySize   = pDCache->CACHE_uiSetNr * pDCache->CACHE_uiLineSize;
+
+        return  (ERROR_NONE);
+    } else {
+        return  (PX_ERROR);
+    }
+}
+/*********************************************************************************************************
   604 CACHE 驱动
 *********************************************************************************************************/
-PPC60X_L1C_DRIVER  G_ppc604CacheDriver = {
+PPC_L1C_DRIVER  G_ppc604CacheDriver = {
+    "604",
+    ppc604CacheProbe,
+
     ppc604DCacheDisable,
     ppc604DCacheEnable,
     ppc604ICacheDisable,

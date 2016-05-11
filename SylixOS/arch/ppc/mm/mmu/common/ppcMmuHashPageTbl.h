@@ -90,9 +90,10 @@
 
 #define MMU_PTES_IN_PTEG                    8
 
-/*
- * PTE for 32-bit implementations
- */
+/*********************************************************************************************************
+  PTE for 32-bit implementations
+*********************************************************************************************************/
+
 typedef union {
     struct {
         UINT    PTE_bV              :  1;                               /*  Entry valid or invalid(v=0) */
@@ -139,13 +140,17 @@ typedef union {
     } field;
 } SR;
 
-extern INT   ppcMmuHashPageTblInit(UINT32  uiMemSize);
-extern VOID  ppcMmuHashPageTblMakeTrans(addr_t  ulEffectiveAddr,
-                                        UINT32  uiPteValue1);
-extern VOID  ppcMmuHashPageTblFlagSet(addr_t  ulEffectiveAddr,
-                                      UINT32  uiPteValue1);
-extern VOID  ppcMmuHashPageTblPteMiss(addr_t  ulEffectiveAddr,
-                                      UINT32  uiPteValue1);
+/*********************************************************************************************************
+  PPC MMU HASH
+*********************************************************************************************************/
+
+INT   ppcMmuHashPageTblInit(UINT32  uiMemSize);
+VOID  ppcMmuHashPageTblMakeTrans(addr_t  ulEffectiveAddr,
+                                 UINT32  uiPteValue1);
+VOID  ppcMmuHashPageTblFlagSet(addr_t  ulEffectiveAddr,
+                               UINT32  uiPteValue1);
+VOID  ppcMmuHashPageTblPteMiss(addr_t  ulEffectiveAddr,
+                               UINT32  uiPteValue1);
 
 #endif                                                                  /*  __ARCH_PPCMMUHASHTBL_H      */
 /*********************************************************************************************************

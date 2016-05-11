@@ -185,7 +185,7 @@ INT   sigaction (INT                      iSigNo,
         return  (PX_ERROR);
     }
     
-    if ((iSigNo == SIGKILL) || (iSigNo == SIGSTOP)) {                   /*  不能捕获和忽略              */
+    if (iSigNo == SIGSTOP) {                                            /*  不能捕获和忽略              */
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -400,7 +400,9 @@ INT  sigprocmask (INT              iCmd,
         break;
         
     case SIG_SETMASK:                                                   /*  设置阻塞                    */
-        psigctx->SIGCTX_sigsetSigBlockMask  = *psigset;
+        sigsetBlock  = *psigset;
+        sigsetBlock &= ~__SIGNO_UNMASK;                                 /*  有些信号是不可屏蔽的        */
+        psigctx->SIGCTX_sigsetSigBlockMask  = sigsetBlock;
         break;
     
     default:                                                            /*  错误                        */

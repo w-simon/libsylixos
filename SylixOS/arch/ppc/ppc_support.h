@@ -40,6 +40,11 @@
 /*********************************************************************************************************
   arch 已经提供的接口如下:
 *********************************************************************************************************/
+
+#define __ARCH_KERNEL_PARAM         archKernelParam
+
+VOID    archKernelParam(CPCHAR  pcParam);
+
 /*********************************************************************************************************
   PowerPC 处理器断言
 *********************************************************************************************************/
@@ -120,24 +125,18 @@ VOID    archReboot(INT  iRebootType, addr_t  ulStartAddress);
   PowerPC 处理器定义
 *********************************************************************************************************/
 
-#define PPC_MACHINE_403         "403"
-#define PPC_MACHINE_405         "405"
-#define PPC_MACHINE_440         "440"
-
-#define PPC_MACHINE_8XX         "8XX"
-#define PPC_MACHINE_860         "860"
-
 #define PPC_MACHINE_603         "603"
 #define PPC_MACHINE_EC603       "EC603"
 #define PPC_MACHINE_604         "604"
 #define PPC_MACHINE_750         "750"
 #define PPC_MACHINE_MPC83XX     "MPC83XX"
-
-#define PPC_MACHINE_970         "970"
-
 #define PPC_MACHINE_E200        "E200"
-
+#define PPC_MACHINE_E300        "E300"
 #define PPC_MACHINE_E500        "E500"
+#define PPC_MACHINE_E500V1      "E500V1"
+#define PPC_MACHINE_E500V2      "E500V2"
+#define PPC_MACHINE_E500MC      "E500MC"
+#define PPC_MACHINE_E600        "E600"
 
 /*********************************************************************************************************
   PowerPC 处理器 CACHE 操作
@@ -220,6 +219,8 @@ VOID    archMpInt(ULONG  ulCPUId);
 
 #define PPC_FPU_NONE        "none"
 #define PPC_FPU_VFP    		"vfp"
+#define PPC_FPU_SPE         "spe"
+#define PPC_FPU_ALTIVEC     "altivec"
 
 #if LW_CFG_CPU_FPU_EN > 0
 VOID    archFpuPrimaryInit(CPCHAR  pcMachineName, CPCHAR  pcFpuName);

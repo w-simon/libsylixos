@@ -22,11 +22,11 @@
 #ifndef __ARCH_PPCSPR_H
 #define __ARCH_PPCSPR_H
 
-extern UINT32  ppcGetMSR(VOID);
-extern UINT32  ppcGetDAR(VOID);
+UINT32  ppcGetMSR(VOID);
+UINT32  ppcGetDAR(VOID);
 
-extern VOID    ppcSetDEC(UINT32);
-extern UINT32  ppcGetDEC(VOID);
+VOID    ppcSetDEC(UINT32);
+UINT32  ppcGetDEC(VOID);
 
 #endif                                                                  /*  __ARCH_PPCSPR_H             */
 /*********************************************************************************************************
