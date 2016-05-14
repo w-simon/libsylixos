@@ -34,24 +34,26 @@
     IMPORT_LABEL(API_InterEnter)
     IMPORT_LABEL(API_InterExit)
     
-    IMPORT_LABEL(bspIntHandle)
+    IMPORT_LABEL(archMachineCheckExceptionHandle)
     IMPORT_LABEL(archDataStorageExceptionHandle)
     IMPORT_LABEL(archInstructionStorageExceptionHandle)
+    IMPORT_LABEL(bspIntHandle)
     IMPORT_LABEL(archAlignmentExceptionHandle)
     IMPORT_LABEL(archProgramExceptionHandle)
     IMPORT_LABEL(archFpuUnavailableExceptionHandle)
-    IMPORT_LABEL(archSystemCallHandle)
     IMPORT_LABEL(archDecrementerInterruptHandle)
+    IMPORT_LABEL(archSystemCallHandle)
     IMPORT_LABEL(archTraceHandle)
     
+    EXPORT_LABEL(archMachineCheckExceptionEntry)
     EXPORT_LABEL(archDataStorageExceptionEntry)
     EXPORT_LABEL(archInstructionStorageExceptionEntry)
     EXPORT_LABEL(archExternalInterruptEntry)
     EXPORT_LABEL(archAlignmentExceptionEntry)
     EXPORT_LABEL(archProgramExceptionEntry)
     EXPORT_LABEL(archFpuUnavailableExceptionEntry)
-    EXPORT_LABEL(archSystemCallEntry)
     EXPORT_LABEL(archDecrementerInterruptEntry)
+    EXPORT_LABEL(archSystemCallEntry)
     EXPORT_LABEL(archTraceEntry)
     
 ;/*********************************************************************************************************
@@ -104,6 +106,14 @@ MACRO_DEF(IRQ_ENTRY, handle)
     MACRO_END()
 
 ;/*********************************************************************************************************
+;  机器检查异常入口(Vector 0x200)
+;*********************************************************************************************************/
+
+FUNC_DEF(archMachineCheckExceptionEntry)
+    IRQ_ENTRY   archMachineCheckExceptionHandle
+    FUNC_END()
+
+;/*********************************************************************************************************
 ;  数据存储异常入口(Vector 0x300)
 ;*********************************************************************************************************/
 
@@ -144,7 +154,7 @@ FUNC_DEF(archProgramExceptionEntry)
     FUNC_END()
 
 ;/*********************************************************************************************************
-;  FPU 不可用入口(Vector 0x800)
+;  FPU 不可用异常入口(Vector 0x800)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archFpuUnavailableExceptionEntry)
@@ -152,7 +162,7 @@ FUNC_DEF(archFpuUnavailableExceptionEntry)
     FUNC_END()
 
 ;/*********************************************************************************************************
-;  Decrementer 异常入口(Vector 0x900)
+;  Decrementer 中断入口(Vector 0x900)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archDecrementerInterruptEntry)

@@ -93,11 +93,12 @@ INT  sio16c550Init (SIO16C550_CHAN *psiochan)
     psiochan->channel_mode = SIO_MODE_INT;
     psiochan->switch_en    = 0;
     psiochan->hw_option    = (CLOCAL | CREAD | CS8 | HUPCL);
-    psiochan->int_ctx      = 0;
 
     psiochan->mcr = MCR_OUT2;
     psiochan->lcr = 0;
     psiochan->ier = 0;
+    
+    psiochan->bdefer = LW_FALSE;
     
     psiochan->rx_trigger_level &= 0x3;
 
@@ -175,6 +176,8 @@ static INT sio16c550SetHwOption (SIO16C550_CHAN *psiochan, ULONG  hw_option)
     
     hw_option |= HUPCL;                                                 /* need HUPCL option            */
 
+    LW_SPIN_LOCK_QUICK(&psiochan->slock, &intreg);
+
     psiochan->lcr = 0;
     psiochan->mcr &= (~(MCR_RTS | MCR_DTR));                            /* clear RTS and DTR bits       */
 
@@ -212,14 +215,17 @@ static INT sio16c550SetHwOption (SIO16C550_CHAN *psiochan, ULONG  hw_option)
 
     case PARENB | PARODD:
         psiochan->lcr |= LCR_PEN;
+        psiochan->ier |= IER_ELSI;                                      /* Enable receiver line status  */
         break;
 
     case PARENB:
         psiochan->lcr |= (LCR_PEN | LCR_EPS);
+        psiochan->ier |= IER_ELSI;                                      /* Enable receiver line status  */
         break;
 
     default:
         psiochan->lcr |= PARITY_NONE;
+        psiochan->ier &= (~IER_ELSI);
         break;
     }
 
@@ -234,10 +240,8 @@ static INT sio16c550SetHwOption (SIO16C550_CHAN *psiochan, ULONG  hw_option)
         psiochan->ier |= IER_EMSI;                                      /* en modem status interrupt    */
 
     } else {
-        psiochan->ier &= ~IER_EMSI;                                     /* dis modem status interrupt   */
+        psiochan->ier &= (~IER_EMSI);                                   /* dis modem status interrupt   */
     }
-
-    LW_SPIN_LOCK_QUICK(&psiochan->slock, &intreg);
 
     SET_REG(psiochan, LCR, psiochan->lcr);
     SET_REG(psiochan, MCR, psiochan->mcr);
@@ -257,9 +261,9 @@ static INT sio16c550SetHwOption (SIO16C550_CHAN *psiochan, ULONG  hw_option)
         SET_REG(psiochan, IER, psiochan->ier);                          /* enable interrupt             */
     }
 
-    LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);
-
     psiochan->hw_option = hw_option;
+
+    LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);
 
     return  (ERROR_NONE);
 }
@@ -400,7 +404,12 @@ static INT sio16c550Ioctl (SIO16C550_CHAN *psiochan, INT cmd, LONG arg)
     switch (cmd) {
 
     case SIO_BAUD_SET:
-        error = sio16c550SetBaud(psiochan, arg);
+        if (arg < 50) {
+            _ErrorHandle(EIO);
+            error = PX_ERROR;
+        } else {
+            error = sio16c550SetBaud(psiochan, arg);
+        }
         break;
 
     case SIO_BAUD_GET:
@@ -493,35 +502,35 @@ static INT sio16c550TxStartup (SIO16C550_CHAN *psiochan)
 
         return  (ERROR_NONE);
     }
+    
+    LW_SPIN_LOCK_QUICK(&psiochan->slock, &intreg);
 
     if (psiochan->channel_mode == SIO_MODE_INT) {
-        
-        LW_SPIN_LOCK_QUICK(&psiochan->slock, &intreg);
-        
         if (psiochan->hw_option & CLOCAL) {                             /* No modem control             */
-            psiochan->ier |= TxFIFO_BIT;
-
+            if (psiochan->bdefer == LW_FALSE) {
+                psiochan->ier |= TxFIFO_BIT;
+            }
+            
         } else {
             mask = (UINT8)(GET_REG(psiochan, MSR) & MSR_CTS);
             if (mask & MSR_CTS) {                                       /* if the CTS is enable Tx Int  */
-                psiochan->ier |= TxFIFO_BIT;                            /* enable Tx interrupt          */
-            
+                if (psiochan->bdefer == LW_FALSE) {
+                    psiochan->ier |= TxFIFO_BIT;                        /* enable Tx interrupt          */
+                }
             } else {
                 psiochan->ier &= (~TxFIFO_BIT);                         /* disable Tx interrupt         */
             }
-            
         }
         
-        KN_SMP_MB();
-        if (psiochan->int_ctx == 0) {
-            SET_REG(psiochan, IER, psiochan->ier);
-        }
+        SET_REG(psiochan, IER, psiochan->ier);
         
         LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);
-
+        
         return  (ERROR_NONE);
 
     } else {
+        LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);
+        
         _ErrorHandle(ENOSYS);
         return  (ENOSYS);
     }
@@ -614,6 +623,72 @@ static INT sio16c550PollOutput (SIO16C550_CHAN *psiochan, char c)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: sio16c550TxIsr
+** 功能描述: 16C550 输出中断服务函数
+** 输　入  : psiochan      SIO CHAN
+** 输　出  : ERROR or OK
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+VOID sio16c550TxIsr (SIO16C550_CHAN *psiochan)
+{
+    INTREG  intreg;
+    UINT8   ucTx;
+    INT     i;
+    
+    LW_SPIN_LOCK_QUICK(&psiochan->slock, &intreg);
+    
+    psiochan->bdefer = LW_FALSE;
+    
+    for (;;) {
+        if (GET_REG(psiochan, LSR) & LSR_THRE) {
+            for (i = 0; i < psiochan->fifo_len; i++) {
+                LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);
+                if (psiochan->pcbGetTxChar(psiochan->getTxArg, &ucTx)) {
+                    return;
+                }
+                LW_SPIN_LOCK_QUICK(&psiochan->slock, &intreg);
+                
+                SET_REG(psiochan, THR, ucTx);                           /* char to Transmit Holding Reg */
+            }
+        } else {
+            psiochan->ier |= TxFIFO_BIT;                                /*  enable Tx Int               */
+            SET_REG(psiochan, IER, psiochan->ier);                      /*  update ier                  */
+            break;
+        }
+    }
+    
+    LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);
+}
+/*********************************************************************************************************
+** 函数名称: sio16c550RxIsr
+** 功能描述: 16C550 输入中断服务函数
+** 输　入  : psiochan      SIO CHAN
+** 输　出  : ERROR or OK
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+VOID sio16c550RxIsr (SIO16C550_CHAN *psiochan)
+{
+    INTREG  intreg;
+    UINT8   ucRd;
+
+    LW_SPIN_LOCK_QUICK(&psiochan->slock, &intreg);
+    
+    while (GET_REG(psiochan, LSR) & RxCHAR_AVAIL) {                     /*  receive data                */
+        ucRd = GET_REG(psiochan, RBR);
+        
+        LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);
+        psiochan->pcbPutRcvChar(psiochan->putRcvArg, ucRd);
+        LW_SPIN_LOCK_QUICK(&psiochan->slock, &intreg);
+    }
+    
+    psiochan->ier |= RxFIFO_BIT;                                        /*  enable Rx Int               */
+    SET_REG(psiochan, IER, psiochan->ier);                              /*  update ier                  */
+    
+    LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);
+}
+/*********************************************************************************************************
 ** 函数名称: sio16c550Isr
 ** 功能描述: 16C550 中断服务函数
 ** 输　入  : psiochan      SIO CHAN
@@ -623,36 +698,75 @@ static INT sio16c550PollOutput (SIO16C550_CHAN *psiochan, char c)
 *********************************************************************************************************/
 VOID sio16c550Isr (SIO16C550_CHAN *psiochan)
 {
-    volatile UINT8  iir;
-             UINT8  msr;
-             UINT8  ucRd;
-             UINT8  ucTx;
-             INT    i;
+             INTREG  intreg;
+    volatile UINT8   iir;
+             UINT8   msr;
+             UINT8   ucVal;
     
-    psiochan->int_ctx = 1;
-    KN_SMP_MB();
+    LW_SPIN_LOCK_QUICK(&psiochan->slock, &intreg);
     
     iir = (UINT8)(GET_REG(psiochan, IIR) & 0x0f);
     
-    while (GET_REG(psiochan, LSR) & RxCHAR_AVAIL) {                     /*  receive data                */
-        ucRd = GET_REG(psiochan, RBR);
-        psiochan->pcbPutRcvChar(psiochan->putRcvArg, ucRd);
+    SET_REG(psiochan, IER, 0);                                          /* disable all interrupt        */
+    
+    if (GET_REG(psiochan, LSR) & (RxCHAR_AVAIL | LSR_BI)) {             /* Rx Int                       */
+        psiochan->ier &= (~RxFIFO_BIT);
+        SET_REG(psiochan, IER, psiochan->ier);                          /* disable Rx Int               */
+    
+        LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);
+        
+#if LW_CFG_ISR_DEFER_EN > 0
+        if (psiochan->pdeferq) {
+            if (API_InterDeferJobAdd(psiochan->pdeferq, 
+                                     sio16c550RxIsr, psiochan)) {
+                sio16c550RxIsr(psiochan);                               /* queue error                  */
+            }
+        } else 
+#endif                                                                  /* LW_CFG_ISR_DEFER_EN > 0      */
+        {
+            sio16c550RxIsr(psiochan);
+        }
+        
+        LW_SPIN_LOCK_QUICK(&psiochan->slock, &intreg);
     }
     
-    if ((psiochan->ier & TxFIFO_BIT) && 
-        (GET_REG(psiochan, LSR) & LSR_THRE)) {                          /*  transmit data               */
-        for (i = 0; i < psiochan->fifo_len; i++) {
-            if (psiochan->pcbGetTxChar(psiochan->getTxArg, &ucTx) < 0) {
-                psiochan->ier &= (~TxFIFO_BIT);
-                break;
+    if (GET_REG(psiochan, LSR) & LSR_THRE) {                            /* Tx Int                       */
+        psiochan->ier &= (~TxFIFO_BIT);                                 /* indicate to disable Tx Int   */
+        SET_REG(psiochan, IER, psiochan->ier);                          /* disable Tx Int               */
+        
+        if (psiochan->bdefer == LW_FALSE) {                             /* not in queue                 */
+            psiochan->bdefer =  LW_TRUE;
             
-            } else {
-                SET_REG(psiochan, THR, ucTx);                           /* char to Transmit Holding Reg */
+            LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);
+            
+#if LW_CFG_ISR_DEFER_EN > 0
+            if (psiochan->pdeferq) {
+                if (API_InterDeferJobAdd(psiochan->pdeferq, 
+                                         sio16c550TxIsr, psiochan)) {
+                    sio16c550TxIsr(psiochan);                           /* queue error                  */
+                }
+            } else 
+#endif                                                                  /* LW_CFG_ISR_DEFER_EN > 0      */
+            {
+                sio16c550TxIsr(psiochan);
             }
+            
+            LW_SPIN_LOCK_QUICK(&psiochan->slock, &intreg);
         }
     }
     
-    if (iir == IIR_MSTAT) {                                             /* modem status changed         */
+    switch (iir) {
+    
+    case IIR_RLS:                                                       /* overrun, parity error        */
+        ucVal = GET_REG(psiochan, LSR);
+        if (ucVal & LSR_PE) {
+            GET_REG(psiochan, RBR);
+        }
+        SET_REG(psiochan, IER, psiochan->ier);                          /*  update ier                  */
+        LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);
+        break;
+        
+    case IIR_MSTAT:                                                     /* modem status register        */
         msr = GET_REG(psiochan, MSR);
         if (msr & MSR_DCTS) {
             if (msr & MSR_CTS) {
@@ -662,13 +776,15 @@ VOID sio16c550Isr (SIO16C550_CHAN *psiochan)
                 psiochan->ier &= (~TxFIFO_BIT);                         /* CTS was turned off           */
             }
         }
+        SET_REG(psiochan, IER, psiochan->ier);                          /*  update ier                  */
+        LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);
+        break;
+        
+    default:
+        SET_REG(psiochan, IER, psiochan->ier);                          /*  update ier                  */
+        LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);
+        break;
     }
-    
-    KN_SMP_MB();
-    psiochan->int_ctx = 0;
-    KN_SMP_MB();
-    
-    SET_REG(psiochan, IER, psiochan->ier);                              /*  update ier                  */
 }
 
 #endif                                                                  /*  LW_CFG_DEVICE_EN            */

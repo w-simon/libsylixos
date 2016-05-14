@@ -42,7 +42,7 @@ static CHAR     _K_cKernelStartParam[256];
                            dlog=no      DEBUG LOG 信息打印
                            derror=yes   DEBUG ERROR 信息打印
                            kfpu=no      内核态对浮点支持 (推荐为 no)
-                           heapchk=yes  堆栈越界检查
+                           heapchk=yes  内存堆越界检查
                            varea=*      * 表示虚拟内存起始点, 默认为 0xC000_0000
                            vsize=*      * 表示虚拟内存大小, 默认为 1GB
                            hz=100       系统 tick 频率, 默认为 100 (推荐 100 ~ 10000 中间)
@@ -50,6 +50,7 @@ static CHAR     _K_cKernelStartParam[256];
                            irate=5      应用定时器分辨率, 默认为 5 个 tick. (推荐 1 ~ 10 中间)
                            hpsec=1      热插拔循环检测间隔时间, 单位: 秒 (推荐 1 ~ 5 秒)
                            bugreboot=no 内核探测到 bug 时是否自动重启.
+                           fsched=no    SMP 系统内核快速调度
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
@@ -148,6 +149,16 @@ ULONG  API_KernelStartParam (CPCHAR  pcParam)
                 LW_HOTPLUG_SEC = ulSec;
             }
         }
+        
+#if LW_CFG_SMP_EN > 0
+          else if (lib_strncmp(pcTok, "fsched=", 7) == 0) {             /*  SMP 快速调度                */
+            if (pcTok[7] == 'n') {
+                LW_KERN_SMP_FSCHED_EN_SET(LW_FALSE);
+            } else {
+                LW_KERN_SMP_FSCHED_EN_SET(LW_TRUE);
+            }
+        }
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
         
 #if LW_CFG_VMM_EN > 0
           else if (lib_strncmp(pcTok, "varea=", 6) == 0) {              /*  虚拟内存起始点              */

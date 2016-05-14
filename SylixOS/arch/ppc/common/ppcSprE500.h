@@ -23,9 +23,19 @@
 #define __ARCH_PPCSPRE500_H
 
 UINT32  ppcE500GetDEAR(VOID);
+UINT32  ppcE500GetESR(VOID);
 
 UINT32  ppcE500GetHID1(VOID);
 VOID    ppcE500SetHID1(UINT32  uiValue);
+
+UINT32  ppcE500GetTCR(VOID);
+VOID    ppcE500SetTCR(UINT32  uiValue);
+
+UINT32  ppcE500GetTSR(VOID);
+VOID    ppcE500SetTSR(UINT32  uiValue);
+
+UINT32  ppcE500GetDECAR(VOID);
+VOID    ppcE500SetDECAR(UINT32  uiValue);
 
 #endif                                                                  /*  __ARCH_PPCSPRE500_H         */
 /*********************************************************************************************************

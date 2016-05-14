@@ -35,6 +35,7 @@
 2014.01.07  加入 _SchedCrSwp, 统一任务与协程移植的格式.
 2014.07.21  加入 CPU 停止功能.
 2015.11.13  加入 spinlock bug trace.
+2016.05.14  SMP 调度支持最快调度与核间中断最少调度.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -103,10 +104,15 @@
 static VOID  _SchedSmpNotify (ULONG  ulCPUIdCur)
 {
     INT             i;
+    INT             iCPUSend;
+    UINT8           ucPrioLow = 0;
     PLW_CLASS_CPU   pcpu;
     
-    for (i = 0; i < LW_NCPUS; i++) {                                    /*  遍历 CPU 检查是否需要调度   */
-        if (ulCPUIdCur != i) {
+    if (LW_KERN_SMP_FSCHED_EN_GET()) {                                  /*  SMP 快速调度模式            */
+        for (i = 0; i < LW_NCPUS; i++) {                                /*  遍历 CPU 检查是否需要调度   */
+            if (ulCPUIdCur == i) {
+                continue;
+            }
             pcpu = LW_CPU_GET(i);
             if (!LW_CPU_IS_ACTIVE(pcpu)) {                              /*  目标 CPU 必须是激活状态     */
                 continue;
@@ -115,6 +121,28 @@ static VOID  _SchedSmpNotify (ULONG  ulCPUIdCur)
                 ((LW_CPU_GET_IPI_PEND(i) & LW_IPI_SCHED_MSK) == 0)) {
                 _SmpSendIpi(i, LW_IPI_SCHED, 0, LW_TRUE);               /*  产生核间中断                */
             }
+        }
+    
+    } else {                                                            /*  SMP 最低核间中断调度模式    */
+        for (i = 0; i < LW_NCPUS; i++) {
+            if (ulCPUIdCur == i) {
+                continue;
+            }
+            pcpu = LW_CPU_GET(i);
+            if (!LW_CPU_IS_ACTIVE(pcpu)) {                              /*  目标 CPU 必须是激活状态     */
+                continue;
+            }
+            if (LW_CAND_ROT(pcpu) &&
+                ((LW_CPU_GET_IPI_PEND(i) & LW_IPI_SCHED_MSK) == 0)) {
+                if (LW_PRIO_IS_HIGH(ucPrioLow, 
+                                    LW_CAND_TCB(pcpu)->TCB_ucPriority)) {
+                    ucPrioLow = LW_CAND_TCB(pcpu)->TCB_ucPriority;
+                    iCPUSend  = i;
+                }
+            }
+        }
+        if (ucPrioLow) {
+            _SmpSendIpi(iCPUSend, LW_IPI_SCHED, 0, LW_TRUE);
         }
     }
 }

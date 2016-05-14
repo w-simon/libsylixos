@@ -2215,30 +2215,12 @@ static void catch_sig(int sig)
 
 static int mysleep(int hund)	// sleep for 'h' 1/100 seconds
 {
-/**************************** HANHUI ***************************/
-    /*
 	struct pollfd pfd[1];
 
+    fflush(stdout);
 	pfd[0].fd = 0;
 	pfd[0].events = POLLIN;
 	return safe_poll(pfd, 1, hund*10) > 0;
-	*/
-	
-	struct timeval  tv = {0, 0};
-	fd_set rfds;
-	int    num;
-	
-	fflush(stdout);
-	FD_ZERO(&rfds);
-	FD_SET(0, &rfds);
-	tv.tv_sec = 0;
-	tv.tv_usec = hund * 10000;
-	/////////////////////////////
-	num = select(1, &rfds, NULL, NULL, &tv);
-	/////////////////////////////
-	return num;
-	
-/**************************** HANHUI ***************************/
 }
 
 static int chars_to_parse;
@@ -2311,26 +2293,14 @@ static char readit(void)	// read (maybe cursor) key from stdin
 			// Could be bare Esc key. See if there are any
 			// more chars to read after the ESC. This would
 			// be a Function or Cursor Key sequence.
-
-/**************************** HANHUI ***************************/
-			/*
+			
 			struct pollfd pfd[1];
 			pfd[0].fd = 0;
 			pfd[0].events = POLLIN;
-			*/
-			struct timeval  t = {0, 0};
-			fd_set          fdset;
-			FD_ZERO(&fdset);
-	        FD_SET(0, &fdset);
-/**************************** HANHUI ***************************/
+
 			// keep reading while there are input chars, and room in buffer
 			// for a complete ESC sequence (assuming 8 chars is enough)
-/**************************** HANHUI ***************************/
-			/*
-			while (safe_poll(pfd, 1, 0) > 0 && n <= (sizeof(readbuffer) - 8)) {
-            */
-            while (select(1, &fdset, NULL, NULL, &t) > 0 && n <= (sizeof(readbuffer) - 8)) {
-/**************************** HANHUI ***************************/
+			while (safe_poll(pfd, 1, 10 /* SylixOS need 10ms in SMP */) > 0 && n <= (sizeof(readbuffer) - 8)) {
 				// read the rest of the ESC string
 				int r = safe_read(0, readbuffer + n, sizeof(readbuffer) - n);
 				if (r > 0)

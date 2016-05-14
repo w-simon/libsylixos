@@ -100,8 +100,22 @@ typedef  int    smallint;
 } while (0)
 #define bb_show_usage()
 
-#define safe_write(fd,buf , count)              write(fd, buf, count)
-#define safe_read(fd, buf , count)              read(fd, buf, count)
+#include "unistd.h"
+#include "string.h"
+#include "stdlib.h"
+#include "time.h"
+#include "poll.h"
+#include "ctype.h"
+#include "termios.h"
+#include "setjmp.h"
+
+int     vi_safe_poll(struct pollfd fds[], nfds_t nfds, int timeout);
+ssize_t vi_safe_read(int fd, void *buf, size_t len);
+ssize_t vi_safe_write(int fd, const void *buf, size_t len);
+
+#define safe_poll(fds, nfds, timeout)           vi_safe_poll(fds, nfds, timeout)
+#define safe_read(fd, buf , count)              vi_safe_read(fd, buf, count)
+#define safe_write(fd,buf , count)              vi_safe_write(fd, buf, count)
 
 #ifdef __GNUC__
 #define ATTRIBUTE_UNUSED                        __attribute__((unused))
@@ -122,14 +136,6 @@ extern   void      *lib_xzalloc(size_t s);
 extern   ssize_t    full_write(int fd, const void *buf, size_t len);
 extern   int        isblank(int c);
 extern   int        bb_putchar(int ch);
-
-#include "unistd.h"
-#include "string.h"
-#include "stdlib.h"
-#include "time.h"
-#include "ctype.h"
-#include "termios.h"
-#include "setjmp.h"
 
 #define xzalloc     lib_xzalloc
 

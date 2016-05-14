@@ -161,17 +161,20 @@ struct sio16c550_chan {
 
     int channel_mode;                                           /* SIO_MODE_INT or SIO_MODE_POLL        */
     int switch_en;                                              /* RS-485 switch pin operate enable flag*/
-    int int_ctx;
-
+    
     unsigned long hw_option;                                    /* hardware setup options               */
 
     UINT8   ier;                                                /* copy of interrupt enable register    */
     UINT8   lcr;                                                /* copy of line control register        */
     UINT8   mcr;                                                /* copy of modem control register       */
-
+    
+    BOOL    bdefer;
+    
     /*
      *  user MUST set following members before calling this module api.
      */
+    PLW_JOB_QUEUE pdeferq;                                      /* ISR defer queue                      */
+                                                                /* defer queue interrupt recommended!   */
     unsigned long xtal;                                         /* uart clock frequency                 */
     unsigned long baud;                                         /* init-baud rate                       */
     

@@ -19,6 +19,7 @@
 ** 描        述: vi 编辑器移植层
 *********************************************************************************************************/
 #include "vi_fix.h"
+#include "poll.h"
 #include "sys/ioctl.h"
 /*********************************************************************************************************
 ** 函数名称: get_terminal_width_height
@@ -116,6 +117,72 @@ ssize_t full_write (int fd, const void *buf, size_t len)
     }
 
 	return  (total);
+}
+/*********************************************************************************************************
+** 函数名称: vi_safe_write
+** 功能描述: 安全写入文件
+** 输　入  : fd        文件
+**           buf       缓冲区
+**           len       长度
+** 输　出  : 写入的长度
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+ssize_t vi_safe_write (int fd, const void *buf, size_t len)
+{
+    ssize_t  n;
+    
+    do {
+        n = write(fd, buf, len);
+    } while ((n < 0) && (errno == EINTR));
+    
+    return  (n);
+}
+/*********************************************************************************************************
+** 函数名称: vi_safe_read
+** 功能描述: 安全读出文件
+** 输　入  : fd        文件
+**           buf       缓冲区
+**           len       长度
+** 输　出  : 写入的长度
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+ssize_t vi_safe_read (int fd, void *buf, size_t len)
+{
+    ssize_t  n;
+    
+    do {
+        n = read(fd, buf, len);
+    } while ((n < 0) && (errno == EINTR));
+    
+    return  (n);
+}
+/*********************************************************************************************************
+** 函数名称: vi_safe_poll
+** 功能描述: safe input/output multiplexing
+** 输　入  : fds           pecifies the file descriptors to be examined and the events of interest for 
+                           each file descriptor.
+**           nfds          The array's members are pollfd structures within which fd specifies
+**           timeout       wait (timeout) milliseconds for an event to occur, on any of the selected file 
+                           descriptors.
+                           0:  poll() returns immediately
+                           -1: poll() blocks until a requested event occurs.
+** 输　出  : A positive value indicates the total number of file descriptors that have been selected.
+             A value of 0 indicates that the call timed out and no file descriptors have been selected. 
+             Upon failure, poll() returns -1 and sets errno
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+int vi_safe_poll (struct pollfd fds[], nfds_t nfds, int timeout)
+{
+    int  ret;
+    
+    do {
+        ret = poll(fds, nfds, timeout);
+    } while ((ret < 0) && (errno == EINTR));
+    
+    return  (ret);
 }
 /*********************************************************************************************************
 ** 函数名称: bb_putchar

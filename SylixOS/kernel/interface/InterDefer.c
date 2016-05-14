@@ -149,8 +149,12 @@ PLW_JOB_QUEUE  API_InterDeferGet (ULONG  ulCPUId)
         return  (LW_NULL);
     }
     
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_ISR_DEFER_PER_CPU > 0)
     return  (&_K_jobqIsrDefer[ulCPUId]);
-}
+#else
+    return  (&_K_jobqIsrDefer[0]);
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */ 
+}                                                                       /*  LW_CFG_ISR_DEFER_PER_CPU    */
 /*********************************************************************************************************
 ** 函数名称: API_InterDeferJobAdd
 ** 功能描述: 向中断延迟处理队列加入一个任务

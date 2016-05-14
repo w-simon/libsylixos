@@ -147,7 +147,7 @@ VOID  archDataStorageExceptionHandle (addr_t  ulRetAddr)
          */
         abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_TERMINAL;
     }
-#endif
+#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 
     if (abtInfo.VMABT_uiType) {
         API_VmmAbortIsr(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur);
@@ -208,7 +208,7 @@ VOID  archInstructionStorageExceptionHandle (addr_t  ulRetAddr)
          */
         abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_TERMINAL;
     }
-#endif
+#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 
     if (abtInfo.VMABT_uiType) {
         API_VmmAbortIsr(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur);
@@ -319,6 +319,25 @@ VOID  archSystemCallHandle (addr_t  ulRetAddr)
 ** 注  意  : 此函数退出时必须为中断关闭状态.
 *********************************************************************************************************/
 VOID  archTraceHandle (addr_t  ulRetAddr)
+{
+    PLW_CLASS_TCB   ptcbCur;
+    LW_VMM_ABORT    abtInfo;
+
+    LW_TCB_GET_CUR(ptcbCur);
+
+    abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_TERMINAL;
+    API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
+}
+/*********************************************************************************************************
+** 函数名称: archMachineCheckExceptionHandle
+** 功能描述: 机器检查异常处理
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+** 注  意  : 此函数退出时必须为中断关闭状态.
+*********************************************************************************************************/
+VOID  archMachineCheckExceptionHandle (addr_t  ulRetAddr)
 {
     PLW_CLASS_TCB   ptcbCur;
     LW_VMM_ABORT    abtInfo;

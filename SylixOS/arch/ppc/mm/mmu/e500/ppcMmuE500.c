@@ -53,14 +53,14 @@ extern VOID    ppcE500MmuInvalidateTLBEA(addr_t  ulAddr);
 extern VOID    archE500InstructionStorageExceptionHandle(addr_t  ulRetAddr);
 extern VOID    archE500DataStorageExceptionHandle(addr_t  ulRetAddr);
 /*********************************************************************************************************
-** 函数名称: archE500MmuDataTlbMissHandle
-** 功能描述: 数据访问 TLB 缺失处理
+** 函数名称: archE500MmuDataTlbErrorHandle
+** 功能描述: 数据访问 TLB 错误处理
 ** 输　入  : NONE
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  archE500MmuDataTlbMissHandle (addr_t  ulRetAddr)
+VOID  archE500MmuDataTlbErrorHandle (addr_t  ulRetAddr)
 {
     addr_t              ulMissAddr = ppcE500GetDEAR();
     addr_t              uiEPN      = ulMissAddr >> LW_CFG_VMM_PAGE_SHIFT;
@@ -92,14 +92,14 @@ VOID  archE500MmuDataTlbMissHandle (addr_t  ulRetAddr)
     }
 }
 /*********************************************************************************************************
-** 函数名称: archE500MmuInstructionTlbMissHandle
-** 功能描述: 指令执行 TLB 缺失处理
+** 函数名称: archE500MmuInstructionTlbErrorHandle
+** 功能描述: 指令执行 TLB 错误处理
 ** 输　入  : NONE
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  archE500MmuInstructionTlbMissHandle (addr_t  ulRetAddr)
+VOID  archE500MmuInstructionTlbErrorHandle (addr_t  ulRetAddr)
 {
     addr_t              ulMissAddr = ulRetAddr;
     addr_t              uiEPN      = ulMissAddr >> LW_CFG_VMM_PAGE_SHIFT;
@@ -128,6 +128,59 @@ VOID  archE500MmuInstructionTlbMissHandle (addr_t  ulRetAddr)
         PPC_EXEC_INS("ISYNC");
     } else {
         archE500InstructionStorageExceptionHandle(ulRetAddr);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: ppcE500MmuDataStorageAbortType
+** 功能描述: 数据访问终止类型
+** 输　入  : ulAbortAddr   终止地址
+**           bIsWrite      是否存储引发的异常
+** 输　出  : 数据访问终止类型
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+ULONG  ppcE500MmuDataStorageAbortType (addr_t  ulAbortAddr, BOOL  bIsWrite)
+{
+    addr_t              uiEPN    = ulAbortAddr >> LW_CFG_VMM_PAGE_SHIFT;
+    LW_PTE_TRANSENTRY   pteentry = *(LW_PTE_TRANSENTRY *)(_G_ulPTETable + \
+                                   uiEPN * sizeof(LW_PTE_TRANSENTRY));
+
+    if (pteentry.MAS3_bValid && pteentry.MAS3_uiRPN) {
+        if (bIsWrite) {
+            if (!pteentry.MAS3_bSuperWrite) {
+                return  (LW_VMM_ABORT_TYPE_PERM);
+            }
+        } else {
+            if (!pteentry.MAS3_bSuperRead) {
+                return  (LW_VMM_ABORT_TYPE_PERM);
+            }
+        }
+        return  (LW_VMM_ABORT_TYPE_MAP);
+    } else {
+        return  (LW_VMM_ABORT_TYPE_MAP);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: ppcE500MmuInstStorageAbortType
+** 功能描述: 指令访问终止类型
+** 输　入  : ulAbortAddr   终止地址
+** 输　出  : 指令访问终止类型
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+ULONG  ppcE500MmuInstStorageAbortType (addr_t  ulAbortAddr)
+{
+    addr_t              uiEPN    = ulAbortAddr >> LW_CFG_VMM_PAGE_SHIFT;
+    LW_PTE_TRANSENTRY   pteentry = *(LW_PTE_TRANSENTRY *)(_G_ulPTETable + \
+                                   uiEPN * sizeof(LW_PTE_TRANSENTRY));
+
+    if (pteentry.MAS3_bValid && pteentry.MAS3_uiRPN) {
+        if (!pteentry.MAS3_bSuperExec) {
+            return  (LW_VMM_ABORT_TYPE_PERM);
+        }
+        return  (LW_VMM_ABORT_TYPE_MAP);
+    } else {
+        return  (LW_VMM_ABORT_TYPE_MAP);
     }
 }
 /*********************************************************************************************************

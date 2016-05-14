@@ -50,7 +50,7 @@ PLW_STACK  archTaskCtxCreate (PTHREAD_START_ROUTINE  pfuncTask,
     pParam = archKernelParamGet();
     uiSrr1 = uiMsr;
 
-    if (pParam->PP_bGenericPPC32) {
+    if (pParam->PP_bGenericPPC32) {                                     /*  通用的 32 位 PowerPC 处理器 */
 #define ARCH_PPC_MSR_VEC            0x0200                              /*  Bit 6 of MSR                */
 
         uiSrr1 |=  ARCH_PPC_MSR_EE;                                     /*  使能中断                    */
@@ -64,7 +64,7 @@ PLW_STACK  archTaskCtxCreate (PTHREAD_START_ROUTINE  pfuncTask,
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 
 #undef  ARCH_PPC_MSR_VEC
-    } else {
+    } else {                                                            /*  PowerPC E500 处理器         */
 #define ARCH_PPC_MSR_SPE            0x02000000
 #define ARCH_PPC_MSR_IS             0x0020                              /*  insn address space selector */
 #define ARCH_PPC_MSR_DS             0x0010                              /*  data address space selector */

@@ -161,7 +161,7 @@ INT  ppcE500MmuTLB1GlobalMap (PLW_MMU_GLOBAL_DESC  pdesc)
                 } else if (pdesc->stSize <= 1 * LW_CFG_GB_SIZE) {
                     uiMAS1.MAS1_ucTSIZE = MMU_TRANS_SZ_1G;
                 } else {
-
+                    _BugHandle(pdesc->stSize > 1 * LW_CFG_GB_SIZE, LW_TRUE, "map size to large!\r\n");
                 }
 
                 /*
