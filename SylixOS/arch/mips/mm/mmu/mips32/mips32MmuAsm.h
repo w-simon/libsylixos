@@ -22,6 +22,22 @@
 #ifndef __MIPS32MMUASM_H
 #define __MIPS32MMUASM_H
 
+#include "arch/mips/arch_mmu.h"
+
+/*********************************************************************************************************
+  TLB refill, 32 bit task
+*********************************************************************************************************/
+
+#if LW_CFG_VMM_PAGE_SIZE == (4 * LW_CFG_KB_SIZE)
+#define SRL_K1()    SRL     K1 , (PTE_BASE_SIZE + 1)
+#elif LW_CFG_VMM_PAGE_SIZE == (16 * LW_CFG_KB_SIZE)
+#define SRL_K1()    SRL     K1 , (PTE_BASE_SIZE + 1 + 2)
+#elif LW_CFG_VMM_PAGE_SIZE == (64 * LW_CFG_KB_SIZE)
+#define SRL_K1()    SRL     K1 , (PTE_BASE_SIZE + 1 + 4)
+#else
+#error You must set 'LW_CFG_VMM_PAGE_SIZE' as 4K, 16K or 64K
+#endif                                                                  /*  LW_CFG_VMM_PAGE_SIZE        */
+
 /*********************************************************************************************************
   TLB refill, 32 bit task
 *********************************************************************************************************/
@@ -39,7 +55,7 @@
     MOVE    K0 , K1;                    \
                                         \
     SLL     K1 , PTE_BASE_SIZE;         \
-    SRL     K1 , (PTE_BASE_SIZE + 1);   \
+    SRL_K1();                           \
                                         \
     SRL     K0 , PTE_BASE_OFFSET;       \
     SLL     K0 , PTE_BASE_OFFSET;       \

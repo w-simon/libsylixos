@@ -51,12 +51,12 @@
 #define __SYLIXOS_VERPATCH              0x10000                         /* 小于 0x10000 为测试版        */
                                                                         /* 等于 0x10000 为正式发布版本  */
 #define __SYLIXOS_VERSTR                "1.3.0"
-#define __SYLIXOS_RELSTR                "NeZha(a)"
+#define __SYLIXOS_RELSTR                "NeZha(b)"
 
 #define __SYLIXOS_VERINFO               "SylixOS kernel version: "  \
                                         __SYLIXOS_VERSTR            \
                                         " "__SYLIXOS_RELSTR
-#define __SYLIXOS_LICENSE               "SylixOS license: BSD/GPL."
+#define __SYLIXOS_LICENSE               "SylixOS license: Commercial & GPL."
 
 /*********************************************************************************************************
   版本匹配弱符号 (__sylixos_version 版本信息将保留在使用此版本头文件编译的库中)

@@ -754,6 +754,7 @@ SylixOS/lib/libc/wchar/wmemcmp.c \
 SylixOS/lib/libc/wchar/wmemcpy.c \
 SylixOS/lib/libc/wchar/wmemmove.c \
 SylixOS/lib/libc/wchar/wmemset.c \
+SylixOS/lib/libcompiler/synchronize/lib_synchronize.c \
 SylixOS/lib/nl_compatible/nl_reent.c
 
 #*********************************************************************************************************

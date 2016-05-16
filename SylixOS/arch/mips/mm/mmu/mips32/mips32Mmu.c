@@ -113,8 +113,16 @@ static VOID  mips32MmuInvalidateTLB (VOID)
         mipsCp0EntryLo0Write(0);
         mipsCp0EntryLo1Write(0);
         mipsCp0EntryHiWrite(UNIQUE_ENTRYHI(i));
-        mipsCp0PageMaskWrite(MIPS32_TLB_4K_PAGE_SIZE_MASK);
 
+#if LW_CFG_VMM_PAGE_SIZE == (4 * LW_CFG_KB_SIZE)
+        mipsCp0PageMaskWrite(MIPS32_TLB_4K_PAGE_SIZE_MASK);
+#elif LW_CFG_VMM_PAGE_SIZE == (16 * LW_CFG_KB_SIZE)
+        mipsCp0PageMaskWrite(MIPS32_TLB_16K_PAGE_SIZE_MASK);
+#elif LW_CFG_VMM_PAGE_SIZE == (64 * LW_CFG_KB_SIZE)
+        mipsCp0PageMaskWrite(MIPS32_TLB_16K_PAGE_SIZE_MASK);
+#else
+#error You must set 'LW_CFG_VMM_PAGE_SIZE' as 4K, 16K or 64K
+#endif                                                                  /*  LW_CFG_VMM_PAGE_SIZE        */
         MIPS_MMU_TLB_WRITE();
     }
 
@@ -328,7 +336,17 @@ static INT  mips32MmuGlobalInit (CPCHAR  pcMachineName)
     
     mips32MmuInvalidateTLB();                                           /*  无效 TLB                    */
     mipsCp0EntryHiWrite(0);                                             /*  ASID = 0                    */
-    mipsCp0PageMaskWrite(MIPS32_TLB_4K_PAGE_SIZE_MASK);                 /*  4K 页面大小                 */
+
+#if LW_CFG_VMM_PAGE_SIZE == (4 * LW_CFG_KB_SIZE)
+    mipsCp0PageMaskWrite(MIPS32_TLB_4K_PAGE_SIZE_MASK);
+#elif LW_CFG_VMM_PAGE_SIZE == (16 * LW_CFG_KB_SIZE)
+    mipsCp0PageMaskWrite(MIPS32_TLB_16K_PAGE_SIZE_MASK);
+#elif LW_CFG_VMM_PAGE_SIZE == (64 * LW_CFG_KB_SIZE)
+    mipsCp0PageMaskWrite(MIPS32_TLB_16K_PAGE_SIZE_MASK);
+#else
+#error You must set 'LW_CFG_VMM_PAGE_SIZE' as 4K, 16K or 64K
+#endif                                                                  /*  LW_CFG_VMM_PAGE_SIZE        */
+
     mipsCp0WiredWrite(0);                                               /*  全部允许随机替换            */
 
     return  (ERROR_NONE);
