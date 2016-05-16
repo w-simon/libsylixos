@@ -44,23 +44,18 @@ void init_etc_shadow (void)
   /*
    *  Initialize /etc/shadow
    *  root 默认密码为 root
-   *  sylixos 默认密码为 hanhui
-   *  apps 默认密码为 apps
    *  hanhui 默认密码为 (暂时保密)
    */
   if (access("/etc/shadow", R_OK) < 0) {
     if ((fp = fopen("/etc/shadow", "w")) != NULL) {
 #if LW_CFG_SHELL_PASS_CRYPT_EN > 0
-      fprintf( fp, "root:$1$qY9g/6K4$/FKP3w1BsziKGCP3uLDnG.:0:0:99999:7:::\n"
-                   "sylixos:$1$qY9g/6K4$WFEx17sxu/3aL3wE.u8NZ1:0:0:99999:7:::\n"
-                   "apps:$1$qY9g/6K4$buV57yqE0kMbApOVI/jKM1:0:0:99999:7:::\n"
-                   "hanhui:$1$qY9g/6K4$M/MZBr3WwSdMzIoXbVQGA.:0:0:99999:7:::\n"
-                   "anonymous:!!:0:0:99999:7:::\n");
+      fprintf(fp, "root:$1$qY9g/6K4$/FKP3w1BsziKGCP3uLDnG.:0:0:99999:7:::\n"
+                  "hanhui:$1$U9mh7KP1$QriXGt1yOreNCt6voh9jT1:0:0:99999:7:::\n"
+                  "anonymous:!!:0:0:99999:7:::\n");
 #else
-      fprintf( fp, "root:root:0:0:99999:7:::\n"
-                   "sylixos:hanhui:0:0:99999:7:::\n"
-                   "apps:apps:0:0:99999:7:::\n"
-                   "anonymous:!!:0:0:99999:7:::\n");
+      fprintf(fp, "root:root:0:0:99999:7:::\n"
+                  "hanhui:hanhui:0:0:99999:7:::\n"
+                  "anonymous:!!:0:0:99999:7:::\n");
 #endif /* LW_CFG_SHELL_PASS_CRYPT_EN > 0 */
       fclose(fp);
       chmod("/etc/shadow", S_IRUSR);

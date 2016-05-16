@@ -17,6 +17,9 @@
 ** 文件创建日期: 2014 年 05 月 09 日
 **
 ** 描        述: shell 用户名管理.
+**
+** BUG:
+2016.05.16  创建新用户自动创建用户目录.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -288,6 +291,11 @@ __argument_error:
         goto    __argument_error;
     }
     
+    if (ppcArgV[7][0] != PX_ROOT) {
+        fprintf(stderr, "home directory MUST use absolute path.\n");
+        goto    __argument_error;
+    }
+    
     if (user_db_uadd(ppcArgV[1], ppcArgV[2], iEn, uid,  gid, 
                      ppcArgV[6], ppcArgV[7])) {
         if (errno == EEXIST) {
@@ -297,6 +305,9 @@ __argument_error:
             fprintf(stderr, "Can not create new user : %s\n", lib_strerror(errno));
         }
         return  (-1);
+    
+    } else {
+        mkdir(ppcArgV[7], DEFAULT_DIR_PERM);
     }
     
     return  (ERROR_NONE);

@@ -45,17 +45,14 @@ void init_etc_passwd_group(void)
 
   /*
    *  Initialize /etc/passwd
-   *  root , sylixos , apps , hanhui 密码映射到 /etc/shadow 中
+   *  root, hanhui 密码映射到 /etc/shadow 中
    *  默认停用 anonymous 用户
    */
   if (access("/etc/passwd", R_OK) < 0) {
     if ((fp = fopen("/etc/passwd", "w")) != NULL) {
       fprintf(fp, "root:x:0:0:root::/root:/bin/sh\n"
-                  "sylixos:x:1:1:developer::/home/sylixos:/bin/sh\n"
-                  "apps:x:2:2:application::/home/apps:/bin/sh\n"
-                  "hanhui:x:2000:2:application::/home/hanhui:/bin/sh\n"
-                  "tty:!:3:3:tty owner::/home/tty:/bin/false\n" 
-                  "anonymous:!:4:4:anonymous user::/home/anonymous:/bin/false\n" );
+                  "hanhui:x:1:0:admin::/home/hanhui:/bin/sh\n"
+                  "anonymous:!:400:400:anonymous::/home/anonymous:/bin/false\n");
       fclose(fp);
     }
   }
@@ -65,11 +62,11 @@ void init_etc_passwd_group(void)
    */
   if (access("/etc/group", R_OK) < 0) {
     if ((fp = fopen("/etc/group", "w")) != NULL) {
-      fprintf( fp, "root:x:0:root\n"
-                   "sylixos:x:1:sylixos\n"
-                   "apps:x:2:apps,hanhui,sylixos\n"
-                   "tty:x:3:tty\n" 
-                   "anonymous:x:4:anonymous\n" );
+      fprintf(fp, "root:x:0:root\n"
+                  "server:x:100:server\n"
+                  "user:x:200:user\n"
+                  "apps:x:300:user\n"
+                  "anonymous:x:400:anonymous\n");
       fclose(fp);
     }
   }
