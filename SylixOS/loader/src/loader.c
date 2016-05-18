@@ -1068,6 +1068,8 @@ PVOID  API_ModuleSym (PVOID  pvModule, CPCHAR  pcName)
 ** 调用模块:
                                            API 函数
 *********************************************************************************************************/
+#if LW_CFG_MODULELOADER_ATEXIT_EN > 0
+
 LW_API
 INT  API_ModuleAtExit (VOIDFUNCPTR  pfunc)
 {
@@ -1105,6 +1107,8 @@ INT  API_ModuleAtExit (VOIDFUNCPTR  pfunc)
     
     return  (iRet);
 }
+
+#endif                                                                  /* LW_CFG_MODULELOADER_ATEXIT_EN*/
 /*********************************************************************************************************
 ** 函数名称: API_ModuleGcov
 ** 功能描述: 内核模块测算代码覆盖率并导出相关结果.
@@ -1141,6 +1145,48 @@ INT  API_ModuleGcov (PVOID  pvModule)
     pfuncGcov();
     
     return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_ModuleGetName
+** 功能描述: 通过模块内地址找到模块文件位置.
+** 输　入  : pvAddr      模块内地址
+**           pcFullPath  模块文件全路径缓冲区
+**           stLen       缓冲区大小
+** 输　出  : 拷贝的文件名长度
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+ssize_t  API_ModuleGetName (PVOID  pvAddr, PCHAR  pcFullPath, size_t  stLen)
+{
+    BOOL                   bStart;
+    ssize_t                sstRet = PX_ERROR;
+    LW_LD_VPROC           *pvproc = &_G_vprocKernel;
+    LW_LIST_RING          *pringTemp;
+    LW_LD_EXEC_MODULE     *pmodTemp;
+    
+    if (!pcFullPath || !stLen) {
+        _ErrorHandle(ERROR_LOADER_PARAM_NULL);
+        return  (PX_ERROR);
+    }
+    
+    LW_VP_LOCK(pvproc);
+    for (pringTemp  = pvproc->VP_ringModules, bStart = LW_TRUE;
+         pringTemp && (pringTemp != pvproc->VP_ringModules || bStart);
+         pringTemp  = _list_ring_get_next(pringTemp), bStart = LW_FALSE) {
+    
+        pmodTemp = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);
+        if (((PCHAR)pvAddr >= (PCHAR)pmodTemp->EMOD_pvBaseAddr) &&
+            ((PCHAR)pvAddr <  ((PCHAR)pmodTemp->EMOD_pvBaseAddr + pmodTemp->EMOD_stLen))) {
+            
+            sstRet = (ssize_t)lib_strlcpy(pcFullPath, pmodTemp->EMOD_pcModulePath, stLen);
+            break;
+        }
+    }
+    LW_VP_UNLOCK(pvproc);
+    
+    return  (sstRet);
 }
 
 #endif                                                                  /*  LW_CFG_MODULELOADER_GCOV_EN */

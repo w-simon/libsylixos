@@ -497,7 +497,7 @@ void  _Exit (int  iCode)
 LW_API  
 int  atexit (void (*func)(void))
 {
-#if LW_CFG_MODULELOADER_EN > 0
+#if (LW_CFG_MODULELOADER_EN > 0) && (LW_CFG_MODULELOADER_ATEXIT_EN > 0)
     return  (API_ModuleAtExit(func));
 
 #else

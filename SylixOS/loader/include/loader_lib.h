@@ -158,7 +158,6 @@ typedef struct {
 #ifdef LW_CFG_CPU_ARCH_MIPS
     MIPS_HI16_RELOC_INFO   *EMOD_pMIPSHi16List;
 #endif                                                                  /*  LW_CFG_CPU_ARCH_MIPS        */
-
 } LW_LD_EXEC_MODULE;
 
 /*********************************************************************************************************
