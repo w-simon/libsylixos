@@ -596,6 +596,8 @@ LW_API INT                  API_PciDrvInit(VOID);
 
 LW_API PCI_DEVICE_ID_HANDLE API_PciDevMatchDrv(PCI_DEV_HANDLE hDevHandle, PCI_DRV_HANDLE hDrvHandle);
 LW_API VOID                 API_PciDevBindEachDrv(PCI_DEV_HANDLE hDevHandle);
+LW_API INT                  API_PciDevMasterEnable(PCI_DEV_HANDLE  hDevHandle, BOOL bEnable);
+
 LW_API INT                  API_PciDevInterDisable(PCI_DEV_HANDLE   hHandle,
                                                    ULONG            ulVector,
                                                    PINT_SVR_ROUTINE pfuncIsr,
@@ -658,8 +660,6 @@ LW_API INT                  API_PciDevMsiEnableGet(PCI_DEV_HANDLE  hHandle, INT 
 #define pciConfigDev            API_PciConfigDev
 #define pciFuncDisable          API_PciFuncDisable
 
-#define pciInterDisable         API_PciInterDisable
-#define pciInterEnable          API_PciInterEnable
 #define pciInterConnect         API_PciInterConnect
 #define pciInterDisconnect      API_PciInterDisconnect
 
@@ -690,6 +690,7 @@ LW_API INT                  API_PciDevMsiEnableGet(PCI_DEV_HANDLE  hHandle, INT 
 
 #define pciDevMatchDrv          API_PciDevMatchDrv
 #define pciDevBindEachDrv       API_PciDevBindEachDrv
+#define pciDevMasterEnable      API_PciDevMasterEnable
 #define pciDevInterDisable      API_PciDevInterDisable
 #define pciDevInterEnable       API_PciDevInterEnable
 #define pciDevInterDisonnect    API_PciDevInterDisonnect

@@ -892,6 +892,38 @@ static INT  __tshellLsmod (INT  iArgC, PCHAR  *ppcArgV)
     return  (__tshellModuleShow(2, pcArgV));
 }
 /*********************************************************************************************************
+** 函数名称: __tshellModuleGcov
+** 功能描述: 系统命令 "modulegcov"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : 0
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+#if LW_CFG_MODULELOADER_GCOV_EN > 0
+
+static INT  __tshellModuleGcov (INT  iArgC, PCHAR  *ppcArgV)
+{
+    ULONG   ulModule = (ULONG)LW_NULL;
+    INT     iRet;
+
+    if (iArgC < 2) {
+        fprintf(stderr, "argments error!\n");
+        return  (-ERROR_TSHELL_EPARAM);
+    }
+    
+    if (sscanf(ppcArgV[1], "%lx", &ulModule) != 1) {
+        fprintf(stderr, "argments error!\n");
+        return  (-ERROR_TSHELL_EPARAM);
+    }
+    
+    iRet = moduleGcov((PVOID)ulModule);
+    
+    return  (iRet);
+}
+
+#endif                                                                  /*  LW_CFG_MODULELOADER_GCOV_EN */
+/*********************************************************************************************************
 ** 函数名称: __ldShellInit
 ** 功能描述: 初始化 loader 内部 shell 命令.
 ** 输　入  : NONE
@@ -937,6 +969,12 @@ static VOID  __ldShellInit (VOID)
     API_TShellFormatAdd("modules", " [module name]");
     API_TShellHelpAdd("modules",   "show module information.\n");
     
+#if LW_CFG_MODULELOADER_GCOV_EN > 0
+    API_TShellKeywordAdd("modulegcov", __tshellModuleGcov);
+    API_TShellFormatAdd("modulegcov",  " [kernel module handle]");
+    API_TShellHelpAdd("modulegcov",    "generate kernel module code coverage file(*.gcda).\n");
+#endif                                                                  /*  LW_CFG_MODULELOADER_GCOV_EN */
+
     API_TShellKeywordAdd("lsmod", __tshellLsmod);
     API_TShellHelpAdd("lsmod",    "show all kernel module.\n");
     

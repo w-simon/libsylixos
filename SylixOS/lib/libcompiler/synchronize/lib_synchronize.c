@@ -21,7 +21,7 @@
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
 /*********************************************************************************************************
-** 函数名称: lib_abs
+** 函数名称: __sync_synchronize
 ** 功能描述: 
 ** 输　入  : 
 ** 输　出  : 

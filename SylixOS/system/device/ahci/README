@@ -2,4 +2,7 @@
 
 --SylixOS--
 
-1: here is AHCI(Serial ATA Advanced Host Controller Interface) bus driver.
+1: here is AHCI(Serial ATA Advanced Host Controller Interface) driver.
+   SylixOS AHCI driver not open source.
+   SylixOS AHCI driver support PCIe-AHCI card and localbus AHCI controlor.
+   Support SATA2.0 SATA3.0 HDD, SSD.

@@ -38,6 +38,7 @@
 #define ERROR_LOADER_UNEXPECTED     100009                              /*  未知错误                    */
 #define ERROR_LOADER_NO_SYMBOL      100010                              /*  符号未找到                  */
 #define ERROR_LOADER_VERSION        100011                              /*  版本号不符                  */
+#define ERROR_LOADER_NOT_KO         100012                              /*  不是内核模块                */
 #define ERROR_LOADER_EACCES         EACCES                              /*  没有执行权限                */
 
 #endif                                                                  /*  __LOADER_ERROR_H            */

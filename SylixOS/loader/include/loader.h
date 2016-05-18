@@ -99,6 +99,12 @@ LW_API INT      API_ModuleFinish(PVOID   pvVProc);                      /*  进程
 
 LW_API INT      API_ModuleTerminal(PVOID   pvVProc);                    /*  回收进程空间                */
 
+LW_API INT      API_ModuleAtExit(VOIDFUNCPTR  pfunc);                   /*  内核模块 atexit()           */
+
+#if LW_CFG_MODULELOADER_GCOV_EN > 0
+LW_API INT      API_ModuleGcov(PVOID  pvModule);                        /*  内核模块生成代码覆盖率信息  */
+#endif                                                                  /*  LW_CFG_MODULELOADER_GCOV_EN */
+
 LW_API INT      API_ModuleShareRefresh(CPCHAR  pcFileName);             /*  清除(刷新)共享空间缓冲      */
 
 LW_API INT      API_ModuleShareConfig(BOOL  bShare);                    /*  设置共享空间功能            */
@@ -109,7 +115,6 @@ LW_API INT      API_ModuleTimes(PVOID    pvVProc,
                                 clock_t *pclockCUser, 
                                 clock_t *pclockCSystem);
                                                                         /*  进程运行时间信息            */
-                                                                        
 LW_API INT      API_ModuleGetBase(pid_t   pid, 
                                   PCHAR   pcModPath, 
                                   addr_t *pulAddrBase,
@@ -119,6 +124,8 @@ LW_API INT      API_ModuleGetBase(pid_t   pid,
 #define moduleRunEx         API_ModuleRunEx
 #define moduleFinish        API_ModuleFinish
 #define moduleTerminal      API_ModuleTerminal
+#define moduleAtExit        API_ModuleAtExit
+#define moduleGcov          API_ModuleGcov
 #define moduleShareRefresh  API_ModuleShareRefresh
 #define moduleShareConfig   API_ModuleShareConfig
 #define moduleTimes         API_ModuleTimes

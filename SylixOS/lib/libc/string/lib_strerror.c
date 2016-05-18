@@ -436,7 +436,8 @@ PCHAR  lib_strerror (INT  iNum)
     case ERROR_LOADER_PARAM_NULL:       return  ("Invalid parameter(s)");
     case ERROR_LOADER_UNEXPECTED:       return  ("Unexpected error");
     case ERROR_LOADER_NO_SYMBOL:        return  ("Can not find symbol");
-    case ERROR_LOADER_VERSION:          return  ("Module version not fix to current os");
+    case ERROR_LOADER_VERSION:          return  ("Module version not fix to current OS");
+    case ERROR_LOADER_NOT_KO:           return  ("Not a kernel module");
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN      */
 
     /*

@@ -497,9 +497,15 @@ void  _Exit (int  iCode)
 LW_API  
 int  atexit (void (*func)(void))
 {
+#if LW_CFG_MODULELOADER_EN > 0
+    return  (API_ModuleAtExit(func));
+
+#else
     _ErrorHandle(ENOSYS);
     return  (PX_ERROR);
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 }
+
 #endif                                                                  /*  LW_CFG_THREAD_DEL_EN        */
 /*********************************************************************************************************
   END

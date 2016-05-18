@@ -890,6 +890,44 @@ VOID  API_PciDrvBindEachDev (PCI_DRV_HANDLE hDrvHandle)
     __PCI_DEV_UNLOCK();
 }
 /*********************************************************************************************************
+** 函数名称: API_PciDevMasterEnable
+** 功能描述: 使能 PCI 设备 Master 模式
+** 输　入  : hDevHandle   设备控制句柄
+**           bEnable      是否使能
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_PciDevMasterEnable (PCI_DEV_HANDLE  hDevHandle, BOOL bEnable)
+{
+    UINT16 usCmdOld;
+    UINT16 usCmd;
+    INT    iRet;
+
+    iRet = API_PciDevConfigRead(hDevHandle, PCI_COMMAND, (UINT8 *)&usCmdOld, sizeof(UINT16));
+    if (iRet != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
+
+    if (bEnable) {
+        usCmd = usCmdOld | PCI_COMMAND_MASTER;
+    
+    } else {
+        usCmd = usCmdOld & ~PCI_COMMAND_MASTER;
+    }
+
+    if (usCmd != usCmdOld) {
+        iRet = API_PciDevConfigWrite(hDevHandle, PCI_COMMAND, (UINT8 *)&usCmd, sizeof(UINT16));
+        if (iRet != ERROR_NONE) {
+            return  (PX_ERROR);
+        }
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: __pciDevListCreate
 ** 功能描述: 创建设备列表回调, 上层已经加锁, 不需要再进行加锁操作
 ** 输　入  : iBus           总线号

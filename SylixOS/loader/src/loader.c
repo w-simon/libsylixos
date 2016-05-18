@@ -44,6 +44,7 @@
 2013.06.07  加入 API_ModuleShareRefresh 操作, 用来清除当前缓存的动态库或者应用的共享信息.
 2014.07.26  cache text update 操作放在每个模块加载之后.
 2015.07.20  修正 moduleDelAndDestory 中的无效链表指针操作.
+2016.05.17  内核模块支持 atexit() 操作. (韩辉)
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -146,7 +147,7 @@ static LW_LD_EXEC_MODULE  *moduleCreate (CPCHAR  pcPath,
 
     pmodule = (LW_LD_EXEC_MODULE *)LW_LD_SAFEMALLOC(stModuleSize);
     if (LW_NULL == pmodule) {
-        return LW_NULL;
+        return  (LW_NULL);
     }
     lib_bzero(pmodule, stModuleSize);
 
@@ -199,10 +200,6 @@ static LW_LD_EXEC_MODULE  *moduleCreate (CPCHAR  pcPath,
 static INT moduleDestory (LW_LD_EXEC_MODULE *pmodule)
 {
     INT     i;
-
-    if (pmodule->EMOD_pfuncDestroy) {
-        pmodule->EMOD_pfuncDestroy();                                   /*  执行模块销毁函数            */
-    }
 
     if (pmodule->EMOD_psymbolHash) {                                    /*  符号表销毁                  */
         __moduleDeleteAllSymbol(pmodule);
@@ -509,6 +506,25 @@ static INT finiArrayCall (LW_LD_EXEC_MODULE *pmodule, BOOL  bRunFini)
 
         if (pmodTemp->EMOD_ulRefs == 0 && pmodTemp->EMOD_ulStatus == LW_LD_STATUS_INITED) {
             pmodTemp->EMOD_ulStatus = LW_LD_STATUS_FINIED;
+
+            if (pmodTemp->EMOD_ulModType == LW_LD_MOD_TYPE_KO) {            /*  处理内核模块 atexit     */
+                LW_LD_EXEC_MODATEXIT  *pmodae;
+                
+                while (pmodTemp->EMOD_pmonoAtexit) {
+                    pmodae = _LIST_ENTRY(pmodTemp->EMOD_pmonoAtexit, 
+                                         LW_LD_EXEC_MODATEXIT,
+                                         EMODAE_pmonoNext);
+                    pmodTemp->EMOD_pmonoAtexit = 
+                        _list_mono_get_next(pmodTemp->EMOD_pmonoAtexit);
+                    
+                    if (pmodae->EMODAE_pfunc) {
+                        LW_SOFUNC_PREPARE(pmodae->EMODAE_pfunc);
+                        pmodae->EMODAE_pfunc();
+                    }
+                    
+                    LW_LD_SAFEFREE(pmodae);
+                }
+            }
 
             if (pmodTemp->EMOD_pfuncExit) {
                 LW_SOFUNC_PREPARE(pmodTemp->EMOD_pfuncExit);
@@ -1043,6 +1059,91 @@ PVOID  API_ModuleSym (PVOID  pvModule, CPCHAR  pcName)
 
     return  ((PVOID)ulValue);
 }
+/*********************************************************************************************************
+** 函数名称: API_ModuleAtExit
+** 功能描述: 内核模块退出.
+** 输　入  : pfunc         退出执行函数
+** 输　出  : ERROR_NONE 表示没有错误, PX_ERROR 表示错误
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_ModuleAtExit (VOIDFUNCPTR  pfunc)
+{
+    BOOL                   bStart;
+    INT                    iRet   = PX_ERROR;
+    LW_LD_VPROC           *pvproc = &_G_vprocKernel;
+    LW_LIST_RING          *pringTemp;
+    LW_LD_EXEC_MODULE     *pmodTemp;
+    LW_LD_EXEC_MODATEXIT  *pmodae;
+    
+    LW_VP_LOCK(pvproc);
+    for (pringTemp  = pvproc->VP_ringModules, bStart = LW_TRUE;
+         pringTemp && (pringTemp != pvproc->VP_ringModules || bStart);
+         pringTemp  = _list_ring_get_next(pringTemp), bStart = LW_FALSE) {
+    
+        pmodTemp = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);
+        if (((PCHAR)pfunc >= (PCHAR)pmodTemp->EMOD_pvBaseAddr) &&
+            ((PCHAR)pfunc <  ((PCHAR)pmodTemp->EMOD_pvBaseAddr + pmodTemp->EMOD_stLen))) {
+            
+            pmodae = (LW_LD_EXEC_MODATEXIT *)LW_LD_SAFEMALLOC(sizeof(LW_LD_EXEC_MODATEXIT));
+            if (pmodae == LW_NULL) {
+                _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
+                break;
+            }
+            
+            pmodae->EMODAE_pfunc = pfunc;
+            _LIST_MONO_LINK(&pmodae->EMODAE_pmonoNext, pmodTemp->EMOD_pmonoAtexit);
+            pmodTemp->EMOD_pmonoAtexit = &pmodae->EMODAE_pmonoNext;
+            
+            iRet = ERROR_NONE;
+            break;
+        }
+    }
+    LW_VP_UNLOCK(pvproc);
+    
+    return  (iRet);
+}
+/*********************************************************************************************************
+** 函数名称: API_ModuleGcov
+** 功能描述: 内核模块测算代码覆盖率并导出相关结果.
+** 输　入  : pvModule      模块句柄
+** 输　出  : ERROR_NONE 表示没有错误, PX_ERROR 表示错误
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+#if LW_CFG_MODULELOADER_GCOV_EN > 0
+
+LW_API
+INT  API_ModuleGcov (PVOID  pvModule)
+{
+    LW_LD_EXEC_MODULE *pmodule = (LW_LD_EXEC_MODULE *)pvModule;
+    VOIDFUNCPTR        pfuncGcov;
+    
+    if ((pmodule == LW_NULL) || (pmodule->EMOD_ulMagic != __LW_LD_EXEC_MODULE_MAGIC)) {
+        _ErrorHandle(ERROR_LOADER_PARAM_NULL);
+        return  (PX_ERROR);
+    }
+    
+    if (pmodule->EMOD_ulModType != LW_LD_MOD_TYPE_KO) {
+        _ErrorHandle(ERROR_LOADER_NOT_KO);
+        return  (PX_ERROR);
+    }
+    
+    pfuncGcov = (VOIDFUNCPTR)API_ModuleSym(pvModule, LW_MODULE_GCOV);
+    if (pfuncGcov == LW_NULL) {
+        return  (PX_ERROR);
+    }
+    
+    LW_SOFUNC_PREPARE(pfuncGcov);
+    pfuncGcov();
+    
+    return  (ERROR_NONE);
+}
+
+#endif                                                                  /*  LW_CFG_MODULELOADER_GCOV_EN */
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 /*********************************************************************************************************
   END

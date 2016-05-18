@@ -92,6 +92,19 @@ struct __MIPS_HI16_RELOC_INFO {
 };
 #endif                                                                  /*  LW_CFG_CPU_ARCH_MIPS        */
 
+/*********************************************************************************************************
+  内核模块 atexit 函数
+*********************************************************************************************************/
+
+typedef struct {
+    LW_LIST_MONO            EMODAE_pmonoNext;
+    VOIDFUNCPTR             EMODAE_pfunc;                               /*  atexit 调用函数             */
+} LW_LD_EXEC_MODATEXIT;
+
+/*********************************************************************************************************
+  模块
+*********************************************************************************************************/
+
 typedef struct {
     ULONG                   EMOD_ulMagic;                               /*  用于识别本结构体            */
     ULONG                   EMOD_ulModType;                             /*  模块类型，KO还是SO文件      */
@@ -115,7 +128,6 @@ typedef struct {
 
     PCHAR                   EMOD_pcEntry;                               /*  入口函数名称                */
     FUNCPTR                 EMOD_pfuncEntry;                            /*  main函数指针                */
-    FUNCPTR                 EMOD_pfuncDestroy;                          /*  销毁模块函数指针            */
     BOOL                    EMOD_bIsSymbolEntry;                        /*  是否为符号入口              */
 
     size_t                  EMOD_stLen;                                 /*  为模块分配的内存长度        */
@@ -135,6 +147,8 @@ typedef struct {
     LW_LD_VPROC            *EMOD_pvproc;                                /*  所属进程                    */
     LW_LIST_RING            EMOD_ringModules;                           /*  进程中所有的库链表          */
     PVOID                   EMOD_pvFormatInfo;                          /*  重定位相关信息              */
+
+    LW_LIST_MONO_HEADER     EMOD_pmonoAtexit;                           /*  内核模块 atexit             */
 
 #ifdef LW_CFG_CPU_ARCH_ARM
     size_t                  EMOD_stARMExidxCount;                       /*  ARM.exidx 段长度            */
