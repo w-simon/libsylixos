@@ -42,6 +42,7 @@
 
 #define LW_CFG_MODULELOADER_EN                  1                       /*  是否需要提供模块装载服务    */
 #define LW_CFG_MODULELOADER_GCOV_EN             1                       /*  内核模块代码覆盖率分析接口  */
+#define LW_CFG_MODULELOADER_ATEXIT_EN           0                       /*  是否允许内核模块 atexit()   */
 
 #endif                                                                  /*  __LOADER_CFG_H              */
 /*********************************************************************************************************
