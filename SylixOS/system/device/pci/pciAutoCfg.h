@@ -202,7 +202,6 @@ LW_API INT      API_PciAutoCfgBusNumberSet(PCI_AUTO_CFG_LOC *ppaclLoc,
                                            INT iPriBus, INT iSecBus, INT iSubordinate);
 
 LW_API INT      API_PciAutoCfgCtl(PVOID  pvOpts, INT  iCmd, PVOID  pvArg);
-LW_API PVOID    API_PciAutoCfgLibInit(PVOID pvArg);
 LW_API VOID     API_PciAutoCfgInit(PCI_AUTO_CFG_SYSTEM *ppacsSystem);
 
 #define pciAutoCfgAddrAlign         API_PciAutoCfgAddrAlign

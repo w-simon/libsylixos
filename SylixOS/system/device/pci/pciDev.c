@@ -867,7 +867,7 @@ VOID  API_PciDrvBindEachDev (PCI_DRV_HANDLE hDrvHandle)
 {
     PCI_DEV_HANDLE        hDevCurr;
     PLW_LIST_LINE         plineTemp;
-    PCI_DEVICE_ID_HANDLE  hId;
+    PCI_DEV_ID_HANDLE     hId;
 
     __PCI_DEV_LOCK();
     for (plineTemp  = _GplinePciDevHeader;

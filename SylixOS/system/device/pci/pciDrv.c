@@ -219,7 +219,7 @@ __error_handle:
 LW_API
 INT  API_PciDrvLoad (PCI_DRV_HANDLE       hDrvHandle,
                      PCI_DEV_HANDLE       hDevHandle,
-                     PCI_DEVICE_ID_HANDLE hIdEntry)
+                     PCI_DEV_ID_HANDLE    hIdEntry)
 {
     INT     iRet;
 
@@ -546,7 +546,7 @@ VOID  API_PciDevBindEachDrv (PCI_DEV_HANDLE hDevHandle)
 {
     PCI_DRV_HANDLE        hDrvCurr;
     PLW_LIST_LINE         plineTemp;
-    PCI_DEVICE_ID_HANDLE  hId;
+    PCI_DEV_ID_HANDLE     hId;
     INT                   iRet;
 
     if (hDevHandle->PDT_pvDevDriver) {

@@ -29,6 +29,7 @@
   裁剪宏
 *********************************************************************************************************/
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_PCI_EN > 0)
+#include "pciIds.h"
 #include "pciDev.h"
 #include "pciProc.h"
 /*********************************************************************************************************
@@ -73,7 +74,7 @@ PCI_CONFIG      *_G_p_pciConfig;
 /*********************************************************************************************************
   前置声明
 *********************************************************************************************************/
-static PCI_DEVICE_ID_HANDLE __pciDevMatchId(PCI_DEV_HANDLE hDevHandle, PCI_DEVICE_ID_HANDLE hId);
+static PCI_DEV_ID_HANDLE __pciDevMatchId(PCI_DEV_HANDLE hDevHandle, PCI_DEV_ID_HANDLE hId);
 /*********************************************************************************************************
 ** 函数名称: API_PciConfigInit
 ** 功能描述: 安装 pci 主控器驱动程序
@@ -1646,10 +1647,10 @@ INT  API_PciIntxMaskSupported (INT iBus, INT iSlot, INT iFunc, INT *piSupported)
 **                                            API 函数
 *********************************************************************************************************/
 LW_API
-PCI_DEVICE_ID_HANDLE API_PciDevMatchDrv (PCI_DEV_HANDLE hDevHandle, PCI_DRV_HANDLE hDrvHandle)
+PCI_DEV_ID_HANDLE API_PciDevMatchDrv (PCI_DEV_HANDLE hDevHandle, PCI_DRV_HANDLE hDrvHandle)
 {
-    PCI_DEVICE_ID_HANDLE  hId;
-    INT                   i;
+    PCI_DEV_ID_HANDLE   hId;
+    INT                 i;
 
     if (!hDevHandle || !hDrvHandle) {
         return  (LW_NULL);
@@ -1678,7 +1679,7 @@ PCI_DEVICE_ID_HANDLE API_PciDevMatchDrv (PCI_DEV_HANDLE hDevHandle, PCI_DRV_HAND
 ** 调用模块:
 **                                            API 函数
 *********************************************************************************************************/
-static PCI_DEVICE_ID_HANDLE __pciDevMatchId (PCI_DEV_HANDLE hDevHandle, PCI_DEVICE_ID_HANDLE hId)
+static PCI_DEV_ID_HANDLE __pciDevMatchId (PCI_DEV_HANDLE hDevHandle, PCI_DEV_ID_HANDLE hId)
 {
     PCI_DEV_HDR    *phdr       = &hDevHandle->PDT_phDevHdr.PCIH_pcidHdr;
     UINT32          uiDevClass = (UINT32)((phdr->PCID_ucClassCode << 16) +
