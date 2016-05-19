@@ -37,8 +37,8 @@
 #define __XDEV_H
 
 #define MAX_INPUT_DEVICE    5   /* max input physical device */
-#define MAX_INPUT_QUEUE     2   /* max data packets in queue */
-#define MAX_INPUT_POINTS    6   /* max input points at once */
+#define MAX_INPUT_QUEUE     4   /* max data packets in queue */
+#define MAX_INPUT_POINTS    5   /* max input points at once */
 
 #define DEFAULT_KEYBOARD    "/dev/input/keyboard0"
 #define DEFAULT_MOUSE       "/dev/input/mouse0"
@@ -46,6 +46,7 @@
 #define XINPUT_NAME_KBD     "/dev/input/xkbd"
 #define XINPUT_NAME_MSE     "/dev/input/xmse"
 #define XINPUT_SEL_TO       2
+#define XINPUT_BUSY_TO      (2 * LW_OPTION_ONE_TICK)
 
 #define XINPUT_THREAD_SIZE  (12 * 1024)
 

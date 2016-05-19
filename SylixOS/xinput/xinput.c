@@ -80,6 +80,11 @@ static BOOL xinput_hotplug = FALSE;
 static spinlock_t xinput_sl;
 
 /*
+ * xinput device msgq size
+ */
+static int xinput_mqsize = MAX_INPUT_QUEUE;
+
+/*
  * xinput open
  */
 static long xinput_open (xinput_dev_t *xinput, char *name, int flags, int mode)
@@ -305,7 +310,7 @@ static int xinput_drv (void)
  */
 static int xinput_devadd (void)
 {
-    kdb_xinput.queue = API_MsgQueueCreate("xkbd_q", MAX_INPUT_QUEUE,
+    kdb_xinput.queue = API_MsgQueueCreate("xkbd_q", (ULONG)xinput_mqsize,
                                           sizeof(struct keyboard_event_notify),
                                           LW_OPTION_OBJECT_GLOBAL, NULL);
     SEL_WAKE_UP_LIST_INIT(&kdb_xinput.sel_list);
@@ -316,7 +321,7 @@ static int xinput_devadd (void)
         return  (PX_ERROR);
     }
 
-    mse_xinput.queue = API_MsgQueueCreate("xmse_q", MAX_INPUT_QUEUE,
+    mse_xinput.queue = API_MsgQueueCreate("xmse_q", (ULONG)xinput_mqsize,
                                           (sizeof(struct mouse_event_notify) * MAX_INPUT_POINTS),
                                           LW_OPTION_OBJECT_GLOBAL, NULL);
     SEL_WAKE_UP_LIST_INIT(&mse_xinput.sel_list);
@@ -444,8 +449,20 @@ static void  *xinput_scan (void *arg)
                             close(input->fd);
                             input->fd = -1;
                         } else {
-                            API_MsgQueueSend(mse_xinput.queue, (void *)mnotify, (u_long)temp);
-                            SEL_WAKE_UP_ALL(&mse_xinput.sel_list, SELREAD);
+                            if (!(mnotify[0].kstat & MOUSE_LEFT)) {    /* release operate must send suc */
+                                for (;;) {
+                                    ULONG  err = API_MsgQueueSend(mse_xinput.queue, (void *)mnotify, (u_long)temp);
+                                    if ((err == ERROR_NONE) || (err != ERROR_MSGQUEUE_FULL)) {
+                                        SEL_WAKE_UP_ALL(&mse_xinput.sel_list, SELREAD);
+                                        break;
+                                    } else {
+                                        API_TimeSleep(XINPUT_BUSY_TO);
+                                    }
+                                }
+                            } else {
+                                API_MsgQueueSend(mse_xinput.queue, (void *)mnotify, (u_long)temp);
+                                SEL_WAKE_UP_ALL(&mse_xinput.sel_list, SELREAD);
+                            }
                         }
                     }
                 }
@@ -462,7 +479,7 @@ static void  *xinput_scan (void *arg)
 int module_init (void)
 {
     LW_CLASS_THREADATTR threadattr;
-    char    prio_str[128];
+    char    temp_str[128];
     int     prio;
 
     xdev_init();
@@ -480,10 +497,14 @@ int module_init (void)
     LW_SPIN_INIT(&xinput_sl);
     xinput_hotplug = TRUE; /* need open once first */
 
+    if (getenv_r("XINPUT_QSIZE", temp_str, sizeof(temp_str)) == 0) {
+        xinput_mqsize = atoi(temp_str);
+    }
+
     threadattr = API_ThreadAttrGetDefault();
 
-    if (getenv_r("XINPUT_PRIO", prio_str, sizeof(prio_str)) == 0) {
-        prio = atoi(prio_str);
+    if (getenv_r("XINPUT_PRIO", temp_str, sizeof(temp_str)) == 0) {
+        prio = atoi(temp_str);
         threadattr.THREADATTR_ucPriority = (uint8_t)prio;
     }
 
