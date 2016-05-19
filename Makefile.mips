@@ -1540,6 +1540,14 @@ $(VPMPDM_S_TARGET): $(OBJS_VPMPDM)
 		$(LD) $(CPUFLAGS) -fPIC -mabicalls -shared -o $(VPMPDM_S_TARGET) $(OBJS_VPMPDM) -lgcc
 
 #*********************************************************************************************************
+# strip libvpmpdm.so
+#*********************************************************************************************************
+$(VPMPDM_S_STRIP_TARGET): $(VPMPDM_S_TARGET)
+		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
+		@rm -f $@
+		$(STRIP) $(VPMPDM_S_TARGET) -o $(VPMPDM_S_STRIP_TARGET)
+		
+#*********************************************************************************************************
 # compile -mlong-calls code
 #*********************************************************************************************************
 $(OBJPATH)/SylixOS/xinput/xdev.o: ./SylixOS/xinput/xdev.c
