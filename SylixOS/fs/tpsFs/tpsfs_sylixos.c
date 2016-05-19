@@ -1376,12 +1376,17 @@ static INT  __tpsFsFormat (PLW_FD_ENTRY  pfdentry, LONG  lArg)
                              lArg);                                     /*  底层格式化                  */
     if (iErr < 0) {
         if (__blockIoDevIsLogic(ptpsvol->TPSVOL_iDrv)) {
-
-            iErr = tpsFsFormat(&ptpsvol->TPSVOL_dev,
-                               4096, 4 * 4094 * 4096);                  /*  此磁盘为逻辑磁盘不需要分区表*/
+            iErr = tpsFsFormat(&ptpsvol->TPSVOL_dev, TPS_MIN_BLK_SIZE); /*  此磁盘为逻辑磁盘不需要分区表*/
+        
         } else {
             iErr = ENXIO;
         }
+    }
+    
+    if (iErr) {                                                         /*  格式化失败                  */
+        __TPS_FILE_UNLOCK(ptpsfile);
+        _ErrorHandle(iErr);
+        return  (PX_ERROR);
     }
 
     pblkd = __blockIoDevGet(ptpsvol->TPSVOL_iDrv);

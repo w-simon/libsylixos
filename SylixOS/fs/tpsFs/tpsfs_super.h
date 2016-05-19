@@ -51,7 +51,7 @@
   super block 常量定义
 *********************************************************************************************************/
 
-#define TPS_MIN_LOG_SIZE        (1 * 1024 * 1024)                       /* 最小日志大小                 */
+#define TPS_MIN_LOG_SIZE        (512 * 1024)                            /* 最小日志大小                 */
 #define TPS_SUPER_BLOCK_SECTOR  0                                       /* 超级快扇区号                 */
 #define TPS_SUPER_BLOCK_NUM     0                                       /* 超级块号                     */
 #define TPS_SPACE_MNG_INUM      1                                       /* 空间管理inode号              */
@@ -124,7 +124,7 @@ errno_t tpsFsMount(PTPS_DEV pdev, UINT uiFlags, PTPS_SUPER_BLOCK *ppsb);
                                                                         /* 卸载tpsfs文件系统            */
 errno_t tpsFsUnmount(PTPS_SUPER_BLOCK pSB);
                                                                         /* 格式化tpsfs文件系统          */
-errno_t tpsFsFormat(PTPS_DEV pdev, UINT uiBlkSize, UINT64 uiLogSize);
+errno_t tpsFsFormat(PTPS_DEV pdev, UINT uiBlkSize);
 
 #ifdef __cplusplus 
 }

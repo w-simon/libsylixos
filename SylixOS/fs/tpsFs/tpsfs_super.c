@@ -286,45 +286,49 @@ errno_t  tpsFsUnmount (PTPS_SUPER_BLOCK psb)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-errno_t  tpsFsFormat (PTPS_DEV pdev, UINT uiBlkSize, UINT64 uiLogSize)
+errno_t  tpsFsFormat (PTPS_DEV pdev, UINT uiBlkSize)
 {
-    PTPS_SUPER_BLOCK    psb             = LW_NULL;
-    PUCHAR              pucSectorBuf    = LW_NULL;
-    UINT                uiSectorSize    = 0;
-    UINT64              uiTotalBlkCnt   = 0;
-    UINT                uiSctPerBlk     = 0;
-    UINT64              uiLogBlkCnt     = 0;
-    INT                 iMode           = 0;
-    errno_t             iErr            = ERROR_NONE;
+    PTPS_SUPER_BLOCK    psb          = LW_NULL;
+    PUCHAR              pucSectorBuf = LW_NULL;
+    UINT                uiSectorSize;
+    UINT64              uiTotalBlkCnt;
+    UINT                uiSctPerBlk;
+    UINT64              uiLogBlkCnt;
+    UINT64              uiLogSize;
+    INT                 iMode = 0;
+    errno_t             iErr  = ERROR_NONE;
 
-    /*
-     *  参数有效性检查
-     */
-    if (uiLogSize < TPS_MIN_LOG_SIZE) {
-        uiLogSize = TPS_MIN_LOG_SIZE;
-    }
-    uiLogBlkCnt = uiLogSize / uiBlkSize;
-
+    
     if ((LW_NULL == pdev) || (LW_NULL == pdev->DEV_WriteSector)) {
         return  (EINVAL);
     }
-
+    
     uiSectorSize = pdev->DEV_SectorSize(pdev);
     if ((uiSectorSize <= 0) || (uiSectorSize & (uiSectorSize - 1))) {
         return  (EINVAL);
     }
-
-    if ((uiBlkSize == 0) || ((uiBlkSize % uiSectorSize) != 0) ||
-        (uiLogSize == 0) || ((uiLogSize % uiBlkSize)    != 0) ||
+    
+    if ((uiBlkSize == 0) || (uiBlkSize % uiSectorSize) ||
         (uiBlkSize < TPS_MIN_BLK_SIZE)) {
         return  (EINVAL);
     }
-    
+
+    /*
+     * 磁盘最小为 4MB
+     */
     uiSctPerBlk   = uiBlkSize / uiSectorSize;
     uiTotalBlkCnt = pdev->DEV_SectorCnt(pdev) / uiSctPerBlk;
+    if (uiTotalBlkCnt < 1024) {
+        return  (ENOSPC);
+    }
     
-    if ((uiLogBlkCnt <= 0) || (uiLogBlkCnt >= (uiTotalBlkCnt / 10))) {
-        return  (EINVAL);
+    /*
+     * logsize 为磁盘的 1/16
+     */
+    uiLogBlkCnt = uiTotalBlkCnt >> 4;
+    uiLogSize   = uiLogBlkCnt * uiBlkSize;
+    if (uiLogSize < TPS_MIN_LOG_SIZE) {
+        uiLogSize = TPS_MIN_LOG_SIZE;
     }
     
     /*
