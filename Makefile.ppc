@@ -36,11 +36,12 @@ $(call check_defined, DEBUG_LEVEL, debug level(debug or release))
 #*********************************************************************************************************
 # toolchain select
 #*********************************************************************************************************
-CC  = $(TOOLCHAIN_PREFIX)gcc
-CXX = $(TOOLCHAIN_PREFIX)g++
-AS  = $(TOOLCHAIN_PREFIX)gcc
-AR  = $(TOOLCHAIN_PREFIX)ar
-LD  = $(TOOLCHAIN_PREFIX)g++
+CC    = $(TOOLCHAIN_PREFIX)gcc
+CXX   = $(TOOLCHAIN_PREFIX)g++
+AS    = $(TOOLCHAIN_PREFIX)gcc
+AR    = $(TOOLCHAIN_PREFIX)ar
+LD    = $(TOOLCHAIN_PREFIX)g++
+STRIP = $(TOOLCHAIN_PREFIX)strip
 
 #*********************************************************************************************************
 # build with lite mode (SylixOS Lite)
@@ -1272,18 +1273,21 @@ DSOH_TARGET = $(OUTPATH)/libdsohandle.a
 #*********************************************************************************************************
 # libvpmpdm target
 #*********************************************************************************************************
-VPMPDM_A_TARGET = $(OUTPATH)/libvpmpdm.a
-VPMPDM_S_TARGET = $(OUTPATH)/libvpmpdm.so
+VPMPDM_A_TARGET       = $(OUTPATH)/libvpmpdm.a
+VPMPDM_S_TARGET       = $(OUTPATH)/libvpmpdm.so
+VPMPDM_S_STRIP_TARGET = $(OUTPATH)/strip/libvpmpdm.so
 
 #*********************************************************************************************************
 # libxinput target
 #*********************************************************************************************************
-XINPUT_TARGET = $(OUTPATH)/xinput.ko
+XINPUT_TARGET       = $(OUTPATH)/xinput.ko
+XINPUT_STRIP_TARGET = $(OUTPATH)/strip/xinput.ko
 
 #*********************************************************************************************************
 # libxsiipc target
 #*********************************************************************************************************
-XSIIPC_TARGET = $(OUTPATH)/xsiipc.ko
+XSIIPC_TARGET       = $(OUTPATH)/xsiipc.ko
+XSIIPC_STRIP_TARGET = $(OUTPATH)/strip/xsiipc.ko
 
 #*********************************************************************************************************
 # symbol target
@@ -1395,12 +1399,12 @@ COMPILE_PIC.cxx = $(COMPILE.cxx) -fPIC
 #*********************************************************************************************************
 ifeq ($(BUILD_PROCESS_SUP_LIB), 1)
 ifeq ($(BUILD_KERNEL_MODULE), 1)
-all: $(TARGET) $(DSOH_TARGET) $(VPMPDM_A_TARGET) $(VPMPDM_S_TARGET) $(XINPUT_TARGET) $(XSIIPC_TARGET)
+all: $(TARGET) $(DSOH_TARGET) $(VPMPDM_A_TARGET) $(VPMPDM_S_TARGET) $(XINPUT_TARGET) $(XSIIPC_TARGET) $(VPMPDM_S_STRIP_TARGET) $(XINPUT_STRIP_TARGET) $(XSIIPC_STRIP_TARGET)
 		@echo create "$(TARGET) $(DSOH_TARGET) $(VPMPDM_A_TARGET) $(VPMPDM_S_TARGET)" \
-		"$(XINPUT_TARGET) $(XSIIPC_TARGET)" success.
+		"$(XINPUT_TARGET) $(XSIIPC_TARGET) $(VPMPDM_S_STRIP_TARGET) $(XINPUT_STRIP_TARGET) $(XSIIPC_STRIP_TARGET)" success.
 else
-all: $(TARGET) $(DSOH_TARGET) $(VPMPDM_A_TARGET) $(VPMPDM_S_TARGET)
-		@echo create "$(TARGET) $(DSOH_TARGET) $(VPMPDM_A_TARGET) $(VPMPDM_S_TARGET)" success.
+all: $(TARGET) $(DSOH_TARGET) $(VPMPDM_A_TARGET) $(VPMPDM_S_TARGET) $(VPMPDM_S_STRIP_TARGET)
+		@echo create "$(TARGET) $(DSOH_TARGET) $(VPMPDM_A_TARGET) $(VPMPDM_S_TARGET) $(VPMPDM_S_STRIP_TARGET)" success.
 endif
 else
 all: $(TARGET)
@@ -1539,6 +1543,13 @@ $(VPMPDM_A_TARGET): $(OBJS_VPMPDM)
 #*********************************************************************************************************
 $(VPMPDM_S_TARGET): $(OBJS_VPMPDM)
 		$(LD) $(CPUFLAGS) -fPIC -shared -o $(VPMPDM_S_TARGET) $(OBJS_VPMPDM) -lgcc
+#*********************************************************************************************************
+# strip libvpmpdm.so
+#*********************************************************************************************************
+$(VPMPDM_S_STRIP_TARGET): $(VPMPDM_S_TARGET)
+		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
+		@rm -f $@
+		$(STRIP) $(VPMPDM_S_TARGET) -o $(VPMPDM_S_STRIP_TARGET)
 
 #*********************************************************************************************************
 # link xinput.ko object files
@@ -1547,11 +1558,27 @@ $(XINPUT_TARGET): $(OBJS_XINPUT)
 		$(LD) $(CPUFLAGS) -nostdlib -r -o $(XINPUT_TARGET) $(OBJS_XINPUT) -lm -lgcc
 
 #*********************************************************************************************************
+# strip xinput.ko
+#*********************************************************************************************************
+$(XINPUT_STRIP_TARGET): $(XINPUT_TARGET)
+		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
+		@rm -f $@
+		$(STRIP) --strip-unneeded $(XINPUT_TARGET) -o $(XINPUT_STRIP_TARGET)
+		
+#*********************************************************************************************************
 # link xsiipc.ko object files
 #*********************************************************************************************************
 $(XSIIPC_TARGET): $(OBJS_XSIIPC)
 		$(LD) $(CPUFLAGS) -nostdlib -r -o $(XSIIPC_TARGET) $(OBJS_XSIIPC) -lm -lgcc
 
+#*********************************************************************************************************
+# strip xsiipc.ko
+#*********************************************************************************************************
+$(XSIIPC_STRIP_TARGET): $(XSIIPC_TARGET)
+		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
+		@rm -f $@
+		$(STRIP) --strip-unneeded $(XSIIPC_TARGET) -o $(XSIIPC_STRIP_TARGET)
+		
 #*********************************************************************************************************
 # clean
 #*********************************************************************************************************
@@ -1568,6 +1595,9 @@ clean:
 		-rm -rf $(VPMPDM_S_TARGET)
 		-rm -rf $(XINPUT_TARGET)
 		-rm -rf $(XSIIPC_TARGET)
+		-rm -rf $(VPMPDM_S_STRIP_TARGET)
+		-rm -rf $(XINPUT_STRIP_TARGET)
+		-rm -rf $(XSIIPC_STRIP_TARGET)
 		-rm -rf $(SYMBOL_TARGET_C) $(SYMBOL_TARGET_H)
 		-rm -rf $(OBJPATH)
 		-rm -rf $(DEPPATH)
