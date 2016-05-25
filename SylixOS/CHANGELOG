@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2016-05-25: han.hui
+    VMM 使用新型内存区描述表的方式进行初始化, 不再兼容旧式内存布局初始化.
+
     2016-05-11: han.hui
     加入 PowerPC E500 支持.
 
@@ -32,6 +35,9 @@ HISTORY
     加入 TPSFS 文件系统.
 
 ++ Bugfixes:
+
+    2016-05-24: han.hui
+    CPU 利用率接口改为千分率精度.
 
     2016-05-01: han.hui
     TLB 管理更加精细化.

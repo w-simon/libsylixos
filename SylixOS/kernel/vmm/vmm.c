@@ -39,6 +39,7 @@
 2013.07.20  SMP 情况下 MMU 初始化加入主从核分离的初始化函数.
 2014.09.18  加入 API_VmmIoRemapEx() 可指定内存属性.
 2015.05.14  API_VmmLibSecondaryInit() 不加 VMM 锁.
+2016.05.25  API_VmmLibPrimaryInit() 使用全新的物理内存虚拟内存分区管理方式初始化.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #define  __VMM_MAIN_FILE
@@ -100,9 +101,9 @@ LW_MMU_OP  *API_VmmGetLibBlock (VOID)
 }
 /*********************************************************************************************************
 ** 函数名称: API_VmmLibPrimaryInit
-** 功能描述: 初始化 vmm 库 (注意: LW_VMM_ZONE_DESC 结构表内的元素数一定要与 LW_CFG_VMM_ZONE_NUM 一致)
-** 输　入  : vmzone        物理内存区
-**           mmugdesc      全局映射关系描述表
+** 功能描述: 初始化 vmm 库
+** 输　入  : pphydesc      物理内存区描述表
+**           pvirdes       虚拟内存区描述表
 **           pcMachineName 正在运行的机器名称
 ** 输　出  : ERROR CODE
 ** 全局变量: 
@@ -111,27 +112,40 @@ LW_MMU_OP  *API_VmmGetLibBlock (VOID)
                                            API 函数
 *********************************************************************************************************/
 LW_API  
-ULONG  API_VmmLibPrimaryInit (LW_VMM_ZONE_DESC       vmzone[],
-                              LW_MMU_GLOBAL_DESC     mmugdesc[],
-                              CPCHAR                 pcMachineName)
+ULONG  API_VmmLibPrimaryInit (LW_MMU_PHYSICAL_DESC  pphydesc[], 
+                              LW_MMU_VIRTUAL_DESC   pvirdes[],
+                              CPCHAR                pcMachineName)
 {
-    static BOOL                 bIsInit  = LW_FALSE;
-           PLW_MMU_VIRTUAL_DESC pvirdesc = __vmmVirtualDesc();
-           INT                  i;
-           ULONG                ulError;
-           ULONG                ulPageNum = 0;
+    static BOOL     bIsInit = LW_FALSE;
     
+           INT      i;
+           ULONG    ulZone;
+           ULONG    ulError;
+           ULONG    ulPageNum = 0;
+           
     if (bIsInit) {
         return  (ERROR_NONE);
     }
 
-    if ((vmzone == LW_NULL) || (mmugdesc == LW_NULL)) {
+    if (!pphydesc || !pvirdes || !pcMachineName) {
         _ErrorHandle(EINVAL);
         return  (EINVAL);
     }
     
-    for (i = 0; i < LW_CFG_VMM_ZONE_NUM; i++) {
-        ulPageNum += (ULONG)(vmzone[i].ZONED_stSize >> LW_CFG_VMM_PAGE_SHIFT);
+    for (i = 0; ; i++) {                                                /*  统计需要管理的物理界面数量  */
+        if (pphydesc[i].PHYD_stSize == 0) {
+            break;
+        }
+        if ((pphydesc[i].PHYD_uiType != LW_PHYSICAL_MEM_DMA) &&
+            (pphydesc[i].PHYD_uiType != LW_PHYSICAL_MEM_APP)) {
+            continue;                                                   /*  只计算 DMA 与 APP 区        */
+        }
+        ulPageNum += (ULONG)(pphydesc[i].PHYD_stSize >> LW_CFG_VMM_PAGE_SHIFT);
+    }
+    
+    if (!ulPageNum) {
+        _ErrorHandle(EINVAL);
+        return  (EINVAL);
     }
     
     ulError = __pageCbInit(ulPageNum);                                  /*  初始化物理页面控制块池      */
@@ -140,35 +154,75 @@ ULONG  API_VmmLibPrimaryInit (LW_VMM_ZONE_DESC       vmzone[],
         return  (ulError);
     }
     
-    for (i = 0; i < LW_CFG_VMM_ZONE_NUM; i++) {
-        ulError = __vmmPhysicalCreate((ULONG)i, vmzone[i].ZONED_ulAddr, 
-                                                vmzone[i].ZONED_stSize,
-                                                vmzone[i].ZONED_uiAttr);/*  初始化物理 zone             */
-        if (ulError) {
-            _ErrorHandle(ulError);
-            return  (ulError);
+    ulError = __vmmVirtualCreate(pvirdes);                              /*  初始化虚拟空间              */
+    if (ulError) {
+        _ErrorHandle(ulError);
+        return  (ulError);
+    }
+    
+    ulError = __areaVirtualSpaceInit(pvirdes);                          /*  初始化反查表初始化          */
+    if (ulError) {
+        _ErrorHandle(ulError);
+        return  (ulError);
+    }
+    
+    ulZone  = 0;
+    ulError = ERROR_NONE;
+    
+    for (i = 0; ; i++) {
+        if (pphydesc[i].PHYD_stSize == 0) {
+            break;
         }
         
-        ulError = __areaPhysicalSpaceInit((ULONG)i, vmzone[i].ZONED_ulAddr, 
-                                                    vmzone[i].ZONED_stSize);
-        if (ulError) {
-            _ErrorHandle(ulError);
-            return  (ulError);
+        switch (pphydesc[i].PHYD_uiType) {                              /*  初始化 zone                 */
+        
+        case LW_PHYSICAL_MEM_DMA:
+            if (ulZone < LW_CFG_VMM_ZONE_NUM) {
+                ulError = __vmmPhysicalCreate(ulZone, 
+                                              pphydesc[i].PHYD_ulPhyAddr, 
+                                              pphydesc[i].PHYD_stSize,
+                                              LW_ZONE_ATTR_DMA);        /*  初始化物理 zone             */
+                if (ulError) {
+                    _ErrorHandle(ulError);
+                    return  (ulError);
+                }
+                
+                ulError = __areaPhysicalSpaceInit(ulZone, 
+                                                  pphydesc[i].PHYD_ulPhyAddr, 
+                                                  pphydesc[i].PHYD_stSize);
+                if (ulError) {
+                    _ErrorHandle(ulError);
+                    return  (ulError);
+                }
+                ulZone++;
+            }
+            break;
+            
+        case LW_PHYSICAL_MEM_APP:
+            if (ulZone < LW_CFG_VMM_ZONE_NUM) {
+                ulError = __vmmPhysicalCreate(ulZone, 
+                                              pphydesc[i].PHYD_ulPhyAddr, 
+                                              pphydesc[i].PHYD_stSize,
+                                              LW_ZONE_ATTR_NONE);       /*  初始化物理 zone             */
+                if (ulError) {
+                    _ErrorHandle(ulError);
+                    return  (ulError);
+                }
+                
+                ulError = __areaPhysicalSpaceInit(ulZone, 
+                                                  pphydesc[i].PHYD_ulPhyAddr, 
+                                                  pphydesc[i].PHYD_stSize);
+                if (ulError) {
+                    _ErrorHandle(ulError);
+                    return  (ulError);
+                }
+                ulZone++;
+            }
+            break;
+            
+        default:
+            break;
         }
-    }
-    
-    ulError = __vmmVirtualCreate(pvirdesc->ulVirtualStart, 
-                                 pvirdesc->stSize);                     /*  初始化逻辑空间              */
-    if (ulError) {
-        _ErrorHandle(ulError);
-        return  (ulError);
-    }
-    
-    ulError = __areaVirtualSpaceInit(pvirdesc->ulVirtualStart, 
-                                     pvirdesc->stSize);
-    if (ulError) {
-        _ErrorHandle(ulError);
-        return  (ulError);
     }
     
     _G_ulVmmLock = API_SemaphoreMCreate("vmm_lock", LW_PRIO_DEF_CEILING, 
@@ -183,7 +237,7 @@ ULONG  API_VmmLibPrimaryInit (LW_VMM_ZONE_DESC       vmzone[],
     
     __vmmMapInit();                                                     /*  初始化映射管理库            */
     
-    ulError = __vmmLibPrimaryInit(mmugdesc, pcMachineName);             /*  初始化底层 MMU              */
+    ulError = __vmmLibPrimaryInit(pphydesc, pcMachineName);             /*  初始化底层 MMU              */
     if (ulError) {
         _ErrorHandle(ulError);
         return  (ulError);
@@ -567,141 +621,6 @@ VOID  API_VmmDmaFree (PVOID  pvDmaMem)
                       pvDmaMem, LW_NULL);
 }
 /*********************************************************************************************************
-** 函数名称: API_VmmIoRemapEx
-** 功能描述: 将物理 IO 空间指定内存映射到逻辑空间. (用户可指定 CACHE 与否)
-** 输　入  : pvPhysicalAddr     物理内存地址
-**           stSize             需要映射的内存大小
-**           ulFlags            内存属性
-** 输　出  : 映射到的逻辑内存地址
-** 全局变量: 
-** 调用模块: 
-                                           API 函数
-*********************************************************************************************************/
-LW_API  
-PVOID  API_VmmIoRemapEx (PVOID  pvPhysicalAddr, 
-                         size_t stSize,
-                         ULONG  ulFlags)
-{
-    REGISTER ULONG          ulPageNum = (ULONG) (stSize >> LW_CFG_VMM_PAGE_SHIFT);
-    REGISTER size_t         stExcess  = (size_t)(stSize & ~LW_CFG_VMM_PAGE_MASK);
-
-    REGISTER PLW_VMM_PAGE   pvmpageVirtual;
-             ULONG          ulError;
-    
-    if (stExcess) {
-        ulPageNum++;                                                    /*  确定分页数量                */
-    }
-
-    if (ulPageNum < 1) {
-        _ErrorHandle(EINVAL);
-        return  (LW_NULL);
-    }
-    
-    __VMM_LOCK();
-    pvmpageVirtual = __vmmVirtualPageAlloc(ulPageNum);                  /*  分配连续虚拟页面            */
-    if (pvmpageVirtual == LW_NULL) {
-        __VMM_UNLOCK();
-        _ErrorHandle(ERROR_VMM_VIRTUAL_PAGE);
-        return  (LW_NULL);
-    }
-    
-    ulError = __vmmLibPageMap((addr_t)pvPhysicalAddr,                   /*  不使用 CACHE                */
-                              pvmpageVirtual->PAGE_ulPageAddr,
-                              ulPageNum, 
-                              ulFlags);                                 /*  映射为连续虚拟地址          */
-    if (ulError) {                                                      /*  映射错误                    */
-        __vmmVirtualPageFree(pvmpageVirtual);                           /*  释放虚拟地址空间            */
-        __VMM_UNLOCK();
-        _ErrorHandle(ulError);
-        return  (LW_NULL);
-    }
-    
-    pvmpageVirtual->PAGE_ulFlags = ulFlags;
-    
-    __areaVirtualInsertPage(pvmpageVirtual->PAGE_ulPageAddr, 
-                            pvmpageVirtual);                            /*  插入逻辑空间反查表          */
-    __VMM_UNLOCK();
-    
-    MONITOR_EVT_LONG3(MONITOR_EVENT_ID_VMM, MONITOR_EVENT_VMM_IOREMAP,
-                      pvmpageVirtual->PAGE_ulPageAddr, pvPhysicalAddr, stSize, LW_NULL);
-    
-    return  ((PVOID)pvmpageVirtual->PAGE_ulPageAddr);
-}
-/*********************************************************************************************************
-** 函数名称: API_VmmIoRemap
-** 功能描述: 将物理 IO 空间指定内存映射到逻辑空间. (非 CACHE)
-** 输　入  : pvPhysicalAddr     物理内存地址
-**           stSize             需要映射的内存大小
-** 输　出  : 映射到的逻辑内存地址
-** 全局变量: 
-** 调用模块: 
-                                           API 函数
-*********************************************************************************************************/
-LW_API  
-PVOID  API_VmmIoRemap (PVOID  pvPhysicalAddr, 
-                       size_t stSize)
-{
-    return  (API_VmmIoRemapEx(pvPhysicalAddr, stSize, LW_VMM_FLAG_DMA));
-}
-/*********************************************************************************************************
-** 函数名称: API_VmmIoUnmap
-** 功能描述: 释放 ioremap 占用的逻辑空间
-** 输　入  : pvVirtualMem    虚拟地址
-** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
-                                           API 函数
-*********************************************************************************************************/
-LW_API  
-VOID  API_VmmIoUnmap (PVOID  pvVirtualAddr)
-{
-    REGISTER PLW_VMM_PAGE   pvmpageVirtual;
-             addr_t         ulAddr = (addr_t)pvVirtualAddr;
-    
-    __VMM_LOCK();
-    pvmpageVirtual = __areaVirtualSearchPage(ulAddr);
-    if (pvmpageVirtual == LW_NULL) {
-        __VMM_UNLOCK();
-        _ErrorHandle(ERROR_VMM_VIRTUAL_PAGE);                           /*  无法反向查询虚拟页面控制块  */
-        return;
-    }
-    
-#if LW_CFG_CACHE_EN > 0
-    API_CacheClear(DATA_CACHE, (PVOID)pvmpageVirtual->PAGE_ulPageAddr,
-                   (size_t)(pvmpageVirtual->PAGE_ulCount << LW_CFG_VMM_PAGE_SHIFT));
-#endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
-    
-    __vmmLibPageMap(pvmpageVirtual->PAGE_ulPageAddr,
-                    pvmpageVirtual->PAGE_ulPageAddr,
-                    pvmpageVirtual->PAGE_ulCount, 
-                    LW_VMM_FLAG_FAIL);                                  /*  不允许访问                  */
-    
-    __areaVirtualUnlinkPage(pvmpageVirtual->PAGE_ulPageAddr,
-                            pvmpageVirtual);
-    
-    __vmmVirtualPageFree(pvmpageVirtual);                               /*  删除虚拟页面                */
-    __VMM_UNLOCK();
-    
-    MONITOR_EVT_LONG1(MONITOR_EVENT_ID_VMM, MONITOR_EVENT_VMM_IOUNMAP,
-                      pvVirtualAddr, LW_NULL);
-}
-/*********************************************************************************************************
-** 函数名称: API_VmmIoRemapNocache
-** 功能描述: 将物理 IO 空间指定内存映射到逻辑空间. (非 CACHE)
-** 输　入  : pvPhysicalAddr     物理内存地址
-**           ulSize             需要映射的内存大小
-** 输　出  : 映射到的逻辑内存地址
-** 全局变量: 
-** 调用模块: 
-                                           API 函数
-*********************************************************************************************************/
-LW_API  
-PVOID  API_VmmIoRemapNocache (PVOID  pvPhysicalAddr, 
-                              size_t stSize)
-{
-    return  (API_VmmIoRemapEx(pvPhysicalAddr, stSize, LW_VMM_FLAG_DMA));
-}
-/*********************************************************************************************************
 ** 函数名称: API_VmmMap
 ** 功能描述: 将指定物理空间映射到指定的逻辑空间
 ** 输　入  : pvVirtualAddr      需要映射的虚拟地址
@@ -937,20 +856,7 @@ ULONG  API_VmmVirtualStatus (addr_t   *pulVirtualAddr,
                              size_t   *pstSize,
                              ULONG    *pulFreePage)
 {
-    REGISTER PLW_MMU_CONTEXT  pmmuctx = __vmmGetCurCtx();
-    
-    __VMM_LOCK();
-    if (pulVirtualAddr) {
-        *pulVirtualAddr = pmmuctx->MMUCTX_vmzoneVirtual.ZONE_ulAddr;
-    }
-    if (pstSize) {
-        *pstSize = pmmuctx->MMUCTX_vmzoneVirtual.ZONE_stSize;
-    }
-    if (pulFreePage) {
-        *pulFreePage = pmmuctx->MMUCTX_vmzoneVirtual.ZONE_ulFreePage;
-    }
-    __VMM_UNLOCK();
-    
+    _ErrorHandle(ENOSYS);
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -967,6 +873,7 @@ int getpagesize (void)
 {
     return  (LW_CFG_VMM_PAGE_SIZE);
 }
+
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 /*********************************************************************************************************
   END

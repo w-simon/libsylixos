@@ -66,7 +66,7 @@
 /*********************************************************************************************************
   任务私有变量切换
 *********************************************************************************************************/
-#if (LW_CFG_THREAD_PRIVATE_VARS_EN > 0) && (LW_CFG_MAX_THREAD_GLB_VARS > 0)
+#if (LW_CFG_SMP_EN == 0) && (LW_CFG_THREAD_PRIVATE_VARS_EN > 0) && (LW_CFG_MAX_THREAD_GLB_VARS > 0)
 #define __LW_TASK_SWITCH_VAR(ptcbCur, ptcbHigh)     _ThreadVarSwith(ptcbCur, ptcbHigh)
 #define __LW_TASK_SAVE_VAR(ptcbCur)                 _ThreadVarSave(ptcbCur)
 #else

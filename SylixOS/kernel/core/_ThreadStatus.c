@@ -197,8 +197,8 @@ ULONG  _ThreadStatusChange (PLW_CLASS_TCB  ptcb, UINT  uiStatusReq)
             goto    __change2;
         
         } else {                                                        /*  目标任务正在执行            */
-            _SmpUpdateIpi(LW_CPU_GET(ptcb->TCB_ulCPUId));               /*  发送核间中断通知改变状态    */
             _ThreadWaitStatus(ptcbCur, ptcb, uiStatusReq);              /*  设置等待对方完成状态        */
+            _SmpUpdateIpi(LW_CPU_GET(ptcb->TCB_ulCPUId));               /*  发送核间中断通知改变状态    */
         }
         
         KN_INT_ENABLE(iregInterLevel);                                  /*  打开中断                    */

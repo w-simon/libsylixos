@@ -380,7 +380,7 @@ static ssize_t  __procFsKernelObjectsRead (PLW_PROCFS_NODE  p_pfsn,
                               "%-12s%-9d%-9d%d\n",
                               "thread", LW_CFG_MAX_THREADS, uiUsed, uiMaxUsed);
         
-#if (LW_CFG_THREAD_PRIVATE_VARS_EN > 0) && (LW_CFG_MAX_THREAD_GLB_VARS > 0)
+#if (LW_CFG_SMP_EN == 0) && (LW_CFG_THREAD_PRIVATE_VARS_EN > 0) && (LW_CFG_MAX_THREAD_GLB_VARS > 0)
         uiUsed     = _K_resrcThreadVar.RESRC_uiUsed;
         uiMaxUsed  = _K_resrcThreadVar.RESRC_uiMaxUsed;
         stRealSize = bnprintf(pcFileBuffer, __PROCFS_BUFFER_SIZE_OBJECTS, stRealSize,

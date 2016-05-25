@@ -356,13 +356,13 @@ LW_API VOID             API_ThreadCPUUsageOff(VOID);
 LW_API BOOL             API_ThreadCPUUsageIsOn(VOID);
 
 LW_API ULONG            API_ThreadGetCPUUsage(LW_OBJECT_HANDLE  ulId, 
-                                              UINT8            *pucThreadUsage,
-                                              UINT8            *pucCPUUsage,
-                                              UINT8            *pucKernelUsage);
+                                              UINT             *puiThreadUsage,
+                                              UINT             *puiCPUUsage,
+                                              UINT             *puiKernelUsage);
                                                                         /*  获得 CPU 利用率             */
 LW_API INT              API_ThreadGetCPUUsageAll(LW_OBJECT_HANDLE  ulId[], 
-                                                 UINT8             ucThreadUsage[],
-                                                 UINT8             ucKernelUsage[],
+                                                 UINT              uiThreadUsage[],
+                                                 UINT              uiKernelUsage[],
                                                  INT               iSize);
 #endif
 
@@ -382,7 +382,7 @@ LW_API ULONG            API_ThreadStop(LW_OBJECT_HANDLE  ulId);         /*  线程
 LW_API ULONG            API_ThreadContinue(LW_OBJECT_HANDLE  ulId);     /*  恢复停止的线程              */
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 
-#if (LW_CFG_THREAD_PRIVATE_VARS_EN > 0) && (LW_CFG_MAX_THREAD_GLB_VARS > 0)
+#if (LW_CFG_SMP_EN == 0) && (LW_CFG_THREAD_PRIVATE_VARS_EN > 0) && (LW_CFG_MAX_THREAD_GLB_VARS > 0)
 LW_API ULONG            API_ThreadVarAdd(LW_OBJECT_HANDLE     ulId, 
                                          ULONG               *pulAddr); /*  加入私有变量                */
 

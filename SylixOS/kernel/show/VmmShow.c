@@ -83,6 +83,10 @@ VOID  API_VmmPhysicalShow (VOID)
     
     __VMM_LOCK();
     for (i = 0; i < LW_CFG_VMM_ZONE_NUM; i++) {
+        if (!_G_vmzonePhysical[i].ZONE_stSize) {
+            break;
+        }
+    
         pcDma  = (_G_vmzonePhysical[i].ZONE_uiAttr & LW_ZONE_ATTR_DMA) ? "true" : "false";
         stUsed = (_G_vmzonePhysical[i].ZONE_stSize 
                - (size_t)(_G_vmzonePhysical[i].ZONE_ulFreePage << LW_CFG_VMM_PAGE_SHIFT));
@@ -148,13 +152,28 @@ static VOID  __vmmVirtualPrint (PLW_VMM_PAGE  pvmpage)
 LW_API  
 VOID  API_VmmVirtualShow (VOID)
 {
-    PLW_MMU_VIRTUAL_DESC pvirdesc = __vmmVirtualDesc();
+    INT                     i;
+    PLW_MMU_VIRTUAL_DESC    pvirdescApp;
+    PLW_MMU_VIRTUAL_DESC    pvirdescDev;
     
     printf("vmm virtual area show >>\n");
-    printf("vmm virtual area from : 0x%08lx, size : 0x%08lx\n", 
-                  (addr_t)pvirdesc->ulVirtualStart,
-                  (addr_t)pvirdesc->stSize);
-    printf("vmm virtual area usage as follow :\n");
+    
+    for (i = 0; i < LW_CFG_VMM_VIR_NUM; i++) {
+        pvirdescApp = __vmmVirtualDesc(LW_VIRTUAL_MEM_APP, i);
+        if (pvirdescApp->VIRD_stSize) {
+            printf("vmm virtual program from: 0x%08lx, size: 0x%08zx\n", 
+                   pvirdescApp->VIRD_ulVirAddr,
+                   pvirdescApp->VIRD_stSize);
+        }
+    }
+
+    pvirdescDev = __vmmVirtualDesc(LW_VIRTUAL_MEM_DEV, 0);
+    if (pvirdescDev->VIRD_stSize) {
+        printf("vmm virtual ioremap from: 0x%08lx, size: 0x%08zx\n", 
+                      pvirdescDev->VIRD_ulVirAddr,
+                      pvirdescDev->VIRD_stSize);
+        printf("vmm virtual area usage as follow :\n");
+    }
                   
     printf(_G_cAreaInfoHdr);                                            /*  ¥Ú”°ª∂”≠–≈œ¢                */
     

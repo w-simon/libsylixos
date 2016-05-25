@@ -212,7 +212,7 @@ VOID  _TCBBuild (UINT8                    ucPriority,
     ptcb->TCB_ptcbDeleteWait = LW_NULL;
 #endif                                                                  /*  LW_CFG_THREAD_DEL_EN > 0    */
 
-#if (LW_CFG_THREAD_PRIVATE_VARS_EN > 0) && (LW_CFG_MAX_THREAD_GLB_VARS > 0)
+#if (LW_CFG_SMP_EN == 0) && (LW_CFG_THREAD_PRIVATE_VARS_EN > 0) && (LW_CFG_MAX_THREAD_GLB_VARS > 0)
     ptcb->TCB_plinePrivateVars  = LW_NULL;                              /*  初始化没有私有变量          */
 #endif
     

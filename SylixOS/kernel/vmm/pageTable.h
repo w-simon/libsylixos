@@ -246,8 +246,7 @@ extern LW_OBJECT_HANDLE     _G_ulVmmLock;
 *********************************************************************************************************/
 
 typedef struct __lw_mmu_context {
-    LW_VMM_ZONE              MMUCTX_vmzoneVirtual;                      /*  虚拟地址分页管理            */
-    LW_VMM_AREA              MMUCTX_vmareaVirtualSpace;                 /*  虚拟地址空间                */
+    LW_VMM_AREA              MMUCTX_vmareaVirSpace;                     /*  虚拟地址空间反查表          */
     LW_PGD_TRANSENTRY       *MMUCTX_pgdEntry;                           /*  PGD 表入口地址              */
 } LW_MMU_CONTEXT;
 typedef LW_MMU_CONTEXT      *PLW_MMU_CONTEXT;
@@ -307,8 +306,8 @@ static LW_INLINE VOID  __vmm_pte_free (LW_PTE_TRANSENTRY  *p_pteentry)
 *********************************************************************************************************/
 
 PLW_MMU_CONTEXT         __vmmGetCurCtx(VOID);                           /*  get current mmu context     */
-ULONG                   __vmmLibPrimaryInit(PLW_MMU_GLOBAL_DESC  pmmugdesc,
-                                            CPCHAR               pcMachineName);
+ULONG                   __vmmLibPrimaryInit(LW_MMU_PHYSICAL_DESC  pphydesc[],
+                                            CPCHAR                pcMachineName);
                                                                         /*  init current mmu context    */
 #if LW_CFG_SMP_EN > 0
 ULONG                   __vmmLibSecondaryInit(CPCHAR  pcMachineName);

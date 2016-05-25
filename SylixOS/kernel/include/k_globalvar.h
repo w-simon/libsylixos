@@ -192,7 +192,7 @@ __KERNEL_EXT  LW_CLASS_OBJECT_RESRC   _K_resrcEventSet;                 /*  事件
 /*********************************************************************************************************
   THREAD VAR
 *********************************************************************************************************/
-#if (LW_CFG_THREAD_PRIVATE_VARS_EN > 0) && (LW_CFG_MAX_THREAD_GLB_VARS > 0)
+#if (LW_CFG_SMP_EN == 0) && (LW_CFG_THREAD_PRIVATE_VARS_EN > 0) && (LW_CFG_MAX_THREAD_GLB_VARS > 0)
 __KERNEL_EXT  LW_CLASS_THREADVAR      _K_threavarBuffer[LW_CFG_MAX_THREAD_GLB_VARS];
                                                                         /*  私有变量控制块              */
 __KERNEL_EXT  LW_CLASS_OBJECT_RESRC   _K_resrcThreadVar;                /*  私有变量对象资源管理        */
@@ -205,7 +205,7 @@ __KERNEL_EXT  LW_CLASS_OBJECT_RESRC   _K_resrcTcb;                      /*  TCB 
 /*********************************************************************************************************
   私有化全局变量
 *********************************************************************************************************/
-#if (LW_CFG_THREAD_PRIVATE_VARS_EN > 0) && (LW_CFG_MAX_THREAD_GLB_VARS > 0)
+#if (LW_CFG_SMP_EN == 0) && (LW_CFG_THREAD_PRIVATE_VARS_EN > 0) && (LW_CFG_MAX_THREAD_GLB_VARS > 0)
 __KERNEL_EXT  LW_CLASS_THREADVAR      _K_privatevarBuffer[LW_CFG_MAX_THREAD_GLB_VARS];
 #endif
 /*********************************************************************************************************

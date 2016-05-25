@@ -71,11 +71,11 @@ BOOL  API_ThreadCPUUsageIsOn (VOID)
 }
 /*********************************************************************************************************
 ** 函数名称: API_ThreadGetCPUUsage
-** 功能描述: 获得线程CPU利用率
+** 功能描述: 获得线程CPU利用率 (千分率)
 ** 输　入  : ulId                          要检查的线程ID
-**           pucThreadUsage                返回的指定线程的 CPU 利用率
-**           pucCPUUsage                   CPU总利用率
-**           pucKernelUsage                内核利用的 CPU 利用率
+**           puiThreadUsage                返回的指定线程的 CPU 利用率
+**           puiCPUUsage                   CPU总利用率
+**           puiKernelUsage                内核利用的 CPU 利用率
 ** 输　出  : ERROR
 ** 全局变量: 
 ** 调用模块: 
@@ -85,14 +85,14 @@ BOOL  API_ThreadCPUUsageIsOn (VOID)
 *********************************************************************************************************/
 LW_API  
 ULONG  API_ThreadGetCPUUsage (LW_OBJECT_HANDLE  ulId, 
-                              UINT8            *pucThreadUsage,
-                              UINT8            *pucCPUUsage,
-                              UINT8            *pucKernelUsage)
+                              UINT             *puiThreadUsage,
+                              UINT             *puiCPUUsage,
+                              UINT             *puiKernelUsage)
 {
              INTREG                iregInterLevel;
     REGISTER UINT16                usIndex;
     REGISTER PLW_CLASS_TCB         ptcb;
-    REGISTER UINT8                 ucTemp;
+    REGISTER UINT                  uiTemp;
 	
     usIndex = _ObjectGetIndex(ulId);
     
@@ -130,18 +130,18 @@ ULONG  API_ThreadGetCPUUsage (LW_OBJECT_HANDLE  ulId,
                                                                         /*  避免除 0 错误               */
     _K_ulCPUUsageTicks = (_K_ulCPUUsageTicks == 0) ? 1 : _K_ulCPUUsageTicks; 
     
-    if (pucThreadUsage) {
-        *pucThreadUsage = (UINT8)(((ptcb->TCB_ulCPUUsageTicks) * 100) / _K_ulCPUUsageTicks);
+    if (puiThreadUsage) {
+        *puiThreadUsage = (UINT8)(((ptcb->TCB_ulCPUUsageTicks) * 1000) / _K_ulCPUUsageTicks);
     }
     
-    if (pucCPUUsage) {                                                  /*  空闲线程利用率              */
+    if (puiCPUUsage) {                                                  /*  空闲线程利用率              */
         ptcb = _K_ptcbTCBIdTable[0];
-        ucTemp = (UINT8)(((ptcb->TCB_ulCPUUsageTicks) * 100) / _K_ulCPUUsageTicks);
-        *pucCPUUsage = (UINT8)(100 - ucTemp);
+        uiTemp = (UINT8)(((ptcb->TCB_ulCPUUsageTicks) * 1000) / _K_ulCPUUsageTicks);
+        *puiCPUUsage = (UINT8)(1000 - uiTemp);
     }
     
-    if (pucKernelUsage) {                                               /*  内核执行时间占总时间的利用率*/
-        *pucKernelUsage = (UINT8)(((_K_ulCPUUsageKernelTicks) * 100) / _K_ulCPUUsageTicks);
+    if (puiKernelUsage) {                                               /*  内核执行时间占总时间的利用率*/
+        *puiKernelUsage = (UINT8)(((_K_ulCPUUsageKernelTicks) * 1000) / _K_ulCPUUsageTicks);
     }
     
     __KERNEL_EXIT_IRQ(iregInterLevel);                                  /*  退出内核并打开中断          */
@@ -150,10 +150,10 @@ ULONG  API_ThreadGetCPUUsage (LW_OBJECT_HANDLE  ulId,
 }
 /*********************************************************************************************************
 ** 函数名称: API_ThreadGetCPUUsageAll
-** 功能描述: 获得所有线程CPU利用率
+** 功能描述: 获得所有线程 CPU 利用率 (千分率)
 ** 输　入  : ulId[]                        要检查的线程ID
-**           pucThreadUsage[]              返回的指定线程的 CPU 利用率
-**           pucKernelUsage[]              内核利用的 CPU 利用率
+**           puiThreadUsage[]              返回的指定线程的 CPU 利用率
+**           puiKernelUsage[]              内核利用的 CPU 利用率
 **           iSize                         表格大小
 ** 输　出  : 获得的个数
 ** 全局变量: 
@@ -164,8 +164,8 @@ ULONG  API_ThreadGetCPUUsage (LW_OBJECT_HANDLE  ulId,
 *********************************************************************************************************/
 LW_API  
 INT  API_ThreadGetCPUUsageAll (LW_OBJECT_HANDLE  ulId[], 
-                               UINT8             ucThreadUsage[],
-                               UINT8             ucKernelUsage[],
+                               UINT              uiThreadUsage[],
+                               UINT              uiKernelUsage[],
                                INT               iSize)
 {
     INT              i;
@@ -176,8 +176,8 @@ INT  API_ThreadGetCPUUsageAll (LW_OBJECT_HANDLE  ulId[],
     ULONG            ulCPUUsageTicks;
     ULONG            ulCPUUsageKernelTicks;
     
-    REGISTER UINT    uiThreadUsage;
-    REGISTER UINT    uiThreadUsageKernel;
+    REGISTER UINT    uiUsage;
+    REGISTER UINT    uiUsageKernel;
     
     if (iSize == 0) {
         return  (iIndex);
@@ -198,26 +198,26 @@ INT  API_ThreadGetCPUUsageAll (LW_OBJECT_HANDLE  ulId[],
         /*
          *  计算线程总的利用率, 保留一位小数
          */
-        uiThreadUsage = (UINT)((ulCPUUsageTicks * 1000) / ulCPUAllTicks);
-        if ((uiThreadUsage % 10) >= 5) {
-            uiThreadUsage = (uiThreadUsage / 10) + 1;                   /*  五入                        */
+        uiUsage = (UINT)((ulCPUUsageTicks * 10000) / ulCPUAllTicks);
+        if ((uiUsage % 10) >= 5) {
+            uiUsage = (uiUsage / 10) + 1;                               /*  五入                        */
         } else {
-            uiThreadUsage = (uiThreadUsage / 10);                       /*  四舍                        */
+            uiUsage = (uiUsage / 10);                                   /*  四舍                        */
         }
         
         /*
          *  计算线程内核中的利用率, 保留一位小数
          */
-        uiThreadUsageKernel = (UINT)((ulCPUUsageKernelTicks * 1000) / ulCPUAllTicks);
-        if ((uiThreadUsageKernel % 10) >= 5) {
-            uiThreadUsageKernel = (uiThreadUsageKernel / 10) + 1;       /*  五入                        */
+        uiUsageKernel = (UINT)((ulCPUUsageKernelTicks * 10000) / ulCPUAllTicks);
+        if ((uiUsageKernel % 10) >= 5) {
+            uiUsageKernel = (uiUsageKernel / 10) + 1;                   /*  五入                        */
         } else {
-            uiThreadUsageKernel = (uiThreadUsageKernel / 10);           /*  四舍                        */
+            uiUsageKernel = (uiUsageKernel / 10);                       /*  四舍                        */
         }
         
         ulId[iIndex] = ptcb->TCB_ulId;
-        ucThreadUsage[iIndex] = (UINT8)uiThreadUsage;
-        ucKernelUsage[iIndex] = (UINT8)uiThreadUsageKernel;
+        uiThreadUsage[iIndex] = uiUsage;
+        uiKernelUsage[iIndex] = uiUsageKernel;
         
         iIndex++;
         if (iIndex >= iSize) {

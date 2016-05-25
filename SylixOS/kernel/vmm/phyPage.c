@@ -61,7 +61,7 @@ ULONG  __vmmPhysicalCreate (ULONG  ulZoneIndex, addr_t  ulAddr, size_t  stSize, 
     REGISTER ULONG  ulError;
 
     if (uiAttr & LW_ZONE_ATTR_DMA) {
-        _BugFormat(__vmmLibVirtualOverlap(ulAddr, stSize), LW_FALSE,
+        _BugFormat(__vmmLibVirtualOverlap(ulAddr, stSize), LW_TRUE,
                    "physical zone paddr 0x%08lx size : 0x%08zx overlap with virtual space.\r\n",
                    ulAddr, stSize);
     }
@@ -94,7 +94,10 @@ PLW_VMM_PAGE  __vmmPhysicalPageAlloc (ULONG  ulPageNum, UINT  uiAttr, ULONG  *pu
     
     for (i = 0; i < LW_CFG_VMM_ZONE_NUM; i++) {                         /*  优先选择 uiAttr 相同的 zone */
         pvmzone = &_G_vmzonePhysical[i];
-        if (pvmzone && (pvmzone->ZONE_uiAttr == uiAttr)) {
+        if (!pvmzone->ZONE_stSize) {                                    /*  无效 zone                   */
+            break;
+        }
+        if (pvmzone->ZONE_uiAttr == uiAttr) {
             if (pvmzone->ZONE_ulFreePage >= ulPageNum) {
                 pvmpage = __pageAllocate(pvmzone, ulPageNum, __VMM_PAGE_TYPE_PHYSICAL);
                 if (pvmpage) {
@@ -107,7 +110,10 @@ PLW_VMM_PAGE  __vmmPhysicalPageAlloc (ULONG  ulPageNum, UINT  uiAttr, ULONG  *pu
     
     for (i = 0; i < LW_CFG_VMM_ZONE_NUM; i++) {
         pvmzone = &_G_vmzonePhysical[i];
-        if (pvmzone && ((pvmzone->ZONE_uiAttr & uiAttr) == uiAttr)) {   /*  其次选择拥有 uiAttr 的 zone */
+        if (!pvmzone->ZONE_stSize) {                                    /*  无效 zone                   */
+            break;
+        }
+        if ((pvmzone->ZONE_uiAttr & uiAttr) == uiAttr) {                /*  其次选择拥有 uiAttr 的 zone */
             if (pvmzone->ZONE_ulFreePage >= ulPageNum) {
                 pvmpage = __pageAllocate(pvmzone, ulPageNum, __VMM_PAGE_TYPE_PHYSICAL);
                 if (pvmpage) {
@@ -140,7 +146,11 @@ PLW_VMM_PAGE  __vmmPhysicalPageAllocZone (ULONG  ulZoneIndex, ULONG  ulPageNum, 
     }
         
     pvmzone = &_G_vmzonePhysical[ulZoneIndex];
-    if (pvmzone && ((pvmzone->ZONE_uiAttr & uiAttr) == uiAttr)) {
+    if (!pvmzone->ZONE_stSize) {                                        /*  无效 zone                   */
+        return  (LW_NULL);
+    }
+    
+    if ((pvmzone->ZONE_uiAttr & uiAttr) == uiAttr) {
         if (pvmzone->ZONE_ulFreePage >= ulPageNum) {
             pvmpage = __pageAllocate(pvmzone, ulPageNum, __VMM_PAGE_TYPE_PHYSICAL);
             if (pvmpage) {
@@ -173,7 +183,10 @@ PLW_VMM_PAGE  __vmmPhysicalPageAllocAlign (ULONG   ulPageNum,
     
     for (i = 0; i < LW_CFG_VMM_ZONE_NUM; i++) {
         pvmzone = &_G_vmzonePhysical[i];
-        if (pvmzone && (pvmzone->ZONE_uiAttr == uiAttr)) {              /*  优先选择 uiAttr 相同的 zone */
+        if (!pvmzone->ZONE_stSize) {                                    /*  无效 zone                   */
+            break;
+        }
+        if (pvmzone->ZONE_uiAttr == uiAttr) {                           /*  优先选择 uiAttr 相同的 zone */
             if (pvmzone->ZONE_ulFreePage >= ulPageNum) {
                 pvmpage = __pageAllocateAlign(pvmzone, ulPageNum, stAlign, __VMM_PAGE_TYPE_PHYSICAL);
                 if (pvmpage) {
@@ -186,7 +199,10 @@ PLW_VMM_PAGE  __vmmPhysicalPageAllocAlign (ULONG   ulPageNum,
     
     for (i = 0; i < LW_CFG_VMM_ZONE_NUM; i++) {
         pvmzone = &_G_vmzonePhysical[i];
-        if (pvmzone && ((pvmzone->ZONE_uiAttr & uiAttr) == uiAttr)) {   /*  其次选择拥有 uiAttr 的 zone */
+        if (!pvmzone->ZONE_stSize) {                                    /*  无效 zone                   */
+            break;
+        }
+        if ((pvmzone->ZONE_uiAttr & uiAttr) == uiAttr) {                /*  其次选择拥有 uiAttr 的 zone */
             if (pvmzone->ZONE_ulFreePage >= ulPageNum) {
                 pvmpage = __pageAllocateAlign(pvmzone, ulPageNum, stAlign, __VMM_PAGE_TYPE_PHYSICAL);
                 if (pvmpage) {
@@ -209,10 +225,10 @@ PLW_VMM_PAGE  __vmmPhysicalPageAllocAlign (ULONG   ulPageNum,
 *********************************************************************************************************/
 PLW_VMM_PAGE  __vmmPhysicalPageClone (PLW_VMM_PAGE  pvmpage)
 {
-    PLW_VMM_PAGE            pvmpageNew;
-    PLW_MMU_VIRTUAL_DESC    pvirdesc = __vmmVirtualDesc();
-    ULONG                   ulZoneIndex;
-    ULONG                   ulError;
+    PLW_VMM_PAGE    pvmpageNew;
+    addr_t          ulSwitchAddr = __vmmVirtualSwitch();
+    ULONG           ulZoneIndex;
+    ULONG           ulError;
     
     if ((pvmpage->PAGE_ulCount != 1) ||
         (pvmpage->PAGE_iPageType != __VMM_PAGE_TYPE_PHYSICAL) ||
@@ -228,24 +244,24 @@ PLW_VMM_PAGE  __vmmPhysicalPageClone (PLW_VMM_PAGE  pvmpage)
     }
     
     ulError = __vmmLibPageMap(pvmpageNew->PAGE_ulPageAddr,              /*  使用 CACHE 操作             */
-                              pvirdesc->ulVirtualSwitch, 1,             /*  缓冲区虚拟地址              */
+                              ulSwitchAddr, 1,                          /*  缓冲区虚拟地址              */
                               LW_VMM_FLAG_RDWR);                        /*  映射指定的虚拟地址          */
     if (ulError) {
         __vmmPhysicalPageFree(pvmpageNew);
         return  (LW_NULL);
     }
     
-    KN_COPY_PAGE((PVOID)pvirdesc->ulVirtualSwitch, 
+    KN_COPY_PAGE((PVOID)ulSwitchAddr, 
                  (PVOID)pvmpage->PAGE_ulMapPageAddr);                   /*  拷贝页面内容                */
                
     if (API_CacheAliasProb()) {                                         /*  cache 别名可能              */
         API_CacheClearPage(DATA_CACHE, 
-                           (PVOID)pvirdesc->ulVirtualSwitch,
+                           (PVOID)ulSwitchAddr,
                            (PVOID)pvmpageNew->PAGE_ulPageAddr,
                            LW_CFG_VMM_PAGE_SIZE);                       /*  将数据写入内存并不再命中    */
     }
     
-    __vmmLibSetFlag(pvirdesc->ulVirtualSwitch, 1, LW_VMM_FLAG_FAIL);    /*  VIRTUAL_SWITCH 不允许访问   */
+    __vmmLibSetFlag(ulSwitchAddr, 1, LW_VMM_FLAG_FAIL);                 /*  VIRTUAL_SWITCH 不允许访问   */
     
     return  (pvmpageNew);
 }
@@ -468,11 +484,12 @@ ULONG  __vmmPhysicalGetZone (addr_t  ulAddr)
 
     for (i = 0; i < LW_CFG_VMM_ZONE_NUM; i++) {
         pvmzone = &_G_vmzonePhysical[i];
-        if (pvmzone) {
-            if ((ulAddr >= pvmzone->ZONE_ulAddr) &&
-                (ulAddr <  pvmzone->ZONE_ulAddr + pvmzone->ZONE_stSize)) {
-                return  ((ULONG)i);
-            }
+        if (!pvmzone->ZONE_stSize) {                                    /*  无效 zone                   */
+            break;
+        }
+        if ((ulAddr >= pvmzone->ZONE_ulAddr) &&
+            (ulAddr <  pvmzone->ZONE_ulAddr + pvmzone->ZONE_stSize)) {
+            return  ((ULONG)i);
         }
     }
     
@@ -496,7 +513,10 @@ ULONG  __vmmPhysicalPageGetMinContinue (ULONG  *pulZoneIndex, UINT  uiAttr)
              
     for (i = 0; i < LW_CFG_VMM_ZONE_NUM; i++) {
         pvmzone = &_G_vmzonePhysical[i];
-        if (pvmzone && (pvmzone->ZONE_uiAttr == uiAttr)) {              /*  优先选择 uiAttr 相同的 zone */
+        if (!pvmzone->ZONE_stSize) {                                    /*  无效 zone                   */
+            break;
+        }
+        if (pvmzone->ZONE_uiAttr == uiAttr) {                           /*  优先选择 uiAttr 相同的 zone */
             ulTemp = __pageGetMinContinue(pvmzone);
             if ((ulTemp > 0) && (ulMin > ulTemp)) {
                 ulMin = ulTemp;
@@ -511,7 +531,10 @@ ULONG  __vmmPhysicalPageGetMinContinue (ULONG  *pulZoneIndex, UINT  uiAttr)
     
     for (i = 0; i < LW_CFG_VMM_ZONE_NUM; i++) {
         pvmzone = &_G_vmzonePhysical[i];
-        if (pvmzone && ((pvmzone->ZONE_uiAttr & uiAttr) == uiAttr)) {   /*  其次选择拥有 uiAttr 的 zone */
+        if (!pvmzone->ZONE_stSize) {                                    /*  无效 zone                   */
+            break;
+        }
+        if ((pvmzone->ZONE_uiAttr & uiAttr) == uiAttr) {                /*  其次选择拥有 uiAttr 的 zone */
             ulTemp = __pageGetMinContinue(pvmzone);
             if ((ulTemp > 0) && (ulMin > ulTemp)) {
                 ulMin = ulTemp;

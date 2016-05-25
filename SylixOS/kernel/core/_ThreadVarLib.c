@@ -38,7 +38,7 @@
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-#if (LW_CFG_THREAD_PRIVATE_VARS_EN > 0) && (LW_CFG_MAX_THREAD_GLB_VARS > 0)
+#if (LW_CFG_SMP_EN == 0) && (LW_CFG_THREAD_PRIVATE_VARS_EN > 0) && (LW_CFG_MAX_THREAD_GLB_VARS > 0)
 
 VOID  _ThreadVarDelete (PLW_CLASS_TCB  ptcb)
 {
@@ -140,7 +140,8 @@ VOID  _ThreadVarSave (PLW_CLASS_TCB  ptcbCur)
     }
 }
 
-#endif                                                                  /*  (LW_CFG_THREAD_PRIVATE_VA...*/
+#endif                                                                  /*  LW_CFG_SMP_EN == 0          */
+                                                                        /*  (LW_CFG_THREAD_PRIVATE_VA...*/
                                                                         /*  (LW_CFG_MAX_THREAD_GLB_VA...*/
 /*********************************************************************************************************
   END

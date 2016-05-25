@@ -42,7 +42,7 @@ typedef LW_VMM_AREA     *PLW_VMM_AREA;
 /*********************************************************************************************************
   service
 *********************************************************************************************************/
-ULONG  __areaVirtualSpaceInit(addr_t  ulAddr, size_t  stSize);
+ULONG  __areaVirtualSpaceInit(LW_MMU_VIRTUAL_DESC   pvirdes[]);
 ULONG  __areaPhysicalSpaceInit(ULONG  ulZoneIndex, addr_t  ulAddr, size_t  stSize);
 
 VOID  __areaVirtualSpaceTraversal(VOIDFUNCPTR  pfuncCallback);

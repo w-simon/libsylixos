@@ -38,8 +38,8 @@
   全局变量
 *********************************************************************************************************/
 static const CHAR   _G_cCPUUsageInfoHdr[] = "\n\
-       NAME        TID   PRI  CPU KERN\n\
----------------- ------- --- ---- ----\n";
+       NAME        TID   PRI   CPU   KERN\n\
+---------------- ------- --- ------ ------\n";
 /*********************************************************************************************************
 ** 函数名称: API_CPUUsageShow
 ** 功能描述: 显示所有的线程的的 CPU 占用率信息
@@ -61,9 +61,9 @@ VOID    API_CPUUsageShow (INT  iWaitSec, INT  iTimes)
              
              INT              iThreadNum;
              LW_OBJECT_HANDLE ulId[LW_CFG_MAX_THREADS];
-             UINT8            ucThreadUsage[LW_CFG_MAX_THREADS];
-             UINT8            ucThreadKernel[LW_CFG_MAX_THREADS];
-    
+             UINT             uiThreadUsage[LW_CFG_MAX_THREADS];
+             UINT             uiThreadKernel[LW_CFG_MAX_THREADS];
+             UINT             uiAccuracy;
              ULONG            iOptionNoAbort;
              ULONG            iOption;
     
@@ -97,10 +97,15 @@ VOID    API_CPUUsageShow (INT  iWaitSec, INT  iTimes)
         }
         
         API_ThreadCPUUsageOff();
-        printf("CPU usage show >>\n");
+        
+        uiAccuracy = ((UINT)LW_TICK_HZ * 10)
+                   / ((UINT)iWaitSec * (UINT)LW_TICK_HZ);               /*  计算测量精度                */
+        
+        printf("CPU usage show (measurement accuracy %d.%d%%) >>\n", 
+               uiAccuracy / 10, uiAccuracy % 10);
         printf(_G_cCPUUsageInfoHdr);                                    /*  打印欢迎信息                */
         
-        iThreadNum = API_ThreadGetCPUUsageAll(ulId, ucThreadUsage, ucThreadKernel, LW_CFG_MAX_THREADS);
+        iThreadNum = API_ThreadGetCPUUsageAll(ulId, uiThreadUsage, uiThreadKernel, LW_CFG_MAX_THREADS);
         if (iThreadNum <= 0) {
             continue;
         }
@@ -112,12 +117,14 @@ VOID    API_CPUUsageShow (INT  iWaitSec, INT  iTimes)
             if ((API_ThreadGetName(ulId[i], cName) == ERROR_NONE) &&
                 (API_ThreadGetPriority(ulId[i], &ucPriority) == ERROR_NONE)) {
                 
-                printf("%-16s %7lx %3d %3d%% %3d%%\n", 
+                printf("%-16s %7lx %3d %3d.%d%% %3d.%d%%\n", 
                        cName,                                           /*  线程名                      */
                        ulId[i],                                         /*  线程代码入口                */
                        ucPriority,                                      /*  优先级                      */
-                       ucThreadUsage[i],
-                       ucThreadKernel[i]);
+                       uiThreadUsage[i] / 10,
+                       uiThreadUsage[i] % 10,
+                       uiThreadKernel[i] / 10,
+                       uiThreadKernel[i] % 10);
             }
         }
     }

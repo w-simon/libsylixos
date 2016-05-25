@@ -39,7 +39,7 @@
                                            
                                        (不得在中断中调用)
 *********************************************************************************************************/
-#if (LW_CFG_THREAD_PRIVATE_VARS_EN > 0) && (LW_CFG_MAX_THREAD_GLB_VARS > 0)
+#if (LW_CFG_SMP_EN == 0) && (LW_CFG_THREAD_PRIVATE_VARS_EN > 0) && (LW_CFG_MAX_THREAD_GLB_VARS > 0)
 
 LW_API
 ULONG  API_ThreadVarGet (LW_OBJECT_HANDLE  ulId, ULONG  *pulAddr)
@@ -110,7 +110,8 @@ ULONG  API_ThreadVarGet (LW_OBJECT_HANDLE  ulId, ULONG  *pulAddr)
     return  (0);
 }
 
-#endif                                                                  /*  (LW_CFG_THREAD_PRIVATE_VA...*/
+#endif                                                                  /*  LW_CFG_SMP_EN == 0          */
+                                                                        /*  (LW_CFG_THREAD_PRIVATE_VA...*/
                                                                         /*  (LW_CFG_MAX_THREAD_GLB_VA...*/
 /*********************************************************************************************************
   END

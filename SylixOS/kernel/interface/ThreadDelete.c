@@ -145,7 +145,7 @@ ULONG  __threadDelete (PLW_CLASS_TCB  ptcbDel, BOOL  bIsInSafe,
     
     pstkFree = ptcbDel->TCB_pstkStackLowAddr;                           /*  记录地址                    */
     
-#if (LW_CFG_THREAD_PRIVATE_VARS_EN > 0) && (LW_CFG_MAX_THREAD_GLB_VARS > 0)
+#if (LW_CFG_SMP_EN == 0) && (LW_CFG_THREAD_PRIVATE_VARS_EN > 0) && (LW_CFG_MAX_THREAD_GLB_VARS > 0)
     _ThreadVarDelete(ptcbDel);                                          /*  删除并恢复私有化的全局变量  */
 #endif
     

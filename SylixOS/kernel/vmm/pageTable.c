@@ -51,7 +51,7 @@ extern VOID   __ARCH_MMU_INIT(CPCHAR  pcMachineName);                   /*  BSP 
 /*********************************************************************************************************
   内部全局映射函数声明
 *********************************************************************************************************/
-static INT    __vmmLibGlobalMap(PLW_MMU_CONTEXT   pmmuctx, PLW_MMU_GLOBAL_DESC  pmmugdesc);
+static INT    __vmmLibGlobalMap(PLW_MMU_CONTEXT   pmmuctx, LW_MMU_PHYSICAL_DESC  pphydesc[]);
 /*********************************************************************************************************
 ** 函数名称: __vmmGetCurCtx
 ** 功能描述: 获得当前 MMU 上下文 (内部使用或驱动程序使用)
@@ -78,29 +78,43 @@ PLW_MMU_CONTEXT __vmmGetCurCtx (VOID)
 *********************************************************************************************************/
 BOOL  __vmmLibVirtualOverlap (addr_t  ulAddr, size_t  stSize)
 {
-#define __ADDR_OVERLAP(addr)    \
-        if (((addr) >= pvirdesc->ulVirtualSwitch) &&    \
-            ((addr) < pvirdesc->ulVirtualSwitch + pvirdesc->stSize)) {  \
+#define __ADDR_OVERLAP(pvirdesc, addr)    \
+        if (((addr) >= pvirdesc->VIRD_ulVirAddr) && \
+            ((addr) < (pvirdesc->VIRD_ulVirAddr +   \
+                       pvirdesc->VIRD_stSize))) {   \
             return  (LW_TRUE);  \
         }
 
-    PLW_MMU_VIRTUAL_DESC pvirdesc = __vmmVirtualDesc();
+    INT                     i;
+    PLW_MMU_VIRTUAL_DESC    pvirdescApp;
+    PLW_MMU_VIRTUAL_DESC    pvirdescDev;
 
-    __ADDR_OVERLAP(ulAddr);
-    __ADDR_OVERLAP(ulAddr + stSize);
+    for (i = 0; i < LW_CFG_VMM_VIR_NUM; i++) {
+        pvirdescApp = __vmmVirtualDesc(LW_VIRTUAL_MEM_APP, i);
+        if (pvirdescApp->VIRD_stSize) {
+            __ADDR_OVERLAP(pvirdescApp, ulAddr);
+            __ADDR_OVERLAP(pvirdescApp, ulAddr + stSize);
+        }
+    }
+
+    pvirdescDev = __vmmVirtualDesc(LW_VIRTUAL_MEM_DEV, 0);
+    if (pvirdescDev->VIRD_stSize) {
+        __ADDR_OVERLAP(pvirdescDev, ulAddr);
+        __ADDR_OVERLAP(pvirdescDev, ulAddr + stSize);
+    }
 
     return  (LW_FALSE);
 }
 /*********************************************************************************************************
 ** 函数名称: __vmmLibPrimaryInit
 ** 功能描述: 初始化 MMU 功能, CPU 构架相关。(多核模式下, 为主核 MMU 初始化)
-** 输　入  : pmmugdesc         初始化使用的全局映射表
+** 输　入  : pphydesc          物理内存区描述表
 **           pcMachineName     正在运行的机器名称
 ** 输　出  : BSP 函数返回值
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-ULONG  __vmmLibPrimaryInit (PLW_MMU_GLOBAL_DESC  pmmugdesc, CPCHAR  pcMachineName)
+ULONG  __vmmLibPrimaryInit (LW_MMU_PHYSICAL_DESC  pphydesc[], CPCHAR  pcMachineName)
 {
     static   BOOL             bIsInit          = LW_FALSE;
              BOOL             bIsNeedGlobalMap = LW_FALSE;
@@ -145,7 +159,7 @@ ULONG  __vmmLibPrimaryInit (PLW_MMU_GLOBAL_DESC  pmmugdesc, CPCHAR  pcMachineNam
             goto    __error_handle;
         }
         
-        iError = __vmmLibGlobalMap(pmmuctx, pmmugdesc);                 /*  全局内存关系映射            */
+        iError = __vmmLibGlobalMap(pmmuctx, pphydesc);                  /*  全局内存关系映射            */
         if (iError < ERROR_NONE) {
             iErrLevel = 2;
             ulError   = errno;
@@ -199,31 +213,63 @@ ULONG  __vmmLibSecondaryInit (CPCHAR  pcMachineName)
 ** 函数名称: __vmmLibGlobalMap
 ** 功能描述: 全局页面映射关系设置
 ** 输　入  : pmmuctx        MMU 上下文
-**           pmmugdesc      初始化使用的全局映射表
+**           pphydesc       物理内存区描述表
 ** 输　出  : ERROR CODE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT  __vmmLibGlobalMap (PLW_MMU_CONTEXT   pmmuctx, PLW_MMU_GLOBAL_DESC  pmmugdesc) 
+static INT  __vmmLibGlobalMap (PLW_MMU_CONTEXT   pmmuctx, LW_MMU_PHYSICAL_DESC  pphydesc[]) 
 {
     INT     i;
+    ULONG   ulError;
     ULONG   ulPageNum;
 
-    for (i = 0; pmmugdesc[i].stSize; i++) {
-        ulPageNum = (ULONG)(pmmugdesc[i].stSize >> LW_CFG_VMM_PAGE_SHIFT);
-        if (pmmugdesc[i].stSize & ~LW_CFG_VMM_PAGE_MASK) {
+    for (i = 0; pphydesc[i].PHYD_stSize; i++) {
+        ulPageNum = (ULONG)(pphydesc[i].PHYD_stSize >> LW_CFG_VMM_PAGE_SHIFT);
+        if (pphydesc[i].PHYD_stSize & ~LW_CFG_VMM_PAGE_MASK) {
             ulPageNum++;
         }
         
-        _BugFormat(__vmmLibVirtualOverlap(pmmugdesc[i].ulVirtualAddr,
-                                          pmmugdesc[i].stSize), LW_FALSE,
-                   "global map vaddr 0x%08lx size : 0x%08zx overlap with virtual space.\r\n",
-                   pmmugdesc[i].ulVirtualAddr, pmmugdesc[i].stSize);
-
-        if (__vmmLibPageMap(pmmugdesc[i].ulPhysicalAddr, 
-                            pmmugdesc[i].ulVirtualAddr,
-                            ulPageNum,
-                            pmmugdesc[i].ulFlag)) {
+        if ((pphydesc[i].PHYD_uiType != LW_PHYSICAL_MEM_APP) &&
+            (pphydesc[i].PHYD_uiType != LW_PHYSICAL_MEM_DMA)) {
+            _BugFormat(__vmmLibVirtualOverlap(pphydesc[i].PHYD_ulVirMap, 
+                                              pphydesc[i].PHYD_stSize), LW_TRUE,
+                       "global map vaddr 0x%08lx size : 0x%08zx overlap with virtual space.\r\n",
+                       pphydesc[i].PHYD_ulVirMap, pphydesc[i].PHYD_stSize);
+        }
+    
+        switch (pphydesc[i].PHYD_uiType) {
+        
+        case LW_PHYSICAL_MEM_TEXT:
+            ulError = __vmmLibPageMap(pphydesc[i].PHYD_ulPhyAddr, 
+                                      pphydesc[i].PHYD_ulVirMap,
+                                      ulPageNum, LW_VMM_FLAG_EXEC | LW_VMM_FLAG_RDWR);
+            break;
+            
+        case LW_PHYSICAL_MEM_DATA:
+            ulError = __vmmLibPageMap(pphydesc[i].PHYD_ulPhyAddr, 
+                                      pphydesc[i].PHYD_ulVirMap,
+                                      ulPageNum, LW_VMM_FLAG_RDWR);
+            break;
+            
+        case LW_PHYSICAL_MEM_VECTOR:
+            ulError = __vmmLibPageMap(pphydesc[i].PHYD_ulPhyAddr, 
+                                      pphydesc[i].PHYD_ulVirMap,
+                                      ulPageNum, LW_VMM_FLAG_EXEC);
+            break;
+            
+        case LW_PHYSICAL_MEM_BOOTSFR:
+            ulError = __vmmLibPageMap(pphydesc[i].PHYD_ulPhyAddr, 
+                                      pphydesc[i].PHYD_ulVirMap,
+                                      ulPageNum, LW_VMM_FLAG_DMA);
+            break;
+            
+        default:
+            ulError = ERROR_NONE;
+            break;
+        }
+        
+        if (ulError) {
             _DebugHandle(__ERRORMESSAGE_LEVEL, "vmm global map fail.\r\n");
             return  (PX_ERROR);
         }

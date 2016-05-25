@@ -28,7 +28,7 @@
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-#if (LW_CFG_THREAD_PRIVATE_VARS_EN > 0) && (LW_CFG_MAX_THREAD_GLB_VARS > 0)
+#if (LW_CFG_SMP_EN == 0) && (LW_CFG_THREAD_PRIVATE_VARS_EN > 0) && (LW_CFG_MAX_THREAD_GLB_VARS > 0)
 
 PLW_CLASS_THREADVAR  _Allocate_ThreadVar_Object (VOID)
 {
@@ -73,7 +73,8 @@ VOID  _Free_ThreadVar_Object (PLW_CLASS_THREADVAR    pthreadvarFree)
     _K_resrcThreadVar.RESRC_uiUsed--;
 }
 
-#endif                                                                  /*  (LW_CFG_THREAD_PRIVATE_VAR..*/
+#endif                                                                  /*  LW_CFG_SMP_EN == 0          */
+                                                                        /*  (LW_CFG_THREAD_PRIVATE_VAR..*/
                                                                         /*  (LW_CFG_MAX_THREAD_GLB_VAR..*/
 /*********************************************************************************************************
   END

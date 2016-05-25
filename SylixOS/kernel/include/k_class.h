@@ -581,7 +581,7 @@ typedef struct __lw_tcb {
     LW_CLASS_NOTEPAD      TCB_notepadThreadNotePad;                     /*  线程记事本                  */
 #endif
 
-#if (LW_CFG_THREAD_PRIVATE_VARS_EN > 0) && (LW_CFG_MAX_THREAD_GLB_VARS > 0)
+#if (LW_CFG_SMP_EN == 0) && (LW_CFG_THREAD_PRIVATE_VARS_EN > 0) && (LW_CFG_MAX_THREAD_GLB_VARS > 0)
     PLW_LIST_LINE         TCB_plinePrivateVars;                         /*  全局变量私有化线表          */
 #endif
 

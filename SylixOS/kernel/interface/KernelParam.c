@@ -25,12 +25,6 @@
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
 /*********************************************************************************************************
-  裁剪支持
-*********************************************************************************************************/
-#if LW_CFG_VMM_EN > 0
-#include "../SylixOS/kernel/vmm/virPage.h"
-#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
-/*********************************************************************************************************
   内核参数
 *********************************************************************************************************/
 static CHAR     _K_cKernelStartParam[256];
@@ -43,8 +37,6 @@ static CHAR     _K_cKernelStartParam[256];
                            derror=yes   DEBUG ERROR 信息打印
                            kfpu=no      内核态对浮点支持 (推荐为 no)
                            heapchk=yes  内存堆越界检查
-                           varea=*      * 表示虚拟内存起始点, 默认为 0xC000_0000
-                           vsize=*      * 表示虚拟内存大小, 默认为 1GB
                            hz=100       系统 tick 频率, 默认为 100 (推荐 100 ~ 10000 中间)
                            hhz=100      高速定时器频率, 默认与 hz 相同 (需 BSP 支持)
                            irate=5      应用定时器分辨率, 默认为 5 个 tick. (推荐 1 ~ 10 中间)
@@ -63,10 +55,6 @@ ULONG  API_KernelStartParam (CPCHAR  pcParam)
     PCHAR       pcDelim = " ";
     PCHAR       pcLast;
     PCHAR       pcTok;
-    
-#if LW_CFG_VMM_EN > 0
-    PLW_MMU_VIRTUAL_DESC    pvirdesc = __vmmVirtualDesc();
-#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
     
     if (LW_SYS_STATUS_IS_RUNNING()) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "kernel is already start.\r\n");
@@ -159,17 +147,6 @@ ULONG  API_KernelStartParam (CPCHAR  pcParam)
             }
         }
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
-        
-#if LW_CFG_VMM_EN > 0
-          else if (lib_strncmp(pcTok, "varea=", 6) == 0) {              /*  虚拟内存起始点              */
-            pvirdesc->ulVirtualSwitch = lib_strtoul(&pcTok[6], LW_NULL, 16);
-            pvirdesc->ulVirtualStart  = pvirdesc->ulVirtualSwitch 
-                                      + LW_CFG_VMM_PAGE_SIZE;
-          
-        } else if (lib_strncmp(pcTok, "vsize=", 6) == 0) {              /*  虚拟内存大小                */
-            pvirdesc->stSize = (size_t)lib_strtoul(&pcTok[6], LW_NULL, 16);
-        }
-#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
           
 #ifdef __ARCH_KERNEL_PARAM
           else {

@@ -29,13 +29,20 @@
   ÐéÄâ¿Õ¼ä²Ù×÷
 *********************************************************************************************************/
 
-PLW_MMU_VIRTUAL_DESC    __vmmVirtualDesc(VOID);
+PLW_MMU_VIRTUAL_DESC    __vmmVirtualDesc(UINT32  uiType, ULONG  ulZoneIndex);
+addr_t                  __vmmVirtualSwitch(VOID);
+
 BOOL                    __vmmVirtualIsInside(addr_t  ulAddr);
-ULONG                   __vmmVirtualCreate(addr_t  ulAddr, size_t  stSize);
+ULONG                   __vmmVirtualCreate(LW_MMU_VIRTUAL_DESC   pvirdes[]);
+
 PLW_VMM_PAGE            __vmmVirtualPageAlloc(ULONG  ulPageNum);
+PLW_VMM_PAGE            __vmmVirDevPageAlloc(ULONG  ulPageNum);
+
 PLW_VMM_PAGE            __vmmVirtualPageAllocAlign(ULONG  ulPageNum, size_t  stAlign);
+PLW_VMM_PAGE            __vmmVirDevPageAllocAlign(ULONG  ulPageNum, size_t  stAlign);
+
 VOID                    __vmmVirtualPageFree(PLW_VMM_PAGE  pvmpage);
-ULONG                   __vmmVirtualPageGetMinContinue(VOID);
+VOID                    __vmmVirDevPageFree(PLW_VMM_PAGE  pvmpage);
 
 #endif                                                                  /*  __VIRPAGE_H                 */
 /*********************************************************************************************************

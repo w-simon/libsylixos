@@ -111,7 +111,7 @@ VOID  __areaVirtualSpaceTraversal (VOIDFUNCPTR  pfuncCallback)
 {
     REGISTER PLW_MMU_CONTEXT  pmmuctx = __vmmGetCurCtx();
     
-    __areaSpaceTraversal(&pmmuctx->MMUCTX_vmareaVirtualSpace, pfuncCallback);
+    __areaSpaceTraversal(&pmmuctx->MMUCTX_vmareaVirSpace, pfuncCallback);
 }
 /*********************************************************************************************************
 ** 函数名称: __areaPhysicalSpaceTraversal
@@ -176,17 +176,36 @@ static ULONG  __areaSpaceInit (PLW_VMM_AREA  pvmarea, addr_t  ulAddr, size_t  st
 /*********************************************************************************************************
 ** 函数名称: __areaVirtualSpaceInit
 ** 功能描述: 初始化虚拟地址空间管理块
-** 输　入  : ulAddr        起始地址
-**           stSize        大小
+** 输　入  : pvirdes       虚拟空间描述
 ** 输　出  : ERROR CODE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-ULONG  __areaVirtualSpaceInit (addr_t  ulAddr, size_t  stSize)
+ULONG  __areaVirtualSpaceInit (LW_MMU_VIRTUAL_DESC   pvirdes[])
 {
     REGISTER PLW_MMU_CONTEXT  pmmuctx = __vmmGetCurCtx();
+             INT              i;
+             addr_t           ulAddr  = __ARCH_ULONG_MAX;
+             addr_t           ulEnd   = 0;
     
-    return  (__areaSpaceInit(&pmmuctx->MMUCTX_vmareaVirtualSpace, ulAddr, stSize));
+    for (i = 0; i < LW_CFG_VMM_VIR_NUM; i++) {
+        if (pvirdes[i].VIRD_stSize == 0) {
+            break;
+        }
+        if (ulAddr > pvirdes[i].VIRD_ulVirAddr) {
+            ulAddr = pvirdes[i].VIRD_ulVirAddr;
+        }
+        if (ulEnd < (pvirdes[i].VIRD_ulVirAddr + pvirdes[i].VIRD_stSize)) {
+            ulEnd = (pvirdes[i].VIRD_ulVirAddr + pvirdes[i].VIRD_stSize);
+        }
+    }
+    
+    if (ulAddr == __ARCH_ULONG_MAX) {
+        _ErrorHandle(ENOSPC);
+        return  (ENOSPC);
+    }
+    
+    return  (__areaSpaceInit(&pmmuctx->MMUCTX_vmareaVirSpace, ulAddr, (size_t)(ulEnd - ulAddr)));
 }
 /*********************************************************************************************************
 ** 函数名称: __areaPhysicalSpaceInit
@@ -248,7 +267,7 @@ PLW_VMM_PAGE  __areaVirtualSearchPage (addr_t  ulAddr)
 {
     REGISTER PLW_MMU_CONTEXT  pmmuctx = __vmmGetCurCtx();
 
-    return  (__areaSearchPage(&pmmuctx->MMUCTX_vmareaVirtualSpace, ulAddr));
+    return  (__areaSearchPage(&pmmuctx->MMUCTX_vmareaVirSpace, ulAddr));
 }
 /*********************************************************************************************************
 ** 函数名称: __areaPhysicalSearchPage
@@ -320,7 +339,7 @@ VOID  __areaVirtualInsertPage (addr_t  ulAddr, PLW_VMM_PAGE  pvmpage)
 {
     REGISTER PLW_MMU_CONTEXT  pmmuctx = __vmmGetCurCtx();
 
-    __areaInsertPage(&pmmuctx->MMUCTX_vmareaVirtualSpace, ulAddr, pvmpage);
+    __areaInsertPage(&pmmuctx->MMUCTX_vmareaVirSpace, ulAddr, pvmpage);
 }
 /*********************************************************************************************************
 ** 函数名称: __areaPhysicalInsertPage
@@ -370,7 +389,7 @@ VOID  __areaVirtualUnlinkPage (addr_t  ulAddr, PLW_VMM_PAGE  pvmpage)
 {
     REGISTER PLW_MMU_CONTEXT  pmmuctx = __vmmGetCurCtx();
 
-    __areaUnlinkPage(&pmmuctx->MMUCTX_vmareaVirtualSpace, ulAddr, pvmpage);
+    __areaUnlinkPage(&pmmuctx->MMUCTX_vmareaVirSpace, ulAddr, pvmpage);
 }
 /*********************************************************************************************************
 ** 函数名称: __areaPhysicalUnlinkPage

@@ -31,75 +31,58 @@
   加入裁剪支持
 *********************************************************************************************************/
 #if LW_CFG_VMM_EN > 0
+
 /*********************************************************************************************************
-  zone describer
-  
+  ZONE 类型
+*********************************************************************************************************/
+#ifdef __SYLIXOS_KERNEL
+
+#define LW_ZONE_ATTR_NONE       0                                       /*  无特殊属性                  */
+#define LW_ZONE_ATTR_DMA        1                                       /*  映射为 DMA 平板模式使用     */
+
+/*********************************************************************************************************
+  物理内存信息描述
   注意:
-  
-  编写 BSP 时需要划分内存分区, SylixOS 物理内存分区一般为如下格式:
-  
-  |<-- 物理虚拟地址相同 -->|
-  |                        |
-  +-----------+------------+--------------------------------+
-  |  KERN MEM |  DMA ZONE  |          COMMON VMM            |
-  |           |            |                                |
-  |  内核内存 |  ATTR_DMA  |          ATTR_NONE             |
-  +-----------+------------+--------------------------------+
-              |                                             |
-              |<----------- VMM 分配管理器 ---------------->|
-  
-  这里只是举例, 内存的顺序没有要求, 例如, 内核内存可以不必要在最前面, VMM 分配管理器也可以不在最后面.
-  但是, SylixOS 对 BSP 有以下要求: "内核内存"和具有"ATTR_DMA"属性的 DMA 内存编址, 不能与"虚拟空间"有重叠!
-  这里所说的"虚拟空间"就是 LW_MMU_VIRTUAL_DESC 描述的这段空间, 默认 3GB~4GB 之间, 可以通过内核启动参数修改
-  而且, 内核内存与 ATTR_DMA 物理地址和虚拟地址初始化成相同. 
-  (因为很多驱动程度使用 sys_malloc() 开辟 DMA 内存, 通过 cacheFlush 与 cacheInvalidate 与主存保持一致, 
-   而且有些内存算法使用物理地址索引, 所以内核内存与 ATTR_DMA 物理地址和虚拟地址初始化成相同)
-  
-  "ATTR_NONE"可以和虚拟空间编址有重叠的, 因为 vmmDmaAlloc 出来的内存地址是物理地址, 而且他的虚拟地址也是
-  相同的. 也就是说: 内核内存 与 ATTR_DMA 内存必须是平板映射, 而且地址不能与虚拟空间重叠!
-  
-  COMMON VMM 的物理地址是可以与虚拟空间重叠的, 因为这段物理地址都不能直接访问, 如果驱动程序要访问的
-  寄存器与虚拟地址空间有地址重叠, 则必须使用 vmmIoRemap, vmmIoUnmap 来映射物理内存, 然后才能操作, 也就是说
-  所有与虚拟空间有地址重叠的内存都需要通过 vmm 管理器所提供的相关函数才能访问, (必须先分配相应的虚拟地址)
-  不能直接使用物理地址访问.
-  
-  一般的 BSP 中除了 COMMON VMM 区域以外都很小, COMMON VMM 是通用 VMM 内存的意思, 我们所有加载的程序或者
-  模块都是在这段物理内存中运行的, 但是他们实际只能看到 VMM 分配给他们的虚拟空间!
-  SylixOS 提供虚拟空间一般比真实的物理空间大很多, 一般在 32 位机器上可以达到 3GB.
-*********************************************************************************************************/
-#define LW_ZONE_ATTR_NONE    0x0000                                     /*  无特殊属性                  */
-#define LW_ZONE_ATTR_DMA     0x0001                                     /*  此区域可以被 DMA 使用       */
-
-typedef struct __lw_vmm_zone_desc {
-    addr_t                   ZONED_ulAddr;                              /*  起始地址                    */
-    size_t                   ZONED_stSize;                              /*  区域长度                    */
-    UINT                     ZONED_uiAttr;                              /*  区域属性                    */
-} LW_VMM_ZONE_DESC;
-typedef LW_VMM_ZONE_DESC    *PLW_VMM_ZONE_DESC;
-
-/*********************************************************************************************************
-  mmu 全局初始化映射关系节点
+  TEXT, DATA, DMA 物理段 PHYD_ulPhyAddr 必须等于 PHYD_ulVirMap,
+  TEXT, DATA, VECTOR, BOOTSFR, DMA 物理段 PHYD_ulVirMap 区间不能与虚拟内存空间冲突.
 *********************************************************************************************************/
 
-typedef struct __lw_mmu_global_desc {
-    addr_t                   ulVirtualAddr;                             /*  虚拟地址                    */
-    addr_t                   ulPhysicalAddr;                            /*  物理地址                    */
-    size_t                   stSize;                                    /*  长度                        */
-    ULONG                    ulFlag;                                    /*  标志                        */
-} LW_MMU_GLOBAL_DESC;
-typedef LW_MMU_GLOBAL_DESC  *PLW_MMU_GLOBAL_DESC;
+typedef struct __lw_vmm_physical_desc {
+    addr_t                   PHYD_ulPhyAddr;                            /*  物理地址 (页对齐地址)       */
+    addr_t                   PHYD_ulVirMap;                             /*  需要初始化的映射关系        */
+    size_t                   PHYD_stSize;                               /*  物理内存区长度 (页对齐长度) */
+    
+#define LW_PHYSICAL_MEM_TEXT        0                                   /*  内核代码段                  */
+#define LW_PHYSICAL_MEM_DATA        1                                   /*  内核数据段 (包括 HEAP)      */
+#define LW_PHYSICAL_MEM_VECTOR      2                                   /*  硬件向量表                  */
+#define LW_PHYSICAL_MEM_BOOTSFR     3                                   /*  启动时需要的特殊功能寄存器  */
+#define LW_PHYSICAL_MEM_DMA         4                                   /*  DMA 物理内存, 不进行提前映射*/
+#define LW_PHYSICAL_MEM_APP         5                                   /*  装载程序内存, 不进行提前映射*/
+    UINT32                   PHYD_uiType;                               /*  物理内存区间类型            */
+    UINT32                   PHYD_uiReserve[8];
+} LW_MMU_PHYSICAL_DESC;
+typedef LW_MMU_PHYSICAL_DESC *PLW_MMU_PHYSICAL_DESC;
 
 /*********************************************************************************************************
-  mmu 虚拟地址空间
+  虚拟地址空间描述
+  注意:
+  虚拟内存空间编址不能与物理内存空间 TEXT, DATA, VECTOR, BOOTSFR, DMA 区间冲突,
+  DEV 属性内存分区最多一个.
+  一般情况下 APP 虚拟内存区间要远远大于物理 APP 内存大小, 同时大于 DEV 虚拟内存区间大小.
 *********************************************************************************************************/
 
 typedef struct __lw_mmu_virtual_desc {
-    addr_t                   ulVirtualSwitch;                           /*  内部页面交换空间地址(自动)  */
-    addr_t                   ulVirtualStart;                            /*  虚拟空间起始地址            */
-    size_t                   stSize;                                    /*  虚拟空间长度                */
+    addr_t                   VIRD_ulVirAddr;                            /*  虚拟空间地址 (页对齐地址)   */
+    size_t                   VIRD_stSize;                               /*  虚拟空间长度 (页对齐长度)   */
+    
+#define LW_VIRTUAL_MEM_APP      0                                       /*  装载程序虚拟内存区间        */
+#define LW_VIRTUAL_MEM_DEV      1                                       /*  设备映射虚拟内存空间        */
+    UINT32                   VIRD_uiType;                               /*  虚拟内存区间类型            */
+    UINT32                   VIRD_uiReserve[8];
 } LW_MMU_VIRTUAL_DESC;
 typedef LW_MMU_VIRTUAL_DESC *PLW_MMU_VIRTUAL_DESC;
 
+#endif                                                                  /*  __SYLIXOS_KERNEL            */
 /*********************************************************************************************************
   vmm 当前状态
 *********************************************************************************************************/
@@ -122,8 +105,8 @@ typedef LW_VMM_STATUS       *PLW_VMM_STATUS;
 *********************************************************************************************************/
 
 #ifdef __SYLIXOS_KERNEL
-LW_API ULONG        API_VmmLibPrimaryInit(LW_VMM_ZONE_DESC      vmzone[],
-                                          LW_MMU_GLOBAL_DESC    mmugdesc[],
+LW_API ULONG        API_VmmLibPrimaryInit(LW_MMU_PHYSICAL_DESC  pphydesc[], 
+                                          LW_MMU_VIRTUAL_DESC   pvirdes[],
                                           CPCHAR                pcMachineName);
                                                                         /*  初始化 VMM 组件及物理区域   */
 #define API_VmmLibInit      API_VmmLibPrimaryInit
@@ -265,58 +248,21 @@ LW_API VOID         API_VmmPhyFree(PVOID  pvPhyMem);                    /*  释放
 LW_API PVOID        API_VmmDmaAlloc(size_t  stSize);                    /*  分配物理连续内存, 物理地址  */
 LW_API PVOID        API_VmmDmaAllocAlign(size_t stSize, size_t stAlign);/*  与上相同, 但可以指定对齐关系*/
 LW_API VOID         API_VmmDmaFree(PVOID  pvDmaMem);                    /*  回收 DMA 内存缓冲区         */
-
-/*********************************************************************************************************
-  以下 API 只允许驱动程序使用
-  
-  如果驱动程序寄存器地址与操作系统虚拟地址空间有重叠, 操作寄存器时, 一定要使用 ioremap 和 iounmap 函数
-  
-  这样才能保证操作的正确性与安全性.
-*********************************************************************************************************/
-
-LW_API PVOID        API_VmmIoRemap(PVOID  pvPhysicalAddr, 
-                                   size_t stSize);                      /*  将物理 IO 映射到虚拟空间    */
-LW_API PVOID        API_VmmIoRemapEx(PVOID  pvPhysicalAddr, 
-                                     size_t stSize,
-                                     ULONG  ulFlags);
-LW_API VOID         API_VmmIoUnmap(PVOID  pvVirtualAddr);               /*  释放 IO 映射虚拟空间        */
-LW_API PVOID        API_VmmIoRemapNocache(PVOID  pvPhysicalAddr, 
-                                          size_t stSize);
-LW_API ULONG        API_VmmMap(PVOID  pvVirtualAddr, 
-                               PVOID  pvPhysicalAddr, 
-                               size_t stSize, 
-                               ULONG  ulFlag);                          /*  指定内存映射 (慎用此函数)   */
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 
+/*********************************************************************************************************
+  无 VMM 支持
+*********************************************************************************************************/
 #else
 
 #ifdef __SYLIXOS_KERNEL
-static LW_INLINE ULONG        API_VmmVirtualToPhysical(addr_t  ulVirtualAddr, 
-                                                       addr_t *pulPhysicalAddr)
+static LW_INLINE ULONG  API_VmmVirtualToPhysical (addr_t  ulVirtualAddr, addr_t *pulPhysicalAddr)
 {
     if (pulPhysicalAddr) {
         *pulPhysicalAddr = ulVirtualAddr;
     }
+    
     return  (ERROR_NONE);
-}
-static LW_INLINE PVOID        API_VmmIoRemap(PVOID  pvPhysicalAddr, 
-                                             size_t stSize)
-{
-    return  (pvPhysicalAddr);
-}
-static LW_INLINE PVOID        API_VmmIoRemapEx(PVOID  pvPhysicalAddr, 
-                                               size_t stSize,
-                                               ULONG  ulFlags)
-{
-    return  (pvPhysicalAddr);
-}
-static LW_INLINE VOID         API_VmmIoUnmap(PVOID  pvVirtualAddr)
-{
-}
-static LW_INLINE PVOID        API_VmmIoRemapNocache(PVOID  pvPhysicalAddr, 
-                                                    size_t stSize)
-{
-    return  (pvPhysicalAddr);
 }
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 
@@ -362,6 +308,7 @@ LW_API VOID         API_VmmAbortIsr(addr_t          ulRetAddr,
 *********************************************************************************************************/
 #if LW_CFG_VMM_EN > 0
 
+#ifdef __SYLIXOS_KERNEL
 #define vmmMalloc               API_VmmMalloc
 #define vmmMallocEx             API_VmmMallocEx
 #define vmmMallocAlign          API_VmmMallocAlign
@@ -385,11 +332,6 @@ LW_API VOID         API_VmmAbortIsr(addr_t          ulRetAddr,
 #define vmmDmaAllocAlign        API_VmmDmaAllocAlign                    /*  返回值为 物理地址           */
 #define vmmDmaFree              API_VmmDmaFree
 
-#define vmmIoRemap              API_VmmIoRemap
-#define vmmIoRemapEx            API_VmmIoRemapEx
-#define vmmIoUnmap              API_VmmIoUnmap
-#define vmmIoRemapNocache       API_VmmIoRemapNocache
-
 #define vmmMap                  API_VmmMap
 #define vmmVirtualToPhysical    API_VmmVirtualToPhysical
 #define vmmPhysicalToVirtual    API_VmmPhysicalToVirtual                /*  仅支持VMM管理的物理内存查询 */
@@ -400,6 +342,7 @@ LW_API VOID         API_VmmAbortIsr(addr_t          ulRetAddr,
 
 #define vmmZoneStatus           API_VmmZoneStatus
 #define vmmVirtualStatus        API_VmmVirtualStatus
+#endif                                                                  /*  __SYLIXOS_KERNEL            */
 
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 #endif                                                                  /*  __VMM_H                     */
