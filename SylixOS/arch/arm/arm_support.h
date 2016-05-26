@@ -337,6 +337,22 @@ BOOL    bspIntVectorIsEnable(ULONG  ulVector);
 #define __ARCH_INT_VECTOR_DISABLE   bspIntVectorDisable
 #define __ARCH_INT_VECTOR_ISENABLE  bspIntVectorIsEnable
 
+#if LW_CFG_INTER_PRIO > 0
+ULONG   bspIntVectorSetPriority(ULONG  ulVector, UINT  uiPrio);
+ULONG   bspIntVectorGetPriority(ULONG  ulVector, UINT *puiPrio);
+
+#define __ARCH_INT_VECTOR_SETPRIO   bspIntVectorSetPriority
+#define __ARCH_INT_VECTOR_GETPRIO   bspIntVectorGetPriority
+#endif                                                                  /*  LW_CFG_INTER_PRIO > 0       */
+
+#if LW_CFG_INTER_TARGET > 0
+ULONG   bspIntVectorSetTarget(ULONG  ulVector, size_t  stSize, const PLW_CLASS_CPUSET  pcpuset);
+ULONG   bspIntVectorGetTarget(ULONG  ulVector, size_t  stSize, PLW_CLASS_CPUSET  pcpuset);
+
+#define __ARCH_INT_VECTOR_SETTARGET bspIntVectorSetTarget
+#define __ARCH_INT_VECTOR_GETTARGET bspIntVectorGetTarget
+#endif                                                                  /*  LW_CFG_INTER_TARGET > 0     */
+
 /*********************************************************************************************************
   CPU ¶¨Ê±Æ÷Ê±ÖÓ
 *********************************************************************************************************/

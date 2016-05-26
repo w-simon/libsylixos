@@ -948,6 +948,21 @@ LW_API ULONG            API_InterVectorDisable(ULONG  ulVector);        /*  禁能
 LW_API ULONG            API_InterVectorIsEnable(ULONG  ulVector, 
                                                 BOOL  *pbIsEnable);     /*  获得指定中断状态            */
 
+#if LW_CFG_INTER_PRIO > 0
+LW_API ULONG            API_InterVectorSetPriority(ULONG  ulVector, UINT  uiPrio);
+                                                                        /*  设置中断优先级              */
+LW_API ULONG            API_InterVectorGetPriority(ULONG  ulVector, UINT  *puiPrio);
+                                                                        /*  获取中断优先级              */
+#endif                                                                  /*  LW_CFG_INTER_PRIO > 0       */
+
+#if LW_CFG_INTER_TARGET > 0
+LW_API ULONG            API_InterSetTarget(ULONG  ulVector, size_t  stSize, 
+                                           const PLW_CLASS_CPUSET  pcpuset);
+                                                                        /*  设置中断目标 CPU            */
+LW_API ULONG            API_InterGetTarget(ULONG  ulVector, size_t  stSize, 
+                                           PLW_CLASS_CPUSET  pcpuset);  /*  获取中断目标 CPU            */
+#endif                                                                  /*  LW_CFG_INTER_TARGET > 0     */
+
 LW_API ULONG            API_InterVectorSetFlag(ULONG  ulVector, ULONG  ulFlag);
                                                                         /*  设置中断向量属性            */
                                                                         

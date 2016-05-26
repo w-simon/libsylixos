@@ -395,7 +395,9 @@ SylixOS/kernel/interface/InterContext.c \
 SylixOS/kernel/interface/InterDefer.c \
 SylixOS/kernel/interface/InterEnterExit.c \
 SylixOS/kernel/interface/InterLock.c \
+SylixOS/kernel/interface/InterPriority.c \
 SylixOS/kernel/interface/InterStack.c \
+SylixOS/kernel/interface/InterTarget.c \
 SylixOS/kernel/interface/InterVectorBase.c \
 SylixOS/kernel/interface/InterVectorConnect.c \
 SylixOS/kernel/interface/InterVectorEnable.c \
