@@ -210,16 +210,44 @@ ULONG  __areaVirtualSpaceInit (LW_MMU_VIRTUAL_DESC   pvirdes[])
 /*********************************************************************************************************
 ** 函数名称: __areaPhysicalSpaceInit
 ** 功能描述: 初始化物理地址空间管理块
-** 输　入  : ulZoneIndex   物理地址 zone 下标
-**           ulAddr        起始地址
-**           stSize        大小
+** 输　入  : pphydesc      物理空间描述
 ** 输　出  : ERROR CODE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-ULONG  __areaPhysicalSpaceInit (ULONG  ulZoneIndex, addr_t  ulAddr, size_t  stSize)
+ULONG  __areaPhysicalSpaceInit (LW_MMU_PHYSICAL_DESC  pphydesc[])
 {
-    return  (__areaSpaceInit(&_G_vmareaZoneSpace[ulZoneIndex], ulAddr, stSize));
+    REGISTER ULONG  ulError = ERROR_NONE;
+             ULONG  ulZone  = 0;
+             INT    i;
+             
+    for (i = 0; ; i++) {
+        if (pphydesc[i].PHYD_stSize == 0) {
+            break;
+        }
+        
+        switch (pphydesc[i].PHYD_uiType) {
+        
+        case LW_PHYSICAL_MEM_DMA:
+        case LW_PHYSICAL_MEM_APP:
+            if (ulZone < LW_CFG_VMM_ZONE_NUM) {
+                ulError = __areaSpaceInit(&_G_vmareaZoneSpace[ulZone], 
+                                          pphydesc[i].PHYD_ulPhyAddr, 
+                                          pphydesc[i].PHYD_stSize);
+                if (ulError) {
+                    _ErrorHandle(ulError);
+                    return  (ulError);
+                }
+                ulZone++;
+            }
+            break;
+            
+        default:
+            break;
+        }
+    }
+
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: __areaSearchPage

@@ -45,15 +45,8 @@ PLW_STACK  archTaskCtxCreate (PTHREAD_START_ROUTINE  pfuncTask,
     UINT32              uiGP;
     INT                 i;
 
-    uiCP0Status  = mipsCp0StatusRead();
-
-    uiCP0Status |= M_StatusIM7 |
-                   M_StatusIM6 |
-                   M_StatusIM5 |
-                   M_StatusIM4 |
-                   M_StatusIM3 |
-                   M_StatusIM2 |
-                   M_StatusIE;
+    uiCP0Status  = mipsCp0StatusRead();                                 /*  获得当前的 CP0 STATUS 寄存器*/
+    uiCP0Status |= bspIntInitEnableStatus() | M_StatusIE;               /*  使能中断                    */
 
     MIPS_EXEC_INS("addi   %0, " MIPS_GP ", 0" : "=r"(uiGP));
 

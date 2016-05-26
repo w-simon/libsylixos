@@ -139,6 +139,7 @@ ULONG  __vmmVirtualCreate (LW_MMU_VIRTUAL_DESC   pvirdes[])
 {
     REGISTER ULONG  ulError = ERROR_NONE;
              ULONG  ulZone  = 0;
+             addr_t ulAddr;
              INT    i;
     
     for (i = 0; ; i++) {
@@ -146,48 +147,57 @@ ULONG  __vmmVirtualCreate (LW_MMU_VIRTUAL_DESC   pvirdes[])
             break;
         }
         
+        _BugFormat(!ALIGNED(pvirdes[i].VIRD_ulVirAddr, LW_CFG_VMM_PAGE_SIZE), LW_TRUE,
+                   "virtual zone vaddr 0x%08lx not page aligned.\r\n", 
+                   pvirdes[i].VIRD_ulVirAddr);
+        
         _BugFormat(__vmmLibVirtualOverlap(pvirdes[i].VIRD_ulVirAddr, 
                                           pvirdes[i].VIRD_stSize), LW_TRUE,
                    "virtual zone vaddr 0x%08lx size : 0x%08zx overlap with virtual space.\r\n",
                    pvirdes[i].VIRD_ulVirAddr, pvirdes[i].VIRD_stSize);
+                   
+        switch (pvirdes[i].VIRD_uiType) {
         
-        if (pvirdes[i].VIRD_uiType == LW_VIRTUAL_MEM_APP) {
-            if (ulZone >= LW_CFG_VMM_ZONE_NUM) {
-                continue;
-            }
-            
-            _G_vmvirDescApp[ulZone] = pvirdes[i];
-            
-            if (_G_ulVmmSwitchAddr == (addr_t)PX_ERROR) {
-                _G_ulVmmSwitchAddr =  pvirdes[i].VIRD_ulVirAddr;
+        case LW_VIRTUAL_MEM_APP:
+            if (ulZone < LW_CFG_VMM_ZONE_NUM) {
+                _G_vmvirDescApp[ulZone] = pvirdes[i];
+                if (_G_ulVmmSwitchAddr == (addr_t)PX_ERROR) {
+                    _G_ulVmmSwitchAddr =  pvirdes[i].VIRD_ulVirAddr;
+                    ulAddr =  _G_ulVmmSwitchAddr + LW_CFG_VMM_PAGE_SIZE;
                 
+                } else {
+                    ulAddr =  pvirdes[i].VIRD_ulVirAddr;
+                }
                 ulError = __pageZoneCreate(&_G_vmzoneVirApp[ulZone], 
-                                           _G_ulVmmSwitchAddr + LW_CFG_VMM_PAGE_SIZE, 
-                                           pvirdes[i].VIRD_stSize, 
+                                           ulAddr, pvirdes[i].VIRD_stSize, 
                                            LW_ZONE_ATTR_NONE,
                                            __VMM_PAGE_TYPE_VIRTUAL);
-            } else {
-                ulError = __pageZoneCreate(&_G_vmzoneVirApp[ulZone], 
+                if (ulError) {
+                    _DebugHandle(__ERRORMESSAGE_LEVEL, "kernel low memory.\r\n");
+                    _ErrorHandle(ulError);
+                    return  (ulError);
+                }
+            }
+            break;
+            
+        case LW_VIRTUAL_MEM_DEV:
+            if (ulZone < LW_CFG_VMM_ZONE_NUM) {
+                _G_vmvirDescDev = pvirdes[i];
+                ulError = __pageZoneCreate(&_G_vmzoneVirDev, 
                                            pvirdes[i].VIRD_ulVirAddr, 
                                            pvirdes[i].VIRD_stSize, 
                                            LW_ZONE_ATTR_NONE,
                                            __VMM_PAGE_TYPE_VIRTUAL);
+                if (ulError) {
+                    _DebugHandle(__ERRORMESSAGE_LEVEL, "kernel low memory.\r\n");
+                    _ErrorHandle(ulError);
+                    return  (ulError);
+                }
             }
-            ulZone++;
+            break;
             
-        } else {
-            _G_vmvirDescDev = pvirdes[i];
-            
-            ulError = __pageZoneCreate(&_G_vmzoneVirDev, 
-                                       pvirdes[i].VIRD_ulVirAddr, 
-                                       pvirdes[i].VIRD_stSize, 
-                                       LW_ZONE_ATTR_NONE,
-                                       __VMM_PAGE_TYPE_VIRTUAL);
-        }
-        
-        if (ulError) {
-            _ErrorHandle(ulError);
-            return  (ulError);
+        default:
+            break;
         }
     }
     

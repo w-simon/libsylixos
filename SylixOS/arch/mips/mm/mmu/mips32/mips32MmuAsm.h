@@ -22,6 +22,10 @@
 #ifndef __MIPS32MMUASM_H
 #define __MIPS32MMUASM_H
 
+#if defined(__ASSEMBLY__) || defined(ASSEMBLY)
+#include "config/kernel/memory_cfg.h"
+#endif
+
 #include "arch/mips/arch_mmu.h"
 
 /*********************************************************************************************************

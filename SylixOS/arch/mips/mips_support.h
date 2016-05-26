@@ -258,6 +258,8 @@ INT     archFpuUndHandle(PLW_CLASS_TCB  ptcbCur);
 VOID    bspIntInit(VOID);
 VOID    bspIntHandle(VOID);
 
+UINT32  bspIntInitEnableStatus(VOID);
+
 VOID    bspIntVectorEnable(ULONG  ulVector);
 VOID    bspIntVectorDisable(ULONG  ulVector);
 BOOL    bspIntVectorIsEnable(ULONG  ulVector);

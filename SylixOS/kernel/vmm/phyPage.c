@@ -48,33 +48,71 @@ LW_VMM_ZONE     _G_vmzonePhysical[LW_CFG_VMM_ZONE_NUM];                 /*  物理
 /*********************************************************************************************************
 ** 函数名称: __vmmPhysicalCreate
 ** 功能描述: 创建一个物理分页区域.
-** 输　入  : ulZoneIndex       物理区域编号
-**           ulAddr            起始地址
-**           stSize            物理区域大小
-**           uiAttr            物理区域属性
+** 输　入  : pphydesc          物理区域描述表
 ** 输　出  : ERROR CODE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-ULONG  __vmmPhysicalCreate (ULONG  ulZoneIndex, addr_t  ulAddr, size_t  stSize, UINT  uiAttr)
+ULONG  __vmmPhysicalCreate (LW_MMU_PHYSICAL_DESC  pphydesc[])
 {
-    REGISTER ULONG  ulError;
-
-    if (uiAttr & LW_ZONE_ATTR_DMA) {
-        _BugFormat(__vmmLibVirtualOverlap(ulAddr, stSize), LW_TRUE,
-                   "physical zone paddr 0x%08lx size : 0x%08zx overlap with virtual space.\r\n",
-                   ulAddr, stSize);
+    REGISTER ULONG  ulError = ERROR_NONE;
+             ULONG  ulZone  = 0;
+             INT    i;
+             
+    for (i = 0; ; i++) {
+        if (pphydesc[i].PHYD_stSize == 0) {
+            break;
+        }
+        
+        _BugFormat(!ALIGNED(pphydesc[i].PHYD_ulPhyAddr, LW_CFG_VMM_PAGE_SIZE), LW_TRUE,
+                   "physical zone vaddr 0x%08lx not page aligned.\r\n", 
+                   pphydesc[i].PHYD_ulPhyAddr);
+        
+        switch (pphydesc[i].PHYD_uiType) {
+        
+        case LW_PHYSICAL_MEM_DMA:
+            if (ulZone < LW_CFG_VMM_ZONE_NUM) {
+                _BugFormat(__vmmLibVirtualOverlap(pphydesc[i].PHYD_ulPhyAddr, 
+                                                  pphydesc[i].PHYD_stSize), LW_TRUE,
+                           "physical zone paddr 0x%08lx size : 0x%08zx overlap with virtual space.\r\n",
+                           pphydesc[i].PHYD_ulPhyAddr, pphydesc[i].PHYD_stSize);
+            
+                ulError = __pageZoneCreate(&_G_vmzonePhysical[ulZone], 
+                                           pphydesc[i].PHYD_ulPhyAddr, 
+                                           pphydesc[i].PHYD_stSize,
+                                           LW_ZONE_ATTR_DMA, 
+                                           __VMM_PAGE_TYPE_PHYSICAL);   /*  初始化物理 zone             */
+                if (ulError) {
+                    _DebugHandle(__ERRORMESSAGE_LEVEL, "kernel low memory.\r\n");
+                    _ErrorHandle(ulError);
+                    return  (ulError);
+                }
+                ulZone++;
+            }
+            break;
+            
+        case LW_PHYSICAL_MEM_APP:
+            if (ulZone < LW_CFG_VMM_ZONE_NUM) {
+                ulError = __pageZoneCreate(&_G_vmzonePhysical[ulZone], 
+                                           pphydesc[i].PHYD_ulPhyAddr, 
+                                           pphydesc[i].PHYD_stSize,
+                                           LW_ZONE_ATTR_NONE, 
+                                           __VMM_PAGE_TYPE_PHYSICAL);   /*  初始化物理 zone             */
+                if (ulError) {
+                    _DebugHandle(__ERRORMESSAGE_LEVEL, "kernel low memory.\r\n");
+                    _ErrorHandle(ulError);
+                    return  (ulError);
+                }
+                ulZone++;
+            }
+            break;
+            
+        default:
+            break;
+        }
     }
-
-    ulError = __pageZoneCreate(&_G_vmzonePhysical[ulZoneIndex], ulAddr, stSize, uiAttr,
-                               __VMM_PAGE_TYPE_PHYSICAL);
-    if (ulError) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "kernel low memory.\r\n");
-        return  (ulError);
     
-    } else {
-        return  (ERROR_NONE);
-    }
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: __vmmPhysicalPageAlloc
@@ -545,6 +583,7 @@ ULONG  __vmmPhysicalPageGetMinContinue (ULONG  *pulZoneIndex, UINT  uiAttr)
     
     return  (ulMin);
 }
+
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 /*********************************************************************************************************
   END

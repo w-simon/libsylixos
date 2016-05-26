@@ -117,6 +117,8 @@ static INT __miiAbilFlagUpdate (PHY_DEV *pPhyDev)
         }
     }
     
+    pPhyDev->PHY_usPhyStatus = usPhyStatus;                             /* Save status                  */
+    
     return  (MII_OK);
 }
 /*********************************************************************************************************

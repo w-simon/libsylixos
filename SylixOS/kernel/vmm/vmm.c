@@ -117,9 +117,7 @@ ULONG  API_VmmLibPrimaryInit (LW_MMU_PHYSICAL_DESC  pphydesc[],
                               CPCHAR                pcMachineName)
 {
     static BOOL     bIsInit = LW_FALSE;
-    
            INT      i;
-           ULONG    ulZone;
            ULONG    ulError;
            ULONG    ulPageNum = 0;
            
@@ -166,63 +164,16 @@ ULONG  API_VmmLibPrimaryInit (LW_MMU_PHYSICAL_DESC  pphydesc[],
         return  (ulError);
     }
     
-    ulZone  = 0;
-    ulError = ERROR_NONE;
+    ulError = __vmmPhysicalCreate(pphydesc);                            /*  初始化物理空间              */
+    if (ulError) {
+        _ErrorHandle(ulError);
+        return  (ulError);
+    }
     
-    for (i = 0; ; i++) {
-        if (pphydesc[i].PHYD_stSize == 0) {
-            break;
-        }
-        
-        switch (pphydesc[i].PHYD_uiType) {                              /*  初始化 zone                 */
-        
-        case LW_PHYSICAL_MEM_DMA:
-            if (ulZone < LW_CFG_VMM_ZONE_NUM) {
-                ulError = __vmmPhysicalCreate(ulZone, 
-                                              pphydesc[i].PHYD_ulPhyAddr, 
-                                              pphydesc[i].PHYD_stSize,
-                                              LW_ZONE_ATTR_DMA);        /*  初始化物理 zone             */
-                if (ulError) {
-                    _ErrorHandle(ulError);
-                    return  (ulError);
-                }
-                
-                ulError = __areaPhysicalSpaceInit(ulZone, 
-                                                  pphydesc[i].PHYD_ulPhyAddr, 
-                                                  pphydesc[i].PHYD_stSize);
-                if (ulError) {
-                    _ErrorHandle(ulError);
-                    return  (ulError);
-                }
-                ulZone++;
-            }
-            break;
-            
-        case LW_PHYSICAL_MEM_APP:
-            if (ulZone < LW_CFG_VMM_ZONE_NUM) {
-                ulError = __vmmPhysicalCreate(ulZone, 
-                                              pphydesc[i].PHYD_ulPhyAddr, 
-                                              pphydesc[i].PHYD_stSize,
-                                              LW_ZONE_ATTR_NONE);       /*  初始化物理 zone             */
-                if (ulError) {
-                    _ErrorHandle(ulError);
-                    return  (ulError);
-                }
-                
-                ulError = __areaPhysicalSpaceInit(ulZone, 
-                                                  pphydesc[i].PHYD_ulPhyAddr, 
-                                                  pphydesc[i].PHYD_stSize);
-                if (ulError) {
-                    _ErrorHandle(ulError);
-                    return  (ulError);
-                }
-                ulZone++;
-            }
-            break;
-            
-        default:
-            break;
-        }
+    ulError = __areaPhysicalSpaceInit(pphydesc);                        /*  初始化物理空间反查表初始化  */
+    if (ulError) {
+        _ErrorHandle(ulError);
+        return  (ulError);
     }
     
     _G_ulVmmLock = API_SemaphoreMCreate("vmm_lock", LW_PRIO_DEF_CEILING, 

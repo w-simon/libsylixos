@@ -891,6 +891,9 @@ __re_select:
             
             } else if ((cTemp[0] != 'Y') && (cTemp[0] != 'y')) {        /*  选择错误                    */
                 goto    __re_select;
+            
+            } else {                                                    /*  选择覆盖                    */
+                unlink(cDstFile);                                       /*  删除目标文件                */
             }
         }
     }
@@ -1189,7 +1192,7 @@ static INT  __tshellFsCmdLl (INT  iArgC, PCHAR  ppcArgV[])
                 }
                 stat(cDstName, &statDst);
                 API_TShellColorStart(pdirent->d_name, cDstName, statGet.st_mode, STD_OUT);
-                printf("           %s/ -> ", pdirent->d_name);
+                printf("           %s -> ", pdirent->d_name);
                 API_TShellColorStart(cDstName, "", statDst.st_mode, STD_OUT);
                 printf("%s\n", cDstName);
                 API_TShellColorEnd(STD_OUT);

@@ -93,14 +93,14 @@ BOOL  __vmmLibVirtualOverlap (addr_t  ulAddr, size_t  stSize)
         pvirdescApp = __vmmVirtualDesc(LW_VIRTUAL_MEM_APP, i);
         if (pvirdescApp->VIRD_stSize) {
             __ADDR_OVERLAP(pvirdescApp, ulAddr);
-            __ADDR_OVERLAP(pvirdescApp, ulAddr + stSize);
+            __ADDR_OVERLAP(pvirdescApp, ulAddr + stSize - 1);
         }
     }
 
     pvirdescDev = __vmmVirtualDesc(LW_VIRTUAL_MEM_DEV, 0);
     if (pvirdescDev->VIRD_stSize) {
         __ADDR_OVERLAP(pvirdescDev, ulAddr);
-        __ADDR_OVERLAP(pvirdescDev, ulAddr + stSize);
+        __ADDR_OVERLAP(pvirdescDev, ulAddr + stSize - 1);
     }
 
     return  (LW_FALSE);

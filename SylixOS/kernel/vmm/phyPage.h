@@ -37,7 +37,7 @@ typedef LW_VMM_ZONE_DESC    *PLW_VMM_ZONE_DESC;
   物理空间操作
 *********************************************************************************************************/
 
-ULONG           __vmmPhysicalCreate(ULONG  ulZoneIndex, addr_t  ulAddr, size_t  stSize, UINT  uiAttr);
+ULONG           __vmmPhysicalCreate(LW_MMU_PHYSICAL_DESC  pphydesc[]);
 PLW_VMM_PAGE    __vmmPhysicalPageAlloc(ULONG  ulPageNum, UINT  uiAttr, ULONG  *pulZoneIndex);
 PLW_VMM_PAGE    __vmmPhysicalPageAllocZone(ULONG  ulZoneIndex, ULONG  ulPageNum, UINT  uiAttr);
 PLW_VMM_PAGE    __vmmPhysicalPageAllocAlign(ULONG   ulPageNum, 
