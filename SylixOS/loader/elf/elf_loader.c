@@ -721,6 +721,8 @@ static INT elfBuildInitTbl (LW_LD_EXEC_MODULE *pmodule, Elf_Shdr *pshdr, UINT ui
     }
 
     for (i = 0; i < pmodule->EMOD_ulSegCount; i++) {
+        pcShName = (PCHAR)pmodule->EMOD_psegmentArry[uiShStrNdx].ESEG_ulAddr
+                   + pshdr[i].sh_name;
         if (pcShName == lib_strstr(pcShName, __LW_CTORS_SECTION)) {     /*  匹配.ctor节                 */
             uiInitTblSize += (pshdr[i].sh_size / sizeof(Elf_Addr));
         }
@@ -757,6 +759,9 @@ static INT elfBuildInitTbl (LW_LD_EXEC_MODULE *pmodule, Elf_Shdr *pshdr, UINT ui
     }
 
     for (i = 0; i < pmodule->EMOD_ulSegCount; i++) {
+        pcShName = (PCHAR)pmodule->EMOD_psegmentArry[uiShStrNdx].ESEG_ulAddr
+                   + pshdr[i].sh_name;
+        paddr = (Elf_Addr *)pmodule->EMOD_psegmentArry[i].ESEG_ulAddr;
         if (pcShName == lib_strstr(pcShName, __LW_CTORS_SECTION)) {     /*  匹配.ctor节                 */
             for (k = 0; k < (pshdr[i].sh_size / sizeof(Elf_Addr)); k++) {
                 pmodule->EMOD_ppfuncInitArray[uiInitTblSize++] = (VOIDFUNCPTR)paddr[k];
@@ -780,8 +785,10 @@ __finibuild:
     }
 
     for (i = 0; i < pmodule->EMOD_ulSegCount; i++) {
+        pcShName = (PCHAR)pmodule->EMOD_psegmentArry[uiShStrNdx].ESEG_ulAddr
+                   + pshdr[i].sh_name;
         if (pcShName == lib_strstr(pcShName, __LW_DTORS_SECTION)) {     /*  匹配.dtor节                 */
-            uiInitTblSize += (pshdr[i].sh_size / sizeof(Elf_Addr));
+            uiFiniTblSize += (pshdr[i].sh_size / sizeof(Elf_Addr));
         }
     }
 
@@ -815,6 +822,9 @@ __finibuild:
     }
 
     for (i = 0; i < pmodule->EMOD_ulSegCount; i++) {
+        pcShName = (PCHAR)pmodule->EMOD_psegmentArry[uiShStrNdx].ESEG_ulAddr
+                   + pshdr[i].sh_name;                              	/* 获取符号所在节名称           */
+        paddr = (Elf_Addr *)pmodule->EMOD_psegmentArry[i].ESEG_ulAddr;
         if (pcShName == lib_strstr(pcShName, __LW_DTORS_SECTION)) {     /*  匹配.dtor节                 */
             for (k = 0; k < (pshdr[i].sh_size / sizeof(Elf_Addr)); k++) {
                 pmodule->EMOD_ppfuncFiniArray[uiFiniTblSize++] = (VOIDFUNCPTR)paddr[k];

@@ -23,7 +23,7 @@
 #define __ARCH_PPCMMUE500TLB1_H
 
 INT  ppcE500MmuTLB1Init(CPCHAR  pcMachineName);
-INT  ppcE500MmuTLB1GlobalMap(PLW_MMU_GLOBAL_DESC  pdesc);
+INT  ppcE500MmuTLB1GlobalMap(PLW_MMU_PHYSICAL_DESC  pdesc);
 
 #endif                                                                  /*  __ARCH_PPCMMUE500TLB1_H     */
 /*********************************************************************************************************

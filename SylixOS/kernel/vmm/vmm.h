@@ -56,8 +56,9 @@ typedef struct __lw_vmm_physical_desc {
 #define LW_PHYSICAL_MEM_DATA        1                                   /*  内核数据段 (包括 HEAP)      */
 #define LW_PHYSICAL_MEM_VECTOR      2                                   /*  硬件向量表                  */
 #define LW_PHYSICAL_MEM_BOOTSFR     3                                   /*  启动时需要的特殊功能寄存器  */
-#define LW_PHYSICAL_MEM_DMA         4                                   /*  DMA 物理内存, 不进行提前映射*/
-#define LW_PHYSICAL_MEM_APP         5                                   /*  装载程序内存, 不进行提前映射*/
+#define LW_PHYSICAL_MEM_BUSPOOL     4                                   /*  总线地址池, 不进行提前映射  */
+#define LW_PHYSICAL_MEM_DMA         5                                   /*  DMA 物理内存, 不进行提前映射*/
+#define LW_PHYSICAL_MEM_APP         6                                   /*  装载程序内存, 不进行提前映射*/
     UINT32                   PHYD_uiType;                               /*  物理内存区间类型            */
     UINT32                   PHYD_uiReserve[8];
 } LW_MMU_PHYSICAL_DESC;
