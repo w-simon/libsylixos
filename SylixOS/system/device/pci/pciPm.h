@@ -31,9 +31,9 @@
   电源管理消息
 *********************************************************************************************************/
 typedef struct {
-    INT     PPMT_iEvent;
-} PCI_PM_MESSAGE_TCB;
-typedef PCI_PM_MESSAGE_TCB     *PCI_PM_MESSAGE_HANDLE;
+    INT                        PCIMSG_iEvent;
+} PCI_PM_MESSAGE_CB;
+typedef PCI_PM_MESSAGE_CB     *PCI_PM_MESSAGE_HANDLE;
 
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */
                                                                         /*  (LW_CFG_PCI_EN > 0)         */

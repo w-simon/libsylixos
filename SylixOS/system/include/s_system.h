@@ -105,7 +105,8 @@
 #include "../SylixOS/system/device/i2c/i2cDev.h"                        /*  i2c 总线符号仅对内核开放    */
 #include "../SylixOS/system/device/spi/spiDev.h"                        /*  spi 总线符号仅对内核开放    */
 #include "../SylixOS/system/device/sd/sdDev.h"                          /*  sd 总线符号仅对内核开放     */
-#include "../SylixOS/system/device/pci/pciDev.h"                        /*  pci 总线符号仅对内核开放    */
+#include "../SylixOS/system/device/pci/pciDev.h"                        /*  pci 设备符号仅对内核开放    */
+#include "../SylixOS/system/device/pci/pciDrv.h"                        /*  pci 驱动符号仅对内核开放    */
 #include "../SylixOS/system/device/pci/pciScan.h"                       /*  pci 总线自动扫描安装对应驱动*/
 #include "../SylixOS/system/device/sdcard/include/sdcardLib.h"          /*  sd 卡相关驱动框架           */
 #include "../SylixOS/system/device/mem/memDev.h"                        /*  VxWorks memDev              */

@@ -27,6 +27,7 @@
   ²Ã¼ôºê
 *********************************************************************************************************/
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_PCI_EN > 0)
+#include "pciLib.h"
 #include "pciBus.h"
 #include "pciDev.h"
 #include "pciShow.h"

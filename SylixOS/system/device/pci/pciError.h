@@ -31,9 +31,9 @@
   ´íÎó¹ÜÀí¿ØÖÆ¿é
 *********************************************************************************************************/
 typedef struct {
-    INT         PCIERR_iIndex;
-} PCI_ERROR_TCB;
-typedef PCI_ERROR_TCB      *PCI_ERROR_HANDLE;
+    INT                  PCIERR_iIndex;
+} PCI_ERROR_CB;
+typedef PCI_ERROR_CB    *PCI_ERROR_HANDLE;
 
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */
                                                                         /*  (LW_CFG_PCI_EN > 0)         */

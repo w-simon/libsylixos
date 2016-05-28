@@ -28,12 +28,13 @@
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_PCI_EN > 0)
 #include "pciIds.h"
 #include "pciDev.h"
+#include "pciLib.h"
 #include "pciShow.h"
 /*********************************************************************************************************
   PCI 主控器
 *********************************************************************************************************/
-extern PCI_CONFIG      *_G_p_pciConfig;
-INT                     _G_iPciVerbose = 0;
+extern PCI_CTRL_HANDLE      _GhPciCtrlHandle;
+INT                         _G_iPciVerbose = 0;
 /*********************************************************************************************************
 ** 函数名称: API_PciBusDeviceShow
 ** 功能描述: 打印某个总线上所有设备的信息.
@@ -53,14 +54,14 @@ INT  API_PciBusDeviceShow (INT iBus)
     UINT8       ucHeaderType;
     INT         iFunc;
 
-    if ((_G_p_pciConfig->PCIC_ucMechanism == PCI_MECHANISM_2) &&
-        (PCI_MAX_SLOTS                    >  16             )) {
+    if ((_GhPciCtrlHandle->PCI_ucMechanism == PCI_MECHANISM_2) &&
+        (PCI_MAX_SLOTS                     >  16             )) {
         printf ("Invalid configuration. PCI_MAX_SLOTS > 16, PCI mechanism #2\n");
         return  (PX_ERROR);
     }
 
     printf("Scanning functions of each PCI device on bus %d\n", iBus);
-    printf("Using configuration mechanism %d\n", _G_p_pciConfig->PCIC_ucMechanism);
+    printf("Using configuration mechanism %d\n", _GhPciCtrlHandle->PCI_ucMechanism);
     printf("bus       device    function  vendorID  deviceID  class/rev\n");
 
     for (iSlot = 0; iSlot < PCI_MAX_SLOTS; iSlot++) {
@@ -175,12 +176,12 @@ static VOID  __pciDeviceHeaderShow (PCI_DEV_HDR *phdrDevice)
     printf("latency time =                0x%.2x\n", (UINT8)phdrDevice->PCID_ucLatency);
     printf("header type =                 0x%.2x\n", (UINT8)phdrDevice->PCID_ucHeaderType);
     printf("BIST =                        0x%.2x\n", (UINT8)phdrDevice->PCID_ucBist);
-    printf("base address 0 =              0x%.8x\n", phdrDevice->PCID_uiBase0);
-    printf("base address 1 =              0x%.8x\n", phdrDevice->PCID_uiBase1);
-    printf("base address 2 =              0x%.8x\n", phdrDevice->PCID_uiBase2);
-    printf("base address 3 =              0x%.8x\n", phdrDevice->PCID_uiBase3);
-    printf("base address 4 =              0x%.8x\n", phdrDevice->PCID_uiBase4);
-    printf("base address 5 =              0x%.8x\n", phdrDevice->PCID_uiBase5);
+    printf("base address 0 =              0x%.8x\n", phdrDevice->PCID_uiBase[PCI_BAR_INDEX_0]);
+    printf("base address 1 =              0x%.8x\n", phdrDevice->PCID_uiBase[PCI_BAR_INDEX_1]);
+    printf("base address 2 =              0x%.8x\n", phdrDevice->PCID_uiBase[PCI_BAR_INDEX_2]);
+    printf("base address 3 =              0x%.8x\n", phdrDevice->PCID_uiBase[PCI_BAR_INDEX_3]);
+    printf("base address 4 =              0x%.8x\n", phdrDevice->PCID_uiBase[PCI_BAR_INDEX_4]);
+    printf("base address 5 =              0x%.8x\n", phdrDevice->PCID_uiBase[PCI_BAR_INDEX_5]);
     printf("cardBus CIS pointer =         0x%.8x\n", phdrDevice->PCID_uiCis);
     printf("sub system vendor ID =        0x%.4x\n", (UINT16)phdrDevice->PCID_usSubVendorId);
     printf("sub system ID =               0x%.4x\n", (UINT16)phdrDevice->PCID_usSubSystemId);
@@ -213,8 +214,8 @@ static VOID  __pciBridgeHeaderShow (PCI_BRG_HDR *phdrBridge)
     printf("latency time =                0x%.2x\n", (UINT8)phdrBridge->PCIB_ucLatency);
     printf("header type =                 0x%.2x\n", (UINT8)phdrBridge->PCIB_ucHeaderType);
     printf("BIST =                        0x%.2x\n", (UINT8)phdrBridge->PCIB_ucBist);
-    printf("base address 0 =              0x%.8x\n", phdrBridge->PCIB_uiBase0);
-    printf("base address 1 =              0x%.8x\n", phdrBridge->PCIB_uiBase1);
+    printf("base address 0 =              0x%.8x\n", phdrBridge->PCIB_uiBase[PCI_BAR_INDEX_0]);
+    printf("base address 1 =              0x%.8x\n", phdrBridge->PCIB_uiBase[PCI_BAR_INDEX_1]);
     printf("primary bus number =          0x%.2x\n", (UINT8)phdrBridge->PCIB_ucPriBus);
     printf("secondary bus number =        0x%.2x\n", (UINT8)phdrBridge->PCIB_ucSecBus);
     printf("subordinate bus number =      0x%.2x\n", (UINT8)phdrBridge->PCIB_ucSubBus);
@@ -258,7 +259,7 @@ static VOID  __pciCardBridgeHeaderShow (PCI_CBUS_HDR *phdrCardBridge)
     printf("latency time =                0x%.2x\n", (UINT8)phdrCardBridge->PCICB_ucLatency);
     printf("header type =                 0x%.2x\n", (UINT8)phdrCardBridge->PCICB_ucHeaderType);
     printf("BIST =                        0x%.2x\n", (UINT8)phdrCardBridge->PCICB_ucBist);
-    printf("base address 0 =              0x%.8x\n", phdrCardBridge->PCICB_uiBase0);
+    printf("base address 0 =              0x%.8x\n", phdrCardBridge->PCICB_uiBase[PCI_BAR_INDEX_0]);
     printf("capabilities pointer =        0x%.2x\n", (UINT8)phdrCardBridge->PCICB_ucCapPtr);
     printf("secondary status =            0x%.4x\n", (UINT16)phdrCardBridge->PCICB_usSecStatus);
     printf("primary bus number =          0x%.2x\n", (UINT8)phdrCardBridge->PCICB_ucPriBus);
@@ -328,9 +329,9 @@ INT  API_PciHeaderShow (INT iBus, INT iSlot, INT iFunc)
         API_PciConfigInByte(iBus, iSlot, iFunc, PCI_BIST,
                             (UINT8 *)&phdrBridge->PCIB_ucBist);
         API_PciConfigInDword(iBus, iSlot, iFunc, PCI_BASE_ADDRESS_0,
-                             (UINT32 *)&phdrBridge->PCIB_uiBase0);
+                             (UINT32 *)&phdrBridge->PCIB_uiBase[PCI_BAR_INDEX_0]);
         API_PciConfigInDword(iBus, iSlot, iFunc, PCI_BASE_ADDRESS_1,
-                             (UINT32 *)&phdrBridge->PCIB_uiBase1);
+                             (UINT32 *)&phdrBridge->PCIB_uiBase[PCI_BAR_INDEX_1]);
         API_PciConfigInByte(iBus, iSlot, iFunc, PCI_PRIMARY_BUS,
                             (UINT8 *)&phdrBridge->PCIB_ucPriBus);
         API_PciConfigInByte(iBus, iSlot, iFunc, PCI_SECONDARY_BUS,
@@ -400,7 +401,7 @@ INT  API_PciHeaderShow (INT iBus, INT iSlot, INT iFunc)
         API_PciConfigInByte(iBus, iSlot, iFunc, PCI_BIST,
                             (UINT8 *)&phdrCardBridge->PCICB_ucBist);
         API_PciConfigInDword(iBus, iSlot, iFunc, PCI_BASE_ADDRESS_0,
-                             (UINT32 *)&phdrCardBridge->PCICB_uiBase0);
+                             (UINT32 *)&phdrCardBridge->PCICB_uiBase[PCI_BAR_INDEX_0]);
         API_PciConfigInByte(iBus, iSlot, iFunc, PCI_CB_CAPABILITY_LIST,
                             (UINT8 *)&phdrCardBridge->PCICB_ucCapPtr);
         API_PciConfigInWord(iBus, iSlot, iFunc, PCI_CB_SEC_STATUS,
@@ -472,17 +473,17 @@ INT  API_PciHeaderShow (INT iBus, INT iSlot, INT iFunc)
         API_PciConfigInByte(iBus, iSlot, iFunc, PCI_BIST,
                             (UINT8 *)&phdrDevice->PCID_ucBist);
         API_PciConfigInDword(iBus, iSlot, iFunc, PCI_BASE_ADDRESS_0,
-                             (UINT32 *)&phdrDevice->PCID_uiBase0);
+                             (UINT32 *)&phdrDevice->PCID_uiBase[PCI_BAR_INDEX_0]);
         API_PciConfigInDword(iBus, iSlot, iFunc, PCI_BASE_ADDRESS_1,
-                             (UINT32 *)&phdrDevice->PCID_uiBase1);
+                             (UINT32 *)&phdrDevice->PCID_uiBase[PCI_BAR_INDEX_1]);
         API_PciConfigInDword(iBus, iSlot, iFunc, PCI_BASE_ADDRESS_2,
-                             (UINT32 *)&phdrDevice->PCID_uiBase2);
+                             (UINT32 *)&phdrDevice->PCID_uiBase[PCI_BAR_INDEX_2]);
         API_PciConfigInDword(iBus, iSlot, iFunc, PCI_BASE_ADDRESS_3,
-                             (UINT32 *)&phdrDevice->PCID_uiBase3);
+                             (UINT32 *)&phdrDevice->PCID_uiBase[PCI_BAR_INDEX_3]);
         API_PciConfigInDword(iBus, iSlot, iFunc, PCI_BASE_ADDRESS_4,
-                             (UINT32 *)&phdrDevice->PCID_uiBase4);
+                             (UINT32 *)&phdrDevice->PCID_uiBase[PCI_BAR_INDEX_4]);
         API_PciConfigInDword(iBus, iSlot, iFunc, PCI_BASE_ADDRESS_5,
-                             (UINT32 *)&phdrDevice->PCID_uiBase5);
+                             (UINT32 *)&phdrDevice->PCID_uiBase[PCI_BAR_INDEX_5]);
         API_PciConfigInDword(iBus, iSlot, iFunc, PCI_CARDBUS_CIS,
                              (UINT32 *)&phdrDevice->PCID_uiCis);
         API_PciConfigInWord(iBus, iSlot, iFunc, PCI_SUBSYSTEM_VENDOR_ID,

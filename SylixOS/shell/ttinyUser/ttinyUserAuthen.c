@@ -83,7 +83,7 @@ ULONG  __tshellUserAuthen (INT  iTtyFd)
     /*
      *  获得用户名
      */
-    write(iTtyFd, "login as: ", 10);
+    write(iTtyFd, "login: ", 7);
     
     iRetValue = waitread(iTtyFd, &tv);                                  /*  等待用户输入用户名          */
     if (iRetValue != 1) {
@@ -114,7 +114,7 @@ ULONG  __tshellUserAuthen (INT  iTtyFd)
     /*
      *  获得用户密码
      */
-    ioctl(iTtyFd, FIOFLUSH);                                            /*  清除缓冲区                  */
+    ioctl(iTtyFd, FIORFLUSH);                                           /*  清除缓冲区                  */
     write(iTtyFd, "password: ", 10);
     
     iRetValue = waitread(iTtyFd, &tv);                                  /*  等待用户输入密码            */
@@ -134,7 +134,7 @@ ULONG  __tshellUserAuthen (INT  iTtyFd)
     
     iRetValue = userlogin(cUserName, cPassword, 1);                     /*  用户登陆                    */
     
-    ioctl(iTtyFd, FIOFLUSH);                                            /*  清除缓冲区                  */
+    ioctl(iTtyFd, FIORFLUSH);                                           /*  清除缓冲区                  */
     ioctl(iTtyFd, FIOSETOPTIONS, iOldOpt);                              /*  返回先前的模式              */
     
     if (iRetValue == 0) {

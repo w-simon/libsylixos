@@ -27,10 +27,10 @@
   裁剪宏
 *********************************************************************************************************/
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_PCI_EN > 0)
-
 #include "endian.h"
 #include "pciDev.h"
 #include "pciDrv.h"
+#include "pciLib.h"
 /*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
@@ -58,20 +58,17 @@ INT  API_PciDevInterDisable (PCI_DEV_HANDLE   hHandle,
                              PINT_SVR_ROUTINE pfuncIsr,
                              PVOID            pvArg)
 {
-    INT     iRet = PX_ERROR;
-
     if (hHandle == LW_NULL) {
         return  (PX_ERROR);
     }
 
-    if ((hHandle->PDT_ulDevIrqVector    != ulVector) ||
-        (hHandle->PDT_pfuncDevIrqHandle != pfuncIsr) ||
-        (hHandle->PDT_pvDevIrqArg       != pvArg   )) {
+    if ((hHandle->PCIDEV_ulDevIrqVector    != ulVector) ||
+        (hHandle->PCIDEV_pfuncDevIrqHandle != pfuncIsr) ||
+        (hHandle->PCIDEV_pvDevIrqArg       != pvArg   )) {
         return  (PX_ERROR);
     }
 
-    iRet = API_InterVectorDisable(ulVector);
-    if (iRet != ERROR_NONE) {
+    if (API_InterVectorDisable(ulVector)) {
         return  (PX_ERROR);
     }
 
@@ -95,20 +92,17 @@ INT  API_PciDevInterEnable (PCI_DEV_HANDLE   hHandle,
                             PINT_SVR_ROUTINE pfuncIsr,
                             PVOID            pvArg)
 {
-    INT     iRet = PX_ERROR;
-
     if (hHandle == LW_NULL) {
         return  (PX_ERROR);
     }
 
-    if ((hHandle->PDT_ulDevIrqVector    != ulVector) ||
-        (hHandle->PDT_pfuncDevIrqHandle != pfuncIsr) ||
-        (hHandle->PDT_pvDevIrqArg       != pvArg   )) {
+    if ((hHandle->PCIDEV_ulDevIrqVector    != ulVector) ||
+        (hHandle->PCIDEV_pfuncDevIrqHandle != pfuncIsr) ||
+        (hHandle->PCIDEV_pvDevIrqArg       != pvArg   )) {
         return  (PX_ERROR);
     }
 
-    iRet = API_InterVectorEnable(ulVector);
-    if (iRet != ERROR_NONE) {
+    if (API_InterVectorEnable(ulVector)) {
         return  (PX_ERROR);
     }
 
@@ -138,9 +132,9 @@ INT  API_PciDevInterDisonnect (PCI_DEV_HANDLE    hHandle,
         return  (PX_ERROR);
     }
 
-    if ((hHandle->PDT_ulDevIrqVector    != ulVector) ||
-        (hHandle->PDT_pfuncDevIrqHandle != pfuncIsr) ||
-        (hHandle->PDT_pvDevIrqArg       != pvArg   )) {
+    if ((hHandle->PCIDEV_ulDevIrqVector    != ulVector) ||
+        (hHandle->PCIDEV_pfuncDevIrqHandle != pfuncIsr) ||
+        (hHandle->PCIDEV_pvDevIrqArg       != pvArg   )) {
         return  (PX_ERROR);
     }
 
@@ -149,9 +143,9 @@ INT  API_PciDevInterDisonnect (PCI_DEV_HANDLE    hHandle,
         return  (PX_ERROR);
     }
 
-    lib_bzero(hHandle->PDT_cDevIrqName, PCI_DEV_IRQ_NAME_MAX);
-    hHandle->PDT_pfuncDevIrqHandle = LW_NULL;
-    hHandle->PDT_pvDevIrqArg = LW_NULL;
+    lib_bzero(hHandle->PCIDEV_cDevIrqName, PCI_DEV_IRQ_NAME_MAX);
+    hHandle->PCIDEV_pfuncDevIrqHandle = LW_NULL;
+    hHandle->PCIDEV_pvDevIrqArg = LW_NULL;
 
     return  (ERROR_NONE);
 }
@@ -182,7 +176,7 @@ INT  API_PciDevInterConnect (PCI_DEV_HANDLE    hHandle,
         return  (PX_ERROR);
     }
 
-    if (hHandle->PDT_ulDevIrqVector != ulVector) {
+    if (hHandle->PCIDEV_ulDevIrqVector != ulVector) {
         return  (PX_ERROR);
     }
 
@@ -191,9 +185,9 @@ INT  API_PciDevInterConnect (PCI_DEV_HANDLE    hHandle,
         return  (PX_ERROR);
     }
 
-    lib_strncpy(hHandle->PDT_cDevIrqName, pcName, PCI_DEV_IRQ_NAME_MAX);
-    hHandle->PDT_pfuncDevIrqHandle = pfuncIsr;
-    hHandle->PDT_pvDevIrqArg       = pvArg;
+    lib_strncpy(hHandle->PCIDEV_cDevIrqName, pcName, PCI_DEV_IRQ_NAME_MAX);
+    hHandle->PCIDEV_pfuncDevIrqHandle = pfuncIsr;
+    hHandle->PCIDEV_pvDevIrqArg       = pvArg;
 
     return  (ERROR_NONE);
 }
@@ -220,12 +214,12 @@ INT  API_PciDevInterVectorGet (PCI_DEV_HANDLE  hHandle, ULONG *pulVector)
         return  (PX_ERROR);
     }
 
-    iHdrType = hHandle->PDT_phDevHdr.PCIH_ucType & PCI_HEADER_TYPE_MASK;
+    iHdrType = hHandle->PCIDEV_phDevHdr.PCIH_ucType & PCI_HEADER_TYPE_MASK;
     switch (iHdrType) {
 
     case PCI_HEADER_TYPE_NORMAL:
-        iLine = hHandle->PDT_phDevHdr.PCIH_pcidHdr.PCID_ucIntLine;
-        iPin  = hHandle->PDT_phDevHdr.PCIH_pcidHdr.PCID_ucIntPin;;
+        iLine = hHandle->PCIDEV_phDevHdr.PCIH_pcidHdr.PCID_ucIntLine;
+        iPin  = hHandle->PCIDEV_phDevHdr.PCIH_pcidHdr.PCID_ucIntPin;;
         break;
 
     case PCI_HEADER_TYPE_BRIDGE:
@@ -237,26 +231,28 @@ INT  API_PciDevInterVectorGet (PCI_DEV_HANDLE  hHandle, ULONG *pulVector)
         return  (PX_ERROR);
     }
 
-    iRet = API_PciCapFind(hHandle->PDT_iDevBus, hHandle->PDT_iDevDevice, hHandle->PDT_iDevFunction,
+    iRet = API_PciCapFind(hHandle->PCIDEV_iDevBus, hHandle->PCIDEV_iDevDevice, hHandle->PCIDEV_iDevFunction,
                           PCI_CAP_ID_MSI, &ucMsiCapPos);
     if (iRet == ERROR_NONE) {
-        iRet = API_PciMsiEnableGet(hHandle->PDT_iDevBus, hHandle->PDT_iDevDevice, hHandle->PDT_iDevFunction,
-                                   ucMsiCapPos, &hHandle->PDT_iDevIrqMsiEn);
+        iRet = API_PciMsiEnableGet(hHandle->PCIDEV_iDevBus, hHandle->PCIDEV_iDevDevice, 
+                                   hHandle->PCIDEV_iDevFunction,
+                                   ucMsiCapPos, &hHandle->PCIDEV_iDevIrqMsiEn);
         if (iRet != ERROR_NONE) {
             return  (PX_ERROR);
         }
     } else {
-        hHandle->PDT_iDevIrqMsiEn = LW_FALSE;
+        hHandle->PCIDEV_iDevIrqMsiEn = LW_FALSE;
     }
 
-    iRet = API_PciIrqGet(hHandle->PDT_iDevBus, hHandle->PDT_iDevDevice, hHandle->PDT_iDevFunction,
-                         hHandle->PDT_iDevIrqMsiEn, iLine, iPin, &hHandle->PDT_ulDevIrqVector);
+    iRet = API_PciIrqGet(hHandle->PCIDEV_iDevBus, hHandle->PCIDEV_iDevDevice, 
+                         hHandle->PCIDEV_iDevFunction,
+                         hHandle->PCIDEV_iDevIrqMsiEn, iLine, iPin, &hHandle->PCIDEV_ulDevIrqVector);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
 
     if (pulVector) {
-        *pulVector = hHandle->PDT_ulDevIrqVector;
+        *pulVector = hHandle->PCIDEV_ulDevIrqVector;
     }
 
     return  (ERROR_NONE);
@@ -265,58 +261,58 @@ INT  API_PciDevInterVectorGet (PCI_DEV_HANDLE  hHandle, ULONG *pulVector)
 ** 函数名称: __pciDevConfigBlockOp
 ** 功能描述: 按块操作 PCI 设备配置空间
 ** 输　入  : hHandle    设备控制句柄
-**           iPos       偏移位置
+**           uiPos      偏移位置
 **           pucBuf     数据缓冲区
-**           iLen       数据长度
+**           uiLen      数据长度
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
                                            API 函数
 *********************************************************************************************************/
 static
-INT  __pciDevConfigBlockOp (PCI_DEV_HANDLE  hHandle, INT  iPos, UINT8 *pucBuf, INT  iLen,
-                            INT (*pfuncOpt)(PCI_DEV_HANDLE  hHandle, INT  iPos, UINT8 *pucBuf, INT  iLen))
+INT  __pciDevConfigBlockOp (PCI_DEV_HANDLE  hHandle, INT  uiPos, UINT8 *pucBuf, INT  uiLen,
+                           INT (*pfuncOpt)(PCI_DEV_HANDLE hHandle, UINT uiPos, UINT8 *pucBuf, UINT uiLen))
 {
     INT     iRet = PX_ERROR;
 
-    if ((iPos & 1) && iLen >= 1) {
-        iRet = pfuncOpt(hHandle, iPos, pucBuf, 1);
+    if ((uiPos & 1) && uiLen >= 1) {
+        iRet = pfuncOpt(hHandle, uiPos, pucBuf, 1);
         if (iRet != ERROR_NONE) {
             return  (PX_ERROR);
         }
 
-        iPos++; pucBuf++; iLen--;
+        uiPos++; pucBuf++; uiLen--;
     }
 
-    if ((iPos & 3) && iLen >= 2) {
-        iRet = pfuncOpt(hHandle, iPos, pucBuf, 2);
+    if ((uiPos & 3) && uiLen >= 2) {
+        iRet = pfuncOpt(hHandle, uiPos, pucBuf, 2);
         if (iRet != ERROR_NONE) {
             return  (PX_ERROR);
         }
 
-        iPos += 2; pucBuf += 2; iLen -= 2;
+        uiPos += 2; pucBuf += 2; uiLen -= 2;
     }
 
-    while (iLen >= 4) {
-        iRet = pfuncOpt(hHandle, iPos, pucBuf, 4);
+    while (uiLen >= 4) {
+        iRet = pfuncOpt(hHandle, uiPos, pucBuf, 4);
         if (iRet != ERROR_NONE) {
             return  (PX_ERROR);
         }
 
-        iPos += 4; pucBuf += 4; iLen -= 4;
+        uiPos += 4; pucBuf += 4; uiLen -= 4;
     }
 
-    if (iLen >= 2) {
-        iRet = pfuncOpt(hHandle, iPos, pucBuf, 2);
+    if (uiLen >= 2) {
+        iRet = pfuncOpt(hHandle, uiPos, pucBuf, 2);
         if (iRet != ERROR_NONE) {
             return  (PX_ERROR);
         }
 
-        iPos += 2; pucBuf += 2; iLen -= 2;
+        uiPos += 2; pucBuf += 2; uiLen -= 2;
     }
 
-    iRet = pfuncOpt(hHandle, iPos, pucBuf, 1);
-    if ((iLen) &&
+    iRet = pfuncOpt(hHandle, uiPos, pucBuf, 1);
+    if ((uiLen) &&
         (iRet != ERROR_NONE)) {
         return  (PX_ERROR);
     }
@@ -327,71 +323,74 @@ INT  __pciDevConfigBlockOp (PCI_DEV_HANDLE  hHandle, INT  iPos, UINT8 *pucBuf, I
 ** 函数名称: __pciDevConfigBlockRead
 ** 功能描述: 按块读取 PCI 设备配置空间
 ** 输　入  : hHandle    设备控制句柄
-**           iPos       偏移位置
+**           uiPos      偏移位置
 **           pucBuf     数据缓冲区
-**           iLen       数据长度
+**           uiLen      数据长度
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
                                            API 函数
 *********************************************************************************************************/
 static
-INT  __pciDevConfigBlockRead (PCI_DEV_HANDLE  hHandle, INT  iPos, UINT8 *pucBuf, INT  iLen)
+INT  __pciDevConfigBlockRead (PCI_DEV_HANDLE  hHandle, UINT  uiPos, UINT8 *pucBuf, UINT  uiLen)
 {
-    return  (__pciDevConfigBlockOp(hHandle, iPos, pucBuf, iLen, API_PciDevConfigRead));
+    return  (__pciDevConfigBlockOp(hHandle, uiPos, pucBuf, uiLen, API_PciDevConfigRead));
 }
 /*********************************************************************************************************
 ** 函数名称: __pciDevConfigBlockWrite
 ** 功能描述: 按块写入 PCI 设备配置空间
 ** 输　入  : hHandle    设备控制句柄
-**           iPos       偏移位置
+**           uiPos     偏移位置
 **           pucBuf     数据缓冲区
-**           iLen       数据长度
+**           uiLen      数据长度
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
                                            API 函数
 *********************************************************************************************************/
 static
-INT  __pciDevConfigBlockWrite (PCI_DEV_HANDLE  hHandle, INT  iPos, UINT8 *pucBuf, INT  iLen)
+INT  __pciDevConfigBlockWrite (PCI_DEV_HANDLE  hHandle, UINT  uiPos, UINT8 *pucBuf, UINT  uiLen)
 {
-    return  (__pciDevConfigBlockOp(hHandle, iPos, pucBuf, iLen, API_PciDevConfigWrite));
+    return  (__pciDevConfigBlockOp(hHandle, uiPos, pucBuf, uiLen, API_PciDevConfigWrite));
 }
 /*********************************************************************************************************
 ** 函数名称: API_PciDevConfigRead
 ** 功能描述: 读取 PCI 设备配置空间
 ** 输　入  : hHandle    设备控制句柄
-**           iPos       偏移位置
+**           uuiPos     偏移位置
 **           pucBuf     数据缓冲区
-**           iLen       数据长度
+**           uiLen      数据长度
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
                                            API 函数
 *********************************************************************************************************/
 LW_API
-INT  API_PciDevConfigRead (PCI_DEV_HANDLE  hHandle, INT  iPos, UINT8 *pucBuf, INT  iLen)
+INT  API_PciDevConfigRead (PCI_DEV_HANDLE  hHandle, UINT  uiPos, UINT8 *pucBuf, UINT  uiLen)
 {
     INT         iRet   = PX_ERROR;
-    UINT8       ucData = -1;
-    UINT16      usData = -1;
-    UINT32      uiData = -1;
+    UINT8       ucData = (UINT8)PX_ERROR;
+    UINT16      usData = (UINT16)PX_ERROR;
+    UINT32      uiData = (UINT32)PX_ERROR;
 
-    if (!((iLen == 1) || (iLen == 2) || (iLen == 4))) {
-        return  (__pciDevConfigBlockRead(hHandle, iPos, pucBuf, iLen));
+    if (!((uiLen == 1) || (uiLen == 2) || (uiLen == 4))) {
+        return  (__pciDevConfigBlockRead(hHandle, uiPos, pucBuf, uiLen));
     }
 
-    if (iPos >= PCI_CONFIG_LEN_MAX) {
+    if ((hHandle == LW_NULL) ||
+        (pucBuf == LW_NULL) ||
+        (uiPos >= PCI_CONFIG_LEN_MAX) ||
+        ((uiPos + uiLen) > PCI_CONFIG_LEN_MAX)) {
         return  (PX_ERROR);
     }
 
-    switch (iLen) {
+    switch (uiLen) {
 
     case 1:
-        iRet = API_PciConfigInByte(hHandle->PDT_iDevBus,
-                                   hHandle->PDT_iDevDevice,
-                                   hHandle->PDT_iDevFunction,
-                                   iPos, &ucData);
+        iRet = API_PciConfigInByte(hHandle->PCIDEV_iDevBus,
+                                   hHandle->PCIDEV_iDevDevice,
+                                   hHandle->PCIDEV_iDevFunction,
+                                   uiPos, &ucData);
         if (iRet != ERROR_NONE) {
             return  (PX_ERROR);
         }
@@ -399,10 +398,10 @@ INT  API_PciDevConfigRead (PCI_DEV_HANDLE  hHandle, INT  iPos, UINT8 *pucBuf, IN
         break;
 
     case 2:
-        iRet = API_PciConfigInWord(hHandle->PDT_iDevBus,
-                                   hHandle->PDT_iDevDevice,
-                                   hHandle->PDT_iDevFunction,
-                                   iPos, &usData);
+        iRet = API_PciConfigInWord(hHandle->PCIDEV_iDevBus,
+                                   hHandle->PCIDEV_iDevDevice,
+                                   hHandle->PCIDEV_iDevFunction,
+                                   uiPos, &usData);
         if (iRet != ERROR_NONE) {
             return  (PX_ERROR);
         }
@@ -410,10 +409,10 @@ INT  API_PciDevConfigRead (PCI_DEV_HANDLE  hHandle, INT  iPos, UINT8 *pucBuf, IN
         break;
 
     case 4:
-        iRet = API_PciConfigInDword(hHandle->PDT_iDevBus,
-                                    hHandle->PDT_iDevDevice,
-                                    hHandle->PDT_iDevFunction,
-                                    iPos, &uiData);
+        iRet = API_PciConfigInDword(hHandle->PCIDEV_iDevBus,
+                                    hHandle->PCIDEV_iDevDevice,
+                                    hHandle->PCIDEV_iDevFunction,
+                                    uiPos, &uiData);
         if (iRet != ERROR_NONE) {
             return  (PX_ERROR);
         }
@@ -430,38 +429,41 @@ INT  API_PciDevConfigRead (PCI_DEV_HANDLE  hHandle, INT  iPos, UINT8 *pucBuf, IN
 ** 函数名称: API_PciDevConfigWrite
 ** 功能描述: 写入 PCI 设备配置空间
 ** 输　入  : hHandle    设备控制句柄
-**           iPos       偏移位置
+**           uiPos      偏移位置
 **           pucBuf     数据缓冲区
-**           iLen       数据长度
+**           uiLen       数据长度
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
                                            API 函数
 *********************************************************************************************************/
 LW_API
-INT  API_PciDevConfigWrite (PCI_DEV_HANDLE  hHandle, INT  iPos, UINT8 *pucBuf, INT  iLen)
+INT  API_PciDevConfigWrite (PCI_DEV_HANDLE  hHandle, UINT  uiPos, UINT8 *pucBuf, UINT  uiLen)
 {
     INT         iRet   = PX_ERROR;
-    UINT8       ucData = -1;
-    UINT16      usData = -1;
-    UINT32      uiData = -1;
+    UINT8       ucData = (UINT8)PX_ERROR;
+    UINT16      usData = (UINT16)PX_ERROR;
+    UINT32      uiData = (UINT32)PX_ERROR;
 
-    if (!((iLen == 1) || (iLen == 2) || (iLen == 4))) {
-        return  (__pciDevConfigBlockWrite(hHandle, iPos, pucBuf, iLen));
+    if (!((uiLen == 1) || (uiLen == 2) || (uiLen == 4))) {
+        return  (__pciDevConfigBlockWrite(hHandle, uiPos, pucBuf, uiLen));
     }
 
-    if (iPos >= PCI_CONFIG_LEN_MAX) {
+    if ((hHandle == LW_NULL) ||
+        (pucBuf == LW_NULL) ||
+        (uiPos >= PCI_CONFIG_LEN_MAX) ||
+        ((uiPos + uiLen) > PCI_CONFIG_LEN_MAX)) {
         return  (PX_ERROR);
     }
 
-    switch (iLen) {
+    switch (uiLen) {
 
     case 1:
         ucData = (UINT8)pucBuf[0];
-        iRet = API_PciConfigOutByte(hHandle->PDT_iDevBus,
-                                    hHandle->PDT_iDevDevice,
-                                    hHandle->PDT_iDevFunction,
-                                    iPos, ucData);
+        iRet = API_PciConfigOutByte(hHandle->PCIDEV_iDevBus,
+                                    hHandle->PCIDEV_iDevDevice,
+                                    hHandle->PCIDEV_iDevFunction,
+                                    uiPos, ucData);
         if (iRet != ERROR_NONE) {
             return  (PX_ERROR);
         }
@@ -469,10 +471,10 @@ INT  API_PciDevConfigWrite (PCI_DEV_HANDLE  hHandle, INT  iPos, UINT8 *pucBuf, I
 
     case 2:
         usData = le16toh(((UINT16 *)pucBuf)[0]);
-        iRet = API_PciConfigOutWord(hHandle->PDT_iDevBus,
-                                    hHandle->PDT_iDevDevice,
-                                    hHandle->PDT_iDevFunction,
-                                    iPos, usData);
+        iRet = API_PciConfigOutWord(hHandle->PCIDEV_iDevBus,
+                                    hHandle->PCIDEV_iDevDevice,
+                                    hHandle->PCIDEV_iDevFunction,
+                                    uiPos, usData);
         if (iRet != ERROR_NONE) {
             return  (PX_ERROR);
         }
@@ -480,16 +482,202 @@ INT  API_PciDevConfigWrite (PCI_DEV_HANDLE  hHandle, INT  iPos, UINT8 *pucBuf, I
 
     case 4:
         uiData = le32toh(((UINT32 *)pucBuf)[0]);
-        iRet = API_PciConfigOutDword(hHandle->PDT_iDevBus,
-                                     hHandle->PDT_iDevDevice,
-                                     hHandle->PDT_iDevFunction,
-                                     iPos, uiData);
+        iRet = API_PciConfigOutDword(hHandle->PCIDEV_iDevBus,
+                                     hHandle->PCIDEV_iDevDevice,
+                                     hHandle->PCIDEV_iDevFunction,
+                                     uiPos, uiData);
         if (iRet != ERROR_NONE) {
             return  (PX_ERROR);
         }
         break;
 
     default:
+        return  (PX_ERROR);
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_PciDevConfigReadByte
+** 功能描述: 按字节读取 PCI 设备配置空间 (8 bit)
+** 输　入  : hHandle    设备控制句柄
+**           uiPos      偏移位置
+**           pucValue   获取的结果
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_PciDevConfigReadByte (PCI_DEV_HANDLE  hHandle, UINT  uiPos, UINT8 *pucValue)
+{
+    INT     iRet;
+
+    if ((hHandle == LW_NULL        ) ||
+        (uiPos >= PCI_CONFIG_LEN_MAX)) {
+        return  (PX_ERROR);
+    }
+
+    iRet = API_PciConfigInByte(hHandle->PCIDEV_iDevBus,
+                               hHandle->PCIDEV_iDevDevice,
+                               hHandle->PCIDEV_iDevFunction,
+                               uiPos, pucValue);
+    if (iRet != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_PciDevConfigReadWord
+** 功能描述: 按字读取 PCI 设备配置空间 (16 bit)
+** 输　入  : hHandle    设备控制句柄
+**           uiPos      偏移位置
+**           pusValue   获取的结果
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_PciDevConfigReadWord (PCI_DEV_HANDLE  hHandle, UINT  uiPos, UINT16 *pusValue)
+{
+    INT     iRet;
+
+    if ((hHandle == LW_NULL        ) ||
+        (uiPos >= PCI_CONFIG_LEN_MAX)) {
+        return  (PX_ERROR);
+    }
+
+    iRet = API_PciConfigInWord(hHandle->PCIDEV_iDevBus,
+                               hHandle->PCIDEV_iDevDevice,
+                               hHandle->PCIDEV_iDevFunction,
+                               uiPos, pusValue);
+    if (iRet != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_PciDevConfigReadDword
+** 功能描述: 按双字读取 PCI 设备配置空间 (32 bit)
+** 输　入  : hHandle    设备控制句柄
+**           uiPos      偏移位置
+**           puiValue   获取的结果
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_PciDevConfigReadDword (PCI_DEV_HANDLE  hHandle, UINT  uiPos, UINT32 *puiValue)
+{
+    INT     iRet;
+
+    if ((hHandle == LW_NULL        ) ||
+        (uiPos >= PCI_CONFIG_LEN_MAX)) {
+        return  (PX_ERROR);
+    }
+
+    iRet = API_PciConfigInDword(hHandle->PCIDEV_iDevBus,
+                                hHandle->PCIDEV_iDevDevice,
+                                hHandle->PCIDEV_iDevFunction,
+                                uiPos, puiValue);
+    if (iRet != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_PciDevConfigWriteByte
+** 功能描述: 按字节写 PCI 设备配置空间 (8 bit)
+** 输　入  : hHandle    设备控制句柄
+**           uiPos      偏移位置
+**           ucValue    获取的结果
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_PciDevConfigWriteByte (PCI_DEV_HANDLE  hHandle, UINT  uiPos, UINT8 ucValue)
+{
+    INT     iRet;
+
+    if ((hHandle == LW_NULL        ) ||
+        (uiPos >= PCI_CONFIG_LEN_MAX)) {
+        return  (PX_ERROR);
+    }
+
+    iRet = API_PciConfigOutByte(hHandle->PCIDEV_iDevBus,
+                                hHandle->PCIDEV_iDevDevice,
+                                hHandle->PCIDEV_iDevFunction,
+                                uiPos, ucValue);
+    if (iRet != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_PciDevConfigWriteWord
+** 功能描述: 按字写 PCI 设备配置空间 (16 bit)
+** 输　入  : hHandle    设备控制句柄
+**           uiPos      偏移位置
+**           usValue    获取的结果
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_PciDevConfigWriteWord (PCI_DEV_HANDLE  hHandle, UINT  uiPos, UINT16  usValue)
+{
+    INT     iRet;
+
+    if ((hHandle == LW_NULL        ) ||
+        (uiPos >= PCI_CONFIG_LEN_MAX)) {
+        return  (PX_ERROR);
+    }
+
+    iRet = API_PciConfigOutWord(hHandle->PCIDEV_iDevBus,
+                                hHandle->PCIDEV_iDevDevice,
+                                hHandle->PCIDEV_iDevFunction,
+                                uiPos, usValue);
+    if (iRet != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_PciDevConfigWriteDword
+** 功能描述: 按双字写 PCI 设备配置空间 (32 bit)
+** 输　入  : hHandle    设备控制句柄
+**           uiPos      偏移位置
+**           puiValue   获取的结果
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_PciDevConfigWriteDword (PCI_DEV_HANDLE  hHandle, UINT  uiPos, UINT32 uiValue)
+{
+    INT     iRet;
+
+    if ((hHandle == LW_NULL        ) ||
+        (uiPos >= PCI_CONFIG_LEN_MAX)) {
+        return  (PX_ERROR);
+    }
+
+    iRet = API_PciConfigOutDword(hHandle->PCIDEV_iDevBus,
+                                 hHandle->PCIDEV_iDevDevice,
+                                 hHandle->PCIDEV_iDevFunction,
+                                 uiPos, uiValue);
+    if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
 
@@ -569,18 +757,18 @@ VOID  __tshellPciDevCmdShow (VOID)
     for (plineTemp  = _GplinePciDevHeader;
          plineTemp != LW_NULL;
          plineTemp  = _list_line_get_next(plineTemp)) {
-        hDevHandle = _LIST_ENTRY(plineTemp, PCI_DEV_TCB, PDT_lineDevNode);
-        hDrvHandle = (PCI_DRV_HANDLE)hDevHandle->PDT_pvDevDriver;
+        hDevHandle = _LIST_ENTRY(plineTemp, PCI_DEV_CB, PCIDEV_lineDevNode);
+        hDrvHandle = (PCI_DRV_HANDLE)hDevHandle->PCIDEV_pvDevDriver;
         printf("%7d %5d %5d %6d %6x %6x %6x %6x %-24s\n",
                i,
-               hDevHandle->PDT_iDevBus,
-               hDevHandle->PDT_iDevDevice,
-               hDevHandle->PDT_iDevFunction,
-               hDevHandle->PDT_phDevHdr.PCIH_pcidHdr.PCID_usVendorId,
-               hDevHandle->PDT_phDevHdr.PCIH_pcidHdr.PCID_usDeviceId,
-               hDevHandle->PDT_phDevHdr.PCIH_pcidHdr.PCID_usSubVendorId,
-               hDevHandle->PDT_phDevHdr.PCIH_pcidHdr.PCID_usSubSystemId,
-               ((hDrvHandle == LW_NULL) ? "NULL" : hDrvHandle->PDT_cDrvName));
+               hDevHandle->PCIDEV_iDevBus,
+               hDevHandle->PCIDEV_iDevDevice,
+               hDevHandle->PCIDEV_iDevFunction,
+               hDevHandle->PCIDEV_phDevHdr.PCIH_pcidHdr.PCID_usVendorId,
+               hDevHandle->PCIDEV_phDevHdr.PCIH_pcidHdr.PCID_usDeviceId,
+               hDevHandle->PCIDEV_phDevHdr.PCIH_pcidHdr.PCID_usSubVendorId,
+               hDevHandle->PCIDEV_phDevHdr.PCIH_pcidHdr.PCID_usSubSystemId,
+               ((hDrvHandle == LW_NULL) ? "NULL" : hDrvHandle->PCIDRV_cDrvName));
         i += 1;
     }
     __PCI_DEV_UNLOCK();
@@ -680,10 +868,10 @@ PCI_DEV_HANDLE  API_PciDevHandleGet (INT  iBus, INT  iDevice, INT  iFunction)
     for (plineTemp  = _GplinePciDevHeader;
          plineTemp != LW_NULL;
          plineTemp  = _list_line_get_next(plineTemp)) {
-        hDevHandle = _LIST_ENTRY(plineTemp, PCI_DEV_TCB, PDT_lineDevNode);
-        if ((hDevHandle->PDT_iDevBus      == iBus     ) &&
-            (hDevHandle->PDT_iDevDevice   == iDevice  ) &&
-            (hDevHandle->PDT_iDevFunction == iFunction)) {
+        hDevHandle = _LIST_ENTRY(plineTemp, PCI_DEV_CB, PCIDEV_lineDevNode);
+        if ((hDevHandle->PCIDEV_iDevBus      == iBus     ) &&
+            (hDevHandle->PCIDEV_iDevDevice   == iDevice  ) &&
+            (hDevHandle->PCIDEV_iDevFunction == iFunction)) {
             break;
         }
     }
@@ -723,18 +911,21 @@ PCI_DEV_HANDLE  API_PciDevAdd (INT  iBus, INT  iDevice, INT  iFunction)
     switch (phPciHdr.PCIH_ucType & PCI_HEADER_TYPE_MASK) {
 
     case PCI_HEADER_TYPE_NORMAL:
-        hDevHandle = (PCI_DEV_HANDLE)__SHEAP_ZALLOC(sizeof(PCI_DEV_TCB));
+        hDevHandle = (PCI_DEV_HANDLE)__SHEAP_ZALLOC(sizeof(PCI_DEV_CB));
         if (hDevHandle == LW_NULL) {
             _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
             break;
         }
-        hDevHandle->PDT_iDevBus = iBus;
-        hDevHandle->PDT_iDevDevice = iDevice;
-        hDevHandle->PDT_iDevFunction = iFunction;
-        lib_memcpy(&hDevHandle->PDT_phDevHdr, &phPciHdr, sizeof(PCI_HDR));
+        hDevHandle->PCIDEV_iDevBus      = iBus;
+        hDevHandle->PCIDEV_iDevDevice   = iDevice;
+        hDevHandle->PCIDEV_iDevFunction = iFunction;
+        hDevHandle->PCIDEV_iType        = PCI_HEADER_TYPE_NORMAL;
+        lib_memcpy(&hDevHandle->PCIDEV_phDevHdr, &phPciHdr, sizeof(PCI_HDR));
+
+        API_PciDevSetup(hDevHandle);
 
         __PCI_DEV_LOCK();
-        _List_Line_Add_Ahead(&hDevHandle->PDT_lineDevNode, &_GplinePciDevHeader);
+        _List_Line_Add_Ahead(&hDevHandle->PCIDEV_lineDevNode, &_GplinePciDevHeader);
         _GuiPciDevTotalNum += 1;
         __PCI_DEV_UNLOCK();
         break;
@@ -771,8 +962,8 @@ INT  API_PciDevDelete (PCI_DEV_HANDLE  hHandle)
         for (plineTemp  = _GplinePciDevHeader;
              plineTemp != LW_NULL;
              plineTemp  = _list_line_get_next(plineTemp)) {
-            hDevHandle = _LIST_ENTRY(plineTemp, PCI_DEV_TCB, PDT_lineDevNode);
-            _List_Line_Del(&hDevHandle->PDT_lineDevNode, &_GplinePciDevHeader);
+            hDevHandle = _LIST_ENTRY(plineTemp, PCI_DEV_CB, PCIDEV_lineDevNode);
+            _List_Line_Del(&hDevHandle->PCIDEV_lineDevNode, &_GplinePciDevHeader);
             _GuiPciDevTotalNum -= 1;
             __SHEAP_FREE(hDevHandle);
         }
@@ -781,16 +972,16 @@ INT  API_PciDevDelete (PCI_DEV_HANDLE  hHandle)
         return  (ERROR_NONE);
     }
 
-    hDevHandle = API_PciDevHandleGet(hHandle->PDT_iDevBus,
-                                     hHandle->PDT_iDevDevice,
-                                     hHandle->PDT_iDevFunction);
+    hDevHandle = API_PciDevHandleGet(hHandle->PCIDEV_iDevBus,
+                                     hHandle->PCIDEV_iDevDevice,
+                                     hHandle->PCIDEV_iDevFunction);
     if ((hDevHandle == LW_NULL) ||
         (hDevHandle != hHandle)) {
         return  (PX_ERROR);
     }
 
     __PCI_DEV_LOCK();
-    _List_Line_Del(&hHandle->PDT_lineDevNode, &_GplinePciDevHeader);
+    _List_Line_Del(&hHandle->PCIDEV_lineDevNode, &_GplinePciDevHeader);
     _GuiPciDevTotalNum -= 1;
     __PCI_DEV_UNLOCK();
 
@@ -816,12 +1007,12 @@ INT  API_PciDevDrvDel (PCI_DEV_HANDLE  hDevHandle, PCI_DRV_HANDLE  hDrvHandle)
         return  (PX_ERROR);
     }
 
-    if (hDevHandle->PDT_pvDevDriver != hDrvHandle) {
+    if (hDevHandle->PCIDEV_pvDevDriver != hDrvHandle) {
         return  (PX_ERROR);
     }
 
     __PCI_DEV_LOCK();
-    hDevHandle->PDT_pvDevDriver = LW_NULL;
+    hDevHandle->PCIDEV_pvDevDriver = LW_NULL;
     __PCI_DEV_UNLOCK();
 
     return  (ERROR_NONE);
@@ -844,10 +1035,10 @@ INT  API_PciDevDrvUpdate (PCI_DEV_HANDLE  hDevHandle, PCI_DRV_HANDLE  hDrvHandle
         return  (PX_ERROR);
     }
 
-    if ((hDevHandle->PDT_pvDevDriver == LW_NULL) ||
-        (hDevHandle->PDT_pvDevDriver != hDrvHandle)) {
+    if ((hDevHandle->PCIDEV_pvDevDriver == LW_NULL) ||
+        (hDevHandle->PCIDEV_pvDevDriver != hDrvHandle)) {
         __PCI_DEV_LOCK();
-        hDevHandle->PDT_pvDevDriver = (PVOID)hDrvHandle;
+        hDevHandle->PCIDEV_pvDevDriver = (PVOID)hDrvHandle;
         __PCI_DEV_UNLOCK();
     }
 
@@ -874,9 +1065,9 @@ VOID  API_PciDrvBindEachDev (PCI_DRV_HANDLE hDrvHandle)
          plineTemp != LW_NULL;
          plineTemp  = _list_line_get_next(plineTemp)) {
 
-        hDevCurr = _LIST_ENTRY(plineTemp, PCI_DEV_TCB, PDT_lineDevNode);
+        hDevCurr = _LIST_ENTRY(plineTemp, PCI_DEV_CB, PCIDEV_lineDevNode);
 
-        if (hDevCurr->PDT_pvDevDriver) {                                /*  已经绑定了驱动              */
+        if (hDevCurr->PCIDEV_pvDevDriver) {                             /*  已经绑定了驱动              */
             continue;
         }
 
@@ -956,9 +1147,9 @@ static INT  __pciDevListCreate (INT  iBus, INT  iDevice, INT  iFunction, PVOID p
 LW_API
 INT  API_PciDevListCreate (VOID)
 {
-    API_PciLock();
+    API_PciCtrlLock();
     API_PciTraversal(__pciDevListCreate, LW_NULL, PCI_MAX_BUS - 1);
-    API_PciUnlock();
+    API_PciCtrlUnlock();
 
     return  (ERROR_NONE);
 }
@@ -983,7 +1174,7 @@ INT  API_PciDevInit (VOID)
                                            LW_OPTION_DELETE_SAFE |
                                            LW_OPTION_INHERIT_PRIORITY |
                                            LW_OPTION_OBJECT_GLOBAL),
-                                           LW_NULL);
+                                          LW_NULL);
     if (_GulPciDevLock == LW_OBJECT_HANDLE_INVALID) {
         return  (PX_ERROR);
     }

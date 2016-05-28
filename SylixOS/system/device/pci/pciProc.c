@@ -28,11 +28,12 @@
 *********************************************************************************************************/
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_PCI_EN > 0) && (LW_CFG_PROCFS_EN > 0)
 #include "pciDev.h"
+#include "pciLib.h"
 #include "pciDb.h"
 /*********************************************************************************************************
   PCI 主控器
 *********************************************************************************************************/
-extern PCI_CONFIG               *_G_p_pciConfig;
+extern PCI_CTRL_HANDLE     *_GhPciCtrlHandle;
 /*********************************************************************************************************
   pci proc 文件函数声明
 *********************************************************************************************************/
@@ -80,8 +81,13 @@ typedef struct {
 *********************************************************************************************************/
 static VOID  __procFsPciPrintDev (INT iBus, INT iSlot, INT iFunc, 
                                   PCI_PRINT_ARG *p_pciparg, PCI_DEV_HDR *p_pcidhdr)
-{
-    CHAR    cDevBasicInfo[128];
+{   INT                 i;
+    size_t             *pstOft;
+    CHAR                cDevBasicInfo[128];
+    PCI_DEV_HANDLE      hDevHandle;
+    PCI_RESOURCE_HANDLE hRes;
+
+    hDevHandle = API_PciDevHandleGet(iBus, iSlot, iFunc);
 
     API_PciDbGetClassStr(p_pcidhdr->PCID_ucClassCode,
                          p_pcidhdr->PCID_ucSubClass,
@@ -103,16 +109,55 @@ static VOID  __procFsPciPrintDev (INT iBus, INT iSlot, INT iFunc,
                                       p_pcidhdr->PCID_ucLatency,
                                       p_pcidhdr->PCID_ucMinGrant,
                                       p_pcidhdr->PCID_ucMaxLatency,
-                                      p_pcidhdr->PCID_uiBase0,
-                                      p_pcidhdr->PCID_uiBase1,
-                                      p_pcidhdr->PCID_uiBase2,
-                                      p_pcidhdr->PCID_uiBase3,
-                                      p_pcidhdr->PCID_uiBase4,
-                                      p_pcidhdr->PCID_uiBase5,
+                                      p_pcidhdr->PCID_uiBase[PCI_BAR_INDEX_0],
+                                      p_pcidhdr->PCID_uiBase[PCI_BAR_INDEX_1],
+                                      p_pcidhdr->PCID_uiBase[PCI_BAR_INDEX_2],
+                                      p_pcidhdr->PCID_uiBase[PCI_BAR_INDEX_3],
+                                      p_pcidhdr->PCID_uiBase[PCI_BAR_INDEX_4],
+                                      p_pcidhdr->PCID_uiBase[PCI_BAR_INDEX_5],
                                       p_pcidhdr->PCID_uiRomBase,
                                       p_pcidhdr->PCID_usSubVendorId,
                                       p_pcidhdr->PCID_usSubSystemId);
 
+    for (i = 0; i <= PCI_ROM_RESOURCE; i++) {
+        hRes = &hDevHandle->PCIDEV_tResource[i];
+
+        if (hRes->PCIRS_stStart == hRes->PCIRS_stEnd) {
+            continue;
+        }
+
+        pstOft = p_pciparg->PPA_pstOft;
+        *pstOft = bnprintf(p_pciparg->PPA_pcFileBuffer,
+                           p_pciparg->PPA_stTotalSize,
+                          *pstOft,
+                           "    Region %d: %s at %llx [Size %llu%s] [flags %08x] %s%s%s",
+                           i,
+                           (hRes->PCIRS_ulFlags & PCI_IORESOURCE_IO) ? "I/O ports" :
+                           (hRes->PCIRS_ulFlags & PCI_IORESOURCE_READONLY) ? "Expansion ROM" : "Memory",
+                           hRes->PCIRS_stStart,
+                           API_PciSizeNumGet(hRes->PCIRS_stEnd - hRes->PCIRS_stStart + 1),
+                           API_PciSizeNameGet(hRes->PCIRS_stEnd - hRes->PCIRS_stStart + 1),
+                           (UINT32)hRes->PCIRS_ulFlags,
+                           (hRes->PCIRS_ulFlags & PCI_IORESOURCE_IO) ? "\n" : "",
+                           (hRes->PCIRS_ulFlags & PCI_IORESOURCE_MEM_64) ? " (64-bit" :
+                           (hRes->PCIRS_ulFlags & PCI_IORESOURCE_MEM) ? " (32-bit" : "",
+                           (hRes->PCIRS_ulFlags & PCI_IORESOURCE_IO) ? "" :
+                           (hRes->PCIRS_ulFlags & PCI_IORESOURCE_PREFETCH) ? " pre)\n" : " non-pre)\n");
+        p_pciparg->PPA_pstOft = pstOft;
+    }
+
+    hRes = &hDevHandle->PCIDEV_tResource[PCI_IRQ_RESOURCE];
+    if (hRes->PCIRS_ulFlags & PCI_IORESOURCE_IRQ) {
+        pstOft = p_pciparg->PPA_pstOft;
+        *pstOft = bnprintf(p_pciparg->PPA_pcFileBuffer,
+                           p_pciparg->PPA_stTotalSize,
+                          *pstOft,
+                           "    Irq start %llx end %llx [flags %08x] \n",
+                           hRes->PCIRS_stStart,
+                           hRes->PCIRS_stEnd,
+                           (UINT32)hRes->PCIRS_ulFlags);
+        p_pciparg->PPA_pstOft = pstOft;
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: __procFsPciPrintBridge
@@ -144,7 +189,7 @@ static VOID  __procFsPciPrintBridge (INT iBus, INT iSlot, INT iFunc,
                                       "  %s\n"
                                       "    IRQ Line-%d Pin-%d\n"
                                       "    Latency=%d SecLatency=%d PriBus=%d SecBus=%d SubBus=%d\n"
-                                      "    Base0 %08x Base1 %08x\n"
+                                      "    I/O behind %08x Memory behind %08x\n"
                                       "    I/O %x-%x Mem %x-%x Rom %x\n",
                                       cBrgBasicInfo,
                                       p_pcibhdr->PCIB_ucIntLine,
@@ -154,8 +199,8 @@ static VOID  __procFsPciPrintBridge (INT iBus, INT iSlot, INT iFunc,
                                       p_pcibhdr->PCIB_ucPriBus,
                                       p_pcibhdr->PCIB_ucSecBus,
                                       p_pcibhdr->PCIB_ucSubBus,
-                                      p_pcibhdr->PCIB_uiBase0,
-                                      p_pcibhdr->PCIB_uiBase1,
+                                      p_pcibhdr->PCIB_uiBase[PCI_BAR_INDEX_0],
+                                      p_pcibhdr->PCIB_uiBase[PCI_BAR_INDEX_1],
                                       p_pcibhdr->PCIB_ucIoBase,
                                       p_pcibhdr->PCIB_ucIoBase + p_pcibhdr->PCIB_ucIoLimit,
                                       p_pcibhdr->PCIB_usMemBase,
@@ -203,7 +248,7 @@ static VOID  __procFsPciPrintCardbus (INT iBus, INT iSlot, INT iFunc,
                                       p_pcicbhdr->PCICB_ucPriBus,
                                       p_pcicbhdr->PCICB_ucSecBus,
                                       p_pcicbhdr->PCICB_ucSubBus,
-                                      p_pcicbhdr->PCICB_uiBase0,
+                                      p_pcicbhdr->PCICB_uiBase[PCI_BAR_INDEX_0],
                                       p_pcicbhdr->PCICB_uiIoBase0,
                                       p_pcicbhdr->PCICB_uiIoBase0 + p_pcicbhdr->PCICB_uiIoLimit0,
                                       p_pcicbhdr->PCICB_uiIoBase1,
@@ -303,7 +348,7 @@ static ssize_t  __procFsPciRead (PLW_PROCFS_NODE  p_pfsn,
           size_t    stRealSize;                                         /*  实际的文件内容大小          */
           size_t    stCopeBytes;
     
-    if (_G_p_pciConfig == LW_NULL) {
+    if (_GhPciCtrlHandle == LW_NULL) {
         return  (0);
     }
     
@@ -315,9 +360,9 @@ static ssize_t  __procFsPciRead (PLW_PROCFS_NODE  p_pfsn,
         size_t          stNeedBufferSize = 0;
         PCI_PRINT_ARG   pciparg;
         
-        API_PciLock();
+        API_PciCtrlLock();
         API_PciTraversal(__procFsPciGetCnt, &stNeedBufferSize, PCI_MAX_BUS - 1);
-        API_PciUnlock();
+        API_PciCtrlUnlock();
         
         stNeedBufferSize += sizeof(cPciInfoHdr);
         
@@ -333,9 +378,9 @@ static ssize_t  __procFsPciRead (PLW_PROCFS_NODE  p_pfsn,
         
         stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, 0, cPciInfoHdr);
         
-        API_PciLock();
+        API_PciCtrlLock();
         API_PciTraversal(__procFsPciPrint, &pciparg, PCI_MAX_BUS - 1);
-        API_PciUnlock();
+        API_PciCtrlUnlock();
 
         API_ProcFsNodeSetRealFileSize(p_pfsn, stRealSize);
     } else {

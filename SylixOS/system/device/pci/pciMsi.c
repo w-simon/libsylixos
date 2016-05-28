@@ -28,6 +28,7 @@
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_PCI_EN > 0)
 #include "linux/bitops.h"
 #include "linux/log2.h"
+#include "pciLib.h"
 #include "pciMsi.h"
 /*********************************************************************************************************
 ** 函数名称: API_PciMsixClearSet
@@ -821,7 +822,6 @@ INT  API_PciMsiEnableGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, IN
 
     return  (ERROR_NONE);
 }
-
 /*********************************************************************************************************
 ** 函数名称: API_PciDevMsiEnableGet
 ** 功能描述: 获取 MSI 使能控制状态
@@ -844,20 +844,74 @@ INT  API_PciDevMsiEnableGet (PCI_DEV_HANDLE  hHandle, INT *piEnable)
         return  (PX_ERROR);
     }
 
-    iRet = API_PciCapFind(hHandle->PDT_iDevBus,
-                          hHandle->PDT_iDevDevice,
-                          hHandle->PDT_iDevFunction,
+    iRet = API_PciCapFind(hHandle->PCIDEV_iDevBus,
+                          hHandle->PCIDEV_iDevDevice,
+                          hHandle->PCIDEV_iDevFunction,
                           PCI_CAP_ID_MSI,
                           &ucMsiCapOft);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
 
-    iRet = API_PciMsiEnableGet(hHandle->PDT_iDevBus,
-                               hHandle->PDT_iDevDevice,
-                               hHandle->PDT_iDevFunction,
+    iRet = API_PciMsiEnableGet(hHandle->PCIDEV_iDevBus,
+                               hHandle->PCIDEV_iDevDevice,
+                               hHandle->PCIDEV_iDevFunction,
                                ucMsiCapOft,
                                piEnable);
+    return  (iRet);
+}
+/*********************************************************************************************************
+** 函数名称: API_PciDevMsiEnableSet
+** 功能描述: 获取 MSI 使能控制状态
+** 输　入  : hHandle        设备控制句柄
+**           iEnable        使能与禁能标志
+**                          0  禁能
+**                          1  使能
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_PciDevMsiEnableSet (PCI_DEV_HANDLE  hHandle, INT  iEnable)
+{
+    INT     iRet = PX_ERROR;
+    UINT8   ucMsiCapOft = 0;
+
+    if (hHandle == LW_NULL) {
+        return  (PX_ERROR);
+    }
+
+    if (!iEnable) {
+        iRet = API_PciIntxEnableSet(hHandle->PCIDEV_iDevBus,
+                                    hHandle->PCIDEV_iDevDevice,
+                                    hHandle->PCIDEV_iDevFunction, 1);
+        if (iRet != ERROR_NONE) {
+            return  (PX_ERROR);
+        }
+    } else {
+        iRet = API_PciIntxEnableSet(hHandle->PCIDEV_iDevBus,
+                                    hHandle->PCIDEV_iDevDevice,
+                                    hHandle->PCIDEV_iDevFunction, 0);
+        if (iRet != ERROR_NONE) {
+            return  (PX_ERROR);
+        }
+    }
+
+    iRet = API_PciCapFind(hHandle->PCIDEV_iDevBus,
+                          hHandle->PCIDEV_iDevDevice,
+                          hHandle->PCIDEV_iDevFunction,
+                          PCI_CAP_ID_MSI,
+                          &ucMsiCapOft);
+    if (iRet != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
+
+    iRet = API_PciMsiEnableSet(hHandle->PCIDEV_iDevBus,
+                               hHandle->PCIDEV_iDevDevice,
+                               hHandle->PCIDEV_iDevFunction,
+                               ucMsiCapOft,
+                               iEnable);
     return  (iRet);
 }
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */

@@ -427,7 +427,7 @@ static VOID  _IosDeleteAll (INT  iRebootType)
     _IosUnlock();
     
 #if LW_CFG_PCI_EN > 0
-    API_PciConfigReset(iRebootType);
+    API_PciCtrlReset(iRebootType);
 #endif                                                                  /*  LW_CFG_PCI_EN > 0           */
 }
 /*********************************************************************************************************
