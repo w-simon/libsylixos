@@ -23,6 +23,7 @@
 2012.10.19  修正 __tshellCharTab() 参数列表缓存个数错误, 应该为 LW_CFG_SHELL_MAX_PARAMNUM + 1.
 2014.02.24  tab 补齐时, 进行相似度补齐.
 2014.10.29  tab 补齐时, 显示的单行宽度通过 TIOCGWINSZ 获取.
+2016.05.27  tab 支持匹配 HOME 目录.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -559,17 +560,29 @@ static VOID  __tshellFileMatch (INT  iFd, PCHAR  pcDir, PCHAR  pcFileName,
     size_t           stFileNameLen = lib_strlen(pcFileName);
     
     CHAR             cStat[MAX_FILENAME_LENGTH];
+    CHAR             cHome[MAX_FILENAME_LENGTH];
+    
     struct stat      statGet;
     struct winsize   winsz;
     
     struct dirent    direntcMatch;
     struct dirent   *pdirent;
-    DIR             *pdir = opendir(pcDir);                             /*  无法打开目录                */
+    DIR             *pdir;
     size_t           stDirLen;
     
     size_t           stMinSimilar = 0;
     size_t           stSimilar;
     
+    
+    if (*pcDir == '~') {                                                /*  需要使用 HOME 目录替代      */
+        if (API_TShellGetUserHome(getuid(), cHome, 
+                                  MAX_FILENAME_LENGTH) == ERROR_NONE) {
+            lib_strlcat(cHome, pcDir + 1, MAX_FILENAME_LENGTH);
+            pcDir = cHome;
+        }
+    }
+    
+    pdir = opendir(pcDir);                                              /*  无法打开目录                */
     if (pdir == LW_NULL) {
         return;
     }

@@ -99,13 +99,41 @@ LW_API time_t   API_RootFsTime(time_t  *time);
 static INT  __tshellFsCmdCd (INT  iArgC, PCHAR  ppcArgV[])
 {
     REGISTER INT    iError;
+             CHAR   cPath[MAX_FILENAME_LENGTH];
 
-    if (iArgC != 2) {
+    if (iArgC > 2) {
         fprintf(stderr, "argments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     
-    iError = cd(ppcArgV[1]);
+    if (iArgC == 1) {
+        if (API_TShellGetUserHome(getuid(), cPath, 
+                                  MAX_FILENAME_LENGTH) == ERROR_NONE) {
+            iError = cd(cPath);
+        
+        } else {
+            iError = cd(PX_STR_ROOT);
+        }
+    
+    } else {
+        PCHAR   pcTail;
+        
+        if (ppcArgV[1][0] == '~') {
+            pcTail = &ppcArgV[1][1];
+            
+            if (API_TShellGetUserHome(getuid(), cPath, 
+                                      MAX_FILENAME_LENGTH) < ERROR_NONE) {
+                fprintf(stderr, "can not get current user home directory!\n");
+                return  (-ERROR_TSHELL_EUSER);
+            }
+            lib_strlcat(cPath, pcTail, MAX_FILENAME_LENGTH);
+            iError = cd(cPath);
+        
+        } else {
+            iError = cd(ppcArgV[1]);
+        }
+    }
+    
     if (iError) {
         if (errno == EACCES) {
             fprintf(stderr, "insufficient permissions.\n");
@@ -114,6 +142,7 @@ static INT  __tshellFsCmdCd (INT  iArgC, PCHAR  ppcArgV[])
         } else {
             fprintf(stderr, "cd : error : %s\n", lib_strerror(errno));
         }
+        
         return  (iError);
     }
     

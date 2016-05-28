@@ -272,12 +272,6 @@ ULONG  _ThreadMakeMain (LW_HANDLE  ulId, PVOID   pvVProc)
     
     ptcb->TCB_pvVProcessContext = pvVProc;
     pvproc->VP_ulMainThread     = ulId;
-    
-#if LW_CFG_VMM_EN > 0
-    if (ptcb->TCB_iStkLocation == LW_TCB_STK_VMM) {
-        pvproc->VP_pvMainStack = (PVOID)ptcb->TCB_pstkStackLowAddr;
-    }
-#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
     __KERNEL_EXIT_IRQ(iregInterLevel);                                  /*  进入内核打开中断            */
     
     if (bVpAdd) {

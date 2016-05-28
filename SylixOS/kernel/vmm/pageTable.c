@@ -225,18 +225,21 @@ static INT  __vmmLibGlobalMap (PLW_MMU_CONTEXT   pmmuctx, LW_MMU_PHYSICAL_DESC  
     ULONG   ulPageNum;
 
     for (i = 0; pphydesc[i].PHYD_stSize; i++) {
+        if ((pphydesc[i].PHYD_uiType == LW_PHYSICAL_MEM_BUSPOOL) ||
+            (pphydesc[i].PHYD_uiType == LW_PHYSICAL_MEM_APP)     ||
+            (pphydesc[i].PHYD_uiType == LW_PHYSICAL_MEM_DMA)) {
+            continue;
+        }
+        
         ulPageNum = (ULONG)(pphydesc[i].PHYD_stSize >> LW_CFG_VMM_PAGE_SHIFT);
         if (pphydesc[i].PHYD_stSize & ~LW_CFG_VMM_PAGE_MASK) {
             ulPageNum++;
         }
         
-        if ((pphydesc[i].PHYD_uiType != LW_PHYSICAL_MEM_APP) &&
-            (pphydesc[i].PHYD_uiType != LW_PHYSICAL_MEM_DMA)) {
-            _BugFormat(__vmmLibVirtualOverlap(pphydesc[i].PHYD_ulVirMap, 
-                                              pphydesc[i].PHYD_stSize), LW_TRUE,
-                       "global map vaddr 0x%08lx size : 0x%08zx overlap with virtual space.\r\n",
-                       pphydesc[i].PHYD_ulVirMap, pphydesc[i].PHYD_stSize);
-        }
+        _BugFormat(__vmmLibVirtualOverlap(pphydesc[i].PHYD_ulVirMap, 
+                                          pphydesc[i].PHYD_stSize), LW_TRUE,
+                   "global map vaddr 0x%08lx size : 0x%08zx overlap with virtual space.\r\n",
+                   pphydesc[i].PHYD_ulVirMap, pphydesc[i].PHYD_stSize);
     
         switch (pphydesc[i].PHYD_uiType) {
         

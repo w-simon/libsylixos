@@ -564,7 +564,7 @@ VOID           _TCBTryRun(PLW_CLASS_TCB  ptcb);
 
 VOID           _StackCheckGuard(PLW_CLASS_TCB  ptcb);
 PLW_STACK      _StackAllocate(PLW_CLASS_TCB  ptcb, ULONG  ulOption, size_t  stSize);
-VOID           _StackFree(PLW_CLASS_TCB  ptcb, PLW_STACK  pstk, BOOL  bImmed);
+VOID           _StackFree(PLW_CLASS_TCB  ptcb, PLW_STACK  pstk);
 
 /*********************************************************************************************************
   线程私有变量切换

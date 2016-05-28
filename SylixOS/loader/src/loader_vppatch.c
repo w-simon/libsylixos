@@ -563,12 +563,6 @@ INT vprocDestroy (LW_LD_VPROC *pvproc)
 
     _IosEnvDelete(pvproc->VP_pioeIoEnv);                                /*  删除当前进程 IO 环境        */
     
-#if LW_CFG_VMM_EN > 0
-    if (pvproc->VP_pvMainStack) {
-        API_VmmFree(pvproc->VP_pvMainStack);                            /*  释放主任务堆栈              */
-    }
-#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
-    
     LW_LD_SAFEFREE(pvproc->VP_pcName);
     LW_LD_SAFEFREE(pvproc);
 

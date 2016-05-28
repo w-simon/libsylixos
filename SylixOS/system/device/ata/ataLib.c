@@ -363,7 +363,7 @@ static INT __ataPread (__PATA_CTRL patactrler,
     }
 #endif
 
-    ATA_DEBUG_MSG(("__ataPread() end :\n"));
+    ATA_DEBUG_MSG(("__ataPread() end\n"));
 
     return  (ERROR_NONE);
 }

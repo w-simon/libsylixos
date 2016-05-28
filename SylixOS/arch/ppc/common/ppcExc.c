@@ -52,7 +52,7 @@ static BOOL     _G_bDecInited = LW_FALSE;
 ** 调用模块: 
 ** 注  意  : 此函数退出时必须为中断关闭状态.
 *********************************************************************************************************/
-VOID  archIntHandle (ULONG  ulVector, BOOL  bPreemptive)
+__attribute__((weak)) VOID  archIntHandle (ULONG  ulVector, BOOL  bPreemptive)
 {
     REGISTER irqreturn_t irqret;
 

@@ -71,6 +71,9 @@ ULONG  __vmmPhysicalCreate (LW_MMU_PHYSICAL_DESC  pphydesc[])
         switch (pphydesc[i].PHYD_uiType) {
         
         case LW_PHYSICAL_MEM_DMA:
+            _BugHandle((pphydesc[i].PHYD_ulPhyAddr == (addr_t)LW_NULL), LW_TRUE,
+                       "physical DMA zone can not use NULL address, you can move offset page.\r\n");
+                                                                        /*  目前不支持 NULL 起始地址    */
             if (ulZone < LW_CFG_VMM_ZONE_NUM) {
                 _BugFormat(__vmmLibVirtualOverlap(pphydesc[i].PHYD_ulPhyAddr, 
                                                   pphydesc[i].PHYD_stSize), LW_TRUE,
@@ -92,6 +95,9 @@ ULONG  __vmmPhysicalCreate (LW_MMU_PHYSICAL_DESC  pphydesc[])
             break;
             
         case LW_PHYSICAL_MEM_APP:
+            _BugHandle((pphydesc[i].PHYD_ulPhyAddr == (addr_t)LW_NULL), LW_TRUE,
+                       "physical APP zone can not use NULL address, you can move offset page.\r\n");
+                                                                        /*  目前不支持 NULL 起始地址    */
             if (ulZone < LW_CFG_VMM_ZONE_NUM) {
                 ulError = __pageZoneCreate(&_G_vmzonePhysical[ulZone], 
                                            pphydesc[i].PHYD_ulPhyAddr, 

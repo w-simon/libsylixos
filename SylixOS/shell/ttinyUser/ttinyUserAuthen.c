@@ -83,7 +83,7 @@ ULONG  __tshellUserAuthen (INT  iTtyFd)
     /*
      *  获得用户名
      */
-    write(iTtyFd, "login: ", 7);
+    write(iTtyFd, "login as: ", 10);
     
     iRetValue = waitread(iTtyFd, &tv);                                  /*  等待用户输入用户名          */
     if (iRetValue != 1) {
@@ -147,6 +147,7 @@ __login_fail:
     _ErrorHandle(ERROR_TSHELL_EUSER);
     return  (ERROR_TSHELL_EUSER);
 }
+
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 /*********************************************************************************************************
   END

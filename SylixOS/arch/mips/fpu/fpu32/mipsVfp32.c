@@ -34,6 +34,7 @@ static INT          _G_iVfp32DNum;
 /*********************************************************************************************************
   ÊµÏÖº¯Êý
 *********************************************************************************************************/
+extern VOID     mipsVfp32Init(VOID);
 extern UINT32   mipsVfp32GetFIR(VOID);
 extern VOID     mipsVfp32Enable(VOID);
 extern VOID     mipsVfp32Disable(VOID);
@@ -77,6 +78,8 @@ static VOID  mipsVfp32CtxShow (INT iFd, PVOID pvFpuCtx)
 *********************************************************************************************************/
 PMIPS_FPU_OP  mipsVfp32PrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 {
+    mipsVfp32Init();
+
     if (mipsVfp32GetFIR() == 0) {
         _G_iVfp32DNum = 32;
         _G_fpuopVfp32.MFPU_pfuncSave    = mipsVfp32Save16;

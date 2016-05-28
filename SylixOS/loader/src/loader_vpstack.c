@@ -73,50 +73,21 @@ PVOID  vprocStackAlloc (PLW_CLASS_TCB  ptcbNew, ULONG  ulOption, size_t  stSize)
 ** 功能描述: 释放 stack
 ** 输　入  : ptcbDel       被删除的任务
 **           pvStack       线程堆栈
-**           bImmed        立即回收
 ** 输　出  : 堆栈
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-VOID  vprocStackFree (PLW_CLASS_TCB  ptcbDel, PVOID  pvStack, BOOL  bImmed)
+VOID  vprocStackFree (PLW_CLASS_TCB  ptcbDel, PVOID  pvStack)
 {
 #if (LW_CFG_VMM_EN > 0) && !defined(LW_CFG_CPU_ARCH_PPC)
-    LW_LD_VPROC     *pvproc;
-    BOOL             bFree = LW_TRUE;
-
-    switch (ptcbDel->TCB_iStkLocation) {
+    if (ptcbDel->TCB_iStkLocation == LW_TCB_STK_VMM) {
+        API_VmmFree(pvStack);
     
-    case LW_TCB_STK_VMM:
-        pvproc = __LW_VP_GET_TCB_PROC(ptcbDel);
-        if (pvproc && (pvproc->VP_ulMainThread == ptcbDel->TCB_ulId)) { /*  如果是主线程                */
-            if (bImmed) {
-#if LW_CFG_COROUTINE_EN > 0
-                if (pvproc->VP_pvMainStack == pvStack) {
-                    pvproc->VP_pvMainStack =  LW_NULL;                  /*  主线程堆栈删除              */
-                }
-#else
-                pvproc->VP_pvMainStack = LW_NULL;
-#endif                                                                  /*  LW_CFG_COROUTINE_EN > 0     */
-            } else {
-                bFree = LW_FALSE;                                       /*  延迟删除主线程堆栈          */
-            }
-        }
-        if (bFree) {
-            API_VmmFree(pvStack);
-        }
-        break;
-        
-    case LW_TCB_STK_HEAP:
-        __KHEAP_FREE(pvStack);
-        break;
-        
-    default:
-        _BugHandle(LW_TRUE, LW_FALSE, "unknown stack property!\r\n");
-        break;
-    }
-#else
-    __KHEAP_FREE(pvStack);
+    } else
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
+    {
+        __KHEAP_FREE(pvStack);
+    }
 }
 
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */

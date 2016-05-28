@@ -251,7 +251,7 @@ LW_OBJECT_HANDLE  API_ThreadInit (CPCHAR                   pcName,
 __error_handle:
     if (iErrLevel > 1) {
         if (!pthreadattr->THREADATTR_pstkLowAddr) {
-            _StackFree(ptcb, pstkLowAddress, LW_TRUE);                  /*  ÊÍ·Å¶ÑÕ»¿Õ¼ä                */
+            _StackFree(ptcb, pstkLowAddress);                           /*  ÊÍ·Å¶ÑÕ»¿Õ¼ä                */
         }
     }
     if (iErrLevel > 0) {

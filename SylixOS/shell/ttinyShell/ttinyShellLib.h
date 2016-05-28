@@ -139,7 +139,7 @@ INT    __tshellBgCreateEx(INT               iFd[3],
   用户与组
 *********************************************************************************************************/
 
-INT     __tshellGetUserName(uid_t  uid, PCHAR  pcName, size_t  stSize);
+INT     __tshellGetUserName(uid_t  uid, PCHAR  pcName, size_t  stNSize, PCHAR  pcHome, size_t  stHSize);
 INT     __tshellGetGrpName(gid_t  gid, PCHAR  pcName, size_t  stSize);
 VOID    __tshellFlushCache(VOID);
 ULONG   __tshellUserAuthen(INT  iTtyFd);

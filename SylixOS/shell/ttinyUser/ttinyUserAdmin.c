@@ -310,6 +310,8 @@ __argument_error:
         mkdir(ppcArgV[7], DEFAULT_DIR_PERM);
     }
     
+    API_TShellFlushCache();
+    
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -343,6 +345,8 @@ static INT  __tshellUserCmdUdel (INT  iArgC, PCHAR  ppcArgV[])
         }
         return  (-1);
     }
+    
+    API_TShellFlushCache();
     
     return  (ERROR_NONE);
 }
@@ -388,6 +392,8 @@ static INT  __tshellUserCmdUmod (INT  iArgC, PCHAR  ppcArgV[])
         return  (-1);
     }
     
+    API_TShellFlushCache();
+    
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -429,6 +435,8 @@ __argument_error:
         return  (-1);
     }
     
+    API_TShellFlushCache();
+    
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -465,6 +473,8 @@ static INT  __tshellUserCmdGdel (INT  iArgC, PCHAR  ppcArgV[])
         }
         return  (-1);
     }
+    
+    API_TShellFlushCache();
     
     return  (ERROR_NONE);
 }

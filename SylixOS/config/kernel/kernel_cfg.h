@@ -275,8 +275,8 @@
 * 依存关系: 无
 *********************************************************************************************************/
 
-#define LW_CFG_INTER_PRIO                       0       /*  是否支持中断优先级                          */
-#define LW_CFG_INTER_TARGET                     0       /*  是否支持中断目标 CPU 设置                   */
+#define LW_CFG_INTER_PRIO                       1       /*  是否支持中断优先级                          */
+#define LW_CFG_INTER_TARGET                     1       /*  是否支持中断目标 CPU 设置                   */
 #define LW_CFG_INTER_INFO                       1       /*  是否允许查询中断信息                        */
 
 #include "cache_cfg.h"                                  /*  CACHE 配置文件                              */

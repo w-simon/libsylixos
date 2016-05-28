@@ -194,6 +194,8 @@ typedef struct sja1000_chan SJA1000_CHAN;
 struct sja1000_chan {
     CAN_DRV_FUNCS *pDrvFuncs;
 
+    LW_SPINLOCK_DEFINE  (slock);
+
     INT (*pcbSetBusState)();                                    /* bus status callback                  */
     INT (*pcbGetTx)();                                          /* int callback                         */
     INT (*pcbPutRcv)();

@@ -101,8 +101,7 @@ ULONG   API_CoroutineExit (VOID)
                       ptcbCur->TCB_ulId, pcrcbExit, LW_NULL);
     
     if (pcrcbExit->COROUTINE_bIsNeedFree) {
-        _StackFree(ptcbCur,
-                   pcrcbExit->COROUTINE_pstkStackLowAddr, LW_TRUE);     /*  释放内存                    */
+        _StackFree(ptcbCur, pcrcbExit->COROUTINE_pstkStackLowAddr);     /*  释放内存                    */
     }
     
     iregInterLevel = KN_INT_DISABLE();                                  /*  关闭中断                    */
@@ -170,8 +169,7 @@ ULONG   API_CoroutineDelete (PVOID  pvCrcb)
                       ptcbCur->TCB_ulId, pcrcbDel, LW_NULL);
     
     if (pcrcbDel->COROUTINE_bIsNeedFree) {
-        _StackFree(ptcbCur,
-                   pcrcbDel->COROUTINE_pstkStackLowAddr, LW_TRUE);      /*  释放内存                    */
+        _StackFree(ptcbCur, pcrcbDel->COROUTINE_pstkStackLowAddr);      /*  释放内存                    */
     }
     
     return  (ERROR_NONE);

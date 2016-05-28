@@ -29,6 +29,7 @@
 
     FILE_BEGIN()
 
+    EXPORT_LABEL(mipsVfp32Init)
     EXPORT_LABEL(mipsVfp32GetFIR)
     EXPORT_LABEL(mipsVfp32Enable)
     EXPORT_LABEL(mipsVfp32Disable)
@@ -42,11 +43,22 @@
 ;  浮点运算器基本操作函数(mipsVfp32Sid 函数先保留)
 ;*********************************************************************************************************/
 
-FUNC_DEF(mipsVfp32Sid)
+FUNC_DEF(mipsVfp64Sid)
     LA      V0 , 0
     JR      RA
     NOP
-FUNC_END(mipsVfp32Sid)
+FUNC_END(mipsVfp64Sid)
+
+FUNC_DEF(mipsVfp32Init)
+    MFC0(T1, CP0_STATUS)
+    MOV     T0 , T1
+    OR      T0 , M_StatusCU1
+    MTC0(T0, CP0_STATUS)
+    CTC1(ZERO,  CP1_STATUS)
+    MTC0(T1, CP0_STATUS)
+    JR      RA
+    NOP
+FUNC_END(mipsVfp32Init)
 
 FUNC_DEF(mipsVfp32GetFIR)
     MFC0(T1, CP0_STATUS)

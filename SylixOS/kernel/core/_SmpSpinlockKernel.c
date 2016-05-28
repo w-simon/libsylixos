@@ -80,7 +80,7 @@ VOID  _SmpKernelUnlockIgnIrq (VOID)
     
     KN_SMP_MB();
     iRet = __ARCH_SPIN_UNLOCK(&LW_KERN_SL);
-    _BugFormat((iRet != LW_SPIN_OK), LW_TRUE, "unlock error 0x%p!\r\n", &LW_KERN_SL);
+    _BugFormat((iRet != LW_SPIN_OK), LW_TRUE, "unlock error %p!\r\n", &LW_KERN_SL);
     
     pcpuCur = LW_CPU_GET_CUR();
     if (!pcpuCur->CPU_ulInterNesting) {
@@ -134,7 +134,7 @@ VOID  _SmpKernelUnlockQuick (INTREG  iregInterLevel)
     
     KN_SMP_MB();
     iRet = __ARCH_SPIN_UNLOCK(&LW_KERN_SL);
-    _BugFormat((iRet != LW_SPIN_OK), LW_TRUE, "unlock error 0x%p!\r\n", &LW_KERN_SL);
+    _BugFormat((iRet != LW_SPIN_OK), LW_TRUE, "unlock error %p!\r\n", &LW_KERN_SL);
     
     pcpuCur = LW_CPU_GET_CUR();
     if (!pcpuCur->CPU_ulInterNesting) {
@@ -158,7 +158,7 @@ VOID  _SmpKernelUnlockSched (PLW_CLASS_TCB  ptcbOwner)
     
     KN_SMP_MB();
     iRet = __ARCH_SPIN_UNLOCK(&LW_KERN_SL);
-    _BugFormat((iRet != LW_SPIN_OK), LW_TRUE, "unlock error 0x%p!\r\n", &LW_KERN_SL);
+    _BugFormat((iRet != LW_SPIN_OK), LW_TRUE, "unlock error %p!\r\n", &LW_KERN_SL);
     
     pcpuCur = LW_CPU_GET_CUR();
     if (!pcpuCur->CPU_ulInterNesting) {

@@ -34,6 +34,7 @@ static INT          _G_iVfp64DNum;
 /*********************************************************************************************************
   ÊµÏÖº¯Êý
 *********************************************************************************************************/
+extern VOID     mipsVfp64Init(VOID);
 extern UINT32   mipsVfp64GetFIR(VOID);
 extern VOID     mipsVfp64Enable(VOID);
 extern VOID     mipsVfp64Disable(VOID);
@@ -77,6 +78,8 @@ static VOID  mipsVfp64CtxShow (INT iFd, PVOID pvFpuCtx)
 *********************************************************************************************************/
 PMIPS_FPU_OP  mipsVfp64PrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 {
+    mipsVfp64Init();
+
     if (mipsVfp64GetFIR() == 0) {
         _G_iVfp64DNum = 32;
         _G_fpuopVfp64.MFPU_pfuncSave    = mipsVfp64Save16;

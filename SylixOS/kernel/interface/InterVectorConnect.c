@@ -181,7 +181,7 @@ ULONG  API_InterVectorConnectEx (ULONG              ulVector,
         __KHEAP_FREE(piaction);
     }
     
-    _DebugFormat(__LOGMESSAGE_LEVEL, "IRQ %d : %s connect : 0x%p\r\n",
+    _DebugFormat(__LOGMESSAGE_LEVEL, "IRQ %d : %s connect : %p\r\n",
                  (INT)ulVector, (pcName ? pcName : ""), (PVOID)pfuncIsr);
 
     return  (ERROR_NONE);

@@ -49,15 +49,14 @@ PLW_STACK  _StackAllocate (PLW_CLASS_TCB  ptcb, ULONG  ulOption, size_t  stSize)
 ** 功能描述: 回收栈内存
 ** 输　入  : ptcbDel       任务
 **           pstk          栈内存
-**           bImmed        立即回收
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  _StackFree (PLW_CLASS_TCB  ptcb, PLW_STACK  pstk, BOOL  bImmed)
+VOID  _StackFree (PLW_CLASS_TCB  ptcb, PLW_STACK  pstk)
 {
 #if LW_CFG_MODULELOADER_EN > 0
-    vprocStackFree(ptcb, (PVOID)pstk, bImmed);
+    vprocStackFree(ptcb, (PVOID)pstk);
 #else
     __KHEAP_FREE((PVOID)pstk);
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */

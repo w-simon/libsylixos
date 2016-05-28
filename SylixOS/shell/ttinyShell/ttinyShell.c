@@ -444,7 +444,7 @@ INT  API_TShellGetUserName (uid_t  uid, PCHAR  pcName, size_t  stSize)
         return  (PX_ERROR);
     }
     
-    return  (__tshellGetUserName(uid, pcName, stSize));
+    return  (__tshellGetUserName(uid, pcName, stSize, LW_NULL, 0));
 }
 /*********************************************************************************************************
 ** 函数名称: API_TShellGetGrpName
@@ -466,6 +466,27 @@ INT  API_TShellGetGrpName (gid_t  gid, PCHAR  pcName, size_t  stSize)
     }
     
     return  (__tshellGetGrpName(gid, pcName, stSize));
+}
+/*********************************************************************************************************
+** 函数名称: API_TShellGetGrpName
+** 功能描述: 获得一个用户名 HOME 路径.
+** 输　入  : uid           用户 id
+**           pcHome        HOME 路径
+**           stSize        缓冲区大小
+** 输　出  : 错误代码.
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+INT  API_TShellGetUserHome (uid_t  uid, PCHAR  pcHome, size_t  stSize)
+{
+    if (!pcHome || !stSize) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    return  (__tshellGetUserName(uid, LW_NULL, 0, pcHome, stSize));
 }
 /*********************************************************************************************************
 ** 函数名称: API_TShellFlushCache
@@ -783,6 +804,7 @@ INT  API_TShellExecBg (CPCHAR  pcCommandExec, INT  iFd[3], BOOL  bClosed[3],
     
     return  (iRet);
 }
+
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 /*********************************************************************************************************
   END

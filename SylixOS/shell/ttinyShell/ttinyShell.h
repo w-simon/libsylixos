@@ -63,6 +63,8 @@ LW_API LW_OBJECT_HANDLE     API_TShellCreateEx(INT      iTtyFd,
                                                                         /*  创建一个 tshell 终端扩展    */
 LW_API INT                  API_TShellGetUserName(uid_t  uid, PCHAR  pcName, size_t  stSize);
                                                                         /*  通过 shell 缓冲获取用户名   */
+LW_API INT                  API_TShellGetUserHome(uid_t  uid, PCHAR  pcHome, size_t  stSize);
+                                                                        /*  获取用户 HOME 目录          */
 LW_API INT                  API_TShellGetGrpName(gid_t  gid, PCHAR  pcName, size_t  stSize);
                                                                         /*  通过 shell 缓冲获取组名     */
 LW_API VOID                 API_TShellFlushCache(VOID);                 /*  刷新 shell 名字缓冲         */
@@ -107,6 +109,7 @@ LW_API INT                  API_TShellGetOption(LW_OBJECT_HANDLE  hTShellHandle,
 #define tshellCreate        API_TShellCreate
 #define tshellCreateEx      API_TShellCreateEx
 #define tshellGetUserName   API_TShellGetUserName
+#define tshellGetUserHome   API_TShellGetUserHome
 #define tshellGetGrpName    API_TShellGetGrpName
 #define tshellFlushCache    API_TShellFlushCache
 #define tshellKeywordAdd    API_TShellKeywordAdd

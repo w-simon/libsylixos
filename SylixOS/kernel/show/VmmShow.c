@@ -172,7 +172,7 @@ VOID  API_VmmVirtualShow (VOID)
         printf("vmm virtual ioremap from: 0x%08lx, size: 0x%08zx\n", 
                       pvirdescDev->VIRD_ulVirAddr,
                       pvirdescDev->VIRD_stSize);
-        printf("vmm virtual area usage as follow :\n");
+        printf("vmm virtual area usage as follow:\n");
     }
                   
     printf(_G_cAreaInfoHdr);                                            /*  ¥Ú”°ª∂”≠–≈œ¢                */

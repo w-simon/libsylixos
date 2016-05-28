@@ -159,6 +159,9 @@ ULONG  __vmmVirtualCreate (LW_MMU_VIRTUAL_DESC   pvirdes[])
         switch (pvirdes[i].VIRD_uiType) {
         
         case LW_VIRTUAL_MEM_APP:
+            _BugHandle((pvirdes[i].VIRD_ulVirAddr == (addr_t)LW_NULL), LW_TRUE,
+                       "virtual APP area can not use NULL address, you can move offset page.\r\n");
+                                                                        /*  目前不支持 NULL 起始地址    */
             if (ulZone < LW_CFG_VMM_ZONE_NUM) {
                 _G_vmvirDescApp[ulZone] = pvirdes[i];
                 if (_G_ulVmmSwitchAddr == (addr_t)PX_ERROR) {
@@ -177,22 +180,27 @@ ULONG  __vmmVirtualCreate (LW_MMU_VIRTUAL_DESC   pvirdes[])
                     _ErrorHandle(ulError);
                     return  (ulError);
                 }
+                ulZone++;
             }
             break;
             
         case LW_VIRTUAL_MEM_DEV:
-            if (ulZone < LW_CFG_VMM_ZONE_NUM) {
-                _G_vmvirDescDev = pvirdes[i];
-                ulError = __pageZoneCreate(&_G_vmzoneVirDev, 
-                                           pvirdes[i].VIRD_ulVirAddr, 
-                                           pvirdes[i].VIRD_stSize, 
-                                           LW_ZONE_ATTR_NONE,
-                                           __VMM_PAGE_TYPE_VIRTUAL);
-                if (ulError) {
-                    _DebugHandle(__ERRORMESSAGE_LEVEL, "kernel low memory.\r\n");
-                    _ErrorHandle(ulError);
-                    return  (ulError);
-                }
+            _BugHandle((pvirdes[i].VIRD_ulVirAddr == (addr_t)LW_NULL), LW_TRUE,
+                       "virtual device area can not use NULL address, you can move offset page.\r\n");
+                                                                        /*  目前不支持 NULL 起始地址    */
+            _BugHandle((_G_vmvirDescDev.VIRD_stSize), LW_TRUE,
+                       "there are ONLY one virtual section allowed used to device.\r\n");
+                       
+            _G_vmvirDescDev = pvirdes[i];
+            ulError = __pageZoneCreate(&_G_vmzoneVirDev, 
+                                       pvirdes[i].VIRD_ulVirAddr, 
+                                       pvirdes[i].VIRD_stSize, 
+                                       LW_ZONE_ATTR_NONE,
+                                       __VMM_PAGE_TYPE_VIRTUAL);
+            if (ulError) {
+                _DebugHandle(__ERRORMESSAGE_LEVEL, "kernel low memory.\r\n");
+                _ErrorHandle(ulError);
+                return  (ulError);
             }
             break;
             
@@ -200,6 +208,9 @@ ULONG  __vmmVirtualCreate (LW_MMU_VIRTUAL_DESC   pvirdes[])
             break;
         }
     }
+    
+    _BugHandle((_G_ulVmmSwitchAddr == (addr_t)PX_ERROR), LW_TRUE, 
+               "virtual switich page invalidate.\r\n");
     
     return  (ERROR_NONE);
 }

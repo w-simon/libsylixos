@@ -54,7 +54,8 @@
 *********************************************************************************************************/
 #define __LW_XMODEM_DATA_LEN        128                                 /*  数据块大小                  */
 #define __LW_XMODEM_PACKET_LEN      (__LW_XMODEM_DATA_LEN + 4)          /*  数据包大小                  */
-#define __LW_XMODEM_TIMEOUT         60                                  /*  以秒作为超时时间的单位      */
+#define __LW_XMODEM_TX_TIMEOUT      3                                   /*  以秒作为超时时间的单位      */
+#define __LW_XMODEM_RX_TIMEOUT      3                                   /*  以秒作为超时时间的单位      */
 /*********************************************************************************************************
 ** 函数名称: __tshellXmodemCleanup
 ** 功能描述: Xmodem 操作遇到 control-C 时的清除动作
@@ -90,7 +91,7 @@ static VOID  __tshellXmodemCleanup (INT  iFile)
 }
 /*********************************************************************************************************
 ** 函数名称: __tshellFsCmdXmodems
-** 功能描述: 系统命令 "xmodems"
+** 功能描述: 系统命令 "xmodems" (发送给 remote 一个文件)
 ** 输　入  : iArgC         参数个数
 **           ppcArgV       参数表
 ** 输　出  : 0
@@ -116,7 +117,7 @@ static INT  __tshellFsCmdXmodems (INT  iArgC, PCHAR  ppcArgV[])
     ssize_t         sstReadNum;
     
     fd_set          fdsetRead;
-    struct timeval  timevalTO = {__LW_XMODEM_TIMEOUT, 0};
+    struct timeval  timevalTO = {__LW_XMODEM_TX_TIMEOUT, 0};
     
     
     if (iArgC != 2) {
@@ -163,9 +164,9 @@ static INT  __tshellFsCmdXmodems (INT  iArgC, PCHAR  ppcArgV[])
      */
     FD_ZERO(&fdsetRead);
     /*
-     *  超时次数默认为 30 次
+     *  超时次数默认为 20 次
      */
-    for (i = 0; i < 30; i++) {
+    for (i = 0; i < 20; i++) {
         FD_SET(STD_IN, &fdsetRead);
         iRetVal = select(1, &fdsetRead, LW_NULL, LW_NULL, &timevalTO);  /*  等待可读                    */
         if (iRetVal != 1) {
@@ -173,8 +174,6 @@ static INT  __tshellFsCmdXmodems (INT  iArgC, PCHAR  ppcArgV[])
                 if (bStart) {
                     write(STD_OUT, ucTemp, __LW_XMODEM_PACKET_LEN);     /*  重发数据                    */
                 }
-            } else {
-                __LW_XMODEM_SEND_CMD(__LW_XMODEM_EOT);                  /*  重新结束                    */
             }
             continue;                                                   /*  接收超时                    */
         }
@@ -209,6 +208,7 @@ static INT  __tshellFsCmdXmodems (INT  iArgC, PCHAR  ppcArgV[])
                 if (sstReadNum <= 0) {
                     bIsEot = LW_TRUE;
                     __LW_XMODEM_SEND_CMD(__LW_XMODEM_EOT);              /*  发送结束                    */
+                
                 } else {
                     /*
                      *  补全数据
@@ -237,7 +237,7 @@ static INT  __tshellFsCmdXmodems (INT  iArgC, PCHAR  ppcArgV[])
 }
 /*********************************************************************************************************
 ** 函数名称: __tshellFsCmdXmodemr
-** 功能描述: 系统命令 "xmodemr"
+** 功能描述: 系统命令 "xmodemr" (从 remote 接收一个文件)
 ** 输　入  : iArgC         参数个数
 **           ppcArgV       参数表
 ** 输　出  : 0
@@ -260,7 +260,7 @@ static INT  __tshellFsCmdXmodemr (INT  iArgC, PCHAR  ppcArgV[])
     size_t          stTotalNum = 0;
     
     fd_set          fdsetRead;
-    struct timeval  timevalTO = {__LW_XMODEM_TIMEOUT, 0};
+    struct timeval  timevalTO = {__LW_XMODEM_RX_TIMEOUT, 0};
     
     
     if (iArgC != 2) {

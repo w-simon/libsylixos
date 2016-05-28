@@ -29,6 +29,7 @@
 
     FILE_BEGIN()
 
+    EXPORT_LABEL(mipsVfp64Init)
     EXPORT_LABEL(mipsVfp64GetFIR)
     EXPORT_LABEL(mipsVfp64Enable)
     EXPORT_LABEL(mipsVfp64Disable)
@@ -47,6 +48,17 @@ FUNC_DEF(mipsVfp64Sid)
     JR      RA
     NOP
 FUNC_END(mipsVfp64Sid)
+
+FUNC_DEF(mipsVfp64Init)
+    MFC0(T1, CP0_STATUS)
+    MOV     T0 , T1
+    OR      T0 , M_StatusCU1
+    MTC0(T0, CP0_STATUS)
+    CTC1(ZERO,  CP1_STATUS)
+    MTC0(T1, CP0_STATUS)
+    JR      RA
+    NOP
+FUNC_END(mipsVfp64Init)
 
 FUNC_DEF(mipsVfp64GetFIR)
     MFC0(T1, CP0_STATUS)

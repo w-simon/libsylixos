@@ -33,6 +33,7 @@
 #define Lw_TShell_CreateEx              API_TShellCreateEx
 
 #define Lw_TShell_GetUserName           API_TShellGetUserName
+#define Lw_TShell_GetUserHome           API_TShellGetUserHome
 #define Lw_TShell_GetGrpName            API_TShellGetGrpName
 #define Lw_TShell_FlushCache            API_TShellFlushCache
 

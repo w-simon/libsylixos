@@ -353,12 +353,14 @@ static INT  __tshellWrapper (FUNCPTR  pfuncCommand, INT  iArgC, PCHAR  ppcArgV[]
     
     for (i = 1; i < iArgC; i++) {                                       /*  遍历参数                    */
         PCHAR   pcRedir = lib_strchr(ppcArgV[i], '<');
+        
         if (pcRedir == LW_NULL) {
             pcRedir = lib_strchr(ppcArgV[i], '>');
             if (pcRedir == LW_NULL) {
                 continue;
             }
         }
+        
         if (__tshellRedir(ppcArgV[i], pcRedir, ulMe, &iPopCnt)) {       /*  分析并执行重定位操作        */
             fprintf(stderr, "can not process redirect.\n");
             goto    __ret;
@@ -1057,11 +1059,20 @@ PVOID   __tshellThread (PVOID  pcArg)
 
     if (ioPrivateEnv() < 0) {                                           /*  使用私有线程 io 环境        */
         exit(-1);
+    
     } else {
         /*
          *  TODO: control-C 重启 shell 线程后, 理论应该保持重启前的当前目录, 这里还没有支持.
          */
-        chdir(PX_STR_ROOT);                                             /*  初始化为根目录              */
+        if (API_TShellGetUserHome(getuid(), 
+                                  cRecvBuffer, 
+                                  LW_CFG_SHELL_MAX_COMMANDLEN + 1) == ERROR_NONE) {
+            if (chdir(cRecvBuffer) < ERROR_NONE) {
+                chdir(PX_STR_ROOT);
+            }
+        } else {
+            chdir(PX_STR_ROOT);                                         /*  初始化为根目录              */
+        }
     }
     
     if (iTtyFd >= 0) {

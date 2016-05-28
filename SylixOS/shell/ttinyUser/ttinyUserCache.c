@@ -34,6 +34,7 @@
 typedef struct {
     LW_LIST_LINE            UC_lineManage;
     uid_t                   UC_uid;
+    PCHAR                   UC_pcHome;
     CHAR                    UC_cName[1];
 } __TSHELL_UCACHE;
 typedef __TSHELL_UCACHE    *__PTSHELL_UCACHE;
@@ -54,12 +55,14 @@ static LW_LIST_LINE_HEADER  _G_plineGrpCache;
 ** 功能描述: 获得一个用户名
 ** 输　入  : uid           用户 id
 **           pcName        用户名
-**           stSize        缓冲区大小
+**           stNSize       用户名缓冲区大小
+**           pcHome        用户主目录
+**           stHSize       用户主目录缓冲区大小
 ** 输　出  : ERROR or OK
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-INT  __tshellGetUserName (uid_t  uid, PCHAR  pcName, size_t  stSize)
+INT  __tshellGetUserName (uid_t  uid, PCHAR  pcName, size_t  stNSize, PCHAR  pcHome, size_t  stHSize)
 {
     PLW_LIST_LINE       plineTmp;
     __PTSHELL_UCACHE    puc;
@@ -74,7 +77,12 @@ INT  __tshellGetUserName (uid_t  uid, PCHAR  pcName, size_t  stSize)
         
         puc = _LIST_ENTRY(plineTmp, __TSHELL_UCACHE, UC_lineManage);
         if (puc->UC_uid == uid) {
-            lib_strlcpy(pcName, puc->UC_cName, stSize);
+            if (pcName && stNSize) {
+                lib_strlcpy(pcName, puc->UC_cName, stNSize);
+            }
+            if (pcHome && stHSize) {
+                lib_strlcpy(pcHome, puc->UC_pcHome, stHSize);
+            }
             if (plineTmp != _G_plineUsrCache) {
                 _List_Line_Del(&puc->UC_lineManage, 
                                &_G_plineUsrCache);
@@ -95,9 +103,29 @@ INT  __tshellGetUserName (uid_t  uid, PCHAR  pcName, size_t  stSize)
     
     puc = (__PTSHELL_UCACHE)__SHEAP_ALLOC(sizeof(__TSHELL_UCACHE) + 
                                           lib_strlen(ppasswd->pw_name));
+    if (!puc) {
+        _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
+        return  (PX_ERROR);
+    }
+    
+    puc->UC_pcHome = (PCHAR)__SHEAP_ALLOC(lib_strlen(ppasswd->pw_dir) + 1);
+    if (!puc->UC_pcHome) {
+        __SHEAP_FREE(puc);
+        _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
+        return  (PX_ERROR);
+    }
+                                          
     puc->UC_uid = uid;
-    lib_strcpy(puc->UC_cName, ppasswd->pw_name);                        /*  这里可能会有重复添加, 没问题*/
-    lib_strlcpy(pcName, puc->UC_cName, stSize);
+    lib_strcpy(puc->UC_cName,  ppasswd->pw_name);                       /*  这里可能会有重复添加, 没问题*/
+    lib_strcpy(puc->UC_pcHome, ppasswd->pw_dir);
+    
+    if (pcName && stNSize) {
+        lib_strlcpy(pcName, puc->UC_cName,  stNSize);
+    }
+    
+    if (pcHome && stHSize) {
+        lib_strlcpy(pcHome, puc->UC_pcHome, stHSize);
+    }
     
     __TTINY_SHELL_LOCK();                                               /*  互斥访问                    */
     _List_Line_Add_Ahead(&puc->UC_lineManage, 
@@ -131,7 +159,9 @@ INT  __tshellGetGrpName (gid_t  gid, PCHAR  pcName, size_t  stSize)
         
         pgc = _LIST_ENTRY(plineTmp, __TSHELL_GCACHE, GC_lineManage);
         if (pgc->GC_gid == gid) {
-            lib_strlcpy(pcName, pgc->GC_cName, stSize);
+            if (pcName && stSize) {
+                lib_strlcpy(pcName, pgc->GC_cName, stSize);
+            }
             if (plineTmp != _G_plineGrpCache) {
                 _List_Line_Del(&pgc->GC_lineManage, 
                                &_G_plineGrpCache);
@@ -152,9 +182,17 @@ INT  __tshellGetGrpName (gid_t  gid, PCHAR  pcName, size_t  stSize)
     
     pgc = (__PTSHELL_GCACHE)__SHEAP_ALLOC(sizeof(__TSHELL_GCACHE) + 
                                           lib_strlen(pgroup->gr_name));
+    if (!pgc) {
+        _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
+        return  (PX_ERROR);
+    }
+                                          
     pgc->GC_gid = gid;
     lib_strcpy(pgc->GC_cName, pgroup->gr_name);                         /*  这里可能会有重复添加, 没问题*/
-    lib_strlcpy(pcName, pgc->GC_cName, stSize);
+    
+    if (pcName && stSize) {
+        lib_strlcpy(pcName, pgc->GC_cName, stSize);
+    }
     
     __TTINY_SHELL_LOCK();                                               /*  互斥访问                    */
     _List_Line_Add_Ahead(&pgc->GC_lineManage, 
@@ -180,6 +218,7 @@ VOID  __tshellFlushCache (VOID)
     while (_G_plineUsrCache) {
         puc = _LIST_ENTRY(_G_plineUsrCache, __TSHELL_UCACHE, UC_lineManage);
         _List_Line_Del(&puc->UC_lineManage, &_G_plineUsrCache);
+        __SHEAP_FREE(puc->UC_pcHome);
         __SHEAP_FREE(puc);
     }
     while (_G_plineGrpCache) {
@@ -189,6 +228,7 @@ VOID  __tshellFlushCache (VOID)
     }
     __TTINY_SHELL_UNLOCK();                                             /*  释放资源                    */
 }
+
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 /*********************************************************************************************************
   END

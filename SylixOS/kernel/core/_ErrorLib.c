@@ -311,7 +311,8 @@ static PCHAR  transIntSig (PCHAR  pcDigit, INT64  i64Data, INT  iBase)
 /*********************************************************************************************************
 ** 函数名称: transIntNonsig
 ** 功能描述: 转换一个无符号整形到字符串
-** 输　入  : pcDigit     输出缓冲
+** 输　入  : bHexPrefix  是否输出 hex 前缀
+**           pcDigit     输出缓冲
 **           ui64Data    打印数字
 **           iBase       进制数
 ** 输　出  : 字串起始
@@ -319,7 +320,7 @@ static PCHAR  transIntSig (PCHAR  pcDigit, INT64  i64Data, INT  iBase)
 ** 调用模块: 
 ** 注  意  : 
 *********************************************************************************************************/
-static PCHAR  transIntNonsig (PCHAR  pcDigit, UINT64  ui64Data, INT  iBase)
+static PCHAR  transIntNonsig (BOOL  bHexPrefix, PCHAR  pcDigit, UINT64  ui64Data, INT  iBase)
 {
     static CHAR cHex[] = "0123456789abcdef";
     PCHAR       pcPtr  = &pcDigit[DIGIT_BUF_SIZE];
@@ -346,6 +347,12 @@ static PCHAR  transIntNonsig (PCHAR  pcDigit, UINT64  ui64Data, INT  iBase)
         }
         DIGIT_BUF_NEXT;
         *pcPtr = to_hexchar(ui64Data & 15);
+        if (bHexPrefix && (pcPtr >= (pcDigit + 2))) {                   /*  需要打印 0x                 */
+            DIGIT_BUF_NEXT;
+            *pcPtr = 'x';
+            DIGIT_BUF_NEXT;
+            *pcPtr = '0';
+        }
         break;
     }
 
@@ -493,15 +500,15 @@ static VOID  _DebugFmtPrint (VOIDFUNCPTR pfuncPrint, CPCHAR  pcFmt, va_list ap)
                     BUF_PNT();
                     if (iFlag == LONG_ARG) {
                         ulData = va_arg(ap, ULONG);
-                        pcTrans = transIntNonsig(cDigit, (UINT64)ulData, 10);
+                        pcTrans = transIntNonsig(LW_FALSE, cDigit, (UINT64)ulData, 10);
                     
                     } else if (iFlag == LONG_LONG_ARG) {
                         ui64Data = va_arg(ap, UINT64);
-                        pcTrans = transIntNonsig(cDigit, ui64Data, 10);
+                        pcTrans = transIntNonsig(LW_FALSE, cDigit, ui64Data, 10);
                     
                     } else {
                         uiData = va_arg(ap, UINT);
-                        pcTrans = transIntNonsig(cDigit, (UINT64)uiData, 10);
+                        pcTrans = transIntNonsig(LW_FALSE, cDigit, (UINT64)uiData, 10);
                     }
                     if (pcTrans) {
                         printFullFmt(pfuncPrint, LW_TRUE, pcTrans,
@@ -517,15 +524,15 @@ static VOID  _DebugFmtPrint (VOIDFUNCPTR pfuncPrint, CPCHAR  pcFmt, va_list ap)
                     BUF_PNT();
                     if (iFlag == LONG_ARG) {
                         ulData = va_arg(ap, ULONG);
-                        pcTrans = transIntNonsig(cDigit, (UINT64)ulData, 16);
+                        pcTrans = transIntNonsig((*pcPos == 'p'), cDigit, (UINT64)ulData, 16);
                     
                     } else if (iFlag == LONG_LONG_ARG) {
                         ui64Data = va_arg(ap, UINT64);
-                        pcTrans = transIntNonsig(cDigit, ui64Data, 16);
+                        pcTrans = transIntNonsig((*pcPos == 'p'), cDigit, ui64Data, 16);
                     
                     } else {
                         uiData = va_arg(ap, UINT);
-                        pcTrans = transIntNonsig(cDigit, (UINT64)uiData, 16);
+                        pcTrans = transIntNonsig((*pcPos == 'p'), cDigit, (UINT64)uiData, 16);
                     }
                     if (pcTrans) {
                         printFullFmt(pfuncPrint, LW_TRUE, pcTrans,
@@ -568,7 +575,7 @@ static VOID  _DebugFmtPrint (VOIDFUNCPTR pfuncPrint, CPCHAR  pcFmt, va_list ap)
 }
 /*********************************************************************************************************
 ** 函数名称: _DebugFmtMsg
-** 功能描述: 带有格式的内核打印调试信息 (支持 %d %ld %zd %qd %u %zu %lu %qu %x %lx %zx %qx %c %s)
+** 功能描述: 带有格式的内核打印调试信息 (支持 %d %ld %zd %qd %u %zu %lu %qu %x %lx %zx %qx %p %c %s)
 ** 输　入  : iLevel      等级
 **           pcPosition  位置
 **           pcFmt       打印格式

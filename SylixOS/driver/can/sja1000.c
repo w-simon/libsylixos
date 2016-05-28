@@ -76,6 +76,8 @@ INT sja1000Init (SJA1000_CHAN *pcanchan)
         return  (PX_ERROR);
     }
 
+    LW_SPIN_INIT(&pcanchan->slock);
+
     pcanchan->pDrvFuncs = &sja1000_drv_funcs;
     pcanchan->channel   = 0;
 
@@ -99,8 +101,15 @@ INT sja1000Init (SJA1000_CHAN *pcanchan)
 *********************************************************************************************************/
 static INT sja1000SetCanMode (SJA1000_CHAN *pcanchan, ULONG canmode)
 {
+    INTREG  intreg;
     UINT8   value;
     UINT8   cdr;
+
+    if ((canmode != BAIS_CAN) && (canmode != PELI_CAN)) {
+        return  (PX_ERROR);
+    }
+
+    LW_SPIN_LOCK_QUICK(&pcanchan->slock, &intreg);
 
     value = GET_REG(pcanchan, MOD);
 
@@ -110,16 +119,17 @@ static INT sja1000SetCanMode (SJA1000_CHAN *pcanchan, ULONG canmode)
         if (canmode == BAIS_CAN) {
             SET_REG(pcanchan, CDR, (cdr & (~CDR_CANMOD)));
 
-        } else if (canmode == PELI_CAN) {
-            SET_REG(pcanchan, CDR, (cdr | CDR_CANMOD));
-
         } else {
-            return  (PX_ERROR);
+            SET_REG(pcanchan, CDR, (cdr | CDR_CANMOD));
         }
+
+        LW_SPIN_UNLOCK_QUICK(&pcanchan->slock, intreg);
 
         return  (ERROR_NONE);
 
     } else {
+        LW_SPIN_UNLOCK_QUICK(&pcanchan->slock, intreg);
+
         return  (PX_ERROR);
     }
 }
@@ -315,13 +325,16 @@ static INT sja1000SetFilter (SJA1000_CHAN *pcanchan, UINT32 acr, UINT32 amr)
 *********************************************************************************************************/
 static INT sja1000Send (SJA1000_CHAN *pcanchan, SJA1000_FRAME *pframe)
 {
-    int i;
+    INTREG  intreg;
+    int     i;
     UINT8   frame_info;
 
     frame_info = (unsigned char)(pframe->frame_info & 0x0f);
     if (frame_info > 8) {
         return (PX_ERROR);
     }
+
+    LW_SPIN_LOCK_QUICK(&pcanchan->slock, &intreg);
 
     SET_REG(pcanchan, TXBUF, pframe->frame_info);
 
@@ -353,6 +366,8 @@ static INT sja1000Send (SJA1000_CHAN *pcanchan, SJA1000_FRAME *pframe)
 
     COMMAND_SET(pcanchan, CMR_TR);
 
+    LW_SPIN_UNLOCK_QUICK(&pcanchan->slock, intreg);
+
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -366,9 +381,12 @@ static INT sja1000Send (SJA1000_CHAN *pcanchan, SJA1000_FRAME *pframe)
 *********************************************************************************************************/
 static INT sja1000Recv (SJA1000_CHAN *pcanchan, SJA1000_FRAME *pframe)
 {
-    int i;
+    INTREG  intreg;
+    int     i;
     UINT8   frame_info;
     UINT8   temp;
+
+    LW_SPIN_LOCK_QUICK(&pcanchan->slock, &intreg);
 
     frame_info = GET_REG(pcanchan, RXBUF);
 
@@ -419,6 +437,8 @@ static INT sja1000Recv (SJA1000_CHAN *pcanchan, SJA1000_FRAME *pframe)
 
     COMMAND_SET(pcanchan, CMR_RR);
 
+    LW_SPIN_UNLOCK_QUICK(&pcanchan->slock, intreg);
+
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -454,11 +474,8 @@ static INT sja1000TxStartup (SJA1000_CHAN *pcanchan)
     INT           i;
     SJA1000_FRAME frame;
     CAN_FRAME     canframe;
-    INTREG        intreg;
 
     if (pcanchan->pcbGetTx(pcanchan->pvGetTxArg, &canframe) == ERROR_NONE) {
-
-        intreg = KN_INT_DISABLE();
 
         frame.id          =  canframe.CAN_uiId;
         frame.frame_info  =  canframe.CAN_bExtId << 7;
@@ -472,8 +489,6 @@ static INT sja1000TxStartup (SJA1000_CHAN *pcanchan)
         }
 
         sja1000Send(pcanchan, &frame);
-
-        KN_INT_ENABLE(intreg);
     }
 
     return  (ERROR_NONE);

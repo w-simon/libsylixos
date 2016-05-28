@@ -46,7 +46,7 @@ VOID  _CoroutineFreeAll (PLW_CLASS_TCB    ptcb)
                                 LW_CLASS_COROUTINE,
                                 COROUTINE_ringRoutine);
         if (pcrcbTemp->COROUTINE_bIsNeedFree) {
-            _StackFree(ptcb, pcrcbTemp->COROUTINE_pstkStackLowAddr, LW_TRUE);
+            _StackFree(ptcb, pcrcbTemp->COROUTINE_pstkStackLowAddr);
         }
         pringTemp = ptcb->TCB_pringCoroutineHeader;
     }

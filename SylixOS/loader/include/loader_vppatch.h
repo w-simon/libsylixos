@@ -95,8 +95,7 @@ typedef struct lw_ld_vproc {
     LW_LD_VPROC_T           VP_vptimer[3];                              /*  REAL / VIRTUAL / PROF 定时器*/
     
     LW_LIST_LINE_HEADER     VP_plineMap;                                /*  虚拟内存空间                */
-    PVOID                   VP_pvMainStack;                             /*  主线程 stack                */
-    ULONG                   VP_ulPad[4];                                /*  预留                        */
+    ULONG                   VP_ulPad[5];                                /*  预留                        */
 } LW_LD_VPROC;
 
 /*********************************************************************************************************
@@ -244,13 +243,13 @@ VOID                vprocIoReclaim(pid_t  pid, BOOL  bIsExec);
 *********************************************************************************************************/
 
 PVOID               vprocStackAlloc(PLW_CLASS_TCB  ptcbNew, ULONG  ulOption, size_t  stSize);
-VOID                vprocStackFree(PLW_CLASS_TCB  ptcbDel, PVOID  pvStack, BOOL  bImmed);
+VOID                vprocStackFree(PLW_CLASS_TCB  ptcbDel, PVOID  pvStack);
 
 /*********************************************************************************************************
   进程定时器
 *********************************************************************************************************/
-#if LW_CFG_PTIMER_EN > 0
 
+#if LW_CFG_PTIMER_EN > 0
 VOID                vprocItimerHook(PLW_CLASS_TCB  ptcb, PLW_CLASS_CPU  pcpu);
 
 INT                 vprocSetitimer(INT        iWhich, 
@@ -261,7 +260,6 @@ INT                 vprocSetitimer(INT        iWhich,
 INT                 vprocGetitimer(INT        iWhich, 
                                    ULONG     *pulCounter,
                                    ULONG     *pulInterval);
-
 #endif                                                                  /*  LW_CFG_PTIMER_EN > 0        */
 #endif                                                                  /*  __LOADER_SYMBOL_H           */
 /*********************************************************************************************************
