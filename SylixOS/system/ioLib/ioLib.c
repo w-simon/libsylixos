@@ -40,6 +40,7 @@
 2013.09.29  _IosDeleteAll() 中加入对 PCI 设备的复位.
 2013.11.20  _IosInit() 加入对 eventfd, timerfd, signalfd 的初始化.
 *********************************************************************************************************/
+#define  __SYLIXOS_PCI_DRV
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
 #define  __SYSTEM_MAIN_FILE

@@ -65,7 +65,7 @@ typedef struct {
     UINT32                  PCIDRV_uiDrvIdTableSize;                    /* 设备支持列表大小             */
 
     /*
-     *  驱动常用函数, PDRT_pfuncProbe 与 PDRT_pfuncRemove 不能为 LW_NULL, 其它可选
+     *  驱动常用函数, PCIDRV_pfuncProbe 与 PCIDRV_pfuncRemove 不能为 LW_NULL, 其它可选
      */
     INT   (*PCIDRV_pfuncDrvProbe)(PCI_DEV_HANDLE hHandle, const PCI_DEV_ID_HANDLE hIdEntry);
     VOID  (*PCIDRV_pfuncDrvRemove)(PCI_DEV_HANDLE hHandle);

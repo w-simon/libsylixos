@@ -47,10 +47,10 @@
 *********************************************************************************************************/
 
 #define __SYLIXOS_MAKEVER(a, b, c)      (((a) << 16) + ((b) << 8) + (c))
-#define __SYLIXOS_VERSION               __SYLIXOS_MAKEVER(1, 3, 1)
+#define __SYLIXOS_VERSION               __SYLIXOS_MAKEVER(1, 3, 2)
 #define __SYLIXOS_VERPATCH              0x10000                         /* 小于 0x10000 为测试版        */
                                                                         /* 等于 0x10000 为正式发布版本  */
-#define __SYLIXOS_VERSTR                "1.3.1"
+#define __SYLIXOS_VERSTR                "1.3.2"
 #define __SYLIXOS_RELSTR                "NeZha(b)"
 
 #define __SYLIXOS_VERINFO               "SylixOS kernel version: "  \
