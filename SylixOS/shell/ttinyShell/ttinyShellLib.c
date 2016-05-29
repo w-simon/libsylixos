@@ -1044,8 +1044,6 @@ PVOID   __tshellThread (PVOID  pcArg)
              PLW_CLASS_TCB  ptcbCur;
     REGISTER INT            iTtyFd = (INT)pcArg;
              INT            iRetValue;
-             BOOL           bEcho;
-             
              CHAR           cRecvBuffer[LW_CFG_SHELL_MAX_COMMANDLEN + 1];
              INT            iReadNum;
              INT            iTotalNum = 0;
@@ -1100,10 +1098,8 @@ PVOID   __tshellThread (PVOID  pcArg)
     if (__TTINY_SHELL_GET_OPT(ptcbCur) & LW_OPTION_TSHELL_NOECHO) {     /*  不需要回显                  */
         iRetValue = ioctl(iTtyFd, FIOSETOPTIONS, 
                           (OPT_TERMINAL & (~OPT_ECHO)));                /*  设置为终端模式              */
-        bEcho     = LW_FALSE;
     } else {
         iRetValue = ioctl(iTtyFd, FIOSETOPTIONS, OPT_TERMINAL);         /*  设置为终端模式              */
-        bEcho     = LW_TRUE;
     }
     if (iRetValue < 0) {
         perror("shell can not change into a TERMINAL mode");
@@ -1152,34 +1148,22 @@ PVOID   __tshellThread (PVOID  pcArg)
     ioctl(iTtyFd, FIOABORTFUNC, __tshellRestart);                       /*  control-C 行为              */
     
     for (;;) {
-        if (__TTINY_SHELL_GET_OPT(ptcbCur) & LW_OPTION_TSHELL_NOECHO) { /*  是否有 ECHO 属性改变        */
-            if (bEcho) {
-                ioctl(iTtyFd, FIOSETOPTIONS, 
-                      (OPT_TERMINAL & (~OPT_ECHO)));
-                bEcho = LW_FALSE;
-            }
-        } else {
-            if (bEcho == LW_FALSE) {
-                ioctl(iTtyFd, FIOSETOPTIONS, OPT_TERMINAL);
-                bEcho = LW_TRUE;
-            }
-        }
-        
         if (bIsCommandOver) {                                           /*  单条命令结束后发送命令提示符*/
             __tshellShowPrompt();                                       /*  显示命令提示符              */
+        
         } else {
             printf(">");                                                /*  链接命令符                  */
             fflush(stdout);                                             /*  保证 stdout 的输出          */
         }
         
-        if (bEcho) {
-            iReadNum = (INT)__tshellReadline(0, &cRecvBuffer[iTotalNum], 
-                                             LW_CFG_SHELL_MAX_COMMANDLEN - 
-                                             iTotalNum);                /*  接收字符串                  */
-        } else {
+        if (__TTINY_SHELL_GET_OPT(ptcbCur) & LW_OPTION_TSHELL_NOECHO) {
             iReadNum = (INT)read(0, &cRecvBuffer[iTotalNum], 
                                  LW_CFG_SHELL_MAX_COMMANDLEN - 
                                  iTotalNum);                            /*  接收字符串                  */
+        } else {
+            iReadNum = (INT)__tshellReadline(0, &cRecvBuffer[iTotalNum], 
+                                             LW_CFG_SHELL_MAX_COMMANDLEN - 
+                                             iTotalNum);                /*  接收字符串                  */
         }
         
         if (iReadNum > 0) {
@@ -1214,7 +1198,6 @@ PVOID   __tshellThread (PVOID  pcArg)
             optreset = 1;
             
             iRetValue = API_TShellExec(cRecvBuffer);                    /*  执行 shell 指令             */
-    
             if (iRetValue < 0) {
                 switch (iRetValue) {                                    /*  系统级错误提示              */
                 
@@ -1238,6 +1221,13 @@ PVOID   __tshellThread (PVOID  pcArg)
                 API_TShellTermAlert(STD_OUT);                           /*  产生响铃                    */
             }
             __TTINY_SHELL_SET_ERROR(ptcbCur, iRetValue);                /*  记录当前命令产生的错误.     */
+
+            if (__TTINY_SHELL_GET_OPT(ptcbCur) & LW_OPTION_TSHELL_NOECHO) {
+                ioctl(iTtyFd, FIOSETOPTIONS, (OPT_TERMINAL & (~OPT_ECHO)));
+                
+            } else {                                                    /*  重新恢复为行模式            */
+                ioctl(iTtyFd, FIOSETOPTIONS, OPT_TERMINAL);
+            }
         }
         
         iTotalNum      = 0;
