@@ -89,7 +89,7 @@ VOID  API_OpenOCDStep1 (VOID)
     popenocd->OOCD_uiSzObjName = htole32(LW_CFG_OBJECT_NAME_SIZE);
     
     popenocd->OOCD_uiMaxThreads = htole32(LW_CFG_MAX_THREADS);
-    popenocd->OOCD_uiMaxCpus    = htole32(LW_CFG_MAX_PROCESSORS);
+    popenocd->OOCD_uiMaxCpus    = htole32(LW_NCPUS);
     
     popenocd->OOCD_uiCpuTcbCur  = htole32(offsetof(LW_CLASS_CPU, CPU_ptcbTCBCur));
     popenocd->OOCD_uiCpuTcbHigh = htole32(offsetof(LW_CLASS_CPU, CPU_ptcbTCBHigh));

@@ -26,7 +26,7 @@
   ttniy_shell 启动参数
 *********************************************************************************************************/
 
-#define LW_OPTION_TSHELL_VT100          0x00000001                      /*  使用 VT100 中断控制字符     */
+#define LW_OPTION_TSHELL_VT100          0x00000001                      /*  使用 VT100 终端控制字符     */
 
 #define LW_OPTION_TSHELL_AUTHEN         0x80000000                      /*  使用用户认证                */
 #define LW_OPTION_TSHELL_NOLOGO         0x40000000                      /*  是否不显示 logo             */

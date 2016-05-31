@@ -128,6 +128,40 @@ static INT  __tshellSysCmdEcho (INT  iArgC, PCHAR  ppcArgV[])
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: __tshellSysCmdShell
+** 功能描述: 系统命令 "shell"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : 0
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static INT  __tshellSysCmdShell (INT  iArgC, PCHAR  ppcArgV[])
+{
+    INT    iFd;
+    
+    if (iArgC < 2) {
+        fprintf(stderr, "argument error.\n");
+        return  (-1);
+    }
+    
+    iFd = open(ppcArgV[1], O_RDWR);
+    if (iFd < 0) {
+        fprintf(stderr, "open file return : %d error : %s\n", iFd, lib_strerror(errno));
+        return  (-1);
+    }
+    
+    if (API_TShellCreate(iFd, LW_OPTION_TSHELL_VT100       | 
+                              LW_OPTION_TSHELL_AUTHEN      | 
+                              LW_OPTION_TSHELL_PROMPT_FULL | 
+                              LW_OPTION_TSHELL_CLOSE_FD) == LW_OBJECT_HANDLE_INVALID) {
+        fprintf(stderr, "can not create shell : %s\n", lib_strerror(errno));
+        return  (-1);
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: __helpPrintKeyword
 ** 功能描述: 打印一个系统内建关键字信息
 ** 输　入  : pskwNode      关键字
@@ -921,7 +955,7 @@ static INT  __tshellSysCmdOpen (INT  iArgC, PCHAR  ppcArgV[])
                iFd, statBuf.st_dev, statBuf.st_ino, statBuf.st_size);
     
     } else {
-        printf("open file return : %d error : %s\n", iFd, lib_strerror(errno));
+        fprintf(stderr, "open file return : %d error : %s\n", iFd, lib_strerror(errno));
     }
     
     return  (ERROR_NONE);
@@ -2046,6 +2080,11 @@ VOID  __tshellSysCmdInit (VOID)
     API_TShellFormatAdd("echo", " [message]");
     API_TShellHelpAdd("echo", "echo the input command.\n"
                               "echo [message]\n");
+                              
+    API_TShellKeywordAdd("shell", __tshellSysCmdShell);
+    API_TShellFormatAdd("shell", " [tty device]");
+    API_TShellHelpAdd("shell", "create shell use [tty device] as standard file.\n"
+                              "shell /dev/ttyS1\n");
                               
     API_TShellKeywordAdd("help", __tshellSysCmdHelp);
     API_TShellFormatAdd("help", " [-s keyword]");

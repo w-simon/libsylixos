@@ -167,8 +167,14 @@ struct sio16c550_chan {
     UINT8   ier;                                                /* copy of interrupt enable register    */
     UINT8   lcr;                                                /* copy of line control register        */
     UINT8   mcr;                                                /* copy of modem control register       */
+    UINT8   lsr;                                                /* copy of line status register         */
     
     BOOL    bdefer;
+    
+    ULONG   err_overrun;                                        /* err counter                          */
+    ULONG   err_parity;
+    ULONG   err_framing;
+    ULONG   err_break;
     
     /*
      *  user MUST set following members before calling this module api.

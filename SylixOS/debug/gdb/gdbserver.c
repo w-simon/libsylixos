@@ -2323,6 +2323,12 @@ static INT gdbMain (INT argc, CHAR **argv)
     cpu_set_t           cpuset;
 #endif                                                                  /* #if LW_CFG_SMP_EN > 0        */
 
+    if (argc < 3) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "Parameter error.\r\n");
+        _ErrorHandle(ERROR_GDB_PARAM);
+        return  (PX_ERROR);
+    }
+
     pparam = (LW_GDB_PARAM *)LW_GDB_SAFEMALLOC(sizeof(LW_GDB_PARAM));
     if (LW_NULL == pparam) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "Malloc mem error.\r\n");
@@ -2334,23 +2340,16 @@ static INT gdbMain (INT argc, CHAR **argv)
     pparam->GDB_iCommFd = PX_ERROR;
     pparam->GDB_iSigFd  = PX_ERROR;
 
-    if (iArgPos > argc) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "Parameter error.\r\n");
-        _ErrorHandle(ERROR_GDB_PARAM);
-        LW_GDB_SAFEFREE(pparam);
-        return  (PX_ERROR);
-    }
-
-    if (lib_strcmp(argv[iArgPos], "--attach") == 0) {
+    if (lib_strcmp(argv[iArgPos], "--attach") == 0) {                   /* 切入到正在执行的进程调试     */
         iArgPos++;
         pparam->GDB_bAttached = LW_TRUE;
-    }
-
-    if (iArgPos > argc) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "Parameter error.\r\n");
-        _ErrorHandle(ERROR_GDB_PARAM);
-        LW_GDB_SAFEFREE(pparam);
-        return  (PX_ERROR);
+        
+        if (argc < 4) {
+            _DebugHandle(__ERRORMESSAGE_LEVEL, "Parameter error.\r\n");
+            _ErrorHandle(ERROR_GDB_PARAM);
+            LW_GDB_SAFEFREE(pparam);
+            return  (PX_ERROR);
+        }
     }
 
     pparam->GDB_byCommType = COMM_TYPE_TTY;
@@ -2388,13 +2387,6 @@ static INT gdbMain (INT argc, CHAR **argv)
     if (pparam->GDB_pvDtrace == NULL) {
         gdbRelease(pparam);
         _DebugHandle(__ERRORMESSAGE_LEVEL, "Create dtrace object error.\r\n");
-        _ErrorHandle(ERROR_GDB_PARAM);
-        return  (PX_ERROR);
-    }
-
-    if (iArgPos > argc) {
-        gdbRelease(pparam);
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "Parameter error.\r\n");
         _ErrorHandle(ERROR_GDB_PARAM);
         return  (PX_ERROR);
     }

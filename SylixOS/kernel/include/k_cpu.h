@@ -159,7 +159,7 @@ typedef LW_CLASS_CPUSET    *PLW_CLASS_CPUSET;
 #define LW_CPU_ZERO(p)      lib_bzero((PVOID)(p), sizeof(*(p)))
 
 /*********************************************************************************************************
-  当前 CPU 信息 LW_NCPUS 决不能大于 LW_CFG_MAX_PROCESSORS
+  当前 CPU 信息 LW_NCPUS 绝不能大于 LW_CFG_MAX_PROCESSORS
 *********************************************************************************************************/
 #ifdef  __SYLIXOS_KERNEL
 

@@ -925,6 +925,11 @@ __re_select:
                 unlink(cDstFile);                                       /*  删除目标文件                */
             }
         }
+    } else {
+        iError = access(cDstFile, 0);                                   /*  检测目标文件是否存在        */
+        if (iError == ERROR_NONE) {
+            unlink(cDstFile);                                           /*  删除目标文件                */
+        }
     }
                                                                         /*  创建目标文件                */
     iFdDst = open(cDstFile, (O_WRONLY | O_CREAT | O_TRUNC), DEFFILEMODE);

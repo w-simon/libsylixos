@@ -824,7 +824,8 @@ __re_umount_vol:
         }
         tpsfile.TPSFIL_ptpsvol = ptpsvol;
 
-        if (S_ISLNK(tpsFsGetmod(tpsfile.TPSFIL_pinode)) && pcTail) {
+        if (S_ISLNK(tpsFsGetmod(tpsfile.TPSFIL_pinode)) &&
+            pcTail && lib_strlen(pcTail)) {                             /* 最后一级链接文件直接删除     */
             PCHAR   pcSymfile = pcTail;
             PCHAR   pcPrefix;
 
@@ -912,6 +913,7 @@ static INT  __tpsFsClose (PLW_FD_ENTRY    pfdentry)
                              pfdnode) == 0) {                           /*  fd_node 是否完全释放        */
             if (ptpsfile->TPSFIL_pinode) {
                 tpsFsClose(ptpsfile->TPSFIL_pinode);
+                bFree = LW_TRUE;
             }
         }
 
@@ -1482,8 +1484,9 @@ static INT  __tpsFsRename (PLW_FD_ENTRY  pfdentry, PCHAR  pcNewName)
          *  0.09 版本后的 TpsFs 加入了文件锁操作, 所以这里必须关闭文件才能重命名.
          */
         if (ptpsfile->TPSFIL_iFileType == __TPS_FILE_TYPE_NODE) {       /*  是否需要提前关闭文件        */
-            ptpsfile->TPSFIL_iFileType =  __TPS_FILE_TYPE_DEV;          /*  不需要再次关闭              */
+            ptpsfile->TPSFIL_iFileType =  __TPS_FILE_TYPE_DEV;          /*  变为设备节点不再支持其他操作*/
             tpsFsClose(ptpsfile->TPSFIL_pinode);
+            ptpsfile->TPSFIL_pinode = LW_NULL;                          /*  不需要再次关闭              */
         }
 
         iErr = tpsFsMove(ptpsfile->TPSFIL_ptpsvol->TPSVOL_tpsFsVol,
@@ -1542,7 +1545,7 @@ static INT  __tpsFsWhere (PLW_FD_ENTRY  pfdentry, off_t  *poftPos)
         iError  = PX_ERROR;
     }
     
-    __TPS_FILE_LOCK(ptpsfile);
+    __TPS_FILE_UNLOCK(ptpsfile);
 
     _ErrorHandle(ulError);
     return  (iError);

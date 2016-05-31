@@ -100,6 +100,11 @@ INT  sio16c550Init (SIO16C550_CHAN *psiochan)
     
     psiochan->bdefer = LW_FALSE;
     
+    psiochan->err_overrun = 0;
+    psiochan->err_parity  = 0;
+    psiochan->err_framing = 0;
+    psiochan->err_break   = 0;
+    
     psiochan->rx_trigger_level &= 0x3;
 
     /*
@@ -634,29 +639,29 @@ VOID sio16c550TxIsr (SIO16C550_CHAN *psiochan)
 {
     INTREG  intreg;
     UINT8   ucTx;
+    UINT8   lsr;
     INT     i;
     
     LW_SPIN_LOCK_QUICK(&psiochan->slock, &intreg);
     
     psiochan->bdefer = LW_FALSE;
     
-    for (;;) {
-        if (GET_REG(psiochan, LSR) & LSR_THRE) {
-            for (i = 0; i < psiochan->fifo_len; i++) {
-                LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);
-                if (psiochan->pcbGetTxChar(psiochan->getTxArg, &ucTx)) {
-                    return;
-                }
-                LW_SPIN_LOCK_QUICK(&psiochan->slock, &intreg);
-                
-                SET_REG(psiochan, THR, ucTx);                           /* char to Transmit Holding Reg */
+    lsr = psiochan->lsr;                                                /*  first use save lsr value    */
+    
+    if (lsr & LSR_THRE) {
+        for (i = 0; i < psiochan->fifo_len; i++) {
+            LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);
+            if (psiochan->pcbGetTxChar(psiochan->getTxArg, &ucTx)) {
+                return;
             }
-        } else {
-            psiochan->ier |= TxFIFO_BIT;                                /*  enable Tx Int               */
-            SET_REG(psiochan, IER, psiochan->ier);                      /*  update ier                  */
-            break;
+            LW_SPIN_LOCK_QUICK(&psiochan->slock, &intreg);
+            
+            SET_REG(psiochan, THR, ucTx);                               /* char to Transmit Holding Reg */
         }
     }
+    
+    psiochan->ier |= TxFIFO_BIT;                                        /*  enable Tx Int               */
+    SET_REG(psiochan, IER, psiochan->ier);                              /*  update ier                  */
     
     LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);
 }
@@ -672,16 +677,40 @@ VOID sio16c550RxIsr (SIO16C550_CHAN *psiochan)
 {
     INTREG  intreg;
     UINT8   ucRd;
+    UINT8   lsr;
 
     LW_SPIN_LOCK_QUICK(&psiochan->slock, &intreg);
     
-    while (GET_REG(psiochan, LSR) & RxCHAR_AVAIL) {                     /*  receive data                */
-        ucRd = GET_REG(psiochan, RBR);
+    lsr = psiochan->lsr;                                                /*  first use save lsr value    */
+    
+    do {
+        if (lsr & (LSR_BI | LSR_FE | LSR_PE | LSR_OE)) {
+            if (lsr & RxCHAR_AVAIL) {
+                ucRd = GET_REG(psiochan, RBR);
+            }
+            if (lsr & LSR_BI) {
+                psiochan->err_break++;
+            }
+            if (lsr & LSR_FE) {
+                psiochan->err_framing++;
+            }
+            if (lsr & LSR_PE) {
+                psiochan->err_parity++;
+            }
+            if (lsr & LSR_OE) {
+                psiochan->err_overrun++;
+            }
         
-        LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);
-        psiochan->pcbPutRcvChar(psiochan->putRcvArg, ucRd);
-        LW_SPIN_LOCK_QUICK(&psiochan->slock, &intreg);
-    }
+        } else if (lsr & RxCHAR_AVAIL) {
+            ucRd = GET_REG(psiochan, RBR);
+            
+            LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);
+            psiochan->pcbPutRcvChar(psiochan->putRcvArg, ucRd);
+            LW_SPIN_LOCK_QUICK(&psiochan->slock, &intreg);
+        }
+    
+        lsr = GET_REG(psiochan, LSR);
+    } while (lsr & RxCHAR_AVAIL);
     
     psiochan->ier |= RxFIFO_BIT;                                        /*  enable Rx Int               */
     SET_REG(psiochan, IER, psiochan->ier);                              /*  update ier                  */
@@ -698,10 +727,10 @@ VOID sio16c550RxIsr (SIO16C550_CHAN *psiochan)
 *********************************************************************************************************/
 VOID sio16c550Isr (SIO16C550_CHAN *psiochan)
 {
-             INTREG  intreg;
-    volatile UINT8   iir;
-             UINT8   msr;
-             UINT8   ucVal;
+    INTREG  intreg;
+    UINT8   iir;
+    UINT8   lsr;
+    UINT8   msr;
     
     LW_SPIN_LOCK_QUICK(&psiochan->slock, &intreg);
     
@@ -709,10 +738,13 @@ VOID sio16c550Isr (SIO16C550_CHAN *psiochan)
     
     SET_REG(psiochan, IER, 0);                                          /* disable all interrupt        */
     
-    if (GET_REG(psiochan, LSR) & (RxCHAR_AVAIL | LSR_BI)) {             /* Rx Int                       */
+    lsr = GET_REG(psiochan, LSR);
+    
+    if (lsr & (RxCHAR_AVAIL | LSR_BI | LSR_FE | LSR_PE | LSR_OE)) {     /* Rx Int                       */
         psiochan->ier &= (~RxFIFO_BIT);
         SET_REG(psiochan, IER, psiochan->ier);                          /* disable Rx Int               */
-    
+        
+        psiochan->lsr = lsr;                                            /* save lsr                     */
         LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);
         
 #if LW_CFG_ISR_DEFER_EN > 0
@@ -730,13 +762,14 @@ VOID sio16c550Isr (SIO16C550_CHAN *psiochan)
         LW_SPIN_LOCK_QUICK(&psiochan->slock, &intreg);
     }
     
-    if (GET_REG(psiochan, LSR) & LSR_THRE) {                            /* Tx Int                       */
+    if ((lsr & LSR_THRE) || ((iir & 0x06) == IIR_THRE)) {               /* Tx Int                       */
         psiochan->ier &= (~TxFIFO_BIT);                                 /* indicate to disable Tx Int   */
         SET_REG(psiochan, IER, psiochan->ier);                          /* disable Tx Int               */
         
         if (psiochan->bdefer == LW_FALSE) {                             /* not in queue                 */
             psiochan->bdefer =  LW_TRUE;
             
+            psiochan->lsr = lsr;                                        /* save lsr                     */
             LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);
             
 #if LW_CFG_ISR_DEFER_EN > 0
@@ -758,8 +791,7 @@ VOID sio16c550Isr (SIO16C550_CHAN *psiochan)
     switch (iir) {
     
     case IIR_RLS:                                                       /* overrun, parity error        */
-        ucVal = GET_REG(psiochan, LSR);
-        if (ucVal & LSR_PE) {
+        if (lsr & LSR_PE) {
             GET_REG(psiochan, RBR);
         }
         SET_REG(psiochan, IER, psiochan->ier);                          /*  update ier                  */
