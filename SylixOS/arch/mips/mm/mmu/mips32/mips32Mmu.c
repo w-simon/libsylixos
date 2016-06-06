@@ -249,6 +249,8 @@ static LW_PTE_TRANSENTRY  mips32MmuBuildPtentry (UINT32  uiBaseAddr,
 
         if (ulFlag & LW_VMM_FLAG_CACHEABLE) {                           /*  Моід C О»                   */
             uiDescriptor |= MIPS_CACHABLE_NONCOHERENT << MIPS32_ENTRYLO_C_SHIFT;
+        } else {
+            uiDescriptor |= MIPS_UNCACHED << MIPS32_ENTRYLO_C_SHIFT;
         }
 
         if (!(ulFlag & LW_VMM_FLAG_EXECABLE)) {

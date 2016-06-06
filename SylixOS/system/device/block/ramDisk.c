@@ -20,6 +20,7 @@
 
 ** BUG:
 2009.11.03  初始化时 BLKD_bDiskChange 为 LW_FALSE.
+2016.06.02  支持自动分配磁盘内存.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -34,6 +35,7 @@
 typedef struct {
     LW_BLK_DEV      RAMD_blkdRam;                                       /*  块设备                      */
     PVOID           RAMD_pvMem;                                         /*  内存基地址                  */
+    BOOL            RAMD_bNeedFree;                                     /*  是否需要释放                */
 } LW_RAM_DISK;
 typedef LW_RAM_DISK *PLW_RAM_DISK;
 /*********************************************************************************************************
@@ -66,18 +68,34 @@ ULONG  API_RamDiskCreate (PVOID  pvDiskAddr, UINT64  ullDiskSize, PLW_BLK_DEV  *
 {
     REGISTER PLW_RAM_DISK       pramd;
     REGISTER PLW_BLK_DEV        pblkd;
+             BOOL               bNeedFree;
     
-    if (ullDiskSize < LW_CFG_MB_SIZE) {
+    if ((size_t)ullDiskSize < LW_CFG_MB_SIZE) {
         _ErrorHandle(EINVAL);
         return  (EINVAL);
     }
-    if (!pvDiskAddr || !ppblkdRam) {
+    if (!ppblkdRam) {
         _ErrorHandle(EINVAL);
         return  (EINVAL);
+    }
+    
+    if (!pvDiskAddr) {
+        pvDiskAddr = __SHEAP_ALLOC((size_t)ullDiskSize);
+        if (!pvDiskAddr) {
+            _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
+            return  (ERROR_SYSTEM_LOW_MEMORY);
+        }
+        bNeedFree = LW_TRUE;
+    
+    } else {
+        bNeedFree = LW_FALSE;
     }
     
     pramd = (PLW_RAM_DISK)__SHEAP_ALLOC(sizeof(LW_RAM_DISK));
     if (!pramd) {
+        if (bNeedFree) {
+            __SHEAP_FREE(pvDiskAddr);
+        }
         _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
         return  (ERROR_SYSTEM_LOW_MEMORY);
     }
@@ -106,7 +124,8 @@ ULONG  API_RamDiskCreate (PVOID  pvDiskAddr, UINT64  ullDiskSize, PLW_BLK_DEV  *
     pblkd->BLKD_uiPowerCounter    = 0;
     pblkd->BLKD_uiInitCounter     = 0;
     
-    pramd->RAMD_pvMem = pvDiskAddr;
+    pramd->RAMD_pvMem     = pvDiskAddr;
+    pramd->RAMD_bNeedFree = bNeedFree;
 
     *ppblkdRam = &pramd->RAMD_blkdRam;                                  /*  保存控制块                  */
     
@@ -137,8 +156,13 @@ ULONG  API_RamDiskCreate (PVOID  pvDiskAddr, UINT64  ullDiskSize, PLW_BLK_DEV  *
 LW_API  
 INT  API_RamDiskDelete (PLW_BLK_DEV  pblkdRam)
 {
-    if (pblkdRam) {
-        __SHEAP_FREE(pblkdRam);
+    REGISTER PLW_RAM_DISK   pramd = (PLW_RAM_DISK)pblkdRam;
+
+    if (pramd) {
+        if (pramd->RAMD_bNeedFree) {
+            __SHEAP_FREE(pramd->RAMD_pvMem);
+        }
+        __SHEAP_FREE(pramd);
         return  (ERROR_NONE);
     
     } else {
