@@ -24,10 +24,6 @@
 
 #include "endian.h"
 
-#ifndef  LW_INLINE
-#include "arch/arch_inc.h"
-#endif                                                                  /*  LW_INLINE                   */
-
 /*********************************************************************************************************
   ARM 处理器 I/O 屏障 (Non-Cache 区域 SylixOS 未使用低效率的强排序方式, 所以这里需要加入内存屏障)
 *********************************************************************************************************/
@@ -254,15 +250,15 @@ static LW_INLINE VOID writes64 (addr_t  ulAddr, PVOID  pvBuffer, size_t  stCount
 #define out32_be    write32_be
 #define out64_be    write64_be
 
-#define ins8    reads8
-#define ins16   reads16
-#define ins32   reads32
-#define ins64   reads64
+#define ins8        reads8
+#define ins16       reads16
+#define ins32       reads32
+#define ins64       reads64
 
-#define outs8   writes8
-#define outs16  writes16
-#define outs32  writes32
-#define outs64  writes64
+#define outs8       writes8
+#define outs16      writes16
+#define outs32      writes32
+#define outs64      writes64
 
 #endif                                                                  /*  __ARCH_ARM_IO_H             */
 /*********************************************************************************************************

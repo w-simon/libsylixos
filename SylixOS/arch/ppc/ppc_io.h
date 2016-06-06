@@ -24,10 +24,6 @@
 
 #include "endian.h"
 
-#ifndef  LW_INLINE
-#include "arch/arch_inc.h"
-#endif                                                                  /*  LW_INLINE                   */
-
 /*********************************************************************************************************
   PowerPC 处理器 I/O 屏障 (Non-Cache 区域 SylixOS 未使用低效率的强排序方式, 所以这里需要加入内存屏障)
 *********************************************************************************************************/
@@ -38,9 +34,9 @@
 #define PPC_EIEIO()
 #endif                                                                  /*  __GNUC__                    */
 
-#define KN_IO_MB()      PPC_EIEIO(); KN_SMP_MB()
-#define KN_IO_RMB()     PPC_EIEIO(); KN_SMP_RMB()
-#define KN_IO_WMB()     PPC_EIEIO(); KN_SMP_WMB()
+#define KN_IO_MB()      { PPC_EIEIO(); KN_SMP_MB();  }
+#define KN_IO_RMB()     { PPC_EIEIO(); KN_SMP_RMB(); }
+#define KN_IO_WMB()     { PPC_EIEIO(); KN_SMP_WMB(); }
 
 /*********************************************************************************************************
   PowerPC 处理器 I/O 内存读
