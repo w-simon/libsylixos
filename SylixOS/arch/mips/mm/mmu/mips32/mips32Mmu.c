@@ -19,7 +19,7 @@
 ** 描        述: MIPS32 体系构架 MMU 驱动.
 **
 ** BUG:
-2016.04.06  修改TLB无效对EntryHi Register 操作(JZ4780支持)
+2016.04.06  修改 TLB 无效对 EntryHi Register 操作(JZ4780支持)
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -162,10 +162,6 @@ VOID  mips32MmuDumpTLB (VOID)
     }
 
     mipsCp0EntryHiWrite(uiEntryHiBak);
-
-    if (_G_bIsHasITLB) {
-        MIPS32_FLUSH_ITLB();
-    }
 }
 /*********************************************************************************************************
 ** 函数名称: mips32MmuInvalidateTLBMVA
@@ -177,11 +173,12 @@ VOID  mips32MmuDumpTLB (VOID)
 *********************************************************************************************************/
 static VOID  mips32MmuInvalidateTLBMVA (addr_t  ulAddr)
 {
-    UINT32  uiEntryHiBak = mipsCp0EntryHiRead();
-    INT32   iIndex;
+    REGISTER UINT32  uiEntryHiBak = mipsCp0EntryHiRead();
+    REGISTER UINT32  uiEntryHi    = (ulAddr >> (LW_CFG_VMM_PAGE_SHIFT + 1)) << MIPS32_ENTRYHI_VPN_SHIFT;
+    REGISTER INT32   iIndex;
 
     while (1) {
-        mipsCp0EntryHiWrite((ulAddr >> (LW_CFG_VMM_PAGE_SHIFT + 1)) << MIPS32_ENTRYHI_VPN_SHIFT);
+        mipsCp0EntryHiWrite(uiEntryHi);
 
         MIPS_MMU_TLB_PROBE();
 

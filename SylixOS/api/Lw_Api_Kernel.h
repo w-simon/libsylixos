@@ -531,49 +531,6 @@
 #define Lw_Vmm_VirtualShow                      API_VmmVirtualShow
 #define Lw_Vmm_AbortShow                        API_VmmAbortShow
 
-/*********************************************************************************************************
-  PRINT SYSTEM INFO 
-*********************************************************************************************************/
-
-#if (LW_CFG_DEVICE_EN <= 0) || (LW_CFG_FIO_LIB_EN <= 0)
-#define printf(...)
-#endif                                                                  /*  LW_CFG_DEVICE_EN > 0        */
-                                                                        /*  LW_CFG_FIO_LIB_EN > 0       */
-
-#define LW_SYSTEM_INFO_PRINT()  do {                                \
-            printf("%s\n", __SYLIXOS_LICENSE);                      \
-            printf("%s\n", __SYLIXOS_VERINFO);                      \
-            printf("\n");                                           \
-            printf("CPU     : %s\n", bspInfoCpu());                 \
-            printf("CACHE   : %s\n", bspInfoCache());               \
-            printf("PACKET  : %s\n", bspInfoPacket());              \
-            printf("ROM SIZE: 0x%08zx Bytes (0x%08lx - 0x%08lx)\n", \
-                   bspInfoRomSize(),                                \
-                   bspInfoRomBase(),                                \
-                   (bspInfoRomBase() + bspInfoRomSize() - 1));      \
-            printf("RAM SIZE: 0x%08zx Bytes (0x%08lx - 0x%08lx)\n", \
-                   bspInfoRamSize(),                                \
-                   bspInfoRamBase(),                                \
-                   (bspInfoRamBase() + bspInfoRamSize() - 1));      \
-            printf("BSP     : %s\n", bspInfoVersion());             \
-        } while (0)
-        
-/*********************************************************************************************************
-  PRINT SYSTEM LOGO
-*********************************************************************************************************/
-
-#if LW_CFG_KERNEL_LOGO > 0
-#define LW_SYSTEM_LOGO_PRINT()  do {                                                    \
-            extern  const   CHAR  _K_cKernelLogo[];                                     \
-            write(STD_OUT, (CPVOID)_K_cKernelLogo, lib_strlen((PCHAR)_K_cKernelLogo));  \
-        } while (0)
-#else
-#define LW_SYSTEM_LOGO_PRINT()  do {                                                    \
-            write(STD_OUT, "\nKERNEL: Long Wing(C) 2006 - 2013\n",                      \
-                  lib_strlen("\nKERNEL: Long Wing(C) 2006 - 2013\n"));                  \
-        } while (0)
-#endif                                                                  /*  LW_CFG_KERNEL_LOGO > 0      */
-
 #endif                                                                  /*  __LW_API_KERNEL_H           */
 /*********************************************************************************************************
   END

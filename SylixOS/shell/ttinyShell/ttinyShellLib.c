@@ -1134,8 +1134,8 @@ PVOID   __tshellThread (PVOID  pcArg)
     
     if ((__TTINY_SHELL_GET_OPT(ptcbCur) & 
          LW_OPTION_TSHELL_NOLOGO) == 0) {                               /*  是否需要打印 logo           */
-        LW_SYSTEM_LOGO_PRINT();                                         /*  打印欢迎信息                */
-        LW_SYSTEM_INFO_PRINT();
+        API_SystemLogoPrint();                                          /*  打印 LOGO 信息              */
+        API_SystemHwInfoPrint();
     }
     
     __TTINY_SHELL_SET_ERROR(ptcbCur, 0);                                /*  清空错误标记                */
