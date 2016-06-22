@@ -208,6 +208,7 @@ SylixOS/arch/arm/param/armParam.c
 DEBUG_SRCS = \
 SylixOS/debug/dtrace/dtrace.c \
 SylixOS/debug/gdb/gdbserver.c \
+SylixOS/debug/hwdbg/gdbmodule.c \
 SylixOS/debug/hwdbg/openocd.c 
 
 #*********************************************************************************************************
@@ -216,6 +217,8 @@ SylixOS/debug/hwdbg/openocd.c
 DRV_SRCS = \
 SylixOS/driver/can/sja1000.c \
 SylixOS/driver/int/i8259a.c \
+SylixOS/driver/pci/sio/pciSioExar.c \
+SylixOS/driver/pci/sio/pciSioNetmos.c \
 SylixOS/driver/sio/16c550.c \
 SylixOS/driver/timer/i8254.c 
 
@@ -1224,6 +1227,7 @@ SylixOS/vpmpdm/vpmpdm_cpp.cpp \
 SylixOS/vpmpdm/vpmpdm_lm.c \
 SylixOS/vpmpdm/vpmpdm_start.c \
 SylixOS/vpmpdm/vpmpdm_stdio.c \
+SylixOS/vpmpdm/vpmpdm_stdlib.c \
 SylixOS/vpmpdm/vpmpdm.c
 
 #*********************************************************************************************************
@@ -1529,6 +1533,10 @@ $(OBJPATH)/SylixOS/vpmpdm/vpmpdm_stdio.o: ./SylixOS/vpmpdm/vpmpdm_stdio.c
 		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
 		$(COMPILE_PIC.c) $< -o $@
 
+$(OBJPATH)/SylixOS/vpmpdm/vpmpdm_stdlib.o: ./SylixOS/vpmpdm/vpmpdm_stdlib.c
+		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
+		$(COMPILE_PIC.c) $< -o $@
+
 $(OBJPATH)/SylixOS/vpmpdm/vpmpdm.o: ./SylixOS/vpmpdm/vpmpdm.c
 		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
 		$(COMPILE_PIC.c) $< -o $@
@@ -1548,7 +1556,7 @@ $(VPMPDM_A_TARGET): $(OBJS_VPMPDM)
 #*********************************************************************************************************
 $(VPMPDM_S_TARGET): $(OBJS_VPMPDM)
 		$(LD) $(CPUFLAGS) -nostdlib -fPIC -shared -o $(VPMPDM_S_TARGET) $(OBJS_VPMPDM) -lgcc
-		
+
 #*********************************************************************************************************
 # strip libvpmpdm.so
 #*********************************************************************************************************
@@ -1570,7 +1578,7 @@ $(XINPUT_STRIP_TARGET): $(XINPUT_TARGET)
 		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
 		@rm -f $@
 		$(STRIP) --strip-unneeded $(XINPUT_TARGET) -o $(XINPUT_STRIP_TARGET)
-		
+
 #*********************************************************************************************************
 # link xsiipc.ko object files
 #*********************************************************************************************************
@@ -1584,7 +1592,7 @@ $(XSIIPC_STRIP_TARGET): $(XSIIPC_TARGET)
 		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
 		@rm -f $@
 		$(STRIP) --strip-unneeded $(XSIIPC_TARGET) -o $(XSIIPC_STRIP_TARGET)
-		
+
 #*********************************************************************************************************
 # clean
 #*********************************************************************************************************

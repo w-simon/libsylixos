@@ -28,24 +28,26 @@
   MIPS 的寄存器列表
 *********************************************************************************************************/
 
-typedef UINT        ARCH_REG_T;
+typedef UINT32      ARCH_REG_T;
 
 typedef struct {
-    ARCH_REG_T  REG_uiReg[32];                                          /*  32 个通用目的寄存器         */
+#define MIPS_REG_NR             32
+    ARCH_REG_T  REG_uiReg[MIPS_REG_NR];                                 /*  32 个通用目的寄存器         */
     ARCH_REG_T  REG_uiCP0DataLO;                                        /*  除数低位寄存器              */
     ARCH_REG_T  REG_uiCP0DataHI;                                        /*  除数高位寄存器              */
     ARCH_REG_T  REG_uiCP0Cause;                                         /*  产生中断或者异常查看的寄存器*/
     ARCH_REG_T  REG_uiCP0Status;                                        /*  CP0 协处理器状态寄存器      */
     ARCH_REG_T  REG_uiCP0EPC;                                           /*  程序计数器寄存器			*/
+    ARCH_REG_T  REG_uiCP0BadVAddr;                                      /*  出错地址寄存器              */
 } ARCH_REG_CTX;
 
 /*********************************************************************************************************
-  标准调用回溯堆栈表
+  MIPS 调用回溯堆栈表
 *********************************************************************************************************/
 
 typedef struct {
-    ARCH_REG_T  FP_uiFP;                                                /*  帧栈指针寄存器              */
-    ARCH_REG_T  FP_uiRA;                                                /*  返回地址寄存器              */
+#define MIPS_ARG_REG_NR         4
+    ARCH_REG_T  FP_uiArg[MIPS_ARG_REG_NR];                              /*  4 个参数寄存器              */
 } ARCH_FP_CTX;
 
 #endif
@@ -53,7 +55,8 @@ typedef struct {
 /*********************************************************************************************************
   堆栈中的寄存器信息所占大小
 *********************************************************************************************************/
-#define ARCH_REG_CTX_WORD_SIZE  37
+
+#define ARCH_REG_CTX_WORD_SIZE  38
 #define ARCH_STK_MIN_WORD_SIZE  128
 
 /*********************************************************************************************************
@@ -111,6 +114,9 @@ typedef struct {
 #define STK_OFFSET_CAUSE        ((32 + 2) * 4)
 #define STK_OFFSET_SR           ((32 + 3) * 4)
 #define STK_OFFSET_EPC          ((32 + 4) * 4)
+#define STK_OFFSET_BADVADDR     ((32 + 5) * 4)
+
+#define STK_OFFSET_LAST         ((ARCH_REG_CTX_WORD_SIZE - 1) * 4)
 
 #endif                                                                  /*  __MIPS_ARCH_REGS_H          */
 /*********************************************************************************************************

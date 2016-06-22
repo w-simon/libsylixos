@@ -36,6 +36,7 @@
 2013.06.25  logic 设备 BLKD_pvLink 不能为 NULL.
 2014.05.24  加入对 ramfs 支持.
 2015.08.26  将 mount 修正为 blk raw io 方式操作磁盘.
+2016.06.13  修正 nfs 只读属性错误.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -180,6 +181,8 @@ static INT  __mount (CPCHAR  pcDevName, CPCHAR  pcVolName, CPCHAR  pcFileSystem,
             return  (PX_ERROR);
         }
         lib_strcpy(pmnDev->MN_blkd.BLKD_pcName, pcDevName);             /*  记录设备名 (nfs ram 使用)   */
+        
+        pmnDev->MN_blkd.BLKD_iFlag = (bRdOnly) ? O_RDONLY : O_RDWR;
     }
     
     if (pfuncFsCreate(pcVolName, &pmnDev->MN_blkd) < 0) {               /*  挂载文件系统                */

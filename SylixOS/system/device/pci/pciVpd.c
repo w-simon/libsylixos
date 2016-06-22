@@ -17,7 +17,6 @@
 ** 文件创建日期: 2015 年 09 月 17 日
 **
 ** 描        述: PCI 总线 VPD (Vital Product Data).
-**
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -32,15 +31,17 @@
 #include "pciDev.h"
 #include "pciShow.h"
 /*********************************************************************************************************
-  static functions
+  vpd format
 *********************************************************************************************************/
 enum pci_vpd_format {
     F_BINARY,
     F_TEXT,
     F_RESVD,
-    F_RDWR,
+    F_RDWR
 };
-
+/*********************************************************************************************************
+  vpd item
+*********************************************************************************************************/
 static const struct pci_vpd_item {
     UINT8           id1, id2;
     UINT8           format;
@@ -58,38 +59,69 @@ static const struct pci_vpd_item {
     { 'Y', 0 , F_TEXT,    "System specific" },
     {  0,  0 , F_BINARY,  "Unknown" }
 };
-
-static VOID __pciVpdStringPrint (const UINT8 *pucBuf, UINT16 usLen)
+/*********************************************************************************************************
+** 函数名称: __pciVpdStringPrint
+** 功能描述: VPD 字符串打印.
+** 输　入  : pucBuf      缓冲区
+**           usLen       缓冲区大小
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  __pciVpdStringPrint (const UINT8 *pucBuf, UINT16 usLen)
 {
     while (usLen--) {
-        UINT8 ch = *pucBuf++;
-        if (ch == '\\') {
+        UINT8   ucC = *pucBuf++;
+        
+        if (ucC == '\\') {
             printf("\\\\");
-        } else if (!ch && !usLen) {
+        
+        } else if (!ucC && !usLen) {
             /*
              *  Cards with null-terminated strings have been observed
              */
-            ;
-        } else if (ch < 32 || ch == 127) {
-            printf("\\x%02x", ch);
+        } else if ((ucC < 32) || (ucC == 127)) {
+            printf("\\x%02x", ucC);
+        
         } else {
-            putchar(ch);
+            putchar(ucC);
         }
     }
 }
-
-static VOID  __pciVpdBinaryPrint (const UINT8 *buf, UINT16 usLen)
+/*********************************************************************************************************
+** 函数名称: __pciVpdBinaryPrint
+** 功能描述: VPD 二进制打印.
+** 输　入  : buf         缓冲区
+**           usLen       缓冲区大小
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  __pciVpdBinaryPrint (const UINT8 *pucBuf, UINT16 usLen)
 {
-    REGISTER INT      i;
+    REGISTER INT  i;
 
     for (i = 0; i < usLen; i++) {
         if (i) {
             putchar(' ');
         }
-        printf("%02x", buf[i]);
+        printf("%02x", pucBuf[i]);
     }
 }
-
+/*********************************************************************************************************
+** 函数名称: __pciVpdRead
+** 功能描述: 读取 VPD 信息.
+** 输　入  : iBus        总线号
+**           iSlot       插槽
+**           iFunc       功能
+**           iPos        数据地址
+**           pucBuf      结果缓冲区
+**           iLen        结果缓冲区大小
+**           pucCsum     检验和
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
 static INT  __pciVpdRead (INT    iBus,
                           INT    iSlot,
                           INT    iFunc,

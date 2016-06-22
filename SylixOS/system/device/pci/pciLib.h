@@ -45,9 +45,6 @@ typedef PCI_DRV_DEV_CB     *PCI_DRV_DEV_HANDLE;
 LW_API PCHAR                API_PciSizeNameGet(pci_size_t stSize);
 LW_API pci_size_t           API_PciSizeNumGet(pci_size_t stSize);
 
-LW_API INT                  API_PciCtrlLock(VOID);
-LW_API INT                  API_PciCtrlUnlock(VOID);
-
 LW_API INT                  API_PciSpecialCycle(INT iBus, UINT32 uiMsg);
 
 LW_API INT                  API_PciTraversal(INT (*pfuncCall)(), PVOID pvArg, INT iMaxBusNum);

@@ -90,7 +90,7 @@ INT  sio16c550Init (SIO16C550_CHAN *psiochan)
     
     LW_SPIN_INIT(&psiochan->slock);
     
-    psiochan->channel_mode = SIO_MODE_INT;
+    psiochan->channel_mode = SIO_MODE_POLL;
     psiochan->switch_en    = 0;
     psiochan->hw_option    = (CLOCAL | CREAD | CS8 | HUPCL);
 

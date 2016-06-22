@@ -37,7 +37,9 @@
 static UINT                     _GuiPciDevTotalNum  = 0;
 static LW_OBJECT_HANDLE         _GulPciDevLock      = LW_OBJECT_HANDLE_INVALID;
 static LW_LIST_LINE_HEADER      _GplinePciDevHeader = LW_NULL;
-
+/*********************************************************************************************************
+  PCI 设备锁
+*********************************************************************************************************/
 #define __PCI_DEV_LOCK()        API_SemaphoreMPend(_GulPciDevLock, LW_OPTION_WAIT_INFINITE)
 #define __PCI_DEV_UNLOCK()      API_SemaphoreMPost(_GulPciDevLock)
 /*********************************************************************************************************
@@ -185,7 +187,7 @@ INT  API_PciDevInterConnect (PCI_DEV_HANDLE    hHandle,
         return  (PX_ERROR);
     }
 
-    lib_strncpy(hHandle->PCIDEV_cDevIrqName, pcName, PCI_DEV_IRQ_NAME_MAX);
+    lib_strlcpy(hHandle->PCIDEV_cDevIrqName, pcName, PCI_DEV_IRQ_NAME_MAX);
     hHandle->PCIDEV_pfuncDevIrqHandle = pfuncIsr;
     hHandle->PCIDEV_pvDevIrqArg       = pvArg;
 
@@ -703,6 +705,7 @@ INT  __tshellPciDevAddDel (INT  iAdd, INT  iAll, INT  iBus, INT  iDevice, INT  i
 
     if ((iAdd == LW_TRUE) && (iAll == LW_TRUE)) {
         API_PciDevListCreate();
+    
     } else if ((iAdd == LW_TRUE) && (iAll == LW_FALSE)) {
         hDevHandle = API_PciDevAdd(iBus, iDevice, iFunction);
         if (hDevHandle == LW_NULL) {
@@ -712,6 +715,7 @@ INT  __tshellPciDevAddDel (INT  iAdd, INT  iAll, INT  iBus, INT  iDevice, INT  i
 
     if ((iAdd == LW_FALSE) && (iAll == LW_TRUE)) {
         API_PciDevDelete(LW_NULL);
+    
     } else if ((iAdd == LW_FALSE) && (iAll == LW_FALSE)) {
         hDevHandle = API_PciDevHandleGet(iBus, iDevice, iFunction);
         if (hDevHandle == LW_NULL) {
@@ -752,7 +756,7 @@ VOID  __tshellPciDevCmdShow (VOID)
     printf("pci dev number total : %d\n", _GuiPciDevTotalNum);
     printf(pcPciDevShowHdr);
 
-    __PCI_DEV_LOCK();
+    __PCI_DEV_LOCK();                                                   /*  锁定 PCI 驱动               */
     i = 0;
     for (plineTemp  = _GplinePciDevHeader;
          plineTemp != LW_NULL;
@@ -771,7 +775,7 @@ VOID  __tshellPciDevCmdShow (VOID)
                ((hDrvHandle == LW_NULL) ? "NULL" : hDrvHandle->PCIDRV_cDrvName));
         i += 1;
     }
-    __PCI_DEV_UNLOCK();
+    __PCI_DEV_UNLOCK();                                                 /*  解锁 PCI 驱动               */
 
     fflush(stdout);                                                     /*  清空输出                    */
 }
@@ -864,7 +868,7 @@ PCI_DEV_HANDLE  API_PciDevHandleGet (INT  iBus, INT  iDevice, INT  iFunction)
     PCI_DEV_HANDLE      hDevHandle = LW_NULL;
 
     hDevHandle = LW_NULL;
-    __PCI_DEV_LOCK();
+    __PCI_DEV_LOCK();                                                   /*  锁定 PCI 驱动               */
     for (plineTemp  = _GplinePciDevHeader;
          plineTemp != LW_NULL;
          plineTemp  = _list_line_get_next(plineTemp)) {
@@ -875,7 +879,7 @@ PCI_DEV_HANDLE  API_PciDevHandleGet (INT  iBus, INT  iDevice, INT  iFunction)
             break;
         }
     }
-    __PCI_DEV_UNLOCK();
+    __PCI_DEV_UNLOCK();                                                 /*  解锁 PCI 驱动               */
 
     if (plineTemp) {
         return  (hDevHandle);
@@ -924,10 +928,10 @@ PCI_DEV_HANDLE  API_PciDevAdd (INT  iBus, INT  iDevice, INT  iFunction)
 
         API_PciDevSetup(hDevHandle);
 
-        __PCI_DEV_LOCK();
+        __PCI_DEV_LOCK();                                               /*  锁定 PCI 驱动               */
         _List_Line_Add_Ahead(&hDevHandle->PCIDEV_lineDevNode, &_GplinePciDevHeader);
         _GuiPciDevTotalNum += 1;
-        __PCI_DEV_UNLOCK();
+        __PCI_DEV_UNLOCK();                                             /*  解锁 PCI 驱动               */
         break;
 
     case PCI_HEADER_TYPE_BRIDGE:
@@ -958,16 +962,17 @@ INT  API_PciDevDelete (PCI_DEV_HANDLE  hHandle)
     PCI_DEV_HANDLE      hDevHandle = LW_NULL;
 
     if (hHandle == LW_NULL) {
-        __PCI_DEV_LOCK();
-        for (plineTemp  = _GplinePciDevHeader;
-             plineTemp != LW_NULL;
-             plineTemp  = _list_line_get_next(plineTemp)) {
+        __PCI_DEV_LOCK();                                               /*  锁定 PCI 驱动               */
+        plineTemp = _GplinePciDevHeader;
+        while (plineTemp) {
             hDevHandle = _LIST_ENTRY(plineTemp, PCI_DEV_CB, PCIDEV_lineDevNode);
+            plineTemp  = _list_line_get_next(plineTemp);
+            
             _List_Line_Del(&hDevHandle->PCIDEV_lineDevNode, &_GplinePciDevHeader);
             _GuiPciDevTotalNum -= 1;
             __SHEAP_FREE(hDevHandle);
         }
-        __PCI_DEV_UNLOCK();
+        __PCI_DEV_UNLOCK();                                             /*  解锁 PCI 驱动               */
 
         return  (ERROR_NONE);
     }
@@ -980,10 +985,10 @@ INT  API_PciDevDelete (PCI_DEV_HANDLE  hHandle)
         return  (PX_ERROR);
     }
 
-    __PCI_DEV_LOCK();
+    __PCI_DEV_LOCK();                                                   /*  锁定 PCI 驱动               */
     _List_Line_Del(&hHandle->PCIDEV_lineDevNode, &_GplinePciDevHeader);
     _GuiPciDevTotalNum -= 1;
-    __PCI_DEV_UNLOCK();
+    __PCI_DEV_UNLOCK();                                                 /*  解锁 PCI 驱动               */
 
     __SHEAP_FREE(hHandle);
 
@@ -1011,9 +1016,7 @@ INT  API_PciDevDrvDel (PCI_DEV_HANDLE  hDevHandle, PCI_DRV_HANDLE  hDrvHandle)
         return  (PX_ERROR);
     }
 
-    __PCI_DEV_LOCK();
     hDevHandle->PCIDEV_pvDevDriver = LW_NULL;
-    __PCI_DEV_UNLOCK();
 
     return  (ERROR_NONE);
 }
@@ -1037,9 +1040,7 @@ INT  API_PciDevDrvUpdate (PCI_DEV_HANDLE  hDevHandle, PCI_DRV_HANDLE  hDrvHandle
 
     if ((hDevHandle->PCIDEV_pvDevDriver == LW_NULL) ||
         (hDevHandle->PCIDEV_pvDevDriver != hDrvHandle)) {
-        __PCI_DEV_LOCK();
         hDevHandle->PCIDEV_pvDevDriver = (PVOID)hDrvHandle;
-        __PCI_DEV_UNLOCK();
     }
 
     return  (ERROR_NONE);
@@ -1051,6 +1052,8 @@ INT  API_PciDevDrvUpdate (PCI_DEV_HANDLE  hDevHandle, PCI_DRV_HANDLE  hDrvHandle
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
+** 注  意  : 由于 API_PciDrvLoad 内部会加入 DRV_LOCK 经过代码检查, 此处不会发生死锁.
+
                                            API 函数
 *********************************************************************************************************/
 LW_API
@@ -1060,7 +1063,7 @@ VOID  API_PciDrvBindEachDev (PCI_DRV_HANDLE hDrvHandle)
     PLW_LIST_LINE         plineTemp;
     PCI_DEV_ID_HANDLE     hId;
 
-    __PCI_DEV_LOCK();
+    __PCI_DEV_LOCK();                                                   /*  锁定 PCI 驱动               */
     for (plineTemp  = _GplinePciDevHeader;
          plineTemp != LW_NULL;
          plineTemp  = _list_line_get_next(plineTemp)) {
@@ -1078,7 +1081,7 @@ VOID  API_PciDrvBindEachDev (PCI_DRV_HANDLE hDrvHandle)
 
         API_PciDrvLoad(hDrvHandle, hDevCurr, hId);                      /*  绑定设备驱动                */
     }
-    __PCI_DEV_UNLOCK();
+    __PCI_DEV_UNLOCK();                                                 /*  解锁 PCI 驱动               */
 }
 /*********************************************************************************************************
 ** 函数名称: API_PciDevMasterEnable
@@ -1147,9 +1150,7 @@ static INT  __pciDevListCreate (INT  iBus, INT  iDevice, INT  iFunction, PVOID p
 LW_API
 INT  API_PciDevListCreate (VOID)
 {
-    API_PciCtrlLock();
     API_PciTraversal(__pciDevListCreate, LW_NULL, PCI_MAX_BUS - 1);
-    API_PciCtrlUnlock();
 
     return  (ERROR_NONE);
 }

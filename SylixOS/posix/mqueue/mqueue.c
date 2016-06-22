@@ -654,7 +654,7 @@ int  mq_close (mqd_t  mqd)
     __PX_MSG_FILE      *pmqfile;
 
     if ((mqd == MQ_FAILED) || (mqd == 0)) {
-        errno = EINVAL;
+        errno = EBADF;
         return  (PX_ERROR);
     }
     

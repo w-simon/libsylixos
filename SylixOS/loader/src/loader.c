@@ -199,17 +199,12 @@ static LW_LD_EXEC_MODULE  *moduleCreate (CPCHAR  pcPath,
 *********************************************************************************************************/
 static INT moduleDestory (LW_LD_EXEC_MODULE *pmodule)
 {
-    INT     i;
-
     if (pmodule->EMOD_psymbolHash) {                                    /*  符号表销毁                  */
         __moduleDeleteAllSymbol(pmodule);
         LW_LD_SAFEFREE(pmodule->EMOD_psymbolHash);
     }
 
     if(pmodule->EMOD_psegmentArry) {                                    /*  扩展段销毁                  */
-        for(i = 0; i < pmodule->EMOD_ulSegCount; i++) {
-            LW_LD_VMSAFEFREE(pmodule->EMOD_psegmentArry[i].ESEG_ulAddr);
-        }
         LW_LD_SAFEFREE(pmodule->EMOD_psegmentArry);
     }
     

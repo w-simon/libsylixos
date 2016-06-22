@@ -26,6 +26,7 @@
 
 #include <arch/assembler.h>
 #include <config/cpu/cpu_cfg.h>
+#include "mipsContextAsm.h"
 
     FILE_BEGIN()
 
@@ -60,11 +61,17 @@
 ;*********************************************************************************************************/
 
 FUNC_DEF(archIntDisable)
+    .set    push
+    .set    noreorder
+    .set    volatile
+
     MFC0(V0, CP0_STATUS)
     AND     T0 , V0 , ~M_StatusIE
     MTC0(T0, CP0_STATUS)
     JR      RA
     NOP
+
+    .set    pop
 FUNC_END(archIntDisable)
 
 ;/*********************************************************************************************************
@@ -72,15 +79,21 @@ FUNC_END(archIntDisable)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archIntEnable)
-    AND     A0 , A0 , M_StatusIE
-    BEQ     A0 , 0 , 1f
+    .set    push
+    .set    noreorder
+    .set    volatile
+
+    ANDI    A0 , A0 , M_StatusIE
+    BEQ     A0 , ZERO , 1f
 	NOP
 	MFC0(T0, CP0_STATUS)
-    OR      T1 , T0 , M_StatusIE
+    ORI     T1 , T0 , M_StatusIE
     MTC0(T1, CP0_STATUS)
 1:
     JR      RA
     NOP
+
+    .set    pop
 FUNC_END(archIntEnable)
 
 ;/*********************************************************************************************************
@@ -88,11 +101,18 @@ FUNC_END(archIntEnable)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archIntEnableForce)
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
+
     MFC0(T0, CP0_STATUS)
-    OR      T1 , T0 , M_StatusIE
+    ORI     T1 , T0 , M_StatusIE
     MTC0(T1, CP0_STATUS)
     JR      RA
     NOP
+
+    .set    pop
 FUNC_END(archIntEnableForce)
 
 ;/*********************************************************************************************************
@@ -105,97 +125,230 @@ FUNC_DEF(archFindLsb)
     AND     A0 , V0 , A0
     CLZ     A0 , A0
     LI      V0 , 32
-    J       RA
+    JR      RA
     SUBU    V0 , V0 , A0
 FUNC_END(archFindLsb)
 
 FUNC_DEF(archFindMsb)
     CLZ     A0 , A0
     LI      V0 , 32
-    J       RA
+    JR      RA
     SUBU    V0 , V0 , A0
 FUNC_END(archFindMsb)
 #endif
 
 ;/*********************************************************************************************************
-;  注意: setjmp 与 longjmp 上下文结构与线程上下文结构不同
-;
-;  +-------+
-;  | a0-a3 |   Storage provided by ABI contract from calling function
-;  +-------+<---   Original SP
-;  |  RA   |   Storage for return address (8 bytes for alignment)
-;  +-------+
-;  | extra |   Optional additional storage requested by SETFRAME_EXTRA
-;  +-------+
-;  | r0-rN |   Storage for up to 4 additional local registers
-;  +-------+
-;  |(a0-a3)|   Storage provided by ABI contract to called function
-;  +-------+<---   Adjusted SP
-;
+;  注意: setjmp 与 longjmp 上下文结构与线程上下文结构相同
 ;*********************************************************************************************************/
+
+;/*********************************************************************************************************
+;  调用设置函数宏
+;*********************************************************************************************************/
+
+MACRO_DEF(CALL_SETUP, setup)
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
+
+    SUBU    SP , 32
+    SW      RA , 28(SP)
+    SW      FP , 24(SP)
+    MOV     FP , SP
+    SW      A0 , 20(SP)
+    SW      A1 , 16(SP)
+
+    JAL     \setup
+    NOP
+
+    MOV     SP , FP
+    LW      RA , 28(SP)
+    LW      FP , 24(SP)
+    LW      A0 , 20(SP)
+    LW      A1 , 16(SP)
+    ADDU    SP , 32
+
+    .set    pop
+MACRO_END()
+
+;/*********************************************************************************************************
+;  保存寄存器宏
+;*********************************************************************************************************/
+
+MACRO_DEF(SAVE_NON_VOLATILE_REG)
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
+
+    LW      ZERO , 0(A0)
+    LW      ZERO , STK_OFFSET_LAST(A0)
+    ;/*
+    ; * 后面不会再发生 TLB 重填异常
+    ; */
+
+    SW      $0  , 0  * 4(A0)
+    SW      $1  , 1  * 4(A0)
+    SW      $2  , 2  * 4(A0)
+    SW      $3  , 3  * 4(A0)
+    SW      $4  , 4  * 4(A0)
+    SW      $5  , 5  * 4(A0)
+    SW      $6  , 6  * 4(A0)
+    SW      $7  , 7  * 4(A0)
+    SW      $8  , 8  * 4(A0)
+    SW      $9  , 9  * 4(A0)
+    SW      $10 , 10 * 4(A0)
+    SW      $11 , 11 * 4(A0)
+    SW      $12 , 12 * 4(A0)
+    SW      $13 , 13 * 4(A0)
+    SW      $14 , 14 * 4(A0)
+    SW      $15 , 15 * 4(A0)
+    SW      $16 , 16 * 4(A0)
+    SW      $17 , 17 * 4(A0)
+    SW      $18 , 18 * 4(A0)
+    SW      $19 , 19 * 4(A0)
+    SW      $20 , 20 * 4(A0)
+    SW      $21 , 21 * 4(A0)
+    SW      $22 , 22 * 4(A0)
+    SW      $23 , 23 * 4(A0)
+    SW      $24 , 24 * 4(A0)
+    SW      $25 , 25 * 4(A0)
+    ;/*
+    ; * $26 $27 是 K0 K1
+    ; */
+    SW      $28 , 28 * 4(A0)
+    SW      $29 , 29 * 4(A0)
+    SW      $30 , 30 * 4(A0)
+    SW      $31 , 31 * 4(A0)
+
+    MFC0(T1, CP0_STATUS)                                                ;/*  保存 STATUS 寄存器          */
+    SW      T1 , STK_OFFSET_SR(A0)
+
+    SW      RA , STK_OFFSET_EPC(A0)                                     ;/*  RA 代替 EPC 保存            */
+
+    MFC0(T1, CP0_BADVADDR)                                              ;/*  保存 BADVADDR 寄存器        */
+    SW      T1 , STK_OFFSET_BADVADDR(A0)
+
+    MFC0(T1, CP0_CAUSE)                                                 ;/*  保存 CAUSE 寄存器           */
+    SW      T1 , STK_OFFSET_CAUSE(A0)
+
+    MFLO    T1                                                          ;/*  保存 LO 寄存器              */
+    EHB
+    SW      T1 , STK_OFFSET_LO(A0)
+
+    MFHI    T1                                                          ;/*  保存 HI 寄存器              */
+    EHB
+    SW      T1 , STK_OFFSET_HI(A0)
+
+    .set    pop
+MACRO_END()
+
+;/*********************************************************************************************************
+;  恢复寄存器宏
+;*********************************************************************************************************/
+
+MACRO_DEF(RESTORE_NON_VOLATILE_REG)
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
+
+    LW      ZERO , 0(A0)
+    LW      ZERO , STK_OFFSET_LAST(A0)
+    ;/*
+    ; * 后面不会再发生 TLB 重填异常
+    ; */
+
+    ;/*
+    ; * $0 固定为 0
+    ; */
+    LW      $1  , 1  * 4(A0)
+    ;/*
+    ; * $2 是 V0(返回值寄存器)
+    ; */
+    LW      $3  , 3  * 4(A0)
+    ;/*
+    ; * $4 $5 是 A0 A1(两个参数寄存器)
+    ; */
+    LW      $6  , 6  * 4(A0)
+    LW      $7  , 7  * 4(A0)
+    LW      $8  , 8  * 4(A0)
+    ;/*
+    ; * $9 是 T1(后面会恢复)
+    ; */
+    LW      $10 , 10 * 4(A0)
+    LW      $11 , 11 * 4(A0)
+    LW      $12 , 12 * 4(A0)
+    LW      $13 , 13 * 4(A0)
+    LW      $14 , 14 * 4(A0)
+    LW      $15 , 15 * 4(A0)
+    LW      $16 , 16 * 4(A0)
+    LW      $17 , 17 * 4(A0)
+    LW      $18 , 18 * 4(A0)
+    LW      $19 , 19 * 4(A0)
+    LW      $20 , 20 * 4(A0)
+    LW      $21 , 21 * 4(A0)
+    LW      $22 , 22 * 4(A0)
+    LW      $23 , 23 * 4(A0)
+    LW      $24 , 24 * 4(A0)
+    LW      $25 , 25 * 4(A0)
+    ;/*
+    ; * $26 $27 是 K0 K1
+    ; */
+    LW      $28 , 28 * 4(A0)
+    LW      $29 , 29 * 4(A0)
+    LW      $30 , 30 * 4(A0)
+    LW      $31 , 31 * 4(A0)
+
+    LW      T1 , STK_OFFSET_CAUSE(A0)                                   ;/*  恢复 CAUSE 寄存器           */
+    MTC0(T1, CP0_CAUSE)
+
+    LW      T1 , STK_OFFSET_BADVADDR(A0)                                ;/*  恢复 BADVADDR 寄存器        */
+    MTC0(T1, CP0_BADVADDR)
+
+    LW      T1 , STK_OFFSET_EPC(A0)                                     ;/*  恢复 EPC 寄存器             */
+    MTC0(T1, CP0_EPC)
+
+    LW      T1 , STK_OFFSET_LO(A0)                                      ;/*  恢复 LO 寄存器              */
+    MTLO    T1
+    EHB
+
+    LW      T1 , STK_OFFSET_HI(A0)                                      ;/*  恢复 HI 寄存器              */
+    MTHI    T1
+    EHB
+
+    LW      T1 , STK_OFFSET_SR(A0)                                      ;/*  恢复 SR  寄存器             */
+    MTC0(T1, CP0_STATUS)
+
+    LW      T1 , REG_T1 * 4(A0)                                         ;/*  恢复 T1 寄存器              */
+
+    .set    pop
+MACRO_END()
 
 ;/*********************************************************************************************************
 ;  sigsetjmp (参数为 jmp_buf, mask_saved)
 ;*********************************************************************************************************/
 
 FUNC_DEF(sigsetjmp)
-    SUBU    SP , 16
-    SW      RA , 12(SP)
-    SW      A0 , 8(SP)
-    SW      A1 , 4(SP)
-    JAL     __sigsetjmpSetup
-    NOP
-    LW      A1 , 4(SP)
-    LW      A0 , 8(SP)
-    LW      RA , 12(SP)
-    ADDU    SP , 16
+    CALL_SETUP      __sigsetjmpSetup
 
-    SW      S0 ,  0(A0)                                                 ;/*  Save registers in jump buf  */
-    SW      S1 ,  4(A0)
-    SW      S2 ,  8(A0)
-    SW      S3 , 12(A0)
-    SW      S4 , 16(A0)
-    SW      S5 , 20(A0)
-    SW      S6 , 24(A0)
-    SW      S7 , 28(A0)
-    SW      GP , 32(A0)
-    SW      SP , 36(A0)
-    SW      FP , 40(A0)
-    SW      RA , 44(A0)
+    SAVE_NON_VOLATILE_REG
 
     JR      RA
-    MOV     V0 , ZERO                                                   ;/*  Return zero.                */
+    MOV     V0 , ZERO
 FUNC_END(sigsetjmp)
 
 ;/*********************************************************************************************************
-;  setjmp (参数为 jmp_buf)，暂时不考虑FPU
+;  setjmp (参数为 jmp_buf)
 ;*********************************************************************************************************/
 
 FUNC_DEF(setjmp)
-    SUBU    SP , 12
-    SW      RA , 8(SP)
-    SW      A0 , 4(SP)
-    JAL     __setjmpSetup
-    NOP
-    LW      A0 , 4(SP)
-    LW      RA , 8(SP)
-    ADDU    SP , 12
+    CALL_SETUP      __setjmpSetup
 
-    SW      S0 ,  0(A0)                                                 ;/*  Save registers in jump buf  */
-    SW      S1 ,  4(A0)
-    SW      S2 ,  8(A0)
-    SW      S3 , 12(A0)
-    SW      S4 , 16(A0)
-    SW      S5 , 20(A0)
-    SW      S6 , 24(A0)
-    SW      S7 , 28(A0)
-    SW      GP , 32(A0)
-    SW      SP , 36(A0)
-    SW      FP , 40(A0)
-    SW      RA , 44(A0)
+    SAVE_NON_VOLATILE_REG
 
     JR      RA
-    MOV     V0 , ZERO                                                   ;/*  Return zero.                */
+    MOV     V0 , ZERO
 FUNC_END(setjmp)
 
 ;/*********************************************************************************************************
@@ -203,75 +356,33 @@ FUNC_END(setjmp)
 ;*********************************************************************************************************/
 
 FUNC_DEF(siglongjmp)
-    SUBU    SP , 16
-    SW      RA , 12(SP)
-    SW      A0 , 8(SP)
-    SW      A1 , 4(SP)
-    JAL     __siglongjmpSetup
-    NOP
-    LW      A1 , 4(SP)
-    LW      A0 , 8(SP)
-    LW      RA , 12(SP)
-    ADDU    SP , 16
+    CALL_SETUP      __siglongjmpSetup
 
-    LW      S0 ,  0(A0)
-    LW      S1 ,  4(A0)
-    LW      S2 ,  8(A0)
-    LW      S3 , 12(A0)
-    LW      S4 , 16(A0)
-    LW      S5 , 20(A0)
-    LW      S6 , 24(A0)
-    LW      S7 , 28(A0)
-    LW      GP , 32(A0)
-    LW      SP , 36(A0)
-    LW      FP , 40(A0)
-    LW      RA , 44(A0)
+    RESTORE_NON_VOLATILE_REG
 
-    MOV     V0 , A1                                                     ;/*  Return the result argument, */
-    BNE     V0 , 0, 1f                                                  ;/*  or 1 if it is zero.         */
+    MOV     V0 , A1
+    BNE     V0 , ZERO , siglongjmpnotzero
     NOP
     LI      V0 , 1
-
-1:
+LINE_LABEL(siglongjmpnotzero)
     JR      RA
     NOP
 FUNC_END(siglongjmp)
 
 ;/*********************************************************************************************************
-;  longjmp (参数为 jmp_buf, retval)暂时不考虑FPU
+;  longjmp (参数为 jmp_buf, retval)
 ;*********************************************************************************************************/
 
 FUNC_DEF(longjmp)
-    SUBU    SP , 16
-    SW      RA , 12(SP)
-    SW      A0 , 8(SP)
-    SW      A1 , 4(SP)
-    JAL     __longjmpSetup
-    NOP
-    LW      A1 , 4(SP)
-    LW      A0 , 8(SP)
-    LW      RA , 12(SP)
-    ADDU    SP , 16
+    CALL_SETUP      __longjmpSetup
 
-    LW      S0 ,  0(A0)
-    LW      S1 ,  4(A0)
-    LW      S2 ,  8(A0)
-    LW      S3 , 12(A0)
-    LW      S4 , 16(A0)
-    LW      S5 , 20(A0)
-    LW      S6 , 24(A0)
-    LW      S7 , 28(A0)
-    LW      GP , 32(A0)
-    LW      SP , 36(A0)
-    LW      FP , 40(A0)
-    LW      RA , 44(A0)
+    RESTORE_NON_VOLATILE_REG
 
-    MOV     V0 , A1                                                     ;/*  Return the result argument, */
-    BNE     V0 , 0, 1f                                                  ;/*  or 1 if it is zero.         */
+    MOV     V0 , A1
+    BNE     V0 , ZERO , longjmpnotzero
     NOP
     LI      V0 , 1
-
-1:
+LINE_LABEL(longjmpnotzero)
     JR      RA
     NOP
 FUNC_END(longjmp)
@@ -281,7 +392,7 @@ FUNC_END(longjmp)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archReboot)
-    JAL     bspReboot                                                   ;/*  由BSP进行复位操作, 不再返回 */
+    J       bspReboot                                                   ;/*  由BSP进行复位操作, 不再返回 */
     NOP
 FUNC_END(archReboot)
 

@@ -223,10 +223,20 @@ void  pthread_testcancel (void)
 LW_API 
 int  pthread_join (pthread_t  thread, void **ppstatus)
 {
-    if (API_ThreadJoin(thread, ppstatus)) {
-        return  (errno);
+    ULONG   ulError;
+    
+    ulError = API_ThreadJoin(thread, ppstatus);
+    if ((ulError == ERROR_KERNEL_HANDLE_NULL) ||
+        (ulError == ERROR_THREAD_NULL)) {
+        errno = ESRCH;
+        return  (ESRCH);
+    
+    } else if (ulError == ERROR_THREAD_JOIN_SELF) {
+        errno = EDEADLK;
+        return  (EDEADLK);
+    
     } else {
-        return  (ERROR_NONE);
+        return  (ulError);
     }
 }
 /*********************************************************************************************************
@@ -241,12 +251,22 @@ int  pthread_join (pthread_t  thread, void **ppstatus)
 LW_API 
 int  pthread_detach (pthread_t  thread)
 {
+    ULONG   ulError;
+
     PX_ID_VERIFY(thread, pthread_t);
     
-    if (API_ThreadDetach(thread)) {
-        return  (errno);
+    ulError = API_ThreadDetach(thread);
+    if ((ulError == ERROR_KERNEL_HANDLE_NULL) ||
+        (ulError == ERROR_THREAD_NULL)) {
+        errno = ESRCH;
+        return  (ESRCH);
+        
+    } else if (ulError == ERROR_THREAD_DETACHED) {
+        errno = EINVAL;
+        return  (EINVAL);
+    
     } else {
-        return  (ERROR_NONE);
+        return  (ulError);
     }
 }
 /*********************************************************************************************************

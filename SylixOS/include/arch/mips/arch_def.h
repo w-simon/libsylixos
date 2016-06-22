@@ -589,26 +589,26 @@
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 *********************************************************************************************************/
 
-#define S_CcaheType     31                                              /*  reference type              */
-#define M_CcaheType     (0x1 << S_CcaheType)                            /*  0=Instr, 1=Data             */
-#define S_CcaheLevel    30                                              /*  reference level             */
-#define M_CcaheLevel    (0x1 << S_CcaheLevel)                           /*  0=Primary, 1=Secondary      */
-#define S_CcaheData     29                                              /*  data field                  */
-#define M_CcaheData     (0x1 << S_CcaheData)                            /*  0=No error, 1=Error         */
-#define S_CcaheTag      28                                              /*  Tag field                   */
-#define M_CcaheTag      (0x1 << S_CcaheTag)                             /*  0=No error, 1=Error         */
-#define S_CcaheBus      27                                              /*  error on bus                */
-#define M_CcaheBus      (0x1 << S_CcaheBus)                             /*  0=No, 1=Yes                 */
-#define S_CcaheECC      26                                              /*  ECC error                   */
-#define M_CcaheECC      (0x1 << S_CcaheECC)                             /*  0=No, 1=Yes                 */
-#define S_CcaheBoth     25                                              /*  Data & Instruction error    */
-#define M_CcaheBoth     (0x1 << S_CcaheBoth)                            /*  0=No, 1=Yes                 */
-#define S_CcaheEI       24
-#define M_CcaheEI       (0x1 << S_CcaheEI)
-#define S_CcaheE1       23
-#define M_CcaheE1       (0x1 << S_CcaheE1)
-#define S_CcaheE0       22
-#define M_CcaheE0       (0x1 << S_CcaheE0)
+#define S_CacheType     31                                              /*  reference type              */
+#define M_CacheType     (0x1 << S_CacheType)                            /*  0=Instr, 1=Data             */
+#define S_CacheLevel    30                                              /*  reference level             */
+#define M_CacheLevel    (0x1 << S_CacheLevel)                           /*  0=Primary, 1=Secondary      */
+#define S_CacheData     29                                              /*  data field                  */
+#define M_CacheData     (0x1 << S_CacheData)                            /*  0=No error, 1=Error         */
+#define S_CacheTag      28                                              /*  Tag field                   */
+#define M_CacheTag      (0x1 << S_CacheTag)                             /*  0=No error, 1=Error         */
+#define S_CacheBus      27                                              /*  error on bus                */
+#define M_CacheBus      (0x1 << S_CacheBus)                             /*  0=No, 1=Yes                 */
+#define S_CacheECC      26                                              /*  ECC error                   */
+#define M_CacheECC      (0x1 << S_CacheECC)                             /*  0=No, 1=Yes                 */
+#define S_CacheBoth     25                                              /*  Data & Instruction error    */
+#define M_CacheBoth     (0x1 << S_CacheBoth)                            /*  0=No, 1=Yes                 */
+#define S_CacheEI       24
+#define M_CacheEI       (0x1 << S_CacheEI)
+#define S_CacheE1       23
+#define M_CacheE1       (0x1 << S_CacheE1)
+#define S_CacheE0       22
+#define M_CacheE0       (0x1 << S_CacheE0)
 
 /*********************************************************************************************************
  *   CP1 Implementation Register

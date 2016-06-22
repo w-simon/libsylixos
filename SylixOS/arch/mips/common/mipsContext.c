@@ -23,6 +23,10 @@
 #include "SylixOS.h"
 #include "arch/mips/common/cp0/mipsCp0.h"
 /*********************************************************************************************************
+  外部函数声明
+*********************************************************************************************************/
+extern ARCH_REG_T  archGetGP(VOID);
+/*********************************************************************************************************
 ** 函数名称: archTaskCtxCreate
 ** 功能描述: 创建任务上下文
 ** 输　入  : pfuncTask      任务入口
@@ -42,13 +46,10 @@ PLW_STACK  archTaskCtxCreate (PTHREAD_START_ROUTINE  pfuncTask,
     ARCH_REG_CTX       *pregctx;
     ARCH_FP_CTX        *pfpctx;
     UINT32              uiCP0Status;
-    UINT32              uiGP;
     INT                 i;
 
     uiCP0Status  = mipsCp0StatusRead();                                 /*  获得当前的 CP0 STATUS 寄存器*/
     uiCP0Status |= bspIntInitEnableStatus() | M_StatusIE;               /*  使能中断                    */
-
-    MIPS_EXEC_INS("addi   %0, " MIPS_GP ", 0" : "=r"(uiGP));
 
     if ((addr_t)pstkTop & 0x7) {                                        /*  保证出栈后 CPU SP 8 字节对齐*/
         pstkTop = (PLW_STACK)((addr_t)pstkTop - 4);                     /*  向低地址推进 4 字节         */
@@ -57,23 +58,31 @@ PLW_STACK  archTaskCtxCreate (PTHREAD_START_ROUTINE  pfuncTask,
     pfpctx  = (ARCH_FP_CTX  *)((PCHAR)pstkTop - sizeof(ARCH_FP_CTX));
     pregctx = (ARCH_REG_CTX *)((PCHAR)pstkTop - sizeof(ARCH_FP_CTX) - sizeof(ARCH_REG_CTX));
 
-    pfpctx->FP_uiFP = (ARCH_REG_T)LW_NULL;
-    pfpctx->FP_uiRA = (ARCH_REG_T)LW_NULL;
+    /*
+     * 初始化栈帧
+     */
+    for (i = 0; i < MIPS_ARG_REG_NR; i++) {
+        pfpctx->FP_uiArg[i] = i;
+    }
 
-    for (i = 0; i < 32; i++) {
+    /*
+     * 初始化寄存器上下文
+     */
+    for (i = 0; i < MIPS_REG_NR; i++) {
         pregctx->REG_uiReg[i] = i;
     }
 
     pregctx->REG_uiReg[REG_A0] = (ARCH_REG_T)pvArg;
-    pregctx->REG_uiReg[REG_GP] = (ARCH_REG_T)uiGP;
-    pregctx->REG_uiReg[REG_FP] = (ARCH_REG_T)pfpctx->FP_uiFP;
-    pregctx->REG_uiReg[REG_RA] = (ARCH_REG_T)pfuncTask;
+    pregctx->REG_uiReg[REG_GP] = (ARCH_REG_T)archGetGP();               /*  获得 GP 寄存器的值          */
+    pregctx->REG_uiReg[REG_FP] = (ARCH_REG_T)pfpctx;
+    pregctx->REG_uiReg[REG_RA] = (ARCH_REG_T)0x0;
 
     pregctx->REG_uiCP0Status   = (ARCH_REG_T)uiCP0Status;
+    pregctx->REG_uiCP0EPC      = (ARCH_REG_T)pfuncTask;
     pregctx->REG_uiCP0Cause    = (ARCH_REG_T)0x0;
     pregctx->REG_uiCP0DataLO   = (ARCH_REG_T)0x0;
     pregctx->REG_uiCP0DataHI   = (ARCH_REG_T)0x0;
-    pregctx->REG_uiCP0EPC      = (ARCH_REG_T)pfuncTask;
+    pregctx->REG_uiCP0BadVAddr = (ARCH_REG_T)0x0;
 
     return  ((PLW_STACK)pregctx);
 }
@@ -90,17 +99,9 @@ VOID  archTaskCtxSetFp (PLW_STACK  pstkDest, PLW_STACK  pstkSrc)
 {
     ARCH_REG_CTX      *pregctxDest = (ARCH_REG_CTX *)pstkDest;
     ARCH_REG_CTX      *pregctxSrc  = (ARCH_REG_CTX *)pstkSrc;
-    ARCH_FP_CTX       *pfpctx      = (ARCH_FP_CTX  *)((PCHAR)pregctxDest + sizeof(ARCH_REG_CTX));
 
-    /*
-     *  在 ARCH_FP_CTX 区域内, 模拟了一次
-     *  push {fp, lr}
-     *  add  fp, sp, #4
-     */
-    pfpctx->FP_uiFP = pregctxSrc->REG_uiReg[REG_FP];
-    pfpctx->FP_uiRA = pregctxSrc->REG_uiReg[REG_RA];
-
-    pregctxDest->REG_uiReg[REG_FP] = (ARCH_REG_T)&pfpctx->FP_uiRA;
+    pregctxDest->REG_uiReg[REG_FP] = (ARCH_REG_T)pstkSrc + sizeof(ARCH_REG_CTX);
+    pregctxDest->REG_uiReg[REG_RA] = (ARCH_REG_T)pregctxSrc->REG_uiCP0EPC;
 }
 /*********************************************************************************************************
 ** 函数名称: archTaskRegsGet
@@ -156,37 +157,43 @@ VOID  archTaskCtxShow (INT  iFd, PLW_STACK  pstkTop)
 
     fdprintf(iFd, "\n");
 
-    fdprintf(iFd, "SP      = 0x%08x\n", (ARCH_REG_T)pstkTop);
-    fdprintf(iFd, "EPC     = 0x%08x\n", (ARCH_REG_T)pregctx->REG_uiCP0EPC);
+    fdprintf(iFd, "SP        = 0x%08x\n", (ARCH_REG_T)pstkTop);
+    fdprintf(iFd, "EPC       = 0x%08x\n", (ARCH_REG_T)pregctx->REG_uiCP0EPC);
+    fdprintf(iFd, "BADVADDR  = 0x%08x\n", (ARCH_REG_T)pregctx->REG_uiCP0BadVAddr);
+    fdprintf(iFd, "CAUSE     = 0x%08x\n", (ARCH_REG_T)pregctx->REG_uiCP0Cause);
+    fdprintf(iFd, "LO        = 0x%08x\n", (ARCH_REG_T)pregctx->REG_uiCP0DataLO);
+    fdprintf(iFd, "HI        = 0x%08x\n", (ARCH_REG_T)pregctx->REG_uiCP0DataHI);
 
-    fdprintf(iFd, "R01(AT) = 0x%08x\n", pregctx->REG_uiReg[REG_AT]);
-    fdprintf(iFd, "R02(V0) = 0x%08x\n", pregctx->REG_uiReg[REG_V0]);
-    fdprintf(iFd, "R03(V1) = 0x%08x\n", pregctx->REG_uiReg[REG_V1]);
-    fdprintf(iFd, "R04(A0) = 0x%08x\n", pregctx->REG_uiReg[REG_A0]);
-    fdprintf(iFd, "R05(A1) = 0x%08x\n", pregctx->REG_uiReg[REG_A1]);
-    fdprintf(iFd, "R06(A2) = 0x%08x\n", pregctx->REG_uiReg[REG_A2]);
-    fdprintf(iFd, "R07(A3) = 0x%08x\n", pregctx->REG_uiReg[REG_A3]);
-    fdprintf(iFd, "R08(T0) = 0x%08x\n", pregctx->REG_uiReg[REG_T0]);
-    fdprintf(iFd, "R09(T1) = 0x%08x\n", pregctx->REG_uiReg[REG_T1]);
-    fdprintf(iFd, "R10(T2) = 0x%08x\n", pregctx->REG_uiReg[REG_T2]);
-    fdprintf(iFd, "R11(T3) = 0x%08x\n", pregctx->REG_uiReg[REG_T3]);
-    fdprintf(iFd, "R12(T4) = 0x%08x\n", pregctx->REG_uiReg[REG_T4]);
-    fdprintf(iFd, "R13(T5) = 0x%08x\n", pregctx->REG_uiReg[REG_T5]);
-    fdprintf(iFd, "R14(T6) = 0x%08x\n", pregctx->REG_uiReg[REG_T6]);
-    fdprintf(iFd, "R15(T7) = 0x%08x\n", pregctx->REG_uiReg[REG_T7]);
-    fdprintf(iFd, "R16(S0) = 0x%08x\n", pregctx->REG_uiReg[REG_S0]);
-    fdprintf(iFd, "R17(S1) = 0x%08x\n", pregctx->REG_uiReg[REG_S1]);
-    fdprintf(iFd, "R18(S2) = 0x%08x\n", pregctx->REG_uiReg[REG_S2]);
-    fdprintf(iFd, "R19(S3) = 0x%08x\n", pregctx->REG_uiReg[REG_S3]);
-    fdprintf(iFd, "R20(S4) = 0x%08x\n", pregctx->REG_uiReg[REG_S4]);
-    fdprintf(iFd, "R21(S5) = 0x%08x\n", pregctx->REG_uiReg[REG_S5]);
-    fdprintf(iFd, "R22(S6) = 0x%08x\n", pregctx->REG_uiReg[REG_S6]);
-    fdprintf(iFd, "R23(S7) = 0x%08x\n", pregctx->REG_uiReg[REG_S7]);
-    fdprintf(iFd, "R24(T8) = 0x%08x\n", pregctx->REG_uiReg[REG_T8]);
-    fdprintf(iFd, "R25(T9) = 0x%08x\n", pregctx->REG_uiReg[REG_T9]);
-    fdprintf(iFd, "R28(GP) = 0x%08x\n", pregctx->REG_uiReg[REG_GP]);
-    fdprintf(iFd, "R30(FP) = 0x%08x\n", pregctx->REG_uiReg[REG_FP]);
-    fdprintf(iFd, "R31(RA) = 0x%08x\n", pregctx->REG_uiReg[REG_RA]);
+    fdprintf(iFd, "$00(ZERO) = 0x%08x\n", pregctx->REG_uiReg[REG_ZERO]);
+    fdprintf(iFd, "$01(AT)   = 0x%08x\n", pregctx->REG_uiReg[REG_AT]);
+    fdprintf(iFd, "$02(V0)   = 0x%08x\n", pregctx->REG_uiReg[REG_V0]);
+    fdprintf(iFd, "$03(V1)   = 0x%08x\n", pregctx->REG_uiReg[REG_V1]);
+    fdprintf(iFd, "$04(A0)   = 0x%08x\n", pregctx->REG_uiReg[REG_A0]);
+    fdprintf(iFd, "$05(A1)   = 0x%08x\n", pregctx->REG_uiReg[REG_A1]);
+    fdprintf(iFd, "$06(A2)   = 0x%08x\n", pregctx->REG_uiReg[REG_A2]);
+    fdprintf(iFd, "$07(A3)   = 0x%08x\n", pregctx->REG_uiReg[REG_A3]);
+    fdprintf(iFd, "$08(T0)   = 0x%08x\n", pregctx->REG_uiReg[REG_T0]);
+    fdprintf(iFd, "$09(T1)   = 0x%08x\n", pregctx->REG_uiReg[REG_T1]);
+    fdprintf(iFd, "$10(T2)   = 0x%08x\n", pregctx->REG_uiReg[REG_T2]);
+    fdprintf(iFd, "$11(T3)   = 0x%08x\n", pregctx->REG_uiReg[REG_T3]);
+    fdprintf(iFd, "$12(T4)   = 0x%08x\n", pregctx->REG_uiReg[REG_T4]);
+    fdprintf(iFd, "$13(T5)   = 0x%08x\n", pregctx->REG_uiReg[REG_T5]);
+    fdprintf(iFd, "$14(T6)   = 0x%08x\n", pregctx->REG_uiReg[REG_T6]);
+    fdprintf(iFd, "$15(T7)   = 0x%08x\n", pregctx->REG_uiReg[REG_T7]);
+    fdprintf(iFd, "$16(S0)   = 0x%08x\n", pregctx->REG_uiReg[REG_S0]);
+    fdprintf(iFd, "$17(S1)   = 0x%08x\n", pregctx->REG_uiReg[REG_S1]);
+    fdprintf(iFd, "$18(S2)   = 0x%08x\n", pregctx->REG_uiReg[REG_S2]);
+    fdprintf(iFd, "$19(S3)   = 0x%08x\n", pregctx->REG_uiReg[REG_S3]);
+    fdprintf(iFd, "$20(S4)   = 0x%08x\n", pregctx->REG_uiReg[REG_S4]);
+    fdprintf(iFd, "$21(S5)   = 0x%08x\n", pregctx->REG_uiReg[REG_S5]);
+    fdprintf(iFd, "$22(S6)   = 0x%08x\n", pregctx->REG_uiReg[REG_S6]);
+    fdprintf(iFd, "$23(S7)   = 0x%08x\n", pregctx->REG_uiReg[REG_S7]);
+    fdprintf(iFd, "$24(T8)   = 0x%08x\n", pregctx->REG_uiReg[REG_T8]);
+    fdprintf(iFd, "$25(T9)   = 0x%08x\n", pregctx->REG_uiReg[REG_T9]);
+    fdprintf(iFd, "$28(GP)   = 0x%08x\n", pregctx->REG_uiReg[REG_GP]);
+    fdprintf(iFd, "$29(SP)   = 0x%08x\n", pregctx->REG_uiReg[REG_SP]);
+    fdprintf(iFd, "$30(FP)   = 0x%08x\n", pregctx->REG_uiReg[REG_FP]);
+    fdprintf(iFd, "$31(RA)   = 0x%08x\n", pregctx->REG_uiReg[REG_RA]);
 
     uiCP0Status = pregctx->REG_uiCP0Status;
 
@@ -224,6 +231,93 @@ VOID  archTaskCtxShow (INT  iFd, PLW_STACK  pstkTop)
 }
 
 #endif                                                                  /*  LW_CFG_DEVICE_EN > 0        */
+/*********************************************************************************************************
+** 函数名称: archTaskCtxPrint
+** 功能描述: 通过 _PrintFormat 打印任务上下文
+** 输　入  : pstkTop    堆栈栈顶
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  archTaskCtxPrint (PLW_STACK  pstkTop)
+{
+    UINT32              uiCP0Status;
+    ARCH_REG_CTX       *pregctx = (ARCH_REG_CTX *)pstkTop;
+
+    _PrintFormat("\r\n");
+
+    _PrintFormat("SP        = 0x%08x\r\n", (ARCH_REG_T)pstkTop);
+    _PrintFormat("EPC       = 0x%08x\r\n", (ARCH_REG_T)pregctx->REG_uiCP0EPC);
+    _PrintFormat("BADVADDR  = 0x%08x\r\n", (ARCH_REG_T)pregctx->REG_uiCP0BadVAddr);
+    _PrintFormat("CAUSE     = 0x%08x\r\n", (ARCH_REG_T)pregctx->REG_uiCP0Cause);
+    _PrintFormat("LO        = 0x%08x\r\n", (ARCH_REG_T)pregctx->REG_uiCP0DataLO);
+    _PrintFormat("HI        = 0x%08x\r\n", (ARCH_REG_T)pregctx->REG_uiCP0DataHI);
+
+    _PrintFormat("$00(ZERO) = 0x%08x\r\n", pregctx->REG_uiReg[REG_ZERO]);
+    _PrintFormat("$01(AT)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_AT]);
+    _PrintFormat("$02(V0)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_V0]);
+    _PrintFormat("$03(V1)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_V1]);
+    _PrintFormat("$04(A0)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_A0]);
+    _PrintFormat("$05(A1)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_A1]);
+    _PrintFormat("$06(A2)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_A2]);
+    _PrintFormat("$07(A3)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_A3]);
+    _PrintFormat("$08(T0)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_T0]);
+    _PrintFormat("$09(T1)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_T1]);
+    _PrintFormat("$10(T2)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_T2]);
+    _PrintFormat("$11(T3)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_T3]);
+    _PrintFormat("$12(T4)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_T4]);
+    _PrintFormat("$13(T5)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_T5]);
+    _PrintFormat("$14(T6)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_T6]);
+    _PrintFormat("$15(T7)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_T7]);
+    _PrintFormat("$16(S0)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_S0]);
+    _PrintFormat("$17(S1)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_S1]);
+    _PrintFormat("$18(S2)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_S2]);
+    _PrintFormat("$19(S3)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_S3]);
+    _PrintFormat("$20(S4)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_S4]);
+    _PrintFormat("$21(S5)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_S5]);
+    _PrintFormat("$22(S6)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_S6]);
+    _PrintFormat("$23(S7)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_S7]);
+    _PrintFormat("$24(T8)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_T8]);
+    _PrintFormat("$25(T9)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_T9]);
+    _PrintFormat("$28(GP)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_GP]);
+    _PrintFormat("$29(SP)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_SP]);
+    _PrintFormat("$30(FP)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_FP]);
+    _PrintFormat("$31(RA)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_RA]);
+
+    uiCP0Status = pregctx->REG_uiCP0Status;
+
+    _PrintFormat("CP0 Status Register:\r\n");
+    _PrintFormat("CU3 = %d  ",   (uiCP0Status & M_StatusCU3) >> S_StatusCU3);
+    _PrintFormat("CU2 = %d\r\n", (uiCP0Status & M_StatusCU2) >> S_StatusCU2);
+    _PrintFormat("CU1 = %d  ",   (uiCP0Status & M_StatusCU1) >> S_StatusCU1);
+    _PrintFormat("CU0 = %d\r\n", (uiCP0Status & M_StatusCU0) >> S_StatusCU0);
+    _PrintFormat("RP  = %d  ",   (uiCP0Status & M_StatusRP)  >> S_StatusRP);
+    _PrintFormat("FR  = %d\r\n", (uiCP0Status & M_StatusFR)  >> S_StatusFR);
+    _PrintFormat("RE  = %d  ",   (uiCP0Status & M_StatusRE)  >> S_StatusRE);
+    _PrintFormat("MX  = %d\r\n", (uiCP0Status & M_StatusMX)  >> S_StatusMX);
+    _PrintFormat("PX  = %d  ",   (uiCP0Status & M_StatusPX)  >> S_StatusPX);
+    _PrintFormat("BEV = %d\r\n", (uiCP0Status & M_StatusBEV) >> S_StatusBEV);
+    _PrintFormat("TS  = %d  ",   (uiCP0Status & M_StatusTS)  >> S_StatusTS);
+    _PrintFormat("SR  = %d\r\n", (uiCP0Status & M_StatusSR)  >> S_StatusSR);
+    _PrintFormat("NMI = %d  ",   (uiCP0Status & M_StatusNMI) >> S_StatusNMI);
+    _PrintFormat("IM7 = %d\r\n", (uiCP0Status & M_StatusIM7) >> S_StatusIM7);
+    _PrintFormat("IM6 = %d  ",   (uiCP0Status & M_StatusIM6) >> S_StatusIM6);
+    _PrintFormat("IM5 = %d\r\n", (uiCP0Status & M_StatusIM5) >> S_StatusIM5);
+    _PrintFormat("IM4 = %d  ",   (uiCP0Status & M_StatusIM4) >> S_StatusIM4);
+    _PrintFormat("IM3 = %d\r\n", (uiCP0Status & M_StatusIM3) >> S_StatusIM3);
+    _PrintFormat("IM2 = %d  ",   (uiCP0Status & M_StatusIM2) >> S_StatusIM2);
+    _PrintFormat("IM1 = %d\r\n", (uiCP0Status & M_StatusIM1) >> S_StatusIM1);
+    _PrintFormat("IM0 = %d  ",   (uiCP0Status & M_StatusIM0) >> S_StatusIM0);
+    _PrintFormat("KX  = %d\r\n", (uiCP0Status & M_StatusKX)  >> S_StatusKX);
+    _PrintFormat("SX  = %d  ",   (uiCP0Status & M_StatusSX)  >> S_StatusSX);
+    _PrintFormat("UX  = %d\r\n", (uiCP0Status & M_StatusUX)  >> S_StatusUX);
+    _PrintFormat("KSU = %d  ",   (uiCP0Status & M_StatusKSU) >> S_StatusKSU);
+    _PrintFormat("UM  = %d\r\n", (uiCP0Status & M_StatusUM)  >> S_StatusUM);
+    _PrintFormat("SM  = %d  ",   (uiCP0Status & M_StatusSM)  >> S_StatusSM);
+    _PrintFormat("ERL = %d\r\n", (uiCP0Status & M_StatusERL) >> S_StatusERL);
+    _PrintFormat("EXL = %d  ",   (uiCP0Status & M_StatusEXL) >> S_StatusEXL);
+    _PrintFormat("IE  = %d\r\n", (uiCP0Status & M_StatusIE)  >> S_StatusIE);
+}
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

@@ -37,37 +37,38 @@
 /*********************************************************************************************************
   PCI 主控器
 *********************************************************************************************************/
-PCI_CTRL_HANDLE     _GhPciCtrlHandle = LW_NULL;
+PCI_CTRL_HANDLE     _G_hPciCtrlHandle = LW_NULL;
+#define PCI_CTRL    _G_hPciCtrlHandle
 /*********************************************************************************************************
   PCI 主控器配置 IO 操作 PCI_MECHANISM_0
 *********************************************************************************************************/
 #define PCI_CFG_READ(iBus, iSlot, iFunc, iOft, iLen, pvRet)                                             \
-        _GhPciCtrlHandle->PCI_pDrvFuncs0->cfgRead(iBus, iSlot, iFunc, iOft, iLen, pvRet)
+        PCI_CTRL->PCI_pDrvFuncs0->cfgRead(iBus, iSlot, iFunc, iOft, iLen, pvRet)
 #define PCI_CFG_WRITE(iBus, iSlot, iFunc, iOft, iLen, uiData)                                           \
-        _GhPciCtrlHandle->PCI_pDrvFuncs0->cfgWrite(iBus, iSlot, iFunc, iOft, iLen, uiData)
+        PCI_CTRL->PCI_pDrvFuncs0->cfgWrite(iBus, iSlot, iFunc, iOft, iLen, uiData)
 #define PCI_VPD_READ(iBus, iSlot, iFunc, iPos, pucBuf, iLen)                                            \
-        _GhPciCtrlHandle->PCI_pDrvFuncs0->vpdRead(iBus, iSlot, iFunc, iPos, pucBuf, iLen)
+        PCI_CTRL->PCI_pDrvFuncs0->vpdRead(iBus, iSlot, iFunc, iPos, pucBuf, iLen)
 #define PCI_IRQ_GET(iBus, iSlot, iFunc, iMsiEn, iLine, iPin, pulVector)                                 \
-        _GhPciCtrlHandle->PCI_pDrvFuncs0->irqGet(iBus, iSlot, iFunc, iMsiEn, iLine, iPin, pulVector)
+        PCI_CTRL->PCI_pDrvFuncs0->irqGet(iBus, iSlot, iFunc, iMsiEn, iLine, iPin, pulVector)
 #define PCI_CFG_SPCL(iBus, uiMsg)                                                                       \
-        _GhPciCtrlHandle->PCI_pDrvFuncs0->cfgSpcl(iBus, uiMsg)
+        PCI_CTRL->PCI_pDrvFuncs0->cfgSpcl(iBus, uiMsg)
 #define PCI_CFG_SPCL_IS_EN()                                                                            \
-        _GhPciCtrlHandle->PCI_pDrvFuncs0->cfgSpcl
+        PCI_CTRL->PCI_pDrvFuncs0->cfgSpcl
 /*********************************************************************************************************
   PCI 主控器配置地址 PCI_MECHANISM_1 2
 *********************************************************************************************************/
-#define PCI_CONFIG_ADDR0()          _GhPciCtrlHandle->PCI_ulConfigAddr
-#define PCI_CONFIG_ADDR1()          _GhPciCtrlHandle->PCI_ulConfigData
-#define PCI_CONFIG_ADDR2()          _GhPciCtrlHandle->PCI_ulConfigBase
+#define PCI_CONFIG_ADDR0()          PCI_CTRL->PCI_ulConfigAddr
+#define PCI_CONFIG_ADDR1()          PCI_CTRL->PCI_ulConfigData
+#define PCI_CONFIG_ADDR2()          PCI_CTRL->PCI_ulConfigBase
 /*********************************************************************************************************
   PCI 主控器配置 IO 操作 PCI_MECHANISM_1 2
 *********************************************************************************************************/
-#define PCI_IN_BYTE(addr)           _GhPciCtrlHandle->PCI_pDrvFuncs12->ioInByte((addr))
-#define PCI_IN_WORD(addr)           _GhPciCtrlHandle->PCI_pDrvFuncs12->ioInWord((addr))
-#define PCI_IN_DWORD(addr)          _GhPciCtrlHandle->PCI_pDrvFuncs12->ioInDword((addr))
-#define PCI_OUT_BYTE(addr, data)    _GhPciCtrlHandle->PCI_pDrvFuncs12->ioOutByte((UINT8)(data), (addr))
-#define PCI_OUT_WORD(addr, data)    _GhPciCtrlHandle->PCI_pDrvFuncs12->ioOutWord((UINT16)(data), (addr))
-#define PCI_OUT_DWORD(addr, data)   _GhPciCtrlHandle->PCI_pDrvFuncs12->ioOutDword((UINT32)(data), (addr))
+#define PCI_IN_BYTE(addr)           PCI_CTRL->PCI_pDrvFuncs12->ioInByte((addr))
+#define PCI_IN_WORD(addr)           PCI_CTRL->PCI_pDrvFuncs12->ioInWord((addr))
+#define PCI_IN_DWORD(addr)          PCI_CTRL->PCI_pDrvFuncs12->ioInDword((addr))
+#define PCI_OUT_BYTE(addr, data)    PCI_CTRL->PCI_pDrvFuncs12->ioOutByte((UINT8)(data), (addr))
+#define PCI_OUT_WORD(addr, data)    PCI_CTRL->PCI_pDrvFuncs12->ioOutWord((UINT16)(data), (addr))
+#define PCI_OUT_DWORD(addr, data)   PCI_CTRL->PCI_pDrvFuncs12->ioOutDword((UINT32)(data), (addr))
 /*********************************************************************************************************
   PCI 是否为无效 VENDOR_ID
 *********************************************************************************************************/
@@ -148,8 +149,10 @@ pci_size_t  API_PciSizeNumGet (pci_size_t stSize)
 LW_API 
 PCI_CTRL_HANDLE  API_PciCtrlCreate (PCI_CTRL_HANDLE hCtrl)
 {
-    if (_GhPciCtrlHandle == LW_NULL) {
-        _GhPciCtrlHandle =  hCtrl;
+    if (PCI_CTRL == LW_NULL) {
+        PCI_CTRL =  hCtrl;
+        
+        LW_SPIN_INIT(&PCI_CTRL->PCI_slLock);
         
 #if LW_CFG_PROCFS_EN > 0
         __procFsPciInit();
@@ -160,17 +163,7 @@ PCI_CTRL_HANDLE  API_PciCtrlCreate (PCI_CTRL_HANDLE hCtrl)
         API_PciDrvInit();
     }
     
-    if (_GhPciCtrlHandle->PCI_hLock == LW_OBJECT_HANDLE_INVALID) {
-        _GhPciCtrlHandle->PCI_hLock = API_SemaphoreMCreate("pci_lock",
-                                                           LW_PRIO_DEF_CEILING,
-                                                           (LW_OPTION_WAIT_PRIORITY |
-                                                            LW_OPTION_DELETE_SAFE |
-                                                            LW_OPTION_INHERIT_PRIORITY |
-                                                            LW_OPTION_OBJECT_GLOBAL),
-                                                           LW_NULL);
-    }
-    
-    return  (_GhPciCtrlHandle) ? (_GhPciCtrlHandle) : (LW_NULL);
+    return  (PCI_CTRL) ? (PCI_CTRL) : (LW_NULL);
 }
 /*********************************************************************************************************
 ** 函数名称: API_PciCtrlReset
@@ -186,51 +179,11 @@ VOID  API_PciCtrlReset (INT  iRebootType)
 {
     (VOID)iRebootType;
     
-    if (_GhPciCtrlHandle == LW_NULL) {
+    if (PCI_CTRL == LW_NULL) {
         return;
     }
     
     API_PciTraversalDev(0, LW_FALSE, (INT (*)())API_PciFuncDisable, LW_NULL);
-}
-/*********************************************************************************************************
-** 函数名称: API_PciCtrlLock
-** 功能描述: pci 锁定
-** 输　入  : NONE
-** 输　出  : NONE
-** 全局变量:
-** 调用模块:
-**                                            API 函数
-*********************************************************************************************************/
-LW_API 
-INT  API_PciCtrlLock (VOID)
-{
-    if (_GhPciCtrlHandle->PCI_hLock) {
-        API_SemaphoreMPend(_GhPciCtrlHandle->PCI_hLock, LW_OPTION_WAIT_INFINITE);
-        return  (ERROR_NONE);
-        
-    } else {
-        return  (PX_ERROR);
-    }
-}
-/*********************************************************************************************************
-** 函数名称: API_PciCtrlUnlock
-** 功能描述: pci 解锁
-** 输　入  : NONE
-** 输　出  : NONE
-** 全局变量:
-** 调用模块:
-**                                            API 函数
-*********************************************************************************************************/
-LW_API 
-INT  API_PciCtrlUnlock (VOID)
-{
-    if (_GhPciCtrlHandle->PCI_hLock) {
-        API_SemaphoreMPost(_GhPciCtrlHandle->PCI_hLock);
-        return  (ERROR_NONE);
-        
-    } else {
-        return  (PX_ERROR);
-    }
 }
 /*********************************************************************************************************
 ** 函数名称: API_PciConfigInByte
@@ -253,9 +206,9 @@ INT  API_PciConfigInByte (INT iBus, INT iSlot, INT iFunc, INT iOft, UINT8 *pucVa
     UINT32  uiDword;
     INT     iRetVal = PX_ERROR;
     
-    iregInterLevel = KN_INT_DISABLE();
+    LW_SPIN_LOCK_QUICK(&PCI_CTRL->PCI_slLock, &iregInterLevel);
     
-    switch (_GhPciCtrlHandle->PCI_ucMechanism) {
+    switch (PCI_CTRL->PCI_ucMechanism) {
     
     case PCI_MECHANISM_0:
         if (PCI_CFG_READ(iBus, iSlot, iFunc, iOft, 1, (PVOID)&ucRet) < 0) {
@@ -285,7 +238,7 @@ INT  API_PciConfigInByte (INT iBus, INT iSlot, INT iFunc, INT iOft, UINT8 *pucVa
         break;
     }
     
-    KN_INT_ENABLE(iregInterLevel);
+    LW_SPIN_UNLOCK_QUICK(&PCI_CTRL->PCI_slLock, iregInterLevel);
 
     if (pucValue) {
         *pucValue = ucRet;
@@ -318,9 +271,9 @@ INT  API_PciConfigInWord (INT iBus, INT iSlot, INT iFunc, INT iOft, UINT16 *pusV
         return  (PX_ERROR);
     }
 
-    iregInterLevel = KN_INT_DISABLE();
+    LW_SPIN_LOCK_QUICK(&PCI_CTRL->PCI_slLock, &iregInterLevel);
 
-    switch (_GhPciCtrlHandle->PCI_ucMechanism) {
+    switch (PCI_CTRL->PCI_ucMechanism) {
     
     case PCI_MECHANISM_0:
         if (PCI_CFG_READ(iBus, iSlot, iFunc, iOft, 2, (PVOID)&usRet) < 0) {
@@ -350,7 +303,7 @@ INT  API_PciConfigInWord (INT iBus, INT iSlot, INT iFunc, INT iOft, UINT16 *pusV
         break;
     }
     
-    KN_INT_ENABLE(iregInterLevel);
+    LW_SPIN_UNLOCK_QUICK(&PCI_CTRL->PCI_slLock, iregInterLevel);
 
     if (pusValue) {
         *pusValue = usRet;
@@ -382,9 +335,9 @@ INT  API_PciConfigInDword (INT iBus, INT iSlot, INT iFunc, INT iOft, UINT32 *pui
         return  (PX_ERROR);
     }
     
-    iregInterLevel = KN_INT_DISABLE();
+    LW_SPIN_LOCK_QUICK(&PCI_CTRL->PCI_slLock, &iregInterLevel);
 
-    switch (_GhPciCtrlHandle->PCI_ucMechanism) {
+    switch (PCI_CTRL->PCI_ucMechanism) {
     
     case PCI_MECHANISM_0:
         if (PCI_CFG_READ(iBus, iSlot, iFunc, iOft, 4, (PVOID)&uiRet) < 0) {
@@ -412,7 +365,7 @@ INT  API_PciConfigInDword (INT iBus, INT iSlot, INT iFunc, INT iOft, UINT32 *pui
         break;
     }
     
-    KN_INT_ENABLE(iregInterLevel);
+    LW_SPIN_UNLOCK_QUICK(&PCI_CTRL->PCI_slLock, iregInterLevel);
 
     if (puiValue) {
         *puiValue = uiRet;
@@ -440,9 +393,9 @@ INT  API_PciConfigOutByte (INT iBus, INT iSlot, INT iFunc, INT iOft, UINT8 ucVal
     UINT32  uiRet;
     UINT32  uiMask = 0x000000ff;
     
-    iregInterLevel = KN_INT_DISABLE();
+    LW_SPIN_LOCK_QUICK(&PCI_CTRL->PCI_slLock, &iregInterLevel);
 
-    switch (_GhPciCtrlHandle->PCI_ucMechanism) {
+    switch (PCI_CTRL->PCI_ucMechanism) {
     
     case PCI_MECHANISM_0:
         PCI_CFG_WRITE(iBus, iSlot, iFunc, iOft, 1, ucValue);
@@ -468,7 +421,7 @@ INT  API_PciConfigOutByte (INT iBus, INT iSlot, INT iFunc, INT iOft, UINT8 ucVal
         break;
     }
     
-    KN_INT_ENABLE(iregInterLevel);
+    LW_SPIN_UNLOCK_QUICK(&PCI_CTRL->PCI_slLock, iregInterLevel);
 
     return  (ERROR_NONE);
 }
@@ -496,9 +449,9 @@ INT  API_PciConfigOutWord (INT iBus, INT iSlot, INT iFunc, INT iOft, UINT16 usVa
         return  (PX_ERROR);
     }
     
-    iregInterLevel = KN_INT_DISABLE();
+    LW_SPIN_LOCK_QUICK(&PCI_CTRL->PCI_slLock, &iregInterLevel);
 
-    switch (_GhPciCtrlHandle->PCI_ucMechanism) {
+    switch (PCI_CTRL->PCI_ucMechanism) {
     
     case PCI_MECHANISM_0:
         PCI_CFG_WRITE(iBus, iSlot, iFunc, iOft, 2, usValue);
@@ -524,7 +477,7 @@ INT  API_PciConfigOutWord (INT iBus, INT iSlot, INT iFunc, INT iOft, UINT16 usVa
         break;
     }
     
-    KN_INT_ENABLE(iregInterLevel);
+    LW_SPIN_UNLOCK_QUICK(&PCI_CTRL->PCI_slLock, iregInterLevel);
 
     return  (ERROR_NONE);
 }
@@ -550,9 +503,9 @@ INT  API_PciConfigOutDword (INT iBus, INT iSlot, INT iFunc, INT iOft, UINT32 uiV
         return  (PX_ERROR);
     }
     
-    iregInterLevel = KN_INT_DISABLE();
+    LW_SPIN_LOCK_QUICK(&PCI_CTRL->PCI_slLock, &iregInterLevel);
     
-    switch (_GhPciCtrlHandle->PCI_ucMechanism) {
+    switch (PCI_CTRL->PCI_ucMechanism) {
     
     case PCI_MECHANISM_0:
         PCI_CFG_WRITE(iBus, iSlot, iFunc, iOft, 4, uiValue);
@@ -574,7 +527,7 @@ INT  API_PciConfigOutDword (INT iBus, INT iSlot, INT iFunc, INT iOft, UINT32 uiV
         break;
     }
     
-    KN_INT_ENABLE(iregInterLevel);
+    LW_SPIN_UNLOCK_QUICK(&PCI_CTRL->PCI_slLock, iregInterLevel);
 
     return  (ERROR_NONE);
 }
@@ -700,9 +653,9 @@ INT  API_PciSpecialCycle (INT iBus, UINT32 uiMsg)
     INT     iSlot = 0x1f;
     INT     iFunc = 0x07;
     
-    iregInterLevel = KN_INT_DISABLE();
+    LW_SPIN_LOCK_QUICK(&PCI_CTRL->PCI_slLock, &iregInterLevel);
     
-    switch (_GhPciCtrlHandle->PCI_ucMechanism) {
+    switch (PCI_CTRL->PCI_ucMechanism) {
     
     case PCI_MECHANISM_0:
         if (PCI_CFG_SPCL_IS_EN()) {
@@ -727,7 +680,7 @@ INT  API_PciSpecialCycle (INT iBus, UINT32 uiMsg)
         break;
     }
     
-    KN_INT_ENABLE(iregInterLevel);
+    LW_SPIN_UNLOCK_QUICK(&PCI_CTRL->PCI_slLock, iregInterLevel);
     
     return  (iRet);
 }
@@ -1858,9 +1811,9 @@ INT  API_PciVpdRead (INT iBus, INT iSlot, INT iFunc, INT iPos, UINT8 *pucBuf, IN
     INTREG  iregInterLevel;
     INT     iRetVal = PX_ERROR;
 
-    iregInterLevel = KN_INT_DISABLE();
+    LW_SPIN_LOCK_QUICK(&PCI_CTRL->PCI_slLock, &iregInterLevel);
 
-    switch (_GhPciCtrlHandle->PCI_ucMechanism) {
+    switch (PCI_CTRL->PCI_ucMechanism) {
 
     case PCI_MECHANISM_0:
         iRetVal = PCI_VPD_READ(iBus, iSlot, iFunc, iPos, pucBuf, iLen);
@@ -1878,7 +1831,7 @@ INT  API_PciVpdRead (INT iBus, INT iSlot, INT iFunc, INT iPos, UINT8 *pucBuf, IN
         break;
     }
 
-    KN_INT_ENABLE(iregInterLevel);
+    LW_SPIN_UNLOCK_QUICK(&PCI_CTRL->PCI_slLock, iregInterLevel);
 
     return  (iRetVal);
 }
@@ -1903,9 +1856,9 @@ INT  API_PciIrqGet (INT iBus, INT iSlot, INT iFunc, INT iMsiEn, INT iLine, INT i
     INTREG  iregInterLevel;
     INT     iRetVal = PX_ERROR;
 
-    iregInterLevel = KN_INT_DISABLE();
+    LW_SPIN_LOCK_QUICK(&PCI_CTRL->PCI_slLock, &iregInterLevel);
 
-    switch (_GhPciCtrlHandle->PCI_ucMechanism) {
+    switch (PCI_CTRL->PCI_ucMechanism) {
 
     case PCI_MECHANISM_0:
         iRetVal = PCI_IRQ_GET(iBus, iSlot, iFunc, iMsiEn, iLine, iPin, pulVector);
@@ -1923,7 +1876,7 @@ INT  API_PciIrqGet (INT iBus, INT iSlot, INT iFunc, INT iMsiEn, INT iLine, INT i
         break;
     }
 
-    KN_INT_ENABLE(iregInterLevel);
+    LW_SPIN_UNLOCK_QUICK(&PCI_CTRL->PCI_slLock, iregInterLevel);
 
     return  (iRetVal);
 }
@@ -1962,12 +1915,12 @@ INT  API_PciConfigFetch (INT iBus, INT iSlot, INT iFunc, UINT uiPos, UINT uiLen)
 LW_API
 PCI_CTRL_HANDLE  API_PciConfigHandleGet (INT iIndex)
 {
-    if (_GhPciCtrlHandle == LW_NULL) {
+    if (PCI_CTRL == LW_NULL) {
         return  (LW_NULL);
     }
 
-    if (_GhPciCtrlHandle->PCI_iIndex == iIndex) {
-        return (_GhPciCtrlHandle);
+    if (PCI_CTRL->PCI_iIndex == iIndex) {
+        return (PCI_CTRL);
     }
 
     return  (LW_NULL);
@@ -2025,12 +1978,12 @@ static INT  __pciBusCntGet (INT iBus, INT iSlot, INT iFunc, UINT *puiCount)
 LW_API
 INT  API_PciConfigBusMaxSet (INT  iIndex, UINT32  uiBusMax)
 {
-    if (_GhPciCtrlHandle == LW_NULL) {
+    if (PCI_CTRL == LW_NULL) {
         return  (PX_ERROR);
     }
 
-    if (_GhPciCtrlHandle->PCI_iIndex == iIndex) {
-        _GhPciCtrlHandle->PCI_iBusMax = uiBusMax;
+    if (PCI_CTRL->PCI_iIndex == iIndex) {
+        PCI_CTRL->PCI_iBusMax = uiBusMax;
         return (PX_ERROR);
     }
 
@@ -2050,17 +2003,15 @@ INT  API_PciConfigBusMaxGet (INT iIndex)
 {
     UINT        uiBusNumber = 0;
 
-    if (_GhPciCtrlHandle == LW_NULL) {
+    if (PCI_CTRL == LW_NULL) {
         return  (PX_ERROR);
     }
 
-    if (_GhPciCtrlHandle->PCI_iIndex == iIndex) {
-        API_PciCtrlLock();
+    if (PCI_CTRL->PCI_iIndex == iIndex) {
         API_PciTraversal(__pciBusCntGet, &uiBusNumber, PCI_MAX_BUS - 1);
-        API_PciCtrlUnlock();
 
-        _GhPciCtrlHandle->PCI_iBusMax = uiBusNumber;
-        return (_GhPciCtrlHandle->PCI_iBusMax);
+        PCI_CTRL->PCI_iBusMax = uiBusNumber;
+        return (PCI_CTRL->PCI_iBusMax);
     }
 
     return  (PX_ERROR);

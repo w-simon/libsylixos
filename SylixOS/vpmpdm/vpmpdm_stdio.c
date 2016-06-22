@@ -86,4 +86,6 @@ int  asprintf (char **str, char const *fmt, ...)
 
     return  (ret);
 }
-
+/*
+ * end
+ */

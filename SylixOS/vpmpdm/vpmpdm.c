@@ -57,7 +57,7 @@
 #include "./loader/include/loader_lib.h" /* need __eabi */
 #endif /* LW_CFG_CPU_ARCH_PPC */
 
-#define __VP_PATCH_VERSION      "1.5.1" /* vp patch version */
+#define __VP_PATCH_VERSION      "1.5.2" /* vp patch version */
 
 /*
  * fixed gcc old version.

@@ -65,15 +65,15 @@ typedef struct {
     UINT32                  PCIDRV_uiDrvIdTableSize;                    /* 设备支持列表大小             */
 
     /*
-     *  驱动常用函数, PCIDRV_pfuncProbe 与 PCIDRV_pfuncRemove 不能为 LW_NULL, 其它可选
+     *  驱动常用函数, PCIDRV_pfuncDevProbe 与 PCIDRV_pfuncDevRemove 不能为 LW_NULL, 其它可选
      */
-    INT   (*PCIDRV_pfuncDrvProbe)(PCI_DEV_HANDLE hHandle, const PCI_DEV_ID_HANDLE hIdEntry);
-    VOID  (*PCIDRV_pfuncDrvRemove)(PCI_DEV_HANDLE hHandle);
-    INT   (*PCIDRV_pfuncDrvSuspend)(PCI_DEV_HANDLE hHandle, PCI_PM_MESSAGE_HANDLE hPmMsg);
-    INT   (*PCIDRV_pfuncDrvSuspendLate)(PCI_DEV_HANDLE hHandle, PCI_PM_MESSAGE_HANDLE hPmMsg);
-    INT   (*PCIDRV_pfuncDrvResumeEarly)(PCI_DEV_HANDLE hHandle);
-    INT   (*PCIDRV_pfuncDrvResume)(PCI_DEV_HANDLE hHandle);
-    VOID  (*PCIDRV_pfuncDrvShutdown)(PCI_DEV_HANDLE hHandle);
+    INT   (*PCIDRV_pfuncDevProbe)(PCI_DEV_HANDLE hHandle, const PCI_DEV_ID_HANDLE hIdEntry);
+    VOID  (*PCIDRV_pfuncDevRemove)(PCI_DEV_HANDLE hHandle);
+    INT   (*PCIDRV_pfuncDevSuspend)(PCI_DEV_HANDLE hHandle, PCI_PM_MESSAGE_HANDLE hPmMsg);
+    INT   (*PCIDRV_pfuncDevSuspendLate)(PCI_DEV_HANDLE hHandle, PCI_PM_MESSAGE_HANDLE hPmMsg);
+    INT   (*PCIDRV_pfuncDevResumeEarly)(PCI_DEV_HANDLE hHandle);
+    INT   (*PCIDRV_pfuncDevResume)(PCI_DEV_HANDLE hHandle);
+    VOID  (*PCIDRV_pfuncDevShutdown)(PCI_DEV_HANDLE hHandle);
 
     PCI_ERROR_HANDLE        PCIDRV_hDrvErrHandler;                      /* 错误处理句柄                 */
 
@@ -103,4 +103,3 @@ LW_API INT                  API_PciDrvRegister(PCI_DRV_HANDLE hHandle);
 /*********************************************************************************************************
   END
 *********************************************************************************************************/
-

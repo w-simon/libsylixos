@@ -553,11 +553,9 @@ typedef struct pci_drv_funcs12 {
 
 typedef struct {
     LW_LIST_LINE            PCI_lineDevNode;                            /* 设备管理节点                 */
-
-    INT                     PCI_iIndex;                                 /* 控制器索引                   */
-    LW_OBJECT_HANDLE        PCI_hLock;                                  /* 控制器锁                     */
-
+    INT                     PCI_iIndex;                                 /* 控制器索引(当前支持单控制器) */
     INT                     PCI_iBusMax;
+    LW_SPINLOCK_DEFINE     (PCI_slLock);                                /* 底层操作自旋锁               */
 
     union {
         PCI_DRV_FUNCS0     *PCIF_pDrvFuncs0;

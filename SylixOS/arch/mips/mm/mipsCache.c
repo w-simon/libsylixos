@@ -41,9 +41,9 @@ VOID  archCacheInit (CACHE_MODE  uiInstruction, CACHE_MODE  uiData, CPCHAR  pcMa
 
     _DebugFormat(__LOGMESSAGE_LEVEL, "%s L1 cache controller initialization.\r\n", pcMachineName);
 
-    if (lib_strcmp(pcMachineName, MIPS_MACHINE_LS1X) == 0 ||
-        lib_strcmp(pcMachineName, MIPS_MACHINE_24KF) == 0 ||
-        lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X) == 0 ||
+    if (lib_strcmp(pcMachineName, MIPS_MACHINE_LS1X)   == 0 ||
+        lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X)   == 0 ||
+        lib_strcmp(pcMachineName, MIPS_MACHINE_24KF)   == 0 ||
         lib_strcmp(pcMachineName, MIPS_MACHINE_JZ47XX) == 0) {
         mips32CacheInit(pcacheop, uiInstruction, uiData, pcMachineName);
 
@@ -61,9 +61,9 @@ VOID  archCacheInit (CACHE_MODE  uiInstruction, CACHE_MODE  uiData, CPCHAR  pcMa
 *********************************************************************************************************/
 VOID  archCacheReset (CPCHAR  pcMachineName)
 {
-    if (lib_strcmp(pcMachineName, MIPS_MACHINE_LS1X) == 0 ||
-        lib_strcmp(pcMachineName, MIPS_MACHINE_24KF) == 0 ||
-        lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X) == 0 ||
+    if (lib_strcmp(pcMachineName, MIPS_MACHINE_LS1X)   == 0 ||
+        lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X)   == 0 ||
+        lib_strcmp(pcMachineName, MIPS_MACHINE_24KF)   == 0 ||
         lib_strcmp(pcMachineName, MIPS_MACHINE_JZ47XX) == 0) {
         mips32CacheReset(pcMachineName);
 

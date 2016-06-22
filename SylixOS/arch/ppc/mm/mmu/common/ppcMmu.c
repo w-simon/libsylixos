@@ -756,13 +756,8 @@ VOID  ppcMmuInit (LW_MMU_OP *pmmuop, CPCHAR  pcMachineName)
         return;
     }
 
-    if (LW_NCPUS > 1) {
-        _G_ucWIM4CacheBuffer = M_BIT;
-        _G_ucWIM4Cache       = W_BIT | M_BIT;
-    } else {
-        _G_ucWIM4CacheBuffer = 0;
-        _G_ucWIM4Cache       = W_BIT;
-    }
+    _G_ucWIM4CacheBuffer = M_BIT;
+    _G_ucWIM4Cache       = W_BIT | M_BIT;
 
     pmmuop->MMUOP_ulOption           = 0ul;                             /*  tlbsync 指令会自动多核同步  */
     pmmuop->MMUOP_pfuncMemInit       = ppcMmuMemInit;

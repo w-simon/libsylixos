@@ -45,7 +45,11 @@
 LW_API 
 int  sched_get_priority_max (int  iPolicy)
 {
-    (VOID)iPolicy;
+    if ((iPolicy != LW_OPTION_SCHED_FIFO) &&
+        (iPolicy != LW_OPTION_SCHED_RR)) {
+        errno = EINVAL;
+        return  (PX_ERROR);
+    }
 
     return  (__PX_PRIORITY_MAX);                                        /*  254                         */
 }
@@ -61,7 +65,11 @@ int  sched_get_priority_max (int  iPolicy)
 LW_API 
 int  sched_get_priority_min (int  iPolicy)
 {
-    (VOID)iPolicy;
+    if ((iPolicy != LW_OPTION_SCHED_FIFO) &&
+        (iPolicy != LW_OPTION_SCHED_RR)) {
+        errno = EINVAL;
+        return  (PX_ERROR);
+    }
     
     return  (__PX_PRIORITY_MIN);                                        /*  1                           */
 }

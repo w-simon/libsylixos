@@ -31,7 +31,8 @@
 /*********************************************************************************************************
   PCI 主控器
 *********************************************************************************************************/
-extern PCI_CTRL_HANDLE      _GhPciCtrlHandle;
+extern  PCI_CTRL_HANDLE      _G_hPciCtrlHandle;
+#define PCI_CTRL             _G_hPciCtrlHandle
 /*********************************************************************************************************
   内部回调参数
 *********************************************************************************************************/
@@ -93,7 +94,7 @@ INT  API_PciScan (PCI_DEV_DRV_DESC  *p_pdddTable, UINT  uiNum)
 {
     PCI_SCAN_ARG    psa;
     
-    if (_GhPciCtrlHandle == LW_NULL) {
+    if (PCI_CTRL == LW_NULL) {
         _ErrorHandle(ENOSYS);
         return  (PX_ERROR);
     }

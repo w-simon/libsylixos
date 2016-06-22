@@ -301,8 +301,13 @@ int  pthread_attr_setdetachstate (pthread_attr_t  *pattr, int  iDetachState)
     
     if (iDetachState == PTHREAD_CREATE_DETACHED) {
         pattr->PTHREADATTR_ulOption |= LW_OPTION_THREAD_DETACHED;
-    } else {
+    
+    } else if (iDetachState == PTHREAD_CREATE_JOINABLE) {
         pattr->PTHREADATTR_ulOption &= ~LW_OPTION_THREAD_DETACHED;
+    
+    } else {
+        errno = EINVAL;
+        return  (EINVAL);
     }
     
     return  (ERROR_NONE);
@@ -327,6 +332,7 @@ int  pthread_attr_getdetachstate (const pthread_attr_t  *pattr, int  *piDetachSt
     
     if (pattr->PTHREADATTR_ulOption & LW_OPTION_THREAD_DETACHED) {
         *piDetachState = PTHREAD_CREATE_DETACHED;
+    
     } else {
         *piDetachState = PTHREAD_CREATE_JOINABLE;
     }
@@ -353,8 +359,8 @@ int  pthread_attr_setschedpolicy (pthread_attr_t  *pattr, int  iPolicy)
     
     if ((iPolicy != LW_OPTION_SCHED_FIFO) &&
         (iPolicy != LW_OPTION_SCHED_RR)) {
-        errno = EINVAL;
-        return  (EINVAL);
+        errno = ENOTSUP;
+        return  (ENOTSUP);
     }
     
     pattr->PTHREADATTR_iSchedPolicy = iPolicy;
@@ -449,8 +455,8 @@ int  pthread_attr_setinheritsched (pthread_attr_t  *pattr, int  iInherit)
     
     if ((iInherit != PTHREAD_INHERIT_SCHED) &&
         (iInherit != PTHREAD_EXPLICIT_SCHED)) {
-        errno = EINVAL;
-        return  (EINVAL);
+        errno = ENOTSUP;
+        return  (ENOTSUP);
     }
     
     pattr->PTHREADATTR_iInherit = iInherit;
@@ -504,8 +510,8 @@ int  pthread_attr_setscope (pthread_attr_t  *pattr, int  iScope)
         pattr->PTHREADATTR_ulOption &= ~LW_OPTION_THREAD_SCOPE_PROCESS;
     
     } else {
-        errno = EINVAL;
-        return  (EINVAL);
+        errno = ENOTSUP;
+        return  (ENOTSUP);
     }
     
     return  (ERROR_NONE);

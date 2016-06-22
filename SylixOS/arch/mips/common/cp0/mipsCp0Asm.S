@@ -86,26 +86,40 @@
     EXPORT_LABEL(mipsCp0TagHiRead)
     EXPORT_LABEL(mipsCp0TagHiWrite)
 
-/*********************************************************************************************************
-  CP0 register read
-*********************************************************************************************************/
+;/*********************************************************************************************************
+;  CP0 register read
+;*********************************************************************************************************/
 
 MACRO_DEF(mipsCp0RegRead reg)
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
+
     MFC0    V0 , \reg
     EHB
     JR      RA
     NOP
+
+    .set    pop
 MACRO_END()
 
-/*********************************************************************************************************
-  CP0 register write
-*********************************************************************************************************/
+;/*********************************************************************************************************
+;  CP0 register write
+;*********************************************************************************************************/
 
 MACRO_DEF(mipsCp0RegWrite reg)
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
+
     MTC0    A0 , \reg
     EHB
     JR      RA
     NOP
+
+    .set    pop
 MACRO_END()
 
 ;/*********************************************************************************************************
@@ -209,17 +223,31 @@ FUNC_END(mipsCp0ConfigWrite)
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsCp0Config1Read)
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
+
     MFC0    V0 , CP0_CONFIG1
     EHB
     JR      RA
     NOP
+
+    .set    pop
 FUNC_END(mipsCp0Config1Read)
 
 FUNC_DEF(mipsCp0Config1Write)
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
+
     MTC0    A0 , CP0_CONFIG1
     EHB
     JR      RA
     NOP
+
+    .set    pop
 FUNC_END(mipsCp0Config1Write)
 
 ;/*********************************************************************************************************
@@ -227,17 +255,31 @@ FUNC_END(mipsCp0Config1Write)
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsCp0Config2Read)
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
+
     MFC0    V0 , CP0_CONFIG2
     EHB
     JR      RA
     NOP
+
+    .set    pop
 FUNC_END(mipsCp0Config2Read)
 
 FUNC_DEF(mipsCp0Config2Write)
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
+
     MTC0    A0 , CP0_CONFIG2
     EHB
     JR      RA
     NOP
+
+    .set    pop
 FUNC_END(mipsCp0Config2Write)
 
 ;/*********************************************************************************************************
@@ -245,17 +287,31 @@ FUNC_END(mipsCp0Config2Write)
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsCp0Config3Read)
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
+
     MFC0    V0 , CP0_CONFIG3
     EHB
     JR      RA
     NOP
+
+    .set    pop
 FUNC_END(mipsCp0Config3Read)
 
 FUNC_DEF(mipsCp0Config3Write)
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
+
     MTC0    A0 , CP0_CONFIG3
     EHB
     JR      RA
     NOP
+
+    .set    pop
 FUNC_END(mipsCp0Config3Write)
 
 ;/*********************************************************************************************************
@@ -263,17 +319,31 @@ FUNC_END(mipsCp0Config3Write)
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsCp0EBaseRead)
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
+
     MFC0    V0 , CP0_EBASE
     EHB
     JR      RA
     NOP
+
+    .set    pop
 FUNC_END(mipsCp0EBaseRead)
 
 FUNC_DEF(mipsCp0EBaseWrite)
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
+
     MTC0    A0 , CP0_EBASE
     EHB
     JR      RA
     NOP
+
+    .set    pop
 FUNC_END(mipsCp0EBaseWrite)
 
 ;/*********************************************************************************************************
@@ -281,17 +351,31 @@ FUNC_END(mipsCp0EBaseWrite)
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsCp0IntCtlRead)
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
+
     MFC0    V0 , CP0_INTCTL
     EHB
     JR      RA
     NOP
+
+    .set    pop
 FUNC_END(mipsCp0IntCtlRead)
 
 FUNC_DEF(mipsCp0IntCtlWrite)
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
+
     MTC0    A0 , CP0_INTCTL
     EHB
     JR      RA
     NOP
+
+    .set    pop
 FUNC_END(mipsCp0IntCtlWrite)
 
 ;/*********************************************************************************************************

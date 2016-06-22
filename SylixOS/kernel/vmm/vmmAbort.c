@@ -488,8 +488,7 @@ static VOID  __vmmAbortDump (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
 {
              addr_t                 ulAbortAddr = pvmpagefailctx->PAGEFCTX_ulAbortAddr;
              LW_OBJECT_HANDLE       ulOwner;
-             PCHAR                  pcTail = LW_NULL;
-             PCHAR                  pcType = LW_NULL;
+             PCHAR                  pcTail;
              CPCHAR                 pcKernelFunc;
              CHAR                   cMmapMsg[128] = "<unknown>.";
              
@@ -517,12 +516,15 @@ static VOID  __vmmAbortDump (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
     } else {
         pcTail = "address invalidate.";
     }
-    
-    pcType = __vmmAbortTypeStr(&pvmpagefailctx->PAGEFCTX_abtInfo);
                                     
     _DebugFormat(__ERRORMESSAGE_LEVEL, 
-                 "abort in kernel status, owner : 0x%08lx, func : %s, addr: 0x%08lx, type : %s, %s.\r\n",
-                 ulOwner, pcKernelFunc, pvmpagefailctx->PAGEFCTX_ulAbortAddr, pcType, pcTail);
+                 "abort in kernel status, kowner: 0x%08lx, kfunc: %s, "
+                 "ret_addr: 0x%08lx abt_addr: 0x%08lx, abt_type: %s, %s.\r\n",
+                 ulOwner, pcKernelFunc, 
+                 pvmpagefailctx->PAGEFCTX_ulRetAddr,
+                 pvmpagefailctx->PAGEFCTX_ulAbortAddr, 
+                 __vmmAbortTypeStr(&pvmpagefailctx->PAGEFCTX_abtInfo), 
+                 pcTail);
 }
 /*********************************************************************************************************
 ** 函数名称: __vmmAbortShell
@@ -829,7 +831,7 @@ static VOID  __vmmAbortAccess (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
     switch (__PAGEFAILCTX_ABORT_TYPE(pvmpagefailctx)) {
     
     case LW_VMM_ABORT_TYPE_UNDEF:
-        printk(KERN_EMERG "thread 0x%lx undefine-instruction, address : 0x%lx.\n",
+        printk(KERN_EMERG "thread 0x%lx undefine-instruction, abt_addr: 0x%08lx.\n",
                pvmpagefailctx->PAGEFCTX_ulSelf, 
                pvmpagefailctx->PAGEFCTX_ulAbortAddr);                   /*  操作异常                    */
         break;
@@ -842,7 +844,7 @@ static VOID  __vmmAbortAccess (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
             __ARCH_FPU_CTX_SHOW(ioGlobalStdGet(STD_ERR), ptcbCur->TCB_pvStackFP);
         }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
-        printk(KERN_EMERG "thread 0x%lx float-point exception, address : 0x%lx.\n",
+        printk(KERN_EMERG "thread 0x%lx FPU exception, abt_addr: 0x%08lx.\n",
                pvmpagefailctx->PAGEFCTX_ulSelf, 
                pvmpagefailctx->PAGEFCTX_ulAbortAddr);                   /*  操作异常                    */
         break;
@@ -851,8 +853,9 @@ static VOID  __vmmAbortAccess (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
 #if LW_CFG_DEVICE_EN > 0
         archTaskCtxShow(ioGlobalStdGet(STD_ERR), (PLW_STACK)pvmpagefailctx->PAGEFCTX_pvStackRet);
 #endif
-        printk(KERN_EMERG "thread 0x%lx abort, addr: 0x%08lx, type : %s.\n",
+        printk(KERN_EMERG "thread 0x%lx abort, ret_addr: 0x%08lx abt_addr: 0x%08lx abt_type: %s.\n",
                pvmpagefailctx->PAGEFCTX_ulSelf, 
+               pvmpagefailctx->PAGEFCTX_ulRetAddr,
                pvmpagefailctx->PAGEFCTX_ulAbortAddr, 
                __vmmAbortTypeStr(&pvmpagefailctx->PAGEFCTX_abtInfo));   /*  操作异常                    */
         break;
@@ -900,8 +903,9 @@ VOID  API_VmmAbortIsr (addr_t          ulRetAddr,
     if (ulNesting > 1) {
         _DebugFormat(__ERRORMESSAGE_LEVEL, 
                      "abort occur in exception mode. "
-                     "ulRetAddr 0x%lx ulAbortAddr 0x%lx ulAbortType 0x%lx\r\n",
-                     ulRetAddr, ulAbortAddr, pabtInfo->VMABT_uiType);
+                     "ret_addr: 0x%08lx abt_addr: 0x%08lx abt_type: %s\r\n"
+                     "rebooting...\r\n",
+                     ulRetAddr, ulAbortAddr, __vmmAbortTypeStr(pabtInfo));
         API_KernelReboot(LW_REBOOT_FORCE);                              /*  直接重新启动操作系统        */
         return;
     }

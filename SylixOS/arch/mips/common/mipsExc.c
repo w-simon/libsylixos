@@ -38,6 +38,10 @@
 #define VECTOR_OP_UNLOCK()
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 /*********************************************************************************************************
+  外部函数声明
+*********************************************************************************************************/
+extern VOID  archTaskCtxPrint(PLW_STACK  pstkTop);
+/*********************************************************************************************************
 ** 函数名称: archIntHandle
 ** 功能描述: bspIntHandle 需要调用此函数处理中断 (关闭中断情况被调用)
 ** 输　入  : ulVector         中断向量
@@ -95,8 +99,10 @@ __attribute__((weak)) VOID  archIntHandle (ULONG  ulVector, BOOL  bPreemptive)
 
 VOID  archCacheErrorHandle (addr_t  ulRetAddr)
 {
-    REGISTER UINT32  uiFiled  = 2 * sizeof(UINT32);
-    REGISTER UINT32  uiRegVal;
+    REGISTER UINT32         uiFiled  = 2 * sizeof(UINT32);
+    REGISTER UINT32         uiRegVal;
+             PLW_CLASS_TCB  ptcbCur;
+             LW_VMM_ABORT   abtInfo;
 
     uiRegVal = mipsCp0ConfigRead();
     mipsCp0ConfigWrite((uiRegVal & ~M_ConfigK0) | MIPS_UNCACHED);
@@ -109,19 +115,25 @@ VOID  archCacheErrorHandle (addr_t  ulRetAddr)
     _PrintFormat("cp0_cacheerr == 0x%08x\r\n", uiRegVal);
 
     _PrintFormat("Decoded cp0_cacheerr: %s cache fault in %s reference.\r\n",
-                 (uiRegVal & M_CcaheLevel) ? "secondary" : "primary",
-                 (uiRegVal & M_CcaheType)  ? "data"      : "insn");
+                 (uiRegVal & M_CacheLevel) ? "secondary" : "primary",
+                 (uiRegVal & M_CacheType)  ? "data"      : "insn");
 
     _PrintFormat("Error bits: %s%s%s%s%s%s%s\r\n",
-                 (uiRegVal & M_CcaheData) ? "ED " : "",
-                 (uiRegVal & M_CcaheTag)  ? "ET " : "",
-                 (uiRegVal & M_CcaheECC)  ? "EE " : "",
-                 (uiRegVal & M_CcaheBoth) ? "EB " : "",
-                 (uiRegVal & M_CcaheEI)   ? "EI " : "",
-                 (uiRegVal & M_CcaheE1)   ? "E1 " : "",
-                 (uiRegVal & M_CcaheE0)   ? "E0 " : "");
+                 (uiRegVal & M_CacheData) ? "ED " : "",
+                 (uiRegVal & M_CacheTag)  ? "ET " : "",
+                 (uiRegVal & M_CacheECC)  ? "EE " : "",
+                 (uiRegVal & M_CacheBoth) ? "EB " : "",
+                 (uiRegVal & M_CacheEI)   ? "EI " : "",
+                 (uiRegVal & M_CacheE1)   ? "E1 " : "",
+                 (uiRegVal & M_CacheE0)   ? "E0 " : "");
 
-    _PrintFormat("IDX: 0x%08x\r\n", uiRegVal & (M_CcaheE0 - 1));
+    _PrintFormat("IDX: 0x%08x\r\n", uiRegVal & (M_CacheE0 - 1));
+
+    LW_TCB_GET_CUR(ptcbCur);
+
+    abtInfo.VMABT_uiMethod = 0;
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_TERMINAL;
+    API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
 }
 
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
@@ -133,29 +145,34 @@ VOID  archCacheErrorHandle (addr_t  ulRetAddr)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  archExceptionHandle (addr_t  ulRetAddr)
+VOID  archExceptionHandle (addr_t  ulRetAddr, UINT32  uiCause, addr_t  ulAbortAddr, UINT32  uiSp)
 {
-    REGISTER UINT32  uiCause     = mipsCp0CauseRead();
-    REGISTER UINT32  uiExcCode   = ((uiCause & M_CauseExcCode) >> S_CauseExcCode);
-    REGISTER addr_t  ulAbortAddr = mipsCp0BadVAddrRead();
+    REGISTER UINT32         uiExcCode = ((uiCause & M_CauseExcCode) >> S_CauseExcCode);
 #if LW_CFG_GDB_EN > 0
-    REGISTER UINT    uiBpType;
+    REGISTER UINT           uiBpType;
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
-    PLW_CLASS_TCB    ptcbCur;
-    LW_VMM_ABORT     abtInfo;
+             PLW_CLASS_TCB  ptcbCur;
+             LW_VMM_ABORT   abtInfo;
+             ULONG          ulNesting;
+
+    if (uiExcCode == EX_INT) {                                          /*  优化普通中断处理            */
+        bspIntHandle();
+        return;
+    }
+
+    ulNesting = LW_CPU_GET_CUR_NESTING();
+    if (ulNesting > 1) {                                                /*  异常出现嵌套                */
+        archTaskCtxPrint((PLW_STACK)uiSp);                              /*  直接打印寄存器              */
+    }
 
     LW_TCB_GET_CUR(ptcbCur);
 
     switch (uiExcCode) {
 
-    case EX_INT:                                                        /*  Interrupt                   */
-        bspIntHandle();
-        break;
-
 #if LW_CFG_VMM_EN > 0
     case EX_MOD:                                                        /*  TLB modified                */
-        abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_PERM;
         abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_WRITE;
+        abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_PERM;
         API_VmmAbortIsr(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur);
         break;
 
@@ -218,7 +235,8 @@ VOID  archExceptionHandle (addr_t  ulRetAddr)
         break;
 
     case EX_FPE:                                                        /*  floating point exception    */
-        abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_FPE;
+        abtInfo.VMABT_uiMethod = 0;
+        abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FPE;
         API_VmmAbortIsr(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur);
         break;
 
@@ -228,7 +246,8 @@ VOID  archExceptionHandle (addr_t  ulRetAddr)
             break;
         }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
-        abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_TERMINAL;
+        abtInfo.VMABT_uiMethod = 0;
+        abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_TERMINAL;
         API_VmmAbortIsr(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur);
         break;
 
@@ -239,7 +258,8 @@ VOID  archExceptionHandle (addr_t  ulRetAddr)
     case EX_MCHECK:                                                     /*  Machine check exception     */
     case EX_CacheErr:                                                   /*  Cache error caused re-entry */
                                                                         /*  to Debug Mode               */
-        abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_TERMINAL;
+        abtInfo.VMABT_uiMethod = 0;
+        abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_TERMINAL;
         API_VmmAbortIsr(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur);
         break;
 

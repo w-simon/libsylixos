@@ -88,9 +88,7 @@ static void  __pthread_cond_init_invisible (pthread_cond_t  *pcond)
 LW_API 
 int  pthread_condattr_init (pthread_condattr_t  *pcondattr)
 {
-    API_ThreadCondAttrInit(pcondattr);
-    
-    return  (ERROR_NONE);
+    return  ((int)API_ThreadCondAttrInit(pcondattr));
 }
 /*********************************************************************************************************
 ** 函数名称: pthread_condattr_destroy
@@ -104,9 +102,7 @@ int  pthread_condattr_init (pthread_condattr_t  *pcondattr)
 LW_API 
 int  pthread_condattr_destroy (pthread_condattr_t  *pcondattr)
 {
-    API_ThreadCondAttrDestroy(pcondattr);
-    
-    return  (ERROR_NONE);
+    return  ((int)API_ThreadCondAttrDestroy(pcondattr));
 }
 /*********************************************************************************************************
 ** 函数名称: pthread_condattr_setpshared
@@ -121,9 +117,7 @@ int  pthread_condattr_destroy (pthread_condattr_t  *pcondattr)
 LW_API 
 int  pthread_condattr_setpshared (pthread_condattr_t  *pcondattr, int  ishare)
 {
-    API_ThreadCondAttrSetPshared(pcondattr, LW_THREAD_PROCESS_SHARED);
-    
-    return  (ERROR_NONE);
+    return  ((int)API_ThreadCondAttrSetPshared(pcondattr, ishare));
 }
 /*********************************************************************************************************
 ** 函数名称: pthread_condattr_getpshared
@@ -138,9 +132,7 @@ int  pthread_condattr_setpshared (pthread_condattr_t  *pcondattr, int  ishare)
 LW_API 
 int  pthread_condattr_getpshared (const pthread_condattr_t  *pcondattr, int  *pishare)
 {
-    API_ThreadCondAttrGetPshared(pcondattr, pishare);
-    
-    return  (ERROR_NONE);
+    return  ((int)API_ThreadCondAttrGetPshared(pcondattr, pishare));
 }
 /*********************************************************************************************************
 ** 函数名称: pthread_condattr_setclock
@@ -214,6 +206,7 @@ int  pthread_cond_init (pthread_cond_t  *pcond, const pthread_condattr_t  *pcond
 
     if (API_ThreadCondInit(pcond, ulAttr)) {                            /*  初始化条件变量              */
         return  (errno);
+    
     } else {
         return  (ERROR_NONE);
     }
@@ -237,6 +230,7 @@ int  pthread_cond_destroy (pthread_cond_t  *pcond)
     
     if (API_ThreadCondDestroy(pcond)) {                                 /*  销毁条件变量                */
         return  (errno);
+    
     } else {
         return  (ERROR_NONE);
     }
@@ -262,6 +256,7 @@ int  pthread_cond_signal (pthread_cond_t  *pcond)
     
     if (API_ThreadCondSignal(pcond)) {
         return  (errno);
+    
     } else {
         return  (ERROR_NONE);
     }
@@ -287,6 +282,7 @@ int  pthread_cond_broadcast (pthread_cond_t  *pcond)
     
     if (API_ThreadCondBroadcast(pcond)) {
         return  (errno);
+    
     } else {
         return  (ERROR_NONE);
     }
@@ -315,6 +311,7 @@ int  pthread_cond_wait (pthread_cond_t  *pcond, pthread_mutex_t  *pmutex)
     if (API_ThreadCondWait(pcond, pmutex->PMUTEX_ulMutex, LW_OPTION_WAIT_INFINITE)) {
         errno = EINVAL;
         return  (EINVAL);
+    
     } else {
         return  (ERROR_NONE);
     }

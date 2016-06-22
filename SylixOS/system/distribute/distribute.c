@@ -54,6 +54,8 @@ INT  API_SystemLogoPrint (VOID)
         return  (ERROR_NONE);
     }
     
+    write(STD_OUT, "\n", 1);
+    
     do {
         sstNum = read(iLogoFd, cBuf, sizeof(cBuf));
         if (sstNum > 0) {
@@ -61,9 +63,9 @@ INT  API_SystemLogoPrint (VOID)
         }
     } while (sstNum > 0);
     
-    close(iLogoFd);
-    
     write(STD_OUT, "\n", 1);
+    
+    close(iLogoFd);
     
     return  (ERROR_NONE);
 }

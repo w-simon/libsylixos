@@ -20,48 +20,22 @@
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
+#include "stdlib.h"
+#include "system/signal/signalPrivate.h"
 /*********************************************************************************************************
   Only GCC support now.
 *********************************************************************************************************/
 #ifdef   __GNUC__
 #include "mipsBacktrace.h"
 /*********************************************************************************************************
-  This implementation assumes a stack layout that matches the defaults
-  used by gcc's `__builtin_frame_address' and `__builtin_return_address'
-  (FP is the frame pointer register):
+  指令定义
+*********************************************************************************************************/
+#define ADDUI_SP_INST           0x27bd0000
+#define SW_RA_INST              0xafbf0000
+#define JR_RA_INST              0x03e00008
 
-        +-----------------+     +-----------------+
-  FP -> | previous FP     |---->| previous FP     |---->...
-        |                 |     |                 |
-        | return address  |     | return address  |
-        +-----------------+     +-----------------+
-*********************************************************************************************************/
-/*********************************************************************************************************
-  Get some notion of the current stack.  Need not be exactly the top
-  of the stack, just something somewhere in the current frame.
-*********************************************************************************************************/
-#ifndef CURRENT_STACK_FRAME
-#define CURRENT_STACK_FRAME         ({ char __csf; &__csf; })
-#endif
-/*********************************************************************************************************
-  By default we assume that the stack grows downward.
-*********************************************************************************************************/
-#ifndef INNER_THAN
-#define INNER_THAN                  <
-#endif
-/*********************************************************************************************************
-  By default assume the `next' pointer in struct layout points to the
-  next struct layout.
-*********************************************************************************************************/
-#ifndef ADVANCE_STACK_FRAME
-#define ADVANCE_STACK_FRAME(next)   BOUNDED_1((struct layout *) (next))
-#endif
-/*********************************************************************************************************
-  By default, the frame pointer is just what we get from gcc.
-*********************************************************************************************************/
-#ifndef FIRST_FRAME_POINTER
-#define FIRST_FRAME_POINTER         __builtin_frame_address(0)
-#endif
+#define INST_OP_MASK            0xffff0000
+#define INST_OFFSET_MASK        0x0000ffff
 /*********************************************************************************************************
 ** 函数名称: getEndStack
 ** 功能描述: 获得堆栈结束地址
@@ -91,38 +65,105 @@ static PVOID  getEndStack (VOID)
 LW_API
 int  backtrace (void **array, int size)
 {
-    struct layout *current;
-    void *__unbounded top_frame;
-    void *__unbounded top_stack;
-    void *__unbounded end_stack;
-    int cnt = 0;
+    unsigned long  *addr;
+    unsigned long  *ra;
+    unsigned long  *sp;
+    unsigned long  *fp;
+    unsigned long  *end_stack;
+    unsigned long  *low_stack;
+    unsigned long   inst;
+    unsigned int    stack_size;
+    unsigned int    ra_offset;
+    unsigned int    cnt;
 
-    top_frame = FIRST_FRAME_POINTER;
-    top_stack = CURRENT_STACK_FRAME;
-    end_stack = getEndStack();
-
-    /*
-     * We skip the call to this function, it makes no sense to record it.
-     */
-    current = BOUNDED_1((struct layout *)top_frame);
-    current = ADJUST_FRAME_POINTER(current);
-
-    while (cnt < size) {
-        if ((void *) current INNER_THAN top_stack || !((void *) current INNER_THAN end_stack)) {
-            /*
-             * This means the address is out of range.  Note that for the
-             * toplevel we see a frame pointer with value NULL which clearly is
-             * out of range.
-             */
-            break;
-        }
-        array[cnt++] = current->return_address;
-
-        current = ADVANCE_STACK_FRAME(current->next);
-        current = ADJUST_FRAME_POINTER(current);
+    if (!array || (size < 0)) {
+        return  (-1);
     }
 
-    return cnt;
+    __asm__ __volatile__("move %0, $ra\n"                               /*  获得 RA 和 SP               */
+                         "move %1, $sp\n"
+                         :"=r"(ra), "=r"(low_stack));
+
+    end_stack = getEndStack();                                          /*  获得堆栈结束地址            */
+
+    stack_size = 0;
+    for (addr = (unsigned long *)backtrace; ; addr++) {                 /*  从 backtrace 函数向下找     */
+        inst = *addr;
+        if ((inst & INST_OP_MASK) == ADDUI_SP_INST) {                   /*  找到类似 ADDUI SP, SP, -40  */
+                                                                        /*  的堆栈开辟指令              */
+            stack_size = abs((short)(inst & INST_OFFSET_MASK));         /*  取出 backtrace 函数堆栈大小 */
+            if (stack_size != 0) {
+                break;
+            }
+        } else if (inst == JR_RA_INST) {                                /*  遇上了 JR RA 指令           */
+            return  (0);                                                /*  直接返回                    */
+        } else {
+
+        }
+    }
+
+    sp = (unsigned long *)((unsigned long)low_stack + stack_size);      /*  调用者的 SP                 */
+
+    if (sp[-1] != ((unsigned long)ra)) {                                /*  backtrace 保存的 RA 不对    */
+        return  (0);
+    }
+
+    fp = (unsigned long *)sp[-2];
+    if (fp != sp) {                                                     /*  backtrace 保存的 FP 不对    */
+        return  (0);                                                    /*  或 Release 版本没有保存 FP  */
+    }
+
+    if ((sp >= end_stack) || (sp <= low_stack)) {                       /*  SP 不合法                   */
+        return  (0);
+    }
+
+    for (cnt = 0; cnt < size; cnt++) {                                  /*  backtrace                   */
+
+        ra_offset  = 0;
+        stack_size = 0;
+
+        for (addr = ra;                                                 /*  在返回的位置向上找          */
+             (ra_offset == 0) || (stack_size == 0);
+             addr--) {
+
+            inst = *addr;
+            switch (inst & INST_OP_MASK) {
+
+            case SW_RA_INST:                                            /*  遇上类似 SW RA, 4(SP) 的指令*/
+                ra_offset = abs((short)(inst & INST_OFFSET_MASK));      /*  获得保存 RA 时的偏移量      */
+                break;
+
+            case ADDUI_SP_INST:                                         /*  找到类似 ADDUI SP, SP, -40  */
+                                                                        /*  的堆栈开辟指令              */
+                stack_size = abs((short)(inst & INST_OFFSET_MASK));     /*  取出该函数堆栈大小          */
+                break;
+
+            default:
+                break;
+            }
+        }
+
+        ra = (unsigned long *)sp[ra_offset >> 2];                       /*  取出保存的 RA               */
+        if (ra == 0) {                                                  /*  最后一层无返回函数          */
+            break;
+        }
+
+        array[cnt] = ra;
+
+        fp = (unsigned long *)sp[(ra_offset >> 2) - 1];                 /*  取出保存的 FP               */
+
+        sp = (unsigned long *)((unsigned long)sp + stack_size);         /*  计算调用者的 SP             */
+
+        if (fp != sp) {                                                 /*  计算的 SP 与保存的 FP 不相同*/
+            sp = fp;                                                    /*  以 FP 为准                  */
+        }
+
+        if ((sp >= end_stack) || (sp <= low_stack)) {                   /*  SP 不合法                   */
+            break;
+        }
+    }
+
+    return  (cnt);
 }
 
 #endif                                                                  /*  __GNUC__                    */

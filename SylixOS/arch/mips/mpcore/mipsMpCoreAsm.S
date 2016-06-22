@@ -47,40 +47,67 @@
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsSpinLock)
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
+
 1:
     LL      T0 , 0(A0)
     BNEZ    T0 , 1b
+    NOP
+
     LI      T0 , 1
     SC      T0 , 0(A0)
     BEQZ    T0 , 1b
     SYNC
+
     JR      RA
     NOP
+
+    .set    pop
 FUNC_END(mipsSpinLock)
 
 FUNC_DEF(mipsSpinTryLock)
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
+
     LL      T0 , 0(A0)
     BNEZ    T0 , 1f
+    NOP
+
     LI      T0 , 1
     SC      T0 , 0(A0)
     BEQZ    T0 , 1f
     SYNC
+
     JR      RA
     MOV     V0 , ZERO
 1:
     JR      RA
     LI      V0 , 1
+
+    .set    pop
 FUNC_END(mipsSpinTryLock)
 
 FUNC_DEF(mipsSpinUnlock)
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
+
     SYNC
     SW      ZERO , 0(A0)
     JR      RA
     NOP
+
+    .set    pop
 FUNC_END(mipsSpinUnlock)
 
 ;/*********************************************************************************************************
-;  获得当前核 ID TODO
+;  获得当前核 ID
 ;*********************************************************************************************************/
 
 FUNC_DEF(archMpCur)
@@ -93,13 +120,7 @@ FUNC_END(archMpCur)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archMpInt)
-    SUBU    SP , 4
-    SW      RA , 0(SP)
-    JAL     bspMpInt
-    NOP
-    LW      RA , 0(SP)
-    ADDU    SP , 4
-    JR      RA
+    J       bspMpInt
     NOP
 FUNC_END(archMpInt)
 

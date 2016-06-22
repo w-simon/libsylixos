@@ -145,7 +145,7 @@ LW_API
 ULONG  API_ThreadCondAttrGetPshared (const ULONG  *pulAttr, INT  *piShared)
 {
     if (pulAttr && piShared) {
-        *piShared = (INT)(*pulAttr & LW_THREAD_PROCESS_SHARED);
+        *piShared = ((*pulAttr) & LW_THREAD_PROCESS_SHARED) ? 1 : 0;
         return  (ERROR_NONE);
     
     } else {

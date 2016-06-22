@@ -29,10 +29,6 @@
 #if LW_CFG_CACHE_EN > 0
 #include "arch/mips/common/cp0/mipsCp0.h"
 /*********************************************************************************************************
-  L2 CACHE 支持
-*********************************************************************************************************/
-#if LW_CFG_MIPS_CACHE_L2 > 0
-/*********************************************************************************************************
   L1 CACHE 状态
 *********************************************************************************************************/
 static INT      iCacheStatus = 0;
@@ -40,14 +36,11 @@ static INT      iCacheStatus = 0;
 #define L1_CACHE_D_EN   0x02
 #define L1_CACHE_EN     (L1_CACHE_I_EN | L1_CACHE_D_EN)
 #define L1_CACHE_DIS    0x00
-#endif                                                                  /*  LW_CFG_MIPS_CACHE_L2 > 0    */
 /*********************************************************************************************************
   函数声明
 *********************************************************************************************************/
-extern VOID     mips32DCacheDisable(VOID);
-extern VOID     mips32DCacheEnable(VOID);
-extern VOID     mips32ICacheDisable(VOID);
-extern VOID     mips32ICacheEnable(VOID);
+extern VOID     mips32L1CacheDisable(VOID);
+extern VOID     mips32L1CacheEnable(VOID);
 
 extern VOID     mips32BranchPredictionDisable(VOID);
 extern VOID     mips32BranchPredictionEnable(VOID);
@@ -68,10 +61,6 @@ extern VOID     mips32DCacheIndexStoreTag(PCHAR  pcAddr);
 /*********************************************************************************************************
   CACHE 信息
 *********************************************************************************************************/
-static BOOL     _G_bHaveTagHi         = LW_FALSE;                       /*  是否有 TagHi 寄存器         */
-static BOOL     _G_bHaveFillI         = LW_FALSE;                       /*  是否有 FillI 操作           */
-static BOOL     _G_bHaveHitWritebackD = LW_FALSE;                       /*  是否有 HitWritebackD 操作   */
-
 typedef struct {
     BOOL        CACHE_bPresent;                                         /*  是否存在 Cache              */
     UINT32      CACHE_uiSize;                                           /*  Cache 大小                  */
@@ -82,6 +71,14 @@ typedef struct {
 } MIPS_CACHE;
 
 static MIPS_CACHE   _G_ICache, _G_DCache;                               /*  I-Cache 和 D-Cache 信息     */
+
+static BOOL         _G_bHaveTagHi         = LW_FALSE;                   /*  是否有 TagHi 寄存器         */
+static BOOL         _G_bHaveFillI         = LW_FALSE;                   /*  是否有 FillI 操作           */
+static BOOL         _G_bHaveHitWritebackD = LW_FALSE;                   /*  是否有 HitWritebackD 操作   */
+/*********************************************************************************************************
+  龙芯处理器特有的 CACHE 操作
+*********************************************************************************************************/
+static BOOL         _G_bLs2xECC           = LW_FALSE;                   /*  Loongson 2x ECC             */
 /*********************************************************************************************************
   CACHE 循环操作时允许的最大大小, 大于该大小时将使用 All 操作
 *********************************************************************************************************/
@@ -97,7 +94,7 @@ static MIPS_CACHE   _G_ICache, _G_DCache;                               /*  I-Ca
 /*********************************************************************************************************
   CACHE 回写管线
 *********************************************************************************************************/
-#define MIPS_PIPE_FLUSH()               MIPS_EXEC_INS("sync")
+#define MIPS_PIPE_FLUSH()               __asm__ __volatile__ ("sync" : : : "memory")
 /*********************************************************************************************************
   内部函数
 *********************************************************************************************************/
@@ -113,7 +110,7 @@ static MIPS_CACHE   _G_ICache, _G_DCache;                               /*  I-Ca
 *********************************************************************************************************/
 static VOID    mips32DCacheClear (PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep)
 {
-    PCHAR   pcAddr;
+    REGISTER PCHAR   pcAddr;
 
     for (pcAddr = (PCHAR)pvStart; pcAddr < (PCHAR)pvEnd; pcAddr += uiStep) {
         mips32DCacheLineClear(pcAddr);
@@ -132,7 +129,7 @@ static VOID    mips32DCacheClear (PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep)
 *********************************************************************************************************/
 static VOID    mips32DCacheFlush (PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep)
 {
-    PCHAR   pcAddr;
+    REGISTER PCHAR   pcAddr;
 
     if (_G_bHaveHitWritebackD) {
         for (pcAddr = (PCHAR)pvStart; pcAddr < (PCHAR)pvEnd; pcAddr += uiStep) {
@@ -155,7 +152,7 @@ static VOID    mips32DCacheFlush (PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep)
 *********************************************************************************************************/
 static VOID    mips32DCacheInvalidate (PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep)
 {
-    PCHAR   pcAddr;
+    REGISTER PCHAR   pcAddr;
 
     for (pcAddr = (PCHAR)pvStart; pcAddr < (PCHAR)pvEnd; pcAddr += uiStep) {
         mips32DCacheLineInvalidate(pcAddr);
@@ -174,7 +171,7 @@ static VOID    mips32DCacheInvalidate (PVOID  pvStart, PVOID  pvEnd, UINT32  uiS
 *********************************************************************************************************/
 static VOID    mips32ICacheInvalidate (PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep)
 {
-    PCHAR   pcAddr;
+    REGISTER PCHAR   pcAddr;
 
     for (pcAddr = (PCHAR)pvStart; pcAddr < (PCHAR)pvEnd; pcAddr += uiStep) {
         mips32ICacheLineInvalidate(pcAddr);
@@ -189,13 +186,13 @@ static VOID    mips32ICacheInvalidate (PVOID  pvStart, PVOID  pvEnd, UINT32  uiS
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID    mips32DCacheClearAll (VOID)
+VOID    mips32DCacheClearAll (VOID)
 {
-    INT     iWay;
-    PCHAR   pcAddr;
-    PCHAR   pcLineAddr;
-    PCHAR   pcBaseAddr = (PCHAR)A_K0BASE;
-    PCHAR   pcEndAddr  = (PCHAR)(A_K0BASE + _G_DCache.CACHE_uiSize);
+    REGISTER INT     iWay;
+    REGISTER PCHAR   pcAddr;
+    REGISTER PCHAR   pcLineAddr;
+    REGISTER PCHAR   pcBaseAddr = (PCHAR)A_K0BASE;
+    REGISTER PCHAR   pcEndAddr  = (PCHAR)(A_K0BASE + _G_DCache.CACHE_uiSize);
 
     for (pcLineAddr = pcBaseAddr; pcLineAddr < pcEndAddr; pcLineAddr += _G_DCache.CACHE_uiLineSize) {
         for (pcAddr = pcLineAddr, iWay = 0;
@@ -226,13 +223,13 @@ static VOID    mips32DCacheFlushAll (VOID)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID    mips32ICacheInvalidateAll (VOID)
+VOID    mips32ICacheInvalidateAll (VOID)
 {
-    INT     iWay;
-    PCHAR   pcAddr;
-    PCHAR   pcLineAddr;
-    PCHAR   pcBaseAddr = (PCHAR)A_K0BASE;
-    PCHAR   pcEndAddr  = (PCHAR)(A_K0BASE + _G_ICache.CACHE_uiSize);
+    REGISTER INT     iWay;
+    REGISTER PCHAR   pcAddr;
+    REGISTER PCHAR   pcLineAddr;
+    REGISTER PCHAR   pcBaseAddr = (PCHAR)A_K0BASE;
+    REGISTER PCHAR   pcEndAddr  = (PCHAR)(A_K0BASE + _G_ICache.CACHE_uiSize);
 
     for (pcLineAddr = pcBaseAddr; pcLineAddr < pcEndAddr; pcLineAddr += _G_ICache.CACHE_uiLineSize) {
         for (pcAddr = pcLineAddr, iWay = 0;
@@ -254,30 +251,26 @@ static VOID    mips32ICacheInvalidateAll (VOID)
 static INT  mips32CacheEnable (LW_CACHE_TYPE  cachetype)
 {
     if (cachetype == INSTRUCTION_CACHE) {
-        mips32ICacheEnable();
-#if LW_CFG_MIPS_CACHE_L2 > 0
         if (LW_CPU_GET_CUR_ID() == 0) {
             iCacheStatus |= L1_CACHE_I_EN;
         }
-#endif                                                                  /*  LW_CFG_MIPS_CACHE_L2 > 0    */
-        mips32BranchPredictionEnable();
-
     } else {
-        mips32DCacheEnable();
-#if LW_CFG_MIPS_CACHE_L2 > 0
         if (LW_CPU_GET_CUR_ID() == 0) {
             iCacheStatus |= L1_CACHE_D_EN;
         }
-#endif                                                                  /*  LW_CFG_MIPS_CACHE_L2 > 0    */
     }
     
+    if (iCacheStatus == L1_CACHE_EN) {
+        mips32L1CacheEnable();
+        mips32BranchPredictionEnable();
+
 #if LW_CFG_MIPS_CACHE_L2 > 0
-    if ((LW_CPU_GET_CUR_ID() == 0) && 
-        (iCacheStatus == L1_CACHE_EN)) {
-        mips32L2Enable();
-    }
+        if (LW_CPU_GET_CUR_ID() == 0) {
+            mips32L2Enable();
+        }
 #endif                                                                  /*  LW_CFG_MIPS_CACHE_L2 > 0    */
-    
+    }
+
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -291,30 +284,26 @@ static INT  mips32CacheEnable (LW_CACHE_TYPE  cachetype)
 static INT  mips32CacheDisable (LW_CACHE_TYPE  cachetype)
 {
     if (cachetype == INSTRUCTION_CACHE) {
-        mips32ICacheDisable();
-#if LW_CFG_MIPS_CACHE_L2 > 0
         if (LW_CPU_GET_CUR_ID() == 0) {
             iCacheStatus &= ~L1_CACHE_I_EN;
         }
-#endif                                                                  /*  LW_CFG_MIPS_CACHE_L2 > 0    */
-        mips32BranchPredictionDisable();
-        
     } else {
-        mips32DCacheDisable();
-#if LW_CFG_MIPS_CACHE_L2 > 0
         if (LW_CPU_GET_CUR_ID() == 0) {
             iCacheStatus &= ~L1_CACHE_D_EN;
         }
-#endif                                                                  /*  LW_CFG_MIPS_CACHE_L2 > 0    */
     }
     
+    if (iCacheStatus == L1_CACHE_DIS) {
+        mips32L1CacheDisable();
+        mips32BranchPredictionDisable();
+
 #if LW_CFG_MIPS_CACHE_L2 > 0
-    if ((LW_CPU_GET_CUR_ID() == 0) && 
-        (iCacheStatus == L1_CACHE_DIS)) {
-        mips32L2Disable();
-    }
+        if (LW_CPU_GET_CUR_ID() == 0) {
+            mips32L2Disable();
+        }
 #endif                                                                  /*  LW_CFG_MIPS_CACHE_L2 > 0    */
-     
+    }
+
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -328,7 +317,7 @@ static INT  mips32CacheDisable (LW_CACHE_TYPE  cachetype)
 ** 调用模块: 
 ** 注  意  : 由于 L2 为物理地址 tag 所以这里暂时使用 L2 全部回写指令.
 *********************************************************************************************************/
-static INT	mips32CacheFlush (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes)
+static INT  mips32CacheFlush (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes)
 {
     addr_t  ulEnd;
     
@@ -360,7 +349,7 @@ static INT	mips32CacheFlush (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  st
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT	mips32CacheFlushPage (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, PVOID  pvPdrs, size_t  stBytes)
+static INT  mips32CacheFlushPage (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, PVOID  pvPdrs, size_t  stBytes)
 {
     addr_t  ulEnd;
     
@@ -392,7 +381,7 @@ static INT	mips32CacheFlushPage (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, PVOID 
 ** 调用模块: 
 ** 注  意  : 此函数如果操作 DCACHE pvAdrs 虚拟地址与物理地址必须相同.
 *********************************************************************************************************/
-static INT	mips32CacheInvalidate (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes)
+static INT  mips32CacheInvalidate (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes)
 {
     addr_t  ulEnd;
 
@@ -443,7 +432,7 @@ static INT	mips32CacheInvalidate (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT	mips32CacheInvalidatePage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVOID pvPdrs, size_t stBytes)
+static INT  mips32CacheInvalidatePage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVOID pvPdrs, size_t stBytes)
 {
     addr_t  ulEnd;
     
@@ -494,7 +483,7 @@ static INT	mips32CacheInvalidatePage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVO
 ** 调用模块: 
 ** 注  意  : 由于 L2 为物理地址 tag 所以这里暂时使用 L2 全部回写并无效指令.
 *********************************************************************************************************/
-static INT	mips32CacheClear (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes)
+static INT  mips32CacheClear (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes)
 {
     addr_t  ulEnd;
 
@@ -534,7 +523,7 @@ static INT	mips32CacheClear (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  st
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT	mips32CacheClearPage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVOID pvPdrs, size_t stBytes)
+static INT  mips32CacheClearPage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVOID pvPdrs, size_t stBytes)
 {
     addr_t  ulEnd;
     
@@ -573,7 +562,7 @@ static INT	mips32CacheClearPage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVOID pv
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT	mips32CacheLock (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes)
+static INT  mips32CacheLock (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes)
 {
     _ErrorHandle(ENOSYS);
     return  (PX_ERROR);
@@ -588,7 +577,7 @@ static INT	mips32CacheLock (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stB
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT	mips32CacheUnlock (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes)
+static INT  mips32CacheUnlock (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes)
 {
     _ErrorHandle(ENOSYS);
     return  (PX_ERROR);
@@ -603,7 +592,7 @@ static INT	mips32CacheUnlock (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  s
 ** 调用模块: 
 ** 注  意  : L2 cache 为统一 CACHE 所以 text update 不需要操作 L2 cache.
 *********************************************************************************************************/
-static INT	mips32CacheTextUpdate (PVOID  pvAdrs, size_t  stBytes)
+static INT  mips32CacheTextUpdate (PVOID  pvAdrs, size_t  stBytes)
 {
     addr_t  ulEnd;
     
@@ -639,14 +628,19 @@ INT  mips32CacheDataUpdate (PVOID  pvAdrs, size_t  stBytes, BOOL  bInv)
 {
     addr_t  ulEnd;
 
-    (VOID)bInv;                                                         /*  MIPS 不支持单纯回写操作     */
-
-    if (stBytes >= MIPS_CACHE_LOOP_OP_MAX_SIZE) {
-        mips32DCacheClearAll();                                         /*  全部回写                    */
-
+    if (stBytes >= MIPS_CACHE_LOOP_OP_MAX_SIZE) {                       /*  全部回写                    */
+        if (bInv) {
+            mips32DCacheClearAll();
+        } else {
+            mips32DCacheFlushAll();
+        }
     } else {                                                            /*  部分回写                    */
         MIPS_CACHE_GET_END(pvAdrs, stBytes, ulEnd, _G_DCache.CACHE_uiLineSize);
-        mips32DCacheClear(pvAdrs, (PVOID)ulEnd, _G_DCache.CACHE_uiLineSize);
+        if (bInv) {
+            mips32DCacheClear(pvAdrs, (PVOID)ulEnd, _G_DCache.CACHE_uiLineSize);
+        } else {
+            mips32DCacheFlush(pvAdrs, (PVOID)ulEnd, _G_DCache.CACHE_uiLineSize);
+        }
     }
 
     return  (ERROR_NONE);
@@ -654,16 +648,34 @@ INT  mips32CacheDataUpdate (PVOID  pvAdrs, size_t  stBytes, BOOL  bInv)
 /*********************************************************************************************************
 ** 函数名称: mips32CacheProbe
 ** 功能描述: CACHE 探测
-** 输　入  : NONE
+** 输　入  : pcMachineName  机器名称
 ** 输　出  : ERROR or OK
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT  mips32CacheProbe (VOID)
+static INT  mips32CacheProbe (CPCHAR   pcMachineName)
 {
+    BOOL    bIsProbed = LW_FALSE;
+    UINT32  uiConfig;
     UINT32  uiTemp;
-    UINT32  uiConfig = mipsCp0ConfigRead();                             /*  读 Config0                  */
 
+    if (bIsProbed) {
+        return  (ERROR_NONE);
+    }
+
+    if (lib_strcmp(pcMachineName, MIPS_MACHINE_LS1X) == 0) {
+        _G_bHaveTagHi         = LW_FALSE;
+        _G_bHaveFillI         = LW_FALSE;
+        _G_bHaveHitWritebackD = LW_FALSE;
+
+    } else if (lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X) == 0) {
+        _G_bLs2xECC          = LW_TRUE;
+
+    } else {
+
+    }
+
+    uiConfig = mipsCp0ConfigRead();                                     /*  读 Config0                  */
     if (!(uiConfig & (M_ConfigMore))) {                                 /*  没有 Config1, 退出          */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "No CP0 Config1 Register!\r\n");
         return  (PX_ERROR);
@@ -720,22 +732,24 @@ static INT  mips32CacheProbe (VOID)
                  _G_DCache.CACHE_uiWayNr,
                  _G_DCache.CACHE_uiSetNr);
 
+    bIsProbed = LW_TRUE;
+
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: mips32CacheProbe
 ** 功能描述: CACHE 探测
-** 输　入  : pcMachineName  机器名称
-** 输　出  : ERROR or OK
+** 输　入  : NONE
+** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static INT  mips32CacheHwInit (CPCHAR   pcMachineName)
+static VOID  mips32CacheHwInit (VOID)
 {
-    PCHAR   pcLineAddr;
-    PCHAR   pcBaseAddr = (PCHAR)A_K0BASE;
-    PCHAR   pcEndAddr;
-    CHAR    cTemp;
+    REGISTER PCHAR   pcLineAddr;
+    REGISTER PCHAR   pcBaseAddr = (PCHAR)A_K0BASE;
+    REGISTER PCHAR   pcEndAddr;
+    REGISTER CHAR    cTemp;
 
     (VOID)cTemp;
 
@@ -745,7 +759,7 @@ static INT  mips32CacheHwInit (CPCHAR   pcMachineName)
         mipsCp0TagHiWrite(0);
     }
 
-    if (lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X) == 0) {
+    if (_G_bLs2xECC) {
         mipsCp0ECCWrite(0x00);
     }
 
@@ -769,7 +783,7 @@ static INT  mips32CacheHwInit (CPCHAR   pcMachineName)
         }
     }
 
-    if (lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X) == 0) {
+    if (_G_bLs2xECC) {
         mipsCp0ECCWrite(0x22);
     }
 
@@ -794,8 +808,6 @@ static INT  mips32CacheHwInit (CPCHAR   pcMachineName)
     for (pcLineAddr = pcBaseAddr; pcLineAddr < pcEndAddr; pcLineAddr += _G_DCache.CACHE_uiLineSize) {
         mips32DCacheIndexStoreTag(pcLineAddr);
     }
-
-    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: archCacheInit
@@ -815,21 +827,15 @@ VOID  mips32CacheInit (LW_CACHE_OP *pcacheop,
 {
     INT     iError;
 
-    if (lib_strcmp(pcMachineName, MIPS_MACHINE_LS1X) == 0) {
-        _G_bHaveTagHi         = LW_FALSE;
-        _G_bHaveFillI         = LW_FALSE;
-        _G_bHaveHitWritebackD = LW_FALSE;
-    }
-
-    iError = mips32CacheProbe();
+    iError = mips32CacheProbe(pcMachineName);
     if (iError != ERROR_NONE) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "No Cache!\r\n");
         return;
     }
 
-    iError = mips32CacheHwInit(pcMachineName);
-    if (iError != ERROR_NONE) {
-        return;
-    }
+    mips32L1CacheDisable();
+
+    mips32CacheHwInit();
 
 #if LW_CFG_MIPS_CACHE_L2 > 0
     mips32L2Init(uiInstruction, uiData, pcMachineName);
@@ -882,9 +888,16 @@ VOID  mips32CacheInit (LW_CACHE_OP *pcacheop,
 *********************************************************************************************************/
 VOID  mips32CacheReset (CPCHAR  pcMachineName)
 {
-    mips32ICacheInvalidateAll();
-    mips32DCacheDisable();
-    mips32ICacheDisable();
+    INT     iError;
+
+    iError = mips32CacheProbe(pcMachineName);
+    if (iError != ERROR_NONE) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "No Cache!\r\n");
+        return;
+    }
+
+    mips32L1CacheDisable();
+
     mips32BranchPredictorInvalidate();
 }
 

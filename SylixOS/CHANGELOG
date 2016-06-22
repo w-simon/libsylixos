@@ -4,6 +4,12 @@ HISTORY
 
 ++ New features:
 
+    2016-06-15: han.hui
+    加入 JTAG 调试应用程序与内核模块的支持.
+
+    2016-06-12: han.hui
+    加入 NETMOS, EXAR PCI 串口板卡驱动.
+
     2016-05-25: han.hui
     VMM 使用新型内存区描述表的方式进行初始化, 不再兼容旧式内存布局初始化.
 

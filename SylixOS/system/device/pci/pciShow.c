@@ -33,7 +33,8 @@
 /*********************************************************************************************************
   PCI Ö÷¿ØÆ÷
 *********************************************************************************************************/
-extern PCI_CTRL_HANDLE      _GhPciCtrlHandle;
+extern  PCI_CTRL_HANDLE     _G_hPciCtrlHandle;
+#define PCI_CTRL            _G_hPciCtrlHandle
 INT                         _G_iPciVerbose = 0;
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: API_PciBusDeviceShow
@@ -54,14 +55,14 @@ INT  API_PciBusDeviceShow (INT iBus)
     UINT8       ucHeaderType;
     INT         iFunc;
 
-    if ((_GhPciCtrlHandle->PCI_ucMechanism == PCI_MECHANISM_2) &&
+    if ((PCI_CTRL->PCI_ucMechanism == PCI_MECHANISM_2) &&
         (PCI_MAX_SLOTS                     >  16             )) {
         printf ("Invalid configuration. PCI_MAX_SLOTS > 16, PCI mechanism #2\n");
         return  (PX_ERROR);
     }
 
     printf("Scanning functions of each PCI device on bus %d\n", iBus);
-    printf("Using configuration mechanism %d\n", _GhPciCtrlHandle->PCI_ucMechanism);
+    printf("Using configuration mechanism %d\n", PCI_CTRL->PCI_ucMechanism);
     printf("bus       device    function  vendorID  deviceID  class/rev\n");
 
     for (iSlot = 0; iSlot < PCI_MAX_SLOTS; iSlot++) {
@@ -78,9 +79,9 @@ INT  API_PciBusDeviceShow (INT iBus)
                 continue;
             }
 
-            API_PciConfigInWord (iBus, iSlot, iFunc, PCI_DEVICE_ID,      &usDeviceId );
+            API_PciConfigInWord( iBus, iSlot, iFunc, PCI_DEVICE_ID,      &usDeviceId);
             API_PciConfigInDword(iBus, iSlot, iFunc, PCI_CLASS_REVISION, &uiClassCode);
-            API_PciConfigInByte (iBus, iSlot, iFunc, PCI_HEADER_TYPE,    &ucHeaderType);
+            API_PciConfigInByte( iBus, iSlot, iFunc, PCI_HEADER_TYPE,    &ucHeaderType);
 
             printf("%7d   %6d    %8d   0x%04x    0x%04x  0x%08x\n",
                    iBus, iSlot, iFunc, usVendorId, usDeviceId, uiClassCode);

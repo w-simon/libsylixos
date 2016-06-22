@@ -75,6 +75,12 @@ ULONG  API_ThreadDetach (LW_OBJECT_HANDLE  ulId)
     
     ptcb = _K_ptcbTCBIdTable[usIndex];
     
+    if (ptcb->TCB_bDetachFlag) {
+        __KERNEL_EXIT();                                                /*  退出内核                    */
+        _ErrorHandle(ERROR_THREAD_DETACHED);
+        return  (ERROR_THREAD_DETACHED);
+    }
+    
     _ThreadDetach(ptcb);                                                /*  DETACH 处理                 */
 
     __KERNEL_EXIT();                                                    /*  退出内核                    */

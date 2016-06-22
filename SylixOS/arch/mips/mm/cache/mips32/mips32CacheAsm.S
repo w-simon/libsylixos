@@ -28,10 +28,8 @@
 
 #if LW_CFG_CACHE_EN > 0
 
-    EXPORT_LABEL(mips32DCacheDisable)
-    EXPORT_LABEL(mips32DCacheEnable)
-    EXPORT_LABEL(mips32ICacheDisable)
-    EXPORT_LABEL(mips32ICacheEnable)
+    EXPORT_LABEL(mips32L1CacheDisable)
+    EXPORT_LABEL(mips32L1CacheEnable)
 
     EXPORT_LABEL(mips32DCacheLineFlush)
     EXPORT_LABEL(mips32DCacheLineClear)
@@ -50,6 +48,9 @@
     EXPORT_LABEL(mips32BranchPredictionEnable)
     EXPORT_LABEL(mips32BranchPredictorInvalidate)
 
+    IMPORT_LABEL(mips32ICacheInvalidateAll)
+    IMPORT_LABEL(mips32DCacheClearAll)
+
     WEAK(mips32BranchPredictionDisable)
     WEAK(mips32BranchPredictionEnable)
     WEAK(mips32BranchPredictorInvalidate)
@@ -57,48 +58,74 @@
     FILE_BEGIN()
 
 ;/*********************************************************************************************************
-;  禁能 DCACHE
+;  禁能 CACHE
 ;*********************************************************************************************************/
 
-FUNC_DEF(mips32DCacheDisable)
+FUNC_DEF(mips32L1CacheDisable)
+    .set    push
+    .set    noreorder
+    .set    volatile
+
+    MFC0(T0, CP0_CONFIG)
+    ANDI    T0 , T0 , M_ConfigK0
+    LI      T1 , MIPS_UNCACHED
+    BEQ     T0 , T1 , 1f
+    NOP
+
+    SUBU    SP , 32
+    SW      RA , 28(SP)
+    SW      FP , 24(SP)
+    MOV     FP , SP
+
+    JAL     mips32DCacheClearAll
+    NOP
+
+    JAL     mips32ICacheInvalidateAll
+    NOP
+
+    MOV     SP , FP
+    LW      RA , 28(SP)
+    LW      FP , 24(SP)
+    ADDU    SP , 32
+
     MFC0(T0, CP0_CONFIG)
     AND     T0 , T0 , ~M_ConfigK0
     ORI     T0 , T0 , MIPS_UNCACHED
     MTC0(T0, CP0_CONFIG)
+
+1:
     JR      RA
     NOP
-FUNC_END(mips32DCacheDisable)
+
+    .set    pop
+FUNC_END(mips32L1CacheDisable)
 
 ;/*********************************************************************************************************
-;  使能 DCACHE
+;  使能 CACHE
 ;*********************************************************************************************************/
 
-FUNC_DEF(mips32DCacheEnable)
+FUNC_DEF(mips32L1CacheEnable)
+    .set    push
+    .set    noreorder
+    .set    volatile
+
+    MFC0(T0, CP0_CONFIG)
+    ANDI    T0 , T0 , M_ConfigK0
+    LI      T1 , MIPS_CACHABLE_NONCOHERENT
+    BEQ     T0 , T1 , 1f
+    NOP
+
     MFC0(T0, CP0_CONFIG)
     AND     T0 , T0 , ~M_ConfigK0
     ORI     T0 , MIPS_CACHABLE_NONCOHERENT
     MTC0(T0, CP0_CONFIG)
+
+1:
     JR      RA
     NOP
-FUNC_END(mips32DCacheEnable)
 
-;/*********************************************************************************************************
-;  禁能 ICACHE
-;*********************************************************************************************************/
-
-FUNC_DEF(mips32ICacheDisable)
-    JR      RA
-    NOP
-FUNC_END(mips32ICacheDisable)
-
-;/*********************************************************************************************************
-;  使能 ICACHE
-;*********************************************************************************************************/
-
-FUNC_DEF(mips32ICacheEnable)
-    JR      RA
-    NOP
-FUNC_END(mips32ICacheEnable)
+    .set    pop
+FUNC_END(mips32L1CacheEnable)
 
 ;/*********************************************************************************************************
 ;  CACHE 操作宏
@@ -106,12 +133,17 @@ FUNC_END(mips32ICacheEnable)
 
 MACRO_DEF(CACHE_OP op addr)
     .set    push
+    .set    noat
     .set    noreorder
+    .set    volatile
     .set    mips32
+
     cache   \op , 0(\addr)
-    .set    pop
+
     JR      RA
     NOP
+
+    .set    pop
 MACRO_END()
 
 ;/*********************************************************************************************************

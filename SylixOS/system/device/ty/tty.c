@@ -151,7 +151,7 @@ INT  API_TtyDevCreate (PCHAR     pcName,
     sioCallbackInstall(psiochan, SIO_CALLBACK_PUT_RCV_CHAR,
             (VX_SIO_CALLBACK)_TyIRd, (PVOID)ptycoDev);
     
-    sioIoctl(psiochan, SIO_MODE_SET, (void *)SIO_MODE_INT);
+    sioIoctl(psiochan, SIO_MODE_SET, (PVOID)SIO_MODE_INT);
     
     iTemp = (INT)iosDevAddEx(&ptycoDev->TYCODEV_tydevTyDev.TYDEV_devhdrHdr, 
                              pcName, 
@@ -361,6 +361,7 @@ static VOID   _ttyStartup (TYCO_DEV  *ptycoDev)
 {
     sioTxStartup(ptycoDev->TYCODEV_psiochan);
 }
+
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */
                                                                         /*  (LW_CFG_SIO_DEVICE_EN > 0)  */
 /*********************************************************************************************************

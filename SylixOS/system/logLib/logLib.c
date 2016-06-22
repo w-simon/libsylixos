@@ -570,7 +570,6 @@ VOID   __logPrintf (CPCHAR       pcFormat,
             iFdTemp += NFDBITS - 1;                                     /*  进行下一个掩码组判断        */
         
         } else if (ulPartMask & (ULONG)(1 << (((unsigned)iFdTemp) % NFDBITS))) {
-        
             write(iFdTemp, cPrintBuffer, stLen);                        /*  打印                        */
         }
     }

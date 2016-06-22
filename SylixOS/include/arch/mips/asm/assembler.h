@@ -91,9 +91,6 @@ name:
 #define MACRO_DEF(mfunc...)             \
         .macro      mfunc
 
-#define MACRO_DEF(mfunc...)             \
-        .macro      mfunc
-
 #define MACRO_END()                     \
         .endm
 

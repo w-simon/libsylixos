@@ -416,7 +416,6 @@ void *pthread_getspecific (pthread_key_t  key)
     void   *pvalue = LW_NULL;
 
     if (key == 0) {
-        errno = EINVAL;
         return  (LW_NULL);
     }
     
@@ -424,6 +423,7 @@ void *pthread_getspecific (pthread_key_t  key)
     
     return  (pvalue);
 }
+
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
 /*********************************************************************************************************
   END

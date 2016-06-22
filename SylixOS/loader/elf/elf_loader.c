@@ -171,7 +171,7 @@ static INT elfRelaRelocate (LW_LD_EXEC_MODULE *pmodule,
             
         } else if (psym->st_shndx < pmodule->EMOD_ulSegCount) {         /*  模块内部符号                */
             addrSymVal = (Elf_Addr)pmodule->EMOD_psegmentArry[psym->st_shndx].ESEG_ulAddr
-                   + psym->st_value;
+                       + psym->st_value;
         }
 
         LD_DEBUG_MSG(("relocate %s :", pcSymName));
@@ -505,12 +505,11 @@ static INT elfSymbolsExport (LW_LD_EXEC_MODULE *pmodule, Elf_Shdr *pshdrArr, UIN
             }
 
             addrSymVal = (Elf_Addr)pmodule->EMOD_psegmentArry[psym->st_shndx].ESEG_ulAddr
-                         + psym->st_value;                              /*  获取符号的位置              */
+                       + psym->st_value;                                /*  获取符号的位置              */
             LD_DEBUG_MSG(("symbol: %s val: %lx\r\n", pcSymName, addrSymVal));
 
             pcShName = (PCHAR)pmodule->EMOD_psegmentArry[uiShStrNdx].ESEG_ulAddr
-                       + pshdrArr[psym->st_shndx].sh_name;              /* 获取符号所在节名称           */
-
+                     + pshdrArr[psym->st_shndx].sh_name;                /* 获取符号所在节名称           */
 
             if (elfSymbolExport(pmodule, pcShName, pcSymName, 
                                 psym, addrSymVal, ulSymCount, j) < 0) {
@@ -564,6 +563,7 @@ static INT elfModuleMemoryInit (LW_LD_EXEC_MODULE *pmodule, Elf_Shdr *pshdrArr)
         if (psymTable == 0) {
             continue;
         }
+        
         ulSymCount = (INT)(pshdr->sh_size / sizeof(Elf_Sym));
         for (j = 0; j < ulSymCount; j++) {
             psym = &psymTable[j];
@@ -713,7 +713,7 @@ static INT elfBuildInitTbl (LW_LD_EXEC_MODULE *pmodule, Elf_Shdr *pshdr, UINT ui
     for (j = 0; j < (sizeof(_G_pcInitSecArr) / sizeof(_G_pcInitSecArr[0])); j++) {
         for (i = 0; i < pmodule->EMOD_ulSegCount; i++) {                /*  计算init表大小              */
             pcShName = (PCHAR)pmodule->EMOD_psegmentArry[uiShStrNdx].ESEG_ulAddr
-                       + pshdr[i].sh_name;                              /*  获取符号所在节名称          */
+                     + pshdr[i].sh_name;                                /*  获取符号所在节名称          */
             if (0 == lib_strcmp(pcShName, _G_pcInitSecArr[j])) {        /*  匹配.init_array节           */
                 uiInitTblSize += (pshdr[i].sh_size / sizeof(Elf_Addr));
             }
@@ -722,7 +722,7 @@ static INT elfBuildInitTbl (LW_LD_EXEC_MODULE *pmodule, Elf_Shdr *pshdr, UINT ui
 
     for (i = 0; i < pmodule->EMOD_ulSegCount; i++) {
         pcShName = (PCHAR)pmodule->EMOD_psegmentArry[uiShStrNdx].ESEG_ulAddr
-                   + pshdr[i].sh_name;
+                 + pshdr[i].sh_name;
         if (pcShName == lib_strstr(pcShName, __LW_CTORS_SECTION)) {     /*  匹配.ctor节                 */
             uiInitTblSize += (pshdr[i].sh_size / sizeof(Elf_Addr));
         }
@@ -746,7 +746,7 @@ static INT elfBuildInitTbl (LW_LD_EXEC_MODULE *pmodule, Elf_Shdr *pshdr, UINT ui
     for (j = 0; j < (sizeof(_G_pcInitSecArr) / sizeof(_G_pcInitSecArr[0])); j++) {
         for (i = 0; i < pmodule->EMOD_ulSegCount; i++) {                /* 复制init表内容               */
             pcShName = (PCHAR)pmodule->EMOD_psegmentArry[uiShStrNdx].ESEG_ulAddr
-                       + pshdr[i].sh_name;                              /* 获取符号所在节名称           */
+                     + pshdr[i].sh_name;                                /* 获取符号所在节名称           */
             paddr = (Elf_Addr *)pmodule->EMOD_psegmentArry[i].ESEG_ulAddr;
 
             if (0 != lib_strcmp(pcShName, _G_pcInitSecArr[j])) {
@@ -760,7 +760,7 @@ static INT elfBuildInitTbl (LW_LD_EXEC_MODULE *pmodule, Elf_Shdr *pshdr, UINT ui
 
     for (i = 0; i < pmodule->EMOD_ulSegCount; i++) {
         pcShName = (PCHAR)pmodule->EMOD_psegmentArry[uiShStrNdx].ESEG_ulAddr
-                   + pshdr[i].sh_name;
+                 + pshdr[i].sh_name;
         paddr = (Elf_Addr *)pmodule->EMOD_psegmentArry[i].ESEG_ulAddr;
         if (pcShName == lib_strstr(pcShName, __LW_CTORS_SECTION)) {     /*  匹配.ctor节                 */
             for (k = 0; k < (pshdr[i].sh_size / sizeof(Elf_Addr)); k++) {
@@ -776,7 +776,7 @@ __finibuild:
     for (j = 0; j < (sizeof(_G_pcFiniSecArr) / sizeof(_G_pcFiniSecArr[0])); j++) {
         for (i = 0; i < pmodule->EMOD_ulSegCount; i++) {                /* 计算Fini表大小               */
             pcShName = (PCHAR)pmodule->EMOD_psegmentArry[uiShStrNdx].ESEG_ulAddr
-                       + pshdr[i].sh_name;                              /* 获取符号所在节名称           */
+                     + pshdr[i].sh_name;                                /* 获取符号所在节名称           */
 
             if (0 == lib_strcmp(pcShName, _G_pcFiniSecArr[j])) {        /* 匹配.fini_array节            */
                 uiFiniTblSize += (pshdr[i].sh_size / sizeof(Elf_Addr));
@@ -786,7 +786,7 @@ __finibuild:
 
     for (i = 0; i < pmodule->EMOD_ulSegCount; i++) {
         pcShName = (PCHAR)pmodule->EMOD_psegmentArry[uiShStrNdx].ESEG_ulAddr
-                   + pshdr[i].sh_name;
+                 + pshdr[i].sh_name;
         if (pcShName == lib_strstr(pcShName, __LW_DTORS_SECTION)) {     /*  匹配.dtor节                 */
             uiFiniTblSize += (pshdr[i].sh_size / sizeof(Elf_Addr));
         }
@@ -809,7 +809,7 @@ __finibuild:
     for (j = 0; j < (sizeof(_G_pcFiniSecArr) / sizeof(_G_pcFiniSecArr[0])); j++) {
         for (i = 0; i < pmodule->EMOD_ulSegCount; i++) {
             pcShName = (PCHAR)pmodule->EMOD_psegmentArry[uiShStrNdx].ESEG_ulAddr
-                       + pshdr[i].sh_name;                              /* 获取符号所在节名称           */
+                     + pshdr[i].sh_name;                                /* 获取符号所在节名称           */
             paddr = (Elf_Addr *)pmodule->EMOD_psegmentArry[i].ESEG_ulAddr;
 
             if (0 != lib_strcmp(pcShName, _G_pcFiniSecArr[j])) {
@@ -823,7 +823,7 @@ __finibuild:
 
     for (i = 0; i < pmodule->EMOD_ulSegCount; i++) {
         pcShName = (PCHAR)pmodule->EMOD_psegmentArry[uiShStrNdx].ESEG_ulAddr
-                   + pshdr[i].sh_name;                              	/* 获取符号所在节名称           */
+                 + pshdr[i].sh_name;                              	    /* 获取符号所在节名称           */
         paddr = (Elf_Addr *)pmodule->EMOD_psegmentArry[i].ESEG_ulAddr;
         if (pcShName == lib_strstr(pcShName, __LW_DTORS_SECTION)) {     /*  匹配.dtor节                 */
             for (k = 0; k < (pshdr[i].sh_size / sizeof(Elf_Addr)); k++) {
@@ -894,6 +894,7 @@ static INT elfLoadReloc (LW_LD_EXEC_MODULE *pmodule, Elf_Ehdr *pehdr, INT  iFd)
         _ErrorHandle(ENOMEM);
         goto    __out0;
     }
+    
     pmodule->EMOD_ulSegCount = pehdr->e_shnum;
     lib_bzero(pmodule->EMOD_psegmentArry,
               sizeof(LW_LD_EXEC_SEGMENT) * (pehdr->e_shnum + 2));
@@ -904,11 +905,10 @@ static INT elfLoadReloc (LW_LD_EXEC_MODULE *pmodule, Elf_Ehdr *pehdr, INT  iFd)
     pshdr = (Elf_Shdr *)pcBuf;
 
     for (i = 0; i < pehdr->e_shnum; i++, pshdr++) {
-
-        if (pshdr->sh_type == SHT_SYMTAB ||
-            pshdr->sh_type == SHT_STRTAB ||
-            pshdr->sh_type == SHT_RELA   ||
-            pshdr->sh_type == SHT_REL) {
+        if ((pshdr->sh_type == SHT_SYMTAB) ||
+            (pshdr->sh_type == SHT_STRTAB) ||
+            (pshdr->sh_type == SHT_RELA)   ||
+            (pshdr->sh_type == SHT_REL)) {
 
             if (pshdr->sh_size <= 0) {
                 continue;
@@ -949,9 +949,9 @@ static INT elfLoadReloc (LW_LD_EXEC_MODULE *pmodule, Elf_Ehdr *pehdr, INT  iFd)
      */
     pshdr = (Elf_Shdr *)pcBuf;
     for (i = 0; i < pehdr->e_shnum; i++, pshdr++) {
-        if ((pshdr->sh_flags & SHF_ALLOC) &&
-            pshdr->sh_type != SHT_NOBITS  &&
-            pshdr->sh_size > 0) {
+        if ((pshdr->sh_flags & SHF_ALLOC)  &&
+            (pshdr->sh_type != SHT_NOBITS) &&
+            (pshdr->sh_size > 0)) {
 
             if (lseek(iFd, pshdr->sh_offset, SEEK_SET) < 0) {
                 _DebugHandle(__ERRORMESSAGE_LEVEL, "seek file error!\r\n");
@@ -963,7 +963,6 @@ static INT elfLoadReloc (LW_LD_EXEC_MODULE *pmodule, Elf_Ehdr *pehdr, INT  iFd)
                 _DebugHandle(__ERRORMESSAGE_LEVEL, "read file error!\r\n");
                 goto    __out2;
             }
-
         }
     }
 
@@ -1004,12 +1003,14 @@ __out1:
             }
         }
     }
+#if LW_CFG_HWDBG_GDBMOD_EN == 0                                         /*  硬件调试器需要保留此信息    */
     LW_LD_SAFEFREE(pmodule->EMOD_psegmentArry);
     pmodule->EMOD_ulSegCount = 0;
+#endif                                                                  /*  !LW_CFG_HWDBG_GDBMOD_EN     */
 
 __out0:
     LW_LD_SAFEFREE(pcBuf);
-    return iError;
+    return  (iError);
 }
 /*********************************************************************************************************
 ** 函数名称: dynPhdrParse

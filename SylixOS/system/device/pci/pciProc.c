@@ -33,7 +33,8 @@
 /*********************************************************************************************************
   PCI 主控器
 *********************************************************************************************************/
-extern PCI_CTRL_HANDLE     *_GhPciCtrlHandle;
+extern  PCI_CTRL_HANDLE     *_G_hPciCtrlHandle;
+#define PCI_CTRL             _G_hPciCtrlHandle
 /*********************************************************************************************************
   pci proc 文件函数声明
 *********************************************************************************************************/
@@ -348,7 +349,7 @@ static ssize_t  __procFsPciRead (PLW_PROCFS_NODE  p_pfsn,
           size_t    stRealSize;                                         /*  实际的文件内容大小          */
           size_t    stCopeBytes;
     
-    if (_GhPciCtrlHandle == LW_NULL) {
+    if (PCI_CTRL == LW_NULL) {
         return  (0);
     }
     
@@ -360,9 +361,7 @@ static ssize_t  __procFsPciRead (PLW_PROCFS_NODE  p_pfsn,
         size_t          stNeedBufferSize = 0;
         PCI_PRINT_ARG   pciparg;
         
-        API_PciCtrlLock();
         API_PciTraversal(__procFsPciGetCnt, &stNeedBufferSize, PCI_MAX_BUS - 1);
-        API_PciCtrlUnlock();
         
         stNeedBufferSize += sizeof(cPciInfoHdr);
         
@@ -378,9 +377,7 @@ static ssize_t  __procFsPciRead (PLW_PROCFS_NODE  p_pfsn,
         
         stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, 0, cPciInfoHdr);
         
-        API_PciCtrlLock();
         API_PciTraversal(__procFsPciPrint, &pciparg, PCI_MAX_BUS - 1);
-        API_PciCtrlUnlock();
 
         API_ProcFsNodeSetRealFileSize(p_pfsn, stRealSize);
     } else {

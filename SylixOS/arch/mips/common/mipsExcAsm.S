@@ -43,65 +43,153 @@
     EXPORT_LABEL(archExceptionEntry)
 
 ;/*********************************************************************************************************
-;  异常上下文
+;  用于临时保存异常上下文
 ;*********************************************************************************************************/
 
-    .data
+#define TEMP_CTX_OFFSET_LOCK        0
+#define TEMP_CTX_OFFSET_SR          4
+#define TEMP_CTX_OFFSET_EPC         8
+#define TEMP_CTX_OFFSET_CAUSE       12
+#define TEMP_CTX_OFFSET_BADVADDR    16
+
+    SECTION(.bss)
     .align (4)
-archExcContext:
-    .space    8
+LINE_LABEL(archExcTempCtx)
+    .space    32
 
-/*********************************************************************************************************
-  Exception push the context: at, v0-v1, a0-a3, t0-t9, s0-s7, gp, fp, ra, pc, sr, lo, hi, cause
-*********************************************************************************************************/
+;/*********************************************************************************************************
+;  保存异常上下文
+;*********************************************************************************************************/
 
-#define EXC_SAVE_REGS()                 \
-    .set    push;                       \
-    .set    noat;                       \
-    .set    noreorder;                  \
-                                        \
-    MFC0(K1, CP0_STATUS);               \
-    LI      K0 , ~M_StatusEXL;          \
-    AND     K1 , K1, K0;                \
-                                        \
-    LI      K0 , ~M_StatusIE;           \
-    AND     K0 , K1, K0;                \
-    MTC0(K0, CP0_STATUS);               \
-                                        \
-    LA      K0 , archExcContext;        \
-    SW      K1 , 0(K0);                 \
-                                        \
-    MFC0(K1, CP0_EPC);                  \
-    SW      K1 , 4(K0);                 \
-                                        \
-    SUBU    SP , STK_CTX_SIZE;          \
-                                        \
-    OPERATE_REG(SW);                    \
-                                        \
-    LA      T0 , archExcContext;        \
-    LW      T1 , 0(T0);                 \
-    SW      T1 , STK_OFFSET_SR(SP);     \
-                                        \
-    LW      T1 , 4(T0);                 \
-    SW      T1 , STK_OFFSET_EPC(SP);    \
-                                        \
-    MFC0(T1, CP0_CAUSE);                \
-    SW      T1 , STK_OFFSET_CAUSE(SP);  \
-                                        \
-    MFLO    T1;                         \
-    SW      T1 , STK_OFFSET_LO(SP);     \
-                                        \
-    MFHI    T1;                         \
-    SW      T1 , STK_OFFSET_HI(SP);     \
-                                        \
-    .set    pop;
+MACRO_DEF(EXC_SAVE_REGS)
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
+
+    ;/*
+    ; * 因为这些都是内核代码，不经 TLB 转换，所以执行时不会发生 TLB 重填异常
+    ; */
+;/*********************************************************************************************************
+;  1. 对 archExcTempCtx 进行加锁
+;*********************************************************************************************************/
+    ;/*
+    ; * archExcTempCtx 在内核内存，不经 TLB 转换，所以访问时不会发生 TLB 重填异常
+    ; * 用自旋锁的方式访问 archExcTempCtx
+    ; */
+1:
+    LA      K0 , archExcTempCtx
+    LL      K1 , TEMP_CTX_OFFSET_LOCK(K0)
+    BNEZ    K1 , 1b
+    NOP
+
+    LI      K1 , 1
+    SC      K1 , TEMP_CTX_OFFSET_LOCK(K0)
+    BEQZ    K1 , 1b
+    SYNC
+
+;/*********************************************************************************************************
+;  2. 保存异常时的 EPC CAUSE BADVADDR 寄存器和异常前的 STATUS 寄存器到 archExcTempCtx
+;*********************************************************************************************************/
+
+    MFC0(K1, CP0_EPC)                                                   ;/*  临时保存异常时的 EPC 寄存器 */
+    SW      K1 , TEMP_CTX_OFFSET_EPC(K0)
+
+    MFC0(K1, CP0_CAUSE)                                                 ;/*  临时保存异常时 CAUSE 寄存器 */
+    SW      K1 , TEMP_CTX_OFFSET_CAUSE(K0)
+
+    MFC0(K1, CP0_BADVADDR)                                              ;/*  临时保存异常时的 BADVADDR   */
+    SW      K1 , TEMP_CTX_OFFSET_BADVADDR(K0)
+
+    MFC0(K1, CP0_STATUS)
+    LI      K0 , ~(M_StatusEXL | M_StatusERL)
+    AND     K1 , K1, K0                                                 ;/*  K1 等于异常前的 SR 寄存器   */
+    LA      K0 , archExcTempCtx
+    SW      K1 , TEMP_CTX_OFFSET_SR(K0)                                 ;/*  临时保存异常前的 SR 寄存器  */
+
+;/*********************************************************************************************************
+;  3. 回到内核模式并关中断
+;*********************************************************************************************************/
+
+    LI      K0 , ~(M_StatusIE | M_StatusKSU)
+    AND     K1 , K1, K0                                                 ;/*  回到内核模式并关中断        */
+    MTC0(K1, CP0_STATUS)
+    ;/*
+    ; * 已经清除 EXL 位，TLB 重填会在它自己的异常向量入口
+    ; */
+
+;/*********************************************************************************************************
+;  4. 预访问，提前触发 TLB 重填异常
+;*********************************************************************************************************/
+    ;/*
+    ; * 现在可能发生 TLB 重填，会破坏 CAUSE STATUS K0 K1 EPC BADVADDR 寄存器，不过没关系，
+    ; * 因为我们已经把它们都保存好了
+    ; */
+    SUBU    SP , STK_CTX_SIZE                                           ;/*  修改 SP                     */
+
+    LW      ZERO , 0(SP)
+    LW      ZERO , STK_OFFSET_LAST(SP)
+    ;/*
+    ; * 后面不会再发生 TLB 重填异常
+    ; */
+
+;/*********************************************************************************************************
+;  5. 保存上下文
+;*********************************************************************************************************/
+
+    SAVE_GREGS                                                          ;/*  所有寄存器入栈              */
+
+    LA      T0 , archExcTempCtx
+
+    LW      T1 , TEMP_CTX_OFFSET_SR(T0)
+    SW      T1 , STK_OFFSET_SR(SP)                                      ;/*  真正保存异常前的 SR 寄存器  */
+
+    LW      S0 , TEMP_CTX_OFFSET_EPC(T0)                                ;/*  S0 = EPC                    */
+    SW      S0 , STK_OFFSET_EPC(SP)                                     ;/*  真正保存异常时的 EPC 寄存器 */
+
+    LW      S1 , TEMP_CTX_OFFSET_CAUSE(T0)                              ;/*  S1 = CAUSE                  */
+    SW      S1 , STK_OFFSET_CAUSE(SP)                                   ;/*  真正保存异常时 CAUSE 寄存器 */
+
+    LW      S2 , TEMP_CTX_OFFSET_BADVADDR(T0)                           ;/*  S2 = BADVADDR               */
+    SW      S2 , STK_OFFSET_BADVADDR(SP)                                ;/*  真正保存异常时 BADVADDR     */
+
+    MOV     S3 , SP                                                     ;/*  S3 = SP                     */
+
+    MFLO    T1
+    EHB
+    SW      T1 , STK_OFFSET_LO(SP)                                      ;/*  保存 LO 寄存器              */
+
+    MFHI    T1
+    EHB
+    SW      T1 , STK_OFFSET_HI(SP)                                      ;/*  保存 HI 寄存器              */
+
+    LA      GP , _gp                                                    ;/*  重新设置 GP 寄存器          */
+
+;/*********************************************************************************************************
+;  6. 解锁 archExcTempCtx
+;*********************************************************************************************************/
+
+    SYNC
+    SW      ZERO , TEMP_CTX_OFFSET_LOCK(T0)                             ;/*  解锁 archExcTempCtx         */
+
+    .set    pop
+MACRO_END()
 
 ;/*********************************************************************************************************
 ;  异常入口宏
 ;*********************************************************************************************************/
 
 MACRO_DEF(EXCEPTION_ENTRY handle)
-    EXC_SAVE_REGS()                                                     ;/*  所有寄存器入栈              */
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
+
+    EXC_SAVE_REGS                                                       ;/*  所有寄存器入栈              */
+
+    ;/*
+    ; * 注意以下的子函数调用不会破坏 S0 S1 S2 S3 寄存器
+    ; */
 
     ;/*
     ; *  if (API_InterEnter() == 1) {
@@ -109,46 +197,66 @@ MACRO_DEF(EXCEPTION_ENTRY handle)
     ; *      SP = interrupt stack;
     ; *  }
     ; */
+    SUBU    SP , 32
     JAL     API_InterEnter                                              ;/*  获取中断层数放到返回值 V0   */
     NOP
+    ADDU    SP , 32
 
-    BNE     V0 , 1 , 1f
+    LI      V1 , 1
+    BNE     V0 , V1 , 1f
     NOP
 
+    SUBU    SP , 32
     JAL     API_ThreadTcbInter                                          ;/*  get current tcb             */
     NOP
+    ADDU    SP , 32
     SW      SP , 0(V0)                                                  ;/*  current stack = SP          */
 
+    SUBU    SP , 32
     JAL     API_InterStackBaseGet                                       ;/*  获得当前 CPU 中断堆栈栈顶   */
     NOP
     MOV     SP , V0
 
 1:
-    MFC0(A0, CP0_EPC)                                                   ;/*  获得异常的返回地址          */
+    MOV     A0 , S0                                                     ;/*  ARG0: EPC                   */
+    MOV     A1 , S1                                                     ;/*  ARG1: CAUSE                 */
+    MOV     A2 , S2                                                     ;/*  ARG2: BADVADDR              */
+    MOV     A3 , S3                                                     ;/*  ARG3: SP                    */
+    SUBU    SP , 32
     JAL     \handle
     NOP
+    ADDU    SP , 32
 
     ;/*
     ; *  if (API_InterGetNesting() == 1) {
     ; *      SP = current stack;
     ; *  }
     ; */
+    SUBU    SP , 32
     JAL     API_InterGetNesting
     NOP
+    ADDU    SP , 32
 
-    BNE     V0 , 1 , 2f
+    LI      V1 , 1
+    BNE     V0 , V1 , 2f
     NOP
 
+    SUBU    SP , 32
     JAL     API_ThreadTcbInter                                          ;/*  get current tcb             */
     NOP
+    ADDU    SP , 32
 
     LW      SP , 0(V0)                                                  ;/*  SP = current stack          */
 
 2:
+    SUBU    SP , 32
     JAL     API_InterExit
     NOP
+    ADDU    SP , 32
 
-    RESTORE_REGS()                                                      ;/*  所有寄存器出栈              */
+    RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
+
+    .set    pop
 MACRO_END()
 
 ;/*********************************************************************************************************
@@ -156,23 +264,44 @@ MACRO_END()
 ;*********************************************************************************************************/
 
 FUNC_DEF(archInterruptEntry)
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
+
     EXCEPTION_ENTRY     bspIntHandle
+
+    .set    pop
 FUNC_END(archInterruptEntry)
 
 ;/*********************************************************************************************************
-;  Cache Error 入口
+;  Cache 错误异常入口
 ;*********************************************************************************************************/
 
 FUNC_DEF(archCacheErrorEntry)
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
+
     EXCEPTION_ENTRY     archCacheErrorHandle
+
+    .set    pop
 FUNC_END(archCacheErrorEntry)
 
 ;/*********************************************************************************************************
-;  Exception 入口
+;  通用异常入口
 ;*********************************************************************************************************/
 
 FUNC_DEF(archExceptionEntry)
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
+
     EXCEPTION_ENTRY     archExceptionHandle
+
+    .set    pop
 FUNC_END(archExceptionEntry)
 
     FILE_END()

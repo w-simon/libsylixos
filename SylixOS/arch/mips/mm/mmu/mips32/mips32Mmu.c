@@ -20,6 +20,7 @@
 **
 ** BUG:
 2016.04.06  修改 TLB 无效对 EntryHi Register 操作(JZ4780支持)
+2016.06.14  为支持非 4K 大小页面重构代码
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -34,9 +35,11 @@
 static LW_OBJECT_HANDLE     _G_hPGDPartition    = LW_HANDLE_INVALID;    /*  系统目前仅使用一个 PGD      */
 static PVOID                _G_pvPTETable       = LW_NULL;              /*  PTE 表                      */
 static UINT32               _G_uiTlbSize        = 0;                    /*  TLB 数组大小                */
-static INT32                _G_iHwNeverExecBit  = -1;                   /*  硬件的代码永不执行位        */
-static UINT32               _G_uiEntryLoPFNMask = 0;                    /*  ENTRYLO PFN 域掩码          */
 static BOOL                 _G_bIsHasITLB       = LW_FALSE;             /*  是否带有处理 ITLB           */
+/*********************************************************************************************************
+  宏定义
+*********************************************************************************************************/
+#define MIPS32_TLB_SIZE     _G_uiTlbSize                                /*  TLB 数组大小                */
 /*********************************************************************************************************
   ENTRYLO
 *********************************************************************************************************/
@@ -47,32 +50,37 @@ static BOOL                 _G_bIsHasITLB       = LW_FALSE;             /*  是否
 #define MIPS32_ENTRYLO_C_SHIFT          (3)
 #define MIPS32_ENTRYLO_C_MASK           (0x07 << MIPS32_ENTRYLO_C_SHIFT)
 
-#define MIPS32_ENTRYLO_PFN_DEFAULT_MASK (UINT32)(~0x3F)
-#define MIPS32_ENTRYLO_PFN_MASK         _G_uiEntryLoPFNMask
 #define MIPS32_ENTRYLO_PFN_SHIFT        (6)
+/*********************************************************************************************************
+  ENTRYHI
+*********************************************************************************************************/
+#define MIPS32_UNIQUE_ENTRYHI(idx)      (A_K1BASE + ((idx) << (LW_CFG_VMM_PAGE_SHIFT + 1)))
+/*********************************************************************************************************
+  PAGE_MASK
+*********************************************************************************************************/
+#define MIPS32_PAGE_MASK_4K             0x00000000
+#define MIPS32_PAGE_MASK_16K            0x00006000
+#define MIPS32_PAGE_MASK_64K            0x0001E000
 
-#define MIPS32_ENTRYHI_VPN_SHIFT        (13)
-
-#define MIPS32_PTE_EXEC_SHIFT           (0)
-#define MIPS32_FLUSH_ITLB()             mipsCp0DiagWrite(0x04)
-
-#define UNIQUE_ENTRYHI(idx)             (A_K1BASE + ((idx) << (LW_CFG_VMM_PAGE_SHIFT + 1)))
-
-#define MIPS32_TLB_4K_PAGE_SIZE_MASK   (0x00000000)
-#define MIPS32_TLB_16K_PAGE_SIZE_MASK  (0x00006000)
-#define MIPS32_TLB_64K_PAGE_SIZE_MASK  (0x0001E000)
-#define MIPS32_TLB_256K_PAGE_SIZE_MASK (0x0007E000)
-#define MIPS32_TLB_1M_PAGE_SIZE_MASK   (0x001FE000)
-#define MIPS32_TLB_4M_PAGE_SIZE_MASK   (0x007FE000)
-#define MIPS32_TLB_16M_PAGE_SIZE_MASK  (0x01FFE000)
-#define MIPS32_TLB_64M_PAGE_SIZE_MASK  (0x07FFE000)
-#define MIPS32_TLB_256M_PAGE_SIZE_MASK (0x1FFFE000)
+#if   LW_CFG_VMM_PAGE_SIZE == (4  * LW_CFG_KB_SIZE)
+#define MIPS32_PAGE_MASK                MIPS32_PAGE_MASK_4K
+#elif LW_CFG_VMM_PAGE_SIZE == (16 * LW_CFG_KB_SIZE)
+#define MIPS32_PAGE_MASK                MIPS32_PAGE_MASK_16K
+#elif LW_CFG_VMM_PAGE_SIZE == (64 * LW_CFG_KB_SIZE)
+#define MIPS32_PAGE_MASK                MIPS32_PAGE_MASK_64K
+#else
+#error  LW_CFG_VMM_PAGE_SIZE must be (4K, 16K, 64K)!
+#endif                                                                  /*  LW_CFG_VMM_PAGE_SIZE        */
 /*********************************************************************************************************
   TLB 操作
 *********************************************************************************************************/
-#define MIPS_MMU_TLB_WRITE()            MIPS_EXEC_INS("TLBWI"); MIPS_EXEC_INS ("EHB")
-#define MIPS_MMU_TLB_READ()             MIPS_EXEC_INS("TLBR");  MIPS_EXEC_INS ("EHB")
-#define MIPS_MMU_TLB_PROBE()            MIPS_EXEC_INS("TLBP");  MIPS_EXEC_INS ("EHB")
+#define MIPS32_MMU_TLB_WRITE()          do { MIPS_EXEC_INS("TLBWI"); MIPS_EXEC_INS("EHB"); } while(0)
+#define MIPS32_MMU_TLB_READ()           do { MIPS_EXEC_INS("TLBR");  MIPS_EXEC_INS("EHB"); } while(0)
+#define MIPS32_MMU_TLB_PROBE()          do { MIPS_EXEC_INS("TLBP");  MIPS_EXEC_INS("EHB"); } while(0)
+/*********************************************************************************************************
+  龙芯处理器特有的 TLB 操作
+*********************************************************************************************************/
+#define MIPS32_FLUSH_ITLB()             do { mipsCp0DiagWrite(0x04); } while(0)
 /*********************************************************************************************************
 ** 函数名称: mips32MmuEnable
 ** 功能描述: 使能 MMU
@@ -105,25 +113,18 @@ static VOID  mips32MmuDisable (VOID)
 *********************************************************************************************************/
 static VOID  mips32MmuInvalidateTLB (VOID)
 {
-    UINT32  uiEntryHiBak = mipsCp0EntryHiRead();
-    INT     i;
+             UINT32  uiEntryHiBak = mipsCp0EntryHiRead();
+    REGISTER INT     i;
 
-    for (i = 0; i < _G_uiTlbSize; i++) {
+    for (i = 0; i < MIPS32_TLB_SIZE; i++) {
         mipsCp0IndexWrite(i);
+
         mipsCp0EntryLo0Write(0);
         mipsCp0EntryLo1Write(0);
-        mipsCp0EntryHiWrite(UNIQUE_ENTRYHI(i));
 
-#if LW_CFG_VMM_PAGE_SIZE == (4 * LW_CFG_KB_SIZE)
-        mipsCp0PageMaskWrite(MIPS32_TLB_4K_PAGE_SIZE_MASK);
-#elif LW_CFG_VMM_PAGE_SIZE == (16 * LW_CFG_KB_SIZE)
-        mipsCp0PageMaskWrite(MIPS32_TLB_16K_PAGE_SIZE_MASK);
-#elif LW_CFG_VMM_PAGE_SIZE == (64 * LW_CFG_KB_SIZE)
-        mipsCp0PageMaskWrite(MIPS32_TLB_16K_PAGE_SIZE_MASK);
-#else
-#error You must set 'LW_CFG_VMM_PAGE_SIZE' as 4K, 16K or 64K
-#endif                                                                  /*  LW_CFG_VMM_PAGE_SIZE        */
-        MIPS_MMU_TLB_WRITE();
+        mipsCp0EntryHiWrite(MIPS32_UNIQUE_ENTRYHI(i));
+
+        MIPS32_MMU_TLB_WRITE();
     }
 
     mipsCp0EntryHiWrite(uiEntryHiBak);
@@ -142,23 +143,26 @@ static VOID  mips32MmuInvalidateTLB (VOID)
 *********************************************************************************************************/
 VOID  mips32MmuDumpTLB (VOID)
 {
-    UINT32  uiEntryHiBak = mipsCp0EntryHiRead();
-    UINT32  uiEntryLo0;
-    UINT32  uiEntryLo1;
-    UINT32  uiEntryHi;
-    INT     i;
+             UINT32  uiEntryHiBak = mipsCp0EntryHiRead();
+             UINT32  uiEntryLo0;
+             UINT32  uiEntryLo1;
+             UINT32  uiEntryHi;
+             UINT32  uiPageMask;
+    REGISTER INT     i;
 
-    for (i = 0; i < _G_uiTlbSize; i++) {
+    for (i = 0; i < MIPS32_TLB_SIZE; i++) {
         mipsCp0IndexWrite(i);
 
-        MIPS_MMU_TLB_READ();
+        MIPS32_MMU_TLB_READ();
 
         uiEntryLo0 = mipsCp0EntryLo0Read();
         uiEntryLo1 = mipsCp0EntryLo1Read();
         uiEntryHi  = mipsCp0EntryHiRead();
+        uiPageMask = mipsCp0PageMaskRead();
 
-        _PrintFormat("TLB[%02d]: uiEntryLo0=0x%08x, uiEntryLo1=0x%08x, uiEntryHi=0x%08x\r\n",
-                     i, uiEntryLo0, uiEntryLo1, uiEntryHi);
+        _PrintFormat("TLB[%02d]: EntryLo0=0x%08x, EntryLo1=0x%08x, "
+                     "EntryHi=0x%08x, PageMask=0x%08x\r\n",
+                     i, uiEntryLo0, uiEntryLo1, uiEntryHi, uiPageMask);
     }
 
     mipsCp0EntryHiWrite(uiEntryHiBak);
@@ -173,14 +177,15 @@ VOID  mips32MmuDumpTLB (VOID)
 *********************************************************************************************************/
 static VOID  mips32MmuInvalidateTLBMVA (addr_t  ulAddr)
 {
-    REGISTER UINT32  uiEntryHiBak = mipsCp0EntryHiRead();
-    REGISTER UINT32  uiEntryHi    = (ulAddr >> (LW_CFG_VMM_PAGE_SHIFT + 1)) << MIPS32_ENTRYHI_VPN_SHIFT;
+             UINT32  uiEntryHiBak = mipsCp0EntryHiRead();
+    REGISTER UINT32  uiEntryHi    = ulAddr & (LW_CFG_VMM_PAGE_MASK << 1);
     REGISTER INT32   iIndex;
+    REGISTER INT     iReTry;
 
-    while (1) {
+    for (iReTry = 0; iReTry < 2; iReTry++) {                            /*  不会出现两条一样的 TLB 条目 */
         mipsCp0EntryHiWrite(uiEntryHi);
 
-        MIPS_MMU_TLB_PROBE();
+        MIPS32_MMU_TLB_PROBE();
 
         iIndex = mipsCp0IndexRead();
         if (iIndex >= 0) {
@@ -188,9 +193,10 @@ static VOID  mips32MmuInvalidateTLBMVA (addr_t  ulAddr)
 
             mipsCp0EntryLo0Write(0);
             mipsCp0EntryLo1Write(0);
-            mipsCp0EntryHiWrite(UNIQUE_ENTRYHI(iIndex));
 
-            MIPS_MMU_TLB_WRITE();
+            mipsCp0EntryHiWrite(MIPS32_UNIQUE_ENTRYHI(iIndex));
+
+            MIPS32_MMU_TLB_WRITE();
         } else {
             break;
         }
@@ -230,7 +236,7 @@ static LW_PTE_TRANSENTRY  mips32MmuBuildPtentry (UINT32  uiBaseAddr,
     UINT32              uiPFN;
 
     if (ulFlag & LW_VMM_FLAG_ACCESS) {
-        uiPFN = uiBaseAddr >> LW_CFG_VMM_PAGE_SHIFT;                    /*  计算 PFN                    */
+        uiPFN = uiBaseAddr >> 12;                                       /*  计算 PFN                    */
 
         uiDescriptor = uiPFN << MIPS32_ENTRYLO_PFN_SHIFT;               /*  填充 PFN                    */
 
@@ -249,12 +255,6 @@ static LW_PTE_TRANSENTRY  mips32MmuBuildPtentry (UINT32  uiBaseAddr,
         } else {
             uiDescriptor |= MIPS_UNCACHED << MIPS32_ENTRYLO_C_SHIFT;
         }
-
-        if (!(ulFlag & LW_VMM_FLAG_EXECABLE)) {
-            if (_G_iHwNeverExecBit >= 0) {
-                uiDescriptor |= 1 << _G_iHwNeverExecBit;
-            }
-        }
     } else {
         uiDescriptor = 0;
     }
@@ -271,8 +271,9 @@ static LW_PTE_TRANSENTRY  mips32MmuBuildPtentry (UINT32  uiBaseAddr,
 *********************************************************************************************************/
 static INT  mips32MmuMemInit (PLW_MMU_CONTEXT  pmmuctx)
 {
-#define PGD_BLOCK_SIZE  (16 * LW_CFG_KB_SIZE)
-#define PTE_BLOCK_SIZE  ( 1 * LW_CFG_KB_SIZE)
+#define PGD_BLOCK_SIZE  (4096 * sizeof(LW_PGD_TRANSENTRY))
+#define PTE_BLOCK_SIZE  ((LW_CFG_MB_SIZE / LW_CFG_VMM_PAGE_SIZE) * sizeof(LW_PTE_TRANSENTRY))
+#define PTE_TABLE_SIZE  ((LW_CFG_GB_SIZE / LW_CFG_VMM_PAGE_SIZE) * 4 * sizeof(LW_PTE_TRANSENTRY))
 
     PVOID   pvPgdTable;
     PVOID   pvPteTable;
@@ -280,16 +281,16 @@ static INT  mips32MmuMemInit (PLW_MMU_CONTEXT  pmmuctx)
     pvPgdTable = __KHEAP_ALLOC_ALIGN(PGD_BLOCK_SIZE, PGD_BLOCK_SIZE);
 
     /*
-     * PTE 表大小为 4MByte，需要 8MByte 对齐才能写入 Context 寄存器
+     * PTE 表需要 8MByte 对齐才能写入 Context 寄存器
      */
-    pvPteTable = __KHEAP_ALLOC_ALIGN(4 * LW_CFG_MB_SIZE, 8 * LW_CFG_MB_SIZE);
+    pvPteTable = __KHEAP_ALLOC_ALIGN(PTE_TABLE_SIZE, 8 * LW_CFG_MB_SIZE);
     
     if (!pvPgdTable || !pvPteTable) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "can not allocate page table.\r\n");
         return  (PX_ERROR);
     }
     
-    lib_bzero(pvPteTable, 4 * LW_CFG_MB_SIZE);
+    lib_bzero(pvPteTable, PTE_TABLE_SIZE);
 
     _G_pvPTETable = pvPteTable;
 
@@ -329,24 +330,17 @@ static INT  mips32MmuGlobalInit (CPCHAR  pcMachineName)
         _G_uiTlbSize = 64;                                              /*  按最大算                    */
     }
 
-    _DebugFormat(__LOGMESSAGE_LEVEL, "MMU TLB size = %d.\r\n", _G_uiTlbSize);
+    _DebugFormat(__LOGMESSAGE_LEVEL, "MMU TLB size = %d.\r\n", MIPS32_TLB_SIZE);
 
     archCacheReset(pcMachineName);                                      /*  复位 Cache                  */
     
-    mips32MmuInvalidateTLB();                                           /*  无效 TLB                    */
+    mipsCp0PageMaskWrite(MIPS32_PAGE_MASK);                             /*  PAGE MASK                   */
+
     mipsCp0EntryHiWrite(0);                                             /*  ASID = 0                    */
 
-#if LW_CFG_VMM_PAGE_SIZE == (4 * LW_CFG_KB_SIZE)
-    mipsCp0PageMaskWrite(MIPS32_TLB_4K_PAGE_SIZE_MASK);
-#elif LW_CFG_VMM_PAGE_SIZE == (16 * LW_CFG_KB_SIZE)
-    mipsCp0PageMaskWrite(MIPS32_TLB_16K_PAGE_SIZE_MASK);
-#elif LW_CFG_VMM_PAGE_SIZE == (64 * LW_CFG_KB_SIZE)
-    mipsCp0PageMaskWrite(MIPS32_TLB_16K_PAGE_SIZE_MASK);
-#else
-#error You must set 'LW_CFG_VMM_PAGE_SIZE' as 4K, 16K or 64K
-#endif                                                                  /*  LW_CFG_VMM_PAGE_SIZE        */
-
     mipsCp0WiredWrite(0);                                               /*  全部允许随机替换            */
+
+    mips32MmuInvalidateTLB();                                           /*  无效 TLB                    */
 
     return  (ERROR_NONE);
 }
@@ -362,14 +356,11 @@ static INT  mips32MmuGlobalInit (CPCHAR  pcMachineName)
 static LW_PGD_TRANSENTRY *mips32MmuPgdOffset (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr)
 {
     REGISTER LW_PGD_TRANSENTRY  *p_pgdentry = pmmuctx->MMUCTX_pgdEntry;
+    REGISTER UINT32              uiPgdNum;
     
-    /*
-     * ulAddr >> LW_CFG_VMM_PGD_SHIFT 计算 PGD 号，
-     *
-     * 而 LW_PGD_TRANSENTRY 的大小为 4
-     */
-    p_pgdentry = (LW_PGD_TRANSENTRY *)((addr_t)p_pgdentry
-               | ((ulAddr >> LW_CFG_VMM_PGD_SHIFT) * 4));               /*  获得一级页表描述符地址      */
+    uiPgdNum   = ulAddr >> LW_CFG_VMM_PGD_SHIFT;
+    p_pgdentry = (LW_PGD_TRANSENTRY *)((addr_t)p_pgdentry |
+                 (uiPgdNum * sizeof(LW_PGD_TRANSENTRY)));               /*  获得一级页表描述符地址      */
                
     return  (p_pgdentry);
 }
@@ -399,23 +390,18 @@ static  LW_PTE_TRANSENTRY *mips32MmuPteOffset (LW_PMD_TRANSENTRY  *p_pmdentry, a
 {
     REGISTER LW_PTE_TRANSENTRY  *p_pteentry;
     REGISTER UINT32              uiTemp;
+    REGISTER UINT32              uiPageNum;
 
     uiTemp = (UINT32)(*p_pmdentry);                                     /*  获得一级页表描述符          */
     
     p_pteentry = (LW_PTE_TRANSENTRY *)(uiTemp);                         /*  获得二级页表基地址          */
 
-    /*
-     * ulAddr >> (LW_CFG_VMM_PAGE_SHIFT - 2) 相当于 (ulAddr >> LW_CFG_VMM_PAGE_SHIFT) * 4
-     *
-     * ulAddr >> LW_CFG_VMM_PAGE_SHIFT 取得页号（全局，非段内）
-     *
-     * 而 LW_PTE_TRANSENTRY 的大小为 4
-     *
-     * & 0x3FC == & 0b1111111100, 段内页号占 8 位（LW_CFG_VMM_PGD_SHIFT - LW_CFG_VMM_PAGE_SHIFT
-     * 一段有 256 个页面）
-     */
-    p_pteentry = (LW_PTE_TRANSENTRY *)((addr_t)p_pteentry
-               | (((ulAddr >> (LW_CFG_VMM_PAGE_SHIFT - 2)) & 0x3FC)));  /*  获得虚拟地址页表描述符地址  */
+    ulAddr &= ~LW_CFG_VMM_PGD_MASK;
+
+    uiPageNum = ulAddr >> LW_CFG_VMM_PAGE_SHIFT;
+
+    p_pteentry = (LW_PTE_TRANSENTRY *)((addr_t)p_pteentry |
+                  (uiPageNum * sizeof(LW_PTE_TRANSENTRY)));             /*  获得虚拟地址页表描述符地址  */
     
     return  (p_pteentry);
 }
@@ -455,6 +441,7 @@ static BOOL  mips32MmuPteIsOk (LW_PTE_TRANSENTRY  pteentry)
 static LW_PGD_TRANSENTRY *mips32MmuPgdAlloc (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr)
 {
     REGISTER LW_PGD_TRANSENTRY  *p_pgdentry = (LW_PGD_TRANSENTRY *)API_PartitionGet(_G_hPGDPartition);
+    REGISTER UINT32              uiPgdNum;
     
     if (!p_pgdentry) {
         return  (LW_NULL);
@@ -462,13 +449,9 @@ static LW_PGD_TRANSENTRY *mips32MmuPgdAlloc (PLW_MMU_CONTEXT  pmmuctx, addr_t  u
     
     lib_bzero(p_pgdentry, PGD_BLOCK_SIZE);                              /*  无效一级页表项              */
 
-    /*
-     * p_pgdentry >> LW_CFG_VMM_PGD_SHIFT 计算 PGD 号，
-     *
-     * 而 LW_PGD_TRANSENTRY 的大小为 4
-     */
-    p_pgdentry = (LW_PGD_TRANSENTRY *)((addr_t)p_pgdentry
-               | ((ulAddr >> LW_CFG_VMM_PGD_SHIFT) << 2));              /*  获得一级页表描述符地址      */
+    uiPgdNum   = ulAddr >> LW_CFG_VMM_PGD_SHIFT;
+    p_pgdentry = (LW_PGD_TRANSENTRY *)((addr_t)p_pgdentry |
+                 (uiPgdNum * sizeof(LW_PGD_TRANSENTRY)));               /*  获得一级页表描述符地址      */
                
     return  (p_pgdentry);
 }
@@ -482,9 +465,6 @@ static LW_PGD_TRANSENTRY *mips32MmuPgdAlloc (PLW_MMU_CONTEXT  pmmuctx, addr_t  u
 *********************************************************************************************************/
 static VOID  mips32MmuPgdFree (LW_PGD_TRANSENTRY  *p_pgdentry)
 {
-    /*
-     * 释放时对齐到 PGD_BLOCK_SIZE，因为分配时对齐到 PGD_BLOCK_SIZE
-     */
     p_pgdentry = (LW_PGD_TRANSENTRY *)((addr_t)p_pgdentry & (~(PGD_BLOCK_SIZE - 1)));
     
     API_PartitionPut(_G_hPGDPartition, (PVOID)p_pgdentry);
@@ -532,15 +512,11 @@ static LW_PTE_TRANSENTRY  *mips32MmuPteAlloc (PLW_MMU_CONTEXT     pmmuctx,
                                               LW_PMD_TRANSENTRY  *p_pmdentry,
                                               addr_t              ulAddr)
 {
-    LW_PTE_TRANSENTRY  *p_pteentry;
+    REGISTER LW_PTE_TRANSENTRY  *p_pteentry;
+    REGISTER UINT32              uiPgdNum;
 
-    /*
-     * ulAddr >> LW_CFG_VMM_PGD_SHIFT 计算 PGD 号
-     * 每 PGD 一个二级页表
-     * 二级页表的大小为 PTE_BLOCK_SIZE
-     */
-    p_pteentry = (LW_PTE_TRANSENTRY *)((addr_t)_G_pvPTETable
-               | ((ulAddr >> LW_CFG_VMM_PGD_SHIFT) * PTE_BLOCK_SIZE));
+    uiPgdNum   = ulAddr >> LW_CFG_VMM_PGD_SHIFT;
+    p_pteentry = (LW_PTE_TRANSENTRY *)((addr_t)_G_pvPTETable | (uiPgdNum * PTE_BLOCK_SIZE));
 
     lib_bzero(p_pteentry, PTE_BLOCK_SIZE);
 
@@ -571,10 +547,9 @@ static VOID  mips32MmuPteFree (LW_PTE_TRANSENTRY  *p_pteentry)
 *********************************************************************************************************/
 static INT  mips32MmuPtePhysGet (LW_PTE_TRANSENTRY  pteentry, addr_t  *pulPhysicalAddr)
 {
-    UINT32   uiPFN   = (pteentry & MIPS32_ENTRYLO_PFN_MASK)
-                       >> MIPS32_ENTRYLO_PFN_SHIFT;                     /*  获得物理页面号              */
+    UINT32   uiPFN   = pteentry >> MIPS32_ENTRYLO_PFN_SHIFT;            /*  获得物理页面号              */
 
-    *pulPhysicalAddr = uiPFN << LW_CFG_VMM_PAGE_SHIFT;                  /*  计算页面物理地址            */
+    *pulPhysicalAddr = uiPFN << 12;                                     /*  计算页面物理地址            */
 
     return  (ERROR_NONE);
 }
@@ -607,13 +582,7 @@ static ULONG  mips32MmuFlagGet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr)
 
             ulFlag |= LW_VMM_FLAG_ACCESS;                               /*  可以访问                    */
 
-            if (_G_iHwNeverExecBit >= 0) {
-                if (!(uiDescriptor & (1 << _G_iHwNeverExecBit))) {
-                    ulFlag |= LW_VMM_FLAG_EXECABLE;                     /*  可以执行                    */
-                }
-            } else {
-                ulFlag |= LW_VMM_FLAG_EXECABLE;                         /*  可以执行                    */
-            }
+            ulFlag |= LW_VMM_FLAG_EXECABLE;                             /*  可以执行                    */
 
             if (uiDescriptor & MIPS32_ENTRYLO_D_BIT) {                  /*  可写                        */
                 ulFlag |= LW_VMM_FLAG_WRITABLE;
@@ -666,9 +635,8 @@ static INT  mips32MmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  u
         LW_PTE_TRANSENTRY   uiDescriptor = *p_pteentry;                 /*  获得二级描述符              */
 
         if (mips32MmuPteIsOk(uiDescriptor)) {                           /*  二级描述符有效              */
-            UINT32   uiPFN = (uiDescriptor & MIPS32_ENTRYLO_PFN_MASK)
-                              >> MIPS32_ENTRYLO_PFN_SHIFT;              /*  获得物理页号                */
-            addr_t   ulPhysicalAddr = uiPFN << LW_CFG_VMM_PAGE_SHIFT;   /*  计算页面物理地址            */
+            UINT32   uiPFN = uiDescriptor >> MIPS32_ENTRYLO_PFN_SHIFT;  /*  获得物理页号                */
+            addr_t   ulPhysicalAddr = uiPFN << 12;                      /*  计算页面物理地址            */
 
             /*
              * 构建二级描述符并设置二级描述符
@@ -724,20 +692,25 @@ static VOID  mips32MmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
 *********************************************************************************************************/
 ULONG  mipsMmuTlbLoadStoreExcHandle (addr_t  ulAbortAddr)
 {
+    ULONG       ulAbortType  = LW_VMM_ABORT_TYPE_MAP;
     UINT32      uiEntryHiBak = mipsCp0EntryHiRead();
-    INT32       iIndex;
+    UINT32      uiMask;
     UINT32      uiEntryLo;
-    ULONG       ulAbortType = LW_VMM_ABORT_TYPE_MAP;
+    INT32       iIndex;
+    BOOL        bIsEntryLo1;
 
-    mipsCp0EntryHiWrite((ulAbortAddr >> (LW_CFG_VMM_PAGE_SHIFT + 1)) << MIPS32_ENTRYHI_VPN_SHIFT);
+    mipsCp0EntryHiWrite(ulAbortAddr & (LW_CFG_VMM_PAGE_MASK << 1));
 
-    MIPS_MMU_TLB_PROBE();
+    MIPS32_MMU_TLB_PROBE();
 
     iIndex = mipsCp0IndexRead();
     if (iIndex >= 0) {
-        MIPS_MMU_TLB_READ();
+        MIPS32_MMU_TLB_READ();
 
-        if ((ulAbortAddr >> LW_CFG_VMM_PAGE_SHIFT) % 2) {
+        uiMask = mipsCp0PageMaskRead() | ~(LW_CFG_VMM_PAGE_MASK << 1);
+
+        bIsEntryLo1 = !!(ulAbortAddr & uiMask & ~(uiMask >> 1));
+        if (bIsEntryLo1) {
             uiEntryLo = mipsCp0EntryLo1Read();
         } else {
             uiEntryLo = mipsCp0EntryLo0Read();
@@ -804,9 +777,9 @@ static VOID  mips32MmuMakeCurCtx (PLW_MMU_CONTEXT  pmmuctx)
 *********************************************************************************************************/
 static VOID  mips32MmuInvTLB (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulPageAddr, ULONG  ulPageNum)
 {
-    ULONG   i;
+    REGISTER ULONG   i;
 
-    if (ulPageNum > 16) {
+    if (ulPageNum > (MIPS32_TLB_SIZE >> 1)) {
         mips32MmuInvalidateTLB();                                       /*  全部清除 TLB                */
 
     } else {
@@ -827,17 +800,8 @@ static VOID  mips32MmuInvTLB (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulPageAddr, ULON
 *********************************************************************************************************/
 VOID  mips32MmuInit (LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName)
 {
-    if (lib_strcmp(pcMachineName, MIPS_MACHINE_LS1X) == 0) {
-        _G_iHwNeverExecBit  = 30;
-        _G_uiEntryLoPFNMask = MIPS32_ENTRYLO_PFN_DEFAULT_MASK & (~(0x3 << 30));
-
-    } else {
-        if (lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X) == 0) {
-            _G_bIsHasITLB = LW_TRUE;
-        }
-
-        _G_iHwNeverExecBit  = -1;
-        _G_uiEntryLoPFNMask = MIPS32_ENTRYLO_PFN_DEFAULT_MASK;
+    if (lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X) == 0) {
+        _G_bIsHasITLB = LW_TRUE;
     }
 
 #if LW_CFG_SMP_EN > 0

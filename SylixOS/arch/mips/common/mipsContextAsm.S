@@ -34,6 +34,7 @@
     IMPORT_LABEL(_SchedCrSwp)
 #endif
 
+    EXPORT_LABEL(archGetGP)
     EXPORT_LABEL(archTaskCtxStart)
     EXPORT_LABEL(archTaskCtxSwitch)
     EXPORT_LABEL(archCrtCtxSwitch)
@@ -41,15 +42,32 @@
     EXPORT_LABEL(archSigCtxLoad)
 
 ;/*********************************************************************************************************
+;  获得 _gp
+;*********************************************************************************************************/
+
+FUNC_DEF(archGetGP)
+    LA      V0 , _gp
+    JR      RA
+    NOP
+FUNC_END(archGetGP)
+
+;/*********************************************************************************************************
 ;  当前 CPU 开始运行多任务执行
 ;  参数为当前 CPU 控制块, 即 A0 为当前 CPU 控制块指针
 ;*********************************************************************************************************/
 
 FUNC_DEF(archTaskCtxStart)
-    LW     T0 , 0(A0)                                                   ;/*  获取该任务堆栈栈顶地址      */
-    LW     SP , 0(T0)                                                   ;/*  堆栈指针赋值                */
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
 
-    RESTORE_REGS()                                                      ;/*  所有寄存器出栈              */
+    LW      T0 , 0(A0)                                                  ;/*  获取该任务堆栈栈顶地址      */
+    LW      SP , 0(T0)                                                  ;/*  堆栈指针赋值                */
+
+    RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
+
+    .set    pop
 FUNC_END(archTaskCtxStart)
 
 ;/*********************************************************************************************************
@@ -58,24 +76,37 @@ FUNC_END(archTaskCtxStart)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archTaskCtxSwitch)
-    SAVE_REGS()                                                         ;/*  所有寄存器入栈              */
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
 
-    LW     T1 , 0(A0)                                                   ;/*  stack current = SP          */
-    SW     SP , 0(T1)
+    SAVE_REGS                                                           ;/*  所有寄存器入栈              */
 
-    SUBU   SP , 4
-    SW     A0 , 0(SP)                                                   ;/*  当前 CPU 信息入栈           */
+    LW      T0 , 0(A0)                                                  ;/*  stack current = SP          */
+    SW      SP , 0(T0)
 
-    JAL    _SchedSwp                                                    ;/*  _SchedSwp();                */
+    SUBU    SP , 32
+    SW      RA , 28(SP)
+    SW      FP , 24(SP)
+    MOV     FP , SP
+    SW      A0 , 20(SP)                                                 ;/*  当前 CPU 信息入栈           */
+
+    JAL     _SchedSwp                                                   ;/*  _SchedSwp();                */
     NOP
 
-    LW     A0 , 0(SP)                                                   ;/*  当前 CPU 信息出栈           */
-    ADDU   SP , 4
+    MOV     SP , FP
+    LW      RA , 28(SP)
+    LW      FP , 24(SP)
+    LW      A0 , 20(SP)                                                 ;/*  当前 CPU 信息出栈           */
+    ADDU    SP , 32
 
-    LW     T1 , 0(A0)                                                   ;/*  SP = stack current          */
-    LW     SP , 0(T1)
+    LW      T0 , 0(A0)                                                  ;/*  SP = stack current          */
+    LW      SP , 0(T0)
 
-    RESTORE_REGS()                                                      ;/*  所有寄存器出栈              */
+    RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
+
+    .set    pop
 FUNC_END(archTaskCtxSwitch)
 
 ;/*********************************************************************************************************
@@ -85,24 +116,37 @@ FUNC_END(archTaskCtxSwitch)
 
 #if LW_CFG_COROUTINE_EN > 0
 FUNC_DEF(archCrtCtxSwitch)
-    SAVE_REGS()                                                         ;/*  所有寄存器入栈              */
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
 
-    LW     T1 , 0(A0)                                                   ;/*  stack current = SP          */
-    SW     SP , 0(T1)
+    SAVE_REGS                                                           ;/*  所有寄存器入栈              */
 
-    SUBU   SP , 4                                                       ;/*  当前 CPU 信息入栈           */
-    SW     A0 , 0(SP)
+    LW      T0 , 0(A0)                                                  ;/*  stack current = SP          */
+    SW      SP , 0(T0)
 
-    JAL    _SchedCrSwp                                                  ;/*  _SchedCrSwp();              */
+    SUBU    SP , 32
+    SW      RA , 28(SP)
+    SW      FP , 24(SP)
+    MOV     FP , SP
+    SW      A0 , 20(SP)                                                 ;/*  当前 CPU 信息入栈           */
+
+    JAL     _SchedCrSwp                                                 ;/*  _SchedCrSwp();              */
     NOP
 
-    LW     A0 , 0(SP)                                                   ;/*  当前 CPU 信息出栈           */
-    ADDU   SP , 4
+    MOV     SP , FP
+    LW      RA , 28(SP)
+    LW      FP , 24(SP)
+    LW      A0 , 20(SP)                                                 ;/*  当前 CPU 信息出栈           */
+    ADDU    SP , 32
 
-    LW     T1 , 0(A0)                                                   ;/*  SP = stack current          */
-    LW     SP , 0(T1)
+    LW      T0 , 0(A0)                                                  ;/*  SP = stack current          */
+    LW      SP , 0(T0)
 
-    RESTORE_REGS()                                                      ;/*  所有寄存器出栈              */
+    RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
+
+    .set    pop
 FUNC_END(archCrtCtxSwitch)
 #endif
 
@@ -112,19 +156,32 @@ FUNC_END(archCrtCtxSwitch)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archIntCtxLoad)
-    SUBU   SP , 4
-    SW     A0 , 0(SP)                                                   ;/*  当前 CPU 信息入栈           */
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
 
-    JAL    _SchedSwp                                                    ;/*  _SchedSwp();                */
+    SUBU    SP , 32
+    SW      RA , 28(SP)
+    SW      FP , 24(SP)
+    MOV     FP , SP
+    SW      A0 , 20(SP)                                                 ;/*  当前 CPU 信息入栈           */
+
+    JAL     _SchedSwp                                                   ;/*  _SchedSwp();                */
     NOP
 
-    LW     A0 , 0(SP)                                                   ;/*  当前 CPU 信息出栈           */
-    ADDU   SP , 4
+    MOV     SP , FP
+    LW      RA , 28(SP)
+    LW      FP , 24(SP)
+    LW      A0 , 20(SP)                                                 ;/*  当前 CPU 信息出栈           */
+    ADDU    SP , 32
 
-    LW     T1 , 0(A0)                                                   ;/*  SP = stack current          */
-    LW     SP , 0(T1)
+    LW      T0 , 0(A0)                                                  ;/*  SP = stack current          */
+    LW      SP , 0(T0)
 
-    RESTORE_REGS()                                                      ;/*  所有寄存器出栈              */
+    RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
+
+    .set    pop
 FUNC_END(archIntCtxLoad)
 
 ;/*********************************************************************************************************
@@ -133,9 +190,16 @@ FUNC_END(archIntCtxLoad)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archSigCtxLoad)
-    MOV    SP , A0                                                      ;/*  返回的堆栈指针              */
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
 
-    RESTORE_REGS()                                                      ;/*  所有寄存器出栈              */
+    MOV     SP , A0                                                     ;/*  返回的堆栈指针              */
+
+    RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
+
+    .set    pop
 FUNC_END(archSigCtxLoad)
 
     FILE_END()

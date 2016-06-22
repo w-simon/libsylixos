@@ -26,7 +26,7 @@
   虚拟内存页表相关配置
 *********************************************************************************************************/
 
-#define LW_CFG_VMM_PAGE_SHIFT                 12                        /*  2^12 = 4096                 */
+#define LW_CFG_VMM_PAGE_SHIFT                 LW_CFG_MIPS_PAGE_SHIFT    /*  2^n                         */
 #define LW_CFG_VMM_PAGE_SIZE                  (1ul << LW_CFG_VMM_PAGE_SHIFT)
 #define LW_CFG_VMM_PAGE_MASK                  (~(LW_CFG_VMM_PAGE_SIZE - 1))
 
@@ -37,14 +37,6 @@
 #define LW_CFG_VMM_PGD_SHIFT                  20                        /*  2^20 = 1MB                  */
 #define LW_CFG_VMM_PGD_SIZE                   (1ul << LW_CFG_VMM_PGD_SHIFT)
 #define LW_CFG_VMM_PGD_MASK                   (~(LW_CFG_VMM_PGD_SIZE - 1))
-
-/*********************************************************************************************************
-  转换条目相关, 每一层所包含的表项个数
-*********************************************************************************************************/
-
-#define LW_CFG_VMM_PTRS_PER_PGD               256                       /*  PGD 拥有的转换条目数        */
-#define LW_CFG_VMM_PTRS_PER_PMD               1                         /*  PMD 拥有的转换条目数        */
-#define LW_CFG_VMM_PTRS_PER_PTE               1024                      /*  PTE 拥有的转换条目数        */
 
 /*********************************************************************************************************
   物理内存分组数量

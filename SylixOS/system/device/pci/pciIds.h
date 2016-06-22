@@ -2154,9 +2154,16 @@ vendor  vendor_name
 #define PCI_DEVICE_ID_EXAR_XR17C152                 0x0152
 #define PCI_DEVICE_ID_EXAR_XR17C154                 0x0154
 #define PCI_DEVICE_ID_EXAR_XR17C158                 0x0158
+#define PCI_DEVICE_ID_EXAR_XR17C252                 0x0252
+#define PCI_DEVICE_ID_EXAR_XR17C254                 0x0254
+#define PCI_DEVICE_ID_EXAR_XR17C258                 0x0258
 #define PCI_DEVICE_ID_EXAR_XR17V352                 0x0352
 #define PCI_DEVICE_ID_EXAR_XR17V354                 0x0354
 #define PCI_DEVICE_ID_EXAR_XR17V358                 0x0358
+#define PCI_DEVICE_ID_EXAR_XR17V4354                0x4354
+#define PCI_DEVICE_ID_EXAR_XR17V4358                0x4358
+#define PCI_DEVICE_ID_EXAR_XR17V8354                0x8354
+#define PCI_DEVICE_ID_EXAR_XR17V8358                0x8358
 
 #define PCI_VENDOR_ID_MICROGATE                     0x13c0
 #define PCI_DEVICE_ID_MICROGATE_USC                 0x0010

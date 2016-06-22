@@ -176,6 +176,7 @@ SylixOS/arch/mips/fpu/mipsFpu.c \
 SylixOS/arch/mips/mm/cache/mips32/mips32Cache.c \
 SylixOS/arch/mips/mm/cache/mips32/mips32CacheAsm.S \
 SylixOS/arch/mips/mm/mmu/mips32/mips32Mmu.c \
+SylixOS/arch/mips/mm/mmu/mips32/mips32MmuAsm.S \
 SylixOS/arch/mips/mm/mipsCache.c \
 SylixOS/arch/mips/mm/mipsMmu.c \
 SylixOS/arch/mips/mpcore/mipsMpCoreAsm.S \
@@ -188,6 +189,7 @@ SylixOS/arch/mips/param/mipsParam.c
 DEBUG_SRCS = \
 SylixOS/debug/dtrace/dtrace.c \
 SylixOS/debug/gdb/gdbserver.c \
+SylixOS/debug/hwdbg/gdbmodule.c \
 SylixOS/debug/hwdbg/openocd.c 
 
 #*********************************************************************************************************
@@ -196,6 +198,8 @@ SylixOS/debug/hwdbg/openocd.c
 DRV_SRCS = \
 SylixOS/driver/can/sja1000.c \
 SylixOS/driver/int/i8259a.c \
+SylixOS/driver/pci/sio/pciSioExar.c \
+SylixOS/driver/pci/sio/pciSioNetmos.c \
 SylixOS/driver/sio/16c550.c \
 SylixOS/driver/timer/i8254.c 
 
@@ -1204,6 +1208,7 @@ SylixOS/vpmpdm/vpmpdm_cpp.cpp \
 SylixOS/vpmpdm/vpmpdm_lm.c \
 SylixOS/vpmpdm/vpmpdm_start.c \
 SylixOS/vpmpdm/vpmpdm_stdio.c \
+SylixOS/vpmpdm/vpmpdm_stdlib.c \
 SylixOS/vpmpdm/vpmpdm.c
 
 #*********************************************************************************************************
@@ -1479,14 +1484,14 @@ $(TARGET): $(OBJS)
 		cp SylixOS/hosttools/makesymbol/makesymbol.sh $(OUTDIR)
 		cp SylixOS/hosttools/makesymbol/nm.exe $(OUTDIR)
 		make -C $(OUTDIR)
-		
+
 #*********************************************************************************************************
 # compile -mabicalls code
 #*********************************************************************************************************
 $(OBJPATH)/SylixOS/dsohandle/dsohandle.o: ./SylixOS/dsohandle/dsohandle.c
 		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
 		$(COMPILE_ABICALLS.c) $< -o $@
-		
+
 #*********************************************************************************************************
 # link libdsohandle.a object files
 #*********************************************************************************************************
@@ -1524,6 +1529,10 @@ $(OBJPATH)/SylixOS/vpmpdm/vpmpdm_stdio.o: ./SylixOS/vpmpdm/vpmpdm_stdio.c
 		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
 		$(COMPILE_PIC.c) $< -o $@
 
+$(OBJPATH)/SylixOS/vpmpdm/vpmpdm_stdlib.o: ./SylixOS/vpmpdm/vpmpdm_stdlib.c
+		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
+		$(COMPILE_PIC.c) $< -o $@
+
 $(OBJPATH)/SylixOS/vpmpdm/vpmpdm.o: ./SylixOS/vpmpdm/vpmpdm.c
 		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
 		$(COMPILE_PIC.c) $< -o $@
@@ -1551,26 +1560,26 @@ $(VPMPDM_S_STRIP_TARGET): $(VPMPDM_S_TARGET)
 		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
 		@rm -f $@
 		$(STRIP) $(VPMPDM_S_TARGET) -o $(VPMPDM_S_STRIP_TARGET)
-		
+
 #*********************************************************************************************************
 # compile -mlong-calls code
 #*********************************************************************************************************
 $(OBJPATH)/SylixOS/xinput/xdev.o: ./SylixOS/xinput/xdev.c
 		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
 		$(COMPILE_LONGCALLS.c) $< -o $@
-		
+
 $(OBJPATH)/SylixOS/xinput/xinput.o: ./SylixOS/xinput/xinput.c
 		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
 		$(COMPILE_LONGCALLS.c) $< -o $@
-		
+
 $(OBJPATH)/SylixOS/xinput/xproc.o: ./SylixOS/xinput/xproc.c
 		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
 		$(COMPILE_LONGCALLS.c) $< -o $@
-		
+
 $(OBJPATH)/SylixOS/xsiipc/msg.o: ./SylixOS/xsiipc/msg.c
 		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
 		$(COMPILE_LONGCALLS.c) $< -o $@
-		
+
 $(OBJPATH)/SylixOS/xsiipc/proc.o: ./SylixOS/xsiipc/proc.c
 		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
 		$(COMPILE_LONGCALLS.c) $< -o $@
@@ -1578,15 +1587,15 @@ $(OBJPATH)/SylixOS/xsiipc/proc.o: ./SylixOS/xsiipc/proc.c
 $(OBJPATH)/SylixOS/xsiipc/sem.o: ./SylixOS/xsiipc/sem.c
 		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
 		$(COMPILE_LONGCALLS.c) $< -o $@
-		
+
 $(OBJPATH)/SylixOS/xsiipc/shm.o: ./SylixOS/xsiipc/shm.c
 		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
 		$(COMPILE_LONGCALLS.c) $< -o $@
-		
+
 $(OBJPATH)/SylixOS/xsiipc/xsiipc.o: ./SylixOS/xsiipc/xsiipc.c
 		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
 		$(COMPILE_LONGCALLS.c) $< -o $@
-		
+
 #*********************************************************************************************************
 # link xinput.ko object files
 #*********************************************************************************************************
@@ -1600,7 +1609,7 @@ $(XINPUT_STRIP_TARGET): $(XINPUT_TARGET)
 		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
 		@rm -f $@
 		$(STRIP) --strip-unneeded $(XINPUT_TARGET) -o $(XINPUT_STRIP_TARGET)
-		
+
 #*********************************************************************************************************
 # link xsiipc.ko object files
 #*********************************************************************************************************
@@ -1614,7 +1623,7 @@ $(XSIIPC_STRIP_TARGET): $(XSIIPC_TARGET)
 		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
 		@rm -f $@
 		$(STRIP) --strip-unneeded $(XSIIPC_TARGET) -o $(XSIIPC_STRIP_TARGET)
-		
+
 #*********************************************************************************************************
 # clean
 #*********************************************************************************************************

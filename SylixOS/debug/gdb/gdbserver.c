@@ -23,6 +23,7 @@
 2014.06.03  使用 posix_spawnp 创建进程.
 2014.09.02  修正调试同时单步多线程问题.
 2015.11.18  加入 SMP 锁定 CPU 调试功能.
+2016.06.14  支持在当前终端下调试.
 *********************************************************************************************************/
 #define  __SYLIXOS_GDB
 #define  __SYLIXOS_STDIO
@@ -101,10 +102,20 @@ typedef struct {
     BOOL                    TH_bChanged;                                /* 状态是否被修改               */
 } LW_GDB_THREAD;
 /*********************************************************************************************************
+  串口调试原始参数
+*********************************************************************************************************/
+typedef struct {
+    LONG                    GDBSP_lBaud;                                /* 串口波特率                   */
+    INT                     GDBSP_iHwOpt;                               /* 硬件属性                     */
+    INT                     GDBSP_iSioOpt;                              /* TTY 属性                     */
+} LW_GDB_SERIAL_PARAM;
+/*********************************************************************************************************
   全局参数结构
 *********************************************************************************************************/
 typedef struct {
     BYTE                    GDB_byCommType;                             /* 传输类型                     */
+    LW_GDB_SERIAL_PARAM     GDB_spSerial;                               /* 需要回复的串口参数           */
+    BOOL                    GDB_bTerminal;                              /* 是否为终端调试               */
     INT                     GDB_iCommFd;                                /* 用于传输协议帧的文件描述符   */
     INT                     GDB_iSigFd;                                 /* 中断signalfd文件句柄         */
     CHAR                    GDB_cProgPath[MAX_FILENAME_LENGTH];         /* 可执行文件路径               */
@@ -131,13 +142,14 @@ static atomic_t     GHookRefCnt = {0};                                  /* gdb h
 /*********************************************************************************************************
 ** 函数名称: gdbTcpSockInit
 ** 功能描述: 初始化socket
-** 输　入  : ui32Ip       侦听ip
+** 输　入  : pparam       GDB 参数
+**           ui32Ip       侦听ip
 **           usPort       侦听端口
-** 输　出  : 成功--fd描述符，失败-- PX_ERROR.
+** 输　出  : 成功-- fd描述符，失败-- PX_ERROR.
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static INT gdbTcpSockInit (UINT32 ui32Ip, UINT16 usPort)
+static INT gdbTcpSockInit (LW_GDB_PARAM *pparam, UINT32 ui32Ip, UINT16 usPort)
 {
     struct sockaddr_in  addrServer;
     struct sockaddr_in  addrClient;
@@ -204,34 +216,59 @@ static INT gdbTcpSockInit (UINT32 ui32Ip, UINT16 usPort)
 /*********************************************************************************************************
 ** 函数名称: gdbSerialInit
 ** 功能描述: 初始化 tty
-** 输　入  : pcSerial     tty 设备名
-** 输　出  : 成功--fd描述符，失败-- PX_ERROR.
+** 输　入  : pparam       GDB 参数
+**           pcSerial     tty 设备名
+** 输　出  : 成功-- fd描述符，失败-- PX_ERROR.
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static INT gdbSerialInit (CPCHAR pcSerial)
+static INT gdbSerialInit (LW_GDB_PARAM *pparam, CPCHAR pcSerial)
 {
 #define SERIAL_PARAM    "115200,n,8,1"
 #define SERIAL_BAUD     SIO_BAUD_115200
+#define SERIAL_HWOPT    (CLOCAL | CREAD | CS8 | HUPCL)
 #define SERIAL_BSIZE    1024
 
-    INT iFd;
+    INT  iFd;
     
-    iFd = open(pcSerial, O_RDWR);
-    if (iFd < 0) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "Open serial failed.\r\n");
-        return  (PX_ERROR);
+    if (lib_strcmp(pcSerial, "terminal") == 0) {                        /*  使用当前终端串口调试        */
+        INT  iFdIn, iFdOut;
+        
+        iFdIn  = API_IoTaskStdGet(API_ThreadIdSelf(), STD_IN);
+        iFdOut = API_IoTaskStdGet(API_ThreadIdSelf(), STD_OUT);
+        if (iFdIn != iFdOut) {
+            _DebugHandle(__ERRORMESSAGE_LEVEL, "Standard 'IN' 'OUT' device not same.\r\n");
+            return  (PX_ERROR);
+        }
+        
+        iFd                   = iFdOut;
+        pparam->GDB_bTerminal = LW_TRUE;
+    
+    } else {                                                            /*  新建串口                    */
+        iFd = open(pcSerial, O_RDWR);
+        if (iFd < 0) {
+            _DebugHandle(__ERRORMESSAGE_LEVEL, "Open serial failed.\r\n");
+            return  (PX_ERROR);
+        }
     }
     
     if (!isatty(iFd)) {
-        close(iFd);
+        if (pparam->GDB_bTerminal == LW_FALSE) {
+            close(iFd);
+        }
         _DebugHandle(__ERRORMESSAGE_LEVEL, "Serial is not a tty device.\r\n");
         return  (PX_ERROR);
     }
     
+    if (pparam->GDB_bTerminal) {                                        /*  保存 terminal 参数          */
+        ioctl(iFd, FIOGETOPTIONS,   &pparam->GDB_spSerial.GDBSP_iSioOpt);
+        ioctl(iFd, SIO_BAUD_GET,    &pparam->GDB_spSerial.GDBSP_lBaud);
+        ioctl(iFd, SIO_HW_OPTS_GET, &pparam->GDB_spSerial.GDBSP_iHwOpt);
+    }
+    
     ioctl(iFd, FIOSETOPTIONS,   OPT_RAW);
     ioctl(iFd, SIO_BAUD_SET,    SERIAL_BAUD);
-    ioctl(iFd, SIO_HW_OPTS_SET, CLOCAL | CREAD | CS8 | HUPCL);
+    ioctl(iFd, SIO_HW_OPTS_SET, SERIAL_HWOPT);
     ioctl(iFd, FIORBUFSET,      SERIAL_BSIZE);
     ioctl(iFd, FIOWBUFSET,      SERIAL_BSIZE);
     
@@ -2018,7 +2055,21 @@ static INT gdbRelease (LW_GDB_PARAM *pparam)
     }
 
     if (pparam->GDB_iCommFd >= 0) {
-        close(pparam->GDB_iCommFd);
+        if (pparam->GDB_bTerminal) {                                    /* 还原终端之前的通信模式       */
+            if (pparam->GDB_spSerial.GDBSP_iHwOpt != SERIAL_HWOPT) {
+                ioctl(pparam->GDB_iCommFd, SIO_HW_OPTS_SET, 
+                      pparam->GDB_spSerial.GDBSP_iHwOpt);
+            }
+            if (pparam->GDB_spSerial.GDBSP_lBaud != SERIAL_BAUD) {
+                ioctl(pparam->GDB_iCommFd, SIO_BAUD_SET,
+                      pparam->GDB_spSerial.GDBSP_lBaud);
+            }
+            ioctl(pparam->GDB_iCommFd, FIOSETOPTIONS,
+                  pparam->GDB_spSerial.GDBSP_iSioOpt);
+            
+        } else {
+            close(pparam->GDB_iCommFd);
+        }
     }
 
     LW_GDB_SAFEFREE(pparam);
@@ -2337,8 +2388,9 @@ static INT gdbMain (INT argc, CHAR **argv)
     }
     lib_bzero(pparam, sizeof(LW_GDB_PARAM));
 
-    pparam->GDB_iCommFd = PX_ERROR;
-    pparam->GDB_iSigFd  = PX_ERROR;
+    pparam->GDB_bTerminal = LW_FALSE;
+    pparam->GDB_iCommFd   = PX_ERROR;
+    pparam->GDB_iSigFd    = PX_ERROR;
 
     if (lib_strcmp(argv[iArgPos], "--attach") == 0) {                   /* 切入到正在执行的进程调试     */
         iArgPos++;
@@ -2480,9 +2532,9 @@ static INT gdbMain (INT argc, CHAR **argv)
     }
 
     if (pparam->GDB_byCommType == COMM_TYPE_TCP) {
-        pparam->GDB_iCommFd = gdbTcpSockInit(ui32Ip, usPort);           /* 初始化socket，获取连接句柄   */
+        pparam->GDB_iCommFd = gdbTcpSockInit(pparam, ui32Ip, usPort);   /* 初始化socket，获取连接句柄   */
     } else {
-        pparam->GDB_iCommFd = gdbSerialInit(pcSerial);
+        pparam->GDB_iCommFd = gdbSerialInit(pparam, pcSerial);
     }
         
     if (pparam->GDB_iCommFd < 0) {
@@ -2530,9 +2582,10 @@ VOID  API_GdbInit (VOID)
 {
     API_TShellKeywordAddEx("debug", gdbMain, LW_OPTION_KEYWORD_SYNCBG);
     API_TShellFormatAdd("debug", " [connect options] [program] [argments...]");
-    API_TShellHelpAdd("debug",   "GDB Server\n"
+    API_TShellHelpAdd("debug",   "GDB Server (On serial: \"115200,n,8,1\")\n"
                                  "eg. debug localhost:1234 helloworld\n"
                                  "    debug /dev/ttyS1 helloworld\n"
+                                 "    debug terminal helloworld\n"
                                  "    debug --attach localhost:1234 1\n");
 }
 

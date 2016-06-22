@@ -301,6 +301,13 @@ int  pthread_mutexattr_settype (pthread_mutexattr_t *pmutexattr, int  type)
         return  (EINVAL);
     }
     
+    if ((type != PTHREAD_MUTEX_NORMAL) &&
+        (type != PTHREAD_MUTEX_ERRORCHECK) &&
+        (type != PTHREAD_MUTEX_RECURSIVE)) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+    
     pmutexattr->PMUTEXATTR_iType = type;
     
     return  (ERROR_NONE);
