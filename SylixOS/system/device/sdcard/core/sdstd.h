@@ -195,6 +195,7 @@
 #define EXT_CSD_HS_TIMING               185
 #define EXT_CSD_CARD_TYPE               196
 #define EXT_CSD_REV                     192
+#define EXT_CSD_STRUCT                  194
 #define EXT_CSD_SEC_CNT                 212
 #define BOOT_SIZE_MULTI                 226
 

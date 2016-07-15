@@ -32,6 +32,7 @@
             电压是有一定范围要求的.所以在发送命令时,将 uiOCR 进行处理后再作为参数发送.
 2015.09.15  更改 MMC 卡是否是块寻址的判断条件.
 2015.09.22  增加 MMC/eMMC 扩展协议的支持.
+2016.07.15  修正 MMC/eMMC 在使用 EXT-CSD 结构信息获取容量时可能产生错误的结果.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -241,7 +242,7 @@ INT API_SdCoreDecodeExtCSD (PLW_SDCORE_DEVICE  psdcoredevice,
                             LW_SDDEV_CSD      *psdcsd,
                             LW_SDDEV_EXT_CSD  *psdextcsd)
 {
-    UINT   uiExtCsdStruct;
+    UINT   uiExtCsdRev;
     UINT8  pucExtCsd[512];
     INT    iError;
 
@@ -264,20 +265,28 @@ INT API_SdCoreDecodeExtCSD (PLW_SDCORE_DEVICE  psdcoredevice,
         return  (ERROR_NONE);
     }
 
-    uiExtCsdStruct = pucExtCsd[EXT_CSD_REV];
+    uiExtCsdRev = pucExtCsd[EXT_CSD_REV];
     psdextcsd->DEVEXTCSD_uiBootSizeMulti = pucExtCsd[BOOT_SIZE_MULTI];
-    if (uiExtCsdStruct > 6) {
+    if (uiExtCsdRev > 6) {
         return  (PX_ERROR);
     }
 
-    if (uiExtCsdStruct >= 2) {
+    if (uiExtCsdRev >= 2) {
         psdextcsd->DEVEXTCSD_uiSectorCnt = (pucExtCsd[EXT_CSD_SEC_CNT + 0] << 0)
                                          | (pucExtCsd[EXT_CSD_SEC_CNT + 1] << 8)
                                          | (pucExtCsd[EXT_CSD_SEC_CNT + 2] << 16)
                                          | (pucExtCsd[EXT_CSD_SEC_CNT + 3] << 24);
 
         if (psdextcsd->DEVEXTCSD_uiSectorCnt) {
-            psdcsd->DEVCSD_uiCapacity = psdextcsd->DEVEXTCSD_uiSectorCnt;
+            /*
+             * 当使用扩展CSD容量时, 扇区大小固定为512
+             */
+            psdcsd->DEVCSD_ucReadBlkLenBits = SD_MEM_DEFAULT_BLKSIZE_NBITS;
+            psdcsd->DEVCSD_uiCapacity       = psdextcsd->DEVEXTCSD_uiSectorCnt;
+        }
+
+        if (psdextcsd->DEVEXTCSD_uiSectorCnt > (2u * LW_CFG_GB_SIZE / 512)) {
+            psdcoredevice->COREDEV_iDevSta |= COREDEV_STA_HIGHCAP_OCR;
         }
     }
 
