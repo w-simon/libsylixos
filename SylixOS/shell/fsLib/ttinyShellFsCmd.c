@@ -1343,8 +1343,8 @@ static INT  __tshellFsCmdDsize (INT  iArgC, PCHAR  ppcArgV[])
 static INT  __tshellFsCmdDf (INT  iArgC, PCHAR  ppcArgV[])
 {
     static PCHAR   pcVolumeInfoHdr = \
-                    "    VOLUME         TOTAL        FREE     USED RO       FS TYPE\n"
-                    "-------------- ------------ ------------ ---- -- --------------------\n";
+                    "    VOLUME         TOTAL        FREE     USED RO             FS TYPE\n"
+                    "-------------- ------------ ------------ ---- -- --------------------------------\n";
 
     struct statfs       statfsGet;
            

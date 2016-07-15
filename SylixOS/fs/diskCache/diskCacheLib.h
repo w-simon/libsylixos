@@ -66,6 +66,8 @@ typedef struct {
     ULONG                   DISKN_ulSectorNo;                           /*  缓冲的扇区号                */
     INT                     DISKN_iStatus;                              /*  节点状态                    */
     caddr_t                 DISKN_pcData;                               /*  扇区数据缓冲                */
+    
+    UINT64                  DISKN_u64FsKey;                             /*  文件系统自定义数据          */
 } LW_DISKCACHE_NODE;
 typedef LW_DISKCACHE_NODE  *PLW_DISKCACHE_NODE;
 /*********************************************************************************************************
@@ -80,8 +82,10 @@ typedef struct {
     INT                     DISKC_iCacheOpt;                            /*  CACHE 工作选项              */
     
     ULONG                   DISKC_ulEndStector;                         /*  最后一个扇区的编号          */
-    ULONG                   DISKC_ulDirtyCounter;                       /*  需要回写的扇区数量          */
     ULONG                   DISKC_ulBytesPerSector;                     /*  每一扇区字节数量            */
+    
+    ULONG                   DISKC_ulValidCounter;                       /*  有效的扇区数量              */
+    ULONG                   DISKC_ulDirtyCounter;                       /*  需要回写的扇区数量          */
     
     INT                     DISKC_iMaxRBurstSector;                     /*  最大猝发读写扇区数量        */
     INT                     DISKC_iMaxWBurstSector;
@@ -95,6 +99,9 @@ typedef struct {
     caddr_t                 DISKC_pcCacheNodeMem;                       /*  CACHE 节点链表首地址        */
     caddr_t                 DISKC_pcCacheMem;                           /*  CACHE 缓冲区                */
     PLW_DISKCACHE_NODE      DISKC_disknLuck;                            /*  幸运扇区节点                */
+    
+    VOIDFUNCPTR             DISKC_pfuncFsCallback;                      /*  文件系统回调函数            */
+    PVOID                   DISKC_pvFsArg;                              /*  文件系统回调参数            */
 } LW_DISKCACHE_CB;
 typedef LW_DISKCACHE_CB    *PLW_DISKCACHE_CB;
 /*********************************************************************************************************
@@ -103,6 +110,7 @@ typedef LW_DISKCACHE_CB    *PLW_DISKCACHE_CB;
 PVOID   __diskCacheThread(PVOID  pvArg);
 VOID    __diskCacheListAdd(PLW_DISKCACHE_CB   pdiskcDiskCache);
 VOID    __diskCacheListDel(PLW_DISKCACHE_CB   pdiskcDiskCache);
+
 #endif                                                                  /*  LW_CFG_MAX_VOLUMES > 0      */
                                                                         /*  LW_CFG_DISKCACHE_EN > 0     */
 #endif                                                                  /*  __DISKCACHELIB_H            */

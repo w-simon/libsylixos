@@ -2320,8 +2320,7 @@ static INT  __fatFsIoctl (PLW_FD_ENTRY  pfdentry,
         
     default:                                                            /*  无法识别的命令              */
         _ErrorHandle(ENOSYS);
-        return  (__blockIoDevIoctl(pfatfile->FATFIL_pfatvol->FATVOL_iDrv,
-                                   iRequest, lArg));                    /*  发送给设备驱动程序          */
+        return  (PX_ERROR);
     }
     
     return  (PX_ERROR);

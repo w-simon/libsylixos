@@ -50,12 +50,9 @@
 #define _OBJECT_MSGQUEUE        7                                       /*  消息队列                    */
 #define _OBJECT_EVENT_SET       8                                       /*  事件集                      */
 #define _OBJECT_SIGNAL          9                                       /*  信号                        */
-#define _OBJECT_STDFILE        11                                       /*  stdio 标准文件              */
-#define _OBJECT_TIME           13                                       /*  时间                        */
 #define _OBJECT_TIMER          14                                       /*  定时器                      */
 #define _OBJECT_PARTITION      16                                       /*  内存块分区                  */
 #define _OBJECT_REGION         17                                       /*  内存可变分区                */
-#define _OBJECT_RTC            18                                       /*  实时时钟                    */
 #define _OBJECT_RMS            23                                       /*  精度单调器                  */
 
 #endif                                                                  /*  __K_OBJECT_H                */

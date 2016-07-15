@@ -53,6 +53,8 @@ typedef struct {
     LW_LIST_LINE_HEADER TPSVOL_plineFdNodeHeader;                       /*  fd_node 链表                */
     UINT64              TPSVOL_uiTime;                                  /*  卷创建时间 TPS 格式         */
     INT                 TPSVOL_iFlag;                                   /*  O_RDONLY or O_RDWR          */
+    LW_HANDLE           TPSVOL_hThreadFlush;                            /*  回写线程句柄                */
+    BOOL                TPSVOL_bNeedExit;                               /*  是否需要退出线程            */
 } TPS_VOLUME;
 typedef TPS_VOLUME     *PTPS_VOLUME;
 
@@ -67,6 +69,10 @@ typedef TPS_FILE       *PTPS_FILE;
   内部全局变量
 *********************************************************************************************************/
 static INT              _G_iTpsDrvNum = PX_ERROR;
+/*********************************************************************************************************
+  inode 回写间隔 (ms)
+*********************************************************************************************************/
+#define __TPS_INODE_FLUSH_INTERVAL    2000
 /*********************************************************************************************************
   文件类型
 *********************************************************************************************************/
@@ -147,6 +153,24 @@ INT             __blockIoDevWrite(INT     iIndex,
                                   ULONG   ulStartSector,
                                   ULONG   ulSectorCount);
 INT             __blockIoDevStatus(INT     iIndex);
+/*********************************************************************************************************
+** 函数名称: __tpsFsFlushThread
+** 功能描述: inode 回写线程
+** 输　入  : ptpsvol    卷
+** 输　出  :
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static void  __tpsFsFlushThread (PTPS_VOLUME  ptpsvol)
+{
+    while (!ptpsvol->TPSVOL_bNeedExit) {
+        API_TimeMSleep(__TPS_INODE_FLUSH_INTERVAL);
+
+        __TPS_VOL_LOCK(ptpsvol);
+        tpsFsFlushInodes(ptpsvol->TPSVOL_tpsFsVol);
+        __TPS_VOL_UNLOCK(ptpsvol);
+    }
+}
 /*********************************************************************************************************
 ** 函数名称: __tpsFsDiskIndex
 ** 功能描述: 获取 block I/O index.
@@ -355,11 +379,12 @@ INT  API_TpsFsDrvInstall (VOID)
 LW_API
 INT  API_TpsFsDevCreate (PCHAR   pcName, PLW_BLK_DEV  pblkd)
 {
-    REGISTER PTPS_VOLUME     ptpsvol;
-    REGISTER INT             iBlkdIndex;
-             INT             iErrLevel      = 0;
-             UINT            uiMountFlag    = 0;
-             errno_t         iErr           = ERROR_NONE;
+    REGISTER PTPS_VOLUME            ptpsvol;
+    REGISTER INT                    iBlkdIndex;
+             INT                    iErrLevel      = 0;
+             UINT                   uiMountFlag    = 0;
+             errno_t                iErr           = ERROR_NONE;
+             LW_CLASS_THREADATTR    threadattr;
 
     if (_G_iTpsDrvNum <= 0) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "tps Driver invalidate.\r\n");
@@ -442,6 +467,20 @@ INT  API_TpsFsDevCreate (PCHAR   pcName, PLW_BLK_DEV  pblkd)
         goto    __error_handle;
     }
 
+    /*
+     *  启动 inode 回写线程
+     */
+    threadattr = API_ThreadAttrGetDefault();
+    threadattr.THREADATTR_pvArg           = (void *)ptpsvol;
+    threadattr.THREADATTR_stStackByteSize = LW_CFG_THREAD_DISKCACHE_STK_SIZE;
+    threadattr.THREADATTR_ucPriority      = LW_PRIO_T_SERVICE;
+    threadattr.THREADATTR_ulOption       |= LW_OPTION_OBJECT_GLOBAL;
+
+    ptpsvol->TPSVOL_bNeedExit    = LW_FALSE;
+    ptpsvol->TPSVOL_hThreadFlush = API_ThreadCreate("t_tpsfs",
+                                                    (PTHREAD_START_ROUTINE)__tpsFsFlushThread,
+                                                    &threadattr, LW_NULL);
+                                                                        /*  创建背景更新线程            */
     ptpsvol->TPSVOL_iFlag = pblkd->BLKD_iFlag;
 
     if (iosDevAddEx(&ptpsvol->TPSVOL_devhdrHdr, pcName, _G_iTpsDrvNum, DT_DIR)
@@ -468,6 +507,9 @@ INT  API_TpsFsDevCreate (PCHAR   pcName, PLW_BLK_DEV  pblkd)
      */
 __error_handle:
     if (iErrLevel > 3) {
+        ptpsvol->TPSVOL_bNeedExit = LW_TRUE;
+        API_ThreadWakeup(ptpsvol->TPSVOL_hThreadFlush);
+        API_ThreadJoin(ptpsvol->TPSVOL_hThreadFlush, LW_NULL);          /*  回写线程退出                */
         tpsFsUnmount(ptpsvol->TPSVOL_tpsFsVol);                         /*  卸载挂载的文件系统          */
     }
     if (iErrLevel > 2) {
@@ -730,6 +772,13 @@ static INT  __tpsFsRemove (PTPS_VOLUME     ptpsvol,
     }
 
     if (__STR_IS_ROOT(pcName)) {                                        /*  根目录或者设备文件          */
+        /*
+         *  因为回写线程里面会加锁，为防止和API_ThreadJoin产生死锁，退出回写线程在加锁之前执行
+         */
+        ptpsvol->TPSVOL_bNeedExit = LW_TRUE;
+        API_ThreadWakeup(ptpsvol->TPSVOL_hThreadFlush);
+        API_ThreadJoin(ptpsvol->TPSVOL_hThreadFlush, LW_NULL);          /*  回写线程退出                */
+
         if (__TPS_VOL_LOCK(ptpsvol) != ERROR_NONE) {
             _ErrorHandle(ENXIO);
             return  (PX_ERROR);                                         /*  正在被其他任务卸载          */
@@ -1348,12 +1397,12 @@ static INT  __tpsFsStatGet (PLW_FD_ENTRY  pfdentry, struct stat *pstat)
 *********************************************************************************************************/
 static INT  __tpsFsFormat (PLW_FD_ENTRY  pfdentry, LONG  lArg)
 {
-    PLW_FD_NODE pfdnode         = (PLW_FD_NODE)pfdentry->FDENTRY_pfdnode;
-    PTPS_FILE   ptpsfile        = (PTPS_FILE)pfdnode->FDNODE_pvFile;
-    PTPS_VOLUME ptpsvol         = ptpsfile->TPSFIL_ptpsvol;
-    UINT        uiMountFlag     = 0;
-    errno_t     iErr            = ERROR_NONE;
-    PLW_BLK_DEV pblkd;
+    PLW_FD_NODE          pfdnode         = (PLW_FD_NODE)pfdentry->FDENTRY_pfdnode;
+    PTPS_FILE            ptpsfile        = (PTPS_FILE)pfdnode->FDNODE_pvFile;
+    PTPS_VOLUME          ptpsvol         = ptpsfile->TPSFIL_ptpsvol;
+    UINT                 uiMountFlag     = 0;
+    errno_t              iErr            = ERROR_NONE;
+    PLW_BLK_DEV          pblkd;
 
     if (!__STR_IS_ROOT(ptpsfile->TPSFIL_cName)) {                       /*  检查是否为设备文件          */
         _ErrorHandle(EFAULT);                                           /*  Bad address                 */
@@ -1369,6 +1418,11 @@ static INT  __tpsFsFormat (PLW_FD_ENTRY  pfdentry, LONG  lArg)
         __TPS_FILE_UNLOCK(ptpsfile);
         _ErrorHandle(ERROR_IOS_TOO_MANY_OPEN_FILES);                    /*  有其他文件打开              */
         return  (PX_ERROR);
+    }
+    
+    if (ptpsvol->TPSVOL_tpsFsVol) {
+        tpsFsUnmount(ptpsvol->TPSVOL_tpsFsVol);                         /*  卸载挂载的文件系统          */
+        ptpsvol->TPSVOL_tpsFsVol = LW_NULL;
     }
 
     (VOID)__blockIoDevIoctl(ptpsvol->TPSVOL_iDrv, FIOCANCEL, 0);        /*  CACHE 停止 (不回写数据)     */
@@ -2097,8 +2151,7 @@ static INT  __tpsFsIoctl (PLW_FD_ENTRY  pfdentry,
 
     default:                                                            /*  无法识别的命令              */
         _ErrorHandle(ENOSYS);
-        return  (__blockIoDevIoctl(ptpsvol->TPSVOL_iDrv,
-                                   iRequest, lArg));                    /*  发送给设备驱动程序          */
+        return  (PX_ERROR);
     }
 
     return  (PX_ERROR);

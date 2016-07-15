@@ -26,6 +26,8 @@
 2009.11.03  FIOCANCEL 命令应该传往磁盘驱动, 使其放弃所有数据.
             FIODISKCHANGE 与 FIOCANCEL 操作相同.
 2015.02.05  修正 __diskCacheNodeReadData() 对扇区判断错误.
+2016.07.12  磁盘写操作加入一个文件系统层参数.
+2016.07.13  提高 HASH 表工作效率.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -36,6 +38,10 @@
   裁剪宏
 *********************************************************************************************************/
 #if (LW_CFG_MAX_VOLUMES > 0) && (LW_CFG_DISKCACHE_EN > 0)
+/*********************************************************************************************************
+  使用最优的 LRU 会增大运算量降低效率
+*********************************************************************************************************/
+#define __LW_DISKCACHE_OPTIMUM_LRU      0
 /*********************************************************************************************************
   内部宏操作
 *********************************************************************************************************/
@@ -63,6 +69,7 @@ static INT  __diskCacheMemReset (PLW_DISKCACHE_CB   pdiskcDiskCache)
     REGISTER PLW_DISKCACHE_NODE     pdiskn = (PLW_DISKCACHE_NODE)pdiskcDiskCache->DISKC_pcCacheNodeMem;
     REGISTER PCHAR                  pcData = (PCHAR)pdiskcDiskCache->DISKC_pcCacheMem;
     
+    pdiskcDiskCache->DISKC_ulValidCounter = 0;                          /*  没有有效的扇区              */
     pdiskcDiskCache->DISKC_ulDirtyCounter = 0;                          /*  没有需要回写的扇区          */
     
     pdiskcDiskCache->DISKC_pringLruHeader = LW_NULL;                    /*  初始化 LRU 表               */
@@ -127,10 +134,12 @@ static VOID  __diskCacheHashAdd (PLW_DISKCACHE_CB   pdiskcDiskCache, PLW_DISKCAC
     REGISTER PLW_LIST_LINE      *pplineHashEntry;
     
     pplineHashEntry = &pdiskcDiskCache->DISKC_pplineHash[
-                       pdiskn->DISKN_ulSectorNo % 
-                       pdiskcDiskCache->DISKC_iHashSize];               /*  获得 HASH 表入口            */
+                       pdiskn->DISKN_ulSectorNo &
+                       (pdiskcDiskCache->DISKC_iHashSize - 1)];         /*  获得 HASH 表入口            */
                      
     _List_Line_Add_Ahead(&pdiskn->DISKN_lineHash, pplineHashEntry);     /*  插入 HASH 表                */
+
+    pdiskcDiskCache->DISKC_ulValidCounter++;
 }
 /*********************************************************************************************************
 ** 函数名称: __diskCacheHashRemove
@@ -146,13 +155,15 @@ static VOID  __diskCacheHashRemove (PLW_DISKCACHE_CB   pdiskcDiskCache, PLW_DISK
     REGISTER PLW_LIST_LINE      *pplineHashEntry;
     
     pplineHashEntry = &pdiskcDiskCache->DISKC_pplineHash[
-                       pdiskn->DISKN_ulSectorNo % 
-                       pdiskcDiskCache->DISKC_iHashSize];               /*  获得 HASH 表入口            */
+                       pdiskn->DISKN_ulSectorNo &
+                       (pdiskcDiskCache->DISKC_iHashSize - 1)];         /*  获得 HASH 表入口            */
                        
     _List_Line_Del(&pdiskn->DISKN_lineHash, pplineHashEntry);
     
     pdiskn->DISKN_ulSectorNo = (ULONG)PX_ERROR;
     pdiskn->DISKN_iStatus    = 0;                                       /*  无脏位与有效位              */
+
+    pdiskcDiskCache->DISKC_ulValidCounter--;
 }
 /*********************************************************************************************************
 ** 函数名称: __diskCacheHashFind
@@ -169,8 +180,8 @@ static PLW_DISKCACHE_NODE  __diskCacheHashFind (PLW_DISKCACHE_CB   pdiskcDiskCac
     REGISTER PLW_DISKCACHE_NODE     pdiskn;
     
     plineHash = pdiskcDiskCache->DISKC_pplineHash[
-                ulSectorNo % 
-                pdiskcDiskCache->DISKC_iHashSize];                      /*  获得 HASH 表入口            */
+                ulSectorNo & 
+                (pdiskcDiskCache->DISKC_iHashSize - 1)];                /*  获得 HASH 表入口            */
                        
     for (; plineHash != LW_NULL; plineHash = _list_line_get_next(plineHash)) {
         pdiskn = _LIST_ENTRY(plineHash, LW_DISKCACHE_NODE, DISKN_lineHash);
@@ -190,6 +201,8 @@ static PLW_DISKCACHE_NODE  __diskCacheHashFind (PLW_DISKCACHE_CB   pdiskcDiskCac
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if __LW_DISKCACHE_OPTIMUM_LRU > 0
+
 static PLW_DISKCACHE_NODE  __diskCacheLruFind (PLW_DISKCACHE_CB   pdiskcDiskCache, ULONG  ulSectorNo)
 {
              PLW_LIST_RING          pringLruHeader = pdiskcDiskCache->DISKC_pringLruHeader;
@@ -217,6 +230,8 @@ static PLW_DISKCACHE_NODE  __diskCacheLruFind (PLW_DISKCACHE_CB   pdiskcDiskCach
     
     return  (LW_NULL);
 }
+
+#endif                                                                  /*  __LW_DISKCACHE_OPTIMUM_LRU  */
 /*********************************************************************************************************
 ** 函数名称: __diskCacheSortListAdd
 ** 功能描述: 将指定 CACHE 节点加入到一个经过排序的链表中
@@ -260,6 +275,29 @@ static VOID  __diskCacheSortListAdd (PLW_LIST_RING  *ppringListHeader, PLW_DISKC
     
     _List_Ring_Add_Last(&pdiskn->DISKN_ringLru,
                         ppringListHeader);                              /*  插入到链表最后              */
+}
+/*********************************************************************************************************
+** 函数名称: __diskCacheFsCallback
+** 功能描述: 回写磁盘后文件系统回调函数
+** 输　入  : pdiskcDiskCache    磁盘 CACHE 控制块
+**           u64FsKey           文件系统 key
+**           ulStartSector      起始扇区
+**           ulSectorCount      总回写扇区数
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static VOID  __diskCacheFsCallback (PLW_DISKCACHE_CB     pdiskcDiskCache, 
+                                    UINT64               u64FsKey,
+                                    ULONG                ulStartSector,
+                                    ULONG                ulSectorCount)
+{
+    if (pdiskcDiskCache->DISKC_pfuncFsCallback) {
+        pdiskcDiskCache->DISKC_pfuncFsCallback(pdiskcDiskCache->DISKC_pvFsArg,
+                                               u64FsKey,
+                                               ulStartSector,
+                                               ulSectorCount);
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: __diskCacheFlushList
@@ -333,6 +371,12 @@ static INT  __diskCacheFlushList (PLW_DISKCACHE_CB   pdiskcDiskCache,
         if (iRetVal < 0) {
             bHasError       = LW_TRUE;
             bMakeInvalidate = LW_TRUE;                                  /*  回写失败, 需要无效设备      */
+        
+        } else {
+            __diskCacheFsCallback(pdiskcDiskCache, 
+                                  pdiskn->DISKN_u64FsKey,
+                                  pdiskn->DISKN_ulSectorNo,
+                                  iBurstCount);                         /*  执行文件系统回调            */
         }
         
         for (i = 0; i < iBurstCount; i++) {                             /*  开始处理这些回写的扇区记录  */
@@ -499,11 +543,14 @@ static PLW_DISKCACHE_NODE  __diskCacheNodeFind (PLW_DISKCACHE_CB   pdiskcDiskCac
     REGISTER PLW_DISKCACHE_NODE         pdiskn;
     
     pdiskn = __diskCacheHashFind(pdiskcDiskCache, ulSectorNo);          /*  首先从有效的 HASH 表中查找  */
+    
+#if __LW_DISKCACHE_OPTIMUM_LRU > 0
     if (pdiskn) {
         return  (pdiskn);                                               /*  HASH 表命中                 */
     }
     
     pdiskn = __diskCacheLruFind(pdiskcDiskCache, ulSectorNo);           /*  开始从 LRU 表中搜索         */
+#endif                                                                  /*  __LW_DISKCACHE_OPTIMUM_LRU  */
     
     return  (pdiskn);
 }
@@ -524,6 +571,12 @@ static PLW_DISKCACHE_NODE  __diskCacheNodeAlloc (PLW_DISKCACHE_CB   pdiskcDiskCa
     REGISTER PLW_LIST_RING          pringTemp;
     REGISTER PLW_DISKCACHE_NODE     pdiskn;
     
+    if (pdiskcDiskCache->DISKC_ulNCacheNode == 
+        pdiskcDiskCache->DISKC_ulDirtyCounter) {                        /*  所有 CACHE 全部是为脏       */
+        pringTemp = pdiskcDiskCache->DISKC_pringLruHeader;
+        goto    __try_flush;
+    }
+    
 __check_again:                                                          /*  从最近最久没有使用的开始    */
     for (pringTemp  = _list_ring_get_prev(pdiskcDiskCache->DISKC_pringLruHeader);
          pringTemp != pdiskcDiskCache->DISKC_pringLruHeader;
@@ -535,12 +588,12 @@ __check_again:                                                          /*  从最
         }
     }
     
+__try_flush:
     if (pringTemp == pdiskcDiskCache->DISKC_pringLruHeader) {           /*  没有合适的控制块            */
         pdiskn = (PLW_DISKCACHE_NODE)pringTemp;
         if (__LW_DISKCACHE_IS_DIRTY(pdiskn)) {                          /*  表头也不可使用              */
-            REGISTER INT   iWriteNum = pdiskcDiskCache->DISKC_iMaxWBurstSector;
             __diskCacheFlushInvalidate2(pdiskcDiskCache, 
-                                        iWriteNum,
+                                        pdiskcDiskCache->DISKC_iMaxWBurstSector,
                                         LW_TRUE, LW_FALSE);             /*  回写一些扇区的数据          */
             goto    __check_again;
         }
@@ -614,6 +667,7 @@ static INT  __diskCacheNodeReadData (PLW_DISKCACHE_CB  pdiskcDiskCache, PLW_DISK
             if (pdiskn) {                                               /*  下一个扇区数据有效          */
                 break;
             }
+            
             pdiskn = __diskCacheNodeAlloc(pdiskcDiskCache, 
                                           (ulStartSector + i), 
                                           (iNSector - i));              /*  重新开辟一个空的节点        */
@@ -654,6 +708,7 @@ static PLW_DISKCACHE_NODE  __diskCacheNodeGet (PLW_DISKCACHE_CB   pdiskcDiskCach
     if (pdiskn == LW_NULL) {                                            /*  开辟新节点失败              */
         return  (LW_NULL);
     }
+    
     bIsNewNode = LW_TRUE;
     
 __data_op:
@@ -738,6 +793,7 @@ INT  __diskCacheRead (PLW_DISKCACHE_CB   pdiskcDiskCache,
 **           pvBuffer           缓冲区
 **           ulStartSector      起始扇区
 **           ulSectorCount      连续扇区数量
+**           u64FsKey           文件系统特定数据
 ** 输　出  : ERROR CODE
 ** 全局变量: 
 ** 调用模块: 
@@ -745,7 +801,8 @@ INT  __diskCacheRead (PLW_DISKCACHE_CB   pdiskcDiskCache,
 INT  __diskCacheWrite (PLW_DISKCACHE_CB   pdiskcDiskCache,
                        VOID              *pvBuffer, 
                        ULONG              ulStartSector, 
-                       ULONG              ulSectorCount)
+                       ULONG              ulSectorCount,
+                       UINT64             u64FsKey)
 {
              INT                    i;
              INT                    iError = ERROR_NONE;
@@ -759,7 +816,6 @@ INT  __diskCacheWrite (PLW_DISKCACHE_CB   pdiskcDiskCache,
                                         (ulStartSector + i), 
                                         (INT)(ulSectorCount - i),
                                         LW_FALSE);
-                                        
             if (pdiskn == LW_NULL) {
                 iError =  PX_ERROR;
                 break;
@@ -773,6 +829,8 @@ INT  __diskCacheWrite (PLW_DISKCACHE_CB   pdiskcDiskCache,
             lib_memcpy(pdiskn->DISKN_pcData, pcData, 
                        (UINT)pdiskcDiskCache->DISKC_ulBytesPerSector);  /*  写入数据                    */
                        
+            pdiskn->DISKN_u64FsKey = u64FsKey;                          /*  保存文件系统 key            */
+                       
             pcData += pdiskcDiskCache->DISKC_ulBytesPerSector;
         }
     } else {
@@ -781,6 +839,10 @@ INT  __diskCacheWrite (PLW_DISKCACHE_CB   pdiskcDiskCache,
                                            pvBuffer,
                                            ulStartSector,
                                            ulSectorCount);              /*  写入多个扇区                */
+        if (iError >= ERROR_NONE) {
+            __diskCacheFsCallback(pdiskcDiskCache, u64FsKey,
+                                  ulStartSector, ulSectorCount);        /*  文件系统回调                */
+        }
     }
     __LW_DISKCACHE_UNLOCK(pdiskcDiskCache);                             /*  解锁                        */
 
@@ -834,6 +896,16 @@ INT  __diskCacheIoctl (PLW_DISKCACHE_CB   pdiskcDiskCache, INT  iCmd, LONG  lArg
                                     (INT)lArg,
                                     LW_TRUE, LW_FALSE);
         break;
+        
+    case LW_BLKD_DISKCACHE_CALLBACKFUNC:                                /*  设置文件系统回调            */
+        pdiskcDiskCache->DISKC_pfuncFsCallback = (VOIDFUNCPTR)lArg;
+        __LW_DISKCACHE_UNLOCK(pdiskcDiskCache);                         /*  解锁                        */
+        return  (ERROR_NONE);
+        
+    case LW_BLKD_DISKCACHE_CALLBACKARG:                                 /*  设置文件系统回调参数        */
+        pdiskcDiskCache->DISKC_pvFsArg = (PVOID)lArg;
+        __LW_DISKCACHE_UNLOCK(pdiskcDiskCache);                         /*  解锁                        */
+        return  (ERROR_NONE);
         
     case FIOSYNC:                                                       /*  同步磁盘                    */
     case FIODATASYNC:

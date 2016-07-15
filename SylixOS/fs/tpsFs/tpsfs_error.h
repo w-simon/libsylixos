@@ -89,6 +89,9 @@ typedef enum {
     TPS_ERR_TRANS_WRITE,                                                /* 事物写操作错误               */
     TPS_ERR_TRANS_COMMIT,                                               /* 提交事务错误                 */
     TPS_ERR_TRANS_CHECK,                                                /* 分配事物错误                 */
+	TPS_ERR_TRANS_OVERFLOW,                                             /* 事务内存溢出                 */
+	TPS_ERR_TRANS_NEED_COMMIT,											/* 事务需要提交				    */
+	TPS_TRAN_INIT_SIZE,													/* 初始化事务区间大小错误       */
 
     TPS_ERR_ENTRY_NOT_EXIST,                                            /* 文件不存在                   */
     TPS_ERR_ENTRY_AREADY_EXIST,                                         /* 文件已存在                   */

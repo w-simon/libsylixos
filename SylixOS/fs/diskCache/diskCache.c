@@ -28,6 +28,7 @@
 2009.12.11  加入 /proc 文件初始化.
 2014.07.29  猝发读写缓冲一定使用页对其的内存操作, 否则可能造成底层 DMA 与 CACHE 一致性操作问题(invalidate)
 2016.01.30  猝发读写缓冲可以分别设置.
+2016.07.13  提高 HASH 表工作效率.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -82,15 +83,16 @@ static const INT    _G_iDiskCacheHashSize[][2] = {
     CACHE SIZE      HASH SIZE
      (sector)        (entry)
 *********************************************************************************************************/
-{         16,            7,         },
-{         32,           13,         },
-{         64,           41,         },
-{        128,           97,         },
-{        256,          191,         },
-{        512,          397,         },
-{       1024,          853,         },
-{       2048,         1559,         },
-{          0,         1999,         }
+{         16,            8,         },
+{         32,           16,         },
+{         64,           32,         },
+{        128,           64,         },
+{        256,          128,         },
+{        512,          256,         },
+{       1024,          512,         },
+{       2048,         1024,         },
+{       4096,         2048,         },
+{          0,         4096,         }
 };
 /*********************************************************************************************************
   背景线程属性
@@ -320,14 +322,16 @@ ULONG  API_DiskCacheCreateEx (PLW_BLK_DEV   pblkdDisk,
         if (_G_iDiskCacheHashSize[i][0] == 0) {
             iHashSize = _G_iDiskCacheHashSize[i][1];                    /*  最大表大小                  */
             break;
+        
         } else {
             if (ulNSector >= _G_iDiskCacheHashSize[i][0]) {
                 continue;
+            
             } else {
                 iHashSize = _G_iDiskCacheHashSize[i][1];                /*  确定                        */
                 break;
             }
-        } 
+        }
     }
     
     pdiskcDiskCache->DISKC_pplineHash = 

@@ -102,6 +102,7 @@ typedef TPS_BTR_NODE        *PTPS_BTR_NODE;
   块缓冲区定义
 *********************************************************************************************************/
 
+#define TPS_BP_SIZE			256
 #define TPS_MAX_BP_BLK      128
 #define TPS_ADJUST_BP_BLK   96
 #define TPS_MIN_BP_BLK      64
@@ -110,7 +111,7 @@ typedef struct tps_blk_pool {
     TPS_IBLK        BP_blkStart;                                        /* 缓冲区起始块                 */
     UINT            BP_uiStartOff;                                      /* 块缓冲区列表在起始块中的偏移 */
     UINT            BP_uiBlkCnt;                                        /* 块缓冲列表块数目             */
-    TPS_IBLK        BP_blkArr[TPS_MAX_BP_BLK];                          /* 以数组记录的块缓冲列表       */
+    TPS_IBLK        BP_blkArr[TPS_BP_SIZE];                             /* 以数组记录的块缓冲列表       */
 } TPS_BLK_POOL;
 typedef TPS_BLK_POOL  *PTPS_BLK_POOL;
 
@@ -120,7 +121,6 @@ typedef TPS_BLK_POOL  *PTPS_BLK_POOL;
 
 struct tps_trans;
 struct tps_inode;
-
                                                                     /* 初始化b+tree                     */
 TPS_RESULT tpsFsBtreeInit(struct tps_trans *ptrans, struct tps_inode *pinode);
                                                                     /* 添加块到btree                    */
@@ -140,11 +140,11 @@ TPS_RESULT tpsFsBtreeAppendBlk(struct tps_trans *ptrans, struct tps_inode *pinod
 TPS_RESULT tpsFsBtreeTrunc(struct tps_trans *ptrans, struct tps_inode *pinode, TPS_IBLK blkKey,
                            TPS_IBLK *blkPscStart, TPS_IBLK *blkPscCnt);
                                                                     /* 获取文件inode btree中的块数量    */
-TPS_IBLK tpsFsBtreeBlkCnt(struct tps_inode *pinode);
+TPS_IBLK   tpsFsBtreeBlkCnt(struct tps_inode *pinode);
                                                                     /* 获取空间管理结点 btree中的块数量 */
 TPS_SIZE_T tpsFsBtreeGetBlkCnt(struct tps_inode *pinode);
                                                                     /* 获取b+tree层数                   */
-UINT tpsFsBtreeGetLevel(struct tps_inode *pinode);
+UINT       tpsFsBtreeGetLevel(struct tps_inode *pinode);
                                                                     /* 读取块缓冲区                     */
 TPS_RESULT tpsFsBtreeReadBP(PTPS_SUPER_BLOCK psb);
                                                                     /* 初始化块缓冲区                   */

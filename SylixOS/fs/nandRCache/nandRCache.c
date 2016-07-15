@@ -47,15 +47,16 @@ static const INT    _G_iNandRCacheHashSize[][2] = {
     CACHE SIZE      HASH SIZE
      (page)          (entry)
 *********************************************************************************************************/
-{         16,            7,         },
-{         32,           13,         },
-{         64,           41,         },
-{        128,           97,         },
-{        256,          191,         },
-{        512,          397,         },
-{       1024,          853,         },
-{       2048,         1559,         },
-{          0,         1999,         }
+{         16,            8,         },
+{         32,           16,         },
+{         64,           32,         },
+{        128,           64,         },
+{        256,          128,         },
+{        512,          256,         },
+{       1024,          512,         },
+{       2048,         1024,         },
+{       4096,         2048,         },
+{          0,         4096,         }
 };
 /*********************************************************************************************************
 ** 函数名称: API_NandRCacheCreate
@@ -223,7 +224,7 @@ PLW_NRCACHE_NODE  API_NandRCacheNodeGet (PLW_NRCACHE_CB  pnrcache, ULONG  ulChun
         return  (LW_NULL);
     }
                                                                         /*  获得 hash 表入口            */
-    plineHash = pnrcache->NRCACHE_pplineHash[ulChunkNo % pnrcache->NRCACHE_iHashSize];
+    plineHash = pnrcache->NRCACHE_pplineHash[ulChunkNo & (pnrcache->NRCACHE_iHashSize - 1)];
     
     for (; plineHash != LW_NULL; plineHash = _list_line_get_next(plineHash)) {
         pnrcachen = _LIST_ENTRY(plineHash, LW_NRCACHE_NODE, NRCACHEN_lineManage);
@@ -262,7 +263,7 @@ VOID  API_NandRCacheNodeFree (PLW_NRCACHE_CB  pnrcache, ULONG  ulChunkNo)
         return;
     }
     
-    pplineHash = &pnrcache->NRCACHE_pplineHash[ulChunkNo % pnrcache->NRCACHE_iHashSize];
+    pplineHash = &pnrcache->NRCACHE_pplineHash[ulChunkNo & (pnrcache->NRCACHE_iHashSize - 1)];
     plineHash  = *pplineHash;
     
     for (; plineHash != LW_NULL; plineHash = _list_line_get_next(plineHash)) {
@@ -302,9 +303,8 @@ PLW_NRCACHE_NODE  API_NandRCacheNodeAlloc (PLW_NRCACHE_CB  pnrcache, ULONG  ulCh
     }
     
     if (pnrcache->NRCACHE_plineFree) {                                  /*  是否存在空闲节点            */
-        
                                                                         /*  获得 hash 表入口            */
-        pplineHash = &pnrcache->NRCACHE_pplineHash[ulChunkNo % pnrcache->NRCACHE_iHashSize];
+        pplineHash = &pnrcache->NRCACHE_pplineHash[ulChunkNo & (pnrcache->NRCACHE_iHashSize - 1)];
         pnrcachen  = _LIST_ENTRY(pnrcache->NRCACHE_plineFree, 
                                  LW_NRCACHE_NODE, 
                                  NRCACHEN_lineManage);                  /*  获得一个空闲节点            */
@@ -324,12 +324,12 @@ PLW_NRCACHE_NODE  API_NandRCacheNodeAlloc (PLW_NRCACHE_CB  pnrcache, ULONG  ulCh
                                 LW_NRCACHE_NODE, 
                                 NRCACHEN_ringLRU);
     
-        pplineHash = &pnrcache->NRCACHE_pplineHash[pnrcachen->NRCACHEN_ulChunkNo % 
-                                                   pnrcache->NRCACHE_iHashSize];
+        pplineHash = &pnrcache->NRCACHE_pplineHash[pnrcachen->NRCACHEN_ulChunkNo & 
+                                                   (pnrcache->NRCACHE_iHashSize - 1)];
         _List_Line_Del(&pnrcachen->NRCACHEN_lineManage,
                        pplineHash);                                     /*  从原先的 hash 表中删除      */
         
-        pplineHash = &pnrcache->NRCACHE_pplineHash[ulChunkNo % pnrcache->NRCACHE_iHashSize];
+        pplineHash = &pnrcache->NRCACHE_pplineHash[ulChunkNo & (pnrcache->NRCACHE_iHashSize - 1)];
         _List_Line_Add_Ahead(&pnrcachen->NRCACHEN_lineManage,
                              pplineHash);                               /*  插入 hash 表                */
                              
@@ -368,6 +368,7 @@ VOID  API_NandRCacheBlockFree (PLW_NRCACHE_CB  pnrcache, ULONG  ulBlockNo)
         API_NandRCacheNodeFree(pnrcache, (ULONG)(ulStartChunk + i));
     }
 }
+
 #endif                                                                  /*  (LW_CFG_MAX_VOLUMES > 0)    */
                                                                         /*  (LW_CFG_YAFFS_EN > 0)       */
 /*********************************************************************************************************

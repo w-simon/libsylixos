@@ -260,7 +260,6 @@ SylixOS/fs/tpsFs/tpsfs_btree.c \
 SylixOS/fs/tpsFs/tpsfs_dev_buf.c \
 SylixOS/fs/tpsFs/tpsfs_dir.c \
 SylixOS/fs/tpsFs/tpsfs_inode.c \
-SylixOS/fs/tpsFs/tpsfs_log.c \
 SylixOS/fs/tpsFs/tpsfs_super.c \
 SylixOS/fs/tpsFs/tpsfs_sylixos.c \
 SylixOS/fs/tpsFs/tpsfs_trans.c \

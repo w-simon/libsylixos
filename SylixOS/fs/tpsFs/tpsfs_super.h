@@ -110,6 +110,8 @@ typedef struct tps_super_block {
     PUCHAR                  SB_pucSectorBuf;                            /* 磁盘页面缓冲区               */
 
     struct tps_blk_pool    *SB_pbp;                                     /* btree块缓冲链表              */
+
+    struct tps_trans_sb    *SB_ptranssb;                                /* 事务系统超级块               */
 } TPS_SUPER_BLOCK;
 typedef TPS_SUPER_BLOCK    *PTPS_SUPER_BLOCK;
 

@@ -44,6 +44,12 @@
 #define TPS_INODE_ATTRIZE       (TPS_INODE_DATASTART - TPS_INODE_MAX_HEADSIZE)
 
 /*********************************************************************************************************
+  块分配数量限制
+*********************************************************************************************************/
+#define TPS_INODE_MIN_BLKALLC   4
+#define TPS_INODE_MAX_BLKALLC	32
+
+/*********************************************************************************************************
   文件类型定义
 *********************************************************************************************************/
 
@@ -63,6 +69,7 @@
 #define TPS_BN_POOL_NULL        0                                       /* 节点为空，表示非分配         */
 #define TPS_BN_POOL_FREE        1                                       /* 节点已分配但未使用           */
 #define TPS_BN_POOL_BUSY        2                                       /* 节点正在使用                 */
+
 /*********************************************************************************************************
   inode 结构
 *********************************************************************************************************/
@@ -93,9 +100,10 @@ typedef struct tps_inode {
     PUCHAR              IND_pucBuff;                                    /* 文件头序列化缓冲区           */
     TPS_IBLK            IND_blkCnt;                                     /* 文件块数量                   */
     PTPS_BTR_NODE       IND_pBNPool[TPS_BN_POOL_SIZE];                  /* B+树节点池                   */
-    INT                 IND_iBNRefCnt[TPS_BN_POOL_SIZE];               /* B+树节点池权值               */
+    INT                 IND_iBNRefCnt[TPS_BN_POOL_SIZE];                /* B+树节点池权值               */
     PVOID               IND_pvPriv;                                     /* inode私有数据                */
     CHAR                IND_attr[TPS_INODE_ATTRIZE];                    /* inode attr                   */
+    UINT                IND_uiSecAreaCnt;                               /* 未同步扇区数量               */
 } TPS_INODE;
 typedef TPS_INODE      *PTPS_INODE;
 

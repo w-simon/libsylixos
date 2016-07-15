@@ -299,8 +299,8 @@ PTPS_INODE  tpsFsOpenInode (PTPS_SUPER_BLOCK psb, TPS_INUM inum)
         return  (LW_NULL);
     }
 
-    if (tpsFsDevBufRead(psb, inum, 0, pucBuff,
-                        TPS_INODE_MAX_HEADSIZE) != TPS_ERR_NONE) {      /* 读取inode                    */
+    if (tpsFsTransRead(psb, inum, 0, pucBuff,
+                       TPS_INODE_MAX_HEADSIZE) != TPS_ERR_NONE) {       /* 读取inode                    */
         TPS_FREE(pucBuff);
         return  (LW_NULL);
     }
@@ -371,6 +371,8 @@ TPS_RESULT  tpsFsFlushInodeHead (PTPS_TRANS ptrans, PTPS_INODE pinode)
                             TPS_INODE_MAX_HEADSIZE) != TPS_ERR_NONE) {
             return  (TPS_ERR_TRANS_WRITE);
         }
+
+        pinode->IND_bDirty = LW_FALSE;
     }
 
     return  (TPS_ERR_NONE);
@@ -455,7 +457,7 @@ TPS_RESULT  tpsFsInodeAddRef (PTPS_TRANS ptrans, PTPS_INODE pinode)
                         pinode->IND_inum,
                         0,
                         pucBuff,
-                        TPS_INODE_MAX_HEADSIZE) != TPS_ERR_NONE) {        /* 写磁盘                       */
+                        TPS_INODE_MAX_HEADSIZE) != TPS_ERR_NONE) {      /* 写磁盘                       */
         return  (TPS_ERR_TRANS_WRITE);
     }
 
@@ -523,7 +525,7 @@ TPS_RESULT  tpsFsInodeDelRef (PTPS_TRANS ptrans, PTPS_INODE pinode)
                         pinode->IND_inum,
                         0,
                         pucBuff,
-                        TPS_INODE_MAX_HEADSIZE) != TPS_ERR_NONE) {        /* 写磁盘                       */
+                        TPS_INODE_MAX_HEADSIZE) != TPS_ERR_NONE) {      /* 写磁盘                       */
         return  (TPS_ERR_TRANS_WRITE);
     }
 
@@ -581,6 +583,10 @@ TPS_RESULT  tpsFsTruncInode (PTPS_TRANS ptrans, PTPS_INODE pinode, TPS_SIZE_T si
         if (tpsFsBtreeAdjustBP(ptrans, psb) != TPS_ERR_NONE) {          /* 检查是否需要调空闲块队列     */
             return  (TPS_ERR_BP_ADJUST);
         }
+
+		if (tpsFsTransTrigerChk(ptrans)) {                              /* 避免一个事物中执行太多操作   */
+			return  (TPS_ERR_TRANS_NEED_COMMIT);
+		}
     }
 
     if (blkStart < tpsFsBtreeBlkCnt(pinode)) {
@@ -588,7 +594,6 @@ TPS_RESULT  tpsFsTruncInode (PTPS_TRANS ptrans, PTPS_INODE pinode, TPS_SIZE_T si
     }
 
     pinode->IND_szData = size;
-    pinode->IND_bDirty = LW_TRUE;
 
     pucBuff = pinode->IND_pucBuff;
 
@@ -598,7 +603,7 @@ TPS_RESULT  tpsFsTruncInode (PTPS_TRANS ptrans, PTPS_INODE pinode, TPS_SIZE_T si
                         pinode->IND_inum,
                         0,
                         pucBuff,
-                        TPS_INODE_MAX_HEADSIZE) != TPS_ERR_NONE) {        /* 写磁盘                       */
+                        TPS_INODE_MAX_HEADSIZE) != TPS_ERR_NONE) {      /* 写磁盘                       */
         return  (TPS_ERR_TRANS_WRITE);
     }
 
@@ -660,7 +665,7 @@ TPS_SIZE_T  tpsFsInodeRead (PTPS_INODE pinode, TPS_OFF_T off, PUCHAR pucBuff, TP
 
         if (tpsFsDevBufRead(psb, blkPscStart,
                             (UINT)offBlk, pucBuff + szCompleted,
-                            (size_t)szReadLen) != TPS_ERR_NONE) {       /* 读取inode                    */
+                            (size_t)szReadLen) != TPS_ERR_NONE) {        /* 读取inode                    */
             szCompleted = (-EIO);
             break;
         }
@@ -693,7 +698,8 @@ TPS_SIZE_T  tpsFsInodeWrite (PTPS_TRANS ptrans, PTPS_INODE pinode, TPS_OFF_T off
                              PUCHAR pucBuff, TPS_SIZE_T szLen, BOOL bTransData)
 {
     TPS_IBLK            blkEnd;
-    TPS_IBLK            blkAlloc = 0;
+    INT64               i64Alloc     = 0;
+    TPS_IBLK            blkAllocAtom = 0;
     TPS_IBLK            blkPscStart;
     TPS_IBLK            blkPscCnt;
 
@@ -713,25 +719,35 @@ TPS_SIZE_T  tpsFsInodeWrite (PTPS_TRANS ptrans, PTPS_INODE pinode, TPS_OFF_T off
         blkEnd++;
     }
 
-    blkAlloc = 0;
+    i64Alloc = 0;
     if (blkEnd > pinode->IND_blkCnt) {
-        blkAlloc = blkEnd - pinode->IND_blkCnt;
+        i64Alloc = blkEnd - pinode->IND_blkCnt;
     }
-    while (blkAlloc > 0) {                                              /* 需要新分配块到文件           */
-        if (__tpsFsGetFromFreeList(ptrans, psb, 0, blkAlloc,
+
+	/*
+	 * 为减少事务提交次数每次分配设置一个最小块数
+	 */
+	if (i64Alloc > 0) {
+	    blkAllocAtom = max(TPS_INODE_MIN_BLKALLC, i64Alloc);
+	    blkAllocAtom = max(pinode->IND_blkCnt >> 4, blkAllocAtom);
+	    blkAllocAtom = min(TPS_INODE_MAX_BLKALLC, blkAllocAtom);
+	}
+
+    while (i64Alloc > 0) {                                              /* 需要新分配块到文件           */
+        if (__tpsFsGetFromFreeList(ptrans, psb, 0, blkAllocAtom,
                                    &blkPscStart, &blkPscCnt) == TPS_ERR_NONE) {
             if (tpsFsBtreeAppendBlk(ptrans, pinode, blkPscStart, blkPscCnt) != TPS_ERR_NONE) {
                 return  (-EIO);
             }
-            blkAlloc -= blkPscCnt;
+            i64Alloc -= blkPscCnt;
             pinode->IND_blkCnt += blkPscCnt;
         } else if (tpsFsBtreeAllocBlk(ptrans, psb->SB_pinodeSpaceMng,
-                               0, blkAlloc,
-                               &blkPscStart, &blkPscCnt) == TPS_ERR_NONE) {
+                                      0, blkAllocAtom,
+                                      &blkPscStart, &blkPscCnt) == TPS_ERR_NONE) {
             if (tpsFsBtreeAppendBlk(ptrans, pinode, blkPscStart, blkPscCnt) != TPS_ERR_NONE) {
                 return  (-EIO);
             }
-            blkAlloc -= blkPscCnt;
+            i64Alloc -= blkPscCnt;
             pinode->IND_blkCnt += blkPscCnt;
         
         } else {
@@ -795,7 +811,7 @@ TPS_SIZE_T  tpsFsInodeWrite (PTPS_TRANS ptrans, PTPS_INODE pinode, TPS_OFF_T off
     if (off > pinode->IND_szData) {
         pinode->IND_szData = off;
         pinode->IND_bDirty = LW_TRUE;
-        if (bTransData) {
+        if (bTransData || (pinode->IND_iFlag & (O_SYNC | O_DSYNC))) {
             if (tpsFsFlushInodeHead(ptrans, pinode) != TPS_ERR_NONE) {
                 return  (-EIO);
             }

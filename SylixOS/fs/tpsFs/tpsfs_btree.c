@@ -375,7 +375,7 @@ static TPS_RESULT  __tpsFsBtrFreeNodeBlk (PTPS_TRANS       ptrans,
         return  (TPS_ERR_NONE);
     }
 
-    if (pbp->BP_uiBlkCnt >= 256) {
+    if (pbp->BP_uiBlkCnt >= TPS_BP_SIZE) {
         return  (TPS_ERR_BTREE_FREE_ND);
     }
 
@@ -501,7 +501,7 @@ static TPS_RESULT  __tpsFsBtrGetNode (PTPS_INODE pinode, PTPS_BTR_NODE *ppbtrnod
 
     pucBuff = pinode->IND_pucBuff;
 
-    if (tpsFsDevBufRead(psb, blkPtr, uiOff, pucBuff, uiLen) != TPS_ERR_NONE) {
+    if (tpsFsTransRead(psb, blkPtr, uiOff, pucBuff, uiLen) != TPS_ERR_NONE) {
         return  (TPS_ERR_BUF_READ);
     }
 
@@ -536,8 +536,8 @@ static TPS_RESULT  __tpsFsBtrPutNode (PTPS_TRANS       ptrans,
     PUCHAR              pucBuff;
     UINT                uiOff;
     UINT                uiLen;
-    UINT                uiOffStart;
-    UINT                uiOffEnd;
+    UINT                uiOffStart = 0;
+    UINT                uiOffEnd   = 0;
     PTPS_SUPER_BLOCK    psb = pinode->IND_psb;
 
     if (blkPtr == pinode->IND_inum) {
@@ -2058,8 +2058,8 @@ TPS_RESULT  tpsFsBtreeReadBP (PTPS_SUPER_BLOCK psb)
      */
     blk = psb->SB_ui64BPStartBlk;
     for (i = 0; i < psb->SB_ui64BPBlkCnt; i++, blk++) {
-        if (tpsFsDevBufRead(psb, blk, 0,
-                            pucBuff, psb->SB_uiBlkSize) != TPS_ERR_NONE) {
+        if (tpsFsTransRead(psb, blk, 0,
+                           pucBuff, psb->SB_uiBlkSize) != TPS_ERR_NONE) {
             TPS_FREE(pucBuff);
             return  (TPS_ERR_BP_INIT);
         }
@@ -2079,8 +2079,8 @@ TPS_RESULT  tpsFsBtreeReadBP (PTPS_SUPER_BLOCK psb)
      *  缓冲区从第一个全0 块后第一个非0块开始的块开始
      */
     for (i = 0; i < psb->SB_ui64BPBlkCnt; i++) {
-        if (tpsFsDevBufRead(psb, blk, 0,
-                            pucBuff, psb->SB_uiBlkSize) != TPS_ERR_NONE) {
+        if (tpsFsTransRead(psb, blk, 0,
+                           pucBuff, psb->SB_uiBlkSize) != TPS_ERR_NONE) {
             TPS_FREE(pucBuff);
             return  (TPS_ERR_BP_INIT);
         }

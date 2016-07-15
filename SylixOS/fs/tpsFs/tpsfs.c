@@ -745,28 +745,31 @@ errno_t  tpsFsFlushHead (PTPS_INODE pinode)
 errno_t  tpsFsTrunc (PTPS_INODE pinode, TPS_SIZE_T szNewSize)
 {
     PTPS_TRANS  ptrans  = LW_NULL;
-    errno_t     iErr    = ERROR_NONE;
+	TPS_RESULT  tpsres	= TPS_ERR_NONE;
 
     if (LW_NULL == pinode) {
         return  (EINVAL);
     }
 
-    ptrans = tpsFsTransAllocAndInit(pinode->IND_psb);                   /* 分配事物                     */
-    if (ptrans == LW_NULL) {
-        return  (ENOMEM);
-    }
+	do {
+		ptrans = tpsFsTransAllocAndInit(pinode->IND_psb);                   /* 分配事物                     */
+		if (ptrans == LW_NULL) {
+			return  (ENOMEM);
+		}
 
-    if (tpsFsTruncInode(ptrans, pinode, szNewSize) != TPS_ERR_NONE) {
-        tpsFsTransRollBackAndFree(ptrans);
-        return  (EIO);
-    }
+		tpsres = tpsFsTruncInode(ptrans, pinode, szNewSize);
+		if (tpsres != TPS_ERR_NONE && tpsres != TPS_ERR_TRANS_NEED_COMMIT) {
+			tpsFsTransRollBackAndFree(ptrans);
+			return  (EIO);
+		}
 
-    if (tpsFsTransCommitAndFree(ptrans) != TPS_ERR_NONE) {              /* 提交事务                     */
-        tpsFsTransRollBackAndFree(ptrans);
-        return  (EIO);
-    }
+		if (tpsFsTransCommitAndFree(ptrans) != TPS_ERR_NONE) {              /* 提交事务                     */
+			tpsFsTransRollBackAndFree(ptrans);
+			return  (EIO);
+		}
+	} while (tpsres == TPS_ERR_TRANS_NEED_COMMIT);
 
-    return  (iErr);
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: 创建目录
@@ -1152,6 +1155,30 @@ errno_t  tpsFsChtime (PTPS_INODE pinode, struct utimbuf  *utim)
     pinode->IND_bDirty    = LW_TRUE;
     
     return  (tpsFsFlushHead(pinode));
+}
+/*********************************************************************************************************
+** 函数名称: tpsFsFlushInodes
+** 功能描述: 回写所有脏inode
+** 输　入  : psb           超级块指针
+** 输　出  : ERROR
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  tpsFsFlushInodes (PTPS_SUPER_BLOCK psb)
+{
+    PTPS_INODE  pinode = LW_NULL;
+
+    if (LW_NULL == psb) {
+        return;
+    }
+
+    pinode = psb->SB_pinodeOpenList;
+    while (pinode) {
+        if (pinode->IND_bDirty) {
+            tpsFsFlushHead(pinode);
+        }
+        pinode = pinode->IND_pnext;
+    }
 }
 
 #endif                                                                  /*  LW_CFG_TPSFS_EN > 0         */

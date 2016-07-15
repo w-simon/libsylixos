@@ -61,6 +61,8 @@
 #define LW_BLKD_DISKCACHE_SET_OPT       LW_OSIOD('b', 151, INT)         /*  设置 CACHE 选项             */
 #define LW_BLKD_DISKCACHE_INVALID       LW_OSIO( 'b', 152)              /*  使 CACHE 回写并全部不命中   */
 #define LW_BLKD_DISKCACHE_RAMFLUSH      LW_OSIOD('b', 153, ULONG)       /*  随机回写一些脏扇区          */
+#define LW_BLKD_DISKCACHE_CALLBACKFUNC  LW_OSIOD('b', 154, FUNCPTR)     /*  文件系统回调函数            */
+#define LW_BLKD_DISKCACHE_CALLBACKARG   LW_OSIOD('b', 155, PVOID)       /*  回调函数参数                */
 
 /*********************************************************************************************************
   操作参数宏

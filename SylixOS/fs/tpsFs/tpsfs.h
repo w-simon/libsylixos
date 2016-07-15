@@ -47,52 +47,54 @@ typedef TPS_DIR        *PTPS_DIR;
 extern "C" { 
 #endif 
                                                                         /* 打开文件                     */
-errno_t tpsFsOpen(PTPS_SUPER_BLOCK psb, CPCHAR pcPath, INT iFlags,
-                  INT iMode, PCHAR *ppcRemain, PTPS_INODE *ppinode);
+errno_t     tpsFsOpen(PTPS_SUPER_BLOCK psb, CPCHAR pcPath, INT iFlags,
+                      INT iMode, PCHAR *ppcRemain, PTPS_INODE *ppinode);
                                                                         /* 关闭文件                     */
-errno_t tpsFsClose(PTPS_INODE pinode);
+errno_t     tpsFsClose(PTPS_INODE pinode);
                                                                         /* 提交文件头属性修改           */
-errno_t tpsFsFlushHead(PTPS_INODE pinode);
+errno_t     tpsFsFlushHead(PTPS_INODE pinode);
                                                                         /* 删除entry                    */
-errno_t tpsFsRemove(PTPS_SUPER_BLOCK psb, CPCHAR pcPath);
+errno_t     tpsFsRemove(PTPS_SUPER_BLOCK psb, CPCHAR pcPath);
                                                                         /* 移动entry                    */
-errno_t tpsFsMove(PTPS_SUPER_BLOCK psb, CPCHAR pcPathSrc, CPCHAR pcPathDst);
+errno_t     tpsFsMove(PTPS_SUPER_BLOCK psb, CPCHAR pcPathSrc, CPCHAR pcPathDst);
                                                                         /* 建立硬链接                   */
-errno_t tpsFsLink(PTPS_SUPER_BLOCK psb, CPCHAR pcPathSrc, CPCHAR pcPathDst);
+errno_t     tpsFsLink(PTPS_SUPER_BLOCK psb, CPCHAR pcPathSrc, CPCHAR pcPathDst);
                                                                         /* 读文件                       */
-errno_t tpsFsRead(PTPS_INODE pinode, PUCHAR pucBuff, TPS_OFF_T off,
-                  TPS_SIZE_T szLen, TPS_SIZE_T *pszRet);
+errno_t     tpsFsRead(PTPS_INODE pinode, PUCHAR pucBuff, TPS_OFF_T off,
+                      TPS_SIZE_T szLen, TPS_SIZE_T *pszRet);
                                                                         /* 写文件                       */
-errno_t tpsFsWrite(PTPS_INODE pinode, PUCHAR pucBuff, TPS_OFF_T off,
-                   TPS_SIZE_T szLen, TPS_SIZE_T *pszRet);
+errno_t     tpsFsWrite(PTPS_INODE pinode, PUCHAR pucBuff, TPS_OFF_T off,
+                       TPS_SIZE_T szLen, TPS_SIZE_T *pszRet);
                                                                         /* 截断文件                     */
-errno_t tpsFsTrunc(PTPS_INODE pinode, TPS_SIZE_T szNewSize);
+errno_t     tpsFsTrunc(PTPS_INODE pinode, TPS_SIZE_T szNewSize);
                                                                         /* 创建目录                     */
-errno_t tpsFsMkDir(PTPS_SUPER_BLOCK psb, CPCHAR pcPath, INT iFlags, INT iMode);
+errno_t     tpsFsMkDir(PTPS_SUPER_BLOCK psb, CPCHAR pcPath, INT iFlags, INT iMode);
                                                                         /* 打开目录                     */
-errno_t tpsFsOpenDir(PTPS_SUPER_BLOCK psb, CPCHAR pcPath, PTPS_DIR *ppdir);
+errno_t     tpsFsOpenDir(PTPS_SUPER_BLOCK psb, CPCHAR pcPath, PTPS_DIR *ppdir);
                                                                         /* 关闭目录                     */
-errno_t tpsFsCloseDir(PTPS_DIR pdir);
+errno_t     tpsFsCloseDir(PTPS_DIR pdir);
                                                                         /* 读取目录                     */
-errno_t tpsFsReadDir(PTPS_DIR pdir, PTPS_ENTRY* ppentry);
+errno_t     tpsFsReadDir(PTPS_DIR pdir, PTPS_ENTRY* ppentry);
                                                                         /* 同步文件                     */
-errno_t tpsFsSync(PTPS_INODE pinode);
+errno_t     tpsFsSync(PTPS_INODE pinode);
                                                                         /* 同步整个文件系统分区         */
-errno_t  tpsFsVolSync (PTPS_SUPER_BLOCK psb);
+errno_t     tpsFsVolSync (PTPS_SUPER_BLOCK psb);
                                                                         /* tpsfs 获得文件 stat          */
-VOID tpsFsStat(PTPS_SUPER_BLOCK  psb, PTPS_INODE  pinode, struct stat *pstat);
+VOID        tpsFsStat(PTPS_SUPER_BLOCK  psb, PTPS_INODE  pinode, struct stat *pstat);
                                                                         /* tpsfs 获得文件系统 statfs    */
-VOID tpsFsStatfs(PTPS_SUPER_BLOCK  psb, struct statfs *pstatfs);
+VOID        tpsFsStatfs(PTPS_SUPER_BLOCK  psb, struct statfs *pstatfs);
                                                                         /* 获取文件大小                 */
-TPS_SIZE_T tpsFsGetSize(PTPS_INODE pinode);
+TPS_SIZE_T  tpsFsGetSize(PTPS_INODE pinode);
                                                                         /* 获取文件模式                 */
-errno_t        tpsFsGetmod(PTPS_INODE pinode);
+errno_t     tpsFsGetmod(PTPS_INODE pinode);
                                                                         /* 修改文件模式                 */
-errno_t tpsFsChmod(PTPS_INODE pinode, INT iMode);
+errno_t     tpsFsChmod(PTPS_INODE pinode, INT iMode);
                                                                         /* 修改文件所有者               */
-errno_t tpsFsChown(PTPS_INODE pinode, uid_t uid, gid_t gid);
+errno_t     tpsFsChown(PTPS_INODE pinode, uid_t uid, gid_t gid);
                                                                         /* 修改文件时间                 */
-errno_t tpsFsChtime(PTPS_INODE pinode, struct utimbuf  *utim);
+errno_t     tpsFsChtime(PTPS_INODE pinode, struct utimbuf  *utim);
+                                                                        /* 回写脏inode节点              */
+VOID        tpsFsFlushInodes(PTPS_SUPER_BLOCK psb);
 
 #ifdef __cplusplus 
 }

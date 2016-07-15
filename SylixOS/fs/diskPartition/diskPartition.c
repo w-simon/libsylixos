@@ -28,6 +28,7 @@
 2011.11.21  升级文件系统, 这里自主定义 MBR_Table.
 2015.10.21  更新块设备操作接口.
 2016.03.23  ioctl, FIOTRIM 与 FIOSYNCMETA 命令需要转换为物理磁盘扇区号.
+2016.07.12  磁盘写操作加入一个文件系统层参数.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -96,6 +97,7 @@ physical HDD:                              |   HDD    |
 **           pvBuffer          缓冲区
 **           ulStartSector     起始扇区号
 **           ulSectorCount     扇区数量
+**           u64FsKey          文件系统特定数据
 ** 输　出  : ERROR CODE
 ** 全局变量: 
 ** 调用模块: 
@@ -103,14 +105,16 @@ physical HDD:                              |   HDD    |
 static INT  __logicDiskWrt (LW_DISKPART_OPERAT    *pdpoLogic, 
                             VOID                  *pvBuffer, 
                             ULONG                  ulStartSector, 
-                            ULONG                  ulSectorCount)
+                            ULONG                  ulSectorCount,
+                            UINT64                 u64FsKey)
 {
     ulStartSector += pdpoLogic->DPO_dpnEntry.DPN_ulStartSector;         /*  逻辑分区偏移量              */
     
     return  (pdpoLogic->DPT_pblkdDisk->BLKD_pfuncBlkWrt(pdpoLogic->DPT_pblkdDisk, 
                                                         pvBuffer,
                                                         ulStartSector,
-                                                        ulSectorCount));
+                                                        ulSectorCount,
+                                                        u64FsKey));
 }
 /*********************************************************************************************************
 ** 函数名称: __logicDiskRd
@@ -498,6 +502,7 @@ INT  API_DiskPartitionLinkNumGet (PLW_BLK_DEV  pblkdPhysical)
     
     return  ((INT)pblkdPhysical->BLKD_uiLinkCounter);
 }
+
 #endif                                                                  /*  (LW_CFG_MAX_VOLUMES > 0)    */
                                                                         /*  (LW_CFG_DISKPART_EN > 0)    */
 /*********************************************************************************************************

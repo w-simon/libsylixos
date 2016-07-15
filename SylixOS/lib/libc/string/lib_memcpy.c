@@ -17,6 +17,9 @@
 ** 文件创建日期: 2006 年 12 月 13 日
 **
 ** 描        述: 库
+**
+** BUG:
+2016.07.15  优化速度.
 *********************************************************************************************************/
 #include "../SylixOS/kernel/include/k_kernel.h"
 /*********************************************************************************************************
@@ -24,6 +27,13 @@
 *********************************************************************************************************/
 #define __LONGSIZE              sizeof(ULONG)
 #define __LONGMASK              (__LONGSIZE - 1)
+
+#define __BIGBLOCKSTEP          (16)
+#define __BIGBLOCKSIZE          (__LONGSIZE << 4)
+
+#define __LITLOCKSTEP           (1)
+#define __LITLOCKSIZE           (__LONGSIZE)
+
 #define __TLOOP(s)              if (ulTemp) {       \
                                     __TLOOP1(s);    \
                                 }
@@ -47,6 +57,10 @@ PVOID  lib_memcpy (PVOID  pvDest, CPVOID   pvSrc, size_t  stCount)
 #else
     REGISTER PUCHAR    pucDest;
     REGISTER PUCHAR    pucSrc;
+    
+    REGISTER ULONG    *pulDest;
+    REGISTER ULONG    *pulSrc;
+    
              ULONG     ulTemp;
     
     pucDest = (PUCHAR)pvDest;
@@ -70,14 +84,54 @@ PVOID  lib_memcpy (PVOID  pvDest, CPVOID   pvSrc, size_t  stCount)
             } else {
                 ulTemp = (ULONG)(__LONGSIZE - (ulTemp & __LONGMASK));
             }
-            stCount -= (UINT)ulTemp;
+            
+            stCount -= (size_t)ulTemp;
             __TLOOP1(*pucDest++ = *pucSrc++);
         }
+        
         /*
          *  按字对齐拷贝
          */
         ulTemp = (ULONG)(stCount / __LONGSIZE);
-        __TLOOP(*(ULONG *)pucDest = *(ULONG *)pucSrc; pucSrc += __LONGSIZE; pucDest += __LONGSIZE);
+        
+        pulDest = (ULONG *)pucDest;
+        pulSrc  = (ULONG *)pucSrc;
+        
+        while (ulTemp >= __BIGBLOCKSTEP) {
+            *pulDest++ = *pulSrc++;
+            *pulDest++ = *pulSrc++;
+            *pulDest++ = *pulSrc++;
+            *pulDest++ = *pulSrc++;
+            
+            *pulDest++ = *pulSrc++;
+            *pulDest++ = *pulSrc++;
+            *pulDest++ = *pulSrc++;
+            *pulDest++ = *pulSrc++;
+            
+            *pulDest++ = *pulSrc++;
+            *pulDest++ = *pulSrc++;
+            *pulDest++ = *pulSrc++;
+            *pulDest++ = *pulSrc++;
+            
+            *pulDest++ = *pulSrc++;
+            *pulDest++ = *pulSrc++;
+            *pulDest++ = *pulSrc++;
+            *pulDest++ = *pulSrc++;
+            
+            ulTemp -= __BIGBLOCKSTEP;
+        }
+        
+        while (ulTemp >= __LITLOCKSTEP) {
+            *pulDest++ = *pulSrc++;
+            ulTemp -= __LITLOCKSTEP;
+        }
+        
+        pucDest = (PUCHAR)pulDest;
+        pucSrc  = (PUCHAR)pulSrc;
+        
+        /*
+         *  剩余部分
+         */
         ulTemp = (ULONG)(stCount & __LONGMASK);
         __TLOOP(*pucDest++ = *pucSrc++);
     
@@ -98,12 +152,53 @@ PVOID  lib_memcpy (PVOID  pvDest, CPVOID   pvSrc, size_t  stCount)
             } else {
                 ulTemp &= __LONGMASK;
             }
-            stCount -= (UINT)ulTemp;
+            stCount -= (size_t)ulTemp;
             __TLOOP1(*--pucDest = *--pucSrc);
         }
         
+        /*
+         *  按字对齐拷贝
+         */
         ulTemp = (ULONG)(stCount / __LONGSIZE);
-        __TLOOP(pucSrc -= __LONGSIZE; pucDest -= __LONGSIZE; *(ULONG *)pucDest = *(ULONG *)pucSrc);
+        
+        pulDest = (ULONG *)pucDest;
+        pulSrc  = (ULONG *)pucSrc;
+        
+        while (ulTemp >= __BIGBLOCKSTEP) {
+            *--pulDest = *--pulSrc;
+            *--pulDest = *--pulSrc;
+            *--pulDest = *--pulSrc;
+            *--pulDest = *--pulSrc;
+            
+            *--pulDest = *--pulSrc;
+            *--pulDest = *--pulSrc;
+            *--pulDest = *--pulSrc;
+            *--pulDest = *--pulSrc;
+            
+            *--pulDest = *--pulSrc;
+            *--pulDest = *--pulSrc;
+            *--pulDest = *--pulSrc;
+            *--pulDest = *--pulSrc;
+            
+            *--pulDest = *--pulSrc;
+            *--pulDest = *--pulSrc;
+            *--pulDest = *--pulSrc;
+            *--pulDest = *--pulSrc;
+            
+            ulTemp -= __BIGBLOCKSTEP;
+        }
+        
+        while (ulTemp >= __LITLOCKSTEP) {
+            *--pulDest = *--pulSrc;
+            ulTemp -= __LITLOCKSTEP;
+        }
+        
+        pucDest = (PUCHAR)pulDest;
+        pucSrc  = (PUCHAR)pulSrc;
+        
+        /*
+         *  剩余部分
+         */
         ulTemp = (ULONG)(stCount & __LONGMASK);
         __TLOOP(*--pucDest = *--pucSrc);
     }
