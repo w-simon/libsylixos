@@ -38,8 +38,7 @@
 
 #define ROUTE_TYPE_HOST             0                                   /*  destination is a host       */
 #define ROUTE_TYPE_NET              1                                   /*  destination is a net        */
-#define ROUTE_TYPE_GATEWAY          2                                   /*  destination is a gateway    */
-#define ROUTE_TYPE_DEFAULT          3                                   /*  default gateway             */
+#define ROUTE_TYPE_DEFAULT          2                                   /*  default netif               */
 
 /*********************************************************************************************************
   route_get flag (U H G flag)
@@ -71,9 +70,9 @@ struct route_msg {
 extern "C" {
 #endif                                                                  /*  __cplusplus                 */
 
-LW_API int  route_add(struct in_addr *pinaddr, int  type, const char *ifname);
+LW_API int  route_add(struct in_addr *pinaddr, struct in_addr *pinaddrGw, int  type, const char *ifname);
 LW_API int  route_delete(struct in_addr *pinaddr);
-LW_API int  route_change(struct in_addr *pinaddr, int  type, const char *ifname);
+LW_API int  route_change(struct in_addr *pinaddr, struct in_addr *pinaddrGw, int  type, const char *ifname);
 LW_API int  route_getnum(void);                                         /*  获得路由表总数量            */
 LW_API int  route_get(u_char flag, struct route_msg  *msgbuf, size_t  num);
 

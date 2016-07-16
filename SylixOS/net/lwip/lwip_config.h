@@ -568,6 +568,9 @@ extern PVOID netif_get_by_index(UINT uiIndex);
 extern PVOID ip_route_hook(const PVOID pvDest);
 #define LWIP_HOOK_IP4_ROUTE             ip_route_hook
 
+extern PVOID ip_gw_hook(PVOID  pvNetif, const PVOID pvDest);
+#define LWIP_HOOK_ETHARP_GET_GW         ip_gw_hook
+
 /*********************************************************************************************************
   lwip ip input hook (return is the packet has been eaten)
 *********************************************************************************************************/

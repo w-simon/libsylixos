@@ -997,6 +997,23 @@ extern struct netif  *sys_ip_route_hook(const ip_addr_t *ipaddrDest);
     return ((PVOID)netif);
 }
 /*********************************************************************************************************
+** 函数名称: ip_gw_hook
+** 功能描述: sylixos ip route gw hook
+** 输　入  : dest  destination route netif
+** 输　出  : netif
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+PVOID ip_gw_hook (PVOID  pvNetif, const PVOID pvDest)
+{
+extern ip_addr_t *sys_ip_gw_hook(struct netif *netif, const ip_addr_t *pipaddrDest);
+
+    const  ip_addr_t *dest  = (const ip_addr_t *)pvDest;
+    struct netif     *netif = (struct netif *)pvNetif;
+
+    return ((PVOID)sys_ip_gw_hook(netif, dest));
+}
+/*********************************************************************************************************
 ** 函数名称: link_input_hook
 ** 功能描述: sylixos link input hook (没有在 CORELOCK 锁中)
 ** 输　入  : pvPBuf        pbuf

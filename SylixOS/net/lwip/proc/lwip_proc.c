@@ -1490,7 +1490,7 @@ static VOID  __procFsNetRoutePrint (struct route_msg *msgbuf,
     if (msgbuf->rm_flag & ROUTE_RTF_GATEWAY) {
         lib_strcat(cFlag, "G");
     } else {
-        lib_strcpy(cGateway, "*");                                      /*  直接路由 (不需要打印网关)   */
+        lib_strcpy(cGateway, "*");
     }
     if (msgbuf->rm_flag & ROUTE_RTF_HOST) {
         lib_strcat(cFlag, "H");
