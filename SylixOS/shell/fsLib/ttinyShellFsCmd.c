@@ -1869,6 +1869,7 @@ static INT  __tshellFsCmdFdisk (INT  iArgC, PCHAR  ppcArgV[])
 {
     LW_OEMFDISK_PART  fdpInfo[4];
     UINT              uiNPart;
+    size_t            stAlign;
     struct stat       statGet;
     PCHAR             pcBlkFile;
     INT               i, iPct, iTotalPct = 0;
@@ -1913,6 +1914,18 @@ __input_num:
     if ((uiNPart < 1) || (uiNPart > 4)) {
         printf("the number must be 1 ~ 4\n");
         goto    __input_num;
+    }
+
+__input_align:
+    printf("please input how many bytes align (4K 8K ...) : ");
+    fflush(stdout);
+    if (scanf("%zu", &stAlign) != 1) {
+        goto    __input_align;
+    }
+
+    if ((stAlign < 4096) || (stAlign & (stAlign - 1))) {
+        printf("the number must be 4096 at least and must the n-th power of 2\n");
+        goto    __input_align;
     }
 
     for (i = 0; i < uiNPart; i++) {
@@ -1997,7 +2010,7 @@ __input_type:
     }
 
     printf("making partition...\n");
-    iCnt = oemFdisk(pcBlkFile, fdpInfo, uiNPart);
+    iCnt = oemFdisk(pcBlkFile, fdpInfo, uiNPart, stAlign);
     if (iCnt <= ERROR_NONE) {
         fprintf(stderr, "make partition error : %s\n", lib_strerror(errno));
         return  (PX_ERROR);

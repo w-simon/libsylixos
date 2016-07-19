@@ -348,11 +348,6 @@ errno_t  tpsFsFormat (PTPS_DEV pdev, UINT uiBlkSize)
     if (uiLogSize < TPS_MIN_LOG_SIZE) {
         uiLogSize = TPS_MIN_LOG_SIZE;
     }
-    
-    /*
-     * SSD 回收空间
-     */
-    pdev->DEV_Trim(pdev, 0, (UINT64)pdev->DEV_SectorCnt(pdev));
 
     /*
      *  结构体赋值

@@ -36,6 +36,7 @@
 #define __DISK_PART_TYPE                    0x4
 #define __DISK_PART_STARTSECTOR             0x8
 #define __DISK_PART_NSECTOR                 0xc
+#define __DISK_PART_OFFSEC                  4096
 /*********************************************************************************************************
 ** 函数名称: __oemFdisk
 ** 功能描述: 对 OEM 磁盘设备进行分区操作
@@ -44,6 +45,7 @@
 **           ulTotalSec         扇区总数
 **           fdpPart            分区信息
 **           uiNPart            分区个数
+**           stAlign            分区对齐 (例如: SSD 需要 4K 对齐)
 ** 输　出  : 分区个数
 ** 全局变量:
 ** 调用模块:
@@ -52,101 +54,103 @@ static INT  __oemFdisk (INT                     iBlkFd,
                         ULONG                   ulSecSize,
                         ULONG                   ulTotalSec,
                         const LW_OEMFDISK_PART  fdpPart[],
-                        UINT                    uiNPart)
+                        UINT                    uiNPart,
+                        size_t                  stAlign)
 {
 #ifndef MBR_Table
 #define MBR_Table           446                                         /* MBR: Partition table offset  */
 #endif
-
-    UINT              i, n;
+    
+    UINT              i;
     UINT8            *pucSecBuf;
     UINT8            *pucPartEntry;
-
-    UINT8             ucHdStart, ucHdEnd;
-    UINT              uiSzCyl, uiTotCyl;
-    UINT              uiBCyl, uiECyl, uiPCyl;
-    UINT32            uiPStartSec, uiPNSec;
-
+    BOOL              bMaster = LW_FALSE;
+    UINT64            u64Temp;
+    UINT32            uiSecOff, uiPSecNext;
+    UINT32            uiPStartSec[4], uiPNSec[4];
+    
+    UINT              uiHdStart,  uiHdEnd;
+    UINT              uiCylStart, uiCylEnd;
+    UINT              uiSecStart, uiSecEnd;
+    
     pucSecBuf = (UINT8 *)__SHEAP_ALLOC((size_t)ulSecSize);
     if (pucSecBuf == LW_NULL) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "system low memory.\r\n");
         _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
         return  (PX_ERROR);
     }
-
+    
+    uiSecOff    = __DISK_PART_OFFSEC;                                   /*  4096 扇区                   */
+    ulTotalSec -= uiSecOff;                                             /*  有效的总扇区数              */
+    uiPSecNext  = uiSecOff;
+    
+    for (i = 0; i < uiNPart; i++) {                                     /*  确定分区 LBA 信息           */
+        uiPStartSec[i] = uiPSecNext;
+        if (fdpPart[i].FDP_ucSzPct == 0) {                              /*  剩下所有                    */
+            uiPNSec[i] = (UINT32)ulTotalSec;
+            break;
+            
+        } else {                                                        /*  按百分比分配                */
+            u64Temp    = (UINT64)ulTotalSec;
+            u64Temp    = (u64Temp * fdpPart[i].FDP_ucSzPct) / 100;
+            uiPNSec[i] = (UINT32)u64Temp;
+            uiPNSec[i] = ROUND_DOWN(uiPNSec[i], (stAlign / ulSecSize)); /*  对齐的扇区个数              */
+            
+            uiPSecNext += uiPNSec[i];
+        }
+    }
+    
     if (pread(iBlkFd, pucSecBuf, (size_t)ulSecSize, 0) != (ssize_t)ulSecSize) {
         __SHEAP_FREE(pucSecBuf);
         return  (PX_ERROR);
     }
-
-    for (n = 16; n < 256 && ulTotalSec / n / 63 > 1024; n *= 2);
-    if (n == 256) {
-        n--;
-    }
-
-    ucHdEnd  = n - 1;
-    uiSzCyl  = 63 * n;
-    uiTotCyl = ulTotalSec / uiSzCyl;
-
-    uiBCyl       = 0;
+    
     pucPartEntry = &pucSecBuf[MBR_Table];
-
     lib_bzero(pucPartEntry, 16 * 4);
-
+    
     for (i = 0; i < uiNPart; i++, pucPartEntry += 16) {
-        if (fdpPart[i].FDP_bIsActive) {
-            pucPartEntry[0] = 0x80;
+        if (fdpPart[i].FDP_bIsActive && (bMaster == LW_FALSE)) {
+            bMaster         = LW_TRUE;
+            pucPartEntry[0] = 0x80;                                     /*  活动分区                    */
+        
         } else {
             pucPartEntry[0] = 0x00;
         }
 
-        pucPartEntry[4] = fdpPart[i].FDP_ucPartType;
+        pucPartEntry[4] = fdpPart[i].FDP_ucPartType;                    /*  分区文件系统                */
+        
+        /*
+         *  CS = 0, HS = 0, SS = 1, PS = 63, PH = 255
+         *
+         *  H = (LBA DIV PS) MOD PH + HS
+         *  C = LBA DIV (PH*PS) + CS
+         *  S = LBA MOD PS + SS
+         */
+        uiHdStart  = (uiPStartSec[i] / 63) % 255 + 0;
+        uiCylStart = uiPStartSec[i] / (255 * 63) + 0;
+        uiSecStart = (uiPStartSec[i] % 63) + 1;
+        
+        uiHdEnd  = ((uiPStartSec[i] + uiPNSec[i] - 1) / 63) % 255 + 0;
+        uiCylEnd = (uiPStartSec[i] + uiPNSec[i] - 1) / (255 * 63) + 0;
+        uiSecEnd = ((uiPStartSec[i] + uiPNSec[i] - 1) % 63) + 1;
+        
+        pucPartEntry[1] = (BYTE)uiHdStart;                              /*  Start head                  */
+        pucPartEntry[2] = (BYTE)((uiCylStart >> 2) + uiSecStart);       /*  Start sector                */
+        pucPartEntry[3] = (BYTE)uiCylStart;                             /*  Start cylinder              */
+
+        pucPartEntry[5] = (BYTE)uiHdEnd;                                /*  End head                    */
+        pucPartEntry[6] = (BYTE)((uiCylEnd >> 2) + uiSecEnd);           /*  End sector                  */
+        pucPartEntry[7] = (BYTE)uiCylEnd;                               /*  End cylinder                */
+
+        BLK_ST_DWORD(pucPartEntry +  8, uiPStartSec[i]);                /*  Start sector in LBA         */
+        BLK_ST_DWORD(pucPartEntry + 12, uiPNSec[i]);                    /*  Partition size              */
 
         if (fdpPart[i].FDP_ucSzPct == 0) {
-            uiPCyl = uiTotCyl - uiBCyl;
-        } else {
-            uiPCyl = (UINT)uiTotCyl * fdpPart[i].FDP_ucSzPct / 100;
-        }
-
-        if (!uiPCyl) {
-            continue;
-        }
-
-        uiPStartSec = uiSzCyl * uiBCyl;
-        uiPNSec     = uiSzCyl * uiPCyl;
-
-        if (i == 0) {
-            ucHdStart    = 1;
-            uiPStartSec += 63;
-            uiPNSec     -= 63;
-        } else {
-            ucHdStart    = 0;
-        }
-
-        uiECyl = uiBCyl + uiPCyl - 1;
-        if (uiECyl >= uiTotCyl) {
-            __SHEAP_FREE(pucSecBuf);
-            _ErrorHandle(ENOSPC);
-            return  (PX_ERROR);
-        }
-
-        pucPartEntry[1] = ucHdStart;                                    /*  Start head                  */
-        pucPartEntry[2] = (BYTE)((uiBCyl >> 2) + 1);                    /*  Start sector                */
-        pucPartEntry[3] = (BYTE)uiBCyl;                                 /*  Start cylinder              */
-
-        pucPartEntry[5] = ucHdEnd;                                      /*  End head                    */
-        pucPartEntry[6] = (BYTE)((uiECyl >> 2) + 63);                   /*  End sector                  */
-        pucPartEntry[7] = (BYTE)uiECyl;                                 /*  End cylinder                */
-
-        BLK_ST_DWORD(pucPartEntry + 8, uiPStartSec);                    /*  Start sector in LBA         */
-        BLK_ST_DWORD(pucPartEntry + 12, uiPNSec);                       /*  Partition size              */
-
-        uiBCyl += uiPCyl;                                               /*  Next partition              */
-        if (uiBCyl > uiTotCyl) {
+            i++;
             break;
         }
     }
-
+    
     pucSecBuf[ulSecSize - 2] = 0x55;
     pucSecBuf[ulSecSize - 1] = 0xaa;
 
@@ -164,13 +168,14 @@ static INT  __oemFdisk (INT                     iBlkFd,
 ** 输　入  : pcBlkDev           块设备文件 例如: /dev/blk/sata0
 **           fdpPart            分区参数
 **           uiNPart            分区参数个数
+**           stAlign            分区对齐 (例如: SSD 需要 4K 对齐)
 ** 输　出  : 产生的分区个数, PX_ERROR 表示错误.
 ** 全局变量:
 ** 调用模块:
                                            API 函数
 *********************************************************************************************************/
 LW_API
-INT  API_OemFdisk (CPCHAR  pcBlkDev, const LW_OEMFDISK_PART  fdpPart[], UINT  uiNPart)
+INT  API_OemFdisk (CPCHAR  pcBlkDev, const LW_OEMFDISK_PART  fdpPart[], UINT  uiNPart, size_t  stAlign)
 {
     INT         i;
     INT         iBlkFd;
@@ -181,6 +186,12 @@ INT  API_OemFdisk (CPCHAR  pcBlkDev, const LW_OEMFDISK_PART  fdpPart[], UINT  ui
     UINT8       ucTotalPct = 0;
 
     if (!pcBlkDev || !fdpPart || !uiNPart || (uiNPart > 4)) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    if ((stAlign < 4096) || (stAlign & (stAlign - 1))) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "stAlign error.\r\n");
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -207,6 +218,12 @@ INT  API_OemFdisk (CPCHAR  pcBlkDev, const LW_OEMFDISK_PART  fdpPart[], UINT  ui
         _ErrorHandle(ENXIO);
         return  (PX_ERROR);
     }
+    
+    if (ulTotalSec < __DISK_PART_OFFSEC) {
+        close(iBlkFd);
+        _ErrorHandle(ENOSPC);
+        return  (PX_ERROR);
+    }
 
     if (ioctl(iBlkFd, LW_BLKD_GET_SECSIZE, &ulSecSize)) {
         ulSecSize = 512;
@@ -227,7 +244,7 @@ INT  API_OemFdisk (CPCHAR  pcBlkDev, const LW_OEMFDISK_PART  fdpPart[], UINT  ui
     }
 
     uiNPart = i;
-    iNCnt   = __oemFdisk(iBlkFd, ulSecSize, ulTotalSec, fdpPart, uiNPart);
+    iNCnt   = __oemFdisk(iBlkFd, ulSecSize, ulTotalSec, fdpPart, uiNPart, stAlign);
     if (iNCnt > 0) {
         fsync(iBlkFd);
     }
