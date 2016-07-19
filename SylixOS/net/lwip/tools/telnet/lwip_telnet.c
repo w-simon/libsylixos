@@ -477,8 +477,17 @@ static VOID  __telnetListener (VOID)
                                                                         /*  不使用 nagle 算法           */
     setsockopt(iSock, IPPROTO_TCP, TCP_NODELAY, (const void *)&iOne, sizeof(iOne));
     
-    bind(iSock, (struct sockaddr *)&inaddrLcl, sizeof(inaddrLcl));
-    listen(iSock, 2);
+    if (bind(iSock, (struct sockaddr *)&inaddrLcl, sizeof(inaddrLcl))) {
+        _DebugFormat(__ERRORMESSAGE_LEVEL, "can not bind socket %s.\r\n", lib_strerror(errno));
+        close(iSock);
+        return;
+    }
+    
+    if (listen(iSock, LW_CFG_NET_TELNET_MAX_LINKS)) {
+        _DebugFormat(__ERRORMESSAGE_LEVEL, "can not listen socket %s.\r\n", lib_strerror(errno));
+        close(iSock);
+        return;
+    }
     
     for (;;) {
         iSockNew = accept(iSock, (struct sockaddr *)&inaddrRmt, &uiLen);

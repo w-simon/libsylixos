@@ -110,6 +110,14 @@
 #include "../SylixOS/system/device/mii/miiDev.h"                        /*  mii phy 接口驱动            */
 #include "../SylixOS/system/device/eventfd/eventfdDev.h"                /*  eventfd 设备                */
 /*********************************************************************************************************
+  AHCI 总线及其设备驱动模型
+*********************************************************************************************************/
+#ifdef   __SYLIXOS_AHCI_DRV
+#include "../SylixOS/system/device/ahci/ahci.h"                         /*  AHCI 控制器                 */
+#include "../SylixOS/system/device/ahci/ahciLib.h"                      /*  AHCI 库                     */
+#include "../SylixOS/system/device/ahci/ahciDrv.h"                      /*  AHCI 驱动接口               */
+#endif                                                                  /*  __SYLIXOS_AHCI_DRV          */
+/*********************************************************************************************************
   PCI 总线及其设备驱动模型
 *********************************************************************************************************/
 #ifdef   __SYLIXOS_PCI_DRV

@@ -102,7 +102,7 @@ typedef TPS_BTR_NODE        *PTPS_BTR_NODE;
   ¿é»º³åÇø¶¨Òå
 *********************************************************************************************************/
 
-#define TPS_BP_SIZE			256
+#define TPS_BP_SIZE         256
 #define TPS_MAX_BP_BLK      128
 #define TPS_ADJUST_BP_BLK   96
 #define TPS_MIN_BP_BLK      64

@@ -179,16 +179,16 @@ errno_t  tpsFsMount (PTPS_DEV pdev, UINT uiFlags, PTPS_SUPER_BLOCK *ppsb)
         TPS_FREE(pucSectorBuf);
         TPS_FREE(psb);
         return  (ERROR_NONE);
-	}
+    }
 
-	TPS_FREE(pucSectorBuf);
+    TPS_FREE(pucSectorBuf);
 
-	pucSectorBuf = (PUCHAR)TPS_ALLOC(psb->SB_uiBlkSize);
-	if (LW_NULL == pucSectorBuf) {
-		TPS_FREE(psb);
-		return  (ENOMEM);
-	}
-	psb->SB_pucSectorBuf = pucSectorBuf;
+    pucSectorBuf = (PUCHAR)TPS_ALLOC(psb->SB_uiBlkSize);
+    if (LW_NULL == pucSectorBuf) {
+        TPS_FREE(psb);
+        return  (ENOMEM);
+    }
+    psb->SB_pucSectorBuf = pucSectorBuf;
 
     psb->SB_uiSectorSize    = uiSectorSize;
     psb->SB_uiSectorShift   = uiSectorShift;
@@ -203,13 +203,13 @@ errno_t  tpsFsMount (PTPS_DEV pdev, UINT uiFlags, PTPS_SUPER_BLOCK *ppsb)
     psb->SB_uiInodeOpenCnt  = 0;
     psb->SB_uiFlags         = uiFlags;
     psb->SB_pinodeDeleted   = LW_NULL;
-	psb->SB_pbp				= LW_NULL;
+    psb->SB_pbp             = LW_NULL;
 
-	if (tpsFsBtreeTransInit(psb) != TPS_ERR_NONE) {
-		TPS_FREE(pucSectorBuf);
-		TPS_FREE(psb);
-		return  (ERROR_NONE);
-	}
+    if (tpsFsBtreeTransInit(psb) != TPS_ERR_NONE) {
+        TPS_FREE(pucSectorBuf);
+        TPS_FREE(psb);
+        return  (ERROR_NONE);
+    }
 
     if (tspFsCheckTrans(psb) != TPS_ERR_NONE) {                         /* 检查事务完整性 (无法修复)    */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "check transaction failed!\r\n");
@@ -256,19 +256,19 @@ errno_t  tpsFsUnmount (PTPS_SUPER_BLOCK psb)
 {
     if (LW_NULL == psb) {
         return  (EINVAL);
-	}
+    }
 
-	if (LW_NULL != psb->SB_pinodeDeleted) {
-		tpsFsCloseInode(psb->SB_pinodeDeleted);
-	}
+    if (LW_NULL != psb->SB_pinodeDeleted) {
+        tpsFsCloseInode(psb->SB_pinodeDeleted);
+    }
 
     if (LW_NULL != psb->SB_pinodeSpaceMng) {
         tpsFsCloseInode(psb->SB_pinodeSpaceMng);
     }
 
-	if (LW_NULL != psb->SB_pinodeOpenList) {                            /* 存在未关闭的inode            */
-		return  (EBUSY);
-	}
+    if (LW_NULL != psb->SB_pinodeOpenList) {                            /* 存在未关闭的inode            */
+        return  (EBUSY);
+    }
 
     if (tspFsCompleteTrans(psb) != TPS_ERR_NONE) {                      /* 标记事物为一致状态           */
         return  (EIO);
@@ -278,9 +278,9 @@ errno_t  tpsFsUnmount (PTPS_SUPER_BLOCK psb)
         if (psb->SB_dev->DEV_Sync(psb->SB_dev, 0, psb->SB_dev->DEV_SectorCnt(psb->SB_dev)) != 0) {
             return  (EIO);
         }
-	}
+    }
 
-	tpsFsBtreeTransFini(psb);
+    tpsFsBtreeTransFini(psb);
 
     if (LW_NULL != psb->SB_pucSectorBuf) {
         TPS_FREE(psb->SB_pucSectorBuf);
@@ -393,10 +393,10 @@ errno_t  tpsFsFormat (PTPS_DEV pdev, UINT uiBlkSize)
     }
     psb->SB_pucSectorBuf = pucSectorBuf;
 
-	if (tpsFsBtreeTransInit(psb) != TPS_ERR_NONE) {
-		TPS_FREE(psb);
-		return  (ENOMEM);
-	}
+    if (tpsFsBtreeTransInit(psb) != TPS_ERR_NONE) {
+        TPS_FREE(psb);
+        return  (ENOMEM);
+    }
 
     /*
      *  初始化空间管理inode和root inode
@@ -469,7 +469,7 @@ errno_t  tpsFsFormat (PTPS_DEV pdev, UINT uiBlkSize)
         return  (EIO);
     }
 
-	tpsFsBtreeTransFini(psb);
+    tpsFsBtreeTransFini(psb);
     TPS_FREE(pucSectorBuf);
     TPS_FREE(psb->SB_pbp);
     TPS_FREE(psb);

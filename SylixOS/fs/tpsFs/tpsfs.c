@@ -745,29 +745,29 @@ errno_t  tpsFsFlushHead (PTPS_INODE pinode)
 errno_t  tpsFsTrunc (PTPS_INODE pinode, TPS_SIZE_T szNewSize)
 {
     PTPS_TRANS  ptrans  = LW_NULL;
-	TPS_RESULT  tpsres	= TPS_ERR_NONE;
+    TPS_RESULT  tpsres  = TPS_ERR_NONE;
 
     if (LW_NULL == pinode) {
         return  (EINVAL);
     }
 
-	do {
-		ptrans = tpsFsTransAllocAndInit(pinode->IND_psb);                   /* 分配事物                     */
-		if (ptrans == LW_NULL) {
-			return  (ENOMEM);
-		}
+    do {
+        ptrans = tpsFsTransAllocAndInit(pinode->IND_psb);                   /* 分配事物                     */
+        if (ptrans == LW_NULL) {
+            return  (ENOMEM);
+        }
 
-		tpsres = tpsFsTruncInode(ptrans, pinode, szNewSize);
-		if (tpsres != TPS_ERR_NONE && tpsres != TPS_ERR_TRANS_NEED_COMMIT) {
-			tpsFsTransRollBackAndFree(ptrans);
-			return  (EIO);
-		}
+        tpsres = tpsFsTruncInode(ptrans, pinode, szNewSize);
+        if (tpsres != TPS_ERR_NONE && tpsres != TPS_ERR_TRANS_NEED_COMMIT) {
+            tpsFsTransRollBackAndFree(ptrans);
+            return  (EIO);
+        }
 
-		if (tpsFsTransCommitAndFree(ptrans) != TPS_ERR_NONE) {              /* 提交事务                     */
-			tpsFsTransRollBackAndFree(ptrans);
-			return  (EIO);
-		}
-	} while (tpsres == TPS_ERR_TRANS_NEED_COMMIT);
+        if (tpsFsTransCommitAndFree(ptrans) != TPS_ERR_NONE) {              /* 提交事务                     */
+            tpsFsTransRollBackAndFree(ptrans);
+            return  (EIO);
+        }
+    } while (tpsres == TPS_ERR_TRANS_NEED_COMMIT);
 
     return  (ERROR_NONE);
 }

@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2016-07-18: Gong.YuJian
+    加入 AHCI 总线驱动.
+
     2016-07-16: han.hui
     路由表可以设置到任意目标指定的网关.
 

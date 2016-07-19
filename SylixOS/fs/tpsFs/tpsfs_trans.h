@@ -60,8 +60,8 @@ typedef struct tps_trans_data {
     UINT                TD_uiSecAreaCnt;                                /* 扇区区间数量                 */
     UINT                TD_uiReserved[3];                               /* 保留                         */
     struct {
-		UINT64          TD_ui64SecStart;                                /* 区间起始扇区                 */
-		UINT            TD_uiSecOff;                                    /* 扇区数据在事务数据中的偏移   */
+        UINT64          TD_ui64SecStart;                                /* 区间起始扇区                 */
+        UINT            TD_uiSecOff;                                    /* 扇区数据在事务数据中的偏移   */
         UINT            TD_uiSecCnt;                                    /* 扇区数量                     */
     } TD_secareaArr[1];                                                 /* 事务扇区区间列表             */
 } TPS_TRANS_DATA;
@@ -70,13 +70,13 @@ typedef TPS_TRANS_DATA  *PTPS_TRANS_DATA;
   事物结构
 *********************************************************************************************************/
 typedef struct tps_trans {
-	UINT                 TRANS_uiMagic;                                 /* 事务掩码                     */
-	UINT                 TRANS_uiReserved;                              /* 保留                         */
+    UINT                 TRANS_uiMagic;                                 /* 事务掩码                     */
+    UINT                 TRANS_uiReserved;                              /* 保留                         */
     UINT64               TRANS_ui64Generation;                          /* 格式化ID                     */
     UINT64               TRANS_ui64SerialNum;                           /* 序列号                       */
     INT                  TRANS_iType;                                   /* 事务类型                     */
-	INT                  TRANS_iStatus;                                 /* 事物状态                     */
-	UINT64               TRANS_ui64Reserved;                            /* 保留                         */
+    INT                  TRANS_iStatus;                                 /* 事物状态                     */
+    UINT64               TRANS_ui64Reserved;                            /* 保留                         */
     UINT64               TRANS_ui64Time;                                /* 修改时间                     */
     UINT64               TRANS_uiDataSecNum;                            /* 事务数据起始扇区             */
     UINT                 TRANS_uiDataSecCnt;                            /* 事务数据扇区数量             */
@@ -132,7 +132,7 @@ TPS_RESULT tpsFsTransRead(PTPS_SUPER_BLOCK psb, TPS_IBLK blk, UINT uiOff,
 TPS_RESULT tpsFsTransWrite(PTPS_TRANS ptrans, PTPS_SUPER_BLOCK psb,
                            TPS_IBLK blk, UINT uiOff,
                            PUCHAR pucBuff, size_t szLen);
-BOOL       tpsFsTransTrigerChk(PTPS_TRANS ptrans);						/* 是否到达事物提交触发点       */
+BOOL       tpsFsTransTrigerChk(PTPS_TRANS ptrans);                      /* 是否到达事物提交触发点       */
 
 #endif                                                                  /* LW_CFG_TPSFS_EN > 0          */
 #endif                                                                  /* __TPSFS_TRANS_H              */

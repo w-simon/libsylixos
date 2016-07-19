@@ -167,15 +167,16 @@ static TPS_RESULT  __tpsFsGetFromFreeList (PTPS_TRANS        ptrans,
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static TPS_RESULT  __tpsFsInodeAddToFreeList(PTPS_TRANS         ptrans,
-                                             PTPS_SUPER_BLOCK   psb,
-                                             PTPS_INODE         pinode)
+static TPS_RESULT  __tpsFsInodeAddToFreeList (PTPS_TRANS         ptrans,
+                                              PTPS_SUPER_BLOCK   psb,
+                                              PTPS_INODE         pinode)
 {
     if (psb->SB_pinodeDeleted != LW_NULL) {
         pinode->IND_inumDeleted = psb->SB_pinodeDeleted->IND_inumDeleted;
         tpsFsFlushInodeHead(ptrans, pinode);
         psb->SB_pinodeDeleted->IND_inumDeleted = pinode->IND_inum;
         tpsFsFlushInodeHead(ptrans, psb->SB_pinodeDeleted);
+    
     } else {
         pinode->IND_inumDeleted = psb->SB_inumDeleted;
         tpsFsFlushInodeHead(ptrans, pinode);
@@ -200,16 +201,16 @@ TPS_RESULT  tpsFsCreateInode (PTPS_TRANS ptrans, PTPS_SUPER_BLOCK psb, TPS_INUM 
 {
     PTPS_INODE pinode       = LW_NULL;
     PUCHAR     pucBuff      = LW_NULL;
-	UINT       uiInodeSize  = 0;
+    UINT       uiInodeSize  = 0;
 
     if (psb == LW_NULL) {
         return  (TPS_ERR_PARAM_NULL);
     }
 
-	uiInodeSize = (psb->SB_uiBlkSize - TPS_INODE_DATASTART 
+    uiInodeSize = (psb->SB_uiBlkSize - TPS_INODE_DATASTART 
                    - sizeof(TPS_BTR_NODE)) / (sizeof(TPS_IBLK) * 2);
-	uiInodeSize *=  sizeof(TPS_BTR_KV);
-	uiInodeSize += (TPS_INODE_DATASTART + sizeof(TPS_BTR_NODE));
+    uiInodeSize *=  sizeof(TPS_BTR_KV);
+    uiInodeSize += (TPS_INODE_DATASTART + sizeof(TPS_BTR_NODE));
     pinode = (PTPS_INODE)TPS_ALLOC(uiInodeSize);
     if (LW_NULL == pinode) {
         return  (TPS_ERR_ALLOC);
@@ -571,7 +572,7 @@ TPS_RESULT  tpsFsTruncInode (PTPS_TRANS ptrans, PTPS_INODE pinode, TPS_SIZE_T si
                            &blkPscStart, &blkPscCnt) == TPS_ERR_NONE) {
         if (blkPscCnt <= 0) {
             break;
-		}
+        }
 
         pinode->IND_blkCnt -= blkPscCnt;
 
@@ -584,9 +585,9 @@ TPS_RESULT  tpsFsTruncInode (PTPS_TRANS ptrans, PTPS_INODE pinode, TPS_SIZE_T si
             return  (TPS_ERR_BP_ADJUST);
         }
 
-		if (tpsFsTransTrigerChk(ptrans)) {                              /* 避免一个事物中执行太多操作   */
-			return  (TPS_ERR_TRANS_NEED_COMMIT);
-		}
+        if (tpsFsTransTrigerChk(ptrans)) {                              /* 避免一个事物中执行太多操作   */
+            return  (TPS_ERR_TRANS_NEED_COMMIT);
+        }
     }
 
     if (blkStart < tpsFsBtreeBlkCnt(pinode)) {
@@ -724,14 +725,14 @@ TPS_SIZE_T  tpsFsInodeWrite (PTPS_TRANS ptrans, PTPS_INODE pinode, TPS_OFF_T off
         i64Alloc = blkEnd - pinode->IND_blkCnt;
     }
 
-	/*
-	 * 为减少事务提交次数每次分配设置一个最小块数
-	 */
-	if (i64Alloc > 0) {
-	    blkAllocAtom = max(TPS_INODE_MIN_BLKALLC, i64Alloc);
-	    blkAllocAtom = max(pinode->IND_blkCnt >> 4, blkAllocAtom);
-	    blkAllocAtom = min(TPS_INODE_MAX_BLKALLC, blkAllocAtom);
-	}
+    /*
+     * 为减少事务提交次数每次分配设置一个最小块数
+     */
+    if (i64Alloc > 0) {
+        blkAllocAtom = max(TPS_INODE_MIN_BLKALLC, i64Alloc);
+        blkAllocAtom = max(pinode->IND_blkCnt >> 4, blkAllocAtom);
+        blkAllocAtom = min(TPS_INODE_MAX_BLKALLC, blkAllocAtom);
+    }
 
     while (i64Alloc > 0) {                                              /* 需要新分配块到文件           */
         if (__tpsFsGetFromFreeList(ptrans, psb, 0, blkAllocAtom,

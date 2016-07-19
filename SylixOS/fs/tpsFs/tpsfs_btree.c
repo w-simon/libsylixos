@@ -170,11 +170,11 @@ static VOID  __tpsFsFreeBtrNode (PTPS_INODE pinode, PTPS_BTR_NODE *ppbtrnode)
 ** 调用模块:
 *********************************************************************************************************/
 static BOOL  __tpsSerialBtrNode (PTPS_BTR_NODE   pbtrnode,
-                        		 PUCHAR          pucBuff,
-                        		 UINT            uiBlkSize,
-                        		 UINT            uiItemStart,
-                        		 UINT            uiItemCnt,
-                        		 UINT           *puiOffStart,
+                                 PUCHAR          pucBuff,
+                                 UINT            uiBlkSize,
+                                 UINT            uiItemStart,
+                                 UINT            uiItemCnt,
+                                 UINT           *puiOffStart,
                                  UINT           *puiOffEnd)
 {
     PUCHAR pucPos = pucBuff;
@@ -207,11 +207,11 @@ static BOOL  __tpsSerialBtrNode (PTPS_BTR_NODE   pbtrnode,
 
         if (LW_NULL != puiOffStart && (uiItemStart == i)) {
             (*puiOffStart) = pucPos - pucBuff;
-		}
+        }
 
-		if (LW_NULL != puiOffEnd && (uiItemStart + uiItemCnt == i)) {
-			(*puiOffEnd) = pucPos - pucBuff;
-		}
+        if (LW_NULL != puiOffEnd && (uiItemStart + uiItemCnt == i)) {
+            (*puiOffEnd) = pucPos - pucBuff;
+        }
 
         TPS_CPU_TO_IBLK(pucPos, pbtrnode->ND_kvArr[i].KV_blkKey);
         if (pbtrnode->ND_iType == TPS_BTR_NODE_NON_LEAF) {
@@ -221,16 +221,16 @@ static BOOL  __tpsSerialBtrNode (PTPS_BTR_NODE   pbtrnode,
             TPS_CPU_TO_IBLK(pucPos, pbtrnode->ND_kvArr[i].KV_data.KV_value.KV_blkStart);
             TPS_CPU_TO_IBLK(pucPos, pbtrnode->ND_kvArr[i].KV_data.KV_value.KV_blkCnt);
         }
-	}
-	if (LW_NULL != puiOffStart && (uiItemStart == i)) {
-		(*puiOffStart) = pucPos - pucBuff;
-	}
+    }
+    if (LW_NULL != puiOffStart && (uiItemStart == i)) {
+        (*puiOffStart) = pucPos - pucBuff;
+    }
 
-	if (LW_NULL != puiOffEnd && (uiItemStart + uiItemCnt == i)) {
-		(*puiOffEnd) = pucPos - pucBuff;
-	}
+    if (LW_NULL != puiOffEnd && (uiItemStart + uiItemCnt == i)) {
+        (*puiOffEnd) = pucPos - pucBuff;
+    }
 
-	return  (LW_TRUE);
+    return  (LW_TRUE);
 }
 /*********************************************************************************************************
 ** 函数名称: tpsUnserialBtrNode
@@ -754,7 +754,7 @@ static TPS_RESULT  __tpsFsBtreeInsertNode (PTPS_TRANS       ptrans,
 
         pndSplit->ND_blkThis    = blkAlloc;
         pndSplit->ND_blkNext    = pbtrnode->ND_blkNext;
-		pbtrnode->ND_blkNext    = pndSplit->ND_blkThis;
+        pbtrnode->ND_blkNext    = pndSplit->ND_blkThis;
 
         for (i = 0;
              (i < (pndSplit->ND_uiEntrys)) && (pndSplit->ND_iType != TPS_BTR_NODE_LEAF);
@@ -1007,7 +1007,7 @@ static TPS_RESULT  __tpsFsBtreeRemoveNode (PTPS_TRANS      ptrans,
         }
 
         if (pndParent->ND_uiEntrys == 2) {                /* root的大小需要特殊处理       */
-			uiMaxCnt = MAX_NODE_CNT((psb->SB_uiBlkSize - TPS_INODE_DATASTART), pbtrnode->ND_iType);
+            uiMaxCnt = MAX_NODE_CNT((psb->SB_uiBlkSize - TPS_INODE_DATASTART), pbtrnode->ND_iType);
         }
 
         __tpsFsFreeBtrNode(pinode, &pndParent);
@@ -1072,11 +1072,11 @@ static TPS_RESULT  __tpsFsBtreeRemoveNode (PTPS_TRANS      ptrans,
                                           LW_FALSE, i, 1) != TPS_ERR_NONE) {
                         tpsresRet = TPS_ERR_BTREE_PUT_NODE;
                         goto    error_out;
-					}
+                    }
 
-					__tpsFsFreeBtrNode(pinode, &pndSubNode);
-					__tpsFsFreeBtrNode(pinode, &pndSibling);
-					__tpsFsFreeBtrNode(pinode, &pndParent);
+                    __tpsFsFreeBtrNode(pinode, &pndSubNode);
+                    __tpsFsFreeBtrNode(pinode, &pndSibling);
+                    __tpsFsFreeBtrNode(pinode, &pndParent);
 
                 } else {                                                /* 与左边节点合并               */
                     for (j = pndSibling->ND_uiEntrys, k = 0; k < pbtrnode->ND_uiEntrys; k++) {
@@ -1208,11 +1208,11 @@ static TPS_RESULT  __tpsFsBtreeRemoveNode (PTPS_TRANS      ptrans,
                                           LW_FALSE, i + 1, 1) != TPS_ERR_NONE) {
                         tpsresRet = TPS_ERR_BTREE_PUT_NODE;
                         goto    error_out;
-					}
+                    }
 
-					__tpsFsFreeBtrNode(pinode, &pndSubNode);
-					__tpsFsFreeBtrNode(pinode, &pndSibling);
-					__tpsFsFreeBtrNode(pinode, &pndParent);
+                    __tpsFsFreeBtrNode(pinode, &pndSubNode);
+                    __tpsFsFreeBtrNode(pinode, &pndSibling);
+                    __tpsFsFreeBtrNode(pinode, &pndParent);
 
                 } else {                                                /* 与右边节点合并               */
                     for (j = pbtrnode->ND_uiEntrys, k = 0;
@@ -1326,7 +1326,7 @@ static TPS_RESULT  __tpsFsBtreeRemoveNode (PTPS_TRANS      ptrans,
         pbtrnode->ND_blkThis   = pinode->IND_inum;
         pbtrnode->ND_uiMaxCnt  = MAX_NODE_CNT((psb->SB_uiBlkSize - TPS_INODE_DATASTART),
                                                 pndSubNode->ND_iType);
-		                                                                /* 拷贝子节点内容到父节点       */
+                                                                        /* 拷贝子节点内容到父节点       */
 
         for (i = 0;
              (i < pbtrnode->ND_uiEntrys) && (pbtrnode->ND_iType != TPS_BTR_NODE_LEAF);
@@ -1581,7 +1581,7 @@ static TPS_RESULT  __tpsFsBtreeSet (PTPS_TRANS ptrans, PTPS_INODE pinode, TPS_IB
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-TPS_RESULT tpsFsBtreeInit (PTPS_TRANS ptrans, PTPS_INODE pinode)
+TPS_RESULT  tpsFsBtreeInit (PTPS_TRANS ptrans, PTPS_INODE pinode)
 {
     TPS_BTR_NODE        ndRoot;
     PTPS_SUPER_BLOCK    psb     = LW_NULL;
@@ -2009,7 +2009,7 @@ TPS_RESULT  tpsFsBtreeAdjustBP (PTPS_TRANS ptrans, PTPS_SUPER_BLOCK psb)
         }
     }
 
-	if (pbp->BP_uiBlkCnt <= TPS_MIN_BP_BLK) {                           /* 空闲块太少                   */
+    if (pbp->BP_uiBlkCnt <= TPS_MIN_BP_BLK) {                           /* 空闲块太少                   */
         while (pbp->BP_uiBlkCnt < TPS_ADJUST_BP_BLK) {
             if (tpsFsBtreeAllocBlk(ptrans, psb->SB_pinodeSpaceMng,
                                    0, 1, &blkStart,
@@ -2196,7 +2196,7 @@ TPS_SIZE_T  tpsFsBtreeGetBlkCnt (struct tps_inode *pinode)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-UINT tpsFsBtreeGetLevel (struct tps_inode *pinode)
+UINT  tpsFsBtreeGetLevel (struct tps_inode *pinode)
 {
     UINT                uiLevenCnt  = 0;
     PTPS_BTR_NODE       pndRoot   = LW_NULL;

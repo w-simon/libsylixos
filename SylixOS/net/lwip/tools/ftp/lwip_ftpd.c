@@ -131,7 +131,7 @@ static LW_OBJECT_HANDLE         _G_ulFtpdSessionLock;                   /*  会话
 #define __LW_FTPD_TCP_KEEPIDLE   60                                     /*  空闲时间, 单位秒            */
 #define __LW_FTPD_TCP_KEEPINTVL  60                                     /*  两次探测间的时间间, 单位秒  */
 #define __LW_FTPD_TCP_KEEPCNT    3                                      /*  探测 N 次失败认为是掉线     */
-#define __LW_FTPD_TCP_BACKLOG    3                                      /*  listen backlog              */
+#define __LW_FTPD_TCP_BACKLOG    LW_CFG_NET_FTPD_MAX_LINKS              /*  listen backlog              */
 /*********************************************************************************************************
   shell 函数声明
 *********************************************************************************************************/
@@ -654,8 +654,10 @@ static INT  __ftpdCmdPasv (__PFTPD_SESSION  pftpds)
         
         if (bind(iSock, (struct sockaddr *)&sockaddrin, uiAddrLen) < 0) {
             __LWIP_FTPD_LOG(("ftpd: error binding PASV socket. errno : %d\n", errno));
+        
         } else if (listen(iSock, 1) < 0) {
             __LWIP_FTPD_LOG(("ftpd: error listening on PASV socket. errno : %d\n", errno));
+        
         } else {
             CHAR            cArgBuffer[65];
             ip_addr_t       ipaddr;
@@ -1580,8 +1582,17 @@ static VOID  __inetFtpServerListen (VOID)
         return;
     }
     
-    bind(iSock, (struct sockaddr *)&inaddrLcl, sizeof(inaddrLcl));
-    listen(iSock, __LW_FTPD_TCP_BACKLOG);
+    if (bind(iSock, (struct sockaddr *)&inaddrLcl, sizeof(inaddrLcl))) {
+        _DebugFormat(__ERRORMESSAGE_LEVEL, "can not bind socket %s.\r\n", lib_strerror(errno));
+        close(iSock);
+        return;
+    }
+    
+    if (listen(iSock, __LW_FTPD_TCP_BACKLOG)) {
+        _DebugFormat(__ERRORMESSAGE_LEVEL, "can not listen socket %s.\r\n", lib_strerror(errno));
+        close(iSock);
+        return;
+    }
     
     for (;;) {
         iSockNew = accept(iSock, (struct sockaddr *)&inaddrRmt, &uiLen);
