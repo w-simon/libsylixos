@@ -46,6 +46,7 @@
 2013.04.23  sys_thread_new() 修正注释.
 2013.09.04  优化代码顺序并加入 lwip 断言专用的输出函数.
 2014.07.01  SIO 驱动所有的文件描述符为内核文件描述符操作.
+2016.07.21  使用支持带发送阻塞的消息队列, 不再需要发送同步信号量.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_PANIC
@@ -81,15 +82,9 @@
 #error lwip version too old!
 #endif                                                                  /*  LWIP 1.4.0 以下版本         */
 /*********************************************************************************************************
-  内部操作宏
-  由于 SylixOS 消息队列发送函数无法实现写阻塞, 则这里利用消息队列未使用的 EVENT_pvTcbOwn 保存一个信号量
-  作为写阻塞使用. (SylixOS 内部 EVENT_pvTcbOwn 只被互斥信号量使用)
-*********************************************************************************************************/
-#define __LW_MSG_QUEUE_PRIVAT(ulId)     (_K_eventBuffer[_ObjectGetIndex(ulId)].EVENT_pvTcbOwn)
-/*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
-spinlock_t   _G_slLwip;                                                 /*  多核自旋锁                  */
+static spinlock_t   _G_slLwip;                                          /*  多核自旋锁                  */
 /*********************************************************************************************************
 ** 函数名称: sys_init
 ** 功能描述: 系统接口初始化
@@ -352,7 +347,6 @@ u32_t  sys_arch_sem_wait (sys_sem_t *psem, u32_t timeout)
     }
     
     ulError = API_SemaphoreCPend(*psem, ulTimeout);
-    
     if (ulError) {
         return  (SYS_ARCH_TIMEOUT);
     
@@ -411,7 +405,7 @@ void  sys_sem_set_invalid (sys_sem_t *psem)
 err_t  sys_mbox_new (sys_mbox_t *pmbox, INT  size)
 {
     SYS_ARCH_DECL_PROTECT(lev);
-    LW_OBJECT_HANDLE    hMsgQueueSendLock;
+
     LW_OBJECT_HANDLE    hMsgQueue = API_MsgQueueCreate("lwip_msg", 
                                                        LWIP_MSGQUEUE_SIZE, 
                                                        sizeof(PVOID), 
@@ -424,17 +418,6 @@ err_t  sys_mbox_new (sys_mbox_t *pmbox, INT  size)
         return  (ERR_MEM);
     
     } else {
-        hMsgQueueSendLock = API_SemaphoreBCreate("lwip_msg_send", LW_TRUE,
-                                                 LW_OPTION_WAIT_FIFO | 
-                                                 LW_OPTION_OBJECT_GLOBAL, LW_NULL);
-        if (hMsgQueueSendLock == LW_OBJECT_HANDLE_INVALID) {
-            API_MsgQueueDelete(&hMsgQueue);
-            _DebugHandle(__ERRORMESSAGE_LEVEL, "can not create sendlock.\r\n");
-            SYS_STATS_INC(mbox.err);
-            return  (ERR_MEM);
-        }
-        __LW_MSG_QUEUE_PRIVAT(hMsgQueue) = (PVOID)hMsgQueueSendLock;
-    
         if (pmbox) {
             *pmbox = hMsgQueue;
         }
@@ -458,11 +441,7 @@ err_t  sys_mbox_new (sys_mbox_t *pmbox, INT  size)
 *********************************************************************************************************/
 void  sys_mbox_free (sys_mbox_t *pmbox)
 {
-    LW_OBJECT_HANDLE    hMsgQueueSendLock;
-    
     if (*pmbox) {
-        hMsgQueueSendLock = (LW_OBJECT_HANDLE)__LW_MSG_QUEUE_PRIVAT(*pmbox);
-        API_SemaphoreBDelete(&hMsgQueueSendLock);
         API_MsgQueueDelete(pmbox);
         SYS_STATS_DEC(mbox.used);
     }
@@ -478,30 +457,11 @@ void  sys_mbox_free (sys_mbox_t *pmbox)
 *********************************************************************************************************/
 void  sys_mbox_post (sys_mbox_t *pmbox, void *msg)
 {
-    ULONG               ulError;
-    LW_OBJECT_HANDLE    hMsgQueueSendLock;
-    
     if (pmbox == LW_NULL) {
         return;
     }
     
-    hMsgQueueSendLock = (LW_OBJECT_HANDLE)__LW_MSG_QUEUE_PRIVAT(*pmbox);
-    
-    do {
-        ulError = API_MsgQueueSend(*pmbox, &msg, sizeof(PVOID));
-        if (ulError == ERROR_NONE) {                                    /*  发送成功                    */
-            break;
-        }
-        
-#if LW_CFG_LWIP_DEBUG > 0
-        else if (ulError != ERROR_MSGQUEUE_FULL) {
-            panic("sys_mbox_post() msgqueue error : %s\n", lib_strerror(errno));
-            break;                                                      /*  致命错误                    */
-        }
-#endif                                                                  /*  LW_CFG_LWIP_DEBUG > 0       */
-        
-        API_SemaphoreBPend(hMsgQueueSendLock, LW_OPTION_WAIT_INFINITE); /*  等待可以发送                */
-    } while (1);
+    API_MsgQueueSend2(*pmbox, &msg, sizeof(PVOID), LW_OPTION_WAIT_INFINITE);
 }
 /*********************************************************************************************************
 ** 函数名称: sys_mbox_trypost
@@ -525,9 +485,8 @@ err_t  sys_mbox_trypost (sys_mbox_t *pmbox, void *msg)
         return  (ERR_OK);
     
     }
-
 #if LW_CFG_LWIP_DEBUG > 0
-    else if (ulError != ERROR_MSGQUEUE_FULL) {
+      else if (ulError != ERROR_MSGQUEUE_FULL) {
         panic("lwip sys_mbox_trypost() msgqueue error : %s\n", lib_strerror(errno));
         return  (ERR_MEM);
     }
@@ -570,13 +529,10 @@ u32_t   sys_arch_mbox_fetch (sys_mbox_t *pmbox, void  **msg, u32_t  timeout)
     }
     
     ulError = API_MsgQueueReceive(*pmbox, &pvMsg, sizeof(PVOID), &stMsgLen, ulTimeout);
-    
     if (ulError) {
         return  (SYS_ARCH_TIMEOUT);
     
     } else {
-        LW_OBJECT_HANDLE    hMsgQueueSendLock = (LW_OBJECT_HANDLE)__LW_MSG_QUEUE_PRIVAT(*pmbox);
-    
         ulNowTime = API_TimeGet();
         ulNowTime = (ulNowTime >= ulOldTime) 
                   ? (ulNowTime -  ulOldTime) 
@@ -586,8 +542,6 @@ u32_t   sys_arch_mbox_fetch (sys_mbox_t *pmbox, void  **msg, u32_t  timeout)
         if (msg) {
             *msg = pvMsg;                                               /*  需要保存消息                */
         }
-        
-        API_SemaphoreBPost(hMsgQueueSendLock);                          /*  有空间, 允许发送数据        */
         
         return  (timeout);
     }
@@ -616,13 +570,9 @@ u32_t   sys_arch_mbox_tryfetch (sys_mbox_t *pmbox, void  **msg)
         return  (SYS_MBOX_EMPTY);
     
     } else {
-        LW_OBJECT_HANDLE    hMsgQueueSendLock = (LW_OBJECT_HANDLE)__LW_MSG_QUEUE_PRIVAT(*pmbox);
-        
         if (msg) {
             *msg = pvMsg;                                               /*  需要保存消息                */
         }
-        
-        API_SemaphoreBPost(hMsgQueueSendLock);                          /*  有空间, 允许发送数据        */
         
         return  (ERR_OK);
     }

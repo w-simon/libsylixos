@@ -119,7 +119,6 @@ void  sys_error_print(const char *msg, const char *func, const char *file, int l
   关键区域保护
 *********************************************************************************************************/
 
-extern  spinlock_t                  _G_slLwip;
 void  sys_arch_protect(INTREG  *pireg);
 void  sys_arch_unprotect(INTREG  ireg);
 

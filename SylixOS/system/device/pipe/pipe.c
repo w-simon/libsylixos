@@ -34,6 +34,7 @@
 2010.01.04  使用新的时区信息.
 2010.01.14  升级了 abort.
 2010.09.11  创建设备时, 指定设备类型.
+2016.07.21  不再需要写同步信号量.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -111,21 +112,11 @@ INT  API_PipeDevCreate (PCHAR  pcName,
     p_pipedev->PIPEDEV_ulRTimeout = LW_OPTION_WAIT_INFINITE;             /*  初始化为永久等待           */
     p_pipedev->PIPEDEV_ulWTimeout = LW_OPTION_WAIT_INFINITE;             /*  初始化为永久等待           */
     
-    p_pipedev->PIPEDEV_hWriteLock = API_SemaphoreBCreate("pipe_wsync", 
-                                                          LW_TRUE,
-                                                          _G_ulPipeLockOpt | LW_OPTION_OBJECT_GLOBAL,
-                                                          LW_NULL);
-    if (!p_pipedev->PIPEDEV_hWriteLock) {
-        __SHEAP_FREE((PVOID)p_pipedev);
-        return  (PX_ERROR);
-    }
-
     p_pipedev->PIPEDEV_hMsgQueue  = API_MsgQueueCreate("pipe_msg",
                                                        ulNMessages, stNBytes,
                                                        _G_ulPipeLockOpt | LW_OPTION_OBJECT_GLOBAL,
                                                        LW_NULL);
     if (!p_pipedev->PIPEDEV_hMsgQueue) {
-        API_SemaphoreBDelete(&p_pipedev->PIPEDEV_hWriteLock);
         __SHEAP_FREE((PVOID)p_pipedev);
         return  (PX_ERROR);
     }
@@ -133,7 +124,6 @@ INT  API_PipeDevCreate (PCHAR  pcName,
     SEL_WAKE_UP_LIST_INIT(&p_pipedev->PIPEDEV_selwulList);
     
     if (iosDevAddEx(&p_pipedev->PIPEDEV_devhdrHdr, pcName, _G_iPipeDrvNum, DT_FIFO) != ERROR_NONE) {
-        API_SemaphoreBDelete(&p_pipedev->PIPEDEV_hWriteLock);
         API_MsgQueueDelete(&p_pipedev->PIPEDEV_hMsgQueue);
         SEL_WAKE_UP_LIST_TERM(&p_pipedev->PIPEDEV_selwulList);
         __SHEAP_FREE((PVOID)p_pipedev);
@@ -199,7 +189,6 @@ INT  API_PipeDevDelete (PCHAR  pcName, BOOL  bForce)
 
     SEL_WAKE_UP_LIST_TERM(&p_pipedev->PIPEDEV_selwulList);
     
-    API_SemaphoreBDelete(&p_pipedev->PIPEDEV_hWriteLock);
     API_MsgQueueDelete(&p_pipedev->PIPEDEV_hMsgQueue);
 
     __SHEAP_FREE((PVOID)p_pipedev);

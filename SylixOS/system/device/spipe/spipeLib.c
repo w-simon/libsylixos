@@ -217,6 +217,7 @@ INT  _SpipeClose (PLW_SPIPE_FILE  pspipefil)
         __SHEAP_FREE(pspipefil);
         
         return  (ERROR_NONE);
+    
     } else {
         return  (PX_ERROR);
     }

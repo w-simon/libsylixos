@@ -23,6 +23,7 @@
 2009.03.15  使 ppcb 的获取更为优化.
 2009.11.20  WatchDogTimerHook 改为 OSTaskWatchDogTimerHook.
 2010.01.22  使用内核模式进行保护. 以支持 SMP.
+2016.07.21  超时后如果等待事件, 则直接从事件中退链.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -98,6 +99,18 @@ VOID  _ThreadTick (VOID)
         ptcb->TCB_usStatus &= (~LW_THREAD_STATUS_PEND_ANY);             /*  等待超时清除事件等待位      */
         ptcb->TCB_ucWaitTimeout = LW_WAIT_TIME_OUT;                     /*  等待超时                    */
     
+#if (LW_CFG_EVENT_EN > 0) && (LW_CFG_MAX_EVENTS > 0)
+        if (ptcb->TCB_peventPtr) {
+            _EventUnQueue(ptcb);
+        } else 
+#endif                                                                  /*  (LW_CFG_EVENT_EN > 0) &&    */
+        {
+#if (LW_CFG_EVENTSET_EN > 0) && (LW_CFG_MAX_EVENTSETS > 0)
+            if (ptcb->TCB_pesnPtr) {
+                _EventSetUnQueue(ptcb->TCB_pesnPtr);
+            }
+#endif                                                                  /*  (LW_CFG_EVENTSET_EN > 0) && */
+        }
     } else {
         ptcb->TCB_ucWaitTimeout = LW_WAIT_TIME_CLEAR;                   /*  没有等待事件                */
     }

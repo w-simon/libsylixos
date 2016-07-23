@@ -37,7 +37,7 @@
 ** 调用模块: 
                                            API 函数
 *********************************************************************************************************/
-#if LW_CFG_SEMC_EN > 0
+#if (LW_CFG_SEMB_EN > 0) && (LW_CFG_MAX_EVENTS > 0)
 
 LW_API  
 ULONG  API_SemaphoreBTryPend (LW_OBJECT_HANDLE  ulId)

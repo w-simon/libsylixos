@@ -38,7 +38,6 @@ typedef struct {
     LW_SEL_WAKEUPLIST      PIPEDEV_selwulList;                          /*  等待链                      */
 
     LW_OBJECT_HANDLE       PIPEDEV_hMsgQueue;
-    LW_OBJECT_HANDLE       PIPEDEV_hWriteLock;
     
     INT                    PIPEDEV_iFlags;                              /*  建立属性                    */
     INT                    PIPEDEV_iMode;                               /*  操作方式                    */

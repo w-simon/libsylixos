@@ -61,7 +61,6 @@ VOID  _TimerInit (VOID)
     ptmrTemp2 = &_K_tmrBuffer[1];
     
     for (ulI = 0; ulI < (LW_CFG_MAX_TIMERS - 1); ulI++) {
-        
         ptmrTemp1->TIMER_ucType  = LW_TYPE_TIMER_UNUSED;
         ptmrTemp1->TIMER_usIndex = (UINT16)ulI;
         

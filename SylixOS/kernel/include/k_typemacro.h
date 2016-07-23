@@ -30,8 +30,8 @@
   SCHEDLER
 *********************************************************************************************************/
 
-#define	 LW_SCHED_ACT_INTERRUPT         0x00                            /*  任务被中断激活而就绪        */
-#define	 LW_SCHED_ACT_OTHER             0x01                            /*  任务被其他情况激活          */
+#define  LW_SCHED_ACT_INTERRUPT         0x00                            /*  任务被中断激活而就绪        */
+#define  LW_SCHED_ACT_OTHER             0x01                            /*  任务被其他情况激活          */
 
 /*********************************************************************************************************
   TIMER
@@ -51,7 +51,8 @@
 #define  LW_TYPE_EVENT_UNUSED           0                               /*  空事件                      */
 #define  LW_TYPE_EVENT_MSGQUEUE         2                               /*  消息队列事件                */
 #define  LW_TYPE_EVENT_SEMC             3                               /*  计数信号量                  */
-#define  LW_TYPE_EVENT_SEMB        	    6                               /*  二进制信号量                */
+#define  LW_TYPE_EVENT_SEMB             6                               /*  二进制信号量                */
+#define  LW_TYPE_EVENT_SEMRW            1                               /*  读写信号量                  */
 #define  LW_TYPE_EVENT_MUTEX            4                               /*  互斥信号量                  */
 #define  LW_TYPE_EVENT_EVENTSET         5                               /*  事件标志组                  */
 
@@ -78,7 +79,7 @@
   THREAD STATUS INTERNAL! (初始化的线程, 还没有得到执行)
 *********************************************************************************************************/
 
-#define	 LW_THREAD_STATUS_INIT          0x0040                          /*  初始化                      */
+#define  LW_THREAD_STATUS_INIT          0x0040                          /*  初始化                      */
                                         
 /*********************************************************************************************************
   THREAD STATUS INTERNAL! (以下状态如果在 SMP 系统, 则需要请求设置)

@@ -56,7 +56,6 @@ VOID  _MsgQueueInit (VOID)
     pmsgqueueTemp2 = &_K_msgqueueBuffer[1];
     
     for (ulI = 0; ulI < ((LW_CFG_MAX_MSGQUEUES) - 1); ulI++) {
-    
         pmonoTemp1 = &pmsgqueueTemp1->MSGQUEUE_monoResrcList;
         pmonoTemp2 = &pmsgqueueTemp2->MSGQUEUE_monoResrcList;
         

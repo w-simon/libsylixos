@@ -33,18 +33,18 @@
   _EVENT_FIFO_Q_PTR
 *********************************************************************************************************/
 
-#define _EVENT_FIFO_Q_PTR(ppringListPtr)                                                        \
-do {                                                                                            \
-    ppringListPtr = &pevent->EVENT_wqWaitList.WAITQUEUE_wlWaitList.WAITLIST_pringFIFOList;      \
+#define _EVENT_FIFO_Q_PTR(iQ, ppringListPtr)                        \
+do {                                                                \
+    ppringListPtr = &pevent->EVENT_wqWaitQ[iQ].WQ_wlQ.WL_pringFifo; \
 } while (0)
 
 /*********************************************************************************************************
   _EVENT_PRIORITY_Q_PTR
 *********************************************************************************************************/
 
-#define _EVENT_PRIORITY_Q_PTR(ppringListPtr, ucPrioIndex)                                               \
-do {                                                                                                    \
-    ppringListPtr = &pevent->EVENT_wqWaitList.WAITQUEUE_wlWaitList.WAITLIST_pringPRIOList[ucPrioIndex]; \
+#define _EVENT_PRIORITY_Q_PTR(iQ, ppringListPtr, ucPrioIndex)                       \
+do {                                                                                \
+    ppringListPtr = &pevent->EVENT_wqWaitQ[iQ].WQ_wlQ.WL_pringPrio[ucPrioIndex];    \
 } while (0)
 
 /*********************************************************************************************************
@@ -53,9 +53,9 @@ do {                                                                            
   find the pointer which point a FIFO queue, a thread removed form it.
 *********************************************************************************************************/
 
-#define _EVENT_DEL_Q_FIFO(ppringListPtr)                                                        \
-do {                                                                                            \
-    ppringListPtr = &pevent->EVENT_wqWaitList.WAITQUEUE_wlWaitList.WAITLIST_pringFIFOList;      \
+#define _EVENT_DEL_Q_FIFO(iQ, ppringListPtr)                        \
+do {                                                                \
+    ppringListPtr = &pevent->EVENT_wqWaitQ[iQ].WQ_wlQ.WL_pringFifo; \
 } while (0)
 
 /*********************************************************************************************************
@@ -64,35 +64,35 @@ do {                                                                            
   find the pointer which point a priority queue, a thread removed form it.
 *********************************************************************************************************/
 
-#define _EVENT_DEL_Q_PRIORITY(ppringListPtr)                                                  \
-do {                                                                                          \
-    REGISTER INT    i;                                                                        \
-    ppringListPtr = &pevent->EVENT_wqWaitList.WAITQUEUE_wlWaitList.WAITLIST_pringPRIOList[0]; \
-    for (i = 0; i < __THREAD_PRIORITY_Q_NUM; i++) {                                           \
-        if (*ppringListPtr) {                                                                 \
-            break;                                                                            \
-        } else {                                                                              \
-            ppringListPtr++;                                                                  \
-        }                                                                                     \
-    }                                                                                         \
+#define _EVENT_DEL_Q_PRIORITY(iQ, ppringListPtr)                        \
+do {                                                                    \
+    REGISTER INT    i;                                                  \
+    ppringListPtr = &pevent->EVENT_wqWaitQ[iQ].WQ_wlQ.WL_pringPrio[0];  \
+    for (i = 0; i < __EVENT_Q_SIZE; i++) {                              \
+        if (*ppringListPtr) {                                           \
+            break;                                                      \
+        } else {                                                        \
+            ppringListPtr++;                                            \
+        }                                                               \
+    }                                                                   \
 } while (0)
 
 /*********************************************************************************************************
   _EVENT_INDEX_Q_PRIORITY
 *********************************************************************************************************/
 
-#define _EVENT_INDEX_Q_PRIORITY(ucPriority, ucIndex)                    \
-do {                                                                    \
-    ucIndex = (UINT8)(ucPriority / (__EACH_WAIT_QUEUE_PRIORITY + 1));   \
+#define _EVENT_INDEX_Q_PRIORITY(ucPriority, ucIndex)    \
+do {                                                    \
+    ucIndex = (UINT8)(ucPriority >> __EVENT_Q_SHIFT);   \
 } while (0)
 
 /*********************************************************************************************************
   _EventWaitNum
 *********************************************************************************************************/
 
-static LW_INLINE UINT16  _EventWaitNum (PLW_CLASS_EVENT    pevent)
+static LW_INLINE UINT16  _EventWaitNum (INT  iQ, PLW_CLASS_EVENT    pevent)
 {
-    return  (pevent->EVENT_wqWaitList.WAITQUEUE_usWaitNum);
+    return  (pevent->EVENT_wqWaitQ[iQ].WQ_usNum);
 }
 
 /*********************************************************************************************************

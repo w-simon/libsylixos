@@ -134,6 +134,7 @@ __wait_again:
         goto    __wait_over;
     }
     
+    ptcbCur->TCB_iPendQ         = EVENT_SEM_Q;
     ptcbCur->TCB_usStatus      |= LW_THREAD_STATUS_SEM;                 /*  写状态位，开始等待          */
     ptcbCur->TCB_ucWaitTimeout  = LW_WAIT_TIME_CLEAR;                   /*  清空等待时间                */
     
@@ -146,12 +147,12 @@ __wait_again:
         
     if (pevent->EVENT_ulOption & LW_OPTION_WAIT_PRIORITY) {             /*  按优先级等待                */
         _EVENT_INDEX_Q_PRIORITY(ptcbCur->TCB_ucPriority, ucPriorityIndex);
-        _EVENT_PRIORITY_Q_PTR(ppringList, ucPriorityIndex);
+        _EVENT_PRIORITY_Q_PTR(EVENT_SEM_Q, ppringList, ucPriorityIndex);
         ptcbCur->TCB_ppringPriorityQueue = ppringList;                  /*  记录等待队列位置            */
         _EventWaitPriority(pevent, ppringList);                         /*  加入优先级等待表            */
     
     } else {                                                            /*  按 FIFO 等待                */
-        _EVENT_FIFO_Q_PTR(ppringList);                                  /*  确定 FIFO 队列的位置        */
+        _EVENT_FIFO_Q_PTR(EVENT_SEM_Q, ppringList);                     /*  确定 FIFO 队列的位置        */
         _EventWaitFifo(pevent, ppringList);                             /*  加入 FIFO 等待表            */
     }
     
@@ -163,34 +164,21 @@ __wait_again:
                       ulId, ulTimeout, LW_NULL);
     
     iSchedRet = __KERNEL_EXIT();                                        /*  调度器解锁                  */
-    if (iSchedRet == LW_SIGNAL_EINTR) {
-        if (ulEventOption & LW_OPTION_SIGNAL_INTER) {
+    if (iSchedRet) {
+        if ((iSchedRet == LW_SIGNAL_EINTR) && 
+            (ulEventOption & LW_OPTION_SIGNAL_INTER)) {
             _ErrorHandle(EINTR);
             return  (EINTR);
         }
         ulTimeout = _sigTimeoutRecalc(ulTimeSave, ulTimeout);           /*  重新计算超时时间            */
-        goto    __wait_again;
-    
-    } else if (iSchedRet == LW_SIGNAL_RESTART) {
-        ulTimeout = _sigTimeoutRecalc(ulTimeSave, ulTimeout);           /*  重新计算超时时间            */
+        if (ulTimeout == LW_OPTION_NOT_WAIT) {
+            _ErrorHandle(ERROR_THREAD_WAIT_TIMEOUT);
+            return  (ERROR_THREAD_WAIT_TIMEOUT);
+        }
         goto    __wait_again;
     }
     
     if (ptcbCur->TCB_ucWaitTimeout == LW_WAIT_TIME_OUT) {               /*  等待超时                    */
-        iregInterLevel = __KERNEL_ENTER_IRQ();                          /*  进入内核                    */
-        if (ptcbCur->TCB_ucWaitTimeout == LW_WAIT_TIME_CLEAR) {         /*  是否在上面瞬间被激活        */
-            __KERNEL_EXIT_IRQ(iregInterLevel);                          /*  退出内核                    */
-            ulError = ERROR_NONE;                                       /*  正常                        */
-            goto    __wait_over;
-        }
-        
-        if (pevent->EVENT_ulOption & LW_OPTION_WAIT_PRIORITY) {
-            _EventTimeoutPriority(pevent, ppringList);                  /*  等待超时恢复                */
-        } else {
-            _EventTimeoutFifo(pevent, ppringList);                      /*  等待超时恢复                */
-        }
-        
-        __KERNEL_EXIT_IRQ(iregInterLevel);                              /*  退出内核                    */
         ulError = ERROR_THREAD_WAIT_TIMEOUT;                            /*  超时                        */
         
     } else {
@@ -317,6 +305,7 @@ __wait_again:
         goto    __wait_over;
     }
     
+    ptcbCur->TCB_iPendQ         = EVENT_SEM_Q;
     ptcbCur->TCB_usStatus      |= LW_THREAD_STATUS_SEM;                 /*  写状态位，开始等待          */
     ptcbCur->TCB_ucWaitTimeout  = LW_WAIT_TIME_CLEAR;                   /*  清空等待时间                */
     
@@ -329,12 +318,12 @@ __wait_again:
         
     if (pevent->EVENT_ulOption & LW_OPTION_WAIT_PRIORITY) {             /*  按优先级等待                */
         _EVENT_INDEX_Q_PRIORITY(ptcbCur->TCB_ucPriority, ucPriorityIndex);
-        _EVENT_PRIORITY_Q_PTR(ppringList, ucPriorityIndex);
+        _EVENT_PRIORITY_Q_PTR(EVENT_SEM_Q, ppringList, ucPriorityIndex);
         ptcbCur->TCB_ppringPriorityQueue = ppringList;                  /*  记录等待队列位置            */
         _EventWaitPriority(pevent, ppringList);                         /*  加入优先级等待表            */
     
     } else {                                                            /*  按 FIFO 等待                */
-        _EVENT_FIFO_Q_PTR(ppringList);                                  /*  确定 FIFO 队列的位置        */
+        _EVENT_FIFO_Q_PTR(EVENT_SEM_Q, ppringList);                     /*  确定 FIFO 队列的位置        */
         _EventWaitFifo(pevent, ppringList);                             /*  加入 FIFO 等待表            */
     }
     
@@ -346,34 +335,21 @@ __wait_again:
                       ulId, ulTimeout, LW_NULL);
     
     iSchedRet = __KERNEL_EXIT();                                        /*  调度器解锁                  */
-    if (iSchedRet == LW_SIGNAL_EINTR) {
-        if (ulEventOption & LW_OPTION_SIGNAL_INTER) {
+    if (iSchedRet) {
+        if ((iSchedRet == LW_SIGNAL_EINTR) && 
+            (ulEventOption & LW_OPTION_SIGNAL_INTER)) {
             _ErrorHandle(EINTR);
             return  (EINTR);
         }
         ulTimeout = _sigTimeoutRecalc(ulTimeSave, ulTimeout);           /*  重新计算超时时间            */
-        goto    __wait_again;
-    
-    } else if (iSchedRet == LW_SIGNAL_RESTART) {
-        ulTimeout = _sigTimeoutRecalc(ulTimeSave, ulTimeout);           /*  重新计算超时时间            */
+        if (ulTimeout == LW_OPTION_NOT_WAIT) {
+            _ErrorHandle(ERROR_THREAD_WAIT_TIMEOUT);
+            return  (ERROR_THREAD_WAIT_TIMEOUT);
+        }
         goto    __wait_again;
     }
     
     if (ptcbCur->TCB_ucWaitTimeout == LW_WAIT_TIME_OUT) {               /*  等待超时                    */
-        iregInterLevel = __KERNEL_ENTER_IRQ();                          /*  进入内核                    */
-        if (ptcbCur->TCB_ucWaitTimeout == LW_WAIT_TIME_CLEAR) {         /*  是否在上面瞬间被激活        */
-            __KERNEL_EXIT_IRQ(iregInterLevel);                          /*  退出内核                    */
-            ulError = ERROR_NONE;                                       /*  正常                        */
-            goto    __wait_over;
-        }
-        
-        if (pevent->EVENT_ulOption & LW_OPTION_WAIT_PRIORITY) {
-            _EventTimeoutPriority(pevent, ppringList);                  /*  等待超时恢复                */
-        } else {
-            _EventTimeoutFifo(pevent, ppringList);                      /*  等待超时恢复                */
-        }
-        
-        __KERNEL_EXIT_IRQ(iregInterLevel);                              /*  退出内核                    */
         ulError = ERROR_THREAD_WAIT_TIMEOUT;                            /*  超时                        */
         
     } else {

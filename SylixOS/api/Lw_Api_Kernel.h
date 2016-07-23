@@ -296,6 +296,28 @@
 #define Lw_SemaphoreM_GetName                   API_SemaphoreGetName
 
 /*********************************************************************************************************
+  RW SEMAPHORE
+*********************************************************************************************************/
+
+#define Lw_SemaphoreRW_Create                   API_SemaphoreRWCreate
+#define Lw_SemaphoreRW_Delete                   API_SemaphoreRWDelete
+
+#define Lw_SemaphoreRW_RWait                    API_SemaphoreRWPendR
+#define Lw_SemaphoreRW_RGet                     API_SemaphoreRWPendR
+#define Lw_SemaphoreRW_RTake                    API_SemaphoreRWPendR
+
+#define Lw_SemaphoreRW_WWait                    API_SemaphoreRWPendW
+#define Lw_SemaphoreRW_WGet                     API_SemaphoreRWPendW
+#define Lw_SemaphoreRW_WTake                    API_SemaphoreRWPendW
+
+#define Lw_SemaphoreRW_Give                     API_SemaphoreRWPost
+#define Lw_SemaphoreRW_Post                     API_SemaphoreRWPost
+#define Lw_SemaphoreRW_Send                     API_SemaphoreRWPost
+
+#define Lw_SemaphoreRW_Status                   API_SemaphoreRWStatus
+#define Lw_SemaphoreRW_Info                     API_SemaphoreRWStatus
+
+/*********************************************************************************************************
   MESSAGE QUEUE
 *********************************************************************************************************/
 
@@ -307,9 +329,13 @@
 #define Lw_MsgQueue_TryReceive                  API_MsgQueueTryReceive
 
 #define Lw_MsgQueue_Send                        API_MsgQueueSend
+#define Lw_MsgQueue_Send2                       API_MsgQueueSend2
 #define Lw_MsgQueue_SendEx                      API_MsgQueueSendEx
+#define Lw_MsgQueue_SendEx2                     API_MsgQueueSendEx2
 
 #define Lw_MsgQueue_Flush                       API_MsgQueueFlush
+#define Lw_MsgQueue_FlushReceive                API_MsgQueueFlushReceive
+#define Lw_MsgQueue_FlushSend                   API_MsgQueueFlushSend
 #define Lw_MsgQueue_Clear                       API_MsgQueueClear
 
 #define Lw_MsgQueue_Status                      API_MsgQueueStatus

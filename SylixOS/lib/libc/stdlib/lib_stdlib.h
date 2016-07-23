@@ -53,17 +53,17 @@ typedef struct {
   LIB API
 *********************************************************************************************************/
 
-PVOID           lib_malloc(size_t  stNbytes);
-PVOID           lib_mallocalign(size_t  stNbytes, size_t  stAlign);
-PVOID           lib_memalign(size_t  stAlign, size_t  stNbytes);
+PVOID           lib_malloc(size_t  stNBytes);
+PVOID           lib_mallocalign(size_t  stNBytes, size_t  stAlign);
+PVOID           lib_memalign(size_t  stAlign, size_t  stNBytes);
 VOID            lib_free(PVOID  pvPtr);
 PVOID           lib_calloc(size_t  stNNum, size_t  stSize);
 PVOID           lib_realloc(PVOID  pvPtr, size_t  stNewSize);
-INT             lib_posix_memalign(PVOID *ppvMem, size_t  stAlign, size_t  stNbytes);
+INT             lib_posix_memalign(PVOID *ppvMem, size_t  stAlign, size_t  stNBytes);
 
 PVOID           lib_xmalloc(size_t  stSize);
-PVOID           lib_xmallocalign(size_t  stNbytes, size_t  stAlign);
-PVOID           lib_xmemalign(size_t  stAlign, size_t  stNbytes);
+PVOID           lib_xmallocalign(size_t  stNBytes, size_t  stAlign);
+PVOID           lib_xmemalign(size_t  stAlign, size_t  stNBytes);
 PVOID           lib_xcalloc(size_t  stNNum, size_t  stSize);
 PVOID           lib_xrealloc(PVOID  pvPtr, size_t  stNewSize);
 
@@ -94,7 +94,7 @@ lib_lldiv_t     lib_lldiv(INT64  numer, INT64  denom);
   C++ new 
 *********************************************************************************************************/
 
-PVOID           lib_malloc_new(size_t  stNbytes);
+PVOID           lib_malloc_new(size_t  stNBytes);
 
 /*********************************************************************************************************
   BSD CLIB API

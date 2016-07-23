@@ -871,7 +871,7 @@ int  pthread_mutex_getinfo (pthread_mutex_t  *pmutex, pthread_mutex_info_t  *inf
         info->cancel_type = PTHREAD_CANCEL_UNSAFE;
     }
     
-    info->blocknum = _EventWaitNum(pevent);
+    info->blocknum = _EventWaitNum(EVENT_SEM_Q, pevent);
     
     if (info->value == 0) {
         info->ownner = ((PLW_CLASS_TCB)(pevent->EVENT_pvTcbOwn))->TCB_ulId;

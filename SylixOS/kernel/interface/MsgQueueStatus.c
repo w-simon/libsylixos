@@ -105,7 +105,8 @@ ULONG  API_MsgQueueStatus (LW_OBJECT_HANDLE   ulId,
     }
     
     if (pulThreadBlockNum) {
-        *pulThreadBlockNum = _EventWaitNum(pevent);                     /*  线程等待数量                */
+        *pulThreadBlockNum  = _EventWaitNum(EVENT_MSG_Q_R, pevent);     /*  线程等待数量                */
+        *pulThreadBlockNum += _EventWaitNum(EVENT_MSG_Q_S, pevent);     /*  线程等待数量                */
     }
     __KERNEL_EXIT_IRQ(iregInterLevel);                                  /*  退出内核                    */
     

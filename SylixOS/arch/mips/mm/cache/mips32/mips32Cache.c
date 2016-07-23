@@ -668,11 +668,9 @@ static INT  mips32CacheProbe (CPCHAR   pcMachineName)
         _G_bHaveFillI         = LW_FALSE;
         _G_bHaveHitWritebackD = LW_FALSE;
 
-    } else if (lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X) == 0) {
-        _G_bLs2xECC          = LW_TRUE;
-
-    } else {
-
+    } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X) == 0) ||
+               (lib_strcmp(pcMachineName, MIPS_MACHINE_LS3X) == 0)) {
+        _G_bLs2xECC = LW_TRUE;
     }
 
     uiConfig = mipsCp0ConfigRead();                                     /*  ¶Á Config0                  */

@@ -21,6 +21,7 @@
 ** BUG
 2007.09.19  加入 _DebugHandle() 功能。
 2009.04.08  加入对 SMP 多核的支持.
+2016.07.21  Clear 队列需要激活写线程.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -43,6 +44,8 @@ ULONG  API_MsgQueueClear (LW_OBJECT_HANDLE  ulId)
     REGISTER UINT16                usIndex;
     REGISTER PLW_CLASS_EVENT       pevent;
     REGISTER PLW_CLASS_MSGQUEUE    pmsgqueue;
+    REGISTER PLW_CLASS_TCB         ptcb;
+    REGISTER PLW_LIST_RING        *ppringList;                          /*  等待队列地址                */
     
     usIndex = _ObjectGetIndex(ulId);
     
@@ -74,6 +77,22 @@ ULONG  API_MsgQueueClear (LW_OBJECT_HANDLE  ulId)
     
     pmsgqueue->MSGQUEUE_pucInputPtr  = pmsgqueue->MSGQUEUE_pucBufferLowAddr;
     pmsgqueue->MSGQUEUE_pucOutputPtr = pmsgqueue->MSGQUEUE_pucBufferLowAddr;
+    
+    while (_EventWaitNum(EVENT_MSG_Q_S, pevent)) {                      /*  是否存在正在等待的任务      */
+        if (pevent->EVENT_ulOption & LW_OPTION_WAIT_PRIORITY) {         /*  优先级等待队列              */
+            _EVENT_DEL_Q_PRIORITY(EVENT_MSG_Q_S, ppringList);           /*  激活优先级等待线程          */
+            ptcb = _EventReadyPriorityLowLevel(pevent, LW_NULL, ppringList);
+        
+        } else {
+            _EVENT_DEL_Q_FIFO(EVENT_MSG_Q_S, ppringList);               /*  激活FIFO等待线程            */
+            ptcb = _EventReadyFifoLowLevel(pevent, LW_NULL, ppringList);
+        }
+        
+        KN_INT_ENABLE(iregInterLevel);                                  /*  打开中断                    */
+        _EventReadyHighLevel(ptcb, LW_THREAD_STATUS_MSGQUEUE);          /*  处理 TCB                    */
+        iregInterLevel = KN_INT_DISABLE();                              /*  关闭中断                    */
+    }
+    
     __KERNEL_EXIT_IRQ(iregInterLevel);                                  /*  退出内核                    */
         
     MONITOR_EVT_LONG1(MONITOR_EVENT_ID_MSGQ, MONITOR_EVENT_MSGQ_CLEAR, ulId, LW_NULL);

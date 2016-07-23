@@ -61,7 +61,6 @@ VOID  _DpmaInit (VOID)
     pdpmaTemp2 = &_G_dpmaBuffer[1];
     
     for (ulI = 0; ulI < (LW_CFG_MAX_MPDPMAS - 1); ulI++) {
-        
         pdpmaTemp1->DPMA_usIndex = (UINT16)ulI;
         
         pmonoTemp1 = &pdpmaTemp1->DPMA_monoResrcList;

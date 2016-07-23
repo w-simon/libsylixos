@@ -317,8 +317,6 @@ VOID  _DelTCBFromEventPriority(PLW_CLASS_TCB ptcb, PLW_CLASS_EVENT pevent, PLW_L
 
 VOID  _EventWaitFifo(PLW_CLASS_EVENT         pevent, PLW_LIST_RING  *ppringList);
 VOID  _EventWaitPriority(PLW_CLASS_EVENT     pevent, PLW_LIST_RING  *ppringList);
-VOID  _EventTimeoutFifo(PLW_CLASS_EVENT      pevent, PLW_LIST_RING  *ppringList);
-VOID  _EventTimeoutPriority(PLW_CLASS_EVENT  pevent, PLW_LIST_RING  *ppringList);
 
 /*********************************************************************************************************
   互斥信号量优先级继承
@@ -340,7 +338,7 @@ PLW_CLASS_TCB    _EventReadyPriorityLowLevel(PLW_CLASS_EVENT   pevent,
 
 VOID             _EventReadyHighLevel(PLW_CLASS_TCB  ptcb, UINT16  usWaitType);
 
-PLW_CLASS_EVENT  _EventUnlink(PLW_CLASS_TCB  ptcb);
+PLW_CLASS_EVENT  _EventUnQueue(PLW_CLASS_TCB  ptcb);
 
 #endif                                                                  /*  (LW_CFG_EVENT_EN > 0)       */
                                                                         /*  (LW_CFG_MAX_EVENTS > 0)     */
@@ -591,7 +589,7 @@ VOID           _ThreadFpuSave(PLW_CLASS_TCB   ptcbCur, BOOL bIntSwitch);
 *********************************************************************************************************/
 
 #if (LW_CFG_EVENTSET_EN > 0) && (LW_CFG_MAX_EVENTSETS > 0)
-VOID           _EventSetUnlink(PLW_CLASS_EVENTSETNODE   pesn);
+VOID           _EventSetUnQueue(PLW_CLASS_EVENTSETNODE  pesn);
 VOID           _EventSetBlock(PLW_CLASS_EVENTSET        pes,
                               PLW_CLASS_EVENTSETNODE    pesn,
                               ULONG                     ulEvents,

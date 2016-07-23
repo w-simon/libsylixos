@@ -41,10 +41,11 @@ VOID  archMmuInit (CPCHAR  pcMachineName)
 
     _DebugFormat(__LOGMESSAGE_LEVEL, "%s MMU initialization.\r\n", pcMachineName);
 
-    if (lib_strcmp(pcMachineName, MIPS_MACHINE_LS1X)   == 0 ||
-        lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X)   == 0 ||
-        lib_strcmp(pcMachineName, MIPS_MACHINE_24KF)   == 0 ||
-        lib_strcmp(pcMachineName, MIPS_MACHINE_JZ47XX) == 0) {
+    if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS1X)   == 0) ||
+        (lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X)   == 0) ||
+        (lib_strcmp(pcMachineName, MIPS_MACHINE_LS3X)   == 0) ||
+        (lib_strcmp(pcMachineName, MIPS_MACHINE_24KF)   == 0) ||
+        (lib_strcmp(pcMachineName, MIPS_MACHINE_JZ47XX) == 0)) {
         mips32MmuInit(pmmuop, pcMachineName);
 
     } else {

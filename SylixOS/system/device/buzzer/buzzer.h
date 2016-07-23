@@ -10,77 +10,61 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: cppMemLib.cpp
+** 文   件   名: buzzer.h
 **
 ** 创   建   人: Han.Hui (韩辉)
 **
-** 文件创建日期: 2009 年 10 月 14 日
+** 文件创建日期: 2016 年 07 月 23 日
 **
-** 描        述: 操作系统平台 C++ 内存支持 (重载 new, delete 运算符). 
-                 (为内核模块提供简单的 C++ 支持, 应用程序则使用 libstdc++ or libsupc++)
+** 描        述: 标准蜂鸣器驱动.
+*********************************************************************************************************/
 
-** BUG:
-2011.03.06  使用 __SHEAP... 宏, 方便内存跟踪工具.
-*********************************************************************************************************/
-#include "SylixOS.h"
+#ifndef __BUZZER_H
+#define __BUZZER_H
+
 /*********************************************************************************************************
-  C++ 专用内存开辟函数
+  buzzer message
+  eg: write(fd_buzzer, (void *)&buzzer_msg[0], sizeof(buzzer_msg));
 *********************************************************************************************************/
-extern "C" {
-PVOID  lib_malloc_new(size_t  stNBytes);
-}
+
+typedef struct {
+    UINT32      BUZZER_uiHz;                                            /*  beep HZ                     */
+    UINT32      BUZZER_uiMs;                                            /*  beep time                   */
+    UINT32      BUZZER_uiOn;                                            /*  beep or silent              */
+    UINT32      BUZZER_uiReserved;
+} BUZZER_MSG;
+typedef BUZZER_MSG  *PBUZZER_MSG;
+
 /*********************************************************************************************************
-** 函数名称: new
-** 功能描述: 重载 new 运算.
-** 输　入  : stSize        内存大小
-** 输　出  : 分配的内存指针.
-** 全局变量: 
-** 调用模块: 
+  buzzer ioctl command.
+  
+  FIOFLUSH  clean message in play queue.
 *********************************************************************************************************/
-void  *operator  new (size_t   stSize)
-{
-    return  ((void *)lib_malloc_new(stSize));
-}
 /*********************************************************************************************************
-** 函数名称: new[]
-** 功能描述: 重载 new 运算.
-** 输　入  : stSize        内存大小
-** 输　出  : 分配的内存指针.
-** 全局变量: 
-** 调用模块: 
+  buzzer 驱动硬件函数接口
 *********************************************************************************************************/
-void  *operator  new[] (size_t   stSize)
-{
-    return  ((void *)lib_malloc_new(stSize));
-}
+#ifdef __SYLIXOS_KERNEL
+
+typedef struct lw_buzzer_funcs {
+    VOID      (*BUZZER_pfuncOn)(struct lw_buzzer_funcs *pfuncs, UINT32  uiHz);
+    VOID      (*BUZZER_pfuncOff)(struct lw_buzzer_funcs *pfuncs);
+} LW_BUZZER_FUNCS;
+typedef LW_BUZZER_FUNCS  *PLW_BUZZER_FUNCS;
+
 /*********************************************************************************************************
-** 函数名称: delete
-** 功能描述: 重载 delete 运算.
-** 输　入  : pvMem         需要释放的内存首指针
-** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
+  buzzer api
 *********************************************************************************************************/
-void  operator  delete (void  *pvMem)
-{
-    if (pvMem) {
-        lib_free(pvMem);
-    }
-}
-/*********************************************************************************************************
-** 函数名称: delete
-** 功能描述: 重载 delete 运算.
-** 输　入  : pvMem         需要释放的内存首指针
-** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-void  operator  delete[] (void  *pvMem)
-{
-    if (pvMem) {
-        lib_free(pvMem);
-    }
-}
+
+LW_API INT          API_BuzzerDrvInstall(VOID);
+LW_API INT          API_BuzzerDevCreate(CPCHAR           pcName, 
+                                        ULONG            ulMaxQSize,
+                                        PLW_BUZZER_FUNCS pbuzzerfuncs);
+
+#define buzzerDrv              API_BuzzerDrvInstall
+#define buzzerDevCreate        API_BuzzerDevCreate
+
+#endif                                                                  /*  __SYLIXOS_KERNEL            */
+#endif                                                                  /*  __BUZZER_H                  */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

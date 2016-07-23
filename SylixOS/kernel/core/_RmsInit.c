@@ -60,7 +60,6 @@ VOID  _RmsInit (VOID)
     prmsTemp2 = &_K_rmsBuffer[1];
     
     for (ulI = 0; ulI < (LW_CFG_MAX_RMSS - 1); ulI++) {
-        
         prmsTemp1->RMS_ucType  = LW_RMS_UNUSED;
         prmsTemp1->RMS_usIndex = (UINT16)ulI;
         

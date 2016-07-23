@@ -10,7 +10,7 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: _EventSetUnlink.c
+** 文   件   名: _EventSetUnQueue.c
 **
 ** 创   建   人: Han.Hui (韩辉)
 **
@@ -24,7 +24,7 @@
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
 /*********************************************************************************************************
-** 函数名称: _EventSetUnlink
+** 函数名称: _EventSetUnQueue
 ** 功能描述: 将线程从等待事件集队列中解除
 ** 输　入  : 
 ** 输　出  : 
@@ -33,7 +33,7 @@
 *********************************************************************************************************/
 #if (LW_CFG_EVENTSET_EN > 0) && (LW_CFG_MAX_EVENTSETS > 0)
 
-VOID  _EventSetUnlink (PLW_CLASS_EVENTSETNODE   pesn)
+VOID  _EventSetUnQueue (PLW_CLASS_EVENTSETNODE   pesn)
 {
 #if LW_CFG_THREAD_DEL_EN > 0
     REGISTER PLW_CLASS_TCB         ptcb;

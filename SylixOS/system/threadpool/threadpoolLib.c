@@ -65,7 +65,6 @@ VOID  _ThreadPoolInit (VOID)
     pthreadpoolTemp2 = &_S_threadpoolBuffer[1];
     
     for (ulI = 0; ulI < ((LW_CFG_MAX_THREAD_POOLS) - 1); ulI++) {
-        
         pthreadpoolTemp1->TPCB_usIndex = (UINT16)ulI;
         
         pmonoTemp1 = &pthreadpoolTemp1->TPCB_monoResrcList;

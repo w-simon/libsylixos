@@ -1259,8 +1259,8 @@ INT  sigtimedwait (const sigset_t *psigset, struct  siginfo  *psiginfo, const st
     }
     
     iregInterLevel = KN_INT_DISABLE();                                  /*  关闭中断                    */
-    ptcbCur->TCB_usStatus |= LW_THREAD_STATUS_SIGNAL;                   /*  等待信号                    */
-    ptcbCur->TCB_ucWaitTimeout = LW_WAIT_TIME_CLEAR;                    /*  清空等待时间                */
+    ptcbCur->TCB_usStatus      |= LW_THREAD_STATUS_SIGNAL;              /*  等待信号                    */
+    ptcbCur->TCB_ucWaitTimeout  = LW_WAIT_TIME_CLEAR;                   /*  清空等待时间                */
     
     ppcb = _GetPcb(ptcbCur);
     __DEL_FROM_READY_RING(ptcbCur, ppcb);                               /*  从就绪表中删除              */

@@ -39,6 +39,7 @@
 2013.05.05  判断调度器返回值, 决定是重启调用还是退出.
 2013.07.18  使用新的获取 TCB 的方法, 确保 SMP 系统安全.
 2014.05.29  修复超时后瞬间被激活时对消息的判断错误.
+2016.07.21  需要激活写等待的任务.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -82,6 +83,7 @@ ULONG  API_MsgQueueReceive (LW_OBJECT_HANDLE    ulId,
     REGISTER UINT16                usIndex;
     REGISTER PLW_CLASS_EVENT       pevent;
     REGISTER PLW_CLASS_MSGQUEUE    pmsgqueue;
+    REGISTER PLW_CLASS_TCB         ptcb;
     REGISTER UINT8                 ucPriorityIndex;
     REGISTER PLW_LIST_RING        *ppringList;
              ULONG                 ulTimeSave;                          /*  系统事件记录                */
@@ -142,7 +144,24 @@ __wait_again:
                         pvMsgBuffer, 
                         stMaxByteSize, 
                         pstMsgLen);                                     /*  获得消息                    */
-        __KERNEL_EXIT_IRQ(iregInterLevel);                              /*  退出内核                    */
+        
+        if (_EventWaitNum(EVENT_MSG_Q_S, pevent)) {                     /*  有任务在等待写消息          */
+            if (pevent->EVENT_ulOption & LW_OPTION_WAIT_PRIORITY) {     /*  优先级等待队列              */
+                _EVENT_DEL_Q_PRIORITY(EVENT_MSG_Q_S, ppringList);       /*  激活优先级等待线程          */
+                ptcb = _EventReadyPriorityLowLevel(pevent, LW_NULL, ppringList);
+            
+            } else {
+                _EVENT_DEL_Q_FIFO(EVENT_MSG_Q_S, ppringList);           /*  激活FIFO等待线程            */
+                ptcb = _EventReadyFifoLowLevel(pevent, LW_NULL, ppringList);
+            }
+            
+            KN_INT_ENABLE(iregInterLevel);                              /*  使能中断                    */
+            _EventReadyHighLevel(ptcb, LW_THREAD_STATUS_MSGQUEUE);      /*  处理 TCB                    */
+            __KERNEL_EXIT();                                            /*  退出内核                    */
+        
+        } else {
+            __KERNEL_EXIT_IRQ(iregInterLevel);                          /*  退出内核                    */
+        }
         return  (ERROR_NONE);
     }
     
@@ -156,6 +175,7 @@ __wait_again:
     ptcbCur->TCB_stMaxByteSize     = stMaxByteSize;
     ptcbCur->TCB_pvMsgQueueMessage = pvMsgBuffer;                       /*  记录信息                    */
     
+    ptcbCur->TCB_iPendQ         = EVENT_MSG_Q_R;
     ptcbCur->TCB_usStatus      |= LW_THREAD_STATUS_MSGQUEUE;            /*  写状态位，开始等待          */
     ptcbCur->TCB_ucWaitTimeout  = LW_WAIT_TIME_CLEAR;                   /*  清空等待时间                */
     
@@ -168,12 +188,12 @@ __wait_again:
     
     if (pevent->EVENT_ulOption & LW_OPTION_WAIT_PRIORITY) {
         _EVENT_INDEX_Q_PRIORITY(ptcbCur->TCB_ucPriority, ucPriorityIndex);
-        _EVENT_PRIORITY_Q_PTR(ppringList, ucPriorityIndex);
+        _EVENT_PRIORITY_Q_PTR(EVENT_MSG_Q_R, ppringList, ucPriorityIndex);
         ptcbCur->TCB_ppringPriorityQueue = ppringList;                  /*  记录等待队列位置            */
         _EventWaitPriority(pevent, ppringList);                         /*  加入优先级等待表            */
         
     } else {                                                            /*  按 FIFO 等待                */
-        _EVENT_FIFO_Q_PTR(ppringList);                                  /*  确定 FIFO 队列的位置        */
+        _EVENT_FIFO_Q_PTR(EVENT_MSG_Q_R, ppringList);                   /*  确定 FIFO 队列的位置        */
         _EventWaitFifo(pevent, ppringList);                             /*  加入 FIFO 等待表            */
     }
     
@@ -185,33 +205,21 @@ __wait_again:
                       ulId, ulTimeout, LW_NULL);
     
     iSchedRet = __KERNEL_EXIT();                                        /*  调度器解锁                  */
-    if (iSchedRet == LW_SIGNAL_EINTR) {
-        if (ulEventOption & LW_OPTION_SIGNAL_INTER) {
+    if (iSchedRet) {
+        if ((iSchedRet == LW_SIGNAL_EINTR) && 
+            (ulEventOption & LW_OPTION_SIGNAL_INTER)) {
             _ErrorHandle(EINTR);
             return  (EINTR);
         }
         ulTimeout = _sigTimeoutRecalc(ulTimeSave, ulTimeout);           /*  重新计算超时时间            */
-        goto    __wait_again;
-    
-    } else if (iSchedRet == LW_SIGNAL_RESTART) {
-        ulTimeout = _sigTimeoutRecalc(ulTimeSave, ulTimeout);           /*  重新计算超时时间            */
+        if (ulTimeout == LW_OPTION_NOT_WAIT) {
+            _ErrorHandle(ERROR_THREAD_WAIT_TIMEOUT);
+            return  (ERROR_THREAD_WAIT_TIMEOUT);
+        }
         goto    __wait_again;
     }
     
     if (ptcbCur->TCB_ucWaitTimeout == LW_WAIT_TIME_OUT) {
-        iregInterLevel = __KERNEL_ENTER_IRQ();                          /*  进入内核                    */
-        if (ptcbCur->TCB_ucWaitTimeout == LW_WAIT_TIME_CLEAR) {         /*  是否在上面瞬间被激活        */
-            __KERNEL_EXIT_IRQ(iregInterLevel);                          /*  退出内核                    */
-            return  (ERROR_NONE);
-        }
-        
-        if (pevent->EVENT_ulOption & LW_OPTION_WAIT_PRIORITY) {
-            _EventTimeoutPriority(pevent, ppringList);                  /*  等待超时恢复                */
-        } else {
-            _EventTimeoutFifo(pevent, ppringList);                      /*  等待超时恢复                */
-        }
-        
-        __KERNEL_EXIT_IRQ(iregInterLevel);                              /*  退出内核                    */
         _ErrorHandle(ERROR_THREAD_WAIT_TIMEOUT);                        /*  超时                        */
         return  (ERROR_THREAD_WAIT_TIMEOUT);
         
@@ -256,6 +264,7 @@ ULONG  API_MsgQueueReceiveEx (LW_OBJECT_HANDLE    ulId,
              PLW_CLASS_TCB         ptcbCur;
     REGISTER UINT16                usIndex;
     REGISTER PLW_CLASS_EVENT       pevent;
+    REGISTER PLW_CLASS_TCB         ptcb;
     REGISTER PLW_CLASS_MSGQUEUE    pmsgqueue;
     REGISTER UINT8                 ucPriorityIndex;
     REGISTER PLW_LIST_RING        *ppringList;
@@ -328,7 +337,23 @@ __wait_again:
                         stMaxByteSize, 
                         pstMsgLen);                                     /*  获得消息                    */
         
-        __KERNEL_EXIT_IRQ(iregInterLevel);                              /*  退出内核                    */
+        if (_EventWaitNum(EVENT_MSG_Q_S, pevent)) {                     /*  有任务在等待写消息          */
+            if (pevent->EVENT_ulOption & LW_OPTION_WAIT_PRIORITY) {     /*  优先级等待队列              */
+                _EVENT_DEL_Q_PRIORITY(EVENT_MSG_Q_S, ppringList);       /*  激活优先级等待线程          */
+                ptcb = _EventReadyPriorityLowLevel(pevent, LW_NULL, ppringList);
+            
+            } else {
+                _EVENT_DEL_Q_FIFO(EVENT_MSG_Q_S, ppringList);           /*  激活FIFO等待线程            */
+                ptcb = _EventReadyFifoLowLevel(pevent, LW_NULL, ppringList);
+            }
+            
+            KN_INT_ENABLE(iregInterLevel);                              /*  使能中断                    */
+            _EventReadyHighLevel(ptcb, LW_THREAD_STATUS_MSGQUEUE);      /*  处理 TCB                    */
+            __KERNEL_EXIT();                                            /*  退出内核                    */
+        
+        } else {
+            __KERNEL_EXIT_IRQ(iregInterLevel);                          /*  退出内核                    */
+        }
         return  (ERROR_NONE);
     }
     
@@ -342,6 +367,7 @@ __wait_again:
     ptcbCur->TCB_stMaxByteSize     = stMaxByteSize;
     ptcbCur->TCB_pvMsgQueueMessage = pvMsgBuffer;                       /*  记录信息                    */
     
+    ptcbCur->TCB_iPendQ         = EVENT_MSG_Q_R;
     ptcbCur->TCB_usStatus      |= LW_THREAD_STATUS_MSGQUEUE;            /*  写状态位，开始等待          */
     ptcbCur->TCB_ucWaitTimeout  = LW_WAIT_TIME_CLEAR;                   /*  清空等待时间                */
     
@@ -354,12 +380,12 @@ __wait_again:
     
     if (pevent->EVENT_ulOption & LW_OPTION_WAIT_PRIORITY) {
         _EVENT_INDEX_Q_PRIORITY(ptcbCur->TCB_ucPriority, ucPriorityIndex);
-        _EVENT_PRIORITY_Q_PTR(ppringList, ucPriorityIndex);
+        _EVENT_PRIORITY_Q_PTR(EVENT_MSG_Q_R, ppringList, ucPriorityIndex);
         ptcbCur->TCB_ppringPriorityQueue = ppringList;                  /*  记录等待队列位置            */
         _EventWaitPriority(pevent, ppringList);                         /*  加入优先级等待表            */
         
     } else {                                                            /*  按 FIFO 等待                */
-        _EVENT_FIFO_Q_PTR(ppringList);                                  /*  确定 FIFO 队列的位置        */
+        _EVENT_FIFO_Q_PTR(EVENT_MSG_Q_R, ppringList);                   /*  确定 FIFO 队列的位置        */
         _EventWaitFifo(pevent, ppringList);                             /*  加入 FIFO 等待表            */
     }
     
@@ -371,39 +397,21 @@ __wait_again:
                       ulId, ulTimeout, LW_NULL);
     
     iSchedRet = __KERNEL_EXIT();                                        /*  调度器解锁                  */
-    if (iSchedRet == LW_SIGNAL_EINTR) {
-        if (ulEventOption & LW_OPTION_SIGNAL_INTER) {
+    if (iSchedRet) {
+        if ((iSchedRet == LW_SIGNAL_EINTR) && 
+            (ulEventOption & LW_OPTION_SIGNAL_INTER)) {
             _ErrorHandle(EINTR);
             return  (EINTR);
         }
         ulTimeout = _sigTimeoutRecalc(ulTimeSave, ulTimeout);           /*  重新计算超时时间            */
-        goto    __wait_again;
-    
-    } else if (iSchedRet == LW_SIGNAL_RESTART) {
-        ulTimeout = _sigTimeoutRecalc(ulTimeSave, ulTimeout);           /*  重新计算超时时间            */
+        if (ulTimeout == LW_OPTION_NOT_WAIT) {
+            _ErrorHandle(ERROR_THREAD_WAIT_TIMEOUT);
+            return  (ERROR_THREAD_WAIT_TIMEOUT);
+        }
         goto    __wait_again;
     }
     
     if (ptcbCur->TCB_ucWaitTimeout == LW_WAIT_TIME_OUT) {
-        iregInterLevel = __KERNEL_ENTER_IRQ();                          /*  进入内核                    */
-        if (ptcbCur->TCB_ucWaitTimeout == LW_WAIT_TIME_CLEAR) {         /*  是否在上面瞬间被激活        */
-            __KERNEL_EXIT_IRQ(iregInterLevel);                          /*  退出内核                    */
-            if ((*pstMsgLen == 0) && (ptcbCur->TCB_stMaxByteSize == 0)) {
-                _ErrorHandle(E2BIG);                                    /*  退出                        */
-                return  (E2BIG);
-            
-            } else {
-                return  (ERROR_NONE);
-            }
-        }
-        
-        if (pevent->EVENT_ulOption & LW_OPTION_WAIT_PRIORITY) {
-            _EventTimeoutPriority(pevent, ppringList);                  /*  等待超时恢复                */
-        } else {
-            _EventTimeoutFifo(pevent, ppringList);                      /*  等待超时恢复                */
-        }
-        
-        __KERNEL_EXIT_IRQ(iregInterLevel);                              /*  退出内核                    */
         _ErrorHandle(ERROR_THREAD_WAIT_TIMEOUT);                        /*  超时                        */
         return  (ERROR_THREAD_WAIT_TIMEOUT);
         
@@ -423,6 +431,7 @@ __wait_again:
         }
     }
 }
+
 #endif                                                                  /*  (LW_CFG_MSGQUEUE_EN > 0)    */
                                                                         /*  (LW_CFG_MAX_MSGQUEUES > 0)  */
 /*********************************************************************************************************

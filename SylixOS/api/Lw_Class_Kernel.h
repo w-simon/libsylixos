@@ -26,6 +26,7 @@
 #define LW_OBJECT_CLASS_SEM_C                 _OBJECT_SEM_C             /*  计数型信号量                */
 #define LW_OBJECT_CLASS_SEM_B                 _OBJECT_SEM_B             /*  二值型信号量                */
 #define LW_OBJECT_CLASS_SEM_M                 _OBJECT_SEM_M             /*  互斥型信号量                */
+#define LW_OBJECT_CLASS_SEM_RW                _OBJECT_SEM_RW            /*  读写信号量                  */
 #define LW_OBJECT_CLASS_MSGQUEUE              _OBJECT_MSGQUEUE          /*  消息队列                    */
 #define LW_OBJECT_CLASS_EVENT_SET             _OBJECT_EVENT_SET         /*  事件集                      */
 #define LW_OBJECT_CLASS_SIGNAL                _OBJECT_SIGNAL            /*  信号                        */

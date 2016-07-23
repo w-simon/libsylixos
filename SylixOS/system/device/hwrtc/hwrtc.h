@@ -47,6 +47,9 @@ typedef LW_RTC_FUNCS       *PLW_RTC_FUNCS;
 LW_API INT          API_RtcDrvInstall(VOID);
 LW_API INT          API_RtcDevCreate(PLW_RTC_FUNCS    prtcfuncs);
 
+#define rtcDrv              API_RtcDrvInstall
+#define rtcDevCreate        API_RtcDevCreate
+
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 
 LW_API INT          API_RtcSet(time_t  time);
@@ -55,8 +58,6 @@ LW_API INT          API_SysToRtc(VOID);
 LW_API INT          API_RtcToSys(VOID);
 LW_API INT          API_RtcToRoot(VOID);
 
-#define rtcDrv              API_RtcDrvInstall
-#define rtcDevCreate        API_RtcDevCreate
 #define rtcSet              API_RtcSet
 #define rtcGet              API_RtcGet
 #define sysToRtc            API_SysToRtc

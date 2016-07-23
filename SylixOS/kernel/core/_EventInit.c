@@ -38,7 +38,6 @@ VOID  _EventInit (VOID)
     REGISTER ULONG                 ulI;
     REGISTER PLW_CLASS_EVENT       peventTemp1;
     REGISTER PLW_LIST_MONO         pmonoTemp1;
-    REGISTER PLW_CLASS_WAITQUEUE   pwqTemp1;
 
 #if  LW_CFG_MAX_EVENTS == 1
 
@@ -47,28 +46,14 @@ VOID  _EventInit (VOID)
     peventTemp1 = &_K_eventBuffer[0];                                       /*  指向缓冲池首地址        */
     pmonoTemp1  = &peventTemp1->EVENT_monoResrcList;                        /*  获得资源表              */
 
-    peventTemp1->EVENT_ucType       = LW_TYPE_EVENT_UNUSED;                 /*  事件类型                */
-    peventTemp1->EVENT_ulCounter    = 0ul;                                  /*  计数器值                */
-    peventTemp1->EVENT_ulMaxCounter = 0ul;                                  /*  最大技术值              */
-    peventTemp1->EVENT_ulOption     = LW_OPTION_NONE;                       /*  事件选项                */
-    peventTemp1->EVENT_pvPtr        = LW_NULL;                              /*  多用途指针              */
-    peventTemp1->EVENT_pvTcbOwn     = LW_NULL;                              /*  从属线程                */
-    peventTemp1->EVENT_usIndex      = 0;                                    /*  事件缓冲区下标          */
-    
-    pwqTemp1 = &peventTemp1->EVENT_wqWaitList;                              /*  开始初始化等待队列      */
-    pwqTemp1->WAIT_Q_usWaitNum      = 0;                                    /*  没有任务等待事件        */
-    
-    for (ulI = 0; ulI < __THREAD_PRIORITY_Q_NUM; ulI++) {
-        pwqTemp1->WAIT_Q_wlWaitList.WAIT_Q_pringPRIOList[ulI] = LW_NULL;    /*  初始化等待队列          */
-    }
+    peventTemp1->EVENT_ucType  = LW_TYPE_EVENT_UNUSED;                      /*  事件类型                */
+    peventTemp1->EVENT_usIndex = 0;                                         /*  事件缓冲区下标          */
     
     _INIT_LIST_MONO_HEAD(pmonoTemp1);                                       /*  初始化最后节点          */
     
     _K_resrcEvent.RESRC_pmonoFreeTail = pmonoTemp1;
     
 #else
-
-    REGISTER UINT8              ucJ;
     REGISTER PLW_CLASS_EVENT    peventTemp2;
     REGISTER PLW_LIST_MONO      pmonoTemp2;
     
@@ -78,49 +63,23 @@ VOID  _EventInit (VOID)
     peventTemp2 = &_K_eventBuffer[1];                                       /*  指向缓冲池首地址        */
     
     for (ulI = 0; ulI < ((LW_CFG_MAX_EVENTS) - 1); ulI++) {
-        
         pmonoTemp1 = &peventTemp1->EVENT_monoResrcList;                     /*  获得资源表              */
         pmonoTemp2 = &peventTemp2->EVENT_monoResrcList;                     /*  获得资源表              */
         
-        peventTemp1->EVENT_ucType       = LW_TYPE_EVENT_UNUSED;             /*  事件类型                */
-        peventTemp1->EVENT_ulCounter    = 0ul;                              /*  计数器值                */
-        peventTemp1->EVENT_ulMaxCounter = 0ul;                              /*  最大技术值              */
-        peventTemp1->EVENT_ulOption     = LW_OPTION_NONE;                   /*  事件选项                */
-        peventTemp1->EVENT_pvPtr        = LW_NULL;                          /*  多用途指针              */
-        peventTemp1->EVENT_pvTcbOwn     = LW_NULL;                          /*  从属线程                */
-        peventTemp1->EVENT_usIndex      = (UINT16)ulI;                      /*  事件缓冲区下标          */
-        
-        pwqTemp1 = &peventTemp1->EVENT_wqWaitList;                          /*  开始初始化等待队列      */
-        pwqTemp1->WAITQUEUE_usWaitNum      = 0;                             /*  没有任务等待事件        */
-        
-        for (ucJ = 0; ucJ < __THREAD_PRIORITY_Q_NUM; ucJ++) {               /*  初始化等待队列          */
-            pwqTemp1->WAITQUEUE_wlWaitList.WAITLIST_pringPRIOList[ucJ] = LW_NULL;
-        }
+        peventTemp1->EVENT_ucType  = LW_TYPE_EVENT_UNUSED;                  /*  事件类型                */
+        peventTemp1->EVENT_usIndex = (UINT16)ulI;                           /*  事件缓冲区下标          */
    
         _LIST_MONO_LINK(pmonoTemp1, pmonoTemp2);                            /*  建立资源连接            */
         
         peventTemp1++;
         peventTemp2++;
-        
     }
                                                                             /*  初始化最后一个节点      */
     pmonoTemp1 = &peventTemp1->EVENT_monoResrcList;                         /*  获得资源表              */
     
-    peventTemp1->EVENT_ucType       = LW_TYPE_EVENT_UNUSED;                 /*  事件类型                */
-    peventTemp1->EVENT_ulCounter    = 0ul;                                  /*  计数器值                */
-    peventTemp1->EVENT_ulMaxCounter = 0ul;                                  /*  最大技术值              */
-    peventTemp1->EVENT_ulOption     = LW_OPTION_NONE;                       /*  事件选项                */
-    peventTemp1->EVENT_pvPtr        = LW_NULL;                              /*  多用途指针              */
-    peventTemp1->EVENT_pvTcbOwn     = LW_NULL;                              /*  从属线程                */
-    peventTemp1->EVENT_usIndex      = (UINT16)ulI;                          /*  事件缓冲区下标          */
+    peventTemp1->EVENT_ucType  = LW_TYPE_EVENT_UNUSED;                      /*  事件类型                */
+    peventTemp1->EVENT_usIndex = (UINT16)ulI;                               /*  事件缓冲区下标          */
 
-    pwqTemp1 = &peventTemp1->EVENT_wqWaitList;                              /*  开始初始化等待队列      */
-    pwqTemp1->WAITQUEUE_usWaitNum      = 0;                                 /*  没有任务等待事件        */
-    
-    for (ucJ = 0; ucJ < __THREAD_PRIORITY_Q_NUM; ucJ++) {                   /*  初始化等待队列          */
-        pwqTemp1->WAITQUEUE_wlWaitList.WAITLIST_pringPRIOList[ucJ] = LW_NULL;
-    }
-    
     _INIT_LIST_MONO_HEAD(pmonoTemp1);                                       /*  初始化最后节点          */
     
     _K_resrcEvent.RESRC_pmonoFreeTail = pmonoTemp1;

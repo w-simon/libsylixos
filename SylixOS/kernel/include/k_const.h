@@ -53,8 +53,9 @@
   EVENT WAIT PRIORITY QUEUE
 *********************************************************************************************************/
 
-#define __EACH_WAIT_QUEUE_PRIORITY \
-        (LW_PRIO_LOWEST / LW_CFG_MAX_EVENT_PRIORITY_Q_SIZE)
+#define __EVENT_Q_SIZE              8                                   /*  Q HASH SIZE                 */
+#define __EVENT_Q_EPRIO             32                                  /*  256 / 8                     */
+#define __EVENT_Q_SHIFT             5                                   /*  2 ^ 5 = 32                  */
 
 /*********************************************************************************************************
   ƒ⁄∫À≈‰÷√

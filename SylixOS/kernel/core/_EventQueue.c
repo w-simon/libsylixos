@@ -43,7 +43,7 @@ VOID  _AddTCBToEventFifo (PLW_CLASS_TCB    ptcb,
 {
     _List_Ring_Add_Ahead(&ptcb->TCB_ringEvent, ppringList);             /*  加入到 FIFO 队列头          */
     
-    pevent->EVENT_wqWaitList.WAITQUEUE_usWaitNum++;                     /*  等待事件的个数++            */
+    pevent->EVENT_wqWaitQ[ptcb->TCB_iPendQ].WQ_usNum++;                 /*  等待事件的个数++            */
 }
 /*********************************************************************************************************
 ** 函数名称: _DelTCBFromEventFifo
@@ -61,7 +61,7 @@ VOID  _DelTCBFromEventFifo (PLW_CLASS_TCB      ptcb,
 {
     _List_Ring_Del(&ptcb->TCB_ringEvent, ppringList);
     
-    pevent->EVENT_wqWaitList.WAITQUEUE_usWaitNum--;                     /*  等待事件的个数--            */
+    pevent->EVENT_wqWaitQ[ptcb->TCB_iPendQ].WQ_usNum--;                 /*  等待事件的个数--            */
 }
 /*********************************************************************************************************
 ** 函数名称: _AddTCBToEventPriority
@@ -105,7 +105,7 @@ VOID  _AddTCBToEventPriority (PLW_CLASS_TCB    ptcb,
         }
     }
     
-    pevent->EVENT_wqWaitList.WAITQUEUE_usWaitNum++;                     /*  等待事件的个数++            */
+    pevent->EVENT_wqWaitQ[ptcb->TCB_iPendQ].WQ_usNum++;                 /*  等待事件的个数++            */
 }
 /*********************************************************************************************************
 ** 函数名称: _DelTCBFromEventPriority
@@ -123,7 +123,7 @@ VOID  _DelTCBFromEventPriority (PLW_CLASS_TCB      ptcb,
 {    
     _List_Ring_Del(&ptcb->TCB_ringEvent, ppringList);
     
-    pevent->EVENT_wqWaitList.WAITQUEUE_usWaitNum--;                     /*  等待事件的个数--            */
+    pevent->EVENT_wqWaitQ[ptcb->TCB_iPendQ].WQ_usNum--;                 /*  等待事件的个数--            */
 }
 
 #endif                                                                  /*  (LW_CFG_EVENT_EN > 0)       */

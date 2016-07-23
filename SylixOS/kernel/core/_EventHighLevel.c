@@ -16,11 +16,11 @@
 **
 ** 文件创建日期: 2006 年 12 月 19 日
 **
-** 描        述: 这是系统事件队列高级管理函数。
+** 描        述: 这是系统事件队列高级管理函数.
 
 ** BUG
 2007.04.08  删除了 _EventMakeThreadReadyFIFO_LowLevel() 和 _EventMakeThreadReadyPRIO_LowLevel() 的 
-            ppcb变量，这个变量没有用。
+            ppcb变量，这个变量没有用.
 2008.03.30  使用新的就绪环操作.
 2008.03.30  加入新的 wake up 机制的处理.
 2008.05.18  由于 _EventMakeThreadWait????() 是在关中断中进行的, 所以将时间存在标志的处理放在其中, 这样更为
@@ -93,44 +93,6 @@ VOID  _EventWaitPriority (PLW_CLASS_EVENT  pevent, PLW_LIST_RING  *ppringList)
     ptcbCur->TCB_ucIsEventDelete = LW_EVENT_EXIST;                      /*  事件存在                    */
 }
 /*********************************************************************************************************
-** 函数名称: _EventTimeoutFifo
-** 功能描述: 将一个线程从 FIFO 事件等待队列中解锁, 同时设置相关超时标志位 (关中断状态下被调用)
-** 输　入  : pevent        事件
-**           ppringList    等待链表
-** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-VOID  _EventTimeoutFifo (PLW_CLASS_EVENT  pevent, PLW_LIST_RING  *ppringList)
-{
-    PLW_CLASS_TCB    ptcbCur;
-             
-    LW_TCB_GET_CUR(ptcbCur);                                            /*  当前任务控制块              */
-    
-    _DelTCBFromEventFifo(ptcbCur, pevent, ppringList);                  /*  从等待队列中删除            */
-    ptcbCur->TCB_peventPtr      = LW_NULL;
-    ptcbCur->TCB_ucWaitTimeout  = LW_WAIT_TIME_CLEAR;                   /*  清除超时标志位              */
-}
-/*********************************************************************************************************
-** 函数名称: _EventTimeoutPriority
-** 功能描述: 将一个线程从优先级事件等待队列中解锁, 同时设置相关超时标志位 (关中断状态下被调用)
-** 输　入  : pevent        事件
-**           ppringList    等待链表
-** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-VOID  _EventTimeoutPriority (PLW_CLASS_EVENT  pevent, PLW_LIST_RING  *ppringList)
-{
-    PLW_CLASS_TCB    ptcbCur;
-    
-    LW_TCB_GET_CUR(ptcbCur);                                            /*  当前任务控制块              */
-    
-    _DelTCBFromEventPriority(ptcbCur, pevent, ppringList);
-    ptcbCur->TCB_peventPtr      = LW_NULL;
-    ptcbCur->TCB_ucWaitTimeout  = LW_WAIT_TIME_CLEAR;                   /*  清除超时标志位              */
-}
-/*********************************************************************************************************
 ** 函数名称: _EventReadyFifoLowLevel
 ** 功能描述: 将一个线程从 FIFO 事件等待队列中解锁并就绪, 同时设置相关标志位
 ** 输　入  : pevent            事件
@@ -147,6 +109,7 @@ PLW_CLASS_TCB  _EventReadyFifoLowLevel (PLW_CLASS_EVENT  pevent,
     REGISTER PLW_CLASS_TCB    ptcb;
     
     ptcb = _EventQGetTcbFifo(pevent, ppringList);                       /*  查找需要激活的线程          */
+    
     _DelTCBFromEventFifo(ptcb, pevent, ppringList);
     
     ptcb->TCB_pvMsgBoxMessage = pvMsgBoxMessage;                        /*  传递二进制信号量简单消息    */
@@ -175,6 +138,7 @@ PLW_CLASS_TCB  _EventReadyPriorityLowLevel (PLW_CLASS_EVENT  pevent,
     REGISTER PLW_CLASS_TCB    ptcb;
     
     ptcb = _EventQGetTcbPriority(pevent, ppringList);                   /*  查找需要激活的线程          */
+    
     _DelTCBFromEventPriority(ptcb, pevent, ppringList);
     
     ptcb->TCB_pvMsgBoxMessage = pvMsgBoxMessage;                        /*  传递二进制信号量简单消息    */
@@ -268,7 +232,7 @@ VOID  _EventPrioTryResume (PLW_CLASS_EVENT  pevent, PLW_CLASS_TCB   ptcbCur)
     }
 }
 /*********************************************************************************************************
-** 函数名称: _EventUnlink
+** 函数名称: _EventUnQueue
 ** 功能描述: 将一个线程从事件等待队列中解锁
 ** 输　入  : ptcb      任务控制块
 ** 输　出  : 事件控制块
@@ -276,7 +240,7 @@ VOID  _EventPrioTryResume (PLW_CLASS_EVENT  pevent, PLW_CLASS_TCB   ptcbCur)
 ** 调用模块: 
 ** 注  意  : 如果是优先级等待队列, 则在等待过程中可能有优先级的改变, 所以不能靠当前优先级来判断队列的位置
 *********************************************************************************************************/
-PLW_CLASS_EVENT  _EventUnlink (PLW_CLASS_TCB    ptcb)
+PLW_CLASS_EVENT  _EventUnQueue (PLW_CLASS_TCB    ptcb)
 {
     REGISTER PLW_CLASS_EVENT    pevent;
     REGISTER PLW_LIST_RING     *ppringList;
@@ -288,7 +252,7 @@ PLW_CLASS_EVENT  _EventUnlink (PLW_CLASS_TCB    ptcb)
         _DelTCBFromEventPriority(ptcb, pevent, ppringList);             /*  从队列中移除                */
         
     } else {                                                            /*  FIFO 队列                   */
-        _EVENT_FIFO_Q_PTR(ppringList);
+        _EVENT_FIFO_Q_PTR(ptcb->TCB_iPendQ, ppringList);
         _DelTCBFromEventFifo(ptcb, pevent, ppringList);                 /*  从队列中移除                */
     }
     

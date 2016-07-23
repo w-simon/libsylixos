@@ -80,7 +80,7 @@ ULONG  API_SemaphoreBStatus (LW_OBJECT_HANDLE   ulId,
         *pulOption = pevent->EVENT_ulOption;
     }
     if (pulThreadBlockNum) {
-        *pulThreadBlockNum = _EventWaitNum(pevent);
+        *pulThreadBlockNum = _EventWaitNum(EVENT_SEM_Q, pevent);
     }
     __KERNEL_EXIT_IRQ(iregInterLevel);                                  /*  ÍË³öÄÚºË                    */
     

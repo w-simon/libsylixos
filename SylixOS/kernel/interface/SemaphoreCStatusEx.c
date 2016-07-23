@@ -81,7 +81,7 @@ ULONG  API_SemaphoreCStatusEx (LW_OBJECT_HANDLE   ulId,
         *pulOption  = pevent->EVENT_ulOption;                           /*  СЎПо                        */
     }
     if (pulThreadBlockNum) {
-        *pulThreadBlockNum = _EventWaitNum(pevent);
+        *pulThreadBlockNum = _EventWaitNum(EVENT_SEM_Q, pevent);
     }
     
     if (pulMaxCounter) {

@@ -128,20 +128,20 @@ typedef spinlock_t          pthread_spinlock_t;
 /*********************************************************************************************************
   pthread rwlock type
 *********************************************************************************************************/
+#define PTHREAD_RWLOCK_PREFER_READER_NP                 0
+#define PTHREAD_RWLOCK_PREFER_WRITER_NP                 1
+#define PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP    2
+#define PTHREAD_RWLOCK_DEFAULT_NP                       PTHREAD_RWLOCK_PREFER_READER_NP
+
 typedef int                 pthread_rwlockattr_t;
 
 typedef struct {
-    LW_OBJECT_HANDLE        PRWLOCK_ulMutex;                            /*  互斥访问信号量              */
-    LW_OBJECT_HANDLE        PRWLOCK_ulRSemaphore;                       /*  读阻塞信号量                */
-    LW_OBJECT_HANDLE        PRWLOCK_ulWSemaphore;                       /*  写阻塞信号量                */
-    LW_OBJECT_HANDLE        PRWLOCK_ulOwner;                            /*  写所有者                    */
-    unsigned int            PRWLOCK_uiStatus;                           /*  当前的状态                  */
-    unsigned int            PRWLOCK_uiOpCounter;                        /*  正在操作的线程数量          */
-    unsigned int            PRWLOCK_uiRPendCounter;                     /*  等待读的线程数量            */
-    unsigned int            PRWLOCK_uiWPendCounter;                     /*  等待写的线程数量            */
+    LW_OBJECT_HANDLE        PRWLOCK_ulRwLock;                           /*  内核读写锁                  */
+    LW_OBJECT_HANDLE        PRWLOCK_ulReserved[3];
+    unsigned int            PRWLOCK_uiReserved[4];
 } pthread_rwlock_t;
 
-#define PTHREAD_RWLOCK_INITIALIZER          {0, 0, 0, 0, 0, 0, 0, 0}
+#define PTHREAD_RWLOCK_INITIALIZER          {0, {0, 0, 0}, {0, 0, 0, 0}}
 
 /*********************************************************************************************************
   pthread key type 注意: pthread_key_create 中的 destructor 函数中不能删除 key 键, 否则可能造成错误.
@@ -305,16 +305,29 @@ LW_API int          pthread_rwlockattr_init(pthread_rwlockattr_t  *prwlockattr);
 LW_API int          pthread_rwlockattr_destroy(pthread_rwlockattr_t  *prwlockattr);
 LW_API int          pthread_rwlockattr_setpshared(pthread_rwlockattr_t *prwlockattr, int  pshared);
 LW_API int          pthread_rwlockattr_getpshared(const pthread_rwlockattr_t *prwlockattr, int  *pshared);
+#if LW_CFG_POSIXEX_EN > 0
+LW_API int          pthread_rwlockattr_setkind_np(pthread_rwlockattr_t *prwlockattr, int pref);
+LW_API int          pthread_rwlockattr_getkind_np(const pthread_rwlockattr_t *prwlockattr, int *pref);
+#endif                                                                  /*  W_CFG_POSIXEX_EN > 0        */
 LW_API int          pthread_rwlock_init(pthread_rwlock_t  *prwlock, const pthread_rwlockattr_t  *prwlockattr);
 LW_API int          pthread_rwlock_destroy(pthread_rwlock_t  *prwlock);
 LW_API int          pthread_rwlock_rdlock(pthread_rwlock_t  *prwlock);
 LW_API int          pthread_rwlock_tryrdlock(pthread_rwlock_t  *prwlock);
 LW_API int          pthread_rwlock_timedrdlock(pthread_rwlock_t *prwlock,
                                                const struct timespec *abs_timeout);
+#if LW_CFG_POSIXEX_EN > 0
+LW_API int          pthread_rwlock_reltimedrdlock_np(pthread_rwlock_t *prwlock,
+                                                     const struct timespec *rel_timeout);
+#endif                                                                  /*  W_CFG_POSIXEX_EN > 0        */
+
 LW_API int          pthread_rwlock_wrlock(pthread_rwlock_t  *prwlock);
 LW_API int          pthread_rwlock_trywrlock(pthread_rwlock_t  *prwlock);
 LW_API int          pthread_rwlock_timedwrlock(pthread_rwlock_t *prwlock,
                                                const struct timespec *abs_timeout);
+#if LW_CFG_POSIXEX_EN > 0
+LW_API int          pthread_rwlock_reltimedwrlock_np(pthread_rwlock_t *prwlock,
+                                                     const struct timespec *rel_timeout);
+#endif                                                                  /*  W_CFG_POSIXEX_EN > 0        */
 LW_API int          pthread_rwlock_unlock(pthread_rwlock_t  *prwlock);
 
 LW_API int          pthread_key_create(pthread_key_t  *pkey, void (*destructor)(void *));

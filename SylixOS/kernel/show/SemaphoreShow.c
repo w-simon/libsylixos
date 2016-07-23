@@ -30,7 +30,7 @@
   加入裁剪支持
 *********************************************************************************************************/
 #if LW_CFG_FIO_LIB_EN > 0
-#if ((LW_CFG_SEMB_EN > 0) || (LW_CFG_SEMC_EN > 0) || (LW_CFG_SEMM_EN > 0)) && (LW_CFG_MAX_EVENTS > 0)
+#if (LW_CFG_SEM_EN > 0) && (LW_CFG_MAX_EVENTS > 0)
 /*********************************************************************************************************
 ** 函数名称: API_SemaphoreShow
 ** 功能描述: 显示指定的信号量信息
@@ -54,6 +54,8 @@ VOID    API_SemaphoreShow (LW_OBJECT_HANDLE  ulId)
     
              BOOL                   bValue;
              ULONG                  ulValue;
+             ULONG                  ulWValue;
+             ULONG                  ulRWCnt;
              ULONG                  ulOption;
              ULONG                  ulThreadNum;
              
@@ -102,6 +104,17 @@ VOID    API_SemaphoreShow (LW_OBJECT_HANDLE  ulId)
         pcValue = (bValue) ? "FULL" : "EMPTY";
         break;
 #endif                                                                  /*  LW_CFG_SEMM_EN > 0          */
+
+#if LW_CFG_SEMRW_EN > 0
+    case _OBJECT_SEM_RW:
+        ulErrorCode = API_SemaphoreRWStatus(ulId,
+                                            &ulRWCnt,
+                                            &ulValue,
+                                            &ulWValue,
+                                            &ulOption, LW_NULL);
+        pcType  = "RW";
+        break;
+#endif                                                                  /*  LW_CFG_SEMRW_EN > 0         */
     
     default:
         fprintf(stderr, "\nInvalid semaphore id: 0x%08lx\n", ulId);
@@ -162,8 +175,26 @@ VOID    API_SemaphoreShow (LW_OBJECT_HANDLE  ulId)
                    event.EVENT_ucCeilingPriority);                      /*  天花板优先级                */
         }
         
-    } else {
+    } else if (ulObjectClass == _OBJECT_SEM_RW) {                       /*  读写信号量                  */
+        PCHAR       pcSafeMode;
         
+        if (bValue == LW_FALSE) {
+            API_ThreadGetName(((PLW_CLASS_TCB)(event.EVENT_pvTcbOwn))->TCB_ulId,
+                              cOwner);
+        } else {
+            lib_strcpy(cOwner, "NO THREAD");
+        }
+        
+        pcSafeMode = (event.EVENT_ulOption & LW_OPTION_DELETE_SAFE)
+                   ? "SEM_DELETE_SAFE" : "SEM_INVERSION_SAFE";          /*  是否使用安全模式            */
+                   
+        printf("%-20s: %-10s\n", "Owner", cOwner);                      /*  拥有者                      */
+        printf("%-20s: 0x%lx\t%s\n", "Options", event.EVENT_ulOption, 
+               pcSafeMode);
+                                                                        /*  当前计数值                  */
+        printf("RWCnt: %lu RPend: %lu WPend: %lu\n", ulRWCnt, ulValue, ulWValue);
+        
+    } else {
         if (ulObjectClass == _OBJECT_SEM_C) {
             printf("%-20s: %-10lu\n",   "Semaphore Max Value", 
                    event.EVENT_ulMaxCounter);                           /*  最大计数值                  */
@@ -175,9 +206,7 @@ VOID    API_SemaphoreShow (LW_OBJECT_HANDLE  ulId)
     printf("\n");
 }
 
-#endif                                                                  /*  ((LW_CFG_SEMB_EN > 0) ||    */
-                                                                        /*   (LW_CFG_SEMC_EN > 0) ||    */
-                                                                        /*   (LW_CFG_SEMM_EN > 0)) &&   */
+#endif                                                                  /*  (LW_CFG_SEM_EN > 0) &&      */
                                                                         /*  (LW_CFG_MAX_EVENTS > 0)     */
 #endif                                                                  /*  LW_CFG_FIO_LIB_EN > 0       */
 /*********************************************************************************************************

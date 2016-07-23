@@ -440,7 +440,7 @@ LW_API ULONG            API_CoroutineStackCheck(PVOID      pvCrcb,
   SEMAPHORE
 *********************************************************************************************************/
 
-#if ((LW_CFG_SEMB_EN > 0) || (LW_CFG_SEMC_EN > 0) || (LW_CFG_SEMM_EN > 0)) && (LW_CFG_MAX_EVENTS > 0)
+#if (LW_CFG_SEMCBM_EN > 0) && (LW_CFG_MAX_EVENTS > 0)
 LW_API ULONG            API_SemaphorePend(LW_OBJECT_HANDLE  ulId, 
                                           ULONG             ulTimeout); /*  等待任意信号量              */
 
@@ -587,6 +587,34 @@ LW_API ULONG            API_SemaphoreMStatusEx(LW_OBJECT_HANDLE   ulId,
 #endif
 
 /*********************************************************************************************************
+  RW SEMAPHORE
+*********************************************************************************************************/
+
+#if (LW_CFG_SEMRW_EN > 0) && (LW_CFG_MAX_EVENTS > 0)
+LW_API LW_OBJECT_HANDLE API_SemaphoreRWCreate(CPCHAR             pcName,
+                                              ULONG              ulOption,
+                                              LW_OBJECT_ID      *pulId);/*  创建读写信号量              */
+
+LW_API ULONG            API_SemaphoreRWDelete(LW_OBJECT_HANDLE  *pulId);/*  删除读写信号量              */
+
+LW_API ULONG            API_SemaphoreRWPendR(LW_OBJECT_HANDLE  ulId, 
+                                             ULONG             ulTimeout);
+                                                                        /*  读写信号量等待读            */
+LW_API ULONG            API_SemaphoreRWPendW(LW_OBJECT_HANDLE  ulId, 
+                                             ULONG             ulTimeout);
+                                                                        /*  读写信号量等待写            */
+LW_API ULONG            API_SemaphoreRWPost(LW_OBJECT_HANDLE  ulId);
+                                                                        /*  读写信号量释放              */
+LW_API ULONG            API_SemaphoreRWStatus(LW_OBJECT_HANDLE   ulId,
+                                              ULONG             *pulRWCount,
+                                              ULONG             *pulRPend,
+                                              ULONG             *pulWPend,
+                                              ULONG             *pulOption,
+                                              LW_OBJECT_HANDLE  *pulOwnerId);
+                                                                        /*  获得读写信号量的状态        */
+#endif
+
+/*********************************************************************************************************
   MESSAGE QUEUE
 *********************************************************************************************************/
 
@@ -623,11 +651,22 @@ LW_API ULONG            API_MsgQueueTryReceive(LW_OBJECT_HANDLE    ulId,
 LW_API ULONG            API_MsgQueueSend(LW_OBJECT_HANDLE  ulId,
                                          const PVOID       pvMsgBuffer,
                                          size_t            stMsgLen);   /*  向队列中发送一条消息        */
+                                         
+LW_API ULONG            API_MsgQueueSend2(LW_OBJECT_HANDLE  ulId,
+                                          const PVOID       pvMsgBuffer,
+                                          size_t            stMsgLen,
+                                          ULONG             ulTimeout); /*  带有超时的发送一条消息      */
 
 LW_API ULONG            API_MsgQueueSendEx(LW_OBJECT_HANDLE  ulId,
                                            const PVOID       pvMsgBuffer,
                                            size_t            stMsgLen,
                                            ULONG             ulOption); /*  发送消息高级接口            */
+                                           
+LW_API ULONG            API_MsgQueueSendEx2(LW_OBJECT_HANDLE  ulId,
+                                            const PVOID       pvMsgBuffer,
+                                            size_t            stMsgLen,
+                                            ULONG             ulTimeout,
+                                            ULONG             ulOption);/*  带有超时的发送消息高级接口  */
 
 LW_API ULONG            API_MsgQueueClear(LW_OBJECT_HANDLE  ulId);      /*  清空所有消息                */
 
@@ -651,7 +690,12 @@ LW_API ULONG            API_MsgQueueStatusEx(LW_OBJECT_HANDLE   ulId,
 LW_API ULONG            API_MsgQueueFlush(LW_OBJECT_HANDLE  ulId, 
                                           ULONG            *pulThreadUnblockNum);
                                                                         /*  就绪所有等待消息的线程      */
-
+LW_API ULONG            API_MsgQueueFlushSend(LW_OBJECT_HANDLE  ulId, 
+                                              ULONG  *pulThreadUnblockNum);
+                                                                        /*  就绪所有等待写消息的线程    */
+LW_API ULONG            API_MsgQueueFlushReceive(LW_OBJECT_HANDLE  ulId, 
+                                                 ULONG  *pulThreadUnblockNum);
+                                                                        /*  就绪所有等待读消息的线程    */
 LW_API ULONG            API_MsgQueueGetName(LW_OBJECT_HANDLE  ulId, 
                                             PCHAR             pcName);  /*  获得消息队列名字            */
 #endif
@@ -1225,13 +1269,11 @@ LW_API VOID             API_VmmAbortShow(VOID);                         /*  显示
 #endif
 
 #if LW_CFG_FIO_LIB_EN > 0
-#if ((LW_CFG_SEMB_EN > 0) || (LW_CFG_SEMC_EN > 0) || (LW_CFG_SEMM_EN > 0)) && (LW_CFG_MAX_EVENTS > 0)
+#if (LW_CFG_SEM_EN > 0) && (LW_CFG_MAX_EVENTS > 0)
 
 LW_API VOID             API_SemaphoreShow(LW_OBJECT_HANDLE  ulId);      /*  显示指定信号量信息          */
 
-#endif                                                                  /*  ((LW_CFG_SEMB_EN > 0) ||    */
-                                                                        /*   (LW_CFG_SEMC_EN > 0) ||    */
-                                                                        /*   (LW_CFG_SEMM_EN > 0)) &&   */
+#endif                                                                  /*  (LW_CFG_SEM_EN > 0) &&      */
                                                                         /*  (LW_CFG_MAX_EVENTS > 0)     */
 #endif                                                                  /*  LW_CFG_FIO_LIB_EN > 0       */
 

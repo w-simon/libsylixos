@@ -30,7 +30,7 @@
 ** 调用模块: 
                                            API 函数
 *********************************************************************************************************/
-#if ((LW_CFG_SEMB_EN > 0) || (LW_CFG_SEMC_EN > 0) || (LW_CFG_SEMM_EN > 0)) && (LW_CFG_MAX_EVENTS > 0)
+#if (LW_CFG_SEM_EN > 0) && (LW_CFG_MAX_EVENTS > 0)
 
 LW_API  
 ULONG  API_SemaphorePost (LW_OBJECT_HANDLE  ulId)
@@ -59,6 +59,12 @@ ULONG  API_SemaphorePost (LW_OBJECT_HANDLE  ulId)
         ulErrorCode = API_SemaphoreMPost(ulId);
         break;
 #endif                                                                  /*  LW_CFG_SEMM_EN > 0          */
+
+#if LW_CFG_SEMRW_EN > 0
+    case _OBJECT_SEM_RW:
+        ulErrorCode = API_SemaphoreRWPost(ulId);
+        break;
+#endif                                                                  /*  LW_CFG_SEMRW_EN > 0         */
     
     default:
         _ErrorHandle(ERROR_KERNEL_HANDLE_NULL);                         /*  句柄类型错误                */
@@ -68,9 +74,7 @@ ULONG  API_SemaphorePost (LW_OBJECT_HANDLE  ulId)
     return  (ulErrorCode);
 }
 
-#endif                                                                  /*  ((LW_CFG_SEMB_EN > 0) ||    */
-                                                                        /*   (LW_CFG_SEMC_EN > 0) ||    */
-                                                                        /*   (LW_CFG_SEMM_EN > 0)) &&   */
+#endif                                                                  /*  (LW_CFG_SEM_EN > 0) &&      */
                                                                         /*  (LW_CFG_MAX_EVENTS > 0)     */
 /*********************************************************************************************************
   END

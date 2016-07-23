@@ -54,7 +54,7 @@ LW_OBJECT_HANDLE  API_SemaphoreBCreate (CPCHAR             pcName,
 {
     REGISTER PLW_CLASS_EVENT       pevent;
     REGISTER ULONG                 ulI;
-    REGISTER PLW_CLASS_WAITQUEUE   pwqTemp;
+             PLW_CLASS_WAITQUEUE   pwqTemp[2];
     REGISTER ULONG                 ulIdTemp;
     
     if (LW_CPU_GET_CUR_NESTING()) {                                     /*  不能在中断中调用            */
@@ -92,11 +92,14 @@ LW_OBJECT_HANDLE  API_SemaphoreBCreate (CPCHAR             pcName,
     pevent->EVENT_pvPtr        = LW_NULL;
     pevent->EVENT_pvTcbOwn     = LW_NULL;
     
-    pwqTemp = &pevent->EVENT_wqWaitList;
-    pwqTemp->WAITQUEUE_usWaitNum = 0;                                   /*  没有线程                    */
+    pwqTemp[0] = &pevent->EVENT_wqWaitQ[0];
+    pwqTemp[1] = &pevent->EVENT_wqWaitQ[1];
+    pwqTemp[0]->WQ_usNum = 0;                                           /*  没有线程                    */
+    pwqTemp[1]->WQ_usNum = 0;
     
-    for (ulI = 0; ulI < __THREAD_PRIORITY_Q_NUM; ulI++) {               /*  初始化等待队列              */
-        pwqTemp->WAITQUEUE_wlWaitList.WAITLIST_pringPRIOList[ulI] = LW_NULL;
+    for (ulI = 0; ulI < __EVENT_Q_SIZE; ulI++) {
+        pwqTemp[0]->WQ_wlQ.WL_pringPrio[ulI] = LW_NULL;
+        pwqTemp[1]->WQ_wlQ.WL_pringPrio[ulI] = LW_NULL;
     }
     
     ulIdTemp = _MakeObjectId(_OBJECT_SEM_B, 

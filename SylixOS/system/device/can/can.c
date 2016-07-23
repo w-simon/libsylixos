@@ -562,13 +562,13 @@ static VOID __canDevDelete (__CAN_DEV *pcanDev)
 ** 功能描述: CAN 设备控制
 ** 输　入  :
 **           pcanDev          CAN 设备
-**           cmd              控制命令
+**           iCmd             控制命令
 **           lArg             参数
 ** 输　出  : ERROR_NONE or PX_ERROR
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static INT __canIoctl (__CAN_DEV    *pcanDev, INT  cmd, LONG  lArg)
+static INT __canIoctl (__CAN_DEV    *pcanDev, INT  iCmd, LONG  lArg)
 {
     INTREG               iregInterLevel;
     INT                  iStatus = ERROR_NONE;
@@ -583,7 +583,7 @@ static INT __canIoctl (__CAN_DEV    *pcanDev, INT  cmd, LONG  lArg)
     CANDEV_LOCK(pcanDev);                                               /*  等待设备使用权              */
 
     if (pCanDevFuncs->ioctl) {
-        iStatus = pCanDevFuncs->ioctl(pcanport->CANPORT_pcanchan, cmd, (PVOID)lArg);
+        iStatus = pCanDevFuncs->ioctl(pcanport->CANPORT_pcanchan, iCmd, (PVOID)lArg);
     } else {
         iStatus = ENOSYS;
     }
@@ -593,7 +593,7 @@ static INT __canIoctl (__CAN_DEV    *pcanDev, INT  cmd, LONG  lArg)
 
         iStatus = ERROR_NONE;                                           /*  清除驱动程序错误            */
 
-        switch (cmd) {
+        switch (iCmd) {
 
         case FIONREAD:                                                  /*  读缓冲区有效数据数量        */
             {
@@ -744,7 +744,7 @@ static LONG  __canOpen (__CAN_DEV  *pcanDev,
 ** 功能描述: CAN 设备关闭
 ** 输　入  :
 **           pcanDev          CAN 设备
-** 输　出  : CAN 设备指针
+** 输　出  : ERROR_NONE or PX_ERROR
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
@@ -772,14 +772,14 @@ static INT __canClose (__CAN_DEV   *pcanDev)
 ** 输　入  :
 **           pcanDev          CAN 设备
 **           pcanframe        写缓冲区指针
-**           stNbyte          发送缓冲区字节数
+**           stNBytes         发送缓冲区字节数
 ** 输　出  : 返回实际写入的个数
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
 static ssize_t __canWrite (__CAN_DEV        *pcanDev,
                            PCAN_FRAME        pcanframe,
-                           size_t            stNbyte)
+                           size_t            stNBytes)
 {
 
     INTREG         iregInterLevel;
@@ -787,7 +787,7 @@ static ssize_t __canWrite (__CAN_DEV        *pcanDev,
     INT            i = 0;
     ULONG          ulError;
     __CAN_PORT    *pcanport = (__CAN_PORT *)pcanDev;
-    size_t         stNumber = stNbyte / sizeof(CAN_FRAME);              /*  转换为数据包个数            */
+    size_t         stNumber = stNBytes / sizeof(CAN_FRAME);             /*  转换为数据包个数            */
 
     while (stNumber > 0) {
         ulError = API_SemaphoreBPend(pcanDev->CAN_ulSendSemB,
@@ -841,19 +841,19 @@ static ssize_t __canWrite (__CAN_DEV        *pcanDev,
 ** 输　入  :
 **           pcanDev          CAN 设备
 **           pcanframe        CAN发送缓冲区指针
-**           stNbyte          读取缓冲区的字节数
+**           stNBytes         读取缓冲区的字节数
 ** 输　出  : 返回实际读取的个数
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
 static ssize_t __canRead (__CAN_DEV       *pcanDev,
                           PCAN_FRAME       pcanframe,
-                          size_t           stNbyte)
+                          size_t           stNBytes)
 {
     INTREG        iregInterLevel;
 
     REGISTER ssize_t      sstNRead;
-             size_t       stNumber = stNbyte / sizeof(CAN_FRAME);       /*  转换为数据包个数            */
+             size_t       stNumber = stNBytes / sizeof(CAN_FRAME);      /*  转换为数据包个数            */
              ULONG        ulError;
 
     for (;;) {
@@ -907,7 +907,6 @@ static ssize_t __canRead (__CAN_DEV       *pcanDev,
 ** 函数名称: API_CanDrvInstall
 ** 功能描述: 安装 can 驱动程序
 ** 输　入  : NONE
-**
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
@@ -1080,6 +1079,7 @@ INT  API_CanDevRemove (PCHAR     pcName, BOOL  bForce)
 
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0)      */
                                                                         /*  (LW_CFG_CAN_EN > 0)         */
 /*********************************************************************************************************

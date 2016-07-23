@@ -16,7 +16,7 @@
 **
 ** 文件创建日期: 2007 年 07 月 21 日
 **
-** 描        述: 释放互斥信号量    不可在中断中操作
+** 描        述: 释放互斥信号量, 不可在中断中操作
 
 ** BUG
 2007.07.21  加入 _DebugHandle() 功能。
@@ -40,7 +40,7 @@
 *********************************************************************************************************/
 /*********************************************************************************************************
 ** 函数名称: API_SemaphoreMPost
-** 功能描述: 释放二进制型信号量    不可在中断中操作
+** 功能描述: 释放二进制型信号量, 不可在中断中操作
 ** 输　入  : 
 **           ulId                   事件句柄
 ** 输　出  : 
@@ -103,7 +103,7 @@ ULONG  API_SemaphoreMPost (LW_OBJECT_HANDLE  ulId)
         return  (ERROR_EVENT_NOT_OWN);
     }
     
-    if (pevent->EVENT_pvPtr) {                                          /*  检测是否进行了连续调用      */
+    if (pevent->EVENT_pvPtr) {                                          /*  检测是否进行了递归调用      */
         pevent->EVENT_pvPtr = (PVOID)((ULONG)pevent->EVENT_pvPtr - 1);  /*  临时计数器--                */
         __KERNEL_EXIT();                                                /*  退出内核                    */
         return  (ERROR_NONE);
@@ -111,15 +111,13 @@ ULONG  API_SemaphoreMPost (LW_OBJECT_HANDLE  ulId)
     
     iregInterLevel = KN_INT_DISABLE();
     
-    if (_EventWaitNum(pevent)) {
+    if (_EventWaitNum(EVENT_SEM_Q, pevent)) {
         if (pevent->EVENT_ulOption & LW_OPTION_WAIT_PRIORITY) {         /*  优先级等待队列              */
-            _EVENT_DEL_Q_PRIORITY(ppringList);                          /*  检查需要激活的队列          */
-                                                                        /*  激活优先级等待线程          */
+            _EVENT_DEL_Q_PRIORITY(EVENT_SEM_Q, ppringList);             /*  激活优先级等待线程          */
             ptcb = _EventReadyPriorityLowLevel(pevent, LW_NULL, ppringList);
         
         } else {
-            _EVENT_DEL_Q_FIFO(ppringList);                              /*  检查需要激活的FIFO队列      */
-                                                                        /*  激活FIFO等待线程            */
+            _EVENT_DEL_Q_FIFO(EVENT_SEM_Q, ppringList);                 /*  激活FIFO等待线程            */
             ptcb = _EventReadyFifoLowLevel(pevent, LW_NULL, ppringList);
         }
         

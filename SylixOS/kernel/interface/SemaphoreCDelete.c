@@ -87,23 +87,19 @@ ULONG  API_SemaphoreCDelete (LW_OBJECT_HANDLE  *pulId)
 
     pevent->EVENT_ucType = LW_TYPE_EVENT_UNUSED;                        /*  事件类型为空                */
     
-    while (_EventWaitNum(pevent)) {                                     /*  是否存在正在等待的任务      */
+    while (_EventWaitNum(EVENT_SEM_Q, pevent)) {                        /*  是否存在正在等待的任务      */
         if (pevent->EVENT_ulOption & LW_OPTION_WAIT_PRIORITY) {         /*  优先级等待队列              */
-            _EVENT_DEL_Q_PRIORITY(ppringList);                          /*  检查需要激活的队列          */
-                                                                        /*  激活优先级等待线程          */
+            _EVENT_DEL_Q_PRIORITY(EVENT_SEM_Q, ppringList);             /*  激活优先级等待线程          */
             ptcb = _EventReadyPriorityLowLevel(pevent, LW_NULL, ppringList);
         
         } else {
-            _EVENT_DEL_Q_FIFO(ppringList);                              /*  查找 FIFO 队列指针地址      */
-                                                                        /*  激活FIFO等待线程            */
+            _EVENT_DEL_Q_FIFO(EVENT_SEM_Q, ppringList);                 /*  激活FIFO等待线程            */
             ptcb = _EventReadyFifoLowLevel(pevent, LW_NULL, ppringList);
         }
 
         KN_INT_ENABLE(iregInterLevel);                                  /*  打开中断                    */
-        
         ptcb->TCB_ucIsEventDelete = LW_EVENT_DELETE;                    /*  事件已经被删除              */
         _EventReadyHighLevel(ptcb, LW_THREAD_STATUS_SEM);               /*  处理 TCB                    */
-        
         iregInterLevel = KN_INT_DISABLE();                              /*  关闭中断                    */
     }
     

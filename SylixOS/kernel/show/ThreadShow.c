@@ -235,6 +235,10 @@ VOID    API_ThreadPendShowEx (pid_t  pid)
             case LW_TYPE_EVENT_SEMB:
                 ulEvent = MAKE_ID(_OBJECT_SEM_B, pevent->EVENT_usIndex);
                 break;
+                
+            case LW_TYPE_EVENT_SEMRW:
+                ulEvent = MAKE_ID(_OBJECT_SEM_RW, pevent->EVENT_usIndex);
+                break;
             
             case LW_TYPE_EVENT_MUTEX:
                 ulEvent = MAKE_ID(_OBJECT_SEM_M, pevent->EVENT_usIndex);

@@ -898,8 +898,8 @@ ssize_t  _TyReadVtime (TY_DEV_ID  ptyDev,
 {
              INTREG        iregInterLevel;
          
-             ssize_t       sstNbytes;
-             ssize_t       sstNTotalbytes = 0;
+             ssize_t       sstNBytes;
+             ssize_t       sstNTotalBytes = 0;
     
     REGISTER VX_RING_ID    ringId;
     REGISTER INT           iNTemp;
@@ -923,7 +923,7 @@ __re_read:
         ulError = API_SemaphoreBPend(ptyDev->TYDEV_hRdSyncSemB, ulTimeout);
         if (ulError) {
             _ErrorHandle(ERROR_IO_DEVICE_TIMEOUT);                      /*  超时                        */
-            return  (sstNTotalbytes);
+            return  (sstNTotalBytes);
         }
         
         TYDEV_LOCK(ptyDev, return (PX_ERROR));                          /*  等待设备使用权              */
@@ -931,13 +931,13 @@ __re_read:
         if (ptyDev->TYDEV_iAbortFlag & OPT_RABORT) {                    /*  is abort                    */
             TYDEV_UNLOCK(ptyDev);                                       /*  释放设备使用权              */
             _ErrorHandle(ERROR_IO_ABORT);                               /*  abort                       */
-            return  (sstNTotalbytes);
+            return  (sstNTotalBytes);
         }
         
         if (ptyDev->TYDEV_tydevrdstat.TYDEVRDSTAT_bCanceled) {          /*  检查设备是否被读禁止了      */
             TYDEV_UNLOCK(ptyDev);                                       /*  释放设备使用权              */
             _ErrorHandle(ERROR_IO_CANCELLED);
-            return  (sstNTotalbytes);
+            return  (sstNTotalBytes);
         }
         
         ringId = ptyDev->TYDEV_vxringidRdBuf;                           /*  输入缓冲区                  */
@@ -962,14 +962,14 @@ __re_read:
                            iNTemp);                                     /*  获得剩余数据大小            */
             (VOID)iRetTemp;                                             /*  这里一定成功, 暂不判断返回值*/
         }
-        sstNbytes = (ssize_t)__MIN((ssize_t)ptyDev->TYDEV_ucInBytesLeft, 
+        sstNBytes = (ssize_t)__MIN((ssize_t)ptyDev->TYDEV_ucInBytesLeft, 
                                    (ssize_t)stMaxBytes);                /*  计算接收的最大值            */
-        rngBufGet(ringId, pcBuffer, (INT)sstNbytes);                    /*  接收数据                    */
+        rngBufGet(ringId, pcBuffer, (INT)sstNBytes);                    /*  接收数据                    */
         ptyDev->TYDEV_ucInBytesLeft = (UCHAR)
                                       (ptyDev->TYDEV_ucInBytesLeft
-                                    - sstNbytes);                       /*  重新计算行剩余数据          */
+                                    - sstNBytes);                       /*  重新计算行剩余数据          */
     } else {                                                            /*  非行模式                    */
-        sstNbytes = (ssize_t)rngBufGet(ringId, pcBuffer, 
+        sstNBytes = (ssize_t)rngBufGet(ringId, pcBuffer, 
                                        (INT)stMaxBytes);                /*  直接接收                    */
     }
     
@@ -994,19 +994,19 @@ __re_read:
         LW_SPIN_UNLOCK_QUICK(&ptyDev->TYDEV_slLock, iregInterLevel);    /*  解锁 spinlock 打开中断      */
     }
     
-    sstNTotalbytes += sstNbytes;                                        /*  以读取数据的总数            */
+    sstNTotalBytes += sstNBytes;                                        /*  以读取数据的总数            */
     
-    if (sstNTotalbytes < __TTY_CC(ptyDev, VMIN)) {                      /*  是否接收到指定数量的数据    */
+    if (sstNTotalBytes < __TTY_CC(ptyDev, VMIN)) {                      /*  是否接收到指定数量的数据    */
         TYDEV_UNLOCK(ptyDev);                                           /*  释放设备使用权              */
-        pcBuffer   += sstNbytes;
-        stMaxBytes -= (size_t)sstNbytes;
+        pcBuffer   += sstNBytes;
+        stMaxBytes -= (size_t)sstNBytes;
         goto    __re_read;
         
     } else {
         TYDEV_UNLOCK(ptyDev);                                           /*  释放设备使用权              */
     }
     
-    return  (sstNTotalbytes);
+    return  (sstNTotalBytes);
 }
 /*********************************************************************************************************
 ** 函数名称: _TyRead
@@ -1026,8 +1026,8 @@ ssize_t  _TyRead (TY_DEV_ID  ptyDev,
 {
              INTREG        iregInterLevel;
          
-             ssize_t       sstNbytes;
-             ssize_t       sstNTotalbytes = 0;
+             ssize_t       sstNBytes;
+             ssize_t       sstNTotalBytes = 0;
     
     REGISTER VX_RING_ID    ringId;
     REGISTER INT           iNTemp;
@@ -1057,7 +1057,7 @@ __re_read:
         }
         if (ulError) {
             _ErrorHandle(ERROR_IO_DEVICE_TIMEOUT);                      /*  超时                        */
-            return  (sstNTotalbytes);
+            return  (sstNTotalBytes);
         }
         
         TYDEV_LOCK(ptyDev, return (PX_ERROR));                          /*  等待设备使用权              */
@@ -1065,13 +1065,13 @@ __re_read:
         if (ptyDev->TYDEV_iAbortFlag & OPT_RABORT) {                    /*  is abort                    */
             TYDEV_UNLOCK(ptyDev);                                       /*  释放设备使用权              */
             _ErrorHandle(ERROR_IO_ABORT);                               /*  abort                       */
-            return  (sstNTotalbytes);
+            return  (sstNTotalBytes);
         }
         
         if (ptyDev->TYDEV_tydevrdstat.TYDEVRDSTAT_bCanceled) {          /*  检查设备是否被读禁止了      */
             TYDEV_UNLOCK(ptyDev);                                       /*  释放设备使用权              */
             _ErrorHandle(ERROR_IO_CANCELLED);
-            return  (sstNTotalbytes);
+            return  (sstNTotalBytes);
         }
         
         ringId = ptyDev->TYDEV_vxringidRdBuf;                           /*  输入缓冲区                  */
@@ -1092,14 +1092,14 @@ __re_read:
                            iNTemp);                                     /*  获得剩余数据大小            */
             (VOID)iRetTemp;                                             /*  这里一定成功, 暂不判断返回值*/
         }
-        sstNbytes = (ssize_t)__MIN((ssize_t)ptyDev->TYDEV_ucInBytesLeft, 
+        sstNBytes = (ssize_t)__MIN((ssize_t)ptyDev->TYDEV_ucInBytesLeft, 
                                    (ssize_t)stMaxBytes);                /*  计算接收的最大值            */
-        rngBufGet(ringId, pcBuffer, (INT)sstNbytes);                    /*  接收数据                    */
+        rngBufGet(ringId, pcBuffer, (INT)sstNBytes);                    /*  接收数据                    */
         ptyDev->TYDEV_ucInBytesLeft = (UCHAR)
                                       (ptyDev->TYDEV_ucInBytesLeft
-                                    - sstNbytes);                       /*  重新计算行剩余数据          */
+                                    - sstNBytes);                       /*  重新计算行剩余数据          */
     } else {                                                            /*  非行模式                    */
-        sstNbytes = (ssize_t)rngBufGet(ringId, pcBuffer, 
+        sstNBytes = (ssize_t)rngBufGet(ringId, pcBuffer, 
                                        (INT)stMaxBytes);                /*  直接接收                    */
     }
     
@@ -1125,19 +1125,19 @@ __re_read:
         LW_SPIN_UNLOCK_QUICK(&ptyDev->TYDEV_slLock, iregInterLevel);    /*  解锁 spinlock 打开中断      */
     }
     
-    sstNTotalbytes += sstNbytes;                                        /*  以读取数据的总数            */
+    sstNTotalBytes += sstNBytes;                                        /*  以读取数据的总数            */
     
-    if (sstNTotalbytes < __TTY_CC(ptyDev, VMIN)) {                      /*  是否接收到指定数量的数据    */
+    if (sstNTotalBytes < __TTY_CC(ptyDev, VMIN)) {                      /*  是否接收到指定数量的数据    */
         TYDEV_UNLOCK(ptyDev);                                           /*  释放设备使用权              */
-        pcBuffer   += sstNbytes;
-        stMaxBytes -= (size_t)sstNbytes;
+        pcBuffer   += sstNBytes;
+        stMaxBytes -= (size_t)sstNBytes;
         goto    __re_read;
         
     } else {
         TYDEV_UNLOCK(ptyDev);                                           /*  释放设备使用权              */
     }
     
-    return  (sstNTotalbytes);
+    return  (sstNTotalBytes);
 }
 /*********************************************************************************************************
 ** 函数名称: _TyITx

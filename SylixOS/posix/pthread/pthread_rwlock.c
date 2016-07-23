@@ -16,8 +16,7 @@
 **
 ** 文件创建日期: 2009 年 12 月 30 日
 **
-** 描        述: pthread 读写锁兼容库. (使用了双信号量的算法, 写者优先) (rwlock 从来不会发生 EINTR)
-** 注        意: SylixOS pthread_rwlock_rdlock() 不支持同一线程连续调用!!!
+** 描        述: pthread 读写锁库.
 
 ** BUG:
 2010.01.12  加锁时阻塞时, 只需将 pend 计数器一次自增一次即可.
@@ -27,6 +26,7 @@
             otherwise, an error number shall be returned to indicate the error.
 2016.04.13  加入 GJB7714 相关 API 支持.
 2016.05.09  隐形初始化确保多线程安全.
+2016.07.21  使用内核读写锁.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../include/px_pthread.h"                                      /*  已包含操作系统头文件        */
@@ -37,19 +37,12 @@
 /*********************************************************************************************************
   宏
 *********************************************************************************************************/
-#define __PX_RWLOCKATTR_INIT            0x8000
-
-#define __PX_RWLOCK_LOCK(prwlock)       \
-        API_SemaphoreMPend(prwlock->PRWLOCK_ulMutex, LW_OPTION_WAIT_INFINITE)
-#define __PX_RWLOCK_UNLOCK(prwlock)     \
-        API_SemaphoreMPost(prwlock->PRWLOCK_ulMutex)
-        
-#define __PX_RWLOCK_STATUS_READING      0x0000
-#define __PX_RWLOCK_STATUS_WRITING      0x0001
+#define __PX_RWLOCKATTR_SHARED  1
+#define __PX_RWLOCKATTR_WRITER  2
 /*********************************************************************************************************
   初始化锁
 *********************************************************************************************************/
-static LW_OBJECT_HANDLE                 _G_ulPRWLockInitLock;
+static LW_OBJECT_HANDLE         _G_ulPRWLockInitLock;
 /*********************************************************************************************************
 ** 函数名称: _posixPRWLockInit
 ** 功能描述: 初始化 读写锁 环境.
@@ -76,9 +69,9 @@ VOID  _posixPRWLockInit (VOID)
 static void  __pthread_rwlock_init_invisible (pthread_rwlock_t  *prwlock)
 {
     if (prwlock) {
-        if (prwlock->PRWLOCK_ulMutex == LW_OBJECT_HANDLE_INVALID) {
+        if (prwlock->PRWLOCK_ulRwLock == LW_OBJECT_HANDLE_INVALID) {
             API_SemaphoreMPend(_G_ulPRWLockInitLock, LW_OPTION_WAIT_INFINITE);
-            if (prwlock->PRWLOCK_ulMutex == LW_OBJECT_HANDLE_INVALID) {
+            if (prwlock->PRWLOCK_ulRwLock == LW_OBJECT_HANDLE_INVALID) {
                 pthread_rwlock_init(prwlock, LW_NULL);
             }
             API_SemaphoreMPost(_G_ulPRWLockInitLock);
@@ -102,7 +95,7 @@ int  pthread_rwlockattr_init (pthread_rwlockattr_t  *prwlockattr)
         return  (EINVAL);
     }
 
-    *prwlockattr = __PX_RWLOCKATTR_INIT;
+    *prwlockattr = 0;
 
     return  (ERROR_NONE);
 }
@@ -140,6 +133,18 @@ int  pthread_rwlockattr_destroy (pthread_rwlockattr_t  *prwlockattr)
 LW_API 
 int  pthread_rwlockattr_setpshared (pthread_rwlockattr_t *prwlockattr, int  pshared)
 {
+    if (prwlockattr == LW_NULL) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+
+    if (pshared) {
+        *prwlockattr |= __PX_RWLOCKATTR_SHARED;
+    
+    } else {
+        *prwlockattr |= ~__PX_RWLOCKATTR_SHARED;
+    }
+
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -155,8 +160,84 @@ int  pthread_rwlockattr_setpshared (pthread_rwlockattr_t *prwlockattr, int  psha
 LW_API 
 int  pthread_rwlockattr_getpshared (const pthread_rwlockattr_t *prwlockattr, int  *pshared)
 {
+    if (prwlockattr == LW_NULL) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+
     if (pshared) {
-        *pshared = PTHREAD_PROCESS_PRIVATE;
+        if (*prwlockattr & __PX_RWLOCKATTR_SHARED) {
+            *pshared = PTHREAD_PROCESS_SHARED;
+        
+        } else {
+            *pshared = PTHREAD_PROCESS_PRIVATE;
+        }
+    } else {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: pthread_rwlockattr_setkind_np
+** 功能描述: 设置一个读写锁属性块读写优先权.
+** 输　入  : prwlockattr    属性块
+**           pref           优先权选项
+** 输　出  : ERROR CODE
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API 
+int  pthread_rwlockattr_setkind_np (pthread_rwlockattr_t *prwlockattr, int pref)
+{
+    if (prwlockattr == LW_NULL) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+    
+    if (pref == PTHREAD_RWLOCK_PREFER_READER_NP) {
+        *prwlockattr &= ~__PX_RWLOCKATTR_WRITER;
+    
+    } else if (pref == PTHREAD_RWLOCK_PREFER_WRITER_NP) {
+        *prwlockattr |= __PX_RWLOCKATTR_WRITER;
+    
+    } else {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: pthread_rwlockattr_setkind_np
+** 功能描述: 设置一个读写锁属性块读写优先权.
+** 输　入  : prwlockattr    属性块
+**           pref           优先权选项
+** 输　出  : ERROR CODE
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API 
+int  pthread_rwlockattr_getkind_np (const pthread_rwlockattr_t *prwlockattr, int *pref)
+{
+    if (prwlockattr == LW_NULL) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+    
+    if (pref) {
+        if (*prwlockattr & __PX_RWLOCKATTR_WRITER) {
+            *pref = PTHREAD_RWLOCK_PREFER_WRITER_NP;
+        
+        } else {
+            *pref = PTHREAD_RWLOCK_PREFER_READER_NP;
+        }
+    } else {
+        errno = EINVAL;
+        return  (EINVAL);
     }
 
     return  (ERROR_NONE);
@@ -174,38 +255,24 @@ int  pthread_rwlockattr_getpshared (const pthread_rwlockattr_t *prwlockattr, int
 LW_API 
 int  pthread_rwlock_init (pthread_rwlock_t  *prwlock, const pthread_rwlockattr_t  *prwlockattr)
 {
+    ULONG   ulOption = LW_OPTION_WAIT_PRIORITY | LW_OPTION_DELETE_SAFE;
+    
     if (prwlock == LW_NULL) {
         errno = EINVAL;
         return  (EINVAL);
     }
     
-    prwlock->PRWLOCK_ulRSemaphore = API_SemaphoreCCreate("prwrlock", 0, __ARCH_ULONG_MAX, 
-                                                        LW_OPTION_WAIT_PRIORITY, LW_NULL);
-    if (prwlock->PRWLOCK_ulRSemaphore == LW_OBJECT_HANDLE_INVALID) {
-        errno = ENOSPC;
-        return  (ENOSPC);
-    }
-    prwlock->PRWLOCK_ulWSemaphore = API_SemaphoreCCreate("prwwlock", 0, __ARCH_ULONG_MAX, 
-                                                        LW_OPTION_WAIT_PRIORITY, LW_NULL);
-    if (prwlock->PRWLOCK_ulWSemaphore == LW_OBJECT_HANDLE_INVALID) {
-        API_SemaphoreCDelete(&prwlock->PRWLOCK_ulRSemaphore);
-        errno = ENOSPC;
-        return  (ENOSPC);
-    }
-    prwlock->PRWLOCK_ulMutex = API_SemaphoreMCreate("prwlock_m", LW_PRIO_DEF_CEILING, 
-                                                    (LW_OPTION_INHERIT_PRIORITY |
-                                                     LW_OPTION_DELETE_SAFE |
-                                                     LW_OPTION_WAIT_PRIORITY), LW_NULL);
-    if (prwlock->PRWLOCK_ulMutex == LW_OBJECT_HANDLE_INVALID) {
-        API_SemaphoreCDelete(&prwlock->PRWLOCK_ulRSemaphore);
-        API_SemaphoreCDelete(&prwlock->PRWLOCK_ulWSemaphore);
-        errno = ENOSPC;
-        return  (ENOSPC);
+    if (prwlockattr) {
+        if (*prwlockattr & __PX_RWLOCKATTR_WRITER) {
+            ulOption |= LW_OPTION_RW_PREFER_WRITER;
+        }
     }
     
-    prwlock->PRWLOCK_uiOpCounter    = 0;
-    prwlock->PRWLOCK_uiRPendCounter = 0;
-    prwlock->PRWLOCK_uiWPendCounter = 0;
+    prwlock->PRWLOCK_ulRwLock = API_SemaphoreRWCreate("prwrlock", ulOption, LW_NULL);
+    if (prwlock->PRWLOCK_ulRwLock == LW_OBJECT_HANDLE_INVALID) {
+        errno = ENOSPC;
+        return  (ENOSPC);
+    }
     
     return  (ERROR_NONE);
 }
@@ -226,12 +293,10 @@ int  pthread_rwlock_destroy (pthread_rwlock_t  *prwlock)
         return  (EINVAL);
     }
     
-    if (API_SemaphoreCDelete(&prwlock->PRWLOCK_ulRSemaphore)) {
+    if (API_SemaphoreRWDelete(&prwlock->PRWLOCK_ulRwLock)) {
         errno = EINVAL;
         return  (EINVAL);
     }
-    API_SemaphoreCDelete(&prwlock->PRWLOCK_ulWSemaphore);
-    API_SemaphoreMDelete(&prwlock->PRWLOCK_ulMutex);
     
     return  (ERROR_NONE);
 }
@@ -253,32 +318,13 @@ int  pthread_rwlock_rdlock (pthread_rwlock_t  *prwlock)
     }
     
     __pthread_rwlock_init_invisible(prwlock);
-
-    __PX_RWLOCK_LOCK(prwlock);                                          /*  锁定读写锁                  */
-    prwlock->PRWLOCK_uiRPendCounter++;                                  /*  等待读的数量++              */
-    do {
-        if ((prwlock->PRWLOCK_uiStatus == __PX_RWLOCK_STATUS_READING) &&
-            (prwlock->PRWLOCK_uiWPendCounter == 0)) {
-            /*
-             *  如果写入器未持有读锁, 并且没有任何写入器基于改锁阻塞. 则调用线程立即获取读锁.
-             */
-            prwlock->PRWLOCK_uiOpCounter++;                             /*  正在操作数量++              */
-            prwlock->PRWLOCK_uiRPendCounter--;                          /*  退出等待模式                */
-            break;                                                      /*  直接跳出                    */
-        
-        } else {
-            /*
-             *  如果写入器正在操作或者, 或者有多个写入器正在等待该锁, 将阻塞.
-             */
-            __PX_RWLOCK_UNLOCK(prwlock);                                /*  解锁读写锁                  */
-            API_SemaphoreCPend(prwlock->PRWLOCK_ulRSemaphore,
-                               LW_OPTION_WAIT_INFINITE);                /*  等待读写锁状态变换          */
-            __PX_RWLOCK_LOCK(prwlock);                                  /*  锁定读写锁                  */
-        }
-        
-    } while (1);
-    __PX_RWLOCK_UNLOCK(prwlock);                                        /*  解锁读写锁                  */
     
+    if (API_SemaphoreRWPendR(prwlock->PRWLOCK_ulRwLock, 
+                             LW_OPTION_WAIT_INFINITE)) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -293,25 +339,28 @@ int  pthread_rwlock_rdlock (pthread_rwlock_t  *prwlock)
 LW_API 
 int  pthread_rwlock_tryrdlock (pthread_rwlock_t  *prwlock)
 {
+    ULONG    ulError;
+
     if (prwlock == LW_NULL) {
         errno = EINVAL;
         return  (EINVAL);
     }
     
     __pthread_rwlock_init_invisible(prwlock);
-
-    __PX_RWLOCK_LOCK(prwlock);                                          /*  锁定读写锁                  */
-    if ((prwlock->PRWLOCK_uiStatus == __PX_RWLOCK_STATUS_READING) &&
-        (prwlock->PRWLOCK_uiWPendCounter == 0)) {
-        prwlock->PRWLOCK_uiOpCounter++;                                 /*  正在操作数量++              */
-        __PX_RWLOCK_UNLOCK(prwlock);                                    /*  解锁读写锁                  */
-        return  (ERROR_NONE);
     
-    } else {
-        __PX_RWLOCK_UNLOCK(prwlock);                                    /*  解锁读写锁                  */
+    ulError = API_SemaphoreRWPendR(prwlock->PRWLOCK_ulRwLock, LW_OPTION_NOT_WAIT);
+    if (ulError == ERROR_THREAD_WAIT_TIMEOUT) {
         errno = EBUSY;
         return  (EBUSY);
+    
+    } else if (ulError) {
+        if (errno != EDEADLK) {
+            errno  = EINVAL;
+        }
+        return  (errno);
     }
+    
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: pthread_rwlock_timedrdlock
@@ -328,10 +377,9 @@ int  pthread_rwlock_timedrdlock (pthread_rwlock_t *prwlock,
                                  const struct timespec *abs_timeout)
 {
     ULONG               ulTimeout;
-    ULONG               ulOrgKernelTime;
-    ULONG               ulError = ERROR_NONE;
+    ULONG               ulError;
     struct timespec     tvNow;
-    struct timespec     tvWait  = {0, 0};
+    struct timespec     tvWait = {0, 0};
     
     if (prwlock == LW_NULL) {
         errno = EINVAL;
@@ -357,44 +405,69 @@ int  pthread_rwlock_timedrdlock (pthread_rwlock_t *prwlock,
      */
     ulTimeout = __timespecToTick(&tvWait);                              /*  变换为 tick                 */
     
-    __PX_RWLOCK_LOCK(prwlock);                                          /*  锁定读写锁                  */
-    prwlock->PRWLOCK_uiRPendCounter++;                                  /*  等待读的数量++              */
-    do {
-        __KERNEL_TIME_GET(ulOrgKernelTime, ULONG);                      /*  记录系统时间                */
-        
-        if ((prwlock->PRWLOCK_uiStatus == __PX_RWLOCK_STATUS_READING) &&
-            (prwlock->PRWLOCK_uiWPendCounter == 0)) {
-            /*
-             *  如果写入器未持有读锁, 并且没有任何写入器基于改锁阻塞. 则调用线程立即获取读锁.
-             */
-            prwlock->PRWLOCK_uiOpCounter++;                             /*  正在操作数量++              */
-            prwlock->PRWLOCK_uiRPendCounter--;                          /*  退出等待模式                */
-            break;                                                      /*  直接跳出                    */
-        
-        } else {
-            /*
-             *  如果写入器正在操作或者, 或者有多个写入器正在等待该锁, 将阻塞.
-             */
-            __PX_RWLOCK_UNLOCK(prwlock);                                /*  解锁读写锁                  */
-            ulError = API_SemaphoreCPend(prwlock->PRWLOCK_ulRSemaphore,
-                                         ulTimeout);                    /*  等待读写锁状态变换          */
-            __PX_RWLOCK_LOCK(prwlock);                                  /*  锁定读写锁                  */
-            if (ulError) {
-                break;                                                  /*  直接跳出                    */
-            }
-        }
-        
-        ulTimeout = _sigTimeoutRecalc(ulOrgKernelTime, ulTimeout);      /*  重新计算等待时间            */
-    } while (1);
-    __PX_RWLOCK_UNLOCK(prwlock);                                        /*  解锁读写锁                  */
-    
+    ulError = API_SemaphoreRWPendR(prwlock->PRWLOCK_ulRwLock, ulTimeout);
     if (ulError == ERROR_THREAD_WAIT_TIMEOUT) {
-        ulError = ETIMEDOUT;
-        errno   = ETIMEDOUT;
+        errno = ETIMEDOUT;
+        return  (ETIMEDOUT);
+    
+    } else if (ulError) {
+        if (errno != EDEADLK) {
+            errno  = EINVAL;
+        }
+        return  (errno);
     }
     
-    return  ((INT)ulError);
+    return  (ERROR_NONE);
 }
+/*********************************************************************************************************
+** 函数名称: pthread_rwlock_reltimedrdlock_np
+** 功能描述: 等待一个读写锁可读 (带有超时的阻塞).
+** 输　入  : prwlock        句柄
+**           rel_timeout    相对超时时间
+** 输　出  : ERROR CODE
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+#if LW_CFG_POSIXEX_EN > 0
+
+LW_API 
+int  pthread_rwlock_reltimedrdlock_np (pthread_rwlock_t *prwlock,
+                                       const struct timespec *rel_timeout)
+{
+    ULONG   ulTimeout;
+    ULONG   ulError = ERROR_NONE;
+
+    if ((rel_timeout == LW_NULL)    || 
+        (rel_timeout->tv_nsec <  0) ||
+        (rel_timeout->tv_nsec >= __TIMEVAL_NSEC_MAX)) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+    
+    __pthread_rwlock_init_invisible(prwlock);
+    
+    /*
+     *  注意: 当 rel_timeout 超过ulong tick范围时, 将自然产生溢出, 导致超时时间不准确.
+     */
+    ulTimeout = __timespecToTick(rel_timeout);                          /*  变换为 tick                 */
+    
+    ulError = API_SemaphoreRWPendR(prwlock->PRWLOCK_ulRwLock, ulTimeout);
+    if (ulError == ERROR_THREAD_WAIT_TIMEOUT) {
+        errno = ETIMEDOUT;
+        return  (ETIMEDOUT);
+    
+    } else if (ulError) {
+        if (errno != EDEADLK) {
+            errno  = EINVAL;
+        }
+        return  (errno);
+    }
+    
+    return  (ERROR_NONE);
+}
+
+#endif                                                                  /*  LW_CFG_POSIXEX_EN > 0       */
 /*********************************************************************************************************
 ** 函数名称: pthread_rwlock_wrlock
 ** 功能描述: 等待一个读写锁可写.
@@ -414,31 +487,12 @@ int  pthread_rwlock_wrlock (pthread_rwlock_t  *prwlock)
     
     __pthread_rwlock_init_invisible(prwlock);
 
-    __PX_RWLOCK_LOCK(prwlock);                                          /*  锁定读写锁                  */
-    prwlock->PRWLOCK_uiWPendCounter++;                                  /*  等待写的数量++              */
-    do {
-        if (prwlock->PRWLOCK_uiOpCounter == 0) {
-            /*
-             *  没有正在操作的线程
-             */
-            prwlock->PRWLOCK_uiOpCounter++;                             /*  正在操作的线程++            */
-            prwlock->PRWLOCK_uiWPendCounter--;                          /*  退出等待状态                */
-            prwlock->PRWLOCK_uiStatus = __PX_RWLOCK_STATUS_WRITING;     /*  转换为写模式                */
-            break;
-            
-        } else {
-            /*
-             *  如果有等待写入的线程或者存在正在读取的线程.
-             */
-            __PX_RWLOCK_UNLOCK(prwlock);                                /*  解锁读写锁                  */
-            API_SemaphoreCPend(prwlock->PRWLOCK_ulWSemaphore,
-                               LW_OPTION_WAIT_INFINITE);                /*  等待读写锁状态变换          */
-            __PX_RWLOCK_LOCK(prwlock);                                  /*  锁定读写锁                  */
-        }
-    } while (1);
-    prwlock->PRWLOCK_ulOwner = API_ThreadIdSelf();                      /*  读写锁拥有者                */
-    __PX_RWLOCK_UNLOCK(prwlock);                                        /*  解锁读写锁                  */
-    
+    if (API_SemaphoreRWPendW(prwlock->PRWLOCK_ulRwLock, 
+                             LW_OPTION_WAIT_INFINITE)) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -453,6 +507,8 @@ int  pthread_rwlock_wrlock (pthread_rwlock_t  *prwlock)
 LW_API 
 int  pthread_rwlock_trywrlock (pthread_rwlock_t  *prwlock)
 {
+    ULONG   ulError;
+
     if (prwlock == LW_NULL) {
         errno = EINVAL;
         return  (EINVAL);
@@ -460,19 +516,19 @@ int  pthread_rwlock_trywrlock (pthread_rwlock_t  *prwlock)
     
     __pthread_rwlock_init_invisible(prwlock);
 
-    __PX_RWLOCK_LOCK(prwlock);                                          /*  锁定读写锁                  */
-    if (prwlock->PRWLOCK_uiOpCounter == 0) {
-        prwlock->PRWLOCK_uiOpCounter++;                                 /*  正在操作的线程++            */
-        prwlock->PRWLOCK_uiStatus = __PX_RWLOCK_STATUS_WRITING;         /*  转换为写模式                */
-        prwlock->PRWLOCK_ulOwner  = API_ThreadIdSelf();                 /*  读写锁拥有者                */
-        __PX_RWLOCK_UNLOCK(prwlock);                                    /*  解锁读写锁                  */
-        return  (ERROR_NONE);
-    
-    } else {
-        __PX_RWLOCK_UNLOCK(prwlock);                                    /*  解锁读写锁                  */
+    ulError = API_SemaphoreRWPendW(prwlock->PRWLOCK_ulRwLock, LW_OPTION_NOT_WAIT);
+    if (ulError == ERROR_THREAD_WAIT_TIMEOUT) {
         errno = EBUSY;
         return  (EBUSY);
+    
+    } else if (ulError) {
+        if (errno != EDEADLK) {
+            errno  = EINVAL;
+        }
+        return  (errno);
     }
+    
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: pthread_rwlock_wrlock
@@ -489,10 +545,9 @@ int  pthread_rwlock_timedwrlock (pthread_rwlock_t *prwlock,
                                  const struct timespec *abs_timeout)
 {
     ULONG               ulTimeout;
-    ULONG               ulOrgKernelTime;
-    ULONG               ulError = ERROR_NONE;
+    ULONG               ulError;
     struct timespec     tvNow;
-    struct timespec     tvWait  = {0, 0};
+    struct timespec     tvWait = {0, 0};
     
     if (prwlock == LW_NULL) {
         errno = EINVAL;
@@ -518,48 +573,69 @@ int  pthread_rwlock_timedwrlock (pthread_rwlock_t *prwlock,
      */
     ulTimeout = __timespecToTick(&tvWait);                              /*  变换为 tick                 */
     
-    __PX_RWLOCK_LOCK(prwlock);                                          /*  锁定读写锁                  */
-    prwlock->PRWLOCK_uiWPendCounter++;                                  /*  等待写的数量++              */
-    do {
-        __KERNEL_TIME_GET(ulOrgKernelTime, ULONG);                      /*  记录系统时间                */
-        
-        if (prwlock->PRWLOCK_uiOpCounter == 0) {
-            /*
-             *  没有正在操作的线程
-             */
-            prwlock->PRWLOCK_uiOpCounter++;                             /*  正在操作的线程++            */
-            prwlock->PRWLOCK_uiWPendCounter--;                          /*  退出等待状态                */
-            prwlock->PRWLOCK_uiStatus = __PX_RWLOCK_STATUS_WRITING;     /*  转换为写模式                */
-            break;
-            
-        } else {
-            /*
-             *  如果有等待写入的线程或者存在正在读取的线程.
-             */
-            __PX_RWLOCK_UNLOCK(prwlock);                                /*  解锁读写锁                  */
-            ulError = API_SemaphoreCPend(prwlock->PRWLOCK_ulWSemaphore,
-                                         ulTimeout);                    /*  等待读写锁状态变换          */
-            __PX_RWLOCK_LOCK(prwlock);                                  /*  锁定读写锁                  */
-            if (ulError) {
-                break;                                                  /*  直接跳出                    */
-            }
-        }
-        
-        ulTimeout = _sigTimeoutRecalc(ulOrgKernelTime, ulTimeout);      /*  重新计算等待时间            */
-    } while (1);
-    
-    if (ulError == ERROR_NONE) {
-        prwlock->PRWLOCK_ulOwner = API_ThreadIdSelf();                  /*  读写锁拥有者                */
-    }
-    __PX_RWLOCK_UNLOCK(prwlock);                                        /*  解锁读写锁                  */
-    
+    ulError = API_SemaphoreRWPendW(prwlock->PRWLOCK_ulRwLock, ulTimeout);
     if (ulError == ERROR_THREAD_WAIT_TIMEOUT) {
-        ulError = ETIMEDOUT;
-        errno   = ETIMEDOUT;
+        errno = ETIMEDOUT;
+        return  (ETIMEDOUT);
+    
+    } else if (ulError) {
+        if (errno != EDEADLK) {
+            errno  = EINVAL;
+        }
+        return  (errno);
     }
     
-    return  ((INT)ulError);
+    return  (ERROR_NONE);
 }
+/*********************************************************************************************************
+** 函数名称: pthread_rwlock_reltimedwrlock_np
+** 功能描述: 等待一个读写锁可写 (带有超时的阻塞).
+** 输　入  : prwlock        句柄
+**           rel_timeout    相对超时时间
+** 输　出  : ERROR CODE
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+#if LW_CFG_POSIXEX_EN > 0
+
+LW_API 
+int  pthread_rwlock_reltimedwrlock_np (pthread_rwlock_t *prwlock,
+                                       const struct timespec *rel_timeout)
+{
+    ULONG   ulTimeout;
+    ULONG   ulError;
+    
+    if ((rel_timeout == LW_NULL)    || 
+        (rel_timeout->tv_nsec <  0) ||
+        (rel_timeout->tv_nsec >= __TIMEVAL_NSEC_MAX)) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+    
+    __pthread_rwlock_init_invisible(prwlock);
+    
+    /*
+     *  注意: 当 rel_timeout 超过ulong tick范围时, 将自然产生溢出, 导致超时时间不准确.
+     */
+    ulTimeout = __timespecToTick(rel_timeout);                          /*  变换为 tick                 */
+    
+    ulError = API_SemaphoreRWPendW(prwlock->PRWLOCK_ulRwLock, ulTimeout);
+    if (ulError == ERROR_THREAD_WAIT_TIMEOUT) {
+        errno = ETIMEDOUT;
+        return  (ETIMEDOUT);
+    
+    } else if (ulError) {
+        if (errno != EDEADLK) {
+            errno  = EINVAL;
+        }
+        return  (errno);
+    }
+    
+    return  (ERROR_NONE);
+}
+
+#endif                                                                  /*  LW_CFG_POSIXEX_EN > 0       */
 /*********************************************************************************************************
 ** 函数名称: pthread_rwlock_unlock
 ** 功能描述: 释放一个读写锁.
@@ -572,61 +648,21 @@ int  pthread_rwlock_timedwrlock (pthread_rwlock_t *prwlock,
 LW_API 
 int  pthread_rwlock_unlock (pthread_rwlock_t  *prwlock)
 {
-    ULONG       ulReleasNum;
-
     if (prwlock == LW_NULL) {
         errno = EINVAL;
         return  (EINVAL);
     }
     
     __pthread_rwlock_init_invisible(prwlock);
-
-    __PX_RWLOCK_LOCK(prwlock);                                          /*  锁定读写锁                  */
-    if (prwlock->PRWLOCK_uiStatus == __PX_RWLOCK_STATUS_WRITING) {
-        /*
-         *  写状态下释放.
-         */
-        if (prwlock->PRWLOCK_ulOwner != API_ThreadIdSelf()) {           /*  不是读写锁拥有者            */
-            __PX_RWLOCK_UNLOCK(prwlock);                                /*  解锁读写锁                  */
+    
+    if (API_SemaphoreRWPost(prwlock->PRWLOCK_ulRwLock)) {
+        if (errno == ERROR_EVENT_NOT_OWN) {
             errno = EPERM;
-            return  (EPERM);
+        } else {
+            errno = EINVAL;
         }
-        
-        prwlock->PRWLOCK_uiStatus = __PX_RWLOCK_STATUS_READING;         /*  重新进入可读模式            */
-        prwlock->PRWLOCK_ulOwner  = LW_OBJECT_HANDLE_INVALID;           /*  没有写拥有者                */
-        
+        return  (errno);
     }
-    
-    prwlock->PRWLOCK_uiOpCounter--;                                     /*  操作数量--                  */
-    
-    /*
-     *  SylixOS 使用写优先原则(其优点详见 www.ibm.com/developerworks/cn/linux/l-rwlock_writing/index.html)
-     */
-    if (prwlock->PRWLOCK_uiOpCounter) {                                 /*  还有占用的线程              */
-        if (prwlock->PRWLOCK_uiWPendCounter == 0) {                     /*  没有等待写的线程            */
-            ulReleasNum = (ULONG)prwlock->PRWLOCK_uiRPendCounter;
-            if (ulReleasNum) {
-                API_SemaphoreCRelease(prwlock->PRWLOCK_ulRSemaphore,
-                                      ulReleasNum,
-                                      LW_NULL);                         /*  将所有的等待读线程解锁      */
-            }
-        }
-    
-    } else {                                                            /*  没有占用锁                  */
-        if (prwlock->PRWLOCK_uiWPendCounter) {                          /*  如果有写等待的线程          */
-            ulReleasNum = (ULONG)prwlock->PRWLOCK_uiWPendCounter;
-            API_SemaphoreCRelease(prwlock->PRWLOCK_ulWSemaphore,
-                                  ulReleasNum,
-                                  LW_NULL);                             /*  将所有的等待写线程解锁      */
-        
-        } else if (prwlock->PRWLOCK_uiRPendCounter) {                   /*  如果有等待读的线程          */
-            ulReleasNum = (ULONG)prwlock->PRWLOCK_uiRPendCounter;
-            API_SemaphoreCRelease(prwlock->PRWLOCK_ulRSemaphore,
-                                  ulReleasNum,
-                                  LW_NULL);                             /*  将所有的等待读线程解锁      */
-        }
-    }
-    __PX_RWLOCK_UNLOCK(prwlock);                                        /*  解锁读写锁                  */
     
     return  (ERROR_NONE);
 }
@@ -645,17 +681,30 @@ int  pthread_rwlock_unlock (pthread_rwlock_t  *prwlock)
 LW_API 
 int  pthread_rwlock_getinfo (pthread_rwlock_t  *prwlock, pthread_rwlock_info_t  *info)
 {
+    ULONG   ulRWCount;
+    ULONG   ulRPend;
+    ULONG   ulWPend;
+
     if ((prwlock == LW_NULL) || (info == LW_NULL)) {
         errno = EINVAL;
         return  (EINVAL);
     }
     
-    __PX_RWLOCK_LOCK(prwlock);                                          /*  锁定读写锁                  */
-    info->owner = prwlock->PRWLOCK_ulOwner;
-    info->opcnt = prwlock->PRWLOCK_uiOpCounter;
-    info->rpend = prwlock->PRWLOCK_uiRPendCounter;
-    info->wpend = prwlock->PRWLOCK_uiWPendCounter;
-    __PX_RWLOCK_UNLOCK(prwlock);                                        /*  解锁读写锁                  */
+    __pthread_rwlock_init_invisible(prwlock);
+    
+    if (API_SemaphoreRWStatus(prwlock->PRWLOCK_ulRwLock,
+                              &ulRWCount,
+                              &ulRPend,
+                              &ulWPend,
+                              LW_NULL,
+                              &info->owner)) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+    
+    info->opcnt = (unsigned int)ulRWCount;
+    info->rpend = (unsigned int)ulRPend;
+    info->wpend = (unsigned int)ulWPend;
     
     return  (ERROR_NONE);
 }

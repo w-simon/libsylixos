@@ -42,17 +42,17 @@ typedef lib_div_t   div_t;
 typedef lib_ldiv_t  ldiv_t;
 typedef lib_lldiv_t lldiv_t;
 
-__LW_RETU_FUNC_DECLARE(void *, malloc, (size_t  stNbytes))
-__LW_RETU_FUNC_DECLARE(void *, mallocalign, (size_t  stNbytes, size_t  stAlign))
-__LW_RETU_FUNC_DECLARE(void *, aligned_malloc, (size_t  stNbytes, size_t  stAlign))
+__LW_RETU_FUNC_DECLARE(void *, malloc, (size_t  stNBytes))
+__LW_RETU_FUNC_DECLARE(void *, mallocalign, (size_t  stNBytes, size_t  stAlign))
+__LW_RETU_FUNC_DECLARE(void *, aligned_malloc, (size_t  stNBytes, size_t  stAlign))
 __LW_RETU_FUNC_DECLARE(void, aligned_free, (void *pvPtr))
-__LW_RETU_FUNC_DECLARE(void *, memalign, (size_t  stAlign, size_t  stNbytes))
+__LW_RETU_FUNC_DECLARE(void *, memalign, (size_t  stAlign, size_t  stNBytes))
 __LW_RETU_FUNC_DECLARE(void, free, (void *pvPtr))
 __LW_RETU_FUNC_DECLARE(void *, calloc, (size_t  stNNum, size_t  stSize))
 __LW_RETU_FUNC_DECLARE(void *, realloc, (void *pvPtr, size_t  stNewSize))
 __LW_RETU_FUNC_DECLARE(void *, xmalloc, (size_t  stSize))
-__LW_RETU_FUNC_DECLARE(void *, xmallocalign, (size_t  stNbytes, size_t  stAlign))
-__LW_RETU_FUNC_DECLARE(void *, xmemalign, (size_t  stAlign, size_t  stNbytes))
+__LW_RETU_FUNC_DECLARE(void *, xmallocalign, (size_t  stNBytes, size_t  stAlign))
+__LW_RETU_FUNC_DECLARE(void *, xmemalign, (size_t  stAlign, size_t  stNBytes))
 __LW_RETU_FUNC_DECLARE(void *, xcalloc, (size_t  stNNum, size_t  stSize))
 __LW_RETU_FUNC_DECLARE(void *, xrealloc, (void *pvPtr, size_t  stNewSize))
 __LW_RETU_FUNC_DECLARE(int, posix_memalign, (void **memptr, size_t alignment, size_t size))
@@ -80,7 +80,7 @@ __LW_RETU_FUNC_DECLARE(div_t, div, (int  numer, int  denom))
 __LW_RETU_FUNC_DECLARE(ldiv_t, ldiv, (long  numer, long  denom))
 __LW_RETU_FUNC_DECLARE(lldiv_t, lldiv, (int64_t  numer, int64_t  denom))
 
-__LW_RETU_FUNC_DECLARE(void *, malloc_new, (size_t  stNbytes))
+__LW_RETU_FUNC_DECLARE(void *, malloc_new, (size_t  stNBytes))
 
 __LW_RETU_FUNC_DECLARE(long, strtol, (const char *nptr, char **endptr, register int base))
 __LW_RETU_FUNC_DECLARE(unsigned long, strtoul, (const char *nptr, char **endptr, register int base))

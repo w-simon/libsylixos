@@ -227,22 +227,19 @@ typedef PLW_CLASS_EVENTSETNODE   PLW_EVENTSETNODE;
   等待队列控制块
 *********************************************************************************************************/
 #if (LW_CFG_EVENT_EN > 0) && (LW_CFG_MAX_EVENTS > 0)
-
-#define  __THREAD_PRIORITY_Q_NUM    LW_CFG_MAX_EVENT_PRIORITY_Q_SIZE    /*  基于优先级的队列数量        */
 /*********************************************************************************************************
-  这里使用四个入口的哈希表
-  散列函数使用优先级作为散列的参数.
+  这里使用哈希表散列函数使用优先级作为散列的参数.
 *********************************************************************************************************/
 
 typedef union { 
-    PLW_LIST_RING     WAITLIST_pringFIFOList;                           /*  基于先入先出的等待队列      */
-    PLW_LIST_RING     WAITLIST_pringPRIOList[__THREAD_PRIORITY_Q_NUM];  /*  基于优先级的等待队列        */
+    PLW_LIST_RING         WL_pringFifo;                                 /*  基于先入先出的等待队列      */
+    PLW_LIST_RING         WL_pringPrio[__EVENT_Q_SIZE];                 /*  基于优先级的等待队列        */
 } LW_UNION_WAITLIST;
 typedef LW_UNION_WAITLIST *PLW_UNION_WAITLIST;
 
 typedef struct {
-    LW_UNION_WAITLIST     WAITQUEUE_wlWaitList;                         /*  等待队列                    */
-    UINT16                WAITQUEUE_usWaitNum;                          /*  等待队列中的线程个数        */
+    LW_UNION_WAITLIST     WQ_wlQ;                                       /*  等待队列                    */
+    UINT16                WQ_usNum;                                     /*  等待队列中的线程个数        */
 } LW_CLASS_WAITQUEUE;
 typedef LW_CLASS_WAITQUEUE *PLW_CLASS_WAITQUEUE;
 
@@ -257,13 +254,26 @@ typedef struct {
                                                                         /*  可以在加入死锁检测机制      */
     ULONG                 EVENT_ulCounter;                              /*  计数器值                    */
     ULONG                 EVENT_ulMaxCounter;                           /*  最大技术值                  */
+    
+    INT                   EVENT_iStatus;
+#define EVENT_RW_STATUS_R 0
+#define EVENT_RW_STATUS_W 1
+    
     ULONG                 EVENT_ulOption;                               /*  事件选项                    */
     UINT8                 EVENT_ucCeilingPriority;                      /*  天花板优先级                */
     PVOID                 EVENT_pvPtr;                                  /*  多用途指针                  */
                                                                         /*  包括二进制信号量消息、      */
                                                                         /*  子控制块包括消息队列，      */
                                                                         /*  内存等                      */
-    LW_CLASS_WAITQUEUE    EVENT_wqWaitList;                             /*  等待队列                    */
+    LW_CLASS_WAITQUEUE    EVENT_wqWaitQ[2];                             /*  双等待队列                  */
+#define EVENT_SEM_Q       0
+    
+#define EVENT_RW_Q_R      0
+#define EVENT_RW_Q_W      1
+
+#define EVENT_MSG_Q_R     0
+#define EVENT_MSG_Q_S     1
+    
     UINT16                EVENT_usIndex;                                /*  缓冲区中的下标              */
     CHAR                  EVENT_cEventName[LW_CFG_OBJECT_NAME_SIZE];    /*  事件名                      */
 } LW_CLASS_EVENT;
@@ -468,6 +478,7 @@ typedef struct __lw_tcb {
 #endif
     
 #if (LW_CFG_EVENT_EN > 0) && (LW_CFG_MAX_EVENTS > 0)
+    INT                   TCB_iPendQ;
     LW_LIST_RING          TCB_ringEvent;                                /*  事件等待队列表              */
     PLW_CLASS_EVENT       TCB_peventPtr;                                /*  等待事件指针                */
     PLW_LIST_RING        *TCB_ppringPriorityQueue;                      /*  在 PRIORITY 队列位置        */

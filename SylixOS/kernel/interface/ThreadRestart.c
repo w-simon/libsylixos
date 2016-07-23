@@ -117,14 +117,14 @@ static ULONG  __threadRestart (PLW_CLASS_TCB          ptcb,
     
 #if (LW_CFG_EVENT_EN > 0) && (LW_CFG_MAX_EVENTS > 0)
     if (ptcb->TCB_peventPtr) {                                          /*  等待事件中                  */
-        _EventUnlink(ptcb);                                             /*  解等待连                    */
+        _EventUnQueue(ptcb);                                            /*  解等待连                    */
     }
 #endif
 
 #if (LW_CFG_EVENTSET_EN > 0) && (LW_CFG_MAX_EVENTSETS > 0)
     pesnPtr = ptcb->TCB_pesnPtr;
     if (pesnPtr) {
-        _EventSetUnlink(pesnPtr);                                       /*  解事件集                    */
+        _EventSetUnQueue(pesnPtr);                                      /*  解事件集                    */
     }
 #endif
     

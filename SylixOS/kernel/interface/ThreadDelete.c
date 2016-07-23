@@ -106,14 +106,14 @@ ULONG  __threadDelete (PLW_CLASS_TCB  ptcbDel, BOOL  bIsInSafe,
     
 #if (LW_CFG_EVENT_EN > 0) && (LW_CFG_MAX_EVENTS > 0)
     if (ptcbDel->TCB_peventPtr) {                                       /*  等待事件中                  */
-        _EventUnlink(ptcbDel);                                          /*  解等待连                    */
+        _EventUnQueue(ptcbDel);                                         /*  解等待连                    */
     }
 #endif
 
 #if (LW_CFG_EVENTSET_EN > 0) && (LW_CFG_MAX_EVENTSETS > 0)
     pesnPtr = ptcbDel->TCB_pesnPtr;
     if (pesnPtr) {
-        _EventSetUnlink(pesnPtr);                                       /*  解事件集                    */
+        _EventSetUnQueue(pesnPtr);                                      /*  解事件集                    */
     }
 #endif
 

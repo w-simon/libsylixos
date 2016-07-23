@@ -32,7 +32,7 @@
                                            
                                        (不得在中断中调用)
 *********************************************************************************************************/
-#if ((LW_CFG_SEMB_EN > 0) || (LW_CFG_SEMC_EN > 0) || (LW_CFG_SEMM_EN > 0)) && (LW_CFG_MAX_EVENTS > 0)
+#if (LW_CFG_SEM_EN > 0) && (LW_CFG_MAX_EVENTS > 0)
 
 LW_API 
 ULONG  API_SemaphoreDelete (LW_OBJECT_HANDLE  *pulId)
@@ -61,6 +61,12 @@ ULONG  API_SemaphoreDelete (LW_OBJECT_HANDLE  *pulId)
         ulErrorCode = API_SemaphoreMDelete(pulId);
         break;
 #endif                                                                  /*  LW_CFG_SEMM_EN > 0          */
+
+#if LW_CFG_SEMRW_EN > 0
+    case _OBJECT_SEM_RW:
+        ulErrorCode = API_SemaphoreRWDelete(pulId);
+        break;
+#endif                                                                  /*  LW_CFG_SEMRW_EN > 0         */
     
     default:
         _ErrorHandle(ERROR_KERNEL_HANDLE_NULL);                         /*  句柄类型错误                */
@@ -70,9 +76,7 @@ ULONG  API_SemaphoreDelete (LW_OBJECT_HANDLE  *pulId)
     return  (ulErrorCode);
 }
 
-#endif                                                                  /*  ((LW_CFG_SEMB_EN > 0) ||    */
-                                                                        /*   (LW_CFG_SEMC_EN > 0) ||    */
-                                                                        /*   (LW_CFG_SEMM_EN > 0)) &&   */
+#endif                                                                  /*  (LW_CFG_SEM_EN > 0) &&      */
                                                                         /*  (LW_CFG_MAX_EVENTS > 0)     */
 /*********************************************************************************************************
   END

@@ -63,7 +63,6 @@ VOID  _HeapInit (VOID)
     heapTemp2 = &_K_heapBuffer[1];
 
     for (ulI = 0; ulI < (LW_CFG_MAX_REGIONS + 1); ulI++) {              /*  LW_CFG_MAX_REGIONS + 2 ¸ö   */
-        
         pmonoTemp1 = &heapTemp1->HEAP_monoResrcList;
         pmonoTemp2 = &heapTemp2->HEAP_monoResrcList;
         

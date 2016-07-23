@@ -120,15 +120,15 @@ void *sbrk (intptr_t incr)
     return  (LW_NULL);
 }
 
-__LW_RETU_FUNC_DEFINE(void *, malloc, (size_t  stNbytes), (stNbytes))
-__LW_RETU_FUNC_DEFINE(void *, mallocalign, (size_t  stNbytes, size_t  stAlign), (stNbytes, stAlign))
-__LW_RETU_FUNC_DEFINE(void *, memalign, (size_t  stAlign, size_t  stNbytes), (stAlign, stNbytes))
+__LW_RETU_FUNC_DEFINE(void *, malloc, (size_t  stNBytes), (stNBytes))
+__LW_RETU_FUNC_DEFINE(void *, mallocalign, (size_t  stNBytes, size_t  stAlign), (stNBytes, stAlign))
+__LW_RETU_FUNC_DEFINE(void *, memalign, (size_t  stAlign, size_t  stNBytes), (stAlign, stNBytes))
 __LW_VOID_FUNC_DEFINE(free, (void *pvPtr), (pvPtr))
 __LW_RETU_FUNC_DEFINE(void *, calloc, (size_t  stNNum, size_t  stSize), (stNNum, stSize))
 __LW_RETU_FUNC_DEFINE(void *, realloc, (void *pvPtr, size_t  stNewSize), (pvPtr, stNewSize))
 __LW_RETU_FUNC_DEFINE(void *, xmalloc, (size_t  stSize), (stSize))
-__LW_RETU_FUNC_DEFINE(void *, xmallocalign, (size_t  stNbytes, size_t  stAlign), (stNbytes, stAlign))
-__LW_RETU_FUNC_DEFINE(void *, xmemalign, (size_t  stAlign, size_t  stNbytes), (stAlign, stNbytes))
+__LW_RETU_FUNC_DEFINE(void *, xmallocalign, (size_t  stNBytes, size_t  stAlign), (stNBytes, stAlign))
+__LW_RETU_FUNC_DEFINE(void *, xmemalign, (size_t  stAlign, size_t  stNBytes), (stAlign, stNBytes))
 __LW_RETU_FUNC_DEFINE(void *, xcalloc, (size_t  stNNum, size_t  stSize), (stNNum, stSize))
 __LW_RETU_FUNC_DEFINE(void *, xrealloc, (void *pvPtr, size_t  stNewSize), (pvPtr, stNewSize))
 __LW_RETU_FUNC_DEFINE(int, posix_memalign, (void **memptr, size_t alignment, size_t size), (memptr, alignment, size))
@@ -166,7 +166,7 @@ __LW_RETU_FUNC_DEFINE(lib_div_t, div, (int  numer, int  denom), (numer, denom))
 __LW_RETU_FUNC_DEFINE(lib_ldiv_t, ldiv, (long  numer, long  denom), (numer, denom))
 __LW_RETU_FUNC_DEFINE(lib_lldiv_t, lldiv, (int64_t  numer, int64_t  denom), (numer, denom))
 
-__LW_RETU_FUNC_DEFINE(void *, malloc_new, (size_t  stNbytes), (stNbytes))
+__LW_RETU_FUNC_DEFINE(void *, malloc_new, (size_t  stNBytes), (stNBytes))
 
 __LW_RETU_FUNC_DEFINE(long, strtol, (const char *nptr, char **endptr, register int base), \
                       (nptr, endptr, base))

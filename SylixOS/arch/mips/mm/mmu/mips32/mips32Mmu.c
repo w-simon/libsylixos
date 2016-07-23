@@ -800,7 +800,8 @@ static VOID  mips32MmuInvTLB (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulPageAddr, ULON
 *********************************************************************************************************/
 VOID  mips32MmuInit (LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName)
 {
-    if (lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X) == 0) {
+    if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X) == 0) ||
+        (lib_strcmp(pcMachineName, MIPS_MACHINE_LS3X) == 0)) {
         _G_bIsHasITLB = LW_TRUE;
     }
 

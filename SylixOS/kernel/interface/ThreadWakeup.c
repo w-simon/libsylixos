@@ -23,6 +23,7 @@
 2008.03.29  使用新的等待机制.
 2008.03.30  使用新的就绪环操作.
 2010.01.22  支持 SMP.
+2016.07.21  超时后如果等待事件, 则直接从事件中退链.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -80,6 +81,19 @@ ULONG  API_ThreadWakeup (LW_OBJECT_HANDLE  ulId)
         if (ptcb->TCB_usStatus & LW_THREAD_STATUS_PEND_ANY) {
             ptcb->TCB_usStatus &= (~LW_THREAD_STATUS_PEND_ANY);
             ptcb->TCB_ucWaitTimeout = LW_WAIT_TIME_OUT;                 /*  等待超时                    */
+        
+#if (LW_CFG_EVENT_EN > 0) && (LW_CFG_MAX_EVENTS > 0)
+            if (ptcb->TCB_peventPtr) {
+                _EventUnQueue(ptcb);
+            } else 
+#endif                                                                  /*  (LW_CFG_EVENT_EN > 0) &&    */
+            {
+#if (LW_CFG_EVENTSET_EN > 0) && (LW_CFG_MAX_EVENTSETS > 0)
+                if (ptcb->TCB_pesnPtr) {
+                    _EventSetUnQueue(ptcb->TCB_pesnPtr);
+                }
+#endif                                                                  /*  (LW_CFG_EVENTSET_EN > 0) && */
+            }
         } else {
             ptcb->TCB_ucWaitTimeout = LW_WAIT_TIME_CLEAR;               /*  没有等待事件                */
         }
@@ -103,7 +117,6 @@ ULONG  API_ThreadWakeup (LW_OBJECT_HANDLE  ulId)
         return  (ERROR_THREAD_NOT_SLEEP);
     }
 }
-
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

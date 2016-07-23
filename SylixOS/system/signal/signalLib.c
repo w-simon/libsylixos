@@ -61,6 +61,7 @@
 2015.11.16  __sigMakeReady() 仅需要关闭中断即可.
             _sigPendAlloc() 与 _sigPendFree() 不需要关闭中断.
 2016.04.15  信号上下文需要保存 FPU 上下文.
+2016.07.21  简化任务就绪设计.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -313,7 +314,7 @@ static VOID    __sigTaskDeleteHook (LW_OBJECT_HANDLE  ulId)
 ** 输　出  : 正在等待时的剩余时间.
 ** 全局变量: 
 ** 调用模块: 
-** 注  意  : 当目标线程处于等待事件,或者延迟时,需要将线程的调度器返回值设置为 LW_SIGNAL_RESTART.
+** 注  意  : 当目标线程处于等待事件,或者延迟时,需要将线程的调度器返回值设置为 iSaType.
 *********************************************************************************************************/
 static VOID  __sigMakeReady (PLW_CLASS_TCB  ptcb, 
                              INT            iSigNo,
@@ -323,17 +324,10 @@ static VOID  __sigMakeReady (PLW_CLASS_TCB  ptcb,
              INTREG                  iregInterLevel;
     REGISTER PLW_CLASS_PCB           ppcb;
 
-#if (LW_CFG_EVENTSET_EN > 0) && (LW_CFG_MAX_EVENTSETS > 0)
-    REGISTER PLW_CLASS_EVENTSETNODE  pesnNode = LW_NULL;
-#endif                                                                  /*  (LW_CFG_EVENTSET_EN > 0)... */
-#if (LW_CFG_EVENT_EN > 0) && (LW_CFG_MAX_EVENTS > 0)
-    REGISTER PLW_CLASS_EVENT         pevent = LW_NULL;
-#endif                                                                  /*  (LW_CFG_EVENT_EN > 0) &&    */
-             BOOL                    bInWakeupQ = LW_FALSE;
-    
     *piSchedRet = ERROR_NONE;                                           /*  默认为就绪状态              */
     
     iregInterLevel = KN_INT_DISABLE();                                  /*  关闭中断                    */
+    
     if (__LW_THREAD_IS_READY(ptcb)) {                                   /*  处于就绪状态, 直接退出      */
         KN_INT_ENABLE(iregInterLevel);                                  /*  打开中断                    */
         return;
@@ -343,7 +337,6 @@ static VOID  __sigMakeReady (PLW_CLASS_TCB  ptcb,
     if (ptcb->TCB_usStatus & LW_THREAD_STATUS_DELAY) {                  /*  存在于唤醒队列中            */
         __DEL_FROM_WAKEUP_LINE(ptcb);                                   /*  从等待链中删除              */
         ptcb->TCB_ulDelay = 0ul;
-        bInWakeupQ = LW_TRUE;
     }
     
     if (__SIGNO_MUST_EXIT & __sigmask(iSigNo)) {                        /*  必须退出信号                */
@@ -354,43 +347,30 @@ static VOID  __sigMakeReady (PLW_CLASS_TCB  ptcb,
     
     if (ptcb->TCB_usStatus & LW_THREAD_STATUS_PEND_ANY) {               /*  检查是否在等待事件          */
         *piSchedRet = iSaType;                                          /*  设置调度器返回值            */
-        if (ptcb->TCB_usStatus & 
-            (LW_THREAD_STATUS_SEM | LW_THREAD_STATUS_MSGQUEUE)) {       /*  检查阻塞点的控制块          */
-#if (LW_CFG_EVENT_EN > 0) && (LW_CFG_MAX_EVENTS > 0)
-            pevent   = ptcb->TCB_peventPtr;
-#endif                                                                  /*  (LW_CFG_EVENT_EN > 0) &&    */
-        } else if (ptcb->TCB_usStatus & LW_THREAD_STATUS_EVENTSET) {
-#if (LW_CFG_EVENTSET_EN > 0) && (LW_CFG_MAX_EVENTSETS > 0)
-            pesnNode = ptcb->TCB_pesnPtr;
-#endif                                                                  /*  (LW_CFG_EVENTSET_EN > 0)... */
-        }
         ptcb->TCB_usStatus &= (~LW_THREAD_STATUS_PEND_ANY);             /*  等待超时清除事件等待位      */
         ptcb->TCB_ucWaitTimeout = LW_WAIT_TIME_OUT;                     /*  等待超时                    */
+        
+#if (LW_CFG_EVENT_EN > 0) && (LW_CFG_MAX_EVENTS > 0)
+        if (ptcb->TCB_peventPtr) {
+            _EventUnQueue(ptcb);
+        } else 
+#endif                                                                  /*  (LW_CFG_EVENT_EN > 0) &&    */
+        {
+#if (LW_CFG_EVENTSET_EN > 0) && (LW_CFG_MAX_EVENTSETS > 0)
+            if (ptcb->TCB_pesnPtr) {
+                _EventSetUnQueue(ptcb->TCB_pesnPtr);
+            }
+#endif                                                                  /*  (LW_CFG_EVENTSET_EN > 0) && */
+        }
     } else {
         ptcb->TCB_ucWaitTimeout = LW_WAIT_TIME_CLEAR;                   /*  没有等待事件                */
     }
-    ptcb->TCB_ucSchedActivate = LW_SCHED_ACT_INTERRUPT;
     
     if (__LW_THREAD_IS_READY(ptcb)) {
+        ptcb->TCB_ucSchedActivate = LW_SCHED_ACT_INTERRUPT;
         __ADD_TO_READY_RING(ptcb, ppcb);                                /*  加入就绪环                  */
     }
     
-    if ((ptcb->TCB_ucWaitTimeout == LW_WAIT_TIME_OUT) ||
-        (bInWakeupQ)) {                                                 /*  主动等待事件或者睡眠        */
-        *piSchedRet = iSaType;                                          /*  设置调度器返回值            */
-        if (ptcb->TCB_ucWaitTimeout == LW_WAIT_TIME_OUT) {              /*  从等待队列中退出            */
-            ptcb->TCB_ucWaitTimeout =  LW_WAIT_TIME_CLEAR;
-            if (pevent) {
-#if (LW_CFG_EVENT_EN > 0) && (LW_CFG_MAX_EVENTS > 0)
-                _EventUnlink(ptcb);
-#endif                                                                  /*  (LW_CFG_EVENT_EN > 0) &&    */
-            } else if (pesnNode) {
-#if (LW_CFG_EVENTSET_EN > 0) && (LW_CFG_MAX_EVENTSETS > 0)
-                _EventSetUnlink(pesnNode);
-#endif                                                                  /*  (LW_CFG_EVENTSET_EN > 0)... */
-            }
-        }
-    }
     KN_INT_ENABLE(iregInterLevel);                                      /*  打开中断                    */
 }
 /*********************************************************************************************************
@@ -444,12 +424,14 @@ static  VOID  __sigCtlCreate (PLW_CLASS_TCB         ptcb,
     pucStkNow  -= sizeof(LW_STACK);                                     /*  向空栈方向移动一个堆栈空间  */
 #endif
 
-    psigctlmsg->SIGCTLMSG_iSchedRet    = iSchedRet;
-    psigctlmsg->SIGCTLMSG_iKernelSpace = __KERNEL_SPACE_GET2(ptcb);
-    psigctlmsg->SIGCTLMSG_pvStackRet   = ptcb->TCB_pstkStackNow;
-    psigctlmsg->SIGCTLMSG_siginfo      = *psiginfo;
-    psigctlmsg->SIGCTLMSG_sigsetMask   = *psigsetMask;
-    psigctlmsg->SIGCTLMSG_iLastErrno   = (errno_t)ptcb->TCB_ulLastError;/*  记录最后一次错误            */
+    psigctlmsg->SIGCTLMSG_iSchedRet       = iSchedRet;
+    psigctlmsg->SIGCTLMSG_iKernelSpace    = __KERNEL_SPACE_GET2(ptcb);
+    psigctlmsg->SIGCTLMSG_pvStackRet      = ptcb->TCB_pstkStackNow;
+    psigctlmsg->SIGCTLMSG_siginfo         = *psiginfo;
+    psigctlmsg->SIGCTLMSG_sigsetMask      = *psigsetMask;
+    psigctlmsg->SIGCTLMSG_ulLastError     = ptcb->TCB_ulLastError;      /*  记录当前错误号              */
+    psigctlmsg->SIGCTLMSG_ucWaitTimeout   = ptcb->TCB_ucWaitTimeout;    /*  记录 timeout 标志           */
+    psigctlmsg->SIGCTLMSG_ucIsEventDelete = ptcb->TCB_ucIsEventDelete;
     
     pstkSignalShell = archTaskCtxCreate((PTHREAD_START_ROUTINE)__sigShell, 
                                         (PVOID)psigctlmsg,
@@ -495,8 +477,6 @@ static VOID  __sigReturn (PLW_CLASS_SIGCONTEXT  psigctx,
      *  从这里到代码返回任务堆栈上下文间隙处发生了抢占, 也不会造成 TCB_iSchedRet 被清零,
      *  因为任务只有主动的从调度器退出时, 才能真正的获得调度器的返回值, 中途任何时候被打断都没关系
      */
-    errno = psigctlmsg->SIGCTLMSG_iLastErrno;                           /*  恢复错误号                  */
-    
     iregInterLevel = KN_INT_DISABLE();                                  /*  关闭当前 CPU 中断           */
 #if LW_CFG_CPU_FPU_EN > 0
     if (psigctlmsg->SIGCTLMSG_bFpuRestore &&
@@ -505,6 +485,11 @@ static VOID  __sigReturn (PLW_CLASS_SIGCONTEXT  psigctx,
         __ARCH_FPU_RESTORE(pvStackFP);                                  /*  恢复被信号中断前 FPU 上下文 */
     }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+    
+    ptcbCur->TCB_ulLastError     = psigctlmsg->SIGCTLMSG_ulLastError;   /*  恢复错误号                  */
+    ptcbCur->TCB_ucWaitTimeout   = psigctlmsg->SIGCTLMSG_ucWaitTimeout; /*  恢复 timeout 标志           */
+    ptcbCur->TCB_ucIsEventDelete = psigctlmsg->SIGCTLMSG_ucIsEventDelete;
+    
     archSigCtxLoad(psigctlmsg->SIGCTLMSG_pvStackRet);                   /*  从信号上下文中返回          */
     KN_INT_ENABLE(iregInterLevel);                                      /*  运行不到这里                */
 }

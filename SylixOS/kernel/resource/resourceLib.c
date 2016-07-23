@@ -100,6 +100,7 @@ static LW_INLINE PLW_RESOURCE_H  __resGetHandleBuffer (LW_OBJECT_HANDLE  ulHandl
     case _OBJECT_SEM_C:
     case _OBJECT_SEM_B:
     case _OBJECT_SEM_M:
+    case _OBJECT_SEM_RW:
     case _OBJECT_MSGQUEUE:
         if (usIndex < LW_CFG_MAX_EVENTS) {
             presh = &_G_reshEventBuffer[usIndex];

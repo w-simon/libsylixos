@@ -54,7 +54,6 @@ VOID  _ThreadVarInit (VOID)
     threadvarTemp2 = &_K_threavarBuffer[1];                             /*  指向缓冲池首地址            */
 
     for (ulI = 0; ulI < ((LW_CFG_MAX_THREAD_GLB_VARS) - 1); ulI++) {
-    
         pmonoTemp1 = &threadvarTemp1->PRIVATEVAR_monoResrcList;
         pmonoTemp2 = &threadvarTemp2->PRIVATEVAR_monoResrcList;
         

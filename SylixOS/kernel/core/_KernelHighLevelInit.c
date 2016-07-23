@@ -61,9 +61,9 @@ static VOID  _CreateIdleThread (VOID)
                         LW_CFG_THREAD_IDLE_STK_SIZE, 
                         LW_PRIO_IDLE, 
                         (LW_OPTION_THREAD_STK_CHK | 
-                        LW_OPTION_THREAD_SAFE | 
-                        LW_OPTION_OBJECT_GLOBAL | 
-                        LW_OPTION_THREAD_AFFINITY_ALWAYS), 
+                         LW_OPTION_THREAD_SAFE | 
+                         LW_OPTION_OBJECT_GLOBAL | 
+                         LW_OPTION_THREAD_AFFINITY_ALWAYS), 
                         (PVOID)0);
                         
 #if LW_CFG_SMP_EN > 0

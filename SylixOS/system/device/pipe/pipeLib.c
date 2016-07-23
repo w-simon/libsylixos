@@ -92,6 +92,7 @@ INT  _PipeClose (PLW_PIPE_DEV  p_pipedev)
             LW_DEV_DEC_USE_COUNT(&p_pipedev->PIPEDEV_devhdrHdr);
         }
         return  (ERROR_NONE);
+    
     } else {
         return  (PX_ERROR);
     }
@@ -133,10 +134,6 @@ ssize_t  _PipeRead (PLW_PIPE_DEV  p_pipedev,
     sstNBytes = (ssize_t)stTemp;
     if (ulError) {                                                      /*  错误退出                    */
         return  (0);
-    } else {
-        if (stTemp) {                                                   /*  有消息被读出                */
-            API_SemaphoreBPost(p_pipedev->PIPEDEV_hWriteLock);          /*  通知可以写数据了            */
-        }
     }
     
     if (p_pipedev->PIPEDEV_iAbortFlag & OPT_RABORT) {                   /*  abort                       */
@@ -163,42 +160,31 @@ ssize_t  _PipeWrite (PLW_PIPE_DEV  p_pipedev,
                      PCHAR         pcBuffer, 
                      size_t        stNBytes)
 {
-    REGISTER ULONG      ulErrCodel;
+    REGISTER ULONG  ulError;
     
     if (LW_CPU_GET_CUR_NESTING()) {                                     /*  在中断中调用                */
-        ulErrCodel = API_SemaphoreBTryPend(p_pipedev->PIPEDEV_hWriteLock);
-        if (ulErrCodel) {                                               /*  不可写                      */
-            return  (0);
-        }
-        ulErrCodel = API_MsgQueueSend(p_pipedev->PIPEDEV_hMsgQueue,
-                                      (PVOID)pcBuffer,
-                                      stNBytes);                        /*  发送消息                    */
-        if (ulErrCodel) {
+        ulError = API_MsgQueueSend(p_pipedev->PIPEDEV_hMsgQueue,
+                                   (PVOID)pcBuffer, stNBytes);          /*  发送消息                    */
+        if (ulError) {
+            _ErrorHandle(ERROR_IO_DEVICE_TIMEOUT);
             return  (0);
         }
         
     } else {
-        do {
-            p_pipedev->PIPEDEV_iAbortFlag &= ~OPT_WABORT;               /*  清除 abort 标志             */
+        p_pipedev->PIPEDEV_iAbortFlag &= ~OPT_WABORT;                   /*  清除 abort 标志             */
         
-            ulErrCodel = API_SemaphoreBPend(p_pipedev->PIPEDEV_hWriteLock,
-                                            p_pipedev->PIPEDEV_ulWTimeout);
-            if (ulErrCodel) {                                           /*  不可写                      */
-                return  (0);
-            }
-            
+        ulError = API_MsgQueueSend2(p_pipedev->PIPEDEV_hMsgQueue,
+                                    (PVOID)pcBuffer, stNBytes,
+                                    p_pipedev->PIPEDEV_ulWTimeout);     /*  发送消息                    */
+        if (ulError) {                                                  /*  不可写                      */
             if (p_pipedev->PIPEDEV_iAbortFlag & OPT_WABORT) {           /*  abort                       */
-                API_SemaphoreBPost(p_pipedev->PIPEDEV_hWriteLock);      /*  补偿写同步信号量            */
                 _ErrorHandle(ERROR_IO_ABORT);
-                return  (0);
-            }
             
-            if (API_MsgQueueSend(p_pipedev->PIPEDEV_hMsgQueue,
-                                 (PVOID)pcBuffer,
-                                 stNBytes) == ERROR_NONE) {             /*  发送消息                    */
-                break;
+            } else if (ulError == ERROR_THREAD_WAIT_TIMEOUT) {
+                _ErrorHandle(ERROR_IO_DEVICE_TIMEOUT);
             }
-        } while (1);
+            return  (0);
+        }
     }
     
     SEL_WAKE_UP_ALL(&p_pipedev->PIPEDEV_selwulList, SELREAD);           /*  可以读了                    */
@@ -252,12 +238,10 @@ INT  _PipeIoctl (PLW_PIPE_DEV  p_pipedev,
         
     case FIOFLUSH:                                                      /*  清空数据                    */
         API_MsgQueueClear(p_pipedev->PIPEDEV_hMsgQueue);                /*  清除消息队列信息            */
-        API_SemaphoreBPost(p_pipedev->PIPEDEV_hWriteLock);              /*  清除写同步(不可写)          */
         SEL_WAKE_UP_ALL(&p_pipedev->PIPEDEV_selwulList, SELWRITE);      /*  数据可以写入了              */
         break;
         
     case FIOFSTATGET: {                                                 /*  获取文件属性                */
-    
         ULONG   ulNMsg;
         size_t  stNRead;
         
@@ -356,21 +340,12 @@ INT  _PipeIoctl (PLW_PIPE_DEV  p_pipedev,
 
     case FIOWAITABORT:                                                  /*  停止当前等待 IO 线程        */
         if ((LONG)piArgPtr & OPT_RABORT) {
-            ULONG  ulBlockNum;
-            API_MsgQueueStatus(p_pipedev->PIPEDEV_hMsgQueue, LW_NULL, LW_NULL, 
-                               LW_NULL, LW_NULL, &ulBlockNum);
-            if (ulBlockNum) {
-                p_pipedev->PIPEDEV_iAbortFlag |= OPT_RABORT;
-                API_MsgQueueFlush(p_pipedev->PIPEDEV_hMsgQueue, LW_NULL);
-            }
+            p_pipedev->PIPEDEV_iAbortFlag |= OPT_RABORT;
+            API_MsgQueueFlushReceive(p_pipedev->PIPEDEV_hMsgQueue, LW_NULL);
         }
         if ((LONG)piArgPtr & OPT_WABORT) {
-            ULONG  ulBlockNum;
-            API_SemaphoreBStatus(p_pipedev->PIPEDEV_hWriteLock, LW_NULL, LW_NULL, &ulBlockNum);
-            if (ulBlockNum) {
-                p_pipedev->PIPEDEV_iAbortFlag |= OPT_WABORT;
-                API_SemaphoreBFlush(p_pipedev->PIPEDEV_hWriteLock, LW_NULL);
-            }
+            p_pipedev->PIPEDEV_iAbortFlag |= OPT_WABORT;
+            API_MsgQueueFlushSend(p_pipedev->PIPEDEV_hMsgQueue, LW_NULL);
         }
         break;
         

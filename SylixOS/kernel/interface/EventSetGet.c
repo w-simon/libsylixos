@@ -237,23 +237,22 @@ __wait_again:
                       ulId, ulEvent, ulOption, ulTimeout, LW_NULL);
     
     iSchedRet = __KERNEL_EXIT();                                        /*  调度器解锁                  */
-    if (iSchedRet == LW_SIGNAL_EINTR) {
-        if (ulEventSetOption & LW_OPTION_SIGNAL_INTER) {
+    if (iSchedRet) {
+        if ((iSchedRet == LW_SIGNAL_EINTR) && 
+            (ulEventSetOption & LW_OPTION_SIGNAL_INTER)) {
             _ErrorHandle(EINTR);
             return  (EINTR);
         }
         ulTimeout = _sigTimeoutRecalc(ulTimeSave, ulTimeout);           /*  重新计算超时时间            */
-        goto    __wait_again;
-    
-    } else if (iSchedRet == LW_SIGNAL_RESTART) {
-        ulTimeout = _sigTimeoutRecalc(ulTimeSave, ulTimeout);           /*  重新计算超时时间            */
+        if (ulTimeout == LW_OPTION_NOT_WAIT) {
+            _ErrorHandle(ERROR_THREAD_WAIT_TIMEOUT);
+            return  (ERROR_THREAD_WAIT_TIMEOUT);
+        }
         goto    __wait_again;
     }
     
     iregInterLevel = __KERNEL_ENTER_IRQ();                              /*  进入内核                    */
     if (ptcbCur->TCB_ucWaitTimeout == LW_WAIT_TIME_OUT) {               /*  等待超时                    */
-        ptcbCur->TCB_ucWaitTimeout =  LW_WAIT_TIME_CLEAR;
-        _EventSetUnlink(&esnNode);
         __KERNEL_EXIT_IRQ(iregInterLevel);                              /*  退出内核                    */
         _ErrorHandle(ERROR_THREAD_WAIT_TIMEOUT);
         return  (ERROR_THREAD_WAIT_TIMEOUT);

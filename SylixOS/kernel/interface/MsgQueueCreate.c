@@ -59,7 +59,7 @@ LW_OBJECT_HANDLE  API_MsgQueueCreate (CPCHAR             pcName,
     REGISTER PLW_CLASS_MSGQUEUE    pmsgqueue;
     REGISTER PLW_CLASS_EVENT       pevent;
     REGISTER ULONG                 ulI;
-    REGISTER PLW_CLASS_WAITQUEUE   pwqTemp;
+             PLW_CLASS_WAITQUEUE   pwqTemp[2];
     REGISTER ULONG                 ulIdTemp;
     
     REGISTER size_t                stMaxMsgByteSizeReal;
@@ -151,14 +151,14 @@ LW_OBJECT_HANDLE  API_MsgQueueCreate (CPCHAR             pcName,
     pevent->EVENT_ulOption     = ulOption;
     pevent->EVENT_pvPtr        = (PVOID)pmsgqueue;
     
-    pwqTemp = &pevent->EVENT_wqWaitList;
-    pwqTemp->WAITQUEUE_usWaitNum = 0;                                   /*  没有线程                    */
+    pwqTemp[0] = &pevent->EVENT_wqWaitQ[0];
+    pwqTemp[1] = &pevent->EVENT_wqWaitQ[1];
+    pwqTemp[0]->WQ_usNum = 0;                                           /*  没有线程                    */
+    pwqTemp[1]->WQ_usNum = 0;
     
-    /*  
-     *  初始化等待队列
-     */
-    for (ulI = 0; ulI < __THREAD_PRIORITY_Q_NUM; ulI++) {
-        pwqTemp->WAITQUEUE_wlWaitList.WAITLIST_pringPRIOList[ulI] = LW_NULL;
+    for (ulI = 0; ulI < __EVENT_Q_SIZE; ulI++) {
+        pwqTemp[0]->WQ_wlQ.WL_pringPrio[ulI] = LW_NULL;
+        pwqTemp[1]->WQ_wlQ.WL_pringPrio[ulI] = LW_NULL;
     }
     
     ulIdTemp = _MakeObjectId(_OBJECT_MSGQUEUE, 
@@ -178,6 +178,7 @@ LW_OBJECT_HANDLE  API_MsgQueueCreate (CPCHAR             pcName,
     
     return  (ulIdTemp);
 }
+
 #endif                                                                  /*  (LW_CFG_MSGQUEUE_EN > 0)    */
                                                                         /*  (LW_CFG_MAX_MSGQUEUES > 0)  */
 /*********************************************************************************************************

@@ -110,7 +110,9 @@ typedef struct {
                                                                         /*  信号退出时需要返回之前的状态*/
     sigset_t              SIGCTLMSG_sigsetMask;                         /*  信号句柄退出需要恢复的掩码  */
     struct siginfo        SIGCTLMSG_siginfo;                            /*  信号相关信息                */
-    errno_t               SIGCTLMSG_iLastErrno;                         /*  保存的原始错误号            */
+    ULONG                 SIGCTLMSG_ulLastError;                        /*  保存的原始错误号            */
+    UINT8                 SIGCTLMSG_ucWaitTimeout;                      /*  保存的原始 timeout 标记     */
+    UINT8                 SIGCTLMSG_ucIsEventDelete;                    /*  事件是否被删除              */
 
 #if LW_CFG_CPU_FPU_EN > 0
     BOOL                  SIGCTLMSG_bFpuRestore;                        /*  是否需要恢复 FPU 上下文     */

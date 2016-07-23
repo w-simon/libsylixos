@@ -89,6 +89,7 @@
 #include "../SylixOS/system/device/pty/pty.h"                           /*  pseudo terminal             */
 #include "../SylixOS/system/device/block/blockIo.h"                     /*  block device                */
 #include "../SylixOS/system/device/can/can.h"                           /*  CAN bus device              */
+#include "../SylixOS/system/device/buzzer/buzzer.h"                     /*  buzzer device               */
 #include "../SylixOS/system/device/graph/gmemDev.h"                     /*  graph memory device         */
 
 #ifdef   __SYLIXOS_KERNEL

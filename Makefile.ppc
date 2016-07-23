@@ -340,7 +340,7 @@ SylixOS/kernel/core/_EventQueue.c \
 SylixOS/kernel/core/_EventSetBlock.c \
 SylixOS/kernel/core/_EventSetInit.c \
 SylixOS/kernel/core/_EventSetReady.c \
-SylixOS/kernel/core/_EventSetUnlink.c \
+SylixOS/kernel/core/_EventSetUnQueue.c \
 SylixOS/kernel/core/_GlobalInit.c \
 SylixOS/kernel/core/_HeapInit.c \
 SylixOS/kernel/core/_HeapLib.c \
@@ -501,6 +501,11 @@ SylixOS/kernel/interface/SemaphoreMStatusEx.c \
 SylixOS/kernel/interface/SemaphorePend.c \
 SylixOS/kernel/interface/SemaphorePost.c \
 SylixOS/kernel/interface/SemaphorePostPend.c \
+SylixOS/kernel/interface/SemaphoreRWCreate.c \
+SylixOS/kernel/interface/SemaphoreRWDelete.c \
+SylixOS/kernel/interface/SemaphoreRWPend.c \
+SylixOS/kernel/interface/SemaphoreRWPost.c \
+SylixOS/kernel/interface/SemaphoreRWStatus.c \
 SylixOS/kernel/interface/ThreadAffinity.c \
 SylixOS/kernel/interface/ThreadAttrBuild.c \
 SylixOS/kernel/interface/ThreadCancel.c \
@@ -1093,6 +1098,7 @@ SylixOS/system/device/ata/ataLib.c \
 SylixOS/system/device/block/blockIo.c \
 SylixOS/system/device/block/blockRaw.c \
 SylixOS/system/device/block/ramDisk.c \
+SylixOS/system/device/buzzer/buzzer.c \
 SylixOS/system/device/can/can.c \
 SylixOS/system/device/dma/dma.c \
 SylixOS/system/device/dma/dmaLib.c \

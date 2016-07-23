@@ -67,7 +67,6 @@ VOID  _EventSetInit (VOID)
     pesTemp2 = &_K_esBuffer[1];
     
     for (ulI = 0; ulI < ((LW_CFG_MAX_EVENTSETS) - 1); ulI++) {
-    
         pesTemp1->EVENTSET_ucType        = LW_TYPE_EVENT_UNUSED;
         pesTemp1->EVENTSET_plineWaitList = LW_NULL;
         pesTemp1->EVENTSET_usIndex       = (UINT16)ulI;

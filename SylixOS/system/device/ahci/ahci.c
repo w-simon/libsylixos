@@ -296,7 +296,7 @@ static INT  __ahciDiskCommandSend (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, AHCI_
             pucCommandFis[6] = (UINT8)(hCmd->AHCICMD_ulDataLen >> 8);
             pucCommandFis[7] = AHCI_SDH_LBA;
             lib_bzero(&pucCommandFis[8], 12);
-            lib_memcpy(pucPktCmd, hCmd->AHCI_CMD_ATAPI.AHCICMDATAPI_ucAtapiCmdPkt,AHCI_ATAPI_CMD_LEN_MAX);
+            lib_memcpy(pucPktCmd, hCmd->AHCI_CMD_ATAPI.AHCICMDATAPI_ucAtapiCmdPkt, AHCI_ATAPI_CMD_LEN_MAX);
         
         } else {                                                        /* ATA 工作模式                 */
             AHCI_CMD_LOG(AHCI_LOG_PRT, "cmd flag ata.", 0);
@@ -839,7 +839,7 @@ static INT  __ahciReadWrite (AHCI_CTRL_HANDLE  hCtrl,
         }
     }
     hCmd->AHCI_CMD_ATA.AHCICMDATA_uiAtaCount = (UINT16)ulSectors;
-    hCmd->AHCI_CMD_ATA.AHCICMDATA_uiAtaFeature= 0;
+    hCmd->AHCI_CMD_ATA.AHCICMDATA_uiAtaFeature = 0;
     hCmd->AHCI_CMD_ATA.AHCICMDATA_ullAtaLba = (UINT64)ulLba;
 
     iRet = __ahciDiskCommandSend(hCtrl, uiDrive, hCmd);

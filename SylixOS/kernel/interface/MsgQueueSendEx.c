@@ -34,6 +34,7 @@
 **           ulId                   消息队列句柄
 **           pvMsgBuffer            消息缓冲区
 **           stMsgLen               消息长短
+**           ulTimeout              超时时间
 **           ulOption               消息选项       LW_OPTION_DEFAULT or LW_OPTION_URGENT or 
 **                                                 LW_OPTION_BROADCAST
 ** 输　出  : 
@@ -44,22 +45,28 @@
 #if (LW_CFG_MSGQUEUE_EN > 0) && (LW_CFG_MAX_MSGQUEUES > 0)
 
 LW_API  
-ULONG  API_MsgQueueSendEx (LW_OBJECT_HANDLE  ulId,
-                           const PVOID       pvMsgBuffer,
-                           size_t            stMsgLen,
-                           ULONG             ulOption)
+ULONG  API_MsgQueueSendEx2 (LW_OBJECT_HANDLE  ulId,
+                            const PVOID       pvMsgBuffer,
+                            size_t            stMsgLen,
+                            ULONG             ulTimeout,
+                            ULONG             ulOption)
 {
              INTREG                iregInterLevel;
     REGISTER UINT16                usIndex;
     REGISTER PLW_CLASS_EVENT       pevent;
     REGISTER PLW_CLASS_MSGQUEUE    pmsgqueue;
     REGISTER PLW_CLASS_TCB         ptcb;
+    REGISTER PLW_CLASS_TCB         ptcbCur;
+    REGISTER UINT8                 ucPriorityIndex;
     REGISTER PLW_LIST_RING        *ppringList;                          /*  等待队列地址                */
-    
-    REGISTER size_t                stRealLen;
+             ULONG                 ulTimeSave;                          /*  系统事件记录                */
+             INT                   iSchedRet;
+             
+             ULONG                 ulEventOption;                       /*  事件创建选项                */
+             size_t                stRealLen;
     
     if (ulOption == LW_OPTION_DEFAULT) {                                /*  普通发送                    */
-        return  (API_MsgQueueSend(ulId, pvMsgBuffer, stMsgLen));
+        return  (API_MsgQueueSend2(ulId, pvMsgBuffer, stMsgLen, ulTimeout));
     }
     
     usIndex = _ObjectGetIndex(ulId);
@@ -109,17 +116,15 @@ __re_send:
     switch (ulOption) {
     
     case LW_OPTION_URGENT:
-        if (_EventWaitNum(pevent)) {
+        if (_EventWaitNum(EVENT_MSG_Q_R, pevent)) {
             BOOL    bSendOk = LW_TRUE;
             
             if (pevent->EVENT_ulOption & LW_OPTION_WAIT_PRIORITY) {     /*  优先级等待队列              */
-                _EVENT_DEL_Q_PRIORITY(ppringList);                      /*  检查需要激活的队列          */
-                                                                        /*  激活优先级等待线程          */
+                _EVENT_DEL_Q_PRIORITY(EVENT_MSG_Q_R, ppringList);       /*  激活优先级等待线程          */
                 ptcb = _EventReadyPriorityLowLevel(pevent, LW_NULL, ppringList);
             
             } else {
-                _EVENT_DEL_Q_FIFO(ppringList);                          /*  检查需要激活的FIFO队列      */
-                                                                        /*  激活FIFO等待线程            */
+                _EVENT_DEL_Q_FIFO(EVENT_MSG_Q_R, ppringList);           /*  激活FIFO等待线程            */
                 ptcb = _EventReadyFifoLowLevel(pevent, LW_NULL, ppringList);
             }
         
@@ -140,7 +145,6 @@ __re_send:
             }
         
             KN_INT_ENABLE(iregInterLevel);                              /*  使能中断                    */
-            
             _EventReadyHighLevel(ptcb, LW_THREAD_STATUS_MSGQUEUE);      /*  处理 TCB                    */
             
             MONITOR_EVT_LONG2(MONITOR_EVENT_ID_MSGQ, MONITOR_EVENT_MSGQ_POST, 
@@ -162,23 +166,81 @@ __re_send:
                 return  (ERROR_NONE);
             
             } else {                                                    /*  已经满了                    */
-                __KERNEL_EXIT_IRQ(iregInterLevel);                      /*  退出内核                    */
-                _ErrorHandle(ERROR_MSGQUEUE_FULL);
-                return  (ERROR_MSGQUEUE_FULL);
+                if ((ulTimeout == LW_OPTION_NOT_WAIT) || 
+                    LW_CPU_GET_CUR_NESTING()) {                         /*  不需要等待                  */
+                    __KERNEL_EXIT_IRQ(iregInterLevel);                  /*  退出内核                    */
+                    _ErrorHandle(ERROR_MSGQUEUE_FULL);
+                    return  (ERROR_MSGQUEUE_FULL);
+                }
+                
+                LW_TCB_GET_CUR(ptcbCur);                                /*  当前任务控制块              */
+            
+                ptcbCur->TCB_iPendQ         = EVENT_MSG_Q_S;
+                ptcbCur->TCB_usStatus      |= LW_THREAD_STATUS_MSGQUEUE;/*  写状态位，开始等待          */
+                ptcbCur->TCB_ucWaitTimeout  = LW_WAIT_TIME_CLEAR;       /*  清空等待时间                */
+                
+                if (ulTimeout == LW_OPTION_WAIT_INFINITE) {             /*  是否是无穷等待              */
+                    ptcbCur->TCB_ulDelay = 0ul;
+                } else {
+                    ptcbCur->TCB_ulDelay = ulTimeout;                   /*  设置超时时间                */
+                }
+                __KERNEL_TIME_GET_NO_SPINLOCK(ulTimeSave, ULONG);       /*  记录系统时间                */
+        
+                if (pevent->EVENT_ulOption & LW_OPTION_WAIT_PRIORITY) {
+                    _EVENT_INDEX_Q_PRIORITY(ptcbCur->TCB_ucPriority, ucPriorityIndex);
+                    _EVENT_PRIORITY_Q_PTR(EVENT_MSG_Q_S, ppringList, ucPriorityIndex);
+                    ptcbCur->TCB_ppringPriorityQueue = ppringList;      /*  记录等待队列位置            */
+                    _EventWaitPriority(pevent, ppringList);             /*  加入优先级等待表            */
+                    
+                } else {                                                /*  按 FIFO 等待                */
+                    _EVENT_FIFO_Q_PTR(EVENT_MSG_Q_S, ppringList);       /*  确定 FIFO 队列的位置        */
+                    _EventWaitFifo(pevent, ppringList);                 /*  加入 FIFO 等待表            */
+                }
+                
+                KN_INT_ENABLE(iregInterLevel);                          /*  使能中断                    */
+                
+                ulEventOption = pevent->EVENT_ulOption;
+                
+                iSchedRet = __KERNEL_EXIT();                            /*  调度器解锁                  */
+                if (iSchedRet) {
+                    if ((iSchedRet == LW_SIGNAL_EINTR) && 
+                        (ulEventOption & LW_OPTION_SIGNAL_INTER)) {
+                        _ErrorHandle(EINTR);
+                        return  (EINTR);
+                    }                                                   /*  重新计算超时时间            */
+                    ulTimeout = _sigTimeoutRecalc(ulTimeSave, ulTimeout);   
+                    if (ulTimeout == LW_OPTION_NOT_WAIT) {
+                        _ErrorHandle(ERROR_THREAD_WAIT_TIMEOUT);
+                        return  (ERROR_THREAD_WAIT_TIMEOUT);
+                    }
+                    goto    __re_send;
+                }
+                
+                if (ptcbCur->TCB_ucWaitTimeout == LW_WAIT_TIME_OUT) {
+                    _ErrorHandle(ERROR_THREAD_WAIT_TIMEOUT);            /*  超时                        */
+                    return  (ERROR_THREAD_WAIT_TIMEOUT);
+                    
+                } else {
+                    if (ptcbCur->TCB_ucIsEventDelete == LW_EVENT_EXIST) {   
+                        goto    __re_send;                              /*  重新尝试发送                */
+                    
+                    } else {
+                        _ErrorHandle(ERROR_MSGQUEUE_WAS_DELETED);       /*  已经被删除                  */
+                        return  (ERROR_MSGQUEUE_WAS_DELETED);
+                    }
+                }
             }
         }
+        return  (ERROR_NONE);
         
-    case LW_OPTION_BROADCAST:                                           /*  广播发送                    */
-                                                                        /*  只激活等待线程              */
-        while (_EventWaitNum(pevent)) {
+    case LW_OPTION_BROADCAST:                                           /*  广播发送, 只激活等待线程    */
+        while (_EventWaitNum(EVENT_MSG_Q_R, pevent)) {
             if (pevent->EVENT_ulOption & LW_OPTION_WAIT_PRIORITY) {     /*  优先级等待队列              */
-                _EVENT_DEL_Q_PRIORITY(ppringList);                      /*  检查需要激活的队列          */
-                                                                        /*  激活优先级等待线程          */
+                _EVENT_DEL_Q_PRIORITY(EVENT_MSG_Q_R, ppringList);       /*  激活优先级等待线程          */
                 ptcb = _EventReadyPriorityLowLevel(pevent, LW_NULL, ppringList);
             
             } else {
-                _EVENT_DEL_Q_FIFO(ppringList);                          /*  检查需要激活的FIFO队列      */
-                                                                        /*  激活FIFO等待线程            */
+                _EVENT_DEL_Q_FIFO(EVENT_MSG_Q_R, ppringList);           /*  激活FIFO等待线程            */
                 ptcb = _EventReadyFifoLowLevel(pevent, LW_NULL, ppringList);
             }
             
@@ -198,7 +260,6 @@ __re_send:
             }
             
             KN_INT_ENABLE(iregInterLevel);                              /*  打开中断                    */
-            
             _EventReadyHighLevel(ptcb, LW_THREAD_STATUS_MSGQUEUE);      /*  处理 TCB                    */
             
             MONITOR_EVT_LONG2(MONITOR_EVENT_ID_MSGQ, MONITOR_EVENT_MSGQ_POST, 
@@ -216,6 +277,28 @@ __re_send:
         _ErrorHandle(ERROR_MSGQUEUE_OPTION);
         return  (ERROR_MSGQUEUE_OPTION);
     }
+}
+/*********************************************************************************************************
+** 函数名称: API_MsgQueueSendEx
+** 功能描述: 向消息队列发送消息
+** 输　入  : 
+**           ulId                   消息队列句柄
+**           pvMsgBuffer            消息缓冲区
+**           stMsgLen               消息长短
+**           ulOption               消息选项       LW_OPTION_DEFAULT or LW_OPTION_URGENT or 
+**                                                 LW_OPTION_BROADCAST
+** 输　出  : 
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+ULONG  API_MsgQueueSendEx (LW_OBJECT_HANDLE  ulId,
+                           const PVOID       pvMsgBuffer,
+                           size_t            stMsgLen,
+                           ULONG             ulOption)
+{
+    return  (API_MsgQueueSendEx2(ulId, pvMsgBuffer, stMsgLen, LW_OPTION_NOT_WAIT, ulOption));
 }
 
 #endif                                                                  /*  (LW_CFG_MSGQUEUE_EN > 0)    */

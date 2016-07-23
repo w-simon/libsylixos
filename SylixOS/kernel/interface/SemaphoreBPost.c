@@ -71,20 +71,17 @@ ULONG  API_SemaphoreBPost (LW_OBJECT_HANDLE  ulId)
         return  (ERROR_EVENT_TYPE);
     }
     
-    if (_EventWaitNum(pevent)) {
+    if (_EventWaitNum(EVENT_SEM_Q, pevent)) {
         if (pevent->EVENT_ulOption & LW_OPTION_WAIT_PRIORITY) {         /*  优先级等待队列              */
-            _EVENT_DEL_Q_PRIORITY(ppringList);                          /*  检查需要激活的队列          */
-                                                                        /*  激活优先级等待线程          */
+            _EVENT_DEL_Q_PRIORITY(EVENT_SEM_Q, ppringList);             /*  激活优先级等待线程          */
             ptcb = _EventReadyPriorityLowLevel(pevent, LW_NULL, ppringList);
         
         } else {
-            _EVENT_DEL_Q_FIFO(ppringList);                              /*  检查需要激活的FIFO队列      */
-                                                                        /*  激活FIFO等待线程            */
+            _EVENT_DEL_Q_FIFO(EVENT_SEM_Q, ppringList);                 /*  激活FIFO等待线程            */
             ptcb = _EventReadyFifoLowLevel(pevent, LW_NULL, ppringList);
         }
         
         KN_INT_ENABLE(iregInterLevel);                                  /*  使能中断                    */
-
         _EventReadyHighLevel(ptcb, LW_THREAD_STATUS_SEM);               /*  处理 TCB                    */
         
         MONITOR_EVT_LONG2(MONITOR_EVENT_ID_SEMB, MONITOR_EVENT_SEM_POST, 

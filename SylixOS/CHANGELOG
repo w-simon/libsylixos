@@ -4,6 +4,15 @@ HISTORY
 
 ++ New features:
 
+    2016-07-23: han.hui
+    加入 buzzer 设备类型.
+
+    2016-07-21: han.hui
+    内核消息队列支持读写双向阻塞.
+
+    2016-07-20: han.hui
+    加入内核读写信号量支持.
+
     2016-07-18: Gong.YuJian
     加入 AHCI 总线驱动.
 
@@ -14,6 +23,9 @@ HISTORY
     加入磁盘 CACHE 与文件系统安全性相关接口.
 
 ++ Bugfixes:
+
+    2016-07-21: han.hui
+    修正事件超时与信号之间的耦合错误.
 
 (STABLE-1.3.3)
 

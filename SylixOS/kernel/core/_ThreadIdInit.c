@@ -47,7 +47,6 @@ VOID  _ThreadIdInit (VOID)
     ptcbTemp2 = &_K_tcbBuffer[1];
     
     for (ulI = 0; ulI < (LW_CFG_MAX_THREADS - 1); ulI++) {
-        
         pmonoTemp1 = &ptcbTemp1->TCB_monoResrcList;
         pmonoTemp2 = &ptcbTemp2->TCB_monoResrcList;
         LW_SPIN_INIT(&ptcbTemp1->TCB_slLock);

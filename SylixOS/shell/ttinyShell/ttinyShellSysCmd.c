@@ -327,7 +327,7 @@ static INT  __tshellSysCmdVardel (INT  iArgC, PCHAR  ppcArgV[])
 *********************************************************************************************************/
 static INT  __tshellSysCmdSem (INT  iArgC, PCHAR  ppcArgV[])
 {
-#if ((LW_CFG_SEMB_EN > 0) || (LW_CFG_SEMC_EN > 0) || (LW_CFG_SEMM_EN > 0)) && (LW_CFG_MAX_EVENTS > 0)
+#if (LW_CFG_SEM_EN > 0) && (LW_CFG_MAX_EVENTS > 0)
     LW_OBJECT_HANDLE        ulId = LW_OBJECT_HANDLE_INVALID;
 
     if (iArgC != 2) {
@@ -337,9 +337,7 @@ static INT  __tshellSysCmdSem (INT  iArgC, PCHAR  ppcArgV[])
     sscanf(ppcArgV[1], "%lx", &ulId);
     
     API_SemaphoreShow(ulId);
-#endif                                                                  /*  ((LW_CFG_SEMB_EN > 0) ||    */
-                                                                        /*   (LW_CFG_SEMC_EN > 0) ||    */
-                                                                        /*   (LW_CFG_SEMM_EN > 0)) &&   */
+#endif                                                                  /*  (LW_CFG_SEM_EN > 0) &&      */
                                                                         /*  (LW_CFG_MAX_EVENTS > 0)     */
     return  (ERROR_NONE);
 }

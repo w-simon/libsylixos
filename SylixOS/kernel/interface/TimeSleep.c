@@ -91,7 +91,7 @@ __wait_again:
     
     if (__KERNEL_EXIT_IRQ(iregInterLevel)) {                            /*  被信号激活                  */
         ulTick = _sigTimeoutRecalc(ulKernelTime, ulTick);               /*  重新计算等待时间            */
-        goto __wait_again;                                              /*  继续等待                    */
+        goto    __wait_again;                                           /*  继续等待                    */
     }
 }
 /*********************************************************************************************************
@@ -146,7 +146,7 @@ __wait_again:
             return  (EINTR);
         }
         ulTick = _sigTimeoutRecalc(ulKernelTime, ulTick);               /*  重新计算等待时间            */
-        goto __wait_again;                                              /*  继续等待                    */
+        goto    __wait_again;                                           /*  继续等待                    */
     }
     
     return  (ERROR_NONE);

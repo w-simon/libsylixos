@@ -47,6 +47,7 @@
 #define _OBJECT_SEM_C           3                                       /*  计数型信号量                */
 #define _OBJECT_SEM_B           4                                       /*  二值型信号量                */
 #define _OBJECT_SEM_M           5                                       /*  互斥型信号量                */
+#define _OBJECT_SEM_RW          6                                       /*  读写信号量                  */
 #define _OBJECT_MSGQUEUE        7                                       /*  消息队列                    */
 #define _OBJECT_EVENT_SET       8                                       /*  事件集                      */
 #define _OBJECT_SIGNAL          9                                       /*  信号                        */

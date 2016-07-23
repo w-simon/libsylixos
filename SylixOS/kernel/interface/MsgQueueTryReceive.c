@@ -49,7 +49,9 @@ ULONG  API_MsgQueueTryReceive (LW_OBJECT_HANDLE    ulId,
              INTREG                iregInterLevel;
     REGISTER UINT16                usIndex;
     REGISTER PLW_CLASS_EVENT       pevent;
+    REGISTER PLW_CLASS_TCB         ptcb;
     REGISTER PLW_CLASS_MSGQUEUE    pmsgqueue;
+    REGISTER PLW_LIST_RING        *ppringList;
             
              size_t                stMsgLenTemp;
              
@@ -96,7 +98,23 @@ ULONG  API_MsgQueueTryReceive (LW_OBJECT_HANDLE    ulId,
                         stMaxByteSize,
                         pstMsgLen);                                     /*  获得消息                    */
         
-        __KERNEL_EXIT_IRQ(iregInterLevel);                              /*  退出内核                    */
+        if (_EventWaitNum(EVENT_MSG_Q_S, pevent)) {                     /*  有任务在等待写消息          */
+            if (pevent->EVENT_ulOption & LW_OPTION_WAIT_PRIORITY) {     /*  优先级等待队列              */
+                _EVENT_DEL_Q_PRIORITY(EVENT_MSG_Q_S, ppringList);       /*  激活优先级等待线程          */
+                ptcb = _EventReadyPriorityLowLevel(pevent, LW_NULL, ppringList);
+            
+            } else {
+                _EVENT_DEL_Q_FIFO(EVENT_MSG_Q_S, ppringList);           /*  激活FIFO等待线程            */
+                ptcb = _EventReadyFifoLowLevel(pevent, LW_NULL, ppringList);
+            }
+            
+            KN_INT_ENABLE(iregInterLevel);                              /*  使能中断                    */
+            _EventReadyHighLevel(ptcb, LW_THREAD_STATUS_MSGQUEUE);      /*  处理 TCB                    */
+            __KERNEL_EXIT();                                            /*  退出内核                    */
+        
+        } else {
+            __KERNEL_EXIT_IRQ(iregInterLevel);                          /*  退出内核                    */
+        }
         return  (ERROR_NONE);
     
     } else {                                                            /*  事件无效                    */

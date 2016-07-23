@@ -109,6 +109,7 @@
 #define MONITOR_EVENT_ID_SEMC           5
 #define MONITOR_EVENT_ID_SEMB           6
 #define MONITOR_EVENT_ID_SEMM           7
+#define MONITOR_EVENT_ID_SEMRW          8
 
 #define MONITOR_EVENT_SEM_CREATE        0                               /*  SEM 创建                    */
 #define MONITOR_EVENT_SEM_DELETE        1                               /*  SEM 删除                    */
@@ -123,7 +124,7 @@
   消息队列事件
 *********************************************************************************************************/
 
-#define MONITOR_EVENT_ID_MSGQ           8
+#define MONITOR_EVENT_ID_MSGQ           9
 
 #define MONITOR_EVENT_MSGQ_CREATE       0                               /*  MSGQ 创建                   */
 #define MONITOR_EVENT_MSGQ_DELETE       1                               /*  MSGQ 删除                   */
@@ -138,7 +139,7 @@
   事件集事件
 *********************************************************************************************************/
 
-#define MONITOR_EVENT_ID_ESET           9
+#define MONITOR_EVENT_ID_ESET           10
 
 #define MONITOR_EVENT_ESET_CREATE       0                               /*  ESET 创建                   */
 #define MONITOR_EVENT_ESET_DELETE       1                               /*  ESET 删除                   */
@@ -150,7 +151,7 @@
   定时器事件
 *********************************************************************************************************/
 
-#define MONITOR_EVENT_ID_TIMER          10
+#define MONITOR_EVENT_ID_TIMER          11
 
 #define MONITOR_EVENT_TIMER_CREATE      0                               /*  定时器创建                  */
 #define MONITOR_EVENT_TIMER_DELETE      1                               /*  定时器删除                  */
@@ -159,7 +160,7 @@
   定长内存管理
 *********************************************************************************************************/
 
-#define MONITOR_EVENT_ID_PART           11
+#define MONITOR_EVENT_ID_PART           12
 
 #define MONITOR_EVENT_PART_CREATE       0                               /*  定长内存创建                */
 #define MONITOR_EVENT_PART_DELETE       1                               /*  定长内存删除                */
@@ -171,7 +172,7 @@
   变长内存管理
 *********************************************************************************************************/
 
-#define MONITOR_EVENT_ID_REGION         12
+#define MONITOR_EVENT_ID_REGION         13
 
 #define MONITOR_EVENT_REGION_CREATE     0                               /*  变长内存创建                */
 #define MONITOR_EVENT_REGION_DELETE     1                               /*  变长内存删除                */
@@ -184,7 +185,7 @@
   I/O 基本操作
 *********************************************************************************************************/
 
-#define MONITOR_EVENT_ID_IO             13
+#define MONITOR_EVENT_ID_IO             14
 
 #define MONITOR_EVENT_IO_OPEN           0                               /*  open                        */
 #define MONITOR_EVENT_IO_CREAT          1                               /*  creat                       */
@@ -207,7 +208,7 @@
   信号
 *********************************************************************************************************/
 
-#define MONITOR_EVENT_ID_SIGNAL         14
+#define MONITOR_EVENT_ID_SIGNAL         15
 
 #define MONITOR_EVENT_SIGNAL_KILL       0                               /*  kill                        */
 #define MONITOR_EVENT_SIGNAL_SIGQUEUE   1                               /*  sigqueue                    */
@@ -222,7 +223,7 @@
   装载器
 *********************************************************************************************************/
 
-#define MONITOR_EVENT_ID_LOADER         15
+#define MONITOR_EVENT_ID_LOADER         16
 
 #define MONITOR_EVENT_LOADER_LOAD       0                               /*  装载                        */
 #define MONITOR_EVENT_LOADER_UNLOAD     1                               /*  卸载                        */
@@ -232,7 +233,7 @@
   虚拟进程
 *********************************************************************************************************/
 
-#define MONITOR_EVENT_ID_VPROC          16
+#define MONITOR_EVENT_ID_VPROC          17
 
 #define MONITOR_EVENT_VPROC_CREATE      0                               /*  创建进程                    */
 #define MONITOR_EVENT_VPROC_DELETE      1                               /*  删除进程                    */
@@ -242,7 +243,7 @@
   虚拟内存管理
 *********************************************************************************************************/
 
-#define MONITOR_EVENT_ID_VMM            17
+#define MONITOR_EVENT_ID_VMM            18
 
 #define MONITOR_EVENT_VMM_ALLOC         0                               /*  API_VmmMalloc               */
 #define MONITOR_EVENT_VMM_ALLOC_A       1                               /*  API_VmmMallocArea           */
@@ -273,7 +274,7 @@
   异常管理
 *********************************************************************************************************/
 
-#define MONITOR_EVENT_ID_EXCEPTION      18
+#define MONITOR_EVENT_ID_EXCEPTION      19
 
 #define MONITOR_EVENT_EXCEPTION_SOFT    0                               /*  _excJob message             */
 
@@ -281,7 +282,7 @@
   网络
 *********************************************************************************************************/
 
-#define MONITOR_EVENT_ID_NETWORK        19
+#define MONITOR_EVENT_ID_NETWORK        20
 
 #define MONITOR_EVENT_NETWORK_SOCKPAIR  0                               /*  socketpair                  */
 #define MONITOR_EVENT_NETWORK_SOCKET    1                               /*  socket                      */

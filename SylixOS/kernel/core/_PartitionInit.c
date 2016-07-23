@@ -66,7 +66,6 @@ VOID  _PartitionInit (VOID)
     p_partTemp2 = &_K__partBuffer[1];
     
     for (ulI = 0; ulI < (LW_CFG_MAX_PARTITIONS - 1); ulI++) {
-        
         p_partTemp1->PARTITION_ucType  = LW_PARTITION_UNUSED;
         p_partTemp1->PARTITION_usIndex = (UINT16)ulI;
         

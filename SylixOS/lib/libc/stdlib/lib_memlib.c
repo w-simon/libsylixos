@@ -46,11 +46,11 @@
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-PVOID  lib_malloc (size_t  stNbytes)
+PVOID  lib_malloc (size_t  stNBytes)
 {
-    stNbytes = (stNbytes) ? stNbytes : 1;
+    stNBytes = (stNBytes) ? stNBytes : 1;
 
-    return  (__SHEAP_ALLOC(stNbytes));
+    return  (__SHEAP_ALLOC(stNBytes));
 }
 /*********************************************************************************************************
 ** 函数名称: lib_xmalloc
@@ -79,16 +79,16 @@ PVOID  lib_xmalloc (size_t  stSize)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-PVOID  lib_mallocalign (size_t  stNbytes, size_t  stAlign)
+PVOID  lib_mallocalign (size_t  stNBytes, size_t  stAlign)
 {
     if (stAlign & (stAlign - 1)) {
         _ErrorHandle(EINVAL);
         return  (LW_NULL);
     }
 
-    stNbytes = (stNbytes) ? stNbytes : 1;
+    stNBytes = (stNBytes) ? stNBytes : 1;
     
-    return  (__SHEAP_ALLOC_ALIGN(stNbytes, stAlign));
+    return  (__SHEAP_ALLOC_ALIGN(stNBytes, stAlign));
 }
 /*********************************************************************************************************
 ** 函数名称: lib_xmalloc
@@ -117,16 +117,16 @@ PVOID  lib_xmallocalign (size_t  stSize, size_t  stAlign)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-PVOID  lib_memalign (size_t  stAlign, size_t  stNbytes)
+PVOID  lib_memalign (size_t  stAlign, size_t  stNBytes)
 {
     if (stAlign & (stAlign - 1)) {
         _ErrorHandle(EINVAL);
         return  (LW_NULL);
     }
 
-    stNbytes = (stNbytes) ? stNbytes : 1;
+    stNBytes = (stNBytes) ? stNBytes : 1;
     
-    return  (__SHEAP_ALLOC_ALIGN(stNbytes, stAlign));
+    return  (__SHEAP_ALLOC_ALIGN(stNBytes, stAlign));
 }
 /*********************************************************************************************************
 ** 函数名称: lib_xmemalign
@@ -136,9 +136,9 @@ PVOID  lib_memalign (size_t  stAlign, size_t  stNbytes)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-PVOID  lib_xmemalign (size_t  stAlign, size_t  stNbytes)
+PVOID  lib_xmemalign (size_t  stAlign, size_t  stNBytes)
 {
-    void  *ptr = lib_mallocalign(stNbytes, stAlign);
+    void  *ptr = lib_mallocalign(stNBytes, stAlign);
     
     if (ptr == LW_NULL) {
         __LIB_PERROR("lib_xmemalign() not enough memory");
@@ -247,7 +247,7 @@ PVOID  lib_xrealloc (PVOID  pvPtr, size_t  stNewSize)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-INT  lib_posix_memalign (PVOID *ppvMem, size_t  stAlign, size_t  stNbytes)
+INT  lib_posix_memalign (PVOID *ppvMem, size_t  stAlign, size_t  stNBytes)
 {
     if (ppvMem == LW_NULL) {
         _ErrorHandle(EINVAL);
@@ -259,9 +259,9 @@ INT  lib_posix_memalign (PVOID *ppvMem, size_t  stAlign, size_t  stNbytes)
         return  (EINVAL);
     }
     
-    stNbytes = (stNbytes) ? stNbytes : 1;
+    stNBytes = (stNBytes) ? stNBytes : 1;
     
-    *ppvMem = __SHEAP_ALLOC_ALIGN(stNbytes, stAlign);
+    *ppvMem = __SHEAP_ALLOC_ALIGN(stNBytes, stAlign);
     if (*ppvMem == LW_NULL) {
         _ErrorHandle(ENOMEM);
         return  (ENOMEM);
@@ -280,11 +280,11 @@ INT  lib_posix_memalign (PVOID *ppvMem, size_t  stAlign, size_t  stNbytes)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-PVOID  lib_malloc_new (size_t  stNbytes)
+PVOID  lib_malloc_new (size_t  stNBytes)
 {
-    stNbytes = (stNbytes) ? stNbytes : 1;
+    stNBytes = (stNBytes) ? stNBytes : 1;
 
-    return  (_HeapAllocate(_K_pheapSystem, stNbytes, "C++ new"));
+    return  (_HeapAllocate(_K_pheapSystem, stNBytes, "C++ new"));
 }
 /*********************************************************************************************************
   END
