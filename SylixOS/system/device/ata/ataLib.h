@@ -479,8 +479,8 @@ typedef struct __ata_drive {
     UINT8         ATADRIVE_ucState;                                     /*  device state                */
     UINT8         ATADRIVE_ucDiagCode;                                  /*  diagnostic code             */
     UINT8         ATADRIVE_ucType;                                      /*  device type                 */
-    UINT          ATADRIVE_uiCapacity;                                  /*  LBA模式下可寻址的扇区总数   */
-    UINT          ATADRIVE_uiSignature;
+    UINT32        ATADRIVE_uiCapacity;                                  /*  LBA模式下可寻址的扇区总数   */
+    UINT32        ATADRIVE_uiSignature;
 } __ATA_DRIVE;
 typedef __ATA_DRIVE    *__PATA_DRIVE;
 /*********************************************************************************************************
@@ -546,6 +546,7 @@ struct __ata_ctrl {
                                                                   iCallbackType,                \
                                                                   callback,                     \
                                                                   pvCallbackArg)
+
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0)      */
                                                                         /*  (LW_CFG_ATA_EN > 0)         */
 #endif                                                                  /*  __ATALIB_H                  */

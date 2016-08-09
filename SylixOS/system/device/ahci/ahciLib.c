@@ -199,29 +199,29 @@ static PUCHAR  __ahciIdString (const UINT16 *pusId, PUCHAR  pucBuff, UINT32  uiL
 ** 函数名称: API_AhciDriveSectorCountGet
 ** 功能描述: 获取驱动器扇区总数
 ** 输　入  : hCtrl      控制器句柄
-**           iDrive     驱动器号
+**           uiDrive    驱动器号
 ** 输　出  : 扇区总数
 ** 全局变量:
 ** 调用模块:
                                            API 函数
 *********************************************************************************************************/
 LW_API
-UINT64  API_AhciDriveSectorCountGet (AHCI_CTRL_HANDLE  hCtrl, INT  iDrive)
+UINT64  API_AhciDriveSectorCountGet (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
 {
     AHCI_DRIVE_HANDLE   hDrive     = LW_NULL;                           /* 驱动器句柄                   */
     UINT64              ullSectors = 0;                                 /* 扇区总数                     */
 
-    hDrive = &hCtrl->AHCICTRL_hDrive[iDrive];                           /* 通过索引获得驱动器句柄       */
+    hDrive = &hCtrl->AHCICTRL_hDrive[uiDrive];                          /* 通过索引获得驱动器句柄       */
     if (hDrive->AHCIDRIVE_bLba48 == LW_TRUE) {                          /* LBA 48 位模式                */
-        ullSectors = hCtrl->AHCICTRL_ullLba48TotalSecs[iDrive];
+        ullSectors = hCtrl->AHCICTRL_ullLba48TotalSecs[uiDrive];
     
     } else if ((hDrive->AHCIDRIVE_bLba == LW_TRUE) &&
-               (hCtrl->AHCICTRL_uiLbaTotalSecs[iDrive] != 0) &&
-               (hCtrl->AHCICTRL_uiLbaTotalSecs[iDrive] >
+               (hCtrl->AHCICTRL_uiLbaTotalSecs[uiDrive] != 0) &&
+               (hCtrl->AHCICTRL_uiLbaTotalSecs[uiDrive] >
                (UINT32)(hDrive->AHCIDRIVE_uiCylinder *
                         hDrive->AHCIDRIVE_uiHead *
                         hDrive->AHCIDRIVE_uiSector))) {                 /* LBA 模式                     */
-        ullSectors = hCtrl->AHCICTRL_uiLbaTotalSecs[iDrive];
+        ullSectors = hCtrl->AHCICTRL_uiLbaTotalSecs[uiDrive];
     
     } else {                                                            /* CHS 模式                     */
         ullSectors = hDrive->AHCIDRIVE_uiCylinder * hDrive->AHCIDRIVE_uiHead * hDrive->AHCIDRIVE_uiSector;
@@ -232,20 +232,20 @@ UINT64  API_AhciDriveSectorCountGet (AHCI_CTRL_HANDLE  hCtrl, INT  iDrive)
 /*********************************************************************************************************
 ** 函数名称: API_AhciDriveWorkModeNameGet
 ** 功能描述: 获取驱动器工作模式名称
-** 输　入  : iIndex    工作模式索引
+** 输　入  : uiIndex    工作模式索引
 ** 输　出  : 工作模式名称
 ** 全局变量:
 ** 调用模块:
                                            API 函数
 *********************************************************************************************************/
 LW_API
-PCHAR  API_AhciDriveWorkModeNameGet (INT  iIndex)
+PCHAR  API_AhciDriveWorkModeNameGet (UINT  uiIndex)
 {
     REGISTER INT    i = 0;
     UINT8           ucSize = sizeof(_G_padwmAhciDriveWorkModeTable) / sizeof(AHCI_DRIVE_WORK_MODE);
 
     for (i = 0; i < ucSize; i++) {
-        if (_G_padwmAhciDriveWorkModeTable[i].ADWM_ucIndex == iIndex) {
+        if (_G_padwmAhciDriveWorkModeTable[i].ADWM_ucIndex == uiIndex) {
             break;
         }
     }
@@ -259,7 +259,7 @@ PCHAR  API_AhciDriveWorkModeNameGet (INT  iIndex)
 ** 函数名称: API_AhciDriveInfoShow
 ** 功能描述: SATA 驱动器信息
 ** 输　入  : hCtrl      控制器句柄
-**           iDrive     驱动器号
+**           uiDrive    驱动器号
 **           hParam     参数控制块句柄
 ** 输　出  : ERROR or OK
 ** 全局变量:
@@ -267,7 +267,7 @@ PCHAR  API_AhciDriveWorkModeNameGet (INT  iIndex)
                                            API 函数
 *********************************************************************************************************/
 LW_API
-INT  API_AhciDriveInfoShow (AHCI_CTRL_HANDLE  hCtrl, INT  iDrive, AHCI_PARAM_HANDLE  hParam)
+INT  API_AhciDriveInfoShow (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, AHCI_PARAM_HANDLE  hParam)
 {
     INT                 iRet = PX_ERROR;                                /* 操作结果                     */
     AHCI_DRV_HANDLE     hDrv;                                           /* 驱动句柄                     */
@@ -280,7 +280,7 @@ INT  API_AhciDriveInfoShow (AHCI_CTRL_HANDLE  hCtrl, INT  iDrive, AHCI_PARAM_HAN
     UINT8               ucProduct[41] = { 0 };                          /* 产品信息缓冲区               */
 
     hDrv = hCtrl->AHCICTRL_hDrv;
-    hDrive = &hCtrl->AHCICTRL_hDrive[iDrive];                           /* 通过索引获得控制器句柄       */
+    hDrive = &hCtrl->AHCICTRL_hDrive[uiDrive];                          /* 通过索引获得控制器句柄       */
 
     /*
      *  将参数信息转换为字符串信息
@@ -300,7 +300,7 @@ INT  API_AhciDriveInfoShow (AHCI_CTRL_HANDLE  hCtrl, INT  iDrive, AHCI_PARAM_HAN
     /*
      *  打印参数信息
      */
-    printf("\nAHCI Control %d Drive %d Information >>\n", hCtrl->AHCICTRL_uiIndex, iDrive);
+    printf("\nAHCI Control %d Drive %d Information >>\n", hCtrl->AHCICTRL_uiIndex, uiDrive);
     printf("Control Name          : %s\n", hCtrl->AHCICTRL_cCtrlName);
     printf("Control Unit Index    : %d\n", hCtrl->AHCICTRL_uiUnitIndex);
     printf("Control Core Version  : " AHCI_DRV_VER_FORMAT(hCtrl->AHCICTRL_uiCoreVer));
@@ -316,7 +316,7 @@ INT  API_AhciDriveInfoShow (AHCI_CTRL_HANDLE  hCtrl, INT  iDrive, AHCI_PARAM_HAN
     printf("Multiple Sectors      : %d\n", hDrive->AHCIDRIVE_usMultiSector);
     printf("IORDY                 : %s\n", hDrive->AHCIDRIVE_bIordy == LW_TRUE ? "Enable" : "Disable");
     printf("LBA                   : %s\n", hDrive->AHCIDRIVE_bLba == LW_TRUE ? "Enable" : "Disable");
-    printf("LBA Sectors           : ll%d\n", hCtrl->AHCICTRL_uiLbaTotalSecs[iDrive]);
+    printf("LBA Sectors           : ll%d\n", hCtrl->AHCICTRL_uiLbaTotalSecs[uiDrive]);
     printf("SATA Capabilities     : 0x%04x\n", hParam->AHCIPARAM_usSataCapabilities);
     printf("SATA Add Capabilities : 0x%04x\n", hParam->AHCIPARAM_usSataAddCapabilities);
     printf("SATA Features Support : 0x%04x\n", hParam->AHCIPARAM_usSataFeaturesSupported);
@@ -344,13 +344,13 @@ INT  API_AhciDriveInfoShow (AHCI_CTRL_HANDLE  hCtrl, INT  iDrive, AHCI_PARAM_HAN
     printf("Queue Depth           : %d\n", hParam->AHCIPARAM_usQueueDepth + 1);
     printf("Sector Start          : %lld\n", (UINT64)hDrive->AHCIDRIVE_ulStartSector);
     printf("Sector Size (Byte)    : %lu\n", hDrive->AHCIDRIVE_ulByteSector);
-    printf("Sector Count          : %lld\n", API_AhciDriveSectorCountGet(hCtrl, iDrive));
+    printf("Sector Count          : %lld\n", API_AhciDriveSectorCountGet(hCtrl, uiDrive));
     printf("Disk Size (MB)        : %lld MB\n",
-           (API_AhciDriveSectorCountGet(hCtrl, iDrive) * hDrive->AHCIDRIVE_ulByteSector) / AHCI_MB);
+           (API_AhciDriveSectorCountGet(hCtrl, uiDrive) * hDrive->AHCIDRIVE_ulByteSector) / AHCI_MB);
     printf("Media Serial Number   : %s\n", (PCHAR)&hParam->AHCIPARAM_usCurrentMediaSN[0]);
 
     if (hDrv->AHCIDRV_pfuncVendorDriveInfoShow) {
-        iRet = hDrv->AHCIDRV_pfuncVendorDriveInfoShow(hCtrl, iDrive, hParam);
+        iRet = hDrv->AHCIDRV_pfuncVendorDriveInfoShow(hCtrl, uiDrive, hParam);
     } else {
         iRet = ERROR_NONE;
     }
@@ -458,7 +458,8 @@ INT  API_AhciDriveRecvFisStop (AHCI_DRIVE_HANDLE  hDrive)
     INT         iRet;                                                   /* 返回值                       */
     UINT32      uiReg;                                                  /* 寄存器值                     */
 
-    AHCI_LOG(AHCI_LOG_PRT, "drive recv fis stop.", 0);
+    AHCI_LOG(AHCI_LOG_PRT, "drive recv fis stop ctrl %d port %d.",
+             hDrive->AHCIDRIVE_hCtrl->AHCICTRL_uiIndex, hDrive->AHCIDRIVE_uiPort);
 
     /*
      *  禁止 FIS 并等待操作结果
@@ -489,7 +490,8 @@ INT  API_AhciDriveEngineStop (AHCI_DRIVE_HANDLE  hDrive)
     INT         iRet;                                                   /* 返回值                       */
     UINT32      uiReg;                                                  /* 寄存器值                     */
 
-    AHCI_LOG(AHCI_LOG_PRT, "drive engine stop.", 0);
+    AHCI_LOG(AHCI_LOG_PRT, "drive engine stop ctrl %d port %d.",
+             hDrive->AHCIDRIVE_hCtrl->AHCICTRL_uiIndex, hDrive->AHCIDRIVE_uiPort);
 
     uiReg = AHCI_PORT_READ(hDrive, AHCI_PxCMD);
     if ((uiReg & ((AHCI_PCMD_ST) | (AHCI_PCMD_CR))) == 0) {             /* DMA 未工作                   */
@@ -523,7 +525,8 @@ INT  API_AhciDrivePowerUp (AHCI_DRIVE_HANDLE  hDrive)
 {
     UINT32  uiReg;
 
-    AHCI_LOG(AHCI_LOG_PRT, "drive power up.", 0);
+    AHCI_LOG(AHCI_LOG_PRT, "drive power up ctrl %d port %d.",
+             hDrive->AHCIDRIVE_hCtrl->AHCICTRL_uiIndex, hDrive->AHCIDRIVE_uiPort);
 
     uiReg = AHCI_PORT_READ(hDrive, AHCI_PxCMD);
     uiReg &= ~(AHCI_PCMD_ICC);
@@ -541,14 +544,14 @@ INT  API_AhciDrivePowerUp (AHCI_DRIVE_HANDLE  hDrive)
 ** 函数名称: API_AhciDriveRegNameGet
 ** 功能描述: 获取驱动器端口寄存器名
 ** 输　入  : hDrive     驱动器句柄
-**           iOffset    端口寄存器偏移
+**           uiOffset   端口寄存器偏移
 ** 输　出  : 寄存器名称缓冲区
 ** 全局变量:
 ** 调用模块:
                                            API 函数
 *********************************************************************************************************/
 LW_API
-PCHAR  API_AhciDriveRegNameGet (AHCI_DRIVE_HANDLE  hDrive, INT  iOffset)
+PCHAR  API_AhciDriveRegNameGet (AHCI_DRIVE_HANDLE  hDrive, UINT  uiOffset)
 {
     REGISTER INT        i = 0;
     AHCI_DRV_HANDLE     hDrv;
@@ -557,13 +560,13 @@ PCHAR  API_AhciDriveRegNameGet (AHCI_DRIVE_HANDLE  hDrive, INT  iOffset)
     hDrv = hDrive->AHCIDRIVE_hCtrl->AHCICTRL_hDrv;                      /* 获得驱动句柄                 */
 
     for (i = 0; i < ucSize; i++) {
-        if (_G_pahrAhciPortRegTable[i].APR_ucOffset == iOffset) {
+        if (_G_pahrAhciPortRegTable[i].APR_ucOffset == uiOffset) {
             return  (_G_pahrAhciPortRegTable[i].APR_pcName);
         }
     }
 
     if (hDrv->AHCIDRV_pfuncVendorDriveRegNameGet) {
-        return  (hDrv->AHCIDRV_pfuncVendorDriveRegNameGet(hDrive, iOffset));
+        return  (hDrv->AHCIDRV_pfuncVendorDriveRegNameGet(hDrive, uiOffset));
     }
 
     return  (LW_NULL);
@@ -678,7 +681,7 @@ INT  API_AhciCtrlIntConnect (AHCI_CTRL_HANDLE  hCtrl, PINT_SVR_ROUTINE pfuncIsr,
         return  (PX_ERROR);
     }
 
-    lib_strncpy(&hCtrl->AHCICTRL_cIrqName[0], cpcName, AHCI_CTRL_IRQ_NAME_MAX);
+    lib_strlcpy(&hCtrl->AHCICTRL_cIrqName[0], cpcName, AHCI_CTRL_IRQ_NAME_MAX);
     hCtrl->AHCICTRL_pfuncIrq = pfuncIsr;
 
     if (hDrv->AHCIDRV_pfuncVendorCtrlIntEnable) {
@@ -707,7 +710,7 @@ INT  API_AhciCtrlReset (AHCI_CTRL_HANDLE  hCtrl)
     if ((uiReg & AHCI_GHC_HR) == 0) {
         uiReg |= AHCI_GHC_HR;
         AHCI_CTRL_WRITE(hCtrl, AHCI_GHC, uiReg);
-        API_TimeSleep(1);
+        API_TimeMSleep(50);
         uiReg = AHCI_CTRL_READ(hCtrl, AHCI_GHC);
     }
 
@@ -1025,14 +1028,14 @@ INT  API_AhciCtrlCapGet (AHCI_CTRL_HANDLE  hCtrl)
 ** 函数名称: API_AhciCtrlRegNameGet
 ** 功能描述: 获取全局寄存器名
 ** 输　入  : hCtrl      控制器句柄
-**           iOffset    全局寄存器偏移
+**           uiOffset   全局寄存器偏移
 ** 输　出  : 寄存器名称缓冲区
 ** 全局变量:
 ** 调用模块:
                                            API 函数
 *********************************************************************************************************/
 LW_API
-PCHAR  API_AhciCtrlRegNameGet (AHCI_CTRL_HANDLE  hCtrl, INT  iOffset)
+PCHAR  API_AhciCtrlRegNameGet (AHCI_CTRL_HANDLE  hCtrl, UINT  uiOffset)
 {
     REGISTER INT        i = 0;
     AHCI_DRV_HANDLE     hDrv;
@@ -1041,13 +1044,13 @@ PCHAR  API_AhciCtrlRegNameGet (AHCI_CTRL_HANDLE  hCtrl, INT  iOffset)
     hDrv = hCtrl->AHCICTRL_hDrv;                                        /* 获得驱动句柄                 */
 
     for (i = 0; i < ucSize; i++) {
-        if (_G_pahrAhciHostRegTable[i].AHR_ucOffset == iOffset) {
+        if (_G_pahrAhciHostRegTable[i].AHR_ucOffset == uiOffset) {
             return  (_G_pahrAhciHostRegTable[i].AHR_pcName);
         }
     }
 
     if (hDrv->AHCIDRV_pfuncVendorCtrlRegNameGet) {
-        return  (hDrv->AHCIDRV_pfuncVendorCtrlRegNameGet(hCtrl, iOffset));
+        return  (hDrv->AHCIDRV_pfuncVendorCtrlRegNameGet(hCtrl, uiOffset));
     }
 
     return  (LW_NULL);

@@ -104,14 +104,14 @@ INT  API_AhciCtrlAdd (AHCI_CTRL_HANDLE  hCtrl)
 ** 函数名称: API_AhciCtrlHandleGetFromName
 ** 功能描述: 通过名字获取一个控制器的句柄
 ** 输　入  : pcName     控制器名称
-**           iUnit      本类控制器索引
+**           uiUnit     本类控制器索引
 ** 输　出  : 设备控制句柄
 ** 全局变量:
 ** 调用模块:
                                            API 函数
 *********************************************************************************************************/
 LW_API
-AHCI_CTRL_HANDLE  API_AhciCtrlHandleGetFromName (CPCHAR  cpcName, INT  iUnit)
+AHCI_CTRL_HANDLE  API_AhciCtrlHandleGetFromName (CPCHAR  cpcName, UINT  uiUnit)
 {
     PLW_LIST_LINE       plineTemp = LW_NULL;
     AHCI_CTRL_HANDLE    hCtrl     = LW_NULL;
@@ -124,7 +124,7 @@ AHCI_CTRL_HANDLE  API_AhciCtrlHandleGetFromName (CPCHAR  cpcName, INT  iUnit)
         hCtrl = _LIST_ENTRY(plineTemp, AHCI_CTRL_CB, AHCICTRL_lineCtrlNode);
 
         if ((lib_strncmp(&hCtrl->AHCICTRL_cCtrlName[0], cpcName, AHCI_CTRL_NAME_MAX) == 0) &&
-            (hCtrl->AHCICTRL_uiUnitIndex == iUnit)) {
+            (hCtrl->AHCICTRL_uiUnitIndex == uiUnit)) {
             break;
         }
     }
@@ -139,14 +139,14 @@ AHCI_CTRL_HANDLE  API_AhciCtrlHandleGetFromName (CPCHAR  cpcName, INT  iUnit)
 /*********************************************************************************************************
 ** 函数名称: API_AhciCtrlHandleGetFromIndex
 ** 功能描述: 通过索引获取一个控制器的句柄
-** 输　入  : iIndex     控制器索引
+** 输　入  : uiIndex     控制器索引
 ** 输　出  : 设备控制句柄
 ** 全局变量:
 ** 调用模块:
                                            API 函数
 *********************************************************************************************************/
 LW_API
-AHCI_CTRL_HANDLE  API_AhciCtrlHandleGetFromIndex (INT  iIndex)
+AHCI_CTRL_HANDLE  API_AhciCtrlHandleGetFromIndex (UINT  uiIndex)
 {
     PLW_LIST_LINE       plineTemp = LW_NULL;
     AHCI_CTRL_HANDLE    hCtrl     = LW_NULL;
@@ -158,7 +158,7 @@ AHCI_CTRL_HANDLE  API_AhciCtrlHandleGetFromIndex (INT  iIndex)
          plineTemp  = _list_line_get_next(plineTemp)) {
         hCtrl = _LIST_ENTRY(plineTemp, AHCI_CTRL_CB, AHCICTRL_lineCtrlNode);
 
-        if (hCtrl->AHCICTRL_uiIndex == iIndex) {
+        if (hCtrl->AHCICTRL_uiIndex == uiIndex) {
             break;
         }
     }

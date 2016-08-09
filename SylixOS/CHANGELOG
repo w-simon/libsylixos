@@ -4,6 +4,12 @@ HISTORY
 
 ++ New features:
 
+    2016-07-28: han.hui
+    加入系统性能分析器.
+
+    2016-07-25: han.hui
+    加入 diskCache 并行处理缓冲区管理. (oem mount 第二代接口与之前不再兼容)
+
     2016-07-23: han.hui
     加入 buzzer 设备类型.
 
@@ -17,7 +23,7 @@ HISTORY
     加入 AHCI 总线驱动.
 
     2016-07-16: han.hui
-    路由表可以设置到任意目标指定的网关.
+    路由表可以设置到任意目标指定的网关. (route 系列 API 与之前不再兼容)
 
     2016-07-12: han.hui
     加入磁盘 CACHE 与文件系统安全性相关接口.

@@ -25,6 +25,7 @@
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
 #include "../SylixOS/system/include/s_system.h"
+#include "../SylixOS/fs/include/fs_fs.h"
 /*********************************************************************************************************
   加入裁剪支持
 *********************************************************************************************************/
@@ -37,9 +38,11 @@
 /*********************************************************************************************************
   内部宏定义
 *********************************************************************************************************/
-#define __SDMEM_MEDIA          "/media/sdcard"
-#define __SDMEM_CACHE_BURST    32
-#define __SDMEM_CACHE_SIZE     (128 * LW_CFG_KB_SIZE)
+#define __SDMEM_MEDIA           "/media/sdcard"
+#define __SDMEM_CACHE_BURST     64
+#define __SDMEM_CACHE_SIZE      (512 * LW_CFG_KB_SIZE)
+#define __SDMEM_CACHE_WP        1                                       /*  默认使用单管线加速写        */
+#define __SDMEM_CACHE_COHERENCE LW_FALSE                                /*  默认不需要 CACHE 一致性要求 */
 /*********************************************************************************************************
   sdmem 设备私有数据
 *********************************************************************************************************/
@@ -92,6 +95,9 @@ static INT  __sdmemDevCreate (SD_DRV *psddrv, PLW_SDCORE_DEVICE psdcoredev, VOID
     __SDMEM_PRIV     *psdmempriv;
     LONG              lCacheSize;
     LONG              lSectorBurst;
+    LONG              lWp;
+    LONG              lCoherence = (LONG)__SDMEM_CACHE_COHERENCE;
+    LW_DISKCACHE_ATTR dcattrl;                                          /* CACHE 参数                   */
 
     psdmempriv= (__SDMEM_PRIV *)__SHEAP_ALLOC(sizeof(__SDMEM_PRIV));
     if (!psdmempriv) {
@@ -110,6 +116,8 @@ static INT  __sdmemDevCreate (SD_DRV *psddrv, PLW_SDCORE_DEVICE psdcoredev, VOID
 
     API_SdmHostExtOptGet(psdcoredev, SDHOST_EXTOPT_CACHE_SIZE_GET, (LONG)&lCacheSize);
     API_SdmHostExtOptGet(psdcoredev, SDHOST_EXTOPT_MAXBURST_SECTOR_GET, (LONG)&lSectorBurst);
+    API_SdmHostExtOptGet(psdcoredev, SDHOST_EXTOPT_CACHE_WP_GET, (LONG)&lWp);
+    API_SdmHostExtOptGet(psdcoredev, SDHOST_EXTOPT_CACHE_COHERENCE_GET, (LONG)&lCoherence);
 
     if (lCacheSize < 0) {
         lCacheSize = __SDMEM_CACHE_SIZE;
@@ -118,12 +126,23 @@ static INT  __sdmemDevCreate (SD_DRV *psddrv, PLW_SDCORE_DEVICE psdcoredev, VOID
     if (lSectorBurst <= 0) {
         lSectorBurst = __SDMEM_CACHE_BURST;
     }
+    
+    if (lWp <= 0) {
+        lWp = __SDMEM_CACHE_WP;
+    }
 
-    poemdisk = oemDiskMount(__SDMEM_MEDIA,
-                            pblkdev,
-                            LW_NULL,
-                            lCacheSize,
-                            lSectorBurst);
+    dcattrl.DCATTR_pvCacheMem       = LW_NULL;
+    dcattrl.DCATTR_stMemSize        = (size_t)lCacheSize;
+    dcattrl.DCATTR_bCacheCoherence  = (BOOL)lCoherence;
+    dcattrl.DCATTR_iMaxRBurstSector = (INT)lSectorBurst;
+    dcattrl.DCATTR_iMaxWBurstSector = (INT)(lSectorBurst << 1);
+    dcattrl.DCATTR_iMsgCount        = 4;
+    dcattrl.DCATTR_iPipeline        = (INT)lWp;
+    dcattrl.DCATTR_bParallel        = LW_FALSE;
+
+    poemdisk = oemDiskMount2(__SDMEM_MEDIA,
+                             pblkdev,
+                             &dcattrl);
     if (!poemdisk) {
         printk("\nmount sd memory card failed.\r\n");
         goto    __err2;

@@ -41,7 +41,7 @@ enum {
 /*********************************************************************************************************
   驱动支持的设备 ID 表, 用于驱动与设备进行自动匹配, 与 Linux 参数保持一致, 此处只列举出部分内容.
 *********************************************************************************************************/
-static const PCI_DEV_ID_CB  _GtPciNullDrvDevIdTbl[] = {
+static const PCI_DEV_ID_CB  pciNullDrvIdTbl[] = {
     {
         PCI_VDEVICE(INTEL, 0x2652), 
         board_none  
@@ -91,8 +91,8 @@ static INT  pciNullDevIdTblGet (PCI_DEV_ID_HANDLE *hPciDevId, UINT32 *puiSzie)
         return  (PX_ERROR);                                             /*  错误返回                    */
     }
 
-    *hPciDevId = (PCI_DEV_ID_HANDLE)_GtPciNullDrvDevIdTbl;              /*  获取表头                    */
-    *puiSzie   = sizeof(_GtPciNullDrvDevIdTbl) / sizeof(PCI_DEV_ID_CB); /*  获取表的大小                */
+    *hPciDevId = (PCI_DEV_ID_HANDLE)pciNullDrvIdTbl;                    /*  获取表头                    */
+    *puiSzie   = sizeof(pciNullDrvIdTbl) / sizeof(PCI_DEV_ID_CB);       /*  获取表的大小                */
 
     return  (ERROR_NONE);
 }
@@ -148,9 +148,7 @@ static INT  pciNullDevProbe (PCI_DEV_HANDLE hPciDevHandle, const PCI_DEV_ID_HAND
     
     ulBaseAddr = (ULONG)(PCI_RESOURCE_START(hResource));                /*  获取 MEM 的起始地址         */
     stBaseSize = (size_t)(PCI_RESOURCE_SIZE(hResource));                /*  获取 MEM 的大小             */
-    pvBaseAddr = (PVOID)ulBaseAddr;
-    pvBaseAddr = API_VmmIoRemapNocache(pvBaseAddr, stBaseSize);         /*  进行重映射后方可使用        */
-    
+    pvBaseAddr = API_PciDevIoRemap((PVOID)ulBaseAddr, stBaseSize);      /*  进行重映射后方可使用        */
     if (!pvBaseAddr) {
         return  (PX_ERROR);
     }
@@ -175,16 +173,14 @@ static INT  pciNullDevProbe (PCI_DEV_HANDLE hPciDevHandle, const PCI_DEV_ID_HAND
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: API_PciNullDevInit
+** 函数名称: pciNullDevInit
 ** 功能描述: 设备驱动初始化
 ** 输　入  : NONE
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
-                                           API 函数
 *********************************************************************************************************/
-LW_API
-INT  API_PciNullDevInit (VOID)
+INT  pciNullDevInit (VOID)
 {
     INT                 iRet;                                           /*  操作结果                    */
     PCI_DRV_CB          tPciDrv;                                        /*  驱动控制器用于注册驱动      */

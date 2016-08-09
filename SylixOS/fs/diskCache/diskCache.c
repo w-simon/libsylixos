@@ -34,6 +34,7 @@
 #include "../SylixOS/kernel/include/k_kernel.h"
 #include "../SylixOS/system/include/s_system.h"
 #include "diskCacheLib.h"
+#include "diskCachePipeline.h"
 #include "diskCache.h"
 /*********************************************************************************************************
   裁剪宏
@@ -55,8 +56,8 @@ extern LW_OBJECT_HANDLE   _G_ulDiskCacheListLock;
   
 CF card disk volume:
   +------------+
-  |   /cf/0    |
-  |    FAT     |
+  | /media/hdd |
+  |    TPSFS   |
   +------------+
         \
          \______________________
@@ -134,12 +135,10 @@ INT  __diskCacheStatusChk(PLW_DISKCACHE_CB   pdiskcDiskCache);
 VOID  __procFsDiskCacheInit(VOID);
 #endif                                                                  /*  LW_CFG_PROCFS_EN > 0        */
 /*********************************************************************************************************
-** 函数名称: API_DiskCacheCreate
-** 功能描述: 创建一个磁盘 CACHE 块设备.
+** 函数名称: API_DiskCacheCreateEx2
+** 功能描述: 创建一个磁盘 CACHE 块设备 (第二代接口).
 ** 输　入  : pblkdDisk          需要 CACHE 的块设备
-**           pvDiskCacheMem     磁盘 CACHE 缓冲区的内存起始地址
-**           stMemSize          磁盘 CACHE 缓冲区大小
-**           iMaxBurstSector    磁盘猝发读写的最大扇区数
+**           pdcattrl           磁盘 CACHE 描述信息
 **           ppblkDiskCache     创建出来了 CACHE 块设备.
 ** 输　出  : ERROR CODE
 ** 全局变量: 
@@ -147,54 +146,13 @@ VOID  __procFsDiskCacheInit(VOID);
                                            API 函数
 *********************************************************************************************************/
 LW_API 
-ULONG  API_DiskCacheCreate (PLW_BLK_DEV   pblkdDisk, 
-                            PVOID         pvDiskCacheMem, 
-                            size_t        stMemSize, 
-                            INT           iMaxBurstSector,
-                            PLW_BLK_DEV  *ppblkDiskCache)
-{
-    INT   iMaxRBurstSector;
-    
-    if (iMaxBurstSector > 2) {
-        iMaxRBurstSector = iMaxBurstSector >> 1;                        /*  读猝发长度默认被写少一半    */
-    
-    } else {
-        iMaxRBurstSector = iMaxBurstSector;
-    }
-    
-    return  (API_DiskCacheCreateEx(pblkdDisk, 
-                                   pvDiskCacheMem, 
-                                   stMemSize, 
-                                   iMaxRBurstSector,
-                                   iMaxBurstSector,
-                                   ppblkDiskCache));
-}
-/*********************************************************************************************************
-** 函数名称: API_DiskCacheCreateEx
-** 功能描述: 创建一个磁盘 CACHE 块设备.
-** 输　入  : pblkdDisk          需要 CACHE 的块设备
-**           pvDiskCacheMem     磁盘 CACHE 缓冲区的内存起始地址
-**           stMemSize          磁盘 CACHE 缓冲区大小
-**           iMaxRBurstSector   磁盘猝发读的最大扇区数
-**           iMaxWBurstSector   磁盘猝发读的最大扇区数
-**           ppblkDiskCache     创建出来了 CACHE 块设备.
-** 输　出  : ERROR CODE
-** 全局变量: 
-** 调用模块: 
-                                           API 函数
-*********************************************************************************************************/
-LW_API 
-ULONG  API_DiskCacheCreateEx (PLW_BLK_DEV   pblkdDisk, 
-                              PVOID         pvDiskCacheMem, 
-                              size_t        stMemSize, 
-                              INT           iMaxRBurstSector,
-                              INT           iMaxWBurstSector,
-                              PLW_BLK_DEV  *ppblkDiskCache)
+ULONG  API_DiskCacheCreateEx2 (PLW_BLK_DEV          pblkdDisk, 
+                               PLW_DISKCACHE_ATTR   pdcattrl,
+                               PLW_BLK_DEV         *ppblkDiskCache)
 {
              INT                i;
              INT                iError;
              INT                iErrLevel = 0;
-             INT                iMaxBurst;
 
     REGISTER PLW_DISKCACHE_CB   pdiskcDiskCache;
              ULONG              ulBytesPerSector;
@@ -236,12 +194,30 @@ ULONG  API_DiskCacheCreateEx (PLW_BLK_DEV   pblkdDisk,
 #endif                                                                  /*  LW_CFG_PROCFS_EN > 0        */
     }
     
-    if (!pblkdDisk || !pvDiskCacheMem || 
-        !stMemSize || !ppblkDiskCache ||
-        (iMaxRBurstSector < 1) || 
-        (iMaxWBurstSector < 1)) {                                       /*  判断参数是否异常            */
+    if (!pblkdDisk || !pdcattrl || !ppblkDiskCache) {
         _ErrorHandle(EINVAL);
         return  (EINVAL);
+    }
+    
+    if (!pdcattrl->DCATTR_pvCacheMem       ||
+        !pdcattrl->DCATTR_stMemSize        ||
+        !pdcattrl->DCATTR_iMaxRBurstSector ||
+        !pdcattrl->DCATTR_iMaxWBurstSector) {
+        _ErrorHandle(EINVAL);
+        return  (EINVAL);
+    }
+    
+    if (pdcattrl->DCATTR_iPipeline < 0) {
+        _ErrorHandle(EINVAL);
+        return  (EINVAL);
+    }
+    
+    if (pdcattrl->DCATTR_iPipeline > LW_CFG_DISKCACHE_MAX_PIPELINE) {
+        pdcattrl->DCATTR_iPipeline = LW_CFG_DISKCACHE_MAX_PIPELINE;
+    }
+    
+    if (pdcattrl->DCATTR_iMsgCount < pdcattrl->DCATTR_iPipeline) {
+        pdcattrl->DCATTR_iMsgCount = pdcattrl->DCATTR_iPipeline;
     }
     
     if (pblkdDisk->BLKD_pfuncBlkIoctl &&
@@ -253,6 +229,7 @@ ULONG  API_DiskCacheCreateEx (PLW_BLK_DEV   pblkdDisk,
     
     if (pblkdDisk->BLKD_ulBytesPerSector) {
         ulBytesPerSector = pblkdDisk->BLKD_ulBytesPerSector;            /*  直接获取扇区大小            */
+    
     } else if (pblkdDisk->BLKD_pfuncBlkIoctl) {
         if (pblkdDisk->BLKD_pfuncBlkIoctl(pblkdDisk, 
                                           LW_BLKD_GET_SECSIZE, 
@@ -265,12 +242,12 @@ ULONG  API_DiskCacheCreateEx (PLW_BLK_DEV   pblkdDisk,
         return  (ERROR_IO_NO_DRIVER);
     }
     
-    if (stMemSize < ulBytesPerSector) {                                 /*  无法缓冲一个扇区            */
+    if (pdcattrl->DCATTR_stMemSize < ulBytesPerSector) {                /*  无法缓冲一个扇区            */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "cache buffer too small.\r\n");
         _ErrorHandle(EINVAL);
         return  (EINVAL);
     }
-    ulNSector = stMemSize / ulBytesPerSector;                           /*  可以缓冲的扇区数量          */
+    ulNSector = pdcattrl->DCATTR_stMemSize / ulBytesPerSector;          /*  可以缓冲的扇区数量          */
     
     /*
      *  开辟控制块内存
@@ -283,7 +260,6 @@ ULONG  API_DiskCacheCreateEx (PLW_BLK_DEV   pblkdDisk,
     lib_bzero(pdiskcDiskCache, sizeof(LW_DISKCACHE_CB));
     
     pdiskcDiskCache->DISKC_pblkdDisk = pblkdDisk;
-    pdiskcDiskCache->DISKC_iCacheOpt = LW_DISKCACHE_OPT_ENABLE;
     
     /*
      *  创建操作互斥信号量
@@ -299,21 +275,25 @@ ULONG  API_DiskCacheCreateEx (PLW_BLK_DEV   pblkdDisk,
     }
     
     /*
-     *  开辟猝发缓冲内存
+     *  创建并发写队列
      */
-    iMaxBurst = __MAX(iMaxRBurstSector, iMaxWBurstSector);
-    pdiskcDiskCache->DISKC_pcBurstBuffer = 
-        (caddr_t)__SHEAP_ALLOC_ALIGN((size_t)(iMaxBurst * ulBytesPerSector),
-        LW_CFG_VMM_PAGE_SIZE);                                          /*  SHEAP 物理虚拟地址必须一致  */
-    if (pdiskcDiskCache->DISKC_pcBurstBuffer == LW_NULL) {
+    if (__diskCacheWpCreate(pdiskcDiskCache, 
+                            &pdiskcDiskCache->DISKC_wpWrite,
+                            pdcattrl->DCATTR_bCacheCoherence,
+                            pdcattrl->DCATTR_bParallel,
+                            pdcattrl->DCATTR_iPipeline,
+                            pdcattrl->DCATTR_iMsgCount,
+                            pdcattrl->DCATTR_iMaxRBurstSector,
+                            pdcattrl->DCATTR_iMaxWBurstSector,
+                            ulBytesPerSector)) {
         iErrLevel = 2;
         goto    __error_handle;
     }
     
     pdiskcDiskCache->DISKC_ulEndStector     = (ULONG)PX_ERROR;
     pdiskcDiskCache->DISKC_ulBytesPerSector = ulBytesPerSector;
-    pdiskcDiskCache->DISKC_iMaxRBurstSector = iMaxRBurstSector;
-    pdiskcDiskCache->DISKC_iMaxWBurstSector = iMaxWBurstSector;
+    pdiskcDiskCache->DISKC_iMaxRBurstSector = pdcattrl->DCATTR_iMaxRBurstSector;
+    pdiskcDiskCache->DISKC_iMaxWBurstSector = pdcattrl->DCATTR_iMaxWBurstSector;
     
     /*
      *  确定 HASH 表的大小
@@ -345,7 +325,8 @@ ULONG  API_DiskCacheCreateEx (PLW_BLK_DEV   pblkdDisk,
     /*
      *  开辟缓冲内存池
      */
-    iError = __diskCacheMemInit(pdiskcDiskCache, pvDiskCacheMem, ulBytesPerSector, ulNSector);
+    iError = __diskCacheMemInit(pdiskcDiskCache, pdcattrl->DCATTR_pvCacheMem, 
+                                ulBytesPerSector, ulNSector);
     if (iError < 0) {
         iErrLevel = 4;
         goto    __error_handle;
@@ -381,7 +362,7 @@ __error_handle:
         __SHEAP_FREE(pdiskcDiskCache->DISKC_pplineHash);
     }
     if (iErrLevel > 2) {
-        __SHEAP_FREE(pdiskcDiskCache->DISKC_pcBurstBuffer);
+        __diskCacheWpDelete(&pdiskcDiskCache->DISKC_wpWrite);
     }
     if (iErrLevel > 1) {
         API_SemaphoreMDelete(&pdiskcDiskCache->DISKC_hDiskCacheLock);
@@ -391,6 +372,77 @@ __error_handle:
     _DebugHandle(__ERRORMESSAGE_LEVEL, "system low memory.\r\n");
     _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
     return  (ERROR_SYSTEM_LOW_MEMORY);
+}
+/*********************************************************************************************************
+** 函数名称: API_DiskCacheCreateEx
+** 功能描述: 创建一个磁盘 CACHE 块设备.
+** 输　入  : pblkdDisk          需要 CACHE 的块设备
+**           pvDiskCacheMem     磁盘 CACHE 缓冲区的内存起始地址
+**           stMemSize          磁盘 CACHE 缓冲区大小
+**           iMaxRBurstSector   磁盘猝发读的最大扇区数
+**           iMaxWBurstSector   磁盘猝发读的最大扇区数
+**           ppblkDiskCache     创建出来了 CACHE 块设备.
+** 输　出  : ERROR CODE
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API 
+ULONG  API_DiskCacheCreateEx (PLW_BLK_DEV   pblkdDisk, 
+                              PVOID         pvDiskCacheMem, 
+                              size_t        stMemSize, 
+                              INT           iMaxRBurstSector,
+                              INT           iMaxWBurstSector,
+                              PLW_BLK_DEV  *ppblkDiskCache)
+{
+    LW_DISKCACHE_ATTR   dcattrl;
+    
+    dcattrl.DCATTR_pvCacheMem       = pvDiskCacheMem;
+    dcattrl.DCATTR_stMemSize        = stMemSize;
+    dcattrl.DCATTR_bCacheCoherence  = LW_FALSE;
+    dcattrl.DCATTR_iMaxRBurstSector = iMaxRBurstSector;
+    dcattrl.DCATTR_iMaxWBurstSector = iMaxWBurstSector;
+    dcattrl.DCATTR_iMsgCount        = 4;
+    dcattrl.DCATTR_iPipeline        = 1;
+    dcattrl.DCATTR_bParallel        = LW_FALSE;
+
+    return  (API_DiskCacheCreateEx2(pblkdDisk, &dcattrl, ppblkDiskCache));
+}
+/*********************************************************************************************************
+** 函数名称: API_DiskCacheCreate
+** 功能描述: 创建一个磁盘 CACHE 块设备.
+** 输　入  : pblkdDisk          需要 CACHE 的块设备
+**           pvDiskCacheMem     磁盘 CACHE 缓冲区的内存起始地址
+**           stMemSize          磁盘 CACHE 缓冲区大小
+**           iMaxBurstSector    磁盘猝发读写的最大扇区数
+**           ppblkDiskCache     创建出来了 CACHE 块设备.
+** 输　出  : ERROR CODE
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API 
+ULONG  API_DiskCacheCreate (PLW_BLK_DEV   pblkdDisk, 
+                            PVOID         pvDiskCacheMem, 
+                            size_t        stMemSize, 
+                            INT           iMaxBurstSector,
+                            PLW_BLK_DEV  *ppblkDiskCache)
+{
+    INT   iMaxRBurstSector;
+    
+    if (iMaxBurstSector > 2) {
+        iMaxRBurstSector = iMaxBurstSector >> 1;                        /*  读猝发长度默认被写少一半    */
+    
+    } else {
+        iMaxRBurstSector = iMaxBurstSector;
+    }
+    
+    return  (API_DiskCacheCreateEx(pblkdDisk, 
+                                   pvDiskCacheMem, 
+                                   stMemSize, 
+                                   iMaxRBurstSector,
+                                   iMaxBurstSector,
+                                   ppblkDiskCache));
 }
 /*********************************************************************************************************
 ** 函数名称: API_DiskCacheDelete
@@ -422,12 +474,13 @@ INT  API_DiskCacheDelete (PLW_BLK_DEV   pblkdDiskCache)
     if (pblkdDiskCache) {
         __LW_DISKCACHE_LOCK(pdiskcDiskCache);                           /*  等待使用权                  */
         
+        __diskCacheWpSync(&pdiskcDiskCache->DISKC_wpWrite);
+        __diskCacheWpDelete(&pdiskcDiskCache->DISKC_wpWrite);
         __diskCacheListDel(pdiskcDiskCache);                            /*  退出背景线程                */
         
         API_SemaphoreMDelete(&pdiskcDiskCache->DISKC_hDiskCacheLock);
         __SHEAP_FREE(pdiskcDiskCache->DISKC_pcCacheNodeMem);
         __SHEAP_FREE(pdiskcDiskCache->DISKC_pplineHash);
-        __SHEAP_FREE(pdiskcDiskCache->DISKC_pcBurstBuffer);
         __SHEAP_FREE(pdiskcDiskCache);
         
         return  (ERROR_NONE);

@@ -405,7 +405,10 @@ static INT  pciSioExarProbe (PCI_DEV_HANDLE hPciDevHandle, const PCI_DEV_ID_HAND
     hResource  = API_PciDevResourceGet(hPciDevHandle, PCI_IORESOURCE_MEM, 0);
     ulBaseAddr = (ULONG)(PCI_RESOURCE_START(hResource));
     stBaseSize = (size_t)(PCI_RESOURCE_SIZE(hResource));
-    pvBaseAddr = API_VmmIoRemapNocache((PVOID)ulBaseAddr, stBaseSize);
+    pvBaseAddr = API_PciDevIoRemap((PVOID)ulBaseAddr, stBaseSize);
+    if (!pvBaseAddr) {
+        return  (PX_ERROR);
+    }
 
     pciexar  = &pciSioExarCard[hIdEntry->PCIDEVID_ulData];
     iPortCnt = pciexar->EXAR_uiPorts;

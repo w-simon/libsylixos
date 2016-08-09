@@ -139,10 +139,20 @@ static INT  __tshellSysCmdEcho (INT  iArgC, PCHAR  ppcArgV[])
 static INT  __tshellSysCmdShell (INT  iArgC, PCHAR  ppcArgV[])
 {
     INT    iFd;
+    ULONG  ulOption = LW_OPTION_TSHELL_VT100       | 
+                      LW_OPTION_TSHELL_AUTHEN      | 
+                      LW_OPTION_TSHELL_PROMPT_FULL | 
+                      LW_OPTION_TSHELL_CLOSE_FD;
     
     if (iArgC < 2) {
         fprintf(stderr, "argument error.\n");
         return  (-1);
+    }
+    
+    if (iArgC > 2) {
+        if (lib_strcmp(ppcArgV[2], "nologin") == 0) {
+            ulOption &= ~LW_OPTION_TSHELL_AUTHEN;
+        }
     }
     
     iFd = open(ppcArgV[1], O_RDWR);
@@ -151,10 +161,7 @@ static INT  __tshellSysCmdShell (INT  iArgC, PCHAR  ppcArgV[])
         return  (-1);
     }
     
-    if (API_TShellCreate(iFd, LW_OPTION_TSHELL_VT100       | 
-                              LW_OPTION_TSHELL_AUTHEN      | 
-                              LW_OPTION_TSHELL_PROMPT_FULL | 
-                              LW_OPTION_TSHELL_CLOSE_FD) == LW_OBJECT_HANDLE_INVALID) {
+    if (API_TShellCreate(iFd, ulOption) == LW_OBJECT_HANDLE_INVALID) {
         fprintf(stderr, "can not create shell : %s\n", lib_strerror(errno));
         return  (-1);
     }
@@ -183,7 +190,7 @@ static VOID  __helpPrintKeyword (__PTSHELL_KEYWORD  pskwNode, BOOL  bDetails)
     }
     
     if (pskwNode->SK_pcFormatString) {
-        API_TShellColorStart("", "", S_IFREG | S_IEXEC, STD_OUT);
+        API_TShellColorStart2(LW_TSHELL_COLOR_GREEN, STD_OUT);
         printf("%s", pskwNode->SK_pcFormatString);                      /*  打印格式信息                */
         API_TShellColorEnd(STD_OUT);
     }
@@ -1237,7 +1244,7 @@ static INT  __tshellSysCmdRestart (INT  iArgC, PCHAR  ppcArgV[])
         return  (PX_ERROR);
     }
     sscanf(ppcArgV[1], "%lx", &ulId);
-    sscanf(ppcArgV[1], "%lu", &ulArg);
+    sscanf(ppcArgV[2], "%lu", &ulArg);
     
     if (API_ThreadRestart(ulId, (PVOID)ulArg) == ERROR_NONE) {
         return  (ERROR_NONE);
@@ -2080,9 +2087,10 @@ VOID  __tshellSysCmdInit (VOID)
                               "echo [message]\n");
                               
     API_TShellKeywordAdd("shell", __tshellSysCmdShell);
-    API_TShellFormatAdd("shell", " [tty device]");
+    API_TShellFormatAdd("shell", " [tty device] [nologin]");
     API_TShellHelpAdd("shell", "create shell use [tty device] as standard file.\n"
-                              "shell /dev/ttyS1\n");
+                              "shell /dev/ttyS1\n"
+                              "shell /dev/ttyS1 nologin\n");
                               
     API_TShellKeywordAdd("help", __tshellSysCmdHelp);
     API_TShellFormatAdd("help", " [-s keyword]");

@@ -2109,7 +2109,7 @@ static INT  __fatFsSync (PLW_FD_ENTRY  pfdentry, BOOL  bFlushCache)
     
     if (bFlushCache) {
         iError = __blockIoDevIoctl(pfatfile->FATFIL_pfatvol->FATVOL_iDrv,
-                                   FIOFLUSH, 0);                        /*  清除 CACHE 回写磁盘         */
+                                   FIOSYNC, 0);                         /*  清除 CACHE 回写磁盘         */
         if (iError < 0) {
             ulError = ERROR_IO_DEVICE_ERROR;                            /*  设备出错, 无法清空          */
         }
@@ -2325,6 +2325,7 @@ static INT  __fatFsIoctl (PLW_FD_ENTRY  pfdentry,
     
     return  (PX_ERROR);
 }
+
 #endif                                                                  /*  (LW_CFG_MAX_VOLUMES > 0)    */
                                                                         /*  (LW_CFG_FATFS_EN > 0)       */
 /*********************************************************************************************************

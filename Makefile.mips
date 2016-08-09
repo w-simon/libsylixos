@@ -200,6 +200,7 @@ SylixOS/driver/can/sja1000.c \
 SylixOS/driver/int/i8259a.c \
 SylixOS/driver/pci/sio/pciSioExar.c \
 SylixOS/driver/pci/sio/pciSioNetmos.c \
+SylixOS/driver/pci/storage/pciStorageAta.c \
 SylixOS/driver/pci/storage/pciStorageSata.c \
 SylixOS/driver/sio/16c550.c \
 SylixOS/driver/timer/i8254.c 
@@ -210,6 +211,7 @@ SylixOS/driver/timer/i8254.c
 FS_SRCS = \
 SylixOS/fs/diskCache/diskCache.c \
 SylixOS/fs/diskCache/diskCacheLib.c \
+SylixOS/fs/diskCache/diskCachePipeline.c \
 SylixOS/fs/diskCache/diskCacheProc.c \
 SylixOS/fs/diskCache/diskCacheThread.c \
 SylixOS/fs/diskPartition/diskPartition.c \
@@ -1030,6 +1032,7 @@ SylixOS/shell/getopt/getopt_var.c \
 SylixOS/shell/hashLib/hashHorner.c \
 SylixOS/shell/heapLib/ttinyShellHeapCmd.c \
 SylixOS/shell/modemLib/ttinyShellModemCmd.c \
+SylixOS/shell/perfLib/ttinyShellPerfCmd.c \
 SylixOS/shell/tarLib/ttinyShellTarCmd.c \
 SylixOS/shell/ttinyShell/ttinyShell.c \
 SylixOS/shell/ttinyShell/ttinyShellColor.c \
@@ -1175,6 +1178,13 @@ SylixOS/system/util/bmsgLib.c \
 SylixOS/system/util/rngLib.c
 
 #*********************************************************************************************************
+# sysperf source
+#*********************************************************************************************************
+SYSPERF_SRCS = \
+SylixOS/sysperf/sysperf.c \
+SylixOS/sysperf/sysperfLib.c 
+
+#*********************************************************************************************************
 # cplusplus source
 #*********************************************************************************************************
 CPP_SRCS = \
@@ -1203,6 +1213,7 @@ SRCS += $(POSIX_SRCS)
 SRCS += $(SHELL_SRCS)
 SRCS += $(SYMBOL_SRCS)
 SRCS += $(SYS_SRCS)
+SRCS += $(SYSPERF_SRCS)
 SRCS += $(CPP_SRCS)
 
 #*********************************************************************************************************
@@ -1311,6 +1322,7 @@ OBJS_POSIX   = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(POSIX_SRCS)
 OBJS_SHELL   = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(SHELL_SRCS))))
 OBJS_SYMBOL  = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(SYMBOL_SRCS))))
 OBJS_SYS     = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(SYS_SRCS))))
+OBJS_SYSPERF = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(SYSPERF_SRCS))))
 OBJS_CPP     = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(CPP_SRCS))))
 OBJS         = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(SRCS))))
 DEPS         = $(addprefix $(DEPPATH)/, $(addsuffix .d, $(basename $(SRCS))))
@@ -1493,6 +1505,7 @@ $(TARGET): $(OBJS)
 		$(AR) $(ARFLAGS) $(TARGET) $(OBJS_SHELL)
 		$(AR) $(ARFLAGS) $(TARGET) $(OBJS_SYMBOL)
 		$(AR) $(ARFLAGS) $(TARGET) $(OBJS_SYS)
+		$(AR) $(ARFLAGS) $(TARGET) $(OBJS_SYSPERF)
 		$(AR) $(ARFLAGS) $(TARGET) $(OBJS_CPP)
 		cp SylixOS/hosttools/makesymbol/Makefile $(OUTDIR)
 		cp SylixOS/hosttools/makesymbol/makesymbol.bat $(OUTDIR)

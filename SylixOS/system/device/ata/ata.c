@@ -226,7 +226,7 @@ static INT __ataRW (__PATA_CTRL patactrler,
     patatype  = patadrive->ATADRIVE_patatypeDriverInfo;
 
     ATA_DEBUG_MSG(("__ataRW(): ctrl=%d drive=%d c=%d h=%d s=%d n=%d dir=%d\n",
-         patactrl->ATACTRL_iCtrl, iDrive, iCylinder, iHead, iSector, iNSecs, iDirection));
+                  patactrl->ATACTRL_iCtrl, iDrive, iCylinder, iHead, iSector, iNSecs, iDirection));
 
     if (patactrl->ATACTRL_bIsExist != LW_TRUE) {                        /*  ATA设备不存在               */
         return  (PX_ERROR);
@@ -235,8 +235,9 @@ static INT __ataRW (__PATA_CTRL patactrler,
 __retry_rw:
     iStatus = __ataWait(patactrl, __ATA_STAT_IDLE);                     /*  等待BSY跟DRQ为0             */
     if (iStatus != ERROR_NONE) {
-        ATA_DEBUG_MSG(("__ataRW() %d/%d: istatus = 0x%x read timed out\n",
-                       patactrl->ATACTRL_iCtrl, iDrive, istatus));
+        ATA_DEBUG_MSG(("__ataRW() %d/%d: status = 0x%x read timed out\n",
+                       patactrl->ATACTRL_iCtrl, iDrive, 
+                       __ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl))));
         return  (PX_ERROR);
     }
 
@@ -251,8 +252,9 @@ __retry_rw:
 
     iStatus = __ataWait(patactrl, __ATA_STAT_IDLE);
     if (iStatus != ERROR_NONE) {
-        ATA_DEBUG_MSG(("__ataRW() %d/%d: istatus = 0x%x read timed out\n",
-                       patactrl->ATACTRL_iCtrl, iDrive, istatus));
+        ATA_DEBUG_MSG(("__ataRW() %d/%d: status = 0x%x read timed out\n",
+                       patactrl->ATACTRL_iCtrl, iDrive, 
+                       __ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl))));
         return  (PX_ERROR);
     }
 
@@ -277,8 +279,9 @@ __retry_rw:
 
     iStatus = __ataWait(patactrl, __ATA_STAT_IDLE);
     if (iStatus != ERROR_NONE) {
-        ATA_DEBUG_MSG(("__ataRW() %d/%d: istatus = 0x%x read timed out\n",
-                       patactrl->ATACTRL_iCtrl, iDrive, istatus));
+        ATA_DEBUG_MSG(("__ataRW() %d/%d: status = 0x%x read timed out\n",
+                       patactrl->ATACTRL_iCtrl, iDrive, 
+                       __ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl))));
         return  (PX_ERROR);
     }
 
@@ -301,8 +304,9 @@ __retry_rw:
 
             iStatus = __ataWait(patactrl, __ATA_STAT_DRQ);
             if (iStatus != ERROR_NONE) {
-                ATA_DEBUG_MSG(("__ataRW() %d/%d: istatus = 0x%x read timed out\n",
-                               patactrl->ATACTRL_iCtrl, iDrive, istatus));
+                ATA_DEBUG_MSG(("__ataRW() %d/%d: status = 0x%x read timed out\n",
+                               patactrl->ATACTRL_iCtrl, iDrive, 
+                               __ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl))));
                 return  (PX_ERROR);
             }
 
@@ -328,8 +332,9 @@ __retry_rw:
 
             iStatus = __ataWait(patactrl, __ATA_STAT_BUSY);
             if (iStatus != ERROR_NONE) {
-                ATA_DEBUG_MSG(("__ataRW() %d/%d: istatus = 0x%x read timed out\n",
-                               patactrl->ATACTRL_iCtrl, iDrive, istatus));
+                ATA_DEBUG_MSG(("__ataRW() %d/%d: status = 0x%x read timed out\n",
+                               patactrl->ATACTRL_iCtrl, iDrive, 
+                               __ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl))));
                 return  (PX_ERROR);
             }
 
@@ -365,15 +370,17 @@ __retry_rw:
 
             iStatus = __ataWait(patactrl, __ATA_STAT_BUSY);             /*  等待慢速磁盘设备            */
             if (iStatus != ERROR_NONE) {
-                ATA_DEBUG_MSG(("__ataRW() %d/%d: istatus = 0x%x read timed out\n",
-                               patactrl->ATACTRL_iCtrl, iDrive, istatus));
+                ATA_DEBUG_MSG(("__ataRW() %d/%d: status = 0x%x read timed out\n",
+                               patactrl->ATACTRL_iCtrl, iDrive, 
+                               __ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl))));
                 return  (PX_ERROR);
             }
 
             iStatus = __ataWait(patactrl, __ATA_STAT_DRQ);
             if (iStatus != ERROR_NONE) {
-                ATA_DEBUG_MSG(("__ataRW() %d/%d: istatus = 0x%x read timed out\n",
-                               patactrl->ATACTRL_iCtrl, iDrive, istatus));
+                ATA_DEBUG_MSG(("__ataRW() %d/%d: status = 0x%x read timed out\n",
+                               patactrl->ATACTRL_iCtrl, iDrive, 
+                               __ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl))));
                 return  (PX_ERROR);
             }
 
@@ -416,9 +423,9 @@ __retry_rw:
 
 __error_handle:
     ATA_DEBUG_MSG(("__ataRW err: stat=0x%x 0x%x  error=0x%x\n",
-                    patactrl->ATACTRL_iIntStatus,
-                    __ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl)),
-                    __ATA_CTRL_INBYTE(patactrl, __ATA_ERROR(patactrl))));
+                   patactrl->ATACTRL_iIntStatus,
+                   __ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl)),
+                   __ATA_CTRL_INBYTE(patactrl, __ATA_ERROR(patactrl))));
     (VOID)__ataCmd(patactrl, iDrive, __ATA_CMD_RECALIB, 0, 0);
 
     if (++iRetryCount < iRetry) {                                       /*  重试                        */
@@ -486,7 +493,7 @@ static INT __ataBlkRW (__ATA_DEV  *patadev,
 
     if ((ulStartBlk + ulNBlks) > ulNSecs) {                             /*  读写扇区大于设备的总扇区    */
         ATA_DEBUG_MSG(("Error, startBlk=%d nBlks=%d: 0 - %d\n",
-                        ulStartBlk, ulNBlks, ulNSecs));
+                       ulStartBlk, ulNBlks, ulNSecs));
         return  (PX_ERROR);
     }
 
@@ -500,6 +507,7 @@ static INT __ataBlkRW (__ATA_DEV  *patadev,
             iHead     = (ulStartBlk & __ATA_LBA_HEAD_MASK) >> 24;
             iCylinder = (ulStartBlk & __ATA_LBA_CYL_MASK) >> 8;
             iSector   = (ulStartBlk & __ATA_LBA_SECTOR_MASK);
+        
         } else {                                                        /*  使用柱面/磁头/扇区方式      */
             iCylinder = (INT)(ulStartBlk / (patatype->ATATYPE_iSectors * patatype->ATATYPE_iHeads));
             iSector   = (INT)(ulStartBlk % (patatype->ATATYPE_iSectors * patatype->ATATYPE_iHeads));
@@ -531,7 +539,6 @@ static INT __ataBlkRW (__ATA_DEV  *patadev,
 
         ulStartBlk += ulNSecs;                                          /*  调整所需读取扇区的起始位置  */
         pcBuf      += pblkdev->BLKD_ulBytesPerSector * ulNSecs;         /*  调整缓冲的位置              */
-
     }
 
     iReturn = ERROR_NONE;
@@ -926,9 +933,8 @@ __drive_init:
     for (iDrive = 0; iDrive < patactrl->ATACTRL_iDrives; iDrive++) {
         if ((__ataDriveInit(patactrl, iDrive)) != ERROR_NONE) {
             iError++;
-            ATA_DEBUG_MSG(( "API_AtaDrv(): ataDriveInit failed on Channel %d Device %d\n",
-                          patactrl->ATACTRL_iCtrl, iDrive));
-
+            ATA_DEBUG_MSG(("API_AtaDrv(): ataDriveInit failed on Channel %d Device %d\n",
+                           patactrl->ATACTRL_iCtrl, iDrive));
             if (iError == patactrl->ATACTRL_iDrives) {                  /*  控制器两个设备初始化都失败  */
                 return  (PX_ERROR);
             }
@@ -998,6 +1004,7 @@ PLW_BLK_DEV API_AtaDevCreate (INT iCtrl,
                  patatype->ATATYPE_iHeads     *
                  patatype->ATATYPE_iSectors))) {                        /*  LBA模式                     */
                 uiMaxBlks = (UINT)(patadrive->ATADRIVE_uiCapacity - iBlkOffset);
+            
             } else {                                                    /*  使用CHS模式                 */
                 uiMaxBlks = ((patatype->ATATYPE_iCylinders *
                               patatype->ATATYPE_iHeads     *
@@ -1012,6 +1019,7 @@ PLW_BLK_DEV API_AtaDevCreate (INT iCtrl,
                 iNBlocks = uiMaxBlks;
             }
 
+            pblkdev->BLKD_pcName            = "ATA-Hard Disk";
             pblkdev->BLKD_pfuncBlkRd        = __ataBlkRd;               /*  读操作函数                  */
             pblkdev->BLKD_pfuncBlkWrt       = __ataBlkWrt;              /*  写操作函数                  */
             pblkdev->BLKD_pfuncBlkIoctl     = __ataIoctl;               /*  IOCTRL函数                  */
@@ -1020,7 +1028,7 @@ PLW_BLK_DEV API_AtaDevCreate (INT iCtrl,
             pblkdev->BLKD_ulNSector         = iNBlocks;                 /*  总扇区数                    */
             pblkdev->BLKD_ulBytesPerSector  = patactrl->ATACTRL_iBytesPerSector;
                                                                         /*  每扇区字节数                */
-            pblkdev->BLKD_ulBytesPerBlock   = patactrl->ATACTRL_iBytesPerSector;
+            pblkdev->BLKD_ulBytesPerBlock   = 4096;
                                                                         /*  每块字节数                  */
             pblkdev->BLKD_bRemovable        = LW_TRUE;                  /*  可移动                      */
             pblkdev->BLKD_bDiskChange       = LW_FALSE;                 /*  媒质没有改变                */

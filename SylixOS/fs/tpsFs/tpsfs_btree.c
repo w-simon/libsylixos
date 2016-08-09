@@ -2220,7 +2220,7 @@ UINT  tpsFsBtreeGetLevel (struct tps_inode *pinode)
 ** 功能描述: 打印b+tree信息
 **           pinode             inode指针
 **           pbtrnode           b+tree节点
-** 输　出  : 块数量
+** 输　出  : ERROR
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
@@ -2264,32 +2264,32 @@ TPS_RESULT  tpsFsBtreeDump (PTPS_INODE pinode, PTPS_BTR_NODE pbtrnode)
     /*
      *  打印本节点信息
      */
-    _DebugFormat(__LOGMESSAGE_LEVEL, "ND_iType          = %x",       pbtrnode->ND_iType);
-    _DebugFormat(__LOGMESSAGE_LEVEL, "ND_uiEntrys       = %x",       pbtrnode->ND_uiEntrys);
-    _DebugFormat(__LOGMESSAGE_LEVEL, "ND_uiMaxCnt       = %x",       pbtrnode->ND_uiMaxCnt);
-    _DebugFormat(__LOGMESSAGE_LEVEL, "ND_uiLevel        = %x",       pbtrnode->ND_uiLevel);
-    _DebugFormat(__LOGMESSAGE_LEVEL, "ND_ui64Generation = 0x%016qx", pbtrnode->ND_ui64Generation);
-    _DebugFormat(__LOGMESSAGE_LEVEL, "ND_inumInode      = 0x%016qx", pbtrnode->ND_inumInode);
-    _DebugFormat(__LOGMESSAGE_LEVEL, "ND_blkThis        = 0x%016qx", pbtrnode->ND_blkThis);
-    _DebugFormat(__LOGMESSAGE_LEVEL, "ND_blkParent      = 0x%016qx", pbtrnode->ND_blkParent);
-    _DebugFormat(__LOGMESSAGE_LEVEL, "ND_blkPrev        = 0x%016qx", pbtrnode->ND_blkPrev);
-    _DebugFormat(__LOGMESSAGE_LEVEL, "ND_blkNext        = 0x%016qx", pbtrnode->ND_blkNext);
-    _DebugHandle(__LOGMESSAGE_LEVEL, "Sub nodes:");
+    _DebugFormat(__PRINTMESSAGE_LEVEL, "ND_iType          = %x\r\n",       pbtrnode->ND_iType);
+    _DebugFormat(__PRINTMESSAGE_LEVEL, "ND_uiEntrys       = %x\r\n",       pbtrnode->ND_uiEntrys);
+    _DebugFormat(__PRINTMESSAGE_LEVEL, "ND_uiMaxCnt       = %x\r\n",       pbtrnode->ND_uiMaxCnt);
+    _DebugFormat(__PRINTMESSAGE_LEVEL, "ND_uiLevel        = %x\r\n",       pbtrnode->ND_uiLevel);
+    _DebugFormat(__PRINTMESSAGE_LEVEL, "ND_ui64Generation = 0x%016qx\r\n", pbtrnode->ND_ui64Generation);
+    _DebugFormat(__PRINTMESSAGE_LEVEL, "ND_inumInode      = 0x%016qx\r\n", pbtrnode->ND_inumInode);
+    _DebugFormat(__PRINTMESSAGE_LEVEL, "ND_blkThis        = 0x%016qx\r\n", pbtrnode->ND_blkThis);
+    _DebugFormat(__PRINTMESSAGE_LEVEL, "ND_blkParent      = 0x%016qx\r\n", pbtrnode->ND_blkParent);
+    _DebugFormat(__PRINTMESSAGE_LEVEL, "ND_blkPrev        = 0x%016qx\r\n", pbtrnode->ND_blkPrev);
+    _DebugFormat(__PRINTMESSAGE_LEVEL, "ND_blkNext        = 0x%016qx\r\n", pbtrnode->ND_blkNext);
+    _DebugHandle(__PRINTMESSAGE_LEVEL, "Sub nodes:\r\n");
     
     for (i = 0; i < pbtrnode->ND_uiEntrys; i++) {
         if (pbtrnode->ND_iType != TPS_BTR_NODE_LEAF) {
-            _DebugFormat(__LOGMESSAGE_LEVEL, "Sub%X: KV_blkKey = 0x%016qx     KP_blkPtr = 0x%016qx ",
+            _DebugFormat(__PRINTMESSAGE_LEVEL, "Sub%X: KV_blkKey = 0x%016qx     KP_blkPtr = 0x%016qx\r\n",
                          i, pbtrnode->ND_kvArr[i].KV_blkKey, pbtrnode->ND_kvArr[i].KV_data.KP_blkPtr);
         } else {
-            _DebugFormat(__LOGMESSAGE_LEVEL,
+            _DebugFormat(__PRINTMESSAGE_LEVEL,
                          "Sub%X: KV_blkKey = 0x%016qx     "
-                         "KV_blkStart = 0x%016qx  KV_blkCnt = 0x%016qx",
+                         "KV_blkStart = 0x%016qx  KV_blkCnt = 0x%016qx\r\n",
                          i, pbtrnode->ND_kvArr[i].KV_blkKey,
                          pbtrnode->ND_kvArr[i].KV_data.KV_value.KV_blkStart,
                          pbtrnode->ND_kvArr[i].KV_data.KV_value.KV_blkCnt);
         }
     }
-    _DebugHandle(__LOGMESSAGE_LEVEL, "\n");
+    _DebugHandle(__PRINTMESSAGE_LEVEL, "\r\n");
 #endif                                                                  /*  WIN32                       */
 
     if (pbtrnode->ND_iType == TPS_BTR_NODE_LEAF) {
@@ -2309,6 +2309,59 @@ TPS_RESULT  tpsFsBtreeDump (PTPS_INODE pinode, PTPS_BTR_NODE pbtrnode)
 
         __tpsFsFreeBtrNode(pinode, &pbtrSubnode);
     }
+
+    return  (TPS_ERR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: tpsFsInodeDump
+** 功能描述: 打印inode信息
+**           pinode             inode指针
+** 输　出  : ERROR
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+TPS_RESULT  tpsFsInodeDump (PTPS_INODE pinode)
+{
+    PTPS_BTR_NODE       pndRoot   = LW_NULL;
+
+    if (pinode == LW_NULL) {
+        return  (TPS_ERR_PARAM_NULL);
+    }
+
+
+#ifdef WIN32                                                            /* windows 打印格式             */
+    _DebugFormat(__LOGMESSAGE_LEVEL, "IND_inum = %016I64x", pinode->IND_inum);
+    _DebugFormat(__LOGMESSAGE_LEVEL, "IND_uiMagic = %08x", pinode->IND_uiMagic);
+    _DebugFormat(__LOGMESSAGE_LEVEL, "IND_ui64Generation = %016I64x", pinode->IND_ui64Generation);
+    _DebugFormat(__LOGMESSAGE_LEVEL, "IND_iMode = %x", pinode->IND_iMode);
+    _DebugFormat(__LOGMESSAGE_LEVEL, "IND_uiRefCnt = %x", pinode->IND_uiRefCnt);
+    _DebugFormat(__LOGMESSAGE_LEVEL, "IND_blkCnt = %016I64x", pinode->IND_blkCnt);
+    _DebugFormat(__LOGMESSAGE_LEVEL, "IND_bDeleted = %x", pinode->IND_bDeleted);
+    _DebugFormat(__LOGMESSAGE_LEVEL, "IND_uiOpenCnt = %x", pinode->IND_uiOpenCnt);
+    _DebugFormat(__LOGMESSAGE_LEVEL, "IND_bDirty = %x", pinode->IND_bDirty);
+    _DebugFormat(__LOGMESSAGE_LEVEL, "IND_iType = %x", pinode->IND_iType);
+    _DebugFormat(__LOGMESSAGE_LEVEL, "IND_szData = %016I64x", pinode->IND_szData);
+#else
+    _DebugFormat(__PRINTMESSAGE_LEVEL, "IND_inum = %qx\r\n", pinode->IND_inum);
+    _DebugFormat(__PRINTMESSAGE_LEVEL, "IND_uiMagic = %x\r\n", pinode->IND_uiMagic);
+    _DebugFormat(__PRINTMESSAGE_LEVEL, "IND_ui64Generation = %qx\r\n", pinode->IND_ui64Generation);
+    _DebugFormat(__PRINTMESSAGE_LEVEL, "IND_iMode = %x\r\n", pinode->IND_iMode);
+    _DebugFormat(__PRINTMESSAGE_LEVEL, "IND_uiRefCnt = %x\r\n", pinode->IND_uiRefCnt);
+    _DebugFormat(__PRINTMESSAGE_LEVEL, "IND_blkCnt = %qx\r\n", pinode->IND_blkCnt);
+    _DebugFormat(__PRINTMESSAGE_LEVEL, "IND_bDeleted = %x\r\n", pinode->IND_bDeleted);
+    _DebugFormat(__PRINTMESSAGE_LEVEL, "IND_uiOpenCnt = %x\r\n", pinode->IND_uiOpenCnt);
+    _DebugFormat(__PRINTMESSAGE_LEVEL, "IND_bDirty = %x\r\n", pinode->IND_bDirty);
+    _DebugFormat(__PRINTMESSAGE_LEVEL, "IND_iType = %x\r\n", pinode->IND_iType);
+    _DebugFormat(__PRINTMESSAGE_LEVEL, "IND_szData = %qx\r\n", pinode->IND_szData);
+#endif
+
+    if (__tpsFsBtrGetNode(pinode, &pndRoot, pinode->IND_inum) != TPS_ERR_NONE) {
+        return  (0);
+    }
+
+    tpsFsBtreeDump(pinode, pndRoot);
+
+    __tpsFsFreeBtrNode(pinode, &pndRoot);
 
     return  (TPS_ERR_NONE);
 }

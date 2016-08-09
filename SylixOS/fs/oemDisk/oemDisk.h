@@ -84,12 +84,9 @@ LW_API PLW_OEMDISK_CB    API_OemDiskMount(CPCHAR        pcVolName,
                                           PVOID         pvDiskCacheMem, 
                                           size_t        stMemSize, 
                                           INT           iMaxBurstSector);
-LW_API PLW_OEMDISK_CB   API_OemDiskMount2(CPCHAR        pcVolName,
-                                          PLW_BLK_DEV   pblkdDisk,
-                                          PVOID         pvDiskCacheMem, 
-                                          size_t        stMemSize, 
-                                          INT           iMaxRBurstSector,
-                                          INT           iMaxWBurstSector);
+LW_API PLW_OEMDISK_CB   API_OemDiskMount2(CPCHAR             pcVolName,
+                                          PLW_BLK_DEV        pblkdDisk,
+                                          PLW_DISKCACHE_ATTR pdcattrl);
                                           
 LW_API PLW_OEMDISK_CB    API_OemDiskMountEx(CPCHAR        pcVolName,
                                             PLW_BLK_DEV   pblkdDisk,
@@ -98,14 +95,11 @@ LW_API PLW_OEMDISK_CB    API_OemDiskMountEx(CPCHAR        pcVolName,
                                             INT           iMaxBurstSector,
                                             CPCHAR        pcFsName,
                                             BOOL          bForceFsType);
-LW_API PLW_OEMDISK_CB    API_OemDiskMountEx2(CPCHAR        pcVolName,
-                                             PLW_BLK_DEV   pblkdDisk,
-                                             PVOID         pvDiskCacheMem, 
-                                             size_t        stMemSize, 
-                                             INT           iMaxRBurstSector,
-                                             INT           iMaxWBurstSector,
-                                             CPCHAR        pcFsName,
-                                             BOOL          bForceFsType);
+LW_API PLW_OEMDISK_CB    API_OemDiskMountEx2(CPCHAR             pcVolName,
+                                             PLW_BLK_DEV        pblkdDisk,
+                                             PLW_DISKCACHE_ATTR pdcattrl,
+                                             CPCHAR             pcFsName,
+                                             BOOL               bForceFsType);
                                             
 LW_API INT               API_OemDiskUnmount(PLW_OEMDISK_CB  poemd);
 LW_API INT               API_OemDiskUnmountEx(PLW_OEMDISK_CB  poemd, BOOL  bForce);

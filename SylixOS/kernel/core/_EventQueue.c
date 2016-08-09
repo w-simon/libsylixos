@@ -22,6 +22,7 @@
 2008.11.30  整理文件, 修改注释.
 2009.04.28  整理文件, 修改注释.
 2014.01.14  修改长函数名.
+2016.07.29  修正 _AddTCBToEventPriority() 插入错误.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -96,6 +97,7 @@ VOID  _AddTCBToEventPriority (PLW_CLASS_TCB    ptcb,
         } else {
             pringList = _list_ring_get_next(pringListHeader);
             while (pringList != pringListHeader) {
+                ptcbTemp = _LIST_ENTRY(pringList, LW_CLASS_TCB, TCB_ringEvent);
                 if (LW_PRIO_IS_HIGH(ucPriority, ptcbTemp->TCB_ucPriority)) {
                     break;
                 }

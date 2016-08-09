@@ -138,6 +138,7 @@ size_t  API_NetJobGetLost (VOID)
 {
     return  (_jobQueueLost(&_G_jobqNet));
 }
+
 #endif                                                                  /*  LW_CFG_NET_EN               */
 /*********************************************************************************************************
   END

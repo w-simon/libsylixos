@@ -64,7 +64,7 @@ INT  diskformat (CPCHAR  pcDevName)
         return  (PX_ERROR);
     }
     
-    iError = ioctl(iFd, FIOFLUSH);                                      /*  Çå¿Õ»º´æ                    */
+    iError = ioctl(iFd, FIOSYNC);                                       /*  Çå¿Õ»º´æ                    */
     if (iError < 0) {
         close(iFd);
         return  (PX_ERROR);

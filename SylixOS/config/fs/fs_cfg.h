@@ -53,6 +53,7 @@
 *********************************************************************************************************/
 
 #define LW_CFG_DISKCACHE_EN                 1                           /*  是否允许磁盘缓冲            */
+#define LW_CFG_DISKCACHE_MAX_PIPELINE       4                           /*  最大并行写管线线程数        */
 #define LW_CFG_DISKCACHE_OPTION             LW_OPTION_THREAD_STK_CHK    /*  磁盘缓冲服务线程选项        */
                                                                         /*  注意: 磁盘缓冲背景线程不使用*/
                                                                         /*  线程硬件浮点堆栈            */

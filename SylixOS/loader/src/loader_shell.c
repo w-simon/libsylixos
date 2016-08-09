@@ -942,7 +942,7 @@ static VOID  __ldShellInit (VOID)
     API_TShellHelpAdd("exec",   "execute a program.\n");
     
     API_TShellKeywordAdd("dlconfig", __tshellDlConfig);
-    API_TShellFormatAdd("dlconfig",  " {[share {en | dis}] | [refresh [*]]");
+    API_TShellFormatAdd("dlconfig",  " {[share {en | dis}] | [refresh [*]]}");
     API_TShellHelpAdd("dlconfig",    "config dynamic loader.\n"
                                      "dlconfig share en     enable share code.\n"
                                      "dlconfig share dis    disable share code.\n"

@@ -71,6 +71,7 @@ INT  API_PciBusDeviceShow (INT iBus)
                 (iFunc == (PCI_MAX_FUNCTIONS - 1))) {
                 continue;
             }
+            
             API_PciConfigInWord(iBus, iSlot, iFunc, PCI_VENDOR_ID, &usVendorId);
             if (usVendorId == 0xFFFF) {
                 if (iFunc == 0) {
@@ -87,8 +88,9 @@ INT  API_PciBusDeviceShow (INT iBus)
                    iBus, iSlot, iFunc, usVendorId, usDeviceId, uiClassCode);
 
             if ((iFunc == 0                                 ) &&
-                ((ucHeaderType & PCI_HEADER_MULTI_FUNC) == 0))
+                ((ucHeaderType & PCI_HEADER_MULTI_FUNC) == 0)) {
                 break;
+            }
         }
     }
 
@@ -304,6 +306,7 @@ INT  API_PciHeaderShow (INT iBus, INT iSlot, INT iFunc)
     PCI_CBUS_HDR       *phdrCardBridge = &hdrCardBridge;
 
     API_PciConfigInByte(iBus, iSlot, iFunc, PCI_HEADER_TYPE, (UINT8 *)&phdrDevice->PCID_ucHeaderType);
+    
     if ((phdrDevice->PCID_ucHeaderType & PCI_HEADER_TYPE_MASK) == PCI_HEADER_TYPE_BRIDGE) {
         API_PciConfigInWord(iBus, iSlot, iFunc, PCI_VENDOR_ID,
                             (UINT16 *)&phdrBridge->PCIB_usVendorId);
@@ -376,6 +379,7 @@ INT  API_PciHeaderShow (INT iBus, INT iSlot, INT iFunc)
         if (phdrBridge->PCIB_usStatus & PCI_STATUS_CAP_LIST) {
             API_PciCapShow(iBus, iSlot, iFunc);
         }
+    
     } else if ((phdrDevice->PCID_ucHeaderType & PCI_HEADER_TYPE_MASK) == PCI_HEADER_TYPE_CARDBUS) {
         API_PciConfigInWord(iBus, iSlot, iFunc, PCI_VENDOR_ID,
                             (UINT16 *)&phdrCardBridge->PCICB_usVendorId);
@@ -448,6 +452,7 @@ INT  API_PciHeaderShow (INT iBus, INT iSlot, INT iFunc)
         if (phdrCardBridge->PCICB_usStatus & PCI_STATUS_CAP_LIST) {
             API_PciCapShow(iBus, iSlot, iFunc);
         }
+    
     } else {
         API_PciConfigInWord(iBus, iSlot, iFunc, PCI_VENDOR_ID,
                             (UINT16 *)&phdrDevice->PCID_usVendorId);
@@ -562,8 +567,10 @@ VOID  API_PciBarShow (INT iBus, INT iSlot, INT iFunc, INT iBar)
         (uiBarVal == 0xffffffff)) {
         return;
     }
+    
     if ((uiBarVal & PCI_BASE_ADDRESS_SPACE ) == PCI_BASE_ADDRESS_SPACE_IO) {
         printf("\tbar%d in I/O space at 0x%08x\n", iBar, (uiBarVal & (~0x00000001)));
+    
     } else {
         iPrefetch = (uiBarVal & PCI_BASE_ADDRESS_MEM_PREFETCH);
         iSpace    = (uiBarVal & PCI_BASE_ADDRESS_MEM_TYPE_MASK);
@@ -599,6 +606,7 @@ VOID  API_PciBistShow (INT iBus, INT iSlot, INT iFunc)
     if (ucBist & PCI_BIST_CAPABLE) {
         if (ucBist & PCI_BIST_START) {
             printf("\tBIST is running\n");
+        
         } else {
             printf("\tBIST result: %02x\n", ucBist & PCI_BIST_CODE_MASK);
         }
@@ -852,69 +860,70 @@ INT  API_PciConfigShow (INT iBus, INT iSlot, INT iFunc)
     case PCI_CLASS_OTHERS:                 printf("OTHER DEVICE\n"); break;
 
     case PCI_BASE_CLASS_PROCESSOR:
-    if ((ucHeaderType & PCI_HEADER_TYPE_MASK) != PCI_HEADER_TYPE_BRIDGE) {
-        printf("PROCESSOR\n");
-        break;
-    } else {
-        ucSecBus = 0;
-        API_PciConfigInWord(iBus, iSlot, iFunc, PCI_CLASS_DEVICE, &usSubClass);
-
-        switch (usSubClass) {
-
-        case PCI_CLASS_PROCESSOR_POWERPC:
-            printf("PowerPC");
-            API_PciConfigInByte(iBus, iSlot, iFunc, PCI_SECONDARY_BUS, &ucSecBus);
+        if ((ucHeaderType & PCI_HEADER_TYPE_MASK) != PCI_HEADER_TYPE_BRIDGE) {
+            printf("PROCESSOR\n");
             break;
-
-        default:
-            printf("UNKNOWN (0x%04x)", usSubClass);
-            break;
-        }
-
-        printf(" PROCESSOR");
-
-        if (ucSecBus != 0 ) {
-            printf(" to [%d,0,0]", ucSecBus);
-            printf("\n");
-
-            API_PciConfigInWord(iBus, iSlot, iFunc, PCI_COMMAND, &usCmdReg);
-            if (usCmdReg & PCI_COMMAND_MEMORY) {
-                API_PciConfigInWord(iBus, iSlot, iFunc, PCI_MEMORY_BASE,  &usMemBase );
-                API_PciConfigInWord(iBus, iSlot, iFunc, PCI_MEMORY_LIMIT, &usMemLimit);
-                printf("\tbase/limit:\n");
-                printf("\t  mem=   0x%04x0000/0x%04xffff\n",
-                       (usMemBase & 0xFFF0), (usMemLimit | 0x000F));
-
-                API_PciConfigInWord(iBus, iSlot, iFunc, PCI_PREF_MEMORY_BASE,  &usMemBase );
-                API_PciConfigInWord(iBus, iSlot, iFunc, PCI_PREF_MEMORY_LIMIT, &usMemLimit);
-                if ((usMemBase & PCI_MEMORY_RANGE_TYPE_MASK) == PCI_PREF_RANGE_TYPE_64) {
-                    API_PciConfigInDword(iBus, iSlot, iFunc, PCI_PREF_BASE_UPPER32,  &uiMemBaseU );
-                    API_PciConfigInDword(iBus, iSlot, iFunc, PCI_PREF_LIMIT_UPPER32, &uiMemLimitU);
-                    printf("\t  preMem=0x%08x%04x0000/" "0x%08x%04xffff\n",
-                           uiMemBaseU, (usMemBase & 0xFFF0), uiMemLimitU, (usMemLimit | 0x000F));
-                } else {
-                    printf("\t  preMem=0x%04x0000/0x%04xffff\n",
-                           (usMemBase & 0xFFF0), (usMemLimit | 0x000F));
-                }
-            }
-
-            if (usCmdReg & PCI_COMMAND_IO) {
-                API_PciConfigInByte(iBus, iSlot, iFunc, PCI_IO_BASE,  &ucIoBase );
-                API_PciConfigInByte(iBus, iSlot, iFunc, PCI_IO_LIMIT, &ucIoLimit);
-                if ((ucIoBase & PCI_IO_RANGE_TYPE_MASK) == PCI_IO_RANGE_TYPE_32) {
-                    API_PciConfigInWord(iBus, iSlot, iFunc, PCI_IO_BASE_UPPER16,  &usIoBaseU );
-                    API_PciConfigInWord(iBus, iSlot, iFunc, PCI_IO_LIMIT_UPPER16, &usIoLimitU);
-                    printf("\t  I/O=   0x%04x%02x00/0x%04x%02xff\n",
-                           usIoBaseU, (ucIoBase & 0xF0), usIoLimitU, (ucIoLimit | 0x0F));
-                } else {
-                    printf("\t  I/O=   0x%02x00/0x%02xff\n", (ucIoBase & 0xF0), (ucIoLimit | 0x0F));
-                }
-            }
+        
         } else {
-            printf("\n");
+            ucSecBus = 0;
+            API_PciConfigInWord(iBus, iSlot, iFunc, PCI_CLASS_DEVICE, &usSubClass);
+
+            switch (usSubClass) {
+
+            case PCI_CLASS_PROCESSOR_POWERPC:
+                printf("PowerPC");
+                API_PciConfigInByte(iBus, iSlot, iFunc, PCI_SECONDARY_BUS, &ucSecBus);
+                break;
+
+            default:
+                printf("UNKNOWN (0x%04x)", usSubClass);
+                break;
+            }
+
+            printf(" PROCESSOR");
+
+            if (ucSecBus != 0 ) {
+                printf(" to [%d,0,0]", ucSecBus);
+                printf("\n");
+
+                API_PciConfigInWord(iBus, iSlot, iFunc, PCI_COMMAND, &usCmdReg);
+                if (usCmdReg & PCI_COMMAND_MEMORY) {
+                    API_PciConfigInWord(iBus, iSlot, iFunc, PCI_MEMORY_BASE,  &usMemBase );
+                    API_PciConfigInWord(iBus, iSlot, iFunc, PCI_MEMORY_LIMIT, &usMemLimit);
+                    printf("\tbase/limit:\n");
+                    printf("\t  mem=   0x%04x0000/0x%04xffff\n",
+                           (usMemBase & 0xFFF0), (usMemLimit | 0x000F));
+
+                    API_PciConfigInWord(iBus, iSlot, iFunc, PCI_PREF_MEMORY_BASE,  &usMemBase );
+                    API_PciConfigInWord(iBus, iSlot, iFunc, PCI_PREF_MEMORY_LIMIT, &usMemLimit);
+                    if ((usMemBase & PCI_MEMORY_RANGE_TYPE_MASK) == PCI_PREF_RANGE_TYPE_64) {
+                        API_PciConfigInDword(iBus, iSlot, iFunc, PCI_PREF_BASE_UPPER32,  &uiMemBaseU );
+                        API_PciConfigInDword(iBus, iSlot, iFunc, PCI_PREF_LIMIT_UPPER32, &uiMemLimitU);
+                        printf("\t  preMem=0x%08x%04x0000/" "0x%08x%04xffff\n",
+                               uiMemBaseU, (usMemBase & 0xFFF0), uiMemLimitU, (usMemLimit | 0x000F));
+                    } else {
+                        printf("\t  preMem=0x%04x0000/0x%04xffff\n",
+                               (usMemBase & 0xFFF0), (usMemLimit | 0x000F));
+                    }
+                }
+
+                if (usCmdReg & PCI_COMMAND_IO) {
+                    API_PciConfigInByte(iBus, iSlot, iFunc, PCI_IO_BASE,  &ucIoBase );
+                    API_PciConfigInByte(iBus, iSlot, iFunc, PCI_IO_LIMIT, &ucIoLimit);
+                    if ((ucIoBase & PCI_IO_RANGE_TYPE_MASK) == PCI_IO_RANGE_TYPE_32) {
+                        API_PciConfigInWord(iBus, iSlot, iFunc, PCI_IO_BASE_UPPER16,  &usIoBaseU );
+                        API_PciConfigInWord(iBus, iSlot, iFunc, PCI_IO_LIMIT_UPPER16, &usIoLimitU);
+                        printf("\t  I/O=   0x%04x%02x00/0x%04x%02xff\n",
+                               usIoBaseU, (ucIoBase & 0xF0), usIoLimitU, (ucIoLimit | 0x0F));
+                    } else {
+                        printf("\t  I/O=   0x%02x00/0x%02xff\n", (ucIoBase & 0xF0), (ucIoLimit | 0x0F));
+                    }
+                }
+            } else {
+                printf("\n");
+            }
         }
-    }
-    break;
+        break;
 
     case PCI_BASE_CLASS_BRIDGE:
         ucSecBus = 0;
@@ -1134,6 +1143,7 @@ VOID  API_PciCapMsiShow (INT iBus, INT iSlot, INT iFunc, UINT uiOffset)
         API_PciConfigInDword(iBus, iSlot, iFunc, (uiOffset + PCI_MSI_ADDRESS_HI), &uiAddr);
         API_PciConfigInWord (iBus, iSlot, iFunc, (uiOffset + PCI_MSI_DATA_64), &usData);
         printf("%08x", uiAddr);
+    
     } else {
         API_PciConfigInWord(iBus, iSlot, iFunc, (uiOffset + PCI_MSI_DATA_32), &usData);
     }

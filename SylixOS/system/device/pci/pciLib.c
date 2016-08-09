@@ -70,6 +70,11 @@ PCI_CTRL_HANDLE     _G_hPciCtrlHandle = LW_NULL;
 #define PCI_OUT_WORD(addr, data)    PCI_CTRL->PCI_pDrvFuncs12->ioOutWord((UINT16)(data), (addr))
 #define PCI_OUT_DWORD(addr, data)   PCI_CTRL->PCI_pDrvFuncs12->ioOutDword((UINT32)(data), (addr))
 /*********************************************************************************************************
+  PCI 主控器配置中断操作 PCI_MECHANISM_1 2
+*********************************************************************************************************/
+#define PCI_IRQ_GET12(iBus, iSlot, iFunc, iMsiEn, iLine, iPin, pulVector)                               \
+        PCI_CTRL->PCI_pDrvFuncs12->irqGet(iBus, iSlot, iFunc, iMsiEn, iLine, iPin, pulVector)
+/*********************************************************************************************************
   PCI 是否为无效 VENDOR_ID
 *********************************************************************************************************/
 #define PCI_VENDOR_ID_IS_INVALIDATE(vendor)     \
@@ -1865,11 +1870,8 @@ INT  API_PciIrqGet (INT iBus, INT iSlot, INT iFunc, INT iMsiEn, INT iLine, INT i
         break;
 
     case PCI_MECHANISM_1:
-        iRetVal = PX_ERROR;
-        break;
-
     case PCI_MECHANISM_2:
-        iRetVal = PX_ERROR;
+        iRetVal = PCI_IRQ_GET12(iBus, iSlot, iFunc, iMsiEn, iLine, iPin, pulVector);
         break;
 
     default:
@@ -2161,6 +2163,7 @@ static PCI_DEV_ID_HANDLE __pciDevMatchId (PCI_DEV_HANDLE hDevHandle, PCI_DEV_ID_
 
     return  (LW_NULL);
 }
+
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */
                                                                         /*  (LW_CFG_PCI_EN > 0)         */
 /*********************************************************************************************************

@@ -100,6 +100,8 @@ struct __sdm_host {
     LONG             SDMHSOT_lReserveSector;
     LONG             SDMHSOT_lMaxBurstSector;
     LONG             SDMHSOT_lCacheSize;
+    LONG             SDMHSOT_lCacheWp;
+    LONG             SDMHSOT_lCacheCoherence;
 };
 /*********************************************************************************************************
   Ç°ÖÃÉùÃ÷
@@ -515,6 +517,22 @@ LW_API INT   API_SdmHostExtOptSet (PVOID pvSdmHost, INT  iOption, LONG  lArg)
             return  (PX_ERROR);
         }
         break;
+        
+    case SDHOST_EXTOPT_CACHE_WP_SET:
+        if (lArg >= 0) {
+            psdmhost->SDMHSOT_lCacheWp = lArg;
+        } else {
+            return  (PX_ERROR);
+        }
+        break;
+        
+    case SDHOST_EXTOPT_CACHE_COHERENCE_SET:
+        if (lArg >= 0) {
+            psdmhost->SDMHSOT_lCacheCoherence = lArg;
+        } else {
+            return  (PX_ERROR);
+        }
+        break;
 
     default:
         _ErrorHandle(ENOSYS);
@@ -549,6 +567,7 @@ LW_API INT   API_SdmHostExtOptGet (PLW_SDCORE_DEVICE psdcoredev, INT  iOption, L
     }
 
     switch (iOption) {
+    
     case SDHOST_EXTOPT_RESERVE_SECTOR_GET:
         *(LONG *)lArg = psdmhost->SDMHSOT_lReserveSector;
         break;
@@ -561,6 +580,14 @@ LW_API INT   API_SdmHostExtOptGet (PLW_SDCORE_DEVICE psdcoredev, INT  iOption, L
         *(LONG *)lArg = psdmhost->SDMHSOT_lCacheSize;
         break;
 
+    case SDHOST_EXTOPT_CACHE_WP_GET:
+        *(LONG *)lArg = psdmhost->SDMHSOT_lCacheWp;
+        break;
+        
+    case SDHOST_EXTOPT_CACHE_COHERENCE_GET:
+        *(LONG *)lArg = psdmhost->SDMHSOT_lCacheCoherence;
+        break;
+        
     default:
         _ErrorHandle(ENOSYS);
         return  (PX_ERROR);
@@ -852,8 +879,10 @@ static VOID  __sdmHostDelete (__SDM_HOST *psdmhost)
 *********************************************************************************************************/
 static VOID  __sdmHostExtOptInit (__SDM_HOST  *psdmhost)
 {
-    psdmhost->SDMHSOT_lMaxBurstSector = 0;
-    psdmhost->SDMHSOT_lCacheSize      = 128 * 1024;
+    psdmhost->SDMHSOT_lMaxBurstSector = 64;
+    psdmhost->SDMHSOT_lCacheSize      = 512 * 1024;
+    psdmhost->SDMHSOT_lCacheWp        = 1;
+    psdmhost->SDMHSOT_lCacheCoherence = (LONG)LW_FALSE;
     psdmhost->SDMHSOT_lReserveSector  = 0;
 }
 /*********************************************************************************************************

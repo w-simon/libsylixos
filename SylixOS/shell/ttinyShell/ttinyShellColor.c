@@ -416,6 +416,39 @@ VOID  API_TShellColorStart (CPCHAR  pcName, CPCHAR  pcLink, mode_t  mode, INT  i
              _G_cTshellFileColor[TSHELL_TYPE_RIGHTCODE].TTC_cColor);
 }
 /*********************************************************************************************************
+** 函数名称: API_TShellColorStart2
+** 功能描述: 初始化一个色彩打印
+** 输　入  : pcColor       颜色
+**           iFd           打印目标
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+VOID  API_TShellColorStart2 (CPCHAR  pcColor, INT  iFd)
+{
+    PLW_CLASS_TCB           ptcbCur;
+    
+    if (!pcColor || (iFd < 0)) {
+        return;
+    }
+    
+    LW_TCB_GET_CUR_SAFE(ptcbCur);
+    
+    if (!(__TTINY_SHELL_GET_OPT(ptcbCur) & LW_OPTION_TSHELL_VT100)) {
+        return;
+    }
+    
+    if (iFd == STD_OUT) {
+        fflush(stdout);
+    } else if (iFd == STD_ERR) {
+        fflush(stderr);
+    }
+    
+    fdprintf(iFd, "%s", pcColor);
+}
+/*********************************************************************************************************
 ** 函数名称: API_TShellColorEnd
 ** 功能描述: 色彩打印结束
 ** 输　入  : iFd           打印目标

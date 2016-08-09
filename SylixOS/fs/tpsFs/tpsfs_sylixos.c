@@ -92,6 +92,12 @@ static INT              _G_iTpsDrvNum = PX_ERROR;
 *********************************************************************************************************/
 #define __STR_IS_ROOT(pcName)       ((pcName[0] == PX_EOS) || (lib_strcmp(PX_STR_ROOT, pcName) == 0))
 /*********************************************************************************************************
+  打印inode信息
+*********************************************************************************************************/
+#ifdef __SYLIXOS_DEBUG
+#define TPSFS_IOCTRL_INODE_PRINT     LW_OSIOD('f', 135, BOOL)
+#endif
+/*********************************************************************************************************
   驱动程序声明
 *********************************************************************************************************/
 static LONG     __tpsFsOpen(PTPS_VOLUME     ptpsvol,
@@ -496,9 +502,6 @@ INT  API_TpsFsDevCreate (PCHAR   pcName, PLW_BLK_DEV  pblkd)
     __blockIoDevIoctl(iBlkdIndex, FIODISKINIT, 0);                      /*  初始化磁盘                  */
 
     _DebugFormat(__LOGMESSAGE_LEVEL, "disk \"%s\" mount ok.\r\n", pcName);
-    _DebugFormat(__PRINTMESSAGE_LEVEL, "Warning: volume \"%s\" "
-                 "tpsFs is currently in testing stage, use caution please!\r\n",
-                 pcName);                                               /*  tps 警告信息                */
 
     return  (ERROR_NONE);
 
@@ -1750,7 +1753,7 @@ static INT  __tpsFsSync (PLW_FD_ENTRY  pfdentry, BOOL  bFlushCache)
 
     if (bFlushCache) {
         iError = __blockIoDevIoctl(ptpsfile->TPSFIL_ptpsvol->TPSVOL_iDrv,
-                                   FIOFLUSH, 0);                        /*  清除 CACHE 回写磁盘         */
+                                   FIOSYNC, 0);                         /*  清除 CACHE 回写磁盘         */
         if (iError < 0) {
             iErr = ERROR_IO_DEVICE_ERROR;                               /*  设备出错, 无法清空          */
         }
@@ -2148,6 +2151,17 @@ static INT  __tpsFsIoctl (PLW_FD_ENTRY  pfdentry,
     case FIOSETFORCEDEL:                                                /*  设置强制卸载使能            */
         ptpsvol->TPSVOL_bForceDelete = (BOOL)lArg;
         return  (ERROR_NONE);
+
+#ifdef __SYLIXOS_DEBUG
+    case TPSFS_IOCTRL_INODE_PRINT:                                      /*  打印inode信息，用于调试     */
+        if ((BOOL)lArg) {
+            tpsFsInodeDump(ptpsvol->TPSVOL_tpsFsVol->SB_pinodeSpaceMng);/*  打印磁盘空间管理节点信息    */
+        
+        } else {
+            tpsFsInodeDump(ptpsinode);                                  /*  打印普通节点信息            */
+        }
+        return  (ERROR_NONE);
+#endif                                                                  /*  __SYLIXOS_DEBUG             */
 
     default:                                                            /*  无法识别的命令              */
         _ErrorHandle(ENOSYS);

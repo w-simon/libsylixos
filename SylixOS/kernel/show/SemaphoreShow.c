@@ -112,7 +112,8 @@ VOID    API_SemaphoreShow (LW_OBJECT_HANDLE  ulId)
                                             &ulValue,
                                             &ulWValue,
                                             &ulOption, LW_NULL);
-        pcType  = "RW";
+        pcType      = "RW";
+        ulThreadNum = ulValue + ulWValue;
         break;
 #endif                                                                  /*  LW_CFG_SEMRW_EN > 0         */
     
@@ -144,10 +145,10 @@ VOID    API_SemaphoreShow (LW_OBJECT_HANDLE  ulId)
                ? "PRIORITY" : "FIFO";
     
     printf("Semaphore show >>\n\n");                                    /*  打印基本信息                */
-    printf("%-20s: %-10s\n",   "Semaphore Name",  event.EVENT_cEventName);
+    printf("%-20s: %-10s\n",    "Semaphore Name", event.EVENT_cEventName);
     printf("%-20s: 0x%-10lx\n", "Semaphore Id",   ulId);
-    printf("%-20s: %-10s\n",   "Semaphore Type",  pcType);
-    printf("%-20s: %-10s\n",   "Thread Queuing",  pcWaitType);
+    printf("%-20s: %-10s\n",    "Semaphore Type", pcType);
+    printf("%-20s: %-10s\n",    "Thread Queuing", pcWaitType);
     printf("%-20s: %-10ld\n",   "Pended Threads", ulThreadNum);
     
     if (ulObjectClass == _OBJECT_SEM_M) {                               /*  互斥信号量                  */
@@ -182,7 +183,11 @@ VOID    API_SemaphoreShow (LW_OBJECT_HANDLE  ulId)
             API_ThreadGetName(((PLW_CLASS_TCB)(event.EVENT_pvTcbOwn))->TCB_ulId,
                               cOwner);
         } else {
-            lib_strcpy(cOwner, "NO THREAD");
+            if (ulRWCnt) {
+                lib_strcpy(cOwner, "READERS");
+            } else {
+                lib_strcpy(cOwner, "NO THREAD");
+            }
         }
         
         pcSafeMode = (event.EVENT_ulOption & LW_OPTION_DELETE_SAFE)
@@ -192,7 +197,9 @@ VOID    API_SemaphoreShow (LW_OBJECT_HANDLE  ulId)
         printf("%-20s: 0x%lx\t%s\n", "Options", event.EVENT_ulOption, 
                pcSafeMode);
                                                                         /*  当前计数值                  */
-        printf("RWCnt: %lu RPend: %lu WPend: %lu\n", ulRWCnt, ulValue, ulWValue);
+        printf("%-20s: %lu\n", "Read/Write Counter", ulRWCnt);
+        printf("%-20s: %lu\n", "Read Pend", ulValue);
+        printf("%-20s: %lu\n", "Write Pend", ulWValue);
         
     } else {
         if (ulObjectClass == _OBJECT_SEM_C) {

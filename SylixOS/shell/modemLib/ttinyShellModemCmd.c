@@ -399,6 +399,7 @@ VOID  __tshellModemCmdInit (VOID)
     API_TShellFormatAdd("xmodemr", " file path");
     API_TShellHelpAdd("xmodemr", "receive a file use xmodem protocol.\n");
 }
+
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 /*********************************************************************************************************
   END

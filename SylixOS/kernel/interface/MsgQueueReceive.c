@@ -114,12 +114,10 @@ __wait_again:
         return  (ERROR_MSGQUEUE_MSG_NULL);
     }
     if (!_ObjectClassOK(ulId, _OBJECT_MSGQUEUE)) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "msgqueue handle invalidate.\r\n");
         _ErrorHandle(ERROR_KERNEL_HANDLE_NULL);
         return  (ERROR_KERNEL_HANDLE_NULL);
     }
     if (_Event_Index_Invalid(usIndex)) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "msgqueue handle invalidate.\r\n");
         _ErrorHandle(ERROR_KERNEL_HANDLE_NULL);
         return  (ERROR_KERNEL_HANDLE_NULL);
     }
@@ -129,7 +127,6 @@ __wait_again:
     iregInterLevel = __KERNEL_ENTER_IRQ();                              /*  进入内核                    */
     if (_Event_Type_Invalid(usIndex, LW_TYPE_EVENT_MSGQUEUE)) {
         __KERNEL_EXIT_IRQ(iregInterLevel);                              /*  退出内核                    */
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "msgqueue handle invalidate.\r\n");
         _ErrorHandle(ERROR_MSGQUEUE_TYPE);
         return  (ERROR_MSGQUEUE_TYPE);
     }

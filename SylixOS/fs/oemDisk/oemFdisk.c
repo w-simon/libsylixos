@@ -96,6 +96,7 @@ static INT  __oemFdisk (INT                     iBlkFd,
             uiPNSec[i] = (UINT32)u64Temp;
             uiPNSec[i] = ROUND_DOWN(uiPNSec[i], (stAlign / ulSecSize)); /*  对齐的扇区个数              */
             
+            ulTotalSec -= uiPNSec[i];
             uiPSecNext += uiPNSec[i];
         }
     }

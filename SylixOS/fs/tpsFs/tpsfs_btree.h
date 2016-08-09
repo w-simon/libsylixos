@@ -153,6 +153,8 @@ TPS_RESULT tpsFsBtreeInitBP(PTPS_SUPER_BLOCK psb, TPS_IBLK blkStart, TPS_IBLK bl
 TPS_RESULT tpsFsBtreeAdjustBP(PTPS_TRANS ptrans, PTPS_SUPER_BLOCK psb);
                                                                     /* 打印整颗树                       */
 TPS_RESULT tpsFsBtreeDump(struct tps_inode *pinode, PTPS_BTR_NODE pbtrnode);
+                                                                    /* 打印inode信息                    */
+TPS_RESULT tpsFsInodeDump(struct tps_inode *pinode);
 
 #endif                                                              /* LW_CFG_TPSFS_EN > 0              */
 #endif                                                              /* __TPSFS_BTREE_H                  */

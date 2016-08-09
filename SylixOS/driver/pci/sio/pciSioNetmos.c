@@ -298,7 +298,10 @@ static INT  pciSioNetmosProbe (PCI_DEV_HANDLE hPciDevHandle, const PCI_DEV_ID_HA
     hResource  = API_PciDevResourceGet(hPciDevHandle, PCI_IORESOURCE_MEM, 0);
     ulBaseAddr = (ULONG)(PCI_RESOURCE_START(hResource));                /*  获取 MEM 的起始地址         */
     stBaseSize = (size_t)(PCI_RESOURCE_SIZE(hResource));                /*  获取 MEM 的大小             */
-    pvBaseAddr = API_VmmIoRemapNocache((PVOID)ulBaseAddr, stBaseSize);
+    pvBaseAddr = API_PciDevIoRemap((PVOID)ulBaseAddr, stBaseSize);
+    if (!pvBaseAddr) {
+        return  (PX_ERROR);
+    }
 
     pcisio    = &pciSioNetmosCard[hIdEntry->PCIDEVID_ulData];
     iChanNum  = pcisio->NETMOS_uiPorts;                                 /*  获得设备通道数              */

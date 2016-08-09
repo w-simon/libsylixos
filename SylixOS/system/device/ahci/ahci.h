@@ -50,9 +50,6 @@
 #define AHCI_OPT_CMD_SECTOR_SIZE_GET        0x10a                       /* 获取扇区大小                 */
 #define AHCI_OPT_CMD_SECTOR_SIZE_SET        0x10b                       /* 设置扇区大小                 */
 
-#define AHCI_OPT_CMD_SECTOR_BUFF_SIZE_GET   0x10c                       /* 获取扇区缓冲区大小           */
-#define AHCI_OPT_CMD_SECTOR_BUFF_SIZE_SET   0x10d                       /* 设置扇区缓冲区大小           */
-
 #define AHCI_OPT_CMD_CACHE_BURST_RD_GET     0x10e                       /* 获取读猝发扇区数             */
 #define AHCI_OPT_CMD_CACHE_BURST_RD_SET     0x10f                       /* 设置读猝发扇区数             */
 
@@ -447,6 +444,7 @@
 #define AHCI_MSG_ATTACH                     'A'                         /* 探测到设备                   */
 #define AHCI_MSG_REMOVE                     'R'                         /* 移除设备                     */
 #define AHCI_MSG_ERROR                      'E'                         /* 端口错误                     */
+#define AHCI_MSG_TIMEOUT                    'T'                         /* 超时错误                     */
 /*********************************************************************************************************
   诊断参数
 *********************************************************************************************************/
@@ -506,6 +504,8 @@
 #define AHCI_CMD_SLEEP                      0xE6                        /* Go to Sleep State            */
 #define AHCI_CMD_DEVICE_RESET               0x08                        /* Go to Sleep State            */
 #define AHCI_CMD_SMART                      0xB0                        /* SMART                        */
+#define AHCI_CMD_FLUSH_CACHE                0xE7                        /* Flush Cache                  */
+#define AHCI_CMD_FLUSH_CACHE_EXT            0xEA                        /* Flush Cache EXT              */
 /*********************************************************************************************************
   SMART 命令
 *********************************************************************************************************/
@@ -945,12 +945,15 @@ typedef enum {
   命令标记
 *********************************************************************************************************/
 typedef enum {
-    AHCI_CMD_FLAG_SRST_ON      = 1,
-    AHCI_CMD_FLAG_SRST_OFF     = 2,
-    AHCI_CMD_FLAG_NON_SEC_DATA = 4,
-    AHCI_CMD_FLAG_ATAPI        = 8,
-    AHCI_CMD_FLAG_NCQ          = 16,
-    AHCI_CMD_FLAG_WAIT_SPINUP  = 32
+    AHCI_CMD_FLAG_SRST_ON      = 0x0001,
+    AHCI_CMD_FLAG_SRST_OFF     = 0x0002,
+    AHCI_CMD_FLAG_NON_SEC_DATA = 0x0004,
+    AHCI_CMD_FLAG_ATAPI        = 0x0008,
+    AHCI_CMD_FLAG_NCQ          = 0x0010,
+    AHCI_CMD_FLAG_WAIT_SPINUP  = 0x0020,
+    AHCI_CMD_FLAG_BLK_READ     = 0x0040,
+    AHCI_CMD_FLAG_BLK_WRITE    = 0x0080,
+    AHCI_CMD_FLAG_TRIM         = 0x0100,
 } AHCI_CMD_FLAG;
 /*********************************************************************************************************
   AHCI 命令控制块
@@ -975,6 +978,7 @@ typedef struct ahci_cmd_cb {
 #define AHCI_CMD_ATAPI      ahci_cmd.AHCI_CMD_ATAPI
 
     INT                     AHCICMD_iFlags;
+    INT                     AHCICMD_iFlagEx;
     UINT8                  *AHCICMD_pucDataBuf;
     ULONG                   AHCICMD_ulDataLen;
     AHCI_DATA_DIR           AHCICMD_iDirection;
@@ -1001,8 +1005,11 @@ typedef struct {
     LW_OBJECT_HANDLE        AHCIDRIVE_hSyncBSem[AHCI_CMD_SLOT_MAX];
     LW_OBJECT_HANDLE        AHCIDRIVE_hLockMSem;
     LW_OBJECT_HANDLE        AHCIDRIVE_hTagMuteSem;
+    LW_OBJECT_HANDLE        AHCIDRIVE_hDriveMuteSem;
     LW_OBJECT_HANDLE        AHCIDRIVE_hQueueSlotCSem;
-    UINT32                  AHCIDRIVE_uiCmdStarted;
+    volatile UINT32         AHCIDRIVE_uiCmdStarted;
+    volatile UINT32         AHCIDRIVE_uiTrimStarted;
+    UINT32                  AHCIDRIVE_uiBuffStarted;
     AHCI_PARAM_CB           AHCIDRIVE_tParam;
     BOOL                    AHCIDRIVE_bMulti;
     BOOL                    AHCIDRIVE_bIordy;
@@ -1028,7 +1035,8 @@ typedef struct {
     UINT32                  AHCIDRIVE_uiTaskFileErrorCount;
     UINT32                  AHCIDRIVE_uiTimeoutErrorCount;
     BOOL                    AHCIDRIVE_bPortError;
-    INT                     AHCIDRIVE_iNextTag;
+    volatile UINT32         AHCIDRIVE_uiNextTag;
+    UINT32                  AHCIDRIVE_uiBuffNextTag;
     BOOL                    AHCIDRIVE_bQueued;
     UINT32                  AHCIDRIVE_uiQueueDepth;
     ULONG                   AHCIDRIVE_ulSectorMax;
@@ -1042,7 +1050,7 @@ typedef struct {
     BOOL                    AHCIDRIVE_bDrat;
     BOOL                    AHCIDRIVE_bRzat;
 
-    INT                   (*AHCIDRIVE_pfuncReset)(struct ahci_ctrl_cb *hCtrl, INT iDrive);
+    INT                   (*AHCIDRIVE_pfuncReset)(struct ahci_ctrl_cb *hCtrl, UINT uiDrive);
     struct ahci_dev_cb     *AHCIDRIVE_hDev;
 
     UINT32                  AHCIDRIVE_uiProbTimeUnit;
@@ -1133,9 +1141,6 @@ typedef struct ahci_dev_cb {
     ULONG               AHCIDEV_ulBlkCount;                             /* 扇区数量                     */
 
     PVOID               AHCIDEV_pvOemdisk;                              /* OEMDISK 控制句柄             */
-
-    UINT8              *AHCIDEV_pucAlignDmaBuf;                         /* 缓冲区起始                   */
-    ULONG               AHCIDEV_ulAlignDmaBufLen;                       /* 缓冲区大小                   */
     AHCI_DATA_DIR       AHCIDEV_iDirection;                             /* 数据传输方向                 */
     UINT32              AHCIDEV_uiTransCount;                           /* 传输数据单元个数             */
     INT                 AHCIDEV_iErrNum;                                /* 错误号                       */

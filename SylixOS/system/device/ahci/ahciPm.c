@@ -34,30 +34,30 @@
 ** 函数名称: API_AhciApmDisable
 ** 功能描述: 禁能设备高级电源管理
 ** 输　入  : hCtrl      控制器句柄
-**           iDrive     驱动器号
+**           uiDrive    驱动器号
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
                                            API 函数
 *********************************************************************************************************/
 LW_API
-INT  API_AhciApmDisable (AHCI_CTRL_HANDLE  hCtrl, INT  iDrive)
+INT  API_AhciApmDisable (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
 {
     INT                 iRet;
     AHCI_DRIVE_HANDLE   hDrive;
     AHCI_PARAM_HANDLE   hParam;
 
-    hDrive = &hCtrl->AHCICTRL_hDrive[iDrive];
+    hDrive = &hCtrl->AHCICTRL_hDrive[uiDrive];
     hParam = &hDrive->AHCIDRIVE_tParam;
-    if ((iDrive >= hCtrl->AHCICTRL_uiImpPortNum) ||
-        (hCtrl->AHCICTRL_bDrvInstalled != LW_TRUE) ||
-        (hCtrl->AHCICTRL_bInstalled != LW_TRUE) ||
-        (hDrive->AHCIDRIVE_ucState != AHCI_DEV_OK)) {
+    if ((uiDrive >= hCtrl->AHCICTRL_uiImpPortNum     ) ||
+        (hCtrl->AHCICTRL_bDrvInstalled != LW_TRUE    ) ||
+        (hCtrl->AHCICTRL_bInstalled    != LW_TRUE    ) ||
+        (hDrive->AHCIDRIVE_ucState     != AHCI_DEV_OK)) {
         return  (PX_ERROR);
     }
 
     if (hParam->AHCIPARAM_usFeaturesSupported1 & AHCI_APM_SUPPORT_APM) {
-        iRet = API_AhciNoDataCommandSend(hCtrl, iDrive,
+        iRet = API_AhciNoDataCommandSend(hCtrl, uiDrive,
                                          AHCI_CMD_SET_FEATURE, AHCI_SUB_DISABLE_APM, 0, 0, 0, 0, 0);
         if (iRet != ERROR_NONE) {
             return  (PX_ERROR);
@@ -72,7 +72,7 @@ INT  API_AhciApmDisable (AHCI_CTRL_HANDLE  hCtrl, INT  iDrive)
 ** 函数名称: API_AhciApmEnable
 ** 功能描述: 使能设备高级电源管理
 ** 输　入  : hCtrl      控制器句柄
-**           iDrive     驱动器号
+**           uiDrive    驱动器号
 **           iApm       电源级别
 ** 输　出  : ERROR or OK
 ** 全局变量:
@@ -80,23 +80,23 @@ INT  API_AhciApmDisable (AHCI_CTRL_HANDLE  hCtrl, INT  iDrive)
                                            API 函数
 *********************************************************************************************************/
 LW_API
-INT  API_AhciApmEnable (AHCI_CTRL_HANDLE  hCtrl, INT  iDrive, INT  iApm)
+INT  API_AhciApmEnable (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, INT  iApm)
 {
     INT                 iRet;
     AHCI_DRIVE_HANDLE   hDrive;
     AHCI_PARAM_HANDLE   hParam;
 
-    hDrive = &hCtrl->AHCICTRL_hDrive[iDrive];
+    hDrive = &hCtrl->AHCICTRL_hDrive[uiDrive];
     hParam = &hDrive->AHCIDRIVE_tParam;
-    if ((iDrive >= hCtrl->AHCICTRL_uiImpPortNum) ||
-        (hCtrl->AHCICTRL_bDrvInstalled != LW_TRUE) ||
-        (hCtrl->AHCICTRL_bInstalled != LW_TRUE) ||
-        (hDrive->AHCIDRIVE_ucState != AHCI_DEV_OK)) {
+    if ((uiDrive >= hCtrl->AHCICTRL_uiImpPortNum     ) ||
+        (hCtrl->AHCICTRL_bDrvInstalled != LW_TRUE    ) ||
+        (hCtrl->AHCICTRL_bInstalled    != LW_TRUE    ) ||
+        (hDrive->AHCIDRIVE_ucState     != AHCI_DEV_OK)) {
         return  (PX_ERROR);
     }
 
     if (hParam->AHCIPARAM_usFeaturesSupported1 & AHCI_APM_SUPPORT_APM) {
-        iRet = API_AhciNoDataCommandSend(hCtrl, iDrive,
+        iRet = API_AhciNoDataCommandSend(hCtrl, uiDrive,
                                          AHCI_CMD_SET_FEATURE, AHCI_SUB_ENABLE_APM, iApm, 0, 0, 0, 0);
         if (iRet != ERROR_NONE) {
             return  (PX_ERROR);
@@ -111,14 +111,14 @@ INT  API_AhciApmEnable (AHCI_CTRL_HANDLE  hCtrl, INT  iDrive, INT  iApm)
 ** 函数名称: API_AhciPmActive
 ** 功能描述: 设备电源是否使能
 ** 输　入  : hCtrl      控制器句柄
-**           iDrive     驱动器号
+**           uiDrive    驱动器号
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
                                            API 函数
 *********************************************************************************************************/
 LW_API
-INT  API_AhciPmActive (AHCI_CTRL_HANDLE  hCtrl, INT  iDrive)
+INT  API_AhciPmActive (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
 {
     return  (ERROR_NONE);
 }

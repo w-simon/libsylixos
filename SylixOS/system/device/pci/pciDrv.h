@@ -87,6 +87,7 @@ typedef PCI_DRV_CB         *PCI_DRV_HANDLE;
   API
   API_PciConfigInit() 必须在 BSP 初始化总线系统时被调用, 而且必须保证是第一个被正确调用的 PCI 系统函数.
 *********************************************************************************************************/
+
 LW_API PCI_DRV_HANDLE       API_PciDrvHandleGet(CPCHAR pcName);
 LW_API INT                  API_PciDrvRegister(PCI_DRV_HANDLE hHandle);
 

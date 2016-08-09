@@ -149,6 +149,7 @@ LW_OBJECT_HANDLE  API_PartitionCreate (CPCHAR             pcName,
     
     return  (ulIdTemp);
 }
+
 #endif                                                                  /*  (LW_CFG_PARTITION_EN > 0)   */
                                                                         /*  (LW_CFG_MAX_PARTITIONS > 0) */
 /*********************************************************************************************************

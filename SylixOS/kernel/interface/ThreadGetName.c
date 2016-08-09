@@ -60,12 +60,10 @@ ULONG  API_ThreadGetName (LW_OBJECT_HANDLE  ulId, PCHAR  pcName)
         return  (ERROR_KERNEL_PNAME_NULL);
     }
     if (!_ObjectClassOK(ulId, _OBJECT_THREAD)) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "thread handle invalidate.\r\n");
         _ErrorHandle(ERROR_KERNEL_HANDLE_NULL);
         return  (ERROR_KERNEL_HANDLE_NULL);
     }
     if (usIndex >= LW_CFG_MAX_THREADS) {                                /*  检查线程有效性              */
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "thread handle invalidate.\r\n");
         _ErrorHandle(ERROR_THREAD_NULL);
         return  (ERROR_THREAD_NULL);
     }
@@ -74,7 +72,6 @@ ULONG  API_ThreadGetName (LW_OBJECT_HANDLE  ulId, PCHAR  pcName)
     __KERNEL_ENTER();                                                   /*  进入内核                    */
     if (_Thread_Invalid(usIndex)) {
         __KERNEL_EXIT();                                                /*  退出内核                    */
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "thread handle invalidate.\r\n");
         _ErrorHandle(ERROR_THREAD_NULL);
         return  (ERROR_THREAD_NULL);
     }

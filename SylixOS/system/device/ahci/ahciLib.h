@@ -121,10 +121,10 @@
 /*********************************************************************************************************
   º¯ÊýÉùÃ÷
 *********************************************************************************************************/
-LW_API UINT64               API_AhciDriveSectorCountGet(AHCI_CTRL_HANDLE  hCtrl, INT  iDrive);
-LW_API PCHAR                API_AhciDriveWorkModeNameGet(INT  iIndex);
+LW_API UINT64               API_AhciDriveSectorCountGet(AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive);
+LW_API PCHAR                API_AhciDriveWorkModeNameGet(UINT  uiIndex);
 LW_API INT                  API_AhciDriveInfoShow(AHCI_CTRL_HANDLE   hCtrl,
-                                                  INT                iDrive,
+                                                  UINT               uiDrive,
                                                   AHCI_PARAM_HANDLE  hParam);
 
 LW_API INT                  API_AhciDriveRegWait(AHCI_DRIVE_HANDLE  hDrive,
@@ -138,11 +138,10 @@ LW_API INT                  API_AhciDriveRegWait(AHCI_DRIVE_HANDLE  hDrive,
 LW_API INT                  API_AhciDriveRecvFisStop(AHCI_DRIVE_HANDLE  hDrive);
 LW_API INT                  API_AhciDriveEngineStop(AHCI_DRIVE_HANDLE  hDrive);
 LW_API INT                  API_AhciDrivePowerUp(AHCI_DRIVE_HANDLE  hDrive);
-LW_API PCHAR                API_AhciDriveRegNameGet(AHCI_DRIVE_HANDLE  hDrive, INT  iOffset);
+LW_API PCHAR                API_AhciDriveRegNameGet(AHCI_DRIVE_HANDLE  hDrive, UINT  uiOffset);
 
 LW_API INT                  API_AhciCtrlIntConnect(AHCI_CTRL_HANDLE  hCtrl,
-                                                   PINT_SVR_ROUTINE  pfuncIsr,
-                                                   CPCHAR cpcName);
+                                                   PINT_SVR_ROUTINE  pfuncIsr, CPCHAR cpcName);
 LW_API INT                  API_AhciCtrlReset(AHCI_CTRL_HANDLE  hCtrl);
 LW_API INT                  API_AhciCtrlAhciModeEnable(AHCI_CTRL_HANDLE  hCtrl);
 LW_API INT                  API_AhciCtrlSssSet(AHCI_CTRL_HANDLE  hCtrl, INT  iSet);
@@ -150,7 +149,7 @@ LW_API INT                  API_AhciCtrlSssSet(AHCI_CTRL_HANDLE  hCtrl, INT  iSe
 LW_API INT                  API_AhciCtrlInfoShow(AHCI_CTRL_HANDLE  hCtrl);
 LW_API INT                  API_AhciCtrlImpPortGet(AHCI_CTRL_HANDLE  hCtrl);
 LW_API INT                  API_AhciCtrlCapGet(AHCI_CTRL_HANDLE  hCtrl);
-LW_API PCHAR                API_AhciCtrlRegNameGet(AHCI_CTRL_HANDLE  hCtrl, INT  iOffset);
+LW_API PCHAR                API_AhciCtrlRegNameGet(AHCI_CTRL_HANDLE  hCtrl, UINT  uiOffset);
 
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */
                                                                         /*  (LW_CFG_AHCI_EN > 0)        */

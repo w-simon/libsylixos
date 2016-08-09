@@ -67,6 +67,7 @@
 #include "../SylixOS/shell/tarLib/ttinyShellTarCmd.h"
 #include "../SylixOS/shell/modemLib/ttinyShellModemCmd.h"
 #include "../SylixOS/shell/heapLib/ttinyShellHeapCmd.h"
+#include "../SylixOS/shell/perfLib/ttinyShellPerfCmd.h"
 /*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
@@ -201,6 +202,9 @@ VOID  API_TShellInit (VOID)
 #if LW_CFG_SHELL_HEAP_TRACE_EN > 0
         __tshellHeapCmdInit();                                          /*  初始化内存堆命令            */
 #endif                                                                  /*  LW_CFG_SHELL_HEAP_TRACE_EN  */
+#if LW_CFG_SYSPERF_EN > 0 && LW_CFG_SHELL_PERF_TRACE_EN > 0
+        __tshellPerfCmdInit();                                          /*  初始化性能分析命令          */
+#endif                                                                  /*  LW_CFG_SHELL_PERF_TRACE_EN  */
 #if LW_CFG_SHELL_TAR_EN > 0
         __tshellTarCmdInit();                                           /*  初始化 tar 命令             */
 #endif                                                                  /*  LW_CFG_SHELL_TAR_EN         */

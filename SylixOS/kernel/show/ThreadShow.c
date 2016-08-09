@@ -250,7 +250,8 @@ VOID    API_ThreadPendShowEx (pid_t  pid)
             }
             
             lib_strlcpy(cEventName, pevent->EVENT_cEventName, LW_CFG_OBJECT_NAME_SIZE);
-            if ((pevent->EVENT_ucType == LW_TYPE_EVENT_MUTEX) &&
+            if (((pevent->EVENT_ucType == LW_TYPE_EVENT_MUTEX) ||
+                 (pevent->EVENT_ucType == LW_TYPE_EVENT_SEMRW)) &&
                 (pevent->EVENT_pvTcbOwn)) {
                 ptcbOwner = (PLW_CLASS_TCB)pevent->EVENT_pvTcbOwn;
                 ulOwner   = ptcbOwner->TCB_ulId;

@@ -832,11 +832,11 @@ static TPS_RESULT  __tpsFsTransPutData (PTPS_TRANS   ptrans,
             for (j = ptrdata->TD_uiSecAreaCnt; j > i + 1; j--) {
                 ptrdata->TD_secareaArr[j] = ptrdata->TD_secareaArr[j - 1];
             }
-            ptrdata->TD_secareaArr[i + i].TD_ui64SecStart = ui64SecNum + ui64SecCnt;
-            ptrdata->TD_secareaArr[i + i].TD_uiSecCnt     = (ui64SecAreaStart + ui64SecAreaCnt) -
+            ptrdata->TD_secareaArr[i + 1].TD_ui64SecStart = ui64SecNum + ui64SecCnt;
+            ptrdata->TD_secareaArr[i + 1].TD_uiSecCnt     = (ui64SecAreaStart + ui64SecAreaCnt) -
                                                             (ui64SecNum + ui64SecCnt);
-            ptrdata->TD_secareaArr[i + i].TD_uiSecOff     = ptrdata->TD_secareaArr[i].TD_uiSecOff +
-                                                            ui64SecNum + ui64SecCnt - ui64SecAreaStart;
+            ptrdata->TD_secareaArr[i + 1].TD_uiSecOff     = ptrdata->TD_secareaArr[i].TD_uiSecOff +
+                                                            (ui64SecNum + ui64SecCnt - ui64SecAreaStart);
 
             ptrdata->TD_uiSecAreaCnt++;
             i++;
@@ -871,7 +871,7 @@ static TPS_RESULT  __tpsFsTransPutData (PTPS_TRANS   ptrans,
         uiSecNeedCpy = min((ui64SecAreaStart + ui64SecAreaCnt), (ui64SecNum + ui64SecCnt)) -
                        max(ui64SecAreaStart, ui64SecNum);
         ptrdata->TD_secareaArr[i].TD_uiSecCnt -= uiSecNeedCpy;
-        if (ui64SecAreaStart > ui64SecNum) {
+        if (ui64SecAreaStart >= ui64SecNum) {
             ptrdata->TD_secareaArr[i].TD_ui64SecStart += uiSecNeedCpy;
             ptrdata->TD_secareaArr[i].TD_uiSecOff     += uiSecNeedCpy;
         }

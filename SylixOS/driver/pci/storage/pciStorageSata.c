@@ -68,7 +68,7 @@ enum {
 /*********************************************************************************************************
   驱动支持的设备 ID 表, 用于驱动与设备进行自动匹配, 与 Linux 参数保持一致.
 *********************************************************************************************************/
-static const PCI_DEV_ID_CB      _GtAhciPciDevIdTbl[] = {
+static const PCI_DEV_ID_CB      pciStorageSataIdTbl[] = {
     /* 
      * Intel 
      */
@@ -77,7 +77,7 @@ static const PCI_DEV_ID_CB      _GtAhciPciDevIdTbl[] = {
     {   PCI_VDEVICE(INTEL, 0x27c1), board_ahci  },                      /* ICH7                         */
     {   PCI_VDEVICE(INTEL, 0x27c5), board_ahci  },                      /* ICH7M                        */
     {   PCI_VDEVICE(INTEL, 0x27c3), board_ahci  },                      /* ICH7R                        */
-    {   PCI_VDEVICE(AL, 0x5288), board_ahci_ign_iferr  },               /* ULi M5288                    */
+    {   PCI_VDEVICE(AL,    0x5288), board_ahci_ign_iferr  },            /* ULi M5288                    */
     {   PCI_VDEVICE(INTEL, 0x2681), board_ahci  },                      /* ESB2                         */
     {   PCI_VDEVICE(INTEL, 0x2682), board_ahci  },                      /* ESB2                         */
     {   PCI_VDEVICE(INTEL, 0x2683), board_ahci  },                      /* ESB2                         */
@@ -203,7 +203,7 @@ static const PCI_DEV_ID_CB      _GtAhciPciDevIdTbl[] = {
     {   PCI_VDEVICE(INTEL, 0xa202), board_ahci  },                      /* Lewisburg AHCI               */
     {   PCI_VDEVICE(INTEL, 0xa204), board_ahci  },                      /* Lewisburg RAID               */
     {   PCI_VDEVICE(INTEL, 0xa206), board_ahci  },                      /* Lewisburg RAID               */
-    {   PCI_VDEVICE(INTEL, 0xa20e), board_ahci  },                      /* Lewisburg RAID               */ 
+    {   PCI_VDEVICE(INTEL, 0xa20e), board_ahci  },                      /* Lewisburg RAID               */
 
     /*
      * JMicron 360/1/3/5/6, match class to avoid IDE function 
@@ -435,8 +435,8 @@ static INT  pciStorageSataDevIdTblGet (PCI_DEV_ID_HANDLE *phPciDevId, UINT32 *pu
         return  (PX_ERROR);
     }
 
-    *phPciDevId = (PCI_DEV_ID_HANDLE)_GtAhciPciDevIdTbl;
-    *puiSzie    = sizeof(_GtAhciPciDevIdTbl) / sizeof(PCI_DEV_ID_CB);
+    *phPciDevId = (PCI_DEV_ID_HANDLE)pciStorageSataIdTbl;
+    *puiSzie    = sizeof(pciStorageSataIdTbl) / sizeof(PCI_DEV_ID_CB);
 
     return (ERROR_NONE);
 }
@@ -516,12 +516,6 @@ static INT  pciStorageSataCtrlOpt (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, INT  
     case AHCI_OPT_CMD_SECTOR_SIZE_GET:
         if (lArg) {
             *(ULONG *)lArg = AHCI_SECTOR_SIZE;
-        }
-        break;
-
-    case AHCI_OPT_CMD_SECTOR_BUFF_SIZE_GET:
-        if (lArg) {
-            *(ULONG *)lArg = AHCI_SECTOR_BUFF_LEN;
         }
         break;
 
@@ -784,8 +778,8 @@ static INT  pciStorageSataVendorCtrlReadyWork (AHCI_CTRL_HANDLE  hCtrl)
     ulBaseAddr                = (ULONG)(PCI_RESOURCE_START(hResource));
     hCtrl->AHCICTRL_pvRegAddr = (PVOID)ulBaseAddr;
     hCtrl->AHCICTRL_stRegSize = (size_t)(PCI_RESOURCE_SIZE(hResource));
-    hCtrl->AHCICTRL_pvRegAddr = API_VmmIoRemapNocache(hCtrl->AHCICTRL_pvRegAddr,
-                                                      hCtrl->AHCICTRL_stRegSize);
+    hCtrl->AHCICTRL_pvRegAddr = API_PciDevIoRemap(hCtrl->AHCICTRL_pvRegAddr,
+                                                  hCtrl->AHCICTRL_stRegSize);
     if (hCtrl->AHCICTRL_pvRegAddr == LW_NULL) {
         AHCI_LOG(AHCI_LOG_ERR, "pci mem resource ioremap failed.", 0);
         return  (PX_ERROR);

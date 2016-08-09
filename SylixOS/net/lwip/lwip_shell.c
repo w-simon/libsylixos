@@ -814,7 +814,7 @@ VOID  __tshellNetInit (VOID)
     __tshellRouteInit();                                                /*  ×¢²á route ÃüÁî             */
 
     API_TShellKeywordAdd("netstat", __tshellNetstat);
-    API_TShellFormatAdd("netstat",  " {[-wtux --A] -i | [hrigs]}");
+    API_TShellFormatAdd("netstat",  " {[-wtux --A] -i | [-hrigsapl]}");
     API_TShellHelpAdd("netstat",    _G_cNetstatHelp);
 
     API_TShellKeywordAdd("ifconfig", __tshellIfconfig);

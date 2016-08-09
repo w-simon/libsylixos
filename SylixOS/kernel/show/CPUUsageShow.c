@@ -34,6 +34,7 @@
   加入裁剪支持
 *********************************************************************************************************/
 #if LW_CFG_FIO_LIB_EN > 0 && LW_CFG_THREAD_CPU_USAGE_CHK_EN > 0
+#include "../SylixOS/shell/include/ttiny_shell.h"
 /*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
@@ -58,6 +59,10 @@ VOID    API_CPUUsageShow (INT  iWaitSec, INT  iTimes)
 {
     REGISTER INT              i;
              INT              iCounter;
+             
+             ULONG            ulLitePercent = (100 / LW_NCPUS) / 2;     /*  单核  5 % 以上利用率        */
+             ULONG            ulHalfPercent = (100 / LW_NCPUS) * 4;     /*  单核 30 % 以上利用率        */
+             ULONG            ulFullPercent = (100 / LW_NCPUS) * 7;     /*  单核 70 % 以上利用率        */
              
              INT              iThreadNum;
              LW_OBJECT_HANDLE ulId[LW_CFG_MAX_THREADS];
@@ -101,8 +106,11 @@ VOID    API_CPUUsageShow (INT  iWaitSec, INT  iTimes)
         uiAccuracy = ((UINT)LW_TICK_HZ * 10)
                    / ((UINT)iWaitSec * (UINT)LW_TICK_HZ);               /*  计算测量精度                */
         
+        API_TShellColorStart2(LW_TSHELL_COLOR_LIGHT_RED, STD_OUT);
         printf("CPU usage show (measurement accuracy %d.%d%%) >>\n", 
                uiAccuracy / 10, uiAccuracy % 10);
+        API_TShellColorEnd(STD_OUT);
+        
         printf(_G_cCPUUsageInfoHdr);                                    /*  打印欢迎信息                */
         
         iThreadNum = API_ThreadGetCPUUsageAll(ulId, uiThreadUsage, uiThreadKernel, LW_CFG_MAX_THREADS);
@@ -117,14 +125,22 @@ VOID    API_CPUUsageShow (INT  iWaitSec, INT  iTimes)
             if ((API_ThreadGetName(ulId[i], cName) == ERROR_NONE) &&
                 (API_ThreadGetPriority(ulId[i], &ucPriority) == ERROR_NONE)) {
                 
+                if (uiThreadUsage[i] > ulFullPercent) {
+                    API_TShellColorStart2(LW_TSHELL_COLOR_LIGHT_RED, STD_OUT);
+                
+                } else if (uiThreadUsage[i] > ulHalfPercent) {
+                    API_TShellColorStart2(LW_TSHELL_COLOR_YELLOW, STD_OUT);
+                
+                } else if (uiThreadUsage[i] > ulLitePercent) {
+                    API_TShellColorStart2(LW_TSHELL_COLOR_GREEN, STD_OUT);
+                }
+                
                 printf("%-16s %7lx %3d %3d.%d%% %3d.%d%%\n", 
-                       cName,                                           /*  线程名                      */
-                       ulId[i],                                         /*  线程代码入口                */
-                       ucPriority,                                      /*  优先级                      */
-                       uiThreadUsage[i] / 10,
-                       uiThreadUsage[i] % 10,
-                       uiThreadKernel[i] / 10,
-                       uiThreadKernel[i] % 10);
+                       cName, ulId[i], ucPriority,
+                       uiThreadUsage[i] / 10, uiThreadUsage[i] % 10,
+                       uiThreadKernel[i] / 10, uiThreadKernel[i] % 10);
+                       
+                API_TShellColorEnd(STD_OUT);
             }
         }
     }
@@ -132,6 +148,7 @@ VOID    API_CPUUsageShow (INT  iWaitSec, INT  iTimes)
     
     printf("\n");
 }
+
 #endif                                                                  /*  LW_CFG_FIO_LIB_EN > 0       */
                                                                         /*  LW_CFG_THREAD_CPU_...       */
 /*********************************************************************************************************

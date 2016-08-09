@@ -31,7 +31,11 @@
   经验数据
 *********************************************************************************************************/
 #define __LW_DISKCACHE_BG_SECONDS       2                               /*  回写周期                    */
-#define __LW_DISKCACHE_BG_MINSECTOR     64                              /*  每次最少回写的扇区数        */
+#define __LW_DISKCACHE_BG_MINSECTOR     64                              /*  每次回写的扇区数            */
+/*********************************************************************************************************
+  函数声明
+*********************************************************************************************************/
+extern INT  __diskCacheIoctl(PLW_DISKCACHE_CB   pdiskcDiskCache, INT  iCmd, LONG  lArg);
 /*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
@@ -56,7 +60,7 @@ static PLW_LIST_LINE    _G_plineDiskCacheOp     = LW_NULL;              /*  操作
 PVOID  __diskCacheThread (PVOID  pvArg)
 {
     PLW_DISKCACHE_CB   pdiskcDiskCache;
-    ULONG              ulNSector;
+    ULONG              ulNSector = __LW_DISKCACHE_BG_MINSECTOR;
     
     (VOID)pvArg;
     
@@ -73,11 +77,9 @@ PVOID  __diskCacheThread (PVOID  pvArg)
             
             __LW_DISKCACHE_LIST_UNLOCK();                               /*  释放链表操作使用权          */
             
-            ulNSector = __MAX(__LW_DISKCACHE_BG_MINSECTOR, 
-                              (pdiskcDiskCache->DISKC_ulDirtyCounter / 2));
-                                                                        /*  计算回写磁盘的扇区数        */
-            pdiskcDiskCache->DISKC_blkdCache.BLKD_pfuncBlkIoctl(pdiskcDiskCache, 
-                LW_BLKD_DISKCACHE_RAMFLUSH, (LONG)ulNSector);           /*  回写磁盘                    */
+            __diskCacheIoctl(pdiskcDiskCache, 
+                             LW_BLKD_DISKCACHE_RAMFLUSH, 
+                             ulNSector);                                /*  回写磁盘                    */
             
             __LW_DISKCACHE_LIST_LOCK();                                 /*  获取链表操作使用权          */
         }

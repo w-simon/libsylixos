@@ -27,9 +27,14 @@
 *********************************************************************************************************/
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_AHCI_EN > 0)
 
+LW_API INT                  API_AhciDevBlkWrite(AHCI_DEV_HANDLE  hDev,
+                                                PVOID  pvBuffer, ULONG  ulBlkStart, ULONG  ulBlkCount);
+LW_API INT                  API_AhciDevBlkRead(AHCI_DEV_HANDLE  hDev,
+                                               PVOID  pvBuffer, ULONG  ulBlkStart, ULONG  ulBlkCount);
+
 LW_API INT                  API_AhciDevDelete(AHCI_DEV_HANDLE  hDev);
-LW_API AHCI_DEV_HANDLE      API_AhciDevAdd(AHCI_CTRL_HANDLE  hCtrl, INT  iDrive);
-LW_API AHCI_DEV_HANDLE      API_AhciDevHandleGet(INT  iCtrl, INT  iDrive);
+LW_API AHCI_DEV_HANDLE      API_AhciDevAdd(AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive);
+LW_API AHCI_DEV_HANDLE      API_AhciDevHandleGet(UINT  uiCtrl, UINT  uiDrive);
 LW_API UINT32               API_AhciDevCountGet(VOID);
 LW_API INT                  API_AhciDevInit(VOID);
 

@@ -113,6 +113,7 @@ INT  __blockIoDevCreate (PLW_BLK_DEV  pblkdNew)
     
     if (i >= LW_CFG_MAX_VOLUMES) {
         return  (-2);
+    
     } else {
         return  (i);
     }
@@ -213,6 +214,7 @@ INT  __blockIoDevRead (INT     iIndex,
         _DebugFormat(__ERRORMESSAGE_LEVEL, "can not read block: blk %d sector %lu [%ld].\r\n",
                      iIndex, ulStartSector, ulSectorCount);
         return  (PX_ERROR);
+    
     } else {
         return  (ERROR_NONE);
     }
@@ -273,6 +275,7 @@ INT  __blockIoDevWrite (INT     iIndex,
         _DebugFormat(__ERRORMESSAGE_LEVEL, "can not write block: blk %d sector %lu [%ld].\r\n",
                      iIndex, ulStartSector, ulSectorCount);
         return  (PX_ERROR);
+    
     } else {
         return  (ERROR_NONE);
     }
@@ -431,6 +434,7 @@ INT  __blockIoDevReset (INT     iIndex)
     
     if (i >= pblkd->BLKD_iRetry) {
         return  (PX_ERROR);
+    
     } else {
         return  (ERROR_NONE);
     }
@@ -449,6 +453,7 @@ INT  __blockIoDevStatus (INT     iIndex)
     
     if (pblkd->BLKD_pfuncBlkStatusChk) {
         return  (pblkd->BLKD_pfuncBlkStatusChk(pblkd));
+    
     } else {
         return  (ERROR_NONE);
     }
@@ -481,6 +486,7 @@ INT  __blockIoDevFlag (INT     iIndex)
     
     return  (pblkd->BLKD_iFlag);
 }
+
 #endif                                                                  /*  LW_CFG_MAX_VOLUMES          */
 /*********************************************************************************************************
   END

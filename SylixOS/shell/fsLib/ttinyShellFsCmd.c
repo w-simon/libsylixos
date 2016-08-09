@@ -2075,7 +2075,7 @@ VOID  __tshellFsCmdInit (VOID)
     API_TShellHelpAdd("cat", "display file\n");
     
     API_TShellKeywordAdd("cp", __tshellFsCmdCp);
-    API_TShellFormatAdd("cp", " scr file name dst file name");
+    API_TShellFormatAdd("cp", " src file name dst file name");
     API_TShellHelpAdd("cp", "copy file\n");
     
     API_TShellKeywordAdd("cmp", __tshellFsCmdCmp);

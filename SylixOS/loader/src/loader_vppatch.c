@@ -1852,7 +1852,7 @@ INT  API_ModuleAddr (PVOID   pvAddr,
     tsba.TSBA_pcAddr     = (PCHAR)pvAddr;
     tsba.TSBA_psymbol    = LW_NULL;
     tsba.TSBA_pmod       = LW_NULL;
-    tsba.TSBA_stDistance = __LW_MODULE_MAX_DISTANCE;                    
+    tsba.TSBA_stDistance = __LW_MODULE_MAX_DISTANCE;
     
     if (pvproc) {
         LW_VP_LOCK(pvproc);

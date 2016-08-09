@@ -65,36 +65,57 @@
 #define LW_BLKD_DISKCACHE_CALLBACKARG   LW_OSIOD('b', 155, PVOID)       /*  回调函数参数                */
 
 /*********************************************************************************************************
-  操作参数宏
+  DISK CACHE 描述
   
-  硬件如有 DMA 操作不允许旁路 DISK CACHE, 因为 DISK CACHE 针对 CPU CACHE 拥有相关硬件对齐性质.
+  注意: 
+    
+    1. 当设备支持并发读写操作时, DCATTR_bParallel = LW_TRUE, 否则为 LW_FALSE
+    2. DCATTR_iPipeline >= 0 && < LW_CFG_DISKCACHE_MAX_PIPELINE.
+       DCATTR_iPipeline == 0 表示不使用管线并发技术.
+    3. DCATTR_iMsgCount 最小为 DCATTR_iPipeline, 可以为 DCATTR_iPipeline 2 ~ 8 倍.
 *********************************************************************************************************/
 
-#define LW_DISKCACHE_OPT_DISABLE        0x0                             /*  设置 CACHE 旁路             */
-#define LW_DISKCACHE_OPT_ENABLE         0x1                             /*  设置 CACHE 有效             */
+typedef struct {
+    PVOID           DCATTR_pvCacheMem;                                  /*  扇区缓存地址                */
+    size_t          DCATTR_stMemSize;                                   /*  扇区缓存大小                */
+    BOOL            DCATTR_bCacheCoherence;                             /*  缓冲区需要 CACHE 一致性保障 */
+    INT             DCATTR_iMaxRBurstSector;                            /*  磁盘猝发读的最大扇区数      */
+    INT             DCATTR_iMaxWBurstSector;                            /*  磁盘猝发写的最大扇区数      */
+    INT             DCATTR_iMsgCount;                                   /*  管线消息队列缓存个数        */
+    INT             DCATTR_iPipeline;                                   /*  处理管线线程数量            */
+    BOOL            DCATTR_bParallel;                                   /*  是否支持并行读写            */
+    ULONG           DCATTR_ulReserved[8];                               /*  保留                        */
+} LW_DISKCACHE_ATTR;
+typedef LW_DISKCACHE_ATTR  *PLW_DISKCACHE_ATTR;
 
 /*********************************************************************************************************
   API
 *********************************************************************************************************/
+
 LW_API ULONG  API_DiskCacheCreate(PLW_BLK_DEV   pblkdDisk, 
                                   PVOID         pvDiskCacheMem, 
                                   size_t        stMemSize, 
                                   INT           iMaxBurstSector,
                                   PLW_BLK_DEV  *ppblkDiskCache);
-                                  
+
 LW_API ULONG  API_DiskCacheCreateEx(PLW_BLK_DEV   pblkdDisk, 
                                     PVOID         pvDiskCacheMem, 
                                     size_t        stMemSize, 
                                     INT           iMaxRBurstSector,
                                     INT           iMaxWBurstSector,
                                     PLW_BLK_DEV  *ppblkDiskCache);
-                                  
+
+LW_API ULONG  API_DiskCacheCreateEx2(PLW_BLK_DEV          pblkdDisk, 
+                                     PLW_DISKCACHE_ATTR   pdcattrl,
+                                     PLW_BLK_DEV         *ppblkDiskCache);
+
 LW_API INT    API_DiskCacheDelete(PLW_BLK_DEV   pblkdDiskCache);
 
 LW_API INT    API_DiskCacheSync(PLW_BLK_DEV   pblkdDiskCache);
 
 #define diskCacheCreate     API_DiskCacheCreate
 #define diskCacheCreateEx   API_DiskCacheCreateEx
+#define diskCacheCreateEx2  API_DiskCacheCreateEx2
 #define diskCacheDelete     API_DiskCacheDelete
 #define diskCacheSync       API_DiskCacheSync
 

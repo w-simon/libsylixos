@@ -237,7 +237,7 @@ enum {
 /*********************************************************************************************************
   Maximum PCI I/O space address supported
 *********************************************************************************************************/
-#define PCI_IO_SPACE_LIMIT 0xffffffff
+#define PCI_IO_SPACE_LIMIT                  0xffffffff
 
 /*********************************************************************************************************
   PnP I/O specific bits (PCI_IORESOURCE_BITS)
@@ -545,6 +545,7 @@ typedef struct pci_drv_funcs12 {
     VOID    (*ioOutByte)(UINT8 ucValue, addr_t ulAddr);
     VOID    (*ioOutWord)(UINT16 usValue, addr_t ulAddr);
     VOID    (*ioOutDword)(UINT32 uiValue, addr_t ulAddr);
+    INT     (*irqGet)(INT iBus, INT iSlot, INT iFunc, INT iMsiEn, INT iLine, INT iPin, ULONG *pulVector);
 } PCI_DRV_FUNCS12;                                                      /*  PCI_MECHANISM_1 , 2         */
 
 /*********************************************************************************************************
@@ -688,6 +689,9 @@ LW_API INT              API_PciDevConfigWriteDword(PCI_DEV_HANDLE hHandle, UINT 
 LW_API PCI_RESOURCE_HANDLE  API_PciResourceGet(INT iBus, INT iDevice, INT iFunc, UINT uiType, UINT uiNum);
 LW_API PCI_RESOURCE_HANDLE  API_PciDevResourceGet(PCI_DEV_HANDLE  hDevHandle, UINT uiType, UINT uiNum);
 
+LW_API PVOID                API_PciDevIoRemap(PVOID  pvPhysicalAddr, size_t  stSize);
+LW_API PVOID                API_PciDevIoRemapEx(PVOID  pvPhysicalAddr, size_t  stSize, ULONG  ulFlags);
+
 LW_API INT                  API_PciDevMasterEnable(PCI_DEV_HANDLE  hDevHandle, BOOL bEnable);
 LW_API INT                  API_PciDevInterDisable(PCI_DEV_HANDLE   hHandle,
                                                    ULONG            ulVector,
@@ -741,6 +745,9 @@ LW_API PCI_DEV_HANDLE       API_PciDevHandleGet(INT iBus, INT iDevice, INT iFunc
 
 #define pciResourceGet          API_PciResourceGet
 #define pciDevResourceGet       API_PciDevResourceGet
+
+#define pciDevIoRemap           API_PciDevIoRemap
+#define pciDevIoRemapEx         API_PciDevIoRemapEx
 
 #define pciDevMasterEnable  	API_PciDevMasterEnable
 

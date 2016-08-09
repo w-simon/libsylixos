@@ -144,8 +144,8 @@ INT __ataCmd (__PATA_CTRL patactrler,
 
         if ((patactrl->ATACTRL_iIntStatus & __ATA_STAT_ERR) || (ulSemStatus != ERROR_NONE)) {
             ATA_DEBUG_MSG(("__ataCmd() error : status=0x%x ulSemStatus=%d err=0x%x\n",
-                             patactrl->ATACTRL_iIntStatus, ulSemStatus,
-                             __ATA_CTRL_INBYTE(patactrl, __ATA_ERROR(patactrl))));
+                           patactrl->ATACTRL_iIntStatus, ulSemStatus,
+                           __ATA_CTRL_INBYTE(patactrl, __ATA_ERROR(patactrl))));
             if (++iRetryCount > _G_iAtaRetry) {                         /*  重试大于默认次数,错误返回   */
                 return  (PX_ERROR);
             }
@@ -194,7 +194,7 @@ INT __ataWait (__PATA_CTRL patactrler, INT iRequest)
 
     case __ATA_STAT_READY:
         for (i = 0; i < __ATA_TIMEOUT_LOOP; i++) {
-            if ((__ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl)) &  __ATA_STAT_BUSY) == 0) {
+            if ((__ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl)) & __ATA_STAT_BUSY) == 0) {
                                                                         /*  等待设备不忙                */
                 break;
             }
@@ -264,7 +264,6 @@ INT __ataWait (__PATA_CTRL patactrler, INT iRequest)
         for (i = 0; i < __ATA_TIMEOUT_LOOP; i++) {
             if ((__ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl)) &  \
                 (__ATA_STAT_BUSY | __ATA_STAT_DRQ)) == 0) {             /*  设备空闲                    */
-
                 return  (ERROR_NONE);
             }
 
@@ -401,7 +400,7 @@ INT __ataDriveInit (__PATA_CTRL patactrler, INT iDrive)
 
     if (__ataDevIdentify(patactrler, iDrive) != ERROR_NONE) {           /*  确认设备是否存在以及设备类型*/
         patadrive->ATADRIVE_ucState = __ATA_DEV_NONE;
-        goto __error_handle;
+        goto    __error_handle;
     }
 
     if (patadrive->ATADRIVE_ucType == __ATA_TYPE_ATA) {                 /*  设备为ATA类型设备           */
@@ -411,10 +410,12 @@ INT __ataDriveInit (__PATA_CTRL patactrler, INT iDrive)
         if ((iConfigType & __ATA_GEO_MASK) == ATA_GEO_FORCE) {
             __ataCmd(patactrl, iDrive, __ATA_CMD_INITP, 0, 0);
             __ataPread(patactrl, iDrive, (INT8 *)pataparam);
+        
         } else if ((iConfigType & __ATA_GEO_MASK) == ATA_GEO_PHYSICAL) {
             patatype->ATATYPE_iCylinders = pataparam->ATAPAR_sCylinders;
             patatype->ATATYPE_iHeads     = pataparam->ATAPAR_sHeads;
             patatype->ATATYPE_iSectors   = pataparam->ATAPAR_sSectors;
+        
         } else if ((iConfigType & __ATA_GEO_MASK) == ATA_GEO_CURRENT) {
             if ((pataparam->ATAPAR_sCurrentCylinders != 0) &&
                 (pataparam->ATAPAR_sCurrentHeads     != 0) &&
@@ -422,6 +423,7 @@ INT __ataDriveInit (__PATA_CTRL patactrler, INT iDrive)
                 patatype->ATATYPE_iCylinders = pataparam->ATAPAR_sCurrentCylinders;
                 patatype->ATATYPE_iHeads     = pataparam->ATAPAR_sCurrentHeads;
                 patatype->ATATYPE_iSectors   = pataparam->ATAPAR_sCurrentSectors;
+            
             } else {
                 patatype->ATATYPE_iCylinders = pataparam->ATAPAR_sCylinders;
                 patatype->ATATYPE_iHeads     = pataparam->ATAPAR_sHeads;
@@ -433,21 +435,23 @@ INT __ataDriveInit (__PATA_CTRL patactrler, INT iDrive)
 
         if (pataparam->ATAPAR_sCapabilities & __ATA_IOLBA_MASK) {       /*  设备支持LBA模式,保存总扇区数*/
             patadrive->ATADRIVE_uiCapacity =
-            (UINT)((((UINT)((pataparam->ATAPAR_usSectors0) & 0x0000ffff)) <<  0) |
+            (UINT)((((UINT)((pataparam->ATAPAR_usSectors0) & 0x0000ffff)) << 0) |
             (((UINT)((pataparam->ATAPAR_usSectors1) & 0x0000ffff)) << 16));
 
             ATA_DEBUG_MSG(("ID_iDrive reports LBA (60-61) as 0x%x\n",
-                    patadrive->ATADRIVE_uiCapacity));
+                           patadrive->ATADRIVE_uiCapacity));
         }
     } else if (patadrive->ATADRIVE_ucType == __ATA_TYPE_ATAPI) {
         /*
          *  TODO: 对ATAPI类型设备的支持
          */
         return  (PX_ERROR);
+    
     } else {
         ATA_DEBUG_MSG(("__ataDriveInit() error: Unknow ata drive type!\r\n"));
-        return (PX_ERROR);
+        return  (PX_ERROR);
     }
+    
     /*
      *  得到设备所支持的特性
      */
@@ -501,6 +505,7 @@ INT __ataDriveInit (__PATA_CTRL patactrler, INT iDrive)
         if (patadrive->ATADRIVE_sOkMulti) {
             (VOID)__ataCmd(patactrler, iDrive, __ATA_CMD_SET_MULTI,
                            patadrive->ATADRIVE_sMultiSecs, 0);
+        
         } else {
             patadrive->ATADRIVE_sRwPio = ATA_PIO_SINGLE;
         }
@@ -534,6 +539,7 @@ INT __ataDriveInit (__PATA_CTRL patactrler, INT iDrive)
     default:
         break;
     }
+    
     /*
      *  设置传输模式
      */
@@ -546,10 +552,10 @@ __error_handle:
     if (patadrive->ATADRIVE_ucState != __ATA_DEV_OK) {
         ATA_DEBUG_MSG(("__ataiDriveInit() %d/%d: ERROR: state=%d iDev=0x%x "
                        "status=0x%x error=0x%x\n", patactrl->ATACTRL_iCtrl, iDrive,
-                        patadrive->ATADRIVE_ucState,
-                        __ATA_CTRL_INBYTE(patactrl, __ATA_SDH(patactrl)),
-                        __ATA_CTRL_INBYTE(patactrl, __ATA_STATUS(patactrl)),
-                        __ATA_CTRL_INBYTE(patactrl, __ATA_ERROR(patactrl))));
+                       patadrive->ATADRIVE_ucState,
+                       __ATA_CTRL_INBYTE(patactrl, __ATA_SDH(patactrl)),
+                       __ATA_CTRL_INBYTE(patactrl, __ATA_STATUS(patactrl)),
+                       __ATA_CTRL_INBYTE(patactrl, __ATA_ERROR(patactrl))));
         return  (PX_ERROR);
     }
 
@@ -588,19 +594,21 @@ INT __ataDevIdentify (__PATA_CTRL patactrler, INT iDrive)
 
     istatus = __ataWait(patactrl, __ATA_STAT_IDLE);
     if (istatus != ERROR_NONE) {
-        ATA_DEBUG_MSG(("__ataDevIdentify() %d/%d: istatus = 0x%x read timed out\n",
-                       patactrl->ATACTRL_iCtrl, iDrive, istatus));
+        ATA_DEBUG_MSG(("__ataDevIdentify() %d/%d: status = 0x%x read timed out\n",
+                       patactrl->ATACTRL_iCtrl, iDrive, 
+                       __ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl))));
         return  (PX_ERROR);
     }
 
     __ATA_CTRL_OUTBYTE(patactrl, __ATA_SDH(patactrl),   \
-                       (UINT8)(__ATA_SDH_LBA    |       \
+                       (UINT8)(__ATA_SDH_LBA |          \
                        (iDrive << __ATA_DRIVE_BIT)));                   /*  选择设备                    */
 
     istatus = __ataWait(patactrl, __ATA_STAT_BUSY);
     if (istatus != ERROR_NONE) {                                        /*  等待设备选择完成            */
-        ATA_DEBUG_MSG(("__ataDevIdentify() %d/%d: istatus = 0x%x read timed out\n",
-                      patactrl->ATACTRL_iCtrl, iDrive, istatus));
+        ATA_DEBUG_MSG(("__ataDevIdentify() %d/%d: status = 0x%x read timed out\n",
+                      patactrl->ATACTRL_iCtrl, iDrive, 
+                      __ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl))));
         return  (PX_ERROR);
     }
 
@@ -608,8 +616,9 @@ INT __ataDevIdentify (__PATA_CTRL patactrler, INT iDrive)
                                                                         /*  是否使能中断                */
     istatus = __ataWait(patactrl, __ATA_STAT_IDLE);
     if (istatus != ERROR_NONE) {
-        ATA_DEBUG_MSG(("__ataDevIdentify() %d/%d: istatus = 0x%x read timed out\n",
-                        patactrl->ATACTRL_iCtrl, iDrive, istatus));
+        ATA_DEBUG_MSG(("__ataDevIdentify() %d/%d: status = 0x%x read timed out\n",
+                       patactrl->ATACTRL_iCtrl, iDrive, 
+                       __ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl))));
         return  (PX_ERROR);
     }
 
@@ -618,7 +627,7 @@ INT __ataDevIdentify (__PATA_CTRL patactrler, INT iDrive)
 
     if (__ATA_CTRL_INBYTE(patactrl, __ATA_SECCNT(patactrl)) == 0x23) {
         /*
-         *  已确认设备存在,然后找出设备类型,uiSignature由__ataCtrlReset()函数确定
+         *  已确认设备存在, 然后找出设备类型, uiSignature 由 __ataCtrlReset() 函数确定
          */
         patactrl->ATACTRL_bIsExist = LW_TRUE;
 
@@ -632,7 +641,7 @@ INT __ataDevIdentify (__PATA_CTRL patactrler, INT iDrive)
             patadrive->ATADRIVE_ucType      = __ATA_TYPE_NONE;
             patadrive->ATADRIVE_uiSignature = 0;
             ATA_DEBUG_MSG(("__ataDeviceIdentify(): Unknown device found on %d/%d\n",
-                            patactrl->ATACTRL_iCtrl, iDrive));
+                           patactrl->ATACTRL_iCtrl, iDrive));
         }
 
         if (patadrive->ATADRIVE_ucType != __ATA_TYPE_NONE) {
@@ -647,7 +656,7 @@ INT __ataDevIdentify (__PATA_CTRL patactrler, INT iDrive)
         patadrive->ATADRIVE_uiSignature = 0xffffffff;
 
         ATA_DEBUG_MSG(("__ataDeviceIdentify() error: Unknown device found on %d/%d\n",
-                        patactrl->ATACTRL_iCtrl, iDrive));
+                       patactrl->ATACTRL_iCtrl, iDrive));
 
         return  (PX_ERROR);
     }
@@ -679,7 +688,6 @@ INT __ataCtrlReset (__PATA_CTRL patactrler)
     patactrl = patactrler;
 
     __ATA_CTRL_OUTBYTE(patactrl, __ATA_DCONTROL(patactrl), __ATA_CTL_RST | __ATA_CTL_IDS);
-
     __ATA_DELAYMS(1);
 
     __ATA_CTRL_OUTBYTE(patactrl, __ATA_DCONTROL(patactrl),  \
@@ -707,6 +715,7 @@ INT __ataCtrlReset (__PATA_CTRL patactrler)
 
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0)      */
                                                                         /*  (LW_CFG_ATA_EN > 0)         */
 /*********************************************************************************************************

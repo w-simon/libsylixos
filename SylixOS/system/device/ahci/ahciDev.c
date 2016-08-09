@@ -75,28 +75,28 @@ INT  API_AhciDevDelete (AHCI_DEV_HANDLE  hDev)
 ** 函数名称: API_AhciDevAdd
 ** 功能描述: 增加一个设备
 ** 输　入  : hCtrl      控制器句柄
-**           iDrive     驱动器编号
+**           uiDrive    驱动器编号
 ** 输　出  : 设备控制句柄
 ** 全局变量:
 ** 调用模块:
                                            API 函数
 *********************************************************************************************************/
 LW_API
-AHCI_DEV_HANDLE  API_AhciDevAdd (AHCI_CTRL_HANDLE  hCtrl, INT  iDrive)
+AHCI_DEV_HANDLE  API_AhciDevAdd (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
 {
     AHCI_DRIVE_HANDLE   hDrive = LW_NULL;
     AHCI_DEV_HANDLE     hDev   = LW_NULL;
 
-    if (iDrive >= hCtrl->AHCICTRL_uiImpPortNum) {
+    if (uiDrive >= hCtrl->AHCICTRL_uiImpPortNum) {
         return  (LW_NULL);
     }
 
-    hDev = API_AhciDevHandleGet(hCtrl->AHCICTRL_uiIndex, iDrive);
+    hDev = API_AhciDevHandleGet(hCtrl->AHCICTRL_uiIndex, uiDrive);
     if (hDev != LW_NULL) {
         return  (hDev);
     }
 
-    hDrive = &hCtrl->AHCICTRL_hDrive[iDrive];
+    hDrive = &hCtrl->AHCICTRL_hDrive[uiDrive];
     hDev = hDrive->AHCIDRIVE_hDev;
     __AHCI_DEV_LOCK();
     _List_Line_Add_Ahead(&hDev->AHCIDEV_lineDevNode, &_GplineAhciDevHeader);
@@ -108,15 +108,15 @@ AHCI_DEV_HANDLE  API_AhciDevAdd (AHCI_CTRL_HANDLE  hCtrl, INT  iDrive)
 /*********************************************************************************************************
 ** 函数名称: API_AhciDevHandleGet
 ** 功能描述: 获取一个设备的句柄
-** 输　入  : iCtrl      控制器索引
-**           iDrive     驱动器索引
+** 输　入  : uiCtrl     控制器索引
+**           uiDrive    驱动器索引
 ** 输　出  : 设备控制句柄
 ** 全局变量:
 ** 调用模块:
                                            API 函数
 *********************************************************************************************************/
 LW_API
-AHCI_DEV_HANDLE  API_AhciDevHandleGet (INT  iCtrl, INT  iDrive)
+AHCI_DEV_HANDLE  API_AhciDevHandleGet (UINT  uiCtrl, UINT  uiDrive)
 {
     PLW_LIST_LINE       plineTemp = LW_NULL;
     AHCI_DEV_HANDLE     hDev      = LW_NULL;
@@ -127,8 +127,8 @@ AHCI_DEV_HANDLE  API_AhciDevHandleGet (INT  iCtrl, INT  iDrive)
          plineTemp != LW_NULL;
          plineTemp  = _list_line_get_next(plineTemp)) {
         hDev = _LIST_ENTRY(plineTemp, AHCI_DEV_CB, AHCIDEV_lineDevNode);
-        if ((hDev->AHCIDEV_uiCtrl  == iCtrl) &&
-            (hDev->AHCIDEV_uiDrive == iDrive)) {
+        if ((hDev->AHCIDEV_uiCtrl  == uiCtrl ) &&
+            (hDev->AHCIDEV_uiDrive == uiDrive)) {
             break;
         }
     }

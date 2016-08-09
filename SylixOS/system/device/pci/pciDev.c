@@ -995,6 +995,53 @@ INT  API_PciDevDelete (PCI_DEV_HANDLE  hHandle)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: API_PciDevIoRemapEx
+** 功能描述: 将物理 IO 空间指定内存映射到逻辑空间
+** 输　入  : pvPhysicalAddr     物理内存地址
+**           ulSize             需要映射的内存大小
+**           ulFlags            内存属性 LW_VMM_FLAG_DMA / LW_VMM_FLAG_RDWR / LW_VMM_FLAG_READ
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+PVOID  API_PciDevIoRemapEx (PVOID  pvPhysicalAddr, size_t  stSize, ULONG  ulFlags)
+{
+#if LW_CFG_VMM_EN > 0
+    size_t  stSizeAlign = ROUND_UP(stSize, LW_CFG_VMM_PAGE_SIZE);
+    addr_t  ulBaseAlign = ROUND_DOWN(((addr_t)pvPhysicalAddr), LW_CFG_VMM_PAGE_SIZE);
+    addr_t  ulOffset    = (addr_t)pvPhysicalAddr - ulBaseAlign;
+    PVOID   pvRet;
+    
+    pvRet = API_VmmIoRemapEx((PVOID)ulBaseAlign, stSizeAlign, ulFlags);
+    if (!pvRet) {
+        return  (LW_NULL);
+    }
+    
+    pvRet = (PVOID)((addr_t)pvRet + ulOffset);
+    
+    return  (pvRet);
+#else
+    return  (pvPhysicalAddr);
+#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
+}
+/*********************************************************************************************************
+** 函数名称: API_PciDevIoRemap
+** 功能描述: 将物理 IO 空间指定内存映射到逻辑空间
+** 输　入  : pvPhysicalAddr     物理内存地址
+**           ulSize             需要映射的内存大小
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+PVOID  API_PciDevIoRemap (PVOID  pvPhysicalAddr, size_t  stSize)
+{
+    return  (API_PciDevIoRemapEx(pvPhysicalAddr, stSize, LW_VMM_FLAG_DMA));
+}
+/*********************************************************************************************************
 ** 函数名称: API_PciDevDrvDel
 ** 功能描述: 删除一个 PCI 设备的驱动
 ** 输　入  : hDevHandle     设备控制句柄
@@ -1190,6 +1237,7 @@ INT  API_PciDevInit (VOID)
 
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */
                                                                         /*  (LW_CFG_PCI_EN > 0)         */
 /*********************************************************************************************************

@@ -71,6 +71,36 @@ typedef struct {
 } LW_DISKCACHE_NODE;
 typedef LW_DISKCACHE_NODE  *PLW_DISKCACHE_NODE;
 /*********************************************************************************************************
+  DISK CACHE 并发写管线
+*********************************************************************************************************/
+typedef struct {
+    ULONG                   DISKCWPM_ulStartSector;                     /*  起始扇区                    */
+    ULONG                   DISKCWPM_ulNSector;                         /*  扇区数量                    */
+    PVOID                   DISKCWPM_pvBuffer;                          /*  扇区缓冲                    */
+} LW_DISKCACHE_WPMSG;
+typedef LW_DISKCACHE_WPMSG *PLW_DISKCACHE_WPMSG;
+
+typedef struct {
+    BOOL                    DISKCWP_bExit;                              /*  是否需要退出                */
+    BOOL                    DISKCWP_bCacheCoherence;                    /*  CACHE 一致性标志            */
+    BOOL                    DISKCWP_bParallel;                          /*  并行化读写支持              */
+    
+    INT                     DISKCWP_iPipeline;                          /*  写管线线程数                */
+    INT                     DISKCWP_iMsgCount;                          /*  写消息缓冲个数              */
+    
+    PVOID                   DISKCWP_pvRBurstBuffer;                     /*  管线缓存                    */
+    PVOID                   DISKCWP_pvWBurstBuffer;                     /*  管线缓存                    */
+    
+    LW_OBJECT_HANDLE        DISKCWP_hMsgQueue;                          /*  管线刷新队列                */
+    LW_OBJECT_HANDLE        DISKCWP_hCounter;                           /*  计数信号量                  */
+    LW_OBJECT_HANDLE        DISKCWP_hPart;                              /*  管线缓存管理                */
+    LW_OBJECT_HANDLE        DISKCWP_hSync;                              /*  排空信号                    */
+    LW_OBJECT_HANDLE        DISKCWP_hDev;                               /*  非并发设备锁                */
+    LW_OBJECT_HANDLE        DISKCWP_hWThread[LW_CFG_DISKCACHE_MAX_PIPELINE];
+                                                                        /*  管线写任务表                */
+} LW_DISKCACHE_WP;
+typedef LW_DISKCACHE_WP    *PLW_DISKCACHE_WP;
+/*********************************************************************************************************
   DISK CACHE NODE
 *********************************************************************************************************/
 typedef struct {
@@ -89,7 +119,7 @@ typedef struct {
     
     INT                     DISKC_iMaxRBurstSector;                     /*  最大猝发读写扇区数量        */
     INT                     DISKC_iMaxWBurstSector;
-    caddr_t                 DISKC_pcBurstBuffer;                        /*  猝发读写缓冲区              */
+    LW_DISKCACHE_WP         DISKC_wpWrite;                              /*  并发写管线                  */
     
     PLW_LIST_RING           DISKC_pringLruHeader;                       /*  LRU 表头                    */
     PLW_LIST_LINE          *DISKC_pplineHash;                           /*  HASH 表池                   */

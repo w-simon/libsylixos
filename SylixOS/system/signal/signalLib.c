@@ -337,6 +337,7 @@ static VOID  __sigMakeReady (PLW_CLASS_TCB  ptcb,
     if (ptcb->TCB_usStatus & LW_THREAD_STATUS_DELAY) {                  /*  存在于唤醒队列中            */
         __DEL_FROM_WAKEUP_LINE(ptcb);                                   /*  从等待链中删除              */
         ptcb->TCB_ulDelay = 0ul;
+        *piSchedRet = iSaType;                                          /*  设置调度器返回值            */
     }
     
     if (__SIGNO_MUST_EXIT & __sigmask(iSigNo)) {                        /*  必须退出信号                */
@@ -490,6 +491,7 @@ static VOID  __sigReturn (PLW_CLASS_SIGCONTEXT  psigctx,
     ptcbCur->TCB_ucWaitTimeout   = psigctlmsg->SIGCTLMSG_ucWaitTimeout; /*  恢复 timeout 标志           */
     ptcbCur->TCB_ucIsEventDelete = psigctlmsg->SIGCTLMSG_ucIsEventDelete;
     
+    KN_SMP_MB();
     archSigCtxLoad(psigctlmsg->SIGCTLMSG_pvStackRet);                   /*  从信号上下文中返回          */
     KN_INT_ENABLE(iregInterLevel);                                      /*  运行不到这里                */
 }

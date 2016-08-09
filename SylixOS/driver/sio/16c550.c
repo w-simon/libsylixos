@@ -92,7 +92,7 @@ INT  sio16c550Init (SIO16C550_CHAN *psiochan)
     
     psiochan->channel_mode = SIO_MODE_POLL;
     psiochan->switch_en    = 0;
-    psiochan->hw_option    = (CLOCAL | CREAD | CS8 | HUPCL);
+    psiochan->hw_option    = (CLOCAL | CREAD | CS8);
 
     psiochan->mcr = MCR_OUT2;
     psiochan->lcr = 0;
@@ -444,7 +444,9 @@ static INT sio16c550Ioctl (SIO16C550_CHAN *psiochan, INT cmd, LONG arg)
         break;
 
     case SIO_OPEN:
-        error = sio16c550Open(psiochan);
+        if (psiochan->hw_option & HUPCL) {
+            error = sio16c550Open(psiochan);
+        }
         break;
 
     case SIO_SWITCH_PIN_EN_SET:

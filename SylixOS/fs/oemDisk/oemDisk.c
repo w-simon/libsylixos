@@ -34,6 +34,8 @@
 2015.12.25  加入 tpsFs 支持.
 2016.01.12  oemDisk 支持彻底脱离具体的文件系统调用.
 2016.05.10  oemDisk 遇到无法挂载的分区时, vol id 不增加.
+2016.07.25  oemDisk 加入并行化 diskCache 支持.
+2016.08.08  加入 mount 打印信息.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -117,10 +119,7 @@ static VOID __oemDiskForceDeleteDis (CPCHAR  pcVolName)
 ** 功能描述: 自动挂载一个磁盘的所有分区. 可以使用指定的文件系统类型挂载
 ** 输　入  : pcVolName          根节点名字 (当前 API 将根据分区情况在末尾加入数字)
 **           pblkdDisk          物理磁盘控制块 (必须是直接操作物理磁盘)
-**           pvDiskCacheMem     磁盘 CACHE 缓冲区的内存起始地址  (为零表示动态分配磁盘缓冲)
-**           stMemSize          磁盘 CACHE 缓冲区大小            (为零表示不需要 DISK CACHE)
-**           iMaxRBurstSector   磁盘猝发读的最大扇区数
-**           iMaxWBurstSector   磁盘猝发写的最大扇区数
+**           pdcattrl           磁盘 CACHE 参数.
 **           pcFsName           文件系统类型, 例如: "vfat" "tpsfs" "iso9660" "ntfs" ...
 **           bForceFsType       是否强制使用指定的文件系统类型
 ** 输　出  : OEM 磁盘控制块
@@ -130,20 +129,18 @@ static VOID __oemDiskForceDeleteDis (CPCHAR  pcVolName)
                                            API 函数
 *********************************************************************************************************/
 LW_API 
-PLW_OEMDISK_CB  API_OemDiskMountEx2 (CPCHAR        pcVolName,
-                                     PLW_BLK_DEV   pblkdDisk,
-                                     PVOID         pvDiskCacheMem, 
-                                     size_t        stMemSize, 
-                                     INT           iMaxRBurstSector,
-                                     INT           iMaxWBurstSector,
-                                     CPCHAR        pcFsName,
-                                     BOOL          bForceFsType)
+PLW_OEMDISK_CB  API_OemDiskMountEx2 (CPCHAR             pcVolName,
+                                     PLW_BLK_DEV        pblkdDisk,
+                                     PLW_DISKCACHE_ATTR pdcattrl,
+                                     CPCHAR             pcFsName,
+                                     BOOL               bForceFsType)
 {
              INT            i;
              INT            iErrLevel = 0;
              
     REGISTER ULONG          ulError;
              CHAR           cFullVolName[MAX_FILENAME_LENGTH];          /*  完整卷标名                  */
+             CPCHAR         pcFs;
              
              INT            iBlkIo;
              INT            iBlkIoErr;
@@ -185,25 +182,23 @@ PLW_OEMDISK_CB  API_OemDiskMountEx2 (CPCHAR        pcVolName,
     /* 
      *  分配磁盘缓冲内存
      */
-    if ((pvDiskCacheMem == LW_NULL) && (stMemSize > 0)) {               /*  是否需要动态分配磁盘缓冲    */
-        poemd->OEMDISK_pvCache = __SHEAP_ALLOC(stMemSize);
-        if (poemd->OEMDISK_pvCache == LW_NULL) {
+    if (pdcattrl->DCATTR_stMemSize &&
+        (!pdcattrl->DCATTR_pvCacheMem)) {                               /*  是否需要动态分配磁盘缓冲    */
+        pdcattrl->DCATTR_pvCacheMem = __SHEAP_ALLOC(pdcattrl->DCATTR_stMemSize);
+        if (pdcattrl->DCATTR_pvCacheMem == LW_NULL) {
             _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);                      /*  系统缺少内存                */
             goto    __error_handle;
         }
-        pvDiskCacheMem = poemd->OEMDISK_pvCache;
+        poemd->OEMDISK_pvCache = pdcattrl->DCATTR_pvCacheMem;
     }
     
     /*
      *  创建物理磁盘缓冲, 同时会初始化磁盘
      */
-    if (stMemSize) {
-        ulError = API_DiskCacheCreateEx(pblkdDisk, 
-                                        pvDiskCacheMem, 
-                                        stMemSize,
-                                        iMaxRBurstSector, 
-                                        iMaxWBurstSector, 
-                                        &poemd->OEMDISK_pblkdCache);
+    if (pdcattrl->DCATTR_stMemSize) {
+        ulError = API_DiskCacheCreateEx2(pblkdDisk, 
+                                         pdcattrl,
+                                         &poemd->OEMDISK_pblkdCache);
         if (ulError) {
             iErrLevel = 1;
             goto    __error_handle;
@@ -284,22 +279,27 @@ __refined_seq:
         case LW_DISK_PART_TYPE_WIN95_FAT16LBA:
             if (bForceFsType) {                                         /*  是否强制指定文件系统类型    */
                 pfuncFsCreate = __fsCreateFuncGet(pcFsName);
+                pcFs          = pcFsName;
             } else {
                 pfuncFsCreate = __fsCreateFuncGet("vfat");
+                pcFs          = "vfat";
             }
             break;
             
         case LW_DISK_PART_TYPE_TPS:
             if (bForceFsType) {                                         /*  是否强制指定文件系统类型    */
                 pfuncFsCreate = __fsCreateFuncGet(pcFsName);
+                pcFs          = pcFsName;
             } else {
                 pfuncFsCreate = __fsCreateFuncGet("tpsfs");
+                pcFs          = "tpsfs";
             }
             break;
         
         default:                                                        /*  默认使用指定文件系统类型    */
             if (bForceFsType) {                                         /*  是否强制指定文件系统类型    */
                 pfuncFsCreate = __fsCreateFuncGet(pcFsName);
+                pcFs          = pcFsName;
             }
             break;
         }
@@ -316,7 +316,10 @@ __refined_seq:
             }
             poemd->OEMDISK_pdevhdr[i] = API_IosDevMatchFull(cFullVolName);
             poemd->OEMDISK_iVolSeq[i] = iVolSeq;                        /*  记录卷序号                  */
-        
+            _DebugFormat(__PRINTMESSAGE_LEVEL, 
+                         "Block device %s%s%d part %d mount to %s use %s file system.\r\n", 
+                         LW_BLKIO_PERFIX, pcTail, iBlkIo, 
+                         i, cFullVolName, pcFs);
         } else {
             continue;                                                   /*  此分区无法加载              */
         }
@@ -378,44 +381,50 @@ PLW_OEMDISK_CB  API_OemDiskMountEx (CPCHAR        pcVolName,
                                     CPCHAR        pcFsName,
                                     BOOL          bForceFsType)
 {
-    INT   iMaxRBurstSector;
+    INT                 iMaxRBurstSector;
+    LW_DISKCACHE_ATTR   dcattrl;
     
     if (iMaxBurstSector > 2) {
         iMaxRBurstSector = iMaxBurstSector >> 1;                        /*  读猝发长度默认被写少一半    */
+    
+    } else {
+        iMaxRBurstSector = iMaxBurstSector;
     }
     
+    dcattrl.DCATTR_pvCacheMem       = pvDiskCacheMem;
+    dcattrl.DCATTR_stMemSize        = stMemSize;
+    dcattrl.DCATTR_bCacheCoherence  = LW_FALSE;
+    dcattrl.DCATTR_iMaxRBurstSector = iMaxRBurstSector;
+    dcattrl.DCATTR_iMaxWBurstSector = iMaxBurstSector;
+    dcattrl.DCATTR_iMsgCount        = 4;
+    dcattrl.DCATTR_iPipeline        = 1;
+    dcattrl.DCATTR_bParallel        = LW_FALSE;
+    
     return  (API_OemDiskMountEx2(pcVolName, pblkdDisk,
-                                 pvDiskCacheMem, stMemSize, 
-                                 iMaxRBurstSector, iMaxBurstSector,
-                                 pcFsName, bForceFsType));
+                                 &dcattrl, pcFsName, bForceFsType));
 }
 /*********************************************************************************************************
 ** 函数名称: API_OemDiskMount2
 ** 功能描述: 自动挂载一个磁盘的所有分区. 当无法识别分区时, 使用 FAT 格式挂载.
 ** 输　入  : pcVolName          根节点名字 (当前 API 将根据分区情况在末尾加入数字)
 **           pblkdDisk          物理磁盘控制块 (必须是直接操作物理磁盘)
-**           pvDiskCacheMem     磁盘 CACHE 缓冲区的内存起始地址  (为零表示动态分配磁盘缓冲)
-**           stMemSize          磁盘 CACHE 缓冲区大小            (为零表示不需要 DISK CACHE)
-**           iMaxRBurstSector   磁盘猝发读的最大扇区数
-**           iMaxWBurstSector   磁盘猝发写的最大扇区数
+**           pdcattrl           磁盘 CACHE 参数
 ** 输　出  : OEM 磁盘控制块
 ** 全局变量: 
 ** 调用模块: 
                                            API 函数
 *********************************************************************************************************/
 LW_API 
-PLW_OEMDISK_CB  API_OemDiskMount2 (CPCHAR        pcVolName,
-                                   PLW_BLK_DEV   pblkdDisk,
-                                   PVOID         pvDiskCacheMem, 
-                                   size_t        stMemSize, 
-                                   INT           iMaxRBurstSector,
-                                   INT           iMaxWBurstSector)
+PLW_OEMDISK_CB  API_OemDiskMount2 (CPCHAR               pcVolName,
+                                   PLW_BLK_DEV          pblkdDisk,
+                                   PLW_DISKCACHE_ATTR   pdcattrl)
 {
              INT            i;
              INT            iErrLevel = 0;
              
     REGISTER ULONG          ulError;
              CHAR           cFullVolName[MAX_FILENAME_LENGTH];          /*  完整卷标名                  */
+             CPCHAR         pcFs;
              
              INT            iBlkIo;
              INT            iBlkIoErr;
@@ -457,25 +466,23 @@ PLW_OEMDISK_CB  API_OemDiskMount2 (CPCHAR        pcVolName,
     /* 
      *  分配磁盘缓冲内存
      */
-    if ((pvDiskCacheMem == LW_NULL) && (stMemSize > 0)) {               /*  是否需要动态分配磁盘缓冲    */
-        poemd->OEMDISK_pvCache = __SHEAP_ALLOC(stMemSize);
-        if (poemd->OEMDISK_pvCache == LW_NULL) {
+    if (pdcattrl->DCATTR_stMemSize &&
+        (!pdcattrl->DCATTR_pvCacheMem)) {                               /*  是否需要动态分配磁盘缓冲    */
+        pdcattrl->DCATTR_pvCacheMem = __SHEAP_ALLOC(pdcattrl->DCATTR_stMemSize);
+        if (pdcattrl->DCATTR_pvCacheMem == LW_NULL) {
             _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);                      /*  系统缺少内存                */
             goto    __error_handle;
         }
-        pvDiskCacheMem = poemd->OEMDISK_pvCache;
+        poemd->OEMDISK_pvCache = pdcattrl->DCATTR_pvCacheMem;
     }
     
     /*
      *  创建物理磁盘缓冲, 同时会初始化磁盘
      */
-    if (stMemSize) {
-        ulError = API_DiskCacheCreateEx(pblkdDisk, 
-                                        pvDiskCacheMem, 
-                                        stMemSize,
-                                        iMaxRBurstSector, 
-                                        iMaxWBurstSector, 
-                                        &poemd->OEMDISK_pblkdCache);
+    if (pdcattrl->DCATTR_stMemSize) {
+        ulError = API_DiskCacheCreateEx2(pblkdDisk, 
+                                         pdcattrl, 
+                                         &poemd->OEMDISK_pblkdCache);
         if (ulError) {
             iErrLevel = 1;
             goto    __error_handle;
@@ -555,10 +562,12 @@ __refined_seq:
         case LW_DISK_PART_TYPE_WIN95_FAT32LBA:
         case LW_DISK_PART_TYPE_WIN95_FAT16LBA:
             pfuncFsCreate = __fsCreateFuncGet("vfat");                  /*  查询 VFAT 文件系统装载函数  */
+            pcFs          = "vfat";
             break;
         
         case LW_DISK_PART_TYPE_TPS:                                     /*  TPS 文件系统类型            */
             pfuncFsCreate = __fsCreateFuncGet("tpsfs");                 /*  查询 TPSFS 文件系统装载函数 */
+            pcFs          = "tpsfs";
             break;
         
         default:
@@ -577,7 +586,10 @@ __refined_seq:
             }
             poemd->OEMDISK_pdevhdr[i] = API_IosDevMatchFull(cFullVolName);
             poemd->OEMDISK_iVolSeq[i] = iVolSeq;                        /*  记录卷序号                  */
-        
+            _DebugFormat(__PRINTMESSAGE_LEVEL, 
+                         "Block device %s%s%d part %d mount to %s use %s file system.\r\n", 
+                         LW_BLKIO_PERFIX, pcTail, iBlkIo, 
+                         i, cFullVolName, pcFs);
         } else {
             continue;                                                   /*  此分区无法加载              */
         }
@@ -634,15 +646,26 @@ PLW_OEMDISK_CB  API_OemDiskMount (CPCHAR        pcVolName,
                                   size_t        stMemSize, 
                                   INT           iMaxBurstSector)
 {
-    INT   iMaxRBurstSector;
+    INT                 iMaxRBurstSector;
+    LW_DISKCACHE_ATTR   dcattrl;
     
     if (iMaxBurstSector > 2) {
         iMaxRBurstSector = iMaxBurstSector >> 1;                        /*  读猝发长度默认被写少一半    */
+    
+    } else {
+        iMaxRBurstSector = iMaxBurstSector;
     }
     
-    return  (API_OemDiskMount2(pcVolName, pblkdDisk,
-                               pvDiskCacheMem, stMemSize, 
-                               iMaxRBurstSector, iMaxBurstSector));
+    dcattrl.DCATTR_pvCacheMem       = pvDiskCacheMem;
+    dcattrl.DCATTR_stMemSize        = stMemSize;
+    dcattrl.DCATTR_bCacheCoherence  = LW_FALSE;
+    dcattrl.DCATTR_iMaxRBurstSector = iMaxRBurstSector;
+    dcattrl.DCATTR_iMaxWBurstSector = iMaxBurstSector;
+    dcattrl.DCATTR_iMsgCount        = 4;
+    dcattrl.DCATTR_iPipeline        = 1;
+    dcattrl.DCATTR_bParallel        = LW_FALSE;
+    
+    return  (API_OemDiskMount2(pcVolName, pblkdDisk, &dcattrl));
 }
 /*********************************************************************************************************
 ** 函数名称: API_OemDiskUnmountEx
