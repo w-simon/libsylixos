@@ -43,6 +43,31 @@ static LW_LIST_LINE_HEADER      _GplinePciDevHeader = LW_NULL;
 #define __PCI_DEV_LOCK()        API_SemaphoreMPend(_GulPciDevLock, LW_OPTION_WAIT_INFINITE)
 #define __PCI_DEV_UNLOCK()      API_SemaphoreMPost(_GulPciDevLock)
 /*********************************************************************************************************
+** 函数名称: API_PciDevIntxEnableSet
+** 功能描述: 设备 INTx 使能与禁能
+** 输　入  : hHandle    设备句柄
+**           iEnable    使能标志
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_PciDevIntxEnableSet (PCI_DEV_HANDLE  hHandle, INT  iEnable)
+{
+    INT     iRet = PX_ERROR;
+
+    if (hHandle == LW_NULL) {
+        return  (PX_ERROR);
+    }
+
+    iRet = API_PciIntxEnableSet(hHandle->PCIDEV_iDevBus,
+                                hHandle->PCIDEV_iDevDevice,
+                                hHandle->PCIDEV_iDevFunction,
+                                iEnable);
+    return  (iRet);
+}
+/*********************************************************************************************************
 ** 函数名称: API_PciDevInterDisable
 ** 功能描述: 禁能 PCI 设备中断
 ** 输　入  : hHandle    设备句柄
@@ -61,12 +86,6 @@ INT  API_PciDevInterDisable (PCI_DEV_HANDLE   hHandle,
                              PVOID            pvArg)
 {
     if (hHandle == LW_NULL) {
-        return  (PX_ERROR);
-    }
-
-    if ((hHandle->PCIDEV_ulDevIrqVector    != ulVector) ||
-        (hHandle->PCIDEV_pfuncDevIrqHandle != pfuncIsr) ||
-        (hHandle->PCIDEV_pvDevIrqArg       != pvArg   )) {
         return  (PX_ERROR);
     }
 
@@ -98,12 +117,6 @@ INT  API_PciDevInterEnable (PCI_DEV_HANDLE   hHandle,
         return  (PX_ERROR);
     }
 
-    if ((hHandle->PCIDEV_ulDevIrqVector    != ulVector) ||
-        (hHandle->PCIDEV_pfuncDevIrqHandle != pfuncIsr) ||
-        (hHandle->PCIDEV_pvDevIrqArg       != pvArg   )) {
-        return  (PX_ERROR);
-    }
-
     if (API_InterVectorEnable(ulVector)) {
         return  (PX_ERROR);
     }
@@ -131,12 +144,6 @@ INT  API_PciDevInterDisonnect (PCI_DEV_HANDLE    hHandle,
     INT     iRet = PX_ERROR;
 
     if (hHandle == LW_NULL) {
-        return  (PX_ERROR);
-    }
-
-    if ((hHandle->PCIDEV_ulDevIrqVector    != ulVector) ||
-        (hHandle->PCIDEV_pfuncDevIrqHandle != pfuncIsr) ||
-        (hHandle->PCIDEV_pvDevIrqArg       != pvArg   )) {
         return  (PX_ERROR);
     }
 
@@ -178,10 +185,6 @@ INT  API_PciDevInterConnect (PCI_DEV_HANDLE    hHandle,
         return  (PX_ERROR);
     }
 
-    if (hHandle->PCIDEV_ulDevIrqVector != ulVector) {
-        return  (PX_ERROR);
-    }
-
     iRet = API_PciInterConnect(ulVector, pfuncIsr, pvArg, pcName);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
@@ -206,11 +209,10 @@ INT  API_PciDevInterConnect (PCI_DEV_HANDLE    hHandle,
 LW_API
 INT  API_PciDevInterVectorGet (PCI_DEV_HANDLE  hHandle, ULONG *pulVector)
 {
-    INT     iRet        = PX_ERROR;
-    UINT8   ucMsiCapPos = 0x00;
-    INT     iLine       = 0;
-    INT     iPin        = 0;
-    INT     iHdrType    = 0;
+    INT     iRet     = PX_ERROR;
+    INT     iLine    = 0;
+    INT     iPin     = 0;
+    INT     iHdrType = 0;
 
     if (hHandle == LW_NULL) {
         return  (PX_ERROR);
@@ -227,37 +229,16 @@ INT  API_PciDevInterVectorGet (PCI_DEV_HANDLE  hHandle, ULONG *pulVector)
     case PCI_HEADER_TYPE_BRIDGE:
     case PCI_HEADER_TYPE_CARDBUS:
         return  (PX_ERROR);
-        break;
 
     default:
         return  (PX_ERROR);
     }
 
-    iRet = API_PciCapFind(hHandle->PCIDEV_iDevBus, hHandle->PCIDEV_iDevDevice, hHandle->PCIDEV_iDevFunction,
-                          PCI_CAP_ID_MSI, &ucMsiCapPos);
-    if (iRet == ERROR_NONE) {
-        iRet = API_PciMsiEnableGet(hHandle->PCIDEV_iDevBus, hHandle->PCIDEV_iDevDevice, 
-                                   hHandle->PCIDEV_iDevFunction,
-                                   ucMsiCapPos, &hHandle->PCIDEV_iDevIrqMsiEn);
-        if (iRet != ERROR_NONE) {
-            return  (PX_ERROR);
-        }
-    } else {
-        hHandle->PCIDEV_iDevIrqMsiEn = LW_FALSE;
-    }
-
-    iRet = API_PciIrqGet(hHandle->PCIDEV_iDevBus, hHandle->PCIDEV_iDevDevice, 
+    iRet = API_PciIrqGet(hHandle->PCIDEV_iDevBus,
+                         hHandle->PCIDEV_iDevDevice,
                          hHandle->PCIDEV_iDevFunction,
-                         hHandle->PCIDEV_iDevIrqMsiEn, iLine, iPin, &hHandle->PCIDEV_ulDevIrqVector);
-    if (iRet != ERROR_NONE) {
-        return  (PX_ERROR);
-    }
-
-    if (pulVector) {
-        *pulVector = hHandle->PCIDEV_ulDevIrqVector;
-    }
-
-    return  (ERROR_NONE);
+                         hHandle->PCIDEV_iDevIrqMsiEn, iLine, iPin, pulVector);
+    return  (iRet);
 }
 /*********************************************************************************************************
 ** 函数名称: __pciDevConfigBlockOp

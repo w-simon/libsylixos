@@ -67,6 +67,7 @@
 #define LW_DMA_CHANNEL29       29                                       /*  DMA 通道 29                 */
 #define LW_DMA_CHANNEL30       30                                       /*  DMA 通道 30                 */
 #define LW_DMA_CHANNEL31       31                                       /*  DMA 通道 31                 */
+#define LW_DMA_CHANNEL(n)      (n)
 
 /*********************************************************************************************************
   DMA 状态定义
@@ -184,9 +185,6 @@ LW_API  INT     API_DmaContext(UINT   uiChannel);                       /*  DMA 
 #define dmaGetMaxDataBytes      API_DmaGetMaxDataBytes
 #define dmaFlush                API_DmaFlush
 
-/*********************************************************************************************************
-  DMA 功能裁剪控制
-*********************************************************************************************************/
 #endif                                                                  /*  LW_CFG_MAX_DMA_CHANNELS > 0 */
                                                                         /*  LW_CFG_DMA_EN   > 0         */
 #endif                                                                  /*  __DMA_H                     */

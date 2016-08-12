@@ -66,7 +66,7 @@ typedef struct __sig_wait {
 *********************************************************************************************************/
 
 typedef struct __sig_context {
-    sigset_t              SIGCTX_sigsetSigBlockMask;                    /*  当前信号屏蔽位              */
+    sigset_t              SIGCTX_sigsetMask;                            /*  当前信号屏蔽位              */
     sigset_t              SIGCTX_sigsetPending;                         /*  当前由于被屏蔽无法运行的信号*/
     sigset_t              SIGCTX_sigsetKill;                            /*  由 kill 发送但被屏蔽的信号  */
     

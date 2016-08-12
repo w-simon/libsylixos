@@ -521,4 +521,5 @@ getopt_long_only(int nargc, char * const *nargv, const char *options,
 	return getopt_long_internal(nargc, nargv, options, long_options,
 				    idx, 1);
 }
-#endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
+
+#endif  /*  LW_CFG_SHELL_EN > 0         */

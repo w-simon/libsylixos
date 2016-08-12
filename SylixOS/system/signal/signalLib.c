@@ -62,6 +62,7 @@
             _sigPendAlloc() 与 _sigPendFree() 不需要关闭中断.
 2016.04.15  信号上下文需要保存 FPU 上下文.
 2016.07.21  简化任务就绪设计.
+2016.08.11  新建线程集成主线程信号掩码.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -237,11 +238,28 @@ static VOID  __signalStopHandle (INT  iSigNo, struct siginfo *psiginfo)
 *********************************************************************************************************/
 static VOID  __sigTaskCreateHook (LW_OBJECT_HANDLE  ulId)
 {
-             PLW_CLASS_TCB          ptcb    = __GET_TCB_FROM_INDEX(_ObjectGetIndex(ulId));
-    REGISTER PLW_CLASS_SIGCONTEXT   psigctx = _signalGetCtx(ptcb);
+    PLW_CLASS_TCB          ptcb = __GET_TCB_FROM_INDEX(_ObjectGetIndex(ulId));
+    PLW_CLASS_TCB          ptcbCur;
+    
+    PLW_CLASS_SIGCONTEXT   psigctx = _signalGetCtx(ptcb);
+    PLW_CLASS_SIGCONTEXT   psigctxCur;
     
     lib_bzero(psigctx, sizeof(LW_CLASS_SIGCONTEXT));                    /*  所有信号 DEFAULT 处理       */
-    
+
+#if LW_CFG_MODULELOADER_EN > 0
+    if (LW_SYS_STATUS_IS_RUNNING() && __LW_VP_GET_TCB_PROC(ptcb)) {     /*  操作系统正在运行            */
+        INT     i;
+        
+        LW_TCB_GET_CUR_SAFE(ptcbCur);
+        psigctxCur = _signalGetCtx(ptcbCur);
+        psigctx->SIGCTX_sigsetMask = psigctxCur->SIGCTX_sigsetMask;     /*  继承信号掩码                */
+        
+        for (i = 0; i < NSIG; i++) {
+            psigctx->SIGCTX_sigaction[i] = psigctxCur->SIGCTX_sigaction[i];
+        }
+    }
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN      */
+
     psigctx->SIGCTX_stack.ss_flags = SS_DISABLE;                        /*  不使用自定义堆栈            */
     
 #if LW_CFG_SIGNALFD_EN > 0
@@ -467,7 +485,7 @@ static VOID  __sigReturn (PLW_CLASS_SIGCONTEXT  psigctx,
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 
     __KERNEL_ENTER();                                                   /*  进入内核                    */
-    psigctx->SIGCTX_sigsetSigBlockMask = psigctlmsg->SIGCTLMSG_sigsetMask;
+    psigctx->SIGCTX_sigsetMask = psigctlmsg->SIGCTLMSG_sigsetMask;
                                                                         /*  恢复原先的掩码              */
     _sigPendRunSelf();                                                  /*  检查并运行需要运行的信号    */
     __KERNEL_SPACE_SET(psigctlmsg->SIGCTLMSG_iKernelSpace);             /*  恢复成进入信号前的状态      */
@@ -606,7 +624,7 @@ static VOID  __sigShell (PLW_CLASS_SIGCTLMSG  psigctlmsg)
     
     LW_TCB_GET_CUR_SAFE(ptcbCur);
     
-    psigctx = &_K_sigctxTable[_ObjectGetIndex(ptcbCur->TCB_ulId)];
+    psigctx = _signalGetCtx(ptcbCur);
     
 #if LW_CFG_CPU_FPU_EN > 0
     iregInterLevel = KN_INT_DISABLE();                                  /*  关闭当前 CPU 中断           */
@@ -818,12 +836,12 @@ static BOOL _sigPendRunSelf (VOID)
     LW_TCB_GET_CUR_SAFE(ptcbCur);
 
     psigctx = _signalGetCtx(ptcbCur);
-    sigset  = ~psigctx->SIGCTX_sigsetSigBlockMask;                      /*  没有被屏蔽的信号            */
+    sigset  = ~psigctx->SIGCTX_sigsetMask;                              /*  没有被屏蔽的信号            */
     if (sigset == 0) {
         return  (LW_FALSE);                                             /*  没有需要被运行的信号        */
     }
     
-    sigsetOld = psigctx->SIGCTX_sigsetSigBlockMask;                     /*  记录先前的掩码              */
+    sigsetOld = psigctx->SIGCTX_sigsetMask;                             /*  记录先前的掩码              */
     
     do {
         iSigNo = _sigPendGet(psigctx, &sigset, &siginfo);               /*  获得需要运行的信号          */
@@ -832,16 +850,16 @@ static BOOL _sigPendRunSelf (VOID)
                 
             psigaction = &psigctx->SIGCTX_sigaction[__sigindex(iSigNo)];
             
-            psigctx->SIGCTX_sigsetSigBlockMask |= psigaction->sa_mask;
+            psigctx->SIGCTX_sigsetMask |= psigaction->sa_mask;
             if ((psigaction->sa_flags & SA_NOMASK) == 0) {              /*  阻止相同信号嵌套            */
-                psigctx->SIGCTX_sigsetSigBlockMask |= __sigmask(iSigNo);
+                psigctx->SIGCTX_sigsetMask |= __sigmask(iSigNo);
             }
             
             __KERNEL_EXIT();                                            /*  退出内核                    */
             __sigRunHandle(psigctx, iSigNo, &siginfo, LW_NULL);         /*  直接运行信号句柄            */
             __KERNEL_ENTER();                                           /*  重新进入内核                */
             
-            psigctx->SIGCTX_sigsetSigBlockMask = sigsetOld;
+            psigctx->SIGCTX_sigsetMask = sigsetOld;
             bIsRun = LW_TRUE;
         
         } else {
@@ -880,12 +898,12 @@ BOOL  _sigPendRun (PLW_CLASS_TCB  ptcb)
     }
 
     psigctx = _signalGetCtx(ptcb);
-    sigset  = ~psigctx->SIGCTX_sigsetSigBlockMask;                      /*  没有被屏蔽的信号            */
+    sigset  = ~psigctx->SIGCTX_sigsetMask;                              /*  没有被屏蔽的信号            */
     if (sigset == 0) {
         return  (LW_FALSE);                                             /*  没有需要被运行的信号        */
     }
     
-    sigsetOld = psigctx->SIGCTX_sigsetSigBlockMask;                     /*  记录先前的掩码              */
+    sigsetOld = psigctx->SIGCTX_sigsetMask;                             /*  记录先前的掩码              */
     
     iSigNo = _sigPendGet(psigctx, &sigset, &siginfo);                   /*  获得需要运行的信号          */
     if (__issig(iSigNo)) {
@@ -988,7 +1006,7 @@ LW_SEND_VAL  _doSignal (PLW_CLASS_TCB  ptcb, PLW_CLASS_SIGPEND   psigpend)
         return  (SEND_IGN);
     }
     
-    if (sigsetSigMaskBit & psigctx->SIGCTX_sigsetSigBlockMask) {        /*  被屏蔽了                    */
+    if (sigsetSigMaskBit & psigctx->SIGCTX_sigsetMask) {                /*  被屏蔽了                    */
         if (psiginfo->si_code == SI_KILL) {                             /*  kill 产生了信号, 不能排队   */
             psigctx->SIGCTX_sigsetKill    |= sigsetSigMaskBit;          /*  有 kill 的信号被屏蔽了      */
             psigctx->SIGCTX_sigsetPending |= sigsetSigMaskBit;          /*  iSigNo 由于屏蔽等待运行     */
@@ -1019,11 +1037,11 @@ LW_SEND_VAL  _doSignal (PLW_CLASS_TCB  ptcb, PLW_CLASS_SIGPEND   psigpend)
         return  (SEND_BLOCK);                                           /*  被 mask 的都不执行          */
     }
     
-    sigsetOld = psigctx->SIGCTX_sigsetSigBlockMask;                     /*  信号执行完后需要重新设置为  */
+    sigsetOld = psigctx->SIGCTX_sigsetMask;                             /*  信号执行完后需要重新设置为  */
                                                                         /*  这个掩码                    */
-    psigctx->SIGCTX_sigsetSigBlockMask |= psigaction->sa_mask;
+    psigctx->SIGCTX_sigsetMask |= psigaction->sa_mask;
     if ((psigaction->sa_flags & SA_NOMASK) == 0) {                      /*  阻止相同信号嵌套            */
-        psigctx->SIGCTX_sigsetSigBlockMask |= sigsetSigMaskBit;
+        psigctx->SIGCTX_sigsetMask |= sigsetSigMaskBit;
     }
     if (psigaction->sa_flags & SA_RESTART) {
         iSaType = LW_SIGNAL_RESTART;                                    /*  需要重启调用                */

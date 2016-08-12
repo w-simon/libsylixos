@@ -354,6 +354,7 @@ INT  API_GMemSetPalette (INT      iFd,
                                                              pulGreen,
                                                              pulBlue);
         return  (iError);
+    
     } else {
         _ErrorHandle(ERROR_IOS_DRIVER_NOT_SUP);                         /*  驱动程序不支持              */
         return  (PX_ERROR);
@@ -551,6 +552,7 @@ INT  API_GMemFillRect (PLW_GM_DEVICE   gmdev,
      */
     return  (gmdev->GMDEV_gmfileop->GMFO_pfuncFillRect((LONG)gmdev, iX0, iY0, iX1, iY1));
 }
+
 #endif                                                                  /*  LW_CFG_GRAPH_EN             */
 /*********************************************************************************************************
   END

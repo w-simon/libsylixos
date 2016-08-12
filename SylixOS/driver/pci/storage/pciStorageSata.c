@@ -752,6 +752,7 @@ static INT  pciStorageSataVendorCtrlInit (AHCI_CTRL_HANDLE  hCtrl)
 *********************************************************************************************************/
 static INT  pciStorageSataVendorCtrlReadyWork (AHCI_CTRL_HANDLE  hCtrl)
 {
+    INT                     iRet;
     PCI_DEV_HANDLE          hPciDev;
     UINT16                  usPciDevId;
     UINT16                  usCmd;
@@ -781,15 +782,39 @@ static INT  pciStorageSataVendorCtrlReadyWork (AHCI_CTRL_HANDLE  hCtrl)
     hCtrl->AHCICTRL_pvRegAddr = API_PciDevIoRemap(hCtrl->AHCICTRL_pvRegAddr,
                                                   hCtrl->AHCICTRL_stRegSize);
     if (hCtrl->AHCICTRL_pvRegAddr == LW_NULL) {
-        AHCI_LOG(AHCI_LOG_ERR, "pci mem resource ioremap failed.", 0);
+        AHCI_LOG(AHCI_LOG_ERR, "pci mem resource ioremap failed addr 0x%llx 0x%llx.",
+                 hCtrl->AHCICTRL_pvRegAddr,  hCtrl->AHCICTRL_stRegSize);
         return  (PX_ERROR);
     }
     AHCI_LOG(AHCI_LOG_PRT, "ahci reg addr 0x%llx szie %llx.",
              hCtrl->AHCICTRL_pvRegAddr, hCtrl->AHCICTRL_stRegSize);
     hPciDev->PCIDEV_pvDevDriver = (PVOID)hCtrl;
-    hResource = API_PciDevResourceGet(hPciDev, PCI_IORESOURCE_IRQ, 0);
-    hCtrl->AHCICTRL_ulIrqVector = (ULONG)hResource->PCIRS_stStart;
 
+    iRet = API_PciDevMsiEnableSet(hPciDev, LW_TRUE);
+    if (iRet != ERROR_NONE) {
+        goto  __intx_handle;
+    }
+    
+    iRet = API_PciDevMsiRangeEnable(hPciDev, 1, 1);
+    if (iRet != ERROR_NONE) {
+        goto  __intx_handle;
+    
+    } else {
+        hCtrl->AHCICTRL_ulIrqVector = hPciDev->PCIDEV_ulDevIrqVector;
+        goto __msi_handlel;
+    }
+
+__intx_handle:
+    iRet = API_PciDevMsiEnableSet(hPciDev, LW_FALSE);
+    if (iRet != ERROR_NONE) {
+        AHCI_LOG(AHCI_LOG_ERR, "pci msi disable failed dev %d:%d.%d.",
+                 hPciDev->PCIDEV_iDevBus, hPciDev->PCIDEV_iDevDevice, hPciDev->PCIDEV_iDevFunction);
+        return  (PX_ERROR);
+    }
+    hResource = API_PciDevResourceGet(hPciDev, PCI_IORESOURCE_IRQ, 0);
+    hCtrl->AHCICTRL_ulIrqVector = (ULONG)PCI_RESOURCE_START(hResource);
+
+__msi_handlel:
     AHCI_PCI_READ(hPciDev, PCI_STATUS, 2, usStatus);
     AHCI_PCI_WRITE(hPciDev, PCI_STATUS, 2, usStatus);
     AHCI_PCI_READ(hPciDev, PCI_COMMAND, 2, usCmd);

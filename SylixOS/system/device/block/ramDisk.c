@@ -286,6 +286,7 @@ static INT  __ramDiskRd (PLW_RAM_DISK  pramd,
     
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_MAX_VOLUMES          */
 /*********************************************************************************************************
   END

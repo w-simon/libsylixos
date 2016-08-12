@@ -36,7 +36,7 @@
 ** 输　入  : iBus               总线号
 **           iSlot              插槽
 **           iFunc              功能
-**           iMsixCapOft        偏移地址
+**           uiMsixCapOft       偏移地址
 **           usClear            清除标志
 **           usSet              设置标志
 ** 输　出  : ERROR or OK
@@ -48,7 +48,7 @@ LW_API
 INT  API_PciMsixClearSet (INT     iBus,
                           INT     iSlot,
                           INT     iFunc,
-                          INT     iMsixCapOft,
+                          UINT32  uiMsixCapOft,
                           UINT16  usClear,
                           UINT16  usSet)
 {
@@ -56,11 +56,11 @@ INT  API_PciMsixClearSet (INT     iBus,
     UINT16      usControl = 0;
     UINT16      usNew     = 0;
 
-    if (iMsixCapOft <= 0) {
+    if (uiMsixCapOft <= 0) {
         return  (PX_ERROR);
     }
 
-    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, iMsixCapOft + PCI_MSIX_FLAGS, &usControl);
+    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, uiMsixCapOft + PCI_MSIX_FLAGS, &usControl);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
@@ -68,7 +68,7 @@ INT  API_PciMsixClearSet (INT     iBus,
     usNew  = usControl & (~usClear);
     usNew |= usSet;
     if (usNew != usControl) {
-        iRet = API_PciConfigOutWord(iBus, iSlot, iFunc, iMsixCapOft + PCI_MSIX_FLAGS, usNew);
+        iRet = API_PciConfigOutWord(iBus, iSlot, iFunc, uiMsixCapOft + PCI_MSIX_FLAGS, usNew);
     } else {
         iRet = ERROR_NONE;
     }
@@ -81,7 +81,7 @@ INT  API_PciMsixClearSet (INT     iBus,
 ** 输　入  : iBus           总线号
 **           iSlot          插槽
 **           iFunc          功能
-**           iMsiCapOft     偏移地址
+**           uiMsixCapOft   偏移地址
 **           ucMultiple     倍数
 **           ppmmMsg        消息内容
 ** 输　出  : ERROR or OK
@@ -93,7 +93,7 @@ LW_API
 INT  API_PciMsiMsgWrite (INT          iBus,
                          INT          iSlot,
                          INT          iFunc,
-                         INT          iMsiCapOft,
+                         UINT32       uiMsixCapOft,
                          UINT8        ucMultiple,
                          PCI_MSI_MSG *ppmmMsg)
 {
@@ -102,7 +102,7 @@ INT  API_PciMsiMsgWrite (INT          iBus,
     INT         iEnable   = 0;
     INT         iIs64     = 0;
 
-    if (iMsiCapOft <= 0) {
+    if (uiMsixCapOft <= 0) {
         return  (PX_ERROR);
     }
 
@@ -110,7 +110,7 @@ INT  API_PciMsiMsgWrite (INT          iBus,
         return  (PX_ERROR);
     }
 
-    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, iMsiCapOft + PCI_MSI_FLAGS, &usControl);
+    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, uiMsixCapOft + PCI_MSI_FLAGS, &usControl);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
@@ -120,31 +120,31 @@ INT  API_PciMsiMsgWrite (INT          iBus,
     }
     usControl &= ~PCI_MSI_FLAGS_QSIZE;
     usControl |= ucMultiple << 4;
-    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, iMsiCapOft + PCI_MSI_FLAGS, &usControl);
+    iRet = API_PciConfigOutWord(iBus, iSlot, iFunc, uiMsixCapOft + PCI_MSI_FLAGS, usControl);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
 
     iRet = API_PciConfigOutDword(iBus, iSlot, iFunc,
-                                 iMsiCapOft + PCI_MSI_ADDRESS_LO, ppmmMsg->uiAddressLo);
+                                 uiMsixCapOft + PCI_MSI_ADDRESS_LO, ppmmMsg->uiAddressLo);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
     iIs64 = !!(usControl & PCI_MSI_FLAGS_64BIT);
     if (iIs64) {
         iRet = API_PciConfigOutDword(iBus, iSlot, iFunc,
-                                     iMsiCapOft + PCI_MSI_ADDRESS_HI, ppmmMsg->uiAddressHi);
+                                     uiMsixCapOft + PCI_MSI_ADDRESS_HI, ppmmMsg->uiAddressHi);
         if (iRet != ERROR_NONE) {
             return  (PX_ERROR);
         }
         iRet = API_PciConfigOutWord(iBus, iSlot, iFunc,
-                                    iMsiCapOft + PCI_MSI_DATA_64, (UINT16)ppmmMsg->uiData);
+                                    uiMsixCapOft + PCI_MSI_DATA_64, (UINT16)ppmmMsg->uiData);
         if (iRet != ERROR_NONE) {
             return  (PX_ERROR);
         }
     } else {
         iRet = API_PciConfigOutWord(iBus, iSlot, iFunc,
-                                    iMsiCapOft + PCI_MSI_DATA_32, (UINT16)ppmmMsg->uiData);
+                                    uiMsixCapOft + PCI_MSI_DATA_32, (UINT16)ppmmMsg->uiData);
         if (iRet != ERROR_NONE) {
             return  (PX_ERROR);
         }
@@ -158,7 +158,7 @@ INT  API_PciMsiMsgWrite (INT          iBus,
 ** 输　入  : iBus           总线号
 **           iSlot          插槽
 **           iFunc          功能
-**           iMsiCapOft     偏移地址
+**           uiMsixCapOft   偏移地址
 **           ucMultiple     倍数
 **           ppmmMsg        消息内容
 ** 输　出  : ERROR or OK
@@ -170,7 +170,7 @@ LW_API
 INT  API_PciMsiMsgRead (INT          iBus,
                         INT          iSlot,
                         INT          iFunc,
-                        INT          iMsiCapOft,
+                        UINT32       uiMsixCapOft,
                         UINT8        ucMultiple,
                         PCI_MSI_MSG *ppmmMsg)
 {
@@ -179,7 +179,7 @@ INT  API_PciMsiMsgRead (INT          iBus,
     INT         iEnable   = 0;
     INT         iIs64     = 0;
 
-    if (iMsiCapOft <= 0) {
+    if (uiMsixCapOft <= 0) {
         return  (PX_ERROR);
     }
 
@@ -187,7 +187,7 @@ INT  API_PciMsiMsgRead (INT          iBus,
         return  (PX_ERROR);
     }
 
-    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, iMsiCapOft + PCI_MSI_FLAGS, &usControl);
+    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, uiMsixCapOft + PCI_MSI_FLAGS, &usControl);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
@@ -197,26 +197,26 @@ INT  API_PciMsiMsgRead (INT          iBus,
     }
 
     iRet = API_PciConfigInDword(iBus, iSlot, iFunc,
-                                iMsiCapOft + PCI_MSI_ADDRESS_LO, &ppmmMsg->uiAddressLo);
+                                uiMsixCapOft + PCI_MSI_ADDRESS_LO, &ppmmMsg->uiAddressLo);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
     iIs64 = !!(usControl & PCI_MSI_FLAGS_64BIT);
     if (iIs64) {
         iRet = API_PciConfigInDword(iBus, iSlot, iFunc,
-                                    iMsiCapOft + PCI_MSI_ADDRESS_HI, &ppmmMsg->uiAddressHi);
+                                    uiMsixCapOft + PCI_MSI_ADDRESS_HI, &ppmmMsg->uiAddressHi);
         if (iRet != ERROR_NONE) {
             return  (PX_ERROR);
         }
         iRet = API_PciConfigInWord(iBus, iSlot, iFunc,
-                                   iMsiCapOft + PCI_MSI_DATA_64, (UINT16 *)&ppmmMsg->uiData);
+                                   uiMsixCapOft + PCI_MSI_DATA_64, (UINT16 *)&ppmmMsg->uiData);
         if (iRet != ERROR_NONE) {
             return  (PX_ERROR);
         }
     } else {
         ppmmMsg->uiAddressHi = 0;
         iRet = API_PciConfigInWord(iBus, iSlot, iFunc,
-                                   iMsiCapOft + PCI_MSI_DATA_32, (UINT16 *)&ppmmMsg->uiData);
+                                   uiMsixCapOft + PCI_MSI_DATA_32, (UINT16 *)&ppmmMsg->uiData);
         if (iRet != ERROR_NONE) {
             return  (PX_ERROR);
         }
@@ -230,7 +230,7 @@ INT  API_PciMsiMsgRead (INT          iBus,
 ** 输　入  : iBus           总线号
 **           iSlot          插槽
 **           iFunc          功能
-**           iMsiCapOft     偏移地址
+**           uiMsixCapOft   偏移地址
 **           uiPending      指定位
 **           uiFlag         新标志
 ** 输　出  : ERROR or OK
@@ -242,7 +242,7 @@ LW_API
 INT  API_PciMsiPendingSet (INT     iBus,
                            INT     iSlot,
                            INT     iFunc,
-                           INT     iMsiCapOft,
+                           UINT32  uiMsixCapOft,
                            UINT32  uiPending,
                            UINT32  uiFlag)
 {
@@ -253,11 +253,11 @@ INT  API_PciMsiPendingSet (INT     iBus,
     INT         iPendingPos = 0;
     UINT32      uiPendinged = 0;
 
-    if (iMsiCapOft <= 0) {
+    if (uiMsixCapOft <= 0) {
         return  (PX_ERROR);
     }
 
-    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, iMsiCapOft + PCI_MSI_FLAGS, &usControl);
+    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, uiMsixCapOft + PCI_MSI_FLAGS, &usControl);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
@@ -267,9 +267,9 @@ INT  API_PciMsiPendingSet (INT     iBus,
     }
     iIs64 = !!(usControl & PCI_MSI_FLAGS_64BIT);
     if (iIs64) {
-        iPendingPos = iMsiCapOft + PCI_MSI_PENDING_64;
+        iPendingPos = uiMsixCapOft + PCI_MSI_PENDING_64;
     } else {
-        iPendingPos = iMsiCapOft + PCI_MSI_PENDING_32;
+        iPendingPos = uiMsixCapOft + PCI_MSI_PENDING_32;
     }
     uiPendinged &= ~uiPending;
     uiPendinged |=  uiFlag;
@@ -286,7 +286,7 @@ INT  API_PciMsiPendingSet (INT     iBus,
 ** 输　入  : iBus           总线号
 **           iSlot          插槽
 **           iFunc          功能
-**           iMsiCapOft     偏移地址
+**           uiMsixCapOft   偏移地址
 **           puiPending     获取到的状态
 ** 输　出  : ERROR or OK
 ** 全局变量:
@@ -294,7 +294,7 @@ INT  API_PciMsiPendingSet (INT     iBus,
 **                                            API 函数
 *********************************************************************************************************/
 LW_API
-INT  API_PciMsiPendingGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, UINT32 *puiPending)
+INT  API_PciMsiPendingGet (INT  iBus, INT  iSlot, INT  iFunc, UINT32  uiMsixCapOft, UINT32 *puiPending)
 {
     INT         iRet        = PX_ERROR;
     UINT16      usControl   = 0;
@@ -304,11 +304,11 @@ INT  API_PciMsiPendingGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, U
     INT         iPendingPos = 0;
     UINT32      uiPendinged = 0;
 
-    if (iMsiCapOft <= 0) {
+    if (uiMsixCapOft <= 0) {
         return  (PX_ERROR);
     }
 
-    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, iMsiCapOft + PCI_MSI_FLAGS, &usControl);
+    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, uiMsixCapOft + PCI_MSI_FLAGS, &usControl);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
@@ -322,9 +322,9 @@ INT  API_PciMsiPendingGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, U
     }
     iIs64 = !!(usControl & PCI_MSI_FLAGS_64BIT);
     if (iIs64) {
-        iPendingPos = iMsiCapOft + PCI_MSI_PENDING_64;
+        iPendingPos = uiMsixCapOft + PCI_MSI_PENDING_64;
     } else {
-        iPendingPos = iMsiCapOft + PCI_MSI_PENDING_32;
+        iPendingPos = uiMsixCapOft + PCI_MSI_PENDING_32;
     }
     iRet = API_PciConfigInDword(iBus, iSlot, iFunc, iPendingPos, &uiPendinged);
     if (iRet != ERROR_NONE) {
@@ -343,7 +343,7 @@ INT  API_PciMsiPendingGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, U
 ** 输　入  : iBus           总线号
 **           iSlot          插槽
 **           iFunc          功能
-**           iMsiCapOft     偏移地址
+**           uiMsixCapOft   偏移地址
 **           piPendingPos   标记位置
 **                          0  掩码标记无效
 **                          1  掩码标记有效
@@ -353,7 +353,7 @@ INT  API_PciMsiPendingGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, U
 **                                            API 函数
 *********************************************************************************************************/
 LW_API
-INT  API_PciMsiPendingPosGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, INT *piPendingPos)
+INT  API_PciMsiPendingPosGet (INT  iBus, INT  iSlot, INT  iFunc, UINT32  uiMsixCapOft, INT *piPendingPos)
 {
     INT         iRet        = PX_ERROR;
     UINT16      usControl   = 0;
@@ -361,11 +361,11 @@ INT  API_PciMsiPendingPosGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft
     INT         iIs64       = 0;
     INT         iIsMask     = 0;
 
-    if (iMsiCapOft <= 0) {
+    if (uiMsixCapOft <= 0) {
         return  (PX_ERROR);
     }
 
-    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, iMsiCapOft + PCI_MSI_FLAGS, &usControl);
+    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, uiMsixCapOft + PCI_MSI_FLAGS, &usControl);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
@@ -380,9 +380,9 @@ INT  API_PciMsiPendingPosGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft
     if (piPendingPos) {
         iIs64 = !!(usControl & PCI_MSI_FLAGS_64BIT);
         if (iIs64) {
-            *piPendingPos = iMsiCapOft + PCI_MSI_PENDING_64;
+            *piPendingPos = uiMsixCapOft + PCI_MSI_PENDING_64;
         } else {
-            *piPendingPos = iMsiCapOft + PCI_MSI_PENDING_32;
+            *piPendingPos = uiMsixCapOft + PCI_MSI_PENDING_32;
         }
     }
 
@@ -394,7 +394,7 @@ INT  API_PciMsiPendingPosGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft
 ** 输　入  : iBus           总线号
 **           iSlot          插槽
 **           iFunc          功能
-**           iMsiCapOft     偏移地址
+**           uiMsixCapOft   偏移地址
 **           uiMask         掩码
 **           uiFlag         新标志
 ** 输　出  : ERROR or OK
@@ -406,7 +406,7 @@ LW_API
 INT  API_PciMsiMaskSet (INT     iBus,
                         INT     iSlot,
                         INT     iFunc,
-                        INT     iMsiCapOft,
+                        UINT32  uiMsixCapOft,
                         UINT32  uiMask,
                         UINT32  uiFlag)
 {
@@ -418,11 +418,11 @@ INT  API_PciMsiMaskSet (INT     iBus,
     INT         iMaskPos  = 0;
     UINT32      uiMasked  = 0;
 
-    if (iMsiCapOft <= 0) {
+    if (uiMsixCapOft <= 0) {
         return  (PX_ERROR);
     }
 
-    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, iMsiCapOft + PCI_MSI_FLAGS, &usControl);
+    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, uiMsixCapOft + PCI_MSI_FLAGS, &usControl);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
@@ -436,9 +436,9 @@ INT  API_PciMsiMaskSet (INT     iBus,
     }
     iIs64 = !!(usControl & PCI_MSI_FLAGS_64BIT);
     if (iIs64) {
-        iMaskPos = iMsiCapOft + PCI_MSI_MASK_BIT_64;
+        iMaskPos = uiMsixCapOft + PCI_MSI_MASK_BIT_64;
     } else {
-        iMaskPos = iMsiCapOft + PCI_MSI_MASK_BIT_32;
+        iMaskPos = uiMsixCapOft + PCI_MSI_MASK_BIT_32;
     }
     uiMasked &= ~uiMask;
     uiMasked |= uiFlag;
@@ -455,7 +455,7 @@ INT  API_PciMsiMaskSet (INT     iBus,
 ** 输　入  : iBus           总线号
 **           iSlot          插槽
 **           iFunc          功能
-**           iMsiCapOft     偏移地址
+**           uiMsixCapOft   偏移地址
 **           puiMask        掩码
 ** 输　出  : ERROR or OK
 ** 全局变量:
@@ -463,7 +463,7 @@ INT  API_PciMsiMaskSet (INT     iBus,
 **                                            API 函数
 *********************************************************************************************************/
 LW_API
-INT  API_PciMsiMaskGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, UINT32 *puiMask)
+INT  API_PciMsiMaskGet (INT  iBus, INT  iSlot, INT  iFunc, UINT32  uiMsixCapOft, UINT32 *puiMask)
 {
     INT         iRet      = PX_ERROR;
     UINT16      usControl = 0;
@@ -473,11 +473,11 @@ INT  API_PciMsiMaskGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, UINT
     INT         iMaskPos  = 0;
     UINT32      uiMasked  = 0;
 
-    if (iMsiCapOft <= 0) {
+    if (uiMsixCapOft <= 0) {
         return  (PX_ERROR);
     }
 
-    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, iMsiCapOft + PCI_MSI_FLAGS, &usControl);
+    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, uiMsixCapOft + PCI_MSI_FLAGS, &usControl);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
@@ -491,9 +491,9 @@ INT  API_PciMsiMaskGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, UINT
     }
     iIs64 = !!(usControl & PCI_MSI_FLAGS_64BIT);
     if (iIs64) {
-        iMaskPos = iMsiCapOft + PCI_MSI_MASK_BIT_64;
+        iMaskPos = uiMsixCapOft + PCI_MSI_MASK_BIT_64;
     } else {
-        iMaskPos = iMsiCapOft + PCI_MSI_MASK_BIT_32;
+        iMaskPos = uiMsixCapOft + PCI_MSI_MASK_BIT_32;
     }
     iRet = API_PciConfigInDword(iBus, iSlot, iFunc, iMaskPos, &uiMasked);
     if (iRet != ERROR_NONE) {
@@ -512,7 +512,7 @@ INT  API_PciMsiMaskGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, UINT
 ** 输　入  : iBus           总线号
 **           iSlot          插槽
 **           iFunc          功能
-**           iMsiCapOft     偏移地址
+**           uiMsixCapOft   偏移地址
 **           piMaskPos      标记位置
 ** 输　出  : ERROR or OK
 ** 全局变量:
@@ -520,7 +520,7 @@ INT  API_PciMsiMaskGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, UINT
 **                                            API 函数
 *********************************************************************************************************/
 LW_API
-INT  API_PciMsiMaskPosGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, INT *piMaskPos)
+INT  API_PciMsiMaskPosGet (INT  iBus, INT  iSlot, INT  iFunc, UINT32  uiMsixCapOft, INT *piMaskPos)
 {
     INT         iRet      = PX_ERROR;
     UINT16      usControl = 0;
@@ -528,11 +528,11 @@ INT  API_PciMsiMaskPosGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, I
     INT         iIs64     = 0;
     INT         iIsMask   = 0;
 
-    if (iMsiCapOft <= 0) {
+    if (uiMsixCapOft <= 0) {
         return  (PX_ERROR);
     }
 
-    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, iMsiCapOft + PCI_MSI_FLAGS, &usControl);
+    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, uiMsixCapOft + PCI_MSI_FLAGS, &usControl);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
@@ -547,9 +547,9 @@ INT  API_PciMsiMaskPosGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, I
     if (piMaskPos) {
         iIs64 = !!(usControl & PCI_MSI_FLAGS_64BIT);
         if (iIs64) {
-            *piMaskPos = iMsiCapOft + PCI_MSI_MASK_BIT_64;
+            *piMaskPos = uiMsixCapOft + PCI_MSI_MASK_BIT_64;
         } else {
-            *piMaskPos = iMsiCapOft + PCI_MSI_MASK_BIT_32;
+            *piMaskPos = uiMsixCapOft + PCI_MSI_MASK_BIT_32;
         }
     }
 
@@ -579,7 +579,8 @@ UINT32  API_PciMsiMaskConvert (UINT32  uiMask)
 ** 输　入  : iBus           总线号
 **           iSlot          插槽
 **           iFunc          功能
-**           iMsiCapOft     偏移地址
+**           uiMsixCapOft   偏移地址
+**           iNvec          中断数量
 **           piMultiCap     消息消息数量
 ** 输　出  : ERROR or OK
 ** 全局变量:
@@ -587,21 +588,21 @@ UINT32  API_PciMsiMaskConvert (UINT32  uiMask)
 **                                            API 函数
 *********************************************************************************************************/
 LW_API
-INT  API_PciMsiMultipleGet (INT  iBus,
-                            INT  iSlot,
-                            INT  iFunc,
-                            INT  iMsiCapOft,
-                            INT  iNvec,
-                            INT *piMultiple)
+INT  API_PciMsiMultipleGet (INT     iBus,
+                            INT     iSlot,
+                            INT     iFunc,
+                            UINT32  uiMsiCapOft,
+                            INT     iNvec,
+                            INT    *piMultiple)
 {
     INT         iRet      = PX_ERROR;
     UINT16      usControl = 0;
 
-    if (iMsiCapOft <= 0) {
+    if (uiMsiCapOft <= 0) {
         return  (PX_ERROR);
     }
 
-    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, iMsiCapOft + PCI_MSI_FLAGS, &usControl);
+    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, uiMsiCapOft + PCI_MSI_FLAGS, &usControl);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
@@ -617,29 +618,29 @@ INT  API_PciMsiMultipleGet (INT  iBus,
 ** 输　入  : iBus           总线号
 **           iSlot          插槽
 **           iFunc          功能
-**           iMsiCapOft     偏移地址
-**           piVecCount     向量数
+**           uiMsiCapOft    偏移地址
+**           puiVecCount    向量数
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
 **                                            API 函数
 *********************************************************************************************************/
 LW_API
-INT  API_PciMsiVecCountGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, INT *piVecCount)
+INT  API_PciMsiVecCountGet (INT  iBus, INT  iSlot, INT  iFunc, UINT32  uiMsiCapOft, UINT32 *puiVecCount)
 {
     INT         iRet      = PX_ERROR;
     UINT16      usControl = 0;
 
-    if (iMsiCapOft <= 0) {
+    if (uiMsiCapOft <= 0) {
         return  (PX_ERROR);
     }
 
-    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, iMsiCapOft + PCI_MSI_FLAGS, &usControl);
+    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, uiMsiCapOft + PCI_MSI_FLAGS, &usControl);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
-    if (piVecCount) {
-        *piVecCount = 1 << ((usControl & PCI_MSI_FLAGS_QMASK) >> 1);
+    if (puiVecCount) {
+        *puiVecCount = 1 << ((usControl & PCI_MSI_FLAGS_QMASK) >> 1);
     }
 
     return  (ERROR_NONE);
@@ -650,7 +651,7 @@ INT  API_PciMsiVecCountGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, 
 ** 输　入  : iBus           总线号
 **           iSlot          插槽
 **           iFunc          功能
-**           iMsiCapOft     偏移地址
+**           uiMsiCapOft    偏移地址
 **           piMultiCap     消息消息数量
 ** 输　出  : ERROR or OK
 ** 全局变量:
@@ -658,16 +659,16 @@ INT  API_PciMsiVecCountGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, 
 **                                            API 函数
 *********************************************************************************************************/
 LW_API
-INT  API_PciMsiMultiCapGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, INT *piMultiCap)
+INT  API_PciMsiMultiCapGet (INT  iBus, INT  iSlot, INT  iFunc, UINT32  uiMsiCapOft, INT *piMultiCap)
 {
     INT         iRet      = PX_ERROR;
     UINT16      usControl = 0;
 
-    if (iMsiCapOft <= 0) {
+    if (uiMsiCapOft <= 0) {
         return  (PX_ERROR);
     }
 
-    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, iMsiCapOft + PCI_MSI_FLAGS, &usControl);
+    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, uiMsiCapOft + PCI_MSI_FLAGS, &usControl);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
@@ -683,7 +684,7 @@ INT  API_PciMsiMultiCapGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, 
 ** 输　入  : iBus           总线号
 **           iSlot          插槽
 **           iFunc          功能
-**           iMsiCapOft     偏移地址
+**           uiMsiCapOft    偏移地址
 **           pi64Bit        64 位地址标志
 **                          0  64 位地址标记无效
 **                          1  64 位地址标记有效
@@ -693,16 +694,16 @@ INT  API_PciMsiMultiCapGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, 
 **                                            API 函数
 *********************************************************************************************************/
 LW_API
-INT  API_PciMsi64BitGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, INT *pi64Bit)
+INT  API_PciMsi64BitGet (INT  iBus, INT  iSlot, INT  iFunc, UINT32  uiMsiCapOft, INT *pi64Bit)
 {
     INT         iRet      = PX_ERROR;
     UINT16      usControl = 0;
 
-    if (iMsiCapOft <= 0) {
+    if (uiMsiCapOft <= 0) {
         return  (PX_ERROR);
     }
 
-    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, iMsiCapOft + PCI_MSI_FLAGS, &usControl);
+    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, uiMsiCapOft + PCI_MSI_FLAGS, &usControl);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
@@ -718,7 +719,7 @@ INT  API_PciMsi64BitGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, INT
 ** 输　入  : iBus           总线号
 **           iSlot          插槽
 **           iFunc          功能
-**           iMsiCapOft     偏移地址
+**           uiMsiCapOft    偏移地址
 **           piMaskBit      掩码标志
 **                          0  掩码标记无效
 **                          1  掩码标记有效
@@ -728,16 +729,16 @@ INT  API_PciMsi64BitGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, INT
 **                                            API 函数
 *********************************************************************************************************/
 LW_API
-INT  API_PciMsiMaskBitGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, INT *piMaskBit)
+INT  API_PciMsiMaskBitGet (INT  iBus, INT  iSlot, INT  iFunc, UINT32  uiMsiCapOft, INT *piMaskBit)
 {
     INT         iRet      = PX_ERROR;
     UINT16      usControl = 0;
 
-    if (iMsiCapOft <= 0) {
+    if (uiMsiCapOft <= 0) {
         return  (PX_ERROR);
     }
 
-    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, iMsiCapOft + PCI_MSI_FLAGS, &usControl);
+    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, uiMsiCapOft + PCI_MSI_FLAGS, &usControl);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
@@ -753,7 +754,7 @@ INT  API_PciMsiMaskBitGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, I
 ** 输　入  : iBus           总线号
 **           iSlot          插槽
 **           iFunc          功能
-**           iMsiCapOft     偏移地址
+**           uiMsiCapOft    偏移地址
 **           iEnable        使能与禁能标志
 **                          0  禁能
 **                          1  使能
@@ -763,17 +764,17 @@ INT  API_PciMsiMaskBitGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, I
 **                                            API 函数
 *********************************************************************************************************/
 LW_API
-INT  API_PciMsiEnableSet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, INT  iEnable)
+INT  API_PciMsiEnableSet (INT  iBus, INT  iSlot, INT  iFunc, UINT32  uiMsiCapOft, INT  iEnable)
 {
     INT         iRet         = PX_ERROR;
     UINT16      usControl    = 0;
     UINT16      usControlNew = 0;
 
-    if (iMsiCapOft <= 0) {
+    if (uiMsiCapOft <= 0) {
         return  (PX_ERROR);
     }
 
-    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, iMsiCapOft + PCI_MSI_FLAGS, &usControl);
+    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, uiMsiCapOft + PCI_MSI_FLAGS, &usControl);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
@@ -782,7 +783,7 @@ INT  API_PciMsiEnableSet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, IN
     if (iEnable) {
         usControlNew |= PCI_MSI_FLAGS_ENABLE;
     }
-    iRet = API_PciConfigOutWord(iBus, iSlot, iFunc, iMsiCapOft + PCI_MSI_FLAGS, usControlNew);
+    iRet = API_PciConfigOutWord(iBus, iSlot, iFunc, uiMsiCapOft + PCI_MSI_FLAGS, usControlNew);
 
     return  (iRet);
 }
@@ -792,7 +793,7 @@ INT  API_PciMsiEnableSet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, IN
 ** 输　入  : iBus           总线号
 **           iSlot          插槽
 **           iFunc          功能
-**           iMsiCapOft     偏移地址
+**           uiMsiCapOft    偏移地址
 **           piEnable       使能与禁能标志
 **                          0  禁能
 **                          1  使能
@@ -802,22 +803,167 @@ INT  API_PciMsiEnableSet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, IN
 **                                            API 函数
 *********************************************************************************************************/
 LW_API
-INT  API_PciMsiEnableGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, INT *piEnable)
+INT  API_PciMsiEnableGet (INT  iBus, INT  iSlot, INT  iFunc, UINT32  uiMsiCapOft, INT *piEnable)
 {
     INT         iRet         = PX_ERROR;
     UINT16      usControl    = 0;
 
-    if (iMsiCapOft <= 0) {
+    if (uiMsiCapOft <= 0) {
         return  (PX_ERROR);
     }
 
-    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, iMsiCapOft + PCI_MSI_FLAGS, &usControl);
+    iRet = API_PciConfigInWord(iBus, iSlot, iFunc, uiMsiCapOft + PCI_MSI_FLAGS, &usControl);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
 
     if (piEnable) {
         *piEnable = !!(usControl & PCI_MSI_FLAGS_ENABLE);
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_PciDevMsiRangeEnable
+** 功能描述: 获取 MSI 使能控制状态
+** 输　入  : hHandle        设备控制句柄
+**           iEnable        使能与禁能标志
+**                          0  禁能
+**                          1  使能
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_PciDevMsiRangeEnable (PCI_DEV_HANDLE  hHandle, UINT  uiVecMin, UINT  uiVecMax)
+{
+    INT                     iRet        = PX_ERROR;
+    UINT8                   ucMsiEn     = 0;
+    UINT32                  uiMsiCapOft = 0;
+    UINT32                  uiVecNum    = 0;
+    PCI_MSI_DESC_HANDLE     hMsgHandle  = LW_NULL;
+
+    if (hHandle == LW_NULL) {
+        return  (PX_ERROR);
+    }
+
+    iRet = API_PciCapFind(hHandle->PCIDEV_iDevBus,
+                          hHandle->PCIDEV_iDevDevice,
+                          hHandle->PCIDEV_iDevFunction,
+                          PCI_CAP_ID_MSI,
+                          &uiMsiCapOft);
+    if ((iRet != ERROR_NONE) ||
+        (!PCI_DEV_MSI_IS_EN(hHandle))) {
+        return  (PX_ERROR);
+    }
+
+    if (uiVecMax < uiVecMin) {
+        return  (PX_ERROR);
+    }
+
+    iRet = API_PciMsiVecCountGet(hHandle->PCIDEV_iDevBus,
+                                 hHandle->PCIDEV_iDevDevice,
+                                 hHandle->PCIDEV_iDevFunction,
+                                 uiMsiCapOft, &uiVecNum);
+    if (iRet != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
+    if (uiVecNum < uiVecMin) {
+        return  (PX_ERROR);
+    } else if (uiVecNum > uiVecMax) {
+        uiVecNum = uiVecMax;
+    }
+
+    hMsgHandle = &hHandle->PCIDEV_pmdDevIrqMsiDesc;
+    hMsgHandle->PCIMSI_uiNum = uiVecNum;
+    iRet = API_PciDevInterVectorGet(hHandle, (ULONG *)hMsgHandle);
+    if (iRet != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
+    hHandle->PCIDEV_uiDevIrqMsiNum = hMsgHandle->PCIMSI_uiNum;
+    hHandle->PCIDEV_ulDevIrqVector = hMsgHandle->PCIMSI_ulDevIrqVector;
+
+    /*
+     *  MSI can support only 1, 2, 4, 8, 16, 32 number of vectors
+     */
+    switch (hHandle->PCIDEV_uiDevIrqMsiNum) {
+	
+    case 1:
+        ucMsiEn = 0;
+        break;
+
+    case 2:
+        ucMsiEn = 1;
+        break;
+
+    case 4:
+        ucMsiEn = 2;
+        break;
+
+    case 8:
+        ucMsiEn = 3;
+        break;
+
+    case 16:
+        ucMsiEn = 4;
+        break;
+
+    case 32:
+        ucMsiEn = 5;
+        break;
+
+    default:
+        return  (PX_ERROR);
+    }
+
+    iRet = API_PciMsiMsgWrite(hHandle->PCIDEV_iDevBus,
+                              hHandle->PCIDEV_iDevDevice,
+                              hHandle->PCIDEV_iDevFunction,
+                              uiMsiCapOft,
+                              ucMsiEn,
+                              &hHandle->PCIDEV_pmdDevIrqMsiDesc.PCIMSI_pmmMsg);
+    if (iRet != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_PciDevMsiVecCountGet
+** 功能描述: 获取 MSI 向量数
+** 输　入  : hHandle        设备控制句柄
+**           puiVecCount    向量数
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_PciDevMsiVecCountGet (PCI_DEV_HANDLE  hHandle, UINT32 *puiVecCount)
+{
+    INT         iRet        = PX_ERROR;
+    UINT32      uiMsiCapOft = 0;
+
+    if (hHandle == LW_NULL) {
+        return  (PX_ERROR);
+    }
+
+    iRet = API_PciCapFind(hHandle->PCIDEV_iDevBus,
+                          hHandle->PCIDEV_iDevDevice,
+                          hHandle->PCIDEV_iDevFunction,
+                          PCI_CAP_ID_MSI,
+                          &uiMsiCapOft);
+    if (iRet != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
+
+    iRet = API_PciMsiVecCountGet(hHandle->PCIDEV_iDevBus,
+                                 hHandle->PCIDEV_iDevDevice,
+                                 hHandle->PCIDEV_iDevFunction,
+                                 uiMsiCapOft, puiVecCount);
+    if (iRet != ERROR_NONE) {
+        return  (PX_ERROR);
     }
 
     return  (ERROR_NONE);
@@ -837,8 +983,8 @@ INT  API_PciMsiEnableGet (INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, IN
 LW_API
 INT  API_PciDevMsiEnableGet (PCI_DEV_HANDLE  hHandle, INT *piEnable)
 {
-    INT     iRet = PX_ERROR;
-    UINT8   ucMsiCapOft = 0;
+    INT         iRet        = PX_ERROR;
+    UINT32      uiMsiCapOft = 0;
 
     if (hHandle == LW_NULL) {
         return  (PX_ERROR);
@@ -848,7 +994,7 @@ INT  API_PciDevMsiEnableGet (PCI_DEV_HANDLE  hHandle, INT *piEnable)
                           hHandle->PCIDEV_iDevDevice,
                           hHandle->PCIDEV_iDevFunction,
                           PCI_CAP_ID_MSI,
-                          &ucMsiCapOft);
+                          &uiMsiCapOft);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
@@ -856,13 +1002,13 @@ INT  API_PciDevMsiEnableGet (PCI_DEV_HANDLE  hHandle, INT *piEnable)
     iRet = API_PciMsiEnableGet(hHandle->PCIDEV_iDevBus,
                                hHandle->PCIDEV_iDevDevice,
                                hHandle->PCIDEV_iDevFunction,
-                               ucMsiCapOft,
+                               uiMsiCapOft,
                                piEnable);
     return  (iRet);
 }
 /*********************************************************************************************************
 ** 函数名称: API_PciDevMsiEnableSet
-** 功能描述: 获取 MSI 使能控制状态
+** 功能描述: 设置 MSI 使能控制状态
 ** 输　入  : hHandle        设备控制句柄
 **           iEnable        使能与禁能标志
 **                          0  禁能
@@ -875,8 +1021,8 @@ INT  API_PciDevMsiEnableGet (PCI_DEV_HANDLE  hHandle, INT *piEnable)
 LW_API
 INT  API_PciDevMsiEnableSet (PCI_DEV_HANDLE  hHandle, INT  iEnable)
 {
-    INT     iRet = PX_ERROR;
-    UINT8   ucMsiCapOft = 0;
+    INT         iRet        = PX_ERROR;
+    UINT32      uiMsiCapOft = 0;
 
     if (hHandle == LW_NULL) {
         return  (PX_ERROR);
@@ -902,7 +1048,7 @@ INT  API_PciDevMsiEnableSet (PCI_DEV_HANDLE  hHandle, INT  iEnable)
                           hHandle->PCIDEV_iDevDevice,
                           hHandle->PCIDEV_iDevFunction,
                           PCI_CAP_ID_MSI,
-                          &ucMsiCapOft);
+                          &uiMsiCapOft);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
@@ -910,9 +1056,14 @@ INT  API_PciDevMsiEnableSet (PCI_DEV_HANDLE  hHandle, INT  iEnable)
     iRet = API_PciMsiEnableSet(hHandle->PCIDEV_iDevBus,
                                hHandle->PCIDEV_iDevDevice,
                                hHandle->PCIDEV_iDevFunction,
-                               ucMsiCapOft,
+                               uiMsiCapOft,
                                iEnable);
-    return  (iRet);
+    if (iRet != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
+    hHandle->PCIDEV_iDevIrqMsiEn = iEnable;
+
+    return  (ERROR_NONE);
 }
 
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */

@@ -59,7 +59,7 @@ int  pthread_attr_init (pthread_attr_t  *pattr)
     pattr->PTHREADATTR_iSchedPolicy    = LW_OPTION_SCHED_RR;            /*  调度策略                    */
     pattr->PTHREADATTR_iInherit        = PTHREAD_EXPLICIT_SCHED;        /*  继承性                      */
     pattr->PTHREADATTR_ulOption        = LW_OPTION_THREAD_STK_CHK;      /*  SylixOS 线程创建选项        */
-    pattr->PTHREADATTR_schedparam.sched_priority = LW_PRIO_NORMAL;
+    pattr->PTHREADATTR_schedparam.sched_priority = PX_PRIORITY_CONVERT(LW_PRIO_NORMAL);
     
     return  (ERROR_NONE);
 }

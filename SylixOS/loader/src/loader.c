@@ -210,17 +210,15 @@ static INT moduleDestory (LW_LD_EXEC_MODULE *pmodule)
     
     if (pmodule->EMOD_ulModType == LW_LD_MOD_TYPE_SO) {
         LW_LD_VMSAFEFREE_AREA(pmodule->EMOD_pvBaseAddr);                /*  共享库卸载                  */
+    
     } else {
         LW_LD_VMSAFEFREE(pmodule->EMOD_pvBaseAddr);                     /*  内核模块卸载                */
     }
 
     LW_LD_SAFEFREE(pmodule->EMOD_ppfuncInitArray);                      /*  销毁 C++ 全局对象构造与析构 */
     LW_LD_SAFEFREE(pmodule->EMOD_ppfuncFiniArray);
-
     LW_LD_SAFEFREE(pmodule->EMOD_pvUsedArr);
-
     LW_LD_SAFEFREE(pmodule->EMOD_pvFormatInfo);
-
     LW_LD_SAFEFREE(pmodule);
 
     return  (ERROR_NONE);

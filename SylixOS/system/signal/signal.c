@@ -32,6 +32,7 @@
 2014.05.21  将 killTrap 改为 sigTrap 可以发送参数.
 2014.10.31  加入诸多 POSIX 规定的信号函数.
 2015.11.16  trap 信号使用 kill 发送.
+2016.08.11  进程内线程设置信号处理句柄, 需要同步到所有进程内的线程.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -158,6 +159,41 @@ INT  sigismember (const sigset_t  *psigset, INT  iSigNo)
     return  (PX_ERROR);
 }
 /*********************************************************************************************************
+** 函数名称: pid_sigaction
+** 功能描述: 进程所有线程设置一个指定信号的服务向量
+** 输　入  : ulId          线程句柄
+**           ulIdExcept    除去的线程
+**           iSigIndex     TCB_sigaction 下标
+**           psigactionNew 新的处理结构
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+#if LW_CFG_MODULELOADER_EN > 0
+
+static VOID  pid_sigaction (LW_OBJECT_HANDLE         ulId,
+                            LW_OBJECT_HANDLE         ulIdExcept,
+                            INT                      iSigIndex,
+                            const struct sigaction  *psigactionNew)
+{
+    struct sigaction       *psigaction;
+    PLW_CLASS_SIGCONTEXT    psigctx;
+
+    if (ulId == ulIdExcept) {
+        return;
+    }
+    
+    psigctx    = _signalGetCtx(__GET_TCB_FROM_INDEX(_ObjectGetIndex(ulId)));
+    psigaction = &psigctx->SIGCTX_sigaction[iSigIndex];
+    
+    __KERNEL_ENTER();
+    *psigaction = *psigactionNew;
+    psigaction->sa_mask &= ~__SIGNO_UNMASK;                             /*  有些信号不可屏蔽            */
+    __KERNEL_EXIT();
+}
+
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
+/*********************************************************************************************************
 ** 函数名称: sigaction
 ** 功能描述: 设置一个指定信号的服务向量, 同时可获取原始服务向量. 
 **           (由于与 struct sigaction 重名, 所以这里直接使用 sigaction 函数名)
@@ -207,10 +243,23 @@ INT   sigaction (INT                      iSigNo,
     *psigaction = *psigactionNew;                                       /*  拷贝新的处理控制块          */
     psigaction->sa_mask &= ~__SIGNO_UNMASK;                             /*  有些信号不可屏蔽            */
     __KERNEL_EXIT();
+
+#if LW_CFG_MODULELOADER_EN > 0
+    {
+        pid_t   pid = __lw_vp_get_tcb_pid(ptcbCur);
+        
+        if (pid > 0) {
+            vprocThreadTraversal2(pid, pid_sigaction,
+                                  (PVOID)ptcbCur->TCB_ulId, 
+                                  (PVOID)iSigIndex, 
+                                  (PVOID)psigactionNew,
+                                  0, 0, 0);                             /*  进程所有线程设置新的处理句柄*/
+        }
+    }
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
     
     if (psigaction->sa_handler == SIG_IGN) {                            /*  设置为忽略该信号            */
         __KERNEL_ENTER();                                               /*  进入内核                    */
-        
         psigctx->SIGCTX_sigsetPending &= ~__sigmask(iSigNo);            /*  没有等待 unmask 后执行的信号*/
         psigctx->SIGCTX_sigsetKill    &= ~__sigmask(iSigNo);            /*  没有在屏蔽状态 kill 这个信号*/
         
@@ -377,7 +426,7 @@ INT  sigprocmask (INT              iCmd,
     psigctx = _signalGetCtx(ptcbCur);
     
     if (psigsetOld) {                                                   /*  保存古老的                  */
-        *psigsetOld = psigctx->SIGCTX_sigsetSigBlockMask;
+        *psigsetOld = psigctx->SIGCTX_sigsetMask;
     }
     
     if (!psigset) {                                                     /*  新的是否有效                */
@@ -391,18 +440,18 @@ INT  sigprocmask (INT              iCmd,
     case SIG_BLOCK:                                                     /*  添加阻塞                    */
         sigsetBlock  = *psigset;
         sigsetBlock &= ~__SIGNO_UNMASK;                                 /*  有些信号是不可屏蔽的        */
-        psigctx->SIGCTX_sigsetSigBlockMask |= sigsetBlock;
+        psigctx->SIGCTX_sigsetMask |= sigsetBlock;
         __KERNEL_EXIT();                                                /*  退出内核                    */
         return  (ERROR_NONE);
         
     case SIG_UNBLOCK:                                                   /*  删除阻塞                    */
-        psigctx->SIGCTX_sigsetSigBlockMask &= ~(*psigset);
+        psigctx->SIGCTX_sigsetMask &= ~(*psigset);
         break;
         
     case SIG_SETMASK:                                                   /*  设置阻塞                    */
         sigsetBlock  = *psigset;
         sigsetBlock &= ~__SIGNO_UNMASK;                                 /*  有些信号是不可屏蔽的        */
-        psigctx->SIGCTX_sigsetSigBlockMask  = sigsetBlock;
+        psigctx->SIGCTX_sigsetMask  = sigsetBlock;
         break;
     
     default:                                                            /*  错误                        */
@@ -1036,8 +1085,8 @@ INT  sigsuspend (const sigset_t  *psigsetMask)
     __KERNEL_ENTER();                                                   /*  进入内核                    */
     psigctx = _signalGetCtx(ptcbCur);
     
-    sigsetOld = psigctx->SIGCTX_sigsetSigBlockMask;                     /*  记录先前的掩码              */
-    psigctx->SIGCTX_sigsetSigBlockMask = *psigsetMask & (~__SIGNO_UNMASK);
+    sigsetOld = psigctx->SIGCTX_sigsetMask;                             /*  记录先前的掩码              */
+    psigctx->SIGCTX_sigsetMask = *psigsetMask & (~__SIGNO_UNMASK);
     
     bIsRun = _sigPendRun(ptcbCur);
     if (bIsRun) {

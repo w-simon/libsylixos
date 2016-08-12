@@ -22,7 +22,7 @@
 #ifndef __PATHS_H
 #define __PATHS_H
 
-#define _PATH_DEFPATH       "/usr/bin:/bin:/usr/pkg/sbin:/usr/local/bin"
+#define _PATH_DEFPATH       "/usr/bin:/bin:/usr/pkg/sbin:/sbin:/usr/local/bin"
 #define _PATH_STDPATH       "/usr/bin:/bin:/usr/sbin:/sbin:/usr/pkg/bin:/usr/pkg/sbin:" \
                             "/usr/local/bin:/usr/local/sbin"
                             

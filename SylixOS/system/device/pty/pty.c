@@ -43,35 +43,35 @@ static INT      _G_iPtyHostDrvNum   = PX_ERROR;                         /*  主控
 /*********************************************************************************************************
   函数声明
 *********************************************************************************************************/
-LONG _PtyHostOpen(P_PTY_DEV      p_ptydev,
-                  PCHAR          pcName,   
-                  INT            iFlags, 
-                  INT            iMode);
-INT  _PtyHostClose(P_PTY_DEV      p_ptydev);
-ssize_t  _PtyHostRead(P_PTY_DEV     p_ptydev, 
-                      PCHAR         pcBuffer, 
-                      size_t        stMaxBytes);
-ssize_t  _PtyHostWrite(P_PTY_DEV     p_ptydev, 
-                       PCHAR         pcBuffer, 
-                       size_t        stNBytes);
-INT  _PtyHostIoctl(P_PTY_DEV     p_ptydev, 
-                   INT           iRequest,
-                   LONG          lArg);
-LONG _PtyDeviceOpen(P_PTY_D_DEV    p_ptyddev,
-                    PCHAR          pcName,   
-                    INT            iFlags, 
-                    INT            iMode);
-INT  _PtyDeviceClose(P_PTY_DEV     p_ptydev);
-ssize_t  _PtyDeviceRead(P_PTY_DEV     p_ptydev, 
-                        PCHAR         pcBuffer, 
-                        size_t        stMaxBytes);
-ssize_t  _PtyDeviceWrite(P_PTY_DEV     p_ptydev, 
+LONG    _PtyHostOpen(P_PTY_DEV      p_ptydev,
+                     PCHAR          pcName, 
+                     INT            iFlags, 
+                     INT            iMode);
+INT     _PtyHostClose(P_PTY_DEV    p_ptydev);
+ssize_t _PtyHostRead(P_PTY_DEV     p_ptydev, 
                      PCHAR         pcBuffer, 
-                     size_t        stNBytes);
-INT  _PtyDeviceIoctl(P_PTY_DEV     p_ptydev, 
-                     INT           iRequest,
-                     LONG          lArg);
-VOID  _PtyDeviceStartup(P_PTY_DEV     p_ptydev);
+                     size_t        stMaxBytes);
+ssize_t _PtyHostWrite(P_PTY_DEV     p_ptydev, 
+                      PCHAR         pcBuffer, 
+                      size_t        stNBytes);
+INT     _PtyHostIoctl(P_PTY_DEV     p_ptydev, 
+                      INT           iRequest,
+                      LONG          lArg);
+LONG    _PtyDeviceOpen(P_PTY_D_DEV  p_ptyddev,
+                       PCHAR        pcName,   
+                       INT          iFlags, 
+                       INT          iMode);
+INT     _PtyDeviceClose(P_PTY_DEV    p_ptydev);
+ssize_t _PtyDeviceRead(P_PTY_DEV     p_ptydev, 
+                       PCHAR         pcBuffer, 
+                       size_t        stMaxBytes);
+ssize_t _PtyDeviceWrite(P_PTY_DEV     p_ptydev, 
+                        PCHAR         pcBuffer, 
+                        size_t        stNBytes);
+INT     _PtyDeviceIoctl(P_PTY_DEV     p_ptydev, 
+                        INT           iRequest,
+                        LONG          lArg);
+VOID    _PtyDeviceStartup(P_PTY_DEV   p_ptydev);
 /*********************************************************************************************************
 ** 函数名称: API_PtyDrvInstall
 ** 功能描述: 安装PTY设备驱动程序
@@ -314,6 +314,7 @@ INT  API_PtyDevRemove (PCHAR   pcName)
     
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */
                                                                         /*  (LW_CFG_SIO_DEVICE_EN > 0)  */
                                                                         /*  (LW_CFG_PTY_DEVICE_EN > 0)  */

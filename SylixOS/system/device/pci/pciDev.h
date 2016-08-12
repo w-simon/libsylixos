@@ -610,6 +610,7 @@ typedef PCI_RESOURCE_CB    *PCI_RESOURCE_HANDLE;
 *********************************************************************************************************/
 typedef struct {
     LW_LIST_LINE        PCIDEV_lineDevNode;                             /* 设备管理节点                 */
+    LW_OBJECT_HANDLE    PCIDEV_hDevLock;                                /* 设备自身操作锁               */
 
     UINT32              PCIDEV_uiDevVersion;                            /* 设备版本                     */
     UINT32              PCIDEV_uiUnitNumber;                            /* 设备编号                     */
@@ -628,17 +629,20 @@ typedef struct {
     UINT32              PCIDEV_uiResourceNum;
     PCI_RESOURCE_CB     PCIDEV_tResource[PCI_NUM_RESOURCES];            /* I/O and memory  + ROMs       */
 
-    PVOID               PCIDEV_pvDevDriver;                             /* 驱动句柄                     */
-
     INT                 PCIDEV_iDevIrqMsiEn;                            /* 是否使能 MSI                 */
-    ULONG               PCIDEV_ulDevIrqVector;                          /* 中断向量                     */
+    ULONG               PCIDEV_ulDevIrqVector;                          /* MSI 或 INTx 中断向量         */
+    UINT32              PCIDEV_uiDevIrqMsiNum;                          /* MSI 中断数量                 */
+    PCI_MSI_DESC        PCIDEV_pmdDevIrqMsiDesc;                        /* MSI 中断描述                 */
+
     CHAR                PCIDEV_cDevIrqName[PCI_DEV_IRQ_NAME_MAX];       /* 中断名称                     */
     PINT_SVR_ROUTINE    PCIDEV_pfuncDevIrqHandle;                       /* 中断服务句柄                 */
     PVOID               PCIDEV_pvDevIrqArg;                             /* 中断服务参数                 */
 
-    LW_OBJECT_HANDLE    PCIDEV_hDevLock;                                /* 设备自身操作锁               */
+    PVOID               PCIDEV_pvDevDriver;                             /* 驱动句柄                     */
 } PCI_DEV_CB;
 typedef PCI_DEV_CB     *PCI_DEV_HANDLE;
+
+#define PCI_DEV_MSI_IS_EN(handle)           (((PCI_DEV_HANDLE)handle)->PCIDEV_iDevIrqMsiEn == LW_TRUE)
 
 /*********************************************************************************************************
   控制器驱动
@@ -693,6 +697,7 @@ LW_API PVOID                API_PciDevIoRemap(PVOID  pvPhysicalAddr, size_t  stS
 LW_API PVOID                API_PciDevIoRemapEx(PVOID  pvPhysicalAddr, size_t  stSize, ULONG  ulFlags);
 
 LW_API INT                  API_PciDevMasterEnable(PCI_DEV_HANDLE  hDevHandle, BOOL bEnable);
+
 LW_API INT                  API_PciDevInterDisable(PCI_DEV_HANDLE   hHandle,
                                                    ULONG            ulVector,
                                                    PINT_SVR_ROUTINE pfuncIsr,
@@ -710,7 +715,14 @@ LW_API INT                  API_PciDevInterConnect(PCI_DEV_HANDLE   hHandle,
                                                    PINT_SVR_ROUTINE pfuncIsr,
                                                    PVOID            pvArg,
                                                    CPCHAR           pcName);
-LW_API INT                  API_PciDevMsiEnableSet(PCI_DEV_HANDLE  hHandle, INT  iEnable);
+
+LW_API INT                  API_PciDevIntxEnableSet(PCI_DEV_HANDLE hHandle, INT iEnable);
+
+LW_API INT                  API_PciDevMsiRangeEnable(PCI_DEV_HANDLE hHandle,
+                                                     UINT uiVecMin, UINT uiVecMax);
+LW_API INT                  API_PciDevMsiVecCountGet(PCI_DEV_HANDLE hHandle, UINT32 *puiVecCount);
+LW_API INT                  API_PciDevMsiEnableGet(PCI_DEV_HANDLE hHandle, INT *piEnable);
+LW_API INT                  API_PciDevMsiEnableSet(PCI_DEV_HANDLE hHandle, INT iEnable);
 
 LW_API PCI_DEV_HANDLE       API_PciDevHandleGet(INT iBus, INT iDevice, INT iFunction);
 
@@ -755,6 +767,12 @@ LW_API PCI_DEV_HANDLE       API_PciDevHandleGet(INT iBus, INT iDevice, INT iFunc
 #define pciDevInterEnable       API_PciDevInterEnable
 #define pciDevInterDisonnect    API_PciDevInterDisonnect
 #define pciDevInterConnect      API_PciDevInterConnect
+
+#define pciDevIntxEnableSet     API_PciDevIntxEnableSet
+
+#define pciDevMsiRangeEnable    API_PciDevMsiRangeEnable
+#define pciDevMsiVecCountGet    API_PciDevMsiVecCountGet
+#define pciDevMsiEnableGet      API_PciDevMsiEnableGet
 #define pciDevMsiEnableSet      API_PciDevMsiEnableSet
 
 #define pciHandleGet            API_PciDevHandleGet

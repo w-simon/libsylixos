@@ -1045,6 +1045,7 @@ PVOID   __tshellThread (PVOID  pcArg)
     REGISTER INT            iTtyFd = (INT)pcArg;
              INT            iRetValue;
              CHAR           cRecvBuffer[LW_CFG_SHELL_MAX_COMMANDLEN + 1];
+             CHAR           cCtrl[NCCS];
              INT            iReadNum;
              INT            iTotalNum = 0;
              BOOL           bIsCommandOver = LW_TRUE;
@@ -1146,6 +1147,7 @@ PVOID   __tshellThread (PVOID  pcArg)
     
     ioctl(iTtyFd, FIOABORTARG,  API_ThreadIdSelf());                    /*  control-C 参数              */
     ioctl(iTtyFd, FIOABORTFUNC, __tshellRestart);                       /*  control-C 行为              */
+    ioctl(iTtyFd, FIOGETCC, cCtrl);                                     /*  获得控制字符                */
     
     for (;;) {
         if (bIsCommandOver) {                                           /*  单条命令结束后发送命令提示符*/
@@ -1228,6 +1230,8 @@ PVOID   __tshellThread (PVOID  pcArg)
             } else {                                                    /*  重新恢复为行模式            */
                 ioctl(iTtyFd, FIOSETOPTIONS, OPT_TERMINAL);
             }
+            
+            ioctl(iTtyFd, FIOSETCC, cCtrl);                             /*  恢复之前的控制字符          */
         }
         
         iTotalNum      = 0;

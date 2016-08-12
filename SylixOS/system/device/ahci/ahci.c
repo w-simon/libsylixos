@@ -1019,7 +1019,8 @@ static INT  __ahciBlkReadWrite (AHCI_DEV_HANDLE  hDev,
 
         iRet = __ahciReadWrite(hCtrl, hDev->AHCIDEV_uiDrive, pvBuffer, ulLba, ulSector, uiDirection);
         while (iRet != ERROR_NONE) {                                    /* ´íÎóÖØÊÔ                     */
-            AHCI_LOG(AHCI_LOG_ERR, "ahci read write retry num %d.", iRetry);
+            AHCI_LOG(AHCI_LOG_ERR, "ahci %s retry sector %lld num %lld num %d.",
+                     (uiDirection == O_RDONLY) ? ("read") : ("write"), ulLba, ulSector, iRetry);
             if (iRetry > AHCI_RETRY_NUM) {
                 goto   __error_handle;
             }
@@ -2809,6 +2810,7 @@ INT  API_AhciDevBlkRead (AHCI_DEV_HANDLE  hDev, PVOID  pvBuffer, ULONG  ulBlkSta
 {
     return  (__ahciBlkRd(hDev, pvBuffer, ulBlkStart, ulBlkCount));
 }
+
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */
                                                                         /*  (LW_CFG_AHCI_EN > 0)        */
 /*********************************************************************************************************

@@ -115,6 +115,7 @@
 #define  LW_OPTION_THREAD_NOTEPAD_13                    0x0D
 #define  LW_OPTION_THREAD_NOTEPAD_14                    0x0E
 #define  LW_OPTION_THREAD_NOTEPAD_15                    0x0F            /*  线程记事本号                */
+#define  LW_OPTION_THREAD_NOTEPAD_NO(n)                 (n)
 
 /*********************************************************************************************************
   Semaphore & MsgQueue
@@ -179,46 +180,7 @@
 #define  LW_OPTION_NOERROR                              0x00400000      /*  大于缓冲区的消息自动截断    */
                                                                         /*  默认接收为此选项            */
 /*********************************************************************************************************
-  EVENT (当前不可用)
-*********************************************************************************************************/
-
-                                                                        /*  可使用最多 65535 种资源     */
-                                                                        /*  内核通过顺序分配来预防死锁  */
-#define  LW_OPTION_RESOURCE_1                           0x00000001      /*  资源号 (预防死锁算法使用)   */
-#define  LW_OPTION_RESOURCE_2                           0x00000002
-#define  LW_OPTION_RESOURCE_3                           0x00000003
-#define  LW_OPTION_RESOURCE_4                           0x00000004
-#define  LW_OPTION_RESOURCE_5                           0x00000005
-#define  LW_OPTION_RESOURCE_6                           0x00000006
-#define  LW_OPTION_RESOURCE_7                           0x00000007
-#define  LW_OPTION_RESOURCE_8                           0x00000008
-#define  LW_OPTION_RESOURCE_9                           0x00000009
-#define  LW_OPTION_RESOURCE_10                          0x0000000A
-#define  LW_OPTION_RESOURCE_11                          0x0000000B
-#define  LW_OPTION_RESOURCE_12                          0x0000000C
-#define  LW_OPTION_RESOURCE_13                          0x0000000D
-#define  LW_OPTION_RESOURCE_14                          0x0000000E
-#define  LW_OPTION_RESOURCE_15                          0x0000000F
-#define  LW_OPTION_RESOURCE_16                          0x00000010
-#define  LW_OPTION_RESOURCE_17                          0x00000011
-#define  LW_OPTION_RESOURCE_18                          0x00000012
-#define  LW_OPTION_RESOURCE_19                          0x00000013
-#define  LW_OPTION_RESOURCE_20                          0x00000014
-#define  LW_OPTION_RESOURCE_21                          0x00000015
-#define  LW_OPTION_RESOURCE_22                          0x00000016
-#define  LW_OPTION_RESOURCE_23                          0x00000017
-#define  LW_OPTION_RESOURCE_24                          0x00000018
-#define  LW_OPTION_RESOURCE_25                          0x00000019
-#define  LW_OPTION_RESOURCE_26                          0x0000001A
-#define  LW_OPTION_RESOURCE_27                          0x0000001B
-#define  LW_OPTION_RESOURCE_28                          0x0000001C
-#define  LW_OPTION_RESOURCE_29                          0x0000001D
-#define  LW_OPTION_RESOURCE_30                          0x0000001E
-#define  LW_OPTION_RESOURCE_31                          0x0000001F
-#define  LW_OPTION_RESOURCE_32                          0x00000020      /*  资源号 (预防死锁算法使用)   */
-
-/*********************************************************************************************************
-  MSGQUEUE
+  消息队列发送选项
 *********************************************************************************************************/
 
 #define  LW_OPTION_URGENT                               0x00000001      /*  消息队列紧急消息发送        */
@@ -350,6 +312,7 @@
 #define  LW_IRQ_29                                      29
 #define  LW_IRQ_30                                      30
 #define  LW_IRQ_31                                      31
+#define  LW_IRQ_NO(n)                                   (n)
 
 /*********************************************************************************************************
   IRQ FLAG (设置为 QUEUE 模式向量后, 系统无法再返回非 QUEUE 模式向量)

@@ -1455,13 +1455,14 @@ void  __pciDevReadIrq (PCI_DEV_HANDLE hHandle)
 
     hResource = &hHandle->PCIDEV_tResource[PCI_IRQ_RESOURCE];
 
+    hHandle->PCIDEV_iDevIrqMsiEn = LW_FALSE;
     iRet = API_PciDevInterVectorGet(hHandle, &ulVector);
+    hHandle->PCIDEV_ulDevIrqVector = ulVector;
     if (iRet != ERROR_NONE) {
         hResource->PCIRS_pcName  = LW_NULL;
         hResource->PCIRS_stStart = 0;
         hResource->PCIRS_stEnd   = 0;
         hResource->PCIRS_ulFlags = 0;
-
         return;
     }
 

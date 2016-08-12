@@ -86,7 +86,7 @@
 *********************************************************************************************************/
 #define AHCI_PCI_READ(dev, pos, len, data)  API_PciDevConfigRead(dev, pos, (UINT8 *)&data, len)
 #define AHCI_PCI_WRITE(dev, pos, len, data) do {                                                        \
-                                                UINT32      uiData;                                     \
+                                                UINT32  uiData;                                         \
                                                 uiData = data;                                          \
                                                 API_PciDevConfigWrite(dev, pos, (UINT8 *)&uiData, len); \
                                             } while (0)

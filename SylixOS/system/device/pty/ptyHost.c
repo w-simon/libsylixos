@@ -55,6 +55,10 @@ LONG  _PtyHostOpen (P_PTY_DEV      p_ptydev,
                     INT            iFlags, 
                     INT            iMode)
 {
+    P_PTY_D_DEV  p_ptyddev = &p_ptydev->PTYDEV_ptyddev;
+
+    p_ptyddev->PTYDDEV_bIsClose = LW_FALSE;                             /*  Ã»ÓÐ¹Ø±Õ                    */
+
     LW_DEV_INC_USE_COUNT(&p_ptydev->PTYDEV_ptyhdev.PTYHDEV_tydevTyDev.TYDEV_devhdrHdr);
 
     return  ((LONG)(p_ptydev));                                         /*  ÐéÄâÖÕ¶Ë¿ØÖÆ¿éµØÖ·          */
@@ -163,7 +167,7 @@ INT  _PtyHostIoctl (P_PTY_DEV     p_ptydev,
         return  (ERROR_NONE);
         
     case SIO_BAUD_GET:
-        *(LONG *)lArg = 115200;
+        *(LONG *)lArg = SIO_BAUD_115200;
         return  (ERROR_NONE);
         
     case FIOBAUDRATE:
@@ -174,6 +178,7 @@ INT  _PtyHostIoctl (P_PTY_DEV     p_ptydev,
     return  (_TyIoctl(&p_ptyhdev->PTYHDEV_tydevTyDev, 
                       iRequest, lArg));
 }
+
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */
                                                                         /*  (LW_CFG_SIO_DEVICE_EN > 0)  */
                                                                         /*  (LW_CFG_PTY_DEVICE_EN > 0)  */

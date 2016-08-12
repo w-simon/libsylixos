@@ -41,9 +41,11 @@ PCHAR        lib_asctime_r(const struct tm *tmp, PCHAR  pcBuffer);
 #if LW_CFG_RTC_EN > 0
 PCHAR  lib_ctime_r (const time_t *time, PCHAR  pcBuffer)
 {
-    struct tm       tmBuffer;
+    struct tm  tmBuffer;
     
-    lib_localtime_r(time, &tmBuffer);
+    if (!lib_localtime_r(time, &tmBuffer)) {
+        return  (LW_NULL);
+    }
     
     lib_asctime_r(&tmBuffer, pcBuffer);
     
@@ -59,7 +61,7 @@ PCHAR  lib_ctime_r (const time_t *time, PCHAR  pcBuffer)
 *********************************************************************************************************/
 PCHAR  lib_ctime (const time_t *time)
 {
-    static CHAR     cTimeBuffer[sizeof(ASCBUF)];
+    static CHAR  cTimeBuffer[sizeof(ASCBUF)];
     
     return  (lib_ctime_r(time, cTimeBuffer));
 }

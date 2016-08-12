@@ -81,6 +81,7 @@ VOID  API_TimerHTicks (VOID)
     
     __KERNEL_EXIT_IRQ(iregInterLevel);                                  /*  退出内核同时打开中断        */
 }
+
 #endif                                                                  /*  (LW_CFG_HTIMER_EN > 0)      */
                                                                         /*  (LW_CFG_MAX_TIMERS > 0)     */
 /*********************************************************************************************************

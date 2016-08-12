@@ -659,6 +659,7 @@ static INT  _hstmrfdIoctl (PLW_HSTMRFD_FILE  phstmrfdfil,
     
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_PTIMER_EN > 0        */
                                                                         /*  LW_CFG_TIMERFD_EN > 0       */
 /*********************************************************************************************************

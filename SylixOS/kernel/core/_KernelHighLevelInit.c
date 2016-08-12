@@ -107,7 +107,7 @@ static VOID  _CreateITimerThread (VOID)
 
     API_ThreadAttrBuild(&threadattr, 
                         LW_CFG_THREAD_ITMR_STK_SIZE, 
-                        LW_PRIO_T_TTIMER,
+                        LW_PRIO_T_ITIMER,
                         (LW_CFG_ITIMER_OPTION | LW_OPTION_THREAD_SAFE | LW_OPTION_OBJECT_GLOBAL), 
                         LW_NULL);
 

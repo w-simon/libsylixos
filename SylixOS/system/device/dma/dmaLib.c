@@ -71,6 +71,7 @@ __PDMA_WAITNODE     _dmaWaitnodeAlloc (VOID)
                       &_G_pringDmanFreeHeader);                         /*  删除表头的节点              */
         pdmanNewNode = _LIST_ENTRY(pringNewNode, __DMA_WAITNODE, DMAN_ringManage);
         return  (pdmanNewNode);                                         /*  返回新节点                  */
+    
     } else {
         return  (LW_NULL);                                              /*  没有新节点了                */
     }
@@ -133,6 +134,7 @@ __PDMA_WAITNODE     _dmaGetFirstInWaitList (__PDMA_CHANNEL    pdmacChannel)
     if (pringNode) {
         pdmanNode = _LIST_ENTRY(pringNode, __DMA_WAITNODE, DMAN_ringManage);
         return  (pdmanNode);
+    
     } else {
         return  (LW_NULL);
     }

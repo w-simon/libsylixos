@@ -115,6 +115,7 @@ ssize_t  _PtyDeviceRead (P_PTY_DEV     p_ptydev,
             iError = _TyITx(&p_ptyhdev->PTYHDEV_tydevTyDev, &cGet);     /*  模拟串口的 TxD 中断         */
             if (iError == PX_ERROR) {
                 break;
+            
             } else {
                 pcBuffer[iTemp++] = cGet;
             }
@@ -156,8 +157,7 @@ ssize_t  _PtyDeviceWrite (P_PTY_DEV     p_ptydev,
                           PCHAR         pcBuffer, 
                           size_t        stNBytes)
 {
-    REGISTER INT    i;
-    
+    REGISTER INT            i;
     REGISTER P_PTY_H_DEV    p_ptyhdev = &p_ptydev->PTYDEV_ptyhdev;
     
     for (i = 0; i < stNBytes; i++) {
@@ -268,6 +268,7 @@ VOID  _PtyDeviceStartup (P_PTY_DEV     p_ptydev)
     SEL_WAKE_UP_ALL(&p_ptydev->PTYDEV_ptyddev.PTYDDEV_selwulList, 
                     SELREAD);                                           /*  select() 激活               */
 }
+
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */
                                                                         /*  (LW_CFG_SIO_DEVICE_EN > 0)  */
                                                                         /*  (LW_CFG_PTY_DEVICE_EN > 0)  */

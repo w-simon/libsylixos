@@ -236,7 +236,7 @@ int  pthread_join (pthread_t  thread, void **ppstatus)
         return  (EDEADLK);
     
     } else {
-        return  (ulError);
+        return  ((int)ulError);
     }
 }
 /*********************************************************************************************************
@@ -266,7 +266,7 @@ int  pthread_detach (pthread_t  thread)
         return  (EINVAL);
     
     } else {
-        return  (ulError);
+        return  ((int)ulError);
     }
 }
 /*********************************************************************************************************
@@ -352,9 +352,15 @@ int  pthread_kill (pthread_t  thread, int signo)
 
     PX_ID_VERIFY(thread, pthread_t);
     
+    if (thread < LW_CFG_MAX_THREADS) {
+        errno = ESRCH;
+        return  (ESRCH);
+    }
+    
     error = kill(thread, signo);
     if (error < ERROR_NONE) {
         return  (errno);
+    
     } else {
         return  (error);
     }
@@ -378,6 +384,7 @@ int  pthread_sigmask (int  how, const sigset_t  *newmask, sigset_t *oldmask)
     error = sigprocmask(how, newmask, oldmask);
     if (error < ERROR_NONE) {
         return  (errno);
+    
     } else {
         return  (error);
     }

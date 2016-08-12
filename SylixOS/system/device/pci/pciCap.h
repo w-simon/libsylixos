@@ -47,7 +47,7 @@ static LW_INLINE CHAR * __pciCapHtLinkFreq (UINT32  uiFreq)
 }
 
 LW_API INT      API_PciCapShow(INT  iBus, INT  iSlot, INT  iFunc);
-LW_API INT      API_PciCapFind(INT  iBus, INT  iSlot, INT  iFunc, UINT8  ucCapId, UINT8 *pucOffset);
+LW_API INT      API_PciCapFind(INT  iBus, INT  iSlot, INT  iFunc, UINT8  ucCapId, UINT32 *puiOffset);
 LW_API INT      API_PciCapEn(INT  iBus, INT  iSlot, INT  iFunc);
 
 #define pciCapShow              API_PciCapShow

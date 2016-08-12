@@ -90,7 +90,7 @@ VOID  _interDeferInit (VOID)
             _DebugHandle(__ERRORMESSAGE_LEVEL, "can not create ISR defer queue.\r\n");
             return;
         }
-                         
+        
         lib_itoa(i, &cDefer[10], 10);
         API_ThreadAttrSetArg(&threadattr, &_K_jobqIsrDefer[i]);
         ulId = API_ThreadInit(cDefer, _interDeferTask, &threadattr, LW_NULL);

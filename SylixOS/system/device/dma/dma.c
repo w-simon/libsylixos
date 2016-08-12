@@ -346,6 +346,7 @@ INT     API_DmaJobAdd (UINT                 uiChannel,
         pdmanNodeNew = (__PDMA_WAITNODE)__SHEAP_ALLOC(sizeof(__DMA_WAITNODE));
         if (pdmanNodeNew) {
             pdmanNodeNew->DMAN_bDontFree = LW_FALSE;                    /*  需要释放操作                */
+        
         } else {
             __UNSAFE();
             _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);                      /*  缺少内存                    */
@@ -438,6 +439,7 @@ INT     API_DmaFlush (UINT   uiChannel)
         if (pdmanNode->DMAN_bDontFree) {
             _dmaWaitnodeFree(pdmanNode);                                /*  加入到空闲队列              */
             LW_SPIN_UNLOCK_QUICK(&_G_slDmaManage, iregInterLevel);      /*  打开中断同时解锁 spinlock   */
+        
         } else {
             LW_SPIN_UNLOCK_QUICK(&_G_slDmaManage, iregInterLevel);      /*  打开中断同时解锁 spinlock   */
             __SHEAP_FREE((PVOID)pdmanNode);                             /*  释放到内存堆中              */
@@ -515,6 +517,7 @@ INT     API_DmaContext (UINT   uiChannel)
         LW_SPIN_LOCK_QUICK(&_G_slDmaManage, &iregInterLevel);           /*  关闭中断同时锁住 spinlock   */
         _dmaWaitnodeFree(pdmanNode);                                    /*  加入到空闲队列              */
         LW_SPIN_UNLOCK_QUICK(&_G_slDmaManage, iregInterLevel);          /*  打开中断同时解锁 spinlock   */
+    
     } else {
         _excJobAdd((VOIDFUNCPTR)_HeapFree, 
                    (PVOID)_K_pheapSystem, 
@@ -530,6 +533,7 @@ INT     API_DmaContext (UINT   uiChannel)
     if ((pdmacChannel->DMAC_iMaxNode - pdmacChannel->DMAC_iNodeCounter) == 1) {
         LW_SPIN_UNLOCK_QUICK(&_G_slDmaManage, iregInterLevel);          /*  打开中断同时解锁 spinlock   */
         API_SemaphoreBPost(pdmacChannel->DMAC_ulJobSync);               /*  释放同步信号量              */
+    
     } else {
         LW_SPIN_UNLOCK_QUICK(&_G_slDmaManage, iregInterLevel);          /*  打开中断同时解锁 spinlock   */
     }

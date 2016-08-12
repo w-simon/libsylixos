@@ -154,6 +154,11 @@ int  timerfd_settime (int fd, int flags, const struct itimerspec *ntmr, struct i
         return  (PX_ERROR);
     }
     
+    if ((flags != 0) && (flags != TFD_TIMER_ABSTIME)) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
     if (fd < 0) {
         _ErrorHandle(EBADF);
         return  (PX_ERROR);
@@ -161,7 +166,7 @@ int  timerfd_settime (int fd, int flags, const struct itimerspec *ntmr, struct i
     
     ptmrfdfil = (PLW_TMRFD_FILE)API_IosFdValue(fd);
     if (!ptmrfdfil || (ptmrfdfil->TF_uiMagic != LW_TIMER_FILE_MAGIC)) {
-        _ErrorHandle(EBADF);
+        _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
     
@@ -191,7 +196,7 @@ int  timerfd_gettime (int fd, struct itimerspec *currvalue)
     
     ptmrfdfil = (PLW_TMRFD_FILE)API_IosFdValue(fd);
     if (!ptmrfdfil || (ptmrfdfil->TF_uiMagic != LW_TIMER_FILE_MAGIC)) {
-        _ErrorHandle(EBADF);
+        _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
     

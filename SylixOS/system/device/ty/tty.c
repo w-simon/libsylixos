@@ -36,6 +36,10 @@
 /*********************************************************************************************************
   裁剪宏
 *********************************************************************************************************/
+#define __LW_TTY_OPEN_REPEATEDLY_EN     1
+/*********************************************************************************************************
+  裁剪宏
+*********************************************************************************************************/
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_SIO_DEVICE_EN > 0)
 /*********************************************************************************************************
  LOCAL FUNC
@@ -276,12 +280,14 @@ static LONG   _ttyOpen (TYCO_DEV    *ptycoDev,
             ptycoDev->TYCODEV_tydevTyDev.TYDEV_ulRTimeout = LW_OPTION_NOT_WAIT;
             ptycoDev->TYCODEV_tydevTyDev.TYDEV_ulWTimeout = LW_OPTION_NOT_WAIT;
         }
-    
-    } else {
+    }
+#if __LW_TTY_OPEN_REPEATEDLY_EN == 0
+      else {
         LW_DEV_DEC_USE_COUNT(&ptycoDev->TYCODEV_tydevTyDev.TYDEV_devhdrHdr);
         _ErrorHandle(EBUSY);                                            /*  只允许打开一次              */
         return  (PX_ERROR);
     }
+#endif                                                                  /*  __LW_TTY_OPEN_REPEATEDLY_EN */
     
     return  ((LONG)ptycoDev);
 }

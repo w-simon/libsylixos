@@ -2068,18 +2068,19 @@ INT  API_PciCapShow (INT iBus, INT iSlot, INT iFunc)
 **           iSlot       插槽
 **           iFunc       功能
 **           ucCapId     扩展功能 ID (PCI_CAP_ID_PM, PCI_CAP_ID_MSI 等等)
-**           pucOffset   扩展功能保存的地址偏移
+**           puiOffset   扩展功能保存的地址偏移
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
 **                                            API 函数
 *********************************************************************************************************/
 LW_API
-INT  API_PciCapFind (INT iBus, INT iSlot, INT iFunc, UINT8  ucCapId, UINT8 *pucOffset)
+INT  API_PciCapFind (INT iBus, INT iSlot, INT iFunc, UINT8  ucCapId, UINT32 *puiOffset)
 {
     INT         iRet         = PX_ERROR;
     UINT16      usTempWord   = 0x0000;
     UINT8       ucTempByte   = 0x00;
+    UINT32      uiCapOffset  = 0x00;
     UINT8       ucCapOffset  = 0x00;
     UINT8       ucHeaderType = 0x00;
     INT         iCapTtl      = PCI_FIND_CAP_TTL;
@@ -2099,28 +2100,29 @@ INT  API_PciCapFind (INT iBus, INT iSlot, INT iFunc, UINT8  ucCapId, UINT8 *pucO
     
     case PCI_HEADER_TYPE_NORMAL:
     case PCI_HEADER_TYPE_BRIDGE:
-        ucCapOffset = PCI_CAPABILITY_LIST;
+        uiCapOffset = PCI_CAPABILITY_LIST;
         break;
 
     case PCI_HEADER_TYPE_CARDBUS:
-        ucCapOffset = PCI_CB_CAPABILITY_LIST;
+        uiCapOffset = PCI_CB_CAPABILITY_LIST;
         break;
 
     default:
         return  (PX_ERROR);
     }
 
-    iRet = API_PciConfigInByte(iBus, iSlot, iFunc, ucCapOffset, &ucCapOffset);
+    iRet = API_PciConfigInByte(iBus, iSlot, iFunc, uiCapOffset, &ucCapOffset);
     if (iRet == PX_ERROR) {
         return  (PX_ERROR);
     }
 
+    uiCapOffset = ucCapOffset;
     while (iCapTtl--) {
-        if (ucCapOffset < 0x40) {
+        if (uiCapOffset < 0x40) {
             break;
         }
-        ucCapOffset &= ~3;
-        iRet = API_PciConfigInWord(iBus, iSlot, iFunc, ucCapOffset, &usTempWord);
+        uiCapOffset &= ~3;
+        iRet = API_PciConfigInWord(iBus, iSlot, iFunc, uiCapOffset, &usTempWord);
         if (iRet == PX_ERROR) {
             return  (PX_ERROR);
         }
@@ -2129,12 +2131,12 @@ INT  API_PciCapFind (INT iBus, INT iSlot, INT iFunc, UINT8  ucCapId, UINT8 *pucO
             break;
         }
         if (ucTempByte == ucCapId) {
-            if (pucOffset) {
-                *pucOffset = ucCapOffset;
+            if (puiOffset) {
+                *puiOffset = uiCapOffset;
             }
             return  (ERROR_NONE);
         }
-        ucCapOffset = (usTempWord >> 8);
+        uiCapOffset = (usTempWord >> 8);
     }
 
     return  (PX_ERROR);

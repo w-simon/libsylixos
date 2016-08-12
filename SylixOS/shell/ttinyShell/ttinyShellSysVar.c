@@ -111,6 +111,7 @@ VOID  __tshellSysVarInit (VOID)
     API_TShellExec("TERM=vt100");
     API_TShellExec("TERMCAP=/etc/termcap");                             /*  BSD ÖÕ¶Ë×ªÒå                */
 }
+
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 /*********************************************************************************************************
   END

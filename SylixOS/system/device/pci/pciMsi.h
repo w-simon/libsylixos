@@ -33,38 +33,50 @@ typedef struct {
     UINT32      uiData;                                                 /* 16 bits of msi message data  */
 } PCI_MSI_MSG;
 
-LW_API INT      API_PciMsixClearSet(INT  iBus, INT  iSlot, INT  iFunc, INT  iMsixCapOft,
+typedef struct {
+    UINT32          PCIMSI_uiNum;
+    ULONG           PCIMSI_ulDevIrqVector;
+    PCI_MSI_MSG     PCIMSI_pmmMsg;
+
+    UINT32          PCIMSI_uiMasked;
+    UINT32          PCIMSI_uiMaskPos;
+
+    PVOID           PCIMSI_pvPriv;
+} PCI_MSI_DESC;
+typedef PCI_MSI_DESC       *PCI_MSI_DESC_HANDLE;
+
+LW_API INT      API_PciMsixClearSet(INT iBus, INT iSlot, INT iFunc, UINT32 uiMsixCapOft,
                                     UINT16  usClear, UINT16  usSet);
 
-LW_API INT      API_PciMsiMsgRead(INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft,
+LW_API INT      API_PciMsiMsgRead(INT  iBus, INT  iSlot, INT iFunc, UINT32 uiMsixCapOft,
                                   UINT8  ucMultiple, PCI_MSI_MSG *ppmmMsg);
-LW_API INT      API_PciMsiMsgWrite(INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft,
-                                   UINT8  ucMultiple, PCI_MSI_MSG *ppmmMsg);
+LW_API INT      API_PciMsiMsgWrite(INT iBus, INT iSlot, INT iFunc, UINT32 uiMsixCapOft,
+                                   UINT8 ucMultiple, PCI_MSI_MSG *ppmmMsg);
 
-LW_API INT      API_PciMsiPendingSet(INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft,
-                                     UINT32  uiPending, UINT32  uiFlag);
-LW_API INT      API_PciMsiPendingGet(INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft,
+LW_API INT      API_PciMsiPendingSet(INT iBus, INT iSlot, INT iFunc, UINT32 uiMsixCapOft,
+                                     UINT32 uiPending, UINT32 uiFlag);
+LW_API INT      API_PciMsiPendingGet(INT iBus, INT iSlot, INT iFunc, UINT32 uiMsixCapOft,
                                      UINT32 *puiPending);
-LW_API INT      API_PciMsiPendingPosGet(INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft,
+LW_API INT      API_PciMsiPendingPosGet(INT iBus, INT iSlot, INT iFunc, UINT32 uiMsixCapOft,
                                         INT *piPendingPos);
 
-LW_API INT      API_PciMsiMaskSet(INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft,
-                                  UINT32  uiMask, UINT32  uiFlag);
-LW_API INT      API_PciMsiMaskGet(INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, UINT32 *puiMask);
-LW_API INT      API_PciMsiMaskPosGet(INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, INT *piMaskPos);
+LW_API INT      API_PciMsiMaskSet(INT iBus, INT iSlot, INT iFunc, UINT32 uiMsixCapOft,
+                                  UINT32 uiMask, UINT32 uiFlag);
+LW_API INT      API_PciMsiMaskGet(INT iBus, INT iSlot, INT iFunc, UINT32 uiMsixCapOft, UINT32 *puiMask);
+LW_API INT      API_PciMsiMaskPosGet(INT iBus, INT iSlot, INT iFunc, UINT32 uiMsixCapOft, INT *piMaskPos);
 
-LW_API UINT32   API_PciMsiMaskConvert(UINT32  uiMask);
-LW_API INT      API_PciMsiMultipleGet(INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft,
-                                      INT  iNvec, INT *piMultiple);
-LW_API INT      API_PciMsiVecCountGet(INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft,
-                                      INT *piVecCount);
-LW_API INT      API_PciMsiMultiCapGet(INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft,
+LW_API UINT32   API_PciMsiMaskConvert(UINT32 uiMask);
+LW_API INT      API_PciMsiMultipleGet(INT iBus, INT iSlot, INT iFunc, UINT32 uiMsixCapOft,
+                                      INT iNvec, INT *piMultiple);
+LW_API INT      API_PciMsiVecCountGet(INT iBus, INT iSlot, INT iFunc,
+                                      UINT32 uiMsiCapOft, UINT32 *puiVecCount);
+LW_API INT      API_PciMsiMultiCapGet(INT  iBus, INT  iSlot, INT  iFunc, UINT32  uiMsixCapOft,
                                       INT *piMultiCap);
-LW_API INT      API_PciMsi64BitGet(INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, INT *pi64Bit);
-LW_API INT      API_PciMsiMaskBitGet(INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, INT *piMaskBit);
+LW_API INT      API_PciMsi64BitGet(INT iBus, INT iSlot, INT iFunc, UINT32 uiMsixCapOft, INT *pi64Bit);
+LW_API INT      API_PciMsiMaskBitGet(INT iBus, INT iSlot, INT iFunc, UINT32 uiMsixCapOft, INT *piMaskBit);
 
-LW_API INT      API_PciMsiEnableSet(INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, INT  iEnable);
-LW_API INT      API_PciMsiEnableGet(INT  iBus, INT  iSlot, INT  iFunc, INT  iMsiCapOft, INT *piEnable);
+LW_API INT      API_PciMsiEnableSet(INT iBus, INT iSlot, INT iFunc, UINT32 uiMsixCapOft, INT iEnable);
+LW_API INT      API_PciMsiEnableGet(INT iBus, INT iSlot, INT iFunc, UINT32 uiMsixCapOft, INT *piEnable);
 
 #define pciMsixClearSet         API_PciMsixClearSet
 
