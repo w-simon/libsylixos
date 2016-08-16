@@ -202,6 +202,7 @@ VOID __sdmSdioDrvAccessRelease (VOID)
 {
     __SDM_DRV_UNLOCK();
 }
+
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0)      */
                                                                         /*  (LW_CFG_SDCARD_EN > 0)      */
                                                                         /*  (LW_CFG_SDCARD_SDIO_EN > 0) */

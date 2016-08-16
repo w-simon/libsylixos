@@ -26,6 +26,10 @@
 #ifndef __SDCORE_LIB_H
 #define __SDCORE_LIB_H
 
+/*********************************************************************************************************
+  SDIO functions
+*********************************************************************************************************/
+
 INT API_SdCoreDecodeCID(LW_SDDEV_CID  *psdcidDec, UINT32 *pRawCID, UINT8 ucType);
 INT API_SdCoreDecodeCSD(LW_SDDEV_CSD  *psdcsdDec, UINT32 *pRawCSD, UINT8 ucType);
 INT API_SdCoreDevReset(PLW_SDCORE_DEVICE psdcoredevice);

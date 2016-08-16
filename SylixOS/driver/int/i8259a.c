@@ -207,13 +207,13 @@ VOID  i8259aInit (I8259A_CTL *pctl)
     out8(0xff, PIC_SLAVE_IMR);                                          /*  mask all of 8259A-2 slave   */
 
     out8(cmd, PIC_MASTER_CMD);                                          /*  ICW1: select 8259A-1 init   */
-    out8(0, PIC_MASTER_IMR);                                            /*  ICW2: master IR0 mapped to 0*/
+    out8(pctl->vector_base, PIC_MASTER_IMR);                            /*  ICW2:master IR0 mapped to 0 */
     out8(1u << PIC_CASCADE_IR, PIC_MASTER_IMR);                         /*  (master) has a slave on IR2 */
 
     out8(MASTER_ICW4_DEFAULT | PIC_ICW4_AEOI, PIC_MASTER_IMR);          /*  master does Auto EOI        */
 
     out8(cmd, PIC_SLAVE_CMD);                                           /*  ICW1: select 8259A-2 init   */
-    out8(8, PIC_SLAVE_IMR);                                             /*  ICW2: slave IR0 mapped to 8 */
+    out8(pctl->vector_base + 8, PIC_SLAVE_IMR);                         /*  ICW2: slave IR0 mapped to 8 */
     out8(PIC_CASCADE_IR, PIC_SLAVE_IMR);                                /*  slave on master's IR2       */
     out8(SLAVE_ICW4_DEFAULT, PIC_SLAVE_IMR);                            /*  slave's support for AEOI in */
                                                                         /*  flat mode is to be          */

@@ -96,10 +96,10 @@ struct __sdmem_drv_funcs {
   API
 *********************************************************************************************************/
 
-LW_API PLW_BLK_DEV API_SdMemDevCreate(INT                       iAdapterType,
-                                      CPCHAR                    pcAdapterName,
-                                      CPCHAR                    pcDeviceName,
-                                      PLW_SDMEM_CHAN            psdmemchan);
+LW_API PLW_BLK_DEV API_SdMemDevCreate(INT               iAdapterType,
+                                      CPCHAR            pcAdapterName,
+                                      CPCHAR            pcDeviceName,
+                                      PLW_SDMEM_CHAN    psdmemchan);
 LW_API INT         API_SdMemDevDelete(PLW_BLK_DEV pblkdevice);
 LW_API INT         API_SdMemDevShow(PLW_BLK_DEV pblkdevice);
 

@@ -80,6 +80,10 @@ lib_strptime(const char *buf, const char *fmt, struct tm *tm)
 	size_t len = 0;
 	int alt_format, i, split_year = 0;
 
+    if (!buf || !tm) {
+        return  (NULL);
+    }
+
 	bp = buf;
 
 	while ((c = *fmt) != '\0') {

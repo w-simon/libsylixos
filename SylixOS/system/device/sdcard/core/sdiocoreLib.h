@@ -24,6 +24,10 @@
 #ifndef __SDIOCORE_LIB_H
 #define __SDIOCORE_LIB_H
 
+/*********************************************************************************************************
+  SDIO API
+*********************************************************************************************************/
+
 INT API_SdioCoreDevReset(PLW_SDCORE_DEVICE   psdcoredev);
 INT API_SdioCoreDevSendIoOpCond(PLW_SDCORE_DEVICE   psdcoredev, UINT32 uiOcr, UINT32 *puiOcrOut);
 
@@ -89,7 +93,6 @@ INT API_SdioCoreDevRwExtendX(PLW_SDCORE_DEVICE   psdcoredev,
                              UINT8              *pucBuf,
                              UINT32              uiBlkCnt,
                              UINT32              uiBlkSz);
-
 
 #endif                                                              /*  __SDIOCORE_LIB_H                */
 /*********************************************************************************************************

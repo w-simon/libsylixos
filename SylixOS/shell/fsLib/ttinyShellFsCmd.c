@@ -1343,8 +1343,8 @@ static INT  __tshellFsCmdDsize (INT  iArgC, PCHAR  ppcArgV[])
 static INT  __tshellFsCmdDf (INT  iArgC, PCHAR  ppcArgV[])
 {
     static PCHAR   pcVolumeInfoHdr = \
-                    "    VOLUME         TOTAL        FREE     USED RO             FS TYPE\n"
-                    "-------------- ------------ ------------ ---- -- --------------------------------\n";
+                    "    VOLUME       TOTAL     FREE    USED RO            FS TYPE\n"
+                    "-------------- --------- --------- ---- -- ---------------------------------\n";
 
     struct statfs       statfsGet;
            
@@ -1459,15 +1459,16 @@ static INT  __tshellFsCmdDf (INT  iArgC, PCHAR  ppcArgV[])
     }
     
     if (ullFree > ullTotal) {
-        printf("%-14s %7lu.%02lu%-2s      unknown ---%% %-2s %s\n", ppcArgV[1], 
+        printf("%-14s %4lu.%02lu%-2s   unknown ---%% %-2s %s\n", ppcArgV[1], 
                ulTotalDisp, ulTotalPoint, 
                pcTotalUnit, pcRo, pcFsType);
+    
     } else {
         UINT64      ullUseBlocks = (UINT64)(statfsGet.f_blocks - statfsGet.f_bfree);
     
         ullUseBlocks *= 100;
         iUseagePercent = (INT)(ullUseBlocks / statfsGet.f_blocks);
-        printf("%-14s %7lu.%02lu%-2s %7lu.%02lu%-2s %3d%% %-2s %s\n", ppcArgV[1], 
+        printf("%-14s %4lu.%02lu%-2s %4lu.%02lu%-2s %3d%% %-2s %s\n", ppcArgV[1], 
                ulTotalDisp, ulTotalPoint, pcTotalUnit, 
                ulFreeDisp,  ulFreePoint,  pcFreeUnit, 
                iUseagePercent, pcRo, pcFsType);

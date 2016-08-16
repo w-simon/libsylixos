@@ -523,6 +523,25 @@ static INT  __tshellSysCmdCpuus (INT  iArgC, PCHAR  ppcArgV[])
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: __tshellSysCmdX86
+** 功能描述: 系统命令 "x86"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : 0
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+#ifdef LW_CFG_CPU_ARCH_X86
+
+static INT  __tshellSysCmdX86 (INT  iArgC, PCHAR  ppcArgV[])
+{
+    x86CpuIdShow();
+
+    return  (ERROR_NONE);
+}
+
+#endif                                                                  /*  LW_CFG_CPU_ARCH_X86         */
+/*********************************************************************************************************
 ** 函数名称: __tshellSysCmdInts
 ** 功能描述: 系统命令 "ints"
 ** 输　入  : iArgC         参数个数
@@ -2151,6 +2170,11 @@ VOID  __tshellSysCmdInit (VOID)
     API_TShellFormatAdd("cpuus", " [-n times] [-t wait_seconds]");
     API_TShellHelpAdd("cpuus", "show cpu usage information, wait_seconds max is 10s.\n");
     
+#ifdef LW_CFG_CPU_ARCH_X86
+    API_TShellKeywordAdd("x86", __tshellSysCmdX86);
+    API_TShellHelpAdd("x86", "show x86 cpu information.\n");
+#endif                                                                  /*  LW_CFG_CPU_ARCH_X86         */
+
     API_TShellKeywordAdd("top", __tshellSysCmdCpuus);
     API_TShellFormatAdd("top", " [-n times] [-t wait_seconds]");
     API_TShellHelpAdd("top", "show cpu usage information, wait_seconds max is 10s.\n");

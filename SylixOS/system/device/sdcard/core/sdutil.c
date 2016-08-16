@@ -121,6 +121,7 @@ VOID  __sdUnitPut (VOID *pvUnitPool, INT iUnit)
     punitpool->UNITPOOL_uiSpace &= ~(1 << iUnit);
     LW_SPIN_UNLOCK_QUICK(&punitpool->UNITPOOL_slLock, iregInterLevel);
 }
+
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0)      */
                                                                         /*  (LW_CFG_SDCARD_EN > 0)      */
 /*********************************************************************************************************

@@ -106,15 +106,10 @@ struct sdio_drv {
     LW_LIST_LINE  SDIODRV_lineManage;                               /*  «˝∂Øπ“‘ÿ¡¥                      */
     CPCHAR        SDIODRV_cpcName;
 
-    INT         (*SDIODRV_pfuncDevCreate)
-                (
-                SDIO_DRV         *psdiodrv,
-                SDIO_INIT_DATA   *pinitdata,
-                VOID            **ppvDevPriv
-                );
-
+    INT         (*SDIODRV_pfuncDevCreate)(SDIO_DRV         *psdiodrv,
+                                          SDIO_INIT_DATA   *pinitdata,
+                                          VOID            **ppvDevPriv);
     INT         (*SDIODRV_pfuncDevDelete)(SDIO_DRV *psdiodrv, VOID *pvDevPriv);
-
     VOID        (*SDIODRV_pfuncIrqHandle)(SDIO_DRV *psdiodrv, VOID *pvDevPriv);
 
     SDIO_DEV_ID  *SDIODRV_pdevidTbl;

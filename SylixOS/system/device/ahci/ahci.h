@@ -59,11 +59,14 @@
 #define AHCI_OPT_CMD_CACHE_SIZE_GET         0x112                       /* 获取扇区缓冲区大小           */
 #define AHCI_OPT_CMD_CACHE_SIZE_SET         0x113                       /* 设置扇区缓冲区大小           */
 
-#define AHCI_OPT_CMD_PROB_TIME_UNIT_GET     0x114                       /* 获取驱动器单次探测时间 (ms)  */
-#define AHCI_OPT_CMD_PROB_TIME_UNIT_SET     0x115                       /* 设置驱动器单次探测时间 (ms)  */
+#define AHCI_OPT_CMD_CACHE_PL_GET           0x114                       /* 获取扇区缓冲区并发操作线程数 */
+#define AHCI_OPT_CMD_CACHE_PL_SET           0x115                       /* 设置扇区缓冲区并发操作线程数 */
 
-#define AHCI_OPT_CMD_PROB_TIME_COUNT_GET    0x116                       /* 获取驱动器单次探测数量       */
-#define AHCI_OPT_CMD_PROB_TIME_COUNT_SET    0x117                       /* 设置驱动器单次探测数量       */
+#define AHCI_OPT_CMD_PROB_TIME_UNIT_GET     0x116                       /* 获取驱动器单次探测时间 (ms)  */
+#define AHCI_OPT_CMD_PROB_TIME_UNIT_SET     0x117                       /* 设置驱动器单次探测时间 (ms)  */
+
+#define AHCI_OPT_CMD_PROB_TIME_COUNT_GET    0x118                       /* 获取驱动器单次探测数量       */
+#define AHCI_OPT_CMD_PROB_TIME_COUNT_SET    0x119                       /* 设置驱动器单次探测数量       */
 /*********************************************************************************************************
   设备类型
 *********************************************************************************************************/

@@ -137,10 +137,8 @@ __wait_again:
     
     if (pevent->EVENT_ulCounter) {                                      /*  事件有效                    */
         pevent->EVENT_ulCounter--;
-        _MsgQueueGetMsg(pmsgqueue, 
-                        pvMsgBuffer, 
-                        stMaxByteSize, 
-                        pstMsgLen);                                     /*  获得消息                    */
+        _MsgQueueGetMsg(pmsgqueue, pvMsgBuffer, 
+                        stMaxByteSize, pstMsgLen);                      /*  获得消息                    */
         
         if (_EventWaitNum(EVENT_MSG_Q_S, pevent)) {                     /*  有任务在等待写消息          */
             if (pevent->EVENT_ulOption & LW_OPTION_WAIT_PRIORITY) {     /*  优先级等待队列              */
@@ -329,10 +327,8 @@ __wait_again:
         }
         
         pevent->EVENT_ulCounter--;
-        _MsgQueueGetMsg(pmsgqueue, 
-                        pvMsgBuffer, 
-                        stMaxByteSize, 
-                        pstMsgLen);                                     /*  获得消息                    */
+        _MsgQueueGetMsg(pmsgqueue, pvMsgBuffer, 
+                        stMaxByteSize, pstMsgLen);                      /*  获得消息                    */
         
         if (_EventWaitNum(EVENT_MSG_Q_S, pevent)) {                     /*  有任务在等待写消息          */
             if (pevent->EVENT_ulOption & LW_OPTION_WAIT_PRIORITY) {     /*  优先级等待队列              */

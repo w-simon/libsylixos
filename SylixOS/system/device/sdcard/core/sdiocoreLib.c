@@ -1294,6 +1294,7 @@ static INT __cistplParseVers_1 (SDIO_FUNC *psdiofunc, const UINT8 *cpucData, UIN
 {
     return  (-ENOENT);
 }
+
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0)      */
                                                                         /*  (LW_CFG_SDCARD_EN > 0)      */
                                                                         /*  (LW_CFG_SDCARD_SDIO_EN > 0) */

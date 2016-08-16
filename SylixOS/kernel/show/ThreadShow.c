@@ -199,7 +199,7 @@ VOID    API_ThreadPendShowEx (pid_t  pid)
                                                                         /*  (LW_CFG_MAX_EVENTSETS > 0)  */
              PCHAR              pcPendType = LW_NULL;
              pid_t              pidGet;
-             CHAR               cEventName[LW_CFG_OBJECT_NAME_SIZE];
+             CHAR               cEventName[LW_CFG_OBJECT_NAME_SIZE + 2];
              LW_OBJECT_HANDLE   ulEvent;
              LW_OBJECT_HANDLE   ulOwner;
              
@@ -222,43 +222,62 @@ VOID    API_ThreadPendShowEx (pid_t  pid)
         __KERNEL_ENTER();                                               /*  锁定内核                    */
         if (ptcb->TCB_peventPtr) {                                      /*  等待事件                    */
             pevent = ptcb->TCB_peventPtr;
+            
+            lib_strlcpy(cEventName, pevent->EVENT_cEventName, LW_CFG_OBJECT_NAME_SIZE);
+            
             switch (pevent->EVENT_ucType) {
             
-            case LW_TYPE_EVENT_MSGQUEUE:    
+            case LW_TYPE_EVENT_MSGQUEUE:
                 ulEvent = MAKE_ID(_OBJECT_MSGQUEUE, pevent->EVENT_usIndex);
+                if (ptcb->TCB_iPendQ == EVENT_MSG_Q_R) {
+                    lib_strlcat(cEventName, ":R", LW_CFG_OBJECT_NAME_SIZE + 2);
+                } else {
+                    lib_strlcat(cEventName, ":S", LW_CFG_OBJECT_NAME_SIZE + 2);
+                }
+                ulOwner = LW_OBJECT_HANDLE_INVALID;
                 break;
             
             case LW_TYPE_EVENT_SEMC:
                 ulEvent = MAKE_ID(_OBJECT_SEM_C, pevent->EVENT_usIndex);
+                ulOwner = LW_OBJECT_HANDLE_INVALID;
                 break;
                 
             case LW_TYPE_EVENT_SEMB:
                 ulEvent = MAKE_ID(_OBJECT_SEM_B, pevent->EVENT_usIndex);
+                ulOwner = LW_OBJECT_HANDLE_INVALID;
                 break;
                 
             case LW_TYPE_EVENT_SEMRW:
                 ulEvent = MAKE_ID(_OBJECT_SEM_RW, pevent->EVENT_usIndex);
+                if (ptcb->TCB_iPendQ == EVENT_RW_Q_R) {
+                    lib_strlcat(cEventName, ":R", LW_CFG_OBJECT_NAME_SIZE + 2);
+                } else {
+                    lib_strlcat(cEventName, ":W", LW_CFG_OBJECT_NAME_SIZE + 2);
+                }
+                if (pevent->EVENT_pvTcbOwn) {
+                    ptcbOwner = (PLW_CLASS_TCB)pevent->EVENT_pvTcbOwn;
+                    ulOwner   = ptcbOwner->TCB_ulId;
+                } else {
+                    ulOwner   = LW_OBJECT_HANDLE_INVALID;
+                }
                 break;
             
             case LW_TYPE_EVENT_MUTEX:
                 ulEvent = MAKE_ID(_OBJECT_SEM_M, pevent->EVENT_usIndex);
+                if (pevent->EVENT_pvTcbOwn) {
+                    ptcbOwner = (PLW_CLASS_TCB)pevent->EVENT_pvTcbOwn;
+                    ulOwner   = ptcbOwner->TCB_ulId;
+                } else {
+                    ulOwner   = LW_OBJECT_HANDLE_INVALID;
+                }
                 break;
                 
             default:
                 ulEvent = LW_OBJECT_HANDLE_INVALID;
+                ulOwner = LW_OBJECT_HANDLE_INVALID;
                 break;
             }
             
-            lib_strlcpy(cEventName, pevent->EVENT_cEventName, LW_CFG_OBJECT_NAME_SIZE);
-            if (((pevent->EVENT_ucType == LW_TYPE_EVENT_MUTEX) ||
-                 (pevent->EVENT_ucType == LW_TYPE_EVENT_SEMRW)) &&
-                (pevent->EVENT_pvTcbOwn)) {
-                ptcbOwner = (PLW_CLASS_TCB)pevent->EVENT_pvTcbOwn;
-                ulOwner   = ptcbOwner->TCB_ulId;
-            } else {
-                ulOwner   = LW_OBJECT_HANDLE_INVALID;
-            }
-        
 #if (LW_CFG_EVENTSET_EN > 0) && (LW_CFG_MAX_EVENTSETS > 0)
         } else if (ptcb->TCB_pesnPtr) {                                 /*  等待事件标志组              */
             pes     = (PLW_CLASS_EVENTSET)ptcb->TCB_pesnPtr->EVENTSETNODE_pesEventSet;

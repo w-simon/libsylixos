@@ -41,7 +41,7 @@
 #define __SDMEM_MEDIA           "/media/sdcard"
 #define __SDMEM_CACHE_BURST     64
 #define __SDMEM_CACHE_SIZE      (512 * LW_CFG_KB_SIZE)
-#define __SDMEM_CACHE_WP        1                                       /*  默认使用单管线加速写        */
+#define __SDMEM_CACHE_PL        1                                       /*  默认使用单管线加速写        */
 #define __SDMEM_CACHE_COHERENCE LW_FALSE                                /*  默认不需要 CACHE 一致性要求 */
 /*********************************************************************************************************
   sdmem 设备私有数据
@@ -95,7 +95,7 @@ static INT  __sdmemDevCreate (SD_DRV *psddrv, PLW_SDCORE_DEVICE psdcoredev, VOID
     __SDMEM_PRIV     *psdmempriv;
     LONG              lCacheSize;
     LONG              lSectorBurst;
-    LONG              lWp;
+    LONG              lPl;
     LONG              lCoherence = (LONG)__SDMEM_CACHE_COHERENCE;
     LW_DISKCACHE_ATTR dcattrl;                                          /* CACHE 参数                   */
 
@@ -116,7 +116,7 @@ static INT  __sdmemDevCreate (SD_DRV *psddrv, PLW_SDCORE_DEVICE psdcoredev, VOID
 
     API_SdmHostExtOptGet(psdcoredev, SDHOST_EXTOPT_CACHE_SIZE_GET, (LONG)&lCacheSize);
     API_SdmHostExtOptGet(psdcoredev, SDHOST_EXTOPT_MAXBURST_SECTOR_GET, (LONG)&lSectorBurst);
-    API_SdmHostExtOptGet(psdcoredev, SDHOST_EXTOPT_CACHE_WP_GET, (LONG)&lWp);
+    API_SdmHostExtOptGet(psdcoredev, SDHOST_EXTOPT_CACHE_PL_GET, (LONG)&lPl);
     API_SdmHostExtOptGet(psdcoredev, SDHOST_EXTOPT_CACHE_COHERENCE_GET, (LONG)&lCoherence);
 
     if (lCacheSize < 0) {
@@ -127,8 +127,8 @@ static INT  __sdmemDevCreate (SD_DRV *psddrv, PLW_SDCORE_DEVICE psdcoredev, VOID
         lSectorBurst = __SDMEM_CACHE_BURST;
     }
     
-    if (lWp <= 0) {
-        lWp = __SDMEM_CACHE_WP;
+    if (lPl <= 0) {
+        lPl = __SDMEM_CACHE_PL;
     }
 
     dcattrl.DCATTR_pvCacheMem       = LW_NULL;
@@ -137,7 +137,7 @@ static INT  __sdmemDevCreate (SD_DRV *psddrv, PLW_SDCORE_DEVICE psdcoredev, VOID
     dcattrl.DCATTR_iMaxRBurstSector = (INT)lSectorBurst;
     dcattrl.DCATTR_iMaxWBurstSector = (INT)(lSectorBurst << 1);
     dcattrl.DCATTR_iMsgCount        = 4;
-    dcattrl.DCATTR_iPipeline        = (INT)lWp;
+    dcattrl.DCATTR_iPipeline        = (INT)lPl;
     dcattrl.DCATTR_bParallel        = LW_FALSE;
 
     poemdisk = oemDiskMount2(__SDMEM_MEDIA,
@@ -205,6 +205,7 @@ static INT  __sdmemDevDelete (SD_DRV *psddrv,  VOID *pvDevPriv)
 
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0)      */
                                                                         /*  (LW_CFG_SDCARD_EN > 0)      */
 /*********************************************************************************************************

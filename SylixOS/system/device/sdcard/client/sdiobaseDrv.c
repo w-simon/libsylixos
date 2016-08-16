@@ -491,6 +491,7 @@ static INT __sdiobaseDrvMatchOne (SDIO_FUNC *psdiofunc, SDIO_DEV_ID *psdiodevid)
 
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0)      */
                                                                         /*  (LW_CFG_SDCARD_EN > 0)      */
                                                                         /*  (LW_CFG_SDCARD_SDIO_EN > 0) */

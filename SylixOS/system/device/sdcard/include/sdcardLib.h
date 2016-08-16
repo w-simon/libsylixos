@@ -24,6 +24,10 @@
 #ifndef __SDCARD_LIB_H
 #define __SDCARD_LIB_H
 
+/*********************************************************************************************************
+  SDCARD & SDIO header files
+*********************************************************************************************************/
+
 #include "../core/sdcore.h"                                         /*  sd 卡核心设备支持 API           */
 #include "../core/sddrvm.h"                                         /*  sdm sd 驱动管理支持 API         */
 #include "../core/sdiodrvm.h"                                       /*  sdm sdio 驱动管理支持 API       */

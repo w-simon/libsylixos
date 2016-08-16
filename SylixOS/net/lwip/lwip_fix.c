@@ -457,11 +457,16 @@ void  sys_mbox_free (sys_mbox_t *pmbox)
 *********************************************************************************************************/
 void  sys_mbox_post (sys_mbox_t *pmbox, void *msg)
 {
+    ULONG   ulError;
+
     if (pmbox == LW_NULL) {
         return;
     }
     
-    API_MsgQueueSend2(*pmbox, &msg, sizeof(PVOID), LW_OPTION_WAIT_INFINITE);
+    ulError = API_MsgQueueSend2(*pmbox, &msg, sizeof(PVOID), LW_OPTION_WAIT_INFINITE);
+    if (ulError) {
+        _DebugFormat(__ERRORMESSAGE_LEVEL, "mbox send error: %s.\r\n", lib_strerror((INT)ulError));
+    }
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: sys_mbox_trypost
@@ -492,7 +497,7 @@ err_t  sys_mbox_trypost (sys_mbox_t *pmbox, void *msg)
     }
 #endif                                                                  /*  LW_CFG_LWIP_DEBUG > 0       */
     
-    else {
+      else {
         return  (ERR_MEM);
     }
 }
@@ -1159,6 +1164,7 @@ uint16_t ntohs (uint16_t x)
     return  x;
 #endif
 }
+
 #endif                                                                  /*  LW_CFG_NET_EN               */
 /*********************************************************************************************************
   END

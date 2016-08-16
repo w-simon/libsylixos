@@ -122,7 +122,7 @@ static CPCHAR __sdMemProtVsnStr(UINT8 ucType, UINT8 ucVsn);
 /*********************************************************************************************************
 ** 函数名称: API_SdMemDevCreate
 ** 功能描述: 创建一个SD记忆卡设备
-** 输    入: iAdapterType     设备挂接的适配器类型(spi 或 sd)
+** 输    入: iAdapterType     设备挂接的适配器类型 (SDADAPTER_TYPE_SPI 或 SDADAPTER_TYPE_SD)
 **           pcAdapterName    挂接的适配器名称
 **           pcDeviceName     设备名称
 **           psdmemchan       通道
@@ -1410,6 +1410,7 @@ static INT __sdMemMmcBusWidthChange (PLW_SDCORE_DEVICE psdcoredevice, INT iCardC
 
     return  (iError);
 }
+
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0)      */
                                                                         /*  (LW_CFG_SDCARD_EN > 0)      */
 /*********************************************************************************************************

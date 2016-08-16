@@ -1257,6 +1257,7 @@ static PLW_BLK_DEV  __ahciBlkDevCreate (AHCI_CTRL_HANDLE  hCtrl,
     AHCI_DEV_HANDLE     hDev          = LW_NULL;                        /* 设备句柄                     */
     UINT64              ullBlkMax     = 0;                              /* 最大扇区数                   */
     ULONG               ulBlkMax      = 0;                              /* 最大扇区数                   */
+    ULONG               ulPl          = AHCI_CACHE_PL;                  /* 并发操作线程数量             */
     ULONG               ulCacheSize   = AHCI_CACHE_SIZE;                /* 缓冲大小                     */
     ULONG               ulBurstSizeRd = AHCI_CACHE_BURST_RD;            /* 猝发读大小                   */
     ULONG               ulBurstSizeWr = AHCI_CACHE_BURST_WR;            /* 猝发写大小                   */
@@ -1369,6 +1370,11 @@ static PLW_BLK_DEV  __ahciBlkDevCreate (AHCI_CTRL_HANDLE  hCtrl,
         /*
          *  获取驱动器块设备参数信息
          */
+        iRet = hDrv->AHCIDRV_pfuncOptCtrl(hCtrl, uiDrive, AHCI_OPT_CMD_CACHE_PL_GET,
+                                          (LONG)((ULONG *)&ulPl));
+        if (iRet != ERROR_NONE) {
+            ulPl = AHCI_CACHE_PL;
+        }
         iRet = hDrv->AHCIDRV_pfuncOptCtrl(hCtrl, uiDrive, AHCI_OPT_CMD_CACHE_SIZE_GET,
                                           (LONG)((ULONG *)&ulCacheSize));
         if (iRet != ERROR_NONE) {
@@ -1391,7 +1397,7 @@ static PLW_BLK_DEV  __ahciBlkDevCreate (AHCI_CTRL_HANDLE  hCtrl,
         dcattrl.DCATTR_iMaxRBurstSector = (INT)ulBurstSizeRd;
         dcattrl.DCATTR_iMaxWBurstSector = (INT)ulBurstSizeWr;
         dcattrl.DCATTR_iMsgCount        = 16;
-        dcattrl.DCATTR_iPipeline        = 4;                            /* 四条回写管线                 */
+        dcattrl.DCATTR_iPipeline        = (INT)ulPl;                    /* 四条回写管线                 */
         dcattrl.DCATTR_bParallel        = LW_TRUE;                      /* 可支持并行操作               */
                                                                         /* 挂载设备                     */
         hDev->AHCIDEV_pvOemdisk = (PVOID)API_OemDiskMount2(AHCI_MEDIA_NAME,

@@ -100,7 +100,7 @@ struct __sdm_host {
     LONG             SDMHSOT_lReserveSector;
     LONG             SDMHSOT_lMaxBurstSector;
     LONG             SDMHSOT_lCacheSize;
-    LONG             SDMHSOT_lCacheWp;
+    LONG             SDMHSOT_lCachePl;
     LONG             SDMHSOT_lCacheCoherence;
 };
 /*********************************************************************************************************
@@ -518,9 +518,9 @@ LW_API INT   API_SdmHostExtOptSet (PVOID pvSdmHost, INT  iOption, LONG  lArg)
         }
         break;
         
-    case SDHOST_EXTOPT_CACHE_WP_SET:
+    case SDHOST_EXTOPT_CACHE_PL_SET:
         if (lArg >= 0) {
-            psdmhost->SDMHSOT_lCacheWp = lArg;
+            psdmhost->SDMHSOT_lCachePl = lArg;
         } else {
             return  (PX_ERROR);
         }
@@ -580,8 +580,8 @@ LW_API INT   API_SdmHostExtOptGet (PLW_SDCORE_DEVICE psdcoredev, INT  iOption, L
         *(LONG *)lArg = psdmhost->SDMHSOT_lCacheSize;
         break;
 
-    case SDHOST_EXTOPT_CACHE_WP_GET:
-        *(LONG *)lArg = psdmhost->SDMHSOT_lCacheWp;
+    case SDHOST_EXTOPT_CACHE_PL_GET:
+        *(LONG *)lArg = psdmhost->SDMHSOT_lCachePl;
         break;
         
     case SDHOST_EXTOPT_CACHE_COHERENCE_GET:
@@ -881,7 +881,7 @@ static VOID  __sdmHostExtOptInit (__SDM_HOST  *psdmhost)
 {
     psdmhost->SDMHSOT_lMaxBurstSector = 64;
     psdmhost->SDMHSOT_lCacheSize      = 512 * 1024;
-    psdmhost->SDMHSOT_lCacheWp        = 1;
+    psdmhost->SDMHSOT_lCachePl        = 1;
     psdmhost->SDMHSOT_lCacheCoherence = (LONG)LW_FALSE;
     psdmhost->SDMHSOT_lReserveSector  = 0;
 }
@@ -1004,6 +1004,7 @@ static VOID __sdmSpiCsDis (__SDM_HOST_CHAN *psdmhostchan)
 ** 调用模块:
 *********************************************************************************************************/
 #if __SDM_DEBUG_EN > 0
+
 static INT  __sdmDebugLibInit (VOID)
 {
     LW_CLASS_THREADATTR  threadAttr;
@@ -1033,6 +1034,7 @@ static INT  __sdmDebugLibInit (VOID)
 
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*   __SDM_DEBUG_EN > 0         */
 /*********************************************************************************************************
 ** 函数名称: __sdmDebugEvtHandle
@@ -1043,6 +1045,7 @@ static INT  __sdmDebugLibInit (VOID)
 ** 调用模块:
 *********************************************************************************************************/
 #if __SDM_DEBUG_EN > 0
+
 static PVOID  __sdmDebugEvtHandle (VOID *pvArg)
 {
     PLW_LIST_LINE      plineTemp;
@@ -1111,6 +1114,7 @@ static PVOID  __sdmDebugEvtHandle (VOID *pvArg)
 
     return  (LW_NULL);
 }
+
 #endif                                                                  /*   __SDM_DEBUG_EN > 0         */
 /*********************************************************************************************************
 ** 函数名称: __sdmDebugEvtHandle
@@ -1122,6 +1126,7 @@ static PVOID  __sdmDebugEvtHandle (VOID *pvArg)
 ** 调用模块:
 *********************************************************************************************************/
 #if __SDM_DEBUG_EN > 0
+
 static VOID  __sdmDebugEvtNotify (PVOID  pvSdmHost, INT iEvtType)
 {
     __SDM_EVT_MSG   sdmevtmsg;
@@ -1133,6 +1138,7 @@ static VOID  __sdmDebugEvtNotify (PVOID  pvSdmHost, INT iEvtType)
                      &sdmevtmsg,
                      sizeof(__SDM_EVT_MSG));
 }
+
 #endif                                                                  /*   __SDM_DEBUG_EN > 0         */
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0)      */
                                                                         /*  (LW_CFG_SDCARD_EN > 0)      */

@@ -14,9 +14,9 @@ rm -f $funcfile $objfile
 
 for i in $srcfile; do 
     # function
-    $NM $i | sed -n 's/.*\ T\ \(.*\)/\1/gp' >>$funcfile;
+    $NM $i | sed -n 's/.*\ [TW]\ \(.*\)/\1/gp' >>$funcfile;
     # obj, remove __sylixos_version
-    $NM $i | sed -n 's/.*\ [BDRSCWVG]\ \(.*\)/\1/gp' | sed '/__sylixos_version/d' >>$objsfile;
+    $NM $i | sed -n 's/.*\ [BDRSCVG]\ \(.*\)/\1/gp' | sed '/__sylixos_version/d' >>$objsfile;
 done
 
 cat << EOF >$symbolc

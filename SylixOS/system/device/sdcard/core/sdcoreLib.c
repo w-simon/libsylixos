@@ -1361,6 +1361,7 @@ INT API_SdCoreDevSpiCrcEn (PLW_SDCORE_DEVICE psdcoredevice, BOOL bEnable)
 
     return  (PX_ERROR);
 }
+
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0)      */
                                                                         /*  (LW_CFG_SDCARD_EN > 0)      */
 /*********************************************************************************************************

@@ -85,7 +85,7 @@ __re_send:
         _ErrorHandle(ERROR_MSGQUEUE_MSG_LEN);
         return  (ERROR_MSGQUEUE_MSG_LEN);
     }
-    if (!_ObjectClassOK(ulId, _OBJECT_MSGQUEUE)) {                     /*  类型是否正确                 */
+    if (!_ObjectClassOK(ulId, _OBJECT_MSGQUEUE)) {                      /*  类型是否正确                */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "msgqueue handle invalidate.\r\n");
         _ErrorHandle(ERROR_KERNEL_HANDLE_NULL);
         return  (ERROR_KERNEL_HANDLE_NULL);

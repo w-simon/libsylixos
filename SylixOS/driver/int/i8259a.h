@@ -42,8 +42,10 @@ struct i8259a_ctl {
     addr_t  iobase_slave;                                               /* 8259-2 I/O base address      */
                                                                         /* eg. ISA-BASE + 0xa0          */
 
-    int     trigger;                                                    /* 0 : edge trigger             */
+    INT     trigger;                                                    /* 0 : edge trigger             */
                                                                         /* 1 : level trigger            */
+
+    UINT    vector_base;                                                /* base vector                  */
 };
 
 /*********************************************************************************************************

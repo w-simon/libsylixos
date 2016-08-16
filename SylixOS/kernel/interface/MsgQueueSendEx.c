@@ -221,7 +221,7 @@ __re_send:
                     return  (ERROR_THREAD_WAIT_TIMEOUT);
                     
                 } else {
-                    if (ptcbCur->TCB_ucIsEventDelete == LW_EVENT_EXIST) {   
+                    if (ptcbCur->TCB_ucIsEventDelete == LW_EVENT_EXIST) {
                         goto    __re_send;                              /*  ÖØÐÂ³¢ÊÔ·¢ËÍ                */
                     
                     } else {

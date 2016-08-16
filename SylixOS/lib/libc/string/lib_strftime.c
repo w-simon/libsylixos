@@ -83,7 +83,9 @@ lib_strftime(s, maxsize, format, t)
 	const char *format;
 	const struct tm *t;
 {
-
+    if (!s) {
+        return(0);
+    }
 	pt = s;
 	if ((gsize = maxsize) < 1)
 		return(0);
