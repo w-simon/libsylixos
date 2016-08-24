@@ -97,6 +97,7 @@ PLW_VMM_PAGE    __vmmPageSwapSwitch (pid_t  pid, ULONG  ulPageNum, UINT  uiAttr)
     
     return  (LW_NULL);
 }
+
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 /*********************************************************************************************************
   END

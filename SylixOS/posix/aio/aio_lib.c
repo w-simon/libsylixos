@@ -616,6 +616,7 @@ static PVOID  __aioThread (PVOID  pvArg)
             errno = 0;                                                  /*  注意: 一定要将 errno 清零   */
             if (paiocb->aio_lio_opcode == LIO_SYNC) {
                 paioreq->aioreq_return =  fsync(paiocb->aio_fildes);
+            
             } else {
                 switch (paiocb->aio_lio_opcode) {
                 
@@ -704,9 +705,12 @@ static PVOID  __aioThread (PVOID  pvArg)
             if (API_ThreadCondWait(&paiorc->aiorc_cond, 
                                    paiorc->aiorc_mutex,
                                    __PX_AIO_TIMEOUT) == ERROR_NONE) {   /*  再等待一段时间              */
+                API_SemaphoreMPost(paiorc->aiorc_mutex);
                 continue;                                               /*  继续操作这个文件描述符      */
+            
+            } else {
+                API_SemaphoreMPost(paiorc->aiorc_mutex);
             }
-            API_SemaphoreMPost(paiorc->aiorc_mutex);
             
             API_SemaphoreMPend(_G_aioqueue.aioq_mutex, LW_OPTION_WAIT_INFINITE);
             if ((paiorc->aiorc_plineaiocb == LW_NULL) ||

@@ -378,6 +378,38 @@ void ipc_proc_init (void)
     API_ProcFsMakeNode(&ipc_proc[3], "/sysvipc");
     API_ProcFsMakeNode(&ipc_proc[4], "/sysvipc");
 }
+
+/*
+ *  proc file deinit
+ */
+void ipc_proc_deinit (void)
+{
+    if (API_ProcFsRemoveNode(&ipc_proc[4], NULL)) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "Serious error: /proc/sysvipc/shm file busy now, "
+                                           "the system will become unstable!\r\n");
+    }
+
+    if (API_ProcFsRemoveNode(&ipc_proc[3], NULL)) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "Serious error: /proc/sysvipc/msg file busy now, "
+                                           "the system will become unstable!\r\n");
+    }
+
+    if (API_ProcFsRemoveNode(&ipc_proc[2], NULL)) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "Serious error: /proc/sysvipc/sem file busy now, "
+                                           "the system will become unstable!\r\n");
+    }
+
+    if (API_ProcFsRemoveNode(&ipc_proc[1], NULL)) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "Serious error: /proc/sysvipc/ver file busy now, "
+                                           "the system will become unstable!\r\n");
+    }
+
+    if (API_ProcFsRemoveNode(&ipc_proc[0], NULL)) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "Serious error: /proc/sysvipc directory busy now, "
+                                           "the system will become unstable!\r\n");
+    }
+}
+
 /*
  * end
  */

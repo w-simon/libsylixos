@@ -448,6 +448,7 @@ VOID  _epollFiniFdset (PLW_EPOLL_FILE      pepollfil,
         }
     }
 }
+
 #endif                                                                  /*  LW_CFG_DEVICE_EN > 0        */
                                                                         /*  LW_CFG_SELECT_EN > 0        */
                                                                         /*  LW_CFG_EPOLL_EN > 0         */

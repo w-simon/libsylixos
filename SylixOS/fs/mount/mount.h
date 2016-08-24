@@ -28,6 +28,7 @@
 *********************************************************************************************************/
 #if (LW_CFG_MAX_VOLUMES > 0) && (LW_CFG_MOUNT_EN > 0)
 
+LW_API VOID     API_MountInit(VOID);
 LW_API INT      API_Mount(CPCHAR  pcDevName, CPCHAR  pcVolName, CPCHAR  pcFileSystem);
 LW_API INT      API_MountEx(CPCHAR  pcDevName, CPCHAR  pcVolName, CPCHAR  pcFileSystem, CPCHAR  pcOption);
 LW_API INT      API_Unmount(CPCHAR  pcVolName);

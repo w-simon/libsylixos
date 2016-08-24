@@ -1749,10 +1749,16 @@ static INT  __tshellFsCmdUmount (INT  iArgC, PCHAR  ppcArgV[])
 *********************************************************************************************************/
 static INT  __tshellFsCmdShowmount (INT  iArgC, PCHAR  ppcArgV[])
 {
+#if LW_CFG_OEMDISK_EN > 0
+    API_OemDiskMountShow();
+    printf("\n");
+#endif                                                                  /*  LW_CFG_OEMDISK_EN > 0       */
+
     API_MountShow();
     
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_MOUNT_EN > 0         */
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: __tshellFsCmdLn

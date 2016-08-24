@@ -83,12 +83,16 @@ VOID        archSigCtxLoad(PVOID  pvStack);
 *********************************************************************************************************/
 
 #if LW_CFG_GDB_EN > 0
+#define X86_DBG_TRAP_BP     (PVOID)0
+#define X86_DBG_TRAP_STEP   (PVOID)1
+
 VOID    archDbgBpInsert(addr_t   ulAddr, size_t stSize, ULONG  *pulIns, BOOL  bLocal);
 VOID    archDbgAbInsert(addr_t   ulAddr, ULONG  *pulIns);
 VOID    archDbgBpRemove(addr_t   ulAddr, size_t stSize, ULONG   ulIns, BOOL  bLocal);
 VOID    archDbgBpPrefetch(addr_t ulAddr);
 UINT    archDbgTrapType(addr_t   ulAddr, PVOID   pvArch);
 VOID    archDbgBpAdjust(PVOID  pvDtrace, PVOID   pvtm);
+VOID    archDbgSetStepMode(ARCH_REG_CTX  *pregctx, BOOL  bEnable);
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
 
 /*********************************************************************************************************
@@ -402,7 +406,7 @@ VOID    x86CpuIdShow(VOID);
 #endif
 
 /*********************************************************************************************************
-  弱函数宏定义
+  x86 指令宏定义
 *********************************************************************************************************/
 
 #ifdef __GNUC__

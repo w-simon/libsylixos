@@ -106,6 +106,7 @@ VOID    API_StackShow (VOID)
                       ((stUsedByteSize * 100) / (stUsedByteSize + stFreeByteSize)));
     }
 }
+
 #endif                                                                  /*  LW_CFG_FIO_LIB_EN > 0       */
 /*********************************************************************************************************
   END

@@ -30,6 +30,14 @@
 #if LW_CFG_GDB_EN > 0
 
 /*********************************************************************************************************
+  是否使用硬件单步
+*********************************************************************************************************/
+
+#ifdef LW_CFG_CPU_ARCH_X86
+#define LW_DTRACE_HW_ISTEP  1                                           /*  支持硬件单步断点            */
+#endif                                                                  /*  LW_CFG_CPU_ARCH_X86         */
+
+/*********************************************************************************************************
   创建 dtrace 的类型
 *********************************************************************************************************/
 
@@ -49,10 +57,13 @@
 *********************************************************************************************************/
 
 #define LW_TRAP_INVAL       0                                           /*  无效                        */
-#define LW_TRAP_RETRY       SIGCONT                                     /*  虚假断点                    */
-#define LW_TRAP_BRKPT       SIGTRAP                                     /*  断点                        */
-#define LW_TRAP_ABORT       SIGSEGV                                     /*  终止                        */
-#define LW_TRAP_WATCH       SIGTRAP                                     /*  观察点 (暂不支持)           */
+#define LW_TRAP_RETRY       1                                           /*  虚假断点                    */
+
+#define LW_TRAP_BRKPT       2                                           /*  程序断点                    */
+#define LW_TRAP_ABORT       3                                           /*  程序异常终止                */
+#define LW_TRAP_ISTEP       4                                           /*  硬件指令单步断点            */
+#define LW_TRAP_QUIT        5                                           /*  进程退出                    */
+#define LW_TRAP_WATCH       LW_TRAP_BRKPT                               /*  观察点 (暂不支持)           */
 
 /*********************************************************************************************************
   断点消息
@@ -105,9 +116,14 @@ LW_API ULONG    API_DtraceDelBreakInfo(PVOID             pvDtrace,
                                        BOOL              bContinue);
 LW_API ULONG    API_DtraceThreadExtraInfo(PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread,
                                           PCHAR  pcExtraInfo, size_t  stSize);
+                                          
+#ifndef LW_DTRACE_HW_ISTEP
 LW_API ULONG    API_DtraceThreadStepSet(PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, addr_t  ulAddr);
 LW_API ULONG    API_DtraceThreadStepGet(PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, addr_t  *pulAddr);
 LW_API VOID     API_DtraceSchedHook(LW_OBJECT_HANDLE  ulThreadOld, LW_OBJECT_HANDLE  ulThreadNew);
+#else
+LW_API ULONG    API_DtraceThreadStepSet(PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, BOOL bEnable);
+#endif                                                                  /*  !LW_DTRACE_HW_ISTEP         */
 
 /*********************************************************************************************************
   API (SylixOS internal use only!)

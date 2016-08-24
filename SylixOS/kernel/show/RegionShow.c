@@ -74,6 +74,7 @@ VOID   API_RegionShow (LW_OBJECT_HANDLE  ulId)
             printf("%-14s %10zu %10zu %10zu %7ld %3zd%%\n", "kersys",
                    stByteSize, stUsedByteSize, stMaxUsedByteSize,
                    ulSegmentCounter, (stUsedByteSize / (stByteSize / 100)));
+        
         } else {
             printf("%-14s %10zu %10zu %10zu %7ld %3zd%%\n", "kernel",
                    stByteSize, stUsedByteSize, stMaxUsedByteSize,
@@ -90,6 +91,7 @@ VOID   API_RegionShow (LW_OBJECT_HANDLE  ulId)
                    stByteSize, stUsedByteSize, stMaxUsedByteSize,
                    ulSegmentCounter, (stUsedByteSize / (stByteSize / 100)));
         }
+    
     } else {
         if (API_RegionGetName(ulId, cRegionName)) {
             return;

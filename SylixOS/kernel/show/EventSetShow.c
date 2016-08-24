@@ -56,6 +56,7 @@ VOID    API_EventSetShow (LW_OBJECT_HANDLE  ulId)
     
     printf("\n");
 }
+
 #endif                                                                  /*  LW_CFG_FIO_LIB_EN > 0       */
                                                                         /*  LW_CFG_EVENTSET_EN > 0      */
 /*********************************************************************************************************

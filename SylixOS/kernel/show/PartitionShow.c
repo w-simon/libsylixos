@@ -64,6 +64,7 @@ VOID   API_PartitionShow (LW_OBJECT_HANDLE  ulId)
     printf("partition free block     : %11lu\n", ulFreeBlockCounter);
     printf("partition per block size : %11zd\n", stBlockByteSize);
 }
+
 #endif                                                                  /*  LW_CFG_PARTITION_EN > 0     */
                                                                         /*  LW_CFG_MAX_PARTITIONS > 0   */
 #endif                                                                  /*  LW_CFG_FIO_LIB_EN           */

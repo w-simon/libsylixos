@@ -31,7 +31,7 @@
    like this.
 
             +----------------+        +-----------------+
-    %r1  -> | %r1 last frame--------> | %r1 last frame--->...  --> NULL
+    %r1  -> | %r1 last frame | -----> | %r1 last frame  | ---> ... --> NULL
             |                |        |                 |
             | (unused)       |        | return address  |
             +----------------+        +-----------------+

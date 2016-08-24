@@ -54,26 +54,23 @@ PLW_STACK  archTaskCtxCreate (PTHREAD_START_ROUTINE  pfuncTask,
 
     lib_bzero(pregctx, sizeof(ARCH_REG_CTX));
 
-    pregctx->REG_uiEAX    = 0xEAEAEAEA;                                 /*  4 个数据寄存器              */
-    pregctx->REG_uiEBX    = 0xEBEBEBEB;
-    pregctx->REG_uiECX    = 0xECECECEC;
-    pregctx->REG_uiEDX    = 0xEDEDEDED;
+    pregctx->REG_uiEAX = 0xeaeaeaea;                                    /*  4 个数据寄存器              */
+    pregctx->REG_uiEBX = 0xebebebeb;
+    pregctx->REG_uiECX = 0xecececec;
+    pregctx->REG_uiEDX = 0xedededed;
 
-    pregctx->REG_uiESI    = 0xE0E0E0E0;
-    pregctx->REG_uiEDI    = 0xE1E1E1E1;                                 /*  2 个变址和指针寄存器        */
+    pregctx->REG_uiESI   = 0xe0e0e0e0;
+    pregctx->REG_uiEDI   = 0xe1e1e1e1;                                  /*  2 个变址和指针寄存器        */
+    pregctx->REG_uiEBP   = (ARCH_REG_T)pfpctx;                          /*  EBP 指针寄存器              */
+    pregctx->REG_uiError = 0x00000000;                                  /*  ERROR CODE                  */
+    pregctx->REG_uiEIP   = (ARCH_REG_T)pfuncTask;
 
-    pregctx->REG_uiEBP    = 0xE2E2E2E2;                                 /*  EBP 指针寄存器              */
-
-    pregctx->REG_uiError  = 0x00000000;                                 /*  ERROR CODE                  */
-
-    pregctx->REG_uiEIP    = (ARCH_REG_T)pfuncTask;
-
-    pregctx->REG_uiCS     = X86_BUILD_SEGMENT_REG_VALUE(0, LW_FALSE, X86_SEG_KCODE);
-    pregctx->REG_usDS     = X86_BUILD_SEGMENT_REG_VALUE(0, LW_FALSE, X86_SEG_KDATA);
-    pregctx->REG_usES     = X86_BUILD_SEGMENT_REG_VALUE(0, LW_FALSE, X86_SEG_KDATA);
-    pregctx->REG_usSS     = X86_BUILD_SEGMENT_REG_VALUE(0, LW_FALSE, X86_SEG_KDATA);
-    pregctx->REG_usFS     = X86_BUILD_SEGMENT_REG_VALUE(0, LW_FALSE, X86_SEG_KDATA);
-    pregctx->REG_usGS     = X86_BUILD_SEGMENT_REG_VALUE(0, LW_FALSE, X86_SEG_KDATA);
+    pregctx->REG_uiCS = X86_BUILD_SEGMENT_REG_VALUE(0, LW_FALSE, X86_SEG_KCODE);
+    pregctx->REG_usDS = X86_BUILD_SEGMENT_REG_VALUE(0, LW_FALSE, X86_SEG_KDATA);
+    pregctx->REG_usES = X86_BUILD_SEGMENT_REG_VALUE(0, LW_FALSE, X86_SEG_KDATA);
+    pregctx->REG_usSS = X86_BUILD_SEGMENT_REG_VALUE(0, LW_FALSE, X86_SEG_KDATA);
+    pregctx->REG_usFS = X86_BUILD_SEGMENT_REG_VALUE(0, LW_FALSE, X86_SEG_KDATA);
+    pregctx->REG_usGS = X86_BUILD_SEGMENT_REG_VALUE(0, LW_FALSE, X86_SEG_KDATA);
 
     pregctx->REG_uiEFLAGS = X86_EFLAGS_IF;                              /*  设置中断使能位              */
 
@@ -128,10 +125,22 @@ ARCH_REG_CTX  *archTaskRegsGet (PLW_STACK  pstkTop, ARCH_REG_T  *pregSp)
 ** 输　出  : 寄存器结构
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : 不修改段寄存器, EBP ESP
 *********************************************************************************************************/
 VOID  archTaskRegsSet (PLW_STACK  pstkTop, const ARCH_REG_CTX  *pregctx)
 {
-    *(ARCH_REG_CTX *)pstkTop = *pregctx;
+    ARCH_REG_CTX  *pdestregctx = (ARCH_REG_CTX *)pstkTop;
+
+    pdestregctx->REG_uiEAX = pregctx->REG_uiEAX;
+    pdestregctx->REG_uiECX = pregctx->REG_uiECX;
+    pdestregctx->REG_uiEDX = pregctx->REG_uiEDX;
+    pdestregctx->REG_uiEBX = pregctx->REG_uiEBX;
+
+    pdestregctx->REG_uiESI = pregctx->REG_uiESI;
+    pdestregctx->REG_uiEDI = pregctx->REG_uiEDI;
+    pdestregctx->REG_uiEIP = pregctx->REG_uiEIP;
+
+    pdestregctx->REG_uiEFLAGS = pregctx->REG_uiEFLAGS;
 }
 /*********************************************************************************************************
 ** 函数名称: archTaskCtxShow
@@ -150,29 +159,26 @@ VOID  archTaskCtxShow (INT  iFd, PLW_STACK  pstkTop)
 
     if (iFd >= 0) {
         fdprintf(iFd, "\n");
-
         fdprintf(iFd, "EFLAGS = 0x%08x\n", pregctx->REG_uiEFLAGS);
 
-        fdprintf(iFd, "EIP    = 0x%08x\n", pregctx->REG_uiEIP);
+        fdprintf(iFd, "EIP = 0x%08x  ", pregctx->REG_uiEIP);
+        fdprintf(iFd, "EBP = 0x%08x\n", pregctx->REG_uiEBP);
+        fdprintf(iFd, "ESI = 0x%08x  ", pregctx->REG_uiESI);
+        fdprintf(iFd, "EDI = 0x%08x\n", pregctx->REG_uiEDI);
 
-        fdprintf(iFd, "EBP    = 0x%08x\n", pregctx->REG_uiEBP);
+        fdprintf(iFd, "EAX = 0x%08x  ", pregctx->REG_uiEAX);
+        fdprintf(iFd, "EBX = 0x%08x\n", pregctx->REG_uiEBX);
+        fdprintf(iFd, "ECX = 0x%08x  ", pregctx->REG_uiECX);
+        fdprintf(iFd, "EDX = 0x%08x\n", pregctx->REG_uiEDX);
 
-        fdprintf(iFd, "ESI    = 0x%08x\n", pregctx->REG_uiESI);
-        fdprintf(iFd, "EDI    = 0x%08x\n", pregctx->REG_uiEDI);
+        fdprintf(iFd, "SS  = 0x%08x  ", pregctx->REG_usSS);
+        fdprintf(iFd, "GS  = 0x%08x\n", pregctx->REG_usGS);
+        fdprintf(iFd, "FS  = 0x%08x  ", pregctx->REG_usFS);
+        fdprintf(iFd, "ES  = 0x%08x\n", pregctx->REG_usES);
+        fdprintf(iFd, "DS  = 0x%08x  ", pregctx->REG_usDS);
+        fdprintf(iFd, "CS  = 0x%08x\n", pregctx->REG_uiCS);
 
-        fdprintf(iFd, "EDX    = 0x%08x\n", pregctx->REG_uiEDX);
-        fdprintf(iFd, "ECX    = 0x%08x\n", pregctx->REG_uiECX);
-        fdprintf(iFd, "EBX    = 0x%08x\n", pregctx->REG_uiEBX);
-        fdprintf(iFd, "EAX    = 0x%08x\n", pregctx->REG_uiEAX);
-
-        fdprintf(iFd, "SS     = 0x%08x\n", pregctx->REG_usSS);
-        fdprintf(iFd, "GS     = 0x%08x\n", pregctx->REG_usGS);
-        fdprintf(iFd, "FS     = 0x%08x\n", pregctx->REG_usFS);
-        fdprintf(iFd, "ES     = 0x%08x\n", pregctx->REG_usES);
-        fdprintf(iFd, "DS     = 0x%08x\n", pregctx->REG_usDS);
-        fdprintf(iFd, "CS     = 0x%08x\n", pregctx->REG_uiCS);
-
-        fdprintf(iFd, "SP     = 0x%08x\n", (ARCH_REG_T)pstkTop);        /*  异常压栈后的 SP             */
+        fdprintf(iFd, "SP  = 0x%08x\n", (ARCH_REG_T)pstkTop);           /*  异常压栈后的 SP             */
 
     } else {
         archTaskCtxPrint(pstkTop);
@@ -193,29 +199,26 @@ VOID  archTaskCtxPrint (PLW_STACK  pstkTop)
     ARCH_REG_CTX       *pregctx = (ARCH_REG_CTX *)pstkTop;
 
     _PrintFormat("\r\n");
-
     _PrintFormat("EFLAGS = 0x%08x\r\n", pregctx->REG_uiEFLAGS);
 
-    _PrintFormat("EIP    = 0x%08x\r\n", pregctx->REG_uiEIP);
+    _PrintFormat("EIP = 0x%08x  ",   pregctx->REG_uiEIP);
+    _PrintFormat("EBP = 0x%08x\r\n", pregctx->REG_uiEBP);
+    _PrintFormat("ESI = 0x%08x  ",   pregctx->REG_uiESI);
+    _PrintFormat("EDI = 0x%08x\r\n", pregctx->REG_uiEDI);
 
-    _PrintFormat("EBP    = 0x%08x\r\n", pregctx->REG_uiEBP);
+    _PrintFormat("EAX = 0x%08x  ",   pregctx->REG_uiEAX);
+    _PrintFormat("EBX = 0x%08x\r\n", pregctx->REG_uiEBX);
+    _PrintFormat("ECX = 0x%08x  ",   pregctx->REG_uiECX);
+    _PrintFormat("EDX = 0x%08x\r\n", pregctx->REG_uiEDX);
 
-    _PrintFormat("ESI    = 0x%08x\r\n", pregctx->REG_uiESI);
-    _PrintFormat("EDI    = 0x%08x\r\n", pregctx->REG_uiEDI);
+    _PrintFormat("SS  = 0x%08x  ",   pregctx->REG_usSS);
+    _PrintFormat("GS  = 0x%08x\r\n", pregctx->REG_usGS);
+    _PrintFormat("FS  = 0x%08x  ",   pregctx->REG_usFS);
+    _PrintFormat("ES  = 0x%08x\r\n", pregctx->REG_usES);
+    _PrintFormat("DS  = 0x%08x  ",   pregctx->REG_usDS);
+    _PrintFormat("CS  = 0x%08x\r\n", pregctx->REG_uiCS);
 
-    _PrintFormat("EDX    = 0x%08x\r\n", pregctx->REG_uiEDX);
-    _PrintFormat("ECX    = 0x%08x\r\n", pregctx->REG_uiECX);
-    _PrintFormat("EBX    = 0x%08x\r\n", pregctx->REG_uiEBX);
-    _PrintFormat("EAX    = 0x%08x\r\n", pregctx->REG_uiEAX);
-
-    _PrintFormat("SS     = 0x%08x\r\n", pregctx->REG_usSS);
-    _PrintFormat("GS     = 0x%08x\r\n", pregctx->REG_usGS);
-    _PrintFormat("FS     = 0x%08x\r\n", pregctx->REG_usFS);
-    _PrintFormat("ES     = 0x%08x\r\n", pregctx->REG_usES);
-    _PrintFormat("DS     = 0x%08x\r\n", pregctx->REG_usDS);
-    _PrintFormat("CS     = 0x%08x\r\n", pregctx->REG_uiCS);
-
-    _PrintFormat("SP     = 0x%08x\r\n", (ARCH_REG_T)pstkTop);           /*  异常压栈后的 SP             */
+    _PrintFormat("SP  = 0x%08x\r\n", (ARCH_REG_T)pstkTop);              /*  异常压栈后的 SP             */
 }
 /*********************************************************************************************************
   END

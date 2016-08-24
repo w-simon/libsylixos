@@ -49,7 +49,7 @@ WEAK_FUNC ULONG  archMpCur (VOID)
 *********************************************************************************************************/
 WEAK_FUNC VOID   archMpInt (ULONG  ulCPUId)
 {
-    x86LocalApicSendIPI(X86_CPUID_TO_APICID(ulCPUId), 64 + ulCPUId);    /*  x86 IPI 中断向量从 64 开始  */
+    x86LocalApicSendIpi(X86_CPUID_TO_APICID(ulCPUId), 64 + ulCPUId);    /*  x86 IPI 中断向量从 64 开始  */
 }
 
 #endif                                                                  /*  LW_CFG_SMP_EN               */

@@ -63,6 +63,89 @@
 #define __OEM_DISK_TAIL_LEN             1                               /*  最多 1 字节编号             */
 #endif
 /*********************************************************************************************************
+  auto mount info
+*********************************************************************************************************/
+typedef struct {
+    LW_LIST_LINE                AMNT_lineManage;                        /*  管理链表                    */
+    CHAR                        AMNT_cVol[MAX_FILENAME_LENGTH];
+    CHAR                        AMNT_cDev[1];
+} __LW_AUTO_MOUNT_NODE;
+typedef __LW_AUTO_MOUNT_NODE   *__PLW_AUTO_MOUNT_NODE;
+
+static LW_LIST_LINE_HEADER      _G_plineAutoMountHeader = LW_NULL;
+static LW_OBJECT_HANDLE         _G_pulAutoMountLock     = LW_OBJECT_HANDLE_INVALID;
+/*********************************************************************************************************
+  宏操作
+*********************************************************************************************************/
+#define AUTOMOUNT_LOCK()        API_SemaphoreMPend(_G_pulAutoMountLock, LW_OPTION_WAIT_INFINITE)
+#define AUTOMOUNT_UNLOCK()      API_SemaphoreMPost(_G_pulAutoMountLock)
+/*********************************************************************************************************
+  函数声明
+*********************************************************************************************************/
+extern INT  __blkIoFsDrvInstall(VOID);
+/*********************************************************************************************************
+** 函数名称: __oemAutoMountAdd
+** 功能描述: 加入一个 AUTO Mount 信息
+** 输　入  : pcVol             文件系统挂载目录
+**           pcDevTail         设备尾缀
+**           iBlkNo            设备排序号
+**           iPartNo           挂载分区
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static VOID  __oemAutoMountAdd (CPCHAR  pcVol, CPCHAR  pcDevTail, INT  iBlkNo, INT  iPartNo)
+{
+    __PLW_AUTO_MOUNT_NODE   pamnt;
+    size_t                  stDevLen;
+    
+    stDevLen = lib_strlen(pcDevTail) + sizeof(LW_BLKIO_PERFIX) + 10;    /*  足够大的空间                */
+    
+    pamnt = (__PLW_AUTO_MOUNT_NODE)__SHEAP_ALLOC(sizeof(__LW_AUTO_MOUNT_NODE) + stDevLen);
+    if (pamnt == LW_NULL) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "system low memory.\r\n");
+        _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
+        return;
+    }
+    
+    lib_strlcpy(pamnt->AMNT_cVol, pcVol, MAX_FILENAME_LENGTH);
+    snprintf(pamnt->AMNT_cDev, stDevLen, "%s%s%d:%d", LW_BLKIO_PERFIX, pcDevTail, iBlkNo, iPartNo);
+    
+    AUTOMOUNT_LOCK();
+    _List_Line_Add_Ahead(&pamnt->AMNT_lineManage, &_G_plineAutoMountHeader);
+    AUTOMOUNT_UNLOCK();
+}
+/*********************************************************************************************************
+** 函数名称: __oemAutoMountAdd
+** 功能描述: 加入一个 AUTO Mount 信息
+** 输　入  : pcVol             文件系统挂载目录
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static VOID  __oemAutoMountDelete (CPCHAR  pcVol)
+{
+    PLW_LIST_LINE           plineTemp;
+    __PLW_AUTO_MOUNT_NODE   pamnt;
+
+    AUTOMOUNT_LOCK();
+    for (plineTemp  = _G_plineAutoMountHeader;
+         plineTemp != LW_NULL;
+         plineTemp  = _list_line_get_next(plineTemp)) {
+         
+        pamnt = _LIST_ENTRY(plineTemp, __LW_AUTO_MOUNT_NODE, AMNT_lineManage);
+        if (lib_strcmp(pamnt->AMNT_cVol, pcVol) == 0) {
+            _List_Line_Del(&pamnt->AMNT_lineManage, &_G_plineAutoMountHeader);
+            break;
+        }
+    }
+    AUTOMOUNT_UNLOCK();
+    
+    if (plineTemp) {
+        __SHEAP_FREE(pamnt);
+    }
+}
+/*********************************************************************************************************
 ** 函数名称: __oemDiskPartFree
 ** 功能描述: 释放 OEM 磁盘控制块的分区信息内存
 ** 输　入  : poemd             磁盘控制块
@@ -113,6 +196,57 @@ static VOID __oemDiskForceDeleteDis (CPCHAR  pcVolName)
         ioctl(iFd, FIOSETFORCEDEL, LW_FALSE);
         close(iFd);
     }
+}
+/*********************************************************************************************************
+** 函数名称: API_OemDiskMountInit
+** 功能描述: 初始化磁盘自动挂载工具
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API 
+VOID  API_OemDiskMountInit (VOID)
+{
+    __blkIoFsDrvInstall();
+
+    if (_G_pulAutoMountLock == LW_OBJECT_HANDLE_INVALID) {
+        _G_pulAutoMountLock =  API_SemaphoreMCreate("autom_lock", LW_PRIO_DEF_CEILING,
+                                                    LW_OPTION_WAIT_PRIORITY | LW_OPTION_DELETE_SAFE |
+                                                    LW_OPTION_INHERIT_PRIORITY | LW_OPTION_OBJECT_GLOBAL,
+                                                    LW_NULL);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: API_OemDiskMountShow
+** 功能描述: 显示磁盘自动挂载情况
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API 
+VOID  API_OemDiskMountShow (VOID)
+{
+    PCHAR           pcMountInfoHdr = "       VOLUME                    BLK NAME\n"
+                                     "-------------------- --------------------------------\n";
+    PLW_LIST_LINE           plineTemp;
+    __PLW_AUTO_MOUNT_NODE   pamnt;
+    
+    printf("all AUTO-mount point show >>\n");
+    printf(pcMountInfoHdr);                                             /*  打印欢迎信息                */
+    
+    AUTOMOUNT_LOCK();
+    for (plineTemp  = _G_plineAutoMountHeader;
+         plineTemp != LW_NULL;
+         plineTemp  = _list_line_get_next(plineTemp)) {
+         
+        pamnt = _LIST_ENTRY(plineTemp, __LW_AUTO_MOUNT_NODE, AMNT_lineManage);
+        printf("%-20s %-32s\n", pamnt->AMNT_cVol, pamnt->AMNT_cDev);
+    }
+    AUTOMOUNT_UNLOCK();
 }
 /*********************************************************************************************************
 ** 函数名称: API_OemDiskMountEx2
@@ -316,6 +450,7 @@ __refined_seq:
             }
             poemd->OEMDISK_pdevhdr[i] = API_IosDevMatchFull(cFullVolName);
             poemd->OEMDISK_iVolSeq[i] = iVolSeq;                        /*  记录卷序号                  */
+            __oemAutoMountAdd(cFullVolName, pcTail, iBlkIo, i);
             _DebugFormat(__PRINTMESSAGE_LEVEL, 
                          "Block device %s%s%d part %d mount to %s use %s file system.\r\n", 
                          LW_BLKIO_PERFIX, pcTail, iBlkIo, 
@@ -586,6 +721,7 @@ __refined_seq:
             }
             poemd->OEMDISK_pdevhdr[i] = API_IosDevMatchFull(cFullVolName);
             poemd->OEMDISK_iVolSeq[i] = iVolSeq;                        /*  记录卷序号                  */
+            __oemAutoMountAdd(cFullVolName, pcTail, iBlkIo, i);
             _DebugFormat(__PRINTMESSAGE_LEVEL, 
                          "Block device %s%s%d part %d mount to %s use %s file system.\r\n", 
                          LW_BLKIO_PERFIX, pcTail, iBlkIo, 
@@ -708,7 +844,8 @@ INT  API_OemDiskUnmountEx (PLW_OEMDISK_CB  poemd, BOOL  bForce)
             
             if (unlink(cFullVolName) == ERROR_NONE) {                   /*  卸载所有相关卷              */
                 poemd->OEMDISK_iVolSeq[i] = PX_ERROR;
-            
+                __oemAutoMountDelete(cFullVolName);
+                
             } else {
                 return  (PX_ERROR);                                     /*  无法卸载卷                  */
             }

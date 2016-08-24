@@ -130,5 +130,16 @@ void xinput_proc_init (void)
 }
 
 /*
+ *  proc file deinit
+ */
+void xinput_proc_deinit (void)
+{
+    if (API_ProcFsRemoveNode(&xinput_proc[0], NULL)) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "Serious error: /proc/xinput file busy now, "
+                                           "the system will become unstable!\r\n");
+    }
+}
+
+/*
  * end
  */

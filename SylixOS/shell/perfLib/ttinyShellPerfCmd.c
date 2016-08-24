@@ -189,7 +189,11 @@ static INT  __tshellPerfCmdPerfShow (INT  iArgC, PCHAR  ppcArgV[])
                 API_TShellColorStart2(LW_TSHELL_COLOR_GREEN, STD_OUT);
             }
         
+#if LW_CFG_CPU_WORD_LENGHT == 64
+            printf("%-16s %7lx %5d %3ld 0x%016lx 0x%016lx %12lu %s\n", 
+#else
             printf("%-16s %7lx %5d %3ld 0x%08lx 0x%08lx %12lu %s\n", 
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT adj  */
                    cThreadName,
                    sysperf[i].PERF_ulThread,
                    sysperf[i].PERF_pid,

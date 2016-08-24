@@ -365,7 +365,6 @@ PX86_FPU_OP  x86FpuSsePrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
         x86FpuSseEnableYMMState();
 
     } else if (_G_bX86HasFXSR) {
-
         _G_fpuopFpuSse.PFPU_pfuncSave    = x86FpuSseXSave;
         _G_fpuopFpuSse.PFPU_pfuncRestore = x86FpuSseXRestore;
 

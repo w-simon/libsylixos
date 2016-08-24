@@ -591,11 +591,11 @@ typedef struct {
 } PCI_RESOURCE_CB;
 typedef PCI_RESOURCE_CB    *PCI_RESOURCE_HANDLE;
 
-#define PCI_DEV_RESOURCE_START(dev, index)  ((PCI_DEV_HANDLE)(dev))->PDT_tResource[index].PCIRS_stStart
-#define PCI_DEV_RESOURCE_END(dev, index)    ((PCI_DEV_HANDLE)(dev))->PDT_tResource[index].PCIRS_stEnd
-#define PCI_DEV_RESOURCE_NAME(dev, index)   ((PCI_DEV_HANDLE)(dev))->PDT_tResource[index].PCIRS_cpcName
-#define PCI_DEV_RESOURCE_FLAG(dev, index)   ((PCI_DEV_HANDLE)(dev))->PDT_tResource[index].PCIRS_ulFlags
-#define PCI_DEV_RESOURCE_DESC(dev, index)   ((PCI_DEV_HANDLE)(dev))->PDT_tResource[index].PCIRS_ulDesc
+#define PCI_DEV_RESOURCE_START(dev, index)  ((PCI_DEV_HANDLE)(dev))->PCIDEV_tResource[index].PCIRS_stStart
+#define PCI_DEV_RESOURCE_END(dev, index)    ((PCI_DEV_HANDLE)(dev))->PCIDEV_tResource[index].PCIRS_stEnd
+#define PCI_DEV_RESOURCE_NAME(dev, index)   ((PCI_DEV_HANDLE)(dev))->PCIDEV_tResource[index].PCIRS_cpcName
+#define PCI_DEV_RESOURCE_FLAG(dev, index)   ((PCI_DEV_HANDLE)(dev))->PCIDEV_tResource[index].PCIRS_ulFlags
+#define PCI_DEV_RESOURCE_DESC(dev, index)   ((PCI_DEV_HANDLE)(dev))->PCIDEV_tResource[index].PCIRS_ulDesc
 
 #define PCI_RESOURCE_TYPE(handle)           (((PCI_RESOURCE_HANDLE)handle)->PCIRS_ulFlags &     \
                                              PCI_IORESOURCE_TYPE_BITS)

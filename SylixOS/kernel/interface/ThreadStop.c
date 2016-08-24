@@ -58,6 +58,12 @@ ULONG  API_ThreadStop (LW_OBJECT_HANDLE  ulId)
     
     ptcb = _K_ptcbTCBIdTable[usIndex];
     
+    if (ptcb->TCB_iDeleteProcStatus) {                                  /*  在删除和重启的过程中        */
+        __KERNEL_EXIT();                                                /*  退出内核                    */
+        _ErrorHandle(ERROR_THREAD_NULL);
+        return  (ERROR_THREAD_NULL);
+    }
+    
     ulError = _ThreadStop(ptcb);
     
     __KERNEL_EXIT();                                                    /*  退出内核                    */

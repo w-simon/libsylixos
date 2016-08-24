@@ -168,12 +168,6 @@ SylixOS/arch/x86/common/x86CpuId.c \
 SylixOS/arch/x86/common/x86CpuIdAsm.S \
 SylixOS/arch/x86/dbg/x86Dbg.c \
 SylixOS/arch/x86/dbg/x86Gdb.c \
-SylixOS/arch/x86/dbg/libudis86/decode.c \
-SylixOS/arch/x86/dbg/libudis86/itab.c \
-SylixOS/arch/x86/dbg/libudis86/syn.c \
-SylixOS/arch/x86/dbg/libudis86/syn-att.c \
-SylixOS/arch/x86/dbg/libudis86/syn-intel.c \
-SylixOS/arch/x86/dbg/libudis86/udis86.c \
 SylixOS/arch/x86/elf/x86Elf.c \
 SylixOS/arch/x86/fpu/x86Fpu.c \
 SylixOS/arch/x86/fpu/fpunone/x86FpuNone.c \
@@ -193,7 +187,7 @@ SylixOS/arch/x86/bsp/bspLib.c \
 SylixOS/arch/x86/apic/x86IoApic.c \
 SylixOS/arch/x86/apic/x86LocalApic.c \
 SylixOS/arch/x86/apic/x86LocalApicAsm.S \
-SylixOS/arch/x86/mpconfig/x86MpConfig.c \
+SylixOS/arch/x86/mpconfig/x86MpConfig.c
 
 #*********************************************************************************************************
 # debug source

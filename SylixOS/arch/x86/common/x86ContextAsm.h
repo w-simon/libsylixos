@@ -92,7 +92,6 @@ MACRO_DEF(SAVE_REGS)
 MACRO_DEF(INT_SAVE_REGS_HW_ERRNO)
                                                                         /*  EFLAGS CS EIP ERRNO 已经PUSH*/
     PUSHL   %EBP
-    MOVL    %ESP , %EBP
 
     PUSHL   %EDI
     PUSHL   %ESI
@@ -115,13 +114,13 @@ MACRO_DEF(INT_SAVE_REGS_HW_ERRNO)
      */
     MOVW    $X86_BUILD_SEGMENT_REG_VALUE(0, 0, X86_SEG_KDATA), %DI
 
-    MOV     %DI , %DS
+    MOVW    %DI , %DS
 
-    MOV     %DI , %ES
+    MOVW    %DI , %ES
 
-    MOV     %DI , %FS
+    MOVW    %DI , %FS
 
-    MOV     %DI , %GS
+    MOVW    %DI , %GS
     /*
      * CS 和 SS 处理器已经加载完, 不用再设置了
      */

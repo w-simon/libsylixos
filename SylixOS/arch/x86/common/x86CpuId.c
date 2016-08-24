@@ -266,9 +266,9 @@ VOID  x86CpuIdProbe (VOID)
 
     x86CpuIdProbe32(pcpuid);
 
-    info.value              = pcpuid->std.featuresEbx;
-    features.value          = pcpuid->std.featuresEdx;
-    extendedFeatures.value  = pcpuid->std.featuresEcx;
+    info.value             = pcpuid->std.featuresEbx;
+    features.value         = pcpuid->std.featuresEdx;
+    extendedFeatures.value = pcpuid->std.featuresEcx;
 
     /*
      * 识别 Intel 处理器家族类型码
@@ -292,7 +292,6 @@ VOID  x86CpuIdProbe (VOID)
     if (pcpuid->ext.highestExtValue >= 0x80000002) {
         pcLine = (CHAR *)pcpuid->std.brandString;
         SKIP_SPACE(pcLine);
-
         lib_strcpy(_G_pcX86CpuInfo, pcLine);
     }
 
@@ -311,7 +310,7 @@ VOID  x86CpuIdProbe (VOID)
      */
     if (pcpuid->std.featuresEdx & X86_CPUID_CLFLUSH) {
         _G_stX86CacheFlushBytes = (size_t)(pcpuid->std.featuresEbx & X86_CPUID_CHUNKS)
-                                   >> X86_CPUID_CHUNKS_TO_BYTES_SHIFT;
+                                >> X86_CPUID_CHUNKS_TO_BYTES_SHIFT;
     }
 
     if (pcpuid->std.highestValue >= 4) {
@@ -324,16 +323,17 @@ VOID  x86CpuIdProbe (VOID)
         }
 
         for (i = 0; i < pcpuid->ext.cacheCount; i++) {
-            size_t stSize = (cacheEbx[i].field.assoc + 1) *
-                            (cacheEbx[i].field.partitions + 1) *
-                            (cacheEbx[i].field.line_size + 1) *
-                            (cacheEcx[i].sets + 1);
+            size_t  stSize = (cacheEbx[i].field.assoc + 1) *
+                             (cacheEbx[i].field.partitions + 1) *
+                             (cacheEbx[i].field.line_size + 1) *
+                             (cacheEcx[i].sets + 1);
 
             if (stSize >= LW_CFG_MB_SIZE) {
                 stSize = stSize / LW_CFG_MB_SIZE;
                 snprintf(cTemp, sizeof(cTemp), "L%d %s-CACHE %dMB  ",
                         cacheEax[i].field.level, _G_pcX86CacheShortTypes[cacheEax[i].field.type],
                         (INT)stSize);
+
             } else {
                 stSize = stSize / LW_CFG_KB_SIZE;
                 snprintf(cTemp, sizeof(cTemp), "L%d %s-CACHE %dKB  ",
@@ -479,21 +479,22 @@ VOID  x86CpuIdShow (VOID)
            version.field.family, version.field.familyExt);
 
     switch ((INT)version.field.type) {
-        case X86_CPUID_ORIG:
-            pcCpuTypeName = "original OEM";
-            break;
 
-        case X86_CPUID_OVERD:
-            pcCpuTypeName = "overdrive";
-            break;
+    case X86_CPUID_ORIG:
+        pcCpuTypeName = "original OEM";
+        break;
 
-        case X86_CPUID_DUAL:
-            pcCpuTypeName = "dual";
-            break;
+    case X86_CPUID_OVERD:
+        pcCpuTypeName = "overdrive";
+        break;
 
-        default:
-            pcCpuTypeName = "unknown";
-            break;
+    case X86_CPUID_DUAL:
+        pcCpuTypeName = "dual";
+        break;
+
+    default:
+        pcCpuTypeName = "<unknown>";
+        break;
     }
 
     iCpuIdMask = X86_CPUID_FAMILY | X86_CPUID_MODEL | X86_CPUID_EXT_MODEL;
@@ -524,142 +525,79 @@ VOID  x86CpuIdShow (VOID)
      * 特性位
      */
     X86_CPUID_PRINT_FEATURE(features.field.fpu, "FPU on chip");
-
     X86_CPUID_PRINT_FEATURE(features.field.vme, "Virtual 8086 mode enhancement");
-
     X86_CPUID_PRINT_FEATURE(features.field.de, "Debugging extensions");
-
     X86_CPUID_PRINT_FEATURE(features.field.pse, "Page size extension");
-
     X86_CPUID_PRINT_FEATURE(features.field.tsc, "Time stamp counter");
-
     X86_CPUID_PRINT_FEATURE(features.field.msr, "RDMSR and WRMSR support");
-
     X86_CPUID_PRINT_FEATURE(features.field.pae, "Physical address extensions");
-
     X86_CPUID_PRINT_FEATURE(features.field.mce, "Machine check exception");
-
     X86_CPUID_PRINT_FEATURE(features.field.cx8, "CMPXCHG8 inst");
-
     X86_CPUID_PRINT_FEATURE(features.field.apic, "APIC on chip");
-
     X86_CPUID_PRINT_FEATURE(features.field.sep, "Fast system calls");
-
     X86_CPUID_PRINT_FEATURE(features.field.mtrr, "MTRR");
-
     X86_CPUID_PRINT_FEATURE(features.field.pge, "PTE global bit");
-
     X86_CPUID_PRINT_FEATURE(features.field.mca, "Machine check architecture");
-
     X86_CPUID_PRINT_FEATURE(features.field.cmov, "Cond. move/cmp. inst");
-
     X86_CPUID_PRINT_FEATURE(features.field.pat, "Page attribute table");
-
     X86_CPUID_PRINT_FEATURE(features.field.pse36, "36 bit page size extension");
-
     X86_CPUID_PRINT_FEATURE(features.field.psnum, "Processor serial number");
-
     X86_CPUID_PRINT_FEATURE(features.field.clflush, "CLFLUSH inst supported");
-
     X86_CPUID_PRINT_FEATURE(features.field.dts, "Debug Store");
-
     X86_CPUID_PRINT_FEATURE(features.field.acpi, "ACPI registers in MSR space supported");
-
     X86_CPUID_PRINT_FEATURE(features.field.mmx, "MMX technology supported");
-
     X86_CPUID_PRINT_FEATURE(features.field.fxsr, "Fast FP save and restore");
-
     X86_CPUID_PRINT_FEATURE(features.field.sse, "SSE supported");
-
     X86_CPUID_PRINT_FEATURE(features.field.sse2, "SSE2 supported");
-
     X86_CPUID_PRINT_FEATURE(features.field.ss, "Self Snoop supported");
-
     X86_CPUID_PRINT_FEATURE((features.field.htt && (info.field.nproc > 1)),
                            "Hyper-Threading Technology/Core Multi-Processing supported");
-
     X86_CPUID_PRINT_FEATURE(features.field.tm, "Thermal Monitor supported");
-
     X86_CPUID_PRINT_FEATURE(features.field.pbe, "Pending break enable");
 
     /*
      * 扩展特性位
      */
     X86_CPUID_PRINT_FEATURE(extendedFeatures.field.sse3, "SSE3 supported");
-
     X86_CPUID_PRINT_FEATURE(extendedFeatures.field.pclmuldq, "PCLMULDQ inst supported");
-
     X86_CPUID_PRINT_FEATURE(extendedFeatures.field.dtes64, "64-bit debug store supported");
-
     X86_CPUID_PRINT_FEATURE(extendedFeatures.field.mon, "MONITOR/MWAIT inst supported");
-
     X86_CPUID_PRINT_FEATURE(extendedFeatures.field.ds_cpl, "CPL qualified debug store");
-
     X86_CPUID_PRINT_FEATURE(extendedFeatures.field.vmx, "VT Technology");
-
     X86_CPUID_PRINT_FEATURE(extendedFeatures.field.smx, "Safer mode extensions supported");
-
     X86_CPUID_PRINT_FEATURE(extendedFeatures.field.est, "Enhanced Speedstep Technology");
-
     X86_CPUID_PRINT_FEATURE(extendedFeatures.field.tm2, "Thermal Monitor 2 supported");
-
     X86_CPUID_PRINT_FEATURE(extendedFeatures.field.ssse3, "SSSE3 supported");
-
     X86_CPUID_PRINT_FEATURE(extendedFeatures.field.cid, "L1 Context ID supported");
-
     X86_CPUID_PRINT_FEATURE(extendedFeatures.field.debugmsr, "IA32_DEBUG_INTERFACE_MSR supported");
-
     X86_CPUID_PRINT_FEATURE(extendedFeatures.field.fma, "FMA Extensions Using XMM state supported");
-
     X86_CPUID_PRINT_FEATURE(extendedFeatures.field.cx16, "CMPXCHG16B inst supported");
-
     X86_CPUID_PRINT_FEATURE(extendedFeatures.field.xtpr, "xTPR Update Control supported");
-
     X86_CPUID_PRINT_FEATURE(extendedFeatures.field.pdcm, "Performance and Debug capability");
-
     X86_CPUID_PRINT_FEATURE(extendedFeatures.field.asid_pcid, "ASID-PCID supported");
-
     X86_CPUID_PRINT_FEATURE(extendedFeatures.field.dca, "Direct Cache Access supported");
-
     X86_CPUID_PRINT_FEATURE(extendedFeatures.field.sse41, "SSE4.1 supported");
-
     X86_CPUID_PRINT_FEATURE(extendedFeatures.field.sse42, "SSE4.2 supported");
-
     X86_CPUID_PRINT_FEATURE(extendedFeatures.field.x2apic, "x2APIC feature supported");
-
     X86_CPUID_PRINT_FEATURE(extendedFeatures.field.movbe, "MOVBE inst supported");
-
     X86_CPUID_PRINT_FEATURE(extendedFeatures.field.popcnt, "POPCNT inst supported");
-
     X86_CPUID_PRINT_FEATURE(extendedFeatures.field.tsc_dline, "TSC-deadline Timer supported");
-
     X86_CPUID_PRINT_FEATURE(extendedFeatures.field.aes, "AES inst supported");
-
     X86_CPUID_PRINT_FEATURE(extendedFeatures.field.xsave, "XSAVE/XRSTOR States supported");
-
     X86_CPUID_PRINT_FEATURE(extendedFeatures.field.osxsave,
             "OS-Enabled Extended State management supported");
-
     X86_CPUID_PRINT_FEATURE(extendedFeatures.field.avx, "AVX instr extensions supported");
-
     X86_CPUID_PRINT_FEATURE(extendedFeatures.field.f16c, "Float16 instructions supported");
-
     X86_CPUID_PRINT_FEATURE(extendedFeatures.field.rdrand, "Read Random Number instructions supported");
 
     if (pcpuid->ext.highestExtValue >= 0x80000001) {
         X86_CPUID_PRINT_FEATURE(extendedFeaturesD.field.scall_sret, "SYSCALL/SYSRET inst supported");
-
         X86_CPUID_PRINT_FEATURE(extendedFeaturesD.field.excdis, "Execute Disable supported");
-
         X86_CPUID_PRINT_FEATURE(extendedFeaturesD.field.gbpss, "1 GB Page Size Support supported");
-
         X86_CPUID_PRINT_FEATURE(extendedFeaturesD.field.rdtscp,
                 "RDTSCP instruction and IA32_TSC_AUX_MSR supported");
-
         X86_CPUID_PRINT_FEATURE(extendedFeaturesD.field.em64t, "Intel 64 Arch extensions supported");
-
         X86_CPUID_PRINT_FEATURE(extendedFeaturesC.field.lahf, "LAHF/SAHF inst supported");
-
         X86_CPUID_PRINT_FEATURE(extendedFeaturesC.field.abm, "Advanced Bit Manipulation supported");
     }
 
@@ -672,6 +610,7 @@ VOID  x86CpuIdShow (VOID)
         }
 
         printf("\nDeterministic Cache Parameters:\n");
+
         for (i = 0; i < pcpuid->ext.cacheCount; i++) {
             printf("    L%d %s cache size 0x%x\n",
                    cacheEax[i].field.level, _G_pcX86CacheTypes[cacheEax[i].field.type],

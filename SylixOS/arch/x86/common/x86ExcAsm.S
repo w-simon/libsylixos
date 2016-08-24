@@ -128,9 +128,9 @@ FUNC_DEF(x86IntEntry\Id)
 1:
     PUSHL   %ESI
     PUSHL   $\Id
-    LEAL    _G_pfuncX86IntHandleArray, %EDI
+    LEAL    _G_pfuncX86IntHandleArray , %EDI
     CALL    *(\Id * 4)(%EDI)
-    ADDL    $8, %ESP
+    ADDL    $8 , %ESP
 
     ;/*
     ; *  if (API_InterGetNesting() == 1) {
@@ -192,9 +192,9 @@ FUNC_DEF(x86IntEntry\Id)
 1:
     PUSHL   %ESI
     PUSHL   $\Id
-    LEAL    _G_pfuncX86IntHandleArray, %EDI
+    LEAL    _G_pfuncX86IntHandleArray , %EDI
     CALL    *(\Id * 4)(%EDI)
-    ADDL    $8, %ESP
+    ADDL    $8 , %ESP
 
     ;/*
     ; *  if (API_InterGetNesting() == 1) {

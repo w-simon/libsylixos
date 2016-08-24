@@ -419,7 +419,7 @@ INT  x86LocalApicSecondaryStart (UINT8  ucLocalApicId, addr_t  ulEntryAddr)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: x86LocalApicSendIPI
+** 函数名称: x86LocalApicSendIpi
 ** 功能描述: Local APIC 发送 IPI
 ** 输　入  : ucLocalApicID     Local APIC ID
 **           ucX86Vector       x86 中断向量号
@@ -427,7 +427,7 @@ INT  x86LocalApicSecondaryStart (UINT8  ucLocalApicId, addr_t  ulEntryAddr)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  x86LocalApicSendIPI (UINT8  ucLocalApicId,  UINT8  ucX86Vector)
+VOID  x86LocalApicSendIpi (UINT8  ucLocalApicId,  UINT8  ucX86Vector)
 {
     x86LocalApicWrite(LOAPIC_ICRHI, ucLocalApicId << 24);
     x86LocalApicWrite(LOAPIC_ICRLO, ICRLO_FIXED | ICRLO_ASSERT | ucX86Vector);

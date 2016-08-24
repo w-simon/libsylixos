@@ -714,7 +714,7 @@ static VOID  x86MmuInvTLB (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulPageAddr, ULONG  
 *********************************************************************************************************/
 VOID  x86MmuInit (LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName)
 {
-    pmmuop->MMUOP_ulOption = 0ul;
+    pmmuop->MMUOP_ulOption = LW_VMM_MMU_FLUSH_TLB_MP;
 
     pmmuop->MMUOP_pfuncMemInit    = x86MmuMemInit;
     pmmuop->MMUOP_pfuncGlobalInit = x86MmuGlobalInit;

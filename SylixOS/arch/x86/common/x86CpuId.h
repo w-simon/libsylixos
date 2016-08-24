@@ -898,18 +898,15 @@ typedef struct {                                                        /*  每个
 extern X86_PROC_INFO        _G_x86ProcInfo[];                           /*  Processor 信息              */
 extern INT                  _G_iX86ProcNr;                              /*  Processor 数目              */
 
-#define X86_APICID_TO_CPUID(apicid)     _G_x86ProcInfo[apicid].PROC_ulCPUId
-#define X86_CPUID_TO_APICID(cpuid)      _G_x86ProcInfo[cpuid].PROC_ucMapLocalApicId
+#define X86_APICID_TO_CPUID(apicid)     (_G_x86ProcInfo[(apicid)].PROC_ulCPUId)
+#define X86_CPUID_TO_APICID(cpuid)      (_G_x86ProcInfo[(cpuid)].PROC_ucMapLocalApicId)
 
 extern size_t               _G_stX86CacheFlushBytes;                    /*  Cache CFlush byte number    */
 extern INT                  _G_iX86ICacheWaySize;                       /*  I-Cache way size            */
 extern INT                  _G_iX86DCacheWaySize;                       /*  I-Cache way size            */
 extern BOOL                 _G_bX86HasCFlush;                           /*  Has CFlush inst?            */
-
 extern BOOL                 _G_bX86HasAPIC;                             /*  Has APIC on chip?           */
-
 extern UINT                 _G_uiX86ProcessorFamily;                    /*  Processor Family            */
-
 extern BOOL                 _G_bX86HasX87FPU;                           /*  Has X87 FPU?                */
 extern BOOL                 _G_bX86HasSSE;                              /*  Has SSE?                    */
 extern BOOL                 _G_bX86HasSSE2;                             /*  Has SSE?                    */
@@ -918,8 +915,11 @@ extern BOOL                 _G_bX86HasXSAVE;                            /*  Has 
 extern BOOL                 _G_bX86HasAVX;                              /*  Has AVX?                    */
 extern BOOL                 _G_bX86HasMMX;                              /*  Has MMX?                    */
 extern size_t               _G_stX86XSaveCtxSize;                       /*  XSAVE context size          */
-
 extern BOOL                 _G_bX86HasHTT;                              /*  Has HTT?                    */
+
+/*********************************************************************************************************
+  CPU Cache info.
+*********************************************************************************************************/
 
 extern CHAR                 _G_pcX86CpuInfo[];                          /*  CPU info                    */
 extern CHAR                 _G_pcX86CacheInfo[];                        /*  Cache info                  */

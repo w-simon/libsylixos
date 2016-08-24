@@ -37,7 +37,7 @@ typedef VOID (*X86_INT_HANDLER)(UINT32  uiX86Vector, UINT32  uiESP);    /*  异常
 
 X86_INT_HANDLER _G_pfuncX86IntHandleArray[X86_IDTE_NUM];                /*  异常/中断处理函数数组       */
 
-static CPCHAR   _G_pcX86ExecName[] = {                                  /*  异常名字表                  */
+static CPCHAR   _G_pcX86ExceName[] = {                                  /*  异常名字表                  */
     [X86_EXCEPT_DIVIDE_ERROR]                = "Division by zero",
     [X86_EXCEPT_DEBUG]                       = "Debug",
     [X86_EXCEPT_NMI_INTERRUPT]               = "Non Maskable Interrupt",
@@ -143,7 +143,7 @@ static VOID  x86DefaultExceptHandle (UINT32  uiX86Vector, UINT32  uiESP)
     LW_VMM_ABORT    abtInfo;
     addr_t          ulRetAddr;
 
-    _PrintFormat("EXECPTION: %s\r\n", _G_pcX86ExecName[uiX86Vector]);
+    _PrintFormat("EXCEPTION: %s\r\n", _G_pcX86ExceName[uiX86Vector]);
 
     LW_TCB_GET_CUR(ptcbCur);
 
@@ -296,7 +296,41 @@ static VOID  x86BreakPointExceptHandle (UINT32  uiX86Vector, UINT32  uiESP)
     ulRetAddr = pregctx->REG_uiEIP;
 
 #if LW_CFG_GDB_EN > 0
-    UINT  uiBpType = archDbgTrapType(ulRetAddr, (PVOID)LW_NULL);        /*  断点指令探测                */
+    UINT  uiBpType = archDbgTrapType(ulRetAddr, X86_DBG_TRAP_BP);       /*  断点指令探测                */
+    if (uiBpType) {
+        if (API_DtraceBreakTrap(ulRetAddr, uiBpType) == ERROR_NONE) {   /*  进入调试接口断点处理        */
+            return;
+        }
+    }
+#endif                                                                  /*  LW_CFG_GDB_EN > 0           */
+
+    LW_TCB_GET_CUR(ptcbCur);
+
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BREAK;
+    abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
+
+    API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
+}
+/*********************************************************************************************************
+** 函数名称: x86DebugExceptHandle
+** 功能描述: 单步断点异常处理函数
+** 输　入  : uiX86Vector   x86 异常向量
+**           uiESP         异常保存上下文后的 ESP
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  x86DebugExceptHandle (UINT32  uiX86Vector, UINT32  uiESP)
+{
+    ARCH_REG_CTX   *pregctx = (ARCH_REG_CTX *)uiESP;
+    PLW_CLASS_TCB   ptcbCur;
+    LW_VMM_ABORT    abtInfo;
+    addr_t          ulRetAddr;
+
+    ulRetAddr = pregctx->REG_uiEIP;
+
+#if LW_CFG_GDB_EN > 0
+    UINT  uiBpType = archDbgTrapType(ulRetAddr, X86_DBG_TRAP_STEP);     /*  断点指令探测                */
     if (uiBpType) {
         if (API_DtraceBreakTrap(ulRetAddr, uiBpType) == ERROR_NONE) {   /*  进入调试接口断点处理        */
             return;
@@ -345,9 +379,10 @@ VOID  x86ExceptIrqInit (VOID)
         _G_pfuncX86IntHandleArray[uiX86Vector] = (X86_INT_HANDLER)x86IrqHandle;
     }
 
-    _G_pfuncX86IntHandleArray[X86_EXCEPT_PAGE_FAULT]           = x86PageFaultExceptHandle;
-    _G_pfuncX86IntHandleArray[X86_EXCEPT_BREAKPOINT]           = x86BreakPointExceptHandle;
-    _G_pfuncX86IntHandleArray[X86_EXCEPT_INVALID_OPCODE]       = x86InvalidOpcodeExceptHandle;
+    _G_pfuncX86IntHandleArray[X86_EXCEPT_PAGE_FAULT]     = x86PageFaultExceptHandle;
+    _G_pfuncX86IntHandleArray[X86_EXCEPT_BREAKPOINT]     = x86BreakPointExceptHandle;
+    _G_pfuncX86IntHandleArray[X86_EXCEPT_INVALID_OPCODE] = x86InvalidOpcodeExceptHandle;
+    _G_pfuncX86IntHandleArray[X86_EXCEPT_DEBUG]          = x86DebugExceptHandle;
 
 #if LW_CFG_CPU_FPU_EN > 0
     _G_pfuncX86IntHandleArray[X86_EXCEPT_FLOATING_POINT_ERROR] = x86FpErrorExceptHandle;

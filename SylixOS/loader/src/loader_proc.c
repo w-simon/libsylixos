@@ -756,6 +756,7 @@ INT  vprocProcDelete (LW_LD_VPROC *pvproc)
     
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
                                                                         /*  LW_CFG_PROCFS_EN > 0        */
 /*********************************************************************************************************

@@ -133,128 +133,178 @@ VOID  archTaskRegsSet (PLW_STACK  pstkTop, const ARCH_REG_CTX  *pregctx)
     *(ARCH_REG_CTX *)pstkTop = *pregctx;
 }
 /*********************************************************************************************************
+** 函数名称: archTaskCtxCpsr
+** 功能描述: 获得 CPSR 字符串
+** 输　入  : regCpsr    CPSR 寄存器
+             pcCpsr     字符串缓冲
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  archTaskCtxCpsr (ARCH_REG_T regCpsr, PCHAR  pcCpsr)
+{
+    if (regCpsr & 0x80000000) {
+        pcCpsr[0] = 'N';
+    } else {
+        pcCpsr[0] = 'n';
+    }
+    
+    if (regCpsr & 0x40000000) {
+        pcCpsr[1] = 'Z';
+    } else {
+        pcCpsr[1] = 'z';
+    }
+    
+    if (regCpsr & 0x20000000) {
+        pcCpsr[2] = 'C';
+    } else {
+        pcCpsr[2] = 'c';
+    }
+    
+    if (regCpsr & 0x10000000) {
+        pcCpsr[3] = 'V';
+    } else {
+        pcCpsr[3] = 'v';
+    }
+    
+    if (regCpsr & 0x08000000) {
+        pcCpsr[4] = 'Q';
+    } else {
+        pcCpsr[4] = 'q';
+    }
+    
+    if (regCpsr & 0x80) {
+        pcCpsr[5] = 'I';
+    } else {
+        pcCpsr[5] = 'i';
+    }
+    
+    if (regCpsr & 0x40) {
+        pcCpsr[6] = 'F';
+    } else {
+        pcCpsr[6] = 'f';
+    }
+    
+    if (regCpsr & 0x20) {
+        pcCpsr[7] = 'T';
+    } else {
+        pcCpsr[7] = 't';
+    }
+    pcCpsr[8] = 0;
+    
+    regCpsr &= 0x1F;
+    
+    switch (regCpsr) {
+    
+    case ARCH_ARM_USR32MODE:
+        lib_strcpy(&pcCpsr[8], "_USER");
+        break;
+        
+    case ARCH_ARM_FIQ32MODE:
+        lib_strcpy(&pcCpsr[8], "_FIQ");
+        break;
+        
+    case ARCH_ARM_IRQ32MODE:
+        lib_strcpy(&pcCpsr[8], "_IRQ");
+        break;
+        
+    case ARCH_ARM_SVC32MODE:
+        lib_strcpy(&pcCpsr[8], "_SVC");
+        break;
+        
+    case ARCH_ARM_ABT32MODE:
+        lib_strcpy(&pcCpsr[8], "_ABT");
+        break;
+        
+    case ARCH_ARM_UND32MODE:
+        lib_strcpy(&pcCpsr[8], "_UND");
+        break;
+        
+    case ARCH_ARM_SYS32MODE:
+        lib_strcpy(&pcCpsr[8], "_SYS");
+        break;
+        
+    default:
+        lib_strcpy(&pcCpsr[8], "_!!!");
+        break;
+    }
+}
+/*********************************************************************************************************
 ** 函数名称: archTaskCtxShow
 ** 功能描述: 打印任务上下文
 ** 输　入  : iFd        文件描述符
 			 pstkTop    堆栈栈顶
 ** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
+** 全局变量:
+** 调用模块:
 *********************************************************************************************************/
 #if LW_CFG_DEVICE_EN > 0
 
 VOID  archTaskCtxShow (INT  iFd, PLW_STACK  pstkTop)
 {
     CHAR        cCpsr[32 + 1] = "\0";
-    LW_STACK    stkCpsr = pstkTop[0];
+    ARCH_REG_T  regCpsr       = (ARCH_REG_T)pstkTop[0];
     
-    if (stkCpsr & 0x80000000) {
-        cCpsr[0] = 'N';
+    if (iFd >= 0) {
+        archTaskCtxCpsr(regCpsr, cCpsr);
+
+        fdprintf(iFd, "cpsr = %s\n",    cCpsr);
+        fdprintf(iFd, "r0  = 0x%08x  ", pstkTop[1]);
+        fdprintf(iFd, "r1  = 0x%08x\n", pstkTop[2]);
+        fdprintf(iFd, "r2  = 0x%08x  ", pstkTop[3]);
+        fdprintf(iFd, "r3  = 0x%08x\n", pstkTop[4]);
+        fdprintf(iFd, "r4  = 0x%08x  ", pstkTop[5]);
+        fdprintf(iFd, "r5  = 0x%08x\n", pstkTop[6]);
+        fdprintf(iFd, "r6  = 0x%08x  ", pstkTop[7]);
+        fdprintf(iFd, "r7  = 0x%08x\n", pstkTop[8]);
+        fdprintf(iFd, "r8  = 0x%08x  ", pstkTop[9]);
+        fdprintf(iFd, "r9  = 0x%08x\n", pstkTop[10]);
+        fdprintf(iFd, "r10 = 0x%08x  ", pstkTop[11]);
+        fdprintf(iFd, "fp  = 0x%08x\n", pstkTop[12]);
+        fdprintf(iFd, "ip  = 0x%08x  ", pstkTop[13]);
+        fdprintf(iFd, "sp  = 0x%08x\n", (ARCH_REG_T)pstkTop);
+        fdprintf(iFd, "lr  = 0x%08x  ", pstkTop[14]);
+        fdprintf(iFd, "pc  = 0x%08x\n", pstkTop[15]);
+
     } else {
-        cCpsr[0] = 'n';
+        archTaskCtxPrint(pstkTop);
     }
-    
-    if (stkCpsr & 0x40000000) {
-        cCpsr[1] = 'Z';
-    } else {
-        cCpsr[1] = 'z';
-    }
-    
-    if (stkCpsr & 0x20000000) {
-        cCpsr[2] = 'C';
-    } else {
-        cCpsr[2] = 'c';
-    }
-    
-    if (stkCpsr & 0x10000000) {
-        cCpsr[3] = 'V';
-    } else {
-        cCpsr[3] = 'v';
-    }
-    
-    if (stkCpsr & 0x08000000) {
-        cCpsr[4] = 'Q';
-    } else {
-        cCpsr[4] = 'q';
-    }
-    
-    if (stkCpsr & 0x80) {
-        cCpsr[5] = 'I';
-    } else {
-        cCpsr[5] = 'i';
-    }
-    
-    if (stkCpsr & 0x40) {
-        cCpsr[6] = 'F';
-    } else {
-        cCpsr[6] = 'f';
-    }
-    
-    if (stkCpsr & 0x20) {
-        cCpsr[7] = 'T';
-    } else {
-        cCpsr[7] = 't';
-    }
-    cCpsr[8] = 0;
-    
-    stkCpsr &= 0x1F;
-    
-    switch (stkCpsr) {
-    
-    case ARCH_ARM_USR32MODE:
-        lib_strcpy(&cCpsr[8], "_USER");
-        break;
-        
-    case ARCH_ARM_FIQ32MODE:
-        lib_strcpy(&cCpsr[8], "_FIQ");
-        break;
-        
-    case ARCH_ARM_IRQ32MODE:
-        lib_strcpy(&cCpsr[8], "_IRQ");
-        break;
-        
-    case ARCH_ARM_SVC32MODE:
-        lib_strcpy(&cCpsr[8], "_SVC");
-        break;
-        
-    case ARCH_ARM_ABT32MODE:
-        lib_strcpy(&cCpsr[8], "_ABT");
-        break;
-        
-    case ARCH_ARM_UND32MODE:
-        lib_strcpy(&cCpsr[8], "_UND");
-        break;
-        
-    case ARCH_ARM_SYS32MODE:
-        lib_strcpy(&cCpsr[8], "_SYS");
-        break;
-        
-    default:
-        lib_strcpy(&cCpsr[8], "_!!!");
-        break;
-    }
-    
-    fdprintf(iFd, "cpsr = %s\n", cCpsr);
-    
-    fdprintf(iFd, "r0  = 0x%08x  ", pstkTop[1]);
-    fdprintf(iFd, "r1  = 0x%08x\n", pstkTop[2]);
-    fdprintf(iFd, "r2  = 0x%08x  ", pstkTop[3]);
-    fdprintf(iFd, "r3  = 0x%08x\n", pstkTop[4]);
-    fdprintf(iFd, "r4  = 0x%08x  ", pstkTop[5]);
-    fdprintf(iFd, "r5  = 0x%08x\n", pstkTop[6]);
-    fdprintf(iFd, "r6  = 0x%08x  ", pstkTop[7]);
-    fdprintf(iFd, "r7  = 0x%08x\n", pstkTop[8]);
-    fdprintf(iFd, "r8  = 0x%08x  ", pstkTop[9]);
-    fdprintf(iFd, "r9  = 0x%08x\n", pstkTop[10]);
-    fdprintf(iFd, "r10 = 0x%08x  ", pstkTop[11]);
-    fdprintf(iFd, "fp  = 0x%08x\n", pstkTop[12]);
-    fdprintf(iFd, "ip  = 0x%08x  ", pstkTop[13]);
-    fdprintf(iFd, "sp  = 0x%08x\n", (ARCH_REG_T)pstkTop);
-    fdprintf(iFd, "lr  = 0x%08x  ", pstkTop[14]);
-    fdprintf(iFd, "pc  = 0x%08x\n", pstkTop[15]);
 }
 
 #endif                                                                  /*  LW_CFG_DEVICE_EN > 0        */
+/*********************************************************************************************************
+** 函数名称: archTaskCtxPrint
+** 功能描述: 直接打印任务上下文
+** 输　入  : pstkTop    堆栈栈顶
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  archTaskCtxPrint (PLW_STACK  pstkTop)
+{
+    CHAR        cCpsr[32 + 1] = "\0";
+    ARCH_REG_T  regCpsr       = (ARCH_REG_T)pstkTop[0];
+
+    archTaskCtxCpsr(regCpsr, cCpsr);
+
+    _PrintFormat("cpsr = %s\r\n",    cCpsr);
+    _PrintFormat("r0  = 0x%08x  ",   pstkTop[1]);
+    _PrintFormat("r1  = 0x%08x\r\n", pstkTop[2]);
+    _PrintFormat("r2  = 0x%08x  ",   pstkTop[3]);
+    _PrintFormat("r3  = 0x%08x\r\n", pstkTop[4]);
+    _PrintFormat("r4  = 0x%08x  ",   pstkTop[5]);
+    _PrintFormat("r5  = 0x%08x\r\n", pstkTop[6]);
+    _PrintFormat("r6  = 0x%08x  ",   pstkTop[7]);
+    _PrintFormat("r7  = 0x%08x\r\n", pstkTop[8]);
+    _PrintFormat("r8  = 0x%08x  ",   pstkTop[9]);
+    _PrintFormat("r9  = 0x%08x\r\n", pstkTop[10]);
+    _PrintFormat("r10 = 0x%08x  ",   pstkTop[11]);
+    _PrintFormat("fp  = 0x%08x\r\n", pstkTop[12]);
+    _PrintFormat("ip  = 0x%08x  ",   pstkTop[13]);
+    _PrintFormat("sp  = 0x%08x\r\n", (ARCH_REG_T)pstkTop);
+    _PrintFormat("lr  = 0x%08x  ",   pstkTop[14]);
+    _PrintFormat("pc  = 0x%08x\r\n", pstkTop[15]);
+}
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

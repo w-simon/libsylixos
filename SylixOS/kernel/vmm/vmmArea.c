@@ -21,6 +21,7 @@
 ** BUG
 2008.12.23  加入虚拟空间遍历的功能.
 2009.03.03  红黑树相关内容完全使用库函数.
+2016.08.19  __areaPhysicalSpaceInit() 支持多次调用添加物理内存.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -218,7 +219,7 @@ ULONG  __areaVirtualSpaceInit (LW_MMU_VIRTUAL_DESC   pvirdes[])
 ULONG  __areaPhysicalSpaceInit (LW_MMU_PHYSICAL_DESC  pphydesc[])
 {
     REGISTER ULONG  ulError = ERROR_NONE;
-             ULONG  ulZone  = 0;
+    static   ULONG  ulZone  = 0;                                        /*  可多次追尾添加内存          */
              INT    i;
              
     for (i = 0; ; i++) {
@@ -433,6 +434,7 @@ VOID  __areaPhysicalUnlinkPage (ULONG  ulZoneIndex, addr_t  ulAddr, PLW_VMM_PAGE
 {
     __areaUnlinkPage(&_G_vmareaZoneSpace[ulZoneIndex], ulAddr, pvmpage);
 }
+
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 /*********************************************************************************************************
   END

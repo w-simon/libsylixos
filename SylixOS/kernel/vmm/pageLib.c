@@ -912,6 +912,7 @@ ULONG  __pageZoneCreate (PLW_VMM_ZONE   pvmzone,
     
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 /*********************************************************************************************************
   END

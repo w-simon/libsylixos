@@ -81,6 +81,7 @@ VOID   API_MsgQueueShow (LW_OBJECT_HANDLE  ulId)
     
     printf("\n");
 }
+
 #endif                                                                  /*  LW_CFG_FIO_LIB_EN > 0       */
                                                                         /*  LW_CFG_MSGQUEUE_EN > 0      */
 /*********************************************************************************************************

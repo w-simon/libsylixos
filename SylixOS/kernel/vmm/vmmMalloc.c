@@ -1354,6 +1354,7 @@ ULONG  API_VmmRemapArea (PVOID      pvVirtualAddr,
     
     return  (ulError);
 }
+
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 /*********************************************************************************************************
   END

@@ -116,6 +116,8 @@ LW_API ULONG        API_VmmLibPrimaryInit(LW_MMU_PHYSICAL_DESC  pphydesc[],
 LW_API ULONG        API_VmmLibSecondaryInit(CPCHAR  pcMachineName);
 #endif                                                                  /*  LW_CFG_SMP_EN               */
 
+LW_API ULONG        API_VmmLibAddPhyRam(addr_t  ulPhyRam, size_t  stSize);
+                                                                        /*  添加物理内存用于 APP        */
 /*********************************************************************************************************
   MMU 启动与停止
 *********************************************************************************************************/

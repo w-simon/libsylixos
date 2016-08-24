@@ -91,6 +91,33 @@ WEAK_FUNC ULONG  bspInfoHwcap (VOID)
 }
 /*********************************************************************************************************
   中断相关
+
+  x86 Int Vector:
+  +-----------------+
+  |  0              |
+  |                 |
+  |  x86 exception  |
+  |                 |
+  |  31             |           SylixOS Int Vector:
+  +-----------------+ --------> +-----------------+
+  |  32             |           |  0              |
+  |                 |           |                 | ------> 16
+  |  x86 IRQ        |           |  x86 IRQ        | PCI x 8 Intx
+  |                 |           |                 | ------> 23
+  |  63             |           |  31             |
+  +-----------------+           +-----------------+
+  |  64             |           |  32             |
+  |                 |           |                 |
+  |  x86 SMP IPI    |  INT MAP  |  SMP IPI        |
+  |                 |           |                 |
+  |  95             |           |  63             |
+  +-----------------+           +-----------------+
+  |  96             |           |  64             |
+  |                 |           |                 |
+  |  MSI & other... |           |  IRQ            |
+  |                 |           |                 |
+  |  255            |           |  223            |
+  +-----------------+ --------> +-----------------+
 *********************************************************************************************************/
 /*********************************************************************************************************
   8259A PIC
@@ -137,10 +164,6 @@ WEAK_FUNC VOID  bspIntInit (VOID)
         out8(0xff, X86_8259A_SLAVE_IMR);                                /*  mask all of 8259A-2 slave   */
 
         /*
-         * IO APIC/Local APIC 已经初始化过
-         */
-
-        /*
          * 8 个 PCI 中断设置为链式中断
          */
         API_InterVectorSetFlag(LW_IRQ_16, LW_IRQ_FLAG_QUEUE);
@@ -161,6 +184,16 @@ WEAK_FUNC VOID  bspIntInit (VOID)
     }
 }
 /*********************************************************************************************************
+  向量使能与禁能锁
+*********************************************************************************************************/
+#if LW_CFG_SMP_EN > 0
+#define VECTOR_OP_LOCK()    LW_SPIN_LOCK_IGNIRQ(&_K_slVectorTable)
+#define VECTOR_OP_UNLOCK()  LW_SPIN_UNLOCK_IGNIRQ(&_K_slVectorTable)
+#else
+#define VECTOR_OP_LOCK()
+#define VECTOR_OP_UNLOCK()
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
+/*********************************************************************************************************
 ** 函数名称: bspIntHandle
 ** 功能描述: 中断处理函数
 ** 输  入  : ulVector     中断向量
@@ -172,10 +205,11 @@ WEAK_FUNC VOID  bspIntHandle (ULONG  ulVector)
 {
     archIntHandle(ulVector, LW_FALSE);                                  /*  不允许中断嵌套(MSI 中断无法 */
                                                                         /*  屏蔽)                       */
-
     if (_G_bX86HasAPIC) {
+        VECTOR_OP_LOCK();
         x86IoApicIrqEoi(ulVector);                                      /*  SylixOS vector 与 ioapic irq*/
-                                                                        /*  一致                        */
+        VECTOR_OP_UNLOCK();                                             /*  一致                        */
+
     } else {
         /*
          * 8259A 被配置为自动 EOI
@@ -301,7 +335,7 @@ WEAK_FUNC ULONG   bspIntVectorSetTarget (ULONG  ulVector, size_t  stSize, const 
 
         for (i = 0; i < ulNumChk; i++) {
             if (LW_CPU_ISSET(i, pcpuset)) {
-                x86IoApicIrqSetTarget(ulVector, _G_x86ProcInfo[i].PROC_ucMapLocalApicId);
+                x86IoApicIrqSetTarget(ulVector, X86_CPUID_TO_APICID(i));
                 break;
             }
         }
@@ -327,8 +361,7 @@ WEAK_FUNC ULONG   bspIntVectorGetTarget (ULONG  ulVector, size_t  stSize, PLW_CL
         UINT8  ucTargetLocalApicId;
 
         x86IoApicIrqGetTarget(ulVector, &ucTargetLocalApicId);
-
-        LW_CPU_SET(_G_x86ProcInfo[ucTargetLocalApicId].PROC_ulCPUId, pcpuset);
+        LW_CPU_SET(X86_APICID_TO_CPUID(ucTargetLocalApicId), pcpuset);
 
     } else {
         LW_CPU_SET(0, pcpuset);
@@ -465,7 +498,7 @@ WEAK_FUNC VOID  bspSecondaryCpusUp (VOID)
     for (i = 0; i < (2 * LW_CFG_MAX_PROCESSORS); i++) {
         if (_G_x86ProcInfo[i].PROC_bPresent) {
             if (ucLocalApicId != _G_x86ProcInfo[i].PROC_ucLocalApicId) {
-                API_CpuUp(_G_x86ProcInfo[i].PROC_ulCPUId);
+                API_CpuUp(X86_APICID_TO_CPUID(i));
             }
         }
     }
@@ -509,6 +542,7 @@ WEAK_FUNC VOID  bspCpuIpiVectorInstall (VOID)
   8254 TIMER
 *********************************************************************************************************/
 #define X86_8254_IO_BASE            0x40
+#define X86_8254_BUZZER_IO_BASE     0x61                                /*  8255 buzzer                 */
 #define X86_8254_MAX_FREQ           1193182
 /*********************************************************************************************************
   TICK 服务相关配置
@@ -522,8 +556,9 @@ static LW_HANDLE    htKernelTicks;                                      /*  操作
   i8254 平台数据
 *********************************************************************************************************/
 static I8254_CTL _G_i8254Data = {
-    .iobase  = X86_8254_IO_BASE,
-    .qcofreq = X86_8254_MAX_FREQ,
+    .iobase   = X86_8254_IO_BASE,
+    .iobuzzer = X86_8254_BUZZER_IO_BASE,
+    .qcofreq  = X86_8254_MAX_FREQ,
 };
 /*********************************************************************************************************
   精确时间换算参数

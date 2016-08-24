@@ -25,6 +25,7 @@
 2014.09.02  增加 API_DtraceDelBreakInfo() 接口, 调试器可删除断点信息.
 2015.11.17  修正 SMP 高并发度引起的调试错误.
 2015.12.01  加入浮点运算器上下文获取与设置操作.
+2016.08.16  支持硬件单步调试.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -271,6 +272,12 @@ INT  API_DtraceBreakTrap (addr_t  ulAddr, UINT  uiBpType)
         return  (PX_ERROR);
     }
     
+#if LW_CFG_SMP_EN > 0
+    if (uiBpType == LW_TRAP_RETRY) {
+        return  (ERROR_NONE);                                           /*  可能是虚断点, 再尝试一次    */
+    }
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
+
     dtm.DTM_ulAddr   = ulAddr;
     dtm.DTM_uiType   = uiBpType;                                        /*  获得 trap 类型              */
     dtm.DTM_ulThread = ptcbCur->TCB_ulId;
@@ -295,18 +302,14 @@ INT  API_DtraceBreakTrap (addr_t  ulAddr, UINT  uiBpType)
         __DTRACE_MSG("[DTRACE] <KERN> Trap thread 0x%lx @ 0x%08lx CPU %ld.\r\n", 
                      dtm.DTM_ulThread, ulAddr, ptcbCur->TCB_ulCPUId);
         
-#if LW_CFG_SMP_EN > 0
-        if (uiBpType == LW_TRAP_RETRY) {
-            return  (ERROR_NONE);                                       /*  可能是虚断点, 再尝试一次    */
-        }
-        
+#if LW_CFG_SMP_EN > 0 && !defined(LW_DTRACE_HW_ISTEP)
         if (ulAddr == ptcbCur->TCB_ulStepAddr) {
         	archDbgBpRemove(ptcbCur->TCB_ulStepAddr, sizeof(addr_t),
         			        ptcbCur->TCB_ulStepInst, LW_FALSE);
             ptcbCur->TCB_bStepClear = LW_TRUE;                          /*  断点被移除                  */
         }
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
-        
+                                                                        /*  !LW_DTRACE_HW_ISTEP         */
         sigvalue.sival_int = dtm.DTM_uiType;
         sigTrap(ulDbger, sigvalue);                                     /*  通知调试器线程              */
         return  (ERROR_NONE);
@@ -967,7 +970,7 @@ ULONG  API_DtraceGetBreakInfo (PVOID  pvDtrace, PLW_DTRACE_MSG  pdtm, LW_OBJECT_
 ** 功能描述: 删除指定线程的断点信息(仅仅截获下一条断点信息).
 ** 输　入  : pvDtrace      dtrace 节点
 **           ulThread      指定的线程句柄 (必须为有效线程句柄)
-**           ulBreakAddr   断点地址
+**           ulBreakAddr   断点地址 (PX_ERROR 表示删除硬件单步断点)
 **           bContinue     移除后是否继续执行线程
 ** 输　出  : ERROR
 ** 全局变量: 
@@ -992,7 +995,8 @@ ULONG  API_DtraceDelBreakInfo (PVOID             pvDtrace,
     __KERNEL_ENTER();                                                   /*  进入内核                    */
     if (ulThread) {
         if (__dtraceReadMsgEx(pdtrace, &dtm, LW_TRUE, ulThread) == ERROR_NONE) {
-            if (ulBreakAddr == dtm.DTM_ulAddr) {
+            if ((ulBreakAddr == dtm.DTM_ulAddr) ||
+                ((ulBreakAddr == (addr_t)PX_ERROR) && (dtm.DTM_uiType == LW_TRAP_ISTEP))) {
                 __dtraceReadMsgEx(pdtrace, &dtm, LW_FALSE, ulThread);
                 if (bContinue) {
                     API_ThreadContinue(ulThread);
@@ -1137,12 +1141,14 @@ ULONG  API_DtraceThreadExtraInfo (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread,
 ** 功能描述: 设置线程单步断点地址
 ** 输　入  : pvDtrace      dtrace 节点
 **           ulThread      线程句柄
-**           ulAddr        单步断点地址，PX_ERROR表示禁用单步
+**           ulAddr        单步断点地址，PX_ERROR 表示禁用单步
 ** 输　出  : ERROR
 ** 全局变量:
 ** 调用模块:
                                            API 函数
 *********************************************************************************************************/
+#ifndef LW_DTRACE_HW_ISTEP
+
 LW_API
 ULONG  API_DtraceThreadStepSet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, addr_t  ulAddr)
 {
@@ -1277,7 +1283,59 @@ VOID  API_DtraceSchedHook (LW_OBJECT_HANDLE  ulThreadOld, LW_OBJECT_HANDLE  ulTh
                      ulThreadNew, ptcb->TCB_ulStepAddr, LW_CPU_GET_CUR_ID());
     }
 }
+/*********************************************************************************************************
+** 函数名称: API_DtraceThreadStepSet
+** 功能描述: 设置线程单步断点模式
+** 输　入  : pvDtrace      dtrace 节点
+**           ulThread      线程句柄
+**           bEnable       是否使能硬单步断点
+** 输　出  : ERROR
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+#else
 
+LW_API
+ULONG  API_DtraceThreadStepSet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, BOOL  bEnable)
+{
+    REGISTER UINT16         usIndex;
+    REGISTER PLW_CLASS_TCB  ptcb;
+             PLW_DTRACE     pdtrace = (PLW_DTRACE)pvDtrace;
+             ARCH_REG_CTX  *pregctx;
+             ARCH_REG_T     regSp;
+
+    if (!pdtrace) {
+        _ErrorHandle(EINVAL);
+        return  (EINVAL);
+    }
+
+    usIndex = _ObjectGetIndex(ulThread);
+
+    if (!_ObjectClassOK(ulThread, _OBJECT_THREAD)) {                    /*  检查 ID 类型有效性          */
+        return  (ERROR_KERNEL_HANDLE_NULL);
+    }
+
+    if (_Thread_Index_Invalid(usIndex)) {                               /*  检查线程有效性              */
+        return  (ERROR_THREAD_NULL);
+    }
+
+    __KERNEL_ENTER();                                                   /*  进入内核                    */
+    if (_Thread_Invalid(usIndex)) {
+        __KERNEL_EXIT();                                                /*  退出内核                    */
+        return  (ERROR_THREAD_NULL);
+    }
+    
+    ptcb = _K_ptcbTCBIdTable[usIndex];
+    
+    pregctx = archTaskRegsGet(ptcb->TCB_pstkStackNow, &regSp);
+    archDbgSetStepMode(pregctx, bEnable);
+    __KERNEL_EXIT();
+
+    return  (ERROR_NONE);
+}
+
+#endif                                                                  /*  !LW_DTRACE_HW_ISTEP         */
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
 /*********************************************************************************************************
   END

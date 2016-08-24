@@ -315,6 +315,7 @@ INT     API_SelNodeDelete (PLW_SEL_WAKEUPLIST  pselwulList, PLW_SEL_WAKEUPNODE  
     
     return  (PX_ERROR);                                                 /*  没有找到节点                */
 }
+
 #endif                                                                  /*  LW_CFG_DEVICE_EN > 0        */
                                                                         /*  LW_CFG_SELECT_EN > 0        */
 /*********************************************************************************************************

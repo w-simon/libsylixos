@@ -77,25 +77,6 @@ static LW_OBJECT_HANDLE     _G_ulMountLock         = 0ul;
 #define __LW_MOUNT_LOCK()   API_SemaphoreMPend(_G_ulMountLock, LW_OPTION_WAIT_INFINITE)
 #define __LW_MOUNT_UNLOCK() API_SemaphoreMPost(_G_ulMountLock)
 /*********************************************************************************************************
-** 函数名称: __mountInit
-** 功能描述: 初始化 mount 库.
-** 输　入  : NONE
-** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-static VOID __mountInit (VOID)
-{
-    if (_G_ulMountLock == 0) {
-        _IosLock();
-        if (_G_ulMountLock == 0) {
-            _G_ulMountLock = API_SemaphoreMCreate("mount_lock", LW_PRIO_DEF_CEILING, 
-                                LW_OPTION_DELETE_SAFE | LW_OPTION_OBJECT_GLOBAL, LW_NULL);
-        }
-        _IosUnlock();
-    }
-}
-/*********************************************************************************************************
 ** 函数名称: __mount
 ** 功能描述: 挂载一个分区(内部函数)
 ** 输　入  : pcDevName         块设备名   例如: /dev/sda1
@@ -124,8 +105,6 @@ static INT  __mount (CPCHAR  pcDevName, CPCHAR  pcVolName, CPCHAR  pcFileSystem,
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
-    
-    __mountInit();
     
     if (pcOption) {                                                     /*  文件系统挂载选项            */
         if (lib_strcasecmp(__LW_MOUNT_OPT_RO, pcOption) == 0) {
@@ -219,8 +198,6 @@ static INT  __unmount (CPCHAR  pcVolName)
     PLW_LIST_LINE   plineTemp;
     CHAR            cVolNameBuffer[MAX_FILENAME_LENGTH];
     
-    __mountInit();
-    
     _PathGetFull(cVolNameBuffer, MAX_FILENAME_LENGTH, pcVolName);
     
     pcVolName = cVolNameBuffer;                                         /*  使用绝对路径                */
@@ -273,6 +250,23 @@ static INT  __unmount (CPCHAR  pcVolName)
     __SHEAP_FREE(pmnDev);                                               /*  释放控制块                  */
     
     return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_MountInit
+** 功能描述: 初始化 mount 库.
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API 
+VOID  API_MountInit (VOID)
+{
+    if (_G_ulMountLock == 0) {
+        _G_ulMountLock =  API_SemaphoreMCreate("mount_lock", LW_PRIO_DEF_CEILING, 
+                            LW_OPTION_DELETE_SAFE | LW_OPTION_OBJECT_GLOBAL, LW_NULL);
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: API_MountEx
@@ -366,8 +360,6 @@ VOID  API_MountShow (VOID)
         _ErrorHandle(ERROR_KERNEL_IN_ISR);
         return;
     }
-    
-    __mountInit();
     
     printf("all mount point show >>\n");
     printf(pcMountInfoHdr);                                             /*  打印欢迎信息                */

@@ -174,6 +174,7 @@ VOID   API_InterShow (ULONG  ulCPUStart, ULONG  ulCPUEnd)
     printf("\n");
 #endif                                                                  /*  LW_CFG_INTER_INFO > 0       */
 }
+
 #endif                                                                  /*  LW_CFG_FIO_LIB_EN > 0       */
 /*********************************************************************************************************
   END

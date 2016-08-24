@@ -69,6 +69,10 @@
 #define PIT_TICK_DIVISOR        ((UINT32)PIT_CLOCK / (UINT32)LW_TICK_HZ)
 #define PIT_HTIMR_DIVISOR       ((UINT32)PIT_CLOCK / (UINT32)LW_HTIMER_HZ)
 /*********************************************************************************************************
+  8254 Unified spinlock
+*********************************************************************************************************/
+static LW_SPINLOCK_DEFINE       (i8254sl) = LW_SPIN_INITIALIZER;
+/*********************************************************************************************************
 ** 函数名称: i8254Init
 ** 功能描述: 初始化 8254 定时器
 ** 输　入  : pctl           8254 控制块
@@ -79,10 +83,19 @@
 *********************************************************************************************************/
 UINT16  i8254Init (I8254_CTL *pctl, UINT32  uiHz)
 {
+    INTREG  intreg;
     UINT32  uiDivisor = ((UINT32)PIT_CLOCK / uiHz);
+
+    LW_SPIN_LOCK_QUICK(&i8254sl, &intreg);
 
     /*
      * Send the command byte to configure counter 0
+     *
+     * +-------+-------+--------+---------+--------+--------+--------+-------+
+     * |   D7  |   D6  |   D5   |    D4   |   D3   |   D2   |   D1   |   D0  |
+     * +---------------+------------------+--------------------------+-------+
+     * |   COUNTER_0   |       OCW        |          MODE_3          |  BIN  |
+     * +---------------+------------------+--------------------------+-------+
      */
     out8(PIT_OCW_MODE_SQUARE | PIT_OCW_RL_DATA | PIT_OCW_COUNTER_0, PIT_REG_COMMAND);
 
@@ -91,6 +104,8 @@ UINT16  i8254Init (I8254_CTL *pctl, UINT32  uiHz)
      */
     out8((UINT8)(uiDivisor & 0xff),  PIT_REG_COUNTER0);
     out8((UINT8)((uiDivisor >> 8) & 0xff), PIT_REG_COUNTER0);
+
+    LW_SPIN_UNLOCK_QUICK(&i8254sl, intreg);
 
     return  ((UINT16)uiDivisor);
 }
@@ -128,17 +143,87 @@ UINT16  i8254InitAsHtimer (I8254_CTL *pctl)
 *********************************************************************************************************/
 UINT16  i8254GetCnt (I8254_CTL *pctl)
 {
+    INTREG  intreg;
     UINT16  usDivisor;
+
+    LW_SPIN_LOCK_QUICK(&i8254sl, &intreg);
 
     /*
      * Send the command byte to configure get counter 0
+     *
+     * +-------+-------+--------+---------+--------+--------+--------+-------+
+     * |   D7  |   D6  |   D5   |    D4   |   D3   |   D2   |   D1   |   D0  |
+     * +-------+-------+--------+---------+--------+--------+--------+-------+
+     * |   1   |   1   | /COUNT | /STATUS |  CNT2  |  CNT1  |  CNT0  |   0   |
+     * +-------+-------+--------+---------+--------+--------+--------+-------+
      */
     out8((UINT8)((0x11 << 6) | (1 << 4) | (1 < 1)), PIT_REG_COMMAND);
 
     usDivisor  = (UINT16)in8(PIT_REG_COUNTER0);
     usDivisor |= ((UINT16)in8(PIT_REG_COUNTER0) << 8);
 
+    LW_SPIN_UNLOCK_QUICK(&i8254sl, intreg);
+
     return  (usDivisor);
+}
+/*********************************************************************************************************
+** 函数名称: i8254BuzzerOn
+** 功能描述: 使能 8254 蜂鸣器定时器
+** 输　入  : pctl           8254 控制块
+**           uiHz           蜂鸣器频率
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  i8254BuzzerOn (I8254_CTL *pctl, UINT32  uiHz)
+{
+    INTREG  intreg;
+    UINT32  uiDivisor = ((UINT32)PIT_CLOCK / uiHz);
+    UINT8   ucBits;
+
+    LW_SPIN_LOCK_QUICK(&i8254sl, &intreg);
+
+    /*
+     * Send the command byte to configure counter 0
+     *
+     * +-------+-------+--------+---------+--------+--------+--------+-------+
+     * |   D7  |   D6  |   D5   |    D4   |   D3   |   D2   |   D1   |   D0  |
+     * +---------------+------------------+--------------------------+-------+
+     * |   COUNTER_2   |       OCW        |          MODE_3          |  BIN  |
+     * +---------------+------------------+--------------------------+-------+
+     */
+    out8(PIT_OCW_MODE_SQUARE | PIT_OCW_RL_DATA | PIT_OCW_COUNTER_2, PIT_REG_COMMAND);
+
+    /*
+     * Set the PIT input frequency divisor
+     */
+    out8((UINT8)(uiDivisor & 0xff),  PIT_REG_COUNTER2);
+    out8((UINT8)((uiDivisor >> 8) & 0xff), PIT_REG_COUNTER2);
+
+    ucBits = in8(pctl->iobuzzer);
+    out8(ucBits | 0x3, pctl->iobuzzer);
+
+    LW_SPIN_UNLOCK_QUICK(&i8254sl, intreg);
+}
+/*********************************************************************************************************
+** 函数名称: i8254BuzzerOff
+** 功能描述: 初始化 8254 蜂鸣器定时器
+** 输　入  : pctl           8254 控制块
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  i8254BuzzerOff (I8254_CTL *pctl)
+{
+    INTREG  intreg;
+    UINT8   ucBits;
+
+    LW_SPIN_LOCK_QUICK(&i8254sl, &intreg);
+
+    ucBits = in8(pctl->iobuzzer);
+    out8(ucBits & 0xfc, pctl->iobuzzer);
+
+    LW_SPIN_UNLOCK_QUICK(&i8254sl, intreg);
 }
 
 #endif                                                                  /*  LW_CFG_DRV_INT_I8254 > 0    */

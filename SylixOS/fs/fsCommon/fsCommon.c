@@ -235,6 +235,7 @@ UINT  __fsDiskLinkCounterGet (PLW_BLK_DEV  pblkd)
 
     return  (uiRet);
 }
+
 #endif                                                                  /*  (LW_CFG_MAX_VOLUMES > 0)    */
 /*********************************************************************************************************
   END

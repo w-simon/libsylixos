@@ -77,6 +77,9 @@ VOID  API_VmmPhysicalShow (VOID)
              PLW_MMU_CONTEXT    pmmuctx = __vmmGetCurCtx();
              PCHAR              pcDma;
              size_t             stUsed;
+             
+             size_t             stTotalSize = 0;
+             size_t             stFreeSize  = 0;
 
     printf("vmm physical zone show >>\n");
     printf(_G_cZoneInfoHdr);                                            /*  打印欢迎信息                */
@@ -105,10 +108,14 @@ VOID  API_VmmPhysicalShow (VOID)
                _G_vmzonePhysical[i].ZONE_ulFreePage,
                pcDma,
                stUsed);
+               
+        stTotalSize += (size_t)(_G_vmzonePhysical[i].ZONE_stSize);
+        stFreeSize  += (size_t)(_G_vmzonePhysical[i].ZONE_ulFreePage * LW_CFG_VMM_PAGE_SIZE);
     }
     __VMM_UNLOCK();
     
-    printf("\n");
+    printf("\nvmm physical memory total size: %zuMB free size: %zuMB\n", 
+           stTotalSize / LW_CFG_MB_SIZE, stFreeSize / LW_CFG_MB_SIZE);
 }
 /*********************************************************************************************************
 ** 函数名称: __vmmVirtualPrint
@@ -207,6 +214,7 @@ VOID  API_VmmAbortShow (VOID)
     
     printf("\n");
 }
+
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 #endif                                                                  /*  LW_CFG_FIO_LIB_EN > 0       */
 /*********************************************************************************************************

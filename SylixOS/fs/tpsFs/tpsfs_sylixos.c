@@ -1705,6 +1705,40 @@ static INT  __tpsFsTruncate (PLW_FD_ENTRY  pfdentry, off_t  oftSize)
     }
     
     if (ptpsfile->TPSFIL_iFileType == __TPS_FILE_TYPE_NODE) {
+        if (oftSize > tpsFsGetSize(ptpsfile->TPSFIL_pinode)) {          /*  自动扩展文件                */
+            UINT        uiBufSize  = ptpsfile->TPSFIL_pinode->IND_psb->SB_uiBlkSize;
+            size_t      szWrite;
+            TPS_SIZE_T  szWriteNum;
+            PUCHAR      pucZoreBuf = (PUCHAR)__SHEAP_ALLOC(uiBufSize);
+
+            if (pucZoreBuf == LW_NULL) {
+                __TPS_FILE_UNLOCK(ptpsfile);
+                _DebugHandle(__ERRORMESSAGE_LEVEL, "system low memory.\r\n");
+                _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
+                return  (PX_ERROR);
+            }
+
+            while (tpsFsGetSize(ptpsfile->TPSFIL_pinode) < oftSize) {
+                szWrite = (size_t)min(uiBufSize, oftSize -
+                                                 tpsFsGetSize(ptpsfile->TPSFIL_pinode));
+                if (tpsFsWrite(ptpsfile->TPSFIL_pinode, pucZoreBuf,
+                               tpsFsGetSize(ptpsfile->TPSFIL_pinode),
+                               szWrite, &szWriteNum) != ERROR_NONE) {
+                    break;
+                }
+            }
+
+            __SHEAP_FREE(pucZoreBuf);
+            if (tpsFsGetSize(ptpsfile->TPSFIL_pinode) < oftSize) {
+                __TPS_FILE_UNLOCK(ptpsfile);
+                _ErrorHandle(EFBIG);
+                return  (PX_ERROR);
+            }
+
+            __TPS_FILE_UNLOCK(ptpsfile);
+            return  (ERROR_NONE);
+        }
+
         iErr = tpsFsTrunc(ptpsfile->TPSFIL_pinode, oftSize);
         pfdnode->FDNODE_oftSize = tpsFsGetSize(ptpsfile->TPSFIL_pinode);
         iError = (iErr == ERROR_NONE ? ERROR_NONE : PX_ERROR);

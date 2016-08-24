@@ -79,14 +79,17 @@ typedef LW_OEMDISK_CB   *PLW_OEMDISK_CB;
 /*********************************************************************************************************
   API
 *********************************************************************************************************/
+LW_API VOID              API_OemDiskMountInit(VOID);
+LW_API VOID              API_OemDiskMountShow(VOID);
+
 LW_API PLW_OEMDISK_CB    API_OemDiskMount(CPCHAR        pcVolName,
                                           PLW_BLK_DEV   pblkdDisk,
                                           PVOID         pvDiskCacheMem, 
                                           size_t        stMemSize, 
                                           INT           iMaxBurstSector);
-LW_API PLW_OEMDISK_CB   API_OemDiskMount2(CPCHAR             pcVolName,
-                                          PLW_BLK_DEV        pblkdDisk,
-                                          PLW_DISKCACHE_ATTR pdcattrl);
+LW_API PLW_OEMDISK_CB    API_OemDiskMount2(CPCHAR             pcVolName,
+                                           PLW_BLK_DEV        pblkdDisk,
+                                           PLW_DISKCACHE_ATTR pdcattrl);
                                           
 LW_API PLW_OEMDISK_CB    API_OemDiskMountEx(CPCHAR        pcVolName,
                                             PLW_BLK_DEV   pblkdDisk,
@@ -116,6 +119,8 @@ LW_API INT               API_OemDiskHotplugEventMessage(PLW_OEMDISK_CB  poemd,
                                                         UINT32          uiArg2,
                                                         UINT32          uiArg3);
 #endif                                                                  /*  LW_CFG_HOTPLUG_EN > 0       */
+
+#define oemDiskMountShow            API_OemDiskMountShow
 
 #define oemDiskMount                API_OemDiskMount
 #define oemDiskMount2               API_OemDiskMount2

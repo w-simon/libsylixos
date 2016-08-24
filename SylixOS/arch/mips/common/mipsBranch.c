@@ -36,7 +36,7 @@
 /*
  * Compute the return address and do emulate branch simulation, if required.
  */
-int __compute_return_epc(ARCH_REG_CTX *regs)
+int __compute_return_epc (ARCH_REG_CTX *regs)
 {
     unsigned int *addr;
 #ifndef SYLIXOS

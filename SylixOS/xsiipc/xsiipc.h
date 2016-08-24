@@ -45,8 +45,9 @@
  * 0.0.4    2013.11.28 add thread test point in msgrcv() and msgsnd()
  * 0.0.5    2016.04.13 fixed semctl() va_arg() bug.
  * 0.0.6    2016.04.20 fixed cache alias prob.
+ * 0.0.7    2016.08.19 fixed module remove procfs node delete prob.
  */
-#define IPC_VER         "0.0.6"
+#define IPC_VER         "0.0.7"
 
 /*
  * ipc config
@@ -141,7 +142,12 @@ void hook_shm_pid_remove(pid_t pid);
 void ipc_sem_init(void);
 void ipc_msg_init(void);
 void ipc_shm_init(void);
+
+/*
+ * procfs node
+ */
 void ipc_proc_init(void);
+void ipc_proc_deinit(void);
 
 #endif /* __XSIIPC_H */
 /*

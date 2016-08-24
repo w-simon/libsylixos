@@ -208,22 +208,23 @@ INT  x86MpInit (BOOL  bHyperThreading)
             continue;
 
         case MPPROC:
-            pmpproc = (PX86_MP_PROC)pucPos;
+            if (_G_iX86ProcNr < (2 * LW_CFG_MAX_PROCESSORS)) {
+                pmpproc = (PX86_MP_PROC)pucPos;
 
-            _G_x86ProcInfo[pmpproc->apicid].PROC_bPresent       = LW_TRUE;
-            _G_x86ProcInfo[pmpproc->apicid].PROC_ulCPUId        = _G_iX86ProcNr;
-            _G_x86ProcInfo[pmpproc->apicid].PROC_ucLocalApicId  = pmpproc->apicid;
-            _G_x86ProcInfo[_G_iX86ProcNr].PROC_ucMapLocalApicId = pmpproc->apicid;
-            _G_iX86ProcNr++;
-
-            if (bHyperThreading) {
-                _G_x86ProcInfo[pmpproc->apicid + 1].PROC_bPresent      = LW_TRUE;
-                _G_x86ProcInfo[pmpproc->apicid + 1].PROC_ulCPUId       = _G_iX86ProcNr;
-                _G_x86ProcInfo[pmpproc->apicid + 1].PROC_ucLocalApicId = pmpproc->apicid + 1;
-                _G_x86ProcInfo[_G_iX86ProcNr].PROC_ucMapLocalApicId    = pmpproc->apicid + 1;
+                _G_x86ProcInfo[pmpproc->apicid].PROC_bPresent       = LW_TRUE;
+                _G_x86ProcInfo[pmpproc->apicid].PROC_ulCPUId        = _G_iX86ProcNr;
+                _G_x86ProcInfo[pmpproc->apicid].PROC_ucLocalApicId  = pmpproc->apicid;
+                _G_x86ProcInfo[_G_iX86ProcNr].PROC_ucMapLocalApicId = pmpproc->apicid;
                 _G_iX86ProcNr++;
-            }
 
+                if (bHyperThreading) {
+                    _G_x86ProcInfo[pmpproc->apicid + 1].PROC_bPresent      = LW_TRUE;
+                    _G_x86ProcInfo[pmpproc->apicid + 1].PROC_ulCPUId       = _G_iX86ProcNr;
+                    _G_x86ProcInfo[pmpproc->apicid + 1].PROC_ucLocalApicId = pmpproc->apicid + 1;
+                    _G_x86ProcInfo[_G_iX86ProcNr].PROC_ucMapLocalApicId    = pmpproc->apicid + 1;
+                    _G_iX86ProcNr++;
+                }
+            }
             pucPos += sizeof(X86_MP_PROC);
             continue;
 

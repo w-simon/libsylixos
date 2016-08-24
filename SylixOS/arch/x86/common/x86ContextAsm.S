@@ -51,12 +51,13 @@ FUNC_DEF(archResumePc)
 ;/*********************************************************************************************************
 ;  当前 CPU 开始运行多任务执行
 ;  参数为当前 CPU 控制块, 即 X86_SP_ARG1 为当前 CPU 控制块指针
+;  根据 ABI，%EDI 由被调用函数保存，所以使用 %EDI 保存当前 CPU 控制块指针
 ;*********************************************************************************************************/
 
 FUNC_DEF(archTaskCtxStart)
-    MOVL    X86_SP_ARG1(%ESP) , %EDX                                    ;/*  EDX = 当前 CPU 控制块指针   */
+    MOVL    X86_SP_ARG1(%ESP) , %EDI                                    ;/*  EDI = 当前 CPU 控制块指针   */
 
-    MOVL    0(%EDX) , %EAX                                              ;/*  EAX = 当前 任务 控制块指针  */
+    MOVL    0(%EDI) , %EAX                                              ;/*  EAX = 当前 任务 控制块指针  */
 
     MOVL    0(%EAX) , %ESP                                              ;/*  修改 ESP                    */
 
@@ -71,17 +72,15 @@ FUNC_DEF(archTaskCtxStart)
 FUNC_DEF(archTaskCtxSwitch)
     SAVE_REGS                                                           ;/*  所有寄存器入栈              */
 
-    MOVL    (X86_SP_ARG1 + ARCH_REG_CTX_WORD_SIZE * 4)(%ESP) , %EDX     ;/*  EDX = 当前 CPU 控制块指针   */
-    MOVL    0(%EDX) , %EAX                                              ;/*  EAX = 当前 任务 控制块指针  */
+    MOVL    (X86_SP_ARG1 + ARCH_REG_CTX_WORD_SIZE * 4)(%ESP) , %EDI     ;/*  EDI = 当前 CPU 控制块指针   */
+    MOVL    0(%EDI) , %EAX                                              ;/*  EAX = 当前 任务 控制块指针  */
     MOVL    %ESP , 0(%EAX)                                              ;/*  保存 ESP                    */
 
-    PUSHL   %EDX                                                        ;/*  保存当前 CPU 控制块指针     */
-    PUSHL   %EDX                                                        ;/*  参数 = 当前 CPU 控制块指针  */
+    PUSHL   %EDI                                                        ;/*  参数 = 当前 CPU 控制块指针  */
     CALL    _SchedSwp                                                   ;/*  _SchedSwp();                */
     ADDL    $4 , %ESP
-    POPL    %EDX                                                        ;/*  EDX = 当前 CPU 控制块指针   */
 
-    MOVL    0(%EDX) , %EAX                                              ;/*  EAX = 当前 任务 控制块指针  */
+    MOVL    0(%EDI) , %EAX                                              ;/*  EAX = 当前 任务 控制块指针  */
     MOVL    0(%EAX) , %ESP                                              ;/*  修改 ESP                    */
 
     RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
@@ -96,17 +95,15 @@ FUNC_DEF(archTaskCtxSwitch)
 FUNC_DEF(archCrtCtxSwitch)
     SAVE_REGS                                                           ;/*  所有寄存器入栈              */
 
-    MOVL    (X86_SP_ARG1 + ARCH_REG_CTX_WORD_SIZE * 4)(%ESP) , %EDX     ;/*  EDX = 当前 CPU 控制块指针   */
-    MOVL    0(%EDX) , %EAX                                              ;/*  EAX = 当前 任务 控制块指针  */
+    MOVL    (X86_SP_ARG1 + ARCH_REG_CTX_WORD_SIZE * 4)(%ESP) , %EDI     ;/*  EDI = 当前 CPU 控制块指针   */
+    MOVL    0(%EDI) , %EAX                                              ;/*  EAX = 当前 任务 控制块指针  */
     MOVL    %ESP , 0(%EAX)                                              ;/*  保存 ESP                    */
 
-    PUSHL   %EDX                                                        ;/*  保存当前 CPU 控制块指针     */
-    PUSHL   %EDX                                                        ;/*  参数 = 当前 CPU 控制块指针  */
+    PUSHL   %EDI                                                        ;/*  参数 = 当前 CPU 控制块指针  */
     CALL    _SchedCrSwp                                                 ;/*  _SchedCrSwp();              */
     ADDL    $4 , %ESP
-    POPL    %EDX                                                        ;/*  EDX = 当前 CPU 控制块指针   */
 
-    MOVL    0(%EDX) , %EAX                                              ;/*  EAX = 当前 任务 控制块指针  */
+    MOVL    0(%EDI) , %EAX                                              ;/*  EAX = 当前 任务 控制块指针  */
     MOVL    0(%EAX) , %ESP                                              ;/*  修改 ESP                    */
 
     RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
@@ -119,13 +116,12 @@ FUNC_DEF(archCrtCtxSwitch)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archIntCtxLoad)
-    PUSHL   X86_SP_ARG1(%ESP)                                           ;/*  保存当前 CPU 控制块指针     */
-    PUSHL   (X86_SP_ARG1 + 4)(%ESP)                                     ;/*  参数 = 当前 CPU 控制块指针  */
+    MOVL    (X86_SP_ARG1)(%ESP) , %EDI                                  ;/*  EDI  = 当前 CPU 控制块指针  */
+    PUSHL   %EDI                                                        ;/*  参数 = 当前 CPU 控制块指针  */
     CALL    _SchedSwp                                                   ;/*  _SchedSwp();                */
     ADDL    $4 , %ESP
-    POPL    %EDX                                                        ;/*  EDX = 当前 CPU 控制块指针   */
 
-    MOVL    0(%EDX) , %EAX                                              ;/*  EAX = 当前 任务 控制块指针  */
+    MOVL    0(%EDI) , %EAX                                              ;/*  EAX = 当前 任务 控制块指针  */
     MOVL    0(%EAX) , %ESP                                              ;/*  修改 ESP                    */
 
     RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
@@ -137,9 +133,7 @@ FUNC_DEF(archIntCtxLoad)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archSigCtxLoad)
-    MOVL    X86_SP_ARG1(%ESP) , %EDX                                    ;/*  EDX = 传入的参数            */
-
-    MOVL    %EDX , %ESP                                                 ;/*  修改 ESP                    */
+    MOVL    X86_SP_ARG1(%ESP) , %ESP                                    ;/*  ESP = 传入的参数            */
 
     RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
     FUNC_END(archSigCtxLoad)

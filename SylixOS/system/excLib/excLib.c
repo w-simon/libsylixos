@@ -69,9 +69,9 @@ INT  _excInit (VOID)
                         LW_NULL);
                         
     _S_ulThreadExceId = API_ThreadCreate("t_except",
-                                     (PTHREAD_START_ROUTINE)_ExcThread,
-                                     &threadattr,
-                                     LW_NULL);                          /*  建立异常处理线程            */
+                                         (PTHREAD_START_ROUTINE)_ExcThread,
+                                         &threadattr,
+                                         LW_NULL);                      /*  建立异常处理线程            */
     if (!_S_ulThreadExceId) {
         _jobQueueFinit(&_G_jobqExc);
         return  (PX_ERROR);

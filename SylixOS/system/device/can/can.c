@@ -122,10 +122,11 @@ static __PCAN_QUEUE  __canInitQueue (UINT   uiMaxFrame)
     __CAN_QUEUE   *pcanq = NULL;
 
     stAllocSize = (size_t)(sizeof(__CAN_QUEUE) + (uiMaxFrame * sizeof(CAN_FRAME)));
-    pcanq       = (__CAN_QUEUE *)__SHEAP_ALLOC(stAllocSize);
+    pcanq = (__CAN_QUEUE *)__SHEAP_ALLOC(stAllocSize);
     if (pcanq == LW_NULL) {
         return  (LW_NULL);
     }
+    
     pcanq->CANQ_uiCounter       = 0;
     pcanq->CANQ_uiMaxFrame      = uiMaxFrame;
     pcanq->CANQ_pcanframeBuffer = (PCAN_FRAME)(pcanq + 1);
@@ -170,6 +171,7 @@ static INT  __canWriteQueue (__CAN_DEV     *pcanDev,
             iNumber--;
             pcanframe++;
             i++;
+        
         } else {
             LW_SPIN_UNLOCK_QUICK(&pcanDev->CAN_slLock, iregInterLevel);
             break;
@@ -214,6 +216,7 @@ static INT __canReadQueue (__CAN_DEV    *pcanDev,
             iNumber--;
             pcanframe++;
             i++;
+        
         } else {
             LW_SPIN_UNLOCK_QUICK(&pcanDev->CAN_slLock, iregInterLevel);
             break;
@@ -240,7 +243,6 @@ static INT  __canQFreeNum (__PCAN_QUEUE  pcanq)
     iNum = pcanq->CANQ_uiMaxFrame - pcanq->CANQ_uiCounter;
 
     return  (iNum);
-
 }
 /*********************************************************************************************************
 ** 函数名称: __canQCount
@@ -317,7 +319,7 @@ static VOID   __canFlushRd (__CAN_PORT  *pcanport)
 *********************************************************************************************************/
 static VOID   __canFlushWrt (__CAN_PORT  *pcanport)
 {
-    INTREG                 iregInterLevel;
+    INTREG  iregInterLevel;
 
     CANPORT_LOCK(pcanport);                                             /*  等待设备使用权              */
 
@@ -345,8 +347,8 @@ static VOID   __canFlushWrt (__CAN_PORT  *pcanport)
 *********************************************************************************************************/
 static INT  __canITx (__CAN_DEV  *pcanDev, PCAN_FRAME  pcanframe)
 {
-    INTREG        iregInterLevel;
-    INT           iTemp = 0;
+    INTREG  iregInterLevel;
+    INT     iTemp = 0;
 
     if (!pcanDev || !pcanframe) {
         return (PX_ERROR);
@@ -379,7 +381,7 @@ static INT  __canITx (__CAN_DEV  *pcanDev, PCAN_FRAME  pcanframe)
 *********************************************************************************************************/
 static INT  __canIRx (__CAN_DEV  *pcanDev, PCAN_FRAME   pcanframe)
 {
-    INT           iTemp = 0;
+    INT     iTemp = 0;
 
     if (!pcanDev || !pcanframe) {
         return (PX_ERROR);
@@ -584,6 +586,7 @@ static INT __canIoctl (__CAN_DEV    *pcanDev, INT  iCmd, LONG  lArg)
 
     if (pCanDevFuncs->ioctl) {
         iStatus = pCanDevFuncs->ioctl(pcanport->CANPORT_pcanchan, iCmd, (PVOID)lArg);
+    
     } else {
         iStatus = ENOSYS;
     }
@@ -709,7 +712,7 @@ static INT __canIoctl (__CAN_DEV    *pcanDev, INT  iCmd, LONG  lArg)
     
     CANDEV_UNLOCK(pcanDev);                                             /*  释放设备使用权              */
 
-    return (iStatus);
+    return  (iStatus);
 }
 /*********************************************************************************************************
 ** 函数名称: __canOpen
@@ -731,12 +734,12 @@ static LONG  __canOpen (__CAN_DEV  *pcanDev,
     __CAN_PORT      *pcanport = (__CAN_PORT *)pcanDev;
 
     if (LW_DEV_INC_USE_COUNT(&pcanDev->CAN_devhdr) == 1) {
-        if (pcanport->CANPORT_pcanchan->pDrvFuncs->ioctl) {
+        if (pcanport->CANPORT_pcanchan->pDrvFuncs->ioctl) {             /*  打开端口                    */
             pcanport->CANPORT_pcanchan->pDrvFuncs->ioctl(pcanport->CANPORT_pcanchan,
                                                          CAN_DEV_OPEN, LW_NULL);
-                                                                        /*  打开端口                    */
         }
     }
+    
     return  ((LONG)pcanDev);
 }
 /*********************************************************************************************************
@@ -754,13 +757,11 @@ static INT __canClose (__CAN_DEV   *pcanDev)
 
     if (LW_DEV_GET_USE_COUNT(&pcanDev->CAN_devhdr)) {
         if (!LW_DEV_DEC_USE_COUNT(&pcanDev->CAN_devhdr)) {
-            if (pcanport->CANPORT_pcanchan->pDrvFuncs->ioctl) {
+            if (pcanport->CANPORT_pcanchan->pDrvFuncs->ioctl) {         /*  挂起端口                    */
                 pcanport->CANPORT_pcanchan->pDrvFuncs->ioctl(pcanport->CANPORT_pcanchan,
                                                              CAN_DEV_CLOSE, LW_NULL);
-                                                                        /*  挂起端口                    */
             }
-            SEL_WAKE_UP_ALL(&pcanDev->CAN_selwulList,
-                            SELEXCEPT);                                 /*  激活异常等待                */
+            SEL_WAKE_UP_ALL(&pcanDev->CAN_selwulList, SELEXCEPT);       /*  激活异常等待                */
         }
     }
     
@@ -850,8 +851,7 @@ static ssize_t __canRead (__CAN_DEV       *pcanDev,
                           PCAN_FRAME       pcanframe,
                           size_t           stNBytes)
 {
-    INTREG        iregInterLevel;
-
+             INTREG       iregInterLevel;
     REGISTER ssize_t      sstNRead;
              size_t       stNumber = stNBytes / sizeof(CAN_FRAME);      /*  转换为数据包个数            */
              ULONG        ulError;
@@ -1034,8 +1034,8 @@ INT  API_CanDevCreate (PCHAR     pcName,
 LW_API
 INT  API_CanDevRemove (PCHAR     pcName, BOOL  bForce)
 {
-    __PCAN_PORT         pDevHdr;
-    PCHAR               pcTail = LW_NULL;
+    __PCAN_PORT     pDevHdr;
+    PCHAR           pcTail = LW_NULL;
 
     if (LW_CPU_GET_CUR_NESTING()) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "called from ISR.\r\n");

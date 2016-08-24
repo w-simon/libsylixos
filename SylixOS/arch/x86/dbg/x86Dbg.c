@@ -137,6 +137,10 @@ UINT  archDbgTrapType (addr_t  ulAddr, PVOID  pvArch)
         return  (LW_TRAP_INVAL);
     }
 
+    if (pvArch == X86_DBG_TRAP_STEP) {
+        return  (LW_TRAP_ISTEP);
+    }
+
     switch (*(UINT8 *)ulAddr) {
 
     case X86_BREAKPOINT_INS:
@@ -178,7 +182,28 @@ UINT  archDbgTrapType (addr_t  ulAddr, PVOID  pvArch)
 VOID  archDbgBpAdjust (PVOID  pvDtrace, PVOID  pvtm)
 {
 }
+/*********************************************************************************************************
+** 函数名称: archGdbSetStepMode
+** 功能描述: 设置单步运行模式.
+** 输　入  : pregctx        任务寄存器上下文
+**           bEnable        是否使能硬件单步模式
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+#ifdef LW_DTRACE_HW_ISTEP
 
+VOID  archDbgSetStepMode (ARCH_REG_CTX  *pregctx, BOOL  bEnable)
+{
+    if (bEnable) {
+        pregctx->REG_uiEFLAGS |= X86_EFLAGS_TF;                         /*  step mode                   */
+
+    } else {
+        pregctx->REG_uiEFLAGS &= ~X86_EFLAGS_TF;                        /*  normal mode                 */
+    }
+}
+
+#endif                                                                  /*  LW_DTRACE_HW_ISTEP          */
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
 /*********************************************************************************************************
   END

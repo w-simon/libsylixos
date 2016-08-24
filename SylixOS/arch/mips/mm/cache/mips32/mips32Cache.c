@@ -833,7 +833,9 @@ VOID  mips32CacheInit (LW_CACHE_OP *pcacheop,
 
     mips32L1CacheDisable();
 
-    mips32CacheHwInit();
+    if (lib_strcmp(pcMachineName, MIPS_MACHINE_LS3X) != 0) {            /*  loongson-3 not needed       */
+        mips32CacheHwInit();
+    }
 
 #if LW_CFG_MIPS_CACHE_L2 > 0
     mips32L2Init(uiInstruction, uiData, pcMachineName);

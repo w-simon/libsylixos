@@ -253,6 +253,8 @@ int module_init (void)
  */
 void module_exit (void)
 {
+    ipc_proc_deinit();
+
     if (ipc_lock_mutex != LW_HANDLE_INVALID) {
         API_SemaphoreMDelete(&ipc_lock_mutex);
     }

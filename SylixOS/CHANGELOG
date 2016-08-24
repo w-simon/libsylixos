@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2016-08-19: han.hui
+    加入 x86 体系结构支持.
+
     2016-07-28: han.hui
     加入系统性能分析器.
 

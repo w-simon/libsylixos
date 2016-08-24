@@ -392,6 +392,9 @@ VOID  API_TShellColorStart (CPCHAR  pcName, CPCHAR  pcLink, mode_t  mode, INT  i
     }
     
     stNameLen = lib_strlen(pcName);
+    if (!stNameLen) {
+        return;
+    }
     
     for (plineTemp  = _G_plineFileColor;
          plineTemp != LW_NULL;
@@ -479,6 +482,7 @@ VOID  API_TShellColorEnd (INT  iFd)
              _G_cTshellFileColor[TSHELL_TYPE_NORMAL].TTC_cColor,
              _G_cTshellFileColor[TSHELL_TYPE_RIGHTCODE].TTC_cColor);
 }
+
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 /*********************************************************************************************************
   END

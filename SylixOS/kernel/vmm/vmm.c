@@ -225,6 +225,61 @@ ULONG  API_VmmLibSecondaryInit (CPCHAR  pcMachineName)
                              
 #endif                                                                  /*  LW_CFG_SMP_EN               */
 /*********************************************************************************************************
+** 函数名称: API_VmmLibAddPhyRam
+** 功能描述: 添加物理内存用于(应用程序)
+** 输　入  : ulPhyRam      物理内存
+**           stSize        物理内存大小
+** 输　出  : ERROR CODE
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+ULONG  API_VmmLibAddPhyRam (addr_t  ulPhyRam, size_t  stSize)
+{
+    LW_MMU_PHYSICAL_DESC  phydesc[2];
+    ULONG                 ulError;
+    ULONG                 ulPageNum;
+    
+    if (stSize < LW_CFG_VMM_PAGE_SIZE) {
+        _ErrorHandle(EINVAL);
+        return  (EINVAL);
+    }
+    
+    ulPageNum = (ULONG)(stSize >> LW_CFG_VMM_PAGE_SHIFT);
+    
+    phydesc[0].PHYD_ulPhyAddr = ulPhyRam;
+    phydesc[0].PHYD_ulVirMap  = (addr_t)PX_ERROR;
+    phydesc[0].PHYD_stSize    = stSize;
+    phydesc[0].PHYD_uiType    = LW_PHYSICAL_MEM_APP;
+    phydesc[1].PHYD_stSize    = 0;
+    
+    __VMM_LOCK();
+    ulError = __pageCbInit(ulPageNum);                                  /*  增大物理页面控制块池        */
+    if (ulError) {
+        __VMM_UNLOCK();
+        _ErrorHandle(ulError);
+        return  (ulError);
+    }
+    ulError = __vmmPhysicalCreate(phydesc);                             /*  添加到物理空间              */
+    if (ulError) {
+        __VMM_UNLOCK();
+        _ErrorHandle(ulError);
+        return  (ulError);
+    }
+    ulError = __areaPhysicalSpaceInit(phydesc);                         /*  添加到物理空间反查表初始化  */
+    if (ulError) {
+        __VMM_UNLOCK();
+        _ErrorHandle(ulError);
+        return  (ulError);
+    }
+    __VMM_UNLOCK();
+    
+    _DebugFormat(__LOGMESSAGE_LEVEL, "MMU add physical RAM:0x%lx size:0x%zx.\r\n", ulPhyRam, stSize);
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: API_VmmMmuEnable
 ** 功能描述: 启动 MMU, MMU 启动前后虚拟地址不能有任何变化.
 ** 输　入  : NONE

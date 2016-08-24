@@ -28,6 +28,7 @@
 2011.08.11  物理页面分配优先使用属相相同的分区, 这样可以避免 DMA 分区被其他分配浪费.
 2013.05.30  加入物理页面引用功能.
 2014.07.27  加入物理页面 CACHE 操作功能.
+2016.08.19  __vmmPhysicalCreate() 支持多次调用添加物理内存.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -56,7 +57,7 @@ LW_VMM_ZONE     _G_vmzonePhysical[LW_CFG_VMM_ZONE_NUM];                 /*  物理
 ULONG  __vmmPhysicalCreate (LW_MMU_PHYSICAL_DESC  pphydesc[])
 {
     REGISTER ULONG  ulError = ERROR_NONE;
-             ULONG  ulZone  = 0;
+    static   ULONG  ulZone  = 0;                                        /*  可多次追尾添加内存          */
              INT    i;
              
     for (i = 0; ; i++) {

@@ -207,70 +207,149 @@ VOID  archTaskCtxShow (INT  iFd, PLW_STACK  pstkTop)
 {
     ARCH_REG_CTX       *pregctx = (ARCH_REG_CTX *)pstkTop;
 
-    fdprintf(iFd, "\n");
+    if (iFd >= 0) {
+        fdprintf(iFd, "\n");
 
-    fdprintf(iFd, "R0  = 0x%08x  ", pregctx->REG_uiR0);
-    fdprintf(iFd, "R1  = 0x%08x\n", pregctx->REG_uiSp);                 /*  R1 == SP 异常时的 SP        */
+        fdprintf(iFd, "R0  = 0x%08x  ", pregctx->REG_uiR0);
+        fdprintf(iFd, "R1  = 0x%08x\n", pregctx->REG_uiSp);             /*  R1 == SP 异常时的 SP        */
 
-    fdprintf(iFd, "R2  = 0x%08x  ", pregctx->REG_uiR2);
-    fdprintf(iFd, "R3  = 0x%08x\n", pregctx->REG_uiR3);
+        fdprintf(iFd, "R2  = 0x%08x  ", pregctx->REG_uiR2);
+        fdprintf(iFd, "R3  = 0x%08x\n", pregctx->REG_uiR3);
 
-    fdprintf(iFd, "R4  = 0x%08x  ", pregctx->REG_uiR4);
-    fdprintf(iFd, "R5  = 0x%08x\n", pregctx->REG_uiR5);
+        fdprintf(iFd, "R4  = 0x%08x  ", pregctx->REG_uiR4);
+        fdprintf(iFd, "R5  = 0x%08x\n", pregctx->REG_uiR5);
 
-    fdprintf(iFd, "R6  = 0x%08x  ", pregctx->REG_uiR6);
-    fdprintf(iFd, "R7  = 0x%08x\n", pregctx->REG_uiR7);
+        fdprintf(iFd, "R6  = 0x%08x  ", pregctx->REG_uiR6);
+        fdprintf(iFd, "R7  = 0x%08x\n", pregctx->REG_uiR7);
 
-    fdprintf(iFd, "R8  = 0x%08x  ", pregctx->REG_uiR8);
-    fdprintf(iFd, "R9  = 0x%08x\n", pregctx->REG_uiR9);
+        fdprintf(iFd, "R8  = 0x%08x  ", pregctx->REG_uiR8);
+        fdprintf(iFd, "R9  = 0x%08x\n", pregctx->REG_uiR9);
 
-    fdprintf(iFd, "R10 = 0x%08x  ", pregctx->REG_uiR10);
-    fdprintf(iFd, "R11 = 0x%08x\n", pregctx->REG_uiR11);
+        fdprintf(iFd, "R10 = 0x%08x  ", pregctx->REG_uiR10);
+        fdprintf(iFd, "R11 = 0x%08x\n", pregctx->REG_uiR11);
 
-    fdprintf(iFd, "R12 = 0x%08x  ", pregctx->REG_uiR12);
-    fdprintf(iFd, "R13 = 0x%08x\n", pregctx->REG_uiR13);
+        fdprintf(iFd, "R12 = 0x%08x  ", pregctx->REG_uiR12);
+        fdprintf(iFd, "R13 = 0x%08x\n", pregctx->REG_uiR13);
 
-    fdprintf(iFd, "R14 = 0x%08x  ", pregctx->REG_uiR14);
-    fdprintf(iFd, "R15 = 0x%08x\n", pregctx->REG_uiR15);
+        fdprintf(iFd, "R14 = 0x%08x  ", pregctx->REG_uiR14);
+        fdprintf(iFd, "R15 = 0x%08x\n", pregctx->REG_uiR15);
 
-    fdprintf(iFd, "R16 = 0x%08x  ", pregctx->REG_uiR16);
-    fdprintf(iFd, "R17 = 0x%08x\n", pregctx->REG_uiR17);
+        fdprintf(iFd, "R16 = 0x%08x  ", pregctx->REG_uiR16);
+        fdprintf(iFd, "R17 = 0x%08x\n", pregctx->REG_uiR17);
 
-    fdprintf(iFd, "R18 = 0x%08x  ", pregctx->REG_uiR18);
-    fdprintf(iFd, "R19 = 0x%08x\n", pregctx->REG_uiR19);
+        fdprintf(iFd, "R18 = 0x%08x  ", pregctx->REG_uiR18);
+        fdprintf(iFd, "R19 = 0x%08x\n", pregctx->REG_uiR19);
 
-    fdprintf(iFd, "R20 = 0x%08x  ", pregctx->REG_uiR20);
-    fdprintf(iFd, "R21 = 0x%08x\n", pregctx->REG_uiR21);
+        fdprintf(iFd, "R20 = 0x%08x  ", pregctx->REG_uiR20);
+        fdprintf(iFd, "R21 = 0x%08x\n", pregctx->REG_uiR21);
 
-    fdprintf(iFd, "R22 = 0x%08x  ", pregctx->REG_uiR22);
-    fdprintf(iFd, "R23 = 0x%08x\n", pregctx->REG_uiR23);
+        fdprintf(iFd, "R22 = 0x%08x  ", pregctx->REG_uiR22);
+        fdprintf(iFd, "R23 = 0x%08x\n", pregctx->REG_uiR23);
 
-    fdprintf(iFd, "R24 = 0x%08x  ", pregctx->REG_uiR24);
-    fdprintf(iFd, "R25 = 0x%08x\n", pregctx->REG_uiR25);
+        fdprintf(iFd, "R24 = 0x%08x  ", pregctx->REG_uiR24);
+        fdprintf(iFd, "R25 = 0x%08x\n", pregctx->REG_uiR25);
 
-    fdprintf(iFd, "R26 = 0x%08x  ", pregctx->REG_uiR26);
-    fdprintf(iFd, "R27 = 0x%08x\n", pregctx->REG_uiR27);
+        fdprintf(iFd, "R26 = 0x%08x  ", pregctx->REG_uiR26);
+        fdprintf(iFd, "R27 = 0x%08x\n", pregctx->REG_uiR27);
 
-    fdprintf(iFd, "R28 = 0x%08x  ", pregctx->REG_uiR28);
-    fdprintf(iFd, "R29 = 0x%08x\n", pregctx->REG_uiR29);
+        fdprintf(iFd, "R28 = 0x%08x  ", pregctx->REG_uiR28);
+        fdprintf(iFd, "R29 = 0x%08x\n", pregctx->REG_uiR29);
 
-    fdprintf(iFd, "R30 = 0x%08x  ", pregctx->REG_uiR30);
-    fdprintf(iFd, "R31 = 0x%08x\n", pregctx->REG_uiFp);                 /*  R31 == FP                   */
+        fdprintf(iFd, "R30 = 0x%08x  ", pregctx->REG_uiR30);
+        fdprintf(iFd, "R31 = 0x%08x\n", pregctx->REG_uiFp);                 /*  R31 == FP                   */
 
-    fdprintf(iFd, "FP  = 0x%08x  ", pregctx->REG_uiFp);
-    fdprintf(iFd, "SP  = 0x%08x\n", (ARCH_REG_T)pstkTop);               /*  异常压栈后的 SP             */
+        fdprintf(iFd, "FP  = 0x%08x  ", pregctx->REG_uiFp);
+        fdprintf(iFd, "SP  = 0x%08x\n", (ARCH_REG_T)pstkTop);               /*  异常压栈后的 SP             */
 
-    fdprintf(iFd, "LR  = 0x%08x  ", pregctx->REG_uiLr);
-    fdprintf(iFd, "PC  = 0x%08x\n", pregctx->REG_uiSrr0);               /*  异常时的 PC                 */
+        fdprintf(iFd, "LR  = 0x%08x  ", pregctx->REG_uiLr);
+        fdprintf(iFd, "PC  = 0x%08x\n", pregctx->REG_uiSrr0);               /*  异常时的 PC                 */
 
-    fdprintf(iFd, "MSR = 0x%08x  ", pregctx->REG_uiSrr1);               /*  异常时的 MSR                */
-    fdprintf(iFd, "CR  = 0x%08x\n", pregctx->REG_uiCr);
+        fdprintf(iFd, "MSR = 0x%08x  ", pregctx->REG_uiSrr1);               /*  异常时的 MSR                */
+        fdprintf(iFd, "CR  = 0x%08x\n", pregctx->REG_uiCr);
 
-    fdprintf(iFd, "CTR = 0x%08x  ", pregctx->REG_uiCtr);
-    fdprintf(iFd, "XER = 0x%08x\n", pregctx->REG_uiXer);
+        fdprintf(iFd, "CTR = 0x%08x  ", pregctx->REG_uiCtr);
+        fdprintf(iFd, "XER = 0x%08x\n", pregctx->REG_uiXer);
+
+    } else {
+        archTaskCtxPrint(pstkTop);
+    }
 }
 
 #endif                                                                  /*  LW_CFG_DEVICE_EN > 0        */
+/*********************************************************************************************************
+** 函数名称: archTaskCtxPrint
+** 功能描述: 直接打印任务上下文
+** 输　入  : pstkTop    堆栈栈顶
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  archTaskCtxPrint (PLW_STACK  pstkTop)
+{
+    ARCH_REG_CTX       *pregctx = (ARCH_REG_CTX *)pstkTop;
+
+    _PrintFormat("\n");
+
+    _PrintFormat("R0  = 0x%08x  ",   pregctx->REG_uiR0);
+    _PrintFormat("R1  = 0x%08x\r\n", pregctx->REG_uiSp);                /*  R1 == SP 异常时的 SP        */
+
+    _PrintFormat("R2  = 0x%08x  ",   pregctx->REG_uiR2);
+    _PrintFormat("R3  = 0x%08x\r\n", pregctx->REG_uiR3);
+
+    _PrintFormat("R4  = 0x%08x  ",   pregctx->REG_uiR4);
+    _PrintFormat("R5  = 0x%08x\r\n", pregctx->REG_uiR5);
+
+    _PrintFormat("R6  = 0x%08x  ",   pregctx->REG_uiR6);
+    _PrintFormat("R7  = 0x%08x\r\n", pregctx->REG_uiR7);
+
+    _PrintFormat("R8  = 0x%08x  ",   pregctx->REG_uiR8);
+    _PrintFormat("R9  = 0x%08x\r\n", pregctx->REG_uiR9);
+
+    _PrintFormat("R10 = 0x%08x  ",   pregctx->REG_uiR10);
+    _PrintFormat("R11 = 0x%08x\r\n", pregctx->REG_uiR11);
+
+    _PrintFormat("R12 = 0x%08x  ",   pregctx->REG_uiR12);
+    _PrintFormat("R13 = 0x%08x\r\n", pregctx->REG_uiR13);
+
+    _PrintFormat("R14 = 0x%08x  ",   pregctx->REG_uiR14);
+    _PrintFormat("R15 = 0x%08x\r\n", pregctx->REG_uiR15);
+
+    _PrintFormat("R16 = 0x%08x  ",   pregctx->REG_uiR16);
+    _PrintFormat("R17 = 0x%08x\r\n", pregctx->REG_uiR17);
+
+    _PrintFormat("R18 = 0x%08x  ",   pregctx->REG_uiR18);
+    _PrintFormat("R19 = 0x%08x\r\n", pregctx->REG_uiR19);
+
+    _PrintFormat("R20 = 0x%08x  ",   pregctx->REG_uiR20);
+    _PrintFormat("R21 = 0x%08x\r\n", pregctx->REG_uiR21);
+
+    _PrintFormat("R22 = 0x%08x  ",   pregctx->REG_uiR22);
+    _PrintFormat("R23 = 0x%08x\r\n", pregctx->REG_uiR23);
+
+    _PrintFormat("R24 = 0x%08x  ",   pregctx->REG_uiR24);
+    _PrintFormat("R25 = 0x%08x\r\n", pregctx->REG_uiR25);
+
+    _PrintFormat("R26 = 0x%08x  ",   pregctx->REG_uiR26);
+    _PrintFormat("R27 = 0x%08x\r\n", pregctx->REG_uiR27);
+
+    _PrintFormat("R28 = 0x%08x  ",   pregctx->REG_uiR28);
+    _PrintFormat("R29 = 0x%08x\r\n", pregctx->REG_uiR29);
+
+    _PrintFormat("R30 = 0x%08x  ",   pregctx->REG_uiR30);
+    _PrintFormat("R31 = 0x%08x\r\n", pregctx->REG_uiFp);                /*  R31 == FP                   */
+
+    _PrintFormat("FP  = 0x%08x  ",   pregctx->REG_uiFp);
+    _PrintFormat("SP  = 0x%08x\r\n", (ARCH_REG_T)pstkTop);              /*  异常压栈后的 SP             */
+
+    _PrintFormat("LR  = 0x%08x  ",   pregctx->REG_uiLr);
+    _PrintFormat("PC  = 0x%08x\r\n", pregctx->REG_uiSrr0);              /*  异常时的 PC                 */
+
+    _PrintFormat("MSR = 0x%08x  ",   pregctx->REG_uiSrr1);              /*  异常时的 MSR                */
+    _PrintFormat("CR  = 0x%08x\r\n", pregctx->REG_uiCr);
+
+    _PrintFormat("CTR = 0x%08x  ",   pregctx->REG_uiCtr);
+    _PrintFormat("XER = 0x%08x\r\n", pregctx->REG_uiXer);
+}
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

@@ -126,7 +126,7 @@ VOID  _ErrorHandle (ULONG  ulErrorCode)
   ´òÓ¡Ëø
 *********************************************************************************************************/
 #if (LW_CFG_SMP_EN > 0) && defined(__SYLIXOS_DEBUG)
-static LW_SPINLOCK_DEFINE(_K_slDebug);
+static LW_SPINLOCK_DEFINE(_K_slDebug) = LW_SPIN_INITIALIZER;
 #define __DEBUG_MESSAGE_LOCK(pintreg)   LW_SPIN_LOCK_RAW(&_K_slDebug, pintreg)
 #define __DEBUG_MESSAGE_UNLOCK(intreg)  LW_SPIN_UNLOCK_RAW(&_K_slDebug, intreg)
 #else

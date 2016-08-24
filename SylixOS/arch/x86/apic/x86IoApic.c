@@ -302,8 +302,10 @@ INT  x86IoApicInit (VOID)
 {
     UINT32  uiRteValue;
     INT     i;
+    
+    LW_SPIN_INIT(&_G_slX86IoApic);
 
-    _G_ucX86IoApicMaxIntr = ((__x86IoApicVersionRegGet() >> 16) & 0xFF) + 1;
+    _G_ucX86IoApicMaxIntr = ((__x86IoApicVersionRegGet() >> 16) & 0xff) + 1;
 
     uiRteValue = IOAPIC_EDGE     |                                      /*  边沿信号触发                */
                  IOAPIC_HIGH     |                                      /*  高电平有效(PCI为低电平)     */
@@ -311,7 +313,7 @@ INT  x86IoApicInit (VOID)
                  IOAPIC_INT_MASK |                                      /*  屏蔽中断                    */
                  IOAPIC_PHYSICAL;                                       /*  物理模式, DEST = APIC ID    */
 
-    for (i = 0; i <= _G_ucX86IoApicMaxIntr; i++) {
+    for (i = 0; i < _G_ucX86IoApicMaxIntr; i++) {
         x86IoApicRedSetLo(i, uiRteValue | (X86_IRQ_BASE + i));          /*  低 8 位为 x86 中断向量      */
         x86IoApicRedSetHi(i, 0 << 24);                                  /*  DEST 域为 0(分发到 BSP)     */
     }

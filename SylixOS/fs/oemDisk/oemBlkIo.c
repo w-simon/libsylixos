@@ -457,14 +457,14 @@ static INT  __blkIoFsIoctl (PLW_BLKIO_DEV  pdevblk, INT  iRequest, LONG  lArg)
     }
 }
 /*********************************************************************************************************
-** 函数名称: __blkIoFsDrv
+** 函数名称: __blkIoFsDrvInstall
 ** 功能描述: 安装 blk io 驱动程序
 ** 输　入  : NONE
 ** 输　出  : ERROR or OK.
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static INT  __blkIoFsDrv (VOID)
+INT  __blkIoFsDrvInstall (VOID)
 {
     struct file_operations     fileop;
 
@@ -516,8 +516,6 @@ INT  API_OemBlkIoCreate (CPCHAR  pcBlkDev, PLW_BLK_DEV  pblkdDisk)
     ULONG          ulSecSize = 0ul;
     ULONG          ulNSec    = 0ul;
     INT            iShift;
-
-    __blkIoFsDrv();
 
     if (!pcBlkDev || !pblkdDisk) {
         _ErrorHandle(EINVAL);

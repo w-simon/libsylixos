@@ -93,6 +93,7 @@ VOID    __selPtyDelete (P_PTY_D_DEV   p_ptyddev, LONG  lArg)
 {
     SEL_WAKE_NODE_DELETE(&p_ptyddev->PTYDDEV_selwulList, (PLW_SEL_WAKEUPNODE)lArg);
 }
+
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */
                                                                         /*  (LW_CFG_SIO_DEVICE_EN > 0)  */
                                                                         /*  (LW_CFG_PTY_DEVICE_EN > 0)  */

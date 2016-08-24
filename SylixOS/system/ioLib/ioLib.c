@@ -64,6 +64,16 @@
 #include "../SylixOS/fs/rootFs/rootFsLib.h"
 #endif                                                                  /*  LW_CFG_PATH_VXWORKS == 0    */
 /*********************************************************************************************************
+  文件系统初始化声明
+*********************************************************************************************************/
+#if LW_CFG_OEMDISK_EN > 0
+extern VOID    API_OemDiskMountInit(VOID);
+#endif                                                                  /*  LW_CFG_OEMDISK_EN > 0       */
+#if (LW_CFG_MAX_VOLUMES > 0) && (LW_CFG_MOUNT_EN > 0)
+extern VOID    API_MountInit(VOID);
+#endif                                                                  /*  LW_CFG_MAX_VOLUMES > 0      */
+                                                                        /*  LW_CFG_MOUNT_EN > 0         */
+/*********************************************************************************************************
   内部全局变量
 *********************************************************************************************************/
 static  LW_DEV_HDR            _G_devhdrNull;                            /*  空闲设备头                  */
@@ -560,8 +570,15 @@ INT  _IosInit (VOID)
     gpiofdDevCreate();
 #endif                                                                  /*  LW_CFG_GPIO_EN > 0          */
     
+#if LW_CFG_OEMDISK_EN > 0
+    API_OemDiskMountInit();
+#endif                                                                  /*  LW_CFG_OEMDISK_EN > 0       */
+#if (LW_CFG_MAX_VOLUMES > 0) && (LW_CFG_MOUNT_EN > 0)
+    API_MountInit();
+#endif                                                                  /*  LW_CFG_MAX_VOLUMES > 0      */
+                                                                        /*  LW_CFG_MOUNT_EN > 0         */
     return  (ERROR_NONE);
-#endif
+#endif                                                                  /*  LW_CFG_DEVICE_EN > 0        */
     
     return  (ERROR_NONE);
 }

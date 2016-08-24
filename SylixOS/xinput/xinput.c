@@ -51,6 +51,7 @@
  * procfs add file
  */
 extern void xinput_proc_init(void);
+extern void xinput_proc_deinit(void);
 
 /*
  * device hdr
@@ -518,6 +519,8 @@ int module_init (void)
 
 void module_exit (void)
 {
+    xinput_proc_deinit();
+
     kill(xinput_thread, SIGTERM);
 
     if (xinput_hotplug_fd >= 0) {
