@@ -62,6 +62,8 @@ VOID            __vmmPhysicalPageClearAll(PLW_VMM_PAGE  pvmpageVirtual);
 
 ULONG           __vmmPhysicalGetZone(addr_t  ulAddr);
 ULONG           __vmmPhysicalPageGetMinContinue(ULONG  *pulZoneIndex, UINT  uiAttr);
+VOID            __vmmPhysicalGetKernelDesc(PLW_MMU_PHYSICAL_DESC  pphydescText, 
+                                           PLW_MMU_PHYSICAL_DESC  pphydescData);
 
 #endif                                                                  /*  __PHYPAGE_H                 */
 /*********************************************************************************************************

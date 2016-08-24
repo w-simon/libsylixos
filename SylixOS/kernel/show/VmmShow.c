@@ -34,6 +34,7 @@
 *********************************************************************************************************/
 #if LW_CFG_FIO_LIB_EN > 0
 #if LW_CFG_VMM_EN > 0
+#include "../SylixOS/kernel/vmm/phyPage.h"
 #include "../SylixOS/kernel/vmm/virPage.h"
 /*********************************************************************************************************
   全局变量
@@ -73,13 +74,14 @@ extern ULONG                __vmmLibVirtualToPhysical(addr_t  ulVirtualAddr, add
 LW_API  
 VOID  API_VmmPhysicalShow (VOID)
 {
-    REGISTER INT                i;
-             PLW_MMU_CONTEXT    pmmuctx = __vmmGetCurCtx();
-             PCHAR              pcDma;
-             size_t             stUsed;
+    REGISTER INT                    i;
+             PLW_MMU_CONTEXT        pmmuctx = __vmmGetCurCtx();
+             LW_MMU_PHYSICAL_DESC   phydescKernel[2];
+             PCHAR                  pcDma;
+             size_t                 stUsed;
              
-             size_t             stTotalSize = 0;
-             size_t             stFreeSize  = 0;
+             size_t                 stTotalSize = 0;
+             size_t                 stFreeSize  = 0;
 
     printf("vmm physical zone show >>\n");
     printf(_G_cZoneInfoHdr);                                            /*  打印欢迎信息                */
@@ -112,10 +114,22 @@ VOID  API_VmmPhysicalShow (VOID)
         stTotalSize += (size_t)(_G_vmzonePhysical[i].ZONE_stSize);
         stFreeSize  += (size_t)(_G_vmzonePhysical[i].ZONE_ulFreePage * LW_CFG_VMM_PAGE_SIZE);
     }
+    
+    __vmmPhysicalGetKernelDesc(&phydescKernel[0], &phydescKernel[1]);
     __VMM_UNLOCK();
     
-    printf("\nvmm physical memory total size: %zuMB free size: %zuMB\n", 
-           stTotalSize / LW_CFG_MB_SIZE, stFreeSize / LW_CFG_MB_SIZE);
+    printf("\n"
+           "ALL-Physical memory size: %zu MBytes (%zu Bytes)\n"
+           "VMM-Physical memory size: %zu MBytes (%zu Bytes)\n"
+           "VMM-Physical memory free: %zu MBytes (%zu Bytes)\n",
+           (phydescKernel[0].PHYD_stSize +
+            phydescKernel[1].PHYD_stSize +
+            stTotalSize) / LW_CFG_MB_SIZE,
+           (phydescKernel[0].PHYD_stSize +
+            phydescKernel[1].PHYD_stSize +
+            stTotalSize),
+           stTotalSize / LW_CFG_MB_SIZE, stTotalSize,
+           stFreeSize / LW_CFG_MB_SIZE, stFreeSize);
 }
 /*********************************************************************************************************
 ** 函数名称: __vmmVirtualPrint

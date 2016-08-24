@@ -825,6 +825,15 @@ ssize_t  _TyWrite (TY_DEV_ID  ptyDev,
     REGISTER ssize_t    sstNbStart = stNBytes;
     
     REGISTER ULONG      ulError;
+    
+    if (pcBuffer == LW_NULL) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    if (stNBytes == 0) {
+        return  (0);
+    }
          
     ptyDev->TYDEV_tydevwrstat.TYDEVWRSTAT_bCanceled = LW_FALSE;
     ptyDev->TYDEV_iAbortFlag &= ~OPT_WABORT;                            /*  清除 abort                  */
@@ -892,9 +901,9 @@ ssize_t  _TyWrite (TY_DEV_ID  ptyDev,
 ** 调用模块: 
 ** 注  意  : 当任务在获取读同步信号量后获取互斥信号量前被删除, 则 tty 会丢失读同步!
 *********************************************************************************************************/
-ssize_t  _TyReadVtime (TY_DEV_ID  ptyDev, 
-                       PCHAR      pcBuffer, 
-                       size_t     stMaxBytes)
+static ssize_t  _TyReadVtime (TY_DEV_ID  ptyDev, 
+                              PCHAR      pcBuffer, 
+                              size_t     stMaxBytes)
 {
              INTREG        iregInterLevel;
          
@@ -1035,6 +1044,15 @@ ssize_t  _TyRead (TY_DEV_ID  ptyDev,
     REGISTER INT           iFreeBytes;
     
     REGISTER ULONG         ulError;
+    
+    if (pcBuffer == LW_NULL) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    if (stMaxBytes == 0) {
+        return  (0);
+    }
     
     if (__TTY_CC(ptyDev, VMIN) > stMaxBytes) {                          /*  stMaxBytes 太小             */
         _ErrorHandle(EINVAL);

@@ -45,7 +45,11 @@ extern BOOL     __vmmLibVirtualOverlap(addr_t  ulAddr, size_t  stSize);
 /*********************************************************************************************************
   物理 zone 控制块数组
 *********************************************************************************************************/
-LW_VMM_ZONE     _G_vmzonePhysical[LW_CFG_VMM_ZONE_NUM];                 /*  物理区域                    */
+LW_VMM_ZONE                     _G_vmzonePhysical[LW_CFG_VMM_ZONE_NUM]; /*  物理区域                    */
+/*********************************************************************************************************
+  物理内存 text data 段大小
+*********************************************************************************************************/
+static LW_MMU_PHYSICAL_DESC     _G_vmphydescKernel[2];                  /*  内核内存信息                */
 /*********************************************************************************************************
 ** 函数名称: __vmmPhysicalCreate
 ** 功能描述: 创建一个物理分页区域.
@@ -70,6 +74,24 @@ ULONG  __vmmPhysicalCreate (LW_MMU_PHYSICAL_DESC  pphydesc[])
                    pphydesc[i].PHYD_ulPhyAddr);
         
         switch (pphydesc[i].PHYD_uiType) {
+        
+        case LW_PHYSICAL_MEM_TEXT:
+            if (_G_vmphydescKernel[LW_PHYSICAL_MEM_TEXT].PHYD_stSize) {
+                _G_vmphydescKernel[LW_PHYSICAL_MEM_TEXT].PHYD_stSize += pphydesc[i].PHYD_stSize;
+            
+            } else {
+                _G_vmphydescKernel[LW_PHYSICAL_MEM_TEXT] = pphydesc[i];
+            }
+            break;
+            
+        case LW_PHYSICAL_MEM_DATA:
+            if (_G_vmphydescKernel[LW_PHYSICAL_MEM_DATA].PHYD_stSize) {
+                _G_vmphydescKernel[LW_PHYSICAL_MEM_DATA].PHYD_stSize += pphydesc[i].PHYD_stSize;
+            
+            } else {
+                _G_vmphydescKernel[LW_PHYSICAL_MEM_DATA] = pphydesc[i];
+            }
+            break;
         
         case LW_PHYSICAL_MEM_DMA:
             _BugHandle((pphydesc[i].PHYD_ulPhyAddr == (addr_t)LW_NULL), LW_TRUE,
@@ -589,6 +611,26 @@ ULONG  __vmmPhysicalPageGetMinContinue (ULONG  *pulZoneIndex, UINT  uiAttr)
     }
     
     return  (ulMin);
+}
+/*********************************************************************************************************
+** 函数名称: __vmmPhysicalGetKernelDesc
+** 功能描述: 获得物理内存内核 TEXT DATA 段描述
+** 输　入  : pphydescText      内核 TEXT 段描述
+**           pphydescData      内核 DATA 段描述
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+VOID  __vmmPhysicalGetKernelDesc (PLW_MMU_PHYSICAL_DESC  pphydescText, 
+                                  PLW_MMU_PHYSICAL_DESC  pphydescData)
+{
+    if (pphydescText) {
+        *pphydescText = _G_vmphydescKernel[LW_PHYSICAL_MEM_TEXT];
+    }
+    
+    if (pphydescData) {
+        *pphydescData = _G_vmphydescKernel[LW_PHYSICAL_MEM_DATA];
+    }
 }
 
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */

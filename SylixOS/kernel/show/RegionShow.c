@@ -71,13 +71,17 @@ VOID   API_RegionShow (LW_OBJECT_HANDLE  ulId)
         
         if (API_KernelHeapInfo(LW_OPTION_HEAP_SYSTEM, LW_NULL, LW_NULL, 
                                LW_NULL, LW_NULL, LW_NULL)) {            /*  ¼ì²âÊÇ·ñ°üº¬ system ¶Ñ      */
-            printf("%-14s %10zu %10zu %10zu %7ld %3zd%%\n", "kersys",
-                   stByteSize, stUsedByteSize, stMaxUsedByteSize,
+            printf("%-14s %8zuKB %8zuKB %8zuKB %7ld %3zd%%\n", "kersys",
+                   stByteSize / LW_CFG_KB_SIZE, 
+                   stUsedByteSize  / LW_CFG_KB_SIZE, 
+                   stMaxUsedByteSize / LW_CFG_KB_SIZE,
                    ulSegmentCounter, (stUsedByteSize / (stByteSize / 100)));
         
         } else {
-            printf("%-14s %10zu %10zu %10zu %7ld %3zd%%\n", "kernel",
-                   stByteSize, stUsedByteSize, stMaxUsedByteSize,
+            printf("%-14s %8zuKB %8zuKB %8zuKB %7ld %3zd%%\n", "kernel",
+                   stByteSize / LW_CFG_KB_SIZE, 
+                   stUsedByteSize  / LW_CFG_KB_SIZE, 
+                   stMaxUsedByteSize / LW_CFG_KB_SIZE,
                    ulSegmentCounter, (stUsedByteSize / (stByteSize / 100)));
                    
             API_KernelHeapInfo(LW_OPTION_HEAP_SYSTEM, 
@@ -87,8 +91,10 @@ VOID   API_RegionShow (LW_OBJECT_HANDLE  ulId)
                                LW_NULL,
                                &stMaxUsedByteSize);
                                
-            printf("%-14s %10zu %10zu %10zu %7ld %3zd%%\n", "system",
-                   stByteSize, stUsedByteSize, stMaxUsedByteSize,
+            printf("%-14s %8zuKB %8zuKB %8zuKB %7ld %3zd%%\n", "system",
+                   stByteSize / LW_CFG_KB_SIZE, 
+                   stUsedByteSize  / LW_CFG_KB_SIZE, 
+                   stMaxUsedByteSize / LW_CFG_KB_SIZE,
                    ulSegmentCounter, (stUsedByteSize / (stByteSize / 100)));
         }
     
@@ -104,8 +110,10 @@ VOID   API_RegionShow (LW_OBJECT_HANDLE  ulId)
                              &stMaxUsedByteSize)) {
             return;
         }
-        printf("%-14s %10zu %10zu %10zu %7ld %3zd%%\n", cRegionName,
-               stByteSize, stUsedByteSize, stMaxUsedByteSize,
+        printf("%-14s %8zuKB %8zuKB %8zuKB %7ld %3zd%%\n", cRegionName,
+               stByteSize / LW_CFG_KB_SIZE, 
+               stUsedByteSize  / LW_CFG_KB_SIZE, 
+               stMaxUsedByteSize / LW_CFG_KB_SIZE,
                ulSegmentCounter, (stUsedByteSize / (stByteSize / 100)));
     }
     
