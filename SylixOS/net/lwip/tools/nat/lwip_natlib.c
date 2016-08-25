@@ -33,6 +33,7 @@
 2013.04.01  修正 GCC 4.7.3 引发的新 warning.
 2015.12.16  增加 NAT 别名支持能力.
             增加主动连接映射功能.
+2016.08.25  修正主动连接缺少代理控制块的问题.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -687,7 +688,7 @@ static err_t  __natLocalInput (struct pbuf *p, struct netif *netif)
         u32OldAddr = iphdr->src.addr;
         for (plineTemp  = _G_plineNatalias;
              plineTemp != LW_NULL;
-             plineTemp  = _list_line_get_next(plineTemp)) {             /*  查找别名表                 */
+             plineTemp  = _list_line_get_next(plineTemp)) {             /*  查找别名表                  */
         
             pnatalias = _LIST_ENTRY(plineTemp, __NAT_ALIAS, NAT_lineManage);
             if ((pnatalias->NAT_ipaddrSLocalIp.addr <= ((ip_addr_t *)&(iphdr->src))->addr) &&
@@ -695,10 +696,10 @@ static err_t  __natLocalInput (struct pbuf *p, struct netif *netif)
                 break;
             }
         }
-        if (plineTemp) {                                                /*  源 IP 使用别名 IP          */
+        if (plineTemp) {                                                /*  源 IP 使用别名 IP           */
             ((ip_addr_t *)&(iphdr->src))->addr = pnatalias->NAT_ipaddrAliasIp.addr;
             
-        } else {                                                        /*  源 IP 使用 AP 接口 IP      */
+        } else {                                                        /*  源 IP 使用 AP 接口 IP       */
             ((ip_addr_t *)&(iphdr->src))->addr = _G_pnetifNatAp->ip_addr.addr;
         }
         __natChksumAdjust((u8_t *)&IPH_CHKSUM(iphdr),(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->src.addr, 4);
@@ -728,7 +729,7 @@ static err_t  __natLocalInput (struct pbuf *p, struct netif *netif)
             break;
             
         default:
-            __NAT_OP_UNLOCK();                                      /*  解锁 NAT 链表               */
+            __NAT_OP_UNLOCK();                                          /*  解锁 NAT 链表               */
             return  (ERR_RTE);
             break;
         }
@@ -739,9 +740,11 @@ static err_t  __natLocalInput (struct pbuf *p, struct netif *netif)
         if (IPH_PROTO(iphdr) == IP_PROTO_TCP) {
             if (TCPH_FLAGS(tcphdr) & TCP_RST) {
 	            pnatcb->NAT_iStatus = __NAT_STATUS_CLOSING;
+            
             } else if (TCPH_FLAGS(tcphdr) & TCP_FIN) {
 	            if (pnatcb->NAT_iStatus == __NAT_STATUS_OPEN) {
 	                pnatcb->NAT_iStatus = __NAT_STATUS_FIN;
+	            
 	            } else {
 	                pnatcb->NAT_iStatus = __NAT_STATUS_CLOSING;
 	            }
@@ -803,7 +806,7 @@ static err_t  __natApInput (struct pbuf *p, struct netif *netif)
         
     case IP_PROTO_ICMP:
         icmphdr = (struct icmp_echo_hdr *)(((u8_t *)p->payload) + iphdrlen);
-        usDestPort = icmphdr->id;
+        usDestPort  = icmphdr->id;
         plineHeader = _G_plineNatcbIcmp;
         break;
     
@@ -830,6 +833,25 @@ static err_t  __natApInput (struct pbuf *p, struct netif *netif)
         }
         
         if (pnatmap) {
+            for (plineTemp  = plineHeader;
+                 plineTemp != LW_NULL;
+                 plineTemp  = _list_line_get_next(plineTemp)) {
+                 
+                pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
+                if ((usDestPort == pnatcb->NAT_usAssPort) &&
+                    (ucProto    == pnatcb->NAT_ucProto)) {
+                    break;                                              /*  找到了 NAT 控制块           */
+                }
+            }
+            if (plineTemp == LW_NULL) {
+                ip_addr_p_t  ipaddr;
+            
+                ipaddr.addr = pnatmap->NAT_ipaddrLocalIp.addr;
+                pnatcb = __natNew(&ipaddr, 
+                                  pnatmap->NAT_usLocalPort, ucProto);   /*  新建控制块                  */
+                pnatcb->NAT_usAssPort = pnatmap->NAT_usAssPort;
+            }
+        
             /*
              *  将数据包目标转为本地内网目标地址
              */
@@ -911,9 +933,11 @@ static err_t  __natApInput (struct pbuf *p, struct netif *netif)
             if (IPH_PROTO(iphdr) == IP_PROTO_TCP) {
                 if (TCPH_FLAGS(tcphdr) & TCP_RST) {
     	            pnatcb->NAT_iStatus = __NAT_STATUS_CLOSING;
+                
                 } else if (TCPH_FLAGS(tcphdr) & TCP_FIN) {
     	            if (pnatcb->NAT_iStatus == __NAT_STATUS_OPEN) {
     	                pnatcb->NAT_iStatus = __NAT_STATUS_FIN;
+    	            
     	            } else {
     	                pnatcb->NAT_iStatus = __NAT_STATUS_CLOSING;
     	            }

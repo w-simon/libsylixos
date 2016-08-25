@@ -35,13 +35,13 @@
 *                                   内核对象数量管理
 *********************************************************************************************************/
 
-#define LW_CFG_MAX_EVENTS                       2000    /*  系统使用事件的最大个数              < 65535 */
-#define LW_CFG_MAX_EVENTSETS                    200     /*  系统使用事件集的最大个数            < 65535 */
-#define LW_CFG_MAX_PARTITIONS                   20      /*  系统定长分区内存管理最大分区数      < 65535 */
-#define LW_CFG_MAX_REGIONS                      20      /*  系统变长分区内存管理对大分区数      < 65535 */
-#define LW_CFG_MAX_MSGQUEUES                    500     /*  系统消息队列最大个数                < 65535 */
+#define LW_CFG_MAX_EVENTS                       2400    /*  系统使用事件的最大个数              < 65535 */
+#define LW_CFG_MAX_EVENTSETS                    400     /*  系统使用事件集的最大个数            < 65535 */
+#define LW_CFG_MAX_PARTITIONS                   40      /*  系统定长分区内存管理最大分区数      < 65535 */
+#define LW_CFG_MAX_REGIONS                      40      /*  系统变长分区内存管理对大分区数      < 65535 */
+#define LW_CFG_MAX_MSGQUEUES                    800     /*  系统消息队列最大个数                < 65535 */
 #define LW_CFG_MAX_TIMERS                       100     /*  系统使用总定时器最大个数            < 65535 */
-#define LW_CFG_MAX_THREADS                      200     /*  系统管理的最大线程数量，            < 65535 */
+#define LW_CFG_MAX_THREADS                      400     /*  系统管理的最大线程数量，            < 65535 */
 #define LW_CFG_MAX_RMSS                         30      /*  系统管理的最大精度单调调度器数量    < 65535 */
 #define LW_CFG_MAX_INTER_SRC                    256     /*  系统使用中断向量表大小,中断源数量   <  9999 */
 #define LW_CFG_MAX_NOTEPADS                     4       /*  系统每个线程使用的记事本数量        <   255 */

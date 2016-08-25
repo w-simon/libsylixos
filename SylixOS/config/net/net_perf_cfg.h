@@ -46,7 +46,20 @@
 /*********************************************************************************************************
   TCP 设置 
   关于 LW_CFG_LWIP_TCP_WND 不能大于网卡的接收缓冲区大小, 否则可能出现网卡接收溢出的错误, 造成网络速度颠簸.
-  LW_CFG_LWIP_TCP_WND, LW_CFG_LWIP_TCP_SND 最大为 65535 (64k - 1).
+  
+  LW_CFG_LWIP_TCP_SCALE 为窗口扩大因子, 
+  如果 LW_CFG_LWIP_TCP_SCALE 为 0 表示不使用窗口扩大则
+  LW_CFG_LWIP_TCP_WND, LW_CFG_LWIP_TCP_SND 最大值为 65535
+  
+  如果 LW_CFG_LWIP_TCP_SCALE 为 1 表示不使用窗口扩大则
+  LW_CFG_LWIP_TCP_WND, LW_CFG_LWIP_TCP_SND 最大值为 65535 * 2^1 = 131070
+  
+  如果 LW_CFG_LWIP_TCP_SCALE 为 2 表示不使用窗口扩大则
+  LW_CFG_LWIP_TCP_WND, LW_CFG_LWIP_TCP_SND 最大值为 65535 * 2^2 = 262140
+  
+  ... 
+  
+  LW_CFG_LWIP_TCP_SCALE 最大值为 14, 建议最大设置不超过 4 ~ 5
 *********************************************************************************************************/
 
 #define LW_CFG_LWIP_TCP_WND             8192                            /*  接收缓冲大小, 0 为自动      */

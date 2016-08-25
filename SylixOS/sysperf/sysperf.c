@@ -9,28 +9,28 @@
 #include "sysperf.h"
 
 LW_API 
-INT  API_SysPerfStart (UINT  uiPipeLen, UINT  uiPerfNum, UINT  uiRefreshPeriod)
+__attribute__((weak)) INT  API_SysPerfStart (UINT  uiPipeLen, UINT  uiPerfNum, UINT  uiRefreshPeriod)
 {
     errno = ENOSYS;
     return  (PX_ERROR);
 }
 
 LW_API 
-INT  API_SysPerfStop (VOID)
+__attribute__((weak)) INT  API_SysPerfStop (VOID)
 {
     errno = ENOSYS;
     return  (PX_ERROR);
 }
 
 LW_API 
-INT  API_SysPerfRefresh (VOID)
+__attribute__((weak)) INT  API_SysPerfRefresh (VOID)
 {
     errno = ENOSYS;
     return  (PX_ERROR);
 }
 
 LW_API 
-INT  API_SysPerfInfo (PLW_SYSPERF_INFO  psysperf, UINT  uiPerfNum)
+__attribute__((weak)) INT  API_SysPerfInfo (PLW_SYSPERF_INFO  psysperf, UINT  uiPerfNum)
 {
     errno = ENOSYS;
     return  (PX_ERROR);
