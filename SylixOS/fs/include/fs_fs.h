@@ -90,6 +90,7 @@
 *********************************************************************************************************/
 #include "../SylixOS/fs/oemDisk/oemDisk.h"                              /*  OEM 磁盘操作                */
 #include "../SylixOS/fs/oemDisk/oemFdisk.h"                             /*  OEM 磁盘分区操作            */
+#include "../SylixOS/fs/oemDisk/oemGrub.h"                              /*  OEM GRUB 引导程序写入       */
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 /*********************************************************************************************************
   MOUNT LIB

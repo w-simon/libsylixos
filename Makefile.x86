@@ -203,6 +203,7 @@ SylixOS/debug/hwdbg/openocd.c
 #*********************************************************************************************************
 DRV_SRCS = \
 SylixOS/driver/can/sja1000.c \
+SylixOS/driver/dma/i8237a.c \
 SylixOS/driver/int/i8259a.c \
 SylixOS/driver/pci/sio/pciSioExar.c \
 SylixOS/driver/pci/sio/pciSioNetmos.c \
@@ -252,6 +253,7 @@ SylixOS/fs/nfs/nfs_xdr.c \
 SylixOS/fs/oemDisk/oemBlkIo.c \
 SylixOS/fs/oemDisk/oemDisk.c \
 SylixOS/fs/oemDisk/oemFdisk.c \
+SylixOS/fs/oemDisk/oemGrub.c \
 SylixOS/fs/procFs/procFs.c \
 SylixOS/fs/procFs/procFsLib.c \
 SylixOS/fs/procFs/procBsp/procBsp.c \

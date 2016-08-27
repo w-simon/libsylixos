@@ -1458,7 +1458,7 @@ static INT  __tshellFsCmdDf (INT  iArgC, PCHAR  ppcArgV[])
         pcRo = "y";
     }
     
-    if (ullFree > ullTotal) {
+    if ((ullFree > ullTotal) || (ullTotal == 0)) {
         printf("%-14s %4lu.%02lu%-2s   unknown ---%% %-2s %s\n", ppcArgV[1], 
                ulTotalDisp, ulTotalPoint, 
                pcTotalUnit, pcRo, pcFsType);
@@ -2026,7 +2026,35 @@ __input_type:
 
     return  (ERROR_NONE);
 }
+/*********************************************************************************************************
+** 函数名称: __tshellFsCmdMkGrub
+** 功能描述: 系统命令 "mkgrub"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : 0
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+#ifdef LW_CFG_CPU_ARCH_X86
 
+static INT  __tshellFsCmdMkGrub (INT  iArgC, PCHAR  ppcArgV[])
+{
+    if (iArgC < 2) {
+        fprintf(stderr, "argments error!\n");
+        return  (-ERROR_TSHELL_EPARAM);
+    }
+    
+    if (oemGrub(ppcArgV[1]) < ERROR_NONE) {
+        fprintf(stderr, "make grub boot program error : %s\n", lib_strerror(errno));
+        return  (PX_ERROR);
+    }
+    
+    printf("make grub boot program ok.\n");
+    
+    return  (ERROR_NONE);
+}
+
+#endif                                                                  /*  LW_CFG_CPU_ARCH_X86         */
 #endif                                                                  /*  LW_CFG_OEMDISK_EN > 0       */
 /*********************************************************************************************************
 ** 函数名称: __tshellFsCmdInit
@@ -2161,6 +2189,12 @@ VOID  __tshellFsCmdInit (VOID)
     API_TShellHelpAdd("fdisk",   "show or make disk partition table\n"
                                  "eg. fdisk /dev/blk/udisk0\n"
                                  "    fdisk -f /dev/blk/sata0\n");
+
+#ifdef LW_CFG_CPU_ARCH_X86
+    API_TShellKeywordAdd("mkgrub", __tshellFsCmdMkGrub);
+    API_TShellFormatAdd("mkgrub", " [block I/O device]");
+    API_TShellHelpAdd("mkgrub",   "make disk grub boot program\n");
+#endif                                                                  /*  LW_CFG_CPU_ARCH_X86         */
 #endif                                                                  /*  LW_CFG_OEMDISK_EN > 0       */
 }
 

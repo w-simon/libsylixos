@@ -36,7 +36,7 @@
 #define __DISK_PART_TYPE                    0x4
 #define __DISK_PART_STARTSECTOR             0x8
 #define __DISK_PART_NSECTOR                 0xc
-#define __DISK_PART_OFFSEC                  4096
+#define __DISK_PART_OFFSEC                  2048
 /*********************************************************************************************************
 ** 函数名称: __oemFdisk
 ** 功能描述: 对 OEM 磁盘设备进行分区操作
@@ -80,7 +80,7 @@ static INT  __oemFdisk (INT                     iBlkFd,
         return  (PX_ERROR);
     }
     
-    uiSecOff    = __DISK_PART_OFFSEC;                                   /*  4096 扇区                   */
+    uiSecOff    = __DISK_PART_OFFSEC;                                   /*  2048 扇区                   */
     ulTotalSec -= uiSecOff;                                             /*  有效的总扇区数              */
     uiPSecNext  = uiSecOff;
     
