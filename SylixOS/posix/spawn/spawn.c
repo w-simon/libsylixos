@@ -162,7 +162,7 @@ int   posix_spawn (pid_t *pid, const char *path,
     }
 }
 /*********************************************************************************************************
-** 函数名称: posix_spawn
+** 函数名称: posix_spawnp
 ** 功能描述: spawn a process (ADVANCED REALTIME)
 ** 输　入  : file              program file
 **           file_actions      file actions
@@ -615,7 +615,7 @@ int   posix_spawnattr_getpgroup (const posix_spawnattr_t *attrp, pid_t *pgroup)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: posix_spawnattr_getpgroup
+** 函数名称: posix_spawnattr_setpgroup
 ** 功能描述: Set process group ID from the attribute structure. 
 ** 输　入  : attrp         spawn attr
 **           pgroup        group ID
@@ -848,6 +848,11 @@ int   posix_spawn_file_actions_addopen (posix_spawn_file_actions_t *file_actions
     __spawn_action *pspawnactNew;
     size_t          stPathLen;
     
+    if (!file_actions || (file_actions->SPA_iInited != 12345)) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+    
     if ((fd < 0) || (fd >= (LW_CFG_MAX_FILES + 3))) {
         errno = EBADF;
         return  (EBADF);
@@ -895,10 +900,14 @@ int   posix_spawn_file_actions_addopen (posix_spawn_file_actions_t *file_actions
                                            API 函数
 *********************************************************************************************************/
 LW_API  
-int   posix_spawn_file_actions_addclose (posix_spawn_file_actions_t *file_actions,
-                                         int fd)
+int   posix_spawn_file_actions_addclose (posix_spawn_file_actions_t *file_actions, int fd)
 {
     __spawn_action *pspawnactNew;
+    
+    if (!file_actions || (file_actions->SPA_iInited != 12345)) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
     
     if ((fd < 0) || (fd >= (LW_CFG_MAX_FILES + 3))) {
         errno = EBADF;
@@ -925,18 +934,28 @@ int   posix_spawn_file_actions_addclose (posix_spawn_file_actions_t *file_action
              `dup2' for the given file descriptors during the `spawn' call.
 **           file_actions   file attribute
 **           fd             file descriptor
+**           newfd          to be duplicated as newfildes
 ** 输　出  : ok or not
 ** 全局变量: 
 ** 调用模块: 
                                            API 函数
 *********************************************************************************************************/
 LW_API  
-int   posix_spawn_file_actions_adddup2 (posix_spawn_file_actions_t *file_actions,
-					                    int fd, int newfd)
+int   posix_spawn_file_actions_adddup2 (posix_spawn_file_actions_t *file_actions, int fd, int newfd)
 {
     __spawn_action *pspawnactNew;
     
+    if (!file_actions || (file_actions->SPA_iInited != 12345)) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+    
     if ((fd < 0) || (fd >= (LW_CFG_MAX_FILES + 3))) {
+        errno = EBADF;
+        return  (EBADF);
+    }
+    
+    if ((newfd < 0) || (newfd >= (LW_CFG_MAX_FILES + 3))) {
         errno = EBADF;
         return  (EBADF);
     }
@@ -956,6 +975,7 @@ int   posix_spawn_file_actions_adddup2 (posix_spawn_file_actions_t *file_actions
                          
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
                                                                         /*  LW_CFG_MODULELOADER_EN > 0  */
 /*********************************************************************************************************
