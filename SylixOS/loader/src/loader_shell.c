@@ -863,9 +863,9 @@ static INT  __tshellVProcShow (INT  iArgC, PCHAR  *ppcArgV)
             pcUser = "<unknown>";
         }
         
-        printf("%-17s %-17s %5d %5d %10zu %5d %5d %s\n", 
+        printf("%-17s %-17s %5d %5d %8zuKB %5d %5d %s\n", 
                pcProcessName, pcFatherName, pvproc->VP_pid, pvproc->VP_pidGroup, 
-               stTotalMem, uid, gid, pcUser);
+               stTotalMem / LW_CFG_KB_SIZE, uid, gid, pcUser);
         
         iCnt++;
     }
@@ -1042,6 +1042,7 @@ VOID  API_LoaderInit (VOID)
     __ldShellInit();
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 }
+
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 /*********************************************************************************************************
   END

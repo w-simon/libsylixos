@@ -37,10 +37,10 @@ struct i8259a_ctl {
      *  user MUST set following members before calling this module api.
      */
     addr_t  iobase_master;                                              /* 8259-1 I/O base address      */
-                                                                        /* eg. ISA-BASE + 0x20          */
+                                                                        /* eg. IO-BASE + 0x20           */
 
     addr_t  iobase_slave;                                               /* 8259-2 I/O base address      */
-                                                                        /* eg. ISA-BASE + 0xa0          */
+                                                                        /* eg. IO-BASE + 0xa0           */
 
     INT     trigger;                                                    /* 0 : edge trigger             */
                                                                         /* 1 : level trigger            */

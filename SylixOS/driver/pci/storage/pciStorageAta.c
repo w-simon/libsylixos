@@ -62,14 +62,14 @@ static const PCI_DEV_ID_CB  pciStorageAtaIdTbl[] = {
 typedef struct {
     UINT    ATAPORT_uiPort;
     UINT    ATAPORT_uiFlag;
-#define ATAPORT_ISA_PORT    1
+#define ATAPORT_IO_PORT     1
 } PCI_ATA_PORT;
 /*********************************************************************************************************
   设备信息
 *********************************************************************************************************/
 static PCI_ATA_PORT  pciAtaPort[] = {
     {
-        2, ATAPORT_ISA_PORT
+        2, ATAPORT_IO_PORT
     },
     {
         2, 0
@@ -414,7 +414,7 @@ static INT  pciStorageAtaDevProbe (PCI_DEV_HANDLE hPciDevHandle, const PCI_DEV_I
     hPciDevHandle->PCIDEV_uiUnitNumber = 0;                             /*  本类设备索引                */
     
     for (uiChannel = 0; uiChannel < pataport->ATAPORT_uiPort; uiChannel++) {
-        if (pataport->ATAPORT_uiFlag & ATAPORT_ISA_PORT) {
+        if (pataport->ATAPORT_uiFlag & ATAPORT_IO_PORT) {
             if (uiChannel) {
                 pciStorageAtaCreateDrv(0x170, 0x374);
             

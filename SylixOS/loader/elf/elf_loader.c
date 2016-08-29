@@ -2149,6 +2149,7 @@ INT __elfStatus (CPCHAR pcPath, INT iFd)
 
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 /*********************************************************************************************************
   END

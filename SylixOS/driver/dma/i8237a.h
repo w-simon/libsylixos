@@ -35,9 +35,9 @@ struct i8237a_ctl {
      *  user MUST set following members before calling this module api.
      */
     addr_t  iobase_dma1;                                                /* 8237A DMA1 I/O base address  */
-                                                                        /* eg. ISA-BASE + 0x00          */
+                                                                        /* eg. IO-BASE + 0x00           */
     addr_t  iobase_dma2;                                                /* 8237A DMA2 I/O base address  */
-                                                                        /* eg. ISA-BASE + 0xc0          */
+                                                                        /* eg. IO-BASE + 0xc0           */
 };
 
 /*********************************************************************************************************

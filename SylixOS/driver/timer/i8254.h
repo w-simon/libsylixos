@@ -35,9 +35,9 @@ struct i8254_ctl {
      *  user MUST set following members before calling this module api.
      */
     addr_t  iobase;                                                     /* 8254 I/O base address        */
-                                                                        /* eg. ISA-BASE + 0x40          */
+                                                                        /* eg. IO-BASE + 0x40           */
     addr_t  iobuzzer;                                                   /* speaker 8255 port            */
-                                                                        /* eg. ISA-BASE + 0x61          */
+                                                                        /* eg. IO-BASE + 0x61           */
     unsigned int qcofreq;                                               /* default : 1193182            */
 };
 
