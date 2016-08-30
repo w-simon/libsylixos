@@ -433,15 +433,43 @@ static  VOID  __sigCtlCreate (PLW_CLASS_TCB         ptcb,
         pucStkNow = (BYTE *)ptcb->TCB_pstkStackNow;
     }
 
-#if	CPU_STK_GROWTH == 0
+#if	CPU_STK_GROWTH == 0                                                 /*  CPU_STK_GROWTH == 0         */
     pucStkNow  += sizeof(LW_STACK);                                     /*  向空栈方向移动一个堆栈空间  */
     psigctlmsg  = (PLW_CLASS_SIGCTLMSG)pucStkNow;                       /*  记录 signal contrl msg 位置 */
     pucStkNow  += __SIGCTLMSG_SIZE_ALIGN;                               /*  让出 signal contrl msg 空间 */
-#else
+
+#if LW_CFG_CPU_FPU_EN > 0
+    if (ptcb->TCB_ulOption & LW_OPTION_THREAD_USED_FP) {
+        while ((addr_t)pucStkNow & (ARCH_FPU_CTX_ALIGN - 1)) {
+            pucStkNow += sizeof(LW_STACK);                              /*  必须保证浮点上下文对齐要求  */
+        }
+        psigctlmsg->SIGCTLMSG_pfpuctx = (LW_FPU_CONTEXT *)pucStkNow;
+        pucStkNow  += __SIGFPUCTX_SIZE_ALIGN;                           /*  让出 signal fpu ctx 空间    */
+        
+    } else {
+        psigctlmsg->SIGCTLMSG_pfpuctx = LW_NULL;
+    }
+#endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+
+#else                                                                   /*  CPU_STK_GROWTH == 1         */
     pucStkNow  -= __SIGCTLMSG_SIZE_ALIGN;                               /*  让出 signal contrl msg 空间 */
     psigctlmsg  = (PLW_CLASS_SIGCTLMSG)pucStkNow;                       /*  记录 signal contrl msg 位置 */
     pucStkNow  -= sizeof(LW_STACK);                                     /*  向空栈方向移动一个堆栈空间  */
-#endif
+    
+#if LW_CFG_CPU_FPU_EN > 0
+    if (ptcb->TCB_ulOption & LW_OPTION_THREAD_USED_FP) {
+        pucStkNow  -= __SIGFPUCTX_SIZE_ALIGN;                           /*  让出 signal fpu ctx 空间    */
+        while ((addr_t)pucStkNow & (ARCH_FPU_CTX_ALIGN - 1)) {
+            pucStkNow -= sizeof(LW_STACK);                              /*  必须保证浮点上下文对齐要求  */
+        }
+        psigctlmsg->SIGCTLMSG_pfpuctx = (LW_FPU_CONTEXT *)pucStkNow;
+        pucStkNow  -= sizeof(LW_STACK);                                 /*  向空栈方向移动一个堆栈空间  */
+        
+    } else {
+        psigctlmsg->SIGCTLMSG_pfpuctx = LW_NULL;
+    }
+#endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+#endif                                                                  /*  CPU_STK_GROWTH              */
 
     psigctlmsg->SIGCTLMSG_iSchedRet       = iSchedRet;
     psigctlmsg->SIGCTLMSG_iKernelSpace    = __KERNEL_SPACE_GET2(ptcb);
@@ -479,10 +507,7 @@ static VOID  __sigReturn (PLW_CLASS_SIGCONTEXT  psigctx,
                           PLW_CLASS_TCB         ptcbCur, 
                           PLW_CLASS_SIGCTLMSG   psigctlmsg)
 {
-             INTREG   iregInterLevel;
-#if LW_CFG_CPU_FPU_EN > 0
-    REGISTER PVOID    pvStackFP;
-#endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+    INTREG   iregInterLevel;
 
     __KERNEL_ENTER();                                                   /*  进入内核                    */
     psigctx->SIGCTX_sigsetMask = psigctlmsg->SIGCTLMSG_sigsetMask;
@@ -498,10 +523,9 @@ static VOID  __sigReturn (PLW_CLASS_SIGCONTEXT  psigctx,
      */
     iregInterLevel = KN_INT_DISABLE();                                  /*  关闭当前 CPU 中断           */
 #if LW_CFG_CPU_FPU_EN > 0
-    if (psigctlmsg->SIGCTLMSG_bFpuRestore &&
+    if (psigctlmsg->SIGCTLMSG_pfpuctx &&
         (ptcbCur->TCB_ulOption & LW_OPTION_THREAD_USED_FP)) {
-        pvStackFP = &psigctlmsg->SIGCTLMSG_fpuctxContext;
-        __ARCH_FPU_RESTORE(pvStackFP);                                  /*  恢复被信号中断前 FPU 上下文 */
+        __ARCH_FPU_RESTORE((PVOID)psigctlmsg->SIGCTLMSG_pfpuctx);       /*  恢复被信号中断前 FPU 上下文 */
     }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
     
@@ -628,12 +652,9 @@ static VOID  __sigShell (PLW_CLASS_SIGCTLMSG  psigctlmsg)
     
 #if LW_CFG_CPU_FPU_EN > 0
     iregInterLevel = KN_INT_DISABLE();                                  /*  关闭当前 CPU 中断           */
-    if (ptcbCur->TCB_ulOption & LW_OPTION_THREAD_USED_FP) {             /*  当前线程使用 FPU            */
-        psigctlmsg->SIGCTLMSG_bFpuRestore   = LW_TRUE;                  /*  拷贝 TCB 浮点上下文         */
-        psigctlmsg->SIGCTLMSG_fpuctxContext = ptcbCur->TCB_fpuctxContext;
-        
-    } else {
-        psigctlmsg->SIGCTLMSG_bFpuRestore   = LW_FALSE;                 /*  不需要恢复 FPU 上下文       */
+    if (psigctlmsg->SIGCTLMSG_pfpuctx &&
+        (ptcbCur->TCB_ulOption & LW_OPTION_THREAD_USED_FP)) {           /*  当前线程使用 FPU            */
+        *psigctlmsg->SIGCTLMSG_pfpuctx = ptcbCur->TCB_fpuctxContext;
     }
     KN_INT_ENABLE(iregInterLevel);                                      /*  打开当前 CPU 中断           */
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */

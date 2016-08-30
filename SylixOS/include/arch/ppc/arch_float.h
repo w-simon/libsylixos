@@ -25,6 +25,7 @@
 /*********************************************************************************************************
   FPU 浮点数据寄存器的总数
 *********************************************************************************************************/
+#if defined(__SYLIXOS_KERNEL) || defined(__ASSEMBLY__) || defined(ASSEMBLY)
 
 #define FP_DREG_NR              32
 
@@ -110,6 +111,8 @@ typedef union arch_fpu_ctx {                                            /*  VFP 
         UINT32          VECCTX_uiPad2;
     };
 } ARCH_FPU_CTX;
+
+#define ARCH_FPU_CTX_ALIGN      4                                       /* FPU CTX align size           */
 
 /*********************************************************************************************************
   float 格式 (使用 union 类型作为中间转换, 避免 GCC 3.x.x strict aliasing warning)
@@ -203,7 +206,7 @@ static LW_INLINE INT  __ARCH_DOUBLE_ISINF (double  x)
 }
 
 #endif
-
+#endif                                                                  /*  __SYLIXOS_KERNEL            */
 #endif                                                                  /*  __PPC_ARCH_FLOAT_H          */
 /*********************************************************************************************************
   END

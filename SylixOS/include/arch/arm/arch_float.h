@@ -31,7 +31,7 @@
      
   arm eabi 使用 native-endian
 *********************************************************************************************************/
-
+#ifdef __SYLIXOS_KERNEL
 /*********************************************************************************************************
   线程浮点运算器上下文
   
@@ -81,6 +81,8 @@ typedef struct arch_fpu_ctx {                                           /* VFPv2
     UINT32              FPUCTX_uiDreg[32 * 2];                          /* general purpose Reg  D0 ~ D32*/
                                                                         /* equ -> S0 ~ S64              */
 } ARCH_FPU_CTX;
+
+#define ARCH_FPU_CTX_ALIGN      4                                       /* FPU CTX align size           */
 
 /*********************************************************************************************************
   float 格式 (使用 union 类型作为中间转换, 避免 GCC 3.x.x strict aliasing warning)
@@ -173,6 +175,7 @@ static LW_INLINE INT  __ARCH_DOUBLE_ISINF (double  x)
               (dblflt.dblfield.frach == 0)));
 }
 
+#endif                                                                  /*  __SYLIXOS_KERNEL            */
 #endif                                                                  /*  __ARM_ARCH_FLOAT_H          */
 /*********************************************************************************************************
   END

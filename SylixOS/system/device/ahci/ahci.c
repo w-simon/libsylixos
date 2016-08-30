@@ -1978,6 +1978,7 @@ static INT  __ahciDrvInit (AHCI_CTRL_HANDLE  hCtrl)
     INT                     iCurrPort;                                  /* 当前端口                     */
     UINT32                  uiPortMap;                                  /* 端口映射信息                 */
     UINT32                  uiReg;                                      /* 寄存器                       */
+    UINT32                  uiPortNum;                                  /* 当前端口数量                 */
 
     AHCI_LOG(AHCI_LOG_PRT, "init ctrl %d name %s uint index %d reg addr 0x%llx.",
              hCtrl->AHCICTRL_uiIndex, hCtrl->AHCICTRL_cCtrlName, hCtrl->AHCICTRL_uiUnitIndex,
@@ -2128,8 +2129,14 @@ static INT  __ahciDrvInit (AHCI_CTRL_HANDLE  hCtrl)
     AHCI_LOG(AHCI_LOG_PRT, "port num %d active %d map 0x%08x.",
              hCtrl->AHCICTRL_uiPortNum, hCtrl->AHCICTRL_uiImpPortNum, hCtrl->AHCICTRL_uiImpPortMap);
     iCurrPort = 0;                                                      /* 获得当前端口                 */
+    uiPortNum = hCtrl->AHCICTRL_uiPortNum;                              /* 端口数量                     */
     uiPortMap = hCtrl->AHCICTRL_uiImpPortMap;                           /* 端口分布信息                 */
-    for (i = 0; i < hCtrl->AHCICTRL_uiPortNum; i++) {                   /* 处理各个端口                 */
+    /*
+     *  端口数量掩码为 0x1F 最大为 32 个, 但是端口分布信息和具体控制器有关
+     *  如 VendorID 8086 DevieceID 8c02 中端口数量是 4, 但是端口分布式 Bit5 Bit1 Bit0
+     */
+    uiPortNum = __MAX(uiPortNum, fls(uiPortMap));                       /* 分配资源所需端口数量         */
+    for (i = 0; i < uiPortNum; i++) {                                   /* 处理各个端口                 */
         if (uiPortMap & 1) {                                            /* 端口有效                     */
             AHCI_LOG(AHCI_LOG_PRT, "port %d current port %d.", i, iCurrPort);
 

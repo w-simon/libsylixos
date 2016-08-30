@@ -113,10 +113,9 @@ typedef struct {
     ULONG                 SIGCTLMSG_ulLastError;                        /*  保存的原始错误号            */
     UINT8                 SIGCTLMSG_ucWaitTimeout;                      /*  保存的原始 timeout 标记     */
     UINT8                 SIGCTLMSG_ucIsEventDelete;                    /*  事件是否被删除              */
-
+    
 #if LW_CFG_CPU_FPU_EN > 0
-    BOOL                  SIGCTLMSG_bFpuRestore;                        /*  是否需要恢复 FPU 上下文     */
-    LW_FPU_CONTEXT        SIGCTLMSG_fpuctxContext;                      /*  FPU 上下文                  */
+    LW_FPU_CONTEXT       *SIGCTLMSG_pfpuctx;                            /*  FPU 上下文                  */
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 } LW_CLASS_SIGCTLMSG;
 typedef LW_CLASS_SIGCTLMSG  *PLW_CLASS_SIGCTLMSG;
@@ -126,6 +125,7 @@ typedef LW_CLASS_SIGCTLMSG  *PLW_CLASS_SIGCTLMSG;
 *********************************************************************************************************/
 
 #define __SIGCTLMSG_SIZE_ALIGN      ROUND_UP(sizeof(LW_CLASS_SIGCTLMSG), sizeof(LW_STACK))
+#define __SIGFPUCTX_SIZE_ALIGN      ROUND_UP(sizeof(LW_FPU_CONTEXT),     sizeof(LW_STACK))
         
 /*********************************************************************************************************
   UNMASK SIG

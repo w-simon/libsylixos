@@ -25,14 +25,17 @@
 /*********************************************************************************************************
   Number of fp registers on coprocessor
 *********************************************************************************************************/
+#ifdef __SYLIXOS_KERNEL
 
-#define FP_NUM_DREGS    32
+#define FP_NUM_DREGS            32
 
 typedef struct arch_fpu_ctx {                                           /* FP_CONTEXT 上下文            */
     UINT32              FPUCTX_uiFpcsr;                                 /* status and control register  */
     UINT32              FPUCTX_uiDreg[FP_NUM_DREGS * 2];                /* general purpose Reg  D0 ~ D16*/
                                                                         /* equ -> S0 ~ S32              */
 } ARCH_FPU_CTX;
+
+#define ARCH_FPU_CTX_ALIGN      4                                       /* FPU CTX align size           */
 
 /*********************************************************************************************************
   float 格式 (使用 union 类型作为中间转换, 避免 GCC 3.x.x strict aliasing warning)
@@ -125,6 +128,7 @@ static LW_INLINE INT  __ARCH_DOUBLE_ISINF (double  x)
               (dblflt.dblfield.frach == 0)));
 }
 
+#endif                                                                  /*  __SYLIXOS_KERNEL            */
 #endif                                                                  /*  __MIPS_ARCH_FLOAT_H         */
 /*********************************************************************************************************
   END
