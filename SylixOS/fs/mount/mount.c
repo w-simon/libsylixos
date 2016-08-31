@@ -361,7 +361,7 @@ VOID  API_MountShow (VOID)
         return;
     }
     
-    printf("all mount point show >>\n");
+    printf("Mount point show >>\n");
     printf(pcMountInfoHdr);                                             /*  ¥Ú”°ª∂”≠–≈œ¢                */
     
     __LW_MOUNT_LOCK();

@@ -235,7 +235,7 @@ VOID  API_OemDiskMountShow (VOID)
     PLW_LIST_LINE           plineTemp;
     __PLW_AUTO_MOUNT_NODE   pamnt;
     
-    printf("all AUTO-mount point show >>\n");
+    printf("AUTO-Mount point show >>\n");
     printf(pcMountInfoHdr);                                             /*  ¥Ú”°ª∂”≠–≈œ¢                */
     
     AUTOMOUNT_LOCK();
