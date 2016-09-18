@@ -1300,6 +1300,7 @@ INT  _FdLockfClearFdEntry (PLW_FD_ENTRY  pfdentry, pid_t  pid)
     
     return  (_FdLockfProc(pfdentry, LOCK_UN, pid));                     /*  移除与本进程相关的锁        */
 }
+
 #endif                                                                  /*  LW_CFG_DEVICE_EN            */
 /*********************************************************************************************************
   END

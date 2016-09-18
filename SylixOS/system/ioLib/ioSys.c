@@ -1408,6 +1408,7 @@ INT  API_IosUnmap (INT   iFd, PLW_DEV_MMAP_AREA  pdmap)
         return  (PX_ERROR);
     }
 }
+
 #endif                                                                  /*  LW_CFG_DEVICE_EN            */
 /*********************************************************************************************************
   END

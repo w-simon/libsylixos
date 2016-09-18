@@ -128,6 +128,88 @@ static INT  __tshellSysCmdEcho (INT  iArgC, PCHAR  ppcArgV[])
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: __tshellSysCmdSleep
+** 功能描述: 系统命令 "sleep"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : 0
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static INT  __tshellSysCmdSleep (INT  iArgC, PCHAR  ppcArgV[])
+{
+#define SLEEP_UNIT_SEC  0
+#define SLEEP_UNIT_MIN  1
+#define SLEEP_UNIT_HOUR 2
+#define SLEEP_UNIT_DAY  3
+
+    PCHAR   pcUnit;
+    INT     iUnit = SLEEP_UNIT_SEC;
+    CHAR    cParam[64];
+    
+    double  dParam;
+    UINT    uiSec;
+    
+    if (iArgC < 2) {
+        fprintf(stderr, "argument error.\n");
+        return  (-1);
+    }
+    
+    lib_strlcpy(cParam, ppcArgV[1], sizeof(cParam));
+    
+    pcUnit = lib_strchr(cParam, 's');
+    if (pcUnit) {
+        iUnit   = SLEEP_UNIT_SEC;
+        *pcUnit = PX_EOS;
+        goto    __sleep;
+    }
+    
+    pcUnit = lib_strchr(cParam, 'm');
+    if (pcUnit) {
+        iUnit   = SLEEP_UNIT_MIN;
+        *pcUnit = PX_EOS;
+        goto    __sleep;
+    }
+    
+    pcUnit = lib_strchr(cParam, 'h');
+    if (pcUnit) {
+        iUnit   = SLEEP_UNIT_HOUR;
+        *pcUnit = PX_EOS;
+        goto    __sleep;
+    }
+    
+    pcUnit = lib_strchr(cParam, 'd');
+    if (pcUnit) {
+        iUnit   = SLEEP_UNIT_DAY;
+        *pcUnit = PX_EOS;
+        goto    __sleep;
+    }
+    
+__sleep:
+    dParam = lib_strtod(cParam, LW_NULL);
+    switch (iUnit) {
+    
+    case SLEEP_UNIT_MIN:
+        uiSec = (UINT)(dParam * 60);
+        break;
+    
+    case SLEEP_UNIT_HOUR:
+        uiSec = (UINT)(dParam * 3600);
+        break;
+    
+    case SLEEP_UNIT_DAY:
+        uiSec = (UINT)(dParam * 86400);
+        break;
+    
+    case SLEEP_UNIT_SEC:
+    default:
+        uiSec = (UINT)dParam;
+        break;
+    }
+
+    return  ((INT)sleep(uiSec));
+}
+/*********************************************************************************************************
 ** 函数名称: __tshellSysCmdShell
 ** 功能描述: 系统命令 "shell"
 ** 输　入  : iArgC         参数个数
@@ -1705,6 +1787,7 @@ static INT  __tshellSysCmdWho (INT  iArgC, PCHAR  ppcArgV[])
                getgid(),
                geteuid(),
                getegid());
+    
     } else {
         printf("user:%s terminal:%s uid:%d gid:%d euid:%d egid:%d\n",
                "unknown",
@@ -2104,6 +2187,10 @@ VOID  __tshellSysCmdInit (VOID)
     API_TShellFormatAdd("echo", " [message]");
     API_TShellHelpAdd("echo", "echo the input command.\n"
                               "echo [message]\n");
+                              
+    API_TShellKeywordAdd("sleep", __tshellSysCmdSleep);
+    API_TShellFormatAdd("sleep", " [<n>{s|m|h|d}]");
+    API_TShellHelpAdd("sleep", "sleep specific time.\n");
                               
     API_TShellKeywordAdd("shell", __tshellSysCmdShell);
     API_TShellFormatAdd("shell", " [tty device] [nologin]");

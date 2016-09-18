@@ -412,6 +412,7 @@ INT  utime (CPCHAR  pcFile, const struct utimbuf *utimbNew)
     
     return  (iError);
 }
+
 #endif                                                                  /*  LW_CFG_DEVICE_EN            */
 /*********************************************************************************************************
   END

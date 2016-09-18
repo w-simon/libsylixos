@@ -341,6 +341,7 @@ static VOID  __sigMakeReady (PLW_CLASS_TCB  ptcb,
 {
              INTREG                  iregInterLevel;
     REGISTER PLW_CLASS_PCB           ppcb;
+             PLW_CLASS_SIGCONTEXT    psigctx;
 
     *piSchedRet = ERROR_NONE;                                           /*  默认为就绪状态              */
     
@@ -367,8 +368,16 @@ static VOID  __sigMakeReady (PLW_CLASS_TCB  ptcb,
     if (ptcb->TCB_usStatus & LW_THREAD_STATUS_PEND_ANY) {               /*  检查是否在等待事件          */
         *piSchedRet = iSaType;                                          /*  设置调度器返回值            */
         ptcb->TCB_usStatus &= (~LW_THREAD_STATUS_PEND_ANY);             /*  等待超时清除事件等待位      */
-        ptcb->TCB_ucWaitTimeout = LW_WAIT_TIME_OUT;                     /*  等待超时                    */
         
+        psigctx = _signalGetCtx(ptcb);
+        if (psigctx->SIGCTX_sigwait &&
+            psigctx->SIGCTX_sigwait->SIGWT_sigset & __sigmask(iSigNo)) {/*  sigwait                     */
+            ptcb->TCB_ucWaitTimeout = LW_WAIT_TIME_CLEAR;
+            
+        } else {
+            ptcb->TCB_ucWaitTimeout = LW_WAIT_TIME_OUT;                 /*  等待超时                    */
+        }
+
 #if (LW_CFG_EVENT_EN > 0) && (LW_CFG_MAX_EVENTS > 0)
         if (ptcb->TCB_peventPtr) {
             _EventUnQueue(ptcb);
@@ -1143,6 +1152,7 @@ LW_SEND_VAL  _doSigQueue (PLW_CLASS_TCB  ptcb, INT  iSigNo, const union sigval s
     
     return  (_doSignal(ptcb, &sigpend));                                /*  产生信号                    */
 }
+
 #endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
 /*********************************************************************************************************
   END

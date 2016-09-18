@@ -346,8 +346,8 @@ LW_LD_EXEC_MODULE *moduleLoadSub (LW_LD_EXEC_MODULE *pmodule, CPCHAR pcLibName, 
     LW_LD_EXEC_MODULE *pmoduleNeed = LW_NULL;
     CHAR               cLibPath[MAX_FILENAME_LENGTH];
     LW_LIST_RING      *pringTemp;
-    CHAR              *pcFound;
     CHAR              *pcEntry;
+    CHAR              *pcFileName;
 
     if (LW_NULL == pcLibName) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "invalid parameter\r\n");
@@ -365,14 +365,9 @@ LW_LD_EXEC_MODULE *moduleLoadSub (LW_LD_EXEC_MODULE *pmodule, CPCHAR pcLibName, 
     pringTemp = &pmodule->EMOD_ringModules;
     do {
         pmoduleNeed = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);
-        pcFound = lib_strstr(pmoduleNeed->EMOD_pcModulePath, pcLibName);
-        if (NULL == pcFound) {
-            pringTemp = _list_ring_get_next(pringTemp);
-            continue;
-        }
 
-        if (pcFound + lib_strlen(pcLibName) == pmoduleNeed->EMOD_pcModulePath
-                                            +  lib_strlen(pmoduleNeed->EMOD_pcModulePath)) {
+        _PathLastName(pmoduleNeed->EMOD_pcModulePath, &pcFileName);     /*  取出文件名                  */
+        if (pcFileName && (lib_strcmp(pcFileName, pcLibName) == 0)) {
             LW_VP_UNLOCK(pmodule->EMOD_pvproc);
             return  (pmoduleNeed);                                      /*  如果已加载该模块，直接返回  */
         }

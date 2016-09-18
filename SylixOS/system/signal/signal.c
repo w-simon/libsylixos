@@ -1334,6 +1334,7 @@ INT  sigtimedwait (const sigset_t *psigset, struct  siginfo  *psiginfo, const st
     __KERNEL_ENTER();                                                   /*  进入内核                    */
     if (ptcbCur->TCB_ucWaitTimeout == LW_WAIT_TIME_OUT) {               /*  等待超时                    */
         __KERNEL_EXIT();                                                /*  退出内核                    */
+        psigctx->SIGCTX_sigwait = LW_NULL;
         _ErrorHandle(EAGAIN);
         return  (PX_ERROR);
     }
@@ -1346,6 +1347,7 @@ INT  sigtimedwait (const sigset_t *psigset, struct  siginfo  *psiginfo, const st
     
     return  (sigwt.SIGWT_siginfo.si_signo);
 }
+
 #endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
 /*********************************************************************************************************
   END

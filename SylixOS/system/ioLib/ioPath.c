@@ -482,6 +482,7 @@ INT  _PathBuildLink (PCHAR      pcBuildName,
     
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_DEVICE_EN            */
 /*********************************************************************************************************
   END

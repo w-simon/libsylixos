@@ -386,6 +386,63 @@ __ret:
     
 }
 /*********************************************************************************************************
+** 函数名称: __tshellChkBg
+** 功能描述: 预处理背景执行相关参数 shell 命令背景执行参数
+** 输　入  : pcCommand    命令字符串
+**           pbNeedJoin   是否需要 JOIN.
+**           pbNeedAsyn   使用需要异步执行.
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+VOID  __tshellPreTreatedBg (PCHAR  cCommand, BOOL  *pbNeedJoin, BOOL  *pbNeedAsyn)
+{
+    size_t     stStrLen;
+    PCHAR      pcTail = cCommand;
+    
+    if (pbNeedJoin) {
+        *pbNeedJoin = LW_FALSE;
+    }
+    if (pbNeedAsyn) {
+        *pbNeedAsyn = LW_FALSE;
+    }
+
+    __tshellStrDelCRLF(cCommand);                                       /*  删除 CR 与 LF 字符          */
+    __tshellStrFormat(cCommand, cCommand);                              /*  整理 shell 命令             */
+    
+    stStrLen = lib_strlen(cCommand);
+    if (stStrLen < 1) {
+        return;
+    }
+    
+    if (cCommand[stStrLen - 1] == __TTINY_SHELL_BG_JOIN) {              /*  命令行同步背景执行          */
+        if (pbNeedJoin) {
+            *pbNeedJoin = LW_TRUE;
+        }
+        pcTail = &cCommand[stStrLen - 1];
+        
+    } else if (cCommand[stStrLen - 1] == __TTINY_SHELL_BG_ASYNC) {      /*  命令行异步背景执行          */
+        if (pbNeedAsyn) {
+            *pbNeedAsyn = LW_TRUE;
+        }
+        pcTail = &cCommand[stStrLen - 1];
+    }
+    
+    while (pcTail != cCommand) {                                        /*  去掉背景运行符号            */
+        if ((*pcTail == __TTINY_SHELL_BG_JOIN) ||
+            (*pcTail == __TTINY_SHELL_BG_ASYNC)) {
+            *pcTail = PX_EOS;
+            pcTail--;
+        
+        } else if (*pcTail == PX_EOS) {
+            pcTail--;
+        
+        } else {
+            break;
+        }
+    }
+}
+/*********************************************************************************************************
 ** 函数名称: __tshellExec
 ** 功能描述: ttiny shell 系统, 执行一条 shell 命令
 ** 输　入  : pcCommand    命令字符串
@@ -424,8 +481,8 @@ INT  __tshellExec (CPCHAR  pcCommandExec, VOIDFUNCPTR  pfuncHook)
              size_t     stBgCmdLen;                                     /*  背景执行长度                */
              ULONG      ulMagic;                                        /*  背景 magic 码               */
              
-             BOOL       bCmdLineNeedJoin = LW_FALSE;                    /*  命令行是否要求同步背景执行  */
-             BOOL       bCmdLineNeedAsyn = LW_FALSE;                    /*  命令行是否要求异步背景执行  */
+             BOOL       bCmdLineNeedJoin;                               /*  命令行是否要求同步背景执行  */
+             BOOL       bCmdLineNeedAsyn;                               /*  命令行是否要求异步背景执行  */
              
     
     if (!pcCmd || __TTINY_SHELL_CMD_ISEND(pcCmd)) {                     /*  命令错误                    */
@@ -444,30 +501,18 @@ INT  __tshellExec (CPCHAR  pcCommandExec, VOIDFUNCPTR  pfuncHook)
     }
     
     stStrLen = lib_strnlen(pcCmd, LW_CFG_SHELL_MAX_COMMANDLEN + 1);     /*  计算字符串长短              */
-    if ((stStrLen > LW_CFG_SHELL_MAX_COMMANDLEN - 1) ||
-        (stStrLen < 1)) {                                               /*  字符串长度错误              */
-        return  (-ERROR_TSHELL_EPARAM);
+    if ((stStrLen > LW_CFG_SHELL_MAX_COMMANDLEN - 1) || (stStrLen < 1)) {
+        return  (-ERROR_TSHELL_EPARAM);                                 /*  字符串长度错误              */
     }
-    
-    lib_bzero(cCommandBuffer, LW_CFG_SHELL_MAX_COMMANDLEN);             /*  清空 cCommandBuffer 缓冲区  */
     
     ulError = __tshellStrConvertVar(pcCmd, cCommandBuffer);             /*  变量替换                    */
     if (ulError) {
         return  ((INT)(-ulError));                                      /*  替换错误                    */
     }
     
-    __tshellStrDelCRLF(cCommandBuffer);                                 /*  删除 CR 与 LF 字符          */
-    __tshellStrFormat(cCommandBuffer, cCommandBuffer);                  /*  整理 shell 命令             */
+    __tshellPreTreatedBg(cCommandBuffer, 
+                         &bCmdLineNeedJoin, &bCmdLineNeedAsyn);         /*  预处理背景执行相关参数      */
     
-    stStrLen = lib_strlen(cCommandBuffer);
-    if (cCommandBuffer[stStrLen - 1] == __TTINY_SHELL_BG_JOIN) {        /*  命令行同步背景执行          */
-        bCmdLineNeedJoin = LW_TRUE;
-        cCommandBuffer[stStrLen - 1] = PX_EOS;                          /*  去掉背景运行符号            */
-        
-    } else if (cCommandBuffer[stStrLen - 1] == __TTINY_SHELL_BG_ASYNC) {/*  命令行异步背景执行          */
-        bCmdLineNeedAsyn = LW_TRUE;
-        cCommandBuffer[stStrLen - 1] = PX_EOS;                          /*  去掉背景运行符号            */
-    }
     lib_strcpy(cCommandBg, cCommandBuffer);                             /*  拷贝可能需要的背景执行命令  */
     
     ulError = __tshellStrKeyword(cCommandBuffer, cKeyword, &pcParam);   /*  提取关键字                  */

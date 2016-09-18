@@ -192,6 +192,7 @@ VOID  __tshellNet6Init (VOID)
     API_TShellFormatAdd("ipv6",  " ...");
     API_TShellHelpAdd("ipv6",    _G_cIpv6Help);
 }
+
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */
                                                                         /*  LW_CFG_SHELL_EN > 0         */
 /*********************************************************************************************************

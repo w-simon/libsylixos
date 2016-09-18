@@ -124,6 +124,7 @@ ULONG  __tshellKeywordList(__PTSHELL_KEYWORD   pskwNodeStart,
                            __PTSHELL_KEYWORD   ppskwNode[],
                            INT                 iMaxCounter);
 PVOID  __tshellThread(PVOID  pcArg);
+VOID   __tshellPreTreatedBg(PCHAR  cCommand, BOOL  *pbNeedJoin, BOOL  *pbNeedAsyn);
 INT    __tshellExec(CPCHAR  pcCommandExec, VOIDFUNCPTR  pfuncHook);
 INT    __tshellBgCreateEx(INT               iFd[3],
                           BOOL              bClosed[3],

@@ -234,6 +234,7 @@ INT  link (CPCHAR  pcLinkDst, CPCHAR  pcSymPath)
     _ErrorHandle(ENOSYS);
     return  (PX_ERROR);
 }
+
 #endif                                                                  /*  LW_CFG_DEVICE_EN            */
 /*********************************************************************************************************
   END

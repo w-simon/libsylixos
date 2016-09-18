@@ -126,6 +126,7 @@ INT  diskinit (CPCHAR  pcDevName)
     
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_DEVICE_EN            */
 /*********************************************************************************************************
   END

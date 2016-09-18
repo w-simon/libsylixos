@@ -621,7 +621,6 @@ ULONG  API_TShellHelpAdd (CPCHAR  pcKeyword, CPCHAR  pcHelp)
         return  (ERROR_NONE);
     
     } else {
-        
         _ErrorHandle(ERROR_TSHELL_EKEYWORD);
         return  (ERROR_TSHELL_EKEYWORD);                                /*  关键字错误                  */
     }
@@ -689,7 +688,6 @@ ULONG  API_TShellFormatAdd (CPCHAR  pcKeyword, CPCHAR  pcFormat)
         return  (ERROR_NONE);
     
     } else {
-        
         _ErrorHandle(ERROR_TSHELL_EKEYWORD);
         return  (ERROR_TSHELL_EKEYWORD);                                /*  关键字错误                  */
     }
@@ -702,13 +700,15 @@ ULONG  API_TShellFormatAdd (CPCHAR  pcKeyword, CPCHAR  pcFormat)
 ** 全局变量: 
 ** 调用模块: 
 ** 注  意  : 当 shell 检测出命令字符串错误时, 将会返回负值, 此值取相反数后即为错误编号.
+
                                            API 函数
 *********************************************************************************************************/
 LW_API  
 INT  API_TShellExec (CPCHAR  pcCommandExec)
 {
-    if (__PROC_GET_PID_CUR() != 0) {                                    /*  进程中执行                  */
+    if (__PROC_GET_PID_CUR() != 0) {
         return  (API_TShellExecBg(pcCommandExec, LW_NULL, LW_NULL, LW_TRUE, LW_NULL));
+            
     } else {
         return  (__tshellExec(pcCommandExec, LW_NULL));
     }
@@ -725,27 +725,41 @@ INT  API_TShellExec (CPCHAR  pcCommandExec)
 ** 全局变量: 
 ** 调用模块: 
 ** 注  意  : 当 shell 检测出命令字符串错误时, 将会返回负值, 此值取相反数后即为错误编号.
+
                                            API 函数
 *********************************************************************************************************/
 LW_API  
 INT  API_TShellExecBg (CPCHAR  pcCommandExec, INT  iFd[3], BOOL  bClosed[3], 
                        BOOL  bIsJoin, LW_OBJECT_HANDLE *pulSh)
 {
-    INT  iRet;
-    INT  iError;
-    INT  iFdArray[3];
-    BOOL bClosedArray[3];
+    INT     iRet;
+    INT     iError;
+    INT     iFdArray[3];
+    BOOL    bClosedArray[3];
+    
+    CHAR    cCommand[LW_CFG_SHELL_MAX_COMMANDLEN + 1];
+    size_t  stStrLen = lib_strnlen(pcCommandExec, LW_CFG_SHELL_MAX_COMMANDLEN + 1);
+    BOOL    bNeedAsyn;
+    
+    if ((stStrLen > LW_CFG_SHELL_MAX_COMMANDLEN - 1) || (stStrLen < 1)) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    lib_strcpy(cCommand, pcCommandExec);
     
     if (__PROC_GET_PID_CUR() != 0) {                                    /*  进程中创建                  */
         if (iFd == LW_NULL) {
             iFdArray[0] = dup2kernel(STD_IN);
             iFdArray[1] = dup2kernel(STD_OUT);
             iFdArray[2] = dup2kernel(STD_ERR);
+        
         } else {
             iFdArray[0] = dup2kernel(iFd[0]);
             iFdArray[1] = dup2kernel(iFd[1]);
             iFdArray[2] = dup2kernel(iFd[2]);
         }
+        
         /*
          *  由于相关文件已经 dup 到内核中, 所以这里可以关闭进程中的相关的文件
          */
@@ -771,6 +785,12 @@ INT  API_TShellExecBg (CPCHAR  pcCommandExec, INT  iFd[3], BOOL  bClosed[3],
         iFd     = iFdArray;
         bClosed = bClosedArray;                                         /*  文件是 dup 出来的这里必须全关*/
     
+        __tshellPreTreatedBg(cCommand, LW_NULL, &bNeedAsyn);            /*  预处理背景执行相关参数       */
+        
+        if (bNeedAsyn) {
+            bIsJoin = LW_FALSE;
+        }
+        
     } else {                                                            /*  内核中调用                   */
         if (iFd == LW_NULL) {
             LW_OBJECT_HANDLE  ulMe = API_ThreadIdSelf();
@@ -779,6 +799,7 @@ INT  API_TShellExecBg (CPCHAR  pcCommandExec, INT  iFd[3], BOOL  bClosed[3],
             iFdArray[1] = API_IoTaskStdGet(ulMe, STD_OUT);
             iFdArray[2] = API_IoTaskStdGet(ulMe, STD_ERR);
         }
+        
         if (bClosed == LW_NULL) {
             bClosed = bClosedArray;
             bClosedArray[0] = LW_FALSE;
@@ -787,7 +808,7 @@ INT  API_TShellExecBg (CPCHAR  pcCommandExec, INT  iFd[3], BOOL  bClosed[3],
         }
     }
     
-    iError = __tshellBgCreateEx(iFd, bClosed, pcCommandExec, lib_strlen(pcCommandExec), 
+    iError = __tshellBgCreateEx(iFd, bClosed, cCommand, lib_strlen(cCommand), 
                                 0ul, bIsJoin, 0, pulSh, &iRet);
     if (iError < 0) {                                                   /*  背景创建失败                */
         /*

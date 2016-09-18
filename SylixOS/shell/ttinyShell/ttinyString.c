@@ -105,7 +105,7 @@ static BOOL  __tshellIsSeparator (CHAR  cChar)
 ** 调用模块: 
 ** 注  意  : 这里仅仅是判断转义字符, 但没有删除转义字符.
 *********************************************************************************************************/
-ULONG  __tshellStrConvertVar (CPCHAR       pcCmd, PCHAR  pcCmdOut)
+ULONG  __tshellStrConvertVar (CPCHAR  pcCmd, PCHAR  pcCmdOut)
 {
              PCHAR  pcVarValue = LW_NULL;
     REGISTER INT    iTotalLen  = 0;                                     /*  转换后的命令总长            */
@@ -123,7 +123,6 @@ ULONG  __tshellStrConvertVar (CPCHAR       pcCmd, PCHAR  pcCmdOut)
              INT    iNeedClearTranMark = 0;                             /*  是否需要清除转义标志        */
 
     for (; *pcTemp != '\0'; pcTemp++) {
-        
         if (*pcTemp == '\\') {                                          /*  是否为转义字符              */
             iTransCharMarks = (iTransCharMarks > 0) ? 0 : 1;            /*  确定前端是否为转义字符      */
         } else {
@@ -273,7 +272,7 @@ ULONG  __tshellStrConvertVar (CPCHAR       pcCmd, PCHAR  pcCmdOut)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-ULONG  __tshellStrDelCRLF (CPCHAR       pcCmd)
+ULONG  __tshellStrDelCRLF (CPCHAR  pcCmd)
 {
     REGISTER PCHAR  pcCommand = (PCHAR)pcCmd;
 
@@ -293,7 +292,7 @@ ULONG  __tshellStrDelCRLF (CPCHAR       pcCmd)
 }
 /*********************************************************************************************************
 ** 函数名称: __tshellStrFormat
-** 功能描述: 整理一个接收到的字符串, 将所有多于的空格去掉.
+** 功能描述: 整理一个接收到的字符串, 将所有多余的空格去掉.
 ** 输　入  : pcCmd               shell 命令
 **           pcCmdOut            替换后的命令串
 ** 输　出  : 错误代码.
@@ -313,7 +312,6 @@ ULONG  __tshellStrFormat (CPCHAR  pcCmd, PCHAR  pcCmdOut)
              INT      iStartSpace = 0;
 
     for (; *pcCommand != '\0'; pcCommand++) {                           /*  去掉多于一个的空格          */
-        
         if (*pcCommand == '\\') {                                       /*  是否为转义字符              */
             iTransCharMarks = (iTransCharMarks > 0) ? 0 : 1;            /*  确定前端是否为转义字符      */
         } else {
@@ -364,7 +362,6 @@ ULONG  __tshellStrKeyword (CPCHAR  pcCmd, PCHAR  pcBuffer, PCHAR  *ppcParam)
              INT     iKeywordLen = 0;
 
     for (; *pcCommand != '\0'; pcCommand++) {                           /*  拷贝关键字                  */
-    
         if (*pcCommand != ' ') {                                        /*  不是空格                    */
             *pcInbuffer++ = *pcCommand;
             iKeywordLen++;
@@ -488,6 +485,7 @@ ULONG  __tshellStrDelTransChar (CPCHAR  pcCmd, PCHAR  pcCmdOut)
 
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 /*********************************************************************************************************
   END

@@ -226,6 +226,7 @@ PCHAR   API_IoGetDrvDescription (INT  iDrvNum)
     
     return  (pdrvlic->DRVLIC_pcDescription);
 }
+
 #endif                                                                  /*  LW_CFG_DEVICE_EN > 0        */
 /*********************************************************************************************************
   END

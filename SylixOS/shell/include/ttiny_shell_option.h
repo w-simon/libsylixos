@@ -39,17 +39,17 @@
 /*********************************************************************************************************
   keyword 高级创建选项
   
-  注意: 用户禁止使用 LW_OPTION_KEYWORD_STK_MAIN 选项
+  注意: 用户禁止使用 LW_OPTION_KEYWORD_ASYNCBG / LW_OPTION_KEYWORD_STK_MAIN 选项
 *********************************************************************************************************/
 
 #define LW_OPTION_KEYWORD_SYNCBG        0x00000001                      /*  此命令必须使用同步背景执行  */
                                                                         /*  在另外一个任务上下文中执行  */
                                                                         /*  并且等待执行结束            */
-                                                                        
+
+#ifdef __SYLIXOS_KERNEL
 #define LW_OPTION_KEYWORD_ASYNCBG       0x00000002                      /*  此命令必须使用同步背景执行  */
                                                                         /*  在另外一个任务上下文中执行  */
                                                                         
-#ifdef __SYLIXOS_KERNEL
 #define LW_OPTION_KEYWORD_STK_MAIN      0x00000004                      /*  背景执行 shell 进程主线程   */
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
                                                                         

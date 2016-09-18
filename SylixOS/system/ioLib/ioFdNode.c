@@ -207,6 +207,7 @@ INT  API_IosFdNodeLock (PLW_FD_NODE  pfdnode)
     
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_DEVICE_EN > 0        */
 /*********************************************************************************************************
   END

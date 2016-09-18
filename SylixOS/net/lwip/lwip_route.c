@@ -273,17 +273,22 @@ static VOID __rtBuildinTraversal (VOIDFUNCPTR  pfuncHook,
         rte.RTE_cNetifName[1]   = netif->name[1];
         rte.RTE_cNetifName[2]   = (char)(netif->num + '0');
         rte.RTE_cNetifName[3]   = PX_EOS;
-        rte.RTE_uiFlag          = LW_RT_FLAG_U | LW_RT_FLAG_H;
+        
+        if (netif_is_up(netif) && netif_is_link_up(netif)) {
+            rte.RTE_uiFlag = LW_RT_FLAG_U | LW_RT_FLAG_H;
+        
+        } else {
+            rte.RTE_uiFlag = LW_RT_FLAG_H;
+        }
         
         pfuncHook(&rte, pvArg0, pvArg1, pvArg2, pvArg3, pvArg4);
         
         if (netif->flags & NETIF_FLAG_POINTTOPOINT) {                   /*  PPP / SLIP 连接             */
             rte.RTE_ipaddrDest.addr = netif->gw.addr;
-            rte.RTE_uiFlag          = LW_RT_FLAG_U | LW_RT_FLAG_H;
             
         } else {                                                        /*  普通链接                    */
             rte.RTE_ipaddrDest.addr = netif->ip_addr.addr & netif->netmask.addr;
-            rte.RTE_uiFlag          = LW_RT_FLAG_U;
+            rte.RTE_uiFlag &= ~LW_RT_FLAG_H;
         }
         
         pfuncHook(&rte, pvArg0, pvArg1, pvArg2, pvArg3, pvArg4);
@@ -297,7 +302,13 @@ static VOID __rtBuildinTraversal (VOIDFUNCPTR  pfuncHook,
         rte.RTE_cNetifName[1]   = netif_default->name[1];
         rte.RTE_cNetifName[2]   = (char)(netif_default->num + '0');
         rte.RTE_cNetifName[3]   = PX_EOS;
-        rte.RTE_uiFlag          = LW_RT_FLAG_U | LW_RT_FLAG_G;
+        
+        if (netif_is_up(netif_default) && netif_is_link_up(netif_default)) {
+            rte.RTE_uiFlag = LW_RT_FLAG_U | LW_RT_FLAG_G;
+        
+        } else {
+            rte.RTE_uiFlag = LW_RT_FLAG_G;
+        }
         
         pfuncHook(&rte, pvArg0, pvArg1, pvArg2, pvArg3, pvArg4);
     }
@@ -594,8 +605,14 @@ static INT __rtChange (ip_addr_t *pipaddrDest, ip_addr_t *pipaddrGw, UINT  uiFla
         return  (PX_ERROR);
     }
     
-    iError = __rtSafeRun(__rtChangeCallback, pipaddrDest, pipaddrGw, 
-                         (PVOID)uiFlag, (PVOID)pcNetifName, 0, 0);
+    if (pipaddrDest->addr == IPADDR_ANY) {                              /*  设置网卡默认网关            */
+        iError = __rtSafeRun(__rtSetGwCallback, pipaddrGw, (PVOID)LW_RT_GW_FLAG_SET, 
+                             (PVOID)pcNetifName, 0, 0, 0);
+    
+    } else {                                                            /*  设置路由信息                */
+        iError = __rtSafeRun(__rtChangeCallback, pipaddrDest, pipaddrGw, 
+                             (PVOID)uiFlag, (PVOID)pcNetifName, 0, 0);
+    }
     
     return  (iError);
 }
@@ -925,14 +942,26 @@ static VOID __buildinRtPrint (PCHAR  pcBuffer, size_t  stSize, size_t *pstOffset
             ipaddr_ntoa_r(&ipaddr, cIpDest, INET_ADDRSTRLEN);
             ipaddr_ntoa_r(&netif->netmask, cMask, INET_ADDRSTRLEN);
             if_indextoname(netif->num, cIfName);
-            lib_strcpy(cFlag, "UH");
-        
+            
+            if (netif_is_up(netif) && netif_is_link_up(netif)) {
+                lib_strcpy(cFlag, "UH");
+            
+            } else {
+                lib_strcpy(cFlag, "H");
+            }
+            
         } else {                                                        /*  普通链接                    */
             ipaddr.addr = netif->ip_addr.addr & netif->netmask.addr;
             ipaddr_ntoa_r(&ipaddr, cIpDest, INET_ADDRSTRLEN);
             ipaddr_ntoa_r(&netif->netmask, cMask, INET_ADDRSTRLEN);
             if_indextoname(netif->num, cIfName);
-            lib_strcpy(cFlag, "U");
+            
+            if (netif_is_up(netif) && netif_is_link_up(netif)) {
+                lib_strcpy(cFlag, "U");
+            
+            } else {
+                cFlag[0] = PX_EOS;
+            }
         }
         
         *pstOffset = bnprintf(pcBuffer, stSize, *pstOffset,
@@ -940,7 +969,13 @@ static VOID __buildinRtPrint (PCHAR  pcBuffer, size_t  stSize, size_t *pstOffset
                               cIpDest, cGateway, cMask, cFlag, cIfName);
 
         ipaddr_ntoa_r(&netif->ip_addr, cIpDest, INET_ADDRSTRLEN);
-        lib_strcpy(cFlag, "UH");
+        
+        if (netif_is_up(netif) && netif_is_link_up(netif)) {
+            lib_strcpy(cFlag, "UH");
+        
+        } else {
+            lib_strcpy(cFlag, "H");
+        }
         
         *pstOffset = bnprintf(pcBuffer, stSize, *pstOffset,
                               "%-18s %-18s %-18s %-8s %-3s\n",
@@ -951,7 +986,13 @@ static VOID __buildinRtPrint (PCHAR  pcBuffer, size_t  stSize, size_t *pstOffset
         ipaddr_ntoa_r(&netif_default->gw, cGateway, INET_ADDRSTRLEN);
         ipaddr_ntoa_r(&netif_default->netmask, cMask, INET_ADDRSTRLEN);
         if_indextoname(netif_default->num, cIfName);
-        lib_strcpy(cFlag, "UG");
+        
+        if (netif_is_up(netif_default) && netif_is_link_up(netif_default)) {
+            lib_strcpy(cFlag, "UG");
+            
+        } else {
+            lib_strcpy(cFlag, "G");
+        }
 
         *pstOffset = bnprintf(pcBuffer, stSize, *pstOffset,
                               "%-18s %-18s %-18s %-8s %-3s\n",
