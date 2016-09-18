@@ -169,7 +169,7 @@ DRESULT  disk_ioctl (BYTE  ucDriver, BYTE ucCmd, void  *pvArg)
             return  (RES_ERROR);
         
         } else {
-            *(UINT32 *)pvArg = (UINT32)ulArgLong;                       /*  FatFs set 32 bit arg        */
+            *(DWORD *)pvArg = (DWORD)ulArgLong;                         /*  FatFs set 32 bit arg        */
         }
         return  (RES_OK);
         
@@ -180,7 +180,7 @@ DRESULT  disk_ioctl (BYTE  ucDriver, BYTE ucCmd, void  *pvArg)
             return  (RES_ERROR);
         
         } else {
-            *(UINT16 *)pvArg = (UINT16)ulArgLong;                       /*  FatFs set 16 bit arg        */
+            *(WORD *)pvArg = (WORD)ulArgLong;                           /*  FatFs set 16 bit arg        */
         }
         return  (RES_OK);
         
@@ -191,7 +191,7 @@ DRESULT  disk_ioctl (BYTE  ucDriver, BYTE ucCmd, void  *pvArg)
             return  (RES_ERROR);
         
         } else {
-            *(UINT32 *)pvArg = (UINT32)ulArgLong;                       /*  FatFs set 32 bit arg        */
+            *(DWORD *)pvArg = (DWORD)ulArgLong;                         /*  FatFs set 32 bit arg        */
         }
         return  (RES_OK);
         

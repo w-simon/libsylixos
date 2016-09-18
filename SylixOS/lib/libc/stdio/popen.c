@@ -33,12 +33,11 @@
  *
  */
 
+#define __SYLIXOS_KERNEL
 #include "stdio.h"
 #include "unistd.h"
 
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_FIO_LIB_EN > 0) && (LW_CFG_SHELL_EN > 0)
-
-static LW_OBJECT_HANDLE _G_ulPopenSh[LW_CFG_MAX_FILES]; /* all child info */
 
 /*
  *  get standard file
@@ -113,7 +112,7 @@ FILE *popen (const char *cmd, const char *type)
         return  (NULL);
     }
     
-    _G_ulPopenSh[fileno(fp)] = childsh;
+    _stdfile_pvsh(fp) = (PVOID)childsh;
     
     return  (fp);
 }
@@ -127,17 +126,16 @@ int pclose (FILE *fp)
     int fd = fileno(fp);
     int status = -1;
     
-    if (fd < 0) {
+    if (!fp || (fd < 0)) {
         errno = EINVAL;
         return  (PX_ERROR);
     }
 
-    childsh = _G_ulPopenSh[fd];
+    childsh = (LW_OBJECT_HANDLE)_stdfile_pvsh(fp);
     if (!childsh) {
         errno = EINVAL;
         return  (PX_ERROR);
     }
-    _G_ulPopenSh[fd] = 0;
     
     fclose(fp);
     
@@ -150,4 +148,5 @@ int pclose (FILE *fp)
     
     return  (status);
 }
+
 #endif  /* (LW_CFG_DEVICE_EN > 0) && (LW_CFG_FIO_LIB_EN > 0) && (LW_CFG_SHELL_EN > 0) */

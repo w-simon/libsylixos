@@ -408,6 +408,7 @@ __refined_seq:
         case LW_DISK_PART_TYPE_FAT12:                                   /*  FAT 文件系统类型            */
         case LW_DISK_PART_TYPE_FAT16:
         case LW_DISK_PART_TYPE_FAT16_BIG:
+        case LW_DISK_PART_TYPE_HPFS_NTFS:                               /*  exFAT / NTFS                */
         case LW_DISK_PART_TYPE_WIN95_FAT32:
         case LW_DISK_PART_TYPE_WIN95_FAT32LBA:
         case LW_DISK_PART_TYPE_WIN95_FAT16LBA:
@@ -693,6 +694,7 @@ __refined_seq:
         case LW_DISK_PART_TYPE_FAT12:                                   /*  FAT 文件系统类型            */
         case LW_DISK_PART_TYPE_FAT16:
         case LW_DISK_PART_TYPE_FAT16_BIG:
+        case LW_DISK_PART_TYPE_HPFS_NTFS:                               /*  exFAT / NTFS                */
         case LW_DISK_PART_TYPE_WIN95_FAT32:
         case LW_DISK_PART_TYPE_WIN95_FAT32LBA:
         case LW_DISK_PART_TYPE_WIN95_FAT16LBA:

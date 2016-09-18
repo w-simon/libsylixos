@@ -42,7 +42,7 @@ PCHAR  lib_strerror (INT  iNum)
     case EINTR:         return  ("Interrupted system call");
     case EIO:           return  ("I/O error");
     case ENXIO:         return  ("No such device or address");
-    case E2BIG:         return  ("Arg list too long or over flow");
+    case E2BIG:         return  ("Arg list too long or overflow");
     case ENOEXEC:       return  ("Exec format error");
     case EBADF:         return  ("Bad file number");
     case ECHILD:        return  ("No children");

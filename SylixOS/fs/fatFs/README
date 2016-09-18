@@ -37,6 +37,9 @@ port FatFs need change some code as following:
       f_open_ex and opendir_ex and get ino! 
 
    4: change f_mkfs() NFAT define (LW_CFG_...NFAT)
+      
+          1) change CHAR *path to BYTE vol;
+          2) const UINT n_fats = LW_CFG_FATFS_NFATS;
 
    5: check_fs() fix to ADS
 
@@ -48,8 +51,10 @@ port FatFs need change some code as following:
       #if _VOLUMES < 1 || _VOLUMES > 9
       #error Wrong _VOLUMES setting
       #endif
-	  
+      
    9: FILINFO add fcdate fctime file create time
-      change get_fileinfo() to get file create time
-	  
+      change get_fileinfo() and get_xdir_info() to get file create time
+      
   10: change f_mkfs() to FRESULT f_mkfs (BYTE vol, BYTE sfd, UINT au);
+  
+  11: f_getfree() add fs = *fatfs; at begining. 

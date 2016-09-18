@@ -155,6 +155,12 @@ typedef	struct __sFILE {
 	
 	/* sylixos add */
 	LW_RESOURCE_RAW resraw; /* process resource */
+	
+	/* for compatibility _fplock and _shtask use resource unused member */
+#ifdef __SYLIXOS_KERNEL
+#define _stdfile_pvlock(fp) ((fp)->resraw.RESRAW_pvArg[4])
+#define _stdfile_pvsh(fp)   ((fp)->resraw.RESRAW_pvArg[5])
+#endif
 } FILE;
 
 __BEGIN_DECLS

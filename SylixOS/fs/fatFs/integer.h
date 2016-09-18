@@ -16,4 +16,7 @@ typedef UINT16          WORD;
 /* These types MUST be 32 bit */
 typedef UINT32          DWORD;
 
+/* These types MUST be 64 bit */
+typedef UINT64          QWORD;
+
 #endif

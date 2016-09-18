@@ -82,6 +82,7 @@
 2013.06.24  升级 fat 文件系统, 同时支持卷标.
 2014.06.24  FAT 设备 64 为序列号为 -1.
 2014.12.31  支持 ff10.c 文件系统.
+2016.09.18  支持 exFAT 文件系统格式.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -159,6 +160,7 @@ static INT              _G_iFatDrvNum      = PX_ERROR;
 static PCHAR            _G_pcFat12FsString = "FAT12 FileSystem";
 static PCHAR            _G_pcFat16FsString = "FAT16 FileSystem";
 static PCHAR            _G_pcFat32FsString = "FAT32 FileSystem";
+static PCHAR            _G_pcExFatFsString = "exFAT FileSystem";
 /*********************************************************************************************************
   FAT 默认 ugid
 *********************************************************************************************************/
@@ -724,18 +726,21 @@ static INT  __fatFsSeekFile (PFAT_FILE  pfatfile, off_t  oftPtr)
     ULONG         ulError   = ERROR_NONE;
     
     if (pfatfile->FATFIL_iFileType == __FAT_FILE_TYPE_NODE) {           /*  标准 FAT 文件               */
-        if (f_tell(&pfatfile->FATFIL_fftm.FFTM_file) == (DWORD)oftPtr) {/*  不需要 seek                 */
+        if (f_tell(&pfatfile->FATFIL_fftm.FFTM_file) == oftPtr) {       /*  不需要 seek                 */
             return  (ERROR_NONE);
         }
-        fresError = f_lseek(&pfatfile->FATFIL_fftm.FFTM_file, (DWORD)oftPtr);
+        
+        fresError = f_lseek(&pfatfile->FATFIL_fftm.FFTM_file, oftPtr);
         if ((fresError == FR_OK) && 
-            (f_tell(&pfatfile->FATFIL_fftm.FFTM_file) == (DWORD)oftPtr)) {
+            (f_tell(&pfatfile->FATFIL_fftm.FFTM_file) == oftPtr)) {
             return  (ERROR_NONE);
         }
         ulError = __fatFsGetError(fresError);                           /*  转换错误编号                */
+    
     } else {
         ulError = EISDIR;
     }
+    
     _ErrorHandle(ulError);
     return  (PX_ERROR);
 }
@@ -762,12 +767,9 @@ static LONG  __fatFsOpen (PFAT_VOLUME     pfatvol,
              PLW_FD_NODE    pfdnode;
              BOOL           bIsNew;
              FILINFO        fileinfo;
-             CHAR           cLFNBuffer[MAX_FILENAME_LENGTH];
              off_t          oftSize;
 
-    fileinfo.lfname = cLFNBuffer;                                       /*  初始化长文件名缓冲区        */
-    fileinfo.lfsize = MAX_FILENAME_LENGTH;
-    
+
     if (pcName == LW_NULL) {                                            /*  无文件名                    */
         _ErrorHandle(ERROR_IO_NO_DEVICE_NAME_IN_PATH);
         return  (PX_ERROR);
@@ -1441,17 +1443,31 @@ static INT  __fatFsFormat (PLW_FD_ENTRY  pfdentry, LONG  lArg)
                                FIODISKFORMAT,
                                lArg);                                   /*  底层格式化                  */
     if (iError < 0) {
+        PVOID  pvWork = __SHEAP_ALLOC(_MAX_SS);                         /*  分配缓冲区                  */
+        
+        if (pvWork == LW_NULL) {
+            __FAT_FILE_UNLOCK(pfatfile);
+            _DebugHandle(__ERRORMESSAGE_LEVEL, "system low memory.\r\n");
+            _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
+            return  (PX_ERROR);
+        }
+        
         if (__blockIoDevIsLogic(pfatfile->FATFIL_pfatvol->FATVOL_iDrv)) {
-                                                                        /*  此磁盘为逻辑磁盘不需要分区表*/
             fresError = f_mkfs((BYTE)pfatfile->FATFIL_pfatvol->FATVOL_iDrv, 
-                               (BYTE)1,
-                               (UINT16)ulClusterSize);
+                               (BYTE)(FM_SFD | FM_ANY),
+                               (UINT16)ulClusterSize,
+                               pvWork, _MAX_SS);                        /*  此磁盘为逻辑磁盘不需要分区表*/
         } else {
             fresError = f_mkfs((BYTE)pfatfile->FATFIL_pfatvol->FATVOL_iDrv, 
-                               (BYTE)0,
-                               (UINT16)ulClusterSize);                  /*  格式化带有分区表            */
+                               (BYTE)(FM_ANY),
+                               (UINT16)ulClusterSize, 
+                               pvWork, _MAX_SS);                        /*  格式化带有分区表            */
         }
+        
+        __SHEAP_FREE(pvWork);                                           /*  释放缓冲区                  */
+        
         ulError = __fatFsGetError(fresError);                           /*  转换错误编号                */
+    
     } else {
         ulError = ERROR_NONE;
     }
@@ -1586,12 +1602,14 @@ static INT  __fatFsSeek (PLW_FD_ENTRY  pfdentry, off_t  oftPos)
         }
     }
     if (pfatfile->FATFIL_iFileType == __FAT_FILE_TYPE_NODE) {
-        if ((oftPos < 0) || (oftPos > (off_t)((DWORD)(~0)))) {          /*  必须在 4GB 以内             */
+        if (oftPos < 0) {
             ulError = EOVERFLOW;
             iError  = PX_ERROR;
+        
         } else {
             pfdentry->FDENTRY_oftPtr = oftPos;
         }
+    
     } else {
         ulError = EISDIR;
         iError  = PX_ERROR;
@@ -1758,11 +1776,7 @@ static INT  __fatFsStatGet (PLW_FD_ENTRY  pfdentry, struct stat *pstat)
     INT            iError   = ERROR_NONE;
     ULONG          ulError  = ERROR_NONE;
     FILINFO        fileinfo;
-    CHAR           cLFNBuffer[MAX_FILENAME_LENGTH];
 
-    fileinfo.lfname = cLFNBuffer;                                       /*  初始化长文件名缓冲区        */
-    fileinfo.lfsize = MAX_FILENAME_LENGTH;
-    
     if (!pstat) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
@@ -1801,7 +1815,7 @@ static INT  __fatFsStatGet (PLW_FD_ENTRY  pfdentry, struct stat *pstat)
     }
     
     if (iError == ERROR_NONE) {                                         /*  转换为 POSIX 标准结构       */
-        fileinfo.fsize = (DWORD)pfdnode->FDNODE_oftSize;
+        fileinfo.fsize = pfdnode->FDNODE_oftSize;
         __filInfoToStat(&fileinfo, 
                         &pfatfile->FATFIL_pfatvol->FATVOL_fatfsVol,
                         pstat,
@@ -1872,11 +1886,7 @@ static INT  __fatFsReadDir (PLW_FD_ENTRY  pfdentry, DIR  *dir)
              
     mode_t         mode;
     FILINFO        fileinfo;
-    CHAR           cLFNBuffer[MAX_FILENAME_LENGTH];
 
-    fileinfo.lfname = cLFNBuffer;                                       /*  初始化长文件名缓冲区        */
-    fileinfo.lfsize = MAX_FILENAME_LENGTH;
-    
     if (__FAT_FILE_LOCK(pfatfile) != ERROR_NONE) {
         _ErrorHandle(ENXIO);                                            /*  设备出错                    */
         return  (PX_ERROR);
@@ -1899,7 +1909,7 @@ static INT  __fatFsReadDir (PLW_FD_ENTRY  pfdentry, DIR  *dir)
         _ErrorHandle(ENXIO);                                            /*  设备出错                    */
         return  (PX_ERROR);
     }
-    pfatfile->FATFIL_fftm.FFTM_fatdir.index = (UINT16)dir->dir_pos;
+    pfatfile->FATFIL_fftm.FFTM_fatdir.dptr = (UINT16)dir->dir_pos;
     if (dir->dir_pos == 0) {
         f_readdir(&pfatfile->FATFIL_fftm.FFTM_fatdir, LW_NULL);         /*  rewind dir                  */
     }
@@ -1915,16 +1925,18 @@ static INT  __fatFsReadDir (PLW_FD_ENTRY  pfdentry, DIR  *dir)
         iError  = PX_ERROR;
     
     } else {
-        dir->dir_pos = pfatfile->FATFIL_fftm.FFTM_fatdir.index;         /*  记录下次地点                */
+        dir->dir_pos = pfatfile->FATFIL_fftm.FFTM_fatdir.dptr;          /*  记录下次地点                */
+        
         /*
          *  拷贝文件名
          */
-        lib_strcpy(dir->dir_dirent.d_shortname, fileinfo.fname);        /*  短文件名                    */
-        if (fileinfo.lfname[0]) {
-            lib_strcpy(dir->dir_dirent.d_name, fileinfo.lfname);        /*  完整文件名                  */
-        } else {
+        lib_strcpy(dir->dir_dirent.d_shortname, fileinfo.altname);
+        if (fileinfo.fname[0]) {
             lib_strcpy(dir->dir_dirent.d_name, fileinfo.fname);         /*  完整文件名                  */
+        } else {
+            lib_strcpy(dir->dir_dirent.d_name, fileinfo.altname);       /*  完整文件名                  */
         }
+        
         /*
          *  保存文件类型
          */
@@ -1954,13 +1966,8 @@ static INT  __fatFsTimeset (PLW_FD_ENTRY  pfdentry, struct utimbuf  *utim)
     INT            iError   = ERROR_NONE;
     ULONG          ulError  = ERROR_NONE;
     UINT32         dwTime   = __timeToFatTime(&utim->modtime);
-             
     FILINFO        fileinfo;
-    CHAR           cLFNBuffer[MAX_FILENAME_LENGTH];
 
-    fileinfo.lfname = cLFNBuffer;                                       /*  初始化长文件名缓冲区        */
-    fileinfo.lfsize = MAX_FILENAME_LENGTH;
-    
     if (__STR_IS_ROOT(pfatfile->FATFIL_cName)) {                        /*  检查是否为设备文件          */
         _ErrorHandle(ERROR_IOS_DRIVER_NOT_SUP);                         /*  不支持设备重命名            */
         return  (PX_ERROR);
@@ -2028,36 +2035,34 @@ static INT  __fatFsTruncate (PLW_FD_ENTRY  pfdentry, off_t  oftSize)
     INT            iError   = ERROR_NONE;
     ULONG          ulError  = ERROR_NONE;
     
-    DWORD          dwOldSize;
-    DWORD          dwNewSize;
+    off_t          oftOldSize;
+    off_t          oftNewSize;
              
     if ((oftSize < 0) || (oftSize > (off_t)((DWORD)(~0)))) {            /*  FAT 文件必须在 4GB 内       */
         _ErrorHandle(EOVERFLOW);
         return  (PX_ERROR);
     
     } else {
-        dwNewSize = (DWORD)oftSize;
+        oftNewSize = oftSize;
     }
 
     if (__FAT_FILE_LOCK(pfatfile) != ERROR_NONE) {
         _ErrorHandle(ENXIO);                                            /*  设备出错                    */
         return  (PX_ERROR);
     }
+    
     if (pfatfile->FATFIL_iFileType == __FAT_FILE_TYPE_NODE) {
-        
-        dwOldSize = f_size(&pfatfile->FATFIL_fftm.FFTM_file);           /*  获得当前文件大小            */
+        oftOldSize = f_size(&pfatfile->FATFIL_fftm.FFTM_file);          /*  获得当前文件大小            */
         
         if (oftSize > pfdnode->FDNODE_oftSize) {                        /*  需要放大文件                */
-            fresError = f_lseek(&pfatfile->FATFIL_fftm.FFTM_file, 
-                                dwNewSize);                             /*  直接放大文件                */
+            fresError = f_lseek(&pfatfile->FATFIL_fftm.FFTM_file, oftNewSize);
             if (fresError == FR_OK) {                                   /*  POSIX 规定新空间必须填充 0  */
-                f_lseek(&pfatfile->FATFIL_fftm.FFTM_file, dwOldSize);   /*  文件指针移动到 old size 处  */
-                __fatFsFillZero(pfatfile, (off_t)(dwNewSize - dwOldSize));
+                f_lseek(&pfatfile->FATFIL_fftm.FFTM_file, oftOldSize);  /*  文件指针移动到 old size 处  */
+                __fatFsFillZero(pfatfile, oftNewSize - oftOldSize);
             }
         
         } else if (oftSize < pfdnode->FDNODE_oftSize) {                 /*  缩小文件                    */
-            fresError = f_lseek(&pfatfile->FATFIL_fftm.FFTM_file, 
-                                dwNewSize);                             /*  直接放大文件                */
+            fresError = f_lseek(&pfatfile->FATFIL_fftm.FFTM_file, oftNewSize);
             if (fresError == FR_OK) {                                   /*  从指定位置截断文件          */
                 fresError = f_truncate(&pfatfile->FATFIL_fftm.FFTM_file);
             }
@@ -2303,6 +2308,10 @@ static INT  __fatFsIoctl (PLW_FD_ENTRY  pfdentry,
             
         case FS_FAT32:
             *(PCHAR *)lArg = _G_pcFat32FsString;
+            break;
+            
+        case FS_EXFAT:
+            *(PCHAR *)lArg = _G_pcExFatFsString;
             break;
             
         default:

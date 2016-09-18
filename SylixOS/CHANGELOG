@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2016-09-18: han.hui
+    加入 exFAT 文件系统支持.
+
     2016-08-19: han.hui
     加入 x86 体系结构支持.
 

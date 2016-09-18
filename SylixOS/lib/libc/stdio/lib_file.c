@@ -140,6 +140,7 @@ FILE  **__lib_stderr (VOID)
 {
     return  (lib_nlreent_stdfile(API_ThreadIdSelf(), STDERR_FILENO));
 }
+
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0)      */
                                                                         /*  (LW_CFG_FIO_LIB_EN > 0)     */
 /*********************************************************************************************************
