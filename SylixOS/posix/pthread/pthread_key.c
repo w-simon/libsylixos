@@ -87,7 +87,6 @@ static INT  __pthreadDataSet (long  lId, const void  *pvData)
     __PX_KEY_DATA       *pkeyd;
     PLW_CLASS_TCB        ptcbCur;
     LW_OBJECT_HANDLE     ulMe;
-    __PX_CONTEXT        *pctx;
     PLW_LIST_LINE        plineTemp;
     
     if (pkeyn == LW_NULL) {                                             /*  没有 key 键                 */
@@ -98,12 +97,6 @@ static INT  __pthreadDataSet (long  lId, const void  *pvData)
     LW_TCB_GET_CUR_SAFE(ptcbCur);
     
     ulMe = ptcbCur->TCB_ulId;
-    pctx = _posixCtxGet(ptcbCur);
-    
-    if (pctx == LW_NULL) {                                              /*  没有线程上下文              */
-        errno = ENOMEM;
-        return  (EINVAL);
-    }
     
     /*
      *  查找是否已经创建了相关私有数据
@@ -233,8 +226,6 @@ static VOID  __pthreadDataDeleteByThread (LW_OBJECT_HANDLE  ulId, PVOID  pvRetVa
     __PX_KEY_NODE       *pkeyn;
     __PX_KEY_DATA       *pkeyd;
     LW_OBJECT_HANDLE     ulMe = ptcbDel->TCB_ulId;
-    __PX_CONTEXT        *pctx = _posixCtxTryGet(ptcbDel);               /*  不存在则不创建              */
-    
     PLW_LIST_LINE        plineTempK;
     PLW_LIST_LINE        plineTempD;
     
@@ -243,13 +234,7 @@ static VOID  __pthreadDataDeleteByThread (LW_OBJECT_HANDLE  ulId, PVOID  pvRetVa
     
 #if LW_CFG_MODULELOADER_EN > 0
     LW_LD_VPROC         *pvprocDel;
-#endif                                                                  /*  LW_CFG_MODULELOADER_EN      */
-    
-    if (pctx == LW_NULL) {                                              /*  不是 posix 线程             */
-        return;
-    }
-    
-#if LW_CFG_MODULELOADER_EN > 0
+
     pvprocDel = __LW_VP_GET_TCB_PROC(ptcbDel);
     if (pvprocDel && pvprocDel->VP_bForceTerm) {                        /*  进程不需要执行 destructor   */
         bCall = LW_FALSE;

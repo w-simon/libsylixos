@@ -186,6 +186,7 @@ VOID  __procFsPosixInfoInit (VOID)
     API_ProcFsMakeNode(&_G_pfsnPosix[0], "/");
     API_ProcFsMakeNode(&_G_pfsnPosix[1], "/posix");
 }
+
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
                                                                         /*  LW_CFG_PROCFS_EN > 0        */
 /*********************************************************************************************************

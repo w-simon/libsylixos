@@ -49,17 +49,6 @@
 *********************************************************************************************************/
 INT  __ldGetFilePath(CPCHAR  pcParam, PCHAR  pcPathBuffer, size_t  stMaxLen);
 /*********************************************************************************************************
-  优先级转换
-*********************************************************************************************************/
-#define __PX_PRIORITY_CONVERT(prio)     (LW_PRIO_LOWEST - (prio))       /*  sylixos 与 posix 优先级转换 */
-/*********************************************************************************************************
-  配置信息 
-  if LW_CFG_LOWEST_PRIO = 255 (min = 1 max = 254)
-*********************************************************************************************************/
-#define __PX_PRIORITY_MAX               __PX_PRIORITY_CONVERT(1)        /*  建议不能设为最高            */
-#define __PX_PRIORITY_MIN               __PX_PRIORITY_CONVERT((LW_PRIO_LOWEST - 1))
-                                                                        /*  比 idle 稍高                */
-/*********************************************************************************************************
 ** 函数名称: __spawnArgFree
 ** 功能描述: free a spawn args (由于使用 lib_strdup 分配, 所以这里使用 lib_free 释放)
 ** 输　入  : psarg
@@ -238,7 +227,7 @@ INT  __spawnArgProc (__PSPAWN_ARG  psarg)
             _ErrorHandle(EINVAL);
             return  (PX_ERROR);
         }
-        ucPriority= (UINT8)__PX_PRIORITY_CONVERT(pschedparam->sched_priority);
+        ucPriority= (UINT8)PX_PRIORITY_CONVERT(pschedparam->sched_priority);
         API_ThreadSetPriority(API_ThreadIdSelf(), ucPriority);
     }
     
@@ -430,7 +419,7 @@ INT  __processStart (INT  mode, __PSPAWN_ARG  psarg)
                         
     if (psarg->SA_spawnattr.SPA_sFlags & POSIX_SPAWN_SETSCHEDPARAM) {   /*  设置优先级                  */
         threadattr.THREADATTR_ucPriority = 
-            (UINT8)__PX_PRIORITY_CONVERT(psarg->SA_spawnattr.SPA_schedparam.sched_priority);
+            (UINT8)PX_PRIORITY_CONVERT(psarg->SA_spawnattr.SPA_schedparam.sched_priority);
     }
 
     if (mode == P_OVERLAY) {                                            /*  替换当前进程空间            */

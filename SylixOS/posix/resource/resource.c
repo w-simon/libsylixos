@@ -332,6 +332,7 @@ int nice (int incr)
     int  oldpro = getpriority(PRIO_PROCESS, getpid());
     return  (setpriority(PRIO_PROCESS, getpid(), oldpro + incr));
 }
+
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
 /*********************************************************************************************************
   END

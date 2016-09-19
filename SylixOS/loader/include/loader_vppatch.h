@@ -25,6 +25,14 @@
 #include "SylixOS.h"
 
 /*********************************************************************************************************
+  POSIX 支持
+*********************************************************************************************************/
+
+#if LW_CFG_POSIX_EN > 0
+#include "../SylixOS/posix/include/posixLib.h"
+#endif
+
+/*********************************************************************************************************
   进程最大文件描述符 
   (因为进程0 1 2标准文件与内核一样映射方式不用, 这里的标准文件为真实打开的文件, 所以没有 STD_UNFIX 操作.
    为了继承内核文件描述符, 这里必须为 LW_CFG_MAX_FILES + 3)
@@ -95,7 +103,10 @@ typedef struct lw_ld_vproc {
     LW_LD_VPROC_T           VP_vptimer[3];                              /*  REAL / VIRTUAL / PROF 定时器*/
     
     LW_LIST_LINE_HEADER     VP_plineMap;                                /*  虚拟内存空间                */
-    ULONG                   VP_ulPad[5];                                /*  预留                        */
+    
+#if LW_CFG_POSIX_EN > 0
+    __PX_VPROC_CONTEXT      VP_pvpCtx;                                  /*  POSIX 进程上下文            */
+#endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
 } LW_LD_VPROC;
 
 /*********************************************************************************************************
@@ -125,23 +136,8 @@ extern LW_LD_VPROC          _G_vprocKernel;
 *********************************************************************************************************/
 
 #define __LW_VP_GET_TCB_PROC(ptcb)      ((LW_LD_VPROC *)(ptcb->TCB_pvVProcessContext))
-#define __LW_VP_GET_CUR_PROC()          ((LW_LD_VPROC *)(API_ThreadTcbSelf()->TCB_pvVProcessContext))
-#define __LW_VP_SET_CUR_PROC(pvproc)    (API_ThreadTcbSelf()->TCB_pvVProcessContext = (PVOID)(pvproc))
-
-/*********************************************************************************************************
-  vprocess pid
-*********************************************************************************************************/
-
-static LW_INLINE pid_t __lw_vp_get_tcb_pid (PLW_CLASS_TCB ptcb)
-{
-    LW_LD_VPROC  *pvproc = __LW_VP_GET_TCB_PROC(ptcb);
-    
-    if (pvproc) {
-        return  (pvproc->VP_pid);
-    } else {
-        return  (0);
-    }
-}
+#define __LW_VP_GET_CUR_PROC()          vprocGetCur()
+#define __LW_VP_SET_CUR_PROC(pvproc)    vprocSetCur(pvproc)
 
 /*********************************************************************************************************
   vprocess 内部操作
@@ -155,7 +151,10 @@ INT                 vprocDetach(pid_t  pid);
 LW_LD_VPROC        *vprocCreate(CPCHAR  pcFile);
 INT                 vprocDestroy(LW_LD_VPROC *pvproc);                  /*  没有调用 vprocRun 才可调用  */
 LW_LD_VPROC        *vprocGet(pid_t  pid);
+LW_LD_VPROC        *vprocGetCur(VOID);
+VOID                vprocSetCur(LW_LD_VPROC  *pvproc);
 pid_t               vprocGetPidByTcb(PLW_CLASS_TCB ptcb);
+pid_t               vprocGetPidByTcbNoLock(PLW_CLASS_TCB  ptcb);
 pid_t               vprocGetPidByTcbdesc(PLW_CLASS_TCB_DESC  ptcbdesc);
 LW_OBJECT_HANDLE    vprocMainThread(pid_t pid);
 INT                 vprocNotifyParent(LW_LD_VPROC *pvproc, INT  iSigCode, BOOL  bUpDateStat);

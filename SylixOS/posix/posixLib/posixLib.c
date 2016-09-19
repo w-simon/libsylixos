@@ -25,6 +25,9 @@
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../include/posixLib.h"                                        /*  已包含操作系统头文件        */
+#if LW_CFG_MODULELOADER_EN > 0
+#include "../SylixOS/loader/include/loader_vppatch.h"
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 /*********************************************************************************************************
   裁剪支持
 *********************************************************************************************************/
@@ -71,7 +74,7 @@ static VOID  _posixCtxDelete (LW_OBJECT_HANDLE  ulId, PVOID  pvRetVal, PLW_CLASS
 ** 函数名称: _posixCtxCreate
 ** 功能描述: 创建 posix 线程上下文
 ** 输　入  : ptcb          线程控制块
-** 输　出  : NONE
+** 输　出  : ERROR or OK
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
@@ -94,7 +97,7 @@ static INT  _posixCtxCreate (PLW_CLASS_TCB   ptcb)
 ** 函数名称: _posixCtxGet
 ** 功能描述: 获取 posix 线程上下文 (无则创建)
 ** 输　入  : ptcb          线程控制块
-** 输　出  : NONE
+** 输　出  : 线程上下文
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
@@ -115,7 +118,7 @@ __PX_CONTEXT  *_posixCtxGet (PLW_CLASS_TCB   ptcb)
 ** 函数名称: _posixCtxTryGet
 ** 功能描述: 获取 posix 线程上下文
 ** 输　入  : ptcb          线程控制块
-** 输　出  : NONE
+** 输　出  : 线程上下文
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
@@ -127,6 +130,30 @@ __PX_CONTEXT  *_posixCtxTryGet (PLW_CLASS_TCB   ptcb)
     }
     
     return  ((__PX_CONTEXT *)ptcb->TCB_pvPosixContext);
+}
+/*********************************************************************************************************
+** 函数名称: _posixVprocCtxGet
+** 功能描述: 获取 posix 进程上下文
+** 输　出  : 进程上下文
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+__PX_VPROC_CONTEXT  *_posixVprocCtxGet (VOID)
+{
+#if LW_CFG_MODULELOADER_EN > 0
+    LW_LD_VPROC  *pvproc = __LW_VP_GET_CUR_PROC();
+    
+    if (pvproc == LW_NULL) {
+        pvproc =  &_G_vprocKernel;
+    }
+    
+    return  (&pvproc->VP_pvpCtx);
+
+#else
+    static __PX_VPROC_CONTEXT   pvpCtx;
+    
+    return  (&pvpCtx);
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN      */
 }
 /*********************************************************************************************************
 ** 函数名称: API_PosixInit
@@ -179,6 +206,7 @@ VOID  API_PosixInit (VOID)
     
     bIsInit = LW_TRUE;
 }
+
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
 /*********************************************************************************************************
   END

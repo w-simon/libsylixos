@@ -197,7 +197,7 @@ static INT  __vmmMapnFill (PLW_VMM_MAP_NODE    pmapn,
     
 #if LW_CFG_MODULELOADER_EN > 0
     LW_TCB_GET_CUR_SAFE(ptcbCur);
-    if (pmapn->MAPN_pid != __lw_vp_get_tcb_pid(ptcbCur)) {              /*  如果不是创建进程            */
+    if (pmapn->MAPN_pid != vprocGetPidByTcbNoLock(ptcbCur)) {           /*  如果不是创建进程            */
         goto    __full_with_zero;
     }
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */

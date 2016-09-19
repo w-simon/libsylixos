@@ -25,6 +25,14 @@
 #include "SylixOS.h"                                                    /*  操作系统头文件              */
 
 /*********************************************************************************************************
+  GJB7714 need some pthread defines
+*********************************************************************************************************/
+
+#if LW_CFG_GJB7714_EN > 0
+#include "px_pthread.h"
+#endif
+
+/*********************************************************************************************************
   裁剪支持
 *********************************************************************************************************/
 #if LW_CFG_POSIX_EN > 0
@@ -48,9 +56,16 @@ typedef struct mq_attr {
     long                mq_maxmsg;                                      /*  max number of messages      */
     long                mq_msgsize;                                     /*  max message size            */
     long                mq_curmsgs;                                     /*  number of messages currently*/
+#if LW_CFG_GJB7714_EN > 0
+    /*
+     *  mq_open() use MQ_OPEN_METHOD_GJB method, use 'mq_curmsgs' as 'mq_waitqtype'.
+     *  PTHREAD_WAITQ_PRIO / PTHREAD_WAITQ_FIFO
+     */
+#define mq_waitqtype    mq_curmsgs                                      /*  ONLY mq_open() use this     */
+#endif                                                                  /*  LW_CFG_GJB7714_EN > 0       */
 } mq_attr_t;
 
-extern mq_attr_t  mq_attr_default;                                      /*  默认属性                    */
+extern mq_attr_t        mq_attr_default;                                /*  默认属性                    */
 
 /*********************************************************************************************************
   mqueue handle
@@ -91,6 +106,14 @@ LW_API int              mq_notify(mqd_t  mqd, const struct sigevent  *pnotify);
 *********************************************************************************************************/
 
 #if LW_CFG_GJB7714_EN > 0
+
+#define MQ_OPEN_METHOD_POSIX    0
+#define MQ_OPEN_METHOD_GJB      1
+#define MQ_OPEN_METHOD_DEFAULT  MQ_OPEN_METHOD_POSIX
+
+LW_API int              mq_open_method(int  method, int *old_method);   /*  used carefully!             */
+LW_API mqd_t            mq_create(int  flags, int  maxmsg, int  msgsize, int  waitqtype);
+LW_API int              mq_delete(mqd_t  mqd);
 
 typedef struct {
     mq_attr_t       attr;

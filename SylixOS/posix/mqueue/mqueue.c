@@ -58,9 +58,9 @@
   create option (这里加入 LW_OPTION_OBJECT_GLOBAL 因为 mqueue 的回收通过原始资源进行回收)
 *********************************************************************************************************/
 #if LW_CFG_POSIX_INTER_EN > 0
-#define __PX_MQUEUE_OPTION          (LW_OPTION_DEFAULT | LW_OPTION_SIGNAL_INTER | LW_OPTION_OBJECT_GLOBAL)
+#define __PX_MQUEUE_OPTION          (LW_OPTION_WAIT_PRIORITY | LW_OPTION_SIGNAL_INTER | LW_OPTION_OBJECT_GLOBAL)
 #else
-#define __PX_MQUEUE_OPTION          (LW_OPTION_DEFAULT | LW_OPTION_OBJECT_GLOBAL)
+#define __PX_MQUEUE_OPTION          (LW_OPTION_WAIT_PRIORITY | LW_OPTION_OBJECT_GLOBAL)
 #endif                                                                  /*  LW_CFG_POSIX_INTER_EN > 0   */
 /*********************************************************************************************************
   优先级转换
@@ -117,14 +117,15 @@ typedef struct {
 
 typedef struct {
     __PX_MSG           *PMSGF_pmg;                                      /*  消息队列                    */
-    int                 PMSGF_iFlag;                                    /*  mq_open() 时的 flag         */
+    BOOL                PMSGF_bCreate;                                  /*  通过 mq_create 创建         */
+    int                 PMSGF_iFlag;                                    /*  文件操作 flags              */
     LW_RESOURCE_RAW     PMSGF_resraw;                                   /*  资源管理节点                */
 } __PX_MSG_FILE;
-
 /*********************************************************************************************************
   参数
 *********************************************************************************************************/
-mq_attr_t  mq_attr_default = {O_RDWR, 128, 64, 0};
+
+mq_attr_t  mq_attr_default = {0, 10, 1024, PTHREAD_WAITQ_PRIO};
 
 #define __PX_MQ_LOCK(pmq)           API_SemaphoreMPend(pmq->PMSG_ulMutex, LW_OPTION_WAIT_INFINITE)
 #define __PX_MQ_UNLOCK(pmq)         API_SemaphoreMPost(pmq->PMSG_ulMutex)
@@ -400,10 +401,15 @@ static VOID  __mqueueInitBuffer (__PX_MSG  *pmq)
 static __PX_MSG  *__mqueueCreate (const char  *name, mode_t mode, struct mq_attr  *pmqattr)
 {
     INT        iErrLevel = 0;
+    ULONG      ulOption  = __PX_MQUEUE_OPTION;
     size_t     stMemBufferSize;                                         /*  需要的缓存大小              */
     size_t     stLen = lib_strlen(name);
     __PX_MSG  *pmq;
     
+#if LW_CFG_GJB7714_EN > 0
+    __PX_VPROC_CONTEXT  *pvpCtx = _posixVprocCtxGet();
+#endif                                                                  /*  LW_CFG_GJB7714_EN > 0       */
+
     /*
      *  创建控制块内存
      */
@@ -443,12 +449,21 @@ static __PX_MSG  *__mqueueCreate (const char  *name, mode_t mode, struct mq_attr
     pmq->PMSG_mqattr = *pmqattr;                                        /*  保存属性块                  */
     pmq->PMSG_mqattr.mq_curmsgs = 0;                                    /*  目前没有任何有效消息        */
     
+#if LW_CFG_GJB7714_EN > 0
+    if (pvpCtx->PVPCTX_iPMqOpenMethod == MQ_OPEN_METHOD_GJB) {
+        if (pmqattr->mq_waitqtype == PTHREAD_WAITQ_PRIO) {
+            ulOption |= LW_OPTION_WAIT_PRIORITY;
+        
+        } else {
+            ulOption &= ~LW_OPTION_WAIT_PRIORITY;
+        }
+    }
+#endif                                                                  /*  LW_CFG_GJB7714_EN > 0       */
     /*
      *  初始化信号量
      */
     pmq->PMSG_ulReadSync = API_SemaphoreBCreate("pxmq_rdsync", LW_FALSE, 
-                                                __PX_MQUEUE_OPTION, 
-                                                LW_NULL);               /*  初始化为不可读              */
+                                                ulOption, LW_NULL);     /*  初始化为不可读              */
     if (pmq->PMSG_ulReadSync == LW_OBJECT_HANDLE_INVALID) {
         iErrLevel = 2;
         errno     = ENOSPC;
@@ -456,8 +471,7 @@ static __PX_MSG  *__mqueueCreate (const char  *name, mode_t mode, struct mq_attr
     }
     
     pmq->PMSG_ulWriteSync = API_SemaphoreBCreate("pxmq_wrsync", LW_TRUE,
-                                                 __PX_MQUEUE_OPTION, 
-                                                 LW_NULL);              /*  初始化为可写                */
+                                                 ulOption, LW_NULL);    /*  初始化为可写                */
     if (pmq->PMSG_ulWriteSync == LW_OBJECT_HANDLE_INVALID) {
         iErrLevel = 3;
         errno     = ENOSPC;
@@ -466,6 +480,7 @@ static __PX_MSG  *__mqueueCreate (const char  *name, mode_t mode, struct mq_attr
     
     pmq->PMSG_ulMutex = API_SemaphoreMCreate("pxmq_mutex", LW_PRIO_DEF_CEILING, 
                                              LW_OPTION_INHERIT_PRIORITY | 
+                                             LW_OPTION_WAIT_PRIORITY |
                                              LW_OPTION_DELETE_SAFE |
                                              LW_OPTION_OBJECT_GLOBAL, LW_NULL);
     if (pmq->PMSG_ulMutex == LW_OBJECT_HANDLE_INVALID) {
@@ -513,6 +528,150 @@ static VOID  __mqueueDelete (__PX_MSG  *pmq)
     __SHEAP_FREE(pmq->PMSG_pmsgmem.PMSGM_pcMem);
     __SHEAP_FREE(pmq);
 }
+/*********************************************************************************************************
+** 函数名称: mq_open_method
+** 功能描述: 选择 mq_open 操作类型. (当前进程)
+** 输　入  : method        新的操作类型
+**           old_method    之前的操作类型
+** 输　出  : ERROR CODE
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+#if LW_CFG_GJB7714_EN > 0
+
+LW_API 
+int  mq_open_method (int  method, int *old_method)
+{
+    __PX_VPROC_CONTEXT  *pvpCtx = _posixVprocCtxGet();
+
+    if (old_method) {
+        *old_method = pvpCtx->PVPCTX_iPMqOpenMethod;
+    }
+    
+    if ((method == MQ_OPEN_METHOD_POSIX) ||
+        (method == MQ_OPEN_METHOD_GJB)) {
+        pvpCtx->PVPCTX_iPMqOpenMethod = method;
+    }
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: mq_create
+** 功能描述: 创建一个消息队列.
+** 输　入  : flags         0 or O_NONBLOCK
+**           maxmsg        队列缓冲消息个数
+**           msgsize       消息大小
+**           waitq_type    排队类型 PTHREAD_WAITQ_PRIO / PTHREAD_WAITQ_FIFO
+** 输　出  : 消息队列句柄
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API 
+mqd_t  mq_create (int  flags, int  maxmsg, int  msgsize, int  waitq_type)
+{
+    __PX_MSG           *pmq;
+    __PX_MSG_FILE      *pmqfile;
+    struct mq_attr      mqattr;
+    
+    if ((maxmsg < 0) || (msgsize < 0)) {
+        errno = EINVAL;
+        return  (MQ_FAILED);
+    }
+    
+    if ((waitq_type != PTHREAD_WAITQ_PRIO) && (waitq_type != PTHREAD_WAITQ_FIFO)) {
+        errno = EINVAL;
+        return  (MQ_FAILED);
+    }
+    
+    if (LW_CPU_GET_CUR_NESTING()) {
+        errno = ECALLEDINISR;
+        return  (MQ_FAILED);
+    }
+    
+    if (maxmsg == 0) {
+        maxmsg =  10;
+    }
+    
+    if (msgsize == 0) {
+        msgsize =  1024;
+    }
+    
+    pmqfile = (__PX_MSG_FILE *)__SHEAP_ALLOC(sizeof(__PX_MSG_FILE));
+    if (pmqfile == LW_NULL) {
+        errno = ENOMEM;
+        return  (MQ_FAILED);
+    }
+    
+    mqattr.mq_flags     = flags;
+    mqattr.mq_maxmsg    = maxmsg;
+    mqattr.mq_msgsize   = msgsize;
+    mqattr.mq_waitqtype = waitq_type;
+    
+    __PX_LOCK();                                                        /*  锁住 posix                  */
+    pmq = __mqueueCreate("?pmq_unname", 0600, &mqattr);                 /*  创建消息队列                */
+    if (pmq == LW_NULL) {
+        __PX_UNLOCK();                                                  /*  解锁 posix                  */
+        __SHEAP_FREE(pmqfile);
+        return  (MQ_FAILED);
+    }
+    
+    pmqfile->PMSGF_pmg     = pmq;
+    pmqfile->PMSGF_bCreate = LW_TRUE;
+    pmqfile->PMSGF_iFlag   = O_RDWR;
+    __PX_UNLOCK();                                                      /*  解锁 posix                  */
+    
+    __resAddRawHook(&pmqfile->PMSGF_resraw, (VOIDFUNCPTR)mq_delete, 
+                    pmqfile, 0, 0, 0, 0, 0);                            /*  加入资源管理器              */
+    
+    return  ((mqd_t)pmqfile);                                           /*  返回句柄地址                */
+}
+/*********************************************************************************************************
+** 函数名称: mq_delete
+** 功能描述: 删除 mq_create 创建的消息队列.
+** 输　入  : mqd           消息队列句柄
+** 输　出  : ERROR CODE
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API 
+int  mq_delete (mqd_t  mqd)
+{
+    __PX_MSG           *pmq;
+    __PX_MSG_FILE      *pmqfile;
+
+    if ((mqd == MQ_FAILED) || (mqd == 0)) {
+        errno = EBADF;
+        return  (PX_ERROR);
+    }
+    
+    if (LW_CPU_GET_CUR_NESTING()) {
+        errno = ECALLEDINISR;
+        return  (MQ_FAILED);
+    }
+    
+    pmqfile = (__PX_MSG_FILE *)mqd;
+    pmq = pmqfile->PMSGF_pmg;
+    
+    if (!pmqfile->PMSGF_bCreate) {                                      /*  非 create 创建              */
+        errno = EINVAL;
+        return  (PX_ERROR);
+    }
+    
+    __PX_LOCK();                                                        /*  锁住 posix                  */
+    __mqueueDelete(pmq);                                                /*  删除消息队列控制块          */
+    __PX_UNLOCK();                                                      /*  解锁 posix                  */
+    
+    __resDelRawHook(&pmqfile->PMSGF_resraw);
+
+    __SHEAP_FREE(pmqfile);                                              /*  释放句柄                    */
+    
+    return  (ERROR_NONE);
+}
+
+#endif                                                                  /*  LW_CFG_GJB7714_EN > 0       */
 /*********************************************************************************************************
 ** 函数名称: mq_open
 ** 功能描述: 打开一个命名的 posix 消息队列.
@@ -566,8 +725,10 @@ mqd_t  mq_open (const char  *name, int  flag, ...)
                 errno = ENOMEM;
                 return  (MQ_FAILED);
             }
-            pmqfile->PMSGF_pmg   = (__PX_MSG *)pxnode->PXNODE_pvData;
-            pmqfile->PMSGF_iFlag = flag;
+            
+            pmqfile->PMSGF_pmg     = (__PX_MSG *)pxnode->PXNODE_pvData;
+            pmqfile->PMSGF_bCreate = LW_FALSE;
+            pmqfile->PMSGF_iFlag   = flag;
             
             API_AtomicInc(&pxnode->PXNODE_atomic);
             __PX_UNLOCK();                                              /*  解锁 posix                  */
@@ -579,7 +740,6 @@ mqd_t  mq_open (const char  *name, int  flag, ...)
         }
     
     } else {
-        
         if (flag & O_CREAT) {
             mode_t          mode;
             struct mq_attr *pmqattr;
@@ -591,6 +751,7 @@ mqd_t  mq_open (const char  *name, int  flag, ...)
         
             if (pmqattr == LW_NULL) {
                 pmqattr =  &mq_attr_default;                            /*  使用默认属性                */
+            
             } else {
                 if ((pmqattr->mq_msgsize <= 0) ||
                     (pmqattr->mq_maxmsg  <= 0)) {
@@ -618,8 +779,9 @@ mqd_t  mq_open (const char  *name, int  flag, ...)
             }
             __pxnameAdd(&pmq->PMSG_pxnode);                             /*  加入名字节点表              */
             
-            pmqfile->PMSGF_pmg   = pmq;
-            pmqfile->PMSGF_iFlag = flag;
+            pmqfile->PMSGF_pmg     = pmq;
+            pmqfile->PMSGF_bCreate = LW_FALSE;
+            pmqfile->PMSGF_iFlag   = flag;
             
             API_AtomicInc(&pmq->PMSG_pxnode.PXNODE_atomic);
             __PX_UNLOCK();                                              /*  解锁 posix                  */
@@ -660,6 +822,11 @@ int  mq_close (mqd_t  mqd)
     
     pmqfile = (__PX_MSG_FILE *)mqd;
     pmq = pmqfile->PMSGF_pmg;
+    
+    if (pmqfile->PMSGF_bCreate) {                                       /*  create 创建                 */
+        errno = ENOENT;
+        return  (PX_ERROR);
+    }
     
     __PX_LOCK();                                                        /*  锁住 posix                  */
     if (API_AtomicGet(&pmq->PMSG_pxnode.PXNODE_atomic) > 0) {

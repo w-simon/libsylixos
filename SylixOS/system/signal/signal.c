@@ -246,7 +246,7 @@ INT   sigaction (INT                      iSigNo,
 
 #if LW_CFG_MODULELOADER_EN > 0
     {
-        pid_t   pid = __lw_vp_get_tcb_pid(ptcbCur);
+        pid_t   pid = vprocGetPidByTcbNoLock(ptcbCur);
         
         if (pid > 0) {
             vprocThreadTraversal2(pid, pid_sigaction,

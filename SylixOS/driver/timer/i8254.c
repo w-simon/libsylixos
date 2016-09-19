@@ -157,7 +157,7 @@ UINT16  i8254GetCnt (I8254_CTL *pctl)
      * |   1   |   1   | /COUNT | /STATUS |  CNT2  |  CNT1  |  CNT0  |   0   |
      * +-------+-------+--------+---------+--------+--------+--------+-------+
      */
-    out8((UINT8)((0x11 << 6) | (1 << 4) | (1 < 1)), PIT_REG_COMMAND);
+    out8((UINT8)((0x3 << 6) | (1 << 4) | (1 < 1)), PIT_REG_COMMAND);
 
     usDivisor  = (UINT16)in8(PIT_REG_COUNTER0);
     usDivisor |= ((UINT16)in8(PIT_REG_COUNTER0) << 8);

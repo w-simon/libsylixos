@@ -54,6 +54,7 @@ VOID    API_SemaphoreShow (LW_OBJECT_HANDLE  ulId)
     
              BOOL                   bValue;
              ULONG                  ulValue;
+             ULONG                  ulMaxValue;
              ULONG                  ulWValue;
              ULONG                  ulRWCnt;
              ULONG                  ulOption;
@@ -84,11 +85,16 @@ VOID    API_SemaphoreShow (LW_OBJECT_HANDLE  ulId)
 
 #if LW_CFG_SEMC_EN > 0
     case _OBJECT_SEM_C:
-        ulErrorCode = API_SemaphoreCStatus(ulId,
-                                           &ulValue,
-                                           &ulOption,
-                                           &ulThreadNum);
-        pcType  = "COUNTER";
+        ulErrorCode = API_SemaphoreCStatusEx(ulId,
+                                             &ulValue,
+                                             &ulOption,
+                                             &ulThreadNum,
+                                             &ulMaxValue);
+        if (ulMaxValue == 1) {
+            pcType  = "BINARY(COUNTER)";
+        } else {
+            pcType  = "COUNTER";
+        }
         pcValue = &cValueStr[0];
         sprintf(pcValue, "%lu", ulValue);
         break;

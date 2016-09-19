@@ -159,6 +159,7 @@ INT  __pxnameGet (CPCHAR  pcName, PVOID  *ppvData)
     
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
 /*********************************************************************************************************
   END

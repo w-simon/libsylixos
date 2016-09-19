@@ -25,6 +25,14 @@
 #include "SylixOS.h"                                                    /*  操作系统头文件              */
 
 /*********************************************************************************************************
+  GJB7714 need some pthread defines
+*********************************************************************************************************/
+
+#if LW_CFG_GJB7714_EN > 0
+#include "px_pthread.h"
+#endif
+
+/*********************************************************************************************************
   裁剪支持
 *********************************************************************************************************/
 #if LW_CFG_POSIX_EN > 0
@@ -51,6 +59,23 @@ typedef struct {
 #define SEMAPHORE_INITIALIZER   {LW_NULL, LW_NULL}
 
 /*********************************************************************************************************
+  sem GJB7714 extern
+  
+  sem_open_method(SEM_OPEN_METHOD_GJB, NULL);
+  sem_open("sem_name", O_CREAT, 0666, 1, SEM_BINARY, PTHREAD_WAITQ_PRIO);
+  
+  sem_open_method(SEM_OPEN_METHOD_POSIX, NULL);
+  sem_open("sem_name", O_CREAT, 0666, 1);
+*********************************************************************************************************/
+
+#if LW_CFG_GJB7714_EN > 0
+typedef int             WaitQ_Type;                                     /*  PTHREAD_WAITQ_PRIO          */
+                                                                        /*  PTHREAD_WAITQ_FIFO          */
+#define SEM_BINARY      0
+#define SEM_COUNTING    1
+#endif                                                                  /*  LW_CFG_GJB7714_EN > 0       */
+
+/*********************************************************************************************************
   sem api
 *********************************************************************************************************/
 
@@ -73,6 +98,13 @@ LW_API int          sem_getvalue(sem_t  *psem, int  *pivalue);
 *********************************************************************************************************/
 
 #if LW_CFG_GJB7714_EN > 0
+
+#define SEM_OPEN_METHOD_POSIX   0
+#define SEM_OPEN_METHOD_GJB     1
+#define SEM_OPEN_METHOD_DEFAULT SEM_OPEN_METHOD_POSIX
+
+LW_API int          sem_open_method(int  method, int *old_method);      /*  used carefully!             */
+
 typedef struct {
     ULONG                   SEMINFO_ulCounter;
     ULONG                   SEMINFO_ulOption;

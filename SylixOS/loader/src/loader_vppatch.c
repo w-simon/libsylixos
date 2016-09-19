@@ -586,6 +586,38 @@ LW_LD_VPROC *vprocGet (pid_t  pid)
     return  (_G_pvprocTable[pid - 1]);
 }
 /*********************************************************************************************************
+** 函数名称: vprocGetCur
+** 功能描述: 获得当前进程控制块
+** 输　入  : NONE
+** 输　出  : 进程控制块指针
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+LW_LD_VPROC *vprocGetCur (VOID)
+{
+    PLW_CLASS_TCB   ptcbCur;
+    
+    LW_TCB_GET_CUR_SAFE(ptcbCur);
+    
+    return  ((LW_LD_VPROC *)ptcbCur->TCB_pvVProcessContext);
+}
+/*********************************************************************************************************
+** 函数名称: vprocSetCur
+** 功能描述: 设置当前进程控制块
+** 输　入  : pvproc    进程控制块指针
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  vprocSetCur (LW_LD_VPROC  *pvproc)
+{
+    PLW_CLASS_TCB   ptcbCur;
+    
+    LW_TCB_GET_CUR_SAFE(ptcbCur);
+    
+    ptcbCur->TCB_pvVProcessContext = (PVOID)pvproc;
+}
+/*********************************************************************************************************
 ** 函数名称: vprocGetPidByTcb
 ** 功能描述: 通过 tcb 获得进程 id
 ** 输　入  : ptcb      任务控制块
@@ -605,6 +637,28 @@ pid_t  vprocGetPidByTcb (PLW_CLASS_TCB  ptcb)
             pid = pvproc->VP_pid;
         }
         LW_LD_UNLOCK();
+    }
+    
+    return  (pid);
+}
+/*********************************************************************************************************
+** 函数名称: vprocGetPidByTcbNoLock 
+** 功能描述: 通过 tcb 获得进程 id (无锁)
+** 输　入  : ptcb      任务控制块
+** 输　出  : 进程 pid
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+pid_t  vprocGetPidByTcbNoLock (PLW_CLASS_TCB  ptcb)
+{
+    pid_t        pid = 0;
+    LW_LD_VPROC *pvproc;
+
+    if (ptcb) {
+        pvproc = __LW_VP_GET_TCB_PROC(ptcb);
+        if (pvproc) {
+            pid = pvproc->VP_pid;
+        }
     }
     
     return  (pid);

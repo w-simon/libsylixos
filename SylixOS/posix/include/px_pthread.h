@@ -349,6 +349,9 @@ LW_API int          pthread_getaffinity_np(pthread_t  thread, size_t setsize, cp
 
 #if LW_CFG_GJB7714_EN > 0
 
+#define PTHREAD_PRI_MIN             PX_PRIORITY_CONVERT((LW_PRIO_LOWEST - 1))
+#define PTHREAD_PRI_MAX             PX_PRIORITY_CONVERT(1)
+
 #define PTHREAD_STACK_FILLED        1
 #define PTHREAD_NO_STACK_FILLED     0
 

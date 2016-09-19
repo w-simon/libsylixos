@@ -46,9 +46,9 @@
   create option (这里加入 LW_OPTION_OBJECT_GLOBAL 是因为 sem 通过原始资源进行回收)
 *********************************************************************************************************/
 #if LW_CFG_POSIX_INTER_EN > 0
-#define __PX_SEM_OPTION             (LW_OPTION_DEFAULT | LW_OPTION_SIGNAL_INTER | LW_OPTION_OBJECT_GLOBAL)
+#define __PX_SEM_OPTION             (LW_OPTION_WAIT_PRIORITY | LW_OPTION_SIGNAL_INTER | LW_OPTION_OBJECT_GLOBAL)
 #else
-#define __PX_SEM_OPTION             (LW_OPTION_DEFAULT | LW_OPTION_OBJECT_GLOBAL)
+#define __PX_SEM_OPTION             (LW_OPTION_WAIT_PRIORITY | LW_OPTION_OBJECT_GLOBAL)
 #endif                                                                  /*  LW_CFG_POSIX_INTER_EN > 0   */
 /*********************************************************************************************************
   internal sem
@@ -98,6 +98,36 @@ static void  __sem_init_invisible (sem_t  *psem)
     }
 }
 /*********************************************************************************************************
+** 函数名称: sem_open_method
+** 功能描述: 选择 sem_open 操作类型. (当前进程)
+** 输　入  : method        新的操作类型
+**           old_method    之前的操作类型
+** 输　出  : ERROR CODE
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+#if LW_CFG_GJB7714_EN > 0
+
+LW_API 
+int  sem_open_method (int  method, int *old_method)
+{
+    __PX_VPROC_CONTEXT  *pvpCtx = _posixVprocCtxGet();
+
+    if (old_method) {
+        *old_method = pvpCtx->PVPCTX_iPSemOpenMethod;
+    }
+    
+    if ((method == SEM_OPEN_METHOD_POSIX) ||
+        (method == SEM_OPEN_METHOD_GJB)) {
+        pvpCtx->PVPCTX_iPSemOpenMethod = method;
+    }
+    
+    return  (ERROR_NONE);
+}
+
+#endif                                                                  /*  LW_CFG_GJB7714_EN > 0       */
+/*********************************************************************************************************
 ** 函数名称: sem_init
 ** 功能描述: 创建一个匿名的 posix 信号量.
 ** 输　入  : psem          信号量句柄 (返回)
@@ -126,8 +156,8 @@ int  sem_init (sem_t  *psem, int  pshared, unsigned int  value)
     }
     lib_bzero(&pxsem->PSEM_pxnode, sizeof(__PX_NAME_NODE));
     
-    pxsem->PSEM_ulSemaphore = API_SemaphoreCCreate(__PX_UNNAME_SEM_NAME, (ULONG)value, 
-                                 __ARCH_ULONG_MAX, __PX_SEM_OPTION, 
+    pxsem->PSEM_ulSemaphore = API_SemaphoreCCreate(__PX_UNNAME_SEM_NAME, value, 
+                                 __ARCH_INT_MAX, __PX_SEM_OPTION, 
                                  LW_NULL);                              /*  创建信号量                  */
     if (pxsem->PSEM_ulSemaphore == LW_OBJECT_HANDLE_INVALID) {
         __SHEAP_FREE(pxsem);
@@ -260,18 +290,62 @@ sem_t  *sem_open (const char  *name, int  flag, ...)
         if (flag & O_CREAT) {                                           /*  新建信号量                  */
             mode_t  mode;
             uint_t  value;
+            uint_t  maxvalue   = __ARCH_INT_MAX;
+            int     sem_type   = SEM_COUNTING;
+            int     waitq_type = PTHREAD_WAITQ_PRIO;
+            ULONG   opt        = __PX_SEM_OPTION;
             
+#if LW_CFG_GJB7714_EN > 0
+            __PX_VPROC_CONTEXT  *pvpCtx = _posixVprocCtxGet();
+#endif                                                                  /*  LW_CFG_GJB7714_EN > 0       */
             va_start(valist, flag);
             mode  = va_arg(valist, mode_t);
             value = va_arg(valist, uint_t);
+            
+#if LW_CFG_GJB7714_EN > 0
+            if (pvpCtx->PVPCTX_iPSemOpenMethod == SEM_OPEN_METHOD_GJB) {
+                sem_type   = va_arg(valist, int);
+                waitq_type = va_arg(valist, int);
+            }
+#endif                                                                  /*  LW_CFG_GJB7714_EN > 0       */
             va_end(valist);
             
-            if (value > SEM_VALUE_MAX) {                                /*  非法值                      */
+#if LW_CFG_GJB7714_EN > 0
+            if (sem_type == SEM_BINARY) {
+                if (value > 1) {                                        /*  非法值                      */
+                    __PX_UNLOCK();                                      /*  解锁 posix                  */
+                    errno = EINVAL;
+                    return  (SEM_FAILED);
+                }
+                maxvalue = 1;
+            
+            } else if (sem_type == SEM_COUNTING) {
+                if (value > SEM_VALUE_MAX) {                            /*  非法值                      */
+                    __PX_UNLOCK();                                      /*  解锁 posix                  */
+                    errno = EINVAL;
+                    return  (SEM_FAILED);
+                }
+                maxvalue = __ARCH_INT_MAX;
+            
+            } else {
                 __PX_UNLOCK();                                          /*  解锁 posix                  */
                 errno = EINVAL;
                 return  (SEM_FAILED);
             }
             
+            if (waitq_type == PTHREAD_WAITQ_PRIO) {
+                opt |= LW_OPTION_WAIT_PRIORITY;
+            
+            } else if (waitq_type == PTHREAD_WAITQ_FIFO) {
+                opt &= ~LW_OPTION_WAIT_PRIORITY;
+            
+            } else {
+                __PX_UNLOCK();                                          /*  解锁 posix                  */
+                errno = EINVAL;
+                return  (SEM_FAILED);
+            }
+#endif                                                                  /*  LW_CFG_GJB7714_EN > 0       */
+
             pxsem = (__PX_SEM *)__SHEAP_ALLOC(sizeof(__PX_SEM) + stNameLen + 1);
             if (pxsem == LW_NULL) {
                 __PX_UNLOCK();                                          /*  解锁 posix                  */
@@ -290,10 +364,7 @@ sem_t  *sem_open (const char  *name, int  flag, ...)
             }
             
             pxsem->PSEM_ulSemaphore = API_SemaphoreCCreate(__PX_NAMED_SEM_NAME,
-                                        (ULONG)value, 
-                                        __ARCH_ULONG_MAX, 
-                                        __PX_SEM_OPTION, 
-                                        LW_NULL);                       /*  创建信号量                  */
+                                        value, maxvalue, opt, LW_NULL); /*  创建信号量                  */
             if (pxsem->PSEM_ulSemaphore == LW_OBJECT_HANDLE_INVALID) {
                 __SHEAP_FREE(psem);
                 __SHEAP_FREE(pxsem);

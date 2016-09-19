@@ -657,7 +657,7 @@ VOID  moduleRebootHook (INT  iRebootType)
 LW_API
 INT  API_ModuleStatus (CPCHAR  pcFile, INT  iFd)
 {
-    return  __elfStatus(pcFile, iFd);
+    return  (__elfStatus(pcFile, iFd));
 }
 /*********************************************************************************************************
 ** 函数名称: API_ModuleLoad
@@ -681,7 +681,7 @@ PVOID  API_ModuleLoad (CPCHAR  pcFile,
                        CPCHAR  pcExit,
                        PVOID   pvVProc)
 {
-    return API_ModuleLoadEx(pcFile, iMode, pcInit, pcExit, LW_NULL, LW_NULL, pvVProc);
+    return  (API_ModuleLoadEx(pcFile, iMode, pcInit, pcExit, LW_NULL, LW_NULL, pvVProc));
 }
 /*********************************************************************************************************
 ** 函数名称: API_ModuleLoad

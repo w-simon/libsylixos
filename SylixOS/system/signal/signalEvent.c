@@ -34,7 +34,7 @@
 *********************************************************************************************************/
 #if LW_CFG_MODULELOADER_EN > 0
 #include "../SylixOS/loader/include/loader_vppatch.h"
-#define __tcb_pid(ptcb)     __lw_vp_get_tcb_pid(ptcb)
+#define __tcb_pid(ptcb)     vprocGetPidByTcbNoLock(ptcb)
 #else
 #define __tcb_pid(ptcb)     0
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */

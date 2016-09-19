@@ -62,7 +62,7 @@ VOID  _StackCheckGuard (PLW_CLASS_TCB  ptcb)
     if ((ptcb->TCB_ulOption & LW_OPTION_THREAD_STK_CLR) &&
         (*ptcb->TCB_pstkStackGuard != _K_stkFreeFlag)) {
 #if LW_CFG_MODULELOADER_EN > 0
-        pid = __lw_vp_get_tcb_pid(ptcb);
+        pid = vprocGetPidByTcbNoLock(ptcb);
 #else
         pid = 0;
 #endif

@@ -2003,19 +2003,19 @@ static INT  __fatFsTimeset (PLW_FD_ENTRY  pfdentry, struct utimbuf  *utim)
 *********************************************************************************************************/
 static VOID  __fatFsFillZero (PFAT_FILE  pfatfile, off_t  oftSize)
 {
-    static const CHAR     cZero[1024];                                  /*  创建 C 环境时清零           */
+    static const CHAR     cZero[2048];                                  /*  创建 C 环境时清零           */
     
-    REGISTER INT          iTimes = (INT)(oftSize / 1024);
-    REGISTER INT          iSpace = (INT)(oftSize % 1024);
     REGISTER INT          i;
+    REGISTER INT          iTimes  = (INT)(oftSize >> 11);
+    REGISTER UINT         uiSpace = (INT)(oftSize &  2047);
              UINT         uiWrNum;
     
     for (i = 0; i < iTimes; i++) {
-        f_write(&pfatfile->FATFIL_fftm.FFTM_file, cZero, 1024, &uiWrNum);
+        f_write(&pfatfile->FATFIL_fftm.FFTM_file, cZero, sizeof(cZero), &uiWrNum);
     }
     
-    if (iSpace) {
-        f_write(&pfatfile->FATFIL_fftm.FFTM_file, cZero, iSpace, &uiWrNum);
+    if (uiSpace) {
+        f_write(&pfatfile->FATFIL_fftm.FFTM_file, cZero, uiSpace, &uiWrNum);
     }
 }
 /*********************************************************************************************************

@@ -60,6 +60,7 @@ VOID  __tshellPosixInit (VOID)
     API_TShellHelpAdd("mmaps",   "show all mmap() file message.\n");
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 }
+
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
                                                                         /*  LW_CFG_SHELL_EN > 0         */
 /*********************************************************************************************************
