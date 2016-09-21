@@ -42,6 +42,23 @@ VOID  archKernelParam (CPCHAR  pcParam)
         } else {
             _G_x86Param.X86_bHyperThreading = LW_FALSE;
         }
+
+    } else if (lib_strncmp(pcParam, "video=", 6) == 0) {
+        _G_x86Param.X86_bHasVideoParam = LW_TRUE;                       /*  有视频参数                  */
+        lib_strncpy(_G_x86Param.X86_cVideoParam,
+                    pcParam + 6,
+                    sizeof(_G_x86Param.X86_cVideoParam));               /*  记录视频参数                */
+
+    } else if (lib_strncmp(pcParam, "utc=", 4) == 0) {
+        if (pcParam[4] == 'y') {                                        /*  RTC 使用 UTC                */
+            _G_x86Param.X86_bRtcUtc = LW_TRUE;
+
+        } else {
+            _G_x86Param.X86_bRtcUtc = LW_FALSE;
+        }
+
+    } else if (lib_strncmp(pcParam, "busclk=", 7) == 0) {               /*  系统总线时钟                */
+        _G_x86Param.X86_ulSysBusClk = lib_strtoul(pcParam + 7, LW_NULL, 10);
     }
 
     x86MpInit(_G_x86Param.X86_bHyperThreading);                         /*  初始化 MP 配置              */

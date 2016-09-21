@@ -867,22 +867,23 @@ typedef union {
   函数声明
 *********************************************************************************************************/
 
-extern INT      x86CpuIdAdd(X86_CPUID_ENTRY  *pentry);
-extern INT      x86CpuIdOverride(X86_CPUID_OVERRIDE  *pentries, INT  iCount);
-extern UINT8    x86CpuIdBitField(UINT8  ucFullId, UINT8  ucMaxSubIdValue, UINT8  ucShiftCount);
+extern X86_CPUID  *x86CpuIdGet(VOID);
+extern INT         x86CpuIdAdd(X86_CPUID_ENTRY  *pentry);
+extern INT         x86CpuIdOverride(X86_CPUID_OVERRIDE  *pentries, INT  iCount);
+extern UINT8       x86CpuIdBitField(UINT8  ucFullId, UINT8  ucMaxSubIdValue, UINT8  ucShiftCount);
 
-extern UINT     x86CpuIdMaxNumLPPerCore(VOID);
+extern UINT        x86CpuIdMaxNumLPPerCore(VOID);
 
-extern UINT64   x86CpuIdGetFreq(VOID);
-extern INT      x86CpuIdSetFreq(UINT64  ulFreq);
-extern UINT64   x86CpuIdCalcFreq(VOID);
+extern UINT64      x86CpuIdGetFreq(VOID);
+extern INT         x86CpuIdSetFreq(UINT64  ulFreq);
+extern UINT64      x86CpuIdCalcFreq(VOID);
 
-extern BOOL     x86CpuIdHWMTSupported(VOID);
-extern UINT     x86CpuIdMaxNumLPPerPkg(VOID);
-extern UINT     x86CpuIdMaxNumCoresPerPkg(VOID);
-extern UINT     x86CpuIdBitFieldWidth(UINT  iItemCount);
-extern UINT8    x86CpuIdInitialApicId(VOID);
-extern VOID     x86CpuIdProbe32(X86_CPUID  *pcpuid);
+extern BOOL        x86CpuIdHWMTSupported(VOID);
+extern UINT        x86CpuIdMaxNumLPPerPkg(VOID);
+extern UINT        x86CpuIdMaxNumCoresPerPkg(VOID);
+extern UINT        x86CpuIdBitFieldWidth(UINT  iItemCount);
+extern UINT8       x86CpuIdInitialApicId(VOID);
+extern VOID        x86CpuIdProbe32(X86_CPUID  *pcpuid);
 
 /*********************************************************************************************************
   全局变量声明
@@ -901,10 +902,10 @@ extern INT                  _G_iX86ProcNr;                              /*  Proc
 #define X86_APICID_TO_CPUID(apicid)     (_G_x86ProcInfo[(apicid)].PROC_ulCPUId)
 #define X86_CPUID_TO_APICID(cpuid)      (_G_x86ProcInfo[(cpuid)].PROC_ucMapLocalApicId)
 
-extern size_t               _G_stX86CacheFlushBytes;                    /*  Cache CFlush byte number    */
+extern size_t               _G_stX86CacheFlushBytes;                    /*  CLFLUSH 字节数              */
 extern INT                  _G_iX86ICacheWaySize;                       /*  I-Cache way size            */
 extern INT                  _G_iX86DCacheWaySize;                       /*  I-Cache way size            */
-extern BOOL                 _G_bX86HasCFlush;                           /*  Has CFlush inst?            */
+extern BOOL                 _G_bX86HasCLFlush;                          /*  Has CLFLUSH inst?           */
 extern BOOL                 _G_bX86HasAPIC;                             /*  Has APIC on chip?           */
 extern UINT                 _G_uiX86ProcessorFamily;                    /*  Processor Family            */
 extern BOOL                 _G_bX86HasX87FPU;                           /*  Has X87 FPU?                */

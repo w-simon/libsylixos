@@ -129,14 +129,19 @@ static INT  x86MmuFlags2Attr (ULONG   ulFlag,
 
     *pucUS = X86_MMU_US_NO;                                             /*  始终 supervisor             */
 
-    if (ulFlag & LW_VMM_FLAG_CACHEABLE) {                               /*  是否可 CACHE                */
+    if ((ulFlag & LW_VMM_FLAG_CACHEABLE) &&
+        (ulFlag & LW_VMM_FLAG_BUFFERABLE)) {                            /*  CACHE 与 BUFFER 控制        */
         *pucPCD = X86_MMU_PCD_NO;
+        *pucPWT = X86_MMU_PWT_NO;
 
-        if (ulFlag & LW_VMM_FLAG_BUFFERABLE) {                          /*  是否写穿透                  */
-            *pucPWT = X86_MMU_PWT_NO;
-        } else {
-            *pucPWT = X86_MMU_PWT;
-        }
+    } else if (ulFlag & LW_VMM_FLAG_CACHEABLE) {
+        *pucPCD = X86_MMU_PCD_NO;
+        *pucPWT = X86_MMU_PWT;
+
+    } else if (ulFlag & LW_VMM_FLAG_BUFFERABLE) {
+        *pucPCD = X86_MMU_PCD_NO;
+        *pucPWT = X86_MMU_PWT;
+
     } else {
         *pucPCD = X86_MMU_PCD;
         *pucPWT = X86_MMU_PWT;

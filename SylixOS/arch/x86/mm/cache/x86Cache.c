@@ -594,7 +594,7 @@ VOID  x86CacheInit (LW_CACHE_OP  *pcacheop,
         pcacheop->CACHEOP_pfuncDisable = x86CacheDisable;               /*  才有 Cache 关闭函数         */
                                                                         /*  和以下的函数                */
         if (uiData != CACHE_SNOOP_ENABLE) {                             /*  SNOOP 不使能才需要          */
-            if (_G_bX86HasCFlush) {                                     /*  有 CLFLUSH 指令             */
+            if (_G_bX86HasCLFlush) {                                    /*  有 CLFLUSH 指令             */
                 pcacheop->CACHEOP_pfuncFlush          = x86CacheFlushPen4;
                 pcacheop->CACHEOP_pfuncFlushPage      = x86CacheFlushPagePen4;
                 pcacheop->CACHEOP_pfuncInvalidate     = x86CacheInvalidatePen4;

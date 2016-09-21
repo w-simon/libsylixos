@@ -153,7 +153,7 @@ INT                     _G_iX86ProcNr = 0;                              /*  Proc
 INT                     _G_iX86ICacheWaySize    = 4096;                 /*  I-Cache way size            */
 INT                     _G_iX86DCacheWaySize    = 4096;                 /*  D-Cache way size            */
 size_t                  _G_stX86CacheFlushBytes = X86_CLFLUSH_DEF_BYTES;/*  CLFLUSH 字节数              */
-BOOL                    _G_bX86HasCFlush        = LW_FALSE;             /*  Has CFlush inst?            */
+BOOL                    _G_bX86HasCLFlush       = LW_FALSE;             /*  Has CLFLUSH inst?           */
 
 BOOL                    _G_bX86HasAPIC = LW_FALSE;                      /*  Has APIC on chip?           */
 
@@ -172,6 +172,18 @@ BOOL                    _G_bX86HasHTT = LW_FALSE;                       /*  Has 
 
 CHAR                    _G_pcX86CpuInfo[256]   = "<unknow>";            /*  CPU info                    */
 CHAR                    _G_pcX86CacheInfo[256] = "<unknow>";            /*  CACHE info                  */
+/*********************************************************************************************************
+** 函数名称: x86CpuIdGet
+** 功能描述: 获得 CPU 特性集
+** 输　入  : NONE
+** 输　出  : CPU 特性集
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+X86_CPUID  *x86CpuIdGet (VOID)
+{
+    return   (&_G_x86CpuId);
+}
 /*********************************************************************************************************
 ** 函数名称: x86CpuIdAdd
 ** 功能描述: 增加一个新的 X86_CPUID_ENTRY 到支持的 CPUID 条目表
@@ -309,6 +321,7 @@ VOID  x86CpuIdProbe (VOID)
      * 识别 Cache 特性
      */
     if (pcpuid->std.featuresEdx & X86_CPUID_CLFLUSH) {
+        _G_bX86HasCLFlush = LW_TRUE;
         _G_stX86CacheFlushBytes = (size_t)(pcpuid->std.featuresEbx & X86_CPUID_CHUNKS)
                                 >> X86_CPUID_CHUNKS_TO_BYTES_SHIFT;
     }

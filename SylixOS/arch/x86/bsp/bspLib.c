@@ -26,6 +26,7 @@
 #include "arch/x86/mpcore/x86MpCore.h"
 #include "arch/x86/apic/x86IoApic.h"
 #include "arch/x86/apic/x86LocalApic.h"
+#include "arch/x86/param/x86Param.h"
 #include "driver/int/i8259a.h"
 #include "driver/timer/i8254.h"
 /*********************************************************************************************************
@@ -706,6 +707,22 @@ WEAK_FUNC VOID  bspTickHighResolution (struct timespec  *ptv)
     } else {
         i8254HighResolution(ptv);
     }
+}
+/*********************************************************************************************************
+** 函数名称: bspSysBusClkGet
+** 功能描述: 获得系统总线时钟
+** 输  入  : NONE
+** 输  出  : 系统总线时钟
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+WEAK_FUNC ULONG   bspSysBusClkGet (VOID)
+{
+    X86_PARAM   *pparam;
+
+    pparam = archKernelParamGet();
+
+    return  (pparam->X86_ulSysBusClk);
 }
 /*********************************************************************************************************
   END
