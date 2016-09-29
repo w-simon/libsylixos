@@ -663,7 +663,12 @@ int  pthread_attr_getstackfilled (const pthread_attr_t *pattr, int *stackfilled)
         return  (EINVAL);
     }
     
-    *stackfilled = PTHREAD_STACK_FILLED;
+    if (pattr->PTHREADATTR_ulOption & LW_OPTION_THREAD_STK_CLR) {
+        *stackfilled = PTHREAD_STACK_FILLED;
+    
+    } else {
+        *stackfilled = PTHREAD_NO_STACK_FILLED;
+    }
     
     return  (ERROR_NONE);
 }
@@ -686,8 +691,14 @@ int  pthread_attr_setstackfilled (pthread_attr_t *pattr, int stackfilled)
     }
     
     if (stackfilled == PTHREAD_NO_STACK_FILLED) {
-        errno = ENOTSUP;
-        return  (ENOTSUP);
+        pattr->PTHREADATTR_ulOption &= ~LW_OPTION_THREAD_STK_CHK;
+    
+    } else if (stackfilled == PTHREAD_STACK_FILLED) {
+        pattr->PTHREADATTR_ulOption |= LW_OPTION_THREAD_STK_CHK;
+    
+    } else {
+        errno = EINVAL;
+        return  (EINVAL);
     }
     
     return  (ERROR_NONE);

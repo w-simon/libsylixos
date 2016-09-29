@@ -99,7 +99,8 @@ typedef LW_THREAD_COND      pthread_cond_t;
 #define PTHREAD_MUTEX_RECURSIVE_NP          PTHREAD_MUTEX_RECURSIVE
 
 #define PTHREAD_MUTEX_DEFAULT               PTHREAD_MUTEX_RECURSIVE     /*  默认支持递归调用            */
-
+#define PTHREAD_MUTEX_CEILING               PX_PRIORITY_CONVERT(LW_PRIO_REALTIME)
+                                                                        /*  默认天花板优先级            */
 #define PTHREAD_WAITQ_PRIO                  1
 #define PTHREAD_WAITQ_FIFO                  0
 

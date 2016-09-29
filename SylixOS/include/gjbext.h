@@ -42,6 +42,7 @@
 #define mount   gjb_mount
 #define umount  gjb_umount
 #define format  gjb_format
+#define cat     gjb_cat
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
                                                                         /*  LW_CFG_GJB7714_EN > 0       */
 #endif                                                                  /*  __GJBEXT_H                  */

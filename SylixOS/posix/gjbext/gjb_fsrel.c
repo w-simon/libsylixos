@@ -68,11 +68,61 @@ int  gjb_umount (const char *mpath)
 LW_API 
 int  gjb_format (const char *fs, const char *dev)
 {
-    (VOID)fs;
-    (VOID)dev;
+    if (!dev) {
+        errno = EINVAL;
+        return  (PX_ERROR);
+    }
+
+    return  (diskformat(dev));
+}
+/*********************************************************************************************************
+** 函数名称: gjb_cat
+** 功能描述: 显示指定文件的内容.
+** 输　入  : pathname          文件路径
+** 输　出  : ERROR or OK
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API 
+int  gjb_cat (char *pathname)
+{
+    INT         iFd;
+    ssize_t     sstNum;
+    CHAR        cBuffer[1024];
+    struct stat statGet;
     
-    errno = ENOSYS;
-    return  (PX_ERROR);
+    if (!pathname) {
+        errno = EINVAL;
+        return  (PX_ERROR);
+    }
+    
+    iFd = open(pathname, O_RDONLY);
+    if (iFd < 0) {
+        return  (PX_ERROR);
+    }
+    
+    if (fstat(iFd, &statGet) < 0) {
+        close(iFd);
+        return  (PX_ERROR);
+    }
+    
+    if (S_ISDIR(statGet.st_mode)) {
+        close(iFd);
+        errno = EISDIR;
+        return  (PX_ERROR);
+    }
+    
+    do {
+        sstNum = read(iFd, cBuffer, sizeof(cBuffer));
+        if (sstNum > 0) {
+            write(1, cBuffer, (size_t)sstNum);
+        }
+    } while (sstNum > 0);
+    
+    close(iFd);
+    
+    return  (ERROR_NONE);
 }
 
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */

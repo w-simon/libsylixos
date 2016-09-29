@@ -197,6 +197,7 @@ LW_API void         routes_show(void);
 LW_API int          gjb_mount(const char *fs, const char *dev, const char *mpath);
 LW_API int          gjb_umount(const char *mpath);
 LW_API int          gjb_format(const char *fs, const char *dev);
+LW_API int          gjb_cat(char *pathname);
 
 #ifdef __cplusplus
 }
