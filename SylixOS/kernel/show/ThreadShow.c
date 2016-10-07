@@ -286,6 +286,11 @@ VOID    API_ThreadPendShowEx (pid_t  pid)
             ulOwner = LW_OBJECT_HANDLE_INVALID;
 #endif                                                                  /*  (LW_CFG_EVENTSET_EN > 0)    */
                                                                         /*  (LW_CFG_MAX_EVENTSETS > 0)  */
+        } else if (ptcb->TCB_ptcbJoin) {
+            ulEvent = ptcb->TCB_ptcbJoin->TCB_ulId;
+            lib_strlcpy(cEventName, ptcb->TCB_ptcbJoin->TCB_cThreadName, LW_CFG_OBJECT_NAME_SIZE);
+            ulOwner = LW_OBJECT_HANDLE_INVALID;
+        
         } else {
             cEventName[0] = PX_EOS;
             ulEvent       = LW_OBJECT_HANDLE_INVALID;

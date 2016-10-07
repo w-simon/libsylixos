@@ -1736,6 +1736,7 @@ static INT  __tshellSysCmdHostname (INT  iArgC, PCHAR  ppcArgV[])
     if (iArgC < 2) {
         gethostname(cHostName, sizeof(cHostName));
         printf("hostname is %s\n", cHostName);
+    
     } else {
         if (sethostname(ppcArgV[1], lib_strlen(ppcArgV[1]))) {
             fprintf(stderr, "set hostname error : %s\n", lib_strerror(errno));
@@ -1812,17 +1813,54 @@ static INT  __tshellSysCmdWho (INT  iArgC, PCHAR  ppcArgV[])
 static INT  __tshellSysCmdShutdown (INT  iArgC, PCHAR  ppcArgV[])
 {
     if (iArgC < 2) {
+        printf("[shutdown]Shutdown...\n");
         API_KernelReboot(LW_REBOOT_SHUTDOWN);
         
     } else {
-        if (lib_strcmp(ppcArgV[1], "-n")) {
+        if (lib_strcmp(ppcArgV[1], "-r") == 0) {
+            printf("[shutdown]Shutdown & reboot...\n");
+            API_KernelReboot(LW_REBOOT_COLD);
+            
+        } else if (lib_strcmp(ppcArgV[1], "-h") == 0) {
+            printf("[shutdown]Shutdown...\n");
+            API_KernelReboot(LW_REBOOT_SHUTDOWN);
+            
+        } else if (lib_strcmp(ppcArgV[1], "-f") == 0) {
+            printf("[shutdown]Force shutdown and reboot...\n");
+            API_KernelReboot(LW_REBOOT_FORCE);
+
+        } else {
+            fprintf(stderr, "argument error.\n");
+            return  (PX_ERROR);
+        }
+    }
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __tshellSysCmdReboot
+** 功能描述: 系统命令 "reboot"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : 0
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static INT  __tshellSysCmdReboot (INT  iArgC, PCHAR  ppcArgV[])
+{
+    if (iArgC < 2) {
+        printf("[reboot]Reboot...\n");
+        API_KernelReboot(LW_REBOOT_COLD);
+        
+    } else {
+        if ((lib_strcmp(ppcArgV[1], "-n") == 0) ||
+            (lib_strcmp(ppcArgV[1], "-f") == 0)) {
+            printf("[reboot]Force reboot...\n");
             API_KernelReboot(LW_REBOOT_FORCE);
         
-        } else if (lib_strcmp(ppcArgV[1], "-r")) {
-            API_KernelReboot(LW_REBOOT_COLD);
-        
-        } else if (lib_strcmp(ppcArgV[1], "-h")) {
-            API_KernelReboot(LW_REBOOT_POWEROFF);
+        } else {
+            fprintf(stderr, "argument error.\n");
+            return  (PX_ERROR);
         }
     }
     
@@ -2434,11 +2472,17 @@ VOID  __tshellSysCmdInit (VOID)
     
     API_TShellKeywordAdd("shutdown", __tshellSysCmdShutdown);
     API_TShellFormatAdd("shutdown", " [shutdown parameter]");
-    API_TShellHelpAdd("shutdown", "shutdown or reboot this computer.\n"
-                                  "-r    reboot\n"
-                                  "-n    reboot and not sync files(do NOT use this)\n"
-                                  "-h    shutdown and power off\n"
+    API_TShellHelpAdd("shutdown", "shutdown this computer.\n"
+                                  "-r    shutdown & reboot\n"
+                                  "-f    force shutdown & reboot\n"
+                                  "-h    shutdown this computer\n"
                                   "no parameter means shutdown only\n");
+                                  
+    API_TShellKeywordAdd("reboot", __tshellSysCmdReboot);
+    API_TShellFormatAdd("reboot",  " [reboot parameter]");
+    API_TShellHelpAdd("reboot",   "reboot this computer.\n"
+                                  "-n or -f    force reboot\n"
+                                  "no parameter means reboot only\n");
                                   
 #if LW_CFG_MONITOR_EN > 0
     API_TShellKeywordAdd("monitor", __tshellSysCmdMonitor);

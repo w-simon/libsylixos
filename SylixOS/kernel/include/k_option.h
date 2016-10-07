@@ -346,7 +346,6 @@
 #define  LW_REBOOT_WARM                                 0               /*  热启动 (BSP决定具体行为)    */
 #define  LW_REBOOT_COLD                                 1               /*  冷启动 (BSP决定具体行为)    */
 #define  LW_REBOOT_SHUTDOWN                             2               /*  关闭 (BSP决定具体行为)      */
-#define  LW_REBOOT_POWEROFF                             3               /*  关闭后断电 (BSP决定具体行为)*/
 
 /*********************************************************************************************************
   CPU 能耗

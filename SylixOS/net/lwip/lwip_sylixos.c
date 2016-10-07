@@ -125,10 +125,7 @@ VOID  __netSnmpGetTimestamp (UINT32  *puiTimestamp)
     INT64       i64Ticks = API_TimeGet64();                             /*  获取系统时钟                */
     
     if (puiTimestamp) {
-        /*
-         *  uiTimestamp 是以 10 毫秒为单位
-         */
-        *puiTimestamp = (UINT32)((i64Ticks * LW_TICK_HZ * 10) / 1000);
+        *puiTimestamp = (UINT32)((i64Ticks * LW_TICK_HZ * 10) / 1000);  /*  是以 10 毫秒为单位          */
     }
 }
 /*********************************************************************************************************
@@ -223,6 +220,7 @@ VOID  API_NetInit (VOID)
     __procFsNetInit();
 #endif                                                                  /*  LW_CFG_PROCFS_EN > 0        */
 }
+
 #endif                                                                  /*  LW_CFG_NET_EN               */
 /*********************************************************************************************************
   END

@@ -433,6 +433,10 @@ ULONG  API_IosDrvGetType (INT  iDrvNum, INT  *piType)
 LW_API  
 INT     API_IosDevFileAbnormal (PLW_DEV_HDR    pdevhdrHdr)
 {
+#if LW_CFG_NET_EN > 0
+    extern VOID  __socketReset(PLW_FD_ENTRY  pfdentry);
+#endif                                                                  /*  LW_CFG_NET_EN > 0           */
+
     REGISTER INT            iCounter = 0;
     REGISTER PLW_LIST_LINE  plineFdEntry;
     REGISTER PLW_FD_ENTRY   pfdentry;
@@ -454,11 +458,16 @@ INT     API_IosDevFileAbnormal (PLW_DEV_HDR    pdevhdrHdr)
         
         if ((pfdentry->FDENTRY_pdevhdrHdr == pdevhdrHdr) &&
             (pfdentry->FDENTRY_iAbnormity == 0)) {                      /*  被设备相关正常文件          */
-            
             _IosUnlock();                                               /*  退出 IO 临界区              */
-            _IosFileClose(pfdentry);                                    /*  调用驱动程序关闭            */
-            _IosLock();                                                 /*  进入 IO 临界区              */
             
+#if LW_CFG_NET_EN > 0
+            if (pfdentry->FDENTRY_iType == LW_DRV_TYPE_SOCKET) {
+                __socketReset(pfdentry);                                /*  设置 SO_LINGER              */
+            }
+#endif                                                                  /*  LW_CFG_NET_EN > 0           */
+            _IosFileClose(pfdentry);                                    /*  调用驱动程序关闭            */
+            
+            _IosLock();                                                 /*  进入 IO 临界区              */
             iCounter++;                                                 /*  异常文件数量 ++             */
         }
     }

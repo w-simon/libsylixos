@@ -102,6 +102,7 @@ VOID  __resReclaimInit (VOID)
     
     API_ThreadCreate("t_reclaim", __resReclaimThread, &threadattr, LW_NULL);
 }
+
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 /*********************************************************************************************************
   END

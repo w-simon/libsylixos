@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2016-10-07: Jiao.JinXing
+    加入 Makefile 模板.
+
     2016-09-18: han.hui
     加入 exFAT 文件系统支持.
 

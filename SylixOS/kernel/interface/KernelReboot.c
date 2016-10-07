@@ -113,7 +113,6 @@ static VOID  __makeOtherDown (VOID)
                                 LW_REBOOT_WARM
                                 LW_REBOOT_COLD
                                 LW_REBOOT_SHUTDOWN
-                                LW_REBOOT_POWEROFF
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
@@ -132,7 +131,6 @@ VOID   API_KernelReboot (INT  iRebootType)
                                 LW_REBOOT_WARM
                                 LW_REBOOT_COLD
                                 LW_REBOOT_SHUTDOWN
-                                LW_REBOOT_POWEROFF
 **           ulStartAddress     启动地址
 ** 输　出  : NONE
 ** 全局变量: 

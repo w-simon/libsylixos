@@ -166,6 +166,8 @@ INT             __blockIoDevStatus(INT     iIndex);
 ** 输　出  :
 ** 全局变量:
 ** 调用模块:
+** 注  意  : 这里在线程退出之前需要提前调用 detach 激活文件系统卸载任务, 因为卸载任务可能是 t_except 所以
+             真正的线程删除操作可能得不到执行.
 *********************************************************************************************************/
 static void  __tpsFsFlushThread (PTPS_VOLUME  ptpsvol)
 {
@@ -176,6 +178,8 @@ static void  __tpsFsFlushThread (PTPS_VOLUME  ptpsvol)
         tpsFsFlushInodes(ptpsvol->TPSVOL_tpsFsVol);
         __TPS_VOL_UNLOCK(ptpsvol);
     }
+    
+    API_ThreadDetach(API_ThreadIdSelf());
 }
 /*********************************************************************************************************
 ** 函数名称: __tpsFsDiskIndex
@@ -491,7 +495,7 @@ INT  API_TpsFsDevCreate (PCHAR   pcName, PLW_BLK_DEV  pblkd)
 
     if (iosDevAddEx(&ptpsvol->TPSVOL_devhdrHdr, pcName, _G_iTpsDrvNum, DT_DIR)
         != ERROR_NONE) {                                                /*  安装文件系统设备            */
-        iErr = API_GetLastError();
+        iErr = (INT)API_GetLastError();
         iErrLevel = 4;
         goto    __error_handle;
     }
