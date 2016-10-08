@@ -1,90 +1,72 @@
 #*********************************************************************************************************
 #
-#                                    ÷–π˙»Ìº˛ø™‘¥◊È÷Ø
+#                                    ‰∏≠ÂõΩËΩØ‰ª∂ÂºÄÊ∫êÁªÑÁªá
 #
-#                                   «∂»Î Ω µ ±≤Ÿ◊˜œµÕ≥
+#                                   ÂµåÂÖ•ÂºèÂÆûÊó∂Êìç‰ΩúÁ≥ªÁªü
 #
 #                                SylixOS(TM)  LW : long wing
 #
 #                               Copyright All Rights Reserved
 #
-#--------------Œƒº˛–≈œ¢--------------------------------------------------------------------------------
+#--------------Êñá‰ª∂‰ø°ÊÅØ--------------------------------------------------------------------------------
 #
-# Œƒ   º˛   √˚: Makefile
+# Êñá   ‰ª∂   Âêç: xsiipc.mk
 #
-# ¥¥   Ω®   »À: RealEvo-IDE
+# Âàõ   Âª∫   ‰∫∫: RealEvo-IDE
 #
-# Œƒº˛¥¥Ω®»’∆⁄: 2016 ƒÍ 10 ‘¬ 08 »’
+# Êñá‰ª∂ÂàõÂª∫Êó•Êúü: 2016 Âπ¥ 10 Êúà 08 Êó•
 #
-# √Ë         ˆ: ±æŒƒº˛”… RealEvo-IDE …˙≥…£¨”√”⁄≈‰÷√ Makefile π¶ƒ‹£¨«ÎŒ ÷∂Ø–ﬁ∏ƒ
+# Êèè        Ëø∞: Êú¨Êñá‰ª∂Áî± RealEvo-IDE ÁîüÊàêÔºåÁî®‰∫éÈÖçÁΩÆ Makefile ÂäüËÉΩÔºåËØ∑ÂãøÊâãÂä®‰øÆÊîπ
 #*********************************************************************************************************
 
 #*********************************************************************************************************
-# Include config.mk
+# Clear setting
 #*********************************************************************************************************
-CONFIG_MK_EXIST = $(shell if [ -f ../config.mk ]; then echo exist; else echo notexist; fi;)
-ifeq ($(CONFIG_MK_EXIST), exist)
-include ../config.mk
-else
-CONFIG_MK_EXIST = $(shell if [ -f config.mk ]; then echo exist; else echo notexist; fi;)
-ifeq ($(CONFIG_MK_EXIST), exist)
-include config.mk
-else
-CONFIG_MK_EXIST =
-endif
-endif
+include $(CLEAR_VARS_MK)
 
 #*********************************************************************************************************
-# Build with lite mode (SylixOS Lite)
-# Do you want build SylixOS with Lite Mode
+# Target
 #*********************************************************************************************************
-BUILD_LITE_TARGET = 0
+LOCAL_TARGET_NAME := xsiipc.ko
 
 #*********************************************************************************************************
-# Build options
-# Do you want build process support library
+# Source list
 #*********************************************************************************************************
-ifeq ($(BUILD_LITE_TARGET), 0)
-BUILD_PROCESS_SUP_LIB = 1
-else
-BUILD_PROCESS_SUP_LIB = 0
-endif
+LOCAL_SRCS := \
+SylixOS/xsiipc/msg.c \
+SylixOS/xsiipc/proc.c \
+SylixOS/xsiipc/sem.c \
+SylixOS/xsiipc/shm.c \
+SylixOS/xsiipc/xsiipc.c
 
 #*********************************************************************************************************
-# Do you want build some usefull kernel module
+# Header file search path (eg. LOCAL_INC_PATH := -I"Your hearder files search path")
 #*********************************************************************************************************
-ifeq ($(BUILD_LITE_TARGET), 0)
-BUILD_KERNEL_MODULE = 1
-else
-BUILD_KERNEL_MODULE = 0
-endif
+LOCAL_INC_PATH := 
 
 #*********************************************************************************************************
-# Include header.mk
+# Pre-defined macro (eg. -DYOUR_MARCO=1)
 #*********************************************************************************************************
-MKTEMP = $(SYLIXOS_BASE_PATH)/libsylixos/SylixOS/mktemp
-
-include $(MKTEMP)/header.mk
+LOCAL_DSYMBOL := 
 
 #*********************************************************************************************************
-# Include targets makefiles
+# Depend library (eg. LOCAL_DEPEND_LIB := -la LOCAL_DEPEND_LIB_PATH := -L"Your library search path")
 #*********************************************************************************************************
-include libsylixos.mk
-
-ifeq ($(BUILD_PROCESS_SUP_LIB), 1)
-include libdsohandle.mk
-include libvpmpdm.mk
-endif
-
-ifeq ($(BUILD_KERNEL_MODULE), 1)
-include xinput.mk
-include xsiipc.mk
-endif
+LOCAL_DEPEND_LIB      := 
+LOCAL_DEPEND_LIB_PATH := 
 
 #*********************************************************************************************************
-# Include end.mk
+# C++ config
 #*********************************************************************************************************
-include $(END_MK)
+LOCAL_USE_CXX        := no
+LOCAL_USE_CXX_EXCEPT := no
+
+#*********************************************************************************************************
+# Code coverage config
+#*********************************************************************************************************
+LOCAL_USE_GCOV := no
+
+include $(KERNEL_MODULE_MK)
 
 #*********************************************************************************************************
 # End

@@ -1,76 +1,226 @@
 #*********************************************************************************************************
-# libsylixos Makefile
-# target -> libsylixos.a
+#
+#                                    中国软件开源组织
+#
+#                                   嵌入式实时操作系统
+#
+#                                SylixOS(TM)  LW : long wing
+#
+#                               Copyright All Rights Reserved
+#
+#--------------文件信息--------------------------------------------------------------------------------
+#
+# 文   件   名: libsylixos.mk
+#
+# 创   建   人: RealEvo-IDE
+#
+# 文件创建日期: 2016 年 10 月 08 日
+#
+# 描        述: 本文件由 RealEvo-IDE 生成，用于配置 Makefile 功能，请勿手动修改
 #*********************************************************************************************************
 
 #*********************************************************************************************************
-# include config.mk
+# Clear setting
 #*********************************************************************************************************
-CONFIG_MK_EXIST = $(shell if [ -f ../config.mk ]; then echo exist; else echo notexist; fi;)
-ifeq ($(CONFIG_MK_EXIST), exist)
-include ../config.mk
-else
-CONFIG_MK_EXIST = $(shell if [ -f config.mk ]; then echo exist; else echo notexist; fi;)
-ifeq ($(CONFIG_MK_EXIST), exist)
-include config.mk
-else
-CONFIG_MK_EXIST =
-endif
-endif
+include $(CLEAR_VARS_MK)
 
 #*********************************************************************************************************
-# check configure
+# Target
 #*********************************************************************************************************
-check_defined = \
-    $(foreach 1,$1,$(__check_defined))
-__check_defined = \
-    $(if $(value $1),, \
-      $(error Undefined $1$(if $(value 2), ($(strip $2)))))
-
-$(call check_defined, CONFIG_MK_EXIST, Please configure this project in RealEvo-IDE or \
-create a config.mk file!)
-$(call check_defined, SYLIXOS_BASE_PATH, SylixOS base project path)
-$(call check_defined, TOOLCHAIN_PREFIX, the prefix name of toolchain)
-$(call check_defined, DEBUG_LEVEL, debug level(debug or release))
+LOCAL_TARGET_NAME := libsylixos.a
 
 #*********************************************************************************************************
-# toolchain select
+# Source list
 #*********************************************************************************************************
-CC    = $(TOOLCHAIN_PREFIX)gcc
-CXX   = $(TOOLCHAIN_PREFIX)g++
-AS    = $(TOOLCHAIN_PREFIX)gcc
-AR    = $(TOOLCHAIN_PREFIX)ar
-LD    = $(TOOLCHAIN_PREFIX)g++
-STRIP = $(TOOLCHAIN_PREFIX)strip
+#*********************************************************************************************************
+# ARM source
+#*********************************************************************************************************
+LOCAL_ARM_SRCS = \
+SylixOS/arch/arm/backtrace/armBacktrace.c \
+SylixOS/arch/arm/common/cp15/armCp15Asm.S \
+SylixOS/arch/arm/common/armAssert.c \
+SylixOS/arch/arm/common/armContext.c \
+SylixOS/arch/arm/common/armContextAsm.S \
+SylixOS/arch/arm/common/armExc.c \
+SylixOS/arch/arm/common/armExcAsm.S \
+SylixOS/arch/arm/common/armLib.c \
+SylixOS/arch/arm/common/armLibAsm.S \
+SylixOS/arch/arm/dbg/armDbg.c \
+SylixOS/arch/arm/dbg/armGdb.c \
+SylixOS/arch/arm/dma/pl330/armPl330.c \
+SylixOS/arch/arm/elf/armElf.c \
+SylixOS/arch/arm/elf/armUnwind.c \
+SylixOS/arch/arm/fpu/vfp9/armVfp9.c \
+SylixOS/arch/arm/fpu/vfp9/armVfp9Asm.S \
+SylixOS/arch/arm/fpu/vfp11/armVfp11.c \
+SylixOS/arch/arm/fpu/vfp11/armVfp11Asm.S \
+SylixOS/arch/arm/fpu/vfpv3/armVfpV3.c \
+SylixOS/arch/arm/fpu/vfpv3/armVfpV3Asm.S \
+SylixOS/arch/arm/fpu/vfpv4/armVfpV4.c \
+SylixOS/arch/arm/fpu/vfpnone/armVfpNone.c \
+SylixOS/arch/arm/fpu/armFpu.c \
+SylixOS/arch/arm/mm/cache/l2/armL2.c \
+SylixOS/arch/arm/mm/cache/l2/armL2A17.c \
+SylixOS/arch/arm/mm/cache/l2/armL2A8.c \
+SylixOS/arch/arm/mm/cache/l2/armL2x0.c \
+SylixOS/arch/arm/mm/cache/v4/armCacheV4.c \
+SylixOS/arch/arm/mm/cache/v4/armCacheV4Asm.S \
+SylixOS/arch/arm/mm/cache/v5/armCacheV5.c \
+SylixOS/arch/arm/mm/cache/v5/armCacheV5Asm.S \
+SylixOS/arch/arm/mm/cache/v6/armCacheV6.c \
+SylixOS/arch/arm/mm/cache/v6/armCacheV6Asm.S \
+SylixOS/arch/arm/mm/cache/v7/armCacheV7.c \
+SylixOS/arch/arm/mm/cache/v7/armCacheV7Asm.S \
+SylixOS/arch/arm/mm/cache/v8/armCacheV8.c \
+SylixOS/arch/arm/mm/cache/armCacheCommonAsm.S \
+SylixOS/arch/arm/mm/mmu/v4/armMmuV4.c \
+SylixOS/arch/arm/mm/mmu/v7/armMmuV7.c \
+SylixOS/arch/arm/mm/mmu/v7/armMmuV7Asm.S \
+SylixOS/arch/arm/mm/mmu/armMmuCommon.c \
+SylixOS/arch/arm/mm/mmu/armMmuCommonAsm.S \
+SylixOS/arch/arm/mm/armCache.c \
+SylixOS/arch/arm/mm/armMmu.c \
+SylixOS/arch/arm/mpcore/scu/armScu.c \
+SylixOS/arch/arm/mpcore/armMpCoreAsm.S \
+SylixOS/arch/arm/mpcore/armSpinlock.c \
+SylixOS/arch/arm/param/armParam.c 
 
 #*********************************************************************************************************
-# build with lite mode (SylixOS Lite)
-# do you want build SylixOS with Lite Mode
+# MIPS source
 #*********************************************************************************************************
-BUILD_LITE_TARGET = 0
+LOCAL_MIPS_SRCS = \
+SylixOS/arch/mips/backtrace/mipsBacktrace.c \
+SylixOS/arch/mips/common/cp0/mipsCp0Asm.S \
+SylixOS/arch/mips/common/mipsAssert.c \
+SylixOS/arch/mips/common/mipsContext.c \
+SylixOS/arch/mips/common/mipsContextAsm.S \
+SylixOS/arch/mips/common/mipsExc.c \
+SylixOS/arch/mips/common/mipsExcAsm.S \
+SylixOS/arch/mips/common/mipsLib.c \
+SylixOS/arch/mips/common/mipsLibAsm.S \
+SylixOS/arch/mips/common/mipsBranch.c \
+SylixOS/arch/mips/common/mipsUnaligned.c \
+SylixOS/arch/mips/dbg/mipsDbg.c \
+SylixOS/arch/mips/dbg/mipsGdb.c \
+SylixOS/arch/mips/elf/mipsElf.c \
+SylixOS/arch/mips/fpu/fpu32/mipsVfp32.c \
+SylixOS/arch/mips/fpu/vfpnone/mipsVfpNone.c \
+SylixOS/arch/mips/fpu/fpu32/mipsVfp32Asm.S \
+SylixOS/arch/mips/fpu/fpu64/mipsVfp64.c \
+SylixOS/arch/mips/fpu/fpu64/mipsVfp64Asm.S \
+SylixOS/arch/mips/fpu/mipsFpu.c \
+SylixOS/arch/mips/mm/cache/mips32/mips32Cache.c \
+SylixOS/arch/mips/mm/cache/mips32/mips32CacheAsm.S \
+SylixOS/arch/mips/mm/mmu/mips32/mips32Mmu.c \
+SylixOS/arch/mips/mm/mmu/mips32/mips32MmuAsm.S \
+SylixOS/arch/mips/mm/mipsCache.c \
+SylixOS/arch/mips/mm/mipsMmu.c \
+SylixOS/arch/mips/mpcore/mipsMpCoreAsm.S \
+SylixOS/arch/mips/mpcore/mipsSpinlock.c \
+SylixOS/arch/mips/param/mipsParam.c 
 
 #*********************************************************************************************************
-# build options
-# do you want build process support library
+# PowerPC source
 #*********************************************************************************************************
-ifeq ($(BUILD_LITE_TARGET), 0)
-BUILD_PROCESS_SUP_LIB = 1
-else
-BUILD_PROCESS_SUP_LIB = 0
-endif
+LOCAL_PPC_SRCS = \
+SylixOS/arch/ppc/backtrace/ppcBacktrace.c \
+SylixOS/arch/ppc/common/ppcAssert.c \
+SylixOS/arch/ppc/common/ppcContext.c \
+SylixOS/arch/ppc/common/ppcContextAsm.S \
+SylixOS/arch/ppc/common/ppcExc.c \
+SylixOS/arch/ppc/common/ppcExcAsm.S \
+SylixOS/arch/ppc/common/ppcExcE500.c \
+SylixOS/arch/ppc/common/ppcExcE500Asm.S \
+SylixOS/arch/ppc/common/ppcLib.c \
+SylixOS/arch/ppc/common/ppcLibAsm.S \
+SylixOS/arch/ppc/common/ppcSprAsm.S \
+SylixOS/arch/ppc/common/ppcSprE500Asm.S \
+SylixOS/arch/ppc/dbg/ppcDbg.c \
+SylixOS/arch/ppc/dbg/ppcGdb.c \
+SylixOS/arch/ppc/elf/ppcElf.c \
+SylixOS/arch/ppc/fpu/spe/ppcVfpSpe.c \
+SylixOS/arch/ppc/fpu/spe/ppcVfpSpeAsm.S \
+SylixOS/arch/ppc/fpu/altivec/ppcVfpAltivec.c \
+SylixOS/arch/ppc/fpu/altivec/ppcVfpAltivecAsm.S \
+SylixOS/arch/ppc/fpu/vfpnone/ppcVfpNone.c \
+SylixOS/arch/ppc/fpu/vfp/ppcVfp.c \
+SylixOS/arch/ppc/fpu/vfp/ppcVfpAsm.S \
+SylixOS/arch/ppc/fpu/ppcFpu.c \
+SylixOS/arch/ppc/mm/ppcCache.c \
+SylixOS/arch/ppc/mm/ppcMmu.c \
+SylixOS/arch/ppc/mm/cache/common/ppcCache.c \
+SylixOS/arch/ppc/mm/cache/e200/ppcCacheE200Asm.S \
+SylixOS/arch/ppc/mm/cache/e200/ppcCacheE200.c \
+SylixOS/arch/ppc/mm/cache/e500/ppcCacheE500Asm.S \
+SylixOS/arch/ppc/mm/cache/e500/ppcCacheE500.c \
+SylixOS/arch/ppc/mm/cache/ppc60x/ppcCache603Asm.S \
+SylixOS/arch/ppc/mm/cache/ppc60x/ppcCacheEC603Asm.S \
+SylixOS/arch/ppc/mm/cache/ppc60x/ppcCache604Asm.S \
+SylixOS/arch/ppc/mm/cache/ppc60x/ppcCache745xAsm.S \
+SylixOS/arch/ppc/mm/cache/ppc60x/ppcCache83xxAsm.S \
+SylixOS/arch/ppc/mm/cache/ppc60x/ppcCache603.c \
+SylixOS/arch/ppc/mm/cache/ppc60x/ppcCacheEC603.c \
+SylixOS/arch/ppc/mm/cache/ppc60x/ppcCache604.c \
+SylixOS/arch/ppc/mm/cache/ppc60x/ppcCache745x.c \
+SylixOS/arch/ppc/mm/cache/ppc60x/ppcCache83xx.c \
+SylixOS/arch/ppc/mm/cache/l2/ppcL2.c \
+SylixOS/arch/ppc/mm/cache/l2/ppc750/ppcL2Cache750.c \
+SylixOS/arch/ppc/mm/cache/l2/ppc750/ppcL2Cache750Asm.S \
+SylixOS/arch/ppc/mm/mmu/common/ppcMmu.c \
+SylixOS/arch/ppc/mm/mmu/common/ppcMmuAsm.S \
+SylixOS/arch/ppc/mm/mmu/common/ppcMmuHashPageTbl.c \
+SylixOS/arch/ppc/mm/mmu/ppc603/ppcMmu603Asm.S \
+SylixOS/arch/ppc/mm/mmu/e500/ppcMmuE500.c \
+SylixOS/arch/ppc/mm/mmu/e500/ppcMmuE500Asm.S \
+SylixOS/arch/ppc/mm/mmu/e500/ppcMmuE500RegAsm.S \
+SylixOS/arch/ppc/mm/mmu/e500/ppcMmuE500Tlb1.c \
+SylixOS/arch/ppc/mm/mmu/e500/ppcMmuE500Tlb1Asm.S \
+SylixOS/arch/ppc/mpcore/ppcMpCoreAsm.S \
+SylixOS/arch/ppc/mpcore/ppcSpinlock.c \
+SylixOS/arch/ppc/param/ppcParam.c 
 
 #*********************************************************************************************************
-# do you want build some usefull kernel module
+# x86 source
 #*********************************************************************************************************
-ifeq ($(BUILD_LITE_TARGET), 0)
-BUILD_KERNEL_MODULE = 1
-else
-BUILD_KERNEL_MODULE = 0
-endif
+LOCAL_X86_SRCS = \
+SylixOS/arch/x86/backtrace/x86Backtrace.c \
+SylixOS/arch/x86/common/x86Assert.c \
+SylixOS/arch/x86/common/x86Context.c \
+SylixOS/arch/x86/common/x86ContextAsm.S \
+SylixOS/arch/x86/common/x86Exc.c \
+SylixOS/arch/x86/common/x86ExcAsm.S \
+SylixOS/arch/x86/common/x86Lib.c \
+SylixOS/arch/x86/common/x86LibAsm.S \
+SylixOS/arch/x86/common/x86IoAsm.S \
+SylixOS/arch/x86/common/x86Gdt.c \
+SylixOS/arch/x86/common/x86Idt.c \
+SylixOS/arch/x86/common/x86CpuId.c \
+SylixOS/arch/x86/common/x86CpuIdAsm.S \
+SylixOS/arch/x86/dbg/x86Dbg.c \
+SylixOS/arch/x86/dbg/x86Gdb.c \
+SylixOS/arch/x86/elf/x86Elf.c \
+SylixOS/arch/x86/fpu/x86Fpu.c \
+SylixOS/arch/x86/fpu/fpunone/x86FpuNone.c \
+SylixOS/arch/x86/fpu/fpusse/x86FpuSse.c \
+SylixOS/arch/x86/fpu/fpusse/x86FpuSseAsm.S \
+SylixOS/arch/x86/mm/x86Cache.c \
+SylixOS/arch/x86/mm/x86Mmu.c \
+SylixOS/arch/x86/mm/mmu/x86Mmu.c \
+SylixOS/arch/x86/mm/mmu/x86MmuAsm.S \
+SylixOS/arch/x86/mm/cache/x86Cache.c \
+SylixOS/arch/x86/mm/cache/x86CacheAsm.S \
+SylixOS/arch/x86/mpcore/x86MpCoreAsm.S \
+SylixOS/arch/x86/mpcore/x86MpCore.c \
+SylixOS/arch/x86/mpcore/x86Spinlock.c \
+SylixOS/arch/x86/param/x86Param.c \
+SylixOS/arch/x86/bsp/bspLib.c \
+SylixOS/arch/x86/apic/x86IoApic.c \
+SylixOS/arch/x86/apic/x86LocalApic.c \
+SylixOS/arch/x86/apic/x86LocalApicAsm.S \
+SylixOS/arch/x86/mpconfig/x86MpConfig.c
 
 #*********************************************************************************************************
-# do not change the following code
-# buildin internal application source
+# Buildin internal application source
 #*********************************************************************************************************
 ifeq ($(BUILD_LITE_TARGET), 0)
 APPL_SRCS = \
@@ -150,47 +300,7 @@ SylixOS/appl/editors/vi/src/vi.c
 endif
 
 #*********************************************************************************************************
-# arch source
-#*********************************************************************************************************
-ARCH_SRCS = \
-SylixOS/arch/x86/backtrace/x86Backtrace.c \
-SylixOS/arch/x86/common/x86Assert.c \
-SylixOS/arch/x86/common/x86Context.c \
-SylixOS/arch/x86/common/x86ContextAsm.S \
-SylixOS/arch/x86/common/x86Exc.c \
-SylixOS/arch/x86/common/x86ExcAsm.S \
-SylixOS/arch/x86/common/x86Lib.c \
-SylixOS/arch/x86/common/x86LibAsm.S \
-SylixOS/arch/x86/common/x86IoAsm.S \
-SylixOS/arch/x86/common/x86Gdt.c \
-SylixOS/arch/x86/common/x86Idt.c \
-SylixOS/arch/x86/common/x86CpuId.c \
-SylixOS/arch/x86/common/x86CpuIdAsm.S \
-SylixOS/arch/x86/dbg/x86Dbg.c \
-SylixOS/arch/x86/dbg/x86Gdb.c \
-SylixOS/arch/x86/elf/x86Elf.c \
-SylixOS/arch/x86/fpu/x86Fpu.c \
-SylixOS/arch/x86/fpu/fpunone/x86FpuNone.c \
-SylixOS/arch/x86/fpu/fpusse/x86FpuSse.c \
-SylixOS/arch/x86/fpu/fpusse/x86FpuSseAsm.S \
-SylixOS/arch/x86/mm/x86Cache.c \
-SylixOS/arch/x86/mm/x86Mmu.c \
-SylixOS/arch/x86/mm/mmu/x86Mmu.c \
-SylixOS/arch/x86/mm/mmu/x86MmuAsm.S \
-SylixOS/arch/x86/mm/cache/x86Cache.c \
-SylixOS/arch/x86/mm/cache/x86CacheAsm.S \
-SylixOS/arch/x86/mpcore/x86MpCoreAsm.S \
-SylixOS/arch/x86/mpcore/x86MpCore.c \
-SylixOS/arch/x86/mpcore/x86Spinlock.c \
-SylixOS/arch/x86/param/x86Param.c \
-SylixOS/arch/x86/bsp/bspLib.c \
-SylixOS/arch/x86/apic/x86IoApic.c \
-SylixOS/arch/x86/apic/x86LocalApic.c \
-SylixOS/arch/x86/apic/x86LocalApicAsm.S \
-SylixOS/arch/x86/mpconfig/x86MpConfig.c
-
-#*********************************************************************************************************
-# debug source
+# Debug source
 #*********************************************************************************************************
 DEBUG_SRCS = \
 SylixOS/debug/dtrace/dtrace.c \
@@ -199,7 +309,7 @@ SylixOS/debug/hwdbg/gdbmodule.c \
 SylixOS/debug/hwdbg/openocd.c 
 
 #*********************************************************************************************************
-# drv source
+# Drv source
 #*********************************************************************************************************
 DRV_SRCS = \
 SylixOS/driver/can/sja1000.c \
@@ -213,7 +323,7 @@ SylixOS/driver/sio/16c550.c \
 SylixOS/driver/timer/i8254.c 
 
 #*********************************************************************************************************
-# file system source
+# File system source
 #*********************************************************************************************************
 FS_SRCS = \
 SylixOS/fs/diskCache/diskCache.c \
@@ -302,13 +412,13 @@ SylixOS/fs/yaffs2/direct/yaffs_hweight.c \
 SylixOS/fs/yaffs2/direct/yaffs_qsort.c
 
 #*********************************************************************************************************
-# gui tools source
+# GUI tools source
 #*********************************************************************************************************
 GUI_SRCS = \
 SylixOS/gui/input_device/input_device.c
 
 #*********************************************************************************************************
-# kernel source
+# Kernel source
 #*********************************************************************************************************
 KERN_SRCS = \
 SylixOS/kernel/cache/cache.c \
@@ -598,7 +708,7 @@ SylixOS/kernel/vmm/vmmMmap.c \
 SylixOS/kernel/vmm/vmmSwap.c
 
 #*********************************************************************************************************
-# buildin library source
+# Buildin library source
 #*********************************************************************************************************
 LIB_SRCS = \
 SylixOS/lib/extern/libc.c \
@@ -782,7 +892,7 @@ SylixOS/lib/libcompiler/synchronize/lib_synchronize.c \
 SylixOS/lib/nl_compatible/nl_reent.c
 
 #*********************************************************************************************************
-# loader source
+# Loader source
 #*********************************************************************************************************
 LOADER_SRCS = \
 SylixOS/loader/elf/elf_loader.c \
@@ -800,7 +910,7 @@ SylixOS/loader/src/loader_vptimer.c \
 SylixOS/loader/src/loader_wait.c
 
 #*********************************************************************************************************
-# monitor source
+# Monitor source
 #*********************************************************************************************************
 MONITOR_SRCS = \
 SylixOS/monitor/src/monitorBuffer.c \
@@ -810,7 +920,7 @@ SylixOS/monitor/src/monitorTrace.c \
 SylixOS/monitor/src/monitorUpload.c
 
 #*********************************************************************************************************
-# mpi source
+# MPI source
 #*********************************************************************************************************
 MPI_SRCS = \
 SylixOS/mpi/dualportmem/dualportmem.c \
@@ -818,7 +928,7 @@ SylixOS/mpi/dualportmem/dualportmemLib.c \
 SylixOS/mpi/src/mpiInit.c
 
 #*********************************************************************************************************
-# net source
+# Net source
 #*********************************************************************************************************
 NET_SRCS = \
 SylixOS/net/libc/gethostbyht.c \
@@ -988,7 +1098,7 @@ SylixOS/net/lwip/wireless/lwip_wlpriv.c \
 SylixOS/net/lwip/wireless/lwip_wlspy.c 
 
 #*********************************************************************************************************
-# posix source
+# POSIX source
 #*********************************************************************************************************
 POSIX_SRCS = \
 SylixOS/posix/aio/aio.c \
@@ -1031,7 +1141,7 @@ SylixOS/posix/timeb/times.c \
 SylixOS/posix/utsname/utsname.c
 
 #*********************************************************************************************************
-# shell source
+# Shell source
 #*********************************************************************************************************
 SHELL_SRCS = \
 SylixOS/shell/fsLib/ttinyShellFsCmd.c \
@@ -1056,7 +1166,7 @@ SylixOS/shell/ttinyVar/ttinyVar.c \
 SylixOS/shell/ttinyVar/ttinyVarLib.c
 
 #*********************************************************************************************************
-# symbol source
+# Symbol source
 #*********************************************************************************************************
 SYMBOL_SRCS = \
 SylixOS/symbol/symBsp/symBsp.c \
@@ -1065,7 +1175,7 @@ SylixOS/symbol/symTable/symProc.c \
 SylixOS/symbol/symTable/symTable.c
 
 #*********************************************************************************************************
-# system source
+# System source
 #*********************************************************************************************************
 SYS_SRCS = \
 SylixOS/system/bus/busSystem.c \
@@ -1186,14 +1296,14 @@ SylixOS/system/util/bmsgLib.c \
 SylixOS/system/util/rngLib.c
 
 #*********************************************************************************************************
-# sysperf source
+# Sysperf source
 #*********************************************************************************************************
 SYSPERF_SRCS = \
 SylixOS/sysperf/sysperf.c \
 SylixOS/sysperf/sysperfLib.c 
 
 #*********************************************************************************************************
-# cplusplus source
+# C++ source
 #*********************************************************************************************************
 CPP_SRCS = \
 SylixOS/cplusplus/cppRtLib/cppEabiLib.cpp \
@@ -1202,432 +1312,113 @@ SylixOS/cplusplus/cppRtLib/cppRtBegin.cpp \
 SylixOS/cplusplus/cppRtLib/cppRtEnd.cpp \
 SylixOS/cplusplus/cppRtLib/cppSupLib.cpp
 
-#*********************************************************************************************************
-# all libsylixos source
-#*********************************************************************************************************
-SRCS  = $(APPL_SRCS)
-SRCS += $(ARCH_SRCS)
-SRCS += $(DEBUG_SRCS)
-SRCS += $(DRV_SRCS)
-SRCS += $(FS_SRCS)
-SRCS += $(GUI_SRCS)
-SRCS += $(KERN_SRCS)
-SRCS += $(LIB_SRCS)
-SRCS += $(MONITOR_SRCS)
-SRCS += $(LOADER_SRCS)
-SRCS += $(MPI_SRCS)
-SRCS += $(NET_SRCS)
-SRCS += $(POSIX_SRCS)
-SRCS += $(SHELL_SRCS)
-SRCS += $(SYMBOL_SRCS)
-SRCS += $(SYS_SRCS)
-SRCS += $(SYSPERF_SRCS)
-SRCS += $(CPP_SRCS)
+LOCAL_SRCS := $(APPL_SRCS)
+LOCAL_SRCS += $(DEBUG_SRCS)
+LOCAL_SRCS += $(DRV_SRCS)
+LOCAL_SRCS += $(FS_SRCS)
+LOCAL_SRCS += $(GUI_SRCS)
+LOCAL_SRCS += $(KERN_SRCS)
+LOCAL_SRCS += $(LIB_SRCS)
+LOCAL_SRCS += $(MONITOR_SRCS)
+LOCAL_SRCS += $(LOADER_SRCS)
+LOCAL_SRCS += $(MPI_SRCS)
+LOCAL_SRCS += $(NET_SRCS)
+LOCAL_SRCS += $(POSIX_SRCS)
+LOCAL_SRCS += $(SHELL_SRCS)
+LOCAL_SRCS += $(SYMBOL_SRCS)
+LOCAL_SRCS += $(SYS_SRCS)
+LOCAL_SRCS += $(SYSPERF_SRCS)
+LOCAL_SRCS += $(CPP_SRCS)
 
 #*********************************************************************************************************
-# libdsohandle source
+# Header file search path (eg. LOCAL_INC_PATH := -I"Your hearder files search path")
 #*********************************************************************************************************
-DSOH_SRCS = \
-SylixOS/dsohandle/dsohandle.c
+LOCAL_INC_PATH := 
 
 #*********************************************************************************************************
-# libvpmpdm source
+# Pre-defined macro (eg. -DYOUR_MARCO=1)
 #*********************************************************************************************************
-VPMPDM_SRCS = \
-SylixOS/vpmpdm/dlmalloc/dl_malloc.c \
-SylixOS/vpmpdm/dlmalloc/dlmalloc.c \
-SylixOS/vpmpdm/tlsf/tlsf.c \
-SylixOS/vpmpdm/vpmpdm_backtrace.c \
-SylixOS/vpmpdm/vpmpdm_cpp.cpp \
-SylixOS/vpmpdm/vpmpdm_lm.c \
-SylixOS/vpmpdm/vpmpdm_start.c \
-SylixOS/vpmpdm/vpmpdm_stdio.c \
-SylixOS/vpmpdm/vpmpdm_stdlib.c \
-SylixOS/vpmpdm/vpmpdm.c
-
-#*********************************************************************************************************
-# libxinput source
-#*********************************************************************************************************
-XINPUT_SRCS = \
-SylixOS/xinput/xdev.c \
-SylixOS/xinput/xinput.c \
-SylixOS/xinput/xproc.c
-
-#*********************************************************************************************************
-# libxsiipc source
-#*********************************************************************************************************
-XSIIPC_SRCS = \
-SylixOS/xsiipc/msg.c \
-SylixOS/xsiipc/proc.c \
-SylixOS/xsiipc/sem.c \
-SylixOS/xsiipc/shm.c \
-SylixOS/xsiipc/xsiipc.c
-
-#*********************************************************************************************************
-# build path
-#*********************************************************************************************************
-ifeq ($(DEBUG_LEVEL), debug)
-OUTDIR = Debug
-else
-OUTDIR = Release
-endif
-
-OUTPATH = ./$(OUTDIR)
-OBJPATH = $(OUTPATH)/obj
-DEPPATH = $(OUTPATH)/dep
-
-#*********************************************************************************************************
-# libsylixos target
-#*********************************************************************************************************
-TARGET = $(OUTPATH)/libsylixos.a
-
-#*********************************************************************************************************
-# libdsohandle target
-#*********************************************************************************************************
-DSOH_TARGET = $(OUTPATH)/libdsohandle.a
-
-#*********************************************************************************************************
-# libvpmpdm target
-#*********************************************************************************************************
-VPMPDM_A_TARGET       = $(OUTPATH)/libvpmpdm.a
-VPMPDM_S_TARGET       = $(OUTPATH)/libvpmpdm.so
-VPMPDM_S_STRIP_TARGET = $(OUTPATH)/strip/libvpmpdm.so
-
-#*********************************************************************************************************
-# libxinput target
-#*********************************************************************************************************
-XINPUT_TARGET       = $(OUTPATH)/xinput.ko
-XINPUT_STRIP_TARGET = $(OUTPATH)/strip/xinput.ko
-
-#*********************************************************************************************************
-# libxsiipc target
-#*********************************************************************************************************
-XSIIPC_TARGET       = $(OUTPATH)/xsiipc.ko
-XSIIPC_STRIP_TARGET = $(OUTPATH)/strip/xsiipc.ko
-
-#*********************************************************************************************************
-# symbol target
-#*********************************************************************************************************
-SYMBOL_TARGET_C = $(OUTPATH)/symbol.c
-SYMBOL_TARGET_H = $(OUTPATH)/symbol.h
-
-#*********************************************************************************************************
-# libsylixos objects
-#*********************************************************************************************************
-OBJS_APPL    = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(APPL_SRCS))))
-OBJS_ARCH    = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(ARCH_SRCS))))
-OBJS_DEBUG   = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(DEBUG_SRCS))))
-OBJS_DRV     = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(DRV_SRCS))))
-OBJS_FS      = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(FS_SRCS))))
-OBJS_GUI     = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(GUI_SRCS))))
-OBJS_KERN    = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(KERN_SRCS))))
-OBJS_LIB     = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(LIB_SRCS))))
-OBJS_LOADER  = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(LOADER_SRCS))))
-OBJS_MONITOR = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(MONITOR_SRCS))))
-OBJS_MPI     = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(MPI_SRCS))))
-OBJS_NET     = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(NET_SRCS))))
-OBJS_POSIX   = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(POSIX_SRCS))))
-OBJS_SHELL   = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(SHELL_SRCS))))
-OBJS_SYMBOL  = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(SYMBOL_SRCS))))
-OBJS_SYS     = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(SYS_SRCS))))
-OBJS_SYSPERF = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(SYSPERF_SRCS))))
-OBJS_CPP     = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(CPP_SRCS))))
-OBJS         = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(SRCS))))
-DEPS         = $(addprefix $(DEPPATH)/, $(addsuffix .d, $(basename $(SRCS))))
-
-#*********************************************************************************************************
-# libdsohandle objects
-#*********************************************************************************************************
-OBJS_DSOH    = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(DSOH_SRCS))))
-DEPS_DSOH    = $(addprefix $(DEPPATH)/, $(addsuffix .d, $(basename $(DSOH_SRCS))))
-
-#*********************************************************************************************************
-# libvpmpdm objects
-#*********************************************************************************************************
-OBJS_VPMPDM  = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(VPMPDM_SRCS))))
-DEPS_VPMPDM  = $(addprefix $(DEPPATH)/, $(addsuffix .d, $(basename $(VPMPDM_SRCS))))
-
-#*********************************************************************************************************
-# libxinput objects
-#*********************************************************************************************************
-OBJS_XINPUT  = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(XINPUT_SRCS))))
-DEPS_XINPUT  = $(addprefix $(DEPPATH)/, $(addsuffix .d, $(basename $(XINPUT_SRCS))))
-
-#*********************************************************************************************************
-# libxsiipc objects
-#*********************************************************************************************************
-OBJS_XSIIPC  = $(addprefix $(OBJPATH)/, $(addsuffix .o, $(basename $(XSIIPC_SRCS))))
-DEPS_XSIIPC  = $(addprefix $(DEPPATH)/, $(addsuffix .d, $(basename $(XSIIPC_SRCS))))
-
-#*********************************************************************************************************
-# include path
-#*********************************************************************************************************
-INCDIR  = -I"./SylixOS"
-INCDIR += -I"./SylixOS/include"
-INCDIR += -I"./SylixOS/include/inet"
-
-#*********************************************************************************************************
-# compiler preprocess
-#*********************************************************************************************************
-DSYMBOL  = -DSYLIXOS
-
+LOCAL_DSYMBOL := 
 ifeq ($(BUILD_LITE_TARGET), 1)
-DSYMBOL += -D__SYLIXOS_LITE
+LOCAL_DSYMBOL += -D__SYLIXOS_LITE
 endif
 
 #*********************************************************************************************************
-# compiler optimize
+# Depend library (eg. LOCAL_DEPEND_LIB := -la LOCAL_DEPEND_LIB_PATH := -L"Your library search path")
 #*********************************************************************************************************
-ifeq ($(DEBUG_LEVEL), debug)
-OPTIMIZE = -O0 -g3 -gdwarf-2
-else
-OPTIMIZE = -O2 -g1 -gdwarf-2											# Do NOT use -O3 and -Os
-endif										    						# -Os is not align for function
-																		# loop and jump.
-#*********************************************************************************************************
-# depends and compiler parameter (cplusplus in kernel MUST NOT use exceptions and rtti)
-#*********************************************************************************************************
-DEPENDFLAG  = -MM
-CXX_EXCEPT  = -fno-exceptions -fno-rtti
-COMMONFLAGS = $(CPUFLAGS) $(OPTIMIZE) -Wall -fmessage-length=0 -fsigned-char -fno-short-enums -mlong-double-64
-ASFLAGS     = -x assembler-with-cpp $(DSYMBOL) $(INCDIR) $(COMMONFLAGS) -c
-CFLAGS      = $(DSYMBOL) $(INCDIR) $(COMMONFLAGS) -c
-CXXFLAGS    = $(DSYMBOL) $(INCDIR) $(CXX_EXCEPT) $(COMMONFLAGS) -c
-ARFLAGS     = -r
+LOCAL_DEPEND_LIB      := 
+LOCAL_DEPEND_LIB_PATH := 
 
 #*********************************************************************************************************
-# define some useful variable
+# C++ config
 #*********************************************************************************************************
-DEPEND          = $(CC)  $(DEPENDFLAG) $(CFLAGS)
-DEPEND.d        = $(subst -g ,,$(DEPEND))
-COMPILE.S       = $(AS)  $(ASFLAGS)
-COMPILE_VFP.S   = $(AS)  $(ASFLAGS) -mhard-float
-COMPILE.c       = $(CC)  $(CFLAGS)
-COMPILE.cxx     = $(CXX) $(CXXFLAGS)
+LOCAL_USE_CXX        := no
+LOCAL_USE_CXX_EXCEPT := no
 
 #*********************************************************************************************************
-# compile -fPIC
+# Code coverage config
 #*********************************************************************************************************
-COMPILE_PIC.c   = $(COMPILE.c) -fPIC
-COMPILE_PIC.cxx = $(COMPILE.cxx) -fPIC
+LOCAL_USE_GCOV := no
 
 #*********************************************************************************************************
-# target
+# compile ARM VFP source files
 #*********************************************************************************************************
-ifeq ($(BUILD_PROCESS_SUP_LIB), 1)
-ifeq ($(BUILD_KERNEL_MODULE), 1)
-all: $(TARGET) $(DSOH_TARGET) $(VPMPDM_A_TARGET) $(VPMPDM_S_TARGET) $(XINPUT_TARGET) $(XSIIPC_TARGET) $(VPMPDM_S_STRIP_TARGET) $(XINPUT_STRIP_TARGET) $(XSIIPC_STRIP_TARGET)
-		@echo create "$(TARGET) $(DSOH_TARGET) $(VPMPDM_A_TARGET) $(VPMPDM_S_TARGET)" \
-		"$(XINPUT_TARGET) $(XSIIPC_TARGET) $(VPMPDM_S_STRIP_TARGET) $(XINPUT_STRIP_TARGET) $(XSIIPC_STRIP_TARGET)" success.
-else
-all: $(TARGET) $(DSOH_TARGET) $(VPMPDM_A_TARGET) $(VPMPDM_S_TARGET) $(VPMPDM_S_STRIP_TARGET)
-		@echo create "$(TARGET) $(DSOH_TARGET) $(VPMPDM_A_TARGET) $(VPMPDM_S_TARGET) $(VPMPDM_S_STRIP_TARGET)" success.
-endif
-else
-all: $(TARGET)
-		@echo create "$(TARGET)" success.
-endif
+ARM_VFP_ASFLAGS = -mfloat-abi=softfp -mfpu=vfpv3
+
+$(OBJPATH)/libsylixos.a/SylixOS/arch/arm/fpu/vfp9/armVfp9Asm.o: ./SylixOS/arch/arm/fpu/vfp9/armVfp9Asm.S
+		@if [ ! -d "$(dir $@)" ]; then \
+			mkdir -p "$(dir $@)"; fi
+		@if [ ! -d "$(dir $(__DEP))" ]; then \
+			mkdir -p "$(dir $(__DEP))"; fi
+		$(AS) $($(__TARGET)_ASFLAGS) $(ARM_VFP_ASFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
+
+$(OBJPATH)/libsylixos.a/SylixOS/arch/arm/fpu/vfp11/armVfp11Asm.o: ./SylixOS/arch/arm/fpu/vfp11/armVfp11Asm.S
+		@if [ ! -d "$(dir $@)" ]; then \
+			mkdir -p "$(dir $@)"; fi
+		@if [ ! -d "$(dir $(__DEP))" ]; then \
+			mkdir -p "$(dir $(__DEP))"; fi
+		$(AS) $($(__TARGET)_ASFLAGS) $(ARM_VFP_ASFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
+
+$(OBJPATH)/libsylixos.a/SylixOS/arch/arm/fpu/vfpv3/armVfpV3Asm.o: ./SylixOS/arch/arm/fpu/vfpv3/armVfpV3Asm.S
+		@if [ ! -d "$(dir $@)" ]; then \
+			mkdir -p "$(dir $@)"; fi
+		@if [ ! -d "$(dir $(__DEP))" ]; then \
+			mkdir -p "$(dir $(__DEP))"; fi
+		$(AS) $($(__TARGET)_ASFLAGS) $(ARM_VFP_ASFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
 
 #*********************************************************************************************************
-# include depends
+# compile MIPS VFP source files
 #*********************************************************************************************************
-ifneq ($(MAKECMDGOALS), clean)
-ifneq ($(MAKECMDGOALS), clean_project)
-sinclude $(DEPS)
-endif
-endif
+MIPS_VFP_ASFLAGS = -mhard-float
+
+$(OBJPATH)/libsylixos.a/SylixOS/arch/mips/fpu/fpu32/mipsVfp32Asm.o: ./SylixOS/arch/mips/fpu/fpu32/mipsVfp32Asm.S
+		@if [ ! -d "$(dir $@)" ]; then \
+			mkdir -p "$(dir $@)"; fi
+		@if [ ! -d "$(dir $(__DEP))" ]; then \
+			mkdir -p "$(dir $(__DEP))"; fi
+		$(AS) $($(__TARGET)_ASFLAGS) $(MIPS_VFP_ASFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
+
+$(OBJPATH)/libsylixos.a/SylixOS/arch/mips/fpu/fpu64/mipsVfp64Asm.o: ./SylixOS/arch/mips/fpu/fpu64/mipsVfp64Asm.S		
+		@if [ ! -d "$(dir $@)" ]; then \
+			mkdir -p "$(dir $@)"; fi
+		@if [ ! -d "$(dir $(__DEP))" ]; then \
+			mkdir -p "$(dir $(__DEP))"; fi
+		$(AS) $($(__TARGET)_ASFLAGS) $(MIPS_VFP_ASFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
 
 #*********************************************************************************************************
-# create depends files
+# compile PowerPC VFP source files
 #*********************************************************************************************************
-$(DEPPATH)/%.d: %.c
-		@echo creating $@
-		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
-		@rm -f $@; \
-		echo -n '$@ $(addprefix $(OBJPATH)/, $(dir $<))' > $@; \
-		$(DEPEND.d) $< >> $@ || rm -f $@; exit;
+PPC_VFP_ASFLAGS = -mhard-float
 
-$(DEPPATH)/%.d: %.cpp
-		@echo creating $@
-		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
-		@rm -f $@; \
-		echo -n '$@ $(addprefix $(OBJPATH)/, $(dir $<))' > $@; \
-		$(DEPEND.d) $< >> $@ || rm -f $@; exit;
+$(OBJPATH)/libsylixos.a/SylixOS/arch/ppc/fpu/vfp/ppcVfpAsm.o: ./SylixOS/arch/ppc/fpu/vfp/ppcVfpAsm.S
+		@if [ ! -d "$(dir $@)" ]; then \
+			mkdir -p "$(dir $@)"; fi
+		@if [ ! -d "$(dir $(__DEP))" ]; then \
+			mkdir -p "$(dir $(__DEP))"; fi
+		$(AS) $($(__TARGET)_ASFLAGS) $(PPC_VFP_ASFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
+
+include $(LIBSYLIXOS_MK)
 
 #*********************************************************************************************************
-# compile source files
-#*********************************************************************************************************
-$(OBJPATH)/%.o: %.S
-		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
-		$(COMPILE.S) $< -o $@
-
-$(OBJPATH)/%.o: %.c
-		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
-		$(COMPILE.c) $< -o $@
-
-$(OBJPATH)/%.o: %.cpp
-		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
-		$(COMPILE.cxx) $< -o $@
-
-#*********************************************************************************************************
-# compile VFP source files
-#*********************************************************************************************************
-
-#*********************************************************************************************************
-# link libsylixos.a object files
-#*********************************************************************************************************
-$(TARGET): $(OBJS)
-		-rm -rf $(TARGET)
-		$(AR) $(ARFLAGS) $(TARGET) $(OBJS_APPL)
-		$(AR) $(ARFLAGS) $(TARGET) $(OBJS_ARCH)
-		$(AR) $(ARFLAGS) $(TARGET) $(OBJS_DEBUG)
-		$(AR) $(ARFLAGS) $(TARGET) $(OBJS_DRV)
-		$(AR) $(ARFLAGS) $(TARGET) $(OBJS_FS)
-		$(AR) $(ARFLAGS) $(TARGET) $(OBJS_GUI)
-		$(AR) $(ARFLAGS) $(TARGET) $(OBJS_KERN)
-		$(AR) $(ARFLAGS) $(TARGET) $(OBJS_LIB)
-		$(AR) $(ARFLAGS) $(TARGET) $(OBJS_MONITOR)
-		$(AR) $(ARFLAGS) $(TARGET) $(OBJS_LOADER)
-		$(AR) $(ARFLAGS) $(TARGET) $(OBJS_MPI)
-		$(AR) $(ARFLAGS) $(TARGET) $(OBJS_NET)
-		$(AR) $(ARFLAGS) $(TARGET) $(OBJS_POSIX)
-		$(AR) $(ARFLAGS) $(TARGET) $(OBJS_SHELL)
-		$(AR) $(ARFLAGS) $(TARGET) $(OBJS_SYMBOL)
-		$(AR) $(ARFLAGS) $(TARGET) $(OBJS_SYS)
-		$(AR) $(ARFLAGS) $(TARGET) $(OBJS_SYSPERF)
-		$(AR) $(ARFLAGS) $(TARGET) $(OBJS_CPP)
-		cp SylixOS/hosttools/makesymbol/Makefile $(OUTDIR)
-		cp SylixOS/hosttools/makesymbol/makesymbol.bat $(OUTDIR)
-		cp SylixOS/hosttools/makesymbol/makesymbol.sh $(OUTDIR)
-		cp SylixOS/hosttools/makesymbol/nm.exe $(OUTDIR)
-		make -C $(OUTDIR)
-
-#*********************************************************************************************************
-# link libdsohandle.a object files
-#*********************************************************************************************************
-$(DSOH_TARGET): $(OBJS_DSOH)
-		$(AR) $(ARFLAGS) $(DSOH_TARGET) $(OBJS_DSOH)
-
-#*********************************************************************************************************
-# compile PIC code
-#*********************************************************************************************************
-$(OBJPATH)/SylixOS/vpmpdm/dlmalloc/dl_malloc.o: ./SylixOS/vpmpdm/dlmalloc/dl_malloc.c
-		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
-		$(COMPILE_PIC.c) $< -o $@
-
-$(OBJPATH)/SylixOS/vpmpdm/dlmalloc/dlmalloc.o: ./SylixOS/vpmpdm/dlmalloc/dlmalloc.c
-		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
-		$(COMPILE_PIC.c) $< -o $@
-
-$(OBJPATH)/SylixOS/vpmpdm/tlsf/tlsf.o: ./SylixOS/vpmpdm/tlsf/tlsf.c
-		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
-		$(COMPILE_PIC.c) $< -o $@
-
-$(OBJPATH)/SylixOS/vpmpdm/vpmpdm_backtrace.o: ./SylixOS/vpmpdm/vpmpdm_backtrace.c
-		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
-		$(COMPILE_PIC.c) $< -o $@
-
-$(OBJPATH)/SylixOS/vpmpdm/vpmpdm_lm.o: ./SylixOS/vpmpdm/vpmpdm_lm.c
-		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
-		$(COMPILE_PIC.c) $< -o $@
-
-$(OBJPATH)/SylixOS/vpmpdm/vpmpdm_start.o: ./SylixOS/vpmpdm/vpmpdm_start.c
-		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
-		$(COMPILE_PIC.c) $< -o $@
-
-$(OBJPATH)/SylixOS/vpmpdm/vpmpdm_stdio.o: ./SylixOS/vpmpdm/vpmpdm_stdio.c
-		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
-		$(COMPILE_PIC.c) $< -o $@
-
-$(OBJPATH)/SylixOS/vpmpdm/vpmpdm_stdlib.o: ./SylixOS/vpmpdm/vpmpdm_stdlib.c
-		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
-		$(COMPILE_PIC.c) $< -o $@
-
-$(OBJPATH)/SylixOS/vpmpdm/vpmpdm.o: ./SylixOS/vpmpdm/vpmpdm.c
-		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
-		$(COMPILE_PIC.c) $< -o $@
-
-$(OBJPATH)/SylixOS/vpmpdm/vpmpdm_cpp.o: ./SylixOS/vpmpdm/vpmpdm_cpp.cpp
-		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
-		$(COMPILE_PIC.cxx) $< -o $@
-
-#*********************************************************************************************************
-# link libvpmpdm.a object files
-#*********************************************************************************************************
-$(VPMPDM_A_TARGET): $(OBJS_VPMPDM)
-		$(AR) $(ARFLAGS) $(VPMPDM_A_TARGET) $(OBJS_VPMPDM)
-
-#*********************************************************************************************************
-# link libvpmpdm.so object files
-#*********************************************************************************************************
-$(VPMPDM_S_TARGET): $(OBJS_VPMPDM)
-		$(LD) $(CPUFLAGS) -Wl,-shared -fPIC -shared -o $(VPMPDM_S_TARGET) $(OBJS_VPMPDM) -lgcc
-
-#*********************************************************************************************************
-# strip libvpmpdm.so
-#*********************************************************************************************************
-$(VPMPDM_S_STRIP_TARGET): $(VPMPDM_S_TARGET)
-		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
-		@rm -f $@
-		$(STRIP) $(VPMPDM_S_TARGET) -o $(VPMPDM_S_STRIP_TARGET)
-
-#*********************************************************************************************************
-# link xinput.ko object files
-#*********************************************************************************************************
-$(XINPUT_TARGET): $(OBJS_XINPUT)
-		$(LD) $(CPUFLAGS) -nostdlib -r -o $(XINPUT_TARGET) $(OBJS_XINPUT) -lm -lgcc
-
-#*********************************************************************************************************
-# strip xinput.ko
-#*********************************************************************************************************
-$(XINPUT_STRIP_TARGET): $(XINPUT_TARGET)
-		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
-		@rm -f $@
-		$(STRIP) --strip-unneeded $(XINPUT_TARGET) -o $(XINPUT_STRIP_TARGET)
-
-#*********************************************************************************************************
-# link xsiipc.ko object files
-#*********************************************************************************************************
-$(XSIIPC_TARGET): $(OBJS_XSIIPC)
-		$(LD) $(CPUFLAGS) -nostdlib -r -o $(XSIIPC_TARGET) $(OBJS_XSIIPC) -lm -lgcc
-
-#*********************************************************************************************************
-# strip xsiipc.ko
-#*********************************************************************************************************
-$(XSIIPC_STRIP_TARGET): $(XSIIPC_TARGET)
-		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
-		@rm -f $@
-		$(STRIP) --strip-unneeded $(XSIIPC_TARGET) -o $(XSIIPC_STRIP_TARGET)
-
-#*********************************************************************************************************
-# clean
-#*********************************************************************************************************
-.PHONY: clean
-.PHONY: clean_project
-
-#*********************************************************************************************************
-# clean objects
-#*********************************************************************************************************
-clean:
-		-rm -rf $(TARGET)
-		-rm -rf $(DSOH_TARGET)
-		-rm -rf $(VPMPDM_A_TARGET)
-		-rm -rf $(VPMPDM_S_TARGET)
-		-rm -rf $(XINPUT_TARGET)
-		-rm -rf $(XSIIPC_TARGET)
-		-rm -rf $(VPMPDM_S_STRIP_TARGET)
-		-rm -rf $(XINPUT_STRIP_TARGET)
-		-rm -rf $(XSIIPC_STRIP_TARGET)
-		-rm -rf $(SYMBOL_TARGET_C) $(SYMBOL_TARGET_H)
-		-rm -rf $(OBJPATH)
-		-rm -rf $(DEPPATH)
-
-#*********************************************************************************************************
-# clean project
-#*********************************************************************************************************
-clean_project:
-		-rm -rf $(OUTPATH)
-
-#*********************************************************************************************************
-# END
+# End
 #*********************************************************************************************************
