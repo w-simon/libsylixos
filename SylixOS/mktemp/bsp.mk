@@ -20,7 +20,7 @@
 #*********************************************************************************************************
 
 #*********************************************************************************************************
-# copy symbol.c symbol.h
+# Copy symbol.c symbol.h
 #*********************************************************************************************************
 SYMBOL_PATH = SylixOS/bsp
 
@@ -31,17 +31,17 @@ $(SYMBOL_PATH)/symbol.h: $(subst $(SPACE),\ ,$(SYLIXOS_BASE_PATH))/libsylixos/$(
 		cp "$(SYLIXOS_BASE_PATH)/libsylixos/$(OUTDIR)/symbol.h" $(SYMBOL_PATH)/symbol.h
 
 #*********************************************************************************************************
-# add symbol.c to LOCAL_SRCS
+# Add symbol.c to LOCAL_SRCS
 #*********************************************************************************************************
 LOCAL_SRCS := $(SYMBOL_PATH)/symbol.c $(LOCAL_SRCS)
 
 #*********************************************************************************************************
-# include common.mk
+# Include common.mk
 #*********************************************************************************************************
 include $(MKTEMP)/common.mk
 
 #*********************************************************************************************************
-# depend and compiler parameter (cplusplus in kernel MUST NOT use exceptions and rtti)
+# Depend and compiler parameter (cplusplus in kernel MUST NOT use exceptions and rtti)
 #*********************************************************************************************************
 ifneq (,$(findstring yes,$($(target)_USE_CXX_EXCEPT)))
 $(target)_CXX_EXCEPT  := $(GCC_NO_CXX_EXCEPT_CFLAGS)
@@ -61,13 +61,13 @@ $(target)_CFLAGS      := $($(target)_COMMONFLAGS) $($(target)_DSYMBOL) $($(targe
 $(target)_CXXFLAGS    := $($(target)_COMMONFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CXX_EXCEPT) 
 
 #*********************************************************************************************************
-# depend library search paths
+# Depend library search paths
 #*********************************************************************************************************
 $(target)_DEPEND_LIB_PATH := -L"$(SYLIXOS_BASE_PATH)/libsylixos/$(OUTDIR)"
 $(target)_DEPEND_LIB_PATH += $(LOCAL_DEPEND_LIB_PATH)
 
 #*********************************************************************************************************
-# depend libraries
+# Depend libraries
 #*********************************************************************************************************
 $(target)_DEPEND_LIB := $(LOCAL_DEPEND_LIB)
 $(target)_DEPEND_LIB += -lsylixos
@@ -82,21 +82,21 @@ endif
 $(target)_DEPEND_LIB += -lm -lgcc
 
 #*********************************************************************************************************
-# targets
+# Targets
 #*********************************************************************************************************
-$(target)_IMG  := $(OUTPATH)/$(LOCAL_TARGET_NAME)
-$(target)_BIN  := $(OUTPATH)/$(addsuffix .bin, $(basename $(LOCAL_TARGET_NAME)))
-$(target)_SIZ  := $(OUTPATH)/$(addsuffix .siz, $(basename $(LOCAL_TARGET_NAME)))
-$(target)_LZO  := $(OUTPATH)/$(addsuffix .lzo, $(basename $(LOCAL_TARGET_NAME)))
-$(target)_OS   := $(OUTPATH)/$(addsuffix .os,  $(basename $(LOCAL_TARGET_NAME)))
+$(target)_IMG       := $(OUTPATH)/$(LOCAL_TARGET_NAME)
+$(target)_STRIP_IMG := $(OUTPATH)/strip/$(LOCAL_TARGET_NAME)
+$(target)_BIN       := $(OUTPATH)/$(addsuffix .bin, $(basename $(LOCAL_TARGET_NAME)))
+$(target)_SIZ       := $(OUTPATH)/$(addsuffix .siz, $(basename $(LOCAL_TARGET_NAME)))
+$(target)_LZO       := $(OUTPATH)/$(addsuffix .lzo, $(basename $(LOCAL_TARGET_NAME)))
 
 #*********************************************************************************************************
-# link script files
+# Link script files
 #*********************************************************************************************************
 LOCAL_LD_SCRIPT_NT := $(LOCAL_LD_SCRIPT) config.ld
 
 #*********************************************************************************************************
-# link object files
+# Link object files
 #*********************************************************************************************************
 $($(target)_IMG): $(LOCAL_LD_SCRIPT_NT) $($(target)_OBJS) $($(target)_DEPEND_TARGET)
 		@rm -f $@
@@ -106,44 +106,45 @@ $($(target)_IMG): $(LOCAL_LD_SCRIPT_NT) $($(target)_OBJS) $($(target)_DEPEND_TAR
 		$(__POST_LINK_CMD)
 
 #*********************************************************************************************************
-# create bin
+# Create bin
 #*********************************************************************************************************
 $($(target)_BIN): $($(target)_IMG)
 		@rm -f $@
 		$(OC) -O binary $< $@
 
 #*********************************************************************************************************
-# create siz
+# Create siz
 #*********************************************************************************************************
 $($(target)_SIZ): $($(target)_IMG)
 		@rm -f $@
 		$(SZ) --format=berkeley $< > $@
 
 #*********************************************************************************************************
-# create lzo
+# Create lzo
 #*********************************************************************************************************
 $($(target)_LZO): $($(target)_BIN)
 		@rm -f $@
 		$(LZOCOM) -c $< $@
 
 #*********************************************************************************************************
-# create os
+# Strip image
 #*********************************************************************************************************
-$($(target)_OS): $($(target)_IMG)
+$($(target)_STRIP_IMG): $($(target)_IMG)
+		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
 		@rm -f $@
 		$(__PRE_STRIP_CMD)
 		$(STRIP) $< -o $@
 		$(__POST_STRIP_CMD)
 
 #*********************************************************************************************************
-# add targets
+# Add targets
 #*********************************************************************************************************
 ifeq ($(COMMERCIAL), 1)
-TARGETS := $(TARGETS) $($(target)_IMG) $($(target)_BIN) $($(target)_SIZ) $($(target)_OS) $($(target)_LZO) $(SYMBOL_PATH)/symbol.c $(SYMBOL_PATH)/symbol.h
+TARGETS := $(TARGETS) $($(target)_IMG) $($(target)_BIN) $($(target)_SIZ) $($(target)_STRIP_IMG) $($(target)_LZO) $(SYMBOL_PATH)/symbol.c $(SYMBOL_PATH)/symbol.h
 else
-TARGETS := $(TARGETS) $($(target)_IMG) $($(target)_BIN) $($(target)_SIZ) $($(target)_OS) $(SYMBOL_PATH)/symbol.c $(SYMBOL_PATH)/symbol.h
+TARGETS := $(TARGETS) $($(target)_IMG) $($(target)_BIN) $($(target)_SIZ) $($(target)_STRIP_IMG) $(SYMBOL_PATH)/symbol.c $(SYMBOL_PATH)/symbol.h
 endif
 
 #*********************************************************************************************************
-# end
+# End
 #*********************************************************************************************************

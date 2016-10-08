@@ -20,12 +20,12 @@
 #*********************************************************************************************************
 
 #*********************************************************************************************************
-# include common.mk
+# Include common.mk
 #*********************************************************************************************************
 include $(MKTEMP)/common.mk
 
 #*********************************************************************************************************
-# depend and compiler parameter (cplusplus in kernel MUST NOT use exceptions and rtti)
+# Depend and compiler parameter (cplusplus in kernel MUST NOT use exceptions and rtti)
 #*********************************************************************************************************
 ifneq (,$(findstring yes,$($(target)_USE_CXX_EXCEPT)))
 $(target)_CXX_EXCEPT  := $(GCC_NO_CXX_EXCEPT_CFLAGS)
@@ -39,41 +39,40 @@ else
 $(target)_GCOV_FLAGS  :=
 endif
 
-$(target)_DSYMBOL     += -DSYLIXOS_LIB
 $(target)_COMMONFLAGS := $(CPUFLAGS) $(ARCH_COMMONFLAGS) $(OPTIMIZE) -Wall -fmessage-length=0 -fsigned-char -fno-short-enums $($(target)_GCOV_FLAGS) 
 $(target)_ASFLAGS     := $($(target)_COMMONFLAGS) -x assembler-with-cpp $($(target)_DSYMBOL) $($(target)_INC_PATH) 
 $(target)_CFLAGS      := $($(target)_COMMONFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) 
 $(target)_CXXFLAGS    := $($(target)_COMMONFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CXX_EXCEPT) 
 
 #*********************************************************************************************************
-# targets
+# Targets
 #*********************************************************************************************************
 $(target)_A := $(OUTPATH)/$(LOCAL_TARGET_NAME)
 
 #*********************************************************************************************************
-# objects
+# Objects
 #*********************************************************************************************************
-OBJS_ARCH    = $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(LOCAL_ARCH_SRCS))))
-OBJS_APPL    = $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(APPL_SRCS))))
-OBJS_DEBUG   = $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(DEBUG_SRCS))))
-OBJS_DRV     = $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(DRV_SRCS))))
-OBJS_FS      = $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(FS_SRCS))))
-OBJS_GUI     = $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(GUI_SRCS))))
-OBJS_KERN    = $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(KERN_SRCS))))
-OBJS_LIB     = $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(LIB_SRCS))))
-OBJS_LOADER  = $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(LOADER_SRCS))))
-OBJS_MONITOR = $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(MONITOR_SRCS))))
-OBJS_MPI     = $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(MPI_SRCS))))
-OBJS_NET     = $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(NET_SRCS))))
-OBJS_POSIX   = $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(POSIX_SRCS))))
-OBJS_SHELL   = $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(SHELL_SRCS))))
-OBJS_SYMBOL  = $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(SYMBOL_SRCS))))
-OBJS_SYS     = $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(SYS_SRCS))))
-OBJS_SYSPERF = $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(SYSPERF_SRCS))))
-OBJS_CPP     = $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(CPP_SRCS))))
+OBJS_ARCH    := $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(LOCAL_ARCH_SRCS))))
+OBJS_APPL    := $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(APPL_SRCS))))
+OBJS_DEBUG   := $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(DEBUG_SRCS))))
+OBJS_DRV     := $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(DRV_SRCS))))
+OBJS_FS      := $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(FS_SRCS))))
+OBJS_GUI     := $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(GUI_SRCS))))
+OBJS_KERN    := $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(KERN_SRCS))))
+OBJS_LIB     := $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(LIB_SRCS))))
+OBJS_LOADER  := $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(LOADER_SRCS))))
+OBJS_MONITOR := $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(MONITOR_SRCS))))
+OBJS_MPI     := $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(MPI_SRCS))))
+OBJS_NET     := $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(NET_SRCS))))
+OBJS_POSIX   := $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(POSIX_SRCS))))
+OBJS_SHELL   := $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(SHELL_SRCS))))
+OBJS_SYMBOL  := $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(SYMBOL_SRCS))))
+OBJS_SYS     := $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(SYS_SRCS))))
+OBJS_SYSPERF := $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(SYSPERF_SRCS))))
+OBJS_CPP     := $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(CPP_SRCS))))
 
 #*********************************************************************************************************
-# ar object files
+# Make archive object files
 #*********************************************************************************************************
 $($(target)_A): $($(target)_OBJS)
 		@rm -f $@
@@ -99,7 +98,7 @@ $($(target)_A): $($(target)_OBJS)
 		$(__POST_LINK_CMD)
 
 #*********************************************************************************************************
-# create symbol files
+# Create symbol files
 #*********************************************************************************************************
 $(OUTPATH)/symbol.c: $($(target)_A)
 		@rm -f $@
@@ -110,10 +109,10 @@ $(OUTPATH)/symbol.c: $($(target)_A)
 		make -C $(OUTDIR)
 
 #*********************************************************************************************************
-# add targets
+# Add targets
 #*********************************************************************************************************
 TARGETS := $(TARGETS) $($(target)_A) $(OUTPATH)/symbol.c
 
 #*********************************************************************************************************
-# end
+# End
 #*********************************************************************************************************

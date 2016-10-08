@@ -10,83 +10,59 @@
 #
 #--------------文件信息--------------------------------------------------------------------------------
 #
-# 文   件   名: arch.mk
+# 文   件   名: kernel-library.mk
 #
-# 创   建   人: Jiao.JinXing(焦进星)
+# 创   建   人: RealEvo-IDE
 #
-# 文件创建日期: 2016 年 08 月 24 日
+# 文件创建日期: 2016 年 07 月 19 日
 #
-# 描        述: 存放与 arch 相关的变量
+# 描        述: 本文件由 RealEvo-IDE 生成，用于配置 Makefile 功能，请勿手动修改
 #*********************************************************************************************************
 
 #*********************************************************************************************************
-# x86
+# Clear setting
 #*********************************************************************************************************
-ifneq (,$(findstring i386,$(TOOLCHAIN_PREFIX)))
-ARCH             = x86
-ARCH_COMMONFLAGS = -mlong-double-64
-
-ARCH_PIC_CFLAGS  = -fPIC
-ARCH_PIC_LDFLAGS = -Wl,-shared -fPIC -shared
-
-ARCH_KO_CFLAGS   =
-
-FPUFLAGS = -m$(FPU_TYPE)
-CPUFLAGS = $(FPUFLAGS)
-endif
+include $(CLEAR_VARS_MK)
 
 #*********************************************************************************************************
-# ARM
+# Target
 #*********************************************************************************************************
-ifneq (,$(findstring arm,$(TOOLCHAIN_PREFIX)))
-ARCH             = arm
-ARCH_COMMONFLAGS = -mno-unaligned-access
-
-ARCH_PIC_CFLAGS  = -fPIC
-ARCH_PIC_LDFLAGS = -nostdlib -Wl,-shared -fPIC -shared
-
-ARCH_KO_CFLAGS   =
-
-ifneq (,$(findstring disable,$(FPU_TYPE)))
-FPUFLAGS = 
-else
-FPUFLAGS = -mfloat-abi=softfp -mfpu=$(FPU_TYPE)
-endif
-
-CPUFLAGS = -mcpu=$(CPU_TYPE) $(FPUFLAGS)
-endif
+LOCAL_TARGET_NAME := libkernlib.a
 
 #*********************************************************************************************************
-# MIPS
+# Source list
 #*********************************************************************************************************
-ifneq (,$(findstring mips,$(TOOLCHAIN_PREFIX)))
-ARCH             = mips
-ARCH_COMMONFLAGS =
-
-ARCH_PIC_CFLAGS  = -fPIC -mabicalls
-ARCH_PIC_LDFLAGS = -Wl,-shared -fPIC -mabicalls -shared
-
-ARCH_KO_CFLAGS   = -mlong-calls
-
-FPUFLAGS = -m$(FPU_TYPE)
-CPUFLAGS = -march=$(CPU_TYPE) -EL -G 0 $(FPUFLAGS)
-endif
+LOCAL_SRCS := \
+src/kernel-library.c
 
 #*********************************************************************************************************
-# PowerPC
+# Header file search path (eg. LOCAL_INC_PATH := -I"Your hearder files search path")
 #*********************************************************************************************************
-ifneq (,$(findstring ppc,$(TOOLCHAIN_PREFIX)))
-ARCH             = ppc
-ARCH_COMMONFLAGS =
+LOCAL_INC_PATH := 
 
-ARCH_PIC_CFLAGS  = -fPIC
-ARCH_PIC_LDFLAGS = -Wl,-shared -fPIC -shared
+#*********************************************************************************************************
+# Pre-defined macro (eg. -DYOUR_MARCO=1)
+#*********************************************************************************************************
+LOCAL_DSYMBOL := 
 
-ARCH_KO_CFLAGS   =
+#*********************************************************************************************************
+# Depend library (eg. LOCAL_DEPEND_LIB := -la LOCAL_DEPEND_LIB_PATH := -L"Your library search path")
+#*********************************************************************************************************
+LOCAL_DEPEND_LIB      := 
+LOCAL_DEPEND_LIB_PATH := 
 
-FPUFLAGS = -m$(FPU_TYPE)
-CPUFLAGS = -mcpu=$(CPU_TYPE) $(FPUFLAGS)
-endif
+#*********************************************************************************************************
+# C++ config
+#*********************************************************************************************************
+LOCAL_USE_CXX        := no
+LOCAL_USE_CXX_EXCEPT := no
+
+#*********************************************************************************************************
+# Code coverage config
+#*********************************************************************************************************
+LOCAL_USE_GCOV := no
+
+include $(KERNEL_LIBRARY_MK)
 
 #*********************************************************************************************************
 # End

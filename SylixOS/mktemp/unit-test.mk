@@ -20,12 +20,12 @@
 #*********************************************************************************************************
 
 #*********************************************************************************************************
-# include common.mk
+# Include common.mk
 #*********************************************************************************************************
 include $(MKTEMP)/common.mk
 
 #*********************************************************************************************************
-# depend and compiler parameter (cplusplus in kernel MUST NOT use exceptions and rtti)
+# Depend and compiler parameter (cplusplus in kernel MUST NOT use exceptions and rtti)
 #*********************************************************************************************************
 ifneq (,$(findstring yes,$($(target)_USE_CXX_EXCEPT)))
 $(target)_CXX_EXCEPT  := $(GCC_CXX_EXCEPT_CFLAGS)
@@ -45,19 +45,19 @@ $(target)_CFLAGS      := $($(target)_COMMONFLAGS) $(ARCH_PIC_CFLAGS) $($(target)
 $(target)_CXXFLAGS    := $($(target)_COMMONFLAGS) $(ARCH_PIC_CFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CXX_EXCEPT) 
 
 #*********************************************************************************************************
-# targets
+# Targets
 #*********************************************************************************************************
-$(target)_EXE       := $(addprefix $(OUTPATH)/, $(basename $(LOCAL_SRCS)))
-$(target)_STRIP_EXE := $(addprefix $(OUTPATH)/strip/, $(basename $(LOCAL_SRCS)))
+$(target)_EXE       := $(addprefix $(OUTPATH)/$(target)/, $(basename $(LOCAL_SRCS)))
+$(target)_STRIP_EXE := $(addprefix $(OUTPATH)/strip/$(target)/, $(basename $(LOCAL_SRCS)))
 
 #*********************************************************************************************************
-# depend library search paths
+# Depend library search paths
 #*********************************************************************************************************
 $(target)_DEPEND_LIB_PATH := -L"$(SYLIXOS_BASE_PATH)/libsylixos/$(OUTDIR)"
 $(target)_DEPEND_LIB_PATH += $(LOCAL_DEPEND_LIB_PATH)
 
 #*********************************************************************************************************
-# depend libraries
+# Depend libraries
 #*********************************************************************************************************
 $(target)_DEPEND_LIB := $(LOCAL_DEPEND_LIB)
 $(target)_DEPEND_LIB += -lvpmpdm
@@ -73,44 +73,58 @@ endif
 $(target)_DEPEND_LIB += -ldsohandle -lm -lgcc
 
 #*********************************************************************************************************
-# link object files
+# Define some useful variables
+#*********************************************************************************************************
+__UNIT_TEST_TARGET         = $(word 3,$(subst $(BIAS),$(SPACE),$(1)))
+
+__UNIT_TEST_LIBRARIES      = $($(__UNIT_TEST_TARGET)_DEPEND_LIB_PATH) $($(__UNIT_TEST_TARGET)_DEPEND_LIB)
+
+__UNIT_TEST_PRE_LINK_CMD   = $($(__UNIT_TEST_TARGET)_PRE_LINK_CMD)
+__UNIT_TEST_POST_LINK_CMD  = $($(__UNIT_TEST_TARGET)_POST_LINK_CMD)
+
+__UNIT_TEST_PRE_STRIP_CMD  = $($(__UNIT_TEST_TARGET)_PRE_STRIP_CMD)
+__UNIT_TEST_POST_STRIP_CMD = $($(__UNIT_TEST_TARGET)_POST_STRIP_CMD)
+
+#*********************************************************************************************************
+# Link object files
 #*********************************************************************************************************
 define CREATE_TARGET_EXE
 $1: $2 $3
+		@if [ ! -d "$(dir $1)" ]; then mkdir -p "$(dir $1)"; fi
 		@rm -f $1
-		$(__PRE_LINK_CMD)
-		$(LD) $(CPUFLAGS) $(ARCH_PIC_LDFLAGS) -o $1 $2 $(__LIBRARIES)
-		$(__POST_LINK_CMD)
+		$(__UNIT_TEST_PRE_LINK_CMD)
+		$(LD) $(CPUFLAGS) $(ARCH_PIC_LDFLAGS) -o $1 $2 $(__UNIT_TEST_LIBRARIES)
+		$(__UNIT_TEST_POST_LINK_CMD)
 endef
 
 $(foreach src,$(LOCAL_SRCS),$(eval $(call CREATE_TARGET_EXE,\
-$(addprefix $(OUTPATH)/, $(basename $(src))),\
+$(addprefix $(OUTPATH)/$(target)/, $(basename $(src))),\
 $(addprefix $(OBJPATH)/$(target)/, $(addsuffix .o, $(basename $(src)))),\
 $($(target)_DEPEND_TARGET),\
 )))
 
 #*********************************************************************************************************
-# strip target
+# Strip target
 #*********************************************************************************************************
 define CREATE_TARGET_STRIP_EXE
 $1: $2
 		@if [ ! -d "$(dir $1)" ]; then mkdir -p "$(dir $1)"; fi
 		@rm -f $1
-		$(__PRE_STRIP_CMD)
+		$(__UNIT_TEST_PRE_STRIP_CMD)
 		$(STRIP) $2 -o $1
-		$(__POST_STRIP_CMD)
+		$(__UNIT_TEST_POST_STRIP_CMD)
 endef
 
 $(foreach src,$(LOCAL_SRCS),$(eval $(call CREATE_TARGET_STRIP_EXE,\
-$(addprefix $(OUTPATH)/strip/, $(basename $(src))),\
-$(addprefix $(OUTPATH)/, $(basename $(src))),\
+$(addprefix $(OUTPATH)/strip/$(target)/, $(basename $(src))),\
+$(addprefix $(OUTPATH)/$(target)/, $(basename $(src))),\
 )))
 
 #*********************************************************************************************************
-# add targets
+# Add targets
 #*********************************************************************************************************
 TARGETS := $(TARGETS) $($(target)_EXE) $($(target)_STRIP_EXE)
 
 #*********************************************************************************************************
-# end
+# End
 #*********************************************************************************************************
