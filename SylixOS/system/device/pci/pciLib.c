@@ -165,6 +165,7 @@ PCI_CTRL_HANDLE  API_PciCtrlCreate (PCI_CTRL_HANDLE hCtrl)
 
         API_PciDevInit();
         API_PciDevListCreate();
+        API_PciDevSetupAll();
         API_PciDrvInit();
     }
     

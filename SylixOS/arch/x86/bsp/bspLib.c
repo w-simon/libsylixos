@@ -27,6 +27,7 @@
 #include "arch/x86/apic/x86IoApic.h"
 #include "arch/x86/apic/x86LocalApic.h"
 #include "arch/x86/param/x86Param.h"
+#include "arch/x86/acpi/include/acpi_interface.h"
 #include "driver/int/i8259a.h"
 #include "driver/timer/i8254.h"
 /*********************************************************************************************************
@@ -157,13 +158,10 @@ WEAK_FUNC VOID  bspIntInit (VOID)
      * API_InterVectorSetFlag(LW_IRQ_0, LW_IRQ_FLAG_SAMPLE_RAND);
      * 的代码.
      */
-    if (_G_bX86HasAPIC) {
-        /*
-         * 屏蔽 8259A 的所有中断
-         */
-        out8(0xff, X86_8259A_MASTER_IMR);                               /*  mask all of 8259A-1 master  */
-        out8(0xff, X86_8259A_SLAVE_IMR);                                /*  mask all of 8259A-2 slave   */
+    i8259aInit(&_G_i8259aData);                                         /*  初始化 8259A                */
+    i8259aIrqEnable(&_G_i8259aData, LW_IRQ_2);                          /*  使能 IRQ2                   */
 
+    if (_G_bX86HasAPIC) {
         /*
          * 8 个 PCI 中断设置为链式中断
          */
@@ -178,10 +176,6 @@ WEAK_FUNC VOID  bspIntInit (VOID)
 
         x86LocalApicInit();                                             /*  初始化 Local APIC           */
         x86IoApicInit();                                                /*  初始化 IO APIC              */
-
-    } else {
-        i8259aInit(&_G_i8259aData);
-        i8259aIrqEnable(&_G_i8259aData, LW_IRQ_2);
     }
 }
 /*********************************************************************************************************
@@ -206,7 +200,7 @@ WEAK_FUNC VOID  bspIntHandle (ULONG  ulVector)
 {
     archIntHandle(ulVector, LW_FALSE);                                  /*  不允许中断嵌套(MSI 中断无法 */
                                                                         /*  屏蔽)                       */
-    if (_G_bX86HasAPIC) {
+    if (_G_bX86HasAPIC && (ulVector != X86_IRQ_TIMER)) {                /*  Timer 用虚拟线模式          */
         VECTOR_OP_LOCK();
         x86IoApicIrqEoi(ulVector);                                      /*  SylixOS vector 与 ioapic irq*/
         VECTOR_OP_UNLOCK();                                             /*  一致                        */
@@ -227,7 +221,7 @@ WEAK_FUNC VOID  bspIntHandle (ULONG  ulVector)
 *********************************************************************************************************/
 WEAK_FUNC VOID  bspIntVectorEnable (ULONG  ulVector)
 {
-    if (_G_bX86HasAPIC) {
+    if (_G_bX86HasAPIC && (ulVector != X86_IRQ_TIMER)) {                /*  Timer 用虚拟线模式          */
         x86IoApicIrqEnable(ulVector);
         x86LocalApicIrqEnable(ulVector);
 
@@ -247,7 +241,7 @@ WEAK_FUNC VOID  bspIntVectorEnable (ULONG  ulVector)
 *********************************************************************************************************/
 WEAK_FUNC VOID  bspIntVectorDisable (ULONG  ulVector)
 {
-    if (_G_bX86HasAPIC) {
+    if (_G_bX86HasAPIC && (ulVector != X86_IRQ_TIMER)) {                /*  Timer 用虚拟线模式          */
         x86LocalApicIrqDisable(ulVector);
         x86IoApicIrqDisable(ulVector);
 
@@ -267,7 +261,7 @@ WEAK_FUNC VOID  bspIntVectorDisable (ULONG  ulVector)
 *********************************************************************************************************/
 WEAK_FUNC BOOL  bspIntVectorIsEnable (ULONG  ulVector)
 {
-    if (_G_bX86HasAPIC) {
+    if (_G_bX86HasAPIC && (ulVector != X86_IRQ_TIMER)) {                /*  Timer 用虚拟线模式          */
         return  (x86IoApicIrqIsEnable(ulVector));
 
     } else {
@@ -327,7 +321,7 @@ WEAK_FUNC ULONG   bspIntVectorGetPriority (ULONG  ulVector, UINT  *puiPrio)
 
 WEAK_FUNC ULONG   bspIntVectorSetTarget (ULONG  ulVector, size_t  stSize, const PLW_CLASS_CPUSET  pcpuset)
 {
-    if (_G_bX86HasAPIC) {
+    if (_G_bX86HasAPIC && (ulVector != X86_IRQ_TIMER)) {                /*  Timer 用虚拟线模式          */
         ULONG   i;
         ULONG   ulNumChk;
 
@@ -358,7 +352,7 @@ WEAK_FUNC ULONG   bspIntVectorGetTarget (ULONG  ulVector, size_t  stSize, PLW_CL
 {
     LW_CPU_ZERO(pcpuset);
 
-    if (_G_bX86HasAPIC) {
+    if (_G_bX86HasAPIC && (ulVector != X86_IRQ_TIMER)) {                /*  Timer 用虚拟线模式          */
         UINT8  ucTargetLocalApicId;
 
         x86IoApicIrqGetTarget(ulVector, &ucTargetLocalApicId);
@@ -638,15 +632,10 @@ WEAK_FUNC VOID  bspTickInit (VOID)
                                      &threakattr, LW_NULL);
 #endif                                                                  /*  TICK_IN_THREAD > 0          */
 
-    if (_G_bX86HasAPIC) {
-        x86LocalApicTimerInitAsTick();
+    _G_uiFullCnt          = (_G_i8254Data.qcofreq / LW_TICK_HZ);
+    _G_ui64NSecPerCnt7    = ((1000 * 1000 * 1000 / LW_TICK_HZ) << 7) / _G_uiFullCnt;
 
-    } else {
-        _G_uiFullCnt       = (_G_i8254Data.qcofreq / LW_TICK_HZ);
-        _G_ui64NSecPerCnt7 = ((1000 * 1000 * 1000 / LW_TICK_HZ) << 7) / _G_uiFullCnt;
-
-        i8254InitAsTick(&_G_i8254Data);
-    }
+    i8254InitAsTick(&_G_i8254Data);
 
     API_InterVectorConnect(ulVector,
                            (PINT_SVR_ROUTINE)__tickTimerIsr,
@@ -656,14 +645,14 @@ WEAK_FUNC VOID  bspTickInit (VOID)
     API_InterVectorEnable(ulVector);
 }
 /*********************************************************************************************************
-** 函数名称: i8254HighResolution
-** 功能描述: intel 8254 timer 修正从最近一次 tick 到当前的精确时间.
+** 函数名称: bspTickHighResolution
+** 功能描述: 修正从最近一次 tick 到当前的精确时间.
 ** 输　入  : ptv       需要修正的时间
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  i8254HighResolution (struct timespec  *ptv)
+WEAK_FUNC VOID  bspTickHighResolution (struct timespec  *ptv)
 {
     REGISTER UINT32  uiCntCur, uiDone;
 
@@ -692,23 +681,6 @@ static VOID  i8254HighResolution (struct timespec  *ptv)
     }
 }
 /*********************************************************************************************************
-** 函数名称: bspTickHighResolution
-** 功能描述: 修正从最近一次 tick 到当前的精确时间.
-** 输　入  : ptv       需要修正的时间
-** 输　出  : NONE
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-WEAK_FUNC VOID  bspTickHighResolution (struct timespec  *ptv)
-{
-    if (_G_bX86HasAPIC) {
-        x86LocalApicTimerHighResolution(ptv);
-
-    } else {
-        i8254HighResolution(ptv);
-    }
-}
-/*********************************************************************************************************
 ** 函数名称: bspSysBusClkGet
 ** 功能描述: 获得系统总线时钟
 ** 输  入  : NONE
@@ -723,6 +695,76 @@ WEAK_FUNC ULONG   bspSysBusClkGet (VOID)
     pparam = archKernelParamGet();
 
     return  (pparam->X86_ulSysBusClk);
+}
+/*********************************************************************************************************
+  电源相关接口
+*********************************************************************************************************/
+#define KBD_DATAP           0x60                                        /*  kbd data port               */
+#define KBD_STATP           0x64                                        /*  kbd controller status port  */
+
+#define KBD_KDIB            0x01                                        /*  kbd data in buffer          */
+#define KBD_UDIB            0x02                                        /*  user data in buffer         */
+
+#define KBRD_RESET          0xFE                                        /*  reset CPU command           */
+/*********************************************************************************************************
+** 函数名称: bspResetByKeyboard
+** 功能描述: 通过键盘重新启动
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  bspResetByKeyboard (VOID)
+{
+    INT     i;
+    UINT8   ucTemp;
+
+    /*
+     * Clear all keyboard buffers (output and command buffers)
+     */
+    do {
+        ucTemp = in8(KBD_STATP);
+        if (ucTemp & KBD_KDIB) {                                        /*  Empty keyboard data         */
+            in8(KBD_DATAP);
+        }
+    } while (ucTemp & KBD_UDIB);                                        /*  Empty user data             */
+
+    for (i = 0; i < 10; i++) {
+        out8(KBRD_RESET, KBD_STATP);                                    /*  Pulse CPU reset line        */
+        bspDelayUs(50);
+    }
+
+    while (1) {
+        X86_HLT();
+    }
+}
+/*********************************************************************************************************
+** 函数名称: bspReboot
+** 功能描述: 系统重新启动
+** 输　入  : iRebootType       重启类型
+**           ulStartAddress    启动开始地址
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+WEAK_FUNC VOID    bspReboot (INT  iRebootType, addr_t  ulStartAddress)
+{
+    (VOID)iRebootType;
+    (VOID)ulStartAddress;
+
+    if (AcpiAvailable() == ACPI_AVAILABLE) {                            /*  ACPI 可用                   */
+        if (iRebootType == LW_REBOOT_SHUTDOWN) {                        /*  关机的重启类型              */
+            AcpiEnterSleepStatePrep(ACPI_STATE_S5);
+            AcpiEnterSleepState(ACPI_STATE_S5);                         /*  连电源在内的所有设备全部关闭*/
+
+        } else {
+            AcpiReset();                                                /*  ACPI 重启                   */
+        }
+        bspResetByKeyboard();                                           /*  上面失败了，使用键盘重启    */
+
+    } else {
+        bspResetByKeyboard();                                           /*  ACPI 不可用，使用键盘重启   */
+    }
 }
 /*********************************************************************************************************
   END

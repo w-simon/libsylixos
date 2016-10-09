@@ -36,6 +36,9 @@ typedef struct {
     BOOL        X86_bRtcUtc;                                            /*  RTC 是否 UTC                */
 
     ULONG       X86_ulSysBusClk;                                        /*  系统总线时钟                */
+
+    BOOL        X86_bHasConsoleDev;
+    CHAR        X86_cConsoleDev[128];                                   /*  控制台设备                  */
 } X86_PARAM;
 
 /*********************************************************************************************************

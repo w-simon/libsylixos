@@ -217,7 +217,199 @@ SylixOS/arch/x86/bsp/bspLib.c \
 SylixOS/arch/x86/apic/x86IoApic.c \
 SylixOS/arch/x86/apic/x86LocalApic.c \
 SylixOS/arch/x86/apic/x86LocalApicAsm.S \
-SylixOS/arch/x86/mpconfig/x86MpConfig.c
+SylixOS/arch/x86/mpconfig/x86MpConfig.c \
+SylixOS/arch/x86/acpi/acpi_sylixos.c \
+SylixOS/arch/x86/acpi/acpi.c \
+SylixOS/arch/x86/acpi/acpi_enum.c \
+SylixOS/arch/x86/acpi/acpi_devices.c \
+SylixOS/arch/x86/acpi/acpi_list.c \
+SylixOS/arch/x86/acpi/acpi_scan.c \
+SylixOS/arch/x86/acpi/common/ahids.c \
+SylixOS/arch/x86/acpi/common/ahuuids.c \
+SylixOS/arch/x86/acpi/debugger/dbcmds.c \
+SylixOS/arch/x86/acpi/debugger/dbconvert.c \
+SylixOS/arch/x86/acpi/debugger/dbdisply.c \
+SylixOS/arch/x86/acpi/debugger/dbexec.c \
+SylixOS/arch/x86/acpi/debugger/dbfileio.c \
+SylixOS/arch/x86/acpi/debugger/dbhistry.c \
+SylixOS/arch/x86/acpi/debugger/dbinput.c \
+SylixOS/arch/x86/acpi/debugger/dbmethod.c \
+SylixOS/arch/x86/acpi/debugger/dbnames.c \
+SylixOS/arch/x86/acpi/debugger/dbobject.c \
+SylixOS/arch/x86/acpi/debugger/dbstats.c \
+SylixOS/arch/x86/acpi/debugger/dbtest.c \
+SylixOS/arch/x86/acpi/debugger/dbutils.c \
+SylixOS/arch/x86/acpi/debugger/dbxface.c \
+SylixOS/arch/x86/acpi/disassembler/dmbuffer.c \
+SylixOS/arch/x86/acpi/disassembler/dmcstyle.c \
+SylixOS/arch/x86/acpi/disassembler/dmdeferred.c \
+SylixOS/arch/x86/acpi/disassembler/dmnames.c \
+SylixOS/arch/x86/acpi/disassembler/dmopcode.c \
+SylixOS/arch/x86/acpi/disassembler/dmresrc.c \
+SylixOS/arch/x86/acpi/disassembler/dmresrcl.c \
+SylixOS/arch/x86/acpi/disassembler/dmresrcl2.c \
+SylixOS/arch/x86/acpi/disassembler/dmresrcs.c \
+SylixOS/arch/x86/acpi/disassembler/dmutils.c \
+SylixOS/arch/x86/acpi/disassembler/dmwalk.c \
+SylixOS/arch/x86/acpi/dispatcher/dsargs.c \
+SylixOS/arch/x86/acpi/dispatcher/dscontrol.c \
+SylixOS/arch/x86/acpi/dispatcher/dsdebug.c \
+SylixOS/arch/x86/acpi/dispatcher/dsfield.c \
+SylixOS/arch/x86/acpi/dispatcher/dsinit.c \
+SylixOS/arch/x86/acpi/dispatcher/dsmethod.c \
+SylixOS/arch/x86/acpi/dispatcher/dsmthdat.c \
+SylixOS/arch/x86/acpi/dispatcher/dsobject.c \
+SylixOS/arch/x86/acpi/dispatcher/dsopcode.c \
+SylixOS/arch/x86/acpi/dispatcher/dsutils.c \
+SylixOS/arch/x86/acpi/dispatcher/dswexec.c \
+SylixOS/arch/x86/acpi/dispatcher/dswload.c \
+SylixOS/arch/x86/acpi/dispatcher/dswload2.c \
+SylixOS/arch/x86/acpi/dispatcher/dswscope.c \
+SylixOS/arch/x86/acpi/dispatcher/dswstate.c \
+SylixOS/arch/x86/acpi/events/evevent.c \
+SylixOS/arch/x86/acpi/events/evglock.c \
+SylixOS/arch/x86/acpi/events/evgpe.c \
+SylixOS/arch/x86/acpi/events/evgpeblk.c \
+SylixOS/arch/x86/acpi/events/evgpeinit.c \
+SylixOS/arch/x86/acpi/events/evgpeutil.c \
+SylixOS/arch/x86/acpi/events/evhandler.c \
+SylixOS/arch/x86/acpi/events/evmisc.c \
+SylixOS/arch/x86/acpi/events/evregion.c \
+SylixOS/arch/x86/acpi/events/evrgnini.c \
+SylixOS/arch/x86/acpi/events/evsci.c \
+SylixOS/arch/x86/acpi/events/evxface.c \
+SylixOS/arch/x86/acpi/events/evxfevnt.c \
+SylixOS/arch/x86/acpi/events/evxfgpe.c \
+SylixOS/arch/x86/acpi/events/evxfregn.c \
+SylixOS/arch/x86/acpi/executer/exconcat.c \
+SylixOS/arch/x86/acpi/executer/exconfig.c \
+SylixOS/arch/x86/acpi/executer/exconvrt.c \
+SylixOS/arch/x86/acpi/executer/excreate.c \
+SylixOS/arch/x86/acpi/executer/exdebug.c \
+SylixOS/arch/x86/acpi/executer/exdump.c \
+SylixOS/arch/x86/acpi/executer/exfield.c \
+SylixOS/arch/x86/acpi/executer/exfldio.c \
+SylixOS/arch/x86/acpi/executer/exmisc.c \
+SylixOS/arch/x86/acpi/executer/exmutex.c \
+SylixOS/arch/x86/acpi/executer/exnames.c \
+SylixOS/arch/x86/acpi/executer/exoparg1.c \
+SylixOS/arch/x86/acpi/executer/exoparg2.c \
+SylixOS/arch/x86/acpi/executer/exoparg3.c \
+SylixOS/arch/x86/acpi/executer/exoparg6.c \
+SylixOS/arch/x86/acpi/executer/exprep.c \
+SylixOS/arch/x86/acpi/executer/exregion.c \
+SylixOS/arch/x86/acpi/executer/exresnte.c \
+SylixOS/arch/x86/acpi/executer/exresolv.c \
+SylixOS/arch/x86/acpi/executer/exresop.c \
+SylixOS/arch/x86/acpi/executer/exstore.c \
+SylixOS/arch/x86/acpi/executer/exstoren.c \
+SylixOS/arch/x86/acpi/executer/exstorob.c \
+SylixOS/arch/x86/acpi/executer/exsystem.c \
+SylixOS/arch/x86/acpi/executer/extrace.c \
+SylixOS/arch/x86/acpi/executer/exutils.c \
+SylixOS/arch/x86/acpi/hardware/hwacpi.c \
+SylixOS/arch/x86/acpi/hardware/hwesleep.c \
+SylixOS/arch/x86/acpi/hardware/hwgpe.c \
+SylixOS/arch/x86/acpi/hardware/hwpci.c \
+SylixOS/arch/x86/acpi/hardware/hwregs.c \
+SylixOS/arch/x86/acpi/hardware/hwsleep.c \
+SylixOS/arch/x86/acpi/hardware/hwtimer.c \
+SylixOS/arch/x86/acpi/hardware/hwvalid.c \
+SylixOS/arch/x86/acpi/hardware/hwxface.c \
+SylixOS/arch/x86/acpi/hardware/hwxfsleep.c \
+SylixOS/arch/x86/acpi/namespace/nsaccess.c \
+SylixOS/arch/x86/acpi/namespace/nsalloc.c \
+SylixOS/arch/x86/acpi/namespace/nsarguments.c \
+SylixOS/arch/x86/acpi/namespace/nsconvert.c \
+SylixOS/arch/x86/acpi/namespace/nsdump.c \
+SylixOS/arch/x86/acpi/namespace/nsdumpdv.c \
+SylixOS/arch/x86/acpi/namespace/nseval.c \
+SylixOS/arch/x86/acpi/namespace/nsinit.c \
+SylixOS/arch/x86/acpi/namespace/nsload.c \
+SylixOS/arch/x86/acpi/namespace/nsnames.c \
+SylixOS/arch/x86/acpi/namespace/nsobject.c \
+SylixOS/arch/x86/acpi/namespace/nsparse.c \
+SylixOS/arch/x86/acpi/namespace/nspredef.c \
+SylixOS/arch/x86/acpi/namespace/nsprepkg.c \
+SylixOS/arch/x86/acpi/namespace/nsrepair.c \
+SylixOS/arch/x86/acpi/namespace/nsrepair2.c \
+SylixOS/arch/x86/acpi/namespace/nssearch.c \
+SylixOS/arch/x86/acpi/namespace/nsutils.c \
+SylixOS/arch/x86/acpi/namespace/nswalk.c \
+SylixOS/arch/x86/acpi/namespace/nsxfeval.c \
+SylixOS/arch/x86/acpi/namespace/nsxfname.c \
+SylixOS/arch/x86/acpi/namespace/nsxfobj.c \
+SylixOS/arch/x86/acpi/parser/psargs.c \
+SylixOS/arch/x86/acpi/parser/psloop.c \
+SylixOS/arch/x86/acpi/parser/psobject.c \
+SylixOS/arch/x86/acpi/parser/psopcode.c \
+SylixOS/arch/x86/acpi/parser/psopinfo.c \
+SylixOS/arch/x86/acpi/parser/psparse.c \
+SylixOS/arch/x86/acpi/parser/psscope.c \
+SylixOS/arch/x86/acpi/parser/pstree.c \
+SylixOS/arch/x86/acpi/parser/psutils.c \
+SylixOS/arch/x86/acpi/parser/pswalk.c \
+SylixOS/arch/x86/acpi/parser/psxface.c \
+SylixOS/arch/x86/acpi/resources/rsaddr.c \
+SylixOS/arch/x86/acpi/resources/rscalc.c \
+SylixOS/arch/x86/acpi/resources/rscreate.c \
+SylixOS/arch/x86/acpi/resources/rsdump.c \
+SylixOS/arch/x86/acpi/resources/rsdumpinfo.c \
+SylixOS/arch/x86/acpi/resources/rsinfo.c \
+SylixOS/arch/x86/acpi/resources/rsio.c \
+SylixOS/arch/x86/acpi/resources/rsirq.c \
+SylixOS/arch/x86/acpi/resources/rslist.c \
+SylixOS/arch/x86/acpi/resources/rsmemory.c \
+SylixOS/arch/x86/acpi/resources/rsmisc.c \
+SylixOS/arch/x86/acpi/resources/rsserial.c \
+SylixOS/arch/x86/acpi/resources/rsutils.c \
+SylixOS/arch/x86/acpi/resources/rsxface.c \
+SylixOS/arch/x86/acpi/tables/tbdata.c \
+SylixOS/arch/x86/acpi/tables/tbfadt.c \
+SylixOS/arch/x86/acpi/tables/tbfind.c \
+SylixOS/arch/x86/acpi/tables/tbinstal.c \
+SylixOS/arch/x86/acpi/tables/tbprint.c \
+SylixOS/arch/x86/acpi/tables/tbutils.c \
+SylixOS/arch/x86/acpi/tables/tbxface.c \
+SylixOS/arch/x86/acpi/tables/tbxfload.c \
+SylixOS/arch/x86/acpi/tables/tbxfroot.c \
+SylixOS/arch/x86/acpi/utilities/utaddress.c \
+SylixOS/arch/x86/acpi/utilities/utalloc.c \
+SylixOS/arch/x86/acpi/utilities/utascii.c \
+SylixOS/arch/x86/acpi/utilities/utbuffer.c \
+SylixOS/arch/x86/acpi/utilities/utcache.c \
+SylixOS/arch/x86/acpi/utilities/utclib.c \
+SylixOS/arch/x86/acpi/utilities/utcopy.c \
+SylixOS/arch/x86/acpi/utilities/utdebug.c \
+SylixOS/arch/x86/acpi/utilities/utdecode.c \
+SylixOS/arch/x86/acpi/utilities/utdelete.c \
+SylixOS/arch/x86/acpi/utilities/uterror.c \
+SylixOS/arch/x86/acpi/utilities/uteval.c \
+SylixOS/arch/x86/acpi/utilities/utexcep.c \
+SylixOS/arch/x86/acpi/utilities/utglobal.c \
+SylixOS/arch/x86/acpi/utilities/uthex.c \
+SylixOS/arch/x86/acpi/utilities/utids.c \
+SylixOS/arch/x86/acpi/utilities/utinit.c \
+SylixOS/arch/x86/acpi/utilities/utlock.c \
+SylixOS/arch/x86/acpi/utilities/utmath.c \
+SylixOS/arch/x86/acpi/utilities/utmisc.c \
+SylixOS/arch/x86/acpi/utilities/utmutex.c \
+SylixOS/arch/x86/acpi/utilities/utnonansi.c \
+SylixOS/arch/x86/acpi/utilities/utobject.c \
+SylixOS/arch/x86/acpi/utilities/utosi.c \
+SylixOS/arch/x86/acpi/utilities/utownerid.c \
+SylixOS/arch/x86/acpi/utilities/utpredef.c \
+SylixOS/arch/x86/acpi/utilities/utprint.c \
+SylixOS/arch/x86/acpi/utilities/utresrc.c \
+SylixOS/arch/x86/acpi/utilities/utstate.c \
+SylixOS/arch/x86/acpi/utilities/utstring.c \
+SylixOS/arch/x86/acpi/utilities/utstrtoul64.c \
+SylixOS/arch/x86/acpi/utilities/uttrack.c \
+SylixOS/arch/x86/acpi/utilities/utuuid.c \
+SylixOS/arch/x86/acpi/utilities/utxface.c \
+SylixOS/arch/x86/acpi/utilities/utxferror.c \
+SylixOS/arch/x86/acpi/utilities/utxfinit.c \
+SylixOS/arch/x86/acpi/utilities/utxfmutex.c
 
 #*********************************************************************************************************
 # Buildin internal application source
@@ -1334,6 +1526,9 @@ LOCAL_SRCS += $(CPP_SRCS)
 # Header file search path (eg. LOCAL_INC_PATH := -I"Your hearder files search path")
 #*********************************************************************************************************
 LOCAL_INC_PATH := 
+ifeq ($(ARCH), x86)
+LOCAL_INC_PATH += -I"./SylixOS/arch/x86/acpi/include"
+endif
 
 #*********************************************************************************************************
 # Pre-defined macro (eg. -DYOUR_MARCO=1)
@@ -1341,6 +1536,9 @@ LOCAL_INC_PATH :=
 LOCAL_DSYMBOL := 
 ifeq ($(BUILD_LITE_TARGET), 1)
 LOCAL_DSYMBOL += -D__SYLIXOS_LITE
+endif
+ifeq ($(ARCH), x86)
+LOCAL_DSYMBOL += -DACPI_LIBRARY
 endif
 
 #*********************************************************************************************************
@@ -1398,7 +1596,7 @@ $(OBJPATH)/libsylixos.a/SylixOS/arch/mips/fpu/fpu32/mipsVfp32Asm.o: ./SylixOS/ar
 			mkdir -p "$(dir $(__DEP))"; fi
 		$(AS) $($(__TARGET)_ASFLAGS) $(MIPS_VFP_ASFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
 
-$(OBJPATH)/libsylixos.a/SylixOS/arch/mips/fpu/fpu64/mipsVfp64Asm.o: ./SylixOS/arch/mips/fpu/fpu64/mipsVfp64Asm.S		
+$(OBJPATH)/libsylixos.a/SylixOS/arch/mips/fpu/fpu64/mipsVfp64Asm.o: ./SylixOS/arch/mips/fpu/fpu64/mipsVfp64Asm.S
 		@if [ ! -d "$(dir $@)" ]; then \
 			mkdir -p "$(dir $@)"; fi
 		@if [ ! -d "$(dir $(__DEP))" ]; then \

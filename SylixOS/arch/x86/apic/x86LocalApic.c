@@ -205,10 +205,21 @@ INT  x86LocalApicInit (VOID)
     x86LocalApicWrite(LOAPIC_TIMER_ICR, 0x0);
 
     /*
-     * Disable logical interrupt lines.
+     * Program Local Vector Table for the Virtual Wire Mode
      */
-    x86LocalApicWrite(LOAPIC_LINT0, LOAPIC_MASK);
-    x86LocalApicWrite(LOAPIC_LINT1, LOAPIC_MASK);
+    /*
+     * Set LINT0: extern interrupt, high-polarity, edge-trigger, not-masked
+     */
+    x86LocalApicWrite(LOAPIC_LINT0, (x86LocalApicRead(LOAPIC_LINT0) &
+                      ~(LOAPIC_MODE | LOAPIC_LOW  | LOAPIC_LEVEL | LOAPIC_MASK)) |
+                       (LOAPIC_EXT  | LOAPIC_HIGH | LOAPIC_EDGE));
+
+    /*
+     * Set LINT1: NMI, high-polarity, edge-trigger, not-masked
+     */
+    x86LocalApicWrite(LOAPIC_LINT1, (x86LocalApicRead(LOAPIC_LINT1) &
+                      ~(LOAPIC_MODE | LOAPIC_LOW  | LOAPIC_LEVEL | LOAPIC_MASK)) |
+                       (LOAPIC_NMI  | LOAPIC_HIGH | LOAPIC_EDGE));
 
     /*
      * Map error interrupt to X86_IRQ_ERROR.
@@ -257,28 +268,6 @@ INT  x86LocalApicInit (VOID)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-  精确时间换算参数
-*********************************************************************************************************/
-static UINT32   _G_uiFullCnt;
-static UINT64   _G_ui64NSecPerCnt7;                                     /*  提高 7bit 精度              */
-/*********************************************************************************************************
-** 函数名称: x86LocalApicTimerInitAsTick
-** 功能描述: Local APIC Timer 初始化为 TICK
-** 输　入  : NONE
-** 输　出  : NONE
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-VOID  x86LocalApicTimerInitAsTick (VOID)
-{
-    _G_uiFullCnt       = (bspSysBusClkGet() / LW_TICK_HZ);
-    _G_ui64NSecPerCnt7 = ((1000 * 1000 * 1000 / LW_TICK_HZ) << 7) / _G_uiFullCnt;
-
-    x86LocalApicWrite(LOAPIC_TIMER_CONFIG,  LOAPIC_TIMER_DIVBY_1);
-    x86LocalApicWrite(LOAPIC_TIMER, LOAPIC_TIMER_PERIODIC | (X86_IRQ_BASE + X86_IRQ_TIMER));
-    x86LocalApicWrite(LOAPIC_TIMER_ICR, _G_uiFullCnt);
-}
-/*********************************************************************************************************
 ** 函数名称: x86LocalApicIrqEnable
 ** 功能描述: Local APIC 使能 IRQ
 ** 输　入  : ucVector   中断向量号
@@ -288,9 +277,6 @@ VOID  x86LocalApicTimerInitAsTick (VOID)
 *********************************************************************************************************/
 VOID  x86LocalApicIrqEnable (UINT8  ucVector)
 {
-    if (ucVector == X86_IRQ_TIMER) {
-        x86LocalApicWrite(LOAPIC_TIMER, LOAPIC_TIMER_PERIODIC | (X86_IRQ_BASE + X86_IRQ_TIMER));
-    }
 }
 /*********************************************************************************************************
 ** 函数名称: x86LocalApicIrqDisable
@@ -302,45 +288,6 @@ VOID  x86LocalApicIrqEnable (UINT8  ucVector)
 *********************************************************************************************************/
 VOID  x86LocalApicIrqDisable (UINT8  ucVector)
 {
-    if (ucVector == X86_IRQ_TIMER) {
-        x86LocalApicWrite(LOAPIC_TIMER, LOAPIC_MASK);
-    }
-}
-/*********************************************************************************************************
-** 函数名称: x86LocalApicTimerHighResolution
-** 功能描述: 修正从最近一次 tick 到当前的精确时间.
-** 输　入  : ptv       需要修正的时间
-** 输　出  : NONE
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-VOID  x86LocalApicTimerHighResolution (struct timespec  *ptv)
-{
-    REGISTER UINT32  uiCntCur, uiDone;
-
-    uiCntCur = (UINT32)x86LocalApicRead(LOAPIC_TIMER_CCR);
-    uiDone   = _G_uiFullCnt - uiCntCur;
-
-    /*
-     *  检查是否有 TICK 中断请求
-     */
-    if (x86LocalApicRead(LOAPIC_TIMER) & STATUS_PEND) {
-        /*
-         *  这里由于 TICK 没有及时更新, 所以需要重新获取并且加上一个 TICK 的时间
-         */
-        uiCntCur = (UINT32)x86LocalApicRead(LOAPIC_TIMER_CCR);
-        uiDone   = _G_uiFullCnt - uiCntCur;
-
-        if (uiCntCur != 0) {
-            uiDone   += _G_uiFullCnt;
-        }
-    }
-
-    ptv->tv_nsec += (LONG)((_G_ui64NSecPerCnt7 * uiDone) >> 7);
-    if (ptv->tv_nsec >= 1000000000) {
-        ptv->tv_nsec -= 1000000000;
-        ptv->tv_sec++;
-    }
 }
 /*********************************************************************************************************
 ** 函数名称: x86LocalApicSecondaryInit

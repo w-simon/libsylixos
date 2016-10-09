@@ -621,9 +621,10 @@ typedef struct {
     INT                 PCIDEV_iDevFunction;                            /* 功能号                       */
     PCI_HDR             PCIDEV_phDevHdr;                                /* 设备头                       */
 
-    INT                 PCIDEV_iType;
-    UINT8               PCIDEV_ucPin;
-    UINT32              PCIDEV_uiIrq;
+    INT                 PCIDEV_iType;                                   /* 设备类型                     */
+    UINT8               PCIDEV_ucPin;                                   /* 中断引脚                     */
+    UINT8               PCIDEV_ucLine;                                  /* 中断线                       */
+    UINT32              PCIDEV_uiIrq;                                   /* 虚拟中断向量号               */
 
     UINT8               PCIDEV_ucRomBaseReg;
     UINT32              PCIDEV_uiResourceNum;
@@ -724,7 +725,10 @@ LW_API INT                  API_PciDevMsiVecCountGet(PCI_DEV_HANDLE hHandle, UIN
 LW_API INT                  API_PciDevMsiEnableGet(PCI_DEV_HANDLE hHandle, INT *piEnable);
 LW_API INT                  API_PciDevMsiEnableSet(PCI_DEV_HANDLE hHandle, INT iEnable);
 
+LW_API PCI_DEV_HANDLE       API_PciDevParentHandleGet(INT iBus, INT iDevice, INT iFunction);
 LW_API PCI_DEV_HANDLE       API_PciDevHandleGet(INT iBus, INT iDevice, INT iFunction);
+
+LW_API INT                  API_PciDevSetupAll(VOID);
 
 /*********************************************************************************************************
   API Macro
@@ -775,7 +779,10 @@ LW_API PCI_DEV_HANDLE       API_PciDevHandleGet(INT iBus, INT iDevice, INT iFunc
 #define pciDevMsiEnableGet      API_PciDevMsiEnableGet
 #define pciDevMsiEnableSet      API_PciDevMsiEnableSet
 
+#define pciDevParentHandleGet   API_PciDevParentHandleGet
 #define pciHandleGet            API_PciDevHandleGet
+
+#define pciDevSetupAll          API_PciDevSetupAll
 
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */
                                                                         /*  (LW_CFG_PCI_EN > 0)         */

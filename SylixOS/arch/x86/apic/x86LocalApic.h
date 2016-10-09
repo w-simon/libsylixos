@@ -41,15 +41,11 @@ INT     x86LocalApicSecondaryInit(VOID);
 VOID    x86LocalApicEoi(VOID);
 UINT8   x86LocalApicId(VOID);
 
-VOID    x86LocalApicTimerInitAsTick(VOID);
-
 VOID    x86LocalApicIrqEnable(UINT8  ucVector);
 VOID    x86LocalApicIrqDisable(UINT8  ucVector);
 
 INT     x86LocalApicSecondaryStart(UINT8  ucLocalApicId, addr_t  ulEntryAddr);
 VOID    x86LocalApicSendIpi(UINT8  ucLocalApicId,  UINT8  ucX86Vector);
-
-VOID    x86LocalApicTimerHighResolution(struct timespec  *ptv);
 
 #endif                                                                  /*  __ARCH_X86LOCALAPIC_H       */
 /*********************************************************************************************************

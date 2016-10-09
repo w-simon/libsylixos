@@ -667,6 +667,46 @@ INT  API_PciDevConfigWriteDword (PCI_DEV_HANDLE  hHandle, UINT  uiPos, UINT32 ui
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: __tshellPciDevParentCmd
+** 功能描述: 设备树父节点命令
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static
+INT  __tshellPciDevParentCmd (INT  iArgC, PCHAR  ppcArgV[])
+{
+    INT                 iRet;
+    PCI_DEV_HANDLE      hDevHandle = LW_NULL;
+    INT                 iBus;
+    INT                 iDevice;
+    INT                 iFunction;
+
+    if (iArgC == 2) {
+        iRet = sscanf(ppcArgV[1], "%x:%x.%x", &iBus, &iDevice, &iFunction);
+        if (iRet != 3) {
+            fprintf(stderr, "pci device address format error.\n");
+            goto  __error_handle;
+        }
+
+        hDevHandle = API_PciDevParentHandleGet(iBus, iDevice, iFunction);
+        if (hDevHandle != LW_NULL) {
+            printf("pci dev parent : %x:%x.%x\n",
+                   hDevHandle->PCIDEV_iDevBus,
+                   hDevHandle->PCIDEV_iDevDevice,
+                   hDevHandle->PCIDEV_iDevFunction);
+
+            return  (ERROR_NONE);
+        }
+    }
+
+__error_handle:
+    fprintf(stderr, "argments error!\n");
+    return  (-ERROR_TSHELL_EPARAM);
+}
+/*********************************************************************************************************
 ** 函数名称: __tshellPciDevAddDel
 ** 功能描述: 添加或删除设备
 ** 输　入  : iAdd           是否为添加操作
@@ -726,8 +766,10 @@ static
 VOID  __tshellPciDevCmdShow (VOID)
 {
     static PCHAR        pcPciDevShowHdr = \
-    " INDEX   BUS   DEV   FUNC  VENDOR DEVICE  SUBV   SUBD           DRVNAME\n"
-    "------- ----- ----- ------ ------ ------ ------ ------ ------------------------\n";
+    " INDEX    TYPE    BUS   DEV   FUNC   VENDOR   DEVICE   SUBV(PRI)   SUBD(SEC)   (SUB)   LINE   PIN  "
+    "       DRVNAME\n"
+    "------- -------- ----- ----- ------ -------- -------- ----------- ----------- ------- ------ ----- "
+    "------------------------\n";
 
     PLW_LIST_LINE       plineTemp  = LW_NULL;
     PCI_DEV_HANDLE      hDevHandle = LW_NULL;
@@ -744,16 +786,47 @@ VOID  __tshellPciDevCmdShow (VOID)
          plineTemp  = _list_line_get_next(plineTemp)) {
         hDevHandle = _LIST_ENTRY(plineTemp, PCI_DEV_CB, PCIDEV_lineDevNode);
         hDrvHandle = (PCI_DRV_HANDLE)hDevHandle->PCIDEV_pvDevDriver;
-        printf("%7d %5d %5d %6d %6x %6x %6x %6x %-24s\n",
-               i,
-               hDevHandle->PCIDEV_iDevBus,
-               hDevHandle->PCIDEV_iDevDevice,
-               hDevHandle->PCIDEV_iDevFunction,
-               hDevHandle->PCIDEV_phDevHdr.PCIH_pcidHdr.PCID_usVendorId,
-               hDevHandle->PCIDEV_phDevHdr.PCIH_pcidHdr.PCID_usDeviceId,
-               hDevHandle->PCIDEV_phDevHdr.PCIH_pcidHdr.PCID_usSubVendorId,
-               hDevHandle->PCIDEV_phDevHdr.PCIH_pcidHdr.PCID_usSubSystemId,
-               ((hDrvHandle == LW_NULL) ? "NULL" : hDrvHandle->PCIDRV_cDrvName));
+
+        switch (hDevHandle->PCIDEV_iType) {
+
+        case PCI_HEADER_TYPE_NORMAL:
+            printf("%7d %-8s %5x %5x %6x %8x %8x %11x %11x %-7s %6x %5x %-24s\n",
+                   i,
+                   "NORMAL",
+                   hDevHandle->PCIDEV_iDevBus,
+                   hDevHandle->PCIDEV_iDevDevice,
+                   hDevHandle->PCIDEV_iDevFunction,
+                   hDevHandle->PCIDEV_phDevHdr.PCIH_pcidHdr.PCID_usVendorId,
+                   hDevHandle->PCIDEV_phDevHdr.PCIH_pcidHdr.PCID_usDeviceId,
+                   hDevHandle->PCIDEV_phDevHdr.PCIH_pcidHdr.PCID_usSubVendorId,
+                   hDevHandle->PCIDEV_phDevHdr.PCIH_pcidHdr.PCID_usSubSystemId,
+                   "       ",
+                   hDevHandle->PCIDEV_ucLine,
+                   hDevHandle->PCIDEV_ucPin,
+                   ((hDrvHandle == LW_NULL) ? "NULL" : hDrvHandle->PCIDRV_cDrvName));
+            break;
+
+        case PCI_HEADER_TYPE_BRIDGE:
+            printf("%7d %-8s %5x %5x %6x %8x %8x %11x %11x %7x %6x %5x %-24s\n",
+                   i,
+                   "BRIDGE",
+                   hDevHandle->PCIDEV_iDevBus,
+                   hDevHandle->PCIDEV_iDevDevice,
+                   hDevHandle->PCIDEV_iDevFunction,
+                   hDevHandle->PCIDEV_phDevHdr.PCIH_pcibHdr.PCIB_usVendorId,
+                   hDevHandle->PCIDEV_phDevHdr.PCIH_pcibHdr.PCIB_usDeviceId,
+                   hDevHandle->PCIDEV_phDevHdr.PCIH_pcibHdr.PCIB_ucPriBus,
+                   hDevHandle->PCIDEV_phDevHdr.PCIH_pcibHdr.PCIB_ucSecBus,
+                   hDevHandle->PCIDEV_phDevHdr.PCIH_pcibHdr.PCIB_ucSubBus,
+                   hDevHandle->PCIDEV_ucLine,
+                   hDevHandle->PCIDEV_ucPin,
+                   ((hDrvHandle == LW_NULL) ? "NULL" : hDrvHandle->PCIDRV_cDrvName));
+            break;
+
+        default:
+            break;
+        }
+
         i += 1;
     }
     __PCI_DEV_UNLOCK();                                                 /*  解锁 PCI 驱动               */
@@ -832,6 +905,123 @@ __error_handle:
     return  (-ERROR_TSHELL_EPARAM);
 }
 /*********************************************************************************************************
+** 函数名称: API_PciDevSetupAll
+** 功能描述: 配置 PCI 总线上的所有设备
+** 输　入  : hDevHandle     设备句柄
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_PciDevSetupAll (VOID)
+{
+    PLW_LIST_LINE       plineTemp  = LW_NULL;
+    PCI_DEV_HANDLE      hDevHandle = LW_NULL;
+
+    hDevHandle = LW_NULL;
+    __PCI_DEV_LOCK();                                                   /*  锁定 PCI 驱动               */
+    for (plineTemp  = _GplinePciDevHeader;
+         plineTemp != LW_NULL;
+         plineTemp  = _list_line_get_next(plineTemp)) {
+        hDevHandle = _LIST_ENTRY(plineTemp, PCI_DEV_CB, PCIDEV_lineDevNode);
+        __PCI_DEV_UNLOCK();                                            /*  解锁 PCI 驱动               */
+
+        API_PciDevSetup(hDevHandle);
+
+        __PCI_DEV_LOCK();                                               /*  锁定 PCI 驱动               */
+    }
+    __PCI_DEV_UNLOCK();                                                 /*  解锁 PCI 驱动               */
+
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_PciDevParentHandleGet
+** 功能描述: 获取一个设备的父节点句柄
+** 输　入  : iBus           总线号
+**           iDevice        设备号
+**           iFunction      功能号
+** 输　出  : 设备控制句柄
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+PCI_DEV_HANDLE  API_PciDevParentHandleGet (INT  iBus, INT  iDevice, INT  iFunction)
+{
+    PLW_LIST_LINE       plineTemp      = LW_NULL;
+    PCI_DEV_HANDLE      hDevHandleTemp = LW_NULL;
+    PCI_DEV_HANDLE      hDevHandle     = LW_NULL;
+    UINT8               ucSecBus       = 0;
+    UINT8               ucSubBus       = 0;
+
+    hDevHandle = API_PciDevHandleGet(iBus, iDevice, iFunction);
+    if (hDevHandle == LW_NULL) {
+        return  (LW_NULL);
+    }
+
+    hDevHandleTemp = LW_NULL;
+    __PCI_DEV_LOCK();                                                   /*  锁定 PCI 驱动               */
+    for (plineTemp  = _GplinePciDevHeader;
+         plineTemp != LW_NULL;
+         plineTemp  = _list_line_get_next(plineTemp)) {
+        hDevHandleTemp = _LIST_ENTRY(plineTemp, PCI_DEV_CB, PCIDEV_lineDevNode);
+        if (hDevHandleTemp->PCIDEV_iType == PCI_HEADER_TYPE_BRIDGE) {
+            ucSecBus = hDevHandleTemp->PCIDEV_phDevHdr.PCIH_pcibHdr.PCIB_ucSecBus;
+            ucSubBus = hDevHandleTemp->PCIDEV_phDevHdr.PCIH_pcibHdr.PCIB_ucSubBus;
+
+            if ((hDevHandle->PCIDEV_iType   == PCI_HEADER_TYPE_NORMAL) &&
+                (hDevHandle->PCIDEV_iDevBus == ucSecBus) &&
+                (hDevHandle->PCIDEV_iDevBus == ucSubBus)) {
+                break;
+            }
+
+            if ((hDevHandle->PCIDEV_iType   == PCI_HEADER_TYPE_BRIDGE) &&
+                (hDevHandle->PCIDEV_iDevBus >= ucSecBus) &&
+                (hDevHandle->PCIDEV_iDevBus <= ucSubBus)) {
+                break;
+            }
+        }
+    }
+    __PCI_DEV_UNLOCK();                                                 /*  解锁 PCI 驱动               */
+
+    if (plineTemp) {
+        return  (hDevHandleTemp);
+    }
+
+    hDevHandleTemp = LW_NULL;
+    __PCI_DEV_LOCK();                                                   /*  锁定 PCI 驱动               */
+    for (plineTemp  = _GplinePciDevHeader;
+         plineTemp != LW_NULL;
+         plineTemp  = _list_line_get_next(plineTemp)) {
+        hDevHandleTemp = _LIST_ENTRY(plineTemp, PCI_DEV_CB, PCIDEV_lineDevNode);
+        if (hDevHandleTemp->PCIDEV_iType == PCI_HEADER_TYPE_BRIDGE) {
+            ucSecBus = hDevHandleTemp->PCIDEV_phDevHdr.PCIH_pcibHdr.PCIB_ucSecBus;
+            ucSubBus = hDevHandleTemp->PCIDEV_phDevHdr.PCIH_pcibHdr.PCIB_ucSubBus;
+
+            if ((hDevHandle->PCIDEV_iType == PCI_HEADER_TYPE_NORMAL) &&
+                (hDevHandle->PCIDEV_iDevBus >= ucSecBus) &&
+                (hDevHandle->PCIDEV_iDevBus <= ucSubBus)) {
+                break;
+            }
+
+            if ((hDevHandle->PCIDEV_iType == PCI_HEADER_TYPE_BRIDGE) &&
+                (hDevHandle->PCIDEV_iDevBus == hDevHandleTemp->PCIDEV_iDevBus)) {
+                hDevHandleTemp = hDevHandle;
+                break;
+            }
+        }
+    }
+    __PCI_DEV_UNLOCK();                                                 /*  解锁 PCI 驱动               */
+
+    if (plineTemp) {
+        return  (hDevHandleTemp);
+    }
+
+    return  (LW_NULL);
+}
+/*********************************************************************************************************
 ** 函数名称: API_PciDevHandleGet
 ** 功能描述: 获取一个设备的句柄
 ** 输　入  : iBus           总线号
@@ -906,16 +1096,35 @@ PCI_DEV_HANDLE  API_PciDevAdd (INT  iBus, INT  iDevice, INT  iFunction)
         hDevHandle->PCIDEV_iDevFunction = iFunction;
         hDevHandle->PCIDEV_iType        = PCI_HEADER_TYPE_NORMAL;
         lib_memcpy(&hDevHandle->PCIDEV_phDevHdr, &phPciHdr, sizeof(PCI_HDR));
-
-        API_PciDevSetup(hDevHandle);
+        hDevHandle->PCIDEV_ucPin  = hDevHandle->PCIDEV_phDevHdr.PCIH_pcidHdr.PCID_ucIntPin;
+        hDevHandle->PCIDEV_ucLine = hDevHandle->PCIDEV_phDevHdr.PCIH_pcidHdr.PCID_ucIntLine;
 
         __PCI_DEV_LOCK();                                               /*  锁定 PCI 驱动               */
-        _List_Line_Add_Ahead(&hDevHandle->PCIDEV_lineDevNode, &_GplinePciDevHeader);
+        _List_Line_Add_Tail(&hDevHandle->PCIDEV_lineDevNode, &_GplinePciDevHeader);
         _GuiPciDevTotalNum += 1;
         __PCI_DEV_UNLOCK();                                             /*  解锁 PCI 驱动               */
         break;
 
     case PCI_HEADER_TYPE_BRIDGE:
+        hDevHandle = (PCI_DEV_HANDLE)__SHEAP_ZALLOC(sizeof(PCI_DEV_CB));
+        if (hDevHandle == LW_NULL) {
+            _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
+            break;
+        }
+        hDevHandle->PCIDEV_iDevBus      = iBus;
+        hDevHandle->PCIDEV_iDevDevice   = iDevice;
+        hDevHandle->PCIDEV_iDevFunction = iFunction;
+        hDevHandle->PCIDEV_iType        = PCI_HEADER_TYPE_BRIDGE;
+        lib_memcpy(&hDevHandle->PCIDEV_phDevHdr, &phPciHdr, sizeof(PCI_HDR));
+        hDevHandle->PCIDEV_ucPin  = hDevHandle->PCIDEV_phDevHdr.PCIH_pcibHdr.PCIB_ucIntPin;
+        hDevHandle->PCIDEV_ucLine = hDevHandle->PCIDEV_phDevHdr.PCIH_pcibHdr.PCIB_ucIntLine;
+
+        __PCI_DEV_LOCK();                                               /*  锁定 PCI 驱动               */
+        _List_Line_Add_Tail(&hDevHandle->PCIDEV_lineDevNode, &_GplinePciDevHeader);
+        _GuiPciDevTotalNum += 1;
+        __PCI_DEV_UNLOCK();                                             /*  解锁 PCI 驱动               */
+        break;
+
     case PCI_HEADER_TYPE_CARDBUS:
         hDevHandle = LW_NULL;
         break;
@@ -1215,6 +1424,11 @@ INT  API_PciDevInit (VOID)
                                 "    pcidev add all\n"
                                 "    pcidev add 1:0.1\n"
                                 "    pcidev del 1:0.1\n");
+
+    API_TShellKeywordAdd("pciparent", __tshellPciDevParentCmd);
+    API_TShellFormatAdd("pciparent", " [1:0.1]");
+    API_TShellHelpAdd("pciparent", "show pci device parent node\n"
+                                   "eg. pciparent 1:0.1\n");
 
     return  (ERROR_NONE);
 }

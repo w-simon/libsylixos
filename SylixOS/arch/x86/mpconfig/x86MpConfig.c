@@ -37,6 +37,7 @@
 *********************************************************************************************************/
 X86_MP_INTERRUPT            _G_x86MpInterrupt[MP_MAX_INTERRUPT_NR] = { { 0 }, };
 INT                         _G_iX86MpInterruptNr = 0;
+BOOL                        _G_bX86HasMpConfig   = LW_FALSE;
 /*********************************************************************************************************
 ** 函数名称: x86MpSum
 ** 功能描述: 计算效验和
@@ -171,23 +172,29 @@ static PX86_MP_CONFIG  x86MpGetMpConfig (PX86_MP  *ppmp)
 *********************************************************************************************************/
 INT  x86MpInit (BOOL  bHyperThreading)
 {
+    static BOOL         bInited = LW_FALSE;
+    static INT          iRet    = PX_ERROR;
     UINT8              *pucPos, *pucEnd;
     PX86_MP             pmp = LW_NULL;
     PX86_MP_CONFIG      pmpconfig;
     PX86_MP_PROC        pmpproc;
     PX86_MP_INTERRUPT   pmpinterrupt;
-    static BOOL         bInited = LW_FALSE;
 
-    if (bInited) {
-        return  (PX_ERROR);
+    if (bInited) {                                                      /*  已经初始化过                */
+        return  (iRet);                                                 /*  直接返回之前的返回值        */
     }
 
-    if ((pmpconfig = x86MpGetMpConfig(&pmp)) == 0) {
+    _G_bX86HasMpConfig = LW_FALSE;                                      /*  没有 MP 配置                */
+
+    if ((pmpconfig = x86MpGetMpConfig(&pmp)) == 0) {                    /*  获得 MP 配置                */
+        iRet = PX_ERROR;                                                /*  返回值为 ERROR              */
         goto __return;
     }
 
-    if (!_G_bX86HasHTT) {
-        bHyperThreading = LW_FALSE;
+    _G_bX86HasMpConfig = LW_TRUE;                                       /*  有 MP 配置                  */
+
+    if (!_G_bX86HasHTT) {                                               /*  如果识别无超线程技术        */
+        bHyperThreading = LW_FALSE;                                     /*  强制不使用超线程技术        */
     }
 
     pucPos = (UINT8 *)(pmpconfig + 1);
@@ -218,6 +225,9 @@ INT  x86MpInit (BOOL  bHyperThreading)
                 _G_iX86ProcNr++;
 
                 if (bHyperThreading) {
+                    /*
+                     * "手动"添加超线程的逻辑 Processor
+                     */
                     _G_x86ProcInfo[pmpproc->apicid + 1].PROC_bPresent      = LW_TRUE;
                     _G_x86ProcInfo[pmpproc->apicid + 1].PROC_ulCPUId       = _G_iX86ProcNr;
                     _G_x86ProcInfo[pmpproc->apicid + 1].PROC_ucLocalApicId = pmpproc->apicid + 1;
@@ -242,9 +252,11 @@ INT  x86MpInit (BOOL  bHyperThreading)
         }
     }
 
+    iRet = ERROR_NONE;
+
 __return:
-    if (_G_iX86ProcNr == 0) {
-        _G_x86ProcInfo[0].PROC_bPresent         = LW_TRUE;
+    if (_G_iX86ProcNr == 0) {                                           /*  没有 MP 配置                */
+        _G_x86ProcInfo[0].PROC_bPresent         = LW_TRUE;              /*  BSP 作为 0 号 Processor     */
         _G_x86ProcInfo[0].PROC_ulCPUId          = 0;
         _G_x86ProcInfo[0].PROC_ucLocalApicId    = 0;
         _G_x86ProcInfo[0].PROC_ucMapLocalApicId = 0;
@@ -257,9 +269,9 @@ __return:
         }
     }
 
-    bInited = LW_TRUE;
+    bInited = LW_TRUE;                                                  /*  已经初始化过                */
 
-    return  (ERROR_NONE);
+    return  (iRet);
 }
 /*********************************************************************************************************
   END

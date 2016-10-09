@@ -59,6 +59,13 @@ VOID  archKernelParam (CPCHAR  pcParam)
 
     } else if (lib_strncmp(pcParam, "busclk=", 7) == 0) {               /*  系统总线时钟                */
         _G_x86Param.X86_ulSysBusClk = lib_strtoul(pcParam + 7, LW_NULL, 10);
+
+    } else if (lib_strncmp(pcParam, "console=", 8) == 0) {              /*  控制台设备                  */
+        _G_x86Param.X86_bHasConsoleDev = LW_TRUE;                       /*  有指定的控制台设备          */
+        lib_strncpy(_G_x86Param.X86_cConsoleDev,
+                    pcParam + 8,
+                    sizeof(_G_x86Param.X86_cConsoleDev));
+        *lib_strchr(_G_x86Param.X86_cConsoleDev, ' ') = '\0';
     }
 
     x86MpInit(_G_x86Param.X86_bHyperThreading);                         /*  初始化 MP 配置              */
