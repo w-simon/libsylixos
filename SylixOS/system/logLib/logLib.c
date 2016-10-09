@@ -482,9 +482,6 @@ VOID  _LogThread (VOID)
         
         iNewMsgsLost = _G_iLogMsgsLost;
         if (iNewMsgsLost != iOldMsgsLost) {
-            /*
-             *  DO STH.
-             */
             iOldMsgsLost = iNewMsgsLost;
         }
     }
@@ -574,6 +571,7 @@ VOID   __logPrintf (CPCHAR       pcFormat,
         }
     }
 }
+
 #endif                                                                  /*  LW_CFG_LOG_LIB_EN > 0 &&    */
 /*********************************************************************************************************
   END

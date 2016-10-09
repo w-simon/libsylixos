@@ -305,7 +305,7 @@ static INT gdbTcpSockInit (LW_GDB_PARAM *pparam, UINT32 ui32Ip, UINT16 usPort)
     setsockopt(iSockNew, IPPROTO_TCP, TCP_KEEPINTVL, (const void *)&iKeepInterval, sizeof(INT));
     setsockopt(iSockNew, IPPROTO_TCP, TCP_KEEPCNT,   (const void *)&iKeepCount,    sizeof(INT));
 
-    LW_GDB_MSG("[GDB]Connected. host : %s\n",
+    LW_GDB_MSG("[GDB]Connected. host: %s\n",
                inet_ntoa_r(addrClient.sin_addr, cIpBuff, sizeof(cIpBuff)));
 
     close(iSockListen);
@@ -371,7 +371,7 @@ static INT gdbSerialInit (LW_GDB_PARAM *pparam, CPCHAR pcSerial)
     ioctl(iFd, FIORBUFSET,      SERIAL_BSIZE);
     ioctl(iFd, FIOWBUFSET,      SERIAL_BSIZE);
     
-    LW_GDB_MSG("[GDB]Serial device:%s %s\n", pcSerial, SERIAL_PARAM);
+    LW_GDB_MSG("[GDB]Serial device: %s %s\n", pcSerial, SERIAL_PARAM);
     
     return  (iFd);
 }
