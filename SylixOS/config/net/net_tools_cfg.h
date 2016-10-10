@@ -44,7 +44,7 @@
 
 #define LW_CFG_NET_TELNET_EN                        1                   /*  是否使能 telnet 工具        */
 #define LW_CFG_NET_TELNET_STK_SIZE                  (6 * LW_CFG_KB_SIZE)/*  telnet 相关线程堆栈         */
-#define LW_CFG_NET_TELNET_MAX_LINKS                 5                   /*  telnet 最大连接数, 建议为 1 */
+#define LW_CFG_NET_TELNET_MAX_LINKS                 10                  /*  telnet 最大连接数, 建议为 5 */
 #define LW_CFG_NET_TELNET_RBUFSIZE                  128                 /*  pty read buffer size        */
 #define LW_CFG_NET_TELNET_WBUFSIZE                  128                 /*  pty write buffer size       */
                                                                         /*  缓冲区为默认值, ioctl 可修改*/

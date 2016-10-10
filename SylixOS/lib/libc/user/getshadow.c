@@ -301,7 +301,7 @@ struct login_defs {
   int pass_min_days;    /* default 0  */
   int pass_min_len;     /* default 8  */
   int pass_warn_age;    /* default 7  */
-  int pass_delay;       /* default 1  */
+  int pass_delay_ms;    /* default 50 */
   int fail_delay;       /* default 5  */
   int faillog_enab;     /* default 0  */
   int syslog_su_enab;   /* default 0  */
@@ -309,7 +309,7 @@ struct login_defs {
   int md5_crypt_enab;   /* default 1  */
 };
 
-static struct login_defs login_defines = {90, 0, 8, 7, 1, 5, 0, 0, 0, 1};
+static struct login_defs login_defines = {90, 0, 8, 7, 50, 5, 0, 0, 0, 1};
  
 /*
  * get yes or no value
@@ -386,6 +386,9 @@ static void login_defs_init (void)
 #define PASS_DELAY          "PASS_DELAY"
 #define PASS_DELAY_LEN      10
 
+#define PASS_DELAY_MS       "PASS_DELAY_MS"
+#define PASS_DELAY_MS_LEN   13
+
 #define FAIL_DELAY          "FAIL_DELAY"
 #define FAIL_DELAY_LEN      10
 
@@ -419,7 +422,12 @@ static void login_defs_init (void)
     
     } else if (strncmp(line_buf, PASS_DELAY, PASS_DELAY_LEN) == 0) {
       value = line_buf + PASS_DELAY_LEN;
-      str_get_int(value, &login_defines.pass_delay);
+      str_get_int(value, &login_defines.pass_delay_ms);
+      login_defines.pass_delay_ms *= 1000;
+      
+    } else if (strncmp(line_buf, PASS_DELAY_MS, PASS_DELAY_MS_LEN) == 0) {
+      value = line_buf + PASS_DELAY_MS_LEN;
+      str_get_int(value, &login_defines.pass_delay_ms);
       
     } else if (strncmp(line_buf, FAIL_DELAY, FAIL_DELAY_LEN) == 0) {
       value = line_buf + FAIL_DELAY_LEN;
@@ -463,8 +471,8 @@ int userlogin (const char *name, const char *pass, int pass_delay_en)
     struct passwd  *passwdRes;
     CHAR           cBuf[256];
     
-    if (pass_delay_en && login_defines.pass_delay) {
-      sleep(login_defines.pass_delay);  /* wait some seconds... */
+    if (pass_delay_en && login_defines.pass_delay_ms) {
+      API_TimeMSleep(login_defines.pass_delay_ms);  /* wait some mirco-seconds... */
     }
     
     if (getpwnam_r(name, &passwd, cBuf, sizeof(cBuf), &passwdRes) == 0) {
