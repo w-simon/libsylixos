@@ -66,6 +66,17 @@
 #undef NI_MAXSERV
 #define NI_MAXSERV	32
 
+#ifdef __cplusplus
+extern "C" {
+#endif                                                                  /*  __cplusplus                 */
+
+void  herror(const char *s);
+const char *hstrerror(int err);
+
+#ifdef __cplusplus
+}
+#endif                                                                  /*  __cplusplus                 */
+
 #endif                                                                  /*  __NETDB_H                   */
 /*********************************************************************************************************
   END

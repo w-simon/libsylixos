@@ -106,6 +106,12 @@ VOID  __tshellSysVarInit (VOID)
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
     
     /*
+     *  LUA ª∑æ≥
+     */
+    API_TShellExec("LUA_PATH=?.lua;/usr/local/lib/lua/?.lua;/usr/lib/lua/?.lua;/lib/lua/?.lua");
+    API_TShellExec("LUA_CPATH=?.so;/usr/local/lib/lua/?.so;/usr/lib/lua/?.so;/lib/lua/?.so");
+    
+    /*
      *  ÷’∂À
      */                                                                    
     API_TShellExec("TERM=vt100");
