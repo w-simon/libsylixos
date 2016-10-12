@@ -810,7 +810,10 @@ INT  kill (LW_OBJECT_HANDLE  ulId, INT  iSigNo)
         return  (PX_ERROR);
     }
     
-    if (!__issig(iSigNo)) {
+    if (iSigNo == 0) {                                                  /*  测试目标是否存在            */
+        return  (ERROR_NONE);
+    
+    } else if (!__issig(iSigNo)) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -908,7 +911,10 @@ INT  sigqueue (LW_OBJECT_HANDLE  ulId, INT   iSigNo, const union sigval  sigvalu
         return  (PX_ERROR);
     }
     
-    if (!__issig(iSigNo)) {
+    if (iSigNo == 0) {                                                  /*  测试目标是否存在            */
+        return  (ERROR_NONE);
+    
+    } else if (!__issig(iSigNo)) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }

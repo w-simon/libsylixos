@@ -1209,7 +1209,6 @@ LW_API VOID             API_KernelPrimaryStart(PKERNEL_START_ROUTINE  pStartHook
 LW_API VOID             API_KernelSecondaryStart(PKERNEL_START_ROUTINE  pStartHook);
                                                                         /*  SMP 系统, 逻辑从核启动      */
 #endif                                                                  /*  LW_CFG_SMP_EN               */
-
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 
 /*********************************************************************************************************
@@ -1226,39 +1225,36 @@ LW_API VOID             API_ThreadPendShow(VOID);                       /*  显示
 LW_API VOID             API_ThreadPendShowEx(pid_t  pid);               /*  显示阻塞线程信息            */
 
 LW_API VOID             API_StackShow(VOID);                            /*  打印所有线程堆栈使用信息    */
-#endif
 
-#if (LW_CFG_FIO_LIB_EN > 0) && (LW_CFG_REGION_EN > 0) && (LW_CFG_MAX_REGIONS > 0)
+#if (LW_CFG_REGION_EN > 0) && (LW_CFG_MAX_REGIONS > 0)
 LW_API VOID             API_RegionShow(LW_OBJECT_HANDLE  ulId);         /*  打印指定内存池信息          */
 #endif
 
-#if (LW_CFG_FIO_LIB_EN > 0) && (LW_CFG_PARTITION_EN > 0) && (LW_CFG_MAX_PARTITIONS > 0)
+#if (LW_CFG_PARTITION_EN > 0) && (LW_CFG_MAX_PARTITIONS > 0)
 LW_API VOID             API_PartitionShow(LW_OBJECT_HANDLE  ulId);      /*  打印指定内存分区信息        */
 #endif
 
-#if LW_CFG_FIO_LIB_EN > 0 && LW_CFG_THREAD_CPU_USAGE_CHK_EN > 0
+#if LW_CFG_THREAD_CPU_USAGE_CHK_EN > 0
 LW_API VOID             API_CPUUsageShow(INT  iWaitSec, INT  iTimes);   /*  显示 CPU 利用率信息         */
 #endif
 
-#if LW_CFG_FIO_LIB_EN > 0 && LW_CFG_EVENTSET_EN > 0
+#if LW_CFG_EVENTSET_EN > 0
 LW_API VOID             API_EventSetShow(LW_OBJECT_HANDLE  ulId);       /*  显示事件集的相关信息        */
 #endif
 
-#if LW_CFG_FIO_LIB_EN > 0 && LW_CFG_MSGQUEUE_EN > 0
+#if LW_CFG_MSGQUEUE_EN > 0
 LW_API VOID             API_MsgQueueShow(LW_OBJECT_HANDLE  ulId);       /*  显示指定消息队列信息        */
 #endif
 
-#if LW_CFG_FIO_LIB_EN > 0
 LW_API VOID             API_InterShow(ULONG ulCPUStart, ULONG ulCPUEnd);/*  显示操作系统中断向量表内容  */
 
 LW_API VOID             API_TimeShow(VOID);                             /*  显示时间                    */
-#endif
 
-#if LW_CFG_FIO_LIB_EN > 0 && ((LW_CFG_HTIMER_EN > 0) || (LW_CFG_ITIMER_EN > 0))
+#if (LW_CFG_HTIMER_EN > 0) || (LW_CFG_ITIMER_EN > 0)
 LW_API VOID             API_TimerShow(LW_OBJECT_HANDLE  ulId);          /*  显示定时器信息              */
 #endif
 
-#if LW_CFG_FIO_LIB_EN > 0 && LW_CFG_RMS_EN > 0 && LW_CFG_MAX_RMSS > 0
+#if (LW_CFG_RMS_EN > 0) && (LW_CFG_MAX_RMSS > 0)
 LW_API VOID             API_RmsShow(LW_OBJECT_HANDLE  ulId);            /*  显示 RMS                    */
 #endif
 
@@ -1268,15 +1264,12 @@ LW_API VOID             API_VmmVirtualShow(VOID);                       /*  显示
 LW_API VOID             API_VmmAbortShow(VOID);                         /*  显示 vmm 访问中止统计信息   */
 #endif
 
-#if LW_CFG_FIO_LIB_EN > 0
 #if (LW_CFG_SEM_EN > 0) && (LW_CFG_MAX_EVENTS > 0)
-
 LW_API VOID             API_SemaphoreShow(LW_OBJECT_HANDLE  ulId);      /*  显示指定信号量信息          */
 
 #endif                                                                  /*  (LW_CFG_SEM_EN > 0) &&      */
                                                                         /*  (LW_CFG_MAX_EVENTS > 0)     */
 #endif                                                                  /*  LW_CFG_FIO_LIB_EN > 0       */
-
 #endif                                                                  /*  __K_API_H                   */
 /*********************************************************************************************************
   END

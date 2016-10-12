@@ -1017,16 +1017,22 @@ static VOID __tshellFsShowMode (struct stat  *pstat)
     
     if (S_ISLNK(pstat->st_mode)) {
         cBuffer[0] = 'l';
+    
     } else if (S_ISDIR(pstat->st_mode)) {
         cBuffer[0] = 'd';
+    
     } else if (S_ISCHR(pstat->st_mode)) {
         cBuffer[0] = 'c';
+    
     } else if (S_ISBLK(pstat->st_mode)) {
         cBuffer[0] = 'b';
+    
     } else if (S_ISSOCK(pstat->st_mode)) {
         cBuffer[0] = 's';
+    
     } else if (S_ISFIFO(pstat->st_mode)) {
         cBuffer[0] = 'f';
+    
     } else {
         cBuffer[0] = '-';
     }
@@ -1105,6 +1111,84 @@ static VOID __tshellFsShowMode (struct stat  *pstat)
     printf(cBuffer);
 }
 /*********************************************************************************************************
+** 函数名称: __tshellFsShowFile
+** 功能描述: 显示文件详细信息
+** 输　入  : pcFileName 文件名
+**           pcStat     文件名
+**           pstat      文件选项
+** 输　出  : 0
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static VOID __tshellFsShowFile (CPCHAR  pcFileName, PCHAR  pcStat, struct stat  *pstat)
+{
+    PCHAR           pcN;
+    struct tm       tmBuf;
+    CHAR            cTimeBuf[32];                                       /*  bigger than sizeof(ASCBUF)  */
+    CHAR            cBuffer[MAX_FILENAME_LENGTH];
+    
+    __tshellFsShowMode(pstat);                                          /*  显示文件属性                */
+            
+    if (API_TShellGetUserName(pstat->st_uid,
+                              cBuffer, sizeof(cBuffer))) {              /*  获得文件所属用户名          */
+        printf(" %-8d", pstat->st_uid);
+    } else {
+        printf(" %-8s", cBuffer);
+    }
+    
+    if (API_TShellGetGrpName(pstat->st_gid,
+                             cBuffer, sizeof(cBuffer))) {               /*  获得文件所属用户名          */
+        printf(" %-8d", pstat->st_gid);
+    } else {
+        printf(" %-8s", cBuffer);
+    }
+    
+    lib_localtime_r(&pstat->st_mtime, &tmBuf);                          /*  转换为 tm 格式              */
+    lib_asctime_r(&tmBuf, cTimeBuf);                                    /*  生成字符串                  */
+    pcN = lib_index(cTimeBuf, '\n');
+    if (pcN) {
+        *pcN = PX_EOS;
+    }
+    
+    printf(" %s", cTimeBuf);                                            /*  打印修改时间                */
+    
+    if (S_ISDIR(pstat->st_mode)) {
+        API_TShellColorStart(pcFileName, "", pstat->st_mode, STD_OUT);
+        printf("           %s/\n", pcFileName);
+        API_TShellColorEnd(STD_OUT);
+                              
+    } else if (S_ISLNK(pstat->st_mode)) {                               /*  链接文件                    */
+        CHAR            cDstName[MAX_FILENAME_LENGTH] = "<unknown>";
+        struct stat     statDst;
+        ssize_t         sstLen;
+        
+        statDst.st_mode = 0;
+        sstLen = readlink(pcStat, cDstName, MAX_FILENAME_LENGTH);
+        if (sstLen >= 0) {
+            cDstName[sstLen] = PX_EOS;                                  /*  加入结束符                  */
+        }
+        stat(cDstName, &statDst);
+        API_TShellColorStart(pcFileName, cDstName, pstat->st_mode, STD_OUT);
+        printf("           %s -> ", pcFileName);
+        API_TShellColorStart(cDstName, "", statDst.st_mode, STD_OUT);
+        printf("%s\n", cDstName);
+        API_TShellColorEnd(STD_OUT);
+    
+    } else {
+        if (pstat->st_size > (10 * LW_CFG_MB_SIZE)) {
+            printf(" %6zdMB, ", (size_t)(pstat->st_size / LW_CFG_MB_SIZE));
+        } else if (pstat->st_size > (10 * LW_CFG_KB_SIZE)) {
+            printf(" %6zdKB, ", (size_t)(pstat->st_size / LW_CFG_KB_SIZE));
+        } else {
+            printf(" %6zd B, ", (size_t)(pstat->st_size));
+        }
+        
+        API_TShellColorStart(pcFileName, "", pstat->st_mode, STD_OUT);
+        printf("%s\n", pcFileName);
+        API_TShellColorEnd(STD_OUT);
+    }
+}
+/*********************************************************************************************************
 ** 函数名称: __tshellFsCmdLl
 ** 功能描述: 系统命令 "ll"
 ** 输　入  : iArgC         参数个数
@@ -1117,10 +1201,6 @@ static INT  __tshellFsCmdLl (INT  iArgC, PCHAR  ppcArgV[])
 {
              PCHAR           pcStat;
              CHAR            cDirName[MAX_FILENAME_LENGTH] = ".";
-             CHAR            cTimeBuf[32];                              /*  bigger than sizeof(ASCBUF)  */
-             PCHAR           pcN;
-             struct tm       tmBuf;
-             
              size_t          stDirLen = 1;
              
     REGISTER DIR            *pdir;
@@ -1132,6 +1212,16 @@ static INT  __tshellFsCmdLl (INT  iArgC, PCHAR  ppcArgV[])
     
     if ((iArgC == 2) && lib_strcmp(ppcArgV[1], ".")) {                  /*  指定目录                    */
         lib_strcpy(cDirName, ppcArgV[1]);
+        if (stat(cDirName, &statGet) == ERROR_NONE) {
+            if (!S_ISDIR(statGet.st_mode)) {                            /*  不是目录                    */
+                PCHAR   pcFile;
+                _PathLastName(cDirName, &pcFile);
+                __tshellFsShowFile(pcFile, pcFile, &statGet);
+                iItemNum = 1;
+                goto    __display_over;
+            }
+        }
+        
         stDirLen = lib_strlen(cDirName);
         pdir     = opendir(cDirName);
         if (stDirLen > 0) {
@@ -1156,14 +1246,14 @@ static INT  __tshellFsCmdLl (INT  iArgC, PCHAR  ppcArgV[])
         pdirent = readdir(pdir);
         if (!pdirent) {
             break;
+        
         } else {
-            CHAR    cBuffer[MAX_FILENAME_LENGTH];
-            
             if ((stDirLen > 1) || 
                 ((stDirLen == 1) && (cDirName[0] == PX_ROOT))) {
                 lib_strcpy(&cDirName[stDirLen], pdirent->d_name);       /*  链接指定目录                */
                 pcStat = cDirName;
                 iError = lstat(cDirName, &statGet);
+            
             } else {
                 pcStat = pdirent->d_name;
                 iError = lstat(pdirent->d_name, &statGet);              /*  使用当前目录                */
@@ -1184,66 +1274,7 @@ static INT  __tshellFsCmdLl (INT  iArgC, PCHAR  ppcArgV[])
                 statGet.st_ctime   = API_RootFsTime(LW_NULL);
             }
             
-            __tshellFsShowMode(&statGet);                               /*  显示文件属性                */
-            
-            if (API_TShellGetUserName(statGet.st_uid,
-                                      cBuffer, sizeof(cBuffer))) {      /*  获得文件所属用户名          */
-                printf(" %-8d", statGet.st_uid);
-            } else {
-                printf(" %-8s", cBuffer);
-            }
-            
-            if (API_TShellGetGrpName(statGet.st_gid,
-                                     cBuffer, sizeof(cBuffer))) {       /*  获得文件所属用户名          */
-                printf(" %-8d", statGet.st_gid);
-            } else {
-                printf(" %-8s", cBuffer);
-            }
-            
-            lib_localtime_r(&statGet.st_mtime, &tmBuf);                 /*  转换为 tm 格式              */
-            lib_asctime_r(&tmBuf, cTimeBuf);                            /*  生成字符串                  */
-            pcN = lib_index(cTimeBuf, '\n');
-            if (pcN) {
-                *pcN = PX_EOS;
-            }
-            
-            printf(" %s", cTimeBuf);                                    /*  打印修改时间                */
-            
-            if (S_ISDIR(statGet.st_mode)) {
-                API_TShellColorStart(pdirent->d_name, "", statGet.st_mode, STD_OUT);
-                printf("           %s/\n", pdirent->d_name);
-                API_TShellColorEnd(STD_OUT);
-                                      
-            } else if (S_ISLNK(statGet.st_mode)) {                      /*  链接文件                    */
-                CHAR            cDstName[MAX_FILENAME_LENGTH] = "<unknown>";
-                struct stat     statDst;
-                ssize_t         sstLen;
-                
-                statDst.st_mode = 0;
-                sstLen = readlink(pcStat, cDstName, MAX_FILENAME_LENGTH);
-                if (sstLen >= 0) {
-                    cDstName[sstLen] = PX_EOS;                          /*  加入结束符                  */
-                }
-                stat(cDstName, &statDst);
-                API_TShellColorStart(pdirent->d_name, cDstName, statGet.st_mode, STD_OUT);
-                printf("           %s -> ", pdirent->d_name);
-                API_TShellColorStart(cDstName, "", statDst.st_mode, STD_OUT);
-                printf("%s\n", cDstName);
-                API_TShellColorEnd(STD_OUT);
-            
-            } else {
-                if (statGet.st_size > (10 * LW_CFG_MB_SIZE)) {
-                    printf(" %6zdMB, ", (size_t)(statGet.st_size / LW_CFG_MB_SIZE));
-                } else if (statGet.st_size > (10 * LW_CFG_KB_SIZE)) {
-                    printf(" %6zdKB, ", (size_t)(statGet.st_size / LW_CFG_KB_SIZE));
-                } else {
-                    printf(" %6zd B, ", (size_t)(statGet.st_size));
-                }
-                
-                API_TShellColorStart(pdirent->d_name, "", statGet.st_mode, STD_OUT);
-                printf("%s\n", pdirent->d_name);
-                API_TShellColorEnd(STD_OUT);
-            }
+            __tshellFsShowFile(pdirent->d_name, pcStat, &statGet);
             
             iItemNum++;
         }
@@ -1251,6 +1282,7 @@ static INT  __tshellFsCmdLl (INT  iArgC, PCHAR  ppcArgV[])
     
     closedir(pdir);
     
+__display_over:
     printf("      total items : %d\n", iItemNum);
     
     return  (ERROR_NONE);

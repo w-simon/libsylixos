@@ -258,6 +258,21 @@ struct linger {
  */
 #define IPV6_CHECKSUM       7  /* RFC3542: calculate and insert the ICMPv6 checksum for raw sockets. */
 #define IPV6_V6ONLY         27 /* RFC3493: boolean control to restrict AF_INET6 sockets to IPv6 communications only. */
+
+#ifdef SYLIXOS
+#define IPV6_UNICAST_HOPS       16 /* Unimplemented */
+
+#ifndef IPV6_MULTICAST_IF
+#define IPV6_MULTICAST_IF       17 /* Unimplemented */
+#define IPV6_MULTICAST_HOPS     18 /* Unimplemented */
+#define IPV6_MULTICAST_LOOP     19 /* Unimplemented */
+#define IPV6_JOIN_GROUP		    20 /* Unimplemented */
+#define IPV6_LEAVE_GROUP	    21 /* Unimplemented */
+#endif /* !IPV6_MULTICAST_IF */
+
+#define IPV6_ADD_MEMBERSHIP     20 /* Unimplemented */
+#define IPV6_DROP_MEMBERSHIP    21 /* Unimplemented */
+#endif /* SYLIXOS */
 #endif /* LWIP_IPV6 */
 
 #if LWIP_UDP && LWIP_UDPLITE

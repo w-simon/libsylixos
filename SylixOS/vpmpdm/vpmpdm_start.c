@@ -37,6 +37,7 @@
  *  environ
  */
 char **environ;
+static char pwd[PATH_MAX + 1];
 
 extern void __vp_patch_lock(void);
 extern void __vp_patch_unlock(void);
@@ -181,6 +182,12 @@ char *getenv (const char *name)
         return (NULL);
     }
 
+    if (lib_strcmp(name, "PWD") == 0) {
+        getcwd(pwd, PATH_MAX + 1);
+        pwd[PATH_MAX] = '\0';
+        return (pwd);
+    }
+
     __ENV_LOCK();
     result = __findenv(name, &offset);
     __ENV_UNLOCK();
@@ -198,6 +205,16 @@ int getenv_r (const char *name, char *buf, int len)
 
     if (!name || !buf) {
         return (-1);
+    }
+
+    if (lib_strcmp(name, "PWD") == 0) {
+        getcwd(pwd, PATH_MAX + 1);
+        pwd[PATH_MAX] = '\0';
+        if (strlcpy(buf, pwd, len) >= len) {
+            errno = ERANGE;
+            return (-1);
+        }
+        return (0);
     }
 
     __ENV_LOCK();

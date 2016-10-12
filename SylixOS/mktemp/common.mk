@@ -71,6 +71,12 @@ $(target)_DSYMBOL := -DSYLIXOS
 $(target)_DSYMBOL += $(LOCAL_DSYMBOL)
 
 #*********************************************************************************************************
+# Compiler flags
+#*********************************************************************************************************
+$(target)_CFLAGS   := $(LOCAL_CFLAGS)
+$(target)_CXXFLAGS := $(LOCAL_CXXFLAGS)
+
+#*********************************************************************************************************
 # Define some useful variables
 #*********************************************************************************************************
 $(target)_USE_CXX        := $(LOCAL_USE_CXX)
@@ -110,6 +116,13 @@ $(OBJPATH)/$(target)/%.o: %.cpp
 		$(CXX) $($(__TARGET)_CXXFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
 
 $(OBJPATH)/$(target)/%.o: %.cxx
+		@if [ ! -d "$(dir $@)" ]; then \
+			mkdir -p "$(dir $@)"; fi
+		@if [ ! -d "$(dir $(__DEP))" ]; then \
+			mkdir -p "$(dir $(__DEP))"; fi
+		$(CXX) $($(__TARGET)_CXXFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
+
+$(OBJPATH)/$(target)/%.o: %.cc
 		@if [ ! -d "$(dir $@)" ]; then \
 			mkdir -p "$(dir $@)"; fi
 		@if [ ! -d "$(dir $(__DEP))" ]; then \
