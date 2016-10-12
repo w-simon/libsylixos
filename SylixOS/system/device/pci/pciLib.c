@@ -1988,7 +1988,7 @@ INT  API_PciConfigBusMaxSet (INT  iIndex, UINT32  uiBusMax)
 
     if (PCI_CTRL->PCI_iIndex == iIndex) {
         PCI_CTRL->PCI_iBusMax = uiBusMax;
-        return (PX_ERROR);
+        return (ERROR_NONE);
     }
 
     return  (PX_ERROR);

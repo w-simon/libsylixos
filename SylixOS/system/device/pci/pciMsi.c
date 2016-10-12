@@ -73,7 +73,7 @@ INT  API_PciMsixClearSet (INT     iBus,
         iRet = ERROR_NONE;
     }
 
-    return  (PX_ERROR);
+    return  (iRet);
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: API_PciMsiMsgWrite

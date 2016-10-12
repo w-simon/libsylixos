@@ -101,7 +101,7 @@ static INT _G_iCanDrvNum = PX_ERROR;
 *********************************************************************************************************/
 #define CANPORT_LOCK(pcanport)  \
         API_SemaphoreMPend(pcanport->CANPORT_can.CAN_ulMutexSemM, LW_OPTION_WAIT_INFINITE)
-#define CANPORT_UNLOCK(atactrl) \
+#define CANPORT_UNLOCK(pcanport) \
         API_SemaphoreMPost(pcanport->CANPORT_can.CAN_ulMutexSemM)
         
 #define CANDEV_LOCK(pcandev)   \
