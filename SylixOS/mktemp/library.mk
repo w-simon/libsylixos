@@ -10,7 +10,7 @@
 #
 #--------------文件信息--------------------------------------------------------------------------------
 #
-# 文   件   名: kernel-library.mk
+# 文   件   名: library.mk
 #
 # 创   建   人: Jiao.JinXing(焦进星)
 #
@@ -40,7 +40,12 @@ $(target)_GCOV_FLAGS  :=
 endif
 
 $(target)_DSYMBOL     += -DSYLIXOS_LIB
-$(target)_COMMONFLAGS := $(CPUFLAGS) $(ARCH_COMMONFLAGS) $(OPTIMIZE) -Wall -fmessage-length=0 -fsigned-char -fno-short-enums $($(target)_GCOV_FLAGS) 
+ifneq (,$(findstring libvpmpdm.so,$(LOCAL_TARGET_NAME)))
+$(target)_CPUFLAGS    := $(CPUFLAGS_NOFPU)
+else
+$(target)_CPUFLAGS    := $(CPUFLAGS)
+endif
+$(target)_COMMONFLAGS := $($(target)_CPUFLAGS) $(ARCH_COMMONFLAGS) $(OPTIMIZE) -Wall -fmessage-length=0 -fsigned-char -fno-short-enums $($(target)_GCOV_FLAGS) 
 $(target)_ASFLAGS     := $($(target)_COMMONFLAGS) -x assembler-with-cpp $($(target)_DSYMBOL) $($(target)_INC_PATH) 
 $(target)_CFLAGS      := $($(target)_COMMONFLAGS) $(ARCH_PIC_CFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CFLAGS)
 $(target)_CXXFLAGS    := $($(target)_COMMONFLAGS) $(ARCH_PIC_CFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CXX_EXCEPT) $($(target)_CXXFLAGS)
@@ -79,7 +84,7 @@ $(target)_DEPEND_LIB += -ldsohandle -lm -lgcc
 $($(target)_SO): $($(target)_OBJS) $($(target)_DEPEND_TARGET)
 		@rm -f $@
 		$(__PRE_LINK_CMD)
-		$(LD) $(CPUFLAGS) $(ARCH_PIC_LDFLAGS) -o $@ $(__OBJS) $(__LIBRARIES)
+		$(LD) $(__CPUFLAGS) $(ARCH_PIC_LDFLAGS) -o $@ $(__OBJS) $(__LIBRARIES)
 		$(__POST_LINK_CMD)
 
 #*********************************************************************************************************

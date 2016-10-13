@@ -49,9 +49,7 @@
 #ifndef NULL
 #define NULL                            0
 #endif                                                                  /*  NULL                        */
-
 #else
-
 #define LW_NULL                         ((PVOID)0)                      /*  C   об╣д NULL               */
 #ifndef NULL
 #define NULL                            ((PVOID)0)
@@ -61,18 +59,31 @@
   ROUND_UP
 *********************************************************************************************************/
 
+#ifdef __SYLIXOS_KERNEL
+#ifndef ROUND_UP
 #define ROUND_UP(x, align)              (size_t)(((size_t)(x) +  (align - 1)) & ~(align - 1))
+#endif
+
+#ifndef ROUND_DOWN
 #define ROUND_DOWN(x, align)            (size_t)( (size_t)(x) & ~(align - 1))
+#endif
+
+#ifndef ALIGNED
 #define ALIGNED(x, align)               (((size_t)(x) & (align - 1)) == 0)
+#endif
 
 /*********************************************************************************************************
   DIV_ROUND_UP
 *********************************************************************************************************/
 
-#ifdef __SYLIXOS_KERNEL
+#ifndef DIV_ROUND
 #define DIV_ROUND(n, d)                 (((n) + ((d) / 2)) / (d))
+#endif
+
+#ifndef DIV_ROUND_UP
 #define DIV_ROUND_UP(n, d)              (((n) + (d) - 1) / (d))
 #endif
+#endif                                                                  /*  __SYLIXOS_KERNEL            */
 
 /*********************************************************************************************************
   local or global function

@@ -135,6 +135,10 @@ struct cmsghdr {
   RFC 2292 additions
 *********************************************************************************************************/
 
+#ifndef ROUND_UP
+#define ROUND_UP(x, align)      (size_t)(((size_t)(x) +  (align - 1)) & ~(align - 1))
+#endif
+
 #define CMSG_ALIGN(nbytes)      ROUND_UP(nbytes, sizeof(size_t))
 #define CMSG_LEN(nbytes)        (CMSG_ALIGN(sizeof(struct cmsghdr)) + (nbytes))
 #define CMSG_SPACE(nbytes)      (CMSG_ALIGN(sizeof(struct cmsghdr)) + CMSG_ALIGN(nbytes))

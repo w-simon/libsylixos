@@ -32,7 +32,10 @@ ARCH_PIC_LDFLAGS = -Wl,-shared -fPIC -shared
 ARCH_KO_CFLAGS   =
 
 FPUFLAGS = -m$(FPU_TYPE)
-CPUFLAGS = $(FPUFLAGS)
+
+CPUFLAGS_WITHOUT_FPUFLAGS = 
+CPUFLAGS                  = $(CPUFLAGS_WITHOUT_FPUFLAGS) $(FPUFLAGS)
+CPUFLAGS_NOFPU            = $(CPUFLAGS_WITHOUT_FPUFLAGS) -msoft-float
 endif
 
 #*********************************************************************************************************
@@ -53,7 +56,9 @@ else
 FPUFLAGS = -mfloat-abi=softfp -mfpu=$(FPU_TYPE)
 endif
 
-CPUFLAGS = -mcpu=$(CPU_TYPE) $(FPUFLAGS)
+CPUFLAGS_WITHOUT_FPUFLAGS = -mcpu=$(CPU_TYPE)
+CPUFLAGS                  = $(CPUFLAGS_WITHOUT_FPUFLAGS) $(FPUFLAGS)
+CPUFLAGS_NOFPU            = $(CPUFLAGS_WITHOUT_FPUFLAGS)
 endif
 
 #*********************************************************************************************************
@@ -69,7 +74,10 @@ ARCH_PIC_LDFLAGS = -Wl,-shared -fPIC -mabicalls -shared
 ARCH_KO_CFLAGS   = -mlong-calls
 
 FPUFLAGS = -m$(FPU_TYPE)
-CPUFLAGS = -march=$(CPU_TYPE) -EL -G 0 $(FPUFLAGS)
+
+CPUFLAGS_WITHOUT_FPUFLAGS = -march=$(CPU_TYPE) -EL -G 0
+CPUFLAGS                  = $(CPUFLAGS_WITHOUT_FPUFLAGS) $(FPUFLAGS)
+CPUFLAGS_NOFPU            = $(CPUFLAGS_WITHOUT_FPUFLAGS) -msoft-float
 endif
 
 #*********************************************************************************************************
@@ -85,7 +93,10 @@ ARCH_PIC_LDFLAGS = -Wl,-shared -fPIC -shared
 ARCH_KO_CFLAGS   =
 
 FPUFLAGS = -m$(FPU_TYPE)
-CPUFLAGS = -mcpu=$(CPU_TYPE) $(FPUFLAGS)
+
+CPUFLAGS_WITHOUT_FPUFLAGS = -mcpu=$(CPU_TYPE)
+CPUFLAGS                  = $(CPUFLAGS_WITHOUT_FPUFLAGS) $(FPUFLAGS)
+CPUFLAGS_NOFPU            = $(CPUFLAGS_WITHOUT_FPUFLAGS) -msoft-float
 endif
 
 #*********************************************************************************************************

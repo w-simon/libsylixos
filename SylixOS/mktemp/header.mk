@@ -108,6 +108,7 @@ __TARGET    = $(word 3,$(subst $(BIAS),$(SPACE),$(@)))
 __DEP       = $(addprefix $(DEPPATH)/$(__TARGET)/, $(addsuffix .d, $(basename $(<))))
 __LIBRARIES = $($(@F)_DEPEND_LIB_PATH) $($(@F)_DEPEND_LIB)
 __OBJS      = $($(@F)_OBJS)
+__CPUFLAGS  = $($(@F)_CPUFLAGS)
 
 __PRE_LINK_CMD   = $($(@F)_PRE_LINK_CMD)
 __POST_LINK_CMD  = $($(@F)_POST_LINK_CMD)

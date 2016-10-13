@@ -37,7 +37,9 @@ endif
 #*********************************************************************************************************
 # Include header.mk
 #*********************************************************************************************************
-MKTEMP = $(SYLIXOS_BASE_PATH)/libsylixos/SylixOS/mktemp
+EMPTY  =
+SPACE  = $(EMPTY) $(EMPTY)
+MKTEMP = $(subst $(SPACE),\ ,$(SYLIXOS_BASE_PATH))/libsylixos/SylixOS/mktemp
 
 include $(MKTEMP)/header.mk
 

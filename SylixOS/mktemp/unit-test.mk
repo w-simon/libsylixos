@@ -39,7 +39,8 @@ else
 $(target)_GCOV_FLAGS  :=
 endif
 
-$(target)_COMMONFLAGS := $(CPUFLAGS) $(ARCH_COMMONFLAGS) $(OPTIMIZE) -Wall -fmessage-length=0 -fsigned-char -fno-short-enums $($(target)_GCOV_FLAGS) 
+$(target)_CPUFLAGS    := $(CPUFLAGS)
+$(target)_COMMONFLAGS := $($(target)_CPUFLAGS) $(ARCH_COMMONFLAGS) $(OPTIMIZE) -Wall -fmessage-length=0 -fsigned-char -fno-short-enums $($(target)_GCOV_FLAGS) 
 $(target)_ASFLAGS     := $($(target)_COMMONFLAGS) -x assembler-with-cpp $($(target)_DSYMBOL) $($(target)_INC_PATH) 
 $(target)_CFLAGS      := $($(target)_COMMONFLAGS) $(ARCH_PIC_CFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CFLAGS)
 $(target)_CXXFLAGS    := $($(target)_COMMONFLAGS) $(ARCH_PIC_CFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CXX_EXCEPT) $($(target)_CXXFLAGS)
@@ -85,6 +86,8 @@ __UNIT_TEST_POST_LINK_CMD  = $($(__UNIT_TEST_TARGET)_POST_LINK_CMD)
 __UNIT_TEST_PRE_STRIP_CMD  = $($(__UNIT_TEST_TARGET)_PRE_STRIP_CMD)
 __UNIT_TEST_POST_STRIP_CMD = $($(__UNIT_TEST_TARGET)_POST_STRIP_CMD)
 
+__UNIT_TEST_CPUFLAGS       = $($(__UNIT_TEST_TARGET)_CPUFLAGS)
+
 #*********************************************************************************************************
 # Link object files
 #*********************************************************************************************************
@@ -93,7 +96,7 @@ $1: $2 $3
 		@if [ ! -d "$(dir $1)" ]; then mkdir -p "$(dir $1)"; fi
 		@rm -f $1
 		$(__UNIT_TEST_PRE_LINK_CMD)
-		$(LD) $(CPUFLAGS) $(ARCH_PIC_LDFLAGS) -o $1 $2 $(__UNIT_TEST_LIBRARIES)
+		$(LD) $(__UNIT_TEST_CPUFLAGS) $(ARCH_PIC_LDFLAGS) -o $1 $2 $(__UNIT_TEST_LIBRARIES)
 		$(__UNIT_TEST_POST_LINK_CMD)
 endef
 

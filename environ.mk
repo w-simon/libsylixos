@@ -10,60 +10,59 @@
 #
 #--------------文件信息--------------------------------------------------------------------------------
 #
-# 文   件   名: dummy.mk
+# 文   件   名: environ.mk
 #
-# 创   建   人: Jiao.JinXing(焦进星)
+# 创   建   人: RealEvo-IDE
 #
-# 文件创建日期: 2016 年 08 月 24 日
+# 文件创建日期: 2016 年 10 月 08 日
 #
-# 描        述: 空 makefile 模板
+# 描        述: 本文件由 RealEvo-IDE 生成，用于配置 Makefile 功能，请勿手动修改
 #*********************************************************************************************************
 
 #*********************************************************************************************************
-# Include common.mk
+# Clear setting
 #*********************************************************************************************************
-include $(MKTEMP)/common.mk
+include $(CLEAR_VARS_MK)
 
 #*********************************************************************************************************
-# Depend and compiler parameter (cplusplus in kernel MUST NOT use exceptions and rtti)
+# Target
 #*********************************************************************************************************
-ifneq (,$(findstring yes,$($(target)_USE_CXX_EXCEPT)))
-$(target)_CXX_EXCEPT  := $(GCC_NO_CXX_EXCEPT_CFLAGS)
-else
-$(target)_CXX_EXCEPT  := $(GCC_NO_CXX_EXCEPT_CFLAGS)
-endif
-
-ifneq (,$(findstring yes,$($(target)_USE_GCOV)))
-$(target)_GCOV_FLAGS  :=
-else
-$(target)_GCOV_FLAGS  :=
-endif
-
-$(target)_DSYMBOL     += -DSYLIXOS_LIB
-$(target)_CPUFLAGS    := $(CPUFLAGS)
-$(target)_COMMONFLAGS := $($(target)_CPUFLAGS) $(ARCH_COMMONFLAGS) $(OPTIMIZE) -Wall -fmessage-length=0 -fsigned-char -fno-short-enums $($(target)_GCOV_FLAGS) 
-$(target)_ASFLAGS     := $($(target)_COMMONFLAGS) -x assembler-with-cpp $($(target)_DSYMBOL) $($(target)_INC_PATH) 
-$(target)_CFLAGS      := $($(target)_COMMONFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CFLAGS)
-$(target)_CXXFLAGS    := $($(target)_COMMONFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CXX_EXCEPT) $($(target)_CXXFLAGS)
+LOCAL_TARGET_NAME := env
 
 #*********************************************************************************************************
-# Targets
+# Source list
 #*********************************************************************************************************
-$(target)_A := $(OUTPATH)/$(LOCAL_TARGET_NAME)
+LOCAL_SRCS := \
+SylixOS/environ/environ.c
 
 #*********************************************************************************************************
-# Make archive object files
+# Header file search path (eg. LOCAL_INC_PATH := -I"Your hearder files search path")
 #*********************************************************************************************************
-$($(target)_A): $($(target)_OBJS) $($(target)_DEPEND_TARGET)
-		$(__PRE_LINK_CMD)
-		$(__POST_LINK_CMD)
-		$(__PRE_STRIP_CMD)
-		$(__POST_STRIP_CMD)
+LOCAL_INC_PATH := 
 
 #*********************************************************************************************************
-# Add targets
+# Pre-defined macro (eg. -DYOUR_MARCO=1)
 #*********************************************************************************************************
-TARGETS := $(TARGETS) $($(target)_A)
+LOCAL_DSYMBOL := 
+
+#*********************************************************************************************************
+# Depend library (eg. LOCAL_DEPEND_LIB := -la LOCAL_DEPEND_LIB_PATH := -L"Your library search path")
+#*********************************************************************************************************
+LOCAL_DEPEND_LIB      := 
+LOCAL_DEPEND_LIB_PATH := 
+
+#*********************************************************************************************************
+# C++ config
+#*********************************************************************************************************
+LOCAL_USE_CXX        := no
+LOCAL_USE_CXX_EXCEPT := no
+
+#*********************************************************************************************************
+# Code coverage config
+#*********************************************************************************************************
+LOCAL_USE_GCOV := no
+
+include $(APPLICATION_MK)
 
 #*********************************************************************************************************
 # End

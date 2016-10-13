@@ -1559,61 +1559,73 @@ LOCAL_USE_CXX_EXCEPT := no
 LOCAL_USE_GCOV := no
 
 #*********************************************************************************************************
-# compile ARM VFP source files
+# compile ARM FPU source files
 #*********************************************************************************************************
-ARM_VFP_ASFLAGS = -mfloat-abi=softfp -mfpu=vfpv3
+ARM_FPU_ASFLAGS = -mfloat-abi=softfp -mfpu=vfpv3
 
 $(OBJPATH)/libsylixos.a/SylixOS/arch/arm/fpu/vfp9/armVfp9Asm.o: ./SylixOS/arch/arm/fpu/vfp9/armVfp9Asm.S
 		@if [ ! -d "$(dir $@)" ]; then \
 			mkdir -p "$(dir $@)"; fi
 		@if [ ! -d "$(dir $(__DEP))" ]; then \
 			mkdir -p "$(dir $(__DEP))"; fi
-		$(AS) $($(__TARGET)_ASFLAGS) $(ARM_VFP_ASFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
+		$(AS) $(ARM_FPU_ASFLAGS) $($(__TARGET)_ASFLAGS_WITHOUT_FPUFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
 
 $(OBJPATH)/libsylixos.a/SylixOS/arch/arm/fpu/vfp11/armVfp11Asm.o: ./SylixOS/arch/arm/fpu/vfp11/armVfp11Asm.S
 		@if [ ! -d "$(dir $@)" ]; then \
 			mkdir -p "$(dir $@)"; fi
 		@if [ ! -d "$(dir $(__DEP))" ]; then \
 			mkdir -p "$(dir $(__DEP))"; fi
-		$(AS) $($(__TARGET)_ASFLAGS) $(ARM_VFP_ASFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
+		$(AS) $(ARM_FPU_ASFLAGS) $($(__TARGET)_ASFLAGS_WITHOUT_FPUFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
 
 $(OBJPATH)/libsylixos.a/SylixOS/arch/arm/fpu/vfpv3/armVfpV3Asm.o: ./SylixOS/arch/arm/fpu/vfpv3/armVfpV3Asm.S
 		@if [ ! -d "$(dir $@)" ]; then \
 			mkdir -p "$(dir $@)"; fi
 		@if [ ! -d "$(dir $(__DEP))" ]; then \
 			mkdir -p "$(dir $(__DEP))"; fi
-		$(AS) $($(__TARGET)_ASFLAGS) $(ARM_VFP_ASFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
+		$(AS) $(ARM_FPU_ASFLAGS) $($(__TARGET)_ASFLAGS_WITHOUT_FPUFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
 
 #*********************************************************************************************************
-# compile MIPS VFP source files
+# compile MIPS FPU source files
 #*********************************************************************************************************
-MIPS_VFP_ASFLAGS = -mhard-float
+MIPS_FPU_ASFLAGS = -mhard-float
 
 $(OBJPATH)/libsylixos.a/SylixOS/arch/mips/fpu/fpu32/mipsVfp32Asm.o: ./SylixOS/arch/mips/fpu/fpu32/mipsVfp32Asm.S
 		@if [ ! -d "$(dir $@)" ]; then \
 			mkdir -p "$(dir $@)"; fi
 		@if [ ! -d "$(dir $(__DEP))" ]; then \
 			mkdir -p "$(dir $(__DEP))"; fi
-		$(AS) $($(__TARGET)_ASFLAGS) $(MIPS_VFP_ASFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
+		$(AS) $(MIPS_FPU_ASFLAGS) $($(__TARGET)_ASFLAGS_WITHOUT_FPUFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
 
 $(OBJPATH)/libsylixos.a/SylixOS/arch/mips/fpu/fpu64/mipsVfp64Asm.o: ./SylixOS/arch/mips/fpu/fpu64/mipsVfp64Asm.S
 		@if [ ! -d "$(dir $@)" ]; then \
 			mkdir -p "$(dir $@)"; fi
 		@if [ ! -d "$(dir $(__DEP))" ]; then \
 			mkdir -p "$(dir $(__DEP))"; fi
-		$(AS) $($(__TARGET)_ASFLAGS) $(MIPS_VFP_ASFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
+		$(AS) $(MIPS_FPU_ASFLAGS) $($(__TARGET)_ASFLAGS_WITHOUT_FPUFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
 
 #*********************************************************************************************************
-# compile PowerPC VFP source files
+# compile PowerPC FPU source files
 #*********************************************************************************************************
-PPC_VFP_ASFLAGS = -mhard-float
+PPC_FPU_ASFLAGS = -mhard-float
 
 $(OBJPATH)/libsylixos.a/SylixOS/arch/ppc/fpu/vfp/ppcVfpAsm.o: ./SylixOS/arch/ppc/fpu/vfp/ppcVfpAsm.S
 		@if [ ! -d "$(dir $@)" ]; then \
 			mkdir -p "$(dir $@)"; fi
 		@if [ ! -d "$(dir $(__DEP))" ]; then \
 			mkdir -p "$(dir $(__DEP))"; fi
-		$(AS) $($(__TARGET)_ASFLAGS) $(PPC_VFP_ASFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
+		$(AS) $(PPC_FPU_ASFLAGS) $($(__TARGET)_ASFLAGS_WITHOUT_FPUFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
+
+#*********************************************************************************************************
+# compile x86 FPU source files
+#*********************************************************************************************************
+X86_FPU_ASFLAGS = -mhard-float
+
+$(OBJPATH)/libsylixos.a/SylixOS/arch/x86/fpu/fpusse/x86FpuSseAsm.o: ./SylixOS/arch/x86/fpu/fpusse/x86FpuSseAsm.S
+		@if [ ! -d "$(dir $@)" ]; then \
+			mkdir -p "$(dir $@)"; fi
+		@if [ ! -d "$(dir $(__DEP))" ]; then \
+			mkdir -p "$(dir $(__DEP))"; fi
+		$(AS) $(X86_FPU_ASFLAGS) $($(__TARGET)_ASFLAGS_WITHOUT_FPUFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
 
 include $(LIBSYLIXOS_MK)
 
