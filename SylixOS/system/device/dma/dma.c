@@ -232,7 +232,7 @@ INT     API_DmaMaxNodeNumGet (UINT   uiChannel, INT  *piMaxNodeNum)
 }
 /*********************************************************************************************************
 ** 函数名称: API_DmaMaxNodeNumSet
-** 功能描述: 获得指定 DMA 通道当前等待队列的节点数
+** 功能描述: 设置指定 DMA 通道当前等待队列的节点数
 ** 输　入  : uiChannel      DMA 通道号
 **           iMaxNodeNum    允许最大节点缓冲
 ** 输　出  : PX_ERROR or ERROR_NONE

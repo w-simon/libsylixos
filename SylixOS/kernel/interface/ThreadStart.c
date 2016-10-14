@@ -37,11 +37,11 @@
 #define __THREAD_CANCEL_POINT()
 #endif                                                                  /*  LW_CFG_THREAD_CANCEL_EN     */
 /*********************************************************************************************************
-** 函数名称: API_ThreadStart
+** 函数名称: API_ThreadStartEx
 ** 功能描述: 启动线程
 ** 输　入  : ulId            线程ID
 **           bJoin           是否合并线程
-**           ppvRetValAddr   存放线程返回值得地址
+**           ppvRetValAddr   存放线程返回值的地址
 ** 输　出  : ERROR
 ** 全局变量: 
 ** 调用模块: 

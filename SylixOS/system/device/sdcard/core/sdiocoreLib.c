@@ -412,6 +412,7 @@ __err:
 ** 功能描述: 设置一个功能的传输块大小
 ** 输    入: psdcoredev       核心设备传输对象
 **           psdiofunc        功能描述对象
+**           uiBlkSz          块大小
 ** 输    出: ERROR CODE
 ** 全局变量:
 ** 调用模块:

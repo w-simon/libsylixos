@@ -744,6 +744,7 @@ ULONG  API_MonitorUploadFd (PVOID  pvMonitorUpload, INT  *piFd)
     
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_MONITOR_EN > 0       */
                                                                         /*  LW_CFG_DEVICE_EN > 0        */
 /*********************************************************************************************************

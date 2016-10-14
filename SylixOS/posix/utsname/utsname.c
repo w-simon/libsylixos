@@ -102,6 +102,7 @@ int	 sethostname (const char *name, size_t namelen)
     
     return  (0);
 }
+
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
 /*********************************************************************************************************
   END

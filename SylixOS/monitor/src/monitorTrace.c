@@ -227,6 +227,7 @@ VOID  API_MonitorTraceEvent (UINT32         uiEventId,
     }
     LW_SPIN_UNLOCK_QUICK(&_G_slMonitor, iregInterLevel);
 }
+
 #endif                                                                  /*  LW_CFG_MONITOR_EN > 0       */
 /*********************************************************************************************************
   END

@@ -822,7 +822,7 @@ LW_API INT  API_SdhciDeviceUsageInc (PVOID  pvHost)
     return  (iError);
 }
 /*********************************************************************************************************
-** 函数名称: API_SdhciDeviceUsageInc
+** 函数名称: API_SdhciDeviceUsageDec
 ** 功能描述: 控制器上的设备的使用计数减一
 ** 输    入: pvHost   控制器对象
 ** 输    出: ERROR CODE
@@ -851,7 +851,7 @@ LW_API INT  API_SdhciDeviceUsageDec (PVOID  pvHost)
     return  (iError);
 }
 /*********************************************************************************************************
-** 函数名称: API_SdhciDeviceUsageInc
+** 函数名称: API_SdhciDeviceUsageGet
 ** 功能描述: 获得控制器上的设备的使用计数
 ** 输    入: pvHost   控制器对象
 ** 输    出: ERROR CODE

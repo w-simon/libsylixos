@@ -372,6 +372,7 @@ VOID  __procFsPowerInit (VOID)
     API_ProcFsMakeNode(&_G_pfsnPower[2], "/power");
     API_ProcFsMakeNode(&_G_pfsnPower[3], "/power");
 }
+
 #endif                                                                  /*  LW_CFG_PROCFS_EN > 0        */
                                                                         /*  LW_CFG_POWERM_EN > 0        */
 /*********************************************************************************************************

@@ -797,6 +797,7 @@ static ssize_t  __procFsReadlink (PLW_DEV_HDR    pdevhdr,
     
     return  ((ssize_t)stLen);
 }
+
 #endif                                                                  /*  LW_CFG_PROCFS_EN > 0        */
 /*********************************************************************************************************
   END

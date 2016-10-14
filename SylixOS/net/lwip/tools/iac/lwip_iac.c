@@ -129,6 +129,7 @@ PCHAR  __inetIacFilter (PCHAR        pcBuffer,
     
     return  (pcBuffer);                                                 /*  »º³åÇøÊ×µØÖ·                */
 }
+
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */
                                                                         /*  LW_CFG_NET_TELNET_EN > 0    */
 /*********************************************************************************************************

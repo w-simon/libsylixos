@@ -2061,7 +2061,7 @@ INT  API_PciCapShow (INT iBus, INT iSlot, INT iFunc)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: API_PciFindCap
+** 函数名称: API_PciCapFind
 ** 功能描述: 发现设备的扩展能力, 如电源管理, MSI(Message Signaled Interrupts) 等.
 **           只适用于 Header type 0 (normal devices) 设备
 ** 输　入  : iBus        总线号

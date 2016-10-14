@@ -357,6 +357,7 @@ INT  _doSigEventEx (LW_OBJECT_HANDLE  ulId, struct sigevent *psigevent, struct s
         return  (_doSigEventInternal(ulId, psigea, LW_FALSE));
     }
 }
+
 #endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
 /*********************************************************************************************************
   END

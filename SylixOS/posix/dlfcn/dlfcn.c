@@ -159,6 +159,7 @@ int  dlrefresh (const char *pcName)
 {
     return  (API_ModuleShareRefresh(pcName));
 }
+
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
                                                                         /*  LW_CFG_MODULELOADER_EN > 0  */
 /*********************************************************************************************************

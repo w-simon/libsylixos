@@ -108,6 +108,7 @@ ULONG  API_RegionStatusEx (LW_OBJECT_HANDLE    ulId,
     
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  (LW_CFG_REGION_EN > 0)      */
                                                                         /*  (LW_CFG_MAX_REGIONS > 0)    */
 /*********************************************************************************************************

@@ -190,7 +190,7 @@ ULONG  API_ObjectShareAdd (LW_OBJECT_HANDLE  ulId, UINT64  u64Key)
     return  (ulError);
 }
 /*********************************************************************************************************
-** 函数名称: API_ObjectShareUnreg
+** 函数名称: API_ObjectShareDelete
 ** 功能描述: 将一个内核对象从共享池中删除
 ** 输　入  : u64Key        key
 ** 输　出  : 错误代码
@@ -232,9 +232,9 @@ ULONG  API_ObjectShareDelete (UINT64  u64Key)
     }
 }
 /*********************************************************************************************************
-** 函数名称: API_ObjectShareUnreg
+** 函数名称: API_ObjectShareFind
 ** 功能描述: 获得对象类型
-** 输　入  : 
+** 输　入  : u64Key        key
 ** 输　出  : 查询到的内核对象
 ** 全局变量: 
 ** 调用模块: 

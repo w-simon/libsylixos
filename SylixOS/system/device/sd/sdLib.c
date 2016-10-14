@@ -225,7 +225,8 @@ PLW_SD_ADAPTER   API_SdAdapterGet (CPCHAR pcName)
 /*********************************************************************************************************
 ** 函数名称: API_SdDeviceCreate
 ** 功能描述: 创建一个sd设备
-** 输    入: pcName     适配器名称
+** 输    入: pcAdapterName     适配器名称
+**           pcDeviceName      设备名称
 ** 输    出: NONE
 ** 返    回: 找到,返回主控器指针,否则返回LW_NULL
 ** 全局变量:
@@ -314,7 +315,8 @@ INT  API_SdDeviceDelete (PLW_SD_DEVICE   psddevice)
 /*********************************************************************************************************
 ** 函数名称: API_SdDeviceGet
 ** 功能描述: 查找指定的 sd 设备
-** 输    入: psddevice        指定的 sd 设备控制块
+** 输    入: pcAdapterName        适配器名
+**           pcDeviceName         设备名
 ** 输    出: NONE
 ** 返    回: ERROR CODE
 ** 全局变量:
@@ -506,6 +508,7 @@ LW_API INT  API_SdDeviceCtl (PLW_SD_DEVICE  psddevice,
 
     return  (iError);
 }
+
 #endif                                                                  /*  LW_CFG_DEVICE_EN            */
 /*********************************************************************************************************
   END

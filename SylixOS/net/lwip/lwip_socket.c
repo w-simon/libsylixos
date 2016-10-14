@@ -2790,6 +2790,7 @@ int  getaddrinfo (const char *nodename, const char *servname,
 {
     return  (lwip_getaddrinfo(nodename, servname, hints, res));
 }
+
 #endif                                                                  /*  LW_CFG_NET_EN               */
 /*********************************************************************************************************
   END

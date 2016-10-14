@@ -570,6 +570,7 @@ int  aio_fsync (int op, struct aiocb *paiocb)
     
     return  (iRet);
 }
+
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
                                                                         /*  LW_CFG_POSIX_AIO_EN > 0     */
 /*********************************************************************************************************

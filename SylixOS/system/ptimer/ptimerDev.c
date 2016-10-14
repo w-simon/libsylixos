@@ -435,6 +435,7 @@ static INT  _tmrfdIoctl (PLW_TMRFD_FILE  ptmrfdfil,
     
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_PTIMER_EN > 0        */
                                                                         /*  LW_CFG_TIMERFD_EN > 0       */
 /*********************************************************************************************************

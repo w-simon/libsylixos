@@ -52,6 +52,7 @@ VOID  _CoroutineShell (PVOID  pvArg)
         API_CoroutineYield();
     }
 }
+
 #endif                                                                  /*  LW_CFG_COROUTINE_EN > 0     */
 /*********************************************************************************************************
   END

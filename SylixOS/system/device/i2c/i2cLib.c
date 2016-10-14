@@ -218,8 +218,8 @@ PLW_I2C_ADAPTER  API_I2cAdapterGet (CPCHAR  pcName)
 /*********************************************************************************************************
 ** 函数名称: API_I2cDeviceCreate
 ** 功能描述: 在指定 i2c 适配器上, 创建一个 i2c 设备
-** 输　入  : pcName        适配器名称
-**           pcName        设备名称
+** 输　入  : pcAdapterName 适配器名称
+**           pcDeviceName  设备名称
 **           usAddr        设备地址
 **           usFlag        设备标志
 ** 输　出  : i2c 设备控制块
@@ -551,6 +551,7 @@ INT  API_I2cDeviceCtl (PLW_I2C_DEVICE   pi2cdevice, INT  iCmd, LONG  lArg)
         return  (PX_ERROR);
     }
 }
+
 #endif                                                                  /*  LW_CFG_DEVICE_EN            */
 /*********************************************************************************************************
   END

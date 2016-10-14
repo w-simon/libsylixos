@@ -909,7 +909,7 @@ VOID  API_PciCapExtShow (INT iBus, INT iSlot, INT iFunc)
 **           iSlot          设备槽号
 **           iFunc          功能
 **           ucExtCapId     延伸扩展功能
-**           pucOffset      延伸扩展功能保存的地址偏移
+**           puiOffset      延伸扩展功能保存的地址偏移
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:

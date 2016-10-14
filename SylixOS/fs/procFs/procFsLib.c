@@ -442,8 +442,8 @@ VOID    API_ProcFsNodeSetRealFileSize (PLW_PROCFS_NODE  p_pfsn, size_t  stRealSi
     }
 }
 /*********************************************************************************************************
-** 函数名称: API_ProcFsNodeSetRealFileSize
-** 功能描述: procfs 设置实际的 BUFFER 大小
+** 函数名称: API_ProcFsNodeGetRealFileSize
+** 功能描述: procfs 获取实际的 BUFFER 大小
 ** 输　入  : p_pfsn            节点控制块
 ** 输　出  : 实际文件内容大小
 ** 全局变量: 
@@ -459,6 +459,7 @@ size_t  API_ProcFsNodeGetRealFileSize (PLW_PROCFS_NODE  p_pfsn)
         return  (0);
     }
 }
+
 #endif                                                                  /*  LW_CFG_PROCFS_EN > 0        */
 /*********************************************************************************************************
   END

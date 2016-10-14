@@ -212,8 +212,8 @@ PLW_SPI_ADAPTER  API_SpiAdapterGet (CPCHAR  pcName)
 /*********************************************************************************************************
 ** 函数名称: API_SpiDeviceCreate
 ** 功能描述: 在指定 spi 适配器上, 创建一个 spi 设备
-** 输　入  : pcName        适配器名称
-**           pcName        设备名称
+** 输　入  : pcAdapterName       适配器名称
+**           pcDeviceName        设备名称
 ** 输　出  : spi 设备控制块
 ** 全局变量: 
 ** 调用模块: 
@@ -318,7 +318,7 @@ INT  API_SpiDeviceUsageInc (PLW_SPI_DEVICE   pspidevice)
     return  (API_AtomicInc(&pspidevice->SPIDEV_atomicUsageCnt));
 }
 /*********************************************************************************************************
-** 函数名称: API_SpiDeviceUsageInc
+** 函数名称: API_SpiDeviceUsageDec
 ** 功能描述: 将指定 spi 设备使用计数--
 ** 输　入  : pspidevice        指定的 spi 设备控制块
 ** 输　出  : 当前的使用计数值
@@ -498,6 +498,7 @@ INT  API_SpiDeviceCtl (PLW_SPI_DEVICE   pspidevice, INT  iCmd, LONG  lArg)
         return  (PX_ERROR);
     }
 }
+
 #endif                                                                  /*  LW_CFG_DEVICE_EN            */
 /*********************************************************************************************************
   END

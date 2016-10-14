@@ -80,7 +80,7 @@ static INT  __pciScanCb (INT iBus, INT iSlot, INT iFunc, PCI_SCAN_ARG *p_psa)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: API_PciConfigInit
+** 函数名称: API_PciScan
 ** 功能描述: 扫描所有 PCI 设备并且与给定的驱动程序表进行匹配, 如果允许, 则自动安装驱动程序.
 ** 输　入  : p_pdddTable   驱动程序表
 **           uiNum         驱动程序表大小

@@ -76,6 +76,7 @@ INT  lib_settimeofday (const struct timeval *tv, const struct timezone *tz)
     
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_RTC_EN               */
 /*********************************************************************************************************
   END

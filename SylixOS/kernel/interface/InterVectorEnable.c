@@ -84,7 +84,7 @@ ULONG  API_InterVectorDisable (ULONG  ulVector)
 ** 函数名称: API_InterVectorIsEnable
 ** 功能描述: 获得系统对指定向量中断响应状态
 ** 输　入  : ulVector                      中断向量号
-**           bIsEnable                     是否使能了相关中断
+**           pbIsEnable                    是否使能了相关中断
 ** 输　出  : ERROR
 ** 全局变量: 
 ** 调用模块: 

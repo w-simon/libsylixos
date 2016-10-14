@@ -340,7 +340,7 @@ INT  __pciDevConfigBlockWrite (PCI_DEV_HANDLE  hHandle, UINT  uiPos, UINT8 *pucB
 ** 函数名称: API_PciDevConfigRead
 ** 功能描述: 读取 PCI 设备配置空间
 ** 输　入  : hHandle    设备控制句柄
-**           uuiPos     偏移位置
+**           uiPos      偏移位置
 **           pucBuf     数据缓冲区
 **           uiLen      数据长度
 ** 输　出  : ERROR or OK
@@ -578,7 +578,7 @@ INT  API_PciDevConfigReadDword (PCI_DEV_HANDLE  hHandle, UINT  uiPos, UINT32 *pu
 ** 功能描述: 按字节写 PCI 设备配置空间 (8 bit)
 ** 输　入  : hHandle    设备控制句柄
 **           uiPos      偏移位置
-**           ucValue    获取的结果
+**           ucValue    设置的内容
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
@@ -609,7 +609,7 @@ INT  API_PciDevConfigWriteByte (PCI_DEV_HANDLE  hHandle, UINT  uiPos, UINT8 ucVa
 ** 功能描述: 按字写 PCI 设备配置空间 (16 bit)
 ** 输　入  : hHandle    设备控制句柄
 **           uiPos      偏移位置
-**           usValue    获取的结果
+**           usValue    设置的内容
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
@@ -640,7 +640,7 @@ INT  API_PciDevConfigWriteWord (PCI_DEV_HANDLE  hHandle, UINT  uiPos, UINT16  us
 ** 功能描述: 按双字写 PCI 设备配置空间 (32 bit)
 ** 输　入  : hHandle    设备控制句柄
 **           uiPos      偏移位置
-**           puiValue   获取的结果
+**           uiValue    设置的内容
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
@@ -1188,7 +1188,7 @@ INT  API_PciDevDelete (PCI_DEV_HANDLE  hHandle)
 ** 函数名称: API_PciDevIoRemapEx
 ** 功能描述: 将物理 IO 空间指定内存映射到逻辑空间
 ** 输　入  : pvPhysicalAddr     物理内存地址
-**           ulSize             需要映射的内存大小
+**           stSize             需要映射的内存大小
 **           ulFlags            内存属性 LW_VMM_FLAG_DMA / LW_VMM_FLAG_RDWR / LW_VMM_FLAG_READ
 ** 输　出  : ERROR or OK
 ** 全局变量:
@@ -1220,7 +1220,7 @@ PVOID  API_PciDevIoRemapEx (PVOID  pvPhysicalAddr, size_t  stSize, ULONG  ulFlag
 ** 函数名称: API_PciDevIoRemap
 ** 功能描述: 将物理 IO 空间指定内存映射到逻辑空间
 ** 输　入  : pvPhysicalAddr     物理内存地址
-**           ulSize             需要映射的内存大小
+**           stSize             需要映射的内存大小
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:

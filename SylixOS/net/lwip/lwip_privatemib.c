@@ -76,6 +76,7 @@ VOID  API_NetSnmpSetPriMibInitHook (VOIDFUNCPTR  pfuncPriMibInit)
 {
     _G_pfuncPrivateMibInit = pfuncPriMibInit;
 }
+
 #endif                                                                  /*  LWIP_SNMP > 0               */
 #endif                                                                  /*  __LWIP_SYLIXOS_H            */
 /*********************************************************************************************************

@@ -191,6 +191,7 @@ void  backtrace_symbols_fd (void *const *array, int size, int fd)
         writev(fd, iov, last);
     }
 }
+
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
                                                                         /*  LW_CFG_MODULELOADER_EN > 0  */
 /*********************************************************************************************************

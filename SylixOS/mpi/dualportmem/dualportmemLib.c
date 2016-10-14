@@ -133,6 +133,7 @@ VOID  _Free_Dpma_Object (PLW_CLASS_DPMA  pdpma)
                         
     _G_resrcDpma.RESRC_uiUsed--;
 }
+
 #endif                                                                  /*  LW_CFG_MPI_EN > 0           */
 /*********************************************************************************************************
   END

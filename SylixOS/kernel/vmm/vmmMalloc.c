@@ -202,7 +202,7 @@ PVOID  API_VmmMalloc (size_t  stSize)
     return  (API_VmmMallocAlign(stSize, LW_CFG_VMM_PAGE_SIZE, LW_VMM_FLAG_RDWR));
 }
 /*********************************************************************************************************
-** 函数名称: API_VmmMalloc
+** 函数名称: API_VmmMallocEx
 ** 功能描述: 分配逻辑上连续, 物理可能不连续的内存.
 ** 输　入  : stSize     需要分配的内存大小
 **           ulFlag     访问属性. (必须为 LW_VMM_FLAG_TEXT 或 LW_VMM_FLAG_DATA)
@@ -388,7 +388,7 @@ PVOID  API_VmmMallocAreaEx (size_t  stSize, FUNCPTR  pfuncFiller, PVOID  pvArg, 
 ** 功能描述: 仅开辟虚拟空间, 当出现第一次访问时, 将通过缺页中断分配物理内存, 
              当缺页中断中无法分配物理页面时, 将收到 SIGSEGV 信号并结束线程. 
 ** 输　入  : stSize        需要分配的内存大小
-**           stAlign       对其关系
+**           stAlign       对齐关系
 **           pfuncFiller   当出现缺页时, 获取物理分页后的填充函数, 一般为 NULL.
 **           pvArg         填充函数参数.
 **           iFlag         MAP_SHARED or MAP_PRIVATE
@@ -1249,7 +1249,7 @@ ULONG  API_VmmShareArea (PVOID      pvVirtualMem1,
             }
             pvmpagePhysical2->PAGE_ulFlags = ulFlag;
             
-            __vmmLibSetFlag(ulAddr2, 1, ulFlag);                        /*  设置最终模式模式            */
+            __vmmLibSetFlag(ulAddr2, 1, ulFlag);                        /*  设置最终模式                */
         }
         
         pvmpagePhysical2->PAGE_ulMapPageAddr = ulAddr2;                 /*  保存对应的映射虚拟地址      */

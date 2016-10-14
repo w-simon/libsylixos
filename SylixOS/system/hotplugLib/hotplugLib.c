@@ -388,6 +388,7 @@ size_t  API_HotplugGetLost (VOID)
 {
     return  (_jobQueueLost(&_G_jobqHotplug));
 }
+
 #endif                                                                  /*  LW_CFG_HOTPLUG_EN           */
 /*********************************************************************************************************
   END

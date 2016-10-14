@@ -182,6 +182,7 @@ INT  __symbolAddLibc (VOID)
 {
     return  (API_SymbolAddStatic(_G_symLibc, (sizeof(_G_symLibc) / sizeof(LW_SYMBOL))));
 }
+
 #endif                                                                  /*  LW_CFG_SYMBOL_EN > 0        */
 /*********************************************************************************************************
   END

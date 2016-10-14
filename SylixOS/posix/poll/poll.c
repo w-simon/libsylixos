@@ -161,6 +161,7 @@ int   poll (struct pollfd fds[], nfds_t nfds, int timeout)
     
     return  (iRet);
 }
+
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
 /*********************************************************************************************************
   END

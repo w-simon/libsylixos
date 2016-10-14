@@ -273,6 +273,7 @@ INT __vpnNetifInit (__PVPN_CONTEXT  pvpnctx, UINT8  *pucMac)
 
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */
                                                                         /*  LW_CFG_NET_VPN_EN > 0       */
 /*********************************************************************************************************

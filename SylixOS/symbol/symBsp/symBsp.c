@@ -101,6 +101,7 @@ INT  __symbolAddBsp (VOID)
 {
     return  (API_SymbolAddStatic(_G_symBsp, (sizeof(_G_symBsp) / sizeof(LW_SYMBOL))));
 }
+
 #endif                                                                  /*  LW_CFG_SYMBOL_EN > 0        */
 /*********************************************************************************************************
   END

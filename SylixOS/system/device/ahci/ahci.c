@@ -827,8 +827,8 @@ static INT  __ahciDiskTrimSet (AHCI_DEV_HANDLE  hDev, ULONG  ulStartSector, ULON
 ** 功能描述: 从指定扇区读写数据
 ** 输　入  : hCtrl          控制器句柄
 **           uiDrive        驱动器号
-**           ullStartLba    起始扇区
-**           ullSectors     扇区数
+**           ulStartSector  起始扇区
+**           ulEndSector    结束扇区
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
@@ -2442,7 +2442,7 @@ INT  API_AhciCtrlFree (AHCI_CTRL_HANDLE  hCtrl)
 ** 函数名称: API_AhciCtrlCreate
 ** 功能描述: 创建 AHCI 控制器
 ** 输　入  : pcName     控制器名称
-**           iUnit      本类控制器索引
+**           uiUnit     本类控制器索引
 **           pvArg      扩展参数
 ** 输　出  : AHCI 控制器句柄
 ** 全局变量:

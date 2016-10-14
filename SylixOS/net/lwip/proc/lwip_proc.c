@@ -2700,6 +2700,7 @@ VOID  __procFsNetInit (VOID)
     API_ProcFsMakeNode(&_G_pfsnNet[21], "/net");
     API_ProcFsMakeNode(&_G_pfsnNet[22], "/net");
 }
+
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */
                                                                         /*  LW_CFG_PROCFS_EN > 0        */
 /*********************************************************************************************************

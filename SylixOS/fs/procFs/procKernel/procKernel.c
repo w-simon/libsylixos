@@ -553,6 +553,7 @@ VOID  __procFsKernelInfoInit (VOID)
     API_ProcFsMakeNode(&_G_pfsnKernel[5], "/kernel");
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 }
+
 #endif                                                                  /*  LW_CFG_PROCFS_EN > 0        */
                                                                         /*  LW_CFG_PROCFS_KERNEL_INFO   */
 /*********************************************************************************************************

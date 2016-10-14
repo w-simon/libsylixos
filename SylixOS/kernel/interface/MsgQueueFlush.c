@@ -67,7 +67,7 @@ ULONG  API_MsgQueueFlushSend (LW_OBJECT_HANDLE  ulId, ULONG  *pulThreadUnblockNu
         _ErrorHandle(ERROR_KERNEL_HANDLE_NULL);
         return  (ERROR_KERNEL_HANDLE_NULL);
     }
-    if (_Event_Index_Invalid(usIndex)) {                                /*  下标是否正正确              */
+    if (_Event_Index_Invalid(usIndex)) {                                /*  下标是否正确                */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "msgqueue handle invalidate.\r\n");
         _ErrorHandle(ERROR_KERNEL_HANDLE_NULL);
         return  (ERROR_KERNEL_HANDLE_NULL);
@@ -136,7 +136,7 @@ ULONG  API_MsgQueueFlushReceive (LW_OBJECT_HANDLE  ulId, ULONG  *pulThreadUnbloc
         _ErrorHandle(ERROR_KERNEL_HANDLE_NULL);
         return  (ERROR_KERNEL_HANDLE_NULL);
     }
-    if (_Event_Index_Invalid(usIndex)) {                                /*  下标是否正正确              */
+    if (_Event_Index_Invalid(usIndex)) {                                /*  下标是否正确                */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "msgqueue handle invalidate.\r\n");
         _ErrorHandle(ERROR_KERNEL_HANDLE_NULL);
         return  (ERROR_KERNEL_HANDLE_NULL);

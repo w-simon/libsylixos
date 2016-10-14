@@ -1260,6 +1260,7 @@ INT  API_ShmDevCreate (VOID)
     
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_DEVICE_EN            */
                                                                         /*  LW_CFG_SHM_DEVICE_EN        */
                                                                         /*  LW_CFG_VMM_EN               */

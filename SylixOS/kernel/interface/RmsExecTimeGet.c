@@ -98,6 +98,7 @@ ULONG   API_RmsExecTimeGet (LW_OBJECT_HANDLE  ulId, ULONG  *pulExecTime)
 
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  (LW_CFG_RMS_EN > 0)         */
                                                                         /*  (LW_CFG_MAX_RMSS > 0)       */
 /*********************************************************************************************************

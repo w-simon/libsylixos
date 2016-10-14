@@ -36,7 +36,7 @@
 **           pcName                        名字
 **           pvLowAddr                     内存块起始地址
 **           ulBlockCounter                内存块个数 
-**           ulBlockByteSize               内存块大小
+**           stBlockByteSize               内存块大小
 **           ulOption                      选项
 **           pulId                         Id 号
 ** 输　出  : 

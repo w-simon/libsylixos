@@ -1056,6 +1056,7 @@ static ssize_t  __rootFsReadlink (PLW_DEV_HDR    pdevhdr,
 
     return  (iError);
 }
+
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0)      */
 /*********************************************************************************************************
   END

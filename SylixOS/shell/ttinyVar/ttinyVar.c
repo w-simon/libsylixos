@@ -168,7 +168,7 @@ INT  API_TShellVarDelete (CPCHAR  pcVarName)
 }
 /*********************************************************************************************************
 ** 函数名称: API_TShellVarGetNum
-** 功能描述: 获得变两个数
+** 功能描述: 获得变量个数
 ** 输　入  : NONE
 ** 输　出  : 变量个数
 ** 全局变量: 
@@ -183,7 +183,7 @@ INT   API_TShellVarGetNum (VOID)
 /*********************************************************************************************************
 ** 函数名称: API_TShellVarDup
 ** 功能描述: dup shell 变量
-** 输　入  : pfuncStrdup       内存分配函数
+** 输　入  : pfuncMalloc       内存分配函数
 **           ppcEvn            dup 目标
 **           ulMax             最大个数
 ** 输　出  : dup 个数
@@ -201,6 +201,7 @@ INT   API_TShellVarDup (PVOID (*pfuncMalloc)(size_t stSize), PCHAR  ppcEvn[], UL
     
     return  (__tshellVarDup(pfuncMalloc, ppcEvn, ulMax));
 }
+
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 /*********************************************************************************************************
   END

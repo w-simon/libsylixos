@@ -1670,7 +1670,7 @@ static INT  __pciAutoCfgFunc (PVOID  pvOpts)
 /*********************************************************************************************************
 ** 函数名称: API_PciAutoCfgBusNumberSet
 ** 功能描述: 配置桥并遍历桥下的设备数量 (Type 1 PCI Configuration Space Header)
-** 输　入  : ppacoPciOpts       操作选项
+** 输　入  : ppaclLoc           操作选项
 **           iPrimary           主总线
 **           iSecondary         二级总线
 **           iSubordinate       下属总线
@@ -1679,10 +1679,10 @@ static INT  __pciAutoCfgFunc (PVOID  pvOpts)
 ** 调用模块:
 *********************************************************************************************************/
 LW_API
-INT  API_PciAutoCfgBusNumberSet (PCI_AUTO_CFG_LOC *ppaclLoc,
-                                    INT                  iPrimary,
-                                    INT                  iSecondary,
-                                    INT                  iSubordinate)
+INT  API_PciAutoCfgBusNumberSet (PCI_AUTO_CFG_LOC    *ppaclLoc,
+                                 INT                  iPrimary,
+                                 INT                  iSecondary,
+                                 INT                  iSubordinate)
 {
     INT         iRet    = PX_ERROR;
     UINT32      uiValue = 0;

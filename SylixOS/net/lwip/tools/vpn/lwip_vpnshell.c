@@ -241,6 +241,7 @@ INT  __tshellVpnClose (INT  iArgC, PCHAR  *ppcArgV)
 
     return  (API_INetVpnClientDelete(ppcArgV[1]));                      /*  ÒÆ³ý VPN ÍøÂç½Ó¿Ú           */
 }
+
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */
                                                                         /*  LW_CFG_NET_VPN_EN > 0       */
                                                                         /*  LW_CFG_SHELL_EN > 0         */

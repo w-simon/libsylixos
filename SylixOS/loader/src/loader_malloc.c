@@ -279,6 +279,7 @@ static VOID __ldExecShareDeleteAll (VOID)
         }
     }
 }
+
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: __ldMallocArea
@@ -645,6 +646,7 @@ INT  __ldShareConfig (BOOL  bShareEn, BOOL  *pbPrev)
 
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 /*********************************************************************************************************
   END

@@ -179,6 +179,7 @@ struct tm  *lib_gmtime (const time_t *timer)
     
     return  (lib_gmtime_r(timer, &timeBuffer));
 }
+
 #endif                                                                  /*  LW_CFG_RTC_EN               */
 /*********************************************************************************************************
   END

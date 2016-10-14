@@ -376,7 +376,7 @@ ULONG  API_ThreadPoolDeleteThread (LW_OBJECT_HANDLE   ulId)
         return  (ERROR_KERNEL_HANDLE_NULL);
     }
     
-    if (pthreadpool->TPCB_usThreadCounter == 0) {                       /*  是否应经空了                */
+    if (pthreadpool->TPCB_usThreadCounter == 0) {                       /*  是否已经空了                */
         __THREADPOOL_UNLOCK(pthreadpool);
         _ErrorHandle(ERROR_THREADPOOL_NULL);
         return  (ERROR_THREADPOOL_NULL);
@@ -586,6 +586,7 @@ ULONG  API_ThreadPoolStatus (LW_OBJECT_HANDLE         ulId,
     
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_THREAD_POOL_EN > 0   */
                                                                         /*  LW_CFG_MAX_THREAD_POOLS > 0 */
 /*********************************************************************************************************

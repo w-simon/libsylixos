@@ -417,6 +417,7 @@ int  shm_unlink (const char *name)
     
     return  (unlink(cFullName));
 }
+
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
                                                                         /*  LW_CFG_DEVICE_EN > 0        */
 /*********************************************************************************************************

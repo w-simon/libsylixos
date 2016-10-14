@@ -850,6 +850,7 @@ VOID  __tshellNetInit (VOID)
                                "-d      delete a STATIC arp entry.\n"
                                "        eg. arp -d 192.168.1.100\n");
 }
+
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */
                                                                         /*  LW_CFG_SHELL_EN > 0         */
 /*********************************************************************************************************

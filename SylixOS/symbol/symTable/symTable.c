@@ -441,6 +441,7 @@ VOID  API_SymbolTraverse (BOOL (*pfuncCb)(PVOID, PLW_SYMBOL), PVOID  pvArg)
         _G_pfuncSymbolTraverseHook(pfuncCb, pvArg);
     }
 }
+
 #endif                                                                  /*  LW_CFG_SYMBOL_EN > 0        */
 /*********************************************************************************************************
   END

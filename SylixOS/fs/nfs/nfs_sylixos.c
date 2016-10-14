@@ -3357,6 +3357,7 @@ static INT  __nfsIoctl (PLW_FD_ENTRY  pfdentry,
         return  (PX_ERROR);
     }
 }
+
 #endif                                                                  /*  (LW_CFG_MAX_VOLUMES > 0)    */
                                                                         /*  (LW_CFG_NFS_EN > 0)         */
 /*********************************************************************************************************

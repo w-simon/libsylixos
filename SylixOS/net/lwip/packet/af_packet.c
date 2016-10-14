@@ -1842,6 +1842,7 @@ int __packet_have_event (AF_PACKET_T *pafpacket, int type, int  *piSoErr)
     
     return  (iEvent);
 }
+
 #endif                                                                  /*  LW_CFG_NET_EN               */
 /*********************************************************************************************************
   END

@@ -1260,6 +1260,7 @@ static INT  __tshellTftp (INT  iArgC, PCHAR  *ppcArgV)
 
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */

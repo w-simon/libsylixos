@@ -446,6 +446,7 @@ ULONG  archGdbGetNextPc (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET 
 
     return  ((ULONG)nextPc);
 }
+
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
 /*********************************************************************************************************
   END

@@ -313,7 +313,7 @@ static VOID  __inetPing6Cleanup (INT  iSock)
 /*********************************************************************************************************
 ** 函数名称: API_INetPing6
 ** 功能描述: internet ipv6 ping
-** 输　入  : pinaddr       目标 ip 地址.
+** 输　入  : pin6addr      目标 ip 地址.
 **           iTimes        次数
 **           iDataSize     数据大小
 **           iTimeout      超时时间
@@ -562,6 +562,7 @@ VOID  API_INetPing6Init (VOID)
     API_TShellHelpAdd("ping6",   "ipv6 ping tool\n");
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 }
+
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */
                                                                         /*  LW_CFG_NET_PING_EN > 0      */
 /*********************************************************************************************************

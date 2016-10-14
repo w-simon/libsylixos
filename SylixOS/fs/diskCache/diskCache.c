@@ -380,7 +380,7 @@ __error_handle:
 **           pvDiskCacheMem     磁盘 CACHE 缓冲区的内存起始地址
 **           stMemSize          磁盘 CACHE 缓冲区大小
 **           iMaxRBurstSector   磁盘猝发读的最大扇区数
-**           iMaxWBurstSector   磁盘猝发读的最大扇区数
+**           iMaxWBurstSector   磁盘猝发写的最大扇区数
 **           ppblkDiskCache     创建出来了 CACHE 块设备.
 ** 输　出  : ERROR CODE
 ** 全局变量: 

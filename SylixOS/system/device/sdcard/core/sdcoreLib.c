@@ -1106,6 +1106,7 @@ INT API_SdCoreDevDeSelect (PLW_SDCORE_DEVICE psdcoredevice)
  ** 函数名称: API_SdCoreDevSetBusWidth
  ** 功能描述: 设置总线通信位宽
  ** 输    入: psdcoredevice     设备结构指针
+ **           iBusWidth         总线宽度
  ** 输    出: NONE
  ** 返    回: ERROR    CODE
  ** 全局变量:

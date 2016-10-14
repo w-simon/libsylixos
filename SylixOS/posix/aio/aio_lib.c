@@ -847,6 +847,7 @@ int  __aioEnqueue (struct aiocb *paiocb)
     
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
                                                                         /*  LW_CFG_POSIX_AIO_EN > 0     */
 /*********************************************************************************************************

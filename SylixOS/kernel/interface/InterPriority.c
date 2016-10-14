@@ -25,7 +25,7 @@
 *********************************************************************************************************/
 #if LW_CFG_INTER_PRIO > 0
 /*********************************************************************************************************
-** 函数名称: API_InterSetPriority
+** 函数名称: API_InterVectorSetPriority
 ** 功能描述: 设置指定中断向量优先级
 ** 输　入  : ulVector          中断向量号
 **           uiPrio            中断优先级 LW_INTER_PRIO_HIGHEST ~ LW_INTER_PRIO_LOWEST
@@ -52,7 +52,7 @@ ULONG  API_InterVectorSetPriority (ULONG  ulVector, UINT  uiPrio)
     return  (ulError);
 }
 /*********************************************************************************************************
-** 函数名称: API_InterGetPriority
+** 函数名称: API_InterVectorGetPriority
 ** 功能描述: 获取指定中断向量优先级
 ** 输　入  : ulVector          中断向量号
 **           puiPrio           中断优先级 LW_INTER_PRIO_HIGHEST ~ LW_INTER_PRIO_LOWEST

@@ -709,7 +709,7 @@ PVOID    API_CacheDmaMalloc (size_t   stBytes)
              (_G_cacheopLib.CACHEOP_pfuncDmaMalloc(stBytes)));
 }
 /*********************************************************************************************************
-** 函数名称: API_CacheDmaMalloc
+** 函数名称: API_CacheDmaMallocAlign
 ** 功能描述: 开辟一块非缓冲的内存, 指定内存对齐关系
 ** 输　入  : 
 **           stBytes                       长度

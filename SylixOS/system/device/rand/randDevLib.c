@@ -264,6 +264,7 @@ INT  __randIoctl (PLW_RAND_FIL  prandfil, INT  iRequest, LONG  lArg)
     
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_DEVICE_EN            */
 /*********************************************************************************************************
   END

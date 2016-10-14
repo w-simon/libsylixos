@@ -739,7 +739,7 @@ LW_API INT  API_SdCoreDevRcaSet (PLW_SDCORE_DEVICE psdcoredevice,  UINT32  uiRCA
 ** 函数名称: API_SdCoreDevTypeSet
 ** 功能描述: 设置设备的类型(MMC\SDSC\SDXC\SDHC\SDIO\COMM)
 ** 输    入: psdcoredevice 设备结构指针
-**           iType       设备l类型
+**           iType         设备类型
 ** 输    出: NONE
 ** 返    回: ERROR CODE
 ** 全局变量:
@@ -1018,7 +1018,7 @@ __spibus_release:
 **           令牌.
 ** 输    入: psdcoredevice sd内核设备指针
 **           pucReg        读取结果缓冲
-**           iLen          寄存器长度
+**           uiLen         寄存器长度
 ** 输    出: NONE
 ** 返    回: ERROR CODE
 ** 全局变量:

@@ -34,6 +34,7 @@
 **           pulSegmentCounter            分段数量       可以为 NULL
 **           pstUsedByteSize              使用的字节数   可以为 NULL
 **           pstFreeByteSize              空闲的字节数   可以为 NULL
+**           pstMaxUsedByteSize           使用峰值字节数 可以为 NULL
 ** 输　出  : 
 ** 全局变量: 
 ** 调用模块: 

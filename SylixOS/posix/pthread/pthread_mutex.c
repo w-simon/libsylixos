@@ -818,7 +818,7 @@ int  pthread_mutex_setprioceiling (pthread_mutex_t  *pmutex, int  prioceiling)
         errno = EINVAL;
         return  (EINVAL);
     }
-    if (_Event_Index_Invalid(usIndex)) {                                /*  下标是否正正确              */
+    if (_Event_Index_Invalid(usIndex)) {                                /*  下标是否正确                */
         errno = EINVAL;
         return  (EINVAL);
     }
@@ -860,7 +860,7 @@ int  pthread_mutex_getprioceiling (pthread_mutex_t  *pmutex, int  *prioceiling)
         errno = EINVAL;
         return  (EINVAL);
     }
-    if (_Event_Index_Invalid(usIndex)) {                                /*  下标是否正正确              */
+    if (_Event_Index_Invalid(usIndex)) {                                /*  下标是否正确                */
         errno = EINVAL;
         return  (EINVAL);
     }
@@ -904,7 +904,7 @@ int  pthread_mutex_getinfo (pthread_mutex_t  *pmutex, pthread_mutex_info_t  *inf
         errno = EINVAL;
         return  (EINVAL);
     }
-    if (_Event_Index_Invalid(usIndex)) {                                /*  下标是否正正确              */
+    if (_Event_Index_Invalid(usIndex)) {                                /*  下标是否正确                */
         errno = EINVAL;
         return  (EINVAL);
     }

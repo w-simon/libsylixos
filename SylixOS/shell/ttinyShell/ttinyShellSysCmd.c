@@ -2512,6 +2512,7 @@ VOID  __tshellSysCmdInit (VOID)
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
                                                                         /*  LW_CFG_POSIX_EN > 0         */
 }
+
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 /*********************************************************************************************************
   END

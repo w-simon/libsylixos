@@ -657,6 +657,7 @@ INT  API_RootFsRemoveNode (CPCHAR  pcName)
     
     return  (iError);
 }
+
 #endif                                                                  /*  LW_CFG_DEVICE_EN > 0        */
                                                                         /*  LW_CFG_PATH_VXWORKS == 0    */
 /*********************************************************************************************************

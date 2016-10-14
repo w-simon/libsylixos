@@ -139,6 +139,7 @@ VOID  _Free_ThreadPool_Object (PLW_CLASS_THREADPOOL    pthreadpool)
                         
     _S_resrcThreadPool.RESRC_uiUsed--;
 }
+
 #endif                                                                  /*  LW_CFG_THREAD_POOL_EN > 0   */
                                                                         /*  LW_CFG_MAX_THREAD_POOLS > 0 */
 /*********************************************************************************************************

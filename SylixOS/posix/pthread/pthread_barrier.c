@@ -209,6 +209,7 @@ int  pthread_barrier_wait (pthread_barrier_t  *pbarrier)
         return  (ERROR_NONE);
     }
 }
+
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
 /*********************************************************************************************************
   END

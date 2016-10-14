@@ -312,6 +312,7 @@ ULONG  API_PortGetName (LW_OBJECT_HANDLE  ulId, PCHAR  pcName)
     
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_MPI_EN               */
 /*********************************************************************************************************
   END

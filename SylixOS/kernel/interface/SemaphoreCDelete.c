@@ -67,7 +67,7 @@ ULONG  API_SemaphoreCDelete (LW_OBJECT_HANDLE  *pulId)
         _ErrorHandle(ERROR_KERNEL_HANDLE_NULL);
         return  (ERROR_KERNEL_HANDLE_NULL);
     }
-    if (_Event_Index_Invalid(usIndex)) {                                /*  下标是否正正确              */
+    if (_Event_Index_Invalid(usIndex)) {                                /*  下标是否正确                */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "semaphore handle invalidate.\r\n");
         _ErrorHandle(ERROR_KERNEL_HANDLE_NULL);
         return  (ERROR_KERNEL_HANDLE_NULL);

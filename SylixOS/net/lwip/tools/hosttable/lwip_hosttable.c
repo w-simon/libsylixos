@@ -244,7 +244,7 @@ INT  API_INetHostTableAddItem (CPCHAR  pcHost, struct in_addr  inaddr)
 }
 /*********************************************************************************************************
 ** 函数名称: API_INetHostTableDelItem
-** 功能描述: 向本地动态主机域名表中插入一个条目.
+** 功能描述: 从本地动态主机域名表中删除一个条目.
 ** 输　入  : pcHost        主机名
 ** 输　出  : ERROR CODE
 ** 全局变量: 

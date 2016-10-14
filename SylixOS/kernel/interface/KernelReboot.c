@@ -124,7 +124,7 @@ VOID   API_KernelReboot (INT  iRebootType)
     API_KernelRebootEx(iRebootType, 0ull);
 }
 /*********************************************************************************************************
-** 函数名称: API_KernelReboot
+** 函数名称: API_KernelRebootEx
 ** 功能描述: 内核重新启动函数
 ** 输　入  : iRebootType        重启类型 
                                 LW_REBOOT_FORCE

@@ -58,7 +58,7 @@ extern ULONG  __threadDelete(PLW_CLASS_TCB  ptcbDel, BOOL  bIsInSafe,
 ** 功能描述: 线程强制删除函数
 ** 输　入  : 
 **           pulId         句柄
-**           ulRetVal      返回值   (返回给 JOIN 的线程)
+**           pvRetVal      返回值   (返回给 JOIN 的线程)
 ** 输　出  :
 ** 全局变量: 
 ** 调用模块: 
@@ -208,6 +208,7 @@ ULONG  API_ThreadForceDelete (LW_OBJECT_HANDLE  *pulId, PVOID  pvRetVal)
     
     return  (ulError);
 }
+
 #endif                                                                  /*  LW_CFG_THREAD_DEL_EN        */
 /*********************************************************************************************************
   END

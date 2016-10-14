@@ -788,6 +788,7 @@ VOID  netEventIfWlExt2 (struct netif *pnetif,
 
     __SHEAP_FREE(pucBuffer);
 }
+
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */
 /*********************************************************************************************************
   END

@@ -483,6 +483,7 @@ VOID  __tShellOptDeleteHook (LW_OBJECT_HANDLE  ulId,
     }
     __TTINY_SHELL_UNLOCK();                                             /*  ½â³ý»¥³â                    */
 }
+
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 /*********************************************************************************************************
   END

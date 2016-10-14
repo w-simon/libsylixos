@@ -1438,6 +1438,7 @@ ULONG  __tshellKeywordList (__PTSHELL_KEYWORD   pskwNodeStart,
     
     return  (i);
 }
+
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 /*********************************************************************************************************
   END

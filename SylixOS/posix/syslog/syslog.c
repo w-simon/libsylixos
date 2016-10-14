@@ -456,6 +456,7 @@ void  syslog_r (int priority, struct syslog_data *data, const char *message, ...
         write(STD_ERR, cBuffer, stLen);
     }
 }
+
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
 /*********************************************************************************************************
   END

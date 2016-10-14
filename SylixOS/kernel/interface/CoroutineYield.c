@@ -85,6 +85,7 @@ VOID  API_CoroutineYield (VOID)
     
     KN_INT_ENABLE(iregInterLevel);                                      /*  ´ò¿ªÖÐ¶Ï                    */
 }
+
 #endif                                                                  /*  LW_CFG_COROUTINE_EN > 0     */
 /*********************************************************************************************************
   END

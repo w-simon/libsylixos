@@ -135,7 +135,7 @@ ULONG   API_ThreadAttrBuild (PLW_CLASS_THREADATTR    pthreadattr,
                              ULONG                   ulOption, 
                              PVOID                   pvArg)
 {
-    if (!stStackByteSize) {                                             /*  如果没有设置对栈大小        */
+    if (!stStackByteSize) {                                             /*  如果没有设置堆栈大小        */
         stStackByteSize = LW_CFG_THREAD_DEFAULT_STK_SIZE;               /*  使用默认堆栈大小            */
     }
     
@@ -159,7 +159,7 @@ ULONG   API_ThreadAttrBuild (PLW_CLASS_THREADATTR    pthreadattr,
     }
 #endif
 
-    pthreadattr->THREADATTR_pstkLowAddr     = LW_NULL;                  /*  系统自行分配对栈            */
+    pthreadattr->THREADATTR_pstkLowAddr     = LW_NULL;                  /*  系统自行分配堆栈            */
     pthreadattr->THREADATTR_stGuardSize     = LW_CFG_THREAD_DEFAULT_GUARD_SIZE;
     pthreadattr->THREADATTR_stStackByteSize = stStackByteSize;
     pthreadattr->THREADATTR_ucPriority      = ucPriority;
@@ -171,7 +171,7 @@ ULONG   API_ThreadAttrBuild (PLW_CLASS_THREADATTR    pthreadattr,
 }
 /*********************************************************************************************************
 ** 函数名称: API_ThreadAttrBuildEx
-** 功能描述: 建立线程属性块高级函数，对栈不从内核堆中开辟，由用户自行指定
+** 功能描述: 建立线程属性块高级函数，堆栈不从内核堆中开辟，由用户自行指定
 ** 输　入  : pthreadattr        指向要生成的属性块
 **           pstkStackTop       全部堆栈低地址 (堆栈方向无关)
 **           stStackByteSize    堆栈大小    (字节)

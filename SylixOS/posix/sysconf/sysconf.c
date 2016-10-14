@@ -340,6 +340,7 @@ long  pathconf (const char *path, int name)
     
     return  (lRet);
 }
+
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
 /*********************************************************************************************************
   END

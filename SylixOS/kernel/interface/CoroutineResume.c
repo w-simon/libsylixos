@@ -83,6 +83,7 @@ ULONG  API_CoroutineResume (PVOID  pvCrcb)
     
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_COROUTINE_EN > 0     */
 /*********************************************************************************************************
   END

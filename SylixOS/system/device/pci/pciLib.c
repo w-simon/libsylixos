@@ -1511,14 +1511,14 @@ INT  API_PciDevSetup (PCI_DEV_HANDLE  hDevHandle)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: API_PciConfigInByte
-** 功能描述: 从 pci 配置空间获取一个字节
+** 函数名称: API_PciResourceGet
+** 功能描述: 获取 PCI 配置资源信息
 ** 输　入  : iBus       总线号
 **           iDevice    设备
 **           iFunc      功能
 **           uiType     资源类型
 **           uiNum      资源索引
-** 输　出  : ERROR or OK
+** 输　出  : 资源句柄
 ** 全局变量:
 ** 调用模块:
 **                                            API 函数
@@ -1618,7 +1618,6 @@ INT  API_PciInterConnect (ULONG ulVector, PINT_SVR_ROUTINE pfuncIsr, PVOID pvArg
 ** 输　入  : ulVector  CPU 中断向量 (pci 多块板卡可能会共享 CPU 某一中断向量)
 **           pfuncIsr  中断服务函数
 **           pvArg     中断服务函数参数
-**           pcName    中断服务名称
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
@@ -1890,10 +1889,9 @@ INT  API_PciIrqGet (INT iBus, INT iSlot, INT iFunc, INT iMsiEn, INT iLine, INT i
 ** 输　入  : iBus      总线号
 **           iSlot     插槽
 **           iFunc     功能
-**           iPos      数据地址
-**           pucBuf    结果缓冲区
-**           iLen      结果缓冲区大小
-** 输　出  : ERROR or OK
+**           uiPos     数据地址
+**           uiLen     结果缓冲区大小
+** 输　出  : 1
 ** 全局变量:
 ** 调用模块:
 **                                            API 函数
@@ -1904,7 +1902,6 @@ INT  API_PciConfigFetch (INT iBus, INT iSlot, INT iFunc, UINT uiPos, UINT uiLen)
     /*
      *  TODO
      */
-
     return  (1);
 }
 /*********************************************************************************************************
@@ -1974,6 +1971,7 @@ static INT  __pciBusCntGet (INT iBus, INT iSlot, INT iFunc, UINT *puiCount)
 ** 函数名称: API_PciConfigBusMaxSet
 ** 功能描述: 设置指定 PCI 最大总线数
 ** 输　入  : iIndex    PCI 配置 (PCI_CONFIG) 索引
+**           uiBusMax  PCI 最大总线数
 ** 输　出  : ERROR or 最大总线数
 ** 全局变量:
 ** 调用模块:

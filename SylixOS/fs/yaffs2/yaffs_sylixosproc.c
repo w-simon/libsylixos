@@ -227,6 +227,7 @@ VOID  __procFsYaffsInit (VOID)
 {
     API_ProcFsMakeNode(&_G_pfsnYaffs[0], "/");
 }
+
 #endif                                                                  /*  (LW_CFG_MAX_VOLUMES > 0)    */
                                                                         /*  (LW_CFG_YAFFS_EN > 0)       */
                                                                         /*  (LW_CFG_PROCFS_EN > 0)      */

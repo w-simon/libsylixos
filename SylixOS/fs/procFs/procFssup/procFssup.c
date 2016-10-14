@@ -241,6 +241,7 @@ VOID  __procFssupInit (VOID)
     API_ProcFsMakeNode(&_G_pfsnFssup[4], "/fs/rootfs");
     API_ProcFsMakeNode(&_G_pfsnFssup[5], "/fs/procfs");
 }
+
 #endif                                                                  /*  LW_CFG_PROCFS_EN > 0        */
 /*********************************************************************************************************
   END

@@ -168,8 +168,8 @@ INT  _rngBufGet (VX_RING_ID  vxringid,
 ** 功能描述: 向一个 VxWorks 兼容 ring buffer 缓冲区写入最多 iMaxBytes 个字节
 ** 输　入  : 
 **           vxringid           缓冲区控制块地址
-**           pcBuffer           读出数据存放位置
-**           iMaxBytes          读出最多的字节数
+**           pcBuffer           写入数据存放位置
+**           iNBytes            写入字节数
 ** 输　出  : 实际读出的字节数
 ** 全局变量: 
 ** 调用模块: 

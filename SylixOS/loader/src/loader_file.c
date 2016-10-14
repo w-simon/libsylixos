@@ -588,6 +588,7 @@ INT  vprocIoFileRefGet (INT  iFd)
     
     return  (PX_ERROR);
 }
+
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 /*********************************************************************************************************
   END

@@ -326,7 +326,7 @@ PVOID  API_VmmPhyAlloc (size_t  stSize)
     return  (API_VmmPhyAllocAlign(stSize, LW_CFG_VMM_PAGE_SIZE, LW_ZONE_ATTR_NONE));
 }
 /*********************************************************************************************************
-** 函数名称: API_VmmPhyAlloc
+** 函数名称: API_VmmPhyAllocEx
 ** 功能描述: 从物理内存区分配连续的物理分页, 扩展接口.
 ** 输　入  : stSize     需要分配的内存大小
 **           uiAttr     需要满足的物理页面属性

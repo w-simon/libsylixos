@@ -367,7 +367,7 @@ PLW_OEMDISK_CB  API_OemDiskMountEx2 (CPCHAR             pcVolName,
     }
 
     /*
-     *  扫面磁盘所有分区信息
+     *  扫描磁盘所有分区信息
      */
     iNPart = API_DiskPartitionScan(poemd->OEMDISK_pblkdCache, 
                                    &dptPart);                           /*  扫描分区表                  */
@@ -653,7 +653,7 @@ PLW_OEMDISK_CB  API_OemDiskMount2 (CPCHAR               pcVolName,
     }
 
     /*
-     *  扫面磁盘所有分区信息
+     *  扫描磁盘所有分区信息
      */
     iNPart = API_DiskPartitionScan(poemd->OEMDISK_pblkdCache, 
                                    &dptPart);                           /*  扫描分区表                  */
@@ -765,8 +765,8 @@ __error_handle:
     return  (LW_NULL);
 }
 /*********************************************************************************************************
-** 函数名称: API_OemDiskMount2
-** 功能描述: 自动挂载一个磁盘的所有分区. 当无法识别分区时, 使用 FAT 格式挂载.
+** 函数名称: API_OemDiskMount
+** 功能描述: 自动挂载一个磁盘的所有分区. 
 ** 输　入  : pcVolName          根节点名字 (当前 API 将根据分区情况在末尾加入数字)
 **           pblkdDisk          物理磁盘控制块 (必须是直接操作物理磁盘)
 **           pvDiskCacheMem     磁盘 CACHE 缓冲区的内存起始地址  (为零表示动态分配磁盘缓冲)

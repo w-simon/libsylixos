@@ -67,6 +67,7 @@ int  adjtime (const struct timeval *delta, struct timeval *olddelta)
     
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
 /*********************************************************************************************************
   END

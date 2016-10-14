@@ -46,7 +46,7 @@
 /*********************************************************************************************************
 ** 函数名称: API_SelWakeupType
 ** 功能描述: 获得节点的等待类型
-** 输　入  : PLW_SEL_WAKEUPNODE        select wake up node 控制结构
+** 输　入  : pselwunNode        select wake up node 控制结构
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
@@ -64,7 +64,7 @@ LW_SEL_TYPE API_SelWakeupType (PLW_SEL_WAKEUPNODE   pselwunNode)
 /*********************************************************************************************************
 ** 函数名称: API_SelWakeup
 ** 功能描述: 唤醒一个等待的线程
-** 输　入  : PLW_SEL_WAKEUPNODE        select wake up node 控制结构
+** 输　入  : pselwunNode        select wake up node 控制结构
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
@@ -114,7 +114,7 @@ VOID    API_SelWakeup (PLW_SEL_WAKEUPNODE   pselwunNode)
 /*********************************************************************************************************
 ** 函数名称: API_SelWakeupError
 ** 功能描述: 由于产生了错误, 唤醒一个等待的线程
-** 输　入  : PLW_SEL_WAKEUPNODE        select wake up node 控制结构
+** 输　入  : pselwunNode        select wake up node 控制结构
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 

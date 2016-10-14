@@ -239,7 +239,7 @@ LW_API PVOID        API_VmmPhyAlloc(size_t stSize);                     /*  分配
 LW_API PVOID        API_VmmPhyAllocEx(size_t  stSize, UINT  uiAttr);    /*  与上相同, 但可以指定内存属性*/
 LW_API PVOID        API_VmmPhyAllocAlign(size_t stSize, 
                                          size_t stAlign,
-                                         UINT   uiAttr);                /*  分配物理内存, 指定对其关系  */
+                                         UINT   uiAttr);                /*  分配物理内存, 指定对齐关系  */
 LW_API VOID         API_VmmPhyFree(PVOID  pvPhyMem);                    /*  释放物理内存                */
 
 /*********************************************************************************************************

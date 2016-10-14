@@ -1276,6 +1276,7 @@ VOID __tshellRouteInit (VOID)
     API_TShellKeywordAdd("aodvs", __tshellAodvs);
     API_TShellHelpAdd("aodvs",   "show AODV route table\n");
 }
+
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 /*********************************************************************************************************
   以下代码为 2013.01.16 添加

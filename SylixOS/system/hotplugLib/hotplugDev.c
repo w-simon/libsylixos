@@ -475,6 +475,7 @@ static INT  _hotplugIoctl (PLW_HOTPLUG_FILE  photplugfil,
     
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_HOTPLUG_EN > 0       */
                                                                         /*  LW_CFG_DEVICE_EN > 0        */
 /*********************************************************************************************************

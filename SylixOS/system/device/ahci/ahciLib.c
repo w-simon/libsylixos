@@ -373,6 +373,7 @@ INT  API_AhciDriveInfoShow (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, AHCI_PARAM_H
 **           uiValue        值
 **           ulInterTime    单位时间
 **           ulTimeout      超时时间
+**           puiReg         获取的寄存器值
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
@@ -658,6 +659,7 @@ __timeout_handle:
 ** 功能描述: 链接控制器中断
 ** 输　入  : hCtrl      控制器句柄
 **           pfuncIsr   中断服务函数
+**           cpcName    中断名称
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:

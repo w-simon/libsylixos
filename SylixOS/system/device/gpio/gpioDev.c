@@ -754,6 +754,7 @@ static INT  _gpiofdIoctl (PLW_GPIOFD_FILE pgpiofdfil,
     
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_DEVICE_EN > 0        */
                                                                         /*  LW_CFG_GPIO_EN > 0          */
 /*********************************************************************************************************

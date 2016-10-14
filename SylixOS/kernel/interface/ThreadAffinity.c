@@ -27,7 +27,7 @@
 /*********************************************************************************************************
 ** 函数名称: API_ThreadSetAffinity
 ** 功能描述: 将线程锁定到指定的 CPU 运行.
-** 输　入  : ulId      线程
+** 输　入  : ulId          线程
 **           stSize        CPU 掩码集内存大小
 **           pcpuset       CPU 掩码
 ** 输　出  : ERROR
@@ -100,7 +100,7 @@ ULONG  API_ThreadSetAffinity (LW_OBJECT_HANDLE  ulId, size_t  stSize, const PLW_
 /*********************************************************************************************************
 ** 函数名称: API_ThreadGetAffinity
 ** 功能描述: 获取线程 CPU 亲和度情况
-** 输　入  : ulId      线程
+** 输　入  : ulId          线程
 **           stSize        CPU 掩码集内存大小
 **           pcpuset       CPU 掩码
 ** 输　出  : ERROR

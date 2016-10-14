@@ -113,6 +113,7 @@ ULONG  API_RmsStatus (LW_OBJECT_HANDLE  ulId,
     
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  (LW_CFG_RMS_EN > 0)         */
                                                                         /*  (LW_CFG_MAX_RMSS > 0)       */
 /*********************************************************************************************************

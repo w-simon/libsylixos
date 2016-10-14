@@ -265,6 +265,7 @@ INT  API_INetVpnClientDelete (CPCHAR   pcNetifName)
     return  (shutdown(pvpnctx->VPNCTX_iSocket, 2));                     /*  断开 ssl 网络连接           */
                                                                         /*  VPN 处理线程自动退出        */
 }
+
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */
                                                                         /*  LW_CFG_NET_VPN_EN > 0       */
 /*********************************************************************************************************

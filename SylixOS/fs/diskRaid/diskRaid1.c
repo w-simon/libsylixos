@@ -307,7 +307,7 @@ __handle_errror:
 /*********************************************************************************************************
 ** 函数名称: API_DiskRiad1Delete
 ** 功能描述: 删除一个 RAID-1 类型磁盘阵列块设备
-** 输　入  : pblkDiskRaid      之前创建的 RAID-0 虚拟磁盘
+** 输　入  : pblkDiskRaid      之前创建的 RAID-1 虚拟磁盘
 ** 输　出  : ERROR CODE
 ** 全局变量:
 ** 调用模块:
@@ -331,7 +331,6 @@ INT  API_DiskRiad1Delete (PLW_BLK_DEV  pblkDiskRaid)
 **           pblkSrc           源磁盘
 **           ulStartSector     起始扇区
 **           ulSectorNum       扇区数量
-**           pulSectorCount    拷贝的扇区数量
 ** 输　出  : 拷贝的扇区数量
 ** 全局变量:
 ** 调用模块:

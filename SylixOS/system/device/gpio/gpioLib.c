@@ -542,9 +542,9 @@ VOID  API_GpioFreeArray (PLW_GPIO pgArray, size_t stNum)
 }
 /*********************************************************************************************************
 ** 函数名称: API_GpioGetFlags
-** 功能描述: 设置一个 GPIO OPEN DRAIN 参数
+** 功能描述: 获取一个 GPIO flags
 ** 输　入  : uiGpio        请求 GPIO 号
-**           bOpenDrain    参数
+**           pulFlags      获取的 flags
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
@@ -723,6 +723,7 @@ INT  API_GpioDirectionInput (UINT uiGpio)
 ** 函数名称: API_GpioDirectionOutput
 ** 功能描述: 设置指定 GPIO 为输出模式
 ** 输　入  : uiGpio        GPIO 号
+**           iValue        1: 高电平 0: 低电平
 ** 输　出  : ERROR_NONE or PX_ERROR
 ** 全局变量: 
 ** 调用模块: 

@@ -146,7 +146,7 @@ VOID  API_VmmIoUnmap (PVOID  pvVirtualAddr)
 ** 函数名称: API_VmmIoRemapNocache
 ** 功能描述: 将物理 IO 空间指定内存映射到逻辑空间. (非 CACHE)
 ** 输　入  : pvPhysicalAddr     物理内存地址
-**           ulSize             需要映射的内存大小
+**           stSize             需要映射的内存大小
 ** 输　出  : 映射到的逻辑内存地址
 ** 全局变量: 
 ** 调用模块: 

@@ -207,8 +207,6 @@ INT  API_MemDevCreateDir (char *name, MEM_DRV_DIRENTRY *files, int numFiles)
 ** 函数名称: API_MemDevDelete
 ** 功能描述: 删除一个内存设备
 ** 输　入  : name      设备名
-**           base      内存基地址
-**           length    内存长度
 ** 输　出  : ERROR
 ** 全局变量: 
 ** 调用模块: 

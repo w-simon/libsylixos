@@ -154,6 +154,7 @@ ULONG  API_RmsPeriod (LW_OBJECT_HANDLE  ulId, ULONG  ulPeriod)
         return  (ERROR_RMS_NULL);
     }
 }
+
 #endif                                                                  /*  (LW_CFG_RMS_EN > 0)         */
                                                                         /*  (LW_CFG_MAX_RMSS > 0)       */
 /*********************************************************************************************************

@@ -457,6 +457,7 @@ INT  umount2 (CPCHAR  pcVolName, INT iFlag)
     
     return  (API_Unmount(pcVolName));
 }
+
 #endif                                                                  /*  LW_CFG_BLKRAW_EN > 0        */
                                                                         /*  LW_CFG_MAX_VOLUMES > 0      */
                                                                         /*  LW_CFG_MOUNT_EN > 0         */

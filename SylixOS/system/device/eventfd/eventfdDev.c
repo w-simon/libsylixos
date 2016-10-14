@@ -509,6 +509,7 @@ static INT  _evtfdIoctl (PLW_EVTFD_FILE  pevtfdfil,
     
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_DEVICE_EN > 0        */
                                                                         /*  LW_CFG_EVENTFD_EN > 0       */
 /*********************************************************************************************************

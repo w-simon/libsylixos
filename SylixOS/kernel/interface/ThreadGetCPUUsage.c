@@ -152,8 +152,8 @@ ULONG  API_ThreadGetCPUUsage (LW_OBJECT_HANDLE  ulId,
 ** 函数名称: API_ThreadGetCPUUsageAll
 ** 功能描述: 获得所有线程 CPU 利用率 (千分率)
 ** 输　入  : ulId[]                        要检查的线程ID
-**           puiThreadUsage[]              返回的指定线程的 CPU 利用率
-**           puiKernelUsage[]              内核利用的 CPU 利用率
+**           uiThreadUsage[]               返回的指定线程的 CPU 利用率
+**           uiKernelUsage[]               内核利用的 CPU 利用率
 **           iSize                         表格大小
 ** 输　出  : 获得的个数
 ** 全局变量: 

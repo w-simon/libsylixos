@@ -105,6 +105,7 @@ LW_OBJECT_HANDLE  API_EventSetCreate (CPCHAR             pcName,
     
     return  (ulIdTemp);
 }
+
 #endif                                                                  /*  (LW_CFG_EVENTSET_EN > 0)    */
                                                                         /*  (LW_CFG_MAX_EVENTSETS > 0)  */
 /*********************************************************************************************************

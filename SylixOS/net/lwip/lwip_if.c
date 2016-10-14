@@ -375,6 +375,7 @@ void  if_freenameindex (struct if_nameindex *ptr)
         __SHEAP_FREE(ptr);
     }
 }
+
 #endif                                                                  /*  LW_CFG_NET_EN               */
 /*********************************************************************************************************
   END

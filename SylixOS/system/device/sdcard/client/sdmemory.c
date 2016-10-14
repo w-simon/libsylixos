@@ -304,7 +304,7 @@ LW_API INT  API_SdMemDevDelete (PLW_BLK_DEV pblkdevice)
 /*********************************************************************************************************
 ** 函数名称: API_SdMemDevShow
 ** 功能描述: 打印SD设备信息
-** 输    入: PLW_BLK_DEV 块设备结构指针
+** 输    入: pblkdevice  块设备结构指针
 ** 输    出: NONE
 ** 返    回: ERROR CODE
 ** 全局变量:

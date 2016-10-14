@@ -440,6 +440,7 @@ VOID  API_INetPingInit (VOID)
     API_TShellHelpAdd("ping",   "ping tool\n");
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 }
+
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */
                                                                         /*  LW_CFG_NET_PING_EN > 0      */
 /*********************************************************************************************************

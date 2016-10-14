@@ -25,14 +25,11 @@
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
 /*********************************************************************************************************
-** 函数名称: API_RegionStatus
-** 功能描述: 获得一个内存缓冲区状态
+** 函数名称: API_RegionGetName
+** 功能描述: 获得内存缓冲区的名字
 ** 输　入  : 
-**           ulId                         REGION 句柄
-**           pulByteSize                  REGION 大小    可以为 NULL
-**           pulSegmentCounter            分段数量       可以为 NULL
-**           pulUsedByteSize              使用的字节数   可以为 NULL
-**           pulFreeByteSize              空闲的字节数   可以为 NULL
+**           ulId       REGION 句柄
+**           pcName     名字缓冲区
 ** 输　出  : 
 ** 全局变量: 
 ** 调用模块: 
@@ -86,6 +83,7 @@ ULONG  API_RegionGetName (LW_OBJECT_HANDLE  ulId, PCHAR  pcName)
     
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  (LW_CFG_REGION_EN > 0)      */
                                                                         /*  (LW_CFG_MAX_REGIONS > 0)    */
 /*********************************************************************************************************

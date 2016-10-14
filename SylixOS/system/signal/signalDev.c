@@ -535,6 +535,7 @@ static INT  _sigfdIoctl (PLW_SIGFD_FILE  psigfdfil,
     
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
                                                                         /*  LW_CFG_SIGNALFD_EN > 0      */
 /*********************************************************************************************************

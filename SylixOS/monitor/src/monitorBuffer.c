@@ -347,6 +347,7 @@ ULONG  __monitorBufferStatus (PVOID  pvMonitorBuffer,
 
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_MONITOR_EN > 0       */
 /*********************************************************************************************************
   END

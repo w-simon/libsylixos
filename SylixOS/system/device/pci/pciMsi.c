@@ -581,7 +581,7 @@ UINT32  API_PciMsiMaskConvert (UINT32  uiMask)
 **           iFunc          功能
 **           uiMsixCapOft   偏移地址
 **           iNvec          中断数量
-**           piMultiCap     消息消息数量
+**           piMultiple     消息消息数量
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
@@ -825,11 +825,10 @@ INT  API_PciMsiEnableGet (INT  iBus, INT  iSlot, INT  iFunc, UINT32  uiMsiCapOft
 }
 /*********************************************************************************************************
 ** 函数名称: API_PciDevMsiRangeEnable
-** 功能描述: 获取 MSI 使能控制状态
+** 功能描述: 设置 MSI 区域使能
 ** 输　入  : hHandle        设备控制句柄
-**           iEnable        使能与禁能标志
-**                          0  禁能
-**                          1  使能
+**           uiVecMin       使能区域中断向量最小值
+**           uiVecMax       使能区域中断向量最大值
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:

@@ -515,6 +515,7 @@ size_t __moduleSymbolBufferSize (LW_LD_EXEC_MODULE *pmodule)
     
     return  (stBufferSize);
 }
+
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 /*********************************************************************************************************
   END

@@ -472,7 +472,7 @@ INT  API_TShellGetGrpName (gid_t  gid, PCHAR  pcName, size_t  stSize)
     return  (__tshellGetGrpName(gid, pcName, stSize));
 }
 /*********************************************************************************************************
-** 函数名称: API_TShellGetGrpName
+** 函数名称: API_TShellGetUserHome
 ** 功能描述: 获得一个用户名 HOME 路径.
 ** 输　入  : uid           用户 id
 **           pcHome        HOME 路径
@@ -695,7 +695,7 @@ ULONG  API_TShellFormatAdd (CPCHAR  pcKeyword, CPCHAR  pcFormat)
 /*********************************************************************************************************
 ** 函数名称: API_TShellExec
 ** 功能描述: ttiny shell 系统, 执行一条 shell 命令
-** 输　入  : pcCommand    命令字符串
+** 输　入  : pcCommandExec    命令字符串
 ** 输　出  : 命令返回值(当发生错误时, 返回值为负值)
 ** 全局变量: 
 ** 调用模块: 
@@ -716,11 +716,11 @@ INT  API_TShellExec (CPCHAR  pcCommandExec)
 /*********************************************************************************************************
 ** 函数名称: API_TShellExecBg
 ** 功能描述: ttiny shell 系统, 背景执行一条 shell 命令 (不过成功与否都会关闭需要关闭的文件)
-** 输　入  : pcCommand    命令字符串
-**           iFd[3]       标准文件
-**           bClosed[3]   执行结束后是否关闭对应标准文件
-**           bIsJoin      是否等待命令执行结束
-**           pulSh        背景线程句柄, (仅当 bIsJoin = LW_FALSE 时返回)
+** 输　入  : pcCommandExec  命令字符串
+**           iFd[3]         标准文件
+**           bClosed[3]     执行结束后是否关闭对应标准文件
+**           bIsJoin        是否等待命令执行结束
+**           pulSh          背景线程句柄, (仅当 bIsJoin = LW_FALSE 时返回)
 ** 输　出  : 命令返回值(当发生错误时, 返回值为负值)
 ** 全局变量: 
 ** 调用模块: 

@@ -967,7 +967,7 @@ INT  API_IosFdUnlink (PLW_DEV_HDR  pdevhdrHdr, CPCHAR  pcName)
     _IosLock();                                                         /*  进入 IO 临界区              */
     for (plineFdEntry  = _S_plineFileEntryHeader;
          plineFdEntry != LW_NULL;
-         plineFdEntry  = _list_line_get_next(plineFdEntry)) {           /*  删除使用该驱动文文件        */
+         plineFdEntry  = _list_line_get_next(plineFdEntry)) {           /*  删除使用该驱动文件          */
         
         pfdentry = _LIST_ENTRY(plineFdEntry, LW_FD_ENTRY, FDENTRY_lineManage);
         if ((pfdentry->FDENTRY_iAbnormity == 0) && 
@@ -1053,7 +1053,7 @@ INT  API_IosFdSetCloExec (INT  iFd, INT  iCloExec)
 ** 功能描述: 设置文件描述符的 FD_CLOEXEC
 ** 输　入  : 
 **           iFd                           文件描述符
-**           iType                         类型
+**           piCloExec                     是否含有 FD_CLOEXEC 标志
 ** 输　出  : ERROR CODE
 ** 全局变量: 
 ** 调用模块: 

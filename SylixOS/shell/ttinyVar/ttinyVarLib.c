@@ -725,6 +725,7 @@ ULONG  __tshellVarDefine (PCHAR  pcCmd)
     
     return  (ulError);
 }
+
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 /*********************************************************************************************************
   END

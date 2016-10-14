@@ -394,8 +394,8 @@ LW_API ULONG            API_ThreadVarGet(LW_OBJECT_HANDLE     ulId,
 
 LW_API ULONG            API_ThreadVarSet(LW_OBJECT_HANDLE     ulId, 
                                          ULONG               *pulAddr, 
-                                         ULONG                ulValue); /*  获得线程私有变量信息        */
-
+                                         ULONG                ulValue); /*  设置私有变量                */
+                                                                        /*  获得线程私有变量信息        */
 LW_API ULONG            API_ThreadVarInfo(LW_OBJECT_HANDLE    ulId, ULONG  *pulAddr[], INT  iMaxCounter);
 #endif
 
@@ -460,7 +460,7 @@ LW_API ULONG            API_SemaphorePostBPend(LW_OBJECT_HANDLE  ulIdPost,
 LW_API ULONG            API_SemaphorePostCPend(LW_OBJECT_HANDLE  ulIdPost, 
                                                LW_OBJECT_HANDLE  ulId,
                                                ULONG             ulTimeout);
-                                                                        /*  原子释放获取二值信号量      */
+                                                                        /*  原子释放获取计数型信号量    */
 #endif
 
 /*********************************************************************************************************

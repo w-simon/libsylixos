@@ -80,7 +80,7 @@ AHCI_DRV_HANDLE  API_AhciDrvHandleGet (CPCHAR  cpcName)
 }
 /*********************************************************************************************************
 ** 函数名称: API_AhciDrvRegister
-** 功能描述: 注册指定类型类型 AHCI 驱动
+** 功能描述: 注册指定类型 AHCI 驱动
 ** 输　入  : hDrvReg       注册控制块句柄
 ** 输　出  : ERROR or OK
 ** 全局变量:

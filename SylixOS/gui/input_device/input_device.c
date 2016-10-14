@@ -771,6 +771,7 @@ VOIDFUNCPTR  API_GuiInputDevMouseHookSet (VOIDFUNCPTR  pfuncNew)
 
     return  (pfuncOld);
 }
+
 #endif                                                                  /*  LW_CFG_GUI_INPUT_DEV_EN     */
 /*********************************************************************************************************
   END

@@ -32,7 +32,7 @@
 ** 输　入  : pplineHeader  同一设备 fd_node 链表
 **           dev           设备描述符
 **           inode64       文件 inode (同一设备 inode 必须唯一)
-**           iFlag         打开选项
+**           iFlags        打开选项
 **           mode          文件 mode
 **           uid           所属用户 id
 **           gid           所属组 id
@@ -121,7 +121,7 @@ PLW_FD_NODE  API_IosFdNodeAdd (LW_LIST_LINE_HEADER  *pplineHeader,
 ** 函数名称: API_IosFdNodeDec
 ** 功能描述: 删除一个 fd_node (如果引用不为 1 则只是 -- )
 ** 输　入  : pplineHeader  同一设备 fd_node 链表
-**           fd_node       fd_node
+**           pfdnode       fd_node
 ** 输　出  : -1 : 错误
 **            0 : 正常删除
 **           >0 : 减少引用后的引用数量
@@ -188,7 +188,7 @@ PLW_FD_NODE  API_IosFdNodeFind (LW_LIST_LINE_HEADER  plineHeader, dev_t  dev, in
 /*********************************************************************************************************
 ** 函数名称: API_IosFdNodeLock
 ** 功能描述: 锁定一个 fd_node 在文件关闭前不允许写, 不允许被删除, 关闭文件后自动解除.
-** 输　入  : fd_node       fd_node
+** 输　入  : pfdnode       fd_node
 ** 输　出  : NONE
 ** 全局变量: -1 : 错误
 **            0 : 正常删除

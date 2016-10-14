@@ -480,7 +480,7 @@ static INT __canDevInit (__CAN_DEV *pcanDev,
         return  (PX_ERROR);
     }
 
-    pcanDev->CAN_pcanqSendQueue = __canInitQueue(uiWrtFrameSize);       /*  创建读缓冲区                */
+    pcanDev->CAN_pcanqSendQueue = __canInitQueue(uiWrtFrameSize);       /*  创建写缓冲区                */
     if (pcanDev->CAN_pcanqSendQueue == LW_NULL) {                       /*  创建失败                    */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "system low memory.\r\n");
         _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);

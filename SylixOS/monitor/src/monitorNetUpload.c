@@ -158,6 +158,7 @@ ULONG  API_MonitorNetUploadDelete (PVOID  pvMonitorUpload)
     
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  LW_CFG_MONITOR_EN > 0       */
                                                                         /*  LW_CFG_NET_EN > 0           */
 /*********************************************************************************************************

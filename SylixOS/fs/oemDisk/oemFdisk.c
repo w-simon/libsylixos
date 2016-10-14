@@ -164,7 +164,7 @@ static INT  __oemFdisk (INT                     iBlkFd,
     return  ((INT)i);
 }
 /*********************************************************************************************************
-** 函数名称: API_OemFdiskGet
+** 函数名称: API_OemFdisk
 ** 功能描述: 对 OEM 磁盘设备进行分区操作
 ** 输　入  : pcBlkDev           块设备文件 例如: /dev/blk/sata0
 **           fdpPart            分区参数

@@ -129,6 +129,7 @@ ULONG  API_RmsDelete (LW_OBJECT_HANDLE   *pulId)
 {
     return  (API_RmsDeleteEx(pulId, LW_FALSE));
 }
+
 #endif                                                                  /*  (LW_CFG_RMS_EN > 0)         */
                                                                         /*  (LW_CFG_MAX_RMSS > 0)       */
 /*********************************************************************************************************

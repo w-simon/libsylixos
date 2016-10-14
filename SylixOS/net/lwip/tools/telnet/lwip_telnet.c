@@ -597,6 +597,7 @@ VOID  API_INetTelnetInit (const PCHAR  pcPtyStartName)
         bIsInit = LW_TRUE;
     }
 }
+
 #endif                                                                  /*  (LW_CFG_NET_EN > 0)         */
                                                                         /*  (LW_CFG_NET_TELNET_EN > 0)  */
                                                                         /*  (LW_CFG_SHELL_EN > 0)       */
