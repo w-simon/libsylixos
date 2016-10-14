@@ -142,6 +142,12 @@ int  pthread_mutexattr_setprioceiling (pthread_mutexattr_t *pmutexattr, int  pri
         errno = EINVAL;
         return  (EINVAL);
     }
+    
+    if (pmutexattr->PMUTEXATTR_iIsEnable != 1) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+    
     if ((prioceiling < __PX_PRIORITY_MIN) ||
         (prioceiling > __PX_PRIORITY_MAX)) {
         errno = EINVAL;
@@ -170,6 +176,11 @@ int  pthread_mutexattr_getprioceiling (const pthread_mutexattr_t *pmutexattr, in
         return  (EINVAL);
     }
     
+    if (pmutexattr->PMUTEXATTR_iIsEnable != 1) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+    
     *prioceiling = pmutexattr->PMUTEXATTR_iPrioceiling;
     
     return  (ERROR_NONE);
@@ -188,6 +199,11 @@ LW_API
 int  pthread_mutexattr_setprotocol (pthread_mutexattr_t *pmutexattr, int  protocol)
 {
     if (pmutexattr == LW_NULL) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+    
+    if (pmutexattr->PMUTEXATTR_iIsEnable != 1) {
         errno = EINVAL;
         return  (EINVAL);
     }
@@ -234,6 +250,11 @@ int  pthread_mutexattr_getprotocol (const pthread_mutexattr_t *pmutexattr, int  
         return  (EINVAL);
     }
     
+    if (pmutexattr->PMUTEXATTR_iIsEnable != 1) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+    
     if ((pmutexattr->PMUTEXATTR_ulOption & LW_OPTION_INHERIT_PRIORITY) &&
         (pmutexattr->PMUTEXATTR_ulOption & LW_OPTION_WAIT_PRIORITY)) {
         *protocol = PTHREAD_PRIO_INHERIT;
@@ -258,6 +279,16 @@ int  pthread_mutexattr_getprotocol (const pthread_mutexattr_t *pmutexattr, int  
 LW_API 
 int  pthread_mutexattr_setpshared (pthread_mutexattr_t *pmutexattr, int  pshared)
 {
+    if (pmutexattr == LW_NULL) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+    
+    if (pmutexattr->PMUTEXATTR_iIsEnable != 1) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+    
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -273,6 +304,16 @@ int  pthread_mutexattr_setpshared (pthread_mutexattr_t *pmutexattr, int  pshared
 LW_API 
 int  pthread_mutexattr_getpshared (const pthread_mutexattr_t *pmutexattr, int  *pshared)
 {
+    if (pmutexattr == LW_NULL) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+    
+    if (pmutexattr->PMUTEXATTR_iIsEnable != 1) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+
     if (pshared) {
         *pshared = PTHREAD_PROCESS_PRIVATE;
     }
@@ -293,6 +334,11 @@ LW_API
 int  pthread_mutexattr_settype (pthread_mutexattr_t *pmutexattr, int  type)
 {
     if (pmutexattr == LW_NULL) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+    
+    if (pmutexattr->PMUTEXATTR_iIsEnable != 1) {
         errno = EINVAL;
         return  (EINVAL);
     }
@@ -326,6 +372,11 @@ int  pthread_mutexattr_gettype (const pthread_mutexattr_t *pmutexattr, int  *typ
         return  (EINVAL);
     }
     
+    if (pmutexattr->PMUTEXATTR_iIsEnable != 1) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+    
     *type = pmutexattr->PMUTEXATTR_iType;
     
     return  (ERROR_NONE);
@@ -344,6 +395,11 @@ LW_API
 int  pthread_mutexattr_setwaitqtype (pthread_mutexattr_t  *pmutexattr, int  waitq_type)
 {
     if (pmutexattr == LW_NULL) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+    
+    if (pmutexattr->PMUTEXATTR_iIsEnable != 1) {
         errno = EINVAL;
         return  (EINVAL);
     }
@@ -379,6 +435,11 @@ int  pthread_mutexattr_getwaitqtype (const pthread_mutexattr_t *pmutexattr, int 
         return  (EINVAL);
     }
     
+    if (pmutexattr->PMUTEXATTR_iIsEnable != 1) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+    
     if (pmutexattr->PMUTEXATTR_ulOption & LW_OPTION_WAIT_PRIORITY) {
         *waitq_type = PTHREAD_WAITQ_PRIO;
     
@@ -402,6 +463,11 @@ LW_API
 int  pthread_mutexattr_setcancelsafe (pthread_mutexattr_t  *pmutexattr, int  cancel_safe)
 {
     if (pmutexattr == LW_NULL) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+    
+    if (pmutexattr->PMUTEXATTR_iIsEnable != 1) {
         errno = EINVAL;
         return  (EINVAL);
     }
@@ -433,6 +499,11 @@ LW_API
 int  pthread_mutexattr_getcancelsafe (const pthread_mutexattr_t *pmutexattr, int *cancel_safe)
 {
     if ((pmutexattr == LW_NULL) || (cancel_safe == LW_NULL)) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+    
+    if (pmutexattr->PMUTEXATTR_iIsEnable != 1) {
         errno = EINVAL;
         return  (EINVAL);
     }
@@ -487,8 +558,8 @@ int  pthread_mutex_init (pthread_mutex_t  *pmutex, const pthread_mutexattr_t *pm
                                 mutexattr.PMUTEXATTR_ulOption,
                                 LW_NULL);                               /*  创建互斥量                  */
     if (pmutex->PMUTEX_ulMutex == 0) {
-        errno = ENOSPC;
-        return  (ENOSPC);
+        errno = EAGAIN;
+        return  (EAGAIN);
     }
     
     pmutex->PMUTEX_iType = mutexattr.PMUTEXATTR_iType;                  /*  未来扩展使用                */

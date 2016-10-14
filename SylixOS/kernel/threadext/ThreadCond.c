@@ -55,7 +55,7 @@ static ULONG  __threadCondInit (PLW_THREAD_COND  ptcd, ULONG  ulAttr)
                                               LW_OPTION_WAIT_PRIORITY, 
                                               LW_NULL);
     if (!ptcd->TCD_ulSignal) {
-        return  (API_GetLastError());
+        return  (EAGAIN);
     }
     
     ptcd->TCD_ulMutex   = 0ul;

@@ -206,7 +206,7 @@ INT  timer_gettime (timer_t  timer, struct itimerspec  *ptvTime)
              ULONG       ulInterval;
     REGISTER ULONG       ulError;
 
-    if ((!timer) || ptvTime == LW_NULL) {
+    if (!timer || (ptvTime == LW_NULL)) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }

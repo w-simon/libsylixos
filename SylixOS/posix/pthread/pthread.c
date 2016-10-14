@@ -990,8 +990,8 @@ int  pthread_suspend (pthread_t thread)
     PX_ID_VERIFY(thread, pthread_t);
     
     if (API_ThreadSuspend(thread)) {
-        errno = ESRCH;
-        return  (ESRCH);
+        errno = EINVAL;
+        return  (EINVAL);
     }
     
     return  (ERROR_NONE);
@@ -1011,8 +1011,8 @@ int  pthread_resume (pthread_t thread)
     PX_ID_VERIFY(thread, pthread_t);
     
     if (API_ThreadResume(thread)) {
-        errno = ESRCH;
-        return  (ESRCH);
+        errno = EINVAL;
+        return  (EINVAL);
     }
     
     return  (ERROR_NONE);
@@ -1501,8 +1501,8 @@ int  pthread_create_hook_add (OS_STATUS (*create_hook)(pthread_t))
     
     if (API_SystemHookAdd((LW_HOOK_FUNC)create_hook, 
                           LW_OPTION_THREAD_CREATE_HOOK)) {
-        errno = ENOMEM;
-        return  (ENOMEM);
+        errno = EAGAIN;
+        return  (EAGAIN);
     }
     
     return  (ERROR_NONE);
@@ -1565,8 +1565,8 @@ int  pthread_switch_hook_add (OS_STATUS (*switch_hook)(pthread_t, pthread_t))
     
     if (API_SystemHookAdd((LW_HOOK_FUNC)switch_hook, 
                           LW_OPTION_THREAD_SWAP_HOOK)) {
-        errno = ENOMEM;
-        return  (ENOMEM);
+        errno = EAGAIN;
+        return  (EAGAIN);
     }
     
     return  (ERROR_NONE);
@@ -1629,8 +1629,8 @@ int  pthread_close_hook_add (OS_STATUS (*close_hook)(pthread_t))
     
     if (API_SystemHookAdd((LW_HOOK_FUNC)close_hook, 
                           LW_OPTION_THREAD_DELETE_HOOK)) {
-        errno = ENOMEM;
-        return  (ENOMEM);
+        errno = EAGAIN;
+        return  (EAGAIN);
     }
     
     return  (ERROR_NONE);

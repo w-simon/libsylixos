@@ -224,7 +224,38 @@ int  wdg_show (wdg_t wdg_id)
     
     return  (ERROR_NONE);
 }
+/*********************************************************************************************************
+** 函数名称: timer_getinfo
+** 功能描述: 获得一个定时器信息
+** 输　入  : timer        定时器句柄
+**           pvFile       文件结构
+** 输　出  : ERROR_NONE  or  PX_ERROR
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+#if LW_CFG_PTIMER_EN > 0
 
+LW_API 
+int  timer_getinfo (timer_t  timer, timer_info_t  *timer_info)
+{    
+    if (!timer || (timer_info == LW_NULL)) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    if (API_TimerStatusEx(timer, &timer_info->run, LW_NULL,
+                          &timer_info->cnt, 
+                          &timer_info->interval, 
+                          &timer_info->clockid)) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    return  (ERROR_NONE);
+}
+
+#endif                                                                  /*  LW_CFG_PTIMER_EN > 0        */
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
                                                                         /*  LW_CFG_GJB7714_EN > 0       */
 /*********************************************************************************************************

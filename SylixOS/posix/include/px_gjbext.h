@@ -121,6 +121,18 @@ LW_API int          wdg_delete(wdg_t wdg_id);
 LW_API int          wdg_getinfo(wdg_t wdg_id, wdg_info_t *info);
 LW_API int          wdg_show(wdg_t wdg_id);
 
+#if LW_CFG_PTIMER_EN > 0
+typedef struct {
+    int         run;
+    ULONG       cnt;
+    ULONG       interval;
+    clockid_t   clockid;
+    PVOID       reserved[8];
+} timer_info_t;
+
+LW_API int          timer_getinfo(timer_t  timer, timer_info_t  *timer_info);
+#endif                                                                  /*  LW_CFG_PTIMER_EN > 0        */
+
 /*********************************************************************************************************
   mem related
 *********************************************************************************************************/

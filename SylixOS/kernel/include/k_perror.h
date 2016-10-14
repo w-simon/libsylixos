@@ -232,7 +232,7 @@ extern errno_t *__errno(VOID);                                          /* get e
 #if LW_CFG_GJB7714_EN > 0
 
 #define ECALLEDINISR    ERROR_KERNEL_IN_ISR                             /*  called in isr routine       */
-#define EMNOTINITED     ERROR_KERNEL_NOT_RUNNING                        /*  module not inited           */
+#define EMNOTINITED     EINVAL                                          /*  module not inited           */
 
 #endif                                                                  /*  LW_CFG_GJB7714_EN > 0       */
 /*********************************************************************************************************

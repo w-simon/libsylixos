@@ -744,8 +744,8 @@ int  pthread_attr_setbreakallowed (pthread_attr_t *pattr, int breakallowed)
     }
     
     if (breakallowed == PTHREAD_BREAK_DISALLOWED) {
-        errno = ENOTSUP;
-        return  (ENOTSUP);
+        errno = EINVAL;
+        return  (EINVAL);
     }
     
     return  (ERROR_NONE);
@@ -791,8 +791,8 @@ int  pthread_attr_setfpallowed (pthread_attr_t *pattr, int fpallowed)
     }
     
     if (fpallowed == PTHREAD_FP_DISALLOWED) {
-        errno = ENOTSUP;
-        return  (ENOTSUP);
+        errno = EINVAL;
+        return  (EINVAL);
     }
     
     return  (ERROR_NONE);

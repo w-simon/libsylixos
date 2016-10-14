@@ -466,7 +466,7 @@ static __PX_MSG  *__mqueueCreate (const char  *name, mode_t mode, struct mq_attr
                                                 ulOption, LW_NULL);     /*  初始化为不可读              */
     if (pmq->PMSG_ulReadSync == LW_OBJECT_HANDLE_INVALID) {
         iErrLevel = 2;
-        errno     = ENOSPC;
+        errno     = EMFILE;
         goto    __error_handle;
     }
     
@@ -474,7 +474,7 @@ static __PX_MSG  *__mqueueCreate (const char  *name, mode_t mode, struct mq_attr
                                                  ulOption, LW_NULL);    /*  初始化为可写                */
     if (pmq->PMSG_ulWriteSync == LW_OBJECT_HANDLE_INVALID) {
         iErrLevel = 3;
-        errno     = ENOSPC;
+        errno     = EMFILE;
         goto    __error_handle;
     }
     
@@ -485,7 +485,7 @@ static __PX_MSG  *__mqueueCreate (const char  *name, mode_t mode, struct mq_attr
                                              LW_OPTION_OBJECT_GLOBAL, LW_NULL);
     if (pmq->PMSG_ulMutex == LW_OBJECT_HANDLE_INVALID) {
         iErrLevel = 4;
-        errno     = ENOSPC;
+        errno     = EMFILE;
         goto    __error_handle;
     }
     

@@ -315,8 +315,8 @@ int  pthread_key_create (pthread_key_t  *pkey, void (*destructor)(void *))
                                             LW_OPTION_OBJECT_GLOBAL, LW_NULL);
     if (pkeyn->PKEYN_ulMutex == LW_OBJECT_HANDLE_INVALID) {
         __SHEAP_FREE(pkeyn);
-        errno = ENOSPC;
-        return  (ENOSPC);
+        errno = EAGAIN;
+        return  (EAGAIN);
     }
     
     __PX_LOCK();                                                        /*  Ëø×¡ posix ¿â               */

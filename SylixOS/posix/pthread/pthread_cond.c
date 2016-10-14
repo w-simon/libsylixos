@@ -200,6 +200,7 @@ int  pthread_cond_init (pthread_cond_t  *pcond, const pthread_condattr_t  *pcond
         errno = EINVAL;
         return  (EINVAL);
     }
+    
     if (pcondattr) {
         ulAttr = *pcondattr;
     }
