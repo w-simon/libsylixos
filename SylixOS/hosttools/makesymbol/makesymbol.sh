@@ -9,8 +9,7 @@ objsfile=objs.lst
 
 echo "create $symbolc from: $srcfile"
 
-
-rm -f $funcfile $objfile
+rm -f $funcfile $objfile 1>/dev/null 2>&1
 
 for i in $srcfile; do 
     # function

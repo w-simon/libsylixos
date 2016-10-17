@@ -19,8 +19,8 @@ del %srcfile%_nm
 
 set num=0
 
-del symbol.c
-del symbol.h
+del symbol.c 1>NUL 2>&1
+del symbol.h 1>NUL 2>&1
 
 echo /********************************************************************************************************* >> symbol.c
 echo ** 													>> symbol.c
