@@ -102,7 +102,7 @@ LOCAL_LD_SCRIPT_NT := $(LOCAL_LD_SCRIPT) config.ld
 $($(target)_IMG): $(LOCAL_LD_SCRIPT_NT) $($(target)_OBJS) $($(target)_DEPEND_TARGET)
 		@rm -f $@
 		$(__PRE_LINK_CMD)
-		$(CPP) -E -P config.ld -o config.lds
+		$(CPP) -E -P $(__DSYMBOL) config.ld -o config.lds
 		$(LD) $(__CPUFLAGS) -nostdlib $(addprefix -T, $<) -o $@ $(__OBJS) $(__LIBRARIES)
 		$(__POST_LINK_CMD)
 
