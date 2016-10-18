@@ -17,6 +17,10 @@
 ** 文件创建日期: 2016 年 01 月 04 日
 **
 ** 描        述: AHCI 驱动.
+
+** BUG:
+2016.10.17  在判断硬盘是否为稳定状态时统一使用 __ahciDriveNoBusyWait() 函数.
+            机械硬盘 Seagate Desktop HDD 1000GB MODEL: ST1000DM003 稳定时间大于 900 ms (除去启动时间)
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -62,6 +66,44 @@ static INT  _GiAhciConfigType[AHCI_DRIVE_MAX] = {
 static PVOID            __ahciMonitorThread(PVOID pvArg);
 static irqreturn_t      __ahciIsr(PVOID pvArg, ULONG ulVector);
 static INT              __ahciDiskCtrlInit(AHCI_CTRL_HANDLE hCtrl, UINT uiDrive);
+/*********************************************************************************************************
+** 函数名称: __ahciDriveNoBusyWait
+** 功能描述: 等待驱动器不忙, 机械硬盘从上电到状态正确需要一段时间
+** 输　入  : hDrive    驱动器句柄
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __ahciDriveNoBusyWait (AHCI_DRIVE_HANDLE  hDrive)
+{
+    REGISTER INT    i;
+    UINT32          uiReg;
+
+    for (i = 0; i < hDrive->AHCIDRIVE_uiProbTimeCount; i++) {
+        uiReg = AHCI_PORT_READ(hDrive, AHCI_PxTFD);
+        if (uiReg & AHCI_STAT_ACCESS) {
+            API_TimeMSleep(hDrive->AHCIDRIVE_uiProbTimeUnit);
+        } else {
+            break;
+        }
+    }
+
+    if (i >= hDrive->AHCIDRIVE_uiProbTimeCount) {
+        AHCI_LOG(AHCI_LOG_ERR,
+                 "wait ctrl %d drive %d no busy failed time %d ms.",
+                 hDrive->AHCIDRIVE_hCtrl->AHCICTRL_uiIndex, hDrive->AHCIDRIVE_uiPort,
+                 (hDrive->AHCIDRIVE_uiProbTimeUnit * hDrive->AHCIDRIVE_uiProbTimeCount));
+
+        return  (PX_ERROR);
+    }
+
+    AHCI_LOG(AHCI_LOG_PRT,
+             "wait ctrl %d drive %d no busy time %d ms.",
+             hDrive->AHCIDRIVE_hCtrl->AHCICTRL_uiIndex, hDrive->AHCIDRIVE_uiPort,
+             (hDrive->AHCIDRIVE_uiProbTimeUnit * i));
+
+    return  (ERROR_NONE);
+}
 /*********************************************************************************************************
 ** 函数名称: __ahciCmdWaitForResource
 ** 功能描述: 等待资源
@@ -1546,12 +1588,17 @@ static INT  __ahciDiskCtrlInit (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
         return  (PX_ERROR);
     }
 
-    API_AhciDriveRegWait(hDrive, AHCI_PxTFD, AHCI_STAT_ACCESS, LW_FALSE, 0, 20, 50, &uiReg);
-
+    iRet = __ahciDriveNoBusyWait(hDrive);
+    if (iRet != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
     AHCI_LOG(AHCI_LOG_PRT, "port start ctrl %d port %d.", hCtrl->AHCICTRL_uiIndex, uiDrive);
     uiReg = AHCI_PORT_READ(hDrive, AHCI_PxCMD) | AHCI_PCMD_ST;
     AHCI_PORT_WRITE(hDrive, AHCI_PxCMD, uiReg);
-    API_AhciDriveRegWait(hDrive, AHCI_PxTFD, AHCI_STAT_ACCESS, LW_FALSE, 0, 20, 50, &uiReg);
+    iRet = __ahciDriveNoBusyWait(hDrive);
+    if (iRet != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
 
     hCmd->AHCICMD_iFlags = AHCI_CMD_FLAG_SRST_ON;
     __ahciDiskCommandSend(hCtrl, uiDrive, hCmd);
@@ -1928,34 +1975,6 @@ __error_handle:
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: __ahciDriveNoBusyWait
-** 功能描述: 等待驱动器不忙, 机械硬盘从上电到状态正确需要一段时间
-** 输　入  : hDrive    驱动器句柄
-** 输　出  : ERROR or OK
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-static INT  __ahciDriveNoBusyWait (AHCI_DRIVE_HANDLE  hDrive)
-{
-    REGISTER INT    i;
-    UINT32          uiReg;
-
-    for (i = 0; i < hDrive->AHCIDRIVE_uiProbTimeCount; i++) {
-        uiReg = AHCI_PORT_READ(hDrive, AHCI_PxTFD);
-        if (uiReg & AHCI_STAT_ACCESS) {
-            API_TimeMSleep(hDrive->AHCIDRIVE_uiProbTimeUnit);
-        } else {
-            break;
-        }
-    }
-
-    if (i >= hDrive->AHCIDRIVE_uiProbTimeCount) {
-        return  (PX_ERROR);
-    }
-
-    return  (ERROR_NONE);
-}
-/*********************************************************************************************************
 ** 函数名称: __ahciDrvInit
 ** 功能描述: 初始化 AHCI 驱动
 ** 输　入  : hCtrl     控制器句柄
@@ -2316,11 +2335,6 @@ static INT  __ahciDrvInit (AHCI_CTRL_HANDLE  hCtrl)
                              AHCI_PCMD_SUD));
             API_AhciDriveRegWait(hDrive,
                                  AHCI_PxCMD, AHCI_PCMD_CR, LW_TRUE, AHCI_PCMD_CR, 20, 50, &uiReg);
-            /*
-             *  等待稳定状态
-             */
-            iRet = API_AhciDriveRegWait(hDrive,
-                                        AHCI_PxTFD, AHCI_STAT_ACCESS, LW_FALSE, 0, 20, 50, &uiReg);
         }
 
         uiPortMap >>= 1;
@@ -2355,6 +2369,8 @@ static INT  __ahciDrvInit (AHCI_CTRL_HANDLE  hCtrl)
         if ((j < AHCI_RETRY_NUM) &&
             (uiReg == AHCI_PSSTS_DET_PHY)) {                            /* 已经探测到设备               */
             AHCI_LOG(AHCI_LOG_PRT, "ctrl %d drive %d phy det.", hCtrl->AHCICTRL_uiIndex, i);
+
+            __ahciDriveNoBusyWait(hDrive);                              /* 等待稳定状态                 */
             __ahciDiskCtrlInit(hCtrl, i);                               /* 初始化磁盘控制器             */
             __ahciDiskDriveInit(hCtrl, i);                              /* 初始磁盘驱动器               */
         
@@ -2581,10 +2597,6 @@ static PVOID  __ahciMonitorThread (PVOID  pvArg)
 
             iRet = __ahciDriveNoBusyWait(hDrive);
             if (iRet != ERROR_NONE) {
-                AHCI_LOG(AHCI_LOG_ERR,
-                         "wait ctrl %d drive %d no busy failed time %d ms.",
-                         hCtrl->AHCICTRL_uiIndex, iDrive,
-                         (hDrive->AHCIDRIVE_uiProbTimeUnit * hDrive->AHCIDRIVE_uiProbTimeCount));
                 break;
             }
 
