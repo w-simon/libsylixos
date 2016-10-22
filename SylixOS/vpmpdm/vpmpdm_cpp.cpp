@@ -11,8 +11,8 @@
 #include <SylixOS.h>
 
 extern "C" {
-void    *malloc_new(size_t nbytes);
-void     free(void *p);
+void    *lib_malloc_new(size_t nbytes);
+void     lib_free(void *p);
 }
 
 /*
@@ -20,25 +20,25 @@ void     free(void *p);
  */
 void  *operator  new (size_t nbytes)
 {
-    return  (malloc_new(nbytes));
+    return  (lib_malloc_new(nbytes));
 }
 
 void  *operator  new[] (size_t nbytes)
 {
-    return  (malloc_new(nbytes));
+    return  (lib_malloc_new(nbytes));
 }
 
 void  operator  delete (void  *p)
 {
     if (p) {
-        free(p);
+        lib_free(p);
     }
 }
 
 void  operator  delete[] (void  *p)
 {
     if (p) {
-        free(p);
+        lib_free(p);
     }
 }
 

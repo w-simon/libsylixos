@@ -34,10 +34,6 @@
  * SUCH DAMAGE.
  */
 
-#if defined(LIBC_SCCS) && !defined(lint)
-static char sccsid[] = "@(#)fclose.c	8.1 (Berkeley) 6/4/93";
-#endif /* LIBC_SCCS and not lint */
-
 #include "errno.h"
 #include "stdio.h"
 #include "stdlib.h"
@@ -69,14 +65,16 @@ fclose(fp)
 	fp->_flags = 0;		/* Release this FILE for reuse. */
 	fp->_r = fp->_w = 0;	/* Mess up if reaccessed. */
 	
-    __stdioFileDelete(fp);
+    __lib_delfile(fp);
 	
 	return (r);
 }
 
 int
-fclose_nfree_fp (fp)  /*  sylixos add this function do not free fp */
+fclose_ex(fp, bclose, bfree)  /*  sylixos add this function */
 	register FILE *fp;
+	register BOOL  bclose;
+	register BOOL  bfree;
 {
 	register int r;
 
@@ -84,9 +82,11 @@ fclose_nfree_fp (fp)  /*  sylixos add this function do not free fp */
 		errno = EBADF;
 		return (EOF);
 	}
-	r = fp->_flags & __SWR ? __sflush(fp) : 0;
-	if (fp->_close != NULL && (*fp->_close)(fp->_cookie) < 0)
-		r = EOF;
+	if (bclose) {
+    	r = fp->_flags & __SWR ? __sflush(fp) : 0;
+    	if (fp->_close != NULL && (*fp->_close)(fp->_cookie) < 0)
+    		r = EOF;
+    }
 	if (fp->_flags & __SMBF)
 		free((char *)fp->_bf._base);
 	if (HASUB(fp))
@@ -95,30 +95,13 @@ fclose_nfree_fp (fp)  /*  sylixos add this function do not free fp */
 		FREELB(fp);
 	fp->_flags = 0;		/* Release this FILE for reuse. */
 	fp->_r = fp->_w = 0;	/* Mess up if reaccessed. */
+	
+	if (bfree) {
+	    __lib_delfile(fp);
+	}
 	
 	return (r);
 }
 
-int
-ffree (fp)  /* sylixos use this free FILE * */
-    register FILE *fp;
-{
-	if (fp->_flags == 0) {	/* not open! */
-		errno = EBADF;
-		return (EOF);
-	}
-	if (fp->_flags & __SMBF)
-		free((char *)fp->_bf._base);
-	if (HASUB(fp))
-		FREEUB(fp);
-	if (HASLB(fp))
-		FREELB(fp);
-	fp->_flags = 0;		/* Release this FILE for reuse. */
-	fp->_r = fp->_w = 0;	/* Mess up if reaccessed. */
-	
-    __stdioFileDelete(fp);
-    
-	return (0);
-}
 #endif  /*  (LW_CFG_DEVICE_EN > 0)      */
         /*  (LW_CFG_FIO_LIB_EN > 0)     */

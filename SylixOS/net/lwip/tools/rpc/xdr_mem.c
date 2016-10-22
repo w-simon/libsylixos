@@ -27,9 +27,6 @@
  * 2550 Garcia Avenue
  * Mountain View, California  94043
  */
-#if !defined(lint) && defined(SCCSIDS)
-static char sccsid[] = "@(#)xdr_mem.c 1.19 87/08/11 Copyr 1984 Sun Micro";
-#endif
 
 /*
  * xdr_mem.h, XDR implementation using memory buffers.

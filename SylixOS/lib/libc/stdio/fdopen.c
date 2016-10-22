@@ -34,10 +34,6 @@
  * SUCH DAMAGE.
  */
 
-#if defined(LIBC_SCCS) && !defined(lint)
-static char sccsid[] = "@(#)fdopen.c	8.1 (Berkeley) 6/4/93";
-#endif /* LIBC_SCCS and not lint */
-
 #include "sys/types.h"
 #include "fcntl.h"
 #include "unistd.h"
@@ -57,7 +53,7 @@ fdopen(fd, mode)
 	/* static int nofile; */
 	int flags, oflags, fdflags, tmp;
 
-#if 0
+#ifndef SYLIXOS
 	if (nofile == 0)
 		nofile = getdtablesize();
 #endif
@@ -92,5 +88,6 @@ fdopen(fd, mode)
 	fp->_close = __sclose;
 	return (fp);
 }
+
 #endif  /*  (LW_CFG_DEVICE_EN > 0)      */
         /*  (LW_CFG_FIO_LIB_EN > 0)     */

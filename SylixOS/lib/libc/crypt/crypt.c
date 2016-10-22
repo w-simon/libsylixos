@@ -34,13 +34,6 @@
 
 #define __SYLIXOS_KERNEL
 #include "sys/cdefs.h"
-
-#ifndef SYLIXOS
-#if !defined(lint)
-__RCSID("$NetBSD: crypt.c,v 1.26 2007/01/17 23:24:22 hubertf Exp $");
-#endif /* not lint */
-#endif
-
 #include "limits.h"
 #include "pwd.h"
 #include "stdlib.h"

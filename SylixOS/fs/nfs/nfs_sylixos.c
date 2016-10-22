@@ -469,8 +469,8 @@ INT  API_NfsDrvInstall (VOID)
     DRIVER_DESCRIPTION(_G_iNfsDrvNum, "NFSv3 driver.");
 
     _DebugHandle(__LOGMESSAGE_LEVEL, "nfs file system installed.\r\n");
-                                     
-    __fsRegister("nfs", API_NfsDevCreate);                              /*  注册文件系统                */
+    
+    __fsRegister("nfs", API_NfsDevCreate, LW_NULL);                     /*  注册文件系统                */
 
     return  ((_G_iNfsDrvNum > 0) ? (ERROR_NONE) : (PX_ERROR));
 }

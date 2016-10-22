@@ -31,7 +31,7 @@
 *********************************************************************************************************/
 #if LW_CFG_FIO_FLOATING_POINT_EN > 0
 
-int  lib_isnan (double  dX) 
+int  lib_isnan (double  dX)
 {
     return  (__ARCH_DOUBLE_ISNAN(dX));
 }
@@ -43,7 +43,7 @@ int  lib_isnan (double  dX)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-int  lib_isinf (double  dX) 
+int  lib_isinf (double  dX)
 {
     return  (__ARCH_DOUBLE_ISINF(dX));
 }

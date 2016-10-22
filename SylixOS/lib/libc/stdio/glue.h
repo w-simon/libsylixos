@@ -40,10 +40,9 @@
  * The first few FILEs are statically allocated; others are dynamically
  * allocated and linked in via this glue structure.
  */
-/**************************** HANHUI ***************************/
+
 #ifndef __GLUE_H
 #define __GLUE_H
-/**************************** HANHUI ***************************/
 
 struct glue {
 	struct	glue *next;
@@ -51,12 +50,10 @@ struct glue {
 	FILE	*iobs;
 };
 
-/**************************** HANHUI ***************************/
 #ifdef __GLUE_MAIN_FILE
 struct glue     __sglue;
 #else
 extern struct glue     __sglue;
 #endif
 
-#endif  /*  __GLUE_H  */
-/**************************** HANHUI ***************************/
+#endif  /* __GLUE_H */

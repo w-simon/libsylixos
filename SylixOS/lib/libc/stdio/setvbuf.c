@@ -34,16 +34,11 @@
  * SUCH DAMAGE.
  */
 
-#if defined(LIBC_SCCS) && !defined(lint)
-static char sccsid[] = "@(#)setvbuf.c	8.2 (Berkeley) 11/16/93";
-#endif /* LIBC_SCCS and not lint */
-
 #include "stdio.h"
 
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_FIO_LIB_EN > 0)
 
 #include "stdlib.h"
-
 #include "local.h"
 
 /*
@@ -160,7 +155,7 @@ nbf:
 		fp->_w = 0;
 	}
 
-#if 0
+#ifndef SYLIXOS
 	__cleanup = _cleanup;
 #endif
 

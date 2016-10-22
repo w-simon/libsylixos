@@ -33,14 +33,6 @@
  */
 
 #include "wcfix.h"
-#if defined(LIBC_SCCS) && !defined(lint)
-#if 0
-static char sccsid[] = "@(#)strcmp.c	8.1 (Berkeley) 6/4/93";
-#else
-__RCSID("$NetBSD: wcscmp.c,v 1.5.38.2 2009/01/15 04:21:26 snj Exp $");
-#endif
-#endif /* LIBC_SCCS and not lint */
-
 #include "assert.h"
 #include "wchar.h"
 

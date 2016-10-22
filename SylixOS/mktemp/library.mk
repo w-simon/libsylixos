@@ -40,11 +40,8 @@ $(target)_GCOV_FLAGS  :=
 endif
 
 $(target)_DSYMBOL     += -DSYLIXOS_LIB
-ifneq (,$(findstring libvpmpdm.so,$(LOCAL_TARGET_NAME)))
-$(target)_CPUFLAGS    := $(CPUFLAGS_NOFPU)
-else
+
 $(target)_CPUFLAGS    := $(CPUFLAGS)
-endif
 $(target)_COMMONFLAGS := $($(target)_CPUFLAGS) $(ARCH_COMMONFLAGS) $(OPTIMIZE) -Wall -fmessage-length=0 -fsigned-char -fno-short-enums $($(target)_GCOV_FLAGS) 
 $(target)_ASFLAGS     := $($(target)_COMMONFLAGS) -x assembler-with-cpp $($(target)_DSYMBOL) $($(target)_INC_PATH) 
 $(target)_CFLAGS      := $($(target)_COMMONFLAGS) $(ARCH_PIC_CFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CFLAGS)

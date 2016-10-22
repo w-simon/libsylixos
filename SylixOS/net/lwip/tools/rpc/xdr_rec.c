@@ -26,9 +26,6 @@
  * 2550 Garcia Avenue
  * Mountain View, California  94043
  */
-#if defined(LIBC_SCCS) && !defined(lint)
-static char *rcsid = "$FreeBSD: src/lib/libc/xdr/xdr_rec.c,v 1.12 2000/01/19 06:12:32 wpaul Exp $";
-#endif
 
 /*
  * xdr_rec.c, Implements TCP/IP based XDR streams with a "record marking"

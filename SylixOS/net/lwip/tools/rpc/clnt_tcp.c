@@ -27,10 +27,6 @@
  * Mountain View, California  94043
  */
 
-#if defined(LIBC_SCCS) && !defined(lint)
-static char *rcsid = "$FreeBSD: src/lib/libc/rpc/clnt_tcp.c,v 1.14 2000/01/27 23:06:36 jasone Exp $";
-#endif
-
 /*
  * clnt_tcp.c, Implements a TCP/IP based, client side RPC.
  *

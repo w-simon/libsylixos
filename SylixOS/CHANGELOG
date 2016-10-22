@@ -39,6 +39,9 @@ HISTORY
 
 ++ Bugfixes:
 
+    2016-10-20: han.hui
+    将浮点相关函数移动到 vpmpdm 里面, 这样 libsylixos 可适应任何 hard-fp ABI.
+
     2016-09-14: han.hui
     修正 sigwait 系列函数超时判断错误.
     修正 shell 连续背景执行错误.

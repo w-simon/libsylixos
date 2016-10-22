@@ -14,13 +14,6 @@
  */
 
 #include "sys/cdefs.h"
-
-#ifndef SYLIXOS
-#if !defined(lint)
-__RCSID("$NetBSD: md5crypt.c,v 1.9 2007/01/17 23:24:22 hubertf Exp $");
-#endif /* not lint */
-#endif
-
 /*
  * NOTE: We are also built for inclusion in libcrypto; when built for that
  * environment, use the libcrypto versions of the MD5 routines, so save

@@ -419,8 +419,6 @@ APPL_SRCS = \
 SylixOS/appl/editors/vi/vi_fix.c \
 SylixOS/appl/editors/vi/vi_sylixos.c \
 SylixOS/appl/editors/vi/src/vi.c \
-SylixOS/appl/ini/iniparser/dictionary.c \
-SylixOS/appl/ini/iniparser/iniparser.c \
 SylixOS/appl/ssl/polarssl/library/aes.c \
 SylixOS/appl/ssl/polarssl/library/arc4.c \
 SylixOS/appl/ssl/polarssl/library/asn1parse.c \

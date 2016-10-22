@@ -206,6 +206,7 @@ UINT32          get_fattime(void);
 /*********************************************************************************************************
   驱动程序声明
 *********************************************************************************************************/
+static INT      __fatFsCheck(PLW_BLK_DEV  pblkd, UINT8  ucPartType);
 static LONG     __fatFsOpen(PFAT_VOLUME     pfatvol,
                             PCHAR           pcName,
                             INT             iFlags,
@@ -314,7 +315,7 @@ INT  API_FatFsDrvInstall (VOID)
     
     _DebugHandle(__LOGMESSAGE_LEVEL, "microsoft FAT file system installed.\r\n");
     
-    __fsRegister("vfat", API_FatFsDevCreate);                           /*  注册文件系统                */
+    __fsRegister("vfat", API_FatFsDevCreate, (FUNCPTR)__fatFsCheck);    /*  注册文件系统                */
     
 #if LW_CFG_SHELL_EN > 0
     API_TShellKeywordAdd("fatugid", __tshellFatUGID);
@@ -478,6 +479,55 @@ INT  API_FatFsDevDelete (PCHAR   pcName)
         _ErrorHandle(ENOENT);
         return  (PX_ERROR);
     }
+}
+/*********************************************************************************************************
+** 函数名称: __fatFsCheck
+** 功能描述: 检测 exFAT 分区是否有效
+** 输　入  : pblkd             块设备
+**           ucPartType        分区类型 (0x07 is NTFS or exFAT)
+** 输　出  : ERROR or OK
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static INT  __fatFsCheck (PLW_BLK_DEV  pblkd, UINT8  ucPartType)
+{
+    PUCHAR  pucBuffer;
+    ULONG   ulSecSize;
+    
+    if (!pblkd || (ucPartType != 0x07)) {
+        return  (ERROR_NONE);
+    }
+    
+    pblkd->BLKD_pfuncBlkIoctl(pblkd, LW_BLKD_CTRL_POWER, LW_BLKD_POWER_ON);
+    pblkd->BLKD_pfuncBlkReset(pblkd);
+    pblkd->BLKD_pfuncBlkIoctl(pblkd, FIODISKINIT);
+    
+    ulSecSize = pblkd->BLKD_ulBytesPerSector;
+    if (!ulSecSize) {
+        pblkd->BLKD_pfuncBlkIoctl(pblkd, LW_BLKD_GET_SECSIZE, &ulSecSize);
+    }
+    if (!ulSecSize) {
+        return  (PX_ERROR);
+    }
+    
+    pucBuffer = (PUCHAR)__SHEAP_ALLOC((size_t)ulSecSize);
+    if (!pucBuffer) {
+        _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
+        return  (PX_ERROR);
+    }
+    
+    if (pblkd->BLKD_pfuncBlkRd(pblkd, pucBuffer, 0, 1) < 0) {
+        __SHEAP_FREE(pucBuffer);
+        return  (PX_ERROR);
+    }
+    
+    if (lib_memcmp(pucBuffer, "\xEB\x76\x90" "EXFAT   ", 11)) {         /*  仅兼容 exFAT 文件系统       */
+        __SHEAP_FREE(pucBuffer);
+        return  (PX_ERROR);
+    }
+    
+    __SHEAP_FREE(pucBuffer);
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: __fatFsHisAdd

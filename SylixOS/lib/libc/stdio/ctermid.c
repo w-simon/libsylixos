@@ -31,10 +31,6 @@
  * SUCH DAMAGE.
  */
 
-#if defined(LIBC_SCCS) && !defined(lint)
-static char sccsid[] = "@(#)ctermid.c	8.1 (Berkeley) 6/4/93";
-#endif /* LIBC_SCCS and not lint */
-
 #include "stdio.h"
 #include "paths.h"
 #include "string.h"
@@ -49,5 +45,6 @@ ctermid(s)
 		bcopy(def, s, sizeof(_PATH_TTY));
 		return(s);
 	}
+	
 	return(def);
 }

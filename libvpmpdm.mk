@@ -33,15 +33,41 @@ LOCAL_TARGET_NAME := libvpmpdm.so
 # Source list
 #*********************************************************************************************************
 LOCAL_SRCS := \
+SylixOS/vpmpdm/cfloat/backtrace/backtrace.c \
+SylixOS/vpmpdm/cfloat/iniparser/dictionary.c \
+SylixOS/vpmpdm/cfloat/iniparser/iniparser.c \
+SylixOS/vpmpdm/cfloat/stdio/asprintf.c \
+SylixOS/vpmpdm/cfloat/stdio/cvtfloat.c \
+SylixOS/vpmpdm/cfloat/stdio/fdprintf.c \
+SylixOS/vpmpdm/cfloat/stdio/fdscanf.c \
+SylixOS/vpmpdm/cfloat/stdio/fprintf.c \
+SylixOS/vpmpdm/cfloat/stdio/fscanf.c \
+SylixOS/vpmpdm/cfloat/stdio/printf.c \
+SylixOS/vpmpdm/cfloat/stdio/scanf.c \
+SylixOS/vpmpdm/cfloat/stdio/snprintf.c \
+SylixOS/vpmpdm/cfloat/stdio/sprintf.c \
+SylixOS/vpmpdm/cfloat/stdio/sscanf.c \
+SylixOS/vpmpdm/cfloat/stdio/vfprintf.c \
+SylixOS/vpmpdm/cfloat/stdio/vfscanf.c \
+SylixOS/vpmpdm/cfloat/stdio/vprintf.c \
+SylixOS/vpmpdm/cfloat/stdio/vscanf.c \
+SylixOS/vpmpdm/cfloat/stdio/vsnprintf.c \
+SylixOS/vpmpdm/cfloat/stdio/vsprintf.c \
+SylixOS/vpmpdm/cfloat/stdio/vsscanf.c \
+SylixOS/vpmpdm/cfloat/stdlib/lib_rand.c \
+SylixOS/vpmpdm/cfloat/stdlib/lib_search.c \
+SylixOS/vpmpdm/cfloat/stdlib/lib_sort.c \
+SylixOS/vpmpdm/cfloat/stdlib/lib_strto.c \
+SylixOS/vpmpdm/cfloat/stdlib/lib_strtod.c \
+SylixOS/vpmpdm/cfloat/time/lib_difftime.c \
+SylixOS/vpmpdm/cfloat/wchar/wchar.c \
+SylixOS/vpmpdm/cfloat/wchar/wcsdup.c \
 SylixOS/vpmpdm/dlmalloc/dl_malloc.c \
 SylixOS/vpmpdm/dlmalloc/dlmalloc.c \
 SylixOS/vpmpdm/tlsf/tlsf.c \
-SylixOS/vpmpdm/vpmpdm_backtrace.c \
 SylixOS/vpmpdm/vpmpdm_cpp.cpp \
 SylixOS/vpmpdm/vpmpdm_lm.c \
 SylixOS/vpmpdm/vpmpdm_start.c \
-SylixOS/vpmpdm/vpmpdm_stdio.c \
-SylixOS/vpmpdm/vpmpdm_stdlib.c \
 SylixOS/vpmpdm/vpmpdm.c
 
 #*********************************************************************************************************

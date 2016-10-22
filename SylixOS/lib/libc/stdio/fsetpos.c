@@ -34,10 +34,6 @@
  * SUCH DAMAGE.
  */
 
-#if defined(LIBC_SCCS) && !defined(lint)
-static char sccsid[] = "@(#)fsetpos.c	8.1 (Berkeley) 6/4/93";
-#endif /* LIBC_SCCS and not lint */
-
 #include "stdio.h"
 
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_FIO_LIB_EN > 0)
@@ -63,5 +59,6 @@ fsetpos64(iop, pos)
 {
 	return (fseeko64(iop, (off64_t)*pos, SEEK_SET));
 }
+
 #endif  /*  (LW_CFG_DEVICE_EN > 0)      */
         /*  (LW_CFG_FIO_LIB_EN > 0)     */

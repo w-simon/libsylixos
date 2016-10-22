@@ -61,10 +61,6 @@ static __LW_REENT _G_lwreentTbl[LW_CFG_MAX_THREADS];                    /*  每个
 *********************************************************************************************************/
 struct __nl_reent *__attribute__((weak)) _impure_ptr;                   /*  当前 newlib reent 上下文    */
 /*********************************************************************************************************
-  stdio particular function
-*********************************************************************************************************/
-extern int fclose_nfree_fp(FILE *fp);
-/*********************************************************************************************************
 ** 函数名称: __nlreent_swtich_hook
 ** 功能描述: newlib 使用 __DYNAMIC_REENT__ 编译时才能支持 SMP 系统, 这里提供必要函数.
 ** 输　入  : NONE
@@ -119,7 +115,7 @@ static VOID  __nlreent_delete_hook (LW_OBJECT_HANDLE  ulThread)
      */
     for (i = 0; i < 3; i++) {
         if (plwreent->_file[i]._flags) {
-            fclose_nfree_fp(&plwreent->_file[i]);
+            fclose_ex(&plwreent->_file[i], LW_TRUE, LW_FALSE);
         }
     }
     
@@ -159,9 +155,9 @@ VOID  lib_nlreent_init (LW_OBJECT_HANDLE  ulThread)
     pnlreent->_stdout = &plwreent->_file[STDOUT_FILENO];
     pnlreent->_stderr = &plwreent->_file[STDERR_FILENO];
     
-    __stdioFileCreate(pnlreent->_stdin);
-    __stdioFileCreate(pnlreent->_stdout);
-    __stdioFileCreate(pnlreent->_stderr);
+    __lib_newfile(pnlreent->_stdin);                                    /* 标准文件初始化不存在内存分配 */
+    __lib_newfile(pnlreent->_stdout);
+    __lib_newfile(pnlreent->_stderr);
     
     /*
      *  stdin init flags
@@ -182,8 +178,11 @@ VOID  lib_nlreent_init (LW_OBJECT_HANDLE  ulThread)
     /*
      *  stderr init flags
      */
-    pnlreent->_stderr->_flags = __SWR | __SNBF;
-    
+    pnlreent->_stderr->_flags = __SWR;
+#if LW_CFG_FIO_STDERR_LINE_EN > 0
+    pnlreent->_stderr->_flags |= __SNBF;
+#endif                                                                  /* LW_CFG_FIO_STDERR_LINE_EN    */
+
     pnlreent->_stdin->_file  = STDIN_FILENO;
     pnlreent->_stdout->_file = STDOUT_FILENO;
     pnlreent->_stderr->_file = STDERR_FILENO;
@@ -191,22 +190,25 @@ VOID  lib_nlreent_init (LW_OBJECT_HANDLE  ulThread)
 /*********************************************************************************************************
 ** 函数名称: lib_nlreent_stdfile
 ** 功能描述: 获取指定线程的 stdfile 结构 
-** 输　入  : ulThread      线程 ID
-**           FileNo        文件号, 0, 1, 2
+** 输　入  : FileNo        文件号, 0, 1, 2
 ** 输　出  : stdfile 指针地址
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-FILE **lib_nlreent_stdfile (LW_OBJECT_HANDLE  ulThread, INT  FileNo)
+FILE **lib_nlreent_stdfile (INT  FileNo)
 {
-    REGISTER __LW_REENT  *plwreent;
-    REGISTER __NL_REENT  *pnlreent;
+    REGISTER __LW_REENT    *plwreent;
+    REGISTER __NL_REENT    *pnlreent;
+    REGISTER PLW_CLASS_TCB  ptcbCur;
 
-    if (!ulThread) {
+    if (LW_CPU_GET_CUR_NESTING()) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "called from ISR.\r\n");
         return  (LW_NULL);
     }
     
-    plwreent = &_G_lwreentTbl[_ObjectGetIndex(ulThread)];
+    LW_TCB_GET_CUR_SAFE(ptcbCur);
+    
+    plwreent = &_G_lwreentTbl[_ObjectGetIndex(ptcbCur->TCB_ulId)];
     pnlreent = &plwreent->_nl_com;
     
     switch (FileNo) {

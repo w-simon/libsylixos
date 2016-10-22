@@ -27,11 +27,6 @@
  * 2550 Garcia Avenue
  * Mountain View, California  94043
  */
-#if !defined(lint) && defined(SCCSIDS)
-static char sccsid[] =
-
-	"@(#)auth_none.c 1.19 87/08/11 Copyr 1984 Sun Micro";
-#endif
 
 /*
  * auth_none.c

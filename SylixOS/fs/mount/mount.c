@@ -116,7 +116,7 @@ static INT  __mount (CPCHAR  pcDevName, CPCHAR  pcVolName, CPCHAR  pcFileSystem,
     }
     
     pcFs = (!pcFileSystem) ? __LW_MOUNT_DEFAULT_FS : (PCHAR)pcFileSystem;
-    pfuncFsCreate = __fsCreateFuncGet(pcFs);                            /*  文件系统创建函数            */
+    pfuncFsCreate = __fsCreateFuncGet(pcFs, LW_NULL, 0);                /*  文件系统创建函数            */
     if (pfuncFsCreate == LW_NULL) {
         _ErrorHandle(ERROR_IO_NO_DRIVER);                               /*  没有文件系统驱动            */
         return  (PX_ERROR);

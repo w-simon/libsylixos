@@ -156,6 +156,7 @@ VOID                vprocSetCur(LW_LD_VPROC  *pvproc);
 pid_t               vprocGetPidByTcb(PLW_CLASS_TCB ptcb);
 pid_t               vprocGetPidByTcbNoLock(PLW_CLASS_TCB  ptcb);
 pid_t               vprocGetPidByTcbdesc(PLW_CLASS_TCB_DESC  ptcbdesc);
+pid_t               vprocGetPidByThread(LW_OBJECT_HANDLE  ulId);
 LW_OBJECT_HANDLE    vprocMainThread(pid_t pid);
 INT                 vprocNotifyParent(LW_LD_VPROC *pvproc, INT  iSigCode, BOOL  bUpDateStat);
 VOID                vprocReclaim(LW_LD_VPROC *pvproc, BOOL  bFreeVproc);

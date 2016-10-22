@@ -42,10 +42,6 @@
  */
 
 #include "wcfix.h"
-#if defined(LIBC_SCCS) && !defined(lint)
-__RCSID("$NetBSD: wcstok.c,v 1.3 2003/07/10 08:50:48 tshiozak Exp $");
-#endif
-
 #include "assert.h"
 #include "wchar.h"
 

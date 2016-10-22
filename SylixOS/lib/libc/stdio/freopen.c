@@ -34,10 +34,6 @@
  * SUCH DAMAGE.
  */
 
-#if defined(LIBC_SCCS) && !defined(lint)
-static char sccsid[] = "@(#)freopen.c	8.1 (Berkeley) 6/4/93";
-#endif /* LIBC_SCCS and not lint */
-
 #include "stdio.h"
 
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_FIO_LIB_EN > 0)
@@ -133,7 +129,7 @@ freopen(file, mode, fp)
 	if (f < 0) {			/* did not get it after all */
 		fp->_flags = 0;		/* set it free */
 		errno = sverrno;	/* restore in case _close clobbered */
-        __stdioFileDelete(fp);
+        __lib_delfile(fp);
 		return (NULL);
 	}
 
@@ -158,5 +154,6 @@ freopen(file, mode, fp)
 	fp->_close = __sclose;
 	return (fp);
 }
+
 #endif  /*  (LW_CFG_DEVICE_EN > 0)      */
         /*  (LW_CFG_FIO_LIB_EN > 0)     */

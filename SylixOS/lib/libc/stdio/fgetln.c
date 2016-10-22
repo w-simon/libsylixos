@@ -34,10 +34,6 @@
  * SUCH DAMAGE.
  */
 
-#if defined(LIBC_SCCS) && !defined(lint)
-static char sccsid[] = "@(#)fgetln.c	8.2 (Berkeley) 1/2/94";
-#endif /* LIBC_SCCS and not lint */
-
 #include "stdio.h"
 
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_FIO_LIB_EN > 0)
@@ -163,5 +159,6 @@ error:
 	*lenp = 0;		/* ??? */
 	return (NULL);		/* ??? */
 }
+
 #endif  /*  (LW_CFG_DEVICE_EN > 0)      */
         /*  (LW_CFG_FIO_LIB_EN > 0)     */

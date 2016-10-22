@@ -41,13 +41,6 @@
  * Hash_Final
  */
 #include "sys/cdefs.h"
-
-#ifndef SYLIXOS
-#if !defined(lint)
-__RCSID("$NetBSD: hmac.c,v 1.1 2006/10/27 18:22:56 drochner Exp $");
-#endif /* not lint */
-#endif
-
 #include "stdlib.h"
 #include "string.h"
 

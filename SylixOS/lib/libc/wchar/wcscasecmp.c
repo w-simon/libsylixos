@@ -12,10 +12,6 @@
  */
 
 #include "wcfix.h"
-#if defined(LIBC_SCCS) && !defined(lint) 
-__RCSID("$NetBSD: wcscasecmp.c,v 1.2 2006/08/26 22:45:52 christos Exp $"); 
-#endif /* LIBC_SCCS and not lint */ 
-
 #include "assert.h"
 #include "wchar.h"
 #include "wctype.h"

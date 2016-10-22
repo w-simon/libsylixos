@@ -39,6 +39,7 @@
 2013.08.14  _IosThreadDelete() 中加入对阻塞文件锁信息的移除.
 2013.09.29  _IosDeleteAll() 中加入对 PCI 设备的复位.
 2013.11.20  _IosInit() 加入对 eventfd, timerfd, signalfd 的初始化.
+2016.10.22  简化系统重启设计.
 *********************************************************************************************************/
 #define  __SYLIXOS_PCI_DRV
 #define  __SYLIXOS_KERNEL
@@ -411,35 +412,24 @@ VOID  _IosEnvInherit (PLW_IO_ENV  pioe)
 *********************************************************************************************************/
 static VOID  _IosDeleteAll (INT  iRebootType)
 {
-    REGISTER PLW_DEV_HDR            pdevhdr;
-    REGISTER INT                    iError;
-             PLW_LIST_LINE          plineTemp;
-
-    sync();                                                             /*  将系统所有的文件回写磁盘    */
+    REGISTER PLW_DEV_HDR    pdevhdr;
+             PLW_LIST_LINE  plineTemp;
 
     _IosLock();
-    for (;_S_plineDevHdrHeader != LW_NULL;) {
-        pdevhdr = _LIST_ENTRY(_S_plineDevHdrHeader, LW_DEV_HDR, DEVHDR_lineManage);
+    for (plineTemp  = _S_plineDevHdrHeader;
+         plineTemp != LW_NULL;
+         plineTemp  = _list_line_get_next(plineTemp)) {
         
-        plineTemp = _S_plineDevHdrHeader;
+        pdevhdr = _LIST_ENTRY(_S_plineDevHdrHeader, LW_DEV_HDR, DEVHDR_lineManage);
         _IosUnlock();
         
-        /*
-         *  I/O 系统退出时, 需要卸载掉所有的可写在设备, 这样有利于设备的回写操作.
-         */
         API_IosDevFileAbnormal(pdevhdr);                                /*  对应文件强制关闭            */
-         
-        iError = unlink(pdevhdr->DEVHDR_pcName);                        /*  移除设备                    */
-        if ((iError < 0) || (plineTemp == _S_plineDevHdrHeader)) {      /*  remove 失败                 */
-            API_IosDevDelete(pdevhdr);                                  /*  直接卸载设备                */
-        }
+        
         _IosLock();
     }
     _IosUnlock();
     
-#if LW_CFG_PCI_EN > 0
-    API_PciCtrlReset(iRebootType);
-#endif                                                                  /*  LW_CFG_PCI_EN > 0           */
+    sync();                                                             /*  将系统所有的文件回写磁盘    */
 }
 /*********************************************************************************************************
 ** 函数名称: _IosThreadDelete

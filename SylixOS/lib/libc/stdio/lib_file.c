@@ -35,68 +35,69 @@
   裁剪控制
 *********************************************************************************************************/
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_FIO_LIB_EN > 0)
-extern int  ffree(FILE *fp);
 /*********************************************************************************************************
-** 函数名称: __stdioFileCreate
+** 函数名称: __lib_newfile
 ** 功能描述: 创建一个文件结构
 ** 输　入  : pfFile        文件指针 (如果为 NULL 将创建)
 ** 输　出  : 文件指针
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-FILE  *__stdioFileCreate (FILE  *pfFile)
+FILE  *__lib_newfile (FILE  *pfFile)
 {
     BOOL    bNeedRes = LW_TRUE;
 
     if (pfFile == LW_NULL) { 
-        pfFile = (FILE *)lib_malloc(sizeof(FILE));                      /*  分配文件指针                */
+        pfFile = (FILE *)lib_malloc(sizeof(FILE));                      /* 分配内核文件指针             */
         if (!pfFile) {
             _DebugHandle(__ERRORMESSAGE_LEVEL, "system low memory.\r\n");
             _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
             return  (LW_NULL);
         }
+    
     } else {
-        bNeedRes = LW_FALSE;
+        bNeedRes = LW_FALSE;                                            /* 标准 IO 文件                 */
     }
     
     lib_bzero(pfFile, sizeof(FILE));
     
-    pfFile->_p          = LW_NULL;                                      /* no current pointer           */
-	pfFile->_r          = 0;
-	pfFile->_w          = 0;                                            /* nothing to read or write     */
-	pfFile->_flags      = 1;                                            /* caller sets real flags       */
-	pfFile->_file       = -1;                                           /* no file                      */
-	pfFile->_bf._base   = LW_NULL;                                      /* no buffer                    */
-	pfFile->_bf._size   = 0;
-	pfFile->_lbfsize    = 0;                                            /* not line buffered            */
-	pfFile->_ub._base   = LW_NULL;                                      /* no ungetc buffer             */
-	pfFile->_ub._size	= 0;
-	pfFile->_lb._base   = LW_NULL;                                      /* no line buffer               */
-	pfFile->_lb._size   = 0;
-	pfFile->_blksize    = 0;
-	pfFile->_offset     = 0;
-	pfFile->_cookie     = (void *)pfFile;
-	
-	pfFile->_close      = __sclose;
-	pfFile->_read       = __sread;
-	pfFile->_seek       = __sseek;
-	pfFile->_write      = __swrite;
-	
-	if (bNeedRes) {
-	    __resAddRawHook(&pfFile->resraw, (VOIDFUNCPTR)ffree, pfFile, 0, 0, 0, 0, 0);
+    pfFile->_p        = LW_NULL;                                        /* no current pointer           */
+    pfFile->_r        = 0;
+    pfFile->_w        = 0;                                              /* nothing to read or write     */
+    pfFile->_flags    = 1;                                              /* caller sets real flags       */
+    pfFile->_file     = -1;                                             /* no file                      */
+    pfFile->_bf._base = LW_NULL;                                        /* no buffer                    */
+    pfFile->_bf._size = 0;
+    pfFile->_lbfsize  = 0;                                              /* not line buffered            */
+    pfFile->_ub._base = LW_NULL;                                        /* no ungetc buffer             */
+    pfFile->_ub._size = 0;
+    pfFile->_lb._base = LW_NULL;                                        /* no line buffer               */
+    pfFile->_lb._size = 0;
+    pfFile->_blksize  = 0;
+    pfFile->_offset   = 0;
+    pfFile->_cookie   = (void *)pfFile;
+    
+    pfFile->_close = __sclose;
+    pfFile->_read  = __sread;
+    pfFile->_seek  = __sseek;
+    pfFile->_write = __swrite;
+    
+    if (bNeedRes) {
+        __resAddRawHook(&pfFile->resraw, (VOIDFUNCPTR)fclose_ex, 
+                        pfFile, (PVOID)LW_FALSE, (PVOID)LW_TRUE, 0, 0, 0);
     }
-	
-	return  (pfFile);
+    
+    return  (pfFile);
 }
 /*********************************************************************************************************
-** 函数名称: __stdioFileDelete
+** 函数名称: __lib_delfile
 ** 功能描述: 删除一个文件结构
 ** 输　入  : 文件指针
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-VOID  __stdioFileDelete (FILE  *pfFile)
+VOID  __lib_delfile (FILE  *pfFile)
 {
     __resDelRawHook(&pfFile->resraw);
 
@@ -114,7 +115,7 @@ VOID  __stdioFileDelete (FILE  *pfFile)
 *********************************************************************************************************/
 FILE  **__lib_stdin (VOID)
 {
-    return  (lib_nlreent_stdfile(API_ThreadIdSelf(), STDIN_FILENO));
+    return  (lib_nlreent_stdfile(STDIN_FILENO));
 }
 /*********************************************************************************************************
 ** 函数名称: __lib_stdout
@@ -126,7 +127,7 @@ FILE  **__lib_stdin (VOID)
 *********************************************************************************************************/
 FILE  **__lib_stdout (VOID)
 {
-    return  (lib_nlreent_stdfile(API_ThreadIdSelf(), STDOUT_FILENO));
+    return  (lib_nlreent_stdfile(STDOUT_FILENO));
 }
 /*********************************************************************************************************
 ** 函数名称: __lib_stderr
@@ -138,7 +139,7 @@ FILE  **__lib_stdout (VOID)
 *********************************************************************************************************/
 FILE  **__lib_stderr (VOID)
 {
-    return  (lib_nlreent_stdfile(API_ThreadIdSelf(), STDERR_FILENO));
+    return  (lib_nlreent_stdfile(STDERR_FILENO));
 }
 
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0)      */

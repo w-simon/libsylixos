@@ -34,17 +34,12 @@
  * SUCH DAMAGE.
  */
 
-#if defined(LIBC_SCCS) && !defined(lint)
-static char sccsid[] = "@(#)ungetc.c	8.2 (Berkeley) 11/3/93";
-#endif /* LIBC_SCCS and not lint */
-
 #include "stdio.h"
 
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_FIO_LIB_EN > 0)
 
 #include "stdlib.h"
 #include "string.h"
-
 #include "local.h"
 
 /*

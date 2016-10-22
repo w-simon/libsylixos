@@ -1169,12 +1169,6 @@ PVOID  _HeapRealloc (PLW_CLASS_HEAP  pheap,
                     pheap->HEAP_ulSegmentCounter--;                     /*  分区分段数量--              */
                     pheap->HEAP_stUsedByteSize += psegmentRight->SEGMENT_stByteSize;
                     pheap->HEAP_stFreeByteSize -= psegmentRight->SEGMENT_stByteSize;
-                    
-                    __HEAP_TRACE_ALLOC(pheap, 
-                                       (PVOID)__HEAP_SEGMENT_DATA_PTR(psegmentRight),
-                                       psegmentRight->SEGMENT_stByteSize,
-                                       pcPurpose);
-                                                                        /*  打印跟踪信息                */
                     goto    __split_segment;
                 }
             }

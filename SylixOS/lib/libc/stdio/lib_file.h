@@ -27,8 +27,8 @@
 *********************************************************************************************************/
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_FIO_LIB_EN > 0)
 
-FILE  *__stdioFileCreate(FILE  *pfFile);
-VOID   __stdioFileDelete(FILE  *pfFile);
+FILE  *__lib_newfile(FILE  *pfFile);
+VOID   __lib_delfile(FILE  *pfFile);
 
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0)      */
                                                                         /*  (LW_CFG_FIO_LIB_EN > 0)*/

@@ -34,17 +34,12 @@
  * SUCH DAMAGE.
  */
 
-#if defined(LIBC_SCCS) && !defined(lint)
-static char sccsid[] = "@(#)stdio.c	8.1 (Berkeley) 6/4/93";
-#endif /* LIBC_SCCS and not lint */
-
 #include "stdio.h"
 
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_FIO_LIB_EN > 0)
 
 #include "fcntl.h"
 #include "unistd.h"
-
 #include "local.h"
 
 /*
@@ -78,7 +73,7 @@ __swrite(cookie, buf, n)
 	register FILE *fp = cookie;
 
 	if (fp->_flags & __SAPP)
-		(void) lseek(fp->_file, (off_t)0, SEEK_END);
+		(void)lseek(fp->_file, (off_t)0, SEEK_END);
 	fp->_flags &= ~__SOFF;	/* in case FAPPEND mode is set */
 	return ((int)write(fp->_file, buf, n));
 }
@@ -106,14 +101,14 @@ int
 __sclose(cookie)
 	void *cookie;
 {
-    int     fd = ((FILE *)cookie)->_file;
+    int fd = ((FILE *)cookie)->_file;
     
-    if ((fd <= 2) &&    /*  0, 1, 2 仅是文件重定向符    */
-        (fd >= 0)) {    /*  不需要关闭标准文件          */
+    if ((fd <= 2) && (fd >= 0)) { /* do not close stdfile in sylixos kernel */
         return  (0);
     }
 
-	return (close(fd)); /*  io 关闭文件                 */
+	return (close(fd));
 }
+
 #endif  /*  (LW_CFG_DEVICE_EN > 0)      */
         /*  (LW_CFG_FIO_LIB_EN > 0)     */

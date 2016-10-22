@@ -413,27 +413,37 @@ __refined_seq:
         case LW_DISK_PART_TYPE_WIN95_FAT32LBA:
         case LW_DISK_PART_TYPE_WIN95_FAT16LBA:
             if (bForceFsType) {                                         /*  是否强制指定文件系统类型    */
-                pfuncFsCreate = __fsCreateFuncGet(pcFsName);
+                pfuncFsCreate = __fsCreateFuncGet(pcFsName,
+                                                  poemd->OEMDISK_pblkdPart[i],
+                                                  dptPart.DPT_dpoLogic[i].DPO_dpnEntry.DPN_ucPartType);
                 pcFs          = pcFsName;
             } else {
-                pfuncFsCreate = __fsCreateFuncGet("vfat");
+                pfuncFsCreate = __fsCreateFuncGet("vfat",
+                                                  poemd->OEMDISK_pblkdPart[i],
+                                                  dptPart.DPT_dpoLogic[i].DPO_dpnEntry.DPN_ucPartType);
                 pcFs          = "vfat";
             }
             break;
             
         case LW_DISK_PART_TYPE_TPS:
             if (bForceFsType) {                                         /*  是否强制指定文件系统类型    */
-                pfuncFsCreate = __fsCreateFuncGet(pcFsName);
+                pfuncFsCreate = __fsCreateFuncGet(pcFsName, 
+                                                  poemd->OEMDISK_pblkdPart[i],
+                                                  dptPart.DPT_dpoLogic[i].DPO_dpnEntry.DPN_ucPartType);
                 pcFs          = pcFsName;
             } else {
-                pfuncFsCreate = __fsCreateFuncGet("tpsfs");
+                pfuncFsCreate = __fsCreateFuncGet("tpsfs", 
+                                                  poemd->OEMDISK_pblkdPart[i],
+                                                  dptPart.DPT_dpoLogic[i].DPO_dpnEntry.DPN_ucPartType);
                 pcFs          = "tpsfs";
             }
             break;
         
         default:                                                        /*  默认使用指定文件系统类型    */
             if (bForceFsType) {                                         /*  是否强制指定文件系统类型    */
-                pfuncFsCreate = __fsCreateFuncGet(pcFsName);
+                pfuncFsCreate = __fsCreateFuncGet(pcFsName,
+                                                  poemd->OEMDISK_pblkdPart[i],
+                                                  dptPart.DPT_dpoLogic[i].DPO_dpnEntry.DPN_ucPartType);
                 pcFs          = pcFsName;
             }
             break;
@@ -698,12 +708,16 @@ __refined_seq:
         case LW_DISK_PART_TYPE_WIN95_FAT32:
         case LW_DISK_PART_TYPE_WIN95_FAT32LBA:
         case LW_DISK_PART_TYPE_WIN95_FAT16LBA:
-            pfuncFsCreate = __fsCreateFuncGet("vfat");                  /*  查询 VFAT 文件系统装载函数  */
+            pfuncFsCreate = __fsCreateFuncGet("vfat",                   /*  查询 VFAT 文件系统装载函数  */
+                                              poemd->OEMDISK_pblkdPart[i],
+                                              dptPart.DPT_dpoLogic[i].DPO_dpnEntry.DPN_ucPartType);
             pcFs          = "vfat";
             break;
         
         case LW_DISK_PART_TYPE_TPS:                                     /*  TPS 文件系统类型            */
-            pfuncFsCreate = __fsCreateFuncGet("tpsfs");                 /*  查询 TPSFS 文件系统装载函数 */
+            pfuncFsCreate = __fsCreateFuncGet("tpsfs",                  /*  查询 TPSFS 文件系统装载函数 */
+                                              poemd->OEMDISK_pblkdPart[i],
+                                              dptPart.DPT_dpoLogic[i].DPO_dpnEntry.DPN_ucPartType);
             pcFs          = "tpsfs";
             break;
         

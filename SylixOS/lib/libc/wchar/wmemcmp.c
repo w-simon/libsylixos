@@ -29,10 +29,6 @@
  */
 
 #include "wcfix.h"
-#if defined(LIBC_SCCS) && !defined(lint)
-__RCSID("$NetBSD: wmemcmp.c,v 1.3.38.2 2009/01/15 04:21:26 snj Exp $");
-#endif /* LIBC_SCCS and not lint */
-
 #include "assert.h"
 #include "wchar.h"
 

@@ -27,6 +27,7 @@
 2010.11.01  __netCloseAll() 调用 DHCP 函数使用安全模式.
 2012.12.18  加入 unix_init() 初始化 AF_UNIX 域协议.
 2013.06.21  加入网络 proc 文件.
+2016.10.21  简化系统重启操作.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -91,19 +92,9 @@ err_t pppInit(void);
 *********************************************************************************************************/
 static VOID  __netCloseAll (VOID)
 {
-    PLW_DEV_HDR      pdevhdr;
-    PCHAR            pcTail;
-    
 #if LWIP_DHCP > 0
     struct netif    *netif = netif_list;
-#endif                                                                  /*  LWIP_DHCP > 0               */
-    
-    pdevhdr = iosDevFind(LWIP_SYLIXOS_SOCKET_NAME, &pcTail);
-    if (pdevhdr) {
-        iosDevFileAbnormal(pdevhdr);                                    /*  关闭所有网络文件            */
-    }                                                                   /*  同时将相关文件设置为异常模式*/
-    
-#if LWIP_DHCP > 0
+
     for (; netif != LW_NULL; netif = netif->next) {
         if (netif->dhcp && netif->dhcp->pcb) {
             netifapi_netif_common(netif, NULL, dhcp_release);           /*  解除 DHCP 租约, 同时停止网卡*/
@@ -155,6 +146,25 @@ static VOID  __netSnmpInit (VOID)
 
 #endif                                                                  /*  LWIP_SNMP > 0               */
 /*********************************************************************************************************
+** 函数名称: __netCfgFileInit
+** 功能描述: 初始化必要的 etc 文件.
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static VOID  __netCfgFileInit (VOID)
+{
+    FILE   *fp;
+    
+    if (access("/etc/hosts", R_OK) < 0) {
+        if ((fp = fopen("/etc/hosts", "w")) != NULL) {
+            fprintf(fp, "127.0.0.1    localhost\n");
+            fclose(fp);
+        }
+    }
+}
+/*********************************************************************************************************
 ** 函数名称: API_NetInit
 ** 功能描述: 向操作系统内核注册网络组件
 ** 输　入  : NONE
@@ -205,6 +215,8 @@ VOID  API_NetInit (VOID)
 #if LWIP_SNMP > 0
     __netSnmpInit();                                                    /*  初始化 SNMP 基本信息        */
 #endif                                                                  /*  LWIP_SNMP > 0               */
+    
+    __netCfgFileInit();
     
 #if LW_CFG_SHELL_EN > 0
     __tshellNetInit();                                                  /*  注册网络命令                */

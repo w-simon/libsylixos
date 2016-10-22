@@ -1,11 +1,4 @@
 #include "sys/cdefs.h"
-
-#ifndef SYLIXOS
-#if !defined(lint)
-__RCSID("$NetBSD: util.c,v 1.1 2004/07/02 00:05:23 sjg Exp $");
-#endif /* not lint */
-#endif
-
 #include "sys/types.h"
 
 #if LW_CFG_SHELL_PASS_CRYPT_EN > 0

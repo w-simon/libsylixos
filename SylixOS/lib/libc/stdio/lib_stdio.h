@@ -158,8 +158,8 @@ typedef	struct __sFILE {
 	
 	/* for compatibility _fplock and _shtask use resource unused member */
 #ifdef __SYLIXOS_KERNEL
-#define _stdfile_pvlock(fp) ((fp)->resraw.RESRAW_pvArg[4])
-#define _stdfile_pvsh(fp)   ((fp)->resraw.RESRAW_pvArg[5])
+#define _stdfile_pvlock(fp)     ((fp)->resraw.RESRAW_pvArg[4])
+#define _stdfile_pvsh(fp)       ((fp)->resraw.RESRAW_pvArg[5])
 #endif
 } FILE;
 
@@ -228,28 +228,19 @@ __END_DECLS
 #define	SEEK_END	2	/* set file offset to EOF plus offset */
 #endif
 
-/*
-#define	stdin	(&__sF[0])
-#define	stdout	(&__sF[1])
-#define	stderr	(&__sF[2])
-*/
-#ifdef  stdin
-#undef  stdin
+#ifdef stdin
+#undef stdin
 #endif                                                                  /*  stdin                       */
-
-#define stdin          (*__lib_stdin())
-
-#ifdef  stdout
-#undef  stdout
+#ifdef stdout
+#undef stdout
 #endif                                                                  /*  stdout                      */
-
-#define stdout         (*__lib_stdout())
-
-#ifdef  stderr
-#undef  stderr
+#ifdef stderr
+#undef stderr
 #endif                                                                  /*  stderr                      */
 
-#define stderr         (*__lib_stderr())
+#define stdin       (*__lib_stdin())
+#define stdout      (*__lib_stdout())
+#define stderr      (*__lib_stderr())
 
 /*
  * Functions defined in ANSI C standard.
@@ -319,6 +310,10 @@ int fseeko64 __P((FILE *, off64_t, int));
 off_t ftello __P((FILE *));
 off64_t ftello64 __P((FILE *));
 __END_DECLS
+
+#ifdef __SYLIXOS_KERNEL
+int fclose_ex __P((FILE *fp, BOOL bclose, BOOL bfree));
+#endif
 
 /*
  * Functions defined in POSIX 1003.1.

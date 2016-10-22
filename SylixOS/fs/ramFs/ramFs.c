@@ -134,7 +134,7 @@ INT  API_RamFsDrvInstall (VOID)
 
     _DebugHandle(__LOGMESSAGE_LEVEL, "ram file system installed.\r\n");
                                      
-    __fsRegister("ramfs", API_RamFsDevCreate);                          /*  注册文件系统                */
+    __fsRegister("ramfs", API_RamFsDevCreate, LW_NULL);                 /*  注册文件系统                */
 
     return  ((_G_iRamfsDrvNum > 0) ? (ERROR_NONE) : (PX_ERROR));
 }

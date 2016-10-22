@@ -34,10 +34,6 @@
  * SUCH DAMAGE.
  */
 
-#if defined(LIBC_SCCS) && !defined(lint)
-static char sccsid[] = "@(#)fopen.c	8.1 (Berkeley) 6/4/93";
-#endif /* LIBC_SCCS and not lint */
-
 #include "stdio.h"
 
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_FIO_LIB_EN > 0)
@@ -65,7 +61,7 @@ fopen(file, mode)
 		return (NULL);
 	if ((f = open(file, oflags, DEFFILEMODE)) < 0) {
 		fp->_flags = 0;			/* release */
-        __stdioFileDelete(fp);
+        __lib_delfile(fp);
 		return (NULL);
 	}
 	fp->_file = f;
@@ -104,7 +100,7 @@ fopen64(file, mode)
 		return (NULL);
 	if ((f = open(file, oflags | O_LARGEFILE, DEFFILEMODE)) < 0) {
 		fp->_flags = 0;			/* release */
-        __stdioFileDelete(fp);
+        __lib_delfile(fp);
 		return (NULL);
 	}
 	fp->_file = f;
@@ -127,5 +123,6 @@ fopen64(file, mode)
 		(void) __sseek((void *)fp, (fpos_t)0, SEEK_END);
 	return (fp);
 }
+
 #endif  /*  (LW_CFG_DEVICE_EN > 0)      */
         /*  (LW_CFG_FIO_LIB_EN > 0)     */

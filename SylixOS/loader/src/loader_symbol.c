@@ -112,9 +112,9 @@ __bad_version:
     }
     
     fprintf(stderr, 
-            "%s %s OS-version %s, is not compatible with current SylixOS version.\n"
-            "re-build this module with current SylixOS version, may solve this problem.\n",
-            (ulType == LW_LD_MOD_TYPE_SO) ? "share library" : "kernel module",
+            "[ld]Warning: %s %s OS-version %s, is not compatible with current SylixOS version.\n"
+            "    Re-build this module with current SylixOS version, may solve this problem.\n",
+            (ulType == LW_LD_MOD_TYPE_SO) ? "Share library" : "Kernel module",
             pcModuleName, pcVersion);
 
     return  (PX_ERROR);
@@ -377,7 +377,7 @@ INT __moduleSymGetValue (LW_LD_EXEC_MODULE  *pmodule, BOOL  bIsWeak,
         return  (ERROR_NONE);
     }
     
-    fprintf(stderr, "library %s can not find symbol: %s\n", pmodule->EMOD_pcModulePath, pcSymName);
+    fprintf(stderr, "[ld]Library %s can not find symbol: %s\n", pmodule->EMOD_pcModulePath, pcSymName);
 
     return  (PX_ERROR);
 }

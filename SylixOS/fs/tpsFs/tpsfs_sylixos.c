@@ -370,9 +370,9 @@ INT  API_TpsFsDrvInstall (VOID)
     DRIVER_AUTHOR(_G_iTpsDrvNum,      "Jiang.Taijin");
     DRIVER_DESCRIPTION(_G_iTpsDrvNum, "tpsFs driver.");
 
-    _DebugHandle(__LOGMESSAGE_LEVEL, "ACOINFO tpsFs file system installed.\r\n");
+    _DebugHandle(__LOGMESSAGE_LEVEL, "SylixOS tpsFs file system installed.\r\n");
 
-    __fsRegister("tpsfs", API_TpsFsDevCreate);                          /*  注册文件系统                */
+    __fsRegister("tpsfs", API_TpsFsDevCreate, LW_NULL);                 /*  注册文件系统                */
 
     return  ((_G_iTpsDrvNum > 0) ? (ERROR_NONE) : (PX_ERROR));
 }

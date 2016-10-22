@@ -46,11 +46,6 @@
  *
  */
 #include "sys/cdefs.h"
-
-#ifndef SYLIXOS
-__RCSID("$NetBSD: bcrypt.c,v 1.9 2006/10/27 19:39:11 drochner Exp $");
-#endif
-
 #include "stdio.h"
 #include "stdlib.h"
 #include "sys/types.h"

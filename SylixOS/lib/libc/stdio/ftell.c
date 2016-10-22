@@ -36,10 +36,6 @@
  * 2012.09.21 hanhui add 64bits support.
  */
 
-#if defined(LIBC_SCCS) && !defined(lint)
-static char sccsid[] = "@(#)ftell.c	8.2 (Berkeley) 5/4/95";
-#endif /* LIBC_SCCS and not lint */
-
 #include "stdio.h"
 
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_FIO_LIB_EN > 0)
@@ -111,5 +107,6 @@ ftell(fp)
 {
     return  (long)ftello64(fp);
 }
+
 #endif  /*  (LW_CFG_DEVICE_EN > 0)      */
         /*  (LW_CFG_FIO_LIB_EN > 0)     */

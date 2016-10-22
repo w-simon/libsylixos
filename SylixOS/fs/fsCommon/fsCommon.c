@@ -46,6 +46,7 @@
 typedef struct {
     LW_LIST_LINE                 FSN_lineManage;                        /*  管理链表                    */
     FUNCPTR                      FSN_pfuncCreate;                       /*  文件系统创建函数            */
+    FUNCPTR                      FSN_pfuncCheck;                        /*  文件系统检查函数            */
     CHAR                         FSN_pcFsName[1];                       /*  文件系统名称                */
 } __LW_FILE_SYSTEM_NODE;
 typedef __LW_FILE_SYSTEM_NODE   *__PLW_FILE_SYSTEM_NODE;
@@ -56,11 +57,12 @@ static LW_LIST_LINE_HEADER       _G_plineFsNodeHeader = LW_NULL;        /*  文件
 ** 功能描述: 注册一个文件系统
 ** 输　入  : pcName           文件系统名
 **           pfuncCreate      文件系统创建函数
+**           pfuncCheck       文件系统检查函数
 ** 输　出  : ERROR
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-INT  __fsRegister (CPCHAR   pcName, FUNCPTR  pfuncCreate)
+INT  __fsRegister (CPCHAR  pcName, FUNCPTR  pfuncCreate, FUNCPTR  pfuncCheck)
 {
     __PLW_FILE_SYSTEM_NODE      pfsnNew;
 
@@ -76,6 +78,7 @@ INT  __fsRegister (CPCHAR   pcName, FUNCPTR  pfuncCreate)
         return  (PX_ERROR);
     }
     pfsnNew->FSN_pfuncCreate = pfuncCreate;
+    pfsnNew->FSN_pfuncCheck  = pfuncCheck;
     lib_strcpy(pfsnNew->FSN_pcFsName, pcName);
     
     _IosLock();
@@ -88,13 +91,15 @@ INT  __fsRegister (CPCHAR   pcName, FUNCPTR  pfuncCreate)
 ** 函数名称: __fsCreateFuncGet
 ** 功能描述: 获取文件系统创建函数
 ** 输　入  : pcName           文件系统名
+**           pblkd            对应磁盘
+**           ucPartType       对应分区类型
 ** 输　出  : 文件系统创建函数
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-FUNCPTR  __fsCreateFuncGet (CPCHAR   pcName)
+FUNCPTR  __fsCreateFuncGet (CPCHAR   pcName, PLW_BLK_DEV  pblkd, UINT8  ucPartType)
 {
-    __PLW_FILE_SYSTEM_NODE      pfsnNew = LW_NULL;
+    __PLW_FILE_SYSTEM_NODE      pfsnFind = LW_NULL;
     PLW_LIST_LINE               plineTemp;
 
     if (!pcName) {
@@ -106,15 +111,21 @@ FUNCPTR  __fsCreateFuncGet (CPCHAR   pcName)
          plineTemp != LW_NULL;
          plineTemp  = _list_line_get_next(plineTemp)) {
         
-        pfsnNew = (__PLW_FILE_SYSTEM_NODE)plineTemp;
-        if (lib_strcmp(pfsnNew->FSN_pcFsName, pcName) == 0) {
+        pfsnFind = (__PLW_FILE_SYSTEM_NODE)plineTemp;
+        if (lib_strcmp(pfsnFind->FSN_pcFsName, pcName) == 0) {
             break;
         }
     }
     _IosUnlock();
     
     if (plineTemp) {
-        return  (pfsnNew->FSN_pfuncCreate);
+        if (pfsnFind->FSN_pfuncCheck && pblkd) {
+            if (pfsnFind->FSN_pfuncCheck(pblkd, ucPartType) < ERROR_NONE) {
+                return  (LW_NULL);
+            }
+        }
+        return  (pfsnFind->FSN_pfuncCreate);
+    
     } else {
         return  (LW_NULL);
     }

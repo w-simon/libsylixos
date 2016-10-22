@@ -688,6 +688,52 @@ pid_t  vprocGetPidByTcbdesc (PLW_CLASS_TCB_DESC  ptcbdesc)
     return  (pid);
 }
 /*********************************************************************************************************
+** 函数名称: vprocGetPidByThread
+** 功能描述: 通过线程 ID 获得进程 id
+** 输　入  : ulId   线程 ID
+** 输　出  : 进程 pid
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+pid_t  vprocGetPidByThread (LW_OBJECT_HANDLE  ulId)
+{
+    pid_t           pid = 0;
+    LW_LD_VPROC    *pvproc;
+    UINT16          usIndex;
+    PLW_CLASS_TCB   ptcb;
+    
+    usIndex = _ObjectGetIndex(ulId);
+    
+    if (!_ObjectClassOK(ulId, _OBJECT_THREAD)) {                        /*  检查 ID 类型有效性          */
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "thread handle invalidate.\r\n");
+        _ErrorHandle(ERROR_KERNEL_HANDLE_NULL);
+        return  (pid);
+    }
+    
+    if (_Thread_Index_Invalid(usIndex)) {                               /*  检查线程有效性              */
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "thread handle invalidate.\r\n");
+        _ErrorHandle(ERROR_THREAD_NULL);
+        return  (pid);
+    }
+    
+    __KERNEL_ENTER();                                                   /*  进入内核                    */
+    if (_Thread_Invalid(usIndex)) {
+        __KERNEL_EXIT();                                                /*  退出内核                    */
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "thread handle invalidate.\r\n");
+        _ErrorHandle(ERROR_THREAD_NULL);
+        return  (pid);
+    }
+    
+    ptcb   = _K_ptcbTCBIdTable[usIndex];
+    pvproc = __LW_VP_GET_TCB_PROC(ptcb);
+    if (pvproc) {
+        pid = pvproc->VP_pid;
+    }
+    __KERNEL_EXIT();                                                    /*  退出内核                    */
+    
+    return  (pid);
+}
+/*********************************************************************************************************
 ** 函数名称: vprocMainThread
 ** 功能描述: 通过进程号, 查找对应的主线程.
 ** 输　入  : pid       进程号
@@ -1138,7 +1184,7 @@ static VOID  vprocSetFilesid (LW_LD_VPROC *pvproc, CPCHAR  pcFile)
 }
 /*********************************************************************************************************
 ** 函数名称: vprocPatchVerCheck
-** 功能描述: 检查进程补丁的版本, 如果没有则不允许运行 (补丁至少要是 1.5.0 版本)
+** 功能描述: 检查进程补丁的版本, 如果没有则不允许运行 (补丁至少要是 2.0.0 版本)
 ** 输　入  : pvproc      进程控制块
 ** 输　出  : 
 ** 全局变量:
@@ -1150,13 +1196,13 @@ static INT  vprocPatchVerCheck (LW_LD_VPROC *pvproc)
     PCHAR              pcVersion;
     ULONG              ulMajor = 0, ulMinor = 0, ulRevision = 0;
     
-    ULONG              ulLowVpVer = __SYLIXOS_MAKEVER(1, 5, 0);         /*  最低进程补丁版本要求        */
+    ULONG              ulLowVpVer = __SYLIXOS_MAKEVER(2, 0, 0);         /*  最低进程补丁版本要求        */
     ULONG              ulCurrent;
     
     pmodule   = _LIST_ENTRY(pvproc->VP_ringModules, LW_LD_EXEC_MODULE, EMOD_ringModules);
     pcVersion = __moduleVpPatchVersion(pmodule);
     if (pcVersion == LW_NULL) {                                         /*  没有补丁, 不能执行          */
-        fprintf(stderr, "do not have vprocess patch\n");
+        fprintf(stderr, "[ld]No vprocess patch(libvpmpdm.so) found.\n");
         return  (PX_ERROR);
     
     } else {
@@ -1173,8 +1219,8 @@ static INT  vprocPatchVerCheck (LW_LD_VPROC *pvproc)
     }
     
 __bad_version:
-    fprintf(stderr, "bad version of vprocess patch, "
-                    "the minimum version of vprocess patch MUST higher than 1.5.0\n");
+    fprintf(stderr, "[ld]Bad version of vprocess patch(libvpmpdm.so), "
+                    "the minimum version of vprocess patch MUST higher than 2.0.0\n");
     return  (PX_ERROR);
 }
 /*********************************************************************************************************
@@ -1312,6 +1358,7 @@ INT  vprocRun (LW_LD_VPROC      *pvproc,
             }
             LW_SOFUNC_PREPARE(pfunEntry);
             iError = pfunEntry(iArgC, ppcArgV, ppcEnv);                 /*  执行进程入口函数            */
+        
         } else {
             iError = 0;
         }

@@ -385,7 +385,7 @@ LW_LD_EXEC_MODULE *moduleLoadSub (LW_LD_EXEC_MODULE *pmodule, CPCHAR pcLibName, 
      */
     if (ERROR_NONE != moduleGetLibPath(pcLibName, cLibPath, MAX_FILENAME_LENGTH, "LD_LIBRARY_PATH")) {
         if (ERROR_NONE != moduleGetLibPath(pcLibName, cLibPath, MAX_FILENAME_LENGTH, "PATH")) {
-            fprintf(stderr, "can not find dependent library: %s\n", pcLibName);
+            fprintf(stderr, "[ld]Can not find dependent library: %s\n", pcLibName);
             _ErrorHandle(ERROR_LOADER_NO_MODULE);
             return  (LW_NULL);
         }
@@ -464,6 +464,68 @@ static INT initArrayCall (LW_LD_EXEC_MODULE *pmodule)
 
         pringTemp = _list_ring_get_prev(pringTemp);
     } while (pringTemp != _list_ring_get_prev(&pmodule->EMOD_ringModules));
+    LW_VP_UNLOCK(pmodule->EMOD_pvproc);
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __moduleArchCheck
+** 功能描述: 检查浮点处理器设置是否一致
+** 输　入  : pmodule       模块指针
+** 输　出  : ERROR_NONE 表示没有错误, PX_ERROR 表示浮点处理器设置错误
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT __moduleArchCheck (LW_LD_EXEC_MODULE *pmodule)
+{
+    PCHAR              pcFileName;
+    PCHAR             *ppcBaseFpuType = LW_NULL;
+    PCHAR             *ppcFpuType     = LW_NULL;
+    LW_LD_EXEC_MODULE *pmodTemp       = LW_NULL;
+    LW_LIST_RING      *pringTemp      = &pmodule->EMOD_ringModules;
+
+    LW_VP_LOCK(pmodule->EMOD_pvproc);
+    do {
+        pmodTemp = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);
+
+        _PathLastName(pmodTemp->EMOD_pcModulePath, &pcFileName);
+        if (lib_strcmp(pcFileName, "libvpmpdm.so") == 0) {
+            __moduleFindSym(pmodTemp, "G_cpcCompileFpuType", (addr_t *)&ppcBaseFpuType, 0);
+            break;
+        }
+
+        pringTemp = _list_ring_get_next(pringTemp);
+    } while (pringTemp != &pmodule->EMOD_ringModules);                  /*  查找 libvpmpdm.so fpu设置  */
+
+    if (LW_NULL == ppcBaseFpuType) {
+        LW_VP_UNLOCK(pmodule->EMOD_pvproc);
+        return  (ERROR_NONE);
+    }
+
+    pringTemp = &pmodule->EMOD_ringModules;
+    do {
+        pmodTemp = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);
+
+        if (pmodTemp->EMOD_ulStatus == LW_LD_STATUS_LOADED) {
+            if (ERROR_NONE == __moduleFindSym(pmodTemp, "G_cpcCompileFpuType",
+                                              (addr_t *)&ppcFpuType, 0)) {
+                if (lib_strcmp(*ppcFpuType, *ppcBaseFpuType) != 0) {    /* 存在fpu不同的模块返回失败    */
+                    fprintf(stderr, "[ld]Warning: FPU type error.\n");
+                    fprintf(stderr, "    %s FPU type: %s\n", pmodTemp->EMOD_pcModulePath, *ppcFpuType);
+                    fprintf(stderr, "    SylixOS Runtime system FPU type: %s\n", *ppcBaseFpuType);
+                    LW_VP_UNLOCK(pmodule->EMOD_pvproc);
+
+#if LW_CFG_MODULELOADER_FPUCHK_EN > 0
+                    return  (PX_ERROR);
+#else
+                    return  (ERROR_NONE);
+#endif                                                                  /* LW_CFG_MODULELOADER_FPUCHK_EN*/
+                }
+            }
+        }
+
+        pringTemp = _list_ring_get_next(pringTemp);
+    } while (pringTemp != &pmodule->EMOD_ringModules);
     LW_VP_UNLOCK(pmodule->EMOD_pvproc);
 
     return  (ERROR_NONE);
@@ -753,7 +815,7 @@ PVOID  API_ModuleLoadEx (CPCHAR  pcFile,
         */
         if (ERROR_NONE != moduleGetLibPath(pcFile, cLibPath, MAX_FILENAME_LENGTH, "LD_LIBRARY_PATH")) {
             if (ERROR_NONE != moduleGetLibPath(pcFile, cLibPath, MAX_FILENAME_LENGTH, "PATH")) {
-                fprintf(stderr, "can not find dependent library: %s\n", pcFile);
+                fprintf(stderr, "[ld]Can not find dependent library: %s\n", pcFile);
                 _ErrorHandle(ERROR_LOADER_NO_MODULE);
                 return  (LW_NULL);
             }
@@ -793,15 +855,21 @@ PVOID  API_ModuleLoadEx (CPCHAR  pcFile,
     }
     LW_VP_UNLOCK(pmodule->EMOD_pvproc);
 
+    if (ERROR_NONE != __moduleArchCheck(pmodule)) {						/*  检查模块链表fpu设置是否一致 */
+        API_ModuleUnload(pmodule);
+        errno = ERROR_LOADER_UNEXPECTED;
+        return  (LW_NULL);
+    }
+
     if (pvproc->VP_ringModules == &pmodule->EMOD_ringModules) {         /*  如果是首个模块则初始化进程  */
         __moduleVpPatchInit(pmodule);
     }
 
     if (ERROR_NONE != initArrayCall(pmodule)) {                         /*  调用c++初始化代码           */
         pmodule->EMOD_pfuncExit = LW_NULL;                              /*  init函数失败时不调用exit    */
-        errno = ERROR_LOADER_UNEXPECTED;
-        fprintf(stderr, "function module_init returns not 0!\n");
+        fprintf(stderr, "[ld]Function module_init return not 0!\n");
         API_ModuleUnload(pmodule);
+        errno = ERROR_LOADER_UNEXPECTED;
         return  (LW_NULL);
     }
 

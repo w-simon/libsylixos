@@ -1292,7 +1292,7 @@ INT  API_IosFdEntryReclaim (PLW_FD_ENTRY  pfdentry, ULONG  ulRefDec, pid_t  pid)
         _IosUnlock();                                                   /*  退出 IO 临界区              */
         
     } else {                                                            /*  需要回收 pfdentry           */
-        pfdentry->FDENTRY_ulCounter =  0;                               /*  不允许再次进行操作          */
+        pfdentry->FDENTRY_ulCounter = 0;                                /*  不允许再次进行操作          */
         _IosUnlock();                                                   /*  退出 IO 临界区              */
         
         _FdLockfClearFdEntry(pfdentry, pid);                            /*  回收指定进程创建的记录锁    */

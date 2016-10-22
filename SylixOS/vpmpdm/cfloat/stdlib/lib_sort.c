@@ -4,60 +4,14 @@
  *
  * MODULE PRIVATE DYNAMIC MEMORY IN VPROCESS PATCH
  * this file is support current module malloc/free use his own heap in a vprocess.
- * 
+ *
  * Author: Han.hui <sylixos@gmail.com>
  */
 
-#include <sys/types.h>
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <search.h>
+#include <SylixOS.h>
 
-/*
- * MIPS MUST use this functions in PIC code, because hook function...
- */
-
-/*
- * bsearch
- */
-void *
-lib_bsearch (const void *key, const void *base0,
-             size_t nmemb,  size_t size,
-             int (*compar)(const void *, const void *))
-{
-    register const char *base = (const char *) base0;
-    register int lim, cmp;
-    register const void *p;
-
-    for (lim = nmemb; lim != 0; lim >>= 1) {
-        p = base + (lim >> 1) * size;
-        cmp = (*compar)(key, p);
-        if (cmp == 0)
-                return (void *)p;
-        if (cmp > 0) {  /* key > p: move right */
-                base = (const char *)p + size;
-                lim--;
-        } /* else move left */
-    }
-    return (LW_NULL);
-}
-
-/*
- * bsearch
- */
-void *
-bsearch (const void *key, const void *base0,
-         size_t nmemb,  size_t size,
-         int (*compar)(const void *, const void *))
-{
-    return  (lib_bsearch(key, base0, nmemb, size, compar));
-}
-
-/*
- * qsort
- */
 static inline char    *med3(char *, char *, char *, int (*)(const void *, const void *));
 static inline void     swapfunc(char *, char *, int, int);
 
@@ -104,6 +58,11 @@ med3(char *a, char *b, char *c, int (*cmp)(const void *, const void *))
            (cmp(b, c) < 0 ? b : (cmp(a, c) < 0 ? c : a ))
           :(cmp(b, c) > 0 ? b : (cmp(a, c) < 0 ? a : c ));
 }
+
+/*
+ * lib_qsort
+ */
+__weak_reference(lib_qsort, qsort);
 
 void
 lib_qsort(void *aa, size_t n, size_t es, int (*cmp)(const void *, const void *))
@@ -186,14 +145,6 @@ loop:
     /* qsort(pn - r, r / es, es, cmp); */
 }
 
-/*
- * qsort
- */
-void
-qsort(void *aa, size_t n, size_t es, int (*cmp)(const void *, const void *))
-{
-    return  (lib_qsort(aa, n, es, cmp));
-}
 /*
  * end
  */

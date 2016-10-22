@@ -1799,10 +1799,10 @@ INT __elfListLoad (LW_LD_EXEC_MODULE *pmodule, CPCHAR pcPath)
         if (pmodTemp->EMOD_ulStatus == LW_LD_STATUS_UNLOAD) {           /*  模块还没有被装载            */
             if (__elfLoad(pmodTemp, pmodTemp->EMOD_pcModulePath)) {
                 if (errno == ERROR_LOADER_EACCES) {
-                    fprintf(stderr, "%s insufficient permissions!\n",
+                    fprintf(stderr, "[ld]%s insufficient permissions!\n",
                             pmodTemp->EMOD_pcModulePath);               /*  从标准错误里打印无权限信息  */
                 } else {
-                    fprintf(stderr, "load sub library error %s!\n", lib_strerror(errno));
+                    fprintf(stderr, "[ld]Load sub-library error %s!\n", lib_strerror(errno));
                     _ErrorHandle(ERROR_LOADER_NO_MODULE);
                 }
                 goto    __out;

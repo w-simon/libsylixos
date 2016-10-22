@@ -31,23 +31,18 @@
  * SUCH DAMAGE.
  */
 
-#if defined(LIBC_SCCS) && !defined(lint)
-static char sccsid[] = "@(#)strftime.c	8.1 (Berkeley) 6/4/93";
-#endif /* LIBC_SCCS and not lint */
-
-/**************************** HANHUI ***************************/
-/*
+#ifndef SYLIXOS
 #include <sys/types.h>
 #include <sys/time.h>
 #include <tzfile.h>
 #include <string.h>
-*/
-
-#include "../SylixOS/kernel/include/k_kernel.h"
+#else
+#include "SylixOS.h"
+#include "../time/lib_local.h"
+#endif
 
 #if LW_CFG_RTC_EN > 0
 
-#include "../time/lib_local.h"
 #include "time.h"
 #include "stdio.h"
 
@@ -312,4 +307,5 @@ _add(str)
 			return(1);
 	}
 }
+
 #endif      /*  LW_CFG_RTC_EN > 0  */

@@ -34,10 +34,6 @@
  * SUCH DAMAGE.
  */
 
-#if defined(LIBC_SCCS) && !defined(lint)
-static char sccsid[] = "@(#)findfp.c	8.2 (Berkeley) 1/4/94";
-#endif /* LIBC_SCCS and not lint */
-
 #include "stdio.h"
 
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_FIO_LIB_EN > 0)
@@ -53,7 +49,7 @@ static char sccsid[] = "@(#)findfp.c	8.2 (Berkeley) 1/4/94";
 
 int	__sdidinit;
 
-#if 0
+#ifndef SYLIXOS
 #define	NDYNAMIC 10		/* add ten more whenever necessary */
 
 #define	std(flags, file) \
@@ -90,7 +86,7 @@ moreglue(n)
 		*p++ = empty;
 	return (g);
 }
-#endif
+#endif /* !SYLIXOS */
 
 /*
  * Find a free FILE for fopen et al.
@@ -129,12 +125,12 @@ found:
 	fp->_lb._size = 0;
 	return (fp);
 #else
-    return  (__stdioFileCreate(LW_NULL));
+    return  (__lib_newfile(LW_NULL));
 #endif
 
 }
 
-#if 0
+#ifndef SYLIXOS
 /*
  * XXX.  Force immediate allocation of internal memory.  Not used by stdio,
  * but documented historically for certain applications.  Bad applications.
@@ -150,7 +146,8 @@ f_prealloc()
 	if (n > 0)
 		g->next = moreglue(n);
 }
-#endif
+
+#endif /* !SYLIXOS */
 
 /*
  * exit() calls _cleanup() through *__cleanup, set whenever we
@@ -173,10 +170,11 @@ void
 __sinit()
 {
 	/* make sure we clean up on exit */
-#if 0
+#ifndef SYLIXOS
 	__cleanup = _cleanup;		/* conservative */
 #endif
 	__sdidinit = 1;
 }
+
 #endif  /*  (LW_CFG_DEVICE_EN > 0)      */
         /*  (LW_CFG_FIO_LIB_EN > 0)     */

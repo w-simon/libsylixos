@@ -30,13 +30,6 @@
  */
 
 #include "sys/cdefs.h"
-
-#ifndef SYLIXOS
-#if !defined(lint)
-__RCSID("$NetBSD: crypt-sha1.c,v 1.3 2006/10/27 18:22:56 drochner Exp $");
-#endif /* not lint */
-#endif
-
 #include "stdlib.h"
 #include "unistd.h"
 #include "stdio.h"

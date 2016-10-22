@@ -36,10 +36,6 @@
  * 2012.09.21 hanhui add 64bits support.
  */
 
-#if defined(LIBC_SCCS) && !defined(lint)
-static char sccsid[] = "@(#)fseek.c	8.3 (Berkeley) 1/2/94";
-#endif /* LIBC_SCCS and not lint */
-
 #include "stdio.h"
 
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_FIO_LIB_EN > 0)
@@ -275,5 +271,6 @@ fseek(fp, offset, whence)
 {
     return  fseeko64(fp, (off64_t)offset, whence);
 }
+
 #endif  /*  (LW_CFG_DEVICE_EN > 0)      */
         /*  (LW_CFG_FIO_LIB_EN > 0)     */

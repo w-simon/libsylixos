@@ -34,10 +34,6 @@
  * SUCH DAMAGE.
  */
 
-#if defined(LIBC_SCCS) && !defined(lint)
-static char sccsid[] = "@(#)makebuf.c	8.1 (Berkeley) 6/4/93";
-#endif /* LIBC_SCCS and not lint */
-
 #include "stdio.h"
 
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_FIO_LIB_EN > 0)
@@ -77,7 +73,7 @@ __smakebuf(fp)
 		return;
 	}
 
-#if 0
+#ifndef SYLIXOS
 	__cleanup = _cleanup;
 #endif
 

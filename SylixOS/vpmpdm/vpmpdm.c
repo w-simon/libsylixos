@@ -57,7 +57,7 @@
 #include "./loader/include/loader_lib.h" /* need __eabi */
 #endif /* LW_CFG_CPU_ARCH_PPC */
 
-#define __VP_PATCH_VERSION      "1.5.3" /* vp patch version */
+#define __VP_PATCH_VERSION      "2.0.0" /* vp patch version */
 
 /*
  * fixed gcc old version.
@@ -412,8 +412,26 @@ void  __vp_pre_alloc_phy (const void *pmem, size_t nbytes)
 }
 
 /*
+ * aligned_malloc
+ */
+void *aligned_malloc (size_t  bytes, size_t alignment)
+{
+    return  (lib_mallocalign(bytes, alignment));
+}
+
+/*
+ * aligned_free
+ */
+void aligned_free (void *p)
+{
+    lib_free(p);
+}
+
+/*
  *  lib_malloc
  */
+__weak_reference(lib_malloc, malloc);
+
 void *lib_malloc (size_t  nbytes)
 {
     int mextern = 0;
@@ -442,14 +460,12 @@ __re_try:
 
     return  (NULL);
 }
-void *malloc (size_t  nbytes)
-{
-    return  (lib_malloc(nbytes));
-}
 
 /*
  *  lib_xmalloc
  */
+__weak_reference(lib_xmalloc, xmalloc);
+
 void *lib_xmalloc (size_t  nbytes)
 {
     void  *ptr = lib_malloc(nbytes);
@@ -461,14 +477,12 @@ void *lib_xmalloc (size_t  nbytes)
     
     return  (ptr);
 }
-void *xmalloc (size_t  nbytes)
-{
-    return  (lib_xmalloc(nbytes));
-}
 
 /*
  *  lib_mallocalign
  */
+__weak_reference(lib_mallocalign, mallocalign);
+
 void *lib_mallocalign (size_t  nbytes, size_t align)
 {
     int mextern = 0;
@@ -503,6 +517,11 @@ __re_try:
     return  (NULL);
 }
 
+/*
+ * lib_xmallocalign
+ */
+__weak_reference(lib_xmallocalign, xmallocalign);
+
 void *lib_xmallocalign (size_t  nbytes, size_t align)
 {
     void  *ptr = lib_mallocalign(nbytes, align);
@@ -515,36 +534,20 @@ void *lib_xmallocalign (size_t  nbytes, size_t align)
     return  (ptr);
 }
 
-void *mallocalign (size_t  nbytes, size_t align)
-{
-    return  (lib_mallocalign(nbytes, align));
-}
-
-void *xmallocalign (size_t  nbytes, size_t align)
-{
-    return  (lib_xmallocalign(nbytes, align));
-}
-
-/*
- * aligned malloc
- */
-void *aligned_malloc (size_t  bytes, size_t alignment)
-{
-    return  (lib_mallocalign(bytes, alignment));
-}
-
-void aligned_free (void *p)
-{
-    lib_free(p);
-}
-
 /*
  *  lib_memalign
  */
+__weak_reference(lib_memalign, memalign);
+
 void *lib_memalign (size_t align, size_t  nbytes)
 {
     return  (lib_mallocalign(nbytes, align));
 }
+
+/*
+ * lib_xmemalign
+ */
+__weak_reference(lib_xmemalign, xmemalign);
 
 void *lib_xmemalign (size_t align, size_t  nbytes)
 {
@@ -558,19 +561,11 @@ void *lib_xmemalign (size_t align, size_t  nbytes)
     return  (ptr);
 }
 
-void *memalign (size_t align, size_t  nbytes)
-{
-    return  (lib_memalign(align, nbytes));
-}
-
-void *xmemalign (size_t align, size_t  nbytes)
-{
-    return  (lib_xmemalign(align, nbytes));
-}
-
 /*
  *  lib_free
  */
+__weak_reference(lib_free, free);
+
 void lib_free (void *ptr)
 {
     if (ptr && ctx.allc_en) {
@@ -578,14 +573,11 @@ void lib_free (void *ptr)
     }
 }
 
-void free (void *ptr)
-{
-    lib_free(ptr);
-}
-
 /*
  *  lib_calloc
  */
+__weak_reference(lib_calloc, calloc);
+
 void *lib_calloc (size_t  num, size_t  nbytes)
 {
     size_t total = num * nbytes;
@@ -599,14 +591,11 @@ void *lib_calloc (size_t  num, size_t  nbytes)
     return  (pmem);
 }
 
-void *calloc (size_t  num, size_t  nbytes)
-{
-    return  (lib_calloc(num, nbytes));
-}
-
 /*
  *  lib_xcalloc
  */
+__weak_reference(lib_xcalloc, xcalloc);
+
 void *lib_xcalloc (size_t  num, size_t  nbytes)
 {
     void  *ptr = lib_calloc(num, nbytes);
@@ -618,14 +607,12 @@ void *lib_xcalloc (size_t  num, size_t  nbytes)
     
     return  (ptr);
 }
-void *xcalloc (size_t  num, size_t  nbytes)
-{
-    return  (lib_xcalloc(num, nbytes));
-}
 
 /*
  *  lib_realloc
  */
+__weak_reference(lib_realloc, realloc);
+
 void *lib_realloc (void *ptr, size_t  new_size)
 {
     int mextern = 0;
@@ -653,14 +640,11 @@ __re_try:
     return  (NULL);
 }
 
-void *realloc (void *ptr, size_t  new_size)
-{
-    return  (lib_realloc(ptr, new_size));
-}
-
 /*
  *  lib_xrealloc
  */
+__weak_reference(lib_xrealloc, xrealloc);
+
 void *lib_xrealloc (void *ptr, size_t  new_size)
 {
     void  *new_ptr = lib_realloc(ptr, new_size);
@@ -673,14 +657,11 @@ void *lib_xrealloc (void *ptr, size_t  new_size)
     return  (new_ptr);
 }
 
-void *xrealloc (void *ptr, size_t  new_size)
-{
-    return  (lib_xrealloc(ptr, new_size));
-}
-
 /*
  *  lib_posix_memalign
  */
+__weak_reference(lib_posix_memalign, posix_memalign);
+
 int  lib_posix_memalign (void **memptr, size_t align, size_t size)
 {
     if (memptr == NULL) {
@@ -705,14 +686,11 @@ int  lib_posix_memalign (void **memptr, size_t align, size_t size)
     }
 }
 
-int  posix_memalign (void **memptr, size_t align, size_t size)
-{
-    return  lib_posix_memalign(memptr, align, size);
-}
-
 /*
  *  lib_malloc_new
  */
+__weak_reference(lib_malloc_new, malloc_new);
+
 void *lib_malloc_new (size_t  nbytes)
 {
     int mextern = 0;
@@ -743,14 +721,11 @@ __re_try:
     return  (NULL);
 }
 
-void *malloc_new (size_t  nbytes)
-{
-    return  (lib_malloc_new(nbytes));
-}
-
 /*
  *  lib_strdup
  */
+__weak_reference(lib_strdup, strdup);
+
 char *lib_strdup (const char *str)
 {
     char *mem = NULL;
@@ -769,14 +744,11 @@ char *lib_strdup (const char *str)
     return  (mem);
 }
 
-char *strdup (const char *str)
-{
-    return  (lib_strdup(str));
-}
-
 /*
  *  lib_xstrdup
  */
+__weak_reference(lib_xstrdup, xstrdup);
+
 char *lib_xstrdup (const char *str)
 {
     char *str_ret = lib_strdup(str);
@@ -789,14 +761,11 @@ char *lib_xstrdup (const char *str)
     return  (str_ret);
 }
 
-char *xstrdup (const char *str)
-{
-    return  (lib_xstrdup(str));
-}
-
 /*
  *  lib_strndup
  */
+__weak_reference(lib_strndup, strndup);
+
 char *lib_strndup (const char *str, size_t size)
 {
     char *mem;
@@ -821,14 +790,11 @@ char *lib_strndup (const char *str, size_t size)
     return  (mem);
 }
 
-char *strndup (const char *str, size_t size)
-{
-    return  (lib_strndup(str, size));
-}
-
 /*
  *  lib_xstrndup
  */
+__weak_reference(lib_xstrndup, xstrndup);
+
 char *lib_xstrndup (const char *str, size_t size)
 {
     char *str_ret = lib_strndup(str, size);
@@ -839,86 +805,6 @@ char *lib_xstrndup (const char *str, size_t size)
     }
     
     return  (str_ret);
-}
-
-char *xstrndup (const char *str, size_t size)
-{
-    return  (lib_xstrndup(str, size));
-}
-
-/*
- *  lib_itoa
- */
-char *lib_itoa (int value, char *string, int radix)
-{
-    char tmp[33];
-    char *tp = tmp;
-    int i;
-    unsigned v;
-    int sign;
-    char *sp;
-
-    if (radix > 36 || radix <= 1)
-    {
-        errno = EDOM;
-        return 0;
-    }
-
-    sign = (radix == 10 && value < 0);
-    if (sign)
-        v = -value;
-    else
-        v = (unsigned)value;
-    while (v || tp == tmp)
-    {
-        i = v % radix;
-        v = v / radix;
-        if (i < 10)
-            *tp++ = (char)(i+'0');
-        else
-            *tp++ = (char)(i + 'a' - 10);
-    }
-
-    if (string == 0)
-        string = (char *)lib_malloc((tp-tmp)+sign+1);
-    sp = string;
-
-    if (sign)
-        *sp++ = '-';
-    while (tp > tmp)
-        *sp++ = *--tp;
-    *sp = 0;
-    
-    return string;
-}
-
-char *itoa (int value, char *string, int radix)
-{
-    return  (lib_itoa(value, string, radix));
-}
-
-/*
- * wcsdup
- */
-#ifdef __GNUC__
-__weak_reference(wcsdup,_wcsdup);
-#endif
-
-wchar_t *
-wcsdup(const wchar_t *str)
-{
-    wchar_t *copy;
-    size_t len;
-
-    assert(str != NULL);
-
-    len = wcslen(str) + 1;
-    copy = malloc(len * sizeof (wchar_t));
-
-    if (!copy)
-        return NULL;
-
-    return wmemcpy(copy, str, len);
 }
 
 /*

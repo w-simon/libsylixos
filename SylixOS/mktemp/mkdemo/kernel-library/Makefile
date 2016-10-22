@@ -35,10 +35,38 @@ endif
 endif
 
 #*********************************************************************************************************
+# Include sylixos base config.mk
+#*********************************************************************************************************
+EMPTY =
+SPACE = $(EMPTY) $(EMPTY)
+
+SYLIXOS_BASE_PATH_BAK := $(SYLIXOS_BASE_PATH)
+TOOLCHAIN_PREFIX_BAK  := $(TOOLCHAIN_PREFIX)
+DEBUG_LEVEL_BAK       := $(DEBUG_LEVEL)
+CPU_TYPE_BAK          := $(CPU_TYPE)
+FPU_TYPE_BAK          := $(FPU_TYPE)
+
+SYLIXOS_BASE_CONFIGMK = $(subst $(SPACE),\ ,$(SYLIXOS_BASE_PATH))/config.mk
+include $(SYLIXOS_BASE_CONFIGMK)
+
+SYLIXOS_BASE_PATH := $(SYLIXOS_BASE_PATH_BAK)
+DEBUG_LEVEL       := $(DEBUG_LEVEL_BAK)
+
+ifneq ($(TOOLCHAIN_PREFIX_BAK),)
+TOOLCHAIN_PREFIX  := $(TOOLCHAIN_PREFIX_BAK)
+endif
+
+ifneq ($(CPU_TYPE_BAK),)
+CPU_TYPE := $(CPU_TYPE_BAK)
+endif
+
+ifneq ($(FPU_TYPE_BAK),)
+FPU_TYPE := $(FPU_TYPE_BAK)
+endif
+
+#*********************************************************************************************************
 # Include header.mk
 #*********************************************************************************************************
-EMPTY  =
-SPACE  = $(EMPTY) $(EMPTY)
 MKTEMP = $(subst $(SPACE),\ ,$(SYLIXOS_BASE_PATH))/libsylixos/SylixOS/mktemp
 
 include $(MKTEMP)/header.mk

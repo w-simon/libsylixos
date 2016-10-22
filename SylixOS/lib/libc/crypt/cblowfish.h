@@ -46,10 +46,6 @@
  * directly by bcrypt.c, not built separately.
  */
 
-#ifndef SYLIXOS
-__RCSID("$NetBSD: blowfish.c,v 1.4 2005/12/24 21:11:16 perry Exp $");
-#endif
-
 #include "sys/types.h"
 
 /* Schneier specifies a maximum key length of 56 bytes.

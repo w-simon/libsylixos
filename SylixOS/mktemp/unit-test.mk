@@ -77,14 +77,15 @@ $(target)_DEPEND_LIB += -ldsohandle -lm -lgcc
 # Define some useful variables
 #*********************************************************************************************************
 __UNIT_TEST_TARGET         = $(word 3,$(subst $(BIAS),$(SPACE),$(1)))
+__UNIT_TEST_STRIP_TARGET   = $(word 4,$(subst $(BIAS),$(SPACE),$(1)))
 
 __UNIT_TEST_LIBRARIES      = $($(__UNIT_TEST_TARGET)_DEPEND_LIB_PATH) $($(__UNIT_TEST_TARGET)_DEPEND_LIB)
 
 __UNIT_TEST_PRE_LINK_CMD   = $($(__UNIT_TEST_TARGET)_PRE_LINK_CMD)
 __UNIT_TEST_POST_LINK_CMD  = $($(__UNIT_TEST_TARGET)_POST_LINK_CMD)
 
-__UNIT_TEST_PRE_STRIP_CMD  = $($(__UNIT_TEST_TARGET)_PRE_STRIP_CMD)
-__UNIT_TEST_POST_STRIP_CMD = $($(__UNIT_TEST_TARGET)_POST_STRIP_CMD)
+__UNIT_TEST_PRE_STRIP_CMD  = $($(__UNIT_TEST_STRIP_TARGET)_PRE_STRIP_CMD)
+__UNIT_TEST_POST_STRIP_CMD = $($(__UNIT_TEST_STRIP_TARGET)_POST_STRIP_CMD)
 
 __UNIT_TEST_CPUFLAGS       = $($(__UNIT_TEST_TARGET)_CPUFLAGS)
 

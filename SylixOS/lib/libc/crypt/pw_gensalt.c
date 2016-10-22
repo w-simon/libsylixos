@@ -33,13 +33,6 @@
  */
 
 #include "sys/cdefs.h"
-
-#ifndef SYLIXOS
-#ifndef lint
-__RCSID("$NetBSD: pw_gensalt.c,v 1.6 2007/01/17 23:24:22 hubertf Exp $");
-#endif /* not lint */
-#endif
-
 #include "sys/types.h"
 
 #include "stdio.h"
