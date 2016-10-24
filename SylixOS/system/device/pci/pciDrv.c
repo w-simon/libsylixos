@@ -112,7 +112,7 @@ static VOID  __tshellPciDrvCmdShow (VOID)
     REGISTER INT        i;
     REGISTER INT        j;
 
-    printf("pci device driver total : %d active : %d.\n", _GuiPciDrvTotalNum, _GuiPciDrvActiveNum);
+    printf("pci device driver total: %d active: %d.\n", _GuiPciDrvTotalNum, _GuiPciDrvActiveNum);
 
     printf(pcPciDrvShowHdr);
 

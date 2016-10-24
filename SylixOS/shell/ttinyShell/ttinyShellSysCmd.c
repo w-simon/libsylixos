@@ -239,12 +239,12 @@ static INT  __tshellSysCmdShell (INT  iArgC, PCHAR  ppcArgV[])
     
     iFd = open(ppcArgV[1], O_RDWR);
     if (iFd < 0) {
-        fprintf(stderr, "open file return : %d error : %s\n", iFd, lib_strerror(errno));
+        fprintf(stderr, "open file return: %d error: %s\n", iFd, lib_strerror(errno));
         return  (-1);
     }
     
     if (API_TShellCreate(iFd, ulOption) == LW_OBJECT_HANDLE_INVALID) {
-        fprintf(stderr, "can not create shell : %s\n", lib_strerror(errno));
+        fprintf(stderr, "can not create shell: %s\n", lib_strerror(errno));
         return  (-1);
     }
 
@@ -1057,11 +1057,11 @@ static INT  __tshellSysCmdOpen (INT  iArgC, PCHAR  ppcArgV[])
     if (iFd >= 0) {
         fstat(iFd, &statBuf);
         
-        printf("open file return : %d dev %lx  inode %lx size " __PRINT_TYPE "\n", 
+        printf("open file return: %d dev %lx inode %lx size " __PRINT_TYPE "\n", 
                iFd, statBuf.st_dev, statBuf.st_ino, statBuf.st_size);
     
     } else {
-        fprintf(stderr, "open file return : %d error : %s\n", iFd, lib_strerror(errno));
+        fprintf(stderr, "open file return: %d error: %s\n", iFd, lib_strerror(errno));
     }
     
     return  (ERROR_NONE);
@@ -1189,7 +1189,7 @@ static INT  __tshellSysCmdVarload (INT  iArgC, PCHAR  ppcArgV[])
         API_TShellColorRefresh();                                       /*  更新颜色方案                */
         printf("envionment variables load from %s success.\n", pcFile);
     } else {
-        fprintf(stderr, "envionment variables load from %s fail, error : %s\n", 
+        fprintf(stderr, "envionment variables load from %s fail, error: %s\n", 
                 pcFile, lib_strerror(errno));
     }
     
@@ -1220,7 +1220,7 @@ static INT  __tshellSysCmdVarsave (INT  iArgC, PCHAR  ppcArgV[])
     if (iError == ERROR_NONE) {
         printf("envionment variables save to %s success.\n", pcFile);
     } else {
-        fprintf(stderr, "envionment variables save to %s fail, error : %s\n", 
+        fprintf(stderr, "envionment variables save to %s fail, error: %s\n", 
                 pcFile, lib_strerror(errno));
     }
     
@@ -1384,7 +1384,7 @@ static INT  __tshellSysCmdSprio (INT  iArgC, PCHAR  ppcArgV[])
     }
     
     if (API_ThreadSetPriority(ulId, (UINT8)iPrio) != ERROR_NONE) {
-        fprintf(stderr, "can not set thread priority error : %s\n", lib_strerror(errno));
+        fprintf(stderr, "can not set thread priority error: %s\n", lib_strerror(errno));
         return  (PX_ERROR);
     }
     
@@ -1462,7 +1462,7 @@ __arg_error:
     iRet  = setpriority(iWhich, lId, iPrio + iNice);
     
     if (iRet < ERROR_NONE) {
-        fprintf(stderr, "set priority error : %s.\n", lib_strerror(errno));
+        fprintf(stderr, "set priority error: %s.\n", lib_strerror(errno));
     }
     return  (iRet);
     
@@ -1602,7 +1602,7 @@ static INT  __tshellSysCmdLogLevel (INT  iArgC, PCHAR  ppcArgV[])
     INT     iNewLogLevel = console_loglevel;
 
     if (iArgC != 2) {
-        printf("printk() log message current level is : %d\n", console_loglevel);
+        printf("printk() log message current level is: %d\n", console_loglevel);
         return  (ERROR_NONE);
     }
     
@@ -1638,7 +1638,7 @@ static INT  __tshellSysCmdHwclock (INT  iArgC, PCHAR  ppcArgV[])
     
     if (lib_strcmp("--show", ppcArgV[1]) == 0) {                        /*  显示硬件时钟                */
         if (API_RtcGet(&time) < 0) {
-            fprintf(stderr, "can not get RTC info. error : %s\n", lib_strerror(errno));
+            fprintf(stderr, "can not get RTC info. error: %s\n", lib_strerror(errno));
             return  (PX_ERROR);
         } else {
             printf("%s", lib_ctime_r(&time, cTimeBuffer));
@@ -1646,13 +1646,13 @@ static INT  __tshellSysCmdHwclock (INT  iArgC, PCHAR  ppcArgV[])
     
     } else if (lib_strcmp("--hctosys", ppcArgV[1]) == 0) {              /*  硬件时钟与系统时间同步      */
         if (API_RtcToSys() < 0) {
-            fprintf(stderr, "can not sync RTC to system clock. error : %s\n", lib_strerror(errno));
+            fprintf(stderr, "can not sync RTC to system clock. error: %s\n", lib_strerror(errno));
             return  (PX_ERROR);
         }
     
     } else if (lib_strcmp("--systohc", ppcArgV[1]) == 0) {              /*  系统时间与硬件时钟同步      */
         if (API_SysToRtc() < 0) {
-            fprintf(stderr, "can not sync system clock to RTC. error : %s\n", lib_strerror(errno));
+            fprintf(stderr, "can not sync system clock to RTC. error: %s\n", lib_strerror(errno));
             return  (PX_ERROR);
         }
     
@@ -1680,12 +1680,12 @@ static INT  __tshellSysCmdShStack (INT  iArgC, PCHAR  ppcArgV[])
 
     if (iArgC < 2) {
         API_TShellSetStackSize(0, &stSize);
-        printf("default shell stack : %zd\n", stSize);
+        printf("default shell stack: %zd\n", stSize);
         
     } else {
         sscanf(ppcArgV[1], "%zd", &stSize);
         API_TShellSetStackSize(stSize, LW_NULL);
-        printf("default shell stack : %zd\n", stSize);
+        printf("default shell stack: %zd\n", stSize);
     }
     
     return  (ERROR_NONE);
@@ -1739,7 +1739,7 @@ static INT  __tshellSysCmdHostname (INT  iArgC, PCHAR  ppcArgV[])
     
     } else {
         if (sethostname(ppcArgV[1], lib_strlen(ppcArgV[1]))) {
-            fprintf(stderr, "set hostname error : %s\n", lib_strerror(errno));
+            fprintf(stderr, "set hostname error: %s\n", lib_strerror(errno));
             return  (PX_ERROR);
         }
     }
@@ -1892,9 +1892,9 @@ static INT  __tshellSysCmdMonitor (INT  iArgC, PCHAR  ppcArgV[])
             printf("monitor stopped now.\n");
         } else {
             if (bIsNet) {
-                printf("monitor update ip : %s port : %d\n", pcFileOrIp, usPort);
+                printf("monitor update ip: %s port: %d\n", pcFileOrIp, usPort);
             } else {
-                printf("monitor update path : %s\n", pcFileOrIp);
+                printf("monitor update path: %s\n", pcFileOrIp);
             }
         }
         return  (ERROR_NONE);
@@ -1930,7 +1930,7 @@ static INT  __tshellSysCmdMonitor (INT  iArgC, PCHAR  ppcArgV[])
             errno     = ENOSYS;
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */
             if (!pvMonitor) {
-                fprintf(stderr, "can not create monitor net upload path error : %s.\n", 
+                fprintf(stderr, "can not create monitor net upload path error: %s.\n", 
                         lib_strerror(errno));
                 return  (PX_ERROR);
             }
@@ -1947,7 +1947,7 @@ static INT  __tshellSysCmdMonitor (INT  iArgC, PCHAR  ppcArgV[])
             errno     = ENOSYS;
 #endif                                                                  /*  LW_CFG_DEVICE_EN > 0        */
             if (!pvMonitor) {
-                fprintf(stderr, "can not create monitor file upload path error : %s.\n", 
+                fprintf(stderr, "can not create monitor file upload path error: %s.\n", 
                         lib_strerror(errno));
                 return  (PX_ERROR);
             }
@@ -1973,7 +1973,7 @@ static INT  __tshellSysCmdMonitor (INT  iArgC, PCHAR  ppcArgV[])
         if (bIsNet) {
 #if LW_CFG_NET_EN > 0
             if (API_MonitorNetUploadDelete(pvMonitor)) {
-                fprintf(stderr, "can not stop net upload monitor error : %s.\n", 
+                fprintf(stderr, "can not stop net upload monitor error: %s.\n", 
                         lib_strerror(errno));
                 return  (PX_ERROR);
             
@@ -1987,7 +1987,7 @@ static INT  __tshellSysCmdMonitor (INT  iArgC, PCHAR  ppcArgV[])
         } else {
 #if LW_CFG_DEVICE_EN > 0
             if (API_MonitorFileUploadDelete(pvMonitor)) {
-                fprintf(stderr, "can not stop file upload monitor error : %s.\n", 
+                fprintf(stderr, "can not stop file upload monitor error: %s.\n", 
                         lib_strerror(errno));
                 return  (PX_ERROR);
             

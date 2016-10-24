@@ -173,7 +173,7 @@ static ssize_t  __procFsKernelVersionRead (PLW_PROCFS_NODE  p_pfsn,
     if (stRealSize == 0) {                                              /*  需要生成文件                */
         stRealSize = bnprintf(pcFileBuffer, 
                               __PROCFS_BUFFER_SIZE_VERSION, 0,
-                              "%s %s\n(compile time : %s %s)\n",
+                              "%s %s\n(compile time: %s %s)\n",
                               __SYLIXOS_VERINFO, 
                               bspInfoVersion(),
                               __DATE__, __TIME__);

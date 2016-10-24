@@ -168,7 +168,7 @@ VOID    API_ThreadShowEx (pid_t  pid)
         iThreadCounter++;
     }
     
-    printf("\nthread : %d\n", iThreadCounter);                          /*  显示线程数量                */
+    printf("\nthread: %d\n", iThreadCounter);                           /*  显示线程数量                */
 }
 /*********************************************************************************************************
 ** 函数名称: API_ThreadPendShowEx
@@ -372,7 +372,7 @@ VOID    API_ThreadPendShowEx (pid_t  pid)
         iThreadCounter++;
     }
     
-    printf("\npending thread : %d\n", iThreadCounter);                  /*  显示线程数量                */
+    printf("\npending thread: %d\n", iThreadCounter);                   /*  显示线程数量                */
 }
 /*********************************************************************************************************
 ** 函数名称: API_ThreadShow

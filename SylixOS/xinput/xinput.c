@@ -318,7 +318,7 @@ static int xinput_devadd (void)
     kdb_xinput.time = time(NULL);
 
     if (iosDevAddEx(&kdb_xinput.devhdr, XINPUT_NAME_KBD, xinput_drv_num, DT_CHR) != ERROR_NONE) {
-        printk(KERN_ERR "xinput can not add device : %s.\n", strerror(errno));
+        printk(KERN_ERR "xinput can not add device: %s.\n", strerror(errno));
         return  (PX_ERROR);
     }
 
@@ -329,7 +329,7 @@ static int xinput_devadd (void)
     mse_xinput.time = time(NULL);
 
     if (iosDevAddEx(&mse_xinput.devhdr, XINPUT_NAME_MSE, xinput_drv_num, DT_CHR) != ERROR_NONE) {
-        printk(KERN_ERR "xinput can not add device : %s.\n", strerror(errno));
+        printk(KERN_ERR "xinput can not add device: %s.\n", strerror(errno));
         return  (PX_ERROR);
     }
 

@@ -331,7 +331,7 @@ static PVOID  __monitorUploadThread (PVOID  pvArg)
             } else if (sstLen > 0) {                                    /*  接收到事件信息              */
                 sstLen = write(pmu->UPLOAD_iFd, ucEvent, (size_t)sstLen);
                 if (sstLen <= 0) {
-                    fprintf(stderr, "monitor can not update event to server, error : %s\n"
+                    fprintf(stderr, "monitor can not update event to server, error: %s\n"
                                     "you must stop monitor manually.\n",
                                     lib_strerror(errno));
                     bMustStop = LW_TRUE;

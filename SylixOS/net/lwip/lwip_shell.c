@@ -745,14 +745,14 @@ static INT  __tshellArp (INT  iArgC, PCHAR  *ppcArgV)
         
         ipaddr.addr = ipaddr_addr(ppcArgV[2]);
         if (ipaddr.addr == IPADDR_NONE) {
-            fprintf(stderr, "bad inet address : %s\n", ppcArgV[2]);
+            fprintf(stderr, "bad inet address: %s\n", ppcArgV[2]);
             return  (-ERROR_TSHELL_EPARAM);
         }
         
         if (sscanf(ppcArgV[3], "%02x:%02x:%02x:%02x:%02x:%02x",
                    &iTemp[0], &iTemp[1], &iTemp[2], 
                    &iTemp[3], &iTemp[4], &iTemp[5]) != 6) {
-            fprintf(stderr, "bad physical address : %s\n", ppcArgV[3]);
+            fprintf(stderr, "bad physical address: %s\n", ppcArgV[3]);
             return  (-ERROR_TSHELL_EPARAM);
         }
         
@@ -786,7 +786,7 @@ static INT  __tshellArp (INT  iArgC, PCHAR  *ppcArgV)
         
         ipaddr.addr = ipaddr_addr(ppcArgV[2]);
         if (ipaddr.addr == IPADDR_NONE) {
-            fprintf(stderr, "bad inet address : %s\n", ppcArgV[2]);
+            fprintf(stderr, "bad inet address: %s\n", ppcArgV[2]);
             return  (-ERROR_TSHELL_EPARAM);
         }
         

@@ -373,7 +373,7 @@ INT  API_INetPing6 (struct in6_addr  *pin6addr,
     for (i = 0; ;) {
         if (__inetPing6Send(iSock, pin6addr, iDataSize, pcNetif, &usSeqRecv) < 0) {
                                                                         /*  发送 icmp 数据包            */
-            fprintf(stderr, "error : %s.\n", lib_strerror(errno));
+            fprintf(stderr, "error: %s.\n", lib_strerror(errno));
         
             i++;
             if (i >= iTimes) {

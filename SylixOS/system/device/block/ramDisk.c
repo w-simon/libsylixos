@@ -129,7 +129,7 @@ ULONG  API_RamDiskCreate (PVOID  pvDiskAddr, UINT64  ullDiskSize, PLW_BLK_DEV  *
 
     *ppblkdRam = &pramd->RAMD_blkdRam;                                  /*  ±£´æ¿ØÖÆ¿é                  */
     
-    _DebugFormat(__LOGMESSAGE_LEVEL, "ram disk size : 0x%lx base : 0x%lx has been create.\r\n",
+    _DebugFormat(__LOGMESSAGE_LEVEL, "ram disk size: 0x%lx base: 0x%lx has been create.\r\n",
                  (ULONG)ullDiskSize, (addr_t)pvDiskAddr);
     
     return  (ERROR_NONE);

@@ -128,7 +128,7 @@ static size_t  __procFsSymbolPrint (PCHAR  pcBuffer, size_t  stMaxBytes)
     }
     
     stRealSize = bnprintf(pcBuffer, stMaxBytes, stRealSize, 
-                          "\ntotal symbol : %zu\n", _G_stSymbolCounter);
+                          "\ntotal symbol: %zu\n", _G_stSymbolCounter);
     
     return  (stRealSize);
 }

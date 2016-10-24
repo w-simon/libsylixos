@@ -1121,7 +1121,7 @@ static INT  __tshellNetNpfRuleAdd (INT  iArgC, PCHAR  *ppcArgV)
                                     LWIP_NPF_RULE_MAC,
                                     ucMac, LW_NULL, LW_NULL, 0, 0);
         if (pvRule == LW_NULL) {
-            fprintf(stderr, "can not add mac rule, error : %s\n", lib_strerror(errno));
+            fprintf(stderr, "can not add mac rule, error: %s\n", lib_strerror(errno));
             return  (PX_ERROR);
         }
 
@@ -1136,7 +1136,7 @@ static INT  __tshellNetNpfRuleAdd (INT  iArgC, PCHAR  *ppcArgV)
                                     ppcArgV[__NPF_TSHELL_RADD_ARG_IPS],
                                     ppcArgV[__NPF_TSHELL_RADD_ARG_IPE], 0, 0);
         if (pvRule == LW_NULL) {
-            fprintf(stderr, "can not add ip rule, error : %s\n", lib_strerror(errno));
+            fprintf(stderr, "can not add ip rule, error: %s\n", lib_strerror(errno));
             return  (PX_ERROR);
         }
 
@@ -1165,7 +1165,7 @@ static INT  __tshellNetNpfRuleAdd (INT  iArgC, PCHAR  *ppcArgV)
                                     htons((u16_t)iPortS),
                                     htons((u16_t)iPortE));
         if (pvRule == LW_NULL) {
-            fprintf(stderr, "can not add udp rule, error : %s\n", lib_strerror(errno));
+            fprintf(stderr, "can not add udp rule, error: %s\n", lib_strerror(errno));
             return  (PX_ERROR);
         }
 
@@ -1194,7 +1194,7 @@ static INT  __tshellNetNpfRuleAdd (INT  iArgC, PCHAR  *ppcArgV)
                                     htons((u16_t)iPortS),
                                     htons((u16_t)iPortE));
         if (pvRule == LW_NULL) {
-            fprintf(stderr, "can not add tcp rule, error : %s\n", lib_strerror(errno));
+            fprintf(stderr, "can not add tcp rule, error: %s\n", lib_strerror(errno));
             return  (PX_ERROR);
         }
 
@@ -1235,7 +1235,7 @@ static INT  __tshellNetNpfRuleDel (INT  iArgC, PCHAR  *ppcArgV)
         if (errno == EINVAL) {
             fprintf(stderr, "argments error!\n");
         } else {
-            fprintf(stderr, "can not delete rule, error : %s\n", lib_strerror(errno));
+            fprintf(stderr, "can not delete rule, error: %s\n", lib_strerror(errno));
         }
     } else {
         printf("delete.\n");
@@ -1268,7 +1268,7 @@ static INT  __tshellNetNpfAttach (INT  iArgC, PCHAR  *ppcArgV)
         } else if (errno == ERROR_SYSTEM_LOW_MEMORY) {
             fprintf(stderr, "system low memory!\n");
         } else {
-            fprintf(stderr, "can not attach netif, error : %s\n", lib_strerror(errno));
+            fprintf(stderr, "can not attach netif, error: %s\n", lib_strerror(errno));
         }
     } else {
         printf("attached.\n");
@@ -1299,7 +1299,7 @@ static INT  __tshellNetNpfDetach (INT  iArgC, PCHAR  *ppcArgV)
         if (errno == EINVAL) {
             fprintf(stderr, "netif error!\n");
         } else {
-            fprintf(stderr, "can not detach netif, error : %s\n", lib_strerror(errno));
+            fprintf(stderr, "can not detach netif, error: %s\n", lib_strerror(errno));
         }
     } else {
         printf("detached.\n");

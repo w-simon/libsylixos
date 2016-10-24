@@ -57,7 +57,7 @@
 #include "./loader/include/loader_lib.h" /* need __eabi */
 #endif /* LW_CFG_CPU_ARCH_PPC */
 
-#define __VP_PATCH_VERSION      "2.0.0" /* vp patch version */
+#define __VP_PATCH_VERSION      "2.0.1" /* vp patch version */
 
 /*
  * fixed gcc old version.
@@ -102,6 +102,7 @@ typedef struct exit_node {
 typedef struct vp_ctx {
     LW_OBJECT_HANDLE  locker; /* vpmpdm lock */
     LW_CLASS_HEAP  heap; /* this private heap */
+    size_t  pagesize; /* vmm page size */
     size_t  blksize; /* vmm allocate size pre time */
     void  *vmem[MAX_MEM_BLKS]; /* vmm memory block pointer */
     void  *proc; /* this process */
@@ -110,6 +111,7 @@ typedef struct vp_ctx {
 } vp_ctx;
 
 static vp_ctx ctx = {
+    .pagesize = 4096, /* default vmm page size */
     .blksize = 8192, /* default vmm block memory size */
 };
 
@@ -236,10 +238,10 @@ void __vp_patch_ctor (void *pvproc, PVOIDFUNCPTR *ppfuncMalloc, VOIDFUNCPTR *ppf
     }
     
 #if LW_CFG_VMM_EN > 0
-    ctx.blksize *= LW_CFG_VMM_PAGE_SIZE;
-#else
-    ctx.blksize *= 4096;
+    ctx.pagesize = (size_t)getpagesize();
 #endif /* LW_CFG_VMM_EN > 0 */
+
+    ctx.blksize *= ctx.pagesize;
 
     ctx.locker = API_SemaphoreMCreate("vp_lock", LW_PRIO_DEF_CEILING,
                                       LW_OPTION_INHERIT_PRIORITY | 
@@ -399,12 +401,12 @@ void  __vp_pre_alloc_phy (const void *pmem, size_t nbytes)
 
     temp = *(char *)algin;
 
-    algin |= (LW_CFG_VMM_PAGE_SIZE - 1);
+    algin |= (ctx.pagesize - 1);
     algin += 1;
 
     while (algin <= end) {
         temp = *(char *)algin;
-        algin += LW_CFG_VMM_PAGE_SIZE;
+        algin += ctx.pagesize;
     }
     
     (void)temp; /* no warning for this variable */

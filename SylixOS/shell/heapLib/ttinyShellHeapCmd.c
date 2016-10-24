@@ -227,7 +227,7 @@ static VOID  __heapTracePrintResult (BOOL  bIsNeedDel)
     if (iCount == 0) {
         printf("no memory heap leak.\n");                               /*  没有内存泄露                */
     } else {
-        printf("\ntotal unfree segment : %d size : %zu\n", iCount, stTotal);
+        printf("\ntotal unfree segment: %d size: %zu\n", iCount, stTotal);
     }
     
     fflush(stdout);                                                     /*  清空输出                    */

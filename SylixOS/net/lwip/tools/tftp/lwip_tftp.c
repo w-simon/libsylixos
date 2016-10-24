@@ -1191,7 +1191,7 @@ INT  API_INetTftpServerPath (CPCHAR  pcPath)
 static INT  __tshellNetTftpdPath (INT  iArgC, PCHAR  *ppcArgV)
 {
     if (iArgC < 2) {
-        printf("tftpd path : %s\n", _G_pcTftpRootPath);                 /*  打印当前服务器目录          */
+        printf("tftpd path: %s\n", _G_pcTftpRootPath);                  /*  打印当前服务器目录          */
         return  (ERROR_NONE);
     }
     
@@ -1252,7 +1252,7 @@ static INT  __tshellTftp (INT  iArgC, PCHAR  *ppcArgV)
         if (errno == EHOSTUNREACH) {
             fprintf(stderr, "can not find host.\n");
         } else {
-            fprintf(stderr, "some error occur, error : %s\n", lib_strerror(errno));
+            fprintf(stderr, "some error occur, error: %s\n", lib_strerror(errno));
         }
     } else {
         printf("file transfer completed.\n");

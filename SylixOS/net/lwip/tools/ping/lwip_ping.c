@@ -248,7 +248,7 @@ INT  API_INetPing (struct in_addr  *pinaddr, INT  iTimes, INT  iDataSize, INT  i
     for (i = 0; ;) {
         if (__inetPingSend(iSock, *pinaddr, iDataSize, &usSeqRecv) < 0) { 
                                                                         /*  发送 icmp 数据包            */
-            fprintf(stderr, "error : %s.\n", lib_strerror(errno));
+            fprintf(stderr, "error: %s.\n", lib_strerror(errno));
             
             i++;
             if (i >= iTimes) {

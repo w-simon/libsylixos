@@ -302,7 +302,7 @@ __argument_error:
             fprintf(stderr, "User already exist.\n");
         
         } else {
-            fprintf(stderr, "Can not create new user : %s\n", lib_strerror(errno));
+            fprintf(stderr, "Can not create new user: %s\n", lib_strerror(errno));
         }
         return  (-1);
     
@@ -341,7 +341,7 @@ static INT  __tshellUserCmdUdel (INT  iArgC, PCHAR  ppcArgV[])
             fprintf(stderr, "User Invalidate.\n");
         
         } else {
-            fprintf(stderr, "Can not delete user : %s\n", lib_strerror(errno));
+            fprintf(stderr, "Can not delete user: %s\n", lib_strerror(errno));
         }
         return  (-1);
     }
@@ -387,7 +387,7 @@ static INT  __tshellUserCmdUmod (INT  iArgC, PCHAR  ppcArgV[])
             fprintf(stderr, "User Invalidate.\n");
         
         } else {
-            fprintf(stderr, "Can not modify user : %s\n", lib_strerror(errno));
+            fprintf(stderr, "Can not modify user: %s\n", lib_strerror(errno));
         }
         return  (-1);
     }
@@ -430,7 +430,7 @@ __argument_error:
             fprintf(stderr, "Group already exist.\n");
         
         } else {
-            fprintf(stderr, "Can not create new group : %s\n", lib_strerror(errno));
+            fprintf(stderr, "Can not create new group: %s\n", lib_strerror(errno));
         }
         return  (-1);
     }
@@ -469,7 +469,7 @@ static INT  __tshellUserCmdGdel (INT  iArgC, PCHAR  ppcArgV[])
             fprintf(stderr, "Group not empty.\n");
         
         } else {
-            fprintf(stderr, "Can not delete group : %s\n", lib_strerror(errno));
+            fprintf(stderr, "Can not delete group: %s\n", lib_strerror(errno));
         }
         return  (-1);
     }
@@ -505,7 +505,7 @@ static INT  __tshellUserCmdPmod (INT  iArgC, PCHAR  ppcArgV[])
             fprintf(stderr, "User Invalidate.\n");
         
         } else {
-            fprintf(stderr, "Can not modify password : %s\n", lib_strerror(errno));
+            fprintf(stderr, "Can not modify password: %s\n", lib_strerror(errno));
         }
         return  (-1);
     }

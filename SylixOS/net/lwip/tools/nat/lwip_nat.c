@@ -380,10 +380,10 @@ static INT  __tshellNat (INT  iArgC, PCHAR  ppcArgV[])
 {
     if (iArgC == 3) {
         if (API_INetNatStart(ppcArgV[1], ppcArgV[2]) != ERROR_NONE) {
-            fprintf(stderr, "can not start NAT network, errno : %s\n", lib_strerror(errno));
+            fprintf(stderr, "can not start NAT network, errno: %s\n", lib_strerror(errno));
         
         } else {
-            printf("NAT network started, [LAN : %s] [WAN : %s]\n", ppcArgV[1], ppcArgV[2]);
+            printf("NAT network started, [LAN: %s] [WAN: %s]\n", ppcArgV[1], ppcArgV[2]);
         }
     
     } else if (iArgC == 2) {
@@ -443,14 +443,14 @@ static INT  __tshellNatMap (INT  iArgC, PCHAR  ppcArgV[])
     if (lib_strcmp(ppcArgV[1], "add") == 0) {
         iError = API_INetNatMapAdd(ppcArgV[4], (UINT16)iLanPort, (UINT16)iWanPort, ucProto);
         if (iError < 0) {
-            fprintf(stderr, "add NAT map error : %s!\n", lib_strerror(errno));
+            fprintf(stderr, "add NAT map error: %s!\n", lib_strerror(errno));
             return  (-ERROR_TSHELL_EPARAM);
         }
         
     } else if (lib_strcmp(ppcArgV[1], "del") == 0) {
         iError = API_INetNatMapDelete(ppcArgV[4], (UINT16)iLanPort, (UINT16)iWanPort, ucProto);
         if (iError < 0) {
-            fprintf(stderr, "delete NAT map error : %s!\n", lib_strerror(errno));
+            fprintf(stderr, "delete NAT map error: %s!\n", lib_strerror(errno));
             return  (-ERROR_TSHELL_EPARAM);
         }
         
@@ -480,7 +480,7 @@ static INT  __tshellNatAlias (INT  iArgC, PCHAR  ppcArgV[])
         }
         iError = API_INetNatAliasAdd(ppcArgV[2], ppcArgV[3], ppcArgV[4]);
         if (iError < 0) {
-            fprintf(stderr, "add NAT alias error : %s!\n", lib_strerror(errno));
+            fprintf(stderr, "add NAT alias error: %s!\n", lib_strerror(errno));
             return  (-ERROR_TSHELL_EPARAM);
         }
     
@@ -490,7 +490,7 @@ static INT  __tshellNatAlias (INT  iArgC, PCHAR  ppcArgV[])
         }
         iError = API_INetNatAliasDelete(ppcArgV[2]);
         if (iError < 0) {
-            fprintf(stderr, "delete NAT alias error : %s!\n", lib_strerror(errno));
+            fprintf(stderr, "delete NAT alias error: %s!\n", lib_strerror(errno));
             return  (-ERROR_TSHELL_EPARAM);
         }
     

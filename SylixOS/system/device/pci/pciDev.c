@@ -693,7 +693,7 @@ INT  __tshellPciDevParentCmd (INT  iArgC, PCHAR  ppcArgV[])
 
         hDevHandle = API_PciDevParentHandleGet(iBus, iDevice, iFunction);
         if (hDevHandle != LW_NULL) {
-            printf("pci dev parent : %x:%x.%x\n",
+            printf("pci dev parent: %x:%x.%x\n",
                    hDevHandle->PCIDEV_iDevBus,
                    hDevHandle->PCIDEV_iDevDevice,
                    hDevHandle->PCIDEV_iDevFunction);
@@ -776,7 +776,7 @@ VOID  __tshellPciDevCmdShow (VOID)
     PCI_DRV_HANDLE      hDrvHandle = LW_NULL;
     REGISTER INT        i;
 
-    printf("pci dev number total : %d\n", _GuiPciDevTotalNum);
+    printf("pci dev number total: %d\n", _GuiPciDevTotalNum);
     printf(pcPciDevShowHdr);
 
     __PCI_DEV_LOCK();                                                   /*  Ëø¶¨ PCI Çý¶¯               */

@@ -492,7 +492,7 @@ err_t  sys_mbox_trypost (sys_mbox_t *pmbox, void *msg)
     }
 #if LW_CFG_LWIP_DEBUG > 0
       else if (ulError != ERROR_MSGQUEUE_FULL) {
-        panic("lwip sys_mbox_trypost() msgqueue error : %s\n", lib_strerror(errno));
+        panic("lwip sys_mbox_trypost() msgqueue error: %s\n", lib_strerror(errno));
         return  (ERR_MEM);
     }
 #endif                                                                  /*  LW_CFG_LWIP_DEBUG > 0       */
@@ -1083,10 +1083,10 @@ VOID ppp_link_status_hook (PVOID pvPPP, INT iError, PVOID pvArg)
     }
     
     if (iError == PPPERR_NONE) {
-        printk(KERN_INFO "ppp %s status : %s.\n", pcNetifName, pcError);
+        printk(KERN_INFO "ppp %s status: %s.\n", pcNetifName, pcError);
     
     } else {
-        printk(KERN_ERR "ppp %s status : %s.\n", pcNetifName, pcError);
+        printk(KERN_ERR "ppp %s status: %s.\n", pcNetifName, pcError);
     }
 }
 

@@ -153,7 +153,7 @@ ULONG  __vmmVirtualCreate (LW_MMU_VIRTUAL_DESC   pvirdes[])
         
         _BugFormat(__vmmLibVirtualOverlap(pvirdes[i].VIRD_ulVirAddr, 
                                           pvirdes[i].VIRD_stSize), LW_TRUE,
-                   "virtual zone vaddr 0x%08lx size : 0x%08zx overlap with virtual space.\r\n",
+                   "virtual zone vaddr 0x%08lx size: 0x%08zx overlap with virtual space.\r\n",
                    pvirdes[i].VIRD_ulVirAddr, pvirdes[i].VIRD_stSize);
                    
         switch (pvirdes[i].VIRD_uiType) {

@@ -440,7 +440,7 @@ static INT  __ftpdCmdList (__PFTPD_SESSION  pftpds, CPCHAR  pcFileName, INT  iWi
                     
     iSock = __ftpdDatasocket(pftpds);                                   /*  获得数据连接 socket         */
     if (iSock < 0) {
-        __LWIP_FTPD_LOG(("ftpd: error connecting to data socket. errno : %d\n", errno));
+        __LWIP_FTPD_LOG(("ftpd: error connecting to data socket. errno: %d\n", errno));
         return  (ERROR_NONE);
     }
     
@@ -642,7 +642,7 @@ static INT  __ftpdCmdPasv (__PFTPD_SESSION  pftpds)
     if (iSock < 0) {
         __ftpdSendReply(pftpds, __FTPD_RETCODE_SERVER_DATALINK_FAILED, 
                         "Can't open passive socket.");
-        __LWIP_FTPD_LOG(("ftpd: error creating PASV socket. errno : %d\n", errno));
+        __LWIP_FTPD_LOG(("ftpd: error creating PASV socket. errno: %d\n", errno));
         return  (PX_ERROR);
         
     } else {
@@ -653,10 +653,10 @@ static INT  __ftpdCmdPasv (__PFTPD_SESSION  pftpds)
         sockaddrin.sin_port = htons(0);                                 /*  需要自动分配端口            */
         
         if (bind(iSock, (struct sockaddr *)&sockaddrin, uiAddrLen) < 0) {
-            __LWIP_FTPD_LOG(("ftpd: error binding PASV socket. errno : %d\n", errno));
+            __LWIP_FTPD_LOG(("ftpd: error binding PASV socket. errno: %d\n", errno));
         
         } else if (listen(iSock, 1) < 0) {
-            __LWIP_FTPD_LOG(("ftpd: error listening on PASV socket. errno : %d\n", errno));
+            __LWIP_FTPD_LOG(("ftpd: error listening on PASV socket. errno: %d\n", errno));
         
         } else {
             CHAR            cArgBuffer[65];
@@ -686,7 +686,7 @@ static INT  __ftpdCmdPasv (__PFTPD_SESSION  pftpds)
              */
             pftpds->FTPDS_iSockPASV = accept(iSock, (struct sockaddr *)&sockaddrin, &uiAddrLen);
             if (pftpds->FTPDS_iSockPASV < 0) {
-                __LWIP_FTPD_LOG(("ftpd: error accepting PASV connection. errno : %d\n", errno));
+                __LWIP_FTPD_LOG(("ftpd: error accepting PASV connection. errno: %d\n", errno));
             } else {                                                    /*  链接成功                    */
                 /*
                  *  关闭 listen socket 仅保留数据连接 socket
@@ -773,7 +773,7 @@ static INT  __ftpdCmdMdtm (__PFTPD_SESSION  pftpds, CPCHAR  pcFileName)
     CHAR          cBuffer[__LWIP_FTPD_PATH_SIZE];
 
     if (0 > stat(pcFileName, &statBuf)) {
-        snprintf(cBuffer, __LWIP_FTPD_PATH_SIZE, "%s: error : %s.", pcFileName, lib_strerror(errno));
+        snprintf(cBuffer, __LWIP_FTPD_PATH_SIZE, "%s: error: %s.", pcFileName, lib_strerror(errno));
         __ftpdSendReply(pftpds, __FTPD_RETCODE_SERVER_REQ_FAILED, cBuffer);
     } else {
         struct tm   tmFile;
@@ -843,7 +843,7 @@ static INT  __ftpdCmdSize (__PFTPD_SESSION  pftpds, CPCHAR  pcFileName)
     struct stat   statBuf;
     
     if (0 > stat(pcFileName, &statBuf)) {
-        snprintf(cBuffer, __LWIP_FTPD_PATH_SIZE, "%s: error : %s.", pcFileName, lib_strerror(errno));
+        snprintf(cBuffer, __LWIP_FTPD_PATH_SIZE, "%s: error: %s.", pcFileName, lib_strerror(errno));
         __ftpdSendReply(pftpds, __FTPD_RETCODE_SERVER_REQ_FAILED, cBuffer);
     } else {
         snprintf(cBuffer, __LWIP_FTPD_PATH_SIZE, "%lld", statBuf.st_size);
@@ -1501,7 +1501,7 @@ static VOID  __inetFtpdSession (__PFTPD_SESSION  pftpds)
     }
     chdir(pftpds->FTPDS_cPathBuf);                                      /*  转到服务器根目录            */
     
-    __LWIP_FTPD_LOG(("ftpd: session create, remote : %s\n", 
+    __LWIP_FTPD_LOG(("ftpd: session create, remote: %s\n", 
                     inet_ntoa_r(pftpds->FTPDS_inaddrRemote, cAddr, INET_ADDRSTRLEN)));
                     
     __ftpdSendReply(pftpds, __FTPD_RETCODE_SERVER_READY, __FTPD_SERVER_MESSAGE);
@@ -1817,7 +1817,7 @@ VOID  API_INetFtpServerShow (VOID)
     }
     __FTPD_SESSION_UNLOCK();                                            /*  解锁会话链表                */
 
-    printf("\ntotal ftp session : %d\n", iSessionCounter);              /*  显示会话数量                */
+    printf("\ntotal ftp session: %d\n", iSessionCounter);               /*  显示会话数量                */
 }
 /*********************************************************************************************************
 ** 函数名称: API_INetFtpServerPath
@@ -1886,7 +1886,7 @@ static INT  __tshellNetFtpdShow (INT  iArgC, PCHAR  *ppcArgV)
 static INT  __tshellNetFtpdPath (INT  iArgC, PCHAR  *ppcArgV)
 {
     if (iArgC < 2) {
-        printf("ftpd path : %s\n", _G_pcFtpdRootPath);                  /*  打印当前服务器目录          */
+        printf("ftpd path: %s\n", _G_pcFtpdRootPath);                   /*  打印当前服务器目录          */
         return  (ERROR_NONE);
     }
     

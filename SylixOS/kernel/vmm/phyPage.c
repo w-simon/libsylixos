@@ -100,7 +100,7 @@ ULONG  __vmmPhysicalCreate (LW_MMU_PHYSICAL_DESC  pphydesc[])
             if (ulZone < LW_CFG_VMM_ZONE_NUM) {
                 _BugFormat(__vmmLibVirtualOverlap(pphydesc[i].PHYD_ulPhyAddr, 
                                                   pphydesc[i].PHYD_stSize), LW_TRUE,
-                           "physical zone paddr 0x%08lx size : 0x%08zx overlap with virtual space.\r\n",
+                           "physical zone paddr 0x%08lx size: 0x%08zx overlap with virtual space.\r\n",
                            pphydesc[i].PHYD_ulPhyAddr, pphydesc[i].PHYD_stSize);
             
                 ulError = __pageZoneCreate(&_G_vmzonePhysical[ulZone], 

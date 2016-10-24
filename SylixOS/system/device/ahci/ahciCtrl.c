@@ -279,7 +279,7 @@ VOID  __tshellAhciCtrlCmdShow (VOID)
     AHCI_CTRL_HANDLE    hCtrl     = LW_NULL;
     PLW_LIST_LINE       plineTemp = LW_NULL;
 
-    printf("\nahci control number total : %d\n", _GuiAhciCtrlTotalNum);
+    printf("\nahci control number total: %d\n", _GuiAhciCtrlTotalNum);
     printf(pcAhciCtrlShowHdr);
 
     __AHCI_CTRL_LOCK();

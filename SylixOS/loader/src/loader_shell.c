@@ -470,13 +470,13 @@ static INT  __tshellModuleReg (INT  iArgC, PCHAR  *ppcArgV)
     pvModule = moduleRegister(ppcArgV[1]);                              /*  ÏòÄÚºË×¢²áÄ£¿é              */
     
     if (pvModule) {
-        printf("module %s register ok, handle : 0x%lx\n", ppcArgV[1], (addr_t)pvModule);
+        printf("module %s register ok, handle: 0x%lx\n", ppcArgV[1], (addr_t)pvModule);
         return  (ERROR_NONE);
     } else {
         if (errno == EACCES) {
             fprintf(stderr, "insufficient permissions.\n");
         } else {
-            fprintf(stderr, "can not register module, error : %s\n", lib_strerror(errno));
+            fprintf(stderr, "can not register module, error: %s\n", lib_strerror(errno));
         }
         return  (PX_ERROR);
     }
@@ -548,7 +548,7 @@ static INT  __tshellModuleUnreg (INT  iArgC, PCHAR  *ppcArgV)
         if (errno == EACCES) {
             fprintf(stderr, "insufficient permissions.\n");
         } else {
-            fprintf(stderr, "can not unregister module, error : %s\n", lib_strerror(errno));
+            fprintf(stderr, "can not unregister module, error: %s\n", lib_strerror(errno));
         }
         return  (PX_ERROR);
     }
@@ -737,7 +737,7 @@ static INT  __tshellModuleShow (INT  iArgC, PCHAR  *ppcArgV)
     LW_LD_UNLOCK();
 
     printf("\n");
-    printf("total modules : %d\n", iCnt);
+    printf("total modules: %d\n", iCnt);
 
     return  (ERROR_NONE);
 }
@@ -872,7 +872,7 @@ static INT  __tshellVProcShow (INT  iArgC, PCHAR  *ppcArgV)
     LW_LD_UNLOCK();
 
     printf("\n");
-    printf("total vprocess : %d\n", iCnt);
+    printf("total vprocess: %d\n", iCnt);
     
     return  (ERROR_NONE);
 }

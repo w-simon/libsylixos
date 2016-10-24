@@ -256,10 +256,10 @@ static ssize_t  __procFsProcMemRead (PLW_PROCFS_NODE  p_pfsn,
         
         stRealSize = bnprintf(pcFileBuffer, 
                               __VPROC_PROCFS_MEM_SIZE, 0,
-                              "static memory : %zu\n"
-                              "heap memory : %zu\n"
-                              "mmap memory : %zu\n"
-                              "total memory : %zu",
+                              "static memory : %zu Bytes\n"
+                              "heap memory   : %zu Bytes\n"
+                              "mmap memory   : %zu Bytes\n"
+                              "total memory  : %zu Bytes",
                               stStatic, (stTotalMem - stStatic), 
                               stMmapSize, (stTotalMem + stMmapSize));
                               

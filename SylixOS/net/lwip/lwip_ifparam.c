@@ -17,11 +17,13 @@
 ** 文件创建日期: 2015 年 09 月 20 日
 **
 ** 描        述: 网络接口配置参数获取.
+**
+** BUG:
+2016.10.24  加入打印信息, 可查看网卡名称.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
-#include "../SylixOS/kernel/include/k_kernel.h"
-#include "../SylixOS/system/include/s_system.h"
+#include "SylixOS.h"
 /*********************************************************************************************************
   裁剪控制
 *********************************************************************************************************/
@@ -328,9 +330,12 @@ void  *if_param_load (const char *name)
 
     pinisec = __iniLoad(LW_IFPARAM_PATH, name);
     if (!pinisec) {
+        fprintf(stderr, "[ifparam]No network parameter for [%s] from %s"
+                        ", default parameters will be used.\n", name, LW_IFPARAM_PATH);
         return  (LW_NULL);
     }
 
+    printf("[ifparam]Net interface [%s] parameter loaded.\n", name);
     return  ((void *)pinisec);
 }
 /*********************************************************************************************************

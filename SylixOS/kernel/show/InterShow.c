@@ -56,7 +56,7 @@ static const CHAR   _G_cInterInfoHdr2[] = "\n\
 ---- -------------- ---------------- ---------------- ---------------- ------ --- -------";
 #else
 static const CHAR   _G_cInterInfoHdr1[] = "\n\
- IRQ      NAME        ENTRY   CLEAR    PARAM   ENABLE RND PREEMPT";
+ IRQ      NAME       ENTRY    CLEAR    PARAM   ENABLE RND PREEMPT";
 static const CHAR   _G_cInterInfoHdr2[] = "\n\
 ---- -------------- -------- -------- -------- ------ --- -------";
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT adj  */
@@ -169,8 +169,6 @@ VOID   API_InterShow (ULONG  ulCPUStart, ULONG  ulCPUEnd)
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
     }
     
-    printf("\ninterrupt vector base : 0x%08lx\n", 
-           (ULONG)API_InterVectorBaseGet());                            /*  中断向量表地址              */
     printf("\n");
 #endif                                                                  /*  LW_CFG_INTER_INFO > 0       */
 }

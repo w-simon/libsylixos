@@ -238,7 +238,7 @@ static INT  __vmmLibGlobalMap (PLW_MMU_CONTEXT   pmmuctx, LW_MMU_PHYSICAL_DESC  
         
         _BugFormat(__vmmLibVirtualOverlap(pphydesc[i].PHYD_ulVirMap, 
                                           pphydesc[i].PHYD_stSize), LW_TRUE,
-                   "global map vaddr 0x%08lx size : 0x%08zx overlap with virtual space.\r\n",
+                   "global map vaddr 0x%08lx size: 0x%08zx overlap with virtual space.\r\n",
                    pphydesc[i].PHYD_ulVirMap, pphydesc[i].PHYD_stSize);
     
         switch (pphydesc[i].PHYD_uiType) {

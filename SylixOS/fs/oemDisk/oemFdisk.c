@@ -537,17 +537,17 @@ INT  API_OemFdiskShow (CPCHAR  pcBlkDev)
 
     iRet = API_OemFdiskGet(pcBlkDev, fdpInfo, LW_CFG_MAX_DISKPARTS);
     if (iRet < ERROR_NONE) {
-        fprintf(stderr, "can not analysis partition table : %s\n", lib_strerror(errno));
+        fprintf(stderr, "can not analysis partition table: %s\n", lib_strerror(errno));
         __SHEAP_FREE(fdpInfo);
         return  (iRet);
 
     } else if (iRet == 0) {
         __SHEAP_FREE(fdpInfo);
-        fprintf(stderr, "block device : %s do not have MBR partition table.\n", pcBlkDev);
+        fprintf(stderr, "block device: %s do not have MBR partition table.\n", pcBlkDev);
         return  (iRet);
     }
 
-    printf("block device : %s partition >>\n%s", pcBlkDev, pcPartInfo);
+    printf("block device: %s partition >>\n%s", pcBlkDev, pcPartInfo);
     for (i = 0; i < iRet; i++) {
         pcAct  = (fdpInfo[i].FDP_bIsActive) ? "*" : "";
         pcType = __oemFdiskGetType(fdpInfo[i].FDP_ucPartType);

@@ -227,7 +227,7 @@ static INT  __tshellVlan (INT  iArgC, PCHAR  *ppcArgV)
         
         iError = API_VlanSet(ppcArgV[2], iVlanId);
         if (iError < 0) {
-            fprintf(stderr, "VLAN ID Set error : %s\n", lib_strerror(errno));
+            fprintf(stderr, "VLAN ID Set error: %s\n", lib_strerror(errno));
             return  (PX_ERROR);
         }
     } else if (lib_strcmp(ppcArgV[1], "clear") == 0) {
@@ -239,7 +239,7 @@ static INT  __tshellVlan (INT  iArgC, PCHAR  *ppcArgV)
         iVlanId = -1;
         iError = API_VlanSet(ppcArgV[2], iVlanId);
         if (iError < 0) {
-            fprintf(stderr, "VLAN ID Clear error : %s\n", lib_strerror(errno));
+            fprintf(stderr, "VLAN ID Clear error: %s\n", lib_strerror(errno));
             return  (PX_ERROR);
         }
     } else {

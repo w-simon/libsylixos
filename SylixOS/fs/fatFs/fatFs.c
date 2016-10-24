@@ -253,7 +253,7 @@ static INT  __tshellFatUGID (INT  iArgC, PCHAR  ppcArgV[])
     gid_t   gid;
 
     if (iArgC != 3) {
-        printf("vfat current uid : %u gid : %u\n", _G_uidFatDefault, _G_gidFatDefault);
+        printf("vfat current uid: %u gid: %u\n", _G_uidFatDefault, _G_gidFatDefault);
         return  (ERROR_NONE);
     
     } else {

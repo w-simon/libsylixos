@@ -93,14 +93,14 @@ static INT  __tshellIpv6Address (INT  iArgC, PCHAR  *ppcArgV)
     
     iSock = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
     if (iSock < 0) {
-        fprintf(stderr, "can not create socket error : %s\n", lib_strerror(errno));
+        fprintf(stderr, "can not create socket error: %s\n", lib_strerror(errno));
         return  (ERROR_NONE);
     }
     
     if (ioctl(iSock, SIOCSIFADDR6, &ifeq6)) {
         INT   iErrNo = errno;
         close(iSock);
-        fprintf(stderr, "can not set/add ipv6 address error : %s\n", lib_strerror(iErrNo));
+        fprintf(stderr, "can not set/add ipv6 address error: %s\n", lib_strerror(iErrNo));
         return  (ERROR_NONE);
     }
     
@@ -136,14 +136,14 @@ static INT  __tshellIpv6Noaddress (INT  iArgC, PCHAR  *ppcArgV)
     
     iSock = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
     if (iSock < 0) {
-        fprintf(stderr, "can not create socket error : %s\n", lib_strerror(errno));
+        fprintf(stderr, "can not create socket error: %s\n", lib_strerror(errno));
         return  (ERROR_NONE);
     }
     
     if (ioctl(iSock, SIOCDIFADDR6, &ifeq6)) {
         INT   iErrNo = errno;
         close(iSock);
-        fprintf(stderr, "can not delete ipv6 address error : %s\n", lib_strerror(iErrNo));
+        fprintf(stderr, "can not delete ipv6 address error: %s\n", lib_strerror(iErrNo));
         return  (ERROR_NONE);
     }
     

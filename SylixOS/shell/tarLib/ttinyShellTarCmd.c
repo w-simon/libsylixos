@@ -114,7 +114,7 @@ static INT  __untarFile (CPCHAR  pcTarFile, CPCHAR  pcDestPath)
     
     iFdTar = open(pcTarFile, O_RDONLY);
     if (iFdTar < 0) {
-        fprintf(stderr, "can not open : %s : %s\n", pcTarFile, lib_strerror(errno));
+        fprintf(stderr, "can not open: %s : %s\n", pcTarFile, lib_strerror(errno));
         return  (PX_ERROR);
     }
     
@@ -148,7 +148,7 @@ static INT  __untarFile (CPCHAR  pcTarFile, CPCHAR  pcDestPath)
         iSum       = __untarHeaderChksum(pcBuf);
         
         if (iSum != iHdrChksum) {
-            fprintf(stderr, "tar file : %s chksum error.\n", pcTarFile);
+            fprintf(stderr, "tar file: %s chksum error.\n", pcTarFile);
             iRetVal = PX_ERROR;
             break;
         }
@@ -178,10 +178,10 @@ static INT  __untarFile (CPCHAR  pcTarFile, CPCHAR  pcDestPath)
         } else if (ucLinkflag == REGTYPE) {
             INT     iFdOut;
             
-            printf("unpackage %s size : %ld ...\n", cOutFile, ulSize);
+            printf("unpackage %s size: %ld ...\n", cOutFile, ulSize);
             ulNblocks = (((ulSize) + 511) & ~511) / 512;
             if ((iFdOut = creat(cOutFile, mode)) < 0) {
-                fprintf(stderr, "can not create : %s\n", cOutFile);
+                fprintf(stderr, "can not create: %s\n", cOutFile);
                 lseek(iFdTar, (off_t)(ulNblocks * 512), SEEK_CUR);
                 
             } else {
@@ -241,7 +241,7 @@ static INT  __untargzFile (CPCHAR  pcTargzFile, CPCHAR  pcDestPath)
     
     iFdTar = open(pcTargzFile, O_RDONLY);
     if (iFdTar < 0) {
-        fprintf(stderr, "can not open : %s : %s\n", pcTargzFile, lib_strerror(errno));
+        fprintf(stderr, "can not open: %s : %s\n", pcTargzFile, lib_strerror(errno));
         return  (PX_ERROR);
     }
     
@@ -256,7 +256,7 @@ static INT  __untargzFile (CPCHAR  pcTargzFile, CPCHAR  pcDestPath)
     if (!gzTar) {
         __SHEAP_FREE(pcBuf);
         close(iFdTar);
-        fprintf(stderr, "zlib can not open : %s\n", pcTargzFile);
+        fprintf(stderr, "zlib can not open: %s\n", pcTargzFile);
         return  (PX_ERROR);
     }
     
@@ -283,7 +283,7 @@ static INT  __untargzFile (CPCHAR  pcTargzFile, CPCHAR  pcDestPath)
         iSum       = __untarHeaderChksum(pcBuf);
         
         if (iSum != iHdrChksum) {
-            fprintf(stderr, "tar file : %s chksum error.\n", pcTargzFile);
+            fprintf(stderr, "tar file: %s chksum error.\n", pcTargzFile);
             iRetVal = PX_ERROR;
             break;
         }
@@ -313,10 +313,10 @@ static INT  __untargzFile (CPCHAR  pcTargzFile, CPCHAR  pcDestPath)
         } else if (ucLinkflag == REGTYPE) {
             INT     iFdOut;
             
-            printf("unpackage %s size : %ld ...\n", cOutFile, ulSize);
+            printf("unpackage %s size: %ld ...\n", cOutFile, ulSize);
             ulNblocks = (((ulSize) + 511) & ~511) / 512;
             if ((iFdOut = creat(cOutFile, mode)) < 0) {
-                fprintf(stderr, "can not create : %s\n", cOutFile);
+                fprintf(stderr, "can not create: %s\n", cOutFile);
                 gzseek(gzTar, (ulNblocks * 512), SEEK_CUR);
                 
             } else {

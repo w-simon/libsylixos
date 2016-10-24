@@ -37,9 +37,9 @@ VOID  archAssert (INT  iCond, CPCHAR  pcFunc, CPCHAR  pcFile, INT  iLine)
 {
     if (!iCond) {
 #if LW_CFG_DEVICE_EN > 0
-        fprintf(stderr, "function : %s() in file : %s line : %d serious error!\n",
+        fprintf(stderr, "function: %s() in file: %s line: %d serious error!\n",
                 pcFunc, pcFile, iLine);
-        panic("function : %s() in file : %s line : %d serious error!\n",
+        panic("function: %s() in file: %s line: %d serious error!\n",
               pcFunc, pcFile, iLine);
 #else
         panic("");

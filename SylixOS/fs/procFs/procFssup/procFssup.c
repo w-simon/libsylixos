@@ -207,8 +207,8 @@ static ssize_t  __procFssupStatRead (PLW_PROCFS_NODE  p_pfsn,
         } else {
             stRealSize = bnprintf(pcFileBuffer, 
                                   __PROCFS_BUFFER_SIZE_ROOTFS, 0,
-                                  "memory used : %ld bytes\n"
-                                  "total files : %ld\n",
+                                  "memory used: %ld bytes\n"
+                                  "total files: %ld\n",
                                   (ULONG)(statfsBuf.f_bsize * statfsBuf.f_blocks),
                                   statfsBuf.f_files);
         }

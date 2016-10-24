@@ -224,7 +224,7 @@ static VOID  __tshellAhciDrvCmdShow (VOID)
     PLW_LIST_LINE       plineTemp = LW_NULL;
     AHCI_DRV_HANDLE     hDrv      = LW_NULL;
 
-    printf("\nahci drv number total : %d\n", _GuiAhciDrvTotalNum);
+    printf("\nahci drv number total: %d\n", _GuiAhciDrvTotalNum);
     printf(pcAhciDrvShowHdr);
 
     __AHCI_DRV_LOCK();

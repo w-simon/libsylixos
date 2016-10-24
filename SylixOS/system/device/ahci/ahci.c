@@ -241,7 +241,7 @@ static size_t  __ahciPrdtSetup (UINT8 *pcDataBuf, ULONG  ulLen, AHCI_PRDT_HANDLE
             }
 
             hPrdtHandle->AHCIPRDT_uiInterruptDataByteCount = AHCI_SWAP(ulByteCount);
-            AHCI_CMD_LOG(AHCI_LOG_PRT, "table count : 0x%x.", ulByteCount);
+            AHCI_CMD_LOG(AHCI_LOG_PRT, "table count: 0x%x.", ulByteCount);
             hPrdtHandle++;
         }
     }

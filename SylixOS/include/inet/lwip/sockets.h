@@ -266,8 +266,8 @@ struct linger {
 #define IPV6_MULTICAST_IF       17 /* Unimplemented */
 #define IPV6_MULTICAST_HOPS     18 /* Unimplemented */
 #define IPV6_MULTICAST_LOOP     19 /* Unimplemented */
-#define IPV6_JOIN_GROUP		    20 /* Unimplemented */
-#define IPV6_LEAVE_GROUP	    21 /* Unimplemented */
+#define IPV6_JOIN_GROUP         20 /* Unimplemented */
+#define IPV6_LEAVE_GROUP        21 /* Unimplemented */
 #endif /* !IPV6_MULTICAST_IF */
 
 #define IPV6_ADD_MEMBERSHIP     20 /* Unimplemented */

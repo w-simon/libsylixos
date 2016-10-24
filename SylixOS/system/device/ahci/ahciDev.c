@@ -220,7 +220,7 @@ static VOID  __tshellAhciDevCmdShow (VOID)
     PLW_BLK_DEV         hBlkDev = LW_NULL;
     PLW_LIST_LINE       plineTemp = LW_NULL;
 
-    printf("\nahci dev number total : %d\n", _GuiAhciDevTotalNum);
+    printf("\nahci dev number total: %d\n", _GuiAhciDevTotalNum);
     printf(pcAhciDevShowHdr);
 
     __AHCI_DEV_LOCK();

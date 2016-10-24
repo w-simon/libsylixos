@@ -58,13 +58,13 @@ static int  __inetBiosNameSet (int  iArgC, char  *pcArgV[])
     ULONG  ulError;
 
     if (iArgC == 1) {
-        printf("local host NetBIOS name is : %s\n", _G_cNetBiosLocalName);
+        printf("local host NetBIOS name is: %s\n", _G_cNetBiosLocalName);
         return  (ERROR_NONE);
         
     } else if (iArgC == 2) {
         ulError = API_INetNetBiosNameSet(pcArgV[1]);
         if (ulError) {
-            fprintf(stderr, "fail. error : %s\n", lib_strerror(errno));
+            fprintf(stderr, "fail. error: %s\n", lib_strerror(errno));
             return  (PX_ERROR);
         } else {
             return  (ERROR_NONE);
