@@ -40,6 +40,7 @@
 2013.06.12  select read 没有写端, write 没有读端都需要唤醒.
             缓冲区至少有 PIPE_BUF 字节时才激活写端.
 2014.03.03  优化代码.
+2016.10.25  加入信号量等待保护.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -49,10 +50,12 @@
 /*********************************************************************************************************
   锁操作
 *********************************************************************************************************/
-#define LW_SPIPE_LOCK(pspipedev)    \
-        API_SemaphoreBPend(pspipedev->SPIPEDEV_hOpLock, LW_OPTION_WAIT_INFINITE)
+#define LW_SPIPE_LOCK(pspipedev, code)  \
+        if (API_SemaphoreMPend(pspipedev->SPIPEDEV_hOpLock, LW_OPTION_WAIT_INFINITE)) { \
+            code;   \
+        }
 #define LW_SPIPE_UNLOCK(pspipedev)  \
-        API_SemaphoreBPost(pspipedev->SPIPEDEV_hOpLock)
+        API_SemaphoreMPost(pspipedev->SPIPEDEV_hOpLock)
 /*********************************************************************************************************
   check can read/write
 *********************************************************************************************************/
@@ -110,8 +113,8 @@ LONG  _SpipeOpen (PLW_SPIPE_DEV  pspipedev,
         pspipefil->SPIPEFIL_iFlags = iFlags;
         pspipefil->SPIPEFIL_iMode  = iMode;
         pspipefil->SPIPEFIL_pspipedev = pspipedev;
-        
-        LW_SPIPE_LOCK(pspipedev);                                       /*  获取设备使用权              */
+                                                                        /*  获取设备使用权              */
+        LW_SPIPE_LOCK(pspipedev, __SHEAP_FREE(pspipefil); return (PX_ERROR));
                            
         if ((iFlags & O_ACCMODE) == O_RDONLY) {
             pspipedev->SPIPEDEV_uiReadCnt++;
@@ -140,6 +143,7 @@ LONG  _SpipeOpen (PLW_SPIPE_DEV  pspipedev,
 ** 输　出  : ERROR
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : 此函数已经确保没有文件打开, 所以不再需要 iosDevFileAbnormal() 操作.
 *********************************************************************************************************/
 INT  _SpipeRemove (PLW_SPIPE_DEV  pspipedev, PCHAR  pcName)
 {
@@ -154,12 +158,7 @@ INT  _SpipeRemove (PLW_SPIPE_DEV  pspipedev, PCHAR  pcName)
         return  (PX_ERROR);
     }
 
-    LW_SPIPE_LOCK(pspipedev);                                           /*  获得设备操作权利            */
-    
-    /* 
-     *  make all this device file abnormal
-     */
-    iosDevFileAbnormal(&pspipedev->SPIPEDEV_devhdrHdr);
+    LW_SPIPE_LOCK(pspipedev, return (PX_ERROR));                        /*  获得设备操作权利            */
     
     iosDevDelete(&pspipedev->SPIPEDEV_devhdrHdr);                       /*  device no longer in system  */
     
@@ -167,9 +166,9 @@ INT  _SpipeRemove (PLW_SPIPE_DEV  pspipedev, PCHAR  pcName)
     
     API_SemaphoreBDelete(&pspipedev->SPIPEDEV_hReadLock);               /*  terminate binary semaphore  */
     API_SemaphoreBDelete(&pspipedev->SPIPEDEV_hWriteLock);
-    API_SemaphoreBDelete(&pspipedev->SPIPEDEV_hOpLock);
+    API_SemaphoreMDelete(&pspipedev->SPIPEDEV_hOpLock);
     
-    __SHEAP_FREE((PVOID)pspipedev);                                     /*  free pipe memory            */
+    __SHEAP_FREE(pspipedev);                                            /*  free pipe memory            */
     
     return  (ERROR_NONE);
 }
@@ -189,7 +188,7 @@ INT  _SpipeClose (PLW_SPIPE_FILE  pspipefil)
     if (pspipefil) {
         pspipedev = pspipefil->SPIPEFIL_pspipedev;
         
-        LW_SPIPE_LOCK(pspipedev);                                       /*  获取设备使用权              */
+        LW_SPIPE_LOCK(pspipedev, return (PX_ERROR));                    /*  获取设备使用权              */
                            
         if ((pspipefil->SPIPEFIL_iFlags & O_ACCMODE) == O_RDONLY) {
             pspipedev->SPIPEDEV_uiReadCnt--;
@@ -211,10 +210,12 @@ INT  _SpipeClose (PLW_SPIPE_FILE  pspipefil)
         
         LW_SPIPE_UNLOCK(pspipedev);                                     /*  释放设备使用权              */
     
-        if (LW_DEV_GET_USE_COUNT(&pspipedev->SPIPEDEV_devhdrHdr)) {
-            LW_DEV_DEC_USE_COUNT(&pspipedev->SPIPEDEV_devhdrHdr);
-        }
         __SHEAP_FREE(pspipefil);
+    
+        if (pspipedev->SPIPEDEV_bUnlinkReq &&
+            !LW_DEV_DEC_USE_COUNT(&pspipedev->SPIPEDEV_devhdrHdr)) {
+            _SpipeRemove(pspipedev, "");                                /*  删除设备                    */
+        }
         
         return  (ERROR_NONE);
     
@@ -282,7 +283,7 @@ ssize_t  _SpipeRead (PLW_SPIPE_FILE  pspipefil,
             return  (0);
         }
         
-        LW_SPIPE_LOCK(pspipedev);                                       /*  获取设备使用权              */
+        LW_SPIPE_LOCK(pspipedev, return (PX_ERROR));                    /*  获取设备使用权              */
 
         if (pspipedev->SPIPEDEV_iAbortFlag & OPT_RABORT) {
             LW_SPIPE_UNLOCK(pspipedev);
@@ -418,7 +419,7 @@ __continue_write:
             return  (0);
         }
         
-        LW_SPIPE_LOCK(pspipedev);                                       /*  获取设备使用权              */
+        LW_SPIPE_LOCK(pspipedev, return (PX_ERROR));                    /*  获取设备使用权              */
 
         if (pspipedev->SPIPEDEV_iAbortFlag & OPT_WABORT) {
             LW_SPIPE_UNLOCK(pspipedev);
@@ -531,7 +532,7 @@ INT  _SpipeIoctl (PLW_SPIPE_FILE pspipefil,
         break;
         
     case FIONBIO:
-        LW_SPIPE_LOCK(pspipedev);
+        LW_SPIPE_LOCK(pspipedev, return (PX_ERROR));
         if (*piArgPtr) {
             pspipefil->SPIPEFIL_iFlags |= O_NONBLOCK;
         } else {
@@ -542,7 +543,7 @@ INT  _SpipeIoctl (PLW_SPIPE_FILE pspipefil,
         
     case FIOFLUSH:                                                      /*  清空数据                    */
         pcBufferBase = pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_pcBuffer;
-        LW_SPIPE_LOCK(pspipedev);
+        LW_SPIPE_LOCK(pspipedev, return (PX_ERROR));
         pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_pcInPtr    = pcBufferBase;
         pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_pcOutPtr   = pcBufferBase;
         pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stMsgBytes = 0;
@@ -633,7 +634,7 @@ INT  _SpipeIoctl (PLW_SPIPE_FILE pspipefil,
         break;
     
     case FIOWAITABORT:                                                  /*  停止当前等待 IO 线程        */
-        LW_SPIPE_LOCK(pspipedev);
+        LW_SPIPE_LOCK(pspipedev, return (PX_ERROR));
         if ((LONG)piArgPtr & OPT_RABORT) {
             ULONG  ulBlockNum;
             API_SemaphoreBStatus(pspipedev->SPIPEDEV_hReadLock, LW_NULL, LW_NULL, &ulBlockNum);
@@ -650,6 +651,12 @@ INT  _SpipeIoctl (PLW_SPIPE_FILE pspipefil,
                 API_SemaphoreBPost(pspipedev->SPIPEDEV_hWriteLock);     /*  激活读等待线程              */
             }
         }
+        LW_SPIPE_UNLOCK(pspipedev);
+        break;
+        
+    case FIOUNMOUNT:                                                    /*  最后一次关闭时删除设备      */
+        LW_SPIPE_LOCK(pspipedev, return (PX_ERROR));
+        pspipedev->SPIPEDEV_bUnlinkReq = LW_TRUE;
         LW_SPIPE_UNLOCK(pspipedev);
         break;
         

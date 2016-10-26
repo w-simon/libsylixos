@@ -22,9 +22,11 @@
 2015.08.26  支持 PCI_MECHANISM_0 模式.
 2016.04.25  增加 设备驱动匹配 支持函数.
 *********************************************************************************************************/
+#define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
 #include "../SylixOS/system/include/s_system.h"
+#include "../SylixOS/shell/include/ttiny_shell.h"
 /*********************************************************************************************************
   裁剪宏
 *********************************************************************************************************/
@@ -83,6 +85,55 @@ PCI_CTRL_HANDLE     _G_hPciCtrlHandle = LW_NULL;
   前置声明
 *********************************************************************************************************/
 static PCI_DEV_ID_HANDLE __pciDevMatchId(PCI_DEV_HANDLE hDevHandle, PCI_DEV_ID_HANDLE hId);
+/*********************************************************************************************************
+** 函数名称: __tshellPciCmdCtrl
+** 功能描述: PCI 命令 "pcictrl"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static
+INT  __tshellPciCmdCtrl (INT  iArgC, PCHAR  ppcArgV[])
+{
+    static PCHAR        pcPciCtrlShowHdr = \
+    " INDEX   METHOD   AUTOEN   HOSTEN   FIRST   LAST       I/O-BUS            I/O-SIZE      "
+    "     I/O-PHY            MEM-BUS            MEM-SIZE           MEM-PHY            PRE-BUS       "
+    "     PRE-SIZE           PRE-PHY\n"
+    "------- -------- -------- -------- ------- ------ ------------------ ------------------ "
+    "------------------ ------------------ ------------------ ------------------ ------------------ "
+    "------------------ ------------------\n";
+
+    PCI_CTRL_HANDLE     hPciCtrl = PCI_CTRL;
+    PCI_AUTO_HANDLE     hPciAuto;
+
+    if (!hPciCtrl) {
+        return  (ERROR_NONE);
+    }
+
+    hPciAuto = &hPciCtrl->PCI_tAutoConfig;
+
+    printf(pcPciCtrlShowHdr);
+    printf("%7d %8d %8x %8x %7x %6x %18qx %18qx %18qx %18qx %18qx %18qx %18qx %18qx %18qx\n",
+           hPciCtrl->PCI_iIndex,
+           hPciCtrl->PCI_ucMechanism,
+           hPciAuto->PCIAUTO_iConfigEn,
+           hPciAuto->PCIAUTO_iHostBridegCfgEn,
+           hPciAuto->PCIAUTO_uiFirstBusNo,
+           hPciAuto->PCIAUTO_uiLastBusNo,
+           hPciAuto->PCIAUTO_hRegionIo ? hPciAuto->PCIAUTO_hRegionIo->PCIAUTOREG_addrBusStart : 0,
+           hPciAuto->PCIAUTO_hRegionIo ? hPciAuto->PCIAUTO_hRegionIo->PCIAUTOREG_stSize : 0,
+           hPciAuto->PCIAUTO_hRegionIo ? hPciAuto->PCIAUTO_hRegionIo->PCIAUTOREG_addrPhyStart : 0,
+           hPciAuto->PCIAUTO_hRegionMem ? hPciAuto->PCIAUTO_hRegionMem->PCIAUTOREG_addrBusStart : 0,
+           hPciAuto->PCIAUTO_hRegionMem ? hPciAuto->PCIAUTO_hRegionMem->PCIAUTOREG_stSize : 0,
+           hPciAuto->PCIAUTO_hRegionMem ? hPciAuto->PCIAUTO_hRegionMem->PCIAUTOREG_addrPhyStart : 0,
+           hPciAuto->PCIAUTO_hRegionPre ? hPciAuto->PCIAUTO_hRegionPre->PCIAUTOREG_addrBusStart : 0,
+           hPciAuto->PCIAUTO_hRegionPre ? hPciAuto->PCIAUTO_hRegionPre->PCIAUTOREG_stSize : 0,
+           hPciAuto->PCIAUTO_hRegionPre ? hPciAuto->PCIAUTO_hRegionPre->PCIAUTOREG_addrPhyStart : 0);
+
+    return  (ERROR_NONE);
+}
 /*********************************************************************************************************
 ** 函数名称: API_PciSizeNameGet
 ** 功能描述: 获得 PCI 尺寸单位名称
@@ -154,11 +205,26 @@ pci_size_t  API_PciSizeNumGet (pci_size_t stSize)
 LW_API 
 PCI_CTRL_HANDLE  API_PciCtrlCreate (PCI_CTRL_HANDLE hCtrl)
 {
+    PCI_AUTO_HANDLE         hPciAuto;
+    PCI_AUTO_DEV_HANDLE     hAutoDev;
+
     if (PCI_CTRL == LW_NULL) {
         PCI_CTRL =  hCtrl;
         
         LW_SPIN_INIT(&PCI_CTRL->PCI_slLock);
         
+        hPciAuto = &PCI_CTRL->PCI_tAutoConfig;
+        if (hPciAuto->PCIAUTO_iConfigEn) {
+            API_PciAutoCtrlInit(PCI_CTRL);
+            for (hAutoDev  = PCI_AUTO_BDF(hPciAuto->PCIAUTO_uiFirstBusNo, 0, 0);
+                 hAutoDev  < PCI_AUTO_BDF(hPciAuto->PCIAUTO_uiFirstBusNo,
+                                          PCI_MAX_SLOTS - 1, PCI_MAX_FUNCTIONS - 1);
+                 hAutoDev += PCI_AUTO_BDF(0, 0, 1)) {
+                API_PciAutoDeviceConfig(PCI_CTRL, hAutoDev, &hPciAuto->PCIAUTO_uiLastBusNo);
+                PCI_CTRL->PCI_iBusMax = hPciAuto->PCIAUTO_uiLastBusNo;
+            }
+        }
+
 #if LW_CFG_PROCFS_EN > 0
         __procFsPciInit();
 #endif                                                                  /*  LW_CFG_PROCFS_EN > 0        */
@@ -167,6 +233,10 @@ PCI_CTRL_HANDLE  API_PciCtrlCreate (PCI_CTRL_HANDLE hCtrl)
         API_PciDevListCreate();
         API_PciDevSetupAll();
         API_PciDrvInit();
+
+        API_TShellKeywordAdd("pcictrl", __tshellPciCmdCtrl);
+        API_TShellHelpAdd("pcictrl", "show control table\n"
+                                     "eg. pcictrl\n");
     }
     
     return  (PCI_CTRL) ? (PCI_CTRL) : (LW_NULL);

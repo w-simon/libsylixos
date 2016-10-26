@@ -192,13 +192,12 @@ static LONG  _sigfdOpen (PLW_SIGFD_DEV psigfddev,
 static INT  _sigfdClose (PLW_SIGFD_FILE  psigfdfil)
 {
     if (psigfdfil) {
-        if (LW_DEV_GET_USE_COUNT(&_G_sigfddev.SD_devhdrHdr)) {
-            LW_DEV_DEC_USE_COUNT(&_G_sigfddev.SD_devhdrHdr);
-        }
+        LW_DEV_DEC_USE_COUNT(&_G_sigfddev.SD_devhdrHdr);
         
         __SHEAP_FREE(psigfdfil);
         
         return  (ERROR_NONE);
+    
     } else {
         return  (PX_ERROR);
     }

@@ -150,8 +150,6 @@ static VOID  __tshellPciDrvCmdShow (VOID)
         i += 1;
     }
     __PCI_DRV_UNLOCK();                                                 /*  解锁 PCI 驱动               */
-
-    fflush(stdout);                                                     /*  清空输出                    */
 }
 /*********************************************************************************************************
 ** 函数名称: __tshellPciDrvCmd

@@ -162,10 +162,9 @@ static LONG  __rtcOpen (PLW_RTC_DEV    prtcdev,
 static INT  __rtcClose (PLW_RTC_DEV    prtcdev)
 {
     if (prtcdev) {
-        if (LW_DEV_GET_USE_COUNT(&prtcdev->RTCDEV_devhdr)) {
-            LW_DEV_DEC_USE_COUNT(&prtcdev->RTCDEV_devhdr);
-        }
+        LW_DEV_DEC_USE_COUNT(&prtcdev->RTCDEV_devhdr);
         return  (ERROR_NONE);
+    
     } else {
         return  (PX_ERROR);
     }

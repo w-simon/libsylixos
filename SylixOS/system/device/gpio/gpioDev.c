@@ -290,9 +290,7 @@ static INT  _gpiofdClose (PLW_GPIOFD_FILE  pgpiofdfil)
     if (pgpiofdfil) {
         SEL_WAKE_UP_TERM(&pgpiofdfil->GF_selwulist);
         
-        if (LW_DEV_GET_USE_COUNT(&_G_gpiofddev.GD_devhdrHdr)) {
-            LW_DEV_DEC_USE_COUNT(&_G_gpiofddev.GD_devhdrHdr);
-        }
+        LW_DEV_DEC_USE_COUNT(&_G_gpiofddev.GD_devhdrHdr);
         
         if (!GPIO_IS_ROOT(pgpiofdfil->GF_uiGpio)) {
             API_GpioFree(pgpiofdfil->GF_uiGpio);
@@ -304,7 +302,9 @@ static INT  _gpiofdClose (PLW_GPIOFD_FILE  pgpiofdfil)
                                           (PVOID)pgpiofdfil);
             }
         }
+        
         __SHEAP_FREE(pgpiofdfil);
+        
         return  (ERROR_NONE);
     
     } else {

@@ -119,6 +119,7 @@ INT  API_SpipeDevCreate (PCHAR  pcName, size_t  stBufferByteSize)
     
     pspipedev->SPIPEDEV_uiReadCnt  = 0;
     pspipedev->SPIPEDEV_uiWriteCnt = 0;
+    pspipedev->SPIPEDEV_bUnlinkReq = LW_FALSE;
     pspipedev->SPIPEDEV_iAbortFlag = 0;
     pspipedev->SPIPEDEV_ulRTimeout = LW_OPTION_WAIT_INFINITE;            /*  初始化为永久等待           */
     pspipedev->SPIPEDEV_ulWTimeout = LW_OPTION_WAIT_INFINITE;            /*  初始化为永久等待           */
@@ -143,8 +144,8 @@ INT  API_SpipeDevCreate (PCHAR  pcName, size_t  stBufferByteSize)
         return  (PX_ERROR);
     }
     
-    pspipedev->SPIPEDEV_hOpLock = API_SemaphoreBCreate("pipe_lock", 
-                                                        LW_TRUE,
+    pspipedev->SPIPEDEV_hOpLock = API_SemaphoreMCreate("pipe_lock", 
+                                                        LW_PRIO_DEF_CEILING,
                                                         _G_ulSpipeLockOpt | LW_OPTION_OBJECT_GLOBAL,
                                                         LW_NULL);
     if (!pspipedev->SPIPEDEV_hOpLock) {
@@ -168,7 +169,7 @@ INT  API_SpipeDevCreate (PCHAR  pcName, size_t  stBufferByteSize)
     if (iosDevAddEx(&pspipedev->SPIPEDEV_devhdrHdr, pcName, _G_iSpipeDrvNum, DT_FIFO) != ERROR_NONE) {
         API_SemaphoreBDelete(&pspipedev->SPIPEDEV_hReadLock);
         API_SemaphoreBDelete(&pspipedev->SPIPEDEV_hWriteLock);
-        API_SemaphoreBDelete(&pspipedev->SPIPEDEV_hOpLock);
+        API_SemaphoreMDelete(&pspipedev->SPIPEDEV_hOpLock);
         SEL_WAKE_UP_LIST_TERM(&pspipedev->SPIPEDEV_selwulList);
         __SHEAP_FREE((PVOID)pspipedev);
         return  (PX_ERROR);
@@ -226,7 +227,9 @@ INT  API_SpipeDevDelete (PCHAR  pcName, BOOL  bForce)
         }
     }
     
-    API_SemaphoreBPend(pspipedev->SPIPEDEV_hOpLock, LW_OPTION_WAIT_INFINITE);
+    if (API_SemaphoreMPend(pspipedev->SPIPEDEV_hOpLock, LW_OPTION_WAIT_INFINITE)) {
+        return  (PX_ERROR);
+    }
     
     iosDevFileAbnormal(&pspipedev->SPIPEDEV_devhdrHdr);
     iosDevDelete(&pspipedev->SPIPEDEV_devhdrHdr);
@@ -235,7 +238,7 @@ INT  API_SpipeDevDelete (PCHAR  pcName, BOOL  bForce)
     
     API_SemaphoreBDelete(&pspipedev->SPIPEDEV_hReadLock);
     API_SemaphoreBDelete(&pspipedev->SPIPEDEV_hWriteLock);
-    API_SemaphoreBDelete(&pspipedev->SPIPEDEV_hOpLock);
+    API_SemaphoreMDelete(&pspipedev->SPIPEDEV_hOpLock);
     
     __SHEAP_FREE((PVOID)pspipedev);
     

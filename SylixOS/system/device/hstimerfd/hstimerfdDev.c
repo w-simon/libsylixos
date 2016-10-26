@@ -516,15 +516,14 @@ static INT  _hstmrfdClose (PLW_HSTMRFD_FILE  phstmrfdfil)
     if (phstmrfdfil) {
         SEL_WAKE_UP_TERM(&phstmrfdfil->HF_selwulist);
     
-        if (LW_DEV_GET_USE_COUNT(&_G_hstmrfddev.HD_devhdrHdr)) {
-            LW_DEV_DEC_USE_COUNT(&_G_hstmrfddev.HD_devhdrHdr);
-        }
+        LW_DEV_DEC_USE_COUNT(&_G_hstmrfddev.HD_devhdrHdr);
         
         API_TimerDelete(&phstmrfdfil->HF_ulTimer);
         API_SemaphoreBDelete(&phstmrfdfil->HF_ulReadLock);
         __SHEAP_FREE(phstmrfdfil);
         
         return  (ERROR_NONE);
+    
     } else {
         return  (PX_ERROR);
     }

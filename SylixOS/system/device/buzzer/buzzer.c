@@ -107,9 +107,8 @@ static INT __buzzerClose (PLW_BUZZER_FILE   pbuzfil)
     if (pbuzfil) {
         pbuzzer = pbuzfil->BUZFIL_pbuzzer;
     
-        if (LW_DEV_GET_USE_COUNT(&pbuzzer->BUZZER_devhdr)) {
-            LW_DEV_DEC_USE_COUNT(&pbuzzer->BUZZER_devhdr);
-        }
+        LW_DEV_DEC_USE_COUNT(&pbuzzer->BUZZER_devhdr);
+            
         __SHEAP_FREE(pbuzfil);
         
         return  (ERROR_NONE);

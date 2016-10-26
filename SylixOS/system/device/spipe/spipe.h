@@ -60,6 +60,7 @@ typedef struct {
     
     UINT                  SPIPEDEV_uiReadCnt;                           /*  读端打开数量                */
     UINT                  SPIPEDEV_uiWriteCnt;                          /*  写端打开数量                */
+    BOOL                  SPIPEDEV_bUnlinkReq;                          /*  在最后一次关闭时删除        */
     
     ULONG                 SPIPEDEV_ulRTimeout;                          /*  读操作超时时间              */
     ULONG                 SPIPEDEV_ulWTimeout;                          /*  写操作超时时间              */
@@ -130,7 +131,9 @@ __SPIPE_EXT    INT     _G_iSpipeDrvNum = PX_ERROR;
 #ifndef __SPIPE_MAIN_FILE
 __SPIPE_EXT    ULONG   _G_ulSpipeLockOpt;                               /*  锁信号量属性                */
 #else
-__SPIPE_EXT    ULONG   _G_ulSpipeLockOpt = LW_OPTION_WAIT_FIFO;
+__SPIPE_EXT    ULONG   _G_ulSpipeLockOpt = (LW_OPTION_WAIT_PRIORITY
+                                         |  LW_OPTION_DELETE_SAFE
+                                         |  LW_OPTION_INHERIT_PRIORITY);
 #endif
 
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0)      */

@@ -28,7 +28,7 @@
 #include "pciCap.h"
 #include "pciCapExt.h"
 #include "pciExpress.h"
-#include "pciAutoCfg.h"
+#include "pciAuto.h"
 
 /*********************************************************************************************************
   裁剪宏
@@ -549,6 +549,54 @@ typedef struct pci_drv_funcs12 {
 } PCI_DRV_FUNCS12;                                                      /*  PCI_MECHANISM_1 , 2         */
 
 /*********************************************************************************************************
+  PCI 设备自动配置资源控制块
+*********************************************************************************************************/
+typedef struct {
+    pci_bus_addr_t      PCIAUTOREG_addrBusStart;                        /* 总线域起始地址               */
+    pci_bus_addr_t      PCIAUTOREG_addrBusLower;                        /* 总线域当前地址               */
+
+    ULONG               PCIAUTOREG_ulFlags;                             /* 类型信息                     */
+    pci_size_t          PCIAUTOREG_stSize;                              /* 区域大小                     */
+    pci_addr_t          PCIAUTOREG_addrPhyStart;                        /* 起始物理地址                 */
+} PCI_AUTO_REGION_CB;
+
+typedef PCI_AUTO_REGION_CB     *PCI_AUTO_REGION_HANDLE;
+
+/*********************************************************************************************************
+  PCI 设备自动配置
+*********************************************************************************************************/
+typedef struct {
+    INT                     PCIAUTO_iConfigEn;                          /* 是否使能自动配置             */
+    INT                     PCIAUTO_iHostBridegCfgEn;                   /* 是否忽略主桥的配置           */
+    UINT32                  PCIAUTO_uiFirstBusNo;                       /* 起始总线号                   */
+    UINT32                  PCIAUTO_uiLastBusNo;                        /* 结束总线号                   */
+    UINT32                  PCIAUTO_uiCurrentBusNo;                     /* 当前总线号                   */
+
+    UINT8                   PCIAUTO_ucCacheLineSize;                    /* 高速缓冲大小                 */
+    UINT8                   PCIAUTO_ucLatencyTimer;                     /* 时间参数                     */
+
+    /*
+     *  配置设备及中断
+     */
+    VOID                    (*PCIAUTO_pfuncDevFixup)(PVOID pvCtrl, PCI_AUTO_DEV_HANDLE hAutoDev,
+                                                     UINT16 usVendor, UINT16 usDevice, UINT16 usClass);
+    VOID                    (*PCIAUTO_pfuncDevIrqFixup)(PVOID pvCtrl, PCI_AUTO_DEV_HANDLE hAutoDev);
+
+    /*
+     *  资源信息
+     */
+    UINT32                  PCIAUTO_uiRegionCount;                      /* 资源数目                     */
+    PCI_AUTO_REGION_CB      PCIAUTO_tRegion[PCI_AUTO_REGION_MAX];       /* I/O and memory  + ROMs       */
+    PCI_AUTO_REGION_HANDLE  PCIAUTO_hRegionIo;                          /* 用于自动配置的 IO            */
+    PCI_AUTO_REGION_HANDLE  PCIAUTO_hRegionMem;                         /* 用于自动配置的 MEM           */
+    PCI_AUTO_REGION_HANDLE  PCIAUTO_hRegionPre;                         /* 用于自动配置的 PRE           */
+
+    PVOID                   PCIAUTO_pvPriv;                             /* 私有数据                     */
+} PCI_AUTO_CB;
+
+typedef PCI_AUTO_CB     *PCI_AUTO_HANDLE;
+
+/*********************************************************************************************************
   PCI access config
 *********************************************************************************************************/
 
@@ -576,6 +624,10 @@ typedef struct {
     addr_t                  PCI_ulConfigAddr;
     addr_t                  PCI_ulConfigData;
     addr_t                  PCI_ulConfigBase;                           /* only for PCI_MECHANISM_2     */
+
+    PCI_AUTO_CB             PCI_tAutoConfig;                            /* 用于自动配置                 */
+
+    PVOID                   PCI_pvPriv;                                 /* 私有数据                     */
 } PCI_CTRL_CB;
 typedef PCI_CTRL_CB        *PCI_CTRL_HANDLE;
 
@@ -621,6 +673,9 @@ typedef struct {
     INT                 PCIDEV_iDevFunction;                            /* 功能号                       */
     PCI_HDR             PCIDEV_phDevHdr;                                /* 设备头                       */
 
+    /*
+     *  PCI_HEADER_TYPE_NORMAL  PCI_HEADER_TYPE_BRIDGE  PCI_HEADER_TYPE_CARDBUS
+     */
     INT                 PCIDEV_iType;                                   /* 设备类型                     */
     UINT8               PCIDEV_ucPin;                                   /* 中断引脚                     */
     UINT8               PCIDEV_ucLine;                                  /* 中断线                       */
@@ -731,6 +786,16 @@ LW_API PCI_DEV_HANDLE       API_PciDevHandleGet(INT iBus, INT iDevice, INT iFunc
 LW_API INT                  API_PciDevSetupAll(VOID);
 
 /*********************************************************************************************************
+  自动配置
+*********************************************************************************************************/
+LW_API INT                  API_PciAutoCtrlRegionSet(PCI_CTRL_HANDLE  hCtrl,
+                                                     UINT             uiIndex,
+                                                     pci_bus_addr_t   addrBusStart,
+                                                     pci_addr_t       addrPhyStart,
+                                                     pci_size_t       stSize,
+                                                     ULONG            ulFlags);
+
+/*********************************************************************************************************
   API Macro
 *********************************************************************************************************/
 
@@ -784,6 +849,7 @@ LW_API INT                  API_PciDevSetupAll(VOID);
 
 #define pciDevSetupAll          API_PciDevSetupAll
 
+#define pciAutoCtrlRegionSet    API_PciAutoCtrlRegionSet
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */
                                                                         /*  (LW_CFG_PCI_EN > 0)         */
 #endif                                                                  /*  __PCIDEV_H                  */

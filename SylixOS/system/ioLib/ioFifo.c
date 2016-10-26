@@ -107,6 +107,7 @@ INT  pipe2 (INT  iFd[2], INT  iFlag)
             if (errno != ERROR_IO_FILE_EXIST) {                         /*  不是重复设备的其他错误      */
                 return  (PX_ERROR);
             }
+        
         } else {
             close(iFifo);
             break;                                                      /*  创建 FIFO 成功              */
@@ -115,16 +116,14 @@ INT  pipe2 (INT  iFd[2], INT  iFlag)
     
     iFdR = open(cName, iFlag | O_RDONLY);
     if (iFdR >= 0) {
+        ioctl(iFdR, FIOUNMOUNT);                                        /*  最后一次关闭时删除设备      */
         iFdW = open(cName, iFlag | O_WRONLY);
         if (iFdW >= 0) {
-            unlink(cName);                                              /*  确保在最后一次关闭时被删除  */
             iFd[0] = iFdR;
             iFd[1] = iFdW;
             return  (ERROR_NONE);
         }
-        
         close(iFdR);                                                    /*  无法创建写端, 关闭读端      */
-        unlink(cName);
     }
 
     return  (PX_ERROR);

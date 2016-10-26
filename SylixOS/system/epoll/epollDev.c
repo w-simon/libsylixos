@@ -166,14 +166,13 @@ static INT  _epollClose (PLW_EPOLL_FILE  pepollfil)
         }
         LW_EPOLL_FILE_UNLOCK(pepollfil);
         
-        if (LW_DEV_GET_USE_COUNT(&_G_epolldev.EPD_devhdrHdr)) {
-            LW_DEV_DEC_USE_COUNT(&_G_epolldev.EPD_devhdrHdr);
-        }
+        LW_DEV_DEC_USE_COUNT(&_G_epolldev.EPD_devhdrHdr);
         
         API_SemaphoreMDelete(&pepollfil->EPF_ulMutex);
         __SHEAP_FREE(pepollfil);
         
         return  (ERROR_NONE);
+    
     } else {
         return  (PX_ERROR);
     }

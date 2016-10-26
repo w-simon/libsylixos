@@ -103,6 +103,37 @@ LW_API INT                  API_PciDevInit(VOID);
 
 LW_API INT                  API_PciDevMsiEnableGet(PCI_DEV_HANDLE  hHandle, INT *piEnable);
 
+/*********************************************************************************************************
+  ×Ô¶¯ÅäÖÃ
+*********************************************************************************************************/
+LW_API INT                  API_PciAutoBusReset(PCI_CTRL_HANDLE hCtrl);
+LW_API INT                  API_PciAutoScan(PCI_CTRL_HANDLE hCtrl, UINT32 *puiSubBus);
+LW_API INT                  API_PciAutoBusScan(PCI_CTRL_HANDLE hCtrl, INT iBus, UINT32 *puiSubBus);
+LW_API INT                  API_PciAutoPostScanBridgeSetup(PCI_CTRL_HANDLE     hCtrl,
+                                                           PCI_AUTO_DEV_HANDLE hAutoDev,
+                                                           INT                 iSubBus);
+LW_API INT                  API_PciAutoPreScanBridgeSetup(PCI_CTRL_HANDLE     hCtrl,
+                                                          PCI_AUTO_DEV_HANDLE hAutoDev,
+                                                          INT                 iSubBus);
+LW_API INT                  API_PciAutoDeviceSetup(PCI_CTRL_HANDLE        hCtrl,
+                                                   PCI_AUTO_DEV_HANDLE    hAutoDev,
+                                                   UINT32                 uiBarNum,
+                                                   PCI_AUTO_REGION_HANDLE hRegionIo,
+                                                   PCI_AUTO_REGION_HANDLE hRegionMem,
+                                                   PCI_AUTO_REGION_HANDLE hRegionPrefetch);
+LW_API INT                  API_PciAutoRegionAllocate(PCI_AUTO_REGION_HANDLE hRegion,
+                                                      pci_size_t             stSize,
+                                                      pci_addr_t            *paddrBar);
+LW_API VOID                 API_PciAutoRegionAlign(PCI_AUTO_REGION_HANDLE hRegion, pci_size_t stSize);
+
+
+LW_API VOID                 API_PciAutoRegionInit(PCI_AUTO_REGION_HANDLE hRegion);
+
+LW_API INT                  API_PciAutoDeviceConfig(PCI_CTRL_HANDLE     hCtrl,
+                                                    PCI_AUTO_DEV_HANDLE hAutoDev,
+                                                    UINT32             *puiSubBus);
+LW_API INT                  API_PciAutoCtrlInit(PCI_CTRL_HANDLE hCtrl);
+
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */
                                                                         /*  (LW_CFG_PCI_EN > 0)         */
 #endif                                                                  /*  __PCILIB_H                  */

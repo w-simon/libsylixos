@@ -88,9 +88,7 @@ LONG  _PipeOpen (PLW_PIPE_DEV  p_pipedev,
 INT  _PipeClose (PLW_PIPE_DEV  p_pipedev)
 {
     if (p_pipedev) {
-        if (LW_DEV_GET_USE_COUNT(&p_pipedev->PIPEDEV_devhdrHdr)) {
-            LW_DEV_DEC_USE_COUNT(&p_pipedev->PIPEDEV_devhdrHdr);
-        }
+        LW_DEV_DEC_USE_COUNT(&p_pipedev->PIPEDEV_devhdrHdr);
         return  (ERROR_NONE);
     
     } else {

@@ -1396,7 +1396,7 @@ SylixOS/system/device/hwrtc/hwrtc.c \
 SylixOS/system/device/i2c/i2cLib.c \
 SylixOS/system/device/mem/memDev.c \
 SylixOS/system/device/mii/miiDev.c \
-SylixOS/system/device/pci/pciAutoCfg.c \
+SylixOS/system/device/pci/pciAuto.c \
 SylixOS/system/device/pci/pciCap.c \
 SylixOS/system/device/pci/pciCapExt.c \
 SylixOS/system/device/pci/pciDb.c \

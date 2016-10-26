@@ -267,15 +267,14 @@ static INT  _evtfdClose (PLW_EVTFD_FILE  pevtfdfil)
     if (pevtfdfil) {
         SEL_WAKE_UP_TERM(&pevtfdfil->EF_selwulist);
     
-        if (LW_DEV_GET_USE_COUNT(&_G_evtfddev.ED_devhdrHdr)) {
-            LW_DEV_DEC_USE_COUNT(&_G_evtfddev.ED_devhdrHdr);
-        }
+        LW_DEV_DEC_USE_COUNT(&_G_evtfddev.ED_devhdrHdr);
         
         API_SemaphoreBDelete(&pevtfdfil->EF_ulReadLock);
         API_SemaphoreBDelete(&pevtfdfil->EF_ulWriteLock);
         __SHEAP_FREE(pevtfdfil);
         
         return  (ERROR_NONE);
+    
     } else {
         return  (PX_ERROR);
     }

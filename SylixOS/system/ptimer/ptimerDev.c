@@ -284,9 +284,7 @@ static INT  _tmrfdClose (PLW_TMRFD_FILE  ptmrfdfil)
     if (ptmrfdfil) {
         SEL_WAKE_UP_TERM(&ptmrfdfil->TF_selwulist);
     
-        if (LW_DEV_GET_USE_COUNT(&_G_tmrfddev.TD_devhdrHdr)) {
-            LW_DEV_DEC_USE_COUNT(&_G_tmrfddev.TD_devhdrHdr);
-        }
+        LW_DEV_DEC_USE_COUNT(&_G_tmrfddev.TD_devhdrHdr);
         
         if (ptmrfdfil->TF_timer) {
             timer_delete(ptmrfdfil->TF_timer);
@@ -297,6 +295,7 @@ static INT  _tmrfdClose (PLW_TMRFD_FILE  ptmrfdfil)
         __SHEAP_FREE(ptmrfdfil);
         
         return  (ERROR_NONE);
+    
     } else {
         return  (PX_ERROR);
     }

@@ -256,14 +256,13 @@ static INT  _hotplugClose (PLW_HOTPLUG_FILE  photplugfil)
         
         _bmsgDelete(photplugfil->HOTPFIL_pbmsg);
         
-        if (LW_DEV_GET_USE_COUNT(&_G_hotplugdev.HOTPDEV_devhdrHdr)) {
-            LW_DEV_DEC_USE_COUNT(&_G_hotplugdev.HOTPDEV_devhdrHdr);
-        }
+        LW_DEV_DEC_USE_COUNT(&_G_hotplugdev.HOTPDEV_devhdrHdr);
         
         API_SemaphoreBDelete(&photplugfil->HOTPFIL_ulReadSync);
         __SHEAP_FREE(photplugfil);
         
         return  (ERROR_NONE);
+    
     } else {
         return  (PX_ERROR);
     }

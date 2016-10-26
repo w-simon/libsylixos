@@ -268,14 +268,13 @@ static INT  _nevtClose (PLW_NEVT_FILE  pnevtfil)
         
         _bmsgDelete(pnevtfil->NEVTFIL_pbmsg);
         
-        if (LW_DEV_GET_USE_COUNT(&_G_nevtdev.NEVT_devhdrHdr)) {
-            LW_DEV_DEC_USE_COUNT(&_G_nevtdev.NEVT_devhdrHdr);
-        }
+        LW_DEV_DEC_USE_COUNT(&_G_nevtdev.NEVT_devhdrHdr);
         
         API_SemaphoreBDelete(&pnevtfil->NEVTFIL_ulReadSync);
         __SHEAP_FREE(pnevtfil);
         
         return  (ERROR_NONE);
+    
     } else {
         return  (PX_ERROR);
     }

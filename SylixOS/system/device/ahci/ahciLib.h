@@ -31,56 +31,15 @@
 /*********************************************************************************************************
   调试模式
 *********************************************************************************************************/
-#define AHCI_LOG_RUN                        0x01                        /* 运行状态信息                 */
-#define AHCI_LOG_ERR                        0x02                        /* 故障信息                     */
-#define AHCI_LOG_BUG                        0x04                        /* BUG 信息                     */
-#define AHCI_LOG_PRT                        0x08                        /* 直接打印输出信息             */
-#define AHCI_LOG_ALL                        0x0F                        /* 所有类型                     */
-#define AHCI_LOG_NONE                       0x00                        /* 不输出任何信息               */
-/*********************************************************************************************************
-  调试信息
-*********************************************************************************************************/
-#if AHCI_LOG_EN > 0                                                     /* 使能调试                     */
-#define AHCI_LOG(level, fmt, ...)           do {                                                        \
-                                                if ((level) & AHCI_LOG_LEVEL) {                         \
-                                                    if ((level) & AHCI_LOG_ERR) {                       \
-                                                        _DebugFormat((__PRINTMESSAGE_LEVEL),            \
-                                                                     "file %s %s() line %d ",           \
-                                                                     __FILE__, __func__, __LINE__);     \
-                                                    }                                                   \
-                                                    _DebugFormat((__PRINTMESSAGE_LEVEL),                \
-                                                                 (fmt), ##__VA_ARGS__);                 \
-                                                    _DebugFormat((__PRINTMESSAGE_LEVEL), "%s", "\r\n"); \
-                                                }                                                       \
-                                            } while (0)
-#else                                                                   /* AHCI_LOG_EN                  */
-#define AHCI_LOG(level, fmt, ...)
-#endif                                                                  /* AHCI_LOG_EN                  */
-/*********************************************************************************************************
-  中断调试信息
-*********************************************************************************************************/
-#if (AHCI_LOG_EN > 0) && (AHCI_INT_LOG_EN > 0)                          /* 使能调试                     */
-#define AHCI_INT_LOG(level, fmt, ...)       do {                                                        \
-                                                if ((level) & AHCI_LOG_ERR) {                           \
-                                                    _DebugFormat((__PRINTMESSAGE_LEVEL),                \
-                                                                 "file %s %s() line %d ",               \
-                                                                 __FILE__, __func__, __LINE__);         \
-                                                }                                                       \
-                                                _DebugFormat((__PRINTMESSAGE_LEVEL),                    \
-                                                             (fmt), ##__VA_ARGS__);                     \
-                                                _DebugFormat((__PRINTMESSAGE_LEVEL), "%s", "\r\n");     \
-                                            } while (0)
-#else                                                                   /* AHCI_LOG_EN                  */
-#define AHCI_INT_LOG(level, fmt, ...)
-#endif                                                                  /* AHCI_LOG_EN                  */
-/*********************************************************************************************************
-  命令调试信息
-*********************************************************************************************************/
-#if AHCI_LOG_CMD_EN > 0                                                 /* 使能命令调试                 */
-#define AHCI_CMD_LOG                        AHCI_LOG
-#else                                                                   /* AHCI_LOG_CMD_EN              */
-#define AHCI_CMD_LOG(level, fmt, ...)
-#endif                                                                  /* AHCI_LOG_CMD_EN              */
+#define AHCI_LOG_RUN                        __LOGMESSAGE_LEVEL
+#define AHCI_LOG_PRT                        __LOGMESSAGE_LEVEL
+#define AHCI_LOG_ERR                        __ERRORMESSAGE_LEVEL
+#define AHCI_LOG_BUG                        __BUGMESSAGE_LEVEL
+#define AHCI_LOG_ALL                        __PRINTMESSAGE_LEVEL
+
+#define AHCI_LOG                            _DebugFormat
+#define AHCI_INT_LOG                        _DebugFormat
+#define AHCI_CMD_LOG                        _DebugFormat
 /*********************************************************************************************************
   寄存器读写
 *********************************************************************************************************/

@@ -208,7 +208,7 @@ __TYCO_EXT      INT         _G_iTycoDrvNum = PX_ERROR;
 #ifndef __TYCO_MAIN_FILE
 __TYCO_EXT      ULONG       _G_ulmutexOptionsTyLib;
 #else
-__TYCO_EXT      ULONG       _G_ulmutexOptionsTyLib = (LW_OPTION_WAIT_FIFO   
+__TYCO_EXT      ULONG       _G_ulmutexOptionsTyLib = (LW_OPTION_WAIT_PRIORITY
                                                    |  LW_OPTION_DELETE_SAFE
                                                    |  LW_OPTION_INHERIT_PRIORITY);
 #endif                                                                  /*  __TYCO_MAIN_FILE            */

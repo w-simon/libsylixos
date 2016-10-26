@@ -70,14 +70,10 @@ $(target)_DEPEND_LIB += -lgcov
 endif
 
 ifneq (,$(findstring yes,$($(target)_USE_CXX)))
-$(target)_DEPEND_LIB += -lstdc++
+$(target)_DEPEND_LIB += -lstdc++ -ldsohandle
 endif
 
-ifneq (,$(findstring libvpmpdm.so,$(LOCAL_TARGET_NAME)))
 $(target)_DEPEND_LIB += -lm -lgcc
-else
-$(target)_DEPEND_LIB += -ldsohandle -lm -lgcc
-endif
 
 #*********************************************************************************************************
 # Link object files

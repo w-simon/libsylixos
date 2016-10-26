@@ -1240,7 +1240,6 @@ INT  API_IosFdRefDec (INT  iFd)
             _IosUnlock();                                               /*  退出 IO 临界区              */
             
             _FdLockfClearFdEntry(pfdentry, __PROC_GET_PID_CUR());       /*  回收记录锁                  */
-            
             if (bCallFunc) {                                            /*  正常文件需要调用驱动        */
                 _IosFileClose(pfdentry);
                 if (pfdentry->FDENTRY_bNeedUnlink) {                    /*  之前有 unlink 操作          */
@@ -1254,6 +1253,7 @@ INT  API_IosFdRefDec (INT  iFd)
             
             _FdLockfClearFdEntry(pfdentry, __PROC_GET_PID_CUR());       /*  回收记录锁                  */
         }
+    
     } else {
         _IosUnlock();                                                   /*  退出 IO 临界区              */
     }
@@ -1296,7 +1296,6 @@ INT  API_IosFdEntryReclaim (PLW_FD_ENTRY  pfdentry, ULONG  ulRefDec, pid_t  pid)
         _IosUnlock();                                                   /*  退出 IO 临界区              */
         
         _FdLockfClearFdEntry(pfdentry, pid);                            /*  回收指定进程创建的记录锁    */
-        
         if (bCallFunc) {                                                /*  正常文件需要调用驱动        */
 #if LW_CFG_NET_EN > 0
             if (pfdentry->FDENTRY_iType == LW_DRV_TYPE_SOCKET) {
@@ -1304,7 +1303,6 @@ INT  API_IosFdEntryReclaim (PLW_FD_ENTRY  pfdentry, ULONG  ulRefDec, pid_t  pid)
             }
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */
             _IosFileClose(pfdentry);
-            
             if (pfdentry->FDENTRY_bNeedUnlink) {                        /*  之前有 unlink 操作          */
                 unlink(pfdentry->FDENTRY_pcName);                       /*  删除文件                    */
             }
