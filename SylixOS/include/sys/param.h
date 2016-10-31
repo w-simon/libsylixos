@@ -54,7 +54,9 @@
  * and must be cast to any desired pointer type.
  */
 #define ALIGNBYTES  (sizeof(long) - 1)
+#ifndef ALIGN       /* redefined in linux/compat.h */
 #define ALIGN(p)    (((unsigned long)(p) + ALIGNBYTES) & ~ALIGNBYTES)
+#endif
 
 #define	MAXCOMLEN	LW_CFG_SHELL_MAX_KEYWORDLEN		/* max command name remembered */
 #define	MAXINTERP	32		/* max interpreter file name length */

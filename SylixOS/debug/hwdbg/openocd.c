@@ -32,34 +32,34 @@
 /*********************************************************************************************************
   OpenOCD 信息结构
 *********************************************************************************************************/
-LW_CFG_STRUCT_PACK_BEGIN
+LW_STRUCT_PACK_BEGIN
 struct lw_openocd_info {
-    LW_CFG_STRUCT_PACK_FIELD(UINT32     OOCD_uiFlags);
-    LW_CFG_STRUCT_PACK_FIELD(UINT32     OOCD_uiSzLong);
-    LW_CFG_STRUCT_PACK_FIELD(UINT32     OOCD_uiSzPtr);
-    LW_CFG_STRUCT_PACK_FIELD(UINT32     OOCD_uiSzPid);
-    LW_CFG_STRUCT_PACK_FIELD(UINT32     OOCD_uiSzObjName);
+    LW_STRUCT_PACK_FIELD(UINT32     OOCD_uiFlags);
+    LW_STRUCT_PACK_FIELD(UINT32     OOCD_uiSzLong);
+    LW_STRUCT_PACK_FIELD(UINT32     OOCD_uiSzPtr);
+    LW_STRUCT_PACK_FIELD(UINT32     OOCD_uiSzPid);
+    LW_STRUCT_PACK_FIELD(UINT32     OOCD_uiSzObjName);
     
-    LW_CFG_STRUCT_PACK_FIELD(UINT32     OOCD_uiMaxThreads);
-    LW_CFG_STRUCT_PACK_FIELD(UINT32     OOCD_uiMaxCpus);
+    LW_STRUCT_PACK_FIELD(UINT32     OOCD_uiMaxThreads);
+    LW_STRUCT_PACK_FIELD(UINT32     OOCD_uiMaxCpus);
     
-    LW_CFG_STRUCT_PACK_FIELD(UINT32     OOCD_uiCpuTcbCur);
-    LW_CFG_STRUCT_PACK_FIELD(UINT32     OOCD_uiCpuTcbHigh);
-    LW_CFG_STRUCT_PACK_FIELD(UINT32     OOCD_uiCpuIntNest);
-    LW_CFG_STRUCT_PACK_FIELD(UINT32     OOCD_uiCpuActStat);
+    LW_STRUCT_PACK_FIELD(UINT32     OOCD_uiCpuTcbCur);
+    LW_STRUCT_PACK_FIELD(UINT32     OOCD_uiCpuTcbHigh);
+    LW_STRUCT_PACK_FIELD(UINT32     OOCD_uiCpuIntNest);
+    LW_STRUCT_PACK_FIELD(UINT32     OOCD_uiCpuActStat);
     
-    LW_CFG_STRUCT_PACK_FIELD(UINT32     OOCD_uiThreadId);
-    LW_CFG_STRUCT_PACK_FIELD(UINT32     OOCD_uiThreadPrio);
-    LW_CFG_STRUCT_PACK_FIELD(UINT32     OOCD_uiThreadErrNo);
-    LW_CFG_STRUCT_PACK_FIELD(UINT32     OOCD_uiThreadCpu);
-    LW_CFG_STRUCT_PACK_FIELD(UINT32     OOCD_uiThreadStat);
-    LW_CFG_STRUCT_PACK_FIELD(UINT32     OOCD_uiThreadOpt);
-    LW_CFG_STRUCT_PACK_FIELD(UINT32     OOCD_uiThreadName);
-    LW_CFG_STRUCT_PACK_FIELD(UINT32     OOCD_uiThreadStk);
+    LW_STRUCT_PACK_FIELD(UINT32     OOCD_uiThreadId);
+    LW_STRUCT_PACK_FIELD(UINT32     OOCD_uiThreadPrio);
+    LW_STRUCT_PACK_FIELD(UINT32     OOCD_uiThreadErrNo);
+    LW_STRUCT_PACK_FIELD(UINT32     OOCD_uiThreadCpu);
+    LW_STRUCT_PACK_FIELD(UINT32     OOCD_uiThreadStat);
+    LW_STRUCT_PACK_FIELD(UINT32     OOCD_uiThreadOpt);
+    LW_STRUCT_PACK_FIELD(UINT32     OOCD_uiThreadName);
+    LW_STRUCT_PACK_FIELD(UINT32     OOCD_uiThreadStk);
     
-    LW_CFG_STRUCT_PACK_FIELD(UINT32     OOCD_uiPid);
-} LW_CFG_STRUCT_PACK_STRUCT;
-LW_CFG_STRUCT_PACK_END
+    LW_STRUCT_PACK_FIELD(UINT32     OOCD_uiPid);
+} LW_STRUCT_PACK_STRUCT;
+LW_STRUCT_PACK_END
 
 typedef struct lw_openocd_info          LW_OPENOCD_INFO;
 typedef struct lw_openocd_info         *PLW_OPENOCD_INFO;

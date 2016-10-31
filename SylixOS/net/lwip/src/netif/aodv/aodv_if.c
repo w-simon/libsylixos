@@ -57,6 +57,7 @@
 #include "aodv_mtunnel.h"
 #include "aodv_if.h"
 
+ip_addr_t aodv_ipaddr_any; /* global variable auto clear */
 struct netif *aodv_netif[AODV_MAX_NETIF]; /* initialize with NULL */
 
 static int aodv_wait_on_reboot = 1; /* must wait reboot */
@@ -130,8 +131,8 @@ int aodv_gw_get (void)
  *
  * @return netif, or NULL if failed.
  */
-struct netif *aodv_netif_add (struct netif *netif, ip_addr_t *ipaddr, ip_addr_t *netmask,
-                              ip_addr_t *gw, void *state, netif_init_fn init, netif_input_fn input)
+struct netif *aodv_netif_add (struct netif *netif, ip4_addr_t *ipaddr, ip4_addr_t *netmask,
+                              ip4_addr_t *gw, void *state, netif_init_fn init, netif_input_fn input)
 {
   int i;
   static int aodv_proto_init = 0;
@@ -224,7 +225,7 @@ void aodv_netif_remove (struct netif *netif)
  *
  * @return err_t
  */
-static err_t aodv_netif_output_unicast (struct netif *netif, struct pbuf *p, ip_addr_t *ipaddr)
+static err_t aodv_netif_output_unicast (struct netif *netif, struct pbuf *p, ip4_addr_t *ipaddr)
 {
   u8_t do_send = 0;
   struct in_addr dest_addr;
@@ -240,16 +241,16 @@ static err_t aodv_netif_output_unicast (struct netif *netif, struct pbuf *p, ip_
   dest_addr.s_addr = ipaddr->addr;
   src_addr.s_addr = iphdr->src.addr;
   
-  if (!ip_addr_netcmp(ipaddr, &netif->ip_addr, &netif->netmask)) { /* not in same subnet */
+  if (!ip4_addr_netcmp(ipaddr, netif_ip4_addr(netif), netif_ip4_netmask(netif))) { /* not in same subnet */
     /* send to gateway */
-    if (netif->gw.addr != IPADDR_ANY) {
+    if (netif_ip4_gw(netif)->addr != IPADDR_ANY) {
       /* we use setting gateway */
-      dest_addr.s_addr = netif->gw.addr;
+      dest_addr.s_addr = netif_ip4_gw(netif)->addr;
     }
   }
   
   /* update rev_rt */
-  if (src_addr.s_addr != netif->ip_addr.addr) { /* source not me, this is an forward ip packet output */
+  if (src_addr.s_addr != netif_ip4_addr(netif)->addr) { /* source not me, this is an forward ip packet output */
     rev_rt = aodv_rt_find(&src_addr);
     if (rev_rt) {
       aodv_rt_update_timeout(rev_rt, ACTIVE_ROUTE_TIMEOUT); /* rev_rt route is valid */
@@ -289,14 +290,14 @@ __re_find:
   }
   
   if (do_send) {
-    ip_addr_t ipaddr_next;
+    ip4_addr_t ipaddr_next;
     ipaddr_next.addr = rt->next_hop.s_addr; /* use next hop */
     return AODV_PACKET_OUTPUT(netif, p, &ipaddr_next); /* send to next hop */
   
   } else {
     /* Need send RREQ to find route to dest */
     if (rt && (rt->flags & AODV_RT_REPAIR)) {
-      src_addr.s_addr = netif->ip_addr.addr;
+      src_addr.s_addr = netif_ip4_addr(netif)->addr;
       aodv_rreq_local_repair(rt, &src_addr, p); /* try repair */
     
     } else {
@@ -320,7 +321,7 @@ __re_find:
  *
  * @return err_t
  */
-static err_t aodv_netif_output_multicast (struct netif *netif, struct pbuf *p, ip_addr_t *ipaddr)
+static err_t aodv_netif_output_multicast (struct netif *netif, struct pbuf *p, ip4_addr_t *ipaddr)
 {
   u16_t iphdr_hlen;
   struct ip_hdr *iphdr = (struct ip_hdr *)p->payload;
@@ -355,8 +356,8 @@ static err_t aodv_netif_output_multicast (struct netif *netif, struct pbuf *p, i
     }
   
   } else { /* send multicast packet */
-    ip_addr_t rev_addr;
-    rev_addr = netif->ip_addr; /* rev_ip is me */
+    ip4_addr_t rev_addr;
+    rev_addr.addr = netif_ip4_addr(netif)->addr; /* rev_ip is me */
     AODV_MPACKET_OUTPUT(netif, p, ipaddr, &rev_addr); /* send multicast packet */
   }
   
@@ -373,13 +374,13 @@ static err_t aodv_netif_output_multicast (struct netif *netif, struct pbuf *p, i
  *
  * @return err_t
  */
-err_t aodv_netif_output (struct netif *netif, struct pbuf *p, ip_addr_t *ipaddr)
+err_t aodv_netif_output (struct netif *netif, struct pbuf *p, ip4_addr_t *ipaddr)
 {
   if (ipaddr->addr == IPADDR_BROADCAST) { /* broadcast packet */
     return AODV_PACKET_OUTPUT(netif, p, ipaddr);
   }
   
-  if (ip_addr_ismulticast(ipaddr)) { /* multicast packet */
+  if (ip4_addr_ismulticast(ipaddr)) { /* multicast packet */
 #if AODV_MCAST
     return aodv_netif_output_multicast(netif, p, ipaddr);
 #else

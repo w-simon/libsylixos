@@ -57,6 +57,7 @@
 #include "sys/socket.h"
 #include "sys/un.h"
 #include "lwip/mem.h"
+#include "lwip/dns.h"
 #include "lwip/netif.h"
 #include "lwip/tcpip.h"
 #include "net/if.h"
@@ -75,7 +76,6 @@
   ipv6 extern vars
 *********************************************************************************************************/
 #if LWIP_IPV6
-const struct in6_addr in6addr_any                = IN6ADDR_ANY_INIT;
 const struct in6_addr in6addr_loopback           = IN6ADDR_LOOPBACK_INIT;
 const struct in6_addr in6addr_nodelocal_allnodes = IN6ADDR_NODELOCAL_ALLNODES_INIT;
 const struct in6_addr in6addr_linklocal_allnodes = IN6ADDR_LINKLOCAL_ALLNODES_INIT;
@@ -292,7 +292,7 @@ static VOID __ifConf (struct ifconf  *pifconf)
         psockaddrin->sin_len    = sizeof(struct sockaddr_in);
         psockaddrin->sin_family = AF_INET;
         psockaddrin->sin_port   = 0;
-        psockaddrin->sin_addr.s_addr = pnetif->ip_addr.addr;
+        psockaddrin->sin_addr.s_addr = netif_ip4_addr(pnetif)->addr;
         
         iNum++;
         pifreq++;
@@ -413,8 +413,7 @@ static INT  __ifSubIoctlIf (INT  iCmd, PVOID  pvArg)
         }
         if (pnetif->flags & NETIF_FLAG_BROADCAST) {
             pifreq->ifr_flags |= IFF_BROADCAST;
-        }
-        if (pnetif->flags & NETIF_FLAG_POINTTOPOINT) {
+        } else {
             pifreq->ifr_flags |= IFF_POINTOPOINT;
         }
         if (pnetif->flags & NETIF_FLAG_LINK_UP) {
@@ -426,7 +425,7 @@ static INT  __ifSubIoctlIf (INT  iCmd, PVOID  pvArg)
         if ((pnetif->flags & NETIF_FLAG_ETHARP) == 0) {
             pifreq->ifr_flags |= IFF_NOARP;
         }
-        if (pnetif->ip_addr.addr == ntohl(INADDR_LOOPBACK)) {
+        if (netif_ip4_addr(pnetif)->addr == ntohl(INADDR_LOOPBACK)) {
             pifreq->ifr_flags |= IFF_LOOPBACK;
         }
         if ((pnetif->flags2 & NETIF_FLAG2_PROMISC)) {
@@ -468,7 +467,7 @@ static INT  __ifSubIoctlIf (INT  iCmd, PVOID  pvArg)
         break;
         
     case SIOCGIFTYPE:                                                   /*  获得网卡类型                */
-        if (pnetif->flags & NETIF_FLAG_POINTTOPOINT) {
+        if ((pnetif->flags & NETIF_FLAG_BROADCAST) == 0) {
             pifreq->ifr_type = IFT_PPP;
         } else if (pnetif->flags & (NETIF_FLAG_ETHERNET | NETIF_FLAG_ETHARP)) {
             pifreq->ifr_type = IFT_ETHER;
@@ -491,6 +490,14 @@ static INT  __ifSubIoctlIf (INT  iCmd, PVOID  pvArg)
         break;
         
     case SIOCSIFMTU:                                                    /*  设置网卡 mtu                */
+        if (pifreq->ifr_mtu != pnetif->mtu) {
+          if (pnetif->ioctl) {
+            if (pnetif->ioctl(pnetif, SIOCSIFMTU, pvArg) == 0) {
+              pnetif->mtu = pifreq->ifr_mtu;
+              iRet = ERROR_NONE;
+            }
+          }
+        }
         _ErrorHandle(ENOSYS);
         break;
         
@@ -531,7 +538,7 @@ static INT  __ifSubIoctlIf (INT  iCmd, PVOID  pvArg)
         break;
     }
     
-    return  iRet;
+    return  (iRet);
 }
 /*********************************************************************************************************
 ** 函数名称: __ifSubIoctl4
@@ -580,17 +587,17 @@ static INT  __ifSubIoctl4 (INT  iCmd, PVOID  pvArg)
     switch (iCmd) {                                                     /*  命令处理器                  */
         
     case SIOCGIFADDR:                                                   /*  获取网卡 IP                 */
-        psockaddrin->sin_addr.s_addr = pnetif->ip_addr.addr;
+        psockaddrin->sin_addr.s_addr = netif_ip4_addr(pnetif)->addr;
         iRet = ERROR_NONE;
         break;
     
     case SIOCGIFNETMASK:                                                /*  获取网卡 mask               */
-        psockaddrin->sin_addr.s_addr = pnetif->netmask.addr;
+        psockaddrin->sin_addr.s_addr = netif_ip4_netmask(pnetif)->addr;
         iRet = ERROR_NONE;
         break;
         
     case SIOCGIFDSTADDR:                                                /*  获取网卡目标地址            */
-        if (pnetif->flags & NETIF_FLAG_POINTTOPOINT) {
+        if ((pnetif->flags & NETIF_FLAG_BROADCAST) == 0) {
             psockaddrin->sin_addr.s_addr = INADDR_ANY;
             iRet = ERROR_NONE;
         } else {
@@ -600,7 +607,8 @@ static INT  __ifSubIoctl4 (INT  iCmd, PVOID  pvArg)
         
     case SIOCGIFBRDADDR:                                                /*  获取网卡广播地址            */
         if (pnetif->flags & NETIF_FLAG_BROADCAST) {
-            psockaddrin->sin_addr.s_addr = (pnetif->ip_addr.addr | (~pnetif->netmask.addr));
+            psockaddrin->sin_addr.s_addr = (netif_ip4_addr(pnetif)->addr 
+                                         | (~(netif_ip4_netmask(pnetif)->addr)));
             iRet = ERROR_NONE;
         } else {
             _ErrorHandle(EINVAL);
@@ -609,7 +617,7 @@ static INT  __ifSubIoctl4 (INT  iCmd, PVOID  pvArg)
         
     case SIOCSIFADDR:                                                   /*  设置网卡地址                */
         if (psockaddrin->sin_family == AF_INET) {
-            ip_addr_t ipaddr;
+            ip4_addr_t ipaddr;
             ipaddr.addr = psockaddrin->sin_addr.s_addr;
             netif_set_ipaddr(pnetif, &ipaddr);
             iRet = ERROR_NONE;
@@ -620,7 +628,7 @@ static INT  __ifSubIoctl4 (INT  iCmd, PVOID  pvArg)
         
     case SIOCSIFNETMASK:                                                /*  设置网卡掩码                */
         if (psockaddrin->sin_family == AF_INET) {
-            ip_addr_t ipaddr;
+            ip4_addr_t ipaddr;
             ipaddr.addr = psockaddrin->sin_addr.s_addr;
             netif_set_netmask(pnetif, &ipaddr);
             iRet = ERROR_NONE;
@@ -630,7 +638,7 @@ static INT  __ifSubIoctl4 (INT  iCmd, PVOID  pvArg)
         break;
         
     case SIOCSIFDSTADDR:                                                /*  设置网卡目标地址            */
-        if (pnetif->flags & NETIF_FLAG_POINTTOPOINT) {
+        if ((pnetif->flags & NETIF_FLAG_BROADCAST) == 0) {
             iRet = ERROR_NONE;
         } else {
             _ErrorHandle(EINVAL);
@@ -646,7 +654,7 @@ static INT  __ifSubIoctl4 (INT  iCmd, PVOID  pvArg)
         break;
     }
     
-    return  iRet;
+    return  (iRet);
 }
 /*********************************************************************************************************
 ** 函数名称: __ifSubIoctl6
@@ -660,22 +668,22 @@ static INT  __ifSubIoctl4 (INT  iCmd, PVOID  pvArg)
 static INT  __ifSubIoctl6 (INT  iCmd, PVOID  pvArg)
 {
 #define __LWIP_GET_IPV6_FROM_NETIF() \
-        pifr6addr->ifr6a_addr.un.u32_addr[0] = pnetif->ip6_addr[i].addr[0]; \
-        pifr6addr->ifr6a_addr.un.u32_addr[1] = pnetif->ip6_addr[i].addr[1]; \
-        pifr6addr->ifr6a_addr.un.u32_addr[2] = pnetif->ip6_addr[i].addr[2]; \
-        pifr6addr->ifr6a_addr.un.u32_addr[3] = pnetif->ip6_addr[i].addr[3];
+        pifr6addr->ifr6a_addr.un.u32_addr[0] = ip_2_ip6(&pnetif->ip6_addr[i])->addr[0]; \
+        pifr6addr->ifr6a_addr.un.u32_addr[1] = ip_2_ip6(&pnetif->ip6_addr[i])->addr[1]; \
+        pifr6addr->ifr6a_addr.un.u32_addr[2] = ip_2_ip6(&pnetif->ip6_addr[i])->addr[2]; \
+        pifr6addr->ifr6a_addr.un.u32_addr[3] = ip_2_ip6(&pnetif->ip6_addr[i])->addr[3];
         
 #define __LWIP_SET_IPV6_TO_NETIF() \
-        pnetif->ip6_addr[i].addr[0] = pifr6addr->ifr6a_addr.un.u32_addr[0]; \
-        pnetif->ip6_addr[i].addr[1] = pifr6addr->ifr6a_addr.un.u32_addr[1]; \
-        pnetif->ip6_addr[i].addr[2] = pifr6addr->ifr6a_addr.un.u32_addr[2]; \
-        pnetif->ip6_addr[i].addr[3] = pifr6addr->ifr6a_addr.un.u32_addr[3]; 
+        ip_2_ip6(&pnetif->ip6_addr[i])->addr[0] = pifr6addr->ifr6a_addr.un.u32_addr[0]; \
+        ip_2_ip6(&pnetif->ip6_addr[i])->addr[1] = pifr6addr->ifr6a_addr.un.u32_addr[1]; \
+        ip_2_ip6(&pnetif->ip6_addr[i])->addr[2] = pifr6addr->ifr6a_addr.un.u32_addr[2]; \
+        ip_2_ip6(&pnetif->ip6_addr[i])->addr[3] = pifr6addr->ifr6a_addr.un.u32_addr[3]; 
         
 #define __LWIP_CMP_IPV6_WITH_NETIF() \
-        (pnetif->ip6_addr[i].addr[0] == pifr6addr->ifr6a_addr.un.u32_addr[0]) && \
-        (pnetif->ip6_addr[i].addr[1] == pifr6addr->ifr6a_addr.un.u32_addr[1]) && \
-        (pnetif->ip6_addr[i].addr[2] == pifr6addr->ifr6a_addr.un.u32_addr[2]) && \
-        (pnetif->ip6_addr[i].addr[3] == pifr6addr->ifr6a_addr.un.u32_addr[3]) 
+        (ip_2_ip6(&pnetif->ip6_addr[i])->addr[0] == pifr6addr->ifr6a_addr.un.u32_addr[0]) && \
+        (ip_2_ip6(&pnetif->ip6_addr[i])->addr[1] == pifr6addr->ifr6a_addr.un.u32_addr[1]) && \
+        (ip_2_ip6(&pnetif->ip6_addr[i])->addr[2] == pifr6addr->ifr6a_addr.un.u32_addr[2]) && \
+        (ip_2_ip6(&pnetif->ip6_addr[i])->addr[3] == pifr6addr->ifr6a_addr.un.u32_addr[3]) 
 
            INT           i;
            INT           iSize;
@@ -705,9 +713,9 @@ static INT  __ifSubIoctl6 (INT  iCmd, PVOID  pvArg)
             }
             if (ip6_addr_isvalid(pnetif->ip6_addr_state[i])) {
                 __LWIP_GET_IPV6_FROM_NETIF();
-                if (ip6_addr_isloopback(&pnetif->ip6_addr[i])) {
+                if (ip6_addr_isloopback(ip_2_ip6(&pnetif->ip6_addr[i]))) {
                     pifr6addr->ifr6a_prefixlen = 128;
-                } else if (ip6_addr_islinklocal(&pnetif->ip6_addr[i])) {
+                } else if (ip6_addr_islinklocal(ip_2_ip6(&pnetif->ip6_addr[i]))) {
                     pifr6addr->ifr6a_prefixlen = 6;
                 } else {
                     pifr6addr->ifr6a_prefixlen = 64;                    /*  TODO: 目前无法获取          */
@@ -720,7 +728,7 @@ static INT  __ifSubIoctl6 (INT  iCmd, PVOID  pvArg)
         iRet = ERROR_NONE;
         break;
         
-    case SIOCSIFADDR6:                                                  /*  获取网卡 IP                 */
+    case SIOCSIFADDR6:                                                  /*  设置网卡 IP                 */
         if (iSize != 1) {                                               /*  每次只能设置一个 IP 地址    */
             _ErrorHandle(EOPNOTSUPP);
             break;
@@ -739,7 +747,7 @@ static INT  __ifSubIoctl6 (INT  iCmd, PVOID  pvArg)
         }
         if (i >= LWIP_IPV6_NUM_ADDRESSES) {                             /*  无法添加                    */
             for (i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++) {             /*  优先覆盖暂定地址            */
-                if (!ip6_addr_islinklocal(&pnetif->ip6_addr[i]) &&
+                if (!ip6_addr_islinklocal(ip_2_ip6(&pnetif->ip6_addr[i])) &&
                     ip6_addr_istentative(pnetif->ip6_addr_state[i])) {
                     __LWIP_SET_IPV6_TO_NETIF();
                     pnetif->ip6_addr_state[i] = IP6_ADDR_VALID | IP6_ADDR_TENTATIVE;
@@ -749,7 +757,7 @@ static INT  __ifSubIoctl6 (INT  iCmd, PVOID  pvArg)
         }
         if (i >= LWIP_IPV6_NUM_ADDRESSES) {                             /*  无法添加                    */
             for (i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++) {             /*  替换非 linklocal 地址       */
-                if (!ip6_addr_islinklocal(&pnetif->ip6_addr[i])) {
+                if (!ip6_addr_islinklocal(ip_2_ip6(&pnetif->ip6_addr[i]))) {
                     __LWIP_SET_IPV6_TO_NETIF();
                     pnetif->ip6_addr_state[i] = IP6_ADDR_VALID | IP6_ADDR_TENTATIVE;
                     break;
@@ -780,7 +788,7 @@ static INT  __ifSubIoctl6 (INT  iCmd, PVOID  pvArg)
         break;
     }
     
-    return  iRet;
+    return  (iRet);
 }
 /*********************************************************************************************************
 ** 函数名称: __ifSubIoctlCommon
@@ -1481,68 +1489,6 @@ VOID  __socketReset (PLW_FD_ENTRY  pfdentry)
     }
 }
 /*********************************************************************************************************
-** 函数名称: lwip_sendmsg
-** 功能描述: lwip sendmsg
-** 输　入  : lwipfd      lwip 文件
-**           msg         消息
-**           flags       flag
-** 输　出  : 发送数据长度
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-static ssize_t  lwip_sendmsg (int  s, const struct msghdr *msg, int flags)
-{
-	if (msg->msg_iovlen == 1) {
-		return  (lwip_sendto(s, msg->msg_iov->iov_base, msg->msg_iov->iov_len, flags,
-				             (const struct sockaddr *)msg->msg_name, msg->msg_namelen));
-	
-	} else {
-	    struct iovec    liovec,*msg_iov;
-		size_t          msg_iovlen;
-		unsigned int    i, totalsize;
-		ssize_t         size;
-		char           *lbuf;
-		char           *temp;
-		
-		msg_iov    = msg->msg_iov;
-		msg_iovlen = msg->msg_iovlen;
-		
-		for (i = 0, totalsize = 0; i < msg_iovlen; i++) {
-		    if ((msg_iov[i].iov_len == 0) || (msg_iov[i].iov_base == LW_NULL)) {
-		        _ErrorHandle(EINVAL);
-		        return  (PX_ERROR);
-		    }
-			totalsize += (unsigned int)msg_iov[i].iov_len;
-		}
-		
-		lbuf = (char *)mem_malloc(totalsize);
-        if (lbuf == LW_NULL) {
-            _ErrorHandle(ENOMEM);
-            return  (PX_ERROR);
-        }
-		
-		liovec.iov_base = (PVOID)lbuf;
-		liovec.iov_len  = (size_t)totalsize;
-		
-		size = totalsize;
-		
-		temp = lbuf;
-		for (i = 0; size > 0 && i < msg_iovlen; i++) {
-			int     qty = msg_iov[i].iov_len;
-			lib_memcpy(temp, msg_iov[i].iov_base, qty);
-			temp += qty;
-			size -= qty;
-		}
-		
-		size = lwip_sendto(s, liovec.iov_base, liovec.iov_len, flags, 
-		                   (const struct sockaddr *)msg->msg_name, msg->msg_namelen);
-		                   
-        mem_free(lbuf);
-		
-		return  (size);
-	}
-}
-/*********************************************************************************************************
 ** 函数名称: lwip_recvmsg
 ** 功能描述: lwip recvmsg
 ** 输　入  : lwipfd      lwip 文件
@@ -1555,28 +1501,28 @@ static ssize_t  lwip_sendmsg (int  s, const struct msghdr *msg, int flags)
 static ssize_t  lwip_recvmsg (int  s, struct msghdr *msg, int flags)
 {
     msg->msg_controllen = 0;
-	
-	if (msg->msg_iovlen == 1) {
-		return  (lwip_recvfrom(s, msg->msg_iov->iov_base, msg->msg_iov->iov_len, flags,
-				               (struct sockaddr *)msg->msg_name, &msg->msg_namelen));
+    
+    if (msg->msg_iovlen == 1) {
+        return  (lwip_recvfrom(s, msg->msg_iov->iov_base, msg->msg_iov->iov_len, flags,
+                               (struct sockaddr *)msg->msg_name, &msg->msg_namelen));
     
     } else {
         struct iovec    liovec, *msg_iov;
-		size_t          msg_iovlen;
-		unsigned int    i, totalsize;
-		ssize_t         size;
-		char           *lbuf;
-		char           *temp;
-		
-		msg_iov    = msg->msg_iov;
-		msg_iovlen = msg->msg_iovlen;
-		
-		for (i = 0, totalsize = 0; i < msg_iovlen; i++) {
-		    if ((msg_iov[i].iov_len == 0) || (msg_iov[i].iov_base == LW_NULL)) {
-		        _ErrorHandle(EINVAL);
-		        return  (PX_ERROR);
-		    }
-			totalsize += (unsigned int)msg_iov[i].iov_len;
+        size_t          msg_iovlen;
+        unsigned int    i, totalsize;
+        ssize_t         size;
+        char           *lbuf;
+        char           *temp;
+        
+        msg_iov    = msg->msg_iov;
+        msg_iovlen = msg->msg_iovlen;
+        
+        for (i = 0, totalsize = 0; i < msg_iovlen; i++) {
+            if ((msg_iov[i].iov_len == 0) || (msg_iov[i].iov_base == LW_NULL)) {
+                _ErrorHandle(EINVAL);
+                return  (PX_ERROR);
+            }
+            totalsize += (unsigned int)msg_iov[i].iov_len;
         }
         
         lbuf = (char *)mem_malloc(totalsize);
@@ -1585,23 +1531,23 @@ static ssize_t  lwip_recvmsg (int  s, struct msghdr *msg, int flags)
             return  (PX_ERROR);
         }
         
-		liovec.iov_base = (PVOID)lbuf;
-		liovec.iov_len  = (size_t)totalsize;
-		
-		size = lwip_recvfrom(s, liovec.iov_base, liovec.iov_len, flags, 
-		                     (struct sockaddr *)msg->msg_name, &msg->msg_namelen);
-		
-		temp = lbuf;
-		for (i = 0; size > 0 && i < msg_iovlen; i++) {
-			size_t   qty = (size_t)((size > msg_iov[i].iov_len) ? msg_iov[i].iov_len : size);
-			lib_memcpy(msg_iov[i].iov_base, temp, qty);
-			temp += qty;
-			size -= qty;
-		}
-		
-		mem_free(lbuf);
-		
-		return  (size);
+        liovec.iov_base = (PVOID)lbuf;
+        liovec.iov_len  = (size_t)totalsize;
+        
+        size = lwip_recvfrom(s, liovec.iov_base, liovec.iov_len, flags, 
+                             (struct sockaddr *)msg->msg_name, &msg->msg_namelen);
+        
+        temp = lbuf;
+        for (i = 0; size > 0 && i < msg_iovlen; i++) {
+            size_t   qty = (size_t)((size > msg_iov[i].iov_len) ? msg_iov[i].iov_len : size);
+            lib_memcpy(msg_iov[i].iov_base, temp, qty);
+            temp += qty;
+            size -= qty;
+        }
+        
+        mem_free(lbuf);
+        
+        return  (size);
     }
 }
 /*********************************************************************************************************
@@ -2789,6 +2735,62 @@ int  getaddrinfo (const char *nodename, const char *servname,
                   const struct addrinfo *hints, struct addrinfo **res)
 {
     return  (lwip_getaddrinfo(nodename, servname, hints, res));
+}
+/*********************************************************************************************************
+** 函数名称: get_dns_server_info_4
+** 功能描述: get lwip dns server for IPv4
+** 输　入  : iIndex   dns server index
+**           inaddr   DNS Server
+** 输　出  : ERROR or OK
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+INT  get_dns_server_info_4 (UINT iIndex, struct in_addr *inaddr)
+{
+    const ip_addr_t *ipdns;
+
+    if ((iIndex >= DNS_MAX_SERVERS) || !inaddr) {
+        return  (PX_ERROR);
+    }
+    
+    ipdns = dns_getserver((u8_t)iIndex);
+    if (!ipdns || (IP_GET_TYPE(ipdns) == IPADDR_TYPE_V6)) {
+        return  (PX_ERROR);
+    }
+    
+    inet_addr_from_ipaddr(inaddr, ip_2_ip4(ipdns));
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: get_dns_server_info_6
+** 功能描述: get lwip dns server for IPv6
+** 输　入  : iIndex   dns server index
+**           in6addr  DNS Server
+** 输　出  : ERROR or OK
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+INT  get_dns_server_info_6 (UINT iIndex, struct in6_addr *in6addr)
+{
+    const ip_addr_t *ipdns;
+
+    if ((iIndex >= DNS_MAX_SERVERS) || !in6addr) {
+        return  (PX_ERROR);
+    }
+    
+    ipdns = dns_getserver((u8_t)iIndex);
+    if (!ipdns || (IP_GET_TYPE(ipdns) == IPADDR_TYPE_V4)) {
+        return  (PX_ERROR);
+    }
+    
+    inet6_addr_from_ip6addr(in6addr, ip_2_ip6(ipdns));
+
+    return  (ERROR_NONE);
 }
 
 #endif                                                                  /*  LW_CFG_NET_EN               */

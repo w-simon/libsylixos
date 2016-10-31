@@ -354,7 +354,7 @@ void aodv_mcast_rrep_process (struct pbuf *p,
       upstream->grp_hcnt = rrep->hcnt;
     }
     
-    if (rrep_orig.s_addr != netif->ip_addr.addr) {
+    if (rrep_orig.s_addr != netif_ip4_addr(netif)->addr) {
       struct aodv_rtnode *rev_rt = aodv_rt_find(&rrep_orig);
       if (rev_rt) {
         ttl--;
@@ -564,8 +564,8 @@ int aodv_mcast_rreq_retries (struct aodv_seeklist *seek_entry)
     s = aodv_seeklist_find(&seek_entry->dest_addr);
     if (s) {
       if (s->p) {
-        ip_addr_t grp_ip;
-        ip_addr_t rev_ip;
+        ip4_addr_t grp_ip;
+        ip4_addr_t rev_ip;
         grp_ip.addr = dest_addr.s_addr;
         rev_ip.addr = s->rev_addr.s_addr;
         AODV_MPACKET_OUTPUT(group_rec->netif, s->p, &grp_ip, &rev_ip);
@@ -637,7 +637,7 @@ void aodv_grph_send (u8_t flags, u8_t hcnt, struct in_addr *grp_addr, u32_t grp_
   
   for (i = 0; i < AODV_MAX_NETIF; i++) {
     if (aodv_netif[i]) {
-      addr.s_addr = aodv_netif[i]->ip_addr.addr;
+      addr.s_addr = netif_ip4_addr(aodv_netif[i])->addr;
       p = aodv_grph_create(flags, hcnt, &addr, grp_addr, grp_seqno);
       if (p) {
         aodv_udp_sendto(p, &dest_broadcast, ttl, i);
@@ -883,7 +883,7 @@ void aodv_mact_send (u8_t flags, u8_t hcnt, struct in_addr *grp_addr, struct in_
   
   LWIP_ERROR("rt != NULL", (rt != NULL), return;);
   
-  src_addr.s_addr = rt->netif->ip_addr.addr;
+  src_addr.s_addr = netif_ip4_addr(rt->netif)->addr;
   
   p = aodv_mact_create(flags, hcnt, &src_addr, grp_addr);
   if (p) {
@@ -930,7 +930,7 @@ void aodv_mact_mcast (u8_t flags, u8_t hcnt, struct in_addr *grp_addr, u8_t ttl)
       i = aodv_rt_netif_index_get(rt);
       
       if (!ifmask[i]) {
-        src_addr.s_addr = rt->netif->ip_addr.addr;
+        src_addr.s_addr = netif_ip4_addr(rt->netif)->addr;
         
         p = aodv_mact_create(flags, hcnt, &src_addr, grp_addr);
         if (p) {
@@ -1139,8 +1139,8 @@ struct aodv_mrtnexthop *aodv_mact_activate_best_upstream (struct aodv_mrtnode *m
     
     if (s) {
       if (s->p) {
-        ip_addr_t grp_ip;
-        ip_addr_t rev_ip;
+        ip4_addr_t grp_ip;
+        ip4_addr_t rev_ip;
         grp_ip.addr = mrt->grp_addr.s_addr;
         rev_ip.addr = s->rev_addr.s_addr;
         AODV_MPACKET_OUTPUT(mrt->netif, s->p, &grp_ip, &rev_ip);

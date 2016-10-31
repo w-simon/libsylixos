@@ -163,7 +163,7 @@ void aodv_rreq_send (struct in_addr *dest_addr, u32_t dest_seqno, u8_t ttl, u8_t
    */
   for (i = 0; i < AODV_MAX_NETIF; i++) { /* broadcast to all aodv netif */
     if (aodv_netif[i]) {
-      orig_addr.s_addr = aodv_netif[i]->ip_addr.addr;
+      orig_addr.s_addr = netif_ip4_addr(aodv_netif[i])->addr;
       p = aodv_rreq_create(flags, dest_addr, dest_seqno, &orig_addr, 0, NULL);
       if (p) {
         aodv_udp_sendto(p, &dest_broadcast, ttl, i);
@@ -196,7 +196,7 @@ void aodv_rreq_send_ext (struct in_addr *dest_addr, u32_t dest_seqno, u8_t ttl, 
    */
   for (i = 0; i < AODV_MAX_NETIF; i++) { /* broadcast to all aodv netif */
     if (aodv_netif[i]) {
-      orig_addr.s_addr = aodv_netif[i]->ip_addr.addr;
+      orig_addr.s_addr = netif_ip4_addr(aodv_netif[i])->addr;
       p = aodv_rreq_create(flags, dest_addr, dest_seqno, &orig_addr, grp_hcnt, grp_addr);
       if (p) {
         aodv_udp_sendto(p, &dest_broadcast, ttl, i);
@@ -307,7 +307,7 @@ void aodv_rreq_process (struct pbuf *p,
   u8_t  rreq_new_hcnt;
   
   struct in_addr rreq_dest, rreq_orig;
-  struct ip_addr rreq_ip_dest;
+  struct ip4_addr rreq_ip_dest;
   
 #if AODV_MCAST
   struct aodv_ext *ext;
@@ -339,7 +339,7 @@ void aodv_rreq_process (struct pbuf *p,
   rreq_new_hcnt    = (u8_t)(rreq->hcnt + 1);
   
   /* Ignore messages which aim to a create a route to one self */
-  if (rreq_orig.s_addr == netif->ip_addr.addr) {
+  if (rreq_orig.s_addr == netif_ip4_addr(netif)->addr) {
     return;
   }
   
@@ -442,13 +442,13 @@ void aodv_rreq_process (struct pbuf *p,
 #endif /* AODV_MCAST */
 
   if (aodv_gw_get()) { /* we are a aodv gateway ? */
-    if (!ip_addr_netcmp(&rreq_ip_dest, &netif->ip_addr, &netif->netmask)) { /* RREQ dest NOT in same subnet */
+    if (!ip4_addr_netcmp(&rreq_ip_dest, netif_ip4_addr(netif), netif_ip4_netmask(netif))) { /* RREQ dest NOT in same subnet */
       struct in_addr me;
       struct aodv_ext *ext;
       
       SEQNO_INC(aodv_host_state.seqno);
       
-      me.s_addr = rev_rt->netif->ip_addr.addr; /* gateway addr is my aodv netif addr */
+      me.s_addr = netif_ip4_addr(rev_rt->netif)->addr; /* gateway addr is my aodv netif addr */
       
       p_rrep = aodv_rrep_create(0, 0, 0, &me, /* dest is me, extern data is real inet dest */
                                 aodv_host_state.seqno, &rev_rt->dest_addr,
@@ -466,10 +466,10 @@ void aodv_rreq_process (struct pbuf *p,
   
   /* Are we the destination of the RREQ?, if so we should immediately send a
      RREP.. */
-  if (rreq_dest.s_addr == netif->ip_addr.addr) {
+  if (rreq_dest.s_addr == netif_ip4_addr(netif)->addr) {
     struct in_addr dest_rrep;
     
-    dest_rrep.s_addr = rev_rt->netif->ip_addr.addr;
+    dest_rrep.s_addr = netif_ip4_addr(rev_rt->netif)->addr;
   
     /* WE are the RREQ DESTINATION. Update the node's own
        sequence number to the maximum of the current seqno and the

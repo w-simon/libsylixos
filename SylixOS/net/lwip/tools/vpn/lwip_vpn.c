@@ -27,6 +27,7 @@
 *********************************************************************************************************/
 #if (LW_CFG_NET_EN > 0) && (LW_CFG_NET_VPN_EN > 0)
 #include "lwip/netif.h"
+#include "lwip/netifapi.h"
 #include "lwip/inet.h"
 #include "lwip/tcpip.h"
 #include "socket.h"
@@ -131,9 +132,9 @@ INT  API_INetVpnClientCreate (CPCHAR          cpcCACrtFile,
     INT                     iError;
     struct in_addr          inaddrServer;
 
-    ip_addr_t               ipaddrIp;
-    ip_addr_t               ipaddrMask;
-    ip_addr_t               ipaddrGw;
+    ip4_addr_t              ipaddrIp;
+    ip4_addr_t              ipaddrMask;
+    ip4_addr_t              ipaddrGw;
 
     LW_CLASS_THREADATTR     threadattr;
 
@@ -207,8 +208,7 @@ INT  API_INetVpnClientCreate (CPCHAR          cpcCACrtFile,
 
     netifapi_netif_common(&pvpnctx->VPNCTX_netif,
                           netif_set_link_up, LW_NULL);                  /*  网卡链接正常                */
-    netifapi_netif_common(&pvpnctx->VPNCTX_netif,
-                          netif_set_up, LW_NULL);                       /*  使能网卡                    */
+    netifapi_netif_set_up(&pvpnctx->VPNCTX_netif);                      /*  使能网卡                    */
 
     API_ThreadAttrBuild(&threadattr,
                         LW_CFG_NET_VPN_STK_SIZE,
@@ -216,7 +216,7 @@ INT  API_INetVpnClientCreate (CPCHAR          cpcCACrtFile,
                         LW_OPTION_THREAD_STK_CHK | LW_OPTION_OBJECT_GLOBAL,
                         (PVOID)pvpnctx);
     if (API_ThreadCreate("t_vpnproc", __vpnNetifProc, &threadattr, LW_NULL) == LW_OBJECT_HANDLE_INVALID) {
-        netifapi_netif_common(&pvpnctx->VPNCTX_netif, netif_remove, LW_NULL);
+        netifapi_netif_remove(&pvpnctx->VPNCTX_netif);
         __vpnClientClose(pvpnctx);
         __SHEAP_FREE(pvpnctx);
         return  (PX_ERROR);

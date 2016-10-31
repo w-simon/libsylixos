@@ -660,7 +660,7 @@ static INT  __ftpdCmdPasv (__PFTPD_SESSION  pftpds)
         
         } else {
             CHAR            cArgBuffer[65];
-            ip_addr_t       ipaddr;
+            ip4_addr_t      ipaddr;
             u16_t           usPort;
             
             setsockopt(iSock, SOL_SOCKET, SO_RCVTIMEO, 
@@ -1298,6 +1298,7 @@ static INT  __ftpdCommandExec (__PFTPD_SESSION  pftpds, PCHAR  pcCmd, PCHAR  pcA
                 
             } else if (!lib_strcmp("SITE", pcCmd)) {                    /*  站点参数                    */
                 PCHAR   pcOpts;
+                
                 __ftpdCommandAnalyse(pcArg, &pcCmd, &pcOpts, &pcArg);
                 if (!lib_strcmp("CHMOD", pcCmd)) {                      /*  修改文件 mode               */
                     INT     iMask = DEFAULT_FILE_PERM;
@@ -1310,6 +1311,12 @@ static INT  __ftpdCommandExec (__PFTPD_SESSION  pftpds, PCHAR  pcCmd, PCHAR  pcA
                         __ftpdSendReply(pftpds, __FTPD_RETCODE_SERVER_REQ_FAILED, 
                                         "CHMOD failed.");
                     }
+                    return  (ERROR_NONE);
+                
+                } else if (!lib_strcmp("SYNC", pcCmd)) {                /*  回写磁盘                    */
+                    sync();
+                    __ftpdSendReply(pftpds, __FTPD_RETCODE_SERVER_CMD_OK, 
+                                    "SYNC successful.");
                     return  (ERROR_NONE);
                 }
                 goto    __command_not_understood;

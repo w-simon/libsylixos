@@ -43,28 +43,28 @@ static INT          _G_iNetifVlanIdTbl[__LW_NETIF_MAX_NUM];
 ** 函数名称: etharp_vlan_set_hook
 ** 功能描述: 设置网络以太网络分组 VLAN ID (LWIP_HOOK_VLAN_SET)
 ** 输　入  : pvNetif             以太网络接口.
-             pvEthhdr            以太数据包头.
-             pvVlanhdr           VLAN 数据包头.
-** 输　出  : 0: 无
-**           1: 已添加 VLAN ID
+             pvPBuf              以太数据报文.
+             pvEthSrc            源地址
+             pvEthDst            目的地址
+             usEthType           网络类型.
+** 输　出  : vlan id or -1
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-int  etharp_vlan_set_hook (PVOID pvNetif, PVOID pvEthhdr, PVOID pvVlanhdr)
+int  etharp_vlan_set_hook (PVOID pvNetif, PVOID pvPBuf,
+                           const PVOID pvEthSrc, const PVOID pvEthDst, UINT16  usEthType)
 {
 #if LW_CFG_NET_VLAN_EN > 0
-    REGISTER struct netif        *netif   = (struct netif *)pvNetif;
-    REGISTER struct eth_vlan_hdr *vlanhdr = (struct eth_vlan_hdr *)pvVlanhdr;
+    REGISTER struct netif *netif = (struct netif *)pvNetif;
     
     if (netif->num < __LW_NETIF_MAX_NUM) {
         if (_G_iNetifVlanIdTbl[netif->num] > 0) {
-            vlanhdr->prio_vid = htons((u16_t)_G_iNetifVlanIdTbl[netif->num]);
-            return  (1);
+            return  ((s32_t)_G_iNetifVlanIdTbl[netif->num]);
         }
     }
 #endif                                                                  /*  LW_CFG_NET_VLAN_EN > 0      */
     
-    return  (0);
+    return  (-1);
 }
 /*********************************************************************************************************
 ** 函数名称: etharp_vlan_check_hook

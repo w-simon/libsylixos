@@ -44,7 +44,7 @@
 
 void aodv_mtunnel_new(int aodv_if_index);
 void aodv_mtunnel_remove(int aodv_if_index);
-err_t aodv_mtunnel_output(struct netif *netif, struct pbuf *p, ip_addr_t *grp_ip, ip_addr_t *rev_ip);
+err_t aodv_mtunnel_output(struct netif *netif, struct pbuf *p, ip4_addr_t *grp_ip, ip4_addr_t *rev_ip);
 
 #endif /* AODV_MCAST */
 

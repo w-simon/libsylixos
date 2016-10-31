@@ -55,8 +55,8 @@
 *********************************************************************************************************/
 typedef struct {
     LW_LIST_LINE    RTE_lineManage;                                     /*  management list             */
-    ip_addr_t       RTE_ipaddrDest;                                     /*  dest address                */
-    ip_addr_t       RTE_ipaddrGw;                                       /*  gw IPADDR_ANY use netif->gw */
+    ip4_addr_t      RTE_ipaddrDest;                                     /*  dest address                */
+    ip4_addr_t      RTE_ipaddrGw;                                       /*  gw IPADDR_ANY use netif->gw */
     struct netif   *RTE_pnetif;                                         /*  net device                  */
     CHAR            RTE_cNetifName[IF_NAMESIZE];                        /*  net device name             */
     UINT            RTE_uiFlag;                                         /*  route entry flag            */
@@ -86,7 +86,7 @@ static PLW_LIST_LINE    _G_plineRtHashHeader[LW_RT_TABLESIZE];
   CACHE
 *********************************************************************************************************/
 typedef struct {
-    ip_addr_t       RTCACHE_ipaddrDest;
+    ip4_addr_t      RTCACHE_ipaddrDest;
     PLW_RT_ENTRY    RTCACHE_prteCache;
 } LW_RT_CACHE;
 static LW_RT_CACHE      _G_rtcache;
@@ -98,7 +98,7 @@ static LW_RT_CACHE      _G_rtcache;
         }
         
 typedef struct {
-    ip_addr_t       GWCACHE_ipaddrDest;
+    ip4_addr_t      GWCACHE_ipaddrDest;
     PLW_RT_ENTRY    GWCACHE_prteCache;
 } LW_GW_CACHE;
 static LW_GW_CACHE      _G_gwcache[__LW_NETIF_MAX_NUM];
@@ -149,7 +149,7 @@ static INT __rtSafeRun (FUNCPTR  pfuncHook,
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static PLW_RT_ENTRY __rtMatch (const ip_addr_t *pipaddrDest)
+static PLW_RT_ENTRY __rtMatch (const ip4_addr_t *pipaddrDest)
 {
     INT             iHash = LW_RT_HASHINDEX(pipaddrDest);
     PLW_LIST_LINE   plineTemp;
@@ -166,10 +166,10 @@ static PLW_RT_ENTRY __rtMatch (const ip_addr_t *pipaddrDest)
                 (prte->RTE_ipaddrDest.addr == pipaddrDest->addr)) {     /*  主机匹配检查                */
                 return  (prte);
             
-            } else if ((prteNet == LW_NULL) && 
-                       (ip_addr_netcmp(pipaddrDest, 
-                                       &(prte->RTE_pnetif->ip_addr),
-                                       &(prte->RTE_pnetif->netmask)))) {/*  网络匹配检查                */
+            } else if ((prteNet == LW_NULL) &&                          /*  网络匹配检查                */
+                       (ip4_addr_netcmp(pipaddrDest, 
+                                        netif_ip4_addr(prte->RTE_pnetif),   
+                                        netif_ip4_netmask(prte->RTE_pnetif)))) {
                 prteNet = prte;
             }
         }
@@ -186,7 +186,7 @@ static PLW_RT_ENTRY __rtMatch (const ip_addr_t *pipaddrDest)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static PLW_RT_ENTRY __rtFind (ip_addr_t *pipaddrDest, UINT  ulFlag)
+static PLW_RT_ENTRY __rtFind (ip4_addr_t *pipaddrDest, UINT  ulFlag)
 {
     INT             iHash = LW_RT_HASHINDEX(pipaddrDest);
     PLW_LIST_LINE   plineTemp;
@@ -234,9 +234,9 @@ static VOID __rtTraversal (VOIDFUNCPTR  pfuncHook,
             if (prte->RTE_pnetif) {
                 prte->RTE_uiFlag |= LW_RT_FLAG_U;                       /*  路由有效                    */
                 if ((prte->RTE_ipaddrDest.addr != IPADDR_BROADCAST) &&
-                    !ip_addr_netcmp(&prte->RTE_ipaddrDest,
-                                    &(prte->RTE_pnetif->ip_addr),
-                                    &(prte->RTE_pnetif->netmask))) {    /*  不在同一网络                */
+                    !ip4_addr_netcmp(&prte->RTE_ipaddrDest,
+                                     netif_ip4_addr(prte->RTE_pnetif),
+                                     netif_ip4_netmask(prte->RTE_pnetif))) {
                     prte->RTE_uiFlag |= LW_RT_FLAG_G;                   /*  间接路由                    */
                 } else {
                     prte->RTE_uiFlag &= ~LW_RT_FLAG_G;
@@ -266,7 +266,7 @@ static VOID __rtBuildinTraversal (VOIDFUNCPTR  pfuncHook,
     LW_RT_ENTRY    rte;
     
     for (netif = netif_list; netif != NULL; netif = netif->next) {
-        rte.RTE_ipaddrDest.addr = netif->ip_addr.addr;
+        rte.RTE_ipaddrDest.addr = netif_ip4_addr(netif)->addr;
         rte.RTE_ipaddrGw.addr   = IPADDR_ANY;
         rte.RTE_pnetif          = netif;
         rte.RTE_cNetifName[0]   = netif->name[0];
@@ -283,11 +283,11 @@ static VOID __rtBuildinTraversal (VOIDFUNCPTR  pfuncHook,
         
         pfuncHook(&rte, pvArg0, pvArg1, pvArg2, pvArg3, pvArg4);
         
-        if (netif->flags & NETIF_FLAG_POINTTOPOINT) {                   /*  PPP / SLIP 连接             */
-            rte.RTE_ipaddrDest.addr = netif->gw.addr;
+        if ((netif->flags & NETIF_FLAG_BROADCAST) == 0) {               /*  PPP / SLIP 连接             */
+            rte.RTE_ipaddrDest.addr = netif_ip4_gw(netif)->addr;
             
         } else {                                                        /*  普通链接                    */
-            rte.RTE_ipaddrDest.addr = netif->ip_addr.addr & netif->netmask.addr;
+            rte.RTE_ipaddrDest.addr = netif_ip4_addr(netif)->addr & netif_ip4_netmask(netif)->addr;
             rte.RTE_uiFlag &= ~LW_RT_FLAG_H;
         }
         
@@ -324,10 +324,10 @@ static VOID __rtBuildinTraversal (VOIDFUNCPTR  pfuncHook,
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT __rtAddCallback (ip_addr_t *pipaddrDest, 
-                            ip_addr_t *pipaddrGw, 
-                            UINT       uiFlag, 
-                            CPCHAR     pcNetifName)
+static INT __rtAddCallback (ip4_addr_t *pipaddrDest, 
+                            ip4_addr_t *pipaddrGw, 
+                            UINT        uiFlag, 
+                            CPCHAR      pcNetifName)
 {
     INT             iHash = LW_RT_HASHINDEX(pipaddrDest);
     PLW_RT_ENTRY    prte;
@@ -361,7 +361,7 @@ static INT __rtAddCallback (ip_addr_t *pipaddrDest,
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT __rtDelCallback (ip_addr_t *pipaddrDest)
+static INT __rtDelCallback (ip4_addr_t *pipaddrDest)
 {
     PLW_RT_ENTRY    prte;
     
@@ -400,10 +400,10 @@ static INT __rtDelCallback (ip_addr_t *pipaddrDest)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT __rtChangeCallback (ip_addr_t *pipaddrDest, 
-                               ip_addr_t *pipaddrGw, 
-                               UINT       uiFlag, 
-                               CPCHAR     pcNetifName)
+static INT __rtChangeCallback (ip4_addr_t *pipaddrDest, 
+                               ip4_addr_t *pipaddrGw, 
+                               UINT        uiFlag, 
+                               CPCHAR      pcNetifName)
 {
     PLW_RT_ENTRY    prte;
     
@@ -454,7 +454,7 @@ static INT __rtChangeCallback (ip_addr_t *pipaddrDest,
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT __rtSetGwCallback (ip_addr_t *pipaddrGw, UINT  uiGwFlags, CPCHAR  pcNetifName)
+static INT __rtSetGwCallback (ip4_addr_t *pipaddrGw, UINT  uiGwFlags, CPCHAR  pcNetifName)
 {
 #define LW_RT_GW_FLAG_SET       0x1
 #define LW_RT_GW_FLAG_DEFAULT   0x2
@@ -517,12 +517,12 @@ static VOID __rtGetCallback (PLW_RT_ENTRY       prte,
         if (pnetif) {
             if (prte->RTE_ipaddrGw.addr != IPADDR_ANY) {
                 msgbuf[*piIndex].rm_gw.s_addr = prte->RTE_ipaddrGw.addr;
-            } else {
-                msgbuf[*piIndex].rm_gw.s_addr = pnetif->gw.addr;        /*  网关地址                    */
-            }
-            msgbuf[*piIndex].rm_mask.s_addr  = pnetif->netmask.addr;    /*  子网掩码                    */
-            msgbuf[*piIndex].rm_if.s_addr    = pnetif->ip_addr.addr;    /*  网络接口 IP                 */
-            
+            } else {                                                    /*  网关地址                    */
+                msgbuf[*piIndex].rm_gw.s_addr = netif_ip4_gw(pnetif)->addr;
+            }                                                           /*  子网掩码                    */
+            msgbuf[*piIndex].rm_mask.s_addr  = netif_ip4_netmask(pnetif)->addr;
+            msgbuf[*piIndex].rm_if.s_addr    = netif_ip4_addr(pnetif)->addr;
+                                                                        /*  网络接口 IP                 */
         } else {
             msgbuf[*piIndex].rm_gw.s_addr   = IPADDR_ANY;
             msgbuf[*piIndex].rm_mask.s_addr = IPADDR_ANY;
@@ -544,7 +544,7 @@ static VOID __rtGetCallback (PLW_RT_ENTRY       prte,
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT __rtAdd (ip_addr_t *pipaddrDest, ip_addr_t *pipaddrGw, UINT  uiFlag, CPCHAR  pcNetifName)
+static INT __rtAdd (ip4_addr_t *pipaddrDest, ip4_addr_t *pipaddrGw, UINT  uiFlag, CPCHAR  pcNetifName)
 {
     INT     iError;
     
@@ -572,7 +572,7 @@ static INT __rtAdd (ip_addr_t *pipaddrDest, ip_addr_t *pipaddrGw, UINT  uiFlag, 
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT __rtDel (ip_addr_t *pipaddrDest)
+static INT __rtDel (ip4_addr_t *pipaddrDest)
 {
     INT     iError;
 
@@ -596,7 +596,7 @@ static INT __rtDel (ip_addr_t *pipaddrDest)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT __rtChange (ip_addr_t *pipaddrDest, ip_addr_t *pipaddrGw, UINT  uiFlag, CPCHAR  pcNetifName)
+static INT __rtChange (ip4_addr_t *pipaddrDest, ip4_addr_t *pipaddrGw, UINT  uiFlag, CPCHAR  pcNetifName)
 {
     INT     iError;
     
@@ -754,7 +754,7 @@ VOID rt_netif_remove_hook (struct netif *netif)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-struct netif *sys_ip_route_hook (const ip_addr_t *pipaddrDest)
+struct netif *sys_ip_route_hook (const ip4_addr_t *pipaddrDest)
 {
     PLW_RT_ENTRY    prte;
 
@@ -786,7 +786,7 @@ struct netif *sys_ip_route_hook (const ip_addr_t *pipaddrDest)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-ip_addr_t *sys_ip_gw_hook (struct netif *netif, const ip_addr_t *pipaddrDest)
+ip4_addr_t *sys_ip_gw_hook (struct netif *netif, const ip4_addr_t *pipaddrDest)
 {
     PLW_RT_ENTRY    prte;
 
@@ -840,14 +840,14 @@ static VOID __rtEntryPrint (PLW_RT_ENTRY prte, PCHAR  pcBuffer, size_t  stSize, 
     CHAR    cMask[INET_ADDRSTRLEN]    = "*";
     CHAR    cFlag[6] = "\0";
     
-    ipaddr_ntoa_r(&prte->RTE_ipaddrDest, cIpDest, INET_ADDRSTRLEN);
+    ip4addr_ntoa_r(&prte->RTE_ipaddrDest, cIpDest, INET_ADDRSTRLEN);
     if (prte->RTE_pnetif) {
         if (prte->RTE_ipaddrGw.addr != IPADDR_ANY) {
-            ipaddr_ntoa_r(&prte->RTE_ipaddrGw, cGateway, INET_ADDRSTRLEN);
+            ip4addr_ntoa_r(&prte->RTE_ipaddrGw, cGateway, INET_ADDRSTRLEN);
         } else {
-            ipaddr_ntoa_r(&prte->RTE_pnetif->gw, cGateway, INET_ADDRSTRLEN);
+            ip4addr_ntoa_r(netif_ip4_gw(prte->RTE_pnetif), cGateway, INET_ADDRSTRLEN);
         }
-        ipaddr_ntoa_r(&prte->RTE_pnetif->netmask, cMask, INET_ADDRSTRLEN);
+        ip4addr_ntoa_r(netif_ip4_netmask(prte->RTE_pnetif), cMask, INET_ADDRSTRLEN);
     }
     
     if (prte->RTE_uiFlag & LW_RT_FLAG_U) {
@@ -910,7 +910,7 @@ static VOID __aodvEntryPrint (struct aodv_rtnode *rt, PCHAR  pcBuffer, size_t  s
     /*
      *  aodv 路由节点网络接口一定有效
      */
-    ipaddr_ntoa_r(&rt->netif->netmask, cMask, INET_ADDRSTRLEN);
+    ip4addr_ntoa_r(netif_ip4_netmask(rt->netif), cMask, INET_ADDRSTRLEN);
     if_indextoname(rt->netif->num, cIfName);
     
     *pstOffset = bnprintf(pcBuffer, stSize, *pstOffset,
@@ -928,7 +928,7 @@ static VOID __aodvEntryPrint (struct aodv_rtnode *rt, PCHAR  pcBuffer, size_t  s
 static VOID __buildinRtPrint (PCHAR  pcBuffer, size_t  stSize, size_t *pstOffset)
 {
     struct netif *netif;
-    ip_addr_t     ipaddr;
+    ip4_addr_t    ipaddr;
     
     CHAR    cIpDest[INET_ADDRSTRLEN];
     CHAR    cGateway[INET_ADDRSTRLEN] = "*";
@@ -937,10 +937,10 @@ static VOID __buildinRtPrint (PCHAR  pcBuffer, size_t  stSize, size_t *pstOffset
     CHAR    cIfName[IF_NAMESIZE] = "\0";
     
     for (netif = netif_list; netif != NULL; netif = netif->next) {
-        if (netif->flags & NETIF_FLAG_POINTTOPOINT) {                   /*  PPP / SLIP 连接             */
-            ipaddr.addr = netif->gw.addr;
-            ipaddr_ntoa_r(&ipaddr, cIpDest, INET_ADDRSTRLEN);
-            ipaddr_ntoa_r(&netif->netmask, cMask, INET_ADDRSTRLEN);
+        if ((netif->flags & NETIF_FLAG_BROADCAST) == 0) {               /*  PPP / SLIP 连接             */
+            ipaddr.addr = netif_ip4_gw(netif)->addr;
+            ip4addr_ntoa_r(&ipaddr, cIpDest, INET_ADDRSTRLEN);
+            ip4addr_ntoa_r(netif_ip4_netmask(netif), cMask, INET_ADDRSTRLEN);
             if_indextoname(netif->num, cIfName);
             
             if (netif_is_up(netif) && netif_is_link_up(netif)) {
@@ -951,9 +951,9 @@ static VOID __buildinRtPrint (PCHAR  pcBuffer, size_t  stSize, size_t *pstOffset
             }
             
         } else {                                                        /*  普通链接                    */
-            ipaddr.addr = netif->ip_addr.addr & netif->netmask.addr;
-            ipaddr_ntoa_r(&ipaddr, cIpDest, INET_ADDRSTRLEN);
-            ipaddr_ntoa_r(&netif->netmask, cMask, INET_ADDRSTRLEN);
+            ipaddr.addr = netif_ip4_addr(netif)->addr & netif_ip4_netmask(netif)->addr;
+            ip4addr_ntoa_r(&ipaddr, cIpDest, INET_ADDRSTRLEN);
+            ip4addr_ntoa_r(netif_ip4_netmask(netif), cMask, INET_ADDRSTRLEN);
             if_indextoname(netif->num, cIfName);
             
             if (netif_is_up(netif) && netif_is_link_up(netif)) {
@@ -968,7 +968,7 @@ static VOID __buildinRtPrint (PCHAR  pcBuffer, size_t  stSize, size_t *pstOffset
                               "%-18s %-18s %-18s %-8s %-3s\n",
                               cIpDest, cGateway, cMask, cFlag, cIfName);
 
-        ipaddr_ntoa_r(&netif->ip_addr, cIpDest, INET_ADDRSTRLEN);
+        ip4addr_ntoa_r(netif_ip4_addr(netif), cIpDest, INET_ADDRSTRLEN);
         
         if (netif_is_up(netif) && netif_is_link_up(netif)) {
             lib_strcpy(cFlag, "UH");
@@ -983,8 +983,8 @@ static VOID __buildinRtPrint (PCHAR  pcBuffer, size_t  stSize, size_t *pstOffset
     }
     
     if (netif_default) {
-        ipaddr_ntoa_r(&netif_default->gw, cGateway, INET_ADDRSTRLEN);
-        ipaddr_ntoa_r(&netif_default->netmask, cMask, INET_ADDRSTRLEN);
+        ip4addr_ntoa_r(netif_ip4_gw(netif_default), cGateway, INET_ADDRSTRLEN);
+        ip4addr_ntoa_r(netif_ip4_netmask(netif_default), cMask, INET_ADDRSTRLEN);
         if_indextoname(netif_default->num, cIfName);
         
         if (netif_is_up(netif_default) && netif_is_link_up(netif_default)) {
@@ -1044,8 +1044,8 @@ INT  __tshellRoute (INT  iArgC, PCHAR  *ppcArgV)
     PCHAR       pcOpAddorChange;
 
     UINT        uiFlag = 0;
-    ip_addr_t   ipaddr;
-    ip_addr_t   ipaddrGw;
+    ip4_addr_t  ipaddr;
+    ip4_addr_t  ipaddrGw;
     CHAR        cNetifName[IF_NAMESIZE];
 
     if (iArgC == 1) {
@@ -1115,11 +1115,11 @@ INT  __tshellRoute (INT  iArgC, PCHAR  *ppcArgV)
         }
 
         if (pfuncAddOrChange && (iArgC == 7)) {                         /*  添加或者修改路由表          */
-            if (!ipaddr_aton(ppcArgV[3], &ipaddr)) {
+            if (!ip4addr_aton(ppcArgV[3], &ipaddr)) {
                 fprintf(stderr, "inet address format error.\n");
                 goto    __error_handle;
             }
-            if (!ipaddr_aton(ppcArgV[4], &ipaddrGw)) {
+            if (!ip4addr_aton(ppcArgV[4], &ipaddrGw)) {
                 fprintf(stderr, "gw address format error.\n");
                 goto    __error_handle;
             }
@@ -1183,7 +1183,7 @@ INT  __tshellRoute (INT  iArgC, PCHAR  *ppcArgV)
             }
 
         } else if ((lib_strcmp(ppcArgV[1], "del") == 0) && (iArgC == 3)) {
-            if (!ipaddr_aton(ppcArgV[2], &ipaddr)) {                    /*  删除一个路由表项            */
+            if (!ip4addr_aton(ppcArgV[2], &ipaddr)) {                   /*  删除一个路由表项            */
                 fprintf(stderr, "inet address format error.\n");
                 goto    __error_handle;
             }
@@ -1296,8 +1296,8 @@ VOID __tshellRouteInit (VOID)
 LW_API
 int  route_add (struct in_addr *pinaddr, struct in_addr *pinaddrGw, int  type, const char *ifname)
 {
-    ip_addr_t   ipaddr;
-    ip_addr_t   ipaddrGw;
+    ip4_addr_t  ipaddr;
+    ip4_addr_t  ipaddrGw;
     INT         iError;
 
     if (!pinaddr) {
@@ -1341,7 +1341,7 @@ int  route_add (struct in_addr *pinaddr, struct in_addr *pinaddrGw, int  type, c
 LW_API
 int  route_delete (struct in_addr *pinaddr)
 {
-    ip_addr_t   ipaddr;
+    ip4_addr_t   ipaddr;
 
     if (!pinaddr) {
         _ErrorHandle(EINVAL);
@@ -1367,8 +1367,8 @@ int  route_delete (struct in_addr *pinaddr)
 LW_API
 int  route_change (struct in_addr *pinaddr, struct in_addr *pinaddrGw, int  type, const char *ifname)
 {
-    ip_addr_t   ipaddr;
-    ip_addr_t   ipaddrGw;
+    ip4_addr_t  ipaddr;
+    ip4_addr_t  ipaddrGw;
     INT         iError;
 
     if (!pinaddr) {

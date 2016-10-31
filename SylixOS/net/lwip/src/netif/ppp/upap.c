@@ -40,11 +40,11 @@
  * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "lwip/opt.h"
+#include "netif/ppp/ppp_opts.h"
 #if PPP_SUPPORT && PAP_SUPPORT  /* don't build if not configured for use in lwipopts.h */
 
 /*
- * TODO:
+ * @todo:
  */
 
 #if 0 /* UNUSED */
@@ -86,7 +86,7 @@ static void upap_lowerdown(ppp_pcb *pcb);
 static void upap_input(ppp_pcb *pcb, u_char *inpacket, int l);
 static void upap_protrej(ppp_pcb *pcb);
 #if PRINTPKT_SUPPORT
-static int upap_printpkt(u_char *p, int plen, void (*printer) (void *, const char *, ...), void *arg);
+static int upap_printpkt(const u_char *p, int plen, void (*printer) (void *, const char *, ...), void *arg);
 #endif /* PRINTPKT_SUPPORT */
 
 const struct protent pap_protent = {
@@ -595,15 +595,15 @@ static void upap_sresp(ppp_pcb *pcb, u_char code, u_char id, const char *msg, in
 /*
  * upap_printpkt - print the contents of a PAP packet.
  */
-static const char *upap_codenames[] = {
+static const char* const upap_codenames[] = {
     "AuthReq", "AuthAck", "AuthNak"
 };
 
-static int upap_printpkt(u_char *p, int plen, void (*printer) (void *, const char *, ...), void *arg) {
+static int upap_printpkt(const u_char *p, int plen, void (*printer) (void *, const char *, ...), void *arg) {
     int code, id, len;
     int mlen, ulen, wlen;
-    char *user, *pwd, *msg;
-    u_char *pstart;
+    const u_char *user, *pwd, *msg;
+    const u_char *pstart;
 
     if (plen < UPAP_HEADERLEN)
 	return 0;
@@ -614,7 +614,7 @@ static int upap_printpkt(u_char *p, int plen, void (*printer) (void *, const cha
     if (len < UPAP_HEADERLEN || len > plen)
 	return 0;
 
-    if (code >= 1 && code <= (int)sizeof(upap_codenames) / (int)sizeof(char *))
+    if (code >= 1 && code <= (int)LWIP_ARRAYSIZE(upap_codenames))
 	printer(arg, " %s", upap_codenames[code-1]);
     else
 	printer(arg, " code=0x%x", code);
@@ -630,8 +630,8 @@ static int upap_printpkt(u_char *p, int plen, void (*printer) (void *, const cha
 	wlen = p[ulen + 1];
 	if (len < ulen + wlen + 2)
 	    break;
-	user = (char *) (p + 1);
-	pwd = (char *) (p + ulen + 2);
+	user = (const u_char *) (p + 1);
+	pwd = (const u_char *) (p + ulen + 2);
 	p += ulen + wlen + 2;
 	len -= ulen + wlen + 2;
 	printer(arg, " user=");
@@ -654,7 +654,7 @@ static int upap_printpkt(u_char *p, int plen, void (*printer) (void *, const cha
 	mlen = p[0];
 	if (len < mlen + 1)
 	    break;
-	msg = (char *) (p + 1);
+	msg = (const u_char *) (p + 1);
 	p += mlen + 1;
 	len -= mlen + 1;
 	printer(arg, " ");

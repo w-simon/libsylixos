@@ -4,6 +4,16 @@ HISTORY
 
 ++ New features:
 
+    2016-10-28: han.hui
+    升级新的网络系统.
+    加入新的网络驱动模型.
+
+++ Bugfixes:
+
+(STABLE-1.3.5)
+
+++ New features:
+
     2016-10-07: Jiao.JinXing
     加入 Makefile 模板.
 

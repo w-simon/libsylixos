@@ -424,7 +424,7 @@ void aodv_rrep_process (struct pbuf *p,
   rrep_new_hcnt = (u8_t)(rrep->hcnt + 1);
   
   /* Ignore messages which aim to a create a route to one self */
-  if (rrep_dest.s_addr == netif->ip_addr.addr) {
+  if (rrep_dest.s_addr == netif_ip4_addr(netif)->addr) {
     return;
   }
   
@@ -497,7 +497,7 @@ void aodv_rrep_process (struct pbuf *p,
     /* if rrep_new_hcnt == 1 && ip_dst == me, then this packet is response for my rreq.
      * so, this link is not a uni-direction
      */
-    if ((rrep_new_hcnt == 1) && (ip_dst->s_addr == netif->ip_addr.addr)) {
+    if ((rrep_new_hcnt == 1) && (ip_dst->s_addr == netif_ip4_addr(netif)->addr)) {
       fwd_rt->flags &= ~AODV_RT_UNIDIR;
     }
     
@@ -529,7 +529,7 @@ void aodv_rrep_process (struct pbuf *p,
   
   /* Check if this RREP was for us (i.e. we previously made a RREQ
      for this host). */
-  if (rrep_orig.s_addr == netif->ip_addr.addr) {
+  if (rrep_orig.s_addr == netif_ip4_addr(netif)->addr) {
     
     if (inet_rrep) { /* next hop is subnet router */
       struct aodv_rtnode *inet_rt;

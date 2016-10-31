@@ -38,7 +38,7 @@
 
 #include "lwip/sys.h"
 #include "lwip/mem.h"
-#include "lwip/timers.h"
+#include "lwip/timeouts.h"
 
 #include "lowpan_if.h"
 

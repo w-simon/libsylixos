@@ -37,7 +37,7 @@
 #ifndef __AODV_TIMER_H
 #define __AODV_TIMER_H
 
-#include "lwip/timers.h"
+#include "lwip/timeouts.h"
 
 typedef struct aodv_timer {
   struct aodv_timer *next;

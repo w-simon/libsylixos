@@ -58,7 +58,7 @@ $(target)_DEPEND_LIB_PATH += $(LOCAL_DEPEND_LIB_PATH)
 $(target)_DEPEND_LIB := $(LOCAL_DEPEND_LIB)
 
 ifneq (,$(findstring yes,$($(target)_USE_GCOV)))
-$(target)_DEPEND_LIB += -lgcov
+$(target)_DEPEND_LIB += -lgcov_ko
 endif
 
 ifneq (,$(findstring yes,$($(target)_USE_CXX)))

@@ -41,6 +41,7 @@
 *********************************************************************************************************/
 #if (LW_CFG_NET_EN > 0) && (LW_CFG_NET_PING_EN > 0)
 #include "lwip/icmp.h"
+#include "lwip/prot/icmp.h"
 #include "lwip/raw.h"
 #include "lwip/inet.h"
 #include "lwip/inet_chksum.h"

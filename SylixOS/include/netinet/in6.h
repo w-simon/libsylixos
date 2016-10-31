@@ -23,7 +23,6 @@
 #define __NETINET_IN6_H
 
 #include "lwip/inet.h"
-#include "lwip/inet6.h"
 #include "lwip/sockets.h"
 
 #ifndef INET6_ADDRSTRLEN

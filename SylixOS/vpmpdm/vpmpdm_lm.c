@@ -18,10 +18,10 @@
 /*
  * ipaddr_ntoa
  */
-char *ipaddr_ntoa (const ip_addr_t *addr)
+char *ip4addr_ntoa (const ip4_addr_t *addr)
 {
     static char str[INET_ADDRSTRLEN];
-    return ipaddr_ntoa_r(addr, str, INET_ADDRSTRLEN);
+    return ip4addr_ntoa_r(addr, str, INET_ADDRSTRLEN);
 }
 
 /*

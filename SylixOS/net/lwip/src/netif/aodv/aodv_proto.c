@@ -51,6 +51,8 @@
 #include "aodv_mcast.h"
 #include "aodv_if.h"
 
+extern ip_addr_t aodv_ipaddr_any;
+
 struct aodv_state aodv_host_state; /* initialize with zero */
 static struct udp_pcb *aodv_udp; /* initialize with NULL */
 
@@ -82,7 +84,7 @@ static void aodv_udp_recv (void *arg, struct udp_pcb *pcb, struct pbuf *p,
   struct in_addr ip_src, ip_dest;
   
   const struct ip_hdr *iphdr;
-  ip_addr_t *current_ip_dest;
+  ip4_addr_t *current_ip_dest;
   struct netif *inp;
   u8_t ttl;
   
@@ -94,13 +96,13 @@ static void aodv_udp_recv (void *arg, struct udp_pcb *pcb, struct pbuf *p,
   LWIP_ERROR("pcb != NULL", (pcb != NULL), goto __out;);
   LWIP_ERROR("addr != NULL", (addr != NULL), goto __out;);
   
-  iphdr = ip_current_header();
+  iphdr = ip4_current_header();
   inp = ip_current_netif();
   
   ttl = IPH_TTL(iphdr);
   
-  current_ip_dest = ip_current_dest_addr();
-  ip_src.s_addr = addr->addr; /* source ip */
+  current_ip_dest = ip4_current_dest_addr();
+  ip_src.s_addr = ip_2_ip4(addr)->addr; /* source ip */
   ip_dest.s_addr = current_ip_dest->addr; /* destination ip */
   
   if ((ADOV_GET_TYPE(p) == AODV_RREP) && (ttl == 1) && 
@@ -166,8 +168,6 @@ __out:
  */
 void aodv_udp_new (int aodv_if_index)
 {
-  ip_addr_t ipaddr_any = {IPADDR_ANY};
-
   LWIP_ERROR("aodv_if_index < AODV_MAX_NETIF", (aodv_if_index < AODV_MAX_NETIF), return;);
   LWIP_ERROR("aodv_netif[aodv_if_index] != NULL", (aodv_netif[aodv_if_index] != NULL), return;);
   
@@ -181,7 +181,7 @@ void aodv_udp_new (int aodv_if_index)
   aodv_udp = udp_new();
   if (aodv_udp) {
     aodv_udp->so_options |= SOF_BROADCAST;
-    if (udp_bind(aodv_udp, &ipaddr_any, AODV_PORT) != ERR_OK) {
+    if (udp_bind(aodv_udp, &aodv_ipaddr_any, AODV_PORT) != ERR_OK) {
       LWIP_DEBUGF(AODV_DEBUG, ("aodv_udp_new: can not bind port %d!\n", AODV_PORT));
       return;
     }
@@ -228,7 +228,9 @@ err_t aodv_udp_sendto (struct pbuf *p, struct in_addr *dest_addr, u8_t ttl, int 
     return ERR_RTE;
   }
   
-  addr.addr = dest_addr->s_addr;
+  IP_SET_TYPE_VAL(addr, IPADDR_TYPE_V4);
+  ip_2_ip4(&addr)->addr = dest_addr->s_addr;
+
   aodv_udp->ttl = ttl;
   netif = aodv_netif[aodv_if_index];
   
@@ -270,15 +272,15 @@ static u8_t aodv_mproxy_recv (void *arg, struct raw_pcb *pcb, struct pbuf *p, co
     return (0);
   }
   
-  dest_addr.s_addr = ip_current_dest_addr()->addr;
+  dest_addr.s_addr = ip4_current_dest_addr()->addr;
   
-  if ((dest_addr.s_addr & ~netif->netmask.addr) ==
-      (INADDR_BROADCAST & ~netif->netmask.addr)) { /* broadcast */
+  if ((dest_addr.s_addr & ~(netif_ip4_netmask(netif)->addr)) ==
+      (INADDR_BROADCAST & ~(netif_ip4_netmask(netif)->addr))) { /* broadcast */
     return (0);
   }
   
   if (IN_MULTICAST(ntohl(dest_addr.s_addr))) {
-    ip_addr_t  grp_ip, rev_ip;
+    ip4_addr_t  grp_ip, rev_ip;
     
     if (netif != netif_default) { /* remote send multicast into me(gateway) */
       return (0);
@@ -292,7 +294,7 @@ static u8_t aodv_mproxy_recv (void *arg, struct raw_pcb *pcb, struct pbuf *p, co
     
     /* we can do proxy, and send this multicast packet to aodv subnet */
     grp_ip.addr = dest_addr.s_addr;
-    rev_ip.addr = ip_current_src_addr()->addr;
+    rev_ip.addr = ip4_current_src_addr()->addr;
     AODV_MPACKET_OUTPUT(netif, p, &grp_ip, &rev_ip);
   
   } else {
@@ -313,8 +315,6 @@ static u8_t aodv_mproxy_recv (void *arg, struct raw_pcb *pcb, struct pbuf *p, co
 void aodv_mproxy_new (void)
 {
 #if LWIP_RAW
-  ip_addr_t ipaddr_any = {IPADDR_ANY};
-  
   /* lwip only support one aodv netif, because can not bind socket to netif
    * so here has only one udp_pcb.
    */
@@ -324,7 +324,7 @@ void aodv_mproxy_new (void)
   
   aodv_raw_mproxy = raw_new(IP_PROTO_UDP); /* udp packet */
   if (aodv_raw_mproxy) {
-    if (raw_bind(aodv_raw_mproxy, &ipaddr_any) != ERR_OK) {
+    if (raw_bind(aodv_raw_mproxy, &aodv_ipaddr_any) != ERR_OK) {
       LWIP_DEBUGF(AODV_DEBUG, ("aodv_mproxy_new: can not bind!\n"));
       return;
     }
@@ -414,8 +414,6 @@ static u8_t aodv_igmp_recv (void *arg, struct raw_pcb *pcb, struct pbuf *p, cons
 void aodv_igmp_new (int aodv_if_index)
 {
 #if LWIP_RAW
-  ip_addr_t ipaddr_any = {IPADDR_ANY};
-
   LWIP_ERROR("aodv_if_index < AODV_MAX_NETIF", (aodv_if_index < AODV_MAX_NETIF), return;);
   LWIP_ERROR("aodv_netif[aodv_if_index] != NULL", (aodv_netif[aodv_if_index] != NULL), return;);
   
@@ -428,7 +426,7 @@ void aodv_igmp_new (int aodv_if_index)
   
   aodv_raw_igmp = raw_new(IP_PROTO_IGMP); /* igmp packet */
   if (aodv_raw_igmp) {
-    if (raw_bind(aodv_raw_igmp, &ipaddr_any) != ERR_OK) {
+    if (raw_bind(aodv_raw_igmp, &aodv_ipaddr_any) != ERR_OK) {
       LWIP_DEBUGF(AODV_DEBUG, ("aodv_igmp_new: can not bind!\n"));
       return;
     }
@@ -488,10 +486,11 @@ void aodv_igmp_sendreply (struct aodv_mrtnode *mrt, struct netif *netif)
   igmp->igmp_checksum = 0;
   igmp->igmp_checksum = inet_chksum(igmp, sizeof(struct igmp_msg));
   
-  dest.addr = mrt->grp_addr.s_addr;
+  IP_SET_TYPE_VAL(dest, IPADDR_TYPE_V4);
+  ip_2_ip4(&dest)->addr = mrt->grp_addr.s_addr;
   
   aodv_raw_igmp->ttl = 1;
-  ipX_2_ip(&aodv_raw_igmp->local_ip)->addr = mrt->next_hop->addr.s_addr;
+  ip_2_ip4(&aodv_raw_igmp->local_ip)->addr = mrt->next_hop->addr.s_addr;
   
   raw_sendto(aodv_raw_igmp, p, &dest);
   

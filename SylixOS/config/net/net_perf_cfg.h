@@ -28,12 +28,12 @@
 
 #define LW_CFG_LWIP_MEM_SIZE            (512 * LW_CFG_KB_SIZE)          /*  lwip 内存大小               */
 #define LW_CFG_LWIP_MSG_SIZE            512                             /*  lwip 内部消息队列缓冲长度   */
-#define LW_CFG_LWIP_POOL_SIZE           1600                            /*  lwip POOL 内存块大小        */
+#define LW_CFG_LWIP_POOL_SIZE           1560                            /*  lwip POOL 内存块大小        */
                                                                         /*  注意: 必须是字对齐的        */
 
 #define LW_CFG_LWIP_NUM_PBUFS           256                             /*  系统总 pbuf 数量            */
 #define LW_CFG_LWIP_NUM_NETBUF          256                             /*  缓冲网络分组 netbuf 数量    */
-#define LW_CFG_LWIP_NUM_POOLS           LW_CFG_LWIP_MSG_SIZE            /*  等长缓冲总数量(高速缓冲)    */
+#define LW_CFG_LWIP_NUM_POOLS           512                             /*  pool 总数                   */
                                                                         /*  驱动程序与 AF_PACKET 使用   */
 
 /*********************************************************************************************************

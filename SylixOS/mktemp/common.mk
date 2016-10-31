@@ -61,7 +61,7 @@ endif
 #*********************************************************************************************************
 $(target)_INC_PATH := -I"$(SYLIXOS_BASE_PATH)/libsylixos/SylixOS"
 $(target)_INC_PATH += -I"$(SYLIXOS_BASE_PATH)/libsylixos/SylixOS/include"
-$(target)_INC_PATH += -I"$(SYLIXOS_BASE_PATH)/libsylixos/SylixOS/include/inet"
+$(target)_INC_PATH += -I"$(SYLIXOS_BASE_PATH)/libsylixos/SylixOS/include/network"
 $(target)_INC_PATH += $(LOCAL_INC_PATH)
 
 #*********************************************************************************************************

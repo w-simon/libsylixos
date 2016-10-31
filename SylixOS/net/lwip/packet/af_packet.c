@@ -842,9 +842,11 @@ INT  packet_link_input (struct pbuf *p, struct netif *inp, BOOL bOutgo)
     static UINT16    usAll = 0x0003;
 #endif
 
-    AF_PACKET_T     *pafpacket;
-    PLW_LIST_LINE    plineTemp;
-    struct eth_hdr  *pethhdr;
+    AF_PACKET_T          *pafpacket;
+    PLW_LIST_LINE         plineTemp;
+    struct eth_hdr       *pethhdr;
+    struct eth_vlan_hdr  *pethvlanhdr;
+    BOOL                  bRecv;
 
     if ((_G_plineAfPacket == LW_NULL) ||
         (p->tot_len < (ETH_HLEN + ETH_PAD_SIZE)) ||
@@ -853,6 +855,12 @@ INT  packet_link_input (struct pbuf *p, struct netif *inp, BOOL bOutgo)
     }
     
     pethhdr = (struct eth_hdr *)p->payload;
+    if (pethhdr->type == PP_HTONS(ETHTYPE_VLAN)) {
+        pethvlanhdr = (struct eth_vlan_hdr *)(((char *)pethhdr) + SIZEOF_ETH_HDR);
+    
+    } else {
+        pethvlanhdr = LW_NULL;
+    }
     
     __AF_PACKET_LOCK();
     for (plineTemp  = _G_plineAfPacket;
@@ -875,9 +883,23 @@ INT  packet_link_input (struct pbuf *p, struct netif *inp, BOOL bOutgo)
             continue;
         }
         
-        if ((pethhdr->type == (UINT16)pafpacket->PACKET_iProtocol) ||
-            (usAll         == (UINT16)pafpacket->PACKET_iProtocol)) {   /*  协议匹配                    */
-            
+        bRecv = LW_FALSE;
+        if (pethvlanhdr) {
+            if ((pethhdr->type     == (UINT16)pafpacket->PACKET_iProtocol) ||
+                (pethvlanhdr->tpid == (UINT16)pafpacket->PACKET_iProtocol) ||
+                (usAll             == (UINT16)pafpacket->PACKET_iProtocol)) {
+                bRecv = LW_TRUE;
+            }
+        
+        } else {
+            if ((pethhdr->type == (UINT16)pafpacket->PACKET_iProtocol) ||
+                (usAll         == (UINT16)pafpacket->PACKET_iProtocol)) {
+                bRecv = LW_TRUE;
+            }
+        }
+        
+        
+        if (bRecv) {                                                    /*  协议匹配                    */
 #if LW_CFG_NET_PACKET_MMAP > 0
             if (pafpacket->PACKET_bMmap == LW_FALSE) {
 #endif                                                                  /*  LW_CFG_NET_PACKET_MMAP > 0  */

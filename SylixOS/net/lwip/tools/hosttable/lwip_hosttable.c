@@ -30,6 +30,8 @@
 #include "unistd.h"
 #include "netdb.h"
 #include "lwip/inet.h"
+#include "lwip/dns.h"
+#include "netinet/in6.h"
 /*********************************************************************************************************
   宏定义
 *********************************************************************************************************/
@@ -80,15 +82,18 @@ VOID  __inetHostTableInit (VOID)
 ** 函数名称: __inetHostTableGetItem
 ** 功能描述: lwip 调用此函数查询本地动态主机域名表.
 ** 输　入  : pcHost        主机名
-** 输　出  : 查询到的 IPv4 地址, INADDR_NONE 为错误.
+**           addr          返回地址
+**           ucAddrType    地址类型
+** 输　出  : ERR_OK or ERR_IF.
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-u32_t  __inetHostTableGetItem (CPCHAR  pcHost)
+INT  __inetHostTableGetItem (CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrType)
 {
     REGISTER INT                    iHash;
     REGISTER PLW_LIST_LINE          plineTemp;
              __PLW_HOSTTABLE_ITEM   phsttablitem;
+             ip_addr_t             *addr   = (ip_addr_t *)pvAddr;
              u32_t                  uiAddr = INADDR_NONE;
              CHAR                   cHostName[HOST_NAME_MAX + 1];
              CHAR                   cHostsBuffer[MAX_FILENAME_LENGTH];
@@ -97,14 +102,21 @@ u32_t  __inetHostTableGetItem (CPCHAR  pcHost)
              BOOL                   bHostsFund = LW_FALSE;
              INT                    i;
     
-    if (pcHost == LW_NULL) {
-        _ErrorHandle(EINVAL);
-        return  (INADDR_NONE);
+    if (!addr || !pcHost) {
+        return  (ERR_IF);
     }
     
     gethostname(cHostName, HOST_NAME_MAX + 1);                          /*  本地主机地址                */
     if (lib_strcmp(cHostName, pcHost) == 0) {
-        return  (htonl(INADDR_LOOPBACK));
+        if (ucAddrType != LWIP_DNS_ADDRTYPE_IPV6) {
+            ip_2_ip4(addr)->addr = htonl(INADDR_LOOPBACK);
+            IP_SET_TYPE(addr, IPADDR_TYPE_V4);
+        
+        } else {
+            lib_memcpy(ip_2_ip6(addr)->addr, &in6addr_loopback, 16);
+            IP_SET_TYPE(addr, IPADDR_TYPE_V6);
+        }
+        return  (ERR_OK);
     }
     
     fpHosts = fopen(_PATH_HOSTS, "r");                                  /*  /etc/hosts                  */
@@ -128,9 +140,18 @@ __fund_check:
         fclose(fpHosts);
         
         if (bHostsFund) {
-            if (phostent->h_length == 4) {                              /*  ipv4                        */
+            if ((phostent->h_length == 4) &&
+                (ucAddrType != LWIP_DNS_ADDRTYPE_IPV6)) {               /*  ipv4                        */
                 lib_memcpy(&uiAddr, phostent->h_addr, sizeof(uiAddr));
-                return  (uiAddr);
+                ip_2_ip4(addr)->addr = uiAddr;
+                IP_SET_TYPE(addr, IPADDR_TYPE_V4);
+                return  (ERR_OK);
+            
+            } else if ((phostent->h_length == 16) &&
+                       (ucAddrType == LWIP_DNS_ADDRTYPE_IPV6)) {        /*  ipv6                        */
+                lib_memcpy(&ip_2_ip6(addr)->addr, phostent->h_addr, phostent->h_length);
+                IP_SET_TYPE(addr, IPADDR_TYPE_V6);
+                return  (ERR_OK);
             }
         }
     }
@@ -150,7 +171,15 @@ __fund_check:
     }
     API_SemaphoreBPost(_G_ulHostTableLock);                             /*  退出临界区                  */
     
-    return  (uiAddr);
+    if ((uiAddr != INADDR_NONE) &&
+        (ucAddrType != LWIP_DNS_ADDRTYPE_IPV6)) {                       /*  ipv4                        */
+        ip_2_ip4(addr)->addr = uiAddr;
+        IP_SET_TYPE(addr, IPADDR_TYPE_V4);
+        return  (ERR_OK);
+    
+    } else {
+        return  (ERR_IF);
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: API_INetHostTableGetItem
@@ -165,18 +194,17 @@ __fund_check:
 LW_API
 INT  API_INetHostTableGetItem (CPCHAR  pcHost, struct in_addr  *pinaddr)
 {
-    u32_t   uiAddr = __inetHostTableGetItem(pcHost);
+    ip_addr_t   addr;
+    
+    if (__inetHostTableGetItem(pcHost, &addr, LWIP_DNS_ADDRTYPE_IPV4)) {
+        return  (PX_ERROR);
+    }
     
     if (pinaddr) {
-        pinaddr->s_addr = (u32_t)uiAddr;
+        pinaddr->s_addr = ip_2_ip4(&addr)->addr;
     }
     
-    if (uiAddr == INADDR_NONE) {
-        return  (PX_ERROR);
-    
-    } else {
-        return  (ERROR_NONE);
-    }
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: API_INetHostTableAddItem
@@ -302,7 +330,7 @@ static INT  __tshellHostTable (INT  iArgC, PCHAR  *ppcArgV)
              __PLW_HOSTTABLE_ITEM   phsttablitem;
              
              CHAR                   cBuffer[INET_ADDRSTRLEN];
-             ip_addr_t              ipaddr;
+             ip4_addr_t             ipaddr;
     struct in_addr                  inaddr;
     
              INT                    i;
@@ -361,7 +389,6 @@ static INT  __tshellHostTable (INT  iArgC, PCHAR  *ppcArgV)
 }
 
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
-
 #endif                                                                  /*  LW_CFG_NET_EN               */
 /*********************************************************************************************************
   END

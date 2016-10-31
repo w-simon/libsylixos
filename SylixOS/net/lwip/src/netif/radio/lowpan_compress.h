@@ -43,7 +43,6 @@
 #include "lwip/opt.h"
 #include "lwip/pbuf.h"
 #include "lwip/inet.h"
-#include "lwip/inet6.h"
 #include "lwip/ethip6.h"
 #include "netif/etharp.h"
 

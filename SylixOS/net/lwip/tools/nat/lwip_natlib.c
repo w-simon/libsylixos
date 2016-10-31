@@ -48,7 +48,7 @@
 #include "lwip/inet.h"
 #include "lwip/ip.h"
 #include "lwip/tcp.h"
-#include "lwip/tcp_impl.h"
+#include "lwip/priv/tcp_priv.h"
 #include "lwip/udp.h"
 #include "lwip/icmp.h"
 #include "lwip/err.h"
@@ -78,7 +78,7 @@ static LW_LIST_LINE_HEADER  _G_plineNatcbIcmp = LW_NULL;
 /*********************************************************************************************************
   NAT 别名
 *********************************************************************************************************/
-static LW_LIST_LINE_HEADER  _G_plineNatalias  = LW_NULL;
+static LW_LIST_LINE_HEADER  _G_plineNatalias = LW_NULL;
 /*********************************************************************************************************
   NAT 外网主动连接
 *********************************************************************************************************/
@@ -188,7 +188,7 @@ static VOID   __natPoolFree (__PNAT_CB  pnatcb)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-INT   __natMapAdd (ip_addr_t  *pipaddr, u16_t  usPort, u16_t  AssPort, u8_t  ucProto)
+INT   __natMapAdd (ip4_addr_t  *pipaddr, u16_t  usPort, u16_t  AssPort, u8_t  ucProto)
 {
     __PNAT_MAP      pnatmap;
     
@@ -220,7 +220,7 @@ INT   __natMapAdd (ip_addr_t  *pipaddr, u16_t  usPort, u16_t  AssPort, u8_t  ucP
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-INT   __natMapDelete (ip_addr_t  *pipaddr, u16_t  usPort, u16_t  AssPort, u8_t  ucProto)
+INT   __natMapDelete (ip4_addr_t  *pipaddr, u16_t  usPort, u16_t  AssPort, u8_t  ucProto)
 {
     PLW_LIST_LINE   plineTemp;
     __PNAT_MAP      pnatmap;
@@ -264,9 +264,9 @@ INT   __natMapDelete (ip_addr_t  *pipaddr, u16_t  usPort, u16_t  AssPort, u8_t  
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-INT  __natAliasAdd (const ip_addr_t  *pipaddrAlias, 
-                    const ip_addr_t  *ipaddrSLocalIp,
-                    const ip_addr_t  *ipaddrELocalIp)
+INT  __natAliasAdd (const ip4_addr_t  *pipaddrAlias, 
+                    const ip4_addr_t  *ipaddrSLocalIp,
+                    const ip4_addr_t  *ipaddrELocalIp)
 {
     __PNAT_ALIAS    pnatalias;
     
@@ -294,7 +294,7 @@ INT  __natAliasAdd (const ip_addr_t  *pipaddrAlias,
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-INT  __natAliasDelete (const ip_addr_t  *pipaddrAlias)
+INT  __natAliasDelete (const ip4_addr_t  *pipaddrAlias)
 {
     PLW_LIST_LINE   plineTemp;
     __PNAT_ALIAS    pnatalias;
@@ -386,7 +386,7 @@ __check_again:
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static __PNAT_CB   __natNew (ip_addr_p_t  *pipaddr, u16_t  usPort, u8_t  ucProto)
+static __PNAT_CB   __natNew (ip4_addr_p_t  *pipaddr, u16_t  usPort, u8_t  ucProto)
 {
     PLW_LIST_LINE   plineTemp;
     __PNAT_CB       pnatcb = __natPoolAlloc();
@@ -605,10 +605,10 @@ static err_t  __natLocalInput (struct pbuf *p, struct netif *netif)
     LW_LIST_LINE_HEADER      plineHeader;
     
     
-    if (ip_addr_cmp(&iphdr->dest, &netif->ip_addr)) {
+    if (ip4_addr_cmp(&iphdr->dest, netif_ip4_addr(netif))) {
         return  (ERR_OK);                                               /*  指向本机的数据包            */
     
-    } else if (ip_addr_cmp(&iphdr->dest, IP_ADDR_BROADCAST)) {
+    } else if (ip4_addr_cmp(&iphdr->dest, IP4_ADDR_BROADCAST)) {
         return  (ERR_OK);                                               /*  本地受限广播                */
     }
     
@@ -656,7 +656,7 @@ static err_t  __natLocalInput (struct pbuf *p, struct netif *netif)
         /*
          *  控制块内的源端 IP 与 源端 PORT 使用协议完全一致.
          */
-        if ((ip_addr_cmp(&iphdr->src, &pnatcb->NAT_ipaddrLocalIp)) &&
+        if ((ip4_addr_cmp(&iphdr->src, &pnatcb->NAT_ipaddrLocalIp)) &&
             (usSrcPort == pnatcb->NAT_usLocalPort) &&
             (ucProto   == pnatcb->NAT_ucProto)) {
             break;                                                      /*  找到了 NAT 控制块           */
@@ -667,8 +667,8 @@ static err_t  __natLocalInput (struct pbuf *p, struct netif *netif)
     }
     
     if (pnatcb == LW_NULL) {
-        INT  iSrcSameNet  = ip_addr_netcmp(&iphdr->src, &netif->ip_addr, &netif->netmask);
-        INT  iDestSameNet = ip_addr_netcmp(&iphdr->dest, &netif->ip_addr, &netif->netmask);
+        INT  iSrcSameNet  = ip4_addr_netcmp(&iphdr->src, netif_ip4_addr(netif), netif_ip4_netmask(netif));
+        INT  iDestSameNet = ip4_addr_netcmp(&iphdr->dest, netif_ip4_addr(netif), netif_ip4_netmask(netif));
         
         if (iSrcSameNet && !iDestSameNet) {
             /*  
@@ -691,16 +691,16 @@ static err_t  __natLocalInput (struct pbuf *p, struct netif *netif)
              plineTemp  = _list_line_get_next(plineTemp)) {             /*  查找别名表                  */
         
             pnatalias = _LIST_ENTRY(plineTemp, __NAT_ALIAS, NAT_lineManage);
-            if ((pnatalias->NAT_ipaddrSLocalIp.addr <= ((ip_addr_t *)&(iphdr->src))->addr) &&
-                (pnatalias->NAT_ipaddrELocalIp.addr >= ((ip_addr_t *)&(iphdr->src))->addr)) {
+            if ((pnatalias->NAT_ipaddrSLocalIp.addr <= ((ip4_addr_t *)&(iphdr->src))->addr) &&
+                (pnatalias->NAT_ipaddrELocalIp.addr >= ((ip4_addr_t *)&(iphdr->src))->addr)) {
                 break;
             }
         }
         if (plineTemp) {                                                /*  源 IP 使用别名 IP           */
-            ((ip_addr_t *)&(iphdr->src))->addr = pnatalias->NAT_ipaddrAliasIp.addr;
+            ((ip4_addr_t *)&(iphdr->src))->addr = pnatalias->NAT_ipaddrAliasIp.addr;
             
         } else {                                                        /*  源 IP 使用 AP 接口 IP       */
-            ((ip_addr_t *)&(iphdr->src))->addr = _G_pnetifNatAp->ip_addr.addr;
+            ((ip4_addr_t *)&(iphdr->src))->addr = netif_ip4_addr(_G_pnetifNatAp)->addr;
         }
         __natChksumAdjust((u8_t *)&IPH_CHKSUM(iphdr),(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->src.addr, 4);
         
@@ -844,7 +844,7 @@ static err_t  __natApInput (struct pbuf *p, struct netif *netif)
                 }
             }
             if (plineTemp == LW_NULL) {
-                ip_addr_p_t  ipaddr;
+                ip4_addr_p_t  ipaddr;
             
                 ipaddr.addr = pnatmap->NAT_ipaddrLocalIp.addr;
                 pnatcb = __natNew(&ipaddr, 
@@ -856,7 +856,7 @@ static err_t  __natApInput (struct pbuf *p, struct netif *netif)
              *  将数据包目标转为本地内网目标地址
              */
             u32OldAddr = iphdr->dest.addr;
-            ((ip_addr_t *)&(iphdr->dest))->addr = pnatmap->NAT_ipaddrLocalIp.addr;
+            ((ip4_addr_t *)&(iphdr->dest))->addr = pnatmap->NAT_ipaddrLocalIp.addr;
             __natChksumAdjust((u8_t *)&IPH_CHKSUM(iphdr),(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->dest.addr, 4);
         
             /*
@@ -903,7 +903,7 @@ static err_t  __natApInput (struct pbuf *p, struct netif *netif)
              *  将数据包目标转为本地内网目标地址
              */
             u32OldAddr = iphdr->dest.addr;
-            ((ip_addr_t *)&(iphdr->dest))->addr = pnatcb->NAT_ipaddrLocalIp.addr;
+            ((ip4_addr_t *)&(iphdr->dest))->addr = pnatcb->NAT_ipaddrLocalIp.addr;
             __natChksumAdjust((u8_t *)&IPH_CHKSUM(iphdr),(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->dest.addr, 4);
             
             /*
@@ -968,10 +968,10 @@ VOID  nat_ip_input_hook (struct pbuf *p, struct netif *inp)
 
     if (_G_pnetifNatLocal == _G_pnetifNatAp) {                          /*  单网口代理                  */
         if (inp == _G_pnetifNatLocal) {
-            if (ip_addr_cmp(&iphdr->dest, &inp->ip_addr)) {
+            if (ip4_addr_cmp(&iphdr->dest, netif_ip4_addr(inp))) {
                 __natApInput(p, inp);                                   /*  指向本机的数据包            */
             
-            } else if (ip_addr_isbroadcast(&iphdr->dest, inp) == 0) {
+            } else if (ip4_addr_isbroadcast(&iphdr->dest, inp) == 0) {
                 __natLocalInput(p, inp);                                /*  非指向本机的非广播包        */
             }
         }
@@ -1119,12 +1119,12 @@ static ssize_t  __procFsNatSummaryRead (PLW_PROCFS_NODE  p_pfsn,
                 pnatalias  = _LIST_ENTRY(plineTemp, __NAT_ALIAS, NAT_lineManage);
                 stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
                                       "%-15s %-15s %-15s\n", 
-                                      ipaddr_ntoa_r(&pnatalias->NAT_ipaddrAliasIp,
-                                                    cIpBuffer1, INET_ADDRSTRLEN),
-                                      ipaddr_ntoa_r(&pnatalias->NAT_ipaddrSLocalIp, 
-                                                    cIpBuffer2, INET_ADDRSTRLEN),
-                                      ipaddr_ntoa_r(&pnatalias->NAT_ipaddrELocalIp, 
-                                                    cIpBuffer3, INET_ADDRSTRLEN));
+                                      ip4addr_ntoa_r(&pnatalias->NAT_ipaddrAliasIp,
+                                                     cIpBuffer1, INET_ADDRSTRLEN),
+                                      ip4addr_ntoa_r(&pnatalias->NAT_ipaddrSLocalIp, 
+                                                     cIpBuffer2, INET_ADDRSTRLEN),
+                                      ip4addr_ntoa_r(&pnatalias->NAT_ipaddrELocalIp, 
+                                                     cIpBuffer3, INET_ADDRSTRLEN));
             }
             
             stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
@@ -1151,8 +1151,8 @@ static ssize_t  __procFsNatSummaryRead (PLW_PROCFS_NODE  p_pfsn,
                                       "%10d %10d %-15s %s\n",
                                       ntohs(pnatmap->NAT_usAssPort),
                                       ntohs(pnatmap->NAT_usLocalPort),
-                                      ipaddr_ntoa_r(&pnatmap->NAT_ipaddrLocalIp, 
-                                                    cIpBuffer, INET_ADDRSTRLEN),
+                                      ip4addr_ntoa_r(&pnatmap->NAT_ipaddrLocalIp, 
+                                                     cIpBuffer, INET_ADDRSTRLEN),
                                        pcProto);
             }
             

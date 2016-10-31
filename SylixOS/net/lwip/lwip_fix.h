@@ -36,6 +36,9 @@ extern "C" {
   数据类型
 *********************************************************************************************************/
 
+#define LWIP_NO_STDINT_H            1
+#define LWIP_NO_INTTYPES_H          1
+
 typedef UINT8                       u8_t;
 typedef SINT8                       s8_t;
 typedef UINT16                      u16_t;
@@ -49,19 +52,31 @@ typedef ULONG                       mem_ptr_t;
 #define U32_F                       "u"
 #define S16_F                       "d"
 #define S32_F                       "d"
-#define X16_F                       "X"
-#define X32_F                       "X"
-#define SZT_F                       "u"
-#define X8_F                        "02X"
+#define X16_F                       "x"
+#define X32_F                       "x"
+#define SZT_F                       "zu"
+#define X8_F                        "02x"
+
+/*********************************************************************************************************
+  内存对齐声明
+*********************************************************************************************************/
+
+#ifdef __GNUC__
+#define LWIP_DECLARE_MEMORY_ALIGNED(variable_name, size) \
+        u8_t variable_name[size] __attribute__((aligned(4)))
+#else
+#define LWIP_DECLARE_MEMORY_ALIGNED(variable_name, size) \
+        u32_t variable_name[(size + sizeof(u32_t) - 1) / sizeof(u32_t)]
+#endif                                                                  /*  __GNUC__                    */
 
 /*********************************************************************************************************
   编译器结构缩排相关
 *********************************************************************************************************/
 
-#define PACK_STRUCT_FIELD(x)        LW_CFG_STRUCT_PACK_FIELD(x)
-#define PACK_STRUCT_STRUCT          LW_CFG_STRUCT_PACK_STRUCT
-#define PACK_STRUCT_BEGIN           LW_CFG_STRUCT_PACK_BEGIN
-#define PACK_STRUCT_END             LW_CFG_STRUCT_PACK_END
+#define PACK_STRUCT_FIELD(x)        LW_STRUCT_PACK_FIELD(x)
+#define PACK_STRUCT_STRUCT          LW_STRUCT_PACK_STRUCT
+#define PACK_STRUCT_BEGIN           LW_STRUCT_PACK_BEGIN
+#define PACK_STRUCT_END             LW_STRUCT_PACK_END
 
 /*********************************************************************************************************
   主机与网络字节转换 (为了速度这里使用宏, 但是不可以直接使用, 例如: htonl(x++) 就会错误.)

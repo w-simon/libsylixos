@@ -39,7 +39,7 @@
 #include "lwip/inet.h"
 #include "lwip/ip.h"
 #include "lwip/udp.h"
-#include "lwip/tcp_impl.h"
+#include "lwip/priv/tcp_priv.h"
 #include "netif/etharp.h"
 /*********************************************************************************************************
   宏定义
@@ -80,16 +80,16 @@ typedef __NPF_RULE_MAC     *__PNPF_RULE_MAC;
 typedef struct {
     LW_LIST_LINE            NPFRI_lineManage;                           /*  IP 规则管理链表             */
     INT                     NPFRI_iRule;
-    ip_addr_t               NPFRI_ipaddrStart;                          /*  禁止通信 IP 段起始 IP 地址  */
-    ip_addr_t               NPFRI_ipaddrEnd;                            /*  禁止通信 IP 段结束 IP 地址  */
+    ip4_addr_t              NPFRI_ipaddrStart;                          /*  禁止通信 IP 段起始 IP 地址  */
+    ip4_addr_t              NPFRI_ipaddrEnd;                            /*  禁止通信 IP 段结束 IP 地址  */
 } __NPF_RULE_IP;
 typedef __NPF_RULE_IP      *__PNPF_RULE_IP;
 
 typedef struct {
     LW_LIST_LINE            NPFRU_lineManage;                           /*  UDP 规则管理链表            */
     INT                     NPFRU_iRule;
-    ip_addr_t               NPFRU_ipaddrStart;                          /*  禁止通信 IP 段起始 IP 地址  */
-    ip_addr_t               NPFRU_ipaddrEnd;                            /*  禁止通信 IP 段结束 IP 地址  */
+    ip4_addr_t              NPFRU_ipaddrStart;                          /*  禁止通信 IP 段起始 IP 地址  */
+    ip4_addr_t              NPFRU_ipaddrEnd;                            /*  禁止通信 IP 段结束 IP 地址  */
     u16_t                   NPFRU_usPortStart;                          /*  禁止通信的端口起始 网络序   */
     u16_t                   NPFRU_usPortEnd;                            /*  禁止通信的端口结束          */
 } __NPF_RULE_UDP;
@@ -98,8 +98,8 @@ typedef __NPF_RULE_UDP     *__PNPF_RULE_UDP;
 typedef struct {
     LW_LIST_LINE            NPFRT_lineManage;                           /*  TCP 规则管理链表            */
     INT                     NPFRT_iRule;
-    ip_addr_t               NPFRT_ipaddrStart;                          /*  禁止通信 IP 段起始 IP 地址  */
-    ip_addr_t               NPFRT_ipaddrEnd;                            /*  禁止通信 IP 段结束 IP 地址  */
+    ip4_addr_t              NPFRT_ipaddrStart;                          /*  禁止通信 IP 段起始 IP 地址  */
+    ip4_addr_t              NPFRT_ipaddrEnd;                            /*  禁止通信 IP 段结束 IP 地址  */
     u16_t                   NPFRT_usPortStart;                          /*  禁止通信的端口起始 网络序   */
     u16_t                   NPFRT_usPortEnd;                            /*  禁止通信的端口结束          */
 } __NPF_RULE_TCP;
@@ -1410,8 +1410,8 @@ static VOID  __procFsNetFilterPrint (PCHAR  pcBuffer, size_t  stTotalSize, size_
                          (pnpfni->NPFNI_uiAttachCounter) ? "YES" : "NO",
                          iSeqNum,
                          "IP", "N/A",
-                         ipaddr_ntoa_r(&pnpfri->NPFRI_ipaddrStart, cIpBuffer1, INET_ADDRSTRLEN),
-                         ipaddr_ntoa_r(&pnpfri->NPFRI_ipaddrEnd,   cIpBuffer2, INET_ADDRSTRLEN),
+                         ip4addr_ntoa_r(&pnpfri->NPFRI_ipaddrStart, cIpBuffer1, INET_ADDRSTRLEN),
+                         ip4addr_ntoa_r(&pnpfri->NPFRI_ipaddrEnd,   cIpBuffer2, INET_ADDRSTRLEN),
                          "N/A", "N/A");
 
                 iSeqNum++;
@@ -1433,8 +1433,8 @@ static VOID  __procFsNetFilterPrint (PCHAR  pcBuffer, size_t  stTotalSize, size_
                          (pnpfni->NPFNI_uiAttachCounter) ? "YES" : "NO",
                          iSeqNum,
                          "UDP", "N/A",
-                         ipaddr_ntoa_r(&pnpfru->NPFRU_ipaddrStart, cIpBuffer1, INET_ADDRSTRLEN),
-                         ipaddr_ntoa_r(&pnpfru->NPFRU_ipaddrEnd,   cIpBuffer2, INET_ADDRSTRLEN),
+                         ip4addr_ntoa_r(&pnpfru->NPFRU_ipaddrStart, cIpBuffer1, INET_ADDRSTRLEN),
+                         ip4addr_ntoa_r(&pnpfru->NPFRU_ipaddrEnd,   cIpBuffer2, INET_ADDRSTRLEN),
                          ntohs(pnpfru->NPFRU_usPortStart),
                          ntohs(pnpfru->NPFRU_usPortEnd));
 
@@ -1457,8 +1457,8 @@ static VOID  __procFsNetFilterPrint (PCHAR  pcBuffer, size_t  stTotalSize, size_
                          (pnpfni->NPFNI_uiAttachCounter) ? "YES" : "NO",
                          iSeqNum,
                          "TCP", "N/A",
-                         ipaddr_ntoa_r(&pnpfrt->NPFRT_ipaddrStart, cIpBuffer1, INET_ADDRSTRLEN),
-                         ipaddr_ntoa_r(&pnpfrt->NPFRT_ipaddrEnd,   cIpBuffer2, INET_ADDRSTRLEN),
+                         ip4addr_ntoa_r(&pnpfrt->NPFRT_ipaddrStart, cIpBuffer1, INET_ADDRSTRLEN),
+                         ip4addr_ntoa_r(&pnpfrt->NPFRT_ipaddrEnd,   cIpBuffer2, INET_ADDRSTRLEN),
                          ntohs(pnpfrt->NPFRT_usPortStart),
                          ntohs(pnpfrt->NPFRT_usPortEnd));
 

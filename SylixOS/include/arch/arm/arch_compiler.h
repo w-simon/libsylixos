@@ -46,6 +46,23 @@
 
 #define LW_SOFUNC_PREPARE(func)
 
+/*********************************************************************************************************
+  编译器结构缩排相关配置 (__CC_ARM(armcc) __GNUC__(gcc) ...)
+*********************************************************************************************************/
+
+#if defined(__CC_ARM)
+#define LW_STRUCT_PACK_FIELD(x)     x
+#define LW_STRUCT_PACK_STRUCT       
+#define LW_STRUCT_PACK_BEGIN        __packed                            /*  单字节缩排结构体            */
+#define LW_STRUCT_PACK_END                                              /*  结束单字节缩排结构体        */
+
+#else
+#define LW_STRUCT_PACK_FIELD(x)     x
+#define LW_STRUCT_PACK_STRUCT       __attribute__((packed))
+#define LW_STRUCT_PACK_BEGIN                                            /*  单字节缩排结构体            */
+#define LW_STRUCT_PACK_END                                              /*  结束单字节缩排结构体        */
+#endif                                                                  /*  !__CC_ARM                   */
+
 #endif                                                                  /*  __ARM_ARCH_COMPILER_H       */
 /*********************************************************************************************************
   END

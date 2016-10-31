@@ -225,8 +225,7 @@ PVOID  __vpnNetifProc (PVOID  pvArg)
      */
     __vpnClientClose(pvpnctx);                                          /*  关闭 ssl client             */
 
-    netifapi_netif_common(&pvpnctx->VPNCTX_netif,
-                          netif_remove, LW_NULL);                       /*  卸载虚拟网口                */
+    netifapi_netif_remove(&pvpnctx->VPNCTX_netif);                      /*  卸载虚拟网口                */
 
     __SHEAP_FREE(pvpnctx);                                              /*  释放 VPN 上下文             */
 

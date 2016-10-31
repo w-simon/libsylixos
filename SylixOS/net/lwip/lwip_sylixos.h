@@ -33,6 +33,8 @@
 
 LW_API VOID         API_NetInit(VOID);                                  /*  安装网络组件                */
 
+LW_API VOID         API_NetSnmpInit(VOID);                              /*  启动 SNMP                   */
+
 LW_API INT          API_NetJobAdd(VOIDFUNCPTR  pfunc, 
                                   PVOID        pvArg0,
                                   PVOID        pvArg1,
@@ -44,24 +46,9 @@ LW_API INT          API_NetJobAdd(VOIDFUNCPTR  pfunc,
 LW_API size_t       API_NetJobGetLost(VOID);
 
 #define netInit             API_NetInit
+#define netSnmpInit         API_NetSnmpInit
 #define netJobAdd           API_NetJobAdd
 #define netJobGetLost       API_NetJobGetLost
-
-/*********************************************************************************************************
-  SNMP private mib 操作接口.
-  注意: API_NetSnmpPriMibGet() 返回值需强转成 struct mib_array_node * 类型
-        API_NetSnmpSetPriMibInitHook() 需要在 API_NetInit() 调用前初始化.
-*********************************************************************************************************/
-
-#if LW_CFG_LWIP_SNMP > 0
-
-LW_API PVOID        API_NetSnmpPriMibGet(VOID);
-LW_API VOID         API_NetSnmpSetPriMibInitHook(VOIDFUNCPTR  pfuncPriMibInit);
-
-#define netSnmpPriMibGet                API_NetSnmpPriMibGet
-#define netSnmpSetPriMibInitHook        API_NetSnmpSetPriMibInitHook
-
-#endif                                                                  /*  LW_CFG_LWIP_SNMP > 0        */
 
 #endif                                                                  /*  LW_CFG_NET_EN               */
 #endif                                                                  /*  __LWIP_SYLIXOS_H            */

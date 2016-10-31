@@ -32,9 +32,9 @@
 *********************************************************************************************************/
 #if (LW_CFG_NET_EN > 0) && (LW_CFG_NET_PING_EN > 0)
 #include "lwip/icmp.h"
+#include "lwip/prot/icmp6.h"
 #include "lwip/raw.h"
 #include "lwip/tcpip.h"
-#include "lwip/inet6.h"
 #include "lwip/inet_chksum.h"
 #include "lwip/netdb.h"
 #include "sys/socket.h"
@@ -55,8 +55,8 @@ static INT  __inetPing6FindSrc (struct netif    *netif,
                                 struct ip6_addr *pip6addrDest,
                                 struct ip6_addr *pip6addrSrc)
 {
-    static struct ip6_addr  ip6addrAny = {{0, 0, 0, 0}};
-           struct ip6_addr *pip6addr;
+    static struct ip6_addr     ip6addrAny = {{0, 0, 0, 0}};
+           const  ip_addr_t   *pipaddr;
 
     if (netif == LW_NULL) {
         netif =  ip6_route(&ip6addrAny, pip6addrDest);
@@ -65,12 +65,12 @@ static INT  __inetPing6FindSrc (struct netif    *netif,
         }
     }
     
-    pip6addr = ip6_select_source_address(netif, pip6addrDest);
-    if (pip6addr == NULL) {
+    pipaddr = ip6_select_source_address(netif, pip6addrDest);
+    if (pipaddr == NULL) {
         return  (-2);
     }
     
-    *pip6addrSrc = *pip6addr;
+    ip6_addr_copy(*pip6addrSrc, *ip_2_ip6(pipaddr));
     
     return  (ERROR_NONE);
 }

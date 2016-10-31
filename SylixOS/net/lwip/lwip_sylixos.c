@@ -39,9 +39,11 @@
 #include "lwip/tcpip.h"
 #include "lwip/inet.h"
 #include "lwip/netif.h"
-#include "lwip/snmp.h"
-#include "lwip/snmp_msg.h"
+#include "lwip/netifapi.h"
+#include "lwip/dhcp.h"
 #include "lwip/sockets.h"
+#include "lwip/snmp/snmp.h"
+#include "lwip/snmp/snmp_mib2.h"
 #include "./unix/af_unix.h"
 #include "./packet/af_packet.h"
 #if LW_CFG_PROCFS_EN > 0
@@ -96,8 +98,8 @@ static VOID  __netCloseAll (VOID)
     struct netif    *netif = netif_list;
 
     for (; netif != LW_NULL; netif = netif->next) {
-        if (netif->dhcp && netif->dhcp->pcb) {
-            netifapi_netif_common(netif, NULL, dhcp_release);           /*  解除 DHCP 租约, 同时停止网卡*/
+        if (netif_dhcp_data(netif)) {
+            netifapi_dhcp_release(netif);                               /*  解除 DHCP 租约, 同时停止网卡*/
             netifapi_dhcp_stop(netif);                                  /*  释放资源                    */
         }
     }
@@ -113,7 +115,7 @@ static VOID  __netCloseAll (VOID)
 *********************************************************************************************************/
 VOID  __netSnmpGetTimestamp (UINT32  *puiTimestamp)
 {
-    INT64       i64Ticks = API_TimeGet64();                             /*  获取系统时钟                */
+    INT64   i64Ticks = API_TimeGet64();                                 /*  获取系统时钟                */
     
     if (puiTimestamp) {
         *puiTimestamp = (UINT32)((i64Ticks * LW_TICK_HZ * 10) / 1000);  /*  是以 10 毫秒为单位          */
@@ -131,17 +133,17 @@ VOID  __netSnmpGetTimestamp (UINT32  *puiTimestamp)
 
 static VOID  __netSnmpInit (VOID)
 {
-    static u8_t     ucContactLen  = 17;
-    static u8_t     ucLocationLen = 6;
+    static const u16_t  ucContactLen  = 17;
+    static const u16_t  ucLocationLen = 6;
     
-    static u8_t     ucDesrLen = 7;
-    static u8_t     ucNameLen = 23;
+    static const u16_t  ucDesrLen = 7;
+    static const u16_t  ucNameLen = 23;
     
-    snmp_set_syscontact((u8_t *)"acoinfo@acoinfo.com", &ucContactLen);
-    snmp_set_syslocation((u8_t *)"@china", &ucLocationLen);             /*  at CHINA ^_^                */
-    
-    snmp_set_sysdescr((u8_t *)"sylixos", &ucDesrLen);
-    snmp_set_sysname((u8_t *)"device based on sylixos", &ucNameLen);
+    snmp_mib2_set_syscontact_readonly((u8_t *)"acoinfo@acoinfo.com", &ucContactLen);
+    snmp_mib2_set_syslocation_readonly((u8_t *)"@china", &ucLocationLen);
+                                                                        /*  at CHINA ^_^                */
+    snmp_mib2_set_sysdescr((u8_t *)"sylixos", &ucDesrLen);
+    snmp_mib2_set_sysname_readonly((u8_t *)"device based on sylixos", &ucNameLen);
 }
 
 #endif                                                                  /*  LWIP_SNMP > 0               */
@@ -231,6 +233,20 @@ VOID  API_NetInit (VOID)
 #if LW_CFG_PROCFS_EN > 0
     __procFsNetInit();
 #endif                                                                  /*  LW_CFG_PROCFS_EN > 0        */
+}
+/*********************************************************************************************************
+** 函数名称: API_NetSnmpInit
+** 功能描述: 开启 SNMP 服务
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+VOID  API_NetSnmpInit (VOID)
+{
+    snmp_init();
 }
 
 #endif                                                                  /*  LW_CFG_NET_EN               */

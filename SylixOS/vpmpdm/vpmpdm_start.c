@@ -104,14 +104,12 @@ int _start (int argc, char **argv, char **env)
     
     FUNCPTR pfuncMain  = vprocGetMain(); /* must use MAIN MODULE main() function! */
     ULONG   ulVersion  = API_KernelVersion();
-    ULONG   ulVerPatch = API_KernelVerpatch();
     
     /*
      *  check sylixos version
      */
-    if ((ulVersion < __SYLIXOS_MAKEVER(1, 0, 0)) ||
-        ((ulVersion == __SYLIXOS_MAKEVER(1, 0, 0)) && (ulVerPatch < 0x37))) {
-        fprintf(stderr, "sylixos version MUST higher than 1.0.0-rc37\n");
+    if (ulVersion < __SYLIXOS_MAKEVER(1, 4, 0)) {
+        fprintf(stderr, "sylixos version MUST equ or higher than 1.4.0\n");
         return  (EXIT_FAILURE);
     }
     

@@ -28,7 +28,7 @@
  * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "lwip/opt.h"
+#include "netif/ppp/ppp_opts.h"
 #if PPP_SUPPORT /* don't build if not configured for use in lwipopts.h */
 
 #if 0 /* UNUSED */
@@ -73,7 +73,7 @@ static void ppp_logit(int level, const char *fmt, va_list args);
 static void ppp_log_write(int level, char *buf);
 #if PRINTPKT_SUPPORT
 static void ppp_vslp_printer(void *arg, const char *fmt, ...);
-static void ppp_format_packet(u_char *p, int len,
+static void ppp_format_packet(const u_char *p, int len,
 		void (*printer) (void *, const char *, ...), void *arg);
 
 struct buffer_info {
@@ -141,7 +141,7 @@ int ppp_vslprintf(char *buf, int buflen, const char *fmt, va_list args) {
     unsigned long val = 0;
     const char *f;
     char *str, *buf0;
-    unsigned char *p;
+    const unsigned char *p;
     char num[32];
 #if 0 /* need port */
     time_t t;
@@ -267,7 +267,7 @@ int ppp_vslprintf(char *buf, int buflen, const char *fmt, va_list args) {
 #endif /* do we always have strerror() in embedded ? */
 	case 'I':
 	    ip = va_arg(args, u32_t);
-	    ip = ntohl(ip);
+	    ip = lwip_ntohl(ip);
 	    ppp_slprintf(num, sizeof(num), "%d.%d.%d.%d", (ip >> 24) & 0xff,
 		     (ip >> 16) & 0xff, (ip >> 8) & 0xff, ip & 0xff);
 	    str = num;
@@ -285,11 +285,11 @@ int ppp_vslprintf(char *buf, int buflen, const char *fmt, va_list args) {
 	    quoted = c == 'q';
 	    p = va_arg(args, unsigned char *);
 	    if (p == NULL)
-		p = (unsigned char *)"<NULL>";
+		p = (const unsigned char *)"<NULL>";
 	    if (fillch == '0' && prec >= 0) {
 		n = prec;
 	    } else {
-		n = strlen((char *)p);
+		n = strlen((const char *)p);
 		if (prec >= 0 && n > prec)
 		    n = prec;
 	    }
@@ -443,7 +443,7 @@ log_packet(p, len, prefix, level)
  * ppp_format_packet - make a readable representation of a packet,
  * calling `printer(arg, format, ...)' to output it.
  */
-static void ppp_format_packet(u_char *p, int len,
+static void ppp_format_packet(const u_char *p, int len,
 		void (*printer) (void *, const char *, ...), void *arg) {
     int i, n;
     u_short proto;
@@ -569,7 +569,7 @@ pr_log (void *arg, const char *fmt, ...)
  * ppp_print_string - print a readable representation of a string using
  * printer.
  */
-void ppp_print_string(char *p, int len, void (*printer) (void *, const char *, ...), void *arg) {
+void ppp_print_string(const u_char *p, int len, void (*printer) (void *, const char *, ...), void *arg) {
     int c;
 
     printer(arg, "\"");
@@ -591,7 +591,7 @@ void ppp_print_string(char *p, int len, void (*printer) (void *, const char *, .
 		printer(arg, "\\t");
 		break;
 	    default:
-		printer(arg, "\\%.3o", c);
+		printer(arg, "\\%.3o", (u8_t)c);
 		/* no break */
 	    }
 	}
@@ -636,10 +636,7 @@ void ppp_fatal(const char *fmt, ...) {
     ppp_logit(LOG_ERR, fmt, pvar);
     va_end(pvar);
 
-/* FIXME: find a way to die */
-#if 0
-    die(1);			/* as promised */
-#endif
+    LWIP_ASSERT("ppp_fatal", 0);   /* as promised */
 }
 
 /*
@@ -705,24 +702,20 @@ void ppp_dbglog(const char *fmt, ...) {
  * ppp_dump_packet - print out a packet in readable form if it is interesting.
  * Assumes len >= PPP_HDRLEN.
  */
-void ppp_dump_packet(const char *tag, unsigned char *p, int len) {
+void ppp_dump_packet(ppp_pcb *pcb, const char *tag, unsigned char *p, int len) {
     int proto;
 
     /*
-     * don't print IPv4 and IPv6 packets.
+     * don't print data packets, i.e. IPv4, IPv6, VJ, and compressed packets.
      */
     proto = (p[0] << 8) + p[1];
-    if (proto == PPP_IP)
+    if (proto < 0xC000 && (proto & ~0x8000) == proto)
 	return;
-#if PPP_IPV6_SUPPORT
-    if (proto == PPP_IPV6)
-	return;
-#endif
 
     /*
-     * don't print LCP echo request/reply packets if the link is up.
+     * don't print valid LCP echo request/reply packets if the link is up.
      */
-    if (proto == PPP_LCP && len >= 2 + HEADERLEN) {
+    if (proto == PPP_LCP && pcb->phase == PPP_PHASE_RUNNING && len >= 2 + HEADERLEN) {
 	unsigned char *lcp = p + 2;
 	int l = (lcp[2] << 8) + lcp[3];
 

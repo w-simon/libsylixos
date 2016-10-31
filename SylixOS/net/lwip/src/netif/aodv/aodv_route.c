@@ -283,7 +283,7 @@ struct aodv_rtnode *aodv_rt_insert (struct in_addr *dest_addr, struct in_addr *n
     
     if (s) {
       if (s->p) {
-        ip_addr_t ipaddr_next;
+        ip4_addr_t ipaddr_next;
         ipaddr_next.addr = rt->next_hop.s_addr;
         AODV_PACKET_OUTPUT(netif, s->p, &ipaddr_next);
       }
@@ -375,7 +375,7 @@ struct aodv_rtnode *aodv_rt_update (struct aodv_rtnode *rt, struct in_addr *next
     
     if (s) {
       if (s->p) {
-        ip_addr_t ipaddr_next;
+        ip4_addr_t ipaddr_next;
         ipaddr_next.addr = rt->next_hop.s_addr;
         AODV_PACKET_OUTPUT(rt->netif, s->p, &ipaddr_next);
       }
@@ -1092,7 +1092,7 @@ void aodv_mrt_become_leader (struct aodv_mrtnode *mrt)
   LWIP_ERROR("mrt != NULL", (mrt != NULL), return;);
   LWIP_ERROR("mrt->netif != NULL", (mrt->netif != NULL), return;);
   
-  mrt->grp_leader.s_addr = mrt->netif->ip_addr.addr;
+  mrt->grp_leader.s_addr = netif_ip4_addr(mrt->netif)->addr;
   
   if (mrt->flags & AODV_MRT_GATEWAY) {
     mrt->flags |= AODV_MRT_MEMBER;

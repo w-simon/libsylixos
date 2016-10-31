@@ -22,7 +22,7 @@
 #ifndef __IF_PARAM_H
 #define __IF_PARAM_H
 
-#include "lwip/inet.h"
+#include "netinet/in.h"
 /*********************************************************************************************************
   ²Ã¼ô¿ØÖÆ
 *********************************************************************************************************/
@@ -62,9 +62,12 @@ LW_API void   if_param_unload(void *pifparam);
 LW_API int    if_param_getenable(void *pifparam, int *enable);
 LW_API int    if_param_getdefault(void *pifparam, int *def);
 LW_API int    if_param_getdhcp(void *pifparam, int *dhcp);
-LW_API int    if_param_getipaddr(void *pifparam, ip_addr_t *ipaddr);
-LW_API int    if_param_getnetmask(void *pifparam, ip_addr_t *mask);
-LW_API int    if_param_getgw(void *pifparam, ip_addr_t *gw);
+LW_API int    if_param_getipaddr(void *pifparam, ip4_addr_t *ipaddr);
+LW_API int    if_param_getinaddr(void *pifparam, struct in_addr *inaddr);
+LW_API int    if_param_getnetmask(void *pifparam, ip4_addr_t *mask);
+LW_API int    if_param_getinnetmask(void *pifparam, struct in_addr *mask);
+LW_API int    if_param_getgw(void *pifparam, ip4_addr_t *gw);
+LW_API int    if_param_getingw(void *pifparam, struct in_addr *gw);
 LW_API int    if_param_getmac(void *pifparam, char *mac, size_t  sz);
 LW_API void   if_param_syncdns(void);
 

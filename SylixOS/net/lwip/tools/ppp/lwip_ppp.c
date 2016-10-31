@@ -28,7 +28,7 @@
 *********************************************************************************************************/
 #if (LW_CFG_NET_EN > 0) && (LW_CFG_LWIP_PPP > 0)
 #include "lwip/netif.h"
-#include "lwip/pppapi.h"
+#include "netif/ppp/pppapi.h"
 #include "netif/ppp/pppos.h"
 #include "lwip_ppp.h"
 #include "net/if_event.h"
@@ -242,6 +242,36 @@ static VOID  __pppOsThread (ppp_pcb *pcb)
     }
 }
 /*********************************************************************************************************
+** 函数名称: __pppOsOutput
+** 功能描述: PPPoS 发送函数
+** 输　入  : pcb           pcb 控制块
+**           data          要发送的数据
+**           len           发送长度
+**           ctx           上下文参数
+** 输　出  : 发送数量
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static u32_t  __pppOsOutput (ppp_pcb *pcb, u8_t *data, u32_t len, void *ctx)
+{
+    PPP_CTX_PRIV   *pctxp = (PPP_CTX_PRIV *)ctx;
+    u32_t           uiRet;
+
+    if (!pcb || !data || !ctx) {
+        return  (PX_ERROR);
+    }
+
+    if (!len) {
+        return  (0);
+    }
+
+    __KERNEL_SPACE_ENTER();
+    uiRet = (u32_t)read(pctxp->CTXP_iFd, data, len);
+    __KERNEL_SPACE_EXIT();
+
+    return  (uiRet);
+}
+/*********************************************************************************************************
 ** 函数名称: __pppGet
 ** 功能描述: 通过网卡名获取 PPP 控制块
 ** 输　入  : pcb           pcb 控制块
@@ -346,7 +376,7 @@ INT  API_PppOsCreate (CPCHAR  pcSerial, LW_PPP_TTY  *ptty, PCHAR  pcIfName, size
     pctxp->CTXP_ucPhase     = PPP_PHASE_DEAD;
     pctxp->CTXP_iFd         = iFd;
 
-    pctxp->CTXP_pcb = pppapi_pppos_create(&pctxp->CTXP_netif, (sio_fd_t)iFd, __pppLinkStatCb, pctxp);
+    pctxp->CTXP_pcb = pppapi_pppos_create(&pctxp->CTXP_netif, __pppOsOutput, __pppLinkStatCb, pctxp);
     if (pctxp->CTXP_pcb == LW_NULL) {
         _ErrorHandle(ENODEV);
         iErrLevel = 2;
@@ -473,8 +503,7 @@ INT  API_PppOl2tpCreate (CPCHAR  pcEthIf,
         return  (PX_ERROR);
     }
 
-    ipaddr.addr = ipaddr_addr(pcIp);
-    if (ipaddr.addr == IPADDR_NONE) {                                   /*  服务器地址无效              */
+    if (!ipaddr_aton(pcIp, &ipaddr)) {                                  /*  服务器地址无效              */
         _ErrorHandle(EADDRNOTAVAIL);
         return  (PX_ERROR);
     }
@@ -637,10 +666,10 @@ __user_same:
         }
 
 __passwd_same:
-        pppapi_set_auth(pcb, PPPAUTHTYPE_ANY, pctxp->CTXP_cUser, pctxp->CTXP_cPass);
+        ppp_set_auth(pcb, PPPAUTHTYPE_ANY, pctxp->CTXP_cUser, pctxp->CTXP_cPass);
     
     } else {
-        pppapi_set_auth(pcb, PPPAUTHTYPE_ANY, LW_NULL, LW_NULL);
+        ppp_set_auth(pcb, PPPAUTHTYPE_ANY, LW_NULL, LW_NULL);
     }
 
     if ((pctxp->CTXP_uiType  == PPP_OS) &&

@@ -68,10 +68,10 @@ $(target)_DEPEND_LIB += -lgcov
 endif
 
 ifneq (,$(findstring yes,$($(target)_USE_CXX)))
-$(target)_DEPEND_LIB += -lstdc++
+$(target)_DEPEND_LIB += -lstdc++ -ldsohandle
 endif
 
-$(target)_DEPEND_LIB += -ldsohandle -lm -lgcc
+$(target)_DEPEND_LIB += -lm -lgcc
 
 #*********************************************************************************************************
 # Define some useful variables

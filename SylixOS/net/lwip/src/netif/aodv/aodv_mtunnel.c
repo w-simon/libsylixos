@@ -50,6 +50,8 @@
 
 #if AODV_MCAST
 
+extern ip_addr_t aodv_ipaddr_any;
+
 static struct udp_pcb *aodv_mtunnel; /* initialize with NULL */
 
 /**
@@ -93,7 +95,8 @@ static void aodv_mtunnel_forward (struct aodv_mrtnode *mrt,
     /* first forward to up stream except rev_addr */
     up_hop = aodv_mrt_get_best_upstream(mrt);
     if (up_hop && (up_hop->flags & AODV_MRT_NEXTHOP_ACT) && (up_hop != rev_hop)) {
-      dst_ip.addr = up_hop->addr.s_addr;
+      IP_SET_TYPE_VAL(dst_ip, IPADDR_TYPE_V4);
+      ip_2_ip4(&dst_ip)->addr = up_hop->addr.s_addr;
       udp_sendto(aodv_mtunnel, pfw, &dst_ip, AODV_MTUNNEL);
       if (pfw->tot_len != orig_len) {
         /* udp_sendto() change the pfw buf, pfw->tot_len now is (orig_len + iphdr + udphdr) 
@@ -112,7 +115,8 @@ static void aodv_mtunnel_forward (struct aodv_mrtnode *mrt,
     if ((down->flags & AODV_MRT_NEXTHOP_ACT) && 
         !(down->flags & AODV_MRT_NEXTHOP_UP)) {
       if (down != rev_hop) { /* prevent loop */
-        dst_ip.addr = down->addr.s_addr;
+        IP_SET_TYPE_VAL(dst_ip, IPADDR_TYPE_V4);
+        ip_2_ip4(&dst_ip)->addr = down->addr.s_addr;
         udp_sendto(aodv_mtunnel, pfw, &dst_ip, AODV_MTUNNEL);
         if (pfw->tot_len != orig_len) {
           pbuf_header(pfw, (s16_t)(orig_len - pfw->tot_len)); /* pfw->payload point to packet (NOT point to ip hdr) */
@@ -156,7 +160,7 @@ static void aodv_mtunnel_recv (void *arg, struct udp_pcb *pcb, struct pbuf *p,
   }
   
   grp_addr.s_addr = iphdr->dest.addr; /* grp address */
-  rev_addr.s_addr = ip_current_src_addr()->addr; /* who send this packet to me (May not be original sender, so we must prevent loop) */
+  rev_addr.s_addr = ip4_current_src_addr()->addr; /* who send this packet to me (May not be original sender, so we must prevent loop) */
   orig_addr.s_addr = iphdr->src.addr; /* grp packet original sender */
   
   if (IN_MULTICAST(ntohl(grp_addr.s_addr))) {
@@ -172,7 +176,7 @@ static void aodv_mtunnel_recv (void *arg, struct udp_pcb *pcb, struct pbuf *p,
       aodv_rreq_route_discovery(&grp_addr, (RREQ_JOIN | RREQ_GRP_REBUILD), p, NULL, &rev_addr);
     
     } else if (iphdr->_ttl > 1) { /* can to forward */
-      ip_addr_t  grp_ip;
+      ip4_addr_t  grp_ip;
       
       grp_ip.addr = grp_addr.s_addr;
       
@@ -221,8 +225,6 @@ input:
  */
 void aodv_mtunnel_new (int aodv_if_index)
 {
-  ip_addr_t ipaddr_any = {IPADDR_ANY};
-
   LWIP_ERROR("aodv_if_index < AODV_MAX_NETIF", (aodv_if_index < AODV_MAX_NETIF), return;);
   LWIP_ERROR("aodv_netif[aodv_if_index] != NULL", (aodv_netif[aodv_if_index] != NULL), return;);
   
@@ -235,7 +237,7 @@ void aodv_mtunnel_new (int aodv_if_index)
   
   aodv_mtunnel = udp_new();
   if (aodv_mtunnel) {
-    if (udp_bind(aodv_mtunnel, &ipaddr_any, AODV_MTUNNEL) != ERR_OK) {
+    if (udp_bind(aodv_mtunnel, &aodv_ipaddr_any, AODV_MTUNNEL) != ERR_OK) {
       LWIP_DEBUGF(AODV_DEBUG, ("aodv_mtunnel_new: can not bind port %d!\n", AODV_MTUNNEL));
       return;
     }
@@ -269,7 +271,7 @@ void aodv_mtunnel_remove (int aodv_if_index)
  * @param rev_ip how forward to me
  * @return send packet is ok or not.
  */
-err_t aodv_mtunnel_output (struct netif *netif, struct pbuf *p, ip_addr_t *grp_ip, ip_addr_t *rev_ip)
+err_t aodv_mtunnel_output (struct netif *netif, struct pbuf *p, ip4_addr_t *grp_ip, ip4_addr_t *rev_ip)
 {
   struct in_addr grp_addr;
   struct in_addr rev_addr;

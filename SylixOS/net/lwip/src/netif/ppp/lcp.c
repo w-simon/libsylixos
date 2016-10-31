@@ -40,11 +40,11 @@
  * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "lwip/opt.h"
+#include "netif/ppp/ppp_opts.h"
 #if PPP_SUPPORT /* don't build if not configured for use in lwipopts.h */
 
 /*
- * TODO:
+ * @todo:
  */
 
 #if 0 /* UNUSED */
@@ -268,7 +268,7 @@ static void lcp_init(ppp_pcb *pcb);
 static void lcp_input(ppp_pcb *pcb, u_char *p, int len);
 static void lcp_protrej(ppp_pcb *pcb);
 #if PRINTPKT_SUPPORT
-static int lcp_printpkt(u_char *p, int plen,
+static int lcp_printpkt(const u_char *p, int plen,
 		void (*printer) (void *, const char *, ...), void *arg);
 #endif /* PRINTPKT_SUPPORT */
 
@@ -373,7 +373,7 @@ static void lcp_init(ppp_pcb *pcb) {
 
     BZERO(wo, sizeof(*wo));
     wo->neg_mru = 1;
-    wo->mru = DEFMRU;
+    wo->mru = PPP_DEFMRU;
     wo->neg_asyncmap = 1;
     wo->neg_magicnumber = 1;
     wo->neg_pcompression = 1;
@@ -381,7 +381,7 @@ static void lcp_init(ppp_pcb *pcb) {
 
     BZERO(ao, sizeof(*ao));
     ao->neg_mru = 1;
-    ao->mru = MAXMRU;
+    ao->mru = PPP_MAXMRU;
     ao->neg_asyncmap = 1;
 #if CHAP_SUPPORT
     ao->neg_chap = 1;
@@ -423,7 +423,11 @@ void lcp_close(ppp_pcb *pcb, const char *reason) {
     fsm *f = &pcb->lcp_fsm;
     int oldstate;
 
-    if (pcb->phase != PPP_PHASE_DEAD && pcb->phase != PPP_PHASE_MASTER)
+    if (pcb->phase != PPP_PHASE_DEAD
+#ifdef HAVE_MULTILINK
+    && pcb->phase != PPP_PHASE_MASTER
+#endif /* HAVE_MULTILINK */
+    )
 	new_phase(pcb, PPP_PHASE_TERMINATE);
 
     if (f->flags & DELAYED_UP) {
@@ -782,7 +786,7 @@ static int lcp_cilen(fsm *f) {
      * accept more than one.  We prefer EAP first, then CHAP, then
      * PAP.
      */
-    return (LENCISHORT(go->neg_mru && go->mru != DEFMRU) +
+    return (LENCISHORT(go->neg_mru && go->mru != PPP_DEFMRU) +
 	    LENCILONG(go->neg_asyncmap && go->asyncmap != 0xFFFFFFFF) +
 #if EAP_SUPPORT
 	    LENCISHORT(go->neg_eap) +
@@ -883,7 +887,7 @@ static void lcp_addci(fsm *f, u_char *ucp, int *lenp) {
 	    PUTCHAR(val[i], ucp); \
     }
 
-    ADDCISHORT(CI_MRU, go->neg_mru && go->mru != DEFMRU, go->mru);
+    ADDCISHORT(CI_MRU, go->neg_mru && go->mru != PPP_DEFMRU, go->mru);
     ADDCILONG(CI_ASYNCMAP, go->neg_asyncmap && go->asyncmap != 0xFFFFFFFF,
 	      go->asyncmap);
 #if EAP_SUPPORT
@@ -1057,7 +1061,7 @@ static int lcp_ackci(fsm *f, u_char *p, int len) {
 	} \
     }
 
-    ACKCISHORT(CI_MRU, go->neg_mru && go->mru != DEFMRU, go->mru);
+    ACKCISHORT(CI_MRU, go->neg_mru && go->mru != PPP_DEFMRU, go->mru);
     ACKCILONG(CI_ASYNCMAP, go->neg_asyncmap && go->asyncmap != 0xFFFFFFFF,
 	      go->asyncmap);
 #if EAP_SUPPORT
@@ -1234,9 +1238,9 @@ static int lcp_nakci(fsm *f, u_char *p, int len, int treat_as_reject) {
      * If they send us a bigger MRU than what we asked, accept it, up to
      * the limit of the default MRU we'd get if we didn't negotiate.
      */
-    if (go->neg_mru && go->mru != DEFMRU) {
+    if (go->neg_mru && go->mru != PPP_DEFMRU) {
 	NAKCISHORT(CI_MRU, neg_mru,
-		   if (cishort <= wo->mru || cishort <= DEFMRU)
+		   if (cishort <= wo->mru || cishort <= PPP_DEFMRU)
 		       try_.mru = cishort;
 		   );
     }
@@ -1479,11 +1483,11 @@ static int lcp_nakci(fsm *f, u_char *p, int len, int treat_as_reject) {
 
 	switch (citype) {
 	case CI_MRU:
-	    if ((go->neg_mru && go->mru != DEFMRU)
+	    if ((go->neg_mru && go->mru != PPP_DEFMRU)
 		|| no.neg_mru || cilen != CILEN_SHORT)
 		goto bad;
 	    GETSHORT(cishort, p);
-	    if (cishort < DEFMRU) {
+	    if (cishort < PPP_DEFMRU) {
 		try_.neg_mru = 1;
 		try_.mru = cishort;
 	    }
@@ -1881,11 +1885,11 @@ static int lcp_reqci(fsm *f, u_char *inp, int *lenp, int reject_if_disagree) {
 	     * No need to check a maximum.  If he sends a large number,
 	     * we'll just ignore it.
 	     */
-	    if (cishort < MINMRU) {
+	    if (cishort < PPP_MINMRU) {
 		orc = CONFNAK;		/* Nak CI */
 		PUTCHAR(CI_MRU, nakoutp);
 		PUTCHAR(CILEN_SHORT, nakoutp);
-		PUTSHORT(MINMRU, nakoutp);	/* Give him a hint */
+		PUTSHORT(PPP_MINMRU, nakoutp);	/* Give him a hint */
 		break;
 	    }
 	    ho->neg_mru = 1;		/* Remember he sent MRU */
@@ -2370,17 +2374,17 @@ static void lcp_finished(fsm *f) {
 /*
  * lcp_printpkt - print the contents of an LCP packet.
  */
-static const char *lcp_codenames[] = {
+static const char* const lcp_codenames[] = {
     "ConfReq", "ConfAck", "ConfNak", "ConfRej",
     "TermReq", "TermAck", "CodeRej", "ProtRej",
     "EchoReq", "EchoRep", "DiscReq", "Ident",
     "TimeRem"
 };
 
-static int lcp_printpkt(u_char *p, int plen,
+static int lcp_printpkt(const u_char *p, int plen,
 		void (*printer) (void *, const char *, ...), void *arg) {
     int code, id, len, olen, i;
-    u_char *pstart, *optend;
+    const u_char *pstart, *optend;
     u_short cishort;
     u32_t cilong;
 
@@ -2393,7 +2397,7 @@ static int lcp_printpkt(u_char *p, int plen,
     if (len < HEADERLEN || len > plen)
 	return 0;
 
-   if (code >= 1 && code <= (int)sizeof(lcp_codenames) / (int)sizeof(char *))
+   if (code >= 1 && code <= (int)LWIP_ARRAYSIZE(lcp_codenames))
 	printer(arg, " %s", lcp_codenames[code-1]);
     else
 	printer(arg, " code=0x%x", code);
@@ -2573,7 +2577,7 @@ static int lcp_printpkt(u_char *p, int plen,
     case TERMREQ:
 	if (len > 0 && *p >= ' ' && *p < 0x7f) {
 	    printer(arg, " ");
-	    ppp_print_string((char *)p, len, printer, arg);
+	    ppp_print_string(p, len, printer, arg);
 	    p += len;
 	    len = 0;
 	}
@@ -2605,7 +2609,7 @@ static int lcp_printpkt(u_char *p, int plen,
 	}
 	if (len > 0) {
 	    printer(arg, " ");
-	    ppp_print_string((char *)p, len, printer, arg);
+	    ppp_print_string(p, len, printer, arg);
 	    p += len;
 	    len = 0;
 	}
@@ -2682,7 +2686,7 @@ static void LcpEchoTimeout(void *arg) {
 static void lcp_received_echo_reply(fsm *f, int id, u_char *inp, int len) {
     ppp_pcb *pcb = f->pcb;
     lcp_options *go = &pcb->lcp_gotoptions;
-    u32_t magic;
+    u32_t magic_val;
     LWIP_UNUSED_ARG(id);
 
     /* Check the magic number - don't count replies from ourselves. */
@@ -2690,9 +2694,9 @@ static void lcp_received_echo_reply(fsm *f, int id, u_char *inp, int len) {
 	ppp_dbglog("lcp: received short Echo-Reply, length %d", len);
 	return;
     }
-    GETLONG(magic, inp);
+    GETLONG(magic_val, inp);
     if (go->neg_magicnumber
-	&& magic == go->magicnumber) {
+	&& magic_val == go->magicnumber) {
 	ppp_warn("appear to have received our own echo-reply!");
 	return;
     }

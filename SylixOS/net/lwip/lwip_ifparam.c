@@ -441,7 +441,7 @@ int  if_param_getdhcp (void *pifparam, int *dhcp)
                                            API 函数
 *********************************************************************************************************/
 LW_API
-int  if_param_getipaddr (void *pifparam, ip_addr_t *ipaddr)
+int  if_param_getipaddr (void *pifparam, ip4_addr_t *ipaddr)
 {
     const char  *value;
     PLW_INI_SEC  pinisec = (PLW_INI_SEC)pifparam;
@@ -456,7 +456,40 @@ int  if_param_getipaddr (void *pifparam, ip_addr_t *ipaddr)
         return  (PX_ERROR);
     }
 
-    if (ipaddr_aton(value, ipaddr)) {
+    if (ip4addr_aton(value, ipaddr)) {
+        return  (ERROR_NONE);
+
+    } else {
+        return  (PX_ERROR);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: if_param_getipaddr
+** 功能描述: 读取 IP 地址配置.
+** 输　入  : pifparam      配置句柄
+**           inaddr        IP 地址
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+int  if_param_getinaddr (void *pifparam, struct in_addr *inaddr)
+{
+    const char  *value;
+    PLW_INI_SEC  pinisec = (PLW_INI_SEC)pifparam;
+
+    if (!pinisec || !inaddr) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    value = __iniGetStr(pinisec, LW_IFPARAM_IPADDR, LW_NULL);
+    if (!value) {
+        return  (PX_ERROR);
+    }
+
+    if (inet_aton(value, inaddr)) {
         return  (ERROR_NONE);
 
     } else {
@@ -474,7 +507,7 @@ int  if_param_getipaddr (void *pifparam, ip_addr_t *ipaddr)
                                            API 函数
 *********************************************************************************************************/
 LW_API
-int  if_param_getnetmask (void *pifparam, ip_addr_t *mask)
+int  if_param_getnetmask (void *pifparam, ip4_addr_t *mask)
 {
     const char  *value;
     PLW_INI_SEC  pinisec = (PLW_INI_SEC)pifparam;
@@ -489,7 +522,40 @@ int  if_param_getnetmask (void *pifparam, ip_addr_t *mask)
         return  (PX_ERROR);
     }
 
-    if (ipaddr_aton(value, mask)) {
+    if (ip4addr_aton(value, mask)) {
+        return  (ERROR_NONE);
+
+    } else {
+        return  (PX_ERROR);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: if_param_getinnetmask
+** 功能描述: 读取子网掩码配置.
+** 输　入  : pifparam      配置句柄
+**           mask          子网掩码
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+int  if_param_getinnetmask (void *pifparam, struct in_addr *mask)
+{
+    const char  *value;
+    PLW_INI_SEC  pinisec = (PLW_INI_SEC)pifparam;
+
+    if (!pinisec || !mask) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    value = __iniGetStr(pinisec, LW_IFPARAM_MASK, LW_NULL);
+    if (!value) {
+        return  (PX_ERROR);
+    }
+
+    if (inet_aton(value, mask)) {
         return  (ERROR_NONE);
 
     } else {
@@ -507,7 +573,7 @@ int  if_param_getnetmask (void *pifparam, ip_addr_t *mask)
                                            API 函数
 *********************************************************************************************************/
 LW_API
-int  if_param_getgw (void *pifparam, ip_addr_t *gw)
+int  if_param_getgw (void *pifparam, ip4_addr_t *gw)
 {
     const char  *value;
     PLW_INI_SEC  pinisec = (PLW_INI_SEC)pifparam;
@@ -522,7 +588,40 @@ int  if_param_getgw (void *pifparam, ip_addr_t *gw)
         return  (PX_ERROR);
     }
 
-    if (ipaddr_aton(value, gw)) {
+    if (ip4addr_aton(value, gw)) {
+        return  (ERROR_NONE);
+
+    } else {
+        return  (PX_ERROR);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: if_param_getingw
+** 功能描述: 读取子网掩码配置.
+** 输　入  : pifparam      配置句柄
+**           gw            网关地址
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+int  if_param_getingw (void *pifparam, struct in_addr *gw)
+{
+    const char  *value;
+    PLW_INI_SEC  pinisec = (PLW_INI_SEC)pifparam;
+
+    if (!pinisec || !gw) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    value = __iniGetStr(pinisec, LW_IFPARAM_GW, LW_NULL);
+    if (!value) {
+        return  (PX_ERROR);
+    }
+
+    if (inet_aton(value, gw)) {
         return  (ERROR_NONE);
 
     } else {

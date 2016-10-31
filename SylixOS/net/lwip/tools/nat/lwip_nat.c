@@ -42,12 +42,12 @@
 *********************************************************************************************************/
 VOID        __natPoolCreate(VOID);
 VOID        __natTimer(VOID);
-INT         __natMapAdd(ip_addr_t  *pipaddr, u16_t  usPort, u16_t  AssPort, u8_t  ucProto);
-INT         __natMapDelete(ip_addr_t  *pipaddr, u16_t  usPort, u16_t  AssPort, u8_t  ucProto);
-INT         __natAliasAdd(const ip_addr_t  *pipaddrAlias, 
-                          const ip_addr_t  *ipaddrSLocalIp,
-                          const ip_addr_t  *ipaddrELocalIp);
-INT         __natAliasDelete(const ip_addr_t  *pipaddrAlias);
+INT         __natMapAdd(ip4_addr_t  *pipaddr, u16_t  usPort, u16_t  AssPort, u8_t  ucProto);
+INT         __natMapDelete(ip4_addr_t  *pipaddr, u16_t  usPort, u16_t  AssPort, u8_t  ucProto);
+INT         __natAliasAdd(const ip4_addr_t  *pipaddrAlias, 
+                          const ip4_addr_t  *ipaddrSLocalIp,
+                          const ip4_addr_t  *ipaddrELocalIp);
+INT         __natAliasDelete(const ip4_addr_t  *pipaddrAlias);
 
 #if LW_CFG_PROCFS_EN > 0
 VOID        __procFsNatInit(VOID);
@@ -223,7 +223,7 @@ INT  API_INetNatStop (VOID)
 LW_API  
 INT  API_INetNatMapAdd (CPCHAR  pcLocalIp, UINT16  usLocalPort, UINT16  usAssPort, UINT8  ucProto)
 {
-    ip_addr_t  ipaddr;
+    ip4_addr_t ipaddr;
     INT        iRet;
     
     if (!pcLocalIp) {
@@ -236,12 +236,12 @@ INT  API_INetNatMapAdd (CPCHAR  pcLocalIp, UINT16  usLocalPort, UINT16  usAssPor
         return  (PX_ERROR);
     }
     
-    if ((ucProto != IP_PROTO_TCP) && (ucProto != IP_PROTO_UDP)) {
+    if ((ucProto != IPPROTO_TCP) && (ucProto != IPPROTO_UDP)) {
         _ErrorHandle(ENOPROTOOPT);
         return  (PX_ERROR);
     }
     
-    if (!ipaddr_aton(pcLocalIp, &ipaddr)) {
+    if (!ip4addr_aton(pcLocalIp, &ipaddr)) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -265,7 +265,7 @@ INT  API_INetNatMapAdd (CPCHAR  pcLocalIp, UINT16  usLocalPort, UINT16  usAssPor
 LW_API  
 INT  API_INetNatMapDelete (CPCHAR  pcLocalIp, UINT16  usLocalPort, UINT16  usAssPort, UINT8  ucProto)
 {
-    ip_addr_t  ipaddr;
+    ip4_addr_t ipaddr;
     INT        iRet;
     
     if (!pcLocalIp) {
@@ -278,12 +278,12 @@ INT  API_INetNatMapDelete (CPCHAR  pcLocalIp, UINT16  usLocalPort, UINT16  usAss
         return  (PX_ERROR);
     }
     
-    if ((ucProto != IP_PROTO_TCP) && (ucProto != IP_PROTO_UDP)) {
+    if ((ucProto != IPPROTO_TCP) && (ucProto != IPPROTO_UDP)) {
         _ErrorHandle(ENOPROTOOPT);
         return  (PX_ERROR);
     }
     
-    if (!ipaddr_aton(pcLocalIp, &ipaddr)) {
+    if (!ip4addr_aton(pcLocalIp, &ipaddr)) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -306,9 +306,9 @@ INT  API_INetNatMapDelete (CPCHAR  pcLocalIp, UINT16  usLocalPort, UINT16  usAss
 LW_API  
 INT  API_INetNatAliasAdd (CPCHAR  pcAliasIp, CPCHAR  pcSLocalIp, CPCHAR  pcELocalIp)
 {
-    ip_addr_t  ipaddrAlias;
-    ip_addr_t  ipaddrSLocalIp;
-    ip_addr_t  ipaddrELocalIp;
+    ip4_addr_t  ipaddrAlias;
+    ip4_addr_t  ipaddrSLocalIp;
+    ip4_addr_t  ipaddrELocalIp;
     
     INT        iRet;
     
@@ -317,17 +317,17 @@ INT  API_INetNatAliasAdd (CPCHAR  pcAliasIp, CPCHAR  pcSLocalIp, CPCHAR  pcELoca
         return  (PX_ERROR);
     }
     
-    if (!ipaddr_aton(pcAliasIp, &ipaddrAlias)) {
+    if (!ip4addr_aton(pcAliasIp, &ipaddrAlias)) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
     
-    if (!ipaddr_aton(pcSLocalIp, &ipaddrSLocalIp)) {
+    if (!ip4addr_aton(pcSLocalIp, &ipaddrSLocalIp)) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
     
-    if (!ipaddr_aton(pcELocalIp, &ipaddrELocalIp)) {
+    if (!ip4addr_aton(pcELocalIp, &ipaddrELocalIp)) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -348,7 +348,7 @@ INT  API_INetNatAliasAdd (CPCHAR  pcAliasIp, CPCHAR  pcSLocalIp, CPCHAR  pcELoca
 LW_API  
 INT  API_INetNatAliasDelete (CPCHAR  pcAliasIp)
 {
-    ip_addr_t  ipaddrAlias;
+    ip4_addr_t  ipaddrAlias;
     INT        iRet;
     
     if (!pcAliasIp) {
@@ -356,7 +356,7 @@ INT  API_INetNatAliasDelete (CPCHAR  pcAliasIp)
         return  (PX_ERROR);
     }
     
-    if (!ipaddr_aton(pcAliasIp, &ipaddrAlias)) {
+    if (!ip4addr_aton(pcAliasIp, &ipaddrAlias)) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }

@@ -55,7 +55,7 @@
   TCP
 *********************************************************************************************************/
 #include "lwip/tcp.h"
-#include "lwip/tcp_impl.h"
+#include "lwip/priv/tcp_priv.h"
 extern struct tcp_pcb           *tcp_active_pcbs;
 extern union  tcp_listen_pcbs_t  tcp_listen_pcbs;
 extern struct tcp_pcb           *tcp_tw_pcbs;
@@ -74,8 +74,6 @@ extern struct raw_pcb *raw_pcbs;
 *********************************************************************************************************/
 #include "lwip/igmp.h"
 #include "lwip/mld6.h"
-extern struct igmp_group *igmp_group_list;
-extern struct mld_group  *mld_group_list;
 /*********************************************************************************************************
   ROUTE
 *********************************************************************************************************/
@@ -88,7 +86,7 @@ extern struct mld_group  *mld_group_list;
   PPP 网络
 *********************************************************************************************************/
 #if LW_CFG_LWIP_PPP > 0
-#include "lwip/pppapi.h"
+#include "netif/ppp/pppapi.h"
 #endif                                                                  /*  LW_CFG_LWIP_PPP > 0         */
 /*********************************************************************************************************
   无线网络
@@ -428,18 +426,18 @@ static CPCHAR  __procFsNetTcpGetStat (u8_t  state)
 static VOID  __procFsNetTcpPrint (struct tcp_pcb *pcb, PCHAR  pcBuffer, 
                                   size_t  stTotalSize, size_t *pstOft)
 {
-    if (pcb->isipv6 == 0) {
+    if (IP_IS_V4_VAL(pcb->local_ip)) {
         if (pcb->state == LISTEN) {
             *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
                                "%08X:%04X 00000000:0000 %-8s %7d %7d %7d\n",
-                               pcb->local_ip.ip4.addr, htons(pcb->local_port),
+                               ip_2_ip4(&pcb->local_ip)->addr, htons(pcb->local_port),
                                __procFsNetTcpGetStat((u8_t)pcb->state),
                                0, 0, 0);
         } else {
             *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
                                "%08X:%04X %08X:%04X %-8s %7d %7d %7d\n",
-                               pcb->local_ip.ip4.addr, htons(pcb->local_port),
-                               pcb->remote_ip.ip4.addr, htons(pcb->remote_port),
+                               ip_2_ip4(&pcb->local_ip)->addr, htons(pcb->local_port),
+                               ip_2_ip4(&pcb->remote_ip)->addr, htons(pcb->remote_port),
                                __procFsNetTcpGetStat((u8_t)pcb->state),
                                (u32_t)pcb->nrtx, (u32_t)pcb->rcv_wnd, (u32_t)pcb->snd_wnd);
         }
@@ -447,27 +445,27 @@ static VOID  __procFsNetTcpPrint (struct tcp_pcb *pcb, PCHAR  pcBuffer,
         if (pcb->state == LISTEN) {
             *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
                                "%08X%08X%08X%08X:%04X %08X%08X%08X%08X:%04X %-8s %-9s %7d %7d %7d\n",
-                               pcb->local_ip.ip6.addr[0],
-                               pcb->local_ip.ip6.addr[1],
-                               pcb->local_ip.ip6.addr[2],
-                               pcb->local_ip.ip6.addr[3],
+                               ip_2_ip6(&pcb->local_ip)->addr[0],
+                               ip_2_ip6(&pcb->local_ip)->addr[1],
+                               ip_2_ip6(&pcb->local_ip)->addr[2],
+                               ip_2_ip6(&pcb->local_ip)->addr[3],
                                htons(pcb->local_port),
                                IPADDR_ANY, IPADDR_ANY, IPADDR_ANY, IPADDR_ANY, 0,
                                __procFsNetTcpGetStat((u8_t)pcb->state),
-                               (((struct tcp_pcb_listen *)pcb)->accept_any_ip_version) ? "NO" : "YES",
+                               IP_IS_V6_VAL(pcb->local_ip) ? "YES" : "NO",
                                0, 0, 0);
         } else {
             *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
                                "%08X%08X%08X%08X:%04X %08X%08X%08X%08X:%04X %-8s %-9s %7d %7d %7d\n",
-                               pcb->local_ip.ip6.addr[0],
-                               pcb->local_ip.ip6.addr[1],
-                               pcb->local_ip.ip6.addr[2],
-                               pcb->local_ip.ip6.addr[3],
+                               ip_2_ip6(&pcb->local_ip)->addr[0],
+                               ip_2_ip6(&pcb->local_ip)->addr[1],
+                               ip_2_ip6(&pcb->local_ip)->addr[2],
+                               ip_2_ip6(&pcb->local_ip)->addr[3],
                                htons(pcb->local_port),
-                               pcb->remote_ip.ip6.addr[0],
-                               pcb->remote_ip.ip6.addr[1],
-                               pcb->remote_ip.ip6.addr[2],
-                               pcb->remote_ip.ip6.addr[3],
+                               ip_2_ip6(&pcb->remote_ip)->addr[0],
+                               ip_2_ip6(&pcb->remote_ip)->addr[1],
+                               ip_2_ip6(&pcb->remote_ip)->addr[2],
+                               ip_2_ip6(&pcb->remote_ip)->addr[3],
                                htons(pcb->remote_port),
                                __procFsNetTcpGetStat((u8_t)pcb->state),
                                "",
@@ -507,17 +505,17 @@ static ssize_t  __procFsNetTcpRead (PLW_PROCFS_NODE  p_pfsn,
         
         LOCK_TCPIP_CORE();
         for (pcb = tcp_active_pcbs; pcb != NULL; pcb = pcb->next) {
-            if (pcb->isipv6 == 0) {
+            if (IP_IS_V4_VAL(pcb->local_ip)) {
                 stNeedBufferSize += 128;
             }
         }
         for (pcb = tcp_listen_pcbs.pcbs; pcb != NULL; pcb = pcb->next) {
-            if (pcb->isipv6 == 0) {
+            if (IP_IS_V4_VAL(pcb->local_ip)) {
                 stNeedBufferSize += 128;
             }
         }
         for (pcb = tcp_tw_pcbs; pcb != NULL; pcb = pcb->next) {
-            if (pcb->isipv6 == 0) {
+            if (IP_IS_V4_VAL(pcb->local_ip)) {
                 stNeedBufferSize += 128;
             }
         }
@@ -535,17 +533,17 @@ static ssize_t  __procFsNetTcpRead (PLW_PROCFS_NODE  p_pfsn,
                                                                         /*  打印头信息                  */
         LOCK_TCPIP_CORE();
         for (pcb = tcp_active_pcbs; pcb != NULL; pcb = pcb->next) {
-            if (pcb->isipv6 == 0) {
+            if (IP_IS_V4_VAL(pcb->local_ip)) {
                 __procFsNetTcpPrint(pcb, pcFileBuffer, stNeedBufferSize, &stRealSize);
             }
         }
         for (pcb = tcp_listen_pcbs.pcbs; pcb != NULL; pcb = pcb->next) {
-            if (pcb->isipv6 == 0) {
+            if (IP_IS_V4_VAL(pcb->local_ip)) {
                 __procFsNetTcpPrint(pcb, pcFileBuffer, stNeedBufferSize, &stRealSize);
             }
         }
         for (pcb = tcp_tw_pcbs; pcb != NULL; pcb = pcb->next) {
-            if (pcb->isipv6 == 0) {
+            if (IP_IS_V4_VAL(pcb->local_ip)) {
                 __procFsNetTcpPrint(pcb, pcFileBuffer, stNeedBufferSize, &stRealSize);
             }
         }
@@ -597,17 +595,17 @@ static ssize_t  __procFsNetTcp6Read (PLW_PROCFS_NODE  p_pfsn,
         
         LOCK_TCPIP_CORE();
         for (pcb = tcp_active_pcbs; pcb != NULL; pcb = pcb->next) {
-            if (pcb->isipv6) {
+            if (!IP_IS_V4_VAL(pcb->local_ip)) {
                 stNeedBufferSize += 192;
             }
         }
         for (pcb = tcp_listen_pcbs.pcbs; pcb != NULL; pcb = pcb->next) {
-            if (pcb->isipv6) {
+            if (!IP_IS_V4_VAL(pcb->local_ip)) {
                 stNeedBufferSize += 192;
             }
         }
         for (pcb = tcp_tw_pcbs; pcb != NULL; pcb = pcb->next) {
-            if (pcb->isipv6) {
+            if (!IP_IS_V4_VAL(pcb->local_ip)) {
                 stNeedBufferSize += 192;
             }
         }
@@ -625,17 +623,17 @@ static ssize_t  __procFsNetTcp6Read (PLW_PROCFS_NODE  p_pfsn,
                                                                         /*  打印头信息                  */
         LOCK_TCPIP_CORE();
         for (pcb = tcp_active_pcbs; pcb != NULL; pcb = pcb->next) {
-            if (pcb->isipv6) {
+            if (!IP_IS_V4_VAL(pcb->local_ip)) {
                 __procFsNetTcpPrint(pcb, pcFileBuffer, stNeedBufferSize, &stRealSize);
             }
         }
         for (pcb = tcp_listen_pcbs.pcbs; pcb != NULL; pcb = pcb->next) {
-            if (pcb->isipv6) {
+            if (!IP_IS_V4_VAL(pcb->local_ip)) {
                 __procFsNetTcpPrint(pcb, pcFileBuffer, stNeedBufferSize, &stRealSize);
             }
         }
         for (pcb = tcp_tw_pcbs; pcb != NULL; pcb = pcb->next) {
-            if (pcb->isipv6) {
+            if (!IP_IS_V4_VAL(pcb->local_ip)) {
                 __procFsNetTcpPrint(pcb, pcFileBuffer, stNeedBufferSize, &stRealSize);
             }
         }
@@ -668,23 +666,23 @@ static ssize_t  __procFsNetTcp6Read (PLW_PROCFS_NODE  p_pfsn,
 static VOID  __procFsNetUdpPrint (struct udp_pcb *pcb, PCHAR  pcBuffer, 
                                   size_t  stTotalSize, size_t *pstOft)
 {
-    if (pcb->isipv6 == 0) {
+    if (IP_IS_V4_VAL(pcb->local_ip)) {
         *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
                            "%08X:%04X %08X:%04X\n",
-                           pcb->local_ip.ip4.addr, htons(pcb->local_port),
-                           pcb->remote_ip.ip4.addr, htons(pcb->remote_port));
+                           ip_2_ip4(&pcb->local_ip)->addr, htons(pcb->local_port),
+                           ip_2_ip4(&pcb->remote_ip)->addr, htons(pcb->remote_port));
     } else {
         *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
                            "%08X%08X%08X%08X:%04X %08X%08X%08X%08X:%04X\n",
-                           pcb->local_ip.ip6.addr[0],
-                           pcb->local_ip.ip6.addr[1],
-                           pcb->local_ip.ip6.addr[2],
-                           pcb->local_ip.ip6.addr[3],
+                           ip_2_ip6(&pcb->local_ip)->addr[0],
+                           ip_2_ip6(&pcb->local_ip)->addr[1],
+                           ip_2_ip6(&pcb->local_ip)->addr[2],
+                           ip_2_ip6(&pcb->local_ip)->addr[3],
                            htons(pcb->local_port),
-                           pcb->remote_ip.ip6.addr[0],
-                           pcb->remote_ip.ip6.addr[1],
-                           pcb->remote_ip.ip6.addr[2],
-                           pcb->remote_ip.ip6.addr[3],
+                           ip_2_ip6(&pcb->remote_ip)->addr[0],
+                           ip_2_ip6(&pcb->remote_ip)->addr[1],
+                           ip_2_ip6(&pcb->remote_ip)->addr[2],
+                           ip_2_ip6(&pcb->remote_ip)->addr[3],
                            htons(pcb->remote_port));
     }
 }
@@ -727,7 +725,7 @@ static ssize_t  __procFsNetUdpRead (PLW_PROCFS_NODE  p_pfsn,
         
         LOCK_TCPIP_CORE();
         for (pcb = udp_pcbs; pcb != NULL; pcb = pcb->next) {
-            if (pcb->isipv6 == 0 && ((pcb->flags & UDP_FLAGS_UDPLITE) == udplite)) {
+            if (IP_IS_V4_VAL(pcb->local_ip) && ((pcb->flags & UDP_FLAGS_UDPLITE) == udplite)) {
                 stNeedBufferSize += 64;
             }
         }
@@ -745,7 +743,7 @@ static ssize_t  __procFsNetUdpRead (PLW_PROCFS_NODE  p_pfsn,
                                                                         /*  打印头信息                  */
         LOCK_TCPIP_CORE();
         for (pcb = udp_pcbs; pcb != NULL; pcb = pcb->next) {
-            if (pcb->isipv6 == 0 && ((pcb->flags & UDP_FLAGS_UDPLITE) == udplite)) {
+            if (IP_IS_V4_VAL(pcb->local_ip) && ((pcb->flags & UDP_FLAGS_UDPLITE) == udplite)) {
                 __procFsNetUdpPrint(pcb, pcFileBuffer, stNeedBufferSize, &stRealSize);
             }
         }
@@ -803,7 +801,7 @@ static ssize_t  __procFsNetUdp6Read (PLW_PROCFS_NODE  p_pfsn,
         
         LOCK_TCPIP_CORE();
         for (pcb = udp_pcbs; pcb != NULL; pcb = pcb->next) {
-            if (pcb->isipv6 && ((pcb->flags & UDP_FLAGS_UDPLITE) == udplite)) {
+            if (!IP_IS_V4_VAL(pcb->local_ip) && ((pcb->flags & UDP_FLAGS_UDPLITE) == udplite)) {
                 stNeedBufferSize += 128;
             }
         }
@@ -821,7 +819,7 @@ static ssize_t  __procFsNetUdp6Read (PLW_PROCFS_NODE  p_pfsn,
                                                                         /*  打印头信息                  */
         LOCK_TCPIP_CORE();
         for (pcb = udp_pcbs; pcb != NULL; pcb = pcb->next) {
-            if (pcb->isipv6 && ((pcb->flags & UDP_FLAGS_UDPLITE) == udplite)) {
+            if (!IP_IS_V4_VAL(pcb->local_ip) && ((pcb->flags & UDP_FLAGS_UDPLITE) == udplite)) {
                 __procFsNetUdpPrint(pcb, pcFileBuffer, stNeedBufferSize, &stRealSize);
             }
         }
@@ -888,23 +886,23 @@ static CPCHAR  __procFsNetRawGetProto (u8_t  proto)
 static VOID  __procFsNetRawPrint (struct raw_pcb *pcb, PCHAR  pcBuffer, 
                                   size_t  stTotalSize, size_t *pstOft)
 {
-    if (pcb->isipv6 == 0) {
+    if (IP_IS_V4_VAL(pcb->local_ip)) {
         *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
                            "%08X %08X %s\n",
-                           pcb->local_ip.ip4.addr,
-                           pcb->remote_ip.ip4.addr,
+                           ip_2_ip4(&pcb->local_ip)->addr,
+                           ip_2_ip4(&pcb->remote_ip)->addr,
                            __procFsNetRawGetProto(pcb->protocol));
     } else {
         *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
                            "%08X%08X%08X%08X %08X%08X%08X%08X %s\n",
-                           pcb->local_ip.ip6.addr[0],
-                           pcb->local_ip.ip6.addr[1],
-                           pcb->local_ip.ip6.addr[2],
-                           pcb->local_ip.ip6.addr[3],
-                           pcb->remote_ip.ip6.addr[0],
-                           pcb->remote_ip.ip6.addr[1],
-                           pcb->remote_ip.ip6.addr[2],
-                           pcb->remote_ip.ip6.addr[3],
+                           ip_2_ip6(&pcb->local_ip)->addr[0],
+                           ip_2_ip6(&pcb->local_ip)->addr[1],
+                           ip_2_ip6(&pcb->local_ip)->addr[2],
+                           ip_2_ip6(&pcb->local_ip)->addr[3],
+                           ip_2_ip6(&pcb->remote_ip)->addr[0],
+                           ip_2_ip6(&pcb->remote_ip)->addr[1],
+                           ip_2_ip6(&pcb->remote_ip)->addr[2],
+                           ip_2_ip6(&pcb->remote_ip)->addr[3],
                            __procFsNetRawGetProto(pcb->protocol));
     }
 }
@@ -940,7 +938,7 @@ static ssize_t  __procFsNetRawRead (PLW_PROCFS_NODE  p_pfsn,
         
         LOCK_TCPIP_CORE();
         for (pcb = raw_pcbs; pcb != NULL; pcb = pcb->next) {
-            if (pcb->isipv6 == 0) {
+            if (IP_IS_V4_VAL(pcb->local_ip)) {
                 stNeedBufferSize += 64;
             }
         }
@@ -958,7 +956,7 @@ static ssize_t  __procFsNetRawRead (PLW_PROCFS_NODE  p_pfsn,
                                                                         /*  打印头信息                  */
         LOCK_TCPIP_CORE();
         for (pcb = raw_pcbs; pcb != NULL; pcb = pcb->next) {
-            if (pcb->isipv6 == 0) {
+            if (IP_IS_V4_VAL(pcb->local_ip)) {
                 __procFsNetRawPrint(pcb, pcFileBuffer, stNeedBufferSize, &stRealSize);
             }
         }
@@ -1009,7 +1007,7 @@ static ssize_t  __procFsNetRaw6Read (PLW_PROCFS_NODE  p_pfsn,
         
         LOCK_TCPIP_CORE();
         for (pcb = raw_pcbs; pcb != NULL; pcb = pcb->next) {
-            if (pcb->isipv6) {
+            if (!IP_IS_V4_VAL(pcb->local_ip)) {
                 stNeedBufferSize += 128;
             }
         }
@@ -1027,7 +1025,7 @@ static ssize_t  __procFsNetRaw6Read (PLW_PROCFS_NODE  p_pfsn,
                                                                         /*  打印头信息                  */
         LOCK_TCPIP_CORE();
         for (pcb = raw_pcbs; pcb != NULL; pcb = pcb->next) {
-            if (pcb->isipv6) {
+            if (!IP_IS_V4_VAL(pcb->local_ip)) {
                 __procFsNetRawPrint(pcb, pcFileBuffer, stNeedBufferSize, &stRealSize);
             }
         }
@@ -1050,6 +1048,7 @@ static ssize_t  __procFsNetRaw6Read (PLW_PROCFS_NODE  p_pfsn,
 ** 函数名称: __procFsNetIgmpPrint
 ** 功能描述: 打印网络 igmp 文件
 ** 输　入  : group         group 控制块
+**           netif         网络接口
 **           pcBuffer      缓冲
 **           stTotalSize   缓冲区大小
 **           pstOft        当前偏移量
@@ -1057,21 +1056,21 @@ static ssize_t  __procFsNetRaw6Read (PLW_PROCFS_NODE  p_pfsn,
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-#if LW_CFG_LWIP_IGMP > 0
+#if LWIP_IGMP > 0
 
-static VOID  __procFsNetIgmpPrint (struct igmp_group *group, PCHAR  pcBuffer, 
-                                  size_t  stTotalSize, size_t *pstOft)
+static VOID  __procFsNetIgmpPrint (struct igmp_group *group, struct netif *netif,
+                                   PCHAR  pcBuffer, size_t  stTotalSize, size_t *pstOft)
 {
     *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
                        "%c%c%d: %08X %d\n",
-                       group->netif->name[0],
-                       group->netif->name[1],
-                       group->netif->num,
+                       netif->name[0],
+                       netif->name[1],
+                       netif->num,
                        group->group_address.addr,
                        (u32_t)group->use);
 }
 
-#endif                                                                  /*  LW_CFG_LWIP_IGMP > 0        */
+#endif                                                                  /*  LWIP_IGMP > 0               */
 /*********************************************************************************************************
 ** 函数名称: __procFsNetIgmpRead
 ** 功能描述: procfs 读一个读取网络 igmp 文件
@@ -1088,7 +1087,7 @@ static ssize_t  __procFsNetIgmpRead (PLW_PROCFS_NODE  p_pfsn,
                                      size_t           stMaxBytes,
                                      off_t            oft)
 {
-#if LW_CFG_LWIP_IGMP > 0
+#if LWIP_IGMP > 0
     const CHAR      cIgmpInfoHdr[] = 
     "DEV  GROUP    COUNT\n";
           PCHAR     pcFileBuffer;
@@ -1102,10 +1101,13 @@ static ssize_t  __procFsNetIgmpRead (PLW_PROCFS_NODE  p_pfsn,
     if (pcFileBuffer == LW_NULL) {                                      /*  还没有分配内存              */
         size_t  stNeedBufferSize = 0;
         struct igmp_group *group;
+        struct netif      *netif;
         
         LOCK_TCPIP_CORE();
-        for (group = igmp_group_list; group != NULL; group = group->next) {
-            stNeedBufferSize += 64;
+        for (netif = netif_list; netif != LW_NULL; netif = netif->next) {
+            for (group = netif_igmp_data(netif); group != NULL; group = group->next) {
+                stNeedBufferSize += 64;
+            }
         }
         UNLOCK_TCPIP_CORE();
         
@@ -1120,8 +1122,10 @@ static ssize_t  __procFsNetIgmpRead (PLW_PROCFS_NODE  p_pfsn,
         stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, 0, cIgmpInfoHdr); 
                                                                         /*  打印头信息                  */
         LOCK_TCPIP_CORE();
-        for (group = igmp_group_list; group != NULL; group = group->next) {
-            __procFsNetIgmpPrint(group, pcFileBuffer, stNeedBufferSize, &stRealSize);
+        for (netif = netif_list; netif != LW_NULL; netif = netif->next) {
+            for (group = netif_igmp_data(netif); group != NULL; group = group->next) {
+                __procFsNetIgmpPrint(group, netif, pcFileBuffer, stNeedBufferSize, &stRealSize);
+            }
         }
         UNLOCK_TCPIP_CORE();
         API_ProcFsNodeSetRealFileSize(p_pfsn, stRealSize);
@@ -1139,12 +1143,13 @@ static ssize_t  __procFsNetIgmpRead (PLW_PROCFS_NODE  p_pfsn,
     return  ((ssize_t)stCopeBytes);
 #else
     return  (0);
-#endif                                                                  /*  LW_CFG_LWIP_IGMP > 0        */
+#endif                                                                  /*  LWIP_IGMP > 0               */
 }
 /*********************************************************************************************************
 ** 函数名称: __procFsNetIgmp6Print
 ** 功能描述: 打印网络 igmp6 文件
 ** 输　入  : group         mld_group 控制块
+**           netif         网络接口
 **           pcBuffer      缓冲
 **           stTotalSize   缓冲区大小
 **           pstOft        当前偏移量
@@ -1152,16 +1157,16 @@ static ssize_t  __procFsNetIgmpRead (PLW_PROCFS_NODE  p_pfsn,
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-#if LW_CFG_LWIP_IGMP > 0
+#if LWIP_IGMP > 0
 
-static VOID  __procFsNetIgmp6Print (struct mld_group *group, PCHAR  pcBuffer, 
-                                    size_t  stTotalSize, size_t *pstOft)
+static VOID  __procFsNetIgmp6Print (struct mld_group *group, struct netif *netif,
+                                    PCHAR  pcBuffer, size_t  stTotalSize, size_t *pstOft)
 {
     *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
                        "%c%c%d: %08X%08X%08X%08X %d\n",
-                       group->netif->name[0],
-                       group->netif->name[1],
-                       group->netif->num,
+                       netif->name[0],
+                       netif->name[1],
+                       netif->num,
                        group->group_address.addr[0],
                        group->group_address.addr[1],
                        group->group_address.addr[2],
@@ -1169,7 +1174,7 @@ static VOID  __procFsNetIgmp6Print (struct mld_group *group, PCHAR  pcBuffer,
                        (u32_t)group->use);
 }
 
-#endif                                                                  /*  LW_CFG_LWIP_IGMP > 0        */
+#endif                                                                  /*  LWIP_IGMP > 0               */
 /*********************************************************************************************************
 ** 函数名称: __procFsNetIgmp6Read
 ** 功能描述: procfs 读一个读取网络 igmp6 文件
@@ -1186,7 +1191,7 @@ static ssize_t  __procFsNetIgmp6Read (PLW_PROCFS_NODE  p_pfsn,
                                       size_t           stMaxBytes,
                                       off_t            oft)
 {
-#if LW_CFG_LWIP_IGMP > 0
+#if LWIP_IGMP > 0
     const CHAR      cIgmp6InfoHdr[] = 
     "DEV  GROUP                            COUNT\n";
           PCHAR     pcFileBuffer;
@@ -1200,10 +1205,13 @@ static ssize_t  __procFsNetIgmp6Read (PLW_PROCFS_NODE  p_pfsn,
     if (pcFileBuffer == LW_NULL) {                                      /*  还没有分配内存              */
         size_t  stNeedBufferSize = 0;
         struct mld_group *group;
+        struct netif     *netif;
         
         LOCK_TCPIP_CORE();
-        for (group = mld_group_list; group != NULL; group = group->next) {
-            stNeedBufferSize += 128;
+        for (netif = netif_list; netif != LW_NULL; netif = netif->next) {
+            for (group = netif_mld6_data(netif); group != NULL; group = group->next) {
+                stNeedBufferSize += 128;
+            }
         }
         UNLOCK_TCPIP_CORE();
         
@@ -1218,8 +1226,10 @@ static ssize_t  __procFsNetIgmp6Read (PLW_PROCFS_NODE  p_pfsn,
         stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, 0, cIgmp6InfoHdr); 
                                                                         /*  打印头信息                  */
         LOCK_TCPIP_CORE();
-        for (group = mld_group_list; group != NULL; group = group->next) {
-            __procFsNetIgmp6Print(group, pcFileBuffer, stNeedBufferSize, &stRealSize);
+        for (netif = netif_list; netif != LW_NULL; netif = netif->next) {
+            for (group = netif_mld6_data(netif); group != NULL; group = group->next) {
+                __procFsNetIgmp6Print(group, netif, pcFileBuffer, stNeedBufferSize, &stRealSize);
+            }
         }
         UNLOCK_TCPIP_CORE();
         API_ProcFsNodeSetRealFileSize(p_pfsn, stRealSize);
@@ -1237,7 +1247,7 @@ static ssize_t  __procFsNetIgmp6Read (PLW_PROCFS_NODE  p_pfsn,
     return  ((ssize_t)stCopeBytes);
 #else
     return  (0);
-#endif                                                                  /*  LW_CFG_LWIP_IGMP > 0        */
+#endif                                                                  /*  LWIP_IGMP > 0               */
 }
 /*********************************************************************************************************
 ** 函数名称: __procFsNetTcpipStatPrintProto
@@ -1272,7 +1282,7 @@ static VOID  __procFsNetTcpipStatPrintProto (struct stats_proto *proto, const ch
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-#if LW_CFG_LWIP_IGMP > 0
+#if LWIP_IGMP > 0
 
 static VOID  __procFsNetTcpipStatPrintIgmp (struct stats_igmp *igmp, const char *name,
                                             PCHAR  pcBuffer, size_t  stTotalSize, size_t *pstOft)
@@ -1284,7 +1294,7 @@ static VOID  __procFsNetTcpipStatPrintIgmp (struct stats_igmp *igmp, const char 
                        igmp->rx_report, igmp->tx_join, igmp->tx_leave, igmp->tx_report);
 }
 
-#endif                                                                  /*  LW_CFG_LWIP_IGMP > 0        */
+#endif                                                                  /*  LWIP_IGMP > 0               */
 /*********************************************************************************************************
 ** 函数名称: __procFsNetTcpipStatPrintMem
 ** 功能描述: 打印网络 tcpip_stat 文件 mem 部分
@@ -1379,7 +1389,7 @@ static VOID  __procFsNetTcpipStatPrint (PCHAR  pcBuffer, size_t  stTotalSize, si
                        "rx_v1", "rx_group", "rx_general", "rx_report", 
                        "tx_join", "tx_leave", "tx_report");
 
-#if LW_CFG_LWIP_IGMP > 0
+#if LWIP_IGMP > 0
     __procFsNetTcpipStatPrintIgmp(&lwip_stats.igmp,      "IGMP",      pcBuffer, stTotalSize, pstOft);
     __procFsNetTcpipStatPrintIgmp(&lwip_stats.mld6,      "MLDv1",     pcBuffer, stTotalSize, pstOft);
 #endif
@@ -1404,9 +1414,9 @@ static VOID  __procFsNetTcpipStatPrint (PCHAR  pcBuffer, size_t  stTotalSize, si
     for (i = 0; i < MEMP_MAX; i++) {
         char *memp_names[] = {
 #define LWIP_MEMPOOL(name,num,size,desc) desc,
-#include "lwip/memp_std.h"
+#include "lwip/priv/memp_std.h"
         };
-        __procFsNetTcpipStatPrintMem(&lwip_stats.memp[i], memp_names[i], pcBuffer, stTotalSize, pstOft);
+        __procFsNetTcpipStatPrintMem(lwip_stats.memp[i], memp_names[i], pcBuffer, stTotalSize, pstOft);
     }
     
     __procFsNetTcpipStatPrintSys(&lwip_stats.sys, pcBuffer, stTotalSize, pstOft);
@@ -1728,8 +1738,7 @@ static VOID  __procFsNetGetIfFlag (struct netif *netif, PCHAR  pcFlag)
     }
     if (netif->flags & NETIF_FLAG_BROADCAST) {
         lib_strcat(pcFlag, "B");
-    }
-    if (netif->flags & NETIF_FLAG_POINTTOPOINT) {
+    } else {
         lib_strcat(pcFlag, "P");
     }
     if (netif->flags2 & NETIF_FLAG2_DHCP) {
@@ -1759,6 +1768,8 @@ static VOID  __procFsNetGetIfFlag (struct netif *netif, PCHAR  pcFlag)
 static VOID  __procFsNetDevPrint (struct netif *netif, PCHAR  pcBuffer, 
                                   size_t  stTotalSize, size_t *pstOft)
 {
+#define MIB2_NETIF(netif)   (&((netif)->mib2_counters))
+
     CHAR    cFlag[10];
     
     __procFsNetGetIfFlag(netif, cFlag);
@@ -1767,12 +1778,12 @@ static VOID  __procFsNetDevPrint (struct netif *netif, PCHAR  pcBuffer,
                        "%c%c%d: %-6u %-10u %-5u %-6u %-6u %-6u    %-10u %-5u %-6u %-6u %-6u %s\n",
                        netif->name[0], netif->name[1], netif->num,
                        netif->mtu,
-                       netif->ifinoctets,
-                       netif->ifinucastpkts + netif->ifinnucastpkts,
-                       0, netif->ifindiscards, 0,
-                       netif->ifoutoctets,
-                       netif->ifoutucastpkts + netif->ifoutnucastpkts,
-                       0, netif->ifoutdiscards, 0, 
+                       MIB2_NETIF(netif)->ifinoctets,
+                       MIB2_NETIF(netif)->ifinucastpkts + MIB2_NETIF(netif)->ifinnucastpkts,
+                       0, MIB2_NETIF(netif)->ifindiscards, 0,
+                       MIB2_NETIF(netif)->ifoutoctets,
+                       MIB2_NETIF(netif)->ifoutucastpkts + MIB2_NETIF(netif)->ifoutnucastpkts,
+                       0, MIB2_NETIF(netif)->ifoutdiscards, 0, 
                        cFlag);
 }
 /*********************************************************************************************************
@@ -1865,10 +1876,10 @@ static VOID  __procFsNetIfInet6Print (struct netif *netif, PCHAR  pcBuffer,
         if (ip6_addr_isvalid(netif->ip6_addr_state[i])) {
             *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
                                "%08X%08X%08X%08X %-5d %-9s %-5s %-9s %c%c%d\n",
-                               netif->ip6_addr[i].addr[0],
-                               netif->ip6_addr[i].addr[1],
-                               netif->ip6_addr[i].addr[2],
-                               netif->ip6_addr[i].addr[3],
+                               ip_2_ip6(&netif->ip6_addr[i])->addr[0],
+                               ip_2_ip6(&netif->ip6_addr[i])->addr[1],
+                               ip_2_ip6(&netif->ip6_addr[i])->addr[2],
+                               ip_2_ip6(&netif->ip6_addr[i])->addr[3],
                                netif->num,
                                "--",
                                "--",
@@ -2138,7 +2149,7 @@ static ssize_t  __procFsNetAodvRead (PLW_PROCFS_NODE  p_pfsn,
                               TTL_INCREMENT,
                               TTL_THRESHOLD,
                               AODV_MCAST,
-#if LW_CFG_LWIP_IGMP > 0
+#if LWIP_IGMP > 0
                               GROUP_HELLO_INTERVAL,
                               RREP_WAIT_TIME,
                               PRUNE_TIMEOUT,
@@ -2465,8 +2476,8 @@ static VOID  __procFsNetPppPrint (struct netif *netif, PCHAR  pcBuffer,
                        pcType,
                        netif->mtu,
                        pcPhase,
-                       netif->ifinoctets,
-                       netif->ifoutoctets);
+                       MIB2_NETIF(netif)->ifinoctets,
+                       MIB2_NETIF(netif)->ifoutoctets);
 }
 
 #endif                                                                  /*  LW_CFG_LWIP_PPP > 0         */
@@ -2503,7 +2514,8 @@ static ssize_t  __procFsNetPppRead (PLW_PROCFS_NODE  p_pfsn,
         
         LOCK_TCPIP_CORE();
         for (netif = netif_list; netif != LW_NULL; netif = netif->next) {
-            if (netif->flags & NETIF_FLAG_POINTTOPOINT) {
+            if (((netif->flags & NETIF_FLAG_BROADCAST) == 0) &&
+                (netif->name[0] == 'p') && (netif->name[1] == 'p')) {
                 stNeedBufferSize += 64;
             }
         }
@@ -2521,7 +2533,8 @@ static ssize_t  __procFsNetPppRead (PLW_PROCFS_NODE  p_pfsn,
                                                                         /*  打印头信息                  */
         LOCK_TCPIP_CORE();
         for (netif = netif_list; netif != LW_NULL; netif = netif->next) {
-            if (netif->flags & NETIF_FLAG_POINTTOPOINT) {
+            if (((netif->flags & NETIF_FLAG_BROADCAST) == 0) &&
+                (netif->name[0] == 'p') && (netif->name[1] == 'p')) {
                 __procFsNetPppPrint(netif, pcFileBuffer, stNeedBufferSize, &stRealSize);
             }
         }

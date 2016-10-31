@@ -71,14 +71,13 @@
 #include "netif/aodvif.h"
 #if PPP_SUPPORT > 0 || PPPOE_SUPPORT > 0
 #include "net/if.h"
-#include "lwip/pppapi.h"
+#include "netif/ppp/pppapi.h"
 #endif                                                                  /*  PPP_SUPPORT > 0 ||          */
                                                                         /*  PPPOE_SUPPORT > 0           */
 /*********************************************************************************************************
   版本判断 (警告!!! 低版本 lwip 系统将不再支持)
 *********************************************************************************************************/
-#if (LWIP_VERSION_MAJOR >= 1 && LWIP_VERSION_MINOR < 4) ||  \
-    (LWIP_VERSION_MAJOR < 1)
+#if __SYLIXOS_MAKEVER(LWIP_VERSION_MAJOR, LWIP_VERSION_MINOR, LWIP_VERSION_REVISION) <= __SYLIXOS_MAKEVER(1, 4, 0)
 #error lwip version too old!
 #endif                                                                  /*  LWIP 1.4.0 以下版本         */
 /*********************************************************************************************************

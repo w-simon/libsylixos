@@ -75,10 +75,8 @@ extern LW_LIST_LINE_HEADER      _G_plineVProcHeader;
 INT __moduleVerifyVersion (CPCHAR  pcModuleName, CPCHAR  pcVersion, ULONG  ulType)
 {
     ULONG       ulKoComNewest = __SYLIXOS_VERSION;                      /*  内核模块兼容的最大版本号    */
-    ULONG       ulKoComOldest = __SYLIXOS_MAKEVER(1, 0, 0);             /*  内核模块兼容的最小版本号    */
-    
-    ULONG       ulSoComNewest = __SYLIXOS_MAKEVER(5, 9, 9);             /*  应用动态库兼容的最大版本号  */
-    ULONG       ulSoComOldest = __SYLIXOS_MAKEVER(1, 0, 0);             /*  应用动态库兼容的最小版本号  */
+    ULONG       ulKoComOldest = __SYLIXOS_MAKEVER(1, 4, 0);             /*  内核模块兼容的最小版本号    */
+    ULONG       ulSoComOldest = __SYLIXOS_MAKEVER(1, 4, 0);             /*  应用动态库兼容的最小版本号  */
     
     ULONG       ulModuleOsVersion;
     
@@ -91,8 +89,7 @@ INT __moduleVerifyVersion (CPCHAR  pcModuleName, CPCHAR  pcVersion, ULONG  ulTyp
     ulModuleOsVersion = __SYLIXOS_MAKEVER(ulMajor, ulMinor, ulRevision);
     
     if (ulType == LW_LD_MOD_TYPE_SO) {
-        if (ulModuleOsVersion > ulSoComNewest ||
-            ulModuleOsVersion < ulSoComOldest) {                        /*  SO 不再兼容范围内           */
+        if (ulModuleOsVersion < ulSoComOldest) {                        /*  SO 不再兼容范围内           */
             goto    __bad_version;
         }
     

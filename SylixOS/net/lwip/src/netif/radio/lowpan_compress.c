@@ -42,7 +42,6 @@
 #include "lwip/mem.h"
 #include "lwip/pbuf.h"
 #include "lwip/inet.h"
-#include "lwip/inet6.h"
 #include "lwip/udp.h"
 
 #include "lowpan_if.h"

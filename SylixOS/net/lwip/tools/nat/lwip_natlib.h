@@ -33,7 +33,7 @@ typedef struct {
     LW_LIST_LINE        NAT_lineManage;                                 /*  NAT 控制块链表              */
     
     u8_t                NAT_ucProto;                                    /*  协议                        */
-    ip_addr_t           NAT_ipaddrLocalIp;                              /*  本地 IP 地址                */
+    ip4_addr_t          NAT_ipaddrLocalIp;                              /*  本地 IP 地址                */
     u16_t               NAT_usLocalPort;                                /*  本地端口号                  */
     u16_t               NAT_usAssPort;                                  /*  映射端口号 (唯一的)         */
     
@@ -52,7 +52,7 @@ typedef struct {
     LW_LIST_LINE        NAT_lineManage;
     
     u8_t                NAT_ucProto;                                    /*  协议                        */
-    ip_addr_t           NAT_ipaddrLocalIp;                              /*  本地 IP 地址                */
+    ip4_addr_t          NAT_ipaddrLocalIp;                              /*  本地 IP 地址                */
     u16_t               NAT_usLocalPort;                                /*  本地端口号                  */
     u16_t               NAT_usAssPort;                                  /*  映射端口号 (唯一的)         */
 } __NAT_MAP;
@@ -63,9 +63,9 @@ typedef __NAT_MAP      *__PNAT_MAP;
 typedef struct {
     LW_LIST_LINE        NAT_lineManage;
     
-    ip_addr_t           NAT_ipaddrAliasIp;                              /*  别名地址                    */
-    ip_addr_t           NAT_ipaddrSLocalIp;                             /*  别名对应本地 IP 范围        */
-    ip_addr_t           NAT_ipaddrELocalIp;
+    ip4_addr_t          NAT_ipaddrAliasIp;                              /*  别名地址                    */
+    ip4_addr_t          NAT_ipaddrSLocalIp;                             /*  别名对应本地 IP 范围        */
+    ip4_addr_t          NAT_ipaddrELocalIp;
 } __NAT_ALIAS;
 typedef __NAT_ALIAS    *__PNAT_ALIAS;
 /*********************************************************************************************************

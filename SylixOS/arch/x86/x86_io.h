@@ -172,7 +172,7 @@ static LW_INLINE VOID reads64 (addr_t  ulAddr, PVOID  pvBuffer, size_t  stCount)
   x86 处理器 I/O 内存连续写 (数据写入单个地址)
 *********************************************************************************************************/
 
-static LW_INLINE VOID writes8 (addr_t  ulAddr, PVOID  pvBuffer, size_t  stCount)
+static LW_INLINE VOID writes8 (addr_t  ulAddr, CPVOID  pvBuffer, size_t  stCount)
 {
     REGISTER UINT8  *pucBuffer = (UINT8 *)pvBuffer;
 
@@ -183,7 +183,7 @@ static LW_INLINE VOID writes8 (addr_t  ulAddr, PVOID  pvBuffer, size_t  stCount)
     }
 }
 
-static LW_INLINE VOID writes16 (addr_t  ulAddr, PVOID  pvBuffer, size_t  stCount)
+static LW_INLINE VOID writes16 (addr_t  ulAddr, CPVOID  pvBuffer, size_t  stCount)
 {
     REGISTER UINT16  *pusBuffer = (UINT16 *)pvBuffer;
 
@@ -194,7 +194,7 @@ static LW_INLINE VOID writes16 (addr_t  ulAddr, PVOID  pvBuffer, size_t  stCount
     }
 }
 
-static LW_INLINE VOID writes32 (addr_t  ulAddr, PVOID  pvBuffer, size_t  stCount)
+static LW_INLINE VOID writes32 (addr_t  ulAddr, CPVOID  pvBuffer, size_t  stCount)
 {
     REGISTER UINT32  *puiBuffer = (UINT32 *)pvBuffer;
 
@@ -205,7 +205,7 @@ static LW_INLINE VOID writes32 (addr_t  ulAddr, PVOID  pvBuffer, size_t  stCount
     }
 }
 
-static LW_INLINE VOID writes64 (addr_t  ulAddr, PVOID  pvBuffer, size_t  stCount)
+static LW_INLINE VOID writes64 (addr_t  ulAddr, CPVOID  pvBuffer, size_t  stCount)
 {
     REGISTER UINT64  *pu64Buffer = (UINT64 *)pvBuffer;
 
@@ -279,10 +279,10 @@ VOID ins64(addr_t  ulAddr, PVOID  pvBuffer, size_t  stCount);
   x86 处理器 I/O 端口连续写 (数据写入单个地址)
 *********************************************************************************************************/
 
-VOID outs8( addr_t  ulAddr, PVOID  pvBuffer, size_t  stCount);
-VOID outs16(addr_t  ulAddr, PVOID  pvBuffer, size_t  stCount);
-VOID outs32(addr_t  ulAddr, PVOID  pvBuffer, size_t  stCount);
-VOID outs64(addr_t  ulAddr, PVOID  pvBuffer, size_t  stCount);
+VOID outs8( addr_t  ulAddr, CPVOID  pvBuffer, size_t  stCount);
+VOID outs16(addr_t  ulAddr, CPVOID  pvBuffer, size_t  stCount);
+VOID outs32(addr_t  ulAddr, CPVOID  pvBuffer, size_t  stCount);
+VOID outs64(addr_t  ulAddr, CPVOID  pvBuffer, size_t  stCount);
 
 #endif                                                                  /*  __ARCH_X86_IO_H             */
 /*********************************************************************************************************

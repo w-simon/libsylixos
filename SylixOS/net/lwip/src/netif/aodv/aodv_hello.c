@@ -154,7 +154,7 @@ void aodv_hello_send (void *arg)
    */
   for (i = 0; i < AODV_MAX_NETIF; i++) {
     if (aodv_netif[i]) {
-      addr.s_addr = aodv_netif[i]->ip_addr.addr;
+      addr.s_addr = netif_ip4_addr(aodv_netif[i])->addr;
       p = aodv_rrep_create(0, 0, 0, &addr, aodv_host_state.seqno, &addr, 
                            ALLOWED_HELLO_LOSS * HELLO_INTERVAL, ext_size, NULL);
       if (p) {
@@ -266,7 +266,7 @@ void aodv_hello_process (struct pbuf *p, struct netif *netif)
     case RREP_HELLO_NEIGHBOR_SET_EXT:
       for (i = 0; i < ext->length; i += sizeof(struct in_addr)) {
         memcpy(&ext_neighbor, (AODV_EXT_DATA(ext) + i), sizeof(struct in_addr));
-        if (ext_neighbor.s_addr == netif->ip_addr.addr) {
+        if (ext_neighbor.s_addr == netif_ip4_addr(netif)->addr) {
           flags &= ~AODV_RT_UNIDIR;
         }
       }

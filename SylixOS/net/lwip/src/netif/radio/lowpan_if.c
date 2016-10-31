@@ -38,6 +38,8 @@
  * This is an arch independent 6lowpan netif.
  */
 #include "lwip/tcpip.h"
+#include "lwip/dhcp.h"
+#include "lwip/autoip.h"
 #include "lwip/snmp.h"
 
 #include "lowpan_if.h"
@@ -238,7 +240,7 @@ lowpan_level_init (struct netif *netif)
  * - ERR_IF Error interface of this packet
  */
 static err_t
-netif_null_output_ip4(struct netif *netif, struct pbuf *p, const ip_addr_t *ipaddr)
+netif_null_output_ip4(struct netif *netif, struct pbuf *p, const ip4_addr_t *ipaddr)
 {
     (void)netif;
     (void)p;

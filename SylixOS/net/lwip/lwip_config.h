@@ -48,8 +48,16 @@ extern "C" {
   Platform specific locking
 *********************************************************************************************************/
 
-#define SYS_LIGHTWEIGHT_PROT            1
-#define LWIP_MPU_COMPATIBLE             0                               /*  Do not use MPU support.     */
+#define SYS_LIGHTWEIGHT_PROT                    1
+#define LWIP_DONT_PROVIDE_BYTEORDER_FUNCTIONS   1
+#define LWIP_MPU_COMPATIBLE                     0                       /*  Do not use MPU support.     */
+
+/*********************************************************************************************************
+  Platform memcpy smemcpy
+*********************************************************************************************************/
+
+#define MEMCPY      lib_memcpy
+#define SMEMCPY     lib_memcpy
 
 /*********************************************************************************************************
   Memory options
@@ -92,21 +100,19 @@ extern "C" {
   check sum
 *********************************************************************************************************/
 
-#if LW_CFG_LWIP_GEN_CHECKSUM == 0
-#define CHECKSUM_GEN_IP                 0
-#define CHECKSUM_GEN_UDP                0
-#define CHECKSUM_GEN_TCP                0
-#define CHECKSUM_GEN_ICMP               0
-#define CHECKSUM_GEN_ICMP6              0
-#endif                                                                  /*  LW_CFG_LWIP_GEN_CHECKSUM    */
+#define LWIP_CHECKSUM_CTRL_PER_NETIF    1
 
-#if LW_CFG_LWIP_CHECK_CHECKSUM == 0
-#define CHECKSUM_CHECK_IP               0
-#define CHECKSUM_CHECK_UDP              0
-#define CHECKSUM_CHECK_TCP              0
-#define CHECKSUM_CHECK_ICMP             0
-#define CHECKSUM_CHECK_ICMP6            0
-#endif                                                                  /*  LW_CFG_LWIP_CHECK_CHECKSUM  */
+#define CHECKSUM_GEN_IP                 1
+#define CHECKSUM_GEN_UDP                1
+#define CHECKSUM_GEN_TCP                1
+#define CHECKSUM_GEN_ICMP               1
+#define CHECKSUM_GEN_ICMP6              1
+
+#define CHECKSUM_CHECK_IP               1
+#define CHECKSUM_CHECK_UDP              1
+#define CHECKSUM_CHECK_TCP              1
+#define CHECKSUM_CHECK_ICMP             1
+#define CHECKSUM_CHECK_ICMP6            1
 
 #define LWIP_CHECKSUM_ON_COPY           1                               /*  拷贝数据包同时计算 chksum   */
 
@@ -133,7 +139,7 @@ extern "C" {
 *********************************************************************************************************/
 
 #define LWIP_IPV6                       1
-#define LWIP_IPV6_MLD                   LW_CFG_LWIP_IGMP
+#define LWIP_IPV6_MLD                   1
 #define LWIP_IPV6_FORWARD               LW_CFG_NET_GATEWAY
 #define LWIP_ICMP6                      1
 #define LWIP_IPV6_FRAG                  LW_CFG_LWIP_IPFRAG
@@ -142,7 +148,7 @@ extern "C" {
 #define MEMP_NUM_MLD6_GROUP             16
 #define LWIP_ND6_NUM_NEIGHBORS          LW_CFG_LWIP_ARP_TABLE_SIZE
 #define LWIP_ND6_NUM_DESTINATIONS       LW_CFG_LWIP_ARP_TABLE_SIZE
-#define LWIP_IPV6_DHCP6                 LW_CFG_LWIP_DHCP
+#define LWIP_IPV6_DHCP6                 1
 
 #define LWIP_IPV6_NUM_ADDRESSES         5                               /*  one face max 5 ipv6 addr    */
 
@@ -150,10 +156,10 @@ extern "C" {
   dhcp & autoip
 *********************************************************************************************************/
 
-#define LWIP_DHCP                       LW_CFG_LWIP_DHCP                /*  DHCP                        */
+#define LWIP_DHCP                       1                               /*  DHCP                        */
 #define LWIP_DHCP_CHECK_LINK_UP         1
 #define LWIP_DHCP_BOOTP_FILE            0                               /*  not include bootp file now  */
-#define LWIP_AUTOIP                     LW_CFG_LWIP_AUTOIP
+#define LWIP_AUTOIP                     1
 
 #if (LWIP_DHCP > 0) && (LWIP_AUTOIP > 0)
 #define LWIP_DHCP_AUTOIP_COOP           1
@@ -189,7 +195,8 @@ extern "C" {
   SNMP
 *********************************************************************************************************/
 
-#define LWIP_SNMP                       LW_CFG_LWIP_SNMP
+#define LWIP_SNMP                       1
+#define MIB2_STATS                      1
 #define SNMP_PRIVATE_MIB                1                               /*  support now!                */
 
 extern  VOID  __netSnmpGetTimestamp(UINT32  *puiTimestamp);
@@ -205,7 +212,7 @@ extern  VOID  __netSnmpPriMibInit(VOID);
   IGMP
 *********************************************************************************************************/
 
-#define LWIP_IGMP                       LW_CFG_LWIP_IGMP
+#define LWIP_IGMP                       1
 #define MEMP_NUM_IGMP_GROUP             LW_CFG_LWIP_IGMP_GROUP
 
 /*********************************************************************************************************
@@ -223,10 +230,12 @@ extern  VOID  __netSnmpPriMibInit(VOID);
 #define DNS_LOCAL_HOSTLIST              1
 #define DNS_LOCAL_HOSTLIST_INIT         {{"none-host", {(u32_t)0}, LW_NULL}}
 
-extern  UINT32  __inetHostTableGetItem(CPCHAR  pcHost);                 /*  本地地址映射表查询          */
+extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrType);
+                                                                        /*  本地地址映射表查询          */
                                                                         /*  范围 IPv4 网络字节序地址    */
 #define DNS_LOCAL_HOSTLIST_IS_DYNAMIC   1
-#define DNS_LOOKUP_LOCAL_EXTERN(x)      __inetHostTableGetItem(x)
+#define DNS_LOOKUP_LOCAL_EXTERN(name, addr, type)   \
+        __inetHostTableGetItem(name, addr, type)
 
 /*********************************************************************************************************
   TCP basic
@@ -350,7 +359,7 @@ extern  UINT32  __inetHostTableGetItem(CPCHAR  pcHost);                 /*  本地
 #define ARP_TABLE_SIZE                  LW_CFG_LWIP_ARP_TABLE_SIZE
 #define ETHARP_TRUST_IP_MAC             LW_CFG_LWIP_ARP_TRUST_IP_MAC
 #define ETHARP_SUPPORT_VLAN             1                               /*  IEEE 802.1q VLAN            */
-#define ETH_PAD_SIZE                    LW_CFG_LWIP_ETH_PAD_SIZE
+#define ETH_PAD_SIZE                    2
 #define ETHARP_SUPPORT_STATIC_ENTRIES   1
 #define ETHARP_TABLE_MATCH_NETIF        1
 
@@ -477,19 +486,6 @@ extern  UINT32  __inetHostTableGetItem(CPCHAR  pcHost);                 /*  本地
 #define PPP_IPV6_SUPPORT                1
 
 /*********************************************************************************************************
-  [for new ppp] 
-  
-  use sylixos ssl (external PolarSSL) 
-*********************************************************************************************************/
-
-#if __LWIP_USE_PPP_NEW > 0
-#define LWIP_INCLUDED_POLARSSL_MD5      0
-#define LWIP_INCLUDED_POLARSSL_MD4      0
-#define LWIP_INCLUDED_POLARSSL_SHA1     0
-#define LWIP_INCLUDED_POLARSSL_DES      0
-#endif                                                                  /*  __LWIP_USE_PPP_NEW          */
-
-/*********************************************************************************************************
   ppp timeouts
 *********************************************************************************************************/
 
@@ -592,7 +588,7 @@ extern int link_output_hook(PVOID  pvPBuf, PVOID  pvNetif);
   lwip vlan hook (for AF_PACKET and Net Defender)
 *********************************************************************************************************/
 
-extern int etharp_vlan_set_hook(PVOID pvNetif, PVOID pvEthhdr, PVOID pvVlanhdr);
+extern int etharp_vlan_set_hook(PVOID pvNetif, PVOID pvPBuf, const PVOID pvEthSrc, const PVOID pvEthDst, UINT16  usEthType);
 #define LWIP_HOOK_VLAN_SET      etharp_vlan_set_hook
 
 extern int etharp_vlan_check_hook(PVOID pvNetif, PVOID pvEthhdr, PVOID pvVlanhdr);

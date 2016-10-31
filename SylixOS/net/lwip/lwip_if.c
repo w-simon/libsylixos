@@ -55,8 +55,8 @@ INT  if_down (const char *ifname)
     if (pnetif) {
         if (pnetif->flags & NETIF_FLAG_UP) {
 #if LWIP_DHCP > 0
-            if (pnetif->dhcp && pnetif->dhcp->pcb) {
-                netifapi_netif_common(pnetif, NULL, dhcp_release);      /*  解除 DHCP 租约, 同时停止网卡*/
+            if (netif_dhcp_data(pnetif)) {
+                netifapi_dhcp_release(pnetif);                          /*  解除 DHCP 租约, 同时停止网卡*/
                 netifapi_dhcp_stop(pnetif);                             /*  释放资源                    */
             }
 #endif                                                                  /*  LWIP_DHCP > 0               */
@@ -96,7 +96,7 @@ INT  if_up (const char *ifname)
             netifapi_netif_set_up(pnetif);
 #if LWIP_DHCP > 0
             if (pnetif->flags2 & NETIF_FLAG2_DHCP) {
-                ip_addr_t   inaddrNone;
+                ip4_addr_t   inaddrNone;
                 lib_bzero(&inaddrNone, sizeof(ip_addr_t));
                 netifapi_netif_set_addr(pnetif, &inaddrNone, &inaddrNone, &inaddrNone);
                 netifapi_dhcp_start(pnetif);

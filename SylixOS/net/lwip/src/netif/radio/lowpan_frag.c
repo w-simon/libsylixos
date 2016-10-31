@@ -35,7 +35,7 @@
  */
 
 #include "lwip/mem.h"
-#include "lwip/timers.h"
+#include "lwip/timeouts.h"
 #include "lwip/tcpip.h"
 
 #if LWIP_SUPPORT_CUSTOM_PBUF

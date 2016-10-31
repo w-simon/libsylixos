@@ -111,6 +111,18 @@ static LW_SYMBOL    _G_symLibc[] = {
     {   {LW_NULL, LW_NULL}, "lwip_getaddrinfo", (caddr_t)getaddrinfo,
     	 LW_SYMBOL_FLAG_STATIC | LW_SYMBOL_FLAG_REN | LW_SYMBOL_FLAG_XEN
     },
+/*********************************************************************************************************
+  net µØÖ·×ª»»¼æÈÝ
+*********************************************************************************************************/
+    {   {LW_NULL, LW_NULL}, "ipaddr_aton", (caddr_t)ip4addr_aton,
+    	 LW_SYMBOL_FLAG_STATIC | LW_SYMBOL_FLAG_REN | LW_SYMBOL_FLAG_XEN
+    },
+    {   {LW_NULL, LW_NULL}, "ipaddr_ntoa", (caddr_t)ip4addr_ntoa,
+    	 LW_SYMBOL_FLAG_STATIC | LW_SYMBOL_FLAG_REN | LW_SYMBOL_FLAG_XEN
+    },
+    {   {LW_NULL, LW_NULL}, "ipaddr_ntoa_r", (caddr_t)ip4addr_ntoa_r,
+    	 LW_SYMBOL_FLAG_STATIC | LW_SYMBOL_FLAG_REN | LW_SYMBOL_FLAG_XEN
+    },
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */
 /*********************************************************************************************************
   process
