@@ -43,11 +43,21 @@ LW_API INT          API_NetJobAdd(VOIDFUNCPTR  pfunc,
                                   PVOID        pvArg4,
                                   PVOID        pvArg5);                 /*  net job add                 */
                                   
+LW_API VOID         API_NetJobDelete(UINT         uiMatchArgNum,
+                                     VOIDFUNCPTR  pfunc, 
+                                     PVOID        pvArg0,
+                                     PVOID        pvArg1,
+                                     PVOID        pvArg2,
+                                     PVOID        pvArg3,
+                                     PVOID        pvArg4,
+                                     PVOID        pvArg5);              /*  net job delete              */
+                                  
 LW_API size_t       API_NetJobGetLost(VOID);
 
 #define netInit             API_NetInit
 #define netSnmpInit         API_NetSnmpInit
 #define netJobAdd           API_NetJobAdd
+#define netJobDelete        API_NetJobDelete
 #define netJobGetLost       API_NetJobGetLost
 
 #endif                                                                  /*  LW_CFG_NET_EN               */

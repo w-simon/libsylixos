@@ -522,6 +522,18 @@ int  netdev_notify (struct netdev *netdev, netdev_inout inout, int q_en)
   return (0);
 }
 
+int  netdev_notify_clear (struct netdev *netdev)
+{
+  if (!netdev || (netdev->magic_no != NETDEV_MAGIC)) {
+    return (-1);
+  }
+  
+  netJobDelete(2, netdev->drv->receive, netdev, 
+               (void *)netdev_netif_linkinput, 0, 0, 0, 0);
+               
+  return (0);
+}
+
 /* netdev statistical information update functions in:1 input 0:output */
 void netdev_statinfo_total_add (netdev_t *netdev, netdev_inout inout, UINT32 bytes)
 {

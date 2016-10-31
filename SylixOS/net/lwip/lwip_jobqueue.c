@@ -111,6 +111,38 @@ INT  API_NetJobAdd (VOIDFUNCPTR  pfunc,
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: API_NetJobDelete
+** 功能描述: 从网络异步处理作业队列中删除
+** 输　入  : uiMatchArgNum              匹配参数的个数
+**           pfunc                      函数指针
+**           pvArg0                     函数参数
+**           pvArg1                     函数参数
+**           pvArg2                     函数参数
+**           pvArg3                     函数参数
+**           pvArg4                     函数参数
+**           pvArg5                     函数参数
+** 输　出  : 操作是否成功
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+VOID  API_NetJobDelete (UINT         uiMatchArgNum,
+                        VOIDFUNCPTR  pfunc, 
+                        PVOID        pvArg0,
+                        PVOID        pvArg1,
+                        PVOID        pvArg2,
+                        PVOID        pvArg3,
+                        PVOID        pvArg4,
+                        PVOID        pvArg5)
+{
+    if (!pfunc) {
+        return;
+    }
+    
+    _jobQueueDel(&_G_jobqNet, uiMatchArgNum, pfunc, pvArg0, pvArg1, pvArg2, pvArg3, pvArg4, pvArg5);
+}
+/*********************************************************************************************************
 ** 函数名称: _NetJobThread
 ** 功能描述: 网络工作队列处理线程
 ** 输　入  : NONE

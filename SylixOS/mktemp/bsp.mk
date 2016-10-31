@@ -22,18 +22,20 @@
 #*********************************************************************************************************
 # Copy symbol.c symbol.h
 #*********************************************************************************************************
-SYMBOL_PATH = SylixOS/bsp
+BSP_SYMBOL_PATH = SylixOS/bsp
 
-$(SYMBOL_PATH)/symbol.c: $(subst $(SPACE),\ ,$(SYLIXOS_BASE_PATH))/libsylixos/$(OUTDIR)/symbol.c $(SYMBOL_PATH)/symbol.h
-		cp "$(SYLIXOS_BASE_PATH)/libsylixos/$(OUTDIR)/symbol.c" $(SYMBOL_PATH)/symbol.c
+ifeq ($(BSP_SYMBOL_PATH),)
+$(BSP_SYMBOL_PATH)/symbol.c: $(subst $(SPACE),\ ,$(SYLIXOS_BASE_PATH))/libsylixos/$(OUTDIR)/symbol.c $(BSP_SYMBOL_PATH)/symbol.h
+		cp "$(SYLIXOS_BASE_PATH)/libsylixos/$(OUTDIR)/symbol.c" $(BSP_SYMBOL_PATH)/symbol.c
 
-$(SYMBOL_PATH)/symbol.h: $(subst $(SPACE),\ ,$(SYLIXOS_BASE_PATH))/libsylixos/$(OUTDIR)/symbol.h
-		cp "$(SYLIXOS_BASE_PATH)/libsylixos/$(OUTDIR)/symbol.h" $(SYMBOL_PATH)/symbol.h
+$(BSP_SYMBOL_PATH)/symbol.h: $(subst $(SPACE),\ ,$(SYLIXOS_BASE_PATH))/libsylixos/$(OUTDIR)/symbol.h
+		cp "$(SYLIXOS_BASE_PATH)/libsylixos/$(OUTDIR)/symbol.h" $(BSP_SYMBOL_PATH)/symbol.h
+endif
 
 #*********************************************************************************************************
 # Add symbol.c to LOCAL_SRCS
 #*********************************************************************************************************
-LOCAL_SRCS := $(SYMBOL_PATH)/symbol.c $(LOCAL_SRCS)
+LOCAL_SRCS := $(BSP_SYMBOL_PATH)/symbol.c $(LOCAL_SRCS)
 
 #*********************************************************************************************************
 # Include common.mk
@@ -141,9 +143,9 @@ $($(target)_STRIP_IMG): $($(target)_IMG)
 # Add targets
 #*********************************************************************************************************
 ifeq ($(COMMERCIAL), 1)
-TARGETS := $(TARGETS) $($(target)_IMG) $($(target)_BIN) $($(target)_SIZ) $($(target)_STRIP_IMG) $($(target)_LZO) $(SYMBOL_PATH)/symbol.c $(SYMBOL_PATH)/symbol.h
+TARGETS := $(TARGETS) $($(target)_IMG) $($(target)_BIN) $($(target)_SIZ) $($(target)_STRIP_IMG) $($(target)_LZO) $(BSP_SYMBOL_PATH)/symbol.c $(BSP_SYMBOL_PATH)/symbol.h
 else
-TARGETS := $(TARGETS) $($(target)_IMG) $($(target)_BIN) $($(target)_SIZ) $($(target)_STRIP_IMG) $(SYMBOL_PATH)/symbol.c $(SYMBOL_PATH)/symbol.h
+TARGETS := $(TARGETS) $($(target)_IMG) $($(target)_BIN) $($(target)_SIZ) $($(target)_STRIP_IMG) $(BSP_SYMBOL_PATH)/symbol.c $(BSP_SYMBOL_PATH)/symbol.h
 endif
 
 #*********************************************************************************************************
