@@ -1031,6 +1031,7 @@ static INT  __ftpdCmdStor (__PFTPD_SESSION  pftpds, CPCHAR  pcFileName, INT  iAp
 {
     INT         iSock;
     INT         iFd;
+    struct stat statGet;
     CHAR        cLocalBuffer[__LWIP_FTPD_BUFFER_SIZE];
     PCHAR       pcTransBuffer = LW_NULL;
     INT         iBufferSize;
@@ -1063,6 +1064,12 @@ static INT  __ftpdCmdStor (__PFTPD_SESSION  pftpds, CPCHAR  pcFileName, INT  iAp
         } else {
             __ftpdSendReply(pftpds, __FTPD_RETCODE_SERVER_REQ_FAILED, "Error creating file.");
         }
+        __ftpdCloseSessionData(pftpds);
+        return  (ERROR_NONE);
+    }
+    if ((fstat(iFd, &statGet) < 0) || S_ISDIR(statGet.st_mode)) {       /*  不允许与 DIR 同名           */
+        close(iFd);                                                     /*  关闭文件                    */
+        __ftpdSendReply(pftpds, __FTPD_RETCODE_SERVER_REQ_FAILED, "Error creating file.");
         __ftpdCloseSessionData(pftpds);
         return  (ERROR_NONE);
     }
@@ -1118,7 +1125,7 @@ __recv_over:
 
     if (0 >= iN) {                                                      /*  发送完毕                    */
         iResult = 1;
-    } else {
+    } else if (!iAppe) {                                                /*  非追加模式                  */
         unlink(pcFileName);                                             /*  传输失败删除文件            */
     }
     

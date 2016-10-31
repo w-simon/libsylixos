@@ -51,6 +51,7 @@ static VOID    _NetJobThread(VOID);                                     /*  作业
 *********************************************************************************************************/
 INT  _netJobqueueInit (VOID)
 {
+    INT                 i, iMaxJobq, iCreate;
     LW_OBJECT_HANDLE    hNetJobThread;
     LW_CLASS_THREADATTR threadattr;
     
@@ -62,12 +63,21 @@ INT  _netJobqueueInit (VOID)
                         LW_PRIO_T_NETJOB, 
                         (LW_OPTION_THREAD_STK_CHK | LW_OPTION_THREAD_SAFE | LW_OPTION_OBJECT_GLOBAL),
                         LW_NULL);
-                        
-    hNetJobThread = API_ThreadCreate("t_netjob",
-                                     (PTHREAD_START_ROUTINE)_NetJobThread,
-                                     (PLW_CLASS_THREADATTR)&threadattr,
-                                     LW_NULL);                          /*  建立 job 处理线程           */
-    if (!hNetJobThread) {
+    
+    iMaxJobq = (LW_CFG_LWIP_JOBQUEUE_NUM > LW_NCPUS) ? LW_NCPUS : LW_CFG_LWIP_JOBQUEUE_NUM;
+    iCreate  = 0;
+    
+    for (i = 0; i < iMaxJobq; i++) {
+        hNetJobThread = API_ThreadCreate("t_netjob",
+                                         (PTHREAD_START_ROUTINE)_NetJobThread,
+                                         (PLW_CLASS_THREADATTR)&threadattr,
+                                         LW_NULL);                      /*  建立 job 处理线程           */
+        if (hNetJobThread) {
+            iCreate++;
+        }
+    }
+    
+    if (iCreate == 0) {
         _jobQueueFinit(&_G_jobqNet);
         return  (PX_ERROR);
     }

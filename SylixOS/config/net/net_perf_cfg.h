@@ -40,7 +40,8 @@
   队列配置
 *********************************************************************************************************/
 
-#define LW_CFG_LWIP_JOBQUEUE_SIZE       256                             /*  sylixos job queue size      */
+#define LW_CFG_LWIP_JOBQUEUE_NUM        1                               /*  可使能多个 netjob 并行工作  */
+#define LW_CFG_LWIP_JOBQUEUE_SIZE       512                             /*  sylixos job queue size      */
 #define LW_CFG_LWIP_STK_SIZE            4096                            /*  lwip thread default stksize */
 
 /*********************************************************************************************************

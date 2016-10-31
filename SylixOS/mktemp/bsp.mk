@@ -22,9 +22,9 @@
 #*********************************************************************************************************
 # Copy symbol.c symbol.h
 #*********************************************************************************************************
+ifeq ($(BSP_SYMBOL_PATH),)
 BSP_SYMBOL_PATH = SylixOS/bsp
 
-ifeq ($(BSP_SYMBOL_PATH),)
 $(BSP_SYMBOL_PATH)/symbol.c: $(subst $(SPACE),\ ,$(SYLIXOS_BASE_PATH))/libsylixos/$(OUTDIR)/symbol.c $(BSP_SYMBOL_PATH)/symbol.h
 		cp "$(SYLIXOS_BASE_PATH)/libsylixos/$(OUTDIR)/symbol.c" $(BSP_SYMBOL_PATH)/symbol.c
 
