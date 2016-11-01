@@ -330,9 +330,9 @@ entry_ok:
     }
 
     /*
-     *  截断文件,只有当不是符号链接时才有效
+     *  截断文件,只有当不是符号链接和目录时才有效
      */
-    if (!S_ISLNK((*ppinode)->IND_iMode)) {
+    if (!S_ISLNK((*ppinode)->IND_iMode) && !S_ISDIR((*ppinode)->IND_iMode)) {
         if (iFlags & O_TRUNC) {
             iErr = tpsFsTrunc(*ppinode, 0);
             if (iErr != ERROR_NONE) {
