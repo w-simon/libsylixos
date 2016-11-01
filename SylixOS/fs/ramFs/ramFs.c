@@ -259,6 +259,7 @@ static LONG __ramFsOpen (PRAM_VOLUME     pramfs,
     PRAM_NODE   pramn;
     PRAM_NODE   pramnFather;
     BOOL        bRoot;
+    BOOL        bLast;
     PCHAR       pcTail;
     BOOL        bIsNew;
     BOOL        bCreate = LW_FALSE;
@@ -287,7 +288,7 @@ static LONG __ramFsOpen (PRAM_VOLUME     pramfs,
         return  (PX_ERROR);
     }
     
-    pramn = __ram_open(pramfs, pcName, &pramnFather, &bRoot, LW_NULL, &pcTail);
+    pramn = __ram_open(pramfs, pcName, &pramnFather, &bRoot, &bLast, &pcTail);
     if (pramn) {
         if (!S_ISLNK(pramn->RAMN_mode)) {
             if ((iFlags & O_CREAT) && (iFlags & O_EXCL)) {              /*  排他创建文件                */
@@ -299,7 +300,8 @@ static LONG __ramFsOpen (PRAM_VOLUME     pramfs,
                 goto    __file_open_ok;
             }
         }
-    } else if (iFlags & O_CREAT) {                                      /*  创建节点                    */
+    
+    } else if ((iFlags & O_CREAT) && bLast) {                           /*  创建节点                    */
         pramn = __ram_maken(pramfs, pcName, pramnFather, iMode, LW_NULL);
         if (pramn) {
             bCreate = LW_TRUE;

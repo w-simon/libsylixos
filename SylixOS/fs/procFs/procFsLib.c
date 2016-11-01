@@ -90,6 +90,7 @@ PLW_PROCFS_NODE  __procFsFindNode (CPCHAR            pcName,
             *pbLast = LW_FALSE;
         }
         return  (LW_NULL);
+    
     } else {
         if (pbRoot) {
             *pbRoot = LW_FALSE;                                         /*  pcName ²»Îª¸ù               */

@@ -109,7 +109,7 @@ static VOID  __oemAutoMountAdd (CPCHAR  pcVol, CPCHAR  pcDevTail, INT  iBlkNo, I
     }
     
     lib_strlcpy(pamnt->AMNT_cVol, pcVol, MAX_FILENAME_LENGTH);
-    snprintf(pamnt->AMNT_cDev, stDevLen, "%s%s%d:%d", LW_BLKIO_PERFIX, pcDevTail, iBlkNo, iPartNo);
+    snprintf(pamnt->AMNT_cDev, stDevLen, "%s%s-%d:%d", LW_BLKIO_PERFIX, pcDevTail, iBlkNo, iPartNo);
     
     AUTOMOUNT_LOCK();
     _List_Line_Add_Ahead(&pamnt->AMNT_lineManage, &_G_plineAutoMountHeader);
@@ -352,7 +352,7 @@ PLW_OEMDISK_CB  API_OemDiskMountEx2 (CPCHAR             pcVolName,
     }
 
     for (iBlkIo = 0; iBlkIo < 64; iBlkIo++) {
-        snprintf(cFullVolName, MAX_FILENAME_LENGTH, "%s%s%d", LW_BLKIO_PERFIX, pcTail, iBlkIo);
+        snprintf(cFullVolName, MAX_FILENAME_LENGTH, "%s%s-%d", LW_BLKIO_PERFIX, pcTail, iBlkIo);
         if (API_IosDevMatchFull(cFullVolName) == LW_NULL) {
             iBlkIoErr = API_OemBlkIoCreate(cFullVolName,
                                            poemd->OEMDISK_pblkdCache);
@@ -463,7 +463,7 @@ __refined_seq:
             poemd->OEMDISK_iVolSeq[i] = iVolSeq;                        /*  ¼ÇÂ¼¾íÐòºÅ                  */
             __oemAutoMountAdd(cFullVolName, pcTail, iBlkIo, i);
             _DebugFormat(__PRINTMESSAGE_LEVEL, 
-                         "Block device %s%s%d part %d mount to %s use %s file system.\r\n", 
+                         "Block device %s%s-%d part %d mount to %s use %s file system.\r\n", 
                          LW_BLKIO_PERFIX, pcTail, iBlkIo, 
                          i, cFullVolName, pcFs);
         } else {
@@ -648,7 +648,7 @@ PLW_OEMDISK_CB  API_OemDiskMount2 (CPCHAR               pcVolName,
     }
 
     for (iBlkIo = 0; iBlkIo < 64; iBlkIo++) {
-        snprintf(cFullVolName, MAX_FILENAME_LENGTH, "%s%s%d", LW_BLKIO_PERFIX, pcTail, iBlkIo);
+        snprintf(cFullVolName, MAX_FILENAME_LENGTH, "%s%s-%d", LW_BLKIO_PERFIX, pcTail, iBlkIo);
         if (API_IosDevMatchFull(cFullVolName) == LW_NULL) {
             iBlkIoErr = API_OemBlkIoCreate(cFullVolName,
                                            poemd->OEMDISK_pblkdCache);
@@ -739,7 +739,7 @@ __refined_seq:
             poemd->OEMDISK_iVolSeq[i] = iVolSeq;                        /*  ¼ÇÂ¼¾íÐòºÅ                  */
             __oemAutoMountAdd(cFullVolName, pcTail, iBlkIo, i);
             _DebugFormat(__PRINTMESSAGE_LEVEL, 
-                         "Block device %s%s%d part %d mount to %s use %s file system.\r\n", 
+                         "Block device %s%s-%d part %d mount to %s use %s file system.\r\n", 
                          LW_BLKIO_PERFIX, pcTail, iBlkIo, 
                          i, cFullVolName, pcFs);
         } else {

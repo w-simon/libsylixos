@@ -302,6 +302,9 @@ static err_t  netdev_netif_init (struct netif *netif)
   }
   
   NETDEV_INIT(netdev);
+  if (netdev->if_flags & IFF_UP) {
+    NETDEV_UP(netdev);
+  }
   
 #if LWIP_IPV6 && LWIP_IPV6_MLD
   /*
@@ -446,6 +449,26 @@ int  netdev_delete (netdev_t *netdev)
   return (0);
 }
 
+/* netdev driver get netdev index */
+int  netdev_index (netdev_t *netdev, unsigned int *index)
+{
+  struct netif *netif;
+  
+  if (!netdev || (netdev->magic_no != NETDEV_MAGIC)) {
+    return (-1);
+  }
+  
+  netif = (struct netif *)netdev->sys;
+  
+  if (index) {
+    *index = netif->num;
+    return (0);
+    
+  } else {
+    return (-1);
+  }
+}
+
 /* if netdev link status changed has been detected, 
  * driver must call the following functions */
 int  netdev_set_linkup (netdev_t *netdev, int linkup, UINT64 speed)
@@ -458,16 +481,20 @@ int  netdev_set_linkup (netdev_t *netdev, int linkup, UINT64 speed)
   
   netif = (struct netif *)netdev->sys;
   
-  netif->ts = sys_jiffies();
+  if (linkup) {
+    netif->ts = sys_jiffies();
+    netdev->speed = speed;
+    
+    netifapi_netif_common(netif, netif_set_link_up, NULL);
+
+    if (speed > 0xffffffff) {
+      netif->link_speed = 0;
+    } else {
+      netif->link_speed = (u32_t)speed;
+    }
   
-  netifapi_netif_common(netif, netif_set_link_up, NULL);
-  
-  netdev->speed = speed;
-  
-  if (speed > 0xffffffff) {
-    netif->link_speed = 0;
   } else {
-    netif->link_speed = (u32_t)speed;
+    netifapi_netif_common(netif, netif_set_link_down, NULL);
   }
   
   return (0);

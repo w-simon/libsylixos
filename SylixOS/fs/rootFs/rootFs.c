@@ -263,6 +263,7 @@ static LONG  __rootFsOpen (PLW_DEV_HDR     pdevhdr,
     PLW_ROOTFS_NODE    prfsnFather;
     PLW_ROOTFS_NODE    prfsn;
     BOOL               bIsRoot;
+    BOOL               bIsLast;
     PCHAR              pcTail = LW_NULL;
     INT                iError;
     
@@ -276,7 +277,7 @@ static LONG  __rootFsOpen (PLW_DEV_HDR     pdevhdr,
     
 __re_find:
     __LW_ROOTFS_LOCK();                                                 /*  锁定 rootfs                 */
-    prfsn = __rootFsFindNode(pcName, &prfsnFather, &bIsRoot, LW_NULL, &pcTail);
+    prfsn = __rootFsFindNode(pcName, &prfsnFather, &bIsRoot, &bIsLast, &pcTail);
                                                                         /*  查询设备                    */
     if (prfsn) {
         prfsn->RFSN_iOpenNum++;
@@ -294,8 +295,7 @@ __re_find:
             }
         }
     
-    } else if (iFlags & O_CREAT) {                                      /*  需要创建节点                */
-        
+    } else if ((iFlags & O_CREAT) && bIsLast) {                         /*  需要创建节点                */
         __LW_ROOTFS_UNLOCK();                                           /*  解锁 rootfs                 */
         
 #if LW_CFG_MAX_VOLUMES > 0

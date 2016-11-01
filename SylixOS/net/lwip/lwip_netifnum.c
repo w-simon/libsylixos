@@ -38,6 +38,7 @@
 #include "lwip/mem.h"
 #include "lwip/netif.h"
 #include "lwip/dhcp.h"
+#include "lwip/autoip.h"
 #include "lwip/err.h"
 #include "lwip_route.h"
 #include "lwip_if.h"
@@ -123,19 +124,19 @@ VOID  netif_remove_hook (PVOID  pvNetif)
     __npfNetifRemoveHook(netif);
 #endif                                                                  /*  LW_CFG_NET_NPF_EN > 0       */
 
-#if LW_CFG_LWIP_DHCP > 0
-    if (netif->dhcp) {
+#if LWIP_DHCP > 0
+    if (netif_dhcp_data(netif)) {
         dhcp_stop(netif);                                               /*  关闭 DHCP 回收 UDP 控制块   */
         dhcp_cleanup(netif);                                            /*  回收 DHCP 内存              */
     }
-#endif                                                                  /*  LW_CFG_LWIP_DHCP > 0        */
+#endif                                                                  /*  LWIP_DHCP > 0               */
 
-#if LW_CFG_LWIP_AUTOIP > 0
-    if (netif->autoip) {
-        mem_free(netif->autoip);                                        /*  回收 AUTOIP 内存            */
-        netif->autoip = LW_NULL;
+#if LWIP_AUTOIP > 0
+    if (netif_autoip_data(netif)) {
+        mem_free(netif_autoip_data(netif));                             /*  回收 AUTOIP 内存            */
+        netif_set_client_data(netif, LWIP_NETIF_CLIENT_DATA_INDEX_AUTOIP, NULL);
     }
-#endif                                                                  /*  LW_CFG_LWIP_AUTOIP > 0       */
+#endif                                                                  /*  LWIP_AUTOIP > 0             */
 }
 /*********************************************************************************************************
 ** 函数名称: netif_get_num

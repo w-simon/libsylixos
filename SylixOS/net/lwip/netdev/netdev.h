@@ -134,6 +134,7 @@ typedef struct netdev {
  * 'if_flags' defined in net/if.h such as IFF_UP, IFF_BROADCAST, IFF_RUNNING, IFF_NOARP, IFF_MULTICAST, IFF_PROMISC ... */
 int  netdev_add(netdev_t *netdev, const char *ip, const char *netmask, const char *gw, int if_flags);
 int  netdev_delete(netdev_t *netdev);
+int  netdev_index(netdev_t *netdev, unsigned int *index);
 
 /* if netdev link status changed has been detected, 
  * driver must call the following functions 

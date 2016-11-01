@@ -288,7 +288,7 @@ errno_t  tpsFsOpen (PTPS_SUPER_BLOCK     psb,
     }
 
     if (!S_ISLNK(pentry->ENTRY_pinode->IND_iMode) && (*pcRemain == 0)) {
-        if (iFlags & O_EXCL) {                                          /* 以互斥方式打开               */
+        if ((iFlags & O_CREAT) && (iFlags & O_EXCL)) {                  /* 以互斥方式打开               */
             tpsFsEntryFree(pentry);
             return  (EEXIST);
         }
@@ -311,6 +311,11 @@ errno_t  tpsFsOpen (PTPS_SUPER_BLOCK     psb,
     }
 
     if (pcRemain != pcFileName) {
+        tpsFsEntryFree(pentry);
+        return  (ENOENT);
+    }
+
+    if (!S_ISDIR(pentry->ENTRY_pinode->IND_iMode)) {                    /* 父目录不是目录               */
         tpsFsEntryFree(pentry);
         return  (ENOENT);
     }
@@ -646,6 +651,10 @@ errno_t  tpsFsWrite (PTPS_INODE  pinode,
 
     if ((LW_NULL == pinode) || (LW_NULL == pucBuff)) {
         return  (EINVAL);
+    }
+
+    if (S_ISDIR(pinode->IND_iMode)) {                                   /* 目录不允许直接写操作         */
+        return  (EISDIR);
     }
 
     ptrans = tpsFsTransAllocAndInit(pinode->IND_psb);                   /* 分配事物                     */

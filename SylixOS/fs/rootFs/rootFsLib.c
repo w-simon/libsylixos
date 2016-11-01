@@ -89,6 +89,7 @@ PLW_ROOTFS_NODE  __rootFsFindNode (CPCHAR            pcName,
     
     if (*pcName == PX_ROOT) {                                           /*  忽略根符号                  */
         lib_strlcpy(pcTempName, (pcName + 1), PATH_MAX);
+    
     } else {
         if (pbRoot) {
             *pbRoot = LW_FALSE;                                         /*  pcName 不为根               */
@@ -110,6 +111,7 @@ PLW_ROOTFS_NODE  __rootFsFindNode (CPCHAR            pcName,
             *pbLast = LW_FALSE;
         }
         return  (LW_NULL);
+    
     } else {
         if (pbRoot) {
             *pbRoot = LW_FALSE;                                         /*  pcName 不为根               */

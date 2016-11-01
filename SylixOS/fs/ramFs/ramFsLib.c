@@ -86,6 +86,7 @@ PRAM_NODE  __ram_open (PRAM_VOLUME  pramfs,
             *pbLast = LW_FALSE;
         }
         return  (LW_NULL);
+    
     } else {
         if (pbRoot) {
             *pbRoot = LW_FALSE;                                         /*  pcName ²»Îª¸ù               */
