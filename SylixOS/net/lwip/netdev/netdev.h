@@ -150,7 +150,9 @@ typedef enum {
 /* if netdev detected a packet in netdev buffer, driver can call this function to receive this packet.
    qen:0 do not use netjob queue 1:use netjob queue */
 int  netdev_notify(struct netdev *netdev, netdev_inout inout, int q_en);
+int  netdev_notify_ex(struct netdev *netdev, netdev_inout inout, int q_en, unsigned int qindex);
 int  netdev_notify_clear(struct netdev *netdev);
+int  netdev_notify_clear_ex(struct netdev *netdev, unsigned int qindex);
 
 /* netdev statistical information update functions */
 void netdev_statinfo_total_add(netdev_t *netdev, netdev_inout inout, UINT32 bytes);

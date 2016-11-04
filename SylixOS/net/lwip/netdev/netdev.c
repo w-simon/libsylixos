@@ -301,7 +301,11 @@ static err_t  netdev_netif_init (struct netif *netif)
     netif->flags2 = 0;
   }
   
-  NETDEV_INIT(netdev);
+  if (netdev->drv->init) { 
+    if (netdev->drv->init(netdev) < 0) {
+      return (ERR_IF);
+    } 
+  }
   if (netdev->if_flags & IFF_UP) {
     NETDEV_UP(netdev);
   }
@@ -549,6 +553,31 @@ int  netdev_notify (struct netdev *netdev, netdev_inout inout, int q_en)
   return (0);
 }
 
+int  netdev_notify_ex (struct netdev *netdev, netdev_inout inout, int q_en, unsigned int qindex)
+{
+  if (!netdev || (netdev->magic_no != NETDEV_MAGIC)) {
+    return (-1);
+  }
+  
+  if (inout != LINK_INPUT) {
+    return (0);
+  }
+  
+  if (q_en) {
+    if (netJobAddEx(qindex, netdev->drv->receive, netdev, 
+                    (void *)netdev_netif_linkinput, 0, 0, 0, 0) == 0) {
+      return (0);
+    
+    } else {
+      return (-1);
+    }
+  }
+  
+  NETDEV_RECEIVE(netdev, netdev_netif_linkinput);
+  
+  return (0);
+}
+
 int  netdev_notify_clear (struct netdev *netdev)
 {
   if (!netdev || (netdev->magic_no != NETDEV_MAGIC)) {
@@ -557,6 +586,18 @@ int  netdev_notify_clear (struct netdev *netdev)
   
   netJobDelete(2, netdev->drv->receive, netdev, 
                (void *)netdev_netif_linkinput, 0, 0, 0, 0);
+               
+  return (0);
+}
+
+int  netdev_notify_clear_ex (struct netdev *netdev, unsigned int qindex)
+{
+  if (!netdev || (netdev->magic_no != NETDEV_MAGIC)) {
+    return (-1);
+  }
+  
+  netJobDeleteEx(qindex, 2, netdev->drv->receive, netdev, 
+                 (void *)netdev_netif_linkinput, 0, 0, 0, 0);
                
   return (0);
 }

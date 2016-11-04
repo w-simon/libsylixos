@@ -22,6 +22,10 @@
 #ifndef __LWIP_SOCKET_H
 #define __LWIP_SOCKET_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif                                                                  /*  __cplusplus                 */
+
 /*********************************************************************************************************
   close-on-exec and non-blocking
 *********************************************************************************************************/
@@ -217,6 +221,10 @@ LW_API ssize_t      sendmsg(int  s, const struct msghdr *msg, int flags);
 #ifdef __SYLIXOS_KERNEL
 VOID  __socketInit(VOID);
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
+
+#ifdef __cplusplus
+}
+#endif                                                                  /*  __cplusplus                 */
 
 #endif                                                                  /*  __LWIP_SOCKET_H             */
 /*********************************************************************************************************

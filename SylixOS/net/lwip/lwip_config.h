@@ -314,7 +314,7 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrT
 
 #if LW_CFG_LWIP_TCP_SND > 0
 #undef  TCP_SND_BUF
-#define TCP_SND_BUF                     LW_CFG_LWIP_TCP_SND
+#define TCP_SND_BUF                     LWIP_MIN(LW_CFG_LWIP_TCP_SND, 0xFFFF)
 #endif                                                                  /*  LW_CFG_LWIP_TCP_SND         */
 
 #define MEMP_NUM_TCP_SEG                (8 * TCP_SND_QUEUELEN)

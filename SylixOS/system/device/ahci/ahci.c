@@ -21,6 +21,7 @@
 ** BUG:
 2016.10.17  在判断硬盘是否为稳定状态时统一使用 __ahciDriveNoBusyWait() 函数.
             机械硬盘 Seagate Desktop HDD 1000GB MODEL: ST1000DM003 稳定时间大于 900 ms (除去启动时间)
+2016.11.01  探测到硬盘后不再需要等待硬盘的稳定状态,在 N2600 平台 NM10 桥上的 AHCI 控制器不需要等待.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -2370,7 +2371,6 @@ static INT  __ahciDrvInit (AHCI_CTRL_HANDLE  hCtrl)
             (uiReg == AHCI_PSSTS_DET_PHY)) {                            /* 已经探测到设备               */
             AHCI_LOG(AHCI_LOG_PRT, "ctrl %d drive %d phy det.", hCtrl->AHCICTRL_uiIndex, i);
 
-            __ahciDriveNoBusyWait(hDrive);                              /* 等待稳定状态                 */
             __ahciDiskCtrlInit(hCtrl, i);                               /* 初始化磁盘控制器             */
             __ahciDiskDriveInit(hCtrl, i);                              /* 初始磁盘驱动器               */
         

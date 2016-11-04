@@ -38,9 +38,10 @@
 
 /*********************************************************************************************************
   队列配置
+  注意: LW_CFG_LWIP_JOBQUEUE_NUM 必须为 1 或者 2 的指数次方, (小于等于 CPU 核心数量).
 *********************************************************************************************************/
 
-#define LW_CFG_LWIP_JOBQUEUE_NUM        1                               /*  可使能多个 netjob 并行工作  */
+#define LW_CFG_LWIP_JOBQUEUE_NUM        4                               /*  可使能多个 netjob 并行工作  */
 #define LW_CFG_LWIP_JOBQUEUE_SIZE       512                             /*  sylixos job queue size      */
 #define LW_CFG_LWIP_STK_SIZE            4096                            /*  lwip thread default stksize */
 

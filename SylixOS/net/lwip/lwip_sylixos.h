@@ -42,6 +42,14 @@ LW_API INT          API_NetJobAdd(VOIDFUNCPTR  pfunc,
                                   PVOID        pvArg3,
                                   PVOID        pvArg4,
                                   PVOID        pvArg5);                 /*  net job add                 */
+LW_API INT          API_NetJobAddEx(UINT         uiQ,
+                                    VOIDFUNCPTR  pfunc, 
+                                    PVOID        pvArg0,
+                                    PVOID        pvArg1,
+                                    PVOID        pvArg2,
+                                    PVOID        pvArg3,
+                                    PVOID        pvArg4,
+                                    PVOID        pvArg5);               /*  net job add                 */
                                   
 LW_API VOID         API_NetJobDelete(UINT         uiMatchArgNum,
                                      VOIDFUNCPTR  pfunc, 
@@ -51,13 +59,24 @@ LW_API VOID         API_NetJobDelete(UINT         uiMatchArgNum,
                                      PVOID        pvArg3,
                                      PVOID        pvArg4,
                                      PVOID        pvArg5);              /*  net job delete              */
+LW_API VOID         API_NetJobDeleteEx(UINT         uiQ,
+                                       UINT         uiMatchArgNum,
+                                       VOIDFUNCPTR  pfunc, 
+                                       PVOID        pvArg0,
+                                       PVOID        pvArg1,
+                                       PVOID        pvArg2,
+                                       PVOID        pvArg3,
+                                       PVOID        pvArg4,
+                                       PVOID        pvArg5);            /*  net job delete              */
                                   
 LW_API size_t       API_NetJobGetLost(VOID);
 
 #define netInit             API_NetInit
 #define netSnmpInit         API_NetSnmpInit
 #define netJobAdd           API_NetJobAdd
+#define netJobAddEx         API_NetJobAddEx
 #define netJobDelete        API_NetJobDelete
+#define netJobDeleteEx      API_NetJobDeleteEx
 #define netJobGetLost       API_NetJobGetLost
 
 #endif                                                                  /*  LW_CFG_NET_EN               */
