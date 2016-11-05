@@ -173,7 +173,6 @@ struct dm9000_priv {
 
     LW_OBJECT_HANDLE  lock;
     LW_OBJECT_HANDLE  tx_sync;
-    LW_OBJECT_HANDLE  watchdog;
 
     struct dm9000_netdev *dm9000;
 
@@ -920,14 +919,15 @@ static int  dm9000_transmit (struct netdev *netdev, struct pbuf *p)
 /*********************************************************************************************************
 ** 函数名称: dm9000_watchdog
 ** 功能描述: dm9000 watchdog
-** 输　入  : dm9000      netdev
+** 输　入  : netdev      netdev
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static void  dm9000_watchdog (struct dm9000_netdev *dm9000)
+static void  dm9000_watchdog (struct netdev *netdev)
 {
-    struct dm9000_priv  *priv = dm9000->netdev.priv;
+    struct dm9000_priv   *priv = netdev->priv;
+    struct dm9000_netdev *dm9000 = (struct dm9000_netdev *)netdev;
     UINT16 link;
     int    linkup;
 
@@ -1104,15 +1104,6 @@ INT  dm9000Init (struct dm9000_netdev *dm9000, const char *ip, const char *netma
         return  (-1);
     }
 
-    priv->watchdog = API_TimerCreate("dm9000_wdog",
-                                     LW_OPTION_ITIMER | LW_OPTION_OBJECT_GLOBAL, LW_NULL);
-    if (priv->watchdog == LW_HANDLE_INVALID) {
-        API_SemaphoreMDelete(&priv->lock);
-        API_SemaphoreBDelete(&priv->tx_sync);
-        sys_free(priv);
-        return  (-1);
-    }
-
     dm9000->netdev.magic_no = NETDEV_MAGIC;
 
     lib_strcpy(dm9000->netdev.dev_name, "dm9000");
@@ -1143,12 +1134,10 @@ INT  dm9000Init (struct dm9000_netdev *dm9000, const char *ip, const char *netma
 
     if (netdev_add(&dm9000->netdev, ip, netmask,gw,
                    IFF_UP | IFF_RUNNING | IFF_BROADCAST | IFF_MULTICAST) == 0) {
-        API_TimerStart(priv->watchdog, LW_MSECOND_TO_TICK_1(2000),
-                       LW_OPTION_AUTO_RESTART, (PTIMER_CALLBACK_ROUTINE)dm9000_watchdog, dm9000);
+        netdev_linkup_poll_add(&dm9000->netdev, dm9000_watchdog);
         return  (0);
 
     } else {
-        API_TimerDelete(&priv->watchdog);
         API_SemaphoreMDelete(&priv->lock);
         API_SemaphoreBDelete(&priv->tx_sync);
         sys_free(priv);

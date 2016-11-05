@@ -36,6 +36,7 @@
  *
  */
 
+#define  __SYLIXOS_KERNEL
 #include "lwip/pbuf.h"
 #include "lwip/inet.h"
 #include "lwip/ethip6.h"
@@ -523,6 +524,29 @@ int  netdev_get_linkup (netdev_t *netdev, int *linkup)
   }
   
   return (0);
+}
+
+/* netdev linkup poll function 
+ * NOTICE: one netdev can ONLY add one linkup_poll function.
+ *         when netdev removed system will delete the linkup poll automatically. */
+int  netdev_linkup_poll_add (netdev_t *netdev, void  (*linkup_poll)(netdev_t *))
+{
+#if LW_CFG_HOTPLUG_EN > 0
+  if (netdev && linkup_poll) {
+    return (hotplugPollAdd(linkup_poll, netdev));
+  }
+#endif /* LW_CFG_HOTPLUG_EN */
+  return (-1);
+}
+
+int  netdev_linkup_poll_delete (netdev_t *netdev, void  (*linkup_poll)(netdev_t *))
+{
+#if LW_CFG_HOTPLUG_EN > 0
+  if (netdev && linkup_poll) {
+    return (hotplugPollDelete(linkup_poll, netdev));
+  }
+#endif /* LW_CFG_HOTPLUG_EN */
+  return (-1);
 }
 
 /* if netdev detected a packet in netdev buffer, driver can call this function to receive this packet.

@@ -142,6 +142,12 @@ int  netdev_index(netdev_t *netdev, unsigned int *index);
 int  netdev_set_linkup(netdev_t *netdev, int linkup, UINT64 speed);
 int  netdev_get_linkup(netdev_t *netdev, int *linkup);
 
+/* netdev linkup poll function 
+ * NOTICE: one netdev can ONLY add one linkup_poll function.
+ *         when netdev removed system will delete the linkup poll automatically. */
+int  netdev_linkup_poll_add(netdev_t *netdev, void  (*linkup_poll)(netdev_t *));
+int  netdev_linkup_poll_delete(netdev_t *netdev, void  (*linkup_poll)(netdev_t *));
+
 typedef enum {
   LINK_INPUT = 0,   /* packet input */
   LINK_OUTPUT       /* packet output */
