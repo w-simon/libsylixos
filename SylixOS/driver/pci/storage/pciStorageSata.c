@@ -16,7 +16,11 @@
 **
 ** 文件创建日期: 2016 年 03 月 17 日
 **
-** 描        述: Marvell 88SE9215 (4-port Gen III 6Gb/s host controller) AHCI 驱动.
+** 描        述: AHCI 驱动 Marvell 88SE9215 (4-port Gen III 6Gb/s host controller) INTEL 等.
+
+** BUG:
+2016.11.07  探测函数中需要确认设备类型.
+            ATI(0x1002) 0x4390 设备 ID 在匹配表内, 但是设备类型是 IDE
 *********************************************************************************************************/
 #define  __SYLIXOS_PCI_DRV
 #define  __SYLIXOS_AHCI_DRV
@@ -465,10 +469,19 @@ static VOID  pciStorageSataDevRemove (PCI_DEV_HANDLE hHandle)
 *********************************************************************************************************/
 static INT  pciStorageSataDevProbe (PCI_DEV_HANDLE hPciDevHandle, const PCI_DEV_ID_HANDLE hIdEntry)
 {
+    INT                     iRet = PX_ERROR;
     AHCI_CTRL_HANDLE        hAhciCtrl = LW_NULL;
+    UINT16                  usCap;
 
     if ((!hPciDevHandle) ||
         (!hIdEntry)) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+                                                                        /* 确认设备类型                 */
+    iRet = API_PciDevConfigRead(hPciDevHandle, PCI_CLASS_DEVICE, (UINT8 *)&usCap, 2);
+    if ((iRet != ERROR_NONE) ||
+        (usCap != PCI_CLASS_STORAGE_SATA)) {                            /* 设备类型错误                 */
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -764,7 +777,7 @@ static INT  pciStorageSataVendorCtrlReadyWork (AHCI_CTRL_HANDLE  hCtrl)
 
     AHCI_PCI_READ(hPciDev, PCI_DEVICE_ID, 2, usPciDevId);
     AHCI_LOG(AHCI_LOG_PRT,
-             "ctrl name %s index %d unit %d for pci dev %d:%d.%d dev id 0x%04x.",
+             "ctrl name %s index %d unit %d for pci dev %d:%d.%d dev id 0x%04x.\n",
              hCtrl->AHCICTRL_cCtrlName, hCtrl->AHCICTRL_uiIndex, hCtrl->AHCICTRL_uiUnitIndex,
              hPciDev->PCIDEV_iDevBus,
              hPciDev->PCIDEV_iDevDevice,
@@ -772,7 +785,7 @@ static INT  pciStorageSataVendorCtrlReadyWork (AHCI_CTRL_HANDLE  hCtrl)
 
     hResource = API_PciDevResourceGet(hPciDev, PCI_IORESOURCE_MEM, 0);
     if (!hResource) {
-        AHCI_LOG(AHCI_LOG_ERR, "pci resource index slop over [0 ~ %d].", (PCI_NUM_RESOURCES - 1));
+        AHCI_LOG(AHCI_LOG_ERR, "pci resource index slop over [0 ~ %d].\n", (PCI_NUM_RESOURCES - 1));
         return  (PX_ERROR);
     }
 
@@ -782,11 +795,11 @@ static INT  pciStorageSataVendorCtrlReadyWork (AHCI_CTRL_HANDLE  hCtrl)
     hCtrl->AHCICTRL_pvRegAddr = API_PciDevIoRemap(hCtrl->AHCICTRL_pvRegAddr,
                                                   hCtrl->AHCICTRL_stRegSize);
     if (hCtrl->AHCICTRL_pvRegAddr == LW_NULL) {
-        AHCI_LOG(AHCI_LOG_ERR, "pci mem resource ioremap failed addr 0x%llx 0x%llx.",
+        AHCI_LOG(AHCI_LOG_ERR, "pci mem resource ioremap failed addr 0x%llx 0x%llx.\n",
                  hCtrl->AHCICTRL_pvRegAddr,  hCtrl->AHCICTRL_stRegSize);
         return  (PX_ERROR);
     }
-    AHCI_LOG(AHCI_LOG_PRT, "ahci reg addr 0x%llx szie %llx.",
+    AHCI_LOG(AHCI_LOG_PRT, "ahci reg addr 0x%llx szie %llx.\n",
              hCtrl->AHCICTRL_pvRegAddr, hCtrl->AHCICTRL_stRegSize);
     hPciDev->PCIDEV_pvDevDriver = (PVOID)hCtrl;
 
@@ -807,7 +820,7 @@ static INT  pciStorageSataVendorCtrlReadyWork (AHCI_CTRL_HANDLE  hCtrl)
 __intx_handle:
     iRet = API_PciDevMsiEnableSet(hPciDev, LW_FALSE);
     if (iRet != ERROR_NONE) {
-        AHCI_LOG(AHCI_LOG_ERR, "pci msi disable failed dev %d:%d.%d.",
+        AHCI_LOG(AHCI_LOG_ERR, "pci msi disable failed dev %d:%d.%d.\n",
                  hPciDev->PCIDEV_iDevBus, hPciDev->PCIDEV_iDevDevice, hPciDev->PCIDEV_iDevFunction);
         return  (PX_ERROR);
     }

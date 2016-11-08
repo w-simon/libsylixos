@@ -350,11 +350,8 @@ setvjslots(argv)
 {
     int value;
 
-/* FIXME: found what int_option() did */
-#if PPP_OPTIONS
     if (!int_option(*argv, &value))
 	return 0;
-#endif /* PPP_OPTIONS */
 
     if (value < 2 || value > 16) {
 	option_error("vj-max-slots value must be between 2 and 16");
@@ -728,13 +725,8 @@ static void ipcp_resetci(fsm *f) {
     wo->req_dns1 = wo->req_dns2 = pcb->settings.usepeerdns;	/* Request DNS addresses from the peer */
 #endif /* LWIP_DNS */
     *go = *wo;
-#if 0 /* UNUSED */
-    /* We don't need ask_for_local, this is only useful for setup which
-     * can determine the local IP address from the system hostname.
-     */
-    if (!ask_for_local)
+    if (!pcb->ask_for_local)
 	go->ouraddr = 0;
-#endif /* UNUSED */
 #if 0 /* UNUSED */
     if (ip_choose_hook) {
 	ip_choose_hook(&wo->hisaddr);
@@ -1947,11 +1939,29 @@ static void ipcp_up(fsm *f) {
     }
 #endif /* LWIP_DNS */
 
-/* FIXME: check why it fails, just to know */
-#if 0 /* Unused */
     /*
      * Check that the peer is allowed to use the IP address it wants.
      */
+    if (ho->hisaddr != 0) {
+	u32_t addr = lwip_ntohl(ho->hisaddr);
+	if ((addr >> IP_CLASSA_NSHIFT) == IP_LOOPBACKNET
+	    || IP_MULTICAST(addr) || IP_BADCLASS(addr)
+	    /*
+	     * For now, consider that PPP in server mode with peer required
+	     * to authenticate must provide the peer IP address, reject any
+	     * IP address wanted by peer different than the one we wanted.
+	     */
+#if PPP_SERVER && PPP_AUTH_SUPPORT
+	    || (pcb->settings.auth_required && wo->hisaddr != ho->hisaddr)
+#endif /* PPP_SERVER && PPP_AUTH_SUPPORT */
+	    ) {
+		ppp_error("Peer is not authorized to use remote address %I", ho->hisaddr);
+		ipcp_close(pcb, "Unauthorized remote IP address");
+		return;
+	}
+    }
+#if 0 /* Unused */
+    /* Upstream checking code */
     if (ho->hisaddr != 0 && !auth_ip_addr(f->unit, ho->hisaddr)) {
 	ppp_error("Peer is not authorized to use remote address %I", ho->hisaddr);
 	ipcp_close(f->unit, "Unauthorized remote IP address");

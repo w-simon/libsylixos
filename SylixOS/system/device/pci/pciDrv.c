@@ -17,6 +17,10 @@
 ** 文件创建日期: 2015 年 12 月 31 日
 **
 ** 描        述: PCI 总线设备驱动管理.
+
+** BUG:
+2016.11.02  当系统中没有 PCI 控制器时, 调用 API_PciDrvRegister() 会产生信号量句柄无效.
+            如 USB 驱动库在 ZYNQ7000 (无 PCI 控制器)平台注册驱动时, 会产生信号量句柄无效
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -30,6 +34,11 @@
 #include "pciDev.h"
 #include "pciDrv.h"
 #include "pciLib.h"
+/*********************************************************************************************************
+  PCI 主控器
+*********************************************************************************************************/
+extern  PCI_CTRL_HANDLE      _G_hPciCtrlHandle;
+#define PCI_CTRL             _G_hPciCtrlHandle
 /*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
@@ -134,7 +143,7 @@ static VOID  __tshellPciDrvCmdShow (VOID)
              plineDevTemp  = _list_line_get_next(plineDevTemp)) {
             hDrvDevHandle = _LIST_ENTRY(plineDevTemp, PCI_DRV_DEV_CB, PDDCB_lineDrvDevNode);
             hDevHandle = hDrvDevHandle->PDDCB_hDrvDevHandle;
-            printf("%-7s %-24s %7d %5d %5d %6d %6x %6x %6x %6x\n",
+            printf("%-7s %-24s %7d %5x %5x %6x %6x %6x %6x %6x\n",
                    "", "",
                    j,
                    hDevHandle->PCIDEV_iDevBus,
@@ -482,7 +491,13 @@ INT  API_PciDrvRegister (PCI_DRV_HANDLE  hHandle)
 {
     PCI_DRV_HANDLE      hDrvHandle = LW_NULL;
 
-    if (hHandle == LW_NULL) {
+    if (PCI_CTRL == LW_NULL) {
+        _ErrorHandle(ENOSYS);
+        return  (PX_ERROR);
+    }
+
+    if (!hHandle) {
+        _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
 

@@ -52,7 +52,7 @@ INT  __pciAutoDevSkip (PCI_CTRL_HANDLE  hCtrl, PCI_AUTO_DEV_HANDLE  hAutoDev)
             return  (PX_ERROR);
         
         } else {                                                        /* 不配置主桥                   */
-            PCI_AUTO_LOG(PCI_AUTO_LOG_PRT, "%02x:%02x.%01x dev skip", iBus, iDev, iFunc);
+            PCI_AUTO_LOG(PCI_AUTO_LOG_PRT, "%02x:%02x.%01x dev skip.\n", iBus, iDev, iFunc);
             return  (ERROR_NONE);                                       /* 忽略设备                     */
         }
     }
@@ -193,7 +193,7 @@ INT  API_PciAutoScan (PCI_CTRL_HANDLE  hCtrl, UINT32 *puiSubBus)
         *puiSubBus = uiSubBus;                                          /* 保存总线数                   */
     }
 
-    PCI_AUTO_LOG(PCI_AUTO_LOG_PRT, "scan bus no %02x", uiSubBus);
+    PCI_AUTO_LOG(PCI_AUTO_LOG_PRT, "scan bus no %02x.\n", uiSubBus);
 
     return  (ERROR_NONE);
 }
@@ -235,7 +235,7 @@ INT  API_PciAutoBusScan (PCI_CTRL_HANDLE  hCtrl, INT  iBus, UINT32 *puiSubBus)
 
         iRet = __pciAutoDevSkip(hCtrl, hAutoDev);                       /* 是否忽略设备                 */
         if (iRet == ERROR_NONE) {
-            PCI_AUTO_LOG(PCI_AUTO_LOG_PRT, "dev skip %02x:%02x.%01x", iBus, iDev, iFunc);
+            PCI_AUTO_LOG(PCI_AUTO_LOG_PRT, "dev skip %02x:%02x.%01x.\n", iBus, iDev, iFunc);
             continue;
         }
 
@@ -257,7 +257,7 @@ INT  API_PciAutoBusScan (PCI_CTRL_HANDLE  hCtrl, INT  iBus, UINT32 *puiSubBus)
         API_PciConfigInWord(iBus, iDev, iFunc, PCI_CLASS_DEVICE, &usClass);
 
         PCI_AUTO_LOG(PCI_AUTO_LOG_PRT,
-                     "dev fix up %02x:%02x.%01x device 0x%04x class 0x%04x",
+                     "dev fix up %02x:%02x.%01x device 0x%04x class 0x%04x.\n",
                      iBus, iDev, iFunc, usDevice, usClass);
 
         if (hPciAuto->PCIAUTO_pfuncDevFixup) {                          /* 配置指定设备                 */
@@ -327,14 +327,14 @@ INT  API_PciAutoPostScanBridgeSetup (PCI_CTRL_HANDLE  hCtrl, PCI_AUTO_DEV_HANDLE
                          PCI_SUBORDINATE_BUS, iSubBus - hPciAuto->PCIAUTO_uiFirstBusNo);
 
     PCI_AUTO_LOG(PCI_AUTO_LOG_PRT,
-                 "post scan bridge %02x:%02x.%01x first bus 0x%02x sub bus 0x%02x",
+                 "post scan bridge %02x:%02x.%01x first bus 0x%02x sub bus 0x%02x.\n",
                  iBus, iDev, iFunc, hPciAuto->PCIAUTO_uiFirstBusNo, iSubBus);
 
     API_PciConfigInByte(iBus, iDev, iFunc, PCI_PRIMARY_BUS, &ucPri);
     API_PciConfigInByte(iBus, iDev, iFunc, PCI_SECONDARY_BUS, &ucSec);
     API_PciConfigInByte(iBus, iDev, iFunc, PCI_SUBORDINATE_BUS, &ucSub);
     PCI_AUTO_LOG(PCI_AUTO_LOG_PRT,
-                 "post scan bridge %02x:%02x.%01x pri 0x%02x sec 0x%02x sub 0x%02x",
+                 "post scan bridge %02x:%02x.%01x pri 0x%02x sec 0x%02x sub 0x%02x.\n",
                  iBus, iDev, iFunc, ucPri, ucSec, ucSub);
 
     /*
@@ -346,7 +346,7 @@ INT  API_PciAutoPostScanBridgeSetup (PCI_CTRL_HANDLE  hCtrl, PCI_AUTO_DEV_HANDLE
         API_PciConfigOutWord(iBus, iDev, iFunc, PCI_MEMORY_LIMIT, usAddr);
 
         PCI_AUTO_LOG(PCI_AUTO_LOG_PRT,
-                     "%02x:%02x.%01x memory limit 0x%qx",
+                     "%02x:%02x.%01x memory limit 0x%qx.\n",
                      iBus, iDev, iFunc, hRegionMem->PCIAUTOREG_addrBusLower - 1);
     }
 
@@ -359,7 +359,7 @@ INT  API_PciAutoPostScanBridgeSetup (PCI_CTRL_HANDLE  hCtrl, PCI_AUTO_DEV_HANDLE
         API_PciConfigOutWord(iBus, iDev, iFunc, PCI_PREF_MEMORY_LIMIT, usAddr);
 
         PCI_AUTO_LOG(PCI_AUTO_LOG_PRT,
-                     "%02x:%02x.%01x pref memory limit 0x%qx",
+                     "%02x:%02x.%01x pref memory limit 0x%qx.\n",
                      iBus, iDev, iFunc, hRegionPre->PCIAUTOREG_addrBusLower - 1);
 
         if (usPrefechable64 == PCI_PREF_RANGE_TYPE_64) {
@@ -367,7 +367,7 @@ INT  API_PciAutoPostScanBridgeSetup (PCI_CTRL_HANDLE  hCtrl, PCI_AUTO_DEV_HANDLE
             API_PciConfigOutDword(iBus, iDev, iFunc, PCI_PREF_LIMIT_UPPER32, uiAddr);
 
             PCI_AUTO_LOG(PCI_AUTO_LOG_PRT,
-                         "%02x:%02x.%01x pref memory limit upper 0x%qx",
+                         "%02x:%02x.%01x pref memory limit upper 0x%qx.\n",
                          iBus, iDev, iFunc, (hRegionPre->PCIAUTOREG_addrBusLower - 1) >> 32);
         }
     }
@@ -380,7 +380,7 @@ INT  API_PciAutoPostScanBridgeSetup (PCI_CTRL_HANDLE  hCtrl, PCI_AUTO_DEV_HANDLE
         API_PciConfigOutWord(iBus, iDev, iFunc, PCI_IO_LIMIT_UPPER16, usAddr);
 
         PCI_AUTO_LOG(PCI_AUTO_LOG_PRT,
-                     "%02x:%02x.%01x io limit 0x%qx",
+                     "%02x:%02x.%01x io limit 0x%qx.\n",
                      iBus, iDev, iFunc, hRegionIo->PCIAUTOREG_addrBusLower - 1);
     }
 
@@ -442,7 +442,7 @@ INT  API_PciAutoPreScanBridgeSetup (PCI_CTRL_HANDLE      hCtrl,
     API_PciConfigOutByte(iBus, iDev, iFunc, PCI_SUBORDINATE_BUS, 0xff);
 
     PCI_AUTO_LOG(PCI_AUTO_LOG_PRT,
-                 "%02x:%02x.%01x pre scan bridge first bus 0x%02x sub bus 0x%02x prefechable 0x%02x",
+                 "%02x:%02x.%01x pre scan bridge first bus 0x%02x sub bus 0x%02x prefechable 0x%02x.\n",
                  iBus, iDev, iFunc, hPciAuto->PCIAUTO_uiFirstBusNo, iSubBus, usPrefechable);
 
     /*
@@ -454,7 +454,7 @@ INT  API_PciAutoPreScanBridgeSetup (PCI_CTRL_HANDLE      hCtrl,
         API_PciConfigOutWord(iBus, iDev, iFunc, PCI_MEMORY_BASE, usAddr);
 
         PCI_AUTO_LOG(PCI_AUTO_LOG_PRT,
-                     "%02x:%02x.%01x memory base 0x%qx",
+                     "%02x:%02x.%01x memory base 0x%qx.\n",
                      iBus, iDev, iFunc, (UINT64)hRegionMem->PCIAUTOREG_addrBusLower);
 
         usCmdStatus |= PCI_COMMAND_MEMORY;
@@ -470,7 +470,7 @@ INT  API_PciAutoPreScanBridgeSetup (PCI_CTRL_HANDLE      hCtrl,
         }
 
         PCI_AUTO_LOG(PCI_AUTO_LOG_PRT,
-                     "%02x:%02x.%01x %s pref memory base 0x%qx",
+                     "%02x:%02x.%01x %s pref memory base 0x%qx.\n",
                      iBus, iDev, iFunc,
                      (usPrefechable == PCI_PREF_RANGE_TYPE_64) ? "64bit" : "32bit",
                      (UINT64)hRegionPre->PCIAUTOREG_addrBusLower);
@@ -494,7 +494,7 @@ INT  API_PciAutoPreScanBridgeSetup (PCI_CTRL_HANDLE      hCtrl,
         API_PciConfigOutWord(iBus, iDev, iFunc, PCI_IO_BASE_UPPER16, usAddr);
 
         PCI_AUTO_LOG(PCI_AUTO_LOG_PRT,
-                     "%02x:%02x.%01x io base 0x%qx",
+                     "%02x:%02x.%01x io base 0x%qx.\n",
                      iBus, iDev, iFunc, (UINT64)hRegionIo->PCIAUTOREG_addrBusLower);
 
         usCmdStatus |= PCI_COMMAND_IO;
@@ -566,7 +566,7 @@ INT  API_PciAutoDeviceSetup (PCI_CTRL_HANDLE         hCtrl,
         API_PciConfigOutDword(iBus, iDev, iFunc, uiBar, 0xffffffff);
         API_PciConfigInDword(iBus, iDev, iFunc, uiBar, &uiBarResponse);
         PCI_AUTO_LOG(PCI_AUTO_LOG_PRT,
-                     "%02x:%02x.%01x BAR %d response=0x%x", iBus, iDev, iFunc, iIndex, uiBarResponse);
+                     "%02x:%02x.%01x BAR %d response=0x%x.\n", iBus, iDev, iFunc, iIndex, uiBarResponse);
         iIndex++;
         if (!uiBarResponse) {
             continue;
@@ -579,7 +579,7 @@ INT  API_PciAutoDeviceSetup (PCI_CTRL_HANDLE         hCtrl,
             hBarRegion = hRegionIo;
 
             PCI_AUTO_LOG(PCI_AUTO_LOG_PRT,
-                         "%02x:%02x.%01x BAR %d, I/O, size=0x%qx ",
+                         "%02x:%02x.%01x BAR %d, I/O, size=0x%qx.\n",
                          iBus, iDev, iFunc, iBarIndex, (UINT64)stBarSize);
         
         } else {
@@ -603,7 +603,7 @@ INT  API_PciAutoDeviceSetup (PCI_CTRL_HANDLE         hCtrl,
             }
 
             PCI_AUTO_LOG(PCI_AUTO_LOG_PRT,
-                         "%02x:%02x.%01x BAR %d, type %s %s, size=0x%qx ",
+                         "%02x:%02x.%01x BAR %d, type %s %s, size=0x%qx.\n",
                          iBus, iDev, iFunc, iBarIndex,
                          iMem64En ? "64bit" : "32bit",
                          (hBarRegion == hRegionPrefetch) ? "Prf" : "Mem", (UINT64)stBarSize);
@@ -635,7 +635,7 @@ INT  API_PciAutoDeviceSetup (PCI_CTRL_HANDLE         hCtrl,
         if (uiBarResponse) {
             stBarSize = -(uiBarResponse & ~1);
 
-            PCI_AUTO_LOG(PCI_AUTO_LOG_PRT, "ROM, size=0x%qx, ", (UINT64)stBarSize);
+            PCI_AUTO_LOG(PCI_AUTO_LOG_PRT, "ROM, size = 0x%qx.\n", (UINT64)stBarSize);
 
             iRet = API_PciAutoRegionAllocate(hRegionMem, stBarSize, &addrBarValue);
             if (iRet != PX_ERROR) {
@@ -708,7 +708,7 @@ INT  API_PciAutoRegionAllocate (PCI_AUTO_REGION_HANDLE  hRegion, pci_size_t stSi
     }
 
     PCI_AUTO_LOG(PCI_AUTO_LOG_PRT,
-                 "region allocate address=0x%qx bus_lower=0x%qx",
+                 "region allocate address = 0x%qx bus_lower = 0x%qx.\n",
                  (UINT64)addrAddr, (UINT64)hRegion->PCIAUTOREG_addrBusLower);
 
     return  (ERROR_NONE);
@@ -779,7 +779,7 @@ VOID  API_PciAutoRegionInit (PCI_AUTO_REGION_HANDLE  hRegion)
     }
 
     PCI_AUTO_LOG(PCI_AUTO_LOG_PRT,
-                 "Bus %s region [0x%qx-0x%qx] Physical Memory [0x%qx-0x%qx]",
+                 "Bus %s region [0x%qx-0x%qx] Physical Memory [0x%qx-0x%qx].\n",
                  pcRegionName,
                  (UINT64)hRegion->PCIAUTOREG_addrBusStart,
                  (UINT64)(hRegion->PCIAUTOREG_addrBusStart + hRegion->PCIAUTOREG_stSize - 1),
@@ -840,7 +840,7 @@ INT  API_PciAutoDeviceConfig (PCI_CTRL_HANDLE  hCtrl, PCI_AUTO_DEV_HANDLE  hAuto
     switch (usClass) {
 
     case PCI_CLASS_BRIDGE_PCI:
-        PCI_AUTO_LOG(PCI_AUTO_LOG_PRT, "Found P2P bridge, %02x:%02x.%01x", iBus, iDev, iFunc);
+        PCI_AUTO_LOG(PCI_AUTO_LOG_PRT, "Found P2P bridge, %02x:%02x.%01x.\n", iBus, iDev, iFunc);
 
         API_PciAutoDeviceSetup(hCtrl, hAutoDev, 2, hRegionIo, hRegionMem, hRegionPre);
 
@@ -853,20 +853,20 @@ INT  API_PciAutoDeviceConfig (PCI_CTRL_HANDLE  hCtrl, PCI_AUTO_DEV_HANDLE  hAuto
         break;
 
     case PCI_CLASS_BRIDGE_CARDBUS:
-        PCI_AUTO_LOG(PCI_AUTO_LOG_PRT, "Found P2CardBus bridge, %02x:%02x.%01x", iBus, iDev, iFunc);
+        PCI_AUTO_LOG(PCI_AUTO_LOG_PRT, "Found P2CardBus bridge, %02x:%02x.%01x.\n", iBus, iDev, iFunc);
 
         API_PciAutoDeviceSetup(hCtrl, hAutoDev, 0, hRegionIo, hRegionMem, hRegionPre);
         hPciAuto->PCIAUTO_uiCurrentBusNo++;
         break;
 
     default:
-        PCI_AUTO_LOG(PCI_AUTO_LOG_PRT, "Found Normal devices, %02x:%02x.%01x", iBus, iDev, iFunc);
+        PCI_AUTO_LOG(PCI_AUTO_LOG_PRT, "Found Normal devices, %02x:%02x.%01x.\n", iBus, iDev, iFunc);
 
         API_PciAutoDeviceSetup(hCtrl, hAutoDev, 6, hRegionIo, hRegionMem, hRegionPre);
         break;
     }
 
-    PCI_AUTO_LOG(PCI_AUTO_LOG_PRT, "auto config sub bus 0x%02x", uiSubBus);
+    PCI_AUTO_LOG(PCI_AUTO_LOG_PRT, "auto config sub bus 0x%02x.\n", uiSubBus);
 
     if (puiSubBus) {
         *puiSubBus = uiSubBus;
@@ -979,7 +979,7 @@ INT  API_PciAutoCtrlRegionSet (PCI_CTRL_HANDLE  hCtrl,
     if ((!hCtrl) ||
         (uiIndex >= PCI_AUTO_REGION_MAX)) {                             /* 控制器句柄或资源索引无效     */
         PCI_AUTO_LOG(PCI_AUTO_LOG_ERR,
-                     "set region failed ctrl handle %px index %d [%d-%d]",
+                     "set region failed ctrl handle %px index %d [%d-%d].\n",
                      hCtrl, uiIndex, PCI_AUTO_REGION_INDEX_0, (PCI_AUTO_REGION_MAX - 1));
 
         return  (PX_ERROR);
