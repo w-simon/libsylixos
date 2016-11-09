@@ -528,7 +528,7 @@ int  netdev_get_linkup (netdev_t *netdev, int *linkup)
 
 /* netdev linkup poll function 
  * NOTICE: one netdev can ONLY add one linkup_poll function.
- *         when netdev removed system will delete the linkup poll automatically. */
+ *         when netdev removed driver must delete poll function manually. */
 int  netdev_linkup_poll_add (netdev_t *netdev, void  (*linkup_poll)(netdev_t *))
 {
 #if LW_CFG_HOTPLUG_EN > 0

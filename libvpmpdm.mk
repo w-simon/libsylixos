@@ -42,7 +42,9 @@ SylixOS/vpmpdm/cfloat/stdio/fdprintf.c \
 SylixOS/vpmpdm/cfloat/stdio/fdscanf.c \
 SylixOS/vpmpdm/cfloat/stdio/fprintf.c \
 SylixOS/vpmpdm/cfloat/stdio/fscanf.c \
+SylixOS/vpmpdm/cfloat/stdio/gets.c \
 SylixOS/vpmpdm/cfloat/stdio/printf.c \
+SylixOS/vpmpdm/cfloat/stdio/puts.c \
 SylixOS/vpmpdm/cfloat/stdio/scanf.c \
 SylixOS/vpmpdm/cfloat/stdio/snprintf.c \
 SylixOS/vpmpdm/cfloat/stdio/sprintf.c \

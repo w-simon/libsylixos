@@ -1484,8 +1484,16 @@ VOID  __socketReset (PLW_FD_ENTRY  pfdentry)
     if (psock && 
         ((psock->SOCK_iFamily == AF_INET) || 
         ((psock->SOCK_iFamily == AF_INET6)))) {
-        lwip_setsockopt(psock->SOCK_iLwipFd, SOL_SOCKET, SO_LINGER, 
-                        &lingerReset, sizeof(struct linger));
+        INT         iAccept = 1, iType = SOCK_DGRAM;                    /*  仅处理非 LISTEN 类型的 TCP  */
+        socklen_t   socklen = sizeof(INT);
+        
+        lwip_getsockopt(psock->SOCK_iLwipFd, SOL_SOCKET, SO_ACCEPTCONN, &iAccept, &socklen);
+        lwip_getsockopt(psock->SOCK_iLwipFd, SOL_SOCKET, SO_TYPE,       &iType,   &socklen);
+        
+        if (!iAccept && (iType == SOCK_STREAM)) {
+            lwip_setsockopt(psock->SOCK_iLwipFd, SOL_SOCKET, SO_LINGER, 
+                            &lingerReset, sizeof(struct linger));
+        }
     }
 }
 /*********************************************************************************************************

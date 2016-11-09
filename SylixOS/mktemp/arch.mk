@@ -20,11 +20,11 @@
 #*********************************************************************************************************
 
 #*********************************************************************************************************
-# x86
+# x86 (Need frame pointer code to debug)
 #*********************************************************************************************************
 ifneq (,$(findstring i386,$(TOOLCHAIN_PREFIX)))
 ARCH             = x86
-ARCH_COMMONFLAGS = -mlong-double-64
+ARCH_COMMONFLAGS = -mlong-double-64 -fno-omit-frame-pointer
 
 ARCH_PIC_CFLAGS  = -fPIC
 ARCH_PIC_LDFLAGS = -Wl,-shared -fPIC -shared

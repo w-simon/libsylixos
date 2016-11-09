@@ -41,8 +41,8 @@
   注意: LW_CFG_LWIP_JOBQUEUE_NUM 必须为 1 或者 2 的指数次方, (小于等于 CPU 核心数量).
 *********************************************************************************************************/
 
-#define LW_CFG_LWIP_JOBQUEUE_NUM        4                               /*  可使能多个 netjob 并行工作  */
-#define LW_CFG_LWIP_JOBQUEUE_SIZE       512                             /*  sylixos job queue size      */
+#define LW_CFG_LWIP_JOBQUEUE_NUM        2                               /*  可使能多个 netjob 并行工作  */
+#define LW_CFG_LWIP_JOBQUEUE_SIZE       1024                            /*  sylixos job queue size      */
 #define LW_CFG_LWIP_STK_SIZE            4096                            /*  lwip thread default stksize */
 
 /*********************************************************************************************************
@@ -61,7 +61,7 @@
   
   ... 
   
-  LW_CFG_LWIP_TCP_SCALE 最大值为 14, 建议最大设置不超过 4 ~ 5
+  LW_CFG_LWIP_TCP_SCALE 最大值为 14, 建议最大设置不超过 3 ~ 4
 *********************************************************************************************************/
 
 #define LW_CFG_LWIP_TCP_WND             8192                            /*  接收缓冲大小, 0 为自动      */

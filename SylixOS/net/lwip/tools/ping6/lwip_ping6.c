@@ -515,6 +515,7 @@ static INT  __tshellPing6 (INT  iArgC, PCHAR  *ppcArgV)
             ioctl(STD_IN, FIOSETOPTIONS, iOptionNoAbort);               /*  不允许 control-C 操作       */
             
             hints.ai_family = AF_INET6;                                 /*  解析 IPv6 地址              */
+            hints.ai_flags  = AI_CANONNAME;
             getaddrinfo(ppcArgV[1], LW_NULL, &hints, &phints);          /*  域名解析                    */
         
             ioctl(STD_IN, FIOSETOPTIONS, iOption);                      /*  回复原来状态                */

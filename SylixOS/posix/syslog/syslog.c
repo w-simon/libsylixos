@@ -167,6 +167,7 @@ void  openlog (const char *ident, int logopt, int facility)
     if (!inet_aton(cServerName, &sockaddrinRemote.sin_addr)) {
         lib_bzero(&hints, sizeof(struct addrinfo));
         hints.ai_family = AF_UNSPEC;
+        hints.ai_flags  = AI_CANONNAME;
         if (getaddrinfo(cServerName, LW_NULL, &hints, &phints) >= 
             ERROR_NONE) {                                               /*  仅获取网络地址              */
             if (phints->ai_addr->sa_family == AF_INET) {
