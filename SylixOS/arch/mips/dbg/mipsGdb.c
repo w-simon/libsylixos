@@ -164,7 +164,7 @@ INT  archGdbRegsGet (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET *pre
     pregset->regArr[iIndex++].GDBRA_ulValue = regctx.REG_uiReg[REG_S7];
     pregset->regArr[iIndex++].GDBRA_ulValue = regctx.REG_uiReg[REG_T8];
     pregset->regArr[iIndex++].GDBRA_ulValue = regctx.REG_uiReg[REG_T9];
-    pregset->regArr[iIndex++].GDBRA_ulValue = 0;                        /*  k0, k1                      */
+    pregset->regArr[iIndex++].GDBRA_ulValue = 0;                        /*  K0, K1                      */
     pregset->regArr[iIndex++].GDBRA_ulValue = 0;
     pregset->regArr[iIndex++].GDBRA_ulValue = regctx.REG_uiReg[REG_GP];
     pregset->regArr[iIndex++].GDBRA_ulValue = regSp;
@@ -173,7 +173,7 @@ INT  archGdbRegsGet (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET *pre
     pregset->regArr[iIndex++].GDBRA_ulValue = regctx.REG_uiCP0Status;
     pregset->regArr[iIndex++].GDBRA_ulValue = regctx.REG_uiCP0DataLO;
     pregset->regArr[iIndex++].GDBRA_ulValue = regctx.REG_uiCP0DataHI;
-    pregset->regArr[iIndex++].GDBRA_ulValue = 0;                        /*  bad							*/
+    pregset->regArr[iIndex++].GDBRA_ulValue = 0;                        /*  BAD							*/
     pregset->regArr[iIndex++].GDBRA_ulValue = regctx.REG_uiCP0Cause;
     pregset->regArr[iIndex++].GDBRA_ulValue = regctx.REG_uiCP0EPC;
     iIndex += 34;
@@ -322,7 +322,7 @@ ULONG  archGdbGetNextPc (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET 
 
     /*
      * 当前指令为跳转指令时，会出现两种情况，如果跳转条件成立，则下一条指令为目标地址值
-     * 否则下一条指令为 pc+8，因为跳转指令和紧随其后的分支延时槽为一个整体，
+     * 否则下一条指令为 PC + 8，因为跳转指令和紧随其后的分支延时槽为一个整体，
      * 将其视为一条指令处理
      */
     rsVal = pRegs->regArr[(machInstr >> 21) & 0x1f].GDBRA_ulValue;

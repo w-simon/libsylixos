@@ -25,11 +25,13 @@
 /*********************************************************************************************************
   最大寄存器数
 *********************************************************************************************************/
+
 #define GDB_MAX_REG_CNT     128
 
 /*********************************************************************************************************
   寄存器集合结构
 *********************************************************************************************************/
+
 typedef struct {
     INT         GDBR_iRegCnt;                                           /* 寄存器数量                   */
     struct {
@@ -38,8 +40,9 @@ typedef struct {
 } GDB_REG_SET;
 
 /*********************************************************************************************************
-  Xfer:features:read:target.xml 与 Xfer:features:read:arm-core.xml 回应包
+  Xfer:features:read:target.xml 与 Xfer:features:read:mips-core.xml 回应包
 *********************************************************************************************************/
+
 CPCHAR  archGdbTargetXml(VOID);
 
 CPCHAR  archGdbCoreXml(VOID);
@@ -47,6 +50,7 @@ CPCHAR  archGdbCoreXml(VOID);
 /*********************************************************************************************************
   gdb 需要的和体系结构相关的功能
 *********************************************************************************************************/
+
 INT     archGdbRegsGet(PVOID               pvDtrace,
                        LW_OBJECT_HANDLE    ulThread,
                        GDB_REG_SET        *pregset);                    /*  获取系统寄存器信息          */
@@ -57,13 +61,13 @@ INT     archGdbRegsSet(PVOID               pvDtrace,
 
 INT     archGdbRegSetPc(PVOID              pvDtrace,
                         LW_OBJECT_HANDLE   ulThread,
-                        ULONG              uiPc);                       /*  设置pc寄存器                */
+                        ULONG              uiPc);                       /*  设置 PC 寄存器              */
 						
-ULONG   archGdbRegGetPc(GDB_REG_SET *pRegs);                            /*  获取 pc 寄存器值            */
+ULONG   archGdbRegGetPc(GDB_REG_SET *pRegs);                            /*  获取 PC 寄存器值            */
 
 ULONG   archGdbGetNextPc(PVOID pvDtrace,
                          LW_OBJECT_HANDLE ulThread,
-                         GDB_REG_SET *pRegs);                           /*  获取下一个pc值，含分支预测  */
+                         GDB_REG_SET *pRegs);                           /*  获取下一个 PC 值，含分支预测*/
 
 #endif                                                                  /*  __ARCH_MIPS_GDB_H           */
 /*********************************************************************************************************

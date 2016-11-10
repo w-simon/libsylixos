@@ -216,48 +216,78 @@ static LW_INLINE VOID writes64 (addr_t  ulAddr, CPVOID  pvBuffer, size_t  stCoun
 }
 
 /*********************************************************************************************************
-  MIPS 处理器 I/O 端口操作 (MIPS 处理器没有独立 I/O 端口, 处理方法与 I/O 内存相同)
+  MIPS 处理器 I/O 端口操作
 *********************************************************************************************************/
 
-#define in8         read8
-#define in16        read16
-#define in32        read32
-#define in64        read64
+/*********************************************************************************************************
+  MIPS 处理器设置 I/O 端口基地址
+*********************************************************************************************************/
 
-#define in8_le      read8_le
-#define in16_le     read16_le
-#define in32_le     read32_le
-#define in64_le     read64_le
+VOID  archSetIoPortBase(UINT64  ui64IoPortBase);
 
-#define in8_be      read8_be
-#define in16_be     read16_be
-#define in32_be     read32_be
-#define in64_be     read64_be
+/*********************************************************************************************************
+  MIPS 处理器 I/O 端口读
+*********************************************************************************************************/
 
-#define out8        write8
-#define out16       write16
-#define out32       write32
-#define out64       write64
+UINT8  in8( addr_t  ulAddr);
+UINT16 in16(addr_t  ulAddr);
+UINT32 in32(addr_t  ulAddr);
+UINT64 in64(addr_t  ulAddr);
 
-#define out8_le     write8_le
-#define out16_le    write16_le
-#define out32_le    write32_le
-#define out64_le    write64_le
+/*********************************************************************************************************
+  MIPS 处理器 I/O 端口读 (大小端相关)
+*********************************************************************************************************/
 
-#define out8_be     write8_be
-#define out16_be    write16_be
-#define out32_be    write32_be
-#define out64_be    write64_be
+#define in8_le(a)        in8(a)
+#define in16_le(a)       le16toh(in16(a))
+#define in32_le(a)       le32toh(in32(a))
+#define in64_le(a)       le64toh(in64(a))
 
-#define ins8        reads8
-#define ins16       reads16
-#define ins32       reads32
-#define ins64       reads64
+#define in8_be(a)        in8(a)
+#define in16_be(a)       be16toh(in16(a))
+#define in32_be(a)       be32toh(in32(a))
+#define in64_be(a)       be64toh(in64(a))
 
-#define outs8       writes8
-#define outs16      writes16
-#define outs32      writes32
-#define outs64      writes64
+/*********************************************************************************************************
+  MIPS 处理器 I/O 端口写
+*********************************************************************************************************/
+
+VOID out8( UINT8   ucData,  addr_t  ulAddr);
+VOID out16(UINT16  usData,  addr_t  ulAddr);
+VOID out32(UINT32  uiData,  addr_t  ulAddr);
+VOID out64(UINT64  u64Data, addr_t  ulAddr);
+
+/*********************************************************************************************************
+  MIPS 处理器 I/O 端口写 (大小端相关)
+*********************************************************************************************************/
+
+#define out8_le(v, a)     out8(v, a)
+#define out16_le(v, a)    out16(htole16(v), a)
+#define out32_le(v, a)    out32(htole32(v), a)
+#define out64_le(v, a)    out64(htole64(v), a)
+
+#define out8_be(v, a)     out8(v, a)
+#define out16_be(v, a)    out16(htobe16(v), a)
+#define out32_be(v, a)    out32(htobe32(v), a)
+#define out64_be(v, a)    out64(htobe64(v), a)
+
+/*********************************************************************************************************
+  MIPS 处理器 I/O 端口连续读 (数据来自单个地址)
+*********************************************************************************************************/
+
+VOID ins8( addr_t  ulAddr, PVOID  pvBuffer, size_t  stCount);
+VOID ins16(addr_t  ulAddr, PVOID  pvBuffer, size_t  stCount);
+VOID ins32(addr_t  ulAddr, PVOID  pvBuffer, size_t  stCount);
+VOID ins64(addr_t  ulAddr, PVOID  pvBuffer, size_t  stCount);
+
+/*********************************************************************************************************
+  MIPS 处理器 I/O 端口连续写 (数据写入单个地址)
+*********************************************************************************************************/
+
+VOID outs8( addr_t  ulAddr, CPVOID  pvBuffer, size_t  stCount);
+VOID outs16(addr_t  ulAddr, CPVOID  pvBuffer, size_t  stCount);
+VOID outs32(addr_t  ulAddr, CPVOID  pvBuffer, size_t  stCount);
+VOID outs64(addr_t  ulAddr, CPVOID  pvBuffer, size_t  stCount);
 
 #endif                                                                  /*  __ARCH_MIPS_IO_H            */
 /*********************************************************************************************************

@@ -30,19 +30,16 @@
   全局变量
 *********************************************************************************************************/
 static MIPS_FPU_OP  _G_fpuopVfp32;
-static INT          _G_iVfp32DNum;
 /*********************************************************************************************************
   实现函数
 *********************************************************************************************************/
-extern VOID     mipsVfp32Init(VOID);
-extern UINT32   mipsVfp32GetFIR(VOID);
-extern VOID     mipsVfp32Enable(VOID);
-extern VOID     mipsVfp32Disable(VOID);
-extern BOOL     mipsVfp32IsEnable(VOID);
-extern VOID     mipsVfp32Save16(PVOID pvFpuCtx);
-extern VOID     mipsVfp32Restore16(PVOID pvFpuCtx);
-extern VOID     mipsVfp32Save32(PVOID pvFpuCtx);
-extern VOID     mipsVfp32Restore32(PVOID pvFpuCtx);
+extern VOID    mipsVfp32Init(VOID);
+extern UINT32  mipsVfp32GetFIR(VOID);
+extern VOID    mipsVfp32Enable(VOID);
+extern VOID    mipsVfp32Disable(VOID);
+extern BOOL    mipsVfp32IsEnable(VOID);
+extern VOID    mipsVfp32Save(PVOID  pvFpuCtx);
+extern VOID    mipsVfp32Restore(PVOID  pvFpuCtx);
 /*********************************************************************************************************
 ** 函数名称: mipsVfp32CtxShow
 ** 功能描述: 显示 VFP 上下文
@@ -59,11 +56,11 @@ static VOID  mipsVfp32CtxShow (INT iFd, PVOID pvFpuCtx)
     ARCH_FPU_CTX   *pcpufpuCtx = &pfpuCtx->FPUCTX_fpuctxContext;
     INT             i;
 
-    fdprintf(iFd, "FPCSR   = 0x%08x\n", pcpufpuCtx->FPUCTX_uiFpcsr);
+    fdprintf(iFd, "FCSR   = 0x%08x\n", pcpufpuCtx->FPUCTX_uiFpcsr);
 
-    for (i = 0; i < _G_iVfp32DNum; i += 2) {
-        fdprintf(iFd, "FPS[%02d] = 0x%08x  ", i,     pcpufpuCtx->FPUCTX_uiDreg[i]);
-        fdprintf(iFd, "FPS[%02d] = 0x%08x\n", i + 1, pcpufpuCtx->FPUCTX_uiDreg[i + 1]);
+    for (i = 0; i < (FP_NUM_DREGS * 2); i += 2) {
+        fdprintf(iFd, "FP%d = 0x%08x  ", i,     pcpufpuCtx->FPUCTX_uiReg[i]);
+        fdprintf(iFd, "FP%d = 0x%08x\n", i + 1, pcpufpuCtx->FPUCTX_uiReg[i + 1]);
     }
 #endif
 }
@@ -78,23 +75,17 @@ static VOID  mipsVfp32CtxShow (INT iFd, PVOID pvFpuCtx)
 *********************************************************************************************************/
 PMIPS_FPU_OP  mipsVfp32PrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 {
+    (VOID)pcMachineName;
+    (VOID)pcFpuName;
+
     mipsVfp32Init();
-
-    if (mipsVfp32GetFIR() == 0) {
-        _G_iVfp32DNum = 32;
-        _G_fpuopVfp32.MFPU_pfuncSave    = mipsVfp32Save16;
-        _G_fpuopVfp32.MFPU_pfuncRestore = mipsVfp32Restore16;
-
-    } else {
-        _G_iVfp32DNum = 64;
-        _G_fpuopVfp32.MFPU_pfuncSave    = mipsVfp32Save32;
-        _G_fpuopVfp32.MFPU_pfuncRestore = mipsVfp32Restore32;
-    }
 
     _G_fpuopVfp32.MFPU_pfuncEnable   = mipsVfp32Enable;
     _G_fpuopVfp32.MFPU_pfuncDisable  = mipsVfp32Disable;
     _G_fpuopVfp32.MFPU_pfuncIsEnable = mipsVfp32IsEnable;
     _G_fpuopVfp32.MFPU_pfuncCtxShow  = mipsVfp32CtxShow;
+    _G_fpuopVfp32.MFPU_pfuncSave     = mipsVfp32Save;
+    _G_fpuopVfp32.MFPU_pfuncRestore  = mipsVfp32Restore;
 
     return  (&_G_fpuopVfp32);
 }
@@ -111,6 +102,8 @@ VOID  mipsVfp32SecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 {
     (VOID)pcMachineName;
     (VOID)pcFpuName;
+
+    mipsVfp32Init();
 }
 
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */

@@ -128,7 +128,6 @@
 #define CP0_LLADDR      $17
 #define CP0_WATCHLO     $18
 #define CP0_WATCHHI     $19
-#define CP0_DIAG        $22                                             /*  loongson2/3 only have       */
 #define CP0_ECC         $26
 #define CP0_CACHEERR    $27
 #define CP0_TAGLO       $28
@@ -136,6 +135,14 @@
 #define CP0_DataLO      $28,1
 #define CP0_DataHI      $29,1
 #define CP0_ERRPC       $30
+
+/*********************************************************************************************************
+  Loongson2/3x CP0 ¼Ä´æÆ÷¶¨Òå
+*********************************************************************************************************/
+
+#define CP0_DIAG        $22
+#define CP0_PAGEGRAIN   $5,1
+#define CP0_GSCONFIG    $16,6
 
 #elif defined(__SYLIXOS_KERNEL)
 #define CP0_INX         "$0"                                            /*  tlb index                   */
@@ -400,6 +407,7 @@
 /*********************************************************************************************************
   Values in the ExcCode field
 *********************************************************************************************************/
+
 #define EX_INT          0                                               /*  Interrupt                   */
 #define EXC_INT         (EX_INT << S_CauseExcCode)
 #define EX_MOD          1                                               /*  TLB modified                */
@@ -558,7 +566,6 @@
 #define S_Config2TL         0                                           /*  Denotes Tracing Logic       */
                                                                         /*  present (R)                 */
 #define M_Config2TL         (0x1 << S_Config2TL)
-
 
 /*********************************************************************************************************
  *  CP0 IntCtl Register

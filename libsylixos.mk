@@ -100,17 +100,20 @@ SylixOS/arch/mips/common/mipsLib.c \
 SylixOS/arch/mips/common/mipsLibAsm.S \
 SylixOS/arch/mips/common/mipsBranch.c \
 SylixOS/arch/mips/common/mipsUnaligned.c \
+SylixOS/arch/mips/common/mipsIo.c \
+SylixOS/arch/mips/common/mips64.c \
+SylixOS/arch/mips/common/mips64Asm.S \
 SylixOS/arch/mips/dbg/mipsDbg.c \
 SylixOS/arch/mips/dbg/mipsGdb.c \
 SylixOS/arch/mips/elf/mipsElf.c \
 SylixOS/arch/mips/fpu/fpu32/mipsVfp32.c \
 SylixOS/arch/mips/fpu/vfpnone/mipsVfpNone.c \
 SylixOS/arch/mips/fpu/fpu32/mipsVfp32Asm.S \
-SylixOS/arch/mips/fpu/fpu64/mipsVfp64.c \
-SylixOS/arch/mips/fpu/fpu64/mipsVfp64Asm.S \
 SylixOS/arch/mips/fpu/mipsFpu.c \
 SylixOS/arch/mips/mm/cache/mips32/mips32Cache.c \
 SylixOS/arch/mips/mm/cache/mips32/mips32CacheAsm.S \
+SylixOS/arch/mips/mm/cache/loongson3x/mipsCacheLs3x.c \
+SylixOS/arch/mips/mm/cache/loongson3x/mipsCacheLs3xAsm.S \
 SylixOS/arch/mips/mm/mmu/mips32/mips32Mmu.c \
 SylixOS/arch/mips/mm/mmu/mips32/mips32MmuAsm.S \
 SylixOS/arch/mips/mm/mipsCache.c \
@@ -1607,13 +1610,6 @@ $(OBJPATH)/libsylixos.a/SylixOS/arch/arm/fpu/vfpv3/armVfpV3Asm.o: ./SylixOS/arch
 MIPS_FPU_ASFLAGS = -mhard-float
 
 $(OBJPATH)/libsylixos.a/SylixOS/arch/mips/fpu/fpu32/mipsVfp32Asm.o: ./SylixOS/arch/mips/fpu/fpu32/mipsVfp32Asm.S
-		@if [ ! -d "$(dir $@)" ]; then \
-			mkdir -p "$(dir $@)"; fi
-		@if [ ! -d "$(dir $(__DEP))" ]; then \
-			mkdir -p "$(dir $(__DEP))"; fi
-		$(AS) $(MIPS_FPU_ASFLAGS) $($(__TARGET)_ASFLAGS_WITHOUT_FPUFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
-
-$(OBJPATH)/libsylixos.a/SylixOS/arch/mips/fpu/fpu64/mipsVfp64Asm.o: ./SylixOS/arch/mips/fpu/fpu64/mipsVfp64Asm.S
 		@if [ ! -d "$(dir $@)" ]; then \
 			mkdir -p "$(dir $@)"; fi
 		@if [ ! -d "$(dir $(__DEP))" ]; then \

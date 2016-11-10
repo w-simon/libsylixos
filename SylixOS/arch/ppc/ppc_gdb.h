@@ -57,13 +57,13 @@ INT     archGdbRegsSet(PVOID               pvDtrace,
 
 INT     archGdbRegSetPc(PVOID              pvDtrace,
                         LW_OBJECT_HANDLE   ulThread,
-                        ULONG              uiPc);                       /*  设置 pc 寄存器              */
+                        ULONG              uiPc);                       /*  设置 PC 寄存器              */
 
-ULONG   archGdbRegGetPc(GDB_REG_SET *pRegs);                            /*  获取 pc 寄存器值            */
+ULONG   archGdbRegGetPc(GDB_REG_SET *pRegs);                            /*  获取 PC 寄存器值            */
 
 ULONG   archGdbGetNextPc(PVOID             pvDtrace,
                          LW_OBJECT_HANDLE  ulThread,
-                         GDB_REG_SET      *pRegs);                      /*  获取下一个 pc 值，含分支预测*/
+                         GDB_REG_SET      *pRegs);                      /*  获取下一个 PC 值，含分支预测*/
 
 #endif                                                                  /*  __ARCH_PPC_GDB_H            */
 /*********************************************************************************************************

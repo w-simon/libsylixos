@@ -87,6 +87,7 @@ VOID  archE500MmuDataTlbErrorHandle (addr_t  ulRetAddr)
         PPC_EXEC_INS("SYNC");
         PPC_EXEC_INS("TLBWE");
         PPC_EXEC_INS("ISYNC");
+
     } else {
         archE500DataStorageExceptionHandle(ulRetAddr);
     }
@@ -126,6 +127,7 @@ VOID  archE500MmuInstructionTlbErrorHandle (addr_t  ulRetAddr)
         PPC_EXEC_INS("SYNC");
         PPC_EXEC_INS("TLBWE");
         PPC_EXEC_INS("ISYNC");
+
     } else {
         archE500InstructionStorageExceptionHandle(ulRetAddr);
     }
@@ -156,6 +158,7 @@ ULONG  ppcE500MmuDataStorageAbortType (addr_t  ulAbortAddr, BOOL  bIsWrite)
             }
         }
         return  (LW_VMM_ABORT_TYPE_MAP);
+
     } else {
         return  (LW_VMM_ABORT_TYPE_MAP);
     }
@@ -179,6 +182,7 @@ ULONG  ppcE500MmuInstStorageAbortType (addr_t  ulAbortAddr)
             return  (LW_VMM_ABORT_TYPE_PERM);
         }
         return  (LW_VMM_ABORT_TYPE_MAP);
+
     } else {
         return  (LW_VMM_ABORT_TYPE_MAP);
     }

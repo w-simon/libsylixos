@@ -25,6 +25,7 @@
 *********************************************************************************************************/
 #if LW_CFG_CACHE_EN > 0
 #include "cache/mips32/mips32Cache.h"
+#include "cache/loongson3x/mipsCacheLs3x.h"
 /*********************************************************************************************************
 ** 函数名称: archCacheInit
 ** 功能描述: 初始化 CACHE
@@ -37,16 +38,18 @@
 *********************************************************************************************************/
 VOID  archCacheInit (CACHE_MODE  uiInstruction, CACHE_MODE  uiData, CPCHAR  pcMachineName)
 {
-    LW_CACHE_OP *pcacheop = API_CacheGetLibBlock();
+    LW_CACHE_OP  *pcacheop = API_CacheGetLibBlock();
 
     _DebugFormat(__LOGMESSAGE_LEVEL, "%s L1 cache controller initialization.\r\n", pcMachineName);
 
     if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS1X)   == 0) ||
         (lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X)   == 0) ||
-        (lib_strcmp(pcMachineName, MIPS_MACHINE_LS3X)   == 0) ||
         (lib_strcmp(pcMachineName, MIPS_MACHINE_24KF)   == 0) ||
         (lib_strcmp(pcMachineName, MIPS_MACHINE_JZ47XX) == 0)) {
         mips32CacheInit(pcacheop, uiInstruction, uiData, pcMachineName);
+
+    } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS3X) == 0)) {
+        mipsLs3xCacheInit(pcacheop, uiInstruction, uiData, pcMachineName);
 
     } else {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown machine name.\r\n");
@@ -64,10 +67,12 @@ VOID  archCacheReset (CPCHAR  pcMachineName)
 {
     if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS1X)   == 0) ||
         (lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X)   == 0) ||
-        (lib_strcmp(pcMachineName, MIPS_MACHINE_LS3X)   == 0) ||
         (lib_strcmp(pcMachineName, MIPS_MACHINE_24KF)   == 0) ||
         (lib_strcmp(pcMachineName, MIPS_MACHINE_JZ47XX) == 0)) {
         mips32CacheReset(pcMachineName);
+
+    } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS3X) == 0)) {
+        mipsLs3xCacheReset(pcMachineName);
 
     } else {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown machine name.\r\n");

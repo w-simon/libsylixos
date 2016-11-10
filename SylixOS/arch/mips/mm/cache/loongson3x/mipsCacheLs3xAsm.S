@@ -10,13 +10,13 @@
 ;**
 ;**--------------文件信息--------------------------------------------------------------------------------
 ;**
-;** 文   件   名: ppcMmuE500Asm.S
+;** 文   件   名: mipsCacheLs3xAsm.S
 ;**
 ;** 创   建   人: Jiao.JinXing (焦进星)
 ;**
-;** 文件创建日期: 2016 年 05 月 04 日
+;** 文件创建日期: 2016 年 11 月 02 日
 ;**
-;** 描        述: PowerPC E500 体系构架 MMU 驱动.
+;** 描        述: Loongson3x 体系构架 CACHE 驱动.
 ;*********************************************************************************************************/
 
 #ifndef ASSEMBLY
@@ -24,52 +24,56 @@
 #endif
 
 #include <arch/assembler.h>
-#include <config/kernel/vmm_cfg.h>
+#include <config/kernel/cache_cfg.h>
 
-#if LW_CFG_VMM_EN > 0
+#if LW_CFG_CACHE_EN > 0
 
-#include "arch/ppc/arch_e500.h"
+    EXPORT_LABEL(ls3xCacheDisableHw)
+    EXPORT_LABEL(ls3xCacheEnableHw)
 
     FILE_BEGIN()
 
-    EXPORT_LABEL(ppcE500MmuInvalidateTLB)
-    EXPORT_LABEL(ppcE500MmuInvalidateTLBEA)
-
 ;/*********************************************************************************************************
-;  定义
+;  禁能 CACHE
 ;*********************************************************************************************************/
 
-#define INV_TLB0    0x0
+FUNC_DEF(ls3xCacheDisableHw)
+    .set    push
+    .set    noreorder
+    .set    volatile
+
+    JR      RA
+    NOP
+
+    .set    pop
+FUNC_END(ls3xCacheDisableHw)
 
 ;/*********************************************************************************************************
-;  无效所有 TLB
+;  使能 CACHE
 ;*********************************************************************************************************/
 
-FUNC_DEF(ppcE500MmuInvalidateTLB)
-    LIS         R3 , HIADJ(ARCH_PPC_MMUCSR0_L2TLB0_FI)
-    ADDI        R3 , R3 , LO(ARCH_PPC_MMUCSR0_L2TLB0_FI)
-    ISYNC
-    MTSPR       MMUCSR0 , R3
-    ISYNC
-    TLBSYNC
-    ISYNC
-    BLR
-    FUNC_END()
+FUNC_DEF(ls3xCacheEnableHw)
+    .set    push
+    .set    noreorder
+    .set    volatile
 
-;/*********************************************************************************************************
-;  无效指定 EA 的 TLB
-;*********************************************************************************************************/
+    MFC0(T0, CP0_CONFIG)
+    ANDI    T0 , T0 , M_ConfigK0
+    LI      T1 , MIPS_CACHABLE_COW
+    BEQ     T0 , T1 , 1f
+    NOP
 
-FUNC_DEF(ppcE500MmuInvalidateTLBEA)
-    ORI         R3 , R3 , INV_TLB0
-    ISYNC
-    TLBIVAX     R0 , R3
-    ISYNC
-    MSYNC
-    TLBSYNC
-    ISYNC
-    BLR
-    FUNC_END()
+    MFC0(T0, CP0_CONFIG)
+    AND     T0 , T0 , ~M_ConfigK0
+    ORI     T0 , MIPS_CACHABLE_COW
+    MTC0(T0, CP0_CONFIG)
+
+1:
+    JR      RA
+    NOP
+
+    .set    pop
+FUNC_END(ls3xCacheEnableHw)
 
     FILE_END()
 

@@ -57,10 +57,10 @@
   寄存器信息
 *********************************************************************************************************/
 #if AHCI_LOG_EN > 0                                                     /* 使能调试                     */
-#define AHCI_CTRL_REG_MSG(ctrl, reg)        AHCI_LOG(AHCI_LOG_PRT, "ctrl %d %s: 0x%08x ",   \
+#define AHCI_CTRL_REG_MSG(ctrl, reg)        AHCI_LOG(AHCI_LOG_PRT, "ctrl %d %s: 0x%08x.\r\n",   \
                                             ctrl->AHCICTRL_uiIndex,                         \
                                             API_AhciCtrlRegNameGet(ctrl, reg), AHCI_CTRL_READ(ctrl, reg))
-#define AHCI_PORT_REG_MSG(port, reg)        AHCI_LOG(AHCI_LOG_PRT, "port %d %s: 0x%08x ",   \
+#define AHCI_PORT_REG_MSG(port, reg)        AHCI_LOG(AHCI_LOG_PRT, "port %d %s: 0x%08x.\r\n",   \
                                             port->AHCIDRIVE_uiPort,                         \
                                             API_AhciDriveRegNameGet(port, reg), AHCI_PORT_READ(port, reg))
 #else                                                                   /* AHCI_LOG_EN                  */

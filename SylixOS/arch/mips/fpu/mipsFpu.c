@@ -26,7 +26,6 @@
 #if LW_CFG_CPU_FPU_EN > 0
 #include "mipsFpu.h"
 #include "fpu32/mipsVfp32.h"
-#include "fpu64/mipsVfp64.h"
 #include "vfpnone/mipsVfpNone.h"
 #include "arch/mips/common/cp0/mipsCp0.h"
 /*********************************************************************************************************
@@ -34,6 +33,10 @@
 *********************************************************************************************************/
 static LW_FPU_CONTEXT   _G_fpuCtxInit;
 static PMIPS_FPU_OP     _G_pfpuop;
+/*********************************************************************************************************
+  外部函数声明
+*********************************************************************************************************/
+extern UINT32  mipsVfp32GetFIR(VOID);
 /*********************************************************************************************************
 ** 函数名称: archFpuPrimaryInit
 ** 功能描述: 主核 Fpu 控制器初始化
@@ -57,9 +60,6 @@ VOID  archFpuPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 
         } else if (lib_strcmp(pcFpuName, MIPS_FPU_VFP32) == 0) {
             _G_pfpuop = mipsVfp32PrimaryInit(pcMachineName, pcFpuName);
-
-        } else if (lib_strcmp(pcFpuName, MIPS_FPU_VFP64) == 0) {
-            _G_pfpuop = mipsVfp64PrimaryInit(pcMachineName, pcFpuName);
 
         } else {
             _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown fpu name.\r\n");
@@ -108,9 +108,6 @@ VOID  archFpuSecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 
         } else if (lib_strcmp(pcFpuName, MIPS_FPU_VFP32) == 0) {
             mipsVfp32SecondaryInit(pcMachineName, pcFpuName);
-
-        } else if (lib_strcmp(pcFpuName, MIPS_FPU_VFP64) == 0) {
-            mipsVfp64SecondaryInit(pcMachineName, pcFpuName);
 
         } else {
             _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown fpu name.\r\n");
@@ -216,9 +213,12 @@ INT  archFpuUndHandle (PLW_CLASS_TCB  ptcbCur)
     }
 
     uiConfig1 = mipsCp0Config1Read();
-    if (uiConfig1 & M_Config1FP) {
+    if (uiConfig1 & M_Config1FP) {                                      /*  有 FPU                      */
         pregctx = archTaskRegsGet(ptcbCur->TCB_pstkStackNow, &regSp);
         pregctx->REG_uiCP0Status |= M_StatusCU1;
+    
+	} else {
+        return  (PX_ERROR);                                             /*  没有 FPU                    */
     }
 
     ptcbCur->TCB_ulOption |= LW_OPTION_THREAD_USED_FP;

@@ -435,7 +435,7 @@ __timeout_handle:
 
     AHCI_LOG(AHCI_LOG_PRT,
              "port reg %s offset 0x%08x mask 0x%08x flag %d "
-             "value 0x%08x reg 0x%08x time %d timeout %d.\n",
+             "value 0x%08x reg 0x%08x time %d timeout %d.\r\n",
              API_AhciDriveRegNameGet(hDrive, uiRegAddr), uiRegAddr, uiMask, iFlag, uiValue, uiReg,
              ulTime, ulTimeout);
 
@@ -460,7 +460,7 @@ INT  API_AhciDriveRecvFisStop (AHCI_DRIVE_HANDLE  hDrive)
     INT         iRet;                                                   /* 返回值                       */
     UINT32      uiReg;                                                  /* 寄存器值                     */
 
-    AHCI_LOG(AHCI_LOG_PRT, "drive recv fis stop ctrl %d port %d.\n",
+    AHCI_LOG(AHCI_LOG_PRT, "drive recv fis stop ctrl %d port %d.\r\n",
              hDrive->AHCIDRIVE_hCtrl->AHCICTRL_uiIndex, hDrive->AHCIDRIVE_uiPort);
 
     /*
@@ -474,6 +474,10 @@ INT  API_AhciDriveRecvFisStop (AHCI_DRIVE_HANDLE  hDrive)
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
+
+    uiReg = AHCI_PORT_READ(hDrive, AHCI_PxCI);
+    AHCI_LOG(AHCI_LOG_PRT, "drive state 0x%08x ctrl %d port %d.\r\n",
+             uiReg, hDrive->AHCIDRIVE_hCtrl->AHCICTRL_uiIndex, hDrive->AHCIDRIVE_uiPort);
 
     return  (ERROR_NONE);
 }
@@ -492,7 +496,7 @@ INT  API_AhciDriveEngineStop (AHCI_DRIVE_HANDLE  hDrive)
     INT         iRet;                                                   /* 返回值                       */
     UINT32      uiReg;                                                  /* 寄存器值                     */
 
-    AHCI_LOG(AHCI_LOG_PRT, "drive engine stop ctrl %d port %d.\n",
+    AHCI_LOG(AHCI_LOG_PRT, "drive engine stop ctrl %d port %d\r\n",
              hDrive->AHCIDRIVE_hCtrl->AHCICTRL_uiIndex, hDrive->AHCIDRIVE_uiPort);
 
     uiReg = AHCI_PORT_READ(hDrive, AHCI_PxCMD);
@@ -507,6 +511,15 @@ INT  API_AhciDriveEngineStop (AHCI_DRIVE_HANDLE  hDrive)
     AHCI_PORT_WRITE(hDrive, AHCI_PxCMD, uiReg);
     iRet = API_AhciDriveRegWait(hDrive,
                                 AHCI_PxCMD, AHCI_PCMD_CR, LW_TRUE, AHCI_PCMD_CR, 1, 500, &uiReg);
+    if (iRet != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
+
+    uiReg = AHCI_PORT_READ(hDrive, AHCI_PxCMD);
+    uiReg |= AHCI_PCMD_CLO;
+    AHCI_PORT_WRITE(hDrive, AHCI_PxCMD, uiReg);
+    iRet = API_AhciDriveRegWait(hDrive,
+                                AHCI_PxCMD, AHCI_PCMD_CLO, LW_TRUE, AHCI_PCMD_CLO, 1, 500, &uiReg);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
@@ -527,7 +540,7 @@ INT  API_AhciDrivePowerUp (AHCI_DRIVE_HANDLE  hDrive)
 {
     UINT32  uiReg;
 
-    AHCI_LOG(AHCI_LOG_PRT, "drive power up ctrl %d port %d.\n",
+    AHCI_LOG(AHCI_LOG_PRT, "drive power up ctrl %d port %d.\r\n",
              hDrive->AHCIDRIVE_hCtrl->AHCICTRL_uiIndex, hDrive->AHCIDRIVE_uiPort);
 
     uiReg = AHCI_PORT_READ(hDrive, AHCI_PxCMD);
@@ -646,7 +659,7 @@ __timeout_handle:
 
     AHCI_LOG(AHCI_LOG_PRT,
              "ctrl reg %s offset 0x%08x mask 0x%08x flag %d "
-             "value 0x%08x reg 0x%08x time %d timeout %d.\n",
+             "value 0x%08x reg 0x%08x time %d timeout %d.\r\n",
              API_AhciCtrlRegNameGet(hCtrl, uiRegAddr), uiRegAddr, uiMask, iFlag, uiValue, uiReg,
              ulTime, ulTimeout);
 
@@ -977,10 +990,10 @@ INT  API_AhciCtrlImpPortGet (AHCI_CTRL_HANDLE  hCtrl)
         uiReg >>= 1;
     }
 
-    AHCI_LOG(AHCI_LOG_PRT, "active port %d, index \n", hCtrl->AHCICTRL_uiImpPortNum);
+    AHCI_LOG(AHCI_LOG_PRT, "active port %d, index \r\n", hCtrl->AHCICTRL_uiImpPortNum);
     for (i = 0; i < AHCI_PI_WIDTH; i++) {
         if (hCtrl->AHCICTRL_uiImpPortMap & (0x01 << i)) {
-            AHCI_LOG(AHCI_LOG_PRT, "%d \n", i);
+            AHCI_LOG(AHCI_LOG_PRT, "%d \r\n", i);
         }
     }
 

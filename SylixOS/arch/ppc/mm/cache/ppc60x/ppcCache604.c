@@ -58,7 +58,6 @@ extern VOID     ppc604BranchPredictorInvalidate(VOID);
 static INT   ppc604CacheProbe (CPCHAR  pcMachineName, PPC_CACHE  *pICache, PPC_CACHE  *pDCache)
 {
     if (lib_strcmp(pcMachineName, PPC_MACHINE_750) == 0) {
-
         pICache->CACHE_uiLineSize  = 32;
         pICache->CACHE_uiWayNr     = 8;
         pICache->CACHE_uiSetNr     = 128;
@@ -74,6 +73,7 @@ static INT   ppc604CacheProbe (CPCHAR  pcMachineName, PPC_CACHE  *pICache, PPC_C
         pDCache->CACHE_uiWaySize   = pDCache->CACHE_uiSetNr * pDCache->CACHE_uiLineSize;
 
         return  (ERROR_NONE);
+
     } else {
         return  (PX_ERROR);
     }

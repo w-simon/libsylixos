@@ -10,22 +10,28 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: mipsVfp64.h
+** 文   件   名: mipsCacheLs3x.c
 **
-** 创   建   人: Ryan.Xin (信金龙)
+** 创   建   人: Jiao.JinXing (焦进星)
 **
-** 文件创建日期: 2015 年 12 月 01 日
+** 文件创建日期: 2016 年 11 月 02 日
 **
-** 描        述: MIPS 体系架构 VPU64 支持.
+** 描        述: Loongson3x 体系构架 CACHE 驱动.
 *********************************************************************************************************/
 
-#ifndef __MIPSVFP64_H
-#define __MIPSVFP64_H
+#ifndef __MIPS_LS3X_CACHE_H
+#define __MIPS_LS3X_CACHE_H
 
-PMIPS_FPU_OP  mipsVfp64PrimaryInit(CPCHAR  pcMachineName, CPCHAR  pcFpuName);
-VOID          mipsVfp64SecondaryInit(CPCHAR  pcMachineName, CPCHAR  pcFpuName);
+VOID  ls3xCacheFlushAll(VOID);
+VOID  ls3xCacheEnableHw(VOID);
 
-#endif                                                                  /*  __MIPSVFP64_H               */
+VOID  mipsLs3xCacheInit(LW_CACHE_OP *pcacheop,
+                        CACHE_MODE   uiInstruction,
+                        CACHE_MODE   uiData,
+                        CPCHAR       pcMachineName);
+VOID  mipsLs3xCacheReset(CPCHAR  pcMachineName);
+
+#endif                                                                  /*  __MIPS_LS3X_CACHE_H         */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

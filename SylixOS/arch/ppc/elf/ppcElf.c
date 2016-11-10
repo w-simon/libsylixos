@@ -192,6 +192,7 @@ INT  archElfRelocateRela (PVOID       pmodule,
     addrSymVal = addrSymVal + prela->r_addend;                          /*  所有都得加上 ADD            */
 
     switch (ELF32_R_TYPE(prela->r_info)) {
+
     case R_PPC_NONE:
         break;
 

@@ -94,7 +94,6 @@ typedef struct mpinterrupt  X86_MP_INTERRUPT, *PX86_MP_INTERRUPT;
 
 extern X86_MP_INTERRUPT     _G_x86MpInterrupt[];
 extern INT                  _G_iX86MpInterruptNr;
-
 extern BOOL                 _G_bX86HasMpConfig;
 
 #endif                                                                  /*  __ARCH_X86MPCONFIG_H        */

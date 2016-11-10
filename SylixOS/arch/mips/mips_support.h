@@ -132,6 +132,12 @@ VOID    archReboot(INT  iRebootType, addr_t  ulStartAddress);
 #define MIPS_MACHINE_LS3X   "loongson3x"
 #define MIPS_MACHINE_JZ47XX "jz47xx"
 
+#define MIPS_MACHINE_TYPE_24KF      0
+#define MIPS_MACHINE_TYPE_LS1X      10
+#define MIPS_MACHINE_TYPE_LS2X      20
+#define MIPS_MACHINE_TYPE_LS3X      30
+#define MIPS_MACHINE_TYPE_JZ47XX    40
+
 #if LW_CFG_CACHE_EN > 0
 VOID    archCacheReset(CPCHAR     pcMachineName);
 VOID    archCacheInit(CACHE_MODE  uiInstruction, CACHE_MODE  uiData, CPCHAR  pcMachineName);
@@ -189,14 +195,7 @@ VOID    archMpInt(ULONG  ulCPUId);
 #define KN_BARRIER()            __asm__ __volatile__ ("" : : : "memory")
 
 #if LW_CFG_MIPS_HAS_SYNC_INSTR > 0
-#define KN_SYNC()                       \
-        __asm__ __volatile__ (          \
-        ".set   push\n\t"               \
-        ".set   noreorder\n\t"          \
-        ".set   mips2\n\t"              \
-        "sync\n\t"                      \
-        ".set   pop"                    \
-        : : : "memory")
+#define KN_SYNC()               __asm__ __volatile__ ("sync" : : : "memory")
 #else
 #define KN_SYNC()               KN_BARRIER()
 #endif                                                                  /*  LW_CFG_MIPS_HAS_SYNC_INSTR  */
@@ -206,9 +205,9 @@ VOID    archMpInt(ULONG  ulCPUId);
 #define KN_WMB()                KN_SYNC()
 
 #if LW_CFG_SMP_EN > 0
-#define KN_SMP_MB()             __asm__ __volatile__ ("sync" : : : "memory")
-#define KN_SMP_RMB()            __asm__ __volatile__ ("sync" : : : "memory")
-#define KN_SMP_WMB()            __asm__ __volatile__ ("sync" : : : "memory")
+#define KN_SMP_MB()             KN_SYNC()
+#define KN_SMP_RMB()            KN_SYNC()
+#define KN_SMP_WMB()            KN_SYNC()
 
 #else
 #define KN_SMP_MB()             KN_BARRIER()
@@ -221,7 +220,6 @@ VOID    archMpInt(ULONG  ulCPUId);
 *********************************************************************************************************/
 
 #define MIPS_FPU_VFP32    "vfp32"
-#define MIPS_FPU_VFP64    "vfp64"
 #define MIPS_FPU_NONE     "none"
 
 #if LW_CFG_CPU_FPU_EN > 0

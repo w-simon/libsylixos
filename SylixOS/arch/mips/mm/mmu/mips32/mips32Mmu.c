@@ -19,7 +19,7 @@
 ** 描        述: MIPS32 体系构架 MMU 驱动.
 **
 ** BUG:
-2016.04.06  修改 TLB 无效对 EntryHi Register 操作(JZ4780支持)
+2016.04.06  修改 TLB 无效对 EntryHi Register 操作(JZ4780 支持)
 2016.06.14  为支持非 4K 大小页面重构代码
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
@@ -32,10 +32,10 @@
 /*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
-static LW_OBJECT_HANDLE     _G_hPGDPartition    = LW_HANDLE_INVALID;    /*  系统目前仅使用一个 PGD      */
-static PVOID                _G_pvPTETable       = LW_NULL;              /*  PTE 表                      */
-static UINT32               _G_uiTlbSize        = 0;                    /*  TLB 数组大小                */
-static BOOL                 _G_bIsHasITLB       = LW_FALSE;             /*  是否带有处理 ITLB           */
+static LW_OBJECT_HANDLE     _G_hPGDPartition = LW_HANDLE_INVALID;       /*  系统目前仅使用一个 PGD      */
+static PVOID                _G_pvPTETable    = LW_NULL;                 /*  PTE 表                      */
+static UINT32               _G_uiTlbSize     = 0;                       /*  TLB 数组大小                */
+static INT                  _G_iMachineType  = MIPS_MACHINE_TYPE_24KF;  /*  机器类型                    */
 /*********************************************************************************************************
   宏定义
 *********************************************************************************************************/
@@ -78,9 +78,23 @@ static BOOL                 _G_bIsHasITLB       = LW_FALSE;             /*  是否
 #define MIPS32_MMU_TLB_READ()           do { MIPS_EXEC_INS("TLBR");  MIPS_EXEC_INS("EHB"); } while(0)
 #define MIPS32_MMU_TLB_PROBE()          do { MIPS_EXEC_INS("TLBP");  MIPS_EXEC_INS("EHB"); } while(0)
 /*********************************************************************************************************
-  龙芯处理器特有的 TLB 操作
+** 函数名称: mips32MmuInvalidateMicroTLB
+** 功能描述: 无效 Micro TLB
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
 *********************************************************************************************************/
-#define MIPS32_FLUSH_ITLB()             do { mipsCp0DiagWrite(0x04); } while(0)
+static VOID  mips32MmuInvalidateMicroTLB (VOID)
+{
+    if (_G_iMachineType == MIPS_MACHINE_TYPE_LS2X) {
+        mipsCp0DiagWrite(1 << 2);                                       /*  清除 ITLB                   */
+
+    } else if (_G_iMachineType == MIPS_MACHINE_TYPE_LS3X) {
+        mipsCp0DiagWrite((1 << 3) |
+                         (1 << 2));                                     /*  清除 ITLB DTLB              */
+    }
+}
 /*********************************************************************************************************
 ** 函数名称: mips32MmuEnable
 ** 功能描述: 使能 MMU
@@ -110,27 +124,34 @@ static VOID  mips32MmuDisable (VOID)
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
+** 注  意  : 内部会无效 Micro TLB
 *********************************************************************************************************/
 static VOID  mips32MmuInvalidateTLB (VOID)
 {
-             UINT32  uiEntryHiBak = mipsCp0EntryHiRead();
-    REGISTER INT     i;
+    if (_G_iMachineType == MIPS_MACHINE_TYPE_LS3X) {
+        mipsCp0DiagWrite((1 << 13) |
+                         (1 << 12) |
+                         (1 <<  3) |
+                         (1 <<  2));                                    /*  清除 ITLB DTLB VTLB FTLB    */
 
-    for (i = 0; i < MIPS32_TLB_SIZE; i++) {
-        mipsCp0IndexWrite(i);
+    } else {
+        UINT32  uiEntryHiBak = mipsCp0EntryHiRead();
+        INT     i;
 
-        mipsCp0EntryLo0Write(0);
-        mipsCp0EntryLo1Write(0);
+        for (i = 0; i < MIPS32_TLB_SIZE; i++) {
+            mipsCp0IndexWrite(i);
 
-        mipsCp0EntryHiWrite(MIPS32_UNIQUE_ENTRYHI(i));
+            mipsCp0EntryLo0Write(0);
+            mipsCp0EntryLo1Write(0);
 
-        MIPS32_MMU_TLB_WRITE();
-    }
+            mipsCp0EntryHiWrite(MIPS32_UNIQUE_ENTRYHI(i));
 
-    mipsCp0EntryHiWrite(uiEntryHiBak);
+            MIPS32_MMU_TLB_WRITE();
+        }
 
-    if (_G_bIsHasITLB) {
-        MIPS32_FLUSH_ITLB();
+        mipsCp0EntryHiWrite(uiEntryHiBak);
+
+        mips32MmuInvalidateMicroTLB();                                  /*  无效 Micro TLB              */
     }
 }
 /*********************************************************************************************************
@@ -174,6 +195,7 @@ VOID  mips32MmuDumpTLB (VOID)
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
+** 注  意  : 内部不会无效 Micro TLB, 外部操作完成后必须无效 Micro TLB
 *********************************************************************************************************/
 static VOID  mips32MmuInvalidateTLBMVA (addr_t  ulAddr)
 {
@@ -203,10 +225,6 @@ static VOID  mips32MmuInvalidateTLBMVA (addr_t  ulAddr)
     }
 
     mipsCp0EntryHiWrite(uiEntryHiBak);
-
-    if (_G_bIsHasITLB) {
-        MIPS32_FLUSH_ITLB();
-    }
 }
 /*********************************************************************************************************
 ** 函数名称: mips32MmuBuildPgdesc
@@ -251,6 +269,7 @@ static LW_PTE_TRANSENTRY  mips32MmuBuildPtentry (UINT32  uiBaseAddr,
         uiDescriptor |= MIPS32_ENTRYLO_G_BIT;                           /*  填充 G 位                   */
 
         if (ulFlag & LW_VMM_FLAG_CACHEABLE) {                           /*  填充 C 位                   */
+                                                                        /*  龙芯 3A 上为一致性 CACHE    */
             uiDescriptor |= MIPS_CACHABLE_NONCOHERENT << MIPS32_ENTRYLO_C_SHIFT;
         } else {
             uiDescriptor |= MIPS_UNCACHED << MIPS32_ENTRYLO_C_SHIFT;
@@ -279,14 +298,27 @@ static INT  mips32MmuMemInit (PLW_MMU_CONTEXT  pmmuctx)
     PVOID   pvPteTable;
     
     pvPgdTable = __KHEAP_ALLOC_ALIGN(PGD_BLOCK_SIZE, PGD_BLOCK_SIZE);
+    if (!pvPgdTable) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "can not allocate page table.\r\n");
+        return  (PX_ERROR);
+    }
 
     /*
      * PTE 表需要 8MByte 对齐才能写入 Context 寄存器
      */
     pvPteTable = __KHEAP_ALLOC_ALIGN(PTE_TABLE_SIZE, 8 * LW_CFG_MB_SIZE);
-    
-    if (!pvPgdTable || !pvPteTable) {
+    if (!pvPteTable) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "can not allocate page table.\r\n");
+        __KHEAP_FREE(pvPgdTable);
+        return  (PX_ERROR);
+    }
+
+    _G_hPGDPartition = API_PartitionCreate("pgd_pool", pvPgdTable, 1, PGD_BLOCK_SIZE,
+                                           LW_OPTION_OBJECT_GLOBAL, LW_NULL);
+    if (!_G_hPGDPartition) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "can not allocate page pool.\r\n");
+        __KHEAP_FREE(pvPgdTable);
+        __KHEAP_FREE(pvPteTable);
         return  (PX_ERROR);
     }
     
@@ -294,13 +326,6 @@ static INT  mips32MmuMemInit (PLW_MMU_CONTEXT  pmmuctx)
 
     _G_pvPTETable = pvPteTable;
 
-    _G_hPGDPartition = API_PartitionCreate("pgd_pool", pvPgdTable, 1, PGD_BLOCK_SIZE,
-                                           LW_OPTION_OBJECT_GLOBAL, LW_NULL);
-    if (!_G_hPGDPartition) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "can not allocate page pool.\r\n");
-        return  (PX_ERROR);
-    }
-    
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -332,7 +357,7 @@ static INT  mips32MmuGlobalInit (CPCHAR  pcMachineName)
 
     _DebugFormat(__LOGMESSAGE_LEVEL, "MMU TLB size = %d.\r\n", MIPS32_TLB_SIZE);
 
-    archCacheReset(pcMachineName);                                      /*  复位 Cache                  */
+    archCacheReset(pcMachineName);                                      /*  复位 CACHE                  */
     
     mipsCp0PageMaskWrite(MIPS32_PAGE_MASK);                             /*  PAGE MASK                   */
 
@@ -341,6 +366,11 @@ static INT  mips32MmuGlobalInit (CPCHAR  pcMachineName)
     mipsCp0WiredWrite(0);                                               /*  全部允许随机替换            */
 
     mips32MmuInvalidateTLB();                                           /*  无效 TLB                    */
+
+    if (_G_iMachineType == MIPS_MACHINE_TYPE_LS3X) {
+        mipsCp0PageGrainWrite(0);                                       /*  禁用龙芯 3A 的一些扩展功能  */
+        mipsCp0GSConfigWrite(mipsCp0GSConfigRead() | (1 << 22));        /*  只用 VTLB, 不用 FTLB        */
+    }
 
     return  (ERROR_NONE);
 }
@@ -596,7 +626,7 @@ static ULONG  mips32MmuFlagGet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr)
                 break;
 
             case MIPS_CACHABLE_NONCOHERENT:                             /*  可以 CACHE, 但不参与一致性  */
-                ulFlag |= LW_VMM_FLAG_CACHEABLE;
+                ulFlag |= LW_VMM_FLAG_CACHEABLE;                        /*  龙芯 3A 上为一致性 CACHE    */
                 break;
 
             default:
@@ -787,6 +817,8 @@ static VOID  mips32MmuInvTLB (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulPageAddr, ULON
             mips32MmuInvalidateTLBMVA((addr_t)ulPageAddr);              /*  逐个页面清除 TLB            */
             ulPageAddr += LW_CFG_VMM_PAGE_SIZE;
         }
+
+        mips32MmuInvalidateMicroTLB();                                  /*  无效 Micro TLB              */
     }
 }
 /*********************************************************************************************************
@@ -800,9 +832,17 @@ static VOID  mips32MmuInvTLB (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulPageAddr, ULON
 *********************************************************************************************************/
 VOID  mips32MmuInit (LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName)
 {
-    if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X) == 0) ||
-        (lib_strcmp(pcMachineName, MIPS_MACHINE_LS3X) == 0)) {
-        _G_bIsHasITLB = LW_TRUE;
+    if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS1X) == 0)) {
+        _G_iMachineType = MIPS_MACHINE_TYPE_LS1X;
+
+    } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X) == 0)) {
+        _G_iMachineType = MIPS_MACHINE_TYPE_LS2X;
+
+    } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS3X) == 0)) {
+        _G_iMachineType = MIPS_MACHINE_TYPE_LS3X;
+
+    } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_JZ47XX) == 0)) {
+        _G_iMachineType = MIPS_MACHINE_TYPE_JZ47XX;
     }
 
 #if LW_CFG_SMP_EN > 0

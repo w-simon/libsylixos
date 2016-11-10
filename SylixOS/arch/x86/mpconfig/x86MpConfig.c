@@ -75,7 +75,7 @@ static PX86_MP  x86MpScanMpStruct (addr_t  ulAddr, size_t  stLen)
     pucEnd  = pucAddr + stLen;
 
     for (pucPos = pucAddr; pucPos < pucEnd; pucPos += sizeof(X86_MP)) {
-        if (lib_memcmp(pucPos, "_MP_", 4) == 0 && x86MpSum(pucPos, sizeof(X86_MP)) == 0) {
+        if ((lib_memcmp(pucPos, "_MP_", 4) == 0) && (x86MpSum(pucPos, sizeof(X86_MP)) == 0)) {
             return  ((PX86_MP)pucPos);
         }
     }

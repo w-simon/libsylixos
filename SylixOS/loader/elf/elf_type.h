@@ -130,15 +130,15 @@ typedef SINT64   Elf64_Sxword;
 #endif /* LW_CFG_CPU_ARCH_MIPS */
 
 /* e_machine */
-#define EM_NONE		0		/* e_machine */
-#define EM_M32		1		/* AT&T WE 32100 */
-#define EM_SPARC	2		/* Sun SPARC */
-#define EM_386		3		/* Intel 80386 */
-#define EM_68K		4		/* Motorola 68000 */
-#define EM_88K		5		/* Motorola 88000 */
-#define EM_486		6		/* Intel 80486 */
-#define EM_860		7		/* Intel i860 */
-#define EM_MIPS		8		/* MIPS family  */
+#define EM_NONE		    0   /* e_machine */
+#define EM_M32		    1	/* AT&T WE 32100 */
+#define EM_SPARC	    2	/* Sun SPARC */
+#define EM_386		    3	/* Intel 80386 */
+#define EM_68K		    4	/* Motorola 68000 */
+#define EM_88K		    5	/* Motorola 88000 */
+#define EM_486		    6	/* Intel 80486 */
+#define EM_860		    7	/* Intel i860 */
+#define EM_MIPS		    8	/* MIPS family  */
 #define EM_PPC_OLD      17  /* PowerPC family - EABI draft 1.0 */
 #define EM_PPC          20  /* PowerPC family */
 #define EM_ARM		    40  /* ARM/Thumb family */

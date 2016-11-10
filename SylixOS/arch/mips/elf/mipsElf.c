@@ -74,12 +74,12 @@ static INT mipsElfHI16RelocateRel (LW_LD_EXEC_MODULE  *pmodule,
 
     pHi16Info = LW_LD_SAFEMALLOC(sizeof(MIPS_HI16_RELOC_INFO));
     if (!pHi16Info) {
-        return (PX_ERROR);
+        return  (PX_ERROR);
     }
 
     pHi16Info->HI16_pAddr    	= (Elf_Addr *)pRelocAdrs;
     pHi16Info->HI16_valAddr  	= addrSymVal;
-    pHi16Info->HI16_pNext    	= pmodule->EMOD_pMIPSHi16List;        	/*  增加 List 一个节点          */
+    pHi16Info->HI16_pNext    	= pmodule->EMOD_pMIPSHi16List;        	/*  增加一个 List 节点          */
     pmodule->EMOD_pMIPSHi16List = pHi16Info;
 
     return  (ERROR_NONE);
@@ -133,7 +133,7 @@ static INT mipsElfLO16RelocateRel (LW_LD_EXEC_MODULE  *pmodule,
             if (addrSymVal != pHi16Info->HI16_valAddr) {
                 mipsElfFreeHI16Relocatelist(pHi16Info);
                 pmodule->EMOD_pMIPSHi16List = NULL;
-                return (PX_ERROR);
+                return  (PX_ERROR);
             }
 
             /*
@@ -144,7 +144,7 @@ static INT mipsElfLO16RelocateRel (LW_LD_EXEC_MODULE  *pmodule,
             addrVal  += addrSymVal;
 
             /*
-             * Check Bit15 的符号值(sign extension)
+             * 检查 BIT15 的符号值(sign extension)
              */
             addrVal   = ((addrVal >> 16) + ((addrVal & 0x8000) != 0)) & 0xFFFF;
 
@@ -219,6 +219,7 @@ INT  archElfRelocateRel (PVOID        pmodule,
     paddrWhere = (Elf_Addr *)((size_t)pcTargetSec + prel->r_offset);    /*  计算重定位目标地址          */
 
     switch (ELF_R_TYPE(prel->r_info)) {
+
     case R_MIPS_NONE:
         break;
 
@@ -234,10 +235,10 @@ INT  archElfRelocateRel (PVOID        pmodule,
 
     case R_MIPS_26:
         if (addrSymVal & 0x03) {
-            return (PX_ERROR);
+            return  (PX_ERROR);
         }
         if ((addrSymVal & 0xF0000000) != (((Elf_Addr)paddrWhere + 4) & 0xF0000000)) {
-            return (PX_ERROR);
+            return  (PX_ERROR);
         }
         *paddrWhere = (*paddrWhere & ~0x03FFFFFF) |
                       ((*paddrWhere + (addrSymVal >> 2)) & 0x03FFFFFF);
@@ -261,7 +262,7 @@ INT  archElfRelocateRel (PVOID        pmodule,
 
     default:
         _DebugFormat(__ERRORMESSAGE_LEVEL, "unknown relocate type %d.\r\n", ELF_R_TYPE(prel->r_info));
-        return (PX_ERROR);
+        return  (PX_ERROR);
     }
 
     return  (ERROR_NONE);
@@ -305,7 +306,7 @@ INT archMIPSGlobalGOTTABCreate (PVOID pmodule, PVOID  pdyndir)
                                     pchStrTab + pMipsSym->st_name,
                                     &addrSymVal,
                                     LW_LD_SYM_ANY) < 0) {
-                return (PX_ERROR);
+                return  (PX_ERROR);
             }
             *pMipsGotEntry = addrSymVal;
 

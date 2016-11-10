@@ -369,6 +369,7 @@ ULONG  archGdbGetNextPc (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET 
 
         /* Switch on the type of branch (Bx, BCx, BCCTRx, BCLRx) */
         switch (uiBranchType) {
+
         case (16):                                                      /*  BC - Branch Conditional     */
         {
             if (uiBO2 == 0) {                                           /*  bit 2 of BO == 0            */

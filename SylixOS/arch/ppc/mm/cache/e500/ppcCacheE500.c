@@ -103,6 +103,7 @@ static INT   ppcE500CacheProbe (CPCHAR  pcMachineName, PPC_CACHE  *pICache, PPC_
             uiCacheSize = l1cfg0.L1CFG0_usCSIZE * 1024;
 
             switch (l1cfg0.L1CFG0_ucCBSIZE) {
+
             case 0:
                 PPC_E500_DCACHE_ALIGN_SIZE = 32;
                 break;
@@ -142,6 +143,7 @@ static INT   ppcE500CacheProbe (CPCHAR  pcMachineName, PPC_CACHE  *pICache, PPC_
             uiCacheSize = l1cfg1.L1CFG1_ucCSIZE * 1024;
 
             switch (l1cfg1.L1CFG1_ucCBSIZE) {
+
             case 0:
                 PPC_E500_ICACHE_ALIGN_SIZE = 32;
                 break;
@@ -170,6 +172,7 @@ static INT   ppcE500CacheProbe (CPCHAR  pcMachineName, PPC_CACHE  *pICache, PPC_
         }
 
         return  (ERROR_NONE);
+
     } else {
         return  (PX_ERROR);
     }

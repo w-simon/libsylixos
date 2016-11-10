@@ -65,7 +65,7 @@ static Elf_Addr jmpItemFind (Elf_Addr addrSymVal,
     ULONG          ulJmpItemCnt = stBuffLen / 8;
     ULONG          i;
 
-    for(i = 0; i < ulJmpItemCnt; i++) {
+    for (i = 0; i < ulJmpItemCnt; i++) {
         if (pJmpTable[i].ulJmpInstruction != LDR_INSTRUCTION) {         /*  创建新表项                  */
             pJmpTable[i].ulJmpInstruction = LDR_INSTRUCTION;
             pJmpTable[i].addrJmpDest = addrSymVal;

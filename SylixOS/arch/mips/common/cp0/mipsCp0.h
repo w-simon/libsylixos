@@ -63,7 +63,6 @@ mipsCp0RegReadWrite(Config3)
 mipsCp0RegReadWrite(EBase)
 mipsCp0RegReadWrite(IntCtl)
 mipsCp0RegReadWrite(LLAddr)
-mipsCp0RegReadWrite(Diag)
 mipsCp0RegReadWrite(ECC)
 mipsCp0RegReadWrite(CacheErr)
 mipsCp0RegReadWrite(ERRPC)
@@ -79,6 +78,14 @@ mipsCp0RegReadWrite(EntryHi)
 
 mipsCp0RegReadWrite(TagLo)
 mipsCp0RegReadWrite(TagHi)
+
+/*********************************************************************************************************
+  Loongson2/3x CP0 register op
+*********************************************************************************************************/
+
+mipsCp0RegReadWrite(Diag)
+mipsCp0RegReadWrite(PageGrain)
+mipsCp0RegReadWrite(GSConfig)
 
 #endif                                                                  /*  MIPSCP0_H_                  */
 /*********************************************************************************************************

@@ -19,7 +19,7 @@
 ** 描        述: MIPS32 体系构架 CACHE 驱动.
 **
 ** BUG:
-2016.04.06  Add Cache Init 对CP0_ECC Register Init(loongson2H支持)
+2016.04.06  Add Cache Init 对 CP0_ECC Register Init(loongson2H 支持)
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -29,15 +29,7 @@
 #if LW_CFG_CACHE_EN > 0
 #include "arch/mips/common/cp0/mipsCp0.h"
 /*********************************************************************************************************
-  L1 CACHE 状态
-*********************************************************************************************************/
-static INT      iCacheStatus = 0;
-#define L1_CACHE_I_EN   0x01
-#define L1_CACHE_D_EN   0x02
-#define L1_CACHE_EN     (L1_CACHE_I_EN | L1_CACHE_D_EN)
-#define L1_CACHE_DIS    0x00
-/*********************************************************************************************************
-  函数声明
+  外部函数声明
 *********************************************************************************************************/
 extern VOID     mips32L1CacheDisable(VOID);
 extern VOID     mips32L1CacheEnable(VOID);
@@ -59,26 +51,34 @@ extern VOID     mips32ICacheFill(PCHAR  pcAddr);
 extern VOID     mips32ICacheIndexStoreTag(PCHAR  pcAddr);
 extern VOID     mips32DCacheIndexStoreTag(PCHAR  pcAddr);
 /*********************************************************************************************************
+  全局变量
+*********************************************************************************************************/
+static INT                  _G_iMachineType  = MIPS_MACHINE_TYPE_24KF;  /*  机器类型                    */
+/*********************************************************************************************************
+  L1 CACHE 状态
+*********************************************************************************************************/
+#define L1_CACHE_I_EN       0x01
+#define L1_CACHE_D_EN       0x02
+#define L1_CACHE_EN         (L1_CACHE_I_EN | L1_CACHE_D_EN)
+#define L1_CACHE_DIS        0x00
+static INT                  _G_iCacheStatus = L1_CACHE_DIS;
+/*********************************************************************************************************
   CACHE 信息
 *********************************************************************************************************/
 typedef struct {
-    BOOL        CACHE_bPresent;                                         /*  是否存在 Cache              */
-    UINT32      CACHE_uiSize;                                           /*  Cache 大小                  */
-    UINT32      CACHE_uiLineSize;                                       /*  Cache 行大小                */
+    BOOL        CACHE_bPresent;                                         /*  是否存在 CACHE              */
+    UINT32      CACHE_uiSize;                                           /*  CACHE 大小                  */
+    UINT32      CACHE_uiLineSize;                                       /*  CACHE 行大小                */
     UINT32      CACHE_uiSetNr;                                          /*  组数                        */
     UINT32      CACHE_uiWayNr;                                          /*  路数                        */
     UINT32      CACHE_uiWayStep;                                        /*  路步进                      */
 } MIPS_CACHE;
 
-static MIPS_CACHE   _G_ICache, _G_DCache;                               /*  I-Cache 和 D-Cache 信息     */
+static MIPS_CACHE   _G_ICache, _G_DCache;                               /*  I-CACHE 和 D-CACHE 信息     */
 
 static BOOL         _G_bHaveTagHi         = LW_FALSE;                   /*  是否有 TagHi 寄存器         */
 static BOOL         _G_bHaveFillI         = LW_FALSE;                   /*  是否有 FillI 操作           */
 static BOOL         _G_bHaveHitWritebackD = LW_FALSE;                   /*  是否有 HitWritebackD 操作   */
-/*********************************************************************************************************
-  龙芯处理器特有的 CACHE 操作
-*********************************************************************************************************/
-static BOOL         _G_bLs2xECC           = LW_FALSE;                   /*  Loongson 2x ECC             */
 /*********************************************************************************************************
   CACHE 循环操作时允许的最大大小, 大于该大小时将使用 All 操作
 *********************************************************************************************************/
@@ -94,7 +94,7 @@ static BOOL         _G_bLs2xECC           = LW_FALSE;                   /*  Loon
 /*********************************************************************************************************
   CACHE 回写管线
 *********************************************************************************************************/
-#define MIPS_PIPE_FLUSH()               __asm__ __volatile__ ("sync" : : : "memory")
+#define MIPS_PIPE_FLUSH()       KN_SYNC()
 /*********************************************************************************************************
   内部函数
 *********************************************************************************************************/
@@ -252,15 +252,15 @@ static INT  mips32CacheEnable (LW_CACHE_TYPE  cachetype)
 {
     if (cachetype == INSTRUCTION_CACHE) {
         if (LW_CPU_GET_CUR_ID() == 0) {
-            iCacheStatus |= L1_CACHE_I_EN;
+            _G_iCacheStatus |= L1_CACHE_I_EN;
         }
     } else {
         if (LW_CPU_GET_CUR_ID() == 0) {
-            iCacheStatus |= L1_CACHE_D_EN;
+            _G_iCacheStatus |= L1_CACHE_D_EN;
         }
     }
     
-    if (iCacheStatus == L1_CACHE_EN) {
+    if (_G_iCacheStatus == L1_CACHE_EN) {
         mips32L1CacheEnable();
         mips32BranchPredictionEnable();
 
@@ -285,15 +285,15 @@ static INT  mips32CacheDisable (LW_CACHE_TYPE  cachetype)
 {
     if (cachetype == INSTRUCTION_CACHE) {
         if (LW_CPU_GET_CUR_ID() == 0) {
-            iCacheStatus &= ~L1_CACHE_I_EN;
+            _G_iCacheStatus &= ~L1_CACHE_I_EN;
         }
     } else {
         if (LW_CPU_GET_CUR_ID() == 0) {
-            iCacheStatus &= ~L1_CACHE_D_EN;
+            _G_iCacheStatus &= ~L1_CACHE_D_EN;
         }
     }
     
-    if (iCacheStatus == L1_CACHE_DIS) {
+    if (_G_iCacheStatus == L1_CACHE_DIS) {
         mips32L1CacheDisable();
         mips32BranchPredictionDisable();
 
@@ -610,7 +610,7 @@ static INT  mips32CacheTextUpdate (PVOID  pvAdrs, size_t  stBytes)
         MIPS_CACHE_GET_END(pvAdrsBak, stBytes, ulEnd, _G_ICache.CACHE_uiLineSize);
         mips32ICacheInvalidate(pvAdrsBak, (PVOID)ulEnd, _G_ICache.CACHE_uiLineSize);
     }
-    
+
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -655,22 +655,25 @@ INT  mips32CacheDataUpdate (PVOID  pvAdrs, size_t  stBytes, BOOL  bInv)
 *********************************************************************************************************/
 static INT  mips32CacheProbe (CPCHAR   pcMachineName)
 {
-    BOOL    bIsProbed = LW_FALSE;
-    UINT32  uiConfig;
-    UINT32  uiTemp;
+    static BOOL    bIsProbed = LW_FALSE;
+           UINT32  uiConfig;
+           UINT32  uiTemp;
 
     if (bIsProbed) {
         return  (ERROR_NONE);
     }
 
-    if (lib_strcmp(pcMachineName, MIPS_MACHINE_LS1X) == 0) {
-        _G_bHaveTagHi         = LW_FALSE;
-        _G_bHaveFillI         = LW_FALSE;
-        _G_bHaveHitWritebackD = LW_FALSE;
+    if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS1X) == 0)) {
+        _G_iMachineType = MIPS_MACHINE_TYPE_LS1X;
 
-    } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X) == 0) ||
-               (lib_strcmp(pcMachineName, MIPS_MACHINE_LS3X) == 0)) {
-        _G_bLs2xECC = LW_TRUE;
+    } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X) == 0)) {
+        _G_iMachineType = MIPS_MACHINE_TYPE_LS2X;
+
+    } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS3X) == 0)) {
+        _G_iMachineType = MIPS_MACHINE_TYPE_LS3X;
+
+    } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_JZ47XX) == 0)) {
+        _G_iMachineType = MIPS_MACHINE_TYPE_JZ47XX;
     }
 
     uiConfig = mipsCp0ConfigRead();                                     /*  读 Config0                  */
@@ -757,7 +760,7 @@ static VOID  mips32CacheHwInit (VOID)
         mipsCp0TagHiWrite(0);
     }
 
-    if (_G_bLs2xECC) {
+    if (_G_iMachineType == MIPS_MACHINE_TYPE_LS2X) {
         mipsCp0ECCWrite(0x00);
     }
 
@@ -781,7 +784,7 @@ static VOID  mips32CacheHwInit (VOID)
         }
     }
 
-    if (_G_bLs2xECC) {
+    if (_G_iMachineType == MIPS_MACHINE_TYPE_LS2X) {
         mipsCp0ECCWrite(0x22);
     }
 
@@ -833,9 +836,7 @@ VOID  mips32CacheInit (LW_CACHE_OP *pcacheop,
 
     mips32L1CacheDisable();
 
-    if (lib_strcmp(pcMachineName, MIPS_MACHINE_LS3X) != 0) {            /*  loongson-3 not needed       */
-        mips32CacheHwInit();
-    }
+    mips32CacheHwInit();
 
 #if LW_CFG_MIPS_CACHE_L2 > 0
     mips32L2Init(uiInstruction, uiData, pcMachineName);

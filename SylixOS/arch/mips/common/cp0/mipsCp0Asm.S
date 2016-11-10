@@ -57,8 +57,6 @@
     EXPORT_LABEL(mipsCp0IntCtlWrite)
     EXPORT_LABEL(mipsCp0LLAddrRead)
     EXPORT_LABEL(mipsCp0LLAddrWrite)
-    EXPORT_LABEL(mipsCp0DiagRead)
-    EXPORT_LABEL(mipsCp0DiagWrite)
     EXPORT_LABEL(mipsCp0ECCRead)
     EXPORT_LABEL(mipsCp0ECCWrite)
     EXPORT_LABEL(mipsCp0CacheErrRead)
@@ -85,6 +83,12 @@
     EXPORT_LABEL(mipsCp0TagLoWrite)
     EXPORT_LABEL(mipsCp0TagHiRead)
     EXPORT_LABEL(mipsCp0TagHiWrite)
+    EXPORT_LABEL(mipsCp0DiagRead)
+    EXPORT_LABEL(mipsCp0DiagWrite)
+    EXPORT_LABEL(mipsCp0PageGrainRead)
+    EXPORT_LABEL(mipsCp0PageGrainWrite)
+    EXPORT_LABEL(mipsCp0GSConfigRead)
+    EXPORT_LABEL(mipsCp0GSConfigWrite)
 
 ;/*********************************************************************************************************
 ;  CP0 register read
@@ -391,18 +395,6 @@ FUNC_DEF(mipsCp0LLAddrWrite)
 FUNC_END(mipsCp0LLAddrWrite)
 
 ;/*********************************************************************************************************
-;  CP0_DIAG
-;*********************************************************************************************************/
-
-FUNC_DEF(mipsCp0DiagRead)
-    mipsCp0RegRead     CP0_DIAG
-FUNC_END(mipsCp0DiagRead)
-
-FUNC_DEF(mipsCp0DiagWrite)
-    mipsCp0RegWrite    CP0_DIAG
-FUNC_END(mipsCp0DiagWrite)
-
-;/*********************************************************************************************************
 ;  CP0_ECC
 ;*********************************************************************************************************/
 
@@ -557,6 +549,82 @@ FUNC_END(mipsCp0TagHiRead)
 FUNC_DEF(mipsCp0TagHiWrite)
     mipsCp0RegWrite    CP0_TAGHI
 FUNC_END(mipsCp0TagHiWrite)
+
+;/*********************************************************************************************************
+;  CP0_DIAG
+;*********************************************************************************************************/
+
+FUNC_DEF(mipsCp0DiagRead)
+    mipsCp0RegRead     CP0_DIAG
+FUNC_END(mipsCp0DiagRead)
+
+FUNC_DEF(mipsCp0DiagWrite)
+    mipsCp0RegWrite    CP0_DIAG
+FUNC_END(mipsCp0DiagWrite)
+
+;/*********************************************************************************************************
+;  CP0_PAGEGRAIN
+;*********************************************************************************************************/
+
+FUNC_DEF(mipsCp0PageGrainRead)
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
+
+    MFC0    V0 , CP0_PAGEGRAIN
+    EHB
+    JR      RA
+    NOP
+
+    .set    pop
+FUNC_END(mipsCp0PageGrainRead)
+
+FUNC_DEF(mipsCp0PageGrainWrite)
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
+
+    MTC0    A0 , CP0_PAGEGRAIN
+    EHB
+    JR      RA
+    NOP
+
+    .set    pop
+FUNC_END(mipsCp0PageGrainWrite)
+
+;/*********************************************************************************************************
+;  CP0_GSCONFIG
+;*********************************************************************************************************/
+
+FUNC_DEF(mipsCp0GSConfigRead)
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
+
+    MFC0    V0 , CP0_GSCONFIG
+    EHB
+    JR      RA
+    NOP
+
+    .set    pop
+FUNC_END(mipsCp0GSConfigRead)
+
+FUNC_DEF(mipsCp0GSConfigWrite)
+    .set    push
+    .set    noat
+    .set    noreorder
+    .set    volatile
+
+    MTC0    A0 , CP0_GSCONFIG
+    EHB
+    JR      RA
+    NOP
+
+    .set    pop
+FUNC_END(mipsCp0GSConfigWrite)
 
     FILE_END()
 

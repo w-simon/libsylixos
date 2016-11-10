@@ -21,6 +21,7 @@
 ** BUG:
 2016.11.07  探测函数中需要确认设备类型.
             ATI(0x1002) 0x4390 设备 ID 在匹配表内, 但是设备类型是 IDE
+2016.11.09  增加将 AMD 桥 IDE 模式切换为 AHCI 模式的特殊处理.
 *********************************************************************************************************/
 #define  __SYLIXOS_PCI_DRV
 #define  __SYLIXOS_AHCI_DRV
@@ -424,6 +425,64 @@ static const PCI_DEV_ID_CB      pciStorageSataIdTbl[] = {
 *********************************************************************************************************/
 static UINT     pciStorageSataCtrlNum = 0;
 /*********************************************************************************************************
+** 函数名称: pciStorageSataHeaderQuirkAmdIdeMode
+** 功能描述: 读到设备头后, 将 AMD 桥 IDE 模式切换为 AHCI 模式
+** 输　入  : hDevHandle         PCI 设备控制块句柄
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  pciStorageSataHeaderQuirkAmdIdeMode (PCI_DEV_HANDLE  hPciDevHandle)
+{
+    UINT8       ucData;
+
+    API_PciDevConfigReadByte(hPciDevHandle, PCI_CLASS_DEVICE, &ucData);
+    if (ucData == 0x01) {
+        API_PciDevConfigReadByte(hPciDevHandle, 0x40, &ucData);
+        API_PciDevConfigWriteByte(hPciDevHandle, 0x40, ucData | 0x01);
+        API_PciDevConfigWriteByte(hPciDevHandle, PCI_CLASS_PROG, 0x01);
+        API_PciDevConfigWriteByte(hPciDevHandle, PCI_CLASS_DEVICE, 0x06);
+        API_PciDevConfigWriteByte(hPciDevHandle, 0x40, ucData);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: pciStorageSataHeaderQuirk
+** 功能描述: 读到设备头后的特殊处理
+** 输　入  : hDevHandle         PCI 设备控制块句柄
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  pciStorageSataHeaderQuirk (PCI_DEV_HANDLE  hPciDevHandle)
+{
+    UINT16      usVendorId;
+    UINT16      usDeviceId;
+
+    if (!hPciDevHandle) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    usVendorId = hPciDevHandle->PCIDEV_phDevHdr.hdr.PCIHH_pcidHdr.PCID_usVendorId;
+    usDeviceId = hPciDevHandle->PCIDEV_phDevHdr.hdr.PCIHH_pcidHdr.PCID_usDeviceId;
+
+    switch (usVendorId) {
+
+    case PCI_VENDOR_ID_ATI:
+        if ((usDeviceId == PCI_DEVICE_ID_ATI_IXP600_SATA) ||
+            (usDeviceId == PCI_DEVICE_ID_ATI_IXP700_SATA) ||
+            (usDeviceId == PCI_DEVICE_ID_AMD_HUDSON2_SATA_IDE)) {
+            pciStorageSataHeaderQuirkAmdIdeMode(hPciDevHandle);
+        }
+        break;
+
+    default:
+        break;
+    }
+
+    return (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: pciStorageSataDevIdTblGet
 ** 功能描述: 获取设备列表
 ** 输　入  : phPciDevId     设备 ID 列表句柄缓冲区
@@ -478,6 +537,8 @@ static INT  pciStorageSataDevProbe (PCI_DEV_HANDLE hPciDevHandle, const PCI_DEV_
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
+
+    pciStorageSataHeaderQuirk(hPciDevHandle);                           /* 读到设备头后的特殊处理       */
                                                                         /* 确认设备类型                 */
     iRet = API_PciDevConfigRead(hPciDevHandle, PCI_CLASS_DEVICE, (UINT8 *)&usCap, 2);
     if ((iRet != ERROR_NONE) ||
@@ -776,8 +837,7 @@ static INT  pciStorageSataVendorCtrlReadyWork (AHCI_CTRL_HANDLE  hCtrl)
     hPciDev = (PCI_DEV_HANDLE)hCtrl->AHCICTRL_pvArg;                    /* 获取设备句柄                 */
 
     AHCI_PCI_READ(hPciDev, PCI_DEVICE_ID, 2, usPciDevId);
-    AHCI_LOG(AHCI_LOG_PRT,
-             "ctrl name %s index %d unit %d for pci dev %d:%d.%d dev id 0x%04x.\n",
+    AHCI_LOG(AHCI_LOG_PRT, "ctrl name %s index %d unit %d for pci dev %d:%d.%d dev id 0x%04x.\r\n",
              hCtrl->AHCICTRL_cCtrlName, hCtrl->AHCICTRL_uiIndex, hCtrl->AHCICTRL_uiUnitIndex,
              hPciDev->PCIDEV_iDevBus,
              hPciDev->PCIDEV_iDevDevice,
@@ -785,7 +845,8 @@ static INT  pciStorageSataVendorCtrlReadyWork (AHCI_CTRL_HANDLE  hCtrl)
 
     hResource = API_PciDevResourceGet(hPciDev, PCI_IORESOURCE_MEM, 0);
     if (!hResource) {
-        AHCI_LOG(AHCI_LOG_ERR, "pci resource index slop over [0 ~ %d].\n", (PCI_NUM_RESOURCES - 1));
+        AHCI_LOG(AHCI_LOG_ERR, "pci resource index slop over [0 ~ %d].\r\n", (PCI_NUM_RESOURCES - 1));
+
         return  (PX_ERROR);
     }
 
@@ -795,11 +856,11 @@ static INT  pciStorageSataVendorCtrlReadyWork (AHCI_CTRL_HANDLE  hCtrl)
     hCtrl->AHCICTRL_pvRegAddr = API_PciDevIoRemap(hCtrl->AHCICTRL_pvRegAddr,
                                                   hCtrl->AHCICTRL_stRegSize);
     if (hCtrl->AHCICTRL_pvRegAddr == LW_NULL) {
-        AHCI_LOG(AHCI_LOG_ERR, "pci mem resource ioremap failed addr 0x%llx 0x%llx.\n",
+        AHCI_LOG(AHCI_LOG_ERR, "pci mem resource ioremap failed addr 0x%llx 0x%llx.\r\n",
                  hCtrl->AHCICTRL_pvRegAddr,  hCtrl->AHCICTRL_stRegSize);
         return  (PX_ERROR);
     }
-    AHCI_LOG(AHCI_LOG_PRT, "ahci reg addr 0x%llx szie %llx.\n",
+    AHCI_LOG(AHCI_LOG_PRT, "ahci reg addr 0x%llx szie %llx.\r\n",
              hCtrl->AHCICTRL_pvRegAddr, hCtrl->AHCICTRL_stRegSize);
     hPciDev->PCIDEV_pvDevDriver = (PVOID)hCtrl;
 
@@ -820,7 +881,7 @@ static INT  pciStorageSataVendorCtrlReadyWork (AHCI_CTRL_HANDLE  hCtrl)
 __intx_handle:
     iRet = API_PciDevMsiEnableSet(hPciDev, LW_FALSE);
     if (iRet != ERROR_NONE) {
-        AHCI_LOG(AHCI_LOG_ERR, "pci msi disable failed dev %d:%d.%d.\n",
+        AHCI_LOG(AHCI_LOG_ERR, "pci msi disable failed dev %d:%d.%d.\r\n",
                  hPciDev->PCIDEV_iDevBus, hPciDev->PCIDEV_iDevDevice, hPciDev->PCIDEV_iDevFunction);
         return  (PX_ERROR);
     }

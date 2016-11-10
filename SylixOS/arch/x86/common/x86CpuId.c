@@ -475,8 +475,8 @@ VOID  x86CpuIdShow (VOID)
         printf("      cacheEcx: 0x%X\n", pcpuid->std.cacheEcx);
         printf("      cacheEdx: 0x%X\n", pcpuid->std.cacheEdx);
     }
-    printf ("    maxFuncEax: 0x%X\n", pcpuid->std.highestValue);
-    printf (" maxFuncEaxExt: 0x%X\n", pcpuid->ext.highestExtValue);
+    printf("    maxFuncEax: 0x%X\n", pcpuid->std.highestValue);
+    printf(" maxFuncEaxExt: 0x%X\n", pcpuid->ext.highestExtValue);
 
     printf("\nCPU info:\n");
 
@@ -519,20 +519,20 @@ VOID  x86CpuIdShow (VOID)
         }
     }
 
-    printf ("    x86 processor architecture is %s, type %s\n",
-            ((uiX86Processor <= _G_iCpuFamilyNr) && (uiX86Processor != X86_FAMILY_UNSUPPORTED)) ?
-            _G_pcX86CpuFamilyNames[uiX86Processor] : "unsupported",
-            pcCpuTypeName);
+    printf("    x86 processor architecture is %s, type %s\n",
+           ((uiX86Processor <= _G_iCpuFamilyNr) && (uiX86Processor != X86_FAMILY_UNSUPPORTED)) ?
+           _G_pcX86CpuFamilyNames[uiX86Processor] : "unsupported",
+           pcCpuTypeName);
 
     if (features.field.psnum) {
         ulCpuSerial = (UINT64)pcpuid->std.serialNo64[0] << 32 | pcpuid->std.serialNo64[1];
         printf("    CPU serial number: %lld\n", ulCpuSerial);
     }
 
-    printf ("    Number of processors: %d\n", info.field.nproc);
-    printf ("    Local APIC id: %d\n", info.field.apicId);
+    printf("    Number of processors: %d\n", info.field.nproc);
+    printf("    Local APIC id: %d\n", info.field.apicId);
 
-    printf ("\nCPU features:\n");
+    printf("\nCPU features:\n");
 
     /*
      * Ãÿ–‘Œª

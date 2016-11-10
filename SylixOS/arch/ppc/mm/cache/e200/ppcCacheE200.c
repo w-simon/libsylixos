@@ -99,6 +99,7 @@ static INT   ppcE200CacheProbe (CPCHAR  pcMachineName, PPC_CACHE  *pICache, PPC_
         uiCacheSize = l1cfg0.L1CFG0_usCSIZE * 1024;
 
         switch (l1cfg0.L1CFG0_ucCBSIZE) {
+
         case 0:
             PPC_E200_CACHE_ALIGN_SIZE = 32;
             break;
@@ -126,8 +127,8 @@ static INT   ppcE200CacheProbe (CPCHAR  pcMachineName, PPC_CACHE  *pICache, PPC_
         pICache->CACHE_uiWaySize  = pDCache->CACHE_uiSetNr * pDCache->CACHE_uiLineSize;
 
         *pDCache = *pICache;
-
         return  (ERROR_NONE);
+
     } else {
         return  (PX_ERROR);
     }
