@@ -943,7 +943,7 @@ INT API_ModuleFinish (PVOID pvVProc)
 
     moduleCleanup(pmodule);
 
-    finiArrayCall(pmodule, !pvproc->VP_bForceTerm);                     /*  调用c++析构函数代码         */
+    finiArrayCall(pmodule, !pvproc->VP_bImmediatelyTerm);               /*  调用c++析构函数代码         */
 
     __moduleVpPatchFini(pmodule);
 

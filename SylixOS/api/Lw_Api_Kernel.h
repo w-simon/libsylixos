@@ -538,6 +538,7 @@
   SHOW
 *********************************************************************************************************/
 
+#define Lw_Backtrace_Show                       API_BacktraceShow
 #define Lw_Thread_Show                          API_ThreadShow
 #define Lw_Thread_ShowEx                        API_ThreadShowEx
 #define Lw_Thread_PendShow                      API_ThreadPendShow

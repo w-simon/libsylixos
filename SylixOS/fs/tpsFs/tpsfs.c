@@ -370,6 +370,9 @@ errno_t  tpsFsRemove (PTPS_SUPER_BLOCK psb, CPCHAR pcPath)
     PTPS_ENTRY pentry       = LW_NULL;
     PTPS_TRANS ptrans       = LW_NULL;
     PCHAR      pcRemain     = LW_NULL;
+    PTPS_INODE pinodeDir    = LW_NULL;
+    TPS_INUM   inumDir      = 0;
+    TPS_SIZE_T iSize;
 
     if ((LW_NULL == psb) || (LW_NULL == pcPath)) {
         return  (EINVAL);
@@ -381,6 +384,7 @@ errno_t  tpsFsRemove (PTPS_SUPER_BLOCK psb, CPCHAR pcPath)
     }
 
     if (*pcRemain != 0) {
+        tpsFsEntryFree(pentry);
         return  (ENOENT);
     }
 
@@ -403,12 +407,26 @@ errno_t  tpsFsRemove (PTPS_SUPER_BLOCK psb, CPCHAR pcPath)
         return  (EIO);
     }
 
+    inumDir = pentry->ENTRY_inumDir;
     tpsFsEntryFree(pentry);
 
     if (tpsFsTransCommitAndFree(ptrans) != TPS_ERR_NONE) {              /* 提交事务                     */
+        tpsFsEntryFree(pentry);
         tpsFsTransRollBackAndFree(ptrans);
         return  (EIO);
     }
+
+    /*
+     *  截断目录到最后一个有效目录项结束位置
+     */
+    pinodeDir = tpsFsOpenInode(psb, inumDir);
+    if (pinodeDir != LW_NULL) {
+        iSize = tpsFsGetDirSize(pinodeDir);
+        if (iSize >= 0 && iSize < tpsFsInodeGetSize(pinodeDir)) {
+            tpsFsTrunc(pinodeDir, iSize);
+        }
+    }
+    tpsFsCloseInode(pinodeDir);
 
     return  (ERROR_NONE);
 }
@@ -436,6 +454,11 @@ errno_t  tpsFsMove (PTPS_SUPER_BLOCK psb, CPCHAR pcPathSrc, CPCHAR pcPathDst)
 
     pentrySrc = __tpsFsWalkPath(psb, pcPathSrc, &pcRemain);
     if (LW_NULL == pentrySrc) {
+        return  (ENOENT);
+    }
+    
+    if (*pcRemain != 0) {                                               /* 源文件必须存在               */
+        tpsFsEntryFree(pentrySrc);
         return  (ENOENT);
     }
 
@@ -521,6 +544,11 @@ errno_t  tpsFsLink (PTPS_SUPER_BLOCK psb, CPCHAR pcPathSrc, CPCHAR pcPathDst)
 
     pentrySrc = __tpsFsWalkPath(psb, pcPathSrc, &pcRemain);
     if (LW_NULL == pentrySrc) {
+        return  (ENOENT);
+    }
+    
+    if (*pcRemain != 0) {                                               /* 源文件必须存在               */
+        tpsFsEntryFree(pentrySrc);
         return  (ENOENT);
     }
 

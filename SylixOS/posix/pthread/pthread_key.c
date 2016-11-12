@@ -236,7 +236,7 @@ static VOID  __pthreadDataDeleteByThread (LW_OBJECT_HANDLE  ulId, PVOID  pvRetVa
     LW_LD_VPROC         *pvprocDel;
 
     pvprocDel = __LW_VP_GET_TCB_PROC(ptcbDel);
-    if (pvprocDel && pvprocDel->VP_bForceTerm) {                        /*  进程不需要执行 destructor   */
+    if (pvprocDel && pvprocDel->VP_bImmediatelyTerm) {                  /*  进程不需要执行 destructor   */
         bCall = LW_FALSE;
     }
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN      */

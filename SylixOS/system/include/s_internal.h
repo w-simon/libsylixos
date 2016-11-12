@@ -276,7 +276,8 @@ LW_API PLW_FD_NODE  API_IosFdNodeAdd(LW_LIST_LINE_HEADER  *pplineHeader,
                                      BOOL                 *pbIsNew);
                                      
 LW_API INT          API_IosFdNodeDec(LW_LIST_LINE_HEADER  *pplineHeader,
-                                     PLW_FD_NODE           pfdnode);
+                                     PLW_FD_NODE           pfdnode,
+                                     BOOL                 *bRemove);
                                      
 LW_API PLW_FD_NODE  API_IosFdNodeFind(LW_LIST_LINE_HEADER  plineHeader, dev_t  dev, ino64_t  inode);
 

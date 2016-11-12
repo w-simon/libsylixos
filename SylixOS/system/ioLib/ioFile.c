@@ -511,7 +511,6 @@ PLW_FD_ENTRY  _IosFileNew (PLW_DEV_HDR  pdevhdrHdr, CPCHAR  pcName)
     pfdentry->FDENTRY_lValue      = PX_ERROR;                           /*  不存在驱动信息              */
     pfdentry->FDENTRY_ulCounter   = 0;                                  /*  如果 dup 成功则引用为 1     */
     pfdentry->FDENTRY_iAbnormity  = 1;                                  /*  异常文件 (还不允许操作)     */
-    pfdentry->FDENTRY_bNeedUnlink = LW_FALSE;                           /*  文件没有被 unlink           */
     pfdentry->FDENTRY_bRemoveReq  = LW_FALSE;
     
     if (pcName == LW_NULL) {
@@ -950,7 +949,6 @@ INT  API_IosFdUnlink (PLW_DEV_HDR  pdevhdrHdr, CPCHAR  pcName)
 {
     REGISTER PLW_FD_ENTRY    pfdentry;
     REGISTER PLW_LIST_LINE   plineFdEntry;
-             INT             iRet = PX_ERROR;
              
              size_t          stDevNameLen;
              CHAR            cUnlinkName[MAX_FILENAME_LENGTH];
@@ -981,17 +979,23 @@ INT  API_IosFdUnlink (PLW_DEV_HDR  pdevhdrHdr, CPCHAR  pcName)
                     if (pfdnode->FDNODE_ulLock) {
                         _IosUnlock();                                   /*  退出 IO 临界区              */
                         return  (1);                                    /*  文件被锁定, 不能删除        */
+                    
+                    } else {
+                        pfdnode->FDNODE_bRemove = LW_TRUE;              /*  最后一次关闭文件需要删除    */
+                        _IosUnlock();                                   /*  退出 IO 临界区              */
+                        return  (ERROR_NONE);                           /*  fdnode 只一个, 可以直接退出 */
                     }
-                }
                 
-                pfdentry->FDENTRY_bNeedUnlink = LW_TRUE;                /*  释放 fd_entry 后需要删除文件*/
-                iRet = ERROR_NONE;
+                } else {
+                    _IosUnlock();                                       /*  退出 IO 临界区              */
+                    return  (1);                                        /*  文件被打开, 不能删除        */
+                }
             }
         }
     }
     _IosUnlock();                                                       /*  退出 IO 临界区              */
     
-    return  (iRet);
+    return  (PX_ERROR);
 }
 /*********************************************************************************************************
 ** 函数名称: API_IosFdDevFind
@@ -1242,9 +1246,6 @@ INT  API_IosFdRefDec (INT  iFd)
             _FdLockfClearFdEntry(pfdentry, __PROC_GET_PID_CUR());       /*  回收记录锁                  */
             if (bCallFunc) {                                            /*  正常文件需要调用驱动        */
                 _IosFileClose(pfdentry);
-                if (pfdentry->FDENTRY_bNeedUnlink) {                    /*  之前有 unlink 操作          */
-                    unlink(pfdentry->FDENTRY_pcName);                   /*  删除文件                    */
-                }
             }
             _IosFileDelete(pfdentry);
         
@@ -1303,9 +1304,6 @@ INT  API_IosFdEntryReclaim (PLW_FD_ENTRY  pfdentry, ULONG  ulRefDec, pid_t  pid)
             }
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */
             _IosFileClose(pfdentry);
-            if (pfdentry->FDENTRY_bNeedUnlink) {                        /*  之前有 unlink 操作          */
-                unlink(pfdentry->FDENTRY_pcName);                       /*  删除文件                    */
-            }
         }
         _IosFileDelete(pfdentry);
     }

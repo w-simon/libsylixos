@@ -770,16 +770,27 @@ static INT  __yaffsClose (PLW_FD_ENTRY    pfdentry)
     PYAFFS_FILE   pyaffile = (PYAFFS_FILE)pfdnode->FDNODE_pvFile;
     PYAFFS_FSLIB  pyaffs   = pyaffile->YAFFIL_pyaffs;
     BOOL          bFree    = LW_FALSE;
+    BOOL          bRemove  = LW_FALSE;
 
     if (pyaffile) {
         __YAFFS_OPLOCK();
         if (API_IosFdNodeDec(&pyaffs->YAFFS_plineFdNodeHeader,
-                             pfdnode) == 0) {                           /*  fd_node 是否完全释放        */
+                             pfdnode, &bRemove) == 0) {                 /*  fd_node 是否完全释放        */
             __yaffsCloseFile(pyaffile);
             bFree = LW_TRUE;
         }
         
         LW_DEV_DEC_USE_COUNT(&pyaffs->YAFFS_devhdrHdr);
+        
+        if (bRemove) {
+            if (pyaffile->YAFFIL_iFileType == __YAFFS_FILE_TYPE_NODE) {
+                yaffs_unlink(pyaffile->YAFFIL_cName);
+            
+            } else if (pyaffile->YAFFIL_iFileType == __YAFFS_FILE_TYPE_DIR) {
+                yaffs_rmdir(pyaffile->YAFFIL_cName);
+            }
+        }
+        
         __YAFFS_OPUNLOCK();
         
         if (bFree) {

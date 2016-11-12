@@ -73,6 +73,8 @@ TPS_RESULT tpsFsEntryFree(PTPS_ENTRY pentry);
 TPS_RESULT tpsFsEntryRemove(PTPS_TRANS ptrans, PTPS_ENTRY pentry);
                                                                         /* 从指定偏移开始读取entry      */
 PTPS_ENTRY tpsFsEntryRead(PTPS_INODE pinodeDir, TPS_OFF_T off);
+                                                                        /* 获取最后一个目录项结束位置   */
+TPS_SIZE_T tpsFsGetDirSize (PTPS_INODE pinodeDir);
 
 #ifdef __cplusplus 
 }

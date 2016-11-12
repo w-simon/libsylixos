@@ -470,12 +470,12 @@ LW_LD_VPROC *vprocCreate (CPCHAR  pcFile)
         goto    __error_handle;
     }
     
-    pvproc->VP_bRunAtExit   = LW_TRUE;                                  /*  运行 atexit 安装的函数      */
-    pvproc->VP_bForceTerm   = LW_FALSE;                                 /*  非强制退出                  */
+    pvproc->VP_bRunAtExit       = LW_TRUE;                              /*  运行 atexit 安装的函数      */
+    pvproc->VP_bImmediatelyTerm = LW_FALSE;                             /*  非强制退出                  */
     
-    pvproc->VP_iStatus      = __LW_VP_INIT;                             /*  没有装载运行, 不需要发信号  */
-    pvproc->VP_iExitCode    = 0;
-    pvproc->VP_iSigCode     = 0;
+    pvproc->VP_iStatus   = __LW_VP_INIT;                                /*  没有装载运行, 不需要发信号  */
+    pvproc->VP_iExitCode = 0;
+    pvproc->VP_iSigCode  = 0;
     
     pvproc->VP_plineChild   = LW_NULL;                                  /*  没有儿子                    */
     pvproc->VP_pvprocFather = pvprocFather;                             /*  当前进程为父系进程          */
@@ -1125,14 +1125,14 @@ INT  vprocExitModeSet (pid_t  pid, INT  iMode)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: vprocSetForceTerm
-** 功能描述: 将进程设置为强制被关闭模式
+** 函数名称: vprocSetImmediatelyTerm
+** 功能描述: 将进程设置为强制立即关闭模式
 ** 输　入  : pvproc      进程控制块
 ** 输　出  : ERROR
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-INT  vprocSetForceTerm (pid_t  pid)
+INT  vprocSetImmediatelyTerm (pid_t  pid)
 {
     LW_LD_VPROC *pvproc;
     
@@ -1144,7 +1144,7 @@ INT  vprocSetForceTerm (pid_t  pid)
         return  (PX_ERROR);
     }
     
-    pvproc->VP_bForceTerm = LW_TRUE;
+    pvproc->VP_bImmediatelyTerm = LW_TRUE;
     LW_LD_UNLOCK();
     
     return  (ERROR_NONE);

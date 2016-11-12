@@ -162,7 +162,7 @@ static VOID  __signalExitHandle (INT  iSigNo, struct siginfo *psiginfo)
 #if LW_CFG_MODULELOADER_EN > 0
     if ((pid > 0) && (iSigNo != SIGTERM)) {
         vprocExitModeSet(pid, LW_VPROC_EXIT_FORCE);                     /*  强制进程退出                */
-        vprocSetForceTerm(pid);
+        vprocSetImmediatelyTerm(pid);                                   /*  立即退出模式                */
     }
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
     

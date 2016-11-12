@@ -1894,6 +1894,7 @@ static INT  __nfsClose (PLW_FD_ENTRY    pfdentry)
     PNFS_FILE     pnfsfile = (PNFS_FILE)pfdnode->FDNODE_pvFile;
     PNFS_FS       pnfsfs   = pnfsfile->NFSFIL_nfsfs;
     BOOL          bFree    = LW_FALSE;
+    BOOL          bRemove  = LW_FALSE;
 
     if (pnfsfile) {
         if (__NFS_FILE_LOCK(pnfsfile) != ERROR_NONE) {
@@ -1901,12 +1902,16 @@ static INT  __nfsClose (PLW_FD_ENTRY    pfdentry)
             return  (PX_ERROR);
         }
         if (API_IosFdNodeDec(&pnfsfs->NFSFS_plineFdNodeHeader,
-                             pfdnode) == 0) {                           /*  fd_node 是否完全释放        */
+                             pfdnode, &bRemove) == 0) {                 /*  fd_node 是否完全释放        */
             __nfsCloseFile(pnfsfile);
             bFree = LW_TRUE;
         }
         
         LW_DEV_DEC_USE_COUNT(&pnfsfile->NFSFIL_nfsfs->NFSFS_devhdrHdr);
+        
+        if (bRemove) {
+            __nfsRemoveFile(pnfsfs, pnfsfile->NFSFIL_cName);
+        }
         
         __NFS_FILE_UNLOCK(pnfsfile);
         

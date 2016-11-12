@@ -622,10 +622,10 @@ static INT  __tshellFsCmdLs (INT  iArgC, PCHAR  ppcArgV[])
         pdirent = readdir(pdir);
         if (!pdirent) {
             break;
+        
         } else {
-            
-            if ((pdirent->d_type == DT_UNKNOWN) ||
-                (pdirent->d_type == DT_REG)) {
+            if ((pdirent->d_type == DT_UNKNOWN) ||                      /*  无法获取文件类型            */
+                (pdirent->d_type == DT_REG)) {                          /*  需要获取文件信息            */
                 if ((stDirLen > 1) || 
                     ((stDirLen == 1) && (cDirName[0] == PX_ROOT))) {
                     lib_strcpy(&cDirName[stDirLen], pdirent->d_name);   /*  链接指定目录                */

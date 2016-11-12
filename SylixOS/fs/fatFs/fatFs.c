@@ -942,7 +942,7 @@ __file_open_ok:
         if ((iFlags & O_TRUNC) && ((iFlags & O_ACCMODE) != O_RDONLY)) { /*  需要截断                    */
             if (bIsNew == LW_FALSE) {                                   /*  不允许重复打开确需清空      */
                 API_IosFdNodeDec(&pfatvol->FATVOL_plineFdNodeHeader,
-                                 pfdnode);
+                                 pfdnode, LW_NULL);
                 _ErrorHandle(EBUSY);
                 goto    __file_open_error;
             
@@ -1113,6 +1113,7 @@ static INT  __fatFsClose (PLW_FD_ENTRY    pfdentry)
     PFAT_FILE     pfatfile = (PFAT_FILE)pfdnode->FDNODE_pvFile;
     PFAT_VOLUME   pfatvol  = pfatfile->FATFIL_pfatvol;
     BOOL          bFree    = LW_FALSE;
+    BOOL          bRemove  = LW_FALSE;
 
     if (pfatfile) {
         if (__FAT_FILE_LOCK(pfatfile) != ERROR_NONE) {
@@ -1121,12 +1122,17 @@ static INT  __fatFsClose (PLW_FD_ENTRY    pfdentry)
         }
         
         if (API_IosFdNodeDec(&pfatvol->FATVOL_plineFdNodeHeader,
-                             pfdnode) == 0) {                           /*  fd_node 是否完全释放        */
+                             pfdnode, &bRemove) == 0) {                 /*  fd_node 是否完全释放        */
             __fatFsCloseFile(pfatfile);
             bFree = LW_TRUE;
         }
         
         LW_DEV_DEC_USE_COUNT(&pfatvol->FATVOL_devhdrHdr);               /*  更新计数器                  */
+        
+        if (bRemove) {
+            f_unlink_ex(&pfatvol->FATVOL_fatfsVol, 
+                        pfatfile->FATFIL_cName);                        /*  删除文件                    */
+        }
         
         __FAT_FILE_UNLOCK(pfatfile);
         
@@ -1461,7 +1467,7 @@ static INT  __fatFsFormat (PLW_FD_ENTRY  pfdentry, LONG  lArg)
     
     if (!__STR_IS_ROOT(pfatfile->FATFIL_cName)) {                       /*  检查是否为设备文件          */
         _ErrorHandle(EFAULT);                                           /*  Bad address                 */
-        return (PX_ERROR);
+        return  (PX_ERROR);
     }
     
     if (__FAT_FILE_LOCK(pfatfile) != ERROR_NONE) {
@@ -1553,15 +1559,15 @@ static INT  __fatFsRename (PLW_FD_ENTRY  pfdentry, PCHAR  pcNewName)
 
     if (__STR_IS_ROOT(pfatfile->FATFIL_cName)) {                        /*  检查是否为设备文件          */
         _ErrorHandle(ERROR_IOS_DRIVER_NOT_SUP);                         /*  不支持设备重命名            */
-        return (PX_ERROR);
+        return  (PX_ERROR);
     }
     if (pcNewName == LW_NULL) {
         _ErrorHandle(EFAULT);                                           /*  Bad address                 */
-        return (PX_ERROR);
+        return  (PX_ERROR);
     }
     if (__STR_IS_ROOT(pcNewName)) {
         _ErrorHandle(ENOENT);
-        return (PX_ERROR);
+        return  (PX_ERROR);
     }
     
     if (__FAT_FILE_LOCK(pfatfile) != ERROR_NONE) {
@@ -1575,12 +1581,12 @@ static INT  __fatFsRename (PLW_FD_ENTRY  pfdentry, PCHAR  pcNewName)
                               (LW_DEV_HDR **)&pfatvolNew, 
                               cNewPath) != ERROR_NONE) {                /*  获得新目录路径              */
             __FAT_FILE_UNLOCK(pfatfile);
-            return (PX_ERROR);
+            return  (PX_ERROR);
         }
         if (pfatvolNew != pfatfile->FATFIL_pfatvol) {                   /*  必须为同一个卷              */
             __FAT_FILE_UNLOCK(pfatfile);
             _ErrorHandle(EXDEV);
-            return (PX_ERROR);
+            return  (PX_ERROR);
         }
         /*
          *  注意: FatFs 文件系统 rename 的第二个参数不能以 '/' 为起始字符
@@ -1589,12 +1595,8 @@ static INT  __fatFsRename (PLW_FD_ENTRY  pfdentry, PCHAR  pcNewName)
             pcNewPath++;
         }
         
-        /*
-         *  0.09 版本后的 FatFs 加入了文件锁操作, 所以这里必须关闭文件才能重命名.
-         */
-        if (pfatfile->FATFIL_iFileType == __FAT_FILE_TYPE_NODE) {       /*  是否需要提前关闭文件        */
-            pfatfile->FATFIL_iFileType =  __FAT_FILE_TYPE_DEV;          /*  不需要再次关闭              */
-            f_close(&pfatfile->FATFIL_fftm.FFTM_file);
+        if (pfatfile->FATFIL_iFileType == __FAT_FILE_TYPE_NODE) {
+            f_sync(&pfatfile->FATFIL_fftm.FFTM_file);
         }
         
         fresError = f_rename_ex(&pfatfile->FATFIL_pfatvol->FATVOL_fatfsVol,

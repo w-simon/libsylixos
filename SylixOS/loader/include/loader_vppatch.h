@@ -64,7 +64,7 @@ typedef struct lw_ld_vproc {
     LW_OBJECT_HANDLE        VP_ulModuleMutex;                           /*  进程模块链表锁              */
     
     BOOL                    VP_bRunAtExit;                              /*  是否允许 atexit 安装的函数  */
-    BOOL                    VP_bForceTerm;                              /*  是否是被强行退出            */
+    BOOL                    VP_bImmediatelyTerm;                        /*  是否是被立即退出            */
     
     pid_t                   VP_pid;                                     /*  进程号                      */
     BOOL                    VP_bIssetugid;                              /*  是否设置的 ugid             */
@@ -160,7 +160,7 @@ pid_t               vprocGetPidByThread(LW_OBJECT_HANDLE  ulId);
 LW_OBJECT_HANDLE    vprocMainThread(pid_t pid);
 INT                 vprocNotifyParent(LW_LD_VPROC *pvproc, INT  iSigCode, BOOL  bUpDateStat);
 VOID                vprocReclaim(LW_LD_VPROC *pvproc, BOOL  bFreeVproc);
-INT                 vprocSetForceTerm(pid_t  pid);
+INT                 vprocSetImmediatelyTerm(pid_t  pid);
 VOID                vprocExit(LW_LD_VPROC *pvproc, LW_OBJECT_HANDLE  ulId, INT  iCode);
 VOID                vprocExitNotDestroy(LW_LD_VPROC *pvproc);
 INT                 vprocRun(LW_LD_VPROC      *pvproc, 

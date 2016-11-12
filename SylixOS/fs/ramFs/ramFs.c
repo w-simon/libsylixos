@@ -504,19 +504,25 @@ static INT  __ramFsClose (PLW_FD_ENTRY    pfdentry)
     PLW_FD_NODE   pfdnode = (PLW_FD_NODE)pfdentry->FDENTRY_pfdnode;
     PRAM_NODE     pramn   = (PRAM_NODE)pfdnode->FDNODE_pvFile;
     PRAM_VOLUME   pramfs  = (PRAM_VOLUME)pfdnode->FDNODE_pvFsExtern;
+    BOOL          bRemove = LW_FALSE;
     
     if (__RAMFS_VOL_LOCK(pramfs) != ERROR_NONE) {
         _ErrorHandle(ENXIO);                                            /*  Éè±¸³ö´í                    */
         return  (PX_ERROR);
     }
     
-    if (pramn) {
-        __ram_close(pramn, pfdentry->FDENTRY_iFlag);
+    if (API_IosFdNodeDec(&pramfs->RAMFS_plineFdNodeHeader, 
+                         pfdnode, &bRemove) == 0) {
+        if (pramn) {
+            __ram_close(pramn, pfdentry->FDENTRY_iFlag);
+        }
     }
     
-    API_IosFdNodeDec(&pramfs->RAMFS_plineFdNodeHeader, pfdnode);
-    
     LW_DEV_DEC_USE_COUNT(&pramfs->RAMFS_devhdrHdr);
+    
+    if (bRemove && pramn) {
+        __ram_unlink(pramn);
+    }
         
     __RAMFS_VOL_UNLOCK(pramfs);
 

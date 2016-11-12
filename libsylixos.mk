@@ -872,6 +872,7 @@ SylixOS/kernel/list/listThreadVar.c \
 SylixOS/kernel/list/listTimer.c \
 SylixOS/kernel/resource/resourceLib.c \
 SylixOS/kernel/resource/resourceReclaim.c \
+SylixOS/kernel/show/BacktraceShow.c \
 SylixOS/kernel/show/CPUUsageShow.c \
 SylixOS/kernel/show/EventSetShow.c \
 SylixOS/kernel/show/InterShow.c \

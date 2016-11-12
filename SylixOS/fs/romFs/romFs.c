@@ -534,7 +534,7 @@ static INT  __romFsClose (PLW_FD_ENTRY    pfdentry)
             return  (PX_ERROR);
         }
         if (API_IosFdNodeDec(&promfs->ROMFS_plineFdNodeHeader,
-                             pfdnode) == 0) {
+                             pfdnode, LW_NULL) == 0) {
             bFree = LW_TRUE;
         }
         

@@ -958,6 +958,7 @@ static INT  __tpsFsClose (PLW_FD_ENTRY    pfdentry)
     PTPS_FILE     ptpsfile = (PTPS_FILE)pfdnode->FDNODE_pvFile;
     PTPS_VOLUME   ptpsvol  = ptpsfile->TPSFIL_ptpsvol;
     BOOL          bFree    = LW_FALSE;
+    BOOL          bRemove  = LW_FALSE;
 
     if (ptpsfile) {
         if (__TPS_FILE_LOCK(ptpsfile) != ERROR_NONE) {
@@ -966,14 +967,27 @@ static INT  __tpsFsClose (PLW_FD_ENTRY    pfdentry)
         }
 
         if (API_IosFdNodeDec(&ptpsvol->TPSVOL_plineFdNodeHeader,
-                             pfdnode) == 0) {                           /*  fd_node 是否完全释放        */
+                             pfdnode, &bRemove) == 0) {                 /*  fd_node 是否完全释放        */
             if (ptpsfile->TPSFIL_pinode) {
+                if (bRemove && S_ISDIR(tpsFsGetmod(ptpsfile->TPSFIL_pinode))) {
+                    PTPS_ENTRY    pentry;
+                    
+                    pentry = tpsFsEntryRead(ptpsfile->TPSFIL_pinode, 0);
+                    if (pentry) {
+                        tpsFsEntryFree(pentry);
+                        bRemove = LW_FALSE;                             /*  不能删除非空目录            */
+                    }
+                }
                 tpsFsClose(ptpsfile->TPSFIL_pinode);
                 bFree = LW_TRUE;
             }
         }
 
         LW_DEV_DEC_USE_COUNT(&ptpsvol->TPSVOL_devhdrHdr);               /*  更新计数器                  */
+
+        if (bRemove) {
+            tpsFsRemove(ptpsvol->TPSVOL_tpsFsVol, ptpsfile->TPSFIL_cName);
+        }
 
         __TPS_FILE_UNLOCK(ptpsfile);
 
@@ -1413,7 +1427,7 @@ static INT  __tpsFsFormat (PLW_FD_ENTRY  pfdentry, LONG  lArg)
 
     if (!__STR_IS_ROOT(ptpsfile->TPSFIL_cName)) {                       /*  检查是否为设备文件          */
         _ErrorHandle(EFAULT);                                           /*  Bad address                 */
-        return (PX_ERROR);
+        return  (PX_ERROR);
     }
 
     if (__TPS_FILE_LOCK(ptpsfile) != ERROR_NONE) {
@@ -1504,15 +1518,15 @@ static INT  __tpsFsRename (PLW_FD_ENTRY  pfdentry, PCHAR  pcNewName)
 
     if (__STR_IS_ROOT(ptpsfile->TPSFIL_cName)) {                        /*  检查是否为设备文件          */
         _ErrorHandle(ERROR_IOS_DRIVER_NOT_SUP);                         /*  不支持设备重命名            */
-        return (PX_ERROR);
+        return  (PX_ERROR);
     }
     if (pcNewName == LW_NULL) {
         _ErrorHandle(EFAULT);                                           /*  Bad address                 */
-        return (PX_ERROR);
+        return  (PX_ERROR);
     }
     if (__STR_IS_ROOT(pcNewName)) {
         _ErrorHandle(ENOENT);
-        return (PX_ERROR);
+        return  (PX_ERROR);
     }
 
     if (__TPS_FILE_LOCK(ptpsfile) != ERROR_NONE) {
@@ -1527,27 +1541,18 @@ static INT  __tpsFsRename (PLW_FD_ENTRY  pfdentry, PCHAR  pcNewName)
                               cNewPath) != ERROR_NONE) {                /*  获得新目录路径              */
             __TPS_FILE_UNLOCK(ptpsfile);
             _ErrorHandle(ENOENT);
-            return (PX_ERROR);
+            return  (PX_ERROR);
         }
         if (ptpsvolNew != ptpsfile->TPSFIL_ptpsvol) {                   /*  必须为同一个卷              */
             __TPS_FILE_UNLOCK(ptpsfile);
             _ErrorHandle(EXDEV);
-            return (PX_ERROR);
+            return  (PX_ERROR);
         }
         /*
          *  注意: TpsFs 文件系统 rename 的第二个参数不能以 '/' 为起始字符
          */
         if (cNewPath[0] == PX_DIVIDER) {
             pcNewPath++;
-        }
-
-        /*
-         *  0.09 版本后的 TpsFs 加入了文件锁操作, 所以这里必须关闭文件才能重命名.
-         */
-        if (ptpsfile->TPSFIL_iFileType == __TPS_FILE_TYPE_NODE) {       /*  是否需要提前关闭文件        */
-            ptpsfile->TPSFIL_iFileType =  __TPS_FILE_TYPE_DEV;          /*  变为设备节点不再支持其他操作*/
-            tpsFsClose(ptpsfile->TPSFIL_pinode);
-            ptpsfile->TPSFIL_pinode = LW_NULL;                          /*  不需要再次关闭              */
         }
 
         iErr = tpsFsMove(ptpsfile->TPSFIL_ptpsvol->TPSVOL_tpsFsVol,

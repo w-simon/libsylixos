@@ -37,7 +37,7 @@
                                         "\n[[  [[  [[  [[    [[      [[    [[  [[  [[  [[  [[  [["    \
                                         "\n [[[[    [[[[   [[[[[[  [[[[[[  [[  [[   [[[[    [[[[ "    \
                                         "\n           [[                                         "    \
-                                        "\n          [[    KERNEL: Long-Wing(C) " __SYLIXOS_VERSTR "" \
+                                        "\n          [[    KERNEL: LongWing(C) " __SYLIXOS_VERSTR ""  \
                                         "\n       [[[[   COPYRIGHT ACOINFO Co. Ltd. 2006 - 2017\n\n"
 
 #endif                                                                  /*  __K_LOGO_H                  */

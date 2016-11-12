@@ -21,6 +21,7 @@
 ** BUG:
 2015.09.22  修正未主动上报首次状态的错误, 避免首次状态的丢失.
 2016.03.15  API_MiiPhyLinkSet() 加入 hook.
+2016.11.10  增加PhyID掩码功能, 方便同系列PHY芯片不同型号的识别
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -71,7 +72,7 @@ static INT __miiAbilFlagUpdate (PHY_DEV *pPhyDev)
     UINT8   ucRegAddr;
 
     ucRegAddr = MII_STAT_REG;                                           /* Find the PHY abilities       */
-    if (MII_READ(pPhyDev->PHY_ucPhyAddr, ucRegAddr, &usPhyStatus) == MII_ERROR) {
+    if (MII_READ(pPhyDev, ucRegAddr, &usPhyStatus) == MII_ERROR) {
         return  (MII_ERROR);
     }
 
@@ -79,8 +80,8 @@ static INT __miiAbilFlagUpdate (PHY_DEV *pPhyDev)
      * Check all PHY flags & set it into PHY_DEV
      */
     if (!(usPhyStatus & (MII_SR_TX_HALF_DPX
-                       | MII_SR_TX_FULL_DPX
-                       | MII_SR_T4))) {
+                      |  MII_SR_TX_FULL_DPX
+                      |  MII_SR_T4))) {
         MII_PHY_FLAGS_CLEAR(MII_PHY_100);
     }
 
@@ -104,7 +105,7 @@ static INT __miiAbilFlagUpdate (PHY_DEV *pPhyDev)
 
     if (pPhyDev->PHY_uiPhyFlags & MII_PHY_GMII_TYPE) {                  /* GMII Interface               */
         ucRegAddr = MII_EXT_STAT_REG;                                   /* Check Extend Abilitily       */
-        if (MII_READ(pPhyDev->PHY_ucPhyAddr, ucRegAddr, &usPhyStatus) == MII_ERROR) {
+        if (MII_READ(pPhyDev, ucRegAddr, &usPhyStatus) == MII_ERROR) {
             return  (MII_ERROR);
         }
 
@@ -145,7 +146,7 @@ static INT __miiBasicCheck (PHY_DEV *pPhyDev)
            return   (MII_ERROR);
         }
 
-        if (MII_READ(pPhyDev->PHY_ucPhyAddr, ucRegAddr, &usPhyStatus) != MII_OK) {
+        if (MII_READ(pPhyDev, ucRegAddr, &usPhyStatus) != MII_OK) {
            return   (MII_ERROR);
         }
     } while ((usPhyStatus & MII_SR_LINK_STATUS) != MII_SR_LINK_STATUS);
@@ -155,10 +156,10 @@ static INT __miiBasicCheck (PHY_DEV *pPhyDev)
     /* 
      *  check for remote fault condition, read twice 
      */
-    if (MII_READ(pPhyDev->PHY_ucPhyAddr, ucRegAddr, &usPhyStatus) != MII_OK) {
+    if (MII_READ(pPhyDev, ucRegAddr, &usPhyStatus) != MII_OK) {
         return  (MII_ERROR);
     }
-    if (MII_READ(pPhyDev->PHY_ucPhyAddr, ucRegAddr, &usPhyStatus) != MII_OK) {
+    if (MII_READ(pPhyDev, ucRegAddr, &usPhyStatus) != MII_OK) {
         return  (MII_ERROR);
     }
 
@@ -217,7 +218,7 @@ static INT __miiPhyUpdate (PHY_DEV *pPhyDev)
     UINT16  usPhyMstSlaStat;                                            /* PHY Master-slave Status value*/
     UINT16  usNegAbility;                                               /* abilities after negotiation  */
 
-    if (MII_READ(pPhyDev->PHY_ucPhyAddr, MII_STAT_REG, &usPhyStatus) != MII_OK) {
+    if (MII_READ(pPhyDev, MII_STAT_REG, &usPhyStatus) != MII_OK) {
         return  (MII_ERROR);
     }
 
@@ -228,15 +229,15 @@ static INT __miiPhyUpdate (PHY_DEV *pPhyDev)
         return  (MII_OK);
     }
 
-    if (MII_READ(pPhyDev->PHY_ucPhyAddr, MII_AN_ADS_REG, &usPhyAds) != MII_OK) {
+    if (MII_READ(pPhyDev, MII_AN_ADS_REG, &usPhyAds) != MII_OK) {
         return  (MII_ERROR);
     }
 
-    if (MII_READ(pPhyDev->PHY_ucPhyAddr, MII_AN_PRTN_REG, &usPhyPrtn) != MII_OK) {
+    if (MII_READ(pPhyDev, MII_AN_PRTN_REG, &usPhyPrtn) != MII_OK) {
         return  (MII_ERROR);
     }
 
-    if (MII_READ(pPhyDev->PHY_ucPhyAddr, MII_AN_EXP_REG, &usPhyExp) != MII_OK) {
+    if (MII_READ(pPhyDev, MII_AN_EXP_REG, &usPhyExp) != MII_OK) {
         return  (MII_ERROR);
     }
 
@@ -291,17 +292,17 @@ static INT __miiPhyUpdate (PHY_DEV *pPhyDev)
         /* 
          * get MASTER-SLAVE control register 
          */
-        if (MII_READ(pPhyDev->PHY_ucPhyAddr, MII_MASSLA_CTRL_REG, &usPhyMstSlaCtrl) != MII_OK) {
+        if (MII_READ(pPhyDev, MII_MASSLA_CTRL_REG, &usPhyMstSlaCtrl) != MII_OK) {
             return  (MII_ERROR);
         }
         /* 
          * get MASTER-SLAVE status register 
          */
-        if (MII_READ(pPhyDev->PHY_ucPhyAddr, MII_MASSLA_STAT_REG, &usPhyMstSlaStat) != MII_OK) {
+        if (MII_READ(pPhyDev, MII_MASSLA_STAT_REG, &usPhyMstSlaStat) != MII_OK) {
             return  (MII_ERROR);
         }
 
-        if (MII_READ(pPhyDev->PHY_ucPhyAddr, MII_MASSLA_STAT_REG, &usPhyMstSlaStat) != MII_OK) {
+        if (MII_READ(pPhyDev, MII_MASSLA_STAT_REG, &usPhyMstSlaStat) != MII_OK) {
             return  (MII_ERROR);
         }
 
@@ -395,7 +396,7 @@ static INT __miiAnCheck (PHY_DEV *pPhyDev)
      * we know the auto-negotiation process has finished 
      */
     ucRegAddr = MII_AN_EXP_REG;
-    if (MII_READ(pPhyDev->PHY_ucPhyAddr, ucRegAddr, &usPhyExp) != MII_OK) {
+    if (MII_READ(pPhyDev, ucRegAddr, &usPhyExp) != MII_OK) {
         return  (MII_ERROR);
     }
 
@@ -410,7 +411,7 @@ static INT __miiAnCheck (PHY_DEV *pPhyDev)
      * check for remote faults 
      */
     ucRegAddr = MII_AN_PRTN_REG;
-    if (MII_READ(pPhyDev->PHY_ucPhyAddr, ucRegAddr, &usPhyExp) != MII_OK) {
+    if (MII_READ(pPhyDev, ucRegAddr, &usPhyExp) != MII_OK) {
         return  (MII_ERROR);
     }
 
@@ -441,7 +442,7 @@ static INT __miiAutoNegStart (PHY_DEV *pPhyDev)
     UINT32  i = 0;
 
     ucRegAddr = MII_STAT_REG;
-    if (MII_READ(pPhyDev->PHY_ucPhyAddr, ucRegAddr, &usPhyStatus) == MII_ERROR) {
+    if (MII_READ(pPhyDev, ucRegAddr, &usPhyStatus) == MII_ERROR) {
         return  (MII_ERROR);
     }
 
@@ -458,7 +459,7 @@ static INT __miiAutoNegStart (PHY_DEV *pPhyDev)
      */
     ucRegAddr = MII_CTRL_REG;
     usData    = (MII_CTRL_RESTART | MII_CTRL_AUTO_EN);
-    if (MII_WRITE(pPhyDev->PHY_ucPhyAddr, ucRegAddr, usData) != MII_OK) {
+    if (MII_WRITE(pPhyDev, ucRegAddr, usData) != MII_OK) {
         return  (MII_ERROR);
     }
 
@@ -473,7 +474,7 @@ static INT __miiAutoNegStart (PHY_DEV *pPhyDev)
         if (i++ == pPhyDev->PHY_uiTryMax)
             break;
 
-        if (MII_READ(pPhyDev->PHY_ucPhyAddr, ucRegAddr, &usPhyStatus) != MII_OK) {
+        if (MII_READ(pPhyDev, ucRegAddr, &usPhyStatus) != MII_OK) {
             return  (MII_ERROR);
         }
     } while ((usPhyStatus & MII_SR_AUTO_NEG) != MII_SR_AUTO_NEG);
@@ -519,7 +520,7 @@ static INT __miiAutoNegotiate (PHY_DEV *pPhyDev)
      * Read ANER to clear status from previous operations
      */
     ucRegAddr = MII_AN_EXP_REG;
-    if (MII_READ(pPhyDev->PHY_ucPhyAddr, ucRegAddr, &usResult) != MII_OK) {
+    if (MII_READ(pPhyDev, ucRegAddr, &usResult) != MII_OK) {
         return  (MII_ERROR);                                            /* clear status                 */
     }
 
@@ -530,12 +531,12 @@ static INT __miiAutoNegotiate (PHY_DEV *pPhyDev)
     * register or equivalent". What does "equivalent" mean?
     */
     ucRegAddr = MII_AN_ADS_REG;
-    if (MII_READ(pPhyDev->PHY_ucPhyAddr, ucRegAddr, &usPhyAds) == MII_ERROR) {
+    if (MII_READ(pPhyDev, ucRegAddr, &usPhyAds) == MII_ERROR) {
         return  (MII_ERROR);
     }
 
     ucRegAddr = MII_STAT_REG;
-    if (MII_READ(pPhyDev->PHY_ucPhyAddr, ucRegAddr, &usPhyStat) == MII_ERROR) {
+    if (MII_READ(pPhyDev, ucRegAddr, &usPhyStat) == MII_ERROR) {
         return  (MII_ERROR);
     }
 
@@ -547,7 +548,7 @@ static INT __miiAutoNegotiate (PHY_DEV *pPhyDev)
      * MII defines symmetric PAUSE ability
      */
     if ((MII_PHY_FLAGS_ARE_SET (MII_PHY_TX_FLOW_CTRL)) &&
-           (MII_PHY_FLAGS_ARE_SET (MII_PHY_RX_FLOW_CTRL))) {
+        (MII_PHY_FLAGS_ARE_SET (MII_PHY_RX_FLOW_CTRL))) {
         usPhyAds |= MII_ANAR_PAUSE;
     
     } else {
@@ -559,7 +560,7 @@ static INT __miiAutoNegotiate (PHY_DEV *pPhyDev)
          * GMII also defines asymmetric PAUSE ability
          */
         if (!(MII_PHY_FLAGS_ARE_SET (MII_PHY_TX_FLOW_CTRL)) &&
-               !(MII_PHY_FLAGS_ARE_SET (MII_PHY_RX_FLOW_CTRL))) {       /* not flow control             */
+            !(MII_PHY_FLAGS_ARE_SET (MII_PHY_RX_FLOW_CTRL))) {          /* not flow control             */
             usPhyAds &= ~MII_ANAR_ASM_PAUSE;
             usPhyAds &= ~MII_ANAR_PAUSE;
             
@@ -575,7 +576,7 @@ static INT __miiAutoNegotiate (PHY_DEV *pPhyDev)
     }
 
     ucRegAddr = MII_AN_ADS_REG;                                         /* write ANAR                   */
-    if (MII_WRITE(pPhyDev->PHY_ucPhyAddr, ucRegAddr, usPhyAds) == MII_ERROR) {
+    if (MII_WRITE(pPhyDev, ucRegAddr, usPhyAds) == MII_ERROR) {
         return   (MII_ERROR);
     }
 
@@ -584,7 +585,7 @@ static INT __miiAutoNegotiate (PHY_DEV *pPhyDev)
          * get Master-Slave Control (MSC) Register
          */
         ucRegAddr =  MII_MASSLA_CTRL_REG;
-        if (MII_READ(pPhyDev->PHY_ucPhyAddr, ucRegAddr, &usPhyMstSlaCtrl) == MII_ERROR) {
+        if (MII_READ(pPhyDev, ucRegAddr, &usPhyMstSlaCtrl) == MII_ERROR) {
             return   (MII_ERROR);
         }
 
@@ -592,7 +593,7 @@ static INT __miiAutoNegotiate (PHY_DEV *pPhyDev)
          * get extended status register
          */
         ucRegAddr = MII_EXT_STAT_REG;
-        if (MII_READ(pPhyDev->PHY_ucPhyAddr, ucRegAddr, &usPhyExtStat) == MII_ERROR) {
+        if (MII_READ(pPhyDev, ucRegAddr, &usPhyExtStat) == MII_ERROR) {
             return   (MII_ERROR);
         }
 
@@ -611,7 +612,7 @@ static INT __miiAutoNegotiate (PHY_DEV *pPhyDev)
          * write MSC register value
          */
         ucRegAddr = MII_MASSLA_CTRL_REG;
-        if (MII_WRITE(pPhyDev->PHY_ucPhyAddr, ucRegAddr, usPhyMstSlaCtrl) == MII_ERROR) {
+        if (MII_WRITE(pPhyDev, ucRegAddr, usPhyMstSlaCtrl) == MII_ERROR) {
             return  (MII_ERROR);
         }
     }
@@ -657,7 +658,7 @@ static INT __miiAutoNegotiate (PHY_DEV *pPhyDev)
      * set the ANAR accordingly
      */
     ucRegAddr = MII_AN_ADS_REG;
-    if (MII_WRITE(pPhyDev->PHY_ucPhyAddr, ucRegAddr, usPhyAds) == MII_ERROR) {
+    if (MII_WRITE(pPhyDev, ucRegAddr, usPhyAds) == MII_ERROR) {
         return   (MII_ERROR);
     }
 
@@ -666,7 +667,7 @@ static INT __miiAutoNegotiate (PHY_DEV *pPhyDev)
      */
     if (pPhyDev->PHY_uiPhyFlags & MII_PHY_GMII_TYPE) {
         ucRegAddr = MII_MASSLA_CTRL_REG;
-        if (MII_WRITE(pPhyDev->PHY_ucPhyAddr, ucRegAddr, usPhyMstSlaCtrl) == MII_ERROR) {
+        if (MII_WRITE(pPhyDev, ucRegAddr, usPhyMstSlaCtrl) == MII_ERROR) {
             return   (MII_ERROR);
         }
     }
@@ -718,7 +719,7 @@ static INT __miiModeForce (PHY_DEV *pPhyDev)
         usData |= MII_CTRL_FDX;
     }
 
-    if (MII_WRITE(pPhyDev->PHY_ucPhyAddr, MII_CTRL_REG, usData) != MII_OK) {
+    if (MII_WRITE(pPhyDev, MII_CTRL_REG, usData) != MII_OK) {
         return  (MII_ERROR);
     }
 
@@ -816,7 +817,7 @@ INT API_MiiPhyDiagnostic (PHY_DEV *pPhyDev)
     ucRegAddr = MII_CTRL_REG;
     usData    = MII_CTRL_RESET;
 
-    iRet = MII_WRITE(pPhyDev->PHY_ucPhyAddr, ucRegAddr, usData);        /* Reset the PHY                */
+    iRet = MII_WRITE(pPhyDev, ucRegAddr, usData);                       /* Reset the PHY                */
     if (iRet != MII_OK) {
         return  (MII_ERROR);
     }
@@ -824,7 +825,7 @@ INT API_MiiPhyDiagnostic (PHY_DEV *pPhyDev)
     for (i=0; i < pPhyDev->PHY_uiTryMax; i++) {
         API_TimeMSleep(pPhyDev->PHY_uiLinkDelay);
 
-        if (MII_READ(pPhyDev->PHY_ucPhyAddr, ucRegAddr, &usData) == MII_ERROR) {
+        if (MII_READ(pPhyDev, ucRegAddr, &usData) == MII_ERROR) {
             return  (MII_ERROR);
         }
 
@@ -840,7 +841,7 @@ INT API_MiiPhyDiagnostic (PHY_DEV *pPhyDev)
     }
 
     usData = MII_CTRL_NORM_EN;                                          /* re-enable the chip           */
-    if (MII_WRITE(pPhyDev->PHY_ucPhyAddr, ucRegAddr, usData) == MII_ERROR) {
+    if (MII_WRITE(pPhyDev, ucRegAddr, usData) == MII_ERROR) {
         MII_DEBUG_ADDR("mii: write to phy fail. phy addr[%02x].\r\n",
                        pPhyDev->PHY_ucPhyAddr);
         return  (MII_ERROR);
@@ -852,7 +853,7 @@ INT API_MiiPhyDiagnostic (PHY_DEV *pPhyDev)
     for (i = 0; i < pPhyDev->PHY_uiTryMax; i++) {
         API_TimeMSleep(pPhyDev->PHY_uiLinkDelay);
 
-        if (MII_READ(pPhyDev->PHY_ucPhyAddr, ucRegAddr, &usData) == MII_ERROR) {
+        if (MII_READ(pPhyDev, ucRegAddr, &usData) == MII_ERROR) {
             MII_DEBUG_ADDR("mii: read phy fail. phy addr[%02x].\r\n",
                            pPhyDev->PHY_ucPhyAddr);
             return  (MII_ERROR);
@@ -888,7 +889,7 @@ INT API_MiiPhyLinkStatGet (PHY_DEV *pPhyDev)
     INT     iRet;
 
     ucRegAddr = MII_STAT_REG;
-    iRet      =  MII_READ(pPhyDev->PHY_ucPhyAddr, ucRegAddr, &usPhyStatus);
+    iRet      =  MII_READ(pPhyDev, ucRegAddr, &usPhyStatus);
     if (iRet == MII_ERROR) {
         return  (MII_ERROR);
     }
@@ -916,7 +917,7 @@ INT API_MiiPhyLinkStatGet (PHY_DEV *pPhyDev)
 
     if (pPhyDev->PHY_uiPhyFlags & MII_PHY_GMII_TYPE) {
         ucRegAddr   = MII_EXT_STAT_REG;                                 /* Get Extend Status            */
-        iRet        = MII_READ(pPhyDev->PHY_ucPhyAddr, ucRegAddr, &usPhyStatus);
+        iRet        = MII_READ(pPhyDev, ucRegAddr, &usPhyStatus);
         if (iRet != MII_OK) {
             return  (MII_ERROR);
         }
@@ -962,7 +963,7 @@ INT API_MiiPhyIsolate (PHY_DEV *pPhyDev)
     usData    = MII_CTRL_ISOLATE;
     ucRegAddr = MII_CTRL_REG;
 
-    iRet = MII_WRITE(pPhyDev->PHY_ucPhyAddr, ucRegAddr, usData);
+    iRet = MII_WRITE(pPhyDev, ucRegAddr, usData);
     if (iRet != MII_OK) {
         return  (MII_ERROR);
     }
@@ -970,7 +971,7 @@ INT API_MiiPhyIsolate (PHY_DEV *pPhyDev)
     for (i = 0; i < pPhyDev->PHY_uiTryMax; i++) {                       /* check isolate bit is asserted*/
         API_TimeMSleep(pPhyDev->PHY_uiLinkDelay);
 
-        iRet = MII_READ(pPhyDev->PHY_ucPhyAddr, ucRegAddr, &usData);
+        iRet = MII_READ(pPhyDev, ucRegAddr, &usData);
         if (iRet != MII_OK) {
             return  (MII_ERROR);
         }
@@ -1002,15 +1003,16 @@ INT API_MiiPhyProbe (PHY_DEV *pPhyDev)
     UINT16  usID1;
     UINT16  usID2;
 
-    if (MII_READ(pPhyDev->PHY_ucPhyAddr, MII_PHY_ID1_REG, &usID1) == MII_ERROR) {
+    if (MII_READ(pPhyDev, MII_PHY_ID1_REG, &usID1) == MII_ERROR) {
         return  (MII_ERROR);
     }
-    if (MII_READ(pPhyDev->PHY_ucPhyAddr, MII_PHY_ID2_REG, &usID2) == MII_ERROR) {
+    if (MII_READ(pPhyDev, MII_PHY_ID2_REG, &usID2) == MII_ERROR) {
         return  (MII_ERROR);
     }
 
-    uiPhyID = usID1 | ((usID2 & 0xFC00) << 16);
-    if (pPhyDev->PHY_uiPhyID != uiPhyID) {
+    uiPhyID = usID1 | (usID2 << 16);
+    if ((pPhyDev->PHY_uiPhyID & pPhyDev->PHY_uiPhyIDMask) !=
+                     (uiPhyID & pPhyDev->PHY_uiPhyIDMask)) {
         return  (MII_PHY_NULL);
     }
 
@@ -1122,12 +1124,12 @@ static INT __miiPhyMonitor (VOID)
         if ((MII_PHY_FLAGS_ARE_SET (MII_PHY_INIT)) &&
             (MII_PHY_FLAGS_ARE_SET (MII_PHY_MONITOR))) {
 
-            iRet = MII_READ(pPhyDev->PHY_ucPhyAddr, MII_STAT_REG, &usPhyStatus);
+            iRet = MII_READ(pPhyDev, MII_STAT_REG, &usPhyStatus);
             if (iRet == MII_ERROR) {
                 goto    __mii_monitor_exit;
             }
 
-            iRet = MII_READ(pPhyDev->PHY_ucPhyAddr, MII_STAT_REG, &usPhyStatus);
+            iRet = MII_READ(pPhyDev, MII_STAT_REG, &usPhyStatus);
             if (iRet == MII_ERROR) {
                 goto    __mii_monitor_exit;
             }
@@ -1214,7 +1216,10 @@ INT API_MiiPhyInit (PHY_DEV *pPhyDev)
         pPhyDev->PHY_pvMacDrv == LW_NULL) {
         _ErrorHandle(EINVAL);
         return  (MII_ERROR);
-        
+    }
+
+    if (pPhyDev->PHY_uiPhyIDMask == 0) {
+        pPhyDev->PHY_uiPhyIDMask = 0xFFFFFFFF;
     }
 
     if (API_MiiLibInit() == MII_ERROR) {
@@ -1243,7 +1248,7 @@ INT API_MiiPhyInit (PHY_DEV *pPhyDev)
 
 	usPhyStatus = pPhyDev->PHY_usPhyStatus;								/* Remember Link Status         */
 																		/* Get The New Status			*/
-    if (MII_READ(pPhyDev->PHY_ucPhyAddr, MII_STAT_REG, &pPhyDev->PHY_usPhyStatus) != MII_OK) {
+    if (MII_READ(pPhyDev, MII_STAT_REG, &pPhyDev->PHY_usPhyStatus) != MII_OK) {
         return  (MII_ERROR);
     }
     

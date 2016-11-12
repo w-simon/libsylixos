@@ -177,6 +177,47 @@ TPS_RESULT  tpsFsEntryRemove (PTPS_TRANS ptrans, PTPS_ENTRY pentry)
     return  (TPS_ERR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: tpsFsGetDirSize
+** 功能描述: 获取最后一个有效目录项结束位置
+** 输　入  : pinodeDir        目录文件
+** 输　出  : 小于0--失败，大于或等于0--最后一个有效目录项结束位置
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+TPS_SIZE_T  tpsFsGetDirSize (PTPS_INODE pinodeDir)
+{
+    PUCHAR     pucItemBuf   = LW_NULL;
+    TPS_SIZE_T off;
+
+    if (pinodeDir == LW_NULL) {
+        return  (-1);
+    }
+
+    pucItemBuf = (PUCHAR)TPS_ALLOC(TPS_ENTRY_ITEM_SIZE);
+    if (LW_NULL == pucItemBuf) {
+        return  (-1);
+    }
+
+    off = tpsFsInodeGetSize(pinodeDir);
+    while (off >= TPS_ENTRY_ITEM_SIZE) {                                /* 查找最后一个目录项           */
+        off -= TPS_ENTRY_ITEM_SIZE;
+        if (tpsFsInodeRead(pinodeDir,
+                           off,
+                           pucItemBuf,
+                           TPS_ENTRY_ITEM_SIZE) < TPS_ENTRY_ITEM_SIZE) {
+            break;
+        }
+
+        if (TPS_LE32_TO_CPU_VAL(pucItemBuf) != 0) {
+            break;
+        }
+    }
+
+    TPS_FREE(pucItemBuf);
+
+    return  (off + TPS_ENTRY_ITEM_SIZE);
+}
+/*********************************************************************************************************
 ** 函数名称: tpsFsFindEntry
 ** 功能描述: 查找entry
 ** 输　入  : pinodeDir           父目录

@@ -82,6 +82,17 @@ static PCHAR  __vmmAbortTypeStr(PLW_VMM_ABORT  pabtInfo);
 #define __PAGEFAIL_ALLOC_PAGE_NUM   1                                   /*  缺页中断分配页面数, 必须为1 */
 #define __PAGEFAIL_CUR_PID          API_ModulePid(ptcbCur->TCB_pvVProcessContext)
 /*********************************************************************************************************
+** 函数名称: __vmmAbortFakeSymbol
+** 功能描述: 异常模式下使用栈回溯操作时, 显示此符号.
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+VOID  __vmmAbortFakeSymbol (VOID)
+{
+}
+/*********************************************************************************************************
 ** 函数名称: __vmmAbortCacheRefresh
 ** 功能描述: 当 MMU 缺页处理完成后, 这里处理 cache 的刷新操作.
 ** 输　入  : bSwapNeedLoad         是否是从 swap 中读出数据
@@ -828,6 +839,11 @@ static VOID  __vmmAbortAccess (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
 {
     ULONG   ulErrorOrig = API_GetLastError();
     
+#if LW_CFG_ABORT_CALLSTACK_INFO_EN > 0
+    API_BacktraceShow(ioGlobalStdGet(STD_ERR), 100);
+#endif                                                                  /*  LW_CFG_ABORT_CALLSTACK_IN...*/
+    
+#if LW_CFG_ABORT_BASIC_INFO_EN > 0
     switch (__PAGEFAILCTX_ABORT_TYPE(pvmpagefailctx)) {
     
     case LW_VMM_ABORT_TYPE_UNDEF:
@@ -860,6 +876,7 @@ static VOID  __vmmAbortAccess (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
                __vmmAbortTypeStr(&pvmpagefailctx->PAGEFCTX_abtInfo));   /*  操作异常                    */
         break;
     }
+#endif                                                                  /*  LW_CFG_ABORT_BASIC_INFO_EN  */
     
     __vmmAbortKill(pvmpagefailctx);                                     /*  发送异常信号                */
     

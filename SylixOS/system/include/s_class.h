@@ -421,6 +421,7 @@ typedef struct {
     struct  __fd_lockf        *FDNODE_pfdlockHead;                      /*  第一个锁                    */
     LW_LIST_LINE_HEADER        FDNODE_plineBlockQ;                      /*  当前有阻塞的记录锁队列      */
     
+    BOOL                       FDNODE_bRemove;                          /*  是否在文件未关闭时有 unlink */
     ULONG                      FDNODE_ulLock;                           /*  锁定, 不允许写, 不允许删除  */
     ULONG                      FDNODE_ulRef;                            /*  fd_entry 引用此 fd_node 数量*/
     PVOID                      FDNODE_pvFile;                           /*  驱动使用此变量标示文件      */
@@ -454,8 +455,6 @@ typedef struct {
     INT                        FDENTRY_iType;                           /*  文件类型 (根据驱动判断)     */
     INT                        FDENTRY_iFlag;                           /*  文件属性                    */
     INT                        FDENTRY_iAbnormity;                      /*  文件异常                    */
-    
-    BOOL                       FDENTRY_bNeedUnlink;                     /*  是否在文件未关闭时有 unlink */
     ULONG                      FDENTRY_ulCounter;                       /*  总引用计数器                */
     off_t                      FDENTRY_oftPtr;                          /*  文件当前指针                */
                                                                         /*  只有 NEW_1 或更高级驱动使用 */

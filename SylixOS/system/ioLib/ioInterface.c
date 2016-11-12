@@ -228,12 +228,13 @@ static INT _IoOpen (PCHAR            pcName,
         }
     }
     
-    if ((iFlag & O_CLOEXEC) && (iFd >= 0)) {                            /*  需要 FD_CLOEXEC 操作        */
-        API_IosFdSetCloExec(iFd, FD_CLOEXEC);
+    if (iFd >= 0) {
+        if (iFlag & O_CLOEXEC) {
+            API_IosFdSetCloExec(iFd, FD_CLOEXEC);                       /*  需要 FD_CLOEXEC 操作        */
+        }
+        MONITOR_EVT_INT2(MONITOR_EVENT_ID_IO, (bCreate ? MONITOR_EVENT_IO_CREAT : MONITOR_EVENT_IO_OPEN), 
+                         iFlag, iMode, pcName);
     }
-    
-    MONITOR_EVT_INT2(MONITOR_EVENT_ID_IO, (bCreate ? MONITOR_EVENT_IO_CREAT : MONITOR_EVENT_IO_OPEN), 
-                     iFlag, iMode, pcName);
     
     return  (iFd);
     

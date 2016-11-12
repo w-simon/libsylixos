@@ -68,9 +68,10 @@ PLW_FD_NODE  API_IosFdNodeAdd (LW_LIST_LINE_HEADER  *pplineHeader,
         if ((pfdnode->FDNODE_dev     == dev) &&
             (pfdnode->FDNODE_inode64 == inode64)) {                     /*  重复打开                    */
             
-            if (pfdnode->FDNODE_ulLock && 
-                (iFlags & (O_WRONLY | O_RDWR | O_TRUNC))) {
-                _ErrorHandle(EBUSY);                                    /*  文件被锁定                  */
+            if (pfdnode->FDNODE_bRemove ||
+                (pfdnode->FDNODE_ulLock && 
+                (iFlags & (O_WRONLY | O_RDWR | O_TRUNC)))) {
+                _ErrorHandle(EBUSY);                                    /*  文件被锁定或者请求删除      */
                 return  (LW_NULL);
             }
             
@@ -105,6 +106,7 @@ PLW_FD_NODE  API_IosFdNodeAdd (LW_LIST_LINE_HEADER  *pplineHeader,
     pfdnode->FDNODE_gid     = gid;
     pfdnode->FDNODE_oftSize = oftSize;
     pfdnode->FDNODE_pvFile  = pvFile;
+    pfdnode->FDNODE_bRemove = LW_FALSE;
     pfdnode->FDNODE_ulLock  = 0;                                        /*  没有锁定                    */
     pfdnode->FDNODE_ulRef   = 1;                                        /*  初始化引用为 1              */
     
@@ -122,6 +124,7 @@ PLW_FD_NODE  API_IosFdNodeAdd (LW_LIST_LINE_HEADER  *pplineHeader,
 ** 功能描述: 删除一个 fd_node (如果引用不为 1 则只是 -- )
 ** 输　入  : pplineHeader  同一设备 fd_node 链表
 **           pfdnode       fd_node
+**           bRemove       是否需要删除文件.
 ** 输　出  : -1 : 错误
 **            0 : 正常删除
 **           >0 : 减少引用后的引用数量
@@ -132,7 +135,8 @@ PLW_FD_NODE  API_IosFdNodeAdd (LW_LIST_LINE_HEADER  *pplineHeader,
 *********************************************************************************************************/
 LW_API 
 INT  API_IosFdNodeDec (LW_LIST_LINE_HEADER  *pplineHeader,
-                       PLW_FD_NODE           pfdnode)
+                       PLW_FD_NODE           pfdnode,
+                       BOOL                 *bRemove)
 {
     if (!pfdnode) {
         return  (PX_ERROR);
@@ -140,6 +144,9 @@ INT  API_IosFdNodeDec (LW_LIST_LINE_HEADER  *pplineHeader,
 
     pfdnode->FDNODE_ulRef--;
     if (pfdnode->FDNODE_ulRef) {
+        if (bRemove) {
+            *bRemove = LW_FALSE;
+        }
         return  ((INT)pfdnode->FDNODE_ulRef);                           /*  仅仅减少文件引用计数即可    */
     }
     
@@ -149,6 +156,10 @@ INT  API_IosFdNodeDec (LW_LIST_LINE_HEADER  *pplineHeader,
                    pplineHeader);
     
     API_SemaphoreBDelete(&pfdnode->FDNODE_ulSem);
+    
+    if (bRemove) {
+        *bRemove = pfdnode->FDNODE_bRemove;
+    }
     
     __SHEAP_FREE(pfdnode);
     

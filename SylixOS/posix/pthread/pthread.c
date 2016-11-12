@@ -47,8 +47,6 @@
 #if LW_CFG_POSIX_EN > 0
 #if (LW_CFG_GJB7714_EN > 0) && (LW_CFG_MODULELOADER_EN > 0)
 #include "unistd.h"
-#include "../include/px_dlfcn.h"
-#include "../include/px_execinfo.h"
 #include "../SylixOS/loader/include/loader_vppatch.h"
 #endif
 /*********************************************************************************************************
@@ -1319,43 +1317,16 @@ int  pthread_showstack (pthread_t thread)
 LW_API 
 int  pthread_showstackframe (pthread_t thread)
 {
-#ifdef __GNUC__
-
-#define PTHREAD_SHOWSTACK_SIZE  100
-
-    PVOID   pvFrame[PTHREAD_SHOWSTACK_SIZE];
-    INT     i, iCnt;
-    
     PX_ID_VERIFY(thread, pthread_t);
     
     if (thread != pthread_self()) {
         errno = ENOTSUP;
         return  (ENOTSUP);
     }
-    
-    iCnt = backtrace(pvFrame, PTHREAD_SHOWSTACK_SIZE);
-    if (iCnt > 0) {
-        Dl_info         dlinfo;
-        LW_LD_VPROC    *pvproc = vprocGetCur();
-    
-        for (i = 0; i < iCnt; i++) {
-            if ((API_ModuleAddr(pvFrame[i], &dlinfo, pvproc) == ERROR_NONE) &&
-                (dlinfo.dli_sname)) {
-                printf("%p (%s+%zu)\n", pvFrame[i], dlinfo.dli_sname,
-                                        ((size_t)pvFrame[i] - (size_t)dlinfo.dli_saddr));
-            
-            } else {
-                printf("%p (<unknown>)\n", pvFrame[i]);
-            }
-        }
-    }
+
+    API_BacktraceShow(STD_OUT, 100);
     
     return  (ERROR_NONE);
-
-#else
-    errno = ENOTSUP;
-    return  (ENOTSUP);
-#endif                                                                  /*  !__GNUC__                   */
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: pthread_addvar

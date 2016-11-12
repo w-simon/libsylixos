@@ -379,7 +379,6 @@ __re_find:
     }
     
 #else                                                                   /*  VxWorks 兼容目录管理        */
-    
     /*
      *  文件扩展数据为根设备指针
      */
@@ -877,6 +876,7 @@ static INT  __rootFsReadDir (LW_DEV_HDR *pdevhdr, DIR  *dir)
 
     if (plineTemp == LW_NULL) {
         iError = PX_ERROR;                                              /*  没有多余的节点              */
+    
     } else {
         pdevhdrTemp = _LIST_ENTRY(plineTemp, LW_DEV_HDR, DEVHDR_lineManage);
         if (lib_strcmp(pdevhdrTemp->DEVHDR_pcName, PX_STR_ROOT) == 0) { /*  忽略根目录设备              */

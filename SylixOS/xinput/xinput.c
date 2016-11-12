@@ -120,7 +120,7 @@ static int xinput_close (PLW_FD_ENTRY pfdentry)
     xinput_dev_t *xinput  = (xinput_dev_t *)pfdentry->FDENTRY_pdevhdrHdr;
 
     if (pfdentry && pfdnode) {
-        API_IosFdNodeDec(&xinput->fdnode_header, pfdnode);
+        API_IosFdNodeDec(&xinput->fdnode_header, pfdnode, NULL);
 
         LW_DEV_DEC_USE_COUNT(&xinput->devhdr);
 
