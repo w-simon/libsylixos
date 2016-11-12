@@ -62,7 +62,7 @@ TPS_RESULT  tpsFsCreateEntry (PTPS_TRANS    ptrans,
         return  (TPS_ERR_PARAM_NULL);
     }
 
-    uiEntryLen = sizeof(UINT) + sizeof(TPS_INUM) + lib_strlen(pcFileName) + 1;
+    uiEntryLen = sizeof(UINT32) + sizeof(TPS_INUM) + lib_strlen(pcFileName) + 1;
     uiItemCnt  = uiEntryLen >> TPS_ENTRY_ITEM_SHIFT;                    /* 计算entry占用的item数目      */
     if ((uiEntryLen & TPS_ENTRY_ITEM_MASK) != 0) {
         uiItemCnt++;
@@ -145,7 +145,7 @@ TPS_RESULT  tpsFsEntryRemove (PTPS_TRANS ptrans, PTPS_ENTRY pentry)
         return  (TPS_ERR_PARAM_NULL);
     }
 
-    uiEntryLen = sizeof(UINT) + sizeof(TPS_INUM) + lib_strlen(pentry->ENTRY_pcName) + 1;
+    uiEntryLen = sizeof(UINT32) + sizeof(TPS_INUM) + lib_strlen(pentry->ENTRY_pcName) + 1;
     uiItemCnt  = uiEntryLen >> TPS_ENTRY_ITEM_SHIFT;                    /* 计算entry占用的item数目      */
     if ((uiEntryLen & TPS_ENTRY_ITEM_MASK) != 0) {
         uiItemCnt++;
@@ -240,7 +240,7 @@ PTPS_ENTRY  tpsFsFindEntry (PTPS_INODE pinodeDir, CPCHAR pcFileName)
         return  (LW_NULL);
     }
 
-    uiEntryLen = sizeof(UINT) + sizeof(TPS_INUM) + lib_strlen(pcFileName) + 1;
+    uiEntryLen = sizeof(UINT32) + sizeof(TPS_INUM) + lib_strlen(pcFileName) + 1;
     uiItemCnt  = uiEntryLen >> TPS_ENTRY_ITEM_SHIFT;                    /* 计算entry占用的item数目      */
     if ((uiEntryLen & TPS_ENTRY_ITEM_MASK) != 0) {
         uiItemCnt++;
@@ -280,7 +280,7 @@ PTPS_ENTRY  tpsFsFindEntry (PTPS_INODE pinodeDir, CPCHAR pcFileName)
             return  (LW_NULL);
         }
 
-        if (lib_strcmp((PCHAR)pucItemBuf + sizeof(UINT) + sizeof(TPS_INUM), pcFileName) != 0) {
+        if (lib_strcmp((PCHAR)pucItemBuf + sizeof(UINT32) + sizeof(TPS_INUM), pcFileName) != 0) {
             off += uiEntryLen;
             if (off & TPS_ENTRY_ITEM_MASK) {
                 off = TPS_ROUND_UP(off, TPS_ENTRY_ITEM_SIZE);
