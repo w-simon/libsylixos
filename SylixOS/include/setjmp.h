@@ -32,6 +32,8 @@
 extern "C" {
 #endif                                                                  /*  __cplusplus                 */
 
+__BEGIN_NAMESPACE_STD
+
 struct __lw_jmp_buf_tag {
     LW_STACK    __saved_regs[ARCH_REG_CTX_WORD_SIZE];                   /*  REGs + SP                   */
     sigset_t    __saved_mask;
@@ -48,6 +50,8 @@ void   _longjmp(jmp_buf, int);
 int    setjmp(jmp_buf);
 int    sigsetjmp(sigjmp_buf, int);
 int    _setjmp(jmp_buf);
+
+__END_NAMESPACE_STD
 
 #ifdef __cplusplus
 }

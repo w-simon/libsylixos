@@ -30,6 +30,8 @@
 extern "C" {
 #endif
 
+__BEGIN_NAMESPACE_STD
+
 __LW_RETU_FUNC_DECLARE(int, ffs, (int valu))
 
 __LW_RETU_FUNC_DECLARE(char *, rindex, (const char *pcString, int iC))
@@ -100,6 +102,8 @@ __LW_RETU_FUNC_DECLARE(size_t, strxfrm, (char *s1, const char *s2, size_t n))
 __LW_RETU_FUNC_DECLARE(void, swab, (const void *from, void *to, size_t len))
 
 __LW_RETU_FUNC_DECLARE(void *, memmove, (void *pvDest, const void *pvSrc, size_t stCount))
+
+__END_NAMESPACE_STD
 
 #ifdef __cplusplus
 }

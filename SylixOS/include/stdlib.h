@@ -33,6 +33,8 @@
 extern "C" {
 #endif
 
+__BEGIN_NAMESPACE_STD
+
 extern size_t __mb_cur_max;                                             /*  需要C外部库支持             */
 #define	MB_CUR_MAX	__mb_cur_max
 
@@ -143,6 +145,8 @@ int	     cgetset(const char *);
 int	     cgetstr(char *, const char *, char **);
 int	     cgetustr(char *, const char *, char **);
 void	 csetexpandtc(int);
+
+__END_NAMESPACE_STD
 
 #ifdef __cplusplus
 }

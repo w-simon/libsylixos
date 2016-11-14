@@ -27,7 +27,10 @@
 #ifndef  __SIGNAL_H
 #define  __SIGNAL_H
 
-#if  LW_CFG_SIGNAL_EN > 0
+#if LW_CFG_SIGNAL_EN > 0
+
+#include "sys/cdefs.h"
+
 /*********************************************************************************************************
   SIGNAL NUMBER 不可修改!
   
@@ -277,6 +280,8 @@ struct sigstack {
     int          ss_onstack;                                            /*  current status              */
 };
 
+__BEGIN_NAMESPACE_STD
+
 LW_API  INT             sigstack(struct sigstack *ss, struct sigstack *oss);
 LW_API  INT             sigaltstack(const stack_t *ss, stack_t *oss);
 
@@ -329,6 +334,8 @@ LW_API  INT             sigwaitinfo(const sigset_t *sigset, struct  siginfo  *ps
 LW_API  int             pthread_kill(pthread_t  thread, int signo);
 LW_API  int             pthread_sigmask(int  how, const sigset_t  *newmask, sigset_t *oldmask);
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
+
+__END_NAMESPACE_STD
 
 /*********************************************************************************************************
   SIGNAL 内核函数

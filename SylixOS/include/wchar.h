@@ -59,6 +59,7 @@
 #define _WCHAR_H_
 
 #include <stddef.h>
+#include "sys/cdefs.h"
 #include "limits.h"
 #include "stdio.h" /* for FILE* */
 
@@ -132,6 +133,7 @@ typedef	_BSD_WINT_T_	wint_t;
 struct tm;
 
 __BEGIN_DECLS
+__BEGIN_NAMESPACE_STD
 wint_t	btowc(int);
 size_t	mbrlen(const char * __restrict, size_t, mbstate_t * __restrict);
 size_t	mbrtowc(wchar_t * __restrict, const char * __restrict, size_t,
@@ -222,6 +224,7 @@ int vwscanf(const wchar_t * __restrict, _BSD_VA_LIST_);
 wchar_t *wcsdup (const wchar_t *);
 int wcsncasecmp (const wchar_t *, const wchar_t *, size_t);
 int wcscasecmp(const wchar_t *, const wchar_t *);
+__END_NAMESPACE_STD
 __END_DECLS
 
 #ifndef WEOF

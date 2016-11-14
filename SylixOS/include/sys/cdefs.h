@@ -26,6 +26,22 @@
 #  define	__END_DECLS
 # endif /* defined(__cplusplus) */
 
+# if defined(__cplusplus) && (defined(__CPP_USE_NAMESPACES) || defined(_GLIBCPP_USE_NAMESPACES))
+#   define __BEGIN_NAMESPACE_STD        namespace std {
+#   define __END_NAMESPACE_STD          }
+#   define __USING_NAMESPACE_STD(name)  using std::name;
+#   define __BEGIN_NAMESPACE_C99        namespace __c99 {
+#   define __END_NAMESPACE_C99          }
+#   define __USING_NAMESPACE_C99(name)  using __c99::name;
+# else
+#   define __BEGIN_NAMESPACE_STD
+#   define __END_NAMESPACE_STD
+#   define __USING_NAMESPACE_STD(name)
+#   define __BEGIN_NAMESPACE_C99
+#   define __END_NAMESPACE_C99
+#   define __USING_NAMESPACE_C99(name)
+# endif /* __cplusplus && __CPP_USE_NAMESPACES */
+
 /*
  * The __CONCAT macro is used to concatenate parts of symbol names, e.g.
  * with "#define OLD(foo) __CONCAT(old,foo)", OLD(foo) produces oldfoo.

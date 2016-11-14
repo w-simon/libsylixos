@@ -30,6 +30,8 @@
 extern "C" {
 #endif
 
+__BEGIN_NAMESPACE_STD
+
 __LW_RETU_FUNC_DECLARE(int, bcmp, (const void *pvMem1, const void *pvMem2, size_t stCount))
 __LW_RETU_FUNC_DECLARE(void, bcopy, (const void *pvSrc, void *pvDest, size_t stN))
 __LW_RETU_FUNC_DECLARE(void, bzero, (void *pvStr, size_t stCount))
@@ -38,6 +40,8 @@ __LW_RETU_FUNC_DECLARE(char *, rindex, (const char *pcString, int iC))
 __LW_RETU_FUNC_DECLARE(char *, index, (const char *pcString, int iC))
 __LW_RETU_FUNC_DECLARE(int, strcasecmp, (const char *pcStr1, const char *pcStr2))
 __LW_RETU_FUNC_DECLARE(int, strncasecmp, (const char *pcStr1, const char *pcStr2, size_t  stLen))
+
+__END_NAMESPACE_STD
 
 #ifdef __cplusplus
 }

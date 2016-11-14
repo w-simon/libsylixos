@@ -27,14 +27,20 @@
 #include <stddef.h>
 #endif                                                                  /*  NULL                        */
 
+#include "sys/cdefs.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+__BEGIN_NAMESPACE_STD
 
 #include "../SylixOS/lib/libc/locale/lib_locale.h"
 
 extern struct lconv *localeconv(void);
 extern char *setlocale(int category, const char *locale);
+
+__END_NAMESPACE_STD
 
 #ifdef __cplusplus
 }

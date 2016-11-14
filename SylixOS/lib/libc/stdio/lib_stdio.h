@@ -164,9 +164,11 @@ typedef	struct __sFILE {
 } FILE;
 
 __BEGIN_DECLS
+__BEGIN_NAMESPACE_STD
 extern  FILE       **__lib_stdin(void);
 extern  FILE       **__lib_stdout(void);
 extern  FILE       **__lib_stderr(void);
+__END_NAMESPACE_STD
 __END_DECLS
 
 #define	__SLBF	0x0001		/* line buffered */
@@ -246,6 +248,7 @@ __END_DECLS
  * Functions defined in ANSI C standard.
  */
 __BEGIN_DECLS
+__BEGIN_NAMESPACE_STD
 void	 clearerr __P((FILE *));
 int	 fclose __P((FILE *));
 int	 feof __P((FILE *));
@@ -302,13 +305,11 @@ int	 vsprintf __P((char *, const char *, _BSD_VA_LIST_));
 int  vasprintf __P((char **, const char *, _BSD_VA_LIST_));
 int  fdprintf __P((int fd, const char *, ...));
 int  fdscanf __P((int fd, const char *, ...));
-__END_DECLS
-
-__BEGIN_DECLS
 int fseeko __P((FILE *, off_t, int));
 int fseeko64 __P((FILE *, off64_t, int));
 off_t ftello __P((FILE *));
 off64_t ftello64 __P((FILE *));
+__END_NAMESPACE_STD
 __END_DECLS
 
 #ifdef __SYLIXOS_KERNEL
@@ -323,9 +324,11 @@ int fclose_ex __P((FILE *fp, BOOL bclose, BOOL bfree));
 #define	L_ctermid	1024	/* size for ctermid(); PATH_MAX */
 
 __BEGIN_DECLS
+__BEGIN_NAMESPACE_STD
 char	*ctermid __P((char *));
 FILE	*fdopen __P((int, const char *));
 int	 fileno __P((FILE *));
+__END_NAMESPACE_STD
 __END_DECLS
 #endif /* not ANSI */
 
@@ -334,6 +337,7 @@ __END_DECLS
  */
 #if !defined (_ANSI_SOURCE) && !defined(_POSIX_SOURCE)
 __BEGIN_DECLS
+__BEGIN_NAMESPACE_STD
 char	*fgetln __P((FILE *, size_t *));
 int	 fpurge __P((FILE *));
 int	 getw __P((FILE *));
@@ -349,6 +353,7 @@ int	 vsnprintf __P((char *, size_t, const char *, _BSD_VA_LIST_));
 int	 vscanf __P((const char *, _BSD_VA_LIST_));
 int	 vsscanf __P((const char *, const char *, _BSD_VA_LIST_));
 FILE	*zopen __P((const char *, const char *, int));
+__END_NAMESPACE_STD
 __END_DECLS
 
 /*
@@ -356,8 +361,10 @@ __END_DECLS
  */
 #ifdef __SYLIXOS_KERNEL
 __BEGIN_DECLS
+__BEGIN_NAMESPACE_STD
 size_t  bnprintf __P((char *, size_t, size_t, char const *, ...));
 size_t  vbnprintf __P((char *, size_t, size_t, const char *, _BSD_VA_LIST_));
+__END_NAMESPACE_STD
 __END_DECLS
 #endif
 
@@ -372,11 +379,13 @@ __END_DECLS
  * Stdio function-access interface.
  */
 __BEGIN_DECLS
+__BEGIN_NAMESPACE_STD
 FILE	*funopen __P((const void *,
 		int (*)(void *, char *, int),
 		int (*)(void *, const char *, int),
 		fpos_t (*)(void *, fpos_t, int),
 		int (*)(void *)));
+__END_NAMESPACE_STD
 __END_DECLS
 #define	fropen(cookie, fn) funopen(cookie, fn, 0, 0, 0)
 #define	fwopen(cookie, fn) funopen(cookie, 0, fn, 0, 0)
@@ -386,9 +395,11 @@ __END_DECLS
  * Functions internal to the implementation.
  */
 __BEGIN_DECLS
+__BEGIN_NAMESPACE_STD
 int	__srget __P((FILE *));
 int	__svfscanf __P((FILE *, const char *, _BSD_VA_LIST_));
 int	__swbuf __P((int, FILE *));
+__END_NAMESPACE_STD
 __END_DECLS
 
 /*

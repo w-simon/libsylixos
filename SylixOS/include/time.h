@@ -30,6 +30,8 @@
 extern "C" {
 #endif
 
+__BEGIN_NAMESPACE_STD
+
 extern time_t          timezone;                                        /*  UTC 时间与本地时间秒差      */
                                                                         /*  (timezone = UTC - LOCAL)    */
 extern char           *tzname[2];
@@ -80,6 +82,8 @@ __LW_RETU_FUNC_DECLARE(char *, strptime, (const char *buf, const char *fmt, stru
 LW_API int  adjtime(const struct timeval *delta, struct timeval *olddelta);
 
 #endif                                                                  /*  LW_CFG_RTC_EN               */
+
+__END_NAMESPACE_STD
 
 #ifdef __cplusplus
 }

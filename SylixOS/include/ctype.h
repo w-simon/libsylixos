@@ -39,6 +39,8 @@
 extern "C" {
 #endif
 
+__BEGIN_NAMESPACE_STD
+
 __LW_RETU_FUNC_DECLARE(int, isalnum, (int c))
 __LW_RETU_FUNC_DECLARE(int, isalpha, (int c))
 __LW_RETU_FUNC_DECLARE(int, iscntrl, (int c))
@@ -59,6 +61,8 @@ __LW_RETU_FUNC_DECLARE(int, tolower, (int c))
 extern const unsigned char *_ctype_;
 extern const short *_toupper_tab_;
 extern const short *_tolower_tab_;
+
+__END_NAMESPACE_STD
 
 #ifdef _CTYPE_PRIVATE
 

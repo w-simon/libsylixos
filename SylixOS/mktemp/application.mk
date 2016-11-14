@@ -55,6 +55,11 @@ $(target)_STRIP_EXE := $(OUTPATH)/strip/$(LOCAL_TARGET_NAME)
 # Depend library search paths
 #*********************************************************************************************************
 $(target)_DEPEND_LIB_PATH := -L"$(SYLIXOS_BASE_PATH)/libsylixos/$(OUTDIR)"
+
+ifneq (,$(findstring yes,$($(target)_USE_CXX)))
+$(target)_DEPEND_LIB_PATH += -L"$(SYLIXOS_BASE_PATH)/libcextern/$(OUTDIR)"
+endif
+
 $(target)_DEPEND_LIB_PATH += $(LOCAL_DEPEND_LIB_PATH)
 
 #*********************************************************************************************************
@@ -68,7 +73,7 @@ $(target)_DEPEND_LIB += -lgcov
 endif
 
 ifneq (,$(findstring yes,$($(target)_USE_CXX)))
-$(target)_DEPEND_LIB += -lstdc++ -ldsohandle
+$(target)_DEPEND_LIB += -lcextern -lstdc++ -ldsohandle
 endif
 
 $(target)_DEPEND_LIB += -lm -lgcc

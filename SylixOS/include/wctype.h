@@ -31,6 +31,8 @@
 #ifndef _WCTYPE_H_
 #define	_WCTYPE_H_
 
+#include "sys/cdefs.h"
+
 #ifndef _WCHAR_ALL_TYPE_
 #define _WCHAR_ALL_TYPE_
 typedef struct { int  dummy; }  mbstate_t;
@@ -85,6 +87,7 @@ typedef	_BSD_WCTYPE_T_	wctype_t;
 #endif
 
 __BEGIN_DECLS
+__BEGIN_NAMESPACE_STD
 int	iswalnum(wint_t);
 int	iswalpha(wint_t);
 int	iswblank(wint_t);
@@ -103,6 +106,7 @@ wint_t	towlower(wint_t);
 wint_t	towupper(wint_t);
 wctrans_t wctrans(const char *);
 wctype_t wctype(const char *);
+__END_NAMESPACE_STD
 __END_DECLS
 
 #endif		/* _WCTYPE_H_ */

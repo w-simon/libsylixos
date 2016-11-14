@@ -123,6 +123,8 @@ typedef struct {
 extern "C" {
 #endif                                                                  /*  __cplusplus                 */
 
+__BEGIN_NAMESPACE_STD
+
 /*********************************************************************************************************
   api.
 *********************************************************************************************************/
@@ -184,6 +186,8 @@ LW_API int   posix_spawn_file_actions_addclose(posix_spawn_file_actions_t *file_
                          int fd);
 LW_API int   posix_spawn_file_actions_adddup2(posix_spawn_file_actions_t *file_actions,
 					     int fd, int newfd);
+
+__END_NAMESPACE_STD
 
 /*********************************************************************************************************
   sylixos extern (debuger use only!)
