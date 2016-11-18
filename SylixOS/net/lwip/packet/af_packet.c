@@ -676,7 +676,11 @@ static VOID  __packetBufInput (AF_PACKET_T *pafpacket, struct pbuf *p, struct ne
     if (pafpacket->PACKET_iType == SOCK_RAW) {
         stMsgLen = p->tot_len - ETH_PAD_SIZE;
     } else {
-        stMsgLen = p->tot_len - ETH_HLEN - ETH_PAD_SIZE;
+        if (pethhdr->type == PP_HTONS(ETHTYPE_VLAN)) {
+            stMsgLen = p->tot_len - ETH_HLEN - SIZEOF_VLAN_HDR - ETH_PAD_SIZE;
+        } else {
+            stMsgLen = p->tot_len - ETH_HLEN - ETH_PAD_SIZE;
+        }
     }
     
     if ((stMsgLen + pktq->PKTQ_stTotal) > 
@@ -748,7 +752,7 @@ static VOID  __packetMapInput (AF_PACKET_T *pafpacket, struct pbuf *p, struct ne
     
     usSllOff = (UINT16)(pafpacket->PACKET_uiHdrLen - sizeof(struct sockaddr_ll));
     usNetoff = (UINT16)(TPACKET_ALIGN(pafpacket->PACKET_uiHdrLen) + 
-                        TPACKET_ALIGN(pafpacket->PACKET_uiReserve + 16));
+                        TPACKET_ALIGN(pafpacket->PACKET_uiReserve + SIZEOF_ETH_HDR + SIZEOF_VLAN_HDR));
     
     hdr.raw = __packetGetFrame(pmmapRx);
     if (hdr.h1->tp_status != TP_STATUS_KERNEL) {
@@ -798,14 +802,26 @@ static VOID  __packetMapInput (AF_PACKET_T *pafpacket, struct pbuf *p, struct ne
         break;
         
     case TPACKET_V2:
-        hdr.h2->tp_status   = TP_STATUS_COPY;
-        hdr.h2->tp_len      = (UINT)stMsgLen;
-        hdr.h2->tp_snaplen  = (UINT)stCaplen;
-        hdr.h2->tp_mac      = usMacoff;
-        hdr.h2->tp_net      = usNetoff;
-        hdr.h2->tp_sec      = (UINT32)ts.tv_sec;
-        hdr.h2->tp_nsec     = (UINT32)ts.tv_nsec;
-        hdr.h2->tp_vlan_tci = 0;
+        hdr.h2->tp_status  = TP_STATUS_COPY;
+        hdr.h2->tp_len     = (UINT)stMsgLen;
+        hdr.h2->tp_snaplen = (UINT)stCaplen;
+        hdr.h2->tp_mac     = usMacoff;
+        hdr.h2->tp_net     = usNetoff;
+        hdr.h2->tp_sec     = (UINT32)ts.tv_sec;
+        hdr.h2->tp_nsec    = (UINT32)ts.tv_nsec;
+        {
+            struct eth_hdr *ethhdr = (struct eth_hdr *)p->payload;
+            
+            if (ethhdr->type == PP_HTONS(ETHTYPE_VLAN) && (p->len >= SIZEOF_ETH_HDR + 4)) {
+                struct eth_vlan_hdr *vlan = (struct eth_vlan_hdr *)(((u8_t *)ethhdr) + SIZEOF_ETH_HDR);
+                hdr.h2->tp_vlan_tci  = vlan->prio_vid;
+                hdr.h2->tp_vlan_tpid = vlan->tpid;
+            
+            } else {
+                hdr.h2->tp_vlan_tci  = 0;
+                hdr.h2->tp_vlan_tpid = 0;
+            }
+        }
         break;
     }
     

@@ -2768,7 +2768,7 @@ INT  get_dns_server_info_4 (UINT iIndex, struct in_addr *inaddr)
         return  (PX_ERROR);
     }
     
-    inet_addr_from_ipaddr(inaddr, ip_2_ip4(ipdns));
+    inet4_addr_from_ip4addr(inaddr, ip_2_ip4(ipdns));
 
     return  (ERROR_NONE);
 }

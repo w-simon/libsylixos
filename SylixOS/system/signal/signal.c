@@ -203,6 +203,8 @@ static VOID  pid_sigaction (LW_OBJECT_HANDLE         ulId,
 ** 输　出  : ERROR_NONE , EINVAL
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : SIGKILL 允许 gdbserver 进行捕获操作.
+
                                            API 函数
 *********************************************************************************************************/
 LW_API  

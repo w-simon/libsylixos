@@ -346,8 +346,10 @@ static int yaffsfs_PutFileDes(int fdId)
 		fd = &yaffsfs_fd[fdId];
 		fd->handleCount--;
 		if (fd->handleCount < 1) {
-			if (fd->isDir)
+			if (fd->isDir) {
 				yaffsfs_closedir_no_lock(fd->v.dir);
+				fd->v.dir = NULL;
+			}
 			if (fd->inodeId >= 0) {
 				yaffsfs_PutInode(fd->inodeId);
 				fd->inodeId = -1;
@@ -515,17 +517,17 @@ static struct yaffs_dev *yaffsfs_FindDevice(const YCHAR *path,
 		thisMatchLength = 0;
 		matching = 1;
 
+
 		if(!p)
 			continue;
 
-		while (matching && *p && *leftOver) {
-			/* Skip over any /s */
-			while (yaffsfs_IsPathDivider(*p))
-				p++;
+		/* Skip over any leading  /s */
+		while (yaffsfs_IsPathDivider(*p))
+			p++;
+		while (yaffsfs_IsPathDivider(*leftOver))
+			leftOver++;
 
-			/* Skip over any /s */
-			while (yaffsfs_IsPathDivider(*leftOver))
-				leftOver++;
+		while (matching && *p && *leftOver) {
 
 			/* Now match the text part */
 			while (matching &&
@@ -538,6 +540,16 @@ static struct yaffs_dev *yaffsfs_FindDevice(const YCHAR *path,
 				} else {
 					matching = 0;
 				}
+			}
+
+			if ((*p && !yaffsfs_IsPathDivider(*p)) ||
+			    (*leftOver && !yaffsfs_IsPathDivider(*leftOver)))
+				matching = 0;
+			else {
+				while (yaffsfs_IsPathDivider(*p))
+					p++;
+				while (yaffsfs_IsPathDivider(*leftOver))
+					leftOver++;
 			}
 		}
 
@@ -559,7 +571,6 @@ static struct yaffs_dev *yaffsfs_FindDevice(const YCHAR *path,
 			retval = dev;
 			longestMatch = thisMatchLength;
 		}
-
 	}
 	return retval;
 }
@@ -738,7 +749,20 @@ static struct yaffs_obj *yaffsfs_FindObject(struct yaffs_obj *relDir,
 	if (dirOut)
 		*dirOut = dir;
 
-	if (dir && *name)
+	/* At this stage we have looked up directory part and have the name part
+	 * in name if there is one.
+	 *
+	 *  eg /nand/x/ will give us a name of ""
+	 *     /nand/x will give us a name of "x"
+	 *
+	 * Since the name part might be "." or ".." which need to be fixed.
+	 */
+	if (dir && (yaffs_strcmp(name, _Y("..")) == 0)) {
+		dir = dir->parent;
+		obj = dir;
+	} else if (dir && (yaffs_strcmp(name, _Y(".")) == 0))
+		obj = dir;
+	else if (dir && *name)
 		obj = yaffs_find_by_name(dir, name);
 	else
 		obj = dir;
@@ -814,7 +838,7 @@ int yaffs_open_sharing_reldir(struct yaffs_obj *reldir, const YCHAR *path,
 	int notDir = 0;
 	int loop = 0;
 	int is_dir = 0;
-	yaffs_DIR *dsc;
+	yaffs_DIR *dsc = NULL;
 
 	if (yaffsfs_CheckMemRegion(path, 0, 0)< 0) {
 		yaffsfs_SetError(-EFAULT);
@@ -831,7 +855,7 @@ int yaffs_open_sharing_reldir(struct yaffs_obj *reldir, const YCHAR *path,
 		oflag &= ~(O_EXCL);
 
 	/* O_TRUNC has no meaning if (O_CREAT | O_EXCL) is specified */
-	if ((oflag & O_CREAT) & (oflag & O_EXCL))
+	if ((oflag & O_CREAT) && (oflag & O_EXCL))
 		oflag &= ~(O_TRUNC);
 
 	/* Todo: Are there any more flag combos to sanitise ? */
@@ -870,8 +894,7 @@ int yaffs_open_sharing_reldir(struct yaffs_obj *reldir, const YCHAR *path,
 
 			/* A directory can't be opened except for read */
 			if ( is_dir &&
-			    (writeRequested || !readRequested ||
-				(oflag & ~O_RDONLY))) {
+			    (writeRequested || !readRequested || rwflags != O_RDONLY)) {
 				openDenied = 1;
 				yaffsfs_SetError(-EISDIR);
 				errorReported = 1;
@@ -884,13 +907,6 @@ int yaffs_open_sharing_reldir(struct yaffs_obj *reldir, const YCHAR *path,
 					yaffsfs_SetError(-ENFILE);
 					errorReported = 1;
 				}
-				/* sylixos fix bug */
-				/* if openDenied is true, yaffsfs_PutHandle() can free dir block */
-				fd->isDir = is_dir;
-				fd->v.dir = dsc;
-			} else {
-			    fd->isDir = 0;
-			    fd->v.dir = NULL;
 			}
 
 			/* Open should fail if O_CREAT and O_EXCL are specified
@@ -1030,6 +1046,9 @@ int yaffs_open_sharing_reldir(struct yaffs_obj *reldir, const YCHAR *path,
 			if (!is_dir && (oflag & O_TRUNC) && fd->writing)
 				yaffs_resize_file(obj, 0);
 		} else {
+			if (dsc)
+				yaffsfs_closedir_no_lock(dsc);
+			dsc = NULL;
 			yaffsfs_PutHandle(handle);
 			if (!errorReported)
 				yaffsfs_SetError(0);	/* Problem */

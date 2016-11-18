@@ -47,7 +47,8 @@
 #include "lwip/snmp.h"
 #include "lwip/tcpip.h"
 #include "lwip/sockets.h"
-#include "net/if_param.h" 
+#include "net/if_param.h"
+#include "net/if_ether.h"
 
 #include "string.h"
 #include "netdev.h"
@@ -108,7 +109,7 @@ static err_t  netdev_netif_igmp_mac_filter (struct netif *netif,
   
   inaddr.sin_len    = sizeof(struct sockaddr_in);
   inaddr.sin_family = AF_INET;
-  inet_addr_from_ipaddr(&inaddr.sin_addr, group);
+  inet4_addr_from_ip4addr(&inaddr.sin_addr, group);
   
   if (action == NETIF_DEL_MAC_FILTER) {
     NETDEV_MACFILTER(netdev, NETDRV_MACFILTER_DEL, (struct sockaddr *)&inaddr);
@@ -766,6 +767,195 @@ UINT8 *netdev_pbuf_pull (struct pbuf *p, UINT16 len)
   return (NULL);
 }
 
+/* netdev buffer get vlan info */
+int netdev_pbuf_vlan_present (struct pbuf *p)
+{
+  struct eth_hdr *ethhdr = (struct eth_hdr *)((u8_t *)p->payload - ETH_PAD_SIZE);
+  
+  return (ethhdr->type == PP_HTONS(ETHTYPE_VLAN));
+}
+
+int netdev_pbuf_vlan_id (struct pbuf *p, UINT16 *vlanid)
+{
+  struct eth_hdr *ethhdr = (struct eth_hdr *)((u8_t *)p->payload - ETH_PAD_SIZE);
+
+  if ((ethhdr->type == PP_HTONS(ETHTYPE_VLAN)) && (p->len >= ETH_HLEN + 4)) {
+    struct eth_vlan_hdr *vlan = (struct eth_vlan_hdr *)(((u8_t *)ethhdr) + SIZEOF_ETH_HDR);
+    if (vlanid) {
+      *vlanid = vlan->prio_vid;
+    }
+    return (0);
+  }
+  
+  return (-1);
+}
+
+int netdev_pbuf_vlan_proto (struct pbuf *p, UINT16 *vlanproto)
+{
+  struct eth_hdr *ethhdr = (struct eth_hdr *)((u8_t *)p->payload - ETH_PAD_SIZE);
+
+  if ((ethhdr->type == PP_HTONS(ETHTYPE_VLAN)) && (p->len >= ETH_HLEN + 4)) {
+    struct eth_vlan_hdr *vlan = (struct eth_vlan_hdr *)(((u8_t *)ethhdr) + SIZEOF_ETH_HDR);
+    if (vlanproto) {
+      *vlanproto = vlan->tpid;
+    }
+    return (0);
+  }
+  
+  return (-1);
+}
+
+#if LW_CFG_NET_DEV_PROTO_ANALYSIS > 0
+
+/* netdev buffer get ethernet & vlan header */
+struct eth_hdr *netdev_pbuf_ethhdr (struct pbuf *p, int *hdrlen)
+{
+  struct eth_hdr *ethhdr = (struct eth_hdr *)((u8_t *)p->payload - ETH_PAD_SIZE);
+  
+  if (hdrlen) {
+    *hdrlen = ETH_HLEN;
+  }
+  
+  return (ethhdr);
+}
+
+struct eth_vlan_hdr *netdev_pbuf_vlanhdr (struct pbuf *p, int *hdrlen)
+{
+  struct eth_hdr *ethhdr = (struct eth_hdr *)((u8_t *)p->payload - ETH_PAD_SIZE);
+
+  if (ethhdr->type == PP_HTONS(ETHTYPE_VLAN) && (p->len >= ETH_HLEN + 4)) {
+    struct eth_vlan_hdr *vlan = (struct eth_vlan_hdr *)(((u8_t *)ethhdr) + SIZEOF_ETH_HDR);
+    if (hdrlen) {
+      *hdrlen = 4;
+    }
+    return (vlan);
+  }
+  
+  return (NULL);
+}
+
+/* netdev buffer get proto header */
+struct ip_hdr *netdev_pbuf_iphdr (struct pbuf *p, int offset, int *hdrlen)
+{
+  struct pbuf *q;
+  u16_t out_offset;
+
+  q = pbuf_skip(p, (u16_t)offset, &out_offset);
+  if (!q) {
+    return (NULL);
+  }
+  
+  if (q->len >= (u16_t)out_offset + IP_HLEN) {
+    struct ip_hdr *iphdr = (struct ip_hdr *)((u8_t *)q->payload + out_offset);
+    if (hdrlen) {
+      *hdrlen = IPH_HL(iphdr) << 2;
+    }
+    return (iphdr);
+  }
+  
+  return (NULL);
+}
+
+struct ip6_hdr *netdev_pbuf_ip6hdr (struct pbuf *p, int offset, int *hdrlen, int *tothdrlen, int *tproto)
+{
+  struct pbuf *q;
+  u16_t out_offset;
+  
+  q = pbuf_skip(p, (u16_t)offset, &out_offset);
+  if (!q) {
+    return (NULL);
+  }
+  
+  if (q->len >= (u16_t)out_offset + IP6_HLEN) {
+    struct ip6_hdr *ip6hdr = (struct ip6_hdr *)((u8_t *)q->payload + offset);
+    if (hdrlen) {
+      *hdrlen = IP6_HLEN;
+    }
+    if (tothdrlen) {
+      u8_t *hdr;
+      int hlen, nexth;
+    
+      *tothdrlen = *hdrlen;
+      hdr = (u8_t *)ip6hdr + IP6_HLEN;
+      nexth = IP6H_NEXTH(ip6hdr);
+      while (nexth != IP6_NEXTH_NONE) {
+        switch (nexth) {
+        
+        case IP6_NEXTH_HOPBYHOP:
+        case IP6_NEXTH_DESTOPTS:
+        case IP6_NEXTH_ROUTING:
+          nexth = *hdr;
+          hlen = 8 * (1 + *(hdr + 1));
+          (*tothdrlen) += hlen;
+          hdr += hlen;
+          break;
+        
+        case IP6_NEXTH_FRAGMENT:
+          nexth = *hdr;
+          hlen = 8;
+          (*tothdrlen) += hlen;
+          hdr += hlen;
+          break;
+          
+        default:
+          goto out;
+          break;
+        }
+      }
+out:
+      if (tproto) {
+        *tproto = nexth;
+      }
+    }
+    return (ip6hdr);
+  }
+  
+  return (NULL);
+}
+
+struct tcp_hdr *netdev_pbuf_tcphdr (struct pbuf *p, int offset, int *hdrlen)
+{
+  struct pbuf *q;
+  u16_t out_offset;
+
+  q = pbuf_skip(p, (u16_t)offset, &out_offset);
+  if (!q) {
+    return (NULL);
+  }
+  
+  if (q->len >= (u16_t)out_offset + TCP_HLEN) {
+    struct tcp_hdr *tcphdr = (struct tcp_hdr *)((u8_t *)q->payload + out_offset);
+    if (hdrlen) {
+      *hdrlen = TCPH_HDRLEN(tcphdr) << 2;
+    }
+    return (tcphdr);
+  }
+  
+  return (NULL);
+}
+
+struct udp_hdr *netdev_pbuf_udphdr (struct pbuf *p, int offset, int *hdrlen)
+{
+  struct pbuf *q;
+  u16_t out_offset;
+
+  q = pbuf_skip(p, (u16_t)offset, &out_offset);
+  if (!q) {
+    return (NULL);
+  }
+  
+  if (q->len >= (u16_t)out_offset + UDP_HLEN) {
+    struct udp_hdr *udphdr = (struct udp_hdr *)((u8_t *)q->payload + out_offset);
+    if (hdrlen) {
+      *hdrlen = UDP_HLEN;
+    }
+    return (udphdr);
+  }
+  
+  return (NULL);
+}
+
+#endif /* LW_CFG_NET_DEV_PROTO_ANALYSIS */
 /*
  * end
  */

@@ -2507,7 +2507,7 @@ VOID  __tshellSysCmdInit (VOID)
     API_TShellKeywordAdd("affinity", __tshellSysCmdAffinity);
     API_TShellFormatAdd("affinity", " [pid | thread id] [cpu id | 'clear']");
     API_TShellHelpAdd("affinity", "set / clear process or thread cpu affinity.\n"
-                                  "affinity 1 0         set process 1 affinity to cpu 1\n"
+                                  "affinity 1 0         set process 1 affinity to cpu 0\n"
                                   "affinity 1 clear     clear process 1 affinity\n");
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
                                                                         /*  LW_CFG_POSIX_EN > 0         */

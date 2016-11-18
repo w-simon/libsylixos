@@ -208,11 +208,9 @@ errno_t  __packetEthDgramSendto (CPVOID                pvPacket,
 *********************************************************************************************************/
 size_t  __packetEthHeaderInfo (AF_PACKET_N  *pktm, struct sockaddr_ll *paddrll)
 {
-    struct eth_hdr  *pethhdr;
+    struct eth_hdr  *pethhdr = (struct eth_hdr *)pktm->PKTM_p->payload;
     
     if (paddrll) {
-        pethhdr = (struct eth_hdr *)pktm->PKTM_p->payload;
-        
         paddrll->sll_len      = sizeof(struct sockaddr_ll);
         paddrll->sll_family   = AF_PACKET;
         paddrll->sll_protocol = pethhdr->type;
@@ -255,7 +253,12 @@ size_t  __packetEthHeaderInfo (AF_PACKET_N  *pktm, struct sockaddr_ll *paddrll)
         }
     }
     
-    return  (ETH_HLEN);
+    if (pethhdr->type == PP_HTONS(ETHTYPE_VLAN)) {
+        return  (ETH_HLEN + 4);
+    
+    } else {
+        return  (ETH_HLEN);
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: __packetEthHeaderInfo2
@@ -271,11 +274,9 @@ size_t  __packetEthHeaderInfo (AF_PACKET_N  *pktm, struct sockaddr_ll *paddrll)
 size_t  __packetEthHeaderInfo2 (struct pbuf *p, struct netif *inp, BOOL bOutgo, 
                                 struct sockaddr_ll *paddrll)
 {
-    struct eth_hdr  *pethhdr;
+    struct eth_hdr  *pethhdr = (struct eth_hdr *)p->payload;
     
     if (paddrll) {
-        pethhdr = (struct eth_hdr *)p->payload;
-        
         paddrll->sll_len      = sizeof(struct sockaddr_ll);
         paddrll->sll_family   = AF_PACKET;
         paddrll->sll_protocol = pethhdr->type;
@@ -319,7 +320,12 @@ size_t  __packetEthHeaderInfo2 (struct pbuf *p, struct netif *inp, BOOL bOutgo,
         }
     }
     
-    return  (ETH_HLEN);
+    if (pethhdr->type == PP_HTONS(ETHTYPE_VLAN)) {
+        return  (ETH_HLEN + 4);
+    
+    } else {
+        return  (ETH_HLEN);
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: __packetEthIfInfo

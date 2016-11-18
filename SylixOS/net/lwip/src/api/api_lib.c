@@ -258,6 +258,16 @@ netconn_bind(struct netconn *conn, const ip_addr_t *addr, u16_t port)
   if (addr == NULL) {
     addr = IP4_ADDR_ANY;
   }
+  
+#if LWIP_IPV4 && LWIP_IPV6
+  /* "Socket API like" dual-stack support: If IP to bind to is IP6_ADDR_ANY,
+   * and NETCONN_FLAG_IPV6_V6ONLY is 0, use IP_ANY_TYPE to bind
+   */
+  if ((netconn_get_ipv6only(conn) == 0) &&
+     ip_addr_cmp(addr, IP6_ADDR_ANY)) {
+    addr = IP_ANY_TYPE;
+  }
+#endif /* LWIP_IPV4 && LWIP_IPV6 */
 
   API_MSG_VAR_ALLOC(msg);
   API_MSG_VAR_REF(msg).conn = conn;
@@ -562,7 +572,7 @@ netconn_recv_data(struct netconn *conn, void **new_buf)
 #if (LWIP_UDP || LWIP_RAW)
   {
     LWIP_ASSERT("buf != NULL", buf != NULL);
-    len = netbuf_len((struct netbuf *)buf);
+    len = netbuf_len((struct netbuf*)buf);
   }
 #endif /* (LWIP_UDP || LWIP_RAW) */
 
@@ -697,6 +707,7 @@ netconn_send(struct netconn *conn, struct netbuf *buf)
   LWIP_ERROR("netconn_send: invalid conn",  (conn != NULL), return ERR_ARG;);
 
   LWIP_DEBUGF(API_LIB_DEBUG, ("netconn_send: sending %"U16_F" bytes\n", buf->p->tot_len));
+
   API_MSG_VAR_ALLOC(msg);
   API_MSG_VAR_REF(msg).conn = conn;
   API_MSG_VAR_REF(msg).msg.b = buf;

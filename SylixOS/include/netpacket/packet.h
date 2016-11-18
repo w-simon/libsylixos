@@ -115,6 +115,8 @@ struct tpacket2_hdr {
     volatile u_int32_t   tp_sec;
     volatile u_int32_t   tp_nsec;
     volatile u_int16_t   tp_vlan_tci;
+    volatile u_int16_t   tp_vlan_tpid;
+    volatile u_int16_t   tp_padding[4];
 };
 
 #define TPACKET2_HDRLEN         (TPACKET_ALIGN(sizeof(struct tpacket2_hdr)) + sizeof(struct sockaddr_ll))

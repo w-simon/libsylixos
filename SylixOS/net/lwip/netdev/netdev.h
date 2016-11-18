@@ -44,6 +44,16 @@
 #include "lwip/sockets.h"
 #include "sys/param.h"
 
+#if LW_CFG_NET_DEV_PROTO_ANALYSIS > 0
+/* net protocol */
+#include "lwip/prot/ip.h"
+#include "lwip/prot/ip4.h"
+#include "lwip/prot/ip6.h"
+#include "lwip/prot/tcp.h"
+#include "lwip/prot/udp.h"
+#include "lwip/prot/ethernet.h"
+#endif /* LW_CFG_NET_DEV_PROTO_ANALYSIS */
+
 struct netdev;
 
 /*
@@ -182,5 +192,22 @@ struct pbuf *netdev_pbuf_alloc(UINT16 len);
 void netdev_pbuf_free(struct pbuf *p);
 UINT8 *netdev_pbuf_push(struct pbuf *p, UINT16 len);
 UINT8 *netdev_pbuf_pull(struct pbuf *p, UINT16 len);
+
+/* netdev buffer get vlan info */
+int  netdev_pbuf_vlan_present(struct pbuf *p);
+int  netdev_pbuf_vlan_id(struct pbuf *p, UINT16 *vlanid);
+int  netdev_pbuf_vlan_proto(struct pbuf *p, UINT16 *vlanproto);
+
+#if LW_CFG_NET_DEV_PROTO_ANALYSIS > 0
+/* netdev buffer get ethernet & vlan header */
+struct eth_hdr *netdev_pbuf_ethhdr(struct pbuf *p, int *hdrlen);
+struct eth_vlan_hdr *netdev_pbuf_vlanhdr(struct pbuf *p, int *hdrlen);
+
+/* netdev buffer get proto header */
+struct ip_hdr *netdev_pbuf_iphdr(struct pbuf *p, int offset, int *hdrlen);
+struct ip6_hdr *netdev_pbuf_ip6hdr(struct pbuf *p, int offset, int *hdrlen, int *tothdrlen, int *tproto);
+struct tcp_hdr *netdev_pbuf_tcphdr(struct pbuf *p, int offset, int *hdrlen);
+struct udp_hdr *netdev_pbuf_udphdr(struct pbuf *p, int offset, int *hdrlen);
+#endif /* LW_CFG_NET_DEV_PROTO_ANALYSIS */
 
 #endif /* __NETDEV_H */
