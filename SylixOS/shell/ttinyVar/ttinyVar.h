@@ -35,15 +35,10 @@ LW_API VOID       (*API_TShellVarHookSet(VOID  (*pfuncTSVarHook)()))();
 LW_API INT          API_TShellVarGetRt(CPCHAR     pcVarName, 
                                        PCHAR      pcVarValue,
                                        INT        iMaxLen);
-
 LW_API PCHAR        API_TShellVarGet(CPCHAR       pcVarName);
-
 LW_API INT          API_TShellVarSet(CPCHAR       pcVarName, CPCHAR       pcVarValue, INT  iIsOverwrite);
-
 LW_API INT          API_TShellVarDelete(CPCHAR  pcVarName);
-
 LW_API INT          API_TShellVarGetNum(VOID);
-
 LW_API INT          API_TShellVarDup(PVOID (*pfuncMalloc)(size_t stSize), PCHAR  ppcEvn[], ULONG  ulMax);
 
 #define tshellVarHookSet        API_TShellVarHookSet

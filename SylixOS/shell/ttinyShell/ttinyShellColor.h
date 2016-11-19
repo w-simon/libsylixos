@@ -32,11 +32,11 @@
 *********************************************************************************************************/
 
 #define LW_TSHELL_COLOR_NONE          "\033[m"
-#define LW_TSHELL_COLOR_RED           "\033[0;32;31m"
+#define LW_TSHELL_COLOR_RED           "\033[0;31m"
 #define LW_TSHELL_COLOR_LIGHT_RED     "\033[1;31m"
-#define LW_TSHELL_COLOR_GREEN         "\033[0;32;32m"
+#define LW_TSHELL_COLOR_GREEN         "\033[0;32m"
 #define LW_TSHELL_COLOR_LIGHT_GREEN   "\033[1;32m"
-#define LW_TSHELL_COLOR_BLUE          "\033[0;32;34m"
+#define LW_TSHELL_COLOR_BLUE          "\033[0;34m"
 #define LW_TSHELL_COLOR_LIGHT_BLUE    "\033[1;34m"
 #define LW_TSHELL_COLOR_DARY_GRAY     "\033[1;30m"
 #define LW_TSHELL_COLOR_CYAN          "\033[0;36m"

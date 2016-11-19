@@ -212,11 +212,11 @@ INT  _SpipeClose (PLW_SPIPE_FILE  pspipefil)
     
         __SHEAP_FREE(pspipefil);
     
-        if (pspipedev->SPIPEDEV_bUnlinkReq &&
-            !LW_DEV_DEC_USE_COUNT(&pspipedev->SPIPEDEV_devhdrHdr)) {
-            _SpipeRemove(pspipedev, "");                                /*  删除设备                    */
+        if (!LW_DEV_DEC_USE_COUNT(&pspipedev->SPIPEDEV_devhdrHdr)) {
+            if (pspipedev->SPIPEDEV_bUnlinkReq) {
+                _SpipeRemove(pspipedev, "");                            /*  删除设备                    */
+            }
         }
-        
         return  (ERROR_NONE);
     
     } else {
