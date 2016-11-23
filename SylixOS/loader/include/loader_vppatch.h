@@ -176,29 +176,30 @@ PLW_IO_ENV          vprocIoEnvGet(PLW_CLASS_TCB  ptcb);
 FUNCPTR             vprocGetMain(VOID);
 pid_t               vprocFindProc(PVOID  pvAddr);
 INT                 vprocGetPath(pid_t  pid, PCHAR  pcPath, size_t stMaxLen);
-VOID                vprocThreadAdd(PVOID   pvVProc, PLW_CLASS_TCB  ptcb);
-VOID                vprocThreadDel(PVOID   pvVProc, PLW_CLASS_TCB  ptcb);
-INT                 vprocThreadNum(pid_t pid, ULONG  *pulCnt);
-VOID                vprocThreadTraversal(PVOID          pvVProc, 
-                                         VOIDFUNCPTR    pfunc, 
-                                         PVOID          pvArg0,
-                                         PVOID          pvArg1,
-                                         PVOID          pvArg2,
-                                         PVOID          pvArg3,
-                                         PVOID          pvArg4,
-                                         PVOID          pvArg5);
-INT                 vprocThreadTraversal2(pid_t          pid, 
-                                          VOIDFUNCPTR    pfunc, 
-                                          PVOID          pvArg0,
-                                          PVOID          pvArg1,
-                                          PVOID          pvArg2,
-                                          PVOID          pvArg3,
-                                          PVOID          pvArg4,
-                                          PVOID          pvArg5);
 
 #if LW_CFG_GDB_EN > 0
 ssize_t             vprocGetModsInfo(pid_t  pid, PCHAR  pcBuff, size_t stMaxLen);
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
+
+/*********************************************************************************************************
+  进程内部线程操作
+*********************************************************************************************************/
+
+VOID                vprocThreadAdd(PVOID   pvVProc, PLW_CLASS_TCB  ptcb);
+VOID                vprocThreadDelete(PVOID   pvVProc, PLW_CLASS_TCB  ptcb);
+VOID                vprocThreadStop(PVOID  pvVProc);
+VOID                vprocThreadContinue(PVOID  pvVProc);
+UINT                vprocThreadGet(PVOID  pvVProc, LW_OBJECT_HANDLE  ulThread[], UINT   uiTableNum);
+VOID                vprocThreadKill(PVOID  pvVProc);
+
+#if LW_CFG_SIGNAL_EN > 0
+INT                 vprocThreadSigaction(PVOID  pvVProc, VOIDFUNCPTR  pfunc, INT  iSigIndex, 
+                                         const struct sigaction  *psigactionNew);
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
+
+#if LW_CFG_SMP_EN > 0
+INT                 vprocThreadAffinity(PVOID  pvVProc, size_t  stSize, const PLW_CLASS_CPUSET  pcpuset);
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 
 /*********************************************************************************************************
   进程 CPU 亲和度

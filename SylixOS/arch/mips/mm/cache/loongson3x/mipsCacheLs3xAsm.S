@@ -59,13 +59,13 @@ FUNC_DEF(ls3xCacheEnableHw)
 
     MFC0(T0, CP0_CONFIG)
     ANDI    T0 , T0 , M_ConfigK0
-    LI      T1 , MIPS_CACHABLE_COW
+    LI      T1 , MIPS_CACHABLE_NONCOHERENT
     BEQ     T0 , T1 , 1f
     NOP
 
     MFC0(T0, CP0_CONFIG)
     AND     T0 , T0 , ~M_ConfigK0
-    ORI     T0 , MIPS_CACHABLE_COW
+    ORI     T0 , MIPS_CACHABLE_NONCOHERENT
     MTC0(T0, CP0_CONFIG)
 
 1:

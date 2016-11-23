@@ -350,7 +350,7 @@ VOID    API_ThreadPendShowEx (pid_t  pid)
         }
         
         if (ulOwner) {
-            printf("%-16s %7lx %5d %-4s %10lu %8lx:%-16s %7lx\n",
+            printf("%-16s %7lx %5d %-4s %10lu %8lx:%-14s %7lx\n",
                    tcbdesc.TCBD_cThreadName,                            /*  线程名                      */
                    tcbdesc.TCBD_ulId,                                   /*  ID 号                       */
                    pidGet,                                              /*  所属进程 ID                 */
@@ -360,7 +360,7 @@ VOID    API_ThreadPendShowEx (pid_t  pid)
                    cEventName,
                    ulOwner);
         } else {
-            printf("%-16s %7lx %5d %-4s %10lu %8lx:%-16s\n",
+            printf("%-16s %7lx %5d %-4s %10lu %8lx:%-14s\n",
                    tcbdesc.TCBD_cThreadName,                            /*  线程名                      */
                    tcbdesc.TCBD_ulId,                                   /*  ID 号                       */
                    pidGet,                                              /*  所属进程 ID                 */

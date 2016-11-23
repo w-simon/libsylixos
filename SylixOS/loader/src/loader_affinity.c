@@ -25,21 +25,7 @@
 *********************************************************************************************************/
 #if LW_CFG_SMP_EN > 0
 #if LW_CFG_MODULELOADER_EN > 0
-#include "../include/loader_vppatch.h"
-/*********************************************************************************************************
-** 函数名称: vprocSetAffinityCb
-** 功能描述: 设置进程调度的 CPU 集合回调
-** 输　入  : pid           进程
-**           stSize        CPU 掩码集内存大小
-**           pcpuset       CPU 掩码
-** 输　出  : ERROR
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-static VOID  vprocSetAffinityCb (LW_OBJECT_HANDLE  ulId, size_t  stSize, const PLW_CLASS_CPUSET  pcpuset)
-{
-    API_ThreadSetAffinity(ulId, stSize, pcpuset);
-}
+#include "../include/loader_lib.h"
 /*********************************************************************************************************
 ** 函数名称: vprocSetAffinity
 ** 功能描述: 设置进程调度的 CPU 集合
@@ -52,8 +38,21 @@ static VOID  vprocSetAffinityCb (LW_OBJECT_HANDLE  ulId, size_t  stSize, const P
 *********************************************************************************************************/
 INT  vprocSetAffinity (pid_t  pid, size_t  stSize, const PLW_CLASS_CPUSET  pcpuset)
 {
-    return  (vprocThreadTraversal2(pid, vprocSetAffinityCb, (PVOID)stSize, (PLW_CLASS_CPUSET)pcpuset,
-                                   LW_NULL, LW_NULL, LW_NULL, LW_NULL));
+    INT          iRet;
+    LW_LD_VPROC *pvproc;
+
+    LW_LD_LOCK();
+    pvproc = vprocGet(pid);
+    if (!pvproc) {
+        LW_LD_UNLOCK();
+        _ErrorHandle(ESRCH);
+        return  (PX_ERROR);
+    }
+    
+    iRet = vprocThreadAffinity(pvproc, stSize, pcpuset);
+    LW_LD_UNLOCK();
+    
+    return  (iRet);
 }
 /*********************************************************************************************************
 ** 函数名称: vprocGetAffinity

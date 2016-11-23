@@ -187,7 +187,12 @@ VOID   API_KernelRebootEx (INT  iRebootType, addr_t  ulStartAddress)
     }
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 
-    _DebugHandle(__PRINTMESSAGE_LEVEL, "kernel rebooting down.\r\n");
+    if (iRebootType == LW_REBOOT_SHUTDOWN) {
+        _DebugHandle(__PRINTMESSAGE_LEVEL, "you can power off now.\r\n");
+    
+    } else {
+        _DebugHandle(__PRINTMESSAGE_LEVEL, "you can reboot now.\r\n");
+    }
     
     archReboot(iRebootType, _K_ulRebootStartAddress);                   /*  调用体系架构重启操作        */
     

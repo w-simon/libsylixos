@@ -46,7 +46,7 @@ MACRO_DEF(ENABLE_FPU)
     MFC0(T0, CP0_STATUS)
     OR      T0 , M_StatusCU1
     MTC0(T0, CP0_STATUS)
-    MACRO_END()
+MACRO_END()
 
 ;/*********************************************************************************************************
 ;  ≥ı ºªØ FPU
@@ -90,7 +90,10 @@ FUNC_DEF(mipsVfp32Init)
     MTC1    ZERO , FP30
     MTC1    ZERO , FP31
 
-    CTC1(ZERO, CP1_STATUS)
+    CFC1(T0,  CP1_STATUS)                                               /*  Read to finish float oper   */
+
+    LI      T0 , (1 << 24)                                              /*  Set FS bit                  */
+    CTC1(T0, CP1_STATUS)
 
     MTC0(T1, CP0_STATUS)
     JR      RA
@@ -127,10 +130,10 @@ FUNC_DEF(mipsVfp32IsEnable)
     MOV     V0 , ZERO                                                   ;/*  FALSE return value          */
     MFC0(T0, CP0_STATUS)
     AND     T0 , M_StatusCU1                                            ;/*  coprocessor 1 enabled       */
-    BEQ     T0 , ZERO, 2f
+    BEQ     T0 , ZERO, 1f
     NOP
     LI      V0 , 1                                                      ;/*  TRUE return value           */
-2:
+1:
     JR      RA
     NOP
 FUNC_END(mipsVfp32IsEnable)

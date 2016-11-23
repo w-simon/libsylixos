@@ -183,25 +183,6 @@ static INT  __dtraceReadMsgEx (PLW_DTRACE       pdtrace,
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: __dtraceThread
-** 功能描述: 获取一个线程的句柄
-** 输　入  : pdtrace       dtrace 节点
-**           dmsg          调试信息
-** 输　出  : ERROR
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-static VOID  __dtraceThreadCb (LW_OBJECT_HANDLE  ulId, 
-                               LW_OBJECT_HANDLE  ulThread[], 
-                               UINT              uiTableNum, 
-                               UINT             *uiNum)
-{
-    if (*uiNum < uiTableNum) {
-        ulThread[*uiNum] = ulId;
-        (*uiNum)++;
-    }
-}
-/*********************************************************************************************************
 ** 函数名称: __dtraceMemVerify
 ** 功能描述: 检测内存属性
 ** 输　入  : pdtrace       dtrace 节点
@@ -900,7 +881,7 @@ ULONG  API_DtraceStopProcess (PVOID  pvDtrace)
     LW_LD_VPROC  *pvproc  = vprocGet(pdtrace->DTRACE_pid);
     
     if (pvproc) {
-        vprocThreadTraversal(pvproc, (VOIDFUNCPTR)API_ThreadStop, 0, 0, 0, 0, 0, 0);
+        vprocThreadStop(pvproc);
     }
     
     return  (ERROR_NONE);
@@ -921,7 +902,7 @@ ULONG  API_DtraceContinueProcess (PVOID  pvDtrace)
     LW_LD_VPROC  *pvproc  = vprocGet(pdtrace->DTRACE_pid);
     
     if (pvproc) {
-        vprocThreadTraversal(pvproc, (VOIDFUNCPTR)API_ThreadContinue, 0, 0, 0, 0, 0, 0);
+        vprocThreadContinue(pvproc);
     }
     
     return  (ERROR_NONE);
@@ -1032,7 +1013,6 @@ ULONG  API_DtraceProcessThread (PVOID  pvDtrace, LW_OBJECT_HANDLE ulThread[],
 {
     PLW_DTRACE    pdtrace = (PLW_DTRACE)pvDtrace;
     LW_LD_VPROC  *pvproc  = vprocGet(pdtrace->DTRACE_pid);
-    UINT          uiNum   = 0;
     
     if (!ulThread || !uiTableNum || !puiThreadNum) {
         _ErrorHandle(EINVAL);
@@ -1040,12 +1020,8 @@ ULONG  API_DtraceProcessThread (PVOID  pvDtrace, LW_OBJECT_HANDLE ulThread[],
     }
     
     if (pvproc) {
-        vprocThreadTraversal(pvproc, __dtraceThreadCb, 
-                             (PVOID)ulThread, (PVOID)uiTableNum, (PVOID)&uiNum, 
-                             0, 0, 0);
+        *puiThreadNum = vprocThreadGet(pvproc, ulThread, uiTableNum);
     }
-    
-    *puiThreadNum = uiNum;
     
     return  (ERROR_NONE);
 }

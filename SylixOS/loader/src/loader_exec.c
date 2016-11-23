@@ -42,7 +42,6 @@
 #if LW_CFG_MODULELOADER_EN > 0
 #include "../include/loader_lib.h"
 #include "../include/loader_exec.h"
-#include "../include/loader_vppatch.h"
 #include "process.h"
 /*********************************************************************************************************
   º¯ÊýÉùÃ÷

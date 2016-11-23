@@ -275,7 +275,6 @@ ULONG  API_ThreadDelete (LW_OBJECT_HANDLE  *pulId, PVOID  pvRetVal)
 #if LW_CFG_MODULELOADER_EN > 0
     pvprocCur = __LW_VP_GET_TCB_PROC(ptcbCur);
     pvprocDel = __LW_VP_GET_TCB_PROC(ptcbDel);
-    
     if (pvprocCur != pvprocDel) {                                       /*  不属于一个进程              */
         __KERNEL_EXIT();                                                /*  退出内核                    */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "thread not in same process.\r\n");

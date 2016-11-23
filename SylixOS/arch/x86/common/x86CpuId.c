@@ -343,13 +343,13 @@ VOID  x86CpuIdProbe (VOID)
 
             if (stSize >= LW_CFG_MB_SIZE) {
                 stSize = stSize / LW_CFG_MB_SIZE;
-                snprintf(cTemp, sizeof(cTemp), "L%d %s-CACHE %dMB  ",
+                snprintf(cTemp, sizeof(cTemp), "L%d %s-CACHE %dMB ",
                         cacheEax[i].field.level, _G_pcX86CacheShortTypes[cacheEax[i].field.type],
                         (INT)stSize);
 
             } else {
                 stSize = stSize / LW_CFG_KB_SIZE;
-                snprintf(cTemp, sizeof(cTemp), "L%d %s-CACHE %dKB  ",
+                snprintf(cTemp, sizeof(cTemp), "L%d %s-CACHE %dKB ",
                          cacheEax[i].field.level, _G_pcX86CacheShortTypes[cacheEax[i].field.type],
                          (INT)stSize);
             }

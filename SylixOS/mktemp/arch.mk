@@ -62,7 +62,7 @@ CPUFLAGS_NOFPU            = $(CPUFLAGS_WITHOUT_FPUFLAGS)
 endif
 
 #*********************************************************************************************************
-# MIPS
+# MIPS (SylixOS toolchain 4.9.3 has loogson3x '-mhard-float' patch)
 #*********************************************************************************************************
 ifneq (,$(findstring mips,$(TOOLCHAIN_PREFIX)))
 ARCH             = mips
@@ -73,7 +73,16 @@ ARCH_PIC_LDFLAGS = -Wl,-shared -fPIC -mabicalls -shared
 
 ARCH_KO_CFLAGS   = -mlong-calls
 
+ifneq (,$(findstring ls3x-float,$(FPU_TYPE)))
+LS3X_NEED_NO_ODD_SPREG := $(shell expr `echo $(GCC_VERSION_MAJOR)` \>= 5)
+ifeq "$(LS3X_NEED_NO_ODD_SPREG)" "1"
+FPUFLAGS = -mhard-float -mno-odd-spreg
+else
+FPUFLAGS = -mhard-float
+endif
+else
 FPUFLAGS = -m$(FPU_TYPE)
+endif
 
 CPUFLAGS_WITHOUT_FPUFLAGS = -march=$(CPU_TYPE) -EL -G 0
 CPUFLAGS                  = $(CPUFLAGS_WITHOUT_FPUFLAGS) $(FPUFLAGS)

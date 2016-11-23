@@ -71,6 +71,7 @@ ULONG  API_ThreadStop (LW_OBJECT_HANDLE  ulId)
 #if LW_CFG_SMP_EN > 0
     {
         PLW_CLASS_TCB  ptcbCur;
+        
         LW_TCB_GET_CUR_SAFE(ptcbCur);
         if (ptcbCur->TCB_uiStatusChangeReq) {                           /*  状态改变是否成功            */
             ptcbCur->TCB_uiStatusChangeReq = 0;

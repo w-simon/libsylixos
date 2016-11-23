@@ -70,6 +70,17 @@ COMMERCIAL = $(shell $(LZOCOM) 1>null 2>null && \
 			(rm -rf null; echo 0))
 
 #*********************************************************************************************************
+# Toolchain version
+#*********************************************************************************************************
+ifeq ($(COMMERCIAL), 1)
+GCC_VERSION_STR   := $(shell $(CC) -dumpversion)
+GCC_VERSION_MAJOR := $(shell echo $(GCC_VERSION_STR) | cut -f1 -d.)
+GCC_VERSION_MINOR := $(shell echo $(GCC_VERSION_STR) | cut -f2 -d.)
+GCC_VERSION_PATCH := $(shell echo $(GCC_VERSION_STR) | cut -f3 -d.)
+GCC_VERSION       := $(GCC_VERSION_MAJOR)$(GCC_VERSION_MINOR)$(GCC_VERSION_PATCH)
+endif
+
+#*********************************************************************************************************
 # Build paths
 #*********************************************************************************************************
 ifeq ($(DEBUG_LEVEL), debug)

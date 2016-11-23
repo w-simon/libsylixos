@@ -159,10 +159,9 @@ INT  sigismember (const sigset_t  *psigset, INT  iSigNo)
     return  (PX_ERROR);
 }
 /*********************************************************************************************************
-** 函数名称: pid_sigaction
+** 函数名称: __sigaction
 ** 功能描述: 进程所有线程设置一个指定信号的服务向量
-** 输　入  : ulId          线程句柄
-**           ulIdExcept    除去的线程
+** 输　入  : ptcb          线程控制块
 **           iSigIndex     TCB_sigaction 下标
 **           psigactionNew 新的处理结构
 ** 输　出  : NONE
@@ -171,25 +170,16 @@ INT  sigismember (const sigset_t  *psigset, INT  iSigNo)
 *********************************************************************************************************/
 #if LW_CFG_MODULELOADER_EN > 0
 
-static VOID  pid_sigaction (LW_OBJECT_HANDLE         ulId,
-                            LW_OBJECT_HANDLE         ulIdExcept,
-                            INT                      iSigIndex,
-                            const struct sigaction  *psigactionNew)
+static VOID  __sigaction (PLW_CLASS_TCB  ptcb, INT  iSigIndex, const struct sigaction  *psigactionNew)
 {
     struct sigaction       *psigaction;
     PLW_CLASS_SIGCONTEXT    psigctx;
-
-    if (ulId == ulIdExcept) {
-        return;
-    }
     
-    psigctx    = _signalGetCtx(__GET_TCB_FROM_INDEX(_ObjectGetIndex(ulId)));
+    psigctx    = _signalGetCtx(ptcb);
     psigaction = &psigctx->SIGCTX_sigaction[iSigIndex];
     
-    __KERNEL_ENTER();
     *psigaction = *psigactionNew;
     psigaction->sa_mask &= ~__SIGNO_UNMASK;                             /*  有些信号不可屏蔽            */
-    __KERNEL_EXIT();
 }
 
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
@@ -246,18 +236,8 @@ INT   sigaction (INT                      iSigNo,
     psigaction->sa_mask &= ~__SIGNO_UNMASK;                             /*  有些信号不可屏蔽            */
     __KERNEL_EXIT();
 
-#if LW_CFG_MODULELOADER_EN > 0
-    {
-        pid_t   pid = vprocGetPidByTcbNoLock(ptcbCur);
-        
-        if (pid > 0) {
-            vprocThreadTraversal2(pid, pid_sigaction,
-                                  (PVOID)ptcbCur->TCB_ulId, 
-                                  (PVOID)iSigIndex, 
-                                  (PVOID)psigactionNew,
-                                  0, 0, 0);                             /*  进程所有线程设置新的处理句柄*/
-        }
-    }
+#if LW_CFG_MODULELOADER_EN > 0                                          /*  进程所有线程设置新的处理句柄*/
+    vprocThreadSigaction(vprocGetCur(), __sigaction, iSigIndex, psigactionNew);
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
     
     if (psigaction->sa_handler == SIG_IGN) {                            /*  设置为忽略该信号            */

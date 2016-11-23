@@ -376,7 +376,7 @@ VOID  _TCBDestroy (PLW_CLASS_TCB  ptcb)
 {
 #if LW_CFG_MODULELOADER_EN > 0
     if (!(ptcb->TCB_ulOption & LW_OPTION_OBJECT_GLOBAL)) {
-        vprocThreadDel(ptcb->TCB_pvVProcessContext, ptcb);
+        vprocThreadDelete(ptcb->TCB_pvVProcessContext, ptcb);
     }
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 }

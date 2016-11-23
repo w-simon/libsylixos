@@ -38,7 +38,6 @@
 #include "../include/loader_lib.h"
 #include "../include/loader_symbol.h"
 #include "../include/loader_error.h"
-#include "../include/loader_vppatch.h"
 /*********************************************************************************************************
 ** 函数名称: fork
 ** 功能描述: posix fork

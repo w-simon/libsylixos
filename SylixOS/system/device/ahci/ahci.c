@@ -23,7 +23,9 @@
             机械硬盘 Seagate Desktop HDD 1000GB MODEL: ST1000DM003 稳定时间大于 900 ms (除去启动时间)
 2016.11.01  探测到硬盘后不再需要等待硬盘的稳定状态, 在 N2600 平台 NM10 桥上的 AHCI 控制器不需要等待.
 2016.11.10  不再强制性对 PHY 进行复位操作, 当链接状态正确时不再对 PHY 进行初始化.
+2016.11.22  由具体设备决定是否对 PHY 进行复位, 统一使用 __ahciDrivePhyReset() 函数.
 *********************************************************************************************************/
+#define  __SYLIXOS_PCI_DRV
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -32,6 +34,7 @@
 *********************************************************************************************************/
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_AHCI_EN > 0)
 #include "linux/compat.h"
+#include "pci_ids.h"
 #include "ahci.h"
 #include "ahciLib.h"
 #include "ahciPort.h"
@@ -68,6 +71,74 @@ static INT  _GiAhciConfigType[AHCI_DRIVE_MAX] = {
 static PVOID            __ahciMonitorThread(PVOID pvArg);
 static irqreturn_t      __ahciIsr(PVOID pvArg, ULONG ulVector);
 static INT              __ahciDiskCtrlInit(AHCI_CTRL_HANDLE hCtrl, UINT uiDrive);
+/*********************************************************************************************************
+** 函数名称: __ahciDrivePhyReset
+** 功能描述: PHY 复位操作
+** 输　入  : hCtrl      控制器句柄
+**           uiDrive    驱动器索引
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __ahciDrivePhyReset (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
+{
+    INT                     iRet = PX_ERROR;
+    PCI_DEV_HANDLE          hPciDevHandle;
+    AHCI_DRIVE_HANDLE       hDrive;
+    UINT32                  uiReg;
+    UINT16                  usVendorId;
+    UINT16                  usDeviceId;
+
+    if ((!hCtrl) || (!hCtrl->AHCICTRL_pvArg)) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    hDrive = &hCtrl->AHCICTRL_hDrive[uiDrive];                          /* 获取驱动器句柄               */
+    hPciDevHandle = (PCI_DEV_HANDLE)hCtrl->AHCICTRL_pvArg;
+    usVendorId = hPciDevHandle->PCIDEV_phDevHdr.hdr.PCIHH_pcidHdr.PCID_usVendorId;
+    usDeviceId = hPciDevHandle->PCIDEV_phDevHdr.hdr.PCIHH_pcidHdr.PCID_usDeviceId;
+
+    switch (usVendorId) {
+
+    case PCI_VENDOR_ID_ATI:
+        if ((usDeviceId == PCI_DEVICE_ID_ATI_IXP600_SATA) ||
+            (usDeviceId == PCI_DEVICE_ID_ATI_IXP700_SATA) ||
+            (usDeviceId == PCI_DEVICE_ID_AMD_HUDSON2_SATA_IDE)) {
+            iRet = API_AhciDriveRegWait(hDrive,
+                                        AHCI_PxSSTS, AHCI_PSSTS_DET_MSK, LW_FALSE, AHCI_PSSTS_DET_PHY,
+                                        1, 50, &uiReg);
+            if (iRet != ERROR_NONE) {
+                AHCI_LOG(AHCI_LOG_ERR, "port sctl reset failed ctrl %d port %d.\r\n",
+                         hCtrl->AHCICTRL_uiIndex, uiDrive);
+                return  (PX_ERROR);
+            }
+
+            return  (ERROR_NONE);
+        }
+        break;
+
+    default:
+        break;
+    }
+
+    AHCI_LOG(AHCI_LOG_PRT, "port det reset, partial and slumber disable ctrl %d port %d.\r\n",
+             hCtrl->AHCICTRL_uiIndex, uiDrive);
+    AHCI_PORT_WRITE(hDrive, AHCI_PxSCTL, AHCI_PSCTL_DET_RESET | AHCI_PSCTL_IPM_PARSLUM_DISABLED);
+    API_TimeMSleep(200);
+    AHCI_PORT_WRITE(hDrive, AHCI_PxSCTL, 0);
+
+    iRet = API_AhciDriveRegWait(hDrive,
+                                AHCI_PxSSTS, AHCI_PSSTS_DET_MSK, LW_FALSE, AHCI_PSSTS_DET_PHY,
+                                1, 50, &uiReg);
+    if (iRet != ERROR_NONE) {
+        AHCI_LOG(AHCI_LOG_ERR, "port sctl reset failed ctrl %d port %d.\r\n",
+                 hCtrl->AHCICTRL_uiIndex, uiDrive);
+        return  (PX_ERROR);
+    }
+
+    return  (ERROR_NONE);
+}
 /*********************************************************************************************************
 ** 函数名称: __ahciDriveNoBusyWait
 ** 功能描述: 等待驱动器不忙, 机械硬盘从上电到状态正确需要一段时间
@@ -1561,28 +1632,7 @@ static INT  __ahciDiskCtrlInit (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
 
     API_AhciDrivePowerUp(hDrive);                                       /* 电源使能                     */
 
-    /*
-     *  设置指定端口, 当 PHY 链接状态正确时不再对 PHY 进行初始化
-     */
-    iRet = API_AhciDriveRegWait(hDrive,
-                                AHCI_PxSSTS, AHCI_PSSTS_DET_MSK, LW_FALSE, AHCI_PSSTS_DET_PHY,
-                                1, 50, &uiReg);
-    if (iRet != ERROR_NONE) {
-        AHCI_LOG(AHCI_LOG_PRT, "port det reset, partial and slumber disable ctrl %d port %d.\r\n",
-                 hCtrl->AHCICTRL_uiIndex, uiDrive);
-        AHCI_PORT_WRITE(hDrive, AHCI_PxSCTL, AHCI_PSCTL_DET_RESET | AHCI_PSCTL_IPM_PARSLUM_DISABLED);
-        API_TimeMSleep(200);
-        AHCI_PORT_WRITE(hDrive, AHCI_PxSCTL, 0);
-
-        iRet = API_AhciDriveRegWait(hDrive,
-                                    AHCI_PxSSTS, AHCI_PSSTS_DET_MSK, LW_FALSE, AHCI_PSSTS_DET_PHY,
-                                    1, 50, &uiReg);
-        if (iRet != ERROR_NONE) {
-            AHCI_LOG(AHCI_LOG_ERR, "port sctl reset failed ctrl %d port %d.\r\n",
-                     hCtrl->AHCICTRL_uiIndex, uiDrive);
-            return  (PX_ERROR);
-        }
-    }
+    __ahciDrivePhyReset(hCtrl, uiDrive);                                /* 由具体设备决定复位行为       */
 
     AHCI_LOG(AHCI_LOG_PRT, "restart ctrl %d drive %d port %d.\r\n",
              hCtrl->AHCICTRL_uiIndex, uiDrive, hDrive->AHCIDRIVE_uiPort);

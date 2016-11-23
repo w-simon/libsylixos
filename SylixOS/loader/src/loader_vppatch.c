@@ -74,7 +74,6 @@
 #include "../include/loader_lib.h"
 #include "../include/loader_symbol.h"
 #include "../include/loader_error.h"
-#include "../include/loader_vppatch.h"
 #include "../elf/elf_loader.h"
 /*********************************************************************************************************
   模块全局变量
@@ -882,20 +881,6 @@ static BOOL vprocCanExit (VOID)
     }
 }
 /*********************************************************************************************************
-** 函数名称: vprocKillThread
-** 功能描述: 删除线程 (除主线程外)
-** 输　入  : pvproc     进程控制块指针
-** 输　出  : NONE
-** 全局变量:
-** 调用模块: 
-*********************************************************************************************************/
-static VOID vprocKillThread (LW_OBJECT_HANDLE  ulThread, LW_LD_VPROC *pvproc)
-{
-    if (pvproc->VP_ulMainThread != ulThread) {
-        _excJobAdd((VOIDFUNCPTR)kill, (PVOID)ulThread, (PVOID)SIGKILL, 0, 0, 0, 0);
-    }
-}
-/*********************************************************************************************************
 ** 函数名称: vprocAtExit
 ** 功能描述: 进程自行退出时, 会调用此函数运行 atexit 函数以及整个进程的析构函数.
 ** 输　入  : pvproc     进程控制块指针
@@ -961,8 +946,7 @@ __recheck:
 #endif                                                                  /*  LW_CFG_THREAD_EXT_EN > 0    */
     
     if (pvproc->VP_iExitMode == LW_VPROC_EXIT_FORCE) {                  /*  强制退出删除除主线程外的线程*/
-        vprocThreadTraversal(pvproc, vprocKillThread, (PVOID)pvproc, 
-                             0, 0, 0, 0, 0);
+        vprocThreadKill(pvproc);
     }
     
     do {                                                                /*  等待所有的线程安全退出      */
@@ -1512,161 +1496,6 @@ INT  vprocGetPath (pid_t  pid, PCHAR  pcPath, size_t stMaxLen)
 
     LW_LD_UNLOCK();
 
-    return  (ERROR_NONE);
-}
-/*********************************************************************************************************
-** 函数名称: vprocThreadAdd
-** 功能描述: 将一个线程加入进程
-** 输　入  : pvVProc    进程控制块指针
-**           ptcb       线程控制块
-** 输　出  : NONE
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-VOID  vprocThreadAdd (PVOID   pvVProc, PLW_CLASS_TCB  ptcb)
-{
-    LW_LD_VPROC  *pvproc = (LW_LD_VPROC *)pvVProc;
-    
-    if (pvproc) {
-        LW_VP_LOCK(pvproc);
-        if (_LIST_LINE_IS_NOTLNK(&ptcb->TCB_lineProcess)) {
-            _List_Line_Add_Tail(&ptcb->TCB_lineProcess, &pvproc->VP_plineThread);
-        }
-        LW_VP_UNLOCK(pvproc);
-    }
-}
-/*********************************************************************************************************
-** 函数名称: vprocThreadAdd
-** 功能描述: 将一个线程从进程表中删除
-** 输　入  : pvVProc    进程控制块指针
-**           ptcb       线程控制块
-** 输　出  : NONE
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-VOID  vprocThreadDel (PVOID   pvVProc, PLW_CLASS_TCB  ptcb)
-{
-    LW_LD_VPROC  *pvproc = (LW_LD_VPROC *)pvVProc;
-
-    if (pvproc) {
-        LW_VP_LOCK(pvproc);
-        if (!_LIST_LINE_IS_NOTLNK(&ptcb->TCB_lineProcess)) {
-            _List_Line_Del(&ptcb->TCB_lineProcess, &pvproc->VP_plineThread);
-        }
-        LW_VP_UNLOCK(pvproc);
-    }
-}
-/*********************************************************************************************************
-** 函数名称: vprocThreadNum
-** 功能描述: 获得进程中的线程总数
-** 输　入  : pid        进程 id
-**           pulCnt     数量
-** 输　出  : ERROR
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-INT  vprocThreadNum (pid_t pid, ULONG  *pulCnt)
-{
-    LW_LD_VPROC    *pvproc;
-    PLW_LIST_LINE   plineTemp;
-    
-    if (!pulCnt) {
-        _ErrorHandle(EINVAL);
-        return  (PX_ERROR);
-    }
-    
-    LW_LD_LOCK();
-    pvproc = vprocGet(pid);
-    if (pvproc == LW_NULL) {
-        LW_LD_UNLOCK();
-        return  (PX_ERROR);
-    }
-    
-    for (plineTemp  = pvproc->VP_plineThread;
-         plineTemp != LW_NULL;
-         plineTemp  = _list_line_get_next(plineTemp)) {
-         
-        (*pulCnt)++;
-    }
-    LW_VP_UNLOCK(pvproc);
-    
-    return  (ERROR_NONE);
-}
-/*********************************************************************************************************
-** 函数名称: vprocThreadTraversal
-** 功能描述: 遍历进程内的所有线程
-** 输　入  : pvVProc    进程控制块指针
-**           pfunc      回调函数
-**           pvArg0 ~ 5 回调参数
-** 输　出  : NONE
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-VOID  vprocThreadTraversal (PVOID          pvVProc, 
-                            VOIDFUNCPTR    pfunc, 
-                            PVOID          pvArg0,
-                            PVOID          pvArg1,
-                            PVOID          pvArg2,
-                            PVOID          pvArg3,
-                            PVOID          pvArg4,
-                            PVOID          pvArg5)
-{
-    LW_LD_VPROC    *pvproc = (LW_LD_VPROC *)pvVProc;
-    PLW_LIST_LINE   plineTemp;
-    PLW_CLASS_TCB   ptcb;
-    
-    LW_VP_LOCK(pvproc);
-    for (plineTemp  = pvproc->VP_plineThread;
-         plineTemp != LW_NULL;
-         plineTemp  = _list_line_get_next(plineTemp)) {
-    
-        ptcb = _LIST_ENTRY(plineTemp, LW_CLASS_TCB, TCB_lineProcess);
-        pfunc(ptcb->TCB_ulId, pvArg0, pvArg1, pvArg2, pvArg3, pvArg4, pvArg5);
-    }
-    LW_VP_UNLOCK(pvproc);
-}
-/*********************************************************************************************************
-** 函数名称: vprocThreadTraversal2
-** 功能描述: 遍历进程内的所有线程
-** 输　入  : pid        进程
-**           pfunc      回调函数
-**           pvArg0 ~ 5 回调参数
-** 输　出  : ERROR
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-INT  vprocThreadTraversal2 (pid_t          pid, 
-                            VOIDFUNCPTR    pfunc, 
-                            PVOID          pvArg0,
-                            PVOID          pvArg1,
-                            PVOID          pvArg2,
-                            PVOID          pvArg3,
-                            PVOID          pvArg4,
-                            PVOID          pvArg5)
-{
-    LW_LD_VPROC    *pvproc;
-    PLW_LIST_LINE   plineTemp;
-    PLW_CLASS_TCB   ptcb;
-    
-    LW_LD_LOCK();
-    pvproc = vprocGet(pid);
-    if (!pvproc) {
-        LW_LD_UNLOCK();
-        _ErrorHandle(ESRCH);
-        return  (PX_ERROR);
-    }
-    
-    LW_VP_LOCK(pvproc);
-    for (plineTemp  = pvproc->VP_plineThread;
-         plineTemp != LW_NULL;
-         plineTemp  = _list_line_get_next(plineTemp)) {
-    
-        ptcb = _LIST_ENTRY(plineTemp, LW_CLASS_TCB, TCB_lineProcess);
-        pfunc(ptcb->TCB_ulId, pvArg0, pvArg1, pvArg2, pvArg3, pvArg4, pvArg5);
-    }
-    LW_VP_UNLOCK(pvproc);
-    LW_LD_UNLOCK();
-    
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************

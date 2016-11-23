@@ -79,8 +79,6 @@ VOID  archFpuPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 
     MIPS_VFP_SAVE(_G_pfpuop, (PVOID)&_G_fpuCtxInit);
 
-    _G_fpuCtxInit.FPUCTX_fpuctxContext.FPUCTX_uiFpcsr = 0x00000000;     /*  Set FZ bit in VFP           */
-
     MIPS_VFP_DISABLE(_G_pfpuop);
 }
 /*********************************************************************************************************
@@ -116,6 +114,8 @@ VOID  archFpuSecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
     } else {
         mipsVfpNoneSecondaryInit(pcMachineName, MIPS_FPU_NONE);
     }
+
+    MIPS_VFP_DISABLE(_G_pfpuop);
 }
 
 #endif                                                                  /*  LW_CFG_SMP_EN               */
@@ -127,7 +127,7 @@ VOID  archFpuSecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  archFpuCtxInit (PVOID pvFpuCtx)
+VOID  archFpuCtxInit (PVOID  pvFpuCtx)
 {
     lib_memcpy(pvFpuCtx, &_G_fpuCtxInit, sizeof(LW_FPU_CONTEXT));
 }
@@ -163,7 +163,7 @@ VOID  archFpuDisable (VOID)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  archFpuSave (PVOID pvFpuCtx)
+VOID  archFpuSave (PVOID  pvFpuCtx)
 {
     MIPS_VFP_SAVE(_G_pfpuop, pvFpuCtx);
 }
@@ -175,7 +175,7 @@ VOID  archFpuSave (PVOID pvFpuCtx)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  archFpuRestore (PVOID pvFpuCtx)
+VOID  archFpuRestore (PVOID  pvFpuCtx)
 {
     MIPS_VFP_RESTORE(_G_pfpuop, pvFpuCtx);
 }
@@ -188,7 +188,7 @@ VOID  archFpuRestore (PVOID pvFpuCtx)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  archFpuCtxShow (INT  iFd, PVOID pvFpuCtx)
+VOID  archFpuCtxShow (INT  iFd, PVOID  pvFpuCtx)
 {
     MIPS_VFP_CTXSHOW(_G_pfpuop, iFd, pvFpuCtx);
 }

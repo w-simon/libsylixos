@@ -49,12 +49,12 @@ extern VOID    mipsVfp32Restore(PVOID  pvFpuCtx);
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  mipsVfp32CtxShow (INT iFd, PVOID pvFpuCtx)
+static VOID  mipsVfp32CtxShow (INT  iFd, PVOID  pvFpuCtx)
 {
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_FIO_LIB_EN > 0)
-    LW_FPU_CONTEXT *pfpuCtx    = (LW_FPU_CONTEXT *)pvFpuCtx;
-    ARCH_FPU_CTX   *pcpufpuCtx = &pfpuCtx->FPUCTX_fpuctxContext;
-    INT             i;
+    LW_FPU_CONTEXT  *pfpuCtx    = (LW_FPU_CONTEXT *)pvFpuCtx;
+    ARCH_FPU_CTX    *pcpufpuCtx = &pfpuCtx->FPUCTX_fpuctxContext;
+    INT              i;
 
     fdprintf(iFd, "FCSR   = 0x%08x\n", pcpufpuCtx->FPUCTX_uiFpcsr);
 
