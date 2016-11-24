@@ -228,6 +228,59 @@ ULONG  _ThreadContinue (PLW_CLASS_TCB  ptcb, BOOL  bForce)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: _ThreadDebugUnpendSem
+** 功能描述: 线程不等待任何调试关键信号量 (进入内核后被调用)
+** 输　入  : ptcb      线程控制块指针
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+** 注  意  : 调试器停止本线程前会调用此函数, 防止调试器释放的资源被已经 stop 的线程获取.
+*********************************************************************************************************/
+#if LW_CFG_GDB_EN > 0
+
+VOID  _ThreadDebugUnpendSem (PLW_CLASS_TCB  ptcb)
+{
+    INTREG          iregInterLevel;
+    PLW_CLASS_PCB   ppcb;
+
+    iregInterLevel = KN_INT_DISABLE();                                  /*  关闭中断                    */
+    
+    if (__LW_THREAD_IS_READY(ptcb)) {                                   /*  处于就绪状态, 直接退出      */
+        KN_INT_ENABLE(iregInterLevel);                                  /*  打开中断                    */
+        return;
+    }
+    
+    ppcb = _GetPcb(ptcb);                                               /*  获得优先级控制块            */
+    if (ptcb->TCB_usStatus & LW_THREAD_STATUS_SEM) {
+        if (ptcb->TCB_peventPtr &&
+            (ptcb->TCB_peventPtr->EVENT_ulOption & 
+             LW_OPTION_OBJECT_DEBUG_UNPEND)) {                          /*  调试关键资源                */
+            if (ptcb->TCB_usStatus & LW_THREAD_STATUS_DELAY) {
+                __DEL_FROM_WAKEUP_LINE(ptcb);                           /*  从等待链中删除              */
+                ptcb->TCB_ulDelay = 0ul;
+            }
+            
+            ptcb->TCB_usStatus &= (~LW_THREAD_STATUS_SEM);              /*  等待超时清除事件等待位      */
+            ptcb->TCB_ucWaitTimeout = LW_WAIT_TIME_OUT;                 /*  等待超时                    */
+            
+            _EventUnQueue(ptcb);
+            
+            if (__LW_THREAD_IS_READY(ptcb)) {
+                ptcb->TCB_ucSchedActivate = LW_SCHED_ACT_OTHER;
+                __ADD_TO_READY_RING(ptcb, ppcb);                        /*  加入就绪环                  */
+            }
+            
+            if (ptcb->TCB_iSchedRet == ERROR_NONE) {
+                ptcb->TCB_iSchedRet =  LW_SIGNAL_RESTART;               /*  下次调度需要重新等待        */
+            }
+        }
+    }
+    
+    KN_INT_ENABLE(iregInterLevel);                                      /*  打开中断                    */
+}
+
+#endif                                                                  /*  LW_CFG_GDB_EN > 0           */
+/*********************************************************************************************************
 ** 函数名称: _ThreadMakeMain
 ** 功能描述: 将指定线程转化为进程内主线程
 ** 输　入  : ulId          线程 ID

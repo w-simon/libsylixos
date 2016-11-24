@@ -616,12 +616,12 @@ static irqreturn_t  __tickTimerIsr (VOID)
 WEAK_FUNC VOID  bspTickInit (VOID)
 {
 #if TICK_IN_THREAD > 0
-    LW_CLASS_THREADATTR  threakattr;
+    LW_CLASS_THREADATTR  threadattr;
 #endif
     ULONG                ulVector = X86_IRQ_TIMER;
 
 #if TICK_IN_THREAD > 0
-    API_ThreadAttrBuild(&threakattr, (8 * LW_CFG_KB_SIZE),
+    API_ThreadAttrBuild(&threadattr, (8 * LW_CFG_KB_SIZE),
                         LW_PRIO_T_TICK,
                         LW_OPTION_THREAD_STK_CHK |
                         LW_OPTION_THREAD_UNSELECT |
@@ -629,7 +629,7 @@ WEAK_FUNC VOID  bspTickInit (VOID)
                         LW_OPTION_THREAD_SAFE, LW_NULL);
 
     htKernelTicks = API_ThreadCreate("t_tick", (PTHREAD_START_ROUTINE)__tickThread,
-                                     &threakattr, LW_NULL);
+                                     &threadattr, LW_NULL);
 #endif                                                                  /*  TICK_IN_THREAD > 0          */
 
     _G_uiFullCnt          = (_G_i8254Data.qcofreq / LW_TICK_HZ);

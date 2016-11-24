@@ -95,7 +95,8 @@ VOIDFUNCPTR _K_pfuncHeapTraceFree;
   锁信号量的相关选项
 *********************************************************************************************************/
 #define __HEAP_LOCK_OPT     (LW_OPTION_WAIT_PRIORITY | LW_OPTION_INHERIT_PRIORITY | \
-                             LW_OPTION_DELETE_SAFE | LW_OPTION_OBJECT_GLOBAL)
+                             LW_OPTION_DELETE_SAFE | LW_OPTION_OBJECT_DEBUG_UNPEND | \
+                             LW_OPTION_OBJECT_GLOBAL)
 /*********************************************************************************************************
   最大使用量统计
 *********************************************************************************************************/

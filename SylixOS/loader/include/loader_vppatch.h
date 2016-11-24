@@ -187,9 +187,13 @@ ssize_t             vprocGetModsInfo(pid_t  pid, PCHAR  pcBuff, size_t stMaxLen)
 
 VOID                vprocThreadAdd(PVOID   pvVProc, PLW_CLASS_TCB  ptcb);
 VOID                vprocThreadDelete(PVOID   pvVProc, PLW_CLASS_TCB  ptcb);
-VOID                vprocThreadStop(PVOID  pvVProc);
-VOID                vprocThreadContinue(PVOID  pvVProc);
-UINT                vprocThreadGet(PVOID  pvVProc, LW_OBJECT_HANDLE  ulThread[], UINT   uiTableNum);
+
+#if LW_CFG_GDB_EN > 0
+VOID                vprocThreadDebugStop(PVOID  pvVProc);
+VOID                vprocThreadDebugContinue(PVOID  pvVProc);
+UINT                vprocThreadDebugGet(PVOID  pvVProc, LW_OBJECT_HANDLE  ulThread[], UINT   uiTableNum);
+#endif                                                                  /*  LW_CFG_GDB_EN > 0           */
+
 VOID                vprocThreadKill(PVOID  pvVProc);
 
 #if LW_CFG_SIGNAL_EN > 0

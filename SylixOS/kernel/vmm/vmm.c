@@ -180,6 +180,7 @@ ULONG  API_VmmLibPrimaryInit (LW_MMU_PHYSICAL_DESC  pphydesc[],
                                         LW_OPTION_INHERIT_PRIORITY |
                                         LW_OPTION_WAIT_PRIORITY | 
                                         LW_OPTION_DELETE_SAFE |
+                                        LW_OPTION_OBJECT_DEBUG_UNPEND |
                                         LW_OPTION_OBJECT_GLOBAL,        /*  基于优先级等待              */
                                         LW_NULL);
     if (!_G_ulVmmLock) {

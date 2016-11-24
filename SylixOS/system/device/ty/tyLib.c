@@ -221,6 +221,7 @@ INT  _TyDevInit (TY_DEV_ID  ptyDev,
     ptyDev->TYDEV_hMutexSemM = API_SemaphoreMCreate("ty_lock", 
                                                     LW_PRIO_DEF_CEILING, 
                                                     _G_ulmutexOptionsTyLib |
+                                                    LW_OPTION_OBJECT_DEBUG_UNPEND |
                                                     LW_OPTION_OBJECT_GLOBAL, 
                                                     LW_NULL);           /*  互斥访问控制信号量          */
     if (!ptyDev->TYDEV_hMutexSemM) {

@@ -512,6 +512,10 @@ VOID           _ThreadUnwaitStatus(PLW_CLASS_TCB  ptcb);                /*  线程
 ULONG          _ThreadStop(PLW_CLASS_TCB  ptcb);
 ULONG          _ThreadContinue(PLW_CLASS_TCB  ptcb, BOOL  bForce);
 
+#if LW_CFG_GDB_EN > 0
+VOID           _ThreadDebugUnpendSem(PLW_CLASS_TCB  ptcb);
+#endif                                                                  /*  LW_CFG_GDB_EN > 0           */
+
 /*********************************************************************************************************
   线程进程相关
 *********************************************************************************************************/

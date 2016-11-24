@@ -46,6 +46,7 @@
 
 #ifdef __SYLIXOS_KERNEL
 #define  LW_OPTION_OBJECT_GLOBAL                        0x80000000      /*  全局对象                    */
+#define  LW_OPTION_OBJECT_DEBUG_UNPEND                  0x40000000      /*  调试器关键资源              */
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 
 #define  LW_OPTION_OBJECT_LOCAL                         0x00000000      /*  本地对象                    */

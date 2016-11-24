@@ -26,6 +26,7 @@
 2015.11.17  修正 SMP 高并发度引起的调试错误.
 2015.12.01  加入浮点运算器上下文获取与设置操作.
 2016.08.16  支持硬件单步调试.
+2016.11.23  在停止所有任务前, 预锁定关键性资源, 仿制被停止线程占用, 导致调试器假死.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -881,7 +882,7 @@ ULONG  API_DtraceStopProcess (PVOID  pvDtrace)
     LW_LD_VPROC  *pvproc  = vprocGet(pdtrace->DTRACE_pid);
     
     if (pvproc) {
-        vprocThreadStop(pvproc);
+        vprocThreadDebugStop(pvproc);
     }
     
     return  (ERROR_NONE);
@@ -902,7 +903,7 @@ ULONG  API_DtraceContinueProcess (PVOID  pvDtrace)
     LW_LD_VPROC  *pvproc  = vprocGet(pdtrace->DTRACE_pid);
     
     if (pvproc) {
-        vprocThreadContinue(pvproc);
+        vprocThreadDebugContinue(pvproc);
     }
     
     return  (ERROR_NONE);
@@ -1020,7 +1021,7 @@ ULONG  API_DtraceProcessThread (PVOID  pvDtrace, LW_OBJECT_HANDLE ulThread[],
     }
     
     if (pvproc) {
-        *puiThreadNum = vprocThreadGet(pvproc, ulThread, uiTableNum);
+        *puiThreadNum = vprocThreadDebugGet(pvproc, ulThread, uiTableNum);
     }
     
     return  (ERROR_NONE);
