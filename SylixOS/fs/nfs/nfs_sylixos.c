@@ -3147,7 +3147,8 @@ static INT __nfsSymlink (PNFS_FS  pnfsfs, PCHAR  pcName, CPCHAR  pcLinkDst)
     args.where.dir  = handle;
     args.where.name = pcTail;
     
-    args.symlink.symlink_attributes.mode.set_it = LW_FALSE;
+    args.symlink.symlink_attributes.mode.set_it = LW_TRUE;
+    args.symlink.symlink_attributes.mode.set_mode3_u.mode = DEFAULT_SYMLINK_PERM;
     args.symlink.symlink_attributes.uid.set_it = LW_TRUE;
     args.symlink.symlink_attributes.uid.set_uid3_u.uid = getuid();
     args.symlink.symlink_attributes.gid.set_it = LW_TRUE;

@@ -158,8 +158,9 @@ VOID  archE500AlignmentExceptionHandle (addr_t  ulRetAddr)
     addr_t          ulAbortAddr;
     LW_VMM_ABORT    abtInfo;
 
-    ulAbortAddr          = ppcE500GetDEAR();
-    abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_BUS;
+    ulAbortAddr            = ppcE500GetDEAR();
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
+    abtInfo.VMABT_uiMethod = BUS_ADRALN;
 
     LW_TCB_GET_CUR(ptcbCur);
 
@@ -303,7 +304,8 @@ VOID  archE500FpuUnavailableExceptionHandle (addr_t  ulRetAddr)
     }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 
-    abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_FPE;
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FPE;
+    abtInfo.VMABT_uiMethod = 0;                                         /*  FPU ≤ªø…”√                  */
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************

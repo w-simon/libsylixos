@@ -37,6 +37,8 @@
     EXPORT_LABEL(mipsVfp32IsEnable)
     EXPORT_LABEL(mipsVfp32Save)
     EXPORT_LABEL(mipsVfp32Restore)
+    EXPORT_LABEL(mipsVfp32GetFEXR)
+    EXPORT_LABEL(mipsVfp32ClearFEXR)
 
 ;/*********************************************************************************************************
 ;  使能 FPU
@@ -248,6 +250,26 @@ FUNC_DEF(mipsVfp32Restore)
     JR      RA
     NOP
 FUNC_END(mipsVfp32Restore)
+
+;/*********************************************************************************************************
+;  获得 FRXR 寄存器
+;*********************************************************************************************************/
+
+FUNC_DEF(mipsVfp32GetFEXR)
+    CFC1(V0,  CP1_FEXR)
+    JR      RA
+    NOP
+FUNC_END(mipsVfp32GetFEXR)
+
+;/*********************************************************************************************************
+;  清除浮点异常
+;*********************************************************************************************************/
+
+FUNC_DEF(mipsVfp32ClearFEXR)
+    CTC1(ZERO, CP1_FEXR)
+    JR      RA
+    NOP
+FUNC_END(mipsVfp32ClearFEXR)
 
     FILE_END()
 

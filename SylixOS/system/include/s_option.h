@@ -231,6 +231,8 @@
 #define  FOLLOW_LINK_FILE                   -2                  /* this file is a symbol link file      */
 #define  FOLLOW_LINK_TAIL                   -3                  /* file in symbol link file (have tail) */
 
+#define  DEFAULT_SYMLINK_PERM               0000777             /* default symbol link permissions      */
+                                                                /* unix style rwxrwxrwx                 */
 #define  DEFAULT_FILE_PERM                  0000644             /* default file permissions             */
                                                                 /* unix style rw-r--r--                 */
 #define  DEFAULT_DIR_PERM                   0000754             /* default directory permissions        */

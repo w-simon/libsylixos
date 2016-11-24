@@ -36,6 +36,7 @@
 2013.12.23  支持对 LW_VMM_ABORT_TYPE_EXEC 的错误处理.
 2014.05.17  断点探测不再在这里进行.
 2014.05.21  系统发生段错误时, 需要通知 dtrace.
+2016.11.24  FPU 异常需要在异常上下文保存 FPU 上下文.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -781,12 +782,12 @@ static VOID  __vmmAbortKill (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
     
     case LW_VMM_ABORT_TYPE_FPE:
         sigeventAbort.sigev_signo = SIGFPE;
-        iSigCode = FPE_INTDIV;                                          /*  默认为除 0 需要进行详细判断 */
+        iSigCode = __PAGEFAILCTX_ABORT_METHOD(pvmpagefailctx);
         break;
         
     case LW_VMM_ABORT_TYPE_BUS:
         sigeventAbort.sigev_signo = SIGBUS;
-        iSigCode = BUS_ADRALN;
+        iSigCode = __PAGEFAILCTX_ABORT_METHOD(pvmpagefailctx);
         break;
         
     case LW_VMM_ABORT_TYPE_SYS:
@@ -853,11 +854,13 @@ static VOID  __vmmAbortAccess (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
         break;
         
     case LW_VMM_ABORT_TYPE_FPE:
-#if LW_CFG_CPU_FPU_EN > 0 && LW_CFG_DEVICE_EN > 0
+#if (LW_CFG_CPU_FPU_EN > 0) && (LW_CFG_DEVICE_EN > 0)
         {
             PLW_CLASS_TCB   ptcbCur;
             LW_TCB_GET_CUR_SAFE(ptcbCur);
-            __ARCH_FPU_CTX_SHOW(ioGlobalStdGet(STD_ERR), ptcbCur->TCB_pvStackFP);
+            if (ptcbCur->TCB_ulOption & LW_OPTION_THREAD_USED_FP) {
+                __ARCH_FPU_CTX_SHOW(ioGlobalStdGet(STD_ERR), ptcbCur->TCB_pvStackFP);
+            }
         }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
         printk(KERN_EMERG "thread 0x%lx FPU exception, abt_addr: 0x%08lx.\n",
@@ -965,6 +968,12 @@ VOID  API_VmmAbortIsr (addr_t          ulRetAddr,
     _StackCheckGuard(ptcb);                                             /*  堆栈警戒检查                */
     
     __KERNEL_EXIT();                                                    /*  退出内核                    */
+
+    if (__PAGEFAILCTX_ABORT_TYPE(pvmpagefailctx) == LW_VMM_ABORT_TYPE_FPE) {
+        if (ptcb->TCB_ulOption & LW_OPTION_THREAD_USED_FP) {            /*  如果为 FPU 异常             */
+            __ARCH_FPU_SAVE(ptcb->TCB_pvStackFP);                       /*  需要保存当前 FPU CTX        */
+        }
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: API_VmmAbortStatus

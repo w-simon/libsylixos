@@ -56,11 +56,11 @@ static VOID  mipsVfp32CtxShow (INT  iFd, PVOID  pvFpuCtx)
     ARCH_FPU_CTX    *pcpufpuCtx = &pfpuCtx->FPUCTX_fpuctxContext;
     INT              i;
 
-    fdprintf(iFd, "FCSR   = 0x%08x\n", pcpufpuCtx->FPUCTX_uiFpcsr);
+    fdprintf(iFd, "FCSR = 0x%08x\n", pcpufpuCtx->FPUCTX_uiFpcsr);
 
     for (i = 0; i < (FP_NUM_DREGS * 2); i += 2) {
-        fdprintf(iFd, "FP%d = 0x%08x  ", i,     pcpufpuCtx->FPUCTX_uiReg[i]);
-        fdprintf(iFd, "FP%d = 0x%08x\n", i + 1, pcpufpuCtx->FPUCTX_uiReg[i + 1]);
+        fdprintf(iFd, "FP%02d = 0x%08x  ", i,     pcpufpuCtx->FPUCTX_uiReg[i]);
+        fdprintf(iFd, "FP%02d = 0x%08x\n", i + 1, pcpufpuCtx->FPUCTX_uiReg[i + 1]);
     }
 #endif
 }

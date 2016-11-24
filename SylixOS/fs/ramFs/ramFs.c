@@ -1294,7 +1294,7 @@ static INT  __ramFsSymlink (PRAM_VOLUME   pramfs,
         return  (PX_ERROR);
     }
     
-    pramn = __ram_maken(pramfs, pcName, pramnFather, S_IFLNK | DEFAULT_FILE_PERM, pcLinkDst);
+    pramn = __ram_maken(pramfs, pcName, pramnFather, S_IFLNK | DEFAULT_SYMLINK_PERM, pcLinkDst);
     if (pramn == LW_NULL) {
         __RAMFS_VOL_UNLOCK(pramfs);
         return  (PX_ERROR);

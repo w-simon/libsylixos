@@ -273,6 +273,24 @@ static LW_INLINE ULONG  API_VmmVirtualToPhysical (addr_t  ulVirtualAddr, addr_t 
 /*********************************************************************************************************
   API_VmmAbortIsr() 为异常处理函数, 只允许 ARCH 代码使用. 
   没有使能 VMM SylixOS 依然可以处理异常情况
+  
+  当异常类型为 LW_VMM_ABORT_TYPE_FPE 浮点异常时: 
+  VMABT_uiMethod 取值为:
+  
+  FPE_INTDIV            1  Integer divide by zero
+  FPE_INTOVF            2  Integer overflow
+  FPE_FLTDIV            3  Floating-point divide by zero
+  FPE_FLTOVF            4  Floating-point overflow
+  FPE_FLTUND            5  Floating-point underflow
+  FPE_FLTRES            6  Floating-point inexact result
+  FPE_FLTINV            7  inval floating point operate
+  FPE_FLTSUB            8  Subscript out of range
+  
+  当异常类型为 LW_VMM_ABORT_TYPE_BUS 浮点异常时: 
+  
+  BUS_ADRALN            1  Invalid address alignment
+  BUS_ADRERR            2  Nonexistent physical memory
+  BUS_OBJERR            3  Object-specific hardware err
 *********************************************************************************************************/
 #ifdef __SYLIXOS_KERNEL
 

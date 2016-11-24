@@ -1013,7 +1013,7 @@ static INT  __rootFsSymlink (PLW_DEV_HDR     pdevhdr,
     return  (API_RootFsMakeNode(pcName, 
                                 LW_ROOTFS_NODE_TYPE_LNK, 
                                 LW_ROOTFS_NODE_OPT_NONE, 
-                                DEFAULT_FILE_PERM,
+                                DEFAULT_SYMLINK_PERM,
                                 (PVOID)(pcLinkDst)));
 #else
     _ErrorHandle(ERROR_IOS_DRIVER_NOT_SUP);

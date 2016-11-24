@@ -3636,7 +3636,7 @@ int yaffs_symlink_reldir(struct yaffs_obj *reldir,
 	struct yaffs_obj *obj;
 	YCHAR *name;
 	int retVal = -1;
-	int mode = 0755;		/* ignore for now */
+	int mode = DEFAULT_SYMLINK_PERM;		/* ignore for now */
 	int notDir = 0;
 	int loop = 0;
 

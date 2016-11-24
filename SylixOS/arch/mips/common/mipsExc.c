@@ -40,7 +40,9 @@
 /*********************************************************************************************************
   外部函数声明
 *********************************************************************************************************/
-extern VOID  archTaskCtxPrint(PLW_STACK  pstkTop);
+extern VOID    archTaskCtxPrint(PLW_STACK  pstkTop);
+extern UINT32  mipsVfp32GetFEXR(VOID);
+extern VOID    mipsVfp32ClearFEXR(VOID);
 /*********************************************************************************************************
 ** 函数名称: archIntHandle
 ** 功能描述: bspIntHandle 需要调用此函数处理中断 (关闭中断情况被调用)
@@ -154,6 +156,7 @@ VOID  archExceptionHandle (addr_t  ulRetAddr, UINT32  uiCause, addr_t  ulAbortAd
              PLW_CLASS_TCB  ptcbCur;
              LW_VMM_ABORT   abtInfo;
              ULONG          ulNesting;
+             UINT32         uiFEXR;
 
     if (uiExcCode == EX_INT) {                                          /*  优化普通中断处理            */
         bspIntHandle();
@@ -202,7 +205,7 @@ VOID  archExceptionHandle (addr_t  ulRetAddr, UINT32  uiCause, addr_t  ulAbortAd
 
     case EX_IBE:                                                        /*  Instruction Bus Error       */
     case EX_DBE:                                                        /*  Data Bus Error              */
-        abtInfo.VMABT_uiMethod = 0;
+        abtInfo.VMABT_uiMethod = BUS_ADRERR;
         abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
         API_VmmAbortIsr(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur);
         break;
@@ -235,9 +238,33 @@ VOID  archExceptionHandle (addr_t  ulRetAddr, UINT32  uiCause, addr_t  ulAbortAd
         break;
 
     case EX_FPE:                                                        /*  floating point exception    */
-        abtInfo.VMABT_uiMethod = 0;
+        uiFEXR = mipsVfp32GetFEXR();                                    /*  获得浮点异常类型            */
+
+        if (uiFEXR & (1 << 17)) {
+            abtInfo.VMABT_uiMethod = FPE_FLTSUB;
+
+        } else if (uiFEXR & (1 << 16)) {
+            abtInfo.VMABT_uiMethod = FPE_FLTINV;
+
+        } else if (uiFEXR & (1 << 15)) {
+            abtInfo.VMABT_uiMethod = FPE_FLTDIV;
+
+        } else if (uiFEXR & (1 << 14)) {
+            abtInfo.VMABT_uiMethod = FPE_FLTOVF;
+
+        } else if (uiFEXR & (1 << 13)) {
+            abtInfo.VMABT_uiMethod = FPE_FLTUND;
+
+        } else if (uiFEXR & (1 << 12)) {
+            abtInfo.VMABT_uiMethod = FPE_FLTRES;
+
+        } else {
+            abtInfo.VMABT_uiMethod = 0;
+        }
+
         abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FPE;
         API_VmmAbortIsr(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur);
+        mipsVfp32ClearFEXR();                                           /*  清除浮点异常                */
         break;
 
     case EX_CPU:                                                        /*  CoProcessor Unusable        */

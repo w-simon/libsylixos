@@ -199,7 +199,8 @@ static VOID  x86FpErrorExceptHandle (UINT32  uiX86Vector, UINT32  uiESP)
 
     ulRetAddr = pregctx->REG_uiEIP;
 
-    abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_FPE;
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FPE;
+    abtInfo.VMABT_uiMethod = FPE_INTDIV;                                /*  Ä¬ÈÏÎª³ý 0 Òì³£             */
 
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
 }

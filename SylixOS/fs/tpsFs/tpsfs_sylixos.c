@@ -1982,7 +1982,7 @@ static INT  __tpsFsSymlink (PTPS_VOLUME   ptpsfs,
     }
 
     iErr = tpsFsOpen(ptpsfs->TPSVOL_tpsFsVol, pcName,
-                     O_CREAT | O_EXCL, S_IFLNK | DEFAULT_FILE_PERM,
+                     O_CREAT | O_EXCL, S_IFLNK | DEFAULT_SYMLINK_PERM,
                      LW_NULL, &pinode);
     if (iErr != ERROR_NONE) {
         __TPS_VOL_UNLOCK(ptpsfs);
