@@ -38,6 +38,45 @@ static PMIPS_FPU_OP     _G_pfpuop;
 *********************************************************************************************************/
 extern UINT32  mipsVfp32GetFIR(VOID);
 /*********************************************************************************************************
+  Fpu 模拟器帧池
+*********************************************************************************************************/
+static MIPS_FPU_EMU_FRAME   *_G_pmipsfpuePool;
+/*********************************************************************************************************
+** 函数名称: archFpuEmuInit
+** 功能描述: Fpu 模拟器初始化 (必须在 MMU 初始化后被调用)
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  archFpuEmuInit (VOID)
+{
+#if LW_CFG_VMM_EN > 0
+    _G_pmipsfpuePool = (MIPS_FPU_EMU_FRAME *)API_VmmMallocEx(sizeof(MIPS_FPU_EMU_FRAME) * LW_CFG_MAX_THREADS,
+                                                             LW_VMM_FLAG_RDWR | LW_VMM_FLAG_EXEC);
+#else
+    _G_pmipsfpuePool = (MIPS_FPU_EMU_FRAME *)__KHEAP_ALLOC(sizeof(MIPS_FPU_EMU_FRAME) * LW_CFG_MAX_THREADS);
+#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
+
+    _BugHandle(!_G_pmipsfpuePool, LW_TRUE, "can not allocate FPU emulator pool.\r\n");
+}
+/*********************************************************************************************************
+** 函数名称: archFpuEmuFrameGet
+** 功能描述: Fpu 模拟器帧获取 (在浮点异常中执行)
+** 输　入  : ptcbCur       当前任务 TCB
+** 输　出  : 模拟器帧
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+MIPS_FPU_EMU_FRAME  *archFpuEmuFrameGet (PLW_CLASS_TCB  ptcbCur)
+{
+    MIPS_FPU_EMU_FRAME  *pmipsfpue;
+
+    pmipsfpue = &_G_pmipsfpuePool[_ObjectGetIndex(ptcbCur->TCB_ulId)];
+
+    return  (pmipsfpue);
+}
+/*********************************************************************************************************
 ** 函数名称: archFpuPrimaryInit
 ** 功能描述: 主核 Fpu 控制器初始化
 ** 输　入  : pcMachineName 机器名称

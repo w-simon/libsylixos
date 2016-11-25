@@ -48,7 +48,7 @@ MACRO_DEF(ENABLE_FPU)
     MFC0(T0, CP0_STATUS)
     OR      T0 , M_StatusCU1
     MTC0(T0, CP0_STATUS)
-MACRO_END()
+    MACRO_END()
 
 ;/*********************************************************************************************************
 ;  初始化 FPU
@@ -100,7 +100,7 @@ FUNC_DEF(mipsVfp32Init)
     MTC0(T1, CP0_STATUS)
     JR      RA
     NOP
-FUNC_END(mipsVfp32Init)
+    FUNC_END(mipsVfp32Init)
 
 ;/*********************************************************************************************************
 ;  使能 FPU
@@ -110,7 +110,7 @@ FUNC_DEF(mipsVfp32Enable)
     ENABLE_FPU
     JR      RA
     NOP
-FUNC_END(mipsVfp32Enable)
+    FUNC_END(mipsVfp32Enable)
 
 ;/*********************************************************************************************************
 ;  禁能 FPU
@@ -122,7 +122,7 @@ FUNC_DEF(mipsVfp32Disable)
     MTC0(T0, CP0_STATUS)
     JR      RA
     NOP
-FUNC_END(mipsVfp32Disable)
+    FUNC_END(mipsVfp32Disable)
 
 ;/*********************************************************************************************************
 ;  判断 FPU 是否使能
@@ -138,7 +138,7 @@ FUNC_DEF(mipsVfp32IsEnable)
 1:
     JR      RA
     NOP
-FUNC_END(mipsVfp32IsEnable)
+    FUNC_END(mipsVfp32IsEnable)
 
 ;/*********************************************************************************************************
 ;  获得 FIR 寄存器
@@ -154,7 +154,7 @@ FUNC_DEF(mipsVfp32GetFIR)
     MTC0(T1, CP0_STATUS)
     JR      RA
     NOP
-FUNC_END(mipsVfp32GetFIR)
+    FUNC_END(mipsVfp32GetFIR)
 
 ;/*********************************************************************************************************
 ;  保存 FPU 寄存器
@@ -201,7 +201,7 @@ FUNC_DEF(mipsVfp32Save)
 
     JR      RA
     NOP
-FUNC_END(mipsVfp32Save)
+    FUNC_END(mipsVfp32Save)
 
 ;/*********************************************************************************************************
 ;  恢复 FPU 寄存器
@@ -249,7 +249,7 @@ FUNC_DEF(mipsVfp32Restore)
 
     JR      RA
     NOP
-FUNC_END(mipsVfp32Restore)
+    FUNC_END(mipsVfp32Restore)
 
 ;/*********************************************************************************************************
 ;  获得 FRXR 寄存器
@@ -259,7 +259,7 @@ FUNC_DEF(mipsVfp32GetFEXR)
     CFC1(V0,  CP1_FEXR)
     JR      RA
     NOP
-FUNC_END(mipsVfp32GetFEXR)
+    FUNC_END(mipsVfp32GetFEXR)
 
 ;/*********************************************************************************************************
 ;  清除浮点异常
@@ -269,7 +269,7 @@ FUNC_DEF(mipsVfp32ClearFEXR)
     CTC1(ZERO, CP1_FEXR)
     JR      RA
     NOP
-FUNC_END(mipsVfp32ClearFEXR)
+    FUNC_END(mipsVfp32ClearFEXR)
 
     FILE_END()
 

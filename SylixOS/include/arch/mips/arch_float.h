@@ -69,13 +69,24 @@
 
 #if (!defined(__ASSEMBLY__)) && (!defined(ASSEMBLY))
 
-typedef struct arch_fpu_ctx {                                           /* FP_CONTEXT 上下文            */
-    UINT32              FPUCTX_uiReg[FP_NUM_DREGS * 2];                 /* 32 个双精度浮点 64 位寄存器  */
-    UINT32              FPUCTX_uiFpcsr;                                 /* status and control register  */
-    UINT32              FPUCTX_uiPad;
+#define FPU_REG_WIDTH   64
+
+union fpureg {
+    UINT32              val32[FPU_REG_WIDTH / 32];
+    UINT64              val64[FPU_REG_WIDTH / 64];
+};
+
+/*
+ * It would be nice to add some more fields for emulator statistics,
+ * the additional information is private to the FPU emulator for now.
+ */
+typedef struct arch_fpu_ctx {                                           /*  FP_CONTEXT 上下文           */
+    union fpureg        FPUCTX_reg[FP_NUM_DREGS];
+    UINT32              FPUCTX_uiFpcsr;
+    UINT32              FPUCTX_uiMsacsr;
 } ARCH_FPU_CTX;
 
-#define ARCH_FPU_CTX_ALIGN      8                                       /* FPU CTX align size           */
+#define ARCH_FPU_CTX_ALIGN      8                                       /*  FPU CTX align size          */
 
 /*********************************************************************************************************
   float 格式 (使用 union 类型作为中间转换, 避免 GCC 3.x.x strict aliasing warning)
@@ -167,6 +178,20 @@ static LW_INLINE INT  __ARCH_DOUBLE_ISINF (double  x)
              ((dblflt.dblfield.fracl == 0) ||
               (dblflt.dblfield.frach == 0)));
 }
+
+/*********************************************************************************************************
+  MIPS FPU 模拟帧
+*********************************************************************************************************/
+
+typedef UINT  MIPS_INSTRUCTION;
+
+typedef struct {
+    MIPS_INSTRUCTION      MIPSFPUE_emul;
+
+#define BRK_MEMU          514                                           /*  Used by FPU emulator        */
+#define BREAK_MATH(micromips)   (((micromips) ? 0x7 : 0xd) | (BRK_MEMU << 16))
+    MIPS_INSTRUCTION      MIPSFPUE_badinst;
+} MIPS_FPU_EMU_FRAME;
 
 #endif                                                                  /*  __ASSEMBLY__                */
 #endif                                                                  /*  __SYLIXOS_KERNEL            */

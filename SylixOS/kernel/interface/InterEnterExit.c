@@ -49,13 +49,13 @@
 
 static VOID  __fpuInterEnter (PLW_CLASS_CPU  pcpu)
 {
-    PLW_CLASS_TCB  pctbCur;
+    PLW_CLASS_TCB  ptcbCur;
     ULONG          ulInterNesting = pcpu->CPU_ulInterNesting;
     
     if (pcpu->CPU_ulInterNesting == 1) {                                /*  从任务态进入中断            */
-        pctbCur = pcpu->CPU_ptcbTCBCur;
-        if (pctbCur->TCB_ulOption & LW_OPTION_THREAD_USED_FP) {
-            __ARCH_FPU_SAVE(pctbCur->TCB_pvStackFP);                    /*  保存当前被中断线程 FPU CTX  */
+        ptcbCur = pcpu->CPU_ptcbTCBCur;
+        if (ptcbCur->TCB_ulOption & LW_OPTION_THREAD_USED_FP) {
+            __ARCH_FPU_SAVE(ptcbCur->TCB_pvStackFP);                    /*  保存当前被中断线程 FPU CTX  */
         
         } else {
             __ARCH_FPU_ENABLE();                                        /*  使能当前中断下 FPU          */
@@ -75,16 +75,16 @@ static VOID  __fpuInterEnter (PLW_CLASS_CPU  pcpu)
 *********************************************************************************************************/
 static VOID  __fpuInterExit (PLW_CLASS_CPU  pcpu)
 {
-    PLW_CLASS_TCB  pctbCur;
+    PLW_CLASS_TCB  ptcbCur;
     ULONG          ulInterNesting = pcpu->CPU_ulInterNesting;
     
     if (ulInterNesting) {                                               /*  退出后还在中断中            */
         __ARCH_FPU_RESTORE(__INTER_FPU_CTX(ulInterNesting));
     
     } else {                                                            /*  退出到任务状态              */
-        pctbCur = pcpu->CPU_ptcbTCBCur;
-        if (pctbCur->TCB_ulOption & LW_OPTION_THREAD_USED_FP) {
-            __ARCH_FPU_RESTORE(pctbCur->TCB_pvStackFP);                 /*  没有产生调度, 则恢复 FPU CTX*/
+        ptcbCur = pcpu->CPU_ptcbTCBCur;
+        if (ptcbCur->TCB_ulOption & LW_OPTION_THREAD_USED_FP) {
+            __ARCH_FPU_RESTORE(ptcbCur->TCB_pvStackFP);                 /*  没有产生调度, 则恢复 FPU CTX*/
         
         } else {
             __ARCH_FPU_DISABLE();                                       /*  继续执行的任务不需要 FPU    */

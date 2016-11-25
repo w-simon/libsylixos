@@ -98,7 +98,7 @@ FUNC_DEF(mips32L1CacheDisable)
     NOP
 
     .set    pop
-FUNC_END(mips32L1CacheDisable)
+    FUNC_END(mips32L1CacheDisable)
 
 ;/*********************************************************************************************************
 ;  使能 CACHE
@@ -125,7 +125,7 @@ FUNC_DEF(mips32L1CacheEnable)
     NOP
 
     .set    pop
-FUNC_END(mips32L1CacheEnable)
+    FUNC_END(mips32L1CacheEnable)
 
 ;/*********************************************************************************************************
 ;  CACHE 操作宏
@@ -144,7 +144,7 @@ MACRO_DEF(CACHE_OP op addr)
     NOP
 
     .set    pop
-MACRO_END()
+    MACRO_END()
 
 ;/*********************************************************************************************************
 ;  回写一个 DCACHE 行
@@ -152,7 +152,7 @@ MACRO_END()
 
 FUNC_DEF(mips32DCacheLineFlush)
     CACHE_OP    Hit_Writeback_D         A0
-FUNC_END(mips32DCacheLineFlush)
+    FUNC_END(mips32DCacheLineFlush)
 
 ;/*********************************************************************************************************
 ;  回写并无效一个 DCACHE 行
@@ -160,7 +160,7 @@ FUNC_END(mips32DCacheLineFlush)
 
 FUNC_DEF(mips32DCacheLineClear)
     CACHE_OP    Hit_Writeback_Inv_D     A0
-FUNC_END(mips32DCacheLineClear)
+    FUNC_END(mips32DCacheLineClear)
 
 ;/*********************************************************************************************************
 ;  无效一个 DCACHE 行
@@ -168,7 +168,7 @@ FUNC_END(mips32DCacheLineClear)
 
 FUNC_DEF(mips32DCacheLineInvalidate)
     CACHE_OP    Hit_Invalidate_D        A0
-FUNC_END(mips32DCacheLineInvalidate)
+    FUNC_END(mips32DCacheLineInvalidate)
 
 ;/*********************************************************************************************************
 ;  通过 Cache 存储器的地址索引回写并无效一个 DCACHE 行
@@ -176,7 +176,7 @@ FUNC_END(mips32DCacheLineInvalidate)
 
 FUNC_DEF(mips32DCacheIndexClear)
     CACHE_OP    Index_Writeback_Inv_D   A0
-FUNC_END(mips32DCacheIndexClear)
+    FUNC_END(mips32DCacheIndexClear)
 
 ;/*********************************************************************************************************
 ;  无效一个 ICACHE 行
@@ -184,7 +184,7 @@ FUNC_END(mips32DCacheIndexClear)
 
 FUNC_DEF(mips32ICacheLineInvalidate)
     CACHE_OP    Hit_Invalidate_I        A0
-FUNC_END(mips32ICacheLineInvalidate)
+    FUNC_END(mips32ICacheLineInvalidate)
 
 ;/*********************************************************************************************************
 ;  通过 Cache 存储器的地址索引回写并无效一个 ICACHE 行
@@ -192,7 +192,7 @@ FUNC_END(mips32ICacheLineInvalidate)
 
 FUNC_DEF(mips32ICacheIndexInvalidate)
     CACHE_OP    Index_Invalidate_I      A0
-FUNC_END(mips32ICacheIndexInvalidate)
+    FUNC_END(mips32ICacheIndexInvalidate)
 
 ;/*********************************************************************************************************
 ;  FILL I-Cache
@@ -200,7 +200,7 @@ FUNC_END(mips32ICacheIndexInvalidate)
 
 FUNC_DEF(mips32ICacheFill)
     CACHE_OP    Fill_I                  A0
-FUNC_END(mips32ICacheFill)
+    FUNC_END(mips32ICacheFill)
 
 ;/*********************************************************************************************************
 ;  设置 D-Cache 的 TAG
@@ -208,7 +208,7 @@ FUNC_END(mips32ICacheFill)
 
 FUNC_DEF(mips32DCacheIndexStoreTag)
     CACHE_OP    Index_Store_Tag_D       A0
-FUNC_END(mips32DCacheIndexStoreTag)
+    FUNC_END(mips32DCacheIndexStoreTag)
 
 ;/*********************************************************************************************************
 ;  设置 I-Cache 的 TAG
@@ -216,7 +216,7 @@ FUNC_END(mips32DCacheIndexStoreTag)
 
 FUNC_DEF(mips32ICacheIndexStoreTag)
     CACHE_OP    Index_Store_Tag_I       A0
-FUNC_END(mips32ICacheIndexStoreTag)
+    FUNC_END(mips32ICacheIndexStoreTag)
 
 ;/*********************************************************************************************************
 ;  禁能分支预测
@@ -225,7 +225,7 @@ FUNC_END(mips32ICacheIndexStoreTag)
 FUNC_DEF(mips32BranchPredictionDisable)
     JR      RA
     NOP
-FUNC_END(mips32BranchPredictionDisable)
+    FUNC_END(mips32BranchPredictionDisable)
 
 ;/*********************************************************************************************************
 ;  使能分支预测
@@ -234,7 +234,7 @@ FUNC_END(mips32BranchPredictionDisable)
 FUNC_DEF(mips32BranchPredictionEnable)
     JR      RA
     NOP
-FUNC_END(mips32BranchPredictionEnable)
+    FUNC_END(mips32BranchPredictionEnable)
 
 ;/*********************************************************************************************************
 ;  无效分支预测
@@ -243,7 +243,7 @@ FUNC_END(mips32BranchPredictionEnable)
 FUNC_DEF(mips32BranchPredictorInvalidate)
     JR      RA
     NOP
-FUNC_END(mips32BranchPredictorInvalidate)
+    FUNC_END(mips32BranchPredictorInvalidate)
 
     FILE_END()
 

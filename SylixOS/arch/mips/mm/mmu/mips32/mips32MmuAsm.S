@@ -117,7 +117,7 @@ FUNC_DEF(mips32TlbRefillEntry)
     ERET                                                                ;/*  “Ï≥£∑µªÿ                    */
 
     .set    pop
-FUNC_END(mips32TlbRefillEntry)
+    FUNC_END(mips32TlbRefillEntry)
 
     FILE_END()
 

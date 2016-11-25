@@ -48,7 +48,26 @@
 
 clock_t  lib_clock (VOID)
 {
-    return  ((clock_t)API_TimeGet());
+    clock_t  clockRet;
+
+#if LW_CFG_MODULELOADER_EN > 0
+    INTREG        iregInterLevel;
+    LW_LD_VPROC  *pvproc = __LW_VP_GET_CUR_PROC();
+    
+    if (pvproc == LW_NULL) {
+        clockRet = (clock_t)API_TimeGet();
+
+    } else {
+        LW_SPIN_KERN_LOCK_QUICK(&iregInterLevel);
+        clockRet = pvproc->VP_clockUser;
+        LW_SPIN_KERN_UNLOCK_QUICK(iregInterLevel);
+    }
+
+#else
+    clockRet = (clock_t)API_TimeGet();
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
+    
+    return  (clockRet);
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: clock_getcpuclockid

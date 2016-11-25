@@ -123,6 +123,15 @@ VOID    archPageCopy(PVOID pvTo, PVOID pvFrom);
 VOID    archReboot(INT  iRebootType, addr_t  ulStartAddress);
 
 /*********************************************************************************************************
+  MIPS 处理器 BogoMIPS 循环
+*********************************************************************************************************/
+
+VOID    archBogoMipsLoop(ULONG  ulLoop);
+
+#define __ARCH_BOGOMIPS_LOOP            archBogoMipsLoop
+#define __ARCH_BOGOMIPS_INS_PER_LOOP    2
+
+/*********************************************************************************************************
   MIPS 处理器 CACHE 操作
 *********************************************************************************************************/
 
@@ -223,6 +232,7 @@ VOID    archMpInt(ULONG  ulCPUId);
 #define MIPS_FPU_NONE     "none"
 
 #if LW_CFG_CPU_FPU_EN > 0
+VOID    archFpuEmuInit(VOID);
 VOID    archFpuPrimaryInit(CPCHAR  pcMachineName, CPCHAR  pcFpuName);
 #if LW_CFG_SMP_EN > 0
 VOID    archFpuSecondaryInit(CPCHAR  pcMachineName, CPCHAR  pcFpuName);

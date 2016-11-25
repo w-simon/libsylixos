@@ -49,7 +49,7 @@ FUNC_DEF(archGetGP)
     LA      V0 , _gp
     JR      RA
     NOP
-FUNC_END(archGetGP)
+    FUNC_END(archGetGP)
 
 ;/*********************************************************************************************************
 ;  当前 CPU 开始运行多任务执行
@@ -68,7 +68,7 @@ FUNC_DEF(archTaskCtxStart)
     RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
 
     .set    pop
-FUNC_END(archTaskCtxStart)
+    FUNC_END(archTaskCtxStart)
 
 ;/*********************************************************************************************************
 ;  线程切换
@@ -107,7 +107,7 @@ FUNC_DEF(archTaskCtxSwitch)
     RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
 
     .set    pop
-FUNC_END(archTaskCtxSwitch)
+    FUNC_END(archTaskCtxSwitch)
 
 ;/*********************************************************************************************************
 ;  协程切换
@@ -147,7 +147,7 @@ FUNC_DEF(archCrtCtxSwitch)
     RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
 
     .set    pop
-FUNC_END(archCrtCtxSwitch)
+    FUNC_END(archCrtCtxSwitch)
 #endif
 
 ;/*********************************************************************************************************
@@ -182,7 +182,7 @@ FUNC_DEF(archIntCtxLoad)
     RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
 
     .set    pop
-FUNC_END(archIntCtxLoad)
+    FUNC_END(archIntCtxLoad)
 
 ;/*********************************************************************************************************
 ;  信号上下文返回
@@ -200,7 +200,7 @@ FUNC_DEF(archSigCtxLoad)
     RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
 
     .set    pop
-FUNC_END(archSigCtxLoad)
+    FUNC_END(archSigCtxLoad)
 
     FILE_END()
 

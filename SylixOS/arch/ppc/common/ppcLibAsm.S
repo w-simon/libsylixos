@@ -49,6 +49,7 @@
     EXPORT_LABEL(archPageCopy)
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
     EXPORT_LABEL(archReboot)
+    EXPORT_LABEL(archBogoMipsLoop)
 
     WEAK(archIntDisable)
     WEAK(archIntEnable)
@@ -346,6 +347,18 @@ FUNC_DEF(archReboot)
     B       bspReboot
     FUNC_END()
     
+;/*********************************************************************************************************
+;  Bogo Ñ­»·
+;*********************************************************************************************************/
+
+FUNC_DEF(archBogoMipsLoop)
+1:
+    SUBI    R3 , R3 , 1
+    CMPWI   CR0, R3 , 0
+    BNE     CR0, 1b
+    BLR
+    FUNC_END()
+
     FILE_END()
    
 ;/*********************************************************************************************************

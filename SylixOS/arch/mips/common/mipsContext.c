@@ -50,6 +50,7 @@ PLW_STACK  archTaskCtxCreate (PTHREAD_START_ROUTINE  pfuncTask,
 
     uiCP0Status  = mipsCp0StatusRead();                                 /*  获得当前的 CP0 STATUS 寄存器*/
     uiCP0Status |= bspIntInitEnableStatus() | M_StatusIE;               /*  使能中断                    */
+    uiCP0Status &= ~M_StatusCU1;                                        /*  禁能 FPU                    */
 
     if ((addr_t)pstkTop & 0x7) {                                        /*  保证出栈后 CPU SP 8 字节对齐*/
         pstkTop = (PLW_STACK)((addr_t)pstkTop - 4);                     /*  向低地址推进 4 字节         */

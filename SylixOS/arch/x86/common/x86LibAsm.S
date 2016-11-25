@@ -46,6 +46,7 @@
     EXPORT_LABEL(archIntEnable)
     EXPORT_LABEL(archIntEnableForce)
     EXPORT_LABEL(archReboot)
+    EXPORT_LABEL(archBogoMipsLoop)
 
     WEAK(archIntDisable)
     WEAK(archIntEnable)
@@ -268,6 +269,18 @@ FUNC_DEF(archReboot)
     JMP     bspReboot
     FUNC_END(archReboot)
     
+;/*********************************************************************************************************
+;  Bogo Ñ­»·
+;*********************************************************************************************************/
+
+FUNC_DEF(archBogoMipsLoop)
+    MOVL    X86_SP_ARG1(%ESP) , %EAX
+1:
+    DEC     %EAX
+    JNS     1b
+    RET
+    FUNC_END(archBogoMipsLoop)
+
     FILE_END()
    
 ;/*********************************************************************************************************

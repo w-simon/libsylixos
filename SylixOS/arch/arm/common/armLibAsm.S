@@ -52,6 +52,7 @@
     EXPORT_LABEL(archIntEnableForce)
     EXPORT_LABEL(archPageCopy)
     EXPORT_LABEL(archReboot)
+    EXPORT_LABEL(archBogoMipsLoop)
     
     WEAK(archIntDisable)
     WEAK(archIntEnable)
@@ -279,8 +280,18 @@ FUNC_DEF(archReboot)
     B       bspReboot                                                   ;/* 不再返回, 由 BSP 进行复位操作*/
     FUNC_END()
     
+;/*********************************************************************************************************
+;  Bogo 循环
+;*********************************************************************************************************/
+FUNC_DEF(archBogoMipsLoop)
+1:
+    SUBS    R0 , R0 , #1
+    BNE     1b
+    BX      LR
+    FUNC_END()
+
     FILE_END()
-   
+
 ;/*********************************************************************************************************
 ;  END
 ;*********************************************************************************************************/

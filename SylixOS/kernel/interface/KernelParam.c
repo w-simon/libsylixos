@@ -95,9 +95,13 @@ ULONG  API_KernelStartParam (CPCHAR  pcParam)
             if (pcTok[5] == 'n') {
                 LW_KERN_FPU_EN_SET(LW_FALSE);
             } else {
+#ifdef LW_CFG_CPU_ARCH_MIPS                                             /*  MIPS 平台不允许 kfpu 操作   */
+                bspDebugMsg("SylixOS do not support kfpu on MIPS!\r\n");
+#else
                 LW_KERN_FPU_EN_SET(LW_TRUE);
+#endif                                                                  /*  LW_CFG_CPU_ARCH_MIPS        */
             }
-        
+
         } else if (lib_strncmp(pcTok, "bugreboot=", 5) == 0) {          /*  探测到 bug 时是否自动重启   */
             if (pcTok[10] == 'n') {
                 LW_KERN_BUG_REBOOT_EN_SET(LW_FALSE);
@@ -153,7 +157,7 @@ ULONG  API_KernelStartParam (CPCHAR  pcParam)
             __ARCH_KERNEL_PARAM(pcTok);                                 /*  体系结构相关参数            */
         }
 #endif                                                                  /*  __ARCH_KERNEL_PARAM         */
-          
+        
         pcTok = lib_strtok_r(LW_NULL, pcDelim, &pcLast);
     }
     

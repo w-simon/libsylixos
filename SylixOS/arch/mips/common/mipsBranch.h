@@ -33,6 +33,16 @@ static inline int delay_slot(ARCH_REG_CTX *regs)
     return regs->REG_uiCP0Cause & M_CauseBD;
 }
 
+static inline void clear_delay_slot(ARCH_REG_CTX *regs)
+{
+    regs->REG_uiCP0Cause &= ~M_CauseBD;
+}
+
+static inline void set_delay_slot(ARCH_REG_CTX *regs)
+{
+    regs->REG_uiCP0Cause |= M_CauseBD;
+}
+
 static inline unsigned long exception_epc(ARCH_REG_CTX *regs)
 {
     if (!delay_slot(regs))

@@ -41,8 +41,17 @@
   外部函数声明
 *********************************************************************************************************/
 extern VOID    archTaskCtxPrint(PLW_STACK  pstkTop);
+#if LW_CFG_CPU_FPU_EN > 0
 extern UINT32  mipsVfp32GetFEXR(VOID);
 extern VOID    mipsVfp32ClearFEXR(VOID);
+extern int     fpu_emulator_cop1Handler(ARCH_REG_CTX *xcp, ARCH_FPU_CTX *ctx,
+                                        int has_fpu, void **fault_addr);
+extern int     do_dsemulret(PLW_CLASS_TCB ptcbCur, ARCH_REG_CTX *xcp);
+#endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+/*********************************************************************************************************
+  FPU 上下文(用于 FPU 模拟)
+*********************************************************************************************************/
+ARCH_FPU_CTX   _G_mipsFpuCtx[LW_CFG_MAX_PROCESSORS];
 /*********************************************************************************************************
 ** 函数名称: archIntHandle
 ** 功能描述: bspIntHandle 需要调用此函数处理中断 (关闭中断情况被调用)
@@ -110,15 +119,14 @@ VOID  archCacheErrorHandle (addr_t  ulRetAddr)
     mipsCp0ConfigWrite((uiRegVal & ~M_ConfigK0) | MIPS_UNCACHED);
 
     _PrintFormat("Cache error exception:\r\n");
-    _PrintFormat("cp0_errorepc == %lx\r\n", uiFiled, mipsCp0ERRPCRead());
+    _PrintFormat("cp0_error epc == %lx\r\n", uiFiled, mipsCp0ERRPCRead());
 
     uiRegVal = mipsCp0CacheErrRead();
 
-    _PrintFormat("cp0_cacheerr == 0x%08x\r\n", uiRegVal);
-
-    _PrintFormat("Decoded cp0_cacheerr: %s cache fault in %s reference.\r\n",
+    _PrintFormat("cp0_cache error == 0x%08x\r\n", uiRegVal);
+    _PrintFormat("Decoded cp0_cache error: %s cache fault in %s reference.\r\n",
                  (uiRegVal & M_CacheLevel) ? "secondary" : "primary",
-                 (uiRegVal & M_CacheType)  ? "data"      : "insn");
+                 (uiRegVal & M_CacheType)  ? "d-cache"   : "i-cache");
 
     _PrintFormat("Error bits: %s%s%s%s%s%s%s\r\n",
                  (uiRegVal & M_CacheData) ? "ED " : "",
@@ -134,7 +142,7 @@ VOID  archCacheErrorHandle (addr_t  ulRetAddr)
     LW_TCB_GET_CUR(ptcbCur);
 
     abtInfo.VMABT_uiMethod = 0;
-    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_TERMINAL;
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FATAL_ERROR;
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
 }
 
@@ -218,6 +226,14 @@ VOID  archExceptionHandle (addr_t  ulRetAddr, UINT32  uiCause, addr_t  ulAbortAd
 
     case EX_BP:                                                         /*  Breakpoint                  */
     case EX_TR:                                                         /*  Trap instruction            */
+#if LW_CFG_CPU_FPU_EN > 0
+        if (*(MIPS_INSTRUCTION *)ulRetAddr == BRK_MEMU) {
+            if (do_dsemulret(ptcbCur, (ARCH_REG_CTX *)ptcbCur->TCB_pstkStackNow) == ERROR_NONE) {
+                break;                                                  /*  FPU 模拟返回                */
+            }
+        }
+#endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+
 #if LW_CFG_GDB_EN > 0
         uiBpType = archDbgTrapType(ulRetAddr, LW_NULL);                 /*  断点指令探测                */
         if (uiBpType) {
@@ -238,33 +254,76 @@ VOID  archExceptionHandle (addr_t  ulRetAddr, UINT32  uiCause, addr_t  ulAbortAd
         break;
 
     case EX_FPE:                                                        /*  floating point exception    */
+        abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_FPE;                   /*  终止类型默认为 FPU 异常     */
+
+#if LW_CFG_CPU_FPU_EN > 0
         uiFEXR = mipsVfp32GetFEXR();                                    /*  获得浮点异常类型            */
+        if (uiFEXR & (1 << 17)) {                                       /*  未实现异常                  */
+            PVOID           pvFaultAddr;
+            INT             iSignal;
+            ARCH_FPU_CTX   *pFpuCtx;
 
-        if (uiFEXR & (1 << 17)) {
-            abtInfo.VMABT_uiMethod = FPE_FLTSUB;
+            pFpuCtx = &_G_mipsFpuCtx[LW_CPU_GET_CUR_ID()];
+            __ARCH_FPU_SAVE(pFpuCtx);                                   /*  保存当前 FPU CTX           */
 
-        } else if (uiFEXR & (1 << 16)) {
+            iSignal = fpu_emulator_cop1Handler((ARCH_REG_CTX *)ptcbCur->TCB_pstkStackNow,
+                                               (ARCH_FPU_CTX *)pFpuCtx,
+                                               LW_TRUE, &pvFaultAddr);  /*  FPU 模拟                    */
+            switch (iSignal) {
+
+            case 0:                                                     /*  成功模拟                    */
+                abtInfo.VMABT_uiType = 0;
+                __ARCH_FPU_RESTORE(pFpuCtx);                            /*  恢复当前 FPU CTX            */
+                break;
+
+            case SIGILL:                                                /*  未定义指令                  */
+                abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
+                abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_UNDEF;
+                break;
+
+            case SIGBUS:                                                /*  总线错误                    */
+                abtInfo.VMABT_uiMethod = BUS_ADRERR;
+                abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
+                break;
+
+            case SIGSEGV:                                               /*  地址不合法                  */
+                abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_WRITE;
+                abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_TERMINAL;
+                ulAbortAddr = (ULONG)pvFaultAddr;
+                break;
+
+            case SIGFPE:                                                /*  FPU 错误                    */
+            default:
+                abtInfo.VMABT_uiMethod = 0;
+                break;
+            }
+
+        } else if (uiFEXR & (1 << 16)) {                                /*  非法操作异常                */
             abtInfo.VMABT_uiMethod = FPE_FLTINV;
 
-        } else if (uiFEXR & (1 << 15)) {
+        } else if (uiFEXR & (1 << 15)) {                                /*  除零异常                    */
             abtInfo.VMABT_uiMethod = FPE_FLTDIV;
 
-        } else if (uiFEXR & (1 << 14)) {
+        } else if (uiFEXR & (1 << 14)) {                                /*  上溢异常                    */
             abtInfo.VMABT_uiMethod = FPE_FLTOVF;
 
         } else if (uiFEXR & (1 << 13)) {
-            abtInfo.VMABT_uiMethod = FPE_FLTUND;
+            abtInfo.VMABT_uiMethod = FPE_FLTUND;                        /*  下溢异常                    */
 
-        } else if (uiFEXR & (1 << 12)) {
+        } else if (uiFEXR & (1 << 12)) {                                /*  不精确异常                  */
             abtInfo.VMABT_uiMethod = FPE_FLTRES;
 
         } else {
             abtInfo.VMABT_uiMethod = 0;
         }
+#endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 
-        abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FPE;
-        API_VmmAbortIsr(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur);
+        if (abtInfo.VMABT_uiType) {
+            API_VmmAbortIsr(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur);
+        }
+#if LW_CFG_CPU_FPU_EN > 0
         mipsVfp32ClearFEXR();                                           /*  清除浮点异常                */
+#endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
         break;
 
     case EX_CPU:                                                        /*  CoProcessor Unusable        */

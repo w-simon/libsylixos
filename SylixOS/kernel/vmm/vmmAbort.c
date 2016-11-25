@@ -741,6 +741,9 @@ static PCHAR  __vmmAbortTypeStr (PLW_VMM_ABORT  pabtInfo)
     case LW_VMM_ABORT_TYPE_UNDEF:
         return  ("undefined instruction");
     
+    case LW_VMM_ABORT_TYPE_FATAL_ERROR:
+        return  ("fata error");
+    
     default:
         return  ("unknown");
     }
@@ -891,6 +894,37 @@ static VOID  __vmmAbortAccess (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
     archSigCtxLoad(pvmpagefailctx->PAGEFCTX_pvStackRet);                /*  从 page fail 上下文中返回   */
 }
 /*********************************************************************************************************
+** 函数名称: __vmmAbortFataDetected
+** 功能描述: 致命错误检查
+** 输　入  : ulRetAddr     异常返回地址
+**           ulAbortAddr   异常地址 (异常类型相关)
+**           pabtInfo      异常类型
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static VOID  __vmmAbortFataDetected (addr_t          ulRetAddr, 
+                                     addr_t          ulAbortAddr, 
+                                     PLW_VMM_ABORT   pabtInfo)
+{
+    if (LW_CPU_GET_CUR_NESTING() > 1) {
+        _DebugFormat(__ERRORMESSAGE_LEVEL, 
+                     "FATAL ERROR: abort occur in exception mode. "
+                     "ret_addr: 0x%08lx abt_addr: 0x%08lx abt_type: %s\r\n"
+                     "rebooting...\r\n",
+                     ulRetAddr, ulAbortAddr, __vmmAbortTypeStr(pabtInfo));
+        API_KernelReboot(LW_REBOOT_FORCE);                              /*  直接重新启动操作系统        */
+    
+    } else if (pabtInfo->VMABT_uiType == LW_VMM_ABORT_TYPE_FATAL_ERROR) {  
+        _DebugFormat(__ERRORMESSAGE_LEVEL,                              /*  关键性错误                  */
+                     "FATAL ERROR: "
+                     "ret_addr: 0x%08lx abt_addr: 0x%08lx abt_type: %s\r\n"
+                     "rebooting...\r\n",
+                     ulRetAddr, ulAbortAddr, __vmmAbortTypeStr(pabtInfo));
+        API_KernelReboot(LW_REBOOT_FORCE);                              /*  直接重新启动操作系统        */
+    }
+}
+/*********************************************************************************************************
 ** 函数名称: API_VmmAbortIsr
 ** 功能描述: 当 MMU 产生访问失效时, 调用此函数(类似于中断服务函数)
 ** 输　入  : ulRetAddr     异常返回地址
@@ -916,19 +950,9 @@ VOID  API_VmmAbortIsr (addr_t          ulRetAddr,
 {
     PLW_VMM_PAGE_FAIL_CTX    pvmpagefailctx;
     PLW_STACK                pstkFailShell;                             /*  启动 fail shell 的堆栈点    */
-    
-    ULONG                    ulNesting = LW_CPU_GET_CUR_NESTING();
     BYTE                    *pucStkNow;                                 /*  记录还原堆栈点              */
     
-    if (ulNesting > 1) {
-        _DebugFormat(__ERRORMESSAGE_LEVEL, 
-                     "abort occur in exception mode. "
-                     "ret_addr: 0x%08lx abt_addr: 0x%08lx abt_type: %s\r\n"
-                     "rebooting...\r\n",
-                     ulRetAddr, ulAbortAddr, __vmmAbortTypeStr(pabtInfo));
-        API_KernelReboot(LW_REBOOT_FORCE);                              /*  直接重新启动操作系统        */
-        return;
-    }
+    __vmmAbortFataDetected(ulRetAddr, ulAbortAddr, pabtInfo);           /*  致命错误探测                */
     
     __KERNEL_ENTER();                                                   /*  进入内核                    */
                                                                         /*  产生异常                    */

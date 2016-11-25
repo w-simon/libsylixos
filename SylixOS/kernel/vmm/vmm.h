@@ -297,7 +297,7 @@ static LW_INLINE ULONG  API_VmmVirtualToPhysical (addr_t  ulVirtualAddr, addr_t 
 typedef struct __lw_vmm_abort {
 
 #define LW_VMM_ABORT_TYPE_NOINFO            0                           /*  内部使用                    */
-#define LW_VMM_ABORT_TYPE_TERMINAL          1                           /*  体系结构相关严重错误        */
+#define LW_VMM_ABORT_TYPE_TERMINAL          1                           /*  体系结构相关错误            */
 #define LW_VMM_ABORT_TYPE_MAP               2                           /*  页表映射错误 (MMU 报告)     */
                                                                         /*  需要 uiMethod 标记访问类型  */
 #define LW_VMM_ABORT_TYPE_PERM              3                           /*  访问权限错误 (MMU 报告)     */
@@ -307,6 +307,8 @@ typedef struct __lw_vmm_abort {
 #define LW_VMM_ABORT_TYPE_BREAK             6                           /*  断点异常                    */
 #define LW_VMM_ABORT_TYPE_SYS               7                           /*  系统调用异常                */
 #define LW_VMM_ABORT_TYPE_UNDEF             8                           /*  未定义指令, 将产生 SIGILL   */
+
+#define LW_VMM_ABORT_TYPE_FATAL_ERROR       0xffffffff                  /*  致命错误, 需要立即重启      */
 
     UINT32               VMABT_uiType;
     

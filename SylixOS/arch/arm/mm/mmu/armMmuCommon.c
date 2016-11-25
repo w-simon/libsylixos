@@ -138,12 +138,16 @@ VOID   armGetAbtType (PLW_VMM_ABORT  pabtInfo)
 #if __SYLIXOS_ARM_ARCH__ < 6
     case ARM_ABORT_ALIGN1:
 #endif                                                                  /*  __SYLIXOS_ARM_ARCH__ < 6    */
+        pabtInfo->VMABT_uiType = LW_VMM_ABORT_TYPE_BUS;
+        break;
+
     case ARM_ABORT_INS_CACHE:
     case ARM_ABORT_1ST_LT:
     case ARM_ABORT_2ND_LT:
     case ARM_ABORT_L1_ECC:
     case ARM_ABORT_L2_ECC:
-        pabtInfo->VMABT_uiType = LW_VMM_ABORT_TYPE_BUS;
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "Cache error detected!\r\n");
+        pabtInfo->VMABT_uiType = LW_VMM_ABORT_TYPE_FATAL_ERROR;
         break;
 
     case ARM_ABORT_SEC_TT:
@@ -212,12 +216,16 @@ VOID   armGetPreType (PLW_VMM_ABORT  pabtInfo)
 #if __SYLIXOS_ARM_ARCH__ < 6
     case ARM_ABORT_ALIGN1:
 #endif                                                                  /*  __SYLIXOS_ARM_ARCH__ < 6    */
+        pabtInfo->VMABT_uiType = LW_VMM_ABORT_TYPE_BUS;
+        break;
+
     case ARM_ABORT_INS_CACHE:
     case ARM_ABORT_1ST_LT:
     case ARM_ABORT_2ND_LT:
     case ARM_ABORT_L1_ECC:
     case ARM_ABORT_L2_ECC:
-        pabtInfo->VMABT_uiType = LW_VMM_ABORT_TYPE_BUS;
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "Cache error detected!\r\n");
+        pabtInfo->VMABT_uiType = LW_VMM_ABORT_TYPE_FATAL_ERROR;
         break;
 
     case ARM_ABORT_SEC_TT:

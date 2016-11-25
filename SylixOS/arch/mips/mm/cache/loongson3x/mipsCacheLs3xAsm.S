@@ -46,7 +46,7 @@ FUNC_DEF(ls3xCacheDisableHw)
     NOP
 
     .set    pop
-FUNC_END(ls3xCacheDisableHw)
+    FUNC_END(ls3xCacheDisableHw)
 
 ;/*********************************************************************************************************
 ;  Ê¹ÄÜ CACHE
@@ -73,7 +73,7 @@ FUNC_DEF(ls3xCacheEnableHw)
     NOP
 
     .set    pop
-FUNC_END(ls3xCacheEnableHw)
+    FUNC_END(ls3xCacheEnableHw)
 
     FILE_END()
 

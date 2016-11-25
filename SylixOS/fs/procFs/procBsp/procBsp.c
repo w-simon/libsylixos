@@ -79,7 +79,7 @@ static LW_PROCFS_NODE_OP        _G_pfsnoBspDmaFuncs = {
   bsp proc 文件目录树
 *********************************************************************************************************/
 #define __PROCFS_BUFFER_SIZE_BSPMEM     1024
-#define __PROCFS_BUFFER_SIZE_CPUINFO    1024
+#define __PROCFS_BUFFER_SIZE_CPUINFO    2048
 #define __PROCFS_BUFFER_SIZE_AUXV       1024
 #define __PROCFS_BUFFER_SIZE_DMA        (48 * (LW_CFG_MAX_DMA_CHANNELS + 2))
 
@@ -143,6 +143,7 @@ static ssize_t  __procFsBspMemRead (PLW_PROCFS_NODE  p_pfsn,
                  bspInfoRamSize(),
                  bspInfoRamBase(),
                  (bspInfoRamBase() + bspInfoRamSize() - 1));            /*  将信息打印到缓冲            */
+        
         API_ProcFsNodeSetRealFileSize(p_pfsn, stRealSize);
     }
     if (oft >= stRealSize) {
@@ -189,6 +190,7 @@ static ssize_t  __procFsBspCpuRead (PLW_PROCFS_NODE  p_pfsn,
         PCHAR   pcPowerLevel;
         UINT    uiPowerLevel;
         ULONG   ulActive;
+        ULONG   i, ulKInsPerSec;
         
 #if LW_CFG_POWERM_EN > 0
         API_PowerMCpuGet(&ulActive, &uiPowerLevel);
@@ -221,20 +223,32 @@ static ssize_t  __procFsBspCpuRead (PLW_PROCFS_NODE  p_pfsn,
         }
         
         stRealSize = bnprintf(pcFileBuffer, __PROCFS_BUFFER_SIZE_CPUINFO, 0,
-                 "CPU      : %s\n"
-                 "WORDLEN  : %d\n"
-                 "NCPU     : %d\n"
-                 "ACTIVE   : %d\n"
-                 "PWRLevel : %s\n"
-                 "CACHE    : %s\n"
-                 "PACKET   : %s\n",
-                 bspInfoCpu(),
-                 LW_CFG_CPU_WORD_LENGHT,
-                 (INT)LW_NCPUS,
-                 (INT)ulActive,
-                 pcPowerLevel,
-                 bspInfoCache(),
-                 bspInfoPacket());                                      /*  将信息打印到缓冲            */
+                              "CPU         : %s\n"
+                              "CPU Family  : %s %d-Bits\n"
+                              "CPU Endian  : %s\n"
+                              "CPU Cores   : %d\n"
+                              "CPU Active  : %d\n"
+                              "PWR Level   : %s\n"
+                              "CACHE       : %s\n"
+                              "PACKET      : %s\n",
+                              bspInfoCpu(),
+                              LW_CFG_CPU_ARCH_FAMILY,
+                              LW_CFG_CPU_WORD_LENGHT,
+                              LW_CFG_CPU_ENDIAN ? "Big-endian" : "Little-endian",
+                              (INT)LW_NCPUS,
+                              (INT)ulActive,
+                              pcPowerLevel,
+                              bspInfoCache(),
+                              bspInfoPacket());                         /*  将信息打印到缓冲            */
+                 
+        for (i = 0; i < LW_NCPUS; i++) {
+            API_CpuBogoMips(i, &ulKInsPerSec);
+            stRealSize = bnprintf(pcFileBuffer, __PROCFS_BUFFER_SIZE_CPUINFO, stRealSize,
+                                  "BogoMIPS %2d : %lu.%02lu\n", i,
+                                  ulKInsPerSec / 1000,
+                                  ulKInsPerSec % 1000);                 /*  打印 BogoMIPS 信息          */
+        }
+        
         API_ProcFsNodeSetRealFileSize(p_pfsn, stRealSize);
     }
     if (oft >= stRealSize) {

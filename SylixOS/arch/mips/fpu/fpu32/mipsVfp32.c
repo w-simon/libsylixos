@@ -58,9 +58,10 @@ static VOID  mipsVfp32CtxShow (INT  iFd, PVOID  pvFpuCtx)
 
     fdprintf(iFd, "FCSR = 0x%08x\n", pcpufpuCtx->FPUCTX_uiFpcsr);
 
-    for (i = 0; i < (FP_NUM_DREGS * 2); i += 2) {
-        fdprintf(iFd, "FP%02d = 0x%08x  ", i,     pcpufpuCtx->FPUCTX_uiReg[i]);
-        fdprintf(iFd, "FP%02d = 0x%08x\n", i + 1, pcpufpuCtx->FPUCTX_uiReg[i + 1]);
+    for (i = 0; i < FP_NUM_DREGS; i++) {
+        fdprintf(iFd, "FP%02d = 0x%08x%08x\n", i,
+                 pcpufpuCtx->FPUCTX_reg[i].val32[0],
+                 pcpufpuCtx->FPUCTX_reg[i].val32[1]);
     }
 #endif
 }

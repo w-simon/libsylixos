@@ -35,6 +35,7 @@
 2013.07.17  引入新的多核初始化机制.
 2014.08.08  将内核启动参数调整放在独立的文件中.
 2015.05.07  优化 SMP 系统主从核启动步骤.
+2016.11.25  如果是 MIPS 体系结构, 在启动时初始化 FPU 模拟器, 用于模拟 CPU 不支持的浮点运算指令.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -232,6 +233,10 @@ VOID  API_KernelPrimaryStart (PKERNEL_START_ROUTINE  pfuncStartHook)
     if (pfuncStartHook) {                                               /*  用户是否要求需要初始化      */
         pfuncStartHook();                                               /*  用户系统初始化              */
     }
+    
+#if defined(LW_CFG_CPU_ARCH_MIPS) && (LW_CFG_CPU_FPU_EN > 0)
+    archFpuEmuInit();                                                   /*  FPU 模拟器初始化            */
+#endif                                                                  /*  LW_CFG_CPU_ARCH_MIPS        */
     
 #if LW_CFG_MODULELOADER_EN > 0
     _resInit();                                                         /*  从现在开始记录资源情况      */

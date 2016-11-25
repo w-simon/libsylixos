@@ -51,6 +51,7 @@
     EXPORT_LABEL(archIntEnableForce)
     EXPORT_LABEL(archPageCopy)
     EXPORT_LABEL(archReboot)
+    EXPORT_LABEL(archBogoMipsLoop)
 
     WEAK(archIntDisable)
     WEAK(archIntEnable)
@@ -72,7 +73,7 @@ FUNC_DEF(archIntDisable)
     NOP
 
     .set    pop
-FUNC_END(archIntDisable)
+    FUNC_END(archIntDisable)
 
 ;/*********************************************************************************************************
 ;  MIPS 打开总中断
@@ -94,7 +95,7 @@ FUNC_DEF(archIntEnable)
     NOP
 
     .set    pop
-FUNC_END(archIntEnable)
+    FUNC_END(archIntEnable)
 
 ;/*********************************************************************************************************
 ;  MIPS 强制打开总中断
@@ -113,7 +114,7 @@ FUNC_DEF(archIntEnableForce)
     NOP
 
     .set    pop
-FUNC_END(archIntEnableForce)
+    FUNC_END(archIntEnableForce)
 
 ;/*********************************************************************************************************
 ;  MIPS 前导零运算
@@ -127,14 +128,14 @@ FUNC_DEF(archFindLsb)
     LI      V0 , 32
     JR      RA
     SUBU    V0 , V0 , A0
-FUNC_END(archFindLsb)
+    FUNC_END(archFindLsb)
 
 FUNC_DEF(archFindMsb)
     CLZ     A0 , A0
     LI      V0 , 32
     JR      RA
     SUBU    V0 , V0 , A0
-FUNC_END(archFindMsb)
+    FUNC_END(archFindMsb)
 #endif
 
 ;/*********************************************************************************************************
@@ -169,7 +170,7 @@ MACRO_DEF(CALL_SETUP, setup)
     ADDU    SP , 32
 
     .set    pop
-MACRO_END()
+    MACRO_END()
 
 ;/*********************************************************************************************************
 ;  保存寄存器宏
@@ -241,7 +242,7 @@ MACRO_DEF(SAVE_NON_VOLATILE_REG)
     SW      T1 , STK_OFFSET_HI(A0)
 
     .set    pop
-MACRO_END()
+    MACRO_END()
 
 ;/*********************************************************************************************************
 ;  恢复寄存器宏
@@ -323,7 +324,7 @@ MACRO_DEF(RESTORE_NON_VOLATILE_REG)
     LW      T1 , REG_T1 * 4(A0)                                         ;/*  恢复 T1 寄存器              */
 
     .set    pop
-MACRO_END()
+    MACRO_END()
 
 ;/*********************************************************************************************************
 ;  sigsetjmp (参数为 jmp_buf, mask_saved)
@@ -336,7 +337,7 @@ FUNC_DEF(sigsetjmp)
 
     JR      RA
     MOV     V0 , ZERO
-FUNC_END(sigsetjmp)
+    FUNC_END(sigsetjmp)
 
 ;/*********************************************************************************************************
 ;  setjmp (参数为 jmp_buf)
@@ -349,7 +350,7 @@ FUNC_DEF(setjmp)
 
     JR      RA
     MOV     V0 , ZERO
-FUNC_END(setjmp)
+    FUNC_END(setjmp)
 
 ;/*********************************************************************************************************
 ;  siglongjmp (参数为 jmp_buf, retval)
@@ -367,7 +368,7 @@ FUNC_DEF(siglongjmp)
 LINE_LABEL(siglongjmpnotzero)
     JR      RA
     NOP
-FUNC_END(siglongjmp)
+    FUNC_END(siglongjmp)
 
 ;/*********************************************************************************************************
 ;  longjmp (参数为 jmp_buf, retval)
@@ -385,7 +386,7 @@ FUNC_DEF(longjmp)
 LINE_LABEL(longjmpnotzero)
     JR      RA
     NOP
-FUNC_END(longjmp)
+    FUNC_END(longjmp)
 
 ;/*********************************************************************************************************
 ;  系统重启
@@ -394,7 +395,19 @@ FUNC_END(longjmp)
 FUNC_DEF(archReboot)
     J       bspReboot                                                   ;/*  由BSP进行复位操作, 不再返回 */
     NOP
-FUNC_END(archReboot)
+    FUNC_END(archReboot)
+
+;/*********************************************************************************************************
+;  Bogo 循环
+;*********************************************************************************************************/
+
+FUNC_DEF(archBogoMipsLoop)
+1:
+    BNE     A0 , ZERO , 1b
+    SUBU    A0 , 1
+    JR      RA
+    NOP
+    FUNC_END(archBogoMipsLoop)
 
     FILE_END()
 

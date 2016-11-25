@@ -62,7 +62,8 @@ VOID  archE500MachineCheckExceptionHandle (addr_t  ulRetAddr)
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_TERMINAL;
+    _DebugHandle(__ERRORMESSAGE_LEVEL, "Machine error detected!\r\n");
+    abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_FATAL_ERROR;
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************

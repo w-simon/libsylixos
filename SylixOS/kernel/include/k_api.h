@@ -99,6 +99,8 @@ LW_API ULONG            API_CpuPowerGet(UINT  *puiPowerLevel);
 #endif                                                                  /*  LW_CFG_POWERM_EN > 0        */
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 
+LW_API ULONG            API_CpuBogoMips(ULONG  ulCPUId, ULONG  *pulKInsPerSec);
+
 /*********************************************************************************************************
   SPINLOCK (此 API 仅供内核程序使用)
 *********************************************************************************************************/

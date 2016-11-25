@@ -106,7 +106,7 @@ MACRO_DEF(mipsCp0RegRead reg)
     NOP
 
     .set    pop
-MACRO_END()
+    MACRO_END()
 
 ;/*********************************************************************************************************
 ;  CP0 register write
@@ -124,7 +124,7 @@ MACRO_DEF(mipsCp0RegWrite reg)
     NOP
 
     .set    pop
-MACRO_END()
+    MACRO_END()
 
 ;/*********************************************************************************************************
 ;  CP0_STATUS
@@ -132,11 +132,11 @@ MACRO_END()
 
 FUNC_DEF(mipsCp0StatusRead)
     mipsCp0RegRead     CP0_STATUS
-FUNC_END(mipsCp0StatusRead)
+    FUNC_END(mipsCp0StatusRead)
 
 FUNC_DEF(mipsCp0StatusWrite)
     mipsCp0RegWrite    CP0_STATUS
-FUNC_END(mipsCp0StatusWrite)
+    FUNC_END(mipsCp0StatusWrite)
 
 ;/*********************************************************************************************************
 ;  CP0_CAUSE
@@ -144,11 +144,11 @@ FUNC_END(mipsCp0StatusWrite)
 
 FUNC_DEF(mipsCp0CauseRead)
     mipsCp0RegRead     CP0_CAUSE
-FUNC_END(mipsCp0CauseRead)
+    FUNC_END(mipsCp0CauseRead)
 
 FUNC_DEF(mipsCp0CauseWrite)
     mipsCp0RegWrite    CP0_CAUSE
-FUNC_END(mipsCp0CauseWrite)
+    FUNC_END(mipsCp0CauseWrite)
 
 ;/*********************************************************************************************************
 ;  CP0_ERRPC
@@ -156,11 +156,11 @@ FUNC_END(mipsCp0CauseWrite)
 
 FUNC_DEF(mipsCp0EPCRead)
     mipsCp0RegRead     CP0_ERRPC
-FUNC_END(mipsCp0EPCRead)
+    FUNC_END(mipsCp0EPCRead)
 
 FUNC_DEF(mipsCp0EPCWrite)
     mipsCp0RegWrite    CP0_ERRPC
-FUNC_END(mipsCp0EPCWrite)
+    FUNC_END(mipsCp0EPCWrite)
 
 ;/*********************************************************************************************************
 ;  CP0_BADVADDR
@@ -168,11 +168,11 @@ FUNC_END(mipsCp0EPCWrite)
 
 FUNC_DEF(mipsCp0BadVAddrRead)
     mipsCp0RegRead     CP0_BADVADDR
-FUNC_END(mipsCp0BadVAddrRead)
+    FUNC_END(mipsCp0BadVAddrRead)
 
 FUNC_DEF(mipsCp0BadVAddrWrite)
     mipsCp0RegWrite    CP0_BADVADDR
-FUNC_END(mipsCp0BadVAddrWrite)
+    FUNC_END(mipsCp0BadVAddrWrite)
 
 ;/*********************************************************************************************************
 ;  CP0_COUNT
@@ -180,11 +180,11 @@ FUNC_END(mipsCp0BadVAddrWrite)
 
 FUNC_DEF(mipsCp0CountRead)
     mipsCp0RegRead     CP0_COUNT
-FUNC_END(mipsCp0CountRead)
+    FUNC_END(mipsCp0CountRead)
 
 FUNC_DEF(mipsCp0CountWrite)
     mipsCp0RegWrite    CP0_COUNT
-FUNC_END(mipsCp0CountWrite)
+    FUNC_END(mipsCp0CountWrite)
 
 ;/*********************************************************************************************************
 ;  CP0_COMPARE
@@ -192,11 +192,11 @@ FUNC_END(mipsCp0CountWrite)
 
 FUNC_DEF(mipsCp0CompareRead)
     mipsCp0RegRead     CP0_COMPARE
-FUNC_END(mipsCp0CompareRead)
+    FUNC_END(mipsCp0CompareRead)
 
 FUNC_DEF(mipsCp0CompareWrite)
     mipsCp0RegWrite    CP0_COMPARE
-FUNC_END(mipsCp0CompareWrite)
+    FUNC_END(mipsCp0CompareWrite)
 
 ;/*********************************************************************************************************
 ;  CP0_PRID
@@ -204,11 +204,11 @@ FUNC_END(mipsCp0CompareWrite)
 
 FUNC_DEF(mipsCp0PRIdRead)
     mipsCp0RegRead     CP0_PRID
-FUNC_END(mipsCp0PRIdRead)
+    FUNC_END(mipsCp0PRIdRead)
 
 FUNC_DEF(mipsCp0PRIdWrite)
     mipsCp0RegWrite    CP0_PRID
-FUNC_END(mipsCp0PRIdWrite)
+    FUNC_END(mipsCp0PRIdWrite)
 
 ;/*********************************************************************************************************
 ;  CP0_CONFIG
@@ -216,11 +216,11 @@ FUNC_END(mipsCp0PRIdWrite)
 
 FUNC_DEF(mipsCp0ConfigRead)
     mipsCp0RegRead     CP0_CONFIG
-FUNC_END(mipsCp0ConfigRead)
+    FUNC_END(mipsCp0ConfigRead)
 
 FUNC_DEF(mipsCp0ConfigWrite)
     mipsCp0RegWrite    CP0_CONFIG
-FUNC_END(mipsCp0ConfigWrite)
+    FUNC_END(mipsCp0ConfigWrite)
 
 ;/*********************************************************************************************************
 ;  CP0_CONFIG1
@@ -238,7 +238,7 @@ FUNC_DEF(mipsCp0Config1Read)
     NOP
 
     .set    pop
-FUNC_END(mipsCp0Config1Read)
+    FUNC_END(mipsCp0Config1Read)
 
 FUNC_DEF(mipsCp0Config1Write)
     .set    push
@@ -252,7 +252,7 @@ FUNC_DEF(mipsCp0Config1Write)
     NOP
 
     .set    pop
-FUNC_END(mipsCp0Config1Write)
+    FUNC_END(mipsCp0Config1Write)
 
 ;/*********************************************************************************************************
 ;  CP0_CONFIG2
@@ -270,7 +270,7 @@ FUNC_DEF(mipsCp0Config2Read)
     NOP
 
     .set    pop
-FUNC_END(mipsCp0Config2Read)
+    FUNC_END(mipsCp0Config2Read)
 
 FUNC_DEF(mipsCp0Config2Write)
     .set    push
@@ -284,7 +284,7 @@ FUNC_DEF(mipsCp0Config2Write)
     NOP
 
     .set    pop
-FUNC_END(mipsCp0Config2Write)
+    FUNC_END(mipsCp0Config2Write)
 
 ;/*********************************************************************************************************
 ;  CP0_CONFIG3
@@ -302,7 +302,7 @@ FUNC_DEF(mipsCp0Config3Read)
     NOP
 
     .set    pop
-FUNC_END(mipsCp0Config3Read)
+    FUNC_END(mipsCp0Config3Read)
 
 FUNC_DEF(mipsCp0Config3Write)
     .set    push
@@ -316,7 +316,7 @@ FUNC_DEF(mipsCp0Config3Write)
     NOP
 
     .set    pop
-FUNC_END(mipsCp0Config3Write)
+    FUNC_END(mipsCp0Config3Write)
 
 ;/*********************************************************************************************************
 ;  CP0_EBASE
@@ -334,7 +334,7 @@ FUNC_DEF(mipsCp0EBaseRead)
     NOP
 
     .set    pop
-FUNC_END(mipsCp0EBaseRead)
+    FUNC_END(mipsCp0EBaseRead)
 
 FUNC_DEF(mipsCp0EBaseWrite)
     .set    push
@@ -348,7 +348,7 @@ FUNC_DEF(mipsCp0EBaseWrite)
     NOP
 
     .set    pop
-FUNC_END(mipsCp0EBaseWrite)
+    FUNC_END(mipsCp0EBaseWrite)
 
 ;/*********************************************************************************************************
 ;  CP0_INTCTL
@@ -366,7 +366,7 @@ FUNC_DEF(mipsCp0IntCtlRead)
     NOP
 
     .set    pop
-FUNC_END(mipsCp0IntCtlRead)
+    FUNC_END(mipsCp0IntCtlRead)
 
 FUNC_DEF(mipsCp0IntCtlWrite)
     .set    push
@@ -380,7 +380,7 @@ FUNC_DEF(mipsCp0IntCtlWrite)
     NOP
 
     .set    pop
-FUNC_END(mipsCp0IntCtlWrite)
+    FUNC_END(mipsCp0IntCtlWrite)
 
 ;/*********************************************************************************************************
 ;  CP0_LLADDR
@@ -388,11 +388,11 @@ FUNC_END(mipsCp0IntCtlWrite)
 
 FUNC_DEF(mipsCp0LLAddrRead)
     mipsCp0RegRead     CP0_LLADDR
-FUNC_END(mipsCp0LLAddrRead)
+    FUNC_END(mipsCp0LLAddrRead)
 
 FUNC_DEF(mipsCp0LLAddrWrite)
     mipsCp0RegWrite    CP0_LLADDR
-FUNC_END(mipsCp0LLAddrWrite)
+    FUNC_END(mipsCp0LLAddrWrite)
 
 ;/*********************************************************************************************************
 ;  CP0_ECC
@@ -400,11 +400,11 @@ FUNC_END(mipsCp0LLAddrWrite)
 
 FUNC_DEF(mipsCp0ECCRead)
     mipsCp0RegRead     CP0_ECC
-FUNC_END(mipsCp0ECCRead)
+    FUNC_END(mipsCp0ECCRead)
 
 FUNC_DEF(mipsCp0ECCWrite)
     mipsCp0RegWrite    CP0_ECC
-FUNC_END(mipsCp0ECCWrite)
+    FUNC_END(mipsCp0ECCWrite)
 
 ;/*********************************************************************************************************
 ;  CP0_CACHEERR
@@ -412,11 +412,11 @@ FUNC_END(mipsCp0ECCWrite)
 
 FUNC_DEF(mipsCp0CacheErrRead)
     mipsCp0RegRead     CP0_CACHEERR
-FUNC_END(mipsCp0CacheErrRead)
+    FUNC_END(mipsCp0CacheErrRead)
 
 FUNC_DEF(mipsCp0CacheErrWrite)
     mipsCp0RegWrite    CP0_CACHEERR
-FUNC_END(mipsCp0CacheErrWrite)
+    FUNC_END(mipsCp0CacheErrWrite)
 
 ;/*********************************************************************************************************
 ;  CP0_ERRPC
@@ -424,11 +424,11 @@ FUNC_END(mipsCp0CacheErrWrite)
 
 FUNC_DEF(mipsCp0ERRPCRead)
     mipsCp0RegRead     CP0_ERRPC
-FUNC_END(mipsCp0ERRPCRead)
+    FUNC_END(mipsCp0ERRPCRead)
 
 FUNC_DEF(mipsCp0ERRPCWrite)
     mipsCp0RegWrite    CP0_ERRPC
-FUNC_END(mipsCp0ERRPCWrite)
+    FUNC_END(mipsCp0ERRPCWrite)
 
 ;/*********************************************************************************************************
 ;  CP0_INX
@@ -436,11 +436,11 @@ FUNC_END(mipsCp0ERRPCWrite)
 
 FUNC_DEF(mipsCp0IndexRead)
     mipsCp0RegRead     CP0_INX
-FUNC_END(mipsCp0IndexRead)
+    FUNC_END(mipsCp0IndexRead)
 
 FUNC_DEF(mipsCp0IndexWrite)
     mipsCp0RegWrite    CP0_INX
-FUNC_END(mipsCp0IndexWrite)
+    FUNC_END(mipsCp0IndexWrite)
 
 ;/*********************************************************************************************************
 ;  CP0_WIRED
@@ -448,11 +448,11 @@ FUNC_END(mipsCp0IndexWrite)
 
 FUNC_DEF(mipsCp0WiredRead)
     mipsCp0RegRead     CP0_WIRED
-FUNC_END(mipsCp0WiredRead)
+    FUNC_END(mipsCp0WiredRead)
 
 FUNC_DEF(mipsCp0WiredWrite)
     mipsCp0RegWrite    CP0_WIRED
-FUNC_END(mipsCp0WiredWrite)
+    FUNC_END(mipsCp0WiredWrite)
 
 ;/*********************************************************************************************************
 ;  CP0_RAND
@@ -460,11 +460,11 @@ FUNC_END(mipsCp0WiredWrite)
 
 FUNC_DEF(mipsCp0RandomRead)
     mipsCp0RegRead     CP0_RAND
-FUNC_END(mipsCp0RandomRead)
+    FUNC_END(mipsCp0RandomRead)
 
 FUNC_DEF(mipsCp0RandomWrite)
     mipsCp0RegWrite    CP0_RAND
-FUNC_END(mipsCp0RandomWrite)
+    FUNC_END(mipsCp0RandomWrite)
 
 ;/*********************************************************************************************************
 ;  CP0_TLBLO0
@@ -472,11 +472,11 @@ FUNC_END(mipsCp0RandomWrite)
 
 FUNC_DEF(mipsCp0EntryLo0Read)
     mipsCp0RegRead     CP0_TLBLO0
-FUNC_END(mipsCp0EntryLo0Read)
+    FUNC_END(mipsCp0EntryLo0Read)
 
 FUNC_DEF(mipsCp0EntryLo0Write)
     mipsCp0RegWrite    CP0_TLBLO0
-FUNC_END(mipsCp0EntryLo0Write)
+    FUNC_END(mipsCp0EntryLo0Write)
 
 ;/*********************************************************************************************************
 ;  CP0_TLBLO1
@@ -484,11 +484,11 @@ FUNC_END(mipsCp0EntryLo0Write)
 
 FUNC_DEF(mipsCp0EntryLo1Read)
     mipsCp0RegRead     CP0_TLBLO1
-FUNC_END(mipsCp0EntryLo1Read)
+    FUNC_END(mipsCp0EntryLo1Read)
 
 FUNC_DEF(mipsCp0EntryLo1Write)
     mipsCp0RegWrite    CP0_TLBLO1
-FUNC_END(mipsCp0EntryLo1Write)
+    FUNC_END(mipsCp0EntryLo1Write)
 
 ;/*********************************************************************************************************
 ;  CP0_CTXT
@@ -496,11 +496,11 @@ FUNC_END(mipsCp0EntryLo1Write)
 
 FUNC_DEF(mipsCp0ContextRead)
     mipsCp0RegRead     CP0_CTXT
-FUNC_END(mipsCp0ContextRead)
+    FUNC_END(mipsCp0ContextRead)
 
 FUNC_DEF(mipsCp0ContextWrite)
     mipsCp0RegWrite    CP0_CTXT
-FUNC_END(mipsCp0ContextWrite)
+    FUNC_END(mipsCp0ContextWrite)
 
 ;/*********************************************************************************************************
 ;  CP0_PAGEMASK
@@ -508,11 +508,11 @@ FUNC_END(mipsCp0ContextWrite)
 
 FUNC_DEF(mipsCp0PageMaskRead)
     mipsCp0RegRead     CP0_PAGEMASK
-FUNC_END(mipsCp0PageMaskRead)
+    FUNC_END(mipsCp0PageMaskRead)
 
 FUNC_DEF(mipsCp0PageMaskWrite)
     mipsCp0RegWrite    CP0_PAGEMASK
-FUNC_END(mipsCp0PageMaskWrite)
+    FUNC_END(mipsCp0PageMaskWrite)
 
 ;/*********************************************************************************************************
 ;  CP0_TLBHI
@@ -520,11 +520,11 @@ FUNC_END(mipsCp0PageMaskWrite)
 
 FUNC_DEF(mipsCp0EntryHiRead)
     mipsCp0RegRead     CP0_TLBHI
-FUNC_END(mipsCp0EntryHiRead)
+    FUNC_END(mipsCp0EntryHiRead)
 
 FUNC_DEF(mipsCp0EntryHiWrite)
     mipsCp0RegWrite    CP0_TLBHI
-FUNC_END(mipsCp0EntryHiWrite)
+    FUNC_END(mipsCp0EntryHiWrite)
 
 ;/*********************************************************************************************************
 ;  CP0_TAGLO
@@ -532,11 +532,11 @@ FUNC_END(mipsCp0EntryHiWrite)
 
 FUNC_DEF(mipsCp0TagLoRead)
     mipsCp0RegRead     CP0_TAGLO
-FUNC_END(mipsCp0TagLoRead)
+    FUNC_END(mipsCp0TagLoRead)
 
 FUNC_DEF(mipsCp0TagLoWrite)
     mipsCp0RegWrite    CP0_TAGLO
-FUNC_END(mipsCp0TagLoWrite)
+    FUNC_END(mipsCp0TagLoWrite)
 
 ;/*********************************************************************************************************
 ;  CP0_TAGHI
@@ -544,11 +544,11 @@ FUNC_END(mipsCp0TagLoWrite)
 
 FUNC_DEF(mipsCp0TagHiRead)
     mipsCp0RegRead     CP0_TAGHI
-FUNC_END(mipsCp0TagHiRead)
+    FUNC_END(mipsCp0TagHiRead)
 
 FUNC_DEF(mipsCp0TagHiWrite)
     mipsCp0RegWrite    CP0_TAGHI
-FUNC_END(mipsCp0TagHiWrite)
+    FUNC_END(mipsCp0TagHiWrite)
 
 ;/*********************************************************************************************************
 ;  CP0_DIAG
@@ -556,11 +556,11 @@ FUNC_END(mipsCp0TagHiWrite)
 
 FUNC_DEF(mipsCp0DiagRead)
     mipsCp0RegRead     CP0_DIAG
-FUNC_END(mipsCp0DiagRead)
+    FUNC_END(mipsCp0DiagRead)
 
 FUNC_DEF(mipsCp0DiagWrite)
     mipsCp0RegWrite    CP0_DIAG
-FUNC_END(mipsCp0DiagWrite)
+    FUNC_END(mipsCp0DiagWrite)
 
 ;/*********************************************************************************************************
 ;  CP0_PAGEGRAIN
@@ -578,7 +578,7 @@ FUNC_DEF(mipsCp0PageGrainRead)
     NOP
 
     .set    pop
-FUNC_END(mipsCp0PageGrainRead)
+    FUNC_END(mipsCp0PageGrainRead)
 
 FUNC_DEF(mipsCp0PageGrainWrite)
     .set    push
@@ -592,7 +592,7 @@ FUNC_DEF(mipsCp0PageGrainWrite)
     NOP
 
     .set    pop
-FUNC_END(mipsCp0PageGrainWrite)
+    FUNC_END(mipsCp0PageGrainWrite)
 
 ;/*********************************************************************************************************
 ;  CP0_GSCONFIG
@@ -610,7 +610,7 @@ FUNC_DEF(mipsCp0GSConfigRead)
     NOP
 
     .set    pop
-FUNC_END(mipsCp0GSConfigRead)
+    FUNC_END(mipsCp0GSConfigRead)
 
 FUNC_DEF(mipsCp0GSConfigWrite)
     .set    push
@@ -624,7 +624,7 @@ FUNC_DEF(mipsCp0GSConfigWrite)
     NOP
 
     .set    pop
-FUNC_END(mipsCp0GSConfigWrite)
+    FUNC_END(mipsCp0GSConfigWrite)
 
     FILE_END()
 

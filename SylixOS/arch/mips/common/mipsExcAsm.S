@@ -173,7 +173,7 @@ MACRO_DEF(EXC_SAVE_REGS)
     SW      ZERO , TEMP_CTX_OFFSET_LOCK(T0)                             ;/*  解锁 archExcTempCtx         */
 
     .set    pop
-MACRO_END()
+    MACRO_END()
 
 ;/*********************************************************************************************************
 ;  异常入口宏
@@ -257,7 +257,7 @@ MACRO_DEF(EXCEPTION_ENTRY handle)
     RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
 
     .set    pop
-MACRO_END()
+    MACRO_END()
 
 ;/*********************************************************************************************************
 ;  中断入口
@@ -272,7 +272,7 @@ FUNC_DEF(archInterruptEntry)
     EXCEPTION_ENTRY     bspIntHandle
 
     .set    pop
-FUNC_END(archInterruptEntry)
+    FUNC_END(archInterruptEntry)
 
 ;/*********************************************************************************************************
 ;  Cache 错误异常入口
@@ -287,7 +287,7 @@ FUNC_DEF(archCacheErrorEntry)
     EXCEPTION_ENTRY     archCacheErrorHandle
 
     .set    pop
-FUNC_END(archCacheErrorEntry)
+    FUNC_END(archCacheErrorEntry)
 
 ;/*********************************************************************************************************
 ;  通用异常入口
@@ -302,7 +302,7 @@ FUNC_DEF(archExceptionEntry)
     EXCEPTION_ENTRY     archExceptionHandle
 
     .set    pop
-FUNC_END(archExceptionEntry)
+    FUNC_END(archExceptionEntry)
 
     FILE_END()
 

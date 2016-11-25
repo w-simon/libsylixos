@@ -150,7 +150,6 @@ static VOID  x86DefaultExceptHandle (UINT32  uiX86Vector, UINT32  uiESP)
     ulRetAddr = pregctx->REG_uiEIP;
 
     abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_TERMINAL;
-
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
@@ -174,7 +173,6 @@ static VOID  x86InvalidOpcodeExceptHandle (UINT32  uiX86Vector, UINT32  uiESP)
     ulRetAddr = pregctx->REG_uiEIP;
 
     abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_UNDEF;
-
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
@@ -201,7 +199,6 @@ static VOID  x86FpErrorExceptHandle (UINT32  uiX86Vector, UINT32  uiESP)
 
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FPE;
     abtInfo.VMABT_uiMethod = FPE_INTDIV;                                /*  默认为除 0 异常             */
-
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
 }
 
@@ -234,7 +231,31 @@ static VOID  x86DeviceNotAvailExceptHandle (UINT32  uiX86Vector, UINT32  uiESP)
 
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_TERMINAL;
     abtInfo.VMABT_uiMethod = 0;
+    API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
+}
+/*********************************************************************************************************
+** 函数名称: x86MachineCheckExceptHandle
+** 功能描述: 设备异常处理
+** 输　入  : uiX86Vector   x86 异常向量
+**           uiESP         异常保存上下文后的 ESP
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  x86MachineCheckExceptHandle (UINT32  uiX86Vector, UINT32  uiESP)
+{
+    ARCH_REG_CTX   *pregctx = (ARCH_REG_CTX *)uiESP;
+    PLW_CLASS_TCB   ptcbCur;
+    LW_VMM_ABORT    abtInfo;
+    addr_t          ulRetAddr;
 
+    _PrintFormat("Machine error detected.\r\n");
+
+    LW_TCB_GET_CUR(ptcbCur);
+
+    ulRetAddr = pregctx->REG_uiEIP;
+
+    abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_FATAL_ERROR;
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
@@ -309,7 +330,6 @@ static VOID  x86BreakPointExceptHandle (UINT32  uiX86Vector, UINT32  uiESP)
 
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BREAK;
     abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
-
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
@@ -343,7 +363,6 @@ static VOID  x86DebugExceptHandle (UINT32  uiX86Vector, UINT32  uiESP)
 
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BREAK;
     abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
-
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
@@ -384,6 +403,7 @@ VOID  x86ExceptIrqInit (VOID)
     _G_pfuncX86IntHandleArray[X86_EXCEPT_BREAKPOINT]     = x86BreakPointExceptHandle;
     _G_pfuncX86IntHandleArray[X86_EXCEPT_INVALID_OPCODE] = x86InvalidOpcodeExceptHandle;
     _G_pfuncX86IntHandleArray[X86_EXCEPT_DEBUG]          = x86DebugExceptHandle;
+    _G_pfuncX86IntHandleArray[X86_EXCEPT_MACHINE_CHECK]  = x86MachineCheckExceptHandle;
 
 #if LW_CFG_CPU_FPU_EN > 0
     _G_pfuncX86IntHandleArray[X86_EXCEPT_FLOATING_POINT_ERROR] = x86FpErrorExceptHandle;

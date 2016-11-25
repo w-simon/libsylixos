@@ -66,7 +66,7 @@ FUNC_DEF(mipsSpinLock)
     NOP
 
     .set    pop
-FUNC_END(mipsSpinLock)
+    FUNC_END(mipsSpinLock)
 
 FUNC_DEF(mipsSpinTryLock)
     .set    push
@@ -90,7 +90,7 @@ FUNC_DEF(mipsSpinTryLock)
     LI      V0 , 1
 
     .set    pop
-FUNC_END(mipsSpinTryLock)
+    FUNC_END(mipsSpinTryLock)
 
 FUNC_DEF(mipsSpinUnlock)
     .set    push
@@ -104,7 +104,7 @@ FUNC_DEF(mipsSpinUnlock)
     NOP
 
     .set    pop
-FUNC_END(mipsSpinUnlock)
+    FUNC_END(mipsSpinUnlock)
 
 ;/*********************************************************************************************************
 ;  获得当前核 ID
@@ -113,7 +113,7 @@ FUNC_END(mipsSpinUnlock)
 FUNC_DEF(archMpCur)
     JR      RA
     MOV     V0 , ZERO
-FUNC_END(archMpCur)
+    FUNC_END(archMpCur)
 
 ;/*********************************************************************************************************
 ;  产生一次核间中断
@@ -122,7 +122,7 @@ FUNC_END(archMpCur)
 FUNC_DEF(archMpInt)
     J       bspMpInt
     NOP
-FUNC_END(archMpInt)
+    FUNC_END(archMpInt)
 
     FILE_END()
 
