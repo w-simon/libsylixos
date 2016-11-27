@@ -492,7 +492,6 @@ static INT  ls3xL3SCacheProbe (CPCHAR   pcMachineName)
                      _G_SCache.CACHE_uiLineSize,
                      _G_SCache.CACHE_uiWayNr,
                      _G_SCache.CACHE_uiSetNr);
-
     } else {
         _G_SCache.CACHE_bPresent = LW_FALSE;
     }
@@ -609,7 +608,6 @@ static INT  ls3xCacheProbe (CPCHAR   pcMachineName)
                  _G_DCache.CACHE_uiSetNr);
 
     ls3xL2VCacheProbe(pcMachineName);
-
     ls3xL3SCacheProbe(pcMachineName);
 
     bIsProbed = LW_TRUE;

@@ -1771,6 +1771,45 @@ static INT  __tshellFsCmdUmount (INT  iArgC, PCHAR  ppcArgV[])
     }
 }
 /*********************************************************************************************************
+** 函数名称: __tshellFsCmdRemount
+** 功能描述: 系统命令 "remount"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : 0
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static INT  __tshellFsCmdRemount (INT  iArgC, PCHAR  ppcArgV[])
+{
+    INT             iBlkFd;
+    PLW_OEMDISK_CB  poemd = LW_NULL;
+
+    if (iArgC != 2) {
+        fprintf(stderr, "argments error!\n");
+        return  (-ERROR_TSHELL_EPARAM);
+    }
+    
+    iBlkFd = open(ppcArgV[1], O_RDONLY);
+    if (iBlkFd < 0) {
+        fprintf(stderr, "can not open %s error: %s!\n", ppcArgV[1], lib_strerror(errno));
+        return  (-ERROR_TSHELL_EPARAM);
+    }
+    
+    if (ioctl(iBlkFd, LW_BLKD_CTRL_OEMDISK, &poemd) || !poemd) {
+        close(iBlkFd);
+        fprintf(stderr, "can not get AUTO-Mount information!\n");
+        return  (PX_ERROR);
+    }
+    close(iBlkFd);
+    
+    if (API_OemDiskRemount(poemd)) {
+        fprintf(stderr, "Remount fail: %s!\n", lib_strerror(errno));
+        return  (PX_ERROR);
+    }
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: __tshellFsCmdShowmount
 ** 功能描述: 系统命令 "showmount"
 ** 输　入  : iArgC         参数个数
@@ -2197,6 +2236,11 @@ VOID  __tshellFsCmdInit (VOID)
     API_TShellFormatAdd("umount", " [mount path]");
     API_TShellHelpAdd("umount",  "unmount a volume.\n"
                                  "eg. mount /mnt/usb\n");
+                                 
+    API_TShellKeywordAdd("remount", __tshellFsCmdRemount);
+    API_TShellFormatAdd("remount", " [/dev/blk/*]");
+    API_TShellHelpAdd("remount",  "auto remount a block device.\n"
+                                 "eg. remount /dev/blk/hdd-0\n");
 
     API_TShellKeywordAdd("showmount", __tshellFsCmdShowmount);
     API_TShellHelpAdd("showmount",  "show all mount point.\n");

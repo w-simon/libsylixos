@@ -73,6 +73,7 @@ typedef struct {
     PLW_DEV_HDR          OEMDISK_pdevhdr[LW_CFG_MAX_DISKPARTS];         /*  安装后的设备头              */
     PVOID                OEMDISK_pvCache;                               /*  自动分配内存地址            */
     UINT                 OEMDISK_uiNPart;                               /*  分区数                      */
+    INT                  OEMDISK_iBlkNo;                                /*  /dev/blk/? 设备号           */
     CHAR                 OEMDISK_cVolName[1];                           /*  磁盘根挂载节点名            */
 } LW_OEMDISK_CB;
 typedef LW_OEMDISK_CB   *PLW_OEMDISK_CB;
@@ -107,6 +108,9 @@ LW_API PLW_OEMDISK_CB    API_OemDiskMountEx2(CPCHAR             pcVolName,
 LW_API INT               API_OemDiskUnmount(PLW_OEMDISK_CB  poemd);
 LW_API INT               API_OemDiskUnmountEx(PLW_OEMDISK_CB  poemd, BOOL  bForce);
 
+LW_API INT               API_OemDiskRemountEx(PLW_OEMDISK_CB  poemd, BOOL  bForce);
+LW_API INT               API_OemDiskRemount(PLW_OEMDISK_CB  poemd);
+
 LW_API INT               API_OemDiskGetPath(PLW_OEMDISK_CB  poemd, INT  iIndex, 
                                             PCHAR  pcPath, size_t stSize);
                                             
@@ -129,6 +133,9 @@ LW_API INT               API_OemDiskHotplugEventMessage(PLW_OEMDISK_CB  poemd,
 
 #define oemDiskUnmount              API_OemDiskUnmount
 #define oemDiskUnmountEx            API_OemDiskUnmountEx
+
+#define oemDiskRemount              API_OemDiskRemount
+#define oemDiskRemountEx            API_OemDiskRemountEx
 
 #define oemDiskGetPath              API_OemDiskGetPath
 #define oemDiskHotplugEventMessage  API_OemDiskHotplugEventMessage

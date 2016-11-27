@@ -36,9 +36,10 @@ typedef struct {
     LW_DEV_HDR              BLKIO_devhdrHdr;                            /*  I/O 系统接口设备头          */
     LW_LIST_LINE            BLKIO_lineManage;
     PLW_BLK_DEV             BLKIO_pblkDev;
+    CPVOID                  BLKIO_pvOemDisk;
 
     ULONG                   BLKIO_ulSecSize;
-    INT                     BLKIO_ulSecShift; //archFindLsb
+    INT                     BLKIO_ulSecShift;
     ULONG                   BLKIO_ulNSec;
 
     INT                     BLKIO_iFlags;
@@ -450,6 +451,10 @@ static INT  __blkIoFsIoctl (PLW_BLKIO_DEV  pdevblk, INT  iRequest, LONG  lArg)
 
     case LW_BLKD_CTRL_STATUS:
         return  (pdevblk->BLKIO_pblkDev->BLKD_pfuncBlkStatusChk(pdevblk->BLKIO_pblkDev));
+        
+    case LW_BLKD_CTRL_OEMDISK:
+        *(CPVOID *)lArg = pdevblk->BLKIO_pvOemDisk;
+        return  (ERROR_NONE);
 
     default:
         _ErrorHandle(ENOSYS);
@@ -504,13 +509,14 @@ INT  __blkIoFsDrvInstall (VOID)
 ** 功能描述: 创建一个 blk io 设备
 ** 输　入  : pcBlkDev           需要生成的块设备文件 例如: /dev/blk/sata0
 **           pblkdDisk          块设备驱动
+**           pvOemDisk          OEM DISK 相关结构
 ** 输　出  : ERROR or OK.
 ** 全局变量:
 ** 调用模块:
                                            API 函数
 *********************************************************************************************************/
 LW_API
-INT  API_OemBlkIoCreate (CPCHAR  pcBlkDev, PLW_BLK_DEV  pblkdDisk)
+INT  API_OemBlkIoCreate (CPCHAR  pcBlkDev, PLW_BLK_DEV  pblkdDisk, CPVOID  pvOemDisk)
 {
     PLW_BLKIO_DEV  pdevblk;
     ULONG          ulSecSize = 0ul;
@@ -557,6 +563,7 @@ INT  API_OemBlkIoCreate (CPCHAR  pcBlkDev, PLW_BLK_DEV  pblkdDisk)
     lib_bzero(pdevblk, sizeof(LW_BLKIO_DEV));
 
     pdevblk->BLKIO_pblkDev    = pblkdDisk;
+    pdevblk->BLKIO_pvOemDisk  = pvOemDisk;
     pdevblk->BLKIO_ulSecSize  = ulSecSize;
     pdevblk->BLKIO_ulSecShift = (ULONG)iShift;
     pdevblk->BLKIO_ulNSec     = ulNSec;

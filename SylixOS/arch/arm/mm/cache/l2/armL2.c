@@ -287,8 +287,10 @@ VOID armL2Init (CACHE_MODE   uiInstruction,
                      l2cdrv.L2CD_pcName);
                      
     } else if (lib_strcmp(pcMachineName, ARM_MACHINE_A15) == 0) {       /*  A15 处理器 L2 CACHE         */
+#if LW_CFG_ARM_CACHE_L2_ECC > 0
         UINT32  uiL2Ctl = armA1xL2CtlGet();
-        
+#endif                                                                  /*  LW_CFG_ARM_CACHE_L2_ECC > 0 */
+
         l2cdrv.L2CD_pcName    = ARM_MACHINE_A15;
         l2cdrv.L2CD_ulBase    = 0ul;
         l2cdrv.L2CD_uiWayMask = 0;
@@ -299,8 +301,10 @@ VOID armL2Init (CACHE_MODE   uiInstruction,
         _DebugFormat(__LOGMESSAGE_LEVEL, "%s L2 cache controller initialization.\r\n", 
                      l2cdrv.L2CD_pcName);
 
+#if LW_CFG_ARM_CACHE_L2_ECC > 0
         uiL2Ctl |= A15_L2_CTL_L2_ECC_EN;
         armA1xL2CtlSet(uiL2Ctl);
+#endif                                                                  /*  LW_CFG_ARM_CACHE_L2_ECC > 0 */
 
     } else if (lib_strcmp(pcMachineName, ARM_MACHINE_A17) == 0) {       /*  A17 处理器 L2 CACHE         */
         l2cdrv.L2CD_pcName    = ARM_MACHINE_A17;

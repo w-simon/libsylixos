@@ -485,6 +485,11 @@ int userlogin (const char *name, const char *pass, int pass_delay_en)
       return 0;
     }
   } else {
+    if (access("/etc/passwd", R_OK) && access("/etc/shadow", R_OK)) {
+      _DebugHandle(__ERRORMESSAGE_LEVEL, "/etc/passwd & /etc/shadow files not found, "
+                                         "password check override.\r\n");
+      return 0; /* file system not init, passwd check none */
+    }
     /* todo:need save syslog */
     sleep(login_defines.fail_delay);    /* wait fail_delay seconds */
   }

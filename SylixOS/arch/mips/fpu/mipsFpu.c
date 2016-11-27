@@ -59,6 +59,8 @@ VOID  archFpuEmuInit (VOID)
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 
     _BugHandle(!_G_pmipsfpuePool, LW_TRUE, "can not allocate FPU emulator pool.\r\n");
+
+    _DebugHandle(__LOGMESSAGE_LEVEL, "FPU emulator initialization.\r\n");
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: archFpuEmuFrameGet

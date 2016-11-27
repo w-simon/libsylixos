@@ -19,8 +19,8 @@
 ** √Ë         ˆ: Œª”Ú.
 *********************************************************************************************************/
 
-#ifndef __MIPS_FPUEMU_BITFIELD_H__
-#define __MIPS_FPUEMU_BITFIELD_H__
+#ifndef __MIPS_FPUEMU_BITFIELD_H
+#define __MIPS_FPUEMU_BITFIELD_H
 
 /*
  * Damn ...  bitfields depend from byteorder :-(
@@ -38,7 +38,7 @@
 
 #endif
 
-#endif                                                                  /*  __MIPS_FPUEMU_BITFIELD_H__  */
+#endif                                                                  /*  __MIPS_FPUEMU_BITFIELD_H    */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

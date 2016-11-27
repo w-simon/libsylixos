@@ -36,6 +36,7 @@
 2016.05.10  oemDisk 遇到无法挂载的分区时, vol id 不增加.
 2016.07.25  oemDisk 加入并行化 diskCache 支持.
 2016.08.08  加入 mount 打印信息.
+2016.11.26  支持动态重新挂载文件系统.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -116,8 +117,8 @@ static VOID  __oemAutoMountAdd (CPCHAR  pcVol, CPCHAR  pcDevTail, INT  iBlkNo, I
     AUTOMOUNT_UNLOCK();
 }
 /*********************************************************************************************************
-** 函数名称: __oemAutoMountAdd
-** 功能描述: 加入一个 AUTO Mount 信息
+** 函数名称: __oemAutoMountDelete
+** 功能描述: 删除一个 AUTO Mount 信息
 ** 输　入  : pcVol             文件系统挂载目录
 ** 输　出  : NONE
 ** 全局变量: 
@@ -160,6 +161,7 @@ static VOID  __oemDiskPartFree (PLW_OEMDISK_CB  poemd)
     for (i = 0; i < (INT)poemd->OEMDISK_uiNPart; i++) {
         if (poemd->OEMDISK_pblkdPart[i]) {
             API_DiskPartitionFree(poemd->OEMDISK_pblkdPart[i]);
+            poemd->OEMDISK_pblkdPart[i] = LW_NULL;
         }
     }
 }
@@ -355,8 +357,9 @@ PLW_OEMDISK_CB  API_OemDiskMountEx2 (CPCHAR             pcVolName,
         snprintf(cFullVolName, MAX_FILENAME_LENGTH, "%s%s-%d", LW_BLKIO_PERFIX, pcTail, iBlkIo);
         if (API_IosDevMatchFull(cFullVolName) == LW_NULL) {
             iBlkIoErr = API_OemBlkIoCreate(cFullVolName,
-                                           poemd->OEMDISK_pblkdCache);
+                                           poemd->OEMDISK_pblkdCache, poemd);
             if (iBlkIoErr == ERROR_NONE) {
+                poemd->OEMDISK_iBlkNo = iBlkIo;
                 break;
 
             } else if (errno != ERROR_IOS_DUPLICATE_DEVICE_NAME) {
@@ -651,8 +654,9 @@ PLW_OEMDISK_CB  API_OemDiskMount2 (CPCHAR               pcVolName,
         snprintf(cFullVolName, MAX_FILENAME_LENGTH, "%s%s-%d", LW_BLKIO_PERFIX, pcTail, iBlkIo);
         if (API_IosDevMatchFull(cFullVolName) == LW_NULL) {
             iBlkIoErr = API_OemBlkIoCreate(cFullVolName,
-                                           poemd->OEMDISK_pblkdCache);
+                                           poemd->OEMDISK_pblkdCache, poemd);
             if (iBlkIoErr == ERROR_NONE) {
+                poemd->OEMDISK_iBlkNo = iBlkIo;
                 break;
 
             } else if (errno != ERROR_IOS_DUPLICATE_DEVICE_NAME) {
@@ -904,6 +908,183 @@ LW_API
 INT  API_OemDiskUnmount (PLW_OEMDISK_CB  poemd)
 {
     return  (API_OemDiskUnmountEx(poemd, LW_TRUE));
+}
+/*********************************************************************************************************
+** 函数名称: API_OemDiskRemountEx
+** 功能描述: 根据新的分区信息, 重新加载文件系统
+** 输　入  : poemd              OEM 磁盘控制块
+**           bForce             如果有文件系统挂载, 是否强制卸载, 以便重新挂载
+** 输　出  : ERROR CODE
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API 
+INT  API_OemDiskRemountEx (PLW_OEMDISK_CB  poemd, BOOL  bForce)
+{
+             INT            i;
+             PCHAR          pcVolName, pcTail;
+             CPCHAR         pcFs;
+             CHAR           cFullVolName[MAX_FILENAME_LENGTH];          /*  完整卷标名                  */
+    
+    REGISTER INT            iNPart;
+             INT            iVolSeq;
+             DISKPART_TABLE dptPart;                                    /*  分区表                      */
+             
+             FUNCPTR        pfuncFsCreate;
+
+    if (poemd == LW_NULL) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    iNPart = (INT)poemd->OEMDISK_uiNPart;                               /*  获取分区数量                */
+    
+    for (i = 0; i < iNPart; i++) {
+        if (poemd->OEMDISK_iVolSeq[i] != PX_ERROR) {                    /*  没有挂载文件系统            */
+            sprintf(cFullVolName, "%s%d", 
+                    poemd->OEMDISK_cVolName, 
+                    poemd->OEMDISK_iVolSeq[i]);                         /*  获得完整卷名                */
+            
+            if (poemd->OEMDISK_pdevhdr[i] == API_IosDevMatchFull(cFullVolName)) {
+                if (bForce == LW_FALSE) {
+                    _ErrorHandle(EBUSY);
+                    return  (PX_ERROR);
+                
+                } else {
+                    __oemDiskForceDeleteEn(cFullVolName);
+                    if (unlink(cFullVolName) == ERROR_NONE) {           /*  卸载所有相关卷              */
+                        poemd->OEMDISK_iVolSeq[i] = PX_ERROR;
+                        __oemAutoMountDelete(cFullVolName);
+                    
+                    } else {
+                        return  (PX_ERROR);                             /*  无法卸载卷                  */
+                    }
+                }
+            }
+        }
+    }
+    
+    __oemDiskPartFree(poemd);                                           /*  释放分区信息                */
+    
+    /*
+     *  获得挂载名
+     */
+    pcVolName = poemd->OEMDISK_cVolName;
+     
+    pcTail = lib_rindex(pcVolName, PX_DIVIDER);
+    if (pcTail == LW_NULL) {
+        pcTail =  (PCHAR)pcVolName;
+    } else {
+        pcTail++;
+    }
+    
+    /*
+     *  扫描磁盘所有分区信息
+     */
+    iNPart = API_DiskPartitionScan(poemd->OEMDISK_pblkdCache, 
+                                   &dptPart);                           /*  扫描分区表                  */
+    if (iNPart < 1) {
+        return  (PX_ERROR);
+    }
+    poemd->OEMDISK_uiNPart = (UINT)iNPart;                              /*  记录分区数量                */
+    
+    /*
+     *  初始化所有的分区挂载失败
+     */
+    for (i = 0; i < iNPart; i++) {
+        poemd->OEMDISK_iVolSeq[i] = PX_ERROR;                           /*  默认为挂载失败              */
+    }
+    
+    /*
+     *  分别挂载各个分区
+     */
+    iVolSeq = 0;
+    for (i = 0; i < iNPart; i++) {                                      /*  装载各个分区                */
+        if (API_DiskPartitionGet(&dptPart, i, 
+                                 &poemd->OEMDISK_pblkdPart[i]) < 0) {   /*  获得分区 logic device       */
+            break;
+        }
+        
+__refined_seq:
+        sprintf(cFullVolName, "%s%d", pcVolName, iVolSeq);              /*  获得完整卷名                */
+        if (API_IosDevMatchFull(cFullVolName)) {                        /*  设备名重名预判              */
+            iVolSeq++;
+            goto    __refined_seq;                                      /*  重新确定卷序号              */
+        }
+        
+        pfuncFsCreate = LW_NULL;
+        
+        switch (dptPart.DPT_dpoLogic[i].DPO_dpnEntry.DPN_ucPartType) {  /*  判断文件系统分区类型        */
+        
+        case LW_DISK_PART_TYPE_FAT12:                                   /*  FAT 文件系统类型            */
+        case LW_DISK_PART_TYPE_FAT16:
+        case LW_DISK_PART_TYPE_FAT16_BIG:
+        case LW_DISK_PART_TYPE_HPFS_NTFS:                               /*  exFAT / NTFS                */
+        case LW_DISK_PART_TYPE_WIN95_FAT32:
+        case LW_DISK_PART_TYPE_WIN95_FAT32LBA:
+        case LW_DISK_PART_TYPE_WIN95_FAT16LBA:
+            pfuncFsCreate = __fsCreateFuncGet("vfat",                   /*  查询 VFAT 文件系统装载函数  */
+                                              poemd->OEMDISK_pblkdPart[i],
+                                              dptPart.DPT_dpoLogic[i].DPO_dpnEntry.DPN_ucPartType);
+            pcFs          = "vfat";
+            break;
+        
+        case LW_DISK_PART_TYPE_TPS:                                     /*  TPS 文件系统类型            */
+            pfuncFsCreate = __fsCreateFuncGet("tpsfs",                  /*  查询 TPSFS 文件系统装载函数 */
+                                              poemd->OEMDISK_pblkdPart[i],
+                                              dptPart.DPT_dpoLogic[i].DPO_dpnEntry.DPN_ucPartType);
+            pcFs          = "tpsfs";
+            break;
+        
+        default:
+            break;
+        }
+        
+        if (pfuncFsCreate) {                                            /*  存在支持的文件系统          */
+            if (pfuncFsCreate(cFullVolName, 
+                              poemd->OEMDISK_pblkdPart[i]) < 0) {       /*  挂载文件系统                */
+                if (API_GetLastError() == ERROR_IOS_DUPLICATE_DEVICE_NAME) {
+                    iVolSeq++;
+                    goto    __refined_seq;                              /*  重新确定卷序号              */
+                } else {
+                    goto    __mount_over;                               /*  挂载失败                    */
+                }
+            }
+            poemd->OEMDISK_pdevhdr[i] = API_IosDevMatchFull(cFullVolName);
+            poemd->OEMDISK_iVolSeq[i] = iVolSeq;                        /*  记录卷序号                  */
+            __oemAutoMountAdd(cFullVolName, pcTail, poemd->OEMDISK_iBlkNo, i);
+            _DebugFormat(__PRINTMESSAGE_LEVEL, 
+                         "Block device %s%s-%d part %d mount to %s use %s file system.\r\n", 
+                         LW_BLKIO_PERFIX, pcTail, poemd->OEMDISK_iBlkNo, 
+                         i, cFullVolName, pcFs);
+        } else {
+            continue;                                                   /*  此分区无法加载              */
+        }
+        
+        if (poemd->OEMDISK_iVolSeq[i] >= 0) {
+            __oemDiskForceDeleteEn(cFullVolName);                       /*  默认为强制删除              */
+        }
+        
+        iVolSeq++;                                                      /*  已处理完当前卷              */
+    }
+
+__mount_over:
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_OemDiskRemount
+** 功能描述: 根据新的分区信息, 重新加载文件系统
+** 输　入  : poemd              OEM 磁盘控制块
+** 输　出  : ERROR CODE
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API 
+INT  API_OemDiskRemount (PLW_OEMDISK_CB  poemd)
+{
+    return  (API_OemDiskRemountEx(poemd, LW_FALSE));
 }
 /*********************************************************************************************************
 ** 函数名称: API_OemDiskGetPath

@@ -28,7 +28,7 @@
   API
 *********************************************************************************************************/
 
-LW_API INT  API_OemBlkIoCreate(CPCHAR  pcBlkDev, PLW_BLK_DEV  pblkdDisk);
+LW_API INT  API_OemBlkIoCreate(CPCHAR  pcBlkDev, PLW_BLK_DEV  pblkdDisk, CPVOID  pvOemDisk);
 LW_API INT  API_OemBlkIoDelete(PLW_BLK_DEV  pblkdDisk);
 
 #endif                                                                  /*  __OEMBLKIO_H                */
