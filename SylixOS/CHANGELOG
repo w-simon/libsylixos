@@ -13,6 +13,11 @@ HISTORY
 
 ++ Bugfixes:
 
+    2016-11-28: han.hui
+    修正 MIPS 硬浮点错误.
+    修正 PowerPC 装载错误.
+    优化 SATA 写并行管线操作.
+
 (STABLE-1.3.5)
 
 ++ New features:

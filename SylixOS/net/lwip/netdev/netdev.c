@@ -109,7 +109,7 @@ static err_t  netdev_netif_igmp_mac_filter (struct netif *netif,
   
   inaddr.sin_len    = sizeof(struct sockaddr_in);
   inaddr.sin_family = AF_INET;
-  inet4_addr_from_ip4addr(&inaddr.sin_addr, group);
+  inet_addr_from_ip4addr(&inaddr.sin_addr, group);
   
   if (action == NETIF_DEL_MAC_FILTER) {
     NETDEV_MACFILTER(netdev, NETDRV_MACFILTER_DEL, (struct sockaddr *)&inaddr);
@@ -387,11 +387,15 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
       if_param_getenable(ifparam, &enable);
       if (enable) {
         netdev->if_flags |= IFF_UP;
+      } else {
+        netdev->if_flags &= ~IFF_UP;
       }
     
       if_param_getdefault(ifparam, &def);
       if (def) {
         netdev->init_flags |= NETDEV_INIT_AS_DEFAULT;
+      } else {
+        netdev->init_flags &= ~NETDEV_INIT_AS_DEFAULT;
       }
       
       if_param_getipaddr(ifparam, &ip4);

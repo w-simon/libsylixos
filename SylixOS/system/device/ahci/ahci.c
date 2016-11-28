@@ -24,6 +24,7 @@
 2016.11.01  探测到硬盘后不再需要等待硬盘的稳定状态, 在 N2600 平台 NM10 桥上的 AHCI 控制器不需要等待.
 2016.11.10  不再强制性对 PHY 进行复位操作, 当链接状态正确时不再对 PHY 进行初始化.
 2016.11.22  由具体设备决定是否对 PHY 进行复位, 统一使用 __ahciDrivePhyReset() 函数.
+2016.11.27  不支持 NCQ 的磁盘, 不使用并行管线操作.
 *********************************************************************************************************/
 #define  __SYLIXOS_PCI_DRV
 #define  __SYLIXOS_STDIO
@@ -1512,8 +1513,14 @@ static PLW_BLK_DEV  __ahciBlkDevCreate (AHCI_CTRL_HANDLE  hCtrl,
         dcattrl.DCATTR_iMaxRBurstSector = (INT)ulBurstSizeRd;
         dcattrl.DCATTR_iMaxWBurstSector = (INT)ulBurstSizeWr;
         dcattrl.DCATTR_iMsgCount        = 16;
-        dcattrl.DCATTR_iPipeline        = (INT)ulPl;                    /* 四条回写管线                 */
         dcattrl.DCATTR_bParallel        = LW_TRUE;                      /* 可支持并行操作               */
+        
+        if (hDrive->AHCIDRIVE_bNcq) {                                   /* 是否支持命令队列             */
+            dcattrl.DCATTR_iPipeline = (INT)((ulPl > LW_NCPUS) ? LW_NCPUS : ulPl);
+
+        } else {
+            dcattrl.DCATTR_iPipeline = 1;
+        }
                                                                         /* 挂载设备                     */
         hDev->AHCIDEV_pvOemdisk = (PVOID)API_OemDiskMount2(AHCI_MEDIA_NAME,
                                                            hBlkDev,

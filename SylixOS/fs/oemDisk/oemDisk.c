@@ -855,6 +855,7 @@ INT  API_OemDiskUnmountEx (PLW_OEMDISK_CB  poemd, BOOL  bForce)
                     poemd->OEMDISK_iVolSeq[i]);                         /*  获得完整卷名                */
             
             if (poemd->OEMDISK_pdevhdr[i] != API_IosDevMatchFull(cFullVolName)) {
+                __oemAutoMountDelete(cFullVolName);
                 continue;                                               /*  不是此 oemDisk 的设备       */
             }
             
@@ -946,20 +947,23 @@ INT  API_OemDiskRemountEx (PLW_OEMDISK_CB  poemd, BOOL  bForce)
                     poemd->OEMDISK_cVolName, 
                     poemd->OEMDISK_iVolSeq[i]);                         /*  获得完整卷名                */
             
-            if (poemd->OEMDISK_pdevhdr[i] == API_IosDevMatchFull(cFullVolName)) {
-                if (bForce == LW_FALSE) {
-                    _ErrorHandle(EBUSY);
-                    return  (PX_ERROR);
+            if (poemd->OEMDISK_pdevhdr[i] != API_IosDevMatchFull(cFullVolName)) {
+                __oemAutoMountDelete(cFullVolName);
+                continue;                                               /*  不是此 oemDisk 的设备       */
+            }
+            
+            if (bForce == LW_FALSE) {
+                _ErrorHandle(EBUSY);
+                return  (PX_ERROR);
+            
+            } else {
+                __oemDiskForceDeleteEn(cFullVolName);
+                if (unlink(cFullVolName) == ERROR_NONE) {               /*  卸载所有相关卷              */
+                    poemd->OEMDISK_iVolSeq[i] = PX_ERROR;
+                    __oemAutoMountDelete(cFullVolName);
                 
                 } else {
-                    __oemDiskForceDeleteEn(cFullVolName);
-                    if (unlink(cFullVolName) == ERROR_NONE) {           /*  卸载所有相关卷              */
-                        poemd->OEMDISK_iVolSeq[i] = PX_ERROR;
-                        __oemAutoMountDelete(cFullVolName);
-                    
-                    } else {
-                        return  (PX_ERROR);                             /*  无法卸载卷                  */
-                    }
+                    return  (PX_ERROR);                                 /*  无法卸载卷                  */
                 }
             }
         }

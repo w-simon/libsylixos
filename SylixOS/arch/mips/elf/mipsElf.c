@@ -268,15 +268,14 @@ INT  archElfRelocateRel (PVOID        pmodule,
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: archMIPSGlobalGOTTABCreate
+** 函数名称: archElfGotInit
 ** 功能描述: MIPS GOT 重定位
 ** 输　入  : pmodule       模块指针
-**           pdyndir       dynamic数据结构
 ** 输　出  : ERROR_NONE 表示没有错误, PX_ERROR 表示错误
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-INT archMIPSGlobalGOTTABCreate (PVOID pmodule, PVOID  pdyndir)
+INT archElfGotInit (PVOID pmodule)
 {
     Elf_Addr            *pMipsGotEntry;
     Elf_Sym             *pMipsSym;
@@ -285,7 +284,7 @@ INT archMIPSGlobalGOTTABCreate (PVOID pmodule, PVOID  pdyndir)
     ULONG                ulTemp = 0;
     INT                  iIndex = 2;
     LW_LD_EXEC_MODULE   *pprivmodule = (LW_LD_EXEC_MODULE *)pmodule;
-    ELF_DYN_DIR         *pprivdyndir = (ELF_DYN_DIR *)pdyndir;
+    ELF_DYN_DIR         *pprivdyndir = (ELF_DYN_DIR *)pprivmodule->EMOD_pvFormatInfo;
 
     pMipsGotEntry = pprivdyndir->ulPltGotAddr + iIndex;
     for (; iIndex < pprivdyndir->ulMIPSLocalGotNumIdx; iIndex++, pMipsGotEntry++) {

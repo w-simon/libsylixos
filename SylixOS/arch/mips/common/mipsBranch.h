@@ -25,45 +25,46 @@
  *
  * Copyright (C) 1996, 1997, 1998, 2001 by Ralf Baechle
  */
-#ifndef _ASM_BRANCH_H
-#define _ASM_BRANCH_H
+#ifndef __ASM_BRANCH_H
+#define __ASM_BRANCH_H
 
-static inline int delay_slot(ARCH_REG_CTX *regs)
+static inline int delay_slot (ARCH_REG_CTX *regs)
 {
-    return regs->REG_uiCP0Cause & M_CauseBD;
+    return  (regs->REG_uiCP0Cause & M_CauseBD);
 }
 
-static inline void clear_delay_slot(ARCH_REG_CTX *regs)
+static inline void clear_delay_slot (ARCH_REG_CTX *regs)
 {
     regs->REG_uiCP0Cause &= ~M_CauseBD;
 }
 
-static inline void set_delay_slot(ARCH_REG_CTX *regs)
+static inline void set_delay_slot (ARCH_REG_CTX *regs)
 {
     regs->REG_uiCP0Cause |= M_CauseBD;
 }
 
-static inline unsigned long exception_epc(ARCH_REG_CTX *regs)
+static inline unsigned long exception_epc (ARCH_REG_CTX *regs)
 {
-    if (!delay_slot(regs))
-        return regs->REG_uiCP0EPC;
+    if (!delay_slot(regs)) {
+        return 	(regs->REG_uiCP0EPC);
+    }
 
-    return regs->REG_uiCP0EPC + 4;
+    return  (regs->REG_uiCP0EPC + 4);
 }
 
 extern int __compute_return_epc(ARCH_REG_CTX *regs);
 
-static inline int compute_return_epc(ARCH_REG_CTX *regs)
+static inline int compute_return_epc (ARCH_REG_CTX *regs)
 {
     if (!delay_slot(regs)) {
         regs->REG_uiCP0EPC += 4;
-        return 0;
+        return  (0);
     }
 
-    return __compute_return_epc(regs);
+    return  (__compute_return_epc(regs));
 }
 
-#endif                                                                  /*  _ASM_BRANCH_H               */
+#endif                                                                  /*  __ASM_BRANCH_H              */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

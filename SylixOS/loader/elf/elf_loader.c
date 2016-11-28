@@ -1028,7 +1028,7 @@ static INT dynPhdrParse (LW_LD_EXEC_MODULE *pmodule,
                          Elf_Phdr          *pphdr,
                          INT                iPhdrCnt)
 {
-    Elf_Addr     addrMin = pdyndir->addrMin;
+    Elf_Addr     addrMin     = pdyndir->addrMin;
     Elf_Dyn     *pdyn        = LW_NULL;                                 /*  dynamic段指针               */
     ULONG        ulItemCount = 0;                                       /*  dynamic段条目数             */
 
@@ -1141,21 +1141,25 @@ static INT dynPhdrParse (LW_LD_EXEC_MODULE *pmodule,
                                                         pdyn->d_un.d_val);
                     break;
 					
-#ifdef  LW_CFG_CPU_ARCH_MIPS
                 case DT_PLTGOT:
                     pdyndir->ulPltGotAddr  = (Elf_Addr *)LW_LD_V2PADDR(addrMin,
                                                          pmodule->EMOD_pvBaseAddr,
                                                          pdyn->d_un.d_ptr);
                     break;
+                    
+#ifdef  LW_CFG_CPU_ARCH_MIPS
                 case DT_MIPS_GOTSYM:
                     pdyndir->ulMIPSGotSymIdx      = pdyn->d_un.d_val;
                     break;
+                
                 case DT_MIPS_LOCAL_GOTNO:
                     pdyndir->ulMIPSLocalGotNumIdx = pdyn->d_un.d_val;
                     break;
+                
                 case DT_MIPS_SYMTABNO:
                     pdyndir->ulMIPSSymNumIdx      = pdyn->d_un.d_val;
                     break;
+                
                 case DT_MIPS_PLTGOT:
                     pdyndir->ulMIPSPltGotIdx      = pdyn->d_un.d_val;
                     break;
@@ -1222,10 +1226,10 @@ static INT elfPhdrRead (LW_LD_EXEC_MODULE *pmodule,
 
     size_t          stShdrSize;
     ULONG           i;
-    Elf_Word        dwAlign    = 0;
-    Elf_Word        dwMapOff   = 0;
-    Elf_Addr        addrMin    = (Elf_Addr)~0;
-    Elf_Addr        addrMax    = 0x0;
+    Elf_Word        dwAlign  = 0;
+    Elf_Word        dwMapOff = 0;
+    Elf_Addr        addrMin  = (Elf_Addr)~0;
+    Elf_Addr        addrMax  = 0x0;
     
     BOOL            bCanShare;
     BOOL            bCanExec;
@@ -1367,7 +1371,7 @@ __out0:
 *********************************************************************************************************/
 static INT elfPhdrRelocate (LW_LD_EXEC_MODULE *pmodule, ELF_DYN_DIR  *pdyndir)
 {
-    Elf_Addr     addrMin = pdyndir->addrMin;
+    Elf_Addr     addrMin   = pdyndir->addrMin;
     Elf_Rel     *prel      = LW_NULL;
     Elf_Rela    *prela     = LW_NULL;
     PCHAR        pcSymName = LW_NULL;
@@ -1381,11 +1385,11 @@ static INT elfPhdrRelocate (LW_LD_EXEC_MODULE *pmodule, ELF_DYN_DIR  *pdyndir)
                                   pmodule->EMOD_pvBaseAddr,
                                   0);                                   /*  elf段0地址的加载地址        */
 
-#ifdef  LW_CFG_CPU_ARCH_MIPS
-    if (archMIPSGlobalGOTTABCreate(pmodule, pdyndir) < 0) {
+#if defined(LW_CFG_CPU_ARCH_PPC) || defined(LW_CFG_CPU_ARCH_MIPS)
+    if (archElfGotInit(pmodule) < 0) {
         return  (PX_ERROR);
     }
-#endif                                                                  /*  LW_CFG_CPU_ARCH_MIPS        */
+#endif
 
     /*
      *  重定位
@@ -1481,7 +1485,7 @@ static INT elfPhdrRelocate (LW_LD_EXEC_MODULE *pmodule, ELF_DYN_DIR  *pdyndir)
 *********************************************************************************************************/
 static INT elfPhdrSymExport (LW_LD_EXEC_MODULE *pmodule, ELF_DYN_DIR  *pdyndir)
 {
-    Elf_Addr     addrMin = pdyndir->addrMin;
+    Elf_Addr     addrMin   = pdyndir->addrMin;
     PCHAR        pcSymName = LW_NULL;
     Elf_Sym     *psym      = LW_NULL;
 
@@ -1913,18 +1917,69 @@ static CPCHAR  __elfGetMachineStr (Elf_Half  ehMachine)
     case EM_MIPS:
         return  ("MIPS family");
 
-    case EM_PPC_OLD:
-        return  ("PowerPC family - EABI draft 1.0");
+    case EM_PARISC:
+        return  ("HPPA");
+        
+    case EM_SPARC32PLUS:
+        return  ("Sun's SPARCv8 plus");
 
     case EM_PPC:
         return  ("PowerPC family");
+
+    case EM_PPC64:
+        return  ("PowerPC64 family");
+
+    case EM_S390:
+        return  ("IBM S/390");
+        
+    case EM_SPU:
+        return  ("Cell BE SPU");
 
     case EM_ARM:
         return  ("ARM family");
 
     case EM_SH:
         return  ("Hitachi SH family");
-
+        
+    case EM_SPARCV9:
+        return  ("SPARC v9 64-bit");
+    
+    case EM_H8_300:
+        return  ("Renesas H8/300,300H,H8S");
+    
+    case EM_IA_64:
+        return  ("HP/Intel IA-64");
+    
+    case EM_X86_64:
+        return  ("AMD x86-64");
+    
+    case EM_CRIS:
+        return  ("Axis 32-bit processor");
+    
+    case EM_V850:
+        return  ("NEC v850");
+    
+    case EM_M32R:
+        return  ("Renesas M32R");
+    
+    case EM_MN10300:
+        return  ("Panasonic/MEI MN10300, AM33");
+    
+    case EM_BLACKFIN:
+        return  ("ADI Blackfin Processor");
+    
+    case EM_AARCH64:
+        return  ("ARM AArch64");
+    
+    case EM_FRV:
+        return  ("Fujitsu FR-V");
+    
+    case EM_AVR32:
+        return  ("Atmel AVR32");
+    
+    case EM_ALPHA:
+        return  ("Alpha");
+    
     default:
         return  ("unknown");
     }

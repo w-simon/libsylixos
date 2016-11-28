@@ -42,10 +42,9 @@ INT archElfRelocateRel(PVOID        pmodule,
 				       PCHAR        pcBuffer,
                        size_t       stBuffLen);                         /*  REL 项重定位                */
 
-#ifdef  LW_CFG_CPU_ARCH_MIPS
-INT archMIPSGlobalGOTTABCreate(PVOID        pmodule,
-                               PVOID        pdyndir);                   /*  MIPS 全局 GOT 表创建        */
-#endif                                                                  /*  LW_CFG_CPU_ARCH_MIPS        */
+#if defined(LW_CFG_CPU_ARCH_PPC) || defined(LW_CFG_CPU_ARCH_MIPS)
+INT archElfGotInit(PVOID  pmodule);                                     /*  初始化GOT表                 */
+#endif
 
 #endif                                                                  /*  __ELF_ARCH_H                */
 /*********************************************************************************************************

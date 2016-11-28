@@ -237,7 +237,7 @@ char *lib_itoa (int value, char *string, int radix)
     }
 
     if (string == 0)
-        string = (char *)lib_malloc((tp-tmp)+sign+1);
+        string = (char *)lib_malloc((tp - tmp) + sign + 1);
     sp = string;
 
     if (sign)
@@ -246,7 +246,7 @@ char *lib_itoa (int value, char *string, int radix)
         *sp++ = *--tp;
     *sp = 0;
     
-    return string;
+    return  (string);
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: lib_atoi

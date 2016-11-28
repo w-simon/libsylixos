@@ -273,7 +273,7 @@ INT  archElfRelocateRela (PVOID       pmodule,
                 Elf32_Word *pplt, *pdataWords;
                 Elf32_Word  index, offset, numPltEntries;
 
-                pplt   = (Elf32_Word *)pdyndir->pvJmpRTable;
+                pplt   = (Elf32_Word *)pdyndir->ulPltGotAddr;
                 offset = (Elf32_Word *)paddrWhere - pplt;
 
                 if (offset < PLT_DOUBLE_SIZE * 2 + PLT_INITIAL_ENTRY_WORDS) {
@@ -339,6 +339,32 @@ INT  archElfRelocateRel (PVOID        pmodule,
 INT  archElfRGetJmpBuffItemLen (PVOID  pmodule)
 {
     return  (sizeof(LONG_JMP_ITEM));
+}
+/*********************************************************************************************************
+** 函数名称: archElfGotInit
+** 功能描述: 初始化 GOT 表
+** 输  入  : pmodule       模块
+** 输  出  : ERROR_NONE 表示没有错误, PX_ERROR 表示错误
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT archElfGotInit (PVOID  pmodule)
+{
+    Elf32_Word   *pplt, *pdataWords;
+    Elf32_Word    numPltEntries;
+    ELF_DYN_DIR  *pdyndir = (ELF_DYN_DIR *)(((LW_LD_EXEC_MODULE *)pmodule)->EMOD_pvFormatInfo);
+
+	pplt          = (Elf32_Word *)pdyndir->ulPltGotAddr;
+    numPltEntries = pdyndir->ulJmpRSize / sizeof(Elf32_Rela);
+    pdataWords    = pplt + PLT_DATA_START_WORDS(numPltEntries);
+
+    pplt[PLT_LONGBRANCH_ENTRY_WORDS]     = OPCODE_ADDIS_HI(11, 11, ((UINT)pdataWords));
+    pplt[PLT_LONGBRANCH_ENTRY_WORDS + 1] = OPCODE_LWZ(11, ((UINT)pdataWords), 11);
+
+    pplt[PLT_LONGBRANCH_ENTRY_WORDS + 2] = OPCODE_MTCTR(11);
+    pplt[PLT_LONGBRANCH_ENTRY_WORDS + 3] = OPCODE_BCTR();
+
+    return  (ERROR_NONE);
 }
 
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */

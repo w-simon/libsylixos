@@ -44,7 +44,7 @@ static INT  __tshellPerfCmdPerfStart (INT  iArgC, PCHAR  ppcArgV[])
     UINT  uiRefreshPeriod = 10000;
     
     if (iArgC > 1) {
-        if (sscanf(ppcArgV[1], "%u", &uiPipeLen) != 0) {
+        if (sscanf(ppcArgV[1], "%u", &uiPipeLen) != 1) {
             fprintf(stderr, "option error\n");
             return  (PX_ERROR);
         }
@@ -55,7 +55,7 @@ static INT  __tshellPerfCmdPerfStart (INT  iArgC, PCHAR  ppcArgV[])
     }
     
     if (iArgC > 2) {
-        if (sscanf(ppcArgV[2], "%u", &uiPerfNum) != 0) {
+        if (sscanf(ppcArgV[2], "%u", &uiPerfNum) != 1) {
             fprintf(stderr, "option error\n");
             return  (PX_ERROR);
         }
@@ -66,7 +66,7 @@ static INT  __tshellPerfCmdPerfStart (INT  iArgC, PCHAR  ppcArgV[])
     }
     
     if (iArgC > 3) {
-        if (sscanf(ppcArgV[3], "%u", &uiRefreshPeriod) != 0) {
+        if (sscanf(ppcArgV[3], "%u", &uiRefreshPeriod) != 1) {
             fprintf(stderr, "option error\n");
             return  (PX_ERROR);
         }
@@ -140,14 +140,14 @@ static INT  __tshellPerfCmdPerfShow (INT  iArgC, PCHAR  ppcArgV[])
     static PCHAR            pcPerfTraceHdr = \
     "                                       Performance Statistics\n\n" LW_TSHELL_COLOR_LIGHT_RED
     "            Becasue 'static' function NOT in symbol table so if SAMPLE in 'static' function,\n"
-    "                      'POSSIBLE FUNCTION' will the nearest symbol with address.\n\n" LW_TSHELL_COLOR_NONE
+    "                 'POSSIBLE FUNCTION' will be the nearest symbol with sample address.\n\n" LW_TSHELL_COLOR_NONE
     "      NAME         TID    PID  CPU       SYMBOL             SAMPLE       TIME CONSUME     POSSIBLE FUNCTION\n"
     "---------------- ------- ----- --- ------------------ ------------------ ------------ -------------------------\n";
 #else
     static PCHAR            pcPerfTraceHdr = \
     "                                  Performance Statistics\n\n" LW_TSHELL_COLOR_LIGHT_RED
     "       Becasue 'static' function NOT in symbol table so if SAMPLE in 'static' function,\n"
-    "                 'POSSIBLE FUNCTION' will the nearest symbol with address.\n\n" LW_TSHELL_COLOR_NONE
+    "            'POSSIBLE FUNCTION' will be the nearest symbol with sample address.\n\n" LW_TSHELL_COLOR_NONE
     "      NAME         TID    PID  CPU   SYMBOL     SAMPLE   TIME CONSUME     POSSIBLE FUNCTION\n"
     "---------------- ------- ----- --- ---------- ---------- ------------ -------------------------\n";
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT adj  */

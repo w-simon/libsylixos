@@ -193,7 +193,7 @@ ip4_route(const ip4_addr_t *dest)
   /* loopif is disabled, looopback traffic is passed through any netif */
   if (ip4_addr_isloopback(dest)) {
     /* don't check for link on loopback traffic */
-    if (netif_is_up(netif_default)) {
+    if (netif_default != NULL && netif_is_up(netif_default)) {
       return netif_default;
     }
     /* default netif is not up, just use any netif for loopback traffic */
@@ -522,6 +522,15 @@ ip4_input(struct pbuf *p, struct netif *inp)
 #endif /* LWIP_AUTOIP */
       }
       if (first) {
+#if !LWIP_NETIF_LOOPBACK || LWIP_HAVE_LOOPIF
+        /* Packets sent to the loopback address must not be accepted on an
+         * interface that does not have the loopback address assigned to it,
+         * unless a non-loopback interface is used for loopback traffic. */
+        if (ip4_addr_isloopback(ip4_current_dest_addr())) {
+          netif = NULL;
+          break;
+        }
+#endif /* !LWIP_NETIF_LOOPBACK || LWIP_HAVE_LOOPIF */
         first = 0;
         netif = netif_list;
       } else {
