@@ -600,6 +600,8 @@ ULONG  API_DtraceSetRegs (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, const ARC
 ** 调用模块: 
                                            API 函数
 *********************************************************************************************************/
+#if LW_CFG_CPU_FPU_EN > 0
+
 LW_API 
 ULONG  API_DtraceGetFpuRegs (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, ARCH_FPU_CTX  *pfpuctx)
 {
@@ -683,6 +685,8 @@ ULONG  API_DtraceSetFpuRegs (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, const 
     
     return  (ERROR_NONE);
 }
+
+#endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 /*********************************************************************************************************
 ** 函数名称: API_DtraceGetMems
 ** 功能描述: 拷贝内存

@@ -1100,6 +1100,11 @@ PVOID  API_ModuleSym (PVOID  pvModule, CPCHAR  pcName)
     INT                iLayer = 20;                                     /*  ×î´óµÝ¹é 20 ´Î              */
     addr_t             ulValue = (addr_t)LW_NULL;
     
+    if (!pcName) {
+        _ErrorHandle(EINVAL);
+        return  (LW_NULL);
+    }
+    
     if ((pmodule == LW_NULL) || (pmodule->EMOD_ulMagic != __LW_LD_EXEC_MODULE_MAGIC)) {
         _ErrorHandle(ERROR_LOADER_PARAM_NULL);
         return  (LW_NULL);

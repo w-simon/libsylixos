@@ -300,13 +300,19 @@ ULONG  archGdbGetNextPc (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET 
     ULONG           machInstr;
     ULONG           npc;
     ULONG           pc;
+    
+#if LW_CFG_CPU_FPU_EN > 0
     ULONG           ulFpcsr;
+#endif
+    
     ARCH_REG_CTX    regctx;
     ARCH_REG_T      regSp;
     ARCH_FPU_CTX    fpuctx;
 
+#if LW_CFG_CPU_FPU_EN > 0
     API_DtraceGetFpuRegs(pvDtrace, ulThread, &fpuctx);
     ulFpcsr = fpuctx.FPUCTX_uiFpcsr;
+#endif
 
     pc = (ULONG) pRegs->regArr[MIPS_REG_INDEX_PC].GDBRA_ulValue;        /*  当前 PC 指针                */
     /*
@@ -333,7 +339,7 @@ ULONG  archGdbGetNextPc (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET 
         npc = pc + 8;
         switch (copId) {
         case 1:
-#ifndef SOFT_FLOAT
+#if LW_CFG_CPU_FPU_EN > 0
             if ((ulFpcsr & FP_COND) != FP_COND) {                       /*  浮点跳转指令需判断浮点标记  */
                 npc = disp + pc + 4;
             }
@@ -345,7 +351,7 @@ ULONG  archGdbGetNextPc (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET 
         npc = pc + 8;
         switch (copId) {
         case 1:
-#ifndef SOFT_FLOAT
+#if LW_CFG_CPU_FPU_EN > 0
             if ((ulFpcsr & FP_COND) == FP_COND) {
                 npc = disp + pc + 4;
             }
@@ -401,7 +407,7 @@ ULONG  archGdbGetNextPc (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET 
         npc = pc + 8;
         switch (copId){
         case 1:
-#ifndef SOFT_FLOAT
+#if LW_CFG_CPU_FPU_EN > 0
             if ((ulFpcsr & FP_COND) != FP_COND) {
                 npc = disp + pc + 4;
             }
@@ -413,7 +419,7 @@ ULONG  archGdbGetNextPc (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET 
         npc = pc + 8;
         switch (copId) {
         case 1:
-#ifndef SOFT_FLOAT
+#if LW_CFG_CPU_FPU_EN > 0
             if ((ulFpcsr & FP_COND) == FP_COND) {
                 npc = disp + pc + 4;
             }
