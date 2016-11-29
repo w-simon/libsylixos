@@ -37,6 +37,9 @@
     EXPORT_LABEL(archMpCur)
     EXPORT_LABEL(archMpInt)
     
+    WEAK(armSpinLock)
+    WEAK(armSpinTryLock)
+    WEAK(armSpinUnlock)
     WEAK(archMpCur)
     WEAK(archMpInt)
 

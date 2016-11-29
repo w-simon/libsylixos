@@ -39,6 +39,9 @@
     EXPORT_LABEL(archMpCur)
     EXPORT_LABEL(archMpInt)
     
+    WEAK(ppcSpinLock)
+    WEAK(ppcSpinTryLock)
+    WEAK(ppcSpinUnlock)
     WEAK(archMpCur)
     WEAK(archMpInt)
 
