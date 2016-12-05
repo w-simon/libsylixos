@@ -131,7 +131,7 @@ INT  API_ProcFsDrvInstall (VOID)
     }
     
     if (_G_ulProcFsLock == LW_OBJECT_HANDLE_INVALID) {
-        _G_ulProcFsLock = API_SemaphoreMCreate("proc_lock", LW_PRIO_DEF_CEILING, 
+        _G_ulProcFsLock = API_SemaphoreMCreate("proc_lock", LW_PRIO_DEF_CEILING, LW_OPTION_WAIT_PRIORITY |
                                                LW_OPTION_INHERIT_PRIORITY | LW_OPTION_DELETE_SAFE | 
                                                LW_OPTION_OBJECT_GLOBAL, LW_NULL);
     }

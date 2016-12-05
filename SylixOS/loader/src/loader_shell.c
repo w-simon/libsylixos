@@ -1003,11 +1003,11 @@ VOID  API_LoaderInit (VOID)
     
     bIsInit = LW_TRUE;
 
-    _G_ulVProcMutex    = API_SemaphoreMCreate("loader_lock", LW_PRIO_DEF_CEILING, 
+    _G_ulVProcMutex    = API_SemaphoreMCreate("loader_lock", LW_PRIO_DEF_CEILING, LW_OPTION_WAIT_PRIORITY |
                                               LW_OPTION_INHERIT_PRIORITY | LW_OPTION_DELETE_SAFE |
                                               LW_OPTION_OBJECT_GLOBAL, LW_NULL);
 #if LW_CFG_VMM_EN > 0
-    _G_ulExecShareLock = API_SemaphoreMCreate("execshare_lock", LW_PRIO_DEF_CEILING, 
+    _G_ulExecShareLock = API_SemaphoreMCreate("execshare_lock", LW_PRIO_DEF_CEILING, LW_OPTION_WAIT_PRIORITY |
                                               LW_OPTION_INHERIT_PRIORITY | LW_OPTION_DELETE_SAFE |
                                               LW_OPTION_OBJECT_GLOBAL, LW_NULL);
 #endif                                                                  /*  LW_CFG_VMM_EN > 0          */
@@ -1017,6 +1017,7 @@ VOID  API_LoaderInit (VOID)
     _G_vprocKernel.VP_pcName = "kernel";
     _G_vprocKernel.VP_ulModuleMutex = API_SemaphoreMCreate("kvproc_lock",
                                                            LW_PRIO_DEF_CEILING,
+                                                           LW_OPTION_WAIT_PRIORITY |
                                                            LW_OPTION_INHERIT_PRIORITY | 
                                                            LW_OPTION_DELETE_SAFE |
                                                            LW_OPTION_OBJECT_GLOBAL,

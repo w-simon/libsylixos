@@ -93,6 +93,7 @@ VOID  API_INetNatInit (VOID)
     __natPoolCreate();                                                  /*  ´´½¨ NAT ¿ØÖÆ¿é»º³å³Ø       */
     
     _G_ulNatOpLock = API_SemaphoreMCreate("nat_lock", LW_PRIO_DEF_CEILING, 
+                                          LW_OPTION_WAIT_PRIORITY |
                                           LW_OPTION_INHERIT_PRIORITY |
                                           LW_OPTION_DELETE_SAFE |
                                           LW_OPTION_OBJECT_GLOBAL,

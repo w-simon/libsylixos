@@ -1416,14 +1416,15 @@ INT  API_PciDevListCreate (VOID)
 LW_API
 INT  API_PciDevInit (VOID)
 {
-    _GuiPciDevTotalNum = 0;
+    _GuiPciDevTotalNum  = 0;
     _GplinePciDevHeader = LW_NULL;
+    
     _GulPciDevLock = API_SemaphoreMCreate("pci_dev_lock",
                                           LW_PRIO_DEF_CEILING,
-                                          (LW_OPTION_WAIT_FIFO |
-                                           LW_OPTION_DELETE_SAFE |
-                                           LW_OPTION_INHERIT_PRIORITY |
-                                           LW_OPTION_OBJECT_GLOBAL),
+                                          LW_OPTION_WAIT_PRIORITY |
+                                          LW_OPTION_DELETE_SAFE |
+                                          LW_OPTION_INHERIT_PRIORITY |
+                                          LW_OPTION_OBJECT_GLOBAL,
                                           LW_NULL);
     if (_GulPciDevLock == LW_OBJECT_HANDLE_INVALID) {
         return  (PX_ERROR);

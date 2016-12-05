@@ -122,6 +122,7 @@ INT  API_SpiAdapterCreate (CPCHAR           pcName,
      *  创建相关锁
      */
     pspiadapter->SPIADAPTER_hBusLock = API_SemaphoreMCreate("spi_buslock", LW_PRIO_DEF_CEILING,
+                                                            LW_OPTION_WAIT_PRIORITY |
                                                             LW_OPTION_INHERIT_PRIORITY |
                                                             LW_OPTION_DELETE_SAFE |
                                                             LW_OPTION_OBJECT_GLOBAL,

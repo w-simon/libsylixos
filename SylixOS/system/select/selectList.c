@@ -29,7 +29,7 @@
 /*********************************************************************************************************
   WAKE UP LIST ËøÊôÐÔ
 *********************************************************************************************************/
-#define __WAKEUPLIST_LOCK_OPTION        (LW_OPTION_WAIT_FIFO | LW_OPTION_DELETE_SAFE |  \
+#define __WAKEUPLIST_LOCK_OPTION        (LW_OPTION_WAIT_PRIORITY | LW_OPTION_DELETE_SAFE |  \
                                          LW_OPTION_INHERIT_PRIORITY | LW_OPTION_OBJECT_GLOBAL)
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: API_SelWakeupListInit

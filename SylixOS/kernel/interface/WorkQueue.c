@@ -110,6 +110,7 @@ static PLW_WORK_QUEUE  __wqDCreate (PLW_WORK_QUEUE  pwq, UINT  uiQSize, ULONG  u
     pwq->q.WQ_dq.DWQ_pwdnPool = pwdn;
     
     pwq->q.WQ_dq.DWQ_ulLock = API_SemaphoreMCreate("wqd_lock", LW_PRIO_DEF_CEILING, 
+                                           LW_OPTION_WAIT_PRIORITY |
                                            LW_OPTION_INHERIT_PRIORITY | 
                                            LW_OPTION_DELETE_SAFE | 
                                            LW_OPTION_OBJECT_GLOBAL, LW_NULL);

@@ -131,6 +131,7 @@ INT  _netEventDevCreate (VOID)
     
     _G_nevtdev.NEVT_plineFile = LW_NULL;
     _G_nevtdev.NEVT_ulMutex   = API_SemaphoreMCreate("nevt_lock", LW_PRIO_DEF_CEILING, 
+                                                     LW_OPTION_WAIT_PRIORITY |
                                                      LW_OPTION_DELETE_SAFE | 
                                                      LW_OPTION_INHERIT_PRIORITY |
                                                      LW_OPTION_OBJECT_GLOBAL,

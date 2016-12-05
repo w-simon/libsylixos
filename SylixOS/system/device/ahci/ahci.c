@@ -2355,14 +2355,14 @@ static INT  __ahciDrvInit (AHCI_CTRL_HANDLE  hCtrl)
                                                                LW_NULL);
             hDrive->AHCIDRIVE_hTagMuteSem = API_SemaphoreMCreate("ahci_tag",
                                                                  LW_PRIO_DEF_CEILING,
-                                                                 (LW_OPTION_WAIT_FIFO |
+                                                                 (LW_OPTION_WAIT_PRIORITY |
                                                                   LW_OPTION_DELETE_SAFE |
                                                                   LW_OPTION_INHERIT_PRIORITY |
                                                                   LW_OPTION_OBJECT_GLOBAL),
                                                                  LW_NULL);
             hDrive->AHCIDRIVE_hDriveMuteSem = API_SemaphoreMCreate("ahci_dev",
                                                                    LW_PRIO_DEF_CEILING,
-                                                                   (LW_OPTION_WAIT_FIFO |
+                                                                   (LW_OPTION_WAIT_PRIORITY |
                                                                     LW_OPTION_DELETE_SAFE |
                                                                     LW_OPTION_INHERIT_PRIORITY |
                                                                     LW_OPTION_OBJECT_GLOBAL),

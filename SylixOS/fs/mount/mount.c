@@ -265,6 +265,7 @@ VOID  API_MountInit (VOID)
 {
     if (_G_ulMountLock == 0) {
         _G_ulMountLock =  API_SemaphoreMCreate("mount_lock", LW_PRIO_DEF_CEILING, 
+                            LW_OPTION_WAIT_PRIORITY | LW_OPTION_INHERIT_PRIORITY |
                             LW_OPTION_DELETE_SAFE | LW_OPTION_OBJECT_GLOBAL, LW_NULL);
     }
 }

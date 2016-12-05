@@ -187,9 +187,10 @@ INT  API_AhciDrvInit (VOID)
 
     _GulAhciDrvLock = API_SemaphoreMCreate("ahci_drvlock",
                                            LW_PRIO_DEF_CEILING,
-                                           (LW_OPTION_INHERIT_PRIORITY |
-                                            LW_OPTION_DELETE_SAFE |
-                                            LW_OPTION_OBJECT_GLOBAL),
+                                           LW_OPTION_WAIT_PRIORITY |
+                                           LW_OPTION_INHERIT_PRIORITY |
+                                           LW_OPTION_DELETE_SAFE |
+                                           LW_OPTION_OBJECT_GLOBAL,
                                            LW_NULL);
     if (_GulAhciDrvLock == LW_OBJECT_HANDLE_INVALID) {
         return  (PX_ERROR);

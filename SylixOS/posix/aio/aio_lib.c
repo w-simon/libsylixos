@@ -60,7 +60,9 @@ static INT  __aioRemoveAllAiocb(AIO_REQ_CHAIN  *paiorc, INT  iError, INT  iErrNo
 VOID  _posixAioInit (VOID)
 {
     _G_aioqueue.aioq_mutex = API_SemaphoreMCreate("aio_mutex", LW_PRIO_DEF_CEILING, 
-                                    LW_OPTION_DELETE_SAFE | LW_OPTION_INHERIT_PRIORITY, LW_NULL);
+                                                  LW_OPTION_WAIT_PRIORITY |
+                                                  LW_OPTION_DELETE_SAFE | 
+                                                  LW_OPTION_INHERIT_PRIORITY, LW_NULL);
     if (_G_aioqueue.aioq_mutex == 0) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "can not initialize mutex.\r\n");
         return;
@@ -166,7 +168,9 @@ static AIO_REQ_CHAIN  *__aioCreateFd (LW_LIST_LINE_HEADER  *pplineHeader, int  i
     }
     
     paiorc->aiorc_mutex = API_SemaphoreMCreate("aiorc_mutex", LW_PRIO_DEF_CEILING, 
-                                LW_OPTION_DELETE_SAFE | LW_OPTION_INHERIT_PRIORITY, LW_NULL);
+                                               LW_OPTION_WAIT_PRIORITY |
+                                               LW_OPTION_DELETE_SAFE | 
+                                               LW_OPTION_INHERIT_PRIORITY, LW_NULL);
     if (paiorc->aiorc_mutex == 0) {
         __SHEAP_FREE(paiorc);
         return  (LW_NULL);

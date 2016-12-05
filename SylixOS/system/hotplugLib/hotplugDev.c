@@ -114,6 +114,7 @@ INT  _hotplugDevCreate (VOID)
     
     _G_hotplugdev.HOTPDEV_plineFile = LW_NULL;
     _G_hotplugdev.HOTPDEV_ulMutex   = API_SemaphoreMCreate("hotplug_lock", LW_PRIO_DEF_CEILING, 
+                                                           LW_OPTION_WAIT_PRIORITY |
                                                            LW_OPTION_DELETE_SAFE | 
                                                            LW_OPTION_INHERIT_PRIORITY |
                                                            LW_OPTION_OBJECT_GLOBAL,

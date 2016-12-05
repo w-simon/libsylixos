@@ -450,7 +450,7 @@ INT  API_TpsFsDevCreate (PCHAR   pcName, PLW_BLK_DEV  pblkd)
     ptpsvol->TPSVAL_bValid   = LW_TRUE;                                 /*  卷有效                      */
     ptpsvol->TPSVOL_hVolLock = API_SemaphoreMCreate("tpsvol_lock",
                                LW_PRIO_DEF_CEILING,
-                               LW_OPTION_WAIT_FIFO | LW_OPTION_DELETE_SAFE |
+                               LW_OPTION_WAIT_PRIORITY | LW_OPTION_DELETE_SAFE |
                                LW_OPTION_INHERIT_PRIORITY | LW_OPTION_OBJECT_GLOBAL,
                                LW_NULL);
     if (!ptpsvol->TPSVOL_hVolLock) {                                    /*  无法创建卷锁                */

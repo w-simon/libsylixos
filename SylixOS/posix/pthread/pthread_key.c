@@ -310,6 +310,7 @@ int  pthread_key_create (pthread_key_t  *pkey, void (*destructor)(void *))
     pkeyn->PKEYN_pfuncDestructor = destructor;
     pkeyn->PKEYN_plineKeyHeader  = LW_NULL;
     pkeyn->PKEYN_ulMutex         = API_SemaphoreMCreate("pxkey", LW_PRIO_DEF_CEILING, 
+                                            LW_OPTION_WAIT_PRIORITY |
                                             LW_OPTION_INHERIT_PRIORITY |
                                             LW_OPTION_DELETE_SAFE |
                                             LW_OPTION_OBJECT_GLOBAL, LW_NULL);

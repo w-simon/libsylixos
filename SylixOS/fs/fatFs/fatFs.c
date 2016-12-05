@@ -401,7 +401,7 @@ INT  API_FatFsDevCreate (PCHAR   pcName, PLW_BLK_DEV  pblkd)
     pfatvol->FATVAL_bValid   = LW_TRUE;                                 /*  卷有效                      */
     pfatvol->FATVOL_hVolLock = API_SemaphoreMCreate("fatvol_lock", 
                                LW_PRIO_DEF_CEILING,
-                               LW_OPTION_WAIT_FIFO | LW_OPTION_DELETE_SAFE | 
+                               LW_OPTION_WAIT_PRIORITY | LW_OPTION_DELETE_SAFE | 
                                LW_OPTION_INHERIT_PRIORITY | LW_OPTION_OBJECT_GLOBAL,
                                LW_NULL);
     if (!pfatvol->FATVOL_hVolLock) {                                    /*  无法创建卷锁                */

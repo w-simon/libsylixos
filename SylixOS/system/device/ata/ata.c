@@ -858,6 +858,7 @@ INT API_AtaDrv (ATA_CHAN  *patachan, ATA_CHAN_PARAM *patacp)
 
     patactrl->ATACTRL_ulMuteSem = API_SemaphoreMCreate("ata_mutesem",
                                                        LW_PRIO_DEF_CEILING,
+                                                       LW_OPTION_WAIT_PRIORITY |
                                                        LW_OPTION_INHERIT_PRIORITY | 
                                                        LW_OPTION_DELETE_SAFE |
                                                        LW_OPTION_OBJECT_GLOBAL,

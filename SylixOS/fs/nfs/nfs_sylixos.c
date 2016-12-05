@@ -438,7 +438,9 @@ INT  API_NfsDrvInstall (VOID)
     
     if (_G_ulNfsLock == 0) {
         _G_ulNfsLock = API_SemaphoreMCreate("nfs_lock", LW_PRIO_DEF_CEILING, 
-                                            LW_OPTION_INHERIT_PRIORITY | LW_OPTION_DELETE_SAFE |
+                                            LW_OPTION_WAIT_PRIORITY |
+                                            LW_OPTION_INHERIT_PRIORITY | 
+                                            LW_OPTION_DELETE_SAFE |
                                             LW_OPTION_OBJECT_GLOBAL, LW_NULL);
     }
 
@@ -538,7 +540,7 @@ INT  API_NfsDevCreate (PCHAR   pcName, PLW_BLK_DEV  pblkd)
     }
     
     pnfsfs->NFSFS_hVolLock = API_SemaphoreMCreate("nfsvol_lock", LW_PRIO_DEF_CEILING,
-                               LW_OPTION_WAIT_FIFO | LW_OPTION_DELETE_SAFE | 
+                               LW_OPTION_WAIT_PRIORITY | LW_OPTION_DELETE_SAFE | 
                                LW_OPTION_INHERIT_PRIORITY | LW_OPTION_OBJECT_GLOBAL,
                                LW_NULL);
     if (!pnfsfs->NFSFS_hVolLock) {                                      /*  ´´½¨¾í²Ù×÷ËøÊ§°Ü            */

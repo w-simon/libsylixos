@@ -48,7 +48,8 @@ extern  LW_OBJECT_HANDLE            _G_hTShellLock;
   ∫Í≈‰÷√”Î≤Ÿ◊˜
 *********************************************************************************************************/
 
-#define __TTINY_SHELL_LOCK_OPT      (LW_OPTION_INHERIT_PRIORITY | \
+#define __TTINY_SHELL_LOCK_OPT      (LW_OPTION_WAIT_PRIORITY | \
+                                     LW_OPTION_INHERIT_PRIORITY | \
                                      LW_OPTION_DELETE_SAFE | \
                                      LW_OPTION_OBJECT_GLOBAL)
 #define __TTINY_SHELL_LOCK()        API_SemaphoreMPend(_G_hTShellLock, LW_OPTION_WAIT_INFINITE);

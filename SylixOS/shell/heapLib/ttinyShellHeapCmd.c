@@ -375,6 +375,7 @@ VOID  __tshellHeapCmdInit (VOID)
     API_AtomicSet(0, &_G_atomicHeapTraceEn);
     
     _G_ulHeapTraceLock = API_SemaphoreMCreate("heap_trace_lock", LW_PRIO_DEF_CEILING, 
+                                              LW_OPTION_WAIT_PRIORITY |
                                               LW_OPTION_INHERIT_PRIORITY | 
                                               LW_OPTION_DELETE_SAFE |
                                               LW_OPTION_OBJECT_GLOBAL, LW_NULL);

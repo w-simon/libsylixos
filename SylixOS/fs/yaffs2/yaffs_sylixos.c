@@ -174,7 +174,7 @@ VOID  __procFsYaffsInit(VOID);
 VOID  __yaffsOsInit (VOID)
 {
     _G_hYaffsOpLock = API_SemaphoreMCreate("yaffs_oplock", LW_PRIO_DEF_CEILING, 
-                                         LW_OPTION_WAIT_FIFO | LW_OPTION_INHERIT_PRIORITY | 
+                                         LW_OPTION_WAIT_PRIORITY | LW_OPTION_INHERIT_PRIORITY | 
                                          LW_OPTION_DELETE_SAFE | LW_OPTION_OBJECT_GLOBAL,
                                          LW_NULL);
     if (!_G_hYaffsOpLock) {

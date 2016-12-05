@@ -186,7 +186,7 @@ INT  API_RamFsDevCreate (PCHAR   pcName, PLW_BLK_DEV  pblkd)
     pramfs->RAMFS_bValid = LW_TRUE;
     
     pramfs->RAMFS_hVolLock = API_SemaphoreMCreate("ramvol_lock", LW_PRIO_DEF_CEILING,
-                                             LW_OPTION_WAIT_FIFO | LW_OPTION_DELETE_SAFE | 
+                                             LW_OPTION_WAIT_PRIORITY | LW_OPTION_DELETE_SAFE | 
                                              LW_OPTION_INHERIT_PRIORITY | LW_OPTION_OBJECT_GLOBAL,
                                              LW_NULL);
     if (!pramfs->RAMFS_hVolLock) {                                      /*  无法创建卷锁                */

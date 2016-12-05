@@ -202,6 +202,7 @@ VOID  API_SymbolInit (VOID)
      *  创建错误将有 DEBUG 信息打印, 这里不判断创建错误.
      */
     _G_ulSymbolTableLock = API_SemaphoreMCreate("symtable_lock", LW_PRIO_DEF_CEILING, 
+                                                LW_OPTION_WAIT_PRIORITY |
                                                 LW_OPTION_INHERIT_PRIORITY | 
                                                 LW_OPTION_DELETE_SAFE |
                                                 LW_OPTION_OBJECT_GLOBAL, 

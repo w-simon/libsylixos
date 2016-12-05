@@ -943,7 +943,7 @@ INT  packet_link_input (struct pbuf *p, struct netif *inp, BOOL bOutgo)
 VOID  packet_init (VOID)
 {
     _G_hAfPacketMutex = API_SemaphoreMCreate("afpacket_lock", LW_PRIO_DEF_CEILING, 
-                                             LW_OPTION_WAIT_FIFO | LW_OPTION_DELETE_SAFE |
+                                             LW_OPTION_WAIT_PRIORITY | LW_OPTION_DELETE_SAFE |
                                              LW_OPTION_INHERIT_PRIORITY | LW_OPTION_OBJECT_GLOBAL,
                                              LW_NULL);
     _G_hAfPacketNodes = API_PartitionCreate("afpacket_nodes", _G_stackPacketNodes, __AF_PACKET_PKT_NODES,

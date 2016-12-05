@@ -992,8 +992,9 @@ ACPI_STATUS AcpiOsSignalSemaphore(
 ACPI_STATUS AcpiOsCreateMutex (
             ACPI_MUTEX              *OutHandle)
 {
-    *OutHandle = (ACPI_SEMAPHORE)API_SemaphoreMCreate("mutex_acpi", 10,
-                 (LW_OPTION_WAIT_PRIORITY | LW_OPTION_OBJECT_GLOBAL | LW_OPTION_RECURSIVE), NULL);
+    *OutHandle = (ACPI_SEMAPHORE)API_SemaphoreMCreate("mutex_acpi", LW_PRIO_CRITICAL,
+                 (LW_OPTION_WAIT_PRIORITY | LW_OPTION_OBJECT_GLOBAL | 
+                  LW_OPTION_DELETE_SAFE | LW_OPTION_INHERIT_PRIORITY), NULL);
     if (*OutHandle != LW_HANDLE_INVALID) {
         return (AE_OK);
     } else {

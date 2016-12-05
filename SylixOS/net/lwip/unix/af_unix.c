@@ -68,8 +68,8 @@ extern void  __unix_socket_event(AF_UNIX_T  *pafunix, LW_SEL_TYPE type, INT  iSo
 #define __AF_UNIX_DEF_BUFMAX        65536                               /*  默认为 64K 接收缓冲         */
 #define __AF_UNIX_DEF_BUFMIN        (LW_CFG_KB_SIZE * 8)                /*  最小接收缓冲大小            */
 #define __AF_UNIX_PIPE_BUF          (LW_CFG_KB_SIZE * 8)                /*  一次原子操作的数据大小      */
-#define __AF_UNIX_PART_256          128                                 /*  256 字节内存池数量          */
-#define __AF_UNIX_PART_512          64                                  /*  512 字节内存池数量          */
+#define __AF_UNIX_PART_256          LW_CFG_AF_UNIX_256_POOLS            /*  256 字节内存池数量          */
+#define __AF_UNIX_PART_512          LW_CFG_AF_UNIX_512_POOLS            /*  512 字节内存池数量          */
 /*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
@@ -991,7 +991,7 @@ static VOID __unixSignalNotify (INT  iFlag)
 VOID  unix_init (VOID)
 {
     _G_hAfUnixMutex = API_SemaphoreMCreate("afunix_lock", LW_PRIO_DEF_CEILING, 
-                                           LW_OPTION_WAIT_FIFO | LW_OPTION_DELETE_SAFE |
+                                           LW_OPTION_WAIT_PRIORITY | LW_OPTION_DELETE_SAFE |
                                            LW_OPTION_INHERIT_PRIORITY | LW_OPTION_OBJECT_GLOBAL,
                                            LW_NULL);
     _G_hAfUnixPart256 = API_PartitionCreate("unix_256", _G_stackUnixPart256, __AF_UNIX_PART_256,

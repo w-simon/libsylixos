@@ -1038,12 +1038,12 @@ VOID  __socketInit (VOID)
     iosDevAddEx(&_G_devhdrSocket, LWIP_SYLIXOS_SOCKET_NAME, iDrv, DT_SOCK);
     
     _G_hSockMutex = API_SemaphoreMCreate("socket_lock", LW_PRIO_DEF_CEILING, 
-                                         LW_OPTION_WAIT_FIFO | LW_OPTION_DELETE_SAFE |
+                                         LW_OPTION_WAIT_PRIORITY | LW_OPTION_DELETE_SAFE |
                                          LW_OPTION_INHERIT_PRIORITY | LW_OPTION_OBJECT_GLOBAL,
                                          LW_NULL);
     
     _G_hSockSelMutex = API_SemaphoreMCreate("socksel_lock", LW_PRIO_DEF_CEILING, 
-                                            LW_OPTION_WAIT_FIFO | LW_OPTION_DELETE_SAFE |
+                                            LW_OPTION_WAIT_PRIORITY | LW_OPTION_DELETE_SAFE |
                                             LW_OPTION_INHERIT_PRIORITY | LW_OPTION_OBJECT_GLOBAL,
                                             LW_NULL);
 }

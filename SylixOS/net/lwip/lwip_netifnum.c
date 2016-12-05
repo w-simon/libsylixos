@@ -74,6 +74,7 @@ INT  netif_add_hook (PVOID  pvNetif)
     
     if (_G_ulNetifLock == 0) {
         _G_ulNetifLock =  API_SemaphoreMCreate("netif_lock", LW_PRIO_DEF_CEILING, 
+                                               LW_OPTION_WAIT_PRIORITY |
                                                LW_OPTION_DELETE_SAFE |
                                                LW_OPTION_INHERIT_PRIORITY |
                                                LW_OPTION_OBJECT_GLOBAL, LW_NULL);

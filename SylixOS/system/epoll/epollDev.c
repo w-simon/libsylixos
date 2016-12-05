@@ -127,6 +127,7 @@ static LONG  _epollOpen (PLW_EPOLL_DEV pepolldev,
         pepollfil->EPF_uiMagic = LW_EPOLL_FILE_MAGIC;
         pepollfil->EPF_iFlag   = iFlags;
         pepollfil->EPF_ulMutex = API_SemaphoreMCreate("epoll_mutex", LW_PRIO_DEF_CEILING,
+                                                      LW_OPTION_WAIT_PRIORITY |
                                                       LW_OPTION_DELETE_SAFE | 
                                                       LW_OPTION_INHERIT_PRIORITY |
                                                       LW_OPTION_OBJECT_GLOBAL,

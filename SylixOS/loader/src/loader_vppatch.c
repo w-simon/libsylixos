@@ -423,6 +423,7 @@ LW_LD_VPROC *vprocCreate (CPCHAR  pcFile)
 
     pvproc->VP_ulModuleMutex = API_SemaphoreMCreate("vproc_lock",
                                                     LW_PRIO_DEF_CEILING,
+                                                    LW_OPTION_WAIT_PRIORITY |
                                                     LW_OPTION_INHERIT_PRIORITY | 
                                                     LW_OPTION_DELETE_SAFE |
                                                     LW_OPTION_OBJECT_GLOBAL,

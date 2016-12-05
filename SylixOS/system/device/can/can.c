@@ -510,10 +510,10 @@ static INT __canDevInit (__CAN_DEV *pcanDev,
 
     pcanDev->CAN_ulMutexSemM = API_SemaphoreMCreate("can_lock",
                                                     LW_PRIO_DEF_CEILING,
-                                                    (LW_OPTION_WAIT_FIFO |
+                                                    LW_OPTION_WAIT_PRIORITY |
                                                     LW_OPTION_DELETE_SAFE |
                                                     LW_OPTION_INHERIT_PRIORITY |
-                                                    LW_OPTION_OBJECT_GLOBAL),
+                                                    LW_OPTION_OBJECT_GLOBAL,
                                                     LW_NULL);           /*  互斥访问控制信号量          */
     if (!pcanDev->CAN_ulMutexSemM) {
         iErrLevel = 4;

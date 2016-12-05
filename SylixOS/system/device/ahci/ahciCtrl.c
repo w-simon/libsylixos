@@ -243,9 +243,10 @@ INT  API_AhciCtrlInit (VOID)
 
     _GulAhciCtrlLock = API_SemaphoreMCreate("ahci_ctrllock",
                                             LW_PRIO_DEF_CEILING,
-                                            (LW_OPTION_INHERIT_PRIORITY |
-                                             LW_OPTION_DELETE_SAFE |
-                                             LW_OPTION_OBJECT_GLOBAL),\
+                                            LW_OPTION_WAIT_PRIORITY |
+                                            LW_OPTION_INHERIT_PRIORITY |
+                                            LW_OPTION_DELETE_SAFE |
+                                            LW_OPTION_OBJECT_GLOBAL,
                                             LW_NULL);
     if (_GulAhciCtrlLock == LW_OBJECT_HANDLE_INVALID) {
         return  (PX_ERROR);

@@ -42,7 +42,7 @@ static const pthread_mutexattr_t    _G_pmutexattrDefault = {
         1,
         PTHREAD_MUTEX_DEFAULT,                                          /*  允许递归调用                */
         PTHREAD_MUTEX_CEILING,
-        (LW_OPTION_INHERIT_PRIORITY | LW_OPTION_WAIT_FIFO)              /*  PTHREAD_PRIO_NONE           */
+        (LW_OPTION_INHERIT_PRIORITY | LW_OPTION_WAIT_PRIORITY)          /*  PTHREAD_PRIO_NONE           */
 };
 /*********************************************************************************************************
   初始化锁

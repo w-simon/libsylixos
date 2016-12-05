@@ -185,7 +185,7 @@ INT  API_RomFsDevCreate (PCHAR   pcName, PLW_BLK_DEV  pblkd)
     promfs->ROMFS_bValid = LW_TRUE;
     
     promfs->ROMFS_hVolLock = API_SemaphoreMCreate("romvol_lock", LW_PRIO_DEF_CEILING,
-                                             LW_OPTION_WAIT_FIFO | LW_OPTION_DELETE_SAFE | 
+                                             LW_OPTION_WAIT_PRIORITY | LW_OPTION_DELETE_SAFE | 
                                              LW_OPTION_INHERIT_PRIORITY | LW_OPTION_OBJECT_GLOBAL,
                                              LW_NULL);
     if (!promfs->ROMFS_hVolLock) {                                      /*  无法创建卷锁                */

@@ -499,10 +499,10 @@ VOID  _resInit (VOID)
 {
     __resReclaimInit();                                                 /*  资源回收器初始化            */
 
-    _G_ulResHLock   = API_SemaphoreMCreate("resh_lock", LW_PRIO_DEF_CEILING, 
+    _G_ulResHLock   = API_SemaphoreMCreate("resh_lock", LW_PRIO_DEF_CEILING, LW_OPTION_WAIT_PRIORITY |
                                            LW_OPTION_INHERIT_PRIORITY | LW_OPTION_DELETE_SAFE |
                                            LW_OPTION_OBJECT_GLOBAL, LW_NULL);
-    _G_ulResRawLock = API_SemaphoreMCreate("resraw_lock", LW_PRIO_DEF_CEILING, 
+    _G_ulResRawLock = API_SemaphoreMCreate("resraw_lock", LW_PRIO_DEF_CEILING, LW_OPTION_WAIT_PRIORITY |
                                            LW_OPTION_INHERIT_PRIORITY | LW_OPTION_DELETE_SAFE |
                                            LW_OPTION_OBJECT_GLOBAL, LW_NULL);
     

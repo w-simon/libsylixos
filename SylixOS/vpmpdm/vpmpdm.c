@@ -244,6 +244,7 @@ void __vp_patch_ctor (void *pvproc, PVOIDFUNCPTR *ppfuncMalloc, VOIDFUNCPTR *ppf
     ctx.blksize *= ctx.pagesize;
 
     ctx.locker = API_SemaphoreMCreate("vp_lock", LW_PRIO_DEF_CEILING,
+                                      LW_OPTION_WAIT_PRIORITY |
                                       LW_OPTION_INHERIT_PRIORITY | 
                                       LW_OPTION_DELETE_SAFE |
                                       LW_OPTION_OBJECT_GLOBAL, LW_NULL);

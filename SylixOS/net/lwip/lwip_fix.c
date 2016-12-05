@@ -162,6 +162,7 @@ err_t  sys_mutex_new (sys_mutex_t *pmutex)
 {
     SYS_ARCH_DECL_PROTECT(lev);
     LW_OBJECT_HANDLE    hMutex = API_SemaphoreMCreate("lwip_mutex", LW_PRIO_DEF_CEILING, 
+                                                      LW_OPTION_WAIT_PRIORITY |
                                                       LW_OPTION_INHERIT_PRIORITY |
                                                       LW_OPTION_DELETE_SAFE |
                                                       LW_OPTION_OBJECT_GLOBAL, LW_NULL);
