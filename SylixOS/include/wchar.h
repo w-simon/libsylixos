@@ -63,10 +63,6 @@
 #include "limits.h"
 #include "stdio.h" /* for FILE* */
 
-#ifndef _WCHAR_ALL_TYPE_
-#define _WCHAR_ALL_TYPE_
-typedef struct { int  dummy; }  mbstate_t;
-
 /* 
  * the following code is also in stddef.h
  */
@@ -77,6 +73,16 @@ typedef struct { int  dummy; }  mbstate_t;
 #endif
 typedef __WINT_TYPE__ wint_t;
 #endif /* _WINT_T */
+
+#ifndef _WCHAR_ALL_TYPE_
+#define _WCHAR_ALL_TYPE_
+typedef struct { 
+    int  count;
+    union {
+        wint_t  wch;
+        unsigned char wchb[4];
+    } value;
+} mbstate_t;
 
 typedef void *wctrans_t;
 typedef enum {
@@ -95,7 +101,7 @@ typedef enum {
     WC_TYPE_XDIGIT,
     WC_TYPE_MAX
 } wctype_t;
-#endif
+#endif /* _WCHAR_ALL_TYPE_ */
 
 #ifdef	_BSD_WCHAR_T_
 typedef	_BSD_WCHAR_T_	wchar_t;

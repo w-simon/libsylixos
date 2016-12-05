@@ -77,7 +77,7 @@ LW_STATIC VOID  __diskCacheMemcpy (PVOID  pvTo, CPVOID  pvFrom, size_t  stSize)
         return;
     }
     
-    iMuti512 = (stSize & 0x200) >> 9;
+    iMuti512 = stSize >> 9;
     
     do {
         for (i = 0; i < 64; i += 16) {

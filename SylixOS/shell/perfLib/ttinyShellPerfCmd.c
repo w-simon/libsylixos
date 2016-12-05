@@ -154,7 +154,7 @@ static INT  __tshellPerfCmdPerfShow (INT  iArgC, PCHAR  ppcArgV[])
     
     LW_SYSPERF_INFO     sysperf[20];
     CHAR                cThreadName[LW_CFG_OBJECT_NAME_SIZE];
-    INT                 i, iNum;
+    INT                 i, iNum, iRet;
     ULONG               ulTotal;
     
     API_TShellScrClear(STD_OUT);
@@ -190,25 +190,30 @@ static INT  __tshellPerfCmdPerfShow (INT  iArgC, PCHAR  ppcArgV[])
             }
         
 #if LW_CFG_CPU_WORD_LENGHT == 64
-            printf("%-16s %7lx %5d %3ld 0x%016lx 0x%016lx %12lu %s\n", 
+            iRet = printf("%-16s %7lx %5d %3ld 0x%016lx 0x%016lx %12lu %s\n", 
 #else
-            printf("%-16s %7lx %5d %3ld 0x%08lx 0x%08lx %12lu %s\n", 
+            iRet = printf("%-16s %7lx %5d %3ld 0x%08lx 0x%08lx %12lu %s\n", 
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT adj  */
-                   cThreadName,
-                   sysperf[i].PERF_ulThread,
-                   sysperf[i].PERF_pid,
-                   sysperf[i].PERF_ulCPUId,
-                   sysperf[i].PERF_ulSymAddr,
-                   sysperf[i].PERF_ulSamAddr,
-                   sysperf[i].PERF_ulCounter,
-                   sysperf[i].PERF_cFunc);
-                   
+                          cThreadName,
+                          sysperf[i].PERF_ulThread,
+                          sysperf[i].PERF_pid,
+                          sysperf[i].PERF_ulCPUId,
+                          sysperf[i].PERF_ulSymAddr,
+                          sysperf[i].PERF_ulSamAddr,
+                          sysperf[i].PERF_ulCounter,
+                          sysperf[i].PERF_cFunc);
+                          
             API_TShellColorEnd(STD_OUT);
+            
+            if (iRet <= 0) {
+                goto    __out;
+            }
         }
         
         sleep(1);
     }
     
+__out:
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************

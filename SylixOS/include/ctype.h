@@ -26,14 +26,14 @@
 #include "SylixOS.h"
 #endif                                                                  /*  __SYLIXOS_H                 */
 
-#define	_U	0x01
-#define	_L	0x02
-#define	_N	0x04
-#define	_S	0x08
-#define	_P	0x10
-#define	_C	0x20
-#define	_X	0x40
-#define	_B	0x80
+#define _U      0x01
+#define _L      0x02
+#define _N      0x04
+#define _S      0x08
+#define _P      0x10
+#define _C      0x20
+#define _X      0x40
+#define _B      0x80
 
 #ifdef __cplusplus
 extern "C" {
@@ -59,25 +59,28 @@ __LW_RETU_FUNC_DECLARE(int, toupper, (int c))
 __LW_RETU_FUNC_DECLARE(int, tolower, (int c))
 
 extern const unsigned char *_ctype_;
-extern const short *_toupper_tab_;
-extern const short *_tolower_tab_;
+extern const short         *_toupper_tab_;
+extern const short         *_tolower_tab_;
 
 __END_NAMESPACE_STD
+
+/*********************************************************************************************************
+  private
+*********************************************************************************************************/
 
 #ifdef _CTYPE_PRIVATE
 
 #include "limits.h"
 
-#define _CTYPE_NUM_CHARS	(1 << CHAR_BIT)
+#define _CTYPE_NUM_CHARS    (1 << CHAR_BIT)
+#define _CTYPE_ID           "BSDCTYPE"
+#define _CTYPE_REV          2
 
-#define _CTYPE_ID	 	"BSDCTYPE"
-#define _CTYPE_REV		2
+extern const uint8_t    _C_ctype_[];
+extern const int16_t    _C_toupper_[];
+extern const int16_t    _C_tolower_[];
 
-extern const uint8_t _C_ctype_[];
-extern const int16_t _C_toupper_[];
-extern const int16_t _C_tolower_[];
-
-#endif /* _CTYPE_PRIVATE */
+#endif                                                                  /*  _CTYPE_PRIVATE              */
 
 #ifdef __cplusplus
 }

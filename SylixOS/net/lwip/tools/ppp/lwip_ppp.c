@@ -224,6 +224,14 @@ static VOID  __pppOsThread (ppp_pcb *pcb)
         sstRead = read(pctxp->CTXP_iFd, ucBuffer, sizeof(ucBuffer));
         if (sstRead > 0) {
             pppos_input(pcb, ucBuffer, (INT)sstRead);
+
+        } else {
+            if (iosFdGetType(pctxp->CTXP_iFd, LW_NULL) < ERROR_NONE) {
+                if (pcb->phase != PPP_PHASE_DEAD) {
+                    pppapi_close(pcb, 1);                               /*  强制关闭 ppp 连接           */
+                }
+                pctxp->CTXP_bNeedDelete = LW_TRUE;
+            }
         }
 
         if ((pctxp->CTXP_bNeedDelete) &&
@@ -266,7 +274,7 @@ static u32_t  __pppOsOutput (ppp_pcb *pcb, u8_t *data, u32_t len, void *ctx)
     }
 
     __KERNEL_SPACE_ENTER();
-    uiRet = (u32_t)read(pctxp->CTXP_iFd, data, len);
+    uiRet = (u32_t)write(pctxp->CTXP_iFd, data, len);
     __KERNEL_SPACE_EXIT();
 
     return  (uiRet);

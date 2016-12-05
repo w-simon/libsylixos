@@ -1175,7 +1175,9 @@ static VOID __tshellFsShowFile (CPCHAR  pcFileName, PCHAR  pcStat, struct stat  
         API_TShellColorEnd(STD_OUT);
     
     } else {
-        if (pstat->st_size > (10 * LW_CFG_MB_SIZE)) {
+        if (pstat->st_size > (10 * (UINT64)LW_CFG_GB_SIZE)) {
+            printf(" %6zdGB, ", (size_t)(pstat->st_size / LW_CFG_GB_SIZE));
+        } else if (pstat->st_size > (10 * LW_CFG_MB_SIZE)) {
             printf(" %6zdMB, ", (size_t)(pstat->st_size / LW_CFG_MB_SIZE));
         } else if (pstat->st_size > (10 * LW_CFG_KB_SIZE)) {
             printf(" %6zdKB, ", (size_t)(pstat->st_size / LW_CFG_KB_SIZE));

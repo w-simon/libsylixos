@@ -495,7 +495,7 @@ int  netdev_set_linkup (netdev_t *netdev, int linkup, UINT64 speed)
     netif->ts = sys_jiffies();
     netdev->speed = speed;
     
-    netifapi_netif_common(netif, netif_set_link_up, NULL);
+    netifapi_netif_set_link_up(netif);
 
     if (speed > 0xffffffff) {
       netif->link_speed = 0;
@@ -504,7 +504,7 @@ int  netdev_set_linkup (netdev_t *netdev, int linkup, UINT64 speed)
     }
   
   } else {
-    netifapi_netif_common(netif, netif_set_link_down, NULL);
+    netifapi_netif_set_link_down(netif);
   }
   
   return (0);
