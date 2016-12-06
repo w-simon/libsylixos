@@ -31,6 +31,10 @@
 extern VOID  ls3xCacheEnableHw(VOID);
 extern VOID  ls3xCacheDisableHw(VOID);
 /*********************************************************************************************************
+  内部函数前置声明
+*********************************************************************************************************/
+static INT   ls3xCacheProbe(VOID);
+/*********************************************************************************************************
   L1 CACHE 状态
 *********************************************************************************************************/
 #define L1_CACHE_I_EN   0x01
@@ -63,6 +67,7 @@ static MIPS_CACHE   _G_VCache, _G_SCache;                               /*  V-Ca
 #define PRID_REV_LOONGSON3B_R1  0x0006
 #define PRID_REV_LOONGSON3B_R2  0x0007
 #define PRID_REV_LOONGSON3A_R2  0x0008
+#define PRID_REV_LOONGSON3A_R3  0x0009
 /*********************************************************************************************************
 ** 函数名称: ls3xBranchPredictionDisable
 ** 功能描述: 禁能分支预测
@@ -235,13 +240,23 @@ static VOID  ls3bCacheFlushAll (VOID)
 *********************************************************************************************************/
 VOID  ls3xCacheFlushAll (VOID)
 {
+    INT     iError;
+
+    iError = ls3xCacheProbe();
+    if (iError != ERROR_NONE) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "No Cache!\r\n");
+        return;
+    }
+
     switch (mipsCp0PRIdRead() & 0xf) {
+
     case PRID_REV_LOONGSON3A_R1:
     default:
         ls3aR1CacheFlushAll();
         break;
 
     case PRID_REV_LOONGSON3A_R2:
+    case PRID_REV_LOONGSON3A_R3:
         ls3aR2CacheFlushAll();
         break;
 
@@ -463,12 +478,12 @@ static INT  ls3xCacheDataUpdateNone (PVOID  pvAdrs, size_t  stBytes, BOOL  bInv)
 /*********************************************************************************************************
 ** 函数名称: ls3xL3CacheProbe
 ** 功能描述: L3 S-CACHE 探测
-** 输　入  : pcMachineName  机器名称
+** 输　入  : NONE
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static INT  ls3xL3SCacheProbe (CPCHAR   pcMachineName)
+static INT  ls3xL3SCacheProbe (VOID)
 {
     UINT32  uiConfig;
     UINT32  uiLineSize;
@@ -487,11 +502,6 @@ static INT  ls3xL3SCacheProbe (CPCHAR   pcMachineName)
         _G_SCache.CACHE_uiSize    *= 4;
         _G_SCache.CACHE_uiWayStep  = _G_SCache.CACHE_uiSetNr * _G_SCache.CACHE_uiLineSize;
 
-        _DebugFormat(__LOGMESSAGE_LEVEL, "L3 S-CACHE size %dKB (%d line size, %d way, %d set).\r\n",
-                     _G_SCache.CACHE_uiSize / 1024,
-                     _G_SCache.CACHE_uiLineSize,
-                     _G_SCache.CACHE_uiWayNr,
-                     _G_SCache.CACHE_uiSetNr);
     } else {
         _G_SCache.CACHE_bPresent = LW_FALSE;
     }
@@ -501,12 +511,12 @@ static INT  ls3xL3SCacheProbe (CPCHAR   pcMachineName)
 /*********************************************************************************************************
 ** 函数名称: ls3xL2CacheProbe
 ** 功能描述: L2 V-CACHE 探测
-** 输　入  : pcMachineName  机器名称
+** 输　入  : NONE
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static INT  ls3xL2VCacheProbe (CPCHAR   pcMachineName)
+static INT  ls3xL2VCacheProbe (VOID)
 {
     UINT32  uiConfig;
     UINT32  uiLineSize;
@@ -521,11 +531,6 @@ static INT  ls3xL2VCacheProbe (CPCHAR   pcMachineName)
                                      _G_VCache.CACHE_uiLineSize;
         _G_VCache.CACHE_uiWayStep  = _G_VCache.CACHE_uiSetNr * _G_VCache.CACHE_uiLineSize;
 
-        _DebugFormat(__LOGMESSAGE_LEVEL, "L2 V-CACHE size %dKB (%d line size, %d way, %d set).\r\n",
-                     _G_VCache.CACHE_uiSize / 1024,
-                     _G_VCache.CACHE_uiLineSize,
-                     _G_VCache.CACHE_uiWayNr,
-                     _G_VCache.CACHE_uiSetNr);
     } else {
         _G_VCache.CACHE_bPresent = LW_FALSE;
     }
@@ -535,12 +540,12 @@ static INT  ls3xL2VCacheProbe (CPCHAR   pcMachineName)
 /*********************************************************************************************************
 ** 函数名称: ls3xCacheProbe
 ** 功能描述: CACHE 探测
-** 输　入  : pcMachineName  机器名称
+** 输　入  : NONE
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static INT  ls3xCacheProbe (CPCHAR   pcMachineName)
+static INT  ls3xCacheProbe (VOID)
 {
     static BOOL    bIsProbed = LW_FALSE;
            UINT32  uiConfig;
@@ -573,12 +578,15 @@ static INT  ls3xCacheProbe (CPCHAR   pcMachineName)
                                      _G_ICache.CACHE_uiLineSize;
 
         _G_ICache.CACHE_uiWayStep  = _G_ICache.CACHE_uiSetNr * _G_ICache.CACHE_uiLineSize;
+
     } else {                                                            /*  没有 I-Cache                */
         _G_ICache.CACHE_bPresent   = LW_FALSE;
     }
 
-    uiTemp   = (uiConfig & M_Config1DL) >> S_Config1DL;
+    uiTemp = (uiConfig & M_Config1DL) >> S_Config1DL;
     if (uiTemp) {
+        _G_DCache.CACHE_bPresent   = LW_TRUE;
+
         _G_DCache.CACHE_uiLineSize = 2 << uiTemp;
 
         uiTemp                     = (uiConfig & M_Config1DS) >> S_Config1DS;
@@ -591,28 +599,59 @@ static INT  ls3xCacheProbe (CPCHAR   pcMachineName)
                                      _G_DCache.CACHE_uiLineSize;
 
         _G_DCache.CACHE_uiWayStep  = _G_DCache.CACHE_uiSetNr * _G_DCache.CACHE_uiLineSize;
+
     } else {                                                            /*  没有 D-Cache                */
         _G_DCache.CACHE_bPresent   = LW_FALSE;
     }
 
-    _DebugFormat(__LOGMESSAGE_LEVEL, "L1 I-CACHE size %dKB (%d line size, %d way, %d set).\r\n",
-                 _G_ICache.CACHE_uiSize / 1024,
-                 _G_ICache.CACHE_uiLineSize,
-                 _G_ICache.CACHE_uiWayNr,
-                 _G_ICache.CACHE_uiSetNr);
-
-    _DebugFormat(__LOGMESSAGE_LEVEL, "L1 D-CACHE size %dKB (%d line size, %d way, %d set).\r\n",
-                 _G_DCache.CACHE_uiSize / 1024,
-                 _G_DCache.CACHE_uiLineSize,
-                 _G_DCache.CACHE_uiWayNr,
-                 _G_DCache.CACHE_uiSetNr);
-
-    ls3xL2VCacheProbe(pcMachineName);
-    ls3xL3SCacheProbe(pcMachineName);
+    ls3xL2VCacheProbe();
+    ls3xL3SCacheProbe();
 
     bIsProbed = LW_TRUE;
 
     return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: ls3xCacheInfoShow
+** 功能描述: CACHE 信息打印
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  ls3xCacheInfoShow (VOID)
+{
+    if (_G_ICache.CACHE_bPresent) {
+        _DebugFormat(__LOGMESSAGE_LEVEL, "L1 I-CACHE size %dKB (%d line size, %d way, %d set).\r\n",
+                     _G_ICache.CACHE_uiSize / 1024,
+                     _G_ICache.CACHE_uiLineSize,
+                     _G_ICache.CACHE_uiWayNr,
+                     _G_ICache.CACHE_uiSetNr);
+    }
+
+    if (_G_DCache.CACHE_bPresent) {
+        _DebugFormat(__LOGMESSAGE_LEVEL, "L1 D-CACHE size %dKB (%d line size, %d way, %d set).\r\n",
+                     _G_DCache.CACHE_uiSize / 1024,
+                     _G_DCache.CACHE_uiLineSize,
+                     _G_DCache.CACHE_uiWayNr,
+                     _G_DCache.CACHE_uiSetNr);
+    }
+
+    if (_G_VCache.CACHE_bPresent) {
+        _DebugFormat(__LOGMESSAGE_LEVEL, "L2 V-CACHE size %dKB (%d line size, %d way, %d set).\r\n",
+                     _G_VCache.CACHE_uiSize / 1024,
+                     _G_VCache.CACHE_uiLineSize,
+                     _G_VCache.CACHE_uiWayNr,
+                     _G_VCache.CACHE_uiSetNr);
+    }
+
+    if (_G_SCache.CACHE_bPresent) {
+        _DebugFormat(__LOGMESSAGE_LEVEL, "L3 S-CACHE size %dKB (%d line size, %d way, %d set).\r\n",
+                     _G_SCache.CACHE_uiSize / 1024,
+                     _G_SCache.CACHE_uiLineSize,
+                     _G_SCache.CACHE_uiWayNr,
+                     _G_SCache.CACHE_uiSetNr);
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: mipsLs3xCacheInit
@@ -632,11 +671,13 @@ VOID  mipsLs3xCacheInit (LW_CACHE_OP  *pcacheop,
 {
     INT     iError;
 
-    iError = ls3xCacheProbe(pcMachineName);
+    iError = ls3xCacheProbe();
     if (iError != ERROR_NONE) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "No Cache!\r\n");
         return;
     }
+
+    ls3xCacheInfoShow();                                                /*  打印 CACHE 信息             */
 
     pcacheop->CACHEOP_ulOption = 0ul;                                   /*  无须 TEXT_UPDATE_MP 选项    */
 
@@ -684,7 +725,7 @@ VOID  mipsLs3xCacheReset (CPCHAR  pcMachineName)
 {
     INT     iError;
 
-    iError = ls3xCacheProbe(pcMachineName);
+    iError = ls3xCacheProbe();
     if (iError != ERROR_NONE) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "No Cache!\r\n");
         return;

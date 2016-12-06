@@ -110,8 +110,8 @@ __error_handle:
 static VOID  __tshellPciDrvCmdShow (VOID)
 {
     static PCHAR        pcPciDrvShowHdr = \
-    " INDEX          DRVNAME           INDEX   BUS   DEV   FUNC  VENDOR DEVICE  SUBV   SUBD   TOTAL\n"
-    "------- ------------------------ ------- ----- ----- ------ ------ ------ ------ ------ -------\n";
+    " INDEX          DRVNAME          INDEX  BUS   DEV  FUNC VENDOR DEVICE  SUBV   SUBD   TOTAL\n"
+    "------- ------------------------ ----- ----- ----- ---- ------ ------ ------ ------ -------\n";
 
     PLW_LIST_LINE       plineDrvTemp  = LW_NULL;
     PLW_LIST_LINE       plineDevTemp  = LW_NULL;
@@ -131,7 +131,7 @@ static VOID  __tshellPciDrvCmdShow (VOID)
          plineDrvTemp != LW_NULL;
          plineDrvTemp  = _list_line_get_next(plineDrvTemp)) {
         hDrvHandle = _LIST_ENTRY(plineDrvTemp, PCI_DRV_CB, PCIDRV_lineDrvNode);
-        printf("%7d %-24s %-7s %-5s %-5s %-6s %-6s %-6s %-6s %-6s %7d\n",
+        printf("%7d %-24s %-5s %-5s %-5s %-4s %-6s %-6s %-6s %-6s %7d\n",
                i,
                hDrvHandle->PCIDRV_cDrvName,
                "", "", "", "", "", "", "", "",
@@ -143,7 +143,7 @@ static VOID  __tshellPciDrvCmdShow (VOID)
              plineDevTemp  = _list_line_get_next(plineDevTemp)) {
             hDrvDevHandle = _LIST_ENTRY(plineDevTemp, PCI_DRV_DEV_CB, PDDCB_lineDrvDevNode);
             hDevHandle = hDrvDevHandle->PDDCB_hDrvDevHandle;
-            printf("%-7s %-24s %7d %5x %5x %6x %6x %6x %6x %6x\n",
+            printf("%-7s %-24s %5d 0x%03x 0x%03x  0x%1x 0x%04x 0x%04x 0x%04x 0x%04x\n",
                    "", "",
                    j,
                    hDevHandle->PCIDEV_iDevBus,

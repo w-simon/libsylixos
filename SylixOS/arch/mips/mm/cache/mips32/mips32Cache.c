@@ -53,7 +53,7 @@ extern VOID     mips32DCacheIndexStoreTag(PCHAR  pcAddr);
 /*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
-static INT                  _G_iMachineType  = MIPS_MACHINE_TYPE_24KF;  /*  机器类型                    */
+static INT      _G_iMachineType = MIPS_MACHINE_TYPE_24KF;               /*  机器类型                    */
 /*********************************************************************************************************
   L1 CACHE 状态
 *********************************************************************************************************/
@@ -61,7 +61,8 @@ static INT                  _G_iMachineType  = MIPS_MACHINE_TYPE_24KF;  /*  机器
 #define L1_CACHE_D_EN       0x02
 #define L1_CACHE_EN         (L1_CACHE_I_EN | L1_CACHE_D_EN)
 #define L1_CACHE_DIS        0x00
-static INT                  _G_iCacheStatus = L1_CACHE_DIS;
+
+static INT      _G_iCacheStatus = L1_CACHE_DIS;
 /*********************************************************************************************************
   CACHE 信息
 *********************************************************************************************************/
@@ -699,11 +700,12 @@ static INT  mips32CacheProbe (CPCHAR   pcMachineName)
                                      _G_ICache.CACHE_uiLineSize;
 
         _G_ICache.CACHE_uiWayStep  = _G_ICache.CACHE_uiSetNr * _G_ICache.CACHE_uiLineSize;
+
     } else {                                                            /*  没有 I-Cache                */
         _G_ICache.CACHE_bPresent   = LW_FALSE;
     }
 
-    uiTemp   = (uiConfig & M_Config1DL) >> S_Config1DL;
+    uiTemp = (uiConfig & M_Config1DL) >> S_Config1DL;
     if (uiTemp) {
         _G_DCache.CACHE_uiLineSize = 2 << uiTemp;
 
@@ -717,6 +719,7 @@ static INT  mips32CacheProbe (CPCHAR   pcMachineName)
                                      _G_DCache.CACHE_uiLineSize;
 
         _G_DCache.CACHE_uiWayStep  = _G_DCache.CACHE_uiSetNr * _G_DCache.CACHE_uiLineSize;
+
     } else {                                                            /*  没有 D-Cache                */
         _G_DCache.CACHE_bPresent   = LW_FALSE;
     }

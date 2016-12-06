@@ -766,9 +766,9 @@ static
 VOID  __tshellPciCmdDevShow (VOID)
 {
     static PCHAR        pcPciDevShowHdr = \
-    " INDEX    TYPE    BUS   DEV   FUNC   VENDOR   DEVICE   SUBV(PRI)   SUBD(SEC)   (SUB)   LINE   PIN  "
-    "       DRVNAME\n"
-    "------- -------- ----- ----- ------ -------- -------- ----------- ----------- ------- ------ ----- "
+    " INDEX    TYPE    BUS   DEV  FUNC VENDOR DEVICE SUBV(PRI) SUBD(SEC) (SUB) LINE PIN  "
+    "        DRVNAME\n"
+    "------- -------- ----- ----- ---- ------ ------ --------- --------- ----- ---- ---- "
     "------------------------\n";
 
     PLW_LIST_LINE       plineTemp  = LW_NULL;
@@ -790,7 +790,7 @@ VOID  __tshellPciCmdDevShow (VOID)
         switch (hDevHandle->PCIDEV_iType) {
 
         case PCI_HEADER_TYPE_NORMAL:
-            printf("%7d %-8s %5x %5x %6x %8x %8x %11x %11x %-7s %6x %5x %-24s\n",
+            printf("%7d %-8s 0x%03x 0x%03x  0x%1x 0x%04x 0x%04x    0x%04x    0x%04x %-5s 0x%02x 0x%02x %-24s\n",
                    i,
                    "NORMAL",
                    hDevHandle->PCIDEV_iDevBus,
@@ -800,14 +800,14 @@ VOID  __tshellPciCmdDevShow (VOID)
                    hDevHandle->PCIDEV_phDevHdr.PCIH_pcidHdr.PCID_usDeviceId,
                    hDevHandle->PCIDEV_phDevHdr.PCIH_pcidHdr.PCID_usSubVendorId,
                    hDevHandle->PCIDEV_phDevHdr.PCIH_pcidHdr.PCID_usSubSystemId,
-                   "       ",
+                   "",
                    hDevHandle->PCIDEV_ucLine,
                    hDevHandle->PCIDEV_ucPin,
-                   ((hDrvHandle == LW_NULL) ? "NULL" : hDrvHandle->PCIDRV_cDrvName));
+                   ((hDrvHandle == LW_NULL) ? "*" : hDrvHandle->PCIDRV_cDrvName));
             break;
 
         case PCI_HEADER_TYPE_BRIDGE:
-            printf("%7d %-8s %5x %5x %6x %8x %8x %11x %11x %7x %6x %5x %-24s\n",
+            printf("%7d %-8s 0x%03x 0x%03x  0x%1x 0x%04x 0x%04x    0x%04x    0x%04x 0x%03x 0x%02x 0x%02x %-24s\n",
                    i,
                    "BRIDGE",
                    hDevHandle->PCIDEV_iDevBus,
@@ -820,11 +820,11 @@ VOID  __tshellPciCmdDevShow (VOID)
                    hDevHandle->PCIDEV_phDevHdr.PCIH_pcibHdr.PCIB_ucSubBus,
                    hDevHandle->PCIDEV_ucLine,
                    hDevHandle->PCIDEV_ucPin,
-                   ((hDrvHandle == LW_NULL) ? "NULL" : hDrvHandle->PCIDRV_cDrvName));
+                   ((hDrvHandle == LW_NULL) ? "*" : hDrvHandle->PCIDRV_cDrvName));
             break;
 
         case PCI_HEADER_TYPE_CARDBUS:
-            printf("%7d %-8s %5x %5x %6x %8x %8x %11x %11x %7x %6x %5x %-24s\n",
+            printf("%7d %-8s 0x%03x 0x%03x  0x%1x 0x%04x 0x%04x    0x%04x    0x%04x 0x%03x 0x%02x 0x%02x %-24s\n",
                    i,
                    "CARDBUS",
                    hDevHandle->PCIDEV_iDevBus,
@@ -837,7 +837,7 @@ VOID  __tshellPciCmdDevShow (VOID)
                    hDevHandle->PCIDEV_phDevHdr.PCIH_pcicbHdr.PCICB_ucSubBus,
                    hDevHandle->PCIDEV_ucLine,
                    hDevHandle->PCIDEV_ucPin,
-                   ((hDrvHandle == LW_NULL) ? "NULL" : hDrvHandle->PCIDRV_cDrvName));
+                   ((hDrvHandle == LW_NULL) ? "*" : hDrvHandle->PCIDRV_cDrvName));
             break;
 
         default:

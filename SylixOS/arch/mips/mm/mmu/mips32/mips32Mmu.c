@@ -60,7 +60,7 @@ static INT                  _G_iMachineType  = MIPS_MACHINE_TYPE_24KF;  /*  机器
 *********************************************************************************************************/
 #define MIPS32_PAGE_MASK_4K             0x00000000
 #define MIPS32_PAGE_MASK_16K            0x00006000
-#define MIPS32_PAGE_MASK_64K            0x0001E000
+#define MIPS32_PAGE_MASK_64K            0x0001e000
 
 #if   LW_CFG_VMM_PAGE_SIZE == (4  * LW_CFG_KB_SIZE)
 #define MIPS32_PAGE_MASK                MIPS32_PAGE_MASK_4K
@@ -340,10 +340,11 @@ static INT  mips32MmuGlobalInit (CPCHAR  pcMachineName)
 {
     UINT32  uiMMUSize;
     UINT32  uiConfig = mipsCp0ConfigRead();                             /*  读 Config0                  */
+    UINT8   ucMT;
 
-    if (((uiConfig & M_ConfigMT) >> S_ConfigMT) != 1) {                 /*  Config0 MT 域 != 1，没有 MMU*/
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "No MMU!\r\n");
-        return  (PX_ERROR);
+    ucMT = ((uiConfig & M_ConfigMT) >> S_ConfigMT);
+    if (ucMT != 1) {                                                    /*  Config0 MT 域 != 1，没有 MMU*/
+        _DebugFormat(__PRINTMESSAGE_LEVEL, "Warning: Config register MMU type is not standard: %d!\r\n", ucMT);
     }
 
     if (uiConfig & (M_ConfigMore)) {                                    /*  有 Config1                  */

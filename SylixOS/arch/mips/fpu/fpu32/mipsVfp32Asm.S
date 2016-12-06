@@ -92,9 +92,9 @@ FUNC_DEF(mipsVfp32Init)
     MTC1    ZERO , FP30
     MTC1    ZERO , FP31
 
-    CFC1(T0,  CP1_STATUS)                                               /*  Read to finish float oper   */
+    CFC1(T0,  CP1_STATUS)                                               ;/*  Read to finish float oper   */
 
-    LI      T0 , (1 << 24)                                              /*  Set FS bit                  */
+    LI      T0 , (1 << 24)                                              ;/*  Set FS bit                  */
     CTC1(T0, CP1_STATUS)
 
     MTC0(T1, CP0_STATUS)
@@ -244,8 +244,8 @@ FUNC_DEF(mipsVfp32Restore)
     LWC1    FP31 , FP31_OFFSET(A0)
     LW      T0   , FPCSR_OFFSET(A0)
 
-    CFC1(T1,  CP1_STATUS)                                               /*  Read to finish float oper   */
-    CTC1(T0,  CP1_STATUS)                                               /*  Restore fpp status reg      */
+    CFC1(T1,  CP1_STATUS)                                               ;/*  Read to finish float oper   */
+    CTC1(T0,  CP1_STATUS)                                               ;/*  Restore fpp status reg      */
 
     JR      RA
     NOP
