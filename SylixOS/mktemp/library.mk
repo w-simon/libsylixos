@@ -70,7 +70,7 @@ $(target)_DEPEND_LIB += -lgcov
 endif
 
 ifneq (,$(findstring yes,$($(target)_USE_CXX)))
-$(target)_DEPEND_LIB += -lstdc++ -ldsohandle
+$(target)_DEPEND_LIB += -lcextern -lstdc++ -Wl,-Bstatic -ldsohandle
 endif
 
 $(target)_DEPEND_LIB += -lm -lgcc
