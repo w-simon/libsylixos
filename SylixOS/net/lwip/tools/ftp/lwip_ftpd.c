@@ -37,6 +37,7 @@
             客户端没有此要求.
 2013.05.10  断点上传时, 非追加模式创建的文件必须带有 O_TRUNC 选项, 打开后自动清空.
 2015.03.18  数据连接不能使用 SO_LINGER reset 模式关闭.
+2016.12.07  默认使用二进制模式传输.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -1652,7 +1653,7 @@ static VOID  __inetFtpServerListen (VOID)
             pftpdsNew->FTPDS_sockaddrinCtrl = inaddrLcl;                /*  控制端口本地地址            */
             pftpdsNew->FTPDS_iSockPASV      = -1;
             pftpdsNew->FTPDS_iSockData      = -1;
-            pftpdsNew->FTPDS_iTransMode     = __FTP_TRANSMODE_ASCII;
+            pftpdsNew->FTPDS_iTransMode     = __FTP_TRANSMODE_BIN;      /*  默认使用二进制模式传输      */
             pftpdsNew->FTPDS_sockaddrinData.sin_port = 
                 htons((UINT16)(ntohs(pftpdsNew->FTPDS_sockaddrinCtrl.sin_port) - 1));
             pftpdsNew->FTPDS_timeStart      = lib_time(LW_NULL);        /*  记录连接时间                */

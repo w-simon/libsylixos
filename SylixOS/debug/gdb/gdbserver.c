@@ -25,6 +25,7 @@
 2015.11.18  加入 SMP 锁定 CPU 调试功能.
 2016.06.14  支持在当前终端下调试.
 2016.08.16  支持硬件单步调试.
+2016.12.07  GDB 退出时, 首先 kill 掉被调试进程, 然后再放行进程, 确保不会多执行一句代码.
 *********************************************************************************************************/
 #define  __SYLIXOS_GDB
 #define  __SYLIXOS_STDIO
@@ -2411,10 +2412,6 @@ static VOID gdbExit (INT iSigNo)
         }
     }
 
-    if (!pparam->GDB_bNonStop && !pparam->GDB_bExited) {
-        API_DtraceContinueProcess(pparam->GDB_pvDtrace);                /* 程序继续执行                 */
-    }
-
     if (!pparam->GDB_bAttached && !pparam->GDB_bExited) {               /* 如果不是attch则停止进程      */
         kill(pparam->GDB_iPid, SIGABRT);                                /* 强制进程停止                 */
         LW_GDB_MSG("[GDB]Warning: Process is killed (SIGABRT) by GDB server.\n"
@@ -2426,6 +2423,10 @@ static VOID gdbExit (INT iSigNo)
         sched_setaffinity(pparam->GDB_iPid, sizeof(cpu_set_t), &cpuset);/* 被调对象取消锁定 CPU         */
     }
 #endif                                                                  /* LW_CFG_SMP_EN > 0            */
+
+    if (!pparam->GDB_bNonStop && !pparam->GDB_bExited) {
+        API_DtraceContinueProcess(pparam->GDB_pvDtrace);                /* 程序继续执行                 */
+    }
 
     gdbRelease(pparam);
 
