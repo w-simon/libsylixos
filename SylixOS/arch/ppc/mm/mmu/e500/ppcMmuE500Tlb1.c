@@ -79,7 +79,8 @@ INT  ppcE500MmuTLB1Init (CPCHAR  pcMachineName)
      */
     uiTLB1CFG.TLBCFG_uiValue = ppcE500MmuGetTLB1CFG();
     _G_uiTlbSize = uiTLB1CFG.TLBCFG_usNENTRY;
-    _DebugFormat(__LOGMESSAGE_LEVEL, "MMU TLB1 size = %d.\r\n", _G_uiTlbSize);
+    _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s MMU TLB1 size = %d.\r\n", 
+                 LW_CFG_CPU_ARCH_FAMILY, pcMachineName, _G_uiTlbSize);
 
     /*
      * 无效 TLB
@@ -119,7 +120,6 @@ INT  ppcE500MmuTLB1GlobalMap (PLW_MMU_PHYSICAL_DESC  pdesc)
              * MAS0
              */
             uiMAS0.MAS0_uiValue = 0;
-
             uiMAS0.MAS0_bTLBSEL = 1;
             uiMAS0.MAS0_ucESEL  = i;
             uiMAS0.MAS0_ucNV    = 0;
@@ -128,12 +128,10 @@ INT  ppcE500MmuTLB1GlobalMap (PLW_MMU_PHYSICAL_DESC  pdesc)
              * MAS1
              */
             uiMAS1.MAS1_uiValue = 0;
-
             uiMAS1.MAS1_bVaild  = LW_TRUE;
             uiMAS1.MAS1_bIPROT  = LW_TRUE;
             uiMAS1.MAS1_ucTID   = 0;
             uiMAS1.MAS1_bTS     = 0;
-
             if (pdesc->PHYD_stSize <= 4 * LW_CFG_KB_SIZE) {
                 uiMAS1.MAS1_ucTSIZE = MMU_TRANS_SZ_4K;
 
@@ -163,6 +161,7 @@ INT  ppcE500MmuTLB1GlobalMap (PLW_MMU_PHYSICAL_DESC  pdesc)
 
             } else if (pdesc->PHYD_stSize <= 1 * LW_CFG_GB_SIZE) {
                 uiMAS1.MAS1_ucTSIZE = MMU_TRANS_SZ_1G;
+
             } else {
                 _BugHandle(pdesc->PHYD_stSize > 1 * LW_CFG_GB_SIZE, LW_TRUE, "map size to large!\r\n");
             }
@@ -171,13 +170,10 @@ INT  ppcE500MmuTLB1GlobalMap (PLW_MMU_PHYSICAL_DESC  pdesc)
              * MAS2
              */
             uiMAS2.MAS2_uiValue = 0;
-
             uiMAS2.MAS2_uiEPN   = pdesc->PHYD_ulVirMap >> LW_CFG_VMM_PAGE_SHIFT;
-
             if (pdesc->PHYD_uiType == LW_PHYSICAL_MEM_BOOTSFR) {
                 uiMAS2.MAS2_bUnCache = LW_TRUE;                         /*  不可 Cache                  */
             }
-
             if (MMU_MAS2_M) {
                 uiMAS2.MAS2_bMemCoh = LW_TRUE;                          /*  多核一致性                  */
             }
@@ -189,17 +185,13 @@ INT  ppcE500MmuTLB1GlobalMap (PLW_MMU_PHYSICAL_DESC  pdesc)
              * MAS3
              */
             uiMAS3.MAS3_uiValue = 0;
-
             uiMAS3.MAS3_uiRPN   = pdesc->PHYD_ulPhyAddr >> LW_CFG_VMM_PAGE_SHIFT;
-
             uiMAS3.MAS3_bSuperRead = LW_TRUE;                           /*  可读                        */
-
             if ((pdesc->PHYD_uiType == LW_PHYSICAL_MEM_TEXT) ||
                 (pdesc->PHYD_uiType == LW_PHYSICAL_MEM_DATA) ||
                 (pdesc->PHYD_uiType == LW_PHYSICAL_MEM_BOOTSFR)) {
                 uiMAS3.MAS3_bSuperWrite = LW_TRUE;                      /*  可写                        */
             }
-
             if ((pdesc->PHYD_uiType == LW_PHYSICAL_MEM_TEXT) ||
                 (pdesc->PHYD_uiType == LW_PHYSICAL_MEM_VECTOR)) {
                 uiMAS3.MAS3_bSuperExec = LW_TRUE;                       /*  可执行                      */

@@ -878,6 +878,19 @@
 #define Hit_Set_Virtual_SI               0x1E                           /*  7       2                   */
 #define Hit_Set_Virtual_SD               0x1F                           /*  7       3                   */
 
+/*********************************************************************************************************
+  ´¦ÀíÆ÷ ID
+*********************************************************************************************************/
+
+#define PRID_REV_LOONGSON1B             0x0020
+#define PRID_REV_LOONGSON2E             0x0002
+#define PRID_REV_LOONGSON2F             0x0003
+#define PRID_REV_LOONGSON3A_R1          0x0005
+#define PRID_REV_LOONGSON3B_R1          0x0006
+#define PRID_REV_LOONGSON3B_R2          0x0007
+#define PRID_REV_LOONGSON3A_R2          0x0008
+#define PRID_REV_LOONGSON3A_R3          0x0009
+
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 #endif                                                                  /*  __ARCH_DEF_H                */
 /*********************************************************************************************************

@@ -39,7 +39,8 @@ VOID  archMmuInit (CPCHAR  pcMachineName)
 {
     LW_MMU_OP  *pmmuop = API_VmmGetLibBlock();
 
-    _DebugFormat(__LOGMESSAGE_LEVEL, "%s MMU initialization.\r\n", pcMachineName);
+    _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s MMU initialization.\r\n", 
+                 LW_CFG_CPU_ARCH_FAMILY, pcMachineName);
 
     if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS1X)   == 0) ||
         (lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X)   == 0) ||

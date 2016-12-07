@@ -245,8 +245,8 @@ VOID  ppcL2Init (CACHE_MODE   uiInstruction,
         _G_l2cdrv.L2CD_uiType    = 0;
         _G_l2cdrv.L2CD_uiRelease = 0;
         
-        _DebugFormat(__LOGMESSAGE_LEVEL, "%s L2 cache controller initialization.\r\n", 
-                     _G_l2cdrv.L2CD_pcName);
+        _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s L2 cache controller initialization.\r\n", 
+                     LW_CFG_CPU_ARCH_FAMILY, _G_l2cdrv.L2CD_pcName);
 
         ppcL2Cache750Init(&_G_l2cdrv, uiInstruction, uiData, pcMachineName);
 

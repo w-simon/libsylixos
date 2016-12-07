@@ -29,6 +29,72 @@
   L1 cache 同步请参考: http://www.cnblogs.com/jiayy/p/3246133.html
 *********************************************************************************************************/
 /*********************************************************************************************************
+  spin lock cache 依赖处理
+*********************************************************************************************************/
+#if LW_CFG_ARM_SPINLOCK_DEP_CACHE > 0
+static VOID                   armSpinLockDummy(volatile SPINLOCKTYPE  *psl);
+static volatile SPINLOCKTYPE  armSpinTryLockDummy(volatile SPINLOCKTYPE  *psl);
+static VOID                   armSpinUnlockDummy(volatile SPINLOCKTYPE  *psl);
+
+static VOID                   (*pfuncArmSpinLock)(volatile SPINLOCKTYPE)    = armSpinLockDummy;
+static volatile SPINLOCKTYPE  (*pfuncArmSpinTryLock)(volatile SPINLOCKTYPE) = armSpinTryLockDummy;
+static VOID                   (*pfuncArmSpinUnlock)(volatile SPINLOCKTYPE)  = armSpinUnlockDummy;
+#endif                                                                  /*  LW_CFG_ARM_SPINLOCK_DEP_C...*/
+/*********************************************************************************************************
+** 函数名称: armSpinLockDummy
+** 功能描述: 空操作
+** 输　入  : psl        spinlock 指针
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+#if LW_CFG_ARM_SPINLOCK_DEP_CACHE > 0
+
+static VOID  armSpinLockDummy (volatile SPINLOCKTYPE  *psl)
+{
+}
+/*********************************************************************************************************
+** 函数名称: armSpinTryLockDummy
+** 功能描述: 空操作
+** 输　入  : psl        spinlock 指针
+** 输　出  : 0
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static volatile SPINLOCKTYPE  armSpinTryLockDummy (volatile SPINLOCKTYPE  *psl)
+{
+    return  (0);
+}
+/*********************************************************************************************************
+** 函数名称: armSpinUnlockDummy
+** 功能描述: 空操作
+** 输　入  : psl        spinlock 指针
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static VOID  armSpinUnlockDummy (volatile SPINLOCKTYPE  *psl)
+{
+}
+/*********************************************************************************************************
+** 函数名称: archSpinWork
+** 功能描述: spinlock 函数起效
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+** 注  意  : 主核开启 CACHE 后, BSP 应立即调用此函数, 使 spinlock 生效, 
+             从核启动到开启 CACHE 过程中, 不得操作 spinlock.
+*********************************************************************************************************/
+VOID  archSpinWork (VOID)
+{
+    pfuncArmSpinUnlock  = armSpinUnlock;
+    pfuncArmSpinTryLock = armSpinTryLock;
+    pfuncArmSpinLock    = armSpinLock;
+}
+
+#endif                                                                  /*  LW_CFG_ARM_SPINLOCK_DEP_C...*/
+/*********************************************************************************************************
 ** 函数名称: archSpinInit
 ** 功能描述: 初始化一个 spinlock
 ** 输　入  : psl        spinlock 指针
@@ -87,7 +153,11 @@ INT  archSpinLock (spinlock_t  *psl)
         return  (1);                                                    /*  重复调用                    */
     }
     
+#if LW_CFG_ARM_SPINLOCK_DEP_CACHE > 0
+    pfuncArmSpinLock(&psl->SL_sltData);
+#else
     armSpinLock(&psl->SL_sltData);
+#endif                                                                  /*  LW_CFG_ARM_SPINLOCK_DEP_C...*/
     
     psl->SL_pcpuOwner = LW_CPU_GET_CUR();                               /*  保存当前 CPU                */
     
@@ -111,7 +181,12 @@ INT  archSpinTryLock (spinlock_t  *psl)
         return  (1);                                                    /*  重复调用                    */
     }
     
-    if (armSpinTryLock(&psl->SL_sltData)) {                             /*  尝试加锁                    */
+#if LW_CFG_ARM_SPINLOCK_DEP_CACHE > 0
+    if (pfuncArmSpinTryLock(&psl->SL_sltData)) 
+#else
+    if (armSpinTryLock(&psl->SL_sltData)) 
+#endif                                                                  /*  LW_CFG_ARM_SPINLOCK_DEP_C...*/
+    {                                                                   /*  尝试加锁                    */
         return  (0);
     }
     
@@ -142,8 +217,12 @@ INT  archSpinUnlock (spinlock_t  *psl)
     psl->SL_pcpuOwner = LW_NULL;                                        /*  没有 CPU 获取               */
     KN_SMP_WMB();
     
-    armSpinUnlock(&psl->SL_sltData);                                    /*  解锁                        */
-    
+#if LW_CFG_ARM_SPINLOCK_DEP_CACHE > 0
+    pfuncArmSpinUnlock(&psl->SL_sltData);                               /*  解锁                        */
+#else
+    armSpinUnlock(&psl->SL_sltData);
+#endif                                                                  /*  LW_CFG_ARM_SPINLOCK_DEP_C...*/
+
     return  (1);
 }
 /*********************************************************************************************************
@@ -157,7 +236,11 @@ INT  archSpinUnlock (spinlock_t  *psl)
 *********************************************************************************************************/
 INT  archSpinLockRaw (spinlock_t  *psl)
 {
+#if LW_CFG_ARM_SPINLOCK_DEP_CACHE > 0
+    pfuncArmSpinLock(&psl->SL_sltData);
+#else
     armSpinLock(&psl->SL_sltData);
+#endif                                                                  /*  LW_CFG_ARM_SPINLOCK_DEP_C...*/
 
     return  (1);                                                        /*  加锁成功                    */
 }
@@ -172,7 +255,12 @@ INT  archSpinLockRaw (spinlock_t  *psl)
 *********************************************************************************************************/
 INT  archSpinTryLockRaw (spinlock_t  *psl)
 {
-    if (armSpinTryLock(&psl->SL_sltData)) {                             /*  尝试加锁                    */
+#if LW_CFG_ARM_SPINLOCK_DEP_CACHE > 0
+    if (pfuncArmSpinTryLock(&psl->SL_sltData)) 
+#else
+    if (armSpinTryLock(&psl->SL_sltData)) 
+#endif                                                                  /*  LW_CFG_ARM_SPINLOCK_DEP_C...*/
+    {                                                                   /*  尝试加锁                    */
         return  (0);
     }
     
@@ -189,7 +277,11 @@ INT  archSpinTryLockRaw (spinlock_t  *psl)
 *********************************************************************************************************/
 INT  archSpinUnlockRaw (spinlock_t  *psl)
 {
+#if LW_CFG_ARM_SPINLOCK_DEP_CACHE > 0
+    pfuncArmSpinUnlock(&psl->SL_sltData);
+#else
     armSpinUnlock(&psl->SL_sltData);                                    /*  解锁                        */
+#endif                                                                  /*  LW_CFG_ARM_SPINLOCK_DEP_C...*/
     
     return  (1);
 }

@@ -451,9 +451,10 @@ VOID  armCacheV8Init (LW_CACHE_OP *pcacheop,
     _DebugFormat(__LOGMESSAGE_LEVEL, "ARMv8 D-Cache line size = %u bytes, Way size = %u bytes.\r\n",
                  pcacheop->CACHEOP_iDCacheLine, pcacheop->CACHEOP_iDCacheWaySize);
 
-    if ((lib_strcmp(pcMachineName, ARM_MACHINE_A53)     == 0) ||
-        (lib_strcmp(pcMachineName, ARM_MACHINE_A57)     == 0) ||
-        (lib_strcmp(pcMachineName, ARM_MACHINE_FT1500A) == 0)) {
+    if ((lib_strcmp(pcMachineName, ARM_MACHINE_A53) == 0) ||
+        (lib_strcmp(pcMachineName, ARM_MACHINE_A57) == 0) ||
+        (lib_strcmp(pcMachineName, ARM_MACHINE_A72) == 0) ||
+        (lib_strcmp(pcMachineName, ARM_MACHINE_A73) == 0)) {            /*  ARMv8                       */
         pcacheop->CACHEOP_iILoc = CACHE_LOCATION_PIPT;
         pcacheop->CACHEOP_iDLoc = CACHE_LOCATION_PIPT;
     }

@@ -72,7 +72,7 @@ static BOOL  ppcVfpNoneIsEnable (VOID)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID  ppcVfpNoneSave (PVOID pvFpuCtx)
+static VOID  ppcVfpNoneSave (PVOID  pvFpuCtx)
 {
 }
 /*********************************************************************************************************
@@ -83,7 +83,7 @@ static VOID  ppcVfpNoneSave (PVOID pvFpuCtx)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID  ppcVfpNoneRestore (PVOID pvFpuCtx)
+static VOID  ppcVfpNoneRestore (PVOID  pvFpuCtx)
 {
 }
 /*********************************************************************************************************
@@ -95,7 +95,7 @@ static VOID  ppcVfpNoneRestore (PVOID pvFpuCtx)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID  ppcVfpNoneCtxShow (INT iFd, PVOID pvFpuCtx)
+static VOID  ppcVfpNoneCtxShow (INT  iFd, PVOID  pvFpuCtx)
 {
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_FIO_LIB_EN > 0)
     fdprintf(iFd, "no vfp\n");

@@ -47,7 +47,7 @@
                                            API º¯Êý
 *********************************************************************************************************/
 LW_API 
-int  backtrace (void **array, int size)
+int  backtrace (void  **array, int  size)
 {
     struct layout  *current;
     int             count;

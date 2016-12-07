@@ -58,17 +58,6 @@ typedef struct {
 static MIPS_CACHE   _G_ICache, _G_DCache;                               /*  I-Cache 和 D-Cache 信息     */
 static MIPS_CACHE   _G_VCache, _G_SCache;                               /*  V-Cache 和 S-Cache 信息     */
 /*********************************************************************************************************
-  处理器 ID
-*********************************************************************************************************/
-#define PRID_REV_LOONGSON1B     0x0020
-#define PRID_REV_LOONGSON2E     0x0002
-#define PRID_REV_LOONGSON2F     0x0003
-#define PRID_REV_LOONGSON3A_R1  0x0005
-#define PRID_REV_LOONGSON3B_R1  0x0006
-#define PRID_REV_LOONGSON3B_R2  0x0007
-#define PRID_REV_LOONGSON3A_R2  0x0008
-#define PRID_REV_LOONGSON3A_R3  0x0009
-/*********************************************************************************************************
 ** 函数名称: ls3xBranchPredictionDisable
 ** 功能描述: 禁能分支预测
 ** 输　入  : NONE
@@ -250,11 +239,6 @@ VOID  ls3xCacheFlushAll (VOID)
 
     switch (mipsCp0PRIdRead() & 0xf) {
 
-    case PRID_REV_LOONGSON3A_R1:
-    default:
-        ls3aR1CacheFlushAll();
-        break;
-
     case PRID_REV_LOONGSON3A_R2:
     case PRID_REV_LOONGSON3A_R3:
         ls3aR2CacheFlushAll();
@@ -263,6 +247,11 @@ VOID  ls3xCacheFlushAll (VOID)
     case PRID_REV_LOONGSON3B_R1:
     case PRID_REV_LOONGSON3B_R2:
         ls3bCacheFlushAll();
+        break;
+
+    case PRID_REV_LOONGSON3A_R1:
+    default:
+        ls3aR1CacheFlushAll();
         break;
     }
 }
@@ -621,6 +610,8 @@ static INT  ls3xCacheProbe (VOID)
 *********************************************************************************************************/
 static VOID  ls3xCacheInfoShow (VOID)
 {
+    INT     iLevel = 2;
+
     if (_G_ICache.CACHE_bPresent) {
         _DebugFormat(__LOGMESSAGE_LEVEL, "L1 I-CACHE size %dKB (%d line size, %d way, %d set).\r\n",
                      _G_ICache.CACHE_uiSize / 1024,
@@ -643,10 +634,12 @@ static VOID  ls3xCacheInfoShow (VOID)
                      _G_VCache.CACHE_uiLineSize,
                      _G_VCache.CACHE_uiWayNr,
                      _G_VCache.CACHE_uiSetNr);
+        iLevel++;
     }
 
     if (_G_SCache.CACHE_bPresent) {
-        _DebugFormat(__LOGMESSAGE_LEVEL, "L3 S-CACHE size %dKB (%d line size, %d way, %d set).\r\n",
+        _DebugFormat(__LOGMESSAGE_LEVEL, "L%d S-CACHE size %dKB (%d line size, %d way, %d set).\r\n",
+                     iLevel,
                      _G_SCache.CACHE_uiSize / 1024,
                      _G_SCache.CACHE_uiLineSize,
                      _G_SCache.CACHE_uiWayNr,

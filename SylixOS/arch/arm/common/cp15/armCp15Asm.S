@@ -325,7 +325,7 @@ FUNC_DEF(armAuxControlFeatureDisable)
 FUNC_DEF(armA1xL2CtlSet)
     ARM_DSB()
     ARM_ISB()
-    MCR     p15, 0, R0, c9, c0, 2
+    MCR     p15, 1, R0, c9, c0, 2
     ARM_DSB()
     ARM_ISB()
     BX      LR
@@ -334,7 +334,7 @@ FUNC_DEF(armA1xL2CtlSet)
 FUNC_DEF(armA1xL2CtlGet)
     ARM_DSB()
     ARM_ISB()
-    MRC     p15, 0, R0, c9, c0, 2
+    MRC     p15, 1, R0, c9, c0, 2
     ARM_DSB()
     ARM_ISB()
     BX      LR

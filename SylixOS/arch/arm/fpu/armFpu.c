@@ -46,8 +46,8 @@ static PARM_FPU_OP      _G_pfpuop;
 *********************************************************************************************************/
 VOID  archFpuPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 {
-    _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s FPU pri-core initialization.\r\n", 
-                 pcMachineName, pcFpuName);
+    _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s %s FPU pri-core initialization.\r\n", 
+                 LW_CFG_CPU_ARCH_FAMILY, pcMachineName, pcFpuName);
 
     if (lib_strcmp(pcFpuName, ARM_FPU_NONE) == 0) {                         /*  选择 VFP 架构           */
         _G_pfpuop = armVfpNonePrimaryInit(pcMachineName, pcFpuName);
@@ -99,8 +99,8 @@ VOID  archFpuPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 
 VOID  archFpuSecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 {
-    _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s FPU sec-core initialization.\r\n", 
-                 pcMachineName, pcFpuName);
+    _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s %s FPU sec-core initialization.\r\n", 
+                 LW_CFG_CPU_ARCH_FAMILY, pcMachineName, pcFpuName);
 
     if (lib_strcmp(pcFpuName, ARM_FPU_NONE) == 0) {                     /*  选择 VFP 架构               */
         armVfpNoneSecondaryInit(pcMachineName, pcFpuName);

@@ -37,8 +37,8 @@ static PPC_FPU_OP   _G_fpuopVfpSpe;
 extern VOID     ppcVfpSpeEnable(VOID);
 extern VOID     ppcVfpSpeDisable(VOID);
 extern BOOL     ppcVfpSpeIsEnable(VOID);
-extern VOID     ppcVfpSpeSave(PVOID pvFpuCtx);
-extern VOID     ppcVfpSpeRestore(PVOID pvFpuCtx);
+extern VOID     ppcVfpSpeSave(PVOID  pvFpuCtx);
+extern VOID     ppcVfpSpeRestore(PVOID  pvFpuCtx);
 /*********************************************************************************************************
 ** 函数名称: ppcVfpSpeCtxShow
 ** 功能描述: 显示 VFP 上下文
@@ -48,7 +48,7 @@ extern VOID     ppcVfpSpeRestore(PVOID pvFpuCtx);
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID  ppcVfpSpeCtxShow (INT iFd, PVOID pvFpuCtx)
+static VOID  ppcVfpSpeCtxShow (INT  iFd, PVOID  pvFpuCtx)
 {
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_FIO_LIB_EN > 0)
     LW_FPU_CONTEXT *pfpuCtx    = (LW_FPU_CONTEXT *)pvFpuCtx;

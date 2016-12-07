@@ -163,8 +163,9 @@ VOID    armSyncBusMode(VOID);
 #define ARM_MACHINE_A15     "A15"
 #define ARM_MACHINE_A17     "A17"
 #define ARM_MACHINE_A53     "A53"                                       /*  ARMv8                       */
-#define ARM_MACHINE_A57     "A57"
-#define ARM_MACHINE_FT1500A "FT1500A"                                   /*  China FT1500A CPU           */
+#define ARM_MACHINE_A57     "A57"                                       /*  FT1500A FT2000 ...          */
+#define ARM_MACHINE_A72     "A72"
+#define ARM_MACHINE_A73     "A73"
 
 #if LW_CFG_CACHE_EN > 0
 VOID    archCacheReset(CPCHAR     pcMachineName);
@@ -197,6 +198,12 @@ VOID    armMmuV7ForceDevType(UINT  uiType);                             /*  Ñ¡Ôñ
 *********************************************************************************************************/
 
 #if LW_CFG_SMP_EN > 0
+#if LW_CFG_ARM_SPINLOCK_DEP_CACHE > 0
+VOID    archSpinWork(VOID);
+
+#define __ARCH_SPIN_WORK    archSpinWork
+#endif                                                                  /*  LW_CFG_ARM_SPINLOCK_DEP_C...*/
+
 VOID    archSpinInit(spinlock_t  *psl);
 VOID    archSpinDelay(VOID);
 VOID    archSpinNotify(VOID);

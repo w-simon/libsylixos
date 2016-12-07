@@ -37,6 +37,12 @@ static PVOID                _G_pvPTETable    = LW_NULL;                 /*  PTE 
 static UINT32               _G_uiTlbSize     = 0;                       /*  TLB 数组大小                */
 static INT                  _G_iMachineType  = MIPS_MACHINE_TYPE_24KF;  /*  机器类型                    */
 /*********************************************************************************************************
+  龙芯 Loongson2x 3x 系列处理器特有的 TLB(VTLB 或 JTLB 一定会有, 就不作判断了)
+*********************************************************************************************************/
+static BOOL                 _G_bLsHasITLB = LW_FALSE;                   /*  是否有 ITLB                 */
+static BOOL                 _G_bLsHasDTLB = LW_FALSE;                   /*  是否有 DTLB                 */
+static BOOL                 _G_bLsHasFTLB = LW_FALSE;                   /*  是否有 FTLB                 */
+/*********************************************************************************************************
   宏定义
 *********************************************************************************************************/
 #define MIPS32_TLB_SIZE     _G_uiTlbSize                                /*  TLB 数组大小                */
@@ -87,12 +93,12 @@ static INT                  _G_iMachineType  = MIPS_MACHINE_TYPE_24KF;  /*  机器
 *********************************************************************************************************/
 static VOID  mips32MmuInvalidateMicroTLB (VOID)
 {
-    if (_G_iMachineType == MIPS_MACHINE_TYPE_LS2X) {
-        mipsCp0DiagWrite(1 << 2);                                       /*  清除 ITLB                   */
-
-    } else if (_G_iMachineType == MIPS_MACHINE_TYPE_LS3X) {
+    if (_G_bLsHasITLB && _G_bLsHasDTLB) {
         mipsCp0DiagWrite((1 << 3) |
                          (1 << 2));                                     /*  清除 ITLB DTLB              */
+
+    } else if (_G_bLsHasITLB) {
+        mipsCp0DiagWrite(1 << 2);                                       /*  清除 ITLB                   */
     }
 }
 /*********************************************************************************************************
@@ -128,7 +134,7 @@ static VOID  mips32MmuDisable (VOID)
 *********************************************************************************************************/
 static VOID  mips32MmuInvalidateTLB (VOID)
 {
-    if (_G_iMachineType == MIPS_MACHINE_TYPE_LS3X) {
+    if (_G_bLsHasITLB && _G_bLsHasDTLB && _G_bLsHasFTLB) {
         mipsCp0DiagWrite((1 << 13) |
                          (1 << 12) |
                          (1 <<  3) |
@@ -356,7 +362,7 @@ static INT  mips32MmuGlobalInit (CPCHAR  pcMachineName)
         _G_uiTlbSize = 64;                                              /*  按最大算                    */
     }
 
-    _DebugFormat(__LOGMESSAGE_LEVEL, "MMU TLB size = %d.\r\n", MIPS32_TLB_SIZE);
+    _DebugFormat(__LOGMESSAGE_LEVEL, "%s MMU TLB size = %d.\r\n", pcMachineName, MIPS32_TLB_SIZE);
 
     archCacheReset(pcMachineName);                                      /*  复位 CACHE                  */
     
@@ -370,7 +376,9 @@ static INT  mips32MmuGlobalInit (CPCHAR  pcMachineName)
 
     if (_G_iMachineType == MIPS_MACHINE_TYPE_LS3X) {
         mipsCp0PageGrainWrite(0);                                       /*  禁用龙芯 3A 的一些扩展功能  */
-        mipsCp0GSConfigWrite(mipsCp0GSConfigRead() | (1 << 22));        /*  只用 VTLB, 不用 FTLB        */
+        if (_G_bLsHasFTLB) {
+            mipsCp0GSConfigWrite(mipsCp0GSConfigRead() | (1 << 22));    /*  只用 VTLB, 不用 FTLB        */
+        }
     }
 
     return  (ERROR_NONE);
@@ -838,9 +846,26 @@ VOID  mips32MmuInit (LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName)
 
     } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X) == 0)) {
         _G_iMachineType = MIPS_MACHINE_TYPE_LS2X;
+        _G_bLsHasITLB   = LW_TRUE;                                      /*  Loongson2x 都有 ITLB        */
 
     } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS3X) == 0)) {
         _G_iMachineType = MIPS_MACHINE_TYPE_LS3X;
+        _G_bLsHasITLB   = LW_TRUE;                                      /*  Loongson3x 都有 ITLB        */
+
+        switch (mipsCp0PRIdRead() & 0xf) {
+
+        case PRID_REV_LOONGSON3A_R2:                                    /*  Loongson3A2000              */
+        case PRID_REV_LOONGSON3A_R3:                                    /*  Loongson3A3000              */
+            _G_bLsHasDTLB = LW_TRUE;                                    /*  有 ITLB, DTLB, VTLB, FTLB   */
+            _G_bLsHasFTLB = LW_TRUE;
+            break;
+
+        case PRID_REV_LOONGSON3A_R1:                                    /*  Loongson3A1000              */
+        case PRID_REV_LOONGSON3B_R1:                                    /*  Loongson3B1000              */
+        case PRID_REV_LOONGSON3B_R2:                                    /*  Loongson3B2000              */
+        default:                                                        /*  只有 JTLB 和 ITLB           */
+            break;
+        }
 
     } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_JZ47XX) == 0)) {
         _G_iMachineType = MIPS_MACHINE_TYPE_JZ47XX;

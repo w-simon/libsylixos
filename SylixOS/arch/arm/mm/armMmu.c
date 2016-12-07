@@ -40,7 +40,8 @@ VOID  archMmuInit (CPCHAR  pcMachineName)
 {
     LW_MMU_OP *pmmuop = API_VmmGetLibBlock();
     
-    _DebugFormat(__LOGMESSAGE_LEVEL, "%s MMU initialization.\r\n", pcMachineName);
+    _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s MMU initialization.\r\n", 
+                 LW_CFG_CPU_ARCH_FAMILY, pcMachineName);
 
     if ((lib_strcmp(pcMachineName, ARM_MACHINE_920)  == 0) ||
         (lib_strcmp(pcMachineName, ARM_MACHINE_926)  == 0) ||
@@ -48,15 +49,16 @@ VOID  archMmuInit (CPCHAR  pcMachineName)
         (lib_strcmp(pcMachineName, ARM_MACHINE_1176) == 0)) {           /* ARMv4/v5/v6 ºÊ»›             */
         armMmuV4Init(pmmuop, pcMachineName);
         
-    } else if ((lib_strcmp(pcMachineName, ARM_MACHINE_A5)      == 0) ||
-               (lib_strcmp(pcMachineName, ARM_MACHINE_A7)      == 0) ||
-               (lib_strcmp(pcMachineName, ARM_MACHINE_A8)      == 0) ||
-               (lib_strcmp(pcMachineName, ARM_MACHINE_A9)      == 0) ||
-               (lib_strcmp(pcMachineName, ARM_MACHINE_A15)     == 0) ||
-               (lib_strcmp(pcMachineName, ARM_MACHINE_A17)     == 0) ||
-               (lib_strcmp(pcMachineName, ARM_MACHINE_A53)     == 0) ||
-               (lib_strcmp(pcMachineName, ARM_MACHINE_A57)     == 0) ||
-               (lib_strcmp(pcMachineName, ARM_MACHINE_FT1500A) == 0)) { /* ARMv7/v8 ºÊ»›                */
+    } else if ((lib_strcmp(pcMachineName, ARM_MACHINE_A5)  == 0) ||
+               (lib_strcmp(pcMachineName, ARM_MACHINE_A7)  == 0) ||
+               (lib_strcmp(pcMachineName, ARM_MACHINE_A8)  == 0) ||
+               (lib_strcmp(pcMachineName, ARM_MACHINE_A9)  == 0) ||
+               (lib_strcmp(pcMachineName, ARM_MACHINE_A15) == 0) ||
+               (lib_strcmp(pcMachineName, ARM_MACHINE_A17) == 0) ||
+               (lib_strcmp(pcMachineName, ARM_MACHINE_A53) == 0) ||
+               (lib_strcmp(pcMachineName, ARM_MACHINE_A57) == 0) ||
+               (lib_strcmp(pcMachineName, ARM_MACHINE_A72) == 0) ||
+               (lib_strcmp(pcMachineName, ARM_MACHINE_A73) == 0)) {     /* ARMv7/v8 ºÊ»›                */
         if (__SYLIXOS_ARM_ARCH__ < 7) {
             _DebugHandle(__ERRORMESSAGE_LEVEL, "machine name is NOT fix with "
                                                "compiler -mcpu or -march parameter.\r\n");

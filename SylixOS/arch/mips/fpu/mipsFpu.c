@@ -91,8 +91,8 @@ VOID  archFpuPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 {
     UINT32  uiConfig1;
 
-    _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s FPU pri-core initialization.\r\n",
-                 pcMachineName, pcFpuName);
+    _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s %s FPU pri-core initialization.\r\n",
+                 LW_CFG_CPU_ARCH_FAMILY, pcMachineName, pcFpuName);
 
     uiConfig1 = mipsCp0Config1Read();
     if (uiConfig1 & M_Config1FP) {
@@ -137,8 +137,8 @@ VOID  archFpuSecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 {
     UINT32  uiConfig1;
 
-    _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s FPU sec-core initialization.\r\n",
-                 pcMachineName, pcFpuName);
+    _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s %s FPU sec-core initialization.\r\n",
+                 LW_CFG_CPU_ARCH_FAMILY, pcMachineName, pcFpuName);
 
     uiConfig1 = mipsCp0Config1Read();
     if (uiConfig1 & M_Config1FP) {

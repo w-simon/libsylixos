@@ -39,7 +39,8 @@ VOID  archCacheInit (CACHE_MODE  uiInstruction, CACHE_MODE  uiData, CPCHAR  pcMa
 {
     LW_CACHE_OP *pcacheop = API_CacheGetLibBlock();
 
-    _DebugFormat(__LOGMESSAGE_LEVEL, "%s L1 cache controller initialization.\r\n", pcMachineName);
+    _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s L1 cache controller initialization.\r\n", 
+                 LW_CFG_CPU_ARCH_FAMILY, pcMachineName);
 
     if (ppcCacheInit(pcacheop, uiInstruction, uiData, pcMachineName) != ERROR_NONE) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown machine name.\r\n");

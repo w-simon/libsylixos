@@ -30,8 +30,8 @@
   See << programming_environment_manual >>  A.4 Instructions Sorted by Opcode (Binary)
   00001100000000000000000000000000 之前的指令编码都是没有用到的
 *********************************************************************************************************/
-#define PPC_BREAKPOINT_INS          0x04A5A5A5
-#define PPC_ABORTPOINT_INS          0x08B4B4B4
+#define PPC_BREAKPOINT_INS          0x04a5a5a5
+#define PPC_ABORTPOINT_INS          0x08b4b4b4
 /*********************************************************************************************************
   SMP
 *********************************************************************************************************/
@@ -49,7 +49,7 @@ static addr_t   ulLastBpAddr[LW_CFG_MAX_PROCESSORS];
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-VOID  archDbgBpInsert (addr_t  ulAddr, size_t stSize, ULONG  *pulIns, BOOL  bLocal)
+VOID  archDbgBpInsert (addr_t  ulAddr, size_t  stSize, ULONG  *pulIns, BOOL  bLocal)
 {
     ULONG ulIns = PPC_BREAKPOINT_INS;
 
@@ -96,7 +96,7 @@ VOID  archDbgAbInsert (addr_t  ulAddr, ULONG  *pulIns)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-VOID  archDbgBpRemove (addr_t  ulAddr, size_t stSize, ULONG  ulIns, BOOL  bLocal)
+VOID  archDbgBpRemove (addr_t  ulAddr, size_t  stSize, ULONG  ulIns, BOOL  bLocal)
 {
     lib_memcpy((PCHAR)ulAddr, (PCHAR)&ulIns, stSize);
     KN_SMP_MB();
@@ -133,7 +133,7 @@ VOID  archDbgBpPrefetch (addr_t  ulAddr)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-UINT  archDbgTrapType (addr_t  ulAddr, PVOID   pvArch)
+UINT  archDbgTrapType (addr_t  ulAddr, PVOID  pvArch)
 {
 #if (LW_CFG_SMP_EN > 0) && (LW_CFG_CACHE_EN > 0) && (LW_CFG_GDB_SMP_TU_LAZY > 0)
     ULONG   ulCPUId;
@@ -184,7 +184,7 @@ UINT  archDbgTrapType (addr_t  ulAddr, PVOID   pvArch)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  archDbgBpAdjust (PVOID  pvDtrace, PVOID   pvtm)
+VOID  archDbgBpAdjust (PVOID  pvDtrace, PVOID  pvtm)
 {
 }
 

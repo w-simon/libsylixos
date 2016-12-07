@@ -77,7 +77,6 @@ FUNC_DEF(ppcSpinTryLock)
     FUNC_END()
     
 FUNC_DEF(ppcSpinUnlock)
-    SYNC
     LI      R0 , 0
     STW     R0 , 0(R3)
     BLR

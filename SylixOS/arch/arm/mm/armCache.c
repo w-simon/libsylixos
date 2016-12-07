@@ -43,7 +43,8 @@ VOID  archCacheInit (CACHE_MODE  uiInstruction, CACHE_MODE  uiData, CPCHAR  pcMa
 {
     LW_CACHE_OP *pcacheop = API_CacheGetLibBlock();
     
-    _DebugFormat(__LOGMESSAGE_LEVEL, "%s L1 cache controller initialization.\r\n", pcMachineName);
+    _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s L1 cache controller initialization.\r\n", 
+                 LW_CFG_CPU_ARCH_FAMILY, pcMachineName);
 
     if (lib_strcmp(pcMachineName, ARM_MACHINE_920) == 0) {
         armCacheV4Init(pcacheop, uiInstruction, uiData, pcMachineName);
@@ -67,9 +68,10 @@ VOID  archCacheInit (CACHE_MODE  uiInstruction, CACHE_MODE  uiData, CPCHAR  pcMa
         }
         armCacheV7Init(pcacheop, uiInstruction, uiData, pcMachineName);
     
-    } else if ((lib_strcmp(pcMachineName, ARM_MACHINE_A53)     == 0) ||
-               (lib_strcmp(pcMachineName, ARM_MACHINE_A57)     == 0) ||
-               (lib_strcmp(pcMachineName, ARM_MACHINE_FT1500A) == 0)) {
+    } else if ((lib_strcmp(pcMachineName, ARM_MACHINE_A53) == 0) ||
+               (lib_strcmp(pcMachineName, ARM_MACHINE_A57) == 0) ||
+               (lib_strcmp(pcMachineName, ARM_MACHINE_A72) == 0) ||
+               (lib_strcmp(pcMachineName, ARM_MACHINE_A73) == 0)) {
         if (__SYLIXOS_ARM_ARCH__ < 8) {
             _DebugHandle(__ERRORMESSAGE_LEVEL, "machine name is NOT fix with "
                                                "compiler -mcpu or -march parameter.\r\n");
@@ -108,9 +110,10 @@ VOID  archCacheReset (CPCHAR  pcMachineName)
                (lib_strcmp(pcMachineName, ARM_MACHINE_A17) == 0)) {
         armCacheV7Reset(pcMachineName);
     
-    } else if ((lib_strcmp(pcMachineName, ARM_MACHINE_A53)     == 0) ||
-               (lib_strcmp(pcMachineName, ARM_MACHINE_A57)     == 0) ||
-               (lib_strcmp(pcMachineName, ARM_MACHINE_FT1500A) == 0)) {
+    } else if ((lib_strcmp(pcMachineName, ARM_MACHINE_A53) == 0) ||
+               (lib_strcmp(pcMachineName, ARM_MACHINE_A57) == 0) ||
+               (lib_strcmp(pcMachineName, ARM_MACHINE_A72) == 0) ||
+               (lib_strcmp(pcMachineName, ARM_MACHINE_A73) == 0)) {
         armCacheV8Reset(pcMachineName);
     
     } else {

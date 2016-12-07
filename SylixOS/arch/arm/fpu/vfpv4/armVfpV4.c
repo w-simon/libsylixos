@@ -10,7 +10,7 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: armVfpV3.c
+** 文   件   名: armVfpV4.c
 **
 ** 创   建   人: Han.Hui (韩辉)
 **
@@ -34,6 +34,7 @@ static INT          _G_iVfpV4DNum;
 /*********************************************************************************************************
   实现函数
 *********************************************************************************************************/
+extern VOID     armVfp11NonSecEn(VOID);
 extern VOID     armVfp11HwInit(VOID);
 extern UINT32   armVfp11Mvfr0(VOID);
 extern ULONG    armVfp9Sid(VOID);
@@ -90,6 +91,10 @@ PARM_FPU_OP  armVfpV4PrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
     
     armVfp11HwInit();
     
+#if LW_CFG_CPU_FPU_NONSEC_EN > 0
+    armVfp11NonSecEn();
+#endif                                                                  /*  LW_CFG_CPU_FPU_NONSEC_EN    */
+    
     uiMvfr0  = armVfp11Mvfr0();
     uiMvfr0 &= 0xf;
     
@@ -131,6 +136,10 @@ VOID  armVfpV4SecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
     (VOID)pcFpuName;
     
     armVfp11HwInit();
+
+#if LW_CFG_CPU_FPU_NONSEC_EN > 0
+    armVfp11NonSecEn();
+#endif                                                                  /*  LW_CFG_CPU_FPU_NONSEC_EN    */
 }
 
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */

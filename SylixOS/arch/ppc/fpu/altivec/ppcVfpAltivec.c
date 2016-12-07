@@ -38,8 +38,8 @@ static PPC_FPU_OP   _G_fpuopVfpAltivec;
 extern VOID     ppcVfpAltivecEnable(VOID);
 extern VOID     ppcVfpAltivecDisable(VOID);
 extern BOOL     ppcVfpAltivecIsEnable(VOID);
-extern VOID     ppcVfpAltivecSave(PVOID pvFpuCtx);
-extern VOID     ppcVfpAltivecRestore(PVOID pvFpuCtx);
+extern VOID     ppcVfpAltivecSave(PVOID  pvFpuCtx);
+extern VOID     ppcVfpAltivecRestore(PVOID  pvFpuCtx);
 /*********************************************************************************************************
   VSCR 相关定义
 *********************************************************************************************************/
@@ -55,7 +55,7 @@ extern VOID     ppcVfpAltivecRestore(PVOID pvFpuCtx);
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  ppcVfpAltivecCtxShow (INT iFd, PVOID pvFpuCtx)
+static VOID  ppcVfpAltivecCtxShow (INT  iFd, PVOID  pvFpuCtx)
 {
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_FIO_LIB_EN > 0)
     LW_FPU_CONTEXT *pfpuCtx    = (LW_FPU_CONTEXT *)pvFpuCtx;

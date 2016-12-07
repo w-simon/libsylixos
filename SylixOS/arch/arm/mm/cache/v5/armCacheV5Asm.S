@@ -49,8 +49,10 @@ FUNC_DEF(armDCacheV5Disable)
     BL      armDCacheV5ClearAll
     LDMFD   SP!, {LR}
     
+#if __SYLIXOS_ARM_ARCH__ < 8
     MOV     R0, #0
     MCR     p15, 0, R0, c7, c10, 4                                      ;/* Drain write-buffer           */
+#endif
     
     MRC     p15, 0, R0, c1, c0, 0
     BIC     R0, R0, #P15_R1_C
@@ -71,8 +73,10 @@ LINE_LABEL(dcache_not_en)
 FUNC_DEF(armDCacheV5FlushAll)
     MRC     p15, 0, R15, c7, c10, 3                                     ;/*  测试回写指令                */
     BNE     armDCacheV5FlushAll
+#if __SYLIXOS_ARM_ARCH__ < 8
     MOV     R0, #0
     MCR     p15, 0, R0, c7, c10, 4                                      ;/* Drain write-buffer           */
+#endif
     BX      LR
     FUNC_END()
     
@@ -83,8 +87,10 @@ FUNC_DEF(armDCacheV5FlushAll)
 FUNC_DEF(armDCacheV5ClearAll)
     MRC     p15, 0, R15, c7, c14, 3                                     ;/*  测试回写并无效指令          */
     BNE     armDCacheV5ClearAll
+#if __SYLIXOS_ARM_ARCH__ < 8
     MOV     R0, #0
     MCR     p15, 0, R0, c7, c10, 4                                      ;/* Drain write-buffer           */
+#endif
     BX      LR
     FUNC_END()
 

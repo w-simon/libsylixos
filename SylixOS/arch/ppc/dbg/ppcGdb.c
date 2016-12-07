@@ -103,10 +103,10 @@ typedef UINT32              INSTR_T;
 /*********************************************************************************************************
   定义指令码相关宏
 *********************************************************************************************************/
-#define BRANCH_MASK         0xF0000000
+#define BRANCH_MASK         0xf0000000
 #define OP_BRANCH           0x40000000
-#define BCCTR_MASK          0xFC0007FE
-#define BCLR_MASK           0xFC0007FE
+#define BCCTR_MASK          0xfc0007fe
+#define BCLR_MASK           0xfc0007fe
 #define AA_MASK             0x00000002
 
 #define BO_NB_BIT           5                                           /*  nb bits of BO field         */
@@ -163,7 +163,7 @@ CPCHAR  archGdbCoreXml (VOID)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-INT  archGdbRegsGet (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET *pregset)
+INT  archGdbRegsGet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, GDB_REG_SET  *pregset)
 {
     ARCH_REG_CTX  regctx;
     ARCH_REG_T    regSp;
@@ -229,7 +229,7 @@ INT  archGdbRegsGet (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET *pre
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-INT  archGdbRegsSet (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET *pregset)
+INT  archGdbRegsSet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, GDB_REG_SET  *pregset)
 {
     ARCH_REG_CTX  regctx;
 
@@ -291,7 +291,7 @@ INT  archGdbRegsSet (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET *pre
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-INT  archGdbRegSetPc (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, ULONG ulPc)
+INT  archGdbRegSetPc (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, ULONG  ulPc)
 {
     ARCH_REG_CTX  regctx;
     ARCH_REG_T    regSp;
@@ -312,7 +312,7 @@ INT  archGdbRegSetPc (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, ULONG ulPc)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-ULONG archGdbRegGetPc (GDB_REG_SET *pRegs)
+ULONG archGdbRegGetPc (GDB_REG_SET  *pRegs)
 {
     return  (pRegs->regArr[GDB_PPC_PC_INDEX].GDBRA_ulValue);
 }
@@ -324,7 +324,7 @@ ULONG archGdbRegGetPc (GDB_REG_SET *pRegs)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-ULONG  archGdbGetNextPc (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET *pRegs)
+ULONG  archGdbGetNextPc (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, GDB_REG_SET  *pRegs)
 {
     INSTR_T         machInstr;                                          /*  Machine instruction         */
     INSTR_T        *nextPc;                                             /*  next program counter        */
@@ -349,7 +349,7 @@ ULONG  archGdbGetNextPc (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET 
      */
     if ((machInstr & BRANCH_MASK) == OP_BRANCH) {
 
-        uiBranchType = (machInstr & 0xFC000000) >> 26;                  /*  opcode bits 0 to 5 equal    */
+        uiBranchType = (machInstr & 0xfc000000) >> 26;                  /*  opcode bits 0 to 5 equal    */
                                                                         /*  16,17,18 or 19              */
 
         uiCTR  = pRegs->regArr[GDB_PPC_CTR_INDEX].GDBRA_ulValue;
@@ -420,7 +420,7 @@ ULONG  archGdbGetNextPc (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET 
                     }
                 }
                 if (bCond) {                                            /*  branch relative to CTR      */
-                    nextPc = (INSTR_T *)(uiCTR & 0xFFFFFFFC);
+                    nextPc = (INSTR_T *)(uiCTR & 0xfffffffc);
                 }
 
             } else if ((machInstr & BCLR_MASK) == INST_BCLR) {          /*  Bclr - Branch Conditional to*/
@@ -437,7 +437,7 @@ ULONG  archGdbGetNextPc (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET 
                     }
                 }
                 if (bCond) {
-                    nextPc = (INSTR_T *)(uiLR & 0xFFFFFFFC);            /*  branch relative to LR       */
+                    nextPc = (INSTR_T *)(uiLR & 0xfffffffc);            /*  branch relative to LR       */
                 }
             }
         }

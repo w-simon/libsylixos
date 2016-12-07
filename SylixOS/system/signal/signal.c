@@ -111,6 +111,7 @@ INT  sigaddset (sigset_t  *psigset, INT  iSigNo)
         *psigset |= __sigmask(iSigNo);
         return  (ERROR_NONE);
     }
+    
     _ErrorHandle(EINVAL);
     return  (PX_ERROR);
 }
@@ -131,6 +132,7 @@ INT  sigdelset (sigset_t  *psigset, INT  iSigNo)
         *psigset &= ~__sigmask(iSigNo);
         return  (ERROR_NONE);
     }
+    
     _ErrorHandle(EINVAL);
     return  (PX_ERROR);
 }
@@ -151,10 +153,12 @@ INT  sigismember (const sigset_t  *psigset, INT  iSigNo)
     if (__issig(iSigNo)) {
         if (*psigset & __sigmask(iSigNo)) {
             return  (1);
+        
         } else {
             return  (0);
         }
     }
+    
     _ErrorHandle(EINVAL);
     return  (PX_ERROR);
 }
@@ -309,6 +313,7 @@ PSIGNAL_HANDLE signal (INT  iSigNo, PSIGNAL_HANDLE  pfuncHandler)
     iError = sigaction(iSigNo, &sigactionNew, &sigactionOld);
     if (iError) {
         return  (SIG_ERR);
+    
     } else {
         return  (sigactionOld.sa_handler);
     }
@@ -338,9 +343,11 @@ INT  sigvec (INT  iSigNo, const struct sigvec *pvec, struct sigvec *pvecOld)
         if (pvecOld) {
             iError = sigaction(iSigNo, &sigactionNew, &sigactionOld);
             iSave  = 1;
+        
         } else {
             iError = sigaction(iSigNo, &sigactionNew, LW_NULL);
         }
+    
     } else if (pvecOld) {
         iError = sigaction(iSigNo, LW_NULL, &sigactionOld);             /*  ªÒ»°                        */
         iSave  = 1;

@@ -993,11 +993,13 @@ VOID  API_VmmAbortIsr (addr_t          ulRetAddr,
     
     __KERNEL_EXIT();                                                    /*  退出内核                    */
 
+#if LW_CFG_CPU_FPU_EN > 0
     if (__PAGEFAILCTX_ABORT_TYPE(pvmpagefailctx) == LW_VMM_ABORT_TYPE_FPE) {
         if (ptcb->TCB_ulOption & LW_OPTION_THREAD_USED_FP) {            /*  如果为 FPU 异常             */
             __ARCH_FPU_SAVE(ptcb->TCB_pvStackFP);                       /*  需要保存当前 FPU CTX        */
         }
     }
+#endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 }
 /*********************************************************************************************************
 ** 函数名称: API_VmmAbortStatus

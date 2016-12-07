@@ -49,8 +49,10 @@ FUNC_DEF(armDCacheV6Disable)
     BL      armDCacheV6ClearAll
     LDMFD   SP!, {LR}
     
+#if __SYLIXOS_ARM_ARCH__ < 8
     MOV     R0, #0
     MCR     p15, 0, R0, c7, c10, 4                                      ;/* Drain write-buffer           */
+#endif
     
     MRC     p15, 0, R0, c1, c0, 0
     BIC     R0, R0, #P15_R1_C
@@ -71,7 +73,9 @@ LINE_LABEL(dcache_not_en)
 FUNC_DEF(armDCacheV6FlushAll)
     MOV     R0, #0
     MCR     p15, 0, R0, c7, c10, 0
+#if __SYLIXOS_ARM_ARCH__ < 8
     MCR     p15, 0, R0, c7, c10, 4                                      ;/* Drain write-buffer           */
+#endif
     BX      LR
     FUNC_END()
     
@@ -82,7 +86,9 @@ FUNC_DEF(armDCacheV6FlushAll)
 FUNC_DEF(armDCacheV6ClearAll)
     MOV     R0, #0
     MCR     p15, 0, R0, c7, c14, 0
+#if __SYLIXOS_ARM_ARCH__ < 8
     MCR     p15, 0, R0, c7, c10, 4                                      ;/* Drain write-buffer           */
+#endif
     BX      LR
     FUNC_END()
 

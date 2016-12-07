@@ -34,6 +34,7 @@ static INT          _G_iVfpV3DNum;
 /*********************************************************************************************************
   ÊµÏÖº¯Êý
 *********************************************************************************************************/
+extern VOID     armVfp11NonSecEn(VOID);
 extern VOID     armVfp11HwInit(VOID);
 extern UINT32   armVfp11Mvfr0(VOID);
 extern ULONG    armVfp9Sid(VOID);
@@ -90,6 +91,10 @@ PARM_FPU_OP  armVfpV3PrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
     
     armVfp11HwInit();
     
+#if LW_CFG_CPU_FPU_NONSEC_EN > 0
+    armVfp11NonSecEn();
+#endif                                                                  /*  LW_CFG_CPU_FPU_NONSEC_EN    */
+    
     uiMvfr0  = armVfp11Mvfr0();
     uiMvfr0 &= 0xf;
     
@@ -131,6 +136,10 @@ VOID  armVfpV3SecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
     (VOID)pcFpuName;
     
     armVfp11HwInit();
+    
+#if LW_CFG_CPU_FPU_NONSEC_EN > 0
+    armVfp11NonSecEn();
+#endif                                                                  /*  LW_CFG_CPU_FPU_NONSEC_EN    */
 }
 
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */

@@ -340,7 +340,8 @@ static INT  ppcE500MmuGlobalInit (CPCHAR  pcMachineName)
      */
     uiTLB0CFG.TLBCFG_uiValue = ppcE500MmuGetTLB0CFG();
     _G_uiTlbSize = uiTLB0CFG.TLBCFG_usNENTRY;
-    _DebugFormat(__LOGMESSAGE_LEVEL, "MMU TLB0 size = %d.\r\n", _G_uiTlbSize);
+    _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s MMU TLB0 size = %d.\r\n", 
+                 LW_CFG_CPU_ARCH_FAMILY, pcMachineName, _G_uiTlbSize);
 
     /*
      * …Ë÷√ PID

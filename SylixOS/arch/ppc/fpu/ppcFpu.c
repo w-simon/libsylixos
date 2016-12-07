@@ -45,8 +45,8 @@ static PPPC_FPU_OP      _G_pfpuop;
 *********************************************************************************************************/
 VOID  archFpuPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 {
-    _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s FPU pri-core initialization.\r\n", 
-                 pcMachineName, pcFpuName);
+    _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s %s FPU pri-core initialization.\r\n", 
+                 LW_CFG_CPU_ARCH_FAMILY, pcMachineName, pcFpuName);
 
     if (lib_strcmp(pcFpuName, PPC_FPU_NONE) == 0) {                     /*  选择 VFP 架构               */
         _G_pfpuop    = ppcVfpNonePrimaryInit(pcMachineName, pcFpuName);
@@ -90,8 +90,8 @@ VOID  archFpuPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 
 VOID  archFpuSecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 {
-    _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s FPU sec-core initialization.\r\n", 
-                 pcMachineName, pcFpuName);
+    _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s %s FPU sec-core initialization.\r\n", 
+                 LW_CFG_CPU_ARCH_FAMILY, pcMachineName, pcFpuName);
 
     if (lib_strcmp(pcFpuName, PPC_FPU_NONE) == 0) {                     /*  选择 VFP 架构               */
         ppcVfpNoneSecondaryInit(pcMachineName, pcFpuName);
@@ -120,7 +120,7 @@ VOID  archFpuSecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-VOID  archFpuCtxInit (PVOID pvFpuCtx)
+VOID  archFpuCtxInit (PVOID  pvFpuCtx)
 {
     lib_memcpy(pvFpuCtx, &_G_fpuCtxInit, sizeof(LW_FPU_CONTEXT));
 }
@@ -156,7 +156,7 @@ VOID  archFpuDisable (VOID)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-VOID  archFpuSave (PVOID pvFpuCtx)
+VOID  archFpuSave (PVOID  pvFpuCtx)
 {
     PPC_VFP_SAVE(_G_pfpuop, pvFpuCtx);
 }
@@ -168,7 +168,7 @@ VOID  archFpuSave (PVOID pvFpuCtx)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-VOID  archFpuRestore (PVOID pvFpuCtx)
+VOID  archFpuRestore (PVOID  pvFpuCtx)
 {
     PPC_VFP_RESTORE(_G_pfpuop, pvFpuCtx);
 }
@@ -181,7 +181,7 @@ VOID  archFpuRestore (PVOID pvFpuCtx)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-VOID  archFpuCtxShow (INT  iFd, PVOID pvFpuCtx)
+VOID  archFpuCtxShow (INT  iFd, PVOID  pvFpuCtx)
 {
     PPC_VFP_CTXSHOW(_G_pfpuop, iFd, pvFpuCtx);
 }

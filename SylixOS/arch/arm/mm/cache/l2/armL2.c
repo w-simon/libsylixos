@@ -270,8 +270,8 @@ VOID armL2Init (CACHE_MODE   uiInstruction,
         l2cdrv.L2CD_uiType    = 0;
         l2cdrv.L2CD_uiRelease = 0;
         
-        _DebugFormat(__LOGMESSAGE_LEVEL, "%s L2 cache controller initialization.\r\n", 
-                     l2cdrv.L2CD_pcName);
+        _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s L2 cache controller initialization.\r\n", 
+                     LW_CFG_CPU_ARCH_FAMILY, l2cdrv.L2CD_pcName);
         
         armL2A8Init(&l2cdrv, uiInstruction, uiData, pcMachineName);
 
@@ -283,8 +283,8 @@ VOID armL2Init (CACHE_MODE   uiInstruction,
         l2cdrv.L2CD_uiType    = 0;
         l2cdrv.L2CD_uiRelease = 0;
         
-        _DebugFormat(__LOGMESSAGE_LEVEL, "%s L2 cache controller initialization.\r\n", 
-                     l2cdrv.L2CD_pcName);
+        _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s L2 cache controller initialization.\r\n", 
+                     LW_CFG_CPU_ARCH_FAMILY, l2cdrv.L2CD_pcName);
                      
     } else if (lib_strcmp(pcMachineName, ARM_MACHINE_A15) == 0) {       /*  A15 ´¦ÀíÆ÷ L2 CACHE         */
 #if LW_CFG_ARM_CACHE_L2_ECC > 0
@@ -298,8 +298,8 @@ VOID armL2Init (CACHE_MODE   uiInstruction,
         l2cdrv.L2CD_uiType    = 0;
         l2cdrv.L2CD_uiRelease = 0;
         
-        _DebugFormat(__LOGMESSAGE_LEVEL, "%s L2 cache controller initialization.\r\n", 
-                     l2cdrv.L2CD_pcName);
+        _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s L2 cache controller initialization.\r\n", 
+                     LW_CFG_CPU_ARCH_FAMILY, l2cdrv.L2CD_pcName);
 
 #if LW_CFG_ARM_CACHE_L2_ECC > 0
         uiL2Ctl |= A15_L2_CTL_L2_ECC_EN;
@@ -314,8 +314,8 @@ VOID armL2Init (CACHE_MODE   uiInstruction,
         l2cdrv.L2CD_uiType    = 0;
         l2cdrv.L2CD_uiRelease = 0;
         
-        _DebugFormat(__LOGMESSAGE_LEVEL, "%s L2 cache controller initialization.\r\n", 
-                     l2cdrv.L2CD_pcName);
+        _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s L2 cache controller initialization.\r\n", 
+                     LW_CFG_CPU_ARCH_FAMILY, l2cdrv.L2CD_pcName);
         
         armL2A17Init(&l2cdrv, uiInstruction, uiData, pcMachineName);
         
@@ -370,8 +370,8 @@ VOID armL2Init (CACHE_MODE   uiInstruction,
         
         l2cdrv.L2CD_stSize = uiWays * uiWaySize * LW_CFG_KB_SIZE;
         
-        _DebugFormat(__LOGMESSAGE_LEVEL, "%s L2 cache controller initialization.\r\n",
-                     l2cdrv.L2CD_pcName);
+        _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s L2 cache controller initialization.\r\n",
+                     LW_CFG_CPU_ARCH_FAMILY, l2cdrv.L2CD_pcName);
         
         armL2x0Init(&l2cdrv, uiInstruction, uiData, pcMachineName, uiAux);
         
@@ -380,9 +380,10 @@ VOID armL2Init (CACHE_MODE   uiInstruction,
             armAuxControlFeatureEnable(AUX_CTRL_A9_L2_PREFETCH);        /*  L2: Prefetch Enable         */
         }
     
-    } else if ((lib_strcmp(pcMachineName, ARM_MACHINE_A53)     == 0) ||
-               (lib_strcmp(pcMachineName, ARM_MACHINE_A57)     == 0) ||
-               (lib_strcmp(pcMachineName, ARM_MACHINE_FT1500A) == 0)) { /*  ARMv8                       */
+    } else if ((lib_strcmp(pcMachineName, ARM_MACHINE_A53) == 0) ||
+               (lib_strcmp(pcMachineName, ARM_MACHINE_A57) == 0) ||
+               (lib_strcmp(pcMachineName, ARM_MACHINE_A72) == 0) ||
+               (lib_strcmp(pcMachineName, ARM_MACHINE_A73) == 0)) {     /*  ARMv8                       */
         l2cdrv.L2CD_pcName    = "ARMv8";
         l2cdrv.L2CD_ulBase    = 0ul;
         l2cdrv.L2CD_uiWayMask = 0;

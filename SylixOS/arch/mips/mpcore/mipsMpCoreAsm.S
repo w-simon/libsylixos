@@ -101,7 +101,6 @@ FUNC_DEF(mipsSpinUnlock)
     .set    noreorder
     .set    volatile
 
-    SYNC
     SW      ZERO , 0(A0)
     JR      RA
     NOP

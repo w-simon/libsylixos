@@ -57,9 +57,11 @@ FUNC_DEF(armDCacheV4Disable)
     ; */
     MRC     p15, 0, R0, c9, c0, 0                                       ;/* Read D-cache lockdown base   */
     MCR     p15, 0, R0, c9, c0, 0                                       ;/* Write D-cache lockdown base  */
-    
+
+#if __SYLIXOS_ARM_ARCH__ < 8
     MOV     R0, #0
     MCR     p15, 0, R0, c7, c10, 4                                      ;/* Drain write-buffer           */
+#endif
     
     MRC     p15, 0, R0, c1, c0, 0
     BIC     R0, R0, #P15_R1_C
@@ -105,8 +107,10 @@ FUNC_DEF(armDCacheV4FlushAll)
     CMP     R5, #CACHE_NWAYS
     BLT     1b
 
+#if __SYLIXOS_ARM_ARCH__ < 8
     MOV     R0, #0
     MCR     p15, 0, R0, c7, c10, 4                                      ;/* Drain write-buffer           */
+#endif
     
     ;/* 
     ; * 保证 victim 指针不指向锁定区 
@@ -142,9 +146,11 @@ FUNC_DEF(armDCacheV4ClearAll)
     CMP     R5, #CACHE_NWAYS
     BLT     1b
 
+#if __SYLIXOS_ARM_ARCH__ < 8
     MOV     R0, #0
     MCR     p15, 0, R0, c7, c10, 4                                      ;/* Drain write-buffer           */
-    
+#endif
+
     ;/* 
     ; * 保证 victim 指针不指向锁定区 
     ; */
