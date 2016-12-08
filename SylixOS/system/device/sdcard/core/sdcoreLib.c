@@ -193,7 +193,7 @@ INT  API_SdCoreDevSendExtCSD (PLW_SDCORE_DEVICE psdcoredevice, UINT8 *pucExtCsd)
 
     iError = API_SdCoreDevTransfer(psdcoredevice, &sdmsg, 1);
 
-    return iError;
+    return  (iError);
 }
 /*********************************************************************************************************
 ** 函数名称: API_SdCoreDevSwitch
@@ -267,9 +267,6 @@ INT API_SdCoreDecodeExtCSD (PLW_SDCORE_DEVICE  psdcoredevice,
 
     uiExtCsdRev = pucExtCsd[EXT_CSD_REV];
     psdextcsd->DEVEXTCSD_uiBootSizeMulti = pucExtCsd[BOOT_SIZE_MULTI];
-    if (uiExtCsdRev > 6) {
-        return  (PX_ERROR);
-    }
 
     if (uiExtCsdRev >= 2) {
         psdextcsd->DEVEXTCSD_uiSectorCnt = (pucExtCsd[EXT_CSD_SEC_CNT + 0] << 0)
@@ -293,6 +290,7 @@ INT API_SdCoreDecodeExtCSD (PLW_SDCORE_DEVICE  psdcoredevice,
     if ((pucExtCsd[EXT_CSD_CARD_TYPE] & 0xf) &
         (EXT_CSD_CARD_TYPE_52 | EXT_CSD_CARD_TYPE_52_DDR_18_30 | EXT_CSD_CARD_TYPE_52_DDR_12)) {
         psdcsd->DEVCSD_uiTranSpeed = 52000000;
+    
     } else if (pucExtCsd[EXT_CSD_CARD_TYPE] & EXT_CSD_CARD_TYPE_26) {
         psdcsd->DEVCSD_uiTranSpeed = 26000000;
 
@@ -302,7 +300,7 @@ INT API_SdCoreDecodeExtCSD (PLW_SDCORE_DEVICE  psdcoredevice,
          */
     }
 
-    return iError;
+    return  (iError);
 }
 /*********************************************************************************************************
 ** 函数名称: __printCID

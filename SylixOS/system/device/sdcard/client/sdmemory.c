@@ -1275,7 +1275,7 @@ static INT __sdMemMmcFreqChange (PLW_SDCORE_DEVICE  psdcoredevice,
 
     iError = API_SdCoreDevSendExtCSD(psdcoredevice, ucExtCSD);
     if (iError) {
-        return iError;
+        return  (iError);
     }
 
     if (ucExtCSD[212] || ucExtCSD[213] || ucExtCSD[214] || ucExtCSD[215]) {
