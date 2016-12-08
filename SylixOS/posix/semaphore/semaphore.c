@@ -290,14 +290,16 @@ sem_t  *sem_open (const char  *name, int  flag, ...)
         if (flag & O_CREAT) {                                           /*  新建信号量                  */
             mode_t  mode;
             uint_t  value;
-            uint_t  maxvalue   = __ARCH_INT_MAX;
-            int     sem_type   = SEM_COUNTING;
-            int     waitq_type = PTHREAD_WAITQ_PRIO;
-            ULONG   opt        = __PX_SEM_OPTION;
+            uint_t  maxvalue = __ARCH_INT_MAX;
+            ULONG   opt      = __PX_SEM_OPTION;
             
 #if LW_CFG_GJB7714_EN > 0
+            int     sem_type   = SEM_COUNTING;
+            int     waitq_type = PTHREAD_WAITQ_PRIO;
+            
             __PX_VPROC_CONTEXT  *pvpCtx = _posixVprocCtxGet();
 #endif                                                                  /*  LW_CFG_GJB7714_EN > 0       */
+
             va_start(valist, flag);
             mode  = va_arg(valist, mode_t);
             value = va_arg(valist, uint_t);

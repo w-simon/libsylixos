@@ -10,59 +10,69 @@
 #
 #--------------文件信息--------------------------------------------------------------------------------
 #
-# 文   件   名: libdsohandle.mk
+# 文   件   名: library.mk
 #
-# 创   建   人: RealEvo-IDE
+# 创   建   人: Jiao.JinXing(焦进星)
 #
-# 文件创建日期: 2016 年 10 月 08 日
+# 文件创建日期: 2016 年 08 月 24 日
 #
-# 描        述: 本文件由 RealEvo-IDE 生成，用于配置 Makefile 功能，请勿手动修改
+# 描        述: 动态库类目标 makefile 模板
 #*********************************************************************************************************
 
 #*********************************************************************************************************
-# Clear setting
+# Include common.mk
 #*********************************************************************************************************
-include $(CLEAR_VARS_MK)
+include $(MKTEMP)/common.mk
 
 #*********************************************************************************************************
-# Target
+# Depend and compiler parameter (cplusplus in kernel MUST NOT use exceptions and rtti)
 #*********************************************************************************************************
-LOCAL_TARGET_NAME := libdsohandle.a
+ifneq (,$(findstring yes,$($(target)_USE_CXX_EXCEPT)))
+$(target)_CXX_EXCEPT  := $(GCC_CXX_EXCEPT_CFLAGS)
+else
+$(target)_CXX_EXCEPT  := $(GCC_NO_CXX_EXCEPT_CFLAGS)
+endif
+
+ifneq (,$(findstring yes,$($(target)_USE_GCOV)))
+$(target)_GCOV_FLAGS  := $(GCC_GCOV_CFLAGS)
+else
+$(target)_GCOV_FLAGS  :=
+endif
+
+$(target)_DSYMBOL     += -DSYLIXOS_LIB
+
+$(target)_CPUFLAGS    := $(CPUFLAGS)
+$(target)_COMMONFLAGS := $($(target)_CPUFLAGS) $(ARCH_COMMONFLAGS) $(OPTIMIZE) -Wall -fmessage-length=0 -fsigned-char -fno-short-enums $($(target)_GCOV_FLAGS) 
+$(target)_ASFLAGS     := $($(target)_COMMONFLAGS) -x assembler-with-cpp $($(target)_DSYMBOL) $($(target)_INC_PATH) 
+$(target)_CFLAGS      := $($(target)_COMMONFLAGS) $(ARCH_PIC_CFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CFLAGS)
+$(target)_CXXFLAGS    := $($(target)_COMMONFLAGS) $(ARCH_PIC_CFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CXX_EXCEPT) $($(target)_CXXFLAGS)
 
 #*********************************************************************************************************
-# Source list
+# Targets
 #*********************************************************************************************************
-LOCAL_SRCS := \
-SylixOS/dsohandle/dsohandle.c
+$(target)_A := $(OUTPATH)/$(LOCAL_TARGET_NAME)
 
 #*********************************************************************************************************
-# Header file search path (eg. LOCAL_INC_PATH := -I"Your hearder files search path")
+# Depend library search paths
 #*********************************************************************************************************
-LOCAL_INC_PATH := 
+$(target)_DEPEND_LIB_PATH := 
 
 #*********************************************************************************************************
-# Pre-defined macro (eg. -DYOUR_MARCO=1)
+# Depend libraries
 #*********************************************************************************************************
-LOCAL_DSYMBOL := 
+$(target)_DEPEND_LIB := 
 
 #*********************************************************************************************************
-# Depend library (eg. LOCAL_DEPEND_LIB := -la LOCAL_DEPEND_LIB_PATH := -L"Your library search path")
+# Make archive object files
 #*********************************************************************************************************
-LOCAL_DEPEND_LIB      := 
-LOCAL_DEPEND_LIB_PATH := 
+$($(target)_A): $($(target)_OBJS)
+		@rm -f $@
+		$(AR) -r $@ $^
 
 #*********************************************************************************************************
-# C++ config
+# Add targets
 #*********************************************************************************************************
-LOCAL_USE_CXX        := no
-LOCAL_USE_CXX_EXCEPT := no
-
-#*********************************************************************************************************
-# Code coverage config
-#*********************************************************************************************************
-LOCAL_USE_GCOV := no
-
-include $(STATIC_LIBRARY_MK)
+TARGETS := $(TARGETS) $($(target)_A)
 
 #*********************************************************************************************************
 # End

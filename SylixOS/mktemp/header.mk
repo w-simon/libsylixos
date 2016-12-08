@@ -38,6 +38,7 @@ $(call check_defined, DEBUG_LEVEL, debug level(debug or release))
 #*********************************************************************************************************
 APPLICATION_MK    = $(MKTEMP)/application.mk
 LIBRARY_MK        = $(MKTEMP)/library.mk
+STATIC_LIBRARY_MK = $(MKTEMP)/static-library.mk
 KERNEL_MODULE_MK  = $(MKTEMP)/kernel-module.mk
 KERNEL_LIBRARY_MK = $(MKTEMP)/kernel-library.mk
 UNIT_TEST_MK      = $(MKTEMP)/unit-test.mk

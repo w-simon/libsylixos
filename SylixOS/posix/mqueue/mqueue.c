@@ -125,7 +125,11 @@ typedef struct {
   ²ÎÊý
 *********************************************************************************************************/
 
+#if LW_CFG_GJB7714_EN > 0
 mq_attr_t  mq_attr_default = {0, 10, 1024, PTHREAD_WAITQ_PRIO};
+#else
+mq_attr_t  mq_attr_default = {0, 10, 1024, 0};
+#endif                                                                  /*  LW_CFG_GJB7714_EN > 0       */
 
 #define __PX_MQ_LOCK(pmq)           API_SemaphoreMPend(pmq->PMSG_ulMutex, LW_OPTION_WAIT_INFINITE)
 #define __PX_MQ_UNLOCK(pmq)         API_SemaphoreMPost(pmq->PMSG_ulMutex)
