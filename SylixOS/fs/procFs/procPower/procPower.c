@@ -91,7 +91,7 @@ static ssize_t  __procFsPowerAdapterRead (PLW_PROCFS_NODE  p_pfsn,
                                           off_t            oft)
 {
     const CHAR      cAdapterInfoHdr[] = 
-    "ADAPTER        MAX-CHANNLE\n";
+    "ADAPTER        MAX-CHANNEL\n";
           PCHAR     pcFileBuffer;
           size_t    stRealSize;                                         /*  实际的文件内容大小          */
           size_t    stCopeBytes;
@@ -211,7 +211,7 @@ static ssize_t  __procFsPowerDevRead (PLW_PROCFS_NODE  p_pfsn,
                                       off_t            oft)
 {
     const CHAR      cDevInfoHdr[] = 
-    "PM-DEV         ADAPTER        CHANNLE   POWER\n";
+    "PM-DEV         ADAPTER        CHANNEL   POWER\n";
           PCHAR     pcFileBuffer;
           size_t    stRealSize;                                         /*  实际的文件内容大小          */
           size_t    stCopeBytes;
@@ -336,10 +336,10 @@ static ssize_t  __procFsPowerInfoRead (PLW_PROCFS_NODE  p_pfsn,
         }
         
         stRealSize = bnprintf(pcFileBuffer, __PROCFS_BUFFER_SIZE_INFO, 0,
-                              "NCPUS      : %u\n"
-                              "ACTIVE     : %u\n"
-                              "POWERLevel : %s\n"
-                              "SYSStatus  : %s\n",
+                              "CPU Cores  : %u\n"
+                              "CPU Active : %u\n"
+                              "PWR Level  : %s\n"
+                              "SYS Status : %s\n",
                               (UINT)LW_NCPUS,
                               (UINT)ulActive,
                               pcPowerLevel,
