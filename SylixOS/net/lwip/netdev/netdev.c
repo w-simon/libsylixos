@@ -69,6 +69,7 @@ static void  netdev_netif_up (struct netif *netif)
   netdev_t *netdev = (netdev_t *)(netif->state);
   
   NETDEV_UP(netdev);
+  netdev->if_flags |= IFF_UP;
 }
 
 /* lwip netif down hook function */
@@ -77,6 +78,7 @@ static void  netdev_netif_down (struct netif *netif)
   netdev_t *netdev = (netdev_t *)(netif->state);
   
   NETDEV_DOWN(netdev);
+  netdev->if_flags &= ~IFF_UP;
 }
 
 /* lwip netif remove hook function */
@@ -380,6 +382,8 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
   }
   
   netdev->if_flags = if_flags;
+  netdev->wireless_handlers = NULL;
+  netdev->wireless_data = NULL;
   
   if (netdev->init_flags & NETDEV_INIT_LOAD_PARAM) {
     ifparam = if_param_load(netdev->dev_name);
@@ -479,6 +483,48 @@ int  netdev_index (netdev_t *netdev, unsigned int *index)
   }
 }
 
+/* netdev find (MUST in NETIF_LOCK mode) */
+netdev_t *netdev_find_by_ifname (const char *if_name)
+{
+  struct netif *netif;
+  netdev_t     *netdev;
+  
+  if (!if_name) {
+    return (NULL);
+  }
+  
+  netif = netif_find(if_name);
+  if (netif) {
+    netdev = (netdev_t *)(netif->state);
+    if (netdev && (netdev->magic_no == NETDEV_MAGIC)) {
+      return (netdev);
+    }
+  }
+  
+  return (NULL);
+}
+
+netdev_t *netdev_find_by_devname (const char *dev_name)
+{
+  struct netif *netif;
+  netdev_t     *netdev;
+
+  if (!dev_name) {
+    return (NULL);
+  }
+  
+  for (netif = netif_list; netif != NULL; netif = netif->next) {
+    netdev = (netdev_t *)(netif->state);
+    if (netdev && (netdev->magic_no == NETDEV_MAGIC)) {
+      if (lib_strcmp(netdev->dev_name, dev_name) == 0) {
+        return (netdev);
+      }
+    }
+  }
+  
+  return (NULL);
+}
+
 /* if netdev link status changed has been detected, 
  * driver must call the following functions */
 int  netdev_set_linkup (netdev_t *netdev, int linkup, UINT64 speed)
@@ -496,6 +542,7 @@ int  netdev_set_linkup (netdev_t *netdev, int linkup, UINT64 speed)
     netdev->speed = speed;
     
     netifapi_netif_set_link_up(netif);
+    netdev->if_flags |= IFF_RUNNING;
 
     if (speed > 0xffffffff) {
       netif->link_speed = 0;
@@ -505,6 +552,7 @@ int  netdev_set_linkup (netdev_t *netdev, int linkup, UINT64 speed)
   
   } else {
     netifapi_netif_set_link_down(netif);
+    netdev->if_flags &= ~IFF_RUNNING;
   }
   
   return (0);

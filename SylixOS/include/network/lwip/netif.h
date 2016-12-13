@@ -343,8 +343,6 @@ struct netif {
   int (*ioctl)(struct netif *, int, void *);
   void (*up)(struct netif *); /* make net device up */
   void (*down)(struct netif *); /* make net device down */
-  void *wireless_handlers; /* iw_handler_def ptr */
-  void *wireless_data; /* iw_public_data ptr */
   long flags2; /* sylixos externed flags */
 #define NETIF_FLAG2_DHCP        1
 #define NETIF_FLAG2_PROMISC     2

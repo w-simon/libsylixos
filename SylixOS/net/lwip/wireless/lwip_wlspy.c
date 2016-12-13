@@ -24,7 +24,7 @@
   裁剪控制
 *********************************************************************************************************/
 #if (LW_CFG_NET_EN > 0) && (LW_CFG_NET_WIRELESS_EN > 0)
-#include "lwip/netif.h"
+#include "netdev.h"
 #include "net/if.h"
 #include "net/if_arp.h"
 #include "net/if_wireless.h"
@@ -37,7 +37,7 @@
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static inline struct iw_spy_data *get_spydata (struct netif *dev)
+static inline struct iw_spy_data *get_spydata (struct netdev *dev)
 {
     struct iw_public_data *public_data;
     
@@ -62,7 +62,7 @@ static inline struct iw_spy_data *get_spydata (struct netif *dev)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-int iw_handler_set_spy (struct netif           *dev,
+int iw_handler_set_spy (struct netdev          *dev,
                         struct iw_request_info *info,
                         union iwreq_data       *wrqu,
                         char                   *extra)
@@ -120,7 +120,7 @@ int iw_handler_set_spy (struct netif           *dev,
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-int iw_handler_get_spy (struct netif            *dev,
+int iw_handler_get_spy (struct netdev           *dev,
                         struct iw_request_info  *info,
                         union iwreq_data        *wrqu,
                         char                    *extra)
@@ -167,7 +167,7 @@ int iw_handler_get_spy (struct netif            *dev,
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-int iw_handler_set_thrspy (struct netif           *dev,
+int iw_handler_set_thrspy (struct netdev          *dev,
                            struct iw_request_info *info,
                            union iwreq_data       *wrqu,
                            char                   *extra)
@@ -200,7 +200,7 @@ int iw_handler_set_thrspy (struct netif           *dev,
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-int iw_handler_get_thrspy (struct netif             *dev,
+int iw_handler_get_thrspy (struct netdev            *dev,
                            struct iw_request_info   *info,
                            union iwreq_data         *wrqu,
                            char                     *extra)
@@ -230,7 +230,7 @@ int iw_handler_get_thrspy (struct netif             *dev,
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static void iw_send_thrspy_event (struct netif          *dev,
+static void iw_send_thrspy_event (struct netdev         *dev,
                                   struct iw_spy_data    *spydata,
                                   unsigned char         *address,
                                   struct iw_quality     *wstats)
@@ -266,7 +266,7 @@ static void iw_send_thrspy_event (struct netif          *dev,
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-void wireless_spy_update (struct netif      *dev,
+void wireless_spy_update (struct netdev     *dev,
                           unsigned char     *address,
                           struct iw_quality *wstats)
 {

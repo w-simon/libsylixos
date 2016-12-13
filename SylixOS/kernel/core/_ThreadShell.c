@@ -36,6 +36,7 @@
 *********************************************************************************************************/
 PVOID  _ThreadShell (PVOID  pvThreadStartAddress)
 {
+    INTREG              iregInterLevel;
     PLW_CLASS_TCB       ptcbCur;
     PVOID               pvReturnVal;
     LW_OBJECT_HANDLE    ulId;
@@ -43,8 +44,10 @@ PVOID  _ThreadShell (PVOID  pvThreadStartAddress)
     LW_TCB_GET_CUR_SAFE(ptcbCur);                                       /*  当前任务控制块              */
     
 #if LW_CFG_CPU_FPU_EN > 0
-    if (ptcbCur->TCB_ulOption & LW_OPTION_THREAD_USED_FP) {
+    if (ptcbCur->TCB_ulOption & LW_OPTION_THREAD_USED_FP) {             /*  强制使用 FPU                */
+        iregInterLevel = KN_INT_DISABLE();                              /*  关闭中断                    */
         __ARCH_FPU_ENABLE();                                            /*  使能 FPU                    */
+        KN_INT_ENABLE(iregInterLevel);                                  /*  打开中断                    */
     }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
     

@@ -41,6 +41,8 @@
 ** 输　出  : LW_NULL
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : 这里在线程退出之前需要提前调用 detach 激活文件系统卸载任务, 因为卸载任务可能是 t_except 所以
+             真正的线程删除操作可能得不到执行.
 *********************************************************************************************************/
 static PVOID  __diskCacheWpThread (PVOID  pvArg)
 {
@@ -56,7 +58,7 @@ static PVOID  __diskCacheWpThread (PVOID  pvArg)
                             LW_OPTION_WAIT_INFINITE);
         
         if (pwp->DISKCWP_bExit) {
-            return  (LW_NULL);
+            break;                                                      /*  线程退出                    */
         }
         
         if (pwp->DISKCWP_bParallel == LW_FALSE) {
@@ -103,6 +105,8 @@ static PVOID  __diskCacheWpThread (PVOID  pvArg)
         API_SemaphoreCPost(pwp->DISKCWP_hCounter);
         API_SemaphoreBPost(pwp->DISKCWP_hSync);
     }
+    
+    API_ThreadDetach(API_ThreadIdSelf());                               /*  解除 Join 线程              */
     
     return  (LW_NULL);
 }

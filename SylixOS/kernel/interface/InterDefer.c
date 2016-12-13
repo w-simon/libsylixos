@@ -75,13 +75,13 @@ VOID  _interDeferInit (VOID)
     LW_CPU_ZERO(&cpuset);
     
     API_ThreadAttrBuild(&threadattr, 
-                            LW_CFG_THREAD_DEFER_STK_SIZE, 
-                            LW_PRIO_T_ISRDEFER, 
-                            (LW_OPTION_THREAD_STK_CHK | 
-                            LW_OPTION_THREAD_SAFE | 
-                            LW_OPTION_OBJECT_GLOBAL |
-                            LW_OPTION_THREAD_AFFINITY_ALWAYS), 
-                            LW_NULL);
+                        LW_CFG_THREAD_DEFER_STK_SIZE, 
+                        LW_PRIO_T_ISRDEFER, 
+                        (LW_OPTION_THREAD_STK_CHK | 
+                        LW_OPTION_THREAD_SAFE | 
+                        LW_OPTION_OBJECT_GLOBAL |
+                        LW_OPTION_THREAD_AFFINITY_ALWAYS), 
+                        LW_NULL);
     
     for (i = 0; i < LW_NCPUS; i++) {
         if (_jobQueueInit(&_K_jobqIsrDefer[i], 

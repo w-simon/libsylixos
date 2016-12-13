@@ -1106,8 +1106,12 @@ INT  dm9000Init (struct dm9000_netdev *dm9000, const char *ip, const char *netma
 
     dm9000->netdev.magic_no = NETDEV_MAGIC;
 
-    lib_strcpy(dm9000->netdev.dev_name, "dm9000");
-    lib_strcpy(dm9000->netdev.if_name,  "en");
+    if (dm9000->netdev.dev_name[0] == '\0') {
+        lib_strcpy(dm9000->netdev.dev_name, "dm9000");
+    }
+    if (dm9000->netdev.if_name[0] == '\0') {
+        lib_strcpy(dm9000->netdev.if_name,  "en");
+    }
 
     dm9000->netdev.if_hostname = "SylixOS";
     dm9000->netdev.init_flags = NETDEV_INIT_LOAD_PARAM

@@ -560,7 +560,7 @@ static INT  __tshellIfconfig (INT  iArgC, PCHAR  *ppcArgV)
                 return  (-ERROR_TSHELL_EPARAM);
             }
             ip_2_ip4(&ipaddr)->addr = inaddr.s_addr;
-            IP_SET_TYPE_VAL(ipaddr, IPADDR_TYPE_ANY);
+            IP_SET_TYPE_VAL(ipaddr, IPADDR_TYPE_V4);
             dns_setserver((u8_t)iDnsIndex, &ipaddr);                    /*  设置 DNS                    */
         
         } else {
@@ -579,7 +579,7 @@ static INT  __tshellIfconfig (INT  iArgC, PCHAR  *ppcArgV)
                     return  (-ERROR_TSHELL_EPARAM);
                 }
                 ip_2_ip4(&ipaddr)->addr = inaddr.s_addr;
-                IP_SET_TYPE_VAL(ipaddr, IPADDR_TYPE_ANY);
+                IP_SET_TYPE_VAL(ipaddr, IPADDR_TYPE_V4);
                 __netIfSet(netif, ppcArgV[iIndex], ip_2_ip4(&ipaddr));  /*  设置网络接口                */
             }
         }

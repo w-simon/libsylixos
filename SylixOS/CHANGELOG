@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2016-12-13: han.hui
+    支持任务非继承亲和度调度.
+
     2016-11-04: han.hui
     支持多并行网络任务队列.
 
@@ -12,6 +15,12 @@ HISTORY
     加入新的网络驱动模型.
 
 ++ Bugfixes:
+
+    2016-12-13: han.hui
+    将无线网络扩展放入 netdev.
+
+    2016-12-13: han.hui
+    修正对 VxWorks RTP 兼容库支持问题.
 
     2016-11-28: han.hui
     修正 MIPS 硬浮点错误.

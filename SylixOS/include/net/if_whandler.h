@@ -134,21 +134,21 @@ struct iw_request_info {
     u16         flags;                          /* More to come ;-)                                     */
 };
 
-struct netif;                                   /* lwip net interface                                   */
+struct netdev;                                  /* net device                                           */
 
 /*********************************************************************************************************
  This is how a function handling a Wireless Extension should look
  * like (both get and set, standard and private).
 *********************************************************************************************************/
 
-typedef int (*iw_handler)(struct netif *dev, struct iw_request_info *info,
+typedef int (*iw_handler)(struct netdev *dev, struct iw_request_info *info,
                           union iwreq_data *wrqu, char *extra);
 
 /*********************************************************************************************************
  This define all the handler that the driver export.
  * As you need only one per driver type, please use a static const
  * shared by all driver instances... Same for the members...
- * This will be linked from net_device in <lwip/netif.h>
+ * This will be linked from net_device in <netdev.h>
 *********************************************************************************************************/
 
 #ifndef CONFIG_WEXT_PRIV
@@ -194,7 +194,7 @@ struct iw_handler_def {
      * The old pointer in struct net_device will be gradually phased
      * out, and drivers are encouraged to use this one... 
      */
-    struct iw_statistics*       (*get_wireless_stats)(struct netif *dev);
+    struct iw_statistics*       (*get_wireless_stats)(struct netdev *dev);
 };
 
 /*********************************************************************************************************
@@ -306,7 +306,7 @@ int dev_get_wireless_info(char *buffer, char **start, off_t offset, int length);
 /* 
  * Send a single event to user space 
  */
-void wireless_send_event(struct netif *dev, unsigned int cmd,
+void wireless_send_event(struct netdev *dev, unsigned int cmd,
                          union iwreq_data *wrqu, const char *extra);
 
 /*********************************************************************************************************
@@ -316,40 +316,40 @@ void wireless_send_event(struct netif *dev, unsigned int cmd,
 /* 
  * Standard handler for SIOCSIWSPY
  */
-int iw_handler_set_spy(struct netif *dev, struct iw_request_info *info,
+int iw_handler_set_spy(struct netdev *dev, struct iw_request_info *info,
                        union iwreq_data *wrqu, char *extra);
                        
 /* 
  * Standard handler for SIOCGIWSPY
  */
-int iw_handler_get_spy(struct netif *dev, struct iw_request_info *info,
+int iw_handler_get_spy(struct netdev *dev, struct iw_request_info *info,
                        union iwreq_data *wrqu, char *extra);
                        
 /* 
  * Standard handler for SIOCSIWTHRSPY
  */
-int iw_handler_set_thrspy(struct netif *dev, struct iw_request_info *info,
+int iw_handler_set_thrspy(struct netdev *dev, struct iw_request_info *info,
                           union iwreq_data *wrqu, char *extra);
                           
 /* 
  * Standard handler for SIOCGIWTHRSPY
  */
-int iw_handler_get_thrspy(struct netif *dev, struct iw_request_info *info,
+int iw_handler_get_thrspy(struct netdev *dev, struct iw_request_info *info,
                           union iwreq_data *wrqu, char *extra);
                           
 /* 
  * Driver call to update spy records
  */
-void wireless_spy_update(struct netif *dev, unsigned char *address,
+void wireless_spy_update(struct netdev *dev, unsigned char *address,
                          struct iw_quality *wstats);
                          
 /*********************************************************************************************************
  wext 
 *********************************************************************************************************/
 
-struct iw_statistics *get_wireless_stats(struct netif *dev);
+struct iw_statistics *get_wireless_stats(struct netdev *dev);
 
-int iw_handler_get_iwstats(struct netif             *dev,
+int iw_handler_get_iwstats(struct netdev            *dev,
                            struct iw_request_info   *info,
                            union iwreq_data         *wrqu,
                            char                     *extra);

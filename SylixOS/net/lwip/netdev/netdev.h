@@ -136,7 +136,12 @@ typedef struct netdev {
   
   /* the following member is used by system, driver not used! */
   int if_flags;
-  ULONG sys[256];  /* reserve for netif */
+  
+  /* wireless externed */
+  void *wireless_handlers; /* iw_handler_def ptr */
+  void *wireless_data; /* iw_public_data ptr */
+  
+  ULONG sys[254];  /* reserve for netif */
 } netdev_t;
 
 /* netdev driver call the following functions add / delete a network interface,
@@ -145,6 +150,10 @@ typedef struct netdev {
 int  netdev_add(netdev_t *netdev, const char *ip, const char *netmask, const char *gw, int if_flags);
 int  netdev_delete(netdev_t *netdev);
 int  netdev_index(netdev_t *netdev, unsigned int *index);
+
+/* netdev find (MUST in NETIF_LOCK mode) */
+netdev_t *netdev_find_by_ifname(const char *if_name);
+netdev_t *netdev_find_by_devname(const char *dev_name);
 
 /* if netdev link status changed has been detected, 
  * driver must call the following functions 

@@ -24,7 +24,7 @@
   裁剪控制
 *********************************************************************************************************/
 #if (LW_CFG_NET_EN > 0) && (LW_CFG_NET_WIRELESS_EN > 0)
-#include "lwip/netif.h"
+#include "netdev.h"
 #include "net/if.h"
 #include "net/if_wireless.h"
 #include "net/if_whandler.h"
@@ -32,17 +32,17 @@
 /*********************************************************************************************************
   ioctl 函数类型
 *********************************************************************************************************/
-typedef int (*wext_ioctl_func)(struct netif *, struct iwreq *,
+typedef int (*wext_ioctl_func)(struct netdev *, struct iwreq *,
                                unsigned int, struct iw_request_info *,
                                iw_handler);
 /*********************************************************************************************************
   函数声明
 *********************************************************************************************************/
-extern int iw_handler_get_private(struct netif           *dev,
+extern int iw_handler_get_private(struct netdev          *dev,
                                   struct iw_request_info *info,
                                   union iwreq_data       *wrqu,
                                   char                   *extra);
-extern int ioctl_private_call(struct netif             *dev, 
+extern int ioctl_private_call(struct netdev            *dev, 
                               struct iwreq             *iwr,
                               unsigned int              cmd, 
                               struct iw_request_info   *info,
@@ -362,7 +362,7 @@ static const int    event_type_size[] = {
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-void wireless_send_event (struct netif      *dev,
+void wireless_send_event (struct netdev     *dev,
                           unsigned int       cmd,
                           union iwreq_data  *wrqu,
                           const char        *extra)
@@ -457,7 +457,7 @@ void wireless_send_event (struct netif      *dev,
     if (extra_len)
         lib_memcpy(((char *) event) + hdr_len, extra, extra_len);
 
-    netEventIfWlExt2(dev, (void *)nea, (unsigned int)nea->nea_len);
+    netEventIfWlExt2((struct netif *)dev->sys, (void *)nea, (unsigned int)nea->nea_len);
 
     sys_free(nea);
 }
@@ -469,7 +469,7 @@ void wireless_send_event (struct netif      *dev,
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-struct iw_statistics *get_wireless_stats (struct netif *dev)
+struct iw_statistics *get_wireless_stats (struct netdev *dev)
 {
 #ifdef CONFIG_WIRELESS_EXT
     struct iw_handler_def *handler;
@@ -499,7 +499,7 @@ struct iw_statistics *get_wireless_stats (struct netif *dev)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-int iw_handler_get_iwstats (struct netif             *dev,
+int iw_handler_get_iwstats (struct netdev            *dev,
                             struct iw_request_info   *info,
                             union iwreq_data         *wrqu,
                             char                     *extra)
@@ -529,7 +529,7 @@ int iw_handler_get_iwstats (struct netif             *dev,
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static iw_handler get_handler (struct netif *dev, unsigned int cmd)
+static iw_handler get_handler (struct netdev *dev, unsigned int cmd)
 {
     unsigned int  index;                                                /* *MUST* be unsigned           */
     const struct iw_handler_def *handlers = NULL;
@@ -558,14 +558,14 @@ static iw_handler get_handler (struct netif *dev, unsigned int cmd)
 /*********************************************************************************************************
 ** 函数名称: ioctl_standard_iw_point
 ** 功能描述: 无线网卡标准 ioctl
-** 输　入  : dev       网络接口
+** 输　入  : ...
 ** 输　出  : 结果
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
 static int ioctl_standard_iw_point (struct iw_point *iwp, unsigned int cmd,
                                     const struct iw_ioctl_description *descr,
-                                    iw_handler handler, struct netif *dev,
+                                    iw_handler handler, struct netdev *dev,
                                     struct iw_request_info *info)
 {
     int err, extra_size, user_length = 0, essid_compat = 0;
@@ -744,7 +744,7 @@ out:
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-int call_commit_handler (struct netif *dev)
+int call_commit_handler (struct netdev *dev)
 {
     struct iw_handler_def *handler;
     
@@ -754,7 +754,7 @@ int call_commit_handler (struct netif *dev)
     }
 
 #ifdef CONFIG_WIRELESS_EXT
-    if ((dev->flags & NETIF_FLAG_UP) && handler &&
+    if ((dev->if_flags & IFF_UP) && handler &&
         (handler->standard[0] != NULL)) {
         return  (handler->standard[0](dev, NULL, NULL, NULL));
     } else {
@@ -778,15 +778,15 @@ static int wireless_process_ioctl (struct ifreq *ifr,
                                    wext_ioctl_func standard,
                                    wext_ioctl_func private)
 {
-    struct iwreq *iwr = (struct iwreq *)ifr;
-    struct netif *dev;
-    iw_handler    handler;
+    struct iwreq  *iwr = (struct iwreq *)ifr;
+    struct netdev *dev;
+    iw_handler     handler;
 
     /* Permissions are already checked in dev_ioctl() before calling us.
      * The copy_to/from_user() of ifr is also dealt with in there */
 
     /* Make sure the device exist */
-    if ((dev = netif_find(ifr->ifr_name)) == NULL) {
+    if ((dev = netdev_find_by_ifname(ifr->ifr_name)) == NULL) {
         return  (-ENODEV);
     }
 
@@ -818,8 +818,8 @@ static int wireless_process_ioctl (struct ifreq *ifr,
     }
     
     /* Old driver API : call driver ioctl handler */
-    if (dev->ioctl) {
-        return  (dev->ioctl(dev, cmd, ifr));
+    if (dev->drv->ioctl) {
+        return  (dev->drv->ioctl(dev, cmd, ifr));
     }
     
     return  (-EOPNOTSUPP);
@@ -865,7 +865,7 @@ static int wext_ioctl_dispatch (struct ifreq *ifr,
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static int ioctl_standard_call (struct netif           *dev,
+static int ioctl_standard_call (struct netdev          *dev,
                                 struct iwreq           *iwr,
                                 unsigned int            cmd,
                                 struct iw_request_info *info,

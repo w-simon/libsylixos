@@ -654,7 +654,8 @@ static INT gdbRspPkgGet (LW_GDB_PARAM *pparam, PCHAR pcInBuff, struct signalfd_s
                     if (ucXmitcSum == ucCheckSum) {                     /* 发送确认包                   */
                         cSend = '+';
                         write(pparam->GDB_iCommFd, &cSend, sizeof(cSend));
-                        return iDataLen;
+                        return  (iDataLen);
+                    
                     } else {
                         cSend = '-';
                         write(pparam->GDB_iCommFd, &cSend, sizeof(cSend));
@@ -1130,8 +1131,8 @@ static INT gdbGoTo (LW_GDB_PARAM    *pparam,
                     PCHAR            pcOutBuff,
                     INT              iBeStep)
 {
-    INT         iSig;
-    ULONG       ulAddr = 0;
+    INT     iSig;
+    ULONG   ulAddr = 0;
 
     if (sscanf(pcInBuff, "%x;%lx", &iSig, &ulAddr) != 2) {
         sscanf(pcInBuff, "%lx", &ulAddr);
@@ -1262,6 +1263,7 @@ static INT gdbGetElfOffset (pid_t   pid,
                 (*addrBss) = addrBase + pshdr[i].sh_addr;
             }
         }
+    
     } else {                                                            /*  so 文件                     */
         (*bSo)   = LW_TRUE;
         stHdSize = ehdr.e_phentsize * ehdr.e_phnum;
@@ -1357,15 +1359,15 @@ static INT gdbHandleQCmd (LW_GDB_PARAM *pparam, PCHAR pcInBuff, PCHAR pcOutBuff)
 *********************************************************************************************************/
 static INT gdbCmdQuery (LW_GDB_PARAM *pparam, PCHAR pcInBuff, PCHAR pcOutBuff)
 {
-    addr_t            addrText = 0;
-    addr_t            addrData = 0;
-    addr_t            addrBss  = 0;
-    BOOL              bSo;
+    addr_t  addrText = 0;
+    addr_t  addrData = 0;
+    addr_t  addrBss  = 0;
+    BOOL    bSo;
 
-    UINT              i;
-    UINT              uiStrLen = 0;
-    ULONG             ulThreadId;
-    CHAR              cThreadInfo[0x100] = {0};
+    UINT    i;
+    UINT    uiStrLen = 0;
+    ULONG   ulThreadId;
+    CHAR    cThreadInfo[0x100] = {0};
 
     if (lib_strstr(pcInBuff, "Offsets") == pcInBuff) {                  /* 返回程序重定位信息           */
         if (gdbGetElfOffset(pparam->GDB_iPid, pparam->GDB_cProgPath,
@@ -1588,11 +1590,11 @@ static INT gdbContHandle (LW_GDB_PARAM     *pparam,
                           PCHAR             pcInBuff,
                           PCHAR             pcOutBuff)
 {
-    CHAR        chOp     = '\0';
-    ULONG       ulTid    = 0;
+    CHAR        chOp  = '\0';
+    ULONG       ulTid = 0;
     INT         iSigNo;
     GDB_REG_SET regset;
-    PCHAR       pcPos    = pcInBuff;
+    PCHAR       pcPos = pcInBuff;
     addr_t      addrRangeLow;
     addr_t      addrRangeHigh;
 
@@ -1621,7 +1623,6 @@ static INT gdbContHandle (LW_GDB_PARAM     *pparam,
 
         } else {
             gdbReplyError(pcOutBuff, 1);
-
             return  (ERROR_NONE);
         }
 
@@ -1681,6 +1682,7 @@ static INT gdbContHandle (LW_GDB_PARAM     *pparam,
         gdbClearStepMode(pparam, pthItem->TH_ulId);
 
         switch (pthItem->TH_cStates) {
+        
         case 'S':
         case 's':
         case 'r':
@@ -1731,8 +1733,8 @@ static INT gdbVcmdHandle (LW_GDB_PARAM     *pparam,
                           PCHAR             pcInBuff,
                           PCHAR             pcOutBuff)
 {
-    PLW_LIST_LINE           plineTemp;
-    LW_GDB_THREAD          *pthItem;
+    PLW_LIST_LINE   plineTemp;
+    LW_GDB_THREAD  *pthItem;
 
     if (lib_strstr(pcInBuff, "Cont?") == pcInBuff) {                    /* 支持的vCont命令列表          */
         if (pparam->GDB_bNonStop) {
@@ -1786,7 +1788,8 @@ static INT gdbVcmdHandle (LW_GDB_PARAM     *pparam,
 *********************************************************************************************************/
 static INT gdbCheckThread (LW_GDB_PARAM *pparam, PCHAR pcInBuff, PCHAR pcOutBuff)
 {
-    ULONG ulThread;
+    ULONG   ulThread;
+    
     if (sscanf(pcInBuff, "%lx", (ULONG*)&ulThread) < 1) {
         gdbReplyError(pcOutBuff, 1);
         return  (PX_ERROR);
@@ -2111,7 +2114,7 @@ __re_select:
 *********************************************************************************************************/
 static INT gdbSigInit (VOID)
 {
-    sigset_t                sigset;
+    sigset_t    sigset;
 
     sigemptyset(&sigset);
     sigaddset(&sigset, SIGTRAP);
@@ -2192,8 +2195,8 @@ static INT gdbReadEvent (LW_GDB_PARAM *pparam, PLW_DTRACE_MSG pdmsg)
  *********************************************************************************************************/
 static BOOL gdbInStepRange (LW_GDB_PARAM *pparam, PLW_DTRACE_MSG pdmsg)
 {
-    PLW_LIST_LINE            plineTemp;
-    LW_GDB_THREAD           *pthItem;
+    PLW_LIST_LINE   plineTemp;
+    LW_GDB_THREAD  *pthItem;
 
     if (gdbIsBP(pparam, pdmsg->DTM_ulAddr)) {
         return  (LW_FALSE);
@@ -2214,6 +2217,7 @@ static BOOL gdbInStepRange (LW_GDB_PARAM *pparam, PLW_DTRACE_MSG pdmsg)
         }
         plineTemp = _list_line_get_next(plineTemp);
     }
+    
     return  (LW_FALSE);
 }
 /*********************************************************************************************************
@@ -2275,9 +2279,9 @@ static INT gdbEventLoop (LW_GDB_PARAM *pparam)
                  *  x86单步时需跳过 push %ebp (0x55) 和 mov %esp %ebp指令，
                  *  因为当停在这两条指令是可能导致gdb堆栈错误
                  */
-                if (gdbInStepRange(pparam, &dmsg)      ||
-                    (*(PUCHAR)dmsg.DTM_ulAddr) == 0x55 ||
-                    (*(PUCHAR)dmsg.DTM_ulAddr) == 0x89) {
+                if (gdbInStepRange(pparam, &dmsg)        ||
+                    ((*(PUCHAR)dmsg.DTM_ulAddr) == 0x55) ||
+                    ((*(PUCHAR)dmsg.DTM_ulAddr) == 0x89)) {
 #else
                 if (gdbInStepRange(pparam, &dmsg)) {
 #endif
@@ -2298,6 +2302,7 @@ static INT gdbEventLoop (LW_GDB_PARAM *pparam)
     }
 
     API_DtraceStopProcess(pparam->GDB_pvDtrace);                        /* 因网络断开退出gdb需先停进程  */
+    
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************

@@ -24,7 +24,7 @@
   裁剪控制
 *********************************************************************************************************/
 #if (LW_CFG_NET_EN > 0) && (LW_CFG_NET_WIRELESS_EN > 0)
-#include "lwip/netif.h"
+#include "netdev.h"
 #include "net/if.h"
 #include "net/if_arp.h"
 #include "net/if_wireless.h"
@@ -32,7 +32,7 @@
 /*********************************************************************************************************
   函数声明
 *********************************************************************************************************/
-extern int call_commit_handler(struct netif *dev);
+extern int call_commit_handler(struct netdev *dev);
 /*********************************************************************************************************
   Size (in bytes) of the various private data types
 *********************************************************************************************************/
@@ -54,7 +54,7 @@ static const char iw_priv_type_size[] = {
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-int iw_handler_get_private (struct netif            *dev,
+int iw_handler_get_private (struct netdev           *dev,
                             struct iw_request_info  *info,
                             union iwreq_data        *wrqu,
                             char                    *extra)
@@ -133,7 +133,7 @@ static int adjust_priv_size (u16 args, struct iw_point *iwp)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static int get_priv_descr_and_size (struct netif *dev, unsigned int cmd,
+static int get_priv_descr_and_size (struct netdev *dev, unsigned int cmd,
                                     const struct iw_priv_args **descrp)
 {
     const struct iw_priv_args *descr;
@@ -195,7 +195,7 @@ static int get_priv_descr_and_size (struct netif *dev, unsigned int cmd,
 *********************************************************************************************************/
 static int ioctl_private_iw_point (struct iw_point *iwp, unsigned int cmd,
                                    const struct iw_priv_args *descr,
-                                   iw_handler handler, struct netif *dev,
+                                   iw_handler handler, struct netdev *dev,
                                    struct iw_request_info *info, int extra_size)
 {
     char *extra;
@@ -256,7 +256,7 @@ out:
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-int ioctl_private_call (struct netif *dev, struct iwreq *iwr,
+int ioctl_private_call (struct netdev *dev, struct iwreq *iwr,
                         unsigned int cmd, struct iw_request_info *info,
                         iw_handler handler)
 {

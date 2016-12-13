@@ -74,6 +74,41 @@ VOID  vprocThreadDelete (PVOID   pvVProc, PLW_CLASS_TCB  ptcb)
     }
 }
 /*********************************************************************************************************
+** 函数名称: vprocThreadNum
+** 功能描述: 统计进程内线程个数
+** 输　入  : pid        进程 ID
+**           pulNum     统计个数
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  vprocThreadNum (pid_t  pid, ULONG  *pulNum)
+{
+    LW_LD_VPROC     *pvproc;
+    PLW_LIST_LINE    plineTemp;
+    
+    if (!pulNum) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    pvproc = vprocGet(pid);
+    if (!pvproc) {
+        _ErrorHandle(ESRCH);
+        return  (PX_ERROR);
+    }
+    
+    __KERNEL_ENTER();                                                   /*  进入内核                    */
+    for (plineTemp  = pvproc->VP_plineThread;
+         plineTemp != LW_NULL;
+         plineTemp  = _list_line_get_next(plineTemp)) {
+        (*pulNum)++;
+    }
+    __KERNEL_EXIT();                                                    /*  退出内核                    */
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: vprocDebugCriResLock
 ** 功能描述: 关键性资源锁定
 ** 输　入  : NONE
@@ -235,7 +270,7 @@ VOID  vprocThreadKill (PVOID  pvVProc)
 **           pfunc          设置函数
 **           iSigIndex      信号下标
 **           psigactionNew  信号句柄
-** 输　出  : ERROR
+** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
@@ -278,7 +313,7 @@ INT  vprocThreadSigaction (PVOID  pvVProc, VOIDFUNCPTR  pfunc, INT  iSigIndex,
 ** 输　入  : pvVProc       进程控制块指针
 **           stSize        CPU 掩码集内存大小
 **           pcpuset       CPU 掩码
-** 输　出  : ERROR
+** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/

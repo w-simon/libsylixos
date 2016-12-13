@@ -92,6 +92,7 @@ extern struct raw_pcb *raw_pcbs;
   无线网络
 *********************************************************************************************************/
 #if LW_CFG_NET_WIRELESS_EN > 0
+#include "netdev.h"
 #include "net/if_wireless.h"
 #include "net/if_whandler.h"
 #endif                                                                  /*  LW_CFG_NET_WIRELESS_EN > 0  */
@@ -2573,9 +2574,10 @@ static ssize_t  __procFsNetPppRead (PLW_PROCFS_NODE  p_pfsn,
 static VOID  __procFsNetWlPrint (struct netif *netif, PCHAR  pcBuffer, 
                                  size_t  stTotalSize, size_t *pstOft)
 {
-extern struct iw_statistics *get_wireless_stats(struct netif *);
+extern struct iw_statistics *get_wireless_stats(struct netdev *);
 
-    struct iw_statistics *stats = get_wireless_stats(netif);
+    struct netdev        *netdev = (netdev_t *)(netif->state);
+    struct iw_statistics *stats  = get_wireless_stats(netdev);
     
     if (!stats) {
         return;
@@ -2633,13 +2635,17 @@ static ssize_t  __procFsNetWlRead (PLW_PROCFS_NODE  p_pfsn,
      */
     pcFileBuffer = (PCHAR)API_ProcFsNodeBuffer(p_pfsn);
     if (pcFileBuffer == LW_NULL) {                                      /*  还没有分配内存              */
-        size_t        stNeedBufferSize = 0;
-        struct netif *netif;
+        size_t         stNeedBufferSize = 0;
+        struct netif  *netif;
+        struct netdev *netdev;
         
         LOCK_TCPIP_CORE();
         for (netif = netif_list; netif != LW_NULL; netif = netif->next) {
-            if (netif->wireless_handlers) {
-                stNeedBufferSize += 180;
+            netdev = (netdev_t *)(netif->state);
+            if (netdev && (netdev->magic_no == NETDEV_MAGIC)) {
+                if (netdev->wireless_handlers) {
+                    stNeedBufferSize += 180;
+                }
             }
         }
         UNLOCK_TCPIP_CORE();
@@ -2656,8 +2662,11 @@ static ssize_t  __procFsNetWlRead (PLW_PROCFS_NODE  p_pfsn,
                                                                         /*  打印头信息                  */
         LOCK_TCPIP_CORE();
         for (netif = netif_list; netif != LW_NULL; netif = netif->next) {
-            if (netif->wireless_handlers) {
-                __procFsNetWlPrint(netif, pcFileBuffer, stNeedBufferSize, &stRealSize);
+            netdev = (netdev_t *)(netif->state);
+            if (netdev && (netdev->magic_no == NETDEV_MAGIC)) {
+                if (netdev->wireless_handlers) {
+                    __procFsNetWlPrint(netif, pcFileBuffer, stNeedBufferSize, &stRealSize);
+                }
             }
         }
         UNLOCK_TCPIP_CORE();

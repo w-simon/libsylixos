@@ -182,7 +182,7 @@ static INT _IoOpen (PCHAR            pcName,
             break;
         
         } else {
-            if (((iFlag & O_NOFOLLOW) && (lValue != FOLLOW_LINK_FILE)) ||
+            if (((iFlag & O_NOFOLLOW) && (lValue == FOLLOW_LINK_FILE)) ||
                 (iLinkCount++ > _S_iIoMaxLinkLevels)) {                 /*  不允许符号链接              */
                 ulError   = ELOOP;                                      /*  链接文件层数太多            */
                 iErrLevel = 2;

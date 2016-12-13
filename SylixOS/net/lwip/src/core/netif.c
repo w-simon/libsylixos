@@ -315,8 +315,6 @@ netif_add(struct netif *netif,
   netif->ioctl = NULL;
   netif->up = NULL;
   netif->down = NULL;
-  netif->wireless_handlers = NULL;
-  netif->wireless_data = NULL;
   netif->flags2 = 0l;
   lib_bzero(netif->reserve, sizeof(void *[8]));
 #endif /* SYLIXOS */

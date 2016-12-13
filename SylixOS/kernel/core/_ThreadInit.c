@@ -147,7 +147,7 @@ VOID  _TCBBuild (UINT8                    ucPriority,
     ptcb->TCB_iSchedRet     = ERROR_NONE;                               /*  初始化调度器返回值          */
     ptcb->TCB_ucWaitTimeout = LW_WAIT_TIME_CLEAR;                       /*  没有超时                    */
     
-    ptcb->TCB_ulOption      = ulOption & (~LW_OPTION_THREAD_USED_FP);   /*  选项 (浮点标志由驱动管理)   */
+    ptcb->TCB_ulOption      = ulOption;                                 /*  选项                        */
     ptcb->TCB_ulId          = ulId;                                     /*  Id                          */
     ptcb->TCB_ulLastError   = ERROR_NONE;                               /*  最后一个错误                */
     ptcb->TCB_pvArg         = pvArg;                                    /*  参数                        */
@@ -252,8 +252,13 @@ VOID  _TCBBuild (UINT8                    ucPriority,
     LW_SPIN_INIT(&ptcb->TCB_slLock);                                    /*  初始化自旋锁                */
     
 #if LW_CFG_SMP_EN > 0
-    ptcb->TCB_bCPULock  = ptcbCur->TCB_bCPULock;
-    ptcb->TCB_ulCPULock = ptcbCur->TCB_ulCPULock;                       /*  继承 CPU 锁定关系           */
+    if (ulOption & LW_OPTION_THREAD_NO_AFFINITY) {                      /*  是否继承 CPU 亲和度关系     */
+        ptcb->TCB_bCPULock  = LW_FALSE;
+        ptcb->TCB_ulCPULock = 0ul;
+    } else {
+        ptcb->TCB_bCPULock  = ptcbCur->TCB_bCPULock;
+        ptcb->TCB_ulCPULock = ptcbCur->TCB_ulCPULock;                   /*  继承 CPU 亲和度关系         */
+    }
 #endif                                                                  /*  LW_CFG_SMP_EN               */
 
     ptcb->TCB_ulCPUId = 0ul;                                            /*  默认使用 0 号 CPU           */
