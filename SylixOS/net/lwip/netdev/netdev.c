@@ -382,8 +382,6 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
   }
   
   netdev->if_flags = if_flags;
-  netdev->wireless_handlers = NULL;
-  netdev->wireless_data = NULL;
   
   if (netdev->init_flags & NETDEV_INIT_LOAD_PARAM) {
     ifparam = if_param_load(netdev->dev_name);

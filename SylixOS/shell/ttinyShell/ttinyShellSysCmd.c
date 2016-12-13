@@ -72,6 +72,7 @@
   裁剪控制
 *********************************************************************************************************/
 #if LW_CFG_SHELL_EN > 0
+#include "sys/ioctl.h"
 #include "crypt.h"
 #include "pwd.h"
 #include "ttinyShell.h"
@@ -255,29 +256,33 @@ static INT  __tshellSysCmdShell (INT  iArgC, PCHAR  ppcArgV[])
 ** 功能描述: 打印一个系统内建关键字信息
 ** 输　入  : pskwNode      关键字
 **           bDetails      是否打印详细信息
-** 输　出  : 0
+** 输　出  : 输出的字节数
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID  __helpPrintKeyword (__PTSHELL_KEYWORD  pskwNode, BOOL  bDetails)
+static INT  __helpPrintKeyword (__PTSHELL_KEYWORD  pskwNode, BOOL  bDetails)
 {
+    INT   iChars = 0;
+
     if (bDetails && pskwNode->SK_pcHelpString) {
-        printf("%s", pskwNode->SK_pcHelpString);                        /*  打印帮助信息                */
+        iChars += printf("%s", pskwNode->SK_pcHelpString);              /*  打印帮助信息                */
     }
 
     if (bDetails) {
-        printf("%s", pskwNode->SK_pcKeyword);                           /*  打印关键字队列              */
+        iChars += printf("%s", pskwNode->SK_pcKeyword);                 /*  打印关键字队列              */
     } else {
-        printf("%-20s", pskwNode->SK_pcKeyword);
+        iChars += printf("%-20s", pskwNode->SK_pcKeyword);
     }
     
     if (pskwNode->SK_pcFormatString) {
         API_TShellColorStart2(LW_TSHELL_COLOR_GREEN, STD_OUT);
-        printf("%s", pskwNode->SK_pcFormatString);                      /*  打印格式信息                */
+        iChars += printf("%s", pskwNode->SK_pcFormatString);            /*  打印格式信息                */
         API_TShellColorEnd(STD_OUT);
     }
     
     printf("\n");
+    
+    return  (iChars);
 }
 /*********************************************************************************************************
 ** 函数名称: __tshellSysCmdHelp
@@ -290,35 +295,51 @@ static VOID  __helpPrintKeyword (__PTSHELL_KEYWORD  pskwNode, BOOL  bDetails)
 *********************************************************************************************************/
 static INT  __tshellSysCmdHelp (INT  iArgC, PCHAR  ppcArgV[])
 {
-#define __SHELL_LINE_PER_SCREEN     23
-    
-    REGISTER ULONG          ulGetNum;
-    REGISTER INT            i;
+#define __HELP_BUFF_SIZE    20
+
+    REGISTER INT            i, iChars;
+    REGISTER ULONG          ulGetNum, ulNum, ulTotal;
              CHAR           cData;
     
     __PTSHELL_KEYWORD       pskwNodeStart = LW_NULL;
-    __PTSHELL_KEYWORD       pskwNode[__SHELL_LINE_PER_SCREEN];
+    __PTSHELL_KEYWORD       pskwNode[__HELP_BUFF_SIZE];
 
     if (iArgC == 1) {                                                   /*  需要显示所有信息            */
+        struct winsize      ws;
+        
+        if (ioctl(STD_OUT, TIOCGWINSZ, &ws) || (ws.ws_row < 24) || (ws.ws_col < 80)) {
+            ws.ws_row = 24;
+            ws.ws_col = 80;
+        }
+        
+        ws.ws_row -= 2;
+        ulTotal    = 0;
         do {
-            ulGetNum = __tshellKeywordList(pskwNodeStart,
-                                           pskwNode,
-                                           __SHELL_LINE_PER_SCREEN);
-            for (i = 0; i < ulGetNum; i++) {
-                __helpPrintKeyword(pskwNode[i], LW_FALSE);
+            ulNum = ws.ws_row - ulTotal;
+            if (ulNum > __HELP_BUFF_SIZE) {
+                ulNum = __HELP_BUFF_SIZE;
             }
         
-            if (ulGetNum == __SHELL_LINE_PER_SCREEN) {
-                printf("\npress ENTER to continue, 'Q' to quit.\n");    /*  需要翻屏                    */
+            ulGetNum = __tshellKeywordList(pskwNodeStart, pskwNode, (INT)ulNum);
+            for (i = 0; i < ulGetNum; i++) {
+                iChars   = __helpPrintKeyword(pskwNode[i], LW_FALSE);
+                ulTotal += (ULONG)(iChars / ws.ws_col) + 1;
+            }
+
+            if (ulTotal == ws.ws_row) {
+                printf("\nPress <ENTER> to continue, <Q> to quit: ");   /*  需要翻屏                    */
+                fflush(stdout);
                 read(0, &cData, 1);
                 if (cData == 'q' || cData == 'Q') {                     /*  是否需要退出                */
                     ioctl(STD_IN, FIOFLUSH);                            /*  清空接收缓冲                */
                     break;                                              /*  退出                        */
                 }
-                pskwNodeStart = pskwNode[__SHELL_LINE_PER_SCREEN - 1];
+                ulTotal = 0;
             }
-        } while ((ulGetNum == __SHELL_LINE_PER_SCREEN) && 
-                 (pskwNodeStart != LW_NULL));
+
+            pskwNodeStart = pskwNode[ulGetNum - 1];
+        } while ((ulGetNum == ulNum) && (pskwNodeStart != LW_NULL));
+    
     } else {
         PCHAR   pcKeyword = LW_NULL;
     

@@ -33,13 +33,67 @@
 #include "../SylixOS/loader/elf/elf_arch.h"
 #include "../SylixOS/loader/include/loader_lib.h"
 /*********************************************************************************************************
+  ARM Relocation types
+*********************************************************************************************************/
+#define R_ARM_NONE              0
+#define R_ARM_PC24              1
+#define R_ARM_ABS32             2
+#define R_ARM_REL32             3                                       /* PC relative 32 bit           */
+#define R_ARM_PC13              4
+#define R_ARM_ABS16             5                                       /* Direct 16 bit                */
+#define R_ARM_ABS12             6                                       /* Direct 12 bit                */
+#define R_ARM_THM_ABS5          7
+#define R_ARM_ABS8              8                                       /* Direct 8 bit                 */
+#define R_ARM_SBREL32           9
+#define R_ARM_THM_PC22          10
+#define R_ARM_THM_PC8           11
+#define R_ARM_AMP_VCALL9        12
+#define R_ARM_SWI24             13
+#define R_ARM_THM_SWI8          14
+#define R_ARM_XPC25             15
+#define R_ARM_THM_XPC22         16
+#define R_ARM_COPY              20                                      /* Copy symbol at runtime       */
+#define R_ARM_GLOB_DAT          21                                      /* Create GOT entry             */
+#define R_ARM_JUMP_SLOT         22                                      /* Create PLT entry             */
+#define R_ARM_RELATIVE          23                                      /* Adjust by program base       */
+#define R_ARM_GOTOFF            24                                      /* 32 bit offset to GOT         */
+#define R_ARM_GOTPC             25                                      /* 32 bit PC relative offset to */
+                                                                        /* GOT                          */
+#define R_ARM_GOT32             26                                      /* 32 bit GOT entry             */
+#define R_ARM_PLT32             27                                      /* 32 bit PLT address           */
+#define R_ARM_CALL              28
+#define R_ARM_JUMP24            29
+#define R_ARM_THM_JUMP24        30
+#define R_ARM_TARGET1           38
+#define R_ARM_THM_MOVW_ABS_NC   47
+#define R_ARM_THM_MOVT_ABS      48
+
+#define R_ARM_V4BX              40
+#define R_ARM_PREL31            42
+#define R_ARM_MOVW_ABS_NC       43
+#define R_ARM_MOVT_ABS          44
+
+#define R_ARM_GNU_VTENTRY       100
+#define R_ARM_GNU_VTINHERIT     101
+#define R_ARM_THM_PC11          102                                     /* thumb unconditional branch   */
+#define R_ARM_THM_PC9           103                                     /* thumb conditional branch     */
+#define R_ARM_RXPC25            249
+#define R_ARM_RSBREL32          250
+#define R_ARM_THM_RPC22         251
+#define R_ARM_RREL32            252
+#define R_ARM_RABS22            253
+#define R_ARM_RPC24             254
+#define R_ARM_RBASE             255
+
+#define R_ARM_NUM               256                                     /* Keep this the last entry.    */
+/*********************************************************************************************************
   宏定义
 *********************************************************************************************************/
-#define JMP_TABLE_ITEMLEN   8                                           /*  跳转表条目长度              */
+#define JMP_TABLE_ITEMLEN       8                                       /*  跳转表条目长度              */
 /*********************************************************************************************************
   这里指令码以机器字长度的整数表示，不需要处理大小端问题，因为整数的高字节也是指令的高字节
 *********************************************************************************************************/
-#define LDR_INSTRUCTION     0xE51FF004                                  /*  跳转指令                    */
+#define LDR_INSTRUCTION         0xe51ff004                              /*  跳转指令                    */
 /*********************************************************************************************************
   跳转表项类型定义
 *********************************************************************************************************/

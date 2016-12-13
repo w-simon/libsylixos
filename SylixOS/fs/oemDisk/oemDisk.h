@@ -108,8 +108,8 @@ LW_API PLW_OEMDISK_CB    API_OemDiskMountEx2(CPCHAR             pcVolName,
 LW_API INT               API_OemDiskUnmount(PLW_OEMDISK_CB  poemd);
 LW_API INT               API_OemDiskUnmountEx(PLW_OEMDISK_CB  poemd, BOOL  bForce);
 
-LW_API INT               API_OemDiskRemountEx(PLW_OEMDISK_CB  poemd, BOOL  bForce);
 LW_API INT               API_OemDiskRemount(PLW_OEMDISK_CB  poemd);
+LW_API INT               API_OemDiskRemountEx(PLW_OEMDISK_CB  poemd, BOOL  bForce);
 
 LW_API INT               API_OemDiskGetPath(PLW_OEMDISK_CB  poemd, INT  iIndex, 
                                             PCHAR  pcPath, size_t stSize);

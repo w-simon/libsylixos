@@ -153,6 +153,7 @@ LW_API INT          API_IosFdNew(PLW_DEV_HDR    pdevhdrHdr,
                                  INT            iFlag);
 LW_API INT          API_IosFdRealName(INT  iFd, CPCHAR  pcRealName);
 LW_API INT          API_IosFdLock(INT  iFd);
+LW_API INT          API_IosFdGetType(INT  iFd, INT *piType);
 
 LW_API INT          API_IosFdSetCloExec(INT  iFd, INT  iCloExec);
 LW_API INT          API_IosFdGetCloExec(INT  iFd, INT  *piCloExec);
@@ -162,14 +163,7 @@ LW_API INT          API_IosFdGetCloExec(INT  iFd, INT  *piCloExec);
 #define iosFdNew                                 API_IosFdNew
 #define iosFdRealName                            API_IosFdRealName
 #define iosFdLock                                API_IosFdLock
-
-LW_API INT          API_IosFdGetType(INT  iFd, INT *piType);
-LW_API INT          API_IosFdGetName(INT  iFd, PCHAR  pcName, size_t  stSize);
-LW_API INT          API_IosFdGetRealName(INT  iFd, PCHAR  pcName, size_t  stSize);
-
 #define iosFdGetType                             API_IosFdGetType
-#define iosFdGetName                             API_IosFdGetName
-#define iosFdGetRealName                         API_IosFdGetRealName
 
 LW_API INT          API_IosFdRefInc(INT  iFd);
 LW_API INT          API_IosFdRefDec(INT  iFd);

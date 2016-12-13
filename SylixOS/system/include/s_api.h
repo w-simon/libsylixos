@@ -161,8 +161,16 @@ LW_API PCHAR                 API_IoGetDrvDescription(INT  iDrvNum);
 #define iosDevFind                               API_IosDevFind
 
 /*********************************************************************************************************
-  DEVICE POWER MANAGE
+  File name
 *********************************************************************************************************/
+
+#if LW_CFG_DEVICE_EN > 0
+LW_API INT                   API_IosFdGetName(INT  iFd, PCHAR  pcName, size_t  stSize);
+LW_API INT                   API_IosFdGetRealName(INT  iFd, PCHAR  pcName, size_t  stSize);
+
+#define iosFdGetName                             API_IosFdGetName
+#define iosFdGetRealName                         API_IosFdGetRealName
+#endif
 
 /*********************************************************************************************************
   IO system kernel FILE

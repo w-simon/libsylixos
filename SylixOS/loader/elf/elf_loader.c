@@ -839,7 +839,7 @@ __error:
     LW_LD_SAFEFREE(pmodule->EMOD_ppfuncInitArray);
     LW_LD_SAFEFREE(pmodule->EMOD_ppfuncFiniArray);
 
-    return (PX_ERROR);
+    return  (PX_ERROR);
 }
 /*********************************************************************************************************
 ** 函数名称: elfLoadReloc
@@ -1593,7 +1593,6 @@ static INT elfPhdrBuildInitTable (LW_LD_EXEC_MODULE *pmodule,
 
     return  (ERROR_NONE);
 }
-
 /*********************************************************************************************************
 ** 函数名称: elfLoadExec
 ** 功能描述: 加载可执行elf文件.
