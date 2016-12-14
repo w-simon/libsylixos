@@ -540,7 +540,7 @@ static AF_PACKET_T  *__packetCreate (INT  iType, INT  iProtocol)
     }
     
     __AF_PACKET_LOCK();
-    _List_Line_Add_Tail(&pafpacket->PACKET_lineManage, &_G_plineAfPacket);
+    _List_Line_Add_Ahead(&pafpacket->PACKET_lineManage, &_G_plineAfPacket);
     __AF_PACKET_UNLOCK();
     
     return  (pafpacket);

@@ -42,6 +42,7 @@
 2014.10.16  __unixFind() 加入对 listen 状态 unix 套接字的搜索.
 2015.01.01  修正 __unixFind() 对 DGRAM 类型判断错误.
 2015.01.08  SOCK_DGRAM 没有一次接收完整包, 剩下的数据需要丢弃.
+2016.12.14  accept connect 使用不同的阻塞信号量.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -68,6 +69,7 @@ extern void  __unix_socket_event(AF_UNIX_T  *pafunix, LW_SEL_TYPE type, INT  iSo
 #define __AF_UNIX_DEF_BUFMAX        65536                               /*  默认为 64K 接收缓冲         */
 #define __AF_UNIX_DEF_BUFMIN        (LW_CFG_KB_SIZE * 8)                /*  最小接收缓冲大小            */
 #define __AF_UNIX_PIPE_BUF          (LW_CFG_KB_SIZE * 8)                /*  一次原子操作的数据大小      */
+#define __AF_UNIX_PIPE_BUF_SHIFT    13                                  /*  1 << 13 == 8K               */
 #define __AF_UNIX_PART_256          LW_CFG_AF_UNIX_256_POOLS            /*  256 字节内存池数量          */
 #define __AF_UNIX_PART_512          LW_CFG_AF_UNIX_512_POOLS            /*  512 字节内存池数量          */
 /*********************************************************************************************************
@@ -90,17 +92,18 @@ static LW_STACK                     _G_stackUnixPart512[__AF_UNIX_PART_512_SIZE]
 /*********************************************************************************************************
   宏操作
   
-  connect 与 accept 阻塞借助于 UNIX_hCanWrite
+  connect 阻塞借助于 UNIX_hCanWrite
+  accept  阻塞借助于 UNIX_hCanRead
 *********************************************************************************************************/
 #define __AF_UNIX_WCONN(pafunix)    API_SemaphoreBPend(pafunix->UNIX_hCanWrite, \
                                                        pafunix->UNIX_ulConnTimeout)
 #define __AF_UNIX_SCONN(pafunix)    API_SemaphoreBPost(pafunix->UNIX_hCanWrite)
 #define __AF_UNIX_CCONN(pafunix)    API_SemaphoreBClear(pafunix->UNIX_hCanWrite)
                                                        
-#define __AF_UNIX_WACCE(pafunix)    API_SemaphoreBPend(pafunix->UNIX_hCanWrite, \
+#define __AF_UNIX_WACCE(pafunix)    API_SemaphoreBPend(pafunix->UNIX_hCanRead, \
                                                        LW_OPTION_WAIT_INFINITE)
-#define __AF_UNIX_SACCE(pafunix)    API_SemaphoreBPost(pafunix->UNIX_hCanWrite)
-#define __AF_UNIX_CACCE(pafunix)    API_SemaphoreBClear(pafunix->UNIX_hCanWrite)
+#define __AF_UNIX_SACCE(pafunix)    API_SemaphoreBPost(pafunix->UNIX_hCanRead)
+#define __AF_UNIX_CACCE(pafunix)    API_SemaphoreBClear(pafunix->UNIX_hCanRead)
                                                        
 #define __AF_UNIX_WREAD(pafunix)    API_SemaphoreBPend(pafunix->UNIX_hCanRead, \
                                                        pafunix->UNIX_ulRecvTimeout)
@@ -354,7 +357,7 @@ static BOOL  __unixCanRead (AF_UNIX_T  *pafunix, INT  flags, size_t  stLen)
 *********************************************************************************************************/
 static BOOL  __unixCanAccept (AF_UNIX_T  *pafunix)
 {
-    if (pafunix->UNIX_plineConnect == LW_NULL) {
+    if (pafunix->UNIX_pringConnect == LW_NULL) {
         return  (LW_FALSE);
     
     } else {
@@ -711,7 +714,7 @@ static AF_UNIX_T  *__unixCreate (INT  iType)
     }
     
     __AF_UNIX_LOCK();
-    _List_Line_Add_Tail(&pafunix->UNIX_lineManage, &_G_plineAfUnix);
+    _List_Line_Add_Ahead(&pafunix->UNIX_lineManage, &_G_plineAfUnix);
     __AF_UNIX_UNLOCK();
     
     return  (pafunix);
@@ -793,8 +796,8 @@ static VOID  __unixConnect (AF_UNIX_T  *pafunix, AF_UNIX_T  *pafunixAcce)
     pafunix->UNIX_iStatus = __AF_UNIX_STATUS_CONNECT;
     pafunix->UNIX_pafunxPeer = pafunixAcce;
 
-    _List_Ring_Add_Last(&pafunix->UNIX_lineConnect,
-                        &pafunixAcce->UNIX_plineConnect);
+    _List_Ring_Add_Last(&pafunix->UNIX_ringConnect,
+                        &pafunixAcce->UNIX_pringConnect);
                         
     pafunixAcce->UNIX_iConnNum++;
 }
@@ -813,8 +816,8 @@ static VOID  __unixUnconnect (AF_UNIX_T  *pafunixConn)
     pafunixConn->UNIX_iStatus = __AF_UNIX_STATUS_NONE;
     
     if (pafunixAcce) {
-        _List_Ring_Del(&pafunixConn->UNIX_lineConnect,
-                       &pafunixAcce->UNIX_plineConnect);
+        _List_Ring_Del(&pafunixConn->UNIX_ringConnect,
+                       &pafunixAcce->UNIX_pringConnect);
                        
         pafunixAcce->UNIX_iConnNum--;
         
@@ -834,16 +837,16 @@ static AF_UNIX_T  *__unixAccept (AF_UNIX_T  *pafunix)
     AF_UNIX_T      *pafunixConn;
     PLW_LIST_RING   pringConn;
     
-    if (pafunix->UNIX_plineConnect == LW_NULL) {
+    if (pafunix->UNIX_pringConnect == LW_NULL) {
         return  (LW_NULL);
     }
     
-    pringConn = pafunix->UNIX_plineConnect;                             /*  从等待表头获取              */
+    pringConn = pafunix->UNIX_pringConnect;                             /*  从等待表头获取              */
     
-    pafunixConn = _LIST_ENTRY(pringConn, AF_UNIX_T, UNIX_lineConnect);
+    pafunixConn = _LIST_ENTRY(pringConn, AF_UNIX_T, UNIX_ringConnect);
     
-    _List_Ring_Del(&pafunixConn->UNIX_lineConnect,
-                   &pafunix->UNIX_plineConnect);                        /*  从等待连接表中删除          */
+    _List_Ring_Del(&pafunixConn->UNIX_ringConnect,
+                   &pafunix->UNIX_pringConnect);                        /*  从等待连接表中删除          */
     
     pafunix->UNIX_iConnNum--;
     
@@ -864,15 +867,15 @@ static VOID  __unixRefuseAll (AF_UNIX_T  *pafunix)
     AF_UNIX_T      *pafunixConn;
     PLW_LIST_RING   pringConn;
     
-    while (pafunix->UNIX_plineConnect) {
-        pringConn = pafunix->UNIX_plineConnect;                         /*  从等待表头获取              */
+    while (pafunix->UNIX_pringConnect) {
+        pringConn = pafunix->UNIX_pringConnect;                         /*  从等待表头获取              */
         
-        pafunixConn = _LIST_ENTRY(pringConn, AF_UNIX_T, UNIX_lineConnect);
+        pafunixConn = _LIST_ENTRY(pringConn, AF_UNIX_T, UNIX_ringConnect);
         pafunixConn->UNIX_iStatus = __AF_UNIX_STATUS_NONE;
         pafunixConn->UNIX_pafunxPeer = LW_NULL;
         
-        _List_Ring_Del(&pafunixConn->UNIX_lineConnect,
-                       &pafunix->UNIX_plineConnect);                    /*  从等待连接表中删除          */
+        _List_Ring_Del(&pafunixConn->UNIX_ringConnect,
+                       &pafunix->UNIX_pringConnect);                    /*  从等待连接表中删除          */
         
         __unixUpdateConnecter(pafunixConn, ECONNREFUSED);               /*  通知请求连接的线程          */
     }
@@ -1077,6 +1080,8 @@ INT  unix_bind (AF_UNIX_T  *pafunix, const struct sockaddr *name, socklen_t name
     struct sockaddr_un  *paddrun = (struct sockaddr_un *)name;
            INT           iFd;
            INT           iPathLen;
+           INT           iSockType;
+           AF_UNIX_T    *pafunixFind;
            CHAR          cPath[MAX_FILENAME_LENGTH];
     
     if (paddrun == LW_NULL) {
@@ -1104,14 +1109,15 @@ INT  unix_bind (AF_UNIX_T  *pafunix, const struct sockaddr *name, socklen_t name
     
     __AF_UNIX_LOCK();
     API_IosFdGetName(iFd, cPath, MAX_FILENAME_LENGTH);                  /*  获得完整路径                */
-    if (__AF_UNIX_TYPE(pafunix) == SOCK_DGRAM) {
-        AF_UNIX_T  *pafunixTemp = __unixFind(cPath, SOCK_DGRAM, LW_FALSE);
-        if (pafunixTemp) {
-            __AF_UNIX_UNLOCK();
-            close(iFd);
-            _ErrorHandle(EADDRINUSE);                                   /*  DGRAM 不允许重复地址绑定    */
-            return  (PX_ERROR);
-        }
+    iSockType = __AF_UNIX_TYPE(pafunix);
+    pafunixFind = __unixFind(cPath, iSockType, 
+                             (iSockType == SOCK_DGRAM) ?
+                             LW_FALSE : LW_TRUE);
+    if (pafunixFind) {
+        __AF_UNIX_UNLOCK();
+        close(iFd);
+        _ErrorHandle(EADDRINUSE);                                       /*  不允许重复地址绑定          */
+        return  (PX_ERROR);
     }
     lib_strcpy(pafunix->UNIX_cFile, cPath);
     __AF_UNIX_UNLOCK();
@@ -1146,6 +1152,12 @@ INT  unix_listen (AF_UNIX_T  *pafunix, INT  backlog)
     }
     
     __AF_UNIX_LOCK();
+    if (pafunix->UNIX_cFile[0] == PX_EOS) {
+        __AF_UNIX_UNLOCK();
+        _ErrorHandle(EDESTADDRREQ);                                     /*  没有绑定地址                */
+        return  (PX_ERROR);
+    }
+    
     pafunix->UNIX_iBacklog = backlog;
     pafunix->UNIX_iStatus  = __AF_UNIX_STATUS_LISTEN;
     __AF_UNIX_UNLOCK();
@@ -1217,7 +1229,6 @@ AF_UNIX_T  *unix_accept (AF_UNIX_T  *pafunix, struct sockaddr *addr, socklen_t *
                 __unixUpdateConnecter(pafunixConn, ERROR_NONE);         /*  激活请求连接的线程          */
                 
                 __AF_UNIX_CCONN(pafunixConn);                           /*  清除信号量, 开始当做其他用途*/
-                __AF_UNIX_CCONN(pafunix);
                 break;
             
             } else {                                                    /*  没有取得远程连接            */
@@ -1597,8 +1608,8 @@ static ssize_t  unix_sendto2 (AF_UNIX_T  *pafunix, const void *data, size_t size
     AF_UNIX_T  *pafunixRecver;
     
     INT         i       = 0;                                            /*  总发送次数                  */
-    UINT        uiTimes = size / __AF_UNIX_PIPE_BUF;                    /*  循环次数                    */
-    UINT        uiLeft  = size % __AF_UNIX_PIPE_BUF;                    /*  最后一次数量                */
+    UINT        uiTimes = size >> __AF_UNIX_PIPE_BUF_SHIFT;             /*  循环次数                    */
+    UINT        uiLeft  = size & (__AF_UNIX_PIPE_BUF - 1);              /*  最后一次数量                */
     
     CPCHAR      pcSendMem = (CPCHAR)data;                               /*  当前发送数据指针            */
     BOOL        bNeedUpdateReader = LW_FALSE;

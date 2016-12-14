@@ -1648,11 +1648,23 @@ static VOID  __procFsNetUnixPrint (AF_UNIX_T  *pafunix, PCHAR  pcBuffer,
             pcShut = "no";
         }
         
-        *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft, "%-9s %4x %-7s %-5s %10zu %10zu %s\n",
-                           pcType, pafunix->UNIX_iFlag, pcStat, pcShut, 
-                           pafunix->UNIX_unixq.UNIQ_stTotal,
-                           pafunix->UNIX_stMaxBufSize,
-                           pafunix->UNIX_cFile);
+        if (pafunix->UNIX_iStatus == __AF_UNIX_STATUS_LISTEN) {
+            *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft, "%-9s %4x %-7s %5d %-5s %10zu %10zu %s\n",
+                               pcType, pafunix->UNIX_iFlag, pcStat, 
+                               pafunix->UNIX_iConnNum,
+                               pcShut, 
+                               pafunix->UNIX_unixq.UNIQ_stTotal,
+                               pafunix->UNIX_stMaxBufSize,
+                               pafunix->UNIX_cFile);
+        } else {
+            *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft, "%-9s %4x %-7s %5s %-5s %10zu %10zu %s\n",
+                               pcType, pafunix->UNIX_iFlag, pcStat, 
+                               "*",
+                               pcShut, 
+                               pafunix->UNIX_unixq.UNIQ_stTotal,
+                               pafunix->UNIX_stMaxBufSize,
+                               pafunix->UNIX_cFile);
+        }
     }
 }
 
@@ -1675,7 +1687,7 @@ static ssize_t  __procFsNetUnixRead (PLW_PROCFS_NODE  p_pfsn,
 {
 #if LW_CFG_NET_UNIX_EN > 0
     const CHAR      cUnixInfoHdr[] = 
-    "TYPE      FLAG STATUS  SHUTD      NREAD MAX_BUFFER PATH\n";
+    "TYPE      FLAG STATUS  LCONN SHUTD      NREAD MAX_BUFFER PATH\n";
           PCHAR     pcFileBuffer;
           size_t    stRealSize;                                         /*  实际的文件内容大小          */
           size_t    stCopeBytes;

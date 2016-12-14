@@ -309,6 +309,8 @@ VOID    armL2Sync(VOID);
 #define ARM_FPU_VFP11       "vfp11"
 #define ARM_FPU_VFPv3       "vfpv3"
 #define ARM_FPU_VFPv4       "vfpv4"
+#define ARM_FPU_NEONv3      ARM_FPU_VFPv3                               /*  Context same as vfpv3       */
+#define ARM_FPU_NEONv4      ARM_FPU_VFPv4                               /*  Context same as vfpv4       */
 
 #if LW_CFG_CPU_FPU_EN > 0
 VOID    archFpuPrimaryInit(CPCHAR  pcMachineName, CPCHAR  pcFpuName);

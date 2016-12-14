@@ -67,8 +67,8 @@ typedef struct af_unix_queue {
 typedef struct af_unix_t {
     LW_LIST_LINE        UNIX_lineManage;
     
-    LW_LIST_RING        UNIX_lineConnect;                               /*  连接队列                    */
-    LW_LIST_RING_HEADER UNIX_plineConnect;                              /*  等待连接的队列              */
+    LW_LIST_RING        UNIX_ringConnect;                               /*  连接队列                    */
+    LW_LIST_RING_HEADER UNIX_pringConnect;                              /*  等待连接的队列              */
     INT                 UNIX_iConnNum;                                  /*  等待连接的数量              */
     
     INT                 UNIX_iFlag;                                     /*  NONBLOCK or NOT             */
