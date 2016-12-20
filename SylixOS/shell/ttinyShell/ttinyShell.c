@@ -275,6 +275,7 @@ LW_OBJECT_HANDLE  API_TShellCreateEx (INT  iTtyFd, ULONG  ulOption, FUNCPTR  pfu
     LW_CLASS_THREADATTR     threadattrTShell;
     LW_OBJECT_HANDLE        hTShellHandle;
     INT                     iKernelFile;
+    ULONG                   ulOldOption = ulOption;
     PLW_CLASS_TCB           ptcbShell;
     
     _DebugHandle(__LOGMESSAGE_LEVEL, "ttniy shell system initialize...\r\n");
@@ -287,17 +288,24 @@ LW_OBJECT_HANDLE  API_TShellCreateEx (INT  iTtyFd, ULONG  ulOption, FUNCPTR  pfu
         return  (0);
     }
     
-    API_TShellInit();                                                   /*  初始化 shell                */
-    
     if (__PROC_GET_PID_CUR() != 0) {                                    /*  在进程中启动                */
+        if (_G_hTShellLock == 0) {
+            _DebugHandle(__ERRORMESSAGE_LEVEL,
+                         "shell sub-system not initialization.\r\n");
+            return  (0);
+        }
+        
         iKernelFile = dup2kernel(iTtyFd);                               /*  将此文件描述符 dup 到 kernel*/
         if (iKernelFile < 0) {
             return  (0);
         }
-        ulOption |= LW_OPTION_TSHELL_CLOSE_FD;                          /*  执行完毕后需要关闭文件      */
-        pfuncRunCallback = LW_NULL;                                     /*  进程创建不得安装回调        */
+        
+        ulOption         |= LW_OPTION_TSHELL_CLOSE_FD;                  /*  执行完毕后需要关闭文件      */
+        pfuncRunCallback  = LW_NULL;                                    /*  进程创建不得安装回调        */
     
     } else {
+        API_TShellInit();                                               /*  初始化 shell                */
+        
         iKernelFile = iTtyFd;
     }
     
@@ -308,7 +316,7 @@ LW_OBJECT_HANDLE  API_TShellCreateEx (INT  iTtyFd, ULONG  ulOption, FUNCPTR  pfu
                         (PVOID)iKernelFile);                            /*  构建属性块                  */
     
     hTShellHandle = API_ThreadInit("t_tshell", __tshellThread,
-                                    &threadattrTShell, LW_NULL);        /*  创建 tshell 线程            */
+                                   &threadattrTShell, LW_NULL);         /*  创建 tshell 线程            */
     if (!hTShellHandle) {
         if (__PROC_GET_PID_CUR() != 0) {                                /*  在进程中启动                */
             __KERNEL_SPACE_ENTER();
@@ -320,6 +328,10 @@ LW_OBJECT_HANDLE  API_TShellCreateEx (INT  iTtyFd, ULONG  ulOption, FUNCPTR  pfu
         _DebugHandle(__LOGMESSAGE_LEVEL, 
                      "ttniy shell system is not initialize.\r\n");
         return  (0);
+        
+    } else if ((__PROC_GET_PID_CUR() != 0) && 
+               (ulOldOption & LW_OPTION_TSHELL_CLOSE_FD)) {             /*  如果是进程创建, 则关闭文件  */
+        close(iTtyFd);
     }
     
     ptcbShell = __GET_TCB_FROM_INDEX(_ObjectGetIndex(hTShellHandle));

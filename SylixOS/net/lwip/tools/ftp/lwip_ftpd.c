@@ -1612,7 +1612,9 @@ static VOID  __inetFtpServerListen (VOID)
     for (;;) {
         iSockNew = accept(iSock, (struct sockaddr *)&inaddrRmt, &uiLen);
         if (iSockNew < 0) {
-            _DebugHandle(__ERRORMESSAGE_LEVEL, "accept failed.\r\n");
+            if (errno != ENOTCONN) {
+                _DebugFormat(__ERRORMESSAGE_LEVEL, "accept failed: %s.\r\n", lib_strerror(errno));
+            }
             sleep(1);                                                   /*  ясЁы 1 S                    */
             continue;
         }

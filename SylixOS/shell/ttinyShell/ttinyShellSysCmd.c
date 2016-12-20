@@ -211,6 +211,114 @@ __sleep:
     return  ((INT)sleep(uiSec));
 }
 /*********************************************************************************************************
+** 函数名称: __tshellSetTtyOpt
+** 功能描述: 设置 TTY 硬件属性
+** 输　入  : iFd           文件描述符
+**           pcOpt         参数 例如: 115200,n,8,1
+** 输　出  : ERROR or OK
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static INT  __tshellSetTtyOpt (INT  iFd, PCHAR  pcOpt)
+{
+    LONG   lBaud;
+    INT    iHwOpt;
+    CHAR   cParity;
+    INT    iBits, iStop, iNum;
+    
+    if (pcOpt == PX_EOS) {
+__opt_error:
+        fprintf(stderr, "tty hardware option error, \n"
+                        "eg. /dev/ttyS1:115200,n,8,1\n"
+                        "    /dev/ttyS1:115200,o,7,1\n"
+                        "    /dev/ttyS1:9600,e,8,1\n");
+        return  (PX_ERROR);
+    }
+    
+    iNum = sscanf(pcOpt, "%ld,%c,%d,%d", &lBaud, &cParity, &iBits, &iStop);
+    if (iNum < 1) {
+        goto    __opt_error;
+    }
+    
+    if ((lBaud < SIO_BAUD_110) || (lBaud > SIO_BAUD_256000)) {
+        fprintf(stderr, "baud rate error: must be in 110 ~ 256000\n");
+        return  (PX_ERROR);
+    }
+    
+    ioctl(iFd, SIO_BAUD_SET, lBaud);
+    
+    if (iNum > 1) {
+        iHwOpt = CLOCAL | CREAD | CS8 | HUPCL;
+        
+        switch (lib_tolower(cParity)) {
+        
+        case 'o':
+            iHwOpt |= PARENB;
+            iHwOpt |= PARODD;
+            break;
+            
+        case 'e':
+            iHwOpt |= PARENB;
+            iHwOpt &= ~PARODD;
+            break;
+            
+        case 'n':
+            break;
+            
+        default:
+            fprintf(stderr, "parity error: must be: 'n': NONE 'e': EVEN 'o': ODD\n");
+            return  (PX_ERROR);
+        }
+        
+        if (iNum > 2) {
+            switch (iBits) {
+            
+            case 5:
+                iHwOpt &= ~CSIZE;
+                iHwOpt |= CS5;
+                break;
+                
+            case 6:
+                iHwOpt &= ~CSIZE;
+                iHwOpt |= CS6;
+                break;
+            
+            case 7:
+                iHwOpt &= ~CSIZE;
+                iHwOpt |= CS7;
+                break;
+            
+            case 8:
+                break;
+            
+            default:
+                fprintf(stderr, "bits set error: must be in 5 ~ 8\n");
+                return  (PX_ERROR);
+            }
+            
+            if (iNum > 3) {
+                switch (iStop) {
+                
+                case 1:
+                    break;
+                
+                case 2:
+                    iHwOpt |= STOPB;
+                    break;
+                
+                default:
+                    fprintf(stderr, "stop bits set error: must be in 1 or 2\n");
+                    return  (PX_ERROR);
+                }
+            }
+        }
+    
+        ioctl(iFd, SIO_HW_OPTS_SET, iHwOpt);
+    }
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: __tshellSysCmdShell
 ** 功能描述: 系统命令 "shell"
 ** 输　入  : iArgC         参数个数
@@ -222,6 +330,7 @@ __sleep:
 static INT  __tshellSysCmdShell (INT  iArgC, PCHAR  ppcArgV[])
 {
     INT    iFd;
+    PCHAR  pcDiv;
     ULONG  ulOption = LW_OPTION_TSHELL_VT100       | 
                       LW_OPTION_TSHELL_AUTHEN      | 
                       LW_OPTION_TSHELL_PROMPT_FULL | 
@@ -238,14 +347,34 @@ static INT  __tshellSysCmdShell (INT  iArgC, PCHAR  ppcArgV[])
         }
     }
     
+    pcDiv = lib_strchr(ppcArgV[1], ':');
+    if (pcDiv) {
+        *pcDiv++ = PX_EOS;
+    }
+    
     iFd = open(ppcArgV[1], O_RDWR);
     if (iFd < 0) {
         fprintf(stderr, "open file return: %d error: %s\n", iFd, lib_strerror(errno));
         return  (-1);
     }
     
+    if (!isatty(iFd)) {
+        fprintf(stderr, "this file is not a tty device.\n");
+        close(iFd);
+        return  (-1);
+    }
+    
+    if (pcDiv) {
+        if (__tshellSetTtyOpt(iFd, pcDiv) < ERROR_NONE) {
+            fprintf(stderr, "set tty option error.\n");
+            close(iFd);
+            return  (-1);
+        }
+    }
+    
     if (API_TShellCreate(iFd, ulOption) == LW_OBJECT_HANDLE_INVALID) {
         fprintf(stderr, "can not create shell: %s\n", lib_strerror(errno));
+        close(iFd);
         return  (-1);
     }
 
@@ -2252,10 +2381,12 @@ VOID  __tshellSysCmdInit (VOID)
     API_TShellHelpAdd("sleep", "sleep specific time.\n");
                               
     API_TShellKeywordAdd("shell", __tshellSysCmdShell);
-    API_TShellFormatAdd("shell", " [tty device] [nologin]");
+    API_TShellFormatAdd("shell", " [tty device[:hwopt]] [nologin]");
     API_TShellHelpAdd("shell", "create shell use [tty device] as standard file.\n"
                               "shell /dev/ttyS1\n"
-                              "shell /dev/ttyS1 nologin\n");
+                              "shell /dev/ttyS1 nologin\n"
+                              "shell /dev/ttyS1:115200,n,8,1\n"
+                              "shell /dev/ttyS1:9600,e,8,1 nologin\n");
                               
     API_TShellKeywordAdd("help", __tshellSysCmdHelp);
     API_TShellFormatAdd("help", " [-s keyword]");
