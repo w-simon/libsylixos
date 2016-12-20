@@ -42,7 +42,7 @@
 ** 调用模块: 
 ** 注  意  : 此函数退出时必须为中断关闭状态.
 *********************************************************************************************************/
-__attribute__((weak)) VOID  archIntHandle (ULONG  ulVector, BOOL  bPreemptive)
+LW_WEAK VOID  archIntHandle (ULONG  ulVector, BOOL  bPreemptive)
 {
     REGISTER irqreturn_t irqret;
 

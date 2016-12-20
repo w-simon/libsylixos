@@ -52,7 +52,7 @@ static BOOL     _G_bDecInited = LW_FALSE;
 ** 调用模块: 
 ** 注  意  : 此函数退出时必须为中断关闭状态.
 *********************************************************************************************************/
-__attribute__((weak)) VOID  archIntHandle (ULONG  ulVector, BOOL  bPreemptive)
+LW_WEAK VOID  archIntHandle (ULONG  ulVector, BOOL  bPreemptive)
 {
     REGISTER irqreturn_t irqret;
 
@@ -114,7 +114,6 @@ VOID  archDataStorageExceptionHandle (addr_t  ulRetAddr)
     /*
      * See << programming_environment_manual >> Figure 7-16
      */
-
     if (uiDSISR & (0x1 << (31 - 1))) {
         /*
          * Page fault (no PTE found)
@@ -177,7 +176,6 @@ VOID  archInstructionStorageExceptionHandle (addr_t  ulRetAddr)
     /*
      * See << programming_environment_manual >> Figure 7-16
      */
-
     UINT32  uiSRR1 = ppcMmuGetSRR1();
 
     if (uiSRR1 & (0x1 << (31 - 1))) {
@@ -289,7 +287,7 @@ VOID  archFpuUnavailableExceptionHandle (addr_t  ulRetAddr)
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FPE;
-    abtInfo.VMABT_uiMethod = 0;                                         /*  FPU 不可用                  */
+    abtInfo.VMABT_uiMethod = FPE_FLTINV;                                /*  FPU 不可用                  */
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
@@ -331,6 +329,40 @@ VOID  archTraceHandle (addr_t  ulRetAddr)
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
+** 函数名称: archFpAssistExceptionHandle
+** 功能描述: Floating-Point Assist 异常处理
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+** 注  意  : 此函数退出时必须为中断关闭状态.
+*********************************************************************************************************/
+VOID  archFpAssistExceptionHandle (addr_t  ulRetAddr)
+{
+    PLW_CLASS_TCB   ptcbCur;
+    LW_VMM_ABORT    abtInfo;
+
+    LW_TCB_GET_CUR(ptcbCur);
+
+    /*
+     * Optional. This interrupt can be used to provide software assistance for infrequent and complex
+     * floating-point operations such as denormalization.
+     *
+     * The MPC750 does not generate an exception to this vector. Other PowerPC
+     * processors may use this vector for floating-point assist exceptions.
+     *
+     *  1. Execution of floating-point instructions for which an implementation uses software routines to
+     *     perform certain operations, such as those involving denormalization.
+     *  2. Execution of floating-point instructions that are not optional and are not implemented in
+     *     hardware.In this case, the processor may generate an illegal instruction type program
+     *     interrupt instead.
+     */
+
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FPE;
+    abtInfo.VMABT_uiMethod = FPE_FLTINV;
+    API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
+}
+/*********************************************************************************************************
 ** 函数名称: archMachineCheckExceptionHandle
 ** 功能描述: 机器检查异常处理
 ** 输　入  : NONE
@@ -363,10 +395,10 @@ VOID  archDecrementerInterruptHandle (VOID)
 {
     if (_G_bDecInited) {
         ppcSetDEC(_G_uiDecValue);
-
         archIntHandle(_G_ulDecVector, _G_bDecPreemptive);
+
     } else {
-        ppcSetDEC(0x7FFFFFFF);
+        ppcSetDEC(0x7fffffff);
     }
 }
 /*********************************************************************************************************

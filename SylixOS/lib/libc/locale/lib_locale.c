@@ -66,7 +66,7 @@ static struct lconv _G_lconvArray = {
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-__attribute__((weak)) struct lconv *lib_localeconv (void)
+LW_WEAK struct lconv *lib_localeconv (void)
 {
     return  (&_G_lconvArray);
 }
@@ -81,7 +81,7 @@ __attribute__((weak)) struct lconv *lib_localeconv (void)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-__attribute__((weak)) char *lib_setlocale (int category, const char *locale)
+LW_WEAK char *lib_setlocale (int category, const char *locale)
 {
     return  (LW_NULL);
 }

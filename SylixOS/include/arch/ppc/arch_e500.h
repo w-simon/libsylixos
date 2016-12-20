@@ -22,34 +22,41 @@
 #ifndef __PPC_ARCH_E500_H
 #define __PPC_ARCH_E500_H
 
-/* Erratum CPU29 for E500 exists on all Rev.2 cores.
- * mtmsr with change to IS bit may corrupt system state.
- * Workaround is to use rfi instead of mtmsr.
- */
+/*********************************************************************************************************
+  Erratum CPU29 for E500 exists on all Rev.2 cores.
+  mtmsr with change to IS bit may corrupt system state.
+  Workaround is to use rfi instead of mtmsr.
+*********************************************************************************************************/
+
 #ifndef __SYLIXOS_PPC_E200__
 #ifndef __SYLIXOS_PPC_E500MC__
 #define PPC85XX_ERRATA_CPU29        1
-#endif  /* __SYLIXOS_PPC_E500MC__ */
-#endif  /* __SYLIXOS_PPC_E200__ */
+#endif                                              /*  __SYLIXOS_PPC_E500MC__                          */
+#endif                                              /*  __SYLIXOS_PPC_E200__                            */
 
-/* Rev 1 silicon errata for P4080 */
+/*********************************************************************************************************
+  Rev 1 silicon errata for P4080
+*********************************************************************************************************/
 #ifdef  __SYLIXOS_PPC_E500MC__
 #undef  P4080_ERRATUM_CPU6
 #undef  P4080_ERRATUM_CPU8
-#endif /* __SYLIXOS_PPC_E500MC__ */
+#endif                                              /*  __SYLIXOS_PPC_E500MC__                          */
 
-/* Maximum cache line size for the cpu */
+/*********************************************************************************************************
+  Maximum cache line size for the cpu
+*********************************************************************************************************/
+
 #ifdef  __SYLIXOS_PPC_E500MC__
 #define ARCH_PPC_CACHE_ALIGN_SHIFT  6               /*  cache align size = 64                           */
 #else
 #define ARCH_PPC_CACHE_ALIGN_SHIFT  5               /*  cache align size = 32                           */
-#endif  /* __SYLIXOS_PPC_E500MC__ */
+#endif                                              /*  __SYLIXOS_PPC_E500MC__                          */
 
 #ifdef  __SYLIXOS_PPC_E500MC__
 #define ARCH_PPC_CACHE_ALIGN_SIZE   64
 #else
 #define ARCH_PPC_CACHE_ALIGN_SIZE   32
-#endif  /* __SYLIXOS_PPC_E500MC__ */
+#endif                                              /*  __SYLIXOS_PPC_E500MC__                          */
 
 /*********************************************************************************************************
   配置相关的寄存器及定义
@@ -96,7 +103,7 @@
 
 #ifndef __SYLIXOS_PPC_E200__
 #define IVOR35                      531             /*  IVOR Performance Monitor                        */
-#endif  /* __SYLIXOS_PPC_E200__ */
+#endif                                              /*  __SYLIXOS_PPC_E200__                            */
 
 #ifdef  __SYLIXOS_PPC_E500MC__
 #define IVOR36                      532             /*  IVOR Processor Doorbell Interrupt               */
@@ -105,19 +112,20 @@
 #define IVOR39                      535             /*  IVOR Guest Processor Doorbell Critical Interrupt*/
 #define IVOR40                      536             /*  IVOR Ultravisor System Call Interrupt           */
 #define IVOR41                      537             /*  IVOR Ultravisor Privilege Interrupt             */
-#endif  /* __SYLIXOS_PPC_E500MC__ */
+#endif                                              /*  __SYLIXOS_PPC_E500MC__                          */
 
-/*
- * Exception syndrome register mask bits:
- * 0 - error not occured 1 - error occured
- */
+/*********************************************************************************************************
+  Exception syndrome register mask bits:
+  0 - error not occured 1 - error occured
+*********************************************************************************************************/
+
 #define ARCH_PPC_ESR_PIL_U          0x0800          /*  Pgm Interrupt -- Illegal Insn                   */
 #define ARCH_PPC_ESR_PPR_U          0x0400          /*  Pgm Interrupt -- Previleged Insn                */
 #define ARCH_PPC_ESR_PTR_U          0x0200          /*  Pgm Interrupt -- Trap                           */
 
 #ifdef  __SYLIXOS_PPC_E500MC__
 #define ARCH_PPC_ESR_FP_U           0x0100          /*  Floating Point Operation                        */
-#endif  /* __SYLIXOS_PPC_E500MC__ */
+#endif                                              /*  __SYLIXOS_PPC_E500MC__                          */
 
 #define ARCH_PPC_ESR_ST_U           0x0080          /*  Store Operation                                 */
 #define ARCH_PPC_ESR_DLK_U          0x0020          /*  Data Locked -- DSI occured                      */
@@ -130,7 +138,7 @@
 
 #ifdef  __SYLIXOS_PPC_E500MC__
 #define ARCH_PPC_ESR_FP             0x01000000      /*  Floating Point Operation                        */
-#endif  /* __SYLIXOS_PPC_E500MC__ */
+#endif                                              /*  __SYLIXOS_PPC_E500MC__                          */
 
 #define ARCH_PPC_ESR_ST             0x00800000      /*  Store Operation                                 */
 #define ARCH_PPC_ESR_DLK            0x00200000      /*  Data Storage Interrupt -- Locking               */
@@ -152,12 +160,12 @@
 #define MCSRR0                      CSRR0           /*  Machine Check SRR0                              */
 #define MCSRR1                      CSRR1           /*  Machine Check SRR1                              */
 #undef  MCAR                                        /*  Machine Check Address Register                  */
-#endif  /* __SYLIXOS_PPC_E200__ */
+#endif                                              /*  __SYLIXOS_PPC_E200__                            */
 
 #define MCSR                        572             /*  Machine Check Syndrome Register                 */
 
 #ifndef __SYLIXOS_PPC_E500MC__
-/* MCSR bit definitions */
+                                                    /*  MCSR bit definitions                            */
 #define ARCH_PPC_MCSR_BIT_MCP       0               /*  Machine check input pin                         */
 #define ARCH_PPC_MCSR_BIT_ICPERR    1               /*  Instruction cache parity error                  */
 #define ARCH_PPC_MCSR_BIT_DCP_PERR  2               /*  Data cache push parity error                    */
@@ -172,7 +180,7 @@
 #define ARCH_PPC_MCSR_BIT_BUS_IPERR 30              /*  Bus instruction parity error                    */
 #define ARCH_PPC_MCSR_BIT_BUS_RPERR 31              /*  Bus read parity error                           */
 #else
-/* MCSR bit definitions */
+                                                    /*  MCSR bit definitions                            */
 #define ARCH_PPC_MCSR_BIT_MCP        0              /*  mchk input signal assert                        */
 #define ARCH_PPC_MCSR_BIT_ICPERR     1              /*  i-cache/tag parity error                        */
 #define ARCH_PPC_MCSR_BIT_DCPERR     2              /*  d-cache/tag parity error                        */
@@ -186,14 +194,14 @@
 #define ARCH_PPC_MCSR_BIT_LDG       18              /*  guarded ld instr error                          */
 #define ARCH_PPC_MCSR_BIT_TLBSYNC   30              /*  simultaneous tlbsync                            */
 #define ARCH_PPC_MCSR_BIT_BSL2_ERR  31              /*  L2 cache error                                  */
-#endif  /* __SYLIXOS_PPC_E500MC__ */
+#endif                                              /*  __SYLIXOS_PPC_E500MC__                          */
 
 /*********************************************************************************************************
   虚拟化相关的寄存器及定义
 *********************************************************************************************************/
 
 #ifdef  __SYLIXOS_PPC_E500MC__
-/* Guest O/S registers */
+                                                    /*  Guest O/S registers                             */
 #define GSPRG0                      592             /*  Guest SPR General 0                             */
 #define GSPRG1                      593             /*  Guest SPR General 1                             */
 #define GSPRG2                      594             /*  Guest SPR General 2                             */
@@ -204,7 +212,7 @@
 #define GSRR1                       700             /*  Guest SRR1                                      */
 #define GPIR                        701             /*  Guest PIR                                       */
 
-/* Ultravisor registers */
+                                                    /*  Ultravisor registers                            */
 #define EPR                         702             /*  External Input Proxy Register (RO)              */
 #define UVCSR                       703             /*  Ultravisor Control and Status Register          */
 #define GIVPR                       912             /*  Guest Interrupt Vector Prefix Register          */
@@ -214,7 +222,7 @@
 #define GIVOR8                      918             /*  Guest IVOR System Call                          */
 #define GIVOR13                     919             /*  Guest IVOR Data TLB Error                       */
 #define GIVOR14                     920             /*  Guest IVOR Instruction TLB Error                */
-#endif  /* __SYLIXOS_PPC_E500MC__ */
+#endif                                              /*  __SYLIXOS_PPC_E500MC__                          */
 
 /*********************************************************************************************************
   SPE 相关的寄存器及定义
@@ -222,7 +230,7 @@
 
 #define SPEFSCR                     512             /*  SPE Floating-pt Status and Control Register     */
 
-/* High word error bits */
+                                                    /*  High word error bits                            */
 #define ARCH_PPC_SPEFSCR_SOVH       0x80000000
 #define ARCH_PPC_SPEFSCR_OVH        0x40000000
 #define ARCH_PPC_SPEFSCR_FGH        0x20000000
@@ -231,8 +239,7 @@
 #define ARCH_PPC_SPEFSCR_FDBZH      0x04000000
 #define ARCH_PPC_SPEFSCR_FUNFH      0x02000000
 #define ARCH_PPC_SPEFSCR_FOVFH      0x01000000
-
-/* Status Bits */
+                                                    /*  Status Bits                                     */
 #define ARCH_PPC_SPEFSCR_FINXS      0x00200000
 #define ARCH_PPC_SPEFSCR_FINVS      0x00100000
 #define ARCH_PPC_SPEFSCR_FDBZS      0x00080000
@@ -254,6 +261,7 @@
 #define ARCH_PPC_SPEFSCR_FDBZE      0x00000010
 #define ARCH_PPC_SPEFSCR_FUNFE      0x00000008
 #define ARCH_PPC_SPEFSCR_FOVFE      0x00000004
+
 #define ARCH_PPC_SPEFSCR_FRMC_RND_NR    0x00000000
 #define ARCH_PPC_SPEFSCR_FRMC_RND_ZERO  0x00000001
 #define ARCH_PPC_SPEFSCR_FRMC_RND_PINF  0x00000002
@@ -261,9 +269,9 @@
 
 /*********************************************************************************************************
   通用的寄存器及定义
+  SPRG0-SPRG3 are defined correctly in assembler.h
 *********************************************************************************************************/
 
-/* SPRG0-SPRG3 are defined correctly in assembler.h */
 #define USPRG0                      256             /*  User Special Purpose Register General 0         */
 
 #define SPRG4_R                     260             /*  Special Purpose Register General 4, read        */
@@ -289,7 +297,7 @@
 #define TCR                         340             /*  Timer Control Register                          */
 #define TSR                         336             /*  Timer Status Register                           */
 
-/* Bits in the upper half of TCR */
+                                                    /*  Bits in the upper half of TCR                   */
 #define ARCH_PPC_TCR_WP_U           0xc000          /*  Watchdog Timer Period                           */
 #define ARCH_PPC_TCR_WRC_U          0x3000          /*  Watchdog Timer Reset Control                    */
 #define ARCH_PPC_TCR_WIE_U          0x0800          /*  Watchdog Timer Interrupt Enable                 */
@@ -300,14 +308,14 @@
 #define ARCH_PPC_TCR_WPEXT_U        0x0040          /*  Decrementer Auto-Reload Enable                  */
 #define ARCH_PPC_TCR_FPEXT_U        0x0040          /*  Decrementer Auto-Reload Enable                  */
 
-/* Bits in the upper half of TSR */
+                                                    /*  Bits in the upper half of TSR                   */
 #define ARCH_PPC_TSR_ENW_U          0x8000          /*  Enable Next Watchdog Timer Exception            */
 #define ARCH_PPC_TSR_WIS_U          0x4000          /*  Watchdog Timer Interrupt Status                 */
 #define ARCH_PPC_TSR_WRS_U          0x3000          /*  Watchdog Timer Reset Status                     */
 #define ARCH_PPC_TSR_DIS_U          0x0800          /*  Decrementer Interrupt Status                    */
 #define ARCH_PPC_TSR_FIS_U          0x0400          /*  Fixed Interval Timer Interrupt Status           */
 
-/* versions of the aligned for 32-bit TCR/TSR register access */
+                                                    /*  versions of the aligned for 32-bit TCR/TSR REG  */
 #define ARCH_PPC_TCR_DIE            (ARCH_PPC_TCR_DIE_U << 16)
 #define ARCH_PPC_TSR_DIS            (ARCH_PPC_TSR_DIS_U << 16)
 
@@ -319,7 +327,7 @@
 #define DBSRWR                      564             /*  Debug Status Register Write Register            */
 #define DSRR0                       574             /*  Debug SRR0                                      */
 #define DSRR1                       575             /*  Debug SRR1                                      */
-#endif  /* __SYLIXOS_PPC_E500MC__ */
+#endif                                              /*  __SYLIXOS_PPC_E500MC__                          */
 
 #define DBCR0                       308             /*  Debug Control Register 0                        */
 #define DBCR1                       309             /*  Debug Control Register 1                        */
@@ -333,7 +341,7 @@
 #define DAC1                        316             /*  Data Address Compare Register 1                 */
 #define DAC2                        317             /*  Data Address Compare Register 2                 */
 
-/* debug control register 0 */
+                                                    /*  Debug control register 0                        */
 #define ARCH_PPC_DBCR0_IDM_U        0x4000          /*  internal debug mode                             */
 #define ARCH_PPC_DBCR0_RST_U        0x3000          /*  reset                                           */
 #define ARCH_PPC_DBCR0_ICMP_U       0x0800          /*  instruction completion debug event              */
@@ -361,7 +369,7 @@
 #define ARCH_PPC_DBCR0_RET          0x00008000      /*  return debug event                              */
 #define ARCH_PPC_DBCR0_FT           0x00000001      /*  freeze timers on debug                          */
 
-/* debug control register 1 */
+                                                    /*  Debug control register 1                        */
 #define ARCH_PPC_DBCR1_IAC1US_U     0xc000          /*  IAC 1 User/Supervisor                           */
 #define ARCH_PPC_DBCR1_IAC1ER_U     0x3000          /*  IAC 1 Effective/Real                            */
 #define ARCH_PPC_DBCR1_IAC2US_U     0x0c00          /*  IAC 2 User/Supervisor                           */
@@ -374,7 +382,7 @@
 #define ARCH_PPC_DBCR1_IAC2ER       0x03000000      /*  IAC 2 Effective/Real                            */
 #define ARCH_PPC_DBCR1_IAC12M       0x00c00000      /*  IAC 1/2 Mode                                    */
 
-/* debug control register 2 */
+                                                    /*  Debug control register 2                        */
 #define ARCH_PPC_DBCR2_DAC1US_U     0xc000          /*  DAC 1 User/Supervisor                           */
 #define ARCH_PPC_DBCR2_DAC1ER_U     0x3000          /*  DAC 1 Effective/Real                            */
 #define ARCH_PPC_DBCR2_DAC2US_U     0x0c00          /*  DAC 2 User/Supervisor                           */
@@ -386,7 +394,7 @@
 #define ARCH_PPC_DBCR2_DAC2ER       0x03000000      /*  DAC 2 Effective/Real                            */
 #define ARCH_PPC_DBCR2_DAC12M       0x00c00000      /*  DAC 1/2 Mode                                    */
 
-/* debug status register */
+                                                    /*  Debug status register                           */
 #define ARCH_PPC_DBSR_IDE_U         0x8000          /*  Imprecise Debug Event                           */
 #define ARCH_PPC_DBSR_UDE_U         0x4000          /*  Unconditional Debug Event                       */
 #define ARCH_PPC_DBSR_MRR_U         0x3000          /*  Most Recent Reset                               */
@@ -415,7 +423,7 @@
 #define ARCH_PPC_DBSR_DAC2W         0x00010000      /*  DAC/DVC 2 Write Debug Event                     */
 #define ARCH_PPC_DBSR_RET           0x00008000      /*  Return Debug Event                              */
 
-/* mask for hardware breakpoints */
+                                                    /*  Mask for hardware breakpoints                   */
 #define ARCH_PPC_DBSR_HWBP_MSK      (ARCH_PPC_DBSR_IAC1  | ARCH_PPC_DBSR_IAC2  | \
                                      ARCH_PPC_DBSR_DAC1R | ARCH_PPC_DBSR_DAC1W | \
                                      ARCH_PPC_DBSR_DAC2R | ARCH_PPC_DBSR_DAC2W)
@@ -432,17 +440,17 @@
 
 #ifdef  __SYLIXOS_PPC_E500MC__
 #define L1CSR2                      606             /*  L1 Control Status Register 2                    */
-#endif  /* __SYLIXOS_PPC_E500MC__ */
+#endif                                              /*  __SYLIXOS_PPC_E500MC__                          */
 
 #ifdef  __SYLIXOS_PPC_E500MC__
 #define ARCH_PPC_L1CSR2_DCWS        0x40000000      /*  Data cache write shadow                         */
-#endif  /* __SYLIXOS_PPC_E500MC__ */
+#endif                                              /*  __SYLIXOS_PPC_E500MC__                          */
 
 #ifdef  __SYLIXOS_PPC_E200__
 #define L1FINV0                     1016
-#endif  /* __SYLIXOS_PPC_E200__ */
+#endif                                              /*  __SYLIXOS_PPC_E200__                            */
 
-/* Instruction and Data Cache bit fields are the same */
+                                                    /* Instruction and D-Cache bit fields are the same  */
 #ifndef __SYLIXOS_PPC_E200__
 #define ARCH_PPC_L1CSR_E            0x00000001      /*  Enable                                          */
 #define ARCH_PPC_L1CSR_FI           0x00000002      /*  Flash Invalidate                                */
@@ -455,7 +463,7 @@
 #define ARCH_PPC_L1CSR_PIE          0x00008000      /*  Parity Injection Enable                         */
 #define ARCH_PPC_L1CSR_CPE          0x00010000      /*  Parity Enable                                   */
 
-/* Instruction and Data Cache bit fields are the same */
+                                                    /* Instruction and D-Cache bit fields are the same  */
 #define ARCH_PPC_L1CFG_SIZE_MASK    0x00000FFF
 #define ARCH_PPC_L1CFG_NWAY_MASK    0x000FF000
 #define ARCH_PPC_L1CFG_NWAY_V(x)    (x >> 12)
@@ -472,8 +480,7 @@
 
 #if !defined(__ASSEMBLY__) && !defined(ASSEMBLY)
 typedef union {
-#if 0
-    /* See <PowerPC e500 CoreFamily Reference Manual> */
+#if 0                                               /*  See <PowerPC e500 CoreFamily Reference Manual>  */
     struct {
         UINT    L1CFG0_ucCARCH     :  2;
         UINT                       :  5;
@@ -487,7 +494,8 @@ typedef union {
         UINT    L1CFG0_ucCSIZE     :  8;
     };
 #else
-    /* See <A Programmer’s Reference Manual for Freescale Power Architecture Processors
+    /*
+     * See <A Programmer’s Reference Manual for Freescale Power Architecture Processors
      * Supports e500 core family (e500v1, e500v2, e500mc, e5500, e6500)
      * e200 core family >
      */
@@ -520,7 +528,7 @@ typedef union {
     };
     UINT32      L1CFG1_uiValue;
 } E500_L1CFG1;
-#endif /* __ASSEMBLY__ */
+#endif                                              /*  __ASSEMBLY__                                    */
 
 #else
 
@@ -588,9 +596,9 @@ typedef union {
     };
     UINT32      L1CFG0_uiValue;
 } E200_L1CFG0;
-#endif /* __ASSEMBLY__ */
+#endif                                              /*  __ASSEMBLY__                                    */
 
-#endif /* __SYLIXOS_PPC_E200__ */
+#endif                                              /*  __SYLIXOS_PPC_E200__                            */
 
 /*********************************************************************************************************
   L2-Cache 相关的寄存器及定义
@@ -613,7 +621,7 @@ typedef union {
 #define L2ERRINJHI                  985             /*  L2 Error Injection Mask High                    */
 #define L2ERRINJLO                  986             /*  L2 Error Injection Mask Low                     */
 #define L2ERRINTEN                  720             /*  L2 Error Interrupt Enable                       */
-#endif  /* __SYLIXOS_PPC_E500MC__ */
+#endif                                              /*  __SYLIXOS_PPC_E500MC__                          */
 
 /*********************************************************************************************************
   MMU 相关的寄存器及定义
@@ -624,40 +632,26 @@ typedef union {
 #define MAS2                        626             /*  MMU Assist Register 2                           */
 #define MAS3                        627             /*  MMU Assist Register 3                           */
 #define MAS4                        628             /*  MMU Assist Register 4                           */
-
-//#ifdef  __SYLIXOS_PPC_E500MC__
-#define MAS5                        339             /*  MMU Assist Register 5                           */
-//#endif  /* __SYLIXOS_PPC_E500MC__ */
-
+#define MAS5                        339             /*  MMU Assist Register 5 (E500MC)                  */
 #define MAS6                        630             /*  MMU Assist Register 6                           */
-
-//#if defined(__SYLIXOS_PPC_E500V2__) || defined(__SYLIXOS_PPC_E500MC__)
-#define MAS7                        944             /*  MMU Assist Register 7                           */
-//#endif  /* __SYLIXOS_PPC_E500V2__ */
-
-//#ifdef  __SYLIXOS_PPC_E500MC__
-#define MAS8                        341             /*  MMU Assist Register 8                           */
-//#endif  /* __SYLIXOS_PPC_E500MC__ */
+#define MAS7                        944             /*  MMU Assist Register 7 (E500MC E500V2)           */
+#define MAS8                        341             /*  MMU Assist Register 8 (E500MC)                  */
 
 #define TLB0CFG                     688             /*  TLB 0 Config Register                           */
 #define TLB1CFG                     689             /*  TLB 1 Config Register                           */
 
 #define MMUCSR0                     1012            /*  MMU Control Status Register 0                   */
-
 #define MMUCFG                      1015            /*  MMU Config Register                             */
 
 #ifdef  __SYLIXOS_PPC_E500MC__
 #define LPIDR                       338             /*  Logical Partition ID Register                   */
-#endif  /* __SYLIXOS_PPC_E500MC__ */
+#endif                                              /*  __SYLIXOS_PPC_E500MC__                          */
 
 #define PID                         48
 #define PID_MASK                    0x0FF
 #define PID0                        48
-
-//#ifndef __SYLIXOS_PPC_E500MC__
-#define PID1                        633
-#define PID2                        634
-//#endif  /* __SYLIXOS_PPC_E500MC__ */
+#define PID1                        633             /*  (E500MC)                                        */
+#define PID2                        634             /*  (E500MC)                                        */
 
 #define ARCH_PPC_MMUCSR0_L2TLB1_FI      0x00000002
 #define ARCH_PPC_MMUCSR0_L2TLB1_FI_V(x) (x >> 1)
@@ -675,7 +669,10 @@ typedef union {
 #define ARCH_PPC_MAS0_TLBSEL1       0x10000000
 #define ARCH_PPC_MAS0_TLBSEL_MASK   0x30000000
 
-/* Range of hardware context numbers (PID register & TLB TID field) */
+/*********************************************************************************************************
+  Range of hardware context numbers (PID register & TLB TID field)
+*********************************************************************************************************/
+
 #define MMU_ASID_MIN                1
 #define MMU_ASID_MAX                255
 #define MMU_ASID_GLOBAL             MMU_ASID_MIN
@@ -694,12 +691,9 @@ typedef union {
 *********************************************************************************************************/
 
 #define HID0                        1008
+#define HID1                        1009            /*  (E500MC)                                        */
 
-//#ifndef __SYLIXOS_PPC_E500MC__
-#define HID1                        1009
-//#endif  /* __SYLIXOS_PPC_E500MC__ */
-
-/* hardware dependent register 0 */
+                                                    /*  hardware dependent register 0                   */
 #define ARCH_PPC_HID0_DOZE_U        0x0080          /*  DOZE power management mode                      */
 #define ARCH_PPC_HID0_NAP_U         0x0040          /*  NAP power management mode                       */
 #define ARCH_PPC_HID0_SLEEP_U       0x0020          /*  SLEEP power management mode                     */
@@ -708,27 +702,31 @@ typedef union {
 #define ARCH_PPC_HID0_SLEEP         0x00200000      /*  SLEEP power management mode                     */
 #define ARCH_PPC_HID0_TBEN          0x00004000      /*  time base enable                                */
 
-//#if defined(__SYLIXOS_PPC_E500V2__) || defined(__SYLIXOS_PPC_E500MC__)
+                                                    /*  The following (E500MC E500V2)                   */
 #define ARCH_PPC_HID0_MAS7EN        0x00000080      /*  Enable use of MAS7 for tlbre                    */
 #define ARCH_PPC_HID0_DCFA          0x00000040      /*  Use this bit to flush only valid entries        */
 #define ARCH_PPC_HID0_BIT_MAS7EN    24
 #define ARCH_PPC_HID0_BIT_DCFA      25
 #define ARCH_PPC_85XX_USE_DCFA
-//#endif  /* __SYLIXOS_PPC_E500V2__ */
 
-/* hardware dependent register 1 */
+                                                    /*  hardware dependent register 1                   */
 #define ARCH_PPC_HID1_ABE           0x00001000      /*  Address broadcast enable                        */
 
 /*********************************************************************************************************
   MSR 相关的定义
 *********************************************************************************************************/
+/*********************************************************************************************************
+  MSR (upper half) definitions
+  arch_def.h defines a generic MSR.  Here we define changes from that base
+*********************************************************************************************************/
 
-/* MSR (upper half) definitions */
-/* arch_def.h defines a generic MSR.  Here we define changes from that base */
 #undef  ARCH_PPC_MSR_SF_U                           /*  64 bit mode not implemented                     */
 #undef  ARCH_PPC_MSR_ILE_U                          /*  little endian mode not supported                */
 
-/* wait state enable is equivalent to the power down enable for 60x */
+/*********************************************************************************************************
+  wait state enable is equivalent to the power down enable for 60x
+*********************************************************************************************************/
+
 #define ARCH_PPC_MSR_WE_U           0x0004          /*  wait state enable                               */
 
 #undef  ARCH_PPC_MSR_POW_U
@@ -739,7 +737,10 @@ typedef union {
 #define ARCH_PPC_MSR_CE_U           0x0002          /*  critical interrupt enable                       */
 #define ARCH_PPC_MSR_CE             0x00020000      /*  critical interrupt enable                       */
 
-/* MSR (lower half) definitions */
+/*********************************************************************************************************
+  MSR (lower half) definitions
+*********************************************************************************************************/
+
 #undef  ARCH_PPC_MSR_SE                             /*  single step unsupported                         */
 #undef  ARCH_PPC_MSR_BE                             /*  branch trace not supported                      */
 #undef  ARCH_PPC_MSR_IP                             /*  exception prefix bit not supported              */
@@ -747,22 +748,23 @@ typedef union {
 #undef  ARCH_PPC_MSR_LE                             /*  little endian mode unsupported                  */
 #undef  ARCH_PPC_MSR_BIT_LE                         /*  little endian mode unsupported                  */
 
-/*
- * Machine check exception class is new to PPC in E500.  Although
- * bit position is same as classic MSR[ME] and is named the same,
- * the define of ARCH_PPC_MSR_MCE signifies the present of this
- * class of exception.  If present, both ARCH_PPC_MSR_MCE and
- * ARCH_PPC_MSR_ME should be defined to the mask of 0x1000.
- * In addition, Critical Exception Class is also a requirement.
- * The critical exception code stub does not mask exceptions
- * and is used for machine check exception class as well.
- * Therefore, XXX should be defined.
- */
+/*********************************************************************************************************
+  Machine check exception class is new to PPC in E500.  Although
+  bit position is same as classic MSR[ME] and is named the same,
+  the define of ARCH_PPC_MSR_MCE signifies the present of this
+  class of exception.  If present, both ARCH_PPC_MSR_MCE and
+  ARCH_PPC_MSR_ME should be defined to the mask of 0x1000.
+  In addition, Critical Exception Class is also a requirement.
+  The critical exception code stub does not mask exceptions
+  and is used for machine check exception class as well.
+  Therefore, XXX should be defined.
+*********************************************************************************************************/
+
 #ifndef __SYLIXOS_PPC_E200__
 #define ARCH_PPC_MSR_MCE            ARCH_PPC_MSR_ME /*  machine check enable                            */
 #else
 #undef  ARCH_PPC_MSR_MCE
-#endif  /* __SYLIXOS_PPC_E200__ */
+#endif                                              /*  __SYLIXOS_PPC_E200__                            */
 
 #define ARCH_PPC_MSR_DE             0x0200          /*  debug exception enable                          */
 #define ARCH_PPC_MSR_IS             0x0020          /*  insn address space selector                     */
@@ -774,19 +776,22 @@ typedef union {
 #define ARCH_PPC_MSR_BIT_IS         26
 #define ARCH_PPC_MSR_BIT_DS         27
 
-/* ARCH_PPC_INT_MASK definition (mask EE & CE bits) : overwrite the one in arch_def.h */
-#if 0   /* 不关闭临界中断 */
+/*********************************************************************************************************
+  ARCH_PPC_INT_MASK definition (mask EE & CE bits) : overwrite the one in arch_def.h
+*********************************************************************************************************/
+
+#if 0                                               /*  不关闭临界中断                                  */
 #undef  ARCH_PPC_INT_MASK
 #define ARCH_PPC_INT_MASK(src, des)         \
-        RLWINM  des, src, 0, ARCH_PPC_MSR_BIT_EE+1, ARCH_PPC_MSR_BIT_EE-1; \
-        RLWINM  des, des, 0, ARCH_PPC_MSR_BIT_CE+1, ARCH_PPC_MSR_BIT_CE-1
+        RLWINM  des, src, 0, ARCH_PPC_MSR_BIT_EE + 1, ARCH_PPC_MSR_BIT_EE - 1; \
+        RLWINM  des, des, 0, ARCH_PPC_MSR_BIT_CE + 1, ARCH_PPC_MSR_BIT_CE - 1
 #endif
 
 #undef  ARCH_PPC_INT_WE_MASK
 #define ARCH_PPC_INT_WE_MASK(src, des)      \
-        RLWINM  des, src, 0, ARCH_PPC_MSR_BIT_WE+1, ARCH_PPC_MSR_BIT_WE-1
+        RLWINM  des, src, 0, ARCH_PPC_MSR_BIT_WE + 1, ARCH_PPC_MSR_BIT_WE - 1
 
-/* E500core other than e500mc has no FPU */
+                                                    /*  E500core other than e500mc has no FPU           */
 #define ARCH_PPC_MSR_BIT_FP         18
 #define ARCH_PPC_MSR_BIT_FE0        20
 #define ARCH_PPC_MSR_BIT_FE1        23
@@ -794,7 +799,7 @@ typedef union {
 #define ARCH_PPC_MSR_SPE_U          0x0200
 #define ARCH_PPC_MSR_SPE            0x02000000
 
-#endif                                                                  /*  __PPC_ARCH_E500_H           */
+#endif                                              /*  __PPC_ARCH_E500_H                               */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

@@ -19,26 +19,12 @@
 ** 描        述: PowerPC 604 相关定义.
 *********************************************************************************************************/
 /*********************************************************************************************************
-**  本头文件适用于如下 PowerPC 处理器:
-**  PPC604
-**  PPC750
-**  PPC604E
-**  PPC604R
-**  MPC7400
-**  MPC755
-**  MPC745
-**  PPC750FX
-**  MPC7450, MPC7440, MPC7441
-**  MPC7455  MPC7445
-**  MPC7457  MPC7447
-**  MPC7447A
-**  MPC7448
-**  MPC7410
-**  包括这个头文件前，应该定义 __SYLIXOS_PPC_CPU__ 为 __SYLIXOS_PPC604__，即处理器家族为 PowerPC 604 家族
-**  然后再根据实际的处理器，定义处理器识别符，如：
-**  __SYLIXOS_PPC745X__
-**  __SYLIXOS_PPC750__
-**  __SYLIXOS_PPC_HAVE_ALTIVEC
+  本头文件适用于如下 PowerPC 处理器:
+  PPC604, PPC750, PPC604E, PPC604R, MPC7400, MPC755, MPC745, PPC750FX, MPC7450, MPC7440, MPC7441
+  MPC7455  MPC7445, MPC7457  MPC7447, MPC7447A, MPC7448, MPC7410
+  包括这个头文件前, 应该定义 __SYLIXOS_PPC_CPU__ 为 __SYLIXOS_PPC604__, 即处理器家族为 PowerPC 604 家族
+  然后再根据实际的处理器, 定义处理器识别符, 如:
+  __SYLIXOS_PPC745X__, __SYLIXOS_PPC750__, __SYLIXOS_PPC_HAVE_ALTIVEC
 *********************************************************************************************************/
 
 #ifndef __PPC_ARCH_604_H
@@ -71,8 +57,7 @@
 #define SVR                         286             /*  system version register                         */
 #define PVR                         287             /*  processor version register                      */
 
-#if __SYLIXOS_PPC_HAVE_ALTIVEC > 0
-/* MSSCR0 exists only in MPC74xx/8641 */
+#if __SYLIXOS_PPC_HAVE_ALTIVEC > 0                  /*  MSSCR0 exists only in MPC74xx/8641              */
 #define MSSCR0                      1014            /*  Memory Subsystem Control Register               */
 #endif                                              /*  __SYLIXOS_PPC_HAVE_ALTIVEC > 0                  */
 
@@ -82,11 +67,12 @@
 
 #if __SYLIXOS_PPC_HAVE_ALTIVEC > 0
 #ifdef __SYLIXOS_PPC745X__
-/*
- * The following MSSCR0 fields exist in MPC744x, MPC745x, and MPC8641
- * (PVR=800xxxxx).  We use the ARCH_PPC_MSSCR0_ID bit to recognize CPU 0
- * in the bootrom, and define the other fields here for completeness.
- */
+/*********************************************************************************************************
+  The following MSSCR0 fields exist in MPC744x, MPC745x, and MPC8641
+  (PVR=800xxxxx).  We use the ARCH_PPC_MSSCR0_ID bit to recognize CPU 0
+  in the bootrom, and define the other fields here for completeness.
+*********************************************************************************************************/
+
 #define ARCH_PPC_MSSCR0_DTQ_U       0x1c00          /*  DTQ size                                        */
 #define ARCH_PPC_MSSCR0_EIDIS_U     0x0100          /*  disable external MPX intervention               */
 #define ARCH_PPC_MSSCR0_L3TCEXT_U   0x0020          /*  L3 turnaround clock count (7457)                */
@@ -97,13 +83,15 @@
 #define ARCH_PPC_MSSCR0_ID          0x0020          /*  Set if SMP CPU ID != 0                          */
 #define ARCH_PPC_MSSCR0_BIT_ID      26
 #define ARCH_PPC_MSSCR0_L2PFE       0x0003          /*  # of L2 prefetch engines enabled                */
+
 #else                                               /*  __SYLIXOS_PPC745X__                             */
-/*
- * The following MSSCR0 fields exist only in MPC7400 (PVR=000Cxxxx)
- * and MPC7410 (PVR=800Cxxxx).  We use the DL1HWF bit in cacheALib.s,
- * and define the other fields here for completeness.  All are in the
- * MS half of the register.
- */
+/*********************************************************************************************************
+  The following MSSCR0 fields exist only in MPC7400 (PVR=000Cxxxx)
+  and MPC7410 (PVR=800Cxxxx).  We use the DL1HWF bit in cacheALib.s,
+  and define the other fields here for completeness.  All are in the
+  MS half of the register.
+*********************************************************************************************************/
+
 #define ARCH_PPC_MSSCR0_SHDEN_U     0x8000          /*  Shared-state (MESI) enable                      */
 #define ARCH_PPC_MSSCR0_SHDPEN3_U   0x4000          /*  MEI mode SHD0/SHD1 signal enable                */
 #define ARCH_PPC_MSSCR0_L1_INTVEN_U 0x3800          /*  L1 data cache HIT intervention                  */
@@ -176,7 +164,7 @@
 #define ARCH_PPC_HID0_HIGH_BAT_EN_U 0x0080          /*  High Bat enable on MPC7455                      */
 #define ARCH_PPC_HID2_HIGH_BAT_EN_U 0x0004          /*  High Bat enable on MPC755                       */
 
-/* HID bit definitions */
+                                                    /*  HID bit definitions                             */
 #define ARCH_PPC_HID0_BIT_ICE       16              /*  HID0 ICE bit for 604                            */
 #define ARCH_PPC_HID0_BIT_DCE       17              /*  HID0 DCE bit for 604                            */
 #define ARCH_PPC_HID0_BIT_ILOCK     18              /*  HID0 ILOCK bit for 604                          */
@@ -203,11 +191,11 @@
 /*********************************************************************************************************
   PVR definitions
 *********************************************************************************************************/
+/*********************************************************************************************************
+  Values of upper half of PVR, used in cache code
+  to discern cache size and select flush algorithm
+*********************************************************************************************************/
 
-/*
- * Values of upper half of PVR, used in cache code
- * to discern cache size and select flush algorithm
- */
 #define ARCH_PPC_PVR_PPC604_U       0x0004
 #define ARCH_PPC_PVR_PPC750_U       0x0008
 #define ARCH_PPC_PVR_PPC604E_U      0x0009
@@ -242,11 +230,11 @@
 #define ARCH_PPC_MSR_BIT_RI         30              /*  MSR Exception Recoverable bit - RI              */
 
 #if __SYLIXOS_PPC_HAVE_ALTIVEC > 0
-#define ARCH_PPC_MSR_VEC            0x0200          /*  Bit 6 of MSR                                    */
+#define ARCH_PPC_MSR_VEC            0x02000000      /*  Bit 6 of MSR                                    */
 #define ARCH_PPC_MSR_BIT_VEC        06              /*  MSR Altivec Available bit - VEC                 */
 #endif                                              /*  __SYLIXOS_PPC_HAVE_ALTIVEC > 0                  */
 
-/* MSR MMU/RI Bit extraction */
+                                                    /*  MSR MMU/RI Bit extraction                       */
 #define ARCH_PPC_MSR_MMU_RI_EXTRACT(src, dst) \
     LI  dst, ARCH_PPC_MSR_IR | ARCH_PPC_MSR_DR | ARCH_PPC_MSR_RI ; \
     AND dst, dst, src
@@ -258,8 +246,7 @@
 /*********************************************************************************************************
   IABR bit definitions
 *********************************************************************************************************/
-
-/* set and get address in IABR */
+                                                    /*  set and get address in IABR                     */
 #define ARCH_PPC_IABR_ADD(x)        ((x) & 0xFFFFFFFC)
 
 #define ARCH_PPC_IABR_BE            0x00000002      /*  breakpoint enabled                              */
@@ -268,15 +255,14 @@
 /*********************************************************************************************************
   DABR bit definitions
 *********************************************************************************************************/
-
-/* set and get address in DABR */
+                                                    /*  set and get address in DABR                     */
 #define ARCH_PPC_DABR_DAB(x)        ((x) & 0xFFFFFFF8)
 
 #define ARCH_PPC_DABR_BT            0x00000004      /*  breakpoint translation                          */
 #define ARCH_PPC_DABR_DW            0x00000002      /*  data write enable                               */
 #define ARCH_PPC_DABR_DR            0x00000001      /*  data read enable                                */
 
-/* mask for read and write operations */
+                                                    /*  mask for read and write operations              */
 #define ARCH_PPC_DABR_D_MASK        (ARCH_PPC_DABR_DW | ARCH_PPC_DABR_DR)
 
 /*********************************************************************************************************

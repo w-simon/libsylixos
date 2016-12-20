@@ -35,7 +35,7 @@
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-WEAK_FUNC ULONG  archMpCur (VOID)
+LW_WEAK ULONG  archMpCur (VOID)
 {
     return  (X86_APICID_TO_CPUID(x86LocalApicId()));
 }
@@ -47,7 +47,7 @@ WEAK_FUNC ULONG  archMpCur (VOID)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-WEAK_FUNC VOID   archMpInt (ULONG  ulCPUId)
+LW_WEAK VOID  archMpInt (ULONG  ulCPUId)
 {
     x86LocalApicSendIpi(X86_CPUID_TO_APICID(ulCPUId), 64 + ulCPUId);    /*  x86 IPI 中断向量从 64 开始  */
 }

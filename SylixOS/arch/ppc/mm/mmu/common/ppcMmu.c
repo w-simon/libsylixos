@@ -561,7 +561,6 @@ static ULONG  ppcMmuFlagGet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr)
             ucExec  = p_pteentry->PTE_bReserved2;
 
             ppcMmuAttr2Flags(ucPP, ucWIMG, ucExec, &ulFlag);
-
             return  (ulFlag);
 
         } else {
@@ -614,7 +613,6 @@ static INT  ppcMmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  ulFl
                                                                 ucWIMG,
                                                                 ucExec,
                                                                 ucType);
-
             ppcMmuHashPageTblFlagSet(ulAddr,
                                      p_pteentry->PTE_uiValue);
 
@@ -726,10 +724,9 @@ ULONG  ppcMmuPteMissHandle (addr_t  ulAddr)
         LW_PTE_TRANSENTRY  *p_pteentry = ppcMmuPteOffset((LW_PMD_TRANSENTRY *)p_pgdentry, ulAddr);
 
         if (ppcMmuPteIsOk(*p_pteentry)) {
-
             ppcMmuHashPageTblPteMiss(ulAddr, p_pteentry->PTE_uiValue);
-
             return  (0);
+
         } else {
             return  (LW_VMM_ABORT_TYPE_MAP);
         }

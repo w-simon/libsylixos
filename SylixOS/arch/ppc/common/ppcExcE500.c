@@ -89,13 +89,16 @@ VOID  archE500DataStorageExceptionHandle (addr_t  ulRetAddr)
 #if LW_CFG_VMM_EN > 0
     UINT32  uiESR = ppcE500GetESR();
 
-    if (uiESR & ARCH_PPC_ESR_BO) {
+    if (uiESR & ARCH_PPC_ESR_BO) {                                      /*  a byte-ordering exception   */
         abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_TERMINAL;
 
-    } else if (uiESR & ARCH_PPC_ESR_DLK) {
+    } else if (uiESR & ARCH_PPC_ESR_DLK) {                              /*  a DSI occurs because dcbtls,*/
+                                                                        /*  dcbtstls, or dcblc is       */
+                                                                        /*  executed in user mode       */
         abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_TERMINAL;
 
-    } else if (uiESR & ARCH_PPC_ESR_ST) {
+    } else if (uiESR & ARCH_PPC_ESR_ST) {                               /*  a store or store-class cache*/
+                                                                        /*  management instruction      */
         abtInfo.VMABT_uiType   = ppcE500MmuDataStorageAbortType(ulAbortAddr, LW_TRUE);
         abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_WRITE;
 
@@ -131,7 +134,8 @@ VOID  archE500InstructionStorageExceptionHandle (addr_t  ulRetAddr)
 
 #if LW_CFG_VMM_EN > 0
     UINT32  uiESR = ppcE500GetESR();
-    if (uiESR & ARCH_PPC_ESR_BO) {
+    if (uiESR & ARCH_PPC_ESR_BO) {                                      /*  the instruction fetch caused*/
+                                                                        /*  a byte-ordering exception   */
         abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_TERMINAL;
 
     } else {
@@ -265,15 +269,15 @@ VOID  archE500InstructionTLBErrorHandle (addr_t  ulRetAddr)
 
 #endif                                                                 /*  LW_CFG_VMM_EN > 0            */
 /*********************************************************************************************************
-** 函数名称: archE500DebugInterruptHandle
-** 功能描述: 调试中断处理
+** 函数名称: archE500DebugExceptionHandle
+** 功能描述: 调试异常处理
 ** 输　入  : NONE
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 ** 注  意  : 此函数退出时必须为中断关闭状态.
 *********************************************************************************************************/
-VOID  archE500DebugInterruptHandle (addr_t  ulRetAddr)
+VOID  archE500DebugExceptionHandle (addr_t  ulRetAddr)
 {
     PLW_CLASS_TCB   ptcbCur;
     LW_VMM_ABORT    abtInfo;
@@ -284,15 +288,15 @@ VOID  archE500DebugInterruptHandle (addr_t  ulRetAddr)
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
-** 函数名称: archE500FpuUnavailableExceptionHandle
-** 功能描述: FPU 不可用异常处理
+** 函数名称: archE500SpeUnavailableExceptionHandle
+** 功能描述: SPE 不可用异常处理
 ** 输　入  : NONE
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 ** 注  意  : 此函数退出时必须为中断关闭状态.
 *********************************************************************************************************/
-VOID  archE500FpuUnavailableExceptionHandle (addr_t  ulRetAddr)
+VOID  archE500SpeUnavailableExceptionHandle (addr_t  ulRetAddr)
 {
     PLW_CLASS_TCB   ptcbCur;
     LW_VMM_ABORT    abtInfo;
@@ -306,8 +310,71 @@ VOID  archE500FpuUnavailableExceptionHandle (addr_t  ulRetAddr)
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FPE;
-    abtInfo.VMABT_uiMethod = 0;                                         /*  FPU 不可用                  */
+    abtInfo.VMABT_uiMethod = FPE_FLTINV;                                /*  FPU 不可用                  */
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
+}
+/*********************************************************************************************************
+** 函数名称: archE500FpDataExceptionHandle
+** 功能描述: SPE floating-point data 异常处理
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+** 注  意  : 此函数退出时必须为中断关闭状态.
+*********************************************************************************************************/
+VOID  archE500FpDataExceptionHandle (addr_t  ulRetAddr)
+{
+    PLW_CLASS_TCB   ptcbCur;
+    LW_VMM_ABORT    abtInfo;
+
+    LW_TCB_GET_CUR(ptcbCur);
+
+    /*
+     * SPEFSCR[FINVE] = 1 and either SPEFSCR[FINVH, FINV] = 1
+     * SPEFSCR[FDBZE] = 1 and either SPEFSCR[FDBZH, FDBZ] = 1
+     * SPEFSCR[FUNFE] = 1 and either SPEFSCR[FUNFH, FUNF] = 1
+     * SPEFSCR[FOVFE] = 1 and either SPEFSCR[FOVFH, FOVF] = 1
+     */
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FPE;
+    abtInfo.VMABT_uiMethod = FPE_FLTUND;
+    API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
+}
+/*********************************************************************************************************
+** 函数名称: archE500FpRoundExceptionHandle
+** 功能描述: SPE floating-point round 异常处理
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+** 注  意  : 此函数退出时必须为中断关闭状态.
+*********************************************************************************************************/
+VOID  archE500FpRoundExceptionHandle (addr_t  ulRetAddr)
+{
+    PLW_CLASS_TCB   ptcbCur;
+    LW_VMM_ABORT    abtInfo;
+
+    LW_TCB_GET_CUR(ptcbCur);
+
+    /*
+     * SPEFSCR[FINXE] = 1 and any of the SPEFSCR[FGH, FXH, FG, FX] bits = 1
+     * SPEFSCR[FRMC]  = 0b10 (+∞)
+     * SPEFSCR[FRMC]  = 0b11 (-∞)
+     */
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FPE;
+    abtInfo.VMABT_uiMethod = FPE_FLTOVF;
+    API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
+}
+/*********************************************************************************************************
+** 函数名称: archE500PerfMonitorExceptionHandle
+** 功能描述: Performance monitor 异常处理
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+** 注  意  : 此函数退出时必须为中断关闭状态.
+*********************************************************************************************************/
+LW_WEAK VOID  archE500PerfMonitorExceptionHandle (addr_t  ulRetAddr)
+{
 }
 /*********************************************************************************************************
 ** 函数名称: archE500DecrementerInterruptAck
@@ -334,7 +401,7 @@ VOID  archE500DecrementerInterruptAck (VOID)
 ** 调用模块:
 ** 注  意  : 此函数退出时必须为中断关闭状态.
 *********************************************************************************************************/
-__attribute__((weak)) VOID  archE500DecrementerInterruptHandle (VOID)
+LW_WEAK VOID  archE500DecrementerInterruptHandle (VOID)
 {
     archE500DecrementerInterruptAck();
 }
@@ -427,7 +494,7 @@ VOID  archE500TimerInterruptAck (VOID)
 ** 调用模块:
 ** 注  意  : 此函数退出时必须为中断关闭状态.
 *********************************************************************************************************/
-__attribute__((weak)) VOID  archE500TimerInterruptHandle (VOID)
+LW_WEAK VOID  archE500TimerInterruptHandle (VOID)
 {
     archE500TimerInterruptAck();
 }
@@ -488,7 +555,7 @@ VOID  archE500WatchdogInterruptAck (VOID)
 ** 调用模块:
 ** 注  意  : 此函数退出时必须为中断关闭状态.
 *********************************************************************************************************/
-__attribute__((weak)) VOID  archE500WatchdogInterruptHandle (VOID)
+LW_WEAK VOID  archE500WatchdogInterruptHandle (VOID)
 {
     archE500WatchdogInterruptAck();
 }

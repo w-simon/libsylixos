@@ -540,7 +540,7 @@ lwip_accept(int s, struct sockaddr *addr, socklen_t *addrlen)
 
   if (netconn_is_nonblocking(sock->conn) && (sock->rcvevent <= 0)) {
     LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_accept(%d): returning EWOULDBLOCK\n", s));
-    sock_set_errno(sock, EWOULDBLOCK);
+    set_errno(EWOULDBLOCK);
     return -1;
   }
   
@@ -835,7 +835,7 @@ lwip_recvfrom(int s, void *mem, size_t len, int flags,
           return off;
         }
         LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_recvfrom(%d): returning EWOULDBLOCK\n", s));
-        sock_set_errno(sock, EWOULDBLOCK);
+        set_errno(EWOULDBLOCK);
         return -1;
       }
 
@@ -1278,9 +1278,7 @@ lwip_socket(int domain, int type, int protocol)
   struct netconn *conn;
   int i;
 
-#if !LWIP_IPV6
   LWIP_UNUSED_ARG(domain); /* @todo: check this */
-#endif /* LWIP_IPV6 */
 
   /* create a netconn */
   switch (type) {

@@ -882,6 +882,15 @@
 #if !defined LWIP_DHCP_MAX_NTP_SERVERS || defined __DOXYGEN__
 #define LWIP_DHCP_MAX_NTP_SERVERS       1
 #endif
+
+/**
+ * LWIP_DHCP_MAX_DNS_SERVERS > 0: Request DNS servers with discover/select.
+ * DHCP servers received in the response are passed to DNS via @ref dns_setserver()
+ * (up to the maximum limit defined here).
+ */
+#if !defined LWIP_DHCP_MAX_DNS_SERVERS || defined __DOXYGEN__
+#define LWIP_DHCP_MAX_DNS_SERVERS       DNS_MAX_SERVERS
+#endif
 /**
  * @}
  */
@@ -2170,7 +2179,7 @@
 /**
  * LWIP_IPV6_REASS==1: reassemble incoming IPv6 packets that fragmented
  */
-#if !defined LWIP_IPV6_REASS || defined __DOXYGEN__ || defined __DOXYGEN__
+#if !defined LWIP_IPV6_REASS || defined __DOXYGEN__
 #define LWIP_IPV6_REASS                 (LWIP_IPV6)
 #endif
 
@@ -2348,7 +2357,7 @@
  * LWIP_ND6_DELAY_FIRST_PROBE_TIME: Delay before first unicast neighbor solicitation
  * message is sent, during neighbor reachability detection.
  */
-#if !defined LWIP_ND6_DELAY_FIRST_PROBE_TIME || defined __DOXYGEN__s
+#if !defined LWIP_ND6_DELAY_FIRST_PROBE_TIME || defined __DOXYGEN__
 #define LWIP_ND6_DELAY_FIRST_PROBE_TIME 5000
 #endif
 
@@ -2365,8 +2374,17 @@
  * with reachability hints for connected destinations. This helps avoid sending
  * unicast neighbor solicitation messages.
  */
-#if !defined LWIP_ND6_TCP_REACHABILITY_HINTS || defined __DOXYGEN__ || defined __DOXYGEN__
+#if !defined LWIP_ND6_TCP_REACHABILITY_HINTS || defined __DOXYGEN__
 #define LWIP_ND6_TCP_REACHABILITY_HINTS 1
+#endif
+
+/**
+ * LWIP_ND6_RDNSS_MAX_DNS_SERVERS > 0: Use IPv6 Router Advertisement Recursive
+ * DNS Server Option (as per RFC 6106) to copy a defined maximum number of DNS
+ * servers to the DNS module.
+ */
+#if !defined LWIP_ND6_RDNSS_MAX_DNS_SERVERS || defined __DOXYGEN__
+#define LWIP_ND6_RDNSS_MAX_DNS_SERVERS  0
 #endif
 /**
  * @}
@@ -2391,6 +2409,29 @@
  * Hooks are undefined by default, define them to a function if you need them.
  * @{
  */
+
+/**
+ * LWIP_HOOK_TCP_ISN:
+ * Hook for generation of the Initial Sequence Number (ISN) for a new TCP
+ * connection. The default lwIP ISN generation algorithm is very basic and may
+ * allow for TCP spoofing attacks. This hook provides the means to implement
+ * the standardized ISN generation algorithm from RFC 6528 (see contrib/adons/tcp_isn),
+ * or any other desired algorithm as a replacement.
+ * Called from tcp_connect() and tcp_listen_input() when an ISN is needed for
+ * a new TCP connection, if TCP support (@ref LWIP_TCP) is enabled.\n
+ * Signature: u32_t my_hook_tcp_isn(const ip_addr_t* local_ip, u16_t local_port, const ip_addr_t* remote_ip, u16_t remote_port);
+ * - it may be necessary to use "struct ip_addr" (ip4_addr, ip6_addr) instead of "ip_addr_t" in function declarations\n
+ * Arguments:
+ * - local_ip: pointer to the local IP address of the connection
+ * - local_port: local port number of the connection (host-byte order)
+ * - remote_ip: pointer to the remote IP address of the connection
+ * - remote_port: remote port number of the connection (host-byte order)\n
+ * Return value:
+ * - the 32-bit Initial Sequence Number to use for the new TCP connection.
+ */
+#ifdef __DOXYGEN__
+#define LWIP_HOOK_TCP_ISN(local_ip, local_port, remote_ip, remote_port)
+#endif
 
 /**
  * LWIP_HOOK_IP4_INPUT(pbuf, input_netif):
@@ -2557,7 +2598,7 @@
  * compared against this value. If it is smaller, then debugging
  * messages are written.
  */
-#if !defined LWIP_DBG_MIN_LEVEL || defined __DOXYGEN__ || defined __DOXYGEN__
+#if !defined LWIP_DBG_MIN_LEVEL || defined __DOXYGEN__
 #define LWIP_DBG_MIN_LEVEL              LWIP_DBG_LEVEL_ALL
 #endif
 

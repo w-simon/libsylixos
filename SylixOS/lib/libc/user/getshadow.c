@@ -58,7 +58,6 @@ void init_etc_shadow (void)
                   "anonymous:!!:0:0:99999:7:::\n");
 #endif /* LW_CFG_SHELL_PASS_CRYPT_EN > 0 */
       fclose(fp);
-      chmod("/etc/shadow", S_IRUSR);
     }
   }
 }

@@ -58,7 +58,7 @@ extern UINT32   ppcE200CacheGetL1CFG0(VOID);
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID     __ppcE200CacheDisable (VOID)
+static VOID  __ppcE200CacheDisable (VOID)
 {
     if (ppcCacheStatus() == L1_CACHE_DIS) {
         ppcE200CacheDisable();
@@ -72,7 +72,7 @@ static VOID     __ppcE200CacheDisable (VOID)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID     __ppcE200CacheEnable (VOID)
+static VOID  __ppcE200CacheEnable (VOID)
 {
     if (ppcCacheStatus() == L1_CACHE_EN) {
         ppcE200CacheEnable();
@@ -88,7 +88,7 @@ static VOID     __ppcE200CacheEnable (VOID)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static INT   ppcE200CacheProbe (CPCHAR  pcMachineName, PPC_CACHE  *pICache, PPC_CACHE  *pDCache)
+static INT  ppcE200CacheProbe (CPCHAR  pcMachineName, PPC_CACHE  *pICache, PPC_CACHE  *pDCache)
 {
     if (lib_strcmp(pcMachineName, PPC_MACHINE_E200) == 0) {
         E200_L1CFG0     l1cfg0;

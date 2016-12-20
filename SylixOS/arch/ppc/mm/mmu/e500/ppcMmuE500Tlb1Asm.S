@@ -32,8 +32,8 @@
 
     FILE_BEGIN()
 
-    EXPORT_LABEL(__ppcE500MmuTLB1Invalidate)
-    EXPORT_LABEL(__ppcE500MmuTLB1InvalidateEA)
+    EXPORT_LABEL(ppcE500MmuTLB1Invalidate)
+    EXPORT_LABEL(ppcE500MmuTLB1InvalidateEA)
 
 ;/*********************************************************************************************************
 ;  定义
@@ -45,7 +45,7 @@
 ;  无效所有 TLB1
 ;*********************************************************************************************************/
 
-FUNC_DEF(__ppcE500MmuTLB1Invalidate)
+FUNC_DEF(ppcE500MmuTLB1Invalidate)
     LIS         R3 , HIADJ(ARCH_PPC_MMUCSR0_L2TLB1_FI)
     ADDI        R3 , R3 , LO(ARCH_PPC_MMUCSR0_L2TLB1_FI)
     ISYNC
@@ -60,7 +60,7 @@ FUNC_DEF(__ppcE500MmuTLB1Invalidate)
 ;  无效指定 EA 的 TLB1
 ;*********************************************************************************************************/
 
-FUNC_DEF(__ppcE500MmuTLB1InvalidateEA)
+FUNC_DEF(ppcE500MmuTLB1InvalidateEA)
     ORI         R3 , R3 , INV_TLB1
     ISYNC
     TLBIVAX     R0 , R3

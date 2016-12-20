@@ -90,7 +90,7 @@ static VOID  ppcVfpAltivecEnableTask (PLW_CLASS_TCB  ptcbCur)
     ARCH_REG_T     regSp;
 
     pregctx = archTaskRegsGet(ptcbCur->TCB_pstkStackNow, &regSp);
-    pregctx->REG_uiSrr1 |= ARCH_PPC_MSR_VEC << 16;
+    pregctx->REG_uiSrr1 |= ARCH_PPC_MSR_VEC;
 
     pfpuctx = &ptcbCur->TCB_fpuctxContext.FPUCTX_fpuctxContext;
     pfpuctx->VECCTX_uiVrsave = 0ul;

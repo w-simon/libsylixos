@@ -64,8 +64,9 @@ VOID  archE500MmuDataTlbErrorHandle (addr_t  ulRetAddr)
 {
     addr_t              ulMissAddr = ppcE500GetDEAR();
     addr_t              uiEPN      = ulMissAddr >> LW_CFG_VMM_PAGE_SHIFT;
-    LW_PTE_TRANSENTRY   pteentry   = *(LW_PTE_TRANSENTRY *)(_G_ulPTETable + \
+    LW_PTE_TRANSENTRY  *p_pteentry = (LW_PTE_TRANSENTRY *)(_G_ulPTETable + \
                                      uiEPN * sizeof(LW_PTE_TRANSENTRY));
+    LW_PTE_TRANSENTRY   pteentry   = *p_pteentry;
     MAS2_REG            uiMAS2;
 
     if (pteentry.MAS3_bValid) {
@@ -104,8 +105,9 @@ VOID  archE500MmuInstructionTlbErrorHandle (addr_t  ulRetAddr)
 {
     addr_t              ulMissAddr = ulRetAddr;
     addr_t              uiEPN      = ulMissAddr >> LW_CFG_VMM_PAGE_SHIFT;
-    LW_PTE_TRANSENTRY   pteentry   = *(LW_PTE_TRANSENTRY *)(_G_ulPTETable + \
+    LW_PTE_TRANSENTRY  *p_pteentry = (LW_PTE_TRANSENTRY *)(_G_ulPTETable + \
                                      uiEPN * sizeof(LW_PTE_TRANSENTRY));
+    LW_PTE_TRANSENTRY   pteentry   = *p_pteentry;
     MAS2_REG            uiMAS2;
 
     if (pteentry.MAS3_bValid) {
@@ -143,9 +145,10 @@ VOID  archE500MmuInstructionTlbErrorHandle (addr_t  ulRetAddr)
 *********************************************************************************************************/
 ULONG  ppcE500MmuDataStorageAbortType (addr_t  ulAbortAddr, BOOL  bIsWrite)
 {
-    addr_t              uiEPN    = ulAbortAddr >> LW_CFG_VMM_PAGE_SHIFT;
-    LW_PTE_TRANSENTRY   pteentry = *(LW_PTE_TRANSENTRY *)(_G_ulPTETable + \
-                                   uiEPN * sizeof(LW_PTE_TRANSENTRY));
+    addr_t              uiEPN      = ulAbortAddr >> LW_CFG_VMM_PAGE_SHIFT;
+    LW_PTE_TRANSENTRY  *p_pteentry = (LW_PTE_TRANSENTRY *)(_G_ulPTETable + \
+                                     uiEPN * sizeof(LW_PTE_TRANSENTRY));
+    LW_PTE_TRANSENTRY   pteentry   = *p_pteentry;
 
     if (pteentry.MAS3_bValid && pteentry.MAS3_uiRPN) {
         if (bIsWrite) {
@@ -173,9 +176,10 @@ ULONG  ppcE500MmuDataStorageAbortType (addr_t  ulAbortAddr, BOOL  bIsWrite)
 *********************************************************************************************************/
 ULONG  ppcE500MmuInstStorageAbortType (addr_t  ulAbortAddr)
 {
-    addr_t              uiEPN    = ulAbortAddr >> LW_CFG_VMM_PAGE_SHIFT;
-    LW_PTE_TRANSENTRY   pteentry = *(LW_PTE_TRANSENTRY *)(_G_ulPTETable + \
-                                   uiEPN * sizeof(LW_PTE_TRANSENTRY));
+    addr_t              uiEPN      = ulAbortAddr >> LW_CFG_VMM_PAGE_SHIFT;
+    LW_PTE_TRANSENTRY  *p_pteentry = (LW_PTE_TRANSENTRY *)(_G_ulPTETable + \
+                                     uiEPN * sizeof(LW_PTE_TRANSENTRY));
+    LW_PTE_TRANSENTRY   pteentry   = *p_pteentry;
 
     if (pteentry.MAS3_bValid && pteentry.MAS3_uiRPN) {
         if (!pteentry.MAS3_bSuperExec) {
@@ -289,35 +293,39 @@ static LW_PTE_TRANSENTRY  ppcE500MmuBuildPtentry (UINT32  uiBaseAddr,
 *********************************************************************************************************/
 static INT  ppcE500MmuMemInit (PLW_MMU_CONTEXT  pmmuctx)
 {
-#define PGD_BLOCK_SIZE  (16 * LW_CFG_KB_SIZE)
-#define PTE_BLOCK_SIZE  ( 1 * LW_CFG_KB_SIZE)
+#define PGD_BLOCK_SIZE  (4096 * sizeof(LW_PGD_TRANSENTRY))
+#define PTE_BLOCK_SIZE  ((LW_CFG_MB_SIZE / LW_CFG_VMM_PAGE_SIZE) * sizeof(LW_PTE_TRANSENTRY))
+#define PTE_TABLE_SIZE  ((LW_CFG_GB_SIZE / LW_CFG_VMM_PAGE_SIZE) * 4 * sizeof(LW_PTE_TRANSENTRY))
 
     PVOID   pvPgdTable;
     PVOID   pvPteTable;
     
     pvPgdTable = __KHEAP_ALLOC_ALIGN(PGD_BLOCK_SIZE, PGD_BLOCK_SIZE);
-
-    /*
-     * PTE 表大小为 4MByte
-     */
-    pvPteTable = __SHEAP_ALLOC(4 * LW_CFG_MB_SIZE);
-    
-    if (!pvPgdTable || !pvPteTable) {
+    if (!pvPgdTable) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "can not allocate page table.\r\n");
         return  (PX_ERROR);
     }
-    
-    lib_bzero(pvPteTable, 4 * LW_CFG_MB_SIZE);
 
-    _G_ulPTETable = (addr_t)pvPteTable;
+    pvPteTable = __KHEAP_ALLOC(PTE_TABLE_SIZE);
+    if (!pvPteTable) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "can not allocate page table.\r\n");
+        __KHEAP_FREE(pvPgdTable);
+        return  (PX_ERROR);
+    }
 
     _G_hPGDPartition = API_PartitionCreate("pgd_pool", pvPgdTable, 1, PGD_BLOCK_SIZE,
                                            LW_OPTION_OBJECT_GLOBAL, LW_NULL);
     if (!_G_hPGDPartition) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "can not allocate page pool.\r\n");
+        __KHEAP_FREE(pvPgdTable);
+        __KHEAP_FREE(pvPteTable);
         return  (PX_ERROR);
     }
     
+    lib_bzero(pvPteTable, PTE_TABLE_SIZE);
+
+    _G_ulPTETable = (addr_t)pvPteTable;
+
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -377,7 +385,6 @@ static INT  ppcE500MmuGlobalInit (CPCHAR  pcMachineName)
      */
     if (_G_bHasHID1) {
         uiHID1 = ppcE500GetHID1();
-
         if (MMU_MAS2_M) {
             uiHID1 |=  ARCH_PPC_HID1_ABE;
         } else {
@@ -404,14 +411,11 @@ static INT  ppcE500MmuGlobalInit (CPCHAR  pcMachineName)
 static LW_PGD_TRANSENTRY  *ppcE500MmuPgdOffset (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr)
 {
     REGISTER LW_PGD_TRANSENTRY  *p_pgdentry = pmmuctx->MMUCTX_pgdEntry;
+    REGISTER UINT32              uiPgdNum;
     
-    /*
-     * ulAddr >> LW_CFG_VMM_PGD_SHIFT 计算 PGD 号，
-     *
-     * 而 LW_PGD_TRANSENTRY 的大小为 4
-     */
-    p_pgdentry = (LW_PGD_TRANSENTRY *)((addr_t)p_pgdentry
-               | ((ulAddr >> LW_CFG_VMM_PGD_SHIFT) * 4));               /*  获得一级页表描述符地址      */
+    uiPgdNum   = ulAddr >> LW_CFG_VMM_PGD_SHIFT;
+    p_pgdentry = (LW_PGD_TRANSENTRY *)((addr_t)p_pgdentry +
+                 (uiPgdNum * sizeof(LW_PGD_TRANSENTRY)));               /*  获得一级页表描述符地址      */
                
     return  (p_pgdentry);
 }
@@ -441,23 +445,18 @@ static  LW_PTE_TRANSENTRY  *ppcE500MmuPteOffset (LW_PMD_TRANSENTRY  *p_pmdentry,
 {
     REGISTER LW_PTE_TRANSENTRY  *p_pteentry;
     REGISTER UINT32              uiTemp;
+    REGISTER UINT32              uiPageNum;
 
     uiTemp = (UINT32)(*p_pmdentry);                                     /*  获得一级页表描述符          */
     
     p_pteentry = (LW_PTE_TRANSENTRY *)(uiTemp);                         /*  获得二级页表基地址          */
 
-    /*
-     * ulAddr >> (LW_CFG_VMM_PAGE_SHIFT - 2) 相当于 (ulAddr >> LW_CFG_VMM_PAGE_SHIFT) * 4
-     *
-     * ulAddr >> LW_CFG_VMM_PAGE_SHIFT 取得页号（全局，非段内）
-     *
-     * 而 LW_PTE_TRANSENTRY 的大小为 4
-     *
-     * & 0x3FC == & 0b1111111100, 段内页号占 8 位（LW_CFG_VMM_PGD_SHIFT - LW_CFG_VMM_PAGE_SHIFT
-     * 一段有 256 个页面）
-     */
-    p_pteentry = (LW_PTE_TRANSENTRY *)((addr_t)p_pteentry
-               | (((ulAddr >> (LW_CFG_VMM_PAGE_SHIFT - 2)) & 0x3FC)));  /*  获得虚拟地址页表描述符地址  */
+    ulAddr &= ~LW_CFG_VMM_PGD_MASK;
+
+    uiPageNum = ulAddr >> LW_CFG_VMM_PAGE_SHIFT;
+
+    p_pteentry = (LW_PTE_TRANSENTRY *)((addr_t)p_pteentry +
+                  (uiPageNum * sizeof(LW_PTE_TRANSENTRY)));             /*  获得虚拟地址页表描述符地址  */
     
     return  (p_pteentry);
 }
@@ -497,6 +496,7 @@ static BOOL  ppcE500MmuPteIsOk (LW_PTE_TRANSENTRY  pteentry)
 static LW_PGD_TRANSENTRY  *ppcE500MmuPgdAlloc (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr)
 {
     REGISTER LW_PGD_TRANSENTRY  *p_pgdentry = (LW_PGD_TRANSENTRY *)API_PartitionGet(_G_hPGDPartition);
+    REGISTER UINT32              uiPgdNum;
     
     if (!p_pgdentry) {
         return  (LW_NULL);
@@ -504,13 +504,9 @@ static LW_PGD_TRANSENTRY  *ppcE500MmuPgdAlloc (PLW_MMU_CONTEXT  pmmuctx, addr_t 
     
     lib_bzero(p_pgdentry, PGD_BLOCK_SIZE);                              /*  无效一级页表项              */
 
-    /*
-     * p_pgdentry >> LW_CFG_VMM_PGD_SHIFT 计算 PGD 号，
-     *
-     * 而 LW_PGD_TRANSENTRY 的大小为 4
-     */
-    p_pgdentry = (LW_PGD_TRANSENTRY *)((addr_t)p_pgdentry
-               | ((ulAddr >> LW_CFG_VMM_PGD_SHIFT) << 2));              /*  获得一级页表描述符地址      */
+    uiPgdNum   = ulAddr >> LW_CFG_VMM_PGD_SHIFT;
+    p_pgdentry = (LW_PGD_TRANSENTRY *)((addr_t)p_pgdentry +
+                 (uiPgdNum * sizeof(LW_PGD_TRANSENTRY)));               /*  获得一级页表描述符地址      */
                
     return  (p_pgdentry);
 }
@@ -524,9 +520,6 @@ static LW_PGD_TRANSENTRY  *ppcE500MmuPgdAlloc (PLW_MMU_CONTEXT  pmmuctx, addr_t 
 *********************************************************************************************************/
 static VOID  ppcE500MmuPgdFree (LW_PGD_TRANSENTRY  *p_pgdentry)
 {
-    /*
-     * 释放时对齐到 PGD_BLOCK_SIZE，因为分配时对齐到 PGD_BLOCK_SIZE
-     */
     p_pgdentry = (LW_PGD_TRANSENTRY *)((addr_t)p_pgdentry & (~(PGD_BLOCK_SIZE - 1)));
     
     API_PartitionPut(_G_hPGDPartition, (PVOID)p_pgdentry);
@@ -574,15 +567,11 @@ static LW_PTE_TRANSENTRY  *ppcE500MmuPteAlloc (PLW_MMU_CONTEXT     pmmuctx,
                                                LW_PMD_TRANSENTRY  *p_pmdentry,
                                                addr_t              ulAddr)
 {
-    LW_PTE_TRANSENTRY  *p_pteentry;
+    REGISTER LW_PTE_TRANSENTRY  *p_pteentry;
+    REGISTER UINT32              uiPgdNum;
 
-    /*
-     * ulAddr >> LW_CFG_VMM_PGD_SHIFT 计算 PGD 号
-     * 每 PGD 一个二级页表
-     * 二级页表的大小为 PTE_BLOCK_SIZE
-     */
-    p_pteentry = (LW_PTE_TRANSENTRY *)(_G_ulPTETable
-               | ((ulAddr >> LW_CFG_VMM_PGD_SHIFT) * PTE_BLOCK_SIZE));
+    uiPgdNum   = ulAddr >> LW_CFG_VMM_PGD_SHIFT;
+    p_pteentry = (LW_PTE_TRANSENTRY *)(_G_ulPTETable + (uiPgdNum * PTE_BLOCK_SIZE));
 
     lib_bzero(p_pteentry, PTE_BLOCK_SIZE);
 
@@ -642,7 +631,7 @@ static ULONG  ppcE500MmuFlagGet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr)
             ULONG    ulFlag = 0;
 
             if (uiDescriptor.MAS3_bValid) {                             /*  有效                        */
-            	ulFlag |= LW_VMM_FLAG_VALID;                         	/*  映射有效                    */
+                ulFlag |= LW_VMM_FLAG_VALID;                            /*  映射有效                    */
             }
 
             ulFlag |= LW_VMM_FLAG_ACCESS;                               /*  可以访问                    */

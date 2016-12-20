@@ -25,12 +25,12 @@
 /*********************************************************************************************************
   BAT definitions
 *********************************************************************************************************/
+/*********************************************************************************************************
+  General BAT defines for bit settings to compose BAT regs
+  represent all the different block lengths
+  The BL field is part of the Upper Bat Register
+*********************************************************************************************************/
 
-/*
- * General BAT defines for bit settings to compose BAT regs
- * represent all the different block lengths
- * The BL field is part of the Upper Bat Register
- */
 #define BAT_BL_128K                 0x00000000
 #define BAT_BL_256K                 0x00000004
 #define BAT_BL_512K                 0x0000000C
@@ -44,24 +44,27 @@
 #define BAT_BL_128M                 0x00000FFC
 #define BAT_BL_256M                 0x00001FFC
 
-/*
- * Supervisor/user valid mode definitions - Upper BAT
- */
+/*********************************************************************************************************
+  Supervisor/user valid mode definitions - Upper BAT
+*********************************************************************************************************/
+
 #define BAT_VALID_SUPERVISOR        0x00000002
 #define BAT_VALID_USER              0x00000001
 #define BAT_INVALID                 0x00000000
 
-/*
- * WIMG bit settings - Lower BAT
- */
+/*********************************************************************************************************
+  WIMG bit settings - Lower BAT
+*********************************************************************************************************/
+
 #define BAT_WRITE_THROUGH           0x00000040
 #define BAT_CACHE_INHIBITED         0x00000020
 #define BAT_COHERENT                0x00000010
 #define BAT_GUARDED                 0x00000008
 
-/*
- * Protection bits - Lower BAT
- */
+/*********************************************************************************************************
+  Protection bits - Lower BAT
+*********************************************************************************************************/
+
 #define BAT_NO_ACCESS               0x00000000
 #define BAT_READ_ONLY               0x00000001
 #define BAT_READ_WRITE              0x00000002
@@ -69,18 +72,19 @@
 /*********************************************************************************************************
   MSR definitions
 *********************************************************************************************************/
+/*********************************************************************************************************
+  Upper Machine State Register (MSR) mask
+*********************************************************************************************************/
 
-/*
- * Upper Machine State Register (MSR) mask
- */
 #define ARCH_PPC_MSR_SF_U           0x8000          /*  Sixty-four bit mode (not                        */
                                                     /*  implemented for 32-bit machine)                 */
 #define ARCH_PPC_MSR_POW_U          0x0004          /*  Power managemnet enable                         */
 #define ARCH_PPC_MSR_ILE_U          0x0001          /*  Little endian mode                              */
 
-/*
- * Lower Machine State Register (MSR) mask
- */
+/*********************************************************************************************************
+  Lower Machine State Register (MSR) mask
+*********************************************************************************************************/
+
 #define ARCH_PPC_MSR_EE             0x8000          /*  External interrupt enable                       */
 #define ARCH_PPC_MSR_PR             0x4000          /*  Privilege level                                 */
 #define ARCH_PPC_MSR_FP             0x2000          /*  Floating-point available                        */
@@ -97,42 +101,45 @@
 
 #define ARCH_PPC_MSR_POWERUP        0x0040          /*  State of MSR at powerup                         */
 
-/*
- * MSR bit definitions common to all PPC arch.
- */
+/*********************************************************************************************************
+  MSR bit definitions common to all PPC arch.
+*********************************************************************************************************/
+
 #define ARCH_PPC_MSR_BIT_EE         16              /*  MSR Ext. Intr. Enable bit - EE                  */
 #define ARCH_PPC_MSR_BIT_PR         17              /*  MSR Privilege Level bit - PR                    */
 #define ARCH_PPC_MSR_BIT_ME         19              /*  MSR Machine Check Enable bit - ME               */
 #define ARCH_PPC_MSR_BIT_LE         31              /*  MSR Little Endian mode bit - LE                 */
 
-/*
- * Macros to mask off particular bits of an MSR value
- */
+/*********************************************************************************************************
+  Macros to mask off particular bits of an MSR value
+*********************************************************************************************************/
+
 #define ARCH_PPC_INT_MASK(src, des) \
-    RLWINM  des, src, 0, ARCH_PPC_MSR_BIT_EE+1, ARCH_PPC_MSR_BIT_EE-1
+    RLWINM  des, src, 0, ARCH_PPC_MSR_BIT_EE + 1, ARCH_PPC_MSR_BIT_EE - 1
 
 #define ARCH_PPC_POW_MASK(src, des) \
-    RLWINM  des, src, 0, ARCH_PPC_MSR_BIT_POW+1, ARCH_PPC_MSR_BIT_POW-1
+    RLWINM  des, src, 0, ARCH_PPC_MSR_BIT_POW + 1, ARCH_PPC_MSR_BIT_POW - 1
 
-/*
- * Using bit #s here because names vary [DS,IS] vs [DR,IR]
- */
+/*********************************************************************************************************
+  Using bit #s here because names vary [DS,IS] vs [DR,IR]
+*********************************************************************************************************/
+
 #define ARCH_PPC_MMU_MASK(src, des) \
     RLWINM  des, src, 0, 28, 25
 
 #define ARCH_PPC_RI_MASK(src, des) \
-    RLWINM  des, src, 0, ARCH_PPC_MSR_BIT_RI+1, ARCH_PPC_MSR_BIT_RI-1
+    RLWINM  des, src, 0, ARCH_PPC_MSR_BIT_RI + 1, ARCH_PPC_MSR_BIT_RI - 1
 
 #define ARCH_PPC_SE_MASK(src, des) \
-    RLWINM  des, src, 0, ARCH_PPC_MSR_BIT_SE+1, ARCH_PPC_MSR_BIT_SE-1
+    RLWINM  des, src, 0, ARCH_PPC_MSR_BIT_SE + 1, ARCH_PPC_MSR_BIT_SE - 1
 
 /*********************************************************************************************************
   FPSCR definitions
 *********************************************************************************************************/
+/*********************************************************************************************************
+  FPSCR bit definitions (valid for the PPC60X familly)
+*********************************************************************************************************/
 
-/*
- * FPSCR bit definitions (valid for the PPC60X familly)
- */
 #define ARCH_PPC_FPSCR_FX           0x80000000      /*  FP exception summary                            */
 #define ARCH_PPC_FPSCR_FEX          0x40000000      /*  FP enabled exception summary                    */
 #define ARCH_PPC_FPSCR_VX           0x20000000      /*  FP invalid exception summary                    */
@@ -173,7 +180,7 @@
 
 #define ARCH_PPC_RFI_OPCODE         0x4C000064
 
-#endif                                                                  /*  __PPC_ARCH_DEF_H            */
+#endif                                              /*  __PPC_ARCH_DEF_H                                */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

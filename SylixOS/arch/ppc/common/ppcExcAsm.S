@@ -44,6 +44,7 @@
     IMPORT_LABEL(archDecrementerInterruptHandle)
     IMPORT_LABEL(archSystemCallHandle)
     IMPORT_LABEL(archTraceHandle)
+    IMPORT_LABEL(archFpAssistExceptionHandle)
     
     EXPORT_LABEL(archMachineCheckExceptionEntry)
     EXPORT_LABEL(archDataStorageExceptionEntry)
@@ -55,12 +56,13 @@
     EXPORT_LABEL(archDecrementerInterruptEntry)
     EXPORT_LABEL(archSystemCallEntry)
     EXPORT_LABEL(archTraceEntry)
+    EXPORT_LABEL(archFpAssistExceptionEntry)
     
 ;/*********************************************************************************************************
-;  中断入口宏
+;  异常入口宏
 ;*********************************************************************************************************/
 
-MACRO_DEF(IRQ_ENTRY, handle)
+MACRO_DEF(EXC_ENTRY, handle)
     EXC_SAVE_REGS                                                       ;/*  所有寄存器入栈              */
 
     ;/*
@@ -110,7 +112,7 @@ MACRO_DEF(IRQ_ENTRY, handle)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archMachineCheckExceptionEntry)
-    IRQ_ENTRY   archMachineCheckExceptionHandle
+    EXC_ENTRY   archMachineCheckExceptionHandle
     FUNC_END()
 
 ;/*********************************************************************************************************
@@ -118,7 +120,7 @@ FUNC_DEF(archMachineCheckExceptionEntry)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archDataStorageExceptionEntry)
-    IRQ_ENTRY   archDataStorageExceptionHandle
+    EXC_ENTRY   archDataStorageExceptionHandle
     FUNC_END()
 
 ;/*********************************************************************************************************
@@ -126,7 +128,7 @@ FUNC_DEF(archDataStorageExceptionEntry)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archInstructionStorageExceptionEntry)
-    IRQ_ENTRY   archInstructionStorageExceptionHandle
+    EXC_ENTRY   archInstructionStorageExceptionHandle
     FUNC_END()
 
 ;/*********************************************************************************************************
@@ -134,7 +136,7 @@ FUNC_DEF(archInstructionStorageExceptionEntry)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archExternalInterruptEntry)
-    IRQ_ENTRY   bspIntHandle
+    EXC_ENTRY   bspIntHandle
     FUNC_END()
 
 ;/*********************************************************************************************************
@@ -142,7 +144,7 @@ FUNC_DEF(archExternalInterruptEntry)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archAlignmentExceptionEntry)
-    IRQ_ENTRY   archAlignmentExceptionHandle
+    EXC_ENTRY   archAlignmentExceptionHandle
     FUNC_END()
 
 ;/*********************************************************************************************************
@@ -150,7 +152,7 @@ FUNC_DEF(archAlignmentExceptionEntry)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archProgramExceptionEntry)
-    IRQ_ENTRY   archProgramExceptionHandle
+    EXC_ENTRY   archProgramExceptionHandle
     FUNC_END()
 
 ;/*********************************************************************************************************
@@ -158,7 +160,7 @@ FUNC_DEF(archProgramExceptionEntry)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archFpuUnavailableExceptionEntry)
-    IRQ_ENTRY   archFpuUnavailableExceptionHandle
+    EXC_ENTRY   archFpuUnavailableExceptionHandle
     FUNC_END()
 
 ;/*********************************************************************************************************
@@ -166,7 +168,7 @@ FUNC_DEF(archFpuUnavailableExceptionEntry)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archDecrementerInterruptEntry)
-    IRQ_ENTRY   archDecrementerInterruptHandle
+    EXC_ENTRY   archDecrementerInterruptHandle
     FUNC_END()
 
 ;/*********************************************************************************************************
@@ -174,7 +176,7 @@ FUNC_DEF(archDecrementerInterruptEntry)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archSystemCallEntry)
-    IRQ_ENTRY   archSystemCallHandle
+    EXC_ENTRY   archSystemCallHandle
     FUNC_END()
 
 ;/*********************************************************************************************************
@@ -182,7 +184,15 @@ FUNC_DEF(archSystemCallEntry)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archTraceEntry)
-    IRQ_ENTRY   archTraceHandle
+    EXC_ENTRY   archTraceHandle
+    FUNC_END()
+
+;/*********************************************************************************************************
+;  Floating-Point Assist 异常入口(Vector 0xE00)
+;*********************************************************************************************************/
+
+FUNC_DEF(archFpAssistExceptionEntry)
+    EXC_ENTRY   archFpAssistExceptionHandle
     FUNC_END()
 
     FILE_END()

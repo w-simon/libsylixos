@@ -102,6 +102,56 @@ typedef union {
     UINT32          MAS3_uiValue;                                       /*  值                          */
 } LW_PTE_TRANSENTRY;                                                    /*  页表条目类型                */
 
+/*********************************************************************************************************
+  E500 TLB1 条目映射描述
+*********************************************************************************************************/
+
+typedef struct {
+    ULONG                    TLB1D_ulPhyAddr;                           /*  物理地址 (页对齐地址)       */
+    ULONG                    TLB1D_ulVirMap;                            /*  需要初始化的映射关系        */
+    ULONG                    TLB1D_stSize;                              /*  物理内存区长度 (页对齐长度) */
+    ULONG                    TLB1D_ulFlag;                              /*  物理内存区间类型            */
+#define E500_TLB1_FLAG_VALID               0x01                         /*  映射有效                    */
+#define E500_TLB1_FLAG_UNVALID             0x00                         /*  映射无效                    */
+
+#define E500_TLB1_FLAG_ACCESS              0x02                         /*  可以访问                    */
+#define E500_TLB1_FLAG_UNACCESS            0x00                         /*  不能访问                    */
+
+#define E500_TLB1_FLAG_WRITABLE            0x04                         /*  可以写操作                  */
+#define E500_TLB1_FLAG_UNWRITABLE          0x00                         /*  不可以写操作                */
+
+#define E500_TLB1_FLAG_EXECABLE            0x08                         /*  可以执行代码                */
+#define E500_TLB1_FLAG_UNEXECABLE          0x00                         /*  不可以执行代码              */
+
+#define E500_TLB1_FLAG_CACHEABLE           0x10                         /*  可以缓冲                    */
+#define E500_TLB1_FLAG_UNCACHEABLE         0x00                         /*  不可以缓冲                  */
+
+#define E500_TLB1_FLAG_GUARDED             0x40                         /*  进行严格的权限检查          */
+#define E500_TLB1_FLAG_UNGUARDED           0x00                         /*  不进行严格的权限检查        */
+
+#define E500_TLB1_FLAG_TEMP                0x80                         /*  临时映射                    */
+
+#define E500_TLB1_FLAG_MEM      (E500_TLB1_FLAG_VALID    | \
+                                 E500_TLB1_FLAG_ACCESS   | \
+                                 E500_TLB1_FLAG_WRITABLE | \
+                                 E500_TLB1_FLAG_EXECABLE | \
+                                 E500_TLB1_FLAG_CACHEABLE)              /*  普通内存                    */
+
+#define E500_TLB1_FLAG_BOOTSFR  (E500_TLB1_FLAG_VALID      | \
+                                 E500_TLB1_FLAG_ACCESS     | \
+                                 E500_TLB1_FLAG_WRITABLE   | \
+                                 E500_TLB1_FLAG_UNEXECABLE | \
+                                 E500_TLB1_FLAG_UNCACHEABLE)            /*  特殊功能寄存器              */
+} E500_TLB1_MAP_DESC;
+typedef E500_TLB1_MAP_DESC      *PE500_TLB1_MAP_DESC;
+
+/*********************************************************************************************************
+  E500 bsp 需要调用以下函数初始化 TLB1
+*********************************************************************************************************/
+
+INT  ppcE500MmuTLB1Init(CPCHAR  pcMachineName);
+INT  ppcE500MmuTLB1StaticMap(PE500_TLB1_MAP_DESC  pdesc);
+
 #endif
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 #endif                                                                  /*  __PPC_ARCH_MMU_H            */

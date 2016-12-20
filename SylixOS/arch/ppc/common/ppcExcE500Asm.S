@@ -54,8 +54,11 @@
     IMPORT_LABEL(archE500DataTLBErrorHandle)
     IMPORT_LABEL(archE500InstructionTLBErrorHandle)
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
-    IMPORT_LABEL(archE500DebugInterruptHandle)
-    IMPORT_LABEL(archE500FpuUnavailableExceptionHandle)
+    IMPORT_LABEL(archE500DebugExceptionHandle)
+    IMPORT_LABEL(archE500SpeUnavailableExceptionHandle)
+    IMPORT_LABEL(archE500FpDataExceptionHandle)
+    IMPORT_LABEL(archE500FpRoundExceptionHandle)
+    IMPORT_LABEL(archE500PerfMonitorExceptionHandle)
 
     EXPORT_LABEL(archE500CriticalInputExceptionEntry)
     EXPORT_LABEL(archE500MachineCheckExceptionEntry)
@@ -70,14 +73,44 @@
     EXPORT_LABEL(archE500WatchdogInterruptEntry)
     EXPORT_LABEL(archE500DataTLBErrorEntry)
     EXPORT_LABEL(archE500InstructionTLBErrorEntry)
-    EXPORT_LABEL(archE500DebugInterruptEntry)
-    EXPORT_LABEL(archE500FpuUnavailableExceptionEntry)
+    EXPORT_LABEL(archE500DebugExceptionEntry)
+    EXPORT_LABEL(archE500SpeUnavailableExceptionEntry)
+    EXPORT_LABEL(archE500FpDataExceptionEntry)
+    EXPORT_LABEL(archE500FpRoundExceptionEntry)
+    EXPORT_LABEL(archE500PerfMonitorExceptionEntry)
 
 ;/*********************************************************************************************************
-;  中断入口宏
+;  异常处理程序起始地址需要 16 字节对齐方能填入 IVOR 寄存器
 ;*********************************************************************************************************/
 
-MACRO_DEF(E500_IRQ_ENTRY, handle)
+#ifdef __GNUC__
+#define EXCE_DEF(func)  \
+        .balign 16;     \
+        .type func, %function;  \
+func:
+
+#define EXCE_END()
+#else                                                                   /*  __GNUC__                    */
+#  error "NOT SUPPORT!"
+#endif                                                                  /*  !__GNUC__                   */
+
+;/*********************************************************************************************************
+;  异常处理程序都放在 .vector 节区
+;*********************************************************************************************************/
+
+    SECTION(.vector)
+
+;/*********************************************************************************************************
+;  异常入口宏
+;  注意: E500 有 3 类异常: 普通异常   机器检查异常   临界输入异常(包括调试异常和看门狗中断)
+;  这 3 类异常使用的寄存器不一样
+;  普通异常使用     SRR0   SRR1
+;  机器检查异常使用 MCSRR0 MCSRR1
+;  临界输入异常使用 CSRR0  CSRR1
+;  所以定义了 3 个异常入口宏
+;*********************************************************************************************************/
+
+MACRO_DEF(E500_EXC_ENTRY, handle)
     E500_EXC_SAVE_REGS                                                  ;/*  所有寄存器入栈              */
 
     ;/*
@@ -126,7 +159,7 @@ MACRO_DEF(E500_IRQ_ENTRY, handle)
 ;  临界输入异常入口宏
 ;*********************************************************************************************************/
 
-MACRO_DEF(E500_CI_IRQ_ENTRY, handle)
+MACRO_DEF(E500_CI_EXC_ENTRY, handle)
     E500_CI_EXC_SAVE_REGS                                               ;/*  所有寄存器入栈              */
 
     ;/*
@@ -175,7 +208,7 @@ MACRO_DEF(E500_CI_IRQ_ENTRY, handle)
 ;  机器检查异常入口宏
 ;*********************************************************************************************************/
 
-MACRO_DEF(E500_MC_IRQ_ENTRY, handle)
+MACRO_DEF(E500_MC_EXC_ENTRY, handle)
     E500_MC_EXC_SAVE_REGS                                               ;/*  所有寄存器入栈              */
 
     ;/*
@@ -221,132 +254,164 @@ MACRO_DEF(E500_MC_IRQ_ENTRY, handle)
     MACRO_END()
 
 ;/*********************************************************************************************************
+;  Embedded Category–Defined IVORs
+;*********************************************************************************************************/
+
+;/*********************************************************************************************************
 ;  临界输入异常入口(Vector IVOR0)
 ;*********************************************************************************************************/
 
-FUNC_DEF(archE500CriticalInputExceptionEntry)
-    E500_CI_IRQ_ENTRY   archE500CriticalInputExceptionHandle
-    FUNC_END()
+EXCE_DEF(archE500CriticalInputExceptionEntry)
+    E500_CI_EXC_ENTRY   archE500CriticalInputExceptionHandle
+    EXCE_END()
 
 ;/*********************************************************************************************************
 ;  机器检查异常入口(Vector IVOR1)
 ;*********************************************************************************************************/
 
-FUNC_DEF(archE500MachineCheckExceptionEntry)
-    E500_MC_IRQ_ENTRY   archE500MachineCheckExceptionHandle
-    FUNC_END()
+EXCE_DEF(archE500MachineCheckExceptionEntry)
+    E500_MC_EXC_ENTRY   archE500MachineCheckExceptionHandle
+    EXCE_END()
 
 ;/*********************************************************************************************************
 ;  数据存储异常入口(Vector IVOR2)
 ;*********************************************************************************************************/
 
-FUNC_DEF(archE500DataStorageExceptionEntry)
-    E500_IRQ_ENTRY      archE500DataStorageExceptionHandle
-    FUNC_END()
+EXCE_DEF(archE500DataStorageExceptionEntry)
+    E500_EXC_ENTRY      archE500DataStorageExceptionHandle
+    EXCE_END()
 
 ;/*********************************************************************************************************
 ;  指令访问异常入口(Vector IVOR3)
 ;*********************************************************************************************************/
 
-FUNC_DEF(archE500InstructionStorageExceptionEntry)
-    E500_IRQ_ENTRY      archE500InstructionStorageExceptionHandle
-    FUNC_END()
+EXCE_DEF(archE500InstructionStorageExceptionEntry)
+    E500_EXC_ENTRY      archE500InstructionStorageExceptionHandle
+    EXCE_END()
 
 ;/*********************************************************************************************************
 ;  外部中断入口(Vector IVOR4)
 ;*********************************************************************************************************/
 
-FUNC_DEF(archE500ExternalInterruptEntry)
-    E500_IRQ_ENTRY      bspIntHandle
-    FUNC_END()
+EXCE_DEF(archE500ExternalInterruptEntry)
+    E500_EXC_ENTRY      bspIntHandle
+    EXCE_END()
 
 ;/*********************************************************************************************************
 ;  非对齐异常入口(Vector IVOR5)
 ;*********************************************************************************************************/
 
-FUNC_DEF(archE500AlignmentExceptionEntry)
-    E500_IRQ_ENTRY      archE500AlignmentExceptionHandle
-    FUNC_END()
+EXCE_DEF(archE500AlignmentExceptionEntry)
+    E500_EXC_ENTRY      archE500AlignmentExceptionHandle
+    EXCE_END()
 
 ;/*********************************************************************************************************
 ;  程序异常入口(Vector IVOR6)
 ;*********************************************************************************************************/
 
-FUNC_DEF(archE500ProgramExceptionEntry)
-    E500_IRQ_ENTRY      archE500ProgramExceptionHandle
-    FUNC_END()
+EXCE_DEF(archE500ProgramExceptionEntry)
+    E500_EXC_ENTRY      archE500ProgramExceptionHandle
+    EXCE_END()
 
 ;/*********************************************************************************************************
 ;  系统调用入口(Vector IVOR8)
 ;*********************************************************************************************************/
 
-FUNC_DEF(archE500SystemCallEntry)
-    E500_IRQ_ENTRY      archE500SystemCallHandle
-    FUNC_END()
+EXCE_DEF(archE500SystemCallEntry)
+    E500_EXC_ENTRY      archE500SystemCallHandle
+    EXCE_END()
 
 ;/*********************************************************************************************************
-;  Decrementer 异常入口(Vector IVOR10)
+;  Decrementer 中断入口(Vector IVOR10)
 ;*********************************************************************************************************/
 
-FUNC_DEF(archE500DecrementerInterruptEntry)
-    E500_IRQ_ENTRY      archE500DecrementerInterruptHandle
-    FUNC_END()
+EXCE_DEF(archE500DecrementerInterruptEntry)
+    E500_EXC_ENTRY      archE500DecrementerInterruptHandle
+    EXCE_END()
 
 ;/*********************************************************************************************************
-;  Fixed-interval timer 异常入口(Vector IVOR11)
+;  Fixed-interval timer 中断入口(Vector IVOR11)
 ;*********************************************************************************************************/
 
-FUNC_DEF(archE500TimerInterruptEntry)
-    E500_IRQ_ENTRY      archE500TimerInterruptHandle
-    FUNC_END()
+EXCE_DEF(archE500TimerInterruptEntry)
+    E500_EXC_ENTRY      archE500TimerInterruptHandle
+    EXCE_END()
 
 ;/*********************************************************************************************************
-;  Watchdog timer 异常入口(Vector IVOR12)
+;  Watchdog timer 中断入口(Vector IVOR12)
 ;*********************************************************************************************************/
 
-FUNC_DEF(archE500WatchdogInterruptEntry)
-    E500_CI_IRQ_ENTRY   archE500WatchdogInterruptHandle
-    FUNC_END()
+EXCE_DEF(archE500WatchdogInterruptEntry)
+    E500_CI_EXC_ENTRY   archE500WatchdogInterruptHandle
+    EXCE_END()
 
 ;/*********************************************************************************************************
-;  数据 TLB 错误入口(Vector IVOR13)
+;  数据 TLB 错误异常入口(Vector IVOR13)
 ;*********************************************************************************************************/
 
-FUNC_DEF(archE500DataTLBErrorEntry)
+EXCE_DEF(archE500DataTLBErrorEntry)
 #if LW_CFG_VMM_EN > 0
-    E500_IRQ_ENTRY      archE500MmuDataTlbErrorHandle
+    E500_EXC_ENTRY      archE500MmuDataTlbErrorHandle
 #else
-    E500_IRQ_ENTRY      archE500DataTLBErrorHandle
+    E500_EXC_ENTRY      archE500DataTLBErrorHandle
 #endif                                                                  /*  LW_CFG_VMM_EN > 0            */
-    FUNC_END()
+    EXCE_END()
 
 ;/*********************************************************************************************************
-;  指令 TLB 错误入口(Vector IVOR14)
+;  指令 TLB 错误异常入口(Vector IVOR14)
 ;*********************************************************************************************************/
 
-FUNC_DEF(archE500InstructionTLBErrorEntry)
+EXCE_DEF(archE500InstructionTLBErrorEntry)
 #if LW_CFG_VMM_EN > 0
-    E500_IRQ_ENTRY      archE500MmuInstructionTlbErrorHandle
+    E500_EXC_ENTRY      archE500MmuInstructionTlbErrorHandle
 #else
-    E500_IRQ_ENTRY      archE500InstructionTLBErrorHandle
+    E500_EXC_ENTRY      archE500InstructionTLBErrorHandle
 #endif                                                                  /*  LW_CFG_VMM_EN > 0            */
-    FUNC_END()
+    EXCE_END()
 
 ;/*********************************************************************************************************
 ;  Debug 异常入口(Vector IVOR15)
 ;*********************************************************************************************************/
 
-FUNC_DEF(archE500DebugInterruptEntry)
-    E500_CI_IRQ_ENTRY   archE500DebugInterruptHandle
-    FUNC_END()
+EXCE_DEF(archE500DebugExceptionEntry)
+    E500_CI_EXC_ENTRY   archE500DebugExceptionHandle
+    EXCE_END()
 
 ;/*********************************************************************************************************
-;  FPU 不可用入口(Vector IVOR32)
+;  e500-Specific IVORs
 ;*********************************************************************************************************/
 
-FUNC_DEF(archE500FpuUnavailableExceptionEntry)
-    E500_IRQ_ENTRY      archFpuUnavailableExceptionHandle
-    FUNC_END()
+;/*********************************************************************************************************
+;  SPE 不可用异常入口(Vector IVOR32)
+;*********************************************************************************************************/
+
+EXCE_DEF(archE500SpeUnavailableExceptionEntry)
+    E500_EXC_ENTRY      archE500SpeUnavailableExceptionHandle
+    EXCE_END()
+
+;/*********************************************************************************************************
+;  SPE floating-point data 异常入口(Vector IVOR33)
+;*********************************************************************************************************/
+
+EXCE_DEF(archE500FpDataExceptionEntry)
+    E500_EXC_ENTRY      archE500FpDataExceptionHandle
+    EXCE_END()
+
+;/*********************************************************************************************************
+;  SPE floating-point round 异常入口(Vector IVOR34)
+;*********************************************************************************************************/
+
+EXCE_DEF(archE500FpRoundExceptionEntry)
+    E500_EXC_ENTRY      archE500FpRoundExceptionHandle
+    EXCE_END()
+
+;/*********************************************************************************************************
+;  Performance monitor 异常入口(Vector IVOR35)
+;*********************************************************************************************************/
+
+EXCE_DEF(archE500PerfMonitorExceptionEntry)
+    E500_EXC_ENTRY      archE500PerfMonitorExceptionHandle
+    EXCE_END()
 
     FILE_END()
 

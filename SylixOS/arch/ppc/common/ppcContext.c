@@ -51,12 +51,12 @@ PLW_STACK  archTaskCtxCreate (PTHREAD_START_ROUTINE  pfuncTask,
     uiSrr1 = uiMsr;
 
     if (pParam->PP_bGenericPPC32) {                                     /*  通用的 32 位 PowerPC 处理器 */
-#define ARCH_PPC_MSR_VEC            0x0200                              /*  Bit 6 of MSR                */
+#define ARCH_PPC_MSR_VEC            0x02000000                          /*  Bit 6 of MSR                */
 
         uiSrr1 |=  ARCH_PPC_MSR_EE;                                     /*  使能中断                    */
         uiSrr1 &= ~ARCH_PPC_MSR_PR;                                     /*  特权模式                    */
         uiSrr1 &= ~ARCH_PPC_MSR_FP;                                     /*  禁能 FPU                    */
-        uiSrr1 &= ~(ARCH_PPC_MSR_VEC << 16);                            /*  禁能 ALTIVEC                */
+        uiSrr1 &= ~ARCH_PPC_MSR_VEC;                                    /*  禁能 ALTIVEC                */
 #if LW_CFG_VMM_EN > 0
         uiSrr1 |= ARCH_PPC_MSR_IR | ARCH_PPC_MSR_DR;                    /*  使能 MMU                    */
 #else
@@ -66,8 +66,8 @@ PLW_STACK  archTaskCtxCreate (PTHREAD_START_ROUTINE  pfuncTask,
 #undef  ARCH_PPC_MSR_VEC
     } else {                                                            /*  PowerPC E500 处理器         */
 #define ARCH_PPC_MSR_SPE            0x02000000
-#define ARCH_PPC_MSR_IS             0x0020                              /*  insn address space selector */
-#define ARCH_PPC_MSR_DS             0x0010                              /*  data address space selector */
+#define ARCH_PPC_MSR_IS             0x00000020                          /*  insn address space selector */
+#define ARCH_PPC_MSR_DS             0x00000010                          /*  data address space selector */
 
         uiSrr1 |=  ARCH_PPC_MSR_EE;                                     /*  使能中断                    */
         uiSrr1 &= ~ARCH_PPC_MSR_SPE;                                    /*  禁能 SPE                    */

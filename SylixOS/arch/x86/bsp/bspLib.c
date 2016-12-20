@@ -41,7 +41,7 @@
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-WEAK_FUNC CPCHAR  bspInfoCpu (VOID)
+LW_WEAK CPCHAR  bspInfoCpu (VOID)
 {
     return  (_G_pcX86CpuInfo);
 }
@@ -53,7 +53,7 @@ WEAK_FUNC CPCHAR  bspInfoCpu (VOID)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-WEAK_FUNC CPCHAR  bspInfoCache (VOID)
+LW_WEAK CPCHAR  bspInfoCache (VOID)
 {
     return  (_G_pcX86CacheInfo);
 }
@@ -65,7 +65,7 @@ WEAK_FUNC CPCHAR  bspInfoCache (VOID)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-WEAK_FUNC ULONG  bspInfoHwcap (VOID)
+LW_WEAK ULONG  bspInfoHwcap (VOID)
 {
     ULONG  ulHwcap = 0;
 
@@ -147,7 +147,7 @@ static I8259A_CTL _G_i8259aData = {
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-WEAK_FUNC VOID  bspIntInit (VOID)
+LW_WEAK VOID  bspIntInit (VOID)
 {
     /*
      * 如果某中断为链式中断，请加入形如:
@@ -196,7 +196,7 @@ WEAK_FUNC VOID  bspIntInit (VOID)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-WEAK_FUNC VOID  bspIntHandle (ULONG  ulVector)
+LW_WEAK VOID  bspIntHandle (ULONG  ulVector)
 {
     archIntHandle(ulVector, LW_FALSE);                                  /*  不允许中断嵌套(MSI 中断无法 */
                                                                         /*  屏蔽)                       */
@@ -219,7 +219,7 @@ WEAK_FUNC VOID  bspIntHandle (ULONG  ulVector)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-WEAK_FUNC VOID  bspIntVectorEnable (ULONG  ulVector)
+LW_WEAK VOID  bspIntVectorEnable (ULONG  ulVector)
 {
     if (_G_bX86HasAPIC && (ulVector != X86_IRQ_TIMER)) {                /*  Timer 用虚拟线模式          */
         x86IoApicIrqEnable(ulVector);
@@ -239,7 +239,7 @@ WEAK_FUNC VOID  bspIntVectorEnable (ULONG  ulVector)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-WEAK_FUNC VOID  bspIntVectorDisable (ULONG  ulVector)
+LW_WEAK VOID  bspIntVectorDisable (ULONG  ulVector)
 {
     if (_G_bX86HasAPIC && (ulVector != X86_IRQ_TIMER)) {                /*  Timer 用虚拟线模式          */
         x86LocalApicIrqDisable(ulVector);
@@ -259,7 +259,7 @@ WEAK_FUNC VOID  bspIntVectorDisable (ULONG  ulVector)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-WEAK_FUNC BOOL  bspIntVectorIsEnable (ULONG  ulVector)
+LW_WEAK BOOL  bspIntVectorIsEnable (ULONG  ulVector)
 {
     if (_G_bX86HasAPIC && (ulVector != X86_IRQ_TIMER)) {                /*  Timer 用虚拟线模式          */
         return  (x86IoApicIrqIsEnable(ulVector));
@@ -284,7 +284,7 @@ WEAK_FUNC BOOL  bspIntVectorIsEnable (ULONG  ulVector)
 *********************************************************************************************************/
 #if LW_CFG_INTER_PRIO > 0
 
-WEAK_FUNC ULONG   bspIntVectorSetPriority (ULONG  ulVector, UINT  uiPrio)
+LW_WEAK ULONG   bspIntVectorSetPriority (ULONG  ulVector, UINT  uiPrio)
 {
     /*
      * 不能设置优先级
@@ -300,7 +300,7 @@ WEAK_FUNC ULONG   bspIntVectorSetPriority (ULONG  ulVector, UINT  uiPrio)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-WEAK_FUNC ULONG   bspIntVectorGetPriority (ULONG  ulVector, UINT  *puiPrio)
+LW_WEAK ULONG   bspIntVectorGetPriority (ULONG  ulVector, UINT  *puiPrio)
 {
     *puiPrio = ulVector;                                                /*  Vector 越大，优先级越高     */
     return  (ERROR_NONE);
@@ -319,7 +319,7 @@ WEAK_FUNC ULONG   bspIntVectorGetPriority (ULONG  ulVector, UINT  *puiPrio)
 *********************************************************************************************************/
 #if LW_CFG_INTER_TARGET > 0
 
-WEAK_FUNC ULONG   bspIntVectorSetTarget (ULONG  ulVector, size_t  stSize, const PLW_CLASS_CPUSET  pcpuset)
+LW_WEAK ULONG   bspIntVectorSetTarget (ULONG  ulVector, size_t  stSize, const PLW_CLASS_CPUSET  pcpuset)
 {
     if (_G_bX86HasAPIC && (ulVector != X86_IRQ_TIMER)) {                /*  Timer 用虚拟线模式          */
         ULONG   i;
@@ -348,7 +348,7 @@ WEAK_FUNC ULONG   bspIntVectorSetTarget (ULONG  ulVector, size_t  stSize, const 
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-WEAK_FUNC ULONG   bspIntVectorGetTarget (ULONG  ulVector, size_t  stSize, PLW_CLASS_CPUSET  pcpuset)
+LW_WEAK ULONG   bspIntVectorGetTarget (ULONG  ulVector, size_t  stSize, PLW_CLASS_CPUSET  pcpuset)
 {
     LW_CPU_ZERO(pcpuset);
 
@@ -377,7 +377,7 @@ WEAK_FUNC ULONG   bspIntVectorGetTarget (ULONG  ulVector, size_t  stSize, PLW_CL
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-WEAK_FUNC ULONG  bspMmuPgdMaxNum (VOID)
+LW_WEAK ULONG  bspMmuPgdMaxNum (VOID)
 {
     return  (1);
 }
@@ -389,7 +389,7 @@ WEAK_FUNC ULONG  bspMmuPgdMaxNum (VOID)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-WEAK_FUNC ULONG  bspMmuPteMaxNum (VOID)
+LW_WEAK ULONG  bspMmuPteMaxNum (VOID)
 {
     return  (1024);
 }
@@ -442,7 +442,7 @@ static SPINLOCKTYPE _G_slX86ApLock = 0;
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-WEAK_FUNC VOID   bspCpuUp (ULONG  ulCPUId)
+LW_WEAK VOID   bspCpuUp (ULONG  ulCPUId)
 {
     UINT32     *puiEntryAddr;
     PLW_STACK   pstkStack;
@@ -471,7 +471,7 @@ WEAK_FUNC VOID   bspCpuUp (ULONG  ulCPUId)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-WEAK_FUNC VOID   bspCpuUpDone (VOID)
+LW_WEAK VOID   bspCpuUpDone (VOID)
 {
     x86SpinUnlock(&_G_slX86ApLock);
 }
@@ -483,7 +483,7 @@ WEAK_FUNC VOID   bspCpuUpDone (VOID)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-WEAK_FUNC VOID  bspSecondaryCpusUp (VOID)
+LW_WEAK VOID  bspSecondaryCpusUp (VOID)
 {
     UINT8  ucLocalApicId;
     INT    i;
@@ -512,7 +512,7 @@ WEAK_FUNC VOID  bspSecondaryCpusUp (VOID)
 *********************************************************************************************************/
 #if LW_CFG_SMP_CPU_DOWN_EN > 0
 
-WEAK_FUNC VOID   bspCpuDown (ULONG  ulCPUId)
+LW_WEAK VOID   bspCpuDown (ULONG  ulCPUId)
 {
 }
 
@@ -526,7 +526,7 @@ WEAK_FUNC VOID   bspCpuDown (ULONG  ulCPUId)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-WEAK_FUNC VOID  bspCpuIpiVectorInstall (VOID)
+LW_WEAK VOID  bspCpuIpiVectorInstall (VOID)
 {
     ULONG  ulCPUId;
 
@@ -613,7 +613,7 @@ static irqreturn_t  __tickTimerIsr (VOID)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-WEAK_FUNC VOID  bspTickInit (VOID)
+LW_WEAK VOID  bspTickInit (VOID)
 {
 #if TICK_IN_THREAD > 0
     LW_CLASS_THREADATTR  threadattr;
@@ -652,7 +652,7 @@ WEAK_FUNC VOID  bspTickInit (VOID)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-WEAK_FUNC VOID  bspTickHighResolution (struct timespec  *ptv)
+LW_WEAK VOID  bspTickHighResolution (struct timespec  *ptv)
 {
     REGISTER UINT32  uiCntCur, uiDone;
 
@@ -688,7 +688,7 @@ WEAK_FUNC VOID  bspTickHighResolution (struct timespec  *ptv)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-WEAK_FUNC ULONG   bspSysBusClkGet (VOID)
+LW_WEAK ULONG   bspSysBusClkGet (VOID)
 {
     X86_PARAM   *pparam;
 
@@ -747,7 +747,7 @@ static VOID  bspResetByKeyboard (VOID)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-WEAK_FUNC VOID    bspReboot (INT  iRebootType, addr_t  ulStartAddress)
+LW_WEAK VOID  bspReboot (INT  iRebootType, addr_t  ulStartAddress)
 {
     (VOID)iRebootType;
     (VOID)ulStartAddress;

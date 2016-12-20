@@ -18,8 +18,9 @@
 **
 ** Ãè        Êö: MIPS CP0 º¯Êý¿â.
 *********************************************************************************************************/
-#ifndef MIPSCP0_H_
-#define MIPSCP0_H_
+
+#ifndef __MIPSCP0_H
+#define __MIPSCP0_H
 
 #include "arch/mips/arch_def.h"
 
@@ -87,7 +88,7 @@ mipsCp0RegReadWrite(Diag)
 mipsCp0RegReadWrite(PageGrain)
 mipsCp0RegReadWrite(GSConfig)
 
-#endif                                                                  /*  MIPSCP0_H_                  */
+#endif                                                                  /*  __MIPSCP0_H                 */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

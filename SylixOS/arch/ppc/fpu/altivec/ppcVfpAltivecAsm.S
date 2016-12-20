@@ -48,10 +48,8 @@
 ;  ALTIVEC 在 MSR 中的使能掩码
 ;*********************************************************************************************************/
 
-#define ARCH_PPC_MSR_BIT_ALTIVEC    6
-
 #define ALTIVEC_MASK(src, des) \
-    RLWINM  des, src, 0, ARCH_PPC_MSR_BIT_ALTIVEC+1, ARCH_PPC_MSR_BIT_ALTIVEC-1
+    RLWINM  des, src, 0, ARCH_PPC_MSR_BIT_VEC + 1, ARCH_PPC_MSR_BIT_VEC - 1
 
 ;/*********************************************************************************************************
 ;  使能 FPU 宏
@@ -59,7 +57,7 @@
 
 MACRO_DEF(ENABLE_ALTIVEC, Rn)
     MFMSR   \Rn
-    ORIS    \Rn , \Rn , ARCH_PPC_MSR_VEC
+    ORIS    \Rn , \Rn , HI(ARCH_PPC_MSR_VEC)
     SYNC
     MTMSR   \Rn
     ISYNC
@@ -96,7 +94,7 @@ FUNC_DEF(ppcVfpAltivecDisable)
 FUNC_DEF(ppcVfpAltivecIsEnable)
     MFMSR   R3
     ISYNC
-    RLWINM  R3 , R3 , 0 , ARCH_PPC_MSR_BIT_ALTIVEC , ARCH_PPC_MSR_BIT_ALTIVEC
+    RLWINM  R3 , R3 , 0 , ARCH_PPC_MSR_BIT_VEC, ARCH_PPC_MSR_BIT_VEC
     CMPWI   CR0, R3 , 0
     BNE     CR0, __ppcVfpAltivecIsEnable
     BLR

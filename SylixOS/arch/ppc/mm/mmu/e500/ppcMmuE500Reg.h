@@ -110,6 +110,7 @@ typedef union {
 #define MMU_TRANS_SZ_64M    0x8                                         /*  64MB page size              */
 #define MMU_TRANS_SZ_256M   0x9                                         /*  256MB page size             */
 #define MMU_TRANS_SZ_1G     0xa                                         /*  1GB page size               */
+#define MMU_TRANS_SZ_4G     0xb                                         /*  4GB page size               */
         UINT        MAS1_ucTSIZE        :  4;                           /*  translation size            */
         UINT        MAS1_ucReserved2    :  8;                           /*  reserved                    */
     };

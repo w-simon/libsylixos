@@ -71,7 +71,6 @@ static INT   ppc83xxCacheProbe (CPCHAR  pcMachineName, PPC_CACHE  *pICache, PPC_
         pDCache->CACHE_uiSize      = pDCache->CACHE_uiSetNr * pDCache->CACHE_uiWayNr * \
                                      pDCache->CACHE_uiLineSize;
         pDCache->CACHE_uiWaySize   = pDCache->CACHE_uiSetNr * pDCache->CACHE_uiLineSize;
-
         return  (ERROR_NONE);
 
     } else {

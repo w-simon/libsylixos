@@ -521,7 +521,7 @@ static int passwd_sync (void)
     PLW_LIST_LINE  pline;
     user_t        *puser;
 
-    fd = open(_PATH_PASSWD ".update", O_WRONLY | O_CREAT | O_TRUNC, 0600);
+    fd = open(_PATH_PASSWD ".update", O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (fd < 0) {
         return  (PX_ERROR);
     }
@@ -539,7 +539,9 @@ static int passwd_sync (void)
     
     close(fd);
     
+    chmod(_PATH_PASSWD ".bak", 0600);
     unlink(_PATH_PASSWD ".bak");
+    
     if (rename(_PATH_PASSWD, _PATH_PASSWD ".bak")) {
         ret = PX_ERROR;
         goto    out;
@@ -571,7 +573,7 @@ static int group_sync (void)
     PLW_LIST_LINE   pline;
     group_t        *pgrp;
 
-    fd = open(_PATH_GROUP ".update", O_WRONLY | O_CREAT | O_TRUNC, 0600);
+    fd = open(_PATH_GROUP ".update", O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (fd < 0) {
         return  (PX_ERROR);
     }
@@ -588,7 +590,9 @@ static int group_sync (void)
     
     close(fd);
     
+    chmod(_PATH_GROUP ".bak", 0600);
     unlink(_PATH_GROUP ".bak");
+    
     if (rename(_PATH_GROUP, _PATH_GROUP ".bak")) {
         ret = PX_ERROR;
         goto    out;
@@ -620,7 +624,7 @@ static int shadow_sync (void)
     PLW_LIST_LINE   pline;
     shadow_t       *pshadow;
 
-    fd = open(_PATH_SHADOW ".update", O_WRONLY | O_CREAT | O_TRUNC, 0600);
+    fd = open(_PATH_SHADOW ".update", O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (fd < 0) {
         return  (PX_ERROR);
     }
@@ -636,7 +640,9 @@ static int shadow_sync (void)
     
     close(fd);
     
+    chmod(_PATH_SHADOW ".bak", 0600);
     unlink(_PATH_SHADOW ".bak");
+    
     if (rename(_PATH_SHADOW, _PATH_SHADOW ".bak")) {
         ret = PX_ERROR;
         goto    out;
@@ -955,6 +961,8 @@ static int user_sync (void)
             return  (PX_ERROR);
         }
     }
+    
+    sync(); /* sync to disk! */
     
     return  (ERROR_NONE);
 }
@@ -1606,7 +1614,7 @@ int  user_db_pmod (const char  *user, const char  *passwd_old, const char  *pass
         return  (PX_ERROR);
     }
     
-    if (getuid() != 0) {
+    if (getuid() != 0) { /* 'root' user do not check old password */
         if (passwdcheck(user, passwd_old)) {
             errno = EACCES;
             return  (PX_ERROR);
