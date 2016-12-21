@@ -507,7 +507,7 @@ netif_find(const char *name)
     return NULL;
   }
 
-  num = name[2] - '0';
+  num = (u8_t)(name[2] - '0');
 
   for (netif = netif_list; netif != NULL; netif = netif->next) {
     if (num == netif->num &&
@@ -1149,6 +1149,13 @@ netif_ip6_addr_set_state(struct netif* netif, s8_t addr_idx, u8_t state)
     u8_t old_valid = old_state & IP6_ADDR_VALID;
     u8_t new_valid = state & IP6_ADDR_VALID;
     LWIP_DEBUGF(NETIF_DEBUG | LWIP_DBG_STATE, ("netif_ip6_addr_set_state: netif address state being changed\n"));
+
+#if LWIP_IPV6_MLD
+    /* Reevaluate solicited-node multicast group membership. */
+    if (netif->flags & NETIF_FLAG_MLD6) {
+      nd6_adjust_mld_membership(netif, addr_idx, state);
+    }
+#endif /* LWIP_IPV6_MLD */
 
     if (old_valid && !new_valid) {
       /* address about to be removed by setting invalid */

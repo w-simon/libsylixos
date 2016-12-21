@@ -39,7 +39,7 @@
 *********************************************************************************************************/
 static LW_OBJECT_HANDLE     _G_hPGDPartition;                           /*  系统目前仅使用一个 PGD      */
 static LW_OBJECT_HANDLE     _G_hPTEPartition;                           /*  PTE 缓冲区                  */
-static PLW_MMU_CONTEXT      _G_pMmuContext;                             /*  上下文                      */
+static PLW_MMU_CONTEXT      _G_pMmuContext[LW_CFG_MAX_PROCESSORS];      /*  上下文                      */
 static UINT                 _G_uiTlbNr;                                 /*  TLB 数目                    */
 static UINT8                _G_ucWIM4CacheBuffer;
 static UINT8                _G_ucWIM4Cache;
@@ -676,7 +676,9 @@ static VOID  ppcMmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
 *********************************************************************************************************/
 static VOID  ppcMmuMakeCurCtx (PLW_MMU_CONTEXT  pmmuctx)
 {
-    _G_pMmuContext = pmmuctx;
+    ULONG   ulCPUId = LW_CPU_GET_CUR_ID();
+
+    _G_pMmuContext[ulCPUId] = pmmuctx;
 }
 /*********************************************************************************************************
 ** 函数名称: ppcMmuInvTLB
@@ -712,11 +714,13 @@ static VOID  ppcMmuInvTLB (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulPageAddr, ULONG  
 *********************************************************************************************************/
 ULONG  ppcMmuPteMissHandle (addr_t  ulAddr)
 {
-    if (!_G_pMmuContext) {
+    ULONG   ulCPUId = LW_CPU_GET_CUR_ID();
+
+    if (!_G_pMmuContext[ulCPUId]) {
         return  (LW_VMM_ABORT_TYPE_MAP);
     }
 
-    LW_PGD_TRANSENTRY  *p_pgdentry = ppcMmuPgdOffset(_G_pMmuContext, ulAddr);
+    LW_PGD_TRANSENTRY  *p_pgdentry = ppcMmuPgdOffset(_G_pMmuContext[ulCPUId], ulAddr);
     INT                 iDescType;
 
     iDescType = (*p_pgdentry) & 0x03;                                   /*  获得一级页表类型            */

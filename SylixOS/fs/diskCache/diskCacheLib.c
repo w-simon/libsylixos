@@ -961,7 +961,10 @@ INT  __diskCacheIoctl (PLW_DISKCACHE_CB   pdiskcDiskCache, INT  iCmd, LONG  lArg
     REGISTER INT            iError = PX_ERROR;
              PLW_BLK_RANGE  pblkrange;
 
-    __LW_DISKCACHE_LOCK(pdiskcDiskCache);                               /*  ª•≥‚∑√Œ                     */
+    if (__LW_DISKCACHE_LOCK(pdiskcDiskCache)) {                         /*  ª•≥‚∑√Œ                     */
+        _ErrorHandle(ENXIO);
+        return  (PX_ERROR);
+    }
 
     switch (iCmd) {
     

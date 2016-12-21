@@ -17,6 +17,9 @@
 ** 文件创建日期: 2009 年 03 月 23 日
 **
 ** 描        述: 磁盘高速缓冲控制器背景回写任务.
+**
+** BUG:
+2016.12.21  简化文件系统回写线程设计.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -41,7 +44,6 @@ extern INT  __diskCacheIoctl(PLW_DISKCACHE_CB   pdiskcDiskCache, INT  iCmd, LONG
 *********************************************************************************************************/
 LW_OBJECT_HANDLE        _G_ulDiskCacheListLock  = 0ul;                  /*  链表锁                      */
 PLW_LIST_LINE           _G_plineDiskCacheHeader = LW_NULL;              /*  链表头                      */
-static PLW_LIST_LINE    _G_plineDiskCacheOp     = LW_NULL;              /*  操作链表节点                */
 /*********************************************************************************************************
   锁操作
 *********************************************************************************************************/
@@ -60,6 +62,7 @@ static PLW_LIST_LINE    _G_plineDiskCacheOp     = LW_NULL;              /*  操作
 PVOID  __diskCacheThread (PVOID  pvArg)
 {
     PLW_DISKCACHE_CB   pdiskcDiskCache;
+    PLW_LIST_LINE      plineCache;
     ULONG              ulNSector = __LW_DISKCACHE_BG_MINSECTOR;
     
     (VOID)pvArg;
@@ -68,20 +71,14 @@ PVOID  __diskCacheThread (PVOID  pvArg)
         API_TimeSSleep(__LW_DISKCACHE_BG_SECONDS);                      /*  近似延时                    */
         
         __LW_DISKCACHE_LIST_LOCK();
-        _G_plineDiskCacheOp = _G_plineDiskCacheHeader;
-        while (_G_plineDiskCacheOp) {
-            pdiskcDiskCache = _LIST_ENTRY(_G_plineDiskCacheOp, 
+        for (plineCache  = _G_plineDiskCacheHeader;
+             plineCache != LW_NULL;
+             plineCache  = _list_line_get_next(plineCache)) {           /*  遍历所有磁盘缓冲            */
+             
+            pdiskcDiskCache = _LIST_ENTRY(plineCache, 
                                           LW_DISKCACHE_CB, 
-                                          DISKC_lineManage);
-            _G_plineDiskCacheOp = _list_line_get_next(_G_plineDiskCacheOp);
-            
-            __LW_DISKCACHE_LIST_UNLOCK();                               /*  释放链表操作使用权          */
-            
-            __diskCacheIoctl(pdiskcDiskCache, 
-                             LW_BLKD_DISKCACHE_RAMFLUSH, 
-                             ulNSector);                                /*  回写磁盘                    */
-            
-            __LW_DISKCACHE_LIST_LOCK();                                 /*  获取链表操作使用权          */
+                                          DISKC_lineManage);            /*  回写磁盘                    */
+            __diskCacheIoctl(pdiskcDiskCache, LW_BLKD_DISKCACHE_RAMFLUSH, ulNSector);
         }
         __LW_DISKCACHE_LIST_UNLOCK();
     }
@@ -99,8 +96,7 @@ PVOID  __diskCacheThread (PVOID  pvArg)
 VOID  __diskCacheListAdd (PLW_DISKCACHE_CB   pdiskcDiskCache)
 {
     __LW_DISKCACHE_LIST_LOCK();
-    _List_Line_Add_Ahead(&pdiskcDiskCache->DISKC_lineManage,
-                         &_G_plineDiskCacheHeader);
+    _List_Line_Add_Ahead(&pdiskcDiskCache->DISKC_lineManage, &_G_plineDiskCacheHeader);
     __LW_DISKCACHE_LIST_UNLOCK();
 }
 /*********************************************************************************************************
@@ -114,11 +110,7 @@ VOID  __diskCacheListAdd (PLW_DISKCACHE_CB   pdiskcDiskCache)
 VOID  __diskCacheListDel (PLW_DISKCACHE_CB   pdiskcDiskCache)
 {
     __LW_DISKCACHE_LIST_LOCK();
-    if (&pdiskcDiskCache->DISKC_lineManage == _G_plineDiskCacheOp) {
-        _G_plineDiskCacheOp = _list_line_get_next(_G_plineDiskCacheOp);
-    }
-    _List_Line_Del(&pdiskcDiskCache->DISKC_lineManage,
-                   &_G_plineDiskCacheHeader);
+    _List_Line_Del(&pdiskcDiskCache->DISKC_lineManage, &_G_plineDiskCacheHeader);
     __LW_DISKCACHE_LIST_UNLOCK();
 }
 

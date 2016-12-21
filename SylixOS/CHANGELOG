@@ -16,6 +16,9 @@ HISTORY
 
 ++ Bugfixes:
 
+    2016-12-20: han.hui
+    修正 heap 删除时分段判断错误.
+
     2016-12-13: han.hui
     将无线网络扩展放入 netdev.
 

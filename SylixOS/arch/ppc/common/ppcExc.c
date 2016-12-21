@@ -38,10 +38,10 @@
 /*********************************************************************************************************
   定义 Decrementer 相关全局变量
 *********************************************************************************************************/
-static ULONG    _G_ulDecVector;
-static BOOL     _G_bDecPreemptive;
-static UINT32   _G_uiDecValue;
-static BOOL     _G_bDecInited = LW_FALSE;
+static ULONG    _G_ulDecVector[LW_CFG_MAX_PROCESSORS];
+static BOOL     _G_bDecPreemptive[LW_CFG_MAX_PROCESSORS];
+static UINT32   _G_uiDecValue[LW_CFG_MAX_PROCESSORS];
+static BOOL     _G_bDecInited[LW_CFG_MAX_PROCESSORS];
 /*********************************************************************************************************
 ** 函数名称: archIntHandle
 ** 功能描述: bspIntHandle 需要调用此函数处理中断 (关闭中断情况被调用)
@@ -393,9 +393,11 @@ VOID  archMachineCheckExceptionHandle (addr_t  ulRetAddr)
 *********************************************************************************************************/
 VOID  archDecrementerInterruptHandle (VOID)
 {
-    if (_G_bDecInited) {
-        ppcSetDEC(_G_uiDecValue);
-        archIntHandle(_G_ulDecVector, _G_bDecPreemptive);
+    ULONG   ulCPUId = LW_CPU_GET_CUR_ID();
+
+    if (_G_bDecInited[ulCPUId]) {
+        ppcSetDEC(_G_uiDecValue[ulCPUId]);
+        archIntHandle(_G_ulDecVector[ulCPUId], _G_bDecPreemptive[ulCPUId]);
 
     } else {
         ppcSetDEC(0x7fffffff);
@@ -410,19 +412,21 @@ VOID  archDecrementerInterruptHandle (VOID)
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
-** 注  意  :
+** 注  意  : 不能在多任务环境启动前调用该函数.
 *********************************************************************************************************/
 VOID  archDecrementerInit (ULONG    ulVector,
                            BOOL     bPreemptive,
                            UINT32   uiDecValue)
 {
-    _G_ulDecVector    = ulVector;
-    _G_bDecPreemptive = bPreemptive;
-    _G_uiDecValue     = uiDecValue;
+    ULONG   ulCPUId = LW_CPU_GET_CUR_ID();
+
+    _G_ulDecVector[ulCPUId]    = ulVector;
+    _G_bDecPreemptive[ulCPUId] = bPreemptive;
+    _G_uiDecValue[ulCPUId]     = uiDecValue;
 
     ppcSetDEC(uiDecValue);
 
-    _G_bDecInited = LW_TRUE;
+    _G_bDecInited[ulCPUId] = LW_TRUE;
 }
 /*********************************************************************************************************
   END

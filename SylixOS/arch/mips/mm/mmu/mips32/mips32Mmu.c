@@ -344,26 +344,6 @@ static INT  mips32MmuMemInit (PLW_MMU_CONTEXT  pmmuctx)
 *********************************************************************************************************/
 static INT  mips32MmuGlobalInit (CPCHAR  pcMachineName)
 {
-    UINT32  uiMMUSize;
-    UINT32  uiConfig = mipsCp0ConfigRead();                             /*  读 Config0                  */
-    UINT8   ucMT;
-
-    ucMT = ((uiConfig & M_ConfigMT) >> S_ConfigMT);
-    if (ucMT != 1) {                                                    /*  Config0 MT 域 != 1，没有 MMU*/
-        _DebugFormat(__PRINTMESSAGE_LEVEL, "Warning: Config register MMU type is not standard: %d!\r\n", ucMT);
-    }
-
-    if (uiConfig & (M_ConfigMore)) {                                    /*  有 Config1                  */
-        uiConfig     = mipsCp0Config1Read();                            /*  读 Config1                  */
-        uiMMUSize    = (uiConfig >> 25) & 0x3F;                         /*  获得 MMUSize 域             */
-        _G_uiTlbSize = uiMMUSize + 1;
-
-    } else {
-        _G_uiTlbSize = 64;                                              /*  按最大算                    */
-    }
-
-    _DebugFormat(__LOGMESSAGE_LEVEL, "%s MMU TLB size = %d.\r\n", pcMachineName, MIPS32_TLB_SIZE);
-
     archCacheReset(pcMachineName);                                      /*  复位 CACHE                  */
     
     mipsCp0PageMaskWrite(MIPS32_PAGE_MASK);                             /*  PAGE MASK                   */
@@ -841,6 +821,26 @@ static VOID  mips32MmuInvTLB (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulPageAddr, ULON
 *********************************************************************************************************/
 VOID  mips32MmuInit (LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName)
 {
+    UINT32  uiMMUSize;
+    UINT32  uiConfig = mipsCp0ConfigRead();                             /*  读 Config0                  */
+    UINT8   ucMT;
+
+    ucMT = ((uiConfig & M_ConfigMT) >> S_ConfigMT);
+    if (ucMT != 1) {                                                    /*  Config0 MT 域 != 1，没有 MMU*/
+        _DebugFormat(__PRINTMESSAGE_LEVEL, "Warning: Config register MMU type is not standard: %d!\r\n", ucMT);
+    }
+
+    if (uiConfig & (M_ConfigMore)) {                                    /*  有 Config1                  */
+        uiConfig     = mipsCp0Config1Read();                            /*  读 Config1                  */
+        uiMMUSize    = (uiConfig >> 25) & 0x3F;                         /*  获得 MMUSize 域             */
+        _G_uiTlbSize = uiMMUSize + 1;
+
+    } else {
+        _G_uiTlbSize = 64;                                              /*  按最大算                    */
+    }
+
+    _DebugFormat(__LOGMESSAGE_LEVEL, "%s MMU TLB size = %d.\r\n", pcMachineName, MIPS32_TLB_SIZE);
+
     if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS1X) == 0)) {
         _G_iMachineType = MIPS_MACHINE_TYPE_LS1X;
 

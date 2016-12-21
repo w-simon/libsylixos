@@ -60,6 +60,7 @@
 2014.08.15  采用新的判断对齐内存释放算法.
 2014.10.27  加入多操作系统通信接口.
 2016.04.13  加入 _HeapGetMax() 获取最大内存空闲段大小.
+2016.12.20  修正当 heap 添加内存后删除 heap 时, 使用情况判断错误.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -359,16 +360,24 @@ PLW_CLASS_HEAP  _HeapCreate (PVOID             pvStartAddress,
 *********************************************************************************************************/
 PLW_CLASS_HEAP _HeapDtor (PLW_CLASS_HEAP  pheap, BOOL  bIsCheckUsed)
 {
-    REGISTER ULONG  ulLockErr;
+    REGISTER ULONG              ulLockErr;
+    REGISTER PLW_LIST_LINE      plineTemp;
+    REGISTER PLW_CLASS_SEGMENT  psegment;
 
     ulLockErr = __heap_lock(pheap);
     if (ulLockErr) {                                                    /*  出现锁错误                  */
         return  (pheap);
     }
-    if (bIsCheckUsed) {
-        if (pheap->HEAP_stUsedByteSize != __SEGMENT_BLOCK_SIZE_ALIGN) { /*  检查分区是否空闲            */
-            __heap_unlock(pheap);
-            return  (pheap);                                            /*  分区正在被使用              */
+    if (bIsCheckUsed) {                                                 /*  检查分区是否空闲            */
+        psegment = (PLW_CLASS_SEGMENT)pheap->HEAP_pvStartAddress;
+        for (plineTemp  = &psegment->SEGMENT_lineManage;
+             plineTemp != LW_NULL;
+             plineTemp  = _list_line_get_next(plineTemp)) {             /*  遍历分段                    */
+            psegment = _LIST_ENTRY(plineTemp, LW_CLASS_SEGMENT, SEGMENT_lineManage);
+            if (__HEAP_SEGMENT_IS_USED(psegment)) {
+                __heap_unlock(pheap);
+                return  (pheap);                                        /*  分区正在被使用              */
+            }
         }
     }
     pheap->HEAP_stTotalByteSize = 0;                                    /*  防范互斥操作的漏洞          */

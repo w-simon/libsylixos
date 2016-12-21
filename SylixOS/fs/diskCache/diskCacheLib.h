@@ -34,12 +34,10 @@ extern PLW_LIST_LINE        _G_plineDiskCacheHeader;                    /*  Á´±í
 /*********************************************************************************************************
   DISK CACHE NODE LOCK
 *********************************************************************************************************/
-#define __LW_DISKCACHE_LOCK(pdiskc) do {                                                    \
-            API_SemaphoreMPend(pdiskc->DISKC_hDiskCacheLock, LW_OPTION_WAIT_INFINITE);      \
-        } while (0)
-#define __LW_DISKCACHE_UNLOCK(pdiskc)   do {                                                \
-            API_SemaphoreMPost(pdiskc->DISKC_hDiskCacheLock);                               \
-        } while (0)
+#define __LW_DISKCACHE_LOCK(pdiskc)     \
+        API_SemaphoreMPend(pdiskc->DISKC_hDiskCacheLock, LW_OPTION_WAIT_INFINITE)
+#define __LW_DISKCACHE_UNLOCK(pdiskc)   \
+        API_SemaphoreMPost(pdiskc->DISKC_hDiskCacheLock)
 /*********************************************************************************************************
   DISK CACHE NODE OP
 *********************************************************************************************************/

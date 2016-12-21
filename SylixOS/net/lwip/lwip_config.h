@@ -170,9 +170,9 @@ extern "C" {
   timeouts (default + 10, aodv, lowpan ...)
 *********************************************************************************************************/
 
-#define MEMP_NUM_SYS_TIMEOUT_DEFAULT    (LWIP_TCP + IP_REASSEMBLY + LWIP_ARP + (2*LWIP_DHCP) + \
+#define MEMP_NUM_SYS_TIMEOUT_DEFAULT    (LWIP_TCP + IP_REASSEMBLY + LWIP_ARP + (2 * LWIP_DHCP) + \
                                          LWIP_AUTOIP + LWIP_IGMP + LWIP_DNS + \
-                                         (PPP_SUPPORT* 6 *MEMP_NUM_PPP_PCB) + \
+                                         (PPP_SUPPORT * 6 * MEMP_NUM_PPP_PCB) + \
                                          (LWIP_IPV6 ? (1 + LWIP_IPV6_REASS + LWIP_IPV6_MLD) : 0))
 
 #define MEMP_NUM_SYS_TIMEOUT            MEMP_NUM_SYS_TIMEOUT_DEFAULT + 10

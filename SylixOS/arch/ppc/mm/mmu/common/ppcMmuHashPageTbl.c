@@ -41,13 +41,13 @@ extern VOID  ppcHashPageTblPteSet(PTE    *pPte,
 static SR       _G_SRs[16];
 static UINT32   _G_uiHashPageTblOrg;
 static UINT32   _G_uiHashPageTblMask;
+static LW_SPINLOCK_DEFINE(_G_slHashPageTblLock);
 
 #define __MMU_PTE_DEBUG
-
 #ifdef __MMU_PTE_DEBUG
 static UINT     _G_uiPtegNr = 0;
 static UINT     _G_uiPteMissCounter = 0;
-#endif
+#endif                                                                  /*  defined(__MMU_PTE_DEBUG)    */
 /*********************************************************************************************************
 ** 函数名称: ppcMmuPtegAddrGet
 ** 功能描述: 通过有效地址获得 PTEG
@@ -88,11 +88,9 @@ static VOID  ppcMmuPtegAddrGet (EA       effectiveAddr,
     uiHashValue2H = (uiHashValue2 & MMU_HASH_VALUE_HIGH) >> MMU_HASH_VALUE_HIGH_SHIFT;
 
     uiHashValue1H = (uiHashValue1H & _G_uiHashPageTblMask) << MMU_PTE_HASH_VALUE_HIGH_SHIFT;
-
     uiHashValue2H = (uiHashValue2H & _G_uiHashPageTblMask) << MMU_PTE_HASH_VALUE_HIGH_SHIFT;
 
     *ppPrimPteg   = (PTEG *)(_G_uiHashPageTblOrg | uiHashValue1H | uiHashValue1L);
-
     *ppSecPteg    = (PTEG *)(_G_uiHashPageTblOrg | uiHashValue2H | uiHashValue2L);
 }
 /*********************************************************************************************************
@@ -108,6 +106,8 @@ INT  ppcMmuHashPageTblInit (UINT32  uiMemSize)
     UINT32  stHashPageTblSize;
     PVOID   pvHashPageTblAddr;
     INT     i;
+
+    LW_SPIN_INIT(&_G_slHashPageTblLock);
 
     /*
      * 配置 16 个段寄存器，让 VA = EA
@@ -190,7 +190,7 @@ INT  ppcMmuHashPageTblInit (UINT32  uiMemSize)
 
 #ifdef __MMU_PTE_DEBUG
         _G_uiPtegNr = stHashPageTblSize / 64;
-#endif
+#endif                                                                  /*  defined(__MMU_PTE_DEBUG)    */
     }
 
     return  (ERROR_NONE);
@@ -296,7 +296,6 @@ static VOID  ppcHashPageTblPteAdd (PTE    *pPte,
     pteTemp.field.PTE_bH      = !bIsPrimary;
     pteTemp.field.PTE_ucAPI   = uiAPI;
     pteTemp.field.PTE_bV      = 1;
-
     ppcHashPageTblPteSet(pPte,
                          pteTemp.words.PTE_uiWord0,
                          uiPteValue1,
@@ -344,6 +343,7 @@ static PTE  *ppcHashPageTblSearchPteByEA (PTEG   *pPteg,
 VOID  ppcMmuHashPageTblMakeTrans (addr_t  ulEffectiveAddr,
                                   UINT32  uiPteValue1)
 {
+    INTREG  iregInterLevel;
     PTEG   *pPrimPteg;
     PTEG   *pSecPteg;
     PTE    *pPte;
@@ -353,12 +353,13 @@ VOID  ppcMmuHashPageTblMakeTrans (addr_t  ulEffectiveAddr,
     UINT32  uiVSID;
 
     effectiveAddr.EA_uiValue = ulEffectiveAddr;
-
     ppcMmuPtegAddrGet(effectiveAddr,
                       &pPrimPteg,
                       &pSecPteg,
                       &uiAPI,
                       &uiVSID);
+
+    LW_SPIN_LOCK_QUICK(&_G_slHashPageTblLock, &iregInterLevel);
 
     /*
      * 搜索 EA 的 PTE
@@ -429,6 +430,8 @@ VOID  ppcMmuHashPageTblMakeTrans (addr_t  ulEffectiveAddr,
              */
         }
     }
+
+    LW_SPIN_UNLOCK_QUICK(&_G_slHashPageTblLock, iregInterLevel);
 }
 /*********************************************************************************************************
 ** 函数名称: ppcMmuHashPageTblFlagSet
@@ -443,6 +446,7 @@ VOID  ppcMmuHashPageTblMakeTrans (addr_t  ulEffectiveAddr,
 VOID  ppcMmuHashPageTblFlagSet (addr_t  ulEffectiveAddr,
                                 UINT32  uiPteValue1)
 {
+    INTREG  iregInterLevel;
     PTEG   *pPrimPteg;
     PTEG   *pSecPteg;
     PTE    *pPte;
@@ -451,12 +455,13 @@ VOID  ppcMmuHashPageTblFlagSet (addr_t  ulEffectiveAddr,
     UINT32  uiVSID;
 
     effectiveAddr.EA_uiValue = ulEffectiveAddr;
-
     ppcMmuPtegAddrGet(effectiveAddr,
                       &pPrimPteg,
                       &pSecPteg,
                       &uiAPI,
                       &uiVSID);
+
+    LW_SPIN_LOCK_QUICK(&_G_slHashPageTblLock, &iregInterLevel);
 
     /*
      * 搜索 EA 的 PTE
@@ -498,6 +503,8 @@ VOID  ppcMmuHashPageTblFlagSet (addr_t  ulEffectiveAddr,
          * 没有找到，外部会无效 TLB，不作查找无效 PTE 和强制淘汰 PTE，让其产生 MISS
          */
     }
+
+    LW_SPIN_UNLOCK_QUICK(&_G_slHashPageTblLock, iregInterLevel);
 }
 /*********************************************************************************************************
 ** 函数名称: ppcMmuHashPageTblPteMiss
@@ -511,6 +518,7 @@ VOID  ppcMmuHashPageTblFlagSet (addr_t  ulEffectiveAddr,
 VOID  ppcMmuHashPageTblPteMiss (addr_t  ulEffectiveAddr,
                                 UINT32  uiPteValue1)
 {
+    INTREG  iregInterLevel;
     PTEG   *pPrimPteg;
     PTEG   *pSecPteg;
     PTE    *pPte;
@@ -519,17 +527,18 @@ VOID  ppcMmuHashPageTblPteMiss (addr_t  ulEffectiveAddr,
     UINT32  uiAPI;
     UINT32  uiVSID;
 
-#ifdef __MMU_PTE_DEBUG
-    _G_uiPteMissCounter++;
-#endif
-
     effectiveAddr.EA_uiValue = ulEffectiveAddr;
-
     ppcMmuPtegAddrGet(effectiveAddr,
                       &pPrimPteg,
                       &pSecPteg,
                       &uiAPI,
                       &uiVSID);
+
+    LW_SPIN_LOCK_QUICK(&_G_slHashPageTblLock, &iregInterLevel);
+
+#ifdef __MMU_PTE_DEBUG
+    _G_uiPteMissCounter++;
+#endif                                                                  /*  defined(__MMU_PTE_DEBUG)    */
 
     /*
      * 搜索一个无效的 PTE
@@ -565,18 +574,20 @@ VOID  ppcMmuHashPageTblPteMiss (addr_t  ulEffectiveAddr,
                          bIsPrimary,
                          uiAPI,
                          uiVSID);
+
+    LW_SPIN_UNLOCK_QUICK(&_G_slHashPageTblLock, iregInterLevel);
 }
 /*********************************************************************************************************
-** 函数名称: mmu_show
-** 功能描述: MMU 打印信息
+** 函数名称: ppcMmuHashPageTblShow
+** 功能描述: 打印 MMU HASH PAGE 信息
 ** 输　入  : NONE
-** 输　出  : NONE
+** 输　出  : ERROR_NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
 #ifdef __MMU_PTE_DEBUG
 
-int  mmu_show (int  argc, char  **argv)
+INT  ppcMmuHashPageTblShow (VOID)
 {
     PTEG   *pPteg = (PTEG *)_G_uiHashPageTblOrg;
     INT     i, j;
@@ -604,10 +615,10 @@ int  mmu_show (int  argc, char  **argv)
     printf("\n\nPTE Miss Counter = %d\n", _G_uiPteMissCounter);
     printf("PTEG Number\t = %d\n", _G_uiPtegNr);
 
-    return  (0);
+    return  (ERROR_NONE);
 }
 
-#endif
+#endif                                                                  /*  defined(__MMU_PTE_DEBUG)    */
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 /*********************************************************************************************************
   END

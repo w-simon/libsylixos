@@ -338,18 +338,9 @@ static INT  ppcE500MmuMemInit (PLW_MMU_CONTEXT  pmmuctx)
 *********************************************************************************************************/
 static INT  ppcE500MmuGlobalInit (CPCHAR  pcMachineName)
 {
-    TLBCFG_REG  uiTLB0CFG;
     MMUCFG_REG  uiMMUCFG;
     MAS4_REG    uiMAS4;
     UINT32      uiHID1;
-
-    /*
-     * 获得 TLB0 条目数
-     */
-    uiTLB0CFG.TLBCFG_uiValue = ppcE500MmuGetTLB0CFG();
-    _G_uiTlbSize = uiTLB0CFG.TLBCFG_usNENTRY;
-    _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s MMU TLB0 size = %d.\r\n", 
-                 LW_CFG_CPU_ARCH_FAMILY, pcMachineName, _G_uiTlbSize);
 
     /*
      * 设置 PID
@@ -786,6 +777,8 @@ static VOID  ppcE500MmuInvTLB (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulPageAddr, ULO
 *********************************************************************************************************/
 VOID  ppcE500MmuInit (LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName)
 {
+    TLBCFG_REG  uiTLB0CFG;
+
     /*
      * 使能了地址广播(HID1[ABE] 位)后, tlbsync 指令会自动多核同步
      */
@@ -837,6 +830,14 @@ VOID  ppcE500MmuInit (LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName)
     } else {
         _G_bHasHID1 = LW_TRUE;
     }
+
+    /*
+     * 获得 TLB0 条目数
+     */
+    uiTLB0CFG.TLBCFG_uiValue = ppcE500MmuGetTLB0CFG();
+    _G_uiTlbSize = uiTLB0CFG.TLBCFG_usNENTRY;
+    _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s MMU TLB0 size = %d.\r\n",
+                 LW_CFG_CPU_ARCH_FAMILY, pcMachineName, _G_uiTlbSize);
 }
 
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
