@@ -35,7 +35,6 @@
   PLW_OEMDISK_CB    oemdCf;
   
   for (;;) {
-      
       if (检测到卡插入) {
           oemdCf = oemDiskMount(...);
           ...等待卡拔出...

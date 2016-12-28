@@ -118,6 +118,7 @@
 #define LW_HTIMER_HZ                    _K_timingKernel.TIMING_ulHTimerHz
 #define LW_ITIMER_RATE                  _K_timingKernel.TIMING_ulITimerRate
 #define LW_HOTPLUG_SEC                  _K_timingKernel.TIMING_ulHotplugSec
+#define LW_REBOOT_TO_SEC                _K_timingKernel.TIMING_ulRebootToSec
 #define LW_SCHED_SLICE                  _K_timingKernel.TIMING_usSlice
 #endif
 

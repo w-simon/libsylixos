@@ -125,12 +125,16 @@ VOID  _TCBBuild (UINT8                    ucPriority,
                  PLW_CLASS_TCB            ptcb,
                  PVOID                    pvArg)
 {
-    REGISTER PLW_CLASS_TCB    ptcbCur;
+    REGISTER PLW_CLASS_TCB        ptcbCur;
     
+#if LW_CFG_COROUTINE_EN > 0
+    REGISTER PLW_CLASS_COROUTINE  pcrcb;
+#endif                                                                  /*  LW_CFG_COROUTINE_EN > 0     */
+
 #if LW_CFG_THREAD_NOTE_PAD_EN > 0
     REGISTER UINT8            ucI;
     REGISTER ULONG           *pulNote;
-#endif
+#endif                                                                  /*  LW_CFG_THREAD_NOTE_PAD_EN   */
 
     LW_TCB_GET_CUR_SAFE(ptcbCur);                                       /*  当前 ptcb                   */
 
@@ -217,20 +221,18 @@ VOID  _TCBBuild (UINT8                    ucPriority,
 #endif
     
 #if LW_CFG_COROUTINE_EN > 0
-    {
-        REGISTER PLW_CLASS_COROUTINE  pcrcb = &ptcb->TCB_crcbOrigent;
-        
-        pcrcb->COROUTINE_pstkStackNow     = pstkStackNow;
-        pcrcb->COROUTINE_pstkStackTop     = pstkStackTop;
-        pcrcb->COROUTINE_pstkStackBottom  = pstkStackButtom;
-        pcrcb->COROUTINE_stStackSize      = stStackSize;
-        pcrcb->COROUTINE_pstkStackLowAddr = pstkStackLowAddr;
-        pcrcb->COROUTINE_bIsNeedFree      = LW_FALSE;                   /*  不需要独立释放              */
-    
-        ptcb->TCB_pringCoroutineHeader = LW_NULL;
-        _List_Ring_Add_Ahead(&pcrcb->COROUTINE_ringRoutine,
-                             &ptcb->TCB_pringCoroutineHeader);          /*  插入协程表                  */
-    }
+    pcrcb = &ptcb->TCB_crcbOrigent;
+    pcrcb->COROUTINE_pstkStackNow     = pstkStackNow;
+    pcrcb->COROUTINE_pstkStackTop     = pstkStackTop;
+    pcrcb->COROUTINE_pstkStackBottom  = pstkStackButtom;
+    pcrcb->COROUTINE_stStackSize      = stStackSize;
+    pcrcb->COROUTINE_pstkStackLowAddr = pstkStackLowAddr;
+    pcrcb->COROUTINE_ulThread         = ulId;
+    pcrcb->COROUTINE_ulFlags          = 0ul;                            /*  不需要独立释放              */
+
+    ptcb->TCB_pringCoroutineHeader = LW_NULL;
+    _List_Ring_Add_Ahead(&pcrcb->COROUTINE_ringRoutine,
+                         &ptcb->TCB_pringCoroutineHeader);              /*  插入协程表                  */
 #endif                                                                  /*  LW_CFG_COROUTINE_EN > 0     */
     
 #if LW_CFG_THREAD_CANCEL_EN > 0

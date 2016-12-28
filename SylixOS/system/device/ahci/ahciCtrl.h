@@ -29,6 +29,7 @@
 
 LW_API INT                  API_AhciCtrlDelete(AHCI_CTRL_HANDLE hCtrl);
 LW_API INT                  API_AhciCtrlAdd(AHCI_CTRL_HANDLE hCtrl);
+LW_API AHCI_CTRL_HANDLE     API_AhciCtrlHandleGetFromPciArg(PVOID pvCtrlPciArg);
 LW_API AHCI_CTRL_HANDLE     API_AhciCtrlHandleGetFromName(CPCHAR cpcName, UINT uiUnit);
 LW_API AHCI_CTRL_HANDLE     API_AhciCtrlHandleGetFromIndex(UINT uiIndex);
 LW_API INT                  API_AhciCtrlIndexGet(VOID);

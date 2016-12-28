@@ -21,6 +21,7 @@
 ** BUG:
 2013.07.18  使用新的获取 TCB 的方法, 确保 SMP 系统安全.
 2013.12.14  使用任务自旋锁确保任务协程链表操作安全性.
+2016.12.27  使用协程延迟删除方法, 确保堆栈安全.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -28,18 +29,6 @@
   裁剪控制
 *********************************************************************************************************/
 #if LW_CFG_COROUTINE_EN > 0
-/*********************************************************************************************************
-  dummy CRCB
-*********************************************************************************************************/
-static LW_CLASS_COROUTINE   _K_pcrcbDummy;
-static LW_STACK             _K_stkDummyCrcb[ARCH_REG_CTX_WORD_SIZE + 5];
-#if CPU_STK_GROWTH == 0
-#define INIT_DUMMY_STACK()  _K_pcrcbDummy.COROUTINE_pstkStackNow = \
-                                    &_K_pstkDummyCrcb[0]
-#else
-#define INIT_DUMMY_STACK()  _K_pcrcbDummy.COROUTINE_pstkStackNow = \
-                                    &_K_stkDummyCrcb[ARCH_REG_CTX_WORD_SIZE + 4]
-#endif                                                                  /*  CPU_STK_GROWTH == 0         */
 /*********************************************************************************************************
 ** 函数名称: API_CoroutineExit
 ** 功能描述: 在当前线程正在执行的协程删除
@@ -79,7 +68,6 @@ ULONG   API_CoroutineExit (VOID)
     
     if (&pcrcbExit->COROUTINE_ringRoutine == 
         _list_ring_get_next(&pcrcbExit->COROUTINE_ringRoutine)) {       /*  仅有这一个协程              */
-
 #if LW_CFG_THREAD_DEL_EN > 0
         API_ThreadExit(LW_NULL);
 #endif                                                                  /*  LW_CFG_THREAD_DEL_EN > 0    */
@@ -87,28 +75,21 @@ ULONG   API_CoroutineExit (VOID)
     }
     
     pringNext = _list_ring_get_next(&pcrcbExit->COROUTINE_ringRoutine);
+
     pcrcbNext = _LIST_ENTRY(pringNext, LW_CLASS_COROUTINE, 
                             COROUTINE_ringRoutine);                     /*  获得下一个协程              */
 
-    LW_SPIN_LOCK_QUICK(&ptcbCur->TCB_slLock, &iregInterLevel);
-    _List_Ring_Del(&pcrcbExit->COROUTINE_ringRoutine,
-                   &ptcbCur->TCB_pringCoroutineHeader);                 /*  从协程表中删除              */
-    LW_SPIN_UNLOCK_QUICK(&ptcbCur->TCB_slLock, iregInterLevel);
-    
-    ptcbCur->TCB_pringCoroutineHeader = pringNext;                      /*  转动到下一个协程            */
+    pcrcbExit->COROUTINE_ulFlags |= LW_COROUTINE_FLAG_DELETE;           /*  当前协程请求被删除          */
     
     MONITOR_EVT_LONG2(MONITOR_EVENT_ID_COROUTINE, MONITOR_EVENT_COROUTINE_DELETE, 
                       ptcbCur->TCB_ulId, pcrcbExit, LW_NULL);
-    
-    if (pcrcbExit->COROUTINE_bIsNeedFree) {
-        _StackFree(ptcbCur, pcrcbExit->COROUTINE_pstkStackLowAddr);     /*  释放内存                    */
-    }
-    
+                      
     iregInterLevel = KN_INT_DISABLE();                                  /*  关闭中断                    */
     
-    INIT_DUMMY_STACK();
+    ptcbCur->TCB_pringCoroutineHeader = pringNext;                      /*  选择下一个协程              */
+    
     pcpuCur                = LW_CPU_GET_CUR();
-    pcpuCur->CPU_pcrcbCur  = &_K_pcrcbDummy;
+    pcpuCur->CPU_pcrcbCur  = pcrcbExit;
     pcpuCur->CPU_pcrcbNext = pcrcbNext;
     archCrtCtxSwitch(LW_CPU_GET_CUR());                                 /*  协程切换                    */
     
@@ -129,6 +110,7 @@ LW_API
 ULONG   API_CoroutineDelete (PVOID  pvCrcb)
 {
              INTREG                 iregInterLevel;
+
     REGISTER PLW_CLASS_COROUTINE    pcrcbDel = (PLW_CLASS_COROUTINE)pvCrcb;
     REGISTER PLW_CLASS_COROUTINE    pcrcbNow;
              PLW_CLASS_TCB          ptcbCur;
@@ -152,6 +134,12 @@ ULONG   API_CoroutineDelete (PVOID  pvCrcb)
     
     LW_TCB_GET_CUR_SAFE(ptcbCur);                                       /*  当前任务控制块              */
     
+    if (pcrcbDel->COROUTINE_ulThread != ptcbCur->TCB_ulId) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "coroutine handle invalidate.\r\n");
+        _ErrorHandle(EINVAL);
+        return  (EINVAL);
+    }
+    
     pcrcbNow = _LIST_ENTRY(ptcbCur->TCB_pringCoroutineHeader, 
                            LW_CLASS_COROUTINE, 
                            COROUTINE_ringRoutine);                      /*  获得当前协程                */
@@ -160,6 +148,8 @@ ULONG   API_CoroutineDelete (PVOID  pvCrcb)
         return  (API_CoroutineExit());
     }
     
+    _ThreadSafeInternal();                                              /*  进入安全模式                */
+
     LW_SPIN_LOCK_QUICK(&ptcbCur->TCB_slLock, &iregInterLevel);
     _List_Ring_Del(&pcrcbDel->COROUTINE_ringRoutine,
                    &ptcbCur->TCB_pringCoroutineHeader);                 /*  从协程表中删除              */
@@ -168,9 +158,11 @@ ULONG   API_CoroutineDelete (PVOID  pvCrcb)
     MONITOR_EVT_LONG2(MONITOR_EVENT_ID_COROUTINE, MONITOR_EVENT_COROUTINE_DELETE, 
                       ptcbCur->TCB_ulId, pcrcbDel, LW_NULL);
     
-    if (pcrcbDel->COROUTINE_bIsNeedFree) {
+    if (pcrcbDel->COROUTINE_ulFlags & LW_COROUTINE_FLAG_DYNSTK) {
         _StackFree(ptcbCur, pcrcbDel->COROUTINE_pstkStackLowAddr);      /*  释放内存                    */
     }
+    
+    _ThreadUnsafeInternal();                                            /*  退出安全模式                */
     
     return  (ERROR_NONE);
 }

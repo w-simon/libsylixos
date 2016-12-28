@@ -18,6 +18,9 @@
 **
 ** 描        述: 这是协程管理库(协程是一个轻量级的并发执行单位). 
                  协程运行外壳.
+**
+** BUG:
+2016.12.27  首先要尝试回收刚刚删除的协程.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -40,10 +43,13 @@ VOID  _CoroutineShell (PVOID  pvArg)
     
     LW_TCB_GET_CUR_SAFE(ptcbCur);
     
+    _CoroutineReclaim(ptcbCur);                                         /*  尝试回收已经删除的协程      */
+
     pcrcb = _LIST_ENTRY(ptcbCur->TCB_pringCoroutineHeader, 
                         LW_CLASS_COROUTINE, 
                         COROUTINE_ringRoutine);                         /*  获得当前协程                */
     
+    LW_SOFUNC_PREPARE(pvArg);
     ((PCOROUTINE_START_ROUTINE)pvArg)(pcrcb->COROUTINE_pvArg);          /*  执行协程                    */
     
     API_CoroutineExit();

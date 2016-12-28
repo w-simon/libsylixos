@@ -123,7 +123,7 @@ FUNC_DEF(archCrtCtxSwitch)
 
     SAVE_REGS                                                           ;/*  所有寄存器入栈              */
 
-    LW      T0 , 0(A0)                                                  ;/*  stack current = SP          */
+    LW      T0 , 8(A0)                                                  ;/*  stack current = SP          */
     SW      SP , 0(T0)
 
     SUBU    SP , 32
@@ -141,7 +141,7 @@ FUNC_DEF(archCrtCtxSwitch)
     LW      A0 , 20(SP)                                                 ;/*  当前 CPU 信息出栈           */
     ADDU    SP , 32
 
-    LW      T0 , 0(A0)                                                  ;/*  SP = stack current          */
+    LW      T0 , 8(A0)                                                  ;/*  SP = stack current          */
     LW      SP , 0(T0)
 
     RESTORE_REGS                                                        ;/*  所有寄存器出栈              */

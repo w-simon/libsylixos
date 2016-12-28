@@ -97,12 +97,12 @@ ULONG  API_PartitionDeleteEx (LW_OBJECT_HANDLE   *pulId, BOOL  bForce)
     
     p_part->PARTITION_ucType = LW_PARTITION_UNUSED;
     
+    LW_SPIN_UNLOCK_QUICK(&p_part->PARTITION_slLock, iregInterLevel);    /*  打开中断, 同时打开 spinlock */
+    
     __LW_OBJECT_DELETE_HOOK(ulId);
     
     _DebugFormat(__LOGMESSAGE_LEVEL, "partition \"%s\" has been delete.\r\n", 
                  p_part->PARTITION_cPatitionName);
-    
-    LW_SPIN_UNLOCK_QUICK(&p_part->PARTITION_slLock, iregInterLevel);    /*  打开中断, 同时打开 spinlock */
     
     __KERNEL_MODE_PROC(
         _Free_Partition_Object(p_part);                                 /*  交还控制块                  */

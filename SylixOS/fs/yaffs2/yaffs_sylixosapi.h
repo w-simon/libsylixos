@@ -34,10 +34,12 @@
 LW_API INT      API_YaffsDrvInstall(VOID);
 LW_API INT      API_YaffsDevCreate(PCHAR   pcName);
 LW_API INT      API_YaffsDevDelete(PCHAR   pcName);
+LW_API VOID     API_YaffsDevMountShow(VOID);
 
 #define yaffsDrv            API_YaffsDrvInstall
 #define yaffsDevCreate      API_YaffsDevCreate
 #define yaffsDevDelete      API_YaffsDevDelete
+#define yaffsDevMountShow   API_YaffsDevMountShow
 
 #endif                                                                  /*  (LW_CFG_MAX_VOLUMES > 0)    */
                                                                         /*  (LW_CFG_YAFFS_EN > 0)       */

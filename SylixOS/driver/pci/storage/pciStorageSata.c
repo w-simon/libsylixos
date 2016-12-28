@@ -22,6 +22,7 @@
 2016.11.07  探测函数中需要确认设备类型.
             ATI(0x1002) 0x4390 设备 ID 在匹配表内, 但是设备类型是 IDE
 2016.11.09  增加将 AMD 桥 IDE 模式切换为 AHCI 模式的特殊处理.
+2016.12.27  增加磁盘初始化复位等命令超时时间可配置.
 *********************************************************************************************************/
 #define  __SYLIXOS_PCI_DRV
 #define  __SYLIXOS_AHCI_DRV
@@ -623,6 +624,42 @@ static INT  pciStorageSataCtrlOpt (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, INT  
         }
         break;
 
+    case AHCI_OPT_CMD_RSTON_INTER_TIME_GET:
+        if (lArg) {
+            *(ULONG *)lArg = AHCI_DRIVE_RSTON_INTER_TIME_UNIT;
+        }
+        break;
+
+    case AHCI_OPT_CMD_RSTON_INTER_COUNT_GET:
+        if (lArg) {
+            *(ULONG *)lArg = AHCI_DRIVE_RSTON_INTER_TIME_COUNT;
+        }
+        break;
+
+    case AHCI_OPT_CMD_RSTOFF_INTER_TIME_GET:
+        if (lArg) {
+            *(ULONG *)lArg = AHCI_DRIVE_RSTOFF_INTER_TIME_UNIT;
+        }
+        break;
+
+    case AHCI_OPT_CMD_RSTOFF_INTER_COUNT_GET:
+        if (lArg) {
+            *(ULONG *)lArg = AHCI_DRIVE_RSTOFF_INTER_TIME_COUNT;
+        }
+        break;
+
+    case AHCI_OPT_CMD_DC_MSG_COUNT_GET:
+        if (lArg) {
+            *(ULONG *)lArg = AHCI_DRIVE_DISKCACHE_MSG_COUNT;
+        }
+        break;
+
+    case AHCI_OPT_CMD_DC_PARALLEL_EN_GET:
+        if (lArg) {
+            *(ULONG *)lArg = (AHCI_DRIVE_DISKCACHE_PARALLEL_EN);
+        }
+        break;
+
     default:
         return  (PX_ERROR);
     }
@@ -737,7 +774,7 @@ static PCHAR  pciStorageSataVendorCtrlTypeNameGet (AHCI_CTRL_HANDLE  hCtrl)
     UINT16      usCap = 0;
     PCI_DEV_HANDLE      hPciDev;
 
-    hPciDev = (PCI_DEV_HANDLE)hCtrl->AHCICTRL_pvArg;                    /* 获取设备句柄                 */
+    hPciDev = (PCI_DEV_HANDLE)hCtrl->AHCICTRL_pvPciArg;                 /* 获取设备句柄                 */
 
     AHCI_PCI_READ(hPciDev, PCI_CLASS_DEVICE, 2, usCap);
     if (usCap == PCI_CLASS_STORAGE_IDE) {
@@ -765,7 +802,7 @@ static INT  pciStorageSataVendorCtrlIntEnable (AHCI_CTRL_HANDLE  hCtrl)
 {
     PCI_DEV_HANDLE      hPciDev;
 
-    hPciDev = (PCI_DEV_HANDLE)hCtrl->AHCICTRL_pvArg;                    /* 获取设备句柄                 */
+    hPciDev = (PCI_DEV_HANDLE)hCtrl->AHCICTRL_pvPciArg;                 /* 获取设备句柄                 */
 
     API_PciDevInterEnable(hPciDev, hCtrl->AHCICTRL_ulIrqVector, hCtrl->AHCICTRL_pfuncIrq, hCtrl);
 
@@ -788,7 +825,7 @@ static INT  pciStorageSataVendorCtrlIntConnect (AHCI_CTRL_HANDLE  hCtrl,
 {
     PCI_DEV_HANDLE      hPciDev;
 
-    hPciDev = (PCI_DEV_HANDLE)hCtrl->AHCICTRL_pvArg;                    /* 获取设备句柄                 */
+    hPciDev = (PCI_DEV_HANDLE)hCtrl->AHCICTRL_pvPciArg;                 /* 获取设备句柄                 */
 
     API_PciDevInterConnect(hPciDev, hCtrl->AHCICTRL_ulIrqVector, pfuncIsr, hCtrl, cpcName);
 
@@ -834,7 +871,7 @@ static INT  pciStorageSataVendorCtrlReadyWork (AHCI_CTRL_HANDLE  hCtrl)
     ULONG                   ulBaseAddr;
     PCI_RESOURCE_HANDLE     hResource;
 
-    hPciDev = (PCI_DEV_HANDLE)hCtrl->AHCICTRL_pvArg;                    /* 获取设备句柄                 */
+    hPciDev = (PCI_DEV_HANDLE)hCtrl->AHCICTRL_pvPciArg;                 /* 获取设备句柄                 */
 
     AHCI_PCI_READ(hPciDev, PCI_DEVICE_ID, 2, usPciDevId);
     AHCI_LOG(AHCI_LOG_PRT, "ctrl name %s index %d unit %d for pci dev %d:%d.%d dev id 0x%04x.\r\n",

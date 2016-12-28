@@ -430,6 +430,7 @@ PVOID          _ThreadShell(PVOID  pvThreadStartAddress);
 
 #if LW_CFG_COROUTINE_EN > 0
 VOID           _CoroutineShell(PVOID   pvCoroutineStartAddress);
+VOID           _CoroutineReclaim(PLW_CLASS_TCB  ptcb);
 VOID           _CoroutineFreeAll(PLW_CLASS_TCB  ptcb);
 #endif                                                                  /*  LW_CFG_COROUTINE_EN > 0     */
 

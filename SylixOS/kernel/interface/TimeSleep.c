@@ -170,7 +170,7 @@ ULONG  API_TimeSleepUntil (clockid_t  clockid, const struct timespec  *tv, BOOL 
     struct timespec  tvNow;
     struct timespec  tvTemp;
     
-    if ((clockid != CLOCK_REALTIME) && (clockid != CLOCK_REALTIME)) {
+    if ((clockid != CLOCK_REALTIME) && (clockid != CLOCK_MONOTONIC)) {
         _ErrorHandle(EINVAL);
         return  (EINVAL);
     }

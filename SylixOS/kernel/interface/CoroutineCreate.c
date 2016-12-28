@@ -86,6 +86,8 @@ PVOID   API_CoroutineCreate (PCOROUTINE_START_ROUTINE pCoroutineStartAddr,
     }
 #endif
 
+    _ThreadSafeInternal();                                              /*  进入安全模式                */
+
     pstkLowAddress = _StackAllocate(ptcbCur, 0ul, stStackByteSize);     /*  分配内存                    */
     if (!pstkLowAddress) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "kernel low memory.\r\n");
@@ -129,13 +131,16 @@ PVOID   API_CoroutineCreate (PCOROUTINE_START_ROUTINE pCoroutineStartAddr,
     pcrcbNew->COROUTINE_stStackSize      = stStackSizeWordAlign;        /*  线程堆栈大小(单位：字)      */
     pcrcbNew->COROUTINE_pstkStackLowAddr = pstkLowAddress;              /*  总堆栈最低地址              */
 	
-	pcrcbNew->COROUTINE_pvArg       = pvArg;
-	pcrcbNew->COROUTINE_bIsNeedFree = LW_TRUE;                          /*  需要删除                    */
+	pcrcbNew->COROUTINE_pvArg    = pvArg;
+	pcrcbNew->COROUTINE_ulThread = ptcbCur->TCB_ulId;
+	pcrcbNew->COROUTINE_ulFlags  = LW_COROUTINE_FLAG_DYNSTK;            /*  需要删除堆栈                */
 	
     LW_SPIN_LOCK_QUICK(&ptcbCur->TCB_slLock, &iregInterLevel);
     _List_Ring_Add_Last(&pcrcbNew->COROUTINE_ringRoutine,
                         &ptcbCur->TCB_pringCoroutineHeader);            /*  插入协程表                  */
     LW_SPIN_UNLOCK_QUICK(&ptcbCur->TCB_slLock, iregInterLevel);
+    
+    _ThreadUnsafeInternal();                                            /*  退出安全模式                */
     
     MONITOR_EVT_LONG3(MONITOR_EVENT_ID_COROUTINE, MONITOR_EVENT_COROUTINE_CREATE, 
                       ptcbCur->TCB_ulId, pcrcbNew, stStackByteSize, LW_NULL);

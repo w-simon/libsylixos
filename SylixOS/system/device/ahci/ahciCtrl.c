@@ -101,6 +101,40 @@ INT  API_AhciCtrlAdd (AHCI_CTRL_HANDLE  hCtrl)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: API_AhciCtrlHandleGetFromPciArg
+** 功能描述: 通过 PCI 设备句柄获取一个控制器的句柄
+** 输　入  : pvCtrlPciArg      控制器参数
+** 输　出  : 设备控制句柄
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+AHCI_CTRL_HANDLE  API_AhciCtrlHandleGetFromPciArg (PVOID  pvCtrlPciArg)
+{
+    PLW_LIST_LINE       plineTemp = LW_NULL;
+    AHCI_CTRL_HANDLE    hCtrl     = LW_NULL;
+
+    hCtrl = LW_NULL;
+    __AHCI_CTRL_LOCK();
+    for (plineTemp  = _GplineAhciCtrlHeader;
+         plineTemp != LW_NULL;
+         plineTemp  = _list_line_get_next(plineTemp)) {
+        hCtrl = _LIST_ENTRY(plineTemp, AHCI_CTRL_CB, AHCICTRL_lineCtrlNode);
+
+        if (hCtrl->AHCICTRL_pvPciArg == pvCtrlPciArg) {
+            break;
+        }
+    }
+    __AHCI_CTRL_UNLOCK();
+
+    if (plineTemp) {
+        return  (hCtrl);
+    } else {
+        return  (LW_NULL);
+    }
+}
+/*********************************************************************************************************
 ** 函数名称: API_AhciCtrlHandleGetFromName
 ** 功能描述: 通过名字获取一个控制器的句柄
 ** 输　入  : cpcName    控制器名称

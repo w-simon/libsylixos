@@ -25,6 +25,7 @@
 2016.11.10  不再强制性对 PHY 进行复位操作, 当链接状态正确时不再对 PHY 进行初始化.
 2016.11.22  由具体设备决定是否对 PHY 进行复位, 统一使用 __ahciDrivePhyReset() 函数.
 2016.11.27  不支持 NCQ 的磁盘, 不使用并行管线操作.
+2016.12.27  不支持 NCQ 的磁盘 (NandFlash), 不使用并发处理.
 *********************************************************************************************************/
 #define  __SYLIXOS_PCI_DRV
 #define  __SYLIXOS_STDIO
@@ -90,13 +91,13 @@ static INT  __ahciDrivePhyReset (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
     UINT16                  usVendorId;
     UINT16                  usDeviceId;
 
-    if ((!hCtrl) || (!hCtrl->AHCICTRL_pvArg)) {
+    if ((!hCtrl) || (!hCtrl->AHCICTRL_pvPciArg)) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
 
     hDrive = &hCtrl->AHCICTRL_hDrive[uiDrive];                          /* 获取驱动器句柄               */
-    hPciDevHandle = (PCI_DEV_HANDLE)hCtrl->AHCICTRL_pvArg;
+    hPciDevHandle = (PCI_DEV_HANDLE)hCtrl->AHCICTRL_pvPciArg;
     usVendorId = hPciDevHandle->PCIDEV_phDevHdr.hdr.PCIHH_pcidHdr.PCID_usVendorId;
     usDeviceId = hPciDevHandle->PCIDEV_phDevHdr.hdr.PCIHH_pcidHdr.PCID_usDeviceId;
 
@@ -351,6 +352,7 @@ static INT  __ahciDiskCommandSend (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, AHCI_
     UINT32                  uiTagBit         = 0;                       /* 标记位信息                   */
     UINT32                  uiTemp           = 0;                       /* 临时变量                     */
     BOOL                    bQueued          = LW_FALSE;                /* 队列模式                     */
+    INT32                   iFlags           = 0;                       /* 标记组                       */
 
     UINT16                  usCylinder       = 0;                       /* 柱面                         */
     UINT16                  usHead           = 0;                       /* 磁头                         */
@@ -360,8 +362,8 @@ static INT  __ahciDiskCommandSend (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, AHCI_
 
     API_SemaphoreMPend(hDrive->AHCIDRIVE_hDriveMuteSem, LW_OPTION_WAIT_INFINITE);
     bQueued = (hCmd->AHCICMD_iFlags & AHCI_CMD_FLAG_NCQ);               /* 是否使能队列模式             */
-    uiTemp = hCmd->AHCICMD_iFlags & (AHCI_CMD_FLAG_SRST_ON | AHCI_CMD_FLAG_SRST_OFF);
-    if (uiTemp == 0) {                                                  /* 非控制命令                   */
+    iFlags = hCmd->AHCICMD_iFlags & (AHCI_CMD_FLAG_SRST_ON | AHCI_CMD_FLAG_SRST_OFF);
+    if (iFlags == 0) {                                                  /* 非控制命令                   */
         __ahciCmdWaitForResource(hDrive, bQueued);                      /* 等待控制权                   */
     }
 
@@ -605,17 +607,17 @@ static INT  __ahciDiskCommandSend (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, AHCI_
 
         if (hCmd->AHCICMD_iFlags & AHCI_CMD_FLAG_TRIM) {
 
-        } else {
+        } else if (hDrive->AHCIDRIVE_bNcq) {
             API_SemaphoreMPost(hDrive->AHCIDRIVE_hDriveMuteSem);
         }
 
         AHCI_CMD_LOG(AHCI_LOG_PRT, "sem take tag 0x%08x wait 0x%08x.\r\n", uiTag, ulWait);
                                                                         /* 等待操作结果                 */
         ulRet = API_SemaphoreBPend(hDrive->AHCIDRIVE_hSyncBSem[uiTag], ulWait);
-
+        AHCI_CMD_LOG(AHCI_LOG_PRT, "sem take tag 0x%08x wait 0x%08x end.\r\n", uiTag, ulWait);
         if (hCmd->AHCICMD_iFlags & AHCI_CMD_FLAG_TRIM) {
 
-        } else {
+        } else if (hDrive->AHCIDRIVE_bNcq) {
             API_SemaphoreMPend(hDrive->AHCIDRIVE_hDriveMuteSem, LW_OPTION_WAIT_INFINITE);
         }
 
@@ -643,8 +645,8 @@ static INT  __ahciDiskCommandSend (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, AHCI_
                          hCmd->AHCI_CMD_ATA.AHCICMDATA_ucAtaCommand, hCtrl->AHCICTRL_uiIndex, uiDrive);
 
             __ahciCmdReleaseResource(hDrive, bQueued);                  /* 释放使用权                   */
-
             API_SemaphoreMPost(hDrive->AHCIDRIVE_hDriveMuteSem);
+
             return  (PX_ERROR);
         }
 
@@ -654,11 +656,10 @@ static INT  __ahciDiskCommandSend (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, AHCI_
                                                                         /* 无效数据区                   */
             API_CacheDmaInvalidate(hCmd->AHCICMD_pucDataBuf, (size_t)hCmd->AHCICMD_ulDataLen);
         }
+
+    	__ahciCmdReleaseResource(hDrive, bQueued);                      /* 释放控制权                   */
+        API_SemaphoreMPost(hDrive->AHCIDRIVE_hDriveMuteSem);
     }
-
-    __ahciCmdReleaseResource(hDrive, bQueued);                          /* 释放控制权                   */
-
-    API_SemaphoreMPost(hDrive->AHCIDRIVE_hDriveMuteSem);
 
     return  (ERROR_NONE);                                               /* 正确返回                     */
 }
@@ -767,6 +768,8 @@ static INT  __ahciDiskFlushCache (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
     INT                 iRet   = PX_ERROR;                              /* 操作结果                     */
     AHCI_DRIVE_HANDLE   hDrive = LW_NULL;                               /* 控制器句柄                   */
 
+    AHCI_LOG(AHCI_LOG_PRT, "disk flush ctrl %d port %d start.\r\n", hCtrl->AHCICTRL_uiIndex, uiDrive);
+
     hDrive = &hCtrl->AHCICTRL_hDrive[uiDrive];                          /* 获得驱动器句柄               */
 
     if (hDrive->AHCIDRIVE_bLba48 == TRUE) {
@@ -782,6 +785,8 @@ static INT  __ahciDiskFlushCache (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
                  hCtrl->AHCICTRL_uiIndex, uiDrive);
         return  (PX_ERROR);
     }
+
+    AHCI_LOG(AHCI_LOG_PRT, "disk flush ctrl %d port %d end.\r\n", hCtrl->AHCICTRL_uiIndex, uiDrive);
 
     return  (ERROR_NONE);
 }
@@ -1378,6 +1383,8 @@ static PLW_BLK_DEV  __ahciBlkDevCreate (AHCI_CTRL_HANDLE  hCtrl,
     ULONG               ulBurstSizeRd = AHCI_CACHE_BURST_RD;            /* 猝发读大小                   */
     ULONG               ulBurstSizeWr = AHCI_CACHE_BURST_WR;            /* 猝发写大小                   */
     LW_DISKCACHE_ATTR   dcattrl;                                        /* CACHE 参数                   */
+    ULONG               ulDcMsgCount  = 0;                              /* CACHE 消息数量               */
+    ULONG               ulDcParallel  = LW_FALSE;                       /* CACHE 是否使能并行操作       */
 
     if (!hCtrl) {                                                       /* 控制器句柄无效               */
         AHCI_LOG(AHCI_LOG_ERR, "invalid ctrl handle ctrl %d port %d.\r\n",
@@ -1506,14 +1513,25 @@ static PLW_BLK_DEV  __ahciBlkDevCreate (AHCI_CTRL_HANDLE  hCtrl,
         if (iRet != ERROR_NONE) {
             ulBurstSizeWr = AHCI_CACHE_BURST_WR;
         }
+        iRet = hDrv->AHCIDRV_pfuncOptCtrl(hCtrl, uiDrive, AHCI_OPT_CMD_DC_MSG_COUNT_GET,
+                                          (LONG)((ULONG *)&ulDcMsgCount));
+        if (iRet != ERROR_NONE) {
+            ulDcMsgCount = AHCI_DRIVE_DISKCACHE_MSG_COUNT;
+        }
+        iRet = hDrv->AHCIDRV_pfuncOptCtrl(hCtrl, uiDrive, AHCI_OPT_CMD_DC_PARALLEL_EN_GET,
+                                          (LONG)((ULONG *)&ulDcParallel));
+        if (iRet != ERROR_NONE) {
+            ulDcParallel = AHCI_DRIVE_DISKCACHE_PARALLEL_EN;
+        }
+        ulDcParallel = ulDcParallel ? LW_TRUE : LW_FALSE;
         
         dcattrl.DCATTR_pvCacheMem       = LW_NULL;
         dcattrl.DCATTR_stMemSize        = (size_t)ulCacheSize;
         dcattrl.DCATTR_bCacheCoherence  = LW_TRUE;                      /* 保证 CACHE 一致性            */
         dcattrl.DCATTR_iMaxRBurstSector = (INT)ulBurstSizeRd;
         dcattrl.DCATTR_iMaxWBurstSector = (INT)ulBurstSizeWr;
-        dcattrl.DCATTR_iMsgCount        = 16;
-        dcattrl.DCATTR_bParallel        = LW_TRUE;                      /* 可支持并行操作               */
+        dcattrl.DCATTR_iMsgCount        = (INT)ulDcMsgCount;
+        dcattrl.DCATTR_bParallel        = (BOOL)(ulDcParallel);         /* 可支持并行操作               */
         
         if (hDrive->AHCIDRIVE_bNcq) {                                   /* 是否支持命令队列             */
             dcattrl.DCATTR_iPipeline = (INT)((ulPl > LW_NCPUS) ? LW_NCPUS : ulPl);
@@ -1522,9 +1540,7 @@ static PLW_BLK_DEV  __ahciBlkDevCreate (AHCI_CTRL_HANDLE  hCtrl,
             dcattrl.DCATTR_iPipeline = 1;
         }
                                                                         /* 挂载设备                     */
-        hDev->AHCIDEV_pvOemdisk = (PVOID)API_OemDiskMount2(AHCI_MEDIA_NAME,
-                                                           hBlkDev,
-                                                           &dcattrl);
+        hDev->AHCIDEV_pvOemdisk = (PVOID)API_OemDiskMount2(AHCI_MEDIA_NAME, hBlkDev, &dcattrl);
         if (!hDev->AHCIDEV_pvOemdisk) {                                 /* 挂载失败                     */
             AHCI_LOG(AHCI_LOG_ERR, "oem disk mount failed ctrl %d port %d.\r\n",
         	         hCtrl->AHCICTRL_uiIndex, uiDrive);
@@ -1610,10 +1626,19 @@ static INT  __ahciDiskCtrlInit (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
 {
     REGISTER INT        i;                                              /* 循环因子                     */
     INT                 iRet;                                           /* 操作结果                     */
+    AHCI_DRV_HANDLE     hDrv;                                       	/* 驱动句柄                     */
     AHCI_DRIVE_HANDLE   hDrive;                                         /* 驱动器句柄                   */
     AHCI_CMD_CB         tCtrlCmd;                                       /* 命令控制块                   */
     AHCI_CMD_HANDLE     hCmd;                                           /* 命令句柄                     */
     UINT32              uiReg;                                          /* 寄存器                       */
+    ULONG				ulInterTime;									/* 超时时间间隔					*/
+    ULONG				ulInterCount;									/* 超时时间间隔数量				*/
+
+    AHCI_LOG(AHCI_LOG_PRT, "init ctrl %d name %s uint index %d reg addr 0x%llx.\r\n",
+             hCtrl->AHCICTRL_uiIndex, hCtrl->AHCICTRL_cCtrlName, hCtrl->AHCICTRL_uiUnitIndex,
+             hCtrl->AHCICTRL_pvRegAddr);
+
+    hDrv = hCtrl->AHCICTRL_hDrv;                                        /* 获得驱动句柄                 */
 
     AHCI_LOG(AHCI_LOG_PRT, "ctrl %d drive %d disk ctrl init.\r\n", hCtrl->AHCICTRL_uiIndex, uiDrive);
 
@@ -1666,16 +1691,46 @@ static INT  __ahciDiskCtrlInit (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
         return  (PX_ERROR);
     }
 
+    ulInterTime = 0;
+    iRet = hDrv->AHCIDRV_pfuncOptCtrl(hCtrl, 0,
+    							      AHCI_OPT_CMD_RSTON_INTER_TIME_GET,
+    							      (LONG)((ULONG *)&ulInterTime));
+    if ((iRet != ERROR_NONE) || (ulInterTime == 0)) {
+    	ulInterTime = AHCI_DRIVE_RSTON_INTER_TIME_UNIT;
+    }
+    ulInterCount = 0;
+    iRet = hDrv->AHCIDRV_pfuncOptCtrl(hCtrl, 0,
+    								  AHCI_OPT_CMD_RSTON_INTER_COUNT_GET,
+    								  (LONG)((ULONG *)&ulInterCount));
+    if ((iRet != ERROR_NONE) || (ulInterCount == 0)) {
+    	ulInterCount = AHCI_DRIVE_RSTON_INTER_TIME_COUNT;
+    }
     hCmd->AHCICMD_iFlags = AHCI_CMD_FLAG_SRST_ON;
     __ahciDiskCommandSend(hCtrl, uiDrive, hCmd);
-    iRet = API_AhciDriveRegWait(hDrive, AHCI_PxCI, 0x01, LW_TRUE, 0x01, 3, 50, &uiReg);
+    iRet = API_AhciDriveRegWait(hDrive, AHCI_PxCI, 0x01, LW_TRUE, 0x01,
+                                ulInterTime, ulInterCount, &uiReg);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
 
+    ulInterTime = 0;
+    iRet = hDrv->AHCIDRV_pfuncOptCtrl(hCtrl, 0,
+    								  AHCI_OPT_CMD_RSTOFF_INTER_TIME_GET,
+    								  (LONG)((ULONG *)&ulInterTime));
+    if ((iRet != ERROR_NONE) || (ulInterTime == 0)) {
+    	ulInterTime = AHCI_DRIVE_RSTOFF_INTER_TIME_UNIT;
+    }
+    ulInterCount = 0;
+    iRet = hDrv->AHCIDRV_pfuncOptCtrl(hCtrl, 0,
+    							      AHCI_OPT_CMD_RSTOFF_INTER_COUNT_GET,
+    							      (LONG)((ULONG *)&ulInterCount));
+    if ((iRet != ERROR_NONE) || (ulInterCount == 0)) {
+    	ulInterCount = AHCI_DRIVE_RSTOFF_INTER_TIME_COUNT;
+    }
     hCmd->AHCICMD_iFlags = AHCI_CMD_FLAG_SRST_OFF;
     __ahciDiskCommandSend(hCtrl, uiDrive, hCmd);
-    iRet = API_AhciDriveRegWait(hDrive, AHCI_PxCI, 0x01, LW_TRUE, 0x01, 3, 50, &uiReg);
+    iRet = API_AhciDriveRegWait(hDrive, AHCI_PxCI, 0x01, LW_TRUE, 0x01,
+                                ulInterTime, ulInterCount, &uiReg);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
@@ -2575,7 +2630,7 @@ AHCI_CTRL_HANDLE  API_AhciCtrlCreate (CPCHAR  pcName, UINT  uiUnit, PVOID  pvArg
     hCtrl->AHCICTRL_uiCoreVer   = AHCI_CTRL_DRV_VER_NUM;                /* 控制器核心版本               */
     hCtrl->AHCICTRL_uiUnitIndex = uiUnit;                               /* 本类控制器索引               */
     hCtrl->AHCICTRL_uiIndex     = API_AhciCtrlIndexGet();               /* 控制器索引                   */
-    hCtrl->AHCICTRL_pvArg       = pvArg;
+    hCtrl->AHCICTRL_pvPciArg    = pvArg;                                /* 控制器参数                   */
     API_AhciCtrlAdd(hCtrl);                                             /* 添加控制器                   */
 
     if (hDrv->AHCIDRV_pfuncVendorCtrlReadyWork) {

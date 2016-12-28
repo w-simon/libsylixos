@@ -69,6 +69,7 @@ typedef struct {
     ULONG                TIMING_ulHTimerHz;                             /*  高速定时器频率              */
     ULONG                TIMING_ulITimerRate;                           /*  应用定时器分辨率            */
     ULONG                TIMING_ulHotplugSec;                           /*  热插拔检测时间              */
+    ULONG                TIMING_ulRebootToSec;                          /*  重启超时时间                */
     UINT16               TIMING_usSlice;                                /*  默认时间片 tick 数          */
 } LW_CLASS_TIMING;
 
@@ -313,7 +314,11 @@ typedef struct {
     
     LW_LIST_RING          COROUTINE_ringRoutine;                        /*  协程中的协程列表            */
     PVOID                 COROUTINE_pvArg;                              /*  协程运行参数                */
-    BOOL                  COROUTINE_bIsNeedFree;                        /*  是否需要进行单独的释放操作  */
+    
+    LW_OBJECT_HANDLE      COROUTINE_ulThread;                           /*  所属线程                    */
+    ULONG                 COROUTINE_ulFlags;
+#define LW_COROUTINE_FLAG_DELETE    0x1                                 /*  需要删除                    */
+#define LW_COROUTINE_FLAG_DYNSTK    0x2                                 /*  需要释放堆栈                */
 } LW_CLASS_COROUTINE;
 typedef LW_CLASS_COROUTINE     *PLW_CLASS_COROUTINE;
 

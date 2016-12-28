@@ -1827,6 +1827,11 @@ static INT  __tshellFsCmdShowmount (INT  iArgC, PCHAR  ppcArgV[])
     printf("\n");
 #endif                                                                  /*  LW_CFG_OEMDISK_EN > 0       */
 
+#if (LW_CFG_MAX_VOLUMES > 0) && (LW_CFG_YAFFS_EN > 0)
+    API_YaffsDevMountShow();
+    printf("\n");
+#endif                                                                  /*  (LW_CFG_MAX_VOLUMES > 0)    */
+                                                                        /*  (LW_CFG_YAFFS_EN > 0)       */
     API_MountShow();
     
     return  (ERROR_NONE);

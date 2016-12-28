@@ -67,6 +67,15 @@
 
 #define AHCI_OPT_CMD_PROB_TIME_COUNT_GET    0x118                       /* 获取驱动器单次探测数量       */
 #define AHCI_OPT_CMD_PROB_TIME_COUNT_SET    0x119                       /* 设置驱动器单次探测数量       */
+
+#define AHCI_OPT_CMD_RSTON_INTER_TIME_GET  	0x11a                       /* 获取 RST ON 命令间隔时间     */
+#define AHCI_OPT_CMD_RSTON_INTER_COUNT_GET 	0x11b                       /* 获取 RST ON 命令间隔计数     */
+
+#define AHCI_OPT_CMD_RSTOFF_INTER_TIME_GET 	0x11c                       /* 获取 RST OFF 命令间隔时间    */
+#define AHCI_OPT_CMD_RSTOFF_INTER_COUNT_GET	0x11d                       /* 获取 RST OFF 命令间隔计数    */
+
+#define AHCI_OPT_CMD_DC_MSG_COUNT_GET       0x11e                       /* Disk cache 消息数量          */
+#define AHCI_OPT_CMD_DC_PARALLEL_EN_GET     0x11f                       /* Disk cache 并行操作是否使能  */
 /*********************************************************************************************************
   设备类型
 *********************************************************************************************************/
@@ -1073,7 +1082,7 @@ typedef struct ahci_ctrl_cb {
 
     UINT                    AHCICTRL_uiIndex;                           /* 控制器全局索引               */
     BOOL                    AHCICTRL_bIntConnect;
-    PVOID                   AHCICTRL_pvArg;                             /* 控制器扩展参数               */
+    PVOID                   AHCICTRL_pvPciArg;                          /* 控制器扩展参数               */
 
     BOOL                    AHCICTRL_bDrvInstalled;
     LW_OBJECT_HANDLE        AHCICTRL_hMsgQueue;

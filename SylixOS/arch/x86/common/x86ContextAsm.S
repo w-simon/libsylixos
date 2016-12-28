@@ -96,14 +96,14 @@ FUNC_DEF(archCrtCtxSwitch)
     SAVE_REGS                                                           ;/*  所有寄存器入栈              */
 
     MOVL    (X86_SP_ARG1 + ARCH_REG_CTX_WORD_SIZE * 4)(%ESP) , %EDI     ;/*  EDI = 当前 CPU 控制块指针   */
-    MOVL    0(%EDI) , %EAX                                              ;/*  EAX = 当前 任务 控制块指针  */
+    MOVL    8(%EDI) , %EAX                                              ;/*  EAX = 当前 任务 控制块指针  */
     MOVL    %ESP , 0(%EAX)                                              ;/*  保存 ESP                    */
 
     PUSHL   %EDI                                                        ;/*  参数 = 当前 CPU 控制块指针  */
     CALL    _SchedCrSwp                                                 ;/*  _SchedCrSwp();              */
     ADDL    $4 , %ESP
 
-    MOVL    0(%EDI) , %EAX                                              ;/*  EAX = 当前 任务 控制块指针  */
+    MOVL    8(%EDI) , %EAX                                              ;/*  EAX = 当前 任务 控制块指针  */
     MOVL    0(%EAX) , %ESP                                              ;/*  修改 ESP                    */
 
     RESTORE_REGS                                                        ;/*  所有寄存器出栈              */

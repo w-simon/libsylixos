@@ -42,6 +42,7 @@ static CHAR     _K_cKernelStartParam[256];
                            irate=5      应用定时器分辨率, 默认为 5 个 tick. (推荐 1 ~ 10 中间)
                            hpsec=1      热插拔循环检测间隔时间, 单位: 秒 (推荐 1 ~ 5 秒)
                            bugreboot=no 内核探测到 bug 时是否自动重启.
+                           rebootto=10  重启超时时间.
                            fsched=no    SMP 系统内核快速调度
 ** 输　出  : NONE
 ** 全局变量: 
@@ -102,11 +103,17 @@ ULONG  API_KernelStartParam (CPCHAR  pcParam)
 #endif                                                                  /*  LW_CFG_CPU_ARCH_MIPS        */
             }
 
-        } else if (lib_strncmp(pcTok, "bugreboot=", 5) == 0) {          /*  探测到 bug 时是否自动重启   */
+        } else if (lib_strncmp(pcTok, "bugreboot=", 10) == 0) {         /*  探测到 bug 时是否自动重启   */
             if (pcTok[10] == 'n') {
                 LW_KERN_BUG_REBOOT_EN_SET(LW_FALSE);
             } else {
                 LW_KERN_BUG_REBOOT_EN_SET(LW_TRUE);
+            }
+            
+        } else if (lib_strncmp(pcTok, "rebootto=", 9) == 0) {           /*  重启超时                    */
+            INT     iToSec = lib_atoi(&pcTok[9]);
+            if ((iToSec >= 0) && (iToSec < 1000)) {
+                LW_REBOOT_TO_SEC = (ULONG)iToSec;
             }
             
         } else if (lib_strncmp(pcTok, "heapchk=", 8) == 0) {            /*  是否进行堆内存越界检查      */

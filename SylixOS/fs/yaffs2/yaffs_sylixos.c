@@ -85,6 +85,7 @@
 static LW_OBJECT_HANDLE _G_hYaffsOpLock;
 static INT              _G_iYaffsDrvNum = PX_ERROR;
 static BOOL             _G_bIsCreateDev = LW_FALSE;
+static PCHAR            _G_pcDevName    = LW_NULL;
 /*********************************************************************************************************
   内部结构
 *********************************************************************************************************/
@@ -422,6 +423,7 @@ INT  API_YaffsDevCreate (PCHAR   pcName)
         return  (PX_ERROR);
     }
     _G_bIsCreateDev = LW_TRUE;                                          /*  创建 yaffs 设备成功         */
+    _G_pcDevName    = pyaffs->YAFFS_devhdrHdr.DEVHDR_pcName;
     
     _DebugFormat(__LOGMESSAGE_LEVEL, "yaffs \"%s\" has been create.\r\n", pcName);
     
@@ -429,7 +431,7 @@ INT  API_YaffsDevCreate (PCHAR   pcName)
 }
 /*********************************************************************************************************
 ** 函数名称: API_YaffsDevDelete
-** 功能描述: 删除一个 yaffs 挂载设备, 例如: API_YaffsDevDelete("/yaffs2/udisk0");
+** 功能描述: 删除一个 yaffs 挂载设备, 例如: API_YaffsDevDelete("/yaffs2/n0");
 ** 输　入  : pcName            设备名(设备挂接的节点地址)
 ** 输　出  : < 0 表示失败
 ** 全局变量: 
@@ -445,6 +447,39 @@ INT  API_YaffsDevDelete (PCHAR   pcName)
     } else {
         _ErrorHandle(ENOENT);
         return  (PX_ERROR);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: API_YaffsDevMountShow
+** 功能描述: 显示所有 yaffs 挂载设备
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API 
+VOID  API_YaffsDevMountShow (VOID)
+{
+    PCHAR   pcMountInfoHdr = "       VOLUME                    BLK NAME\n"
+                             "-------------------- --------------------------------\n";
+    PCHAR   pcMtdName;
+    CHAR    cVolPath[MAX_FILENAME_LENGTH];
+    INT     iIndex = 0;
+    INT     iNext;
+    
+    printf("MTD-Mount point show >>\n");
+    printf(pcMountInfoHdr);                                             /*  打印欢迎信息                */
+    
+    if (_G_pcDevName) {
+        do {
+            pcMtdName = yaffs_getdevname(iIndex, &iNext);
+            if (pcMtdName) {
+                iIndex = iNext;
+                snprintf(cVolPath, sizeof(cVolPath), "%s%s", _G_pcDevName, pcMtdName);
+                printf("%-20s MTD:%s\n", cVolPath, pcMtdName);
+            }
+        } while (pcMtdName);
     }
 }
 /*********************************************************************************************************

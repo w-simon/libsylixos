@@ -63,16 +63,22 @@ ULONG  API_CoroutineResume (PVOID  pvCrcb)
     
     LW_TCB_GET_CUR_SAFE(ptcbCur);
     
+    if (pcrcbNext->COROUTINE_ulThread != ptcbCur->TCB_ulId) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "coroutine handle invalidate.\r\n");
+        _ErrorHandle(EINVAL);
+        return  (EINVAL);
+    }
+    
     pcrcbNow = _LIST_ENTRY(ptcbCur->TCB_pringCoroutineHeader,
                            LW_CLASS_COROUTINE,
                            COROUTINE_ringRoutine);                      /*  当前协程                    */
-    
-    ptcbCur->TCB_pringCoroutineHeader = &pcrcbNext->COROUTINE_ringRoutine;
     
     MONITOR_EVT_LONG2(MONITOR_EVENT_ID_COROUTINE, MONITOR_EVENT_COROUTINE_RESUME, 
                       ptcbCur->TCB_ulId, pcrcbNext, LW_NULL);
     
     iregInterLevel = KN_INT_DISABLE();                                  /*  关闭中断                    */
+    
+    ptcbCur->TCB_pringCoroutineHeader = &pcrcbNext->COROUTINE_ringRoutine;
     
     pcpuCur = LW_CPU_GET_CUR();
     pcpuCur->CPU_pcrcbCur  = pcrcbNow;
@@ -80,6 +86,8 @@ ULONG  API_CoroutineResume (PVOID  pvCrcb)
     archCrtCtxSwitch(LW_CPU_GET_CUR());                                 /*  协程切换                    */
     
     KN_INT_ENABLE(iregInterLevel);                                      /*  打开中断                    */
+    
+    _CoroutineReclaim(ptcbCur);                                         /*  尝试回收已经删除的协程      */
     
     return  (ERROR_NONE);
 }

@@ -58,7 +58,7 @@ VOID  API_CoroutineYield (VOID)
     LW_TCB_GET_CUR_SAFE(ptcbCur);
     
     pringNext = _list_ring_get_next(ptcbCur->TCB_pringCoroutineHeader);
-        
+    
     if (ptcbCur->TCB_pringCoroutineHeader == pringNext) {               /*  仅此一个协程                */
         return;
     }
@@ -66,8 +66,6 @@ VOID  API_CoroutineYield (VOID)
     pcrcbNow = _LIST_ENTRY(ptcbCur->TCB_pringCoroutineHeader,
                            LW_CLASS_COROUTINE,
                            COROUTINE_ringRoutine);                      /*  当前协程                    */
-    
-    ptcbCur->TCB_pringCoroutineHeader = pringNext;
     
     pcrcbNext = _LIST_ENTRY(pringNext,
                             LW_CLASS_COROUTINE,
@@ -78,12 +76,16 @@ VOID  API_CoroutineYield (VOID)
     
     iregInterLevel = KN_INT_DISABLE();                                  /*  关闭中断                    */
     
+    ptcbCur->TCB_pringCoroutineHeader = pringNext;
+    
     pcpuCur                = LW_CPU_GET_CUR();
     pcpuCur->CPU_pcrcbCur  = pcrcbNow;
     pcpuCur->CPU_pcrcbNext = pcrcbNext;
     archCrtCtxSwitch(LW_CPU_GET_CUR());                                 /*  协程切换                    */
     
     KN_INT_ENABLE(iregInterLevel);                                      /*  打开中断                    */
+    
+    _CoroutineReclaim(ptcbCur);                                         /*  尝试回收已经删除的协程      */
 }
 
 #endif                                                                  /*  LW_CFG_COROUTINE_EN > 0     */
