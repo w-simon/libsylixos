@@ -159,7 +159,7 @@ static VOID  __ftpdSendReply (__PFTPD_SESSION  pftpds, INT  iCode, CPCHAR  cpcMe
 {
 #if __LWIP_FTPD_ASCII_REPLY > 0                                         /*  回复永远以 \r\n 作为结尾    */
     if (cpcMessage != LW_NULL) {
-        fprintf(pftpds->FTPDS_pfileCtrl, "%d %.70s\r\n", iCode, cpcMessage);
+        fprintf(pftpds->FTPDS_pfileCtrl, "%d %s\r\n", iCode, cpcMessage);
     } else {
         fprintf(pftpds->FTPDS_pfileCtrl, "%d\r\n", iCode);
     }
@@ -168,7 +168,7 @@ static VOID  __ftpdSendReply (__PFTPD_SESSION  pftpds, INT  iCode, CPCHAR  cpcMe
     PCHAR  pcTail = (pftpds->FTPDS_iTransMode == __FTP_TRANSMODE_ASCII) ? "\r" : "";
     
     if (cpcMessage != LW_NULL) {
-        fprintf(pftpds->FTPDS_pfileCtrl, "%d %.70s%s\n", iCode, cpcMessage, pcTail);
+        fprintf(pftpds->FTPDS_pfileCtrl, "%d %s%s\n", iCode, cpcMessage, pcTail);
     } else {
         fprintf(pftpds->FTPDS_pfileCtrl, "%d%s\n", iCode, pcTail);
     }
@@ -737,21 +737,16 @@ static INT  __ftpdCmdPasv (__PFTPD_SESSION  pftpds)
 *********************************************************************************************************/
 static INT  __ftpdCmdPwd (__PFTPD_SESSION  pftpds)
 {
-    CHAR    cBuffer[__LWIP_FTPD_PATH_SIZE + 32];
+    CHAR    cBuffer[__LWIP_FTPD_PATH_SIZE + 40];
     PCHAR   pcCwd;
     
     errno = 0;
     cBuffer[0] = '"';
-    pcCwd = getcwd(cBuffer + 1, __LWIP_FTPD_PATH_SIZE - 4);             /*  获得当前目录                */
+    pcCwd = getcwd(cBuffer + 1, __LWIP_FTPD_PATH_SIZE);                 /*  获得当前目录                */
     if (pcCwd) {
-        size_t              stLen = lib_strlen(pcCwd);
-        static char const   cTxt[] = "\" is the current directory.";
-        size_t              stSize = sizeof(cTxt);                      /*  must low than 32            */
-        
-        lib_memcpy(cBuffer + stLen + 1, cTxt, stSize);
-        cBuffer[stLen + stSize] = PX_EOS;
+        lib_strlcat(cBuffer, "\" is the current directory.", __LWIP_FTPD_PATH_SIZE + 40);
         __ftpdSendReply(pftpds, __FTPD_RETCODE_SERVER_MAKE_DIR_OK, cBuffer);
-    
+        
     } else {
         snprintf(cBuffer, __LWIP_FTPD_PATH_SIZE, "Error: %s\n", lib_strerror(errno));
         __ftpdSendReply(pftpds, __FTPD_RETCODE_SERVER_DONOT_RUN_REQ, cBuffer);
