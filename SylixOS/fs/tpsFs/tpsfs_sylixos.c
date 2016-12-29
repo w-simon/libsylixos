@@ -1807,8 +1807,8 @@ static INT  __tpsFsSync (PLW_FD_ENTRY  pfdentry, BOOL  bFlushCache)
     return  (iError);
 }
 /*********************************************************************************************************
-** 函数名称: __tpsFsSync
-** 功能描述: TPS FS 将文件缓存写入磁盘
+** 函数名称: __tpsFsChmod
+** 功能描述: TPS FS 设置文件属性
 ** 输　入  : pfdentry            文件控制块
 **           iMode               新的 mode
 ** 输　出  : < 0 表示错误

@@ -578,6 +578,7 @@ static PVOID  __guiInputDevProc (PVOID  pvArg)
                             pgidArray->GID_iFd = PX_ERROR;
                         } else {
                             if (pfuncTemp) {
+                                LW_SOFUNC_PREPARE(pfuncTemp);
                                 pfuncTemp(&knotify, 1);                 /*  通知用户回调函数            */
                             }
                         }
@@ -606,6 +607,7 @@ static PVOID  __guiInputDevProc (PVOID  pvArg)
 
                         } else {
                             if (pfuncTemp) {                            /*  通知用户回调函数            */
+                                LW_SOFUNC_PREPARE(pfuncTemp);
                                 pfuncTemp(mnotify, (sstTemp / sizeof(mouse_event_notify)));
                             }
                         }

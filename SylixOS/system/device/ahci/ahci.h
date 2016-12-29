@@ -77,6 +77,11 @@
 #define AHCI_OPT_CMD_DC_MSG_COUNT_GET       0x11e                       /* Disk cache 消息数量          */
 #define AHCI_OPT_CMD_DC_PARALLEL_EN_GET     0x11f                       /* Disk cache 并行操作是否使能  */
 /*********************************************************************************************************
+  设备操作命令
+*********************************************************************************************************/
+#define AHCI_DEV_IOCTL_CACHE_FLUSH_GET      0x200                       /* 获取设备 cache 回写使能      */
+#define AHCI_DEV_IOCTL_CACHE_FLUSH_SET      0x201                       /* 设置设备 cache 回写使能      */
+/*********************************************************************************************************
   设备类型
 *********************************************************************************************************/
 #define AHCI_TYPE_NONE                      0x00                        /* 设备不存在或错误             */
@@ -966,6 +971,7 @@ typedef enum {
     AHCI_CMD_FLAG_BLK_READ     = 0x0040,
     AHCI_CMD_FLAG_BLK_WRITE    = 0x0080,
     AHCI_CMD_FLAG_TRIM         = 0x0100,
+    AHCI_CMD_FLAG_CACHE        = 0x0200,
 } AHCI_CMD_FLAG;
 /*********************************************************************************************************
   AHCI 命令控制块
@@ -1160,6 +1166,8 @@ typedef struct ahci_dev_cb {
     UINT8               AHCIDEV_ucIntReason;                            /* 中断原由寄存器               */
     UINT8               AHCIDEV_ucStatus;                               /* 状态寄存器                   */
     UINT16              AHCIDEV_usTransSize;                            /* 字节数量                     */
+
+    INT                 AHCIDEV_iCacheFlush;                            /* cache 回写操作               */
 } AHCI_DEV_CB;
 typedef AHCI_DEV_CB    *AHCI_DEV_HANDLE;
 /*********************************************************************************************************
@@ -1206,6 +1214,9 @@ LW_API INT                  API_AhciNoDataCommandSend(AHCI_CTRL_HANDLE hCtrl,
                                                       UINT8            ucLbaMid,
                                                       UINT8            ucLbaHigh,
                                                       INT              iFlags);
+
+LW_API INT                  API_AhciDevIoctl(AHCI_DEV_HANDLE hDev, INT iCmd, LONG lArg);
+LW_API AHCI_DEV_HANDLE      API_AhciDevHandleGet(UINT uiCtrl, UINT uiDrive);
 
 LW_API INT                  API_AhciCtrlFree(AHCI_CTRL_HANDLE hCtrl);
 LW_API AHCI_CTRL_HANDLE     API_AhciCtrlCreate(CPCHAR pcName, UINT uiUnit, PVOID pvArg);

@@ -272,6 +272,7 @@ INT  API_AhciDriveInfoShow (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, AHCI_PARAM_H
     INT                 iRet = PX_ERROR;                                /* 操作结果                     */
     AHCI_DRV_HANDLE     hDrv;                                           /* 驱动句柄                     */
     AHCI_DRIVE_HANDLE   hDrive = LW_NULL;                               /* 控制器句柄                   */
+    AHCI_DEV_HANDLE     hDev = LW_NULL;                                 /* 设备句柄                     */
     PUCHAR              pucSerial;                                      /* 设备串号                     */
     PUCHAR              pucFirmware;                                    /* 固件版本                     */
     PUCHAR              pucProduct;                                     /* 产品信息                     */
@@ -281,7 +282,7 @@ INT  API_AhciDriveInfoShow (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, AHCI_PARAM_H
 
     hDrv = hCtrl->AHCICTRL_hDrv;
     hDrive = &hCtrl->AHCICTRL_hDrive[uiDrive];                          /* 通过索引获得控制器句柄       */
-
+    hDev = hDrive->AHCIDRIVE_hDev;
     /*
      *  将参数信息转换为字符串信息
      */
@@ -327,6 +328,15 @@ INT  API_AhciDriveInfoShow (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, AHCI_PARAM_H
     printf("HW Reset Results      : 0x%04x\n", hParam->AHCIPARAM_usResetResult);
     printf("Physical/Logical Size : 0x%04x\n", hParam->AHCIPARAM_usPhysicalLogicalSector);
     printf("Data Set Management   : 0x%04x\n", hParam->AHCIPARAM_usDataSetManagement);
+    printf("Additional Supported  : 0x%04x\n", hParam->AHCIPARAM_usAdditionalSupported);
+    printf("Features Supported 0  : 0x%04x\n", hParam->AHCIPARAM_usFeaturesSupported0);
+    printf("Features Supported 1  : 0x%04x\n", hParam->AHCIPARAM_usFeaturesSupported1);
+    printf("Features Supported 2  : 0x%04x\n", hParam->AHCIPARAM_usFeaturesSupported2);
+    printf("Features Enabled 0    : 0x%04x\n", hParam->AHCIPARAM_usFeaturesEnabled0);
+    printf("Features Enabled 1    : 0x%04x\n", hParam->AHCIPARAM_usFeaturesEnabled1);
+    printf("Features Enabled 2    : 0x%04x\n", hParam->AHCIPARAM_usFeaturesEnabled2);
+    printf("\n");
+    printf("Cache Flush Enabled   : %s\n", (hDev->AHCIDEV_iCacheFlush) ? "Enable" : "Disable");
     printf("\n");
     printf("S/N                   : %s\n", pucSerial);
     printf("Firmware Version      : %s\n", pucFirmware);
@@ -469,6 +479,7 @@ INT  API_AhciDriveRecvFisStop (AHCI_DRIVE_HANDLE  hDrive)
     uiReg = AHCI_PORT_READ(hDrive, AHCI_PxCMD);
     uiReg &= ~(AHCI_PCMD_FRE);
     AHCI_PORT_WRITE(hDrive, AHCI_PxCMD, uiReg);
+    AHCI_PORT_READ(hDrive, AHCI_PxCMD);
     iRet = API_AhciDriveRegWait(hDrive,
                                 AHCI_PxCMD, AHCI_PCMD_FR, LW_TRUE, AHCI_PCMD_FR, 10, 1000, &uiReg);
     if (iRet != ERROR_NONE) {
@@ -509,6 +520,7 @@ INT  API_AhciDriveEngineStop (AHCI_DRIVE_HANDLE  hDrive)
      */
     uiReg &= ~(AHCI_PCMD_ST);
     AHCI_PORT_WRITE(hDrive, AHCI_PxCMD, uiReg);
+    AHCI_PORT_READ(hDrive, AHCI_PxCMD);
     iRet = API_AhciDriveRegWait(hDrive,
                                 AHCI_PxCMD, AHCI_PCMD_CR, LW_TRUE, AHCI_PCMD_CR, 1, 500, &uiReg);
     if (iRet != ERROR_NONE) {
@@ -518,6 +530,7 @@ INT  API_AhciDriveEngineStop (AHCI_DRIVE_HANDLE  hDrive)
     uiReg = AHCI_PORT_READ(hDrive, AHCI_PxCMD);
     uiReg |= AHCI_PCMD_CLO;
     AHCI_PORT_WRITE(hDrive, AHCI_PxCMD, uiReg);
+    AHCI_PORT_READ(hDrive, AHCI_PxCMD);
     iRet = API_AhciDriveRegWait(hDrive,
                                 AHCI_PxCMD, AHCI_PCMD_CLO, LW_TRUE, AHCI_PCMD_CLO, 1, 500, &uiReg);
     if (iRet != ERROR_NONE) {
@@ -548,10 +561,12 @@ INT  API_AhciDrivePowerUp (AHCI_DRIVE_HANDLE  hDrive)
     if (hDrive->AHCIDRIVE_hCtrl->AHCICTRL_uiCap & AHCI_CAP_SSS) {
         uiReg |= AHCI_PCMD_SUD;
         AHCI_PORT_WRITE(hDrive, AHCI_PxCMD, uiReg);
+        AHCI_PORT_READ(hDrive, AHCI_PxCMD);
     }
 
     uiReg |= AHCI_PCMD_ICC_ACTIVE;
     AHCI_PORT_WRITE(hDrive, AHCI_PxCMD, uiReg);
+    AHCI_PORT_READ(hDrive, AHCI_PxCMD);
 
     return  (ERROR_NONE);
 }

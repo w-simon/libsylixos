@@ -90,13 +90,13 @@ PVOID   API_CoroutineCreate (PCOROUTINE_START_ROUTINE pCoroutineStartAddr,
 
     pstkLowAddress = _StackAllocate(ptcbCur, 0ul, stStackByteSize);     /*  分配内存                    */
     if (!pstkLowAddress) {
+        _ThreadUnsafeInternal();                                        /*  退出安全模式                */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "kernel low memory.\r\n");
         _ErrorHandle(ERROR_KERNEL_LOW_MEMORY);
         return  (LW_NULL);
     }
     
-    stStackSizeWordAlign = 
-        _CalWordAlign(stStackByteSize);                                 /*  保存堆栈大小                */
+    stStackSizeWordAlign = _CalWordAlign(stStackByteSize);              /*  计算对齐堆栈大小            */
 
 #if CPU_STK_GROWTH == 0                                                 /*  寻找堆栈头尾                */
     pstkTop    = pstkLowAddress;

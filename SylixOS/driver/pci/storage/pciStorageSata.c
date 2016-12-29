@@ -717,6 +717,7 @@ static INT  pciStorageSataVendorDriveInit (AHCI_DRIVE_HANDLE  hDrive)
     uiReg &= ~(AHCI_PCMD_POD);
     uiReg &= ~(AHCI_PCMD_ST);
     AHCI_PORT_WRITE(hDrive, AHCI_PxCMD, uiReg);
+    AHCI_PORT_READ(hDrive, AHCI_PxCMD);
     AHCI_PORT_REG_MSG(hDrive, AHCI_PxCMD);
 
     iRet = API_AhciDriveRegWait(hDrive, AHCI_PxCMD, AHCI_PCMD_CR, LW_TRUE, AHCI_PCMD_CR, 20, 50, &uiReg);
@@ -728,6 +729,7 @@ static INT  pciStorageSataVendorDriveInit (AHCI_DRIVE_HANDLE  hDrive)
     uiReg  = AHCI_PORT_READ(hDrive, AHCI_PxCMD);
     uiReg |= AHCI_PCMD_ST;
     AHCI_PORT_WRITE(hDrive, AHCI_PxCMD, uiReg);
+    AHCI_PORT_READ(hDrive, AHCI_PxCMD);
     AHCI_PORT_REG_MSG(hDrive, AHCI_PxCMD);
 
     return  (ERROR_NONE);
