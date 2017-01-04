@@ -669,6 +669,7 @@ static ssize_t  __ramFsWrite (PLW_FD_ENTRY  pfdentry,
     sstWriteNum = __ram_write(pramn, pcBuffer, stNBytes, (size_t)pfdentry->FDENTRY_oftPtr);
     if (sstWriteNum > 0) {
         pfdentry->FDENTRY_oftPtr += (off_t)sstWriteNum;                 /*  更新文件指针                */
+        pfdnode->FDNODE_oftSize   = (off_t)pramn->RAMN_stSize;
     }
     
     __RAMFS_FILE_UNLOCK(pramn);
@@ -717,6 +718,9 @@ static ssize_t  __ramFsPWrite (PLW_FD_ENTRY  pfdentry,
     }
     
     sstWriteNum = __ram_write(pramn, pcBuffer, stNBytes, (size_t)oftPos);
+    if (sstWriteNum > 0) {
+        pfdnode->FDNODE_oftSize = (off_t)pramn->RAMN_stSize;
+    }
     
     __RAMFS_FILE_UNLOCK(pramn);
     
