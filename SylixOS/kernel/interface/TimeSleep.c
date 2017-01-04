@@ -156,7 +156,7 @@ __wait_again:
 ** 功能描述: 线程睡眠直到一个指定的时间 (与当前时钟差值不得超过 ULONG_MAX 个 tick)
 ** 输　入  : clockid           时钟类型 CLOCK_REALTIME or CLOCK_MONOTONIC
 **           tv                指定的时间
-**           bSigRet           是否允许信号唤醒
+**           bSigRet           是否允许信号唤醒 (TODO: 当前未实现)
 ** 输　出  : ERROR_NONE or EINTR
 ** 全局变量: 
 ** 调用模块: 

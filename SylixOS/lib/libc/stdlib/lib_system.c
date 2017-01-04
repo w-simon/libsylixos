@@ -50,10 +50,15 @@ VOID  lib_abort (VOID)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-INT  lib_system (CPCHAR        pcCmd)
+INT  lib_system (CPCHAR  pcCmd)
 {
 #if LW_CFG_SHELL_EN > 0
     INT     iRet;
+    
+    if (!pcCmd) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
     
     __THREAD_CANCEL_POINT();                                            /*  测试取消点                  */
     

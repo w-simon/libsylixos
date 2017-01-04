@@ -529,11 +529,6 @@
 #define Lw_Kernel_HeapInfoEx                    API_KernelHeapInfoEx
 #define Lw_Kernel_HeapStatusEx                  API_KernelHeapInfoEx
 
-#define Lw_Kernel_HookSet                       API_KernelHookSet
-#define Lw_Kernel_HookGet                       API_KernelHookGet
-
-#define Lw_Kernel_HookDelete                    API_KernelHookDelete
-
 /*********************************************************************************************************
   SHOW
 *********************************************************************************************************/

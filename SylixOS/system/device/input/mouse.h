@@ -73,7 +73,7 @@
   
   mouse_event_notify   event;
   
-  read(fd,  (char *)&event,  sizeof(mouse_event_notify));
+  read(fd, (char *)&event, sizeof(mouse_event_notify));
 *********************************************************************************************************/
 
 typedef struct mouse_event_notify {

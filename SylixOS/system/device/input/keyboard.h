@@ -38,12 +38,13 @@
 *********************************************************************************************************/
 
 #include "sys/types.h"
+#include "sys/ioccom.h"
 
 /*********************************************************************************************************
   keyboard max key event at same time
 *********************************************************************************************************/
 
-#define KE_MAX_KEY_ST               8
+#define KE_MAX_KEY_ST               4
 
 /*********************************************************************************************************
   keyboard event type
@@ -79,7 +80,10 @@
   
   keyboard_event_notify   event;
   
-  read(fd,  (void *)&event,  sizeof(keyboard_event_notify));
+  read(fd, (void *)&event, sizeof(keyboard_event_notify));
+  
+  event.keymsg[0] is SylixOS keyboard code
+  event.keymsg[1] is standard keyboard scancode
 *********************************************************************************************************/
 
 typedef struct keyboard_event_notify {
@@ -87,8 +91,15 @@ typedef struct keyboard_event_notify {
     int32_t             type;                                           /*  press or release            */
     int32_t             ledstate;                                       /*  LED stat                    */
     int32_t             fkstat;                                         /*  func-key stat               */
-    int32_t             keymsg[KE_MAX_KEY_ST];                          /*  key code                    */
+    int32_t             keymsg[KE_MAX_KEY_ST * 2];                      /*  key code                    */
 } keyboard_event_notify;
+
+/*********************************************************************************************************
+  key ioctl
+*********************************************************************************************************/
+
+#define KBD_CTL_SET_SIM_CONTSTRIKE  _IOW('k', 1, INT)                   /*  driver sim continuous strike*/
+#define KBD_CTL_GET_SIM_CONTSTRIKE  _IOR('k', 1, INT)
 
 /*********************************************************************************************************
   key type

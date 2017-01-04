@@ -37,7 +37,8 @@
 #define __XDEV_H
 
 #define MAX_INPUT_DEVICE    5   /* max input physical device */
-#define MAX_INPUT_QUEUE     4   /* max data packets in queue */
+#define MAX_INPUT_KQUEUE    16  /* max kbd data packets in queue */
+#define MAX_INPUT_MQUEUE    4   /* max mse data packets in queue */
 #define MAX_INPUT_POINTS    5   /* max input points at once */
 
 #define DEFAULT_KEYBOARD    "/dev/input/keyboard0"

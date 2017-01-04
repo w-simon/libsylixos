@@ -83,7 +83,8 @@ static spinlock_t xinput_sl;
 /*
  * xinput device msgq size
  */
-static int xinput_mqsize = MAX_INPUT_QUEUE;
+static int xinput_kmqsize = MAX_INPUT_KQUEUE;
+static int xinput_mmqsize = MAX_INPUT_MQUEUE;
 
 /*
  * xinput open
@@ -311,7 +312,7 @@ static int xinput_drv (void)
  */
 static int xinput_devadd (void)
 {
-    kdb_xinput.queue = API_MsgQueueCreate("xkbd_q", (ULONG)xinput_mqsize,
+    kdb_xinput.queue = API_MsgQueueCreate("xkbd_q", (ULONG)xinput_kmqsize,
                                           sizeof(struct keyboard_event_notify),
                                           LW_OPTION_OBJECT_GLOBAL, NULL);
     SEL_WAKE_UP_LIST_INIT(&kdb_xinput.sel_list);
@@ -322,7 +323,7 @@ static int xinput_devadd (void)
         return  (PX_ERROR);
     }
 
-    mse_xinput.queue = API_MsgQueueCreate("xmse_q", (ULONG)xinput_mqsize,
+    mse_xinput.queue = API_MsgQueueCreate("xmse_q", (ULONG)xinput_mmqsize,
                                           (sizeof(struct mouse_event_notify) * MAX_INPUT_POINTS),
                                           LW_OPTION_OBJECT_GLOBAL, NULL);
     SEL_WAKE_UP_LIST_INIT(&mse_xinput.sel_list);
@@ -432,8 +433,9 @@ static void  *xinput_scan (void *arg)
                         if (temp <= 0) {
                             close(input->fd);
                             input->fd = -1;
-                        } else {
-                            API_MsgQueueSend(kdb_xinput.queue, (void *)&knotify, (u_long)temp);
+                        } else {                                        /* must send kbd message ok     */
+                            API_MsgQueueSend2(kdb_xinput.queue, (void *)&knotify,
+                                             (u_long)temp, LW_OPTION_WAIT_INFINITE);
                             SEL_WAKE_UP_ALL(&kdb_xinput.sel_list, SELREAD);
                         }
                     }
@@ -498,8 +500,12 @@ int module_init (void)
     LW_SPIN_INIT(&xinput_sl);
     xinput_hotplug = TRUE; /* need open once first */
 
-    if (getenv_r("XINPUT_QSIZE", temp_str, sizeof(temp_str)) == 0) {
-        xinput_mqsize = atoi(temp_str);
+    if (getenv_r("XINPUT_KQSIZE", temp_str, sizeof(temp_str)) == 0) {
+        xinput_kmqsize = atoi(temp_str);
+    }
+
+    if (getenv_r("XINPUT_MQSIZE", temp_str, sizeof(temp_str)) == 0) {
+        xinput_mmqsize = atoi(temp_str);
     }
 
     threadattr = API_ThreadAttrGetDefault();

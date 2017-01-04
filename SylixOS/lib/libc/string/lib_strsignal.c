@@ -46,10 +46,10 @@ PCHAR  lib_strsignal (INT  iSigNo)
     };
     
     if (1 <= (iSigNo) && (iSigNo) <= 63) {
-        return  (LW_NULL);
+        return  (pcSignalName[iSigNo]);
     }
     
-    return  (pcSignalName[iSigNo]);
+    return  (LW_NULL);
 }
 /*********************************************************************************************************
   END
