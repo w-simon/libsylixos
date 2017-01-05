@@ -22,6 +22,12 @@
 2015.09.22  修正未主动上报首次状态的错误, 避免首次状态的丢失.
 2016.03.15  API_MiiPhyLinkSet() 加入 hook.
 2016.11.10  增加PhyID掩码功能, 方便同系列PHY芯片不同型号的识别
+2016.12.13  设定Phy地址为0才进行自动扫描，避免多个Phy时只能扫描到第一个
+2017.01.04  1. 增加API_MiiPhyScanOnly()功能函数，扫描所有PHY设备
+            2. 增加PHY_uiPhyAbilityFlags标志，去除自动协商能力通告与用户指定能力的耦合性
+            3. 增加MII_PHY_NWAIT_STAT标志，用户决定是否同步等待协商完成与连接状态
+            4. 修改PHY强制模式配置流程，强制模式下使PHY最终处于合理的最高连接能力下
+            5. 增加连接状态改变时更新连接信息功能
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -75,7 +81,8 @@ static INT __miiAbilFlagUpdate (PHY_DEV *pPhyDev)
     if (MII_READ(pPhyDev, ucRegAddr, &usPhyStatus) == MII_ERROR) {
         return  (MII_ERROR);
     }
-
+    
+    MII_PHY_ABILITY_FLAGS_CLEAR(0xFFFFFFFF);
     /*
      * Check all PHY flags & set it into PHY_DEV
      */
@@ -83,24 +90,34 @@ static INT __miiAbilFlagUpdate (PHY_DEV *pPhyDev)
                       |  MII_SR_TX_FULL_DPX
                       |  MII_SR_T4))) {
         MII_PHY_FLAGS_CLEAR(MII_PHY_100);
-    }
-
-    if (!(usPhyStatus & (MII_SR_10T_FULL_DPX | MII_SR_TX_FULL_DPX))) {
-        MII_PHY_FLAGS_CLEAR(MII_PHY_FD);
+    } else {
+        MII_PHY_ABILITY_FLAGS_SET(MII_PHY_100);                         /* 具有100Mb的能力              */
     }
 
     if (!(usPhyStatus & (MII_SR_10T_HALF_DPX | MII_SR_10T_FULL_DPX))) {
         MII_PHY_FLAGS_CLEAR(MII_PHY_10);
+    } else {
+        MII_PHY_ABILITY_FLAGS_SET(MII_PHY_10);                          /* 具有10Mb的能力               */
+    }
+
+    if (!(usPhyStatus & (MII_SR_10T_FULL_DPX | MII_SR_TX_FULL_DPX))) {
+        MII_PHY_FLAGS_CLEAR(MII_PHY_FD);
+    } else {
+        MII_PHY_ABILITY_FLAGS_SET(MII_PHY_FD);                          /* 具有full duplex的能力        */
     }
 
     if (!(usPhyStatus & (MII_SR_TX_HALF_DPX | MII_SR_10T_HALF_DPX))) {
         MII_PHY_FLAGS_CLEAR(MII_PHY_HD);
+    } else {
+        MII_PHY_ABILITY_FLAGS_SET(MII_PHY_HD);                          /* 具有half duplex的能力        */
     }
 
     if (!(usPhyStatus & MII_SR_AUTO_SEL)) {
         MII_DEBUG_ADDR("mii: auto negotiation is not support for this phy[%02x].\r\n",
                        pPhyDev->PHY_ucPhyAddr);
         MII_PHY_FLAGS_CLEAR(MII_PHY_AUTO);
+    } else {
+        MII_PHY_ABILITY_FLAGS_SET(MII_PHY_AUTO);                        /* 具有自动协商的能力           */
     }
 
     if (pPhyDev->PHY_uiPhyFlags & MII_PHY_GMII_TYPE) {                  /* GMII Interface               */
@@ -111,10 +128,14 @@ static INT __miiAbilFlagUpdate (PHY_DEV *pPhyDev)
 
         if (!(usPhyStatus & MII_EXT_STAT_1000T_HD)) {
             MII_PHY_FLAGS_CLEAR(MII_PHY_1000T_HD);
+        } else {
+            MII_PHY_ABILITY_FLAGS_SET(MII_PHY_1000T_HD);                /* 具有1000Mb full duplex能力   */
         }
 
         if (!(usPhyStatus & MII_EXT_STAT_1000T_FD)) {
             MII_PHY_FLAGS_CLEAR(MII_PHY_1000T_FD);
+        } else {
+            MII_PHY_ABILITY_FLAGS_SET(MII_PHY_1000T_FD);                /* 具有1000Mb half duplex能力   */
         }
     }
     
@@ -180,21 +201,24 @@ static INT __miiBasicCheck (PHY_DEV *pPhyDev)
 *********************************************************************************************************/
 static INT __miiFlagsHandle (PHY_DEV *pPhyDev)
 {
-    if (MII_PHY_FLAGS_ARE_SET(MII_PHY_1000T_FD) ||
-        MII_PHY_FLAGS_ARE_SET(MII_PHY_1000T_HD)) {
+    if (MII_PHY_ABILITY_FLAGS_JUDGE(MII_PHY_1000T_FD) ||
+            MII_PHY_ABILITY_FLAGS_JUDGE(MII_PHY_1000T_HD)) {
         pPhyDev->PHY_uiPhySpeed = MII_1000MBS;
-    
-    } else if (MII_PHY_FLAGS_ARE_SET(MII_PHY_100)) {
+
+    } else if (MII_PHY_ABILITY_FLAGS_JUDGE(MII_PHY_100)) {
         pPhyDev->PHY_uiPhySpeed = MII_100MBS;
     
     } else {
         pPhyDev->PHY_uiPhySpeed = MII_10MBS;
     }
-
-    if (MII_PHY_FLAGS_ARE_SET(MII_PHY_FD)) {
+    
+    MII_PHY_FLAGS_CLEAR(MII_PHY_HD | MII_PHY_FD);
+    if (MII_PHY_ABILITY_FLAGS_JUDGE(MII_PHY_FD)) {
+        MII_PHY_FLAGS_SET(MII_PHY_FD);
         lib_bcopy(MII_FDX_STR, (char *)pPhyDev->PHY_pcPhyMode, MII_FDX_LEN);
     
     } else {
+        MII_PHY_FLAGS_SET(MII_PHY_HD);
         lib_bcopy(MII_HDX_STR, (char *)pPhyDev->PHY_pcPhyMode, MII_HDX_LEN);
     }
 
@@ -311,7 +335,7 @@ static INT __miiPhyUpdate (PHY_DEV *pPhyDev)
             /* 
              * 1000T FD supported 
              */
-            MII_PHY_FLAGS_SET(MII_PHY_FD);
+            MII_PHY_ABILITY_FLAGS_SET(MII_PHY_FD);
             goto    __exit_phy_update;
         
         } else if ((usPhyMstSlaStat & MII_MASSLA_STAT_LP1000T_HD) &&
@@ -319,33 +343,35 @@ static INT __miiPhyUpdate (PHY_DEV *pPhyDev)
             /*
              * 1000T HD supported 
              */
-            MII_PHY_FLAGS_SET(MII_PHY_HD);
-            MII_PHY_FLAGS_CLEAR(MII_PHY_1000T_FD);
+            MII_PHY_ABILITY_FLAGS_SET(MII_PHY_HD);
+            MII_PHY_ABILITY_FLAGS_CLEAR(MII_PHY_1000T_FD);
             goto    __exit_phy_update;
         
         } else {
             /*
              * 1000T not supported, go check other abilities 
              */
-            MII_PHY_FLAGS_CLEAR(MII_PHY_1000T_FD);
-            MII_PHY_FLAGS_CLEAR(MII_PHY_1000T_HD);
+            MII_PHY_ABILITY_FLAGS_CLEAR(MII_PHY_1000T_FD);
+            MII_PHY_ABILITY_FLAGS_CLEAR(MII_PHY_1000T_HD);
         }
     }
 
     usNegAbility = (UINT16)(usPhyPrtn & usPhyAds & MII_ADS_TECH_MASK);
 
     if (usNegAbility & MII_TECH_100BASE_TX_FD) {
-    
+        /*
+         * Nothing to do.
+         */
     } else if ((usNegAbility & MII_TECH_100BASE_TX) ||
                (usNegAbility & MII_TECH_100BASE_T4)) {
-        MII_PHY_FLAGS_CLEAR(MII_PHY_FD);
+        MII_PHY_ABILITY_FLAGS_CLEAR(MII_PHY_FD);
     
     } else if (usNegAbility & MII_TECH_10BASE_FD) {
-        MII_PHY_FLAGS_CLEAR(MII_PHY_100);
+        MII_PHY_ABILITY_FLAGS_CLEAR(MII_PHY_100);
     
     } else if (usNegAbility & MII_TECH_10BASE_T) {
-        MII_PHY_FLAGS_CLEAR(MII_PHY_FD);
-        MII_PHY_FLAGS_CLEAR(MII_PHY_100);
+        MII_PHY_ABILITY_FLAGS_CLEAR(MII_PHY_FD);
+        MII_PHY_ABILITY_FLAGS_CLEAR(MII_PHY_100);
     
     } else {
         _DebugHandle(__LOGMESSAGE_LEVEL, "mii: phy update fail.\r\n");
@@ -466,25 +492,27 @@ static INT __miiAutoNegStart (PHY_DEV *pPhyDev)
     /*
      * let's check the PHY status for completion
      */
-    ucRegAddr = MII_STAT_REG;
 
-    do {                                                                /* spin until it is done        */
-        API_TimeMSleep(pPhyDev->PHY_uiLinkDelay);
+    if (!(pPhyDev->PHY_uiPhyFlags & MII_PHY_NWAIT_STAT)) {
+        ucRegAddr = MII_STAT_REG;
+        do {                                                            /* spin until it is done        */
+            API_TimeMSleep(pPhyDev->PHY_uiLinkDelay);
 
-        if (i++ == pPhyDev->PHY_uiTryMax)
-            break;
+            if (i++ == pPhyDev->PHY_uiTryMax)
+                break;
 
-        if (MII_READ(pPhyDev, ucRegAddr, &usPhyStatus) != MII_OK) {
-            return  (MII_ERROR);
+            if (MII_READ(pPhyDev, ucRegAddr, &usPhyStatus) != MII_OK) {
+                return  (MII_ERROR);
+            }
+        } while ((usPhyStatus & MII_SR_AUTO_NEG) != MII_SR_AUTO_NEG);
+
+        if (i >= pPhyDev->PHY_uiTryMax) {
+            _DebugHandle(__LOGMESSAGE_LEVEL, "mii: negotiation fail.\r\n");
+            return  (MII_PHY_AN_FAIL);
+
+        } else {
+            _DebugHandle(__LOGMESSAGE_LEVEL, "mii: negotiation success.\r\n");
         }
-    } while ((usPhyStatus & MII_SR_AUTO_NEG) != MII_SR_AUTO_NEG);
-
-    if (i >= pPhyDev->PHY_uiTryMax) {
-        _DebugHandle(__LOGMESSAGE_LEVEL, "mii: negotiation fail.\r\n");
-        return  (MII_PHY_AN_FAIL);
-    
-    } else {
-        _DebugHandle(__LOGMESSAGE_LEVEL, "mii: negotiation success.\r\n");
     }
     
     return  (MII_OK);
@@ -547,8 +575,8 @@ static INT __miiAutoNegotiate (PHY_DEV *pPhyDev)
     /*
      * MII defines symmetric PAUSE ability
      */
-    if ((MII_PHY_FLAGS_ARE_SET (MII_PHY_TX_FLOW_CTRL)) &&
-        (MII_PHY_FLAGS_ARE_SET (MII_PHY_RX_FLOW_CTRL))) {
+    if ((MII_PHY_FLAGS_JUDGE (MII_PHY_TX_FLOW_CTRL)) &&
+        (MII_PHY_FLAGS_JUDGE (MII_PHY_RX_FLOW_CTRL))) {
         usPhyAds |= MII_ANAR_PAUSE;
     
     } else {
@@ -559,13 +587,13 @@ static INT __miiAutoNegotiate (PHY_DEV *pPhyDev)
         /*
          * GMII also defines asymmetric PAUSE ability
          */
-        if (!(MII_PHY_FLAGS_ARE_SET (MII_PHY_TX_FLOW_CTRL)) &&
-            !(MII_PHY_FLAGS_ARE_SET (MII_PHY_RX_FLOW_CTRL))) {          /* not flow control             */
+        if (!(MII_PHY_FLAGS_JUDGE(MII_PHY_TX_FLOW_CTRL)) &&
+            !(MII_PHY_FLAGS_JUDGE(MII_PHY_RX_FLOW_CTRL))) {          /* not flow control             */
             usPhyAds &= ~MII_ANAR_ASM_PAUSE;
             usPhyAds &= ~MII_ANAR_PAUSE;
             
-        } else if ((MII_PHY_FLAGS_ARE_SET (MII_PHY_TX_FLOW_CTRL)) &&
-                  !(MII_PHY_FLAGS_ARE_SET (MII_PHY_RX_FLOW_CTRL))) {    /* TX flow control              */
+        } else if ((MII_PHY_FLAGS_JUDGE(MII_PHY_TX_FLOW_CTRL)) &&
+                  !(MII_PHY_FLAGS_JUDGE(MII_PHY_RX_FLOW_CTRL))) {    /* TX flow control              */
             usPhyAds |= MII_ANAR_ASM_PAUSE;
             usPhyAds &= ~MII_ANAR_PAUSE;
         
@@ -576,7 +604,7 @@ static INT __miiAutoNegotiate (PHY_DEV *pPhyDev)
     }
 
     ucRegAddr = MII_AN_ADS_REG;                                         /* write ANAR                   */
-    if (MII_WRITE(pPhyDev, ucRegAddr, usPhyAds) == MII_ERROR) {
+    if (MII_WRITE(pPhyDev, ucRegAddr, usPhyAds) == MII_ERROR) {         /* 配置自动协商能力寄存器       */
         return   (MII_ERROR);
     }
 
@@ -584,7 +612,7 @@ static INT __miiAutoNegotiate (PHY_DEV *pPhyDev)
         /*
          * get Master-Slave Control (MSC) Register
          */
-        ucRegAddr =  MII_MASSLA_CTRL_REG;
+        ucRegAddr = MII_MASSLA_CTRL_REG;
         if (MII_READ(pPhyDev, ucRegAddr, &usPhyMstSlaCtrl) == MII_ERROR) {
             return   (MII_ERROR);
         }
@@ -618,66 +646,10 @@ static INT __miiAutoNegotiate (PHY_DEV *pPhyDev)
     }
 
     /*
-     * check the PHY flags and possibly mask some abilities off
-     */
-    if (!(MII_PHY_FLAGS_ARE_SET (MII_PHY_FD))) {
-        usPhyAds &= ~(MII_TECH_10BASE_FD | MII_TECH_100BASE_TX_FD);
-    }
-
-    if (!(MII_PHY_FLAGS_ARE_SET (MII_PHY_HD))) {
-        usPhyAds &= ~(MII_TECH_10BASE_T | MII_TECH_100BASE_TX
-                   | MII_TECH_100BASE_T4);
-    }
-
-    if (!(MII_PHY_FLAGS_ARE_SET (MII_PHY_100))) {
-        usPhyAds &= ~(MII_TECH_100BASE_TX | MII_TECH_100BASE_TX_FD
-                   | MII_TECH_100BASE_T4);
-    }
-
-    if (!(MII_PHY_FLAGS_ARE_SET (MII_PHY_10))) {
-        usPhyAds &= ~(MII_TECH_10BASE_T | MII_TECH_10BASE_FD);
-    }
-
-    if (pPhyDev->PHY_uiPhyFlags & MII_PHY_GMII_TYPE) {
-        /*
-         * check phyFlags with 1000T FD mode
-         */
-        if (!(MII_PHY_FLAGS_ARE_SET (MII_PHY_1000T_FD))) {
-            usPhyMstSlaCtrl &= ~MII_MASSLA_CTRL_1000T_FD;
-        }
-
-        /*
-         * check phyFlags with 1000T HD mode
-         */
-        if (!(MII_PHY_FLAGS_ARE_SET (MII_PHY_1000T_HD))) {
-            usPhyMstSlaCtrl &= ~MII_MASSLA_CTRL_1000T_HD;
-        }
-    }
-
-    /*
-     * set the ANAR accordingly
-     */
-    ucRegAddr = MII_AN_ADS_REG;
-    if (MII_WRITE(pPhyDev, ucRegAddr, usPhyAds) == MII_ERROR) {
-        return   (MII_ERROR);
-    }
-
-    /*
-     * set MSC register accordingly
-     */
-    if (pPhyDev->PHY_uiPhyFlags & MII_PHY_GMII_TYPE) {
-        ucRegAddr = MII_MASSLA_CTRL_REG;
-        if (MII_WRITE(pPhyDev, ucRegAddr, usPhyMstSlaCtrl) == MII_ERROR) {
-            return   (MII_ERROR);
-        }
-    }
-
-    /*
      * start the auto-negotiation process: return
      * only in case of fatal error.
      */
    iRet = __miiAutoNegStart(pPhyDev);
-
     /*
      * in case of fatal error, we return immediately; otherwise,
      * we try to recover from the failure, if we're not using
@@ -688,11 +660,33 @@ static INT __miiAutoNegotiate (PHY_DEV *pPhyDev)
     }
 
     /* check the negotiation was successful */
-    if (__miiAnCheck(pPhyDev) == MII_OK) {
-        return  (MII_OK);
+    if (!(pPhyDev->PHY_uiPhyFlags & MII_PHY_NWAIT_STAT)) {
+        if (__miiAnCheck(pPhyDev) == MII_OK) {
+            return  (MII_OK);
+        }
     }
     
     return  (MII_ERROR);
+}
+/*********************************************************************************************************
+ ** 函数名称: __miiModeForce
+ ** 功能描述: 强制PHY设成指定的连接模式(指定一个最高连接模式)
+ ** 输　入  : pPhyDev       PHY设备指针
+ ** 输　出  : MII_ERROR, MII_OK
+ ** 全局变量:
+ ** 调用模块:
+*********************************************************************************************************/
+static INT __miiForceAttempt (PHY_DEV *pPhyDev, UINT16  usData)
+{
+    if (MII_WRITE(pPhyDev, MII_CTRL_REG, usData) != MII_OK) {
+        return  (MII_ERROR);
+    }
+
+    if (__miiBasicCheck(pPhyDev) != MII_OK) {
+        return  (MII_ERROR);
+    }
+
+    return  (MII_OK);
 }
 /*********************************************************************************************************
 ** 函数名称: __miiModeForce
@@ -710,31 +704,69 @@ static INT __miiModeForce (PHY_DEV *pPhyDev)
      * force as a high priority as possible operating
      * mode, not overlooking what the user dictated.
      */
-    usData = MII_CTRL_NORM_EN;
-    if (MII_PHY_FLAGS_ARE_SET (MII_PHY_100)) {
-        usData |= MII_CTRL_100;
-    }
-
-    if (MII_PHY_FLAGS_ARE_SET (MII_PHY_FD)) {
+    MII_PHY_ABILITY_FLAGS_CLEAR(0xFFFFFFFF);
+                                                                        /* 1000Mb/s full                */
+    if (MII_PHY_FLAGS_JUDGE(MII_PHY_1000T_FD)) {
+        usData = MII_CTRL_NORM_EN;
+        usData |= MII_CTRL_1000;
         usData |= MII_CTRL_FDX;
+        __miiForceAttempt(pPhyDev, usData);
+        MII_PHY_ABILITY_FLAGS_SET(MII_PHY_1000T_FD);
+
+        return  (MII_OK);
     }
 
-    if (MII_WRITE(pPhyDev, MII_CTRL_REG, usData) != MII_OK) {
-        return  (MII_ERROR);
+                                                                        /* 1000Mb/s half                */
+    if (MII_PHY_FLAGS_JUDGE(MII_PHY_1000T_HD)) {
+        usData = MII_CTRL_NORM_EN;
+        usData |= MII_CTRL_1000;
+        __miiForceAttempt(pPhyDev, usData);
+        MII_PHY_ABILITY_FLAGS_SET(MII_PHY_1000T_HD);
+
+        return  (MII_OK);
+
+    }
+                                                                        /* 100Mb/s full                 */
+    if (MII_PHY_FLAGS_JUDGE(MII_PHY_100) && MII_PHY_FLAGS_JUDGE(MII_PHY_FD)) {
+        usData = MII_CTRL_NORM_EN;
+        usData |= MII_CTRL_100;
+        usData |= MII_CTRL_FDX;
+        __miiForceAttempt(pPhyDev, usData);
+        MII_PHY_ABILITY_FLAGS_SET(MII_PHY_100 | MII_PHY_FD);
+
+        return  (MII_OK);
+    }
+                                                                        /* 100Mb/s half                 */
+    if (MII_PHY_FLAGS_JUDGE(MII_PHY_100) && MII_PHY_FLAGS_JUDGE(MII_PHY_HD)) {
+        usData = MII_CTRL_NORM_EN;
+        usData |= MII_CTRL_100;
+        __miiForceAttempt(pPhyDev, usData);
+        MII_PHY_ABILITY_FLAGS_SET(MII_PHY_100 | MII_PHY_HD);
+
+        return  (MII_OK);
+    }
+                                                                        /* 10Mb/s full                  */
+    if (MII_PHY_FLAGS_JUDGE(MII_PHY_10) && MII_PHY_FLAGS_JUDGE(MII_PHY_FD)) {
+        usData = MII_CTRL_NORM_EN;
+        usData |= MII_CTRL_FDX;
+        __miiForceAttempt(pPhyDev, usData);
+        MII_PHY_ABILITY_FLAGS_SET(MII_PHY_10 | MII_PHY_FD);
+
+        return  (MII_OK);
+    }
+                                                                        /* 10Mb/s half                  */
+    if (MII_PHY_FLAGS_JUDGE(MII_PHY_10) && MII_PHY_FLAGS_JUDGE(MII_PHY_HD)) {
+
+        usData = MII_CTRL_NORM_EN;
+        __miiForceAttempt(pPhyDev, usData);
+        MII_PHY_ABILITY_FLAGS_SET(MII_PHY_10 | MII_PHY_HD);
+
+        return  (MII_OK);
     }
 
-    /*
-     * run a check on the status bits of basic registers only
-     */
-    if (__miiBasicCheck(pPhyDev) != MII_OK) {
-        return  (MII_ERROR);
-    }
+    _DebugHandle(__ERRORMESSAGE_LEVEL, "force link error.\r\n");
 
-    if (__miiFlagsHandle(pPhyDev) != MII_OK) {                          /* handle some flags            */
-        return  (MII_ERROR);
-    }
-    
-    return  (MII_OK);
+    return  (MII_ERROR);
 }
 /*********************************************************************************************************
 ** 函数名称: API_MiiPhyModeSet
@@ -757,15 +789,19 @@ INT API_MiiPhyModeSet (PHY_DEV *pPhyDev)
            }
            return   (MII_OK);
        }
+    
+    } else {                                                            /* 未开启自动协商功能           */
+        if (__miiModeForce(pPhyDev) == MII_OK) {
+            if (pPhyDev->PHY_uiPhyFlags & MII_PHY_GMII_TYPE) {
+                pPhyDev->PHY_uiPhyLinkMethod = MII_PHY_LINK_FORCE;
+            }
+
+            if (__miiFlagsHandle(pPhyDev) == MII_OK) {                  /* handle some flags            */
+                return  (MII_OK);
+            }
+        }
     }
 
-    if (__miiModeForce(pPhyDev) == MII_OK) {
-        if (pPhyDev->PHY_uiPhyFlags & MII_PHY_GMII_TYPE) {
-            pPhyDev->PHY_uiPhyLinkMethod = MII_PHY_LINK_FORCE;
-        }
-        return  (MII_OK);
-    }
-    
     return  (MII_ERROR);
 }
 /*********************************************************************************************************
@@ -830,12 +866,17 @@ INT API_MiiPhyDiagnostic (PHY_DEV *pPhyDev)
         }
 
         if (!(usData & MII_CTRL_RESET)) {
+            /*
+             * Some chips (smsc911x) may still need up to another 1ms after the
+             * BMCR_RESET bit is cleared before they are usable.
+             */
+            API_TimeMSleep(1);
             break;
         }
     }
 
-    if (i >= pPhyDev->PHY_uiTryMax) {
-        MII_DEBUG_ADDR("mii: fail phy addr[%02x].\r\n",
+    if (i >= pPhyDev->PHY_uiTryMax) {                                   /* phy重启超时                  */
+        MII_DEBUG_ADDR("mii: fail to reset phy. addr[%02x].\r\n",
                        pPhyDev->PHY_ucPhyAddr);
         return  (MII_ERROR);
     }
@@ -860,11 +901,11 @@ INT API_MiiPhyDiagnostic (PHY_DEV *pPhyDev)
         }
 
         if (!(usData & MII_CTRL_ISOLATE)) {
-            break;
+            break;                                                      /* 关闭了物理隔离功能           */
         }
     }
 
-    if (i >= pPhyDev->PHY_uiTryMax) {
+    if (i >= pPhyDev->PHY_uiTryMax) {                                   /* phy处于物理隔离状态          */
         MII_DEBUG_ADDR("mii: isolated phy fail. phy addr[%02x].\r\n",
                        pPhyDev->PHY_ucPhyAddr);
         return  (MII_ERROR);
@@ -889,30 +930,30 @@ INT API_MiiPhyLinkStatGet (PHY_DEV *pPhyDev)
     INT     iRet;
 
     ucRegAddr = MII_STAT_REG;
-    iRet      =  MII_READ(pPhyDev, ucRegAddr, &usPhyStatus);
+    iRet      = MII_READ(pPhyDev, ucRegAddr, &usPhyStatus);
     if (iRet == MII_ERROR) {
         return  (MII_ERROR);
     }
 
     if (!(usPhyStatus & (MII_SR_TX_HALF_DPX | MII_SR_TX_FULL_DPX | MII_SR_T4))) {
-        MII_PHY_FLAGS_CLEAR(MII_PHY_100);
+        MII_PHY_ABILITY_FLAGS_CLEAR(MII_PHY_100);
     }
 
     if (!(usPhyStatus & (MII_SR_10T_FULL_DPX | MII_SR_TX_FULL_DPX))) {
-        MII_PHY_FLAGS_CLEAR(MII_PHY_FD);
+        MII_PHY_ABILITY_FLAGS_CLEAR(MII_PHY_FD);
     }
 
     if (!(usPhyStatus & (MII_SR_10T_HALF_DPX | MII_SR_10T_FULL_DPX))) {
-        MII_PHY_FLAGS_CLEAR(MII_PHY_10);
+        MII_PHY_ABILITY_FLAGS_CLEAR(MII_PHY_10);
     }
 
     if (!(usPhyStatus & (MII_SR_TX_HALF_DPX | MII_SR_10T_HALF_DPX))) {
-        MII_PHY_FLAGS_CLEAR(MII_PHY_HD);
+        MII_PHY_ABILITY_FLAGS_CLEAR(MII_PHY_HD);
     }
 
     if (!(usPhyStatus & MII_SR_AUTO_SEL)) {
         _DebugHandle(__LOGMESSAGE_LEVEL, "mii: auto negotiation mode is NOT set.\r\n");
-        MII_PHY_FLAGS_CLEAR (MII_PHY_AUTO);
+        MII_PHY_ABILITY_FLAGS_CLEAR(MII_PHY_AUTO);
     }
 
     if (pPhyDev->PHY_uiPhyFlags & MII_PHY_GMII_TYPE) {
@@ -926,14 +967,14 @@ INT API_MiiPhyLinkStatGet (PHY_DEV *pPhyDev)
          * mask off 1000T FD if PHY not supported
          */
         if (!(usPhyStatus & MII_EXT_STAT_1000T_HD)) {
-            MII_PHY_FLAGS_CLEAR(MII_PHY_1000T_HD);
+            MII_PHY_ABILITY_FLAGS_CLEAR(MII_PHY_1000T_HD);
         }
 
         /*
          * mask off 1000T HD if PHY not supported
          */
         if (!(usPhyStatus & MII_EXT_STAT_1000T_FD)) {
-            MII_PHY_FLAGS_CLEAR(MII_PHY_1000T_FD);
+            MII_PHY_ABILITY_FLAGS_CLEAR(MII_PHY_1000T_FD);
         }
     }
     
@@ -1009,16 +1050,46 @@ INT API_MiiPhyProbe (PHY_DEV *pPhyDev)
     if (MII_READ(pPhyDev, MII_PHY_ID2_REG, &usID2) == MII_ERROR) {
         return  (MII_ERROR);
     }
-
     uiPhyID = usID1 | (usID2 << 16);
     if ((pPhyDev->PHY_uiPhyID & pPhyDev->PHY_uiPhyIDMask) !=
                      (uiPhyID & pPhyDev->PHY_uiPhyIDMask)) {
-        return  (MII_PHY_NULL);
+        return  (MII_PHY_NULL);                                         /* phyId不匹配                  */
     }
-
     MII_DEBUG_ADDR("mii: found phy. addr[%02x].\r\n",
                    pPhyDev->PHY_ucPhyAddr);
 
+    return  (MII_OK);                                                   /* phyId匹配                    */
+}
+/*********************************************************************************************************
+** 函数名称: API_MiiPhyScanOnly
+** 功能描述: 根据输入PHY参数，扫描所有PHY设备
+** 输　入  : pPhyDev       PHY设备指针
+** 输　出  : MII_ERROR, MII_OK, MII_PHY_NULL
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT API_MiiPhyScanOnly (PHY_DEV *pPhyDev)
+{
+    INT     i;
+    UINT    uiPhyID;
+    UINT16  usID1;
+    UINT16  usID2;
+
+    for (i = 0; i < MII_MAX_PHY_NUM; i++, pPhyDev->PHY_ucPhyAddr++) {
+        if (MII_READ(pPhyDev, MII_PHY_ID1_REG, &usID1) == MII_ERROR) {
+            return  (MII_ERROR);
+        }
+        if (MII_READ(pPhyDev, MII_PHY_ID2_REG, &usID2) == MII_ERROR) {
+            return  (MII_ERROR);
+        }
+
+        uiPhyID = usID1 | (usID2 << 16);
+        _DebugFormat(__PRINTMESSAGE_LEVEL, "mii: scan phy. addr[%02x] phyid = 0x%x.\r\n",
+                     pPhyDev->PHY_ucPhyAddr, uiPhyID);
+    }
+    
     return  (MII_OK);
 }
 /*********************************************************************************************************
@@ -1045,10 +1116,10 @@ INT API_MiiPhyScan (PHY_DEV *pPhyDev)
         if (API_MiiPhyDiagnostic(pPhyDev) != MII_OK) {
             return  (MII_ERROR);
         }
-        
+
         return  (MII_OK);                                               /* Found a Valid PHY            */
     }
-    
+
     return  (MII_PHY_NULL);
 }
 /*********************************************************************************************************
@@ -1121,9 +1192,8 @@ static INT __miiPhyMonitor (VOID)
         
         pPhyDev = (PHY_DEV *)plineNode;
 
-        if ((MII_PHY_FLAGS_ARE_SET (MII_PHY_INIT)) &&
-            (MII_PHY_FLAGS_ARE_SET (MII_PHY_MONITOR))) {
-
+        if ((MII_PHY_FLAGS_JUDGE(MII_PHY_INIT)) &&
+            (MII_PHY_FLAGS_JUDGE(MII_PHY_MONITOR))) {
             iRet = MII_READ(pPhyDev, MII_STAT_REG, &usPhyStatus);
             if (iRet == MII_ERROR) {
                 goto    __mii_monitor_exit;
@@ -1144,6 +1214,15 @@ static INT __miiPhyMonitor (VOID)
                 /*
                  * Tell the Mac Driver
                  */
+                if (usPhyStatus & MII_SR_LINK_STATUS) {
+                    if (pPhyDev->PHY_uiPhyFlags & MII_PHY_AUTO) {
+                        __miiAbilFlagUpdate(pPhyDev);
+                        __miiPhyUpdate(pPhyDev);
+                    } else {
+                        __miiFlagsHandle(pPhyDev);
+                    }
+                }
+
                 if (pPhyDev->PHY_pPhyDrvFunc->PHYF_pfuncLinkDown != LW_NULL) {
                     API_NetJobAdd((VOIDFUNCPTR)(pPhyDev->PHY_pPhyDrvFunc->PHYF_pfuncLinkDown),
                                   (PVOID)(pPhyDev->PHY_pvMacDrv), 0, 0, 0, 0, 0);
@@ -1226,24 +1305,34 @@ INT API_MiiPhyInit (PHY_DEV *pPhyDev)
         return  (MII_ERROR);
     }
 
-    if (API_MiiPhyScan(pPhyDev) == MII_ERROR) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "can not find phy device.\r\n");
-        return  (MII_ERROR);
-    }
+    if (pPhyDev->PHY_ucPhyAddr == 0) {                                  /*  Auto scan phy device        */
+        if (API_MiiPhyScan(pPhyDev) == MII_ERROR) {
+            _DebugHandle(__ERRORMESSAGE_LEVEL, "can not find phy device.\r\n");
+            return  (MII_ERROR);
+        }
+    
+    } else {                                                            /*  Test specific phy device    */
+        if (API_MiiPhyProbe(pPhyDev) != MII_OK) {
+            MII_DEBUG_ADDR("can not find phy device. addr[%02x]\r\n",
+                           pPhyDev->PHY_ucPhyAddr);
+            return  (MII_ERROR);
+        }
 
+        if (API_MiiPhyDiagnostic(pPhyDev) != MII_OK) {
+            return  (MII_ERROR);
+        }
+    }
     /*
      * A new PHY is Found. Add the PHY into miiList
      */
-    if (API_MiiPhyAdd(pPhyDev) == MII_ERROR) {
+    if (API_MiiPhyAdd(pPhyDev) == MII_ERROR) {                          /* 当前有效phyDev加入到MII链表  */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "can not add phy into mii bus list.\r\n");
         return  (MII_ERROR);
     }
 
-    if (API_MiiPhyLinkSet(pPhyDev) == MII_OK) {
-        _DebugHandle(__LOGMESSAGE_LEVEL, "mii: found phy.\r\n");
-    
-    } else {
-        _DebugHandle(__LOGMESSAGE_LEVEL, "mii: found phy, but Link-Down.\r\n");
+    if (API_MiiPhyLinkSet(pPhyDev) != MII_OK) {
+        MII_DEBUG_ADDR("mii: found phy [%02x], but Link-Down.\r\n",
+                       pPhyDev->PHY_ucPhyAddr);
     }
 
 	usPhyStatus = pPhyDev->PHY_usPhyStatus;								/* Remember Link Status         */

@@ -117,9 +117,42 @@ typedef struct keyboard_event_notify {
 #define KVAL(x)                     ((x) & 0xff)
 
 /*********************************************************************************************************
-  key code 
+  key code (ASCII keypad)
   
-  notic : 'a' == K(KT_ASCII, 'a')
+  'a' =  K(KT_ASCII, 'a')
+  ...
+  'z' =  K(KT_ASCII, 'z')
+  
+  '.' =  K(KT_ASCII, '.')
+  '=' =  K(KT_ASCII, '=')
+  ...
+*********************************************************************************************************/
+
+/*********************************************************************************************************
+  key code (Numeric keypad)
+*********************************************************************************************************/
+
+#define K_NP0                       K(KT_ASCII, 230)
+#define K_NP1                       K(KT_ASCII, 231)
+#define K_NP2                       K(KT_ASCII, 232)
+#define K_NP3                       K(KT_ASCII, 233)
+#define K_NP4                       K(KT_ASCII, 234)
+#define K_NP5                       K(KT_ASCII, 235)
+#define K_NP6                       K(KT_ASCII, 236)
+#define K_NP7                       K(KT_ASCII, 237)
+#define K_NP8                       K(KT_ASCII, 238)
+#define K_NP9                       K(KT_ASCII, 239)
+
+#define K_NP_PERIOD                 K(KT_ASCII, 240)
+#define K_NP_DIVIDE                 K(KT_ASCII, 241)
+#define K_NP_MULTIPLY               K(KT_ASCII, 242)
+#define K_NP_MINUS                  K(KT_ASCII, 243)
+#define K_NP_PLUS                   K(KT_ASCII, 244)
+#define K_NP_ENTER                  K(KT_ASCII, 245)
+#define K_NP_EQUALS                 K(KT_ASCII, 246)
+
+/*********************************************************************************************************
+  key code
 *********************************************************************************************************/
 
 #define K_F1                        K(KT_FN, 0)

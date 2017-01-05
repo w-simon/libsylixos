@@ -37,12 +37,12 @@ extern "C" {
 #define MII_OK                      ERROR_NONE
 #define MII_ERROR                   PX_ERROR
 
-#define MII_DEV_ERRNO               (0x10000000)
+#define MII_DEV_ERRNO               (ERRMAX)
 
-#define MII_PHY_LINK_DOWN           (MII_DEV_ERRNO | 1)
-#define MII_PHY_NULL                (MII_DEV_ERRNO | 2)
-#define MII_PHY_NO_ABILITY          (MII_DEV_ERRNO | 3)
-#define MII_PHY_AN_FAIL             (MII_DEV_ERRNO | 4)
+#define MII_PHY_LINK_DOWN           (MII_DEV_ERRNO + 1)
+#define MII_PHY_NULL                (MII_DEV_ERRNO + 2)
+#define MII_PHY_NO_ABILITY          (MII_DEV_ERRNO + 3)
+#define MII_PHY_AN_FAIL             (MII_DEV_ERRNO + 4)
 
 #define MII_MAX_PHY_NUM             32
 /*********************************************************************************************************
@@ -105,6 +105,7 @@ extern "C" {
   PHY device definitions
 *********************************************************************************************************/
 #define MII_PHY_PRE_INIT            0x0001                              /* PHY info pre-initialized     */
+#define MII_PHY_NWAIT_STAT          0x0002                              /* PHY not loop wait status     */
 #define MII_PHY_AUTO                0x0010                              /* auto-negotiation allowed     */
 #define MII_PHY_TBL                 0x0020                              /* use negotiation table        */
 #define MII_PHY_100                 0x0040                              /* PHY may use 100Mbit speed    */
@@ -219,16 +220,20 @@ extern "C" {
 /*********************************************************************************************************
   PHY Speed
 *********************************************************************************************************/
-#define MII_1000MBS                 1000000000                          /* bits per sec                 */
-#define MII_100MBS                  100000000                           /* bits per sec                 */
-#define MII_10MBS                   10000000                            /* bits per sec                 */
+#define MII_1000MBS                 1000000000                          /* 1Gbps                        */
+#define MII_100MBS                  100000000                           /* 100Mbps                      */
+#define MII_10MBS                   10000000                            /* 10Mbps                       */
 /*********************************************************************************************************
   Flag Operations
 *********************************************************************************************************/
-#define MII_PHY_FLAGS_SET(iSetBits)             (pPhyDev->PHY_uiPhyFlags |= (iSetBits))
-#define MII_PHY_FLAGS_ARE_SET(iSetBits)         (pPhyDev->PHY_uiPhyFlags & (iSetBits))
 #define MII_PHY_FLAGS_GET()                     (pPhyDev->PHY_uiPhyFlags)
+#define MII_PHY_FLAGS_SET(iSetBits)             (pPhyDev->PHY_uiPhyFlags |= (iSetBits))
 #define MII_PHY_FLAGS_CLEAR(iClearBits)         (pPhyDev->PHY_uiPhyFlags &= ~(iClearBits))
+#define MII_PHY_FLAGS_JUDGE(iSetBits)           (pPhyDev->PHY_uiPhyFlags & (iSetBits))
+
+#define MII_PHY_ABILITY_FLAGS_SET(iSetBits)     (pPhyDev->PHY_uiPhyAbilityFlags |= (iSetBits))
+#define MII_PHY_ABILITY_FLAGS_CLEAR(iClearBits) (pPhyDev->PHY_uiPhyAbilityFlags &= ~(iClearBits))
+#define MII_PHY_ABILITY_FLAGS_JUDGE(iSetBits)   (pPhyDev->PHY_uiPhyAbilityFlags & (iSetBits))
 /*********************************************************************************************************
   PHY Operations
 *********************************************************************************************************/
@@ -261,6 +266,7 @@ typedef struct phy_dev {
     VOID               *PHY_pvMacDrv;                                   /*  Mother Mac Driver Control   */
     
     UINT32              PHY_uiPhyFlags;                                 /*  PHY flag bits               */
+    UINT32              PHY_uiPhyAbilityFlags;                          /*  PHY flag bits               */
     UINT32              PHY_uiPhyANFlags;                               /*  Auto Negotiation flags      */
     UINT32              PHY_uiPhyLinkMethod;                            /*  Whether to force link mode  */
     UINT32              PHY_uiLinkDelay;                                /*  Delay time to wait for Link */
@@ -299,6 +305,7 @@ LW_API INT API_MiiPhyMonitorStart(VOID);
 #define miiPhyProbe                 API_MiiPhyProbe
 #define miiPhyDiagnostic            API_MiiPhyDiagnostic
 #define miiPhyScan                  API_MiiPhyScan
+#define miiPhyScanOnly              API_MiiPhyScanOnly
 #define miiPhyAdd                   API_MiiPhyAdd
 #define miiPhyDel                   API_MiiPhyDel
 #define miiPhyLinkStatGet           API_MiiPhyLinkStatGet
