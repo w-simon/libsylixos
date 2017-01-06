@@ -285,7 +285,12 @@ typedef struct {
 *********************************************************************************************************/
 #define ARM_DMA_PL330_MAX       20                                      /*  DMA 控制器最大个数          */
 #define ARM_DMA_PL330_CHANS     8                                       /*  每个 DMA 控制器有 8 个通道  */
-#define ARM_DMA_PL330_PSZ       2048                                    /*  每通道 DMA 指令缓冲区大小   */
+
+#if LW_CFG_VMM_EN > 0
+#define ARM_DMA_PL330_PSZ       1024                                    /*  每通道 DMA 指令缓冲区大小   */
+#else
+#define ARM_DMA_PL330_PSZ       256
+#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 
 typedef struct {
     addr_t          PL330_ulBase;
@@ -1404,7 +1409,13 @@ PVOID  armDmaPl330Add (addr_t  ulBase, UINT  uiChanOft)
     
     pl330->PL330_ulBase    = ulBase;
     pl330->PL330_uiChanOft = uiChanOft;
+    
+#if LW_CFG_VMM_EN > 0
     pl330->PL330_ucCode[0] = (UINT8 *)API_VmmDmaAlloc(ARM_DMA_PL330_CHANS * ARM_DMA_PL330_PSZ);
+#else
+    pl330->PL330_ucCode[0] = (UINT8 *)__SHEAP_ALLOC(ARM_DMA_PL330_CHANS * ARM_DMA_PL330_PSZ);
+#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
+    
     if (pl330->PL330_ucCode[0] == LW_NULL) {
         __SHEAP_FREE(pl330);
         _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
