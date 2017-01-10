@@ -1781,6 +1781,8 @@ static INT  __tshellFsCmdUmount (INT  iArgC, PCHAR  ppcArgV[])
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if LW_CFG_OEMDISK_EN > 0
+
 static INT  __tshellFsCmdRemount (INT  iArgC, PCHAR  ppcArgV[])
 {
     INT             iBlkFd;
@@ -1811,6 +1813,8 @@ static INT  __tshellFsCmdRemount (INT  iArgC, PCHAR  ppcArgV[])
     
     return  (ERROR_NONE);
 }
+
+#endif                                                                  /*  LW_CFG_OEMDISK_EN > 0       */
 /*********************************************************************************************************
 ** 函数名称: __tshellFsCmdShowmount
 ** 功能描述: 系统命令 "showmount"
@@ -2244,10 +2248,12 @@ VOID  __tshellFsCmdInit (VOID)
     API_TShellHelpAdd("umount",  "unmount a volume.\n"
                                  "eg. mount /mnt/usb\n");
                                  
+#if LW_CFG_OEMDISK_EN > 0
     API_TShellKeywordAdd("remount", __tshellFsCmdRemount);
     API_TShellFormatAdd("remount", " [/dev/blk/*]");
     API_TShellHelpAdd("remount",  "auto remount a block device.\n"
                                  "eg. remount /dev/blk/hdd-0\n");
+#endif                                                                  /*  LW_CFG_OEMDISK_EN > 0       */
 
     API_TShellKeywordAdd("showmount", __tshellFsCmdShowmount);
     API_TShellHelpAdd("showmount",  "show all mount point.\n");

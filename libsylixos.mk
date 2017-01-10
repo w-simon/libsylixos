@@ -1180,6 +1180,7 @@ SylixOS/net/lwip/lwip_fix.c \
 SylixOS/net/lwip/lwip_if.c \
 SylixOS/net/lwip/lwip_ifparam.c \
 SylixOS/net/lwip/lwip_jobqueue.c \
+SylixOS/net/lwip/lwip_loginbl.c \
 SylixOS/net/lwip/lwip_netifnum.c \
 SylixOS/net/lwip/lwip_netstat.c \
 SylixOS/net/lwip/lwip_route.c \

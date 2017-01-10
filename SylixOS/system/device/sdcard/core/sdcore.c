@@ -29,6 +29,7 @@
 2011.04.02  全面修改 SPI 模式下的相关函数,使用新的 SPI 模型.
 2014.11.05  设备的状态增加自旋锁保护.
 2016.01.21  修正 SPI 模式下的总线控制操作以及协议相关的错误.
+2017.01.06  修正 SPI 模式下发送数据相关代码.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -919,6 +920,8 @@ LW_API INT  API_SdCoreSpiSendIfCond (PLW_SDCORE_DEVICE psdcoredevice)
         return  (PX_ERROR);
     }
 
+    spimsg.SPIMSG_pfuncComplete = LW_NULL;
+
     pcspidev = (__PCORE_SPI_DEV)psdcoredevice->COREDEV_pvDevHandle;
     if (!pcspidev) {
         SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "no core spi device.\r\n");
@@ -940,7 +943,6 @@ LW_API INT  API_SdCoreSpiSendIfCond (PLW_SDCORE_DEVICE psdcoredevice)
     spimsg.SPIMSG_pucRdBuffer = &ucTmp;
     spimsg.SPIMSG_uiLen       = 6;
     spimsg.SPIMSG_usFlag      = __SD_SPI_TMOD_WR;
-
     iError = API_SpiDeviceTransfer(pcspidev->CSPIDEV_pspiDev,
                                    &spimsg,
                                    1);
@@ -1608,6 +1610,8 @@ static INT __sdCoreSpiCmd (__PCORE_SPI_DEV pcspidevice, LW_SD_COMMAND *psdcmd)
     UINT8             ucCmdBackUp;                                      /*  CRC计算时,需要用命令作参数  */
 #endif
 
+    spimsg.SPIMSG_pfuncComplete = LW_NULL;
+
     ucWrtBuf[0] = 0xff;
     __sdCoreSpiByteWrt(pcspidevice, 1, ucWrtBuf);                       /*  8个同步时钟确保卡ready      */
 
@@ -1618,7 +1622,7 @@ static INT __sdCoreSpiCmd (__PCORE_SPI_DEV pcspidevice, LW_SD_COMMAND *psdcmd)
     ucWrtBuf[0] = (UINT8)((SD_CMD_OPC(psdcmd) & 0x3f) | 0x40);
 
 #if LW_CFG_SDCARD_CRC_EN > 0
-    ucCmdBackUp =ucWrtBuf[0];
+    ucCmdBackUp = ucWrtBuf[0];
 #endif
 
     spimsg.SPIMSG_usBitsPerOp = __SD_SPI_BITS_PEROP;
@@ -1718,20 +1722,21 @@ __resp_accept:
         SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "response length error.\r\n");
         goto    __error_out;
     }
-
-    ucWrtBuf[0]               = 0xff;
-    spimsg.SPIMSG_usBitsPerOp = __SD_SPI_BITS_PEROP;
-    spimsg.SPIMSG_pucWrBuffer = ucWrtBuf;
-    spimsg.SPIMSG_pucRdBuffer = ucRdBuf + 1;                            /*  之前已经接收了一个字节应答  */
-    spimsg.SPIMSG_uiLen       = iRespLen - 1;
-    spimsg.SPIMSG_usFlag      = __SD_SPI_TMOD_RD;
     
-    iError = API_SpiDeviceTransfer(pcspidevice->CSPIDEV_pspiDev,
-                                   &spimsg,
-                                   1);
-    if (iError == PX_ERROR) {
-        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "get response error.\r\n");
-        goto    __error_out;
+    if (iRespLen > 1) {
+        ucWrtBuf[0]               = 0xff;
+        spimsg.SPIMSG_usBitsPerOp = __SD_SPI_BITS_PEROP;
+        spimsg.SPIMSG_pucWrBuffer = ucWrtBuf;
+        spimsg.SPIMSG_pucRdBuffer = ucRdBuf + 1;                        /*  之前已经接收了一个字节应答  */
+        spimsg.SPIMSG_uiLen       = iRespLen - 1;
+        spimsg.SPIMSG_usFlag      = __SD_SPI_TMOD_RD;
+        iError = API_SpiDeviceTransfer(pcspidevice->CSPIDEV_pspiDev,
+                                       &spimsg,
+                                       1);
+        if (iError == PX_ERROR) {
+            SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "get response error.\r\n");
+            goto    __error_out;
+        }
     }
 
     __sdCoreSpiRespConvert(psdcmd->SDCMD_uiResp, ucRdBuf, iRespLen);    /*  转换为SD消息结构的应答      */
@@ -2054,11 +2059,12 @@ static INT __sdCoreSpiByteRd (__PCORE_SPI_DEV pcspidevice, UINT32 uiLen, UINT8 *
     LW_SPI_MESSAGE  spimsg;
     UINT8           ucWrtTmp  = 0xff;
 
-    spimsg.SPIMSG_usBitsPerOp = __SD_SPI_BITS_PEROP;
-    spimsg.SPIMSG_pucWrBuffer = &ucWrtTmp;
-    spimsg.SPIMSG_pucRdBuffer = pucRdBuff;
-    spimsg.SPIMSG_uiLen       = uiLen;
-    spimsg.SPIMSG_usFlag      = __SD_SPI_TMOD_RD;
+    spimsg.SPIMSG_pfuncComplete = LW_NULL;
+    spimsg.SPIMSG_usBitsPerOp   = __SD_SPI_BITS_PEROP;
+    spimsg.SPIMSG_pucWrBuffer   = &ucWrtTmp;
+    spimsg.SPIMSG_pucRdBuffer   = pucRdBuff;
+    spimsg.SPIMSG_uiLen         = uiLen;
+    spimsg.SPIMSG_usFlag        = __SD_SPI_TMOD_RD;
     iError = API_SpiDeviceTransfer(pcspidevice->CSPIDEV_pspiDev,
                                    &spimsg,
                                    1);
@@ -2086,11 +2092,12 @@ static INT __sdCoreSpiByteWrt (__PCORE_SPI_DEV pcspidevice, UINT32 uiLen, UINT8 
     LW_SPI_MESSAGE  spimsg;
     UINT8           ucRdTmp;
 
-    spimsg.SPIMSG_usBitsPerOp = __SD_SPI_BITS_PEROP;
-    spimsg.SPIMSG_pucWrBuffer = pucWrtBuff;
-    spimsg.SPIMSG_pucRdBuffer = &ucRdTmp;
-    spimsg.SPIMSG_uiLen       = uiLen;
-    spimsg.SPIMSG_usFlag      = __SD_SPI_TMOD_WR;
+    spimsg.SPIMSG_pfuncComplete = LW_NULL;
+    spimsg.SPIMSG_usBitsPerOp   = __SD_SPI_BITS_PEROP;
+    spimsg.SPIMSG_pucWrBuffer   = pucWrtBuff;
+    spimsg.SPIMSG_pucRdBuffer   = &ucRdTmp;
+    spimsg.SPIMSG_uiLen         = uiLen;
+    spimsg.SPIMSG_usFlag        = __SD_SPI_TMOD_WR;
     iError = API_SpiDeviceTransfer(pcspidevice->CSPIDEV_pspiDev,
                                    &spimsg,
                                    1);

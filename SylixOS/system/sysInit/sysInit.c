@@ -42,10 +42,8 @@ INT  _SysInit (VOID)
 {
     REGISTER INT    iErr = 0;
     
-#if LW_CFG_SIGNAL_EN > 0
     iErr |= _excInit();                                                 /*  初始化异常处理              */
     _ErrorHandle((ULONG)iErr);
-#endif
 
 #if LW_CFG_LOG_LIB_EN > 0
     iErr |= _logInit();                                                 /*  初始化日志系统              */

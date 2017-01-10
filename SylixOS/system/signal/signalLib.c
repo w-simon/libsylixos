@@ -171,7 +171,11 @@ static VOID  __signalExitHandle (INT  iSigNo, struct siginfo *psiginfo)
         (iSigNo == SIGILL)  ||
         (iSigNo == SIGFPE)  ||
         (iSigNo == SIGSYS)) {
+#if LW_CFG_MODULELOADER_EN > 0
         __LW_FATAL_ERROR_HOOK(pid, ulId, psiginfo);                     /*  关键性异常                  */
+#else
+        __LW_FATAL_ERROR_HOOK(0, ulId, psiginfo);                       /*  关键性异常                  */
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
         _exit(psiginfo->si_int);
     
     } else {                                                            /*  非关键性异常                */

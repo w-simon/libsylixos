@@ -1135,7 +1135,7 @@ PVOID   __tshellThread (PVOID  pcArg)
     
     if (__TTINY_SHELL_GET_OPT(ptcbCur) & LW_OPTION_TSHELL_AUTHEN) {     /*  是否需要明文用户认证        */
         if (__tshellUserAuthen(iTtyFd)) {                               /*  进行认证                    */
-            exit(-1);
+            exit(-ERROR_TSHELL_EUSER);
         }
     } else {
         printf("\n");

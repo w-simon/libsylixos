@@ -47,7 +47,10 @@ VOID  _posixPSemInit(VOID);
 VOID  _posixPMutexInit(VOID);
 VOID  _posixPRWLockInit(VOID);
 VOID  _posixPCondInit(VOID);
+
+#if LW_CFG_POSIX_SYSLOG_EN > 0
 VOID  _posixSyslogInit(VOID);
+#endif                                                                  /*  LW_CFG_POSIX_SYSLOG_EN > 0  */
 /*********************************************************************************************************
   posix lock
 *********************************************************************************************************/
@@ -199,7 +202,10 @@ VOID  API_PosixInit (VOID)
     _posixPMutexInit();
     _posixPRWLockInit();
     _posixPCondInit();
+    
+#if LW_CFG_POSIX_SYSLOG_EN > 0
     _posixSyslogInit();
+#endif                                                                  /*  LW_CFG_POSIX_SYSLOG_EN > 0  */
     
 #if LW_CFG_SHELL_EN > 0
     __tshellPosixInit();                                                /*  ≥ı ºªØ shell √¸¡Ó           */

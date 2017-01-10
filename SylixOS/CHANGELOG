@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2017-01-09: han.hui
+    加入网络登录黑名单管理.
+
     2016-12-13: han.hui
     支持任务非继承亲和度调度.
 

@@ -329,8 +329,13 @@ int  setpriority (int which, id_t who, int value)
 LW_API 
 int nice (int incr)
 {
+#if LW_CFG_MODULELOADER_EN > 0
     int  oldpro = getpriority(PRIO_PROCESS, getpid());
     return  (setpriority(PRIO_PROCESS, getpid(), oldpro + incr));
+#else
+    errno = ENOSYS;
+    return  (PX_ERROR);
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 }
 
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */

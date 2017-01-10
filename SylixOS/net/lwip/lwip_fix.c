@@ -916,6 +916,10 @@ void  sio_read_abort (sio_fd_t  fd)
 *********************************************************************************************************/
 int ip_input_hook (PVOID  pvPBuf, PVOID  pvNetif)
 {
+#if LW_CFG_NET_LOGINBL_EN > 0
+extern INT   loginbl_input_hook(struct pbuf *p, struct netif *inp);
+#endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
+
 #if LW_CFG_NET_NAT_EN > 0
 extern VOID  nat_ip_input_hook(struct pbuf *p, struct netif *inp);
 #endif                                                                  /*  LW_CFG_NET_NAT_EN > 0       */
@@ -929,6 +933,10 @@ extern VOID  nat_ip_input_hook(struct pbuf *p, struct netif *inp);
 #if LW_CFG_NET_NAT_EN > 0
     nat_ip_input_hook(p, inp);
 #endif                                                                  /*  LW_CFG_NET_NAT_EN > 0       */
+
+#if LW_CFG_NET_LOGINBL_EN > 0
+    return  (loginbl_input_hook(p, inp));
+#endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
 
     return  (0);                                                        /*  do not eaten packet         */
 }

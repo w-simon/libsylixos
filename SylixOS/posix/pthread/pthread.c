@@ -100,10 +100,6 @@ int  pthread_create (pthread_t              *pthread,
     lwattr = API_ThreadAttrGetDefault();                                /*  获得默认线程属性            */
     
     if (pattr) {
-        if (!(pattr->PTHREADATTR_ulOption & LW_OPTION_THREAD_STK_CHK)) {/*  属性块没有初始化            */
-            errno = EINVAL;
-            return  (EINVAL);
-        }
         pcName = pattr->PTHREADATTR_pcName;                             /*  使用 attr 作为创建线程名    */
         
         if (pattr->PTHREADATTR_stStackGuard > pattr->PTHREADATTR_stStackByteSize) {
@@ -125,8 +121,8 @@ int  pthread_create (pthread_t              *pthread,
             lwattr.THREADATTR_ucPriority = 
                 (UINT8)PX_PRIORITY_CONVERT(pattr->PTHREADATTR_schedparam.sched_priority);
         }
-        
-        lwattr.THREADATTR_ulOption = pattr->PTHREADATTR_ulOption;
+                                                                        /*  总是填充与检查堆栈使用情况  */
+        lwattr.THREADATTR_ulOption = pattr->PTHREADATTR_ulOption | LW_OPTION_THREAD_STK_CHK;
     
     } else {                                                            /*  堆栈大小和优先级全部继承    */
         lwattr.THREADATTR_stStackByteSize = ptcbCur->TCB_stStackSize * sizeof(LW_STACK);

@@ -1,5 +1,6 @@
 #include "../ff.h"
 
+#if (LW_CFG_MAX_VOLUMES > 0) && (LW_CFG_FATFS_EN > 0)
 #if _USE_LFN != 0
 
 #if   _CODE_PAGE == 932	/* Japanese Shift_JIS */
@@ -14,4 +15,5 @@
 #include "ccsbcs.c"
 #endif
 
+#endif
 #endif

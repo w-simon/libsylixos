@@ -44,7 +44,7 @@
 /*********************************************************************************************************
   内部参数
 *********************************************************************************************************/
-#define __TTINY_SHELL_USER_TO       60                                  /*  密码超时时间                */
+#define __TTINY_SHELL_USER_TO       30                                  /*  密码超时时间                */
 /*********************************************************************************************************
 ** 函数名称: __tshellUserAuthen
 ** 功能描述: 用户登录认证
@@ -74,7 +74,7 @@ ULONG  __tshellUserAuthen (INT  iTtyFd)
      *  初始化终端模式
      */
     iRetValue = ioctl(iTtyFd, FIOSETOPTIONS, 
-                      OPT_TERMINAL & (~OPT_MON_TRAP));                  /*  进入终端模式                */
+                      OPT_TERMINAL & (~(OPT_MON_TRAP | OPT_ABORT)));    /*  进入终端模式                */
     if (iRetValue < 0) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "can not set terminal mode.\r\n");
         return  (ERROR_TSHELL_EUSER);

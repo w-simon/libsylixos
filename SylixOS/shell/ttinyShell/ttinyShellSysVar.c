@@ -30,6 +30,7 @@
 2013.01.23  加入对 NFS_CLIENT_PROTO 环境变量初始化.
 2013.06.12  SylixOS 默认不再使用 ftk 图形界面, 转而使用 Qt 图形界面.
 2015.04.06  去掉 GUILIB GUIFONT ... 默认环境变量.
+2017.01.09  加入网络黑名单参数环境变量.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -40,6 +41,9 @@
 *********************************************************************************************************/
 #if LW_CFG_SHELL_EN > 0
 #include "paths.h"
+#if LW_CFG_NET_EN > 0
+#include "lwip/inet.h"
+#endif                                                                  /*  LW_CFG_NET_EN > 0           */
 /*********************************************************************************************************
 ** 函数名称: __tshellSysVarInit
 ** 功能描述: 初始化系统环境变量
@@ -103,6 +107,11 @@ VOID  __tshellSysVarInit (VOID)
      */
 #if LW_CFG_GDB_EN > 0
     API_TShellExec("DEBUG_CPU=-1");                                     /*  是否将被调对象锁定到一个 CPU*/
+#endif                                                                  /*  LW_CFG_GDB_EN > 0           */
+    
+#if LW_CFG_NET_LOGINBL_EN > 0
+    API_TShellExec("LOGINBL_TO=120");                                   /*  网络登录黑名单刷新时间      */
+    API_TShellExec("LOGINBL_REP=3");                                    /*  连续出现几次则加入黑名单    */
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
     
     /*

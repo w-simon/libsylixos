@@ -38,6 +38,7 @@
 2013.05.10  断点上传时, 非追加模式创建的文件必须带有 O_TRUNC 选项, 打开后自动清空.
 2015.03.18  数据连接不能使用 SO_LINGER reset 模式关闭.
 2016.12.07  默认使用二进制模式传输.
+2017.01.09  加入网络登录黑名单功能.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -53,6 +54,9 @@
 #include "netdb.h"
 #include "arpa/inet.h"
 #include "sys/socket.h"
+#if LW_CFG_NET_LOGINBL_EN > 0
+#include "sys/loginbl.h"
+#endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
 #include "lwip_ftp.h"
 #include "lwip_ftplib.h"
 /*********************************************************************************************************
@@ -123,9 +127,18 @@ static LW_LIST_LINE_HEADER      _G_plineFtpdSessionHeader = LW_NULL;    /*  会话
 static atomic_t                 _G_atomicFtpdLinks;                     /*  链接数量                    */
 static INT                      _G_iFtpdDefaultTimeout    = 20 * 1000;  /*  默认数据链接超时时间        */
 static INT                      _G_iFtpdIdleTimeout       = 60 * 1000;  /*  1 分钟不访问将会关闭控制连接*/
+static INT                      _G_iFtpdNoLoginTimeout    = 20 * 1000;  /*  20 秒等待输入密码           */
 static LW_OBJECT_HANDLE         _G_ulFtpdSessionLock;                   /*  会话链表锁                  */
 #define __FTPD_SESSION_LOCK()   API_SemaphoreMPend(_G_ulFtpdSessionLock, LW_OPTION_WAIT_INFINITE)
 #define __FTPD_SESSION_UNLOCK() API_SemaphoreMPost(_G_ulFtpdSessionLock)
+/*********************************************************************************************************
+  登录黑名单
+*********************************************************************************************************/
+#if LW_CFG_NET_LOGINBL_EN > 0
+static UINT16                   _G_uiLoginFailPort  = 0;
+static UINT                     _G_uiLoginFailBlSec = 120;              /*  黑名单超时, 默认 120 秒     */
+static UINT                     _G_uiLoginFailBlRep = 3;                /*  黑名单探测默认为 3 次错误   */
+#endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
 /*********************************************************************************************************
   链接参数配置
 *********************************************************************************************************/
@@ -1151,7 +1164,11 @@ __recv_over:
 *********************************************************************************************************/
 static INT  __ftpdCommandExec (__PFTPD_SESSION  pftpds, PCHAR  pcCmd, PCHAR  pcArg)
 {
-    CHAR        cFileName[MAX_FILENAME_LENGTH];                         /*  文件名                      */
+    CHAR    cFileName[MAX_FILENAME_LENGTH];                             /*  文件名                      */
+
+#if LW_CFG_NET_LOGINBL_EN > 0
+    struct sockaddr_in  addr;
+#endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
 
     if (!lib_strcmp("USER", pcCmd)) {                                   /*  用户名                      */
         lib_strlcpy(pftpds->FTPDS_cUser, pcArg, __LWIP_FTPD_MAX_USER_LEN);
@@ -1164,7 +1181,17 @@ static INT  __ftpdCommandExec (__PFTPD_SESSION  pftpds, PCHAR  pcCmd, PCHAR  pcA
             __ftpdSendReply(pftpds, __FTPD_RETCODE_SERVER_LOGIN_FAILED,
                             "Login failed.");                           /*  用户认证失败                */
             pftpds->FTPDS_iStatus &= ~__FTPD_SESSION_STATUS_LOGIN;
+        
+#if LW_CFG_NET_LOGINBL_EN > 0
+            addr.sin_len    = sizeof(struct sockaddr_in);
+            addr.sin_family = AF_INET;
+            addr.sin_port   = _G_uiLoginFailPort;
+            addr.sin_addr   = pftpds->FTPDS_inaddrRemote;
+            API_LoginBlAdd((struct sockaddr *)&addr, _G_uiLoginFailBlRep, _G_uiLoginFailBlSec);
+#endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
         } else {
+            setsockopt(pftpds->FTPDS_iSockCtrl, SOL_SOCKET, SO_RCVTIMEO, 
+                       (const void *)&_G_iFtpdIdleTimeout, sizeof(INT));
             __ftpdSendReply(pftpds, __FTPD_RETCODE_SERVER_USER_LOGIN,
                             "User logged in.");
             pftpds->FTPDS_iStatus |= __FTPD_SESSION_STATUS_LOGIN;
@@ -1491,6 +1518,10 @@ static VOID  __inetFtpdSession (__PFTPD_SESSION  pftpds)
 #endif                                                                  /*  LW_CFG_NET_FTPD_LOG_EN > 0  */
     CHAR    cBuffer[__LWIP_FTPD_BUFFER_SIZE];                           /*  需要占用较大堆栈空间        */
 
+#if LW_CFG_NET_LOGINBL_EN > 0
+    struct sockaddr_in  addr;
+#endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
+
     pftpds->FTPDS_ulThreadId = API_ThreadIdSelf();
     pftpds->FTPDS_pfileCtrl  = fdopen(pftpds->FTPDS_iSockCtrl, "r+");   /*  创建缓冲 IO                 */
     if (pftpds->FTPDS_pfileCtrl == LW_NULL) {
@@ -1525,6 +1556,16 @@ static VOID  __inetFtpdSession (__PFTPD_SESSION  pftpds)
         if (fgets(cBuffer, __LWIP_FTPD_BUFFER_SIZE, 
                   pftpds->FTPDS_pfileCtrl) == LW_NULL) {                /*  接收控制字符串              */
             __LWIP_FTPD_LOG(("ftpd: session connection aborted\n"));
+
+#if LW_CFG_NET_LOGINBL_EN > 0                                           /*  没有登录, 开始加入黑名单    */
+            if (!(pftpds->FTPDS_iStatus & __FTPD_SESSION_STATUS_LOGIN)) {
+                addr.sin_len    = sizeof(struct sockaddr_in);
+                addr.sin_family = AF_INET;
+                addr.sin_port   = _G_uiLoginFailPort;
+                addr.sin_addr   = pftpds->FTPDS_inaddrRemote;
+                API_LoginBlAdd((struct sockaddr *)&addr, _G_uiLoginFailBlRep, _G_uiLoginFailBlSec);
+            }
+#endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
             break;
         }
         
@@ -1586,6 +1627,10 @@ static VOID  __inetFtpServerListen (VOID)
         inaddrLcl.sin_port = htons(21);                                 /*  ftp default port            */
     }
     
+#if LW_CFG_NET_LOGINBL_EN > 0
+    _G_uiLoginFailPort = inaddrLcl.sin_port;
+#endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
+    
     iSock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (iSock < 0) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "can not create socket.\r\n");
@@ -1626,7 +1671,7 @@ static VOID  __inetFtpServerListen (VOID)
         /*
          *  FTPD 等待命令时, 控制连接长时间没有收到命令, 将会自动关闭以节省资源.
          */
-        setsockopt(iSockNew, SOL_SOCKET, SO_RCVTIMEO, (const void *)&_G_iFtpdIdleTimeout, sizeof(INT));
+        setsockopt(iSockNew, SOL_SOCKET, SO_RCVTIMEO, (const void *)&_G_iFtpdNoLoginTimeout, sizeof(INT));
         
         /*
          *  创建并初始化会话结构
@@ -1715,12 +1760,25 @@ VOID  API_INetFtpServerInit (CPCHAR  pcPath)
     LW_CLASS_THREADATTR     threadattr;
            PCHAR            pcNewPath = "\0";
     
+#if LW_CFG_NET_LOGINBL_EN > 0
+           CHAR             cEnvBuf[32];
+#endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
+
     if (bIsInit) {                                                      /*  已经初始化了                */
         return;
     } else {
         bIsInit = LW_TRUE;
     }
     
+#if LW_CFG_NET_LOGINBL_EN > 0
+    if (API_TShellVarGetRt("LOGINBL_TO", cEnvBuf, (INT)sizeof(cEnvBuf)) > 0) {
+        _G_uiLoginFailBlSec = lib_atoi(cEnvBuf);
+    }
+    if (API_TShellVarGetRt("LOGINBL_REP", cEnvBuf, (INT)sizeof(cEnvBuf)) > 0) {
+        _G_uiLoginFailBlRep = lib_atoi(cEnvBuf);
+    }
+#endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
+
     if (pcPath) {                                                       /*  需要设置服务器目录          */
         pcNewPath = (PCHAR)pcPath;
     }

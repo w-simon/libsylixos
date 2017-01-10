@@ -6,7 +6,7 @@
 
 #include "../ff.h"
 
-
+#if (LW_CFG_MAX_VOLUMES > 0) && (LW_CFG_FATFS_EN > 0)
 #if _FS_REENTRANT
 /*------------------------------------------------------------------------*/
 /* Create a Synchronization Object                                        */
@@ -148,4 +148,5 @@ void ff_memfree (
 	free(mblock);	/* Discard the memory block with POSIX API */
 }
 
+#endif
 #endif

@@ -21,7 +21,7 @@
 #include "ff.h"			/* Declarations of FatFs API */
 #include "diskio.h"		/* Declarations of device I/O functions */
 
-
+#if (LW_CFG_MAX_VOLUMES > 0) && (LW_CFG_FATFS_EN > 0)
 /*--------------------------------------------------------------------------
 
    Module Private Definitions
@@ -7039,3 +7039,4 @@ int f_printf (
 
 #endif /* !_FS_READONLY */
 #endif /* _USE_STRFUNC */
+#endif /* #if (LW_CFG_MAX_VOLUMES > 0) && (LW_CFG_FATFS_EN > 0) */

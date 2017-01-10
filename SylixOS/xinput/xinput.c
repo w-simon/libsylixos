@@ -527,7 +527,11 @@ void module_exit (void)
 {
     xinput_proc_deinit();
 
+#if LW_CFG_SIGNAL_EN > 0
     kill(xinput_thread, SIGTERM);
+#else
+    API_ThreadDelete(&xinput_thread, LW_NULL);
+#endif
 
     if (xinput_hotplug_fd >= 0) {
         close(xinput_hotplug_fd);

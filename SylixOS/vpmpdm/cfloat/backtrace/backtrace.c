@@ -9,6 +9,9 @@
  */
 
 #include <unistd.h>
+
+#if LW_CFG_MODULELOADER_EN > 0
+
 #include <assert.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -164,6 +167,8 @@ void  backtrace_symbols_fd (void *const *array, int size, int fd)
         writev(fd, iov, last);
     }
 }
+
+#endif /* LW_CFG_MODULELOADER_EN > 0 */
 /*
  * end
  */

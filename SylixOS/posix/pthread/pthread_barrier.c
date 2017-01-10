@@ -195,9 +195,11 @@ int  pthread_barrier_wait (pthread_barrier_t  *pbarrier)
     __LW_ATOMIC_UNLOCK(iregInterLevel);                                 /*  退出 atomic 临界区          */
     
     if (bRelease) {
-        API_SemaphoreBRelease(pbarrier->PBARRIER_ulSync, 
-                              ulReleaseNum,
-                              LW_NULL);                                 /*  激活先前等待的线程          */
+        if (ulReleaseNum) {
+            API_SemaphoreBRelease(pbarrier->PBARRIER_ulSync, 
+                                  ulReleaseNum,
+                                  LW_NULL);                             /*  激活先前等待的线程          */
+        }
         return  (PTHREAD_BARRIER_SERIAL_THREAD);
     
     } else {

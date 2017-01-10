@@ -39,6 +39,7 @@
 2012.03.26  __telnetCommunication() 优化退出机制. 所以 t_ptyproc 线程不需要再使用 FIFO 调度.
 2013.05.08  pty 默认目录为 /dev/pty 目录.
 2014.10.22  加入对部分 IAC 命令的处理.
+2017.01.09  加入网络登录黑名单功能.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -53,6 +54,9 @@
 #include "arpa/inet.h"
 #include "sys/socket.h"
 #include "sys/ioctl.h"
+#if LW_CFG_NET_LOGINBL_EN > 0
+#include "sys/loginbl.h"
+#endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
 #include "../iac/lwip_iac.h"
 #include "../SylixOS/shell/ttinyShell/ttinyShellLib.h"
 /*********************************************************************************************************
@@ -71,6 +75,14 @@
 static CHAR           _G_cTelnetPtyStartName[MAX_FILENAME_LENGTH] = "/dev/pty";
 static const CHAR     _G_cTelnetAbort[] = __TTINY_SHELL_FORCE_ABORT "\n";
 static atomic_t       _G_atomicTelnetLinks;
+/*********************************************************************************************************
+  登录黑名单
+*********************************************************************************************************/
+#if LW_CFG_NET_LOGINBL_EN > 0
+static UINT16         _G_uiLoginFailPort  = 0;
+static UINT           _G_uiLoginFailBlSec = 120;                        /*  黑名单超时, 默认 120 秒     */
+static UINT           _G_uiLoginFailBlRep = 3;                          /*  黑名单探测默认为 3 次错误   */
+#endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
 /*********************************************************************************************************
   IAC命令格式：
   FMT1 = IAC(BYTE) + CMD(BYTE)
@@ -322,6 +334,17 @@ static VOID  __telnetServer (INT  iSock)
     LW_OBJECT_HANDLE    ulTShell;
     LW_OBJECT_HANDLE    ulCommunicatThread;
     
+#if LW_CFG_NET_LOGINBL_EN > 0
+    BOOL                bBlAdd = LW_FALSE;
+    struct sockaddr     addr;
+    socklen_t           namelen = sizeof(struct sockaddr);
+
+    if (getpeername(iSock, &addr, &namelen) == ERROR_NONE) {
+        ((struct sockaddr_in *)&addr)->sin_port = _G_uiLoginFailPort;
+        bBlAdd = LW_TRUE;
+    }
+#endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
+    
     sprintf(cPtyName, "%s/%d", _G_cTelnetPtyStartName, iSock);          /*  生成 PTY 设备名             */
 
     if (ptyDevCreate(cPtyName, LW_CFG_NET_TELNET_RBUFSIZE, LW_CFG_NET_TELNET_WBUFSIZE) < 0) {
@@ -408,6 +431,14 @@ static VOID  __telnetServer (INT  iSock)
     
     API_ThreadJoin(ulTShell, &pvRetValue);                              /*  等待 shell 线程结束         */
     
+#if LW_CFG_NET_LOGINBL_EN > 0
+    if ((INT)pvRetValue == -ERROR_TSHELL_EUSER) {                       /*  用户登录错误                */
+        if (bBlAdd) {
+            API_LoginBlAdd(&addr, _G_uiLoginFailBlRep, _G_uiLoginFailBlSec);
+        }
+    }
+#endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
+    
     API_ThreadCancel(&ulCommunicatThread);                              /*  通知停止 t_ptyproc 线程     */
     /*
      *  删除 pty 设备, 唤醒 t_ptyproc 线程.
@@ -438,7 +469,7 @@ __error_handle:
     API_AtomicDec(&_G_atomicTelnetLinks);                               /*  链接数量--                  */
 }
 /*********************************************************************************************************
-** 函数名称: __telnetServer
+** 函数名称: __telnetListener
 ** 功能描述: telnet 侦听器线程
 ** 输　入  : NONE
 ** 输　出  : NONE
@@ -469,6 +500,10 @@ static VOID  __telnetListener (VOID)
         inaddrLcl.sin_port = htons(23);                                 /*  telnet default port         */
     }
     
+#if LW_CFG_NET_LOGINBL_EN > 0
+    _G_uiLoginFailPort = inaddrLcl.sin_port;
+#endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
+
     iSock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (iSock < 0) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "can not create socket.\r\n");
@@ -563,6 +598,10 @@ VOID  API_INetTelnetInit (const PCHAR  pcPtyStartName)
     REGISTER size_t                 stNameLen;
              LW_CLASS_THREADATTR    threadattr;
              LW_OBJECT_HANDLE       ulId;
+             
+#if LW_CFG_NET_LOGINBL_EN > 0
+             CHAR                   cEnvBuf[32];
+#endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
 
     if (bIsInit) {
         return;
@@ -588,6 +627,15 @@ VOID  API_INetTelnetInit (const PCHAR  pcPtyStartName)
     }
     
     API_AtomicSet(0, &_G_atomicTelnetLinks);                            /*  连接数量清零                */
+    
+#if LW_CFG_NET_LOGINBL_EN > 0
+    if (API_TShellVarGetRt("LOGINBL_TO", cEnvBuf, (INT)sizeof(cEnvBuf)) > 0) {
+        _G_uiLoginFailBlSec = lib_atoi(cEnvBuf);
+    }
+    if (API_TShellVarGetRt("LOGINBL_REP", cEnvBuf, (INT)sizeof(cEnvBuf)) > 0) {
+        _G_uiLoginFailBlRep = lib_atoi(cEnvBuf);
+    }
+#endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
     
     API_ThreadAttrBuild(&threadattr, 
                         LW_CFG_NET_TELNET_STK_SIZE, 
