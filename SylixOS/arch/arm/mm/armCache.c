@@ -78,6 +78,13 @@ VOID  archCacheInit (CACHE_MODE  uiInstruction, CACHE_MODE  uiData, CPCHAR  pcMa
         }
         armCacheV8Init(pcacheop, uiInstruction, uiData, pcMachineName);
     
+    } else if ((lib_strcmp(pcMachineName, ARM_MACHINE_R4) == 0) ||
+               (lib_strcmp(pcMachineName, ARM_MACHINE_R5) == 0) ||
+               (lib_strcmp(pcMachineName, ARM_MACHINE_R7) == 0)) {
+        /*
+         * TODO: ARM Cortex-R Cache support.
+         */
+    
     } else {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown machine name.\r\n");
     }
@@ -116,6 +123,13 @@ VOID  archCacheReset (CPCHAR  pcMachineName)
                (lib_strcmp(pcMachineName, ARM_MACHINE_A73) == 0)) {
         armCacheV8Reset(pcMachineName);
     
+    } else if ((lib_strcmp(pcMachineName, ARM_MACHINE_R4) == 0) ||
+               (lib_strcmp(pcMachineName, ARM_MACHINE_R5) == 0) ||
+               (lib_strcmp(pcMachineName, ARM_MACHINE_R7) == 0)) {
+        /*
+         * TODO: ARM Cortex-R Cache support.
+         */
+         
     } else {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown machine name.\r\n");
     }

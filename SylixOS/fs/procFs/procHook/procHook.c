@@ -199,6 +199,8 @@ typedef struct lw_hook_tprint {
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if LW_CFG_SYMBOL_EN > 0
+
 static BOOL  __procFsHookPrint (PVOID  pvArg, PLW_SYMBOL  psymbol)
 {
     LW_HOOK_TPRINT  *phooktp = (LW_HOOK_TPRINT *)pvArg;
@@ -214,6 +216,8 @@ static BOOL  __procFsHookPrint (PVOID  pvArg, PLW_SYMBOL  psymbol)
     
     return  (LW_TRUE);
 }
+
+#endif                                                                  /*  LW_CFG_SYMBOL_EN > 0        */
 /*********************************************************************************************************
 ** 函数名称: __procFsHookRead
 ** 功能描述: procfs 读一个内核 version proc 文件

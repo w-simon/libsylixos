@@ -43,7 +43,7 @@ LW_API
 ULONG  API_ThreadCancel (LW_OBJECT_HANDLE  *pulId)
 {
              INTREG                iregInterLevel;
-    REGISTER LW_OBJECT_HANDLE      ulId;
+             LW_OBJECT_HANDLE      ulId;
     REGISTER UINT16                usIndex;
     REGISTER PLW_CLASS_TCB         ptcbDel;
 
@@ -86,7 +86,7 @@ ULONG  API_ThreadCancel (LW_OBJECT_HANDLE  *pulId)
 #if LW_CFG_SIGNAL_EN > 0
             kill(ulId, SIGCANCEL);                                      /*  立即发送取消信号            */
 #else
-            return  (API_ThreadDelete(ulId, LW_NULL));
+            return  (API_ThreadDelete(&ulId, LW_NULL));
 #endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
         }
     

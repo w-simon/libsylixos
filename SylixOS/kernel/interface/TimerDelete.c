@@ -88,12 +88,7 @@ ULONG  API_TimerDelete (LW_OBJECT_HANDLE  *pulId)
     iregInterLevel = KN_INT_DISABLE();                                  /*  关闭中断                    */
     
     if (ptmr->TIMER_ucStatus == LW_TIMER_STATUS_STOP) {                 /*  关闭状态下删除              */
-        ptmr->TIMER_ucType   =  LW_TYPE_TIMER_UNUSED;                   /*  删除标志                    */
-        KN_INT_ENABLE(iregInterLevel);
-        
-        _Free_Timer_Object(ptmr);
-        __KERNEL_EXIT();                                                /*  退出内核                    */
-        return  (ERROR_NONE);
+        goto    __delete;
     }
     
     ptmr->TIMER_ulCounter = 0ul;                                        /*  清除计数器                  */
@@ -106,6 +101,7 @@ ULONG  API_TimerDelete (LW_OBJECT_HANDLE  *pulId)
         _WakeupDel(&_K_wuHTmr, &ptmr->TIMER_wunTimer);
     }
     
+__delete:
     ptmr->TIMER_ucType = LW_TYPE_TIMER_UNUSED;                          /*  删除标志                    */
     
     KN_INT_ENABLE(iregInterLevel);

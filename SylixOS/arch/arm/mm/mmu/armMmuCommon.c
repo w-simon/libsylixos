@@ -113,6 +113,7 @@ addr_t  armGetAbtAddr (VOID)
 *********************************************************************************************************/
 VOID   armGetAbtType (PLW_VMM_ABORT  pabtInfo)
 {
+#if LW_CFG_VMM_EN > 0
     UINT32  uiStatus = armMmuAbtFaultStatus();
     UINT32  uiCode   = uiStatus & 0x0f;
     
@@ -174,6 +175,10 @@ VOID   armGetAbtType (PLW_VMM_ABORT  pabtInfo)
     pabtInfo->VMABT_uiMethod = (bWrite)
                              ? LW_VMM_ABORT_METHOD_WRITE 
                              : LW_VMM_ABORT_METHOD_READ;
+#else
+    pabtInfo->VMABT_uiType   = LW_VMM_ABORT_TYPE_TERMINAL;
+    pabtInfo->VMABT_uiMethod = 0;
+#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: armGetPreAddr
@@ -197,6 +202,7 @@ addr_t  armGetPreAddr (addr_t  ulRetLr)
 *********************************************************************************************************/
 VOID   armGetPreType (PLW_VMM_ABORT  pabtInfo)
 {
+#if LW_CFG_VMM_EN > 0
     UINT32  uiStatus = armMmuPreFaultStatus();
     UINT32  uiCode   = uiStatus & 0x0f;
 
@@ -248,6 +254,9 @@ VOID   armGetPreType (PLW_VMM_ABORT  pabtInfo)
         pabtInfo->VMABT_uiType = LW_VMM_ABORT_TYPE_MAP;
         break;
     }
+#else
+    pabtInfo->VMABT_uiType = LW_VMM_ABORT_TYPE_TERMINAL;
+#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
     
     pabtInfo->VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
 }

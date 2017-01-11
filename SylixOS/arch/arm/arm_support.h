@@ -156,6 +156,7 @@ VOID    armSyncBusMode(VOID);
 #define ARM_MACHINE_926     "926"                                       /*  ARMv5                       */
 #define ARM_MACHINE_1136    "1136"                                      /*  ARMv6                       */
 #define ARM_MACHINE_1176    "1176"
+
 #define ARM_MACHINE_A5      "A5"                                        /*  ARMv7                       */
 #define ARM_MACHINE_A7      "A7"
 #define ARM_MACHINE_A8      "A8"
@@ -166,6 +167,10 @@ VOID    armSyncBusMode(VOID);
 #define ARM_MACHINE_A57     "A57"                                       /*  FT1500A FT2000 ...          */
 #define ARM_MACHINE_A72     "A72"
 #define ARM_MACHINE_A73     "A73"
+
+#define ARM_MACHINE_R4      "R4"                                        /*  ARMv7 R                     */
+#define ARM_MACHINE_R5      "R5"
+#define ARM_MACHINE_R7      "R7"
 
 #if LW_CFG_CACHE_EN > 0
 VOID    archCacheReset(CPCHAR     pcMachineName);

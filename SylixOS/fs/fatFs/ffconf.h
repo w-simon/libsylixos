@@ -101,11 +101,8 @@
 /   950 - Traditional Chinese (DBCS)
 */
 
-#if (LW_CFG_MAX_VOLUMES > 0) && (LW_CFG_FATFS_EN > 0)
+
 #define	_USE_LFN	2		/* 0, 1 or 2 */
-#else
-#define	_USE_LFN	0       /* do not need fat file system */
-#endif                      /* (LW_CFG_MAX_VOLUMES > 0) && (LW_CFG_FATFS_EN > 0) */
 #define	_MAX_LFN	255
 /* The _USE_LFN switches the support of long file name (LFN).
 /

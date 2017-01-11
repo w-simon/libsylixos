@@ -777,7 +777,7 @@ static VOID  __tshellRestart (LW_OBJECT_HANDLE  ulThread)
 #if LW_CFG_SIGNAL_EN > 0
         kill(ulJoin, SIGKILL);                                          /*  杀死等待的线程/进程         */
 #else
-        API_ThreadDelete(ulJoin, LW_NULL);
+        API_ThreadDelete(&ulJoin, LW_NULL);
 #endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
         iMsg = API_IoTaskStdGet(ulThread, STD_OUT);
         if (iMsg >= 0) {
