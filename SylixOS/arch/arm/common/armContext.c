@@ -40,6 +40,7 @@ PLW_STACK  archTaskCtxCreate (PTHREAD_START_ROUTINE  pfuncTask,
 {
     ARCH_REG_CTX      *pregctx;
     ARCH_FP_CTX       *pfpctx;
+    INTREG             uiCpsr;
     
     if ((addr_t)pstkTop & 0x7) {                                        /*  保证出栈后 CPU SP 8 字节对齐*/
         pstkTop = (PLW_STACK)((addr_t)pstkTop - 4);                     /*  向低地址推进 4 字节         */
@@ -51,7 +52,11 @@ PLW_STACK  archTaskCtxCreate (PTHREAD_START_ROUTINE  pfuncTask,
     pfpctx->FP_uiFp = (ARCH_REG_T)LW_NULL;
     pfpctx->FP_uiLr = (ARCH_REG_T)LW_NULL;
     
-    pregctx->REG_uiCpsr = (ARCH_ARM_SVC32MODE | 0x40);
+    uiCpsr  = archGetCpsr();                                            /*  获得当前 CPSR 寄存器        */
+    uiCpsr &= ~ARCH_ARM_MASKMODE;
+    uiCpsr |= ARCH_ARM_SVC32MODE;                                       /*  SVC 模式                    */
+    uiCpsr &= ~ARCH_ARM_DIS_IRQ;                                        /*  使能 IRQ                    */
+    pregctx->REG_uiCpsr = uiCpsr;
     
     pregctx->REG_uiR0  = (ARCH_REG_T)pvArg;
     pregctx->REG_uiR1  = 0x01010101;
@@ -109,7 +114,7 @@ ARCH_REG_CTX  *archTaskRegsGet (PLW_STACK  pstkTop, ARCH_REG_T *pregSp)
 {
     ARCH_REG_T  regSp = (ARCH_REG_T)pstkTop;
     
-#if	CPU_STK_GROWTH == 0
+#if CPU_STK_GROWTH == 0
     regSp -= sizeof(ARCH_REG_CTX);
 #else
     regSp += sizeof(ARCH_REG_CTX);
@@ -233,7 +238,7 @@ static VOID  archTaskCtxCpsr (ARCH_REG_T regCpsr, PCHAR  pcCpsr)
 ** 函数名称: archTaskCtxShow
 ** 功能描述: 打印任务上下文
 ** 输　入  : iFd        文件描述符
-			 pstkTop    堆栈栈顶
+             pstkTop    堆栈栈顶
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:

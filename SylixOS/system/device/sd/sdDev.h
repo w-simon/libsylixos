@@ -152,11 +152,63 @@ typedef struct lw_sddev_ext_csd {
 
 typedef struct lw_sddev_scr {
     UINT8       DEVSCR_ucSdaVsn;
+#define SD_SCR_SPEC_VER_0   0
+#define SD_SCR_SPEC_VER_1   1
+#define SD_SCR_SPEC_VER_2   2
+
     UINT8       DEVSCR_ucBusWidth;
 #define SD_SCR_BUS_WIDTH_1  (1 << 0)
 #define SD_SCR_BUS_WIDTH_4  (1 << 2)
 
 } LW_SDDEV_SCR, *PLW_SDDEV_SCR;
+
+/*********************************************************************************************************
+   SWITCH 功能
+*********************************************************************************************************/
+typedef struct lw_sddev_sw_cap {
+    UINT        DEVSWCAP_uiHsMaxDtr;
+    UINT        DEVSWCAP_uiUHsMaxDtr;
+#define SD_SW_HIGH_SPEED_MAX_DTR        50000000
+#define SD_SW_UHS_SDR104_MAX_DTR        208000000
+#define SD_SW_UHS_SDR50_MAX_DTR         100000000
+#define SD_SW_UHS_DDR50_MAX_DTR         50000000
+#define SD_SW_UHS_SDR25_MAX_DTR         SD_SW_UHS_DDR50_MAX_DTR
+#define SD_SW_UHS_SDR12_MAX_DTR         25000000
+
+    UINT        DEVSWCAP_uiSd3BusMode;
+#define SD_SW_UHS_SDR12_BUS_SPEED       0
+#define SD_SW_HIGH_SPEED_BUS_SPEED      1
+#define SD_SW_UHS_SDR25_BUS_SPEED       1
+#define SD_SW_UHS_SDR50_BUS_SPEED       2
+#define SD_SW_UHS_SDR104_BUS_SPEED      3
+#define SD_SW_UHS_DDR50_BUS_SPEED       4
+
+#define SD_SW_MODE_HIGH_SPEED           (1 << SD_SW_HIGH_SPEED_BUS_SPEED)
+#define SD_SW_MODE_UHS_SDR12            (1 << SD_SW_UHS_SDR12_BUS_SPEED)
+#define SD_SW_MODE_UHS_SDR25            (1 << SD_SW_UHS_SDR25_BUS_SPEED)
+#define SD_SW_SW_SD_MODE_UHS_SDR50      (1 << SD_SW_UHS_SDR50_BUS_SPEED)
+#define SD_SW_MODE_UHS_SDR104           (1 << SD_SW_UHS_SDR104_BUS_SPEED)
+#define SD_SW_MODE_UHS_DDR50            (1 << SD_SW_UHS_DDR50_BUS_SPEED)
+
+    UINT        DEVSWCAP_uiSd3DrvType;
+#define SD_SW_DRIVER_TYPE_B             0x01
+#define SD_SW_DRIVER_TYPE_A             0x02
+#define SD_SW_DRIVER_TYPE_C             0x04
+#define SD_SW_DRIVER_TYPE_D             0x08
+
+    UINT        DEVSWCAP_uiSd3CurrLimit;
+#define SD_SW_SET_CURRENT_LIMIT_200     0
+#define SD_SW_SET_CURRENT_LIMIT_400     1
+#define SD_SW_SET_CURRENT_LIMIT_600     2
+#define SD_SW_SET_CURRENT_LIMIT_800     3
+#define SD_SW_SET_CURRENT_NO_CHANGE     (-1)
+
+#define SD_SW_MAX_CURRENT_200           (1 << SD_SW_SET_CURRENT_LIMIT_200)
+#define SD_SW_MAX_CURRENT_400           (1 << SD_SW_SET_CURRENT_LIMIT_400)
+#define SD_SW_MAX_CURRENT_600           (1 << SD_SW_SET_CURRENT_LIMIT_600)
+#define SD_SW_MAX_CURRENT_800           (1 << SD_SW_SET_CURRENT_LIMIT_800)
+
+} LW_SDDEV_SW_CAP, *PLW_SDDEV_SW_CAP;
 
 /*********************************************************************************************************
   SD 设备类型
@@ -186,6 +238,7 @@ typedef struct lw_sd_device {
     LW_SDDEV_CID        SDDEV_cid;
     LW_SDDEV_CSD        SDDEV_csd;
     LW_SDDEV_SCR        SDDEV_scr;
+    LW_SDDEV_SW_CAP     SDDEV_swcap;
     CHAR                SDDEV_pDevName[LW_CFG_OBJECT_NAME_SIZE];
     PVOID               SDDEV_pvUsr;                                    /*  设备用户数据                */
 

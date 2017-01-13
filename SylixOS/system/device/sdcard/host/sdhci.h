@@ -511,6 +511,7 @@ typedef struct lw_sdhci_host_attr {
 #define SDHCI_QUIRK_FLG_CAN_DATA_4BIT_DDR                     (1 << 11) /*  支持4位ddr数据传输          */
 #define SDHCI_QUIRK_FLG_CAN_DATA_8BIT_DDR                     (1 << 12) /*  支持8位ddr数据传输          */
 #define SDHCI_QUIRK_FLG_MMC_FORCE_1BIT                        (1 << 13) /*  MMC 卡强制使用1位总线       */
+#define SDHCI_QUIRK_FLG_CANNOT_HIGHSPEED                      (1 << 14) /*  不支持高速传输              */
 
     VOID            *SDHCIHOST_pvUsrSpec;                               /*  用户驱动特殊数据            */
 } LW_SDHCI_HOST_ATTR, *PLW_SDHCI_HOST_ATTR;

@@ -1242,8 +1242,7 @@ static INT __sdhciClockSet (__PSDHCI_HOST  psdhcihost, UINT32 uiSetClk)
     }
 
     if (uiSetClk > uiBaseClk) {
-        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "the clock to set is larger than base clock.\r\n");
-        return  (PX_ERROR);
+        uiSetClk = uiBaseClk;
     }
 
     SDHCI_WRITEW(psdhcihostattr, SDHCI_CLOCK_CONTROL, 0);               /*  禁止时钟模块所有内部功能    */
@@ -1551,6 +1550,11 @@ static __SDHCI_SDM_HOST *__sdhciSdmHostNew (__PSDHCI_HOST   psdhcihost)
     }
     if (psdhcihost->SDHCIHS_sdhcicap.SDHCICAP_bCanHighSpeed) {
         iCapablity |= SDHOST_CAP_HIGHSPEED;
+    }
+
+    if (SDHCI_QUIRK_FLG(&psdhcihost->SDHCIHS_sdhcihostattr,
+                        SDHCI_QUIRK_FLG_CANNOT_HIGHSPEED)) {
+        iCapablity &= ~SDHOST_CAP_HIGHSPEED;
     }
 
     psdhost = &psdhcisdmhost->SDHCISDMH_sdhost;
@@ -2011,20 +2015,37 @@ static INT __sdhciDataReadNorm (__PSDHCI_TRANS    psdhcitrans)
     uiChunk        = 0;
     uiData         = 0;
 
-    /*
-     * 以下可以处理块大小不是 4 倍数的情况
-     */
-    while (uiBlkSize) {
-        if (uiChunk == 0) {
-            uiData = SDHCI_READL(psdhcihostattr, SDHCI_BUFFER);
-            uiChunk = 4;
+    if (((ULONG)pucBuffer) & 0x3) {
+        while (uiBlkSize) {
+            if (uiChunk == 0) {
+                uiData = SDHCI_READL(psdhcihostattr, SDHCI_BUFFER);
+                uiChunk = 4;
+            }
+
+            *pucBuffer = uiData & 0xFF;
+            pucBuffer++;
+            uiData >>= 8;
+            uiChunk--;
+            uiBlkSize--;
         }
 
-        *pucBuffer = uiData & 0xFF;
-        pucBuffer++;
-        uiData >>= 8;
-        uiChunk--;
-        uiBlkSize--;
+    } else {
+        UINT32 *puiBuffer = (UINT32 *)pucBuffer;
+
+        while (uiBlkSize >= 4) {
+            *puiBuffer++ = SDHCI_READL(psdhcihostattr, SDHCI_BUFFER);
+            uiBlkSize   -= 4;
+        }
+
+        pucBuffer = (UINT8 *)puiBuffer;
+
+        if (uiBlkSize > 0) {
+            uiData = SDHCI_READL(psdhcihostattr, SDHCI_BUFFER);
+            while (uiBlkSize-- > 0) {
+                *pucBuffer++ = uiData & 0xFF;
+                uiData >>= 8;
+            }
+        }
     }
 
     psdhcitrans->SDHCITS_uiBlkCntRemain -= 1;
@@ -2057,16 +2078,36 @@ static INT __sdhciDataWriteNorm (__PSDHCI_TRANS    psdhcitrans)
     /*
      * 以下可以处理块大小不是 4 倍数的情况
      */
-    while (uiBlkSize) {
-        uiData |= (UINT32)(*pucBuffer) << (uiChunk << 3);
+    if (((ULONG)pucBuffer) & 0x3) {
+        while (uiBlkSize) {
+            uiData |= (UINT32)(*pucBuffer) << (uiChunk << 3);
 
-        pucBuffer++;
-        uiChunk++;
-        uiBlkSize--;
-        if ((uiChunk == 4) || (uiBlkSize == 0)) {
+            pucBuffer++;
+            uiChunk++;
+            uiBlkSize--;
+            if ((uiChunk == 4) || (uiBlkSize == 0)) {
+                SDHCI_WRITEL(psdhcihostattr, SDHCI_BUFFER, uiData);
+                uiChunk = 0;
+                uiData  = 0;
+            }
+        }
+
+    } else {
+        UINT32 *puiBuffer = (UINT32 *)pucBuffer;
+
+        while (uiBlkSize >= 4) {
+            SDHCI_WRITEL(psdhcihostattr, SDHCI_BUFFER, *puiBuffer++);
+            uiBlkSize -= 4;
+        }
+
+        pucBuffer = (UINT8 *)puiBuffer;
+
+        if (uiBlkSize > 0) {
+            while (uiBlkSize-- > 0) {
+                uiData <<= 8;
+                uiData |= *pucBuffer++;
+            }
             SDHCI_WRITEL(psdhcihostattr, SDHCI_BUFFER, uiData);
-            uiChunk = 0;
-            uiData  = 0;
         }
     }
 

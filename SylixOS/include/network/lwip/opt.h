@@ -144,6 +144,15 @@
 #if !defined SMEMCPY || defined __DOXYGEN__
 #define SMEMCPY(dst,src,len)            memcpy(dst,src,len)
 #endif
+
+/**
+ * MEMMOVE: override this if you have a faster implementation at hand than the
+ * one included in your C library.  lwIP currently uses MEMMOVE only when IPv6
+ * fragmentation support is enabled.
+ */
+#if !defined MEMMOVE || defined __DOXYGEN__
+#define MEMMOVE(dst,src,len)            memmove(dst,src,len)
+#endif
 /**
  * @}
  */
@@ -2196,6 +2205,17 @@
  */
 #if !defined LWIP_IPV6_AUTOCONFIG || defined __DOXYGEN__
 #define LWIP_IPV6_AUTOCONFIG            (LWIP_IPV6)
+#endif
+
+/**
+ * LWIP_IPV6_ADDRESS_LIFETIMES==1: Keep valid and preferred lifetimes for each
+ * IPv6 address. Required for LWIP_IPV6_AUTOCONFIG. May still be enabled
+ * otherwise, in which case the application may assign address lifetimes with
+ * the appropriate macros. Addresses with no lifetime are assumed to be static.
+ * If this option is disabled, all addresses are assumed to be static.
+ */
+#if !defined LWIP_IPV6_ADDRESS_LIFETIMES || defined __DOXYGEN__
+#define LWIP_IPV6_ADDRESS_LIFETIMES     (LWIP_IPV6_AUTOCONFIG)
 #endif
 
 /**

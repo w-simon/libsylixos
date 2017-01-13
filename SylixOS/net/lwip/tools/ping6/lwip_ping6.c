@@ -154,8 +154,7 @@ static INT  __inetPing6Prepare (struct icmp6_echo_hdr   *icmp6hdrEcho,
     pbuf.flags   = 0;
     pbuf.ref     = 1;
     
-    icmp6hdrEcho->chksum = ip6_chksum_pseudo(&pbuf, IP6_NEXTH_ICMP6, pbuf.tot_len,
-                                             &ip6addrSrc, pip6addrDest);
+    icmp6hdrEcho->chksum = 0;                                           /*  ipv6 raw stack will gen auto*/
 #endif                                                                  /*  CHECKSUM_GEN_ICMP6          */
     
     SYS_ARCH_PROTECT(x);
@@ -338,6 +337,7 @@ INT  API_INetPing6 (struct in6_addr  *pin6addr,
              ULONG      ulTime1;
              ULONG      ulTime2;
              
+             INT        On   = 1;
              INT        iSuc = 0;
              INT        iHLRecv;
 
@@ -364,6 +364,7 @@ INT  API_INetPing6 (struct in6_addr  *pin6addr,
     API_ThreadCleanupPush(__inetPing6Cleanup, (PVOID)iSock);            /*  加入清除函数                */
     
     setsockopt(iSock, SOL_SOCKET, SO_RCVTIMEO, &iTimeout, sizeof(INT));
+    setsockopt(iSock, IPPROTO_RAW, IPV6_CHECKSUM, &On, sizeof(INT));
     
     connect(iSock, (struct sockaddr *)&sockaddrin6To, 
             sizeof(struct sockaddr_in6));                               /*  设定目标                    */

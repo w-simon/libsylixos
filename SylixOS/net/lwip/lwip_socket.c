@@ -742,6 +742,8 @@ static INT  __ifSubIoctl6 (INT  iCmd, PVOID  pvArg)
             if (ip6_addr_isinvalid(pnetif->ip6_addr_state[i])) {
                 __LWIP_SET_IPV6_TO_NETIF();
                 pnetif->ip6_addr_state[i] = IP6_ADDR_VALID | IP6_ADDR_TENTATIVE;
+                netif_ip6_addr_set_valid_life(pnetif, i, IP6_ADDR_LIFE_STATIC);
+                netif_ip6_addr_set_pref_life(pnetif, i, IP6_ADDR_LIFE_STATIC);
                 break;
             }
         }
@@ -751,6 +753,8 @@ static INT  __ifSubIoctl6 (INT  iCmd, PVOID  pvArg)
                     ip6_addr_istentative(pnetif->ip6_addr_state[i])) {
                     __LWIP_SET_IPV6_TO_NETIF();
                     pnetif->ip6_addr_state[i] = IP6_ADDR_VALID | IP6_ADDR_TENTATIVE;
+                    netif_ip6_addr_set_valid_life(pnetif, i, IP6_ADDR_LIFE_STATIC);
+                    netif_ip6_addr_set_pref_life(pnetif, i, IP6_ADDR_LIFE_STATIC);
                     break;
                 }
             }
@@ -760,6 +764,8 @@ static INT  __ifSubIoctl6 (INT  iCmd, PVOID  pvArg)
                 if (!ip6_addr_islinklocal(ip_2_ip6(&pnetif->ip6_addr[i]))) {
                     __LWIP_SET_IPV6_TO_NETIF();
                     pnetif->ip6_addr_state[i] = IP6_ADDR_VALID | IP6_ADDR_TENTATIVE;
+                    netif_ip6_addr_set_valid_life(pnetif, i, IP6_ADDR_LIFE_STATIC);
+                    netif_ip6_addr_set_pref_life(pnetif, i, IP6_ADDR_LIFE_STATIC);
                     break;
                 }
             }

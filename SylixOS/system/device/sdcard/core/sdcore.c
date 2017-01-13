@@ -82,6 +82,7 @@ typedef struct __core_spi_dev {
     LW_SDDEV_CID                  CSPIDEV_cid;
     LW_SDDEV_CSD                  CSPIDEV_csd;
     LW_SDDEV_SCR                  CSPIDEV_scr;
+    LW_SDDEV_SW_CAP               CSPIDEV_swcap;
 
     PLW_SDCORE_CHAN               CSPIDEV_psdcorecha;
     SDCORE_CALLBACK_SPICS_ENABLE  CSPIDEV_cbCsEn;
@@ -424,6 +425,24 @@ LW_API INT  API_SdCoreDevCmd (PLW_SDCORE_DEVICE psdcoredevice,
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: API_SdCoreDevAppSwitch
+** 功能描述: 切换到APP命令
+** 输    入: psdcoredevice  核心结构指针
+**           bIsBc          是否针对广播命令
+** 输    出: NONE
+** 返    回: ERROR CODE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+LW_API INT  API_SdCoreDevAppSwitch (PLW_SDCORE_DEVICE psdcoredevice, BOOL bIsBc)
+{
+    INT iRet;
+
+    iRet = __sdCoreDevSwitchToApp(psdcoredevice, bIsBc);
+
+    return  (iRet);
+}
+/*********************************************************************************************************
 ** 函数名称: API_SdCoreDevAppCmd
 ** 功能描述: 核心设备发送APP命令
 ** 输    入: psdcoredevice  设备结构指针
@@ -569,6 +588,76 @@ LW_API INT  API_SdCoreDevCidView (PLW_SDCORE_DEVICE psdcoredevice,  PLW_SDDEV_CI
     }
 }
 /*********************************************************************************************************
+** 函数名称: API_SdCoreDevScrView
+** 功能描述: 查看设备的SCR
+** 输    入: psdcoredevice 设备结构指针
+** 输    出: psdscr        设备SCR
+** 返    回: ERROR CODE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+LW_API INT  API_SdCoreDevScrView (PLW_SDCORE_DEVICE psdcoredevice,  PLW_SDDEV_SCR psdscr)
+{
+    PLW_SD_DEVICE    psddevice;
+    __PCORE_SPI_DEV  pcspidevice;
+
+    if (!psdcoredevice || !psdscr) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    switch (psdcoredevice->COREDEV_iAdapterType) {
+
+    case SDADAPTER_TYPE_SD:
+        psddevice = (PLW_SD_DEVICE)psdcoredevice->COREDEV_pvDevHandle;
+        lib_memcpy(psdscr, &psddevice->SDDEV_scr, sizeof(LW_SDDEV_SCR));
+        return  (ERROR_NONE);
+
+    case SDADAPTER_TYPE_SPI:
+        pcspidevice = (__PCORE_SPI_DEV)psdcoredevice->COREDEV_pvDevHandle;
+        lib_memcpy(psdscr, &pcspidevice->CSPIDEV_scr, sizeof(LW_SDDEV_SCR));
+        return  (ERROR_NONE);
+
+    default:
+        return  (PX_ERROR);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: API_SdCoreDevSwCapView
+** 功能描述: 查看设备的 SWITCH 功能
+** 输    入: psdcoredevice 设备结构指针
+** 输    出: psdswcap      SWITCH 功能
+** 返    回: ERROR CODE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+LW_API INT  API_SdCoreDevSwCapView (PLW_SDCORE_DEVICE psdcoredevice,  PLW_SDDEV_SW_CAP psdswcap)
+{
+    PLW_SD_DEVICE    psddevice;
+    __PCORE_SPI_DEV  pcspidevice;
+
+    if (!psdcoredevice || !psdswcap) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    switch (psdcoredevice->COREDEV_iAdapterType) {
+
+    case SDADAPTER_TYPE_SD:
+        psddevice = (PLW_SD_DEVICE)psdcoredevice->COREDEV_pvDevHandle;
+        lib_memcpy(psdswcap, &psddevice->SDDEV_swcap, sizeof(LW_SDDEV_SW_CAP));
+        return  (ERROR_NONE);
+
+    case SDADAPTER_TYPE_SPI:
+        pcspidevice = (__PCORE_SPI_DEV)psdcoredevice->COREDEV_pvDevHandle;
+        lib_memcpy(psdswcap, &pcspidevice->CSPIDEV_swcap, sizeof(LW_SDDEV_SW_CAP));
+        return  (ERROR_NONE);
+
+    default:
+        return  (PX_ERROR);
+    }
+}
+/*********************************************************************************************************
 ** 函数名称: API_SdCoreDevRcaView
 ** 功能描述: 查看设备的本地地址(只能用于SD总线上的设备)
 ** 输    入: psdcoredevice 设备结构指针
@@ -698,6 +787,78 @@ LW_API INT  API_SdCoreDevCidSet (PLW_SDCORE_DEVICE psdcoredevice,  PLW_SDDEV_CID
     case SDADAPTER_TYPE_SPI:
         pcspidevice = (__PCORE_SPI_DEV)psdcoredevice->COREDEV_pvDevHandle;
         lib_memcpy( &pcspidevice->CSPIDEV_cid, psdcid, sizeof(LW_SDDEV_CID));
+        return  (ERROR_NONE);
+
+    default:
+        return  (PX_ERROR);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: API_SdCoreDevScrSet
+** 功能描述: 设置设备的SCR
+** 输    入: psdcoredevice 设备结构指针
+**           psdscr        设备SCR
+** 输    出: NONE
+** 返    回: ERROR CODE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+LW_API INT  API_SdCoreDevScrSet (PLW_SDCORE_DEVICE psdcoredevice,  PLW_SDDEV_SCR psdscr)
+{
+    PLW_SD_DEVICE    psddevice;
+    __PCORE_SPI_DEV  pcspidevice;
+
+    if (!psdcoredevice || !psdscr) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    switch (psdcoredevice->COREDEV_iAdapterType) {
+
+    case SDADAPTER_TYPE_SD:
+        psddevice = (PLW_SD_DEVICE)psdcoredevice->COREDEV_pvDevHandle;
+        lib_memcpy(&psddevice->SDDEV_scr, psdscr,  sizeof(LW_SDDEV_SCR));
+        return  (ERROR_NONE);
+
+    case SDADAPTER_TYPE_SPI:
+        pcspidevice = (__PCORE_SPI_DEV)psdcoredevice->COREDEV_pvDevHandle;
+        lib_memcpy( &pcspidevice->CSPIDEV_scr, psdscr, sizeof(LW_SDDEV_SCR));
+        return  (ERROR_NONE);
+
+    default:
+        return  (PX_ERROR);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: API_SdCoreDevSwCapSet
+** 功能描述: 设置设备的 SWITCH 功能
+** 输    入: psdcoredevice 设备结构指针
+**           psdswcap      SWITCH 功能
+** 输    出: NONE
+** 返    回: ERROR CODE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+LW_API INT  API_SdCoreDevSwCapSet (PLW_SDCORE_DEVICE psdcoredevice,  PLW_SDDEV_SW_CAP psdswcap)
+{
+    PLW_SD_DEVICE    psddevice;
+    __PCORE_SPI_DEV  pcspidevice;
+
+    if (!psdcoredevice || !psdswcap) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    switch (psdcoredevice->COREDEV_iAdapterType) {
+
+    case SDADAPTER_TYPE_SD:
+        psddevice = (PLW_SD_DEVICE)psdcoredevice->COREDEV_pvDevHandle;
+        lib_memcpy(&psddevice->SDDEV_swcap, psdswcap,  sizeof(LW_SDDEV_SW_CAP));
+        return  (ERROR_NONE);
+
+    case SDADAPTER_TYPE_SPI:
+        pcspidevice = (__PCORE_SPI_DEV)psdcoredevice->COREDEV_pvDevHandle;
+        lib_memcpy(&pcspidevice->CSPIDEV_swcap, psdswcap, sizeof(LW_SDDEV_SW_CAP));
         return  (ERROR_NONE);
 
     default:

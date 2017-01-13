@@ -74,7 +74,6 @@ struct autoip
   u8_t tried_llipaddr;
 };
 
-#define netif_autoip_data(netif) ((struct autoip*)netif_get_client_data(netif, LWIP_NETIF_CLIENT_DATA_INDEX_AUTOIP))
 
 void autoip_set_struct(struct netif *netif, struct autoip *autoip);
 /** Remove a struct autoip previously set to the netif using autoip_set_struct() */
@@ -88,6 +87,8 @@ u8_t autoip_supplied_address(const struct netif *netif);
 
 /* for lwIP internal use by ip4.c */
 u8_t autoip_accept_packet(struct netif *netif, const ip4_addr_t *addr);
+
+#define netif_autoip_data(netif) ((struct autoip*)netif_get_client_data(netif, LWIP_NETIF_CLIENT_DATA_INDEX_AUTOIP))
 
 #ifdef __cplusplus
 }

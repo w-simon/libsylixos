@@ -114,6 +114,12 @@ static INT __sdMemIoctl(__PSD_BLK_DEV    psdblkdevice,
 static INT __sdMemStatus(__PSD_BLK_DEV   psdblkdevice);
 static INT __sdMemReset(__PSD_BLK_DEV    psdblkdevice);
 
+static INT __sdMemSdSwCapGet(PLW_SDCORE_DEVICE  psdcoredevice,
+                             LW_SDDEV_SCR      *psdscr,
+                             LW_SDDEV_CSD      *psdcsd,
+                             LW_SDDEV_SW_CAP   *psdswcap);
+static INT __sdMemSdHsSwitch(PLW_SDCORE_DEVICE  psdcoredevice, LW_SDDEV_SW_CAP  *psdswcap);
+
 static INT __sdMemMmcFreqChange(PLW_SDCORE_DEVICE  psdcoredevice,
                                 LW_SDDEV_CSD      *psdcsd,
                                 INT               *piCardCap);
@@ -316,9 +322,11 @@ LW_API INT  API_SdMemDevShow (PLW_BLK_DEV pblkdevice)
     __PSD_BLK_DEV       psdblkdevice    = LW_NULL;
     LW_SDDEV_CSD        sddevcsd;
     LW_SDDEV_CID        sddevcid;
+    LW_SDDEV_SW_CAP     sddevswcap;
 
     UINT32              uiCapMod;
     UINT64              ullCap;
+    UINT32              uiMaxSpeed;
     UINT8               ucType;
     CPCHAR              pcTypeStr = "unknown";
     CPCHAR              pcVsnStr  = "unknown";
@@ -342,7 +350,14 @@ LW_API INT  API_SdMemDevShow (PLW_BLK_DEV pblkdevice)
 
     API_SdCoreDevCsdView(psdcoredevice, &sddevcsd);
     API_SdCoreDevCidView(psdcoredevice, &sddevcid);
+    API_SdCoreDevSwCapView(psdcoredevice, &sddevswcap);
     API_SdCoreDevTypeView(psdcoredevice, &ucType);
+
+    if (sddevswcap.DEVSWCAP_uiHsMaxDtr) {
+        uiMaxSpeed = sddevswcap.DEVSWCAP_uiHsMaxDtr;
+    } else {
+        uiMaxSpeed = sddevcsd.DEVCSD_uiTranSpeed;
+    }
 
     ullCap   = (UINT64)sddevcsd.DEVCSD_uiCapacity * ((UINT64)1 << sddevcsd.DEVCSD_ucReadBlkLenBits);
     uiCapMod = ullCap % LW_CFG_MB_SIZE;
@@ -390,7 +405,7 @@ LW_API INT  API_SdMemDevShow (PLW_BLK_DEV pblkdevice)
                                       sddevcid.DEVCID_ucProductVsn & 0xf);
     printf("Serial Num   : %x\n", sddevcid.DEVCID_uiSerialNum);
     printf("Date         : %d/%02d\n", sddevcid.DEVCID_uiYear, sddevcid.DEVCID_ucMonth);
-    printf("Max Speed    : %dMB/s\n", sddevcsd.DEVCSD_uiTranSpeed / __SD_MILLION);
+    printf("Max Speed    : %dMB/s\n", uiMaxSpeed / __SD_MILLION);
     printf("Capacity     : %u.%03u MB\n", (UINT32)(ullCap / LW_CFG_MB_SIZE), uiCapMod / 1000);
 
     return  (ERROR_NONE);
@@ -455,7 +470,15 @@ static INT __sdMemInit (PLW_SDCORE_DEVICE psdcoredevice)
     LW_SDDEV_OCR    sddevocr;
     LW_SDDEV_CID    sddevcid;
     LW_SDDEV_CSD    sddevcsd;
+    LW_SDDEV_SCR    sddevscr;
+    LW_SDDEV_SW_CAP sddevswcap;
     INT             iCardCap = 0;
+    INT             iHostCap = 0;
+
+    lib_bzero(&sddevcid, sizeof(LW_SDDEV_CID));
+    lib_bzero(&sddevcsd, sizeof(LW_SDDEV_CSD));
+    lib_bzero(&sddevscr, sizeof(LW_SDDEV_SCR));
+    lib_bzero(&sddevswcap, sizeof(LW_SDDEV_SW_CAP));
 
     switch (psdcoredevice->COREDEV_iAdapterType) {
 
@@ -550,15 +573,37 @@ static INT __sdMemInit (PLW_SDCORE_DEVICE psdcoredevice)
         API_SdCoreDevCsdSet(psdcoredevice, &sddevcsd);                  /*  设置CSD域                   */
         API_SdCoreDevCidSet(psdcoredevice, &sddevcid);                  /*  设置CID域                   */
 
-        iError = API_SdCoreDevCtl(psdcoredevice,
-                                  SDBUS_CTRL_SETCLK,
-                                  SDARG_SETCLK_NORMAL);
-        if (iError != ERROR_NONE) {
-            SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "set clock to normal failed.\r\n");
-            return  (PX_ERROR);
-        }
-  
         if (ucType != SDDEV_TYPE_MMC) {
+            iError = API_SdCoreDevCtl(psdcoredevice,
+                                      SDBUS_CTRL_SETCLK,
+                                      SDARG_SETCLK_NORMAL);
+            if (iError != ERROR_NONE) {
+                SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "set clock to normal failed.\r\n");
+                return  (PX_ERROR);
+            }
+
+            API_SdmHostCapGet(psdcoredevice, &iHostCap);
+
+            API_SdCoreDevSelect(psdcoredevice);
+            iError = API_SdCoreDevSendAllSCR(psdcoredevice, &sddevscr);
+            if ((iError == ERROR_NONE) && (iHostCap & SDHOST_CAP_HIGHSPEED)) {
+                API_SdCoreDevScrSet(psdcoredevice, &sddevscr);          /*  设置SCR域                   */
+                iError = __sdMemSdSwCapGet(psdcoredevice,
+                                           &sddevscr,
+                                           &sddevcsd,
+                                           &sddevswcap);
+                if (iError == ERROR_NONE) {
+                    API_SdCoreDevSwCapSet(psdcoredevice, &sddevswcap);  /*  设置SWCAP域                 */
+                    iError = __sdMemSdHsSwitch(psdcoredevice, &sddevswcap);
+                    if (iError == ERROR_NONE) {
+                        API_SdCoreDevCtl(psdcoredevice,
+                                         SDBUS_CTRL_SETCLK,
+                                         SDARG_SETCLK_MAX);
+                    }
+                }
+            }
+            API_SdCoreDevDeSelect(psdcoredevice);
+
             iError = API_SdCoreDevSetBlkLen(psdcoredevice, SD_MEM_DEFAULT_BLKSIZE);
             if (iError != ERROR_NONE) {
                 SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "set blklen failed.\r\n");
@@ -1248,6 +1293,78 @@ static CPCHAR __sdMemProtVsnStr (UINT8 ucType, UINT8 ucVsn)
     }
 
     return  (pcVsnStr);
+}
+/*********************************************************************************************************
+** 函数名称: __sdMemSdSwCapGet
+** 功能描述: 获得SD卡的SWITCH功能信息
+** 输    入: psdcoredevice   核心设备对象
+**           psdscr          SCR 信息
+**           psdcsd          CSD 信息
+**           psdswcap        保存获得的SWITCH功能信息
+** 输    出: NONE
+** 返    回: ERROR CODE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT __sdMemSdSwCapGet (PLW_SDCORE_DEVICE  psdcoredevice,
+                              LW_SDDEV_SCR      *psdscr,
+                              LW_SDDEV_CSD      *psdcsd,
+                              LW_SDDEV_SW_CAP   *psdswcap)
+{
+    UINT8   ucSwCap[64];
+    INT     iRet;
+
+    lib_bzero(psdswcap, sizeof(LW_SDDEV_SW_CAP));
+
+    if (psdscr->DEVSCR_ucSdaVsn < SD_SCR_SPEC_VER_1) {
+        return  (PX_ERROR);
+    }
+
+    if (!(psdcsd->DEVCSD_usCmdclass & CCC_SWITCH)) {
+        return  (PX_ERROR);
+    }
+
+    iRet = API_SdCoreDevSwitchEx(psdcoredevice, 0, 0, 0, ucSwCap);
+    if (iRet != ERROR_NONE) {
+        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "get sd switch information error.\r\n");
+        return  (PX_ERROR);
+    }
+
+    if (ucSwCap[13] & SD_SW_MODE_HIGH_SPEED) {
+        psdswcap->DEVSWCAP_uiHsMaxDtr = 50000000;
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __sdMemSdHsSwitch
+** 功能描述: SD 卡高速模式切换
+** 输    入: psdcoredevice   核心设备对象
+**           psdswcap        SWITCH功能信息
+** 输    出: NONE
+** 返    回: ERROR CODE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT __sdMemSdHsSwitch (PLW_SDCORE_DEVICE  psdcoredevice, LW_SDDEV_SW_CAP   *psdswcap)
+{
+    INT     iRet;
+    UINT8   ucStatus[64];
+
+    if (!psdswcap->DEVSWCAP_uiHsMaxDtr) {
+        return  (PX_ERROR);
+    }
+
+    iRet = API_SdCoreDevSwitchEx(psdcoredevice, 1, 0, 1, ucStatus);
+    if (iRet != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
+
+    if ((ucStatus[16] & 0xF) != 1) {
+        return  (PX_ERROR);
+    }
+
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: __sdMemMmcFreqChange

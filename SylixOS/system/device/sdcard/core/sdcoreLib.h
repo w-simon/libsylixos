@@ -43,12 +43,18 @@ INT API_SdCoreDevSwitch(PLW_SDCORE_DEVICE      psdcoredevice,
                         UINT8                  ucCmdSet,
                         UINT8                  ucIndex,
                         UINT8                  ucValue);
+INT API_SdCoreDevSwitchEx(PLW_SDCORE_DEVICE psdcoredevice,
+                          INT               iMode,
+                          INT               iGroup,
+                          INT               ucValue,
+                          UINT8            *pucResp);
 INT API_SdCoreDecodeExtCSD(PLW_SDCORE_DEVICE  psdcoredevice,
                            LW_SDDEV_CSD      *psdcsd,
                            LW_SDDEV_EXT_CSD  *psdextcsd);
 INT API_SdCoreDevSendRelativeAddr(PLW_SDCORE_DEVICE psdcoredevice, UINT32 *puiRCA);
 INT API_SdCoreDevSendAllCID(PLW_SDCORE_DEVICE psdcoredevice, LW_SDDEV_CID *psdcid);
 INT API_SdCoreDevSendAllCSD(PLW_SDCORE_DEVICE psdcoredevice, LW_SDDEV_CSD *psdcsd);
+INT API_SdCoreDevSendAllSCR(PLW_SDCORE_DEVICE psdcoredevice, LW_SDDEV_SCR *psdscr);
 INT API_SdCoreDevSelect(PLW_SDCORE_DEVICE psdcoredevice);
 INT API_SdCoreDevDeSelect(PLW_SDCORE_DEVICE psdcoredevice);
 INT API_SdCoreDevSetBusWidth(PLW_SDCORE_DEVICE psdcoredevice, INT iBusWidth);

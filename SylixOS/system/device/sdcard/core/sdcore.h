@@ -149,6 +149,7 @@ LW_API INT              API_SdCoreDevTransfer(PLW_SDCORE_DEVICE  psdcoredevice,
 LW_API INT              API_SdCoreDevCmd(PLW_SDCORE_DEVICE psdcoredevice,
                                          PLW_SD_COMMAND    psdCmd,
                                          UINT32            uiRetry);
+LW_API INT              API_SdCoreDevAppSwitch(PLW_SDCORE_DEVICE psdcoredevice, BOOL bIsBc);
 LW_API INT              API_SdCoreDevAppCmd(PLW_SDCORE_DEVICE psdcoredevice,
                                             PLW_SD_COMMAND    psdcmdAppCmd,
                                             BOOL              bIsBc,
@@ -160,15 +161,19 @@ LW_API CPCHAR           API_SdCoreDevAdapterName(PLW_SDCORE_DEVICE psdcoredevice
   以下API只是去 查看/设置 内核结构中的成员变量,并未对设备进行实际上的命令操作
 *********************************************************************************************************/
 
-LW_API INT              API_SdCoreDevCsdSet(PLW_SDCORE_DEVICE psdcoredevice,  PLW_SDDEV_CSD  psdcsd);
-LW_API INT              API_SdCoreDevCidSet(PLW_SDCORE_DEVICE psdcoredevice,  PLW_SDDEV_CID  psdcid);
-LW_API INT              API_SdCoreDevRcaSet(PLW_SDCORE_DEVICE psdcoredevice,  UINT32         uiRCA);
-LW_API INT              API_SdCoreDevTypeSet(PLW_SDCORE_DEVICE psdcoredevice, UINT8          ucType);
+LW_API INT              API_SdCoreDevCsdSet(PLW_SDCORE_DEVICE psdcoredevice,  PLW_SDDEV_CSD    psdcsd);
+LW_API INT              API_SdCoreDevCidSet(PLW_SDCORE_DEVICE psdcoredevice,  PLW_SDDEV_CID    psdcid);
+LW_API INT              API_SdCoreDevScrSet(PLW_SDCORE_DEVICE psdcoredevice,  PLW_SDDEV_SCR    psdscr);
+LW_API INT              API_SdCoreDevSwCapSet(PLW_SDCORE_DEVICE psdcoredevice,PLW_SDDEV_SW_CAP psdswcap);
+LW_API INT              API_SdCoreDevRcaSet(PLW_SDCORE_DEVICE psdcoredevice,  UINT32           uiRCA);
+LW_API INT              API_SdCoreDevTypeSet(PLW_SDCORE_DEVICE psdcoredevice, UINT8            ucType);
 
-LW_API INT              API_SdCoreDevCsdView(PLW_SDCORE_DEVICE psdcoredevice,  PLW_SDDEV_CSD  psdcsd);
-LW_API INT              API_SdCoreDevCidView(PLW_SDCORE_DEVICE psdcoredevice,  PLW_SDDEV_CID  psdcid);
-LW_API INT              API_SdCoreDevRcaView(PLW_SDCORE_DEVICE psdcoredevice,  UINT32        *puiRCA);
-LW_API INT              API_SdCoreDevTypeView(PLW_SDCORE_DEVICE psdcoredevice, UINT8         *pucType);
+LW_API INT              API_SdCoreDevCsdView(PLW_SDCORE_DEVICE psdcoredevice,  PLW_SDDEV_CSD    psdcsd);
+LW_API INT              API_SdCoreDevCidView(PLW_SDCORE_DEVICE psdcoredevice,  PLW_SDDEV_CID    psdcid);
+LW_API INT              API_SdCoreDevScrView(PLW_SDCORE_DEVICE psdcoredevice,  PLW_SDDEV_SCR    psdscr);
+LW_API INT              API_SdCoreDevSwCapView(PLW_SDCORE_DEVICE psdcoredevice,PLW_SDDEV_SW_CAP psdswcap);
+LW_API INT              API_SdCoreDevRcaView(PLW_SDCORE_DEVICE psdcoredevice,  UINT32          *puiRCA);
+LW_API INT              API_SdCoreDevTypeView(PLW_SDCORE_DEVICE psdcoredevice, UINT8           *pucType);
 
 /*********************************************************************************************************
   状态查看

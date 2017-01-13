@@ -37,6 +37,7 @@
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
 #include "../SylixOS/system/include/s_system.h"
+#include "endian.h"
 /*********************************************************************************************************
   加入裁剪支持
 *********************************************************************************************************/
@@ -224,6 +225,53 @@ INT  API_SdCoreDevSwitch (PLW_SDCORE_DEVICE     psdcoredevice,
 
     sdcmd.SDCMD_uiRetry  = 0;
     iRet = API_SdCoreDevCmd(psdcoredevice, &sdcmd, 0);
+
+    return  (iRet);
+}
+/*********************************************************************************************************
+** 函数名称: API_SdCoreDevSwitchEx
+** 功能描述: SD 设备功能/模式切换扩展接口
+** 输    入: psdcoredevice    SD核心传输对象
+**           iMode            切换的模式
+**           iGroup           切换所在组
+**           ucValue          切换值
+**           pucResp          保存应答数据
+** 输    出: ERROR CODE
+** 返    回: NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT API_SdCoreDevSwitchEx (PLW_SDCORE_DEVICE psdcoredevice,
+                           INT               iMode,
+                           INT               iGroup,
+                           INT               ucValue,
+                           UINT8            *pucResp)
+{
+    LW_SD_COMMAND   sdcmd;
+    LW_SD_DATA      sddat;
+    LW_SD_MESSAGE   sdmsg;
+    INT             iRet;
+
+    lib_bzero(&sdmsg, sizeof(sdmsg));
+    lib_bzero(&sdcmd, sizeof(sdcmd));
+
+    iMode   = !!iMode;
+    ucValue &= 0xF;
+
+    sdcmd.SDCMD_uiOpcode  = SD_SWITCH_FUNC;
+    sdcmd.SDCMD_uiArg     = iMode << 31 | 0x00FFFFFF;
+    sdcmd.SDCMD_uiArg    &= ~(0xF << (iGroup << 2));
+    sdcmd.SDCMD_uiArg    |= ucValue << (iGroup << 2);
+    sdcmd.SDCMD_uiFlag    = SD_RSP_SPI_R1 | SD_RSP_R1 | SD_CMD_ADTC;
+
+    sddat.SDDAT_uiBlkNum  = 1;
+    sddat.SDDAT_uiBlkSize = 64;
+    sddat.SDDAT_uiFlags   = SD_DAT_READ;
+
+    sdmsg.SDMSG_psdcmdCmd   = &sdcmd;
+    sdmsg.SDMSG_psddata     = &sddat;
+    sdmsg.SDMSG_pucRdBuffer = pucResp;
+    iRet = API_SdCoreDevTransfer(psdcoredevice, &sdmsg, 1);
 
     return  (iRet);
 }
@@ -1020,6 +1068,78 @@ INT API_SdCoreDevSendAllCSD (PLW_SDCORE_DEVICE psdcoredevice, LW_SDDEV_CSD *psdc
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: __sdCoreSendScr
+** 功能描述: 发送命令获得卡的CSR
+** 输    入: psdcoredevice   设备结构指针
+** 输    出: puiScr          SCR 原始数据
+** 返    回: ERROR    CODE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT __sdCoreSendScr (PLW_SDCORE_DEVICE psdcoredevice, UINT32 *puiScr)
+{
+    LW_SD_COMMAND   sdcmd;
+    LW_SD_DATA      sddat;
+    LW_SD_MESSAGE   sdmsg;
+    INT             iRet;
+
+    iRet = API_SdCoreDevAppSwitch(psdcoredevice, LW_FALSE);
+    if (iRet != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
+
+    lib_bzero(&sdmsg, sizeof(sdmsg));
+    lib_bzero(&sdcmd, sizeof(sdcmd));
+
+    sdcmd.SDCMD_uiOpcode  = APP_SEND_SCR;
+    sdcmd.SDCMD_uiArg     = 0;
+    sdcmd.SDCMD_uiFlag    = SD_RSP_SPI_R1 | SD_RSP_R1 | SD_CMD_ADTC;
+
+    sddat.SDDAT_uiBlkNum  = 1;
+    sddat.SDDAT_uiBlkSize = 8;
+    sddat.SDDAT_uiFlags   = SD_DAT_READ;
+
+    sdmsg.SDMSG_psdcmdCmd   = &sdcmd;
+    sdmsg.SDMSG_psddata     = &sddat;
+    sdmsg.SDMSG_pucRdBuffer = (UINT8 *)puiScr;
+    iRet = API_SdCoreDevTransfer(psdcoredevice, &sdmsg, 1);
+    if (iRet != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
+
+    puiScr[0] = be32toh(puiScr[0]);
+    puiScr[1] = be32toh(puiScr[1]);
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_SdCoreDevSendAllSCR
+** 功能描述: 获得并解析卡的SCR
+** 输    入: psdcoredevice   设备结构指针
+** 输    出: psdscr          卡应答的SCR(已经解码)
+** 返    回: ERROR    CODE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT API_SdCoreDevSendAllSCR (PLW_SDCORE_DEVICE psdcoredevice, LW_SDDEV_SCR *psdscr)
+{
+    UINT32   uiScr[4];
+    INT      iRet;
+
+    uiScr[0] = 0;
+    uiScr[1] = 0;
+    iRet = __sdCoreSendScr(psdcoredevice, uiScr + 2);
+    if (iRet != ERROR_NONE) {
+        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "send scr error.\r\n");
+        return  (PX_ERROR);
+    }
+
+    psdscr->DEVSCR_ucSdaVsn   = __getBits(uiScr, 56, 4);
+    psdscr->DEVSCR_ucBusWidth = __getBits(uiScr, 48, 4);
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: __sdCoreSelectDev
 ** 功能描述: 设备选择
 ** 输    入: psdcoredevice   设备结构指针
@@ -1079,6 +1199,7 @@ static INT __sdCoreSelectDev (PLW_SDCORE_DEVICE psdcoredevice, BOOL bSel)
 INT API_SdCoreDevSelect (PLW_SDCORE_DEVICE psdcoredevice)
 {
     INT iError;
+	
     iError = __sdCoreSelectDev(psdcoredevice, LW_TRUE);
 
     return  (iError);

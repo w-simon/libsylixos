@@ -128,6 +128,8 @@ VOID    archPageCopy(PVOID pvTo, PVOID pvFrom);
 
 VOID    archReboot(INT  iRebootType, addr_t  ulStartAddress);
 
+INTREG  archGetCpsr(VOID);
+
 /*********************************************************************************************************
   ARM ´¦ÀíÆ÷ BogoMIPS Ñ­»·
 *********************************************************************************************************/
