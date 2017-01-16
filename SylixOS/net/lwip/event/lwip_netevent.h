@@ -55,6 +55,7 @@
 #define NET_EVENT_UNLINK        (NET_EVENT_STD + 5)                     /*  网卡断开连接                */
 
 #define NET_EVENT_ADDR          (NET_EVENT_STD + 6)                     /*  网卡地址变化                */
+#define NET_EVENT_ADDR_CONFLICT (NET_EVENT_STD + 9)                     /*  网卡地址冲突                */
 #define NET_EVENT_AUTH_FAIL     (NET_EVENT_STD + 7)                     /*  网卡认证失败                */
 #define NET_EVENT_AUTH_TO       (NET_EVENT_STD + 8)                     /*  网卡认证超时                */
 
@@ -92,6 +93,7 @@ VOID  netEventIfDown(struct netif *pnetif);
 VOID  netEventIfLink(struct netif *pnetif);
 VOID  netEventIfUnlink(struct netif *pnetif);
 VOID  netEventIfAddr(struct netif *pnetif);
+VOID  netEventIfAddrConflict(struct netif *pnetif, UINT8 ucHw[], UINT uiHwLen);
 VOID  netEventIfAuthFail(struct netif *pnetif);
 VOID  netEventIfAuthTo(struct netif *pnetif);
 VOID  netEventIfPppExt(struct netif *pnetif, UINT32  uiEvent);

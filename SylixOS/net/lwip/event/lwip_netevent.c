@@ -604,7 +604,7 @@ VOID  netEventIfUnlink (struct netif *pnetif)
 #endif                                                                  /*  LW_CFG_HOTPLUG_EN > 0       */
 }
 /*********************************************************************************************************
-** 函数名称: netEventIfUnlink
+** 函数名称: netEventIfAddr
 ** 功能描述: 网卡地址变化
 ** 输　入  : pnetif           网卡
 ** 输　出  : NONE
@@ -616,6 +616,35 @@ VOID  netEventIfAddr (struct netif *pnetif)
     UCHAR   ucBuffer[4 + 4 + (4 * 4)];
     
     NEVT_MAKE_EVENT(pnetif, ucBuffer, NET_EVENT_ADDR);
+    
+    _netEventDevPutMsg(ucBuffer, sizeof(ucBuffer));
+}
+/*********************************************************************************************************
+** 函数名称: netEventIfAddrConflict
+** 功能描述: 网卡地址冲突
+** 输　入  : pnetif           网卡
+**           ucHw             以太网网络地址
+**           uiHwLen          网络地址长度
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+VOID  netEventIfAddrConflict (struct netif *pnetif, UINT8  ucHw[], UINT  uiHwLen)
+{
+    UCHAR   ucBuffer[4 + 4 + (4 * 4)];
+    CHAR    cIp[IP4ADDR_STRLEN_MAX];
+    INT     i;
+    
+    if (ucHw && uiHwLen) {
+        _PrintFormat("Warning: net interface: %d IP address %s conflict with: ",
+                     pnetif->num, ip4addr_ntoa_r(ip_2_ip4(&(pnetif->ip_addr)), cIp, IP4ADDR_STRLEN_MAX));
+        for (i = 0; i < (uiHwLen - 1); i++) {
+            _PrintFormat("%02x:", ucHw[i]);
+        }
+        _PrintFormat("%02x\r\n", ucHw[i]);
+    }
+    
+    NEVT_MAKE_EVENT(pnetif, ucBuffer, NET_EVENT_ADDR_CONFLICT);
     
     _netEventDevPutMsg(ucBuffer, sizeof(ucBuffer));
 }

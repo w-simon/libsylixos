@@ -58,6 +58,11 @@
 
 #if LWIP_IPV4 && LWIP_ARP /* don't build if not configured for use in lwipopts.h */
 
+#ifdef SYLIXOS
+#define  __SYLIXOS_KERNEL
+#include "net/if_event.h"
+#endif /* SYLIXOS */
+
 /** Re-request a used ARP entry 1 minute before it would expire to prevent
  *  breaking a steadily used connection because the ARP entry timed out. */
 #define ARP_AGE_REREQUEST_USED_UNICAST   (ARP_MAXAGE - 30)
@@ -675,6 +680,19 @@ etharp_input(struct pbuf *p, struct netif *netif)
     /* ARP packet directed to us? */
     for_us = (u8_t)ip4_addr_cmp(&dipaddr, netif_ip4_addr(netif));
   }
+  
+#ifdef SYLIXOS
+  if (ip4_addr_cmp(&sipaddr, netif_ip4_addr(netif))) {
+    u8_t confhw[ETH_HWADDR_LEN];
+    confhw[0] = hdr->shwaddr.addr[0];
+    confhw[1] = hdr->shwaddr.addr[1];
+    confhw[2] = hdr->shwaddr.addr[2];
+    confhw[3] = hdr->shwaddr.addr[3];
+    confhw[4] = hdr->shwaddr.addr[4];
+    confhw[5] = hdr->shwaddr.addr[5];
+    netEventIfAddrConflict(netif, confhw, ETH_HWADDR_LEN);
+  }
+#endif
 
   /* ARP message directed to us?
       -> add IP address in ARP cache; assume requester wants to talk to us,
