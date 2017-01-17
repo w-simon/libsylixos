@@ -36,7 +36,9 @@
 /*********************************************************************************************************
   macro
 *********************************************************************************************************/
+#if LW_CFG_INTER_FPU > 0
 #define __INTER_FPU_CTX(nest)      &pcpu->CPU_fpuctxContext[nest]
+#endif                                                                  /*  LW_CFG_INTER_FPU > 0        */
 /*********************************************************************************************************
 ** 函数名称: __fpuInterEnter
 ** 功能描述: 进入中断状态 FPU 处理 (在关中断的情况下被调用)
@@ -45,14 +47,14 @@
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-#if LW_CFG_CPU_FPU_EN > 0
+#if (LW_CFG_CPU_FPU_EN > 0) && (LW_CFG_INTER_FPU > 0)
 
 static VOID  __fpuInterEnter (PLW_CLASS_CPU  pcpu)
 {
     PLW_CLASS_TCB  ptcbCur;
     ULONG          ulInterNesting = pcpu->CPU_ulInterNesting;
     
-    if (pcpu->CPU_ulInterNesting == 1) {                                /*  从任务态进入中断            */
+    if (ulInterNesting == 1) {                                          /*  从任务态进入中断            */
         ptcbCur = pcpu->CPU_ptcbTCBCur;
         if (ptcbCur->TCB_ulOption & LW_OPTION_THREAD_USED_FP) {
             __ARCH_FPU_SAVE(ptcbCur->TCB_pvStackFP);                    /*  保存当前被中断线程 FPU CTX  */
@@ -78,10 +80,7 @@ static VOID  __fpuInterExit (PLW_CLASS_CPU  pcpu)
     PLW_CLASS_TCB  ptcbCur;
     ULONG          ulInterNesting = pcpu->CPU_ulInterNesting;
     
-    if (ulInterNesting) {                                               /*  退出后还在中断中            */
-        __ARCH_FPU_RESTORE(__INTER_FPU_CTX(ulInterNesting));
-    
-    } else {                                                            /*  退出到任务状态              */
+    if (ulInterNesting == 0) {                                          /*  退出到任务状态              */
         ptcbCur = pcpu->CPU_ptcbTCBCur;
         if (ptcbCur->TCB_ulOption & LW_OPTION_THREAD_USED_FP) {
             __ARCH_FPU_RESTORE(ptcbCur->TCB_pvStackFP);                 /*  没有产生调度, 则恢复 FPU CTX*/
@@ -89,10 +88,13 @@ static VOID  __fpuInterExit (PLW_CLASS_CPU  pcpu)
         } else {
             __ARCH_FPU_DISABLE();                                       /*  继续执行的任务不需要 FPU    */
         }
+    } else {                                                            /*  退出后还在中断中            */
+        __ARCH_FPU_RESTORE(__INTER_FPU_CTX(ulInterNesting));
     }
 }
 
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+                                                                        /*  LW_CFG_INTER_FPU > 0        */
 /*********************************************************************************************************
 ** 函数名称: API_InterEnter
 ** 功能描述: 内核中断入口函数 (在关中断的情况下被调用)
@@ -114,12 +116,12 @@ ULONG    API_InterEnter (VOID)
     
     KN_SMP_WMB();                                                       /*  等待以上操作完成            */
 
-#if LW_CFG_CPU_FPU_EN > 0
+#if (LW_CFG_CPU_FPU_EN > 0) && (LW_CFG_INTER_FPU > 0)
     if (LW_KERN_FPU_EN_GET()) {                                         /*  中断状态允许使用浮点运算    */
         __fpuInterEnter(pcpu);
     }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
-
+                                                                        /*  LW_CFG_INTER_FPU > 0        */
     return  (pcpu->CPU_ulInterNesting);
 }
 /*********************************************************************************************************
@@ -151,21 +153,22 @@ VOID    API_InterExit (VOID)
     KN_SMP_WMB();                                                       /*  等待以上操作完成            */
     
     if (pcpu->CPU_ulInterNesting) {                                     /*  查看系统是否在中断嵌套中    */
-#if LW_CFG_CPU_FPU_EN > 0                                               /*  恢复上一等级中断 FPU CTX    */
+#if (LW_CFG_CPU_FPU_EN > 0) && (LW_CFG_INTER_FPU > 0)                   /*  恢复上一等级中断 FPU CTX    */
         if (LW_KERN_FPU_EN_GET()) {
             __fpuInterExit(pcpu);
         }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
-        return;
+        return;                                                         /*  LW_CFG_INTER_FPU > 0        */
     }
     
     __KERNEL_SCHED_INT(pcpu);                                           /*  中断中的调度                */
     
-#if LW_CFG_CPU_FPU_EN > 0
+#if (LW_CFG_CPU_FPU_EN > 0) && (LW_CFG_INTER_FPU > 0)
     if (LW_KERN_FPU_EN_GET()) {
         __fpuInterExit(pcpu);
     }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+                                                                        /*  LW_CFG_INTER_FPU > 0        */
 }
 /*********************************************************************************************************
   END

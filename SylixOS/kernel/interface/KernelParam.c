@@ -96,11 +96,17 @@ ULONG  API_KernelStartParam (CPCHAR  pcParam)
             if (pcTok[5] == 'n') {
                 LW_KERN_FPU_EN_SET(LW_FALSE);
             } else {
+#if LW_CFG_INTER_FPU == 0
+                _BugHandle(LW_TRUE, LW_TRUE, 
+                           "Please configure LW_CFG_INTER_FPU with 1 in kernel_cfg.h\r\n");
+#else
 #ifdef LW_CFG_CPU_ARCH_MIPS                                             /*  MIPS 平台不允许 kfpu 操作   */
-                bspDebugMsg("SylixOS do not support kfpu on MIPS!\r\n");
+                _BugHandle(LW_TRUE, LW_TRUE, 
+                           "SylixOS do not support kfpu on MIPS!\r\n");
 #else
                 LW_KERN_FPU_EN_SET(LW_TRUE);
 #endif                                                                  /*  LW_CFG_CPU_ARCH_MIPS        */
+#endif                                                                  /*  LW_CFG_INTER_FPU > 0        */
             }
 
         } else if (lib_strncmp(pcTok, "bugreboot=", 10) == 0) {         /*  探测到 bug 时是否自动重启   */

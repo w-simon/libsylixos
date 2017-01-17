@@ -35,7 +35,9 @@
 LW_API
 VOID  API_KernelFpuPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 {
+#if LW_CFG_INTER_FPU > 0
     INT     i, j;
+#endif                                                                  /*  LW_CFG_INTER_FPU > 0        */
     
     if (LW_SYS_STATUS_GET()) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "kernel already running.\r\n");
@@ -51,11 +53,13 @@ VOID  API_KernelFpuPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
         __ARCH_FPU_DISABLE();
     }
     
+#if LW_CFG_INTER_FPU > 0
     for (i = 0; i < LW_CFG_MAX_PROCESSORS; i++) {
         for (j = 0; j < LW_CFG_MAX_INTER_SRC; j++) {                    /*  初始化, 但是不使能 FPU      */
             __ARCH_FPU_CTX_INIT((PVOID)&(LW_CPU_GET(i)->CPU_fpuctxContext[j]));
         }
     }
+#endif                                                                  /*  LW_CFG_INTER_FPU > 0        */
     
     _DebugHandle(__LOGMESSAGE_LEVEL, "FPU initilaized.\r\n");
 }

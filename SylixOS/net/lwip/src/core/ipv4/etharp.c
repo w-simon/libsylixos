@@ -682,7 +682,13 @@ etharp_input(struct pbuf *p, struct netif *netif)
   }
   
 #ifdef SYLIXOS
-  if (ip4_addr_cmp(&sipaddr, netif_ip4_addr(netif))) {
+  if (ip4_addr_cmp(&sipaddr, netif_ip4_addr(netif)) &&
+      ((hdr->shwaddr.addr[0] != netif->hwaddr[0]) ||
+       (hdr->shwaddr.addr[1] != netif->hwaddr[1]) ||
+       (hdr->shwaddr.addr[2] != netif->hwaddr[2]) ||
+       (hdr->shwaddr.addr[3] != netif->hwaddr[3]) ||
+       (hdr->shwaddr.addr[4] != netif->hwaddr[4]) ||
+       (hdr->shwaddr.addr[5] != netif->hwaddr[5]))) { /* source ip same as me and mac not same */
     u8_t confhw[ETH_HWADDR_LEN];
     confhw[0] = hdr->shwaddr.addr[0];
     confhw[1] = hdr->shwaddr.addr[1];

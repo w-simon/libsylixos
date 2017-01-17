@@ -287,7 +287,9 @@
 #define LW_CFG_INTER_PRIO                       1       /*  是否支持中断优先级                          */
 #define LW_CFG_INTER_TARGET                     1       /*  是否支持中断目标 CPU 设置                   */
 #define LW_CFG_INTER_INFO                       1       /*  是否允许查询中断信息                        */
-
+#define LW_CFG_INTER_FPU                        0       /*  是否允许内核 FPU kfpu=yes 需要使能此选项    */
+                                                        /*  推荐为 0                                    */
+                                                        
 #include "cache_cfg.h"                                  /*  CACHE 配置文件                              */
 #include "vmm_cfg.h"                                    /*  MMU 配置文件                                */
 #include "memory_cfg.h"                                 /*  内存配置文件                                */
