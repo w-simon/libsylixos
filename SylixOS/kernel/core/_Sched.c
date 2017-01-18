@@ -68,20 +68,28 @@
 *********************************************************************************************************/
 #if (LW_CFG_SMP_EN == 0) && (LW_CFG_THREAD_PRIVATE_VARS_EN > 0) && (LW_CFG_MAX_THREAD_GLB_VARS > 0)
 #define __LW_TASK_SWITCH_VAR(ptcbCur, ptcbHigh)     _ThreadVarSwith(ptcbCur, ptcbHigh)
+#if LW_CFG_SMP_CPU_DOWN_EN > 0
 #define __LW_TASK_SAVE_VAR(ptcbCur)                 _ThreadVarSave(ptcbCur)
+#endif
 #else
 #define __LW_TASK_SWITCH_VAR(ptcbCur, ptcbHigh)
+#if LW_CFG_SMP_CPU_DOWN_EN > 0
 #define __LW_TASK_SAVE_VAR(ptcbCur)
+#endif
 #endif
 /*********************************************************************************************************
   任务 FPU 上下文切换
 *********************************************************************************************************/
 #if LW_CFG_CPU_FPU_EN > 0
 #define __LW_TASK_SWITCH_FPU(bIntSwitch)            _ThreadFpuSwith(bIntSwitch)
+#if LW_CFG_SMP_CPU_DOWN_EN > 0
 #define __LW_TASK_SAVE_FPU(ptcbCur, bIntSwitch)     _ThreadFpuSave(ptcbCur, bIntSwitch)
+#endif
 #else
 #define __LW_TASK_SWITCH_FPU(bIntSwitch)
+#if LW_CFG_SMP_CPU_DOWN_EN > 0
 #define __LW_TASK_SAVE_FPU(ptcbCur, bIntSwitch)
+#endif
 #endif
 /*********************************************************************************************************
   任务状态迁移判断

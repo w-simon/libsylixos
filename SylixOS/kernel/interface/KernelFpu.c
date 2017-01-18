@@ -46,10 +46,13 @@ VOID  API_KernelFpuPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 
     archFpuPrimaryInit(pcMachineName, pcFpuName);                       /*  初始化 FPU 单元             */
     
+#if LW_CFG_INTER_FPU > 0
     if (LW_KERN_FPU_EN_GET()) {                                         /*  中断状态允许使用 FPU        */
         __ARCH_FPU_ENABLE();                                            /*  这里需要在当前 FPU 上下文中 */
                                                                         /*  使能 FPU, 操作系统内核需要  */
-    } else {
+    } else 
+#endif                                                                  /*  LW_CFG_INTER_FPU > 0        */
+    {
         __ARCH_FPU_DISABLE();
     }
     

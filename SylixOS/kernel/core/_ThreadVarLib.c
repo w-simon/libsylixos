@@ -120,6 +120,8 @@ VOID  _ThreadVarSwith (PLW_CLASS_TCB  ptcbOld, PLW_CLASS_TCB  ptcbNew)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if LW_CFG_SMP_CPU_DOWN_EN > 0
+
 VOID  _ThreadVarSave (PLW_CLASS_TCB  ptcbCur)
 {
     REGISTER PLW_LIST_LINE          plineCurVar;
@@ -140,6 +142,7 @@ VOID  _ThreadVarSave (PLW_CLASS_TCB  ptcbCur)
     }
 }
 
+#endif                                                                  /*  LW_CFG_SMP_CPU_DOWN_EN > 0  */
 #endif                                                                  /*  LW_CFG_SMP_EN == 0          */
                                                                         /*  (LW_CFG_THREAD_PRIVATE_VA...*/
                                                                         /*  (LW_CFG_MAX_THREAD_GLB_VA...*/
