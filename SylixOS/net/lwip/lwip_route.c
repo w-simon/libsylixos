@@ -30,6 +30,7 @@
 2013.08.22  route_msg 加入 metric 字段, 但当前无用.
 2014.07.02  修正内建路由表对于 ppp 连接的错误显示.
 2016.07.16  每一条路由信息加入网关设置.
+2017.02.13  加入 AODV 裁剪支持.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -45,7 +46,9 @@
 #include "lwip/inet.h"
 #include "lwip/api.h"
 #include "lwip/netif.h"
+#if LW_CFG_NET_AODV_EN > 0
 #include "src/netif/aodv/aodv_route.h"                                  /*  AODV 路由表                 */
+#endif
 /*********************************************************************************************************
   最多网络接口数
 *********************************************************************************************************/
@@ -883,6 +886,8 @@ static VOID __rtEntryPrint (PLW_RT_ENTRY prte, PCHAR  pcBuffer, size_t  stSize, 
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if LW_CFG_NET_AODV_EN > 0
+
 static VOID __aodvEntryPrint (struct aodv_rtnode *rt, PCHAR  pcBuffer, size_t  stSize, size_t *pstOffset)
 {
     CHAR    cIpDest[INET_ADDRSTRLEN];
@@ -917,10 +922,14 @@ static VOID __aodvEntryPrint (struct aodv_rtnode *rt, PCHAR  pcBuffer, size_t  s
                           "%-18s %-18s %-18s %-8s %8d %-3s\n",
                           cIpDest, cNextHop, cMask, cFlag, rt->hcnt, cIfName);
 }
+
+#endif                                                                  /*  LW_CFG_NET_AODV_EN > 0      */
 /*********************************************************************************************************
 ** 函数名称: __buildinRtPrint
 ** 功能描述: 打印 lwip 内建路由信息
-** 输　入  : rt            aodv 路由条目
+** 输　入  : pcBuffer  缓冲区
+             stSize    大小
+             pstOffset 打印偏移
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
@@ -1016,9 +1025,11 @@ static UINT __rtEntryMaxNum (VOID)
      */
     uiMax = _G_uiTotalNum;                                              /*  kernel route entry          */
 
+#if LW_CFG_NET_AODV_EN > 0
     if (uiMax < AODV_RT_NUM_ENTRIES()) {
         uiMax = AODV_RT_NUM_ENTRIES();                                  /*  aodv route entry            */
     }
+#endif                                                                  /*  LW_CFG_NET_AODV_EN > 0      */
 
     if (uiMax < (netif_get_num() * 2) + 1) {                            /*  lwip build-in route entry   */
         uiMax = (netif_get_num() * 2) + 1;
@@ -1209,6 +1220,8 @@ __error_handle:
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if LW_CFG_NET_AODV_EN > 0
+
 static INT  __tshellAodvs (INT  iArgC, PCHAR  *ppcArgV)
 {
     PCHAR   pcBuffer;
@@ -1250,6 +1263,8 @@ static INT  __tshellAodvs (INT  iArgC, PCHAR  *ppcArgV)
 
     return  (ERROR_NONE);
 }
+
+#endif                                                                  /*  LW_CFG_NET_AODV_EN > 0      */
 /*********************************************************************************************************
 ** 函数名称: __tshellRouteInit
 ** 功能描述: 注册路由器命令
@@ -1273,8 +1288,10 @@ VOID __tshellRouteInit (VOID)
                                  "    route change default dev en2                                (set default netif)\n"
                                  "    route del 145.26.122.35                                     (delete a route)\n");
                                  
+#if LW_CFG_NET_AODV_EN > 0
     API_TShellKeywordAdd("aodvs", __tshellAodvs);
     API_TShellHelpAdd("aodvs",   "show AODV route table\n");
+#endif                                                                  /*  LW_CFG_NET_AODV_EN > 0      */
 }
 
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */

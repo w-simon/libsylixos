@@ -305,11 +305,13 @@ static VOID  __telnetCommunication (INT  iDevFd)
                                    sizeof(_G_cTelnetAbort));            /*  停止 shell                  */
         }
         
+#if LW_CFG_SIGNAL_EN > 0
         if (i == (LW_TICK_HZ * 3)) {                                    /*  如果 3 秒还没有退出, kill   */
             union sigval        sigvalue;
             sigvalue.sival_int = PX_ERROR;
             sigqueue(ulShell, SIGABRT, sigvalue);                       /*  发送信号, 异常终止          */
         }
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
         
         API_TimeSleep(LW_OPTION_WAIT_A_TICK);
     }

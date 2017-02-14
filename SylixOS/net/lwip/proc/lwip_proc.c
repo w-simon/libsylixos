@@ -29,6 +29,7 @@
 2014.04.03  加入 packet.
 2014.05.06  tcp listen 打印, 如果是 IPv6 则打印是否只接受 IPv6 链接请求.
 2014.06.25  加入 wireless 文件.
+2017.02.13  加入网络打印裁剪.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -42,7 +43,9 @@
 /*********************************************************************************************************
   unix
 *********************************************************************************************************/
+#if LW_CFG_NET_UNIX_EN > 0
 #include "../unix/af_unix.h"
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
 /*********************************************************************************************************
   packet
 *********************************************************************************************************/
@@ -50,7 +53,9 @@
 /*********************************************************************************************************
   aodv
 *********************************************************************************************************/
+#if LW_CFG_NET_AODV_EN > 0
 #include "../src/netif/aodv/aodv_route.h"
+#endif
 /*********************************************************************************************************
   TCP
 *********************************************************************************************************/
@@ -139,10 +144,14 @@ static ssize_t  __procFsNetTcpipStatRead(PLW_PROCFS_NODE  p_pfsn,
                                          PCHAR            pcBuffer, 
                                          size_t           stMaxBytes,
                                          off_t            oft);
+                                         
+#if LW_CFG_NET_UNIX_EN > 0
 static ssize_t  __procFsNetUnixRead(PLW_PROCFS_NODE  p_pfsn, 
                                     PCHAR            pcBuffer, 
                                     size_t           stMaxBytes,
                                     off_t            oft);
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
+                                    
 static ssize_t  __procFsNetDevRead(PLW_PROCFS_NODE  p_pfsn, 
                                    PCHAR            pcBuffer, 
                                    size_t           stMaxBytes,
@@ -155,6 +164,8 @@ static ssize_t  __procFsNetArpRead(PLW_PROCFS_NODE  p_pfsn,
                                    PCHAR            pcBuffer, 
                                    size_t           stMaxBytes,
                                    off_t            oft);
+                                   
+#if LW_CFG_NET_AODV_EN > 0
 static ssize_t  __procFsNetAodvRead(PLW_PROCFS_NODE  p_pfsn, 
                                     PCHAR            pcBuffer, 
                                     size_t           stMaxBytes,
@@ -163,18 +174,26 @@ static ssize_t  __procFsNetAodvRtRead(PLW_PROCFS_NODE  p_pfsn,
                                       PCHAR            pcBuffer, 
                                       size_t           stMaxBytes,
                                       off_t            oft);
+#endif                                                                  /*  LW_CFG_NET_AODV_EN > 0      */
+
 static ssize_t  __procFsNetPacketRead(PLW_PROCFS_NODE  p_pfsn, 
                                       PCHAR            pcBuffer, 
                                       size_t           stMaxBytes,
                                       off_t            oft);
+                                      
+#if LW_CFG_LWIP_PPP > 0
 static ssize_t  __procFsNetPppRead(PLW_PROCFS_NODE  p_pfsn, 
                                    PCHAR            pcBuffer, 
                                    size_t           stMaxBytes,
                                    off_t            oft);
+#endif                                                                  /*  LW_CFG_LWIP_PPP > 0         */
+
+#if LW_CFG_NET_WIRELESS_EN > 0
 static ssize_t  __procFsNetWlRead(PLW_PROCFS_NODE  p_pfsn, 
                                   PCHAR            pcBuffer, 
                                   size_t           stMaxBytes,
                                   off_t            oft);
+#endif                                                                  /*  LW_CFG_NET_WIRELESS_EN > 0  */
 /*********************************************************************************************************
   网络 proc 文件操作函数组
 *********************************************************************************************************/
@@ -214,9 +233,13 @@ static LW_PROCFS_NODE_OP    _G_pfsnoNetRouteFuncs = {
 static LW_PROCFS_NODE_OP    _G_pfsnoNetTcpipStatFuncs = {
     __procFsNetTcpipStatRead,   LW_NULL
 };
+
+#if LW_CFG_NET_UNIX_EN > 0
 static LW_PROCFS_NODE_OP    _G_pfsnoNetUnixFuncs = {
     __procFsNetUnixRead,        LW_NULL
 };
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
+
 static LW_PROCFS_NODE_OP    _G_pfsnoNetDevFuncs = {
     __procFsNetDevRead,        LW_NULL
 };
@@ -226,21 +249,31 @@ static LW_PROCFS_NODE_OP    _G_pfsnoNetIfInet6Funcs = {
 static LW_PROCFS_NODE_OP    _G_pfsnoNetArpFuncs = {
     __procFsNetArpRead,        LW_NULL
 };
+
+#if LW_CFG_NET_AODV_EN > 0
 static LW_PROCFS_NODE_OP    _G_pfsnoNetAodvFuncs = {
     __procFsNetAodvRead,        LW_NULL
 };
 static LW_PROCFS_NODE_OP    _G_pfsnoNetAodvRtFuncs = {
     __procFsNetAodvRtRead,      LW_NULL
 };
+#endif                                                                  /*  LW_CFG_NET_AODV_EN > 0      */
+
 static LW_PROCFS_NODE_OP    _G_pfsnoNetPacketFuncs = {
     __procFsNetPacketRead,        LW_NULL
 };
+
+#if LW_CFG_LWIP_PPP > 0
 static LW_PROCFS_NODE_OP    _G_pfsnoNetPppFuncs = {
     __procFsNetPppRead,        LW_NULL
 };
+#endif                                                                  /*  LW_CFG_LWIP_PPP > 0         */
+
+#if LW_CFG_NET_WIRELESS_EN > 0
 static LW_PROCFS_NODE_OP    _G_pfsnoNetWlFuncs = {
     __procFsNetWlRead,        LW_NULL
 };
+#endif                                                                  /*  LW_CFG_NET_WIRELESS_EN > 0  */
 /*********************************************************************************************************
   网络 proc 文件目录树
 *********************************************************************************************************/
@@ -262,6 +295,7 @@ static LW_PROCFS_NODE       _G_pfsnNet[] =
                         LW_NULL,  
                         0),
                         
+#if LW_CFG_NET_AODV_EN > 0
     LW_PROCFS_INIT_NODE("aodv_para", 
                         (S_IFREG | S_IRUSR | S_IRGRP | S_IROTH), 
                         &_G_pfsnoNetAodvFuncs, 
@@ -273,6 +307,7 @@ static LW_PROCFS_NODE       _G_pfsnNet[] =
                         &_G_pfsnoNetAodvRtFuncs, 
                         "R",
                         0),
+#endif
     
     LW_PROCFS_INIT_NODE("tcp", 
                         (S_IFREG | S_IRUSR | S_IRGRP | S_IROTH), 
@@ -340,12 +375,6 @@ static LW_PROCFS_NODE       _G_pfsnNet[] =
                         &_G_pfsnoNetTcpipStatFuncs, 
                         "r",
                         __PROCFS_BUFFER_SIZE_TCPIP_STAT),
-    
-    LW_PROCFS_INIT_NODE("unix", 
-                        (S_IFREG | S_IRUSR | S_IRGRP | S_IROTH), 
-                        &_G_pfsnoNetUnixFuncs, 
-                        "A",
-                        0),
                         
     LW_PROCFS_INIT_NODE("dev", 
                         (S_IFREG | S_IRUSR | S_IRGRP | S_IROTH), 
@@ -370,17 +399,29 @@ static LW_PROCFS_NODE       _G_pfsnNet[] =
                         "P",
                         0),
                         
+#if LW_CFG_NET_UNIX_EN > 0
+    LW_PROCFS_INIT_NODE("unix", 
+                        (S_IFREG | S_IRUSR | S_IRGRP | S_IROTH), 
+                        &_G_pfsnoNetUnixFuncs, 
+                        "A",
+                        0),
+#endif
+                        
+#if LW_CFG_LWIP_PPP > 0
     LW_PROCFS_INIT_NODE("ppp", 
                         (S_IFREG | S_IRUSR | S_IRGRP | S_IROTH), 
                         &_G_pfsnoNetPppFuncs, 
                         "p",
                         0),
-                        
+#endif
+
+#if LW_CFG_NET_WIRELESS_EN > 0
     LW_PROCFS_INIT_NODE("wireless", 
                         (S_IFREG | S_IRUSR | S_IRGRP | S_IROTH), 
                         &_G_pfsnoNetWlFuncs, 
                         "w",
                         0),
+#endif
 };
 /*********************************************************************************************************
 ** 函数名称: __procFsNetTcpGetStat
@@ -1667,8 +1708,6 @@ static VOID  __procFsNetUnixPrint (AF_UNIX_T  *pafunix, PCHAR  pcBuffer,
         }
     }
 }
-
-#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
 /*********************************************************************************************************
 ** 函数名称: __procFsNetUnixRead
 ** 功能描述: procfs 读一个读取网络 unix 文件
@@ -1685,7 +1724,6 @@ static ssize_t  __procFsNetUnixRead (PLW_PROCFS_NODE  p_pfsn,
                                      size_t           stMaxBytes,
                                      off_t            oft)
 {
-#if LW_CFG_NET_UNIX_EN > 0
     const CHAR      cUnixInfoHdr[] = 
     "TYPE      FLAG STATUS  LCONN SHUTD      NREAD MAX_BUFFER PATH\n";
           PCHAR     pcFileBuffer;
@@ -1728,11 +1766,9 @@ static ssize_t  __procFsNetUnixRead (PLW_PROCFS_NODE  p_pfsn,
     lib_memcpy(pcBuffer, (CPVOID)(pcFileBuffer + oft), (UINT)stCopeBytes);
     
     return  ((ssize_t)stCopeBytes);
-    
-#else
-    return  (0);
-#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
 }
+
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
 /*********************************************************************************************************
 ** 函数名称: __procFsNetGetIfFlag
 ** 功能描述: 获得网络接口 flag
@@ -2090,6 +2126,8 @@ static ssize_t  __procFsNetArpRead (PLW_PROCFS_NODE  p_pfsn,
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if LW_CFG_NET_AODV_EN > 0
+
 static ssize_t  __procFsNetAodvRead (PLW_PROCFS_NODE  p_pfsn, 
                                      PCHAR            pcBuffer, 
                                      size_t           stMaxBytes,
@@ -2312,6 +2350,8 @@ static ssize_t  __procFsNetAodvRtRead (PLW_PROCFS_NODE  p_pfsn,
     
     return  ((ssize_t)stCopeBytes);
 }
+
+#endif                                                                  /*  LW_CFG_NET_AODV_EN > 0      */
 /*********************************************************************************************************
 ** 函数名称: __procFsNetPacketGetCnt
 ** 功能描述: 读取网络 unix 文件数量
@@ -2492,8 +2532,6 @@ static VOID  __procFsNetPppPrint (struct netif *netif, PCHAR  pcBuffer,
                        MIB2_NETIF(netif)->ifinoctets,
                        MIB2_NETIF(netif)->ifoutoctets);
 }
-
-#endif                                                                  /*  LW_CFG_LWIP_PPP > 0         */
 /*********************************************************************************************************
 ** 函数名称: __procFsNetPppRead
 ** 功能描述: procfs 读一个读取网络 ppp 文件
@@ -2510,7 +2548,6 @@ static ssize_t  __procFsNetPppRead (PLW_PROCFS_NODE  p_pfsn,
                                     size_t           stMaxBytes,
                                     off_t            oft)
 {
-#if LW_CFG_LWIP_PPP > 0
     const CHAR      cPppInfoHdr[] = 
     "FACE TYPE     MTU    PHASE        RX-BYTES     TX-BYTES\n";
           PCHAR     pcFileBuffer;
@@ -2566,10 +2603,9 @@ static ssize_t  __procFsNetPppRead (PLW_PROCFS_NODE  p_pfsn,
     lib_memcpy(pcBuffer, (CPVOID)(pcFileBuffer + oft), (UINT)stCopeBytes);
     
     return  ((ssize_t)stCopeBytes);
-#else
-    return  (0);
-#endif                                                                  /*  LW_CFG_LWIP_PPP > 0         */
 }
+
+#endif                                                                  /*  LW_CFG_LWIP_PPP > 0         */
 /*********************************************************************************************************
 ** 函数名称: __procFsNetWlPrint
 ** 功能描述: 打印网络 wireless 文件
@@ -2614,8 +2650,6 @@ extern struct iw_statistics *get_wireless_stats(struct netdev *);
         			   stats->discard.fragment, stats->discard.retries,
         			   stats->discard.misc, stats->miss.beacon);
 }
-
-#endif                                                                  /*  LW_CFG_NET_WIRELESS_EN > 0  */
 /*********************************************************************************************************
 ** 函数名称: __procFsNetWlRead
 ** 功能描述: procfs 读一个读取网络 wireless 文件
@@ -2632,7 +2666,6 @@ static ssize_t  __procFsNetWlRead (PLW_PROCFS_NODE  p_pfsn,
                                    size_t           stMaxBytes,
                                    off_t            oft)
 {
-#if LW_CFG_NET_WIRELESS_EN > 0
     const CHAR      cWlInfoHdr[] = 
     "Inter-| sta-|   Quality        |   Discarded "
 	"packets               | Missed | WE\n"
@@ -2696,10 +2729,9 @@ static ssize_t  __procFsNetWlRead (PLW_PROCFS_NODE  p_pfsn,
     lib_memcpy(pcBuffer, (CPVOID)(pcFileBuffer + oft), (UINT)stCopeBytes);
     
     return  ((ssize_t)stCopeBytes);
-#else
-    return  (0);
-#endif                                                                  /*  LW_CFG_NET_WIRELESS_EN > 0  */
 }
+
+#endif                                                                  /*  LW_CFG_NET_WIRELESS_EN > 0  */
 /*********************************************************************************************************
 ** 函数名称: __procFsNetInit
 ** 功能描述: procfs 初始化网络 proc 文件
@@ -2710,29 +2742,44 @@ static ssize_t  __procFsNetWlRead (PLW_PROCFS_NODE  p_pfsn,
 *********************************************************************************************************/
 VOID  __procFsNetInit (VOID)
 {
-    API_ProcFsMakeNode(&_G_pfsnNet[0],  "/");
-    API_ProcFsMakeNode(&_G_pfsnNet[1],  "/net");
-    API_ProcFsMakeNode(&_G_pfsnNet[2],  "/net/mesh-adhoc");
-    API_ProcFsMakeNode(&_G_pfsnNet[3],  "/net/mesh-adhoc");
-    API_ProcFsMakeNode(&_G_pfsnNet[4],  "/net");
-    API_ProcFsMakeNode(&_G_pfsnNet[5],  "/net");
-    API_ProcFsMakeNode(&_G_pfsnNet[6],  "/net");
-    API_ProcFsMakeNode(&_G_pfsnNet[7],  "/net");
-    API_ProcFsMakeNode(&_G_pfsnNet[8],  "/net");
-    API_ProcFsMakeNode(&_G_pfsnNet[9],  "/net");
-    API_ProcFsMakeNode(&_G_pfsnNet[10], "/net");
-    API_ProcFsMakeNode(&_G_pfsnNet[11], "/net");
-    API_ProcFsMakeNode(&_G_pfsnNet[12], "/net");
-    API_ProcFsMakeNode(&_G_pfsnNet[13], "/net");
-    API_ProcFsMakeNode(&_G_pfsnNet[14], "/net");
-    API_ProcFsMakeNode(&_G_pfsnNet[15], "/net");
-    API_ProcFsMakeNode(&_G_pfsnNet[16], "/net");
-    API_ProcFsMakeNode(&_G_pfsnNet[17], "/net");
-    API_ProcFsMakeNode(&_G_pfsnNet[18], "/net");
-    API_ProcFsMakeNode(&_G_pfsnNet[19], "/net");
-    API_ProcFsMakeNode(&_G_pfsnNet[20], "/net");
-    API_ProcFsMakeNode(&_G_pfsnNet[21], "/net");
-    API_ProcFsMakeNode(&_G_pfsnNet[22], "/net");
+    INT   i = 0;
+
+    API_ProcFsMakeNode(&_G_pfsnNet[i++], "/");
+    API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
+
+#if LW_CFG_NET_AODV_EN > 0
+    API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net/mesh-adhoc");
+    API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net/mesh-adhoc");
+#endif                                                                  /*  LW_CFG_NET_AODV_EN > 0      */
+
+    API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
+    API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
+    API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
+    API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
+    API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
+    API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
+    API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
+    API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
+    API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
+    API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
+    API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
+    API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
+    API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
+    API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
+    API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
+    API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
+
+#if LW_CFG_NET_UNIX_EN > 0
+    API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
+#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
+
+#if LW_CFG_LWIP_PPP > 0
+    API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
+#endif                                                                  /*  LW_CFG_LWIP_PPP > 0         */
+
+#if LW_CFG_NET_WIRELESS_EN > 0
+    API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
+#endif                                                                  /*  LW_CFG_NET_WIRELESS_EN > 0  */
 }
 
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */

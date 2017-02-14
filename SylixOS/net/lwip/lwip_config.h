@@ -63,6 +63,10 @@ extern "C" {
   Memory options
 *********************************************************************************************************/
 
+#if LW_CFG_LWIP_POOL_SIZE < 256
+#error "LW_CFG_LWIP_POOL_SIZE must bigger than 256!"
+#endif
+
 #define MEM_ALIGNMENT                   (LW_CFG_CPU_WORD_LENGHT / NBBY) /*  内存对齐情况                */
 #define MEM_SIZE                        LW_CFG_LWIP_MEM_SIZE            /*  malloc 堆大小               */
 #define MEMP_NUM_PBUF                   LW_CFG_LWIP_NUM_PBUFS           /*  npbufs                      */

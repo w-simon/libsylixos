@@ -50,6 +50,7 @@
 2013.12.04  整理 loader 初始化代码.
 2014.04.21  内核模块插入或卸载打印相关路径名.
 2014.05.02  加入 lsmod 命令.
+2017.02.06  ps加入显示进程状态. (张荣荣)
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -89,8 +90,8 @@ static const CHAR               _G_cModuleInfoHdr[] = "\n\
 ------------------------------ -------- ------ --- -------- -------- --------\n";
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT adj  */
 static const CHAR               _G_cVProcInfoHdr[] = "\n\
-      NAME             FATHER        PID   GRP    MEMORY    UID   GID   USER\n\
------------------ ----------------- ----- ----- ---------- ----- ----- ------\n";
+      NAME            FATHER      STAT  PID   GRP    MEMORY    UID   GID   USER\n\
+---------------- ---------------- ---- ----- ----- ---------- ----- ----- ------\n";
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 /*********************************************************************************************************
 ** 函数名称: __ldPathIsFile
@@ -757,6 +758,8 @@ static INT  __tshellVProcShow (INT  iArgC, PCHAR  *ppcArgV)
     PCHAR               pcFatherName;
     BOOL                bStart;
     
+    CHAR                cVprocStat;                                     /*  进程状态                    */
+
     LW_LIST_LINE       *plineTemp;
     LW_LIST_RING       *pringTemp;
     LW_LD_VPROC        *pvproc;
@@ -796,6 +799,33 @@ static INT  __tshellVProcShow (INT  iArgC, PCHAR  *ppcArgV)
             pcFatherName = "<orphan>";
         }
         
+		if (pvproc->VP_pid == 0) {
+		    /*
+             *  kernel 进程其实不是真正意义上的进程, 只是对内核整个资源的标识, 不具备进程的特性.
+             *  所以在显示进程状态时会一直显示处于初始化状态, 为了让用户便于理解ps出进程状态时
+             *  kernel 进程显示运行状态 ('R')
+             */
+		    cVprocStat = 'R';
+		
+		} else {
+            /*
+             *  判断进程进程状态:
+             *  1. 进程运行状态: R (TASK_RUNNING), 可执行状态&运行状态 (在 run_queue 队列里的状态)
+             *  2. 进程停止状态: T (TASK_STOPPED or TASK_TRACED), 停止态
+             *  3. 进程僵尸状态: Z (TASK_DEAD - EXIT_ZOMBIE), 退出状态, 进程成为僵尸进程
+             *  4. 进程初始状态: I (TASK_INIT), 运行状态
+             */
+            if (pvproc->VP_iStatus == __LW_VP_EXIT) {
+                cVprocStat = 'Z';
+            } else if (pvproc->VP_iStatus == __LW_VP_STOP) {
+                cVprocStat = 'T';
+            } else if (pvproc->VP_iStatus == __LW_VP_INIT) {
+                cVprocStat = 'I';
+            } else {
+                cVprocStat = 'R';
+            }
+        }
+
         /*
          *  计算 vp 进程总内存消耗.
          */
@@ -863,9 +893,9 @@ static INT  __tshellVProcShow (INT  iArgC, PCHAR  *ppcArgV)
             pcUser = "<unknown>";
         }
         
-        printf("%-17s %-17s %5d %5d %8zuKB %5d %5d %s\n", 
-               pcProcessName, pcFatherName, pvproc->VP_pid, pvproc->VP_pidGroup, 
-               stTotalMem / LW_CFG_KB_SIZE, uid, gid, pcUser);
+        printf("%-16s %-16s %-4c %5d %5d %8zuKB %5d %5d %s\n",
+                      pcProcessName, pcFatherName, cVprocStat, pvproc->VP_pid, pvproc->VP_pidGroup,
+                      stTotalMem / LW_CFG_KB_SIZE, uid, gid, pcUser);
         
         iCnt++;
     }

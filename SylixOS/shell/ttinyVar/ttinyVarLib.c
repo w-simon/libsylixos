@@ -117,7 +117,6 @@ ULONG  __tshellVarAdd (CPCHAR       pcVarName, CPCHAR       pcVarValue, size_t  
         lib_strcpy(pskvNode->SV_pcVarValue, pcVarValue);
     
     } else {
-        
         pskvNode->SV_pcVarValue = (PCHAR)__SHEAP_ALLOC(1);
         if (!pskvNode->SV_pcVarValue) {
             __SHEAP_FREE(pskvNode->SV_pcVarName);

@@ -134,6 +134,11 @@ INT   API_TShellVarSet (CPCHAR  pcVarName, CPCHAR  pcVarValue, INT  iIsOverwrite
     }
     
     ulError = __tshellVarSet(pcVarName, pcVarValue, iIsOverwrite);
+    if (ulError == ERROR_TSHELL_EVAR) {
+        ulError =  __tshellVarAdd(pcVarName, pcVarValue, 
+                                  lib_strlen(pcVarName));
+    }
+    
     if (ulError) {
         return  (PX_ERROR);
     } else {

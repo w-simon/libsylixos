@@ -221,6 +221,11 @@ INT  API_LoginBlAdd (const struct sockaddr *addr, UINT  uiRep, UINT  uiSec)
         }
         UNLOCK_TCPIP_CORE();
         return  (ERROR_NONE);
+    
+    } else if (_G_uiLblCnt >= LW_CFG_NET_LOGINBL_MAX_NODE) {            /*  已经满了                    */
+        UNLOCK_TCPIP_CORE();
+        _ErrorHandle(EXFULL);
+        return  (PX_ERROR);
     }
     UNLOCK_TCPIP_CORE();                                                /*  解锁协议栈                  */
     
