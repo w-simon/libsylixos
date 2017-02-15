@@ -49,9 +49,10 @@ typedef struct sdio_init_data   SDIO_INIT_DATA;
 *********************************************************************************************************/
 
 struct sdio_dev_id {
-    UINT8    DEVID_ucClass;                                         /* Std interface or SDIO_ANY_ID     */
-    UINT16   DEVID_usVendor;                                        /* Vendor or SDIO_ANY_ID            */
-    UINT16   DEVID_usDevice;                                        /* Device ID or SDIO_ANY_ID         */
+    UINT8    DEVID_ucClass;                                         /*  Std interface or SDIO_ANY_ID    */
+    UINT16   DEVID_usVendor;                                        /*  Vendor or SDIO_ANY_ID           */
+    UINT16   DEVID_usDevice;                                        /*  Device ID or SDIO_ANY_ID        */
+    VOID    *DEVID_pvDrvPriv;                                       /*  driver private data             */
 };
 #define SDIO_DEV_ID_ANY     (~0)
 
@@ -92,10 +93,11 @@ struct sdio_func {
 
 #define SDIO_FUNC_MAX   8
 struct sdio_init_data {
-    SDIO_FUNC         INIT_psdiofuncTbl[SDIO_FUNC_MAX];
-    INT               INIT_iFuncCnt;                                /*  不包括Func0                     */
-    PLW_SDCORE_DEVICE INIT_psdcoredev;
-    SDIO_CCCR         INIT_sdiocccr;
+    SDIO_FUNC          INIT_psdiofuncTbl[SDIO_FUNC_MAX];
+    INT                INIT_iFuncCnt;                               /*  不包括Func0                     */
+    PLW_SDCORE_DEVICE  INIT_psdcoredev;
+    SDIO_CCCR          INIT_sdiocccr;
+    const SDIO_DEV_ID *INIT_pdevidCurr[SDIO_FUNC_MAX];              /*  当前设备的所有匹配的功能ID      */
 };
 
 /*********************************************************************************************************

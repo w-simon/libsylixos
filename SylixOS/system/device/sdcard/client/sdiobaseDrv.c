@@ -53,6 +53,10 @@ VOID          __sdmSdioDrvAccessRequest(VOID);
 VOID          __sdmSdioDrvAccessRelease(VOID);
 
 static INT    __sdiobaseDrvMatch(SDIO_FUNC *psdiofuncTbl, INT iFuncCnt, SDIO_DRV *psdiodrv);
+static VOID   __sdiobaseMatchFuncIdSet(SDIO_INIT_DATA *psdioinitdata,
+                                       SDIO_FUNC      *psdiofuncTbl,
+                                       INT             iFuncCnt,
+                                       SDIO_DRV       *psdiodrv);
 static INT    __sdiobaseDrvMatchOne(SDIO_FUNC *psdiofunc, SDIO_DEV_ID *psdiodevid);
 
 static INT    __sdiobasePreInit(SDIO_INIT_DATA *pinitdata, PLW_SDCORE_DEVICE psdcoredev);
@@ -93,6 +97,7 @@ LW_API INT API_SdioBaseDrvInstall (VOID)
 static INT   __sdiobaseDevCreate (SD_DRV *psddrv, PLW_SDCORE_DEVICE psdcoredev, VOID **ppvDevPriv)
 {
     __SDM_SDIO_BASE   *psdiobase;
+    SDIO_INIT_DATA    *psdioinitdata;
     SDIO_DRV          *psdiodrv;
     PLW_LIST_LINE      plineTmp;
     INT                iRet;
@@ -103,9 +108,10 @@ static INT   __sdiobaseDevCreate (SD_DRV *psddrv, PLW_SDCORE_DEVICE psdcoredev, 
         return  (PX_ERROR);
     }
 
-    *ppvDevPriv = (VOID *)psdiobase;
+    psdioinitdata = &psdiobase->SDMIOBASE_initdata;
+    *ppvDevPriv   = (VOID *)psdiobase;
 
-    iRet = __sdiobasePreInit(&psdiobase->SDMIOBASE_initdata, psdcoredev);
+    iRet = __sdiobasePreInit(psdioinitdata, psdcoredev);
     if (iRet != ERROR_NONE) {
         /*
          * 如果预初始化失败, 说明不是一个 SDIO 设备, 无需进行
@@ -120,8 +126,8 @@ static INT   __sdiobaseDevCreate (SD_DRV *psddrv, PLW_SDCORE_DEVICE psdcoredev, 
          plineTmp  = _list_line_get_next(plineTmp)) {
 
         psdiodrv = _LIST_ENTRY(plineTmp, SDIO_DRV, SDIODRV_lineManage);
-        iRet = __sdiobaseDrvMatch(&psdiobase->SDMIOBASE_initdata.INIT_psdiofuncTbl[0],
-                                  psdiobase->SDMIOBASE_initdata.INIT_iFuncCnt + 1,
+        iRet = __sdiobaseDrvMatch(&psdioinitdata->INIT_psdiofuncTbl[0],
+                                  psdioinitdata->INIT_iFuncCnt + 1,
                                   psdiodrv);
         if (iRet != ERROR_NONE) {
             /*
@@ -130,6 +136,11 @@ static INT   __sdiobaseDevCreate (SD_DRV *psddrv, PLW_SDCORE_DEVICE psdcoredev, 
             continue;
         }
 
+        __sdiobaseMatchFuncIdSet(psdioinitdata,
+                                 &psdioinitdata->INIT_psdiofuncTbl[0],
+                                 psdioinitdata->INIT_iFuncCnt + 1,
+                                 psdiodrv);
+
         /*
          * 因为在接下来的具体驱动设备创建过程中可能会产生中断事件
          * 这里提前完成处理中断时需要的数据
@@ -137,7 +148,7 @@ static INT   __sdiobaseDevCreate (SD_DRV *psddrv, PLW_SDCORE_DEVICE psdcoredev, 
         psdiobase->SDMIOBASE_psdiodrv = psdiodrv;
 
         iRet = psdiodrv->SDIODRV_pfuncDevCreate(psdiodrv,
-                                                &psdiobase->SDMIOBASE_initdata,
+                                                psdioinitdata,
                                                 &psdiobase->SDMIOBASE_pvDevPriv);
         if (iRet == ERROR_NONE) {
             API_AtomicInc(&psdiodrv->SDIODRV_atomicDevCnt);
@@ -443,15 +454,15 @@ static INT  __sdiobaseDrvMatch (SDIO_FUNC *psdiofuncTbl, INT iFuncCnt, SDIO_DRV 
     INT           iIdCnt;
     INT           iRet;
 
-    INT           i;
-    INT           j;
+    INT           iFunc;
+    INT           iId;
 
-    psdiofunc  = psdiofuncTbl;
-    iIdCnt = psdiodrv->SDIODRV_iDevidCnt;
-    for (i = 0; i < iFuncCnt; i++) {
+    psdiofunc = psdiofuncTbl;
+    iIdCnt    = psdiodrv->SDIODRV_iDevidCnt;
+    for (iFunc = 0; iFunc < iFuncCnt; iFunc++) {
 
         psdiodevid = psdiodrv->SDIODRV_pdevidTbl;
-        for (j = 0; j < iIdCnt; j++) {
+        for (iId = 0; iId < iIdCnt; iId++) {
             iRet = __sdiobaseDrvMatchOne(psdiofunc, psdiodevid);
             if (iRet == ERROR_NONE) {
                 return  (ERROR_NONE);
@@ -463,6 +474,47 @@ static INT  __sdiobaseDrvMatch (SDIO_FUNC *psdiofuncTbl, INT iFuncCnt, SDIO_DRV 
     }
 
     return  (PX_ERROR);
+}
+/*********************************************************************************************************
+** 函数名称: __sdiobaseMatchFuncIdSet
+** 功能描述: 设置匹配的功能 ID
+** 输    入: psdioinitdata    SDIO 初始化数据
+**           psdiofuncTbl     设备的功能描述表
+**           iFuncCnt         设备的功能个数
+**           psdiodrv         设备对应的驱动
+** 输    出: NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID __sdiobaseMatchFuncIdSet (SDIO_INIT_DATA *psdioinitdata,
+                                      SDIO_FUNC      *psdiofuncTbl,
+                                      INT             iFuncCnt,
+                                      SDIO_DRV       *psdiodrv)
+{
+    SDIO_FUNC    *psdiofunc;
+    SDIO_DEV_ID  *psdiodevid;
+    INT           iIdCnt;
+    INT           iRet;
+
+    INT           iFunc;
+    INT           iId;
+
+    psdiofunc = psdiofuncTbl;
+    iIdCnt    = psdiodrv->SDIODRV_iDevidCnt;
+    for (iFunc = 0; iFunc < iFuncCnt; iFunc++) {
+
+        psdiodevid = psdiodrv->SDIODRV_pdevidTbl;
+        for (iId = 0; iId < iIdCnt; iId++) {
+            iRet = __sdiobaseDrvMatchOne(psdiofunc, psdiodevid);
+            if (iRet == ERROR_NONE) {
+                psdioinitdata->INIT_pdevidCurr[iFunc] = psdiodevid;
+                break;
+            }
+            psdiodevid++;
+        }
+
+        psdiofunc++;
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: __sdiobaseDrvMatchOne

@@ -799,15 +799,15 @@ static INT  __tshellVProcShow (INT  iArgC, PCHAR  *ppcArgV)
             pcFatherName = "<orphan>";
         }
         
-		if (pvproc->VP_pid == 0) {
-		    /*
+        if (pvproc->VP_pid == 0) {
+            /*
              *  kernel 进程其实不是真正意义上的进程, 只是对内核整个资源的标识, 不具备进程的特性.
              *  所以在显示进程状态时会一直显示处于初始化状态, 为了让用户便于理解ps出进程状态时
              *  kernel 进程显示运行状态 ('R')
              */
-		    cVprocStat = 'R';
-		
-		} else {
+            cVprocStat = 'R';
+
+        } else {
             /*
              *  判断进程进程状态:
              *  1. 进程运行状态: R (TASK_RUNNING), 可执行状态&运行状态 (在 run_queue 队列里的状态)

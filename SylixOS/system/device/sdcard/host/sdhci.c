@@ -1830,6 +1830,10 @@ static INT  __sdhciCmdSend (__PSDHCI_HOST   psdhcihost,
      */
     if (psddat) {
         __sdhciTransferModSet(psdhcihost);
+    } else {
+        uiMask = SDHCI_READL(psdhcihostattr, SDHCI_TRANSFER_MODE);
+        uiMask &=  ~(SDHCI_TRNS_ACMD12 | SDHCI_TRNS_ACMD23);
+        SDHCI_WRITEW(psdhcihostattr, SDHCI_TRANSFER_MODE, uiMask);
     }
 
     if ((psdcmd->SDCMD_uiFlag & SD_RSP_136) && (psdcmd->SDCMD_uiFlag & SD_RSP_BUSY)) {
@@ -1903,7 +1907,8 @@ static VOID __sdhciTransferModSet (__PSDHCI_HOST  psdhcihost)
 
     if (psdhcitrans->SDHCITS_uiBlkCntRemain > 1) {
         usTmod |= SDHCI_TRNS_MULTI;
-        if (!SDHCI_QUIRK_FLG(psdhcihostattr, SDHCI_QUIRK_FLG_DONOT_USE_ACMD12)) {
+        if (!SDHCI_QUIRK_FLG(psdhcihostattr, SDHCI_QUIRK_FLG_DONOT_USE_ACMD12) &&
+            (psdhcitrans->SDHCITS_psdcmd->SDCMD_uiOpcode != SDIO_RW_EXTENDED)) {
             usTmod |= SDHCI_TRNS_ACMD12;                                /*  使用ACMD12功能              */
         }
     }
@@ -2595,6 +2600,8 @@ __redo:
         irqret = LW_IRQ_NONE;
         goto    __end;                                                  /*  无效或未知的中断            */
     }
+
+    SDHCI_WRITEL(psdhcihostattr, SDHCI_INT_STATUS, uiIntSta);
 
     __SDHCI_TRANS_LOCK(psdhcitrans);
 

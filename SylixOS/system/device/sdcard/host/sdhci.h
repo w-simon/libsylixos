@@ -73,6 +73,7 @@
 #define SDHCI_TRNS_DMA                  0x01
 #define SDHCI_TRNS_BLK_CNT_EN           0x02
 #define SDHCI_TRNS_ACMD12               0x04
+#define SDHCI_TRNS_ACMD23               0x08
 #define SDHCI_TRNS_READ                 0x10
 #define SDHCI_TRNS_MULTI                0x20
 
