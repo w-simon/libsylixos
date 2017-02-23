@@ -38,9 +38,9 @@ VOID  archKernelParam (CPCHAR  pcParam)
 {
     if (lib_strncmp(pcParam, "unalign=", 8) == 0) {                     /*  是否支持非对齐访问          */
         if (pcParam[8] == 'n') {
-            mipsParam.AP_bUnalign = LW_FALSE;
+            mipsParam.MP_bUnalign = LW_FALSE;
         } else {
-            mipsParam.AP_bUnalign = LW_TRUE;
+            mipsParam.MP_bUnalign = LW_TRUE;
         }
     }
 }

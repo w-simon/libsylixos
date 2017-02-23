@@ -57,7 +57,7 @@
 #else
 #include "./config.h"
 #include "./porting.h"
-#include "inst.h"
+#include "arch/mips/common/mipsInst.h"
 #include "arch/mips/common/mipsBranch.h"
 
 struct mips_fpu_emulator_stats fpuemustats[LW_CFG_MAX_PROCESSORS];

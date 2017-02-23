@@ -45,6 +45,8 @@ UNIT_TEST_MK      = $(MKTEMP)/unit-test.mk
 LIBSYLIXOS_MK     = $(MKTEMP)/libsylixos.mk
 DUMMY_MK          = $(MKTEMP)/dummy.mk
 BSP_MK            = $(MKTEMP)/bsp.mk
+EXTENSION_MK      = $(MKTEMP)/extension.mk
+LITE_BSP_MK       = $(MKTEMP)/lite-bsp.mk
 END_MK            = $(MKTEMP)/end.mk
 CLEAR_VARS_MK     = $(MKTEMP)/clear-vars.mk
 

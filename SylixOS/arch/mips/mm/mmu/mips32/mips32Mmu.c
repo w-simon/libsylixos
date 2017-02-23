@@ -758,7 +758,7 @@ ULONG  mipsMmuTlbLoadStoreExcHandle (addr_t  ulAbortAddr)
         	 * 如果 TLB 重填异常发生在异常里, 直接终止
         	 */
             _DebugHandle(__ERRORMESSAGE_LEVEL, "TLB refill error.\r\n");
-            ulAbortType = LW_VMM_ABORT_TYPE_TERMINAL;
+            ulAbortType = LW_VMM_ABORT_TYPE_FATAL_ERROR;
         } else {
         	/*
         	 * 如果 TLB 重填异常不是发生异常里, 忽略之, 也不进行 TLB 重填

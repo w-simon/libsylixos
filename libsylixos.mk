@@ -99,7 +99,7 @@ SylixOS/arch/mips/common/mipsExcAsm.S \
 SylixOS/arch/mips/common/mipsLib.c \
 SylixOS/arch/mips/common/mipsLibAsm.S \
 SylixOS/arch/mips/common/mipsBranch.c \
-SylixOS/arch/mips/common/mipsUnaligned.c \
+SylixOS/arch/mips/common/unaligned/mipsUnaligned.c \
 SylixOS/arch/mips/common/mipsIo.c \
 SylixOS/arch/mips/common/mips64.c \
 SylixOS/arch/mips/common/mips64Asm.S \

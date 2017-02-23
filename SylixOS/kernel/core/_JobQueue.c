@@ -54,6 +54,8 @@ PLW_JOB_QUEUE  _jobQueueCreate (UINT uiQueueSize, BOOL bNonBlock)
             __KHEAP_FREE(pjobq);
             return  (LW_NULL);
         }
+    } else {
+        pjobq->JOBQ_ulSync = LW_OBJECT_HANDLE_INVALID;
     }
     
     LW_SPIN_INIT(&pjobq->JOBQ_slLock);

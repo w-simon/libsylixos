@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2017-02-23: han.hui
+    加入 lite-bsp 与 extension 类型工程模板.
+
     2017-01-09: han.hui
     加入网络登录黑名单管理.
 
@@ -18,6 +21,12 @@ HISTORY
     加入新的网络驱动模型.
 
 ++ Bugfixes:
+
+    2017-02-23: han.hui
+    修正 MIPS 非对齐访问仿真错误.
+
+    2017-02-21: han.hui
+    修正 x86 高精度时间获取错误.
 
     2017-02-13: han.hui
     修正针对 Lite 模式网络裁剪问题.

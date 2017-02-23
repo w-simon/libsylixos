@@ -5,7 +5,7 @@
 
 #include "./config.h"
 #include "./porting.h"
-#include "inst.h"
+#include "arch/mips/common/mipsInst.h"
 #include "arch/mips/common/mipsBranch.h"
 
 /**

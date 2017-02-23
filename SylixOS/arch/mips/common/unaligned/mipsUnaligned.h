@@ -10,35 +10,25 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: bitfield.h
+** 文   件   名: mipsUnaligned.h
 **
 ** 创   建   人: Jiao.JinXing (焦进星)
 **
-** 文件创建日期: 2016 年 11 月 24 日
+** 文件创建日期: 2015 年 12 月 25 日
 **
-** 描        述: 位域.
+** 描        述: MIPS 非对齐处理.
 *********************************************************************************************************/
 
-#ifndef __MIPS_FPUEMU_BITFIELD_H
-#define __MIPS_FPUEMU_BITFIELD_H
+#ifndef __ARCH_MIPSUNALIGNED_H
+#define __ARCH_MIPSUNALIGNED_H
 
-/*
- * Damn ...  bitfields depend from byteorder :-(
- */
-#if BYTE_ORDER == BIG_ENDIAN
-#define __BITFIELD_FIELD(field, more)   \
-    field;                              \
-    more
+/*********************************************************************************************************
+  MIPS 非对齐处理
+*********************************************************************************************************/
 
-#else
+ULONG  mipsUnalignedHandle(ARCH_REG_CTX  *pregctx, addr_t  ulAbortAddr);
 
-#define __BITFIELD_FIELD(field, more)   \
-    more                                \
-    field;
-
-#endif
-
-#endif                                                                  /*  __MIPS_FPUEMU_BITFIELD_H    */
+#endif                                                                  /*  __ARCH_MIPSUNALIGNED_H      */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

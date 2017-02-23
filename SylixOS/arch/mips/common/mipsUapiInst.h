@@ -1,3 +1,23 @@
+/*********************************************************************************************************
+**
+**                                    中国软件开源组织
+**
+**                                   嵌入式实时操作系统
+**
+**                                SylixOS(TM)  LW : long wing
+**
+**                               Copyright All Rights Reserved
+**
+**--------------文件信息--------------------------------------------------------------------------------
+**
+** 文   件   名: mipsUapiInst.h
+**
+** 创   建   人: Jiao.JinXing (焦进星)
+**
+** 文件创建日期: 2015 年 12 月 25 日
+**
+** 描        述: MIPS 指令.
+*********************************************************************************************************/
 /*
  * Format of an instruction in memory.
  *
@@ -10,14 +30,10 @@
  * Copyright (C) 2012 MIPS Technologies, Inc.  All rights reserved.
  * Copyright (C) 2014 Imagination Technologies Ltd.
  */
-#ifndef _UAPI_ASM_INST_H
-#define _UAPI_ASM_INST_H
+#ifndef __UAPI_ASM_INST_H
+#define __UAPI_ASM_INST_H
 
-#ifndef SYLIXOS
-#include <asm/bitfield.h>
-#else
-#include "./bitfield.h"
-#endif
+#include "./mipsBitfield.h"
 
 /*
  * Major opcodes; before MIPS IV cop1x was called cop3.
@@ -1085,4 +1101,7 @@ union mips16e_instruction {
 	struct m16e_i8 i8;
 };
 
-#endif /* _UAPI_ASM_INST_H */
+#endif                                                                  /* __UAPI_ASM_INST_H            */
+/*********************************************************************************************************
+  END
+*********************************************************************************************************/

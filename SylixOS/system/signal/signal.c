@@ -829,6 +829,11 @@ INT  kill (LW_OBJECT_HANDLE  ulId, INT  iSigNo)
     
     ptcb = __GET_TCB_FROM_INDEX(usIndex);
     if (ptcb->TCB_iDeleteProcStatus) {
+#if LW_CFG_SMP_EN > 0
+        if (LW_NCPUS > 1) {                                             /*  正工作在 SMP 多核模式       */
+            _ThreadContinue(ptcb, LW_FALSE);                            /*  在内核状态下唤醒被停止线程  */
+        }
+#endif                                                                  /*  LW_CFG_SMP_EN               */
         __KERNEL_EXIT();                                                /*  退出内核                    */
         _ErrorHandle(ERROR_THREAD_OTHER_DELETE);
         return  (PX_ERROR);
@@ -931,6 +936,11 @@ INT  sigqueue (LW_OBJECT_HANDLE  ulId, INT   iSigNo, const union sigval  sigvalu
     
     ptcb = __GET_TCB_FROM_INDEX(usIndex);
     if (ptcb->TCB_iDeleteProcStatus) {
+#if LW_CFG_SMP_EN > 0
+        if (LW_NCPUS > 1) {                                             /*  正工作在 SMP 多核模式       */
+            _ThreadContinue(ptcb, LW_FALSE);                            /*  在内核状态下唤醒被停止线程  */
+        }
+#endif                                                                  /*  LW_CFG_SMP_EN               */
         __KERNEL_EXIT();                                                /*  退出内核                    */
         _ErrorHandle(ERROR_THREAD_OTHER_DELETE);
         return  (PX_ERROR);

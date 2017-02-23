@@ -452,6 +452,10 @@
 #define EXC_WATCH       (EX_WATCH << S_CauseExcCode)
 #define EX_MCHECK       24                                              /*  Machine check exception     */
 #define EXC_MCHECK      (EX_MCHECK << S_CauseExcCode)
+#define EX_THREAD       25                                              /*  Thread exception            */
+#define EXC_THREAD      (EX_THREAD << S_CauseExcCode)
+#define EX_DSP          26                                              /*  DSP Unusable                */
+#define EXC_DSP         (EX_DSP << S_CauseExcCode)
 #define EX_CacheErr     30                                              /*  Cache error caused re-entry */
                                                                         /*  to Debug Mode               */
 #define EXC_CacheErr    (EX_CacheErr << S_CauseExcCode)

@@ -26,6 +26,7 @@
 2016.06.14  支持在当前终端下调试.
 2016.08.16  支持硬件单步调试.
 2016.12.07  GDB 退出时, 首先 kill 掉被调试进程, 然后再放行进程, 确保不会多执行一句代码.
+2017.02.21  修改当侦听连接时kill调试器失败以及端口未释放的问题.
 *********************************************************************************************************/
 #define  __SYLIXOS_GDB
 #define  __SYLIXOS_STDIO
@@ -119,6 +120,7 @@ typedef struct {
     LW_GDB_SERIAL_PARAM     GDB_spSerial;                               /* 需要回复的串口参数           */
     BOOL                    GDB_bTerminal;                              /* 是否为终端调试               */
     INT                     GDB_iCommFd;                                /* 用于传输协议帧的文件描述符   */
+    INT                     GDB_iCommListenFd;                          /* 用于端口侦听的文件描述符     */
     INT                     GDB_iSigFd;                                 /* 中断signalfd文件句柄         */
     CHAR                    GDB_cProgPath[MAX_FILENAME_LENGTH];         /* 可执行文件路径               */
     INT                     GDB_iPid;                                   /* 跟踪的进程号                 */
@@ -291,12 +293,13 @@ static INT gdbTcpSockInit (LW_GDB_PARAM *pparam, UINT32 ui32Ip, UINT16 usPort)
         return  (PX_ERROR);
     }
     
+    pparam->GDB_iCommListenFd = iSockListen;
+
     LW_GDB_MSG("[GDB]Waiting for connect...\n");
     
     iSockNew = accept(iSockListen, (struct sockaddr *)&addrClient, &iAddrLen);
     if (iSockNew < 0) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "Accept failed.\r\n");
-        close(iSockListen);
         return  (PX_ERROR);
     }
 
@@ -308,8 +311,6 @@ static INT gdbTcpSockInit (LW_GDB_PARAM *pparam, UINT32 ui32Ip, UINT16 usPort)
 
     LW_GDB_MSG("[GDB]Connected. host: %s\n",
                inet_ntoa_r(addrClient.sin_addr, cIpBuff, sizeof(cIpBuff)));
-
-    close(iSockListen);
 
     return  (iSockNew);
 }
@@ -2164,6 +2165,10 @@ static INT gdbRelease (LW_GDB_PARAM *pparam)
         }
     }
 
+    if (pparam->GDB_iCommListenFd >= 0) {
+        close(pparam->GDB_iCommListenFd);
+    }
+
     LW_GDB_SAFEFREE(pparam);
 
     LW_GDB_MSG("[GDB]Server exit.\n");
@@ -2483,9 +2488,10 @@ static INT gdbMain (INT argc, CHAR **argv)
     }
     lib_bzero(pparam, sizeof(LW_GDB_PARAM));
 
-    pparam->GDB_bTerminal = LW_FALSE;
-    pparam->GDB_iCommFd   = PX_ERROR;
-    pparam->GDB_iSigFd    = PX_ERROR;
+    pparam->GDB_bTerminal     = LW_FALSE;
+    pparam->GDB_iCommFd       = PX_ERROR;
+    pparam->GDB_iCommListenFd = PX_ERROR;
+    pparam->GDB_iSigFd        = PX_ERROR;
 
     if (lib_strcmp(argv[iArgPos], "--attach") == 0) {                   /* 切入到正在执行的进程调试     */
         iArgPos++;
@@ -2626,26 +2632,6 @@ static INT gdbMain (INT argc, CHAR **argv)
         return  (PX_ERROR);
     }
 
-    if (pparam->GDB_byCommType == COMM_TYPE_TCP) {
-        pparam->GDB_iCommFd = gdbTcpSockInit(pparam, ui32Ip, usPort);   /* 初始化socket，获取连接句柄   */
-    } else {
-        pparam->GDB_iCommFd = gdbSerialInit(pparam, pcSerial);
-    }
-        
-    if (pparam->GDB_iCommFd < 0) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "Initialize comunication failed.\r\n");
-        _ErrorHandle(ERROR_GDB_INIT_SOCK);
-        gdbRelease(pparam);
-        return  (PX_ERROR);
-    }
-
-#ifndef LW_DTRACE_HW_ISTEP
-    if (API_AtomicInc(&GHookRefCnt) == 1) {                             /* 第一次调用时添加HOOK         */
-        API_SystemHookAdd(API_DtraceSchedHook,
-                          LW_OPTION_THREAD_SWAP_HOOK);                  /* 添加线程切换HOOK，用于单步   */
-    }
-#endif                                                                  /* !LW_DTRACE_HW_ISTEP          */
-
     if (API_ThreadSetNotePad(API_ThreadIdSelf(), 0, (ULONG)pparam) != ERROR_NONE) {
                                                                         /* 保存调试器对象到线程上下文   */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "Set thread notepad failed.\r\n");
@@ -2658,6 +2644,26 @@ static INT gdbMain (INT argc, CHAR **argv)
         gdbRelease(pparam);
         return  (PX_ERROR);
     }
+
+    if (pparam->GDB_byCommType == COMM_TYPE_TCP) {
+        pparam->GDB_iCommFd = gdbTcpSockInit(pparam, ui32Ip, usPort);   /* 初始化socket，获取连接句柄   */
+    } else {
+        pparam->GDB_iCommFd = gdbSerialInit(pparam, pcSerial);
+    }
+        
+    if (pparam->GDB_iCommFd < 0) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "Initialize comunication failed.\r\n");
+        _ErrorHandle(ERROR_GDB_INIT_SOCK);
+        gdbExit(0);
+        return  (PX_ERROR);
+    }
+
+#ifndef LW_DTRACE_HW_ISTEP
+    if (API_AtomicInc(&GHookRefCnt) == 1) {                             /* 第一次调用时添加HOOK         */
+        API_SystemHookAdd(API_DtraceSchedHook,
+                          LW_OPTION_THREAD_SWAP_HOOK);                  /* 添加线程切换HOOK，用于单步   */
+    }
+#endif                                                                  /* !LW_DTRACE_HW_ISTEP          */
 
     gdbEventLoop(pparam);                                               /* 进入事件循环                 */
 

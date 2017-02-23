@@ -32,7 +32,7 @@
 #include <linux/sched.h>
 #include <asm/bitfield.h>
 #else
-#include "./bitfield.h"
+#include "arch/mips/common/mipsBitfield.h"
 #include "./config.h"
 #include "./porting.h"
 #endif

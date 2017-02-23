@@ -19,8 +19,8 @@
 ** 描        述: MIPS FPU 模拟移植文件.
 *********************************************************************************************************/
 
-#ifndef __MIPS_FPUEMU_PORTING_H__
-#define __MIPS_FPUEMU_PORTING_H__
+#ifndef __MIPS_FPUEMU_PORTING_H
+#define __MIPS_FPUEMU_PORTING_H
 
 /*********************************************************************************************************
   基本数据类型与定义
@@ -46,6 +46,10 @@ typedef BOOL                            bool;
 
 #define perf_sw_event(a, b, c, d)       do { } while (0)
 
+/*
+ * 注意: 始终认为可以访问，如果地址不合法，可能会产生异常嵌套，可以通过异常嵌套时打印的调用栈分析应用
+ * 中有问题的代码
+ */
 #define access_ok(type, va, len)        1
 
 #define put_user(val, va)               (*va = val, 0)
@@ -310,7 +314,7 @@ static inline int mm_insn_16bit(u16 insn)
     return (opcode >= 1 && opcode <= 3) ? 1 : 0;
 }
 
-#endif                                                                  /*  __MIPS_FPUEMU_PORTING_H__   */
+#endif                                                                  /*  __MIPS_FPUEMU_PORTING_H     */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/
