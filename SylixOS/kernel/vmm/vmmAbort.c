@@ -548,6 +548,7 @@ static VOID  __vmmAbortDump (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
 *********************************************************************************************************/
 static VOID  __vmmAbortShell (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
 {
+             INTREG                 iregInterLevel;
              addr_t                 ulAbortAddr = pvmpagefailctx->PAGEFCTX_ulAbortAddr;
              ULONG                  ulFlag;
              
@@ -685,7 +686,11 @@ static VOID  __vmmAbortShell (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
 __abort_return:
     __KERNEL_SPACE_SET(pvmpagefailctx->PAGEFCTX_iKernelSpace);          /*  恢复成进入之前的状态        */
     errno = pvmpagefailctx->PAGEFCTX_iLastErrno;                        /*  恢复之前的 errno            */
+    
+    iregInterLevel = KN_INT_DISABLE();                                  /*  关闭当前 CPU 中断           */
+    KN_SMP_MB();
     archSigCtxLoad(pvmpagefailctx->PAGEFCTX_pvStackRet);                /*  从 page fail 上下文中返回   */
+    KN_INT_ENABLE(iregInterLevel);                                      /*  运行不到这里                */
 }
 
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
@@ -841,6 +846,7 @@ static VOID  __vmmAbortKill (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
 *********************************************************************************************************/
 static VOID  __vmmAbortAccess (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
 {
+    INTREG  iregInterLevel;
     ULONG   ulErrorOrig = API_GetLastError();
     
 #if LW_CFG_ABORT_CALLSTACK_INFO_EN > 0
@@ -891,7 +897,10 @@ static VOID  __vmmAbortAccess (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
     /*
      * iRet == 0 or iRet > 0 都需要返回重新执行指令.
      */
+    iregInterLevel = KN_INT_DISABLE();                                  /*  关闭当前 CPU 中断           */
+    KN_SMP_MB();
     archSigCtxLoad(pvmpagefailctx->PAGEFCTX_pvStackRet);                /*  从 page fail 上下文中返回   */
+    KN_INT_ENABLE(iregInterLevel);                                      /*  运行不到这里                */
 }
 /*********************************************************************************************************
 ** 函数名称: __vmmAbortFataDetected

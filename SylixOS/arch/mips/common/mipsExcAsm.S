@@ -127,8 +127,9 @@ MACRO_DEF(EXC_SAVE_REGS)
     ; */
     SUBU    SP , STK_CTX_SIZE                                           ;/*  修改 SP                     */
 
-    LW      ZERO , 0(SP)
-    LW      ZERO , STK_OFFSET_LAST(SP)
+    SW      ZERO , 0(SP)
+    SW      ZERO , STK_OFFSET_LAST(SP)
+    SYNC
     ;/*
     ; * 后面不会再发生 TLB 重填异常
     ; */
@@ -244,7 +245,6 @@ MACRO_DEF(EXCEPTION_ENTRY handle)
     SUBU    SP , 32
     JAL     API_ThreadTcbInter                                          ;/*  get current tcb             */
     NOP
-    ADDU    SP , 32
 
     LW      SP , 0(V0)                                                  ;/*  SP = current stack          */
 

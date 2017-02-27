@@ -36,7 +36,9 @@
 
     EXPORT_LABEL(archTaskCtxStart)
     EXPORT_LABEL(archTaskCtxSwitch)
+#if LW_CFG_COROUTINE_EN > 0
     EXPORT_LABEL(archCrtCtxSwitch)
+#endif
     EXPORT_LABEL(archIntCtxLoad)
     EXPORT_LABEL(archSigCtxLoad)
 

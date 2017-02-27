@@ -90,11 +90,15 @@ typedef struct arch_fpu_ctx {                                           /* VFPv2
 
 #define __ARCH_FLOAT_EXP_NAN           255                              /*  NaN 或者无穷大的 Exp 值     */
 
+#if LW_CFG_CPU_ENDIAN == 0
 typedef struct __cpu_float_field {
     unsigned int        frac : 23;
     unsigned int        exp  :  8;
     unsigned int        sig  :  1;
 } __CPU_FLOAT_FIELD;
+#else
+#error "ARM processor MUST configured as little-endian!"
+#endif                                                                  /*  LW_CFG_CPU_ENDIAN           */
 
 typedef union __cpu_float {
     __CPU_FLOAT_FIELD   fltfield;                                       /*  float 位域字段              */
@@ -130,6 +134,7 @@ static LW_INLINE INT  __ARCH_FLOAT_ISINF (float  x)
   arm-sylixos-eabi-gcc ... GNU
 *********************************************************************************************************/
 
+#if LW_CFG_CPU_ENDIAN == 0
 #if LW_CFG_DOUBLE_MIX_ENDIAN > 0
 typedef struct __cpu_double_field {                                     /*  old mixed-endian            */
     unsigned int        frach : 20;
@@ -147,6 +152,9 @@ typedef struct __cpu_double_field {                                     /*  nati
     unsigned int        sig   :  1;
 } __CPU_DOUBLE_FIELD;
 #endif                                                                  /*  __ARCH_DOUBLE_MIX_ENDIAN    */
+#else
+#error "ARM processor MUST configured as little-endian!"
+#endif                                                                  /*  LW_CFG_CPU_ENDIAN           */
 
 typedef union __cpu_double {
     __CPU_DOUBLE_FIELD  dblfield;                                       /*  float 位域字段              */

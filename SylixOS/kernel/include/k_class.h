@@ -915,7 +915,7 @@ typedef struct {
     LW_SPINLOCK_DEFINE     (KERN_slLock);
     PVOID                   KERN_pvCpuOwner;
     LW_OBJECT_HANDLE        KERN_ulKernelOwner;
-    CPCHAR                  KERN_ulKernelEnterFunc;
+    CPCHAR                  KERN_pcKernelEnterFunc;
 } LW_CLASS_KERNLOCK;
 typedef LW_CLASS_KERNLOCK  *PLW_CLASS_KERNLOCK;
 

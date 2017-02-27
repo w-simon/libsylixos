@@ -42,6 +42,7 @@ static INT                  _G_iMachineType  = MIPS_MACHINE_TYPE_24KF;  /*  机器
 static BOOL                 _G_bLsHasITLB = LW_FALSE;                   /*  是否有 ITLB                 */
 static BOOL                 _G_bLsHasDTLB = LW_FALSE;                   /*  是否有 DTLB                 */
 static BOOL                 _G_bLsHasFTLB = LW_FALSE;                   /*  是否有 FTLB                 */
+static BOOL                 _G_bLsHasNE   = LW_FALSE;                   /*  是否有 NE 位                */
 /*********************************************************************************************************
   宏定义
 *********************************************************************************************************/
@@ -57,6 +58,9 @@ static BOOL                 _G_bLsHasFTLB = LW_FALSE;                   /*  是否
 #define MIPS32_ENTRYLO_C_MASK           (0x07 << MIPS32_ENTRYLO_C_SHIFT)
 
 #define MIPS32_ENTRYLO_PFN_SHIFT        (6)
+#define MIPS32_ENTRYLO_PFN_MASK         (0xffffff << MIPS32_ENTRYLO_PFN_SHIFT)
+
+#define MIPS32_ENTRYLO_NE_BIT           (1 << 30)
 /*********************************************************************************************************
   ENTRYHI
 *********************************************************************************************************/
@@ -279,6 +283,12 @@ static LW_PTE_TRANSENTRY  mips32MmuBuildPtentry (UINT32  uiBaseAddr,
             uiDescriptor |= MIPS_CACHABLE_NONCOHERENT << MIPS32_ENTRYLO_C_SHIFT;
         } else {
             uiDescriptor |= MIPS_UNCACHED << MIPS32_ENTRYLO_C_SHIFT;
+        }
+
+        if (_G_bLsHasNE) {
+            if (!(ulFlag & LW_VMM_FLAG_EXECABLE)) {                     /*  不可执行                    */
+                uiDescriptor |= MIPS32_ENTRYLO_NE_BIT;                  /*  填充 NE 位                  */
+            }
         }
     } else {
         uiDescriptor = 0;
@@ -566,7 +576,8 @@ static VOID  mips32MmuPteFree (LW_PTE_TRANSENTRY  *p_pteentry)
 *********************************************************************************************************/
 static INT  mips32MmuPtePhysGet (LW_PTE_TRANSENTRY  pteentry, addr_t  *pulPhysicalAddr)
 {
-    UINT32   uiPFN   = pteentry >> MIPS32_ENTRYLO_PFN_SHIFT;            /*  获得物理页面号              */
+    UINT32   uiPFN   = (pteentry & MIPS32_ENTRYLO_PFN_MASK) >>
+                        MIPS32_ENTRYLO_PFN_SHIFT;                       /*  获得物理页面号              */
 
     *pulPhysicalAddr = uiPFN << 12;                                     /*  计算页面物理地址            */
 
@@ -601,7 +612,13 @@ static ULONG  mips32MmuFlagGet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr)
 
             ulFlag |= LW_VMM_FLAG_ACCESS;                               /*  可以访问                    */
 
-            ulFlag |= LW_VMM_FLAG_EXECABLE;                             /*  可以执行                    */
+            if (_G_bLsHasNE) {
+                if (!(uiDescriptor & MIPS32_ENTRYLO_NE_BIT)) {
+                    ulFlag |= LW_VMM_FLAG_EXECABLE;                     /*  可以执行                    */
+                }
+            } else {
+                ulFlag |= LW_VMM_FLAG_EXECABLE;                         /*  可以执行                    */
+            }
 
             if (uiDescriptor & MIPS32_ENTRYLO_D_BIT) {                  /*  可写                        */
                 ulFlag |= LW_VMM_FLAG_WRITABLE;
@@ -654,7 +671,8 @@ static INT  mips32MmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  u
         LW_PTE_TRANSENTRY   uiDescriptor = *p_pteentry;                 /*  获得二级描述符              */
 
         if (mips32MmuPteIsOk(uiDescriptor)) {                           /*  二级描述符有效              */
-            UINT32   uiPFN = uiDescriptor >> MIPS32_ENTRYLO_PFN_SHIFT;  /*  获得物理页号                */
+            UINT32   uiPFN = (uiDescriptor & MIPS32_ENTRYLO_PFN_MASK) >>
+                              MIPS32_ENTRYLO_PFN_SHIFT;                 /*  获得物理页面号              */
             addr_t   ulPhysicalAddr = uiPFN << 12;                      /*  计算页面物理地址            */
 
             /*
@@ -843,14 +861,17 @@ VOID  mips32MmuInit (LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName)
 
     if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS1X) == 0)) {
         _G_iMachineType = MIPS_MACHINE_TYPE_LS1X;
+        _G_bLsHasNE     = LW_TRUE;
 
     } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X) == 0)) {
         _G_iMachineType = MIPS_MACHINE_TYPE_LS2X;
         _G_bLsHasITLB   = LW_TRUE;                                      /*  Loongson2x 都有 ITLB        */
+        _G_bLsHasNE     = LW_TRUE;
 
     } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS3X) == 0)) {
         _G_iMachineType = MIPS_MACHINE_TYPE_LS3X;
         _G_bLsHasITLB   = LW_TRUE;                                      /*  Loongson3x 都有 ITLB        */
+        _G_bLsHasNE     = LW_TRUE;
 
         switch (mipsCp0PRIdRead() & 0xf) {
 

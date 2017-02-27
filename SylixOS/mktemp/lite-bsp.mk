@@ -131,10 +131,10 @@ $($(target)_STRIP_IMG): $($(target)_IMG)
 #*********************************************************************************************************
 $(OUTPATH)/SylixOSBSPSymbol.ld: $($(target)_IMG)
 		@rm -f $@
-		cp $(SYLIXOS_BASE_PATH)/libsylixos/SylixOS/hosttools/makelitesymbol/Makefile $(OUTDIR)
-		cp $(SYLIXOS_BASE_PATH)/libsylixos/SylixOS/hosttools/makelitesymbol/makelitesymbol.bat $(OUTDIR)
-		cp $(SYLIXOS_BASE_PATH)/libsylixos/SylixOS/hosttools/makelitesymbol/makelitesymbol.sh $(OUTDIR)
-		cp $(SYLIXOS_BASE_PATH)/libsylixos/SylixOS/hosttools/makesymbol/nm.exe $(OUTDIR)
+		cp $(subst $(SPACE),\ ,$(SYLIXOS_BASE_PATH))/libsylixos/SylixOS/hosttools/makelitesymbol/Makefile $(OUTDIR)
+		cp $(subst $(SPACE),\ ,$(SYLIXOS_BASE_PATH))/libsylixos/SylixOS/hosttools/makelitesymbol/makelitesymbol.bat $(OUTDIR)
+		cp $(subst $(SPACE),\ ,$(SYLIXOS_BASE_PATH))/libsylixos/SylixOS/hosttools/makelitesymbol/makelitesymbol.sh $(OUTDIR)
+		cp $(subst $(SPACE),\ ,$(SYLIXOS_BASE_PATH))/libsylixos/SylixOS/hosttools/makesymbol/nm.exe $(OUTDIR)
 		make -C $(OUTDIR) SRCFILE=$(<F) DESTFILE=$(@F)
 
 #*********************************************************************************************************

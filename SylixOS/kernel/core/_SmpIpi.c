@@ -176,9 +176,9 @@ static VOID  _SmpCallIpiAllOther (PLW_IPI_MSG  pipim)
 ** 函数名称: _SmpCallFunc
 ** 功能描述: 利用核间中断让指定的 CPU 运行指定的函数. (外部必须锁定当前 CPU 调度)
 ** 输　入  : ulCPUId       CPU ID
-**           pfunc         同步执行函数
+**           pfunc         同步执行函数 (被调用函数内部不允许有锁内核操作, 否则可能产生死锁)
 **           pvArg         同步参数
-**           pfuncAsync    异步执行函数
+**           pfuncAsync    异步执行函数 (被调用函数内部不允许有锁内核操作, 否则可能产生死锁)
 **           pvAsync       异步执行参数
 **           iOpt          选项 IPIM_OPT_NORMAL / IPIM_OPT_NOKERN
 ** 输　出  : 调用返回值
@@ -207,9 +207,9 @@ INT  _SmpCallFunc (ULONG        ulCPUId,
 /*********************************************************************************************************
 ** 函数名称: _SmpCallFunc
 ** 功能描述: 利用核间中断让指定的 CPU 运行指定的函数. (外部必须锁定当前 CPU 调度)
-** 输　入  : pfunc         同步执行函数
+** 输　入  : pfunc         同步执行函数 (被调用函数内部不允许有锁内核操作, 否则可能产生死锁)
 **           pvArg         同步参数
-**           pfuncAsync    异步执行函数
+**           pfuncAsync    异步执行函数 (被调用函数内部不允许有锁内核操作, 否则可能产生死锁)
 **           pvAsync       异步执行参数
 **           iOpt          选项 IPIM_OPT_NORMAL / IPIM_OPT_NOKERN
 ** 输　出  : NONE (无法确定返回值)
@@ -345,7 +345,7 @@ VOID  _SmpProcIpi (PLW_CLASS_CPU  pcpuCur)
 }
 /*********************************************************************************************************
 ** 函数名称: _SmpTryProcIpi
-** 功能描述: 尝试处理核间中断 (必须在关中断情况下调用, 这里仅仅尝试执行 FLUSH_TLB 与 call 函数)
+** 功能描述: 尝试处理核间中断 (必须在关中断情况下调用, 这里仅仅尝试执行 call 函数)
 ** 输　入  : pcpuCur       当前 CPU
 ** 输　出  : NONE
 ** 全局变量: 

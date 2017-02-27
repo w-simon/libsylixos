@@ -30,6 +30,7 @@
 2013.11.14  加入内核对象使用信息文件.
 2014.11.21  加入 SMP 调度亲和度信息显示.
 2016.04.07  加入 cmdline 文件.
+2017.02.27  tick 文件加入更详细内容.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -96,8 +97,8 @@ static LW_PROCFS_NODE_OP        _G_pfsnoKernelAffinityFuncs = {
   内核 proc 文件目录树
 *********************************************************************************************************/
 #define __PROCFS_BUFFER_SIZE_VERSION    512
-#define __PROCFS_BUFFER_SIZE_CMDLINE    256
-#define __PROCFS_BUFFER_SIZE_TICK       64                              /*  tick 文件需要的缓冲大小     */
+#define __PROCFS_BUFFER_SIZE_CMDLINE    512
+#define __PROCFS_BUFFER_SIZE_TICK       256                             /*  tick 文件需要的缓冲大小     */
 #define __PROCFS_BUFFER_SIZE_OBJECTS    1024
 
 static LW_PROCFS_NODE           _G_pfsnKernel[] = 
@@ -271,12 +272,35 @@ static ssize_t  __procFsKernelTickRead (PLW_PROCFS_NODE  p_pfsn,
      
     stRealSize = API_ProcFsNodeGetRealFileSize(p_pfsn);
     if (stRealSize == 0) {                                              /*  需要生成文件                */
+        struct timespec  tsMono, tsRealtime;
+        struct tm        tm;
+        CHAR             cRealtimeUtc[32];
+        CHAR             cRealtimeLcl[32];
+        
+        lib_clock_gettime(CLOCK_MONOTONIC, &tsMono);
+        lib_clock_gettime(CLOCK_REALTIME,  &tsRealtime);
+        
+        lib_gmtime_r(&tsRealtime.tv_sec, &tm);
+        lib_asctime_r(&tm, cRealtimeUtc);
+        
+        lib_localtime_r(&tsRealtime.tv_sec, &tm);
+        lib_asctime_r(&tm, cRealtimeLcl);
+        
         stRealSize = bnprintf(pcFileBuffer, 
                               __PROCFS_BUFFER_SIZE_TICK, 0,
-                              "tick rate : %d hz\n"
-                              "tick      : %lld\n",                     /*  使用 64bit 系统时间         */
+                              "tick rate   : %ld hz\n"
+                              "tick        : %lld\n"                    /*  使用 64bit 系统时间         */
+                              "monotonic   : %d:%02d:%02d.%09ld\n"
+                              "reatime UTC : %s"
+                              "reatime LCL : %s",
                               LW_TICK_HZ,
-                              API_TimeGet64());                         /*  将信息打印到缓冲            */
+                              API_TimeGet64(),
+                              (UINT)tsMono.tv_sec / 3600,
+                              (UINT)tsMono.tv_sec / 60 % 60,
+                              (UINT)tsMono.tv_sec % 60,
+                              tsMono.tv_nsec,
+                              cRealtimeUtc,
+                              cRealtimeLcl);                            /*  将信息打印到缓冲            */
         API_ProcFsNodeSetRealFileSize(p_pfsn, stRealSize);
     }
     if (oft >= stRealSize) {

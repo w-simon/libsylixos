@@ -34,6 +34,7 @@
 2013.05.22  elfSymbolExport 加两个参数, 一个为总符号数, 一个为当前导出的符号数. 以提高整体内存效率.
             模块内符号表使用 hash 表, 不再使用扁平数组. (韩辉)
             不再使用缓冲 IO 而是用标准 IO 接口.
+2017.02.26  加入可信计算支持.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -889,7 +890,7 @@ static INT elfLoadReloc (LW_LD_EXEC_MODULE *pmodule, Elf_Ehdr *pehdr, INT  iFd)
     }
 
     pmodule->EMOD_psegmentArry = (LW_LD_EXEC_SEGMENT *)LW_LD_SAFEMALLOC(
-            (sizeof(LW_LD_EXEC_SEGMENT) * (pehdr->e_shnum + 2)));
+                                 (sizeof(LW_LD_EXEC_SEGMENT) * (pehdr->e_shnum + 2)));
     if (!pmodule->EMOD_psegmentArry) {
         _ErrorHandle(ENOMEM);
         goto    __out0;
@@ -963,6 +964,11 @@ static INT elfLoadReloc (LW_LD_EXEC_MODULE *pmodule, Elf_Ehdr *pehdr, INT  iFd)
                 _DebugHandle(__ERRORMESSAGE_LEVEL, "read file error!\r\n");
                 goto    __out2;
             }
+            
+#if LW_CFG_TRUSTED_COMPUTING_EN > 0
+            pmodule->EMOD_psegmentArry[i].ESEG_bCanExec = (pshdr->sh_flags & SHF_EXECINSTR) ?
+                                                          LW_TRUE : LW_FALSE;
+#endif                                                                  /*  LW_CFG_TRUSTED_COMPUTING_EN */
         }
     }
 
@@ -1003,11 +1009,13 @@ __out1:
             }
         }
     }
-#if LW_CFG_HWDBG_GDBMOD_EN == 0                                         /*  硬件调试器需要保留此信息    */
+    
+#if (LW_CFG_HWDBG_GDBMOD_EN == 0) && \
+    (LW_CFG_TRUSTED_COMPUTING_EN == 0)                                  /*  硬件调试器与可信计算需要    */
     LW_LD_SAFEFREE(pmodule->EMOD_psegmentArry);
     pmodule->EMOD_ulSegCount = 0;
 #endif                                                                  /*  !LW_CFG_HWDBG_GDBMOD_EN     */
-
+                                                                        /*  !LW_CFG_TRUSTED_COMPUTING_EN*/
 __out0:
     LW_LD_SAFEFREE(pcBuf);
     return  (iError);
@@ -1298,6 +1306,28 @@ static INT elfPhdrRead (LW_LD_EXEC_MODULE *pmodule,
     /*
      *  分段映射可加载段
      */
+#if LW_CFG_TRUSTED_COMPUTING_EN > 0                                     /*  动态度量需要确定内存结构    */
+    pmodule->EMOD_ulSegCount = 0ul;
+    pphdr = (Elf_Phdr *)pcBuf;
+    for (i = 0; i < pehdr->e_phnum; i++, pphdr++) {
+        if ((PT_LOAD != pphdr->p_type) || (pphdr->p_filesz == 0)) {
+            continue;
+        }
+        pmodule->EMOD_ulSegCount++;
+    }
+    
+    pmodule->EMOD_psegmentArry = (LW_LD_EXEC_SEGMENT *)LW_LD_SAFEMALLOC(
+                                 (sizeof(LW_LD_EXEC_SEGMENT) * pmodule->EMOD_ulSegCount));
+    if (!pmodule->EMOD_psegmentArry) {
+        pmodule->EMOD_ulSegCount = 0ul;
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "system low memory!\r\n");
+        _ErrorHandle(ENOMEM);
+        goto    __out0;
+    }
+    lib_bzero(pmodule->EMOD_psegmentArry,
+              sizeof(LW_LD_EXEC_SEGMENT) * pmodule->EMOD_ulSegCount);
+#endif                                                                  /*  LW_CFG_TRUSTED_COMPUTING_EN */
+     
     pphdr = (Elf_Phdr *)pcBuf;
     for (i = 0; i < pehdr->e_phnum; i++, pphdr++) {
         
@@ -1322,6 +1352,13 @@ static INT elfPhdrRead (LW_LD_EXEC_MODULE *pmodule,
             _DebugHandle(__ERRORMESSAGE_LEVEL, "mmap error!\r\n");
             goto    __out1;
         }
+        
+#if LW_CFG_TRUSTED_COMPUTING_EN > 0                                     /*  动态度量需要确定内存结构    */
+        pmodule->EMOD_psegmentArry[i].ESEG_ulAddr   = (addr_t)pmodule->EMOD_pvBaseAddr
+                                                    + dwMapOff;
+        pmodule->EMOD_psegmentArry[i].ESEG_stLen    = pphdr->p_filesz;
+        pmodule->EMOD_psegmentArry[i].ESEG_bCanExec = bCanExec;
+#endif                                                                  /* LW_CFG_TRUSTED_COMPUTING_EN  */
 
         if (pphdr->p_memsz > pphdr->p_filesz) {                         /* 所需内存空间大于文件数据长度 */
             dwMapOff += pphdr->p_filesz;

@@ -115,6 +115,7 @@ FUNC_DEF(mips32TlbRefillEntry)
     TLBWR                                                               ;/*  TLB Ëæ»úÌæ»»                */
 
     ERET                                                                ;/*  Òì³£·µ»Ø                    */
+    NOP
 
     .set    pop
     FUNC_END(mips32TlbRefillEntry)

@@ -1072,6 +1072,10 @@ VOID  API_LoaderInit (VOID)
 #if LW_CFG_SHELL_EN > 0
     __ldShellInit();
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
+
+#if LW_CFG_TRUSTED_COMPUTING_EN > 0
+    bspTrustedModuleInit();                                             /*  初始化可信计算模块          */
+#endif
 }
 
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */

@@ -134,7 +134,7 @@ VOID  API_TShellSetTitel (INT  iFd, CPCHAR  pcTitel)
 LW_API  
 VOID  API_TShellScrClear (INT  iFd)
 {
-    fdprintf(iFd, "\x1B" "c");
+    fdprintf(iFd, "\x1B" "\x5B" "\x48" "\x1B" "\x5B" "\x32" "\x4A");
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: API_TShellSetStackSize

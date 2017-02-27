@@ -182,8 +182,9 @@ MACRO_DEF(SAVE_NON_VOLATILE_REG)
     .set    noreorder
     .set    volatile
 
-    LW      ZERO , 0(A0)
-    LW      ZERO , STK_OFFSET_LAST(A0)
+    SW      ZERO , 0(A0)
+    SW      ZERO , STK_OFFSET_LAST(A0)
+    SYNC
     ;/*
     ; * 后面不会再发生 TLB 重填异常
     ; */
@@ -234,11 +235,9 @@ MACRO_DEF(SAVE_NON_VOLATILE_REG)
     SW      T1 , STK_OFFSET_CAUSE(A0)
 
     MFLO    T1                                                          ;/*  保存 LO 寄存器              */
-    EHB
     SW      T1 , STK_OFFSET_LO(A0)
 
     MFHI    T1                                                          ;/*  保存 HI 寄存器              */
-    EHB
     SW      T1 , STK_OFFSET_HI(A0)
 
     .set    pop
@@ -256,6 +255,7 @@ MACRO_DEF(RESTORE_NON_VOLATILE_REG)
 
     LW      ZERO , 0(A0)
     LW      ZERO , STK_OFFSET_LAST(A0)
+    SYNC
     ;/*
     ; * 后面不会再发生 TLB 重填异常
     ; */
@@ -312,11 +312,9 @@ MACRO_DEF(RESTORE_NON_VOLATILE_REG)
 
     LW      T1 , STK_OFFSET_LO(A0)                                      ;/*  恢复 LO 寄存器              */
     MTLO    T1
-    EHB
 
     LW      T1 , STK_OFFSET_HI(A0)                                      ;/*  恢复 HI 寄存器              */
     MTHI    T1
-    EHB
 
     LW      T1 , STK_OFFSET_SR(A0)                                      ;/*  恢复 SR  寄存器             */
     MTC0(T1, CP0_STATUS)

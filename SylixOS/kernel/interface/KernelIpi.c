@@ -24,9 +24,9 @@
 ** 函数名称: API_KernelSmpCall
 ** 功能描述: 指定 CPU 调用指定函数
 ** 输　入  : ulCPUId       CPU ID
-**           pfunc         同步执行函数
+**           pfunc         同步执行函数 (被调用函数内部不允许有锁内核操作, 否则可能产生死锁)
 **           pvArg         同步参数
-**           pfuncAsync    异步执行函数
+**           pfuncAsync    异步执行函数 (被调用函数内部不允许有锁内核操作, 否则可能产生死锁)
 **           pvAsync       异步执行参数
 **           iOpt          选项 IPIM_OPT_NORMAL / IPIM_OPT_NOKERN
 ** 输　出  : 同步调用返回值
@@ -63,9 +63,9 @@ INT  API_KernelSmpCall (ULONG        ulCPUId,
 /*********************************************************************************************************
 ** 函数名称: API_KernelSmpCallAllOther
 ** 功能描述: 其他所有激活的 CPU 调用指定函数
-** 输　入  : pfunc         同步执行函数
+** 输　入  : pfunc         同步执行函数 (被调用函数内部不允许有锁内核操作, 否则可能产生死锁)
 **           pvArg         同步参数
-**           pfuncAsync    异步执行函数
+**           pfuncAsync    异步执行函数 (被调用函数内部不允许有锁内核操作, 否则可能产生死锁)
 **           pvAsync       异步执行参数
 **           iOpt          选项 IPIM_OPT_NORMAL / IPIM_OPT_NOKERN
 ** 输　出  : NONE (无法确定返回值)

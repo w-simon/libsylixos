@@ -418,6 +418,17 @@ VOID    x86CpuIdShow(VOID);
 #define X86_WBINVD()
 #endif
 
+/*********************************************************************************************************
+  Trusted computing
+*********************************************************************************************************/
+
+#if LW_CFG_TRUSTED_COMPUTING_EN > 0
+VOID    bspTrustedModuleInit(VOID);
+INT     bspTrustedModuleCheck(const PCHAR  pcPath);
+VOID    bspTrustedModuleLoad(PVOID  pvModule);
+VOID    bspTrustedModuleUnload(PVOID  pvModule);
+#endif                                                                  /*  LW_CFG_TRUSTED_COMPUTING_EN */
+
 #endif                                                                  /*  __ARCH_X86_SUPPORT_H        */
 /*********************************************************************************************************
   END

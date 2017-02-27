@@ -45,6 +45,7 @@
 2014.07.26  cache text update 操作放在每个模块加载之后.
 2015.07.20  修正 moduleDelAndDestory 中的无效链表指针操作.
 2016.05.17  内核模块支持 atexit() 操作. (韩辉)
+2017.02.26  加入可信计算支持.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -117,6 +118,13 @@ static LW_LD_EXEC_MODULE  *moduleCreate (CPCHAR  pcPath,
         _DebugHandle(__ERRORMESSAGE_LEVEL, "module path too long!\r\n");
         return  (LW_NULL);
     }
+    
+#if LW_CFG_TRUSTED_COMPUTING_EN > 0
+    if (ERROR_NONE != bspTrustedModuleCheck(pcPath)) {
+        _ErrorHandle(EACCES);
+        return  (LW_NULL);
+    }
+#endif                                                                  /*  LW_CFG_TRUSTED_COMPUTING_EN */
 
     stModuleSize = sizeof(LW_LD_EXEC_MODULE);
 
@@ -199,6 +207,10 @@ static LW_LD_EXEC_MODULE  *moduleCreate (CPCHAR  pcPath,
 *********************************************************************************************************/
 static INT moduleDestory (LW_LD_EXEC_MODULE *pmodule)
 {
+#if LW_CFG_TRUSTED_COMPUTING_EN > 0
+    bspTrustedModuleUnload((PVOID)pmodule);
+#endif                                                                  /*  LW_CFG_TRUSTED_COMPUTING_EN */
+
     if (pmodule->EMOD_psymbolHash) {                                    /*  符号表销毁                  */
         __moduleDeleteAllSymbol(pmodule);
         LW_LD_SAFEFREE(pmodule->EMOD_psymbolHash);
@@ -444,6 +456,10 @@ static INT initArrayCall (LW_LD_EXEC_MODULE *pmodule)
 
         if (pmodTemp->EMOD_ulStatus == LW_LD_STATUS_LOADED) {
             pmodTemp->EMOD_ulStatus = LW_LD_STATUS_INITED;              /*  处理构造函数调用opendl      */
+
+#if LW_CFG_TRUSTED_COMPUTING_EN > 0
+            bspTrustedModuleLoad((PVOID)pmodTemp);
+#endif                                                                  /*  LW_CFG_TRUSTED_COMPUTING_EN */
 
             for (i = 0; i < pmodTemp->EMOD_ulInitArrCnt; i++) {         /*  正顺序调用初始化函数        */
                 pfuncInit = pmodTemp->EMOD_ppfuncInitArray[i];
@@ -811,8 +827,8 @@ PVOID  API_ModuleLoadEx (CPCHAR  pcFile,
 
     if (LW_NULL == pmodule) {
         /*
-        *  获取动态链接库位置
-        */
+         *  获取动态链接库位置
+         */
         if (ERROR_NONE != moduleGetLibPath(pcFile, cLibPath, MAX_FILENAME_LENGTH, "LD_LIBRARY_PATH")) {
             if (ERROR_NONE != moduleGetLibPath(pcFile, cLibPath, MAX_FILENAME_LENGTH, "PATH")) {
                 fprintf(stderr, "[ld]Can not find dependent library: %s\n", pcFile);
@@ -820,7 +836,7 @@ PVOID  API_ModuleLoadEx (CPCHAR  pcFile,
                 return  (LW_NULL);
             }
         }
-    
+
         pmodule = moduleCreate(cLibPath, LW_TRUE, bIsGlobal,
                                pcInit, pcExit, pcEntry,
                                pcSection, pvproc);                      /*  创建新子模块                */

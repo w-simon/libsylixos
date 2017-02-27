@@ -27,7 +27,7 @@
 /*********************************************************************************************************
   内核参数
 *********************************************************************************************************/
-static CHAR     _K_cKernelStartParam[256];
+static CHAR     _K_cKernelStartParam[512];
 /*********************************************************************************************************
 ** 函数名称: API_KernelStartParam
 ** 功能描述: 系统内核启动参数
@@ -52,7 +52,7 @@ static CHAR     _K_cKernelStartParam[256];
 LW_API
 ULONG  API_KernelStartParam (CPCHAR  pcParam)
 {
-    CHAR        cParamBuffer[256];                                      /*  参数长度不得超过 256 字节   */
+    CHAR        cParamBuffer[512];                                      /*  参数长度不得超过 512 字节   */
     PCHAR       pcDelim = " ";
     PCHAR       pcLast;
     PCHAR       pcTok;

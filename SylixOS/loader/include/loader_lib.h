@@ -42,6 +42,9 @@
 typedef struct {
     addr_t                  ESEG_ulAddr;                                /*  内存段地址                  */
     size_t                  ESEG_stLen;                                 /*  内存段长度                  */
+#if LW_CFG_TRUSTED_COMPUTING_EN > 0
+    BOOL                    ESEG_bCanExec;                              /*  是否可执行                  */
+#endif                                                                  /*  LW_CFG_TRUSTED_COMPUTING_EN */
 } LW_LD_EXEC_SEGMENT;
 
 /*********************************************************************************************************

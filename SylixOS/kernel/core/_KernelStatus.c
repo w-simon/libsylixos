@@ -39,7 +39,7 @@
 #define __LW_SAVE_KERNEL_OWNER(pcpuCur, pcFunc) \
         do {    \
             _K_klKernel.KERN_pvCpuOwner        = (PVOID)pcpuCur;    \
-            _K_klKernel.KERN_ulKernelEnterFunc = pcFunc;  \
+            _K_klKernel.KERN_pcKernelEnterFunc = pcFunc;  \
             if (pcpuCur->CPU_ulInterNesting) {  \
                 _K_klKernel.KERN_ulKernelOwner = ~0;  \
             } else {    \
@@ -50,7 +50,7 @@
 #define __LW_CLEAR_KERNEL_OWNER()   \
         do {    \
             _K_klKernel.KERN_pvCpuOwner        = LW_NULL; \
-            _K_klKernel.KERN_ulKernelEnterFunc = LW_NULL; \
+            _K_klKernel.KERN_pcKernelEnterFunc = LW_NULL; \
             _K_klKernel.KERN_ulKernelOwner     = LW_OBJECT_HANDLE_INVALID;    \
         } while (0)
 #else
@@ -310,7 +310,7 @@ CPCHAR __kernelEnterFunc (VOID)
     CPCHAR  pcKernelEnterFunc;
     
     iregInterLevel = KN_INT_DISABLE();                                  /*  关闭中断                    */
-    pcKernelEnterFunc = _K_klKernel.KERN_ulKernelEnterFunc;
+    pcKernelEnterFunc = _K_klKernel.KERN_pcKernelEnterFunc;
     KN_INT_ENABLE(iregInterLevel);                                      /*  打开中断                    */
     
     return  (pcKernelEnterFunc);

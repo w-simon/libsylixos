@@ -137,11 +137,19 @@ typedef union arch_fpu_ctx  ARCH_FPU_CTX;
 
 #define __ARCH_FLOAT_EXP_NAN           255                              /*  NaN 或者无穷大的 Exp 值     */
 
+#if LW_CFG_CPU_ENDIAN == 0
 typedef struct __cpu_float_field {
     unsigned int        frac : 23;
     unsigned int        exp  :  8;
     unsigned int        sig  :  1;
 } __CPU_FLOAT_FIELD;
+#else
+typedef struct __cpu_float_field {
+    unsigned int        sig  :  1;
+    unsigned int        exp  :  8;
+    unsigned int        frac : 23;
+} __CPU_FLOAT_FIELD;
+#endif                                                                  /*  LW_CFG_CPU_ENDIAN           */
 
 typedef union __cpu_float {
     __CPU_FLOAT_FIELD   fltfield;                                       /*  float 位域字段              */
@@ -177,23 +185,23 @@ static LW_INLINE INT  __ARCH_FLOAT_ISINF (float  x)
   i386-sylixos-elf-gcc ... GNU
 *********************************************************************************************************/
 
-#if LW_CFG_DOUBLE_MIX_ENDIAN > 0
-typedef struct __cpu_double_field {                                     /*  old mixed-endian            */
+#if LW_CFG_CPU_ENDIAN == 0
+typedef struct __cpu_double_field {
+    unsigned int        fracl : 32;
+
     unsigned int        frach : 20;
     unsigned int        exp   : 11;
     unsigned int        sig   :  1;
-    
-    unsigned int        fracl : 32;                                     /*  低 32 位放入高地址          */
 } __CPU_DOUBLE_FIELD;
 #else
-typedef struct __cpu_double_field {                                     /*  native-endian               */
-    unsigned int        fracl : 32;                                     /*  低 32 位放入低地址          */
-    
-    unsigned int        frach : 20;
-    unsigned int        exp   : 11;
+typedef struct __cpu_double_field {
     unsigned int        sig   :  1;
+    unsigned int        exp   : 11;
+    unsigned int        frach : 20;
+    
+    unsigned int        fracl : 32;
 } __CPU_DOUBLE_FIELD;
-#endif                                                                  /*  __ARCH_DOUBLE_MIX_ENDIAN    */
+#endif                                                                  /*  LW_CFG_CPU_ENDIAN           */
 
 typedef union __cpu_double {
     __CPU_DOUBLE_FIELD  dblfield;                                       /*  float 位域字段              */

@@ -383,6 +383,17 @@ VOID    bspCpuPowerSet(UINT  uiPowerLevel);                             /*  设置
 VOID    bspCpuPowerGet(UINT *puiPowerLevel);                            /*  获取 CPU 主频等级           */
 #endif                                                                  /*  LW_CFG_POWERM_EN > 0        */
 
+/*********************************************************************************************************
+  Trusted computing
+*********************************************************************************************************/
+
+#if LW_CFG_TRUSTED_COMPUTING_EN > 0
+VOID    bspTrustedModuleInit(VOID);
+INT     bspTrustedModuleCheck(const PCHAR  pcPath);
+VOID    bspTrustedModuleLoad(PVOID  pvModule);
+VOID    bspTrustedModuleUnload(PVOID  pvModule);
+#endif                                                                  /*  LW_CFG_TRUSTED_COMPUTING_EN */
+
 #endif                                                                  /*  __ARCH_PPC_SUPPORT_H        */
 /*********************************************************************************************************
   END

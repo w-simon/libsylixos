@@ -97,7 +97,7 @@ UINT16  i8254Init (I8254_CTL *pctl, UINT32  uiHz)
      * |   COUNTER_0   |       OCW        |          MODE_3          |  BIN  |
      * +---------------+------------------+--------------------------+-------+
      */
-    out8(PIT_OCW_MODE_SQUARE | PIT_OCW_RL_DATA | PIT_OCW_COUNTER_0, PIT_REG_COMMAND);
+    out8(PIT_OCW_MODE_RATEGEN | PIT_OCW_RL_DATA | PIT_OCW_COUNTER_0, PIT_REG_COMMAND);
 
     /*
      * Set the PIT input frequency divisor

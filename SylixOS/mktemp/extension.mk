@@ -20,6 +20,11 @@
 #*********************************************************************************************************
 
 #*********************************************************************************************************
+# Check configure
+#*********************************************************************************************************
+$(call check_defined, SYLIXOS_LITE_BSP_PATH, SylixOS lite bsp project path)
+
+#*********************************************************************************************************
 # Include common.mk
 #*********************************************************************************************************
 include $(MKTEMP)/common.mk
@@ -81,7 +86,7 @@ LOCAL_LD_SCRIPT_NT := $(LOCAL_LD_SCRIPT) config.ld
 #*********************************************************************************************************
 # Link object files
 #*********************************************************************************************************
-$($(target)_IMG): $(LOCAL_LD_SCRIPT_NT) $($(target)_OBJS) $($(target)_DEPEND_TARGET)
+$($(target)_IMG): $(LOCAL_LD_SCRIPT_NT) $($(target)_OBJS) $($(target)_DEPEND_TARGET) SylixOSBSPSymbol.ld
 		@rm -f $@
 		$(__PRE_LINK_CMD)
 		$(CPP) -E -P $(__DSYMBOL) config.ld -o config.lds
@@ -118,14 +123,20 @@ $($(target)_STRIP_IMG): $($(target)_IMG)
 		$(__PRE_STRIP_CMD)
 		$(STRIP) $< -o $@
 		$(__POST_STRIP_CMD)
+		
+#*********************************************************************************************************
+# Copy SylixOSBSPSymbol.ld
+#*********************************************************************************************************
+SylixOSBSPSymbol.ld: $(subst $(SPACE),\ ,$(SYLIXOS_LITE_BSP_PATH))/$(OUTDIR)/SylixOSBSPSymbol.ld
+		cp $(subst $(SPACE),\ ,$(SYLIXOS_LITE_BSP_PATH))/$(OUTDIR)/SylixOSBSPSymbol.ld ./SylixOSBSPSymbol.ld
 
 #*********************************************************************************************************
 # Add targets
 #*********************************************************************************************************
 ifeq ($(COMMERCIAL), 1)
-TARGETS := $(TARGETS) $($(target)_IMG) $($(target)_BIN) $($(target)_SIZ) $($(target)_STRIP_IMG) $($(target)_LZO)
+TARGETS := $(TARGETS) $($(target)_IMG) $($(target)_BIN) $($(target)_SIZ) $($(target)_STRIP_IMG) $($(target)_LZO) SylixOSBSPSymbol.ld
 else
-TARGETS := $(TARGETS) $($(target)_IMG) $($(target)_BIN) $($(target)_SIZ) $($(target)_STRIP_IMG) 
+TARGETS := $(TARGETS) $($(target)_IMG) $($(target)_BIN) $($(target)_SIZ) $($(target)_STRIP_IMG) SylixOSBSPSymbol.ld
 endif
 
 #*********************************************************************************************************

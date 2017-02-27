@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2017-02-26: han.hui
+    加入可信计算支持接口.
+
     2017-02-23: han.hui
     加入 lite-bsp 与 extension 类型工程模板.
 

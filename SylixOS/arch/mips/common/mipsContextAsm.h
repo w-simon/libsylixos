@@ -136,8 +136,9 @@ MACRO_DEF(SAVE_REGS)
 
     SUBU    SP , STK_CTX_SIZE                                           ;/*  修改 SP                     */
 
-    LW      ZERO , 0(SP)
-    LW      ZERO , STK_OFFSET_LAST(SP)
+    SW      ZERO , 0(SP)
+    SW      ZERO , STK_OFFSET_LAST(SP)
+    SYNC
     ;/*
     ; * 后面不会再发生 TLB 重填异常
     ; */
@@ -156,11 +157,9 @@ MACRO_DEF(SAVE_REGS)
     SW      T1 , STK_OFFSET_CAUSE(SP)
 
     MFLO    T1                                                          ;/*  保存 LO 寄存器              */
-    EHB
     SW      T1 , STK_OFFSET_LO(SP)
 
     MFHI    T1                                                          ;/*  保存 HI 寄存器              */
-    EHB
     SW      T1 , STK_OFFSET_HI(SP)
 
     .set    pop
@@ -178,11 +177,18 @@ MACRO_DEF(RESTORE_REGS)
 
     LW      ZERO , 0(SP)
     LW      ZERO , STK_OFFSET_LAST(SP)
+    SYNC
     ;/*
     ; * 后面不会再发生 TLB 重填异常
     ; */
 
     RESTORE_GREGS                                                       ;/*  恢复 $0 - $31 寄存器        */
+
+    LW      T1 , STK_OFFSET_LO(SP)                                      ;/*  恢复 LO 寄存器              */
+    MTLO    T1
+
+    LW      T1 , STK_OFFSET_HI(SP)                                      ;/*  恢复 HI 寄存器              */
+    MTHI    T1
 
     LW      T1 , STK_OFFSET_CAUSE(SP)                                   ;/*  恢复 CAUSE 寄存器           */
     MTC0(T1, CP0_CAUSE)
@@ -190,25 +196,18 @@ MACRO_DEF(RESTORE_REGS)
     LW      T1 , STK_OFFSET_BADVADDR(SP)                                ;/*  恢复 BADVADDR 寄存器        */
     MTC0(T1, CP0_BADVADDR)
 
-    LW      T1 , STK_OFFSET_EPC(SP)                                     ;/*  恢复 EPC 寄存器             */
-    MTC0(T1, CP0_EPC)
-
-    LW      T1 , STK_OFFSET_LO(SP)                                      ;/*  恢复 LO 寄存器              */
-    MTLO    T1
-    EHB
-
-    LW      T1 , STK_OFFSET_HI(SP)                                      ;/*  恢复 HI 寄存器              */
-    MTHI    T1
-    EHB
-
-    LW      T1 , STK_OFFSET_SR(SP)                                      ;/*  恢复 SR  寄存器             */
-    ORI     T1 , T1 , M_StatusEXL                                       ;/*  通过设置 EXL 位             */
-    MTC0(T1, CP0_STATUS)                                                ;/*  进入内核模式，并关中断      */
-
     LW      T1 , REG_T1 * 4(SP)                                         ;/*  恢复 T1 寄存器              */
+
+    LW      K0 , STK_OFFSET_SR(SP)                                      ;/*  恢复 SR  寄存器             */
+    LW      K1 , STK_OFFSET_EPC(SP)                                     ;/*  恢复 EPC 寄存器             */
 
     ADDU    SP , STK_CTX_SIZE                                           ;/*  修改 SP                     */
 
+    ORI     K0 , K0 , M_StatusEXL                                       ;/*  通过设置 EXL 位             */
+
+    MTC0    K1, CP0_EPC                                                 ;/*  恢复 EPC 寄存器             */
+    MTC0    K0, CP0_STATUS                                              ;/*  进入内核模式，并关中断      */
+    EHB
     ERET                                                                ;/*  清除 EXL 位并返回           */
     NOP
 

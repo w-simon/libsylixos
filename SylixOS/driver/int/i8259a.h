@@ -45,6 +45,8 @@ struct i8259a_ctl {
     INT     trigger;                                                    /* 0 : edge trigger             */
                                                                         /* 1 : level trigger            */
 
+    INT     manual_eoi;                                                 /* 1 : manual EOI               */
+                                                                        /* 0 : auto EOI                 */
     UINT    vector_base;                                                /* base vector                  */
 };
 
@@ -56,6 +58,7 @@ VOID  i8259aIrqDisable(I8259A_CTL *pctl, UINT  irq);
 VOID  i8259aIrqEnable(I8259A_CTL *pctl, UINT  irq);
 BOOL  i8259aIrqIsEnable(I8259A_CTL *pctl, UINT  irq);
 BOOL  i8259aIrqIsPending(I8259A_CTL *pctl, UINT  irq);
+VOID  i8259aIrqEoi (I8259A_CTL *pctl);
 INT   i8259aIrq(I8259A_CTL *pctl);
 VOID  i8259aInit(I8259A_CTL *pctl);
 
