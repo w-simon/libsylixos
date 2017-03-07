@@ -57,6 +57,12 @@ FPUFLAGS = -mfloat-abi=softfp -mfpu=$(FPU_TYPE)
 endif
 
 CPUFLAGS_WITHOUT_FPUFLAGS = -mcpu=$(CPU_TYPE)
+ifneq (,$(findstring cortex-m,$(CPU_TYPE)))
+CPUFLAGS_WITHOUT_FPUFLAGS += -mthumb
+endif
+ifneq (,$(findstring be,$(TOOLCHAIN_PREFIX)))
+CPUFLAGS_WITHOUT_FPUFLAGS += -mbig-endian
+endif
 CPUFLAGS                  = $(CPUFLAGS_WITHOUT_FPUFLAGS) $(FPUFLAGS)
 CPUFLAGS_NOFPU            = $(CPUFLAGS_WITHOUT_FPUFLAGS)
 endif

@@ -76,7 +76,7 @@ static SD_DRV _G_sddrvSdioBase;
 *********************************************************************************************************/
 LW_API INT API_SdioBaseDrvInstall (VOID)
 {
-    _G_sddrvSdioBase.SDDRV_cpcName        = "/dev/sdio";
+    _G_sddrvSdioBase.SDDRV_cpcName        = SDDRV_SDIOB_NAME;
     _G_sddrvSdioBase.SDDRV_pfuncDevCreate = __sdiobaseDevCreate;
     _G_sddrvSdioBase.SDDRV_pfuncDevDelete = __sdiobaseDevDelete;
 
@@ -277,6 +277,7 @@ static INT  __sdiobasePreInit (SDIO_INIT_DATA *pinitdata, PLW_SDCORE_DEVICE psdc
     API_SdCoreDevCtl(psdcoredev, SDBUS_CTRL_SETBUSWIDTH, SDARG_SETBUSWIDTH_1);
 
     API_SdioCoreDevReset(psdcoredev);
+    API_SdCoreDevReset(psdcoredev);
 
     iRet = API_SdioCoreDevSendIoOpCond(psdcoredev, 0, &uiOcr);      /*  获取设备支持的OCR               */
     if (iRet != ERROR_NONE) {

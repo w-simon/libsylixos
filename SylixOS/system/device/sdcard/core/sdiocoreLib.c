@@ -133,9 +133,9 @@ INT API_SdioCoreDevSendIoOpCond (PLW_SDCORE_DEVICE   psdcoredev, UINT32 uiOcr, U
     sdcmd.SDCMD_uiFlag   = SD_RSP_SPI_R4 | SD_RSP_R4 | SD_CMD_BCR;
 
     for (i = 100; i; i--) {
-        iError = API_SdCoreDevCmd(psdcoredev, &sdcmd, 0);
+        iError = API_SdCoreDevCmd(psdcoredev, &sdcmd, SD_CMD_GEN_RETRY);
         if (iError != ERROR_NONE) {
-            break;
+            continue;
         }
 
         /*

@@ -1354,7 +1354,8 @@ static INT __sdhciBusWidthSet (__PSDHCI_HOST  psdhcihost, UINT32 uiBusWidth)
     BOOL                bSdioIntEn     = psdhcihost->SDHCIHS_bSdioIntEnable;
     UINT8               ucCtl;
 
-    if (!SDHCI_QUIRK_FLG(psdhcihostattr, SDHCI_QUIRK_FLG_CANNOT_SDIO_INT)) {
+    if (!SDHCI_QUIRK_FLG(psdhcihostattr, SDHCI_QUIRK_FLG_CANNOT_SDIO_INT) &&
+        !SDHCI_QUIRK_FLG(psdhcihostattr, SDHCI_QUIRK_FLG_SDIO_INT_OOB)) {
         __sdhciSdioIntEn(psdhcihost, LW_FALSE);                         /*  禁止卡中断                  */
     }
 
@@ -1397,7 +1398,8 @@ static INT __sdhciBusWidthSet (__PSDHCI_HOST  psdhcihost, UINT32 uiBusWidth)
     SDHCI_WRITEB(psdhcihostattr, SDHCI_HOST_CONTROL, ucCtl);
 
 __ret:
-    if (!SDHCI_QUIRK_FLG(psdhcihostattr, SDHCI_QUIRK_FLG_CANNOT_SDIO_INT)) {
+    if (!SDHCI_QUIRK_FLG(psdhcihostattr, SDHCI_QUIRK_FLG_CANNOT_SDIO_INT) &&
+        !SDHCI_QUIRK_FLG(psdhcihostattr, SDHCI_QUIRK_FLG_SDIO_INT_OOB)) {
         __sdhciSdioIntEn(psdhcihost, bSdioIntEn);                         /*  恢复之前的卡中断设置      */
     }
     return  (ERROR_NONE);
@@ -1426,6 +1428,14 @@ static INT __sdhciPowerOn (__PSDHCI_HOST  psdhcihost)
         }
     }
 
+    /*
+     * 额外电源设置与控制器本身无关
+     */
+    if (psdhcihostattr->SDHCIHOST_pquirkop &&
+        psdhcihostattr->SDHCIHOST_pquirkop->SDHCIQOP_pfuncExtraPowerSet) {
+        psdhcihostattr->SDHCIHOST_pquirkop->SDHCIQOP_pfuncExtraPowerSet(psdhcihostattr, LW_TRUE);
+    }
+
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -1445,6 +1455,14 @@ static INT __sdhciPowerOff (__PSDHCI_HOST  psdhcihost)
         ucPow  = SDHCI_READB(psdhcihostattr, SDHCI_POWER_CONTROL);
         ucPow &= ~SDHCI_POWCTL_ON;
         SDHCI_WRITEB(psdhcihostattr, SDHCI_POWER_CONTROL, ucPow);
+    }
+
+    /*
+     * 额外电源设置与控制器本身无关
+     */
+    if (psdhcihostattr->SDHCIHOST_pquirkop &&
+        psdhcihostattr->SDHCIHOST_pquirkop->SDHCIQOP_pfuncExtraPowerSet) {
+        psdhcihostattr->SDHCIHOST_pquirkop->SDHCIQOP_pfuncExtraPowerSet(psdhcihostattr, LW_FALSE);
     }
 
     return  (ERROR_NONE);
@@ -1705,6 +1723,14 @@ static VOID __sdhciSdmSdioIntEn (SD_HOST *psdhost,  BOOL bEnable)
     psdhcihost     = psdhcisdmhost->SDHCISDMH_psdhcihost;
     psdhcihostattr = &psdhcihost->SDHCIHS_sdhcihostattr;
 
+    if(SDHCI_QUIRK_FLG(psdhcihostattr, SDHCI_QUIRK_FLG_SDIO_INT_OOB)) {
+        if (psdhcihostattr->SDHCIHOST_pquirkop &&
+            psdhcihostattr->SDHCIHOST_pquirkop->SDHCIQOP_pfuncOOBInterSet) {
+            psdhcihostattr->SDHCIHOST_pquirkop->SDHCIQOP_pfuncOOBInterSet(psdhcihostattr, bEnable);
+        }
+        return;
+    }
+
     if (SDHCI_QUIRK_FLG(psdhcihostattr, SDHCI_QUIRK_FLG_CANNOT_SDIO_INT)) {
         if (psdhcihost->SDHCIHS_bSdioIntEnable == bEnable) {
             return;
@@ -1831,7 +1857,7 @@ static INT  __sdhciCmdSend (__PSDHCI_HOST   psdhcihost,
     if (psddat) {
         __sdhciTransferModSet(psdhcihost);
     } else {
-        uiMask = SDHCI_READL(psdhcihostattr, SDHCI_TRANSFER_MODE);
+        uiMask = SDHCI_READW(psdhcihostattr, SDHCI_TRANSFER_MODE);
         uiMask &=  ~(SDHCI_TRNS_ACMD12 | SDHCI_TRNS_ACMD23);
         SDHCI_WRITEW(psdhcihostattr, SDHCI_TRANSFER_MODE, uiMask);
     }
@@ -2308,6 +2334,10 @@ static INT  __sdhciTransTaskInit (__SDHCI_TRANS *psdhcitrans)
     LW_SDHCI_HOST_ATTR  *psdhcihostattr;
 
     psdhcihostattr = &psdhcitrans->SDHCITS_psdhcihost->SDHCIHS_sdhcihostattr;
+    if (SDHCI_QUIRK_FLG(psdhcihostattr, SDHCI_QUIRK_FLG_SDIO_INT_OOB)) {
+        return  (ERROR_NONE);
+    }
+
     if (SDHCI_QUIRK_FLG(psdhcihostattr, SDHCI_QUIRK_FLG_CANNOT_SDIO_INT)) {
         hSdioIntSem = API_SemaphoreBCreate("sdhcisdio_sem",
                                            LW_FALSE,
@@ -2357,6 +2387,14 @@ __err:
 *********************************************************************************************************/
 static INT  __sdhciTransTaskDeInit (__SDHCI_TRANS *psdhcitrans)
 {
+    LW_SDHCI_HOST_ATTR  *psdhcihostattr;
+
+    psdhcihostattr = &psdhcitrans->SDHCITS_psdhcihost->SDHCIHS_sdhcihostattr;
+
+    if (SDHCI_QUIRK_FLG(psdhcihostattr, SDHCI_QUIRK_FLG_SDIO_INT_OOB)) {
+        return  (ERROR_NONE);
+    }
+
     API_ThreadDelete(&psdhcitrans->SDHCITS_hSdioIntThread, LW_NULL);
     API_SemaphoreDelete(&psdhcitrans->SDHCITS_hSdioIntSem);
 
@@ -2653,7 +2691,9 @@ __redo:
 
     KN_IO_MB();
 
-    if (bSdioInt && !SDHCI_QUIRK_FLG(psdhcihostattr, SDHCI_QUIRK_FLG_CANNOT_SDIO_INT)) {
+    if (!SDHCI_QUIRK_FLG(psdhcihostattr, SDHCI_QUIRK_FLG_CANNOT_SDIO_INT) &&
+        !SDHCI_QUIRK_FLG(psdhcihostattr, SDHCI_QUIRK_FLG_SDIO_INT_OOB)    &&
+        bSdioInt) {
         __sdhciSdioIntEn(psdhcitrans->SDHCITS_psdhcihost, LW_FALSE);
         __SDHCI_SDIO_NOTIFY(psdhcitrans);
     }

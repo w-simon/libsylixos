@@ -39,35 +39,35 @@
   
   VFPv2: (dreg is s)
     +-----------+
- 	| freg[31]  |    + 0x98 <-- (r0 + 152)
- 	|  ...      |
- 	| freg[2]   |    + 0x24
- 	| freg[1]   |    + 0x20
- 	| freg[0]   |    + 0x1C  <-- (r0 + 28)
- 	| mfvfr1    |    + 0x18
- 	| mfvfr0    |    + 0x14
- 	| fpinst2   |    + 0x10
- 	| fpinst    |    + 0x0C
- 	| fpexc     |    + 0x08
- 	| fpscr     |    + 0x04
- 	| fpsid     | <-- arch_fpu_ctx ( = r0 )
- 	+-----------+
- 	
+    | freg[31]  |    + 0x98 <-- (r0 + 152)
+    |  ...      |
+    | freg[2]   |    + 0x24
+    | freg[1]   |    + 0x20
+    | freg[0]   |    + 0x1C  <-- (r0 + 28)
+    | mfvfr1    |    + 0x18
+    | mfvfr0    |    + 0x14
+    | fpinst2   |    + 0x10
+    | fpinst    |    + 0x0C
+    | fpexc     |    + 0x08
+    | fpscr     |    + 0x04
+    | fpsid     | <-- arch_fpu_ctx ( = r0 )
+    +-----------+
+    
   VFPv3: (dreg is s)
     +-----------+
- 	| freg[63]  |    + 0x118 <-- (r0 + 280)
- 	|  ...      |
- 	| freg[2]   |    + 0x24
- 	| freg[1]   |    + 0x20
- 	| freg[0]   |    + 0x1C  <-- (r0 + 28)
- 	| mfvfr1    |    + 0x18
- 	| mfvfr0    |    + 0x14
- 	| fpinst2   |    + 0x10
- 	| fpinst    |    + 0x0C
- 	| fpexc     |    + 0x08
- 	| fpscr     |    + 0x04
- 	| fpsid     | <-- arch_fpu_ctx ( = r0 )
- 	+-----------+
+    | freg[63]  |    + 0x118 <-- (r0 + 280)
+    |  ...      |
+    | freg[2]   |    + 0x24
+    | freg[1]   |    + 0x20
+    | freg[0]   |    + 0x1C  <-- (r0 + 28)
+    | mfvfr1    |    + 0x18
+    | mfvfr0    |    + 0x14
+    | fpinst2   |    + 0x10
+    | fpinst    |    + 0x0C
+    | fpexc     |    + 0x08
+    | fpscr     |    + 0x04
+    | fpsid     | <-- arch_fpu_ctx ( = r0 )
+    +-----------+
 *********************************************************************************************************/
 
 typedef struct arch_fpu_ctx {                                           /* VFPv2/VFPv3 иообнд           */
@@ -97,7 +97,11 @@ typedef struct __cpu_float_field {
     unsigned int        sig  :  1;
 } __CPU_FLOAT_FIELD;
 #else
-#error "ARM processor MUST configured as little-endian!"
+typedef struct __cpu_float_field {
+    unsigned int        sig  :  1;
+    unsigned int        exp  :  8;
+    unsigned int        frac : 23;
+} __CPU_FLOAT_FIELD;
 #endif                                                                  /*  LW_CFG_CPU_ENDIAN           */
 
 typedef union __cpu_float {
@@ -153,7 +157,13 @@ typedef struct __cpu_double_field {                                     /*  nati
 } __CPU_DOUBLE_FIELD;
 #endif                                                                  /*  __ARCH_DOUBLE_MIX_ENDIAN    */
 #else
-#error "ARM processor MUST configured as little-endian!"
+typedef struct __cpu_double_field {
+    unsigned int        sig   :  1;
+    unsigned int        exp   : 11;
+    unsigned int        frach : 20;
+
+    unsigned int        fracl : 32;
+} __CPU_DOUBLE_FIELD;
 #endif                                                                  /*  LW_CFG_CPU_ENDIAN           */
 
 typedef union __cpu_double {

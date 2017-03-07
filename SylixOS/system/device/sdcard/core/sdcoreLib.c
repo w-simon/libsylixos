@@ -1199,7 +1199,7 @@ static INT __sdCoreSelectDev (PLW_SDCORE_DEVICE psdcoredevice, BOOL bSel)
 INT API_SdCoreDevSelect (PLW_SDCORE_DEVICE psdcoredevice)
 {
     INT iError;
-	
+
     iError = __sdCoreSelectDev(psdcoredevice, LW_TRUE);
 
     return  (iError);

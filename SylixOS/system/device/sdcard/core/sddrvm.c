@@ -24,6 +24,8 @@
 2015.05.04  host 设备 event 操作参数改为 host 句柄, 提高速度.
             将 host 自旋锁改为 mutex 信号量.
 2015.09.18  增加控制器扩展选项设置, 以适应更多实际应用的场合.
+2017.02.27  增加控制器驱动过滤处理.
+2017.03.02  增加对应用层手动处理设备插入/移除操作的支持.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -97,11 +99,12 @@ struct __sdm_host {
     /*
      * 扩展选项
      */
-    LONG             SDMHSOT_lReserveSector;
-    LONG             SDMHSOT_lMaxBurstSector;
-    LONG             SDMHSOT_lCacheSize;
-    LONG             SDMHSOT_lCachePl;
-    LONG             SDMHSOT_lCacheCoherence;
+    LONG             SDMHOST_lReserveSector;
+    LONG             SDMHOST_lMaxBurstSector;
+    LONG             SDMHOST_lCacheSize;
+    LONG             SDMHOST_lCachePl;
+    LONG             SDMHOST_lCacheCoherence;
+    LONG             SDMHOST_lCfgFlag;
 };
 /*********************************************************************************************************
   前置声明
@@ -126,6 +129,8 @@ static INT         __sdmCallbackUnInstall(SD_HOST *psdhost);
 static VOID        __sdmSpiCsEn(__SDM_HOST_CHAN *psdmhostchan);
 static VOID        __sdmSpiCsDis(__SDM_HOST_CHAN *psdmhostchan);
 static VOID        __sdmEventNewDrv(VOID);
+
+static BOOL        __sdmDrvIgnore(__SDM_HOST *psdmhost, SD_DRV  *sddrv);
 /*********************************************************************************************************
   SDM 内部调试相关
   使用独立的线程处理事件, 方便跟踪调试
@@ -369,6 +374,28 @@ LW_API BOOL  API_SdmHostIsCardWp (PLW_SDCORE_DEVICE psdcoredev)
     return  (bIsWp);
 }
 /*********************************************************************************************************
+** 函数名称: API_SdmHostGet
+** 功能描述: 获得该核心设备对应的 SDM Host
+** 输    入: psdcoredev       sd 卡对应的核心设备传输对象
+** 输    出: SDM Host 对象
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+LW_API PVOID API_SdmHostGet (PLW_SDCORE_DEVICE psdcoredev)
+{
+    CPCHAR      cpcHostName;
+    __SDM_HOST *psdmhost;
+
+    cpcHostName = API_SdCoreDevAdapterName(psdcoredev);
+    if (!cpcHostName) {
+        return  (LW_FALSE);
+    }
+
+    psdmhost = __sdmHostFind(cpcHostName);
+
+    return  (psdmhost);
+}
+/*********************************************************************************************************
 ** 函数名称: API_SdmSdDrvRegister
 ** 功能描述: 向SDM注册一个设备应用驱动
 ** 输    入: psddrv       sd 驱动. 注意 SDM 内部会直接引用该对象, 因此该对象需要持续有效
@@ -443,13 +470,7 @@ LW_API INT  API_SdmEventNotify (PVOID pvSdmHost, INT iEvtType)
         return  (hotplugEvent(__sdmEventNewDrv, 0, 0, 0, 0, 0, 0));
     }
 
-    /*
-     * 处理Host传来的事件
-     */
     psdmhost = (__SDM_HOST *)pvSdmHost;
-    if (!psdmhost) {
-        return  (PX_ERROR);
-    }
 
     switch (iEvtType) {
     case SDM_EVENT_BOOT_DEV_INSERT:
@@ -496,7 +517,7 @@ LW_API INT   API_SdmHostExtOptSet (PVOID pvSdmHost, INT  iOption, LONG  lArg)
     switch (iOption) {
     case SDHOST_EXTOPT_RESERVE_SECTOR_SET:
         if (lArg >= 0) {
-            psdmhost->SDMHSOT_lReserveSector = lArg;
+            psdmhost->SDMHOST_lReserveSector = lArg;
         } else {
             return  (PX_ERROR);
         }
@@ -504,7 +525,7 @@ LW_API INT   API_SdmHostExtOptSet (PVOID pvSdmHost, INT  iOption, LONG  lArg)
 
     case SDHOST_EXTOPT_MAXBURST_SECTOR_SET:
         if (lArg >= 0) {
-            psdmhost->SDMHSOT_lMaxBurstSector = lArg;
+            psdmhost->SDMHOST_lMaxBurstSector = lArg;
         } else {
             return  (PX_ERROR);
         }
@@ -512,7 +533,7 @@ LW_API INT   API_SdmHostExtOptSet (PVOID pvSdmHost, INT  iOption, LONG  lArg)
 
     case SDHOST_EXTOPT_CACHE_SIZE_SET:
         if (lArg >= 0) {
-            psdmhost->SDMHSOT_lCacheSize = lArg;
+            psdmhost->SDMHOST_lCacheSize = lArg;
         } else {
             return  (PX_ERROR);
         }
@@ -520,7 +541,7 @@ LW_API INT   API_SdmHostExtOptSet (PVOID pvSdmHost, INT  iOption, LONG  lArg)
         
     case SDHOST_EXTOPT_CACHE_PL_SET:
         if (lArg >= 0) {
-            psdmhost->SDMHSOT_lCachePl = lArg;
+            psdmhost->SDMHOST_lCachePl = lArg;
         } else {
             return  (PX_ERROR);
         }
@@ -528,10 +549,14 @@ LW_API INT   API_SdmHostExtOptSet (PVOID pvSdmHost, INT  iOption, LONG  lArg)
         
     case SDHOST_EXTOPT_CACHE_COHERENCE_SET:
         if (lArg >= 0) {
-            psdmhost->SDMHSOT_lCacheCoherence = lArg;
+            psdmhost->SDMHOST_lCacheCoherence = lArg;
         } else {
             return  (PX_ERROR);
         }
+        break;
+
+    case SDHOST_EXTOPT_CONFIG_FLAG_SET:
+        psdmhost->SDMHOST_lCfgFlag = lArg;
         break;
 
     default:
@@ -569,25 +594,29 @@ LW_API INT   API_SdmHostExtOptGet (PLW_SDCORE_DEVICE psdcoredev, INT  iOption, L
     switch (iOption) {
     
     case SDHOST_EXTOPT_RESERVE_SECTOR_GET:
-        *(LONG *)lArg = psdmhost->SDMHSOT_lReserveSector;
+        *(LONG *)lArg = psdmhost->SDMHOST_lReserveSector;
         break;
 
     case SDHOST_EXTOPT_MAXBURST_SECTOR_GET:
-        *(LONG *)lArg = psdmhost->SDMHSOT_lMaxBurstSector;
+        *(LONG *)lArg = psdmhost->SDMHOST_lMaxBurstSector;
         break;
 
     case SDHOST_EXTOPT_CACHE_SIZE_GET:
-        *(LONG *)lArg = psdmhost->SDMHSOT_lCacheSize;
+        *(LONG *)lArg = psdmhost->SDMHOST_lCacheSize;
         break;
 
     case SDHOST_EXTOPT_CACHE_PL_GET:
-        *(LONG *)lArg = psdmhost->SDMHSOT_lCachePl;
+        *(LONG *)lArg = psdmhost->SDMHOST_lCachePl;
         break;
         
     case SDHOST_EXTOPT_CACHE_COHERENCE_GET:
-        *(LONG *)lArg = psdmhost->SDMHSOT_lCacheCoherence;
+        *(LONG *)lArg = psdmhost->SDMHOST_lCacheCoherence;
         break;
         
+    case SDHOST_EXTOPT_CONFIG_FLAG_GET:
+        *(LONG *)lArg = psdmhost->SDMHOST_lCfgFlag;
+        break;
+
     default:
         _ErrorHandle(ENOSYS);
         return  (PX_ERROR);
@@ -631,17 +660,42 @@ static VOID  __sdmEventNewDrv (VOID)
 *********************************************************************************************************/
 static VOID __sdmDevCreate (__SDM_HOST *psdmhost)
 {
-    SD_HOST           *psdhost = psdmhost->SDMHOST_psdhost;
+    SD_HOST           *psdhost;
     SD_DRV            *psddrv  = LW_NULL;
     __SDM_SD_DEV      *psdmdev;
     PLW_SDCORE_DEVICE  psdcoredev;
     PLW_LIST_LINE      plineTemp;
     INT                iRet;
 
+    /*
+     * 应用层手动探测设备
+     */
+    if (!psdmhost) {
+        PLW_LIST_LINE  plineTemp;
+
+        __SDM_HOST_LOCK();
+        for (plineTemp  = _G_plineSdmhostHeader;
+             plineTemp != LW_NULL;
+             plineTemp  = _list_line_get_next(plineTemp)) {
+
+            psdmhost = _LIST_ENTRY(plineTemp, __SDM_HOST, SDMHOST_lineManage);
+            if (!psdmhost->SDMHOST_psdmdevAttached) {
+                hotplugEvent((VOIDFUNCPTR)__sdmDevCreate, (PVOID)psdmhost, 0, 0, 0, 0, 0);
+            }
+        }
+        __SDM_HOST_UNLOCK();
+
+        return;
+    }
+
+    /*
+     * 控制器驱动层热插拔探测设备
+     */
     if (psdmhost->SDMHOST_psdmdevAttached) {
         return;
     }
 
+    psdhost = psdmhost->SDMHOST_psdhost;
     psdmdev = (__SDM_SD_DEV *)__SHEAP_ALLOC(sizeof(__SDM_SD_DEV));
     if (!psdmdev) {
         SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "system low memory.\r\n");
@@ -653,6 +707,9 @@ static VOID __sdmDevCreate (__SDM_HOST *psdmhost)
          plineTemp  = _list_line_get_next(plineTemp)) {
 
         psddrv = _LIST_ENTRY(plineTemp, SD_DRV, SDDRV_lineManage);
+        if (__sdmDrvIgnore(psdmhost, psddrv)) {
+            continue;
+        }
 
         iRet = __sdUnitGet(psddrv->SDDRV_pvSpec);
         if (iRet < 0) {
@@ -732,6 +789,10 @@ static VOID __sdmDevDelete (__SDM_HOST *psdmhost)
     SD_DRV          *psddrv;
     __SDM_SD_DEV    *psdmdev;
 
+    if (!psdmhost) {
+        return;
+    }
+
     psdmdev = psdmhost->SDMHOST_psdmdevAttached;
     if (!psdmdev) {
         psdmhost->SDMHOST_bDevIsOrphan = LW_FALSE;
@@ -780,6 +841,10 @@ static INT __sdmSdioIntHandle (__SDM_HOST *psdmhost)
     INT              iRet;
 
     INT  __sdiobaseDevIrqHandle(SD_DRV *psddrv,  VOID *pvDevPriv);
+
+    if (!psdmhost) {
+        return  (PX_ERROR);
+    }
 
     psdmdev = psdmhost->SDMHOST_psdmdevAttached;
     if (!psdmdev) {
@@ -879,11 +944,12 @@ static VOID  __sdmHostDelete (__SDM_HOST *psdmhost)
 *********************************************************************************************************/
 static VOID  __sdmHostExtOptInit (__SDM_HOST  *psdmhost)
 {
-    psdmhost->SDMHSOT_lMaxBurstSector = 64;
-    psdmhost->SDMHSOT_lCacheSize      = 512 * 1024;
-    psdmhost->SDMHSOT_lCachePl        = 1;
-    psdmhost->SDMHSOT_lCacheCoherence = (LONG)LW_FALSE;
-    psdmhost->SDMHSOT_lReserveSector  = 0;
+    psdmhost->SDMHOST_lMaxBurstSector = 64;
+    psdmhost->SDMHOST_lCacheSize      = 512 * 1024;
+    psdmhost->SDMHOST_lCachePl        = 1;
+    psdmhost->SDMHOST_lCacheCoherence = (LONG)LW_FALSE;
+    psdmhost->SDMHOST_lReserveSector  = 0;
+    psdmhost->SDMHOST_lCfgFlag        = 0;
 }
 /*********************************************************************************************************
 ** 函数名称: __sdmDrvInsert
@@ -994,6 +1060,28 @@ static VOID __sdmSpiCsDis (__SDM_HOST_CHAN *psdmhostchan)
     if (psdhost->SDHOST_pfuncSpicsDis) {
         psdhost->SDHOST_pfuncSpicsDis(psdhost);
     }
+}
+/*********************************************************************************************************
+** 函数名称: __sdmDrvIgnore
+** 功能描述: 判断控制器是否需要忽略该驱动
+** 输    入: psdmhostchan     控制器通道
+** 输    出: ERROR CODE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static BOOL  __sdmDrvIgnore (__SDM_HOST *psdmhost, SD_DRV  *sddrv)
+{
+    if ((psdmhost->SDMHOST_lCfgFlag & SDHOST_EXTOPT_CONFIG_SKIP_SDMEM) &&
+        ((ULONG)sddrv->SDDRV_cpcName == (ULONG)SDDRV_SDMEM_NAME)) {
+        return  (LW_TRUE);
+    }
+
+    if ((psdmhost->SDMHOST_lCfgFlag & SDHOST_EXTOPT_CONFIG_SKIP_SDIO) &&
+        ((ULONG)sddrv->SDDRV_cpcName == (ULONG)SDDRV_SDIOB_NAME)) {
+        return  (LW_TRUE);
+    }
+
+    return  (LW_FALSE);
 }
 /*********************************************************************************************************
 ** 函数名称: __sdmDebugLibInit

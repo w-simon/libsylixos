@@ -114,8 +114,7 @@ typedef struct {
     UINT8                   ECTX_ucXSaveHeader[X86_FP_XSAVE_HDR_SIZE];  /*  64    XSave header          */
     X86_FPU_DOUBLEX_SSE     ECTX_ymm[X86_XMM_REGS_NR];                  /*  8*16                        */
                                                                         /*  higher 128 bits of YMM[0-7] */
-    UINT8                   ECTX_ucPad[320];
-} X86_FPU_X_EXT_CTX;                                                    /*  1024   bytes total          */
+} X86_FPU_X_EXT_CTX;
 
 /*********************************************************************************************************
   线程浮点运算器上下文
@@ -125,6 +124,7 @@ union arch_fpu_ctx {
     X86_FPU_OLD_CTX         FPUCTX_oldCtx;                              /*  x87 MMX context             */
     X86_FPU_X_CTX           FPUCTX_XCtx;                                /*  SSE context                 */
     X86_FPU_X_EXT_CTX       FPUCTX_XExtCtx;                             /*  Extended FP context         */
+    UINT8                   FPUCTX_ucXExtSz[LW_CFG_CPU_FPU_XSAVE_SIZE]; /*  Extended FP context Max Size*/
 } __attribute__ ((packed, aligned(64)));                                /*  !按最大 CACHE 对齐大小对齐! */
 
 typedef union arch_fpu_ctx  ARCH_FPU_CTX;

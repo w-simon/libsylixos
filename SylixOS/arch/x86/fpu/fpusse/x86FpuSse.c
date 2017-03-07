@@ -348,8 +348,8 @@ PX86_FPU_OP  x86FpuSsePrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
     _G_fpuopFpuSse.PFPU_pfuncCtxShow     = x86FpuSseCtxShow;
 
     if (_G_bX86HasXSAVE && _G_bX86HasAVX) {
-        if (_G_stX86XSaveCtxSize > sizeof(X86_FPU_X_EXT_CTX)) {
-            _PrintFormat("x86FpuSsePrimaryInit(): XSAVE context size = %d > sizeof(ARCH_FPU_CTX)"
+        if (_G_stX86XSaveCtxSize > LW_CFG_CPU_FPU_XSAVE_SIZE) {
+            _PrintFormat("x86FpuSsePrimaryInit(): XSAVE context size = %d > LW_CFG_CPU_FPU_XSAVE_SIZE"
                          ", use FXSR\r\n", _G_stX86XSaveCtxSize);
 
             _G_bX86HasXSAVE = LW_FALSE;

@@ -70,7 +70,7 @@ static SD_DRV  _G_sddrvMem;
 *********************************************************************************************************/
 LW_API INT API_SdMemDrvInstall (VOID)
 {
-    _G_sddrvMem.SDDRV_cpcName        = "/dev/sdmem";
+    _G_sddrvMem.SDDRV_cpcName        = SDDRV_SDMEM_NAME;
     _G_sddrvMem.SDDRV_pfuncDevCreate = __sdmemDevCreate;
     _G_sddrvMem.SDDRV_pfuncDevDelete = __sdmemDevDelete;
     

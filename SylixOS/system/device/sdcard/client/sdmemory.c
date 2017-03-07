@@ -52,6 +52,7 @@ typedef struct __sd_blk_dev {
     LW_BLK_DEV            SDBLKDEV_blkDev;
     PLW_SDCORE_DEVICE     SDBLKDEV_pcoreDev;
     BOOL                  SDBLKDEV_bIsBlockAddr;                        /*  是否是块寻址                */
+    BOOL                  SDBLKDEV_bNeedReSelect;                       /*  是否需要重新选择设备        */
     ULONG                 SDBLKDEV_ulSectorOff;                         /*  扇区访问偏移                */
     ULONG                 SDBLKDEV_ulDiskNSector;                       /*  挂载磁盘的实际扇区数量      */
     /*
@@ -152,6 +153,7 @@ LW_API PLW_BLK_DEV API_SdMemDevCreate (INT                       iAdapterType,
     BOOL                bBlkAddr;
     INT                 iBlkDevFlag;
     ULONG               ulSectorOff;
+    ULONG               ulRelect;
     INT                 iError;
 
     /*
@@ -229,6 +231,17 @@ LW_API PLW_BLK_DEV API_SdMemDevCreate (INT                       iAdapterType,
         iBlkDevFlag = O_RDONLY;
     } else {
         iBlkDevFlag = O_RDWR;
+    }
+
+    API_SdmHostExtOptGet(psdcoredevice,
+                         SDHOST_EXTOPT_CONFIG_FLAG_GET,
+                         (LONG)&ulRelect);
+
+    if (ulRelect & SDHOST_EXTOPT_CONFIG_RESELECT_SDMEM) {
+        psdblkdevice->SDBLKDEV_bNeedReSelect = LW_TRUE;
+    } else {
+        psdblkdevice->SDBLKDEV_bNeedReSelect = LW_FALSE;
+        API_SdCoreDevSelect(psdcoredevice);                             /*  只在这里调用一次            */
     }
 
     API_SdmHostExtOptGet(psdcoredevice,
@@ -1033,11 +1046,12 @@ static INT __sdMemBlkWrt(__PSD_BLK_DEV   psdblkdevice,
         return  (PX_ERROR);
     }
 
-
-    iError = API_SdCoreDevSelect(psdcoredevice);                        /*  选择设备                    */
-    if (iError != ERROR_NONE) {
-        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "select device failed.\r\n");
-        return  (PX_ERROR);
+    if (COREDEV_IS_SD(psdcoredevice) && psdblkdevice->SDBLKDEV_bNeedReSelect) {
+        iError = API_SdCoreDevSelect(psdcoredevice);                        /*  选择设备                */
+        if (iError != ERROR_NONE) {
+            SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "select device failed.\r\n");
+            return  (PX_ERROR);
+        }
     }
 
     API_SdCoreDevCsdView(psdcoredevice, &sddevcsd);
@@ -1064,7 +1078,7 @@ static INT __sdMemBlkWrt(__PSD_BLK_DEV   psdblkdevice,
     }
 
 __error_handle:
-    if (COREDEV_IS_SD(psdcoredevice)) {
+    if (COREDEV_IS_SD(psdcoredevice) && psdblkdevice->SDBLKDEV_bNeedReSelect) {
         API_SdCoreDevDeSelect(psdcoredevice);                           /*  取消设备                    */
     }
 
@@ -1110,8 +1124,7 @@ static INT __sdMemBlkRd (__PSD_BLK_DEV   psdblkdevice,
         return  (PX_ERROR);
     }
 
-
-    if (COREDEV_IS_SD(psdcoredevice)) {
+    if (COREDEV_IS_SD(psdcoredevice) && psdblkdevice->SDBLKDEV_bNeedReSelect) {
         iError = API_SdCoreDevSelect(psdcoredevice);                    /*  选择设备                    */
         if (iError != ERROR_NONE) {
             SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "select device failed.\r\n");
@@ -1143,7 +1156,7 @@ static INT __sdMemBlkRd (__PSD_BLK_DEV   psdblkdevice,
     }
 
 __error_handle:
-    if (COREDEV_IS_SD(psdcoredevice)) {
+    if (COREDEV_IS_SD(psdcoredevice) && psdblkdevice->SDBLKDEV_bNeedReSelect) {
         API_SdCoreDevDeSelect(psdcoredevice);                           /*  取消设备                    */
     }
 

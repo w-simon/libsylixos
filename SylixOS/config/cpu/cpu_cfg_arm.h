@@ -33,7 +33,15 @@
   整型大小端定义
 *********************************************************************************************************/
 
+#if defined(__GNUC__)
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#define LW_CFG_CPU_ENDIAN               0                               /*  0: 小端                     */
+#else 
+#define LW_CFG_CPU_ENDIAN               1                               /*  1: 大端                     */
+#endif                                                                  /*  __BYTE_ORDER__ == LITTLE    */
+#else
 #define LW_CFG_CPU_ENDIAN               0                               /*  0: 小端  1: 大端            */
+#endif                                                                  /*  defined(__GNUC__)           */
 
 /*********************************************************************************************************
   ARM 配置

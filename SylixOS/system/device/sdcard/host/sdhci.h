@@ -30,6 +30,7 @@
 2014.11.14  为支持 SDIO 和加入 SDM 模块管理, 修改了相关数据结构. 同时删除了一些 API, 改为内部使用
 2015.11.20  增加对特殊总线位宽的支持.
 2015.12.17  增加对 MMC/eMMC 总线位宽的兼容性处理.
+2017.02.28  增加 SDIO 外设额外电源设置和带外 SDIO 中断的 Quirk 操作.
 *********************************************************************************************************/
 
 #ifndef __SDHCI_H
@@ -490,11 +491,17 @@ typedef struct lw_sdhci_host_attr {
      * 有些控制器虽然按照 SDHCI 标准规范设计, 但在实现时存在一些
      * 不符合规范的地方(如某些寄存器的位定义, 某些功能不支持等).
      * SDHCIHOST_pquirkop:
-     *    主要针对不同的寄存器位设置, 由驱动编写者自行实现.
-     *    如果该域为 NULL, 或相关的操作方法为 NULL, 则内部会使用
-     *    对应的标准操作.
+     *  主要针对不同的寄存器位设置, 由驱动编写者自行实现.
+     *  如果该域为 NULL, 或相关的操作方法为 NULL, 则内部会使用
+     *  对应的标准操作.
      * SDHCIHOST_uiQuirkFlag:
-     *    主要针对不同的特性开关, 如是否使用 ACMD12 等.
+     *  主要针对不同的特性开关, 如是否使用 ACMD12 等.
+     *
+     * SDHCI_QUIRK_FLG_SDIO_INT_OOB
+     *  通常情况想, SDHCI 本身支持 SDIO 中断功能, 如果控制器确实不支持SDIO硬件中断, 则内部使用查询模式.
+     *  但是, 有的 SDIO 设备自身通过额外的 GPIO 引脚产生 SDIO 中断信号, 即不由 SDHCI 控制器本身产生, 因此
+     *  叫做带外中断(Out-of-Band). 使能此标志后, 将忽略 SDHCI_QUIRK_FLG_CANNOT_SDIO_INT 标志, 并且需要
+     *  驱动自己实现带外中断服务.
      */
     SDHCI_QUIRK_OP  *SDHCIHOST_pquirkop;
     UINT32           SDHCIHOST_uiQuirkFlag;
@@ -513,6 +520,7 @@ typedef struct lw_sdhci_host_attr {
 #define SDHCI_QUIRK_FLG_CAN_DATA_8BIT_DDR                     (1 << 12) /*  支持8位ddr数据传输          */
 #define SDHCI_QUIRK_FLG_MMC_FORCE_1BIT                        (1 << 13) /*  MMC 卡强制使用1位总线       */
 #define SDHCI_QUIRK_FLG_CANNOT_HIGHSPEED                      (1 << 14) /*  不支持高速传输              */
+#define SDHCI_QUIRK_FLG_SDIO_INT_OOB                          (1 << 15) /*  SDIO OOB 中断               */
 
     VOID            *SDHCIHOST_pvUsrSpec;                               /*  用户驱动特殊数据            */
 } LW_SDHCI_HOST_ATTR, *PLW_SDHCI_HOST_ATTR;
@@ -578,40 +586,58 @@ struct _sdhci_drv_funcs {
   注意: 所有函数的第一个参数是 使用 API_SdhciHostCreate() 时用户驱动传入的 psdhcihostattr 的<一份拷贝>,
         而不是原始的那个参数对象, 因此, 如果下面的方法实现确实依赖于更多的内部数据, 则必须将这些内
         部数据保存到 SDHCIHOST_pvUsrSpec 这个结构成员里, 而不是使用扩展结构体的方式.
+
+  SDHCIQOP_pfuncExtraPowerSet :
+        通常情况下, SDHCI 通过内部寄存器可控制电源的开关. 但不排除有的硬件设计上, 连接的 SDIO 设备还有
+        额外电源开关. 实现此方法后, 则内部会同时调用标准SDHCI电源设置和此方法.
+
+  SDHCIQOP_pfuncOOBInterSet :
+        如果设置了 SDHCI_QUIRK_FLG_SDIO_INT_OOB 标志, 则驱动可以实现此方法供上层调用. 当然也可根据实际
+        情况, 不实现此方法.
 *********************************************************************************************************/
 
 struct _sdhci_quirk_op {
-    INT     (*SDHCIQOP_pfuncClockSet)
+    INT     (*SDHCIQOP_pfuncClockSet)                                   /*  设置并打开时钟              */
             (
             PLW_SDHCI_HOST_ATTR  psdhcihostattr,
             UINT32               uiClock
             );
-    INT     (*SDHCIQOP_pfuncClockStop)
+    INT     (*SDHCIQOP_pfuncClockStop)                                  /*  停止时钟                    */
             (
             PLW_SDHCI_HOST_ATTR  psdhcihostattr
             );
-    INT     (*SDHCIQOP_pfuncBusWidthSet)
+    INT     (*SDHCIQOP_pfuncBusWidthSet)                                /*  设置总线位宽                */
             (
             PLW_SDHCI_HOST_ATTR  psdhcihostattr,
             UINT32               uiBusWidth
             );
-    INT     (*SDHCIQOP_pfuncResponseGet)
+    INT     (*SDHCIQOP_pfuncResponseGet)                                /*  获取应答                    */
             (
             PLW_SDHCI_HOST_ATTR  psdhcihostattr,
             UINT32               uiRespFlag,
             UINT32              *puiRespOut
             );
-    VOID    (*SDHCIQOP_pfuncIsrEnterHook)
+    VOID    (*SDHCIQOP_pfuncIsrEnterHook)                               /*  SD 普通中断进入 HOOK 调用   */
             (
             PLW_SDHCI_HOST_ATTR  psdhcihostattr
             );
-    VOID    (*SDHCIQOP_pfuncIsrExitHook)
+    VOID    (*SDHCIQOP_pfuncIsrExitHook)                                /*  SD 普通中断退出 HOOK 调用   */
             (
             PLW_SDHCI_HOST_ATTR  psdhcihostattr
             );
-    BOOL    (*SDHCIQOP_pfuncIsCardWp)
+    BOOL    (*SDHCIQOP_pfuncIsCardWp)                                   /*  获得卡写保护状态            */
             (
             PLW_SDHCI_HOST_ATTR  psdhcihostattr
+            );
+    VOID    (*SDHCIQOP_pfuncExtraPowerSet)                              /*  设置额外的电源              */
+            (
+            PLW_SDHCI_HOST_ATTR  psdhcihostattr,
+            BOOL                 bPowerOn
+            );
+    VOID    (*SDHCIQOP_pfuncOOBInterSet)                                /*  设置 OOB 中断               */
+            (
+            PLW_SDHCI_HOST_ATTR  psdhcihostattr,
+            BOOL                 bEnable
             );
 };
 

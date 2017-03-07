@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2017-03-07: han.hui
+    加入对大端 ARM 支持.
+
     2017-02-26: han.hui
     加入可信计算支持接口.
 
@@ -24,6 +27,9 @@ HISTORY
     加入新的网络驱动模型.
 
 ++ Bugfixes:
+
+    2017-03-07: han.hui
+    修正 x86 平台 FPU XSAVE 上下文过小问题.
 
     2017-02-23: han.hui
     修正 MIPS 非对齐访问仿真错误.
