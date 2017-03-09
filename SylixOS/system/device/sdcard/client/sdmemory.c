@@ -153,7 +153,7 @@ LW_API PLW_BLK_DEV API_SdMemDevCreate (INT                       iAdapterType,
     BOOL                bBlkAddr;
     INT                 iBlkDevFlag;
     ULONG               ulSectorOff;
-    ULONG               ulRelect;
+    ULONG               ulReSelect;
     INT                 iError;
 
     /*
@@ -235,9 +235,9 @@ LW_API PLW_BLK_DEV API_SdMemDevCreate (INT                       iAdapterType,
 
     API_SdmHostExtOptGet(psdcoredevice,
                          SDHOST_EXTOPT_CONFIG_FLAG_GET,
-                         (LONG)&ulRelect);
+                         (LONG)&ulReSelect);
 
-    if (ulRelect & SDHOST_EXTOPT_CONFIG_RESELECT_SDMEM) {
+    if (ulReSelect & SDHOST_EXTOPT_CONFIG_RESELECT_SDMEM) {
         psdblkdevice->SDBLKDEV_bNeedReSelect = LW_TRUE;
     } else {
         psdblkdevice->SDBLKDEV_bNeedReSelect = LW_FALSE;

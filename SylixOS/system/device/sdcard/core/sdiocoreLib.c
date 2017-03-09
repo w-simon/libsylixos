@@ -1035,12 +1035,12 @@ INT API_SdioCoreDevHighSpeedEn (PLW_SDCORE_DEVICE   psdcoredev, SDIO_CCCR *psdio
         return  (PX_ERROR);
     }
 
-    if ((iHostCap & SDHOST_CAP_HIGHSPEED) == 0) {
-        return  (PX_ERROR);
+    if (!(iHostCap & SDHOST_CAP_HIGHSPEED)) {
+        return  (ERROR_NONE);
     }
 
     if (!psdiocccr->CCCR_bHighSpeed) {
-        return  (PX_ERROR);
+        return  (ERROR_NONE);
     }
 
     iRet = API_SdioCoreDevRwDirect(psdcoredev, 0, 0, SDIO_CCCR_SPEED, 0, &ucSpeed);
@@ -1082,12 +1082,16 @@ INT API_SdioCoreDevWideBusEn (PLW_SDCORE_DEVICE   psdcoredev, SDIO_CCCR *psdiocc
         return  (PX_ERROR);
     }
 
-    if ((iHostCap & SDHOST_CAP_DATA_4BIT) == 0) {
-        return  (PX_ERROR);
+    if (!(iHostCap & SDHOST_CAP_DATA_4BIT)) {
+        return  (ERROR_NONE);
+    }
+
+    if (iHostCap & SDHOST_CAP_SDIO_FORCE_1BIT) {
+        return  (ERROR_NONE);
     }
 
     if (psdiocccr->CCCR_bLowSpeed && !psdiocccr->CCCR_bWideBus) {
-        return  (PX_ERROR);
+        return  (ERROR_NONE);
     }
 
     iRet = API_SdioCoreDevRwDirect(psdcoredev, 0, 0, SDIO_CCCR_IF, 0, &ucWidth);
@@ -1095,9 +1099,10 @@ INT API_SdioCoreDevWideBusEn (PLW_SDCORE_DEVICE   psdcoredev, SDIO_CCCR *psdiocc
         return  (iRet);
     }
 
+    ucWidth &= ~SDIO_BUS_WIDTH_MASK;
     ucWidth |= SDIO_BUS_WIDTH_4BIT;
     iRet = API_SdioCoreDevRwDirect(psdcoredev, 1, 0, SDIO_CCCR_IF, ucWidth, LW_NULL);
-    if (iRet) {
+    if (iRet != ERROR_NONE) {
         return  (iRet);
     }
 
@@ -1105,7 +1110,7 @@ INT API_SdioCoreDevWideBusEn (PLW_SDCORE_DEVICE   psdcoredev, SDIO_CCCR *psdiocc
                             SDBUS_CTRL_SETBUSWIDTH,
                             SDARG_SETBUSWIDTH_4);
     if (iRet != ERROR_NONE) {
-        SDCARD_DEBUG_MSG(__LOGMESSAGE_LEVEL, " warning: dev widebuse en,but host set not succ.\r\n");
+        SDCARD_DEBUG_MSG(__LOGMESSAGE_LEVEL, " warning: dev widebus en,but host set not succ.\r\n");
     }
 
     return  (ERROR_NONE);

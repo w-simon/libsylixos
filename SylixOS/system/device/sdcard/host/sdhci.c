@@ -420,6 +420,18 @@ static LW_INLINE VOID __sdhciIntClear (__PSDHCI_HOST psdhcihost)
 {
     SDHCI_WRITEL(&psdhcihost->SDHCIHS_sdhcihostattr, SDHCI_INT_STATUS, SDHCI_INT_ALL_MASK);
 }
+
+static LW_INLINE VOID __sdhciTimeoutSet (__PSDHCI_HOST psdhcihost)
+{
+    LW_SDHCI_HOST_ATTR *psdhcihostattr = &psdhcihost->SDHCIHS_sdhcihostattr;
+
+    if (psdhcihostattr->SDHCIHOST_pquirkop &&
+        psdhcihostattr->SDHCIHOST_pquirkop->SDHCIQOP_pfuncTimeoutSet) {
+        psdhcihostattr->SDHCIHOST_pquirkop->SDHCIQOP_pfuncTimeoutSet(psdhcihostattr);
+    } else {
+        SDHCI_WRITEB(psdhcihostattr, SDHCI_TIMEOUT_CONTROL, 0xe);
+    }
+}
 /*********************************************************************************************************
 ** 函数名称: API_SdhciHostCreate
 ** 功能描述: 创建SD标准主控制器
@@ -524,8 +536,7 @@ LW_API PVOID  API_SdhciHostCreate (CPCHAR               pcAdapterName,
         }
     }
 
-    SDHCI_WRITEB(&psdhcihost->SDHCIHS_sdhcihostattr,
-                 SDHCI_TIMEOUT_CONTROL, 0xe);                           /*  使用最大超时                */
+    __sdhciTimeoutSet(psdhcihost);
 
     __sdhciIntDisAndEn(psdhcihost, SDHCI_INT_ALL_MASK | SDHCI_INT_CARD_INT, __SDHCI_INT_EN_MASK);
 
@@ -1417,6 +1428,17 @@ static INT __sdhciPowerOn (__PSDHCI_HOST  psdhcihost)
     PLW_SDHCI_HOST_ATTR psdhcihostattr = &psdhcihost->SDHCIHS_sdhcihostattr;
     UINT8               ucPow;
 
+    /*
+     * 平台相关硬件复位
+     */
+    if (psdhcihostattr->SDHCIHOST_pquirkop &&
+        psdhcihostattr->SDHCIHOST_pquirkop->SDHCIQOP_pfuncHwReset) {
+        psdhcihostattr->SDHCIHOST_pquirkop->SDHCIQOP_pfuncHwReset(psdhcihostattr);
+    }
+
+    /*
+     * 控制器标准复位操作
+     */
     if (!SDHCI_QUIRK_FLG(psdhcihostattr, SDHCI_QUIRK_FLG_DONOT_SET_POWER)) {
         ucPow  = SDHCI_READB(psdhcihostattr, SDHCI_POWER_CONTROL);
         ucPow |= SDHCI_POWCTL_ON;
@@ -1569,10 +1591,13 @@ static __SDHCI_SDM_HOST *__sdhciSdmHostNew (__PSDHCI_HOST   psdhcihost)
     if (psdhcihost->SDHCIHS_sdhcicap.SDHCICAP_bCanHighSpeed) {
         iCapablity |= SDHOST_CAP_HIGHSPEED;
     }
-
     if (SDHCI_QUIRK_FLG(&psdhcihost->SDHCIHS_sdhcihostattr,
                         SDHCI_QUIRK_FLG_CANNOT_HIGHSPEED)) {
         iCapablity &= ~SDHOST_CAP_HIGHSPEED;
+    }
+    if (SDHCI_QUIRK_FLG(&psdhcihost->SDHCIHS_sdhcihostattr,
+                        SDHCI_QUIRK_FLG_SDIO_FORCE_1BIT)) {
+        iCapablity |= SDHOST_CAP_SDIO_FORCE_1BIT;
     }
 
     psdhost = &psdhcisdmhost->SDHCISDMH_sdhost;
@@ -1843,7 +1868,7 @@ static INT  __sdhciCmdSend (__PSDHCI_HOST   psdhcihost,
     }
 
     if ((psdcmd->SDCMD_uiFlag & SD_RSP_BUSY) || psddat) {
-        SDHCI_WRITEB(psdhcihostattr, SDHCI_TIMEOUT_CONTROL, 0xe);
+        __sdhciTimeoutSet(psdhcihost);
     }
 
     /*

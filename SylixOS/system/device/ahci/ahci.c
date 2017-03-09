@@ -27,6 +27,7 @@
 2016.11.27  不支持 NCQ 的磁盘, 不使用并行管线操作.
 2016.12.27  不支持 NCQ 的磁盘 (NandFlash), 不使用并发处理.
 2016.12.28  KINGSTON SUV400S37120G 必须使能 CACHE 回写.
+2017.03.09  增加对磁盘热插拔的支持, 并可通过 AHCI_HOTPLUG_EN 进行配置. (v1.0.6-rc0)
 *********************************************************************************************************/
 #define  __SYLIXOS_PCI_DRV
 #define  __SYLIXOS_STDIO
@@ -1369,13 +1370,71 @@ static INT  __ahciBlkRd (AHCI_DEV_HANDLE  hDev, PVOID  pvBuffer, ULONG  ulBlkSta
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
+#if AHCI_HOTPLUG_EN > 0                                                 /* 是否使能热插拔               */
+
 static INT  __ahciBlkDevRemove (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
 {
-    AHCI_LOG(AHCI_LOG_ERR, "blk device remove failed ctrl %d port %d.\r\n",
-             hCtrl->AHCICTRL_uiIndex, uiDrive);
+    INT                 iRet   = PX_ERROR;                              /* 操作结果                     */
+    ULONG               ulRet  = PX_ERROR;                              /* 操作结果                     */
+    REGISTER INT        i      = 0;                                     /* 循环因子                     */
+    AHCI_DEV_HANDLE     hDev   = LW_NULL;                               /* 设备句柄                     */
+    AHCI_DRIVE_HANDLE   hDrive = LW_NULL;                               /* 驱动器句柄                   */
 
-    return  (PX_ERROR);
+    AHCI_LOG(AHCI_LOG_PRT, "blk device remove ctrl %d port %d.\r\n", hCtrl->AHCICTRL_uiIndex, uiDrive);
+
+    hDev   = API_AhciDevHandleGet(hCtrl->AHCICTRL_uiIndex, uiDrive);    /* 获取 AHCI 设备句柄           */
+    hDrive = &hCtrl->AHCICTRL_hDrive[uiDrive];                          /* 获取驱动器句柄               */
+    if ((!hDev) ||
+        (!hDrive)) {                                                    /* 设备或驱动器句柄无效         */
+        AHCI_LOG(AHCI_LOG_ERR, "ahci dev handle error ctrl %d port %d.\r\n",
+                 hCtrl->AHCICTRL_uiIndex, uiDrive);
+        return  (PX_ERROR);
+    }
+
+    if (hDev->AHCIDEV_pvOemdisk) {                                      /* 已经挂载过                   */
+        iRet = API_OemDiskUnmount(hDev->AHCIDEV_pvOemdisk);             /* 卸载设备                     */
+        if (iRet != ERROR_NONE) {
+            AHCI_LOG(AHCI_LOG_ERR, "ahci dev unmount error ctrl %d port %d.\r\n",
+                     hCtrl->AHCICTRL_uiIndex, uiDrive);
+            return  (PX_ERROR);
+        }
+
+        hDev->AHCIDEV_pvOemdisk = LW_NULL;                              /* 更新挂载设备句柄             */
+    }
+
+    if (hDrive->AHCIDRIVE_pucAlignDmaBuf) {                             /* 已经分配驱动器 DMA 缓冲      */
+        API_CacheDmaFree(hDrive->AHCIDRIVE_pucAlignDmaBuf);             /* 释放驱动器 DMA 缓冲          */
+        hDrive->AHCIDRIVE_pucAlignDmaBuf = LW_NULL;
+        hDrive->AHCIDRIVE_ulByteSector   = 0;
+        hDrive->AHCIDRIVE_uiAlignSize    = 0;
+    }
+
+    for (i = 0; i < hDrive->AHCIDRIVE_uiQueueDepth; i++) {              /* 队列模式                     */
+        if (hDrive->AHCIDRIVE_hSyncBSem[i]) {                           /* 已经分配过同步锁             */
+                                                                        /* 回收同步锁资源               */
+            ulRet = API_SemaphoreBDelete(&hDrive->AHCIDRIVE_hSyncBSem[i]);
+            if (ulRet != ERROR_NONE) {
+                AHCI_LOG(AHCI_LOG_ERR, "ahci dev queue sync sem del error ctrl %d port %d index %d.\r\n",
+                         hCtrl->AHCICTRL_uiIndex, uiDrive, i);
+            } else {
+                hDrive->AHCIDRIVE_hSyncBSem[i] = LW_OBJECT_HANDLE_INVALID;
+            }
+        }
+    }
+
+    if (hDev) {                                                         /* 已经分配设备句柄             */
+        iRet = API_AhciDevDelete(hDev);                                 /* 从设备管理链中移除设备       */
+        if (iRet != ERROR_NONE) {
+            AHCI_LOG(AHCI_LOG_ERR, "ahci dev remove error ctrl %d port %d.\r\n",
+                     hCtrl->AHCICTRL_uiIndex, uiDrive);
+            return  (PX_ERROR);
+        }
+    }
+
+    return  (ERROR_NONE);
 }
+
+#endif                                                                  /* AHCI_HOTPLUG_EN              */
 /*********************************************************************************************************
 ** 函数名称: __ahciBlkDevCreate
 ** 功能描述: 创建块设备
@@ -1561,7 +1620,9 @@ static PLW_BLK_DEV  __ahciBlkDevCreate (AHCI_CTRL_HANDLE  hCtrl,
             dcattrl.DCATTR_iPipeline = 1;
         }
                                                                         /* 挂载设备                     */
-        hDev->AHCIDEV_pvOemdisk = (PVOID)API_OemDiskMount2(AHCI_MEDIA_NAME, hBlkDev, &dcattrl);
+        if (!hDev->AHCIDEV_pvOemdisk) {
+            hDev->AHCIDEV_pvOemdisk = (PVOID)API_OemDiskMount2(AHCI_MEDIA_NAME, hBlkDev, &dcattrl);
+        }
         if (!hDev->AHCIDEV_pvOemdisk) {                                 /* 挂载失败                     */
             AHCI_LOG(AHCI_LOG_ERR, "oem disk mount failed ctrl %d port %d.\r\n",
         	         hCtrl->AHCICTRL_uiIndex, uiDrive);
@@ -1761,13 +1822,16 @@ static INT  __ahciDiskCtrlInit (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
     AHCI_LOG(AHCI_LOG_PRT, "ctrl %d drive %d port %d stat 0x%08x.\r\n",
              hCtrl->AHCICTRL_uiIndex, uiDrive, hDrive->AHCIDRIVE_uiPort,
              AHCI_PORT_READ(hDrive, AHCI_PxTFD));
-
     for (i = 0; i < hDrive->AHCIDRIVE_uiQueueDepth; i++) {              /* 队列模式                     */
-        hDrive->AHCIDRIVE_hSyncBSem[i] = API_SemaphoreBCreate("ahci_sync",
-                                                              LW_FALSE,
-                                                              (LW_OPTION_WAIT_FIFO |
-                                                               LW_OPTION_OBJECT_GLOBAL),
-                                                              LW_NULL);
+        if (hDrive->AHCIDRIVE_hSyncBSem[i]) {
+            continue;
+        } else {
+            hDrive->AHCIDRIVE_hSyncBSem[i] = API_SemaphoreBCreate("ahci_sync",
+                                                                  LW_FALSE,
+                                                                  (LW_OPTION_WAIT_FIFO |
+                                                                   LW_OPTION_OBJECT_GLOBAL),
+                                                                   LW_NULL);
+        }
     }
 
     hDrive->AHCIDRIVE_uiCmdStarted  = 0;
@@ -1838,9 +1902,11 @@ static INT  __ahciDiskDriveInit (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
         hDrive->AHCIDRIVE_ulByteSector = AHCI_SECTOR_SIZE;
     }
     hDrive->AHCIDRIVE_uiAlignSize = (size_t)API_CacheLine(DATA_CACHE);
-    pvBuff = API_CacheDmaMallocAlign((size_t)hDrive->AHCIDRIVE_ulByteSector,
-                                     (size_t)hDrive->AHCIDRIVE_uiAlignSize);
-    hDrive->AHCIDRIVE_pucAlignDmaBuf = (UINT8 *)pvBuff;
+    if (!hDrive->AHCIDRIVE_pucAlignDmaBuf) {
+        pvBuff = API_CacheDmaMallocAlign((size_t)hDrive->AHCIDRIVE_ulByteSector,
+                                         (size_t)hDrive->AHCIDRIVE_uiAlignSize);
+        hDrive->AHCIDRIVE_pucAlignDmaBuf = (UINT8 *)pvBuff;
+    }
     if (!hDrive->AHCIDRIVE_pucAlignDmaBuf) {
         AHCI_LOG(AHCI_LOG_ERR, "alloc aligned vmm dma buffer failed ctrl %d port %d.\r\n",
                  hCtrl->AHCICTRL_uiIndex, uiDrive);
@@ -2726,9 +2792,13 @@ static PVOID  __ahciMonitorThread (PVOID  pvArg)
     INT                 iDrive;                                         /* 驱动器索引                   */
     AHCI_DRIVE_HANDLE   hDrive;                                         /* 驱动器句柄                   */
     AHCI_CTRL_HANDLE    hCtrl;                                          /* 控制器句柄                   */
+
+#if AHCI_HOTPLUG_EN > 0                                                 /* 是否使能热插拔               */
+    AHCI_DEV_HANDLE     hDev    = LW_NULL;                              /* 设备句柄                     */
     PLW_BLK_DEV         hBlkDev = LW_NULL;                              /* 块设备句柄                   */
     INT                 iRetry;                                         /* 重试参数                     */
     INT                 iRet;                                           /* 操作结果                     */
+#endif                                                                  /* AHCI_HOTPLUG_EN              */
 
     for (;;) {
         hCtrl = (AHCI_CTRL_HANDLE)pvArg;                                /* 获取控制器句柄               */
@@ -2766,8 +2836,10 @@ static PVOID  __ahciMonitorThread (PVOID  pvArg)
         case AHCI_MSG_ATTACH:                                           /* 设备接入                     */
             AHCI_LOG(AHCI_LOG_PRT,"recv attach msg ctrl %d drive %d.\r\n",
                      hCtrl->AHCICTRL_uiIndex, iDrive);
+            hDrive->AHCIDRIVE_uiAttachNum += 1;                         /* 设备接入计数                 */
+#if AHCI_HOTPLUG_EN > 0                                                 /* 是否使能热插拔               */
             if (hDrive->AHCIDRIVE_ucState != AHCI_DEV_NONE) {
-                AHCI_LOG(AHCI_LOG_PRT, "ctrl %d drive %d state none.\r\n",
+                AHCI_LOG(AHCI_LOG_ERR, "ctrl %d drive %d attach state none.\r\n",
                          hCtrl->AHCICTRL_uiIndex, iDrive);
                 continue;
             }
@@ -2811,14 +2883,22 @@ static PVOID  __ahciMonitorThread (PVOID  pvArg)
 
                 break;
             }
-            API_AhciDevAdd(hCtrl, iDrive);
+
+            hDev = API_AhciDevHandleGet(hCtrl->AHCICTRL_uiIndex, iDrive);
+            if (!hDev) {
+                API_AhciDevAdd(hCtrl, iDrive);
+            }
+#endif                                                                  /* AHCI_HOTPLUG_EN              */
             break;
 
         case AHCI_MSG_REMOVE:                                           /* 设备移除                     */
             AHCI_LOG(AHCI_LOG_PRT, "remove ctrl %d drive %d.\r\n", hCtrl->AHCICTRL_uiIndex, iDrive);
+            hDrive->AHCIDRIVE_uiRemoveNum += 1;
+#if AHCI_HOTPLUG_EN > 0                                                 /* 是否使能热插拔               */
             if (hDrive->AHCIDRIVE_hDev != LW_NULL) {
                 __ahciBlkDevRemove(hCtrl, iDrive);
             }
+#endif                                                                  /* AHCI_HOTPLUG_EN              */
             break;
 
         case AHCI_MSG_ERROR:                                            /* 设备错误                     */

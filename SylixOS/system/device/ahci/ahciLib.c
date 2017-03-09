@@ -358,7 +358,10 @@ INT  API_AhciDriveInfoShow (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, AHCI_PARAM_H
     printf("Disk Size (MB)        : %lld MB\n",
            (API_AhciDriveSectorCountGet(hCtrl, uiDrive) * hDrive->AHCIDRIVE_ulByteSector) / AHCI_MB);
     printf("Media Serial Number   : %s\n", (PCHAR)&hParam->AHCIPARAM_usCurrentMediaSN[0]);
-
+    printf("\n");
+    printf("Hotplug Attach Number : %d\n", hDrive->AHCIDRIVE_uiAttachNum);
+    printf("Hotplug Remove Number : %d\n", hDrive->AHCIDRIVE_uiRemoveNum);
+    printf("\n");
     if (hDrv->AHCIDRV_pfuncVendorDriveInfoShow) {
         iRet = hDrv->AHCIDRV_pfuncVendorDriveInfoShow(hCtrl, uiDrive, hParam);
     } else {

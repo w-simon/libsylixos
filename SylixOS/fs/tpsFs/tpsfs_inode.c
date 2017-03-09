@@ -478,6 +478,7 @@ TPS_RESULT  tpsFsInodeDelRef (PTPS_TRANS ptrans, PTPS_INODE pinode)
     PTPS_SUPER_BLOCK    psb          = LW_NULL;
     PUCHAR              pucBuff      = LW_NULL;
     PTPS_INODE         *ppinodeIter  = LW_NULL;
+    TPS_RESULT          tpsres       = TPS_ERR_NONE;
 
     if ((ptrans == LW_NULL) || (pinode == LW_NULL)) {
         return  (TPS_ERR_PARAM_NULL);
@@ -496,9 +497,12 @@ TPS_RESULT  tpsFsInodeDelRef (PTPS_TRANS ptrans, PTPS_INODE pinode)
         if (tpsFsBtreeGetLevel(pinode) > 0) {
             __tpsFsInodeAddToFreeList(ptrans, psb, pinode);
         } else {
-            if (tpsFsTruncInode(ptrans, pinode, 0) != TPS_ERR_NONE) {
-                return  (TPS_ERR_INODE_TRUNC);
+            tpsres = tpsFsTruncInode(ptrans, pinode, 0);
+            if (tpsres != TPS_ERR_NONE) {                               /* 截断文件可能需拆分成几个事务 */
+                pinode->IND_uiRefCnt++;
+                return  (tpsres);
             }
+
             if (tpsFsBtreeFreeBlk(ptrans, psb->SB_pinodeSpaceMng,
                                   pinode->IND_inum, pinode->IND_inum, 1) != TPS_ERR_NONE) {
                 return  (TPS_ERR_BTREE_INSERT);
@@ -617,11 +621,13 @@ TPS_RESULT  tpsFsTruncInode (PTPS_TRANS ptrans, PTPS_INODE pinode, TPS_SIZE_T si
 **           off              起始位置
 **           pucBuff          缓冲区
 **           szLen            读取长度
+**           bTransData       是否需要读取事物中缓存的数据
 ** 输　出  : 成功返回实际读取长度，失败返回-ERRNO
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-TPS_SIZE_T  tpsFsInodeRead (PTPS_INODE pinode, TPS_OFF_T off, PUCHAR pucBuff, TPS_SIZE_T szLen)
+TPS_SIZE_T  tpsFsInodeRead (PTPS_INODE pinode, TPS_OFF_T off, PUCHAR pucBuff,
+                            TPS_SIZE_T szLen, BOOL bTransData)
 {
     TPS_IBLK            blkLogic;
     TPS_IBLK            blkPscStart;
@@ -639,18 +645,6 @@ TPS_SIZE_T  tpsFsInodeRead (PTPS_INODE pinode, TPS_OFF_T off, PUCHAR pucBuff, TP
         return  (0);
     }
 
-    /*
-     *  TODO: 文件大小可保存在inode头中时直接保存在inode头中，暂不使能
-     */
-#if 0
-    if (pinode->IND_szData < (pinode->IND_psb->SB_uiBlkSize - TPS_INODE_DATASTART)) {
-        lib_memcpy(pucItemBuf,
-                   pinode->IND_data.IND_cData + off,
-                   min(szLen, pinode->IND_szData - off));
-        return  (min(szLen, pinode->IND_szData - off));
-    }
-#endif
-
     psb = pinode->IND_psb;
 
     while (szLen > 0) {
@@ -664,11 +658,20 @@ TPS_SIZE_T  tpsFsInodeRead (PTPS_INODE pinode, TPS_OFF_T off, PUCHAR pucBuff, TP
         szReadLen = min(szLen, szReadLen);
         szReadLen = min(szReadLen, (pinode->IND_szData - off));
 
-        if (tpsFsDevBufRead(psb, blkPscStart,
-                            (UINT)offBlk, pucBuff + szCompleted,
-                            (size_t)szReadLen) != TPS_ERR_NONE) {        /* 读取inode                    */
-            szCompleted = (-EIO);
-            break;
+        if (bTransData) {
+            if (tpsFsTransRead(psb, blkPscStart,
+                               (UINT)offBlk, pucBuff + szCompleted,
+                               (size_t)szReadLen) != TPS_ERR_NONE) {    /* 带事务读取inode              */
+                szCompleted = (-EIO);
+                break;
+            }
+        } else {
+            if (tpsFsDevBufRead(psb, blkPscStart,
+                                (UINT)offBlk, pucBuff + szCompleted,
+                                (size_t)szReadLen) != TPS_ERR_NONE) {    /* 读取inode                    */
+                szCompleted = (-EIO);
+                break;
+            }
         }
 
         off         += szReadLen;

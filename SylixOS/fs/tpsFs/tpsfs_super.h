@@ -68,6 +68,7 @@
 
 #define TPS_MOUNT_FLAG_WRITE    0x2                                     /* 可写                         */
 #define TPS_MOUNT_FLAG_READ     0x1                                     /* 可读                         */
+#define TPS_TRANS_FAULT         0x4                                     /* 事务错误态，文件系统不可访问 */
 
 /*********************************************************************************************************
   super block 结构

@@ -47,7 +47,7 @@
   SDM_EVENT_SDIO_INTERRUPT : 通知 SDM 层产生了一次 SDIO 中断. SDM 层将处理驱动注册的 SDIO 中断服务.
 
   SDM_EVENT_BOOT_DEV_INSERT : 通知 SDM 层一个 BOOT 类型设备插入. 不同于 SDM_EVENT_DEV_INSERT 处理设备探测
-      是在热插拔线程里处理, 该类型消息将直接在当前线程执行设备探测过程. 转为 BOOT 设备快速初始化设计,
+      是在热插拔线程里处理, 该类型消息将直接在当前线程执行设备探测过程. 专为 BOOT 设备快速初始化设计,
       如一个需要挂载根文件系统的 SD/MMC 卡, 这样可以显著提高系统启动速度.
 *********************************************************************************************************/
 
@@ -108,6 +108,7 @@ struct sd_host {
 #define SDHOST_CAP_DATA_4BIT_DDR        (1 << 3)                    /*  支持4位ddr数据传输              */
 #define SDHOST_CAP_DATA_8BIT_DDR        (1 << 4)                    /*  支持8位ddr数据传输              */
 #define SDHOST_CAP_MMC_FORCE_1BIT       (1 << 5)                    /*  MMC卡 强制使用 1 位总线         */
+#define SDHOST_CAP_SDIO_FORCE_1BIT      (1 << 6)                    /*  SDIO 卡 强制使用 1 位总线       */
 
     VOID          (*SDHOST_pfuncSpicsEn)(SD_HOST *psdhost);
     VOID          (*SDHOST_pfuncSpicsDis)(SD_HOST *psdhost);

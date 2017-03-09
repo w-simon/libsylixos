@@ -82,7 +82,8 @@ TPS_RESULT  tpsFsCreateEntry (PTPS_TRANS    ptrans,
             if (tpsFsInodeRead(pinodeDir,
                                off + i * TPS_ENTRY_ITEM_SIZE,
                                pucItemBuf,
-                               TPS_ENTRY_ITEM_SIZE) < TPS_ENTRY_ITEM_SIZE) {
+                               TPS_ENTRY_ITEM_SIZE,
+                               LW_TRUE) < TPS_ENTRY_ITEM_SIZE) {
                 break;
             }
 
@@ -204,7 +205,8 @@ TPS_SIZE_T  tpsFsGetDirSize (PTPS_INODE pinodeDir)
         if (tpsFsInodeRead(pinodeDir,
                            off,
                            pucItemBuf,
-                           TPS_ENTRY_ITEM_SIZE) < TPS_ENTRY_ITEM_SIZE) {
+                           TPS_ENTRY_ITEM_SIZE,
+                           LW_TRUE) < TPS_ENTRY_ITEM_SIZE) {
             break;
         }
 
@@ -259,7 +261,8 @@ PTPS_ENTRY  tpsFsFindEntry (PTPS_INODE pinodeDir, CPCHAR pcFileName)
         if (tpsFsInodeRead(pinodeDir,
                            off,
                            pucItemBuf,
-                           TPS_ENTRY_ITEM_SIZE) < TPS_ENTRY_ITEM_SIZE) {
+                           TPS_ENTRY_ITEM_SIZE,
+                           LW_TRUE) < TPS_ENTRY_ITEM_SIZE) {
             TPS_FREE(pucItemBuf);
             return  (LW_NULL);
         }
@@ -275,7 +278,8 @@ PTPS_ENTRY  tpsFsFindEntry (PTPS_INODE pinodeDir, CPCHAR pcFileName)
         if (tpsFsInodeRead(pinodeDir,
                            off,
                            pucItemBuf,
-                           uiEntryLen) < uiEntryLen) {
+                           uiEntryLen,
+                           LW_TRUE) < uiEntryLen) {
             TPS_FREE(pucItemBuf);
             return  (LW_NULL);
         }
@@ -350,6 +354,7 @@ PTPS_ENTRY  tpsFsEntryRead (PTPS_INODE pinodeDir, TPS_OFF_T off)
         off = TPS_ROUND_UP(off, TPS_ENTRY_ITEM_SIZE);
     }
 
+__retry_find:
     pucItemBuf = (PUCHAR)TPS_ALLOC(TPS_ENTRY_ITEM_SIZE);
     if (LW_NULL == pucItemBuf) {
         return  (LW_NULL);
@@ -363,7 +368,8 @@ PTPS_ENTRY  tpsFsEntryRead (PTPS_INODE pinodeDir, TPS_OFF_T off)
         if (tpsFsInodeRead(pinodeDir,
                            off,
                            pucItemBuf,
-                           TPS_ENTRY_ITEM_SIZE) < TPS_ENTRY_ITEM_SIZE) {
+                           TPS_ENTRY_ITEM_SIZE,
+                           LW_TRUE) < TPS_ENTRY_ITEM_SIZE) {
             TPS_FREE(pucItemBuf);
             return  (LW_NULL);
         }
@@ -392,7 +398,8 @@ PTPS_ENTRY  tpsFsEntryRead (PTPS_INODE pinodeDir, TPS_OFF_T off)
     if (tpsFsInodeRead(pinodeDir,
                        off,
                        pucItemBuf,
-                       uiEntryLen) < uiEntryLen) {
+                       uiEntryLen,
+                       LW_TRUE) < uiEntryLen) {
         TPS_FREE(pucItemBuf);
         return  (LW_NULL);
     }
@@ -419,9 +426,10 @@ PTPS_ENTRY  tpsFsEntryRead (PTPS_INODE pinodeDir, TPS_OFF_T off)
     TPS_FREE(pucItemBuf);
 
     pentry->ENTRY_pinode = tpsFsOpenInode(pentry->ENTRY_psb, pentry->ENTRY_inum);
-    if (LW_NULL == pentry->ENTRY_pinode) {
+    if (LW_NULL == pentry->ENTRY_pinode) {                              /* 碰到无效条目则重试           */
+        off += TPS_ENTRY_ITEM_SIZE;
         TPS_FREE(pentry);
-        return  (LW_NULL);
+        goto  __retry_find;
     }
 
     return  (pentry);

@@ -1073,6 +1073,9 @@ typedef struct {
 
     UINT32                  AHCIDRIVE_uiProbTimeUnit;
     UINT32                  AHCIDRIVE_uiProbTimeCount;
+
+    UINT32                  AHCIDRIVE_uiAttachNum;
+    UINT32                  AHCIDRIVE_uiRemoveNum;
 } AHCI_DRIVE_CB;
 typedef AHCI_DRIVE_CB      *AHCI_DRIVE_HANDLE;
 /*********************************************************************************************************

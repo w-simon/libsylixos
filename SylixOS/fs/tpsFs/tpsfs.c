@@ -270,6 +270,10 @@ errno_t  tpsFsOpen (PTPS_SUPER_BLOCK     psb,
         return  (EFORMAT);
     }
 
+    if (psb->SB_uiFlags & TPS_TRANS_FAULT) {                            /* 事务处理出错                 */
+        return  (EIO);
+    }
+
     if (iFlags & (O_CREAT | O_TRUNC)) {
         if (!(psb->SB_uiFlags & TPS_MOUNT_FLAG_WRITE)) {
             return  (EROFS);
@@ -372,10 +376,15 @@ errno_t  tpsFsRemove (PTPS_SUPER_BLOCK psb, CPCHAR pcPath)
     PCHAR      pcRemain     = LW_NULL;
     PTPS_INODE pinodeDir    = LW_NULL;
     TPS_INUM   inumDir      = 0;
+    TPS_RESULT tpsres       = TPS_ERR_NONE;
     TPS_SIZE_T iSize;
 
     if ((LW_NULL == psb) || (LW_NULL == pcPath)) {
         return  (EINVAL);
+    }
+
+    if (psb->SB_uiFlags & TPS_TRANS_FAULT) {                            /* 事务处理出错                 */
+        return  (EIO);
     }
 
     pentry = __tpsFsWalkPath(psb, pcPath, &pcRemain);
@@ -388,32 +397,44 @@ errno_t  tpsFsRemove (PTPS_SUPER_BLOCK psb, CPCHAR pcPath)
         return  (ENOENT);
     }
 
-    ptrans = tpsFsTransAllocAndInit(psb);                               /* 分配事物                     */
-    if (ptrans == LW_NULL) {
-        tpsFsEntryFree(pentry);
-        return  (ENOMEM);
-    }
+    while (LW_TRUE) {
+        ptrans = tpsFsTransAllocAndInit(psb);                           /* 分配事物                     */
+        if (ptrans == LW_NULL) {
+            tpsFsEntryFree(pentry);
+            return  (ENOMEM);
+        }
 
-    if (tpsFsInodeDelRef(ptrans,
-                         pentry->ENTRY_pinode) != TPS_ERR_NONE) {       /* inode引用减1                 */
-        tpsFsEntryFree(pentry);
-        tpsFsTransRollBackAndFree(ptrans);
-        return  (EIO);
-    }
+        tpsres = tpsFsInodeDelRef(ptrans, pentry->ENTRY_pinode);
+        if (tpsres == TPS_ERR_TRANS_NEED_COMMIT) {                      /* 删除文件可能需要多次事务     */
+            if (tpsFsTransCommitAndFree(ptrans) != TPS_ERR_NONE) {      /* 提交事务                     */
+                tpsFsEntryFree(pentry);
+                tpsFsTransRollBackAndFree(ptrans);
+                return  (EIO);
+            }
+            continue;
 
-    if (tpsFsEntryRemove(ptrans, pentry) != TPS_ERR_NONE) {             /* 移除entry                    */
-        tpsFsEntryFree(pentry);
-        tpsFsTransRollBackAndFree(ptrans);
-        return  (EIO);
-    }
+        } else if (tpsres != TPS_ERR_NONE) {
+            tpsFsEntryFree(pentry);
+            tpsFsTransRollBackAndFree(ptrans);
+            return  (EIO);
+        }
 
-    inumDir = pentry->ENTRY_inumDir;
-    tpsFsEntryFree(pentry);
+        if (tpsFsEntryRemove(ptrans, pentry) != TPS_ERR_NONE) {         /* 移除entry                    */
+            tpsFsEntryFree(pentry);
+            tpsFsTransRollBackAndFree(ptrans);
+            return  (EIO);
+        }
 
-    if (tpsFsTransCommitAndFree(ptrans) != TPS_ERR_NONE) {              /* 提交事务                     */
+        inumDir = pentry->ENTRY_inumDir;
         tpsFsEntryFree(pentry);
-        tpsFsTransRollBackAndFree(ptrans);
-        return  (EIO);
+
+        if (tpsFsTransCommitAndFree(ptrans) != TPS_ERR_NONE) {          /* 提交事务                     */
+            tpsFsEntryFree(pentry);
+            tpsFsTransRollBackAndFree(ptrans);
+            return  (EIO);
+        }
+
+        break;
     }
 
     /*
@@ -450,6 +471,10 @@ errno_t  tpsFsMove (PTPS_SUPER_BLOCK psb, CPCHAR pcPathSrc, CPCHAR pcPathDst)
 
     if ((LW_NULL == psb) || (LW_NULL == pcPathSrc) || (LW_NULL == pcPathDst)) {
         return  (EINVAL);
+    }
+
+    if (psb->SB_uiFlags & TPS_TRANS_FAULT) {                            /* 事务处理出错                 */
+        return  (EIO);
     }
 
     pentrySrc = __tpsFsWalkPath(psb, pcPathSrc, &pcRemain);
@@ -540,6 +565,10 @@ errno_t  tpsFsLink (PTPS_SUPER_BLOCK psb, CPCHAR pcPathSrc, CPCHAR pcPathDst)
 
     if ((LW_NULL == psb) || (LW_NULL == pcPathSrc) || (LW_NULL == pcPathDst)) {
         return  (EINVAL);
+    }
+
+    if (psb->SB_uiFlags & TPS_TRANS_FAULT) {                            /* 事务处理出错                 */
+        return  (EIO);
     }
 
     pentrySrc = __tpsFsWalkPath(psb, pcPathSrc, &pcRemain);
@@ -641,7 +670,11 @@ errno_t  tpsFsRead (PTPS_INODE   pinode,
         return  (EINVAL);
     }
 
-    *pszRet = tpsFsInodeRead(pinode, off, pucBuff, szLen);
+    if (pinode->IND_psb->SB_uiFlags & TPS_TRANS_FAULT) {                /* 事务处理出错                 */
+        return  (EIO);
+    }
+
+    *pszRet = tpsFsInodeRead(pinode, off, pucBuff, szLen, LW_FALSE);
     if (*pszRet < 0) {
         iErr = (errno_t)(-(*pszRet));
         return  (iErr);
@@ -679,6 +712,10 @@ errno_t  tpsFsWrite (PTPS_INODE  pinode,
 
     if ((LW_NULL == pinode) || (LW_NULL == pucBuff)) {
         return  (EINVAL);
+    }
+
+    if (pinode->IND_psb->SB_uiFlags & TPS_TRANS_FAULT) {                /* 事务处理出错                 */
+        return  (EIO);
     }
 
     if (S_ISDIR(pinode->IND_iMode)) {                                   /* 目录不允许直接写操作         */
@@ -720,6 +757,10 @@ errno_t  tpsFsClose (PTPS_INODE pinode)
         return  (EINVAL);
     }
 
+    if (pinode->IND_psb->SB_uiFlags & TPS_TRANS_FAULT) {                /* 事务处理出错                 */
+        return  (EIO);
+    }
+
     ptrans = tpsFsTransAllocAndInit(pinode->IND_psb);                   /* 分配事物                     */
     if (ptrans == LW_NULL) {
         return  (ENOMEM);
@@ -751,6 +792,10 @@ errno_t  tpsFsFlushHead (PTPS_INODE pinode)
 
     if (LW_NULL == pinode) {
         return  (EINVAL);
+    }
+
+    if (pinode->IND_psb->SB_uiFlags & TPS_TRANS_FAULT) {                /* 事务处理出错                 */
+        return  (EIO);
     }
 
     ptrans = tpsFsTransAllocAndInit(pinode->IND_psb);                   /* 分配事物                     */
@@ -786,6 +831,10 @@ errno_t  tpsFsTrunc (PTPS_INODE pinode, TPS_SIZE_T szNewSize)
 
     if (LW_NULL == pinode) {
         return  (EINVAL);
+    }
+
+    if (pinode->IND_psb->SB_uiFlags & TPS_TRANS_FAULT) {                /* 事务处理出错                 */
+        return  (EIO);
     }
 
     do {
@@ -828,6 +877,10 @@ errno_t  tpsFsMkDir (PTPS_SUPER_BLOCK psb, CPCHAR pcPath, INT iFlags, INT iMode)
         return  (EINVAL);
     }
 
+    if (psb->SB_uiFlags & TPS_TRANS_FAULT) {                            /* 事务处理出错                 */
+        return  (EIO);
+    }
+
     iMode &= ~S_IFMT;
 
     iErr = tpsFsOpen(psb, pcPath, iFlags | O_CREAT,
@@ -862,6 +915,10 @@ errno_t  tpsFsOpenDir (PTPS_SUPER_BLOCK psb, CPCHAR pcPath, PTPS_DIR *ppdir)
         return  (EINVAL);
     }
 
+    if (psb->SB_uiFlags & TPS_TRANS_FAULT) {                            /* 事务处理出错                 */
+        return  (EIO);
+    }
+
     *ppdir = (PTPS_DIR)TPS_ALLOC(sizeof(TPS_DIR));
     if (LW_NULL == *ppdir) {
         return  (ENOMEM);
@@ -889,6 +946,10 @@ errno_t  tpsFsCloseDir (PTPS_DIR pdir)
 {
     if (LW_NULL == pdir) {
         return  (EINVAL);
+    }
+
+    if (pdir->DIR_pinode->IND_psb->SB_uiFlags & TPS_TRANS_FAULT) {      /* 事务处理出错                 */
+        return  (EIO);
     }
 
     if (pdir->DIR_pentry) {
@@ -924,6 +985,10 @@ errno_t  tpsFsReadDir (PTPS_DIR pdir, PTPS_ENTRY *ppentry)
         return  (EINVAL);
     }
 
+    if (pdir->DIR_pinode->IND_psb->SB_uiFlags & TPS_TRANS_FAULT) {      /* 事务处理出错                 */
+        return  (EIO);
+    }
+
     if (pdir->DIR_pentry) {
         tpsFsEntryFree(pdir->DIR_pentry);
     }
@@ -953,6 +1018,10 @@ errno_t  tpsFsSync (PTPS_INODE pinode)
         return  (EINVAL);
     }
 
+    if (pinode->IND_psb->SB_uiFlags & TPS_TRANS_FAULT) {                /* 事务处理出错                 */
+        return  (EIO);
+    }
+
     if (tpsFsInodeSync(pinode) != TPS_ERR_NONE) {
         return  (EIO);
     }
@@ -971,6 +1040,10 @@ errno_t  tpsFsVolSync (PTPS_SUPER_BLOCK psb)
 {
     if (LW_NULL == psb) {
         return  (EINVAL);
+    }
+
+    if (psb->SB_uiFlags & TPS_TRANS_FAULT) {                            /* 事务处理出错                 */
+        return  (EIO);
     }
 
     if (tpsFsDevBufSync(psb,
@@ -1141,6 +1214,10 @@ errno_t  tpsFsChmod (PTPS_INODE pinode, INT iMode)
         return  (EINVAL);
     }
 
+    if (pinode->IND_psb->SB_uiFlags & TPS_TRANS_FAULT) {                /* 事务处理出错                 */
+        return  (EIO);
+    }
+
     iMode |= S_IRUSR;
     iMode &= ~S_IFMT;
 
@@ -1166,6 +1243,10 @@ errno_t  tpsFsChown (PTPS_INODE pinode, uid_t uid, gid_t gid)
         return  (EINVAL);
     }
 
+    if (pinode->IND_psb->SB_uiFlags & TPS_TRANS_FAULT) {                /* 事务处理出错                 */
+        return  (EIO);
+    }
+
     pinode->IND_iUid    = uid;
     pinode->IND_iGid    = gid;
     pinode->IND_bDirty  = LW_TRUE;
@@ -1187,6 +1268,10 @@ errno_t  tpsFsChtime (PTPS_INODE pinode, struct utimbuf  *utim)
         return  (EINVAL);
     }
 
+    if (pinode->IND_psb->SB_uiFlags & TPS_TRANS_FAULT) {                /* 事务处理出错                 */
+        return  (EIO);
+    }
+
     pinode->IND_ui64ATime = utim->actime;
     pinode->IND_ui64MTime = utim->modtime;
     pinode->IND_bDirty    = LW_TRUE;
@@ -1206,6 +1291,10 @@ VOID  tpsFsFlushInodes (PTPS_SUPER_BLOCK psb)
     PTPS_INODE  pinode = LW_NULL;
 
     if (LW_NULL == psb) {
+        return;
+    }
+
+    if (psb->SB_uiFlags & TPS_TRANS_FAULT) {                            /* 事务处理出错                 */
         return;
     }
 

@@ -123,7 +123,8 @@ TPS_RESULT tpsFsInodeAddRef(PTPS_TRANS ptrans, PTPS_INODE pinode);
                                                                         /* inode引用计数减1             */
 TPS_RESULT tpsFsInodeDelRef(PTPS_TRANS ptrans, PTPS_INODE pinode);
                                                                         /* 读取inode                    */
-TPS_SIZE_T tpsFsInodeRead(PTPS_INODE pinode, TPS_OFF_T off, PUCHAR pucItemBuf, TPS_SIZE_T szLen);
+TPS_SIZE_T tpsFsInodeRead(PTPS_INODE pinode, TPS_OFF_T off,
+                          PUCHAR pucItemBuf, TPS_SIZE_T szLen, BOOL bTransData);
                                                                         /* 写inode                      */
 TPS_SIZE_T tpsFsInodeWrite(PTPS_TRANS ptrans, PTPS_INODE pinode, TPS_OFF_T off,
                            PUCHAR pucItemBuf, TPS_SIZE_T szLen, BOOL bTransData);

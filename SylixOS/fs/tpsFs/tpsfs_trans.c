@@ -165,6 +165,10 @@ PTPS_TRANS  tpsFsTransAllocAndInit (PTPS_SUPER_BLOCK psb)
     PTPS_TRANS_SB ptranssb = psb->SB_ptranssb;
     PTPS_TRANS    ptrans   = ptranssb->TSB_ptrans;
 
+    if (psb->SB_uiFlags & TPS_TRANS_FAULT) {
+        return  (LW_NULL);
+    }
+
     ptrans->TRANS_ui64SerialNum          = ptranssb->TSP_ui64SerialNum;
     ptrans->TRANS_uiDataSecNum           = ptranssb->TSP_ui64DataCurSec;
     ptrans->TRANS_uiDataSecCnt           = 0;
@@ -256,8 +260,8 @@ static INT  __tpsFsTransSecAreaUnserial (PTPS_TRANS_DATA ptransdata, PUCHAR pucS
     while ((pucPos - pucSecBuf) < (uiLen - 16) &&
            (i < ptransdata->TD_uiSecAreaCnt)) {
         TPS_LE64_TO_CPU(pucPos, ptransdata->TD_secareaArr[i].TD_ui64SecStart);
-        TPS_LE32_TO_CPU(pucPos, ptransdata->TD_secareaArr[i].TD_uiSecOff)
-        TPS_LE32_TO_CPU(pucPos, ptransdata->TD_secareaArr[i].TD_uiSecCnt)
+        TPS_LE32_TO_CPU(pucPos, ptransdata->TD_secareaArr[i].TD_uiSecOff);
+        TPS_LE32_TO_CPU(pucPos, ptransdata->TD_secareaArr[i].TD_uiSecCnt);
 
         i++;
     }
@@ -483,7 +487,10 @@ TPS_RESULT  tpsFsTransCommitAndFree (PTPS_TRANS ptrans)
         ptrans->TRANS_uiDataSecCnt++;
     }
 
-    psb->SB_dev->DEV_Sync(psb->SB_dev, ptrans->TRANS_uiDataSecNum, ptrans->TRANS_uiDataSecCnt);
+    if (psb->SB_dev->DEV_Sync(psb->SB_dev, ptrans->TRANS_uiDataSecNum,
+                              ptrans->TRANS_uiDataSecCnt) != 0) {
+        return  (TPS_ERR_BUF_SYNC);
+    }
 
     ptrans->TRANS_iStatus = TPS_TRANS_STATUS_COMMIT;
     __tpsFsTransSerial(ptrans,
@@ -497,28 +504,36 @@ TPS_RESULT  tpsFsTransCommitAndFree (PTPS_TRANS ptrans)
         return  (TPS_ERR_BUF_WRITE);
     }
 
+    /*
+     *  本行代码后出错，则只能重做事物，不能回滚，因此将文件系统设置为不可访问状态
+     */
     for (i = 0; i < ptrans->TRANS_pdata->TD_uiSecAreaCnt; i++) {        /* 写实际扇区                   */
         ui64DataSecCnt = ptrans->TRANS_uiDataSecNum + ptrans->TRANS_pdata->TD_secareaArr[i].TD_uiSecOff;
 
         for (j = 0; j < ptrans->TRANS_pdata->TD_secareaArr[i].TD_uiSecCnt; j += ui64SecWrCnt) {
-            ui64SecWrCnt = min ((ptrans->TRANS_pdata->TD_secareaArr[i].TD_uiSecCnt - j),
-                                psb->SB_uiSecPerBlk);
+            ui64SecWrCnt = min((ptrans->TRANS_pdata->TD_secareaArr[i].TD_uiSecCnt - j),
+                               psb->SB_uiSecPerBlk);
             if (psb->SB_dev->DEV_ReadSector(psb->SB_dev, psb->SB_pucSectorBuf,
                                             ui64DataSecCnt + j, ui64SecWrCnt) != 0) {
-                return  (TPS_ERR_BUF_READ);
+                psb->SB_uiFlags |= TPS_TRANS_FAULT;
+                return  (TPS_ERR_TRANS_COMMIT_FAULT);
             }
 
             if (psb->SB_dev->DEV_WriteSector(psb->SB_dev, psb->SB_pucSectorBuf,
                                              ptrans->TRANS_pdata->TD_secareaArr[i].TD_ui64SecStart + j,
                                              ui64SecWrCnt,
                                              LW_FALSE) != 0) {
-                return  (TPS_ERR_BUF_WRITE);
+                psb->SB_uiFlags |= TPS_TRANS_FAULT;
+                return  (TPS_ERR_TRANS_COMMIT_FAULT);
             }
         }
 
-        psb->SB_dev->DEV_Sync(psb->SB_dev,
-                              ptrans->TRANS_pdata->TD_secareaArr[i].TD_ui64SecStart,
-                              ptrans->TRANS_pdata->TD_secareaArr[i].TD_uiSecCnt);
+        if (psb->SB_dev->DEV_Sync(psb->SB_dev,
+                                  ptrans->TRANS_pdata->TD_secareaArr[i].TD_ui64SecStart,
+                                  ptrans->TRANS_pdata->TD_secareaArr[i].TD_uiSecCnt) != 0) {
+            psb->SB_uiFlags |= TPS_TRANS_FAULT;
+            return  (TPS_ERR_TRANS_COMMIT_FAULT);
+        }
     }
 
     ptrans->TRANS_iStatus = TPS_TRANS_STATUS_COMPLETE;
@@ -530,7 +545,8 @@ TPS_RESULT  tpsFsTransCommitAndFree (PTPS_TRANS ptrans)
                                      ptranssb->TSB_ui64TransCurSec,
                                      1, LW_TRUE) != 0) {                /* 标记事务为完成态到磁盘       */
         ptrans->TRANS_iStatus = TPS_TRANS_STATUS_COMMIT;
-        return  (TPS_ERR_BUF_WRITE);
+        psb->SB_uiFlags |= TPS_TRANS_FAULT;
+        return  (TPS_ERR_TRANS_COMMIT_FAULT);
     }
 
     ptranssb->TSB_uiTransSecOff += TPS_TRAN_SIZE;

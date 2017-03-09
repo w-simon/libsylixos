@@ -49,14 +49,14 @@
 
 #define __SYLIXOS_MAKEVER(a, b, c)      (((a) << 16) + ((b) << 8) + (c))
 #define __SYLIXOS_VERSION               __SYLIXOS_MAKEVER(1, 4, 1)
-#define __SYLIXOS_VERPATCH              0x8                             /* 小于 0x10000 为测试版        */
+#define __SYLIXOS_VERPATCH              0x9                             /* 小于 0x10000 为测试版        */
                                                                         /* 等于 0x10000 为正式发布版本  */
-#define __SYLIXOS_VERSTR                "1.4.1 (8)"
+#define __SYLIXOS_VERSTR                "1.4.1 (9)"
 #define __SYLIXOS_RELSTR                "LongYuan"
 
 #define __SYLIXOS_VERINFO               "SylixOS kernel version: "  \
                                         __SYLIXOS_VERSTR            \
-                                        " Code name: "__SYLIXOS_RELSTR
+                                        " Code name: " __SYLIXOS_RELSTR
 #define __SYLIXOS_LICENSE               "SylixOS license: Commercial & GPL."
 
 /*********************************************************************************************************
