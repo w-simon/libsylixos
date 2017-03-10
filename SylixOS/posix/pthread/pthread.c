@@ -36,10 +36,14 @@
 2014.01.01  加入 pthread_safe_np() 与 pthread_unsafe_np().
 2014.07.04  加入 pthread_setaffinity_np 与 pthread_getaffinity_np();
 2016.04.12  加入 GJB7714 相关 API 支持.
+2017.03.10  加入 pthread_null_attr_method_np() 函数, 可指定线程创建属性为 NULL 时的方法.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #define  __SYLIXOS_POSIX
 #include "../include/px_pthread.h"                                      /*  已包含操作系统头文件        */
+#if LW_CFG_POSIXEX_EN > 0
+#include "../include/px_pthread_np.h"
+#endif
 #include "../include/posixLib.h"                                        /*  posix 内部公共库            */
 /*********************************************************************************************************
   裁剪支持
@@ -90,6 +94,10 @@ int  pthread_create (pthread_t              *pthread,
     PLW_CLASS_TCB           ptcbCur;
     PCHAR                   pcName = "pthread";
     
+#if LW_CFG_POSIXEX_EN > 0
+    __PX_VPROC_CONTEXT     *pvpCtx = _posixVprocCtxGet();
+#endif                                                                  /*  LW_CFG_POSIXEX_EN > 0       */
+
     if (start_routine == LW_NULL) {
         errno = EINVAL;
         return  (EINVAL);
@@ -124,9 +132,13 @@ int  pthread_create (pthread_t              *pthread,
                                                                         /*  总是填充与检查堆栈使用情况  */
         lwattr.THREADATTR_ulOption = pattr->PTHREADATTR_ulOption | LW_OPTION_THREAD_STK_CHK;
     
-    } else {                                                            /*  堆栈大小和优先级全部继承    */
+    } else
+#if LW_CFG_POSIXEX_EN > 0
+           if (pvpCtx->PVPCTX_iThreadDefMethod == PTHREAD_NULL_ATTR_METHOD_USE_INHERIT)
+#endif                                                                  /*  LW_CFG_POSIXEX_EN > 0       */
+    {                                                                   /*  堆栈大小和优先级全部继承    */
         lwattr.THREADATTR_stStackByteSize = ptcbCur->TCB_stStackSize * sizeof(LW_STACK);
-        lwattr.THREADATTR_ucPriority  = ptcbCur->TCB_ucPriority;
+        lwattr.THREADATTR_ucPriority      = ptcbCur->TCB_ucPriority;
     }
     
     lwattr.THREADATTR_pvArg = arg;                                      /*  记录参数                    */
@@ -688,17 +700,42 @@ int  pthread_getcpuclockid (pthread_t thread, clockid_t *clock_id)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: pthread_setname_np
-** 功能描述: 设置线程名字
-** 输　入  : thread    线程句柄
-**           name      线程名字
-** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
+** 函数名称: pthread_null_attr_method_np
+** 功能描述: 设置创建线程时当线程的属性为 NULL 时的处理方法
+** 输　入  : method        新的操作类型
+**           old_method    之前的操作类型
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
                                            API 函数
 *********************************************************************************************************/
 #if LW_CFG_POSIXEX_EN > 0
 
+LW_API int  pthread_null_attr_method_np (int  method, int *old_method)
+{
+    __PX_VPROC_CONTEXT  *pvpCtx = _posixVprocCtxGet();
+
+    if (old_method) {
+        *old_method = pvpCtx->PVPCTX_iThreadDefMethod;
+    }
+
+    if ((method == PTHREAD_NULL_ATTR_METHOD_USE_INHERIT) ||
+        (method == PTHREAD_NULL_ATTR_METHOD_USE_DEFSETTING)) {
+        pvpCtx->PVPCTX_iThreadDefMethod = method;
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: pthread_setname_np
+** 功能描述: 设置线程名字
+** 输　入  : thread    线程句柄
+**           name      线程名字
+** 输　出  : ERROR or OK
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
 LW_API 
 int  pthread_setname_np (pthread_t  thread, const char  *name)
 {
@@ -723,7 +760,7 @@ int  pthread_setname_np (pthread_t  thread, const char  *name)
 ** 功能描述: 获得线程名字
 ** 输　入  : thread    线程句柄
 **           name      线程名字
-** 输　出  : NONE
+** 输　出  : ERROR or OK
 ** 全局变量: 
 ** 调用模块: 
                                            API 函数
