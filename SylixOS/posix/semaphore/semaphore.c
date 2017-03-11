@@ -28,6 +28,7 @@
 2012.12.13  由于 SylixOS 支持进程资源回收, 这里开始支持静态初始化.
 2013.04.01  加入创建 mode 的保存, 为未来权限操作提供基础.
 2016.05.08  隐形初始化确保多线程安全.
+2017.03.11  使用更安全的匿名信号量回收方法.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDARG
 #define  __SYLIXOS_KERNEL
@@ -96,6 +97,27 @@ static void  __sem_init_invisible (sem_t  *psem)
             API_SemaphoreMPost(_G_ulPSemInitLock);
         }
     }
+}
+/*********************************************************************************************************
+** 函数名称: __sem_reclaim_unname
+** 功能描述: posix 匿名信号量回收操作.
+** 输　入  : pxsem         internal sem
+**           presraw       回收节点
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static void  __sem_reclaim_unname (__PX_SEM  *pxsem, PLW_RESOURCE_RAW  presraw)
+{
+    if (pxsem->PSEM_pxnode.PXNODE_pcName != LW_NULL) {
+        return;
+    }
+
+    API_SemaphoreCDelete(&pxsem->PSEM_ulSemaphore);
+
+    __resDelRawHook(presraw);
+
+    __SHEAP_FREE(pxsem);
 }
 /*********************************************************************************************************
 ** 函数名称: sem_open_method
@@ -170,8 +192,8 @@ int  sem_init (sem_t  *psem, int  pshared, unsigned int  value)
     psem->SEM_pvPxSem = (PVOID)pxsem;
     psem->SEM_presraw = (PLW_RESOURCE_RAW)((CHAR *)pxsem + sizeof(__PX_SEM));
     
-    __resAddRawHook(psem->SEM_presraw, (VOIDFUNCPTR)sem_destroy, 
-                    psem, 0, 0, 0, 0, 0);                               /*  加入资源管理器              */
+    __resAddRawHook(psem->SEM_presraw, __sem_reclaim_unname,
+                    pxsem, psem->SEM_presraw, 0, 0, 0, 0);              /*  加入资源管理器              */
     
     return  (ERROR_NONE);
 }
