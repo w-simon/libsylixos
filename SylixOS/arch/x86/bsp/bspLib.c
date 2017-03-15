@@ -31,8 +31,9 @@
 #include "driver/int/i8259a.h"
 #include "driver/timer/i8254.h"
 /*********************************************************************************************************
-  BSP 信息
+  高精度 TIMER 配置
 *********************************************************************************************************/
+#define TICK_HIGH_RESOLUTION_TSC    1                                   /*  高精度实现 0: 8254, 1: TSC  */
 /*********************************************************************************************************
 ** 函数名称: bspInfoCpu
 ** 功能描述: BSP CPU 信息
@@ -137,7 +138,11 @@ static I8259A_CTL _G_i8259aData = {
     .iobase_master  = X86_8259A_MASTER_IO_BASE,
     .iobase_slave   = X86_8259A_SLAVE_IO_BASE,
     .trigger        = 0,
+#if TICK_HIGH_RESOLUTION_TSC > 0
+    .manual_eoi     = 0,
+#else
     .manual_eoi     = 1,
+#endif
     .vector_base    = 32,
 };
 /*********************************************************************************************************
@@ -207,9 +212,12 @@ LW_WEAK VOID  bspIntHandle (ULONG  ulVector)
             x86IoApicIrqEoi(ulVector);                                  /*  SylixOS vector 与 ioapic irq*/
             VECTOR_OP_UNLOCK();                                         /*  一致                        */
 
-        } else {
+        }
+#if TICK_HIGH_RESOLUTION_TSC == 0
+          else {
             i8259aIrqEoi(&_G_i8259aData);
         }
+#endif                                                                  /*  !TICK_HIGH_RESOLUTION_TSC   */
     }
 }
 /*********************************************************************************************************
@@ -586,6 +594,80 @@ static VOID  __tickThread (VOID)
 
 #endif                                                                  /*  TICK_IN_THREAD > 0          */
 /*********************************************************************************************************
+  TSC TIMER
+*********************************************************************************************************/
+#if TICK_HIGH_RESOLUTION_TSC > 0
+
+#define READ_TSC_LL(count)  __asm__ __volatile__("rdtsc" : "=A" (count))
+#define PIT_CH2             0x42
+#define PIT_MODE            0x43
+#define CALIBRATE_CYCLES    14551
+#define CALIBRATE_MULT      82
+#define NSECS_PER_SEC       1000000000UL
+
+static          UINT64      _G_ullCpuFreq;                              /*  每秒 CPU 周期数             */
+static volatile UINT64      _G_ullPreTickTscNs;                         /*  上一 Tick 发生时 TSC 时刻   */
+static volatile INT64       _G_llTscDiffNs;                             /*  TSC 时间和 Tick 时间偏差    */
+/*********************************************************************************************************
+** 函数名称: bspTscInit
+** 功能描述: 初始化 tsc 模块，获取1秒有多少个CPU时钟周期
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  bspTscInit (VOID)
+{
+    UINT64 ullStart;
+    UINT64 ullDelta;
+    UINT64 ullStop;
+
+    out8((in8(0x61) & ~0x02) | 0x01, 0x61);
+    out8(0xb0, PIT_MODE);
+    out8(CALIBRATE_CYCLES & 0xff, PIT_CH2);
+    out8(CALIBRATE_CYCLES >> 8,   PIT_CH2);
+    READ_TSC_LL(ullStart);
+
+    READ_TSC_LL(ullDelta);
+    in8(0x61);
+    READ_TSC_LL(ullStop);
+    ullDelta = ullStop - ullDelta;
+
+    while ((in8(0x61) & 0x20) == 0);
+    READ_TSC_LL(ullStop);
+
+    _G_ullCpuFreq = ((ullStop - ullDelta) - ullStart) * CALIBRATE_MULT;
+
+    _G_ullPreTickTscNs = 0;
+}
+/*********************************************************************************************************
+** 函数名称: drvTscGetNsec
+** 功能描述: 获得开机到现在运行的纳秒数
+** 输　入  : NONE
+** 输　出  : 纳秒数
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static UINT64  bspTscGetNsec (VOID)
+{
+    UINT64 ullCycles;                                                   /*  CPU 周期数                  */
+    UINT64 ullSecond;                                                   /*  秒数                        */
+
+    if (_G_ullCpuFreq == 0) {
+        return 0;
+    }
+
+    READ_TSC_LL(ullCycles);
+
+    ullSecond = ullCycles / _G_ullCpuFreq;
+
+    return (ullSecond * NSECS_PER_SEC +
+            ((ullCycles % _G_ullCpuFreq) * NSECS_PER_SEC)
+            / _G_ullCpuFreq);                                           /*  返回纳秒                    */
+}
+
+#endif                                                                  /*  TICK_HIGH_RESOLUTION_TSC > 0*/
+/*********************************************************************************************************
 ** 函数名称: __tickTimerIsr
 ** 功能描述: tick 定时器中断服务程序
 ** 输  入  : NONE
@@ -633,6 +715,10 @@ LW_WEAK VOID  bspTickInit (VOID)
                                      &threadattr, LW_NULL);
 #endif                                                                  /*  TICK_IN_THREAD > 0          */
 
+#if TICK_HIGH_RESOLUTION_TSC > 0
+    bspTscInit();
+#endif
+
     _G_uiFullCnt          = (_G_i8254Data.qcofreq / LW_TICK_HZ);
     _G_ui64NSecPerCnt7    = ((1000 * 1000 * 1000 / LW_TICK_HZ) << 7) / _G_uiFullCnt;
 
@@ -653,14 +739,27 @@ LW_WEAK VOID  bspTickInit (VOID)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-LW_WEAK VOID  bspTickHook (INT64   i64Tick)
+VOID  bspTickHook (INT64  i64Tick)
 {
-    (VOID)i64Tick;
+#if TICK_HIGH_RESOLUTION_TSC > 0
+    INT64  llCurTickUseNs;                                              /*  本 Tick 走过的 TSC 时间     */
 
+    if (unlikely(_G_ullPreTickTscNs == 0)) {                            /*  第一个 Tick 中断            */
+        _G_ullPreTickTscNs = bspTscGetNsec();
+        _G_llTscDiffNs     = 0;
+    
+	} else {
+        llCurTickUseNs      = bspTscGetNsec() - _G_ullPreTickTscNs;
+        _G_llTscDiffNs     += llCurTickUseNs - LW_NSEC_PER_TICK;        /*  汇总所有 Tick 产生的偏移    */
+        _G_ullPreTickTscNs += llCurTickUseNs;
+    }
+
+#else
     /*
      * 定时器中断需要在更新 TICK 后立即被清除.
      */
     i8259aIrqEoi(&_G_i8259aData);
+#endif                                                                  /*  TICK_HIGH_RESOLUTION_TSC    */
 }
 /*********************************************************************************************************
 ** 函数名称: bspTickHighResolution
@@ -672,6 +771,25 @@ LW_WEAK VOID  bspTickHook (INT64   i64Tick)
 *********************************************************************************************************/
 LW_WEAK VOID  bspTickHighResolution (struct timespec  *ptv)
 {
+#if TICK_HIGH_RESOLUTION_TSC > 0
+    INT64 llNs = ptv->tv_nsec;                                          /*  ns 使用 INT64 类型，因为下  */
+                                                                        /*  面运算有可能超出 long 范围  */
+
+    ptv->tv_sec += (_G_llTscDiffNs / NSECS_PER_SEC);                    /*  Tick 时间校正到 TSC 时间    */
+    llNs        += (_G_llTscDiffNs % NSECS_PER_SEC);
+
+    llNs += (bspTscGetNsec() - _G_ullPreTickTscNs);                     /*  加上 Tick 后 TSC 走过的时间 */
+    while (llNs >= NSECS_PER_SEC) {
+        llNs -= NSECS_PER_SEC;
+        ptv->tv_sec++;
+    }
+    while (llNs < 0) {
+        llNs += NSECS_PER_SEC;
+        ptv->tv_sec--;
+    }
+    ptv->tv_nsec = llNs;
+
+#else
     REGISTER UINT32  uiCntCur, uiDone;
 
     uiCntCur = (UINT32)i8254GetCnt(&_G_i8254Data);
@@ -697,6 +815,7 @@ LW_WEAK VOID  bspTickHighResolution (struct timespec  *ptv)
         ptv->tv_nsec -= 1000000000;
         ptv->tv_sec++;
     }
+#endif                                                                  /*  TICK_HIGH_RESOLUTION_TSC > 0*/
 }
 /*********************************************************************************************************
 ** 函数名称: bspSysBusClkGet

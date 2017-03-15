@@ -24,6 +24,7 @@
             and shall return zero. Otherwise, an error number shall be returned to indicate the error.
 2013.05.02  修正 destructor 调用的参数和时机.
 2014.12.09  强制被杀死的进程不执行 desturtors.
+2017.03.15  使用 hash 表, 提高查询速度.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../include/px_pthread.h"                                      /*  已包含操作系统头文件        */
@@ -39,13 +40,20 @@
 #include "../SylixOS/loader/include/loader_vppatch.h"
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 /*********************************************************************************************************
+  key HASH
+*********************************************************************************************************/
+#define __PX_KEY_THREAD_HASH_SIZE   16
+#define __PX_KEY_THREAD_HASH_MASK   (__PX_KEY_THREAD_HASH_SIZE - 1)
+#define __PX_KEY_THREAD_HASH(t)     ((INT)(t) & __PX_KEY_THREAD_HASH_MASK)
+/*********************************************************************************************************
   key 私有数据类型
 *********************************************************************************************************/
 typedef struct {
     LW_LIST_LINE            PKEYN_lineManage;                           /*  所有 key 键链表             */
     long                    PKEYN_lId;                                  /*  key id                      */
     void                  (*PKEYN_pfuncDestructor)(void *);             /*  destructor                  */
-    LW_LIST_LINE_HEADER     PKEYN_plineKeyHeader;                       /*  所有线程私有数据指针        */
+    LW_LIST_LINE_HEADER     PKEYN_plineKeyHeader[__PX_KEY_THREAD_HASH_SIZE];
+                                                                        /*  所有线程私有数据指针        */
     LW_OBJECT_HANDLE        PKEYN_ulMutex;                              /*  互斥量                      */
     LW_RESOURCE_RAW         PKEYN_resraw;                               /*  资源管理节点                */
 } __PX_KEY_NODE;
@@ -83,16 +91,12 @@ static VOID  __pthreadKeyOnce (VOID)
 *********************************************************************************************************/
 static INT  __pthreadDataSet (long  lId, const void  *pvData)
 {
+    REGISTER INT         iHash;
     __PX_KEY_NODE       *pkeyn = (__PX_KEY_NODE *)lId;
     __PX_KEY_DATA       *pkeyd;
     PLW_CLASS_TCB        ptcbCur;
     LW_OBJECT_HANDLE     ulMe;
     PLW_LIST_LINE        plineTemp;
-    
-    if (pkeyn == LW_NULL) {                                             /*  没有 key 键                 */
-        errno = EINVAL;
-        return  (EINVAL);
-    }
     
     LW_TCB_GET_CUR_SAFE(ptcbCur);
     
@@ -101,8 +105,10 @@ static INT  __pthreadDataSet (long  lId, const void  *pvData)
     /*
      *  查找是否已经创建了相关私有数据
      */
+    iHash = __PX_KEY_THREAD_HASH(ulMe);
+
     __PX_KEY_LOCK(pkeyn);                                               /*  锁住 key 键                 */
-    for (plineTemp  = pkeyn->PKEYN_plineKeyHeader;
+    for (plineTemp  = pkeyn->PKEYN_plineKeyHeader[iHash];
          plineTemp != LW_NULL;
          plineTemp  = _list_line_get_next(plineTemp)) {
         
@@ -113,6 +119,7 @@ static INT  __pthreadDataSet (long  lId, const void  *pvData)
         }
     }
     __PX_KEY_UNLOCK(pkeyn);                                             /*  解锁 key 键                 */
+
     if (plineTemp) {
         return  (ERROR_NONE);                                           /*  已经找到了对应的节点        */
     }
@@ -131,7 +138,7 @@ static INT  __pthreadDataSet (long  lId, const void  *pvData)
     
     __PX_KEY_LOCK(pkeyn);                                               /*  锁住 key 键                 */
     _List_Line_Add_Ahead(&pkeyd->PKEYD_lineManage, 
-                         &pkeyn->PKEYN_plineKeyHeader);                 /*  加入对应 key 键链表         */
+                         &pkeyn->PKEYN_plineKeyHeader[iHash]);          /*  加入对应 key 键链表         */
     __PX_KEY_UNLOCK(pkeyn);                                             /*  解锁 key 键                 */
     
     return  (ERROR_NONE);
@@ -147,6 +154,7 @@ static INT  __pthreadDataSet (long  lId, const void  *pvData)
 *********************************************************************************************************/
 static INT  __pthreadDataGet (long  lId, void  **ppvData)
 {
+    REGISTER INT         iHash;
     __PX_KEY_NODE       *pkeyn = (__PX_KEY_NODE *)lId;
     __PX_KEY_DATA       *pkeyd;
     LW_OBJECT_HANDLE     ulMe  = API_ThreadIdSelf();
@@ -157,15 +165,12 @@ static INT  __pthreadDataGet (long  lId, void  **ppvData)
         return  (EINVAL);
     }
     
-    if (pkeyn == LW_NULL) {                                             /*  没有 key 键                 */
-        errno = EINVAL;
-        return  (EINVAL);
-    }
-    
     *ppvData = LW_NULL;
     
+    iHash = __PX_KEY_THREAD_HASH(ulMe);
+
     __PX_KEY_LOCK(pkeyn);                                               /*  锁住 key 键                 */
-    for (plineTemp  = pkeyn->PKEYN_plineKeyHeader;
+    for (plineTemp  = pkeyn->PKEYN_plineKeyHeader[iHash];
          plineTemp != LW_NULL;
          plineTemp  = _list_line_get_next(plineTemp)) {
         
@@ -182,32 +187,29 @@ static INT  __pthreadDataGet (long  lId, void  **ppvData)
 /*********************************************************************************************************
 ** 函数名称: __pthreadDataDeleteByKey
 ** 功能描述: 删除指定 key 键的所有数据节点.
-** 输　入  : lId           键id
+** 输　入  : pkeyn        KEY NODE
 ** 输　出  : ERROR CODE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT  __pthreadDataDeleteByKey (long  lId)
+static INT  __pthreadDataDeleteByKey (__PX_KEY_NODE  *pkeyn)
 {
-    __PX_KEY_NODE       *pkeyn = (__PX_KEY_NODE *)lId;
     __PX_KEY_DATA       *pkeyd;
-    
-    if (pkeyn == LW_NULL) {                                             /*  没有 key 键                 */
-        errno = EINVAL;
-        return  (EINVAL);
-    }
+    INT                  i;
     
     /*
      *  key 键删除, 需要遍历 key 键的私有数据表, 删除所有私有数据
      */
     __PX_KEY_LOCK(pkeyn);                                               /*  锁住 key 键                 */
-    while (pkeyn->PKEYN_plineKeyHeader) {
-        pkeyd = (__PX_KEY_DATA *)pkeyn->PKEYN_plineKeyHeader;           /*  链表是 KEY DATA 的第一个元素*/
-        
-        _List_Line_Del(&pkeyd->PKEYD_lineManage,
-                       &pkeyn->PKEYN_plineKeyHeader);                   /*  从链表中删除                */
-                       
-        __SHEAP_FREE(pkeyd);                                            /*  释放线程私有数据内存        */
+    for (i = 0; i < __PX_KEY_THREAD_HASH_SIZE; i++) {
+        while (pkeyn->PKEYN_plineKeyHeader[i]) {
+            pkeyd = (__PX_KEY_DATA *)pkeyn->PKEYN_plineKeyHeader[i];    /*  链表是 KEY DATA 的第一个元素*/
+
+            _List_Line_Del(&pkeyd->PKEYD_lineManage,
+                           &pkeyn->PKEYN_plineKeyHeader[i]);            /*  从链表中删除                */
+
+            __SHEAP_FREE(pkeyd);                                        /*  释放线程私有数据内存        */
+        }
     }
     __PX_KEY_UNLOCK(pkeyn);                                             /*  解锁 key 键                 */
     
@@ -216,18 +218,21 @@ static INT  __pthreadDataDeleteByKey (long  lId)
 /*********************************************************************************************************
 ** 函数名称: __pthreadDataDeleteByThread
 ** 功能描述: 删除所有与当前线程相关的内部数据节点.
-** 输　入  : NONE
+** 输　入  : ulId      被删除任务句柄
+**           pvRetVal  任务返回值
+**           ptcbDel   被删除任务控制块
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
 static VOID  __pthreadDataDeleteByThread (LW_OBJECT_HANDLE  ulId, PVOID  pvRetVal, PLW_CLASS_TCB  ptcbDel)
 {
+    REGISTER INT         iHash;
     __PX_KEY_NODE       *pkeyn;
     __PX_KEY_DATA       *pkeyd;
-    LW_OBJECT_HANDLE     ulMe = ptcbDel->TCB_ulId;
     PLW_LIST_LINE        plineTempK;
     PLW_LIST_LINE        plineTempD;
+    VOIDFUNCPTR          pfuncDestructor;
     
     PVOID                pvPrevValue;
     BOOL                 bCall = LW_TRUE;
@@ -244,6 +249,8 @@ static VOID  __pthreadDataDeleteByThread (LW_OBJECT_HANDLE  ulId, PVOID  pvRetVa
     /*
      *  线程删除, 需要遍历所有 key 键的私有数据表, 删除与本线程相关的私有数据
      */
+    iHash = __PX_KEY_THREAD_HASH(ulId);
+
 __re_check:
     __PX_LOCK();                                                        /*  锁住 posix 库               */
     for (plineTempK  = _G_plineKeyHeader;
@@ -252,26 +259,28 @@ __re_check:
         
         pkeyn = (__PX_KEY_NODE *)plineTempK;
         
-        plineTempD = pkeyn->PKEYN_plineKeyHeader;                       /*  遍历 key 键内的所有节点     */
+        plineTempD = pkeyn->PKEYN_plineKeyHeader[iHash];                /*  遍历 key 键内的所有节点     */
         while (plineTempD) {
             pkeyd = (__PX_KEY_DATA *)plineTempD;
             plineTempD  = _list_line_get_next(plineTempD);
             
-            if (pkeyd->PKEYD_ulOwner == ulMe) {                         /*  是否为当前线程数据节点      */
-                if (pkeyd->PKEYD_pvData) {                              /*  需要调用 destructor         */
+            if (pkeyd->PKEYD_ulOwner == ulId) {                         /*  是否为当前线程数据节点      */
+                if (pkeyn->PKEYN_pfuncDestructor &&
+                    pkeyd->PKEYD_pvData) {                              /*  需要调用 destructor         */
                     pvPrevValue = pkeyd->PKEYD_pvData;
                     pkeyd->PKEYD_pvData = LW_NULL;                      /*  下次不再调用 destructor     */
-                    
+                    pfuncDestructor = pkeyn->PKEYN_pfuncDestructor;
                     __PX_UNLOCK();                                      /*  解锁 posix 库               */
-                    if (pkeyn->PKEYN_pfuncDestructor && bCall) {        /*  调用删除函数                */
-                        LW_SOFUNC_PREPARE(pkeyn->PKEYN_pfuncDestructor);
-                        pkeyn->PKEYN_pfuncDestructor(pvPrevValue);
+                    
+                    if (pfuncDestructor && bCall) {                     /*  调用删除函数                */
+                        LW_SOFUNC_PREPARE(pfuncDestructor);
+                        pfuncDestructor(pvPrevValue);
                     }
                     goto    __re_check;                                 /*  重新检查                    */
                 }
                 
                 _List_Line_Del(&pkeyd->PKEYD_lineManage,
-                               &pkeyn->PKEYN_plineKeyHeader);           /*  从链表中删除                */
+                               &pkeyn->PKEYN_plineKeyHeader[iHash]);    /*  从链表中删除                */
                 __SHEAP_FREE(pkeyd);                                    /*  释放线程私有数据内存        */
             }
         }
@@ -292,6 +301,7 @@ __re_check:
 LW_API 
 int  pthread_key_create (pthread_key_t  *pkey, void (*destructor)(void *))
 {
+    INT              i;
     __PX_KEY_NODE   *pkeyn;
     
     if (pkey == LW_NULL) {
@@ -308,7 +318,6 @@ int  pthread_key_create (pthread_key_t  *pkey, void (*destructor)(void *))
     }
     pkeyn->PKEYN_lId             = (long)pkeyn;
     pkeyn->PKEYN_pfuncDestructor = destructor;
-    pkeyn->PKEYN_plineKeyHeader  = LW_NULL;
     pkeyn->PKEYN_ulMutex         = API_SemaphoreMCreate("pxkey", LW_PRIO_DEF_CEILING, 
                                             LW_OPTION_WAIT_PRIORITY |
                                             LW_OPTION_INHERIT_PRIORITY |
@@ -320,6 +329,10 @@ int  pthread_key_create (pthread_key_t  *pkey, void (*destructor)(void *))
         return  (EAGAIN);
     }
     
+    for (i = 0; i < __PX_KEY_THREAD_HASH_SIZE; i++) {
+        pkeyn->PKEYN_plineKeyHeader[i] = LW_NULL;
+    }
+
     __PX_LOCK();                                                        /*  锁住 posix 库               */
     _List_Line_Add_Ahead(&pkeyn->PKEYN_lineManage,
                          &_G_plineKeyHeader);                           /*  加入 key 键链表             */
@@ -344,14 +357,14 @@ int  pthread_key_create (pthread_key_t  *pkey, void (*destructor)(void *))
 LW_API 
 int  pthread_key_delete (pthread_key_t  key)
 {
-    __PX_KEY_NODE   *pkeyn = (__PX_KEY_NODE  *)key;
+    __PX_KEY_NODE   *pkeyn = (__PX_KEY_NODE *)key;
 
     if (key == 0) {
         errno = EINVAL;
         return  (EINVAL);
     }
     
-    __pthreadDataDeleteByKey(key);                                      /*  删除所有与此 key 相关的数据 */
+    __pthreadDataDeleteByKey(pkeyn);                                    /*  删除所有与此 key 相关的数据 */
     
     __PX_LOCK();                                                        /*  锁住 posix 库               */
     _List_Line_Del(&pkeyn->PKEYN_lineManage,
@@ -402,6 +415,7 @@ void *pthread_getspecific (pthread_key_t  key)
     void   *pvalue = LW_NULL;
 
     if (key == 0) {
+        errno = EINVAL;
         return  (LW_NULL);
     }
     

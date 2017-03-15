@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2017-03-13: han.hui
+    加入对 CAN FD 总线标准支持.
+
     2017-03-07: han.hui
     加入对大端 ARM 支持.
 
