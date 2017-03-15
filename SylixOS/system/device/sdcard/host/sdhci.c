@@ -34,6 +34,7 @@
 2015.11.20  增加 对不支持 ACMD12 的控制器处理.
             增加 对 SDHCI v3.0 的兼容性支持.
 2016.12.16  修正 在传输过程中可能产生死锁的问题.
+2017.03.15  修正 使用查询 SDIO 中断情况下, 应用线程禁止中断可能造成死锁的问题.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #define  __SYLIXOS_IO
@@ -2769,6 +2770,8 @@ static PVOID  __sdhciSdioIntSvr (VOID *pvArg)
 
         while (1) {
             __SDHCI_SDIO_REQUEST(psdhcitrans);
+            __SDHCI_SDIO_RELEASE(psdhcitrans);                          /*  立即释放允许其他服务禁止中断*/
+
             for (i = 0; i < iDoIntCnt; i++) {
                 iError = API_SdmEventNotify(psdhcihost->SDHCIHS_psdhcisdmhost->SDHCISDMH_pvSdmHost,
                                             SDM_EVENT_SDIO_INTERRUPT);
@@ -2778,9 +2781,7 @@ static PVOID  __sdhciSdioIntSvr (VOID *pvArg)
                      * 因为有可能在下一次会产生, 这样不至于影响传输速度
                      */
                 }
-
             }
-            __SDHCI_SDIO_RELEASE(psdhcitrans);
 
             /*
              * 动态调整查询间隔
