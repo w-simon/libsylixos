@@ -605,6 +605,22 @@ static VOID  __tickThread (VOID)
 #define CALIBRATE_MULT      82
 #define NSECS_PER_SEC       1000000000UL
 
+/*********************************************************************************************************
+  修正偏差
+*********************************************************************************************************/
+#define TOD_TSCDIFF(tod, diff_nsec)                     \
+        do {                                            \
+            (tod)->tv_nsec += diff_nsec;                \
+            if ((tod)->tv_nsec >= NSECS_PER_SEC) {      \
+                (tod)->tv_nsec -= NSECS_PER_SEC;        \
+                (tod)->tv_sec++;                        \
+            }                                           \
+            if ((tod)->tv_nsec < 0) {                   \
+                (tod)->tv_nsec += NSECS_PER_SEC;        \
+                (tod)->tv_sec--;                        \
+            }                                           \
+        } while (0)
+
 static          UINT64      _G_ullCpuFreq;                              /*  每秒 CPU 周期数             */
 static volatile UINT64      _G_ullPreTickTscNs;                         /*  上一 Tick 发生时 TSC 时刻   */
 static volatile INT64       _G_llTscDiffNs;                             /*  TSC 时间和 Tick 时间偏差    */
@@ -752,6 +768,9 @@ VOID  bspTickHook (INT64  i64Tick)
         llCurTickUseNs      = bspTscGetNsec() - _G_ullPreTickTscNs;
         _G_llTscDiffNs     += llCurTickUseNs - LW_NSEC_PER_TICK;        /*  汇总所有 Tick 产生的偏移    */
         _G_ullPreTickTscNs += llCurTickUseNs;
+
+        TOD_TSCDIFF(&_K_tvTODCurrent,                                   /*  校正 _K_tvTODCurrent 偏差   */
+                    (llCurTickUseNs - LW_NSEC_PER_TICK));
     }
 
 #else
@@ -774,9 +793,11 @@ LW_WEAK VOID  bspTickHighResolution (struct timespec  *ptv)
 #if TICK_HIGH_RESOLUTION_TSC > 0
     INT64 llNs = ptv->tv_nsec;                                          /*  ns 使用 INT64 类型，因为下  */
                                                                         /*  面运算有可能超出 long 范围  */
-
-    ptv->tv_sec += (_G_llTscDiffNs / NSECS_PER_SEC);                    /*  Tick 时间校正到 TSC 时间    */
-    llNs        += (_G_llTscDiffNs % NSECS_PER_SEC);
+    if ((ptv->tv_sec  != _K_tvTODCurrent.tv_sec) ||                     /*  _K_tvTODCurrent 偏差已在每  */
+        (ptv->tv_nsec != _K_tvTODCurrent.tv_nsec)) {                    /*  个 Tick 中被校正了          */
+        ptv->tv_sec += (_G_llTscDiffNs / NSECS_PER_SEC);                /*  Tick 时间校正到 TSC 时间    */
+        llNs        += (_G_llTscDiffNs % NSECS_PER_SEC);
+    }
 
     llNs += (bspTscGetNsec() - _G_ullPreTickTscNs);                     /*  加上 Tick 后 TSC 走过的时间 */
     while (llNs >= NSECS_PER_SEC) {
