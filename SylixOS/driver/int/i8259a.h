@@ -58,7 +58,7 @@ VOID  i8259aIrqDisable(I8259A_CTL *pctl, UINT  irq);
 VOID  i8259aIrqEnable(I8259A_CTL *pctl, UINT  irq);
 BOOL  i8259aIrqIsEnable(I8259A_CTL *pctl, UINT  irq);
 BOOL  i8259aIrqIsPending(I8259A_CTL *pctl, UINT  irq);
-VOID  i8259aIrqEoi (I8259A_CTL *pctl);
+VOID  i8259aIrqEoi(I8259A_CTL *pctl, UINT  irq);
 INT   i8259aIrq(I8259A_CTL *pctl);
 VOID  i8259aInit(I8259A_CTL *pctl);
 

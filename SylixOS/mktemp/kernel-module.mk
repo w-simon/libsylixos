@@ -39,10 +39,16 @@ else
 $(target)_GCOV_FLAGS  :=
 endif
 
+ifneq (,$(findstring yes,$($(target)_USE_OMP)))
+$(target)_OMP_FLAGS   :=
+else
+$(target)_OMP_FLAGS   :=
+endif
+
 $(target)_DSYMBOL     += -DSYLIXOS_LIB
 $(target)_CPUFLAGS    := $(CPUFLAGS_NOFPU)
-$(target)_COMMONFLAGS := $($(target)_CPUFLAGS) $(ARCH_COMMONFLAGS) $(OPTIMIZE) -Wall -fmessage-length=0 -fsigned-char -fno-short-enums $($(target)_GCOV_FLAGS) 
-$(target)_ASFLAGS     := $($(target)_COMMONFLAGS) $(ARCH_KO_CFLAGS) -x assembler-with-cpp $($(target)_DSYMBOL) $($(target)_INC_PATH) 
+$(target)_COMMONFLAGS := $($(target)_CPUFLAGS) $(ARCH_COMMONFLAGS) $(OPTIMIZE) -Wall -fmessage-length=0 -fsigned-char -fno-short-enums $($(target)_GCOV_FLAGS) $($(target)_OMP_FLAGS)
+$(target)_ASFLAGS     := $($(target)_COMMONFLAGS) $(ARCH_KO_CFLAGS) -x assembler-with-cpp $($(target)_DSYMBOL) $($(target)_INC_PATH)
 $(target)_CFLAGS      := $($(target)_COMMONFLAGS) $(ARCH_KO_CFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CFLAGS)
 $(target)_CXXFLAGS    := $($(target)_COMMONFLAGS) $(ARCH_KO_CFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CXX_EXCEPT) $($(target)_CXXFLAGS)
 
@@ -59,6 +65,9 @@ $(target)_DEPEND_LIB := $(LOCAL_DEPEND_LIB)
 
 ifneq (,$(findstring yes,$($(target)_USE_GCOV)))
 $(target)_DEPEND_LIB += -lgcov_ko
+endif
+
+ifneq (,$(findstring yes,$($(target)_USE_OMP)))
 endif
 
 ifneq (,$(findstring yes,$($(target)_USE_CXX)))

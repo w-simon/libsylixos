@@ -83,6 +83,7 @@ $(target)_CXXFLAGS := $(LOCAL_CXXFLAGS)
 $(target)_USE_CXX        := $(LOCAL_USE_CXX)
 $(target)_USE_CXX_EXCEPT := $(LOCAL_USE_CXX_EXCEPT)
 $(target)_USE_GCOV       := $(LOCAL_USE_GCOV)
+$(target)_USE_OMP        := $(LOCAL_USE_OMP)
 $(target)_USE_EXTENSION  := $(LOCAL_USE_EXTENSION)
 
 $(target)_PRE_LINK_CMD   := $(LOCAL_PRE_LINK_CMD)

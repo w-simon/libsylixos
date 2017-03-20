@@ -151,12 +151,16 @@ BOOL  i8259aIrqIsPending (I8259A_CTL *pctl, UINT  irq)
 ** 函数名称: i8259aIrqEoi
 ** 功能描述: 通知 8259a 中断处理结束
 ** 输　入  : pctl           8259a 控制块
+**           irq            8259a 内部中断号
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID i8259aIrqEoi (I8259A_CTL *pctl)
+VOID  i8259aIrqEoi (I8259A_CTL *pctl, UINT  irq)
 {
+    if (irq >= 8) {
+        out8(NON_SPEC_EOI, PIC_SLAVE_CMD);
+    }
     out8(NON_SPEC_EOI, PIC_MASTER_CMD);
 }
 /*********************************************************************************************************
@@ -237,8 +241,12 @@ VOID  i8259aInit (I8259A_CTL *pctl)
     out8(cmd, PIC_SLAVE_CMD);                                           /*  ICW1: select 8259A-2 init   */
     out8(pctl->vector_base + 8, PIC_SLAVE_IMR);                         /*  ICW2: slave IR0 mapped to 8 */
     out8(PIC_CASCADE_IR, PIC_SLAVE_IMR);                                /*  slave on master's IR2       */
-    out8(SLAVE_ICW4_DEFAULT | PIC_ICW4_AEOI, PIC_SLAVE_IMR);            /*  slave's support for AEOI in */
-                                                                        /*  flat mode is to be          */
+
+    if (pctl->manual_eoi) {
+        out8(SLAVE_ICW4_DEFAULT, PIC_SLAVE_IMR);                        /*  master does Manual EOI      */
+    } else {
+        out8(SLAVE_ICW4_DEFAULT | PIC_ICW4_AEOI, PIC_SLAVE_IMR);        /*  slave's support for AEOI in */
+    }                                                                   /*  flat mode is to be          */
                                                                         /*  investigated                */
     bspDelayUs(100);                                                    /*  wait for 8259A to initialize*/
 

@@ -215,7 +215,7 @@ LW_WEAK VOID  bspIntHandle (ULONG  ulVector)
         }
 #if TICK_HIGH_RESOLUTION_TSC == 0
           else {
-            i8259aIrqEoi(&_G_i8259aData);
+            i8259aIrqEoi(&_G_i8259aData, (UINT)ulVector);
         }
 #endif                                                                  /*  !TICK_HIGH_RESOLUTION_TSC   */
     }
@@ -758,7 +758,7 @@ VOID  bspTickHook (INT64  i64Tick)
     /*
      * 定时器中断需要在更新 TICK 后立即被清除.
      */
-    i8259aIrqEoi(&_G_i8259aData);
+    i8259aIrqEoi(&_G_i8259aData, X86_IRQ_TIMER);
 #endif                                                                  /*  TICK_HIGH_RESOLUTION_TSC    */
 }
 /*********************************************************************************************************

@@ -10,13 +10,13 @@
 #
 #--------------文件信息--------------------------------------------------------------------------------
 #
-# 文   件   名: library.mk
+# 文   件   名: static-library.mk
 #
 # 创   建   人: Jiao.JinXing(焦进星)
 #
 # 文件创建日期: 2016 年 08 月 24 日
 #
-# 描        述: 动态库类目标 makefile 模板
+# 描        述: 静态库类目标 makefile 模板
 #*********************************************************************************************************
 
 #*********************************************************************************************************
@@ -39,11 +39,17 @@ else
 $(target)_GCOV_FLAGS  :=
 endif
 
+ifneq (,$(findstring yes,$($(target)_USE_OMP)))
+$(target)_OMP_FLAGS   := $(GCC_OMP_CFLAGS)
+else
+$(target)_OMP_FLAGS   :=
+endif
+
 $(target)_DSYMBOL     += -DSYLIXOS_LIB
 
 $(target)_CPUFLAGS    := $(CPUFLAGS)
-$(target)_COMMONFLAGS := $($(target)_CPUFLAGS) $(ARCH_COMMONFLAGS) $(OPTIMIZE) -Wall -fmessage-length=0 -fsigned-char -fno-short-enums $($(target)_GCOV_FLAGS) 
-$(target)_ASFLAGS     := $($(target)_COMMONFLAGS) -x assembler-with-cpp $($(target)_DSYMBOL) $($(target)_INC_PATH) 
+$(target)_COMMONFLAGS := $($(target)_CPUFLAGS) $(ARCH_COMMONFLAGS) $(OPTIMIZE) -Wall -fmessage-length=0 -fsigned-char -fno-short-enums $($(target)_GCOV_FLAGS) $($(target)_OMP_FLAGS)
+$(target)_ASFLAGS     := $($(target)_COMMONFLAGS) -x assembler-with-cpp $($(target)_DSYMBOL) $($(target)_INC_PATH)
 $(target)_CFLAGS      := $($(target)_COMMONFLAGS) $(ARCH_PIC_CFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CFLAGS)
 $(target)_CXXFLAGS    := $($(target)_COMMONFLAGS) $(ARCH_PIC_CFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CXX_EXCEPT) $($(target)_CXXFLAGS)
 

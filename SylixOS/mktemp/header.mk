@@ -113,6 +113,7 @@ endif
 GCC_CXX_EXCEPT_CFLAGS    = -fexceptions -frtti
 GCC_NO_CXX_EXCEPT_CFLAGS = -fno-exceptions -fno-rtti
 GCC_GCOV_CFLAGS          = -fprofile-arcs -ftest-coverage
+GCC_OMP_CFLAGS           = -fopenmp
 
 BIAS  = /
 EMPTY =
