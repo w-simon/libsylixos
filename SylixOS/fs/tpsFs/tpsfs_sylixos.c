@@ -919,12 +919,16 @@ __re_umount_vol:
         if (S_ISDIR(tpsFsGetmod(tpsfile.TPSFIL_pinode))) {              /* 目录非空不允许删除           */
             PTPS_ENTRY    pentry;
 
-            pentry = tpsFsEntryRead(tpsfile.TPSFIL_pinode, 0);
-            if (pentry) {
-                tpsFsEntryFree(pentry);
+            iErr = tpsFsReadDir(tpsfile.TPSFIL_pinode, 0, &pentry);
+            if (iErr != ENOENT) {
+                if (pentry) {
+                    tpsFsEntryFree(pentry);
+                    iErr = ENOTEMPTY;
+                }
+                
                 tpsFsClose(tpsfile.TPSFIL_pinode);
                 __TPS_VOL_UNLOCK(ptpsvol);
-                _ErrorHandle(ENOTEMPTY);
+                _ErrorHandle(iErr);
                 return  (PX_ERROR);
             }
         }
@@ -972,10 +976,12 @@ static INT  __tpsFsClose (PLW_FD_ENTRY    pfdentry)
                 if (bRemove && S_ISDIR(tpsFsGetmod(ptpsfile->TPSFIL_pinode))) {
                     PTPS_ENTRY    pentry;
                     
-                    pentry = tpsFsEntryRead(ptpsfile->TPSFIL_pinode, 0);
-                    if (pentry) {
-                        tpsFsEntryFree(pentry);
-                        bRemove = LW_FALSE;                             /*  不能删除非空目录            */
+                    if (tpsFsReadDir(ptpsfile->TPSFIL_pinode, 0, &pentry) != ENOENT) {
+                        if (pentry) {
+                            tpsFsEntryFree(pentry);
+                        }
+
+                        bRemove = LW_FALSE;
                     }
                 }
                 tpsFsClose(ptpsfile->TPSFIL_pinode);
@@ -1294,6 +1300,7 @@ static INT  __tpsFsReadDir (PLW_FD_ENTRY  pfdentry, DIR  *dir)
     PLW_FD_NODE    pfdnode  = (PLW_FD_NODE)pfdentry->FDENTRY_pfdnode;
     PTPS_FILE      ptpsfile = (PTPS_FILE)pfdnode->FDNODE_pvFile;
     PTPS_ENTRY     pentry;
+    INT            iErr     = ERROR_NONE;
 
     if (!dir) {
         _ErrorHandle(EINVAL);
@@ -1311,10 +1318,10 @@ static INT  __tpsFsReadDir (PLW_FD_ENTRY  pfdentry, DIR  *dir)
         return  (PX_ERROR);
     }
 
-    pentry = tpsFsEntryRead(ptpsfile->TPSFIL_pinode, dir->dir_pos);
+    tpsFsReadDir(ptpsfile->TPSFIL_pinode, dir->dir_pos, &pentry);
     if (!pentry) {
         __TPS_FILE_UNLOCK(ptpsfile);
-        _ErrorHandle(ENOENT);
+        _ErrorHandle(iErr);
         return  (PX_ERROR);
     }
 

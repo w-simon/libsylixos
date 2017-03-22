@@ -133,9 +133,9 @@ static PTPS_ENTRY  __tpsFSCreate (PTPS_INODE pinodeDir, CPCHAR pcFileName, INT i
         return  (LW_NULL);
     }
 
-    pentry = tpsFsFindEntry(pinodeDir, pcFileName);
-    if (pentry == LW_NULL) {
-        *piErr = ENOENT;
+    if (tpsFsFindEntry(pinodeDir, pcFileName, &pentry) != TPS_ERR_NONE) {
+        *piErr = EIO;
+        return  (LW_NULL);
     }
 
     return  (pentry);
@@ -147,11 +147,12 @@ static PTPS_ENTRY  __tpsFSCreate (PTPS_INODE pinodeDir, CPCHAR pcFileName, INT i
 **           pcPath           文件路径
 **           bFindParent      是否只查找条目所在目录
 **           ppcSymLink       符号链接位置
+**           piErr            返回错误码
 ** 输　出  : 成功返回entry项，失败分两种情况，存在父目录返回一个inumber为0的entry，否则返回NULL
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static PTPS_ENTRY  __tpsFsWalkPath (PTPS_SUPER_BLOCK psb, CPCHAR pcPath, PCHAR *ppcRemain)
+static PTPS_ENTRY  __tpsFsWalkPath (PTPS_SUPER_BLOCK psb, CPCHAR pcPath, PCHAR *ppcRemain, INT *piErr)
 {
     PCHAR   pcPathDup    = LW_NULL;
     PCHAR   pcPathRemain = LW_NULL;
@@ -160,12 +161,15 @@ static PTPS_ENTRY  __tpsFsWalkPath (PTPS_SUPER_BLOCK psb, CPCHAR pcPath, PCHAR *
     PTPS_ENTRY pentry    = LW_NULL;
     PTPS_ENTRY pentrySub = LW_NULL;
 
+    TPS_RESULT tpsres    = TPS_ERR_NONE;
+
     if (__tpsFsCheckFileName(pcPath) != ERROR_NONE) {                   /* 检查文件路径有效性           */
         return  (LW_NULL);
     }
 
     pcPathDup = (PCHAR)TPS_ALLOC(lib_strlen(pcPath) + 1);
     if (LW_NULL == pcPathDup) {
+        *piErr = ENOMEM;
         return  (LW_NULL);
     }
     lib_strcpy(pcPathDup, pcPath);
@@ -178,6 +182,7 @@ static PTPS_ENTRY  __tpsFsWalkPath (PTPS_SUPER_BLOCK psb, CPCHAR pcPath, PCHAR *
     pentry = (PTPS_ENTRY)TPS_ALLOC(sizeof(TPS_ENTRY) + lib_strlen(PX_STR_DIVIDER) + 1);
     if (LW_NULL == pentry) {
         TPS_FREE(pcPathDup);
+        *piErr = ENOMEM;
         return  (LW_NULL);
     }
     lib_bzero(pentry, sizeof(TPS_ENTRY) + lib_strlen(PX_STR_DIVIDER) + 1);
@@ -193,6 +198,7 @@ static PTPS_ENTRY  __tpsFsWalkPath (PTPS_SUPER_BLOCK psb, CPCHAR pcPath, PCHAR *
     if (LW_NULL == pentry->ENTRY_pinode) {
         TPS_FREE(pentry);
         TPS_FREE(pcPathDup);
+        *piErr = EIO;
         return  (LW_NULL);
     }
 
@@ -216,10 +222,20 @@ static PTPS_ENTRY  __tpsFsWalkPath (PTPS_SUPER_BLOCK psb, CPCHAR pcPath, PCHAR *
             *pcPathRemain++ = 0;
         }
 
-        pentrySub = tpsFsFindEntry(pentry->ENTRY_pinode, pcFileName);   /* 查找目录项                   */
-        if (LW_NULL == pentrySub) {
+        tpsres = tpsFsFindEntry(pentry->ENTRY_pinode,
+                                pcFileName,
+                                &pentrySub);                            /* 查找目录项                   */
+        if (tpsres != TPS_ERR_NONE) {
+            if (tpsres != TPS_ERR_ENTRY_NOT_EXIST) {                    /* 内存或磁盘访问错误           */
+                tpsFsEntryFree(pentry);
+                pentry = LW_NULL;
+                *piErr = EIO;
+            } else {
+                *piErr = ENOENT;
+            }
             break;
         }
+
         tpsFsEntryFree(pentry);
         pentry = pentrySub;
     }
@@ -286,9 +302,9 @@ errno_t  tpsFsOpen (PTPS_SUPER_BLOCK     psb,
         return  (*ppinode == LW_NULL ? EIO : ERROR_NONE);
     }
 
-    pentry = __tpsFsWalkPath(psb, pcPath, &pcRemain);
+    pentry = __tpsFsWalkPath(psb, pcPath, &pcRemain, &iErr);
     if (LW_NULL == pentry) {
-        return  (ENOENT);
+        return  (iErr);
     }
 
     if (!S_ISLNK(pentry->ENTRY_pinode->IND_iMode) && (*pcRemain == 0)) {
@@ -378,6 +394,7 @@ errno_t  tpsFsRemove (PTPS_SUPER_BLOCK psb, CPCHAR pcPath)
     TPS_INUM   inumDir      = 0;
     TPS_RESULT tpsres       = TPS_ERR_NONE;
     TPS_SIZE_T iSize;
+    errno_t    iErr         = ERROR_NONE;
 
     if ((LW_NULL == psb) || (LW_NULL == pcPath)) {
         return  (EINVAL);
@@ -387,9 +404,9 @@ errno_t  tpsFsRemove (PTPS_SUPER_BLOCK psb, CPCHAR pcPath)
         return  (EIO);
     }
 
-    pentry = __tpsFsWalkPath(psb, pcPath, &pcRemain);
+    pentry = __tpsFsWalkPath(psb, pcPath, &pcRemain, &iErr);
     if (LW_NULL == pentry) {
-        return  (ENOENT);
+        return  (iErr);
     }
 
     if (*pcRemain != 0) {
@@ -446,8 +463,9 @@ errno_t  tpsFsRemove (PTPS_SUPER_BLOCK psb, CPCHAR pcPath)
         if (iSize >= 0 && iSize < tpsFsInodeGetSize(pinodeDir)) {
             tpsFsTrunc(pinodeDir, iSize);
         }
+
+        tpsFsCloseInode(pinodeDir);
     }
-    tpsFsCloseInode(pinodeDir);
 
     return  (ERROR_NONE);
 }
@@ -468,6 +486,7 @@ errno_t  tpsFsMove (PTPS_SUPER_BLOCK psb, CPCHAR pcPathSrc, CPCHAR pcPathDst)
     PTPS_TRANS ptrans           = LW_NULL;
     CPCHAR     pcFileName       = LW_NULL;
     PCHAR      pcRemain         = LW_NULL;
+    errno_t    iErr             = ERROR_NONE;
 
     if ((LW_NULL == psb) || (LW_NULL == pcPathSrc) || (LW_NULL == pcPathDst)) {
         return  (EINVAL);
@@ -477,9 +496,9 @@ errno_t  tpsFsMove (PTPS_SUPER_BLOCK psb, CPCHAR pcPathSrc, CPCHAR pcPathDst)
         return  (EIO);
     }
 
-    pentrySrc = __tpsFsWalkPath(psb, pcPathSrc, &pcRemain);
+    pentrySrc = __tpsFsWalkPath(psb, pcPathSrc, &pcRemain, &iErr);
     if (LW_NULL == pentrySrc) {
-        return  (ENOENT);
+        return  (iErr);
     }
     
     if (*pcRemain != 0) {                                               /* 源文件必须存在               */
@@ -487,10 +506,10 @@ errno_t  tpsFsMove (PTPS_SUPER_BLOCK psb, CPCHAR pcPathSrc, CPCHAR pcPathDst)
         return  (ENOENT);
     }
 
-    pentryDst = __tpsFsWalkPath(psb, pcPathDst, &pcRemain);
+    pentryDst = __tpsFsWalkPath(psb, pcPathDst, &pcRemain, &iErr);
     if (LW_NULL == pentryDst) {
         tpsFsEntryFree(pentrySrc);
-        return  (ENOENT);
+        return  (iErr);
     }
 
     if (*pcRemain == 0) {                                               /* 文件已存在                   */
@@ -562,6 +581,7 @@ errno_t  tpsFsLink (PTPS_SUPER_BLOCK psb, CPCHAR pcPathSrc, CPCHAR pcPathDst)
     PTPS_TRANS ptrans           = LW_NULL;
     CPCHAR     pcFileName       = LW_NULL;
     PCHAR      pcRemain         = LW_NULL;
+    errno_t    iErr             = ERROR_NONE;
 
     if ((LW_NULL == psb) || (LW_NULL == pcPathSrc) || (LW_NULL == pcPathDst)) {
         return  (EINVAL);
@@ -571,9 +591,9 @@ errno_t  tpsFsLink (PTPS_SUPER_BLOCK psb, CPCHAR pcPathSrc, CPCHAR pcPathDst)
         return  (EIO);
     }
 
-    pentrySrc = __tpsFsWalkPath(psb, pcPathSrc, &pcRemain);
+    pentrySrc = __tpsFsWalkPath(psb, pcPathSrc, &pcRemain, &iErr);
     if (LW_NULL == pentrySrc) {
-        return  (ENOENT);
+        return  (iErr);
     }
     
     if (*pcRemain != 0) {                                               /* 源文件必须存在               */
@@ -581,10 +601,10 @@ errno_t  tpsFsLink (PTPS_SUPER_BLOCK psb, CPCHAR pcPathSrc, CPCHAR pcPathDst)
         return  (ENOENT);
     }
 
-    pentryDst = __tpsFsWalkPath(psb, pcPathDst, &pcRemain);
+    pentryDst = __tpsFsWalkPath(psb, pcPathDst, &pcRemain, &iErr);
     if (LW_NULL == pentryDst) {
         tpsFsEntryFree(pentrySrc);
-        return  (ENOENT);
+        return  (iErr);
     }
 
     if (*pcRemain == 0) {                                               /* 文件已存在                   */
@@ -892,88 +912,16 @@ errno_t  tpsFsMkDir (PTPS_SUPER_BLOCK psb, CPCHAR pcPath, INT iFlags, INT iMode)
     return  (tpsFsClose(pinode));
 }
 /*********************************************************************************************************
-** 函数名称: tpsFsOpenDir
-** 功能描述: 打开目录
-** 输　入  : psb              super block指针
-**           pcPath           文件路径
-**           ppdir            用于输出TPS_DIR指针
-** 输　出  : 返回ERROR，成功ppdir输出TPS_DIR指针，失败ppdir输出LW_NULL
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-errno_t  tpsFsOpenDir (PTPS_SUPER_BLOCK psb, CPCHAR pcPath, PTPS_DIR *ppdir)
-{
-    errno_t        iErr    = ERROR_NONE;
-
-    if (LW_NULL == ppdir) {
-        return  (EINVAL);
-    }
-
-    *ppdir = LW_NULL;
-
-    if ((LW_NULL == psb) || (LW_NULL == pcPath)) {
-        return  (EINVAL);
-    }
-
-    if (psb->SB_uiFlags & TPS_TRANS_FAULT) {                            /* 事务处理出错                 */
-        return  (EIO);
-    }
-
-    *ppdir = (PTPS_DIR)TPS_ALLOC(sizeof(TPS_DIR));
-    if (LW_NULL == *ppdir) {
-        return  (ENOMEM);
-    }
-
-    iErr = tpsFsOpen(psb, pcPath, O_RDWR, 0, LW_NULL, &(*ppdir)->DIR_pinode);
-    if (iErr != ERROR_NONE) {
-        return  (iErr);
-    }
-
-    (*ppdir)->DIR_pentry = LW_NULL;
-    (*ppdir)->DIR_offPos = 0;
-
-    return  (ERROR_NONE);
-}
-/*********************************************************************************************************
-** 函数名称: tpsFsCloseDir
-** 功能描述: 关闭目录
-** 输　入  : pdir             TPS_DIR结构指针
-** 输　出  : 错误码
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-errno_t  tpsFsCloseDir (PTPS_DIR pdir)
-{
-    if (LW_NULL == pdir) {
-        return  (EINVAL);
-    }
-
-    if (pdir->DIR_pinode->IND_psb->SB_uiFlags & TPS_TRANS_FAULT) {      /* 事务处理出错                 */
-        return  (EIO);
-    }
-
-    if (pdir->DIR_pentry) {
-        tpsFsEntryFree(pdir->DIR_pentry);
-    }
-
-    if (pdir->DIR_pinode) {
-        tpsFsCloseInode(pdir->DIR_pinode);
-    }
-
-    TPS_FREE(pdir);
-
-    return  (ERROR_NONE);
-}
-/*********************************************************************************************************
 ** 函数名称: tpsFsReadDir
 ** 功能描述: 读取目录
-** 输　入  : pdir             TPS_DIR结构指针
+** 输　入  : pinodeDir        目录inode指针
+**           off              读取偏移
 **           ppentry          用于输出entry指针
 ** 输　出  : 返回ERROR，成功ppentry输出entry指针，失败ppentry输出LW_NULL
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-errno_t  tpsFsReadDir (PTPS_DIR pdir, PTPS_ENTRY *ppentry)
+errno_t  tpsFsReadDir (PTPS_INODE pinodeDir, TPS_OFF_T off, PTPS_ENTRY *ppentry)
 {
     if (LW_NULL == ppentry) {
         return  (EINVAL);
@@ -981,25 +929,20 @@ errno_t  tpsFsReadDir (PTPS_DIR pdir, PTPS_ENTRY *ppentry)
 
     *ppentry = LW_NULL;
 
-    if ((LW_NULL == pdir) || (LW_NULL == pdir->DIR_pinode)) {
+    if ((LW_NULL == pinodeDir) || (LW_NULL == ppentry)) {
         return  (EINVAL);
     }
 
-    if (pdir->DIR_pinode->IND_psb->SB_uiFlags & TPS_TRANS_FAULT) {      /* 事务处理出错                 */
+    if (pinodeDir->IND_psb->SB_uiFlags & TPS_TRANS_FAULT) {             /* 事务处理出错                 */
         return  (EIO);
     }
 
-    if (pdir->DIR_pentry) {
-        tpsFsEntryFree(pdir->DIR_pentry);
+    if (tpsFsEntryRead(pinodeDir, off, ppentry) == TPS_ERR_ENTRY_NOT_EXIST) {
+        return  (ENOENT);
     }
 
-    pdir->DIR_pentry = tpsFsEntryRead(pdir->DIR_pinode, pdir->DIR_offPos);
-    *ppentry = pdir->DIR_pentry;
-
-    if (pdir->DIR_pentry) {
-        pdir->DIR_offPos = pdir->DIR_pentry->ENTRY_offset + pdir->DIR_pentry->ENTRY_uiLen;
-    } else {
-        return  (ENOENT);
+    if (*ppentry == LW_NULL) {                                          /* 内存或磁盘访问错误           */
+        return  (EIO);
     }
 
     return  (ERROR_NONE);

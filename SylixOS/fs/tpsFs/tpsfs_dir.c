@@ -224,11 +224,12 @@ TPS_SIZE_T  tpsFsGetDirSize (PTPS_INODE pinodeDir)
 ** 功能描述: 查找entry
 ** 输　入  : pinodeDir           父目录
 **           pcFileName          文件名
+**           ppentry             返回目录结构指针，失败返回NULL
 ** 输　出  : ERROR
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-PTPS_ENTRY  tpsFsFindEntry (PTPS_INODE pinodeDir, CPCHAR pcFileName)
+TPS_RESULT  tpsFsFindEntry (PTPS_INODE pinodeDir, CPCHAR pcFileName, PTPS_ENTRY *ppentry)
 {
     TPS_SIZE_T szDir;
     TPS_OFF_T  off          = 0;
@@ -238,9 +239,11 @@ PTPS_ENTRY  tpsFsFindEntry (PTPS_INODE pinodeDir, CPCHAR pcFileName)
     PUCHAR     pucPos       = LW_NULL;
     PTPS_ENTRY pentry       = LW_NULL;
 
-    if ((pinodeDir == LW_NULL) || (pcFileName == LW_NULL)) {
-        return  (LW_NULL);
+    if ((pinodeDir == LW_NULL) || (pcFileName == LW_NULL) || (ppentry == LW_NULL)) {
+        return  (TPS_ERR_PARAM_NULL);
     }
+
+    *ppentry = LW_NULL;
 
     uiEntryLen = sizeof(UINT32) + sizeof(TPS_INUM) + lib_strlen(pcFileName) + 1;
     uiItemCnt  = uiEntryLen >> TPS_ENTRY_ITEM_SHIFT;                    /* 计算entry占用的item数目      */
@@ -250,7 +253,7 @@ PTPS_ENTRY  tpsFsFindEntry (PTPS_INODE pinodeDir, CPCHAR pcFileName)
 
     pucItemBuf = (PUCHAR)TPS_ALLOC(TPS_ENTRY_ITEM_SIZE * uiItemCnt);
     if (LW_NULL == pucItemBuf) {
-        return  (LW_NULL);
+        return  (TPS_ERR_ALLOC);
     }
 
     /*
@@ -264,7 +267,7 @@ PTPS_ENTRY  tpsFsFindEntry (PTPS_INODE pinodeDir, CPCHAR pcFileName)
                            TPS_ENTRY_ITEM_SIZE,
                            LW_TRUE) < TPS_ENTRY_ITEM_SIZE) {
             TPS_FREE(pucItemBuf);
-            return  (LW_NULL);
+            return  (TPS_ERR_INODE_READ);
         }
 
         if (TPS_LE32_TO_CPU_VAL(pucItemBuf) != uiEntryLen) {
@@ -281,7 +284,7 @@ PTPS_ENTRY  tpsFsFindEntry (PTPS_INODE pinodeDir, CPCHAR pcFileName)
                            uiEntryLen,
                            LW_TRUE) < uiEntryLen) {
             TPS_FREE(pucItemBuf);
-            return  (LW_NULL);
+            return  (TPS_ERR_INODE_READ);
         }
 
         if (lib_strcmp((PCHAR)pucItemBuf + sizeof(UINT32) + sizeof(TPS_INUM), pcFileName) != 0) {
@@ -297,7 +300,7 @@ PTPS_ENTRY  tpsFsFindEntry (PTPS_INODE pinodeDir, CPCHAR pcFileName)
 
     if (off >= szDir) {
         TPS_FREE(pucItemBuf);
-        return  (LW_NULL);
+        return  (TPS_ERR_ENTRY_NOT_EXIST);
     }
 
     /*
@@ -306,7 +309,7 @@ PTPS_ENTRY  tpsFsFindEntry (PTPS_INODE pinodeDir, CPCHAR pcFileName)
     pentry = (PTPS_ENTRY)TPS_ALLOC(sizeof(TPS_ENTRY) + lib_strlen(pcFileName) + 1);
     if (LW_NULL == pentry) {
         TPS_FREE(pucItemBuf);
-        return  (LW_NULL);
+        return  (TPS_ERR_ALLOC);
     }
     lib_bzero(pentry, sizeof(TPS_ENTRY) + lib_strlen(pcFileName) + 1);
     
@@ -323,22 +326,24 @@ PTPS_ENTRY  tpsFsFindEntry (PTPS_INODE pinodeDir, CPCHAR pcFileName)
     pentry->ENTRY_pinode = tpsFsOpenInode(pentry->ENTRY_psb, pentry->ENTRY_inum);
     if (LW_NULL == pentry->ENTRY_pinode) {
         TPS_FREE(pentry);
-        return  (LW_NULL);
+        return  (TPS_ERR_INODE_OPEN);
     }
     
+    *ppentry = pentry;
 
-    return  (pentry);
+    return  (TPS_ERR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: tpsFsEntryRead
 ** 功能描述: 读取entry
 ** 输　入  : pinodeDir           父目录
 **           off                 偏移位置
+**           ppentry             返回目录结构指针，失败返回NULL
 ** 输　出  : ERROR
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-PTPS_ENTRY  tpsFsEntryRead (PTPS_INODE pinodeDir, TPS_OFF_T off)
+TPS_RESULT  tpsFsEntryRead (PTPS_INODE pinodeDir, TPS_OFF_T off, PTPS_ENTRY *ppentry)
 {
     TPS_SIZE_T szDir;
     PUCHAR     pucItemBuf   = LW_NULL;
@@ -346,9 +351,11 @@ PTPS_ENTRY  tpsFsEntryRead (PTPS_INODE pinodeDir, TPS_OFF_T off)
     PUCHAR     pucPos       = LW_NULL;
     PTPS_ENTRY pentry       = LW_NULL;
     
-    if (pinodeDir == LW_NULL) {
-        return  (LW_NULL);
+    if ((pinodeDir == LW_NULL) || (ppentry == LW_NULL)) {
+        return  (TPS_ERR_PARAM_NULL);
     }
+
+    *ppentry = LW_NULL;
 
     if (off & TPS_ENTRY_ITEM_MASK) {
         off = TPS_ROUND_UP(off, TPS_ENTRY_ITEM_SIZE);
@@ -357,7 +364,7 @@ PTPS_ENTRY  tpsFsEntryRead (PTPS_INODE pinodeDir, TPS_OFF_T off)
 __retry_find:
     pucItemBuf = (PUCHAR)TPS_ALLOC(TPS_ENTRY_ITEM_SIZE);
     if (LW_NULL == pucItemBuf) {
-        return  (LW_NULL);
+        return  (TPS_ERR_ALLOC);
     }
     
     /*
@@ -371,7 +378,7 @@ __retry_find:
                            TPS_ENTRY_ITEM_SIZE,
                            LW_TRUE) < TPS_ENTRY_ITEM_SIZE) {
             TPS_FREE(pucItemBuf);
-            return  (LW_NULL);
+            return  (TPS_ERR_INODE_READ);
         }
 
         uiEntryLen = TPS_LE32_TO_CPU_VAL(pucItemBuf);
@@ -384,7 +391,7 @@ __retry_find:
 
     if ((off >= szDir) || (uiEntryLen == 0)) {
         TPS_FREE(pucItemBuf);
-        return  (LW_NULL);
+        return  (TPS_ERR_ENTRY_NOT_EXIST);
     }
 
     TPS_FREE(pucItemBuf);
@@ -392,7 +399,7 @@ __retry_find:
     pucItemBuf = (PUCHAR)TPS_ALLOC(uiEntryLen);
     if (LW_NULL == pucItemBuf) {
         TPS_FREE(pucItemBuf);
-        return  (LW_NULL);
+        return  (TPS_ERR_ALLOC);
     }
 
     if (tpsFsInodeRead(pinodeDir,
@@ -401,7 +408,7 @@ __retry_find:
                        uiEntryLen,
                        LW_TRUE) < uiEntryLen) {
         TPS_FREE(pucItemBuf);
-        return  (LW_NULL);
+        return  (TPS_ERR_INODE_READ);
     }
 
 
@@ -411,7 +418,7 @@ __retry_find:
     pentry = (PTPS_ENTRY)TPS_ALLOC(sizeof(TPS_ENTRY) + uiEntryLen);
     if (LW_NULL == pentry) {
         TPS_FREE(pucItemBuf);
-        return  (LW_NULL);
+        return  (TPS_ERR_ALLOC);
     }
     lib_bzero(pentry, sizeof(TPS_ENTRY) + uiEntryLen);
     
@@ -432,7 +439,9 @@ __retry_find:
         goto  __retry_find;
     }
 
-    return  (pentry);
+    *ppentry = pentry;
+
+    return  (TPS_ERR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: tpsFsEntryFree

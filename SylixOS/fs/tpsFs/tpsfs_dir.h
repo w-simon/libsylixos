@@ -66,13 +66,13 @@ extern "C" {
 TPS_RESULT tpsFsCreateEntry(PTPS_TRANS ptrans, PTPS_INODE pinodeDir,
                             CPCHAR pcFileName, TPS_INUM inum);
                                                                         /* 查找entry                    */
-PTPS_ENTRY tpsFsFindEntry(PTPS_INODE pinodeDir, CPCHAR pcFileName);
+TPS_RESULT tpsFsFindEntry(PTPS_INODE pinodeDir, CPCHAR pcFileName, PTPS_ENTRY *ppentry);
                                                                         /* 释放entry内存指针            */
 TPS_RESULT tpsFsEntryFree(PTPS_ENTRY pentry);
                                                                         /* 删除entry                    */
 TPS_RESULT tpsFsEntryRemove(PTPS_TRANS ptrans, PTPS_ENTRY pentry);
                                                                         /* 从指定偏移开始读取entry      */
-PTPS_ENTRY tpsFsEntryRead(PTPS_INODE pinodeDir, TPS_OFF_T off);
+TPS_RESULT tpsFsEntryRead(PTPS_INODE pinodeDir, TPS_OFF_T off, PTPS_ENTRY *ppentry);
                                                                         /* 获取最后一个目录项结束位置   */
 TPS_SIZE_T tpsFsGetDirSize (PTPS_INODE pinodeDir);
 

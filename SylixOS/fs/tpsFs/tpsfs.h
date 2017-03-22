@@ -70,11 +70,7 @@ errno_t     tpsFsTrunc(PTPS_INODE pinode, TPS_SIZE_T szNewSize);
                                                                         /* 创建目录                     */
 errno_t     tpsFsMkDir(PTPS_SUPER_BLOCK psb, CPCHAR pcPath, INT iFlags, INT iMode);
                                                                         /* 打开目录                     */
-errno_t     tpsFsOpenDir(PTPS_SUPER_BLOCK psb, CPCHAR pcPath, PTPS_DIR *ppdir);
-                                                                        /* 关闭目录                     */
-errno_t     tpsFsCloseDir(PTPS_DIR pdir);
-                                                                        /* 读取目录                     */
-errno_t     tpsFsReadDir(PTPS_DIR pdir, PTPS_ENTRY* ppentry);
+errno_t     tpsFsReadDir(PTPS_INODE pinodeDir, TPS_OFF_T off, PTPS_ENTRY *ppentry);
                                                                         /* 同步文件                     */
 errno_t     tpsFsSync(PTPS_INODE pinode);
                                                                         /* 同步整个文件系统分区         */
