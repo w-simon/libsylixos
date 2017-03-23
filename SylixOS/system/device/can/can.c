@@ -159,7 +159,7 @@ static VOID  __canCopyToQueue (PCAN_FD_FRAME  pcanfdframe, PVOID  pvCanFrame, UI
 
     if (uiFrameType == CAN_STD_CAN) {
         pcanframeF = (PCAN_FRAME)pvCanFrame;
-        ucLen      = (pcanframeF->CAN_ucLen > CAN_MAX_DATA) ? CAN_MAX_DATA : pcanframeF->CAN_ucLen;
+        ucLen      = (UINT8)((pcanframeF->CAN_ucLen > CAN_MAX_DATA) ? CAN_MAX_DATA : pcanframeF->CAN_ucLen);
 
         pcanfdframe->CAN_uiId         = pcanframeF->CAN_uiId;
         pcanfdframe->CAN_uiChannel    = pcanframeF->CAN_uiChannel;
@@ -171,7 +171,7 @@ static VOID  __canCopyToQueue (PCAN_FD_FRAME  pcanfdframe, PVOID  pvCanFrame, UI
 
     } else {
         pcanfdframeF = (PCAN_FD_FRAME)pvCanFrame;
-        ucLen        = (pcanfdframeF->CAN_ucLen > CAN_FD_MAX_DATA) ? CAN_FD_MAX_DATA : pcanfdframeF->CAN_ucLen;
+        ucLen        = (UINT8)((pcanfdframeF->CAN_ucLen > CAN_FD_MAX_DATA) ? CAN_FD_MAX_DATA : pcanfdframeF->CAN_ucLen);
 
         pcanfdframe->CAN_uiId         = pcanfdframeF->CAN_uiId;
         pcanfdframe->CAN_uiChannel    = pcanfdframeF->CAN_uiChannel;
@@ -199,7 +199,7 @@ static VOID  __canCopyFromQueue (PCAN_FD_FRAME  pcanfdframe, PVOID  pvCanFrame, 
     UINT8           ucLen;
 
     if (uiFrameType == CAN_STD_CAN) {
-        ucLen       = (pcanfdframe->CAN_ucLen > CAN_MAX_DATA) ? CAN_MAX_DATA : pcanfdframe->CAN_ucLen;
+        ucLen       = (UINT8)((pcanfdframe->CAN_ucLen > CAN_MAX_DATA) ? CAN_MAX_DATA : pcanfdframe->CAN_ucLen);
         pcanframeT  = (PCAN_FRAME)pvCanFrame;
 
         pcanframeT->CAN_uiId      = pcanfdframe->CAN_uiId;
@@ -210,7 +210,7 @@ static VOID  __canCopyFromQueue (PCAN_FD_FRAME  pcanfdframe, PVOID  pvCanFrame, 
         lib_memcpy(pcanframeT->CAN_ucData, pcanfdframe->CAN_ucData, ucLen);
 
     } else {
-        ucLen        = (pcanfdframe->CAN_ucLen > CAN_FD_MAX_DATA) ? CAN_FD_MAX_DATA : pcanfdframe->CAN_ucLen;
+        ucLen        = (UINT8)((pcanfdframe->CAN_ucLen > CAN_FD_MAX_DATA) ? CAN_FD_MAX_DATA : pcanfdframe->CAN_ucLen);
         pcanfdframeT = (PCAN_FD_FRAME)pvCanFrame;
 
         pcanfdframeT->CAN_uiId         = pcanfdframe->CAN_uiId;
