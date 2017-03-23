@@ -193,6 +193,12 @@ PCHAR  lib_strerror (INT  iNum)
     case ENOMEDIUM:     return  ("No medium found");
     case EMEDIUMTYPE:   return  ("Wrong medium type");
     case EILSEQ:        return  ("Illegal byte sequence");
+    
+    /*
+     *  For robust mutexes
+     */
+    case EOWNERDEAD:        return  ("Owner died");
+    case ENOTRECOVERABLE:   return  ("State not recoverable");
 
     /*
      *  SylixOS kernel error
