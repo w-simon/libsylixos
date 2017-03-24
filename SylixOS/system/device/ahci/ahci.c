@@ -2839,8 +2839,6 @@ static PVOID  __ahciMonitorThread (PVOID  pvArg)
             hDrive->AHCIDRIVE_uiAttachNum += 1;                         /* 设备接入计数                 */
 #if AHCI_HOTPLUG_EN > 0                                                 /* 是否使能热插拔               */
             if (hDrive->AHCIDRIVE_ucState != AHCI_DEV_NONE) {
-                AHCI_LOG(AHCI_LOG_ERR, "ctrl %d drive %d attach state none.\r\n",
-                         hCtrl->AHCICTRL_uiIndex, iDrive);
                 continue;
             }
 
