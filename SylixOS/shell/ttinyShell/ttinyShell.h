@@ -91,6 +91,8 @@ LW_API INT                  API_TShellExecBg(CPCHAR  pcCommandExec, INT  iFd[3],
 *********************************************************************************************************/
 
 #ifdef __SYLIXOS_KERNEL
+LW_API INT                  API_TShellLogout(VOID);
+
 LW_API INT                  API_TShellSetOption(LW_OBJECT_HANDLE  hTShellHandle, 
                                                 ULONG             ulNewOpt);
                                                                         /*  设置新的 tshell 选项        */

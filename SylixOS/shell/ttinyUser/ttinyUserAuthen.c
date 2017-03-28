@@ -49,12 +49,12 @@
 ** 函数名称: __tshellUserAuthen
 ** 功能描述: 用户登录认证
 ** 输　入  : iTtyFd        文件描述符
-**           iLevel        用户等级
+**           bWaitInf      长时间等待用户输入
 ** 输　出  : ERROR
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-ULONG  __tshellUserAuthen (INT  iTtyFd)
+ULONG  __tshellUserAuthen (INT  iTtyFd, BOOL  bWaitInf)
 {
     INT             iOldOpt;
     INT             iRetValue;
@@ -63,7 +63,7 @@ ULONG  __tshellUserAuthen (INT  iTtyFd)
     CHAR            cUserName[MAX_FILENAME_LENGTH];
     CHAR            cPassword[MAX_FILENAME_LENGTH];
     
-    ioctl(iTtyFd, FIOSYNC, 0);                                          /*  等待发送完成                */
+    ioctl(iTtyFd, FIOSYNC);                                             /*  等待发送完成                */
     
     iRetValue = ioctl(iTtyFd, FIOGETOPTIONS, &iOldOpt);                 /*  获取终端模式                */
     if (iRetValue < 0) {
@@ -85,7 +85,11 @@ ULONG  __tshellUserAuthen (INT  iTtyFd)
      */
     write(iTtyFd, "login: ", 7);
     
-    iRetValue = waitread(iTtyFd, &tv);                                  /*  等待用户输入用户名          */
+    if (bWaitInf) {
+        iRetValue = waitread(iTtyFd, LW_NULL);
+    } else {
+        iRetValue = waitread(iTtyFd, &tv);                              /*  等待用户输入用户名          */
+    }
     if (iRetValue != 1) {
         goto    __login_fail;
     }
@@ -142,7 +146,7 @@ ULONG  __tshellUserAuthen (INT  iTtyFd)
     }
     
 __login_fail:
-    fdprintf(iTtyFd, "\nlogin fail.\n");                                /*  登陆失败                    */
+    fdprintf(iTtyFd, "\nlogin fail!\n\n");                              /*  登陆失败                    */
     
     _ErrorHandle(ERROR_TSHELL_EUSER);
     return  (ERROR_TSHELL_EUSER);

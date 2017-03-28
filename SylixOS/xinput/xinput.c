@@ -124,6 +124,9 @@ static int xinput_close (PLW_FD_ENTRY pfdentry)
         API_IosFdNodeDec(&xinput->fdnode_header, pfdnode, NULL);
 
         LW_DEV_DEC_USE_COUNT(&xinput->devhdr);
+        if (LW_DEV_GET_USE_COUNT(&xinput->devhdr) == 0) {
+            API_MsgQueueClear(xinput->queue);
+        }
 
         return  (ERROR_NONE);
     }
@@ -434,9 +437,11 @@ static void  *xinput_scan (void *arg)
                             close(input->fd);
                             input->fd = -1;
                         } else {                                        /* must send kbd message ok     */
-                            API_MsgQueueSend2(kdb_xinput.queue, (void *)&knotify,
-                                             (u_long)temp, LW_OPTION_WAIT_INFINITE);
-                            SEL_WAKE_UP_ALL(&kdb_xinput.sel_list, SELREAD);
+                            if (LW_DEV_GET_USE_COUNT(&kdb_xinput.devhdr)) {
+                                API_MsgQueueSend2(kdb_xinput.queue, (void *)&knotify,
+                                                 (u_long)temp, LW_OPTION_WAIT_INFINITE);
+                                SEL_WAKE_UP_ALL(&kdb_xinput.sel_list, SELREAD);
+                            }
                         }
                     }
                 }
@@ -452,18 +457,13 @@ static void  *xinput_scan (void *arg)
                             close(input->fd);
                             input->fd = -1;
                         } else {
-                            if (!(mnotify[0].kstat & MOUSE_LEFT)) {    /* release operate must send suc */
-                                for (;;) {
-                                    ULONG  err = API_MsgQueueSend(mse_xinput.queue, (void *)mnotify, (u_long)temp);
-                                    if ((err == ERROR_NONE) || (err != ERROR_MSGQUEUE_FULL)) {
-                                        SEL_WAKE_UP_ALL(&mse_xinput.sel_list, SELREAD);
-                                        break;
-                                    } else {
-                                        API_TimeSleep(XINPUT_BUSY_TO);
-                                    }
+                            if (LW_DEV_GET_USE_COUNT(&mse_xinput.devhdr)) {
+                                if (!(mnotify[0].kstat & MOUSE_LEFT)) {/* release operate must send suc */
+                                    API_MsgQueueSend2(mse_xinput.queue, (void *)mnotify,
+                                                      (u_long)temp, LW_OPTION_WAIT_INFINITE);
+                                } else {
+                                    API_MsgQueueSend(mse_xinput.queue, (void *)mnotify, (u_long)temp);
                                 }
-                            } else {
-                                API_MsgQueueSend(mse_xinput.queue, (void *)mnotify, (u_long)temp);
                                 SEL_WAKE_UP_ALL(&mse_xinput.sel_list, SELREAD);
                             }
                         }

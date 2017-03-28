@@ -416,7 +416,7 @@ typedef struct {
     ULONG                 SHC_ulShellOption;                            /*  shell 设置掩码              */
     addr_t                SHC_ulShellHistoryCtx;                        /*  shell Input History         */
     FUNCPTR               SHC_pfuncShellCallback;                       /*  shell 启动回调              */
-    
+    LW_OBJECT_HANDLE      SHC_ulShellMain;                              /*  shell 主线程                */
     addr_t                SHC_ulGetOptCtx;                              /*  getopt() 全局变量切换地址   */
 } LW_SHELL_CONTEXT;
 typedef LW_SHELL_CONTEXT *PLW_SHELL_CONTEXT;

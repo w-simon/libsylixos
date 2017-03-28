@@ -92,6 +92,17 @@
   mmu 执行功能
 *********************************************************************************************************/
 
+#ifdef __cplusplus
+typedef LW_PGD_TRANSENTRY  *(*PGDFUNCPTR)(...);
+typedef LW_PMD_TRANSENTRY  *(*PMDFUNCPTR)(...);
+typedef LW_PTE_TRANSENTRY  *(*PTEFUNCPTR)(...);
+
+#else
+typedef LW_PGD_TRANSENTRY  *(*PGDFUNCPTR)();
+typedef LW_PMD_TRANSENTRY  *(*PMDFUNCPTR)();
+typedef LW_PTE_TRANSENTRY  *(*PTEFUNCPTR)();
+#endif                                                                  /*  __cplusplus                 */
+
 typedef struct {
     ULONG                    MMUOP_ulOption;                            /*  MMU 选项                    */
 #define LW_VMM_MMU_FLUSH_TLB_MP     0x01                                /*  每一个核是否都要清快表      */
@@ -99,20 +110,20 @@ typedef struct {
     FUNCPTR                  MMUOP_pfuncMemInit;                        /*  初始化内存, (页表和目录项)  */
     FUNCPTR                  MMUOP_pfuncGlobalInit;                     /*  初始化全局映射关系          */
     
-    LW_PGD_TRANSENTRY     *(*MMUOP_pfuncPGDAlloc)();                    /*  创建 PGD 空间               */
+    PGDFUNCPTR               MMUOP_pfuncPGDAlloc;                       /*  创建 PGD 空间               */
     VOIDFUNCPTR              MMUOP_pfuncPGDFree;                        /*  释放 PGD 空间               */
-    LW_PMD_TRANSENTRY     *(*MMUOP_pfuncPMDAlloc)();                    /*  创建 PMD 空间               */
+    PMDFUNCPTR               MMUOP_pfuncPMDAlloc;                       /*  创建 PMD 空间               */
     VOIDFUNCPTR              MMUOP_pfuncPMDFree;                        /*  释放 PMD 空间               */
-    LW_PTE_TRANSENTRY     *(*MMUOP_pfuncPTEAlloc)();                    /*  创建 PTE 空间               */
+    PTEFUNCPTR               MMUOP_pfuncPTEAlloc;                       /*  创建 PTE 空间               */
     VOIDFUNCPTR              MMUOP_pfuncPTEFree;                        /*  释放 PTE 空间               */
 
     BOOLFUNCPTR              MMUOP_pfuncPGDIsOk;                        /*  PGD 入口项是否正确          */
     BOOLFUNCPTR              MMUOP_pfuncPMDIsOk;                        /*  PMD 入口项是否正确          */
     BOOLFUNCPTR              MMUOP_pfuncPTEIsOk;                        /*  PTE 入口项是否正确          */
 
-    LW_PGD_TRANSENTRY     *(*MMUOP_pfuncPGDOffset)();                   /*  通过地址获得指定 PGD 表项   */
-    LW_PMD_TRANSENTRY     *(*MMUOP_pfuncPMDOffset)();                   /*  通过地址获得指定 PMD 表项   */
-    LW_PTE_TRANSENTRY     *(*MMUOP_pfuncPTEOffset)();                   /*  通过地址获得指定 PTE 表项   */
+    PGDFUNCPTR               MMUOP_pfuncPGDOffset;                      /*  通过地址获得指定 PGD 表项   */
+    PMDFUNCPTR               MMUOP_pfuncPMDOffset;                      /*  通过地址获得指定 PMD 表项   */
+    PTEFUNCPTR               MMUOP_pfuncPTEOffset;                      /*  通过地址获得指定 PTE 表项   */
     
     FUNCPTR                  MMUOP_pfuncPTEPhysGet;                     /*  通过 PTE 条目获取物理地址   */
     

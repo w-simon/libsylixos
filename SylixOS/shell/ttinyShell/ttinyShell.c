@@ -359,11 +359,35 @@ LW_OBJECT_HANDLE  API_TShellCreate (INT  iTtyFd, ULONG  ulOption)
     return  (API_TShellCreateEx(iTtyFd, ulOption, LW_NULL));
 }
 /*********************************************************************************************************
+** 函数名称: API_TShellLogout
+** 功能描述: 注销登录.
+** 输　入  : NONE
+** 输　出  : ERROR or OK
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+INT  API_TShellLogout (VOID)
+{
+    PLW_CLASS_TCB   ptcbCur;
+    
+    LW_TCB_GET_CUR_SAFE(ptcbCur);
+    
+    if (__TTINY_SHELL_GET_MAIN(ptcbCur)) {
+        return  (__tshellRestartEx(__TTINY_SHELL_GET_MAIN(ptcbCur), LW_TRUE));
+        
+    } else {
+        _ErrorHandle(ERROR_THREAD_NULL);
+        return  (PX_ERROR);
+    }
+}
+/*********************************************************************************************************
 ** 函数名称: API_TShellSetOption
 ** 功能描述: 设置新的 shell 选项.
 ** 输　入  : hTShellHandle   shell 线程
 **           ulNewOpt        新的 shell 选项
-** 输　出  : 错误代码.
+** 输　出  : ERROR or OK
 ** 全局变量: 
 ** 调用模块: 
                                            API 函数
@@ -402,7 +426,7 @@ INT  API_TShellSetOption (LW_OBJECT_HANDLE  hTShellHandle, ULONG  ulNewOpt)
 ** 功能描述: 获取新的 shell 选项.
 ** 输　入  : hTShellHandle   shell 线程
 **           pulOpt          shell 选项
-** 输　出  : 错误代码.
+** 输　出  : ERROR or OK
 ** 全局变量: 
 ** 调用模块: 
                                            API 函数

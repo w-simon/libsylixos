@@ -123,7 +123,7 @@ typedef __TSHELL_PROMPT_CTX     *__PTSHELL_PROMPT_CTX;
 /*********************************************************************************************************
   用户认证
 *********************************************************************************************************/
-       ULONG  __tshellUserAuthen(INT  iTtyFd);
+       ULONG  __tshellUserAuthen(INT  iTtyFd, BOOL  bWaitInf);
 static INT    __tshellBgCreate(INT      iFd, 
                                CPCHAR   pcCommand, 
                                size_t   stCommandLen, 
@@ -730,14 +730,15 @@ __simple:
     fflush(stdout);                                                     /*  保证 stdout 的输出          */
 }
 /*********************************************************************************************************
-** 函数名称: __tshellRestart
-** 功能描述: ttiny shell 线程重启 (control-C)
-** 输　入  : ulThread   线程句柄
-** 输　出  : NONE
+** 函数名称: __tshellRestartEx
+** 功能描述: ttiny shell 线程重启
+** 输　入  : ulThread      线程句柄
+**           bNeedAuthen   是否需要登录
+** 输　出  : ERROR or OK
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID  __tshellRestart (LW_OBJECT_HANDLE  ulThread)
+INT  __tshellRestartEx (LW_OBJECT_HANDLE  ulThread, BOOL  bNeedAuthen)
 {
     REGISTER ULONG            ulOption;
     REGISTER PLW_CLASS_TCB    ptcbShell;
@@ -747,8 +748,8 @@ static VOID  __tshellRestart (LW_OBJECT_HANDLE  ulThread)
              UINT16           usIndex;
 
     if (LW_CPU_GET_CUR_NESTING()) {
-        _excJobAdd(__tshellRestart, (PVOID)ulThread, 0, 0, 0, 0, 0);
-        return;
+        return  (_excJobAdd((VOIDFUNCPTR)__tshellRestartEx, 
+                            (PVOID)ulThread, (PVOID)bNeedAuthen, 0, 0, 0, 0));
     }
     
     usIndex = _ObjectGetIndex(ulThread);
@@ -756,18 +757,30 @@ static VOID  __tshellRestart (LW_OBJECT_HANDLE  ulThread)
     __KERNEL_ENTER();                                                   /*  进入内核                    */
     if (_Thread_Invalid(usIndex)) {
         __KERNEL_EXIT();                                                /*  退出内核                    */
-        return;
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
     }
     
     ptcbShell = __GET_TCB_FROM_INDEX(usIndex);
     ptcbJoin  = ptcbShell->TCB_ptcbJoin;
     if (ptcbJoin) {                                                     /*  等待其他线程结束            */
+        if (bNeedAuthen) {
+            __KERNEL_EXIT();                                            /*  退出内核                    */
+            _ErrorHandle(EBUSY);
+            return  (PX_ERROR);
+        }
         ulJoin = ptcbJoin->TCB_ulId;
     
     } else {
         ulOption  = __TTINY_SHELL_GET_OPT(ptcbShell);
-        ulOption |= LW_OPTION_TSHELL_NOLOGO;                            /*  重启时不需要显示 logo       */
-        ulOption &= ~LW_OPTION_TSHELL_AUTHEN;                           /*  重启时不需要用户认证        */
+        if (bNeedAuthen) {
+            ulOption &= ~LW_OPTION_TSHELL_NOLOGO;
+            ulOption |= LW_OPTION_TSHELL_AUTHEN | LW_OPTION_TSHELL_LOOPLOGIN;
+        
+        } else {
+            ulOption |= LW_OPTION_TSHELL_NOLOGO;                        /*  重启时不需要显示 logo       */
+            ulOption &= ~LW_OPTION_TSHELL_AUTHEN;                       /*  重启时不需要用户认证        */
+        }
         __TTINY_SHELL_SET_OPT(ptcbShell, ulOption);
     }
     
@@ -787,6 +800,20 @@ static VOID  __tshellRestart (LW_OBJECT_HANDLE  ulThread)
     } else {                                                            /*  重启线程                    */
         API_ThreadRestart(ulThread, (PVOID)__TTINY_SHELL_GET_STDFILE(ptcbShell));
     }
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __tshellRestart
+** 功能描述: ttiny shell 线程重启 (control-C)
+** 输　入  : ulThread   线程句柄
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static VOID  __tshellRestart (LW_OBJECT_HANDLE  ulThread)
+{
+    __tshellRestartEx(ulThread, LW_FALSE);
 }
 /*********************************************************************************************************
 ** 函数名称: __tshellRename
@@ -1134,8 +1161,15 @@ PVOID   __tshellThread (PVOID  pcArg)
     ioctl(iTtyFd, FIORTIMEOUT, LW_NULL);                                /*  读取无超时时间              */
     
     if (__TTINY_SHELL_GET_OPT(ptcbCur) & LW_OPTION_TSHELL_AUTHEN) {     /*  是否需要明文用户认证        */
-        if (__tshellUserAuthen(iTtyFd)) {                               /*  进行认证                    */
-            exit(-ERROR_TSHELL_EUSER);
+        if (__TTINY_SHELL_GET_OPT(ptcbCur) & LW_OPTION_TSHELL_LOOPLOGIN) {
+__reauthen:
+            if (__tshellUserAuthen(iTtyFd, LW_TRUE)) {                  /*  进行认证                    */
+                goto    __reauthen;
+            }
+        } else {
+            if (__tshellUserAuthen(iTtyFd, LW_FALSE)) {                 /*  进行认证                    */
+                exit(-ERROR_TSHELL_EUSER);
+            }
         }
     } else {
         printf("\n");
@@ -1189,6 +1223,8 @@ PVOID   __tshellThread (PVOID  pcArg)
 #if LW_CFG_THREAD_CANCEL_EN > 0
     API_ThreadSetCancelType(LW_THREAD_CANCEL_ASYNCHRONOUS, LW_NULL);
 #endif                                                                  /*  LW_CFG_THREAD_CANCEL_EN     */
+    
+    __TTINY_SHELL_SET_MAIN(ptcbCur);
     
     ioctl(iTtyFd, FIOABORTARG,  API_ThreadIdSelf());                    /*  control-C 参数              */
     ioctl(iTtyFd, FIOABORTFUNC, __tshellRestart);                       /*  control-C 行为              */

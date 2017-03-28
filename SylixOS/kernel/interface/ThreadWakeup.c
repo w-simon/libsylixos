@@ -28,17 +28,18 @@
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
 /*********************************************************************************************************
-** 函数名称: API_ThreadWakeup
+** 函数名称: API_ThreadWakeupEx
 ** 功能描述: 线程从睡眠模式唤醒
 ** 输　入  : 
-**           ulId    线程句柄
+**           ulId               线程句柄
+**           bWithInfPend       是否激活死等待任务
 ** 输　出  : 
 ** 全局变量: 
 ** 调用模块: 
                                            API 函数
 *********************************************************************************************************/
 LW_API
-ULONG  API_ThreadWakeup (LW_OBJECT_HANDLE  ulId)
+ULONG  API_ThreadWakeupEx (LW_OBJECT_HANDLE  ulId, BOOL  bWithInfPend)
 {
              INTREG                iregInterLevel;
     REGISTER UINT16                usIndex;
@@ -74,48 +75,68 @@ ULONG  API_ThreadWakeup (LW_OBJECT_HANDLE  ulId)
     ptcb = _K_ptcbTCBIdTable[usIndex];
     ppcb = _GetPcb(ptcb);
     
-    if (ptcb->TCB_usStatus & LW_THREAD_STATUS_DELAY) {
-        __DEL_FROM_WAKEUP_LINE(ptcb);                                   /*  从等待链中删除              */
-        ptcb->TCB_ulDelay = 0ul;
-        
-        if (ptcb->TCB_usStatus & LW_THREAD_STATUS_PEND_ANY) {
-            ptcb->TCB_usStatus &= (~LW_THREAD_STATUS_PEND_ANY);
-            ptcb->TCB_ucWaitTimeout = LW_WAIT_TIME_OUT;                 /*  等待超时                    */
-        
-#if (LW_CFG_EVENT_EN > 0) && (LW_CFG_MAX_EVENTS > 0)
-            if (ptcb->TCB_peventPtr) {
-                _EventUnQueue(ptcb);
-            } else 
-#endif                                                                  /*  (LW_CFG_EVENT_EN > 0) &&    */
-            {
-#if (LW_CFG_EVENTSET_EN > 0) && (LW_CFG_MAX_EVENTSETS > 0)
-                if (ptcb->TCB_pesnPtr) {
-                    _EventSetUnQueue(ptcb->TCB_pesnPtr);
-                }
-#endif                                                                  /*  (LW_CFG_EVENTSET_EN > 0) && */
-            }
-        } else {
-            ptcb->TCB_ucWaitTimeout = LW_WAIT_TIME_CLEAR;               /*  没有等待事件                */
-        }
-        
-        if (__LW_THREAD_IS_READY(ptcb)) {                               /*  检查是否就绪                */
-            ptcb->TCB_ucSchedActivate = LW_SCHED_ACT_OTHER;
-            __ADD_TO_READY_RING(ptcb, ppcb);                            /*  加入就绪表                  */
-        }
-        
+    if (__LW_THREAD_IS_READY(ptcb)) {
         __KERNEL_EXIT_IRQ(iregInterLevel);                              /*  退出内核并打开中断          */
-        
-        MONITOR_EVT_LONG1(MONITOR_EVENT_ID_THREAD, MONITOR_EVENT_THREAD_WAKEUP, ulId, LW_NULL);
-        
-        return  (ERROR_NONE);
-    
-    } else {
-        __KERNEL_EXIT_IRQ(iregInterLevel);                              /*  退出内核并打开中断          */
-        
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "thread is not in SLEEP mode.\r\n");
         _ErrorHandle(ERROR_THREAD_NOT_SLEEP);
         return  (ERROR_THREAD_NOT_SLEEP);
     }
+    
+    if (!bWithInfPend) {
+        if (!(ptcb->TCB_usStatus & LW_THREAD_STATUS_DELAY)) {
+            __KERNEL_EXIT_IRQ(iregInterLevel);                          /*  退出内核并打开中断          */
+            _ErrorHandle(ERROR_THREAD_NOT_SLEEP);
+            return  (ERROR_THREAD_NOT_SLEEP);
+        }
+    }
+    
+    if (ptcb->TCB_usStatus & LW_THREAD_STATUS_DELAY) {                  /*  超时等待                    */
+        __DEL_FROM_WAKEUP_LINE(ptcb);                                   /*  从等待链中删除              */
+        ptcb->TCB_ulDelay = 0ul;
+    }
+    
+    if (ptcb->TCB_usStatus & LW_THREAD_STATUS_PEND_ANY) {               /*  等待事件                    */
+        ptcb->TCB_usStatus &= (~LW_THREAD_STATUS_PEND_ANY);
+        ptcb->TCB_ucWaitTimeout = LW_WAIT_TIME_OUT;                     /*  等待超时                    */
+        
+#if (LW_CFG_EVENT_EN > 0) && (LW_CFG_MAX_EVENTS > 0)
+        if (ptcb->TCB_peventPtr) {
+            _EventUnQueue(ptcb);
+        } else 
+#endif                                                                  /*  (LW_CFG_EVENT_EN > 0) &&    */
+        {
+#if (LW_CFG_EVENTSET_EN > 0) && (LW_CFG_MAX_EVENTSETS > 0)
+            if (ptcb->TCB_pesnPtr) {
+                _EventSetUnQueue(ptcb->TCB_pesnPtr);
+            }
+#endif                                                                  /*  (LW_CFG_EVENTSET_EN > 0) && */
+        }
+    }
+    
+    if (__LW_THREAD_IS_READY(ptcb)) {                                   /*  检查是否就绪                */
+        ptcb->TCB_ucSchedActivate = LW_SCHED_ACT_OTHER;
+        __ADD_TO_READY_RING(ptcb, ppcb);                                /*  加入就绪表                  */
+    }
+    
+    __KERNEL_EXIT_IRQ(iregInterLevel);                                  /*  退出内核并打开中断          */
+    
+    MONITOR_EVT_LONG1(MONITOR_EVENT_ID_THREAD, MONITOR_EVENT_THREAD_WAKEUP, ulId, LW_NULL);
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_ThreadWakeup
+** 功能描述: 线程从睡眠模式唤醒
+** 输　入  : 
+**           ulId    线程句柄
+** 输　出  : 
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+ULONG  API_ThreadWakeup (LW_OBJECT_HANDLE  ulId)
+{
+    return  (API_ThreadWakeupEx(ulId, LW_FALSE));
 }
 /*********************************************************************************************************
   END

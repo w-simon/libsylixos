@@ -1907,9 +1907,29 @@ static INT  __tshellSysCmdHostname (INT  iArgC, PCHAR  ppcArgV[])
 *********************************************************************************************************/
 static INT  __tshellSysCmdLogin (INT  iArgC, PCHAR  ppcArgV[])
 {
-    __tshellUserAuthen(STDIN_FILENO);
+    __tshellUserAuthen(STDIN_FILENO, LW_TRUE);
     
     printf("\n");
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __tshellSysCmdLogin
+** 功能描述: 系统命令 "logout"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : 0
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static INT  __tshellSysCmdLogout (INT  iArgC, PCHAR  ppcArgV[])
+{
+    API_TShellScrClear(STD_OUT);
+
+    if (API_TShellLogout()) {
+        fprintf(stderr, "error occur: %s\n", lib_strerror(errno));
+        return  (PX_ERROR);
+    }
     
     return  (ERROR_NONE);
 }
@@ -2618,6 +2638,9 @@ VOID  __tshellSysCmdInit (VOID)
     
     API_TShellKeywordAdd("login", __tshellSysCmdLogin);
     API_TShellHelpAdd("login", "change current user.\n");
+    
+    API_TShellKeywordAdd("logout", __tshellSysCmdLogout);
+    API_TShellHelpAdd("logout", "logout.\n");
     
     API_TShellKeywordAdd("who", __tshellSysCmdWho);
     API_TShellHelpAdd("who", "get current user message.\n");

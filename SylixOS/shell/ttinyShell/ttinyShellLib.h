@@ -98,6 +98,13 @@ extern  LW_OBJECT_HANDLE            _G_hTShellLock;
 #define __TTINY_SHELL_GET_MAGIC(ptcb)           ptcb->TCB_shc.SHC_ulShellMagic
 
 /*********************************************************************************************************
+  shell Ö÷Ïß³Ì
+*********************************************************************************************************/
+
+#define __TTINY_SHELL_SET_MAIN(ptcb)            ptcb->TCB_shc.SHC_ulShellMain = ptcb->TCB_ulId
+#define __TTINY_SHELL_GET_MAIN(ptcb)            ptcb->TCB_shc.SHC_ulShellMain
+
+/*********************************************************************************************************
   KEYWORD
 *********************************************************************************************************/
 
@@ -125,6 +132,7 @@ ULONG  __tshellKeywordList(__PTSHELL_KEYWORD   pskwNodeStart,
                            __PTSHELL_KEYWORD   ppskwNode[],
                            INT                 iMaxCounter);
 PVOID  __tshellThread(PVOID  pcArg);
+INT    __tshellRestartEx(LW_OBJECT_HANDLE  ulThread, BOOL  bNeedAuthen);
 VOID   __tshellPreTreatedBg(PCHAR  cCommand, BOOL  *pbNeedJoin, BOOL  *pbNeedAsyn);
 INT    __tshellExec(CPCHAR  pcCommandExec, VOIDFUNCPTR  pfuncHook);
 INT    __tshellBgCreateEx(INT               iFd[3],
@@ -144,7 +152,7 @@ INT    __tshellBgCreateEx(INT               iFd[3],
 INT     __tshellGetUserName(uid_t  uid, PCHAR  pcName, size_t  stNSize, PCHAR  pcHome, size_t  stHSize);
 INT     __tshellGetGrpName(gid_t  gid, PCHAR  pcName, size_t  stSize);
 VOID    __tshellFlushCache(VOID);
-ULONG   __tshellUserAuthen(INT  iTtyFd);
+ULONG   __tshellUserAuthen(INT  iTtyFd, BOOL  bWaitInf);
 VOID    __tshellUserCmdInit(VOID);
                           
 /*********************************************************************************************************

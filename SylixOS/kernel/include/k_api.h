@@ -374,6 +374,8 @@ LW_API ULONG            API_ThreadCPUUsageRefresh(VOID);                /*  刷新
 
 LW_API ULONG            API_ThreadWakeup(LW_OBJECT_HANDLE    ulId);     /*  唤醒一个睡眠线程            */
 
+LW_API ULONG            API_ThreadWakeupEx(LW_OBJECT_HANDLE  ulId, BOOL  bWithInfPend);
+
 #if LW_CFG_THREAD_SCHED_YIELD_EN > 0
 LW_API ULONG            API_ThreadYield(LW_OBJECT_HANDLE     ulId);     /*  POSIX 线程 yield 操作       */
 #endif

@@ -469,10 +469,10 @@ static INT  __tshellModuleReg (INT  iArgC, PCHAR  *ppcArgV)
     }
     
     pvModule = moduleRegister(ppcArgV[1]);                              /*  向内核注册模块              */
-    
     if (pvModule) {
         printf("module %s register ok, handle: 0x%lx\n", ppcArgV[1], (addr_t)pvModule);
         return  (ERROR_NONE);
+    
     } else {
         if (errno == EACCES) {
             fprintf(stderr, "insufficient permissions.\n");
@@ -493,8 +493,8 @@ static INT  __tshellModuleReg (INT  iArgC, PCHAR  *ppcArgV)
 *********************************************************************************************************/
 static INT  __tshellModuleUnreg (INT  iArgC, PCHAR  *ppcArgV)
 {
-    ULONG               ulModule = (ULONG)LW_NULL;
-    LW_LD_EXEC_MODULE  *pmod; 
+    ULONG               ulModule = 0ul;
+    LW_LD_EXEC_MODULE  *pmod     = LW_NULL; 
     CHAR                cModule[MAX_FILENAME_LENGTH];
     INT                 iError;
 
@@ -514,7 +514,116 @@ static INT  __tshellModuleUnreg (INT  iArgC, PCHAR  *ppcArgV)
         return  (-ERROR_TSHELL_EPARAM);
     }
     
-    pmod = (LW_LD_EXEC_MODULE *)ulModule;
+    /*
+     *  判断参数是否为有效的内核模块句柄
+     */
+    pvproc = _LIST_ENTRY(_G_plineVProcHeader, LW_LD_VPROC, VP_lineManage);
+    LW_VP_LOCK(pvproc);
+    for (pringTemp  = pvproc->VP_ringModules, bStart = LW_TRUE;
+         pringTemp && (pringTemp != pvproc->VP_ringModules || bStart);
+         pringTemp  = _list_ring_get_next(pringTemp), bStart = LW_FALSE) {
+        pmodTemp = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);
+        if (pmodTemp == (LW_LD_EXEC_MODULE *)ulModule) {
+            pmod = (LW_LD_EXEC_MODULE *)ulModule;
+            break;
+        }
+    }
+    LW_VP_UNLOCK(pvproc);
+
+    if ((pmod == LW_NULL) ||
+        (pmod->EMOD_ulMagic != __LW_LD_EXEC_MODULE_MAGIC)) {
+        fprintf(stderr, "argments error!\n");
+        return  (-ERROR_TSHELL_EPARAM);
+    }
+    
+    lib_strlcpy(cModule, pmod->EMOD_pcModulePath, MAX_FILENAME_LENGTH);
+    
+    iError = moduleUnregister((PVOID)ulModule);                         /*  从内核卸载模块              */
+    if (iError == ERROR_NONE) {
+        printf("module %s unregister ok.\n", cModule);
+        return  (ERROR_NONE);
+    
+    } else {
+        if (errno == EACCES) {
+            fprintf(stderr, "insufficient permissions.\n");
+        } else {
+            fprintf(stderr, "can not unregister module, error: %s\n", lib_strerror(errno));
+        }
+        return  (PX_ERROR);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: __tshellInsModule
+** 功能描述: 系统命令 "insmod"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : 0
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __tshellInsModule (INT  iArgC, PCHAR  *ppcArgV)
+{
+    PVOID   pvModule;
+
+    if (iArgC < 2) {
+        fprintf(stderr, "argments error!\n");
+        return  (-ERROR_TSHELL_EPARAM);
+    }
+    
+    if (iArgC == 2) {
+        return  (__tshellModuleReg(iArgC, ppcArgV));
+    
+    } else if (!lib_strcmp(ppcArgV[1], "-x")) {
+        pvModule = API_ModuleLoadEx(ppcArgV[2],
+                                    LW_OPTION_LOADER_SYM_GLOBAL,
+                                    LW_MODULE_INIT,
+                                    LW_MODULE_EXIT,
+                                    LW_NULL,
+                                    ".????????????????",
+                                    LW_NULL);
+        if (pvModule) {
+            printf("module %s register ok, handle: 0x%lx\n", ppcArgV[1], (addr_t)pvModule);
+            return  (ERROR_NONE);
+        
+        } else {
+            if (errno == EACCES) {
+                fprintf(stderr, "insufficient permissions.\n");
+            } else {
+                fprintf(stderr, "can not register module, error: %s\n", lib_strerror(errno));
+            }
+            return  (PX_ERROR);
+        }
+    
+    } else {
+        fprintf(stderr, "argments error!\n");
+        return  (-ERROR_TSHELL_EPARAM);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: __tshellRmModule
+** 功能描述: 系统命令 "rmmod"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : 0
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __tshellRmModule (INT  iArgC, PCHAR  *ppcArgV)
+{
+    LW_LD_EXEC_MODULE  *pmod = LW_NULL; 
+    CHAR                cModule[MAX_FILENAME_LENGTH];
+    INT                 iError;
+
+    BOOL                bStart;
+
+    LW_LIST_RING       *pringTemp;
+    LW_LD_VPROC        *pvproc;
+    LW_LD_EXEC_MODULE  *pmodTemp;
+
+    if (iArgC < 2) {
+        fprintf(stderr, "argments error!\n");
+        return  (-ERROR_TSHELL_EPARAM);
+    }
 
     /*
      *  判断参数是否为有效的内核模块句柄
@@ -525,14 +634,16 @@ static INT  __tshellModuleUnreg (INT  iArgC, PCHAR  *ppcArgV)
          pringTemp && (pringTemp != pvproc->VP_ringModules || bStart);
          pringTemp  = _list_ring_get_next(pringTemp), bStart = LW_FALSE) {
         pmodTemp = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);
-        if (pmod == pmodTemp) {
+        
+        if (!lib_strcmp(_PathLastNamePtr(pmodTemp->EMOD_pcModulePath),
+                        _PathLastNamePtr(ppcArgV[1]))) {
+            pmod = pmodTemp;
             break;
         }
     }
     LW_VP_UNLOCK(pvproc);
 
-    if (pmod == LW_NULL  ||
-        pmod != pmodTemp ||
+    if ((pmod == LW_NULL) ||
         (pmod->EMOD_ulMagic != __LW_LD_EXEC_MODULE_MAGIC)) {
         fprintf(stderr, "argments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
@@ -540,11 +651,11 @@ static INT  __tshellModuleUnreg (INT  iArgC, PCHAR  *ppcArgV)
     
     lib_strlcpy(cModule, pmod->EMOD_pcModulePath, MAX_FILENAME_LENGTH);
     
-    iError = moduleUnregister((PVOID)ulModule);                         /*  从内核卸载模块              */
-    
+    iError = moduleUnregister((PVOID)pmod);                             /*  从内核卸载模块              */
     if (iError == ERROR_NONE) {
         printf("module %s unregister ok.\n", cModule);
         return  (ERROR_NONE);
+    
     } else {
         if (errno == EACCES) {
             fprintf(stderr, "insufficient permissions.\n");
@@ -982,14 +1093,23 @@ static VOID  __ldShellInit (VOID)
                                      "        you must first run 'dlconfig refresh' command.\n");
     
     API_TShellKeywordAdd("modulereg", __tshellModuleReg);
-    API_TShellFormatAdd("modulereg", " [kernel module file *.ko]");
-    API_TShellHelpAdd("modulereg",   "register a kernel module into system.\n"
-                                     "NOTICE: only import LW_SYMBOL_EXPORT attribute\n"
-                                     "        symbol(s) to kernel symbol table.\n");
-    
+    API_TShellFormatAdd("modulereg",  " [kernel module file *.ko]");
+    API_TShellHelpAdd("modulereg",    "register a kernel module into system.\n"
+                                      "NOTICE: only import LW_SYMBOL_EXPORT attribute\n"
+                                      "        symbol(s) to kernel symbol table.\n");
+
     API_TShellKeywordAdd("moduleunreg", __tshellModuleUnreg);
     API_TShellFormatAdd("moduleunreg", " [kernel module handle]");
-    API_TShellHelpAdd("moduleunreg",   "unregister a kernel module from system.\n");
+    API_TShellHelpAdd("moduleunreg",   "unregister a kernel module from system [DANGER! Not Safety].\n");
+    
+    API_TShellKeywordAdd("insmod", __tshellInsModule);
+    API_TShellFormatAdd("insmod",  " [-x] [kernel module file *.ko]");
+    API_TShellHelpAdd("insmod",    "register a kernel module into system.\n"
+                                   "-x do not export global symbol.\n");
+    
+    API_TShellKeywordAdd("rmmod", __tshellRmModule);
+    API_TShellFormatAdd("rmmod",  " [kernel module file *.ko]");
+    API_TShellHelpAdd("rmmod",    "unregister a kernel module from system [DANGER! Not Safety].\n");
     
     API_TShellKeywordAdd("modulestat", __tshellModulestat);
     API_TShellFormatAdd("modulestat", " [program file]");

@@ -141,6 +141,7 @@
 #define Lw_Thread_CPUUsageRefresh               API_ThreadCPUUsageRefresh
 
 #define Lw_Thread_Wakeup                        API_ThreadWakeup
+#define Lw_Thread_WakeupEx                      API_ThreadWakeupEx
 #define Lw_Thread_Yield                         API_ThreadYield
 
 #define Lw_Thread_VarAdd                        API_ThreadVarAdd

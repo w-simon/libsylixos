@@ -26,8 +26,7 @@
   FUNCPTR
 *********************************************************************************************************/
 
-#ifdef  __cplusplus
-
+#ifdef __cplusplus
 typedef INT         (*FUNCPTR)(...);                                    /*  function returning int      */
 typedef off_t       (*OFFTFUNCPTR)(...);                                /*  function returning off_t    */
 typedef size_t      (*SIZETFUNCPTR)(...);                               /*  function returning size_t   */
@@ -39,7 +38,6 @@ typedef PVOID       (*PVOIDFUNCPTR)(...);                               /*  func
 typedef BOOL        (*BOOLFUNCPTR)(...);                                /*  function returning bool     */
 
 #else
-
 typedef INT         (*FUNCPTR)();                                       /*  function returning int      */
 typedef off_t       (*OFFTFUNCPTR)();                                   /*  function returning off_t    */
 typedef size_t      (*SIZETFUNCPTR)();                                  /*  function returning size_t   */
@@ -49,22 +47,19 @@ typedef ULONG       (*ULONGFUNCPTR)();                                  /*  func
 typedef VOID        (*VOIDFUNCPTR)();                                   /*  function returning void     */
 typedef PVOID       (*PVOIDFUNCPTR)();                                  /*  function returning void *   */
 typedef BOOL        (*BOOLFUNCPTR)();                                   /*  function returning bool     */
-
 #endif			                                                        /*  _cplusplus                  */
 
 /*********************************************************************************************************
   HOOK
 *********************************************************************************************************/
 
-#ifdef  __cplusplus
-
+#ifdef __cplusplus
 typedef VOID            (*LW_HOOK_FUNC)(...);                           /*  HOOK 函数指针               */
 
 #else
-
 typedef VOID            (*LW_HOOK_FUNC)();                              /*  HOOK 函数指针               */
-
 #endif                                                                  /*  _cplusplus                  */
+
 #endif                                                                  /*  __K_FUNCTYPE_H              */
 /*********************************************************************************************************
   END
