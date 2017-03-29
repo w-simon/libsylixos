@@ -198,9 +198,9 @@ VOID    archMpInt(ULONG  ulCPUId);
 #ifdef __GNUC__
 #define KN_BARRIER()    __asm__ __volatile__ ("" : : : "memory")
 
-#define KN_MB()         __asm__ __volatile__ ("mfence" : : :"memory")
-#define KN_RMB()        __asm__ __volatile__ ("lfence" : : :"memory")
-#define KN_WMB()        __asm__ __volatile__ ("sfence" : : :"memory")
+#define KN_MB()         __asm__ __volatile__ ("mfence" : : : "memory")
+#define KN_RMB()        __asm__ __volatile__ ("lfence" : : : "memory")
+#define KN_WMB()        __asm__ __volatile__ ("sfence" : : : "memory")
 #else                                                                   /*  __GNUC__                    */
 #define KN_BARRIER()
 

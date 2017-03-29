@@ -84,7 +84,7 @@ INT  _netJobqueueInit (VOID)
         return  (PX_ERROR);
     }
     
-    API_ThreadAttrBuild(&threadattr, LW_CFG_LWIP_STK_SIZE, 
+    API_ThreadAttrBuild(&threadattr, LW_CFG_LWIP_JOBQUEUE_STK_SIZE, 
                         LW_PRIO_T_NETJOB, 
                         (LW_OPTION_THREAD_STK_CHK | LW_OPTION_THREAD_SAFE | LW_OPTION_OBJECT_GLOBAL),
                         LW_NULL);

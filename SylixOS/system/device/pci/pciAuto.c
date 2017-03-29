@@ -39,8 +39,7 @@
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static
-INT  __pciAutoDevSkip (PCI_CTRL_HANDLE  hCtrl, PCI_AUTO_DEV_HANDLE  hAutoDev)
+static INT  __pciAutoDevSkip (PCI_CTRL_HANDLE  hCtrl, PCI_AUTO_DEV_HANDLE  hAutoDev)
 {
     PCI_AUTO_HANDLE     hPciAuto = &hCtrl->PCI_tAutoConfig;             /* 自动配置句柄                 */
     INT                 iBus     = PCI_AUTO_BUS(hAutoDev);              /* 总线号                       */

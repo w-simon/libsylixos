@@ -673,8 +673,8 @@ sys_thread_t  sys_thread_new (const char *name, lwip_thread_fn thread,
     LW_CLASS_THREADATTR     threadattr;
     LW_OBJECT_HANDLE        hThread;
     
-    if (stacksize < LW_CFG_LWIP_STK_SIZE) {
-        stacksize = LW_CFG_LWIP_STK_SIZE;                               /*  最小堆栈                    */
+    if (stacksize < LW_CFG_LWIP_DEF_STK_SIZE) {
+        stacksize = LW_CFG_LWIP_DEF_STK_SIZE;                           /*  最小堆栈                    */
     }
     if (prio < LW_PRIO_T_NETPROTO) {
         prio = LW_PRIO_T_NETPROTO;                                      /*  优先级不高于网络协议栈      */

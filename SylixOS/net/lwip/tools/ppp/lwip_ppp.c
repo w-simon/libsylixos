@@ -43,8 +43,8 @@
 /*********************************************************************************************************
   默认的 PPPoS 缓冲区大小
 *********************************************************************************************************/
-#define PPPRBUF_SIZE    (16 * LW_CFG_KB_SIZE)
-#define PPPWBUF_SIZE    ( 8 * LW_CFG_KB_SIZE)
+#define PPPRBUF_SIZE    LW_CFG_LWIP_PPP_RBUF_SIZE
+#define PPPWBUF_SIZE    LW_CFG_LWIP_PPP_WBUF_SIZE
 /*********************************************************************************************************
   PPP 私有数据
 *********************************************************************************************************/
@@ -683,7 +683,7 @@ __passwd_same:
 
     if ((pctxp->CTXP_uiType  == PPP_OS) &&
         (pctxp->CTXP_ulInput == LW_OBJECT_HANDLE_INVALID)) {
-        API_ThreadAttrBuild(&attr, LW_CFG_LWIP_STK_SIZE, LW_PRIO_T_NETPROTO,
+        API_ThreadAttrBuild(&attr, LW_CFG_LWIP_DEF_STK_SIZE, LW_PRIO_T_NETPROTO,
                             LW_OPTION_THREAD_STK_CHK |
                             LW_OPTION_THREAD_SAFE |
                             LW_OPTION_OBJECT_GLOBAL, (PVOID)pcb);

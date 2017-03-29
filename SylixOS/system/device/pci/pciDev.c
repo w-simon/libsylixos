@@ -250,11 +250,9 @@ INT  API_PciDevInterVectorGet (PCI_DEV_HANDLE  hHandle, ULONG *pulVector)
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
-                                           API 函数
 *********************************************************************************************************/
-static
-INT  __pciDevConfigBlockOp (PCI_DEV_HANDLE  hHandle, INT  uiPos, UINT8 *pucBuf, INT  uiLen,
-                           INT (*pfuncOpt)(PCI_DEV_HANDLE hHandle, UINT uiPos, UINT8 *pucBuf, UINT uiLen))
+static INT  __pciDevConfigBlockOp (PCI_DEV_HANDLE  hHandle, INT  uiPos, UINT8 *pucBuf, INT  uiLen,
+                                   INT (*pfuncOpt)(PCI_DEV_HANDLE hHandle, UINT uiPos, UINT8 *pucBuf, UINT uiLen))
 {
     INT     iRet = PX_ERROR;
 
@@ -312,10 +310,8 @@ INT  __pciDevConfigBlockOp (PCI_DEV_HANDLE  hHandle, INT  uiPos, UINT8 *pucBuf, 
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
-                                           API 函数
 *********************************************************************************************************/
-static
-INT  __pciDevConfigBlockRead (PCI_DEV_HANDLE  hHandle, UINT  uiPos, UINT8 *pucBuf, UINT  uiLen)
+static INT  __pciDevConfigBlockRead (PCI_DEV_HANDLE  hHandle, UINT  uiPos, UINT8 *pucBuf, UINT  uiLen)
 {
     return  (__pciDevConfigBlockOp(hHandle, uiPos, pucBuf, uiLen, API_PciDevConfigRead));
 }
@@ -329,10 +325,8 @@ INT  __pciDevConfigBlockRead (PCI_DEV_HANDLE  hHandle, UINT  uiPos, UINT8 *pucBu
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
-                                           API 函数
 *********************************************************************************************************/
-static
-INT  __pciDevConfigBlockWrite (PCI_DEV_HANDLE  hHandle, UINT  uiPos, UINT8 *pucBuf, UINT  uiLen)
+static INT  __pciDevConfigBlockWrite (PCI_DEV_HANDLE  hHandle, UINT  uiPos, UINT8 *pucBuf, UINT  uiLen)
 {
     return  (__pciDevConfigBlockOp(hHandle, uiPos, pucBuf, uiLen, API_PciDevConfigWrite));
 }
@@ -675,8 +669,7 @@ INT  API_PciDevConfigWriteDword (PCI_DEV_HANDLE  hHandle, UINT  uiPos, UINT32 ui
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static
-INT  __tshellPciCmdDevParent (INT  iArgC, PCHAR  ppcArgV[])
+static INT  __tshellPciCmdDevParent (INT  iArgC, PCHAR  ppcArgV[])
 {
     INT                 iRet;
     PCI_DEV_HANDLE      hDevHandle = LW_NULL;
@@ -718,8 +711,7 @@ __error_handle:
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static
-INT  __tshellPciDevAddDel (INT  iAdd, INT  iAll, INT  iBus, INT  iDevice, INT  iFunction)
+static INT  __tshellPciDevAddDel (INT  iAdd, INT  iAll, INT  iBus, INT  iDevice, INT  iFunction)
 {
     PCI_DEV_HANDLE      hDevHandle = LW_NULL;
     INT                 iRet = PX_ERROR;
@@ -762,8 +754,7 @@ __error_handle:
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static
-VOID  __tshellPciCmdDevShow (VOID)
+static VOID  __tshellPciCmdDevShow (VOID)
 {
     static PCHAR        pcPciDevShowHdr = \
     " INDEX    TYPE    BUS   DEV  FUNC VENDOR DEVICE SUBV(PRI) SUBD(SEC) (SUB) LINE PIN  "
@@ -857,8 +848,7 @@ VOID  __tshellPciCmdDevShow (VOID)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static
-INT  __tshellPciCmdDev (INT  iArgC, PCHAR  ppcArgV[])
+static INT  __tshellPciCmdDev (INT  iArgC, PCHAR  ppcArgV[])
 {
     INT     iRet;
     INT     iBus;

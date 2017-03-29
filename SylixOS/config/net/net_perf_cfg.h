@@ -43,7 +43,9 @@
 
 #define LW_CFG_LWIP_JOBQUEUE_NUM        2                               /*  可使能多个 netjob 并行工作  */
 #define LW_CFG_LWIP_JOBQUEUE_SIZE       1024                            /*  sylixos job queue size      */
-#define LW_CFG_LWIP_STK_SIZE            4096                            /*  lwip thread default stksize */
+
+#define LW_CFG_LWIP_JOBQUEUE_STK_SIZE   4096                            /*  job queue stksize           */
+#define LW_CFG_LWIP_DEF_STK_SIZE        8192                            /*  lwip thread default stksize */
 
 /*********************************************************************************************************
   TCP 设置 
@@ -77,6 +79,13 @@
 
 #define LW_CFG_AF_UNIX_256_POOLS        256                             /*  256 字节大小内存池个数      */
 #define LW_CFG_AF_UNIX_512_POOLS        128                             /*  512 字节大小内存池个数      */
+
+/*********************************************************************************************************
+  PPPoS 缓存配置
+*********************************************************************************************************/
+
+#define LW_CFG_LWIP_PPP_RBUF_SIZE       (32 * LW_CFG_KB_SIZE)           /*  PPPoS 接收缓存大小          */
+#define LW_CFG_LWIP_PPP_WBUF_SIZE       ( 8 * LW_CFG_KB_SIZE)           /*  PPPoS 发送缓存大小          */
 
 #endif                                                                  /*  __NET_PERF_CFG_H            */
 /*********************************************************************************************************

@@ -138,10 +138,9 @@ ssize_t  _PtyDeviceRead (P_PTY_DEV     p_ptydev,
                 return  ((ssize_t)iTemp);
             }
         }
-        
-     } while (iTemp == 0);
+    } while (iTemp == 0);
      
-     return ((ssize_t)iTemp);
+    return  ((ssize_t)iTemp);
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: _PtyDeviceWrite

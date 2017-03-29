@@ -409,8 +409,8 @@ __retry_rw:
                 /*
                  *   TODO: 32位操作
                  */
-                 ATA_DEBUG_MSG(("__ataRW() error: 32 bits read operation\n"));
-                 return (PX_ERROR);
+                ATA_DEBUG_MSG(("__ataRW() error: 32 bits read operation\n"));
+                return  (PX_ERROR);
             }
 
             psBuf     += iNWords;                                       /*  调整缓冲区的指针            */
@@ -429,7 +429,7 @@ __error_handle:
     (VOID)__ataCmd(patactrl, iDrive, __ATA_CMD_RECALIB, 0, 0);
 
     if (++iRetryCount < iRetry) {                                       /*  重试                        */
-        goto __retry_rw;
+        goto    __retry_rw;
     }
 
     return  (PX_ERROR);

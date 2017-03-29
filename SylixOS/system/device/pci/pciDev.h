@@ -312,11 +312,13 @@ enum {
 #if LW_CFG_PCI_64 > 0
 typedef UINT64          pci_addr_t;
 typedef UINT64          pci_size_t;
+typedef UINT64          pci_resource_addr_t;
 typedef UINT64          pci_resource_size_t;
 typedef UINT64          pci_bus_addr_t;
 #else
 typedef UINT32          pci_addr_t;
 typedef UINT32          pci_size_t;
+typedef UINT32          pci_resource_addr_t;
 typedef UINT32          pci_resource_size_t;
 typedef UINT32          pci_bus_addr_t;
 #endif                                                                  /*  LW_CFG_PCI_64 > 0           */
@@ -748,6 +750,9 @@ LW_API INT              API_PciDevConfigWriteDword(PCI_DEV_HANDLE hHandle, UINT 
 
 LW_API PCI_RESOURCE_HANDLE  API_PciResourceGet(INT iBus, INT iDevice, INT iFunc, UINT uiType, UINT uiNum);
 LW_API PCI_RESOURCE_HANDLE  API_PciDevResourceGet(PCI_DEV_HANDLE  hDevHandle, UINT uiType, UINT uiNum);
+LW_API PCI_RESOURCE_HANDLE  API_PciDevStdResourceGet(PCI_DEV_HANDLE  hDevHandle, UINT uiType, UINT uiNum);
+LW_API PCI_RESOURCE_HANDLE  API_PciDevStdResourceFind(PCI_DEV_HANDLE  hDevHandle, UINT uiType, 
+                                                      pci_resource_size_t  stStart);
 
 LW_API PVOID                API_PciDevIoRemap(PVOID  pvPhysicalAddr, size_t  stSize);
 LW_API PVOID                API_PciDevIoRemapEx(PVOID  pvPhysicalAddr, size_t  stSize, ULONG  ulFlags);

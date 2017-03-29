@@ -94,8 +94,7 @@ static PCI_DEV_ID_HANDLE __pciDevMatchId(PCI_DEV_HANDLE hDevHandle, PCI_DEV_ID_H
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static
-INT  __tshellPciCmdCtrl (INT  iArgC, PCHAR  ppcArgV[])
+static INT  __tshellPciCmdCtrl (INT  iArgC, PCHAR  ppcArgV[])
 {
     static PCHAR        pcPciCtrlShowHdr = \
     " INDEX   METHOD   AUTOEN   HOSTEN   FIRST   LAST       I/O-BUS            I/O-SIZE      "
@@ -151,7 +150,7 @@ PCHAR  API_PciSizeNameGet (pci_size_t stSize)
 
     i = 0;
     if (!stSize) {
-        return ((PCHAR)cSuffix[i]);
+        return  ((PCHAR)cSuffix[i]);
     }
 
     for (i = 0; i < (sizeof(cSuffix) / sizeof(*cSuffix) - 1); i++) {
@@ -1289,9 +1288,18 @@ INT  API_PciDevMemConfig (PCI_DEV_HANDLE  hDevHandle,
     
     return  (ERROR_NONE);
 }
-
-static
-UINT64  __pciDevBarSize (UINT64  ulBase, UINT64  ulBaseMax, UINT64  ulMask)
+/*********************************************************************************************************
+** 函数名称: __pciDevBarSize
+** 功能描述: 计算 BAR SIZE
+** 输　入  : ulBase     基地址
+**           ulBaseMax  最大值
+**           ulMask     掩码
+** 输　出  : BAR SIZE
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+static UINT64  __pciDevBarSize (UINT64  ulBase, UINT64  ulBaseMax, UINT64  ulMask)
 {
     UINT64      ulSize;
 
@@ -1315,10 +1323,8 @@ UINT64  __pciDevBarSize (UINT64  ulBase, UINT64  ulBaseMax, UINT64  ulMask)
 ** 输　出  : BAR 标志信息
 ** 全局变量:
 ** 调用模块:
-**                                            API 函数
 *********************************************************************************************************/
-static
-ULONG  __pciDevBarDecode (PCI_DEV_HANDLE hHandle, UINT32  uiBar)
+static ULONG  __pciDevBarDecode (PCI_DEV_HANDLE hHandle, UINT32  uiBar)
 {
     UINT32      uiMemType;
     ULONG       ulFlags;
@@ -1366,10 +1372,8 @@ ULONG  __pciDevBarDecode (PCI_DEV_HANDLE hHandle, UINT32  uiBar)
 **           1      64 位类型 BAR
 ** 全局变量:
 ** 调用模块:
-**                                            API 函数
 *********************************************************************************************************/
-static
-INT  __pciDevReadBase (PCI_DEV_HANDLE hHandle, INT iType, PCI_RESOURCE_HANDLE hRes, UINT uiPos)
+static INT  __pciDevReadBase (PCI_DEV_HANDLE hHandle, INT iType, PCI_RESOURCE_HANDLE hRes, UINT uiPos)
 {
     UINT32      uiLen;
     UINT32      uiSize;
@@ -1455,7 +1459,7 @@ INT  __pciDevReadBase (PCI_DEV_HANDLE hHandle, INT iType, PCI_RESOURCE_HANDLE hR
             hRes->PCIRS_stStart  = 0;
             hRes->PCIRS_stEnd    = 0;
 
-            return (hRes->PCIRS_ulFlags & PCI_IORESOURCE_MEM_64) ? 1 : 0;
+            return  (hRes->PCIRS_ulFlags & PCI_IORESOURCE_MEM_64) ? 1 : 0;
         }
 
         if ((sizeof(pci_bus_addr_t) < 8) && uiLen) {
@@ -1463,14 +1467,14 @@ INT  __pciDevReadBase (PCI_DEV_HANDLE hHandle, INT iType, PCI_RESOURCE_HANDLE hR
             hRes->PCIRS_stStart  = 0;
             hRes->PCIRS_stEnd    = ulSize;
 
-            return (hRes->PCIRS_ulFlags & PCI_IORESOURCE_MEM_64) ? 1 : 0;
+            return  (hRes->PCIRS_ulFlags & PCI_IORESOURCE_MEM_64) ? 1 : 0;
         }
     }
 
     hRes->PCIRS_stStart = ulLen;
     hRes->PCIRS_stEnd   = ulLen + ulSize;
 
-    return (hRes->PCIRS_ulFlags & PCI_IORESOURCE_MEM_64) ? 1 : 0;
+    return  (hRes->PCIRS_ulFlags & PCI_IORESOURCE_MEM_64) ? 1 : 0;
 }
 /*********************************************************************************************************
 ** 函数名称: __pciDevReadBases
@@ -1481,10 +1485,8 @@ INT  __pciDevReadBase (PCI_DEV_HANDLE hHandle, INT iType, PCI_RESOURCE_HANDLE hR
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
-**                                            API 函数
 *********************************************************************************************************/
-static
-void  __pciDevReadBases (PCI_DEV_HANDLE hHandle, UINT uiHowMany, INT iRom)
+static VOID  __pciDevReadBases (PCI_DEV_HANDLE hHandle, UINT uiHowMany, INT iRom)
 {
     UINT                    uiPos;
     UINT                    uiReg;
@@ -1511,10 +1513,8 @@ void  __pciDevReadBases (PCI_DEV_HANDLE hHandle, UINT uiHowMany, INT iRom)
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
-**                                            API 函数
 *********************************************************************************************************/
-static
-void  __pciDevReadIrq (PCI_DEV_HANDLE hHandle)
+static VOID  __pciDevReadIrq (PCI_DEV_HANDLE hHandle)
 {
     INT                     iRet;
     ULONG                   ulVector;
@@ -1564,7 +1564,7 @@ INT  API_PciDevSetup (PCI_DEV_HANDLE  hDevHandle)
 
     case PCI_HEADER_TYPE_NORMAL:
         __pciDevReadIrq(hDevHandle);
-        __pciDevReadBases(hDevHandle, 6, PCI_ROM_ADDRESS);
+        __pciDevReadBases(hDevHandle, PCI_DEV_BAR_MAX, PCI_ROM_ADDRESS);
         hDevHandle->PCIDEV_uiResourceNum = PCI_NUM_RESOURCES;
         break;
 
@@ -1604,7 +1604,7 @@ PCI_RESOURCE_HANDLE  API_PciResourceGet (INT iBus, INT iDevice, INT iFunc, UINT 
 }
 /*********************************************************************************************************
 ** 函数名称: API_PciDevResourceGet
-** 功能描述: 配置 PCI 总线上的一个设备
+** 功能描述: 获取 PCI 设备资源
 ** 输　入  : hDevHandle     设备句柄
 **           uiType         资源类型
 **           uiNum          资源索引
@@ -1619,20 +1619,81 @@ PCI_RESOURCE_HANDLE  API_PciDevResourceGet (PCI_DEV_HANDLE  hDevHandle, UINT uiT
     INT                     i;
     PCI_RESOURCE_HANDLE     hResource;
 
-    if ((!hDevHandle) ||
-        (uiNum >= PCI_NUM_RESOURCES)) {
+    if ((!hDevHandle) || (uiNum >= PCI_NUM_RESOURCES)) {
         return  (LW_NULL);
     }
 
     for (i = 0; i < hDevHandle->PCIDEV_uiResourceNum; i++) {
         hResource = &hDevHandle->PCIDEV_tResource[i];
-
         if ((uiType == PCI_RESOURCE_TYPE(hResource)) &&
             (uiNum-- == 0)) {
             return  (hResource);
         }
     }
 
+    return  (LW_NULL);
+}
+/*********************************************************************************************************
+** 函数名称: API_PciDevStdResourceGet
+** 功能描述: 获取 PCI 设备 STD BAR 资源
+** 输　入  : hDevHandle     设备句柄
+**           uiType         资源类型
+**           uiNum          资源索引
+** 输　出  : 资源句柄
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+PCI_RESOURCE_HANDLE  API_PciDevStdResourceGet (PCI_DEV_HANDLE  hDevHandle, UINT uiType, UINT uiNum)
+{
+    INT                     i;
+    PCI_RESOURCE_HANDLE     hResource;
+
+    if ((!hDevHandle) || (uiNum > PCI_STD_RESOURCE_END)) {
+        return  (LW_NULL);
+    }
+
+    for (i = 0; i <= PCI_STD_RESOURCE_END; i++) {
+        hResource = &hDevHandle->PCIDEV_tResource[i];
+        if ((uiType == PCI_RESOURCE_TYPE(hResource)) &&
+            (uiNum-- == 0)) {
+            return  (hResource);
+        }
+    }
+
+    return  (LW_NULL);
+}
+/*********************************************************************************************************
+** 函数名称: API_PciDevStdResourceFind
+** 功能描述: 查询 PCI 设备 STD BAR 资源
+** 输　入  : hDevHandle     设备句柄
+**           uiType         资源类型
+**           uiNum          资源索引
+** 输　出  : 资源句柄
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+PCI_RESOURCE_HANDLE  API_PciDevStdResourceFind (PCI_DEV_HANDLE  hDevHandle, UINT uiType, 
+                                                pci_resource_size_t  stStart)
+{
+    INT                     i;
+    PCI_RESOURCE_HANDLE     hResource;
+    
+    if (!hDevHandle) {
+        return  (LW_NULL);
+    }
+    
+    for (i = 0; i <= PCI_STD_RESOURCE_END; i++) {
+        hResource = &hDevHandle->PCIDEV_tResource[i];
+        if ((uiType == PCI_RESOURCE_TYPE(hResource)) &&
+            (stStart == PCI_RESOURCE_START(hResource))) {
+            return  (hResource);
+        }
+    }
+    
     return  (LW_NULL);
 }
 /*********************************************************************************************************
@@ -1991,7 +2052,7 @@ PCI_CTRL_HANDLE  API_PciConfigHandleGet (INT iIndex)
     }
 
     if (PCI_CTRL->PCI_iIndex == iIndex) {
-        return (PCI_CTRL);
+        return  (PCI_CTRL);
     }
 
     return  (LW_NULL);
@@ -2056,7 +2117,7 @@ INT  API_PciConfigBusMaxSet (INT  iIndex, UINT32  uiBusMax)
 
     if (PCI_CTRL->PCI_iIndex == iIndex) {
         PCI_CTRL->PCI_iBusMax = uiBusMax;
-        return (ERROR_NONE);
+        return  (ERROR_NONE);
     }
 
     return  (PX_ERROR);
@@ -2083,7 +2144,7 @@ INT  API_PciConfigBusMaxGet (INT iIndex)
         API_PciTraversal(__pciBusCntGet, &uiBusNumber, PCI_MAX_BUS - 1);
 
         PCI_CTRL->PCI_iBusMax = uiBusNumber;
-        return (PCI_CTRL->PCI_iBusMax);
+        return  (PCI_CTRL->PCI_iBusMax);
     }
 
     return  (PX_ERROR);

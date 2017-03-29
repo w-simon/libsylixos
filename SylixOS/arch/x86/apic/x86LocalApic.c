@@ -161,8 +161,6 @@
 static LW_INLINE VOID  x86LocalApicWrite (UINT32  uiReg, UINT32  uiValue)
 {
     write32(uiValue, LOCAL_APIC_BASE + uiReg);
-
-    x86LocalApicId();                                           /* Wait for write to finish, by reading */
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: x86LocalApicRead

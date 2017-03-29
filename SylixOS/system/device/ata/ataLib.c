@@ -208,7 +208,7 @@ INT __ataWait (__PATA_CTRL patactrler, INT iRequest)
         for (i = 0; i < __ATA_TIMEOUT_LOOP; i++) {
             if (__ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl)) & __ATA_STAT_READY) {
                                                                         /*  设备准备好                  */
-                return (0);
+                return  (0);
             }
 
             lib_clock_gettime(CLOCK_MONOTONIC, &tvNow);

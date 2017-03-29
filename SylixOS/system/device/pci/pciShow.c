@@ -125,7 +125,7 @@ INT  API_PciFindDevShow (UINT16 usVendorId, UINT16 usDeviceId, INT iInstance)
         printf("funcNo = 0x%.8x\n", iFunc);
     }
 
-    return (iRet);
+    return  (iRet);
 }
 /*********************************************************************************************************
 ** 函数名称: API_PciFindClassShow
@@ -154,7 +154,7 @@ INT  API_PciFindClassShow (UINT16 usClassCode, INT iInstance)
         printf("funcNo = 0x%.8x\n", iFunc);
     }
 
-    return (iRet);
+    return  (iRet);
 }
 /*********************************************************************************************************
 ** 函数名称: __pciDeviceHeaderShow
@@ -163,7 +163,6 @@ INT  API_PciFindClassShow (UINT16 usClassCode, INT iInstance)
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
-**                                            API 函数
 *********************************************************************************************************/
 static VOID  __pciDeviceHeaderShow (PCI_DEV_HDR *phdrDevice)
 {
@@ -201,7 +200,6 @@ static VOID  __pciDeviceHeaderShow (PCI_DEV_HDR *phdrDevice)
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
-**                                            API 函数
 *********************************************************************************************************/
 static VOID  __pciBridgeHeaderShow (PCI_BRG_HDR *phdrBridge)
 {
@@ -246,7 +244,6 @@ static VOID  __pciBridgeHeaderShow (PCI_BRG_HDR *phdrBridge)
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
-**                                            API 函数
 *********************************************************************************************************/
 static VOID  __pciCardBridgeHeaderShow (PCI_CBUS_HDR *phdrCardBridge)
 {
@@ -1158,7 +1155,6 @@ VOID  API_PciCapMsiShow (INT iBus, INT iSlot, INT iFunc, UINT uiOffset)
 ** 输　出  : 等待时间信息
 ** 全局变量:
 ** 调用模块:
-**                                            API 函数
 *********************************************************************************************************/
 static const PCHAR __pciCapPcieLatencyL0s (INT iValue)
 {
@@ -1174,7 +1170,6 @@ static const PCHAR __pciCapPcieLatencyL0s (INT iValue)
 ** 输　出  : 等待时间信息
 ** 全局变量:
 ** 调用模块:
-**                                            API 函数
 *********************************************************************************************************/
 static const PCHAR __pciCapPcieLatencyL1 (INT iValue)
 {
@@ -1190,7 +1185,6 @@ static const PCHAR __pciCapPcieLatencyL1 (INT iValue)
 ** 输　出  : 限定信息
 ** 全局变量:
 ** 调用模块:
-**                                            API 函数
 *********************************************************************************************************/
 static float __pciCapPcieSlotPowerLimit (INT iValue)
 {
@@ -1205,7 +1199,6 @@ static float __pciCapPcieSlotPowerLimit (INT iValue)
 ** 输　出  : 速度信息
 ** 全局变量:
 ** 调用模块:
-**                                            API 函数
 *********************************************************************************************************/
 static const PCHAR __pciCapPcieLinkSpeed (INT iSpeed)
 {
@@ -1227,7 +1220,6 @@ static const PCHAR __pciCapPcieLinkSpeed (INT iSpeed)
 ** 输　出  : 状态信息
 ** 全局变量:
 ** 调用模块:
-**                                            API 函数
 *********************************************************************************************************/
 static const PCHAR __pciCapPcieASPM (INT iValue)
 {
@@ -1252,7 +1244,6 @@ static const PCHAR __pciCapPcieASPM (INT iValue)
 ** 输　出  : 状态信息
 ** 全局变量:
 ** 调用模块:
-**                                            API 函数
 *********************************************************************************************************/
 static const PCHAR __pciCapPcieASPMEnable (INT iValue)
 {
@@ -1267,7 +1258,6 @@ static const PCHAR __pciCapPcieASPMEnable (INT iValue)
 ** 输　出  : 状态信息
 ** 全局变量:
 ** 调用模块:
-**                                            API 函数
 *********************************************************************************************************/
 static const PCHAR __pciCapPcieIndicator (INT iValue)
 {
@@ -1285,7 +1275,6 @@ static const PCHAR __pciCapPcieIndicator (INT iValue)
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
-**                                            API 函数
 *********************************************************************************************************/
 static VOID  __pciCapPcieSlot (INT iBus, INT iSlot, INT iFunc, UINT  uiOffset)
 {
@@ -1363,7 +1352,6 @@ static VOID  __pciCapPcieSlot (INT iBus, INT iSlot, INT iFunc, UINT  uiOffset)
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
-**                                            API 函数
 *********************************************************************************************************/
 static VOID  __pciCapPcieLink (INT iBus, INT iSlot, INT iFunc, UINT  uiOffset, UINT  uiType)
 {
@@ -1418,7 +1406,6 @@ static VOID  __pciCapPcieLink (INT iBus, INT iSlot, INT iFunc, UINT  uiOffset, U
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
-**                                            API 函数
 *********************************************************************************************************/
 static VOID  __pciCapPcieDev (INT iBus, INT iSlot, INT iFunc, UINT  uiOffset, UINT  uiType)
 {

@@ -384,19 +384,19 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrT
 *********************************************************************************************************/
 
 #define TCPIP_THREAD_NAME               "t_netproto"
-#define TCPIP_THREAD_STACKSIZE          LW_CFG_LWIP_STK_SIZE
+#define TCPIP_THREAD_STACKSIZE          LW_CFG_LWIP_DEF_STK_SIZE
 #define TCPIP_THREAD_PRIO               LW_PRIO_T_NETPROTO
 
 #define SLIPIF_THREAD_NAME              "t_slip"
-#define SLIPIF_THREAD_STACKSIZE         LW_CFG_LWIP_STK_SIZE
+#define SLIPIF_THREAD_STACKSIZE         LW_CFG_LWIP_DEF_STK_SIZE
 #define SLIPIF_THREAD_PRIO              LW_PRIO_T_NETPROTO
 
 #define PPP_THREAD_NAME                 "t_ppp"
-#define PPP_THREAD_STACKSIZE            LW_CFG_LWIP_STK_SIZE
+#define PPP_THREAD_STACKSIZE            LW_CFG_LWIP_DEF_STK_SIZE
 #define PPP_THREAD_PRIO                 LW_PRIO_T_NETPROTO
 
 #define DEFAULT_THREAD_NAME             "t_netdef"
-#define DEFAULT_THREAD_STACKSIZE        LW_CFG_LWIP_STK_SIZE
+#define DEFAULT_THREAD_STACKSIZE        LW_CFG_LWIP_DEF_STK_SIZE
 #define DEFAULT_THREAD_PRIO             LW_PRIO_T_NETPROTO
 
 /*********************************************************************************************************

@@ -50,7 +50,6 @@ typedef struct {
 ** 输　出  : ERROR_NONE
 ** 全局变量:
 ** 调用模块:
-**                                            API 函数
 *********************************************************************************************************/
 static INT  __pciScanCb (INT iBus, INT iSlot, INT iFunc, PCI_SCAN_ARG *p_psa)
 {

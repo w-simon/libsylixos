@@ -314,7 +314,7 @@ static INT __canReadQueue (__CAN_DEV    *pcanDev,
         LW_SPIN_UNLOCK_QUICK(&pcanDev->CAN_slLock, iregInterLevel);
     }
 
-    return (i);
+    return  (i);
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: __canQFreeNum

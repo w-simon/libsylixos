@@ -23,6 +23,7 @@
             ATI(0x1002) 0x4390 设备 ID 在匹配表内, 但是设备类型是 IDE
 2016.11.09  增加将 AMD 桥 IDE 模式切换为 AHCI 模式的特殊处理.
 2016.12.27  增加磁盘初始化复位等命令超时时间可配置.
+2017.03.29  修正部分设备如 Sunrise Point-H 内存索引非 0 的问题. (v1.0.3-rc0)
 *********************************************************************************************************/
 #define  __SYLIXOS_PCI_DRV
 #define  __SYLIXOS_AHCI_DRV
@@ -872,6 +873,7 @@ static INT  pciStorageSataVendorCtrlReadyWork (AHCI_CTRL_HANDLE  hCtrl)
     UINT16                  usStatus;
     ULONG                   ulBaseAddr;
     PCI_RESOURCE_HANDLE     hResource;
+    pci_resource_size_t     stStart;
 
     hPciDev = (PCI_DEV_HANDLE)hCtrl->AHCICTRL_pvPciArg;                 /* 获取设备句柄                 */
 
@@ -881,11 +883,12 @@ static INT  pciStorageSataVendorCtrlReadyWork (AHCI_CTRL_HANDLE  hCtrl)
              hPciDev->PCIDEV_iDevBus,
              hPciDev->PCIDEV_iDevDevice,
              hPciDev->PCIDEV_iDevFunction, usPciDevId);
-
-    hResource = API_PciDevResourceGet(hPciDev, PCI_IORESOURCE_MEM, 0);
+                                                                        /* BAR5                         */
+    stStart = hPciDev->PCIDEV_phDevHdr.PCIH_pcidHdr.PCID_uiBase[PCI_BAR_INDEX_5];
+                                                                        /* 查找对应资源信息             */
+    hResource = API_PciDevStdResourceFind(hPciDev, PCI_IORESOURCE_MEM, stStart);
     if (!hResource) {
-        AHCI_LOG(AHCI_LOG_ERR, "pci resource index slop over [0 ~ %d].\r\n", (PCI_NUM_RESOURCES - 1));
-
+        AHCI_LOG(AHCI_LOG_ERR, "pci BAR index %d error.\r\n", PCI_BAR_INDEX_5);
         return  (PX_ERROR);
     }
 
