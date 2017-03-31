@@ -182,7 +182,7 @@ BOOL  _CandTableTryAdd (PLW_CLASS_TCB  ptcb, PLW_CLASS_PCB  ppcb)
                 continue;
             }
             
-            ptcbCand = LW_CAND_TCB(pcpu);
+            ptcbCand = LW_CAND_TCB(pcpu);                               /*  TODO: SMT 虚拟多核优化      */
             if (ptcbCand == LW_NULL) {                                  /*  候选表为空                  */
                 LW_CAND_TCB(pcpu) = ptcb;
                 ptcb->TCB_ulCPUId = i;                                  /*  记录 CPU 号                 */

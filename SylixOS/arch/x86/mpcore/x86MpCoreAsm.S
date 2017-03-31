@@ -45,8 +45,7 @@ FUNC_DEF(x86SpinLock)
     MOVL    X86_SP_ARG1(%ESP) , %EDX
 
 1:
-    LOCK
-    BTS     $0 , (%EDX)
+    LOCK    BTS  $0, (%EDX)
     JC      2f
     RET
 
@@ -61,8 +60,7 @@ FUNC_DEF(x86SpinTryLock)
     MOVL    X86_SP_ARG1(%ESP) , %EDX
 
 1:
-    LOCK
-    BTS     $0 , (%EDX)
+    LOCK    BTS  $0, (%EDX)
     JC      2f
 
     XORL    %EAX , %EAX

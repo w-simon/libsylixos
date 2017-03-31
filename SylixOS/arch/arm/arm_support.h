@@ -114,8 +114,8 @@ INT     archFindMsb(UINT32 ui32);
   ARM 处理器标准底层库
 *********************************************************************************************************/
 
-#define	KN_INT_DISABLE()            archIntDisable()
-#define	KN_INT_ENABLE(intLevel)     archIntEnable(intLevel)
+#define KN_INT_DISABLE()            archIntDisable()
+#define KN_INT_ENABLE(intLevel)     archIntEnable(intLevel)
 #define KN_INT_ENABLE_FORCE()       archIntEnableForce()
 
 INTREG  archIntDisable(VOID);
@@ -251,11 +251,11 @@ VOID    archMpInt(ULONG  ulCPUId);
 
 #elif __SYLIXOS_ARM_ARCH__ == 6
 #define armIsb()        __asm__ __volatile__ ("mcr p15, 0, %0, c7, c5,  4" \
-				                              : : "r" (0) : "memory")
+                                              : : "r" (0) : "memory")
 #define armDsb()        __asm__ __volatile__ ("mcr p15, 0, %0, c7, c10, 4" \
-				                              : : "r" (0) : "memory")
+                                              : : "r" (0) : "memory")
 #define armDmb()        __asm__ __volatile__ ("mcr p15, 0, %0, c7, c10, 5" \
-				                              : : "r" (0) : "memory")
+                                              : : "r" (0) : "memory")
 #else
 #define armIsb()        __asm__ __volatile__ ("" : : : "memory")
 #define armDsb()        __asm__ __volatile__ ("" : : : "memory")

@@ -95,7 +95,11 @@ static VOID  __interSecondaryStackInit (ULONG   ulCPUId)
 *********************************************************************************************************/
 static VOID  __cpuPrimaryInit (VOID)
 {
-    REGISTER INT        i;
+    REGISTER INT    i;
+    
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_CPU_ARCH_SMT > 0)
+    PLW_CLASS_CPU   pcpu = LW_CPU_GET_CUR();
+#endif
     
     for (i = 0; i < LW_CFG_MAX_PROCESSORS; i++) {
         LW_CPU_GET(i)->CPU_ulStatus = LW_CPU_STATUS_INACTIVE;           /*  CPU INACTIVE                */
@@ -105,6 +109,10 @@ static VOID  __cpuPrimaryInit (VOID)
         LW_CPU_CLR_IPI_PEND(i, ((ULONG)~0));                            /*  清除所有中断标志            */
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
     }
+
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_CPU_ARCH_SMT > 0)
+    pcpu->CPU_ulPhyId = bspCpuLogic2Physical(pcpu->CPU_ulCPUId);
+#endif
 }
 /*********************************************************************************************************
 ** 函数名称: __cpuSecondaryInit
@@ -118,12 +126,20 @@ static VOID  __cpuPrimaryInit (VOID)
 
 static VOID  __cpuSecondaryInit (ULONG   ulCPUId)
 {
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_CPU_ARCH_SMT > 0)
+    PLW_CLASS_CPU   pcpu = LW_CPU_GET(ulCPUId);
+#endif
+
     LW_CPU_GET(ulCPUId)->CPU_ulStatus = LW_CPU_STATUS_INACTIVE;         /*  CPU INACTIVE                */
     LW_SPIN_INIT(&_K_tcbDummy[ulCPUId].TCB_slLock);                     /*  初始化自旋锁                */
     
 #if LW_CFG_SMP_EN > 0
     LW_CPU_CLR_IPI_PEND(ulCPUId, ((ULONG)~0));                          /*  清除所有中断标志            */
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
+
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_CPU_ARCH_SMT > 0)
+    pcpu->CPU_ulPhyId = bspCpuLogic2Physical(ulCPUId);
+#endif
 }
 
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
@@ -146,7 +162,10 @@ static VOID  __miscPrimarySmpInit (VOID)
         LW_CAND_TCB(pcpu) = LW_NULL;                                    /*  候选运行表为空              */
         LW_CAND_ROT(pcpu) = LW_FALSE;                                   /*  没有优先级卷绕              */
         
-        pcpu->CPU_ulCPUId        = (ULONG)i;
+#if LW_CFG_CPU_ARCH_SMT > 0
+        pcpu->CPU_ulPhyId = (ULONG)i;
+#endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
+        pcpu->CPU_ulCPUId = (ULONG)i;
         pcpu->CPU_iKernelCounter = 1;                                   /*  初始化 1, 当前不允许调度    */
 
 #if LW_CFG_SMP_EN > 0

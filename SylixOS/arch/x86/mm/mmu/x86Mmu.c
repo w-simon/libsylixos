@@ -82,7 +82,7 @@
 /*********************************************************************************************************
   外部函数声明
 *********************************************************************************************************/
-extern VOID  x86MmuInvalidateTLB (VOID);
+extern VOID  x86MmuInvalidateTLB(VOID);
 extern VOID  x86MmuInvalidateTLBMVA(PVOID  pvAddr);
 
 extern VOID  x86MmuEnable(VOID);

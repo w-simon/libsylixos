@@ -61,7 +61,7 @@ void AcpiEnumarateMADT(void *MadtStart, void *MadtEnd)
 {
     ACPI_SUBTABLE_HEADER   *MadtEntry;
     X86_PARAM              *pparam;
-    BOOL                    bHyperThreading;
+    BOOL                    bHyperThreading = LW_FALSE;
     DataKey_t               Key;
 
     if (!_G_bX86HasMpConfig) {                                          /*  没有 MP 配置                */
@@ -72,7 +72,7 @@ void AcpiEnumarateMADT(void *MadtStart, void *MadtEnd)
             bHyperThreading = LW_FALSE;                                 /*  强制不使用超线程技术        */
         }
 
-        _G_iX86ProcNr = 0;                                              /*  重置 Processor 数目         */
+        _G_iX86LProcNr = 0;                                             /*  重置 Processor 数目         */
     }
 
     for (MadtEntry = (ACPI_SUBTABLE_HEADER*)MadtStart;
@@ -106,21 +106,18 @@ void AcpiEnumarateMADT(void *MadtStart, void *MadtEnd)
                 AcpiCpu->Id, (AcpiCpu->LapicFlags & 0x1) ? "Active" : "Inactive");
 
             if (!_G_bX86HasMpConfig) {                                  /*  没有 MP 配置                */
-                _G_x86ProcInfo[AcpiCpu->Id].PROC_bPresent           = LW_TRUE;
-                _G_x86ProcInfo[AcpiCpu->Id].PROC_ulCPUId            = _G_iX86ProcNr;
-                _G_x86ProcInfo[AcpiCpu->Id].PROC_ucLocalApicId      = AcpiCpu->Id;
-                _G_x86ProcInfo[_G_iX86ProcNr].PROC_ucMapLocalApicId = AcpiCpu->Id;
-                _G_iX86ProcNr++;
+                _G_x86Apic2LInfo[AcpiCpu->Id].APIC2L_bPresent    = LW_TRUE;
+                _G_x86Apic2LInfo[AcpiCpu->Id].APIC2L_bIsHt       = LW_FALSE;
+                _G_x86Apic2LInfo[AcpiCpu->Id].APIC2L_ulCPUId     = _G_iX86LProcNr;
+                _G_x86L2ApicInfo[_G_iX86LProcNr].L2APIC_ucApicId = AcpiCpu->Id;
+                _G_iX86LProcNr++;
 
-                if (bHyperThreading) {
-                    /*
-                     * "手动"添加超线程的逻辑 Processor
-                     */
-                    _G_x86ProcInfo[AcpiCpu->Id + 1].PROC_bPresent       = LW_TRUE;
-                    _G_x86ProcInfo[AcpiCpu->Id + 1].PROC_ulCPUId        = _G_iX86ProcNr;
-                    _G_x86ProcInfo[AcpiCpu->Id + 1].PROC_ucLocalApicId  = AcpiCpu->Id + 1;
-                    _G_x86ProcInfo[_G_iX86ProcNr].PROC_ucMapLocalApicId = AcpiCpu->Id + 1;
-                    _G_iX86ProcNr++;
+                if (bHyperThreading) {                                  /*  超线程支持                  */
+                    _G_x86Apic2LInfo[AcpiCpu->Id + 1].APIC2L_bPresent = LW_TRUE;
+                    _G_x86Apic2LInfo[AcpiCpu->Id + 1].APIC2L_bIsHt    = LW_TRUE;
+                    _G_x86Apic2LInfo[AcpiCpu->Id + 1].APIC2L_ulCPUId  = _G_iX86LProcNr;
+                    _G_x86L2ApicInfo[_G_iX86LProcNr].L2APIC_ucApicId  = AcpiCpu->Id + 1;
+                    _G_iX86LProcNr++;
                 }
             }
         } break;

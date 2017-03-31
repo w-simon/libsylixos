@@ -67,7 +67,12 @@ static ssize_t  __procFsKernelObjectsRead(PLW_PROCFS_NODE  p_pfsn,
                                           PCHAR            pcBuffer, 
                                           size_t           stMaxBytes,
                                           off_t            oft);
+                                          
 #if LW_CFG_SMP_EN > 0
+static ssize_t  __procFsKernelSmpRead(PLW_PROCFS_NODE  p_pfsn, 
+                                      PCHAR            pcBuffer, 
+                                      size_t           stMaxBytes,
+                                      off_t            oft);
 static ssize_t  __procFsKernelAffinityRead(PLW_PROCFS_NODE  p_pfsn, 
                                            PCHAR            pcBuffer, 
                                            size_t           stMaxBytes,
@@ -89,6 +94,9 @@ static LW_PROCFS_NODE_OP        _G_pfsnoKernelObjectsFuncs = {
     __procFsKernelObjectsRead, LW_NULL
 };
 #if LW_CFG_SMP_EN > 0
+static LW_PROCFS_NODE_OP        _G_pfsnoKernelSmpFuncs = {
+    __procFsKernelSmpRead, LW_NULL
+};
 static LW_PROCFS_NODE_OP        _G_pfsnoKernelAffinityFuncs = {
     __procFsKernelAffinityRead, LW_NULL
 };
@@ -132,8 +140,14 @@ static LW_PROCFS_NODE           _G_pfsnKernel[] =
                         &_G_pfsnoKernelObjectsFuncs, 
                         "O",
                         __PROCFS_BUFFER_SIZE_OBJECTS),
-                        
+
 #if LW_CFG_SMP_EN > 0
+    LW_PROCFS_INIT_NODE("smp", 
+                        (S_IFREG | S_IRUSR | S_IRGRP | S_IROTH), 
+                        &_G_pfsnoKernelSmpFuncs, 
+                        "S",
+                        0),
+                        
     LW_PROCFS_INIT_NODE("affinity", 
                         (S_IFREG | S_IRUSR | S_IRGRP | S_IROTH), 
                         &_G_pfsnoKernelAffinityFuncs, 
@@ -449,8 +463,8 @@ static ssize_t  __procFsKernelObjectsRead (PLW_PROCFS_NODE  p_pfsn,
     return  ((ssize_t)stCopeBytes);
 }
 /*********************************************************************************************************
-** 函数名称: __procFsKernelAffinityRead
-** 功能描述: procfs 读一个内核 affinity proc 文件
+** 函数名称: __procFsKernelSmpRead
+** 功能描述: procfs 读一个内核 smp proc 文件
 ** 输　入  : p_pfsn        节点控制块
 **           pcBuffer      缓冲区
 **           stMaxBytes    缓冲区大小
@@ -461,6 +475,92 @@ static ssize_t  __procFsKernelObjectsRead (PLW_PROCFS_NODE  p_pfsn,
 *********************************************************************************************************/
 #if LW_CFG_SMP_EN > 0
 
+static ssize_t  __procFsKernelSmpRead (PLW_PROCFS_NODE  p_pfsn, 
+                                       PCHAR            pcBuffer, 
+                                       size_t           stMaxBytes,
+                                       off_t            oft)
+{
+    const CHAR      cSmpInfoHdr[] = 
+    "LOGIC CPU PHYSICAL CPU STATUS CURRENT THREAD MAX NESTING IPI VECTOR\n"
+    "--------- ------------ ------ -------------- ----------- ----------\n";
+          PCHAR     pcFileBuffer;
+          size_t    stRealSize;                                         /*  实际的文件内容大小          */
+          size_t    stCopeBytes;
+    
+    /*
+     *  由于预置内存大小为 0 , 所以打开后第一次读取需要手动开辟内存.
+     */
+    pcFileBuffer = (PCHAR)API_ProcFsNodeBuffer(p_pfsn);
+    if (pcFileBuffer == LW_NULL) {                                      /*  还没有分配内存              */
+        size_t          stNeedBufferSize;
+        INT             i;
+        PLW_CLASS_CPU   pcpu;
+        
+        stNeedBufferSize  = 96 * LW_NCPUS;
+        stNeedBufferSize += sizeof(cSmpInfoHdr);
+
+        if (API_ProcFsAllocNodeBuffer(p_pfsn, stNeedBufferSize)) {
+            _ErrorHandle(ENOMEM);
+            return  (0);
+        }
+        pcFileBuffer = (PCHAR)API_ProcFsNodeBuffer(p_pfsn);             /*  重新获得文件缓冲区地址      */
+        
+        stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, 0, cSmpInfoHdr); 
+                                                                        /*  打印头信息                  */
+        __KERNEL_ENTER();
+        for (i = 0; i < LW_NCPUS; i++) {
+            ULONG               ulMaxNesting;
+            ULONG               ulStatus;
+            CHAR                cThread[LW_CFG_OBJECT_NAME_SIZE];
+            
+            pcpu = LW_CPU_GET(i);
+            lib_strlcpy(cThread, pcpu->CPU_ptcbTCBCur->TCB_cThreadName, LW_CFG_OBJECT_NAME_SIZE);
+            ulMaxNesting = pcpu->CPU_ulInterNestingMax;
+            ulStatus     = pcpu->CPU_ulStatus;
+            
+            __KERNEL_EXIT();
+            stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize,
+                                  "%9lu %12lu %-6s %-14s %11lu %10ld\n",
+                                  pcpu->CPU_ulCPUId, 
+#if LW_CFG_CPU_ARCH_SMT > 0
+                                  pcpu->CPU_ulPhyId,
+#else
+                                  pcpu->CPU_ulCPUId, 
+#endif
+                                  (ulStatus & LW_CPU_STATUS_ACTIVE) ? "ACTIVE" : "OFF",
+                                  cThread,
+                                  ulMaxNesting,
+                                  (pcpu->CPU_ulIPIVector == __ARCH_ULONG_MAX) ?
+                                  -1 : (LONG)(pcpu->CPU_ulIPIVector));
+            __KERNEL_ENTER();
+        }
+        __KERNEL_EXIT();
+    
+        API_ProcFsNodeSetRealFileSize(p_pfsn, stRealSize);
+    } else {
+        stRealSize = API_ProcFsNodeGetRealFileSize(p_pfsn);
+    }
+    if (oft >= stRealSize) {
+        _ErrorHandle(ENOSPC);
+        return  (0);
+    }
+    
+    stCopeBytes  = __MIN(stMaxBytes, (size_t)(stRealSize - oft));       /*  计算实际拷贝的字节数        */
+    lib_memcpy(pcBuffer, (CPVOID)(pcFileBuffer + oft), (UINT)stCopeBytes);
+    
+    return  ((ssize_t)stCopeBytes);
+}
+/*********************************************************************************************************
+** 函数名称: __procFsKernelAffinityRead
+** 功能描述: procfs 读一个内核 affinity proc 文件
+** 输　入  : p_pfsn        节点控制块
+**           pcBuffer      缓冲区
+**           stMaxBytes    缓冲区大小
+**           oft           文件指针
+** 输　出  : 实际读取的数目
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
 static ssize_t  __procFsKernelAffinityRead (PLW_PROCFS_NODE  p_pfsn, 
                                             PCHAR            pcBuffer, 
                                             size_t           stMaxBytes,
@@ -574,7 +674,8 @@ VOID  __procFsKernelInfoInit (VOID)
     API_ProcFsMakeNode(&_G_pfsnKernel[3], "/kernel");
     API_ProcFsMakeNode(&_G_pfsnKernel[4], "/kernel");
 #if LW_CFG_SMP_EN > 0
-    API_ProcFsMakeNode(&_G_pfsnKernel[5], "/kernel");
+    API_ProcFsMakeNode(&_G_pfsnKernel[5], "/");
+    API_ProcFsMakeNode(&_G_pfsnKernel[6], "/kernel");
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 }
 

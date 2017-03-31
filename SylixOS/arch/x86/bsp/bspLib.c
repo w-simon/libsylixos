@@ -456,7 +456,7 @@ LW_WEAK VOID   bspCpuUp (ULONG  ulCPUId)
     UINT32     *puiEntryAddr;
     PLW_STACK   pstkStack;
 
-    if (_G_iX86ProcNr <= 1) {
+    if (_G_iX86LProcNr <= 1) {
         return;
     }
 
@@ -497,20 +497,42 @@ LW_WEAK VOID  bspSecondaryCpusUp (VOID)
     UINT8  ucLocalApicId;
     INT    i;
 
-    if (_G_iX86ProcNr <= 1) {
+    if (_G_iX86LProcNr <= 1) {
         return;
     }
 
     ucLocalApicId = x86LocalApicId();
 
     for (i = 0; i < (2 * LW_CFG_MAX_PROCESSORS); i++) {
-        if (_G_x86ProcInfo[i].PROC_bPresent) {
-            if (ucLocalApicId != _G_x86ProcInfo[i].PROC_ucLocalApicId) {
+        if (i != ucLocalApicId) {
+            if (X86_APICID_PRESEND(i)) {
                 API_CpuUp(X86_APICID_TO_CPUID(i));
             }
         }
     }
 }
+/*********************************************************************************************************
+** 函数名称: bspCpuLogic2Physical
+** 功能描述: 获得逻辑 CPU 的物理 ID
+** 输  入  : ulCPUId      目标 CPU
+** 输  出  : 物理 ID
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+#if LW_CFG_CPU_ARCH_SMT > 0
+
+LW_WEAK ULONG  bspCpuLogic2Physical (ULONG  ulCPUId)
+{
+    UINT8   ucLocalApicId = X86_CPUID_TO_APICID(ulCPUId);
+
+    if (X86_APICID_IS_HT(ucLocalApicId)) {
+        return  (ulCPUId - 1);
+    }
+
+    return  (ulCPUId);
+}
+
+#endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
 /*********************************************************************************************************
 ** 函数名称: bspCpuDown
 ** 功能描述: 停止一个 CPU
@@ -717,7 +739,7 @@ LW_WEAK VOID  bspTickInit (VOID)
 #if TICK_IN_THREAD > 0
     LW_CLASS_THREADATTR  threadattr;
 #endif
-    ULONG                ulVector = X86_IRQ_TIMER;
+    ULONG                ulVector;
 
 #if TICK_IN_THREAD > 0
     API_ThreadAttrBuild(&threadattr, (8 * LW_CFG_KB_SIZE),
@@ -739,6 +761,12 @@ LW_WEAK VOID  bspTickInit (VOID)
     _G_ui64NSecPerCnt7    = ((1000 * 1000 * 1000 / LW_TICK_HZ) << 7) / _G_uiFullCnt;
 
     i8254InitAsTick(&_G_i8254Data);
+
+    if (_G_bX86HasAPIC && TICK_HIGH_RESOLUTION_TSC) {
+        ulVector = X86_IRQ_SLAVE_PIC;                                   /*  IRQ2                        */
+    } else {
+        ulVector = X86_IRQ_TIMER;                                       /*  IRQ0                        */
+    }
 
     API_InterVectorConnect(ulVector,
                            (PINT_SVR_ROUTINE)__tickTimerIsr,

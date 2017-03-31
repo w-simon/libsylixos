@@ -31,6 +31,9 @@ HISTORY
 
 ++ Bugfixes:
 
+    2017-03-31: han.hui
+    编译内核, 内核库, BSP 加入 -fno-strict-aliasing 编译选项.
+
     2017-03-07: han.hui
     修正 x86 平台 FPU XSAVE 上下文过小问题.
 

@@ -198,9 +198,16 @@ VOID    archMpInt(ULONG  ulCPUId);
 #ifdef __GNUC__
 #define KN_BARRIER()    __asm__ __volatile__ ("" : : : "memory")
 
+#if LW_CFG_CPU_X86_NO_BARRIER > 0
+#define KN_MB()         __asm__ __volatile__ ("nop" : : : "memory")
+#define KN_RMB()        __asm__ __volatile__ ("nop" : : : "memory")
+#define KN_WMB()        __asm__ __volatile__ ("nop" : : : "memory")
+#else
 #define KN_MB()         __asm__ __volatile__ ("mfence" : : : "memory")
 #define KN_RMB()        __asm__ __volatile__ ("lfence" : : : "memory")
 #define KN_WMB()        __asm__ __volatile__ ("sfence" : : : "memory")
+#endif                                                                  /*  LW_CFG_CPU_X86_NO_BARRIER   */
+
 #else                                                                   /*  __GNUC__                    */
 #define KN_BARRIER()
 
@@ -367,6 +374,10 @@ INT     bspSecondaryInit(VOID);                                         /*  Seco
 #if LW_CFG_SMP_CPU_DOWN_EN > 0
 VOID    bspCpuDown(ULONG  ulCPUId);                                     /*  停止一个 CPU                */
 #endif                                                                  /*  LW_CFG_SMP_CPU_DOWN_EN > 0  */
+
+#if LW_CFG_CPU_ARCH_SMT > 0
+ULONG   bspCpuLogic2Physical(ULONG  ulCPUId);
+#endif
 #endif                                                                  /*  LW_CFG_SMP_EN               */
 
 VOID    bspCpuIpiVectorInstall(VOID);                                   /*  安装 IPI 向量               */
@@ -409,9 +420,17 @@ VOID    x86CpuIdShow(VOID);
 *********************************************************************************************************/
 
 #ifdef __GNUC__
-#define X86_PAUSE()                 __asm__ __volatile__ ("pause")
-#define X86_HLT()                   __asm__ __volatile__ ("hlt")
-#define X86_WBINVD()                __asm__ __volatile__ ("wbinvd")
+#if LW_CFG_CPU_X86_NO_PAUSE > 0
+#define X86_PAUSE()
+#else
+#define X86_PAUSE()                 __asm__ __volatile__ ("pause" : : : "memory")
+#endif                                                                  /*  LW_CFG_CPU_X86_NO_PAUSE     */
+#if LW_CFG_CPU_X86_NO_HLT > 0
+#define X86_HLT()
+#else
+#define X86_HLT()                   __asm__ __volatile__ ("hlt" : : : "memory")
+#endif                                                                  /*  LW_CFG_CPU_X86_NO_HLT       */
+#define X86_WBINVD()                __asm__ __volatile__ ("wbinvd" : : : "memory")
 #else
 #define X86_PAUSE()
 #define X86_HLT()

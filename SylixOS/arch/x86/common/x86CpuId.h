@@ -886,21 +886,37 @@ extern UINT8       x86CpuIdInitialApicId(VOID);
 extern VOID        x86CpuIdProbe32(X86_CPUID  *pcpuid);
 
 /*********************************************************************************************************
-  全局变量声明
+  逻辑核, 物理核转换
 *********************************************************************************************************/
 
-typedef struct {                                                        /*  每个 Prcessor 的信息        */
-    ULONG       PROC_ulCPUId;                                           /*  SylixOS CPU ID              */
-    UINT8       PROC_ucLocalApicId;                                     /*  Local APIC ID               */
-    BOOL        PROC_bPresent;                                          /*  Present?                    */
-    UINT8       PROC_ucMapLocalApicId;
-} X86_PROC_INFO;
+typedef struct {
+    BOOL        APIC2L_bPresent;                                        /*  此 Processor 是否有效       */
+    BOOL        APIC2L_bIsHt;                                           /*  是否为超线程虚拟 Processor  */
+    ULONG       APIC2L_ulCPUId;                                         /*  逻辑 Processor ID           */
+} X86_APIC2L_INFO;
 
-extern X86_PROC_INFO        _G_x86ProcInfo[];                           /*  Processor 信息              */
-extern INT                  _G_iX86ProcNr;                              /*  Processor 数目              */
+extern X86_APIC2L_INFO      _G_x86Apic2LInfo[];                         /*  逻辑 Processor ID table     */
 
-#define X86_APICID_TO_CPUID(apicid)     (_G_x86ProcInfo[(apicid)].PROC_ulCPUId)
-#define X86_CPUID_TO_APICID(cpuid)      (_G_x86ProcInfo[(cpuid)].PROC_ucMapLocalApicId)
+typedef struct {
+    UINT8       L2APIC_ucApicId;                                        /*  Local APIC ID               */
+} X86_L2APIC_INFO;
+
+extern X86_L2APIC_INFO      _G_x86L2ApicInfo[];
+
+#define X86_APICID_PRESEND(apicid)      (_G_x86Apic2LInfo[(apicid)].APIC2L_bPresent)
+#define X86_APICID_IS_HT(apicid)        (_G_x86Apic2LInfo[(apicid)].APIC2L_bIsHt)
+#define X86_APICID_TO_CPUID(apicid)     (_G_x86Apic2LInfo[(apicid)].APIC2L_ulCPUId)
+#define X86_CPUID_TO_APICID(cpuid)      (_G_x86L2ApicInfo[(cpuid)].L2APIC_ucApicId)
+
+/*********************************************************************************************************
+  x86 逻辑核心数量
+*********************************************************************************************************/
+
+extern INT                  _G_iX86LProcNr;                             /*  逻辑 Processor 数目         */
+
+/*********************************************************************************************************
+  全局变量声明
+*********************************************************************************************************/
 
 extern size_t               _G_stX86CacheFlushBytes;                    /*  CLFLUSH 字节数              */
 extern INT                  _G_iX86ICacheWaySize;                       /*  I-Cache way size            */

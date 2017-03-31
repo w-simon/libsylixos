@@ -178,7 +178,7 @@ INT  ppcMmuHashPageTblInit (UINT32  uiMemSize)
     }
 
     /*
-     * Hashed 页表所在的内存的内存访问属性 M 位必须为 1（即硬件保证内存一致性）
+     * Hashed 页表所在的内存的内存访问属性 M 位必须为 1 (即硬件保证内存一致性)
      */
     pvHashPageTblAddr = __KHEAP_ALLOC_ALIGN(stHashPageTblSize, stHashPageTblSize);
     if (pvHashPageTblAddr) {

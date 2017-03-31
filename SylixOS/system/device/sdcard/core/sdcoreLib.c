@@ -649,7 +649,7 @@ INT API_SdCoreDevReset (PLW_SDCORE_DEVICE psdcoredevice)
 /*********************************************************************************************************
 ** 函数名称: API_SdCoreDevSendIfCond
 ** 功能描述: 检查卡操作接口条件(CMD8).在复位之后,主机并不知道卡能支持的电压是多少,或在哪个范围.
-**           于是CMD8（SEND_IF_COND）就用来做这个事.
+**           于是CMD8 (SEND_IF_COND) 就用来做这个事.
 ** 输    入: psdcoredevice 设备结构指针
 ** 输    出: NONE
 ** 返    回: ERROR    CODE

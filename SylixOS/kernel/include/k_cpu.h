@@ -119,7 +119,10 @@ typedef struct __lw_cpu {
     /*
      *  CPU 基本信息
      */
-    volatile ULONG           CPU_ulCPUId;                               /*  CPU ID 号                   */
+#if LW_CFG_CPU_ARCH_SMT > 0
+             ULONG           CPU_ulPhyId;                               /*  Physical CPU Id             */
+#endif                                                                  /*  LW_CFG_CPU_ARCH_SMT         */
+             ULONG           CPU_ulCPUId;                               /*  CPU ID 号                   */
     volatile ULONG           CPU_ulStatus;                              /*  CPU 工作状态                */
 
     /*

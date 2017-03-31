@@ -196,7 +196,7 @@ INT  archElfRelocateRel (PVOID        pmodule,
         break;
 
     case R_ARM_TARGET1:
-    case R_ARM_ABS32:                                                   /*  绝对地址重定位 （A+S）      */
+    case R_ARM_ABS32:                                                   /*  绝对地址重定位 (A+S)        */
         *paddrWhere += (Elf_Addr)addrSymVal;
         LD_DEBUG_MSG(("R_ARM_ABS32: %lx -> %lx\r\n", (ULONG)paddrWhere, *paddrWhere));
         break;

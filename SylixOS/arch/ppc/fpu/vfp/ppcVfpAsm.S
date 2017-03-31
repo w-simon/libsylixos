@@ -59,7 +59,7 @@ MACRO_DEF(ENABLE_VFP, Rn)
 
 #ifdef  ARCH_PPC_CCR0_BIT_DAPUIB_U
     ;/*
-    ; * 确保复用处理器（包括 FP）被使能，通过清除 CCR0[DAPUIB] 位来完成
+    ; * 确保复用处理器 (包括 FP) 被使能，通过清除 CCR0[DAPUIB] 位来完成
     ; */
     MFSPR   \Rn , CCR0
     ISYNC

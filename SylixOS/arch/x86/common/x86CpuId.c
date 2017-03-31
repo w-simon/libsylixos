@@ -147,8 +147,10 @@ const static CHAR      *_G_x86L2CacheAssoc[] = {                        /*  L2 C
 
 static X86_CPUID        _G_x86CpuId;                                    /*  全局的 CPUID 结构           */
 
-X86_PROC_INFO           _G_x86ProcInfo[2 * LW_CFG_MAX_PROCESSORS] = { { 0 }, };
-INT                     _G_iX86ProcNr = 0;                              /*  Processor 数目              */
+X86_APIC2L_INFO         _G_x86Apic2LInfo[2 * LW_CFG_MAX_PROCESSORS];    /*  LOCAL APIC -> 逻辑 Processor*/
+X86_L2APIC_INFO         _G_x86L2ApicInfo[LW_CFG_MAX_PROCESSORS];        /*  逻辑 Processor -> LOCAL APIC*/
+
+INT                     _G_iX86LProcNr = 0;                             /*  逻辑 Processor 数目         */
 
 INT                     _G_iX86ICacheWaySize    = 4096;                 /*  I-Cache way size            */
 INT                     _G_iX86DCacheWaySize    = 4096;                 /*  D-Cache way size            */

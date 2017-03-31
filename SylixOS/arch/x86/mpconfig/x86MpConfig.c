@@ -215,24 +215,21 @@ INT  x86MpInit (BOOL  bHyperThreading)
             continue;
 
         case MPPROC:
-            if (_G_iX86ProcNr < (2 * LW_CFG_MAX_PROCESSORS)) {
+            if (_G_iX86LProcNr < (2 * LW_CFG_MAX_PROCESSORS)) {
                 pmpproc = (PX86_MP_PROC)pucPos;
 
-                _G_x86ProcInfo[pmpproc->apicid].PROC_bPresent       = LW_TRUE;
-                _G_x86ProcInfo[pmpproc->apicid].PROC_ulCPUId        = _G_iX86ProcNr;
-                _G_x86ProcInfo[pmpproc->apicid].PROC_ucLocalApicId  = pmpproc->apicid;
-                _G_x86ProcInfo[_G_iX86ProcNr].PROC_ucMapLocalApicId = pmpproc->apicid;
-                _G_iX86ProcNr++;
+                _G_x86Apic2LInfo[pmpproc->apicid].APIC2L_bPresent = LW_TRUE;
+                _G_x86Apic2LInfo[pmpproc->apicid].APIC2L_bIsHt    = LW_FALSE;
+                _G_x86Apic2LInfo[pmpproc->apicid].APIC2L_ulCPUId  = _G_iX86LProcNr;
+                _G_x86L2ApicInfo[_G_iX86LProcNr].L2APIC_ucApicId  = pmpproc->apicid;
+                _G_iX86LProcNr++;
 
-                if (bHyperThreading) {
-                    /*
-                     * "手动"添加超线程的逻辑 Processor
-                     */
-                    _G_x86ProcInfo[pmpproc->apicid + 1].PROC_bPresent      = LW_TRUE;
-                    _G_x86ProcInfo[pmpproc->apicid + 1].PROC_ulCPUId       = _G_iX86ProcNr;
-                    _G_x86ProcInfo[pmpproc->apicid + 1].PROC_ucLocalApicId = pmpproc->apicid + 1;
-                    _G_x86ProcInfo[_G_iX86ProcNr].PROC_ucMapLocalApicId    = pmpproc->apicid + 1;
-                    _G_iX86ProcNr++;
+                if (bHyperThreading) {                                  /*  超线程支持                  */
+                    _G_x86Apic2LInfo[pmpproc->apicid + 1].APIC2L_bPresent = LW_TRUE;
+                    _G_x86Apic2LInfo[pmpproc->apicid + 1].APIC2L_bIsHt    = LW_TRUE;
+                    _G_x86Apic2LInfo[pmpproc->apicid + 1].APIC2L_ulCPUId  = _G_iX86LProcNr;
+                    _G_x86L2ApicInfo[_G_iX86LProcNr].L2APIC_ucApicId      = pmpproc->apicid + 1;
+                    _G_iX86LProcNr++;
                 }
             }
             pucPos += sizeof(X86_MP_PROC);
@@ -255,14 +252,14 @@ INT  x86MpInit (BOOL  bHyperThreading)
     iRet = ERROR_NONE;
 
 __return:
-    if (_G_iX86ProcNr == 0) {                                           /*  没有 MP 配置                */
-        _G_x86ProcInfo[0].PROC_bPresent         = LW_TRUE;              /*  BSP 作为 0 号 Processor     */
-        _G_x86ProcInfo[0].PROC_ulCPUId          = 0;
-        _G_x86ProcInfo[0].PROC_ucLocalApicId    = 0;
-        _G_x86ProcInfo[0].PROC_ucMapLocalApicId = 0;
-        _G_iX86ProcNr = 1;
+    if (_G_iX86LProcNr == 0) {                                          /*  没有 MP 配置                */
+        _G_x86Apic2LInfo[0].APIC2L_bPresent = LW_TRUE;                  /*  BSP 作为 0 号 Processor     */
+        _G_x86Apic2LInfo[0].APIC2L_bIsHt    = LW_FALSE;
+        _G_x86Apic2LInfo[0].APIC2L_ulCPUId  = 0;
+        _G_x86L2ApicInfo[0].L2APIC_ucApicId = 0;
+        _G_iX86LProcNr = 1;
 
-    } else if (_G_iX86ProcNr > 1) {
+    } else if (_G_iX86LProcNr > 1) {
         if (pmp && pmp->imcrp) {                                        /*  It run on real hardware     */
             out8(0x70, 0x22);                                           /*  Select IMCR                 */
             out8(in8(0x23) | 1, 0x23);                                  /*  Mask external interrupts.   */

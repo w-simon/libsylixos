@@ -150,7 +150,7 @@ static VOID  _SchedSmpNotify (ULONG  ulCPUIdCur)
             }
         }
         if (ucPrioLow) {
-            _SmpSendIpi(iCPUSend, LW_IPI_SCHED, 0, LW_TRUE);
+            _SmpSendIpi(iCPUSend, LW_IPI_SCHED, 0, LW_TRUE);            /*  产生核间中断                */
         }
     }
 }
