@@ -395,7 +395,9 @@ typedef struct {
 #define SL_pringHeader          SL_slq.SLQ_pringHeader                  /*  FIFO 表头                   */
 } spinlock_t;
 
-#define LW_SPINLOCK_DEFINE(sl)      spinlock_t      sl                  /*  为了兼容性, SMP 或 UP 都定义*/
+#define LW_SPINLOCK_DEFINE(sl)              spinlock_t  sl
+#define LW_SPINLOCK_DEFINE_CACHE_ALIGN(sl)  spinlock_t  sl  LW_CACHE_LINE_ALIGN
+#define LW_SPINLOCK_DECLARE(sl)             spinlock_t  sl
 
 #endif                                                                  /*  __K_PTYPE_H                 */
 /*********************************************************************************************************

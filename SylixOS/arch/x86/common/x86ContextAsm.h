@@ -26,29 +26,70 @@
 #include "x86Segment.h"
 
 /*********************************************************************************************************
+
+    +-----------------+
+    |     EFLAGS      |
+    +-----------------+
+    |       CS        |
+    +-----------------+
+    |       EIP       |
+    +-----------------+
+    |      ERROR      |
+    +-----------------+
+    |       EBP       |
+    +-----------------+
+    |       EDI       |
+    +-----------------+
+    |       ESI       |
+    +-----------------+
+    |       EDX       |
+    +-----------------+
+    |       ECX       |
+    +-----------------+
+    |       EBX       |
+    +-----------------+
+    |       EAX       |
+    +-----------------+
+    |       PAD(2)    |
+    +-----------------+
+    |       SS(2)     |
+    +-----------------+
+    |       DS(2)     |
+    +-----------------+
+    |       ES(2)     |
+    +-----------------+
+    |       FS(2)     |
+    +-----------------+
+    |       GS(2)     |
+    +-----------------+
+
+*********************************************************************************************************/
+
+#define __SAVE_SEG_REG  0                                               /*  不保存段寄存器              */
+
+/*********************************************************************************************************
   上下文恢复
 *********************************************************************************************************/
 
 MACRO_DEF(RESTORE_REGS)
-    POPW    %GS
-    POPW    %FS
-    POPW    %ES
-    POPW    %DS
-    POPW    %SS
+#if __SAVE_SEG_REG > 0
+    MOVW    0(%ESP)  , %GS
+    MOVW    2(%ESP)  , %FS
+    MOVW    4(%ESP)  , %ES
+    MOVW    6(%ESP)  , %DS
+    MOVW    8(%ESP)  , %SS
+#endif                                                                  /*  __SAVE_SEG_REG > 0          */
+    ADDL    $(3 * 4) , %ESP
 
-    ADDL    $2 , %ESP                                                   /*  PAD                         */
+    MOVL    0(%ESP)  , %EAX
+    MOVL    4(%ESP)  , %EBX
+    MOVL    8(%ESP)  , %ECX
+    MOVL    12(%ESP) , %EDX
+    MOVL    16(%ESP) , %ESI
+    MOVL    20(%ESP) , %EDI
+    MOVL    24(%ESP) , %EBP
 
-    POPL    %EAX
-    POPL    %EBX
-    POPL    %ECX
-    POPL    %EDX
-
-    POPL    %ESI
-    POPL    %EDI
-
-    POPL    %EBP
-
-    ADDL    $4 , %ESP                                                   /*  不弹出 ERROR CODE           */
+    ADDL    $(8 * 4) , %ESP                                             /*  不弹出 ERROR CODE           */
 
     IRET                                                                /*  IRET 等于弹出 CS EIP EFLAGS */
     MACRO_END()
@@ -60,29 +101,29 @@ MACRO_DEF(RESTORE_REGS)
 MACRO_DEF(SAVE_REGS)
     PUSHF                                                               /*  PUSH EFLAGS                 */
 
-    PUSHL   %CS
+    SUBL    $(10 * 4) , %ESP
 
-    PUSHL   $archResumePc                                               /*  PUSH EIP                    */
+    MOVL    %EAX , 0(%ESP)
+    MOVL    %EBX , 4(%ESP)
+    MOVL    %ECX , 8(%ESP)
+    MOVL    %EDX , 12(%ESP)
+    MOVL    %ESI , 16(%ESP)
+    MOVL    %EDI , 20(%ESP)
+    MOVL    %EBP , 24(%ESP)
 
-    PUSHL   $0                                                          /*  PUSH ERROR CODE             */
+    MOVL    $0   , 28(%ESP)
+    MOVL    $archResumePc , 32(%ESP)
+    MOVW    %CS  , 36(%ESP)
 
-    PUSHL   %EBP
+    SUBL    $(3 * 4) , %ESP
 
-    PUSHL   %EDI
-    PUSHL   %ESI
-
-    PUSHL   %EDX
-    PUSHL   %ECX
-    PUSHL   %EBX
-    PUSHL   %EAX
-
-    SUBL    $2 , %ESP                                                   /*  PAD                         */
-
-    PUSHW   %SS
-    PUSHW   %DS
-    PUSHW   %ES
-    PUSHW   %FS
-    PUSHW   %GS
+#if __SAVE_SEG_REG > 0
+    MOVW    %GS , 0(%ESP)
+    MOVW    %FS , 2(%ESP)
+    MOVW    %ES , 4(%ESP)
+    MOVW    %DS , 6(%ESP)
+    MOVW    %SS , 8(%ESP)
+#endif                                                                  /*  __SAVE_SEG_REG > 0          */
     MACRO_END()
 
 /*********************************************************************************************************
@@ -91,39 +132,25 @@ MACRO_DEF(SAVE_REGS)
 
 MACRO_DEF(INT_SAVE_REGS_HW_ERRNO)
                                                                         /*  EFLAGS CS EIP ERRNO 已经PUSH*/
-    PUSHL   %EBP
+    SUBL    $(7 * 4) , %ESP
 
-    PUSHL   %EDI
-    PUSHL   %ESI
+    MOVL    %EAX , 0(%ESP)
+    MOVL    %EBX , 4(%ESP)
+    MOVL    %ECX , 8(%ESP)
+    MOVL    %EDX , 12(%ESP)
+    MOVL    %ESI , 16(%ESP)
+    MOVL    %EDI , 20(%ESP)
+    MOVL    %EBP , 24(%ESP)
 
-    PUSHL   %EDX
-    PUSHL   %ECX
-    PUSHL   %EBX
-    PUSHL   %EAX
+    SUBL    $(3 * 4) , %ESP
 
-    SUBL    $2 , %ESP                                                   /*  PAD                         */
-
-    PUSHW   %SS
-    PUSHW   %DS
-    PUSHW   %ES
-    PUSHW   %FS
-    PUSHW   %GS
-
-    /*
-     * 设置正确的内核段描述符值
-     */
-    MOVW    $X86_BUILD_SEGMENT_REG_VALUE(0, 0, X86_SEG_KDATA), %DI
-
-    MOVW    %DI , %DS
-
-    MOVW    %DI , %ES
-
-    MOVW    %DI , %FS
-
-    MOVW    %DI , %GS
-    /*
-     * CS 和 SS 处理器已经加载完, 不用再设置了
-     */
+#if __SAVE_SEG_REG > 0
+    MOVW    %GS , 0(%ESP)
+    MOVW    %FS , 2(%ESP)
+    MOVW    %ES , 4(%ESP)
+    MOVW    %DS , 6(%ESP)
+    MOVW    %SS , 8(%ESP)
+#endif                                                                  /*  __SAVE_SEG_REG > 0          */
     MACRO_END()
 
 /*********************************************************************************************************

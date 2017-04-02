@@ -330,8 +330,8 @@ INT  x86LocalApicSecondaryStart (UINT8  ucLocalApicId, addr_t  ulEntryAddr)
      * and the warm reset vector (DWORD based at 40:67) to point at
      * the AP startup code prior to the [universal startup algorithm]."
      */
-    out8(0x0F, CMOS_PORT);                                              /*  offset 0xF is shutdown code */
-    out8(0x0A, CMOS_PORT + 1);
+    out8(0x0f, CMOS_PORT);                                              /*  offset 0xf is shutdown code */
+    out8(0x0a, CMOS_PORT + 1);
 
     pusWarmResetVector = (UINT16 *)((0x40 << 4) | 0x67);                /*  Warm reset vector           */
 

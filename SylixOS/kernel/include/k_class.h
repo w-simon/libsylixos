@@ -497,9 +497,6 @@ typedef struct __lw_tcb {
 #endif                                                                  /*  LW_CFG_COROUTINE_EN > 0     */
 
                                                                         /*  调度器相关部分              */
-    /*
-     *  新型 SMP 调度器元素
-     */
     LW_SPINLOCK_DEFINE   (TCB_slLock);                                  /*  自旋锁                      */
     
 #if LW_CFG_SMP_EN > 0

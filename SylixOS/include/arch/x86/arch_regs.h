@@ -45,15 +45,11 @@ struct __ARCH_REG_CTX {
 
     UINT32          REG_uiESI;
     UINT32          REG_uiEDI;                                          /*  2 个变址和指针寄存器        */
-
     UINT32          REG_uiEBP;                                          /*  2 个指针寄存器(ESP 和 EBP)  */
 
     UINT32          REG_uiError;                                        /*  ERROR CODE                  */
-
     UINT32          REG_uiEIP;                                          /*  指令指针寄存器(EIP)         */
-
     UINT32          REG_uiCS;                                           /*  代码段寄存器                */
-
     UINT32          REG_uiEFLAGS;                                       /*  标志寄存器(EFlags)          */
 } __attribute__((packed));
 

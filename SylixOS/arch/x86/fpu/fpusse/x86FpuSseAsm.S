@@ -58,17 +58,17 @@ FUNC_DEF(x86FpuSseInit)
     MOVL    $0 , %EDX
     FNSTCW  (%EDX)
     MOVW    (%EDX) , %AX
-    CMPW    $0x37F , %AX
+    CMPW    $0x37f , %AX
     JNE     x86FpuSseInitNo487
-    MOVL    %CR0,%EAX
-    ANDL    $0xFFFFFFD9 , %EAX
+    MOVL    %CR0 , %EAX
+    ANDL    $0xffffffd9 , %EAX
     ORL     $0x00000022 , %EAX
     MOVL    %EAX , %CR0                                                 ;/*  NE=1, EM=0, MP=1            */
     JMP     x86FpuSseInitInitRegs
 
 LINE_LABEL(x86FpuSseInitNo487)
     MOVL    %CR0 , %EAX
-    ANDL    $0xFFFFFFD9 , %EAX
+    ANDL    $0xffffffd9 , %EAX
     ORL     $0x00000004 , %EAX
     MOVL    %EAX , %CR0                                                 ;/*  NE=0, EM=1, MP=0            */
     MOVL    $-1  , %EAX                                                 ;/*  Return PX_ERROR             */
@@ -159,7 +159,7 @@ FUNC_DEF(x86FpuSseRestore)
 
     SUBL    $4 , %ESP
     FNCLEX                                                              ;/*  清除异常标志                */
-    MOVL    $0x37F , -4(%EBP)
+    MOVL    $0x37f , -4(%EBP)
     FLDCW   -4(%EBP)                                                    ;/*  临时屏蔽所有异常            */
     MOVL    X86_FP_ARG1(%EBP) , %EAX
     FRSTOR  (%EAX)                                                      ;/*  新异常掩码被恢复            */

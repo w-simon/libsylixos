@@ -41,7 +41,7 @@ extern VOID  ppcHashPageTblPteSet(PTE    *pPte,
 static SR       _G_SRs[16];
 static UINT32   _G_uiHashPageTblOrg;
 static UINT32   _G_uiHashPageTblMask;
-static LW_SPINLOCK_DEFINE(_G_slHashPageTblLock);
+static LW_SPINLOCK_DEFINE_CACHE_ALIGN(_G_slHashPageTblLock);
 
 #define __MMU_PTE_DEBUG
 #ifdef __MMU_PTE_DEBUG

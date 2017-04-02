@@ -70,7 +70,11 @@ __KERNEL_EXT  ULONG                   _K_ulKernFlags;                   /*  内核
   系统中断向量表
 *********************************************************************************************************/
 __KERNEL_EXT  LW_CLASS_INTDESC        _K_idescTable[LW_CFG_MAX_INTER_SRC];
-__KERNEL_EXT  LW_SPINLOCK_DEFINE     (_K_slVectorTable);
+#ifdef __KERNEL_MAIN_FILE
+LW_SPINLOCK_DEFINE_CACHE_ALIGN       (_K_slVectorTable);
+#else
+__KERNEL_EXT  LW_SPINLOCK_DECLARE    (_K_slVectorTable);
+#endif                                                                  /*  __KERNEL_MAIN_FILE          */
 /*********************************************************************************************************
   系统状态
 *********************************************************************************************************/
@@ -236,13 +240,22 @@ __KERNEL_EXT  ULONG                   _K_ulNCpus;
 #else
 __KERNEL_EXT  const  ULONG            _K_ulNCpus;
 #endif                                                                  /*  __KERNEL_MAIN_FILE          */
-__KERNEL_EXT  LW_CLASS_CPU            _K_cpuTable[LW_CFG_MAX_PROCESSORS];   
-                                                                        /*  每个 CPU 的内容             */
+
+#ifdef __KERNEL_MAIN_FILE                                               /*  每个 CPU 的内容             */
+              LW_CLASS_CPU            _K_cpuTable[LW_CFG_MAX_PROCESSORS] LW_CACHE_LINE_ALIGN;
+              LW_CLASS_KERNLOCK       _K_klKernel LW_CACHE_LINE_ALIGN;
+#else
+__KERNEL_EXT  LW_CLASS_CPU            _K_cpuTable[LW_CFG_MAX_PROCESSORS];
 __KERNEL_EXT  LW_CLASS_KERNLOCK       _K_klKernel;                      /*  内核锁                      */
+#endif                                                                  /*  __KERNEL_MAIN_FILE          */
 /*********************************************************************************************************
   原子操作锁
 *********************************************************************************************************/
-__KERNEL_EXT  LW_SPINLOCK_DEFINE     (_K_slAtomic);                     /*  原子操作锁                  */
+#ifdef __KERNEL_MAIN_FILE
+LW_SPINLOCK_DEFINE_CACHE_ALIGN       (_K_slAtomic);
+#else
+__KERNEL_EXT  LW_SPINLOCK_DECLARE    (_K_slAtomic);                     /*  原子操作锁                  */
+#endif                                                                  /*  __KERNEL_MAIN_FILE          */
 /*********************************************************************************************************
   启动时临时截获 TCB
 *********************************************************************************************************/
