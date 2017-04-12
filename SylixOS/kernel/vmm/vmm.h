@@ -250,6 +250,8 @@ LW_API VOID         API_VmmPhyFree(PVOID  pvPhyMem);                    /*  释放
 
 LW_API PVOID        API_VmmDmaAlloc(size_t  stSize);                    /*  分配物理连续内存, 物理地址  */
 LW_API PVOID        API_VmmDmaAllocAlign(size_t stSize, size_t stAlign);/*  与上相同, 但可以指定对齐关系*/
+LW_API PVOID        API_VmmDmaAllocAlignWithFlags(size_t  stSize, size_t  stAlign, ULONG  ulFlags);
+                                                                        /*  与上相同, 但可以指定内存类型*/
 LW_API VOID         API_VmmDmaFree(PVOID  pvDmaMem);                    /*  回收 DMA 内存缓冲区         */
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 
@@ -332,39 +334,40 @@ LW_API VOID         API_VmmAbortIsr(addr_t          ulRetAddr,
 #if LW_CFG_VMM_EN > 0
 
 #ifdef __SYLIXOS_KERNEL
-#define vmmMalloc               API_VmmMalloc
-#define vmmMallocEx             API_VmmMallocEx
-#define vmmMallocAlign          API_VmmMallocAlign
-#define vmmFree                 API_VmmFree
+#define vmmMalloc                   API_VmmMalloc
+#define vmmMallocEx                 API_VmmMallocEx
+#define vmmMallocAlign              API_VmmMallocAlign
+#define vmmFree                     API_VmmFree
 
-#define vmmMallocArea           API_VmmMallocArea
-#define vmmMallocAreaEx         API_VmmMallocAreaEx
-#define vmmMallocAreaAlign      API_VmmMallocAreaAlign
-#define vmmFreeArea             API_VmmFreeArea
-#define vmmPCountInArea         API_VmmPCountInArea
-#define vmmRemapArea            API_VmmRemapArea
-#define vmmInvalidateArea       API_VmmInvalidateArea
-#define vmmAbortStatus          API_VmmAbortStatus
+#define vmmMallocArea               API_VmmMallocArea
+#define vmmMallocAreaEx             API_VmmMallocAreaEx
+#define vmmMallocAreaAlign          API_VmmMallocAreaAlign
+#define vmmFreeArea                 API_VmmFreeArea
+#define vmmPCountInArea             API_VmmPCountInArea
+#define vmmRemapArea                API_VmmRemapArea
+#define vmmInvalidateArea           API_VmmInvalidateArea
+#define vmmAbortStatus              API_VmmAbortStatus
 
-#define vmmPhyAlloc             API_VmmPhyAlloc
-#define vmmPhyAllocEx           API_VmmPhyAllocEx
-#define vmmPhyAllocAlign        API_VmmPhyAllocAlign
-#define vmmPhyFree              API_VmmPhyFree
+#define vmmPhyAlloc                 API_VmmPhyAlloc
+#define vmmPhyAllocEx               API_VmmPhyAllocEx
+#define vmmPhyAllocAlign            API_VmmPhyAllocAlign
+#define vmmPhyFree                  API_VmmPhyFree
 
-#define vmmDmaAlloc             API_VmmDmaAlloc                         /*  返回值为 物理地址           */
-#define vmmDmaAllocAlign        API_VmmDmaAllocAlign                    /*  返回值为 物理地址           */
-#define vmmDmaFree              API_VmmDmaFree
+#define vmmDmaAlloc                 API_VmmDmaAlloc                     /*  返回值为 物理地址           */
+#define vmmDmaAllocAlign            API_VmmDmaAllocAlign                /*  返回值为 物理地址           */
+#define vmmDmaAllocAlignWithFlags   API_VmmDmaAllocAlignWithFlags
+#define vmmDmaFree                  API_VmmDmaFree
 
-#define vmmMap                  API_VmmMap
-#define vmmVirtualToPhysical    API_VmmVirtualToPhysical
-#define vmmPhysicalToVirtual    API_VmmPhysicalToVirtual                /*  仅支持VMM管理的物理内存查询 */
-#define vmmVirtualIsInside      API_VmmVirtualIsInside
+#define vmmMap                      API_VmmMap
+#define vmmVirtualToPhysical        API_VmmVirtualToPhysical
+#define vmmPhysicalToVirtual        API_VmmPhysicalToVirtual            /*  仅支持VMM管理的物理内存查询 */
+#define vmmVirtualIsInside          API_VmmVirtualIsInside
 
-#define vmmSetFlag              API_VmmSetFlag
-#define vmmGetFlag              API_VmmGetFlag
+#define vmmSetFlag                  API_VmmSetFlag
+#define vmmGetFlag                  API_VmmGetFlag
 
-#define vmmZoneStatus           API_VmmZoneStatus
-#define vmmVirtualStatus        API_VmmVirtualStatus
+#define vmmZoneStatus               API_VmmZoneStatus
+#define vmmVirtualStatus            API_VmmVirtualStatus
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */

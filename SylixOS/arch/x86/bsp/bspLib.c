@@ -503,10 +503,29 @@ LW_WEAK VOID  bspSecondaryCpusUp (VOID)
 
     ucLocalApicId = x86LocalApicId();
 
-    for (i = 0; i < (2 * LW_CFG_MAX_PROCESSORS); i++) {
-        if (i != ucLocalApicId) {
-            if (X86_APICID_PRESEND(i)) {
-                API_CpuUp(X86_APICID_TO_CPUID(i));
+    if (_G_iX86LProcNr != _G_iX86PProcNr) {                             /*  存在超线程                  */
+        for (i = 0; i < (2 * LW_CFG_MAX_PROCESSORS); i += 2) {
+            if (i != ucLocalApicId) {
+                if (X86_APICID_PRESEND(i)) {
+                    API_CpuUp(X86_APICID_TO_CPUID(i));                  /*  先启动所有物理核            */
+                }
+            }
+        }
+
+        for (i = 1; i < (2 * LW_CFG_MAX_PROCESSORS); i += 2) {
+            if (i != ucLocalApicId) {
+                if (X86_APICID_PRESEND(i)) {
+                    API_CpuUp(X86_APICID_TO_CPUID(i));                  /*  再启动所有逻辑核            */
+                }
+            }
+        }
+
+    } else {                                                            /*  不存在超线程                */
+        for (i = 0; i < (2 * LW_CFG_MAX_PROCESSORS); i++) {
+            if (i != ucLocalApicId) {
+                if (X86_APICID_PRESEND(i)) {
+                    API_CpuUp(X86_APICID_TO_CPUID(i));
+                }
             }
         }
     }

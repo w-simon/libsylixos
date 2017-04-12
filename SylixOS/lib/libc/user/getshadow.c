@@ -296,19 +296,19 @@ int passwdcheck (const char *name, const char *pass)
  * login_defs
  */
 struct login_defs {
-  int pass_max_days;    /* default 90 */
-  int pass_min_days;    /* default 0  */
-  int pass_min_len;     /* default 8  */
-  int pass_warn_age;    /* default 7  */
-  int pass_delay_ms;    /* default 50 */
-  int fail_delay;       /* default 5  */
-  int faillog_enab;     /* default 0  */
-  int syslog_su_enab;   /* default 0  */
-  int syslog_sg_enab;   /* default 0  */
-  int md5_crypt_enab;   /* default 1  */
+  int pass_max_days;    /* default 90  */
+  int pass_min_days;    /* default 0   */
+  int pass_min_len;     /* default 8   */
+  int pass_warn_age;    /* default 7   */
+  int pass_delay_ms;    /* default 500 */
+  int fail_delay;       /* default 2   */
+  int faillog_enab;     /* default 0   */
+  int syslog_su_enab;   /* default 0   */
+  int syslog_sg_enab;   /* default 0   */
+  int md5_crypt_enab;   /* default 1   */
 };
 
-static struct login_defs login_defines = {90, 0, 8, 7, 50, 5, 0, 0, 0, 1};
+static struct login_defs login_defines = {90, 0, 8, 7, 500, 2, 0, 0, 0, 1};
  
 /*
  * get yes or no value

@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2017-04-10: han.hui
+    加入网络白名单功能.
+
     2017-03-13: han.hui
     加入对 CAN FD 总线标准支持.
 

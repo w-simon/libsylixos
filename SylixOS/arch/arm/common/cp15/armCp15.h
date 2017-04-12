@@ -47,7 +47,6 @@ VOID    armHighVectorDisable(VOID);
 *********************************************************************************************************/
 
 VOID    armBranchPredictorInvalidate(VOID);
-VOID    armBranchPredictorInvalidateInnerShareable(VOID);
 VOID    armBranchPredictionDisable(VOID);
 VOID    armBranchPredictionEnable(VOID);
 

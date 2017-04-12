@@ -154,6 +154,24 @@ ULONG  API_CacheGetOption (VOID)
     return  (_G_cacheopLib.CACHEOP_ulOption);
 }
 /*********************************************************************************************************
+** 函数名称: API_CacheGetMode
+** 功能描述: 获得 CACHE 模式.
+** 输　入  : cachetype     cache 类型
+** 输　出  : CACHE 模式
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+CACHE_MODE  API_CacheGetMode (LW_CACHE_TYPE  cachetype)
+{
+    if (cachetype == INSTRUCTION_CACHE) {
+        return  (_G_uiICacheMode);
+    } else {
+        return  (_G_uiDCacheMode);
+    }
+}
+/*********************************************************************************************************
 ** 函数名称: API_CacheLibPrimaryInit
 ** 功能描述: 初始化 CACHE 功能, CPU 构架相关.
 ** 输　入  : uiInstruction                 初始指令 CACHE 模式
@@ -512,28 +530,6 @@ INT    API_CacheInvalidatePage (LW_CACHE_TYPE   cachetype,
     return  (iError);
 }
 /*********************************************************************************************************
-** 函数名称: __cacheInsInvalidate
-** 功能描述: 无效指令CACHE
-** 输　入  : pvAdrs                        虚拟地址
-**           stBytes                       长度
-** 输　出  : BSP 函数返回值
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-static INT    __cacheInsInvalidate (PVOID      pvAdrs, 
-                                    size_t     stBytes)
-{
-    INTREG  iregInterLevel;
-    INT     iError;
-    
-    __CACHE_OP_ENTER(iregInterLevel);                                   /*  开始操作 cache              */
-    iError = ((_G_cacheopLib.CACHEOP_pfuncInvalidate == LW_NULL) ? ERROR_NONE : 
-              (_G_cacheopLib.CACHEOP_pfuncInvalidate)(INSTRUCTION_CACHE, pvAdrs, stBytes));
-    __CACHE_OP_EXIT(iregInterLevel);                                    /*  结束操作 cache              */
-    
-    return  (iError);
-}
-/*********************************************************************************************************
 ** 函数名称: API_CacheClear
 ** 功能描述: 指定类型的 CACHE 使部分或全部清空(回写内存)并无效(访问不命中)
 ** 输　入  : cachetype                     CACHE 类型
@@ -825,13 +821,15 @@ VOID    API_CacheFuncsSet (VOID)
     if (_G_uiDCacheMode & CACHE_WRITETHROUGH) {                         /*  属于写通模式 D CACHE        */
         _G_cacheopLib.CACHEOP_pfuncFlush      = LW_NULL;
         _G_cacheopLib.CACHEOP_pfuncFlushPage  = LW_NULL;
-        _G_cacheopLib.CACHEOP_pfuncTextUpdate = __cacheInsInvalidate;
     }
     
     if (_G_uiDCacheMode & CACHE_SNOOP_ENABLE) {                         /*  D CACHE 始终与内存一致      */
-        _G_cacheopLib.CACHEOP_pfuncFlush      = LW_NULL;
-        _G_cacheopLib.CACHEOP_pfuncFlushPage  = LW_NULL;
-        _G_cacheopLib.CACHEOP_pfuncTextUpdate = LW_NULL;
+        _G_cacheopLib.CACHEOP_pfuncFlush          = LW_NULL;
+        _G_cacheopLib.CACHEOP_pfuncFlushPage      = LW_NULL;
+        _G_cacheopLib.CACHEOP_pfuncInvalidate     = LW_NULL;
+        _G_cacheopLib.CACHEOP_pfuncInvalidatePage = LW_NULL;
+        _G_cacheopLib.CACHEOP_pfuncClear          = LW_NULL;
+        _G_cacheopLib.CACHEOP_pfuncClearPage      = LW_NULL;
     }
 }
 

@@ -72,7 +72,8 @@ void AcpiEnumarateMADT(void *MadtStart, void *MadtEnd)
             bHyperThreading = LW_FALSE;                                 /*  强制不使用超线程技术        */
         }
 
-        _G_iX86LProcNr = 0;                                             /*  重置 Processor 数目         */
+        _G_iX86LProcNr = 0;                                             /*  重置逻辑 Processor 数目     */
+        _G_iX86PProcNr = 0;                                             /*  重置物理 Processor 数目     */
     }
 
     for (MadtEntry = (ACPI_SUBTABLE_HEADER*)MadtStart;
@@ -111,6 +112,7 @@ void AcpiEnumarateMADT(void *MadtStart, void *MadtEnd)
                 _G_x86Apic2LInfo[AcpiCpu->Id].APIC2L_ulCPUId     = _G_iX86LProcNr;
                 _G_x86L2ApicInfo[_G_iX86LProcNr].L2APIC_ucApicId = AcpiCpu->Id;
                 _G_iX86LProcNr++;
+                _G_iX86PProcNr++;
 
                 if (bHyperThreading) {                                  /*  超线程支持                  */
                     _G_x86Apic2LInfo[AcpiCpu->Id + 1].APIC2L_bPresent = LW_TRUE;

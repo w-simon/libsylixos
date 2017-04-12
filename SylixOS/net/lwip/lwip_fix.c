@@ -151,6 +151,34 @@ void  sys_error_print (const char *msg, const char *func, const char *file, int 
     fprintf(stderr, "lwip error: %s func: %s file: %s line: %d\n", msg, func, file, line);
 }
 /*********************************************************************************************************
+** 函数名称: lwip_platform_memcpy
+** 功能描述: lwip 专用内存拷贝
+** 输　入  : pvDest    目标
+**           pvSrc     源
+**           stCount   数量
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+LW_WEAK PVOID  lwip_platform_memcpy (PVOID  pvDest, PVOID  pvSrc, size_t  stCount)
+{
+    return  (lib_memcpy(pvDest, pvSrc, stCount));
+}
+/*********************************************************************************************************
+** 函数名称: lwip_platform_smemcpy
+** 功能描述: lwip 专用安全内存拷贝
+** 输　入  : pvDest    目标
+**           pvSrc     源
+**           stCount   数量
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+LW_WEAK PVOID  lwip_platform_smemcpy (PVOID  pvDest, PVOID  pvSrc, size_t  stCount)
+{
+    return  (lib_memcpy(pvDest, pvSrc, stCount));
+}
+/*********************************************************************************************************
 ** 函数名称: sys_mutex_new
 ** 功能描述: 创建一个 lwip 互斥量
 ** 输　入  : pmutex    创建的互斥量

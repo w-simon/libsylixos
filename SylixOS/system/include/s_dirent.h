@@ -49,6 +49,11 @@ typedef struct {
     struct dirent       dir_dirent;                                     /*  获得的选项                  */
     LW_OBJECT_HANDLE    dir_lock;                                       /*  readdir_r 需要此锁          */
     LW_RESOURCE_RAW     dir_resraw;                                     /*  进程原始资源记录            */
+    
+#ifdef __SYLIXOS_KERNEL
+#define DIR_RESV_DATA_PV0(pdir)   ((pdir)->dir_resraw.RESRAW_pvArg[5])  /*  文件系统加速搜索用          */
+#define DIR_RESV_DATA_PV1(pdir)   ((pdir)->dir_resraw.RESRAW_pvArg[4])
+#endif                                                                  /*  __SYLIXOS_KERNEL            */
 } DIR;
 
 /*********************************************************************************************************

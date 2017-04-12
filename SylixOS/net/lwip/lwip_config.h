@@ -56,8 +56,11 @@ extern "C" {
   Platform memcpy smemcpy
 *********************************************************************************************************/
 
-#define MEMCPY      lib_memcpy
-#define SMEMCPY     lib_memcpy
+extern PVOID  lwip_platform_memcpy(PVOID  pvDest, PVOID  pvSrc, size_t  stCount);
+extern PVOID  lwip_platform_smemcpy(PVOID  pvDest, PVOID  pvSrc, size_t  stCount);
+
+#define MEMCPY      lwip_platform_memcpy
+#define SMEMCPY     lwip_platform_smemcpy
 
 /*********************************************************************************************************
   Memory options
@@ -101,6 +104,12 @@ extern "C" {
 #define MEMP_NUM_TCPIP_MSG_INPKT        LW_CFG_LWIP_MSG_SIZE            /*  tcp input msgqueue use      */
 
 /*********************************************************************************************************
+  PBUF
+*********************************************************************************************************/
+
+#define LWIP_NETIF_TX_SINGLE_PBUF       LW_CFG_LWIP_TX_SINGLE_PBUF
+
+/*********************************************************************************************************
   check sum
 *********************************************************************************************************/
 
@@ -118,7 +127,7 @@ extern "C" {
 #define CHECKSUM_CHECK_ICMP             1
 #define CHECKSUM_CHECK_ICMP6            1
 
-#define LWIP_CHECKSUM_ON_COPY           1                               /*  拷贝数据包同时计算 chksum   */
+#define LWIP_CHECKSUM_ON_COPY           LW_CFG_LWIP_CHECKSUM_ON_COPY    /*  拷贝数据包同时计算 chksum   */
 
 /*********************************************************************************************************
   sylixos do not use MEMP_NUM_NETCONN, because sylixos use another socket interface.
@@ -201,16 +210,18 @@ extern "C" {
 
 #define LWIP_SNMP                       1
 #define MIB2_STATS                      1
-#define SNMP_PRIVATE_MIB                1                               /*  support now!                */
 
-extern  VOID  __netSnmpGetTimestamp(UINT32  *puiTimestamp);
-extern  VOID  __netSnmpPriMibInit(VOID);
+#define SNMP_USE_RAW                    0
+#define SNMP_USE_NETCONN                1
 
-#define SNMP_GET_SYSUPTIME(sysuptime)   {                                       \
-                                            __netSnmpGetTimestamp(&sysuptime);  \
-                                        }
-#define SNMP_PRIVATE_MIB_INIT()         __netSnmpPriMibInit()
-                                        
+#define SNMP_LWIP_MIB2_SYSDESC          "lwIP"
+#define SNMP_LWIP_MIB2_SYSNAME          "SylixOS"
+#define SNMP_LWIP_MIB2_SYSCONTACT       "acoinfo@acoinfo.com"
+#define SNMP_LWIP_MIB2_SYSLOCATION      "@universe"
+
+#define LWIP_SNMP_V3                    0                               /*  todo: medtls for futrue     */
+#define LWIP_SNMP_V3_CRYPTO             0
+#define LWIP_SNMP_V3_MBEDTLS            0
 
 /*********************************************************************************************************
   IGMP
@@ -593,10 +604,10 @@ extern int link_output_hook(PVOID  pvPBuf, PVOID  pvNetif);
 *********************************************************************************************************/
 
 extern int etharp_vlan_set_hook(PVOID pvNetif, PVOID pvPBuf, const PVOID pvEthSrc, const PVOID pvEthDst, UINT16  usEthType);
-#define LWIP_HOOK_VLAN_SET      etharp_vlan_set_hook
+#define LWIP_HOOK_VLAN_SET              etharp_vlan_set_hook
 
 extern int etharp_vlan_check_hook(PVOID pvNetif, PVOID pvEthhdr, PVOID pvVlanhdr);
-#define LWIP_HOOK_VLAN_CHECK    etharp_vlan_check_hook
+#define LWIP_HOOK_VLAN_CHECK            etharp_vlan_check_hook
 
 /*********************************************************************************************************
   lwip ppp status hook

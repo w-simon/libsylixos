@@ -878,6 +878,59 @@ __error:
     fprintf(stderr, "argments error!\n");
     return  (-ERROR_TSHELL_EPARAM);
 }
+/*********************************************************************************************************
+** 函数名称: __tshellLoginWl
+** 功能描述: 系统命令 "loginwl"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : 0
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __tshellLoginWl (INT  iArgC, PCHAR  *ppcArgV)
+{
+    struct sockaddr      addr;
+    struct sockaddr_in  *pinaddr  = (struct sockaddr_in *)&addr;
+    struct sockaddr_in6 *pin6addr = (struct sockaddr_in6 *)&addr;
+
+    if (iArgC == 1) {
+        API_LoginWlShow();
+        return  (ERROR_NONE);
+    
+    } else if (iArgC != 3) {
+        goto    __error;
+    }
+    
+    lib_bzero(&addr, sizeof(struct sockaddr));
+    
+    pinaddr->sin_addr.s_addr = inet_addr(ppcArgV[2]);
+    if (pinaddr->sin_addr.s_addr == INADDR_NONE) {
+        if (inet6_aton(ppcArgV[2], &pin6addr->sin6_addr) == 0) {
+            fprintf(stderr, "ipaddr error!\n");
+            return  (-ERROR_TSHELL_EPARAM);
+        
+        } else {
+            pin6addr->sin6_len    = sizeof(struct sockaddr_in6);
+            pin6addr->sin6_family = AF_INET6;
+        }
+    } else {
+        pinaddr->sin_len    = sizeof(struct sockaddr_in);
+        pinaddr->sin_family = AF_INET;
+    }
+    
+    if (lib_strcmp(ppcArgV[1], "add") == 0) {
+        API_LoginWlAdd(&addr);
+        return  (ERROR_NONE);
+        
+    } else if (lib_strcmp(ppcArgV[1], "del") == 0) {
+        API_LoginWlDelete(&addr);
+        return  (ERROR_NONE);
+    }
+    
+__error:
+    fprintf(stderr, "argments error!\n");
+    return  (-ERROR_TSHELL_EPARAM);
+}
 
 #endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
 /*********************************************************************************************************
@@ -928,11 +981,15 @@ VOID  __tshellNetInit (VOID)
                                "        eg. arp -s 192.168.1.100 00:11:22:33:44:55\n"
                                "-d      delete a STATIC arp entry.\n"
                                "        eg. arp -d 192.168.1.100\n");
-                               
+
 #if LW_CFG_NET_LOGINBL_EN > 0
     API_TShellKeywordAdd("loginbl", __tshellLoginBl);
     API_TShellFormatAdd("loginbl", " [{add | del}] [ipaddr]");
     API_TShellHelpAdd("loginbl", "show remote login blacklist.\n");
+    
+    API_TShellKeywordAdd("loginwl", __tshellLoginWl);
+    API_TShellFormatAdd("loginwl", " [{add | del}] [ipaddr]");
+    API_TShellHelpAdd("loginwl", "show remote login whitelist.\n");
 #endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
 }
 

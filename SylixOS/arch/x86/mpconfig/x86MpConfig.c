@@ -223,6 +223,7 @@ INT  x86MpInit (BOOL  bHyperThreading)
                 _G_x86Apic2LInfo[pmpproc->apicid].APIC2L_ulCPUId  = _G_iX86LProcNr;
                 _G_x86L2ApicInfo[_G_iX86LProcNr].L2APIC_ucApicId  = pmpproc->apicid;
                 _G_iX86LProcNr++;
+                _G_iX86PProcNr++;
 
                 if (bHyperThreading) {                                  /*  超线程支持                  */
                     _G_x86Apic2LInfo[pmpproc->apicid + 1].APIC2L_bPresent = LW_TRUE;
@@ -258,6 +259,7 @@ __return:
         _G_x86Apic2LInfo[0].APIC2L_ulCPUId  = 0;
         _G_x86L2ApicInfo[0].L2APIC_ucApicId = 0;
         _G_iX86LProcNr = 1;
+        _G_iX86PProcNr = 1;
 
     } else if (_G_iX86LProcNr > 1) {
         if (pmp && pmp->imcrp) {                                        /*  It run on real hardware     */

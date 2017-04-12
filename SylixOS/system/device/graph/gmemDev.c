@@ -275,7 +275,14 @@ INT   API_GMemDevAdd (CPCHAR  cpcName, PLW_GM_DEVICE  pgmdev)
     }
     
     if (pgmdev->GMDEV_ulMapFlags == 0ul) {
-        pgmdev->GMDEV_ulMapFlags =  LW_VMM_FLAG_DMA;
+#if LW_CFG_CACHE_EN > 0
+        if (API_CacheGetMode(DATA_CACHE) & (CACHE_WRITETHROUGH | CACHE_SNOOP_ENABLE)) {
+            pgmdev->GMDEV_ulMapFlags = LW_VMM_FLAG_RDWR;
+        } else 
+#endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
+        {
+            pgmdev->GMDEV_ulMapFlags = LW_VMM_FLAG_DMA;
+        }
     }
     
     if (iosDevAddEx((PLW_DEV_HDR)pgmdev, cpcName, iGMemDrvNum, DT_CHR) != 

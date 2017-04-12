@@ -195,6 +195,12 @@ void netdev_linkinfo_drop_inc(netdev_t *netdev);
 void netdev_linkinfo_recv_inc(netdev_t *netdev);
 void netdev_linkinfo_xmit_inc(netdev_t *netdev);
 
+/* netdev send can ref pbuf ? */
+#define NETDEV_TX_CAN_REF_PBUF(p) \
+  (((p)->tot_len == (p)->len) ? \
+    ((((p)->type != PBUF_REF) && ((p)->type != PBUF_ROM)) ? \
+      1 : 0) : 0)
+
 /* netdev input buffer get 
  * reserve ETH_PAD_SIZE + SIZEOF_VLAN_HDR size. */
 struct pbuf *netdev_pbuf_alloc(UINT16 len);

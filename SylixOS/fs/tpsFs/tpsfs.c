@@ -164,6 +164,7 @@ static PTPS_ENTRY  __tpsFsWalkPath (PTPS_SUPER_BLOCK psb, CPCHAR pcPath, PCHAR *
     TPS_RESULT tpsres    = TPS_ERR_NONE;
 
     if (__tpsFsCheckFileName(pcPath) != ERROR_NONE) {                   /* 检查文件路径有效性           */
+        *piErr = EINVAL;
         return  (LW_NULL);
     }
 

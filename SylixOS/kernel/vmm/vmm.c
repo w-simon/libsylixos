@@ -455,53 +455,18 @@ VOID  API_VmmPhyFree (PVOID  pvPhyMem)
 LW_API  
 PVOID  API_VmmDmaAlloc (size_t  stSize)
 {
-    REGISTER ULONG          ulPageNum = (ULONG) (stSize >> LW_CFG_VMM_PAGE_SHIFT);
-    REGISTER size_t         stExcess  = (size_t)(stSize & ~LW_CFG_VMM_PAGE_MASK);
-
-    REGISTER PLW_VMM_PAGE   pvmpage;
-             ULONG          ulZoneIndex;
-             ULONG          ulError;
+    ULONG   ulFlags;
     
-    if (stExcess) {
-        ulPageNum++;
+#if LW_CFG_CACHE_EN > 0
+    if (API_CacheGetMode(DATA_CACHE) & CACHE_SNOOP_ENABLE) {
+        ulFlags = LW_VMM_FLAG_RDWR;
+    }
+#endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
+    {
+        ulFlags = LW_VMM_FLAG_DMA;
     }
     
-    if (ulPageNum < 1) {
-        _ErrorHandle(EINVAL);
-        return  (LW_NULL);
-    }
-    
-    __VMM_LOCK();
-    pvmpage = __vmmPhysicalPageAlloc(ulPageNum, LW_ZONE_ATTR_DMA, 
-                                     &ulZoneIndex);                     /*  分配连续物理页面            */
-    if (pvmpage  == LW_NULL) {
-        __VMM_UNLOCK();
-        _ErrorHandle(ERROR_VMM_LOW_PHYSICAL_PAGE);
-        return  (LW_NULL);
-    }
-    
-    ulError = __vmmLibPageMap(pvmpage->PAGE_ulPageAddr,                 /*  不使用 CACHE                */
-                              pvmpage->PAGE_ulPageAddr,
-                              ulPageNum, 
-                              LW_VMM_FLAG_DMA);                         /*  映射逻辑物理同一地址        */
-    if (ulError) {                                                      /*  映射错误                    */
-        __vmmPhysicalPageFree(pvmpage);                                 /*  释放物理页面                */
-        __VMM_UNLOCK();
-        _ErrorHandle(ulError);
-        return  (LW_NULL);
-    }
-    
-    pvmpage->PAGE_ulMapPageAddr = pvmpage->PAGE_ulPageAddr;             /*  记录映射关系                */
-    pvmpage->PAGE_ulFlags = LW_VMM_FLAG_DMA;                            /*  记录分页类型                */
-    
-    __areaPhysicalInsertPage(ulZoneIndex, 
-                             pvmpage->PAGE_ulPageAddr, pvmpage);        /*  插入物理空间反查表          */
-    __VMM_UNLOCK();
-    
-    MONITOR_EVT_LONG3(MONITOR_EVENT_ID_VMM, MONITOR_EVENT_VMM_DMA_ALLOC,
-                      pvmpage->PAGE_ulPageAddr, stSize, LW_CFG_VMM_PAGE_SIZE, LW_NULL);
-    
-    return  ((PVOID)pvmpage->PAGE_ulPageAddr);                          /*  直接返回物理内存地址        */
+    return  (API_VmmDmaAllocAlignWithFlags(stSize, LW_CFG_VMM_PAGE_SIZE, ulFlags));
 }
 /*********************************************************************************************************
 ** 函数名称: API_VmmDmaAllocAlign
@@ -515,6 +480,33 @@ PVOID  API_VmmDmaAlloc (size_t  stSize)
 *********************************************************************************************************/
 LW_API  
 PVOID  API_VmmDmaAllocAlign (size_t  stSize, size_t  stAlign)
+{
+    ULONG   ulFlags;
+    
+#if LW_CFG_CACHE_EN > 0
+    if (API_CacheGetMode(DATA_CACHE) & CACHE_SNOOP_ENABLE) {
+        ulFlags = LW_VMM_FLAG_RDWR;
+    }
+#endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
+    {
+        ulFlags = LW_VMM_FLAG_DMA;
+    }
+    
+    return  (API_VmmDmaAllocAlignWithFlags(stSize, stAlign, ulFlags));
+}
+/*********************************************************************************************************
+** 函数名称: API_VmmDmaAllocAlignWithFlags
+** 功能描述: 从物理内存区分配连续的物理分页, 主要用于 DMA 连续物理内存操作.(可指定内存关系)
+** 输　入  : stSize     需要分配的内存大小
+**           stAlign    对齐关系
+**           ulFlags    映射类型
+** 输　出  : 连续分页首地址 (物理地址, 此地址对应的物理地址存在于 LW_ZONE_ATTR_DMA 区域内)
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+PVOID  API_VmmDmaAllocAlignWithFlags (size_t  stSize, size_t  stAlign, ULONG  ulFlags)
 {
     REGISTER ULONG          ulPageNum = (ULONG) (stSize >> LW_CFG_VMM_PAGE_SHIFT);
     REGISTER size_t         stExcess  = (size_t)(stSize & ~LW_CFG_VMM_PAGE_MASK);
@@ -554,7 +546,7 @@ PVOID  API_VmmDmaAllocAlign (size_t  stSize, size_t  stAlign)
     ulError = __vmmLibPageMap(pvmpage->PAGE_ulPageAddr,                 /*  不使用 CACHE                */
                               pvmpage->PAGE_ulPageAddr,
                               ulPageNum, 
-                              LW_VMM_FLAG_DMA);                         /*  映射逻辑物理同一地址        */
+                              ulFlags);                                 /*  映射逻辑物理同一地址        */
     if (ulError) {                                                      /*  映射错误                    */
         __vmmPhysicalPageFree(pvmpage);                                 /*  释放物理页面                */
         __VMM_UNLOCK();
@@ -563,7 +555,7 @@ PVOID  API_VmmDmaAllocAlign (size_t  stSize, size_t  stAlign)
     }
     
     pvmpage->PAGE_ulMapPageAddr = pvmpage->PAGE_ulPageAddr;
-    pvmpage->PAGE_ulFlags = LW_VMM_FLAG_DMA;                            /*  记录分页类型                */
+    pvmpage->PAGE_ulFlags = ulFlags;                                    /*  记录分页类型                */
     
     __areaPhysicalInsertPage(ulZoneIndex, 
                              pvmpage->PAGE_ulPageAddr, pvmpage);        /*  插入物理空间反查表          */

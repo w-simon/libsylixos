@@ -115,7 +115,11 @@ snmp_get_local_ip_for_dst(void* handle, const ip_addr_t *dst, ip_addr_t *result)
 void
 snmp_init(void)
 {
+#ifdef SYLIXOS
+  sys_thread_new("t_snmp", snmp_netconn_thread, NULL, SNMP_STACK_SIZE, SNMP_THREAD_PRIO);
+#else
   sys_thread_new("snmp_netconn", snmp_netconn_thread, NULL, SNMP_STACK_SIZE, SNMP_THREAD_PRIO);
+#endif
 }
 
 #endif /* LWIP_SNMP && SNMP_USE_NETCONN */

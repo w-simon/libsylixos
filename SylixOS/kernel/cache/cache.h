@@ -127,6 +127,7 @@ LW_API ULONG        API_CacheLibSecondaryInit(CPCHAR  pcMachineName);
 
 LW_API LW_CACHE_OP *API_CacheGetLibBlock(VOID);
 LW_API ULONG        API_CacheGetOption(VOID);
+LW_API CACHE_MODE   API_CacheGetMode(LW_CACHE_TYPE  cachetype);
 LW_API INT          API_CacheLocation(LW_CACHE_TYPE  cachetype);
 LW_API INT          API_CacheLine(LW_CACHE_TYPE  cachetype);
 LW_API size_t       API_CacheWaySize(LW_CACHE_TYPE  cachetype);
@@ -169,6 +170,7 @@ LW_API VOID         API_CacheFuncsSet(VOID);
 
 #define cacheGetLibBlock            API_CacheGetLibBlock
 #define cacheGetOption              API_CacheGetOption
+#define cacheGetMode                API_CacheGetMode
 #define cacheLocation               API_CacheLocation
 #define cacheLine                   API_CacheLine
 #define cacheWaySize                API_CacheWaySize

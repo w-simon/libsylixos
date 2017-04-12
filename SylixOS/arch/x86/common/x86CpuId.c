@@ -151,6 +151,7 @@ X86_APIC2L_INFO         _G_x86Apic2LInfo[2 * LW_CFG_MAX_PROCESSORS];    /*  LOCA
 X86_L2APIC_INFO         _G_x86L2ApicInfo[LW_CFG_MAX_PROCESSORS];        /*  逻辑 Processor -> LOCAL APIC*/
 
 INT                     _G_iX86LProcNr = 0;                             /*  逻辑 Processor 数目         */
+INT                     _G_iX86PProcNr = 0;                             /*  物理 Processor 数目         */
 
 INT                     _G_iX86ICacheWaySize    = 4096;                 /*  I-Cache way size            */
 INT                     _G_iX86DCacheWaySize    = 4096;                 /*  D-Cache way size            */

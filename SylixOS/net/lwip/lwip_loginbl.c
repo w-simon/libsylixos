@@ -17,6 +17,9 @@
 ** 文件创建日期: 2017 年 01 月 09 日
 **
 ** 描        述: 网络登录黑名单管理.
+**
+** BUG:
+2017.04.10  增加白名单功能.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -54,8 +57,10 @@ typedef LW_LOGINBL_NODE     *PLW_LOGINBL_NODE;
         (((pipaddr)->addr >> LW_LBL_TABLESHIFT) & LW_LBL_TABLEMASK)
         
 static PLW_LIST_LINE    _G_plineLblHashHeader[LW_LBL_TABLESIZE];
+static PLW_LIST_LINE    _G_plineLwlHashHeader[LW_LBL_TABLESIZE];
 static LW_OBJECT_HANDLE _G_ulLblTimer = LW_OBJECT_HANDLE_INVALID;
 static UINT             _G_uiLblCnt   = 0;
+static UINT             _G_uiLwlCnt   = 0;
 
 #if LWIP_TCPIP_CORE_LOCKING < 1
 #error sylixos need LWIP_TCPIP_CORE_LOCKING > 0
@@ -78,6 +83,16 @@ INT  loginbl_input_hook (struct pbuf *p, struct netif *inp)
     
     if (IPH_V(iphdr) != 4) {
         return  (0);                                                    /*  IPv4 有效                   */
+    }
+    
+    for (plineTemp  = _G_plineLwlHashHeader[iHash];
+         plineTemp != LW_NULL;
+         plineTemp  = _list_line_get_next(plineTemp)) {
+        
+        plbl = _LIST_ENTRY(plineTemp, LW_LOGINBL_NODE, LBL_lineManage);
+        if (plbl->LBL_ipaddr.addr == iphdr->src.addr) {
+            return  (0);                                                /*  在白名单中                  */
+        }
     }
     
     for (plineTemp  = _G_plineLblHashHeader[iHash];
@@ -114,6 +129,33 @@ static PLW_LOGINBL_NODE  __LoginBlFind (ip4_addr_t  ipaddr)
     PLW_LOGINBL_NODE    plbl;
     
     for (plineTemp  = _G_plineLblHashHeader[iHash];
+         plineTemp != LW_NULL;
+         plineTemp  = _list_line_get_next(plineTemp)) {
+         
+        plbl = _LIST_ENTRY(plineTemp, LW_LOGINBL_NODE, LBL_lineManage);
+        if (plbl->LBL_ipaddr.addr == ipaddr.addr) {
+            return  (plbl);
+        }
+    }
+    
+    return  (LW_NULL);
+}
+/*********************************************************************************************************
+** 函数名称: __LoginWlFind
+** 功能描述: 查找指定 IP 控制块
+** 输　入  : ipaddr        IP 地址
+**           piHash        返回 hash index
+** 输　出  : 黑名单控制块
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static PLW_LOGINBL_NODE  __LoginWlFind (ip4_addr_t  ipaddr)
+{
+    INT                 iHash = LW_LBL_HASHINDEX(&ipaddr);
+    PLW_LIST_LINE       plineTemp;
+    PLW_LOGINBL_NODE    plbl;
+    
+    for (plineTemp  = _G_plineLwlHashHeader[iHash];
          plineTemp != LW_NULL;
          plineTemp  = _list_line_get_next(plineTemp)) {
          
@@ -263,6 +305,63 @@ INT  API_LoginBlAdd (const struct sockaddr *addr, UINT  uiRep, UINT  uiSec)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: API_LoginWlAdd
+** 功能描述: 将一个网络地址添加到白名单
+** 输　入  : addr      网络地址
+** 输　出  : ERROR or OK
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_LoginWlAdd (const struct sockaddr *addr)
+{
+    PLW_LOGINBL_NODE    plbl;
+    PLW_LOGINBL_NODE    plblNew;
+    ip4_addr_t          ipaddr;
+    
+    if (!addr || (addr->sa_family != AF_INET)) {
+        _ErrorHandle(EINVAL);
+        return  (ERROR_NONE);
+    }
+    
+    ipaddr.addr = ((struct sockaddr_in *)addr)->sin_addr.s_addr;
+    
+    LOCK_TCPIP_CORE();                                                  /*  锁定协议栈                  */
+    plbl = __LoginWlFind(ipaddr);
+    if (plbl) {
+        UNLOCK_TCPIP_CORE();
+        return  (ERROR_NONE);
+    }
+    UNLOCK_TCPIP_CORE();                                                /*  解锁协议栈                  */
+    
+    plblNew = (PLW_LOGINBL_NODE)__SHEAP_ALLOC(sizeof(LW_LOGINBL_NODE));
+    if (plblNew == LW_NULL) {
+        _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
+        return  (PX_ERROR);
+    }
+    
+    plblNew->LBL_uiRep  = 0;
+    plblNew->LBL_uiSec  = 0;
+    plblNew->LBL_uiCnt  = 0;
+    plblNew->LBL_ipaddr = ipaddr;
+    
+    LOCK_TCPIP_CORE();                                                  /*  锁定协议栈                  */
+    plbl = __LoginWlFind(ipaddr);
+    if (plbl == LW_NULL) {
+        INT  iHash = LW_LBL_HASHINDEX(&ipaddr);
+        _G_uiLwlCnt++;
+        _List_Line_Add_Tail(&plblNew->LBL_lineManage, &_G_plineLwlHashHeader[iHash]);
+        UNLOCK_TCPIP_CORE();
+        return  (ERROR_NONE);
+    }
+    UNLOCK_TCPIP_CORE();                                                /*  解锁协议栈                  */
+    
+    __SHEAP_FREE(plblNew);
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: API_LoginBlDelete
 ** 功能描述: 将一个网络地址从黑名单删除
 ** 输　入  : addr      网络地址 (NULL 表示全部清除)
@@ -290,6 +389,46 @@ INT  API_LoginBlDelete (const struct sockaddr *addr)
         INT  iHash = LW_LBL_HASHINDEX(&ipaddr);
         _G_uiLblCnt--;
         _List_Line_Del(&plbl->LBL_lineManage, &_G_plineLblHashHeader[iHash]);
+    }
+    UNLOCK_TCPIP_CORE();                                                /*  解锁协议栈                  */
+    
+    if (plbl) {
+        __SHEAP_FREE(plbl);
+        return  (ERROR_NONE);
+    
+    } else {
+        _ErrorHandle(EINVAL);
+        return  (ERROR_NONE);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: API_LoginWlDelete
+** 功能描述: 将一个网络地址从白名单删除
+** 输　入  : addr      网络地址 (NULL 表示全部清除)
+** 输　出  : ERROR or OK
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_LoginWlDelete (const struct sockaddr *addr)
+{
+    ip4_addr_t          ipaddr;
+    PLW_LOGINBL_NODE    plbl;
+    
+    if (!addr || (addr->sa_family != AF_INET)) {
+        _ErrorHandle(EINVAL);
+        return  (ERROR_NONE);
+    }
+    
+    ipaddr.addr = ((struct sockaddr_in *)addr)->sin_addr.s_addr;
+    
+    LOCK_TCPIP_CORE();                                                  /*  锁定协议栈                  */
+    plbl = __LoginWlFind(ipaddr);
+    if (plbl) {
+        INT  iHash = LW_LBL_HASHINDEX(&ipaddr);
+        _G_uiLwlCnt--;
+        _List_Line_Del(&plbl->LBL_lineManage, &_G_plineLwlHashHeader[iHash]);
     }
     UNLOCK_TCPIP_CORE();                                                /*  解锁协议栈                  */
     
@@ -364,6 +503,69 @@ VOID  API_LoginBlShow (VOID)
                                         "Forever");
                 }
             }
+        }
+    }
+    UNLOCK_TCPIP_CORE();                                                /*  解锁协议栈                  */
+    
+    if (stOffset > 0) {
+        fwrite(pcBuf, stOffset, 1, stdout);
+        fflush(stdout);                                                 /*  这里必须确保输出完成        */
+    }
+    
+    __SHEAP_FREE(pcBuf);
+}
+/*********************************************************************************************************
+** 函数名称: API_LoginWlShow
+** 功能描述: 显示网络地址白名单
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+VOID  API_LoginWlShow (VOID)
+{
+    static const CHAR   cInfoHdr[] = 
+    "      IP\n"
+    "---------------\n";
+
+    PLW_LOGINBL_NODE    plbl;
+    PLW_LIST_LINE       plineTemp;
+    INT                 i;
+    UINT                uiCnt;
+    PCHAR               pcBuf;
+    CHAR                cIp[IP4ADDR_STRLEN_MAX];
+    size_t              stSize;
+    size_t              stOffset = 0;
+    
+    LOCK_TCPIP_CORE();
+    uiCnt = _G_uiLwlCnt;
+    UNLOCK_TCPIP_CORE();
+    
+    printf(cInfoHdr);
+    if (!uiCnt) {
+        return;
+    }
+    
+    stSize = (size_t)uiCnt * 24;
+    pcBuf  = (PCHAR)__SHEAP_ALLOC(stSize);
+    if (pcBuf == LW_NULL) {
+        fprintf(stderr, "no memory\n");
+        _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
+        return;
+    }
+    
+    LOCK_TCPIP_CORE();                                                  /*  锁定协议栈                  */
+    for (i = 0; i < LW_LBL_TABLESIZE; i++) {
+        for (plineTemp  = _G_plineLwlHashHeader[i];
+             plineTemp != LW_NULL;
+             plineTemp  = _list_line_get_next(plineTemp)) {
+             
+            plbl = _LIST_ENTRY(plineTemp, LW_LOGINBL_NODE, LBL_lineManage);
+            stOffset = bnprintf(pcBuf, stSize, stOffset, 
+                                "%-15s\n", 
+                                ip4addr_ntoa_r(&plbl->LBL_ipaddr, cIp, IP4ADDR_STRLEN_MAX));
         }
     }
     UNLOCK_TCPIP_CORE();                                                /*  解锁协议栈                  */

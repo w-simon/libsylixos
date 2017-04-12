@@ -54,7 +54,7 @@
 PVOID  lib_memset (PVOID  pvDest, INT  iC, size_t  stCount)
 {
 #ifdef __ARCH_MEMSET
-    return  (__ARCH_MEMSET(pvDest, pvSrc, stCount));
+    return  (__ARCH_MEMSET(pvDest, iC, stCount));
     
 #else
     REGISTER INT       i;

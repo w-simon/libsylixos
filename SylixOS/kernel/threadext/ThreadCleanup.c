@@ -162,6 +162,7 @@ VOID  API_ThreadCleanupPop (BOOL  bRun)
     REGISTER __PLW_CLEANUP_ROUTINE  pcurNode;
     
     iregInterLevel = KN_INT_DISABLE();                                  /*  ¹Ø±ÕÖÐ¶Ï                    */
+    
     LW_TCB_GET_CUR(ptcbCur);
     ptex = &ptcbCur->TCB_texExt;
     
