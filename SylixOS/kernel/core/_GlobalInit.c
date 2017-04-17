@@ -38,6 +38,7 @@
 2013.12.19  去掉 FPU 的初始化, 放在 bsp 内核初始化回调中进行, 用户需要指定 fpu 的名称.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
+#define  __KERNEL_NCPUS_SET
 #define  __KERNEL_MAIN_FILE                                             /*  这是系统主文件              */
 #include "../SylixOS/kernel/include/k_kernel.h"
 /*********************************************************************************************************
@@ -97,10 +98,6 @@ static VOID  __cpuPrimaryInit (VOID)
 {
     REGISTER INT    i;
     
-#if (LW_CFG_SMP_EN > 0) && (LW_CFG_CPU_ARCH_SMT > 0)
-    PLW_CLASS_CPU   pcpu = LW_CPU_GET_CUR();
-#endif
-    
     for (i = 0; i < LW_CFG_MAX_PROCESSORS; i++) {
         LW_CPU_GET(i)->CPU_ulStatus = LW_CPU_STATUS_INACTIVE;           /*  CPU INACTIVE                */
         LW_SPIN_INIT(&_K_tcbDummy[i].TCB_slLock);                       /*  初始化自旋锁                */
@@ -109,10 +106,6 @@ static VOID  __cpuPrimaryInit (VOID)
         LW_CPU_CLR_IPI_PEND(i, ((ULONG)~0));                            /*  清除所有中断标志            */
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
     }
-
-#if (LW_CFG_SMP_EN > 0) && (LW_CFG_CPU_ARCH_SMT > 0)
-    pcpu->CPU_ulPhyId = bspCpuLogic2Physical(pcpu->CPU_ulCPUId);
-#endif
 }
 /*********************************************************************************************************
 ** 函数名称: __cpuSecondaryInit
@@ -126,20 +119,12 @@ static VOID  __cpuPrimaryInit (VOID)
 
 static VOID  __cpuSecondaryInit (ULONG   ulCPUId)
 {
-#if (LW_CFG_SMP_EN > 0) && (LW_CFG_CPU_ARCH_SMT > 0)
-    PLW_CLASS_CPU   pcpu = LW_CPU_GET(ulCPUId);
-#endif
-
     LW_CPU_GET(ulCPUId)->CPU_ulStatus = LW_CPU_STATUS_INACTIVE;         /*  CPU INACTIVE                */
     LW_SPIN_INIT(&_K_tcbDummy[ulCPUId].TCB_slLock);                     /*  初始化自旋锁                */
     
 #if LW_CFG_SMP_EN > 0
     LW_CPU_CLR_IPI_PEND(ulCPUId, ((ULONG)~0));                          /*  清除所有中断标志            */
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
-
-#if (LW_CFG_SMP_EN > 0) && (LW_CFG_CPU_ARCH_SMT > 0)
-    pcpu->CPU_ulPhyId = bspCpuLogic2Physical(ulCPUId);
-#endif
 }
 
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
@@ -154,6 +139,9 @@ static VOID  __cpuSecondaryInit (ULONG   ulCPUId)
 static VOID  __miscPrimarySmpInit (VOID)
 {
     REGISTER INT            i;
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_CPU_ARCH_SMT > 0)
+             ULONG          ulMaxPhyId = 0;
+#endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
              PLW_CLASS_CPU  pcpu;
     
     for (i = 0; i < LW_CFG_MAX_PROCESSORS; i++) {
@@ -162,9 +150,6 @@ static VOID  __miscPrimarySmpInit (VOID)
         LW_CAND_TCB(pcpu) = LW_NULL;                                    /*  候选运行表为空              */
         LW_CAND_ROT(pcpu) = LW_FALSE;                                   /*  没有优先级卷绕              */
         
-#if LW_CFG_CPU_ARCH_SMT > 0
-        pcpu->CPU_ulPhyId = (ULONG)i;
-#endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
         pcpu->CPU_ulCPUId = (ULONG)i;
         pcpu->CPU_iKernelCounter = 1;                                   /*  初始化 1, 当前不允许调度    */
 
@@ -173,6 +158,19 @@ static VOID  __miscPrimarySmpInit (VOID)
         LW_SPIN_INIT(&pcpu->CPU_slIpi);                                 /*  初始化 CPU spinlock         */
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
     }
+    
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_CPU_ARCH_SMT > 0)
+    LW_CPU_FOREACH (i) {
+        pcpu = LW_CPU_GET(i);
+        pcpu->CPU_ulPhyId = bspCpuLogic2Physical((ULONG)i);             /*  获得物理 CPU ID             */
+        _BugFormat(pcpu->CPU_ulPhyId >= LW_NCPUS, LW_TRUE, 
+                   "Physical CPU ID error: %lu\r\n", pcpu->CPU_ulPhyId);
+        if (ulMaxPhyId < pcpu->CPU_ulPhyId) {
+            ulMaxPhyId = pcpu->CPU_ulPhyId;
+        }
+    }
+    _K_ulNPhyCpus = ulMaxPhyId + 1;                                     /*  统计物理 CPU 个数           */
+#endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
 }
 /*********************************************************************************************************
 ** 函数名称: __miscSecondarySmpInit

@@ -44,6 +44,7 @@ static CHAR     _K_cKernelStartParam[512];
                            bugreboot=no 内核探测到 bug 时是否自动重启.
                            rebootto=10  重启超时时间.
                            fsched=no    SMP 系统内核快速调度
+                           smt=no       SMT 均衡调度
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
@@ -162,7 +163,17 @@ ULONG  API_KernelStartParam (CPCHAR  pcParam)
             } else {
                 LW_KERN_SMP_FSCHED_EN_SET(LW_TRUE);
             }
+        
+        } 
+#if LW_CFG_CPU_ARCH_SMT > 0
+          else if (lib_strncmp(pcTok, "smt=", 4) == 0) {                /*  smt 均衡调度                */
+            if (pcTok[4] == 'n') {
+                LW_KERN_SMT_BSCHED_EN_SET(LW_FALSE);
+            } else {
+                LW_KERN_SMT_BSCHED_EN_SET(LW_TRUE);
+            }
         }
+#endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
           
 #ifdef __ARCH_KERNEL_PARAM

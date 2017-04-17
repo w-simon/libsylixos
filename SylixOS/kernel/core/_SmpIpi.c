@@ -104,10 +104,8 @@ VOID  _SmpSendIpiAllOther (ULONG  ulIPIVec, INT  iWait)
     ulCPUId = LW_CPU_GET_CUR_ID();
     
     KN_SMP_WMB();
-    for (i = 0; i < LW_NCPUS; i++) {
-        if (ulCPUId != i) {
-            _SmpSendIpi(i, ulIPIVec, iWait, LW_FALSE);
-        }
+    LW_CPU_FOREACH_EXCEPT (i, ulCPUId) {
+        _SmpSendIpi(i, ulIPIVec, iWait, LW_FALSE);
     }
 }
 /*********************************************************************************************************
@@ -162,14 +160,12 @@ static VOID  _SmpCallIpiAllOther (PLW_IPI_MSG  pipim)
     ulCPUId = LW_CPU_GET_CUR_ID();
     
     KN_SMP_WMB();
-    for (i = 0; i < LW_NCPUS; i++) {
-        if (ulCPUId != i) {
-            _SmpCallIpi(i, pipim);
-            
-            KN_SMP_MB();
-            pipim->IPIM_iWait = iWaitSave;
-            KN_SMP_WMB();
-        }
+    LW_CPU_FOREACH_EXCEPT (i, ulCPUId) {
+        _SmpCallIpi(i, pipim);
+        
+        KN_SMP_MB();
+        pipim->IPIM_iWait = iWaitSave;
+        KN_SMP_WMB();
     }
 }
 /*********************************************************************************************************

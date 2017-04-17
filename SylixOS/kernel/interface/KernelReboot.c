@@ -67,13 +67,13 @@ static VOID  __makeOtherDown (VOID)
     ULONG   i;
     BOOL    bNeedWait;
     
-    for (i = 1; i < LW_NCPUS; i++) {                                    /*  除 0 以外的其他 CPU         */
+    LW_CPU_FOREACH_ACTIVE_EXCEPT (i, 0) {                               /*  除 0 以外的其他 CPU         */
         API_CpuDown(i);
     }
     
     do {
         bNeedWait = LW_FALSE;
-        for (i = 1; i < LW_NCPUS; i++) {
+        LW_CPU_FOREACH_EXCEPT (i, 0) {
             if (API_CpuIsUp(i)) {                                       /*  确保除 0 核外, 其他 CPU 全关*/
                 bNeedWait = LW_TRUE;
             }
@@ -90,7 +90,7 @@ static VOID  __makeOtherDown (VOID)
     PLW_CLASS_TCB   ptcbIdle;
     BOOL            bRunning;
     
-    for (i = 1; i < LW_NCPUS; i++) {                                    /*  除 0 以外的其他 CPU         */
+    LW_CPU_FOREACH_EXCEPT (i, 0) {                                      /*  除 0 以外的其他 CPU         */
         ptcbIdle = _K_ptcbIdle[i];
         if (!LW_PRIO_IS_EQU(ptcbIdle->TCB_ucPriority, LW_PRIO_HIGHEST)) {
             __KERNEL_ENTER();                                           /*  进入内核                    */

@@ -109,7 +109,7 @@ VOID  _SchedTick (VOID)
              INT            i;
              
 #if LW_CFG_SMP_EN > 0
-    for (i = 0; i < LW_NCPUS; i++) {
+    LW_CPU_FOREACH (i) {
 #else
     i = 0;
 #endif                                                                  /*  LW_CFG_SMP_EN               */

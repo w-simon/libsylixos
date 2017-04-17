@@ -176,13 +176,9 @@ BOOL  _CandTableTryAdd (PLW_CLASS_TCB  ptcb, PLW_CLASS_PCB  ppcb)
         }
     
     } else {                                                            /*  所有 CPU 均可运行此任务     */
-        for (i = 0; i < LW_NCPUS; i++) {
-            pcpu = LW_CPU_GET(i);
-            if (!LW_CPU_IS_ACTIVE(pcpu)) {                              /*  CPU 必须为激活状态          */
-                continue;
-            }
-            
-            ptcbCand = LW_CAND_TCB(pcpu);                               /*  TODO: SMT 虚拟多核优化      */
+        LW_CPU_FOREACH_ACTIVE (i) {                                     /*  CPU 必须为激活状态          */
+            pcpu     = LW_CPU_GET(i);
+            ptcbCand = LW_CAND_TCB(pcpu);                               /*  TODO: Cache 热度维持        */
             if (ptcbCand == LW_NULL) {                                  /*  候选表为空                  */
                 LW_CAND_TCB(pcpu) = ptcb;
                 ptcb->TCB_ulCPUId = i;                                  /*  记录 CPU 号                 */

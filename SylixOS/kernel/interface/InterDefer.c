@@ -83,7 +83,7 @@ VOID  _interDeferInit (VOID)
                         LW_OPTION_THREAD_AFFINITY_ALWAYS), 
                         LW_NULL);
     
-    for (i = 0; i < LW_NCPUS; i++) {
+    LW_CPU_FOREACH (i) {
         if (_jobQueueInit(&_K_jobqIsrDefer[i], 
                           &_K_jobmsgIsrDefer[i][0], 
                           LW_CFG_ISR_DEFER_SIZE, LW_FALSE)) {

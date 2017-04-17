@@ -53,6 +53,8 @@ VOID  _KernelPrimaryLowLevelInit (VOID)
     _DebugHandle(__LOGMESSAGE_LEVEL, "kernel low level initialize...\r\n");
     
     _GlobalPrimaryInit();                                               /*  全局变量初始化              */
+    
+    _ScheduleInit();                                                    /*  调度器初始化                */
     _StackCheckInit();                                                  /*  堆栈检查初始化              */
     _InterVectInit();                                                   /*  初始化中断向量表            */
     _ReadyTableInit();                                                  /*  就绪表初始化                */

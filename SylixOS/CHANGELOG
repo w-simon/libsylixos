@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2017-04-15: han.hui
+    加入针对同步多线程 SMT (例如 Intel(R) HT 超线程技术) 处理器, 调度器优化均衡调度功能.
+
     2017-04-10: han.hui
     加入网络白名单功能.
 

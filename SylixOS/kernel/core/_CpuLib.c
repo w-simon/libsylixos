@@ -36,12 +36,21 @@ INT  _CpuActive (PLW_CLASS_CPU   pcpu)
     }
     
     pcpu->CPU_ulStatus |= LW_CPU_STATUS_ACTIVE;
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_CPU_ARCH_SMT > 0)
+    LW_PHYCPU_GET(pcpu->CPU_ulPhyId)->PHYCPU_uiLogic++;
+#endif
     KN_SMP_MB();
     
     _CandTableUpdate(pcpu);                                             /*  更新候选线程                */
 
     pcpu->CPU_ptcbTCBCur  = LW_CAND_TCB(pcpu);
     pcpu->CPU_ptcbTCBHigh = LW_CAND_TCB(pcpu);
+    
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_CPU_ARCH_SMT > 0)
+    if (pcpu->CPU_ptcbTCBCur->TCB_usIndex >= LW_NCPUS) {
+        LW_PHYCPU_GET(pcpu->CPU_ulPhyId)->PHYCPU_uiNonIdle++;           /*  运行的非 Idle 任务          */
+    }
+#endif
     
     return  (ERROR_NONE);
 }
@@ -70,25 +79,29 @@ INT  _CpuInactive (PLW_CLASS_CPU   pcpu)
     ptcb = LW_CAND_TCB(pcpu);
     
     pcpu->CPU_ulStatus &= ~LW_CPU_STATUS_ACTIVE;
+#if LW_CFG_CPU_ARCH_SMT > 0
+    LW_PHYCPU_GET(pcpu->CPU_ulPhyId)->PHYCPU_uiLogic--;
+#endif
     KN_SMP_MB();
+    
+#if LW_CFG_CPU_ARCH_SMT > 0
+    if (pcpu->CPU_ptcbTCBCur->TCB_usIndex >= LW_NCPUS) {
+        LW_PHYCPU_GET(pcpu->CPU_ulPhyId)->PHYCPU_uiNonIdle--;           /*  运行的非 Idle 任务          */
+    }
+#endif
     
     _CandTableRemove(pcpu);                                             /*  移除候选执行线程            */
     LW_CAND_ROT(pcpu) = LW_FALSE;                                       /*  清除优先级卷绕标志          */
 
     pcpu->CPU_ptcbTCBCur  = LW_NULL;
     pcpu->CPU_ptcbTCBHigh = LW_NULL;
-    
-    for (i = 0; i < LW_NCPUS; i++) {                                    /*  请求其他 CPU 调度           */
-        if (ulCPUId != i) {
-            pcpuOther = LW_CPU_GET(i);
-            if (!LW_CPU_IS_ACTIVE(pcpuOther)) {                         /*  CPU 必须是激活状态          */
-                continue;
-            }
-            ptcbCand  = LW_CAND_TCB(pcpuOther);
-            if (LW_PRIO_IS_HIGH(ptcb->TCB_ucPriority,
-                                ptcbCand->TCB_ucPriority)) {            /*  当前退出的任务优先级高      */
-                LW_CAND_ROT(pcpuOther) = LW_TRUE;
-            }
+                                                                        /*  请求其他 CPU 调度           */
+    LW_CPU_FOREACH_ACTIVE_EXCEPT (i, ulCPUId) {                         /*  CPU 必须是激活状态          */
+        pcpuOther = LW_CPU_GET(i);
+        ptcbCand  = LW_CAND_TCB(pcpuOther);
+        if (LW_PRIO_IS_HIGH(ptcb->TCB_ucPriority,
+                            ptcbCand->TCB_ucPriority)) {                /*  当前退出的任务优先级高      */
+            LW_CAND_ROT(pcpuOther) = LW_TRUE;
         }
     }
     

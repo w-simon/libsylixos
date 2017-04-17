@@ -398,6 +398,7 @@ VOID           _SchedCrSwp(PLW_CLASS_CPU pcpuCur);
 
 INT            _Schedule(VOID);
 VOID           _ScheduleInt(VOID);
+VOID           _ScheduleInit(VOID);
 
 VOID           _SchedSetRet(INT  iSchedSetRet);
 VOID           _SchedSetPrio(PLW_CLASS_TCB  ptcb, UINT8  ucPriority);   /*  设置优先级                  */

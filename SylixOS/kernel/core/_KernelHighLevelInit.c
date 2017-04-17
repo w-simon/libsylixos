@@ -69,7 +69,7 @@ static VOID  _CreateIdleThread (VOID)
 #if LW_CFG_SMP_EN > 0
     LW_CPU_ZERO(&cpuset);
 
-    for (i = 0; i < LW_NCPUS; i++) {
+    LW_CPU_FOREACH (i) {
         CHAR    cIdle[LW_CFG_OBJECT_NAME_SIZE] = "t_idle";
         
         lib_itoa(i, &cIdle[6], 10);

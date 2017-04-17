@@ -241,7 +241,7 @@ static ssize_t  __procFsBspCpuRead (PLW_PROCFS_NODE  p_pfsn,
                               bspInfoCache(),
                               bspInfoPacket());                         /*  将信息打印到缓冲            */
                  
-        for (i = 0; i < LW_NCPUS; i++) {
+        LW_CPU_FOREACH (i) {
             API_CpuBogoMips(i, &ulKInsPerSec);
             stRealSize = bnprintf(pcFileBuffer, __PROCFS_BUFFER_SIZE_CPUINFO, stRealSize,
                                   "BogoMIPS %2d : %lu.%02lu\n", i,

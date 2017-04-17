@@ -161,7 +161,7 @@ VOID   API_InterShow (ULONG  ulCPUStart, ULONG  ulCPUEnd)
     printf("interrupt nesting show >>\n");
     printf(_G_cNestingInfoHdr);                                         /*  ¥Ú”°ª∂”≠–≈œ¢                */
     
-    for (i = 0; i < LW_NCPUS; i++) {
+    LW_CPU_FOREACH (i) {
 #if LW_CFG_SMP_EN > 0
         printf("%5ld %11ld %13lld\n", i, LW_CPU_GET_NESTING_MAX(i), LW_CPU_GET_IPI_CNT(i));
 #else

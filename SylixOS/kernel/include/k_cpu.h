@@ -34,7 +34,7 @@
 #define LW_CPU_STATUS_INACTIVE          0x00000000                      /*  CPU 未激活                  */
 
 /*********************************************************************************************************
-  CPU 内容 (全部使用 ulong 和 指针型, 使移植方便)
+  CPU 结构 (要求 CPU ID 编号从 0 开始并由连续数字组成)
 *********************************************************************************************************/
 #ifdef  __SYLIXOS_KERNEL
 
@@ -119,7 +119,7 @@ typedef struct __lw_cpu {
     /*
      *  CPU 基本信息
      */
-#if LW_CFG_CPU_ARCH_SMT > 0
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_CPU_ARCH_SMT > 0)
              ULONG           CPU_ulPhyId;                               /*  Physical CPU Id             */
 #endif                                                                  /*  LW_CFG_CPU_ARCH_SMT         */
              ULONG           CPU_ulCPUId;                               /*  CPU ID 号                   */
@@ -143,6 +143,18 @@ typedef struct __lw_cpu {
 } LW_CLASS_CPU;
 typedef LW_CLASS_CPU        *PLW_CLASS_CPU;
 
+/*********************************************************************************************************
+  Physical CPU (要求物理 CPU ID 编号从 0 开始并由连续数字组成)
+*********************************************************************************************************/
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_CPU_ARCH_SMT > 0)
+
+typedef struct __lw_phycpu {
+    UINT                    PHYCPU_uiLogic;                             /*  当前拥有多少个在线逻辑 CPU  */
+    UINT                    PHYCPU_uiNonIdle;                           /*  当前运行的有效任务数量      */
+} LW_CLASS_PHYCPU;
+typedef LW_CLASS_PHYCPU    *PLW_CLASS_PHYCPU;
+
+#endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 /*********************************************************************************************************
   CPU 集合
@@ -171,14 +183,52 @@ typedef LW_CLASS_CPUSET    *PLW_CLASS_CPUSET;
 ULONG   archMpCur(VOID);
 #define LW_CPU_GET_CUR_ID()  archMpCur()                                /*  获得当前 CPU ID             */
 #define LW_NCPUS             (_K_ulNCpus)
+#if LW_CFG_CPU_ARCH_SMT > 0
+#define LW_NPHYCPUS          (_K_ulNPhyCpus)
+#endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
 #else
 #define LW_CPU_GET_CUR_ID()  0
 #define LW_NCPUS             1
 #endif                                                                  /*  LW_CFG_SMP_EN               */
 
-extern LW_CLASS_CPU          _K_cpuTable[];                             /*  处理器表                    */
+/*********************************************************************************************************
+  CPU 表操作
+*********************************************************************************************************/
+
+extern LW_CLASS_CPU          _K_cpuTable[];                             /*  CPU 表                      */
 #define LW_CPU_GET_CUR()     (&_K_cpuTable[LW_CPU_GET_CUR_ID()])        /*  获得当前 CPU 结构           */
 #define LW_CPU_GET(id)       (&_K_cpuTable[(id)])                       /*  获得指定 CPU 结构           */
+
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_CPU_ARCH_SMT > 0)
+extern LW_CLASS_PHYCPU       _K_phycpuTable[];                          /*  物理 CPU 表                 */
+#define LW_PHYCPU_GET_CUR()  (&_K_phycpuTable[LW_CPU_GET_CUR()->CPU_ulPhyId])
+#define LW_PHYCPU_GET(phyid) (&_K_phycpuTable[(phyid)])
+#endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
+
+/*********************************************************************************************************
+  CPU 遍历
+*********************************************************************************************************/
+
+#define LW_CPU_FOREACH(i)                       \
+        for (i = 0; i < LW_NCPUS; i++)
+        
+#define LW_CPU_FOREACH_ACTIVE(i)                \
+        for (i = 0; i < LW_NCPUS; i++)          \
+        if (LW_CPU_IS_ACTIVE(LW_CPU_GET(i)))
+                                    
+#define LW_CPU_FOREACH_EXCEPT(i, id)            \
+        for (i = 0; i < LW_NCPUS; i++)          \
+        if ((i) != (id))
+        
+#define LW_CPU_FOREACH_ACTIVE_EXCEPT(i, id)     \
+        for (i = 0; i < LW_NCPUS; i++)          \
+        if ((i) != (id))                        \
+        if (LW_CPU_IS_ACTIVE(LW_CPU_GET(i)))
+        
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_CPU_ARCH_SMT > 0)
+#define LW_PHYCPU_FOREACH(i)                    \
+        for (i = 0; i < LW_NPHYCPUS; i++)
+#endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
 
 /*********************************************************************************************************
   CPU 就绪表

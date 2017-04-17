@@ -2441,9 +2441,11 @@ static VOID gdbExit (INT iSigNo)
     gdbRelease(pparam);
 
 #ifndef LW_DTRACE_HW_ISTEP
-    if (API_AtomicDec(&GHookRefCnt) == 0) {                             /* 最后一次调用完成时清除HOOK   */
-        API_SystemHookDelete(API_DtraceSchedHook,
-                             LW_OPTION_THREAD_SWAP_HOOK);               /* 删除线程切换HOOK，           */
+    if (API_AtomicGet(&GHookRefCnt) > 0) {
+        if (API_AtomicDec(&GHookRefCnt) == 0) {                         /* 最后一次调用完成时清除HOOK   */
+            API_SystemHookDelete(API_DtraceSchedHook,
+                                 LW_OPTION_THREAD_SWAP_HOOK);           /* 删除线程切换HOOK，           */
+        }
     }
 #endif                                                                  /* !LW_DTRACE_HW_ISTEP          */
 }
@@ -2645,6 +2647,13 @@ static INT gdbMain (INT argc, CHAR **argv)
         return  (PX_ERROR);
     }
 
+#ifndef LW_DTRACE_HW_ISTEP
+    if (API_AtomicInc(&GHookRefCnt) == 1) {                             /* 第一次调用时添加HOOK         */
+        API_SystemHookAdd(API_DtraceSchedHook,
+                          LW_OPTION_THREAD_SWAP_HOOK);                  /* 添加线程切换HOOK，用于单步   */
+    }
+#endif                                                                  /* !LW_DTRACE_HW_ISTEP          */
+
     if (pparam->GDB_byCommType == COMM_TYPE_TCP) {
         pparam->GDB_iCommFd = gdbTcpSockInit(pparam, ui32Ip, usPort);   /* 初始化socket，获取连接句柄   */
     } else {
@@ -2657,13 +2666,6 @@ static INT gdbMain (INT argc, CHAR **argv)
         gdbExit(0);
         return  (PX_ERROR);
     }
-
-#ifndef LW_DTRACE_HW_ISTEP
-    if (API_AtomicInc(&GHookRefCnt) == 1) {                             /* 第一次调用时添加HOOK         */
-        API_SystemHookAdd(API_DtraceSchedHook,
-                          LW_OPTION_THREAD_SWAP_HOOK);                  /* 添加线程切换HOOK，用于单步   */
-    }
-#endif                                                                  /* !LW_DTRACE_HW_ISTEP          */
 
     gdbEventLoop(pparam);                                               /* 进入事件循环                 */
 

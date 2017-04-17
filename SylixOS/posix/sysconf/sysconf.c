@@ -133,7 +133,7 @@ long  sysconf (int name)
         {
             ULONG   i;
             int     iCnt = 0;
-            for (i = 0; i < LW_NCPUS; i++) {
+            LW_CPU_FOREACH (i) {
                 if (API_CpuIsUp(i)) {
                     iCnt++;
                 }

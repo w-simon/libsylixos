@@ -164,7 +164,7 @@ VOID  API_KernelTicksContext (VOID)
     KN_INT_ENABLE(iregInterLevel);                                      /*  允许其他中断进入            */
     
 #if LW_CFG_SMP_EN > 0
-    for (i = 0; i < LW_NCPUS; i++) {                                    /*  遍历所有的核                */
+    LW_CPU_FOREACH (i) {                                                /*  遍历所有的核                */
 #else
     i = 0;
 #endif                                                                  /*  LW_CFG_SMP_EN               */

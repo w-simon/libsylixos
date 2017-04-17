@@ -221,31 +221,40 @@ __KERNEL_EXT  LW_CLASS_PCBBMAP        _K_pcbbmapGlobalReady;
 *********************************************************************************************************/
 __KERNEL_EXT  PLW_CLASS_TCB           _K_ptcbTCBIdTable[LW_CFG_MAX_THREADS];
 /*********************************************************************************************************
-  调度器关键信息 (早期 SylixOS 对当前线程信息和需要切换的线程信息定义)
-  
-__KERNEL_EXT  PLW_CLASS_TCB           _K_ptcbTCBCur;                    当前线程 TCB 指针
-__KERNEL_EXT  PLW_CLASS_TCB           _K_ptcbTCBHigh;                   将要运行的线程TCB 指针
-
-#if LW_CFG_COROUTINE_EN > 0
-__KERNEL_EXT  PLW_CLASS_COROUTINE     _K_pcrcbCur;                      当前正在执行的协程
-__KERNEL_EXT  PLW_CLASS_COROUTINE     _K_pcrcbNext;                     下一个需要协程
-#endif
-
-  以上这种方式在 SMP 系统已经淘汰, 当前只是作为程序中的简要称呼而已.
+  CPU 与 物理 CPU 个数
 *********************************************************************************************************/
+#ifdef __KERNEL_NCPUS_SET
 #ifdef __KERNEL_MAIN_FILE
-__KERNEL_EXT  const  ULONG            _K_ulNCpus = 1;                   /*  当前有多少个 CPU (SMP)      */
-#elif defined(__KERNEL_NCPUS_SET)
+__KERNEL_EXT  ULONG                   _K_ulNCpus = 1;
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_CPU_ARCH_SMT > 0)
+__KERNEL_EXT  ULONG                   _K_ulNPhyCpus = 1;
+#endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
+#else                                                                   /*  !__KERNEL_MAIN_FILE         */
 __KERNEL_EXT  ULONG                   _K_ulNCpus;
-#else
-__KERNEL_EXT  const  ULONG            _K_ulNCpus;
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_CPU_ARCH_SMT > 0)
+__KERNEL_EXT  ULONG                   _K_ulNPhyCpus;
+#endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
 #endif                                                                  /*  __KERNEL_MAIN_FILE          */
-
+#else                                                                   /*  !__KERNEL_NCPUS_SET         */
+__KERNEL_EXT  const  ULONG            _K_ulNCpus;
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_CPU_ARCH_SMT > 0)
+__KERNEL_EXT  const  ULONG            _K_ulNPhyCpus;
+#endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
+#endif                                                                  /*  __KERNEL_NCPUS_SET          */
+/*********************************************************************************************************
+  CPU 表与 内核锁
+*********************************************************************************************************/
 #ifdef __KERNEL_MAIN_FILE                                               /*  每个 CPU 的内容             */
               LW_CLASS_CPU            _K_cpuTable[LW_CFG_MAX_PROCESSORS] LW_CACHE_LINE_ALIGN;
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_CPU_ARCH_SMT > 0)
+              LW_CLASS_PHYCPU         _K_phycpuTable[LW_CFG_MAX_PROCESSORS] LW_CACHE_LINE_ALIGN;
+#endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
               LW_CLASS_KERNLOCK       _K_klKernel LW_CACHE_LINE_ALIGN;
 #else
 __KERNEL_EXT  LW_CLASS_CPU            _K_cpuTable[LW_CFG_MAX_PROCESSORS];
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_CPU_ARCH_SMT > 0)
+__KERNEL_EXT  LW_CLASS_PHYCPU         _K_phycpuTable[LW_CFG_MAX_PROCESSORS];
+#endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
 __KERNEL_EXT  LW_CLASS_KERNLOCK       _K_klKernel;                      /*  内核锁                      */
 #endif                                                                  /*  __KERNEL_MAIN_FILE          */
 /*********************************************************************************************************

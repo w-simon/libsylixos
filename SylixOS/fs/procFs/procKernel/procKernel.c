@@ -481,8 +481,8 @@ static ssize_t  __procFsKernelSmpRead (PLW_PROCFS_NODE  p_pfsn,
                                        off_t            oft)
 {
     const CHAR      cSmpInfoHdr[] = 
-    "LOGIC CPU PHYSICAL CPU STATUS CURRENT THREAD MAX NESTING IPI VECTOR\n"
-    "--------- ------------ ------ -------------- ----------- ----------\n";
+    "LOGIC CPU PHYSICAL CPU NON IDLE STATUS CURRENT THREAD MAX NESTING IPI VECTOR\n"
+    "--------- ------------ -------- ------ -------------- ----------- ----------\n";
           PCHAR     pcFileBuffer;
           size_t    stRealSize;                                         /*  实际的文件内容大小          */
           size_t    stCopeBytes;
@@ -508,7 +508,7 @@ static ssize_t  __procFsKernelSmpRead (PLW_PROCFS_NODE  p_pfsn,
         stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, 0, cSmpInfoHdr); 
                                                                         /*  打印头信息                  */
         __KERNEL_ENTER();
-        for (i = 0; i < LW_NCPUS; i++) {
+        LW_CPU_FOREACH (i) {
             ULONG               ulMaxNesting;
             ULONG               ulStatus;
             CHAR                cThread[LW_CFG_OBJECT_NAME_SIZE];
@@ -520,12 +520,14 @@ static ssize_t  __procFsKernelSmpRead (PLW_PROCFS_NODE  p_pfsn,
             
             __KERNEL_EXIT();
             stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize,
-                                  "%9lu %12lu %-6s %-14s %11lu %10ld\n",
+                                  "%9lu %12lu %8u %-6s %-14s %11lu %10ld\n",
                                   pcpu->CPU_ulCPUId, 
 #if LW_CFG_CPU_ARCH_SMT > 0
                                   pcpu->CPU_ulPhyId,
+                                  LW_PHYCPU_GET(pcpu->CPU_ulPhyId)->PHYCPU_uiNonIdle,
 #else
                                   pcpu->CPU_ulCPUId, 
+                                  0,
 #endif
                                   (ulStatus & LW_CPU_STATUS_ACTIVE) ? "ACTIVE" : "OFF",
                                   cThread,

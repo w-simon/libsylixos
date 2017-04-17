@@ -97,7 +97,7 @@ VOID    API_StackShow (VOID)
     printf("\ninterrupt stack usage show >>\n");
     printf(_G_cCPUStackInfoHdr);                                        /*  打印欢迎信息                */
     
-    for (i = 0; i < LW_NCPUS; i++) {                                    /*  打印所有 CPU 的中断栈情况   */
+    LW_CPU_FOREACH (i) {                                                /*  打印所有 CPU 的中断栈情况   */
         API_InterStackCheck((ULONG)i,
                             &stFreeByteSize,
                             &stUsedByteSize);
