@@ -156,6 +156,19 @@ static INT sio16c550SetBaud (SIO16C550_CHAN *psiochan, ULONG  baud)
     SET_REG(psiochan, LCR, psiochan->lcr);
 
     psiochan->baud = baud;
+    
+    /*
+     * some 16550 ip need reset hw here
+     */
+    SET_REG(psiochan, IER, 0);                                          /* disable interrupt            */
+    
+    SET_REG(psiochan, FCR, 
+            ((psiochan->rx_trigger_level << 6) | 
+             RxCLEAR | TxCLEAR | FIFO_ENABLE));
+             
+    if (psiochan->channel_mode == SIO_MODE_INT) {
+        SET_REG(psiochan, IER, psiochan->ier);                          /* enable interrupt             */
+    }
 
     LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);
 

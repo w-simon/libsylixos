@@ -37,6 +37,9 @@ HISTORY
 
 ++ Bugfixes:
 
+    2017-04-18: han.hui
+    修正 telnet 窗口大小变化信号发送错误.
+
     2017-03-31: han.hui
     编译内核, 内核库, BSP 加入 -fno-strict-aliasing 编译选项.
 

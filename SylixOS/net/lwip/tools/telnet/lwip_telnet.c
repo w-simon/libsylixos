@@ -40,6 +40,7 @@
 2013.05.08  pty 默认目录为 /dev/pty 目录.
 2014.10.22  加入对部分 IAC 命令的处理.
 2017.01.09  加入网络登录黑名单功能.
+2017.04.18  修正窗口改变信号发送的错误.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -168,7 +169,7 @@ static INT __telnetIacProcesser (LW_OBJECT_HANDLE   ulShell,
 #if LW_CFG_SIGNAL_EN > 0
                 sigevent.sigev_signo           = SIGWINCH;
                 sigevent.sigev_value.sival_ptr = LW_NULL;
-                sigevent.sigev_notify          = SIGEV_NONE;
+                sigevent.sigev_notify          = SIGEV_SIGNAL;
                 API_TShellSigEvent(ulShell, &sigevent, SIGWINCH);       /*  通知应用程序                */
 #endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
             }

@@ -251,12 +251,6 @@ static err_t  netdev_netif_init (struct netif *netif)
   
   netif->chksum_flags = (u16_t)netdev->chksum_flags;
   
-  netif->hwaddr_len = (u8_t)((netdev->hwaddr_len < NETIF_MAX_HWADDR_LEN)
-                    ? netdev->hwaddr_len
-                    : NETIF_MAX_HWADDR_LEN);
-
-  SMEMCPY(netif->hwaddr, netdev->hwaddr, netif->hwaddr_len);
-  
   if (netdev->init_flags & NETDEV_INIT_IPV6_AUTOCFG) {
     netif->ip6_autoconfig_enabled = 1;
   }
@@ -310,6 +304,14 @@ static err_t  netdev_netif_init (struct netif *netif)
       return (ERR_IF);
     } 
   }
+  
+  /* Update netif hwaddr */
+  netif->hwaddr_len = (u8_t)((netdev->hwaddr_len < NETIF_MAX_HWADDR_LEN)
+                    ? netdev->hwaddr_len
+                    : NETIF_MAX_HWADDR_LEN);
+
+  SMEMCPY(netif->hwaddr, netdev->hwaddr, netif->hwaddr_len);
+  
   if (netdev->if_flags & IFF_UP) {
     NETDEV_UP(netdev);
   }
@@ -925,7 +927,7 @@ struct ip6_hdr *netdev_pbuf_ip6hdr (struct pbuf *p, int offset, int *hdrlen, int
       u8_t *hdr;
       int hlen, nexth;
     
-      *tothdrlen = *hdrlen;
+      *tothdrlen = IP6_HLEN;
       hdr = (u8_t *)ip6hdr + IP6_HLEN;
       nexth = IP6H_NEXTH(ip6hdr);
       while (nexth != IP6_NEXTH_NONE) {
