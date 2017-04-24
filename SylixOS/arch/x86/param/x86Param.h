@@ -27,17 +27,13 @@
 *********************************************************************************************************/
 
 typedef struct {
-    BOOL        X86_bHyperThreading;                                    /*  超线程支持                  */
-
-    BOOL        X86_bHasVideoParam;                                     /*  是否有视频参数              */
+    BOOL        X86_bHasVideoParam;                                     /*  是否有指定的视频参数        */
 #define VIDEO_PARAM_LEN     128
     CHAR        X86_cVideoParam[VIDEO_PARAM_LEN];                       /*  视频参数                    */
 
     BOOL        X86_bRtcUtc;                                            /*  RTC 是否 UTC                */
 
-    ULONG       X86_ulSysBusClk;                                        /*  系统总线时钟                */
-
-    BOOL        X86_bHasConsoleDev;
+    BOOL        X86_bHasConsoleDev;                                     /*  是否有指定的控制台设备      */
     CHAR        X86_cConsoleDev[128];                                   /*  控制台设备                  */
 } X86_PARAM;
 

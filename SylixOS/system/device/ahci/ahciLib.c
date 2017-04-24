@@ -280,6 +280,10 @@ INT  API_AhciDriveInfoShow (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, AHCI_PARAM_H
     UINT8               ucFirmware[9] = { 0 };                          /* 固件版本缓冲区               */
     UINT8               ucProduct[41] = { 0 };                          /* 产品信息缓冲区               */
 
+    if ((!hCtrl) || (!hParam)) {
+        return  (PX_ERROR);
+    }
+
     hDrv = hCtrl->AHCICTRL_hDrv;
     hDrive = &hCtrl->AHCICTRL_hDrive[uiDrive];                          /* 通过索引获得控制器句柄       */
     hDev = hDrive->AHCIDRIVE_hDev;
@@ -304,10 +308,18 @@ INT  API_AhciDriveInfoShow (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, AHCI_PARAM_H
     printf("\nAHCI Control %d Drive %d Information >>\n", hCtrl->AHCICTRL_uiIndex, uiDrive);
     printf("Control Name          : %s\n", hCtrl->AHCICTRL_cCtrlName);
     printf("Control Unit Index    : %d\n", hCtrl->AHCICTRL_uiUnitIndex);
-    printf("Control Core Version  : " AHCI_DRV_VER_FORMAT(hCtrl->AHCICTRL_uiCoreVer));
+    if ((hCtrl) && (hCtrl->AHCICTRL_uiCoreVer)) {
+        printf("Control Core Version  : " AHCI_DRV_VER_FORMAT(hCtrl->AHCICTRL_uiCoreVer));
+    } else {
+        printf("Control Core Version  : " "*");
+    }
     printf("\n");
     printf("Driver Name           : %s\n", hCtrl->AHCICTRL_hDrv->AHCIDRV_cDrvName);
-    printf("Driver Version        : " AHCI_DRV_VER_FORMAT(hCtrl->AHCICTRL_hDrv->AHCIDRV_uiDrvVer));
+    if ((hCtrl) && (hCtrl->AHCICTRL_hDrv) && (hCtrl->AHCICTRL_hDrv->AHCIDRV_uiDrvVer)) {
+        printf("Driver Version        : " AHCI_DRV_VER_FORMAT(hCtrl->AHCICTRL_hDrv->AHCIDRV_uiDrvVer));
+    } else {
+        printf("Driver Version        : " "*");
+    }
     printf("\n");
     printf("Drive Base Addr       : %p\n", hDrive->AHCIDRIVE_pvRegAddr);
     printf("Cylinders Number      : %d\n", hDrive->AHCIDRIVE_uiCylinder);
@@ -336,7 +348,11 @@ INT  API_AhciDriveInfoShow (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, AHCI_PARAM_H
     printf("Features Enabled 1    : 0x%04x\n", hParam->AHCIPARAM_usFeaturesEnabled1);
     printf("Features Enabled 2    : 0x%04x\n", hParam->AHCIPARAM_usFeaturesEnabled2);
     printf("\n");
-    printf("Cache Flush Enabled   : %s\n", (hDev->AHCIDEV_iCacheFlush) ? "Enable" : "Disable");
+    if (hDev) {
+        printf("Cache Flush Enabled   : %s\n", (hDev->AHCIDEV_iCacheFlush) ? "Enable" : "Disable");
+    } else {
+        printf("Cache Flush Enabled   : %s\n", "*");
+    }
     printf("\n");
     printf("S/N                   : %s\n", pucSerial);
     printf("Firmware Version      : %s\n", pucFirmware);
@@ -847,6 +863,10 @@ INT  API_AhciCtrlInfoShow (AHCI_CTRL_HANDLE  hCtrl)
     UINT32              uiImpPortNum;                                   /* 有效端口数量                 */
     UINT32              uiReg;                                          /* 寄存器值                     */
 
+    if (!hCtrl) {
+        return  (PX_ERROR);
+    }
+
     hDrv = hCtrl->AHCICTRL_hDrv;
 
     if (hDrv->AHCIDRV_pfuncVendorCtrlTypeNameGet) {
@@ -925,10 +945,18 @@ INT  API_AhciCtrlInfoShow (AHCI_CTRL_HANDLE  hCtrl)
            AHCI_FLAG(AHCI_LOG_LEVEL, AHCI_LOG_BUG), AHCI_FLAG(AHCI_LOG_LEVEL, AHCI_LOG_PRT));
     printf("Control Name         : %s\n", hCtrl->AHCICTRL_cCtrlName);
     printf("Control Unit Index   : %d\n", hCtrl->AHCICTRL_uiUnitIndex);
-    printf("Control Core Version : " AHCI_DRV_VER_FORMAT(hCtrl->AHCICTRL_uiCoreVer));
+    if ((hCtrl) && (hCtrl->AHCICTRL_uiCoreVer)) {
+        printf("Control Core Version  : " AHCI_DRV_VER_FORMAT(hCtrl->AHCICTRL_uiCoreVer));
+    } else {
+        printf("Control Core Version  : " "*");
+    }
     printf("\n");
     printf("Driver Name          : %s\n", hCtrl->AHCICTRL_hDrv->AHCIDRV_cDrvName);
-    printf("Driver Version       : " AHCI_DRV_VER_FORMAT(hCtrl->AHCICTRL_hDrv->AHCIDRV_uiDrvVer));
+    if ((hCtrl) && (hCtrl->AHCICTRL_hDrv) && (hCtrl->AHCICTRL_hDrv->AHCIDRV_uiDrvVer)) {
+        printf("Driver Version        : " AHCI_DRV_VER_FORMAT(hCtrl->AHCICTRL_hDrv->AHCIDRV_uiDrvVer));
+    } else {
+        printf("Driver Version        : " "*");
+    }
     printf("\n");
     printf("Control Base Addr    : %p\n", hCtrl->AHCICTRL_pvRegAddr);
     printf("Control Irq Number   : %lld\n", (UINT64)hCtrl->AHCICTRL_ulIrqVector);

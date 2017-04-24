@@ -257,7 +257,6 @@
   Dummy entry
 *********************************************************************************************************/
 
-
 #define X86_CPUID_DUMMY             0                       /*  Dummy CPUID entry                       */
 
 /*********************************************************************************************************
@@ -815,7 +814,7 @@ typedef union {
 
 typedef union {
     struct {
-        UINT32  xapic_id:32;                            /*  extended apic ID                            */
+        UINT32  xapic_id:32;                            /*  Extended apic ID                            */
     } field;
     UINT32      value;
 } X86_CPUID_EDX_PTOP_PARAMS;
@@ -864,83 +863,78 @@ typedef union {
 } X86_CPUID_EAX_VPADRSIZES_PARAMS;
 
 /*********************************************************************************************************
+  CPU 特性
+*********************************************************************************************************/
+
+typedef struct {
+    size_t      CPUF_stCacheFlushBytes;                                 /*  CLFLUSH 字节数              */
+    INT         CPUF_iICacheWaySize;                                    /*  I-Cache way size            */
+    INT         CPUF_iDCacheWaySize;                                    /*  I-Cache way size            */
+    BOOL        CPUF_bHasCLFlush;                                       /*  Has CLFLUSH inst?           */
+    BOOL        CPUF_bHasAPIC;                                          /*  Has APIC on chip?           */
+    UINT        CPUF_uiProcessorFamily;                                 /*  Processor Family            */
+    BOOL        CPUF_bHasX87FPU;                                        /*  Has X87 FPU?                */
+    BOOL        CPUF_bHasSSE;                                           /*  Has SSE?                    */
+    BOOL        CPUF_bHasSSE2;                                          /*  Has SSE?                    */
+    BOOL        CPUF_bHasFXSR;                                          /*  Has FXSR?                   */
+    BOOL        CPUF_bHasXSAVE;                                         /*  Has XSAVE?                  */
+    BOOL        CPUF_bHasAVX;                                           /*  Has AVX?                    */
+    BOOL        CPUF_bHasMMX;                                           /*  Has MMX?                    */
+    size_t      CPUF_stXSaveCtxSize;                                    /*  XSAVE context size          */
+    BOOL        CPUF_bHasMTRR;                                          /*  Has MTRR?                   */
+#define INFO_STR_LEN    256
+    CHAR        CPUF_pcCpuInfo[INFO_STR_LEN];                           /*  CPU info                    */
+    CHAR        CPUF_pcCacheInfo[INFO_STR_LEN];                         /*  Cache info                  */
+} X86_CPU_FEATURE;
+
+extern X86_CPU_FEATURE      _G_x86CpuFeature;
+
+#define X86_FEATURE_CACHE_FLUSH_BYTES  _G_x86CpuFeature.CPUF_stCacheFlushBytes
+#define X86_FEATURE_ICACHE_WAY_SIZE    _G_x86CpuFeature.CPUF_iICacheWaySize
+#define X86_FEATURE_DCACHE_WAY_SIZE    _G_x86CpuFeature.CPUF_iDCacheWaySize
+#define X86_FEATURE_HAS_CLFLUSH        _G_x86CpuFeature.CPUF_bHasCLFlush
+#define X86_FEATURE_HAS_APIC           _G_x86CpuFeature.CPUF_bHasAPIC
+#define X86_FEATURE_PROCESSOR_FAMILY   _G_x86CpuFeature.CPUF_uiProcessorFamily
+#define X86_FEATURE_HAS_X87FPU         _G_x86CpuFeature.CPUF_bHasX87FPU
+#define X86_FEATURE_HAS_SSE            _G_x86CpuFeature.CPUF_bHasSSE
+#define X86_FEATURE_HAS_SSE2           _G_x86CpuFeature.CPUF_bHasSSE2
+#define X86_FEATURE_HAS_FXSR           _G_x86CpuFeature.CPUF_bHasFXSR
+#define X86_FEATURE_HAS_XSAVE          _G_x86CpuFeature.CPUF_bHasXSAVE
+#define X86_FEATURE_HAS_AVX            _G_x86CpuFeature.CPUF_bHasAVX
+#define X86_FEATURE_HAS_MMX            _G_x86CpuFeature.CPUF_bHasMMX
+#define X86_FEATURE_XSAVE_CTX_SIZE     _G_x86CpuFeature.CPUF_stXSaveCtxSize
+#define X86_FEATURE_HAS_MTRR           _G_x86CpuFeature.CPUF_bHasMTRR
+#define X86_FEATURE_CPU_INFO           _G_x86CpuFeature.CPUF_pcCpuInfo
+#define X86_FEATURE_CACHE_INFO         _G_x86CpuFeature.CPUF_pcCacheInfo
+
+/*********************************************************************************************************
   函数声明
 *********************************************************************************************************/
 
 extern X86_CPUID  *x86CpuIdGet(VOID);
+extern VOID        x86CpuIdProbe(VOID);
+extern VOID        x86CpuIdShow(VOID);
+
 extern INT         x86CpuIdAdd(X86_CPUID_ENTRY  *pentry);
 extern INT         x86CpuIdOverride(X86_CPUID_OVERRIDE  *pentries, INT  iCount);
 extern UINT8       x86CpuIdBitField(UINT8  ucFullId, UINT8  ucMaxSubIdValue, UINT8  ucShiftCount);
 
-extern UINT        x86CpuIdMaxNumLPPerCore(VOID);
+extern UINT        x86CpuIdMaxNumLProcsPerCore(VOID);
 
 extern UINT64      x86CpuIdGetFreq(VOID);
-extern INT         x86CpuIdSetFreq(UINT64  ulFreq);
+extern INT         x86CpuIdSetFreq(UINT64  ui64Freq);
 extern UINT64      x86CpuIdCalcFreq(VOID);
 
+/*********************************************************************************************************
+  汇编函数声明
+*********************************************************************************************************/
+
 extern BOOL        x86CpuIdHWMTSupported(VOID);
-extern UINT        x86CpuIdMaxNumLPPerPkg(VOID);
+extern UINT        x86CpuIdMaxNumLProcsPerPkg(VOID);
 extern UINT        x86CpuIdMaxNumCoresPerPkg(VOID);
 extern UINT        x86CpuIdBitFieldWidth(UINT  iItemCount);
 extern UINT8       x86CpuIdInitialApicId(VOID);
 extern VOID        x86CpuIdProbe32(X86_CPUID  *pcpuid);
-
-/*********************************************************************************************************
-  逻辑核, 物理核转换
-*********************************************************************************************************/
-
-typedef struct {
-    BOOL        APIC2L_bPresent;                                        /*  此 Processor 是否有效       */
-    BOOL        APIC2L_bIsHt;                                           /*  是否为超线程虚拟 Processor  */
-    ULONG       APIC2L_ulCPUId;                                         /*  逻辑 Processor ID           */
-} X86_APIC2L_INFO;
-
-extern X86_APIC2L_INFO      _G_x86Apic2LInfo[];                         /*  逻辑 Processor ID table     */
-
-typedef struct {
-    UINT8       L2APIC_ucApicId;                                        /*  Local APIC ID               */
-} X86_L2APIC_INFO;
-
-extern X86_L2APIC_INFO      _G_x86L2ApicInfo[];
-
-#define X86_APICID_PRESEND(apicid)      (_G_x86Apic2LInfo[(apicid)].APIC2L_bPresent)
-#define X86_APICID_IS_HT(apicid)        (_G_x86Apic2LInfo[(apicid)].APIC2L_bIsHt)
-#define X86_APICID_TO_CPUID(apicid)     (_G_x86Apic2LInfo[(apicid)].APIC2L_ulCPUId)
-#define X86_CPUID_TO_APICID(cpuid)      (_G_x86L2ApicInfo[(cpuid)].L2APIC_ucApicId)
-
-/*********************************************************************************************************
-  x86 逻辑核心数量
-*********************************************************************************************************/
-
-extern INT                  _G_iX86LProcNr;                             /*  逻辑 Processor 数目         */
-extern INT                  _G_iX86PProcNr;                             /*  物理 Processor 数目         */
-
-/*********************************************************************************************************
-  全局变量声明
-*********************************************************************************************************/
-
-extern size_t               _G_stX86CacheFlushBytes;                    /*  CLFLUSH 字节数              */
-extern INT                  _G_iX86ICacheWaySize;                       /*  I-Cache way size            */
-extern INT                  _G_iX86DCacheWaySize;                       /*  I-Cache way size            */
-extern BOOL                 _G_bX86HasCLFlush;                          /*  Has CLFLUSH inst?           */
-extern BOOL                 _G_bX86HasAPIC;                             /*  Has APIC on chip?           */
-extern UINT                 _G_uiX86ProcessorFamily;                    /*  Processor Family            */
-extern BOOL                 _G_bX86HasX87FPU;                           /*  Has X87 FPU?                */
-extern BOOL                 _G_bX86HasSSE;                              /*  Has SSE?                    */
-extern BOOL                 _G_bX86HasSSE2;                             /*  Has SSE?                    */
-extern BOOL                 _G_bX86HasFXSR;                             /*  Has FXSR?                   */
-extern BOOL                 _G_bX86HasXSAVE;                            /*  Has XSAVE?                  */
-extern BOOL                 _G_bX86HasAVX;                              /*  Has AVX?                    */
-extern BOOL                 _G_bX86HasMMX;                              /*  Has MMX?                    */
-extern size_t               _G_stX86XSaveCtxSize;                       /*  XSAVE context size          */
-extern BOOL                 _G_bX86HasHTT;                              /*  Has HTT?                    */
-
-/*********************************************************************************************************
-  CPU Cache info.
-*********************************************************************************************************/
-
-extern CHAR                 _G_pcX86CpuInfo[];                          /*  CPU info                    */
-extern CHAR                 _G_pcX86CacheInfo[];                        /*  Cache info                  */
 
 #endif                                                                  /*  ASSEMBLY                    */
 

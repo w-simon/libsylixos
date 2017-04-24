@@ -24,15 +24,17 @@
   裁剪支持
 *********************************************************************************************************/
 #if LW_CFG_CACHE_EN > 0
-#include "arch/x86/apic/x86LocalApic.h"
-#include "arch/x86/common/x86CpuId.h"
+#include "arch/x86/common/x86Topology.h"
 /*********************************************************************************************************
-  全局变量定义
+  宏定义
 *********************************************************************************************************/
 #define L1_CACHE_I_EN   0x01
 #define L1_CACHE_D_EN   0x02
 #define L1_CACHE_EN     (L1_CACHE_I_EN | L1_CACHE_D_EN)
 #define L1_CACHE_DIS    0x00
+/*********************************************************************************************************
+  全局变量定义
+*********************************************************************************************************/
 static INT      _G_iX86CacheStatus    = L1_CACHE_DIS;                   /*  L1 CACHE 状态               */
 static FUNCPTR  _G_pfuncX86CacheFlush = LW_NULL;                        /*  CACHE FLUSH 函数指针        */
 /*********************************************************************************************************
@@ -41,6 +43,7 @@ static FUNCPTR  _G_pfuncX86CacheFlush = LW_NULL;                        /*  CACH
 extern VOID  x86CacheEnableHw(VOID);
 extern VOID  x86CacheDisableHw(VOID);
 extern VOID  x86CacheResetHw(VOID);
+extern VOID  x86CacheFlushX86Hw(VOID);
 extern VOID  x86CacheFlushPen4Hw(PVOID  pvAdrs, size_t  stBytes);
 extern VOID  x86CacheClearPen4Hw(PVOID  pvAdrs, size_t  stBytes);
 /*********************************************************************************************************
@@ -555,14 +558,14 @@ VOID  x86CacheInit (LW_CACHE_OP  *pcacheop,
     pcacheop->CACHEOP_iILoc = CACHE_LOCATION_PIPT;                      /*  PIPT                        */
     pcacheop->CACHEOP_iDLoc = CACHE_LOCATION_PIPT;
     
-    pcacheop->CACHEOP_iICacheLine     = _G_stX86CacheFlushBytes;
-    pcacheop->CACHEOP_iDCacheLine     = _G_stX86CacheFlushBytes;
+    pcacheop->CACHEOP_iICacheLine     = X86_FEATURE_CACHE_FLUSH_BYTES;
+    pcacheop->CACHEOP_iDCacheLine     = X86_FEATURE_CACHE_FLUSH_BYTES;
 
-    pcacheop->CACHEOP_iICacheWaySize  = _G_iX86ICacheWaySize;
-    pcacheop->CACHEOP_iDCacheWaySize  = _G_iX86DCacheWaySize;
+    pcacheop->CACHEOP_iICacheWaySize  = X86_FEATURE_ICACHE_WAY_SIZE;
+    pcacheop->CACHEOP_iDCacheWaySize  = X86_FEATURE_DCACHE_WAY_SIZE;
 
     /*
-     * 默认所有 Cache 函数都是 NONE 函数
+     * 默认所有 CACHE 函数都是 NONE 函数
      */
     pcacheop->CACHEOP_pfuncEnable         = x86CacheEnableNone;
     pcacheop->CACHEOP_pfuncDisable        = x86CacheDisableNone;
@@ -586,16 +589,16 @@ VOID  x86CacheInit (LW_CACHE_OP  *pcacheop,
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 
     /*
-     * 下面根据特性填充相应的 Cache 函数
-     * i386 没有 Cache, 但它太古老了, 不对它作支持, 认为都有 Cache
+     * 下面根据特性填充相应的 CACHE 函数
+     * i386 没有 CACHE, 但它太古老了, 不对它作支持, 认为都有 CACHE
      */
     pcacheop->CACHEOP_pfuncEnable = x86CacheEnable;
 
     if (LW_NCPUS == 1) {                                                /*  单核的 CPU                  */
-        pcacheop->CACHEOP_pfuncDisable = x86CacheDisable;               /*  才有 Cache 关闭函数         */
+        pcacheop->CACHEOP_pfuncDisable = x86CacheDisable;               /*  才有 CACHE 关闭函数         */
                                                                         /*  和以下的函数                */
         if ((uiData & CACHE_SNOOP_ENABLE) == 0) {                       /*  SNOOP 不使能才需要          */
-            if (_G_bX86HasCLFlush) {                                    /*  有 CLFLUSH 指令             */
+            if (X86_FEATURE_HAS_CLFLUSH) {                              /*  有 CLFLUSH 指令             */
                 pcacheop->CACHEOP_pfuncFlush          = x86CacheFlushPen4;
                 pcacheop->CACHEOP_pfuncFlushPage      = x86CacheFlushPagePen4;
                 pcacheop->CACHEOP_pfuncInvalidate     = x86CacheInvalidatePen4;
@@ -625,15 +628,19 @@ VOID  x86CacheInit (LW_CACHE_OP  *pcacheop,
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
-** 注  意  : i386 没有 Cache, 但它太古老了, 不对它作支持, 认为都有 Cache.
+** 注  意  : i386 没有 CACHE, 但它太古老了, 不对它作支持, 认为都有 CACHE.
 *********************************************************************************************************/
 VOID  x86CacheReset (CPCHAR  pcMachineName)
 {
+#if LW_CFG_SMP_EN > 0
     UINT8  ucApicId = x86LocalApicId();
 
-    if (!X86_APICID_IS_HT(ucApicId)) {                                  /*  仅复位物理 CPU cache        */
+    if (!X86_APICID_IS_HT(ucApicId)) {                                  /*  仅物理 CPU 复位 CACHE       */
         x86CacheResetHw();
     }
+#else
+    x86CacheResetHw();
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 }
 /*********************************************************************************************************
 ** 函数名称: x86DCacheFlush

@@ -44,6 +44,7 @@
 #define LW_CFG_MODULELOADER_GCOV_EN             1                       /*  内核模块代码覆盖率分析接口  */
 #define LW_CFG_MODULELOADER_ATEXIT_EN           0                       /*  是否允许内核模块 atexit()   */
 #define LW_CFG_MODULELOADER_FPUCHK_EN           0                       /*  是否强行检查 FPU 设置兼容性 */
+#define LW_CFG_MODULELOADER_RMMOD_ATREBOOT_EN   0                       /*  重启时卸载所有模块          */
 
 /*********************************************************************************************************
 *                                        Trusted computing

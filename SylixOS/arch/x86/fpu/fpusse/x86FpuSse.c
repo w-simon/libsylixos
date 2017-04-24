@@ -192,7 +192,7 @@ static VOID  x86SseCtxShow (INT  iFd, ARCH_FPU_CTX  *pcpufpuCtx)
     pInt = (UINT32 *)&(pfpuXCtx->XCTX_xmm[7]);
     fdprintf(iFd, "xmm7   = %08x_%08x_%08x_%08x\n", pInt[3], pInt[2], pInt[1], pInt[0]);
 
-    if (_G_bX86HasAVX && _G_bX86HasXSAVE) {
+    if (X86_FEATURE_HAS_AVX && X86_FEATURE_HAS_XSAVE) {
         for (i = 0; i < 16; i += 4) {
             for (j = 0; j < 4; j++) {
                 fdprintf(iFd, "\nXSaveHeader[%d] = %d ", i + j, pXSaveHeader[i + j]);
@@ -250,7 +250,7 @@ static VOID  x86FpuSseCtxShow (INT  iFd, PVOID  pFpuCtx)
     /*
      * 打印浮点控制寄存器
      */
-    if (_G_bX86HasFXSR) {
+    if (X86_FEATURE_HAS_FXSR) {
         for (i = 0; _G_fpXCtrlRegName[i].REG_pcName != (PCHAR)LW_NULL; i++) {
             if ((i % 4) == 0) {
                 fdprintf(iFd, "\n");
@@ -282,7 +282,7 @@ static VOID  x86FpuSseCtxShow (INT  iFd, PVOID  pFpuCtx)
     /*
      * 打印浮点数据寄存器
      */
-    if (_G_bX86HasFXSR) {
+    if (X86_FEATURE_HAS_FXSR) {
         for (i = 0; _G_fpXRegName[i].REG_pcName != (PCHAR)LW_NULL; i++) {
             if ((i % 4) == 0) {
                 fdprintf(iFd, "\n");
@@ -313,7 +313,8 @@ static VOID  x86FpuSseCtxShow (INT  iFd, PVOID  pFpuCtx)
 
     fdprintf(iFd, "\n");
 
-    if (_G_bX86HasSSE || _G_bX86HasSSE2 || (_G_bX86HasAVX && _G_bX86HasXSAVE)) {
+    if (X86_FEATURE_HAS_SSE || X86_FEATURE_HAS_SSE2 ||
+       (X86_FEATURE_HAS_AVX && X86_FEATURE_HAS_XSAVE)) {
         x86SseCtxShow(iFd, pcpufpuCtx);
     }
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0)      */
@@ -347,24 +348,24 @@ PX86_FPU_OP  x86FpuSsePrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
     _G_fpuopFpuSse.PFPU_pfuncEnableTask  = x86FpuSseEnableTask;
     _G_fpuopFpuSse.PFPU_pfuncCtxShow     = x86FpuSseCtxShow;
 
-    if (_G_bX86HasXSAVE && _G_bX86HasAVX) {
-        if (_G_stX86XSaveCtxSize > LW_CFG_CPU_FPU_XSAVE_SIZE) {
+    if (X86_FEATURE_HAS_XSAVE && X86_FEATURE_HAS_AVX) {
+        if (X86_FEATURE_XSAVE_CTX_SIZE > LW_CFG_CPU_FPU_XSAVE_SIZE) {
             _PrintFormat("x86FpuSsePrimaryInit(): XSAVE context size = %d > LW_CFG_CPU_FPU_XSAVE_SIZE"
-                         ", use FXSR\r\n", _G_stX86XSaveCtxSize);
+                         ", use FXSR\r\n", X86_FEATURE_XSAVE_CTX_SIZE);
 
-            _G_bX86HasXSAVE = LW_FALSE;
-            _G_bX86HasAVX   = LW_FALSE;
+            X86_FEATURE_HAS_XSAVE = LW_FALSE;
+            X86_FEATURE_HAS_AVX   = LW_FALSE;
         }
     }
 
-    if (_G_bX86HasXSAVE && _G_bX86HasAVX) {
+    if (X86_FEATURE_HAS_XSAVE && X86_FEATURE_HAS_AVX) {
         _G_fpuopFpuSse.PFPU_pfuncSave    = x86FpuSseXExtSave;
         _G_fpuopFpuSse.PFPU_pfuncRestore = x86FpuSseXExtRestore;
 
         x86Cr4Set(x86Cr4Get() | X86_CR4_OSXSAVE | X86_CR4_OSFXSR);      /*  设置OSFXSR位, 准备 SSE 环境 */
         x86FpuSseEnableYMMState();
 
-    } else if (_G_bX86HasFXSR) {
+    } else if (X86_FEATURE_HAS_FXSR) {
         _G_fpuopFpuSse.PFPU_pfuncSave    = x86FpuSseXSave;
         _G_fpuopFpuSse.PFPU_pfuncRestore = x86FpuSseXRestore;
 
@@ -395,11 +396,11 @@ VOID  x86FpuSseSecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
     (VOID)pcMachineName;
     (VOID)pcFpuName;
 
-    if (_G_bX86HasXSAVE && _G_bX86HasAVX) {
+    if (X86_FEATURE_HAS_XSAVE && X86_FEATURE_HAS_AVX) {
         x86Cr4Set(x86Cr4Get() | X86_CR4_OSXSAVE |X86_CR4_OSFXSR);       /*  设置OSFXSR位, 准备 SSE 环境 */
         x86FpuSseEnableYMMState();
 
-    } else if (_G_bX86HasFXSR) {
+    } else if (X86_FEATURE_HAS_FXSR) {
         x86Cr4Set(x86Cr4Get() | X86_CR4_OSFXSR);                        /*  设置OSFXSR位, 准备 SSE 环境 */
 
     } else {

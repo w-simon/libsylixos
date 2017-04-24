@@ -50,7 +50,7 @@
 /*********************************************************************************************************
   全局变量定义
 *********************************************************************************************************/
-static UINT64           _G_ulX86CpuIdFreq = 1000000000ULL;              /*  CPU 主频, 缺省为 1GHz       */
+static UINT64           _G_ui64X86CpuIdFreq = 1000000000ULL;            /*  CPU 主频, 缺省为 1GHz       */
 
 static X86_CPUID_ENTRY  _G_x86CpuIdTable[] = {                          /*  CPUID 条目表                */
     {X86_CPUID_PENTIUM,        X86_FAMILY_PENTIUM},
@@ -147,34 +147,26 @@ const static CHAR      *_G_x86L2CacheAssoc[] = {                        /*  L2 C
 
 static X86_CPUID        _G_x86CpuId;                                    /*  全局的 CPUID 结构           */
 
-X86_APIC2L_INFO         _G_x86Apic2LInfo[2 * LW_CFG_MAX_PROCESSORS];    /*  LOCAL APIC -> 逻辑 Processor*/
-X86_L2APIC_INFO         _G_x86L2ApicInfo[LW_CFG_MAX_PROCESSORS];        /*  逻辑 Processor -> LOCAL APIC*/
+X86_CPU_FEATURE         _G_x86CpuFeature = {                            /*  全局的 CPU 特性结构         */
+    .CPUF_iICacheWaySize    = 4096,                                     /*  I-Cache way size            */
+    .CPUF_iDCacheWaySize    = 4096,                                     /*  D-Cache way size            */
+    .CPUF_stCacheFlushBytes = X86_CLFLUSH_DEF_BYTES,                    /*  CLFLUSH 字节数              */
+    .CPUF_bHasCLFlush       = LW_FALSE,                                 /*  Has CLFLUSH inst?           */
+    .CPUF_bHasAPIC          = LW_FALSE,                                 /*  Has APIC on chip?           */
+    .CPUF_uiProcessorFamily = X86_FAMILY_UNSUPPORTED,                   /*  Processor Family            */
+    .CPUF_bHasX87FPU        = LW_FALSE,                                 /*  Has X87 FPU?                */
+    .CPUF_bHasSSE           = LW_FALSE,                                 /*  Has SSE?                    */
+    .CPUF_bHasSSE2          = LW_FALSE,                                 /*  Has SSE?                    */
+    .CPUF_bHasFXSR          = LW_FALSE,                                 /*  Has FXSR?                   */
+    .CPUF_bHasXSAVE         = LW_FALSE,                                 /*  Has XSAVE?                  */
+    .CPUF_stXSaveCtxSize    = 0,                                        /*  XSAVE context size          */
+    .CPUF_bHasAVX           = LW_FALSE,                                 /*  Has AVX?                    */
+    .CPUF_bHasMMX           = LW_FALSE,                                 /*  Has MMX?                    */
+    .CPUF_pcCpuInfo         = "<unknow>",                               /*  CPU info                    */
+    .CPUF_pcCacheInfo       = "<unknow>",                               /*  CACHE info                  */
+};
 
-INT                     _G_iX86LProcNr = 0;                             /*  逻辑 Processor 数目         */
-INT                     _G_iX86PProcNr = 0;                             /*  物理 Processor 数目         */
-
-INT                     _G_iX86ICacheWaySize    = 4096;                 /*  I-Cache way size            */
-INT                     _G_iX86DCacheWaySize    = 4096;                 /*  D-Cache way size            */
 size_t                  _G_stX86CacheFlushBytes = X86_CLFLUSH_DEF_BYTES;/*  CLFLUSH 字节数              */
-BOOL                    _G_bX86HasCLFlush       = LW_FALSE;             /*  Has CLFLUSH inst?           */
-
-BOOL                    _G_bX86HasAPIC = LW_FALSE;                      /*  Has APIC on chip?           */
-
-UINT                    _G_uiX86ProcessorFamily = X86_FAMILY_UNSUPPORTED;   /*  Processor Family        */
-
-BOOL                    _G_bX86HasX87FPU     = LW_FALSE;                /*  Has X87 FPU?                */
-BOOL                    _G_bX86HasSSE        = LW_FALSE;                /*  Has SSE?                    */
-BOOL                    _G_bX86HasSSE2       = LW_FALSE;                /*  Has SSE?                    */
-BOOL                    _G_bX86HasFXSR       = LW_FALSE;                /*  Has FXSR?                   */
-BOOL                    _G_bX86HasXSAVE      = LW_FALSE;                /*  Has XSAVE?                  */
-size_t                  _G_stX86XSaveCtxSize = 0;                       /*  XSAVE context size          */
-BOOL                    _G_bX86HasAVX        = LW_FALSE;                /*  Has AVX?                    */
-BOOL                    _G_bX86HasMMX        = LW_FALSE;                /*  Has MMX?                    */
-
-BOOL                    _G_bX86HasHTT = LW_FALSE;                       /*  Has HTT?                    */
-
-CHAR                    _G_pcX86CpuInfo[256]   = "<unknow>";            /*  CPU info                    */
-CHAR                    _G_pcX86CacheInfo[256] = "<unknow>";            /*  CACHE info                  */
 /*********************************************************************************************************
 ** 函数名称: x86CpuIdGet
 ** 功能描述: 获得 CPU 特性集
@@ -197,7 +189,7 @@ X86_CPUID  *x86CpuIdGet (VOID)
 *********************************************************************************************************/
 INT  x86CpuIdAdd (X86_CPUID_ENTRY  *pentry)
 {
-    X86_CPUID_ENTRY  *pcur = NULL;
+    X86_CPUID_ENTRY  *pcur = LW_NULL;
     INT               i;
     INT               iError = PX_ERROR;
 
@@ -267,11 +259,11 @@ INT  x86CpuIdOverride (X86_CPUID_OVERRIDE  *pentries, INT  iCount)
 *********************************************************************************************************/
 VOID  x86CpuIdProbe (VOID)
 {
-    X86_CPUID                      *pcpuid = &_G_x86CpuId;
+    X86_CPUID                      *pcpuid      = &_G_x86CpuId;
+    X86_CPU_FEATURE                *pcpufeature = &_G_x86CpuFeature;
     X86_CPUID_EAX_CACHE_PARAMS      cacheEax[4];
     X86_CPUID_EBX_CACHE_PARAMS      cacheEbx[4];
     X86_CPUID_ECX_CACHE_PARAMS      cacheEcx[4];
-    X86_CPUID_INFO                  info;
     X86_CPUID_EDX_FEATURES          features;
     X86_CPUID_ECX_FEATURES          extendedFeatures;
     UINT                            uiCpuId;
@@ -279,9 +271,12 @@ VOID  x86CpuIdProbe (VOID)
     INT                             i;
     CHAR                            cTemp[256];
 
+#if LW_CFG_CPU_WORD_LENGHT == 32
     x86CpuIdProbe32(pcpuid);
+#else
+    x86CpuIdProbe64(pcpuid);
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
 
-    info.value             = pcpuid->std.featuresEbx;
     features.value         = pcpuid->std.featuresEdx;
     extendedFeatures.value = pcpuid->std.featuresEcx;
 
@@ -292,13 +287,13 @@ VOID  x86CpuIdProbe (VOID)
 
     for (i = 0; i < _G_iX86CpuEntriesNr; i++) {
         if (_G_x86CpuIdTable[i].signature == uiCpuId) {
-            _G_uiX86ProcessorFamily = _G_x86CpuIdTable[i].family;
+            pcpufeature->CPUF_uiProcessorFamily = _G_x86CpuIdTable[i].family;
             break;
         }
     }
 
-    if (_G_uiX86ProcessorFamily == X86_FAMILY_UNSUPPORTED) {
-        _G_uiX86ProcessorFamily  = X86_FAMILY_PENTIUM;
+    if (pcpufeature->CPUF_uiProcessorFamily == X86_FAMILY_UNSUPPORTED) {
+        pcpufeature->CPUF_uiProcessorFamily  = X86_FAMILY_PENTIUM;
     }
 
     /*
@@ -307,30 +302,27 @@ VOID  x86CpuIdProbe (VOID)
     if (pcpuid->ext.highestExtValue >= 0x80000002) {
         pcLine = (CHAR *)pcpuid->std.brandString;
         SKIP_SPACE(pcLine);
-        lib_strcpy(_G_pcX86CpuInfo, pcLine);
+        lib_strcpy(pcpufeature->CPUF_pcCpuInfo, pcLine);
     }
 
     /*
      * 识别 APIC
      */
-    _G_bX86HasAPIC = features.field.apic ? LW_TRUE : LW_FALSE;
+    pcpufeature->CPUF_bHasAPIC = features.field.apic ? LW_TRUE : LW_FALSE;
+
 
     /*
-     * 识别超线程技术
-     */
-    _G_bX86HasHTT  = (features.field.htt && (info.field.nproc > 1)) ? LW_TRUE : LW_FALSE;
-
-    /*
-     * 识别 Cache 特性
+     * 识别 CACHE 特性
      */
     if (pcpuid->std.featuresEdx & X86_CPUID_CLFLUSH) {
-        _G_bX86HasCLFlush = LW_TRUE;
-        _G_stX86CacheFlushBytes = (size_t)(pcpuid->std.featuresEbx & X86_CPUID_CHUNKS)
-                                >> X86_CPUID_CHUNKS_TO_BYTES_SHIFT;
+        pcpufeature->CPUF_bHasCLFlush = LW_TRUE;
+        pcpufeature->CPUF_stCacheFlushBytes = (size_t)(pcpuid->std.featuresEbx & X86_CPUID_CHUNKS)
+                                               >> X86_CPUID_CHUNKS_TO_BYTES_SHIFT;
+        _G_stX86CacheFlushBytes = pcpufeature->CPUF_stCacheFlushBytes;
     }
 
     if (pcpuid->std.highestValue >= 4) {
-        lib_strcpy(_G_pcX86CacheInfo, "");
+        lib_strcpy(pcpufeature->CPUF_pcCacheInfo, "");
 
         for (i = 0; i < pcpuid->ext.cacheCount; i++) {
             cacheEax[i].value = pcpuid->ext.cacheParams[i][0];
@@ -347,8 +339,8 @@ VOID  x86CpuIdProbe (VOID)
             if (stSize >= LW_CFG_MB_SIZE) {
                 stSize = stSize / LW_CFG_MB_SIZE;
                 snprintf(cTemp, sizeof(cTemp), "L%d %s-CACHE %dMB ",
-                        cacheEax[i].field.level, _G_pcX86CacheShortTypes[cacheEax[i].field.type],
-                        (INT)stSize);
+                         cacheEax[i].field.level, _G_pcX86CacheShortTypes[cacheEax[i].field.type],
+                         (INT)stSize);
 
             } else {
                 stSize = stSize / LW_CFG_KB_SIZE;
@@ -357,18 +349,18 @@ VOID  x86CpuIdProbe (VOID)
                          (INT)stSize);
             }
 
-            lib_strcat(_G_pcX86CacheInfo, cTemp);
+            lib_strcat(pcpufeature->CPUF_pcCacheInfo, cTemp);
 
             if (cacheEax[i].field.level == 1) {
                 if (cacheEax[i].field.type == 1) {
-                    _G_iX86DCacheWaySize = (cacheEbx[i].field.partitions + 1) *
-                                           (cacheEbx[i].field.line_size + 1) *
-                                           (cacheEcx[i].sets + 1);
+                    pcpufeature->CPUF_iDCacheWaySize = (cacheEbx[i].field.partitions + 1) *
+                                                       (cacheEbx[i].field.line_size  + 1) *
+                                                       (cacheEcx[i].sets + 1);
 
                 } else if (cacheEax[i].field.type == 2) {
-                    _G_iX86ICacheWaySize = (cacheEbx[i].field.partitions + 1) *
-                                           (cacheEbx[i].field.line_size + 1) *
-                                           (cacheEcx[i].sets + 1);
+                    pcpufeature->CPUF_iICacheWaySize = (cacheEbx[i].field.partitions + 1) *
+                                                       (cacheEbx[i].field.line_size  + 1) *
+                                                       (cacheEcx[i].sets + 1);
                 }
             }
         }
@@ -377,17 +369,22 @@ VOID  x86CpuIdProbe (VOID)
     /*
      * 识别 FPU MMX SSE AVX 特性
      */
-    _G_bX86HasX87FPU = features.field.fpu           ? LW_TRUE : LW_FALSE;
-    _G_bX86HasSSE    = features.field.sse           ? LW_TRUE : LW_FALSE;
-    _G_bX86HasSSE2   = features.field.sse2          ? LW_TRUE : LW_FALSE;
-    _G_bX86HasFXSR   = features.field.fxsr          ? LW_TRUE : LW_FALSE;
-    _G_bX86HasXSAVE  = extendedFeatures.field.xsave ? LW_TRUE : LW_FALSE;
-    _G_bX86HasAVX    = extendedFeatures.field.avx   ? LW_TRUE : LW_FALSE;
-    _G_bX86HasMMX    = features.field.mmx           ? LW_TRUE : LW_FALSE;
+    pcpufeature->CPUF_bHasX87FPU = features.field.fpu           ? LW_TRUE : LW_FALSE;
+    pcpufeature->CPUF_bHasSSE    = features.field.sse           ? LW_TRUE : LW_FALSE;
+    pcpufeature->CPUF_bHasSSE2   = features.field.sse2          ? LW_TRUE : LW_FALSE;
+    pcpufeature->CPUF_bHasFXSR   = features.field.fxsr          ? LW_TRUE : LW_FALSE;
+    pcpufeature->CPUF_bHasXSAVE  = extendedFeatures.field.xsave ? LW_TRUE : LW_FALSE;
+    pcpufeature->CPUF_bHasAVX    = extendedFeatures.field.avx   ? LW_TRUE : LW_FALSE;
+    pcpufeature->CPUF_bHasMMX    = features.field.mmx           ? LW_TRUE : LW_FALSE;
 
-    if (_G_bX86HasXSAVE && _G_bX86HasAVX) {
-        _G_stX86XSaveCtxSize = pcpuid->ext.xsaveParamsEcx;
+    if (pcpufeature->CPUF_bHasXSAVE && pcpufeature->CPUF_bHasAVX) {
+        pcpufeature->CPUF_stXSaveCtxSize = pcpuid->ext.xsaveParamsEcx;
     }
+
+    /*
+     * 识别 MTRR 特性
+     */
+    pcpufeature->CPUF_bHasMTRR = features.field.mtrr ? LW_TRUE : LW_FALSE;
 }
 /*********************************************************************************************************
 ** 函数名称: x86CpuIdShow
@@ -441,7 +438,7 @@ VOID  x86CpuIdShow (VOID)
     X86_CPUID_EAX_VPADRSIZES_PARAMS vpadrEax;
 
     UINT64                          ulCpuSerial;
-    CHAR                           *pcCpuTypeName = NULL;
+    CHAR                           *pcCpuTypeName = LW_NULL;
     CHAR                           *pcLine;
     UINT                            uiX86Processor = X86_FAMILY_UNSUPPORTED;
     INT                             i, iCpuIdMask;
@@ -799,24 +796,24 @@ UINT8  x86CpuIdBitField (UINT8  ucFullId, UINT8  ucMaxSubIdValue, UINT8  ucShift
 
     uiMaskWidth = x86CpuIdBitFieldWidth((UINT)ucMaxSubIdValue);
 
-    ucMaskBits = (((UINT8)(0xFF << ucShiftCount)) ^
-                  ((UINT8)(0xFF << (ucShiftCount + uiMaskWidth))));
+    ucMaskBits = (((UINT8)(0xff << ucShiftCount)) ^
+                  ((UINT8)(0xff << (ucShiftCount + uiMaskWidth))));
 
     ucSubId = ucFullId & ucMaskBits;
 
     return  (ucSubId);
 }
 /*********************************************************************************************************
-** 函数名称: x86CpuIdMaxNumLPPerCore
+** 函数名称: x86CpuIdMaxNumLProcsPerCore
 ** 功能描述: 获得每个 Core 可以容纳的最大的逻辑处理器数
 ** 输　入  : NONE
 ** 输　出  : 每个 Core 可以容纳的最大的逻辑处理器数
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-UINT  x86CpuIdMaxNumLPPerCore (VOID)
+UINT  x86CpuIdMaxNumLProcsPerCore (VOID)
 {
-    return  ((UINT)(x86CpuIdMaxNumLPPerPkg() / x86CpuIdMaxNumCoresPerPkg()));
+    return  ((UINT)(x86CpuIdMaxNumLProcsPerPkg() / x86CpuIdMaxNumCoresPerPkg()));
 }
 /*********************************************************************************************************
 ** 函数名称: x86CpuIdCalcFreq
@@ -834,9 +831,9 @@ UINT64  x86CpuIdCalcFreq (VOID)
     CHAR       *pcStr;
     CHAR       *pcDot;
     CHAR       *pcFreqStart;
-    UINT64      ulMultiple;
-    UINT64      ulTmpFreq;
-    UINT64      ulFreq;
+    UINT64      ui64Multiple;
+    UINT64      ui64TmpFreq;
+    UINT64      ui64Freq;
 
     /*
      * Get frequency string from CPUID
@@ -847,7 +844,7 @@ UINT64  x86CpuIdCalcFreq (VOID)
      * Using pattern matching first
      */
     pcFreqStart = lib_strstr(pcStr, "Hz");
-    if (pcFreqStart == NULL) {
+    if (pcFreqStart == LW_NULL) {
         return  (0);
     }
 
@@ -859,16 +856,16 @@ UINT64  x86CpuIdCalcFreq (VOID)
     switch (*pcDot) {
 
     case 'M':
-        ulMultiple = 1000000;
+        ui64Multiple = 1000000;
         break;
 
     case 'T':
-        ulMultiple = 1000000000000;
+        ui64Multiple = 1000000000000;
         break;
 
     case 'G':
     default:
-        ulMultiple = 1000000000;
+        ui64Multiple = 1000000000;
         break;
     }
 
@@ -886,8 +883,8 @@ UINT64  x86CpuIdCalcFreq (VOID)
      * Get frequency in Hz, note: can not use floating compute, or it will
      * cause exception at initial stage.
      */
-    ulTmpFreq = lib_atoi(cIntBuf);
-    ulFreq    = ulTmpFreq * ulMultiple;
+    ui64TmpFreq = lib_atoi(cIntBuf);
+    ui64Freq    = ui64TmpFreq * ui64Multiple;
 
     /*
      * Skip the leading '0' after '.'
@@ -895,20 +892,20 @@ UINT64  x86CpuIdCalcFreq (VOID)
     pcFreqStart = cMinBuf;
     while (*pcFreqStart == '0') {
         pcFreqStart++;
-        ulMultiple = ulMultiple / 10;
+        ui64Multiple = ui64Multiple / 10;
     }
-    ulTmpFreq = lib_atoi(pcFreqStart);
+    ui64TmpFreq = lib_atoi(pcFreqStart);
 
     /*
      * Placing division first can make the posibility of overflow lower
      */
-    ulTmpFreq = (ulMultiple / 10) * ulTmpFreq;
+    ui64TmpFreq = (ui64Multiple / 10) * ui64TmpFreq;
 
     /*
      * The decimal part should be less than multiple
      */
-    while (ulTmpFreq >= ulMultiple) {
-        ulTmpFreq = ulTmpFreq / 10;
+    while (ui64TmpFreq >= ui64Multiple) {
+        ui64TmpFreq = ui64TmpFreq / 10;
     }
 
     /*
@@ -923,11 +920,11 @@ UINT64  x86CpuIdCalcFreq (VOID)
     /*
      * Get number that is the most near to the multiple of 33MHz
      */
-    ulFreq = ((ulFreq + ulTmpFreq + 16666667) / 33333333) * 33333333;
+    ui64Freq = ((ui64Freq + ui64TmpFreq + 16666667) / 33333333) * 33333333;
 
-    _G_ulX86CpuIdFreq = ulFreq;
+    _G_ui64X86CpuIdFreq = ui64Freq;
 
-    return  (ulFreq);
+    return  (ui64Freq);
 }
 /*********************************************************************************************************
 ** 函数名称: x86CpuIdGetFreq
@@ -939,19 +936,19 @@ UINT64  x86CpuIdCalcFreq (VOID)
 *********************************************************************************************************/
 UINT64  x86CpuIdGetFreq (VOID)
 {
-    return  (_G_ulX86CpuIdFreq);
+    return  (_G_ui64X86CpuIdFreq);
 }
 /*********************************************************************************************************
 ** 函数名称: x86CpuIdSetFreq
 ** 功能描述: 设置保存的 CPU 频率
-** 输　入  : ulFreq      CPU 频率(Hz)
+** 输　入  : ui64Freq      CPU 频率(Hz)
 ** 输　出  : ERROR CODE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-INT  x86CpuIdSetFreq (UINT64  ulFreq)
+INT  x86CpuIdSetFreq (UINT64  ui64Freq)
 {
-    _G_ulX86CpuIdFreq = ulFreq;
+    _G_ui64X86CpuIdFreq = ui64Freq;
 
     return  (ERROR_NONE);
 }

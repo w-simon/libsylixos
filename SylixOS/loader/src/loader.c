@@ -697,6 +697,8 @@ static INT moduleDelRef (LW_LD_EXEC_MODULE *pmodule)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
+#if LW_CFG_MODULELOADER_RMMOD_ATREBOOT_EN > 0
+
 VOID  moduleRebootHook (INT  iRebootType)
 {
     LW_LD_VPROC        *pvproc = &_G_vprocKernel;
@@ -722,6 +724,8 @@ VOID  moduleRebootHook (INT  iRebootType)
     }
     LW_VP_UNLOCK(pvproc);
 }
+
+#endif
 /*********************************************************************************************************
 ** 函数名称: API_ModuleStatus
 ** 功能描述: 查看elf文件信息.

@@ -25,8 +25,7 @@
 *********************************************************************************************************/
 #if LW_CFG_SMP_EN > 0
 #include "x86MpCore.h"
-#include "arch/x86/common/x86CpuId.h"
-#include "arch/x86/apic/x86LocalApic.h"
+#include "arch/x86/common/x86Topology.h"
 /*********************************************************************************************************
 ** 函数名称: archMpCur
 ** 功能描述: 获得获得当前 CPU ID
@@ -37,7 +36,7 @@
 *********************************************************************************************************/
 LW_WEAK ULONG  archMpCur (VOID)
 {
-    return  (X86_APICID_TO_CPUID(x86LocalApicId()));
+    return  (X86_APICID_TO_LOGICID(x86LocalApicId()));
 }
 /*********************************************************************************************************
 ** 函数名称: archMpInt
@@ -49,7 +48,7 @@ LW_WEAK ULONG  archMpCur (VOID)
 *********************************************************************************************************/
 LW_WEAK VOID  archMpInt (ULONG  ulCPUId)
 {
-    x86LocalApicSendIpi(X86_CPUID_TO_APICID(ulCPUId), 64 + ulCPUId);    /*  x86 IPI 中断向量从 64 开始  */
+    x86LocalApicSendIpi(X86_LOGICID_TO_APICID(ulCPUId), X86_IPI_VECTOR(ulCPUId));
 }
 
 #endif                                                                  /*  LW_CFG_SMP_EN               */

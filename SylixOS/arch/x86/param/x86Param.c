@@ -24,7 +24,7 @@
 /*********************************************************************************************************
   启动参数
 *********************************************************************************************************/
-static X86_PARAM    _G_x86Param = { LW_FALSE };
+static X86_PARAM    _G_x86Param;
 /*********************************************************************************************************
 ** 函数名称: archKernelParam
 ** 功能描述: PowerPC 体系构架启动参数设置.
@@ -35,15 +35,7 @@ static X86_PARAM    _G_x86Param = { LW_FALSE };
 *********************************************************************************************************/
 VOID  archKernelParam (CPCHAR  pcParam)
 {
-    if (lib_strncmp(pcParam, "ht=", 3) == 0) {
-        if (pcParam[3] == 'y') {                                        /*  支持超线程                  */
-            _G_x86Param.X86_bHyperThreading = LW_TRUE;
-
-        } else {
-            _G_x86Param.X86_bHyperThreading = LW_FALSE;
-        }
-
-    } else if (lib_strncmp(pcParam, "video=", 6) == 0) {
+    if (lib_strncmp(pcParam, "video=", 6) == 0) {                       /*  视频参数                    */
         _G_x86Param.X86_bHasVideoParam = LW_TRUE;                       /*  有视频参数                  */
         lib_strncpy(_G_x86Param.X86_cVideoParam,
                     pcParam + 6,
@@ -57,18 +49,13 @@ VOID  archKernelParam (CPCHAR  pcParam)
             _G_x86Param.X86_bRtcUtc = LW_FALSE;
         }
 
-    } else if (lib_strncmp(pcParam, "busclk=", 7) == 0) {               /*  系统总线时钟                */
-        _G_x86Param.X86_ulSysBusClk = lib_strtoul(pcParam + 7, LW_NULL, 10);
-
     } else if (lib_strncmp(pcParam, "console=", 8) == 0) {              /*  控制台设备                  */
         _G_x86Param.X86_bHasConsoleDev = LW_TRUE;                       /*  有指定的控制台设备          */
         lib_strncpy(_G_x86Param.X86_cConsoleDev,
                     pcParam + 8,
-                    sizeof(_G_x86Param.X86_cConsoleDev));
+                    sizeof(_G_x86Param.X86_cConsoleDev));               /*  记录控制台设备              */
         *lib_strchr(_G_x86Param.X86_cConsoleDev, ' ') = '\0';
     }
-
-    x86MpInit(_G_x86Param.X86_bHyperThreading);                         /*  初始化 MP 配置              */
 }
 /*********************************************************************************************************
 ** 函数名称: archKernelParamGet

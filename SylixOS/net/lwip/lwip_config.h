@@ -56,8 +56,8 @@ extern "C" {
   Platform memcpy smemcpy
 *********************************************************************************************************/
 
-extern PVOID  lwip_platform_memcpy(PVOID  pvDest, PVOID  pvSrc, size_t  stCount);
-extern PVOID  lwip_platform_smemcpy(PVOID  pvDest, PVOID  pvSrc, size_t  stCount);
+extern PVOID  lwip_platform_memcpy(PVOID  pvDest, CPVOID  pvSrc, size_t  stCount);
+extern PVOID  lwip_platform_smemcpy(PVOID  pvDest, CPVOID  pvSrc, size_t  stCount);
 
 #define MEMCPY      lwip_platform_memcpy
 #define SMEMCPY     lwip_platform_smemcpy

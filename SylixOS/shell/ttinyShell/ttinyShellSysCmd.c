@@ -767,7 +767,30 @@ static INT  __tshellSysCmdCpuus (INT  iArgC, PCHAR  ppcArgV[])
 
 static INT  __tshellSysCmdX86 (INT  iArgC, PCHAR  ppcArgV[])
 {
-    x86CpuIdShow();
+    if (iArgC == 1) {
+        x86CpuIdShow();
+
+    } else if (lib_strcmp(ppcArgV[1], "cpuid") == 0) {
+        x86CpuIdShow();
+
+    } else if (lib_strcmp(ppcArgV[1], "cputop") == 0) {
+        x86CpuTopologyShow();
+
+    } else if (lib_strcmp(ppcArgV[1], "mps") == 0) {
+        x86MpApicDataShow();
+
+    } else if (lib_strcmp(ppcArgV[1], "bios") == 0) {
+        x86MpBiosShow();
+
+    } else if (lib_strcmp(ppcArgV[1], "ioint") == 0) {
+        x86MpBiosIoIntMapShow();
+
+    } else if (lib_strcmp(ppcArgV[1], "loint") == 0) {
+        x86MpBiosLocalIntMapShow();
+
+    } else if (lib_strcmp(ppcArgV[1], "acpi") == 0) {
+        x86AcpiMpTableShow();
+    }
 
     return  (ERROR_NONE);
 }
@@ -788,11 +811,11 @@ static INT  __tshellSysCmdInts (INT  iArgC, PCHAR  ppcArgV[])
     ULONG  ulCPUEnd   = LW_NCPUS - 1;
     
     if (iArgC > 1) {
-        sscanf(ppcArgV[1], "%lx", &ulCPUStart);
+        sscanf(ppcArgV[1], "%ld", &ulCPUStart);
     }
     
     if (iArgC > 2) {
-        sscanf(ppcArgV[2], "%lx", &ulCPUEnd);
+        sscanf(ppcArgV[2], "%ld", &ulCPUEnd);
     }
     
     API_InterShow(ulCPUStart, ulCPUEnd);
@@ -2469,6 +2492,7 @@ VOID  __tshellSysCmdInit (VOID)
     
 #ifdef LW_CFG_CPU_ARCH_X86
     API_TShellKeywordAdd("x86", __tshellSysCmdX86);
+    API_TShellFormatAdd("x86", " [cpuid | cputop | mps | bios | ioint | loint | acpi]");
     API_TShellHelpAdd("x86", "show x86 cpu information.\n");
 #endif                                                                  /*  LW_CFG_CPU_ARCH_X86         */
 

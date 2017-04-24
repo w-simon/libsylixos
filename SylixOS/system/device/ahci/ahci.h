@@ -1020,11 +1020,11 @@ typedef struct {
     AHCI_CMD_LIST_HANDLE    AHCIDRIVE_hCmdList;
     AHCI_RECV_FIS_HANDLE    AHCIDRIVE_hRecvFis;
     AHCI_CMD_TABLE_HANDLE   AHCIDRIVE_hCmdTable;
-    LW_OBJECT_HANDLE        AHCIDRIVE_hSyncBSem[AHCI_CMD_SLOT_MAX];
-    LW_OBJECT_HANDLE        AHCIDRIVE_hLockMSem;
-    LW_OBJECT_HANDLE        AHCIDRIVE_hTagMuteSem;
-    LW_OBJECT_HANDLE        AHCIDRIVE_hDriveMuteSem;
-    LW_OBJECT_HANDLE        AHCIDRIVE_hQueueSlotCSem;
+    LW_OBJECT_HANDLE        AHCIDRIVE_hSyncBSem[AHCI_CMD_SLOT_MAX];     /* ahci_sync 锁                 */
+    LW_OBJECT_HANDLE        AHCIDRIVE_hLockMSem;                        /* ahci_dlock 锁                */
+    LW_OBJECT_HANDLE        AHCIDRIVE_hTagMuteSem;                      /* ahci_tag 锁                  */
+    LW_OBJECT_HANDLE        AHCIDRIVE_hDriveMuteSem;                    /* ahci_dev 锁                  */
+    LW_OBJECT_HANDLE        AHCIDRIVE_hQueueSlotCSem;                   /* ahci_slot 锁                 */
     volatile UINT32         AHCIDRIVE_uiCmdStarted;
     volatile UINT32         AHCIDRIVE_uiTrimStarted;
     UINT32                  AHCIDRIVE_uiBuffStarted;
@@ -1094,8 +1094,8 @@ typedef struct ahci_ctrl_cb {
     PVOID                   AHCICTRL_pvPciArg;                          /* 控制器扩展参数               */
 
     BOOL                    AHCICTRL_bDrvInstalled;
-    LW_OBJECT_HANDLE        AHCICTRL_hMsgQueue;
-    LW_OBJECT_HANDLE        AHCICTRL_hMonitorThread;
+    LW_OBJECT_HANDLE        AHCICTRL_hMsgQueue;                         /* ahci_msg 消息队列            */
+    LW_OBJECT_HANDLE        AHCICTRL_hMonitorThread;                    /* t_ahcimsg 线程               */
     BOOL                    AHCICTRL_bMonitorStarted;
 
     UINT                    AHCICTRL_uiUnitIndex;                       /* 本类控制器索引               */
@@ -1181,6 +1181,8 @@ typedef struct ahci_drv_cb {
 
     CHAR                AHCIDRV_cDrvName[AHCI_DRV_NAME_MAX];            /* 驱动名称                     */
     UINT32              AHCIDRV_uiDrvVer;                               /* 驱动版本                     */
+
+    AHCI_CTRL_HANDLE    AHCIDRV_hCtrl;                                  /* 控制器器句柄                 */
 
     INT                 (*AHCIDRV_pfuncOptCtrl)(AHCI_CTRL_HANDLE hCtrl, UINT uiDrive,
                                                 INT iCmd, LONG lArg);

@@ -69,7 +69,9 @@ extern LW_LIST_LINE_HEADER      _G_plineVProcHeader;
 /*********************************************************************************************************
   函数声明
 *********************************************************************************************************/
+#if LW_CFG_MODULELOADER_RMMOD_ATREBOOT_EN > 0
 VOID          moduleRebootHook(INT  iRebootType);
+#endif
 
 PVOIDFUNCPTR  __symbolFindHookSet(PVOIDFUNCPTR  pfuncSymbolFindHook);
 VOIDFUNCPTR   __symbolTraverseHookSet(VOIDFUNCPTR  pfuncSymbolTraverseHook);
@@ -1187,7 +1189,9 @@ VOID  API_LoaderInit (VOID)
     _S_pfuncFileRefDec  = vprocIoFileRefDec;
     _S_pfuncFileRefGet  = vprocIoFileRefGet;
     
+#if LW_CFG_MODULELOADER_RMMOD_ATREBOOT_EN > 0
     API_SystemHookAdd(moduleRebootHook, LW_OPTION_KERNEL_REBOOT);       /*  安装系统重启回调            */
+#endif
     
 #if LW_CFG_SHELL_EN > 0
     __ldShellInit();

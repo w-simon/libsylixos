@@ -122,6 +122,7 @@ INT  API_AhciDrvRegister (AHCI_DRV_HANDLE  hDrvReg)
     __AHCI_DRV_UNLOCK();
 
     hDrv->AHCIDRV_uiDrvVer                   = hDrvReg->AHCIDRV_uiDrvVer;
+    hDrv->AHCIDRV_hCtrl                      = hDrvReg->AHCIDRV_hCtrl;
     hDrv->AHCIDRV_pfuncOptCtrl               = hDrvReg->AHCIDRV_pfuncOptCtrl;
     hDrv->AHCIDRV_pfuncVendorDriveInfoShow   = hDrvReg->AHCIDRV_pfuncVendorDriveInfoShow;
     hDrv->AHCIDRV_pfuncVendorDriveRegNameGet = hDrvReg->AHCIDRV_pfuncVendorDriveRegNameGet;
@@ -219,11 +220,13 @@ INT  API_AhciDrvInit (VOID)
 static VOID  __tshellAhciDrvCmdShow (VOID)
 {
     static PCHAR        pcAhciDrvShowHdr = \
-    "INDEX     DRVNAME\n"
-    "----- ---------------\n";
+    "INDEX     DRVNAME           CTRL VER             DRIVE VER\n"
+    "----- --------------- -------------------- --------------------\n";
     REGISTER INT        i;
     PLW_LIST_LINE       plineTemp = LW_NULL;
     AHCI_DRV_HANDLE     hDrv      = LW_NULL;
+    AHCI_CTRL_HANDLE    hCtrl     = LW_NULL;
+    CHAR                cVerNum[AHCI_DRV_VER_STR_LEN]  = {0};
 
     printf("\nahci drv number total: %d\n", _GuiAhciDrvTotalNum);
     printf(pcAhciDrvShowHdr);
@@ -234,7 +237,24 @@ static VOID  __tshellAhciDrvCmdShow (VOID)
          plineTemp != LW_NULL;
          plineTemp  = _list_line_get_next(plineTemp)) {
         hDrv = _LIST_ENTRY(plineTemp, AHCI_DRV_CB, AHCIDRV_lineDrvNode);
-        printf("%5d %-15s\n", i,hDrv->AHCIDRV_cDrvName);
+        hCtrl = hDrv->AHCIDRV_hCtrl;
+        printf("%5d %-15s", i, hDrv->AHCIDRV_cDrvName);
+
+        if ((hCtrl) && (hCtrl->AHCICTRL_uiCoreVer)) {
+            lib_bzero(&cVerNum[0], AHCI_DRV_VER_STR_LEN);
+            snprintf(cVerNum, AHCI_DRV_VER_STR_LEN, AHCI_DRV_VER_FORMAT(hCtrl->AHCICTRL_uiCoreVer));
+            printf(" %-20s", cVerNum);
+        } else {
+            printf(" %-20s", "*");
+        }
+
+        if ((hDrv) && (hDrv->AHCIDRV_uiDrvVer)) {
+            lib_bzero(&cVerNum[0], AHCI_DRV_VER_STR_LEN);
+            snprintf(cVerNum, AHCI_DRV_VER_STR_LEN, AHCI_DRV_VER_FORMAT(hDrv->AHCIDRV_uiDrvVer));
+            printf(" %-20s\n", cVerNum);
+        } else {
+            printf(" %-20s\n", "*");
+        }
 
         i += 1;
     }

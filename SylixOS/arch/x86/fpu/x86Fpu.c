@@ -47,7 +47,7 @@ VOID  archFpuPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
     _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s FPU pri-core initialization.\r\n", 
                  pcMachineName, pcFpuName);
 
-    if (_G_bX86HasX87FPU) {                                             /*  选择 FPU 架构               */
+    if (X86_FEATURE_HAS_X87FPU) {                                       /*  选择 FPU 架构               */
         _G_pfpuop = x86FpuSsePrimaryInit(pcMachineName, pcFpuName);
 
     } else {
@@ -82,7 +82,7 @@ VOID  archFpuSecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
     _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s FPU sec-core initialization.\r\n", 
                  pcMachineName, pcFpuName);
 
-    if (_G_bX86HasX87FPU) {                                             /*  选择 FPU 架构               */
+    if (X86_FEATURE_HAS_X87FPU) {                                       /*  选择 FPU 架构               */
          x86FpuSseSecondaryInit(pcMachineName, pcFpuName);
 
     } else {

@@ -307,12 +307,13 @@ static
 VOID  __tshellAhciCtrlCmdShow (VOID)
 {
     static PCHAR        pcAhciCtrlShowHdr = \
-    "INDEX CTRL UNIT     CTRLNAME\n"
-    "----- ---- ---- ----------------\n";
+    "INDEX CTRL UNIT     CTRLNAME           CTRL VER             DRIVE VER\n"
+    "----- ---- ---- ---------------- -------------------- --------------------\n";
 
     REGISTER INT        i;
     AHCI_CTRL_HANDLE    hCtrl     = LW_NULL;
     PLW_LIST_LINE       plineTemp = LW_NULL;
+    CHAR                cVerNum[AHCI_DRV_VER_STR_LEN]  = {0};
 
     printf("\nahci control number total: %d\n", _GuiAhciCtrlTotalNum);
     printf(pcAhciCtrlShowHdr);
@@ -323,11 +324,29 @@ VOID  __tshellAhciCtrlCmdShow (VOID)
          plineTemp != LW_NULL;
          plineTemp  = _list_line_get_next(plineTemp)) {
         hCtrl = _LIST_ENTRY(plineTemp, AHCI_CTRL_CB, AHCICTRL_lineCtrlNode);
-        printf("%5d %4d %4d %-16s\n",
+        printf("%5d %4d %4d %-16s",
                i,
                hCtrl->AHCICTRL_uiIndex,
                hCtrl->AHCICTRL_uiUnitIndex,
                hCtrl->AHCICTRL_cCtrlName);
+
+        if ((hCtrl) && (hCtrl->AHCICTRL_uiCoreVer)) {
+            lib_bzero(&cVerNum[0], AHCI_DRV_VER_STR_LEN);
+            snprintf(cVerNum, AHCI_DRV_VER_STR_LEN, AHCI_DRV_VER_FORMAT(hCtrl->AHCICTRL_uiCoreVer));
+            printf(" %-20s", cVerNum);
+        } else {
+            printf(" %-20s", "*");
+        }
+
+        if ((hCtrl) && (hCtrl->AHCICTRL_hDrv) && (hCtrl->AHCICTRL_hDrv->AHCIDRV_uiDrvVer)) {
+            lib_bzero(&cVerNum[0], AHCI_DRV_VER_STR_LEN);
+            snprintf(cVerNum, AHCI_DRV_VER_STR_LEN,
+                     AHCI_DRV_VER_FORMAT(hCtrl->AHCICTRL_hDrv->AHCIDRV_uiDrvVer));
+            printf(" %-20s\n", cVerNum);
+        } else {
+            printf(" %-20s\n", "*");
+        }
+
         i += 1;
     }
     __AHCI_CTRL_UNLOCK();

@@ -1000,9 +1000,11 @@ INT  pciStorageSataInit (VOID)
 
     API_AhciDrvInit();
 
+    lib_bzero(hDrvReg, sizeof(AHCI_DRV_CB));
     lib_strlcpy(&hDrvReg->AHCIDRV_cDrvName[0], SATA_PCI_DRV_NAME, AHCI_DRV_NAME_MAX);
 
     hDrvReg->AHCIDRV_uiDrvVer                   = SATA_PCI_DRV_VER_NUM;
+    hDrvReg->AHCIDRV_hCtrl                      = LW_NULL;
     hDrvReg->AHCIDRV_pfuncOptCtrl               = pciStorageSataCtrlOpt;
     hDrvReg->AHCIDRV_pfuncVendorDriveInfoShow   = pciStorageSataVendorDriveInfoShow;
     hDrvReg->AHCIDRV_pfuncVendorDriveRegNameGet = pciStorageSataVendorDriveRegNameGet;

@@ -47,7 +47,7 @@ FUNC_DEF(mipsWaitInstruction)
     NOP
 
     .set    pop
-    FUNC_END(archIntDisable)
+    FUNC_END(mipsWaitInstruction)
 
     FILE_END()
 

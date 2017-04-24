@@ -160,7 +160,7 @@ void  sys_error_print (const char *msg, const char *func, const char *file, int 
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-LW_WEAK PVOID  lwip_platform_memcpy (PVOID  pvDest, PVOID  pvSrc, size_t  stCount)
+LW_WEAK PVOID  lwip_platform_memcpy (PVOID  pvDest, CPVOID  pvSrc, size_t  stCount)
 {
     return  (lib_memcpy(pvDest, pvSrc, stCount));
 }
@@ -174,7 +174,7 @@ LW_WEAK PVOID  lwip_platform_memcpy (PVOID  pvDest, PVOID  pvSrc, size_t  stCoun
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-LW_WEAK PVOID  lwip_platform_smemcpy (PVOID  pvDest, PVOID  pvSrc, size_t  stCount)
+LW_WEAK PVOID  lwip_platform_smemcpy (PVOID  pvDest, CPVOID  pvSrc, size_t  stCount)
 {
     return  (lib_memcpy(pvDest, pvSrc, stCount));
 }

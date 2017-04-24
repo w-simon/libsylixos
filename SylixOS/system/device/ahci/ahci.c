@@ -28,6 +28,7 @@
 2016.12.27  不支持 NCQ 的磁盘 (NandFlash), 不使用并发处理.
 2016.12.28  KINGSTON SUV400S37120G 必须使能 CACHE 回写.
 2017.03.09  增加对磁盘热插拔的支持, 并可通过 AHCI_HOTPLUG_EN 进行配置. (v1.0.6-rc0)
+2017.04.24  修复同时使能 NCQ 和 TRIM 后删除大文件产生死锁(ahci_slot)的问题. (v1.0.7-rc0)
 *********************************************************************************************************/
 #define  __SYLIXOS_PCI_DRV
 #define  __SYLIXOS_STDIO
@@ -944,6 +945,9 @@ static INT  __ahciDiskTrimSet (AHCI_DEV_HANDLE  hDev, ULONG  ulStartSector, ULON
         hCmd->AHCI_CMD_ATA.AHCICMDATA_ullAtaLba = 0;
         hCmd->AHCICMD_iDirection = AHCI_DATA_DIR_OUT;
         hCmd->AHCICMD_iFlags = AHCI_CMD_FLAG_TRIM;
+        if (hDrive->AHCIDRIVE_bNcq) {                                   /* NCQ 使能                     */
+            hCmd->AHCICMD_iFlags |= AHCI_CMD_FLAG_NCQ;                  /* TRIM 应工作在 NCQ 模式下     */
+        }
 
         AHCI_LOG(AHCI_LOG_PRT, "send trim cmd ctrl %d port %d.\r\n",
         	     hDrive->AHCIDRIVE_hCtrl->AHCICTRL_uiIndex, hDrive->AHCIDRIVE_uiPort);
@@ -2731,6 +2735,7 @@ AHCI_CTRL_HANDLE  API_AhciCtrlCreate (CPCHAR  pcName, UINT  uiUnit, PVOID  pvArg
         goto  __error_handle;
     }
 
+    hDrv->AHCIDRV_hCtrl         = hCtrl;                                /* 更新驱动对应的控制器         */
     hCtrl->AHCICTRL_hDrv        = hDrv;                                 /* 控制器驱动                   */
     lib_strlcpy(&hCtrl->AHCICTRL_cCtrlName[0], &hDrv->AHCIDRV_cDrvName[0], AHCI_CTRL_NAME_MAX);
     hCtrl->AHCICTRL_uiCoreVer   = AHCI_CTRL_DRV_VER_NUM;                /* 控制器核心版本               */

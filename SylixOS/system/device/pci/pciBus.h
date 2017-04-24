@@ -81,6 +81,8 @@
 #define PCI_HEADER_TYPE_MASK        0x7f        /* mask for header type                                 */
 #define PCI_HEADER_PCI_PCI          0x01        /* PCI to PCI bridge                                    */
 #define PCI_HEADER_MULTI_FUNC       0x80        /* multi function device                                */
+#define PCI_HEADER_PCI_CARDBUS      0x02        /* PCI to CardBus bridge                                */
+#define PCI_HEADER_TYPE0            0x00        /* normal device header                                 */
 
 #define PCI_BIST                    0x0f        /* 8 bits                                               */
 #define PCI_BIST_CODE_MASK          0x0f        /* Return result                                        */
@@ -1327,6 +1329,66 @@
 #define PCI_CFG_SPACE_EXP_SIZE      4096
 
 #define PCI_FIND_CAP_TTL            48
+
+/*********************************************************************************************************
+  PCI-to-PCI bridge Type 1 configuration register offsets
+  Note that only modulo-4 addresses are written to the address register
+*********************************************************************************************************/
+#define PCI_CFG_PRIMARY_BUS         0x18
+#define PCI_CFG_SECONDARY_BUS       0x19
+#define PCI_CFG_SUBORDINATE_BUS     0x1a
+#define PCI_CFG_SEC_LATENCY         0x1b
+#define PCI_CFG_IO_BASE             0x1c
+#define PCI_CFG_IO_LIMIT            0x1d
+#define PCI_CFG_SEC_STATUS          0x1e
+#define PCI_CFG_MEM_BASE            0x20
+#define PCI_CFG_MEM_LIMIT           0x22
+#define PCI_CFG_PRE_MEM_BASE        0x24
+#define PCI_CFG_PRE_MEM_LIMIT       0x26
+#define PCI_CFG_PRE_MEM_BASE_U      0x28
+#define PCI_CFG_PRE_MEM_LIMIT_U     0x2c
+#define PCI_CFG_IO_BASE_U           0x30
+#define PCI_CFG_IO_LIMIT_U          0x32
+#define PCI_CFG_ROM_BASE            0x38
+#define PCI_CFG_BRG_INT_LINE        0x3c
+#define PCI_CFG_BRG_INT_PIN         0x3d
+#define PCI_CFG_BRIDGE_CONTROL      0x3e
+
+/*********************************************************************************************************
+  Standard device Type 0 configuration register offsets
+  Note that only modulo-4 addresses are written to the address register
+*********************************************************************************************************/
+#define PCI_CFG_VENDOR_ID           0x00
+#define PCI_CFG_DEVICE_ID           0x02
+#define PCI_CFG_COMMAND             0x04
+#define PCI_CFG_STATUS              0x06
+#define PCI_CFG_REVISION            0x08
+#define PCI_CFG_PROGRAMMING_IF      0x09
+#define PCI_CFG_SUBCLASS            0x0a
+#define PCI_CFG_CLASS               0x0b
+#define PCI_CFG_CACHE_LINE_SIZE     0x0c
+#define PCI_CFG_LATENCY_TIMER       0x0d
+#define PCI_CFG_HEADER_TYPE         0x0e
+#define PCI_CFG_BIST                0x0f
+#define PCI_CFG_BASE_ADDRESS_0      0x10
+#define PCI_CFG_BASE_ADDRESS_1      0x14
+#define PCI_CFG_BASE_ADDRESS_2      0x18
+#define PCI_CFG_BASE_ADDRESS_3      0x1c
+#define PCI_CFG_BASE_ADDRESS_4      0x20
+#define PCI_CFG_BASE_ADDRESS_5      0x24
+#define PCI_CFG_CIS                 0x28
+#define PCI_CFG_SUB_VENDER_ID       0x2c
+#define PCI_CFG_SUB_SYSTEM_ID       0x2e
+#define PCI_CFG_EXPANSION_ROM       0x30
+#define PCI_CFG_CAP_PTR             0x34
+#define PCI_CFG_RESERVED_0          0x35
+#define PCI_CFG_RESERVED_1          0x38
+#define PCI_CFG_DEV_INT_LINE        0x3c
+#define PCI_CFG_DEV_INT_PIN         0x3d
+#define PCI_CFG_MIN_GRANT           0x3e
+#define PCI_CFG_MAX_LATENCY         0x3f
+#define PCI_CFG_SPECIAL_USE         0x41
+#define PCI_CFG_MODE                0x43
 
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */
                                                                         /*  (LW_CFG_PCI_EN > 0)         */

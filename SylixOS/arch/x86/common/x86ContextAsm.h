@@ -22,6 +22,10 @@
 #ifndef __ARCH_X86CONTEXTASM_H
 #define __ARCH_X86CONTEXTASM_H
 
+/*********************************************************************************************************
+  头文件
+*********************************************************************************************************/
+
 #include "arch/x86/arch_regs.h"
 #include "x86Segment.h"
 
@@ -88,7 +92,6 @@ MACRO_DEF(RESTORE_REGS)
     MOVL    16(%ESP) , %ESI
     MOVL    20(%ESP) , %EDI
     MOVL    24(%ESP) , %EBP
-
     ADDL    $(8 * 4) , %ESP                                             /*  不弹出 ERROR CODE           */
 
     IRET                                                                /*  IRET 等于弹出 CS EIP EFLAGS */
@@ -102,7 +105,6 @@ MACRO_DEF(SAVE_REGS)
     PUSHF                                                               /*  PUSH EFLAGS                 */
 
     SUBL    $(10 * 4) , %ESP
-
     MOVL    %EAX , 0(%ESP)
     MOVL    %EBX , 4(%ESP)
     MOVL    %ECX , 8(%ESP)
@@ -116,7 +118,6 @@ MACRO_DEF(SAVE_REGS)
     MOVW    %CS  , 36(%ESP)
 
     SUBL    $(3 * 4) , %ESP
-
 #if __SAVE_SEG_REG > 0
     MOVW    %GS , 0(%ESP)
     MOVW    %FS , 2(%ESP)
@@ -131,9 +132,9 @@ MACRO_DEF(SAVE_REGS)
 *********************************************************************************************************/
 
 MACRO_DEF(INT_SAVE_REGS_HW_ERRNO)
+    CLI
                                                                         /*  EFLAGS CS EIP ERRNO 已经PUSH*/
     SUBL    $(7 * 4) , %ESP
-
     MOVL    %EAX , 0(%ESP)
     MOVL    %EBX , 4(%ESP)
     MOVL    %ECX , 8(%ESP)
@@ -143,7 +144,6 @@ MACRO_DEF(INT_SAVE_REGS_HW_ERRNO)
     MOVL    %EBP , 24(%ESP)
 
     SUBL    $(3 * 4) , %ESP
-
 #if __SAVE_SEG_REG > 0
     MOVW    %GS , 0(%ESP)
     MOVW    %FS , 2(%ESP)
@@ -158,6 +158,8 @@ MACRO_DEF(INT_SAVE_REGS_HW_ERRNO)
 *********************************************************************************************************/
 
 MACRO_DEF(INT_SAVE_REGS_FAKE_ERRNO)
+    CLI
+
     PUSHL   $0                                                          /*  PUSH FAKE ERROR CODE        */
 
     INT_SAVE_REGS_HW_ERRNO

@@ -118,18 +118,18 @@ FUNC_DEF(x86CacheClearPen4Hw)
 
     MOVL    _G_stX86CacheFlushBytes , %EDX                              ;/*  Get stFlushBytes in EDX     */
     SUBL    $1 , %EDX                                                   ;/*  Create lowerbit mask        */
-    ANDL    %EDX , %EAX                                                 ;/*  Get the lowerbit rem        */
+    ANDL    %EDX , %EAX                                                 ;/*  Get the lowerbit stRem      */
     ADDL    %EAX , %EDI                                                 ;/*  Add the stRem to stBytes    */
 
     ;/*
      ;* if ((stRem = stBytes % _G_stX86CacheFlushBytes) != 0)
-     ;*     stBytes += (_G_stX86CacheFlushBytes - rem);
+     ;*     stBytes += (_G_stX86CacheFlushBytes - stRem);
      ;*/
 
     MOVL    %EDI , %ECX                                                 ;/*  Get stBytes in ECX          */
-    ANDL    %EDX , %ECX                                                 ;/*  Get the lowerbit rem        */
+    ANDL    %EDX , %ECX                                                 ;/*  Get the lowerbit stRem      */
     JZ      __cachePen4Flush0                                           ;/*  Skip if (stRem == 0)        */
-    SUBL    %ECX , %EDI                                                 ;/*  Sub the rem from stBytes    */
+    SUBL    %ECX , %EDI                                                 ;/*  Sub the stRem from stBytes  */
     ADDL    _G_stX86CacheFlushBytes , %EDI                              ;/*  Add the flushBytes          */
 
     ;/*

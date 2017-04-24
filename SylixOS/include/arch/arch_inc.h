@@ -39,6 +39,7 @@
 #include "x86/arch_limits.h"
 #include "x86/arch_regs.h"
 #include "x86/arch_mmu.h"
+#include "x86/arch_pc.h"
 
 #elif (defined LW_CFG_CPU_ARCH_MIPS)
 #include "mips/arch_types.h"

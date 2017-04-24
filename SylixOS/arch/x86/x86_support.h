@@ -293,6 +293,11 @@ ULONG   bspIntVectorGetTarget(ULONG  ulVector, size_t  stSize, PLW_CLASS_CPUSET 
 #define __ARCH_INT_VECTOR_GETTARGET bspIntVectorGetTarget
 #endif                                                                  /*  LW_CFG_INTER_TARGET > 0     */
 
+#define X86_INT_MODE_PIC            0                                   /*  PIC Mode                    */
+#define X86_INT_MODE_VIRTUAL_WIRE   1                                   /*  Virtual Wire Mode           */
+#define X86_INT_MODE_SYMMETRIC_IO   2                                   /*  Symmetric I/O Mode          */
+UINT    bspIntModeGet(VOID);
+
 /*********************************************************************************************************
   CPU 定时器时钟
 *********************************************************************************************************/
@@ -300,12 +305,11 @@ ULONG   bspIntVectorGetTarget(ULONG  ulVector, size_t  stSize, PLW_CLASS_CPUSET 
 VOID    bspTickInit(VOID);
 VOID    bspDelayUs(ULONG ulUs);
 VOID    bspDelayNs(ULONG ulNs);
+VOID    bspDelay720Ns(VOID);
 
 #if LW_CFG_TIME_HIGH_RESOLUTION_EN > 0
 VOID    bspTickHighResolution(struct timespec *ptv);
 #endif                                                                  /*  LW_CFG_TIME_HIGH_...        */
-
-ULONG   bspSysBusClkGet(VOID);
 
 /*********************************************************************************************************
   内核关键位置回调函数
@@ -410,10 +414,19 @@ INT     x86IdtSetHandler(UINT8    ucX86Vector,
                          addr_t   ulHandlerAddr,
                          INT      iLowestPriviledge);
 
-INT     x86MpInit(BOOL  bHyperThreading);
-
 VOID    x86CpuIdProbe(VOID);
 VOID    x86CpuIdShow(VOID);
+
+VOID    x86CpuTopologyShow(VOID);
+INT     x86MpApicDataShow(VOID);
+VOID    x86MpBiosShow(VOID);
+VOID    x86MpBiosIoIntMapShow(VOID);
+VOID    x86MpBiosLocalIntMapShow(VOID);
+VOID    x86MpBiosLocalIntMapShow(VOID);
+
+BOOL    x86AcpiAvailable(VOID);
+INT     x86AcpiInit(VOID);
+VOID    x86AcpiMpTableShow(VOID);
 
 /*********************************************************************************************************
   x86 指令宏定义
