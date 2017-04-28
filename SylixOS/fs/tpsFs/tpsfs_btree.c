@@ -368,7 +368,7 @@ static TPS_RESULT  __tpsFsBtrFreeNodeBlk (PTPS_TRANS       ptrans,
 
     if (pinode != psb->SB_pinodeSpaceMng) {                             /* 非空间b+tree用空间b+tree回收 */
         if (tpsFsBtreeFreeBlk(ptrans, psb->SB_pinodeSpaceMng,
-                              blkFree, blkFree, 1) != TPS_ERR_NONE) {
+                              blkFree, blkFree, 1, LW_FALSE) != TPS_ERR_NONE) {
             return  (TPS_ERR_BTREE_FREE);
         }
 
@@ -1623,6 +1623,7 @@ TPS_RESULT  tpsFsBtreeInit (PTPS_TRANS ptrans, PTPS_INODE pinode)
 **           blkKey             键值
 **           blkStart           起始块号
 **           blkCnt             块数量
+**           bNeedTrim          是否需要执行trim操作
 ** 输　出  : 成功：0  失败：ERROR
 ** 全局变量:
 ** 调用模块:
@@ -1631,7 +1632,8 @@ TPS_RESULT  tpsFsBtreeFreeBlk (PTPS_TRANS   ptrans,
                                PTPS_INODE   pinode,
                                TPS_IBLK     blkKey,
                                TPS_IBLK     blkStart,
-                               TPS_IBLK     blkCnt)
+                               TPS_IBLK     blkCnt,
+                               BOOL         bNeedTrim)
 {
     TPS_BTR_KV  kv;
     TPS_BTR_KV  kvInsert;
@@ -1699,7 +1701,9 @@ TPS_RESULT  tpsFsBtreeFreeBlk (PTPS_TRANS   ptrans,
         tpsres = __tpsFsBtreeInsert(ptrans, pinode, kvInsert);          /* 不存在可合并的节点           */
     }
 
-    tpsFsDevBufTrim(pinode->IND_psb, blkStart, blkCnt);                 /* 调用FIOTRIM命令回收扇区      */
+    if (bNeedTrim) {
+        tpsFsDevBufTrim(pinode->IND_psb, blkStart, blkCnt);             /* 调用FIOTRIM命令回收扇区      */
+    }
 
     return  (tpsres);
 }
@@ -1896,6 +1900,105 @@ TPS_RESULT  tpsFsBtreeTrunc (PTPS_TRANS     ptrans,
 
 }
 /*********************************************************************************************************
+** 函数名称: tpsFsBtreeGetNode
+** 功能描述: 获取blkKeyIn前面的节点
+**           pinode             文件inode指针
+**           blkKeyIn           查找的键值
+**           blkKeyOut          返回节点键值
+**           blkStart           返回节点的区间起始块
+**           blkCnt             返回节点的区间结束块
+** 输　出  : 成功：0  失败：ERROR
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+TPS_RESULT  tpsFsBtreeGetNode (PTPS_INODE     pinode,
+                               TPS_IBLK       blkKeyIn,
+                               TPS_IBLK      *blkKeyOut,
+                               TPS_IBLK      *blkStart,
+                               TPS_IBLK      *blkCnt)
+{
+    TPS_BTR_KV  kv;
+
+    if (pinode == LW_NULL || blkStart == LW_NULL || blkCnt == LW_NULL) {
+        return  (TPS_ERR_PARAM_NULL);
+    }
+
+    if (__tpsFsBtreeGet(pinode, blkKeyIn,
+                        &kv, LW_FALSE) != TPS_ERR_NONE) {               /* 获取最后一个块区间           */
+        return  (TPS_ERR_BTREE_GET_NODE);
+    }
+
+    *blkKeyOut = kv.KV_blkKey;
+    *blkStart  = kv.KV_data.KV_value.KV_blkStart;
+    *blkCnt    = kv.KV_data.KV_value.KV_blkCnt;
+
+    if ((*blkStart) == 0 || (*blkKeyOut) > blkKeyIn) {
+        return  (TPS_ERR_BTREE_OVERFLOW);
+    }
+
+    return  (TPS_ERR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: tpsFsBtreeInsertNode
+** 功能描述: 插入节点
+**           ptrans             事务指针
+**           pinode             文件inode指针
+**           blkKey             节点键值
+**           blkStart           节点的区间起始块
+**           blkCnt             节点的区间结束块
+** 输　出  : 成功：0  失败：ERROR
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+TPS_RESULT  tpsFsBtreeInsertNode (PTPS_TRANS    ptrans,
+                                  PTPS_INODE    pinode,
+                                  TPS_IBLK      blkKey,
+                                  TPS_IBLK      blkStart,
+                                  TPS_IBLK      blkCnt)
+{
+    TPS_BTR_KV  kv;
+
+    if (pinode == LW_NULL || ptrans == LW_NULL) {
+        return  (TPS_ERR_PARAM_NULL);
+    }
+
+    kv.KV_blkKey                    = blkKey;
+    kv.KV_data.KV_value.KV_blkStart = blkStart;
+    kv.KV_data.KV_value.KV_blkCnt   = blkCnt;
+
+    return  (__tpsFsBtreeInsert(ptrans, pinode, kv));
+}
+/*********************************************************************************************************
+** 函数名称: tpsFsBtreeRemoveNode
+** 功能描述: 删除节点
+**           ptrans             事务指针
+**           pinode             文件inode指针
+**           blkKey             节点键值
+**           blkStart           节点的区间起始块
+**           blkCnt             节点的区间结束块
+** 输　出  : 成功：0  失败：ERROR
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+TPS_RESULT  tpsFsBtreeRemoveNode (PTPS_TRANS    ptrans,
+                                  PTPS_INODE    pinode,
+                                  TPS_IBLK      blkKey,
+                                  TPS_IBLK      blkStart,
+                                  TPS_IBLK      blkCnt)
+{
+    TPS_BTR_KV  kv;
+
+    if (pinode == LW_NULL || ptrans == LW_NULL) {
+        return  (TPS_ERR_PARAM_NULL);
+    }
+
+    kv.KV_blkKey                    = blkKey;
+    kv.KV_data.KV_value.KV_blkStart = blkStart;
+    kv.KV_data.KV_value.KV_blkCnt   = blkCnt;
+
+    return  (__tpsFsBtreeRemove(ptrans, pinode, kv));
+}
+/*********************************************************************************************************
 ** 函数名称: tpsFsBtreeBlkCnt
 ** 功能描述: 获取b+tree中的块数量
 **           pinode             文件inode指针
@@ -2003,7 +2106,8 @@ TPS_RESULT  tpsFsBtreeAdjustBP (PTPS_TRANS ptrans, PTPS_SUPER_BLOCK psb)
             }
 
             if (tpsFsBtreeFreeBlk(ptrans, psb->SB_pinodeSpaceMng,
-                                  blk, blk, 1) != TPS_ERR_NONE) {       /* 回收到空间管理b+tree         */
+                                  blk, blk, 1, LW_FALSE) != TPS_ERR_NONE) {
+                                                                        /* 回收到空间管理b+tree         */
                 return  (TPS_ERR_BTREE_FREE);
             }
         }
@@ -2328,7 +2432,6 @@ TPS_RESULT  tpsFsInodeDump (PTPS_INODE pinode)
         return  (TPS_ERR_PARAM_NULL);
     }
 
-
 #ifdef WIN32                                                            /* windows 打印格式             */
     _DebugFormat(__LOGMESSAGE_LEVEL, "IND_inum = %016I64x", pinode->IND_inum);
     _DebugFormat(__LOGMESSAGE_LEVEL, "IND_uiMagic = %08x", pinode->IND_uiMagic);
@@ -2341,6 +2444,8 @@ TPS_RESULT  tpsFsInodeDump (PTPS_INODE pinode)
     _DebugFormat(__LOGMESSAGE_LEVEL, "IND_bDirty = %x", pinode->IND_bDirty);
     _DebugFormat(__LOGMESSAGE_LEVEL, "IND_iType = %x", pinode->IND_iType);
     _DebugFormat(__LOGMESSAGE_LEVEL, "IND_szData = %016I64x", pinode->IND_szData);
+    _DebugFormat(__LOGMESSAGE_LEVEL, "IND_inumDeleted = %016I64x", pinode->IND_inumDeleted);
+    _DebugFormat(__LOGMESSAGE_LEVEL, "IND_inumHash = %016I64x", pinode->IND_inumHash);
 #else
     _DebugFormat(__PRINTMESSAGE_LEVEL, "IND_inum = %qx\r\n", pinode->IND_inum);
     _DebugFormat(__PRINTMESSAGE_LEVEL, "IND_uiMagic = %x\r\n", pinode->IND_uiMagic);
@@ -2353,6 +2458,8 @@ TPS_RESULT  tpsFsInodeDump (PTPS_INODE pinode)
     _DebugFormat(__PRINTMESSAGE_LEVEL, "IND_bDirty = %x\r\n", pinode->IND_bDirty);
     _DebugFormat(__PRINTMESSAGE_LEVEL, "IND_iType = %x\r\n", pinode->IND_iType);
     _DebugFormat(__PRINTMESSAGE_LEVEL, "IND_szData = %qx\r\n", pinode->IND_szData);
+    _DebugFormat(__PRINTMESSAGE_LEVEL, "IND_inumDeleted = %qx\r\n", pinode->IND_inumDeleted);
+    _DebugFormat(__PRINTMESSAGE_LEVEL, "IND_inumHash = %qx\r\n", pinode->IND_inumHash);
 #endif
 
     if (__tpsFsBtrGetNode(pinode, &pndRoot, pinode->IND_inum) != TPS_ERR_NONE) {

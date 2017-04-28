@@ -30,7 +30,6 @@
     
     IMPORT_LABEL(API_ThreadTcbInter)
     IMPORT_LABEL(API_InterStackBaseGet)
-    IMPORT_LABEL(API_InterGetNesting)
     IMPORT_LABEL(API_InterEnter)
     IMPORT_LABEL(API_InterExit)
     
@@ -87,21 +86,6 @@ MACRO_DEF(EXC_ENTRY, handle)
     ISYNC
     BL      \handle                                                     ;/*  调用处理函数                */
 
-    ;/*
-    ; *  if (API_InterGetNesting() == 1) {
-    ; *      SP = current stack;
-    ; *  }
-    ; */
-    BL      API_InterGetNesting
-
-    CMPWI   CR0, R3 , 1
-    BNE     CR0, 2f
-
-    BL      API_ThreadTcbInter                                          ;/*  get current tcb             */
-
-    LWZ     SP , 0(R3)                                                  ;/*  SP = current stack          */
-
-2:
     BL      API_InterExit
 
     RESTORE_REGS                                                        ;/*  所有寄存器出栈              */

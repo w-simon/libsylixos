@@ -52,7 +52,6 @@
 /*********************************************************************************************************
   文件类型定义
 *********************************************************************************************************/
-
 #define TPS_INODE_TYPE_REG      DT_REG
 #define TPS_INODE_TYPE_DIR      DT_DIR
 #define TPS_INODE_TYPE_SLINK    DT_LNK
@@ -61,6 +60,8 @@
 #define TPS_INODE_TYPE_BFIFO    DT_FIFO
 #define TPS_INODE_TYPE_BLK      DT_BLK
 #define TPS_INODE_TYPE_WHT      DT_WHT
+
+#define TPS_INODE_TYPE_HASH     0x01000000
 
 /*********************************************************************************************************
   节点池定义，用于提高节点分配效率
@@ -76,6 +77,7 @@
 
 typedef struct tps_inode {
     struct tps_inode   *IND_pnext;                                      /* inode链表                    */
+    struct tps_inode   *IND_pinodeHash;                                 /* 保存目录hash表               */
     UINT                IND_uiOpenCnt;                                  /* 打开次数                     */
     BOOL                IND_bDirty;                                     /* 标记结构体是否被更改         */
     BOOL                IND_bDeleted;                                   /* 文件是否已被删除             */
@@ -97,6 +99,7 @@ typedef struct tps_inode {
     INT                 IND_iUid;                                       /* 用户ID                       */
     INT                 IND_iGid;                                       /* 用户组ID                     */
     TPS_INUM            IND_inumDeleted;                                /* 已删除文件列表               */
+    TPS_INUM            IND_inumHash;                                   /* 目录hash表所在节点           */
     PUCHAR              IND_pucBuff;                                    /* 文件头序列化缓冲区           */
     TPS_IBLK            IND_blkCnt;                                     /* 文件块数量                   */
     PTPS_BTR_NODE       IND_pBNPool[TPS_BN_POOL_SIZE];                  /* B+树节点池                   */
@@ -137,6 +140,10 @@ TPS_RESULT tpsFsFlushInodeHead(PTPS_TRANS ptrans, PTPS_INODE pinode);
 TPS_RESULT tpsFsInodeSync(PTPS_INODE pinode);
                                                                         /* flush超级块                  */
 TPS_RESULT tpsFsFlushSuperBlock(PTPS_TRANS ptrans, PTPS_SUPER_BLOCK psb);
+                                                                        /* 分配块                       */
+TPS_RESULT tpsFsInodeAllocBlk(PTPS_TRANS ptrans, PTPS_SUPER_BLOCK psb,
+                              TPS_IBLK blkKey, TPS_IBLK blkCnt,
+                              TPS_IBLK *blkAllocStart, TPS_IBLK *blkAllocCnt);
 
 #endif                                                                  /* LW_CFG_TPSFS_EN > 0          */
 #endif                                                                  /* __TPSFS_INODE_H              */

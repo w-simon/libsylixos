@@ -107,7 +107,7 @@ static PTPS_ENTRY  __tpsFSCreate (PTPS_INODE pinodeDir, CPCHAR pcFileName, INT i
         return  (LW_NULL);
     }
 
-    if (tpsFsBtreeAllocBlk(ptrans, psb->SB_pinodeSpaceMng,
+    if (tpsFsInodeAllocBlk(ptrans, psb,
                            0, 1, &inum, &blkPscCnt) != TPS_ERR_NONE) {  /* 分配inode                    */
         tpsFsTransRollBackAndFree(ptrans);
         *piErr = ENOSPC;
@@ -121,7 +121,7 @@ static PTPS_ENTRY  __tpsFSCreate (PTPS_INODE pinodeDir, CPCHAR pcFileName, INT i
     }
 
     if (tpsFsCreateEntry(ptrans, pinodeDir,
-                         pcFileName, inum) != ERROR_NONE) {             /* 创建目录项并关联到inode      */
+                         pcFileName, inum) != TPS_ERR_NONE) {           /* 创建目录项并关联到inode      */
         tpsFsTransRollBackAndFree(ptrans);
         *piErr = EIO;
         return  (LW_NULL);
@@ -170,7 +170,7 @@ static PTPS_ENTRY  __tpsFsWalkPath (PTPS_SUPER_BLOCK psb, CPCHAR pcPath, PCHAR *
 
     pcPathDup = (PCHAR)TPS_ALLOC(lib_strlen(pcPath) + 1);
     if (LW_NULL == pcPathDup) {
-        *piErr = ENOMEM;
+        *piErr = EINVAL;
         return  (LW_NULL);
     }
     lib_strcpy(pcPathDup, pcPath);
@@ -234,6 +234,7 @@ static PTPS_ENTRY  __tpsFsWalkPath (PTPS_SUPER_BLOCK psb, CPCHAR pcPath, PCHAR *
             } else {
                 *piErr = ENOENT;
             }
+
             break;
         }
 
@@ -644,7 +645,7 @@ errno_t  tpsFsLink (PTPS_SUPER_BLOCK psb, CPCHAR pcPathSrc, CPCHAR pcPathDst)
     }
 
     if (tpsFsInodeAddRef(ptrans,
-                         pentrySrc->ENTRY_pinode) != ERROR_NONE) {      /* inode引用加1                 */
+                         pentrySrc->ENTRY_pinode) != TPS_ERR_NONE) {    /* inode引用加1                 */
         tpsFsEntryFree(pentrySrc);
         tpsFsEntryFree(pentryDst);
         tpsFsTransRollBackAndFree(ptrans);
@@ -916,13 +917,14 @@ errno_t  tpsFsMkDir (PTPS_SUPER_BLOCK psb, CPCHAR pcPath, INT iFlags, INT iMode)
 ** 函数名称: tpsFsReadDir
 ** 功能描述: 读取目录
 ** 输　入  : pinodeDir        目录inode指针
+**           bInHash          目录是否在hash表中
 **           off              读取偏移
 **           ppentry          用于输出entry指针
 ** 输　出  : 返回ERROR，成功ppentry输出entry指针，失败ppentry输出LW_NULL
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-errno_t  tpsFsReadDir (PTPS_INODE pinodeDir, TPS_OFF_T off, PTPS_ENTRY *ppentry)
+errno_t  tpsFsReadDir (PTPS_INODE pinodeDir, BOOL bInHash, TPS_OFF_T off, PTPS_ENTRY *ppentry)
 {
     if (LW_NULL == ppentry) {
         return  (EINVAL);
@@ -938,7 +940,7 @@ errno_t  tpsFsReadDir (PTPS_INODE pinodeDir, TPS_OFF_T off, PTPS_ENTRY *ppentry)
         return  (EIO);
     }
 
-    if (tpsFsEntryRead(pinodeDir, off, ppentry) == TPS_ERR_ENTRY_NOT_EXIST) {
+    if (tpsFsEntryRead(pinodeDir, bInHash, off, ppentry) == TPS_ERR_ENTRY_NOT_EXIST) {
         return  (ENOENT);
     }
 

@@ -25,10 +25,14 @@
 
 #include <arch/assembler.h>
 #include <config/kernel/kernel_cfg.h>
+#include <config/mp/mp_cfg.h>
 
     FILE_BEGIN()
 
     IMPORT_LABEL(_SchedSwp)
+#if LW_CFG_SMP_EN > 0
+    IMPORT_LABEL(_SchedSafeStack)
+#endif
 #if LW_CFG_COROUTINE_EN > 0
     IMPORT_LABEL(_SchedCrSwp)
 #endif
@@ -72,8 +76,13 @@ FUNC_DEF(archTaskCtxSwitch)
     LDR     R5 , [R4]
     STR     SP , [R5]
 
-#ifdef __CTX_FRAME
-    PUSH_FRAME()
+#if LW_CFG_SMP_EN > 0
+    MOV     R9 , R0
+    LDR     R1 , =_SchedSafeStack                                       ;/*  _SchedSafeStack();          */
+    MOV     LR , PC
+    BX      R1
+    MOV     SP , R0
+    MOV     R0 , R9
 #endif
 
     STMFD   SP!, {R0}                                                   ;/*  当前 CPU 信息入栈           */
@@ -81,10 +90,6 @@ FUNC_DEF(archTaskCtxSwitch)
     MOV     LR , PC
     BX      R1
     LDMFD   SP!, {R0}                                                   ;/*  当前 CPU 信息出栈           */
-
-#ifdef __CTX_FRAME
-    POP_FRAME()
-#endif
 
     MOV     R4 , R0                                                     ;/*  SP = stack current          */
     LDR     R5 , [R4]
@@ -112,20 +117,12 @@ FUNC_DEF(archCrtCtxSwitch)
     ADD     R4 , R0 , #8                                                ;/*  get current crcb            */
     LDR     R5 , [R4]                                                   ;/*  stack current = SP          */
     STR     SP , [R5]
-    
-#ifdef __CTX_FRAME
-    PUSH_FRAME()
-#endif
 
     STMFD   SP!, {R0}                                                   ;/*  当前 CPU 信息入栈           */
     LDR     R1 , =_SchedCrSwp                                           ;/*  _SchedCrSwp();              */
     MOV     LR , PC
     BX      R1
     LDMFD   SP!, {R0}                                                   ;/*  当前 CPU 信息出栈           */
-    
-#ifdef __CTX_FRAME
-    POP_FRAME()
-#endif
 
     ADD     R4 , R0 , #8                                                ;/*  get current crcb            */
     LDR     R5 , [R4]                                                   ;/*  SP = stack next crcb        */
@@ -144,20 +141,6 @@ FUNC_DEF(archCrtCtxSwitch)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archIntCtxLoad)
-#ifdef __CTX_FRAME
-    PUSH_FRAME()
-#endif
-
-    STMFD   SP!, {R0}                                                   ;/*  当前 CPU 信息入栈           */
-    LDR     R1 , =_SchedSwp                                             ;/*  _SchedSwp();                */
-    MOV     LR , PC
-    BX      R1
-    LDMFD   SP!, {R0}                                                   ;/*  当前 CPU 信息出栈           */
-
-#ifdef __CTX_FRAME
-    POP_FRAME()
-#endif
-
     MOV     R4 , R0                                                     ;/*  SP = stack current          */
     LDR     R5 , [R4]
     LDR     SP , [R5]

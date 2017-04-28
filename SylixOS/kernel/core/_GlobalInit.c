@@ -45,8 +45,6 @@
   中断堆栈定义
 *********************************************************************************************************/
 LW_STACK    _K_stkInterruptStack[LW_CFG_MAX_PROCESSORS][LW_CFG_INT_STK_SIZE / sizeof(LW_STACK)];
-PLW_STACK   _K_pstkInterruptBase[LW_CFG_MAX_PROCESSORS];                /*  中断处理时的堆栈基地址      */
-                                                                        /*  通过 CPU_STK_GROWTH 判断    */
 /*********************************************************************************************************
 ** 函数名称: __interPrimaryStackInit
 ** 功能描述: 初始化中断堆栈, (SylixOS 在 SMP 中每一个 CPU 都可以接受中断)
@@ -57,15 +55,17 @@ PLW_STACK   _K_pstkInterruptBase[LW_CFG_MAX_PROCESSORS];                /*  中断
 *********************************************************************************************************/
 static VOID  __interPrimaryStackInit (VOID)
 {
-    REGISTER INT        i;
+    REGISTER INT            i;
+             PLW_CLASS_CPU  pcpu;
     
     LW_SPIN_INIT(&_K_slVectorTable);
     
     for (i = 0; i < LW_CFG_MAX_PROCESSORS; i++) {
+        pcpu = LW_CPU_GET(i);
 #if CPU_STK_GROWTH == 0
-        _K_pstkInterruptBase[i] = &_K_stkInterruptStack[i][0];
+        pcpu->CPU_pstkInterBase = &_K_stkInterruptStack[i][0];
 #else
-        _K_pstkInterruptBase[i] = &_K_stkInterruptStack[i][(LW_CFG_INT_STK_SIZE / sizeof(LW_STACK)) - 1];
+        pcpu->CPU_pstkInterBase = &_K_stkInterruptStack[i][(LW_CFG_INT_STK_SIZE / sizeof(LW_STACK)) - 1];
 #endif                                                                  /*  CPU_STK_GROWTH              */
         lib_memset(_K_stkInterruptStack[i], LW_CFG_STK_EMPTY_FLAG, LW_CFG_INT_STK_SIZE);
     }

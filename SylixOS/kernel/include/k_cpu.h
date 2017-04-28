@@ -128,6 +128,7 @@ typedef struct __lw_cpu {
     /*
      *  中断信息
      */
+             PLW_STACK       CPU_pstkInterBase;                         /*  中断堆栈基址                */
     volatile ULONG           CPU_ulInterNesting;                        /*  中断嵌套计数器              */
     volatile ULONG           CPU_ulInterNestingMax;                     /*  中断嵌套最大值              */
     ULONG                    CPU_ulInterError[LW_CFG_MAX_INTER_SRC];    /*  中断错误信息                */
@@ -282,6 +283,20 @@ extern LW_CLASS_PHYCPU       _K_phycpuTable[];                          /*  物理
 #define LW_CPU_GET_IPI_PEND2(pcpu)             \
         (pcpu->CPU_ulIPIPend)                                           /*  获取指定 CPU 核间中断 pend  */
         
+/*********************************************************************************************************
+  CPU 清除调度请求中断 (关中断情况下被调用)
+*********************************************************************************************************/
+
+#define LW_CPU_CLR_SCHED_IPI_PEND(pcpu)                             \
+        do {                                                        \
+            if (LW_CPU_GET_IPI_PEND2(pcpu) & LW_IPI_SCHED_MSK) {    \
+                LW_SPIN_LOCK_IGNIRQ(&pcpu->CPU_slIpi);              \
+                LW_CPU_CLR_IPI_PEND2(pcpu, LW_IPI_SCHED_MSK);       \
+                LW_SPIN_UNLOCK_IGNIRQ(&pcpu->CPU_slIpi);            \
+            }                                                       \
+            LW_SPINLOCK_NOTIFY();                                   \
+        } while (0)
+
 /*********************************************************************************************************
   CPU 核间中断数量
 *********************************************************************************************************/

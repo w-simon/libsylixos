@@ -265,6 +265,14 @@ static VOID  __x86LocalApicEnable (PX86_LOAPIC_INTR  pLoApicIntr, BOOL  bEnable)
                 out8(IMCR_REG_SEL,   IMCR_ADRS);
                 out8(IMCR_IOAPIC_ON, IMCR_DATA);
             }
+        } else {
+            /*
+             * Switch from SYMMETRIC_IO mode to PIC/VIRTUAL_WIRE mode
+             */
+            if (bHasImcr) {
+                out8(IMCR_REG_SEL,    IMCR_ADRS);
+                out8(IMCR_IOAPIC_OFF, IMCR_DATA);
+            }
         }
 
     } else {

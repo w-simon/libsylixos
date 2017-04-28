@@ -919,7 +919,7 @@ __re_umount_vol:
         if (S_ISDIR(tpsFsGetmod(tpsfile.TPSFIL_pinode))) {              /* 目录非空不允许删除           */
             PTPS_ENTRY    pentry;
 
-            iErr = tpsFsReadDir(tpsfile.TPSFIL_pinode, 0, &pentry);
+            iErr = tpsFsReadDir(tpsfile.TPSFIL_pinode, LW_TRUE, MAX_BLK_NUM, &pentry);
             if (iErr != ENOENT) {
                 if (pentry) {
                     tpsFsEntryFree(pentry);
@@ -976,7 +976,7 @@ static INT  __tpsFsClose (PLW_FD_ENTRY    pfdentry)
                 if (bRemove && S_ISDIR(tpsFsGetmod(ptpsfile->TPSFIL_pinode))) {
                     PTPS_ENTRY    pentry;
                     
-                    if (tpsFsReadDir(ptpsfile->TPSFIL_pinode, 0, &pentry) != ENOENT) {
+                    if (tpsFsReadDir(ptpsfile->TPSFIL_pinode, LW_TRUE, MAX_BLK_NUM, &pentry) != ENOENT) {
                         if (pentry) {
                             tpsFsEntryFree(pentry);
                         }
@@ -1301,6 +1301,8 @@ static INT  __tpsFsReadDir (PLW_FD_ENTRY  pfdentry, DIR  *dir)
     PTPS_FILE      ptpsfile = (PTPS_FILE)pfdnode->FDNODE_pvFile;
     PTPS_ENTRY     pentry;
     INT            iErr     = ERROR_NONE;
+    TPS_OFF_T      off      = 0;
+    BOOL           bHash    = LW_TRUE;
 
     if (!dir) {
         _ErrorHandle(EINVAL);
@@ -1318,14 +1320,43 @@ static INT  __tpsFsReadDir (PLW_FD_ENTRY  pfdentry, DIR  *dir)
         return  (PX_ERROR);
     }
 
-    tpsFsReadDir(ptpsfile->TPSFIL_pinode, dir->dir_pos, &pentry);
+    /*
+     *  dir_pos转bHash + off
+     */
+    if (dir->dir_pos == 0) {
+        off     = MAX_BLK_NUM;
+        bHash   = LW_TRUE;
+    } else {
+        bHash = (dir->dir_pos & 0x80000000) ? LW_TRUE : LW_FALSE;
+        off = (UINT)DIR_RESV_DATA_PV1(dir);
+        off <<= 32;
+        off += (UINT)DIR_RESV_DATA_PV0(dir);
+    }
+
+    tpsFsReadDir(ptpsfile->TPSFIL_pinode, bHash, off, &pentry);
     if (!pentry) {
         __TPS_FILE_UNLOCK(ptpsfile);
         _ErrorHandle(iErr);
         return  (PX_ERROR);
     }
 
-    dir->dir_pos           = (LONG)pentry->ENTRY_offset + pentry->ENTRY_uiLen;
+    /*
+     *  bHash + off转dir_pos
+     */
+    dir->dir_pos++;
+    dir->dir_pos &= 0x7FFFFFFF;
+    if (pentry->ENTRY_bInHash) {
+        dir->dir_pos |= 0x80000000;
+        if (pentry->ENTRY_offset > 0) {
+            off = pentry->ENTRY_offset - 1;
+        }
+    } else {
+        off = pentry->ENTRY_offset + pentry->ENTRY_uiLen;
+    }
+
+    DIR_RESV_DATA_PV0(dir) = (PVOID)(UINT)off;
+    DIR_RESV_DATA_PV1(dir) = (PVOID)(UINT)(off >> 32);
+
     dir->dir_dirent.d_type = IFTODT(tpsFsGetmod(pentry->ENTRY_pinode));
     dir->dir_dirent.d_shortname[0] = PX_EOS;
     lib_strlcpy(dir->dir_dirent.d_name,

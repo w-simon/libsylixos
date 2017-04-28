@@ -212,7 +212,11 @@ LW_WEAK VOID  bspIntInit (VOID)
         G_uiX86IntMode = X86_INT_MODE_SYMMETRIC_IO;                     /*  为了支持多核                */
                                                                         /*  用 SYMMETRIC_IO 模式        */
     } else if (X86_FEATURE_HAS_APIC) {                                  /*  单核但也有 APIC             */
-        G_uiX86IntMode = X86_INT_MODE_VIRTUAL_WIRE;                     /*  用虚拟线模式                */
+        /*
+         * MP 配置表读出的 PCI 设备中断可能是 16 ~ 23, 即必须使用 IOAPIC,
+         * 这时必须用 SYMMETRIC_IO 模式, 不能用虚拟线模式
+         */
+        G_uiX86IntMode = X86_INT_MODE_SYMMETRIC_IO;                     /*  用 SYMMETRIC_IO 模式        */
     }
 
     if (G_uiX86IntMode != X86_INT_MODE_PIC) {                           /*  非 PIC 模式                 */

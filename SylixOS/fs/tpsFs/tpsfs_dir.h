@@ -51,6 +51,7 @@ typedef struct tps_entry {
     UINT                ENTRY_uiLen;                                    /* entry磁盘结构长度            */
     UINT                ENTRY_uiMagic;                                  /* entry模数                    */
     TPS_INUM            ENTRY_inum;                                     /* 文件号                       */
+    BOOL                ENTRY_bInHash;                                  /* entry是否在hash表中          */
     TPS_OFF_T           ENTRY_offset;                                   /* 文件在目录文件中的偏移       */
     CHAR                ENTRY_pcName[1];                                /* 文件名                       */
 } TPS_ENTRY;
@@ -72,7 +73,7 @@ TPS_RESULT tpsFsEntryFree(PTPS_ENTRY pentry);
                                                                         /* 删除entry                    */
 TPS_RESULT tpsFsEntryRemove(PTPS_TRANS ptrans, PTPS_ENTRY pentry);
                                                                         /* 从指定偏移开始读取entry      */
-TPS_RESULT tpsFsEntryRead(PTPS_INODE pinodeDir, TPS_OFF_T off, PTPS_ENTRY *ppentry);
+TPS_RESULT tpsFsEntryRead(PTPS_INODE pinodeDir, BOOL bHash, TPS_OFF_T off, PTPS_ENTRY *ppentry);
                                                                         /* 获取最后一个目录项结束位置   */
 TPS_SIZE_T tpsFsGetDirSize (PTPS_INODE pinodeDir);
 

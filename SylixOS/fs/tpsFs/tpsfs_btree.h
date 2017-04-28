@@ -125,7 +125,7 @@ struct tps_inode;
 TPS_RESULT tpsFsBtreeInit(struct tps_trans *ptrans, struct tps_inode *pinode);
                                                                     /* 添加块到btree                    */
 TPS_RESULT tpsFsBtreeFreeBlk(struct tps_trans *ptrans, struct tps_inode *pinode,
-                             TPS_IBLK blkKey, TPS_IBLK blkStart, TPS_IBLK blkCnt);
+                             TPS_IBLK blkKey, TPS_IBLK blkStart, TPS_IBLK blkCnt, BOOL bNeedTrim);
                                                                     /* 从btree移除块                    */
 TPS_RESULT tpsFsBtreeAllocBlk(struct tps_trans *ptrans, struct tps_inode *pinode,
                               TPS_IBLK blkKey, TPS_IBLK blkCnt,
@@ -155,6 +155,15 @@ TPS_RESULT tpsFsBtreeAdjustBP(PTPS_TRANS ptrans, PTPS_SUPER_BLOCK psb);
 TPS_RESULT tpsFsBtreeDump(struct tps_inode *pinode, PTPS_BTR_NODE pbtrnode);
                                                                     /* 打印inode信息                    */
 TPS_RESULT tpsFsInodeDump(struct tps_inode *pinode);
+                                                                    /* 获取blkKeyIn对应的节点           */
+TPS_RESULT tpsFsBtreeGetNode(struct tps_inode *pinode, TPS_IBLK blkKeyIn,
+                             TPS_IBLK *blkKeyOut, TPS_IBLK *blkStart, TPS_IBLK *blkCnt);
+                                                                    /* 插入节点                         */
+TPS_RESULT tpsFsBtreeInsertNode(PTPS_TRANS ptrans, struct tps_inode *pinode,
+                                TPS_IBLK blkKey, TPS_IBLK blkStart, TPS_IBLK blkCnt);
+                                                                    /* 删除节点                         */
+TPS_RESULT tpsFsBtreeRemoveNode(PTPS_TRANS ptrans, struct tps_inode *pinode,
+                                TPS_IBLK blkKey, TPS_IBLK blkStart, TPS_IBLK blkCnt);
 
 #endif                                                              /* LW_CFG_TPSFS_EN > 0              */
 #endif                                                              /* __TPSFS_BTREE_H                  */

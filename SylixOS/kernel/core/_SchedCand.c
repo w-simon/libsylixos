@@ -87,6 +87,9 @@ PLW_CLASS_TCB  _SchedGetCand (PLW_CLASS_CPU  pcpuCur, ULONG  ulCurMaxLock)
         return  (pcpuCur->CPU_ptcbTCBCur);
         
     } else {                                                            /*  可以执行线程切换            */
+#if LW_CFG_SMP_EN > 0
+        LW_CPU_CLR_SCHED_IPI_PEND(pcpuCur);
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
         if (LW_CAND_ROT(pcpuCur)) {                                     /*  产生优先级卷绕              */
             _CandTableUpdate(pcpuCur);
         }

@@ -30,7 +30,6 @@
 
     IMPORT_LABEL(API_ThreadTcbInter)
     IMPORT_LABEL(API_InterStackBaseGet)
-    IMPORT_LABEL(API_InterGetNesting)
     IMPORT_LABEL(API_InterEnter)
     IMPORT_LABEL(API_InterExit)
 
@@ -226,30 +225,7 @@ MACRO_DEF(EXCEPTION_ENTRY handle)
     SUBU    SP , 32
     JAL     \handle
     NOP
-    ADDU    SP , 32
 
-    ;/*
-    ; *  if (API_InterGetNesting() == 1) {
-    ; *      SP = current stack;
-    ; *  }
-    ; */
-    SUBU    SP , 32
-    JAL     API_InterGetNesting
-    NOP
-    ADDU    SP , 32
-
-    LI      V1 , 1
-    BNE     V0 , V1 , 2f
-    NOP
-
-    SUBU    SP , 32
-    JAL     API_ThreadTcbInter                                          ;/*  get current tcb             */
-    NOP
-
-    LW      SP , 0(V0)                                                  ;/*  SP = current stack          */
-
-2:
-    SUBU    SP , 32
     JAL     API_InterExit
     NOP
     ADDU    SP , 32

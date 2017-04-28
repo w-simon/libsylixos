@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2017-04-28: han.hui
+    TPS FS 升级到 2.0.
+
     2017-04-15: han.hui
     加入针对同步多线程 SMT (例如 Intel(R) HT 超线程技术) 处理器, 调度器优化均衡调度功能.
 
@@ -36,6 +39,9 @@ HISTORY
     加入新的网络驱动模型.
 
 ++ Bugfixes:
+
+    2017-04-28: han.hui
+    修正超线程模式任务切换时栈区使用错误.
 
     2017-04-18: han.hui
     修正 telnet 窗口大小变化信号发送错误.

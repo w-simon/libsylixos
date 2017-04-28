@@ -322,6 +322,7 @@ unsigned  yaffs_set_trace(unsigned tm);
 unsigned  yaffs_get_trace(void);
 
 /* SylixOS ext */
+int yaffs_handle_rw_set(int handle, int read, int write);
 void yaffs_remove_device(struct yaffs_dev *dev);
 char *yaffs_getdevname(int  index, int  *pindex);
 struct yaffs_obj *yaffsfs_FindSymlink(const YCHAR *name, YCHAR **tail, YCHAR **symfile);

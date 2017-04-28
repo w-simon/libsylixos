@@ -311,6 +311,23 @@ VOID _SchedCrSwp (PLW_CLASS_CPU pcpuCur)
 #endif                                                                  /*  LW_CFG_COROUTINE_EN > 0     */
 }
 /*********************************************************************************************************
+** 函数名称: _SchedSafeStack
+** 功能描述: arch 任务切换函数获得安全堆栈位置.
+** 输　入  : pcpuCur   当前CPU
+** 输　出  : 堆栈位置
+** 全局变量: 
+** 调用模块: 
+** 注  意  : 
+*********************************************************************************************************/
+#if LW_CFG_SMP_EN > 0
+
+PVOID _SchedSafeStack (PLW_CLASS_CPU pcpuCur)
+{
+    return  (pcpuCur->CPU_pstkInterBase);
+}
+
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
+/*********************************************************************************************************
 ** 函数名称: Schedule
 ** 功能描述: 内核退出时, 会调用此调度函数 (进入内核状态并关中断被调用)
 ** 输　入  : NONE
@@ -347,6 +364,13 @@ INT  _Schedule (VOID)
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
         pcpuCur->CPU_bIsIntSwtich = LW_FALSE;                           /*  非中断调度                  */
         pcpuCur->CPU_ptcbTCBHigh  = ptcbCand;
+        
+        /*
+         *  TASK CTX SAVE();
+         *  SWITCH to SAFE stack if in SMP system;
+         *  _SchedSwp();
+         *  TASK CTX LOAD();
+         */
         archTaskCtxSwitch(pcpuCur);                                     /*  线程切换,并释放内核自旋锁   */
         LW_SPIN_KERN_LOCK_IGNIRQ();                                     /*  内核自旋锁重新加锁          */
     }
@@ -407,6 +431,11 @@ VOID  _ScheduleInt (VOID)
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
         pcpuCur->CPU_bIsIntSwtich = LW_TRUE;                            /*  中断调度                    */
         pcpuCur->CPU_ptcbTCBHigh  = ptcbCand;
+        
+        _SchedSwp(pcpuCur);                                             /*  直接调用 _SchedSwp()        */
+        /*
+         *  TASK CTX LOAD();
+         */
         archIntCtxLoad(pcpuCur);                                        /*  中断上下文中线程切换        */
         _BugHandle(LW_TRUE, LW_TRUE, "serious error!\r\n");
     }

@@ -171,11 +171,11 @@ typedef struct {
  *   |||   +----------------------+
  *   ||+-->|                      |
  *   ||    |MPAPIC_pInterruptTable| <--- ((MPAPIC_uiIoIntNr + MPAPIC_uiLoIntNr) *
- *   ||    |                      |       sizeof(MP_INTERRUPT))
+ *   ||    |                      |       sizeof(X86_MP_INTERRUPT))
  *   ||    |                      |
  *   ||    +----------------------+
  *   |+--->|                      |
- *   |     |   MPAPIC_pBusTable   | <--- (MPAPIC_uiBusNr * sizeof(MP_BUS))
+ *   |     |   MPAPIC_pBusTable   | <--- (MPAPIC_uiBusNr * sizeof(X86_MP_BUS))
  *   |     |                      |
  *   |     +----------------------+
  *   +---->|                      |

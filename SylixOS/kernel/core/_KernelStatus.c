@@ -258,16 +258,6 @@ INT  __kernelSched (VOID)
 VOID  __kernelSchedInt (PLW_CLASS_CPU    pcpuCur)
 {
     LW_SPIN_KERN_LOCK_IGNIRQ();                                         /*  锁内核 spinlock 并关闭中断  */
-    
-#if LW_CFG_SMP_EN > 0
-    if (LW_CPU_GET_IPI_PEND2(pcpuCur) & LW_IPI_SCHED_MSK) {
-        LW_SPIN_LOCK_IGNIRQ(&pcpuCur->CPU_slIpi);                       /*  锁定 CPU                    */
-        LW_CPU_CLR_IPI_PEND2(pcpuCur, LW_IPI_SCHED_MSK);                /*  清除核间调度中断标志        */
-        LW_SPIN_UNLOCK_IGNIRQ(&pcpuCur->CPU_slIpi);                     /*  解锁 CPU                    */
-    }
-    LW_SPINLOCK_NOTIFY();
-#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
-    
     _ScheduleInt();                                                     /*  尝试调度                    */
     LW_SPIN_KERN_UNLOCK_IGNIRQ();                                       /*  解锁内核 spinlock 并打开中断*/
 }

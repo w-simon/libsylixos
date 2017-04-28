@@ -83,6 +83,7 @@
 2014.06.24  FAT 设备 64 为序列号为 -1.
 2014.12.31  支持 ff10.c 文件系统.
 2016.09.18  支持 exFAT 文件系统格式.
+2017.04.27  fat 内部使用 O_RDWR 打开, 防止多重打开时内部权限判断错误.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -617,7 +618,7 @@ static VOID  __fatFsHisDel (PFAT_VOLUME  pfatvol)
 *********************************************************************************************************/
 static BYTE  __fatFsMkMode (INT  iFlags)
 {
-    REGISTER BYTE       ucMode = 0;
+    REGISTER BYTE   ucMode = 0;
     
     if (iFlags & O_WRONLY) {                                            /*  确定文件系统读写权限        */
         ucMode = FA_WRITE;
@@ -626,7 +627,7 @@ static BYTE  __fatFsMkMode (INT  iFlags)
     } else {
         ucMode = FA_READ;
     }
-    
+     
     if ((iFlags & O_CREAT) &&
         (iFlags & O_EXCL)) {                                            /*  如果存在, 不新建, 返回错误  */
         ucMode |= FA_CREATE_NEW;                                        /*  有则错误, 无则新建          */
@@ -914,6 +915,7 @@ static LONG  __fatFsOpen (PFAT_VOLUME     pfatvol,
             return  (PX_ERROR);
         
         } else {                                                        /*  普通文件打开成功            */
+            pfatfile->FATFIL_fftm.FFTM_file.flag |= (FA_READ | FA_WRITE);
             f_sync(&pfatfile->FATFIL_fftm.FFTM_file);                   /*  回写磁盘(更新时间等信息)    */
         }
         

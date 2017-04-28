@@ -25,11 +25,15 @@
 
 #include <arch/assembler.h>
 #include <config/kernel/kernel_cfg.h>
+#include <config/mp/mp_cfg.h>
 #include "ppcContextAsm.h"
 
     FILE_BEGIN()
 
     IMPORT_LABEL(_SchedSwp)
+#if LW_CFG_SMP_EN > 0
+    IMPORT_LABEL(_SchedSafeStack)
+#endif
 #if LW_CFG_COROUTINE_EN > 0
     IMPORT_LABEL(_SchedCrSwp)
 #endif
@@ -41,38 +45,6 @@
 #endif
     EXPORT_LABEL(archIntCtxLoad)
     EXPORT_LABEL(archSigCtxLoad)
-
-;/*********************************************************************************************************
-;  上下文栈帧(调试时打开)
-;*********************************************************************************************************/
-
-#undef __CTX_FRAME
-
-#ifdef __CTX_FRAME
-MACRO_DEF(PUSH_FRAME)
-    SUBI    SP , SP , 8
-    STW     FP , 0(SP)
-    MFLR    R4
-    ISYNC
-    STW     R4 , 4(SP)
-    SYNC
-    MACRO_END()
-
-MACRO_DEF(POP_FRAME)
-    LWZ     FP , 0(SP)
-    LWZ     R4 , 4(SP)
-    SYNC
-    MTLR    R4
-    ISYNC
-    ADDI    SP , SP , 8
-    MACRO_END()
-#else
-MACRO_DEF(PUSH_FRAME)
-    MACRO_END()
-
-MACRO_DEF(POP_FRAME)
-    MACRO_END()
-#endif
 
 ;/*********************************************************************************************************
 ;  当前 CPU 开始运行多任务执行
@@ -97,15 +69,16 @@ FUNC_DEF(archTaskCtxSwitch)
     LWZ     R4 , 0(R3)                                                  ;/*  stack current = SP          */
     STW     SP , 0(R4)
 
-    SUBI    SP , SP , 8
-    STW     R3 , 0(SP)                                                  ;/*  当前 CPU 信息入栈           */
+    OR      R14, R3 , R3                                                ;/*  保存当前 CPU 信息           */
 
-    PUSH_FRAME
+#if LW_CFG_SMP_EN > 0
+    BL      _SchedSafeStack                                             ;/*  _SchedSafeStack();          */
+    OR      SP , R3 , R3
+    OR      R3 , R14, R14
+#endif
+
     BL      _SchedSwp                                                   ;/*  _SchedSwp();                */
-    POP_FRAME
-
-    LWZ     R3 , 0(SP)                                                  ;/*  当前 CPU 信息出栈           */
-    ADDI    SP , SP , 8
+    OR      R3 , R14, R14
 
     LWZ     R4 , 0(R3)                                                  ;/*  SP = stack current          */
     LWZ     SP , 0(R4)
@@ -125,15 +98,9 @@ FUNC_DEF(archCrtCtxSwitch)
     LWZ     R4 , 8(R3)                                                  ;/*  stack current = SP          */
     STW     SP , 0(R4)
 
-    SUBI    SP , SP , 8
-    STW     R3 , 0(SP)                                                  ;/*  当前 CPU 信息入栈           */
-
-    PUSH_FRAME
+    OR      R14, R3 , R3                                                ;/*  保存当前 CPU 信息           */
     BL      _SchedCrSwp                                                 ;/*  _SchedCrSwp();              */
-    POP_FRAME
-
-    LWZ     R3 , 0(SP)                                                  ;/*  当前 CPU 信息出栈           */
-    ADDI    SP , SP , 8
+    OR      R3 , R14, R14
 
     LWZ     R4 , 8(R3)                                                  ;/*  SP = stack current          */
     LWZ     SP , 0(R4)
@@ -148,16 +115,6 @@ FUNC_DEF(archCrtCtxSwitch)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archIntCtxLoad)
-    SUBI    SP , SP , 8
-    STW     R3 , 0(SP)                                                  ;/*  当前 CPU 信息入栈           */
-
-    PUSH_FRAME
-    BL      _SchedSwp                                                   ;/*  _SchedSwp();                */
-    POP_FRAME
-
-    LWZ     R3 , 0(SP)                                                  ;/*  当前 CPU 信息出栈           */
-    ADDI    SP , SP , 8
-
     LWZ     R4 , 0(R3)                                                  ;/*  SP = stack current          */
     LWZ     SP , 0(R4)
 

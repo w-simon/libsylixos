@@ -169,7 +169,9 @@ errno_t  tpsFsMount (PTPS_DEV pdev, UINT uiFlags, PTPS_SUPER_BLOCK *ppsb)
 
     __tpsFsSBUnserial(psb, pucSectorBuf, uiSectorSize);
 
-    if (psb->SB_uiMagic != TPS_MAGIC_SUPER_BLOCK) {                     /* 校验Magic                    */
+    if (psb->SB_uiMagic != TPS_MAGIC_SUPER_BLOCK1 &&
+        psb->SB_uiMagic != TPS_MAGIC_SUPER_BLOCK2) {                    /* 校验Magic                    */
+        _DebugHandle(__PRINTMESSAGE_LEVEL, "Magic number error, mount failed\r\n");
         TPS_FREE(pucSectorBuf);
         TPS_FREE(psb);
         return  (ERROR_NONE);
@@ -182,6 +184,18 @@ errno_t  tpsFsMount (PTPS_DEV pdev, UINT uiFlags, PTPS_SUPER_BLOCK *ppsb)
     }
 
     TPS_FREE(pucSectorBuf);
+
+    if (psb->SB_uiVersion > TPS_CUR_VERSION) {
+        TPS_FREE(psb);
+        _DebugFormat(__PRINTMESSAGE_LEVEL, "Mismatched tpsFs version! tpsFs version: %d, Partition version: %d\r\n",
+                     TPS_CUR_VERSION, psb->SB_uiVersion);
+        _DebugHandle(__PRINTMESSAGE_LEVEL, "Mount failed\r\n");
+        return  (EFTYPE);
+
+    } else if (psb->SB_uiVersion < TPS_CUR_VERSION) {
+        _DebugFormat(__PRINTMESSAGE_LEVEL, "Old version compatibility mode! tpsFs version: %d, Partition version: %d\r\n",
+                     TPS_CUR_VERSION, psb->SB_uiVersion);
+    }
 
     pucSectorBuf = (PUCHAR)TPS_ALLOC(psb->SB_uiBlkSize);
     if (LW_NULL == pucSectorBuf) {
@@ -357,7 +371,7 @@ errno_t  tpsFsFormat (PTPS_DEV pdev, UINT uiBlkSize)
         return  (ENOMEM);
     }
 
-    psb->SB_uiMagic             = TPS_MAGIC_SUPER_BLOCK;
+    psb->SB_uiMagic             = TPS_MAGIC_SUPER_BLOCK2;
     psb->SB_uiVersion           = TPS_CUR_VERSION;
     psb->SB_ui64Generation      = TPS_UTC_TIME();
     psb->SB_uiSectorSize        = uiSectorSize;
@@ -380,6 +394,9 @@ errno_t  tpsFsFormat (PTPS_DEV pdev, UINT uiBlkSize)
     psb->SB_inumDeleted         = 0;
     psb->SB_pinodeOpenList      = LW_NULL;
     psb->SB_dev                 = pdev;
+    psb->SB_uiInodeOpenCnt      = 0;
+    psb->SB_pinodeDeleted       = LW_NULL;
+    psb->SB_pbp                 = LW_NULL;
 
     pucSectorBuf = (PUCHAR)TPS_ALLOC(uiBlkSize);
     if (LW_NULL == pucSectorBuf) {
@@ -436,7 +453,8 @@ errno_t  tpsFsFormat (PTPS_DEV pdev, UINT uiBlkSize)
                          psb->SB_pinodeSpaceMng,
                          psb->SB_ui64DataStartBlk + TPS_ADJUST_BP_BLK,
                          psb->SB_ui64DataStartBlk + TPS_ADJUST_BP_BLK,
-                         psb->SB_ui64DataBlkCnt - TPS_ADJUST_BP_BLK) != TPS_ERR_NONE) {
+                         psb->SB_ui64DataBlkCnt - TPS_ADJUST_BP_BLK,
+                         LW_TRUE) != TPS_ERR_NONE) {
         TPS_FREE(pucSectorBuf);
         TPS_FREE(psb->SB_pbp);
         TPS_FREE(psb);
@@ -453,6 +471,8 @@ errno_t  tpsFsFormat (PTPS_DEV pdev, UINT uiBlkSize)
     }
 
     tpsFsCloseInode(psb->SB_pinodeSpaceMng);
+
+    lib_memset(pucSectorBuf, 0, uiSectorSize);
 
     __tpsFsSBSerial(psb, pucSectorBuf, uiSectorSize);
 

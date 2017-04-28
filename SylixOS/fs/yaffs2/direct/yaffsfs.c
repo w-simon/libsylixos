@@ -1156,6 +1156,30 @@ int yaffs_close(int handle)
 	return retVal;
 }
 
+/* sylixos add change rights */
+int yaffs_handle_rw_set (int handle, int read, int write)
+{
+    struct yaffsfs_FileDes *fd = NULL;
+	struct yaffs_obj *obj = NULL;
+	
+    yaffsfs_Lock();
+	fd = yaffsfs_HandleToFileDes(handle);
+	obj = yaffsfs_HandleToObject(handle);
+	
+	if (!fd || !obj) {
+		/* bad handle */
+		yaffsfs_SetError(-EBADF);
+		yaffsfs_Unlock();
+		return  (-1);
+	}
+	
+	fd->reading = read;
+	fd->writing = write;
+	
+	yaffsfs_Unlock();
+    return  (0);
+}
+
 static int yaffsfs_do_read(int handle, void *vbuf, unsigned int nbyte,
 		    int isPread, Y_LOFF_T offset)
 {

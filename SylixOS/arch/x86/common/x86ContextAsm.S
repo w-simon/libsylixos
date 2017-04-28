@@ -25,11 +25,15 @@
 
 #include <arch/assembler.h>
 #include <config/kernel/kernel_cfg.h>
+#include <config/mp/mp_cfg.h>
 #include "x86ContextAsm.h"
 
     FILE_BEGIN()
 
     IMPORT_LABEL(_SchedSwp)
+#if LW_CFG_SMP_EN > 0
+    IMPORT_LABEL(_SchedSafeStack)
+#endif
 #if LW_CFG_COROUTINE_EN > 0
     IMPORT_LABEL(_SchedCrSwp)
 #endif
@@ -60,7 +64,6 @@ FUNC_DEF(archTaskCtxStart)
     MOVL    X86_SP_ARG1(%ESP) , %EDI                                    ;/*  EDI = 当前 CPU 控制块指针   */
 
     MOVL    0(%EDI) , %EAX                                              ;/*  EAX = 当前 任务 控制块指针  */
-
     MOVL    0(%EAX) , %ESP                                              ;/*  修改 ESP                    */
 
     RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
@@ -77,6 +80,12 @@ FUNC_DEF(archTaskCtxSwitch)
     MOVL    (X86_SP_ARG1 + ARCH_REG_CTX_WORD_SIZE * 4)(%ESP) , %EDI     ;/*  EDI = 当前 CPU 控制块指针   */
     MOVL    0(%EDI) , %EAX                                              ;/*  EAX = 当前 任务 控制块指针  */
     MOVL    %ESP , 0(%EAX)                                              ;/*  保存 ESP                    */
+
+#if LW_CFG_SMP_EN > 0
+    PUSHL   %EDI                                                        ;/*  参数 = 当前 CPU 控制块指针  */
+    CALL    _SchedSafeStack                                             ;/*  _SchedSafeStack();          */
+    MOVL    %EAX , %ESP
+#endif
 
     PUSHL   %EDI                                                        ;/*  参数 = 当前 CPU 控制块指针  */
     CALL    _SchedSwp                                                   ;/*  _SchedSwp();                */
@@ -118,11 +127,7 @@ FUNC_DEF(archCrtCtxSwitch)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archIntCtxLoad)
-    MOVL    (X86_SP_ARG1)(%ESP) , %EDI                                  ;/*  EDI  = 当前 CPU 控制块指针  */
-    PUSHL   %EDI                                                        ;/*  参数 = 当前 CPU 控制块指针  */
-    CALL    _SchedSwp                                                   ;/*  _SchedSwp();                */
-    ADDL    $4 , %ESP
-
+    MOVL    (X86_SP_ARG1)(%ESP) , %EDI                                  ;/*  EDI = 当前 CPU 控制块指针   */
     MOVL    0(%EDI) , %EAX                                              ;/*  EAX = 当前 任务 控制块指针  */
     MOVL    0(%EAX) , %ESP                                              ;/*  修改 ESP                    */
 

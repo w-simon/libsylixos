@@ -25,11 +25,15 @@
 
 #include <arch/assembler.h>
 #include <config/kernel/kernel_cfg.h>
+#include <config/mp/mp_cfg.h>
 #include "mipsContextAsm.h"
 
     FILE_BEGIN()
 
     IMPORT_LABEL(_SchedSwp)
+#if LW_CFG_SMP_EN > 0
+    IMPORT_LABEL(_SchedSafeStack)
+#endif
 #if LW_CFG_COROUTINE_EN > 0
     IMPORT_LABEL(_SchedCrSwp)
 #endif
@@ -88,19 +92,20 @@ FUNC_DEF(archTaskCtxSwitch)
     LW      T0 , 0(A0)                                                  ;/*  stack current = SP          */
     SW      SP , 0(T0)
 
+#if LW_CFG_SMP_EN > 0
     SUBU    SP , 32
-    SW      RA , 28(SP)
-    SW      FP , 24(SP)
-    MOV     FP , SP
-    SW      A0 , 20(SP)                                                 ;/*  当前 CPU 信息入栈           */
+    SW      A0 , 28(SP)                                                 ;/*  当前 CPU 信息入栈           */
+    JAL     _SchedSafeStack                                             ;/*  _SchedSafeStack();          */
+    NOP
+    LW      A0 , 28(SP)                                                 ;/*  当前 CPU 信息出栈           */
+    MOV     SP , V0
+#endif
 
+    SUBU    SP , 32
+    SW      A0 , 28(SP)                                                 ;/*  当前 CPU 信息入栈           */
     JAL     _SchedSwp                                                   ;/*  _SchedSwp();                */
     NOP
-
-    MOV     SP , FP
-    LW      RA , 28(SP)
-    LW      FP , 24(SP)
-    LW      A0 , 20(SP)                                                 ;/*  当前 CPU 信息出栈           */
+    LW      A0 , 28(SP)                                                 ;/*  当前 CPU 信息出栈           */
     ADDU    SP , 32
 
     LW      T0 , 0(A0)                                                  ;/*  SP = stack current          */
@@ -129,18 +134,10 @@ FUNC_DEF(archCrtCtxSwitch)
     SW      SP , 0(T0)
 
     SUBU    SP , 32
-    SW      RA , 28(SP)
-    SW      FP , 24(SP)
-    MOV     FP , SP
-    SW      A0 , 20(SP)                                                 ;/*  当前 CPU 信息入栈           */
-
+    SW      A0 , 28(SP)                                                 ;/*  当前 CPU 信息入栈           */
     JAL     _SchedCrSwp                                                 ;/*  _SchedCrSwp();              */
     NOP
-
-    MOV     SP , FP
-    LW      RA , 28(SP)
-    LW      FP , 24(SP)
-    LW      A0 , 20(SP)                                                 ;/*  当前 CPU 信息出栈           */
+    LW      A0 , 28(SP)                                                 ;/*  当前 CPU 信息出栈           */
     ADDU    SP , 32
 
     LW      T0 , 8(A0)                                                  ;/*  SP = stack current          */
@@ -162,21 +159,6 @@ FUNC_DEF(archIntCtxLoad)
     .set    noat
     .set    noreorder
     .set    volatile
-
-    SUBU    SP , 32
-    SW      RA , 28(SP)
-    SW      FP , 24(SP)
-    MOV     FP , SP
-    SW      A0 , 20(SP)                                                 ;/*  当前 CPU 信息入栈           */
-
-    JAL     _SchedSwp                                                   ;/*  _SchedSwp();                */
-    NOP
-
-    MOV     SP , FP
-    LW      RA , 28(SP)
-    LW      FP , 24(SP)
-    LW      A0 , 20(SP)                                                 ;/*  当前 CPU 信息出栈           */
-    ADDU    SP , 32
 
     LW      T0 , 0(A0)                                                  ;/*  SP = stack current          */
     LW      SP , 0(T0)

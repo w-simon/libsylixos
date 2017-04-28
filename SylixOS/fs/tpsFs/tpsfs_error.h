@@ -62,6 +62,7 @@ typedef enum {
     TPS_ERR_INODE_SIZE,                                                 /* inode大小错误                */
     TPS_ERR_INODE_SYNC,                                                 /* 同步inode错误                */
     TPS_ERR_INODE_SERIAL,                                               /* 序列号inode错误              */
+    TPS_ERR_INODE_HASHNOEMPTY,                                          /* 目录非空                     */
 
     TPS_ERR_BTREE_INIT,                                                 /* 初始化b+tree                 */
     TPS_ERR_BTREE_INSERT,                                               /* 插入块到b+tree错误           */
@@ -82,23 +83,26 @@ typedef enum {
     TPS_ERR_BTREE_UPDATE_KEY,                                           /* 更新键值错                   */
     TPS_ERR_BTREE_DISK_SPACE,                                           /* 磁盘空间不足                 */
     TPS_ERR_BTREE_NODE_MAGIC,                                           /* BTREE 节点 magic错误         */
+    TPS_ERR_BTREE_OVERFLOW,                                             /* BTREE节点访问溢出            */
 
     TPS_ERR_CHECK_NAME,                                                 /* 文件路径检查错误             */
 
     TPS_ERR_TRANS_ALLOC,                                                /* 分配事物错误                 */
-    TPS_ERR_TRANS_WRITE,                                                /* 事物写操作错误               */
+    TPS_ERR_TRANS_WRITE,                                                /* 事务写操作错误               */
     TPS_ERR_TRANS_COMMIT,                                               /* 提交事务错误                 */
     TPS_ERR_TRANS_CHECK,                                                /* 分配事物错误                 */
     TPS_ERR_TRANS_OVERFLOW,                                             /* 事务内存溢出                 */
     TPS_ERR_TRANS_NEED_COMMIT,                                          /* 事务需要提交                 */
     TPS_TRAN_INIT_SIZE,                                                 /* 初始化事务区间大小错误       */
-    TPS_ERR_TRANS_COMMIT_FAULT,                                         /* 事物提交过程出错             */
+    TPS_ERR_TRANS_COMMIT_FAULT,                                         /* 事务提交过程出错             */
+    TPS_ERR_TRANS_READ,                                                 /* 事务读取失败                 */
 
     TPS_ERR_ENTRY_NOT_EXIST,                                            /* 文件不存在                   */
     TPS_ERR_ENTRY_AREADY_EXIST,                                         /* 文件已存在                   */
     TPS_ERR_ENTRY_CREATE,                                               /* 创建目录项错误               */
     TPS_ERR_ENTRY_FIND,                                                 /* 查找目录项错误               */
     TPS_ERR_ENTRY_REMOVE,                                               /* 删除目录项错误               */
+    TPS_ERR_ENTRY_UNEQUAL,                                              /* 目录名不相等                 */
 
     TPS_ERR_BUF_READ,                                                   /* 读磁盘错误                   */
     TPS_ERR_BUF_WRITE,                                                  /* 写磁盘错误                   */
@@ -116,6 +120,12 @@ typedef enum {
     TPS_ERR_BP_ADJUST,                                                  /* 调整块缓冲队列大小错误       */
 
     TPS_ERR_DIR_MK,                                                     /* 创建目录错误                 */
+
+    TPS_ERR_HASH_EXIST,                                                 /* hash节点已存在               */
+    TPS_ERR_HASH_TOOLONG_NAME,                                          /* 存放在hash节点中的名字过长   */
+    TPS_ERR_HASH_INSERT,                                                /* 插入hash节点失败             */
+    TPS_ERR_HASH_NOT_EXIST,                                             /* hash节点不存在               */
+    TPS_ERR_HASH_REMOVE,                                                /* 删除hash节点失败             */
 
     TPS_ERR_UNEXPECT                                                    /* 位置错误                     */
 } TPS_RESULT;

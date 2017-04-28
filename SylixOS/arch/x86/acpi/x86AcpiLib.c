@@ -159,17 +159,11 @@ INT  acpiLibInstallHandlers (VOID)
         return  (PX_ERROR);
     }
 
-    status = AcpiInstallFixedEventHandler(ACPI_EVENT_POWER_BUTTON, __acpiShutdownHandler, LW_NULL);
-    if (ACPI_FAILURE(status)) {
-        ACPI_EXCEPTION((AE_INFO, status, "While installing Shutdown Event handler"));
-        return  (PX_ERROR);
-    }
-
-    status = AcpiInstallFixedEventHandler(ACPI_EVENT_SLEEP_BUTTON, __acpiSleepHandler, LW_NULL);
-    if (ACPI_FAILURE(status)) {
-        ACPI_EXCEPTION((AE_INFO, status, "While installing Sleep Event handler"));
-        return  (PX_ERROR);
-    }
+    /*
+     * 不检查返回值, 大多数 IBM-PC 兼容机都没有休眠按钮
+     */
+    AcpiInstallFixedEventHandler(ACPI_EVENT_POWER_BUTTON, __acpiShutdownHandler, LW_NULL);
+    AcpiInstallFixedEventHandler(ACPI_EVENT_SLEEP_BUTTON, __acpiSleepHandler,    LW_NULL);
 
     return  (ERROR_NONE);
 }

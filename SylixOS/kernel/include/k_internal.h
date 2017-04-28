@@ -396,6 +396,10 @@ VOID           _SchedSwp(PLW_CLASS_CPU pcpuCur);                        /*  ÈÎÎñ
 VOID           _SchedCrSwp(PLW_CLASS_CPU pcpuCur);
 #endif                                                                  /*  LW_CFG_COROUTINE_EN > 0     */
 
+#if LW_CFG_SMP_EN > 0
+PVOID          _SchedSafeStack(PLW_CLASS_CPU pcpuCur);
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
+
 INT            _Schedule(VOID);
 VOID           _ScheduleInt(VOID);
 VOID           _ScheduleInit(VOID);

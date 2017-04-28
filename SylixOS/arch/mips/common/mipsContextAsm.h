@@ -205,8 +205,8 @@ MACRO_DEF(RESTORE_REGS)
 
     ORI     K0 , K0 , M_StatusEXL                                       ;/*  通过设置 EXL 位             */
 
-    MTC0    K1, CP0_EPC                                                 ;/*  恢复 EPC 寄存器             */
-    MTC0    K0, CP0_STATUS                                              ;/*  进入内核模式，并关中断      */
+    MTC0    K1 , CP0_EPC                                                ;/*  恢复 EPC 寄存器             */
+    MTC0    K0 , CP0_STATUS                                             ;/*  进入内核模式，并关中断      */
     EHB
     ERET                                                                ;/*  清除 EXL 位并返回           */
     NOP

@@ -67,6 +67,7 @@
 2013.01.06  yaffs 使用最新 NEW_1 设备驱动类型. 这样可以支持文件锁.
 2013.07.10  升级 yaffs 后, 支持通过 fd 操作目录, 这里不再保留以往目录的处理方式.
 2013.07.12  升级 yaffs 后, 不再使用以前的格式化操作, 转而使用 yaffs 自带的 yaffs_format 函数进行格式化.
+2017.04.27  yaffs 内部使用 O_RDWR 打开, 防止多重打开时内部权限判断错误.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -626,6 +627,8 @@ static LONG  __yaffsOpen (PYAFFS_FSLIB    pyaffs,
             yaffs_fstat(pyaffile->YAFFIL_iFd, &yafstat);                /*  获得文件属性                */
             if (S_ISDIR(yafstat.st_mode)) {
                 pyaffile->YAFFIL_iFileType = __YAFFS_FILE_TYPE_DIR;     /*  目录                        */
+            } else {
+                yaffs_handle_rw_set(pyaffile->YAFFIL_iFd, 1, 1);        /*  拥有读写权限                */
             }
         }
         

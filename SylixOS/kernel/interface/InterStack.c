@@ -28,8 +28,6 @@
   中断堆栈定义
 *********************************************************************************************************/
 extern LW_STACK     _K_stkInterruptStack[LW_CFG_MAX_PROCESSORS][LW_CFG_INT_STK_SIZE / sizeof(LW_STACK)];
-extern PLW_STACK    _K_pstkInterruptBase[LW_CFG_MAX_PROCESSORS];        /*  中断处理时的堆栈基地址      */
-                                                                        /*  通过 CPU_STK_GROWTH 判断    */
 /*********************************************************************************************************
 ** 函数名称: API_InterStackBaseGet
 ** 功能描述: 获得中断堆栈栈顶 (当前调用者所在的 CPU, 关中断模式下被调用)
@@ -42,7 +40,7 @@ extern PLW_STACK    _K_pstkInterruptBase[LW_CFG_MAX_PROCESSORS];        /*  中断
 LW_API  
 PVOID  API_InterStackBaseGet (VOID)
 {
-    return  (_K_pstkInterruptBase[LW_CPU_GET_CUR_ID()]);
+    return  (LW_CPU_GET_CUR()->CPU_pstkInterBase);
 }
 /*********************************************************************************************************
 ** 函数名称: API_InterStackCheck

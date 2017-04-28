@@ -31,7 +31,6 @@
     
     IMPORT_LABEL(API_ThreadTcbInter)
     IMPORT_LABEL(API_InterStackBaseGet)
-    IMPORT_LABEL(API_InterGetNesting)
     IMPORT_LABEL(API_InterEnter)
     IMPORT_LABEL(API_InterExit)
     IMPORT_LABEL(_G_pfuncX86IntHandleArray)
@@ -104,7 +103,6 @@ FUNC_DEF(x86GetCr2)
     250, 251, 252, 253, 254, 255
 
 FUNC_DEF(x86IntEntry\Id)
-
     INT_SAVE_REGS_FAKE_ERRNO                                            ;/*  所有寄存器入栈              */
 
     MOVL    %ESP , %ESI
@@ -132,19 +130,6 @@ FUNC_DEF(x86IntEntry\Id)
     CALL    *(\Id * 4)(%EDI)
     ADDL    $8 , %ESP
 
-    ;/*
-    ; *  if (API_InterGetNesting() == 1) {
-    ; *      SP = current stack;
-    ; *  }
-    ; */
-    CALL    API_InterGetNesting
-    CMPL    $1 , %EAX
-    JNE     2f
-
-    CALL    API_ThreadTcbInter
-    MOVL    0(%EAX) , %ESP
-
-2:
     CALL    API_InterExit
 
     RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
@@ -168,7 +153,6 @@ FUNC_DEF(x86IntEntry\Id)
     X86_EXCEPT_ALIGNEMENT_CHECK
 
 FUNC_DEF(x86IntEntry\Id)
-
     INT_SAVE_REGS_HW_ERRNO                                              ;/*  所有寄存器入栈              */
 
     MOVL    %ESP , %ESI
@@ -196,19 +180,6 @@ FUNC_DEF(x86IntEntry\Id)
     CALL    *(\Id * 4)(%EDI)
     ADDL    $8 , %ESP
 
-    ;/*
-    ; *  if (API_InterGetNesting() == 1) {
-    ; *      SP = current stack;
-    ; *  }
-    ; */
-    CALL    API_InterGetNesting
-    CMPL    $1 , %EAX
-    JNE     2f
-
-    CALL    API_ThreadTcbInter
-    MOVL    0(%EAX) , %ESP
-
-2:
     CALL    API_InterExit
 
     RESTORE_REGS                                                        ;/*  所有寄存器出栈              */

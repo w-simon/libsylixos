@@ -29,7 +29,6 @@
     
     IMPORT_LABEL(API_ThreadTcbInter)
     IMPORT_LABEL(API_InterStackBaseGet)
-    IMPORT_LABEL(API_InterGetNesting)
     IMPORT_LABEL(API_InterEnter)
     IMPORT_LABEL(API_InterExit)
     
@@ -93,25 +92,8 @@ MACRO_DEF(IRQ_ENTRY)
     MOV     LR , PC
     BX      R5
     
-    ;/*
-    ; *  if (API_InterGetNesting() == 1) {
-    ; *      SP = current stack;
-    ; *  }
-    ; */
-    LDR     R0 , =API_InterGetNesting
+    LDR     R0 , =API_InterExit
     MOV     LR , PC
-    BX      R0
-    CMP     R0 , #1
-    BNE     2f
-    
-    LDR     R0 , =API_ThreadTcbInter                                    ;/*  get current tcb             */
-    MOV     LR , PC
-    BX      R0
-    LDR     SP , [R0]                                                   ;/*  SP = current stack          */
-    
-2:
-    LDR     R0, =API_InterExit
-    MOV     LR, PC
     BX      R0
     
     LDMFD   SP!, {R4}
@@ -177,25 +159,8 @@ MACRO_DEF(ABT_ENTRY retoff)
     MOV     LR , PC
     BX      R5
     
-    ;/*
-    ; *  if (API_InterGetNesting() == 1) {
-    ; *      SP = current stack;
-    ; *  }
-    ; */
-    LDR     R0 , =API_InterGetNesting
+    LDR     R0 , =API_InterExit
     MOV     LR , PC
-    BX      R0
-    CMP     R0 , #1
-    BNE     2f
-    
-    LDR     R0 , =API_ThreadTcbInter                                    ;/*  get current tcb             */
-    MOV     LR , PC
-    BX      R0
-    LDR     SP , [R0]                                                   ;/*  SP = current stack          */
-    
-2:
-    LDR     R0, =API_InterExit
-    MOV     LR, PC
     BX      R0
     
     LDMFD   SP!, {R4}
@@ -266,25 +231,8 @@ MACRO_DEF(UND_ENTRY)
     MOV     LR , PC
     BX      R5
     
-    ;/*
-    ; *  if (API_InterGetNesting() == 1) {
-    ; *      SP = current stack;
-    ; *  }
-    ; */
-    LDR     R0 , =API_InterGetNesting
+    LDR     R0 , =API_InterExit
     MOV     LR , PC
-    BX      R0
-    CMP     R0 , #1
-    BNE     2f
-    
-    LDR     R0 , =API_ThreadTcbInter                                    ;/*  get current tcb             */
-    MOV     LR , PC
-    BX      R0
-    LDR     SP , [R0]                                                   ;/*  SP = current stack          */
-    
-2:
-    LDR     R0, =API_InterExit
-    MOV     LR, PC
     BX      R0
     
     LDMFD   SP!, {R4}
