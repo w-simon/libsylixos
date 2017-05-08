@@ -1324,8 +1324,9 @@ static INT  __tpsFsReadDir (PLW_FD_ENTRY  pfdentry, DIR  *dir)
      *  dir_posתbHash + off
      */
     if (dir->dir_pos == 0) {
-        off     = MAX_BLK_NUM;
-        bHash   = LW_TRUE;
+        off   = MAX_BLK_NUM;
+        bHash = LW_TRUE;
+    
     } else {
         bHash = (dir->dir_pos & 0x80000000) ? LW_TRUE : LW_FALSE;
         off = (UINT)DIR_RESV_DATA_PV1(dir);
@@ -1350,6 +1351,7 @@ static INT  __tpsFsReadDir (PLW_FD_ENTRY  pfdentry, DIR  *dir)
         if (pentry->ENTRY_offset > 0) {
             off = pentry->ENTRY_offset - 1;
         }
+    
     } else {
         off = pentry->ENTRY_offset + pentry->ENTRY_uiLen;
     }

@@ -175,6 +175,7 @@ int  lio_listio (int mode, struct aiocb * const list[], int nent, struct sigeven
     AIO_WAIT_CHAIN     *paiowc;
     struct aiowait     *paiowait;
     
+    int                 iNotify;
     int                 iWait = 0;                                      /*  paiowait 下标               */
     int                 iCnt;                                           /*  list 下标                   */
     int                 iRet = ERROR_NONE;
@@ -221,8 +222,14 @@ int  lio_listio (int mode, struct aiocb * const list[], int nent, struct sigeven
             if ((list[iCnt]->aio_lio_opcode != LIO_NOP) &&
                 (list[iCnt]->aio_req.aioreq_error != EINPROGRESS)) {
                 
-                list[iCnt]->aio_sigevent.sigev_notify = SIGEV_NONE;     /*  不使用 aiocb 的 sigevent    */
-                list[iCnt]->aio_req.aioreq_thread     = API_ThreadIdSelf();
+                iNotify  = list[iCnt]->aio_sigevent.sigev_notify;
+                iNotify &= ~SIGEV_THREAD_ID;
+                if ((iNotify != SIGEV_SIGNAL) && 
+                    (iNotify != SIGEV_THREAD)) {
+                    list[iCnt]->aio_sigevent.sigev_notify = SIGEV_NONE;
+                }
+                
+                list[iCnt]->aio_req.aioreq_thread = API_ThreadIdSelf(); /*  接收单个完成信号任务        */
                 
                 if (mode == LIO_WAIT) {
                     paiowait[iWait].aiowt_pcond     = &paiowc->aiowc_cond;

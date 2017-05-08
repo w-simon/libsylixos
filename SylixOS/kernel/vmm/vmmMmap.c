@@ -364,6 +364,7 @@ static PVOID  __vmmMmapNew (size_t  stLen, INT  iFlags, ULONG  ulFlag, int  iFd,
     PLW_VMM_MAP_NODE    pmapn;
     struct stat64       stat64Fd;
     INT                 iErrLevel = 0;
+    INT                 iFileFlag;
     
     LW_DEV_MMAP_AREA    dmap;
     INT                 iError;
@@ -373,10 +374,32 @@ static PVOID  __vmmMmapNew (size_t  stLen, INT  iFlags, ULONG  ulFlag, int  iFd,
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 
     if (iFd >= 0) {
+        if (iosFdGetFlag(iFd, &iFileFlag) < 0) {                        /*  获得文件权限                */
+            _ErrorHandle(EBADF);
+            return  (LW_VMM_MAP_FAILED);
+        } 
+        
+        iFileFlag &= O_ACCMODE;
+        if (iFlags == LW_VMM_SHARED_CHANGE) {
+            if ((ulFlag & LW_VMM_FLAG_WRITABLE) &&
+                (iFileFlag == O_RDONLY)) {                              /*  带有写权限映射只读文件      */
+                _ErrorHandle(EACCES);
+                return  (LW_VMM_MAP_FAILED);
+            }
+        }
+        
         if (fstat64(iFd, &stat64Fd) < 0) {                              /*  获得文件 stat               */
             _ErrorHandle(EBADF);
             return  (LW_VMM_MAP_FAILED);
         }
+        
+        if (S_ISDIR(stat64Fd.st_mode)  ||
+            S_ISFIFO(stat64Fd.st_mode) ||
+            S_ISSOCK(stat64Fd.st_mode)) {                               /*  不能映射目录与管道          */
+            _ErrorHandle(ENODEV);
+            return  (LW_VMM_MAP_FAILED);
+        }
+        
         if (off > stat64Fd.st_size) {                                   /*  off 越界                    */
             _ErrorHandle(ENXIO);
             return  (LW_VMM_MAP_FAILED);
@@ -405,8 +428,7 @@ static PVOID  __vmmMmapNew (size_t  stLen, INT  iFlags, ULONG  ulFlag, int  iFd,
     pmapn->MAPN_offFSize = stat64Fd.st_size;
     pmapn->MAPN_dev      = stat64Fd.st_dev;
     pmapn->MAPN_ino64    = stat64Fd.st_ino;
-    
-    pmapn->MAPN_iFlags = iFlags;
+    pmapn->MAPN_iFlags   = iFlags;
     
 #if LW_CFG_MODULELOADER_EN > 0
     pvproc = __LW_VP_GET_CUR_PROC();

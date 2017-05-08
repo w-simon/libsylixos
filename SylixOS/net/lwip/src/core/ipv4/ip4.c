@@ -153,12 +153,7 @@ ip4_route(const ip4_addr_t *dest)
   struct netif *netif;
   
   /* Use SylixOS route table first! */
-#ifdef LWIP_HOOK_IP4_ROUTE_SRC
-  netif = LWIP_HOOK_IP4_ROUTE_SRC(dest, NULL);
-  if (netif != NULL) {
-    return netif;
-  }
-#elif defined(LWIP_HOOK_IP4_ROUTE)
+#if !defined(LWIP_HOOK_IP4_ROUTE_SRC) && defined(LWIP_HOOK_IP4_ROUTE)
   netif = LWIP_HOOK_IP4_ROUTE(dest);
   if (netif != NULL) {
     return netif;

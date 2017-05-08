@@ -969,23 +969,25 @@ extern VOID  nat_ip_input_hook(struct pbuf *p, struct netif *inp);
     return  (0);                                                        /*  do not eaten packet         */
 }
 /*********************************************************************************************************
-** 函数名称: ip_route_hook
+** 函数名称: ip_route_src_hook
 ** 功能描述: sylixos ip route hook
 ** 输　入  : dest  destination route netif
+**           pvSrc source address
 ** 输　出  : netif
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-PVOID ip_route_hook (const PVOID pvDest)
+PVOID ip_route_src_hook (const PVOID pvDest, const PVOID pvSrc)
 {
-extern struct netif  *sys_ip_route_hook(const ip_addr_t *ipaddrDest);
+extern struct netif *sys_ip_route_src_hook(const ip4_addr_t *pipaddrDest, const ip4_addr_t *pipaddrSrc);
 
-    const  ip_addr_t *dest = (const ip_addr_t *)pvDest;
-    struct netif     *netif;
+    const  ip4_addr_t *dest = (const ip4_addr_t *)pvDest;
+    const  ip4_addr_t *src  = (const ip4_addr_t *)pvSrc;
+    struct netif      *netif;
     
-    netif = sys_ip_route_hook(dest);
+    netif = sys_ip_route_src_hook(dest, src);
 
-    return ((PVOID)netif);
+    return  ((PVOID)netif);
 }
 /*********************************************************************************************************
 ** 函数名称: ip_gw_hook
@@ -997,12 +999,12 @@ extern struct netif  *sys_ip_route_hook(const ip_addr_t *ipaddrDest);
 *********************************************************************************************************/
 PVOID ip_gw_hook (PVOID  pvNetif, const PVOID pvDest)
 {
-extern ip_addr_t *sys_ip_gw_hook(struct netif *netif, const ip_addr_t *pipaddrDest);
+extern ip_addr_t *sys_ip_gw_hook(struct netif *netif, const ip4_addr_t *pipaddrDest);
 
-    const  ip_addr_t *dest  = (const ip_addr_t *)pvDest;
-    struct netif     *netif = (struct netif *)pvNetif;
+    const  ip4_addr_t *dest  = (const ip4_addr_t *)pvDest;
+    struct netif      *netif = (struct netif *)pvNetif;
 
-    return ((PVOID)sys_ip_gw_hook(netif, dest));
+    return  ((PVOID)sys_ip_gw_hook(netif, dest));
 }
 /*********************************************************************************************************
 ** 函数名称: link_input_hook

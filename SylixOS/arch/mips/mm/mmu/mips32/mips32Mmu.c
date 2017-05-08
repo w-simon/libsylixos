@@ -881,6 +881,11 @@ VOID  mips32MmuInit (LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName)
             _G_bLsHasFTLB = LW_TRUE;
             break;
 
+        case PRID_REV_LOONGSON2K:                                       /*  Loongson2K1000              */
+            _G_bLsHasDTLB = LW_FALSE;
+            _G_bLsHasFTLB = LW_FALSE;
+            break;
+
         case PRID_REV_LOONGSON3A_R1:                                    /*  Loongson3A1000              */
         case PRID_REV_LOONGSON3B_R1:                                    /*  Loongson3B1000              */
         case PRID_REV_LOONGSON3B_R2:                                    /*  Loongson3B2000              */

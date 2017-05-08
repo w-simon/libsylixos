@@ -95,8 +95,13 @@
   PPPoS 缓存配置
 *********************************************************************************************************/
 
-#define LW_CFG_LWIP_PPP_RBUF_SIZE       (32 * LW_CFG_KB_SIZE)           /*  PPPoS 接收缓存大小          */
-#define LW_CFG_LWIP_PPP_WBUF_SIZE       ( 8 * LW_CFG_KB_SIZE)           /*  PPPoS 发送缓存大小          */
+#if LW_CFG_LWIP_TCP_WND < (32 * LW_CFG_KB_SIZE)
+#define LW_CFG_LWIP_PPP_RBUF_SIZE       (32 * LW_CFG_KB_SIZE)           /*  PPPoS 接收缓存大小 32~128KB */
+#else
+#define LW_CFG_LWIP_PPP_RBUF_SIZE       (LW_CFG_LWIP_TCP_WND + (8 * LW_CFG_KB_SIZE))
+#endif
+
+#define LW_CFG_LWIP_PPP_WBUF_SIZE       (8 * LW_CFG_KB_SIZE)            /*  PPPoS 发送缓存大小 8~64KB   */
 
 #endif                                                                  /*  __NET_PERF_CFG_H            */
 /*********************************************************************************************************

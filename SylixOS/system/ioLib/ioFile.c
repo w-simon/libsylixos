@@ -1112,6 +1112,34 @@ INT  API_IosFdGetType (INT  iFd, INT  *piType)
     }
 }
 /*********************************************************************************************************
+** 函数名称: API_IosFdGetFlag
+** 功能描述: 获得文件描述符的 flag
+** 输　入  : 
+**           iFd                           文件描述符
+**           piFlag                        文件 flag  O_RDONLY  O_WRONLY  O_RDWR  O_CREAT ...
+** 输　出  : ERROR CODE
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+INT  API_IosFdGetFlag (INT  iFd, INT  *piFlag)
+{
+    REGISTER PLW_FD_ENTRY    pfdentry;
+    
+    pfdentry = _IosFileGet(iFd, LW_FALSE);
+    if (pfdentry) {
+        if (piFlag) {
+            *piFlag = pfdentry->FDENTRY_iFlag;
+        }
+        return  (ERROR_NONE);
+    
+    } else {
+        _ErrorHandle(ERROR_IOS_INVALID_FILE_DESCRIPTOR);
+        return  (PX_ERROR);
+    }
+}
+/*********************************************************************************************************
 ** 函数名称: API_IosFdGetName
 ** 功能描述: 获得文件描述符内保存的文件名
 ** 输　入  : 

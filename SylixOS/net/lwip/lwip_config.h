@@ -576,8 +576,8 @@ extern PVOID netif_get_by_index(UINT uiIndex);
   lwip ip route hook (return is the netif has been route)
 *********************************************************************************************************/
 
-extern PVOID ip_route_hook(const PVOID pvDest);
-#define LWIP_HOOK_IP4_ROUTE             ip_route_hook
+extern PVOID ip_route_src_hook(const PVOID pvDest, const PVOID pvSrc);
+#define LWIP_HOOK_IP4_ROUTE_SRC         ip_route_src_hook
 
 extern PVOID ip_gw_hook(PVOID  pvNetif, const PVOID pvDest);
 #define LWIP_HOOK_ETHARP_GET_GW         ip_gw_hook

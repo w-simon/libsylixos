@@ -887,6 +887,7 @@
 *********************************************************************************************************/
 
 #define PRID_REV_LOONGSON1B             0x0020
+#define PRID_REV_LOONGSON2K             0x0001
 #define PRID_REV_LOONGSON2E             0x0002
 #define PRID_REV_LOONGSON2F             0x0003
 #define PRID_REV_LOONGSON3A_R1          0x0005

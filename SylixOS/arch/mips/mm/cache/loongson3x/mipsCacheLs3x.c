@@ -249,6 +249,10 @@ VOID  ls3xCacheFlushAll (VOID)
         ls3bCacheFlushAll();
         break;
 
+    case PRID_REV_LOONGSON2K:
+        ls3aR1CacheFlushAll();
+        break;
+
     case PRID_REV_LOONGSON3A_R1:
     default:
         ls3aR1CacheFlushAll();
@@ -476,6 +480,7 @@ static INT  ls3xL3SCacheProbe (VOID)
 {
     UINT32  uiConfig;
     UINT32  uiLineSize;
+    UINT32  uiPrid;
 
     uiConfig = mipsCp0Config2Read();                                    /*  ¶Á Config2                  */
     if ((uiLineSize = ((uiConfig >> 4) & 15))) {
@@ -488,7 +493,11 @@ static INT  ls3xL3SCacheProbe (VOID)
         /*
          * Loongson-3 has 4 cores, 1MB scache for each. scaches are shared
          */
-        _G_SCache.CACHE_uiSize    *= 4;
+        uiPrid = mipsCp0PRIdRead() & 0xf;
+        if (uiPrid != PRID_REV_LOONGSON2K) {                            /*  Loongson2K1000 Îª 1M        */
+            _G_SCache.CACHE_uiSize *= 4;
+        }
+
         _G_SCache.CACHE_uiWayStep  = _G_SCache.CACHE_uiSetNr * _G_SCache.CACHE_uiLineSize;
 
     } else {
@@ -509,6 +518,13 @@ static INT  ls3xL2VCacheProbe (VOID)
 {
     UINT32  uiConfig;
     UINT32  uiLineSize;
+    UINT32  uiPrid;
+
+    uiPrid = mipsCp0PRIdRead() & 0xf;
+    if (uiPrid == PRID_REV_LOONGSON2K) {                                /*  Loongson2K1000 ÎÞ V CACHE   */
+        _G_VCache.CACHE_bPresent = LW_FALSE;
+        return  (ERROR_NONE);
+    }
 
     uiConfig = mipsCp0Config2Read();                                    /*  ¶Á Config2                  */
     if ((uiLineSize = ((uiConfig >> 20) & 15))) {

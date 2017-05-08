@@ -750,16 +750,27 @@ VOID rt_netif_remove_hook (struct netif *netif)
     __rtSafeRun((FUNCPTR)__rtNeifRemoveCallback, (PVOID)netif, 0, 0, 0, 0, 0);
 }
 /*********************************************************************************************************
-** 函数名称: sys_ip_route_hook
+** 函数名称: sys_ip_route_src_hook
 ** 功能描述: sylixos 路由查找接口
-** 输　入  : ipaddrDest    目标地址
+** 输　入  : pipaddrDest   目标地址
+**           pipaddrSrc    源地址
 ** 输　出  : 如果查询到, 则返回路由接口
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-struct netif *sys_ip_route_hook (const ip4_addr_t *pipaddrDest)
+struct netif *sys_ip_route_src_hook (const ip4_addr_t *pipaddrDest, const ip4_addr_t *pipaddrSrc)
 {
     PLW_RT_ENTRY    prte;
+    
+    if ((pipaddrDest->addr == IPADDR_BROADCAST) && 
+        pipaddrSrc && (pipaddrSrc->addr != IPADDR_ANY)) {               /*  有限广播                    */
+        struct netif  *netif;
+        for (netif = netif_list; netif != NULL; netif = netif->next) {
+            if (ip4_addr_cmp(netif_ip4_addr(netif), pipaddrSrc)) {
+                return  (netif);
+            }
+        }
+    }
 
     if (_G_uiActiveNum == 0) {
         return  (LW_NULL);
@@ -784,7 +795,7 @@ struct netif *sys_ip_route_hook (const ip4_addr_t *pipaddrDest)
 ** 函数名称: sys_ip_gw_hook
 ** 功能描述: sylixos 路由查找接口 (查找网关)
 ** 输　入  : netif         网络接口
-**           ipaddrDest    目标地址
+**           pipaddrDest   目标地址
 ** 输　出  : 网关接口
 ** 全局变量: 
 ** 调用模块: 

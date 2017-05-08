@@ -45,7 +45,12 @@ VOIDFUNCPTR  mipsIdleHookGet (CPCHAR  pcMachineName)
         return  (mipsWaitInstruction);
 
     } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS3X) == 0)) {
-        if ((mipsCp0PRIdRead() & 0xf) >= PRID_REV_LOONGSON3A_R2) {
+        UINT32  uiPrid = mipsCp0PRIdRead();
+
+        if ((uiPrid & 0xf) == PRID_REV_LOONGSON2K) {
+            return  (mipsWaitInstruction);
+
+        } else if ((uiPrid & 0xf) != PRID_REV_LOONGSON3A_R1) {
             return  (mipsWaitInstruction);
         }
     }

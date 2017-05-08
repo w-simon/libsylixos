@@ -932,11 +932,11 @@ __file_open_ok:
         __fatFsGetInfo(pfatfile, &iMode, &oftSize);                     /*  获得一些基本信息            */
         
         pfdnode = API_IosFdNodeAdd(&pfatvol->FATVOL_plineFdNodeHeader,
-                                    (dev_t)&pfatfile->FATFIL_pfatvol->FATVOL_fatfsVol,
-                                    pfatfile->FATFIL_u64Uniq,           /*  这里使用 簇+偏移作为识别码  */
-                                    iFlags, iMode, 0, 0, oftSize, 
-                                    (PVOID)pfatfile,
-                                    &bIsNew);                           /*  添加文件节点                */
+                                   (dev_t)&pfatfile->FATFIL_pfatvol->FATVOL_fatfsVol,
+                                   pfatfile->FATFIL_u64Uniq,            /*  这里使用 簇+偏移作为识别码  */
+                                   iFlags, iMode, 0, 0, oftSize, 
+                                   (PVOID)pfatfile,
+                                   &bIsNew);                            /*  添加文件节点                */
         if (pfdnode == LW_NULL) {                                       /*  无法创建 fd_node 节点       */
             goto    __file_open_error;
         }
