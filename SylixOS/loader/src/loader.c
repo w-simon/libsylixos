@@ -457,10 +457,6 @@ static INT initArrayCall (LW_LD_EXEC_MODULE *pmodule)
         if (pmodTemp->EMOD_ulStatus == LW_LD_STATUS_LOADED) {
             pmodTemp->EMOD_ulStatus = LW_LD_STATUS_INITED;              /*  处理构造函数调用opendl      */
 
-#if LW_CFG_TRUSTED_COMPUTING_EN > 0
-            bspTrustedModuleLoad((PVOID)pmodTemp);
-#endif                                                                  /*  LW_CFG_TRUSTED_COMPUTING_EN */
-
             for (i = 0; i < pmodTemp->EMOD_ulInitArrCnt; i++) {         /*  正顺序调用初始化函数        */
                 pfuncInit = pmodTemp->EMOD_ppfuncInitArray[i];
                 if (pfuncInit != LW_NULL && pfuncInit != (VOIDFUNCPTR)(~0)) {
@@ -476,6 +472,10 @@ static INT initArrayCall (LW_LD_EXEC_MODULE *pmodule)
                     return  (PX_ERROR);
                 }
             }
+            
+#if LW_CFG_TRUSTED_COMPUTING_EN > 0
+            bspTrustedModuleLoad((PVOID)pmodTemp);
+#endif                                                                  /*  LW_CFG_TRUSTED_COMPUTING_EN */
         }
 
         pringTemp = _list_ring_get_prev(pringTemp);
