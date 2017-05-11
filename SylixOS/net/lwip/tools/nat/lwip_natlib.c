@@ -63,6 +63,9 @@ static LW_OBJECT_HANDLE     _G_ulNatcbPool = 0;
 /*********************************************************************************************************
   NAT 本地内网与 AP 外网网络接口
 *********************************************************************************************************/
+#if LW_CFG_NET_NAT_MAX_LOCAL_IF > 1
+       struct netif        *_G_pnetifNatLocalEx[LW_CFG_NET_NAT_MAX_LOCAL_IF - 1];
+#endif
        struct netif        *_G_pnetifNatLocal = LW_NULL;
        struct netif        *_G_pnetifNatAp    = LW_NULL;
 /*********************************************************************************************************
@@ -962,7 +965,7 @@ VOID  nat_ip_input_hook (struct pbuf *p, struct netif *inp)
 {
     struct ip_hdr   *iphdr = (struct ip_hdr *)p->payload;
     
-    if (IPH_V(iphdr) != 4) {
+    if ((IPH_V(iphdr) != 4) || (!_G_pnetifNatLocal)) {
         return;                                                         /*  IPv4 有效                   */
     }
 
@@ -983,6 +986,18 @@ VOID  nat_ip_input_hook (struct pbuf *p, struct netif *inp)
         } else if (inp == _G_pnetifNatAp) {
             __natApInput(p, inp);
         }
+        
+#if LW_CFG_NET_NAT_MAX_LOCAL_IF > 1
+        {
+            INT  i;
+            
+            for (i = 0; i < (LW_CFG_NET_NAT_MAX_LOCAL_IF - 1); i++) {
+                if (inp == _G_pnetifNatLocalEx[i]) {
+                    __natLocalInput(p, inp);
+                }
+            }
+        }
+#endif                                                                  /*  LW_CFG_NET_NAT_MAX_LOCAL_IF */
     }
 }
 /*********************************************************************************************************

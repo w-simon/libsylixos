@@ -55,6 +55,7 @@ VOID        __procFsNatInit(VOID);
 
 #if LW_CFG_SHELL_EN > 0
 static INT  __tshellNat(INT  iArgC, PCHAR  ppcArgV[]);
+static INT  __tshellNatLocal(INT  iArgC, PCHAR  ppcArgV[]);
 static INT  __tshellNatMap(INT  iArgC, PCHAR  ppcArgV[]);
 static INT  __tshellNatAlias(INT  iArgC, PCHAR  ppcArgV[]);
 static INT  __tshellNatShow(INT  iArgC, PCHAR  ppcArgV[]);
@@ -62,6 +63,9 @@ static INT  __tshellNatShow(INT  iArgC, PCHAR  ppcArgV[]);
 /*********************************************************************************************************
   NAT 本地内网与 AP 外网网络接口
 *********************************************************************************************************/
+#if LW_CFG_NET_NAT_MAX_LOCAL_IF > 1
+extern struct netif        *_G_pnetifNatLocalEx[LW_CFG_NET_NAT_MAX_LOCAL_IF - 1];
+#endif
 extern struct netif        *_G_pnetifNatLocal;
 extern struct netif        *_G_pnetifNatAp;
 /*********************************************************************************************************
@@ -117,6 +121,10 @@ VOID  API_INetNatInit (VOID)
     API_TShellHelpAdd("nat",   "start or stop NAT network.\n"
                                "eg. nat wl2 en1 (start NAT network use wl2 as LAN, en1 as WAN)\n"
                                "    nat stop    (stop NAT network)\n");
+    
+    API_TShellKeywordAdd("natlocal", __tshellNatLocal);
+    API_TShellFormatAdd("natlocal",  " [LAN netif]");
+    API_TShellHelpAdd("natlocal",   "add local net interface to NAT network.\n");
     
     API_TShellKeywordAdd("natalias", __tshellNatAlias);
     API_TShellFormatAdd("natalias",  " {[add] [alias] [LAN start] [LAN end]} | {[del] [alias]}");
@@ -193,6 +201,10 @@ INT  API_INetNatStart (CPCHAR  pcLocalNetif, CPCHAR  pcApNetif)
 LW_API  
 INT  API_INetNatStop (VOID)
 {
+#if LW_CFG_NET_NAT_MAX_LOCAL_IF > 1
+    INT  i;
+#endif
+
     if (!_G_pnetifNatLocal || !_G_pnetifNatAp) {                        /*  NAT 没有工作                */
         _ErrorHandle(ENOTCONN);
         return  (PX_ERROR);
@@ -201,6 +213,11 @@ INT  API_INetNatStop (VOID)
     __NAT_OP_LOCK();                                                    /*  锁定 NAT 链表               */
     
     __KERNEL_ENTER();
+#if LW_CFG_NET_NAT_MAX_LOCAL_IF > 1
+    for (i = 0; i < (LW_CFG_NET_NAT_MAX_LOCAL_IF - 1); i++) {
+        _G_pnetifNatLocalEx[i] = LW_NULL;
+    }
+#endif
     _G_pnetifNatLocal = LW_NULL;
     _G_pnetifNatAp    = LW_NULL;
     __KERNEL_EXIT();
@@ -208,6 +225,74 @@ INT  API_INetNatStop (VOID)
     __NAT_OP_UNLOCK();                                                  /*  解锁 NAT 链表               */
     
     return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_INetNatLocalAdd
+** 功能描述: 在 NAT 网络中增加本地接口
+** 输　入  : pcLocalNetif          本地内网网络接口名
+** 输　出  : ERROR or OK
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+INT  API_INetNatLocalAdd (CPCHAR  pcLocalNetif)
+{
+#if LW_CFG_NET_NAT_MAX_LOCAL_IF > 1
+           INT      i;
+    struct netif   *pnetifLocal;
+
+    if (!_G_pnetifNatLocal || !_G_pnetifNatAp) {                        /*  NAT 没有工作                */
+        _ErrorHandle(ENOTCONN);
+        return  (PX_ERROR);
+    }
+    
+    __NAT_OP_LOCK();                                                    /*  锁定 NAT 链表               */
+    pnetifLocal = netif_find((PCHAR)pcLocalNetif);
+    if (!pnetifLocal) {                                                 /*  有网络接口不存在            */
+        __NAT_OP_UNLOCK();                                              /*  解锁 NAT 链表               */
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    __KERNEL_ENTER();
+    for (i = 0; i < (LW_CFG_NET_NAT_MAX_LOCAL_IF - 1); i++) {
+        if (_G_pnetifNatLocalEx[i] == LW_NULL) {
+            _G_pnetifNatLocalEx[i] =  pnetifLocal;
+            break;
+        }
+    }
+    if (i >= (LW_CFG_NET_NAT_MAX_LOCAL_IF - 1)) {                       /*  已经满了                    */
+        __KERNEL_EXIT();
+        __NAT_OP_UNLOCK();                                              /*  解锁 NAT 链表               */
+        _ErrorHandle(EMFILE);
+        return  (PX_ERROR);
+    }
+    __KERNEL_EXIT();
+    
+    __NAT_OP_UNLOCK();                                                  /*  解锁 NAT 链表               */
+    
+    return  (ERROR_NONE);
+    
+#else
+    _ErrorHandle(ENOSYS);
+    return  (PX_ERROR);
+#endif                                                                  /*  LW_CFG_NET_NAT_MAX_LOCAL_IF */
+}
+/*********************************************************************************************************
+** 函数名称: API_INetNatLocalDelete
+** 功能描述: 在 NAT 网络中减少本地接口 (目前不支持)
+** 输　入  : pcLocalNetif          本地内网网络接口名
+** 输　出  : ERROR or OK
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+INT  API_INetNatLocalDelete (CPCHAR  pcLocalNetif)
+{
+    _ErrorHandle(ENOSYS);
+    return  (PX_ERROR);
 }
 /*********************************************************************************************************
 ** 函数名称: API_INetNatMapAdd
@@ -382,6 +467,7 @@ static INT  __tshellNat (INT  iArgC, PCHAR  ppcArgV[])
     if (iArgC == 3) {
         if (API_INetNatStart(ppcArgV[1], ppcArgV[2]) != ERROR_NONE) {
             fprintf(stderr, "can not start NAT network, errno: %s\n", lib_strerror(errno));
+            return  (PX_ERROR);
         
         } else {
             printf("NAT network started, [LAN: %s] [WAN: %s]\n", ppcArgV[1], ppcArgV[2]);
@@ -396,6 +482,29 @@ static INT  __tshellNat (INT  iArgC, PCHAR  ppcArgV[])
     } else {
         fprintf(stderr, "option error!\n");
         return  (-ERROR_TSHELL_EPARAM);
+    }
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __tshellNatLocal
+** 功能描述: 系统命令 "natlocal"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : 0
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static INT  __tshellNatLocal (INT  iArgC, PCHAR  ppcArgV[])
+{
+    if (iArgC != 2) {
+        fprintf(stderr, "option error!\n");
+        return  (-ERROR_TSHELL_EPARAM);
+    }
+    
+    if (API_INetNatLocalAdd(ppcArgV[1]) != ERROR_NONE) {
+        fprintf(stderr, "can not add NAT network local net interface, errno: %s\n", lib_strerror(errno));
+        return  (PX_ERROR);
     }
     
     return  (ERROR_NONE);
@@ -537,7 +646,6 @@ static INT  __tshellNatShow (INT  iArgC, PCHAR  ppcArgV[])
 }
 
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
-
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */
                                                                         /*  LW_CFG_NET_NAT_EN > 0       */
 /*********************************************************************************************************

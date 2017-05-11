@@ -97,6 +97,7 @@
 *********************************************************************************************************/
 
 #define LW_CFG_NET_NAT_EN                           1                   /*  是否使用 NAT 服务           */
+#define LW_CFG_NET_NAT_MAX_LOCAL_IF                 2                   /*  NAT 内网接口数量            */
 #define LW_CFG_NET_NAT_MAX_SESSION                  2048                /*  NAT 最大并发会话个数        */
 #define LW_CFG_NET_NAT_MIN_PORT                     49152               /*  NAT 端口映射范围            */
 #define LW_CFG_NET_NAT_MAX_PORT                     65535               /*      不得小于 32767          */
