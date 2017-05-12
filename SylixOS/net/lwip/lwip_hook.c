@@ -137,11 +137,12 @@ int  net_ip_hook_delete (int (*hook)(int ip_type, int hook_type, struct pbuf *p,
     UNLOCK_TCPIP_CORE();
     
     if (pline) {
+        __SHEAP_FREE(pipnod);
         return  (ERROR_NONE);
     
     } else {
         _ErrorHandle(EINVAL);
-        return  (ERROR_NONE);
+        return  (PX_ERROR);
     }
 }
 
