@@ -53,7 +53,14 @@ ARCH_KO_CFLAGS   =
 ifneq (,$(findstring disable,$(FPU_TYPE)))
 FPUFLAGS = 
 else
+ifneq ($(FLOAT_ABI),)
+ifneq (,$(findstring default,$(FLOAT_ABI)))
+FLOAT_ABI = softfp
+endif
+FPUFLAGS = -mfloat-abi=$(FLOAT_ABI) -mfpu=$(FPU_TYPE)
+else
 FPUFLAGS = -mfloat-abi=softfp -mfpu=$(FPU_TYPE)
+endif
 endif
 
 CPUFLAGS_WITHOUT_FPUFLAGS = -mcpu=$(CPU_TYPE)

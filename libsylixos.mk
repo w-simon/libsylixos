@@ -1145,6 +1145,7 @@ SylixOS/net/libc/getservent.c \
 SylixOS/net/libc/inet_ntop.c \
 SylixOS/net/libc/inet_pton.c \
 SylixOS/net/lwip/lwip_fix.c \
+SylixOS/net/lwip/lwip_hook.c \
 SylixOS/net/lwip/lwip_if.c \
 SylixOS/net/lwip/lwip_ifparam.c \
 SylixOS/net/lwip/lwip_jobqueue.c \

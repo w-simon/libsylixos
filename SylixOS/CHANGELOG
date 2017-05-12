@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2017-05-12: han.hui
+    加入 5 个 IP 数据包关键 HOOK.
+
     2017-04-28: han.hui
     TPS FS 升级到 2.0.
 

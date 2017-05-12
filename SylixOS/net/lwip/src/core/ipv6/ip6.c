@@ -60,6 +60,11 @@
 #include "lwip/debug.h"
 #include "lwip/stats.h"
 
+#ifdef SYLIXOS
+#include "net/if_iphook.h"
+extern int lwip_ip_hook(int ip_type, int hook_type, struct pbuf *p, struct netif *in, struct netif *out);
+#endif
+
 /**
  * Finds the appropriate network interface for a given IPv6 address. It tries to select
  * a netif following a sequence of heuristics:
@@ -315,6 +320,13 @@ ip6_forward(struct pbuf *p, struct ip6_hdr *iphdr, struct netif *inp)
     return;
   }
 
+#ifdef SYLIXOS
+  if (lwip_ip_hook(IP_HOOK_V6, IP_HT_FORWARD, p, inp, NULL)) {
+    IP6_STATS_INC(ip6.drop);
+    return;
+  }
+#endif
+
   /* Find network interface where to forward this IP packet to. */
   netif = ip6_route(IP6_ADDR_ANY6, ip6_current_dest_addr());
   if (netif == NULL) {
@@ -370,6 +382,13 @@ ip6_forward(struct pbuf *p, struct ip6_hdr *iphdr, struct netif *inp)
     IP6_STATS_INC(ip6.drop);
     return;
   }
+
+#ifdef SYLIXOS
+  if (lwip_ip_hook(IP_HOOK_V6, IP_HT_POST_ROUTING, p, inp, netif)) {
+    IP6_STATS_INC(ip6.drop);
+    return;
+  }
+#endif
 
   LWIP_DEBUGF(IP6_DEBUG, ("ip6_forward: forwarding packet to %"X16_F":%"X16_F":%"X16_F":%"X16_F":%"X16_F":%"X16_F":%"X16_F":%"X16_F"\n",
       IP6_ADDR_BLOCK1(ip6_current_dest_addr()),
@@ -428,6 +447,14 @@ ip6_input(struct pbuf *p, struct netif *inp)
     IP6_STATS_INC(ip6.drop);
     return ERR_OK;
   }
+  
+#ifdef SYLIXOS
+  if (lwip_ip_hook(IP_HOOK_V6, IP_HT_PRE_ROUTING, p, inp, NULL)) {
+    pbuf_free(p);
+    IP6_STATS_INC(ip6.drop);
+    return ERR_OK;
+  }
+#endif
 
 #ifdef LWIP_HOOK_IP6_INPUT
   if (LWIP_HOOK_IP6_INPUT(p, inp)) {
@@ -744,6 +771,14 @@ options_done:
   ip6_debug_print(p);
   LWIP_DEBUGF(IP6_DEBUG, ("ip6_input: p->len %"U16_F" p->tot_len %"U16_F"\n", p->len, p->tot_len));
 
+#ifdef SYLIXOS
+  if (lwip_ip_hook(IP_HOOK_V6, IP_HT_LOCAL_IN, p, inp, NULL)) {
+    pbuf_free(p);
+    IP6_STATS_INC(ip6.drop);
+    goto ip6_input_cleanup;
+  }
+#endif
+
 #if LWIP_RAW
   /* raw input did not eat the packet? */
   if (raw_input(p, inp) == 0)
@@ -897,6 +932,13 @@ ip6_output_if_src(struct pbuf *p, const ip6_addr_t *src, const ip6_addr_t *dest,
     ip6_addr_copy(dest_addr, ip6hdr->dest);
     dest = &dest_addr;
   }
+
+#ifdef SYLIXOS
+  if (lwip_ip_hook(IP_HOOK_V6, IP_HT_POST_ROUTING, p, NULL, netif)) {
+    IP6_STATS_INC(ip6.drop);
+    return ERR_RTE;
+  }
+#endif
 
   IP6_STATS_INC(ip6.xmit);
 

@@ -57,6 +57,11 @@
 #include "lwip/stats.h"
 #include "lwip/prot/dhcp.h"
 
+#ifdef SYLIXOS
+#include "net/if_iphook.h"
+extern int lwip_ip_hook(int ip_type, int hook_type, struct pbuf *p, struct netif *in, struct netif *out);
+#endif
+
 #include <string.h>
 
 /** Set this to 0 in the rare case of wanting to call an extra function to
@@ -278,6 +283,12 @@ ip4_forward(struct pbuf *p, struct ip_hdr *iphdr, struct netif *inp)
       ip4_addr3_16(ip4_current_dest_addr()), ip4_addr4_16(ip4_current_dest_addr())));
     goto return_noroute;
   }
+  
+#ifdef SYLIXOS
+  if (lwip_ip_hook(IP_HOOK_V4, IP_HT_FORWARD, p, inp, NULL)) {
+    goto return_noroute;
+  }
+#endif
 
   /* Find network interface where to forward this IP packet to. */
   netif = ip4_route_src(ip4_current_dest_addr(), ip4_current_src_addr());
@@ -317,6 +328,13 @@ ip4_forward(struct pbuf *p, struct ip_hdr *iphdr, struct netif *inp)
   } else {
     IPH_CHKSUM_SET(iphdr, IPH_CHKSUM(iphdr) + PP_HTONS(0x100));
   }
+
+#ifdef SYLIXOS
+  if (lwip_ip_hook(IP_HOOK_V4, IP_HT_POST_ROUTING, p, inp, netif)) {
+    IP_STATS_INC(ip.drop);
+    return;
+  }
+#endif
 
   LWIP_DEBUGF(IP_DEBUG, ("ip4_forward: forwarding packet to %"U16_F".%"U16_F".%"U16_F".%"U16_F"\n",
     ip4_addr1_16(ip4_current_dest_addr()), ip4_addr2_16(ip4_current_dest_addr()),
@@ -390,6 +408,14 @@ ip4_input(struct pbuf *p, struct netif *inp)
     MIB2_STATS_INC(mib2.ipinhdrerrors);
     return ERR_OK;
   }
+  
+#ifdef SYLIXOS
+  if (lwip_ip_hook(IP_HOOK_V4, IP_HT_PRE_ROUTING, p, inp, NULL)) {
+    pbuf_free(p);
+    IP_STATS_INC(ip.drop);
+    return ERR_OK;
+  }
+#endif
 
 #ifdef LWIP_HOOK_IP4_INPUT
   if (LWIP_HOOK_IP4_INPUT(p, inp)) {
@@ -650,6 +676,14 @@ ip4_input(struct pbuf *p, struct netif *inp)
   LWIP_DEBUGF(IP_DEBUG, ("ip4_input: \n"));
   ip4_debug_print(p);
   LWIP_DEBUGF(IP_DEBUG, ("ip4_input: p->len %"U16_F" p->tot_len %"U16_F"\n", p->len, p->tot_len));
+
+#ifdef SYLIXOS
+  if (lwip_ip_hook(IP_HOOK_V4, IP_HT_LOCAL_IN, p, inp, NULL)) {
+    pbuf_free(p);
+    IP_STATS_INC(ip.drop);
+    return ERR_OK;
+  }
+#endif
 
   ip_data.current_netif = netif;
   ip_data.current_input_netif = inp;
@@ -923,6 +957,13 @@ ip4_output_if_opt_src(struct pbuf *p, const ip4_addr_t *src, const ip4_addr_t *d
     ip4_addr_copy(dest_addr, iphdr->dest);
     dest = &dest_addr;
   }
+
+#ifdef SYLIXOS
+  if (lwip_ip_hook(IP_HOOK_V4, IP_HT_POST_ROUTING, p, NULL, netif)) {
+    IP_STATS_INC(ip.drop);
+    return ERR_RTE;
+  }
+#endif
 
   IP_STATS_INC(ip.xmit);
 
