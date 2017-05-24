@@ -872,6 +872,11 @@ INT  API_INetNpfAttach (CPCHAR  pcNetifName)
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
+    if (pnetif->input == __npfInput) {                                  /*  已经是过滤器输入函数        */
+        __NPF_UNLOCK();                                                 /*  解锁 NPF 表                 */
+        _ErrorHandle(EALREADY);
+        return  (PX_ERROR);
+    }
 
     pnpfni = __npfNetifCreate(pcNetifName);                             /*  创建控制块                  */
     if (pnpfni == LW_NULL) {

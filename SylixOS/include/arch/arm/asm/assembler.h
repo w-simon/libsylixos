@@ -128,7 +128,7 @@
 
 #  define FUNC_DEF(func)  \
         .code   32; \
-        .balign 4;  \
+        .balign 8;  \
         .type func, %function;  \
 func:
 
@@ -143,7 +143,7 @@ func:
 
 #  define FILE_BEGIN()  \
         .text;  \
-        .balign 4;
+        .balign 8;
 
 #  define FILE_END()    \
         .end
