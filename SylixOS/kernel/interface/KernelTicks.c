@@ -177,14 +177,15 @@ VOID  API_KernelTicksContext (VOID)
                 ptcb->TCB_ulCPUKernelTicks++;
             }
             __LW_TICK_CPUUSAGE_UPDATE(ptcb, pcpu);                      /*  更新所有 CPU 利用率         */
-#if LW_CFG_MODULELOADER_EN > 0
-            vprocTickHook(ptcb, pcpu);                                  /*  测算进程执行时间            */
-#endif
         }
         
 #if LW_CFG_SMP_EN > 0
     }
 #endif                                                                  /*  LW_CFG_SMP_EN               */
+    
+#if LW_CFG_MODULELOADER_EN > 0
+    vprocTickHook();                                                    /*  测算进程执行时间            */
+#endif
     
     iregInterLevel = KN_INT_DISABLE();                                  /*  关闭中断                    */
     

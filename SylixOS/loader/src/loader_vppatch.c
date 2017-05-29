@@ -55,6 +55,7 @@
 2015.03.02  修正 vprocNotifyParent() 获取父系进程主线程错误.
 2015.08.17  vprocDetach() 需要通知父进程.
 2015.11.25  加入进程内线程独立堆栈管理体系.
+2017.05.27  避免 vprocTickHook() 处理一个进程拥有多个线程, 且同时在多个 CPU 上执行时间重复计算的问题.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -489,6 +490,7 @@ LW_LD_VPROC *vprocCreate (CPCHAR  pcFile)
     }
     
     pvproc->VP_iExitMode = LW_VPROC_EXIT_NORMAL;                        /*  正常模式退出                */
+    pvproc->VP_i64Tick   = -1ull;
     
     _List_Line_Add_Tail(&pvproc->VP_lineManage, 
                         &_G_plineVProcHeader);                          /*  加入进程表                  */
@@ -526,7 +528,7 @@ __error_handle:
 }
 /*********************************************************************************************************
 ** 函数名称: vprocDestroy
-** 功能描述: 销毁进程控制块 (此函数只能在没有调用 vprocRun 函数时调用)
+** 功能描述: 销毁进程控制块 (此函数只能在没有调用 vprocRun 函数或者 vprocRun 返回失败时调用)
 ** 输　入  : pvproc     进程控制块指针
 ** 输　出  : ERROR_NONE 表示没有错误, PX_ERROR 表示错误
 ** 全局变量:
@@ -1276,7 +1278,7 @@ FUNCPTR  vprocGetMain (VOID)
 }
 /*********************************************************************************************************
 ** 函数名称: vprocRun
-** 功能描述: 加载并执行elf文件. (这里初始化了进程的外部补丁库, 完成后需要使用 vprocExit 退出)
+** 功能描述: 加载并执行elf文件.
 ** 输　入  : pvproc           进程控制块
 **           pvpstop          是否等待调试器继续执行信号才能执行
 **           pcFile           文件路径
@@ -1288,6 +1290,7 @@ FUNCPTR  vprocGetMain (VOID)
 ** 输　出  : ERROR_NONE 表示没有错误, PX_ERROR 表示错误
 ** 全局变量:
 ** 调用模块:
+** 注  意  : 如果返回 0 则需要使用 vprocExit() 退出, 否则直接使用 vprocDestroy() 退出.
 *********************************************************************************************************/
 INT  vprocRun (LW_LD_VPROC      *pvproc, 
                LW_LD_VPROC_STOP *pvpstop,
@@ -1298,8 +1301,9 @@ INT  vprocRun (LW_LD_VPROC      *pvproc,
                CPCHAR            ppcArgV[],
                CPCHAR            ppcEnv[])
 {
-    LW_LD_EXEC_MODULE *pmodule  = LW_NULL;
-    INT                iError   = ERROR_NONE;
+    INT                iErrLevel;
+    LW_LD_EXEC_MODULE *pmodule = LW_NULL;
+    INT                iError  = ERROR_NONE;
     FUNCPTR            pfunEntry;
     union sigval       sigvalue;
 
@@ -1308,7 +1312,8 @@ INT  vprocRun (LW_LD_VPROC      *pvproc,
                                                                         /*  而且为此线程重新确定 pid    */
     if (LW_NULL == pcFile || LW_NULL == pcEntry) {
         _ErrorHandle(ERROR_LOADER_PARAM_NULL);
-        return  (PX_ERROR);                                             /*  只需调用 vp destroy         */
+        iErrLevel = 0;
+        goto    __error_handle;
     }
     
     vprocIoReclaim(pvproc->VP_pid, LW_TRUE);                            /*  回收进程 FD_CLOEXEC 的文件  */
@@ -1318,84 +1323,116 @@ INT  vprocRun (LW_LD_VPROC      *pvproc,
                                                     pcEntry, LW_NULL, 
                                                     pvproc);
     if (LW_NULL == pmodule) {
-        if (pvpstop) {
-            sigvalue.sival_int = PX_ERROR;
-            sigqueue(pvpstop->VPS_ulId, pvpstop->VPS_iSigNo, sigvalue);
-        }
-        return  (PX_ERROR);                                             /*  只需调用 vp destroy         */
+        iErrLevel = 0;
+        goto    __error_handle;
     }
 
     pfunEntry = vprocGetEntry(pvproc);                                  /*  进程寻找入口                */
-    if (pfunEntry) {
-        vprocSetFilesid(pvproc, pmodule->EMOD_pcModulePath);            /*  如果允许, 设置 save uid gid */
-        
-        pvproc->VP_iStatus = __LW_VP_RUN;                               /*  开始执行                    */
-        
-        MONITOR_EVT_LONG2(MONITOR_EVENT_ID_VPROC, MONITOR_EVENT_VPROC_RUN, 
-                          pvproc->VP_pid, pvproc->VP_ulMainThread, pcFile);
-        
-        if ((vprocPatchVerCheck(pvproc) == ERROR_NONE) &&
-            (vprocLibcVerCheck(pvproc) == ERROR_NONE)) {                /*  patch & libc 必须符合规定   */
-            if (pvpstop) {
-                sigvalue.sival_int = ERROR_NONE;
-                sigqueue(pvpstop->VPS_ulId, pvpstop->VPS_iSigNo, sigvalue);
-                API_ThreadStop(pvproc->VP_ulMainThread);                /*  等待调试器命令              */
-            }
-            LW_SOFUNC_PREPARE(pfunEntry);
-            iError = pfunEntry(iArgC, ppcArgV, ppcEnv);                 /*  执行进程入口函数            */
-        
-        } else {
-            iError = 0;
-        }
-        if (piRet) {
-            *piRet = iError;
-        }
-        return  (ERROR_NONE);                                           /*  需要调用 vp exit            */
-        
-    } else {                                                            /*  由于进程没有执行, 自我回收  */
-        API_ModuleFinish((PVOID)pvproc);                                /*  结束进程                    */
-        API_ModuleTerminal((PVOID)pvproc);                              /*  卸载进程内所有的模块        */
-    
+    if (LW_NULL == pfunEntry) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "can not find entry function.\r\n");
         _ErrorHandle(ERROR_LOADER_NO_ENTRY);
-        return  (PX_ERROR);                                             /*  只需调用 vp destroy         */
+        iErrLevel = 1;
+        goto    __error_handle;
     }
+    
+    if ((vprocPatchVerCheck(pvproc) < ERROR_NONE) ||
+        (vprocLibcVerCheck(pvproc) < ERROR_NONE)) {                     /*  patch & libc 必须符合规定   */
+        _ErrorHandle(ERROR_LOADER_VERSION);
+        iErrLevel = 1;
+        goto    __error_handle;
+    }
+
+    vprocSetFilesid(pvproc, pmodule->EMOD_pcModulePath);                /*  如果允许, 设置 save uid gid */
+    
+    pvproc->VP_iStatus = __LW_VP_RUN;                                   /*  开始执行                    */
+    
+    MONITOR_EVT_LONG2(MONITOR_EVENT_ID_VPROC, MONITOR_EVENT_VPROC_RUN, 
+                      pvproc->VP_pid, pvproc->VP_ulMainThread, pcFile);
+                      
+    if (pvpstop) {
+        sigvalue.sival_int = ERROR_NONE;
+        sigqueue(pvpstop->VPS_ulId, pvpstop->VPS_iSigNo, sigvalue);
+        API_ThreadStop(pvproc->VP_ulMainThread);                        /*  等待调试器命令              */
+    }
+    
+    LW_SOFUNC_PREPARE(pfunEntry);
+    iError = pfunEntry(iArgC, ppcArgV, ppcEnv);                         /*  执行进程入口函数            */
+    if (piRet) {
+        *piRet = iError;
+    }
+    
+    return  (ERROR_NONE);                                               /*  需要调用 vp exit            */
+    
+__error_handle:
+    if (pvpstop) {
+        sigvalue.sival_int = PX_ERROR;                                  /*  进程运行失败                */
+        sigqueue(pvpstop->VPS_ulId, pvpstop->VPS_iSigNo, sigvalue);
+    }
+    
+    if (iErrLevel > 0) {
+        API_ModuleFinish((PVOID)pvproc);                                /*  结束进程                    */
+        API_ModuleTerminal((PVOID)pvproc);                              /*  卸载进程内所有的模块        */
+    }
+    
+    pvproc->VP_iExitCode |= SET_EXITSTATUS(-1);                         /*  保存结束代码                */
+    
+    return  (PX_ERROR);                                                 /*  只需调用 vp destroy         */
 }
 /*********************************************************************************************************
 ** 函数名称: vprocTickHook
 ** 功能描述: 进程控制块 tick 回调 (中断上下文中且锁定内核状态被调用)
-** 输　入  : ptcb      任务控制块
+** 输　入  : NONE
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  vprocTickHook (PLW_CLASS_TCB  ptcb, PLW_CLASS_CPU  pcpu)
+VOID  vprocTickHook (VOID)
 {
-    LW_LD_VPROC  *pvproc;
-    LW_LD_VPROC  *pvprocFather;
+    REGISTER INT   i;
+    PLW_CLASS_TCB  ptcb;
+    PLW_CLASS_CPU  pcpu;
+    LW_LD_VPROC   *pvproc;
+    LW_LD_VPROC   *pvprocFather;
     
-    if (ptcb && ptcb->TCB_pvVProcessContext) {
-        pvproc = __LW_VP_GET_TCB_PROC(ptcb);
-        if (pvproc) {
-            if (pcpu->CPU_iKernelCounter) {
-                pvproc->VP_clockSystem++;
-            } else {
-                pvproc->VP_clockUser++;
-            }
-            pvprocFather = pvproc->VP_pvprocFather;
-            if (pvprocFather) {
+#if LW_CFG_PTIMER_EN > 0
+    vprocItimerMainHook();                                              /*  ITIMER_REAL 定时器          */
+#endif                                                                  /*  LW_CFG_PTIMER_EN > 0        */
+    
+#if LW_CFG_SMP_EN > 0
+    LW_CPU_FOREACH (i) {                                                /*  遍历所有的核                */
+#else
+    i = 0;
+#endif                                                                  /*  LW_CFG_SMP_EN               */
+        pcpu = LW_CPU_GET(i);
+        if (LW_CPU_IS_ACTIVE(pcpu)) {                                   /*  CPU 必须被激活              */
+            ptcb = pcpu->CPU_ptcbTCBCur;
+            pvproc = __LW_VP_GET_TCB_PROC(ptcb);
+            if (pvproc && (_K_i64KernelTime != pvproc->VP_i64Tick)) {
+                pvproc->VP_i64Tick = _K_i64KernelTime;                  /*  避免时间被重复计算          */
+                
+#if LW_CFG_PTIMER_EN > 0
+                vprocItimerEachHook(pcpu, pvproc);                      /*  ITIMER_VIRTUAL/ITIMER_PROF  */
+#endif                                                                  /*  LW_CFG_PTIMER_EN > 0        */
                 if (pcpu->CPU_iKernelCounter) {
-                    pvprocFather->VP_clockCSystem++;
+                    pvproc->VP_clockSystem++;
                 } else {
-                    pvprocFather->VP_clockCUser++;
+                    pvproc->VP_clockUser++;
+                }
+                
+                pvprocFather = pvproc->VP_pvprocFather;
+                if (pvprocFather) {
+                    if (pcpu->CPU_iKernelCounter) {
+                        pvprocFather->VP_clockCSystem++;
+                    } else {
+                        pvprocFather->VP_clockCUser++;
+                    }
                 }
             }
         }
+        
+#if LW_CFG_SMP_EN > 0
     }
-    
-#if LW_CFG_PTIMER_EN > 0
-    vprocItimerHook(ptcb, pcpu);
-#endif                                                                  /*  LW_CFG_PTIMER_EN > 0        */
+#endif                                                                  /*  LW_CFG_SMP_EN               */
 }
 /*********************************************************************************************************
 ** 函数名称: vprocIoEnvGet
@@ -1622,11 +1659,16 @@ INT  API_ModuleRunEx (CPCHAR             pcFile,
     
     iError = vprocRun(pvproc, LW_NULL, pcFile, pcEntry, &iRet, 
                       iArgC, ppcArgV, ppcEnv);                          /*  装载并运行进程              */
+    if (iError) {                                                       /*  失败                        */
+        vprocDestroy(pvproc);
+        return  (iError);
+    }
     
     vprocExit(pvproc, pvproc->VP_ulMainThread, iRet);                   /*  退出进程                    */
 
     if (iError) {
         return  (iError);
+    
     } else {
         return  (iRet);                                                 /*  理论上无法运行到这里        */
     }

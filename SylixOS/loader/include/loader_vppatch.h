@@ -101,6 +101,7 @@ typedef struct lw_ld_vproc {
     
     INT                     VP_iExitMode;                               /*  退出模式                    */
     LW_LD_VPROC_T           VP_vptimer[3];                              /*  REAL / VIRTUAL / PROF 定时器*/
+    INT64                   VP_i64Tick;                                 /*  itimer tick 辅助变量        */
     
     LW_LIST_LINE_HEADER     VP_plineMap;                                /*  虚拟内存空间                */
     
@@ -149,7 +150,7 @@ pid_t               vprocGetGroup(pid_t  pid);
 pid_t               vprocGetFather(pid_t  pid);
 INT                 vprocDetach(pid_t  pid);
 LW_LD_VPROC        *vprocCreate(CPCHAR  pcFile);
-INT                 vprocDestroy(LW_LD_VPROC *pvproc);                  /*  没有调用 vprocRun 才可调用  */
+INT                 vprocDestroy(LW_LD_VPROC *pvproc);
 LW_LD_VPROC        *vprocGet(pid_t  pid);
 LW_LD_VPROC        *vprocGetCur(VOID);
 VOID                vprocSetCur(LW_LD_VPROC  *pvproc);
@@ -171,7 +172,7 @@ INT                 vprocRun(LW_LD_VPROC      *pvproc,
                              INT               iArgC, 
                              CPCHAR            ppcArgV[],
                              CPCHAR            ppcEnv[]);
-VOID                vprocTickHook(PLW_CLASS_TCB  ptcb, PLW_CLASS_CPU  pcpu);
+VOID                vprocTickHook(VOID);
 PLW_IO_ENV          vprocIoEnvGet(PLW_CLASS_TCB  ptcb);
 FUNCPTR             vprocGetMain(VOID);
 pid_t               vprocFindProc(PVOID  pvAddr);
@@ -256,7 +257,8 @@ VOID                vprocStackFree(PLW_CLASS_TCB  ptcbDel, PVOID  pvStack);
 *********************************************************************************************************/
 
 #if LW_CFG_PTIMER_EN > 0
-VOID                vprocItimerHook(PLW_CLASS_TCB  ptcb, PLW_CLASS_CPU  pcpu);
+VOID                vprocItimerMainHook(VOID);
+VOID                vprocItimerEachHook(PLW_CLASS_CPU  pcpu, LW_LD_VPROC  *pvproc);
 
 INT                 vprocSetitimer(INT        iWhich, 
                                    ULONG      ulCounter,

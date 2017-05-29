@@ -712,7 +712,7 @@ static LW_INLINE  ULONG   __timevalToTick (const struct timeval  *ptv)
     REGISTER ULONG     ulTicks;
     
     ulTicks  = (ULONG)(ptv->tv_sec * LW_TICK_HZ);
-    ulTicks += ((((ptv->tv_usec * LW_TICK_HZ) / 100) / 100) / 100);
+    ulTicks += (ULONG)(((((INT64)ptv->tv_usec * LW_TICK_HZ) / 100) / 100) / 100);
     
     return  (ulTicks);
 }
@@ -732,7 +732,7 @@ static LW_INLINE  ULONG   __timespecToTick (const struct timespec  *ptv)
     REGISTER ULONG     ulTicks;
     
     ulTicks  = (ULONG)(ptv->tv_sec * LW_TICK_HZ);
-    ulTicks += (((((ptv->tv_nsec / 1000) * LW_TICK_HZ) / 100) / 100) / 100);
+    ulTicks += (ULONG)((((((INT64)ptv->tv_nsec / 1000) * LW_TICK_HZ) / 100) / 100) / 100);
     
     return  (ulTicks);
 }

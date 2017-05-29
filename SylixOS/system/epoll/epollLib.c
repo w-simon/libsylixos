@@ -126,7 +126,7 @@ int  epoll_ctl (int epfd, int op, int fd, struct epoll_event *event)
     LW_EPOLL_FILE_GET(epfd);
     
     if (pepollfil == (PLW_EPOLL_FILE)API_IosFdValue(fd)) {              /*  不能操作自己                */
-        _ErrorHandle(EINVAL);
+        _ErrorHandle(ELOOP);
         return  (PX_ERROR);
     }
     

@@ -43,6 +43,7 @@
 #include "../include/loader_lib.h"
 #include "../include/loader_exec.h"
 #include "process.h"
+#include "sys/wait.h"
 /*********************************************************************************************************
   函数声明
 *********************************************************************************************************/
@@ -317,13 +318,15 @@ static INT  __execShell (PVOID  pvArg)
                       &iRet, psarg->SA_iArgs, 
                       (CPCHAR *)psarg->SA_pcParamList,
                       (CPCHAR *)psarg->SA_pcpcEvn);                     /*  此线程将变成进程内主线程    */
-                      
-    vprocExit(psarg->SA_pvproc, API_ThreadIdSelf(), iRet);              /*  进程退出, 本线程就是主线程  */
+    if (iError) {
+        return  (iError);                                               /*  应用程序装载执行失败        */
+    }
     
-    API_ThreadCleanupPop(LW_TRUE);                                      /*  理论上不会执行到这里        */
+    vprocExit(psarg->SA_pvproc, API_ThreadIdSelf(), iRet);              /*  进程退出, 本线程就是主线程  */
     
     if (iError) {
         return  (iError);
+    
     } else {
         return  (iRet);                                                 /*  理论上无法运行到这里        */
     }
@@ -366,13 +369,15 @@ static INT  __processShell (PVOID  pvArg)
                       &iRet, psarg->SA_iArgs, 
                       (CPCHAR *)psarg->SA_pcParamList,
                       (CPCHAR *)psarg->SA_pcpcEvn);                     /*  此线程将变成进程内主线程    */
+    if (iError) {
+        return  (iError);                                               /*  应用程序装载执行失败        */
+    }
                       
     vprocExit(psarg->SA_pvproc, API_ThreadIdSelf(), iRet);              /*  进程退出, 本线程就是主线程  */
     
-    API_ThreadCleanupPop(LW_TRUE);                                      /*  理论上不会执行到这里        */
-    
     if (iError) {
         return  (iError);
+    
     } else {
         return  (iRet);                                                 /*  理论上无法运行到这里        */
     }
@@ -460,12 +465,17 @@ INT  __processStart (INT  mode, __PSPAWN_ARG  psarg)
             return  (PX_ERROR);
         }
         
+        API_ThreadStart(hHandle);
+        
         if (mode == P_WAIT) {
-            API_ThreadStartEx(hHandle, LW_TRUE, (PVOID *)&iRetValue);
-            return  (iRetValue);
+            if (waitpid(pid, &iRetValue, 0) < 0) {                      /*  等待进程结束                */
+                return  (PX_ERROR);
+            
+            } else {
+                return  (iRetValue);
+            }
             
         } else {
-            API_ThreadStart(hHandle);
             return  (pid);                                              /*  子进程 id                   */
         }
     }
