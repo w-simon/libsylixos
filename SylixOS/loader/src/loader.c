@@ -40,12 +40,13 @@
             方式, 而这个库又依赖于其他的动态链接库, 这时, 如果以来的库也使用 LOCAL 则 dlopen 的库无法完成
             符号重定向, 因为它找不到它依赖的库里面的符号, 所以, 只要是自动装载的动态库, 必须为 GLOBAL.
             测试 isql -> libunixodbc.so -> libsqlite3odbc.so(LOCAL) -> libsqlite3.so 时更正. (韩辉)
-2013.05.21  module 更新符号表的保存与查找算法, 这里更新相关接口.
-2013.06.07  加入 API_ModuleShareRefresh 操作, 用来清除当前缓存的动态库或者应用的共享信息.
-2014.07.26  cache text update 操作放在每个模块加载之后.
-2015.07.20  修正 moduleDelAndDestory 中的无效链表指针操作.
+2013.05.21  module 更新符号表的保存与查找算法, 这里更新相关接口. (韩辉)
+2013.06.07  加入 API_ModuleShareRefresh 操作, 用来清除当前缓存的动态库或者应用的共享信息. (韩辉)
+2014.07.26  cache text update 操作放在每个模块加载之后. (韩辉)
+2015.07.20  修正 moduleDelAndDestory 中的无效链表指针操作. (韩辉)
 2016.05.17  内核模块支持 atexit() 操作. (韩辉)
-2017.02.26  加入可信计算支持.
+2017.02.26  加入可信计算支持. (韩辉)
+2017.05.31  加入 API_ModuleGlobal() 可支持 dlopen() RTLD_NOLOAD 选项. (韩辉)
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -1268,6 +1269,68 @@ ssize_t  API_ModuleGetName (PVOID  pvAddr, PCHAR  pcFullPath, size_t  stLen)
     LW_VP_UNLOCK(pvproc);
     
     return  (sstRet);
+}
+/*********************************************************************************************************
+** 函数名称: API_ModuleUpdate
+** 功能描述: 查找模块并更新模块相关设置.
+** 输　入  : pcFile      模块文件
+**           iMode       装载模式 (全局还是局部)
+**           pvVProc     进程控制块
+** 输　出  : 模块句柄
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+PVOID  API_ModuleGlobal (CPCHAR  pcFile,
+                         INT     iMode,
+                         PVOID   pvVProc)
+{
+    CHAR               cLibPath[MAX_FILENAME_LENGTH];
+    BOOL               bStart;
+    LW_LIST_RING      *pringTemp;
+    LW_LD_EXEC_MODULE *pmodTemp;
+    LW_LD_VPROC       *pvproc;
+    PVOID              pvRet = LW_NULL;
+    
+    if (pvVProc == LW_NULL) {
+        uid_t   euid = geteuid();
+        if (euid != 0) {
+            _ErrorHandle(EACCES);                                       /*  没有权限                    */
+            return  (LW_NULL);
+        }
+        pvproc = &_G_vprocKernel;
+    
+    } else {
+        pvproc = (LW_LD_VPROC *)pvVProc;
+    }
+    
+    if (ERROR_NONE != moduleGetLibPath(pcFile, cLibPath, MAX_FILENAME_LENGTH, "LD_LIBRARY_PATH")) {
+        if (ERROR_NONE != moduleGetLibPath(pcFile, cLibPath, MAX_FILENAME_LENGTH, "PATH")) {
+            fprintf(stderr, "[ld]Can not find dependent library: %s\n", pcFile);
+            _ErrorHandle(ERROR_LOADER_NO_MODULE);
+            return  (LW_NULL);
+        }
+    }
+    
+    LW_VP_LOCK(pvproc);
+    for (pringTemp  = pvproc->VP_ringModules, bStart = LW_TRUE;
+         pringTemp && (pringTemp != pvproc->VP_ringModules || bStart);
+         pringTemp  = _list_ring_get_next(pringTemp), bStart = LW_FALSE) {
+         
+        pmodTemp = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);
+        if (lib_strcmp(pmodTemp->EMOD_pcModulePath, cLibPath) == 0) {
+            if ((pmodTemp->EMOD_bIsGlobal == LW_FALSE) && 
+                (iMode & LW_OPTION_LOADER_SYM_GLOBAL)) {
+                pmodTemp->EMOD_bIsGlobal = LW_TRUE;                     /*  可对外提供符号的模块        */
+            }
+            pvRet = (PVOID)pmodTemp;
+            break;
+        }
+    }
+    LW_VP_UNLOCK(pvproc);
+    
+    return  (pvRet);
 }
 
 #endif                                                                  /*  LW_CFG_MODULELOADER_GCOV_EN */

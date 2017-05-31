@@ -37,10 +37,11 @@ extern "C" {
   dlopen() mode argument
 *********************************************************************************************************/
 
-#define RTLD_LAZY           1
-#define RTLD_NOW            2
-#define RTLD_GLOBAL         4
-#define RTLD_LOCAL          8
+#define RTLD_LAZY           0x01
+#define RTLD_NOW            0x02
+#define RTLD_GLOBAL         0x04
+#define RTLD_LOCAL          0x08
+#define RTLD_NOLOAD         0x10                                        /*  Linux externed NOT POSIX    */
 
 /*********************************************************************************************************
   dl_info

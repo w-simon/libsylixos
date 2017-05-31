@@ -109,14 +109,21 @@ void  *dlopen (const char *pcFile, int  iMode)
 {
     PVOID   pvVProc = (PVOID)__LW_VP_GET_CUR_PROC();
     PVOID   pvHandle;
+    INT     iLoaderMode;
     
     if (iMode & RTLD_GLOBAL) {
-        iMode = LW_OPTION_LOADER_SYM_GLOBAL;
+        iLoaderMode = LW_OPTION_LOADER_SYM_GLOBAL;
     } else {
-        iMode = LW_OPTION_LOADER_SYM_LOCAL;
+        iLoaderMode = LW_OPTION_LOADER_SYM_LOCAL;
     }
     
-    pvHandle = API_ModuleLoad(pcFile, iMode, LW_NULL, LW_NULL, pvVProc);
+    if (iMode & RTLD_NOLOAD) {
+        pvHandle = API_ModuleGlobal(pcFile, iLoaderMode, pvVProc);
+    
+    } else {
+        pvHandle = API_ModuleLoad(pcFile, iLoaderMode, LW_NULL, LW_NULL, pvVProc);
+    }
+    
     if (pvHandle) {
         errno = ERROR_NONE;
     }

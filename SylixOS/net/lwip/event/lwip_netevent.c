@@ -464,9 +464,6 @@ static INT  _nevtIoctl (PLW_NEVT_FILE  pnevtfil,
             break;
             
         case SELWRITE:
-            SEL_WAKE_UP(pselwunNode);
-            break;
-            
         case SELEXCEPT:                                                 /*  ²»ÍË³ö                      */
             break;
         }

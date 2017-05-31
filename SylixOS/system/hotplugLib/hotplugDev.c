@@ -456,9 +456,6 @@ static INT  _hotplugIoctl (PLW_HOTPLUG_FILE  photplugfil,
             break;
             
         case SELWRITE:
-            SEL_WAKE_UP(pselwunNode);
-            break;
-            
         case SELEXCEPT:                                                 /*  ²»ÍË³ö                      */
             break;
         }

@@ -1506,6 +1506,7 @@ ssize_t  unix_recvmsg (AF_UNIX_T  *pafunix, struct msghdr *msg, int flags)
     } else {
         struct iovec    liovec, *msg_iov;
 		size_t          msg_iovlen;
+		ssize_t         sstRecvCnt;
 		unsigned int    i, totalsize;
 		char           *lbuf;
 		char           *temp;
@@ -1534,12 +1535,13 @@ ssize_t  unix_recvmsg (AF_UNIX_T  *pafunix, struct msghdr *msg, int flags)
 		                            msg->msg_control, &msg->msg_controllen, flags, 
 		                            (struct sockaddr *)msg->msg_name, &msg->msg_namelen);
 		
-		temp = lbuf;
-		for (i = 0; sstRecvLen > 0 && i < msg_iovlen; i++) {
-			size_t   qty = (size_t)((sstRecvLen > msg_iov[i].iov_len) ? msg_iov[i].iov_len : sstRecvLen);
+		sstRecvCnt = sstRecvLen;
+		temp       = lbuf;
+		for (i = 0; sstRecvCnt > 0 && i < msg_iovlen; i++) {
+			size_t   qty = (size_t)((sstRecvCnt > msg_iov[i].iov_len) ? msg_iov[i].iov_len : sstRecvCnt);
 			lib_memcpy(msg_iov[i].iov_base, temp, qty);
 			temp += qty;
-			sstRecvLen -= qty;
+			sstRecvCnt -= qty;
 		}
 		
 		__unixBufFree(lbuf);
@@ -1858,7 +1860,7 @@ INT  unix_close (AF_UNIX_T  *pafunix)
             pafunixPeer->UNIX_pafunxPeer = LW_NULL;                     /*  解除对方的连接关系          */
             __unixUpdateExcept(pafunixPeer, ECONNRESET);                /*  如果可能激活对方退出等待    */
         }
-        pafunix->UNIX_iStatus = __AF_UNIX_STATUS_NONE;
+        pafunix->UNIX_iStatus    = __AF_UNIX_STATUS_NONE;
         pafunix->UNIX_pafunxPeer = LW_NULL;                             /*  解除本地连接关系            */
         __unixUpdateExcept(pafunix, ENOTCONN);
     }
@@ -2384,8 +2386,10 @@ int __unix_have_event (AF_UNIX_T *pafunix, int type, int  *piSoErr)
         __AF_UNIX_LOCK();
         if ((__AF_UNIX_TYPE(pafunix) == SOCK_STREAM) ||
             (__AF_UNIX_TYPE(pafunix) == SOCK_SEQPACKET)) {
-            if (pafunix->UNIX_pafunxPeer == LW_NULL) {
-                iEvent = 1;                                             /*  不设置 SO_ERROR 继承之前的值*/
+            if (pafunix->UNIX_iStatus == __AF_UNIX_STATUS_ESTAB) {      /*  estab 状态但无连接          */
+                if (pafunix->UNIX_pafunxPeer == LW_NULL) {
+                    iEvent = 1;                                         /*  不设置 SO_ERROR 继承之前的值*/
+                }
             }
         }
         __AF_UNIX_UNLOCK();

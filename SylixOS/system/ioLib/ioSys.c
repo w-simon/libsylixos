@@ -777,7 +777,7 @@ PLW_DEV_HDR  API_IosNextDevGet (PLW_DEV_HDR    pdevhdrHdr)
         pdevhdrNext = _LIST_ENTRY(_S_plineDevHdrHeader, LW_DEV_HDR, DEVHDR_lineManage); 
         return  (pdevhdrNext);
         
-    } else {                                                            /*  下一个链表元素              */
+    } else {                                                            /*  下一个链表节点              */
         plineDevHdrNext = _list_line_get_next(&pdevhdrHdr->DEVHDR_lineManage);          
                                                                         /*  链表中的下一个设备          */
         pdevhdrNext = _LIST_ENTRY(plineDevHdrNext, LW_DEV_HDR, DEVHDR_lineManage);      

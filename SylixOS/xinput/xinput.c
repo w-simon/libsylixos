@@ -259,14 +259,19 @@ static int xinput_ioctl (PLW_FD_ENTRY pfdentry, int cmd, long arg)
     case FIOSELECT:
         pselnode = (PLW_SEL_WAKEUPNODE)arg;
         SEL_WAKE_NODE_ADD(&xinput->sel_list, pselnode);
-        if (pselnode->SELWUN_seltypType != SELREAD) {
-            SEL_WAKE_UP(pselnode);
-        } else {
+        switch (pselnode->SELWUN_seltypType) {
+
+        case SELREAD:
             if (API_MsgQueueStatus(xinput->queue, NULL, &count, NULL, NULL, NULL)) {
                 SEL_WAKE_UP(pselnode);
             } else if (count) {
                 SEL_WAKE_UP(pselnode);
             }
+            break;
+
+        case SELWRITE:
+        case SELEXCEPT:
+            break;
         }
         return  (ERROR_NONE);
 

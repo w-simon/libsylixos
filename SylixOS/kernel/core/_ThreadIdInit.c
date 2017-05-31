@@ -25,7 +25,7 @@
 #include "../SylixOS/kernel/include/k_kernel.h"
 /*********************************************************************************************************
 ** 函数名称: _ThreadIdInit
-** 功能描述: 初始化线程ID    一共初始化 LW_CFG_MAX_THREADS 个元素
+** 功能描述: 初始化线程ID    一共初始化 LW_CFG_MAX_THREADS 个节点
 ** 输　入  : 
 ** 输　出  : 
 ** 全局变量: 
@@ -64,7 +64,7 @@ VOID  _ThreadIdInit (VOID)
     
     ptcbTemp1->TCB_usIndex = (UINT16)ulI;
     
-    _INIT_LIST_MONO_HEAD(pmonoTemp1);                                   /*  设置为最后一个元素          */
+    _INIT_LIST_MONO_HEAD(pmonoTemp1);                                   /*  设置为最后一个节点          */
     
     _K_resrcTcb.RESRC_pmonoFreeTail = pmonoTemp1;
     

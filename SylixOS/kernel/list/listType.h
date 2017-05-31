@@ -31,11 +31,11 @@
 *********************************************************************************************************/
 
 typedef struct __list_ring {
-    struct __list_ring      *RING_plistNext;                           /*  ª∑–Œ±Ì«∞œÚ÷∏’Î               */
-    struct __list_ring      *RING_plistPrev;                           /*  ª∑–Œ±Ì∫ÛœÚ÷∏’Î               */
+    struct __list_ring      *RING_plistNext;                            /*  ª∑–Œ±Ì«∞œÚ÷∏’Î              */
+    struct __list_ring      *RING_plistPrev;                            /*  ª∑–Œ±Ì∫ÛœÚ÷∏’Î              */
 } LW_LIST_RING;
 typedef LW_LIST_RING        *PLW_LIST_RING;
-typedef PLW_LIST_RING        LW_LIST_RING_HEADER;                      /*  À´ª∑±Ì±ÌÕ∑                   */
+typedef PLW_LIST_RING        LW_LIST_RING_HEADER;                       /*  ª∑±Ì±ÌÕ∑                    */
 
 /*********************************************************************************************************
   À´œÚœﬂ–Œπ‹¿Ì±Ì
@@ -43,7 +43,7 @@ typedef PLW_LIST_RING        LW_LIST_RING_HEADER;                      /*  À´ª∑±
 
 typedef struct __list_line {
 	struct __list_line      *LINE_plistNext;                            /*  œﬂ–Œ±Ì«∞œÚ÷∏’Î              */
-    struct __list_line      *LINE_plistPrev;                            /*  œﬂ–Œ±Ì«∞œÚ÷∏’Î              */
+    struct __list_line      *LINE_plistPrev;                            /*  œﬂ–Œ±Ì∫ÛœÚ÷∏’Î              */
 } LW_LIST_LINE;
 typedef LW_LIST_LINE        *PLW_LIST_LINE;
 typedef PLW_LIST_LINE        LW_LIST_LINE_HEADER;                       /*  œﬂ–Œ±Ì±ÌÕ∑                  */
@@ -53,27 +53,27 @@ typedef PLW_LIST_LINE        LW_LIST_LINE_HEADER;                       /*  œﬂ–Œ
 *********************************************************************************************************/
 
 typedef struct __list_mono {
-	struct __list_mono      *MONO_plistNext;                           /*  ◊ ‘¥±Ì«∞œÚ÷∏’Î               */
+	struct __list_mono      *MONO_plistNext;                            /*  ◊ ‘¥±Ì«∞œÚ÷∏’Î              */
 } LW_LIST_MONO;
 typedef LW_LIST_MONO        *PLW_LIST_MONO;
-typedef PLW_LIST_MONO        LW_LIST_MONO_HEADER;                      /*  ◊ ‘¥±Ì±ÌÕ∑                   */
+typedef PLW_LIST_MONO        LW_LIST_MONO_HEADER;                       /*  ◊ ‘¥±Ì±ÌÕ∑                  */
 
 /*********************************************************************************************************
   π˛œ£¡¥±Ì
 *********************************************************************************************************/
 
 typedef struct __hlist_node {
-    struct __hlist_node     *HNDE_phndeNext;                           /*  «∞œÚ÷∏’Î                     */
-    struct __hlist_node    **HNDE_pphndePrev;                          /*  ∫ÛœÚÀ´÷∏’Î                   */
+    struct __hlist_node     *HNDE_phndeNext;                            /*  «∞œÚ÷∏’Î                    */
+    struct __hlist_node    **HNDE_pphndePrev;                           /*  ∫ÛœÚÀ´÷∏’Î                  */
 } LW_HLIST_NODE;
-typedef LW_HLIST_NODE       *PLW_HLIST_NODE;                           /*  Ω⁄µ„÷∏’Î¿‡–Õ                 */
+typedef LW_HLIST_NODE       *PLW_HLIST_NODE;                            /*  Ω⁄µ„÷∏’Î¿‡–Õ                */
 
 typedef struct __hlist_head {
-    struct __hlist_node     *HLST_phndeFirst;                          /*  µ⁄“ª∏ˆΩ⁄µ„                   */
+    struct __hlist_node     *HLST_phndeFirst;                           /*  µ⁄“ª∏ˆΩ⁄µ„                  */
 } LW_HLIST_HEAD;
-typedef LW_HLIST_HEAD       *PLW_HLIST_HEAD;                           /*  Õ∑÷∏’Î¿‡–Õ                   */
+typedef LW_HLIST_HEAD       *PLW_HLIST_HEAD;                            /*  Õ∑÷∏’Î¿‡–Õ                  */
 
-#endif                                                                 /*  __LISTTYPE_H                 */
+#endif                                                                  /*  __LISTTYPE_H                */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

@@ -109,6 +109,8 @@ LW_API INT      API_ModuleGcov(PVOID  pvModule);                        /*  内核
 LW_API ssize_t  API_ModuleGetName(PVOID  pvAddr, PCHAR  pcFullPath, size_t  stLen);
 #endif                                                                  /*  LW_CFG_MODULELOADER_GCOV_EN */
 
+LW_API PVOID    API_ModuleGlobal(CPCHAR  pcFile, INT  iMode, PVOID  pvVProc);
+                                                                        /*  修改已装载模块属性          */
 LW_API INT      API_ModuleShareRefresh(CPCHAR  pcFileName);             /*  清除(刷新)共享空间缓冲      */
 
 LW_API INT      API_ModuleShareConfig(BOOL  bShare);                    /*  设置共享空间功能            */
@@ -131,6 +133,7 @@ LW_API INT      API_ModuleGetBase(pid_t   pid,
 #define moduleAtExit        API_ModuleAtExit
 #define moduleGcov          API_ModuleGcov
 #define moduleGetName       API_ModuleGetName
+#define moduleGlobal        API_ModuleGlobal
 #define moduleShareRefresh  API_ModuleShareRefresh
 #define moduleShareConfig   API_ModuleShareConfig
 #define moduleTimes         API_ModuleTimes
