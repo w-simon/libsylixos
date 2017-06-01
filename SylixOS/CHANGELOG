@@ -4,6 +4,15 @@ HISTORY
 
 ++ New features:
 
+++ Bugfixes:
+
+    2017-06-01: han.hui
+    修正一些驱动针对于 select() 异常判断的错误.
+
+(STABLE-1.4.3)
+
+++ New features:
+
     2017-05-12: han.hui
     加入 5 个 IP 数据包关键 HOOK.
 

@@ -205,9 +205,13 @@ int  pthread_attr_setstacksize (pthread_attr_t  *pattr, size_t  stSize)
     }
     
     if (stSize) {
-        if (_StackSizeCheck(stSize) || (stSize < LW_CFG_PTHREAD_DEFAULT_STK_SIZE)) {
+        if (_StackSizeCheck(stSize)) {
             errno = EINVAL;
             return  (EINVAL);
+        }
+        
+        if (stSize < LW_CFG_PTHREAD_DEFAULT_STK_SIZE) {
+            stSize = LW_CFG_PTHREAD_DEFAULT_STK_SIZE;
         }
     }
     
