@@ -33,6 +33,7 @@
 2014.10.31  加入诸多 POSIX 规定的信号函数.
 2015.11.16  trap 信号使用 kill 发送.
 2016.08.11  进程内线程设置信号处理句柄, 需要同步到所有进程内的线程.
+2017.06.06  修正 sigaltstack() 错误.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -685,12 +686,14 @@ INT  sigstack (struct sigstack *ss, struct sigstack *oss)
     stack_t     stackNew, stackOld;
     
     if (ss) {
-        stackNew.ss_sp    = ss->ss_sp;
-        stackNew.ss_size  = SIGSTKSZ;                                   /*  默认大小                    */
-        if (ss->ss_onstack) {
-            stackNew.ss_flags = SS_ONSTACK;
+        stackNew.ss_sp = ss->ss_sp;
+        if (ss->ss_sp) {
+            stackNew.ss_flags = 0;
+            stackNew.ss_size  = SIGSTKSZ;                               /*  默认大小                    */
+        
         } else {
             stackNew.ss_flags = SS_DISABLE;
+            stackNew.ss_size  = 0;
         }
         if (sigaltstack(&stackNew, &stackOld)) {
             return  (PX_ERROR);
@@ -702,7 +705,7 @@ INT  sigstack (struct sigstack *ss, struct sigstack *oss)
         
     if (oss) {
         oss->ss_sp = stackOld.ss_sp;
-        if (stackOld.ss_flags & SS_ONSTACK) {
+        if (stackOld.ss_flags == SS_ONSTACK) {
             oss->ss_onstack = 1;
         } else {
             oss->ss_onstack = 0;
@@ -728,15 +731,22 @@ INT  sigaltstack (const stack_t *ss, stack_t *oss)
     PLW_CLASS_SIGCONTEXT    psigctx;
     stack_t                *pstack;
     
-    if (ss && (ss->ss_flags & SS_ONSTACK)) {
-        if (!ss->ss_sp || 
-            !ALIGNED(ss->ss_sp, LW_CFG_HEAP_ALIGNMENT)) {               /*  必须满足对齐关系            */
+    if (ss) {
+        if ((ss->ss_flags != 0) && 
+            (ss->ss_flags != SS_DISABLE)) {
             _ErrorHandle(EINVAL);
             return  (PX_ERROR);
         }
-        if (ss->ss_size < MINSIGSTKSZ) {
-            _ErrorHandle(ENOMEM);
-            return  (PX_ERROR);
+        if (ss->ss_flags == 0) {
+            if (!ss->ss_sp || 
+                !ALIGNED(ss->ss_sp, LW_CFG_HEAP_ALIGNMENT)) {           /*  必须满足对齐关系            */
+                _ErrorHandle(EINVAL);
+                return  (PX_ERROR);
+            }
+            if (ss->ss_size < MINSIGSTKSZ) {
+                _ErrorHandle(ENOMEM);
+                return  (PX_ERROR);
+            }
         }
     }
     
@@ -744,22 +754,45 @@ INT  sigaltstack (const stack_t *ss, stack_t *oss)
     
     __KERNEL_ENTER();                                                   /*  进入内核                    */
     psigctx = _signalGetCtx(ptcbCur);
+    pstack  = &psigctx->SIGCTX_stack;
+    
     if (oss) {
-        *oss = psigctx->SIGCTX_stack;
-    }
-    if (ss) {
-        pstack = &psigctx->SIGCTX_stack;
-        if (pstack->ss_flags & SS_ONSTACK) {                            /*  正在使用用户堆栈            */
+        if (pstack->ss_flags == 0) {
             if ((ptcbCur->TCB_pstkStackNow >= (PLW_STACK)pstack->ss_sp) && 
                 (ptcbCur->TCB_pstkStackNow <  (PLW_STACK)((size_t)pstack->ss_sp + 
                                                           pstack->ss_size))) {
-                _ErrorHandle(EPERM);                                    /*  正在信号上下文中使用此堆栈  */
-                __KERNEL_EXIT();                                        /*  退出内核                    */
-                return  (PX_ERROR);
+                oss->ss_flags = SS_ONSTACK;
+            } else {
+                oss->ss_flags = 0;
             }
+            oss->ss_sp   = pstack->ss_sp;
+            oss->ss_size = pstack->ss_size;
+        
+        } else {
+            oss->ss_sp    = LW_NULL;
+            oss->ss_size  = 0;
+            oss->ss_flags = SS_DISABLE;
         }
-        *pstack = *ss;
-        pstack->ss_size &= ~(LW_CFG_HEAP_ALIGNMENT - 1);
+    }
+    
+    if (ss) {
+        if ((ptcbCur->TCB_pstkStackNow >= (PLW_STACK)pstack->ss_sp) && 
+            (ptcbCur->TCB_pstkStackNow <  (PLW_STACK)((size_t)pstack->ss_sp + 
+                                                      pstack->ss_size))) {
+            _ErrorHandle(EPERM);                                        /*  正在信号上下文中使用此堆栈  */
+            __KERNEL_EXIT();                                            /*  退出内核                    */
+            return  (PX_ERROR);
+        }
+        if (ss->ss_flags == 0) {
+            pstack->ss_sp    = ss->ss_sp;
+            pstack->ss_size  = ROUND_DOWN(ss->ss_size, LW_CFG_HEAP_ALIGNMENT);
+            pstack->ss_flags = 0;
+            
+        } else {
+            pstack->ss_sp    = LW_NULL;
+            pstack->ss_size  = 0;
+            pstack->ss_flags = SS_DISABLE;
+        }
     }
     __KERNEL_EXIT();                                                    /*  退出内核                    */
     

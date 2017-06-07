@@ -429,7 +429,7 @@ static  VOID  __sigCtlCreate (PLW_CLASS_TCB         ptcb,
     BYTE                *pucStkNow;
     stack_t             *pstack;
 
-    if (psigctx && (psigctx->SIGCTX_stack.ss_flags & SS_ONSTACK)) {     /*  使用用户指定的信号堆栈      */
+    if (psigctx && (psigctx->SIGCTX_stack.ss_flags == 0)) {             /*  使用用户指定的信号堆栈      */
         pstack = &psigctx->SIGCTX_stack;
         if ((ptcb->TCB_pstkStackNow >= (PLW_STACK)pstack->ss_sp) && 
             (ptcb->TCB_pstkStackNow < (PLW_STACK)((size_t)pstack->ss_sp + pstack->ss_size))) {
