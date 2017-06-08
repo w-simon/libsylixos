@@ -48,16 +48,19 @@ FUNC_DEF(armVfp11Mvfr0)
     FUNC_END()
 
 FUNC_DEF(armVfp11NonSecEn)
+#if LW_CFG_ARM_CP15 > 0
                                         ;/*  NSACR: Non-secure Access Control Register                   */
     MRC     p15, 0, R0, c1, c1, 2       ;/*  R0 = NSACR                                                  */
     ORR     R0, R0, #(0x3 << 10)        ;/*  Enable full access for cp10,cp11                            */
     MCR     p15, 0, R0, c1, c1, 2       ;/*  NSACR = R0                                                  */
     ARM_DSB()
     ARM_ISB()
+#endif
     BX      LR
     FUNC_END()
 
 FUNC_DEF(armVfp11HwInit)
+#if LW_CFG_ARM_CP15 > 0
                                         ;/*  CPACR: Coprocessor Access Control Register                  */
     MRC     p15, 0, R0, c1, c0, 2       ;/*  R0 = CPACR                                                  */
     ORR     R0, R0, #(0xf << 20)        ;/*  Enable full access for cp10,cp11                            */
@@ -69,6 +72,7 @@ FUNC_DEF(armVfp11HwInit)
 #endif
     ARM_DSB()
     ARM_ISB()
+#endif
     BX      LR
     FUNC_END()
     

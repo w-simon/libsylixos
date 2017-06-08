@@ -128,5 +128,43 @@ INT  archFindMsb (UINT32 ui32)
 
 #endif                                                                  /*  __SYLIXOS_ARM_ARCH__ < 5    */
 /*********************************************************************************************************
+** 函数名称: archPageCopy
+** 功能描述: 拷贝一个页面
+** 输　入  : pvTo      目标
+**           pvFrom    源
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+#if defined(__SYLIXOS_ARM_ARCH_M__)
+
+VOID  archPageCopy (PVOID  pvTo, PVOID  pvFrom)
+{
+    REGISTER INT      i;
+    REGISTER UINT64  *pu64To   = (UINT64 *)pvTo;
+    REGISTER UINT64  *pu64From = (UINT64 *)pvFrom;
+
+    for (i = 0; i < (LW_CFG_VMM_PAGE_SIZE >> 3); i += 16) {
+        *pu64To++ = *pu64From++;
+        *pu64To++ = *pu64From++;
+        *pu64To++ = *pu64From++;
+        *pu64To++ = *pu64From++;
+        *pu64To++ = *pu64From++;
+        *pu64To++ = *pu64From++;
+        *pu64To++ = *pu64From++;
+        *pu64To++ = *pu64From++;
+        *pu64To++ = *pu64From++;
+        *pu64To++ = *pu64From++;
+        *pu64To++ = *pu64From++;
+        *pu64To++ = *pu64From++;
+        *pu64To++ = *pu64From++;
+        *pu64To++ = *pu64From++;
+        *pu64To++ = *pu64From++;
+        *pu64To++ = *pu64From++;
+    }
+}
+
+#endif                                                                  /*  __SYLIXOS_ARM_ARCH_M__      */
+/*********************************************************************************************************
   END
 *********************************************************************************************************/

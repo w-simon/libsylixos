@@ -128,7 +128,9 @@ VOID    archPageCopy(PVOID pvTo, PVOID pvFrom);
 
 VOID    archReboot(INT  iRebootType, addr_t  ulStartAddress);
 
+#if !defined(__SYLIXOS_ARM_ARCH_M__)
 INTREG  archGetCpsr(VOID);
+#endif
 
 /*********************************************************************************************************
   ARM ´¦ÀíÆ÷ BogoMIPS Ñ­»·
@@ -173,6 +175,10 @@ VOID    armSyncBusMode(VOID);
 #define ARM_MACHINE_R4      "R4"                                        /*  ARMv7 R                     */
 #define ARM_MACHINE_R5      "R5"
 #define ARM_MACHINE_R7      "R7"
+
+#define ARM_MACHINE_M3      "M3"                                        /*  ARMv7 M                     */
+#define ARM_MACHINE_M4      "M4"
+#define ARM_MACHINE_M7      "M7"
 
 #if LW_CFG_CACHE_EN > 0
 VOID    archCacheReset(CPCHAR     pcMachineName);

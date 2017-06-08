@@ -20,6 +20,7 @@
 **
 ** BUG:
 2015.07.20  msync() 仅针对 SHARED 类型映射才回写文件.
+2017.06.08  修正 mmap() 针对 AF_PACKET 映射错误问题.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -393,9 +394,7 @@ static PVOID  __vmmMmapNew (size_t  stLen, INT  iFlags, ULONG  ulFlag, int  iFd,
             return  (LW_VMM_MAP_FAILED);
         }
         
-        if (S_ISDIR(stat64Fd.st_mode)  ||
-            S_ISFIFO(stat64Fd.st_mode) ||
-            S_ISSOCK(stat64Fd.st_mode)) {                               /*  不能映射目录与管道          */
+        if (S_ISDIR(stat64Fd.st_mode)) {                                /*  不能映射目录                */
             _ErrorHandle(ENODEV);
             return  (LW_VMM_MAP_FAILED);
         }
@@ -449,10 +448,18 @@ static PVOID  __vmmMmapNew (size_t  stLen, INT  iFlags, ULONG  ulFlag, int  iFd,
         dmap.DMAP_ulFlag   = ulFlag;
         
         iError = API_IosMmap(iFd, &dmap);                               /*  尝试调用设备驱动            */
-        if ((iError < ERROR_NONE) && 
-            (errno != ERROR_IOS_DRIVER_NOT_SUP)) {                      /*  驱动程序报告错误            */
-            iErrLevel = 2;
-            goto    __error_handle;
+        if (iError < ERROR_NONE) {
+            if (errno == ERROR_IOS_DRIVER_NOT_SUP) {
+                if (S_ISCHR(stat64Fd.st_mode)  ||
+                    S_ISFIFO(stat64Fd.st_mode) || 
+                    S_ISSOCK(stat64Fd.st_mode)) {                       /*  不支持 MMAP 的 FIFO 与设备  */
+                    iErrLevel = 2;
+                    goto    __error_handle;
+                }
+            } else {
+                iErrLevel = 2;
+                goto    __error_handle;
+            }
         }
     }
     

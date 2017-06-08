@@ -40,7 +40,9 @@ PLW_STACK  archTaskCtxCreate (PTHREAD_START_ROUTINE  pfuncTask,
 {
     ARCH_REG_CTX      *pregctx;
     ARCH_FP_CTX       *pfpctx;
+#if !defined(__SYLIXOS_ARM_ARCH_M__)
     INTREG             uiCpsr;
+#endif                                                                  /*  __SYLIXOS_ARM_ARCH_M__      */
     
     if ((addr_t)pstkTop & 0x7) {                                        /*  保证出栈后 CPU SP 8 字节对齐*/
         pstkTop = (PLW_STACK)((addr_t)pstkTop - 4);                     /*  向低地址推进 4 字节         */
@@ -52,6 +54,28 @@ PLW_STACK  archTaskCtxCreate (PTHREAD_START_ROUTINE  pfuncTask,
     pfpctx->FP_uiFp = (ARCH_REG_T)LW_NULL;
     pfpctx->FP_uiLr = (ARCH_REG_T)LW_NULL;
     
+#if defined(__SYLIXOS_ARM_ARCH_M__)
+    pregctx->REG_uiCpsr = 0x01000000;
+    pregctx->REG_uiR0   = (ARCH_REG_T)pvArg;
+    pregctx->REG_uiR1   = 0x01010101;
+    pregctx->REG_uiR2   = 0x02020202;
+    pregctx->REG_uiR3   = 0x03030303;
+    pregctx->REG_uiR4   = 0x04040404;
+    pregctx->REG_uiR5   = 0x05050505;
+    pregctx->REG_uiR6   = 0x06060606;
+    pregctx->REG_uiR7   = 0x07070707;
+    pregctx->REG_uiR8   = 0x08080808;
+    pregctx->REG_uiR9   = 0x09090909;
+    pregctx->REG_uiR10  = 0x10101010;
+    pregctx->REG_uiFp   = pfpctx->FP_uiFp;
+    pregctx->REG_uiIp   = 0x12121212;
+    pregctx->REG_uiLr   = 0xfffffffe;
+    pregctx->REG_uiPc   = (ARCH_REG_T)pfuncTask;
+	
+    pregctx->REG_uiExcRet  = 0xfffffffd;
+    pregctx->REG_uiBASEPRI = 0;
+	
+#else
     uiCpsr  = archGetCpsr();                                            /*  获得当前 CPSR 寄存器        */
     uiCpsr &= ~ARCH_ARM_MASKMODE;
     uiCpsr |= ARCH_ARM_SVC32MODE;                                       /*  SVC 模式                    */
@@ -73,6 +97,7 @@ PLW_STACK  archTaskCtxCreate (PTHREAD_START_ROUTINE  pfuncTask,
     pregctx->REG_uiIp  = 0x12121212;
     pregctx->REG_uiLr  = (ARCH_REG_T)pfuncTask;
     pregctx->REG_uiPc  = (ARCH_REG_T)pfuncTask;
+#endif                                                                  /*  __SYLIXOS_ARM_ARCH_M__      */
     
     return  ((PLW_STACK)pregctx);
 }
@@ -146,6 +171,8 @@ VOID  archTaskRegsSet (PLW_STACK  pstkTop, const ARCH_REG_CTX  *pregctx)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
+#if !defined(__SYLIXOS_ARM_ARCH_M__)
+
 static VOID  archTaskCtxCpsr (ARCH_REG_T regCpsr, PCHAR  pcCpsr)
 {
     if (regCpsr & 0x80000000) {
@@ -234,6 +261,8 @@ static VOID  archTaskCtxCpsr (ARCH_REG_T regCpsr, PCHAR  pcCpsr)
         break;
     }
 }
+
+#endif                                                                  /*  __SYLIXOS_ARM_ARCH_M__      */
 /*********************************************************************************************************
 ** 函数名称: archTaskCtxShow
 ** 功能描述: 打印任务上下文
@@ -247,10 +276,35 @@ static VOID  archTaskCtxCpsr (ARCH_REG_T regCpsr, PCHAR  pcCpsr)
 
 VOID  archTaskCtxShow (INT  iFd, PLW_STACK  pstkTop)
 {
+#if !defined(__SYLIXOS_ARM_ARCH_M__)
     CHAR        cCpsr[32 + 1] = "\0";
     ARCH_REG_T  regCpsr       = (ARCH_REG_T)pstkTop[0];
+#endif                                                                  /*  !__SYLIXOS_ARM_ARCH_M__     */
     
     if (iFd >= 0) {
+#if defined(__SYLIXOS_ARM_ARCH_M__)
+        fdprintf(iFd, "XPSR    = 0x%08x\n", pstkTop[17]);
+        fdprintf(iFd, "BASEPRI = 0x%08x\n", pstkTop[0]);
+        fdprintf(iFd, "EXCRET  = 0x%08x\n", pstkTop[9]);
+
+        fdprintf(iFd, "r0  = 0x%08x  ", pstkTop[10]);
+        fdprintf(iFd, "r1  = 0x%08x\n", pstkTop[11]);
+        fdprintf(iFd, "r2  = 0x%08x  ", pstkTop[12]);
+        fdprintf(iFd, "r3  = 0x%08x\n", pstkTop[13]);
+        fdprintf(iFd, "r4  = 0x%08x  ", pstkTop[1]);
+        fdprintf(iFd, "r5  = 0x%08x\n", pstkTop[2]);
+        fdprintf(iFd, "r6  = 0x%08x  ", pstkTop[3]);
+        fdprintf(iFd, "r7  = 0x%08x\n", pstkTop[4]);
+        fdprintf(iFd, "r8  = 0x%08x  ", pstkTop[5]);
+        fdprintf(iFd, "r9  = 0x%08x\n", pstkTop[6]);
+        fdprintf(iFd, "r10 = 0x%08x  ", pstkTop[7]);
+        fdprintf(iFd, "fp  = 0x%08x\n", pstkTop[8]);
+        fdprintf(iFd, "ip  = 0x%08x  ", pstkTop[14]);
+        fdprintf(iFd, "sp  = 0x%08x\n", (ARCH_REG_T)pstkTop);
+        fdprintf(iFd, "lr  = 0x%08x  ", pstkTop[15]);
+        fdprintf(iFd, "pc  = 0x%08x\n", pstkTop[16]);
+
+#else
         archTaskCtxCpsr(regCpsr, cCpsr);
 
         fdprintf(iFd, "cpsr = %s\n",    cCpsr);
@@ -270,7 +324,7 @@ VOID  archTaskCtxShow (INT  iFd, PLW_STACK  pstkTop)
         fdprintf(iFd, "sp  = 0x%08x\n", (ARCH_REG_T)pstkTop);
         fdprintf(iFd, "lr  = 0x%08x  ", pstkTop[14]);
         fdprintf(iFd, "pc  = 0x%08x\n", pstkTop[15]);
-
+#endif                                                                  /*  !__SYLIXOS_ARM_ARCH_M__     */
     } else {
         archTaskCtxPrint(pstkTop);
     }
@@ -287,10 +341,34 @@ VOID  archTaskCtxShow (INT  iFd, PLW_STACK  pstkTop)
 *********************************************************************************************************/
 VOID  archTaskCtxPrint (PLW_STACK  pstkTop)
 {
+#if defined(__SYLIXOS_ARM_ARCH_M__)
+    _PrintFormat("XPSR    = 0x%08x\r\n", pstkTop[17]);
+    _PrintFormat("BASEPRI = 0x%08x\r\n", pstkTop[0]);
+    _PrintFormat("EXCRET  = 0x%08x\r\n", pstkTop[9]);
+
+    _PrintFormat("r0  = 0x%08x  ",   pstkTop[10]);
+    _PrintFormat("r1  = 0x%08x\r\n", pstkTop[11]);
+    _PrintFormat("r2  = 0x%08x  ",   pstkTop[12]);
+    _PrintFormat("r3  = 0x%08x\r\n", pstkTop[13]);
+    _PrintFormat("r4  = 0x%08x  ",   pstkTop[1]);
+    _PrintFormat("r5  = 0x%08x\r\n", pstkTop[2]);
+    _PrintFormat("r6  = 0x%08x  ",   pstkTop[3]);
+    _PrintFormat("r7  = 0x%08x\r\n", pstkTop[4]);
+    _PrintFormat("r8  = 0x%08x  ",   pstkTop[5]);
+    _PrintFormat("r9  = 0x%08x\r\n", pstkTop[6]);
+    _PrintFormat("r10 = 0x%08x  ",   pstkTop[7]);
+    _PrintFormat("fp  = 0x%08x\r\n", pstkTop[8]);
+    _PrintFormat("ip  = 0x%08x  ",   pstkTop[14]);
+    _PrintFormat("sp  = 0x%08x\r\n", (ARCH_REG_T)pstkTop);
+    _PrintFormat("lr  = 0x%08x  ",   pstkTop[15]);
+    _PrintFormat("pc  = 0x%08x\r\n", pstkTop[16]);
+
+#else
     CHAR        cCpsr[32 + 1] = "\0";
     ARCH_REG_T  regCpsr       = (ARCH_REG_T)pstkTop[0];
 
     archTaskCtxCpsr(regCpsr, cCpsr);
+
 
     _PrintFormat("cpsr = %s\r\n",    cCpsr);
     _PrintFormat("r0  = 0x%08x  ",   pstkTop[1]);
@@ -309,6 +387,7 @@ VOID  archTaskCtxPrint (PLW_STACK  pstkTop)
     _PrintFormat("sp  = 0x%08x\r\n", (ARCH_REG_T)pstkTop);
     _PrintFormat("lr  = 0x%08x  ",   pstkTop[14]);
     _PrintFormat("pc  = 0x%08x\r\n", pstkTop[15]);
+#endif                                                                  /*  !__SYLIXOS_ARM_ARCH_M__     */
 }
 /*********************************************************************************************************
   END

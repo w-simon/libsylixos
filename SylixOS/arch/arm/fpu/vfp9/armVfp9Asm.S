@@ -108,6 +108,9 @@ MACRO_DEF(VFP9_SAVE_CTRL)
     STR     R2, [R0, #VFP_FPINST]
 
     TST     R1, #(1 << 28)          ;/* The FPINST2 register does not exist on VFP10rev0, so we test FP2V*/
+#if defined(__SYLIXOS_ARM_ARCH_M__)
+    ITT     NE
+#endif
     FMRXNE  R3, FPINST2             ;/* FP2V: FPINST2 is valid                                           */
     STRNE   R3, [R0, #VFP_FPINST2]
 
@@ -126,6 +129,9 @@ MACRO_DEF(VFP9_RESTORE_CTRL)
     FMXR    FPINST, R2
 
     TST     R1, #(1 << 28)          ;/* The FPINST2 register does not exist on VFP10rev0, so we test FP2V*/
+#if defined(__SYLIXOS_ARM_ARCH_M__)
+    ITT     NE
+#endif
     LDRNE   R3, [R0, #VFP_FPINST2]
     FMXRNE  FPINST2, R3             ;/* FP2V: FPINST2 is valid                                           */
 

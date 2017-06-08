@@ -79,6 +79,88 @@ LW_WEAK VOID  archIntHandle (ULONG  ulVector, BOOL  bPreemptive)
     }
 }
 /*********************************************************************************************************
+  ARMv7M 体系构架相关异常处理函数
+*********************************************************************************************************/
+#if defined(__SYLIXOS_ARM_ARCH_M__)
+/*********************************************************************************************************
+  系统调用 ARCH 相关命令定义
+*********************************************************************************************************/
+#define SVC_archCommand             (0xac)
+#define SVC_archTaskCtxStart        (SVC_archCommand + 0)
+#define SVC_archTaskCtxSwitch       (SVC_archCommand + 1)
+#define SVC_archCrtCtxSwitch        (SVC_archCommand + 2)
+#define SVC_archSigCtxLoad          (SVC_archCommand + 3)
+/*********************************************************************************************************
+** 函数名称: armv7mSvcHandle
+** 功能描述: NONE
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+ARCH_REG_CTX  *armv7mSvcHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
+{
+    UINT32          uiCmd = pregctx->REG_uiR1;
+    PLW_CLASS_CPU   pcpuCur;
+
+    switch (uiCmd) {
+
+    case SVC_archTaskCtxStart:
+    	pcpuCur = (PLW_CLASS_CPU)pregctx->REG_uiR0;
+    	return  ((ARCH_REG_CTX *)(pcpuCur->CPU_ptcbTCBCur->TCB_pstkStackNow));
+        break;
+
+    case SVC_archTaskCtxSwitch:
+    	pcpuCur = (PLW_CLASS_CPU)pregctx->REG_uiR0;
+        pcpuCur->CPU_ptcbTCBCur->TCB_pstkStackNow = (PLW_STACK)pregctx;
+        _SchedSwp(pcpuCur);
+        return  ((ARCH_REG_CTX *)(pcpuCur->CPU_ptcbTCBCur->TCB_pstkStackNow));
+        break;
+
+#if LW_CFG_COROUTINE_EN > 0
+    case SVC_archCrtCtxSwitch:
+    	pcpuCur = (PLW_CLASS_CPU)pregctx->REG_uiR0;
+        pcpuCur->CPU_pcrcbCur->COROUTINE_pstkStackNow = (PLW_STACK)pregctx;
+        _SchedCrSwp(pcpuCur);
+        return  ((ARCH_REG_CTX *)(pcpuCur->CPU_pcrcbCur->COROUTINE_pstkStackNow));
+        break;
+#endif
+
+    case SVC_archSigCtxLoad:
+        return  ((ARCH_REG_CTX *)pregctx->REG_uiR0);
+        break;
+
+    default:
+        _BugHandle(LW_TRUE, LW_TRUE, "unknown SVC command!\r\n");
+        break;
+    }
+
+    return  (LW_NULL);
+}
+/*********************************************************************************************************
+** 函数名称: armv7mIntHandle
+** 功能描述: NONE
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+ARCH_REG_CTX  *armv7mIntHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
+{
+    if (API_InterGetNesting() == 1) {
+        PLW_CLASS_TCB  ptcbTCBCur = API_ThreadTcbInter();
+        ptcbTCBCur->TCB_pstkStackNow = (PLW_STACK)pregctx;
+    }
+
+    archIntHandle((ULONG)uiVector, LW_FALSE);
+
+    API_InterExit();
+
+    return  (pregctx);
+}
+
+#else
+/*********************************************************************************************************
 ** 函数名称: archAbtHandle
 ** 功能描述: 系统发生 data abort 或者 prefetch_abort 异常时会调用此函数
 ** 输　入  : ulRetAddr     异常返回地址.
@@ -176,6 +258,8 @@ VOID  archSwiHandle (UINT32  uiSwiNo, UINT32  *puiRegs)
     (VOID)uiSwiNo;
     puiRegs[0] = 0x0;                                                   /*  R0 为返回值                 */
 }
+
+#endif                                                                  /*  __SYLIXOS_ARM_ARCH_M__      */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

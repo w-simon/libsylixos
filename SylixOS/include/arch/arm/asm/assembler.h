@@ -22,50 +22,7 @@
 #ifndef __ASMARM_ASSEMBLER_H
 #define __ASMARM_ASSEMBLER_H
 
-/*********************************************************************************************************
-  arm architecture detect
-*********************************************************************************************************/
-
-#ifdef __GNUC__
-#  if defined(__ARM_ARCH_2__)
-#    define __SYLIXOS_ARM_ARCH__    2
-
-#  elif defined(__ARM_ARCH_3__) || defined(__ARM_ARCH_3M__)
-#    define __SYLIXOS_ARM_ARCH__    3
-
-#  elif defined(__ARM_ARCH_4__) || defined(__ARM_ARCH_4T__)
-#    define __SYLIXOS_ARM_ARCH__    4
-
-#  elif defined(__ARM_ARCH_5__)  || defined(__ARM_ARCH_5E__) || \
-        defined(__ARM_ARCH_5T__) || defined(__ARM_ARCH_5TE__) || \
-        defined(__ARM_ARCH_5TEJ__) 
-#    define __SYLIXOS_ARM_ARCH__    5
-
-#  elif defined(__ARM_ARCH_6__)   || defined(__ARM_ARCH_6J__) || \
-        defined(__ARM_ARCH_6K__)  || defined(__ARM_ARCH_6Z__) || \
-        defined(__ARM_ARCH_6ZK__) || defined(__ARM_ARCH_6T2__)
-#    define __SYLIXOS_ARM_ARCH__    6
-
-#  elif defined(__ARM_ARCH_7__)  || defined(__ARM_ARCH_7A__) || \
-        defined(__ARM_ARCH_7R__) || defined(__ARM_ARCH_7M__) || \
-        defined(__ARM_ARCH_7EM__)
-#    define __SYLIXOS_ARM_ARCH__    7
-
-#  elif defined(__ARM_ARCH_8__) || defined(__ARM_ARCH_8A__)
-#    define __SYLIXOS_ARM_ARCH__    8
-#  endif                                                                /*  user define only            */
-
-#else
-#  define __SYLIXOS_ARM_ARCH__      4                                   /*  default ARMv4               */
-#endif
-
-/*********************************************************************************************************
-  arm R architecture detect
-*********************************************************************************************************/
-
-#if defined(__ARM_ARCH_7R__)
-#define __SYLIXOS_ARM_ARCH_R__      7
-#endif
+#include "archprob.h"
 
 /*********************************************************************************************************
   arm architecture assembly special code
@@ -126,11 +83,21 @@
 #  define FUNC_LABEL(func)          func:
 #  define LINE_LABEL(line)          line:
 
+#if defined(__SYLIXOS_ARM_ARCH_M__)
+#  define FUNC_DEF(func)  \
+        .code   16; \
+        .thumb; \
+        .balign 8;  \
+        .type func, %function; \
+		.syntax unified; \
+func:
+#else
 #  define FUNC_DEF(func)  \
         .code   32; \
         .balign 8;  \
         .type func, %function;  \
 func:
+#endif                                                                  /*  __SYLIXOS_ARM_ARCH_M__      */
 
 #  define FUNC_END()    \
         .ltorg

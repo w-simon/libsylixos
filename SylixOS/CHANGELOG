@@ -4,10 +4,16 @@ HISTORY
 
 ++ New features:
 
+    2017-06-09: han.hui
+    加入对 ARM Cortex M 系列处理器支持.
+
     2017-06-08: han.hui
     加入对 4 级页表 64 位 MMU 支持.
 
 ++ Bugfixes:
+
+    2017-06-08: han.hui
+    修正 AF_PACKET mmap() 错误.
 
     2017-06-01: han.hui
     修正一些驱动针对于 select() 异常判断的错误.

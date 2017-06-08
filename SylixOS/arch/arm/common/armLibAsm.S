@@ -53,7 +53,10 @@
     EXPORT_LABEL(archPageCopy)
     EXPORT_LABEL(archReboot)
     EXPORT_LABEL(archBogoMipsLoop)
+
+#if !defined(__SYLIXOS_ARM_ARCH_M__)
     EXPORT_LABEL(archGetCpsr)
+#endif
 
     WEAK(archIntDisable)
     WEAK(archIntEnable)
@@ -64,6 +67,11 @@
 ;*********************************************************************************************************/
 
 FUNC_DEF(archIntDisable)
+#if defined(__SYLIXOS_ARM_ARCH_M__)
+    MRS     R0 , BASEPRI                ;/*  Set prio int mask to mask all (except faults)               */
+    MOV     R1 , #13                    ;/*  利用优先级屏蔽中断，才能使用SVC                             */
+    MSR     BASEPRI,  R1
+#else
     MRS     R0 , CPSR
     ORR     R1 , R0, #0x80
     MSR     CPSR_c, R1
@@ -71,29 +79,42 @@ FUNC_DEF(archIntDisable)
     AND     R2 , R2, #0x80
     CMP     R2 , #0x80
     BNE     archIntDisable
+#endif                                   /*  __SYLIXOS_ARM_ARCH_M__                                      */
     BX      LR
     FUNC_END()
     
 FUNC_DEF(archIntEnable)
+#if defined(__SYLIXOS_ARM_ARCH_M__)
+    MSR     BASEPRI, R0
+#else
     MSR     CPSR_c, R0
+#endif                                   /*  __SYLIXOS_ARM_ARCH_M__                                      */
     BX      LR
     FUNC_END()
     
 FUNC_DEF(archIntEnableForce)
+#if defined(__SYLIXOS_ARM_ARCH_M__)
+    CPSIE   I                            /*  Enable interrupts at processor level                        */
+    MOV     R1 , #0
+    MSR     BASEPRI, R1
+#else
     MRS     R0 , CPSR
     BIC     R0 , R0, #0x80
     MSR     CPSR_c, R0
+#endif                                   /*  __SYLIXOS_ARM_ARCH_M__                                      */
     BX      LR
     FUNC_END()
 
 ;/*********************************************************************************************************
-;  ARM 获得 CPSR
+;  ARM 获得 CPSR (Cortex-M no CPSR)
 ;*********************************************************************************************************/
 
+#if !defined(__SYLIXOS_ARM_ARCH_M__)
 FUNC_DEF(archGetCpsr)
     MRS     R0 , CPSR
     BX      LR
     FUNC_END()
+#endif                                   /*  __SYLIXOS_ARM_ARCH_M__                                      */
 
 ;/*********************************************************************************************************
 ;  ARM 前导零运算
@@ -103,6 +124,9 @@ FUNC_DEF(archGetCpsr)
 FUNC_DEF(archFindLsb)
     RSB     R1 , R0, #0
     ANDS    R0 , R1, R0
+#if defined(__SYLIXOS_ARM_ARCH_M__)
+    ITT     NE
+#endif
     CLZNE   R0 , R0
     RSBNE   R0 , R0, #32
     BX      LR
@@ -110,7 +134,11 @@ FUNC_DEF(archFindLsb)
 
 FUNC_DEF(archFindMsb)
     CMP     R0 , #0
+#if defined(__SYLIXOS_ARM_ARCH_M__)
+    ITT     NE
+#else
     BXEQ    LR
+#endif
     CLZNE   R0 , R0
     RSBNE   R0 , R0, #32
     BX      LR
@@ -120,6 +148,8 @@ FUNC_DEF(archFindMsb)
 ;/*********************************************************************************************************
 ;  页面拷贝 (代码来自 linux/arch/arm/lib)
 ;*********************************************************************************************************/
+#if !defined(__SYLIXOS_ARM_ARCH_M__)
+
 #define PAGE_SZ         4096
 #define L1_CACHE_BYTES  32
 #define COPY_COUNT      (PAGE_SZ / (2 * L1_CACHE_BYTES) PLD(-1))
@@ -154,6 +184,7 @@ FUNC_DEF(archPageCopy)
     LDMFD       SP! , {R4, PC}
     FUNC_END()
     
+#endif
 ;/*********************************************************************************************************
 ;  注意: setjmp 与 longjmp 上下文结构与线程上下文结构不同
 ;
