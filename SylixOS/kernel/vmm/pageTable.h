@@ -95,11 +95,17 @@
 #ifdef __cplusplus
 typedef LW_PGD_TRANSENTRY  *(*PGDFUNCPTR)(...);
 typedef LW_PMD_TRANSENTRY  *(*PMDFUNCPTR)(...);
+#if LW_CFG_VMM_PAGE_4L_EN > 0
+typedef LW_PTS_TRANSENTRY  *(*PTSFUNCPTR)(...);
+#endif                                                                  /*  LW_CFG_VMM_PAGE_4L_EN > 0   */
 typedef LW_PTE_TRANSENTRY  *(*PTEFUNCPTR)(...);
 
 #else
 typedef LW_PGD_TRANSENTRY  *(*PGDFUNCPTR)();
 typedef LW_PMD_TRANSENTRY  *(*PMDFUNCPTR)();
+#if LW_CFG_VMM_PAGE_4L_EN > 0
+typedef LW_PTS_TRANSENTRY  *(*PTSFUNCPTR)();
+#endif                                                                  /*  LW_CFG_VMM_PAGE_4L_EN > 0   */
 typedef LW_PTE_TRANSENTRY  *(*PTEFUNCPTR)();
 #endif                                                                  /*  __cplusplus                 */
 
@@ -114,15 +120,25 @@ typedef struct {
     VOIDFUNCPTR              MMUOP_pfuncPGDFree;                        /*  释放 PGD 空间               */
     PMDFUNCPTR               MMUOP_pfuncPMDAlloc;                       /*  创建 PMD 空间               */
     VOIDFUNCPTR              MMUOP_pfuncPMDFree;                        /*  释放 PMD 空间               */
+#if LW_CFG_VMM_PAGE_4L_EN > 0
+    PTSFUNCPTR               MMUOP_pfuncPTSAlloc;                       /*  创建 PTS 空间               */
+    VOIDFUNCPTR              MMUOP_pfuncPTSFree;                        /*  释放 PTS 空间               */
+#endif                                                                  /*  LW_CFG_VMM_PAGE_4L_EN > 0   */
     PTEFUNCPTR               MMUOP_pfuncPTEAlloc;                       /*  创建 PTE 空间               */
     VOIDFUNCPTR              MMUOP_pfuncPTEFree;                        /*  释放 PTE 空间               */
 
     BOOLFUNCPTR              MMUOP_pfuncPGDIsOk;                        /*  PGD 入口项是否正确          */
     BOOLFUNCPTR              MMUOP_pfuncPMDIsOk;                        /*  PMD 入口项是否正确          */
+#if LW_CFG_VMM_PAGE_4L_EN > 0
+    BOOLFUNCPTR              MMUOP_pfuncPTSIsOk;                        /*  PTS 入口项是否正确          */
+#endif                                                                  /*  LW_CFG_VMM_PAGE_4L_EN > 0   */
     BOOLFUNCPTR              MMUOP_pfuncPTEIsOk;                        /*  PTE 入口项是否正确          */
 
     PGDFUNCPTR               MMUOP_pfuncPGDOffset;                      /*  通过地址获得指定 PGD 表项   */
     PMDFUNCPTR               MMUOP_pfuncPMDOffset;                      /*  通过地址获得指定 PMD 表项   */
+#if LW_CFG_VMM_PAGE_4L_EN > 0
+    PTSFUNCPTR               MMUOP_pfuncPTSOffset;                      /*  通过地址获得指定 PTS 表项   */
+#endif                                                                  /*  LW_CFG_VMM_PAGE_4L_EN > 0   */
     PTEFUNCPTR               MMUOP_pfuncPTEOffset;                      /*  通过地址获得指定 PTE 表项   */
     
     FUNCPTR                  MMUOP_pfuncPTEPhysGet;                     /*  通过 PTE 条目获取物理地址   */
@@ -181,13 +197,25 @@ extern LW_OBJECT_HANDLE     _G_ulVmmLock;
         if (_G_mmuOpLib.MMUOP_pfuncPMDFree) {   \
             _G_mmuOpLib.MMUOP_pfuncPMDFree(p_pmdentry); \
         }
+        
+#if LW_CFG_VMM_PAGE_4L_EN > 0
+#define __VMM_MMU_PTS_ALLOC(pmmuctx, p_pmdentry, ulAddr)    (_G_mmuOpLib.MMUOP_pfuncPTSAlloc) ? \
+            _G_mmuOpLib.MMUOP_pfuncPTSAlloc(pmmuctx, p_pmdentry, ulAddr) : (LW_NULL)
+#define __VMM_MMU_PTS_FREE(p_ptsentry)  \
+        if (_G_mmuOpLib.MMUOP_pfuncPTSFree) {   \
+            _G_mmuOpLib.MMUOP_pfuncPTSFree(p_ptsentry); \
+        }
+#define __VMM_MMU_PTE_ALLOC(pmmuctx, p_ptsentry, ulAddr)    (_G_mmuOpLib.MMUOP_pfuncPTEAlloc) ? \
+            _G_mmuOpLib.MMUOP_pfuncPTEAlloc(pmmuctx, p_ptsentry, ulAddr) : (LW_NULL)
+#else                                                                   /*  LW_CFG_VMM_PAGE_4L_EN > 0   */
 #define __VMM_MMU_PTE_ALLOC(pmmuctx, p_pmdentry, ulAddr)    (_G_mmuOpLib.MMUOP_pfuncPTEAlloc) ? \
             _G_mmuOpLib.MMUOP_pfuncPTEAlloc(pmmuctx, p_pmdentry, ulAddr) : (LW_NULL)
+#endif                                                                  /*  !LW_CFG_VMM_PAGE_4L_EN > 0  */
+
 #define __VMM_MMU_PTE_FREE(p_pteentry)  \
         if (_G_mmuOpLib.MMUOP_pfuncPTEFree) {   \
             _G_mmuOpLib.MMUOP_pfuncPTEFree(p_pteentry); \
         }
-        
 /*********************************************************************************************************
   MMU 页面描述符判断
 *********************************************************************************************************/
@@ -196,6 +224,10 @@ extern LW_OBJECT_HANDLE     _G_ulVmmLock;
             !(_G_mmuOpLib.MMUOP_pfuncPGDIsOk(pgdentry)) : (LW_TRUE)
 #define __VMM_MMU_PMD_NONE(pmdentry)    (_G_mmuOpLib.MMUOP_pfuncPMDIsOk) ? \
             !(_G_mmuOpLib.MMUOP_pfuncPMDIsOk(pmdentry)) : (LW_TRUE)
+#if LW_CFG_VMM_PAGE_4L_EN > 0
+#define __VMM_MMU_PTS_NONE(ptsentry)    (_G_mmuOpLib.MMUOP_pfuncPTSIsOk) ? \
+            !(_G_mmuOpLib.MMUOP_pfuncPTSIsOk(ptsentry)) : (LW_TRUE)
+#endif                                                                  /*  LW_CFG_VMM_PAGE_4L_EN > 0   */
 #define __VMM_MMU_PTE_NONE(pteentry)    (_G_mmuOpLib.MMUOP_pfuncPTEIsOk) ? \
             !(_G_mmuOpLib.MMUOP_pfuncPTEIsOk(pteentry)) : (LW_TRUE)
             
@@ -207,9 +239,16 @@ extern LW_OBJECT_HANDLE     _G_ulVmmLock;
             _G_mmuOpLib.MMUOP_pfuncPGDOffset(pmmuctx, ulAddr) : (LW_NULL)
 #define __VMM_MMU_PMD_OFFSET(p_pgdentry, ulAddr)    (_G_mmuOpLib.MMUOP_pfuncPMDOffset) ?    \
             _G_mmuOpLib.MMUOP_pfuncPMDOffset(p_pgdentry, ulAddr) : (LW_NULL)
+#if LW_CFG_VMM_PAGE_4L_EN > 0
+#define __VMM_MMU_PTS_OFFSET(p_pmdentry, ulAddr)    (_G_mmuOpLib.MMUOP_pfuncPTSOffset) ?    \
+            _G_mmuOpLib.MMUOP_pfuncPTSOffset(p_pmdentry, ulAddr) : (LW_NULL)
+#define __VMM_MMU_PTE_OFFSET(p_ptsentry, ulAddr)    (_G_mmuOpLib.MMUOP_pfuncPTEOffset) ?    \
+            _G_mmuOpLib.MMUOP_pfuncPTEOffset(p_ptsentry, ulAddr) : (LW_NULL)
+#else                                                                   /*  LW_CFG_VMM_PAGE_4L_EN > 0   */
 #define __VMM_MMU_PTE_OFFSET(p_pmdentry, ulAddr)    (_G_mmuOpLib.MMUOP_pfuncPTEOffset) ?    \
             _G_mmuOpLib.MMUOP_pfuncPTEOffset(p_pmdentry, ulAddr) : (LW_NULL)
-            
+#endif                                                                  /*  !LW_CFG_VMM_PAGE_4L_EN > 0  */
+
 /*********************************************************************************************************
   MMU 获取物理地址
 *********************************************************************************************************/
@@ -296,6 +335,35 @@ static LW_INLINE VOID  __vmm_pmd_free (LW_PMD_TRANSENTRY  *p_pmdentry)
     __VMM_MMU_PMD_FREE(p_pmdentry);
 }
 
+#if LW_CFG_VMM_PAGE_4L_EN > 0                                           /*  LW_CFG_VMM_PAGE_4L_EN > 0   */
+static LW_INLINE LW_PTS_TRANSENTRY   *__vmm_pts_alloc (PLW_MMU_CONTEXT    pmmuctx, 
+                                             LW_PMD_TRANSENTRY *p_pmdentry,
+                                             addr_t             ulAddr)
+{
+    if (__VMM_MMU_PMD_NONE(*p_pmdentry)) {
+        return  (__VMM_MMU_PTS_ALLOC(pmmuctx, p_pmdentry, ulAddr));
+    } else {
+        return  (__VMM_MMU_PTS_OFFSET(p_pmdentry, ulAddr));
+    }
+}
+
+static LW_INLINE VOID  __vmm_pts_free (LW_PTS_TRANSENTRY  *p_ptsentry)
+{
+    __VMM_MMU_PTS_FREE(p_ptsentry);
+}
+
+static LW_INLINE LW_PTE_TRANSENTRY   *__vmm_pte_alloc (PLW_MMU_CONTEXT    pmmuctx, 
+                                             LW_PTS_TRANSENTRY *p_ptsentry,
+                                             addr_t             ulAddr)
+{
+    if (__VMM_MMU_PTS_NONE(*p_ptsentry)) {
+        return  (__VMM_MMU_PTE_ALLOC(pmmuctx, p_ptsentry, ulAddr));
+    } else {
+        return  (__VMM_MMU_PTE_OFFSET(p_ptsentry, ulAddr));
+    }
+}
+
+#else                                                                   /*  !LW_CFG_VMM_PAGE_4L_EN > 0  */
 static LW_INLINE LW_PTE_TRANSENTRY   *__vmm_pte_alloc (PLW_MMU_CONTEXT    pmmuctx, 
                                              LW_PMD_TRANSENTRY *p_pmdentry,
                                              addr_t             ulAddr)
@@ -306,6 +374,7 @@ static LW_INLINE LW_PTE_TRANSENTRY   *__vmm_pte_alloc (PLW_MMU_CONTEXT    pmmuct
         return  (__VMM_MMU_PTE_OFFSET(p_pmdentry, ulAddr));
     }
 }
+#endif                                                                  /*  !LW_CFG_VMM_PAGE_4L_EN > 0  */
 
 static LW_INLINE VOID  __vmm_pte_free (LW_PTE_TRANSENTRY  *p_pteentry)
 {

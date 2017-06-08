@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2017-06-08: han.hui
+    加入对 4 级页表 64 位 MMU 支持.
+
 ++ Bugfixes:
 
     2017-06-01: han.hui

@@ -370,6 +370,9 @@ ULONG  __vmmLibPageMap (addr_t  ulPhysicalAddr,
     PLW_MMU_CONTEXT          pmmuctx = __vmmGetCurCtx();
     LW_PGD_TRANSENTRY       *p_pgdentry;
     LW_PMD_TRANSENTRY       *p_pmdentry;
+#if LW_CFG_VMM_PAGE_4L_EN > 0
+    LW_PTS_TRANSENTRY       *p_ptsentry;
+#endif                                                                  /*  LW_CFG_VMM_PAGE_4L_EN > 0   */
     LW_PTE_TRANSENTRY       *p_pteentry;
     addr_t                   ulVirtualTlb = ulVirtualAddr;
     
@@ -384,7 +387,17 @@ ULONG  __vmmLibPageMap (addr_t  ulPhysicalAddr,
             return  (ERROR_VMM_LOW_LEVEL);
         }
         
+#if LW_CFG_VMM_PAGE_4L_EN > 0
+        p_ptsentry = __vmm_pts_alloc(pmmuctx, p_pmdentry, ulVirtualAddr);
+        if (p_ptsentry == LW_NULL) {
+            return  (ERROR_VMM_LOW_LEVEL);
+        }
+        
+        p_pteentry = __vmm_pte_alloc(pmmuctx, p_ptsentry, ulVirtualAddr);
+#else
         p_pteentry = __vmm_pte_alloc(pmmuctx, p_pmdentry, ulVirtualAddr);
+#endif                                                                  /*  LW_CFG_VMM_PAGE_4L_EN > 0   */
+
         if (p_pteentry == LW_NULL) {
             return  (ERROR_VMM_LOW_LEVEL);
         }
@@ -476,6 +489,9 @@ ULONG  __vmmLibVirtualToPhysical (addr_t  ulVirtualAddr, addr_t  *pulPhysicalAdd
     PLW_MMU_CONTEXT          pmmuctx = __vmmGetCurCtx();
     LW_PGD_TRANSENTRY       *p_pgdentry;
     LW_PMD_TRANSENTRY       *p_pmdentry;
+#if LW_CFG_VMM_PAGE_4L_EN > 0
+    LW_PTS_TRANSENTRY       *p_ptsentry;
+#endif                                                                  /*  LW_CFG_VMM_PAGE_4L_EN > 0   */
     LW_PTE_TRANSENTRY       *p_pteentry;
     
     INT                      iError;
@@ -484,11 +500,22 @@ ULONG  __vmmLibVirtualToPhysical (addr_t  ulVirtualAddr, addr_t  *pulPhysicalAdd
     if (__VMM_MMU_PGD_NONE((*p_pgdentry))) {                            /*  判断 PGD 条目正确性         */
         goto    __error_handle;
     }
+    
     p_pmdentry = __VMM_MMU_PMD_OFFSET(p_pgdentry, ulVirtualAddr);
     if (__VMM_MMU_PMD_NONE((*p_pmdentry))) {                            /*  判断 PMD 条目正确性         */
         goto    __error_handle;
     }
+    
+#if LW_CFG_VMM_PAGE_4L_EN > 0
+    p_ptsentry = __VMM_MMU_PTS_OFFSET(p_pmdentry, ulVirtualAddr);
+    if (__VMM_MMU_PTS_NONE((*p_ptsentry))) {                            /*  判断 PTS 条目正确性         */
+        goto    __error_handle;
+    }
+    p_pteentry = __VMM_MMU_PTE_OFFSET(p_ptsentry, ulVirtualAddr);
+#else
     p_pteentry = __VMM_MMU_PTE_OFFSET(p_pmdentry, ulVirtualAddr);
+#endif                                                                  /*  LW_CFG_VMM_PAGE_4L_EN > 0   */
+    
     if (__VMM_MMU_PTE_NONE((*p_pteentry))) {                            /*  判断 PTE 条目正确性         */
         goto    __error_handle;
     }
