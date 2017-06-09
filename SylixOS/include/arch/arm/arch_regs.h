@@ -34,7 +34,7 @@
 #define ARCH_ARM_USR32MODE          0x10                                /*  用户模式                    */
 #define ARCH_ARM_FIQ32MODE          0x11                                /*  快速中断模式                */
 #define ARCH_ARM_IRQ32MODE          0x12                                /*  中断模式                    */
-#define	ARCH_ARM_SVC32MODE          0x13                                /*  管理模式                    */
+#define ARCH_ARM_SVC32MODE          0x13                                /*  管理模式                    */
 #define ARCH_ARM_ABT32MODE          0x17                                /*  中止模式                    */
 #define ARCH_ARM_UND32MODE          0x1b                                /*  未定义模式                  */
 #define ARCH_ARM_SYS32MODE          0x1f                                /*  系统模式                    */

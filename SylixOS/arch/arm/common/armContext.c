@@ -71,10 +71,10 @@ PLW_STACK  archTaskCtxCreate (PTHREAD_START_ROUTINE  pfuncTask,
     pregctx->REG_uiIp   = 0x12121212;
     pregctx->REG_uiLr   = 0xfffffffe;
     pregctx->REG_uiPc   = (ARCH_REG_T)pfuncTask;
-	
+
     pregctx->REG_uiExcRet  = 0xfffffffd;
     pregctx->REG_uiBASEPRI = 0;
-	
+
 #else
     uiCpsr  = archGetCpsr();                                            /*  获得当前 CPSR 寄存器        */
     uiCpsr &= ~ARCH_ARM_MASKMODE;

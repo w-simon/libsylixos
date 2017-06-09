@@ -89,7 +89,7 @@
         .thumb; \
         .balign 8;  \
         .type func, %function; \
-		.syntax unified; \
+        .syntax unified; \
 func:
 #else
 #  define FUNC_DEF(func)  \
@@ -117,7 +117,7 @@ func:
         
 #  define SECTION(sec)  \
         .section sec
-		
+
 #  define WEAK(sym)     \
         .weak sym
 

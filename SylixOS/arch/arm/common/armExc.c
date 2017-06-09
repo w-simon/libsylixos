@@ -106,12 +106,12 @@ ARCH_REG_CTX  *armv7mSvcHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
     switch (uiCmd) {
 
     case SVC_archTaskCtxStart:
-    	pcpuCur = (PLW_CLASS_CPU)pregctx->REG_uiR0;
-    	return  ((ARCH_REG_CTX *)(pcpuCur->CPU_ptcbTCBCur->TCB_pstkStackNow));
+        pcpuCur = (PLW_CLASS_CPU)pregctx->REG_uiR0;
+        return  ((ARCH_REG_CTX *)(pcpuCur->CPU_ptcbTCBCur->TCB_pstkStackNow));
         break;
 
     case SVC_archTaskCtxSwitch:
-    	pcpuCur = (PLW_CLASS_CPU)pregctx->REG_uiR0;
+        pcpuCur = (PLW_CLASS_CPU)pregctx->REG_uiR0;
         pcpuCur->CPU_ptcbTCBCur->TCB_pstkStackNow = (PLW_STACK)pregctx;
         _SchedSwp(pcpuCur);
         return  ((ARCH_REG_CTX *)(pcpuCur->CPU_ptcbTCBCur->TCB_pstkStackNow));
@@ -119,7 +119,7 @@ ARCH_REG_CTX  *armv7mSvcHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
 
 #if LW_CFG_COROUTINE_EN > 0
     case SVC_archCrtCtxSwitch:
-    	pcpuCur = (PLW_CLASS_CPU)pregctx->REG_uiR0;
+        pcpuCur = (PLW_CLASS_CPU)pregctx->REG_uiR0;
         pcpuCur->CPU_pcrcbCur->COROUTINE_pstkStackNow = (PLW_STACK)pregctx;
         _SchedCrSwp(pcpuCur);
         return  ((ARCH_REG_CTX *)(pcpuCur->CPU_pcrcbCur->COROUTINE_pstkStackNow));

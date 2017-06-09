@@ -48,10 +48,11 @@ FUNC_DEF(archIntEntry)
     ; */
 
     ;/*
-    ; *  R3 记录 PRIMASK, 并关中断
+    ; *  R3 记录 BASEPRI, 并关中断
+    ; *  利用优先级屏蔽中断, 才能使用 SVC
     ; */
-    MRS     R3 , BASEPRI                ;/*  Set prio int mask to mask all (except faults)               */
-    MOV     R2 , #13                    ;/*  利用优先级屏蔽中断，才能使用SVC                             */
+    MRS     R3 , BASEPRI                                        ;/*  Set prio int mask to mask all       */
+    MOV     R2 , #13
     MSR     BASEPRI,  R2
     ;/*
     ; *  R2 等于异常进入前使用的 SP
@@ -144,10 +145,11 @@ FUNC_DEF(archSwiEntry)
     ; */
 
     ;/*
-    ; *  R3 记录 PRIMASK, 并关中断
+    ; *  R3 记录 BASEPRI, 并关中断
+    ; *  利用优先级屏蔽中断, 才能使用 SVC
     ; */
-    MRS     R3 , BASEPRI                ;/*  Set prio int mask to mask all (except faults)               */
-    MOV     R2 , #13                    ;/*  利用优先级屏蔽中断，才能使用SVC                             */
+    MRS     R3 , BASEPRI                                        ;/*  Set prio int mask to mask all       */
+    MOV     R2 , #13
     MSR     BASEPRI,  R2
 
     ;/*
