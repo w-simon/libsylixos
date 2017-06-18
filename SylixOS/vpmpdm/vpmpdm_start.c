@@ -92,64 +92,9 @@ __attribute__((destructor)) static void _deinit_env (void)
 }
 
 /*
- *  vprocess entry point
+ *  _findenv
  */
-int _start (int argc, char **argv, char **env)
-{
-    int  i, ret;
-    int  oldnum = 0;
-    int  addnum = 0;
-
-    extern FUNCPTR vprocGetMain(VOID);
-    
-    FUNCPTR pfuncMain  = vprocGetMain(); /* must use MAIN MODULE main() function! */
-    ULONG   ulVersion  = API_KernelVersion();
-    
-    /*
-     *  check sylixos version
-     */
-    if (ulVersion < __SYLIXOS_MAKEVER(1, 4, 0)) {
-        fprintf(stderr, "sylixos version MUST equ or higher than 1.4.0\n");
-        return  (EXIT_FAILURE);
-    }
-    
-    /*
-     * init command-line environ
-     */
-    if (env) {
-        for (i = 0; env[i]; i++) {
-            addnum++;
-        }
-        if (addnum > 0) {
-            if (environ) {
-                for (i = 0; environ[i]; i++) {
-                    oldnum++;
-                }
-            }
-            environ = realloc(environ, sizeof(char *) * (addnum + oldnum + 1));
-            if (environ) {
-                for (i = 0; i < addnum; i++) {
-                    environ[oldnum + i] = strdup(env[i]);
-                }
-                environ[addnum + oldnum] = NULL;
-            }
-        }
-    }
-
-    errno = 0;
-    ret = pfuncMain(argc, argv, environ);
-    exit(ret);
-    
-    return  (ret);
-}
-
-/*
- *  the following code is from BSD lib
- */
-/*
- *  __findenv
- */
-static char *__findenv (const char *name, int *offset)
+static char *_find_env (const char *name, int *offset)
 {
     size_t len;
     const char *np;
@@ -169,6 +114,84 @@ static char *__findenv (const char *name, int *offset)
 }
 
 /*
+ *  vprocess entry point
+ */
+int _start (int argc, char **argv, char **env)
+{
+    int   i, idx, off, ret;
+    int   oldnum = 0;
+    int   addnum = 0;
+    char  *tmp, *old, **new;
+
+    extern FUNCPTR vprocGetMain(VOID);
+    
+    FUNCPTR pfuncMain  = vprocGetMain(); /* must use MAIN MODULE main() function! */
+    ULONG   ulVersion  = API_KernelVersion();
+    
+    /*
+     *  check sylixos version
+     */
+    if (ulVersion < __SYLIXOS_MAKEVER(1, 4, 0)) {
+        fprintf(stderr, "sylixos version MUST equ or higher than 1.4.0\n");
+        return  (EXIT_FAILURE);
+    }
+    
+    /*
+     * init command-line environ
+     */
+    if (env) {
+        for (addnum = 0; env[addnum]; addnum++) {
+            continue;
+        }
+        if (addnum > 0) {
+            if (environ) {
+                for (oldnum = 0; environ[oldnum]; oldnum++) {
+                    continue;
+                }
+                new = realloc(environ, sizeof(char *) * (addnum + oldnum + 1));
+
+            } else {
+                new = malloc(sizeof(char *) * (addnum + 1));
+                new[0] = NULL;
+            }
+
+            if (new) {
+                environ = new;
+                for (i = 0, idx = 0; i < addnum; i++) {
+                    old = _find_env(env[i], &off);
+                    if (old) {
+                        tmp = strdup(env[i]); /* set new value */
+                        if (tmp) {
+                            free(environ[off]); /* free old value */
+                            environ[off] = tmp;
+
+                        } else {
+                            fprintf(stderr, "environment variable initialization error: "
+                                            "Not enough memory\n");
+                        }
+
+                    } else {
+                        environ[oldnum + idx] = strdup(env[i]); /* add new value */
+                        environ[oldnum + idx + 1] = NULL;
+                        idx++;
+                    }
+                }
+                environ[oldnum + idx] = NULL; /* end */
+            }
+        }
+    }
+
+    errno = 0;
+    ret = pfuncMain(argc, argv, environ);
+    exit(ret);
+    
+    return  (ret);
+}
+
+/*
+ *  the following code is from BSD lib
+ */
+/*
  *  getenv
  */
 char *getenv (const char *name)
@@ -187,7 +210,7 @@ char *getenv (const char *name)
     }
 
     __ENV_LOCK();
-    result = __findenv(name, &offset);
+    result = _find_env(name, &offset);
     __ENV_UNLOCK();
     return result;
 }
@@ -216,7 +239,7 @@ int getenv_r (const char *name, char *buf, int len)
     }
 
     __ENV_LOCK();
-    result = __findenv(name, &offset);
+    result = _find_env(name, &offset);
     if (result == NULL) {
         errno = ENOENT;
         goto out;
@@ -251,7 +274,7 @@ int setenv (const char *name, const char *value, int rewrite)
     l_value = strlen(value);
     __ENV_LOCK();
     /* find if already exists */
-    if ((c = __findenv(name, &offset)) != NULL) {
+    if ((c = _find_env(name, &offset)) != NULL) {
         if (!rewrite)
             goto good;
         if (strlen(c) >= l_value)    /* old larger; copy over */
@@ -310,7 +333,7 @@ int unsetenv (const char *name)
     }
 
     __ENV_LOCK();
-    while (__findenv(name, &offset))    /* if set multiple times */
+    while (_find_env(name, &offset))    /* if set multiple times */
         for (p = &environ[offset];; ++p)
             if (!(*p = *(p + 1)))
                 break;

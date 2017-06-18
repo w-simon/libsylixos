@@ -528,7 +528,7 @@ __error_handle:
 }
 /*********************************************************************************************************
 ** 函数名称: vprocDestroy
-** 功能描述: 销毁进程控制块 (此函数只能在没有调用 vprocRun 函数或者 vprocRun 返回失败时调用)
+** 功能描述: 销毁进程控制块
 ** 输　入  : pvproc     进程控制块指针
 ** 输　出  : ERROR_NONE 表示没有错误, PX_ERROR 表示错误
 ** 全局变量:
@@ -1290,7 +1290,6 @@ FUNCPTR  vprocGetMain (VOID)
 ** 输　出  : ERROR_NONE 表示没有错误, PX_ERROR 表示错误
 ** 全局变量:
 ** 调用模块:
-** 注  意  : 如果返回 0 则需要使用 vprocExit() 退出, 否则直接使用 vprocDestroy() 退出.
 *********************************************************************************************************/
 INT  vprocRun (LW_LD_VPROC      *pvproc, 
                LW_LD_VPROC_STOP *pvpstop,
@@ -1659,19 +1658,13 @@ INT  API_ModuleRunEx (CPCHAR             pcFile,
     
     iError = vprocRun(pvproc, LW_NULL, pcFile, pcEntry, &iRet, 
                       iArgC, ppcArgV, ppcEnv);                          /*  装载并运行进程              */
-    if (iError) {                                                       /*  失败                        */
-        vprocDestroy(pvproc);
-        return  (iError);
+    if (iError) {                                                       /*  装载失败                    */
+        iRet = iError;
     }
     
     vprocExit(pvproc, pvproc->VP_ulMainThread, iRet);                   /*  退出进程                    */
 
-    if (iError) {
-        return  (iError);
-    
-    } else {
-        return  (iRet);                                                 /*  理论上无法运行到这里        */
-    }
+    return  (iRet);
 }
 /*********************************************************************************************************
 ** 函数名称: API_ModuleTimes

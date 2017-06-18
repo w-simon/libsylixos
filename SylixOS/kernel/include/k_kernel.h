@@ -49,8 +49,8 @@
 
 #define __SYLIXOS_MAKEVER(a, b, c)      (((a) << 16) + ((b) << 8) + (c))
 #define __SYLIXOS_VERSION               __SYLIXOS_MAKEVER(1, 4, 3)
-#define __SYLIXOS_VERPATCH              0x5
-#define __SYLIXOS_VERSTR                "1.4.3 (5)"
+#define __SYLIXOS_VERPATCH              0x6
+#define __SYLIXOS_VERSTR                "1.4.3 (6)"
 #define __SYLIXOS_RELSTR                "LongYuan"
 
 #define __SYLIXOS_VERINFO               "SylixOS kernel version: "  \

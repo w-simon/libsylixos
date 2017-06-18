@@ -319,17 +319,12 @@ static INT  __execShell (PVOID  pvArg)
                       (CPCHAR *)psarg->SA_pcParamList,
                       (CPCHAR *)psarg->SA_pcpcEvn);                     /*  此线程将变成进程内主线程    */
     if (iError) {
-        return  (iError);                                               /*  应用程序装载执行失败        */
+        iRet = iError;                                                  /*  加载失败                    */
     }
     
     vprocExit(psarg->SA_pvproc, API_ThreadIdSelf(), iRet);              /*  进程退出, 本线程就是主线程  */
     
-    if (iError) {
-        return  (iError);
-    
-    } else {
-        return  (iRet);                                                 /*  理论上无法运行到这里        */
-    }
+    return  (iRet);
 }
 /*********************************************************************************************************
 ** 函数名称: __processShell
@@ -370,17 +365,12 @@ static INT  __processShell (PVOID  pvArg)
                       (CPCHAR *)psarg->SA_pcParamList,
                       (CPCHAR *)psarg->SA_pcpcEvn);                     /*  此线程将变成进程内主线程    */
     if (iError) {
-        return  (iError);                                               /*  应用程序装载执行失败        */
+        iRet = iError;                                                  /*  加载失败                    */
     }
-                      
+    
     vprocExit(psarg->SA_pvproc, API_ThreadIdSelf(), iRet);              /*  进程退出, 本线程就是主线程  */
     
-    if (iError) {
-        return  (iError);
-    
-    } else {
-        return  (iRet);                                                 /*  理论上无法运行到这里        */
-    }
+    return  (iRet);
 }
 /*********************************************************************************************************
 ** 函数名称: __processStart
