@@ -450,8 +450,7 @@ static PVOID  __vmmMmapNew (size_t  stLen, INT  iFlags, ULONG  ulFlag, int  iFd,
         iError = API_IosMmap(iFd, &dmap);                               /*  尝试调用设备驱动            */
         if (iError < ERROR_NONE) {
             if (errno == ERROR_IOS_DRIVER_NOT_SUP) {
-                if (S_ISCHR(stat64Fd.st_mode)  ||
-                    S_ISFIFO(stat64Fd.st_mode) || 
+                if (S_ISFIFO(stat64Fd.st_mode) || 
                     S_ISSOCK(stat64Fd.st_mode)) {                       /*  不支持 MMAP 的 FIFO 与设备  */
                     iErrLevel = 2;
                     goto    __error_handle;
