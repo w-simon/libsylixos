@@ -93,6 +93,10 @@ static LW_INLINE void *VP_MEM_ALLOC (PLW_CLASS_HEAP  pheap, size_t nbytes)
     ret = tlsf_malloc((tlsf_t)TLSF_HANDLE(pheap), nbytes);
     TLSF_UNLOCK();
     
+    if (ret) {
+        _HeapTraceAlloc(pheap, ret, nbytes, "mem alloc");
+    }
+
     return  (ret);
 }
 
@@ -107,6 +111,10 @@ static LW_INLINE void *VP_MEM_ALLOC_ALIGN (PLW_CLASS_HEAP pheap, size_t nbytes, 
     ret = tlsf_memalign((tlsf_t)TLSF_HANDLE(pheap), align, nbytes);
     TLSF_UNLOCK();
     
+    if (ret) {
+        _HeapTraceAlloc(pheap, ret, nbytes, "mem align");
+    }
+
     return  (ret);
 }
 
@@ -122,6 +130,15 @@ static LW_INLINE void *VP_MEM_REALLOC (PLW_CLASS_HEAP pheap, void *ptr, size_t n
     ret = tlsf_realloc((tlsf_t)TLSF_HANDLE(pheap), ptr, new_size);
     TLSF_UNLOCK();
     
+    if (ptr) {
+        if (ptr != ret) {
+            _HeapTraceFree(pheap, ptr);
+            _HeapTraceAlloc(pheap, ret, new_size, "mem realloc");
+        }
+    } else {
+        _HeapTraceAlloc(pheap, ret, new_size, "mem realloc");
+    }
+
     return  (ret);
 }
 
@@ -130,6 +147,7 @@ static LW_INLINE void *VP_MEM_REALLOC (PLW_CLASS_HEAP pheap, void *ptr, size_t n
  */
 #define VP_MEM_FREE(pheap, ptr, do_check)   \
         do {    \
+            _HeapTraceFree(pheap, ptr); \
             TLSF_LOCK();  \
             tlsf_free((tlsf_t)TLSF_HANDLE(pheap), ptr);  \
             TLSF_UNLOCK();  \

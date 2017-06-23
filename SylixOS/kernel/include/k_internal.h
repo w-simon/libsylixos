@@ -627,6 +627,9 @@ VOID           _PartitionFree(PLW_CLASS_PARTITION  p_part, PVOID  pvFree);
   ¶ÑÄÚ²¿²Ù×÷
 *********************************************************************************************************/
 
+VOID           _HeapTraceAlloc(PLW_CLASS_HEAP  pheap, PVOID  pvMem, size_t  stByteSize, CPCHAR  cpcPurpose);
+VOID           _HeapTraceFree(PLW_CLASS_HEAP  pheap, PVOID  pvMem);
+
 PLW_CLASS_HEAP _HeapCtor(PLW_CLASS_HEAP    pheapToBuild,
                          PVOID             pvStartAddress, 
                          size_t            stByteSize);

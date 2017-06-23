@@ -396,12 +396,20 @@ INT  vprocDetach (pid_t  pid)
 LW_LD_VPROC *vprocCreate (CPCHAR  pcFile)
 {
     static UINT  uiIndex = 0;
+           CHAR  cVarValue[2];
            
            INT   i;
+           INT   iExitMode = LW_VPROC_EXIT_NORMAL;                      /*  正常模式退出                */
            INT   iErrLevel = 0;
            
     LW_LD_VPROC *pvproc;
     LW_LD_VPROC *pvprocFather = __LW_VP_GET_CUR_PROC();
+    
+    if (API_TShellVarGetRt("VPROC_EXIT_FORCE", cVarValue, 2) > 0) {
+        if (cVarValue[0] == '1') {
+            iExitMode = LW_VPROC_EXIT_FORCE;                            /*  主线程结束自动删除子线程    */
+        }
+    }
     
     pvproc = (LW_LD_VPROC *)LW_LD_SAFEMALLOC(sizeof(LW_LD_VPROC));
     if (LW_NULL == pvproc) {
@@ -489,7 +497,7 @@ LW_LD_VPROC *vprocCreate (CPCHAR  pcFile)
         pvproc->VP_pidGroup = pvproc->VP_pid;                           /*  与 pid 相同                 */
     }
     
-    pvproc->VP_iExitMode = LW_VPROC_EXIT_NORMAL;                        /*  正常模式退出                */
+    pvproc->VP_iExitMode = iExitMode;
     pvproc->VP_i64Tick   = -1ull;
     
     _List_Line_Add_Tail(&pvproc->VP_lineManage, 

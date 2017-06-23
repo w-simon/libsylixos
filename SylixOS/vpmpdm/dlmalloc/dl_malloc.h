@@ -38,22 +38,58 @@ void  dlmalloc_init(PLW_CLASS_HEAP  pheap, void  *mem, size_t  size);
 /*
  * allocate memory
  */
-#define VP_MEM_ALLOC(pheap, nbytes) dlmalloc(nbytes)
+static LW_INLINE void *VP_MEM_ALLOC (PLW_CLASS_HEAP  pheap, size_t nbytes)
+{
+    REGISTER void *ret = dlmalloc(nbytes);
+
+    if (ret) {
+        _HeapTraceAlloc(pheap, ret, nbytes, "mem alloc");
+    }
+
+    return  (ret);
+}
 
 /*
  * allocate memory align
  */
-#define VP_MEM_ALLOC_ALIGN(pheap, nbytes, align) dlmemalign(align, nbytes)
+static LW_INLINE void *VP_MEM_ALLOC_ALIGN (PLW_CLASS_HEAP pheap, size_t nbytes, size_t align)
+{
+    REGISTER void *ret = dlmemalign(align, nbytes);
+
+    if (ret) {
+        _HeapTraceAlloc(pheap, ret, nbytes, "mem align");
+    }
+
+    return  (ret);
+}
 
 /*
  * re-allocate memory
  */
-#define VP_MEM_REALLOC(pheap, ptr, new_size, do_check) dlrealloc(ptr, new_size)
+static LW_INLINE void *VP_MEM_REALLOC (PLW_CLASS_HEAP pheap, void *ptr, size_t new_size, int do_check)
+{
+    REGISTER void *ret = dlrealloc(ptr, new_size);
+
+    if (ptr) {
+        if (ptr != ret) {
+            _HeapTraceFree(pheap, ptr);
+            _HeapTraceAlloc(pheap, ret, new_size, "mem realloc");
+        }
+    } else {
+        _HeapTraceAlloc(pheap, ret, new_size, "mem realloc");
+    }
+
+    return  (ret);
+}
 
 /*
  * free memory
  */
-#define VP_MEM_FREE(pheap, ptr, do_check) dlfree(ptr)
+#define VP_MEM_FREE(pheap, ptr, do_check)   \
+        do {    \
+            _HeapTraceFree(pheap, ptr); \
+            dlfree(ptr);    \
+        } while (0)
 
 #endif /* __DL_MALLOC_H */
 

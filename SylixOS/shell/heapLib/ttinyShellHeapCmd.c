@@ -93,12 +93,20 @@ static VOID  __heapAllocPrint (PLW_CLASS_HEAP  pheap,
 {
     __PHEAP_TRACE_NODE      phtn;
     
+    if (!pvAddr) {
+        return;
+    }
+    
     if (_G_pidTraceProcess == 0) {                                      /*  仅跟踪内核内存              */
         if ((pheap != _K_pheapKernel) && (pheap != _K_pheapSystem)) {
             return;
         }
+    
     } else if (_G_pidTraceProcess > 0) {                                /*  进跟踪指定进程              */
         if (_G_pidTraceProcess != __PROC_GET_PID_CUR()) {
+            return;
+        }
+        if ((pheap == _K_pheapKernel) || (pheap == _K_pheapSystem)) {   /*  不跟踪                      */
             return;
         }
     }
@@ -135,6 +143,10 @@ static VOID  __heapFreePrint (PLW_CLASS_HEAP  pheap, PVOID  pvAddr)
     PLW_LIST_LINE           plineTemp;
     __PHEAP_TRACE_NODE      phtn   = LW_NULL;
     REGISTER PCHAR          pcAddr = (PCHAR)pvAddr;
+    
+    if (!pvAddr) {
+        return;
+    }
     
     __HEAP_TRACE_LOCK();
     for (plineTemp  = _G_plineHeapTraceHeader;

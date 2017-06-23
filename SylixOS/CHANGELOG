@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2017-06-23: han.hui
+    内存泄漏跟踪工具增加对 tlsf, dlmalloc 内存管理算法的跟踪.
+
     2017-06-09: han.hui
     加入对 ARM Cortex M 系列处理器支持.
 

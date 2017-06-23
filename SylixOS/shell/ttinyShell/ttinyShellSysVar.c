@@ -115,6 +115,13 @@ VOID  __tshellSysVarInit (VOID)
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
     
     /*
+     *  进程默认控制
+     */
+#if LW_CFG_MODULELOADER_EN > 0
+    API_TShellExec("VPROC_EXIT_FORCE=0");                               /*  1: 主线程退出自动删除子线程 */
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
+    
+    /*
      *  LUA 环境
      */
     API_TShellExec("LUA_PATH=?.lua;/usr/local/lib/lua/?.lua;/usr/lib/lua/?.lua;/lib/lua/?.lua");
