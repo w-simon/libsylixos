@@ -307,7 +307,7 @@ void aodv_mcast_rrep_process (struct pbuf *p,
   struct aodv_mrtnode *mrt;
   struct aodv_mrtorig *orig;
   
-  /* aodv_rrep_process has already check argments */
+  /* aodv_rrep_process has already check arguments */
   rrep = (struct aodv_rrep *)p->payload;
   
   /* Convert to correct byte order on affeected fields: */
@@ -395,7 +395,7 @@ void aodv_mcast_rreq_process (struct pbuf *p,
   
   struct in_addr rreq_dest, rreq_orig;
   
-  /* aodv_rrep_process has already check argments */
+  /* aodv_rrep_process has already check arguments */
   rreq = (struct aodv_rreq *)p->payload;
   
   rreq_dest.s_addr = rreq->dest_addr;

@@ -513,7 +513,7 @@ static VOID  __netIfSet (struct netif  *netif, CPCHAR  pcItem, ip4_addr_t *ipadd
         netifapi_netif_set_addr(netif, &ipaddrInet, &ipaddrMask, ipaddr);
     
     } else {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
     }
 }
 /*********************************************************************************************************
@@ -555,7 +555,7 @@ static INT  __tshellIfconfig (INT  iArgC, PCHAR  *ppcArgV)
             INT     iDnsIndex = 0;
             sscanf(ppcArgV[2], "%d", &iDnsIndex);
             if (iDnsIndex >= DNS_MAX_SERVERS) {
-                fprintf(stderr, "argments error!\n");
+                fprintf(stderr, "arguments error!\n");
                 return  (-ERROR_TSHELL_EPARAM);
             }
             if (inet_aton(ppcArgV[3], &inaddr) == 0) {                  /*  获得 IP 地址                */
@@ -606,7 +606,7 @@ static INT  __tshellIfUp (INT  iArgC, PCHAR  *ppcArgV)
     BOOL          bShutDownDHCP = LW_FALSE;                             /*  是否强制关闭 DHCP           */
 
     if (iArgC < 2) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     } else if (iArgC > 2) {
         if (lib_strcmp(ppcArgV[2], "-dhcp") == 0) {
@@ -673,7 +673,7 @@ static INT  __tshellIfDown (INT  iArgC, PCHAR  *ppcArgV)
     struct netif *netif;
 
     if (iArgC != 2) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
 
@@ -727,7 +727,7 @@ static INT  __tshellIfRouter (INT  iArgC, PCHAR  *ppcArgV)
 static INT  __tshellArp (INT  iArgC, PCHAR  *ppcArgV)
 {
     if (iArgC < 2) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     
@@ -761,7 +761,7 @@ static INT  __tshellArp (INT  iArgC, PCHAR  *ppcArgV)
         err_t           err;
         
         if (iArgC != 4) {
-            fprintf(stderr, "argments error!\n");
+            fprintf(stderr, "arguments error!\n");
             return  (-ERROR_TSHELL_EPARAM);
         }
         
@@ -819,7 +819,7 @@ static INT  __tshellArp (INT  iArgC, PCHAR  *ppcArgV)
         return  (err ? PX_ERROR : ERROR_NONE);
     
     } else {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
 }
@@ -875,7 +875,7 @@ static INT  __tshellLoginBl (INT  iArgC, PCHAR  *ppcArgV)
     }
     
 __error:
-    fprintf(stderr, "argments error!\n");
+    fprintf(stderr, "arguments error!\n");
     return  (-ERROR_TSHELL_EPARAM);
 }
 /*********************************************************************************************************
@@ -928,7 +928,7 @@ static INT  __tshellLoginWl (INT  iArgC, PCHAR  *ppcArgV)
     }
     
 __error:
-    fprintf(stderr, "argments error!\n");
+    fprintf(stderr, "arguments error!\n");
     return  (-ERROR_TSHELL_EPARAM);
 }
 
@@ -952,7 +952,7 @@ VOID  __tshellNetInit (VOID)
     API_TShellKeywordAdd("ifconfig", __tshellIfconfig);
     API_TShellFormatAdd("ifconfig",  " [netifname] [{inet | netmask | gateway}] [address]");
     API_TShellHelpAdd("ifconfig",    "show or set net interface parameter.\n"
-                                     "if there are no argments, it will show all interface parameter\n"
+                                     "if there are no arguments, it will show all interface parameter\n"
                                      "set interface like following:\n"
                                      "ifconfig en1 inet    192.168.0.3\n"
                                      "ifconfig en1 netmask 255.255.255.0\n"

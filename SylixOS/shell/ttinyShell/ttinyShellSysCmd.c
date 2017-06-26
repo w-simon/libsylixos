@@ -2607,8 +2607,8 @@ VOID  __tshellSysCmdInit (VOID)
 
 #if LW_CFG_THREAD_RESTART_EN > 0
     API_TShellKeywordAdd("restart", __tshellSysCmdRestart);
-    API_TShellFormatAdd("restart", " tid argment");
-    API_TShellHelpAdd("restart", "restart a thread with specify argment.\n"
+    API_TShellFormatAdd("restart", " tid argument");
+    API_TShellHelpAdd("restart", "restart a thread with specify argument.\n"
                                  "notice : tid is HEX.\n");
 #endif                                                                  /*  LW_CFG_THREAD_RESTART_EN    */
 

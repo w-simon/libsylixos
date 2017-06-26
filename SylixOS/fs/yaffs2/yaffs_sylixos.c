@@ -201,7 +201,7 @@ static INT  __tshellYaffsCmd (INT  iArgC, PCHAR  ppcArgV[])
     struct yaffs_dev    *pyaffsDev;
     
     if (iArgC < 3) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     
@@ -295,7 +295,7 @@ static INT  __tshellYaffsCmd (INT  iArgC, PCHAR  ppcArgV[])
         
         if (iArgC < 4) {
             __YAFFS_OPUNLOCK();
-            fprintf(stderr, "argments error!\n");
+            fprintf(stderr, "arguments error!\n");
             return  (-ERROR_TSHELL_EPARAM);
         }
         

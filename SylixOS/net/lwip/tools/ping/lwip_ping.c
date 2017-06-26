@@ -337,7 +337,7 @@ static INT  __tshellPing (INT  iArgC, PCHAR  *ppcArgV)
            INT      iTTL      = 255;
 
     if (iArgC <= 1) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     
@@ -374,7 +374,7 @@ static INT  __tshellPing (INT  iArgC, PCHAR  *ppcArgV)
                 }
                 
             } else {
-                fprintf(stderr, "argments error!\n");                   /*  参数错误                    */
+                fprintf(stderr, "arguments error!\n");                   /*  参数错误                    */
                 return  (-ERROR_TSHELL_EPARAM);
             }
         }

@@ -1219,7 +1219,7 @@ static INT  __tshellTftp (INT  iArgC, PCHAR  *ppcArgV)
     PCHAR   pcRemoteFile;
 
     if ((iArgC != 6) && (iArgC != 5)) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     if (lib_strcmp(ppcArgV[1], "-i")) {
@@ -1246,7 +1246,7 @@ static INT  __tshellTftp (INT  iArgC, PCHAR  *ppcArgV)
         printf("sending file...\n");
         iError = API_INetTftpSend(ppcArgV[2], pcRemoteFile, pcLocalFile);
     } else {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
 

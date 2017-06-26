@@ -383,7 +383,7 @@ static INT  __tshellHostTable (INT  iArgC, PCHAR  *ppcArgV)
         return  (API_INetHostTableDelItem(ppcArgV[2]));                 /*  删除条目                    */
         
     } else {
-        fprintf(stderr, "argments error!\n");                           /*  参数错误                    */
+        fprintf(stderr, "arguments error!\n");                           /*  参数错误                    */
         return  (-ERROR_TSHELL_EPARAM);
     }
 }

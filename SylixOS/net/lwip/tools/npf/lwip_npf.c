@@ -1105,7 +1105,7 @@ static INT  __tshellNetNpfRuleAdd (INT  iArgC, PCHAR  *ppcArgV)
     PVOID    pvRule;
 
     if (iArgC < 4) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
 
@@ -1116,7 +1116,7 @@ static INT  __tshellNetNpfRuleAdd (INT  iArgC, PCHAR  *ppcArgV)
 
         if (sscanf(ppcArgV[__NPF_TSHELL_RADD_ARG_MAC], "%x:%x:%x:%x:%x:%x",
                    &iMac[0], &iMac[1], &iMac[2], &iMac[3], &iMac[4], &iMac[5]) != 6) {
-            fprintf(stderr, "mac argment error!\n");
+            fprintf(stderr, "mac argument error!\n");
             return  (-ERROR_TSHELL_EPARAM);
         }
         for (i = 0; i < ETHARP_HWADDR_LEN; i++) {
@@ -1132,7 +1132,7 @@ static INT  __tshellNetNpfRuleAdd (INT  iArgC, PCHAR  *ppcArgV)
 
     } else if (lib_strcmp(ppcArgV[__NPF_TSHELL_RADD_ARG_RULE], "ip") == 0) {
         if (iArgC != 5) {
-            fprintf(stderr, "argments error!\n");
+            fprintf(stderr, "arguments error!\n");
             return  (-ERROR_TSHELL_EPARAM);
         }
         pvRule = API_INetNpfRuleAdd(ppcArgV[__NPF_TSHELL_RADD_ARG_NETIF],
@@ -1150,15 +1150,15 @@ static INT  __tshellNetNpfRuleAdd (INT  iArgC, PCHAR  *ppcArgV)
         INT     iPortE = -1;
 
         if (iArgC != 7) {
-            fprintf(stderr, "argments error!\n");
+            fprintf(stderr, "arguments error!\n");
             return  (-ERROR_TSHELL_EPARAM);
         }
         if (sscanf(ppcArgV[__NPF_TSHELL_RADD_ARG_PORTS], "%i", &iPortS) != 1) {
-            fprintf(stderr, "port argment error!\n");
+            fprintf(stderr, "port argument error!\n");
             return  (-ERROR_TSHELL_EPARAM);
         }
         if (sscanf(ppcArgV[__NPF_TSHELL_RADD_ARG_PORTE], "%i", &iPortE) != 1) {
-            fprintf(stderr, "port argment error!\n");
+            fprintf(stderr, "port argument error!\n");
             return  (-ERROR_TSHELL_EPARAM);
         }
         
@@ -1179,15 +1179,15 @@ static INT  __tshellNetNpfRuleAdd (INT  iArgC, PCHAR  *ppcArgV)
         INT     iPortE = -1;
 
         if (iArgC != 7) {
-            fprintf(stderr, "argments error!\n");
+            fprintf(stderr, "arguments error!\n");
             return  (-ERROR_TSHELL_EPARAM);
         }
         if (sscanf(ppcArgV[__NPF_TSHELL_RADD_ARG_PORTS], "%i", &iPortS) != 1) {
-            fprintf(stderr, "port argment error!\n");
+            fprintf(stderr, "port argument error!\n");
             return  (-ERROR_TSHELL_EPARAM);
         }
         if (sscanf(ppcArgV[__NPF_TSHELL_RADD_ARG_PORTE], "%i", &iPortE) != 1) {
-            fprintf(stderr, "port argment error!\n");
+            fprintf(stderr, "port argument error!\n");
             return  (-ERROR_TSHELL_EPARAM);
         }
         
@@ -1204,7 +1204,7 @@ static INT  __tshellNetNpfRuleAdd (INT  iArgC, PCHAR  *ppcArgV)
         }
 
     } else {
-        fprintf(stderr, "rule type argment error!\n");
+        fprintf(stderr, "rule type argument error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
 
@@ -1226,19 +1226,19 @@ static INT  __tshellNetNpfRuleDel (INT  iArgC, PCHAR  *ppcArgV)
     INT     iSeqNum = -1;
 
     if (iArgC != 3) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
 
     if (sscanf(ppcArgV[2], "%i", &iSeqNum) != 1) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
 
     iError = API_INetNpfRuleDel(ppcArgV[1], LW_NULL, iSeqNum);
     if (iError) {
         if (errno == EINVAL) {
-            fprintf(stderr, "argments error!\n");
+            fprintf(stderr, "arguments error!\n");
         } else {
             fprintf(stderr, "can not delete rule, error: %s\n", lib_strerror(errno));
         }
@@ -1262,7 +1262,7 @@ static INT  __tshellNetNpfAttach (INT  iArgC, PCHAR  *ppcArgV)
     INT     iError;
 
     if (iArgC != 2) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
 
@@ -1295,7 +1295,7 @@ static INT  __tshellNetNpfDetach (INT  iArgC, PCHAR  *ppcArgV)
     INT     iError;
 
     if (iArgC != 2) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
 

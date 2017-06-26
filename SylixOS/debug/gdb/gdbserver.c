@@ -2686,7 +2686,7 @@ LW_API
 VOID  API_GdbInit (VOID)
 {
     API_TShellKeywordAddEx("debug", gdbMain, LW_OPTION_KEYWORD_SYNCBG);
-    API_TShellFormatAdd("debug", " [connect options] [program] [argments...]");
+    API_TShellFormatAdd("debug", " [connect options] [program] [arguments...]");
     API_TShellHelpAdd("debug",   "GDB Server (On serial: \"115200,n,8,1\")\n"
                                  "eg. debug localhost:1234 helloworld\n"
                                  "    debug /dev/ttyS1 helloworld\n"

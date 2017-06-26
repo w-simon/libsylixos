@@ -696,7 +696,7 @@ static INT  __tshellPciCmdDevParent (INT  iArgC, PCHAR  ppcArgV[])
     }
 
 __error_handle:
-    fprintf(stderr, "argments error!\n");
+    fprintf(stderr, "arguments error!\n");
     return  (-ERROR_TSHELL_EPARAM);
 }
 /*********************************************************************************************************
@@ -905,7 +905,7 @@ static INT  __tshellPciCmdDev (INT  iArgC, PCHAR  ppcArgV[])
     return  (ERROR_NONE);
 
 __error_handle:
-    fprintf(stderr, "argments error!\n");
+    fprintf(stderr, "arguments error!\n");
     return  (-ERROR_TSHELL_EPARAM);
 }
 /*********************************************************************************************************

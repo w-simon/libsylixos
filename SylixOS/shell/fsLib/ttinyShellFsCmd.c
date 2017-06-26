@@ -102,7 +102,7 @@ static INT  __tshellFsCmdCd (INT  iArgC, PCHAR  ppcArgV[])
              CHAR   cPath[MAX_FILENAME_LENGTH];
 
     if (iArgC > 2) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     
@@ -162,7 +162,7 @@ static INT  __tshellFsCmdCh (INT  iArgC, PCHAR  ppcArgV[])
     REGISTER INT    iError;
 
     if (iArgC != 2) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     
@@ -230,7 +230,7 @@ static INT  __tshellFsCmdMkdir (INT  iArgC, PCHAR  ppcArgV[])
     REGISTER INT    iError;
     
     if (iArgC != 2) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     
@@ -259,7 +259,7 @@ static INT  __tshellFsCmdMkfifo (INT  iArgC, PCHAR  ppcArgV[])
     REGISTER INT    iError;
     
     if (iArgC != 2) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     
@@ -288,7 +288,7 @@ static INT  __tshellFsCmdRmdir (INT  iArgC, PCHAR  ppcArgV[])
     REGISTER INT    iError;
     
     if (iArgC != 2) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     
@@ -317,7 +317,7 @@ static INT  __tshellFsCmdRm (INT  iArgC, PCHAR  ppcArgV[])
     REGISTER INT    iError;
     
     if (iArgC != 2) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     
@@ -348,7 +348,7 @@ static INT  __tshellFsCmdMv (INT  iArgC, PCHAR  ppcArgV[])
              CHAR   cTemp[16];
     
     if (iArgC != 3) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     
@@ -408,7 +408,7 @@ static INT  __tshellFsCmdCat (INT  iArgC, PCHAR  ppcArgV[])
              struct stat    statFile;
              
     if (iArgC != 2) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     
@@ -1344,7 +1344,7 @@ static INT  __tshellFsCmdDsize (INT  iArgC, PCHAR  ppcArgV[])
     CHAR        cDirName[MAX_FILENAME_LENGTH];
     
     if (iArgC < 2) {
-        fprintf(stderr, "df argments error, (dsize directory)\n");
+        fprintf(stderr, "df arguments error, (dsize directory)\n");
         return  (-1);
     }
     
@@ -1424,7 +1424,7 @@ static INT  __tshellFsCmdDf (INT  iArgC, PCHAR  ppcArgV[])
            PCHAR        pcRo = "n";
 
     if (iArgC != 2) {
-        fprintf(stderr, "df argments error, (df volname)\n");
+        fprintf(stderr, "df arguments error, (df volname)\n");
         return  (-1);
     }
     
@@ -1526,7 +1526,7 @@ static INT  __tshellFsCmdChmod (INT  iArgC, PCHAR  ppcArgV[])
              INT        iNewMode = DEFAULT_FILE_PERM;
 
     if (iArgC != 3) {
-        fprintf(stderr, "chmod argments error, (chmod newmode filename)\n");
+        fprintf(stderr, "chmod arguments error, (chmod newmode filename)\n");
         return  (-1);
     }
     
@@ -1626,7 +1626,7 @@ static INT  __tshellFsCmdMkfs (INT  iArgC, PCHAR  ppcArgV[])
     REGISTER INT    iError;
     
     if (iArgC != 2) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     
@@ -1660,7 +1660,7 @@ static INT  __tshellFsCmdShfile (INT  iArgC, PCHAR  ppcArgV[])
     PCHAR  pcCmdBuffer = LW_NULL;                                       /*  ÃüÁî»º³å                    */
     
     if (iArgC != 2) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     
@@ -1762,7 +1762,7 @@ static INT  __tshellFsCmdMount (INT  iArgC, PCHAR  ppcArgV[])
 static INT  __tshellFsCmdUmount (INT  iArgC, PCHAR  ppcArgV[])
 {
     if (iArgC != 2) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     if (API_Unmount(ppcArgV[1]) == ERROR_NONE) {
@@ -1789,7 +1789,7 @@ static INT  __tshellFsCmdRemount (INT  iArgC, PCHAR  ppcArgV[])
     PLW_OEMDISK_CB  poemd = LW_NULL;
 
     if (iArgC != 2) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     
@@ -1855,7 +1855,7 @@ static INT  __tshellFsCmdLn (INT  iArgC, PCHAR  ppcArgV[])
 {
     if (iArgC == 3) {
         if (ppcArgV[1][0] == '-') {
-            fprintf(stderr, "argments error!\n");
+            fprintf(stderr, "arguments error!\n");
             return  (-ERROR_TSHELL_EPARAM);
         }
         if (symlink(ppcArgV[1], ppcArgV[2]) != ERROR_NONE) {
@@ -1863,7 +1863,7 @@ static INT  __tshellFsCmdLn (INT  iArgC, PCHAR  ppcArgV[])
         }
     } else if (iArgC == 4) {
         if (ppcArgV[1][0] != '-') {
-            fprintf(stderr, "argments error!\n");
+            fprintf(stderr, "arguments error!\n");
             return  (-ERROR_TSHELL_EPARAM);
         }
         if (!lib_strchr(ppcArgV[1], 's')) {
@@ -1884,7 +1884,7 @@ static INT  __tshellFsCmdLn (INT  iArgC, PCHAR  ppcArgV[])
             }
         }
     } else {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     
@@ -1908,7 +1908,7 @@ static INT  __tshellFsCmdDosfslabel (INT  iArgC, PCHAR  ppcArgV[])
     CHAR cLabel[MAX_FILENAME_LENGTH];
     
     if (iArgC < 2) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
 
@@ -2122,7 +2122,7 @@ __input_type:
 static INT  __tshellFsCmdMkGrub (INT  iArgC, PCHAR  ppcArgV[])
 {
     if (iArgC < 2) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     

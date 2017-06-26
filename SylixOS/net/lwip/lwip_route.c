@@ -1219,7 +1219,7 @@ INT  __tshellRoute (INT  iArgC, PCHAR  *ppcArgV)
     }
     
 __error_handle:
-    fprintf(stderr, "argments error!\n");
+    fprintf(stderr, "arguments error!\n");
     return  (-ERROR_TSHELL_EPARAM);
 }
 /*********************************************************************************************************

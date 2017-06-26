@@ -360,7 +360,7 @@ static INT  __tshellFsCmdUntar (INT  iArgC, PCHAR  ppcArgV[])
     PCHAR       pcDest = LW_NULL;
 
     if (iArgC < 2) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     

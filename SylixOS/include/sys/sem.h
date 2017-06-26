@@ -94,7 +94,7 @@ struct sembuf {
 #define MAX_SOPS        5                               /* maximum # of sembuf's per semop call         */
 
 /*********************************************************************************************************
- Union used as the fourth argment to semctl() in all cases.  Specific
+ Union used as the fourth argument to semctl() in all cases.  Specific
  member values are used for different values of the third parameter:
  
  Command                                        Member

@@ -195,7 +195,7 @@ CLIENT *clntudp_bufcreate(struct sockaddr_in *raddr,
 	cu->cu_sock = *sockp;
 	cl->cl_auth = authnone_create();
 	
-	/* sylixos fix this bug new socket must set timeout argments 2012.03.10 */
+	/* sylixos fix this bug new socket must set timeout arguments 2012.03.10 */
     clnt_control(cl, CLSET_TIMEOUT, (char*)&wait);
 	return (cl);
 

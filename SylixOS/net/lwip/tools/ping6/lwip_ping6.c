@@ -463,7 +463,7 @@ static INT  __tshellPing6 (INT  iArgC, PCHAR  *ppcArgV)
            INT      iTimeout  = 3000;
 
     if (iArgC <= 1) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     
@@ -496,7 +496,7 @@ static INT  __tshellPing6 (INT  iArgC, PCHAR  *ppcArgV)
                 pcNetif = ppcArgV[i + 1];
                 
             } else {
-                fprintf(stderr, "argments error!\n");                   /*  参数错误                    */
+                fprintf(stderr, "arguments error!\n");                   /*  参数错误                    */
                 return  (-ERROR_TSHELL_EPARAM);
             }
         }

@@ -215,7 +215,7 @@ static INT  __tshellVlan (INT  iArgC, PCHAR  *ppcArgV)
     
     if (lib_strcmp(ppcArgV[1], "set") == 0) {
         if (iArgC != 4) {
-            fprintf(stderr, "argments error!\n");
+            fprintf(stderr, "arguments error!\n");
             return  (-ERROR_TSHELL_EPARAM);
         }
         
@@ -232,7 +232,7 @@ static INT  __tshellVlan (INT  iArgC, PCHAR  *ppcArgV)
         }
     } else if (lib_strcmp(ppcArgV[1], "clear") == 0) {
         if (iArgC != 3) {
-            fprintf(stderr, "argments error!\n");
+            fprintf(stderr, "arguments error!\n");
             return  (-ERROR_TSHELL_EPARAM);
         }
         
@@ -243,7 +243,7 @@ static INT  __tshellVlan (INT  iArgC, PCHAR  *ppcArgV)
             return  (PX_ERROR);
         }
     } else {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     

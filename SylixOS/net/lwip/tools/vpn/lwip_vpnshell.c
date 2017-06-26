@@ -80,7 +80,7 @@ INT  __tshellVpnOpen (INT  iArgC, PCHAR  *ppcArgV)
 
 
     if (iArgC != 2) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
 
@@ -235,7 +235,7 @@ __error_handle:
 INT  __tshellVpnClose (INT  iArgC, PCHAR  *ppcArgV)
 {
     if (iArgC != 2) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
 

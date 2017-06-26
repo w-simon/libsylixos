@@ -28,6 +28,7 @@
 2013.05.31  加入对 fd_node 类型文件的加锁操作, 不允许写, 不允许删除.
 2013.11.18  _IosFileDup() 加入一个参数, 可以控制最小文件描述符数值.
 2015.03.02  进程回收 I/O 资源时 socket 需要先复位连接.
+2013.01.06  _IosFileSet 不再处理 O_APPEND 选项.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -576,8 +577,6 @@ VOID  _IosFileSet (PLW_FD_ENTRY   pfdentry,
                    LONG           lValue,
                    INT            iFlag)
 {
-    PLW_FD_NODE  pfdnode;
-
     pfdentry->FDENTRY_pdevhdrHdr = pdevhdrHdr;
     pfdentry->FDENTRY_lValue     = lValue;
     pfdentry->FDENTRY_iFlag      = iFlag;
@@ -586,12 +585,6 @@ VOID  _IosFileSet (PLW_FD_ENTRY   pfdentry,
                   &pfdentry->FDENTRY_iType);                            /*  获得驱动程序的类型          */
     
     if (lValue != PX_ERROR) {                                           /*  正常打开                    */
-        if (iFlag & O_APPEND) {                                         /*  追加方式                    */
-            if (pfdentry->FDENTRY_iType == LW_DRV_TYPE_NEW_1) {
-                pfdnode = (PLW_FD_NODE)pfdentry->FDENTRY_pfdnode;
-                pfdentry->FDENTRY_oftPtr = pfdnode->FDNODE_oftSize;     /*  将文件指针放在文件结尾      */
-            }
-        }
         pfdentry->FDENTRY_iAbnormity = 0;                               /*  回归正常文件, 允许用户操作  */
     }
 }

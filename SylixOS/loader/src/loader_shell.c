@@ -189,7 +189,7 @@ static INT  __tshellWhich (INT  iArgC, PCHAR  *ppcArgV)
     CHAR    cFilePath[MAX_FILENAME_LENGTH];
 
     if (iArgC < 2) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     
@@ -365,7 +365,7 @@ static INT  __tshellExec (INT  iArgC, PCHAR  *ppcArgV)
     struct stat   statBuf;
     
     if (iArgC < 2) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     
@@ -420,7 +420,7 @@ static INT  __tshellDlConfig (INT  iArgC, PCHAR  *ppcArgV)
     BOOL    bShare;
 
     if (iArgC < 2) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     
@@ -433,7 +433,7 @@ static INT  __tshellDlConfig (INT  iArgC, PCHAR  *ppcArgV)
     
     } else if (lib_strcmp(ppcArgV[1], "share") == 0) {
         if (iArgC < 3) {
-            fprintf(stderr, "argments error!\n");
+            fprintf(stderr, "arguments error!\n");
             return  (-ERROR_TSHELL_EPARAM);
         }
         
@@ -448,7 +448,7 @@ static INT  __tshellDlConfig (INT  iArgC, PCHAR  *ppcArgV)
         return  (moduleShareConfig(bShare));
     
     } else {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
 }
@@ -466,7 +466,7 @@ static INT  __tshellModuleReg (INT  iArgC, PCHAR  *ppcArgV)
     PVOID   pvModule;
 
     if (iArgC < 2) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     
@@ -507,12 +507,12 @@ static INT  __tshellModuleUnreg (INT  iArgC, PCHAR  *ppcArgV)
     LW_LD_EXEC_MODULE  *pmodTemp;
 
     if (iArgC < 2) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     
     if (sscanf(ppcArgV[1], "%lx", &ulModule) != 1) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     
@@ -534,7 +534,7 @@ static INT  __tshellModuleUnreg (INT  iArgC, PCHAR  *ppcArgV)
 
     if ((pmod == LW_NULL) ||
         (pmod->EMOD_ulMagic != __LW_LD_EXEC_MODULE_MAGIC)) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     
@@ -568,7 +568,7 @@ static INT  __tshellInsModule (INT  iArgC, PCHAR  *ppcArgV)
     PVOID   pvModule;
 
     if (iArgC < 2) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     
@@ -597,7 +597,7 @@ static INT  __tshellInsModule (INT  iArgC, PCHAR  *ppcArgV)
         }
     
     } else {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
 }
@@ -623,7 +623,7 @@ static INT  __tshellRmModule (INT  iArgC, PCHAR  *ppcArgV)
     LW_LD_EXEC_MODULE  *pmodTemp;
 
     if (iArgC < 2) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
 
@@ -647,7 +647,7 @@ static INT  __tshellRmModule (INT  iArgC, PCHAR  *ppcArgV)
 
     if ((pmod == LW_NULL) ||
         (pmod->EMOD_ulMagic != __LW_LD_EXEC_MODULE_MAGIC)) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     
@@ -681,7 +681,7 @@ static INT  __tshellModulestat (INT  iArgC, PCHAR  *ppcArgV)
     struct stat  statGet;
 
     if (iArgC != 2) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     
@@ -1051,12 +1051,12 @@ static INT  __tshellModuleGcov (INT  iArgC, PCHAR  *ppcArgV)
     INT     iRet;
 
     if (iArgC < 2) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     
     if (sscanf(ppcArgV[1], "%lx", &ulModule) != 1) {
-        fprintf(stderr, "argments error!\n");
+        fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     
@@ -1081,7 +1081,7 @@ static VOID  __ldShellInit (VOID)
     API_TShellHelpAdd("which",   "find a program file real path.\n");
      
     API_TShellKeywordAddEx("exec", __tshellExec, LW_OPTION_KEYWORD_SYNCBG | LW_OPTION_KEYWORD_STK_MAIN);
-    API_TShellFormatAdd("exec", " [program file] [argments...]");
+    API_TShellFormatAdd("exec", " [program file] [arguments...]");
     API_TShellHelpAdd("exec",   "execute a program.\n");
     
     API_TShellKeywordAdd("dlconfig", __tshellDlConfig);
