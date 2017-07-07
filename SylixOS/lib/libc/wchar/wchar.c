@@ -282,10 +282,14 @@ size_t wcstombs(char *dst, const wchar_t *src, size_t len)
     return wcsrtombs(dst, &src, len, NULL);
 }
 
+#if LW_KERN_FLOATING > 0
+
 double wcstod(const wchar_t *nptr, wchar_t **endptr)
 {
     return strtod( (const char*)nptr, (char**)endptr );
 }
+
+#endif /* LW_KERN_FLOATING */
 
 long int wcstol(const wchar_t *nptr, wchar_t **endptr, int base)
 {
@@ -410,6 +414,8 @@ int vwscanf(const wchar_t *format, va_list arg)
     return -1;
 }
 
+#if LW_KERN_FLOATING > 0
+
 float
 wcstof(const wchar_t * __restrict nptr, wchar_t ** __restrict endptr)
 {
@@ -493,6 +499,8 @@ wcstold(const wchar_t * __restrict nptr, wchar_t ** __restrict endptr)
 
 	return (val);
 }
+
+#endif /* LW_KERN_FLOATING > 0 */
 
 long long
 wcstoll(const wchar_t * __restrict nptr, wchar_t ** __restrict endptr, int base)

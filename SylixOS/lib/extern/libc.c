@@ -56,12 +56,12 @@
 /*********************************************************************************************************
   float
 *********************************************************************************************************/
-#if LW_CFG_FIO_FLOATING_POINT_EN > 0
+#if LW_KERN_FLOATING > 0
 
 __LW_RETU_FUNC_DEFINE(int, isnan, (double  dX), (dX))
 __LW_RETU_FUNC_DEFINE(int, isinf, (double  dX), (dX))
 
-#endif                                                                  /*  LW_CFG_FIO_FLOATING_P...    */
+#endif                                                                  /*  LW_KERN_FLOATING            */
 /*********************************************************************************************************
   ctype
 *********************************************************************************************************/
@@ -150,8 +150,12 @@ __LW_VOID_FUNC_DEFINE(srandom, (uint_t uiSeed), (uiSeed))
 __LW_RETU_FUNC_DEFINE(long, random, (void), ())
 
 __LW_VOID_FUNC_DEFINE(lcong48, (unsigned short p[7]), (p))
+
+#if LW_KERN_FLOATING > 0
 __LW_RETU_FUNC_DEFINE(double, erand48, (unsigned short xseed[3]), (xseed))
 __LW_RETU_FUNC_DEFINE(double, drand48, (void), ())
+#endif
+
 __LW_RETU_FUNC_DEFINE(long, lrand48, (void), ())
 __LW_RETU_FUNC_DEFINE(long, mrand48, (void), ())
 __LW_RETU_FUNC_DEFINE(long, nrand48, (unsigned short xseed[3]), (xseed))
@@ -177,14 +181,12 @@ __LW_RETU_FUNC_DEFINE(long long, strtoll, (const char *nptr, char **endptr, int 
 __LW_RETU_FUNC_DEFINE(unsigned long long, strtoull, (const char *nptr, char **endptr, int base), \
                       (nptr, endptr, base))
 
-#if LW_CFG_FIO_FLOATING_POINT_EN > 0
-
+#if LW_KERN_FLOATING > 0
 __LW_RETU_FUNC_DEFINE(long double, strtold, (const char *nptr, char **endptr), (nptr, endptr))
 __LW_RETU_FUNC_DEFINE(double, strtod, (const char *nptr, char **endptr), (nptr, endptr))
 __LW_RETU_FUNC_DEFINE(float, strtof, (const char *nptr, char **endptr), (nptr, endptr))
 __LW_RETU_FUNC_DEFINE(double, atof, (const char *str), (str))
-
-#endif                                                                  /*  LW_CFG_FIO_FLOATING_...     */
+#endif                                                                  /*  LW_KERN_FLOATING            */
 
 __LW_RETU_FUNC_DEFINE(char *, itoa, (int value, char *string, int radix), (value, string, radix))
 __LW_RETU_FUNC_DEFINE(int, atoi, (const char *nptr), (nptr))
@@ -232,7 +234,9 @@ __LW_RETU_FUNC_DEFINE(struct tm *, localtime, (const time_t *time), (time))
 __LW_RETU_FUNC_DEFINE(time_t, mktime, (struct tm *ptm), (ptm))
 __LW_RETU_FUNC_DEFINE(time_t, timegm, (struct tm *ptm), (ptm))
 
+#if LW_KERN_FLOATING > 0
 __LW_RETU_FUNC_DEFINE(double, difftime, (time_t time1, time_t time2), (time1, time2))
+#endif
 
 __LW_RETU_FUNC_DEFINE(clock_t, clock, (void), ())
 __LW_RETU_FUNC_DEFINE(int, clock_getcpuclockid, (pid_t pid, clockid_t *clock_id), (pid, clock_id))

@@ -92,7 +92,7 @@
 /**************************** HANHUI ***************************/
 #include "SylixOS.h"
 
-#if LW_CFG_FIO_FLOATING_POINT_EN > 0
+#if LW_KERN_FLOATING > 0
 
 #include <math.h>
 #include "limits.h"
@@ -256,7 +256,7 @@ long double  lib_strtold (const char *nptr, char **endptr)
     return  (long double)lib_strtod(nptr, endptr);
 }
 
-#endif  /*  LW_CFG_FIO_FLOATING_POINT_EN > 0  */
+#endif  /*  LW_KERN_FLOATING > 0  */
 /*
  * END
  */

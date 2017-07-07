@@ -39,6 +39,7 @@ PCHAR        lib_asctime_r(const struct tm *tmp, PCHAR  pcBuffer);
 ** µ÷ÓÃÄ£¿é: 
 *********************************************************************************************************/
 #if LW_CFG_RTC_EN > 0
+
 PCHAR  lib_ctime_r (const time_t *time, PCHAR  pcBuffer)
 {
     struct tm  tmBuffer;

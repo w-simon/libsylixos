@@ -22,12 +22,9 @@
 #ifndef __LIB_FLOAT_H
 #define __LIB_FLOAT_H
 
-#if LW_CFG_FIO_FLOATING_POINT_EN > 0
-
 int  lib_isnan(double  dX);
 int  lib_isinf(double  dX);
 
-#endif                                                                  /*  LW_CFG_FIO_FLOATING_P...    */
 #endif                                                                  /*  __LIB_FLOAT_H               */
 /*********************************************************************************************************
   END

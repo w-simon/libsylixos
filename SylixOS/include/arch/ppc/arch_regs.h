@@ -156,12 +156,6 @@ typedef struct {
 #define ARCH_REG_CTX_WORD_SIZE  ((sizeof(ARCH_REG_CTX) + sizeof(ARCH_FP_CTX)) / sizeof(ARCH_REG_T))
 #define ARCH_STK_MIN_WORD_SIZE  128
 
-/*********************************************************************************************************
-  CPU ×Ö³¤
-*********************************************************************************************************/
-
-#define LW_CFG_CPU_WORD_LENGHT  32                                      /*  CPU ×Ö³¤                    */
-
 #endif
 
 #endif                                                                  /*  __PPC_ARCH_REGS_H           */

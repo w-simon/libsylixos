@@ -147,8 +147,7 @@ static INT  __tshellSysCmdSleep (INT  iArgC, PCHAR  ppcArgV[])
     PCHAR   pcUnit;
     INT     iUnit = SLEEP_UNIT_SEC;
     CHAR    cParam[64];
-    
-    double  dParam;
+    ULONG   ulParam;
     UINT    uiSec;
     
     if (iArgC < 2) {
@@ -187,24 +186,24 @@ static INT  __tshellSysCmdSleep (INT  iArgC, PCHAR  ppcArgV[])
     }
     
 __sleep:
-    dParam = lib_strtod(cParam, LW_NULL);
+    ulParam = lib_strtoul(cParam, LW_NULL, 10);
     switch (iUnit) {
     
     case SLEEP_UNIT_MIN:
-        uiSec = (UINT)(dParam * 60);
+        uiSec = (UINT)(ulParam * 60);
         break;
     
     case SLEEP_UNIT_HOUR:
-        uiSec = (UINT)(dParam * 3600);
+        uiSec = (UINT)(ulParam * 3600);
         break;
     
     case SLEEP_UNIT_DAY:
-        uiSec = (UINT)(dParam * 86400);
+        uiSec = (UINT)(ulParam * 86400);
         break;
     
     case SLEEP_UNIT_SEC:
     default:
-        uiSec = (UINT)dParam;
+        uiSec = (UINT)ulParam;
         break;
     }
 
@@ -2646,6 +2645,7 @@ VOID  __tshellSysCmdInit (VOID)
                                  "hwclock --hctosys : sync RTC to system clock.\n"
                                  "hwclock --systohc : sync system clock to RTC.\n");
 #endif                                                                  /*  LW_CFG_RTC_EN > 0           */
+
     API_TShellKeywordAdd("shstack", __tshellSysCmdShStack);
     API_TShellFormatAdd("shstack", " [new stack size]");
     API_TShellHelpAdd("shstack", "show or set sh stack size.\n");

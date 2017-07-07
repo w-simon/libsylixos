@@ -206,6 +206,8 @@ void lib_lcong48 (unsigned short p[7])
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if LW_KERN_FLOATING > 0
+
 double lib_erand48 (unsigned short xseed[3])
 {
 	__CPU_DOUBLE u;
@@ -236,6 +238,8 @@ double lib_drand48 (void)
 {
 	return  lib_erand48(__rand48_seed);
 }
+
+#endif                                                                  /*  LW_KERN_FLOATING            */
 /*********************************************************************************************************
 ** 函数名称: lib_lrand48
 ** 功能描述: 

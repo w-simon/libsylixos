@@ -548,9 +548,9 @@ static CHAR *__pciCapExpressLinkSpeed (INT  iSpeed)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static float __pciCapExpressPowerLimit (INT  iValue, INT  iScale)
+static UINT __pciCapExpressPowerLimit (INT  iValue, INT  iScale)
 {
-    static const float scales[4] = {1.0, 0.1, 0.01, 0.001};
+    static const UINT scales[4] = {1000, 100, 10, 1};
 
     return  (iValue * scales[iScale]);
 }
@@ -640,7 +640,7 @@ static VOID  __pciCapExpressSlot (INT iBus, INT iSlot, INT iFunc, INT iWhere)
            PCI_FLAG(t, PCI_EXP_SLTCAP_PWRI),
            PCI_FLAG(t, PCI_EXP_SLTCAP_HPC),
            PCI_FLAG(t, PCI_EXP_SLTCAP_HPS));
-    printf("\t\t\tSlot #%d, PowerLimit %.3fW; Interlock%c NoCompl%c\n",
+    printf("\t\t\tSlot #%d, PowerLimit %umW; Interlock%c NoCompl%c\n",
            t >> 19,
            __pciCapExpressPowerLimit((t & PCI_EXP_SLTCAP_PWR_VAL) >> 7,
                                      (t & PCI_EXP_SLTCAP_PWR_SCL) >> 15),
@@ -775,7 +775,7 @@ static VOID  __pciCapExpressDev (INT iBus, INT iSlot, INT iFunc, INT iWhere, INT
                PCI_FLAG(t, PCI_EXP_DEVCAP_FLRESET));
     }
     if (iType == PCI_EXP_TYPE_UPSTREAM) {
-        printf(" SlotPowerLimit %.3fW",
+        printf(" SlotPowerLimit %umW",
                __pciCapExpressPowerLimit((t & PCI_EXP_DEVCAP_PWR_VAL) >> 18,
                                          (t & PCI_EXP_DEVCAP_PWR_SCL) >> 26));
     }

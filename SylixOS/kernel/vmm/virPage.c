@@ -162,7 +162,7 @@ ULONG  __vmmVirtualCreate (LW_MMU_VIRTUAL_DESC   pvirdes[])
             _BugHandle((pvirdes[i].VIRD_ulVirAddr == (addr_t)LW_NULL), LW_TRUE,
                        "virtual APP area can not use NULL address, you can move offset page.\r\n");
                                                                         /*  目前不支持 NULL 起始地址    */
-            if (ulZone < LW_CFG_VMM_ZONE_NUM) {
+            if (ulZone < LW_CFG_VMM_VIR_NUM) {
                 _G_vmvirDescApp[ulZone] = pvirdes[i];
                 if (_G_ulVmmSwitchAddr == (addr_t)PX_ERROR) {
                     _G_ulVmmSwitchAddr =  pvirdes[i].VIRD_ulVirAddr;

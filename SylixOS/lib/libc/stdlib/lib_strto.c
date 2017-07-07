@@ -292,7 +292,7 @@ long long lib_atoll (const char *nptr)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-#if LW_CFG_FIO_FLOATING_POINT_EN > 0
+#if LW_KERN_FLOATING > 0
 
 double lib_atof (const char *str)
 {
@@ -312,7 +312,7 @@ float lib_strtof (const char *nptr, char **endptr)
     return  ((float)lib_strtod(nptr, endptr));
 }
 
-#endif                                                                  /*  LW_CFG_FIO_FLOATING_...     */
+#endif                                                                  /*  LW_KERN_FLOATING            */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

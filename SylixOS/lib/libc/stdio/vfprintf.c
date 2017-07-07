@@ -62,9 +62,9 @@
 #include "fvwrite.h"
 
 /* Define FLOATING_POINT to get floating point. */
-#if LW_CFG_FIO_FLOATING_POINT_EN > 0
+#if LW_KERN_FLOATING > 0
 #define	FLOATING_POINT
-#endif  /*  LW_CFG_FIO_FLOATING_POINT_EN > 0  */
+#endif  /*  LW_KERN_FLOATING > 0  */
 
 /*
  * Flush out all the vectors defined by the given uio,

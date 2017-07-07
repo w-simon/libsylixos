@@ -1186,9 +1186,9 @@ static const PCHAR __pciCapPcieLatencyL1 (INT iValue)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static float __pciCapPcieSlotPowerLimit (INT iValue)
+static UINT __pciCapPcieSlotPowerLimit (INT iValue)
 {
-    static const float cfPcieLimit[] = {1.0, 0.1, 0.01, 0.001};
+    static const UINT cfPcieLimit[] = {1000, 100, 10, 1};
 
     return  (cfPcieLimit[iValue]);
 }
@@ -1301,7 +1301,7 @@ static VOID  __pciCapPcieSlot (INT iBus, INT iSlot, INT iFunc, UINT  uiOffset)
     if (uiSlotCap & PCI_EXP_SLTCAP_HPS) {
         printf(" Hot-Plug Surprise");
     }
-    printf("\t\tSlot #%d, MAX Slot Power Limit (Watts) %f\n",
+    printf("\t\tSlot #%d, MAX Slot Power Limit (Milliwatts) %u\n",
            uiSlotCap >> 19,
            ((uiSlotCap & PCI_EXP_SLTCAP_PWR_VAL) >> 7) *
            __pciCapPcieSlotPowerLimit((uiSlotCap & PCI_EXP_SLTCAP_PWR_SCL) >> 15));
@@ -1439,7 +1439,7 @@ static VOID  __pciCapPcieDev (INT iBus, INT iSlot, INT iFunc, UINT  uiOffset, UI
     }
 
     if (uiType == PCI_EXP_TYPE_UPSTREAM) {
-        printf("\tSlot Power Limit (Watts) %f\n",
+        printf("\tSlot Power Limit (Milliwatts) %u\n",
                ((uiDevCap & PCI_EXP_DEVCAP_PWR_VAL) >> 18) *
                 __pciCapPcieSlotPowerLimit((uiDevCap & PCI_EXP_DEVCAP_PWR_SCL) >> 26));
     }

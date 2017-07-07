@@ -106,14 +106,10 @@ long long       lib_strtoll(const char *nptr, char **endptr, int base);
 unsigned 
 long long       lib_strtoull(const char *nptr, char **endptr, int base);
 
-#if LW_CFG_FIO_FLOATING_POINT_EN > 0
-
 long double     lib_strtold(const char *nptr, char **endptr);
 double          lib_strtod(const char *nptr, char **endptr);
 float           lib_strtof(const char *nptr, char **endptr);
 double          lib_atof(const char *str);
-
-#endif                                                                  /*  LW_CFG_FIO_FLOATING_...     */
 
 char           *lib_itoa(int value, char *string, int radix);
 int             lib_atoi(const char *nptr);

@@ -452,7 +452,7 @@ INT  __tshellVarSave (CPCHAR  pcFileName)
             (lib_strcmp(pskvNode->SV_pcVarName, "VERSION")   == 0) ||
             (lib_strcmp(pskvNode->SV_pcVarName, "LICENSE")   == 0) ||
             (lib_strcmp(pskvNode->SV_pcVarName, "TMPDIR")    == 0) ||
-            (lib_strcmp(pskvNode->SV_pcVarName, "FIO_FLOAT") == 0)) {   /*  这些变量不允许保存          */
+            (lib_strcmp(pskvNode->SV_pcVarName, "KERN_FLOAT") == 0)) {  /*  这些变量不允许保存          */
             continue;
         }
 

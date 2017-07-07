@@ -545,6 +545,7 @@ static VOID  __sigReturn (PLW_CLASS_SIGCONTEXT  psigctx,
     ptcbCur->TCB_ulLastError     = psigctlmsg->SIGCTLMSG_ulLastError;   /*  恢复错误号                  */
     ptcbCur->TCB_ucWaitTimeout   = psigctlmsg->SIGCTLMSG_ucWaitTimeout; /*  恢复 timeout 标志           */
     ptcbCur->TCB_ucIsEventDelete = psigctlmsg->SIGCTLMSG_ucIsEventDelete;
+    ptcbCur->TCB_pstkStackNow    = (PLW_STACK)psigctlmsg->SIGCTLMSG_pvStackRet;
     
     KN_SMP_MB();
     archSigCtxLoad(psigctlmsg->SIGCTLMSG_pvStackRet);                   /*  从信号上下文中返回          */

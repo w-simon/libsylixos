@@ -298,7 +298,6 @@
 #define LW_CFG_FIO_STDIN_LINE_EN                1       /*  stdin  初始化时是否使能 line buffer 模式    */
 #define LW_CFG_FIO_STDOUT_LINE_EN               1       /*  stdout 初始化时是否使能 line buffer 模式    */
 #define LW_CFG_FIO_STDERR_LINE_EN               1       /*  stderr 初始化时是否使能 line buffer 模式    */
-#define LW_CFG_FIO_FLOATING_POINT_EN            1       /*  是否允许 FIO 库浮点格式支持                 */
 
 /*********************************************************************************************************
 *                                        日志管理库

@@ -519,6 +519,9 @@ static LONG  __shmOpen (LW_DEV_HDR     *pdevhdr,
             LW_DEV_INC_USE_COUNT(&_G_devhdrShm);                        /*  更新计数器                  */
             return  ((LONG)pshmn);
         }
+    } else {
+        __LW_SHM_UNLOCK();                                              /*  解锁共享内存设备            */
+        return  (PX_ERROR);
     }
     __LW_SHM_UNLOCK();                                                  /*  解锁共享内存设备            */
     

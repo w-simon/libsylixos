@@ -89,14 +89,10 @@ __LW_RETU_FUNC_DECLARE(unsigned long, strtoul, (const char *nptr, char **endptr,
 __LW_RETU_FUNC_DECLARE(long long, strtoll, (const char *nptr, char **endptr, int base))
 __LW_RETU_FUNC_DECLARE(unsigned long long, strtoull, (const char *nptr, char **endptr, int base))
 
-#if LW_CFG_FIO_FLOATING_POINT_EN > 0
-
 __LW_RETU_FUNC_DECLARE(long double, strtold, (const char *nptr, char **endptr))
 __LW_RETU_FUNC_DECLARE(double, strtod, (const char *nptr, char **endptr))
 __LW_RETU_FUNC_DECLARE(float, strtof, (const char *nptr, char **endptr))
 __LW_RETU_FUNC_DECLARE(double, atof, (const char *str))
-
-#endif                                                                  /*  LW_CFG_FIO_FLOATING_...     */
 
 __LW_RETU_FUNC_DECLARE(char *, itoa, (int value, char *string, int radix))
 __LW_RETU_FUNC_DECLARE(int, atoi, (const char *nptr))

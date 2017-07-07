@@ -924,7 +924,7 @@ static VOID  __vmmAbortFataDetected (addr_t          ulRetAddr,
                      ulRetAddr, ulAbortAddr, __vmmAbortTypeStr(pabtInfo));
         API_KernelReboot(LW_REBOOT_FORCE);                              /*  直接重新启动操作系统        */
     
-    } else if (pabtInfo->VMABT_uiType == LW_VMM_ABORT_TYPE_FATAL_ERROR) {  
+    } else if (pabtInfo->VMABT_uiType == LW_VMM_ABORT_TYPE_FATAL_ERROR) {
         _DebugFormat(__ERRORMESSAGE_LEVEL,                              /*  关键性错误                  */
                      "FATAL ERROR: "
                      "ret_addr: 0x%08lx abt_addr: 0x%08lx abt_type: %s\r\n"

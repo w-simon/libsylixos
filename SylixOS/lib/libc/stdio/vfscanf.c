@@ -54,9 +54,9 @@
 #include "local.h"
 
 
-#if LW_CFG_FIO_FLOATING_POINT_EN > 0
+#if LW_KERN_FLOATING > 0
 #define FLOATING_POINT
-#endif  /*  LW_CFG_FIO_FLOATING_POINT_EN > 0    */
+#endif  /*  LW_KERN_FLOATING > 0    */
 
 #include "floatio.h"
 #define	BUF		513	/* Maximum length of numeric string. */

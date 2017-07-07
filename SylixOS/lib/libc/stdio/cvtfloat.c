@@ -22,7 +22,7 @@
 
 #include "stdio.h"
 
-#if LW_CFG_FIO_FLOATING_POINT_EN > 0
+#if LW_KERN_FLOATING > 0
 
 #include <math.h>
 #include "floatio.h"
@@ -391,7 +391,7 @@ eformat:
     return  (int)(t - startp);
 }
 
-#endif /* LW_CFG_FIO_FLOATING_POINT_EN */
+#endif /* LW_KERN_FLOATING */
 /*
  * end
  */
