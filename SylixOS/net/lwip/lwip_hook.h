@@ -24,6 +24,9 @@
 
 #include "lwip/pbuf.h"
 #include "lwip/netif.h"
+#include "netdev.h"
+#include "net/if.h"
+#include "net/if_type.h"
 
 /*********************************************************************************************************
   数据包类型
@@ -57,9 +60,7 @@
 #define IP_HT_POST_ROUTING      4
 
 /*********************************************************************************************************
-  内核函数 
-  
-  出于兼容性考虑, 以下函数只能在 BSP 或者内核静态库中使用, 严禁动态加载的内核模块使用以下函数安装 HOOK.
+  内核函数
 *********************************************************************************************************/
 
 #ifdef __cplusplus
@@ -70,6 +71,24 @@ int  net_ip_hook_add(const char *name, int (*hook)(int ip_type, int hook_type, s
                                                    struct netif *in, struct netif *out));
 int  net_ip_hook_delete(int (*hook)(int ip_type, int hook_type, struct pbuf *p, 
                                     struct netif *in, struct netif *out));
+                                    
+/*********************************************************************************************************
+  获取 netif 成员
+  
+  注意: 出于兼容性考虑, 不允许直接从 netif 结构中访问数据, 必须要通过以下接口函数来访问 netif 中的成员.
+*********************************************************************************************************/
+
+netdev_t          *net_ip_hook_netif_get_netdev(struct netif *pnetif);
+const ip4_addr_t  *net_ip_hook_netif_get_ipaddr(struct netif *pnetif);
+const ip4_addr_t  *net_ip_hook_netif_get_netmask(struct netif *pnetif);
+const ip4_addr_t  *net_ip_hook_netif_get_gw(struct netif *pnetif);
+const ip6_addr_t  *net_ip_hook_netif_get_ip6addr(struct netif *pnetif, int  addr_index, int *addr_state);
+UINT8             *net_ip_hook_netif_get_hwaddr(struct netif *pnetif, int *hwaddr_len);
+int                net_ip_hook_netif_get_index(struct netif *pnetif);
+int                net_ip_hook_netif_get_name(struct netif *pnetif, char *name, size_t size);
+int                net_ip_hook_netif_get_type(struct netif *pnetif, int *type);
+int                net_ip_hook_netif_get_flags(struct netif *pnetif, int *flags);
+UINT64             net_ip_hook_netif_get_linkspeed(struct netif *pnetif);
 
 #ifdef __cplusplus
 }

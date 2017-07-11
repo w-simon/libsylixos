@@ -522,6 +522,7 @@ typedef struct lw_sdhci_host_attr {
 #define SDHCI_QUIRK_FLG_CANNOT_HIGHSPEED                      (1 << 14) /*  不支持高速传输              */
 #define SDHCI_QUIRK_FLG_SDIO_INT_OOB                          (1 << 15) /*  SDIO OOB 中断               */
 #define SDHCI_QUIRK_FLG_SDIO_FORCE_1BIT                       (1 << 16) /*  SDIO 卡强制使用1位总线      */
+#define SDHCI_QUIRK_FLG_HAS_DATEND_IRQ_WHEN_NOT_BUSY          (1 << 17) /*  当卡不忙时会产生数据完成中断*/
 
     VOID            *SDHCIHOST_pvUsrSpec;                               /*  用户驱动特殊数据            */
 } LW_SDHCI_HOST_ATTR, *PLW_SDHCI_HOST_ATTR;

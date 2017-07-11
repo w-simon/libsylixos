@@ -233,6 +233,24 @@ static VOID  __signalStopHandle (INT  iSigNo, struct siginfo *psiginfo)
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN      */
 }
 /*********************************************************************************************************
+** 函数名称: __signalStkShowHandle
+** 功能描述: 打印上下文服务函数
+** 输　入  : psigctlmsg              信号控制信息
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static VOID  __signalStkShowHandle (PLW_CLASS_SIGCTLMSG   psigctlmsg)
+{
+#if LW_CFG_ABORT_CALLSTACK_INFO_EN > 0
+    API_BacktraceShow(STD_OUT, 100);
+#endif                                                                  /*  LW_CFG_ABORT_CALLSTACK_IN...*/
+
+#if LW_CFG_DEVICE_EN > 0
+    archTaskCtxShow(STD_OUT, (PLW_STACK)psigctlmsg->SIGCTLMSG_pvStackRet);
+#endif                                                                  /*  LW_CFG_DEVICE_EN > 0        */
+}
+/*********************************************************************************************************
 ** 函数名称: __sigTaskCreateHook
 ** 功能描述: 线程建立时，初始化线程控制块中的信号控制部分
 ** 输　入  : ulId                  线程 ID 号
@@ -637,6 +655,10 @@ static VOID  __sigRunHandle (PLW_CLASS_SIGCONTEXT  psigctx,
             
         case SIGCNCL:
             __signalCnclHandle(iSigNo, psiginfo);
+            break;
+            
+        case SIGSTKSHOW:
+            __signalStkShowHandle(psigctlmsg);
             break;
             
         default:

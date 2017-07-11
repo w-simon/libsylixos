@@ -19,22 +19,23 @@
 ** 描        述: SD 标准主控制器驱动源文件(SD Host Controller Simplified Specification Version 2.00).
 
 ** BUG:
-2011.03.02  增加主控传输模式查看\设置函数.允许动态改变传输模式(主控上不存在设备的情况下).
+2011.03.02  增加 主控传输模式查看\设置函数.允许动态改变传输模式(主控上不存在设备的情况下).
 2011.04.07  增加 SDMA 传输功能.
 2011.04.07  考虑到 SD 控制器在不同平台上其寄存器可能在 IO 空间,也可能在内存空间,所以读写寄存器
             的6个函数申明为外部函数,由具体平台的驱动实现.
-2014.11.13  修改一般传输模式为中断方式, 同时支持 SDIO 中断处理
+2014.11.13  修改 一般传输模式为中断方式, 同时支持 SDIO 中断处理
 2014.11.15  增加 SDHCI 注册到 SDM 的相关功能函数
 2014.11.24  修正 SDIO 中断服务线程的一个 BUG, 在等到中断信号量后再获取 SDHCI 控制器对象.
 2014.11.29  修正 SDHCI 中断服务函数, 增加防止 SDIO 中断异常丢失的处理.
 2015.03.10  修正 ACMD12 功能的中断掩码设置.
             增加 QUIRK 相关代码.
-2015.03.11  增加卡写保护功能支持.
+2015.03.11  增加 卡写保护功能支持.
 2015.03.14  增加 SDHCI 不能发出 SDIO 硬件中断的处理.
 2015.11.20  增加 对不支持 ACMD12 的控制器处理.
             增加 对 SDHCI v3.0 的兼容性支持.
 2016.12.16  修正 在传输过程中可能产生死锁的问题.
 2017.03.15  修正 使用查询 SDIO 中断情况下, 应用线程禁止中断可能造成死锁的问题.
+2017.07.10  修正 带忙应答的命令处理应考虑数据完成中断和命令完成中断的先后顺序.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #define  __SYLIXOS_IO
@@ -2896,17 +2897,28 @@ static INT __sdhciTransDatHandle (__SDHCI_TRANS *psdhcitrans, UINT32 uiIntSta)
      * 详见 SDHCI 规范 2.2.17(page64)
      */
     if (!psdhcitrans->SDHCITS_pucDatBuffCurr) {
-        if (!psdhcitrans->SDHCITS_bCmdFinish &&
-            SD_CMD_TEST_RSP(psdhcitrans->SDHCITS_psdcmd, SD_RSP_BUSY)) {
+        if (SD_CMD_TEST_RSP(psdhcitrans->SDHCITS_psdcmd, SD_RSP_BUSY)) {
+            if (uiIntSta & SDHCI_INT_DATA_TIMEOUT) {
+                psdhcitrans->SDHCITS_iDatError = PX_ERROR;
+                SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "timeout on busy irq.\r\n");
+                __sdhciTransFinish(psdhcitrans);
+                return  (PX_ERROR);
+            }
+
             if (uiIntSta & SDHCI_INT_DATA_END) {
-                SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL,
-                                 "__sdhciTransDatHandle(): this is a cmd  busy resp signal.\r\n");
-                __sdhciTransCmdFinish(psdhcitrans);
+                psdhcitrans->SDHCITS_iDatError  = ERROR_NONE;
+                psdhcitrans->SDHCITS_bDatFinish = LW_TRUE;
+
+                /*
+                 * 如果命令未完成,需待命令中断产生后结束事务
+                 */
+                if (psdhcitrans->SDHCITS_bCmdFinish) {
+                    __sdhciTransFinish(psdhcitrans);
+                }
+
                 return  (ERROR_NONE);
             }
         }
-
-        return  (ERROR_NONE);
     }
 
     if (uiIntSta                &
@@ -3056,8 +3068,20 @@ __ret:
     if (psdhcitrans->SDHCITS_pucDatBuffCurr &&
         psdhcitrans->SDHCITS_bDatFinish) {
         __sdhciTransDatFinish(psdhcitrans);                             /*  处理数据完成                */
-    } else if (!psdhcitrans->SDHCITS_pucDatBuffCurr) {
-        __sdhciTransFinish(psdhcitrans);                                /*  本次事务结束                */
+    
+	} else if (!psdhcitrans->SDHCITS_pucDatBuffCurr) {
+        /*
+         * 带忙等待的命令会产生数据完成中断
+         * 此种情况下需要等待中断产生再结束事务
+         */
+        if(SD_CMD_TEST_RSP(psdhcitrans->SDHCITS_psdcmd, SD_RSP_BUSY) &&
+           !psdhcitrans->SDHCITS_bDatFinish                          &&
+           SDHCI_QUIRK_FLG(psdhcihostattr, SDHCI_QUIRK_FLG_HAS_DATEND_IRQ_WHEN_NOT_BUSY)) {
+            return  (ERROR_NONE);
+        }
+
+        __sdhciTransFinish(psdhcitrans);                            /*  本次事务结束                */
+
     } else {
         /*
          * 这里表示数据还没处理完成

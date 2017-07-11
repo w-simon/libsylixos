@@ -145,6 +145,233 @@ int  net_ip_hook_delete (int (*hook)(int ip_type, int hook_type, struct pbuf *p,
         return  (PX_ERROR);
     }
 }
+/*********************************************************************************************************
+** 函数名称: net_ip_hook_netif_get_netdev
+** 功能描述: 获取 netdev 结构
+** 输　入  : pnetif        网络接口
+** 输　出  : 网络设备
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+netdev_t  *net_ip_hook_netif_get_netdev (struct netif *pnetif)
+{
+    netdev_t  *netdev;
+    
+    if (pnetif) {
+        netdev = (netdev_t *)(pnetif->state);
+        if (netdev && (netdev->magic_no == NETDEV_MAGIC)) {
+            return  (netdev);
+        }
+    }
+    
+    return  (LW_NULL);
+}
+/*********************************************************************************************************
+** 函数名称: net_ip_hook_netif_get_ipaddr
+** 功能描述: 获取 ipv4 地址
+** 输　入  : pnetif        网络接口
+** 输　出  : ipv4 地址
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+const ip4_addr_t  *net_ip_hook_netif_get_ipaddr (struct netif *pnetif)
+{
+    return  (pnetif ? netif_ip4_addr(pnetif) : LW_NULL);
+}
+/*********************************************************************************************************
+** 函数名称: net_ip_hook_netif_get_netmask
+** 功能描述: 获取 ipv4 掩码
+** 输　入  : pnetif        网络接口
+** 输　出  : ipv4 掩码
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+const ip4_addr_t  *net_ip_hook_netif_get_netmask (struct netif *pnetif)
+{
+    return  (pnetif ? netif_ip4_netmask(pnetif) : LW_NULL);
+}
+/*********************************************************************************************************
+** 函数名称: net_ip_hook_netif_get_gw
+** 功能描述: 获取 ipv4 网卡默认网关
+** 输　入  : pnetif        网络接口
+** 输　出  : ipv4 网卡默认网关
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+const ip4_addr_t  *net_ip_hook_netif_get_gw (struct netif *pnetif)
+{
+    return  (pnetif ? netif_ip4_gw(pnetif) : LW_NULL);
+}
+/*********************************************************************************************************
+** 函数名称: net_ip_hook_netif_get_ip6addr
+** 功能描述: 获取网卡 ipv6 地址
+** 输　入  : pnetif        网络接口
+**           addr_index    第几个 ipv6 地址
+**           addr_state    地址状态 IP6_ADDR_INVALID / IP6_ADDR_VALID / IP6_ADDR_TENTATIVE ...
+** 输　出  : ipv6 地址
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+const ip6_addr_t  *net_ip_hook_netif_get_ip6addr (struct netif *pnetif, int  addr_index, int *addr_state)
+{
+    if (pnetif && (addr_index >= 0 && (addr_index < LWIP_IPV6_NUM_ADDRESSES))) {
+        if (addr_state) {
+            *addr_state = netif_ip6_addr_state(pnetif, addr_index);
+        }
+        
+        return  (netif_ip6_addr(pnetif, addr_index));
+    }
+    
+    return  (LW_NULL);
+}
+/*********************************************************************************************************
+** 函数名称: net_ip_hook_netif_get_hwaddr
+** 功能描述: 获取网卡物理地址
+** 输　入  : pnetif        网络接口
+**           hwaddr_len    物理地址长度
+** 输　出  : 物理地址
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+UINT8  *net_ip_hook_netif_get_hwaddr (struct netif *pnetif, int *hwaddr_len)
+{
+    if (pnetif) {
+        if (hwaddr_len) {
+            *hwaddr_len = pnetif->hwaddr_len;
+        }
+        
+        return  (pnetif->hwaddr);
+    }
+    
+    return  (LW_NULL);
+}
+/*********************************************************************************************************
+** 函数名称: net_ip_hook_netif_get_index
+** 功能描述: 获取网卡 index
+** 输　入  : pnetif        网络接口
+** 输　出  : index
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+int  net_ip_hook_netif_get_index (struct netif *pnetif)
+{
+    return  (pnetif ? pnetif->num : PX_ERROR);
+}
+/*********************************************************************************************************
+** 函数名称: net_ip_hook_netif_get_name
+** 功能描述: 获取网卡 index
+** 输　入  : pnetif        网络接口
+**           name          名字
+**           size          缓冲区长度
+** 输　出  : 名字长度
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+int  net_ip_hook_netif_get_name (struct netif *pnetif, char *name, size_t size)
+{
+    if (pnetif && name && (size > 3)) {
+        return  (PX_ERROR);
+    }
+    
+    name[0] = pnetif->name[0];
+    name[1] = pnetif->name[1];
+    name[2] = (char)(pnetif->num + '0');
+    name[3] = PX_EOS;
+    
+    return  (3);
+}
+/*********************************************************************************************************
+** 函数名称: net_ip_hook_netif_get_type
+** 功能描述: 获取网卡类型
+** 输　入  : pnetif        网络接口
+**           type          接口类型 IFT_PPP / IFT_ETHER / IFT_LOOP / IFT_OTHER ...
+** 输　出  : 是否成功
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+int  net_ip_hook_netif_get_type (struct netif *pnetif, int *type)
+{
+    if (pnetif && type) {
+        if ((pnetif->flags & NETIF_FLAG_BROADCAST) == 0) {
+            *type = IFT_PPP;
+        } else if (pnetif->flags & (NETIF_FLAG_ETHERNET | NETIF_FLAG_ETHARP)) {
+            *type = IFT_ETHER;
+        } else if (pnetif->num == 0) {
+            *type = IFT_LOOP;
+        } else {
+            *type = IFT_OTHER;
+        }
+        
+        return  (ERROR_NONE);
+    }
+    
+    return  (PX_ERROR);
+}
+/*********************************************************************************************************
+** 函数名称: net_ip_hook_netif_get_flags
+** 功能描述: 获取网卡 flags
+** 输　入  : pnetif        网络接口
+**           flags         接口状态 IFF_UP / IFF_BROADCAST / IFF_POINTOPOINT / IFF_RUNNING ...
+** 输　出  : 是否成功
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+int  net_ip_hook_netif_get_flags (struct netif *pnetif, int *flags)
+{
+    if (pnetif && flags) {
+        *flags = 0;
+        if (pnetif->flags & NETIF_FLAG_UP) {
+            *flags |= IFF_UP;
+        }
+        if (pnetif->flags & NETIF_FLAG_BROADCAST) {
+            *flags |= IFF_BROADCAST;
+        } else {
+            *flags |= IFF_POINTOPOINT;
+        }
+        if (pnetif->flags & NETIF_FLAG_LINK_UP) {
+            *flags |= IFF_RUNNING;
+        }
+        if (pnetif->flags & NETIF_FLAG_IGMP) {
+            *flags |= IFF_MULTICAST;
+        }
+        if ((pnetif->flags & NETIF_FLAG_ETHARP) == 0) {
+            *flags |= IFF_NOARP;
+        }
+        if (netif_ip4_addr(pnetif)->addr == ntohl(INADDR_LOOPBACK)) {
+            *flags |= IFF_LOOPBACK;
+        }
+        if ((pnetif->flags2 & NETIF_FLAG2_PROMISC)) {
+            *flags |= IFF_PROMISC;
+        }
+        
+        return  (ERROR_NONE);
+    }
+    
+    return  (PX_ERROR);
+}
+/*********************************************************************************************************
+** 函数名称: net_ip_hook_netif_get_linkspeed
+** 功能描述: 获取网卡链接速度
+** 输　入  : pnetif        网络接口
+** 输　出  : 链接速度
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+UINT64  net_ip_hook_netif_get_linkspeed (struct netif *pnetif)
+{
+    netdev_t  *netdev;
+    
+    if (pnetif) {
+        netdev = (netdev_t *)(pnetif->state);
+        if (netdev && (netdev->magic_no == NETDEV_MAGIC)) {
+            return  (netdev->speed);
+        } else {
+            return  (pnetif->link_speed);
+        }
+    }
+    
+    return  (0);
+}
 
 #endif                                                                  /*  LW_CFG_NET_EN               */
 /*********************************************************************************************************
