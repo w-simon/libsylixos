@@ -46,7 +46,7 @@ $(target)_OMP_FLAGS   :=
 endif
 
 $(target)_DSYMBOL     += -DSYLIXOS_LIB
-$(target)_CPUFLAGS    := $(CPUFLAGS_NOFPU)
+$(target)_CPUFLAGS    := $(CPUFLAGS_NOFPU) $(ARCH_KERNEL_CFLAGS)
 $(target)_COMMONFLAGS := $($(target)_CPUFLAGS) $(ARCH_COMMONFLAGS) $(OPTIMIZE) -Wall -fmessage-length=0 -fsigned-char -fno-short-enums -fno-strict-aliasing $($(target)_GCOV_FLAGS) $($(target)_OMP_FLAGS)
 $(target)_ASFLAGS     := $($(target)_COMMONFLAGS) -x assembler-with-cpp $($(target)_DSYMBOL) $($(target)_INC_PATH)
 $(target)_CFLAGS      := $($(target)_COMMONFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CFLAGS)

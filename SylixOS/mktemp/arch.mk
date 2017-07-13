@@ -31,11 +31,37 @@ ARCH_PIC_LDFLAGS = -Wl,-shared -fPIC -shared
 
 ARCH_KO_CFLAGS   =
 
+ARCH_KERNEL_CFLAGS  =
+ARCH_KERNEL_LDFLAGS =
+
 FPUFLAGS = -m$(FPU_TYPE)
 
 CPUFLAGS_WITHOUT_FPUFLAGS = 
 CPUFLAGS                  = $(CPUFLAGS_WITHOUT_FPUFLAGS) $(FPUFLAGS)
 CPUFLAGS_NOFPU            = $(CPUFLAGS_WITHOUT_FPUFLAGS) -msoft-float
+endif
+
+#*********************************************************************************************************
+# x86-64 (Need frame pointer code to debug)
+#*********************************************************************************************************
+
+ifneq (,$(findstring x86_64,$(TOOLCHAIN_PREFIX)))
+ARCH             = x86
+ARCH_COMMONFLAGS = -mno-red-zone -fno-omit-frame-pointer
+
+ARCH_PIC_CFLAGS  = -fPIC -mpreferred-stack-boundary=5
+ARCH_PIC_LDFLAGS = -Wl,-shared -fPIC -shared
+
+ARCH_KO_CFLAGS   =
+
+ARCH_KERNEL_CFLAGS  = -mcmodel=kernel
+ARCH_KERNEL_LDFLAGS = -z max-page-size=4096
+
+FPUFLAGS = -m$(FPU_TYPE)
+
+CPUFLAGS_WITHOUT_FPUFLAGS = -m64
+CPUFLAGS                  = $(CPUFLAGS_WITHOUT_FPUFLAGS) $(FPUFLAGS)
+CPUFLAGS_NOFPU            = $(CPUFLAGS_WITHOUT_FPUFLAGS) -msoft-float -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-3dnow
 endif
 
 #*********************************************************************************************************
@@ -49,6 +75,9 @@ ARCH_PIC_CFLAGS  = -fPIC
 ARCH_PIC_LDFLAGS = -nostdlib -Wl,-shared -fPIC -shared
 
 ARCH_KO_CFLAGS   =
+
+ARCH_KERNEL_CFLAGS  =
+ARCH_KERNEL_LDFLAGS =
 
 ifneq (,$(findstring disable,$(FPU_TYPE)))
 FPUFLAGS = 
@@ -86,6 +115,9 @@ ARCH_PIC_LDFLAGS = -Wl,-shared -fPIC -mabicalls -shared
 
 ARCH_KO_CFLAGS   = -mlong-calls
 
+ARCH_KERNEL_CFLAGS  =
+ARCH_KERNEL_LDFLAGS =
+
 ifneq (,$(findstring ls3x-float,$(FPU_TYPE)))
 LS3X_NEED_NO_ODD_SPREG := $(shell expr `echo $(GCC_VERSION_MAJOR)` \>= 5)
 ifeq "$(LS3X_NEED_NO_ODD_SPREG)" "1"
@@ -113,6 +145,9 @@ ARCH_PIC_CFLAGS  = -fPIC
 ARCH_PIC_LDFLAGS = -Wl,-shared -fPIC -shared
 
 ARCH_KO_CFLAGS   =
+
+ARCH_KERNEL_CFLAGS  =
+ARCH_KERNEL_LDFLAGS =
 
 FPUFLAGS = -m$(FPU_TYPE)
 

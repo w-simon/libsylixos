@@ -90,7 +90,6 @@ FUNC_DEF(in16)
 
 FUNC_DEF(in32)
     MOVL    X86_SP_ARG1(%ESP) , %EDX
-    MOVL    $0 , %EAX
     INL     %DX , %EAX
     RET
     FUNC_END(in32)
@@ -140,7 +139,6 @@ FUNC_DEF(ins8)
     CLD
     REP
     INSB    %DX , (%EDI)
-    MOVL    %EDI , %EAX
     POPL    %EDI
     RET
     FUNC_END(ins8)
@@ -157,7 +155,6 @@ FUNC_DEF(ins16)
     CLD
     REP
     INSW    %DX , (%EDI)
-    MOVL    %EDI , %EAX
     POPL    %EDI
     RET
     FUNC_END(ins16)
@@ -174,7 +171,6 @@ FUNC_DEF(ins32)
     CLD
     REP
     INSL    %DX , (%EDI)
-    MOVL    %EDI , %EAX
     POPL    %EDI
     RET
     FUNC_END(ins32)
@@ -191,7 +187,6 @@ FUNC_DEF(outs8)
     CLD
     REP
     OUTSB   (%ESI) , %DX
-    MOVL    %ESI , %EAX
     POPL    %ESI
     RET
     FUNC_END(outs8)
@@ -208,7 +203,6 @@ FUNC_DEF(outs16)
     CLD
     REP
     OUTSW   (%ESI) , %DX
-    MOVL    %ESI , %EAX
     POPL    %ESI
     RET
     FUNC_END(outs16)
@@ -225,7 +219,6 @@ FUNC_DEF(outs32)
     CLD
     REP
     OUTSL   (%ESI) , %DX
-    MOVL    %ESI , %EAX
     POPL    %ESI
     RET
     FUNC_END(outs32)

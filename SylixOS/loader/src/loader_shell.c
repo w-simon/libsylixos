@@ -84,12 +84,12 @@ VOID          __moduleTraverseKernelSymHook(BOOL (*pfuncCb)(PVOID, PLW_SYMBOL), 
 #if LW_CFG_SHELL_EN > 0
 #if LW_CFG_CPU_WORD_LENGHT == 64
 static const CHAR               _G_cModuleInfoHdr[] = "\n\
-            NAME                    HANDLE       TYPE  GLB       BASE         SIZE    SYMCNT\n\
------------------------------- ---------------- ------ --- ---------------- -------- --------\n";
+            NAME              HANDLE     TYPE  GLB     BASE        SIZE   SYMCNT\n\
+------------------------- ------------- ------ --- ------------- -------- ------\n";
 #else
 static const CHAR               _G_cModuleInfoHdr[] = "\n\
-            NAME                HANDLE   TYPE  GLB   BASE     SIZE    SYMCNT\n\
------------------------------- -------- ------ --- -------- -------- --------\n";
+            NAME           HANDLE   TYPE  GLB   BASE     SIZE   SYMCNT\n\
+------------------------- -------- ------ --- -------- -------- ------\n";
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT adj  */
 static const CHAR               _G_cVProcInfoHdr[] = "\n\
       NAME            FATHER      STAT  PID   GRP    MEMORY    UID   GID   USER\n\
@@ -808,7 +808,7 @@ static INT  __tshellModuleShow (INT  iArgC, PCHAR  *ppcArgV)
         }
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 
-        printf("VPROCESS: %-20s pid:%4d TOTAL MEMORY: %zu ",
+        printf("VPROC: %-18s pid:%4d TOTAL MEM: %zu ",
                pcProcessName,
                pvproc->VP_pid,
                stTotalMem);
@@ -833,9 +833,9 @@ static INT  __tshellModuleShow (INT  iArgC, PCHAR  *ppcArgV)
             _PathLastName(pmodTemp->EMOD_pcModulePath, &pcModuleName);
 
 #if LW_CFG_CPU_WORD_LENGHT == 64
-            printf("+ %-28s %16lx %-6s %-3s %16lx %8lx %8ld\n",
+            printf("+ %-23s %13lx %-6s %-3s %13lx %8lx %6ld\n",
 #else
-            printf("+ %-28s %08lx %-6s %-3s %08lx %8lx %8ld\n",
+            printf("+ %-23s %08lx %-6s %-3s %08lx %8lx %6ld\n",
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT adj  */
                    pcModuleName,
                    (addr_t)pmodTemp,

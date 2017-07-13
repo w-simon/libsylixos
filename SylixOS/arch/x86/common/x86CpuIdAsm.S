@@ -34,7 +34,7 @@
     EXPORT_LABEL(x86CpuIdInitialApicId)
     EXPORT_LABEL(x86CpuIdBitFieldWidth)
     EXPORT_LABEL(x86CpuIdBitFieldWidth)
-    EXPORT_LABEL(x86CpuIdProbe32)
+    EXPORT_LABEL(x86CpuIdProbeHw)
 
 ;/*********************************************************************************************************
 ;  判断是否支持 hardware multi-threaded
@@ -54,17 +54,12 @@ FUNC_DEF(x86CpuIdHWMTSupported)
     JZ      __x86NoHWMT_0                               ;/*  Special case , no hw multi-threaded support */
 
     MOVL    $0x1 , %EAX                                 ;/*  Return LW_TRUE                              */
-
     POPL    %EBX                                        ;/*  Restore EBX                                 */
-
     RET
 
 LINE_LABEL(__x86NoHWMT_0)
-
     MOVL    $0x0 , %EAX                                 ;/*  Return LW_FALSE                             */
-
     POPL    %EBX                                        ;/*  Restore EBX                                 */
-
     RET
     FUNC_END(x86CpuIdHWMTSupported)
 
@@ -74,7 +69,6 @@ LINE_LABEL(__x86NoHWMT_0)
 ;*********************************************************************************************************/
 
 FUNC_DEF(x86CpuIdMaxNumLProcsPerPkg)
-
     PUSHL   %EBX                                        ;/*  Save EBX which is used by CPUID              */
 
     MOVL    $X86_CPUID_KEY1 , %EAX                      ;/*  Basic CPUID Information                      */
@@ -91,15 +85,11 @@ FUNC_DEF(x86CpuIdMaxNumLProcsPerPkg)
     RORL    $X86_CPUID_LOGICAL_SHIFT , %EAX             ;/*  Log processor per package                    */
 
     POPL    %EBX                                        ;/*  Restore EBX                                  */
-
     RET
 
 LINE_LABEL(__x86NoHWMT_1)
-
     MOVL    $0x01 , %EAX                                ;/*  Return one logical processor per package     */
-
     POPL    %EBX                                        ;/*  Restore EBX                                  */
-
     RET
     FUNC_END(x86CpuIdMaxNumLProcsPerPkg)
 
@@ -109,7 +99,6 @@ LINE_LABEL(__x86NoHWMT_1)
 ;*********************************************************************************************************/
 
 FUNC_DEF(x86CpuIdMaxNumCoresPerPkg)
-
     PUSHL   %EBX                                        ;/*  Save EBX which is used by CPUID             */
 
     MOVL    $X86_CPUID_KEY1 , %EAX                      ;/*  Basic CPUID Information                     */
@@ -137,15 +126,11 @@ FUNC_DEF(x86CpuIdMaxNumCoresPerPkg)
     INCL    %EAX                                        ;/*  Increment by 1                              */
 
     POPL    %EBX                                        ;/*  Restore EBX                                 */
-
     RET
 
 LINE_LABEL(__x86NoHWMT_2)
-
     MOVL    $0x01 , %EAX                                ;/*  Must be a single core per package           */
-
     POPL    %EBX                                        ;/*  Restore EBX                                 */
-
     RET
     FUNC_END(x86CpuIdMaxNumCoresPerPkg)
 
@@ -155,7 +140,6 @@ LINE_LABEL(__x86NoHWMT_2)
 ;*********************************************************************************************************/
 
 FUNC_DEF(x86CpuIdInitialApicId)
-
     PUSHL   %EBX                                        ;/*  Save EBX which is used by CPUID             */
 
     MOVL    $X86_CPUID_KEY1 , %EAX                      ;/*  Basic CPUID Information                     */
@@ -166,7 +150,6 @@ FUNC_DEF(x86CpuIdInitialApicId)
     RORL    $X86_CPUID_APIC_ID_SHIFT , %EAX             ;/*  Logical processor Apic Id                   */
 
     POPL    %EBX                                        ;/*  Restore EBX                                 */
-
     RET
     FUNC_END(x86CpuIdInitialApicId)
 
@@ -176,7 +159,6 @@ FUNC_DEF(x86CpuIdInitialApicId)
 ;*********************************************************************************************************/
 
 FUNC_DEF(x86CpuIdBitFieldWidth)
-
     MOVL    X86_SP_ARG1(%ESP),%EDX                      ;/*  Get uiCountItem from stack                  */
 
     MOVL    $0 , %ECX
@@ -195,11 +177,10 @@ LINE_LABEL(__x86Done)
 
 ;/*********************************************************************************************************
 ;  执行 CPUID 指令探测处理特性到 X86_CPUID 结构
-;  UINT32  x86CpuIdProbe (X86_CPUID *)
+;  UINT32  x86CpuIdProbeHw (X86_CPUID *)
 ;*********************************************************************************************************/
 
-FUNC_DEF(x86CpuIdProbe32)
-
+FUNC_DEF(x86CpuIdProbeHw)
     PUSHL   %EBP
     MOVL    %ESP , %EBP
     PUSHFL                                              ;/*  Save EFLAGS                                 */
@@ -218,7 +199,6 @@ FUNC_DEF(x86CpuIdProbe32)
     ;/*
     ; * EAX=0 , Get the highest value and the vendor ID
     ; */
-
     MOVL    $0 , %EAX                                   ;/*  Set EAX 0                                   */
     CPUID                                               ;/*  Execute CPUID                               */
 
@@ -298,10 +278,9 @@ LINE_LABEL(x86CpuProbeDecode)
     ; * EAX=4 , get deterministic cache parameters
     ; */
     MOVL    $0 , %EDI                                   ;/*  Set to zero                                 */
-    ADDL    $X86_CPUID_CACHE_PARAMS,%ESI
+    ADDL    $X86_CPUID_CACHE_PARAMS , %ESI
 
 LINE_LABEL(x86CpuProbeCache)
-
     ;/*
     ; * Execute until EAX[4:0] == 0 , incrementing ECX
     ; */
@@ -335,7 +314,6 @@ LINE_LABEL(x86CpuProbeCache)
     JMP     x86CpuProbeCache
 
 LINE_LABEL(x86CpuProbeCacheEnd)
-
     ;/*
     ; * Restore CPUID struct pointer
     ; */
@@ -370,7 +348,6 @@ LINE_LABEL(x86CpuProbeCacheEnd)
     ; * EAX=6 , Digital Thermal Sensor and Power Management parameters
     ; */
 LINE_LABEL(x86CpuProbeSensor)
-
     MOVL    $0x6  , %EAX                                ;/*  Set EAX 0x6                                 */
     CPUID                                               ;/*  Execute CPUID                               */
 
@@ -410,10 +387,9 @@ LINE_LABEL(x86CpuProbeSensor)
     ; * EAX=0xb , x2APIC Features / Processor Topology
     ; */
     MOVL    $0 , %EDI                                   ;/*  Set to zero                                 */
-    ADDL    $X86_CPUID_PTOP_PARAMS,%ESI
+    ADDL    $X86_CPUID_PTOP_PARAMS , %ESI
 
 LINE_LABEL(x86CpuProbeTop)
-
     ;/*
     ; * Execute until EAX = EBX = 0 , incrementing ECX
     ; */
@@ -455,7 +431,6 @@ LINE_LABEL(x86CpuProbeTop)
     JNE     x86CpuProbeTop
 
 LINE_LABEL(x86CpuProbeTopEnd)
-
     ;/*
     ; * Restore CPUID struct pointer
     ; */
@@ -478,7 +453,6 @@ LINE_LABEL(x86CpuProbeTopEnd)
     MOVL    %EDX , X86_CPUID_XSAVE_EDX(%ESI)            ;/*  Save config EDX                             */
 
 LINE_LABEL(x86CpuProbeExtended)
-
     ;/*
     ; * EAX=0x80000000 , Get the highest value and Brand String if supported
     ; */
@@ -582,7 +556,7 @@ LINE_LABEL(x86CpuProbeExit)
     POPFL                                               ;/*  Restore EFLAGS                              */
     LEAVE
     RET
-    FUNC_END(x86CpuIdProbe32)
+    FUNC_END(x86CpuIdProbeHw)
 
 ;/*********************************************************************************************************
 ;  CPUID vendor ID - Intel

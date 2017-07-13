@@ -94,7 +94,7 @@ INT  archElfRelocateRel (PVOID        pmodule,
 
     case R_386_JMP_SLOT:
         valueRaw    = *paddrWhere;
-        *paddrWhere = (Elf_Addr)addrSymVal;
+        *paddrWhere = addrSymVal;
         LD_DEBUG_MSG(("R_386_JMP_SLOT: %lx %lx -> %lx\r\n",
                      (ULONG)paddrWhere, valueRaw, *paddrWhere));
         break;
@@ -108,21 +108,21 @@ INT  archElfRelocateRel (PVOID        pmodule,
 
     case R_386_GLOB_DAT:
         valueRaw    = *paddrWhere;
-        *paddrWhere = valueRaw + (Elf_Addr)addrSymVal;
+        *paddrWhere = valueRaw + addrSymVal;
         LD_DEBUG_MSG(("R_386_GLOB_DAT: %lx %lx -> %lx\r\n",
                      (ULONG)paddrWhere, valueRaw, *paddrWhere));
         break;
 
     case R_386_32:
         valueRaw    = *paddrWhere;
-        *paddrWhere = valueRaw + (Elf_Addr)addrSymVal;
+        *paddrWhere = valueRaw + addrSymVal;
         LD_DEBUG_MSG(("R_386_32: %lx %lx -> %lx\r\n",
                      (ULONG)paddrWhere, valueRaw, *paddrWhere));
         break;
 
     case R_386_PC32:
         valueRaw    = *paddrWhere;
-        *paddrWhere = valueRaw + (Elf_Addr)addrSymVal - (Elf_Addr)paddrWhere;
+        *paddrWhere = valueRaw + addrSymVal - (Elf_Addr)paddrWhere;
         LD_DEBUG_MSG(("R_386_PC32: %lx %lx -> %lx\r\n",
                      (ULONG)paddrWhere, valueRaw, *paddrWhere));
         break;

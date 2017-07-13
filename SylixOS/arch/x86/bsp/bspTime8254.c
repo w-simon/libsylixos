@@ -10,22 +10,18 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: bspTime.c
+** 文   件   名: bspTime8254.c
 **
 ** 创   建   人: Jiao.JinXing (焦进星)
 **
 ** 文件创建日期: 2016 年 7 月 31 日
 **
-** 描        述: 处理器需要为 SylixOS 提供的功能支持.
+** 描        述: intel 8254 定时器函数库.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
 #include "arch/x86/common/x86Idt.h"
 #include "driver/timer/i8254.h"
-/*********************************************************************************************************
-  配置
-*********************************************************************************************************/
-#define TICK_IN_THREAD              0
 /*********************************************************************************************************
   宏定义
 *********************************************************************************************************/
@@ -68,53 +64,6 @@ static UINT64               _G_ui64NSecPerCnt7;                         /*  提高
 static          UINT64      _G_ui64CpuFreq;                             /*  每秒 CPU 周期数             */
 static volatile UINT64      _G_ui64PreTickTscNs;                        /*  上一 Tick 发生时 TSC 时刻   */
 static volatile INT64       _G_i64TscDiffNs;                            /*  TSC 时间和 Tick 时间偏差    */
-/*********************************************************************************************************
-  操作系统时钟服务线程句柄
-*********************************************************************************************************/
-#if TICK_IN_THREAD > 0
-static LW_HANDLE            _G_htKernelTicks;
-#endif                                                                  /*  TICK_IN_THREAD > 0          */
-/*********************************************************************************************************
-** 函数名称: __tickThread
-** 功能描述: 初始化 tick 服务线程
-** 输  入  : NONE
-** 输  出  : NONE
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-#if TICK_IN_THREAD > 0
-
-static VOID  __tickThread (VOID)
-{
-    for (;;) {
-        API_ThreadSuspend(_G_htKernelTicks);
-        API_KernelTicks();                                              /*  内核 TICKS 通知             */
-        API_TimerHTicks();                                              /*  高速 TIMER TICKS 通知       */
-    }
-}
-
-#endif                                                                  /*  TICK_IN_THREAD > 0          */
-/*********************************************************************************************************
-** 函数名称: __tickTimerIsr
-** 功能描述: tick 定时器中断服务程序
-** 输  入  : NONE
-** 输  出  : 中断服务返回
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-static irqreturn_t  __tickTimerIsr (VOID)
-{
-    API_KernelTicksContext();                                           /*  保存被时钟中断的线程控制块  */
-
-#if TICK_IN_THREAD > 0
-    API_ThreadResume(_G_htKernelTicks);
-#else
-    API_KernelTicks();                                                  /*  内核 TICKS 通知             */
-    API_TimerHTicks();                                                  /*  高速 TIMER TICKS 通知       */
-#endif                                                                  /*  TICK_IN_THREAD > 0          */
-
-    return  (LW_IRQ_HANDLED);
-}
 /*********************************************************************************************************
 ** 函数名称: bspTscInit
 ** 功能描述: 初始化 tsc 模块，获取 1 秒有多少个 CPU 时钟周期
@@ -173,32 +122,15 @@ static UINT64  bspTscGetNsec (VOID)
             / _G_ui64CpuFreq);                                          /*  返回纳秒                    */
 }
 /*********************************************************************************************************
-** 函数名称: bspTickInit
+** 函数名称: bsp8254TickInit
 ** 功能描述: 初始化 tick 时钟
-** 输  入  : NONE
-** 输  出  : NONE
+** 输  入  : pulVector     中断向量号
+** 输  出  : ERROR CODE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-LW_WEAK VOID  bspTickInit (VOID)
+INT  bsp8254TickInit (ULONG  *pulVector)
 {
-#if TICK_IN_THREAD > 0
-    LW_CLASS_THREADATTR  threadattr;
-#endif
-    ULONG                ulVector;
-
-#if TICK_IN_THREAD > 0
-    API_ThreadAttrBuild(&threadattr, (8 * LW_CFG_KB_SIZE),
-                        LW_PRIO_T_TICK,
-                        LW_OPTION_THREAD_STK_CHK |
-                        LW_OPTION_THREAD_UNSELECT |
-                        LW_OPTION_OBJECT_GLOBAL |
-                        LW_OPTION_THREAD_SAFE, LW_NULL);
-
-    _G_htKernelTicks = API_ThreadCreate("t_tick", (PTHREAD_START_ROUTINE)__tickThread,
-                                        &threadattr, LW_NULL);
-#endif                                                                  /*  TICK_IN_THREAD > 0          */
-
     bspTscInit();                                                       /*  初始化 tsc 模块             */
 
     _G_uiFullCnt       = (_G_i8254Data.qcofreq / LW_TICK_HZ);
@@ -207,28 +139,23 @@ LW_WEAK VOID  bspTickInit (VOID)
     i8254InitAsTick(&_G_i8254Data);                                     /*  初始化 8254 定时器          */
 
     if (bspIntModeGet() == X86_INT_MODE_SYMMETRIC_IO) {
-        ulVector = LW_IRQ_2;                                            /*  IRQ2 (8254 Count0 中断)     */
+        *pulVector = LW_IRQ_2;                                          /*  IRQ2 (8254 Count0 中断)     */
 
     } else {
-        ulVector = X86_IRQ_TIMER;                                       /*  IRQ0                        */
+        *pulVector = X86_IRQ_TIMER;                                     /*  IRQ0                        */
     }
 
-    API_InterVectorConnect(ulVector,
-                           (PINT_SVR_ROUTINE)__tickTimerIsr,
-                           LW_NULL,
-                           "tick_timer");                               /*  连接定时器中断服务程序      */
-
-    API_InterVectorEnable(ulVector);                                    /*  使能定时器中断              */
+    return  (ERROR_NONE);                                               /*  始终返回成功                */
 }
 /*********************************************************************************************************
-** 函数名称: bspTickHook
+** 函数名称: bsp8254TickHook
 ** 功能描述: 每个操作系统时钟节拍，系统将调用这个函数
 ** 输  入  : i64Tick      系统当前时钟
 ** 输  出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  bspTickHook (INT64  i64Tick)
+VOID  bsp8254TickHook (INT64  i64Tick)
 {
     INT64  i64CurTickUseNs;                                             /*  本 Tick 走过的 TSC 时间     */
 
@@ -246,14 +173,14 @@ VOID  bspTickHook (INT64  i64Tick)
     }
 }
 /*********************************************************************************************************
-** 函数名称: bspTickHighResolution
+** 函数名称: bsp8254TickHighResolution
 ** 功能描述: 修正从最近一次 tick 到当前的精确时间.
 ** 输　入  : ptv       需要修正的时间
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-LW_WEAK VOID  bspTickHighResolution (struct timespec  *ptv)
+VOID  bsp8254TickHighResolution (struct timespec  *ptv)
 {
     INT64  i64Ns = ptv->tv_nsec;                                        /*  ns 使用 INT64 类型，因为下  */
                                                                         /*  面运算有可能超出 long 范围  */

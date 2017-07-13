@@ -123,7 +123,7 @@ typedef struct {
     INT                     GDB_iCommListenFd;                          /* 用于端口侦听的文件描述符     */
     INT                     GDB_iSigFd;                                 /* 中断signalfd文件句柄         */
     CHAR                    GDB_cProgPath[MAX_FILENAME_LENGTH];         /* 可执行文件路径               */
-    INT                     GDB_iPid;                                   /* 跟踪的进程号                 */
+    pid_t                   GDB_iPid;                                   /* 跟踪的进程号                 */
     PVOID                   GDB_pvDtrace;                               /* dtrace对象句柄               */
     LW_LIST_LINE_HEADER     GDB_plistBpHead;                            /* 断点链表                     */
     LONG                    GDB_lOpCThreadId;                           /* c,s命令线程                  */
@@ -428,52 +428,51 @@ static INT gdbAscToByte (PCHAR pcAsc)
     return  (gdbAsc2Hex(pcAsc[0]) << 4) + gdbAsc2Hex(pcAsc[1]);
 }
 /*********************************************************************************************************
-** 函数名称: gdbWord2Asc
-** 功能描述: byte转换成ASC字符串
-** 输　入  : iByte       byte值
+** 函数名称: gdbReg2Asc
+** 功能描述: ULONG转换成ASC字符串
+** 输　入  : ulReg       ULONG值
 ** 输　出  : pcAsc       转化后的ASC字符串
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID gdbWord2Asc (PCHAR pcAsc, UINT32 ui32Word)
+static VOID gdbReg2Asc (PCHAR pcAsc, ULONG ulReg)
 {
+    INT i;
+
 #if LW_CFG_CPU_ENDIAN == 0
-    gdbByte2Asc(pcAsc + 0, (ui32Word >>  0) & 0xFF);
-    gdbByte2Asc(pcAsc + 2, (ui32Word >>  8) & 0xFF);
-    gdbByte2Asc(pcAsc + 4, (ui32Word >> 16) & 0xFF);
-    gdbByte2Asc(pcAsc + 6, (ui32Word >> 24) & 0xFF);
+    for (i = 0; i < sizeof(ulReg); i++, ulReg >>= 8) {
+        gdbByte2Asc(pcAsc + (i * 2), ulReg & 0xFF);
+    }
 #else
-    gdbByte2Asc(pcAsc + 0, (ui32Word >> 24) & 0xFF);
-    gdbByte2Asc(pcAsc + 2, (ui32Word >> 16) & 0xFF);
-    gdbByte2Asc(pcAsc + 4, (ui32Word >>  8) & 0xFF);
-    gdbByte2Asc(pcAsc + 6, (ui32Word >>  0) & 0xFF);
+    for (i = 0; i < sizeof(ulReg); i += 2, ulReg >>= 8) {
+        gdbByte2Asc(pcAsc + ((sizeof(ulReg) - i - 1) * 2), ulReg & 0xFF);
+    }
 #endif
 }
 /*********************************************************************************************************
-** 函数名称: gdbAscToWord
-** 功能描述: ASC字符串转换成word字节
+** 函数名称: gdbAscToReg
+** 功能描述: ASC字符串转换成ULONG
 ** 输　入  : pcAsc       ASC字符串值
 ** 输　出  : 转换后的数值
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static UINT32 gdbAscToWord (char *pcAsc)
+static ULONG gdbAscToReg (char *pcAsc)
 {
-    UINT32      ui32Ret;
+    ULONG       ulReg = 0;
+    INT         i;
 
 #if LW_CFG_CPU_ENDIAN == 0
-    ui32Ret  = gdbAscToByte(pcAsc + 0) <<  0;
-    ui32Ret += gdbAscToByte(pcAsc + 2) <<  8;
-    ui32Ret += gdbAscToByte(pcAsc + 4) << 16;
-    ui32Ret += gdbAscToByte(pcAsc + 6) << 24;
+    for (i = 0; i < sizeof(ulReg); i++, ulReg <<= 8) {
+        ulReg += gdbAscToByte(pcAsc + ((sizeof(ulReg) - i - 1) * 2));
+    }
 #else
-    ui32Ret  = gdbAscToByte(pcAsc + 0) << 24;
-    ui32Ret += gdbAscToByte(pcAsc + 2) << 16;
-    ui32Ret += gdbAscToByte(pcAsc + 4) <<  8;
-    ui32Ret += gdbAscToByte(pcAsc + 6) <<  0;
+    for (i = 0; i < sizeof(ulReg); i++, ulReg <<= 8) {
+        ulReg += gdbAscToByte(pcAsc + (i * 2));
+    }
 #endif
 
-    return  (ui32Ret);
+    return  (ulReg);
 }
 /*********************************************************************************************************
 ** 函数名称: gdbReplyError
@@ -897,8 +896,8 @@ static INT gdbRegsGet (LW_GDB_PARAM     *pparam,
     archGdbRegsGet(pparam->GDB_pvDtrace, ulThreadId, &regset);
 
     for (i = 0; i < regset.GDBR_iRegCnt; i++) {
-        gdbWord2Asc(pcPos, regset.regArr[i].GDBRA_ulValue);
-        pcPos += 8;
+        gdbReg2Asc(pcPos, regset.regArr[i].GDBRA_ulValue);
+        pcPos += (2 * sizeof(ULONG));
     }
 
     return  (ERROR_NONE);
@@ -936,8 +935,8 @@ static INT gdbRegsSet (LW_GDB_PARAM     *pparam,
 
     pcPos = pcInBuff;
     for (i = 0; i < regset.GDBR_iRegCnt && iLen >= (i + 1) * 8; i++) {
-        regset.regArr[i].GDBRA_ulValue = gdbAscToWord(pcPos);
-        pcPos += 8;
+        regset.regArr[i].GDBRA_ulValue = gdbAscToReg(pcPos);
+        pcPos += (2 * sizeof(ULONG));
     }
 
     archGdbRegsSet(pparam->GDB_pvDtrace, ulThreadId, &regset);
@@ -978,7 +977,7 @@ static INT gdbRegGet (LW_GDB_PARAM      *pparam,
 
      archGdbRegsGet(pparam->GDB_pvDtrace, ulThreadId, &regset);
 
-     gdbWord2Asc(pcOutBuff, regset.regArr[iRegIdx].GDBRA_ulValue);
+     gdbReg2Asc(pcOutBuff, regset.regArr[iRegIdx].GDBRA_ulValue);
 
      return  (ERROR_NONE);
  }
@@ -1017,7 +1016,7 @@ static INT gdbRegSet (LW_GDB_PARAM      *pparam,
 
      archGdbRegsGet(pparam->GDB_pvDtrace, ulThreadId, &regset);
 
-     regset.regArr[iRegIdx].GDBRA_ulValue = gdbAscToWord(pcInBuff + iPos);
+     regset.regArr[iRegIdx].GDBRA_ulValue = gdbAscToReg(pcInBuff + iPos);
 
      archGdbRegsSet(pparam->GDB_pvDtrace, ulThreadId, &regset);
 
@@ -1034,12 +1033,12 @@ static INT gdbRegSet (LW_GDB_PARAM      *pparam,
 *********************************************************************************************************/
 static INT gdbMemGet (LW_GDB_PARAM *pparam, PCHAR pcInBuff, PCHAR pcOutBuff)
 {
-    UINT    uiAddr  = 0;
+    ULONG   ulAddr  = 0;
     UINT    uiLen   = 0;
     INT     i;
     PBYTE   pbyBuff = NULL;
 
-    if (sscanf(pcInBuff, "%x,%x", &uiAddr, &uiLen) != 2) {
+    if (sscanf(pcInBuff, "%lx,%x", &ulAddr, &uiLen) != 2) {
         gdbReplyError(pcOutBuff, 0);
         return  (ERROR_NONE);
     }
@@ -1055,7 +1054,7 @@ static INT gdbMemGet (LW_GDB_PARAM *pparam, PCHAR pcInBuff, PCHAR pcOutBuff)
         return  (PX_ERROR);
     }
 
-    if (API_DtraceGetMems(pparam->GDB_pvDtrace, uiAddr,
+    if (API_DtraceGetMems(pparam->GDB_pvDtrace, ulAddr,
                           pbyBuff, uiLen) != (ERROR_NONE)) {            /* 读内存                       */
         LW_GDB_SAFEFREE(pbyBuff);
         gdbReplyError(pcOutBuff, 20);
@@ -1081,13 +1080,13 @@ static INT gdbMemGet (LW_GDB_PARAM *pparam, PCHAR pcInBuff, PCHAR pcOutBuff)
 *********************************************************************************************************/
 static INT gdbMemSet (LW_GDB_PARAM *pparam, PCHAR pcInBuff, PCHAR pcOutBuff)
 {
-    UINT    uiAddr  = 0;
+    ULONG   ulAddr  = 0;
     UINT    uiLen   = 0;
     INT     iPos;
     INT     i;
     PBYTE   pbyBuff = NULL;
 
-    if ((sscanf(pcInBuff, "%x,%x:%n", &uiAddr, &uiLen, &iPos) < 2) || (iPos == -1)) {
+    if ((sscanf(pcInBuff, "%lx,%x:%n", &ulAddr, &uiLen, &iPos) < 2) || (iPos == -1)) {
         gdbReplyError(pcOutBuff, 0);
         return  (ERROR_NONE);
     }
@@ -1102,7 +1101,7 @@ static INT gdbMemSet (LW_GDB_PARAM *pparam, PCHAR pcInBuff, PCHAR pcOutBuff)
         pbyBuff[i] = gdbAscToByte(pcInBuff + iPos + i * 2);
     }
 
-    if (API_DtraceSetMems(pparam->GDB_pvDtrace, uiAddr,
+    if (API_DtraceSetMems(pparam->GDB_pvDtrace, ulAddr,
                           pbyBuff, uiLen) != (ERROR_NONE)) {            /* 写内存                       */
         LW_GDB_SAFEFREE(pbyBuff);
         gdbReplyError(pcOutBuff, 20);
@@ -1884,7 +1883,7 @@ static INT gdbRspPkgHandle (LW_GDB_PARAM    *pparam,
                                        pdmsg, 0) == ERROR_NONE) {
                 if (gdbIsStepBp(pparam, pdmsg)) {
                     gdbClearStepMode(pparam, pdmsg->DTM_ulThread);
-#ifdef LW_CFG_CPU_ARCH_X86
+#if defined(LW_CFG_CPU_ARCH_X86) && (LW_CFG_CPU_WORD_LENGHT == 32)
                     /*
                      *  x86单步时需跳过 push %ebp (0x55) 和 mov %esp %ebp指令，
                      *  因为当停在这两条指令是可能导致gdb堆栈错误
@@ -2279,7 +2278,7 @@ static INT gdbEventLoop (LW_GDB_PARAM *pparam)
 
             if (gdbIsStepBp(pparam, &dmsg)) {                           /* 自动移除单步断点             */
                 gdbClearStepMode(pparam, dmsg.DTM_ulThread);
-#ifdef LW_CFG_CPU_ARCH_X86
+#if defined(LW_CFG_CPU_ARCH_X86) && (LW_CFG_CPU_WORD_LENGHT == 32)
                 /*
                  *  x86单步时需跳过 push %ebp (0x55) 和 mov %esp %ebp指令，
                  *  因为当停在这两条指令是可能导致gdb堆栈错误

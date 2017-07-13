@@ -37,8 +37,15 @@
 *********************************************************************************************************/
 
 #define X86_FP_REGS_NR          8                                       /*  number of FP/MM registers   */
+
+#if LW_CFG_CPU_WORD_LENGHT == 32
 #define X86_XMM_REGS_NR         8                                       /*  number of XMM registers     */
 #define X86_FP_RESERVED_NR      14                                      /*  reserved area in X_CTX      */
+#else
+#define X86_XMM_REGS_NR         16                                      /*  number of XMM registers     */
+#define X86_FP_RESERVED_NR      6                                       /*  reserved area in X_CTX      */
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
+
 #define X86_FP_XSAVE_HDR_SIZE   64                                      /*  size of the XSAVE header    */
 
 /*********************************************************************************************************
@@ -120,16 +127,16 @@ typedef struct {
   线程浮点运算器上下文
 *********************************************************************************************************/
 
+#define ARCH_FPU_CTX_ALIGN      64                                      /*  FPU CTX align size          */
+
 union arch_fpu_ctx {
     X86_FPU_OLD_CTX         FPUCTX_oldCtx;                              /*  x87 MMX context             */
     X86_FPU_X_CTX           FPUCTX_XCtx;                                /*  SSE context                 */
     X86_FPU_X_EXT_CTX       FPUCTX_XExtCtx;                             /*  Extended FP context         */
     UINT8                   FPUCTX_ucXExtSz[LW_CFG_CPU_FPU_XSAVE_SIZE]; /*  Extended FP context Max Size*/
-} __attribute__ ((packed, aligned(64)));                                /*  !按最大 CACHE 对齐大小对齐! */
+} __attribute__ ((packed, aligned(ARCH_FPU_CTX_ALIGN)));                /*  !按最大 CACHE 对齐大小对齐! */
 
 typedef union arch_fpu_ctx  ARCH_FPU_CTX;
-
-#define ARCH_FPU_CTX_ALIGN      64                                      /* FPU CTX align size           */
 
 /*********************************************************************************************************
   float 格式 (使用 union 类型作为中间转换, 避免 GCC 3.x.x strict aliasing warning)

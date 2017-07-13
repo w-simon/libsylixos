@@ -43,7 +43,11 @@
 *********************************************************************************************************/
 
 #define LW_CFG_NET_TELNET_EN                        1                   /*  是否使能 telnet 工具        */
+#if LW_CFG_CPU_WORD_LENGHT == 32
 #define LW_CFG_NET_TELNET_STK_SIZE                  (6 * LW_CFG_KB_SIZE)/*  telnet 相关线程堆栈         */
+#else
+#define LW_CFG_NET_TELNET_STK_SIZE                 (12 * LW_CFG_KB_SIZE)/*  telnet 相关线程堆栈         */
+#endif
 #define LW_CFG_NET_TELNET_MAX_LINKS                 10                  /*  telnet 最大连接数, 建议为 5 */
 #define LW_CFG_NET_TELNET_RBUFSIZE                  128                 /*  pty read buffer size        */
 #define LW_CFG_NET_TELNET_WBUFSIZE                  128                 /*  pty write buffer size       */
@@ -66,7 +70,11 @@
 *********************************************************************************************************/
 
 #define LW_CFG_NET_TFTP_EN                          1                   /*  是否使能 tftp 服务          */
+#if LW_CFG_CPU_WORD_LENGHT == 32
 #define LW_CFG_NET_TFTP_STK_SIZE                    (8 * LW_CFG_KB_SIZE)/*  tftp 线程堆栈               */
+#else
+#define LW_CFG_NET_TFTP_STK_SIZE                   (16 * LW_CFG_KB_SIZE)/*  tftp 线程堆栈               */
+#endif
 
 /*********************************************************************************************************
                                             ftp (TCP : 21)
@@ -76,7 +84,11 @@
 
 #define LW_CFG_NET_FTPD_EN                          1                   /*  是否使能 ftp 服务器         */
 #define LW_CFG_NET_FTPD_LOG_EN                      0                   /*  是否使能 ftp 服务器打印 log */
+#if LW_CFG_CPU_WORD_LENGHT == 32
 #define LW_CFG_NET_FTPD_STK_SIZE                    (12 * LW_CFG_KB_SIZE)
+#else
+#define LW_CFG_NET_FTPD_STK_SIZE                    (24 * LW_CFG_KB_SIZE)
+#endif
                                                                         /*  ftp 线程堆栈                */
 #define LW_CFG_NET_FTPD_MAX_LINKS                   10                  /*  ftp 最大客户机连接数        */
 #define LW_CFG_NET_FTPC_EN                          1                   /*  是否使能 ftp 客户机         */
@@ -122,7 +134,11 @@
 #define LW_CFG_NET_VPN_EN                           0                   /*  是否使用 VPN 服务           */
 #endif                                                                  /*  __GNUC__                    */
 
+#if LW_CFG_CPU_WORD_LENGHT == 32
 #define LW_CFG_NET_VPN_STK_SIZE                     (12 * LW_CFG_KB_SIZE)
+#else
+#define LW_CFG_NET_VPN_STK_SIZE                     (24 * LW_CFG_KB_SIZE)
+#endif
                                                                         /*  VPN 线程堆栈                */
 /*********************************************************************************************************
                                             NPF (基于规则的网络数据报过滤器)

@@ -34,7 +34,6 @@
     EXPORT_LABEL(x86MmuDisable)
     EXPORT_LABEL(x86MmuInvalidateTLB)
     EXPORT_LABEL(x86MmuInvalidateTLBMVA)
-    EXPORT_LABEL(x86MmuSetCr3)
 
 ;/*********************************************************************************************************
 ;  使能 MMU
@@ -85,18 +84,6 @@ FUNC_DEF(x86MmuInvalidateTLBMVA)
 LINE_LABEL(__x86MmuInvalidateTLBMVA)
     RET
     FUNC_END(x86MmuInvalidateTLBMVA)
-
-;/*********************************************************************************************************
-;  设置 CR3 寄存器
-;*********************************************************************************************************/
-
-FUNC_DEF(x86MmuSetCr3)
-    MOVL    X86_SP_ARG1(%ESP) , %EAX
-    MOVL    %EAX , %CR3
-    JMP     __x86MmuSetCr3                                              ;/*  排干预取队列                */
-LINE_LABEL(__x86MmuSetCr3)
-    RET
-    FUNC_END(x86MmuSetCr3)
 
     FILE_END()
 

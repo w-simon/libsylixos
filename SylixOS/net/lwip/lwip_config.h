@@ -165,6 +165,9 @@ extern PVOID  lwip_platform_smemcpy(PVOID  pvDest, CPVOID  pvSrc, size_t  stCoun
 
 #define LWIP_IPV6_NUM_ADDRESSES         5                               /*  one face max 5 ipv6 addr    */
 
+#if LW_CFG_CPU_WORD_LENGHT > 32
+#define IPV6_FRAG_COPYHEADER            1
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT > 32 */
 /*********************************************************************************************************
   dhcp & autoip
 *********************************************************************************************************/

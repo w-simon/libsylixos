@@ -271,11 +271,7 @@ VOID  x86CpuIdProbe (VOID)
     INT                             i;
     CHAR                            cTemp[256];
 
-#if LW_CFG_CPU_WORD_LENGHT == 32
-    x86CpuIdProbe32(pcpuid);
-#else
-    x86CpuIdProbe64(pcpuid);
-#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
+    x86CpuIdProbeHw(pcpuid);
 
     features.value         = pcpuid->std.featuresEdx;
     extendedFeatures.value = pcpuid->std.featuresEcx;

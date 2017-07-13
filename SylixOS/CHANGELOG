@@ -4,6 +4,12 @@ HISTORY
 
 ++ New features:
 
+    2017-07-11: han.hui
+    增加对 Intel/AMD x64 64 位体系结构支持.
+
+    2017-07-10: han.hui
+    增加 SIGSTKSHOW 内部信号, 可观察任务调用栈与上下文.
+
     2017-06-23: han.hui
     内存泄漏跟踪工具增加对 tlsf, dlmalloc 内存管理算法的跟踪.
 

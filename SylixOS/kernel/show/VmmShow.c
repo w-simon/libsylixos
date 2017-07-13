@@ -41,8 +41,8 @@
 *********************************************************************************************************/
 #if LW_CFG_CPU_WORD_LENGHT == 64
 static const CHAR   _G_cZoneInfoHdr[] = "\n\
-ZONE     PHYSICAL           SIZE       PAGESIZE       PGD        FREEPAGE  DMA  USED\n\
----- ---------------- ---------------- -------- ---------------- -------- ----- ----\n";
+ZONE     PHYSICAL         SIZE     PAGESIZE       PGD        FREEPAGE  DMA  USED\n\
+---- ---------------- ------------ -------- ---------------- -------- ----- ----\n";
 static const CHAR   _G_cAreaInfoHdr[] = "\n\
      VIRTUAL          SIZE        WRITE CACHE\n\
 ---------------- ---------------- ----- -----\n";
@@ -98,7 +98,7 @@ VOID  API_VmmPhysicalShow (VOID)
         stUsed = (stUsed / (_G_vmzonePhysical[i].ZONE_stSize / 100));   /*  ·ÀÖ¹Òç³ö                    */
         
 #if LW_CFG_CPU_WORD_LENGHT == 64
-        printf("%4d %16lx %16zx %8zx %16lx %8ld %-5s %3zd%%\n",
+        printf("%4d %16lx %12zx %8zx %16lx %8ld %-5s %3zd%%\n",
 #else
         printf("%4d %08lx %8zx %8zx %08lx %8ld %-5s %3zd%%\n",
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT adj  */

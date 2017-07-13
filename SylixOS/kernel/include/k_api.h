@@ -1017,6 +1017,11 @@ LW_API ULONG            API_InterVectorSetFlag(ULONG  ulVector, ULONG  ulFlag);
 LW_API ULONG            API_InterVectorGetFlag(ULONG  ulVector, ULONG  *pulFlag);
                                                                         /*  获取中断向量属性            */
 
+#if LW_CFG_INTER_MEASURE_HOOK_EN > 0
+LW_API VOID             API_InterVectorMeasureHook(VOIDFUNCPTR  pfuncEnter, VOIDFUNCPTR  pfuncExit);
+                                                                        /*  中断测量 HOOK               */
+#endif
+
 LW_API irqreturn_t      API_InterVectorIsr(ULONG    ulVector);          /*  中断服务程序，BSP中断调用   */
 
 #if LW_CFG_SMP_EN > 0

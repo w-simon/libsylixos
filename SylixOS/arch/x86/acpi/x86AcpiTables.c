@@ -210,27 +210,15 @@ ACPI_TABLE_RSDP  *acpiFindRsdp (VOID)
      */
 #if 0
     pRsdp = LW_NULL;
-#if LW_CFG_CPU_WORD_LENGHT == 64
-    pcEfi = (CHAR *)(ACPI_UEFI_RSDP_SIG + LW_CFG_MEM_RGN_BASE);
-#else
     pcEfi = (CHAR *)ACPI_UEFI_RSDP_SIG;
-#endif                                                          /*  LW_CFG_CPU_WORD_LENGHT == 64        */
     if (lib_memcmp(pcEfi, ACPI_SIG_RSDP, strlen(ACPI_SIG_RSDP)) == 0) {
         pRsdp = (ACPI_TABLE_RSDP *)pcEfi;
     }
 
     if (pRsdp != LW_NULL) {
-#if LW_CFG_CPU_WORD_LENGHT == 64
-        G_pcRsdpPtr = *((CHAR **)(ACPI_EFI_RSDP + LW_CFG_MEM_RGN_BASE));
-#else
         G_pcRsdpPtr = *((CHAR **)ACPI_EFI_RSDP);
-#endif                                                          /*  LW_CFG_CPU_WORD_LENGHT == 64        */
         pRsdp = (ACPI_TABLE_RSDP *)G_pcRsdpPtr;
-#if LW_CFG_CPU_WORD_LENGHT == 64
-        __ACPI_DEBUG_LOG ("**** acpiFindRsdp returns %018p ****\n", pRsdp);
-#else
-        __ACPI_DEBUG_LOG("**** acpiFindRsdp returns 0x%x ****\n", pRsdp);
-#endif                                                          /*  LW_CFG_CPU_WORD_LENGHT == 64        */
+        __ACPI_DEBUG_LOG("**** acpiFindRsdp returns %p ****\n", pRsdp);
         return  (pRsdp);
     }
 #endif
@@ -240,18 +228,10 @@ ACPI_TABLE_RSDP  *acpiFindRsdp (VOID)
      */
     __ACPI_DEBUG_LOG("  Scan Extended BIOS Data Area (EBDA)\n");
     pRsdp = (ACPI_TABLE_RSDP *)
-#if LW_CFG_CPU_WORD_LENGHT == 64
-            acpiRsdpScanBlock((CHAR *)ACPI_EBDA_PTR_LOCATION + LW_CFG_DIRECT_MAP_RGN_BASE,
-                              ACPI_EBDA_PTR_LENGTH);
-#else
             acpiRsdpScanBlock((CHAR *)ACPI_EBDA_PTR_LOCATION,
                               ACPI_EBDA_PTR_LENGTH);
-#endif                                                          /*  LW_CFG_CPU_WORD_LENGHT == 64        */
 
     if (pRsdp != LW_NULL) {
-#if LW_CFG_CPU_WORD_LENGHT == 64
-        pRsdp = (ACPI_TABLE_RSDP *)((UINT8 *)pRsdp - (UINT64)LW_CFG_DIRECT_MAP_RGN_BASE);
-#endif                                                          /*  LW_CFG_CPU_WORD_LENGHT == 64        */
         return  (pRsdp);
     }
 
@@ -261,20 +241,9 @@ ACPI_TABLE_RSDP  *acpiFindRsdp (VOID)
     if (pRsdp == LW_NULL) {
         __ACPI_DEBUG_LOG("\n  Scan upper memory: 16-byte boundaries in E0000h-FFFFFh\n");
         pRsdp = (ACPI_TABLE_RSDP *)
-#if LW_CFG_CPU_WORD_LENGHT == 64
-                acpiRsdpScanBlock((CHAR *)ACPI_HI_RSDP_WINDOW_BASE + LW_CFG_DIRECT_MAP_RGN_BASE,
-                                  ACPI_HI_RSDP_WINDOW_SIZE);
-#else
                 acpiRsdpScanBlock((CHAR *)ACPI_HI_RSDP_WINDOW_BASE,
                                   ACPI_HI_RSDP_WINDOW_SIZE);
-#endif                                                          /*  LW_CFG_CPU_WORD_LENGHT == 64        */
     }
-
-#if LW_CFG_CPU_WORD_LENGHT == 64
-    if (pRsdp != LW_NULL) {
-        pRsdp  = (ACPI_TABLE_RSDP *)((UINT8 *)pRsdp - (UINT64)LW_CFG_DIRECT_MAP_RGN_BASE);
-    }
-#endif                                                          /*  LW_CFG_CPU_WORD_LENGHT == 64        */
 
     G_pcAcpiRsdpPtr = (CHAR *)pRsdp;
 
@@ -508,10 +477,6 @@ INT  acpiTableInit (VOID)
         __ACPI_ERROR_LOG("\nACPI: NULL root pointer!\n");
         return  (PX_ERROR);
     }
-
-#if LW_CFG_CPU_WORD_LENGHT == 64
-    pRsdp = (ACPI_TABLE_RSDP *)((UINT8 *)pRsdp + (UINT64)LW_CFG_DIRECT_MAP_RGN_BASE);
-#endif                                                          /*  LW_CFG_CPU_WORD_LENGHT == 64        */
 
     pRsdt = ACPI_TO_POINTER(pRsdp->RsdtPhysicalAddress);
     if (pRsdp->Revision > 0) {

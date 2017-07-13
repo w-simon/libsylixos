@@ -21,13 +21,12 @@
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
 #include "arch/x86/common/x86CpuId.h"
+#include "arch/x86/common/x86Cr.h"
 #include "x86Pentium.h"
 /*********************************************************************************************************
   外部函数声明
 *********************************************************************************************************/
 extern VOID     x86MmuInvalidateTLB(VOID);
-extern UINT32   x86Cr4Get(VOID);
-extern VOID     x86Cr4Set(UINT32  uiCr4Value);
 /*********************************************************************************************************
   数据类型定义
 *********************************************************************************************************/
@@ -51,11 +50,7 @@ VOID  x86PentiumMtrrEnable (VOID)
 {
     INTREG      iregInterLevel;
     LL_UNION    defType;
-#if LW_CFG_CPU_WORD_LENGHT == 32
-    UINT32      uiOldCr4;
-#else
-    UINT64      uiOldCr4;
-#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
+    X86_CR_REG  uiOldCr4;
 
 #if LW_CFG_CPU_WORD_LENGHT == 32
     /*
@@ -102,11 +97,7 @@ VOID  x86PentiumMtrrDisable (VOID)
 {
     INTREG      iregInterLevel;
     LL_UNION    defType;
-#if LW_CFG_CPU_WORD_LENGHT == 32
-    UINT32      uiOldCr4;
-#else
-    UINT64      uiOldCr4;
-#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
+    X86_CR_REG  uiOldCr4;
 
 #if LW_CFG_CPU_WORD_LENGHT == 32
     /*

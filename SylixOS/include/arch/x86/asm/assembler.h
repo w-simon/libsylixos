@@ -76,6 +76,8 @@ func:
   参数的 SP 偏移
 *********************************************************************************************************/
 
+#if LW_CFG_CPU_WORD_LENGHT == 32
+
 #define X86_SP_ARG0             0
 #define X86_SP_ARG1             4
 #define X86_SP_ARG1W            6
@@ -125,6 +127,120 @@ func:
 #define X86_DOUBLE_DARG3L       28
 #define X86_DOUBLE_DARG4        32
 #define X86_DOUBLE_DARG4L       36
+
+#else
+
+/*********************************************************************************************************
+
+  URL: https://en.wikipedia.org/wiki/X86_calling_conventions
+
+  The calling convention of the System V AMD64 ABI is followed on Solaris, Linux, FreeBSD, macOS,
+  and is the de facto standard among Unix and Unix-like operating systems.
+
+  The first six integer or pointer arguments are passed in registers RDI, RSI, RDX, RCX
+  (R10 in the Linux kernel interface), R8, and R9,
+  while XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6 and XMM7 are used for certain floating point arguments.
+  As in the Microsoft x64 calling convention, additional arguments are passed on the stack
+  and the return value is stored in RAX and RDX.
+
+  If the callee wishes to use registers RBP, RBX, and R12–R15,
+  it must restore their original values before returning control to the caller.
+  All others must be saved by the caller if it wishes to preserve their values.
+
+  If the callee is a variadic function, then the number of floating point arguments passed to
+  the function in vector registers must be provided by the caller in the RAX register.
+
+  Unlike the Microsoft calling convention, a shadow space is not provided;
+  on function entry, the return address is adjacent to the seventh integer argument on the stack.
+
+  <System V Application Binary Interface AMD64 Architecture Processor Supplement>
+
+  Here are a table of usage of the registers:
+
+    +-----------------------------------------------------------------------------------+
+    |                                                                  Preserved across |
+    |  Register                         Usage                          function calls   |
+    +-----------------------------------------------------------------------------------+
+    |  %rax         temporary register; with variable arguments        No               |
+    |               passes information about the number of SSE reg+                     |
+    |               isters used; 1st return register                                    |
+    +-----------------------------------------------------------------------------------+
+    |  %rbx         callee-saved register; optionally used as base     Yes              |
+    |               pointer                                                             |
+    +-----------------------------------------------------------------------------------+
+    |  %rcx         used to pass 4th integer argument to functions     No               |
+    +-----------------------------------------------------------------------------------+
+    |  %rdx         used to pass 3rd argument to functions; 2nd return No               |
+    |               register                                                            |
+    +-----------------------------------------------------------------------------------+
+    |  %rsp         stack pointer                                      Yes              |
+    +-----------------------------------------------------------------------------------+
+    |  %rbp         callee-saved register; optionally used as frame    Yes              |
+    |               pointer                                                             |
+    +-----------------------------------------------------------------------------------+
+    |  %rsi         used to pass 2nd argument to functions             No               |
+    +-----------------------------------------------------------------------------------+
+    |  %rdi         used to pass 1st argument to functions             No               |
+    +-----------------------------------------------------------------------------------+
+    |  %r8          used to pass 5th argument to functions             No               |
+    +-----------------------------------------------------------------------------------+
+    |  %r9          used to pass 6th argument to functions             No               |
+    +-----------------------------------------------------------------------------------+
+    |  %r10         temporary register, used for passing a functions   No               |
+    |               static chain pointer                                                |
+    +-----------------------------------------------------------------------------------+
+    |  %r11         temporary register                                 No               |
+    +-----------------------------------------------------------------------------------+
+    |  %r12|r15     callee-saved registers                             Yes              |
+    +-----------------------------------------------------------------------------------+
+    |  %xmm0 %xmm1  used to pass and return floating point arguments   No               |
+    +-----------------------------------------------------------------------------------+
+    |  %xmm2 %xmm7  used to pass floating point arguments              No               |
+    +-----------------------------------------------------------------------------------+
+    |  %xmm8 %xmm15 temporary registers                                No               |
+    +-----------------------------------------------------------------------------------+
+    |  %mmx0 %mmx7  temporary registers                                No               |
+    +-----------------------------------------------------------------------------------+
+    |  %st0,%st1    temporary registers;                               No               |
+    |               used to return long double arguments                                |
+    +-----------------------------------------------------------------------------------+
+    |  %st2 %st7    temporary registers                                No               |
+    +-----------------------------------------------------------------------------------+
+    |  %fs          Reserved for system                                No               |
+    |               (as thread specific data register)                                  |
+    +-----------------------------------------------------------------------------------+
+    |  mxcsr        SSE2 control and status word                       partial          |
+    +-----------------------------------------------------------------------------------+
+    |  x87 SW       x87 status word                                    No               |
+    +-----------------------------------------------------------------------------------+
+    |  x87 CW       x87 control word                                   Yes              |
+    +-----------------------------------------------------------------------------------+
+    |  %bnd0–%bnd3  used to pass/return bounds of pointer              No               |
+    |               arguments/return values                                             |
+    +-----------------------------------------------------------------------------------+
+*********************************************************************************************************/
+
+/*********************************************************************************************************
+  x86-64 前 6 个非浮点参数的使用寄存器传递
+*********************************************************************************************************/
+
+#define X86_64_ARG0             %RDI
+#define X86_64_ARG1             %RSI
+#define X86_64_ARG2             %RDX
+#define X86_64_ARG3             %RCX
+#define X86_64_ARG4             %R8
+#define X86_64_ARG5             %R9
+
+#define X86_64_ARG0DW           %EDI
+#define X86_64_ARG1DW           %ESI
+#define X86_64_ARG2DW           %EDX
+#define X86_64_ARG3DW           %ECX
+#define X86_64_ARG4DW           %R8D
+#define X86_64_ARG5DW           %R9D
+
+#define X86_64_RETREG           %RAX
+
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
 
 /*********************************************************************************************************
   size define

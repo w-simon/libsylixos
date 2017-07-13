@@ -48,7 +48,7 @@ struct x86_segment_descriptor {
 
     UINT8       limit_19_16:4;                              /*  Segment limit, bits 19..16              */
     UINT8       custom:1;
-    UINT8       zero:1;
+    UINT8       longmode:1;                                 /*  L: 1=long mode, 0=compatibility mode    */
     UINT8       op_size:1;                                  /*  0=16bits instructions, 1=32bits         */
     UINT8       granularity:1;                              /*  0=limit in bytes, 1=limit in pages      */
 
@@ -84,7 +84,7 @@ struct x86_gdt_register {
      * to the "virtual" addresses: this base_addr will thus be the same
      * as the address of the gdt array
      */
-      UINT32    base_addr;
+     addr_t      base_addr;
 } __attribute__ ((packed, aligned(4)));
 
 typedef struct x86_gdt_register     X86_GDT_REG;
@@ -208,6 +208,7 @@ typedef struct x86_tss  X86_TSS;
 /*********************************************************************************************************
   宏定义
 *********************************************************************************************************/
+#define IS_LONG_MODE    ((LW_CFG_CPU_WORD_LENGHT == 64) ? 1 : 0)
 /*********************************************************************************************************
   Helper macro that builds a Segment descriptor for the virtual
   0..4GB addresses to be mapped to the linear 0..4GB linear addresses.
@@ -237,7 +238,7 @@ typedef struct x86_tss  X86_TSS;
             .present                = 1,                                \
             .limit_19_16            = 0xf,                              \
             .custom                 = 0,                                \
-            .zero                   = 0,                                \
+            .longmode               = IS_LONG_MODE,                     \
             .op_size                = 1,  /* 32 bits instr/data */      \
             .granularity            = 1,  /* limit is in 4kB Pages */   \
             .base_paged_addr_31_24  = 0                                 \
@@ -245,6 +246,7 @@ typedef struct x86_tss  X86_TSS;
 /*********************************************************************************************************
   全局变量定义
 *********************************************************************************************************/
+#if LW_CFG_CPU_WORD_LENGHT == 32
 static X86_SEG_DESC _G_x86GDT[] = {                                     /*  全局描述符表                */
     [X86_SEG_NULL]       = (X86_SEG_DESC){ 0, },
     [X86_SEG_KCODE]      = BUILD_GDTE(0, 1),
@@ -255,6 +257,7 @@ static X86_SEG_DESC _G_x86GDT[] = {                                     /*  全局
 };
 
 static X86_TSS      _G_x86KernelTss;                                    /*  内核 TSS                    */
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
 /*********************************************************************************************************
 ** 函数名称: x86GdtInit
 ** 功能描述: 初始化 GDT
@@ -265,6 +268,7 @@ static X86_TSS      _G_x86KernelTss;                                    /*  内核
 *********************************************************************************************************/
 INT  x86GdtInit (VOID)
 {
+#if LW_CFG_CPU_WORD_LENGHT == 32
     X86_GDT_REG  gdtr;
 
     /*
@@ -275,7 +279,7 @@ INT  x86GdtInit (VOID)
     /*
      * Address of the GDT
      */
-    gdtr.base_addr = (UINT32)_G_x86GDT;
+    gdtr.base_addr = (addr_t)_G_x86GDT;
 
     /*
      * The limit is the maximum offset in bytes from the base address of the GDT
@@ -289,14 +293,14 @@ INT  x86GdtInit (VOID)
      * vol 3, section 4.8.1).
      */
     __asm__ __volatile__  ("lgdt %0          \n\
-                           ljmp %1,    $1f  \n\
-                           1:               \n\
-                           movw %2,    %%ax \n\
-                           movw %%ax,  %%ss \n\
-                           movw %%ax,  %%ds \n\
-                           movw %%ax,  %%es \n\
-                           movw %%ax,  %%fs \n\
-                           movw %%ax,  %%gs"
+                            ljmp %1,    $1f  \n\
+                            1:               \n\
+                            movw %2,    %%ax \n\
+                            movw %%ax,  %%ss \n\
+                            movw %%ax,  %%ds \n\
+                            movw %%ax,  %%es \n\
+                            movw %%ax,  %%fs \n\
+                            movw %%ax,  %%gs"
                           :
                           /*
                            * The real beginning of the GDT
@@ -308,6 +312,7 @@ INT  x86GdtInit (VOID)
                            "i"(X86_BUILD_SEGMENT_REG_VALUE(0, LW_FALSE, X86_SEG_KCODE)),
                            "i"(X86_BUILD_SEGMENT_REG_VALUE(0, LW_FALSE, X86_SEG_KDATA))
                           :"memory", "eax");
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
 
     return  (ERROR_NONE);
 }
@@ -331,6 +336,8 @@ INT  x86GdtSecondaryInit (VOID)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
+#if LW_CFG_CPU_WORD_LENGHT == 32
+
 static INT  x86GdtRegisterKernelTss (addr_t  ulTssVAddr)
 {
     UINT16  usTssRegVal;
@@ -348,7 +355,7 @@ static INT  x86GdtRegisterKernelTss (addr_t  ulTssVAddr)
         .present                = 1,
         .limit_19_16            = 0,                        /*  Size of a TSS is < 2^16 !               */
         .custom                 = 0,                        /*  Unused                                  */
-        .zero                   = 0,
+        .longmode               = 0,
         .op_size                = 0,                        /*  See Intel x86 vol 3 figure 6-3          */
         .granularity            = 1,                        /*  limit is in Bytes                       */
         .base_paged_addr_31_24  = (ulTssVAddr >> 24) & 0xff
@@ -362,6 +369,8 @@ static INT  x86GdtRegisterKernelTss (addr_t  ulTssVAddr)
 
     return  (ERROR_NONE);
 }
+
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
 /*********************************************************************************************************
 ** 函数名称: x86TssInit
 ** 功能描述: 初始化 TSS
@@ -372,6 +381,7 @@ static INT  x86GdtRegisterKernelTss (addr_t  ulTssVAddr)
 *********************************************************************************************************/
 INT  x86TssInit (VOID)
 {
+#if LW_CFG_CPU_WORD_LENGHT == 32
     /*
      * Reset the kernel TSS
      */
@@ -393,6 +403,7 @@ INT  x86TssInit (VOID)
      * Register this TSS into the gdt
      */
     x86GdtRegisterKernelTss((addr_t)&_G_x86KernelTss);
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
 
     return  (ERROR_NONE);
 }
@@ -406,6 +417,7 @@ INT  x86TssInit (VOID)
 *********************************************************************************************************/
 INT  x86TssSecondaryInit (VOID)
 {
+#if LW_CFG_CPU_WORD_LENGHT == 32
     UINT16  usTssRegVal;
 
     /*
@@ -413,6 +425,7 @@ INT  x86TssSecondaryInit (VOID)
      */
     usTssRegVal = X86_BUILD_SEGMENT_REG_VALUE(0, LW_FALSE, X86_SEG_KERNEL_TSS);
     __asm__ __volatile__ ("ltr %0" :: "r"(usTssRegVal));
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
 
     return  (ERROR_NONE);
 }

@@ -22,10 +22,7 @@
 #include "SylixOS.h"
 #include "dtrace.h"
 #include "x86Idt.h"
-/*********************************************************************************************************
-  外部函数声明
-*********************************************************************************************************/
-extern UINT32   x86GetCr2(VOID);
+#include "x86Cr.h"
 /*********************************************************************************************************
   外部变量声明
 *********************************************************************************************************/
@@ -33,7 +30,7 @@ extern addr_t   _G_ulX86IntEntryArray[X86_IDTE_NUM];
 /*********************************************************************************************************
   全局变量定义
 *********************************************************************************************************/
-typedef VOID (*X86_INT_HANDLER)(UINT32  uiX86Vector, UINT32  uiESP);    /*  异常/中断处理函数类型       */
+typedef VOID (*X86_INT_HANDLER)(ULONG  ulX86Vector, ULONG  ulESP);      /*  异常/中断处理函数类型       */
 
 X86_INT_HANDLER _G_pfuncX86IntHandleArray[X86_IDTE_NUM];                /*  异常/中断处理函数数组       */
 
@@ -130,24 +127,24 @@ VOID  archIntHandle (ULONG  ulVector, BOOL  bPreemptive)
 /*********************************************************************************************************
 ** 函数名称: x86DefaultExceptHandle
 ** 功能描述: 缺省异常处理函数
-** 输　入  : uiX86Vector   x86 异常向量
-**           uiESP         异常保存上下文后的 ESP
+** 输　入  : ulX86Vector   x86 异常向量
+**           ulESP         异常保存上下文后的 ESP
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  x86DefaultExceptHandle (UINT32  uiX86Vector, UINT32  uiESP)
+static VOID  x86DefaultExceptHandle (ULONG  ulX86Vector, ULONG  ulESP)
 {
-    ARCH_REG_CTX   *pregctx = (ARCH_REG_CTX *)uiESP;
+    ARCH_REG_CTX   *pregctx = (ARCH_REG_CTX *)ulESP;
     PLW_CLASS_TCB   ptcbCur;
     LW_VMM_ABORT    abtInfo;
     addr_t          ulRetAddr;
 
-    _PrintFormat("EXCEPTION: %s\r\n", _G_pcX86ExceName[uiX86Vector]);
+    _PrintFormat("EXCEPTION: %s\r\n", _G_pcX86ExceName[ulX86Vector]);
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    ulRetAddr = pregctx->REG_uiEIP;
+    ulRetAddr = pregctx->REG_XIP;
 
     abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_TERMINAL;
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
@@ -155,22 +152,22 @@ static VOID  x86DefaultExceptHandle (UINT32  uiX86Vector, UINT32  uiESP)
 /*********************************************************************************************************
 ** 函数名称: x86InvalidOpcodeExceptHandle
 ** 功能描述: 无效指令异常处理函数
-** 输　入  : uiX86Vector   x86 异常向量
-**           uiESP         异常保存上下文后的 ESP
+** 输　入  : ulX86Vector   x86 异常向量
+**           ulESP         异常保存上下文后的 ESP
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  x86InvalidOpcodeExceptHandle (UINT32  uiX86Vector, UINT32  uiESP)
+static VOID  x86InvalidOpcodeExceptHandle (ULONG  ulX86Vector, ULONG  ulESP)
 {
-    ARCH_REG_CTX   *pregctx = (ARCH_REG_CTX *)uiESP;
+    ARCH_REG_CTX   *pregctx = (ARCH_REG_CTX *)ulESP;
     PLW_CLASS_TCB   ptcbCur;
     LW_VMM_ABORT    abtInfo;
     addr_t          ulRetAddr;
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    ulRetAddr = pregctx->REG_uiEIP;
+    ulRetAddr = pregctx->REG_XIP;
 
     abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_UNDEF;
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
@@ -178,24 +175,24 @@ static VOID  x86InvalidOpcodeExceptHandle (UINT32  uiX86Vector, UINT32  uiESP)
 /*********************************************************************************************************
 ** 函数名称: x86FpErrorExceptHandle
 ** 功能描述: 浮点错误异常处理函数
-** 输　入  : uiX86Vector   x86 异常向量
-**           uiESP         异常保存上下文后的 ESP
+** 输　入  : ulX86Vector   x86 异常向量
+**           ulESP         异常保存上下文后的 ESP
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
 #if LW_CFG_CPU_FPU_EN > 0
 
-static VOID  x86FpErrorExceptHandle (UINT32  uiX86Vector, UINT32  uiESP)
+static VOID  x86FpErrorExceptHandle (ULONG  ulX86Vector, ULONG  ulESP)
 {
-    ARCH_REG_CTX   *pregctx = (ARCH_REG_CTX *)uiESP;
+    ARCH_REG_CTX   *pregctx = (ARCH_REG_CTX *)ulESP;
     PLW_CLASS_TCB   ptcbCur;
     LW_VMM_ABORT    abtInfo;
     addr_t          ulRetAddr;
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    ulRetAddr = pregctx->REG_uiEIP;
+    ulRetAddr = pregctx->REG_XIP;
 
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FPE;
     abtInfo.VMABT_uiMethod = FPE_INTDIV;                                /*  默认为除 0 异常             */
@@ -206,15 +203,15 @@ static VOID  x86FpErrorExceptHandle (UINT32  uiX86Vector, UINT32  uiESP)
 /*********************************************************************************************************
 ** 函数名称: x86DeviceNotAvailExceptHandle
 ** 功能描述: 设备不可用异常处理函数
-** 输　入  : uiX86Vector   x86 异常向量
-**           uiESP         异常保存上下文后的 ESP
+** 输　入  : ulX86Vector   x86 异常向量
+**           ulESP         异常保存上下文后的 ESP
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  x86DeviceNotAvailExceptHandle (UINT32  uiX86Vector, UINT32  uiESP)
+static VOID  x86DeviceNotAvailExceptHandle (ULONG  ulX86Vector, ULONG  ulESP)
 {
-    ARCH_REG_CTX   *pregctx = (ARCH_REG_CTX *)uiESP;
+    ARCH_REG_CTX   *pregctx = (ARCH_REG_CTX *)ulESP;
     PLW_CLASS_TCB   ptcbCur;
     LW_VMM_ABORT    abtInfo;
     addr_t          ulRetAddr;
@@ -227,7 +224,7 @@ static VOID  x86DeviceNotAvailExceptHandle (UINT32  uiX86Vector, UINT32  uiESP)
     }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 
-    ulRetAddr = pregctx->REG_uiEIP;
+    ulRetAddr = pregctx->REG_XIP;
 
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_TERMINAL;
     abtInfo.VMABT_uiMethod = 0;
@@ -236,15 +233,15 @@ static VOID  x86DeviceNotAvailExceptHandle (UINT32  uiX86Vector, UINT32  uiESP)
 /*********************************************************************************************************
 ** 函数名称: x86MachineCheckExceptHandle
 ** 功能描述: 设备异常处理
-** 输　入  : uiX86Vector   x86 异常向量
-**           uiESP         异常保存上下文后的 ESP
+** 输　入  : ulX86Vector   x86 异常向量
+**           ulESP         异常保存上下文后的 ESP
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  x86MachineCheckExceptHandle (UINT32  uiX86Vector, UINT32  uiESP)
+static VOID  x86MachineCheckExceptHandle (ULONG  ulX86Vector, ULONG  ulESP)
 {
-    ARCH_REG_CTX   *pregctx = (ARCH_REG_CTX *)uiESP;
+    ARCH_REG_CTX   *pregctx = (ARCH_REG_CTX *)ulESP;
     PLW_CLASS_TCB   ptcbCur;
     LW_VMM_ABORT    abtInfo;
     addr_t          ulRetAddr;
@@ -253,7 +250,7 @@ static VOID  x86MachineCheckExceptHandle (UINT32  uiX86Vector, UINT32  uiESP)
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    ulRetAddr = pregctx->REG_uiEIP;
+    ulRetAddr = pregctx->REG_XIP;
 
     abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_FATAL_ERROR;
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
@@ -261,15 +258,15 @@ static VOID  x86MachineCheckExceptHandle (UINT32  uiX86Vector, UINT32  uiESP)
 /*********************************************************************************************************
 ** 函数名称: x86PageFaultExceptHandle
 ** 功能描述: 页面访问错误异常处理函数
-** 输　入  : uiX86Vector   x86 异常向量
-**           uiESP         异常保存上下文后的 ESP
+** 输　入  : ulX86Vector   x86 异常向量
+**           ulESP         异常保存上下文后的 ESP
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  x86PageFaultExceptHandle (UINT32  uiX86Vector, UINT32  uiESP)
+static VOID  x86PageFaultExceptHandle (ULONG  ulX86Vector, ULONG  ulESP)
 {
-    ARCH_REG_CTX   *pregctx = (ARCH_REG_CTX *)uiESP;
+    ARCH_REG_CTX   *pregctx = (ARCH_REG_CTX *)ulESP;
     PLW_CLASS_TCB   ptcbCur;
     LW_VMM_ABORT    abtInfo;
     addr_t          ulRetAddr;
@@ -277,18 +274,18 @@ static VOID  x86PageFaultExceptHandle (UINT32  uiX86Vector, UINT32  uiESP)
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    ulRetAddr   = pregctx->REG_uiEIP;
-    ulAbortAddr = x86GetCr2();
+    ulRetAddr   = pregctx->REG_XIP;
+    ulAbortAddr = x86Cr2Get();
 
 #if LW_CFG_VMM_EN > 0
-    abtInfo.VMABT_uiType = (pregctx->REG_uiError & (1 << 0)) ?
+    abtInfo.VMABT_uiType = (pregctx->REG_ERROR & (1 << 0)) ?
                             LW_VMM_ABORT_TYPE_PERM : LW_VMM_ABORT_TYPE_MAP;
 
-    if (pregctx->REG_uiError & (1 << 4)) {
+    if (pregctx->REG_ERROR & (1 << 4)) {
         abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
 
     } else {
-        abtInfo.VMABT_uiMethod = (pregctx->REG_uiError & (1 << 1)) ?
+        abtInfo.VMABT_uiMethod = (pregctx->REG_ERROR & (1 << 1)) ?
                                   LW_VMM_ABORT_METHOD_WRITE : LW_VMM_ABORT_METHOD_READ;
     }
 #else
@@ -300,22 +297,22 @@ static VOID  x86PageFaultExceptHandle (UINT32  uiX86Vector, UINT32  uiESP)
 /*********************************************************************************************************
 ** 函数名称: x86BreakPointExceptHandle
 ** 功能描述: 断点异常处理函数
-** 输　入  : uiX86Vector   x86 异常向量
-**           uiESP         异常保存上下文后的 ESP
+** 输　入  : ulX86Vector   x86 异常向量
+**           ulESP         异常保存上下文后的 ESP
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  x86BreakPointExceptHandle (UINT32  uiX86Vector, UINT32  uiESP)
+static VOID  x86BreakPointExceptHandle (ULONG  ulX86Vector, ULONG  ulESP)
 {
-    ARCH_REG_CTX   *pregctx = (ARCH_REG_CTX *)uiESP;
+    ARCH_REG_CTX   *pregctx = (ARCH_REG_CTX *)ulESP;
     PLW_CLASS_TCB   ptcbCur;
     LW_VMM_ABORT    abtInfo;
     addr_t          ulRetAddr;
 
-    pregctx->REG_uiEIP -= 1;                                            /*  回退到前一个字节的 INT3 指令*/
+    pregctx->REG_XIP -= 1;                                               /*  回退到前一个字节的 INT3 指令*/
 
-    ulRetAddr = pregctx->REG_uiEIP;
+    ulRetAddr = pregctx->REG_XIP;
 
 #if LW_CFG_GDB_EN > 0
     UINT  uiBpType = archDbgTrapType(ulRetAddr, X86_DBG_TRAP_BP);       /*  断点指令探测                */
@@ -335,20 +332,20 @@ static VOID  x86BreakPointExceptHandle (UINT32  uiX86Vector, UINT32  uiESP)
 /*********************************************************************************************************
 ** 函数名称: x86DebugExceptHandle
 ** 功能描述: 单步断点异常处理函数
-** 输　入  : uiX86Vector   x86 异常向量
-**           uiESP         异常保存上下文后的 ESP
+** 输　入  : ulX86Vector   x86 异常向量
+**           ulESP         异常保存上下文后的 ESP
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  x86DebugExceptHandle (UINT32  uiX86Vector, UINT32  uiESP)
+static VOID  x86DebugExceptHandle (ULONG  ulX86Vector, ULONG  ulESP)
 {
-    ARCH_REG_CTX   *pregctx = (ARCH_REG_CTX *)uiESP;
+    ARCH_REG_CTX   *pregctx = (ARCH_REG_CTX *)ulESP;
     PLW_CLASS_TCB   ptcbCur;
     LW_VMM_ABORT    abtInfo;
     addr_t          ulRetAddr;
 
-    ulRetAddr = pregctx->REG_uiEIP;
+    ulRetAddr = pregctx->REG_XIP;
 
 #if LW_CFG_GDB_EN > 0
     UINT  uiBpType = archDbgTrapType(ulRetAddr, X86_DBG_TRAP_STEP);     /*  断点指令探测                */
@@ -368,14 +365,14 @@ static VOID  x86DebugExceptHandle (UINT32  uiX86Vector, UINT32  uiESP)
 /*********************************************************************************************************
 ** 函数名称: x86IrqHandle
 ** 功能描述: IRQ 中断处理函数
-** 输　入  : uiX86Vector   x86 中断向量
+** 输　入  : ulX86Vector   x86 中断向量
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  x86IrqHandle (UINT32  uiX86Vector)
+static VOID  x86IrqHandle (ULONG  ulX86Vector)
 {
-    ULONG  ulVector = uiX86Vector - X86_IRQ_BASE;                       /*  x86 Vector 转 SylixOS Vector*/
+    ULONG  ulVector = ulX86Vector - X86_IRQ_BASE;                       /*  x86 Vector 转 SylixOS Vector*/
 
     bspIntHandle(ulVector);
 }
@@ -389,14 +386,14 @@ static VOID  x86IrqHandle (UINT32  uiX86Vector)
 *********************************************************************************************************/
 VOID  x86ExceptIrqInit (VOID)
 {
-    UINT32  uiX86Vector;
+    ULONG  ulX86Vector;
 
-    for (uiX86Vector = X86_EXCEPT_BASE; uiX86Vector <= X86_EXCEPT_MAX; uiX86Vector++) {
-        _G_pfuncX86IntHandleArray[uiX86Vector] = x86DefaultExceptHandle;
+    for (ulX86Vector = X86_EXCEPT_BASE; ulX86Vector <= X86_EXCEPT_MAX; ulX86Vector++) {
+        _G_pfuncX86IntHandleArray[ulX86Vector] = x86DefaultExceptHandle;
     }
 
-    for (uiX86Vector = X86_IRQ_BASE; uiX86Vector <= X86_IRQ_MAX; uiX86Vector++) {
-        _G_pfuncX86IntHandleArray[uiX86Vector] = (X86_INT_HANDLER)x86IrqHandle;
+    for (ulX86Vector = X86_IRQ_BASE; ulX86Vector <= X86_IRQ_MAX; ulX86Vector++) {
+        _G_pfuncX86IntHandleArray[ulX86Vector] = (X86_INT_HANDLER)x86IrqHandle;
     }
 
     _G_pfuncX86IntHandleArray[X86_EXCEPT_PAGE_FAULT]     = x86PageFaultExceptHandle;
@@ -410,12 +407,12 @@ VOID  x86ExceptIrqInit (VOID)
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
     _G_pfuncX86IntHandleArray[X86_EXCEPT_DEVICE_NOT_AVAILABLE] = x86DeviceNotAvailExceptHandle;
 
-    for (uiX86Vector = X86_EXCEPT_BASE; uiX86Vector <= X86_EXCEPT_MAX; uiX86Vector++) {
-        x86IdtSetHandler(uiX86Vector, _G_ulX86IntEntryArray[uiX86Vector], 0);
+    for (ulX86Vector = X86_EXCEPT_BASE; ulX86Vector <= X86_EXCEPT_MAX; ulX86Vector++) {
+        x86IdtSetHandler(ulX86Vector, _G_ulX86IntEntryArray[ulX86Vector], 0);
     }
 
-    for (uiX86Vector = X86_IRQ_BASE; uiX86Vector <= X86_IRQ_MAX; uiX86Vector++) {
-        x86IdtSetHandler(uiX86Vector, _G_ulX86IntEntryArray[uiX86Vector], 0);
+    for (ulX86Vector = X86_IRQ_BASE; ulX86Vector <= X86_IRQ_MAX; ulX86Vector++) {
+        x86IdtSetHandler(ulX86Vector, _G_ulX86IntEntryArray[ulX86Vector], 0);
     }
 }
 /*********************************************************************************************************

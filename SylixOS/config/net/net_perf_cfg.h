@@ -56,8 +56,14 @@
 #define LW_CFG_LWIP_JOBQUEUE_NUM        2                               /*  可使能多个 netjob 并行工作  */
 #define LW_CFG_LWIP_JOBQUEUE_SIZE       1024                            /*  sylixos job queue size      */
 
+#if LW_CFG_CPU_WORD_LENGHT == 32
 #define LW_CFG_LWIP_JOBQUEUE_STK_SIZE   4096                            /*  job queue stksize           */
 #define LW_CFG_LWIP_DEF_STK_SIZE        8192                            /*  lwip thread default stksize */
+
+#else
+#define LW_CFG_LWIP_JOBQUEUE_STK_SIZE   8192                            /*  job queue stksize           */
+#define LW_CFG_LWIP_DEF_STK_SIZE        16384                           /*  lwip thread default stksize */
+#endif
 
 /*********************************************************************************************************
   TCP 设置 

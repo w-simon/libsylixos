@@ -35,17 +35,7 @@
     IMPORT_LABEL(API_InterExit)
     IMPORT_LABEL(_G_pfuncX86IntHandleArray)
 
-    EXPORT_LABEL(x86GetCr2)
     EXPORT_LABEL(_G_ulX86IntEntryArray)
-
-;/*********************************************************************************************************
-;  获取 CR2 寄存器
-;*********************************************************************************************************/
-
-FUNC_DEF(x86GetCr2)
-    MOVL    %CR2 , %EAX
-    RET
-    FUNC_END(x86GetCr2)
 
 ;/*********************************************************************************************************
 ;  异常/中断入口函数
@@ -105,7 +95,7 @@ FUNC_DEF(x86GetCr2)
 FUNC_DEF(x86IntEntry\Id)
     INT_SAVE_REGS_FAKE_ERRNO                                            ;/*  所有寄存器入栈              */
 
-    MOVL    %ESP , %ESI
+    MOVL    %ESP , %ESI                                                 ;/*  使用 %ESI 来记录 %ESP       */
 
     ;/*
     ; *  if (API_InterEnter() == 1) {
@@ -155,7 +145,7 @@ FUNC_DEF(x86IntEntry\Id)
 FUNC_DEF(x86IntEntry\Id)
     INT_SAVE_REGS_HW_ERRNO                                              ;/*  所有寄存器入栈              */
 
-    MOVL    %ESP , %ESI
+    MOVL    %ESP , %ESI                                                 ;/*  使用 %ESI 来记录 %ESP       */
 
     ;/*
     ; *  if (API_InterEnter() == 1) {
@@ -192,8 +182,8 @@ FUNC_DEF(x86IntEntry\Id)
 ;  异常/中断入口函数数组
 ;*********************************************************************************************************/
 
-    .section ".rodata"
-    .p2align 2
+    SECTION(.rodata)
+    .p2align    2                                                       ;/*  2^2 = 4 字节对齐            */
 
 LINE_LABEL(_G_ulX86IntEntryArray)
     .irp        Id,                                   \
@@ -225,7 +215,7 @@ LINE_LABEL(_G_ulX86IntEntryArray)
     240, 241, 242, 243, 244, 245, 246, 247, 248, 249, \
     250, 251, 252, 253, 254, 255
 
-    .LONG       (x86IntEntry\Id)
+    .LONG       (x86IntEntry\Id)                                        ;/*  LONG 型是 32 位宽度         */
 
     .endr
 

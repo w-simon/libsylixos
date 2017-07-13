@@ -51,9 +51,9 @@ extern LW_OBJECT_HANDLE    _K_ulInterShowLock;
 *********************************************************************************************************/
 #if LW_CFG_CPU_WORD_LENGHT == 64
 static const CHAR   _G_cInterInfoHdr1[] = "\n\
- IRQ      NAME            ENTRY           CLEAR            PARAM       ENABLE RND PREEMPT";
+ IRQ      NAME          ENTRY         CLEAR         PARAM     ENABLE RND PREEMPT";
 static const CHAR   _G_cInterInfoHdr2[] = "\n\
----- -------------- ---------------- ---------------- ---------------- ------ --- -------";
+---- -------------- ------------- ------------- ------------- ------ --- -------";
 #else
 static const CHAR   _G_cInterInfoHdr1[] = "\n\
  IRQ      NAME       ENTRY    CLEAR    PARAM   ENABLE RND PREEMPT";
@@ -134,7 +134,7 @@ VOID   API_InterShow (ULONG  ulCPUStart, ULONG  ulCPUEnd)
             piaction = _LIST_ENTRY(plineTemp, LW_CLASS_INTACT, IACT_plineManage);
 
 #if LW_CFG_CPU_WORD_LENGHT == 64
-            printf("%4ld %-14s %16lx %16lx %16lx %-6s %-3s %-7s ",
+            printf("%4ld %-14s %13lx %13lx %13lx %-6s %-3s %-7s ",
 #else
             printf("%4ld %-14s %8lx %8lx %8lx %-6s %-3s %-7s ",
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT adj  */

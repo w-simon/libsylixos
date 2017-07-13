@@ -297,9 +297,9 @@ VOID  *AcpiOsAllocate (ACPI_SIZE  Size)
         CHAR  *pcNewPtr;
 
         /*
-         * 保证返回的每个 Pointer 8 字节对齐
+         * 保证返回的每个 Pointer 2 倍 sizeof(size_t) 大小字节对齐
          */
-        Size = ROUND_UP(Size, 8);
+        Size = ROUND_UP(Size, (2 * sizeof(size_t)));
 
         if (Size > _G_stAcpiOsHeapMaxAlloc) {
             _G_stAcpiOsHeapMaxAlloc = Size;
@@ -894,12 +894,10 @@ VOID  AcpiOsVprintf (const CHAR  *Fmt, va_list  Args)
 {
     CHAR  Buffer[256];
 
-	vsprintf(Buffer, Fmt, Args);
+    vsnprintf(Buffer, sizeof(Buffer), Fmt, Args);
 
     if (LW_SYS_STATUS_IS_RUNNING()) {
         printk("ACPI: %s", Buffer);
-    } else {
-        bspDebugMsg(Buffer);
     }
 }
 

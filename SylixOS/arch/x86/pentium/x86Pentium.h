@@ -26,6 +26,13 @@
   MSR 定义
 *********************************************************************************************************/
 #define X86_MSR_APICBASE            0x001b                              /*  Local APIC base reg         */
+
+#define X86_MSR_IA32_EFER           0xc0000080
+#define X86_MSR_IA32_STAR           0xc0000081
+#define X86_MSR_IA32_LSTAR          0xc0000082
+#define X86_MSR_IA32_FMASK          0xc0000084
+#define X86_MSR_IA32_GS_BASE        0xc0000101
+#define X86_MSR_IA32_KERNEL_GS_BASE 0xc0000102
 /*********************************************************************************************************
   MTRR MSR 定义
 *********************************************************************************************************/
@@ -75,8 +82,15 @@
 #define X86_MTRR_FIX_SUPPORT        0x00000100
 #define X86_MTRR_WC_SUPPORT         0x00000400
 /*********************************************************************************************************
+ IA32_EFER 相关宏定义
+*********************************************************************************************************/
+#define X86_IA32_EFER_NXE           0x00000800                      /*  Execute-disable bit enable      */
+#define X86_IA32_EFER_LME           0x00000100                      /*  Enables IA-32e mode operation.  */
+/*********************************************************************************************************
   数据类型定义
 *********************************************************************************************************/
+#ifndef ASSEMBLY
+
 typedef struct {
     INT32           MSR_iAddr;                                      /*  Address of the MSR              */
     PCHAR           MSR_pcName;                                     /*  Name of the MSR                 */
@@ -112,6 +126,8 @@ VOID  x86PentiumMtrrEnable(VOID);
 VOID  x86PentiumMtrrDisable(VOID);
 INT   x86PentiumMtrrGet(PX86_MTRR  pMtrr);
 INT   x86PentiumMtrrSet(PX86_MTRR  pMtrr);
+
+#endif                                                              /*  ASSEMBLY                        */
 
 #endif                                                              /*  __X86_PENTIUM_H                 */
 /*********************************************************************************************************

@@ -32,7 +32,7 @@
 *********************************************************************************************************/
 static const CHAR   cMipsCore[] = \
         "l<?xml version=\"1.0\"?>"
-        "<!-- Copyright (C) 2006-2016 SylixOS Group."
+        "<!-- Copyright (C) 2006-2017 ACOINFO co.,ltd."
              "Copying and distribution of this file, with or without modification,"
              "are permitted in any medium without royalty provided the copyright"
              "notice and this notice are preserved.  -->"

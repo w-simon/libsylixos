@@ -256,15 +256,15 @@ VOID  archTaskCtxShow (INT  iFd, PLW_STACK  pstkTop)
         fdprintf(iFd, "R29 = 0x%08x\n", pregctx->REG_uiR29);
 
         fdprintf(iFd, "R30 = 0x%08x  ", pregctx->REG_uiR30);
-        fdprintf(iFd, "R31 = 0x%08x\n", pregctx->REG_uiFp);                 /*  R31 == FP                   */
+        fdprintf(iFd, "R31 = 0x%08x\n", pregctx->REG_uiFp);             /*  R31 == FP                   */
 
         fdprintf(iFd, "FP  = 0x%08x  ", pregctx->REG_uiFp);
-        fdprintf(iFd, "SP  = 0x%08x\n", (ARCH_REG_T)pstkTop);               /*  异常压栈后的 SP             */
+        fdprintf(iFd, "SP  = 0x%08x\n", (ARCH_REG_T)pstkTop);           /*  异常压栈后的 SP             */
 
         fdprintf(iFd, "LR  = 0x%08x  ", pregctx->REG_uiLr);
-        fdprintf(iFd, "PC  = 0x%08x\n", pregctx->REG_uiSrr0);               /*  异常时的 PC                 */
+        fdprintf(iFd, "PC  = 0x%08x\n", pregctx->REG_uiSrr0);           /*  异常时的 PC                 */
 
-        fdprintf(iFd, "MSR = 0x%08x  ", pregctx->REG_uiSrr1);               /*  异常时的 MSR                */
+        fdprintf(iFd, "MSR = 0x%08x  ", pregctx->REG_uiSrr1);           /*  异常时的 MSR                */
         fdprintf(iFd, "CR  = 0x%08x\n", pregctx->REG_uiCr);
 
         fdprintf(iFd, "CTR = 0x%08x  ", pregctx->REG_uiCtr);

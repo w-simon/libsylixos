@@ -45,15 +45,13 @@
     EXPORT_LABEL(x86FpuSseXExtRestore)
     EXPORT_LABEL(x86FpuSseEnableYMMState)
 
-    EXPORT_LABEL(x86Cr4Get)
-    EXPORT_LABEL(x86Cr4Set)
-
 ;/*********************************************************************************************************
 ;  初始化 FPU
 ;  i386 使用 387 协处理器, 后面的 CPU 都使用 487 协处理器, NS486 无 FPU, 调用该函数时, 上层已经确定有 FPU
 ;*********************************************************************************************************/
 
 FUNC_DEF(x86FpuSseInit)
+    CLTS
     FNINIT
     MOVL    $0 , %EDX
     FNSTCW  (%EDX)
@@ -217,8 +215,8 @@ FUNC_LABEL(x86FpuSseXExtRestore)
     ENABLE_FPU
     MOVL    X86_SP_ARG1(%ESP) , %ECX                        ;/*  From where to restore registers         */
 
-    MOVL    $0 , %EDX                                       ;/*  EDX:EAX define the state to be saved    */
-    MOVL    $7 , %EAX                                       ;/*  7 - Saves FPU, XMY and YMM state        */
+    MOVL    $0 , %EDX                                       ;/*  EDX:EAX define the state to be restore  */
+    MOVL    $7 , %EAX                                       ;/*  7 - Restore FPU, XMY and YMM state      */
 
     XRSTOR  (%ECX)
     RET
@@ -230,26 +228,11 @@ FUNC_END(x86FpuSseXExtRestore)
 
 FUNC_DEF(x86FpuSseEnableYMMState)
     MOVL    $0 , %ECX                                       ;/*  Select XCR0                             */
-    MOVL    $0 , %EDX                                       ;/*  EDX:EAX define the state to be saved    */
-    MOVL    $7 , %EAX                                       ;/*  7 - Saves FPU, XMY and YMM state        */
+    MOVL    $0 , %EDX                                       ;/*  EDX:EAX define the state to be enable   */
+    MOVL    $7 , %EAX                                       ;/*  7 - Enable FPU, XMY and YMM state       */
     XSETBV
     RET
     FUNC_END(x86FpuSseEnableYMMState)
-
-;/*********************************************************************************************************
-;  CR4 寄存器设置和获取
-;*********************************************************************************************************/
-
-FUNC_DEF(x86Cr4Get)
-    MOVL    %CR4 , %EAX
-    RET
-    FUNC_END(x86Cr4Get)
-
-FUNC_DEF(x86Cr4Set)
-    MOVL    X86_SP_ARG1(%ESP) , %EAX
-    MOVL    %EAX , %CR4
-    RET
-    FUNC_END(x86Cr4Set)
 
     FILE_END()
 

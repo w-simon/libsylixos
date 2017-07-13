@@ -24,6 +24,7 @@
   裁剪支持
 *********************************************************************************************************/
 #if LW_CFG_VMM_EN > 0
+#include "arch/x86/common/x86Cr.h"
 /*********************************************************************************************************
   PDPTE PDE PTE 中的位定义
 *********************************************************************************************************/
@@ -46,7 +47,7 @@
 #define X86_MMU_PCD_NO              (0)
 #define X86_MMU_PCD_SHIFT           (4)
 
-#define X86_MMU_A                   (1)                                 /*  可访问                      */
+#define X86_MMU_A                   (1)                                 /*  访问过                      */
 #define X86_MMU_A_NO                (0)
 #define X86_MMU_A_SHIFT             (5)
 
@@ -78,7 +79,7 @@
 /*********************************************************************************************************
   页面数大于其 1/2 时, 全清 TLB
 *********************************************************************************************************/
-#define X86_MMU_TLB_NR              (32)
+#define X86_MMU_TLB_NR              (64)                                /*  Intel x86 vol 3 Table 11-1  */
 /*********************************************************************************************************
   外部函数声明
 *********************************************************************************************************/
@@ -88,9 +89,7 @@ extern VOID  x86MmuInvalidateTLBMVA(PVOID  pvAddr);
 extern VOID  x86MmuEnable(VOID);
 extern VOID  x86MmuDisable(VOID);
 
-extern VOID  x86MmuSetCr3(UINT32);
-
-extern VOID  x86DCacheFlush(PVOID  pvStart, UINT32  uiSize);
+extern VOID  x86DCacheFlush(PVOID  pvStart, size_t  stSize);
 /*********************************************************************************************************
   全局变量定义
 *********************************************************************************************************/
@@ -235,8 +234,7 @@ static LW_PGD_TRANSENTRY  x86MmuBuildPgdesc (UINT32  uiBaseAddr,
                  | (ucRW  << X86_MMU_RW_SHIFT)
                  | (ucUS  << X86_MMU_US_SHIFT)
                  | (ucPWT << X86_MMU_PWT_SHIFT)
-                 | (ucPCD << X86_MMU_PCD_SHIFT)
-                 | (ucA   << X86_MMU_A_SHIFT);
+                 | (ucPCD << X86_MMU_PCD_SHIFT);
 
     return  (uiDescriptor);
 }
@@ -267,8 +265,7 @@ static LW_PTE_TRANSENTRY  x86MmuBuildPtentry (UINT32  uiBaseAddr,
                  | (ucRW  << X86_MMU_RW_SHIFT)
                  | (ucUS  << X86_MMU_US_SHIFT)
                  | (ucPWT << X86_MMU_PWT_SHIFT)
-                 | (ucPCD << X86_MMU_PCD_SHIFT)
-                 | (ucA   << X86_MMU_A_SHIFT);
+                 | (ucPCD << X86_MMU_PCD_SHIFT);
 
     return  (uiDescriptor);
 }
@@ -575,11 +572,11 @@ static ULONG  x86MmuFlagGet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr)
         LW_PTE_TRANSENTRY   uiDescriptor = *p_pteentry;                 /*  获得二级描述符              */
 
         if (x86MmuPteIsOk(uiDescriptor)) {                              /*  二级描述符有效              */
-            ucRW  = (UINT8)((uiDescriptor >> X86_MMU_RW_SHIFT)  & 0x01);
-            ucUS  = (UINT8)((uiDescriptor >> X86_MMU_US_SHIFT)  & 0x01);
-            ucPWT = (UINT8)((uiDescriptor >> X86_MMU_PWT_SHIFT) & 0x01);
-            ucPCD = (UINT8)((uiDescriptor >> X86_MMU_PCD_SHIFT) & 0x01);
-            ucA   = (UINT8)((uiDescriptor >> X86_MMU_A_SHIFT)   & 0x01);
+            ucRW  = (UINT8)((uiDescriptor >> X86_MMU_RW_SHIFT)      & 0x01);
+            ucUS  = (UINT8)((uiDescriptor >> X86_MMU_US_SHIFT)      & 0x01);
+            ucPWT = (UINT8)((uiDescriptor >> X86_MMU_PWT_SHIFT)     & 0x01);
+            ucPCD = (UINT8)((uiDescriptor >> X86_MMU_PCD_SHIFT)     & 0x01);
+            ucA   = (UINT8)((uiDescriptor >> X86_MMU_PRESENT_SHIFT) & 0x01);
 
             x86MmuAttr2Flags(ucRW, ucUS, ucPWT, ucPCD, ucA, &ulFlag);
 
@@ -682,7 +679,7 @@ static VOID  x86MmuMakeCurCtx (PLW_MMU_CONTEXT  pmmuctx)
     uiCr3Val |= X86_MMU_PWT_NO << X86_MMU_PWT_SHIFT;
     uiCr3Val |= X86_MMU_PCD_NO << X86_MMU_PCD_SHIFT;
 
-    x86MmuSetCr3(uiCr3Val);
+    x86Cr3Set(uiCr3Val);
 }
 /*********************************************************************************************************
 ** 函数名称: x86MmuInvTLB

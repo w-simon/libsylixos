@@ -27,6 +27,7 @@
 #if LW_CFG_CPU_FPU_EN > 0
 #include "../x86Fpu.h"
 #include "arch/x86/common/x86CpuId.h"
+#include "arch/x86/common/x86Cr.h"
 /*********************************************************************************************************
   宏定义
 *********************************************************************************************************/
@@ -70,6 +71,8 @@ static X86_FPU_OP   _G_fpuopFpuSse;
 /*********************************************************************************************************
   FP non-control register name and offset
 *********************************************************************************************************/
+#if LW_KERN_FLOATING > 0
+
 static FPU_REG_INFO _G_fpRegName[] = {
     { "st/mm0",      FPREG_FPX(0) },
     { "st/mm1",      FPREG_FPX(1) },
@@ -95,6 +98,8 @@ static FPU_REG_INFO _G_fpXRegName[] = {
     { "st/mm7",      FPXREG_FPX(7) },
     { LW_NULL,       0             },
 };
+
+#endif                                                                  /*  LW_KERN_FLOATING > 0        */
 /*********************************************************************************************************
   FP control register name and offset
 *********************************************************************************************************/
@@ -127,7 +132,9 @@ static FPU_REG_INFO _G_fpXCtrlRegName [] = {
 };
 
 static CPCHAR       _G_pcFpuTaskRegsCFmt = "%-6.6s = %8x";
+#if LW_KERN_FLOATING > 0
 static CPCHAR       _G_pcFpuTaskRegsDFmt = "%-6.6s = %8g";
+#endif                                                                  /*  LW_KERN_FLOATING > 0        */
 /*********************************************************************************************************
   实现函数
 *********************************************************************************************************/
@@ -146,9 +153,6 @@ extern VOID     x86FpuSseXRestore(PVOID  pFpuCtx);
 extern VOID     x86FpuSseXExtSave(PVOID     pFpuCtx);
 extern VOID     x86FpuSseXExtRestore(PVOID  pFpuCtx);
 extern VOID     x86FpuSseEnableYMMState(VOID);
-
-extern UINT32   x86Cr4Get(VOID);
-extern VOID     x86Cr4Set(UINT32  uiCr4Value);
 /*********************************************************************************************************
 ** 函数名称: x86SseCtxShow
 ** 功能描述: 显示 SSE 上下文
@@ -192,6 +196,32 @@ static VOID  x86SseCtxShow (INT  iFd, ARCH_FPU_CTX  *pcpufpuCtx)
     pInt = (UINT32 *)&(pfpuXCtx->XCTX_xmm[7]);
     fdprintf(iFd, "xmm7   = %08x_%08x_%08x_%08x\n", pInt[3], pInt[2], pInt[1], pInt[0]);
 
+#if LW_CFG_CPU_WORD_LENGHT == 64
+    pInt = (UINT32 *)&(pfpuXCtx->XCTX_xmm[8]);
+    fdprintf(iFd, "xmm8   = %08x_%08x_%08x_%08x\n", pInt[3], pInt[2], pInt[1], pInt[0]);
+
+    pInt = (UINT32 *)&(pfpuXCtx->XCTX_xmm[9]);
+    fdprintf(iFd, "xmm9   = %08x_%08x_%08x_%08x\n", pInt[3], pInt[2], pInt[1], pInt[0]);
+
+    pInt = (UINT32 *)&(pfpuXCtx->XCTX_xmm[10]);
+    fdprintf(iFd, "xmm10  = %08x_%08x_%08x_%08x\n", pInt[3], pInt[2], pInt[1], pInt[0]);
+
+    pInt = (UINT32 *)&(pfpuXCtx->XCTX_xmm[11]);
+    fdprintf(iFd, "xmm11  = %08x_%08x_%08x_%08x\n", pInt[3], pInt[2], pInt[1], pInt[0]);
+
+    pInt = (UINT32 *)&(pfpuXCtx->XCTX_xmm[12]);
+    fdprintf(iFd, "xmm12  = %08x_%08x_%08x_%08x\n", pInt[3], pInt[2], pInt[1], pInt[0]);
+
+    pInt = (UINT32 *)&(pfpuXCtx->XCTX_xmm[13]);
+    fdprintf(iFd, "xmm13  = %08x_%08x_%08x_%08x\n", pInt[3], pInt[2], pInt[1], pInt[0]);
+
+    pInt = (UINT32 *)&(pfpuXCtx->XCTX_xmm[14]);
+    fdprintf(iFd, "xmm14  = %08x_%08x_%08x_%08x\n", pInt[3], pInt[2], pInt[1], pInt[0]);
+
+    pInt = (UINT32 *)&(pfpuXCtx->XCTX_xmm[15]);
+    fdprintf(iFd, "xmm15  = %08x_%08x_%08x_%08x\n", pInt[3], pInt[2], pInt[1], pInt[0]);
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 64*/
+
     if (X86_FEATURE_HAS_AVX && X86_FEATURE_HAS_XSAVE) {
         for (i = 0; i < 16; i += 4) {
             for (j = 0; j < 4; j++) {
@@ -222,6 +252,32 @@ static VOID  x86SseCtxShow (INT  iFd, ARCH_FPU_CTX  *pcpufpuCtx)
 
         pInt1 = (UINT32 *)&(pfpuXExtCtx->ECTX_ymm[7]);
         fdprintf(iFd, "ymm7   = %08x_%08x_%08x_%08x\n", pInt1[3], pInt1[2], pInt1[1], pInt1[0]);
+
+#if LW_CFG_CPU_WORD_LENGHT == 64
+        pInt1 = (UINT32 *)&(pfpuXExtCtx->ECTX_ymm[8]);
+        fdprintf(iFd, "ymm8   = %08x_%08x_%08x_%08x\n", pInt1[3], pInt1[2], pInt1[1], pInt1[0]);
+
+        pInt1 = (UINT32 *)&(pfpuXExtCtx->ECTX_ymm[9]);
+        fdprintf(iFd, "ymm9   = %08x_%08x_%08x_%08x\n", pInt1[3], pInt1[2], pInt1[1], pInt1[0]);
+
+        pInt1 = (UINT32 *)&(pfpuXExtCtx->ECTX_ymm[10]);
+        fdprintf(iFd, "ymm10  = %08x_%08x_%08x_%08x\n", pInt1[3], pInt1[2], pInt1[1], pInt1[0]);
+
+        pInt1 = (UINT32 *)&(pfpuXExtCtx->ECTX_ymm[11]);
+        fdprintf(iFd, "ymm11  = %08x_%08x_%08x_%08x\n", pInt1[3], pInt1[2], pInt1[1], pInt1[0]);
+
+        pInt1 = (UINT32 *)&(pfpuXExtCtx->ECTX_ymm[12]);
+        fdprintf(iFd, "ymm12  = %08x_%08x_%08x_%08x\n", pInt1[3], pInt1[2], pInt1[1], pInt1[0]);
+
+        pInt1 = (UINT32 *)&(pfpuXExtCtx->ECTX_ymm[13]);
+        fdprintf(iFd, "ymm13  = %08x_%08x_%08x_%08x\n", pInt1[3], pInt1[2], pInt1[1], pInt1[0]);
+
+        pInt1 = (UINT32 *)&(pfpuXExtCtx->ECTX_ymm[14]);
+        fdprintf(iFd, "ymm14  = %08x_%08x_%08x_%08x\n", pInt1[3], pInt1[2], pInt1[1], pInt1[0]);
+
+        pInt1 = (UINT32 *)&(pfpuXExtCtx->ECTX_ymm[15]);
+        fdprintf(iFd, "ymm15  = %08x_%08x_%08x_%08x\n", pInt1[3], pInt1[2], pInt1[1], pInt1[0]);
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 64*/
     }
 }
 
@@ -243,9 +299,11 @@ static VOID  x86FpuSseCtxShow (INT  iFd, PVOID  pFpuCtx)
     INT                     i;
     INT                    *piFpCtrlTemp;
     INT16                  *psFpXCtrlTemp;
+#if LW_KERN_FLOATING > 0
     X86_FPU_DOUBLEX        *pDxTemp;
     X86_FPU_DOUBLEX_SSE    *pDxSseTemp;
     double                  doubleTemp;
+#endif                                                                  /*  LW_KERN_FLOATING > 0        */
 
     /*
      * 打印浮点控制寄存器
@@ -279,6 +337,7 @@ static VOID  x86FpuSseCtxShow (INT  iFd, PVOID  pFpuCtx)
         }
     }
 
+#if LW_KERN_FLOATING > 0
     /*
      * 打印浮点数据寄存器
      */
@@ -310,6 +369,7 @@ static VOID  x86FpuSseCtxShow (INT  iFd, PVOID  pFpuCtx)
             fdprintf(iFd, _G_pcFpuTaskRegsDFmt, _G_fpRegName[i].REG_pcName, doubleTemp);
         }
     }
+#endif                                                                  /*  LW_KERN_FLOATING > 0        */
 
     fdprintf(iFd, "\n");
 

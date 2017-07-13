@@ -77,7 +77,11 @@ INT  x86MpApicInstInit (VOID)
 
 __begin:
     _G_pX86MpApicData = (X86_MP_APIC_DATA *)G_ulX86MpApicDataAddr;
+#if LW_CFG_CPU_WORD_LENGHT == 32
     _G_pX86MpApicData->MPAPIC_uiDataLoc = G_ulX86MpApicDataAddr;
+#else
+    _G_pX86MpApicData->MPAPIC_uiDataLoc = 0;
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
     _G_pX86MpApicData->MPAPIC_uiBootOpt = G_uiX86MpApicBootOpt;
 
     if (_G_pcX86EbdaStart == 0) {
@@ -101,7 +105,11 @@ __begin:
         INT  iError;
 
         lib_bzero((CHAR *)G_ulX86MpApicDataAddr, MPAPIC_DATA_MAX_SIZE);
+#if LW_CFG_CPU_WORD_LENGHT == 32
         _G_pX86MpApicData->MPAPIC_uiDataLoc  = G_ulX86MpApicDataAddr;
+#else
+        _G_pX86MpApicData->MPAPIC_uiDataLoc  = 0;
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
         _G_pX86MpApicData->MPAPIC_uiDataSize = sizeof(X86_MP_APIC_DATA);
         _G_pX86MpApicData->MPAPIC_uiBootOpt  = G_uiX86MpApicBootOpt;
 

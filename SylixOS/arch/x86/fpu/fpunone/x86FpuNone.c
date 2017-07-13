@@ -72,7 +72,7 @@ static BOOL  x86FpuNoneIsEnable (VOID)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID  x86FpuNoneSave (PVOID pvFpuCtx)
+static VOID  x86FpuNoneSave (PVOID  pvFpuCtx)
 {
 }
 /*********************************************************************************************************
@@ -83,7 +83,7 @@ static VOID  x86FpuNoneSave (PVOID pvFpuCtx)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID  x86FpuNoneRestore (PVOID pvFpuCtx)
+static VOID  x86FpuNoneRestore (PVOID  pvFpuCtx)
 {
 }
 /*********************************************************************************************************
@@ -95,7 +95,7 @@ static VOID  x86FpuNoneRestore (PVOID pvFpuCtx)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID  x86FpuNoneCtxShow (INT iFd, PVOID pvFpuCtx)
+static VOID  x86FpuNoneCtxShow (INT  iFd, PVOID  pvFpuCtx)
 {
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_FIO_LIB_EN > 0)
     fdprintf(iFd, "no FPU\n");

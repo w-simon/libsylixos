@@ -196,10 +196,10 @@ VOID  archDbgBpAdjust (PVOID  pvDtrace, PVOID  pvtm)
 VOID  archDbgSetStepMode (ARCH_REG_CTX  *pregctx, BOOL  bEnable)
 {
     if (bEnable) {
-        pregctx->REG_uiEFLAGS |= X86_EFLAGS_TF;                         /*  step mode                   */
+        pregctx->REG_XFLAGS |= X86_EFLAGS_TF;                           /*  step mode                   */
 
     } else {
-        pregctx->REG_uiEFLAGS &= ~X86_EFLAGS_TF;                        /*  normal mode                 */
+        pregctx->REG_XFLAGS &= ~X86_EFLAGS_TF;                          /*  normal mode                 */
     }
 }
 

@@ -35,7 +35,11 @@
 
 #define LW_CFG_SHELL_EN                         1                       /*  是否允许系统提供 tshell     */
 #define LW_CFG_SHELL_THREAD_OPTION              LW_OPTION_THREAD_STK_CHK/*  tshell 线程 option          */
+#if LW_CFG_CPU_WORD_LENGHT == 32
 #define LW_CFG_SHELL_THREAD_STK_SIZE            (32 * LW_CFG_KB_SIZE)   /*  tshell 线程堆栈大小         */
+#else
+#define LW_CFG_SHELL_THREAD_STK_SIZE            (64 * LW_CFG_KB_SIZE)   /*  tshell 线程堆栈大小         */
+#endif
 
 /*********************************************************************************************************
 *                                 SHELL 系统配置

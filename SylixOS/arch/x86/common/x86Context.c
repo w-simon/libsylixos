@@ -42,9 +42,7 @@ PLW_STACK  archTaskCtxCreate (PTHREAD_START_ROUTINE  pfuncTask,
     ARCH_REG_CTX       *pregctx;
     ARCH_FP_CTX        *pfpctx;
 
-    if ((addr_t)pstkTop & 0x7) {                                        /*  保证出栈后 CPU SP 8 字节对齐*/
-        pstkTop = (PLW_STACK)((addr_t)pstkTop - 4);                     /*  向低地址推进 4 字节         */
-    }
+    pstkTop = (PLW_STACK)ROUND_DOWN(pstkTop, 8);                        /*  保证出栈后 SP 8 字节对齐    */
 
     pfpctx  = (ARCH_FP_CTX  *)((PCHAR)pstkTop - sizeof(ARCH_FP_CTX));
     pregctx = (ARCH_REG_CTX *)((PCHAR)pstkTop - sizeof(ARCH_FP_CTX) - sizeof(ARCH_REG_CTX));
@@ -65,12 +63,12 @@ PLW_STACK  archTaskCtxCreate (PTHREAD_START_ROUTINE  pfuncTask,
     pregctx->REG_uiError = 0x00000000;                                  /*  ERROR CODE                  */
     pregctx->REG_uiEIP   = (ARCH_REG_T)pfuncTask;
 
-    pregctx->REG_uiCS = X86_BUILD_SEGMENT_REG_VALUE(0, LW_FALSE, X86_SEG_KCODE);
-    pregctx->REG_usDS = X86_BUILD_SEGMENT_REG_VALUE(0, LW_FALSE, X86_SEG_KDATA);
-    pregctx->REG_usES = X86_BUILD_SEGMENT_REG_VALUE(0, LW_FALSE, X86_SEG_KDATA);
-    pregctx->REG_usSS = X86_BUILD_SEGMENT_REG_VALUE(0, LW_FALSE, X86_SEG_KDATA);
-    pregctx->REG_usFS = X86_BUILD_SEGMENT_REG_VALUE(0, LW_FALSE, X86_SEG_KDATA);
-    pregctx->REG_usGS = X86_BUILD_SEGMENT_REG_VALUE(0, LW_FALSE, X86_SEG_KDATA);
+    pregctx->REG_uiCS = X86_CS_KERNEL;                                  /*  6 个段寄存器                */
+    pregctx->REG_usDS = X86_DS_KERNEL;
+    pregctx->REG_usES = X86_DS_KERNEL;
+    pregctx->REG_usSS = X86_DS_KERNEL;
+    pregctx->REG_usFS = X86_DS_KERNEL;
+    pregctx->REG_usGS = X86_DS_KERNEL;
 
     pregctx->REG_uiEFLAGS = X86_EFLAGS_IF;                              /*  设置中断使能位              */
 

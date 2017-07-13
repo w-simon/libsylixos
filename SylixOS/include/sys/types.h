@@ -108,10 +108,12 @@ typedef uint32_t    __uint32_t;
 #define ___int32_t_defined 1
 #endif
 
+#if LW_CFG_CPU_WORD_LENGHT == 32
 #ifndef ___int64_t_defined
 typedef int64_t     __int64_t;
 typedef uint64_t    __uint64_t;
 #define ___int64_t_defined 1
+#endif
 #endif
 
 #ifndef ___int_least8_t_defined
@@ -132,10 +134,12 @@ typedef uint_least32_t    __uint_least32_t;
 #define ___int_least32_t_defined 1
 #endif
 
+#if LW_CFG_CPU_WORD_LENGHT == 32
 #ifndef ___int_least64_t_defined
 typedef int_least64_t     __int_least64_t;
 typedef uint_least64_t    __uint_least64_t;
 #define ___int_least64_t_defined 1
+#endif
 #endif
 
 /*********************************************************************************************************

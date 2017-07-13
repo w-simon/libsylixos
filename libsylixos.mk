@@ -384,41 +384,66 @@ SylixOS/arch/x86/apic/x86LocalApicAsm.S \
 SylixOS/arch/x86/backtrace/x86Backtrace.c \
 SylixOS/arch/x86/bsp/bspLib.c \
 SylixOS/arch/x86/bsp/bspInt.c \
-SylixOS/arch/x86/bsp/bspTime.c \
 SylixOS/arch/x86/bsp/bspSmp.c \
+SylixOS/arch/x86/bsp/bspTime8254.c \
+SylixOS/arch/x86/bsp/bspTimeHpet.c \
 SylixOS/arch/x86/common/x86Assert.c \
-SylixOS/arch/x86/common/x86Context.c \
-SylixOS/arch/x86/common/x86ContextAsm.S \
 SylixOS/arch/x86/common/x86CpuId.c \
-SylixOS/arch/x86/common/x86CpuIdAsm.S \
 SylixOS/arch/x86/common/x86Exc.c \
-SylixOS/arch/x86/common/x86ExcAsm.S \
 SylixOS/arch/x86/common/x86Gdt.c \
 SylixOS/arch/x86/common/x86Idt.c \
-SylixOS/arch/x86/common/x86IoAsm.S \
 SylixOS/arch/x86/common/x86Lib.c \
-SylixOS/arch/x86/common/x86LibAsm.S \
 SylixOS/arch/x86/common/x86Topology.c \
 SylixOS/arch/x86/dbg/x86Dbg.c \
-SylixOS/arch/x86/dbg/x86Gdb.c \
-SylixOS/arch/x86/elf/x86Elf.c \
 SylixOS/arch/x86/fpu/fpunone/x86FpuNone.c \
 SylixOS/arch/x86/fpu/fpusse/x86FpuSse.c \
-SylixOS/arch/x86/fpu/fpusse/x86FpuSseAsm.S \
 SylixOS/arch/x86/fpu/x86Fpu.c \
 SylixOS/arch/x86/mm/cache/x86Cache.c \
-SylixOS/arch/x86/mm/cache/x86CacheAsm.S \
-SylixOS/arch/x86/mm/mmu/x86Mmu.c \
-SylixOS/arch/x86/mm/mmu/x86MmuAsm.S \
 SylixOS/arch/x86/mm/x86Cache.c \
 SylixOS/arch/x86/mm/x86Mmu.c \
 SylixOS/arch/x86/mpconfig/x86MpApic.c \
 SylixOS/arch/x86/mpcore/x86MpCore.c \
-SylixOS/arch/x86/mpcore/x86MpCoreAsm.S \
 SylixOS/arch/x86/mpcore/x86Spinlock.c \
 SylixOS/arch/x86/pentium/x86Pentium.c \
-SylixOS/arch/x86/pentium/x86PentiumAsm.S \
 SylixOS/arch/x86/param/x86Param.c
+
+ifeq ($(TOOLCHAIN_PREFIX), i386-sylixos-elf-)
+LOCAL_X86_SRCS += \
+SylixOS/arch/x86/dbg/x86Gdb.c \
+SylixOS/arch/x86/elf/x86Elf.c \
+SylixOS/arch/x86/common/x86ContextAsm.S \
+SylixOS/arch/x86/common/x86CpuIdAsm.S \
+SylixOS/arch/x86/common/x86ExcAsm.S \
+SylixOS/arch/x86/common/x86Context.c \
+SylixOS/arch/x86/common/x86IoAsm.S \
+SylixOS/arch/x86/common/x86LibAsm.S \
+SylixOS/arch/x86/common/x86CrAsm.S \
+SylixOS/arch/x86/fpu/fpusse/x86FpuSseAsm.S \
+SylixOS/arch/x86/mm/cache/x86CacheAsm.S \
+SylixOS/arch/x86/mm/mmu/x86Mmu.c \
+SylixOS/arch/x86/mm/mmu/x86MmuAsm.S \
+SylixOS/arch/x86/mpcore/x86MpCoreAsm.S \
+SylixOS/arch/x86/pentium/x86PentiumAsm.S
+endif
+
+ifeq ($(TOOLCHAIN_PREFIX), x86_64-sylixos-elf-)
+LOCAL_X86_SRCS += \
+SylixOS/arch/x86/dbg/x64Gdb.c \
+SylixOS/arch/x86/elf/x64Elf.c \
+SylixOS/arch/x86/common/x64/x64ContextAsm.S \
+SylixOS/arch/x86/common/x64/x64CpuIdAsm.S \
+SylixOS/arch/x86/common/x64/x64ExcAsm.S \
+SylixOS/arch/x86/common/x64/x64Context.c \
+SylixOS/arch/x86/common/x64/x64IoAsm.S \
+SylixOS/arch/x86/common/x64/x64LibAsm.S \
+SylixOS/arch/x86/common/x64/x64CrAsm.S \
+SylixOS/arch/x86/fpu/fpusse/x64FpuSseAsm.S \
+SylixOS/arch/x86/mm/cache/x64CacheAsm.S \
+SylixOS/arch/x86/mm/mmu/x64Mmu.c \
+SylixOS/arch/x86/mm/mmu/x64MmuAsm.S \
+SylixOS/arch/x86/mpcore/x64MpCoreAsm.S \
+SylixOS/arch/x86/pentium/x64PentiumAsm.S
+endif
 
 #*********************************************************************************************************
 # Buildin internal application source
@@ -708,6 +733,7 @@ SylixOS/kernel/interface/InterVectorConnect.c \
 SylixOS/kernel/interface/InterVectorEnable.c \
 SylixOS/kernel/interface/InterVectorFlag.c \
 SylixOS/kernel/interface/InterVectorIsr.c \
+SylixOS/kernel/interface/InterVectorMeasure.c \
 SylixOS/kernel/interface/KernelAtomic.c \
 SylixOS/kernel/interface/KernelFpu.c \
 SylixOS/kernel/interface/KernelGetKid.c \
@@ -1650,6 +1676,18 @@ $(OBJPATH)/libsylixos.a/SylixOS/arch/x86/fpu/fpusse/x86FpuSseAsm.o: ./SylixOS/ar
 		@if [ ! -d "$(dir $(__DEP))" ]; then \
 			mkdir -p "$(dir $(__DEP))"; fi
 		$(AS) $(X86_FPU_ASFLAGS) $($(__TARGET)_ASFLAGS_WITHOUT_FPUFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
+		
+#*********************************************************************************************************
+# compile x86-64 FPU source files
+#*********************************************************************************************************
+X64_FPU_ASFLAGS = -mhard-float
+
+$(OBJPATH)/libsylixos.a/SylixOS/arch/x86/fpu/fpusse/x64FpuSseAsm.o: ./SylixOS/arch/x86/fpu/fpusse/x64FpuSseAsm.S
+		@if [ ! -d "$(dir $@)" ]; then \
+			mkdir -p "$(dir $@)"; fi
+		@if [ ! -d "$(dir $(__DEP))" ]; then \
+			mkdir -p "$(dir $(__DEP))"; fi
+		$(AS) $(X64_FPU_ASFLAGS) $($(__TARGET)_ASFLAGS_WITHOUT_FPUFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
 
 include $(LIBSYLIXOS_MK)
 

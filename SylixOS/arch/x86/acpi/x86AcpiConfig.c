@@ -23,15 +23,13 @@
 #include "SylixOS.h"
 #include "x86AcpiLib.h"
 #include "arch/x86/mpconfig/x86MpApic.h"
+#include "sys/param.h"
 /*********************************************************************************************************
   ºê¶¨Òå
 *********************************************************************************************************/
 #define DEBUG_LEVEL                 ACPI_DEBUG_ENABLED ? ACPI_LV_RESOURCES : 0
 
-#define ROUNDUPLONG(arg)            ROUND_UP(arg, 4)
-
-#define MAX(arg1, arg2)             (arg1 > arg2) ? arg1 : arg2
-#define MIN(arg1, arg2)             (arg1 < arg2) ? arg1 : arg2
+#define ROUNDUPLONG(arg)            ROUND_UP(arg, sizeof(LONG))
 /*********************************************************************************************************
   Temporary storage size for pcMpLoApicIndexTbl and pMpApicBusTable
 *********************************************************************************************************/
@@ -385,7 +383,7 @@ static VOID  acpiLibIrqProcess (UINT8  *pucBuf, UINT8  ucSourceBusId, BOOL  bFil
 
             } else {
                 uiIrq = acpiLibIrqGet(pRoutingTable);
-                ucDestApicIntIn = (UINT8)(uiIrq & 0xFF);
+                ucDestApicIntIn = (UINT8)(uiIrq & 0xff);
             }
 
             if (!acpiLibIntIsDuplicate(ucSourceBusId, ucSourceBusIrq, ucDestApicId, ucDestApicIntIn)) {
@@ -1787,8 +1785,8 @@ VOID  x86AcpiMpTableShow (VOID)
     printf("\n/* X86_MP_APIC_DATA data structure */\n\n");
     printf("_G_pAcpiMpApicData[] =\n{\n");
 
-    printf("/* instance pointer (this field not used under 64 bits) */\n\n");
-    printf("0x%08x,\n\n", (UINT)_G_pAcpiMpApicData);
+    printf("/* instance pointer */\n\n");
+    printf("%p,\n\n", _G_pAcpiMpApicData);
 
     printf("/* MPAPIC_uiDataLoc: mem location of X86_MP_APIC_DATA */\n\n");
     printf("0x%08x,\n\n", *puiTable++);

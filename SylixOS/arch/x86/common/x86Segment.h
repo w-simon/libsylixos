@@ -50,9 +50,9 @@
 #ifndef ASSEMBLY
 
 #define X86_BUILD_SEGMENT_REG_VALUE(desc_privilege, in_ldt, seg_index) \
-     ((((desc_privilege) & 0x3)  << 0) \
-   |  (((in_ldt) ? 1 : 0)        << 2) \
-   |  ((seg_index)               << 3) )
+    ((((desc_privilege) & 0x3)  << 0) \
+   | (((in_ldt) ? 1 : 0)        << 2) \
+   | ((seg_index)               << 3))
 
 #else
 
@@ -63,11 +63,20 @@
 *********************************************************************************************************/
 
 #define X86_BUILD_SEGMENT_REG_VALUE(desc_privilege, in_ldt, seg_index) \
-    ((((desc_privilege) & 0x3)  << 0) \
-   |  ((in_ldt & 1)             << 2) \
-   |  ((seg_index)              << 3) )
+    ((((desc_privilege) & 0x3) << 0) \
+   | ((in_ldt & 1)             << 2) \
+   | ((seg_index)              << 3))
 
 #endif                                                                  /*  ASSEMBLY                    */
+
+/*********************************************************************************************************
+  ¶Î¼Ä´æÆ÷Öµ
+*********************************************************************************************************/
+
+#define X86_CS_KERNEL       X86_BUILD_SEGMENT_REG_VALUE(0, 0, X86_SEG_KCODE)
+#define X86_DS_KERNEL       X86_BUILD_SEGMENT_REG_VALUE(0, 0, X86_SEG_KDATA)
+#define X86_CS_USER         X86_BUILD_SEGMENT_REG_VALUE(3, 0, X86_SEG_UCODE)
+#define X86_DS_USER         X86_BUILD_SEGMENT_REG_VALUE(3, 0, X86_SEG_UDATA)
 
 #endif                                                                  /*  __ARCH_X86SEGMENT_H         */
 /*********************************************************************************************************

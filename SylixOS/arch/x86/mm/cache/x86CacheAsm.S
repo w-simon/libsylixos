@@ -47,10 +47,6 @@
 ;*********************************************************************************************************/
 
 FUNC_DEF(x86CacheResetHw)
-    MOVL    %CR0 , %EAX
-    ORL     $X86_CR0_CD , %EAX
-    ANDL    $X86_CR0_NW_NOT , %EAX
-    MOVL    %EAX , %CR0
     WBINVD                                                              ;/*  回写并无效                  */
     RET
     FUNC_END(x86CacheResetHw)
@@ -115,7 +111,6 @@ FUNC_DEF(x86CacheClearPen4Hw)
     ;/*
      ;* stBytes += ((addr_t)pvAdrs % _G_stX86CacheFlushBytes);
      ;*/
-
     MOVL    _G_stX86CacheFlushBytes , %EDX                              ;/*  Get stFlushBytes in EDX     */
     SUBL    $1 , %EDX                                                   ;/*  Create lowerbit mask        */
     ANDL    %EDX , %EAX                                                 ;/*  Get the lowerbit stRem      */
@@ -125,27 +120,24 @@ FUNC_DEF(x86CacheClearPen4Hw)
      ;* if ((stRem = stBytes % _G_stX86CacheFlushBytes) != 0)
      ;*     stBytes += (_G_stX86CacheFlushBytes - stRem);
      ;*/
-
     MOVL    %EDI , %ECX                                                 ;/*  Get stBytes in ECX          */
     ANDL    %EDX , %ECX                                                 ;/*  Get the lowerbit stRem      */
     JZ      __cachePen4Flush0                                           ;/*  Skip if (stRem == 0)        */
     SUBL    %ECX , %EDI                                                 ;/*  Sub the stRem from stBytes  */
     ADDL    _G_stX86CacheFlushBytes , %EDI                              ;/*  Add the flushBytes          */
 
+LINE_LABEL(__cachePen4Flush0)
     ;/*
      ;* ulLoopCount = stBytes / _G_stX86CacheFlushBytes;
      ;*/
-
-LINE_LABEL(__cachePen4Flush0)
     BSFL    _G_stX86CacheFlushBytes , %ECX                              ;/*  Find the LSB, ECX=[0-31]    */
     SHRL    %CL , %EDI                                                  ;/*  Shift right ECX bit         */
 
     ;/*
      ;* pvAdrs -= ((addr_t)pvAdrs % _G_stX86CacheFlushBytes);
      ;*/
-
     MOVL    (X86_SP_ARG1 + 4)(%ESP) , %EAX                              ;/*  Get pvAdrs in EAX           */
-    XORL    $0xFFFFFFFF , %EDX                                          ;/*  Create the upperbit mask    */
+    XORL    $0xffffffff , %EDX                                          ;/*  Create the upperbit mask    */
     ANDL    %EDX , %EAX                                                 ;/*  Get the upperbit            */
 
     ;/*
@@ -154,7 +146,6 @@ LINE_LABEL(__cachePen4Flush0)
      ;*   (addr_t)pvAdrs += _G_stX86CacheFlushBytes;
      ;* } while (ulLoopCount--);
      ;*/
-
     MOVL    %EDI , %ECX                                                 ;/*  Set the ulLoopCount         */
 
 LINE_LABEL(__cachePen4FlushLoop)

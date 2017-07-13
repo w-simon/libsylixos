@@ -49,7 +49,12 @@ struct x86_idt_entry {
     UINT8       dpl:2;                                  /*  14..13                                      */
     UINT8       present:1;                              /*  15                                          */
     UINT16      offset_high;                            /*  31..16                                      */
-} __attribute__ ((packed));
+
+#if LW_CFG_CPU_WORD_LENGHT == 64
+    UINT32      offset_high_63_32;
+    UINT32      reserved0;
+#endif                                                  /*  LW_CFG_CPU_WORD_LENGHT == 64                */
+} __attribute__ ((packed, aligned(8 * (LW_CFG_CPU_WORD_LENGHT / 32))));
 
 typedef struct x86_idt_entry        X86_IDT_ENTRY, *PX86_IDT_ENTRY;
 /*********************************************************************************************************
@@ -59,7 +64,7 @@ typedef struct x86_idt_entry        X86_IDT_ENTRY, *PX86_IDT_ENTRY;
 *********************************************************************************************************/
 struct x86_idt_register {
     UINT16      limit;
-    UINT32      base_addr;
+    addr_t      base_addr;
 } __attribute__ ((packed, aligned(8)));
 
 typedef struct x86_idt_register     X86_IDT_REG;
@@ -86,7 +91,7 @@ INT  x86IdtInit (VOID)
         /*
          * Setup an empty IDTE interrupt gate, see figure 5-2 in Intel x86 doc, vol 3
          */
-        pidte->seg_sel  = X86_BUILD_SEGMENT_REG_VALUE(0, LW_FALSE, X86_SEG_KCODE);
+        pidte->seg_sel  = X86_CS_KERNEL;
         pidte->reserved = 0;
         pidte->flags    = 0;
         pidte->type     = 0x6;                                          /*  Interrupt gate (110b)       */
@@ -106,7 +111,7 @@ INT  x86IdtInit (VOID)
     /*
      * Address of the IDT
      */
-    idtr.base_addr = (UINT32)_G_x86IDT;
+    idtr.base_addr = (addr_t)_G_x86IDT;
 
     /*
      * The limit is the maximum offset in bytes from the base address of the IDT
@@ -139,7 +144,7 @@ INT  x86IdtSecondaryInit (VOID)
     /*
      * Address of the IDT
      */
-    idtr.base_addr = (UINT32)_G_x86IDT;
+    idtr.base_addr = (addr_t)_G_x86IDT;
 
     /*
      * The limit is the maximum offset in bytes from the base address of the IDT
@@ -178,12 +183,18 @@ INT  x86IdtSetHandler (UINT8    ucX86Vector,
     if (ulHandlerAddr != (addr_t)LW_NULL) {
         pidte->offset_low  = ulHandlerAddr & 0xffff;
         pidte->offset_high = (ulHandlerAddr >> 16) & 0xffff;
+#if LW_CFG_CPU_WORD_LENGHT == 64
+        pidte->offset_high_63_32 = (ulHandlerAddr >> 32) & 0xffffffff;
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 64*/
         pidte->dpl         = iLowestPriviledge;
         pidte->present     = 1;                                         /*  Yes, there is a handler     */
 
     } else {                                                            /*  Disable this IDT entry      */
         pidte->offset_low  = 0;
         pidte->offset_high = 0;
+#if LW_CFG_CPU_WORD_LENGHT == 64
+        pidte->offset_high_63_32 = 0;
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 64*/
         pidte->dpl         = 0;
         pidte->present     = 0;                                         /*  No, there is no handler     */
     }

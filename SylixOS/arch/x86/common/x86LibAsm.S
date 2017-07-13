@@ -53,7 +53,7 @@
     WEAK(archIntEnableForce)
 
 ;/*********************************************************************************************************
-;  X86 ¹Ø±Õ×ÜÖÐ¶Ï
+;  x86 ¹Ø±Õ×ÜÖÐ¶Ï
 ;*********************************************************************************************************/
 
 FUNC_DEF(archIntDisable)
@@ -78,7 +78,7 @@ FUNC_DEF(archIntEnableForce)
     FUNC_END(archIntEnableForce)
     
 ;/*********************************************************************************************************
-;  X86 Ç°µ¼ÁãÔËËã
+;  x86 Ç°µ¼ÁãÔËËã
 ;*********************************************************************************************************/
 
 FUNC_DEF(archFindLsb)
@@ -131,13 +131,13 @@ LINE_LABEL(__archFindMsb)                                               ;/*  ÕÒµ
 MACRO_DEF(SAVE_NON_VOLATILE_REG)
     MOVL    X86_SP_ARG1(%ESP) , %EDX
 
-    MOVL    0(%ESP) , %EAX
+    MOVL    0(%ESP) , %EAX                                              ;/*  Õ»¶¥ÄÚÈÝÊÇ EIP              */
     MOVL    %EAX , _X86_EIP_OFFSET(%EDX)                                ;/*  ±£´æ EIP                    */
 
     PUSHFL
     POPL    _X86_EFLAGS_OFFSET(%EDX)                                    ;/*  ±£´æ EFLAGS                 */
 
-    MOVL    %EDI , _X86_EDI_OFFSET(%EDX)                                ;/*  ±£´æËùÓÐ¼Ä´æÆ÷              */
+    MOVL    %EDI , _X86_EDI_OFFSET(%EDX)                                ;/*  ±£´æ nonvolatile ¼Ä´æÆ÷     */
     MOVL    %ESI , _X86_ESI_OFFSET(%EDX)
 
     MOVL    %EBP , _X86_EBP_OFFSET(%EDX)
@@ -149,7 +149,7 @@ MACRO_DEF(SAVE_NON_VOLATILE_REG)
     MOVL    %EAX , _X86_CS_OFFSET(%EDX)                                 ;/*  ±£´æ CS                     */
 
     MOVL    %ESP , %EAX
-    ADDL    $4   , %EAX
+    ADDL    $4   , %EAX                                                 ;/*  EAX = EIP ³öÕ»ºóµÄ ESP      */
     MOVL    %EAX , _X86_ESP_OFFSET(%EDX)                                ;/*  ±£´æ ESP                    */
     MACRO_END()
 
@@ -163,7 +163,7 @@ MACRO_DEF(RESTORE_NON_VOLATILE_REG)
     MOVL    X86_SP_ARG1(%ESP) , %EDX
     MOVL    X86_SP_ARG2(%ESP) , %EAX
 
-    MOVL    _X86_EDI_OFFSET(%EDX) , %EDI
+    MOVL    _X86_EDI_OFFSET(%EDX) , %EDI                                ;/*  »Ö¸´ nonvolatile ¼Ä´æÆ÷     */
     MOVL    _X86_ESI_OFFSET(%EDX) , %ESI
 
     MOVL    _X86_EBP_OFFSET(%EDX) , %EBP
@@ -173,9 +173,9 @@ MACRO_DEF(RESTORE_NON_VOLATILE_REG)
 
     MOVL    _X86_ESP_OFFSET(%EDX) , %ESP                                ;/*  »Ö¸´ ESP                    */
 
-    PUSHL   _X86_EFLAGS_OFFSET(%EDX)                                    ;/*  ±£´æ EFLAGS                 */
-    PUSHL   _X86_CS_OFFSET(%EDX)                                        ;/*  ±£´æ CS                     */
-    PUSHL   _X86_EIP_OFFSET(%EDX)                                       ;/*  ±£´æ EIP                    */
+    PUSHL   _X86_EFLAGS_OFFSET(%EDX)                                    ;/*  Ñ¹Õ»±£´æµÄ EFLAGS           */
+    PUSHL   _X86_CS_OFFSET(%EDX)                                        ;/*  Ñ¹Õ»±£´æµÄ CS               */
+    PUSHL   _X86_EIP_OFFSET(%EDX)                                       ;/*  Ñ¹Õ»±£´æµÄ EIP(ºóÃæ»á IRET) */
     MACRO_END()
 
 ;/*********************************************************************************************************

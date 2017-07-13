@@ -632,13 +632,7 @@ VOID  x86CacheInit (LW_CACHE_OP  *pcacheop,
 *********************************************************************************************************/
 VOID  x86CacheReset (CPCHAR  pcMachineName)
 {
-#if LW_CFG_SMP_EN > 0
-    UINT8  ucApicId = x86LocalApicId();
-
-    if (!X86_APICID_IS_HT(ucApicId)) {                                  /*  仅物理 CPU 复位 CACHE       */
-        x86CacheResetHw();
-    }
-#else
+#if LW_CFG_SMP_EN == 0
     x86CacheResetHw();
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 }

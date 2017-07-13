@@ -22,64 +22,11 @@
 #ifndef __X86_ARCH_REGS_H
 #define __X86_ARCH_REGS_H
 
-#ifndef ASSEMBLY
-
-/*********************************************************************************************************
-  寄存器表
-*********************************************************************************************************/
-
-typedef UINT32      ARCH_REG_T;
-
-struct __ARCH_REG_CTX {
-    UINT16          REG_usGS;
-    UINT16          REG_usFS;
-    UINT16          REG_usES;
-    UINT16          REG_usDS;                                           /*  6 个段寄存器                */
-    UINT16          REG_usSS;
-    UINT16          REG_usPad;
-
-    UINT32          REG_uiEAX;                                          /*  4 个数据寄存器              */
-    UINT32          REG_uiEBX;
-    UINT32          REG_uiECX;
-    UINT32          REG_uiEDX;
-
-    UINT32          REG_uiESI;
-    UINT32          REG_uiEDI;                                          /*  2 个变址和指针寄存器        */
-    UINT32          REG_uiEBP;                                          /*  2 个指针寄存器(ESP 和 EBP)  */
-
-    UINT32          REG_uiError;                                        /*  ERROR CODE                  */
-    UINT32          REG_uiEIP;                                          /*  指令指针寄存器(EIP)         */
-    UINT32          REG_uiCS;                                           /*  代码段寄存器                */
-    UINT32          REG_uiEFLAGS;                                       /*  标志寄存器(EFlags)          */
-} __attribute__((packed));
-
-typedef struct __ARCH_REG_CTX   ARCH_REG_CTX;
-
-/*********************************************************************************************************
-  调用回溯堆栈表
-*********************************************************************************************************/
-
-typedef struct {
-    UINT32          FP_uiRetAddr;
-    UINT32          FP_uiArg;
-} ARCH_FP_CTX;
-
-/*********************************************************************************************************
-  从上下文中获取信息
-*********************************************************************************************************/
-
-#define ARCH_REG_CTX_GET_PC(ctx)    ((void *)(ctx).REG_uiEIP)
-#define ARCH_REG_CTX_GET_FRAME(ctx) ((void *)(ctx).REG_uiEBP)
-#define ARCH_REG_CTX_GET_STACK(ctx) ((void *)&(ctx))                    /*  不准确, 仅为了兼容性设计    */
-
-#endif
-
-/*********************************************************************************************************
-  堆栈中的寄存器信息所占大小
-*********************************************************************************************************/
-
-#define ARCH_REG_CTX_WORD_SIZE  14
-#define ARCH_STK_MIN_WORD_SIZE  128
+#if LW_CFG_CPU_WORD_LENGHT == 32
+#include "arch_regs32.h"
+#else
+#include "arch_regs64.h"
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
 
 #endif                                                                  /*  __X86_ARCH_REGS_H           */
 /*********************************************************************************************************

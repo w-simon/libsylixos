@@ -934,7 +934,7 @@ extern UINT        x86CpuIdMaxNumLProcsPerPkg(VOID);
 extern UINT        x86CpuIdMaxNumCoresPerPkg(VOID);
 extern UINT        x86CpuIdBitFieldWidth(UINT  iItemCount);
 extern UINT8       x86CpuIdInitialApicId(VOID);
-extern VOID        x86CpuIdProbe32(X86_CPUID  *pcpuid);
+extern VOID        x86CpuIdProbeHw(X86_CPUID  *pcpuid);
 
 #endif                                                                  /*  ASSEMBLY                    */
 

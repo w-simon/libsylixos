@@ -63,7 +63,7 @@ else
 $(target)_OMP_FLAGS   :=
 endif
 
-$(target)_CPUFLAGS    := $(CPUFLAGS_NOFPU)
+$(target)_CPUFLAGS    := $(CPUFLAGS_NOFPU) $(ARCH_KERNEL_CFLAGS)
 $(target)_COMMONFLAGS := $($(target)_CPUFLAGS) $(ARCH_COMMONFLAGS) $(OPTIMIZE) -Wall -fmessage-length=0 -fsigned-char -fno-short-enums -fno-strict-aliasing $($(target)_GCOV_FLAGS) $($(target)_OMP_FLAGS)
 $(target)_ASFLAGS     := $($(target)_COMMONFLAGS) -x assembler-with-cpp $($(target)_DSYMBOL) $($(target)_INC_PATH)
 $(target)_CFLAGS      := $($(target)_COMMONFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CFLAGS)
@@ -114,7 +114,7 @@ $($(target)_IMG): $(LOCAL_LD_SCRIPT_NT) $($(target)_OBJS) $($(target)_DEPEND_TAR
 		@rm -f $@
 		$(__PRE_LINK_CMD)
 		$(CPP) -E -P $(__DSYMBOL) config.ld -o config.lds
-		$(LD) $(__CPUFLAGS) -nostdlib $(addprefix -T, $<) -o $@ $(__OBJS) $(__LIBRARIES)
+		$(LD) $(__CPUFLAGS) $(ARCH_KERNEL_LDFLAGS) -nostdlib $(addprefix -T, $<) -o $@ $(__OBJS) $(__LIBRARIES)
 		$(__POST_LINK_CMD)
 
 #*********************************************************************************************************

@@ -32,6 +32,30 @@
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
 /*********************************************************************************************************
+  中断测量回调
+*********************************************************************************************************/
+#if LW_CFG_INTER_MEASURE_HOOK_EN > 0
+
+extern VOIDFUNCPTR  _K_pfuncInterVectorMeasureEnter;
+extern VOIDFUNCPTR  _K_pfuncInterVectorMeasureExit;
+
+#define INTER_VECTOR_MEASURE_ENTER(a, b, c, d)                  \
+        if (_K_pfuncInterVectorMeasureEnter) {                  \
+            LW_SOFUNC_PREPARE(_K_pfuncInterVectorMeasureEnter); \
+            _K_pfuncInterVectorMeasureEnter(a, b, c, d);        \
+        }
+#define INTER_VECTOR_MEASURE_EXIT(a, b, c, d)                   \
+        if (_K_pfuncInterVectorMeasureExit) {                   \
+            LW_SOFUNC_PREPARE(_K_pfuncInterVectorMeasureExit);  \
+            _K_pfuncInterVectorMeasureExit(a, b, c, d);         \
+        }
+#else
+
+#define INTER_VECTOR_MEASURE_ENTER(a, b, c, d)
+#define INTER_VECTOR_MEASURE_EXIT(a, b, c, d)
+        
+#endif                                                                  /*  LW_CFG_INTER_MEASURE_HOOK_EN*/
+/*********************************************************************************************************
 ** 函数名称: API_InterVectorIsr
 ** 功能描述: 向量中断总服务
 ** 输　入  : ulVector                      中断向量号 (arch 层函数需要保证此参数正确)
@@ -49,6 +73,10 @@ irqreturn_t  API_InterVectorIsr (ULONG  ulVector)
     PLW_CLASS_INTDESC   pidesc;
     PLW_CLASS_INTACT    piaction;
     irqreturn_t         irqret = LW_IRQ_NONE;
+    
+#if LW_CFG_INTER_MEASURE_HOOK_EN > 0
+    struct timespec     tv;
+#endif
            
     pcpu = LW_CPU_GET_CUR();                                            /*  中断处理程序中, 不会改变 CPU*/
     
@@ -74,6 +102,8 @@ irqreturn_t  API_InterVectorIsr (ULONG  ulVector)
              plineTemp  = _list_line_get_next(plineTemp)) {
             
             piaction = _LIST_ENTRY(plineTemp, LW_CLASS_INTACT, IACT_plineManage);
+            INTER_VECTOR_MEASURE_ENTER(&tv, ulVector, pcpu->CPU_ulCPUId, piaction->IACT_cInterName);
+            
 #if LW_CFG_GJB7714_EN > 0
             if (pidesc->IDESC_ulFlag & LW_IRQ_FLAG_GJB7714) {
                 piaction->IACT_pfuncIsr(piaction->IACT_pvArg, ulVector);
@@ -85,6 +115,8 @@ irqreturn_t  API_InterVectorIsr (ULONG  ulVector)
             }
             
             if (LW_IRQ_RETVAL(irqret)) {                                /*  中断是否已经被处理          */
+                INTER_VECTOR_MEASURE_ENTER(&tv, ulVector, pcpu->CPU_ulCPUId, piaction->IACT_cInterName);
+                
                 piaction->IACT_iIntCnt[pcpu->CPU_ulCPUId]++;
                 if (piaction->IACT_pfuncClear) {
                     piaction->IACT_pfuncClear(piaction->IACT_pvArg, ulVector);

@@ -360,6 +360,10 @@ size_t  bspInfoRamSize(VOID);
 
 #if LW_CFG_VMM_EN > 0
 ULONG   bspMmuPgdMaxNum(VOID);
+#if LW_CFG_CPU_WORD_LENGHT == 64
+ULONG   bspMmuPmdMaxNum(VOID);
+ULONG   bspMmuPtsMaxNum(VOID);
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 64*/
 ULONG   bspMmuPteMaxNum(VOID);
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 

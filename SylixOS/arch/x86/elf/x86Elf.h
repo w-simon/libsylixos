@@ -10,7 +10,7 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: ppcElf.h
+** 文   件   名: x86Elf.h
 **
 ** 创   建   人: Jiao.JinXing (焦进星)
 **
@@ -24,8 +24,13 @@
 
 #ifdef LW_CFG_CPU_ARCH_X86                                              /*  x86 体系结构                */
 
+#if LW_CFG_CPU_WORD_LENGHT == 32
 #define ELF_CLASS       ELFCLASS32
 #define ELF_ARCH        EM_386
+#else
+#define ELF_CLASS       ELFCLASS64
+#define ELF_ARCH        EM_X86_64
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
 
 #endif                                                                  /*  LW_CFG_CPU_ARCH_X86         */
 #endif                                                                  /*  __ARCH_X86ELF_H             */
