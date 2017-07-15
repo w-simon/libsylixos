@@ -292,9 +292,11 @@ ULONG  API_VmmLibAddPhyRam (addr_t  ulPhyRam, size_t  stSize)
 LW_API  
 VOID  API_VmmMmuEnable (VOID)
 {
+#if LW_CFG_VMM_L4_HYPERVISOR_EN == 0
     KN_SMP_MB();
     __VMM_MMU_ENABLE();                                                 /*  启动 MMU                    */
     KN_SMP_MB();
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
 }
 /*********************************************************************************************************
 ** 函数名称: API_VmmMmuDisable
@@ -308,9 +310,11 @@ VOID  API_VmmMmuEnable (VOID)
 LW_API  
 VOID  API_VmmMmuDisable (VOID)
 {
+#if LW_CFG_VMM_L4_HYPERVISOR_EN == 0
     KN_SMP_MB();
     __VMM_MMU_DISABLE();                                                /*  停止 MMU                    */
     KN_SMP_MB();
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
 }
 /*********************************************************************************************************
 ** 函数名称: API_VmmPhyAlloc
@@ -810,7 +814,9 @@ ULONG  API_VmmZoneStatus (ULONG     ulZoneIndex,
                           ULONG    *pulFreePage,
                           BOOL     *puiAttr)
 {
+#if LW_CFG_VMM_L4_HYPERVISOR_EN == 0
     PLW_MMU_CONTEXT    pmmuctx = __vmmGetCurCtx();
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
     
     if (ulZoneIndex >= LW_CFG_VMM_ZONE_NUM) {
         _ErrorHandle(EINVAL);
@@ -825,7 +831,11 @@ ULONG  API_VmmZoneStatus (ULONG     ulZoneIndex,
         *pstSize = _G_vmzonePhysical[ulZoneIndex].ZONE_stSize;
     }
     if (pulPgd) {
+#if LW_CFG_VMM_L4_HYPERVISOR_EN > 0
+        *pulPgd = (addr_t)PX_ERROR;
+#else
         *pulPgd = (addr_t)pmmuctx->MMUCTX_pgdEntry;
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
     }
     if (pulFreePage) {
         *pulFreePage = _G_vmzonePhysical[ulZoneIndex].ZONE_ulFreePage;

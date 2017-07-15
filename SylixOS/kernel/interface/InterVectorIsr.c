@@ -115,7 +115,7 @@ irqreturn_t  API_InterVectorIsr (ULONG  ulVector)
             }
             
             if (LW_IRQ_RETVAL(irqret)) {                                /*  中断是否已经被处理          */
-                INTER_VECTOR_MEASURE_ENTER(&tv, ulVector, pcpu->CPU_ulCPUId, piaction->IACT_cInterName);
+                INTER_VECTOR_MEASURE_EXIT(&tv, ulVector, pcpu->CPU_ulCPUId, piaction->IACT_cInterName);
                 
                 piaction->IACT_iIntCnt[pcpu->CPU_ulCPUId]++;
                 if (piaction->IACT_pfuncClear) {

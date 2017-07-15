@@ -69,8 +69,10 @@ typedef UINT    CACHE_MODE;                                             /*  CACH
 *********************************************************************************************************/
 
 typedef struct {
+#if LW_CFG_VMM_L4_HYPERVISOR_EN == 0
     ULONG           CACHEOP_ulOption;                                   /*  cache 选项                  */
 #define CACHE_TEXT_UPDATE_MP        0x01                                /*  每一个核是否都要 text update*/
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
 
     INT             CACHEOP_iILoc;                                      /*  指令 cache 位置             */
     INT             CACHEOP_iDLoc;                                      /*  数据 cache 位置             */
@@ -84,17 +86,21 @@ typedef struct {
     INT             CACHEOP_iICacheWaySize;                             /*  dcache 每一路 字节数        */
     INT             CACHEOP_iDCacheWaySize;                             /*  dcache 每一路 字节数        */
     
+#if LW_CFG_VMM_L4_HYPERVISOR_EN == 0
     FUNCPTR         CACHEOP_pfuncEnable;                                /*  启动 CACHE                  */
     FUNCPTR         CACHEOP_pfuncDisable;                               /*  停止 CACHE                  */
-    
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
+
     FUNCPTR         CACHEOP_pfuncLock;                                  /*  锁定 CACHE                  */
     FUNCPTR         CACHEOP_pfuncUnlock;                                /*  解锁 CACHE                  */
     
     FUNCPTR         CACHEOP_pfuncFlush;                                 /*  将 CACHE 指定内容回写内存   */
     FUNCPTR         CACHEOP_pfuncFlushPage;                             /*  回写指定的物理页面          */
     
+#if LW_CFG_VMM_L4_HYPERVISOR_EN == 0
     FUNCPTR         CACHEOP_pfuncInvalidate;                            /*  使 CACHE 指定内容无效       */
     FUNCPTR         CACHEOP_pfuncInvalidatePage;                        /*  无效指定的物理页面          */
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
     
     FUNCPTR         CACHEOP_pfuncClear;                                 /*  回写并无效所有 CACHE 内容   */
     FUNCPTR         CACHEOP_pfuncClearPage;                             /*  回写并无效指定的物理页面    */
@@ -106,7 +112,7 @@ typedef struct {
     PVOIDFUNCPTR    CACHEOP_pfuncDmaMallocAlign;                        /*  开辟一块非缓冲的内存(对齐)  */
     VOIDFUNCPTR     CACHEOP_pfuncDmaFree;                               /*  交还一块非缓冲的内存        */
 } LW_CACHE_OP;                                                          /*  CACHE 操作库                */
-      
+
 /*********************************************************************************************************
   通用 CACHE 库初始化操作, 如果是 SMP 系统, 则只需要主核在 API_KernelStart 回调中调用即可
 *********************************************************************************************************/

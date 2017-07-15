@@ -92,6 +92,22 @@
   mmu 执行功能
 *********************************************************************************************************/
 
+#if LW_CFG_VMM_L4_HYPERVISOR_EN > 0
+
+typedef struct {
+    FUNCPTR                  MMUOP_pfuncMemInit;                        /*  初始化内存, (页表和目录项)  */
+    FUNCPTR                  MMUOP_pfuncGlobalInit;                     /*  初始化全局映射关系          */
+    
+    ULONGFUNCPTR             MMUOP_pfuncFlagGet;                        /*  获得页面标志                */
+    FUNCPTR                  MMUOP_pfuncFlagSet;                        /*  设置页面标志 (当前未使用)   */
+    
+    FUNCPTR                  MMUOP_pfuncPageMap;                        /*  映射内存页面                */
+    FUNCPTR                  MMUOP_pfuncPageUnmap;                      /*  释放映射关系                */
+    FUNCPTR                  MMUOP_pfuncVirToPhy;                       /*  获得物理地址                */
+} LW_MMU_OP;
+
+#else                                                                   /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
+
 #ifdef __cplusplus
 typedef LW_PGD_TRANSENTRY  *(*PGDFUNCPTR)(...);
 typedef LW_PMD_TRANSENTRY  *(*PMDFUNCPTR)(...);
@@ -153,8 +169,10 @@ typedef struct {
     VOIDFUNCPTR              MMUOP_pfuncSetEnable;                      /*  启动 MMU                    */
     VOIDFUNCPTR              MMUOP_pfuncSetDisable;                     /*  关闭 MMU                    */
 } LW_MMU_OP;
-typedef LW_MMU_OP           *PLW_MMU_OP;
 
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
+
+typedef LW_MMU_OP           *PLW_MMU_OP;
 extern  LW_MMU_OP            _G_mmuOpLib;                               /*  MMU 操作函数集              */
 
 /*********************************************************************************************************
@@ -170,20 +188,35 @@ extern LW_OBJECT_HANDLE     _G_ulVmmLock;
 /*********************************************************************************************************
   MMU 获得选项信息
 *********************************************************************************************************/
+#if LW_CFG_VMM_L4_HYPERVISOR_EN == 0
+
 #define __VMM_MMU_OPTION()                      _G_mmuOpLib.MMUOP_ulOption
 
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
 /*********************************************************************************************************
   MMU 操作宏
 *********************************************************************************************************/
 
 #define __VMM_MMU_MEM_INIT(pmmuctx)             (_G_mmuOpLib.MMUOP_pfuncMemInit) ?  \
             _G_mmuOpLib.MMUOP_pfuncMemInit(pmmuctx) : (PX_ERROR)
-#define __VMM_MMU_GLOBAL_INIT(pcmachine)        (_G_mmuOpLib.MMUOP_pfuncGlobalInit) ?    \
+#define __VMM_MMU_GLOBAL_INIT(pcmachine)        (_G_mmuOpLib.MMUOP_pfuncGlobalInit) ?   \
             _G_mmuOpLib.MMUOP_pfuncGlobalInit(pcmachine) : (PX_ERROR)
             
 /*********************************************************************************************************
   MMU 页面开辟与释放
 *********************************************************************************************************/
+#if LW_CFG_VMM_L4_HYPERVISOR_EN > 0
+
+#define __VMM_MMU_PAGE_MAP(pmmuctx, ulPhyAddr, ulVirAddr, ulFlag)   (_G_mmuOpLib.MMUOP_pfuncPageMap) ? \
+            _G_mmuOpLib.MMUOP_pfuncPageMap(pmmuctx, ulPhyAddr, ulVirAddr, ulFlag) : (PX_ERROR)
+
+#define __VMM_MMU_PAGE_UNMAP(pmmuctx, ulVirAddr)    (_G_mmuOpLib.MMUOP_pfuncPageUnmap) ? \
+            _G_mmuOpLib.MMUOP_pfuncPageUnmap(pmmuctx, ulVirAddr) : (PX_ERROR)
+
+#define __VMM_MMU_PHYS_GET(ulVirAddr, pulPhysicalAddr)  (_G_mmuOpLib.MMUOP_pfuncVirToPhy) ? \
+            _G_mmuOpLib.MMUOP_pfuncVirToPhy(ulVirAddr, pulPhysicalAddr) : (PX_ERROR)
+
+#else                                                                   /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
 
 #define __VMM_MMU_PGD_ALLOC(pmmuctx, ulAddr)                (_G_mmuOpLib.MMUOP_pfuncPGDAlloc) ? \
             _G_mmuOpLib.MMUOP_pfuncPGDAlloc(pmmuctx, ulAddr) : (LW_NULL)
@@ -255,7 +288,9 @@ extern LW_OBJECT_HANDLE     _G_ulVmmLock;
 
 #define __VMM_MMU_PHYS_GET(pteentry, pulPhysicalAddr)   (_G_mmuOpLib.MMUOP_pfuncPTEPhysGet) ?    \
             _G_mmuOpLib.MMUOP_pfuncPTEPhysGet(pteentry, pulPhysicalAddr) : (PX_ERROR)
-            
+
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
+
 /*********************************************************************************************************
   MMU 页面描述符标志
 *********************************************************************************************************/
@@ -268,6 +303,11 @@ extern LW_OBJECT_HANDLE     _G_ulVmmLock;
 /*********************************************************************************************************
   MMU 内部操作
 *********************************************************************************************************/
+#if LW_CFG_VMM_L4_HYPERVISOR_EN > 0
+
+#define __VMM_MMU_MAKE_CURCTX(pmmuctx)      (VOID)pmmuctx               /*  未来扩展                    */
+
+#else
 
 #define __VMM_MMU_MAKE_TRANS(pmmuctx, p_pteentry, ulVirtualAddr, ulPhysicalAddr, ulFlag)   \
         if (_G_mmuOpLib.MMUOP_pfuncMakeTrans) { \
@@ -291,19 +331,25 @@ extern LW_OBJECT_HANDLE     _G_ulVmmLock;
             _G_mmuOpLib.MMUOP_pfuncSetDisable(); \
         }
         
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
 /*********************************************************************************************************
   mmu 信息
 *********************************************************************************************************/
 
 typedef struct __lw_mmu_context {
     LW_VMM_AREA              MMUCTX_vmareaVirSpace;                     /*  虚拟地址空间反查表          */
+#if LW_CFG_VMM_L4_HYPERVISOR_EN > 0
+    INT                      MMUCTX_iProcId;
+#else
     LW_PGD_TRANSENTRY       *MMUCTX_pgdEntry;                           /*  PGD 表入口地址              */
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
 } LW_MMU_CONTEXT;
 typedef LW_MMU_CONTEXT      *PLW_MMU_CONTEXT;
 
 /*********************************************************************************************************
   VMM 内部匹配
 *********************************************************************************************************/
+#if LW_CFG_VMM_L4_HYPERVISOR_EN == 0
 
 static LW_INLINE  LW_PGD_TRANSENTRY  *__vmm_pgd_alloc (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr)
 {
@@ -381,6 +427,7 @@ static LW_INLINE VOID  __vmm_pte_free (LW_PTE_TRANSENTRY  *p_pteentry)
     __VMM_MMU_PTE_FREE(p_pteentry);
 }
 
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
 /*********************************************************************************************************
   内部函数
 *********************************************************************************************************/

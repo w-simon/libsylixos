@@ -329,7 +329,7 @@ static VOID  archSysCallHandle (addr_t  ulRetAddr, addr_t  ulAbortAddr)
 
     abtInfo.VMABT_uiMethod = 0;
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_SYS;
-    API_VmmAbortIsr(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur);
+    API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
 ** 函数名称: archBreakPointHandle
@@ -369,7 +369,7 @@ static VOID  archBreakPointHandle (addr_t  ulRetAddr, addr_t  ulAbortAddr)
 
     abtInfo.VMABT_uiMethod = 0;
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BREAK;
-    API_VmmAbortIsr(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur);
+    API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
 ** 函数名称: archTrapInstHandle
@@ -382,7 +382,7 @@ static VOID  archBreakPointHandle (addr_t  ulRetAddr, addr_t  ulAbortAddr)
 *********************************************************************************************************/
 static VOID  archTrapInstHandle (addr_t  ulRetAddr, addr_t  ulAbortAddr)
 {
-    archBreakPointHandle(ulRetAddr, ulAbortAddr);
+    archBreakPointHandle(ulRetAddr, ulRetAddr);
 }
 /*********************************************************************************************************
 ** 函数名称: archResvInstHandle
@@ -402,7 +402,7 @@ static VOID  archResvInstHandle (addr_t  ulRetAddr, addr_t  ulAbortAddr)
 
     abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_UNDEF;
-    API_VmmAbortIsr(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur);
+    API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
 ** 函数名称: archFloatPointExceptHandle
@@ -446,6 +446,7 @@ static VOID  archFloatPointExceptHandle (addr_t  ulRetAddr, addr_t  ulAbortAddr)
         case SIGILL:                                                    /*  未定义指令                  */
             abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
             abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_UNDEF;
+            ulAbortAddr            = ulRetAddr;
             break;
 
         case SIGBUS:                                                    /*  总线错误                    */
@@ -515,9 +516,9 @@ static VOID  archCoProcUnusableExceptHandle (addr_t  ulRetAddr, addr_t  ulAbortA
     }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 
-    abtInfo.VMABT_uiMethod = 0;
-    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_TERMINAL;
-    API_VmmAbortIsr(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur);
+    abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_UNDEF;
+    API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
 ** 函数名称: archDefaultExceptHandle

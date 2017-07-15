@@ -29,6 +29,7 @@
 2013.07.10  去掉 API_TimeUSleep API.
             API_TimeMSleep 至少保证一个 tick 延迟.
 2015.02.04  nanosleep() 如果低于一个 tick 则使用 bspDelayNs() 进行延迟.
+2017.07.15  sleep() 精确到秒即可.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -416,15 +417,22 @@ INT  usleep (usecond_t   usecondTime)
 LW_API  
 UINT  sleep (UINT    uiSeconds)
 {
-    struct timespec  rqtp;
-    struct timespec  rmtp;
+    ULONG            ulTick = uiSeconds * LW_TICK_HZ;
+    struct timespec  tsStart, tsEnd;
+    UINT             uiPass;
     
-    rqtp.tv_sec  = (time_t)uiSeconds;
-    rqtp.tv_nsec = 0;
+    __timeGetHighResolution(&tsStart);
+    if (API_TimeSleepEx(ulTick, LW_TRUE) == EINTR) {
+        __timeGetHighResolution(&tsEnd);
+        if (tsEnd.tv_sec > tsStart.tv_sec) {
+            uiPass = (UINT)(tsEnd.tv_sec > tsStart.tv_sec);
+            if (uiPass < uiSeconds) {
+                return  (uiSeconds - uiPass);
+            }
+        }
+    }
     
-    nanosleep(&rqtp, &rmtp);
-    
-    return  ((UINT)rmtp.tv_sec);
+    return  (0);
 }
 /*********************************************************************************************************
   END

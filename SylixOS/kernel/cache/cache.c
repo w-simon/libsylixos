@@ -86,7 +86,10 @@ static CACHE_MODE   _G_uiDCacheMode = CACHE_DISABLED;
   全局结构变量定义 
 *********************************************************************************************************/
 LW_CACHE_OP     _G_cacheopLib = {                                       /*  the cache primitives        */
+#if LW_CFG_VMM_L4_HYPERVISOR_EN == 0
     0,
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
+
     CACHE_LOCATION_VIVT,
     CACHE_LOCATION_VIVT,
     32,
@@ -94,14 +97,21 @@ LW_CACHE_OP     _G_cacheopLib = {                                       /*  the 
     LW_CFG_VMM_PAGE_SIZE,
     LW_CFG_VMM_PAGE_SIZE,                                               /*  def: No Cache Alias problem */
     
+#if LW_CFG_VMM_L4_HYPERVISOR_EN == 0
     LW_NULL,                                                            /*  cacheEnable()               */
     LW_NULL,                                                            /*  cacheDisable()              */
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
+
     LW_NULL,                                                            /*  cacheLock()                 */
     LW_NULL,                                                            /*  cacheUnlock()               */
     LW_NULL,                                                            /*  cacheFlush()                */
     LW_NULL,                                                            /*  cacheFlushPage()            */
+
+#if LW_CFG_VMM_L4_HYPERVISOR_EN == 0
     LW_NULL,                                                            /*  cacheInvalidate()           */
     LW_NULL,                                                            /*  cacheInvalidatePage()       */
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
+
     LW_NULL,                                                            /*  cacheClear()                */
     LW_NULL,                                                            /*  cacheClearPage()            */
     LW_NULL,                                                            /*  cacheTextUpdate()           */
@@ -151,7 +161,11 @@ LW_CACHE_OP *API_CacheGetLibBlock (VOID)
 LW_API
 ULONG  API_CacheGetOption (VOID)
 {
+#if LW_CFG_VMM_L4_HYPERVISOR_EN > 0
+    return  (0);
+#else
     return  (_G_cacheopLib.CACHEOP_ulOption);
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
 }
 /*********************************************************************************************************
 ** 函数名称: API_CacheGetMode
@@ -318,6 +332,10 @@ BOOL  API_CacheAliasProb (VOID)
 LW_API  
 INT    API_CacheEnable (LW_CACHE_TYPE  cachetype)
 {
+#if LW_CFG_VMM_L4_HYPERVISOR_EN > 0
+    return  (ERROR_NONE);
+    
+#else
     INTREG  iregInterLevel;
     INT     iError;
 
@@ -338,6 +356,7 @@ INT    API_CacheEnable (LW_CACHE_TYPE  cachetype)
 #endif
 
     return  (iError);
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
 }
 /*********************************************************************************************************
 ** 函数名称: API_CacheDisable
@@ -352,6 +371,10 @@ INT    API_CacheEnable (LW_CACHE_TYPE  cachetype)
 LW_API  
 INT    API_CacheDisable (LW_CACHE_TYPE  cachetype)
 {
+#if LW_CFG_VMM_L4_HYPERVISOR_EN > 0
+    return  (ERROR_NONE);
+    
+#else
     INTREG  iregInterLevel;
     INT     iError;
 
@@ -364,6 +387,7 @@ INT    API_CacheDisable (LW_CACHE_TYPE  cachetype)
                  (cachetype == INSTRUCTION_CACHE) ? "I-" : "D-");
     
     return  (iError);
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
 }
 /*********************************************************************************************************
 ** 函数名称: API_CacheLock
@@ -493,8 +517,13 @@ INT    API_CacheInvalidate (LW_CACHE_TYPE   cachetype,
     INT     iError;
     
     __CACHE_OP_ENTER(iregInterLevel);                                   /*  开始操作 cache              */
+#if LW_CFG_VMM_L4_HYPERVISOR_EN > 0
+    iError = ((_G_cacheopLib.CACHEOP_pfuncClear == LW_NULL) ? ERROR_NONE : 
+              (_G_cacheopLib.CACHEOP_pfuncClear)(cachetype, pvAdrs, stBytes));
+#else
     iError = ((_G_cacheopLib.CACHEOP_pfuncInvalidate == LW_NULL) ? ERROR_NONE : 
               (_G_cacheopLib.CACHEOP_pfuncInvalidate)(cachetype, pvAdrs, stBytes));
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
     __CACHE_OP_EXIT(iregInterLevel);                                    /*  结束操作 cache              */
     
     return  (iError);
@@ -523,8 +552,13 @@ INT    API_CacheInvalidatePage (LW_CACHE_TYPE   cachetype,
     INT     iError;
     
     __CACHE_OP_ENTER(iregInterLevel);                                   /*  开始操作 cache              */
+#if LW_CFG_VMM_L4_HYPERVISOR_EN > 0
+    iError = ((_G_cacheopLib.CACHEOP_pfuncClearPage == LW_NULL) ? ERROR_NONE : 
+              (_G_cacheopLib.CACHEOP_pfuncClearPage)(cachetype, pvAdrs, pvPdrs, stBytes));
+#else
     iError = ((_G_cacheopLib.CACHEOP_pfuncInvalidatePage == LW_NULL) ? ERROR_NONE : 
               (_G_cacheopLib.CACHEOP_pfuncInvalidatePage)(cachetype, pvAdrs, pvPdrs, stBytes));
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
     __CACHE_OP_EXIT(iregInterLevel);                                    /*  结束操作 cache              */
     
     return  (iError);
@@ -592,7 +626,7 @@ INT    API_CacheClearPage (LW_CACHE_TYPE   cachetype,
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-#if LW_CFG_SMP_EN > 0
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_VMM_L4_HYPERVISOR_EN == 0)
 
 static INT __cacheTextUpdate (LW_CACHE_TU_ARG *ptuarg)
 {
@@ -608,6 +642,7 @@ static INT __cacheTextUpdate (LW_CACHE_TU_ARG *ptuarg)
 }
 
 #endif                                                                  /*  LW_CFG_SMP_EN               */
+                                                                        /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
 /*********************************************************************************************************
 ** 函数名称: API_CacheTextUpdate
 ** 功能描述: 清空(回写内存) D CACHE 无效(访问不命中) I CACHE
@@ -623,17 +658,17 @@ INT    API_CacheTextUpdate (PVOID  pvAdrs, size_t  stBytes)
 {
     INTREG          iregInterLevel;
     INT             iError;
-#if LW_CFG_SMP_EN > 0
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_VMM_L4_HYPERVISOR_EN == 0)
     LW_CACHE_TU_ARG tuarg;
     BOOL            bLock;
 #endif                                                                  /*  LW_CFG_SMP_EN               */
-    
+                                                                        /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
     __CACHE_OP_ENTER(iregInterLevel);                                   /*  开始操作 cache              */
     iError = ((_G_cacheopLib.CACHEOP_pfuncTextUpdate == LW_NULL) ? ERROR_NONE :
               (_G_cacheopLib.CACHEOP_pfuncTextUpdate)(pvAdrs, stBytes));
     __CACHE_OP_EXIT(iregInterLevel);                                    /*  结束操作 cache              */
 
-#if LW_CFG_SMP_EN > 0
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_VMM_L4_HYPERVISOR_EN == 0)
     if ((_G_cacheopLib.CACHEOP_ulOption & CACHE_TEXT_UPDATE_MP) && 
         (LW_NCPUS > 1)) {                                               /*  需要通知其他 CPU            */
         tuarg.TUA_pvAddr = pvAdrs;
@@ -645,7 +680,7 @@ INT    API_CacheTextUpdate (PVOID  pvAdrs, size_t  stBytes)
         __SMP_CPU_UNLOCK(bLock);                                        /*  解锁当前 CPU 执行           */
     }
 #endif                                                                  /*  LW_CFG_SMP_EN               */
-
+                                                                        /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
     return  (iError);
 }
 /*********************************************************************************************************
@@ -826,8 +861,10 @@ VOID    API_CacheFuncsSet (VOID)
     if (_G_uiDCacheMode & CACHE_SNOOP_ENABLE) {                         /*  D CACHE 始终与内存一致      */
         _G_cacheopLib.CACHEOP_pfuncFlush          = LW_NULL;
         _G_cacheopLib.CACHEOP_pfuncFlushPage      = LW_NULL;
+#if LW_CFG_VMM_L4_HYPERVISOR_EN == 0
         _G_cacheopLib.CACHEOP_pfuncInvalidate     = LW_NULL;
         _G_cacheopLib.CACHEOP_pfuncInvalidatePage = LW_NULL;
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
         _G_cacheopLib.CACHEOP_pfuncClear          = LW_NULL;
         _G_cacheopLib.CACHEOP_pfuncClearPage      = LW_NULL;
     }

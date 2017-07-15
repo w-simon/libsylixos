@@ -52,7 +52,7 @@ ARCH_COMMONFLAGS = -mno-red-zone -fno-omit-frame-pointer
 ARCH_PIC_CFLAGS  = -fPIC -mpreferred-stack-boundary=5
 ARCH_PIC_LDFLAGS = -Wl,-shared -fPIC -shared
 
-ARCH_KO_CFLAGS   =
+ARCH_KO_CFLAGS   = -mcmodel=large
 
 ARCH_KERNEL_CFLAGS  = -mcmodel=kernel
 ARCH_KERNEL_LDFLAGS = -z max-page-size=4096

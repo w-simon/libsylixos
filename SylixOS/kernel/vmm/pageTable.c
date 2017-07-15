@@ -36,6 +36,7 @@
 2013.07.20  加入主从核分离的 MMU 初始化.
 2014.11.09  VMM LIB 初始化不再启动 MMU.
 2016.05.01  加入虚拟地址空间重叠判断.
+2017.07.15  支持 L4 虚拟化 MMU 操作接口.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -139,10 +140,13 @@ ULONG  __vmmLibPrimaryInit (LW_MMU_PHYSICAL_DESC  pphydesc[], CPCHAR  pcMachineN
     
     _DebugHandle(__LOGMESSAGE_LEVEL, "mmu initialize. start memory pagination...\r\n");
     
+#if LW_CFG_VMM_L4_HYPERVISOR_EN > 0
+    pmmuctx->MMUCTX_iProcId = 0;                                        /*  未来扩展接口                */
+    
+#else
     /*
      *  __vmm_pgd_alloc() 地址为 0 , 表示页表基址 + 0 偏移量, 所以返回的页表项就是页表基址.
      */
-    pmmuctx->MMUCTX_pgdEntry = LW_NULL;
     pmmuctx->MMUCTX_pgdEntry = __vmm_pgd_alloc(pmmuctx, 0ul);           /*  创建 PGD 区域               */
     if (pmmuctx->MMUCTX_pgdEntry == LW_NULL) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "mmu can not allocate pgd entry.\r\n");
@@ -150,6 +154,7 @@ ULONG  __vmmLibPrimaryInit (LW_MMU_PHYSICAL_DESC  pphydesc[], CPCHAR  pcMachineN
         ulError   = ERROR_KERNEL_MEMORY;
         goto    __error_handle;
     }
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
     
     if (bIsNeedGlobalMap) {
         iError = __VMM_MMU_GLOBAL_INIT(pcMachineName);                  /*  初始化体系相关关键数据      */
@@ -173,9 +178,11 @@ ULONG  __vmmLibPrimaryInit (LW_MMU_PHYSICAL_DESC  pphydesc[], CPCHAR  pcMachineN
     return  (ERROR_NONE);
     
 __error_handle:
+#if LW_CFG_VMM_L4_HYPERVISOR_EN == 0
     if (iErrLevel > 1) {
         __vmm_pgd_free(pmmuctx->MMUCTX_pgdEntry);
     }
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
     
     _ErrorHandle(ulError);
     return  (ulError);
@@ -283,6 +290,8 @@ static INT  __vmmLibGlobalMap (PLW_MMU_CONTEXT   pmmuctx, LW_MMU_PHYSICAL_DESC  
 /*********************************************************************************************************
   TextUpdate Parameter
 *********************************************************************************************************/
+#if LW_CFG_VMM_L4_HYPERVISOR_EN == 0
+
 #if LW_CFG_SMP_EN > 0
 
 typedef struct {
@@ -349,6 +358,8 @@ static VOID  __vmmLibFlushTlb (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulPageAddr, ULO
     }
 #endif                                                                  /*  LW_CFG_SMP_EN               */
 }
+
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
 /*********************************************************************************************************
 ** 函数名称: __vmmLibPageMap
 ** 功能描述: 将物理页面重新映射
@@ -365,17 +376,43 @@ ULONG  __vmmLibPageMap (addr_t  ulPhysicalAddr,
                         ULONG   ulPageNum, 
                         ULONG   ulFlag)
 {
-    INTREG                   iregInterLevel;
     ULONG                    i;
     PLW_MMU_CONTEXT          pmmuctx = __vmmGetCurCtx();
+    
+#if LW_CFG_VMM_L4_HYPERVISOR_EN == 0
+    INTREG                   iregInterLevel;
+    addr_t                   ulVirtualTlb = ulVirtualAddr;
+    
     LW_PGD_TRANSENTRY       *p_pgdentry;
     LW_PMD_TRANSENTRY       *p_pmdentry;
 #if LW_CFG_VMM_PAGE_4L_EN > 0
     LW_PTS_TRANSENTRY       *p_ptsentry;
 #endif                                                                  /*  LW_CFG_VMM_PAGE_4L_EN > 0   */
     LW_PTE_TRANSENTRY       *p_pteentry;
-    addr_t                   ulVirtualTlb = ulVirtualAddr;
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
     
+#if LW_CFG_VMM_L4_HYPERVISOR_EN > 0
+    if (ulFlag & LW_VMM_FLAG_ACCESS) {
+        for (i = 0; i < ulPageNum; i++) {
+            if (__VMM_MMU_PAGE_MAP(pmmuctx, ulPhysicalAddr, 
+                                   ulVirtualAddr, ulFlag) < ERROR_NONE) {
+                return  (ERROR_VMM_LOW_LEVEL);
+            }
+            ulPhysicalAddr += LW_CFG_VMM_PAGE_SIZE;
+            ulVirtualAddr  += LW_CFG_VMM_PAGE_SIZE;
+        }
+    
+    } else {
+        for (i = 0; i < ulPageNum; i++) {
+            if (__VMM_MMU_PAGE_UNMAP(pmmuctx, ulVirtualAddr) < ERROR_NONE) {
+                return  (ERROR_VMM_LOW_LEVEL);
+            }
+            ulPhysicalAddr += LW_CFG_VMM_PAGE_SIZE;
+            ulVirtualAddr  += LW_CFG_VMM_PAGE_SIZE;
+        }
+    }
+    
+#else
     for (i = 0; i < ulPageNum; i++) {
         p_pgdentry = __vmm_pgd_alloc(pmmuctx, ulVirtualAddr);
         if (p_pgdentry == LW_NULL) {
@@ -413,6 +450,7 @@ ULONG  __vmmLibPageMap (addr_t  ulPhysicalAddr,
     }
     
     __vmmLibFlushTlb(pmmuctx, ulVirtualTlb, ulPageNum);                 /*  同步刷新所有 CPU TLB        */
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
     
     return  (ERROR_NONE);
 }
@@ -459,7 +497,10 @@ ULONG  __vmmLibSetFlag (addr_t  ulVirtualAddr, ULONG   ulPageNum, ULONG  ulFlag)
     INT                 i;
     PLW_MMU_CONTEXT     pmmuctx = __vmmGetCurCtx();
     INT                 iError;
+    
+#if LW_CFG_VMM_L4_HYPERVISOR_EN == 0
     addr_t              ulVirtualTlb = ulVirtualAddr;
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
 
     for (i = 0; i < ulPageNum; i++) {                                   /*  重新映射这些页面            */
         iregInterLevel = KN_INT_DISABLE();                              /*  关闭中断                    */
@@ -471,7 +512,9 @@ ULONG  __vmmLibSetFlag (addr_t  ulVirtualAddr, ULONG   ulPageNum, ULONG  ulFlag)
         ulVirtualAddr += LW_CFG_VMM_PAGE_SIZE;
     }
     
+#if LW_CFG_VMM_L4_HYPERVISOR_EN == 0
     __vmmLibFlushTlb(pmmuctx, ulVirtualTlb, ulPageNum);                 /*  同步刷新所有 CPU TLB        */
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
     
     return  (ERROR_NONE);
 }
@@ -486,6 +529,9 @@ ULONG  __vmmLibSetFlag (addr_t  ulVirtualAddr, ULONG   ulPageNum, ULONG  ulFlag)
 *********************************************************************************************************/
 ULONG  __vmmLibVirtualToPhysical (addr_t  ulVirtualAddr, addr_t  *pulPhysicalAddr)
 {
+    INT                      iError;
+    
+#if LW_CFG_VMM_L4_HYPERVISOR_EN == 0
     PLW_MMU_CONTEXT          pmmuctx = __vmmGetCurCtx();
     LW_PGD_TRANSENTRY       *p_pgdentry;
     LW_PMD_TRANSENTRY       *p_pmdentry;
@@ -493,9 +539,17 @@ ULONG  __vmmLibVirtualToPhysical (addr_t  ulVirtualAddr, addr_t  *pulPhysicalAdd
     LW_PTS_TRANSENTRY       *p_ptsentry;
 #endif                                                                  /*  LW_CFG_VMM_PAGE_4L_EN > 0   */
     LW_PTE_TRANSENTRY       *p_pteentry;
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
     
-    INT                      iError;
+#if LW_CFG_VMM_L4_HYPERVISOR_EN > 0
+    iError = __VMM_MMU_PHYS_GET(ulVirtualAddr, pulPhysicalAddr);
+    if (iError < 0) {
+        return  (ERROR_VMM_LOW_LEVEL);
+    }
     
+    return  (ERROR_NONE);
+
+#else
     p_pgdentry = __VMM_MMU_PGD_OFFSET(pmmuctx, ulVirtualAddr);
     if (__VMM_MMU_PGD_NONE((*p_pgdentry))) {                            /*  判断 PGD 条目正确性         */
         goto    __error_handle;
@@ -533,6 +587,7 @@ ULONG  __vmmLibVirtualToPhysical (addr_t  ulVirtualAddr, addr_t  *pulPhysicalAdd
 __error_handle:
     _ErrorHandle(ERROR_VMM_PAGE_INVAL);
     return  (ERROR_VMM_PAGE_INVAL);
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
 }
 
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */

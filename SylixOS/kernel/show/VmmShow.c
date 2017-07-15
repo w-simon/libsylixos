@@ -75,13 +75,16 @@ LW_API
 VOID  API_VmmPhysicalShow (VOID)
 {
     REGISTER INT                    i;
-             PLW_MMU_CONTEXT        pmmuctx = __vmmGetCurCtx();
              LW_MMU_PHYSICAL_DESC   phydescKernel[2];
              PCHAR                  pcDma;
              size_t                 stUsed;
              
              size_t                 stTotalSize = 0;
              size_t                 stFreeSize  = 0;
+             
+#if LW_CFG_VMM_L4_HYPERVISOR_EN == 0
+             PLW_MMU_CONTEXT        pmmuctx = __vmmGetCurCtx();
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
 
     printf("vmm physical zone show >>\n");
     printf(_G_cZoneInfoHdr);                                            /*  ´òÓ¡»¶Ó­ÐÅÏ¢                */
@@ -106,7 +109,11 @@ VOID  API_VmmPhysicalShow (VOID)
                _G_vmzonePhysical[i].ZONE_ulAddr,
                _G_vmzonePhysical[i].ZONE_stSize,
                (size_t)LW_CFG_VMM_PAGE_SIZE,
+#if LW_CFG_VMM_L4_HYPERVISOR_EN > 0
+               (addr_t)0,
+#else
                (addr_t)pmmuctx->MMUCTX_pgdEntry,
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
                _G_vmzonePhysical[i].ZONE_ulFreePage,
                pcDma,
                stUsed);

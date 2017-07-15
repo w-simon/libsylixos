@@ -305,7 +305,7 @@ LW_WEAK VOID  bspTickInit (VOID)
     LW_CLASS_THREADATTR  threadattr;
 #endif
     ULONG                ulVector;
-    INT                  bHpetInitOk = PX_ERROR;
+    INT                  iHpetInitOk = PX_ERROR;
 
 #if TICK_IN_THREAD > 0
     API_ThreadAttrBuild(&threadattr, (16 * LW_CFG_KB_SIZE),
@@ -323,10 +323,10 @@ LW_WEAK VOID  bspTickInit (VOID)
         _G_pfuncTickHook           = bspHpetTickHook;
         _G_pfuncTickHighResolution = bspHpetTickHighResolution;
 
-        bHpetInitOk = bspHpetTickInit(G_pAcpiHpet, &ulVector);          /*  初始化 HPET                 */
+        iHpetInitOk = bspHpetTickInit(G_pAcpiHpet, &ulVector);          /*  初始化 HPET                 */
     }
 
-    if (bHpetInitOk != ERROR_NONE) {                                    /*  没有 HPET 或且初始化失败    */
+    if (iHpetInitOk != ERROR_NONE) {                                    /*  没有 HPET 或且初始化失败    */
         _G_pfuncTickHook           = bsp8254TickHook;                   /*  使用 8254 定时器            */
         _G_pfuncTickHighResolution = bsp8254TickHighResolution;
 
