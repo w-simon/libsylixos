@@ -43,6 +43,7 @@ PLW_STACK  archTaskCtxCreate (PTHREAD_START_ROUTINE  pfuncTask,
     ARCH_FP_CTX        *pfpctx;
 
     pstkTop = (PLW_STACK)ROUND_DOWN(pstkTop, 16);                       /*  保证出栈后 SP 16 字节对齐   */
+    pstkTop--;                                                          /*  GCC PUSH 后转为 16 字节对齐 */
 
     pfpctx  = (ARCH_FP_CTX  *)((PCHAR)pstkTop - sizeof(ARCH_FP_CTX));
     pregctx = (ARCH_REG_CTX *)((PCHAR)pstkTop - sizeof(ARCH_FP_CTX) - sizeof(ARCH_REG_CTX));

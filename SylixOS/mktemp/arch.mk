@@ -49,7 +49,7 @@ ifneq (,$(findstring x86_64,$(TOOLCHAIN_PREFIX)))
 ARCH             = x86
 ARCH_COMMONFLAGS = -mno-red-zone -fno-omit-frame-pointer
 
-ARCH_PIC_CFLAGS  = -fPIC -mpreferred-stack-boundary=5
+ARCH_PIC_CFLAGS  = -fPIC
 ARCH_PIC_LDFLAGS = -Wl,-shared -fPIC -shared
 
 ARCH_KO_CFLAGS   = -mcmodel=large

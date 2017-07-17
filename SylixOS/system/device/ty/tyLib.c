@@ -567,7 +567,7 @@ INT  _TyIoctl (TY_DEV_ID  ptyDev,
         break;
     
     case FIOGETOPTIONS:                                                 /*  获得 TY 参数                */
-        *(LONG *)lArg = ptyDev->TYDEV_iOpt;
+        *(INT *)lArg = ptyDev->TYDEV_iOpt;
         break;
         
     case FIOSETOPTIONS:                                                 /*  设置 TY 参数                */

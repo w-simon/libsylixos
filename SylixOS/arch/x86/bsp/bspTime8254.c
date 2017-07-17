@@ -25,7 +25,23 @@
 /*********************************************************************************************************
   ∫Í∂®“Â
 *********************************************************************************************************/
-#define READ_TSC_LL(count)          __asm__ __volatile__("rdtsc" : "=A" (count))
+#if LW_CFG_CPU_WORD_LENGHT == 32
+#define READ_TSC_LL(count)
+    __asm__ __volatile__ ("rdtsc" : "=A" (count))
+
+#else                                                                   /*  LW_CFG_CPU_WORD_LENGHT == 64*/
+#define READ_TSC_LL(count)          \
+    __asm__ __volatile__ (          \
+     "rdtsc                 \n\t"   \
+     "and   %1    , %%rax   \n\t"   \
+     "shl   $32   , %%rdx   \n\t"   \
+     "or    %%rdx , %%rax   \n\t"   \
+    : "=&a" (count)                 \
+    : "r" (0xffffffffUL)            \
+    : "rdx"                         \
+    )
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
+
 #define CALIBRATE_CYCLES            14551
 #define CALIBRATE_MULT              82
 #define NSECS_PER_SEC               1000000000UL
