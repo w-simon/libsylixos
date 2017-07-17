@@ -201,7 +201,11 @@ INT  API_RamFsDevCreate (PCHAR   pcName, PLW_BLK_DEV  pblkd)
     pramfs->RAMFS_ulCurBlk = 0ul;
     
     if (stMax == 0) {
+#if LW_CFG_CPU_WORD_LENGHT == 32
         pramfs->RAMFS_ulMaxBlk = (__ARCH_ULONG_MAX / __RAM_BSIZE);
+#else
+        pramfs->RAMFS_ulMaxBlk = ((ULONG)(128ul * LW_CFG_GB_SIZE) / __RAM_BSIZE);
+#endif
     } else {
         pramfs->RAMFS_ulMaxBlk = (ULONG)(stMax / __RAM_BSIZE);
     }
