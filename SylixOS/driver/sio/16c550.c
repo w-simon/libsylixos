@@ -54,7 +54,7 @@
   internal function declare
 *********************************************************************************************************/
 static INT sio16c550SetBaud(SIO16C550_CHAN *psiochan, ULONG baud);
-static INT sio16c550SetHwOption(SIO16C550_CHAN *psiochan, ULONG hw_option);
+static INT sio16c550SetHwOption(SIO16C550_CHAN *psiochan, INT hw_option);
 static INT sio16c550Ioctl(SIO16C550_CHAN *psiochan, INT cmd, LONG arg);
 static INT sio16c550TxStartup(SIO16C550_CHAN *psiochan);
 static INT sio16c550CallbackInstall(SIO_CHAN *pchan,
@@ -183,7 +183,7 @@ static INT sio16c550SetBaud (SIO16C550_CHAN *psiochan, ULONG  baud)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT sio16c550SetHwOption (SIO16C550_CHAN *psiochan, ULONG  hw_option)
+static INT sio16c550SetHwOption (SIO16C550_CHAN *psiochan, INT  hw_option)
 {
     INTREG  intreg;
 
@@ -439,15 +439,15 @@ static INT sio16c550Ioctl (SIO16C550_CHAN *psiochan, INT cmd, LONG arg)
         break;
 
     case SIO_MODE_GET:
-        *((LONG *)arg) = psiochan->channel_mode;
+        *((INT *)arg) = psiochan->channel_mode;
         break;
 
     case SIO_HW_OPTS_SET:
-        error = sio16c550SetHwOption(psiochan, arg);
+        error = sio16c550SetHwOption(psiochan, (INT)arg);
         break;
 
     case SIO_HW_OPTS_GET:
-        *(LONG *)arg = psiochan->hw_option;
+        *(INT *)arg = psiochan->hw_option;
         break;
 
     case SIO_HUP:

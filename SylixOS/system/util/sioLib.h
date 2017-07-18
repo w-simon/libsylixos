@@ -117,9 +117,9 @@
   *    Sets the Scroll Lock LED on the keyboard - bit 4
 *********************************************************************************************************/
 
-#define SIO_KYBD_LED_NUM                           1
-#define SIO_KYBD_LED_CAP                           2
-#define SIO_KYBD_LED_SCR                           4
+#define SIO_KYBD_LED_NUM                        1
+#define SIO_KYBD_LED_CAP                        2
+#define SIO_KYBD_LED_SCR                        4
 
 /*********************************************************************************************************
   callback type codes

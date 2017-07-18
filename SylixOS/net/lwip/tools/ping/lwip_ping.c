@@ -387,8 +387,8 @@ static INT  __tshellPing (INT  iArgC, PCHAR  *ppcArgV)
         printf("Execute a DNS query...\n");
         
         {
-            ULONG  iOptionNoAbort;
-            ULONG  iOption;
+            INT  iOptionNoAbort;
+            INT  iOption;
             
             ioctl(STD_IN, FIOGETOPTIONS, &iOption);
             iOptionNoAbort = (iOption & ~OPT_ABORT);

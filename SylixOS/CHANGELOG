@@ -21,6 +21,9 @@ HISTORY
 
 ++ Bugfixes:
 
+    2017-07-18: han.hui
+    修正 64 位模式下一些类型判断错误.
+
     2017-06-08: han.hui
     修正 AF_PACKET mmap() 错误.
 

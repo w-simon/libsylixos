@@ -69,8 +69,9 @@ VOID    API_CPUUsageShow (INT  iWaitSec, INT  iTimes)
              UINT             uiThreadUsage[LW_CFG_MAX_THREADS];
              UINT             uiThreadKernel[LW_CFG_MAX_THREADS];
              UINT             uiAccuracy;
-             ULONG            iOptionNoAbort;
-             ULONG            iOption;
+             
+             INT              iOptionNoAbort;
+             INT              iOption;
     
     if (LW_CPU_GET_CUR_NESTING()) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "called from ISR.\r\n");

@@ -230,7 +230,7 @@ INT  _PtyDeviceIoctl (P_PTY_DEV     p_ptydev,
         break;
         
     case FIOWAITABORT:                                                  /*  停止当前等待 IO 线程        */
-        if (lArg & OPT_RABORT) {                                        /*  仅支持 read abort           */
+        if ((INT)lArg & OPT_RABORT) {                                   /*  仅支持 read abort           */
             ULONG  ulBlockNum;
             API_SemaphoreBStatus(p_ptyddev->PTYDDEV_hRdSyncSemB, LW_NULL, LW_NULL, &ulBlockNum);
             if (ulBlockNum) {

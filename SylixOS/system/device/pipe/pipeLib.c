@@ -337,11 +337,11 @@ INT  _PipeIoctl (PLW_PIPE_DEV  p_pipedev,
         break;
 
     case FIOWAITABORT:                                                  /*  停止当前等待 IO 线程        */
-        if ((LONG)piArgPtr & OPT_RABORT) {
+        if ((INT)piArgPtr & OPT_RABORT) {
             p_pipedev->PIPEDEV_iAbortFlag |= OPT_RABORT;
             API_MsgQueueFlushReceive(p_pipedev->PIPEDEV_hMsgQueue, LW_NULL);
         }
-        if ((LONG)piArgPtr & OPT_WABORT) {
+        if ((INT)piArgPtr & OPT_WABORT) {
             p_pipedev->PIPEDEV_iAbortFlag |= OPT_WABORT;
             API_MsgQueueFlushSend(p_pipedev->PIPEDEV_hMsgQueue, LW_NULL);
         }

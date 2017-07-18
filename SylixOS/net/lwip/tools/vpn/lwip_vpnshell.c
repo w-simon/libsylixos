@@ -125,7 +125,7 @@ INT  __tshellVpnOpen (INT  iArgC, PCHAR  *ppcArgV)
     pcTemp = pcBuffer;
     while ((*pcTemp == ' ') || (*pcTemp == '\t')) {                     /*  忽略空白字符                */
         pcTemp++;
-        if ((pcTemp - pcBuffer) > (INT)statFile.st_size) {              /*  超过文件大小                */
+        if ((pcTemp - pcBuffer) > (size_t)statFile.st_size) {           /*  超过文件大小                */
             fprintf(stderr, "configration file size error!\n");
             goto    __error_handle;
         }
@@ -135,7 +135,7 @@ INT  __tshellVpnOpen (INT  iArgC, PCHAR  *ppcArgV)
         pcParam[i] = pcTemp;
         do {
             pcTemp++;                                                   /*  找到下一参数                */
-            if ((pcTemp - pcBuffer) > (INT)statFile.st_size) {          /*  超过文件大小                */
+            if ((pcTemp - pcBuffer) > (size_t)statFile.st_size) {       /*  超过文件大小                */
                 fprintf(stderr, "configration file size error!\n");
                 goto    __error_handle;
             }
@@ -148,7 +148,7 @@ INT  __tshellVpnOpen (INT  iArgC, PCHAR  *ppcArgV)
                (*pcTemp == '\n') ||
                (*pcTemp == '\r')) {
             pcTemp++;                                                   /*  忽略空白字符                */
-            if ((pcTemp - pcBuffer) > (INT)statFile.st_size) {          /*  超过文件大小                */
+            if ((pcTemp - pcBuffer) > (size_t)statFile.st_size) {       /*  超过文件大小                */
                 fprintf(stderr, "configration file size error!\n");
                 goto    __error_handle;
             }

@@ -743,12 +743,12 @@ LW_STATIC INT  __diskCacheNodeRead (PLW_DISKCACHE_CB  pdiskcDiskCache, PLW_DISKC
              PVOID      pvBuffer;
              
     iNSector = (INT)__MIN((ULONG)pdiskcDiskCache->DISKC_iMaxRBurstSector, 
-                     (ULONG)((pdiskcDiskCache->DISKC_ulNCacheNode - 
-                      pdiskcDiskCache->DISKC_ulDirtyCounter)));         /*  获得读扇区的个数            */
+                          (ULONG)((pdiskcDiskCache->DISKC_ulNCacheNode - 
+                          pdiskcDiskCache->DISKC_ulDirtyCounter)));     /*  获得读扇区的个数            */
                       
     iNSector = (INT)__MIN((ULONG)iNSector,                              /*  进行无符号数比较            */
-                     (ULONG)(pdiskcDiskCache->DISKC_ulEndStector - 
-                      pdiskn->DISKN_ulSectorNo));                       /*  不能超越最后一个扇区        */
+                          (ULONG)(pdiskcDiskCache->DISKC_ulEndStector - 
+                          pdiskn->DISKN_ulSectorNo));                   /*  不能超越最后一个扇区        */
                       
     if (iNSector <= 0) {
         return  (PX_ERROR);

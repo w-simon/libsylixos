@@ -19,6 +19,9 @@
 ** 描        述: OEM 磁盘分区工具.
 **
 ** 注        意: 分区操作目标为 /dev/blk/xxx 块设备文件.
+**
+** BUG:
+2017.07.17  __oemFdisk() 加入对关键扇区的清除工作.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -62,7 +65,7 @@ static INT  __oemFdisk (INT                     iBlkFd,
 #endif
     
     UINT              i;
-    UINT8            *pucSecBuf;
+    UINT8            *pucSecBuf, *pucFillBuf;
     UINT8            *pucPartEntry;
     BOOL              bMaster = LW_FALSE;
     UINT64            u64Temp;
@@ -73,11 +76,18 @@ static INT  __oemFdisk (INT                     iBlkFd,
     UINT              uiCylStart, uiCylEnd;
     UINT              uiSecStart, uiSecEnd;
     
-    pucSecBuf = (UINT8 *)__SHEAP_ALLOC((size_t)ulSecSize);
+    pucSecBuf = (UINT8 *)__SHEAP_ALLOC((size_t)ulSecSize << 1);
     if (pucSecBuf == LW_NULL) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "system low memory.\r\n");
         _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
         return  (PX_ERROR);
+    }
+    
+    pucFillBuf = pucSecBuf + ulSecSize;
+    lib_memset(pucFillBuf, 0xff, (size_t)ulSecSize);                    /*  用 0xff 填充扇区缓存        */
+    if (ulTotalSec > 2050) {
+        pwrite(iBlkFd, pucFillBuf, 
+               (size_t)ulSecSize, (2050 * (off_t)ulSecSize));           /*  去掉 Linux 文件系统信息     */
     }
     
     uiSecOff    = __DISK_PART_OFFSEC;                                   /*  2048 扇区                   */
@@ -145,6 +155,9 @@ static INT  __oemFdisk (INT                     iBlkFd,
 
         BLK_ST_DWORD(pucPartEntry +  8, uiPStartSec[i]);                /*  Start sector in LBA         */
         BLK_ST_DWORD(pucPartEntry + 12, uiPNSec[i]);                    /*  Partition size              */
+
+        pwrite(iBlkFd, pucFillBuf, 
+               (size_t)ulSecSize, (uiPStartSec[i] * (off_t)ulSecSize)); /*  去掉文件系统信息            */
 
         if (fdpPart[i].FDP_ucSzPct == 0) {
             i++;

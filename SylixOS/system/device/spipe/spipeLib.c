@@ -635,7 +635,7 @@ INT  _SpipeIoctl (PLW_SPIPE_FILE pspipefil,
     
     case FIOWAITABORT:                                                  /*  停止当前等待 IO 线程        */
         LW_SPIPE_LOCK(pspipedev, return (PX_ERROR));
-        if ((LONG)piArgPtr & OPT_RABORT) {
+        if ((INT)piArgPtr & OPT_RABORT) {
             ULONG  ulBlockNum;
             API_SemaphoreBStatus(pspipedev->SPIPEDEV_hReadLock, LW_NULL, LW_NULL, &ulBlockNum);
             if (ulBlockNum) {
@@ -643,7 +643,7 @@ INT  _SpipeIoctl (PLW_SPIPE_FILE pspipefil,
                 API_SemaphoreBPost(pspipedev->SPIPEDEV_hReadLock);      /*  激活读等待线程              */
             }
         }
-        if ((LONG)piArgPtr & OPT_WABORT) {
+        if ((INT)piArgPtr & OPT_WABORT) {
             ULONG  ulBlockNum;
             API_SemaphoreBStatus(pspipedev->SPIPEDEV_hWriteLock, LW_NULL, LW_NULL, &ulBlockNum);
             if (ulBlockNum) {

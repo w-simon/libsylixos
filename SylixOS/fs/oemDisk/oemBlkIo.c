@@ -366,7 +366,6 @@ static ssize_t  __blkIoFsWrite (PLW_BLKIO_DEV  pdevblk, PCHAR  pcBuffer, size_t 
 static INT  __blkIoFsIoctl (PLW_BLKIO_DEV  pdevblk, INT  iRequest, LONG  lArg)
 {
     off_t        oftTemp;
-    off_t        oftNRead;
     struct stat *pstat;
 
     switch (iRequest) {
@@ -385,8 +384,8 @@ static INT  __blkIoFsIoctl (PLW_BLKIO_DEV  pdevblk, INT  iRequest, LONG  lArg)
         return  (ERROR_NONE);
 
     case FIONREAD:                                                      /*  获得文件剩余字节数          */
-        oftNRead = pdevblk->BLKIO_oftSize - pdevblk->BLKIO_oftPtr;
-        return  ((INT)oftNRead);
+        *(INT *)lArg = pdevblk->BLKIO_oftSize - pdevblk->BLKIO_oftPtr;
+        return  (ERROR_NONE);
 
     case FIONREAD64:                                                    /*  获得文件剩余字节数          */
         *(off_t *)lArg = pdevblk->BLKIO_oftSize - pdevblk->BLKIO_oftPtr;

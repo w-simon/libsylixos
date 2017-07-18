@@ -697,7 +697,7 @@ static INT  __romFsNRead (PLW_FD_ENTRY  pfdentry, INT  *piNRead)
         return  (PX_ERROR);
     }
     *piNRead = (INT)(promfile->ROMFIL_romfsdnt.ROMFSDNT_stat.st_size - 
-                      (UINT32)pfdentry->FDENTRY_oftPtr);
+                     (UINT32)pfdentry->FDENTRY_oftPtr);
     __ROMFS_FILE_UNLOCK(promfile);
     
     return  (ERROR_NONE);

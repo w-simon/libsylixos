@@ -1203,7 +1203,7 @@ static INT __sdMemIoctl (__PSD_BLK_DEV    psdblkdevice,
 
     case LW_BLKD_GET_SECSIZE:
     case LW_BLKD_GET_BLKSIZE:
-        *((LONG *)lArg) = SD_MEM_DEFAULT_BLKSIZE;
+        *((ULONG *)lArg) = SD_MEM_DEFAULT_BLKSIZE;
         break;
 
     case LW_BLKD_GET_SECNUM:

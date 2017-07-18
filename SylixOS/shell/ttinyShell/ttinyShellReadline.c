@@ -824,8 +824,8 @@ ssize_t  __tshellReadline (INT  iFd, PVOID  pcBuffer, size_t  stSize)
                                     goto    __out;  \
                                 }
 
-    LONG                        lOldOption = OPT_TERMINAL;
-    LONG                        lNewOption;
+    INT                         iOldOption = OPT_TERMINAL;
+    INT                         iNewOption;
     ssize_t                     sstReadNum;
     __SHELL_INPUT_CTX           sicContext;
     CHAR                        cRead;
@@ -839,12 +839,11 @@ ssize_t  __tshellReadline (INT  iFd, PVOID  pcBuffer, size_t  stSize)
     sicContext.SIC_uiTotalLen = 0;
     sicContext.SIC_cInputBuffer[0] = PX_EOS;
 
-    ioctl(iFd, FIOGETOPTIONS, &lOldOption);
-    lNewOption = lOldOption & ~(OPT_ECHO | OPT_LINE);                   /*  no echo no line mode        */
-    ioctl(iFd, FIOSETOPTIONS, lNewOption);
+    ioctl(iFd, FIOGETOPTIONS, &iOldOption);
+    iNewOption = iOldOption & ~(OPT_ECHO | OPT_LINE);                   /*  no echo no line mode        */
+    ioctl(iFd, FIOSETOPTIONS, iNewOption);
 
     while (sicContext.SIC_uiTotalLen < LW_CFG_SHELL_MAX_COMMANDLEN) {
-    
         sstReadNum = read(iFd, &cRead, 1);
         __CHK_READ_OUT(sstReadNum);
         
@@ -933,7 +932,7 @@ __re_check_key:
     }
 
 __out:
-    ioctl(iFd, FIOSETOPTIONS, lOldOption);                              /*  »Ö¸´ÒÔÇ°ÖÕ¶Ë×´Ì¬            */
+    ioctl(iFd, FIOSETOPTIONS, iOldOption);                              /*  »Ö¸´ÒÔÇ°ÖÕ¶Ë×´Ì¬            */
     
     lib_strlcpy((PCHAR)pcBuffer, sicContext.SIC_cInputBuffer, stSize);
     

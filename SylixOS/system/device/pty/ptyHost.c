@@ -160,7 +160,7 @@ INT  _PtyHostIoctl (P_PTY_DEV     p_ptydev,
     switch (iRequest) {
     
     case SIO_HW_OPTS_GET:
-        *(LONG *)lArg = (CREAD | CS8);
+        *(INT *)lArg = (CREAD | CS8);
         return  (ERROR_NONE);
         
     case SIO_HW_OPTS_SET:

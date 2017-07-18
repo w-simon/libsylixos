@@ -86,6 +86,10 @@
 *********************************************************************************************************/
 #define X64_MMU_TLB_NR              (128)                               /*  Intel x86 vol 3 Table 11-1  */
 /*********************************************************************************************************
+  虚拟地址的大小
+*********************************************************************************************************/
+#define X64_MMU_VIRT_ADDR_SIZE      (48)
+/*********************************************************************************************************
   外部函数声明
 *********************************************************************************************************/
 extern VOID  x64MmuInvalidateTLB(VOID);
@@ -455,6 +459,10 @@ static LW_PGD_TRANSENTRY  *x64MmuPgdOffset (PLW_MMU_CONTEXT  pmmuctx, addr_t  ul
     REGISTER LW_PGD_TRANSENTRY  *p_pgdentry = pmmuctx->MMUCTX_pgdEntry;
     REGISTER ULONG               ulPgdNum;
 
+    if (ulAddr & (~((1ULL << X64_MMU_VIRT_ADDR_SIZE) - 1))) {           /*  不在合法的虚拟地址空间内    */
+        return  (LW_NULL);
+    }
+
     ulAddr    &= LW_CFG_VMM_PGD_MASK;
     ulPgdNum   = ulAddr >> LW_CFG_VMM_PGD_SHIFT;                        /*  计算 PGD 号                 */
 
@@ -603,9 +611,14 @@ static BOOL  x64MmuPteIsOk (LW_PTE_TRANSENTRY  pteentry)
 *********************************************************************************************************/
 static LW_PGD_TRANSENTRY *x64MmuPgdAlloc (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr)
 {
-    REGISTER LW_PGD_TRANSENTRY  *p_pgdentry = (LW_PGD_TRANSENTRY *)API_PartitionGet(_G_hPGDPartition);
+    REGISTER LW_PGD_TRANSENTRY  *p_pgdentry;
     REGISTER ULONG               ulPgdNum;
     
+    if (ulAddr & (~((1ULL << X64_MMU_VIRT_ADDR_SIZE) - 1))) {           /*  不在合法的虚拟地址空间内    */
+        return  (LW_NULL);
+    }
+
+    p_pgdentry = (LW_PGD_TRANSENTRY *)API_PartitionGet(_G_hPGDPartition);
     if (!p_pgdentry) {
         return  (LW_NULL);
     }
@@ -828,7 +841,7 @@ static ULONG  x64MmuFlagGet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr)
 {
     LW_PGD_TRANSENTRY  *p_pgdentry = x64MmuPgdOffset(pmmuctx, ulAddr);  /*  获得一级描述符地址          */
 
-    if (x64MmuPgdIsOk(*p_pgdentry)) {                                   /*  一级描述符有效              */
+    if (p_pgdentry && x64MmuPgdIsOk(*p_pgdentry)) {                     /*  一级描述符有效              */
         LW_PMD_TRANSENTRY  *p_pmdentry = x64MmuPmdOffset(p_pgdentry,
                                                          ulAddr);       /*  获得二级描述符地址          */
 
@@ -884,7 +897,7 @@ static INT  x64MmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  ulFl
 
     LW_PGD_TRANSENTRY  *p_pgdentry = x64MmuPgdOffset(pmmuctx, ulAddr);  /*  获得一级描述符地址          */
 
-    if (x64MmuPgdIsOk(*p_pgdentry)) {                                   /*  一级描述符有效              */
+    if (p_pgdentry && x64MmuPgdIsOk(*p_pgdentry)) {                     /*  一级描述符有效              */
         LW_PMD_TRANSENTRY  *p_pmdentry = x64MmuPmdOffset(p_pgdentry,
                                                          ulAddr);       /*  获得二级描述符地址          */
 

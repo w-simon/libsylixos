@@ -714,7 +714,7 @@ INT  _TyIoctl (TY_DEV_ID  ptyDev,
         
     case FIOWAITABORT:                                                  /*  停止当前等待 IO 线程        */
         TYDEV_LOCK(ptyDev, return (PX_ERROR));                          /*  等待设备使用权              */
-        if (lArg & OPT_RABORT) {
+        if ((INT)lArg & OPT_RABORT) {
             ULONG  ulBlockNum;
             API_SemaphoreBStatus(ptyDev->TYDEV_hRdSyncSemB, LW_NULL, LW_NULL, &ulBlockNum);
             if (ulBlockNum) {
@@ -722,7 +722,7 @@ INT  _TyIoctl (TY_DEV_ID  ptyDev,
                 API_SemaphoreBPost(ptyDev->TYDEV_hRdSyncSemB);          /*  激活读等待线程              */
             }
         }
-        if (lArg & OPT_WABORT) {
+        if ((INT)lArg & OPT_WABORT) {
             ULONG  ulBlockNum;
             API_SemaphoreBStatus(ptyDev->TYDEV_hWrtSyncSemB, LW_NULL, LW_NULL, &ulBlockNum);
             if (ulBlockNum) {

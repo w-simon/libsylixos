@@ -564,7 +564,7 @@ INT  fchmod (INT  iFd, INT  iMode)
         return  (PX_ERROR);
     }
 
-    return  (ioctl(iFd, FIOCHMOD, (LONG)iMode));
+    return  (ioctl(iFd, FIOCHMOD, iMode));
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: chmod

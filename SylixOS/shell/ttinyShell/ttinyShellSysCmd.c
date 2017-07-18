@@ -2361,9 +2361,9 @@ static INT  __tshellSysCmdAffinity (INT  iArgC, PCHAR  ppcArgV[])
     
     if (ppcArgV[2][0] == 'c') {
         if (bProcess) {
-            iRet = sched_setaffinity((INT)ulId, sizeof(cpu_set_t), &cpuset);
+            iRet = sched_setaffinity((pid_t)ulId, sizeof(cpu_set_t), &cpuset);
         } else {
-            iRet = pthread_setaffinity_np((INT)ulId, sizeof(cpu_set_t), &cpuset);
+            iRet = pthread_setaffinity_np((pthread_t)ulId, sizeof(cpu_set_t), &cpuset);
         }
         if (iRet == ERROR_NONE) {
             printf("affinity clear %s 0x%lx ok.\n", pcTarget, ulId);
@@ -2376,9 +2376,9 @@ static INT  __tshellSysCmdAffinity (INT  iArgC, PCHAR  ppcArgV[])
         sscanf(ppcArgV[2], "%ld", &ulCPUId);
         CPU_SET(ulCPUId, &cpuset);
         if (bProcess) {
-            iRet = sched_setaffinity((INT)ulId, sizeof(cpu_set_t), &cpuset);
+            iRet = sched_setaffinity((pid_t)ulId, sizeof(cpu_set_t), &cpuset);
         } else {
-            iRet = pthread_setaffinity_np((INT)ulId, sizeof(cpu_set_t), &cpuset);
+            iRet = pthread_setaffinity_np((pthread_t)ulId, sizeof(cpu_set_t), &cpuset);
         }
         if (iRet == ERROR_NONE) {
             printf("affinity set %s 0x%lx to cpu %ld ok.\n", 

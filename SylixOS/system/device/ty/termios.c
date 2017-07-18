@@ -303,8 +303,8 @@ int tcsendbreak (int  fd, int  duration)
 LW_API  
 int  tcgetattr (int  fd, struct termios *tp)
 {
-    LONG    lOpt = 0;
-    LONG    lHwOpt = 0;
+    INT     iOpt = 0;
+    INT     iHwOpt = 0;
     LONG    lBaud = 0;
     INT     iError;
     
@@ -315,12 +315,12 @@ int  tcgetattr (int  fd, struct termios *tp)
     
     lib_bzero(tp, sizeof(struct termios));
     
-    iError = ioctl(fd, FIOGETOPTIONS, &lOpt);
+    iError = ioctl(fd, FIOGETOPTIONS, &iOpt);
     if (iError < ERROR_NONE) {
         return  (iError);
     }
     
-    ioctl(fd, SIO_HW_OPTS_GET, &lHwOpt);                                /*  这两条命令是由驱动程序提供  */
+    ioctl(fd, SIO_HW_OPTS_GET, &iHwOpt);                                /*  这两条命令是由驱动程序提供  */
     ioctl(fd, SIO_BAUD_GET, &lBaud);
 
     iError = ioctl(fd, FIOGETCC, tp->c_cc);
@@ -328,47 +328,47 @@ int  tcgetattr (int  fd, struct termios *tp)
         return  (iError);
     }
     
-    if (lOpt & OPT_ECHO) {
+    if (iOpt & OPT_ECHO) {
         tp->c_lflag |= (ECHO | ECHOE);
     }
-    if (lOpt & OPT_CRMOD) {
+    if (iOpt & OPT_CRMOD) {
         tp->c_iflag |= (ICRNL | INLCR);
         tp->c_oflag |= ONLCR;
     }
-    if (lOpt & OPT_TANDEM) {
+    if (iOpt & OPT_TANDEM) {
         tp->c_iflag |= (IXON | IXOFF);
     }
-    if (lOpt & OPT_MON_TRAP) {
+    if (iOpt & OPT_MON_TRAP) {
         tp->c_iflag |= BRKINT;
     }
-    if (lOpt & OPT_ABORT) {
+    if (iOpt & OPT_ABORT) {
         tp->c_iflag |= BRKINT;
     }
-    if (lOpt & OPT_LINE) {
+    if (iOpt & OPT_LINE) {
         tp->c_lflag |= (ICANON | ECHOK);
     }
     
-    if ((lHwOpt & CLOCAL) == 0) {
+    if ((iHwOpt & CLOCAL) == 0) {
         tp->c_cflag |= CRTSCTS;
     } else {
         tp->c_cflag |= CLOCAL;
     }
-    if (lHwOpt & CREAD) {
+    if (iHwOpt & CREAD) {
         tp->c_cflag |= CREAD;
     }
     
-    tp->c_cflag |= (unsigned int)(lHwOpt & CSIZE);
+    tp->c_cflag |= (unsigned int)(iHwOpt & CSIZE);
     
-    if (lHwOpt & HUPCL) {
+    if (iHwOpt & HUPCL) {
         tp->c_cflag |= HUPCL;
     }
-    if (lHwOpt & STOPB) {
+    if (iHwOpt & STOPB) {
         tp->c_cflag |= STOPB;
     }
-    if (lHwOpt & PARENB) {
+    if (iHwOpt & PARENB) {
         tp->c_cflag |= PARENB;
     }
-    if (lHwOpt & PARODD) {
+    if (iHwOpt & PARODD) {
         tp->c_cflag |= PARODD;
     }
     
@@ -390,12 +390,12 @@ int  tcgetattr (int  fd, struct termios *tp)
 LW_API  
 int  tcsetattr (int  fd, int  opt, const struct termios  *tp)
 {
-    LONG    lOpt = 0;
-    LONG    lHwOpt = 0;
+    INT     iOpt = 0;
+    INT     iHwOpt = 0;
     LONG    lBaud = 0;
     
-    LONG    lOptOld = 0;
-    LONG    lHwOptOld = 0;
+    INT     iOptOld = 0;
+    INT     iHwOptOld = 0;
     LONG    lBaudOld = 0;
     INT     iError;
 
@@ -417,64 +417,64 @@ int  tcsetattr (int  fd, int  opt, const struct termios  *tp)
     }
 
     if (tp->c_lflag & ECHO) {
-        lOpt |= OPT_ECHO;
+        iOpt |= OPT_ECHO;
     }
     if ((tp->c_iflag & ICRNL) ||
         (tp->c_oflag & ONLCR)) {
-        lOpt |= OPT_CRMOD;
+        iOpt |= OPT_CRMOD;
     }
     if (tp->c_iflag & IXON) {
-        lOpt |= OPT_TANDEM;
+        iOpt |= OPT_TANDEM;
     }
     if (tp->c_iflag & BRKINT) {
-        lOpt |= OPT_ABORT;
-        lOpt |= OPT_MON_TRAP;
+        iOpt |= OPT_ABORT;
+        iOpt |= OPT_MON_TRAP;
     }
     if (tp->c_lflag & ICANON) {
-        lOpt |= OPT_LINE;
+        iOpt |= OPT_LINE;
     }
     
     if (tp->c_cflag & CLOCAL) {
-        lHwOpt |= CLOCAL;
+        iHwOpt |= CLOCAL;
     }
     if (tp->c_cflag & CRTSCTS) {
-        lHwOpt &= ~CLOCAL;
+        iHwOpt &= ~CLOCAL;
     }
     if (tp->c_cflag & CREAD) {
-        lHwOpt |= CREAD;
+        iHwOpt |= CREAD;
     }
     
-    lHwOpt |= (LONG)(tp->c_cflag & CSIZE);
+    iHwOpt |= (LONG)(tp->c_cflag & CSIZE);
     
     if (tp->c_cflag & HUPCL) {
-        lHwOpt |= HUPCL;
+        iHwOpt |= HUPCL;
     }
     if (tp->c_cflag & STOPB) {
-        lHwOpt |= STOPB;
+        iHwOpt |= STOPB;
     }
     if (tp->c_cflag & PARENB) {
-        lHwOpt |= PARENB;
+        iHwOpt |= PARENB;
     }
     if (tp->c_cflag & PARODD) {
-        lHwOpt |= PARODD;
+        iHwOpt |= PARODD;
     }
     
     lBaud = bcode_to_baud(tp->c_cflag & CBAUD);
     
-    iError = ioctl(fd, FIOGETOPTIONS, &lOptOld);
+    iError = ioctl(fd, FIOGETOPTIONS, &iOptOld);
     if (iError < ERROR_NONE) {
         return  (iError);
     }
-    if (lOptOld != lOpt) {
-        iError = ioctl(fd, FIOSETOPTIONS, lOpt);
+    if (iOptOld != iOpt) {
+        iError = ioctl(fd, FIOSETOPTIONS, iOpt);
         if (iError < ERROR_NONE) {
             return  (iError);
         }
     }
     
-    iError = ioctl(fd, SIO_HW_OPTS_GET, &lHwOptOld);                    /*  pty 没有此功能               */
-    if ((iError >= ERROR_NONE) && (lHwOptOld != lHwOpt)) {
-        ioctl(fd, SIO_HW_OPTS_SET, lHwOpt);
+    iError = ioctl(fd, SIO_HW_OPTS_GET, &iHwOptOld);                    /*  pty 没有此功能               */
+    if ((iError >= ERROR_NONE) && (iHwOptOld != iHwOpt)) {
+        ioctl(fd, SIO_HW_OPTS_SET, iHwOpt);
     }
     
     iError = ioctl(fd, SIO_BAUD_GET, &lBaudOld);                        /*  pty 没有此功能               */

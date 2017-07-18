@@ -204,9 +204,10 @@ static int xinput_ioctl (PLW_FD_ENTRY pfdentry, int cmd, long arg)
     switch (cmd) {
 
     case FIONBIO:
-        API_MsgQueueStatus(xinput->queue, NULL, &count, &len, NULL, NULL);
-        if (count && arg) {
-            *(long *)arg = (long)len;
+        if (*(int *)arg) {
+            pfdentry->FDENTRY_iFlag |= O_NONBLOCK;
+        } else {
+            pfdentry->FDENTRY_iFlag &= ~O_NONBLOCK;
         }
         return  (ERROR_NONE);
 

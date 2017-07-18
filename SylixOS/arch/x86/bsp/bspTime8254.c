@@ -26,7 +26,7 @@
   ∫Í∂®“Â
 *********************************************************************************************************/
 #if LW_CFG_CPU_WORD_LENGHT == 32
-#define READ_TSC_LL(count)
+#define READ_TSC_LL(count)          \
     __asm__ __volatile__ ("rdtsc" : "=A" (count))
 
 #else                                                                   /*  LW_CFG_CPU_WORD_LENGHT == 64*/

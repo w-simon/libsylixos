@@ -224,7 +224,7 @@ static INT  __vmmMapnFill (PLW_VMM_MAP_NODE    pmapn,
                                        offtRead);                       /*  读取文件内容                */
         
         sstNum = (sstNum >= 0) ? sstNum : 0;
-        stZNum = (INT)(stReadLen - sstNum);
+        stZNum = (size_t)(stReadLen - sstNum);
         
         if (stZNum > 0) {
             lib_bzero((PVOID)(ulDestPageAddr + sstNum), stZNum);        /*  未使用部分清零              */

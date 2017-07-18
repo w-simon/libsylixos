@@ -1313,7 +1313,7 @@ static INT  __ahciBlkIoctl (AHCI_DEV_HANDLE  hDev, INT  iCmd, LONG  lArg)
 
     case LW_BLKD_GET_SECSIZE:
     case LW_BLKD_GET_BLKSIZE:
-        *((LONG *)lArg) = hDrive->AHCIDRIVE_ulByteSector;
+        *((ULONG *)lArg) = hDrive->AHCIDRIVE_ulByteSector;
         break;
 
     case LW_BLKD_GET_SECNUM:

@@ -161,8 +161,7 @@ struct sio16c550_chan {
 
     int channel_mode;                                           /* SIO_MODE_INT or SIO_MODE_POLL        */
     int switch_en;                                              /* RS-485 switch pin operate enable flag*/
-    
-    unsigned long hw_option;                                    /* hardware setup options               */
+    int hw_option;                                              /* hardware setup options               */
 
     UINT8   ier;                                                /* copy of interrupt enable register    */
     UINT8   lcr;                                                /* copy of line control register        */

@@ -259,7 +259,7 @@ static INT  __ramDiskWrt (PLW_RAM_DISK  pramd,
     REGISTER PBYTE      pucStartMem = ((PBYTE)pramd->RAMD_pvMem
                                     + (ulStartSector * 512));
                                     
-    lib_memcpy(pucStartMem, pvBuffer, (INT)(512 * ulSectorCount));
+    lib_memcpy(pucStartMem, pvBuffer, (size_t)(512 * ulSectorCount));
     
     return  (ERROR_NONE);
 }
@@ -282,7 +282,7 @@ static INT  __ramDiskRd (PLW_RAM_DISK  pramd,
     REGISTER PBYTE      pucStartMem = ((PBYTE)pramd->RAMD_pvMem
                                     + (ulStartSector * 512));
                                     
-    lib_memcpy(pvBuffer, pucStartMem, (INT)(512 * ulSectorCount));
+    lib_memcpy(pvBuffer, pucStartMem, (size_t)(512 * ulSectorCount));
     
     return  (ERROR_NONE);
 }
