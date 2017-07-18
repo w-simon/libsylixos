@@ -77,6 +77,7 @@ VOID    API_ThreadShowEx (pid_t  pid)
     REGISTER INT                iThreadCounter = 0;
     REGISTER PLW_CLASS_TCB      ptcb;
              LW_CLASS_TCB_DESC  tcbdesc;
+             CHAR               cWakeupLeft[11];
              
              PCHAR              pcPendType = LW_NULL;
              PCHAR              pcFpu = LW_NULL;
@@ -109,6 +110,15 @@ VOID    API_ThreadShowEx (pid_t  pid)
         
         if ((pidGet != pid) && (pid != -1)) {
             continue;
+        }
+        
+#if LW_CFG_CPU_WORD_LENGHT == 64
+        if (tcbdesc.TCBD_ulWakeupLeft > 9999999999l) {
+            lib_strcpy(cWakeupLeft, "--");
+        } else 
+#endif
+        {
+            lib_itoa((int)tcbdesc.TCBD_ulWakeupLeft, cWakeupLeft, 10);
         }
         
         if (tcbdesc.TCBD_usStatus & LW_THREAD_STATUS_SEM) {             /*  等待信号量                  */
@@ -154,14 +164,14 @@ VOID    API_ThreadShowEx (pid_t  pid)
             pcFpu = "";
         }
         
-        printf("%-16s %7lx %5d %3d %-4s %7ld %10lu %9llu %-3s %3ld\n",
+        printf("%-16s %7lx %5d %3d %-4s %7ld %10s %9llu %-3s %3ld\n",
                tcbdesc.TCBD_cThreadName,                                /*  线程名                      */
                tcbdesc.TCBD_ulId,                                       /*  ID 号                       */
                pidGet,                                                  /*  所属进程 ID                 */
                tcbdesc.TCBD_ucPriority,                                 /*  优先级                      */
                pcPendType,                                              /*  状态                        */
                tcbdesc.TCBD_ulLastError,                                /*  错误号                      */
-               tcbdesc.TCBD_ulWakeupLeft,                               /*  等待计数器                  */
+               cWakeupLeft,                                             /*  等待计数器                  */
                tcbdesc.TCBD_i64PageFailCounter,                         /*  缺页中断                    */
                pcFpu,
                tcbdesc.TCBD_ulCPUId);
@@ -197,6 +207,7 @@ VOID    API_ThreadPendShowEx (pid_t  pid)
              PLW_CLASS_EVENTSET pes;
 #endif                                                                  /*  (LW_CFG_EVENTSET_EN > 0)    */
                                                                         /*  (LW_CFG_MAX_EVENTSETS > 0)  */
+             CHAR               cWakeupLeft[11];
              PCHAR              pcPendType = LW_NULL;
              pid_t              pidGet;
              CHAR               cEventName[LW_CFG_OBJECT_NAME_SIZE + 2];
@@ -312,6 +323,15 @@ VOID    API_ThreadPendShowEx (pid_t  pid)
             continue;
         }
         
+#if LW_CFG_CPU_WORD_LENGHT == 64
+        if (tcbdesc.TCBD_ulWakeupLeft > 9999999999l) {
+            lib_strcpy(cWakeupLeft, "--");
+        } else 
+#endif
+        {
+            lib_itoa((int)tcbdesc.TCBD_ulWakeupLeft, cWakeupLeft, 10);
+        }
+        
         if (tcbdesc.TCBD_usStatus & LW_THREAD_STATUS_SEM) {             /*  等待信号量                  */
             pcPendType = "SEM";
         
@@ -350,22 +370,22 @@ VOID    API_ThreadPendShowEx (pid_t  pid)
         }
         
         if (ulOwner) {
-            printf("%-16s %7lx %5d %-4s %10lu %8lx:%-14s %7lx\n",
+            printf("%-16s %7lx %5d %-4s %10s %8lx:%-14s %7lx\n",
                    tcbdesc.TCBD_cThreadName,                            /*  线程名                      */
                    tcbdesc.TCBD_ulId,                                   /*  ID 号                       */
                    pidGet,                                              /*  所属进程 ID                 */
                    pcPendType,                                          /*  状态                        */
-                   tcbdesc.TCBD_ulWakeupLeft,                           /*  等待计数器                  */
+                   cWakeupLeft,                                         /*  等待计数器                  */
                    ulEvent,
                    cEventName,
                    ulOwner);
         } else {
-            printf("%-16s %7lx %5d %-4s %10lu %8lx:%-14s\n",
+            printf("%-16s %7lx %5d %-4s %10s %8lx:%-14s\n",
                    tcbdesc.TCBD_cThreadName,                            /*  线程名                      */
                    tcbdesc.TCBD_ulId,                                   /*  ID 号                       */
                    pidGet,                                              /*  所属进程 ID                 */
                    pcPendType,                                          /*  状态                        */
-                   tcbdesc.TCBD_ulWakeupLeft,                           /*  等待计数器                  */
+                   cWakeupLeft,                                         /*  等待计数器                  */
                    ulEvent,
                    cEventName);
         }

@@ -114,7 +114,7 @@ LW_OBJECT_HANDLE  API_ThreadCreate (CPCHAR                   pcName,
 
     stGuardSize = pthreadattr->THREADATTR_stGuardSize;
 
-    if (stGuardSize < (ARCH_STK_MIN_WORD_SIZE * sizeof(LW_STACK) * 2)) {
+    if (stGuardSize < (ARCH_STK_MIN_WORD_SIZE * sizeof(LW_STACK))) {
         stGuardSize = LW_CFG_THREAD_DEFAULT_GUARD_SIZE;
     }
 

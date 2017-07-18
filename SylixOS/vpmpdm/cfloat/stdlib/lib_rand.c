@@ -17,7 +17,7 @@
 #define DIVISOR     127773L
 #define REMAINDER   2836L
 
-static LONG    last_val     = 1;
+static INT     last_val     = 1;
 static LONG    last_val_dom = 1;
 
 /*
@@ -32,9 +32,9 @@ INT lib_rand (VOID)
     llTmp  += ((INT64)FACTOR ^ API_TimeGet());
     llTmp >>= 16;
     
-    last_val = (LONG)(llTmp % __ARCH_UINT_MAX);
+    last_val = (INT)(llTmp % __ARCH_UINT_MAX);
     
-    return  (INT)((last_val >= 0) ? last_val : (0 - last_val));         /*  必须为正                    */
+    return  ((last_val >= 0) ? last_val : (0 - last_val));
 }
 
 /*
@@ -49,10 +49,10 @@ INT lib_rand_r (uint_t *puiSeed)
     llTmp  += ((INT64)FACTOR ^ *puiSeed);
     llTmp >>= 16;
     
-    last_val = (LONG)(llTmp % __ARCH_UINT_MAX);
+    last_val = (INT)(llTmp % __ARCH_UINT_MAX);
     *puiSeed = (uint_t)last_val;
     
-    return  (INT)((last_val >= 0) ? last_val : (0 - last_val));         /*  必须为正                    */
+    return  ((last_val >= 0) ? last_val : (0 - last_val));
 }
 
 /*
@@ -62,7 +62,7 @@ __weak_reference(lib_srand, srand);
 
 VOID lib_srand (uint_t uiSeed)
 {
-    last_val = (LONG)uiSeed;
+    last_val = (INT)uiSeed;
 }
 
 /*
@@ -181,7 +181,7 @@ double lib_erand48 (unsigned short xseed[3])
 				| ((unsigned int)xseed[1] >> 12);
 	u.dblfield.fracl = (((unsigned int)xseed[1] & 0x0fff) << 20)
 				| ((unsigned int)xseed[0] << 4);
-	return (u.dbl - 1);
+	return  (u.dbl - 1);
 }
 
 /*
@@ -202,8 +202,8 @@ __weak_reference(lib_lrand48, lrand48);
 long lib_lrand48 (void)
 {
 	__dorand48(__rand48_seed);
-	return (long)((unsigned long) __rand48_seed[2] << 15) +
-	    ((unsigned long) __rand48_seed[1] >> 1);
+	return  (long)((unsigned long) __rand48_seed[2] << 15) +
+	              ((unsigned long) __rand48_seed[1] >> 1);
 }
 
 /*
@@ -214,7 +214,7 @@ __weak_reference(lib_mrand48, mrand48);
 long lib_mrand48 (void)
 {
 	__dorand48(__rand48_seed);
-	return ((long) __rand48_seed[2] << 16) + (long) __rand48_seed[1];
+	return  ((long) __rand48_seed[2] << 16) + (long) __rand48_seed[1];
 }
 
 /*
@@ -229,8 +229,8 @@ long lib_nrand48 (unsigned short xseed[3])
 	}
 
 	__dorand48(xseed);
-	return (long)((unsigned long) xseed[2] << 15) +
-	    ((unsigned long) xseed[1] >> 1);
+	return  (long)((unsigned long) xseed[2] << 15) +
+	              ((unsigned long) xseed[1] >> 1);
 }
 
 /*
@@ -245,7 +245,7 @@ long lib_jrand48 (unsigned short xseed[3])
     }
 
 	__dorand48(xseed);
-	return ((long) xseed[2] << 16) + (long) xseed[1];
+	return  ((long) xseed[2] << 16) + (long) xseed[1];
 }
 
 /*
@@ -271,7 +271,7 @@ unsigned short *lib_seed48 (unsigned short xseed[3])
 	__rand48_mult[1] = RAND48_MULT_1;
 	__rand48_mult[2] = RAND48_MULT_2;
 	__rand48_add = RAND48_ADD;
-	return sseed;
+	return  (sseed);
 }
 
 /*

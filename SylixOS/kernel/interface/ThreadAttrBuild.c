@@ -272,7 +272,7 @@ ULONG   API_ThreadAttrSetGuardSize (PLW_CLASS_THREADATTR    pthreadattr,
     }
 #endif
 
-    if (stGuardSize < (ARCH_STK_MIN_WORD_SIZE * sizeof(LW_STACK) * 2)) {
+    if (stGuardSize < (ARCH_STK_MIN_WORD_SIZE * sizeof(LW_STACK))) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "thread attribute pointer invalidate.\r\n");
         _ErrorHandle(ERROR_THREAD_STACK_NULL);
         return  (ERROR_THREAD_STACK_NULL);

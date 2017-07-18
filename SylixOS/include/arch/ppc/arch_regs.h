@@ -154,7 +154,7 @@ typedef struct {
 *********************************************************************************************************/
 
 #define ARCH_REG_CTX_WORD_SIZE  ((sizeof(ARCH_REG_CTX) + sizeof(ARCH_FP_CTX)) / sizeof(ARCH_REG_T))
-#define ARCH_STK_MIN_WORD_SIZE  128
+#define ARCH_STK_MIN_WORD_SIZE  256
 
 #endif
 

@@ -48,6 +48,14 @@
 #include "../SylixOS/loader/include/loader.h"
 #include "../SylixOS/loader/include/loader_vppatch.h"
 /*********************************************************************************************************
+  Non-STOP 模式支持判断
+*********************************************************************************************************/
+#if defined(LW_CFG_CPU_ARCH_PPC) || (defined(LW_CFG_CPU_ARCH_X86) && (LW_CFG_CPU_WORD_LENGHT == 64))
+#define LW_CFG_GDB_NON_STOP_EN      0
+#else
+#define LW_CFG_GDB_NON_STOP_EN      1
+#endif
+/*********************************************************************************************************
   错误码定义
 *********************************************************************************************************/
 #define ERROR_GDB_INIT_SOCK         200000
@@ -1328,12 +1336,12 @@ static INT gdbGetElfOffset (pid_t   pid,
 static INT gdbHandleQCmd (LW_GDB_PARAM *pparam, PCHAR pcInBuff, PCHAR pcOutBuff)
 {
     if (lib_strstr(pcInBuff, "NonStop:1") == pcInBuff) {
-#ifndef LW_CFG_CPU_ARCH_PPC
+#if LW_CFG_GDB_NON_STOP_EN > 0
         pparam->GDB_bNonStop = 1;
         gdbReplyOk(pcOutBuff);
 #else
         /*
-         * PowerPC 在设置 NonStop 模式后，单步时 GDB 会拷贝下一条指令到某个地址执行，
+         * PowerPC 与 x64 在设置 NonStop 模式后，单步时 GDB 会拷贝下一条指令到某个地址执行，
          * 该方法在相对跳转的指令会有问题
          */
         pparam->GDB_bNonStop = 0;
