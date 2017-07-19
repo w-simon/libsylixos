@@ -226,7 +226,7 @@ static VOID  x86DeviceNotAvailExceptHandle (ULONG  ulX86Vector, ULONG  ulESP)
 
     ulRetAddr = pregctx->REG_XIP;
 
-    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_TERMINAL;
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_UNDEF;
     abtInfo.VMABT_uiMethod = 0;
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
 }

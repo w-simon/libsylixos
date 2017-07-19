@@ -1842,7 +1842,8 @@ INT __elfListLoad (LW_LD_EXEC_MODULE *pmodule, CPCHAR pcPath)
                     fprintf(stderr, "[ld]%s insufficient permissions!\n",
                             pmodTemp->EMOD_pcModulePath);               /*  从标准错误里打印无权限信息  */
                 } else {
-                    fprintf(stderr, "[ld]Load sub-library error %s!\n", lib_strerror(errno));
+                    fprintf(stderr, "[ld]Load sub-library \"%s\" error %s!\n", 
+                            pmodTemp->EMOD_pcModulePath, lib_strerror(errno));
                     _ErrorHandle(ERROR_LOADER_NO_MODULE);
                 }
                 goto    __out;

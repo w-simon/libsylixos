@@ -55,7 +55,7 @@
     EXPORT_LABEL(ppcE500CacheGetL1CFG0)
     EXPORT_LABEL(ppcE500CacheGetL1CFG1)
 
-    IMPORT_LABEL(G_pucPpcCacheReadBuffer)
+    IMPORT_LABEL(_G_pucPpcCacheReadBuffer)
 
     IMPORT_LABEL(PPC_E500_ICACHE_LINE_NUM)
     IMPORT_LABEL(PPC_E500_DCACHE_LINE_NUM)
@@ -188,8 +188,8 @@ FUNC_DEF(ppcE500DCacheDisable)
      ;*/
     SRWI    R5 , R6 , PPC_MMU_RPN_SHIFT - ARCH_PPC_CACHE_ALIGN_SHIFT
     MTSPR   CTR, R5
-    LIS     R5 , HIADJ(G_pucPpcCacheReadBuffer)
-    lwz     R5 , LO(G_pucPpcCacheReadBuffer)(R5)
+    LIS     R5 , HIADJ(_G_pucPpcCacheReadBuffer)
+    lwz     R5 , LO(_G_pucPpcCacheReadBuffer)(R5)
     LI      R9 , PPC_MMU_PAGE_SIZE
 
     ;/*
@@ -212,8 +212,8 @@ LINE_LABEL(cacheE500DisableLoadDtlb)
      ;*/
     LIS     R7  , HIADJ(PPC_E500_DCACHE_ALIGN_SIZE)
     LWZ     R7  , LO(PPC_E500_DCACHE_ALIGN_SIZE)(R7)
-    LIS     R10 , HIADJ(G_pucPpcCacheReadBuffer)
-    LWZ     R10 , LO(G_pucPpcCacheReadBuffer)(R10)
+    LIS     R10 , HIADJ(_G_pucPpcCacheReadBuffer)
+    LWZ     R10 , LO(_G_pucPpcCacheReadBuffer)(R10)
 
     SUBF    R5  , R7 , R10                                      ;/*  buf ptr to text - cache line size   */
 
@@ -225,8 +225,8 @@ LINE_LABEL(cacheE500DisableLoad)
 
     MTSPR   CTR , R6                                            ;/*  load CTR with the number of index   */
 
-    LIS     R10 , HIADJ(G_pucPpcCacheReadBuffer)
-    LWZ     R10 , LO(G_pucPpcCacheReadBuffer)(R10)
+    LIS     R10 , HIADJ(_G_pucPpcCacheReadBuffer)
+    LWZ     R10 , LO(_G_pucPpcCacheReadBuffer)(R10)
     SUBF    R5  , R7 , R10                                      ;/*  buf ptr to text - cache line size   */
 
 LINE_LABEL(cacheE500DisableFlush)
@@ -268,8 +268,8 @@ FUNC_DEF(ppcE500DCacheFlushAll)
      ;*/
     SRWI    R5 , R6 , PPC_MMU_RPN_SHIFT - ARCH_PPC_CACHE_ALIGN_SHIFT
     MTSPR   CTR , R5
-    LIS     R5 , HIADJ(G_pucPpcCacheReadBuffer)
-    LWZ     R5 , LO(G_pucPpcCacheReadBuffer)(R5)
+    LIS     R5 , HIADJ(_G_pucPpcCacheReadBuffer)
+    LWZ     R5 , LO(_G_pucPpcCacheReadBuffer)(R5)
     LI      R9 , PPC_MMU_PAGE_SIZE
 
     ;/*
@@ -292,8 +292,8 @@ LINE_LABEL(cacheE500DisableLoadDtlb2)
      ;*/
     LIS     R7 , HIADJ(PPC_E500_DCACHE_ALIGN_SIZE)
     LWZ     R7 , LO(PPC_E500_DCACHE_ALIGN_SIZE)(R7)
-    LIS     R10 , HIADJ(G_pucPpcCacheReadBuffer)
-    LWZ     R10 , LO(G_pucPpcCacheReadBuffer)(R10)
+    LIS     R10 , HIADJ(_G_pucPpcCacheReadBuffer)
+    LWZ     R10 , LO(_G_pucPpcCacheReadBuffer)(R10)
 
     SUBF    R5 , R7 , R10                                       ;/*  buf ptr to text - cache line size   */
 
@@ -305,8 +305,8 @@ LINE_LABEL(cacheE500DisableLoad2)
 
     MTSPR   CTR , R6                                            ;/*  load CTR with the number of index   */
 
-    LIS     R10 , HIADJ(G_pucPpcCacheReadBuffer)
-    LWZ     R10 , LO(G_pucPpcCacheReadBuffer)(R10)
+    LIS     R10 , HIADJ(_G_pucPpcCacheReadBuffer)
+    LWZ     R10 , LO(_G_pucPpcCacheReadBuffer)(R10)
     SUBF    R5 , R7 , R10                                       ;/*  buf ptr to text - cache line size   */
 
 LINE_LABEL(cacheE500DisableFlush2)

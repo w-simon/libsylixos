@@ -105,6 +105,7 @@ SylixOS/arch/mips/common/mipsIdleAsm.S \
 SylixOS/arch/mips/common/mipsIo.c \
 SylixOS/arch/mips/common/mips64.c \
 SylixOS/arch/mips/common/mips64Asm.S \
+SylixOS/arch/mips/common/mipsCpuProbe.c \
 SylixOS/arch/mips/dbg/mipsDbg.c \
 SylixOS/arch/mips/dbg/mipsGdb.c \
 SylixOS/arch/mips/elf/mipsElf.c \
@@ -150,10 +151,12 @@ SylixOS/arch/mips/fpu/emu/sp_sub.c \
 SylixOS/arch/mips/fpu/emu/sp_tint.c \
 SylixOS/arch/mips/fpu/emu/sp_tlong.c \
 SylixOS/arch/mips/fpu/mipsFpu.c \
-SylixOS/arch/mips/mm/cache/mips32/mips32Cache.c \
-SylixOS/arch/mips/mm/cache/mips32/mips32CacheAsm.S \
+SylixOS/arch/mips/mm/cache/r4k/mipsCacheR4k.c \
+SylixOS/arch/mips/mm/cache/r4k/mipsCacheR4kAsm.S \
 SylixOS/arch/mips/mm/cache/loongson3x/mipsCacheLs3x.c \
 SylixOS/arch/mips/mm/cache/loongson3x/mipsCacheLs3xAsm.S \
+SylixOS/arch/mips/mm/cache/l2/mipsL2R4k.c \
+SylixOS/arch/mips/mm/cache/l2/mipsL2R4kAsm.S \
 SylixOS/arch/mips/mm/mmu/mips32/mips32Mmu.c \
 SylixOS/arch/mips/mm/mmu/mips32/mips32MmuAsm.S \
 SylixOS/arch/mips/mm/mipsCache.c \

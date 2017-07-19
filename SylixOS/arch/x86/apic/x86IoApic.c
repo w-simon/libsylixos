@@ -220,7 +220,7 @@ static PX86_IOAPIC_INTR  __x86IoApicIntrLookup (UINT8  ucIrq, UINT8  *pucRedNum)
     for (i = 0; i < _G_uiX86IoApicNr; i++) {
         pIoApicIntr = &_G_x86IoApicIntrs[i];
 
-        uiIoApicIdOffset = _G_x86IoApicIntrs->IOAPIC_ucId - G_ucX86MpApicIoBaseId;
+        uiIoApicIdOffset = _G_x86IoApicIntrs->IOAPIC_ucId - _G_ucX86MpApicIoBaseId;
 
         if ((ucIrq >= (uiIoApicIdOffset * _G_uiX86IoApicRedEntriesNr)) &&
             (ucIrq < ((uiIoApicIdOffset + 1) * _G_uiX86IoApicRedEntriesNr))) {
@@ -571,7 +571,7 @@ INT  x86IoApicInitAll (UINT  *puiIoIntNr)
                                                 IOAPIC_MRE_MASK) >> IOAPIC_MRE_SHIFT) + 1;
 
         pIoApicIntr->IOAPIC_uiIdteBase      = X86_IRQ_BASE + \
-                ((pIoApicIntr->IOAPIC_ucId - G_ucX86MpApicIoBaseId) * _G_uiX86IoApicRedEntriesNr);
+                 ((pIoApicIntr->IOAPIC_ucId - _G_ucX86MpApicIoBaseId) * _G_uiX86IoApicRedEntriesNr);
 
         __x86IoApicInit(pIoApicIntr);
     }
@@ -617,9 +617,9 @@ INT  x86IoApicIrqEoi (UINT8  ucIrq)
 *********************************************************************************************************/
 UINT8  x86IoApicPciIrqGet (UINT8  ucDestIoApicId, UINT8  ucIrq)
 {
-    if ((ucDestIoApicId > G_ucX86MpApicIoBaseId) &&
-        (ucDestIoApicId < (G_ucX86MpApicIoBaseId + _G_uiX86IoApicNr))) {
-        ucIrq += ((ucDestIoApicId - G_ucX86MpApicIoBaseId) * _G_uiX86IoApicRedEntriesNr);
+    if ((ucDestIoApicId > _G_ucX86MpApicIoBaseId) &&
+        (ucDestIoApicId < (_G_ucX86MpApicIoBaseId + _G_uiX86IoApicNr))) {
+        ucIrq += ((ucDestIoApicId - _G_ucX86MpApicIoBaseId) * _G_uiX86IoApicRedEntriesNr);
     }
 
     return  (ucIrq);

@@ -69,21 +69,22 @@ typedef struct {
 /*********************************************************************************************************
   全局变量声明
 *********************************************************************************************************/
-extern X86_CPU_TOPOLOGY     G_x86CpuTopology;               /*  CPU 拓扑                                */
-extern UINT8                G_aucX86CpuIndexTable[X86_CPUID_MAX_NUM_CPUS];/* Local APIC ID->逻辑处理器ID*/
-extern UINT                 G_uiX86BaseCpuPhysIndex;        /*  Base CPU Phy index                      */
+extern X86_CPU_TOPOLOGY _G_x86CpuTopology;                  /*  CPU 拓扑                                */
+                                                            /*  Local APIC ID->逻辑处理器ID             */
+extern UINT8            _G_aucX86CpuIndexTable[X86_CPUID_MAX_NUM_CPUS];   
+extern UINT             _G_uiX86BaseCpuPhysIndex;           /*  Base CPU Phy index                      */
 /*********************************************************************************************************
   宏定义
 *********************************************************************************************************/
 /*
  * 逻辑 Processor 数目
  */
-#define X86_LPROC_NR                    (G_x86CpuTopology.TOP_uiNumLProcsEnabled)
+#define X86_LPROC_NR                    (_G_x86CpuTopology.TOP_uiNumLProcsEnabled)
 
 /*
  * 物理 Processor 数目
  */
-#define X86_PPROC_NR                    (G_x86CpuTopology.TOP_uiNumCores)
+#define X86_PPROC_NR                    (_G_x86CpuTopology.TOP_uiNumCores)
 
 /*
  * 判断是否有 SMT 技术
@@ -93,40 +94,40 @@ extern UINT                 G_uiX86BaseCpuPhysIndex;        /*  Base CPU Phy ind
 /*
  * APICID -> LOGICID(0 ~ LW_NCPUS-1)
  */
-#define X86_APICID_TO_LOGICID(apicid)   (G_aucX86CpuIndexTable[(apicid)] - G_uiX86BaseCpuPhysIndex)
+#define X86_APICID_TO_LOGICID(apicid)   (_G_aucX86CpuIndexTable[(apicid)] - _G_uiX86BaseCpuPhysIndex)
 
 /*
  * LOGICID(0 ~ LW_NCPUS-1) -> APICID
  */
-#define X86_LOGICID_TO_APICID(logicid)  (G_x86CpuTopology.TOP_auiPhysIdx[(logicid) + G_uiX86BaseCpuPhysIndex])
+#define X86_LOGICID_TO_APICID(logicid)  (_G_x86CpuTopology.TOP_auiPhysIdx[(logicid) + _G_uiX86BaseCpuPhysIndex])
 
 /*
  * LOGICID -> PHYID
  */
 #define X86_LOGICID_TO_PHYID(logicid)   (X86_HAS_SMT ? \
-                                        ((logicid) >> G_x86CpuTopology.TOP_uiSmtMaskWidth) : (logicid))
+                                        ((logicid) >> _G_x86CpuTopology.TOP_uiSmtMaskWidth) : (logicid))
 
 /*
  * 逻辑 Processor 是否存在
  */
-#define X86_APICID_PRESEND(apicid)      ((apicid) == G_x86CpuTopology.TOP_ucCpuBSP ? \
+#define X86_APICID_PRESEND(apicid)      ((apicid) == _G_x86CpuTopology.TOP_ucCpuBSP ? \
                                         LW_TRUE : (BOOL)X86_APICID_TO_LOGICID(apicid))
 
 /*
  * 逻辑 Processor 是否为 HT 核
  */
-#define X86_APICID_IS_HT(apicid)        (X86_HAS_SMT && ((apicid) & G_x86CpuTopology.TOP_uiSmtMaskWidth))
+#define X86_APICID_IS_HT(apicid)        (X86_HAS_SMT && ((apicid) & _G_x86CpuTopology.TOP_uiSmtMaskWidth))
 
 /*
  * 获得 BSP 的 APICID
  */
-#define X86_BSP_APICID                  (G_x86CpuTopology.TOP_ucCpuBSP)
+#define X86_BSP_APICID                  (_G_x86CpuTopology.TOP_ucCpuBSP)
 /*********************************************************************************************************
   函数声明
 *********************************************************************************************************/
 static LW_INLINE UINT  x86CpuPhysIndexGet (VOID)
 {
-    return  (G_aucX86CpuIndexTable[x86LocalApicId()]);
+    return  (_G_aucX86CpuIndexTable[x86LocalApicId()]);
 }
 
 #endif                                                                  /*  __X86_TOPOLOGY_H            */

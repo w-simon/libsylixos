@@ -10,13 +10,13 @@
 ;**
 ;**--------------文件信息--------------------------------------------------------------------------------
 ;**
-;** 文   件   名: mips32CacheAsm.S
+;** 文   件   名: mipsCacheR4kAsm.S
 ;**
 ;** 创   建   人: Jiao.JinXing (焦进星)
 ;**
 ;** 文件创建日期: 2015 年 12 月 01 日
 ;**
-;** 描        述: MIPS32 体系构架 CACHE 驱动.
+;** 描        述: MIPS R4K 体系构架 CACHE 驱动.
 ;*********************************************************************************************************/
 
 #ifndef ASSEMBLY
@@ -25,35 +25,37 @@
 
 #include <arch/assembler.h>
 #include <config/kernel/cache_cfg.h>
+#include <config/cpu/cpu_cfg_mips.h>
 
 #if LW_CFG_CACHE_EN > 0
 
-    EXPORT_LABEL(mips32L1CacheDisable)
-    EXPORT_LABEL(mips32L1CacheEnable)
+    EXPORT_LABEL(mipsCacheR4kDisableHw)
+    EXPORT_LABEL(mipsCacheR4kEnableHw)
 
-    EXPORT_LABEL(mips32DCacheLineFlush)
-    EXPORT_LABEL(mips32DCacheLineClear)
-    EXPORT_LABEL(mips32DCacheLineInvalidate)
+    EXPORT_LABEL(mipsDCacheR4kLineFlush)
+    EXPORT_LABEL(mipsDCacheR4kLineClear)
+    EXPORT_LABEL(mipsDCacheR4kLineInvalidate)
+    EXPORT_LABEL(mipsDCacheR4kIndexClear)
+    EXPORT_LABEL(mipsDCacheR4kIndexStoreTag)
 
-    EXPORT_LABEL(mips32DCacheIndexClear)
+    EXPORT_LABEL(mipsICacheR4kLineInvalidate)
+    EXPORT_LABEL(mipsICacheR4kIndexInvalidate)
+    EXPORT_LABEL(mipsICacheR4kFill)
+    EXPORT_LABEL(mipsICacheR4kIndexStoreTag)
 
-    EXPORT_LABEL(mips32ICacheLineInvalidate)
-    EXPORT_LABEL(mips32ICacheIndexInvalidate)
+    EXPORT_LABEL(mipsBranchPredictionDisable)
+    EXPORT_LABEL(mipsBranchPredictionEnable)
+    EXPORT_LABEL(mipsBranchPredictorInvalidate)
 
-    EXPORT_LABEL(mips32ICacheFill)
-    EXPORT_LABEL(mips32ICacheIndexStoreTag)
-    EXPORT_LABEL(mips32DCacheIndexStoreTag)
+    IMPORT_LABEL(mipsICacheR4kInvalidateAll)
+    IMPORT_LABEL(mipsDCacheR4kClearAll)
+#if LW_CFG_MIPS_CACHE_L2 > 0
+    IMPORT_LABEL(mipsL2R4kClearAll)
+#endif
 
-    EXPORT_LABEL(mips32BranchPredictionDisable)
-    EXPORT_LABEL(mips32BranchPredictionEnable)
-    EXPORT_LABEL(mips32BranchPredictorInvalidate)
-
-    IMPORT_LABEL(mips32ICacheInvalidateAll)
-    IMPORT_LABEL(mips32DCacheClearAll)
-
-    WEAK(mips32BranchPredictionDisable)
-    WEAK(mips32BranchPredictionEnable)
-    WEAK(mips32BranchPredictorInvalidate)
+    WEAK(mipsBranchPredictionDisable)
+    WEAK(mipsBranchPredictionEnable)
+    WEAK(mipsBranchPredictorInvalidate)
 
     FILE_BEGIN()
 
@@ -61,7 +63,7 @@
 ;  禁能 CACHE
 ;*********************************************************************************************************/
 
-FUNC_DEF(mips32L1CacheDisable)
+FUNC_DEF(mipsCacheR4kDisableHw)
     .set    push
     .set    noreorder
     .set    volatile
@@ -77,11 +79,16 @@ FUNC_DEF(mips32L1CacheDisable)
     SW      FP , 24(SP)
     MOV     FP , SP
 
-    JAL     mips32DCacheClearAll
+    JAL     mipsDCacheR4kClearAll
     NOP
 
-    JAL     mips32ICacheInvalidateAll
+    JAL     mipsICacheR4kInvalidateAll
     NOP
+
+#if LW_CFG_MIPS_CACHE_L2 > 0
+    JAL     mipsL2R4kClearAll
+    NOP
+#endif
 
     MOV     SP , FP
     LW      RA , 28(SP)
@@ -98,13 +105,13 @@ FUNC_DEF(mips32L1CacheDisable)
     NOP
 
     .set    pop
-    FUNC_END(mips32L1CacheDisable)
+    FUNC_END(mipsCacheR4kDisableHw)
 
 ;/*********************************************************************************************************
 ;  使能 CACHE
 ;*********************************************************************************************************/
 
-FUNC_DEF(mips32L1CacheEnable)
+FUNC_DEF(mipsCacheR4kEnableHw)
     .set    push
     .set    noreorder
     .set    volatile
@@ -125,7 +132,7 @@ FUNC_DEF(mips32L1CacheEnable)
     NOP
 
     .set    pop
-    FUNC_END(mips32L1CacheEnable)
+    FUNC_END(mipsCacheR4kEnableHw)
 
 ;/*********************************************************************************************************
 ;  CACHE 操作宏
@@ -150,100 +157,100 @@ MACRO_DEF(CACHE_OP op addr)
 ;  回写一个 DCACHE 行
 ;*********************************************************************************************************/
 
-FUNC_DEF(mips32DCacheLineFlush)
+FUNC_DEF(mipsDCacheR4kLineFlush)
     CACHE_OP    Hit_Writeback_D         A0
-    FUNC_END(mips32DCacheLineFlush)
+    FUNC_END(mipsDCacheR4kLineFlush)
 
 ;/*********************************************************************************************************
 ;  回写并无效一个 DCACHE 行
 ;*********************************************************************************************************/
 
-FUNC_DEF(mips32DCacheLineClear)
+FUNC_DEF(mipsDCacheR4kLineClear)
     CACHE_OP    Hit_Writeback_Inv_D     A0
-    FUNC_END(mips32DCacheLineClear)
+    FUNC_END(mipsDCacheR4kLineClear)
 
 ;/*********************************************************************************************************
 ;  无效一个 DCACHE 行
 ;*********************************************************************************************************/
 
-FUNC_DEF(mips32DCacheLineInvalidate)
+FUNC_DEF(mipsDCacheR4kLineInvalidate)
     CACHE_OP    Hit_Invalidate_D        A0
-    FUNC_END(mips32DCacheLineInvalidate)
+    FUNC_END(mipsDCacheR4kLineInvalidate)
 
 ;/*********************************************************************************************************
 ;  通过 Cache 存储器的地址索引回写并无效一个 DCACHE 行
 ;*********************************************************************************************************/
 
-FUNC_DEF(mips32DCacheIndexClear)
+FUNC_DEF(mipsDCacheR4kIndexClear)
     CACHE_OP    Index_Writeback_Inv_D   A0
-    FUNC_END(mips32DCacheIndexClear)
+    FUNC_END(mipsDCacheR4kIndexClear)
 
 ;/*********************************************************************************************************
 ;  无效一个 ICACHE 行
 ;*********************************************************************************************************/
 
-FUNC_DEF(mips32ICacheLineInvalidate)
+FUNC_DEF(mipsICacheR4kLineInvalidate)
     CACHE_OP    Hit_Invalidate_I        A0
-    FUNC_END(mips32ICacheLineInvalidate)
+    FUNC_END(mipsICacheR4kLineInvalidate)
 
 ;/*********************************************************************************************************
-;  通过 Cache 存储器的地址索引回写并无效一个 ICACHE 行
+;  通过 CACHE 存储器的地址索引回写并无效一个 ICACHE 行
 ;*********************************************************************************************************/
 
-FUNC_DEF(mips32ICacheIndexInvalidate)
+FUNC_DEF(mipsICacheR4kIndexInvalidate)
     CACHE_OP    Index_Invalidate_I      A0
-    FUNC_END(mips32ICacheIndexInvalidate)
+    FUNC_END(mipsICacheR4kIndexInvalidate)
 
 ;/*********************************************************************************************************
-;  FILL I-Cache
+;  FILL ICACHE
 ;*********************************************************************************************************/
 
-FUNC_DEF(mips32ICacheFill)
+FUNC_DEF(mipsICacheR4kFill)
     CACHE_OP    Fill_I                  A0
-    FUNC_END(mips32ICacheFill)
+    FUNC_END(mipsICacheR4kFill)
 
 ;/*********************************************************************************************************
-;  设置 D-Cache 的 TAG
+;  设置 DCACHE 的 TAG
 ;*********************************************************************************************************/
 
-FUNC_DEF(mips32DCacheIndexStoreTag)
+FUNC_DEF(mipsDCacheR4kIndexStoreTag)
     CACHE_OP    Index_Store_Tag_D       A0
-    FUNC_END(mips32DCacheIndexStoreTag)
+    FUNC_END(mipsDCacheR4kIndexStoreTag)
 
 ;/*********************************************************************************************************
-;  设置 I-Cache 的 TAG
+;  设置 ICACHE 的 TAG
 ;*********************************************************************************************************/
 
-FUNC_DEF(mips32ICacheIndexStoreTag)
+FUNC_DEF(mipsICacheR4kIndexStoreTag)
     CACHE_OP    Index_Store_Tag_I       A0
-    FUNC_END(mips32ICacheIndexStoreTag)
+    FUNC_END(mipsICacheR4kIndexStoreTag)
 
 ;/*********************************************************************************************************
 ;  禁能分支预测
 ;*********************************************************************************************************/
 
-FUNC_DEF(mips32BranchPredictionDisable)
+FUNC_DEF(mipsBranchPredictionDisable)
     JR      RA
     NOP
-    FUNC_END(mips32BranchPredictionDisable)
+    FUNC_END(mipsBranchPredictionDisable)
 
 ;/*********************************************************************************************************
 ;  使能分支预测
 ;*********************************************************************************************************/
 
-FUNC_DEF(mips32BranchPredictionEnable)
+FUNC_DEF(mipsBranchPredictionEnable)
     JR      RA
     NOP
-    FUNC_END(mips32BranchPredictionEnable)
+    FUNC_END(mipsBranchPredictionEnable)
 
 ;/*********************************************************************************************************
 ;  无效分支预测
 ;*********************************************************************************************************/
 
-FUNC_DEF(mips32BranchPredictorInvalidate)
+FUNC_DEF(mipsBranchPredictorInvalidate)
     JR      RA
     NOP
-    FUNC_END(mips32BranchPredictorInvalidate)
+    FUNC_END(mipsBranchPredictorInvalidate)
 
     FILE_END()
 

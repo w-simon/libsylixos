@@ -80,7 +80,7 @@ static INT   ppc83xxCacheProbe (CPCHAR  pcMachineName, PPC_CACHE  *pICache, PPC_
 /*********************************************************************************************************
   MPC83XX CACHE Çý¶¯
 *********************************************************************************************************/
-PPC_L1C_DRIVER  G_ppc83xxCacheDriver = {
+PPC_L1C_DRIVER  _G_ppc83xxCacheDriver = {
     "83XX",
     ppc83xxCacheProbe,
 

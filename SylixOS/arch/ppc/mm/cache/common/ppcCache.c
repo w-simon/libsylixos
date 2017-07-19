@@ -54,26 +54,26 @@ static PPC_CACHE        _G_ICache, _G_DCache;                           /*  I-Ca
 /*********************************************************************************************************
   Pointer of a page-aligned cacheable region to use as a flush buffer.
 *********************************************************************************************************/
-UINT8                  *G_pucPpcCacheReadBuffer;
+UINT8                  *_G_pucPpcCacheReadBuffer;
 /*********************************************************************************************************
   CACHE Çý¶¯
 *********************************************************************************************************/
-extern PPC_L1C_DRIVER   G_ppc603CacheDriver;
-extern PPC_L1C_DRIVER   G_ppc604CacheDriver;
-extern PPC_L1C_DRIVER   G_ppc745xCacheDriver;
-extern PPC_L1C_DRIVER   G_ppc83xxCacheDriver;
-extern PPC_L1C_DRIVER   G_ppcEC603CacheDriver;
-extern PPC_L1C_DRIVER   G_ppcE200CacheDriver;
-extern PPC_L1C_DRIVER   G_ppcE500CacheDriver;
+extern PPC_L1C_DRIVER   _G_ppc603CacheDriver;
+extern PPC_L1C_DRIVER   _G_ppc604CacheDriver;
+extern PPC_L1C_DRIVER   _G_ppc745xCacheDriver;
+extern PPC_L1C_DRIVER   _G_ppc83xxCacheDriver;
+extern PPC_L1C_DRIVER   _G_ppcEC603CacheDriver;
+extern PPC_L1C_DRIVER   _G_ppcE200CacheDriver;
+extern PPC_L1C_DRIVER   _G_ppcE500CacheDriver;
 
 static PPC_L1C_DRIVER  *_G_ppcCacheDrivers[] = {
-    &G_ppc603CacheDriver,
-    &G_ppc604CacheDriver,
-    &G_ppc745xCacheDriver,
-    &G_ppc83xxCacheDriver,
-    &G_ppcEC603CacheDriver,
-    &G_ppcE200CacheDriver,
-    &G_ppcE500CacheDriver,
+    &_G_ppc603CacheDriver,
+    &_G_ppc604CacheDriver,
+    &_G_ppc745xCacheDriver,
+    &_G_ppc83xxCacheDriver,
+    &_G_ppcEC603CacheDriver,
+    &_G_ppcE200CacheDriver,
+    &_G_ppcE500CacheDriver,
     LW_NULL,
 };
 
@@ -557,9 +557,9 @@ static INT  ppcCacheProbe (CPCHAR       pcMachineName)
      * Alloc a page-aligned cacheable region to use as a flush buffer.
      * Worst case PLRU flush needs 1.5 * cache size.
      */
-    G_pucPpcCacheReadBuffer = __KHEAP_ALLOC_ALIGN((_G_DCache.CACHE_uiSize * 3) >> 1,
-                                                  LW_CFG_VMM_PAGE_SIZE);
-    if (!G_pucPpcCacheReadBuffer) {
+    _G_pucPpcCacheReadBuffer = __KHEAP_ALLOC_ALIGN((_G_DCache.CACHE_uiSize * 3) >> 1,
+                                                   LW_CFG_VMM_PAGE_SIZE);
+    if (!_G_pucPpcCacheReadBuffer) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "system low memory.\r\n");
         return  (PX_ERROR);
     }

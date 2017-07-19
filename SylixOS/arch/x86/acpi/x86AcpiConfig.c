@@ -48,14 +48,14 @@ static UINT32               _G_uiAcpiPciBusStack[PCI_BUS_STACK_MAX];
 static UINT8                _G_ucAcpiMaxSubordinateBusId = 0;
 static X86_MP_APIC_DATA    *_G_pAcpiMpApicData           = LW_NULL;
 
-BOOL                        G_bAcpiPcAtCompatible = LW_FALSE;
-UINT8                       G_ucAcpiIsaIntNr      = 0;
-UINT8                       G_ucAcpiIsaApic       = 0;
+BOOL                        _G_bAcpiPcAtCompatible = LW_FALSE;
+UINT8                       _G_ucAcpiIsaIntNr      = 0;
+UINT8                       _G_ucAcpiIsaApic       = 0;
 /*********************************************************************************************************
   List of IRQ base addresses for each IOAPIC
 *********************************************************************************************************/
-UINT8                      *G_pucAcpiGlobalIrqBaseTable         = LW_NULL;
-X86_IRQ_OVERRIDE         *(*G_pfuncAcpiIrqOverride)(INT iIndex) = LW_NULL;
+UINT8                      *_G_pucAcpiGlobalIrqBaseTable         = LW_NULL;
+X86_IRQ_OVERRIDE         *(*_G_pfuncAcpiIrqOverride)(INT iIndex) = LW_NULL;
 /*********************************************************************************************************
   外部函数声明
 *********************************************************************************************************/
@@ -152,9 +152,9 @@ static VOID  __acpiShowMpApicBusTable (VOID)
 *********************************************************************************************************/
 VOID  acpiConfigInit (PCHAR  pcHeapBase, size_t  stHeapSize)
 {
-    G_pcAcpiOsHeapPtr  = pcHeapBase;
-    G_pcAcpiOsHeapBase = pcHeapBase;
-    G_pcAcpiOsHeapTop  = pcHeapBase + stHeapSize - 1;
+    _G_pcAcpiOsHeapPtr  = pcHeapBase;
+    _G_pcAcpiOsHeapBase = pcHeapBase;
+    _G_pcAcpiOsHeapTop  = pcHeapBase + stHeapSize - 1;
 
     /*
      * Initialize PCI bus stack
@@ -212,8 +212,8 @@ static INT  acpiLibIoApicIndex (UINT8  ucDestApicIntIn)
 
     for (iIdIndex = 0; iIdIndex < _G_pAcpiMpApicData->MPAPIC_uiIoApicNr; iIdIndex++) {
         __ACPI_DEBUG_LOG("\n**** acpiLibIoApicIndex checking 0x%x ****\n", iIdIndex);
-        if (ucDestApicIntIn >= G_pucAcpiGlobalIrqBaseTable[iIdIndex] &&
-           (ucDestApicIntIn < (G_pucAcpiGlobalIrqBaseTable[iIdIndex] + 24))) {
+        if (ucDestApicIntIn >= _G_pucAcpiGlobalIrqBaseTable[iIdIndex] &&
+           (ucDestApicIntIn < (_G_pucAcpiGlobalIrqBaseTable[iIdIndex] + 24))) {
             break;
         }
     }
@@ -239,7 +239,7 @@ static VOID  acpiLibIsaMap (VOID)
     pMpApicInterruptTable = (X86_MP_INTERRUPT *)X86_MPAPIC_PHYS_TO_VIRT(_G_pAcpiMpApicData, MPAPIC_uiItLoc);
     lib_bzero((VOID *)pMpApicInterruptTable, (16 * sizeof(X86_MP_INTERRUPT)));
 
-    G_ucAcpiIsaIntNr = 16;
+    _G_ucAcpiIsaIntNr = 16;
 
     /*
      * If dual-8259, prepend table with ISA IRQs
@@ -247,7 +247,7 @@ static VOID  acpiLibIsaMap (VOID)
     for (ucIndex = 0; ucIndex < 16; ucIndex++) {
         pMpApicInterruptTable[ucIndex].INT_ucEntryType     = 3;
         pMpApicInterruptTable[ucIndex].INT_ucSourceBusIrq  = ucIndex;
-        pMpApicInterruptTable[ucIndex].INT_ucDestApicId    = G_ucAcpiIsaApic;
+        pMpApicInterruptTable[ucIndex].INT_ucDestApicId    = _G_ucAcpiIsaApic;
         pMpApicInterruptTable[ucIndex].INT_ucDestApicIntIn = ucIndex;
         ACPI_VERBOSE_PRINT("  filling in pMpApicInterruptTable[%d]= 0x%08x 0x%08x\n",
                            ucIndex,
@@ -379,7 +379,7 @@ static VOID  acpiLibIrqProcess (UINT8  *pucBuf, UINT8  ucSourceBusId, BOOL  bFil
              * non-functional.
              */
             if (pRoutingTable->SourceIndex != 0) {
-                ucDestApicIntIn = (UINT8)(pRoutingTable->SourceIndex - G_pucAcpiGlobalIrqBaseTable[iDestApicIndex]);
+                ucDestApicIntIn = (UINT8)(pRoutingTable->SourceIndex - _G_pucAcpiGlobalIrqBaseTable[iDestApicIndex]);
 
             } else {
                 uiIrq = acpiLibIrqGet(pRoutingTable);
@@ -568,11 +568,11 @@ VOID  acpiLibGetIsaIrqResources (ACPI_RESOURCE  *pResourceList, BOOL  bFillinTab
                 if (bFillinTable &&
                     !acpiLibIntIsDuplicate((UINT8)_G_pAcpiMpApicData->MPAPIC_uiBusNr,
                                            ucIndex,
-                                           G_ucAcpiIsaApic,
+                                           _G_ucAcpiIsaApic,
                                            ucIndex)) {
                     pMpApicInterruptTable[_G_pAcpiMpApicData->MPAPIC_uiIoIntNr].INT_ucEntryType     = 3;
                     pMpApicInterruptTable[_G_pAcpiMpApicData->MPAPIC_uiIoIntNr].INT_ucSourceBusIrq  = ucIndex;
-                    pMpApicInterruptTable[_G_pAcpiMpApicData->MPAPIC_uiIoIntNr].INT_ucDestApicId    = G_ucAcpiIsaApic;
+                    pMpApicInterruptTable[_G_pAcpiMpApicData->MPAPIC_uiIoIntNr].INT_ucDestApicId    = _G_ucAcpiIsaApic;
                     pMpApicInterruptTable[_G_pAcpiMpApicData->MPAPIC_uiIoIntNr].INT_ucDestApicIntIn = ucIndex;
 
                     /*
@@ -585,11 +585,11 @@ VOID  acpiLibGetIsaIrqResources (ACPI_RESOURCE  *pResourceList, BOOL  bFillinTab
                                        ((UINT32* )&pMpApicInterruptTable[_G_pAcpiMpApicData->MPAPIC_uiIoIntNr])[0],
                                        ((UINT32* )&pMpApicInterruptTable[_G_pAcpiMpApicData->MPAPIC_uiIoIntNr])[1]);
                     _G_pAcpiMpApicData->MPAPIC_uiIoIntNr++;
-                    G_ucAcpiIsaIntNr++;
+                    _G_ucAcpiIsaIntNr++;
 
                 } else {
                     _G_pAcpiMpApicData->MPAPIC_uiIoIntNr++;
-                    G_ucAcpiIsaIntNr++;
+                    _G_ucAcpiIsaIntNr++;
                 }
             }
 
@@ -708,7 +708,7 @@ static ACPI_STATUS  __acpiDeviceWalkRtn (ACPI_HANDLE  hObject,
     if (pDevInfo->Valid & ACPI_VALID_ADR) {
         __ACPI_DEBUG_LOG("\tDevice.Address = %p\n", pDevInfo->Address);
 
-        if (G_bAcpiPciConfigAccess) {
+        if (_G_bAcpiPciConfigAccess) {
             if (uiNestingLevel >= PCI_BUS_STACK_MAX) {
                 __ACPI_DEBUG_LOG("\tCannot get PCI bus for selected nesting level,"
                                  " please increase PCI_BUS_STACK_MAX\n");
@@ -1019,7 +1019,7 @@ static VOID  __acpiParseIrqOverride (UINT8   ucSourceIrq,
         pMpApicInterruptTable[0].INT_ucDestApicIntIn   = (UINT8)uiGlobalIrq;
         pMpApicInterruptTable[0].INT_usInterruptFlags  = usIntFlags;
         pMpApicInterruptTable[0].INT_ucEntryType       = 3;
-        pMpApicInterruptTable[0].INT_ucDestApicId      = G_ucAcpiIsaApic;
+        pMpApicInterruptTable[0].INT_ucDestApicId      = _G_ucAcpiIsaApic;
         _G_pAcpiMpApicData->MPAPIC_uiIoIntNr++;
 
         ACPI_VERBOSE_PRINT("  filling in pMpApicInterruptTable[%d]= 0x%08x 0x%08x\n",
@@ -1049,7 +1049,7 @@ static VOID  __acpiParseIrqOverride (UINT8   ucSourceIrq,
         pMpApicInterruptTable[ucGlobIrqIndex].INT_ucDestApicIntIn  = (UINT8)uiGlobalIrq;
         pMpApicInterruptTable[ucGlobIrqIndex].INT_usInterruptFlags = usIntFlags;
         pMpApicInterruptTable[ucGlobIrqIndex].INT_ucEntryType      = 3;
-        pMpApicInterruptTable[ucGlobIrqIndex].INT_ucDestApicId     = G_ucAcpiIsaApic;
+        pMpApicInterruptTable[ucGlobIrqIndex].INT_ucDestApicId     = _G_ucAcpiIsaApic;
 
     } else {
         /*
@@ -1059,7 +1059,7 @@ static VOID  __acpiParseIrqOverride (UINT8   ucSourceIrq,
         pMpApicInterruptTable[_G_pAcpiMpApicData->MPAPIC_uiIoIntNr].INT_ucDestApicIntIn  = (UINT8)uiGlobalIrq;
         pMpApicInterruptTable[_G_pAcpiMpApicData->MPAPIC_uiIoIntNr].INT_usInterruptFlags = usIntFlags;
         pMpApicInterruptTable[_G_pAcpiMpApicData->MPAPIC_uiIoIntNr].INT_ucEntryType      = 3;
-        pMpApicInterruptTable[_G_pAcpiMpApicData->MPAPIC_uiIoIntNr].INT_ucDestApicId     = G_ucAcpiIsaApic;
+        pMpApicInterruptTable[_G_pAcpiMpApicData->MPAPIC_uiIoIntNr].INT_ucDestApicId     = _G_ucAcpiIsaApic;
 
         ACPI_VERBOSE_PRINT("  filling in pMpApicInterruptTable[%d]= 0x%08x 0x%08x\n",
                            _G_pAcpiMpApicData->MPAPIC_uiIoIntNr,
@@ -1067,7 +1067,7 @@ static VOID  __acpiParseIrqOverride (UINT8   ucSourceIrq,
                            ((UINT32* )&pMpApicInterruptTable[_G_pAcpiMpApicData->MPAPIC_uiIoIntNr])[1]);
 
         _G_pAcpiMpApicData->MPAPIC_uiIoIntNr++;
-        G_ucAcpiIsaIntNr++;
+        _G_ucAcpiIsaIntNr++;
     }
 }
 /*********************************************************************************************************
@@ -1114,8 +1114,8 @@ static INT  __acpiProcessIrqOverrides (ACPI_TABLE_HEADER  *pAcpiHeader, BOOL  bP
     /*
      * If any BSP specific overrides are registered
      */
-    if (G_pfuncAcpiIrqOverride != LW_NULL) {
-        while ((pIrqOveride = G_pfuncAcpiIrqOverride(iIndex++)) != LW_NULL) {
+    if (_G_pfuncAcpiIrqOverride != LW_NULL) {
+        while ((pIrqOveride = _G_pfuncAcpiIrqOverride(iIndex++)) != LW_NULL) {
             /*
              * Process any BSP specific overrides
              */
@@ -1194,7 +1194,7 @@ static INT  __acpiParseMadt (ACPI_TABLE_HEADER  *pAcpiHeader)
     /*
      * Allocate space for GlobalIrqBase table
      */
-    G_pucAcpiGlobalIrqBaseTable = AcpiOsAllocate(sizeof(UINT32) * _G_pAcpiMpApicData->MPAPIC_uiIoApicNr);
+    _G_pucAcpiGlobalIrqBaseTable = AcpiOsAllocate(sizeof(UINT32) * _G_pAcpiMpApicData->MPAPIC_uiIoApicNr);
 
     /*
      * Set FPS header ID to _MP_
@@ -1214,7 +1214,7 @@ static INT  __acpiParseMadt (ACPI_TABLE_HEADER  *pAcpiHeader)
     pucMpApicLogicalTable = (UINT8 *)X86_MPAPIC_PHYS_TO_VIRT(_G_pAcpiMpApicData, MPAPIC_uiLtLoc);
 
     _G_pAcpiMpApicData->MPAPIC_uiItLoc  = _G_pAcpiMpApicData->MPAPIC_uiLtLoc + _G_pAcpiMpApicData->MPAPIC_uiLtSize;
-    if (G_bAcpiPcAtCompatible) {
+    if (_G_bAcpiPcAtCompatible) {
         /*
          * If dual-8259, prepend table with ISA IRQs
          */
@@ -1314,10 +1314,10 @@ static INT  __acpiParseMadt (ACPI_TABLE_HEADER  *pAcpiHeader)
 
         case (ACPI_MADT_TYPE_IO_APIC):
             __ACPI_DEBUG_LOG("  ACPI_MADT_TYPE_IO_APIC...\n");
-            pMadtToApic                                = (ACPI_MADT_IO_APIC *)pApicEntry;
-            G_pucAcpiGlobalIrqBaseTable[uiIoApicIndex] = (UINT8)pMadtToApic->GlobalIrqBase;
-            puiMpApicAddrTable[uiIoApicIndex]          = (UINT32)pMadtToApic->Address;
-            pucMpApicLogicalTable[uiIoApicIndex++]     = pMadtToApic->Id;
+            pMadtToApic                                 = (ACPI_MADT_IO_APIC *)pApicEntry;
+            _G_pucAcpiGlobalIrqBaseTable[uiIoApicIndex] = (UINT8)pMadtToApic->GlobalIrqBase;
+            puiMpApicAddrTable[uiIoApicIndex]           = (UINT32)pMadtToApic->Address;
+            pucMpApicLogicalTable[uiIoApicIndex++]      = pMadtToApic->Id;
             break;
 
         default:
@@ -1349,13 +1349,13 @@ static INT  __acpiParseMadt (ACPI_TABLE_HEADER  *pAcpiHeader)
 
     for (iOuterIndex = 0; iOuterIndex < uiIoApicIndex; iOuterIndex++) {
         for (iInnerIndex = 0; iInnerIndex < uiIoApicIndex - 1; iInnerIndex++) {
-            if (G_pucAcpiGlobalIrqBaseTable[iInnerIndex] > G_pucAcpiGlobalIrqBaseTable[iInnerIndex + 1]) {
+            if (_G_pucAcpiGlobalIrqBaseTable[iInnerIndex] > _G_pucAcpiGlobalIrqBaseTable[iInnerIndex + 1]) {
                 /*
                  * Swap entries
                  */
-                ucTmp1 = G_pucAcpiGlobalIrqBaseTable[iInnerIndex + 1];
-                G_pucAcpiGlobalIrqBaseTable[iInnerIndex + 1] = G_pucAcpiGlobalIrqBaseTable[iInnerIndex];
-                G_pucAcpiGlobalIrqBaseTable[iInnerIndex]     = ucTmp1;
+                ucTmp1 = _G_pucAcpiGlobalIrqBaseTable[iInnerIndex + 1];
+                _G_pucAcpiGlobalIrqBaseTable[iInnerIndex + 1] = _G_pucAcpiGlobalIrqBaseTable[iInnerIndex];
+                _G_pucAcpiGlobalIrqBaseTable[iInnerIndex]     = ucTmp1;
 
                 uiTemp32 = puiMpApicAddrTable[iInnerIndex + 1];
                 puiMpApicAddrTable[iInnerIndex + 1] = puiMpApicAddrTable[iInnerIndex];
@@ -1371,7 +1371,7 @@ static INT  __acpiParseMadt (ACPI_TABLE_HEADER  *pAcpiHeader)
     /*
      * Now that its sorted, we know that ISA IRQs are in first IOAPIC
      */
-    G_ucAcpiIsaApic = pucMpApicLogicalTable[0];
+    _G_ucAcpiIsaApic = pucMpApicLogicalTable[0];
 
     __ACPI_DEBUG_LOG("**** parses MADT table completed... ****\n");
 
@@ -1406,14 +1406,14 @@ INT  acpiLibDevScan (BOOL  bEarlyInit, BOOL  bPciAccess, CHAR  *pcBuf, UINT32  u
     INT                     i, j, k;
     UINT8                   ucTmp;
 
-    G_bAcpiEarlyAccess     = bEarlyInit;
-    G_bAcpiPciConfigAccess = bPciAccess;
+    _G_bAcpiEarlyAccess     = bEarlyInit;
+    _G_bAcpiPciConfigAccess = bPciAccess;
 
-    G_ucAcpiIsaIntNr  = 0;
-    G_ucAcpiIsaApic   = 0;
+    _G_ucAcpiIsaIntNr = 0;
+    _G_ucAcpiIsaApic  = 0;
 
     __ACPI_DEBUG_LOG("\n**** acpiLibDevScan(%d, %d, %p, 0x%x) ****\n\n",
-            bEarlyInit, bPciAccess, pcBuf, uiMpApicBufSize);
+                     bEarlyInit, bPciAccess, pcBuf, uiMpApicBufSize);
 
     /*
      * Save pointer to static table
@@ -1437,7 +1437,7 @@ INT  acpiLibDevScan (BOOL  bEarlyInit, BOOL  bPciAccess, CHAR  *pcBuf, UINT32  u
     /*
      * True if dual 8359, must fill in isa irqs
      */
-    G_bAcpiPcAtCompatible = ((ACPI_TABLE_MADT *)pMadt)->Flags;
+    _G_bAcpiPcAtCompatible = ((ACPI_TABLE_MADT *)pMadt)->Flags;
 
     _G_pAcpiMpApicData->MPAPIC_uiLoIntNr = 2;                           /*  Fixed number, NMI and ExtInt*/
 
@@ -1446,11 +1446,11 @@ INT  acpiLibDevScan (BOOL  bEarlyInit, BOOL  bPciAccess, CHAR  *pcBuf, UINT32  u
      */
     __ACPI_DEBUG_LOG("\n\n------- acpiLibDevScan (first pass) -------\n");
 
-    if (G_bAcpiPcAtCompatible) {
+    if (_G_bAcpiPcAtCompatible) {
         /*
          * We'll hard-code ISA table entries
          */
-        G_ucAcpiIsaIntNr = 16;
+        _G_ucAcpiIsaIntNr = 16;
 
     } else {
         /*
@@ -1515,7 +1515,7 @@ INT  acpiLibDevScan (BOOL  bEarlyInit, BOOL  bPciAccess, CHAR  *pcBuf, UINT32  u
     _G_pAcpiMpApicData->MPAPIC_uiIoIntNr = 0;                           /*  Recomputed in second pass   */
     _G_pAcpiMpApicData->MPAPIC_uiBusNr   = 0;                           /*  Recomputed in second pass   */
 
-    if (G_bAcpiPcAtCompatible) {
+    if (_G_bAcpiPcAtCompatible) {
         acpiLibIsaMap();                                                /*  Hard-code ISA table entries */
 
     } else {
@@ -1671,7 +1671,7 @@ INT  acpiLibDevScan (BOOL  bEarlyInit, BOOL  bPciAccess, CHAR  *pcBuf, UINT32  u
     /*
      * Fill-in ISA bus number
      */
-    for (iIndex = 0; iIndex < G_ucAcpiIsaIntNr; iIndex++) {
+    for (iIndex = 0; iIndex < _G_ucAcpiIsaIntNr; iIndex++) {
         pMpApicInterruptTable[iIndex].INT_ucSourceBusId = (UINT8)(_G_ucAcpiMaxSubordinateBusId + 1);
     }
 
@@ -1723,7 +1723,7 @@ INT  acpiLibDevScan (BOOL  bEarlyInit, BOOL  bPciAccess, CHAR  *pcBuf, UINT32  u
             _G_pAcpiMpApicData->MPAPIC_aucCpuIndexTable[pucMpLoApicIndexTable[i]] = (UINT8)i;
         }
 
-        G_uiX86BaseCpuPhysIndex = \
+        _G_uiX86BaseCpuPhysIndex = \
         (UINT)_G_pAcpiMpApicData->MPAPIC_aucCpuIndexTable[(UINT8)_G_pAcpiMpApicData->MPAPIC_ucCpuBSP];
     }
 

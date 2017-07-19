@@ -80,7 +80,7 @@ static INT   ppc604CacheProbe (CPCHAR  pcMachineName, PPC_CACHE  *pICache, PPC_C
 /*********************************************************************************************************
   604 CACHE Çý¶¯
 *********************************************************************************************************/
-PPC_L1C_DRIVER  G_ppc604CacheDriver = {
+PPC_L1C_DRIVER  _G_ppc604CacheDriver = {
     "604",
     ppc604CacheProbe,
 

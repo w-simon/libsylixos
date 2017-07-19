@@ -302,11 +302,11 @@ static ssize_t  __procFsKernelTickRead (PLW_PROCFS_NODE  p_pfsn,
         
         stRealSize = bnprintf(pcFileBuffer, 
                               __PROCFS_BUFFER_SIZE_TICK, 0,
-                              "tick rate   : %ld hz\n"
-                              "tick        : %lld\n"                    /*  使用 64bit 系统时间         */
-                              "monotonic   : %d:%02d:%02d.%09ld\n"
-                              "reatime UTC : %s"
-                              "reatime LCL : %s",
+                              "tick rate    : %ld hz\n"
+                              "tick         : %lld\n"                   /*  使用 64bit 系统时间         */
+                              "monotonic    : %d:%02d:%02d.%09ld\n"
+                              "realtime UTC : %s"
+                              "realtime LCL : %s",
                               LW_TICK_HZ,
                               API_TimeGet64(),
                               (UINT)tsMono.tv_sec / 3600,

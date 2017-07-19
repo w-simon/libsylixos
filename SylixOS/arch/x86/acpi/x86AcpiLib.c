@@ -27,11 +27,11 @@
 *********************************************************************************************************/
 ACPI_MODULE_NAME("acpi_lib")
 
-static BOOL     _G_bAcpiInited          = LW_FALSE;
+static BOOL     _G_bAcpiInited = LW_FALSE;
 
-ULONG           G_ulAcpiMcfgBaseAddress = 0;
-BOOL            G_bAcpiPciConfigAccess  = LW_TRUE;
-BOOL            G_bAcpiEarlyAccess      = LW_TRUE;
+ULONG           _G_ulAcpiMcfgBaseAddress = 0;
+BOOL            _G_bAcpiPciConfigAccess  = LW_TRUE;
+BOOL            _G_bAcpiEarlyAccess      = LW_TRUE;
 /*********************************************************************************************************
 ** 函数名称: acpiLibSetModel
 ** 功能描述: 设置 ACPI 中断模型
@@ -183,7 +183,7 @@ INT  acpiLibInit (BOOL  bEarlyInit)
     UINT32              uiLocalAcpiDbgLevel;
     UINT32              uiMode = 0;
 
-    G_bAcpiEarlyAccess = bEarlyInit;
+    _G_bAcpiEarlyAccess = bEarlyInit;
 
     __ACPI_DEBUG_LOG("\n**** acpiLibInit ****\n");
 
@@ -195,7 +195,7 @@ INT  acpiLibInit (BOOL  bEarlyInit)
     /*
      * Init PCIE ECAM base addess
      */
-    G_ulAcpiMcfgBaseAddress = acpiGetMcfg();
+    _G_ulAcpiMcfgBaseAddress = acpiGetMcfg();
 
     /*
      * Init ACPI and start debugger thread
@@ -308,7 +308,7 @@ INT  acpiLibInit (BOOL  bEarlyInit)
         }
     }
 
-    if ((!G_bAcpiEarlyAccess)) {
+    if (!_G_bAcpiEarlyAccess) {
         __ACPI_DEBUG_LOG("\n  AcpiEnable\n");
         status = AcpiEnable();                                          /*  ACPI CAPR 6.3.1             */
         if (ACPI_FAILURE(status)) {
@@ -373,8 +373,8 @@ ULONG  acpiGetMcfg (VOID)
     /*
      * If we have a 32 bit long address table
      */
-    if (G_pAcpiRsdt != LW_NULL) {
-        pRsdt = AcpiOsMapMemory((ACPI_PHYSICAL_ADDRESS)G_pAcpiRsdt, sizeof(ACPI_TABLE_RSDT));
+    if (_G_pAcpiRsdt != LW_NULL) {
+        pRsdt = AcpiOsMapMemory((ACPI_PHYSICAL_ADDRESS)_G_pAcpiRsdt, sizeof(ACPI_TABLE_RSDT));
         if (pRsdt == LW_NULL) {
             return  (0);
         }
@@ -412,8 +412,8 @@ ULONG  acpiGetMcfg (VOID)
     /*
      * If we have a 64 bit long address table
      */
-    if (G_pAcpiXsdt != LW_NULL) {
-        pXsdt = AcpiOsMapMemory((ACPI_PHYSICAL_ADDRESS)G_pAcpiXsdt, sizeof(ACPI_TABLE_XSDT));
+    if (_G_pAcpiXsdt != LW_NULL) {
+        pXsdt = AcpiOsMapMemory((ACPI_PHYSICAL_ADDRESS)_G_pAcpiXsdt, sizeof(ACPI_TABLE_XSDT));
         if (pXsdt == LW_NULL) {
             return  (0);
         }

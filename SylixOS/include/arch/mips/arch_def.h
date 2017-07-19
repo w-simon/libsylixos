@@ -556,8 +556,8 @@
  *  3 3 2 2 2 2 2 2 2 2 2 2 1 1 1 1 1 1 1 1 1 1
  *  1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- * |M|           |     |     |     |     |     |     | | | | | |S|T| Config2
- * | |           |     |     |     |     |     |     | | | | | |M|L|
+ * |M| TU  |   TS  |  TL   |  TA   |  SU   |  SS   |   SL  |  SA   |   Config2
+ * | |     |       |       |       |       |       |       |       |
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 *********************************************************************************************************/
 
@@ -565,11 +565,23 @@
                                                                         /*  present (R)                 */
 #define M_Config2More       (0x1 << S_Config2More)
 #define S_Config2SM         1                                           /*  Denotes SmartMIPS ASE       */
-                                                                        /*  present (R)                 */
-#define M_Config2SM         (0x1 << S_Config2SM)
-#define S_Config2TL         0                                           /*  Denotes Tracing Logic       */
-                                                                        /*  present (R)                 */
-#define M_Config2TL         (0x1 << S_Config2TL)
+
+#define S_Config2TU         28                                          /*  Tcache contrl or status bit */
+#define M_Config2TU         (0x7 << S_Config2TU)
+#define S_Config2TS         24                                          /*  Tcache sets per way (R)     */
+#define M_Config2TS         (0xF << S_Config2TS)
+#define S_Config2TL         20                                          /*  Tcache line size (R)        */
+#define M_Config2TL         (0xF << S_Config2TL)
+#define S_Config2TA         16                                          /*  Tcache associativity (R)    */
+#define M_Config2TA         (0xF << S_Config2TA)
+#define S_Config2SU         12                                          /*  Scache contrl or status bit */
+#define M_Config2SU         (0xF << S_Config2SU)
+#define S_Config2SS         8                                           /*  Scache sets per way (R)     */
+#define M_Config2SS         (0xF << S_Config2SS)
+#define S_Config2SL         4                                           /*  Scache line size (R)        */
+#define M_Config2SL         (0xF << S_Config2SL)
+#define S_Config2SA         0                                           /*  Scache associativity (R)    */
+#define M_Config2SA         (0xF << S_Config2SA)
 
 /*********************************************************************************************************
  *  CP0 IntCtl Register
@@ -851,36 +863,41 @@
                                                                         /*  if bit is one               */
 /*********************************************************************************************************
   Cache Operations available on all MIPS processors
+  some  Operations Implementation Dependent on .....
 *********************************************************************************************************/
 
 #define Index_Invalidate_I               0x0                            /*  0       0                   */
 #define Index_Writeback_Inv_D            0x1                            /*  0       1                   */
-#define Index_Invalidate_SI              0x2                            /*  0       2                   */
-#define Index_Writeback_Inv_SD           0x3                            /*  0       3                   */
+#define Index_Invalidate_T               0x2                            /*  0       2                   */
+#define Index_Writeback_Inv_S            0x3                            /*  0       3                   */
 #define Index_Load_Tag_I                 0x4                            /*  1       0                   */
 #define Index_Load_Tag_D                 0x5                            /*  1       1                   */
-#define Index_Load_Tag_SI                0x6                            /*  1       2                   */
-#define Index_Load_Tag_SD                0x7                            /*  1       3                   */
+#define Index_Load_Tag_T                 0x6                            /*  1       2                   */
+#define Index_Load_Tag_S                 0x7                            /*  1       3                   */
 #define Index_Store_Tag_I                0x8                            /*  2       0                   */
 #define Index_Store_Tag_D                0x9                            /*  2       1                   */
-#define Index_Store_Tag_SI               0xA                            /*  2       2                   */
-#define Index_Store_Tag_SD               0xB                            /*  2       3                   */
-#define Create_Dirty_Exc_D               0xD                            /*  3       1                   */
-#define Create_Dirty_Exc_SD              0xF                            /*  3       3                   */
+#define Index_Store_Tag_T                0xA                            /*  2       2                   */
+#define Index_Store_Tag_S                0xB                            /*  2       3                   */
+                                                                        /*  3       0                   */
+                                                                        /*  3       1                   */
+                                                                        /*  3       2                   */
+                                                                        /*  3       3                   */
 #define Hit_Invalidate_I                 0x10                           /*  4       0                   */
 #define Hit_Invalidate_D                 0x11                           /*  4       1                   */
-#define Hit_Invalidate_SI                0x12                           /*  4       2                   */
-#define Hit_Invalidate_SD                0x13                           /*  4       3                   */
-#define Hit_Writeback_Inv_D              0x15                           /*  5       1                   */
-#define Hit_Writeback_Inv_SD             0x17                           /*  5       3                   */
+#define Hit_Invalidate_T                 0x12                           /*  4       2                   */
+#define Hit_Invalidate_S                 0x13                           /*  4       3                   */
 #define Fill_I                           0x14                           /*  5       0                   */
+#define Hit_Writeback_Inv_D              0x15                           /*  5       1                   */
+#define Hit_Writeback_Inv_T              0x16                           /*  5       2                   */
+#define Hit_Writeback_Inv_S              0x17                           /*  5       3                   */
+                                                                        /*  6       0                   */
 #define Hit_Writeback_D                  0x19                           /*  6       1                   */
-#define Hit_Writeback_SD                 0x1B                           /*  6       3                   */
-#define Hit_Writeback_I                  0x18                           /*  6       0                   */
-#define Lock_I                           0x1C                           /*  7       0                   */
-#define Lock_D                           0x1D                           /*  7       1                   */
-#define Hit_Set_Virtual_SI               0x1E                           /*  7       2                   */
-#define Hit_Set_Virtual_SD               0x1F                           /*  7       3                   */
+#define Hit_Writeback_T                  0x1A                           /*  6       2                   */
+#define Hit_Writeback_S                  0x1B                           /*  6       3                   */
+#define Fetch_Lock_I                     0x1C                           /*  7       0                   */
+#define Fetch_Lock_D                     0x1D                           /*  7       1                   */
+                                                                        /*  7       2                   */
+                                                                        /*  7       3                   */
 
 /*********************************************************************************************************
   ´¦ÀíÆ÷ ID

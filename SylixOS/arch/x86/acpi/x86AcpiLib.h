@@ -63,27 +63,27 @@ typedef struct {
 /*********************************************************************************************************
   全局变量声明
 *********************************************************************************************************/
-extern ULONG                G_ulAcpiMcfgBaseAddress;
-extern BOOL                 G_bAcpiEarlyAccess;
-extern BOOL                 G_bAcpiPciConfigAccess;
+extern ULONG                _G_ulAcpiMcfgBaseAddress;
+extern BOOL                 _G_bAcpiEarlyAccess;
+extern BOOL                 _G_bAcpiPciConfigAccess;
 
-extern CHAR                *G_pcAcpiRsdpPtr;
-extern ACPI_TABLE_HPET     *G_pAcpiHpet;
-extern ACPI_TABLE_MADT     *G_pAcpiMadt;
-extern ACPI_TABLE_FACS     *G_pAcpiFacs;
-extern ACPI_TABLE_RSDT     *G_pAcpiRsdt;
-extern ACPI_TABLE_XSDT     *G_pAcpiXsdt;
-extern ACPI_TABLE_FADT     *G_pAcpiFadt;
+extern CHAR                *_G_pcAcpiRsdpPtr;
+extern ACPI_TABLE_HPET     *_G_pAcpiHpet;
+extern ACPI_TABLE_MADT     *_G_pAcpiMadt;
+extern ACPI_TABLE_FACS     *_G_pAcpiFacs;
+extern ACPI_TABLE_RSDT     *_G_pAcpiRsdt;
+extern ACPI_TABLE_XSDT     *_G_pAcpiXsdt;
+extern ACPI_TABLE_FADT     *_G_pAcpiFadt;
 
-extern PCHAR                G_pcAcpiOsHeapPtr;
-extern PCHAR                G_pcAcpiOsHeapBase;
-extern PCHAR                G_pcAcpiOsHeapTop;
+extern PCHAR                _G_pcAcpiOsHeapPtr;
+extern PCHAR                _G_pcAcpiOsHeapBase;
+extern PCHAR                _G_pcAcpiOsHeapTop;
 
-extern BOOL                 G_bAcpiPcAtCompatible;
-extern UINT8                G_ucAcpiIsaIntNr;
-extern UINT8                G_ucAcpiIsaApic;
-extern UINT8               *G_pucAcpiGlobalIrqBaseTable;
-extern X86_IRQ_OVERRIDE  *(*G_pfuncAcpiIrqOverride)(INT  iIndex);
+extern BOOL                 _G_bAcpiPcAtCompatible;
+extern UINT8                _G_ucAcpiIsaIntNr;
+extern UINT8                _G_ucAcpiIsaApic;
+extern UINT8               *_G_pucAcpiGlobalIrqBaseTable;
+extern X86_IRQ_OVERRIDE  *(*_G_pfuncAcpiIrqOverride)(INT  iIndex);
 /*********************************************************************************************************
   函数声明
 *********************************************************************************************************/

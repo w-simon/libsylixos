@@ -452,7 +452,7 @@ static VOID gdbReg2Asc (PCHAR pcAsc, ULONG ulReg)
         gdbByte2Asc(pcAsc + (i * 2), ulReg & 0xFF);
     }
 #else
-    for (i = 0; i < sizeof(ulReg); i += 2, ulReg >>= 8) {
+    for (i = 0; i < sizeof(ulReg); i++, ulReg >>= 8) {
         gdbByte2Asc(pcAsc + ((sizeof(ulReg) - i - 1) * 2), ulReg & 0xFF);
     }
 #endif

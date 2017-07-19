@@ -421,6 +421,8 @@ UINT  sleep (UINT    uiSeconds)
     struct timespec  tsStart, tsEnd;
     UINT             uiPass;
     
+    __THREAD_CANCEL_POINT();                                            /*  ≤‚ ‘»°œ˚µ„                  */
+    
     __timeGetHighResolution(&tsStart);
     if (API_TimeSleepEx(ulTick, LW_TRUE) == EINTR) {
         __timeGetHighResolution(&tsEnd);

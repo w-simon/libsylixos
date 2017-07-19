@@ -136,7 +136,7 @@ static INT  ppcE200CacheProbe (CPCHAR  pcMachineName, PPC_CACHE  *pICache, PPC_C
 /*********************************************************************************************************
   E200 CACHE Çý¶¯
 *********************************************************************************************************/
-PPC_L1C_DRIVER  G_ppcE200CacheDriver = {
+PPC_L1C_DRIVER  _G_ppcE200CacheDriver = {
     "E200",
     ppcE200CacheProbe,
 

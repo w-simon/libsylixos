@@ -170,7 +170,6 @@ static INT   ppcE500CacheProbe (CPCHAR  pcMachineName, PPC_CACHE  *pICache, PPC_
             pICache->CACHE_uiWayNr    = PPC_E500_ICACHE_CNWAY;
             pICache->CACHE_uiWaySize  = pICache->CACHE_uiSetNr * pICache->CACHE_uiLineSize;
         }
-
         return  (ERROR_NONE);
 
     } else {
@@ -180,7 +179,7 @@ static INT   ppcE500CacheProbe (CPCHAR  pcMachineName, PPC_CACHE  *pICache, PPC_
 /*********************************************************************************************************
   E500 CACHE Çý¶¯
 *********************************************************************************************************/
-PPC_L1C_DRIVER  G_ppcE500CacheDriver = {
+PPC_L1C_DRIVER  _G_ppcE500CacheDriver = {
     "E500",
     ppcE500CacheProbe,
 

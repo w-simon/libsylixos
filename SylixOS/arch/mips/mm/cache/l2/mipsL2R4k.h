@@ -10,28 +10,25 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: mipsCacheLs3x.c
+** 文   件   名: mipsL2R4k.h
 **
 ** 创   建   人: Jiao.JinXing (焦进星)
 **
-** 文件创建日期: 2016 年 11 月 02 日
+** 文件创建日期: 2017 年 07 月 18 日
 **
-** 描        述: Loongson3x 体系构架 CACHE 驱动.
+** 描        述: MIPS R4K 体系构架 L2-CACHE 驱动.
 *********************************************************************************************************/
 
-#ifndef __MIPS_LS3X_CACHE_H
-#define __MIPS_LS3X_CACHE_H
+#ifndef __ARCH_MIPSL2R4K_H
+#define __ARCH_MIPSL2R4K_H
 
-VOID  ls3xCacheFlushAll(VOID);
-VOID  ls3xCacheEnableHw(VOID);
+INT  mipsL2R4kProbe(VOID);
+INT  mipsL2R4kInitHw(VOID);
+INT  mipsL2R4kClear(PVOID  pvAdrs, size_t  stBytes);
+INT  mipsL2R4kFlush(PVOID  pvAdrs, size_t  stBytes);
+INT  mipsL2R4kInvalidate(PVOID  pvAdrs, size_t  stBytes);
 
-VOID  mipsCacheLs3xInit(LW_CACHE_OP *pcacheop,
-                        CACHE_MODE   uiInstruction,
-                        CACHE_MODE   uiData,
-                        CPCHAR       pcMachineName);
-VOID  mipsCacheLs3xReset(CPCHAR  pcMachineName);
-
-#endif                                                                  /*  __MIPS_LS3X_CACHE_H         */
+#endif                                                                  /*  __ARCH_MIPSL2R4K_H          */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

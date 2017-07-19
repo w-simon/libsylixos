@@ -51,7 +51,7 @@
 /*********************************************************************************************************
   全局变量定义
 *********************************************************************************************************/
-X86_CPU_TOPOLOGY        G_x86CpuTopology;                               /*  CPU 拓扑                    */
+X86_CPU_TOPOLOGY        _G_x86CpuTopology;                              /*  CPU 拓扑                    */
 /*********************************************************************************************************
 ** 函数名称: x86CpuTopologyInit
 ** 功能描述: 用初始化过程产生的数据(X86_MP_APIC_DATA 结构)构建 CPU 拓扑结构
@@ -62,7 +62,7 @@ X86_CPU_TOPOLOGY        G_x86CpuTopology;                               /*  CPU 
 *********************************************************************************************************/
 VOID  x86CpuTopologyInit (X86_MP_APIC_DATA  *pMpApicData)
 {
-    X86_CPU_TOPOLOGY  *pCpuTopology = &G_x86CpuTopology;
+    X86_CPU_TOPOLOGY  *pCpuTopology = &_G_x86CpuTopology;
 #if LW_CFG_SMP_EN > 0
     INT       i, iApicIdToCpuIndex, iSmtGroupIx;
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
@@ -78,7 +78,7 @@ VOID  x86CpuTopologyInit (X86_MP_APIC_DATA  *pMpApicData)
 #endif                                                                  /*  LW_CFG_SMP_EN == 0          */
 
 #if LW_CFG_SMP_EN > 0
-    iNumCpus = G_uiX86CpuCount;
+    iNumCpus = _G_uiX86CpuCount;
     pucMpLoApicIndexTable = (UINT8 *)X86_MPAPIC_PHYS_TO_VIRT(pMpApicData, MPAPIC_uiLaLoc);
 #else
     iNumCpus = 1;
@@ -214,8 +214,8 @@ VOID  x86CpuTopologyInit (X86_MP_APIC_DATA  *pMpApicData)
 *********************************************************************************************************/
 VOID  x86CpuTopologyShow (VOID)
 {
-    X86_CPU_TOPOLOGY  *pCpuTopology = &G_x86CpuTopology;
-    INT                iNumCpus     = G_uiX86CpuCount;
+    X86_CPU_TOPOLOGY  *pCpuTopology = &_G_x86CpuTopology;
+    INT                iNumCpus     = _G_uiX86CpuCount;
     INT                i;
 
     printf("\n Logical Processor Breakdown: \n\n");

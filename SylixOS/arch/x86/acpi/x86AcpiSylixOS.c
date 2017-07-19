@@ -52,17 +52,17 @@ static ACPI_SIZE      _G_stAcpiOsHeapUsedByte  = 0;
 static size_t         _G_stAcpiOsHeapMaxAlloc  = 0;
 static ULONG          _G_ulApciOsHeapAllocFail = 0;
 
-PCHAR  G_pcAcpiOsHeapPtr  = LW_NULL;
-PCHAR  G_pcAcpiOsHeapBase = LW_NULL;
-PCHAR  G_pcAcpiOsHeapTop  = LW_NULL;
+PCHAR  _G_pcAcpiOsHeapPtr  = LW_NULL;
+PCHAR  _G_pcAcpiOsHeapBase = LW_NULL;
+PCHAR  _G_pcAcpiOsHeapTop  = LW_NULL;
 
 /*
  * Marcos
  */
 #define __IS_PTR_IN_HEAP(pvPtr) \
-    ((G_pcAcpiOsHeapBase != LW_NULL) && \
-    (((size_t)pvPtr) >= ((size_t)G_pcAcpiOsHeapBase)) && \
-    (((size_t)pvPtr) <= ((size_t)G_pcAcpiOsHeapTop)))
+    ((_G_pcAcpiOsHeapBase != LW_NULL) && \
+    (((size_t)pvPtr) >= ((size_t)_G_pcAcpiOsHeapBase)) && \
+    (((size_t)pvPtr) <= ((size_t)_G_pcAcpiOsHeapTop)))
 
 /******************************************************************************
 *
@@ -103,8 +103,8 @@ VOID  AcpiOsInfoShow (VOID)
     if (_G_ulApciOsHeapAllocFail) {
         ACPI_VERBOSE_PRINT("  ACPI heap allocated failed = %ld times\n", _G_ulApciOsHeapAllocFail);
         ACPI_VERBOSE_PRINT("  ACPI_HEAP_SIZE = %ld is too small (%ld)\n",
-                (((size_t)G_pcAcpiOsHeapTop) - ((size_t)G_pcAcpiOsHeapBase) + 1) / 1024,
-                 ((size_t)G_pcAcpiOsHeapTop) - ((size_t)G_pcAcpiOsHeapBase));
+                (((size_t)_G_pcAcpiOsHeapTop) - ((size_t)_G_pcAcpiOsHeapBase) + 1) / 1024,
+                 ((size_t)_G_pcAcpiOsHeapTop) - ((size_t)_G_pcAcpiOsHeapBase));
     }
 }
 
@@ -145,8 +145,8 @@ ACPI_PHYSICAL_ADDRESS  AcpiOsGetRootPointer (VOID)
     /*
      * Check to see if EFI left us a pointer
      */
-    if (G_pcAcpiRsdpPtr != LW_NULL) {
-        pRsdp = (ACPI_TABLE_RSDP *)G_pcAcpiRsdpPtr;
+    if (_G_pcAcpiRsdpPtr != LW_NULL) {
+        pRsdp = (ACPI_TABLE_RSDP *)_G_pcAcpiRsdpPtr;
         return  ((ACPI_PHYSICAL_ADDRESS)pRsdp);
     }
 
@@ -308,20 +308,20 @@ VOID  *AcpiOsAllocate (ACPI_SIZE  Size)
         /*
          * allocate a buffer from the static buffer area
          */
-        if (G_pcAcpiOsHeapPtr == LW_NULL) {
+        if (_G_pcAcpiOsHeapPtr == LW_NULL) {
             __ACPI_ERROR_LOG("\n---> AcpiOsAllocate no buffer <---\r\n");
             return  (LW_NULL);
         }
 
-        pcRet    = G_pcAcpiOsHeapPtr;
-        pcNewPtr = G_pcAcpiOsHeapPtr + Size;
+        pcRet    = _G_pcAcpiOsHeapPtr;
+        pcNewPtr = _G_pcAcpiOsHeapPtr + Size;
 
         /*
          * if we didn't run off the end of the buffer
          */
         if (__IS_PTR_IN_HEAP(pcNewPtr)) {
             _G_stAcpiOsHeapUsedByte += Size;
-            G_pcAcpiOsHeapPtr        = pcNewPtr;
+            _G_pcAcpiOsHeapPtr       = pcNewPtr;
             return  (VOID *)pcRet;
         }
 

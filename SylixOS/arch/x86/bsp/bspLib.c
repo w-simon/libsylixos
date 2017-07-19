@@ -319,11 +319,11 @@ LW_WEAK VOID  bspTickInit (VOID)
                                         &threadattr, LW_NULL);
 #endif                                                                  /*  TICK_IN_THREAD > 0          */
 
-    if (G_pAcpiHpet) {                                                  /*  有 HPET                     */
+    if (_G_pAcpiHpet) {                                                 /*  有 HPET                     */
         _G_pfuncTickHook           = bspHpetTickHook;
         _G_pfuncTickHighResolution = bspHpetTickHighResolution;
 
-        iHpetInitOk = bspHpetTickInit(G_pAcpiHpet, &ulVector);          /*  初始化 HPET                 */
+        iHpetInitOk = bspHpetTickInit(_G_pAcpiHpet, &ulVector);         /*  初始化 HPET                 */
     }
 
     if (iHpetInitOk != ERROR_NONE) {                                    /*  没有 HPET 或且初始化失败    */

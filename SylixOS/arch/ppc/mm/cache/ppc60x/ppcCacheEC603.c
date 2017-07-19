@@ -62,7 +62,7 @@ static INT   ppcEC603CacheProbe (CPCHAR  pcMachineName, PPC_CACHE  *pICache, PPC
 /*********************************************************************************************************
   EC603 CACHE Çý¶¯
 *********************************************************************************************************/
-PPC_L1C_DRIVER  G_ppcEC603CacheDriver = {
+PPC_L1C_DRIVER  _G_ppcEC603CacheDriver = {
     "EC603",
     ppcEC603CacheProbe,
 

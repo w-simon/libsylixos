@@ -37,20 +37,20 @@ static X86_MP_APIC_DATA     *_G_pX86MpApicData      = LW_NULL;          /*  X86_
 /*********************************************************************************************************
   全局变量定义
 *********************************************************************************************************/
-UINT32              G_uiX86CpuCount            = 0;                     /*  逻辑处理器数目              */
+UINT32              _G_uiX86CpuCount            = 0;                    /*  逻辑处理器数目              */
 
-UINT32              G_uiX86MpApicIoIntNr       = 0;                     /*  IO 中断数目                 */
-UINT32              G_uiX86MpApicLoIntNr       = 0;                     /*  Local 中断数目              */
-UINT8               G_ucX86MpApicIoBaseId      = 0;                     /*  Base IOAPIC Id              */
+UINT32              _G_uiX86MpApicIoIntNr       = 0;                    /*  IO 中断数目                 */
+UINT32              _G_uiX86MpApicLoIntNr       = 0;                    /*  Local 中断数目              */
+UINT8               _G_ucX86MpApicIoBaseId      = 0;                    /*  Base IOAPIC Id              */
 
-X86_MP_INTERRUPT   *G_pX86MpApicInterruptTable = LW_NULL;               /*  中断表                      */
+X86_MP_INTERRUPT   *_G_pX86MpApicInterruptTable = LW_NULL;              /*  中断表                      */
 
-UINT8               G_aucX86CpuIndexTable[X86_CPUID_MAX_NUM_CPUS];      /*  Local APIC ID->逻辑处理器 ID*/
-UINT                G_uiX86BaseCpuPhysIndex    = 0;                     /*  Base CPU Phy index          */
+UINT8               _G_aucX86CpuIndexTable[X86_CPUID_MAX_NUM_CPUS];     /*  Local APIC ID->逻辑处理器 ID*/
+UINT                _G_uiX86BaseCpuPhysIndex    = 0;                    /*  Base CPU Phy index          */
 
-UINT                G_uiX86MpApicBootOpt       = ACPI_MP_STRUCT;        /*  启动选项                    */
-addr_t              G_ulX86MpApicDataAddr      = MPAPIC_DATA_START;     /*  MPAPIC 数据开始地址         */
-VOID              (*G_pfuncX86MpApicDataGet)(X86_MP_APIC_DATA *) = LW_NULL;
+UINT                _G_uiX86MpApicBootOpt       = ACPI_MP_STRUCT;       /*  启动选项                    */
+addr_t              _G_ulX86MpApicDataAddr      = MPAPIC_DATA_START;    /*  MPAPIC 数据开始地址         */
+VOID              (*_G_pfuncX86MpApicDataGet)(X86_MP_APIC_DATA *) = LW_NULL;
 /*********************************************************************************************************
   内部函数前置声明
 *********************************************************************************************************/
@@ -76,13 +76,13 @@ INT  x86MpApicInstInit (VOID)
     INT     i;
 
 __begin:
-    _G_pX86MpApicData = (X86_MP_APIC_DATA *)G_ulX86MpApicDataAddr;
+    _G_pX86MpApicData = (X86_MP_APIC_DATA *)_G_ulX86MpApicDataAddr;
 #if LW_CFG_CPU_WORD_LENGHT == 32
-    _G_pX86MpApicData->MPAPIC_uiDataLoc = G_ulX86MpApicDataAddr;
+    _G_pX86MpApicData->MPAPIC_uiDataLoc = _G_ulX86MpApicDataAddr;
 #else
     _G_pX86MpApicData->MPAPIC_uiDataLoc = 0;
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
-    _G_pX86MpApicData->MPAPIC_uiBootOpt = G_uiX86MpApicBootOpt;
+    _G_pX86MpApicData->MPAPIC_uiBootOpt = _G_uiX86MpApicBootOpt;
 
     if (_G_pcX86EbdaStart == 0) {
         _G_pcX86EbdaStart = (INT8 *)EBDA_START;
@@ -94,7 +94,7 @@ __begin:
         _G_pcX86BiosRomEnd   = _G_pcX86BiosRomStart + (BIOS_ROM_SIZE - 1);
     }
 
-    switch (G_uiX86MpApicBootOpt) {
+    switch (_G_uiX86MpApicBootOpt) {
 
     case MP_MP_STRUCT:
         x86MpApicConfigTableInit(_G_pX86MpApicData);
@@ -104,21 +104,21 @@ __begin:
     {
         INT  iError;
 
-        lib_bzero((CHAR *)G_ulX86MpApicDataAddr, MPAPIC_DATA_MAX_SIZE);
+        lib_bzero((CHAR *)_G_ulX86MpApicDataAddr, MPAPIC_DATA_MAX_SIZE);
 #if LW_CFG_CPU_WORD_LENGHT == 32
-        _G_pX86MpApicData->MPAPIC_uiDataLoc  = G_ulX86MpApicDataAddr;
+        _G_pX86MpApicData->MPAPIC_uiDataLoc  = _G_ulX86MpApicDataAddr;
 #else
         _G_pX86MpApicData->MPAPIC_uiDataLoc  = 0;
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
         _G_pX86MpApicData->MPAPIC_uiDataSize = sizeof(X86_MP_APIC_DATA);
-        _G_pX86MpApicData->MPAPIC_uiBootOpt  = G_uiX86MpApicBootOpt;
+        _G_pX86MpApicData->MPAPIC_uiBootOpt  = _G_uiX86MpApicBootOpt;
 
         /*
          * 查找 ACPI 的表并映射它们到内存
          */
         iError = acpiTableInit();
         if (iError != ERROR_NONE) {
-            G_uiX86MpApicBootOpt = MP_MP_STRUCT;                        /*  非 ACPI 计算机, 用 MP 方式  */
+            _G_uiX86MpApicBootOpt = MP_MP_STRUCT;                       /*  非 ACPI 计算机, 用 MP 方式  */
             goto    __begin;                                            /*  重新初始化                  */
         }
 
@@ -126,14 +126,14 @@ __begin:
          * 初始化 ACPI 配置组件
          * MPAPIC_DATA 后面是 ACPI 堆
          */
-        acpiConfigInit((PCHAR)(G_ulX86MpApicDataAddr + MPAPIC_DATA_MAX_SIZE), ACPI_HEAP_SIZE);
+        acpiConfigInit((PCHAR)(_G_ulX86MpApicDataAddr + MPAPIC_DATA_MAX_SIZE), ACPI_HEAP_SIZE);
 
         /*
          * 早期初始化 ACPI 库
          */
         iError = acpiLibInit(LW_TRUE);
         if (iError != ERROR_NONE) {
-            G_uiX86MpApicBootOpt = MP_MP_STRUCT;
+            _G_uiX86MpApicBootOpt = MP_MP_STRUCT;
             goto    __begin;
         }
 
@@ -144,10 +144,10 @@ __begin:
          */
         iError = acpiLibDevScan(LW_TRUE,
                                 LW_TRUE,
-                                (CHAR *)G_ulX86MpApicDataAddr,
+                                (CHAR *)_G_ulX86MpApicDataAddr,
                                 MPAPIC_DATA_MAX_SIZE);
         if (iError != ERROR_NONE) {
-            G_uiX86MpApicBootOpt = MP_MP_STRUCT;
+            _G_uiX86MpApicBootOpt = MP_MP_STRUCT;
             acpiLibDisable();
             goto    __begin;
         }
@@ -161,7 +161,7 @@ __begin:
         break;
 
     case USR_MP_STRUCT:
-        G_pfuncX86MpApicDataGet(_G_pX86MpApicData);
+        _G_pfuncX86MpApicDataGet(_G_pX86MpApicData);
         break;
 
     case NO_MP_STRUCT:
@@ -175,44 +175,44 @@ __begin:
     /*
      * Number of IO interrupts
      */
-    G_uiX86MpApicIoIntNr = _G_pX86MpApicData->MPAPIC_uiIoIntNr;
-    if (G_uiX86MpApicIoIntNr == 0) {
+    _G_uiX86MpApicIoIntNr = _G_pX86MpApicData->MPAPIC_uiIoIntNr;
+    if (_G_uiX86MpApicIoIntNr == 0) {
         return  (PX_ERROR);
     }
 
     /*
      * Number of Local interrupts
      */
-    G_uiX86MpApicLoIntNr = _G_pX86MpApicData->MPAPIC_uiLoIntNr;
-    if (G_uiX86MpApicLoIntNr == 0) {
+    _G_uiX86MpApicLoIntNr = _G_pX86MpApicData->MPAPIC_uiLoIntNr;
+    if (_G_uiX86MpApicLoIntNr == 0) {
         return  (PX_ERROR);
     }
 
-    G_pX86MpApicInterruptTable = (X86_MP_INTERRUPT *)X86_MPAPIC_PHYS_TO_VIRT(_G_pX86MpApicData, MPAPIC_uiItLoc);
+    _G_pX86MpApicInterruptTable = (X86_MP_INTERRUPT *)X86_MPAPIC_PHYS_TO_VIRT(_G_pX86MpApicData, MPAPIC_uiItLoc);
 
     /*
      * Init proper number of cores
      */
-    G_uiX86CpuCount = (UINT)((LW_CFG_MAX_PROCESSORS < _G_pX86MpApicData->MPAPIC_uiCpuCount) ?
-                              LW_CFG_MAX_PROCESSORS : _G_pX86MpApicData->MPAPIC_uiCpuCount);
+    _G_uiX86CpuCount = (UINT)((LW_CFG_MAX_PROCESSORS < _G_pX86MpApicData->MPAPIC_uiCpuCount) ?
+                               LW_CFG_MAX_PROCESSORS : _G_pX86MpApicData->MPAPIC_uiCpuCount);
 
     lib_bcopy((CHAR *)_G_pX86MpApicData->MPAPIC_aucCpuIndexTable,
-              (CHAR *)G_aucX86CpuIndexTable,
+              (CHAR *)_G_aucX86CpuIndexTable,
               sizeof(_G_pX86MpApicData->MPAPIC_aucCpuIndexTable));
 
     /*
      * Set the Base CPU Phy index
      */
-    G_uiX86BaseCpuPhysIndex = x86CpuPhysIndexGet();
+    _G_uiX86BaseCpuPhysIndex = x86CpuPhysIndexGet();
 
     /*
      * Establish IO APIC Base Id
      */
-    pucMpApicLogicalTable = (UINT8 *)X86_MPAPIC_PHYS_TO_VIRT(_G_pX86MpApicData, MPAPIC_uiLtLoc);
-    G_ucX86MpApicIoBaseId = pucMpApicLogicalTable[0];
+    pucMpApicLogicalTable  = (UINT8 *)X86_MPAPIC_PHYS_TO_VIRT(_G_pX86MpApicData, MPAPIC_uiLtLoc);
+    _G_ucX86MpApicIoBaseId = pucMpApicLogicalTable[0];
     for (i = 1; i < _G_pX86MpApicData->MPAPIC_uiIoApicNr; i++) {
-        if (G_ucX86MpApicIoBaseId > pucMpApicLogicalTable[i]) {
-            G_ucX86MpApicIoBaseId = pucMpApicLogicalTable[i];
+        if (_G_ucX86MpApicIoBaseId > pucMpApicLogicalTable[i]) {
+            _G_ucX86MpApicIoBaseId = pucMpApicLogicalTable[i];
         }
     }
 
@@ -332,20 +332,20 @@ static INT  x86MpApicConfigTableInit (X86_MP_APIC_DATA  *pMpApicData)
      * standard addresses and Local and IO APIC ID's.
      */
     if ((pMpApicData->MPAPIC_Fps.FPS_aucFeatureByte[0] != 0) ||
-        (pMpApicData->MPAPIC_Fps.FPS_ucConfigTableAddr == 0)) {
+        (pMpApicData->MPAPIC_Fps.FPS_uiConfigTableAddr == 0)) {
         return  (PX_ERROR);
     }
 
     /*
      * Get MP header pointer
      */
-    if ((pMpApicData->MPAPIC_Fps.FPS_ucConfigTableAddr >= EBDA_START) &&
-        (pMpApicData->MPAPIC_Fps.FPS_ucConfigTableAddr  < EBDA_END)) {
+    if ((pMpApicData->MPAPIC_Fps.FPS_uiConfigTableAddr >= EBDA_START) &&
+        (pMpApicData->MPAPIC_Fps.FPS_uiConfigTableAddr  < EBDA_END)) {
         pHdr = (X86_MP_HEADER *)((ULONG)_G_pcX86EbdaStart +
-               (pMpApicData->MPAPIC_Fps.FPS_ucConfigTableAddr - EBDA_START));
+               ((ULONG)pMpApicData->MPAPIC_Fps.FPS_uiConfigTableAddr - EBDA_START));
     } else {
         pHdr = (X86_MP_HEADER *)((ULONG)_G_pcX86BiosRomStart +
-               (pMpApicData->MPAPIC_Fps.FPS_ucConfigTableAddr - BIOS_ROM_START));
+               ((ULONG)pMpApicData->MPAPIC_Fps.FPS_uiConfigTableAddr - BIOS_ROM_START));
     }
 
     /*
@@ -853,7 +853,7 @@ INT  x86MpApicDataShow (VOID)
         printf("%c", _G_pX86MpApicData->MPAPIC_Fps.FPS_acSignature[i]);
     }
 
-    printf("\n    MPAPIC_Fps.FPS_ucConfigTableAddr    = 0x%08x\n", _G_pX86MpApicData->MPAPIC_Fps.FPS_ucConfigTableAddr);
+    printf("\n    MPAPIC_Fps.FPS_uiConfigTableAddr    = 0x%08x\n", _G_pX86MpApicData->MPAPIC_Fps.FPS_uiConfigTableAddr);
 
     printf("    MPAPIC_Fps.FPS_ucLength             = 0x%02x\n",  _G_pX86MpApicData->MPAPIC_Fps.FPS_ucLength);
 
@@ -883,7 +883,7 @@ INT  x86MpApicDataShow (VOID)
      * Max for this is actually X86_CPUID_MAX_NUM_CPUS
      */
     for (i = 0; i < 24; i++) {
-        printf("    MPAPIC_aucCpuIndexTable[%d]   = 0x%08x\n", i, G_aucX86CpuIndexTable[i]);
+        printf("    MPAPIC_aucCpuIndexTable[%d]   = 0x%08x\n", i, _G_aucX86CpuIndexTable[i]);
     }
 
     printf("\n  pucMpLoApicIndexTable:                  \n");
@@ -947,7 +947,7 @@ VOID  x86MpBiosShow (VOID)
     }
 
     printf("MP Floating Point Structure\n");
-    printf("  Address Pointer       = 0x%08x\n", pFps->FPS_ucConfigTableAddr);
+    printf("  Address Pointer       = 0x%08x\n", pFps->FPS_uiConfigTableAddr);
     printf("  Spec Version          = 0x%02x\n", pFps->FPS_ucSpecRev);
     printf("  Feature byte-1        = 0x%02x\n", pFps->FPS_aucFeatureByte[0]);
     printf("  Feature byte-2        = 0x%02x\n", pFps->FPS_aucFeatureByte[1]);
@@ -955,7 +955,7 @@ VOID  x86MpBiosShow (VOID)
     printf("  Feature byte-4        = 0x%02x\n", pFps->FPS_aucFeatureByte[3]);
     printf("  Feature byte-5        = 0x%02x\n", pFps->FPS_aucFeatureByte[4]);
 
-    if ((pFps->FPS_aucFeatureByte[0] != 0) || (pFps->FPS_ucConfigTableAddr == 0)) {
+    if ((pFps->FPS_aucFeatureByte[0] != 0) || (pFps->FPS_uiConfigTableAddr == 0)) {
         printf("MP Configuration Table does not exist!\n");
         return;
     }
@@ -963,10 +963,10 @@ VOID  x86MpBiosShow (VOID)
     /*
      * Show MP Configuration Table Header
      */
-    if ((pFps->FPS_ucConfigTableAddr >= EBDA_START) && (pFps->FPS_ucConfigTableAddr < EBDA_END)) {
-        pHdr = (X86_MP_HEADER *)((ULONG)_G_pcX86EbdaStart + (pFps->FPS_ucConfigTableAddr - EBDA_START));
+    if ((pFps->FPS_uiConfigTableAddr >= EBDA_START) && (pFps->FPS_uiConfigTableAddr < EBDA_END)) {
+        pHdr = (X86_MP_HEADER *)((ULONG)_G_pcX86EbdaStart + ((ULONG)pFps->FPS_uiConfigTableAddr - EBDA_START));
     } else {
-        pHdr = (X86_MP_HEADER *)((ULONG)_G_pcX86BiosRomStart + (pFps->FPS_ucConfigTableAddr - BIOS_ROM_START));
+        pHdr = (X86_MP_HEADER *)((ULONG)_G_pcX86BiosRomStart + ((ULONG)pFps->FPS_uiConfigTableAddr - BIOS_ROM_START));
     }
 
     printf("MP Configuration Table\n");
@@ -1205,7 +1205,7 @@ VOID  x86MpBiosIoIntMapShow (VOID)
         return;
     }
 
-    if ((pFps->FPS_aucFeatureByte[0] != 0) || (pFps->FPS_ucConfigTableAddr == 0)) {
+    if ((pFps->FPS_aucFeatureByte[0] != 0) || (pFps->FPS_uiConfigTableAddr == 0)) {
         printf("MP Configuration Table does not exist!\n");
         return;
     }
@@ -1213,10 +1213,10 @@ VOID  x86MpBiosIoIntMapShow (VOID)
     /*
      * Show MP Configuration Table Header
      */
-    if ((pFps->FPS_ucConfigTableAddr >= EBDA_START) && (pFps->FPS_ucConfigTableAddr < EBDA_END)) {
-        pHdr = (X86_MP_HEADER *)((ULONG)_G_pcX86EbdaStart + (pFps->FPS_ucConfigTableAddr - EBDA_START));
+    if ((pFps->FPS_uiConfigTableAddr >= EBDA_START) && (pFps->FPS_uiConfigTableAddr < EBDA_END)) {
+        pHdr = (X86_MP_HEADER *)((ULONG)_G_pcX86EbdaStart + ((ULONG)pFps->FPS_uiConfigTableAddr - EBDA_START));
     } else {
-        pHdr = (X86_MP_HEADER *)((ULONG)_G_pcX86BiosRomStart + (pFps->FPS_ucConfigTableAddr - BIOS_ROM_START));
+        pHdr = (X86_MP_HEADER *)((ULONG)_G_pcX86BiosRomStart + ((ULONG)pFps->FPS_uiConfigTableAddr - BIOS_ROM_START));
     }
 
     /*
@@ -1303,7 +1303,7 @@ VOID  x86MpBiosLocalIntMapShow (VOID)
         return;
     }
 
-    if ((pFps->FPS_aucFeatureByte[0] != 0) || (pFps->FPS_ucConfigTableAddr == 0)) {
+    if ((pFps->FPS_aucFeatureByte[0] != 0) || (pFps->FPS_uiConfigTableAddr == 0)) {
         printf("MP Configuration Table does not exist!\n");
         return;
     }
@@ -1311,10 +1311,10 @@ VOID  x86MpBiosLocalIntMapShow (VOID)
     /*
      * Show MP Configuration Table Header
      */
-    if ((pFps->FPS_ucConfigTableAddr >= EBDA_START) && (pFps->FPS_ucConfigTableAddr < EBDA_END)) {
-        pHdr = (X86_MP_HEADER *)((ULONG)_G_pcX86EbdaStart + (pFps->FPS_ucConfigTableAddr - EBDA_START));
+    if ((pFps->FPS_uiConfigTableAddr >= EBDA_START) && (pFps->FPS_uiConfigTableAddr < EBDA_END)) {
+        pHdr = (X86_MP_HEADER *)((ULONG)_G_pcX86EbdaStart + ((ULONG)pFps->FPS_uiConfigTableAddr - EBDA_START));
     } else {
-        pHdr = (X86_MP_HEADER *)((ULONG)_G_pcX86BiosRomStart + (pFps->FPS_ucConfigTableAddr - BIOS_ROM_START));
+        pHdr = (X86_MP_HEADER *)((ULONG)_G_pcX86BiosRomStart + ((ULONG)pFps->FPS_uiConfigTableAddr - BIOS_ROM_START));
     }
 
     /*

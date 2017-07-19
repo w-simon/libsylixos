@@ -30,13 +30,13 @@ ACPI_MODULE_NAME("acpi_tables")
 static CHAR         *_G_pcAcpiTableStart = LW_NULL;
 static CHAR         *_G_pcAcpiTableEnd   = LW_NULL;
 
-CHAR                *G_pcAcpiRsdpPtr     = LW_NULL;
-ACPI_TABLE_HPET     *G_pAcpiHpet         = LW_NULL;
-ACPI_TABLE_MADT     *G_pAcpiMadt         = LW_NULL;
-ACPI_TABLE_FACS     *G_pAcpiFacs         = LW_NULL;
-ACPI_TABLE_RSDT     *G_pAcpiRsdt         = LW_NULL;
-ACPI_TABLE_XSDT     *G_pAcpiXsdt         = LW_NULL;
-ACPI_TABLE_FADT     *G_pAcpiFadt         = LW_NULL;
+CHAR                *_G_pcAcpiRsdpPtr    = LW_NULL;
+ACPI_TABLE_HPET     *_G_pAcpiHpet        = LW_NULL;
+ACPI_TABLE_MADT     *_G_pAcpiMadt        = LW_NULL;
+ACPI_TABLE_FACS     *_G_pAcpiFacs        = LW_NULL;
+ACPI_TABLE_RSDT     *_G_pAcpiRsdt        = LW_NULL;
+ACPI_TABLE_XSDT     *_G_pAcpiXsdt        = LW_NULL;
+ACPI_TABLE_FADT     *_G_pAcpiFadt        = LW_NULL;
 /*********************************************************************************************************
 ** 函数名称: acpiChecksum
 ** 功能描述: 计算一个 ACPI 内存块的校验和
@@ -216,8 +216,8 @@ ACPI_TABLE_RSDP  *acpiFindRsdp (VOID)
     }
 
     if (pRsdp != LW_NULL) {
-        G_pcRsdpPtr = *((CHAR **)ACPI_EFI_RSDP);
-        pRsdp = (ACPI_TABLE_RSDP *)G_pcRsdpPtr;
+        _G_pcRsdpPtr = *((CHAR **)ACPI_EFI_RSDP);
+        pRsdp = (ACPI_TABLE_RSDP *)_G_pcRsdpPtr;
         __ACPI_DEBUG_LOG("**** acpiFindRsdp returns %p ****\n", pRsdp);
         return  (pRsdp);
     }
@@ -245,7 +245,7 @@ ACPI_TABLE_RSDP  *acpiFindRsdp (VOID)
                                   ACPI_HI_RSDP_WINDOW_SIZE);
     }
 
-    G_pcAcpiRsdpPtr = (CHAR *)pRsdp;
+    _G_pcAcpiRsdpPtr = (CHAR *)pRsdp;
 
     __ACPI_DEBUG_LOG("**** acpiFindRsdp returns %p ****\n", pRsdp);
 
@@ -362,7 +362,7 @@ ACPI_SIZE  acpiGetTableSize (ACPI_PHYSICAL_ADDRESS  where)
      * Filter out tables with invalid lengths
      * Example: The FACS table on the NORCO is not valid.
      */
-    if (size < sizeof(ACPI_TABLE_HEADER) || (size > 0x10000)) {
+    if (size < sizeof(ACPI_TABLE_HEADER) || (size > 0x20000)) {
         /*
          * Return 0 length for all bogus tables, so that we
          * know not to allocate space for it.
@@ -420,22 +420,22 @@ static VOID  acpiTableRegister (ACPI_TABLE_HEADER  *pAcpiHeader,
          * later time.  We save these table address pointers.
          */
         if (ACPI_NAME_COMPARE(pAcpiHeader->Signature, ACPI_SIG_HPET)) {
-            G_pAcpiHpet = (ACPI_TABLE_HPET *)pPhysAcpiHeader;
+            _G_pAcpiHpet = (ACPI_TABLE_HPET *)pPhysAcpiHeader;
 
         } else if (ACPI_NAME_COMPARE(pAcpiHeader->Signature, ACPI_SIG_MADT)) {
-            G_pAcpiMadt = (ACPI_TABLE_MADT *)pPhysAcpiHeader;
+            _G_pAcpiMadt = (ACPI_TABLE_MADT *)pPhysAcpiHeader;
 
         } else if (ACPI_NAME_COMPARE(pAcpiHeader->Signature, ACPI_SIG_FACS)) {
-            G_pAcpiFacs = (ACPI_TABLE_FACS *)pPhysAcpiHeader;
+            _G_pAcpiFacs = (ACPI_TABLE_FACS *)pPhysAcpiHeader;
 
         } else if (ACPI_NAME_COMPARE(pAcpiHeader->Signature, ACPI_SIG_FADT)) {
-            G_pAcpiFadt = (ACPI_TABLE_FADT *)pPhysAcpiHeader;
+            _G_pAcpiFadt = (ACPI_TABLE_FADT *)pPhysAcpiHeader;
 
         } else if (ACPI_NAME_COMPARE(pAcpiHeader->Signature, ACPI_SIG_RSDT)) {
-            G_pAcpiRsdt = (ACPI_TABLE_RSDT *)pPhysAcpiHeader;
+            _G_pAcpiRsdt = (ACPI_TABLE_RSDT *)pPhysAcpiHeader;
 
         } else if (ACPI_NAME_COMPARE(pAcpiHeader->Signature, ACPI_SIG_XSDT)) {
-            G_pAcpiXsdt = (ACPI_TABLE_XSDT *)pPhysAcpiHeader;
+            _G_pAcpiXsdt = (ACPI_TABLE_XSDT *)pPhysAcpiHeader;
         }
 
     } else {
@@ -465,7 +465,7 @@ INT  acpiTableInit (VOID)
     INT                 iTableEntriesNr, i;
     INT                 iError          = PX_ERROR;
 
-    G_bAcpiEarlyAccess = LW_TRUE;
+    _G_bAcpiEarlyAccess = LW_TRUE;
 
     __ACPI_DEBUG_LOG("\n\n**** acpiTableInit entered ****\n");
 
@@ -559,7 +559,7 @@ INT  acpiTableInit (VOID)
 
                 __ACPI_DEBUG_LOG("\n  Rsdt check Facs...\n");
 
-                G_pAcpiFadt = (ACPI_TABLE_FADT *)pFadt;
+                _G_pAcpiFadt = (ACPI_TABLE_FADT *)pFadt;
 
                 pFacs           = ACPI_TO_POINTER(pFadt->Facs);
                 pPhysAcpiHeader = (ACPI_TABLE_HEADER *)pFacs;

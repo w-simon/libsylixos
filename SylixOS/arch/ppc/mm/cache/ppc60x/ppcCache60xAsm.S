@@ -56,7 +56,7 @@
     EXPORT_LABEL(ppc60xBranchPredictionEnable)
     EXPORT_LABEL(ppc60xBranchPredictorInvalidate)
 
-    IMPORT_LABEL(G_pucPpcCacheReadBuffer)
+    IMPORT_LABEL(_G_pucPpcCacheReadBuffer)
 
 ;/*********************************************************************************************************
 ;  ∂®“Â
@@ -394,8 +394,8 @@ LINE_LABEL(cache60xDataDisableLTLB)
      ;*/
     SRWI    R5 , R6 , PPC_PAGE_ALIGN_SHIFT - ARCH_PPC_CACHE_ALIGN_SHIFT
     MTSPR   CTR , R5
-    LIS     R9 , HIADJ(G_pucPpcCacheReadBuffer)
-    LWZ     R9 , LO(G_pucPpcCacheReadBuffer)(R9)
+    LIS     R9 , HIADJ(_G_pucPpcCacheReadBuffer)
+    LWZ     R9 , LO(_G_pucPpcCacheReadBuffer)(R9)
     SUBI    R5 , R9 , PPC_PAGE_ALIGN_SIZE
 
     ;/*

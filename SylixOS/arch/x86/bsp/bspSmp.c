@@ -79,8 +79,6 @@ static const UINT8  _G_ucX86ApEntryCode[] = {                           /*  x86-
     0x00, 0xff, 0xff, 0x00, 0x00, 0x00, 0xfa, 0xaf, 0x00, 0xff, 0xff,
     0x00, 0x00, 0x00, 0xf3, 0xaf, 0x00, 0x00
 };
-
-extern ULONG        G_ulX64BootstrapPageTbl[64];                        /*  x86-64 AP 引导程序页表      */
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
 
 static SPINLOCKTYPE _G_slX86ApLock = 0;                                 /*  AP 启动自旋锁               */
@@ -184,7 +182,7 @@ LW_WEAK VOID   bspCpuUp (ULONG  ulCPUId)
     *(pulEntryAddr - 1) = ROUND_DOWN(((addr_t)pstkStack) + AP_BOOT_STACK_SIZE - 1, 16);
     *(pulEntryAddr - 2) = (addr_t)bspSecondaryInit;
 #if LW_CFG_CPU_WORD_LENGHT == 64
-    *(pulEntryAddr - 3) = (addr_t)G_ulX64BootstrapPageTbl;              /*  x86-64 AP 引导程序页表      */
+    *(pulEntryAddr - 3) = (addr_t)x64BootstrapPageTbl();                /*  x86-64 AP 引导程序页表      */
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 64*/
 
     /*

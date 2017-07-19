@@ -80,7 +80,7 @@
 *********************************************************************************************************/
 typedef struct {                                        /*  MP Floating Pointer Structure               */
     CHAR    FPS_acSignature[4];                         /*  "_MP_"                                      */
-    UINT32  FPS_ucConfigTableAddr;                      /*  Address of the MP configuration table       */
+    UINT32  FPS_uiConfigTableAddr;                      /*  Address of the MP configuration table       */
     UINT8   FPS_ucLength;                               /*  Length of the floating pointer structure    */
     UINT8   FPS_ucSpecRev;                              /*  Version number of the MP specification      */
     UINT8   FPS_ucChecksum;                             /*  Checksum of the pointer structure           */
@@ -274,29 +274,29 @@ typedef struct {
 /*********************************************************************************************************
   全局变量声明
 *********************************************************************************************************/
-extern UINT32               G_uiX86CpuCount;                            /*  逻辑处理器数目              */
+extern UINT32               _G_uiX86CpuCount;                           /*  逻辑处理器数目              */
 
-extern UINT32               G_uiX86MpApicIoIntNr;                       /*  IO 中断数目                 */
-extern UINT32               G_uiX86MpApicLoIntNr;                       /*  Local 中断数目              */
-extern UINT8                G_ucX86MpApicIoBaseId;                      /*  Base IOAPIC Id              */
+extern UINT32               _G_uiX86MpApicIoIntNr;                      /*  IO 中断数目                 */
+extern UINT32               _G_uiX86MpApicLoIntNr;                      /*  Local 中断数目              */
+extern UINT8                _G_ucX86MpApicIoBaseId;                     /*  Base IOAPIC Id              */
 
-extern X86_MP_INTERRUPT    *G_pX86MpApicInterruptTable;                 /*  中断表                      */
+extern X86_MP_INTERRUPT    *_G_pX86MpApicInterruptTable;                /*  中断表                      */
 
 /*
  * Local APIC ID -> 逻辑处理器 ID 转换表
  */
-extern UINT8                G_aucX86CpuIndexTable[X86_CPUID_MAX_NUM_CPUS];
-extern UINT                 G_uiX86BaseCpuPhysIndex;                    /*  Base CPU Phy index          */
+extern UINT8                _G_aucX86CpuIndexTable[X86_CPUID_MAX_NUM_CPUS];
+extern UINT                 _G_uiX86BaseCpuPhysIndex;                   /*  Base CPU Phy index          */
 
 /*
  * 在调用 x86MpApicInstInit 函数前，可以初始化以下三个变量实现定制
  */
-extern UINT                 G_uiX86MpApicBootOpt;                       /*  启动选项                    */
-extern addr_t               G_ulX86MpApicDataAddr;                      /*  MPAPIC 数据开始地址         */
+extern UINT                 _G_uiX86MpApicBootOpt;                      /*  启动选项                    */
+extern addr_t               _G_ulX86MpApicDataAddr;                     /*  MPAPIC 数据开始地址         */
 /*
  * 用户自定义的 MPAPIC 数据获取函数
  */
-extern VOID               (*G_pfuncX86MpApicDataGet)(X86_MP_APIC_DATA *);
+extern VOID               (*_G_pfuncX86MpApicDataGet)(X86_MP_APIC_DATA *);
 /*********************************************************************************************************
   函数声明
 *********************************************************************************************************/

@@ -62,7 +62,7 @@ static INT   ppc745xCacheProbe (CPCHAR  pcMachineName, PPC_CACHE  *pICache, PPC_
 /*********************************************************************************************************
   MPC745X CACHE Çý¶¯
 *********************************************************************************************************/
-PPC_L1C_DRIVER  G_ppc745xCacheDriver = {
+PPC_L1C_DRIVER  _G_ppc745xCacheDriver = {
     "745X",
     ppc745xCacheProbe,
 

@@ -25,6 +25,7 @@
 *********************************************************************************************************/
 #if LW_CFG_CACHE_EN > 0
 #include "arch/mips/common/cp0/mipsCp0.h"
+#include "arch/mips/mm/cache/mipsCacheCommon.h"
 /*********************************************************************************************************
   外部函数声明
 *********************************************************************************************************/
@@ -37,24 +38,10 @@ static INT   ls3xCacheProbe(VOID);
 /*********************************************************************************************************
   L1 CACHE 状态
 *********************************************************************************************************/
-#define L1_CACHE_I_EN   0x01
-#define L1_CACHE_D_EN   0x02
-#define L1_CACHE_EN     (L1_CACHE_I_EN | L1_CACHE_D_EN)
-#define L1_CACHE_DIS    0x00
-
-static INT      _G_iLs3xCacheStatus = L1_CACHE_DIS;
+static INT          _G_iLs3xCacheStatus = L1_CACHE_DIS;
 /*********************************************************************************************************
   CACHE 信息
 *********************************************************************************************************/
-typedef struct {
-    BOOL        CACHE_bPresent;                                         /*  是否存在 Cache              */
-    UINT32      CACHE_uiSize;                                           /*  Cache 大小                  */
-    UINT32      CACHE_uiLineSize;                                       /*  Cache 行大小                */
-    UINT32      CACHE_uiSetNr;                                          /*  组数                        */
-    UINT32      CACHE_uiWayNr;                                          /*  路数                        */
-    UINT32      CACHE_uiWayStep;                                        /*  路步进                      */
-} MIPS_CACHE;
-
 static MIPS_CACHE   _G_ICache, _G_DCache;                               /*  I-Cache 和 D-Cache 信息     */
 static MIPS_CACHE   _G_VCache, _G_SCache;                               /*  V-Cache 和 S-Cache 信息     */
 /*********************************************************************************************************
@@ -663,7 +650,7 @@ static VOID  ls3xCacheInfoShow (VOID)
     }
 }
 /*********************************************************************************************************
-** 函数名称: mipsLs3xCacheInit
+** 函数名称: mipsCacheLs3xInit
 ** 功能描述: 初始化 CACHE
 ** 输　入  : pcacheop       CACHE 操作函数集
 **           uiInstruction  指令 CACHE 参数
@@ -673,7 +660,7 @@ static VOID  ls3xCacheInfoShow (VOID)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  mipsLs3xCacheInit (LW_CACHE_OP  *pcacheop,
+VOID  mipsCacheLs3xInit (LW_CACHE_OP  *pcacheop,
                          CACHE_MODE    uiInstruction,
                          CACHE_MODE    uiData,
                          CPCHAR        pcMachineName)
@@ -723,14 +710,14 @@ VOID  mipsLs3xCacheInit (LW_CACHE_OP  *pcacheop,
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 }
 /*********************************************************************************************************
-** 函数名称: mipsLs3xCacheReset
+** 函数名称: mipsCacheLs3xReset
 ** 功能描述: 复位 CACHE 
 ** 输　入  : pcMachineName  机器名称
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-VOID  mipsLs3xCacheReset (CPCHAR  pcMachineName)
+VOID  mipsCacheLs3xReset (CPCHAR  pcMachineName)
 {
     INT     iError;
 
