@@ -1957,6 +1957,8 @@ static INT  __tshellFsCmdDosfslabel (INT  iArgC, PCHAR  ppcArgV[])
 static INT  __tshellFsCmdFdisk (INT  iArgC, PCHAR  ppcArgV[])
 {
     LW_OEMFDISK_PART  fdpInfo[4];
+    CHAR              cInput[256];
+    PCHAR             pcInput;
     UINT              uiNPart;
     size_t            stAlign;
     struct stat       statGet;
@@ -1996,7 +1998,8 @@ static INT  __tshellFsCmdFdisk (INT  iArgC, PCHAR  ppcArgV[])
 __input_num:
     printf("please input how many partition(s) you want to make (1 ~ 4) : ");
     fflush(stdout);
-    if (scanf("%d", &uiNPart) != 1) {
+    pcInput = fgets(cInput, sizeof(cInput), stdin);
+    if (!pcInput || (sscanf(pcInput, "%d", &uiNPart) != 1)) {
         goto    __input_num;
     }
 
@@ -2008,7 +2011,8 @@ __input_num:
 __input_align:
     printf("please input how many bytes align (4K 8K ...) : ");
     fflush(stdout);
-    if (scanf("%zu", &stAlign) != 1) {
+    pcInput = fgets(cInput, sizeof(cInput), stdin);
+    if (!pcInput || (sscanf(pcInput, "%zu", &stAlign) != 1)) {
         goto    __input_align;
     }
 
@@ -2021,7 +2025,8 @@ __input_align:
 __input_size:
         printf("please input the partition %d size percentage(%%) 0 means all left space : ", i);
         fflush(stdout);
-        if (scanf("%d", &iPct) != 1) {
+        pcInput = fgets(cInput, sizeof(cInput), stdin);
+        if (!pcInput || (sscanf(pcInput, "%d", &iPct) != 1)) {
             goto    __input_size;
         }
 

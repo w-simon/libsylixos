@@ -64,6 +64,7 @@
 2014.07.23  shell 加入标准文件重定向支持.
 2014.08.27  __tshellRestart() 如果判断是在等待其他任务, 则使用 kill 操作.
 2014.04.17  对重定向描述符的回收需要在内核 IO 环境中中进行.
+2017.07.19  执行完每条命令后使用 fpurge(stdin) 清除输入缓存.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -1304,6 +1305,8 @@ __reauthen:
                 API_TShellTermAlert(STD_OUT);                           /*  产生响铃                    */
             }
             __TTINY_SHELL_SET_ERROR(ptcbCur, iRetValue);                /*  记录当前命令产生的错误.     */
+
+            fpurge(stdin);                                              /*  清空输入缓存                */
 
             if (__TTINY_SHELL_GET_OPT(ptcbCur) & LW_OPTION_TSHELL_NOECHO) {
                 ioctl(iTtyFd, FIOSETOPTIONS, (OPT_TERMINAL & (~OPT_ECHO)));
