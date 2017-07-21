@@ -1957,15 +1957,13 @@ static INT  __tshellFsCmdDosfslabel (INT  iArgC, PCHAR  ppcArgV[])
 static INT  __tshellFsCmdFdisk (INT  iArgC, PCHAR  ppcArgV[])
 {
     LW_OEMFDISK_PART  fdpInfo[4];
-    CHAR              cInput[256];
-    PCHAR             pcInput;
     UINT              uiNPart;
     size_t            stAlign;
     struct stat       statGet;
     PCHAR             pcBlkFile;
     INT               i, iPct, iTotalPct = 0;
-    CHAR              cActive, cType;
-    INT               iCnt;
+    CHAR              cActive;
+    INT               iCnt, iType;
 
     if (iArgC < 2) {
         fprintf(stderr, "too few arguments!\n");
@@ -1998,8 +1996,8 @@ static INT  __tshellFsCmdFdisk (INT  iArgC, PCHAR  ppcArgV[])
 __input_num:
     printf("please input how many partition(s) you want to make (1 ~ 4) : ");
     fflush(stdout);
-    pcInput = fgets(cInput, sizeof(cInput), stdin);
-    if (!pcInput || (sscanf(pcInput, "%d", &uiNPart) != 1)) {
+    fpurge(stdin);
+    if (scanf("%d", &uiNPart) != 1) {
         goto    __input_num;
     }
 
@@ -2011,8 +2009,8 @@ __input_num:
 __input_align:
     printf("please input how many bytes align (4K 8K ...) : ");
     fflush(stdout);
-    pcInput = fgets(cInput, sizeof(cInput), stdin);
-    if (!pcInput || (sscanf(pcInput, "%zu", &stAlign) != 1)) {
+    fpurge(stdin);
+    if (scanf("%zu", &stAlign) != 1) {
         goto    __input_align;
     }
 
@@ -2025,8 +2023,8 @@ __input_align:
 __input_size:
         printf("please input the partition %d size percentage(%%) 0 means all left space : ", i);
         fflush(stdout);
-        pcInput = fgets(cInput, sizeof(cInput), stdin);
-        if (!pcInput || (sscanf(pcInput, "%d", &iPct) != 1)) {
+        fpurge(stdin);
+        if (scanf("%d", &iPct) != 1) {
             goto    __input_size;
         }
 
@@ -2051,8 +2049,9 @@ __input_size:
 __input_active:
         printf("is this partition active(y/n) : ");
         fflush(stdout);
+        fpurge(stdin);
         do {
-            cActive = getchar();
+            cActive = (CHAR)getchar();
         } while ((cActive == '\r') || (cActive == '\n'));
         if ((cActive != 'y') &&
             (cActive != 'Y') &&
@@ -2071,29 +2070,27 @@ __input_active:
 __input_type:
         printf("please input the file system type\n");
         printf("1: FAT   2: TPSFS   3: LINUX   4: RESERVED\n");
-        do {
-            cType = getchar();
-        } while ((cType == '\r') || (cType == '\n'));
-        if ((cType < '1') || (cType > '4')) {
+        fpurge(stdin);
+        if ((scanf("%d", &iType) != 1) || ((iType < 1) || (iType > 4))) {
             printf("please use 1 2 3 or 4\n");
             goto    __input_type;
         }
 
-        switch (cType) {
+        switch (iType) {
 
-        case '1':
+        case 1:
             fdpInfo[i].FDP_ucPartType = LW_DISK_PART_TYPE_WIN95_FAT32;
             break;
 
-        case '2':
+        case 2:
             fdpInfo[i].FDP_ucPartType = LW_DISK_PART_TYPE_TPS;
             break;
 
-        case '3':
+        case 3:
             fdpInfo[i].FDP_ucPartType = LW_DISK_PART_TYPE_NATIVE_LINUX;
             break;
         
-        case '4':
+        case 4:
             fdpInfo[i].FDP_ucPartType = LW_DISK_PART_TYPE_RESERVED;
             break;
             
