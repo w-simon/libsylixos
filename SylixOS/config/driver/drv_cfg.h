@@ -75,6 +75,7 @@
 
 #define LW_CFG_DRV_NIC_INTEL                1                           /*  Intel e1000 igb 等系列网卡  */
 #define LW_CFG_DRV_NIC_DM9000               1                           /*  dm9000                      */
+#define LW_CFG_DRV_NIC_SMETHND              1                           /*  共享内存虚拟网卡            */
 
 /*********************************************************************************************************
 *                                       DMA 驱动

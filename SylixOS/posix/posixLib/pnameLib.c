@@ -132,6 +132,32 @@ INT  __pxnameDel (CPCHAR  pcName)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: __pxnameDelByNode
+** 功能描述: 删除一个名字节点.
+** 输　入  : pxnode            名字节点
+** 输　出  : ERROR CODE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+INT  __pxnameDelByNode (__PX_NAME_NODE  *pxnode)
+{
+    INT  iHash;
+
+    if (pxnode == LW_NULL) {
+        errno = EINVAL;
+        return  (PX_ERROR);
+    }
+    
+    iHash = __hashHorner(pxnode->PXNODE_pcName, 
+                         __PX_NAME_NODE_HASH_SIZE);                     /*  确定 hash 表入口            */
+    
+    _List_Line_Del(&pxnode->PXNODE_lineManage,
+                   &_G_plinePxNameNodeHash[iHash]);                     /*  从 hash 表中删除            */
+    _G_uiNamedNodeCounter--;
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: __pxnameGet
 ** 功能描述: 获取一个名字节点.
 ** 输　入  : pcName            名字

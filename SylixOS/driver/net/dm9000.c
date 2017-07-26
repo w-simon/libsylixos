@@ -765,12 +765,12 @@ static void  dm9000_receive (struct netdev *netdev, int (*input)(struct netdev *
         dm9000_io_read(dm9000, DM9000_MRCMDX);
         rx_byte = read8(dm9000->data) & 0x03;
         if (rx_byte & DM9000_PKT_ERR) {
-            netdev_linkinfo_err_inc(&dm9000->netdev);
+            netdev_linkinfo_err_inc(netdev);
             goto    __recv_over;
         }
 
         if (!(rx_byte & DM9000_PKT_RDY)) {
-            netdev_linkinfo_err_inc(&dm9000->netdev);
+            netdev_linkinfo_err_inc(netdev);
             goto    __recv_over;
         }
 
@@ -778,12 +778,12 @@ static void  dm9000_receive (struct netdev *netdev, int (*input)(struct netdev *
 
         (priv->rx_status)(dm9000, &rx_status, &rx_len);
         if (rx_len < 0x40) {
-            netdev_linkinfo_lenerr_inc(&dm9000->netdev);
+            netdev_linkinfo_lenerr_inc(netdev);
             good_pkt = FALSE;
         }
 
         if (rx_len > DM9000_PKT_MAX) {
-            netdev_linkinfo_lenerr_inc(&dm9000->netdev);
+            netdev_linkinfo_lenerr_inc(netdev);
             good_pkt = FALSE;
         }
 
@@ -792,15 +792,15 @@ static void  dm9000_receive (struct netdev *netdev, int (*input)(struct netdev *
                          RSR_PLE | RSR_RWTO |
                          RSR_LCS | RSR_RF)) {
             if (rx_status & RSR_FOE) {
-                netdev_linkinfo_err_inc(&dm9000->netdev);
+                netdev_linkinfo_err_inc(netdev);
             }
 
             if (rx_status & RSR_CE) {
-                netdev_linkinfo_chkerr_inc(&dm9000->netdev);
+                netdev_linkinfo_chkerr_inc(netdev);
             }
 
             if (rx_status & RSR_RF) {
-                netdev_linkinfo_lenerr_inc(&dm9000->netdev);
+                netdev_linkinfo_lenerr_inc(netdev);
             }
             good_pkt = FALSE;
         }
@@ -811,37 +811,37 @@ static void  dm9000_receive (struct netdev *netdev, int (*input)(struct netdev *
                     (priv->inblk)(dm9000, q->payload, q->len);
                 }
 
-                err = input(&dm9000->netdev, p);
+                err = input(netdev, p);
                 if (err) {
                     netdev_pbuf_free(p);
                     p = NULL;
 
-                    netdev_linkinfo_drop_inc(&dm9000->netdev);
-                    netdev_statinfo_discards_inc(&dm9000->netdev, LINK_INPUT);
+                    netdev_linkinfo_drop_inc(netdev);
+                    netdev_statinfo_discards_inc(netdev, LINK_INPUT);
 
                 } else {
-                    netdev_linkinfo_recv_inc(&dm9000->netdev);
-                    netdev_statinfo_total_add(&dm9000->netdev, LINK_INPUT, rx_len);
+                    netdev_linkinfo_recv_inc(netdev);
+                    netdev_statinfo_total_add(netdev, LINK_INPUT, rx_len);
                     if (((UINT8 *)p->payload)[0] & 1) {
-                        netdev_statinfo_mcasts_inc(&dm9000->netdev, LINK_INPUT);
+                        netdev_statinfo_mcasts_inc(netdev, LINK_INPUT);
                     } else {
-                        netdev_statinfo_ucasts_inc(&dm9000->netdev, LINK_INPUT);
+                        netdev_statinfo_ucasts_inc(netdev, LINK_INPUT);
                     }
                 }
 
             } else {
                 priv->dummy_inblk(dm9000, rx_len);
 
-                netdev_linkinfo_memerr_inc(&dm9000->netdev);
-                netdev_linkinfo_drop_inc(&dm9000->netdev);
-                netdev_statinfo_discards_inc(&dm9000->netdev, LINK_INPUT);
+                netdev_linkinfo_memerr_inc(netdev);
+                netdev_linkinfo_drop_inc(netdev);
+                netdev_statinfo_discards_inc(netdev, LINK_INPUT);
             }
 
         } else {
             priv->dummy_inblk(dm9000, rx_len);
 
-            netdev_linkinfo_drop_inc(&dm9000->netdev);
-            netdev_statinfo_discards_inc(&dm9000->netdev, LINK_INPUT);
+            netdev_linkinfo_drop_inc(netdev);
+            netdev_statinfo_discards_inc(netdev, LINK_INPUT);
         }
     } while (rx_byte == DM9000_PKT_RDY);
 
@@ -857,6 +857,7 @@ __recv_over:
 ** 函数名称: dm9000_transmit
 ** 功能描述: dm9000 transmit packet
 ** 输　入  : netdev      netdev
+**           p           packet to transmit
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
@@ -878,8 +879,8 @@ static int  dm9000_transmit (struct netdev *netdev, struct pbuf *p)
 
         if (API_SemaphoreBPend(priv->tx_sync,
                                LW_MSECOND_TO_TICK_1(2000)) == ERROR_THREAD_WAIT_TIMEOUT) {
-            netdev_linkinfo_drop_inc(&dm9000->netdev);
-            netdev_statinfo_discards_inc(&dm9000->netdev, LINK_OUTPUT);
+            netdev_linkinfo_drop_inc(netdev);
+            netdev_statinfo_discards_inc(netdev, LINK_OUTPUT);
             return  (-1);
 
         } else {
@@ -906,12 +907,12 @@ static int  dm9000_transmit (struct netdev *netdev, struct pbuf *p)
     API_SemaphoreMPost(priv->lock);
     API_InterVectorEnable(dm9000->irq);
 
-    netdev_linkinfo_xmit_inc(&dm9000->netdev);
-    netdev_statinfo_total_add(&dm9000->netdev, LINK_OUTPUT, tx_len);
+    netdev_linkinfo_xmit_inc(netdev);
+    netdev_statinfo_total_add(netdev, LINK_OUTPUT, tx_len);
     if (((UINT8 *)p->payload)[0] & 1) {
-        netdev_statinfo_mcasts_inc(&dm9000->netdev, LINK_OUTPUT);
+        netdev_statinfo_mcasts_inc(netdev, LINK_OUTPUT);
     } else {
-        netdev_statinfo_ucasts_inc(&dm9000->netdev, LINK_OUTPUT);
+        netdev_statinfo_ucasts_inc(netdev, LINK_OUTPUT);
     }
 
     return  (0);
@@ -935,28 +936,28 @@ static void  dm9000_watchdog (struct netdev *netdev)
     API_SemaphoreMPend(priv->lock, LW_OPTION_WAIT_INFINITE);
 
     if ((dm9000_phy_read(dm9000, 1) & 0x20)) {
-        netdev_get_linkup(&dm9000->netdev, &linkup);
+        netdev_get_linkup(netdev, &linkup);
         if (!linkup) {
             link = dm9000_phy_read(dm9000, 17) >> 12;                   /*  see what we've got          */
             switch (link) {
 
             case 1:
-                netdev_set_linkup(&dm9000->netdev, 1, 10000000);        /* 10Mbps                       */
+                netdev_set_linkup(netdev, 1, 10000000);                 /* 10Mbps                       */
                 printk(KERN_INFO "dm9000_watchdog: operating at 10M half duplex mode\n");
                 break;
 
             case 2:
-                netdev_set_linkup(&dm9000->netdev, 1, 10000000);        /* 10Mbps                       */
+                netdev_set_linkup(netdev, 1, 10000000);                 /* 10Mbps                       */
                 printk(KERN_INFO "dm9000_watchdog: operating at 10M full duplex mode\n");
                 break;
 
             case 4:
-                netdev_set_linkup(&dm9000->netdev, 1, 100000000);       /* 100Mbps                      */
+                netdev_set_linkup(netdev, 1, 100000000);                /* 100Mbps                      */
                 printk(KERN_INFO "dm9000_watchdog: operating at 100M half duplex mode\n");
                 break;
 
             case 8:
-                netdev_set_linkup(&dm9000->netdev, 1, 100000000);       /* 100Mbps                      */
+                netdev_set_linkup(netdev, 1, 100000000);                /* 100Mbps                      */
                 printk(KERN_INFO "dm9000_watchdog: operating at 100M full duplex mode\n");
                 break;
 
@@ -967,9 +968,9 @@ static void  dm9000_watchdog (struct netdev *netdev)
         }
 
     } else {
-        netdev_get_linkup(&dm9000->netdev, &linkup);
+        netdev_get_linkup(netdev, &linkup);
         if (linkup) {
-            netdev_set_linkup(&dm9000->netdev, 0, 0);
+            netdev_set_linkup(netdev, 0, 0);
             printk(KERN_INFO "dm9000_watchdog: can not establish link\n");
         }
     }

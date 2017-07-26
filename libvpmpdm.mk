@@ -34,6 +34,7 @@ LOCAL_TARGET_NAME := libvpmpdm.so
 #*********************************************************************************************************
 LOCAL_SRCS := \
 SylixOS/vpmpdm/cfloat/backtrace/backtrace.c \
+SylixOS/vpmpdm/cfloat/float/float.c \
 SylixOS/vpmpdm/cfloat/iniparser/dictionary.c \
 SylixOS/vpmpdm/cfloat/iniparser/iniparser.c \
 SylixOS/vpmpdm/cfloat/stdio/asprintf.c \

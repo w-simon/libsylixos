@@ -543,8 +543,14 @@ LW_API ULONG            API_SemaphoreBRelease(LW_OBJECT_HANDLE  ulId,
 
 LW_API ULONG            API_SemaphoreBPost(LW_OBJECT_HANDLE  ulId);     /*  RT 释放信号量               */
 
+LW_API ULONG            API_SemaphoreBPost2(LW_OBJECT_HANDLE  ulId, LW_OBJECT_HANDLE  *pulId);
+
 LW_API ULONG            API_SemaphoreBPostEx(LW_OBJECT_HANDLE  ulId, 
                                              PVOID      pvMsgPtr);      /*  RT 释放信号量消息           */
+                                             
+LW_API ULONG            API_SemaphoreBPostEx2(LW_OBJECT_HANDLE  ulId, 
+                                              PVOID             pvMsgPtr, 
+                                              LW_OBJECT_HANDLE *pulId);
 
 LW_API ULONG            API_SemaphoreBClear(LW_OBJECT_HANDLE  ulId);    /*  清除信号量信号              */
 

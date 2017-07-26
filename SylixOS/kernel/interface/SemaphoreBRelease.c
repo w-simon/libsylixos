@@ -103,7 +103,6 @@ ULONG  API_SemaphoreBRelease (LW_OBJECT_HANDLE  ulId, ULONG  ulReleaseCounter, B
         } else {                                                        /*  没有线程等待                */
             if (pevent->EVENT_ulCounter == LW_FALSE) {                  /*  检查是否还有空间加          */
                 pevent->EVENT_ulCounter = (ULONG)LW_TRUE;
-                
                 KN_INT_ENABLE(iregInterLevel);                          /*  打开中断                    */
                 iregInterLevel = KN_INT_DISABLE();                      /*  关闭中断                    */
                 

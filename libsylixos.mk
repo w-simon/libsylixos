@@ -543,6 +543,7 @@ SylixOS/driver/can/sja1000.c \
 SylixOS/driver/dma/i8237a.c \
 SylixOS/driver/int/i8259a.c \
 SylixOS/driver/net/dm9000.c \
+SylixOS/driver/net/smethnd.c \
 SylixOS/driver/pci/sio/pciSioExar.c \
 SylixOS/driver/pci/sio/pciSioNetmos.c \
 SylixOS/driver/pci/storage/pciStorageAta.c \

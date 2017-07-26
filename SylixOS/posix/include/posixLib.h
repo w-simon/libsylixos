@@ -113,6 +113,7 @@ extern LW_OBJECT_HANDLE        _G_ulPosixLock;
 __PX_NAME_NODE  *__pxnameSeach(CPCHAR  pcName, INT  iHash);
 INT              __pxnameAdd(__PX_NAME_NODE  *pxnode);
 INT              __pxnameDel(CPCHAR  pcName);
+INT              __pxnameDelByNode(__PX_NAME_NODE  *pxnode);
 INT              __pxnameGet(CPCHAR  pcName, PVOID  *ppvData);
 
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */

@@ -29,6 +29,7 @@
 2013.04.01  加入创建 mode 的保存, 为未来权限操作提供基础.
 2016.05.08  隐形初始化确保多线程安全.
 2017.03.11  使用更安全的匿名信号量回收方法.
+2017.07.25  当信号量在使用时被删除, 则删除操作将在最后一次关闭时执行.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDARG
 #define  __SYLIXOS_KERNEL
@@ -58,6 +59,7 @@ typedef struct {
     LW_OBJECT_HANDLE        PSEM_ulSemaphore;                           /*  信号量句柄                  */
     mode_t                  PSEM_mode;                                  /*  创建 mode                   */
     __PX_NAME_NODE          PSEM_pxnode;                                /*  名字节点                    */
+    BOOL                    PSEM_bUnlinkReq;                            /*  是否请求删除                */
 } __PX_SEM;
 /*********************************************************************************************************
   初始化锁
@@ -187,7 +189,8 @@ int  sem_init (sem_t  *psem, int  pshared, unsigned int  value)
         return  (PX_ERROR);
     }
     
-    pxsem->PSEM_mode = 0600;                                            /*  只有本进程可用              */
+    pxsem->PSEM_mode       = 0600;                                      /*  只有本进程可用              */
+    pxsem->PSEM_bUnlinkReq = LW_FALSE;
     
     psem->SEM_pvPxSem = (PVOID)pxsem;
     psem->SEM_presraw = (PLW_RESOURCE_RAW)((CHAR *)pxsem + sizeof(__PX_SEM));
@@ -397,7 +400,8 @@ sem_t  *sem_open (const char  *name, int  flag, ...)
                 return  (SEM_FAILED);
             }
             
-            pxsem->PSEM_mode = mode;
+            pxsem->PSEM_mode       = mode;
+            pxsem->PSEM_bUnlinkReq = LW_FALSE;
             
             pxsem->PSEM_pxnode.PXNODE_pcName = (char *)pxsem + sizeof(__PX_SEM);
             pxsem->PSEM_pxnode.PXNODE_iType  = __PX_NAMED_OBJECT_SEM;
@@ -439,6 +443,7 @@ LW_API
 int  sem_close (sem_t  *psem)
 {
     __PX_SEM    *pxsem;
+    BOOL         bUnlink = LW_FALSE;
 
     if ((psem == LW_NULL) || (psem->SEM_pvPxSem == LW_NULL)) {
         errno = EINVAL;
@@ -459,13 +464,27 @@ int  sem_close (sem_t  *psem)
 
     __PX_LOCK();                                                        /*  锁住 posix                  */
     if (API_AtomicGet(&pxsem->PSEM_pxnode.PXNODE_atomic) > 0) {
-        API_AtomicDec(&pxsem->PSEM_pxnode.PXNODE_atomic);               /*  仅仅减少使用计数            */
+        if (API_AtomicDec(&pxsem->PSEM_pxnode.PXNODE_atomic) == 0) {    /*  减少使用计数                */
+            if (pxsem->PSEM_bUnlinkReq) {
+                __pxnameDelByNode(&pxsem->PSEM_pxnode);                 /*  无法被再次打开              */
+                bUnlink = LW_TRUE;
+            }
+        }
     }
     __PX_UNLOCK();                                                      /*  解锁 posix                  */
 
     __resDelRawHook(psem->SEM_presraw);
 
     __SHEAP_FREE(psem);                                                 /*  释放句柄                    */
+
+    if (bUnlink) {                                                      /*  需要删除                    */
+        API_SemaphoreDelete(&pxsem->PSEM_ulSemaphore);
+        
+        _DebugFormat(__LOGMESSAGE_LEVEL, "posix semaphore \"%s\" has been delete.\r\n", 
+                     pxsem->PSEM_pxnode.PXNODE_pcName);
+        
+        __SHEAP_FREE(pxsem);                                            /*  释放缓存                    */
+    }
 
     return  (ERROR_NONE);
 }
@@ -493,15 +512,18 @@ int  sem_unlink (const char *name)
     pxnode = __pxnameSeach(name, -1);
     if (pxnode) {
         pxsem = (__PX_SEM *)pxnode->PXNODE_pvData;
-        if (!_ObjectClassOK(pxsem->PSEM_ulSemaphore, _OBJECT_SEM_C)) {  /*  检查是否为计数信号量        */
+        
+        if ((pxnode->PXNODE_iType != __PX_NAMED_OBJECT_SEM) ||
+            !_ObjectClassOK(pxsem->PSEM_ulSemaphore, 
+                            _OBJECT_SEM_C)) {                           /*  是否为计数信号量            */
             __PX_UNLOCK();                                              /*  解锁 posix                  */
             errno = EINVAL;
             return  (PX_ERROR);
         }
         if (API_AtomicGet(&pxnode->PXNODE_atomic) > 0) {
+            pxsem->PSEM_bUnlinkReq = LW_TRUE;                           /*  请求删除                    */
             __PX_UNLOCK();                                              /*  解锁 posix                  */
-            errno = EBUSY;
-            return  (PX_ERROR);
+            return  (ERROR_NONE);
         }
         if (API_SemaphoreDelete(&pxsem->PSEM_ulSemaphore)) {
             __PX_UNLOCK();                                              /*  解锁 posix                  */

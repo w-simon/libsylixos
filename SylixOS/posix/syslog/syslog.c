@@ -35,6 +35,8 @@
   裁剪支持
 *********************************************************************************************************/
 #if (LW_CFG_POSIX_EN > 0) && (LW_CFG_POSIX_SYSLOG_EN > 0)
+#include "unistd.h"
+#include "limits.h"
 #include "socket.h"
 #include "netdb.h"
 #include "arpa/inet.h"
@@ -285,6 +287,7 @@ void  syslog (int priority, const char *message, ...)
 {
 #define __PX_SYSLOG_TIMEFMT   "%s %2d %02d:%02d:%02d"
 
+    CHAR            cName[HOST_NAME_MAX];
     CHAR            cBuffer[LOG_DEFAULT_SIZE];
     size_t          stLen;
     
@@ -319,14 +322,18 @@ void  syslog (int priority, const char *message, ...)
                      tmBuf.tm_hour,
                      tmBuf.tm_min,
                      tmBuf.tm_sec);                                     /*  打印 时间                   */
-                    
+
+    if (!gethostname(cName, HOST_NAME_MAX)) {
+        stLen = bnprintf(cBuffer, sizeof(cBuffer), stLen, " %s", cName);
+    }
+
     if (_G_pcSyslogTag) {                                               /*  打印 tag name               */
         stLen = bnprintf(cBuffer, sizeof(cBuffer), stLen, " %s", _G_pcSyslogTag);
     }
     
     if (_G_iSyslogOpt & LOG_PID) {
         if (sizeof(cBuffer) > stLen) {
-            stLen = bnprintf(cBuffer, sizeof(cBuffer), stLen, "[%lx]:",
+            stLen = bnprintf(cBuffer, sizeof(cBuffer), stLen, "[%lx]: ",
                              API_ThreadIdSelf());
         }
     }

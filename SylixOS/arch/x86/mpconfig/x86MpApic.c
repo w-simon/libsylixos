@@ -1242,7 +1242,7 @@ VOID  x86MpBiosIoIntMapShow (VOID)
             break;
 
         case MP_ENTRY_IOINTERRUPT:                                      /*  IO Interrupt Entry          */
-            printf("  0x%02x   0x%04x    0x%02xd       0x%02x      0x%02x        0x%02x     0x%02x  ",
+            printf("  0x%02x   0x%04x     0x%02x       0x%02x      0x%02x        0x%02x     0x%02x  ",
                     *(pucPtr + 1), *(UINT16 *)(pucPtr + 2), *(pucPtr + 4), *(pucPtr + 5), *(pucPtr + 6),
                     *(pucPtr + 7), (*(pucPtr + 5)) >> 2);
 

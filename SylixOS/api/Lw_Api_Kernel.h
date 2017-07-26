@@ -262,9 +262,17 @@
 #define Lw_SemaphoreB_Give                      API_SemaphoreBPost
 #define Lw_SemaphoreB_Send                      API_SemaphoreBPost
 
+#define Lw_SemaphoreB_Post2                     API_SemaphoreBPost2
+#define Lw_SemaphoreB_Give2                     API_SemaphoreBPost2
+#define Lw_SemaphoreB_Send2                     API_SemaphoreBPost2
+
 #define Lw_SemaphoreB_PostEx                    API_SemaphoreBPostEx
 #define Lw_SemaphoreB_GiveEx                    API_SemaphoreBPostEx
 #define Lw_SemaphoreB_SendEx                    API_SemaphoreBPostEx
+
+#define Lw_SemaphoreB_PostEx2                   API_SemaphoreBPostEx2
+#define Lw_SemaphoreB_GiveEx2                   API_SemaphoreBPostEx2
+#define Lw_SemaphoreB_SendEx2                   API_SemaphoreBPostEx2
 
 #define Lw_SemaphoreB_Flush                     API_SemaphoreBFlush
 #define Lw_SemaphoreB_Clear                     API_SemaphoreBClear

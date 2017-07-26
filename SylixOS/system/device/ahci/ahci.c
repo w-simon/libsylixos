@@ -29,6 +29,7 @@
 2016.12.28  KINGSTON SUV400S37120G 必须使能 CACHE 回写.
 2017.03.09  增加对磁盘热插拔的支持, 并可通过 AHCI_HOTPLUG_EN 进行配置. (v1.0.6-rc0)
 2017.04.24  修复同时使能 NCQ 和 TRIM 后删除大文件产生死锁(ahci_slot)的问题. (v1.0.7-rc0)
+2017.07.24  修复虚拟机的虚拟磁盘不支持诊断处理的问题. (v1.0.8-rc0)
 *********************************************************************************************************/
 #define  __SYLIXOS_PCI_DRV
 #define  __SYLIXOS_STDIO
@@ -76,6 +77,47 @@ static INT  _GiAhciConfigType[AHCI_DRIVE_MAX] = {
 static PVOID            __ahciMonitorThread(PVOID pvArg);
 static irqreturn_t      __ahciIsr(PVOID pvArg, ULONG ulVector);
 static INT              __ahciDiskCtrlInit(AHCI_CTRL_HANDLE hCtrl, UINT uiDrive);
+/*********************************************************************************************************
+** 函数名称: __ahciDiskDriveDiagnostic
+** 功能描述: 磁盘驱动器关于诊断的处理
+** 输　入  : hCtrl      控制器句柄
+**           uiDrive     驱动器号
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __ahciDiskDriveDiagnostic (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
+{
+    INT                 iRet;                                           /* 错误返回                     */
+    AHCI_DRIVE_HANDLE   hDrive;                                         /* 驱动器句柄                   */
+    PCI_DEV_HANDLE      hPciDev;                                        /* PCI 设备句柄                 */
+    UINT16              usVendorId;                                     /* 厂商 ID                      */
+
+    /*
+     *  获取参数信息
+     */
+    hDrive     = &hCtrl->AHCICTRL_hDrive[uiDrive];
+    hPciDev    = (PCI_DEV_HANDLE)hCtrl->AHCICTRL_pvPciArg;              /* 获取设备句柄                 */
+    usVendorId = hPciDev->PCIDEV_phDevHdr.hdr.PCIHH_pcidHdr.PCID_usVendorId;
+
+    switch (usVendorId) {
+
+    case PCI_VENDOR_ID_VMWARE:
+        break;
+
+    default:
+        iRet = API_AhciNoDataCommandSend(hCtrl, uiDrive, AHCI_CMD_DIAGNOSE, 0, 0, 0, 0, 0, 0);
+        if (iRet != ERROR_NONE) {
+            API_SemaphoreMPost(hDrive->AHCIDRIVE_hLockMSem);
+            AHCI_LOG(AHCI_LOG_ERR, "disk port diagnostic command failed ctrl %d port %d.\r\n",
+                     hCtrl->AHCICTRL_uiIndex, uiDrive);
+            return  (PX_ERROR);
+        }
+        break;
+    }
+
+    return  (ERROR_NONE);
+}
 /*********************************************************************************************************
 ** 函数名称: __ahciDrivePhyReset
 ** 功能描述: PHY 复位操作
@@ -1863,7 +1905,7 @@ static INT  __ahciDiskCtrlInit (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
 *********************************************************************************************************/
 static INT  __ahciDiskDriveInit (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
 {
-    INT                 iRet;                                           /* 循环因子                     */
+    INT                 iRet;                                           /* 错误返回                     */
     AHCI_DRIVE_HANDLE   hDrive;                                         /* 驱动器句柄                   */
     AHCI_PARAM_HANDLE   hParam;                                         /* 参数句柄                     */
     AHCI_DRV_HANDLE     hDrv;                                           /* 驱动句柄                     */
@@ -1930,14 +1972,13 @@ static INT  __ahciDiskDriveInit (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
             hDrive->AHCIDRIVE_ucState = AHCI_DEV_PREAD_F;
             goto  __error_handle;
         }
-                                                                        /* 诊断设备                     */
-        iRet = API_AhciNoDataCommandSend(hCtrl, uiDrive, AHCI_CMD_DIAGNOSE, 0, 0, 0, 0, 0, 0);
+
+        iRet = __ahciDiskDriveDiagnostic(hCtrl, uiDrive);
         if (iRet != ERROR_NONE) {
-            API_SemaphoreMPost(hDrive->AHCIDRIVE_hLockMSem);
-            AHCI_LOG(AHCI_LOG_ERR, "disk port init no data command failed ctrl %d port %d.\r\n",
+            AHCI_LOG(AHCI_LOG_ERR, "disk port diagnostic failed ctrl %d port %d.\r\n",
                      hCtrl->AHCICTRL_uiIndex, uiDrive);
-            return  (PX_ERROR);
         }
+
         /*
          *  获取扇区参数信息
          */

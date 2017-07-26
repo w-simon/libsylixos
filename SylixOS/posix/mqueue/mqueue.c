@@ -34,6 +34,8 @@
 2014.05.30  使用 ROUND_UP 代替除法.
 2015.07.24  修正 mq_send 优先级为 0 时的错误.
 2016.04.13  加入 GJB7714 相关 API 支持.
+2017.07.25  当消息队列在使用时被删除, 则删除操作将在最后一次关闭时执行.
+2017.07.26  修正一些 errno 使其符合 POSIX 规范.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDARG
 #define  __SYLIXOS_STDIO
@@ -101,6 +103,7 @@ typedef struct {
 typedef struct {
     mq_attr_t           PMSG_mqattr;                                    /*  消息队列属性                */
     mode_t              PMSG_mode;                                      /*  创建 mode                   */
+    BOOL                PMSG_bUnlinkReq;                                /*  是否请求删除                */
     LW_OBJECT_HANDLE    PMSG_ulReadSync;                                /*  读同步                      */
     LW_OBJECT_HANDLE    PMSG_ulWriteSync;                               /*  写同步                      */
     LW_OBJECT_HANDLE    PMSG_ulMutex;                                   /*  互斥量                      */
@@ -139,7 +142,7 @@ mq_attr_t  mq_attr_default = {0, 10, 1024, 0};
 *********************************************************************************************************/
 
 #define __PX_MQ_RWAIT(pmq, to)      API_SemaphoreBPend(pmq->PMSG_ulReadSync, to)
-#define __PX_MQ_RPOST(pmq)          API_SemaphoreBPost(pmq->PMSG_ulReadSync)
+#define __PX_MQ_RPOST(pmq, ptid)    API_SemaphoreBPost2(pmq->PMSG_ulReadSync, ptid)
 
 #define __PX_MQ_WWAIT(pmq, to)      API_SemaphoreBPend(pmq->PMSG_ulWriteSync, to)
 #define __PX_MQ_WPOST(pmq)          API_SemaphoreBPost(pmq->PMSG_ulWriteSync)
@@ -162,6 +165,8 @@ static VOID  __mqueueSignalNotify (__PX_MSG  *pmq)
     
     _doSigEvent(pmq->PMSG_pmsgntf.PMSGNTF_ulThreadId,
                 &pmq->PMSG_pmsgntf.PMSGNTF_sigevent, SI_MESGQ);         /*  发送 sigevent               */
+
+    pmq->PMSG_pmsgntf.PMSGNTF_ulThreadId = LW_OBJECT_HANDLE_INVALID;    /*  清除注册的信号              */
 }
 
 #endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
@@ -189,28 +194,43 @@ static uint_t  __mqueueSeekPrio (__PX_MSG  *pmq)
 **           msgsize       消息大小
 **           uiRealPrio    转换后的优先级
 **           ulTimeout     超时时间
+**           bNonblock     是否为非阻塞
 ** 输　出  : ERROR CODE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
 static INT  __mqueueSend (__PX_MSG  *pmq, const char  *msg, size_t  msglen, 
-                          unsigned uiRealPrio, ULONG  ulTimeout)
+                          unsigned uiRealPrio, ULONG  ulTimeout, BOOL  bNonblock)
 {
     ULONG               ulError;
     __PX_MSG_NODE      *pmqn;
     PLW_LIST_RING       pringMsg;
     caddr_t             pcBuffer;                                       /*  消息缓冲                    */
+    LW_OBJECT_HANDLE    ulId;
     ULONG               ulOrgKernelTime;
     
     /*
      *  获取发送缓冲并填入数据
      */
     do {
-        __KERNEL_TIME_GET(ulOrgKernelTime, ULONG);                      /*  记录系统时间                */
+        if (__PX_MQ_LOCK(pmq)) {                                        /*  锁定消息队列                */
+            errno = ENOENT;
+            return  (PX_ERROR);
+        }
+        if (pmq->PMSG_pmsgmem.PMSGM_pringFreeList) {                    /*  可以发送                    */
+            break;
+        }
+        __PX_MQ_UNLOCK(pmq);                                            /*  解锁消息队列                */
         
+        __KERNEL_TIME_GET(ulOrgKernelTime, ULONG);                      /*  记录系统时间                */
+
         ulError = __PX_MQ_WWAIT(pmq, ulTimeout);                        /*  等待写同步                  */
         if (ulError == ERROR_THREAD_WAIT_TIMEOUT) {
-            errno = ETIMEDOUT;
+            if (bNonblock) {
+                errno = EAGAIN;
+            } else {
+                errno = ETIMEDOUT;
+            }
             return  (PX_ERROR);
         
         } else if (ulError == EINTR) {
@@ -220,16 +240,6 @@ static INT  __mqueueSend (__PX_MSG  *pmq, const char  *msg, size_t  msglen,
         } else if (ulError) {
             return  (PX_ERROR);
         }
-        
-        if (__PX_MQ_LOCK(pmq)) {                                        /*  锁定消息队列                */
-            errno = ENOENT;
-            return  (PX_ERROR);
-        }
-        
-        if (pmq->PMSG_pmsgmem.PMSGM_pringFreeList) {                    /*  可以发送                    */
-            break;
-        }
-        __PX_MQ_UNLOCK(pmq);                                            /*  解锁消息队列                */
     
         ulTimeout = _sigTimeoutRecalc(ulOrgKernelTime, ulTimeout);      /*  重新计算等待时间            */
     } while (1);
@@ -255,10 +265,11 @@ static INT  __mqueueSend (__PX_MSG  *pmq, const char  *msg, size_t  msglen,
      *  更新消息队列状态
      */
     pmq->PMSG_mqattr.mq_curmsgs++;                                      /*  缓存的消息数量++            */
-    __PX_MQ_RPOST(pmq);                                                 /*  消息队列可读                */
+    __PX_MQ_RPOST(pmq, &ulId);                                          /*  消息队列可读                */
     
 #if LW_CFG_SIGNAL_EN > 0
-    if (pmq->PMSG_mqattr.mq_curmsgs == 1) {                             /*  信号异步通知可读            */
+    if ((ulId == LW_OBJECT_HANDLE_INVALID) && 
+        (pmq->PMSG_mqattr.mq_curmsgs == 1)) {                           /*  信号异步通知可读            */
         __mqueueSignalNotify(pmq);
     }
 #endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
@@ -278,12 +289,13 @@ static INT  __mqueueSend (__PX_MSG  *pmq, const char  *msg, size_t  msglen,
 **           msglen        缓冲大小
 **           pmsgprio      接收的消息优先级 (返回)
 **           ulTimeout     超时时间
+**           bNonblock     是否为非阻塞
 ** 输　出  : 接收消息的大小
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
 static ssize_t  __mqueueRecv (__PX_MSG  *pmq, char  *msg, size_t  msglen, 
-                              unsigned *pmsgprio, ULONG  ulTimeout)
+                              unsigned *pmsgprio, ULONG  ulTimeout, BOOL  bNonblock)
 {
     __PX_MSG_NODE      *pmqn;
     PLW_LIST_RING       pringMsg;
@@ -297,11 +309,25 @@ static ssize_t  __mqueueRecv (__PX_MSG  *pmq, char  *msg, size_t  msglen,
      *  开始接收消息
      */
     do {
+        if (__PX_MQ_LOCK(pmq)) {                                        /*  锁定消息队列                */
+            errno = ENOENT;
+            return  (PX_ERROR);
+        }
+    
+        if (pmq->PMSG_mqattr.mq_curmsgs) {                              /*  有数据可读                  */
+            break;
+        }
+        __PX_MQ_UNLOCK(pmq);                                            /*  解锁消息队列                */
+        
         __KERNEL_TIME_GET(ulOrgKernelTime, ULONG);                      /*  记录系统时间                */
         
         ulError = __PX_MQ_RWAIT(pmq, ulTimeout);                        /*  等待读同步                  */
         if (ulError == ERROR_THREAD_WAIT_TIMEOUT) {
-            errno = ETIMEDOUT;
+            if (bNonblock) {
+                errno = EAGAIN;
+            } else {
+                errno = ETIMEDOUT;
+            }
             return  (PX_ERROR);
         
         } else if (ulError == EINTR) {
@@ -312,16 +338,6 @@ static ssize_t  __mqueueRecv (__PX_MSG  *pmq, char  *msg, size_t  msglen,
             return  (PX_ERROR);
         }
         
-        if (__PX_MQ_LOCK(pmq)) {                                        /*  锁定消息队列                */
-            errno = ENOENT;
-            return  (PX_ERROR);
-        }
-    
-        if (pmq->PMSG_mqattr.mq_curmsgs) {                              /*  有数据可读                  */
-            break;
-        }
-        __PX_MQ_UNLOCK(pmq);                                            /*  解锁消息队列                */
-    
         ulTimeout = _sigTimeoutRecalc(ulOrgKernelTime, ulTimeout);      /*  重新计算等待时间            */
     } while (1);
     
@@ -331,7 +347,7 @@ static ssize_t  __mqueueRecv (__PX_MSG  *pmq, char  *msg, size_t  msglen,
     pcBuffer   = ((char *)pmqn + sizeof(__PX_MSG_NODE));                /*  定位消息缓冲                */
     
     if (pmqn->PMSGN_stMsgLen > msglen) {                                /*  消息太长无法接收            */
-        __PX_MQ_RPOST(pmq);
+        __PX_MQ_RPOST(pmq, LW_NULL);
         errno = EMSGSIZE;
         __PX_MQ_UNLOCK(pmq);                                            /*  解锁消息队列                */
         return  (PX_ERROR);
@@ -366,7 +382,7 @@ static ssize_t  __mqueueRecv (__PX_MSG  *pmq, char  *msg, size_t  msglen,
     __PX_MQ_WPOST(pmq);                                                 /*  还有空间可以发送消息        */
     
     if (pmq->PMSG_mqattr.mq_curmsgs) {
-        __PX_MQ_RPOST(pmq);                                             /*  还可以读取消息              */
+        __PX_MQ_RPOST(pmq, LW_NULL);                                    /*  还可以读取消息              */
     }
     __PX_MQ_UNLOCK(pmq);                                                /*  解锁消息队列                */
     
@@ -429,7 +445,8 @@ static __PX_MSG  *__mqueueCreate (const char  *name, mode_t mode, struct mq_attr
     pmq->PMSG_pxnode.PXNODE_iType  = __PX_NAMED_OBJECT_MQ;              /*  消息队列                    */
     lib_strcpy(pmq->PMSG_pxnode.PXNODE_pcName, name);                   /*  保存消息队列名              */
     
-    pmq->PMSG_mode = mode;                                              /*  创建 mode                   */
+    pmq->PMSG_mode       = mode;                                        /*  创建 mode                   */
+    pmq->PMSG_bUnlinkReq = LW_FALSE;
     
     /*
      *  计算每一条消息占用的字节数
@@ -818,6 +835,7 @@ int  mq_close (mqd_t  mqd)
 {
     __PX_MSG           *pmq;
     __PX_MSG_FILE      *pmqfile;
+    BOOL                bUnlink = LW_FALSE;
 
     if ((mqd == MQ_FAILED) || (mqd == 0)) {
         errno = EBADF;
@@ -834,13 +852,25 @@ int  mq_close (mqd_t  mqd)
     
     __PX_LOCK();                                                        /*  锁住 posix                  */
     if (API_AtomicGet(&pmq->PMSG_pxnode.PXNODE_atomic) > 0) {
-        API_AtomicDec(&pmq->PMSG_pxnode.PXNODE_atomic);                 /*  仅仅减少使用计数            */
+        if (API_AtomicDec(&pmq->PMSG_pxnode.PXNODE_atomic) == 0) {      /*  减少使用计数                */
+            if (pmq->PMSG_bUnlinkReq) {
+                __pxnameDelByNode(&pmq->PMSG_pxnode);                   /*  无法被再次打开              */
+                bUnlink = LW_TRUE;
+            }
+        }
     }
     __PX_UNLOCK();                                                      /*  解锁 posix                  */
 
     __resDelRawHook(&pmqfile->PMSGF_resraw);
 
     __SHEAP_FREE(pmqfile);                                              /*  释放句柄                    */
+
+    if (bUnlink) {                                                      /*  需要删除                    */
+        _DebugFormat(__LOGMESSAGE_LEVEL, "posix msgqueue \"%s\" has been delete.\r\n", 
+                     pmq->PMSG_pxnode.PXNODE_pcName);
+        
+        __mqueueDelete(pmq);                                            /*  删除消息队列控制块          */
+    }
 
     return  (ERROR_NONE);
 }
@@ -872,13 +902,14 @@ int  mq_unlink (const char  *name)
             errno = ENOENT;
             return  (PX_ERROR);
         }
-        if (API_AtomicGet(&pxnode->PXNODE_atomic) > 0) {
-            __PX_UNLOCK();                                              /*  解锁 posix                  */
-            errno = EBUSY;
-            return  (PX_ERROR);
-        }
+        
         pmq = (__PX_MSG *)pxnode->PXNODE_pvData;
         
+        if (API_AtomicGet(&pxnode->PXNODE_atomic) > 0) {
+            pmq->PMSG_bUnlinkReq = LW_TRUE;                             /*  请求删除                    */
+            __PX_UNLOCK();                                              /*  解锁 posix                  */
+            return  (ERROR_NONE);
+        }
         __pxnameDel(name);                                              /*  从名字表中删除              */
         
         _DebugFormat(__LOGMESSAGE_LEVEL, "posix msgqueue \"%s\" has been delete.\r\n", name);
@@ -989,6 +1020,7 @@ int  mq_send (mqd_t  mqd, const char  *msg, size_t  msglen, unsigned msgprio)
     uint_t              uiRealPrio;
     
     ULONG               ulTimeout;
+    BOOL                bNonblock;
     INT                 iRet;
     
     if ((mqd == MQ_FAILED) || (mqd == 0)) {
@@ -1020,14 +1052,17 @@ int  mq_send (mqd_t  mqd, const char  *msg, size_t  msglen, unsigned msgprio)
     if ((pmqfile->PMSGF_iFlag & O_NONBLOCK) ||
         (pmq->PMSG_mqattr.mq_flags & O_NONBLOCK)) {                     /*  不阻塞                      */
         ulTimeout = LW_OPTION_NOT_WAIT;
+        bNonblock = LW_TRUE;
         
     } else {
         ulTimeout = LW_OPTION_WAIT_INFINITE;
+        bNonblock = LW_FALSE;
     }
     
     __THREAD_CANCEL_POINT();                                            /*  测试取消点                  */
     
-    iRet = __mqueueSend(pmq, msg, msglen, uiRealPrio, ulTimeout);       /*  发送消息                    */
+    iRet = __mqueueSend(pmq, msg, msglen, 
+                        uiRealPrio, ulTimeout, bNonblock);              /*  发送消息                    */
     
     return  (iRet);
 }
@@ -1054,6 +1089,7 @@ int  mq_timedsend (mqd_t  mqd, const char  *msg, size_t  msglen,
     uint_t              uiRealPrio;
     
     ULONG               ulTimeout;
+    BOOL                bNonblock;
     INT                 iRet;
     struct timespec     tvNow;
     struct timespec     tvWait = {0, 0};
@@ -1104,11 +1140,16 @@ int  mq_timedsend (mqd_t  mqd, const char  *msg, size_t  msglen,
     if ((pmqfile->PMSGF_iFlag & O_NONBLOCK) ||
         (pmq->PMSG_mqattr.mq_flags & O_NONBLOCK)) {                     /*  不阻塞                      */
         ulTimeout = LW_OPTION_NOT_WAIT;
+        bNonblock = LW_TRUE;
+    
+    } else {
+        bNonblock = LW_FALSE;
     }
     
     __THREAD_CANCEL_POINT();                                            /*  测试取消点                  */
     
-    iRet = __mqueueSend(pmq, msg, msglen, uiRealPrio, ulTimeout);       /*  发送消息                    */
+    iRet = __mqueueSend(pmq, msg, msglen, 
+                        uiRealPrio, ulTimeout, bNonblock);              /*  发送消息                    */
     
     return  (iRet);
 }
@@ -1136,6 +1177,7 @@ int  mq_reltimedsend_np (mqd_t  mqd, const char  *msg, size_t  msglen,
     uint_t              uiRealPrio;
     
     ULONG               ulTimeout;
+    BOOL                bNonblock;
     INT                 iRet;
     
     if ((rel_timeout == LW_NULL)    || 
@@ -1179,11 +1221,16 @@ int  mq_reltimedsend_np (mqd_t  mqd, const char  *msg, size_t  msglen,
     if ((pmqfile->PMSGF_iFlag & O_NONBLOCK) ||
         (pmq->PMSG_mqattr.mq_flags & O_NONBLOCK)) {                     /*  不阻塞                      */
         ulTimeout = LW_OPTION_NOT_WAIT;
+        bNonblock = LW_TRUE;
+    
+    } else {
+        bNonblock = LW_FALSE;
     }
     
     __THREAD_CANCEL_POINT();                                            /*  测试取消点                  */
     
-    iRet = __mqueueSend(pmq, msg, msglen, uiRealPrio, ulTimeout);       /*  发送消息                    */
+    iRet = __mqueueSend(pmq, msg, msglen, 
+                        uiRealPrio, ulTimeout, bNonblock);              /*  发送消息                    */
     
     return  (iRet);
 }
@@ -1208,6 +1255,7 @@ ssize_t  mq_receive (mqd_t  mqd, char  *msg, size_t  msglen, unsigned *pmsgprio)
     __PX_MSG_FILE      *pmqfile;
     
     ULONG               ulTimeout;
+    BOOL                bNonblock;
     ssize_t             sstRet;
     
     if ((mqd == MQ_FAILED) || (mqd == 0)) {
@@ -1234,14 +1282,17 @@ ssize_t  mq_receive (mqd_t  mqd, char  *msg, size_t  msglen, unsigned *pmsgprio)
     if ((pmqfile->PMSGF_iFlag & O_NONBLOCK) ||
         (pmq->PMSG_mqattr.mq_flags & O_NONBLOCK)) {                     /*  不阻塞                      */
         ulTimeout = LW_OPTION_NOT_WAIT;
+        bNonblock = LW_TRUE;
         
     } else {
         ulTimeout = LW_OPTION_WAIT_INFINITE;
+        bNonblock = LW_FALSE;
     }
     
     __THREAD_CANCEL_POINT();                                            /*  测试取消点                  */
     
-    sstRet = __mqueueRecv(pmq, msg, msglen, pmsgprio, ulTimeout);       /*  接收消息                    */
+    sstRet = __mqueueRecv(pmq, msg, msglen, 
+                          pmsgprio, ulTimeout, bNonblock);              /*  接收消息                    */
     
     return  (sstRet);
 }
@@ -1266,6 +1317,7 @@ ssize_t  mq_timedreceive (mqd_t  mqd, char  *msg, size_t  msglen,
     __PX_MSG_FILE      *pmqfile;
     
     ULONG               ulTimeout;
+    BOOL                bNonblock;
     ssize_t             sstRet;
     struct timespec     tvNow;
     struct timespec     tvWait = {0, 0};
@@ -1311,11 +1363,16 @@ ssize_t  mq_timedreceive (mqd_t  mqd, char  *msg, size_t  msglen,
     if ((pmqfile->PMSGF_iFlag & O_NONBLOCK) ||
         (pmq->PMSG_mqattr.mq_flags & O_NONBLOCK)) {                     /*  不阻塞                      */
         ulTimeout = LW_OPTION_NOT_WAIT;
+        bNonblock = LW_TRUE;
+    
+    } else {
+        bNonblock = LW_FALSE;
     }
     
     __THREAD_CANCEL_POINT();                                            /*  测试取消点                  */
     
-    sstRet = __mqueueRecv(pmq, msg, msglen, pmsgprio, ulTimeout);       /*  接收消息                    */
+    sstRet = __mqueueRecv(pmq, msg, msglen, 
+                          pmsgprio, ulTimeout, bNonblock);              /*  接收消息                    */
     
     return  (sstRet);
 }
@@ -1342,6 +1399,7 @@ ssize_t  mq_reltimedreceive_np (mqd_t  mqd, char  *msg, size_t  msglen,
     __PX_MSG_FILE      *pmqfile;
     
     ULONG               ulTimeout;
+    BOOL                bNonblock;
     ssize_t             sstRet;
     
     if ((rel_timeout == LW_NULL)    ||
@@ -1380,11 +1438,16 @@ ssize_t  mq_reltimedreceive_np (mqd_t  mqd, char  *msg, size_t  msglen,
     if ((pmqfile->PMSGF_iFlag & O_NONBLOCK) ||
         (pmq->PMSG_mqattr.mq_flags & O_NONBLOCK)) {                     /*  不阻塞                      */
         ulTimeout = LW_OPTION_NOT_WAIT;
+        bNonblock = LW_TRUE;
+    
+    } else {
+        bNonblock = LW_FALSE;
     }
     
     __THREAD_CANCEL_POINT();                                            /*  测试取消点                  */
     
-    sstRet = __mqueueRecv(pmq, msg, msglen, pmsgprio, ulTimeout);       /*  接收消息                    */
+    sstRet = __mqueueRecv(pmq, msg, msglen, 
+                          pmsgprio, ulTimeout, bNonblock);              /*  接收消息                    */
     
     return  (sstRet);
 }
@@ -1420,10 +1483,17 @@ int  mq_notify (mqd_t  mqd, const struct sigevent  *pnotify)
             errno = EINVAL;
             return  (PX_ERROR);
         }
-        __PX_MQ_LOCK(pmq);                                              /*  锁定消息队列                */
-        pmq->PMSG_pmsgntf.PMSGNTF_sigevent   = *pnotify;
-        pmq->PMSG_pmsgntf.PMSGNTF_ulThreadId = API_ThreadIdSelf();
-        __PX_MQ_UNLOCK(pmq);                                            /*  解锁消息队列                */
+        
+        if (pmq->PMSG_pmsgntf.PMSGNTF_ulThreadId == LW_OBJECT_HANDLE_INVALID) {
+            __PX_MQ_LOCK(pmq);                                          /*  锁定消息队列                */
+            pmq->PMSG_pmsgntf.PMSGNTF_sigevent   = *pnotify;
+            pmq->PMSG_pmsgntf.PMSGNTF_ulThreadId = API_ThreadIdSelf();
+            __PX_MQ_UNLOCK(pmq);                                        /*  解锁消息队列                */
+        
+        } else {
+            errno = EBUSY;
+            return  (PX_ERROR);
+        }
         
     } else {                                                            /*  卸载                        */
         __PX_MQ_LOCK(pmq);                                              /*  锁定消息队列                */

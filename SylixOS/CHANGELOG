@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2017-07-24: han.hui
+    增加共享内存虚拟网卡.
+
     2017-07-11: han.hui
     增加对 Intel/AMD x64 64 位体系结构支持.
 
@@ -20,6 +23,9 @@ HISTORY
     加入对 4 级页表 64 位 MMU 支持.
 
 ++ Bugfixes:
+
+    2017-07-25: han.hui
+    修正 sem_unlink(), mq_unlink() 与 POSIX 标准些许不符合行为.
 
     2017-07-18: han.hui
     修正 64 位模式下一些类型判断错误.
