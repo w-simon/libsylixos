@@ -98,7 +98,7 @@ __PIPE_EXT    INT     _G_iPipeDrvNum = PX_ERROR;
 #ifndef __PIPE_MAIN_FILE
 __PIPE_EXT    ULONG   _G_ulPipeLockOpt;                                 /*  ËøÐÅºÅÁ¿ÊôÐÔ                */
 #else
-__PIPE_EXT    ULONG   _G_ulPipeLockOpt = LW_OPTION_WAIT_FIFO;
+__PIPE_EXT    ULONG   _G_ulPipeLockOpt = LW_OPTION_WAIT_PRIORITY;
 #endif
 
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0)      */

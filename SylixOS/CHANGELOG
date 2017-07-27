@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2017-07-27: han.hui
+    管道与 POSIX 消息队列使用 test-pend 机制, 提高效率.
+
     2017-07-24: han.hui
     增加共享内存虚拟网卡.
 

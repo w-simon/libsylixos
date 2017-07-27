@@ -67,12 +67,12 @@ INT  API_GpiofdDrvInstall (VOID)
 {
     if (_G_iGpiofdDrvNum <= 0) {
         _G_iGpiofdDrvNum  = iosDrvInstall(LW_NULL,
-                                         LW_NULL,
-                                         _gpiofdOpen,
-                                         _gpiofdClose,
-                                         _gpiofdRead,
-                                         _gpiofdWrite,
-                                         _gpiofdIoctl);
+                                          LW_NULL,
+                                          _gpiofdOpen,
+                                          _gpiofdClose,
+                                          _gpiofdRead,
+                                          _gpiofdWrite,
+                                          _gpiofdIoctl);
         DRIVER_LICENSE(_G_iGpiofdDrvNum,     "GPL->Ver 2.0");
         DRIVER_AUTHOR(_G_iGpiofdDrvNum,      "Han.hui");
         DRIVER_DESCRIPTION(_G_iGpiofdDrvNum, "gpiofd driver.");

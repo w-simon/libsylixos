@@ -41,6 +41,7 @@
             缓冲区至少有 PIPE_BUF 字节时才激活写端.
 2014.03.03  优化代码.
 2016.10.25  加入信号量等待保护.
+2017.07.27  提高管道运行效率 (减少无谓的信号量发送).
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -247,6 +248,8 @@ ssize_t  _SpipeRead (PLW_SPIPE_FILE  pspipefil,
     
     REGISTER ULONG      ulLwErrCode;
              ULONG      ulTimeout;
+             BOOL       bNonblock;
+             BOOL       bOrgWriteEn;
     
              PLW_SPIPE_DEV  pspipedev = pspipefil->SPIPEFIL_pspipedev;
     
@@ -271,18 +274,13 @@ ssize_t  _SpipeRead (PLW_SPIPE_FILE  pspipefil,
     
     if (pspipefil->SPIPEFIL_iFlags & O_NONBLOCK) {                      /*  非阻塞 IO                   */
         ulTimeout = LW_OPTION_NOT_WAIT;
+        bNonblock = LW_TRUE;
     } else {
         ulTimeout = pspipedev->SPIPEDEV_ulRTimeout;
+        bNonblock = LW_FALSE;
     }
     
     for (;;) {
-        ulLwErrCode = API_SemaphoreBPend(pspipedev->SPIPEDEV_hReadLock, /*  等待数据有效                */
-                                         ulTimeout);
-        if (ulLwErrCode != ERROR_NONE) {                                /*  超时                        */
-            _ErrorHandle(EAGAIN);
-            return  (0);
-        }
-        
         LW_SPIPE_LOCK(pspipedev, return (PX_ERROR));                    /*  获取设备使用权              */
 
         if (pspipedev->SPIPEDEV_iAbortFlag & OPT_RABORT) {
@@ -300,6 +298,17 @@ ssize_t  _SpipeRead (PLW_SPIPE_FILE  pspipefil,
         }
         
         LW_SPIPE_UNLOCK(pspipedev);                                     /*  释放设备使用权              */
+        
+        ulLwErrCode = API_SemaphoreBPend(pspipedev->SPIPEDEV_hReadLock, /*  等待数据有效                */
+                                         ulTimeout);
+        if (ulLwErrCode != ERROR_NONE) {                                /*  超时                        */
+            if (bNonblock) {
+                _ErrorHandle(EAGAIN);
+            } else {
+                _ErrorHandle(ETIMEDOUT);
+            }
+            return  (0);
+        }
     }
     
     stNBytes  = ((stMaxBytes < pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stMsgBytes) ?
@@ -329,17 +338,19 @@ ssize_t  _SpipeRead (PLW_SPIPE_FILE  pspipefil,
         }
     }
     
+    if (__spipe_can_write(pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stMsgBytes,
+                          pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stTotalBytes)) {
+        bOrgWriteEn = LW_TRUE;                                          /*  判断之前是否可以写入数据    */
+    
+    } else {
+        bOrgWriteEn = LW_FALSE;
+    }
+    
     pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stMsgBytes -= (size_t)sstRetVal;
     pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_pcOutPtr    = pcOut;
     
-    if (__spipe_can_read(pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stMsgBytes,
-                         pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stTotalBytes)) {
-        SEL_WAKE_UP_ALL(&pspipedev->SPIPEDEV_selwulList, SELREAD);
-        API_SemaphoreBPost(pspipedev->SPIPEDEV_hReadLock);              /*  通知还有数据可读            */
-    }
-    
     if (__spipe_can_write(pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stMsgBytes,
-                          pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stTotalBytes)) {
+                          pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stTotalBytes) && !bOrgWriteEn) {
         SEL_WAKE_UP_ALL(&pspipedev->SPIPEDEV_selwulList, SELWRITE);
         API_SemaphoreBPost(pspipedev->SPIPEDEV_hWriteLock);             /*  通知可以写入数据            */
     }
@@ -374,6 +385,8 @@ ssize_t  _SpipeWrite (PLW_SPIPE_FILE  pspipefil,
     
     REGISTER ULONG      ulLwErrCode;
              ULONG      ulTimeout;
+             BOOL       bNonblock;
+             BOOL       bOrgReadEn;
     
              PLW_SPIPE_DEV  pspipedev = pspipefil->SPIPEFIL_pspipedev;
     
@@ -407,18 +420,13 @@ __continue_write:
     
     if (pspipefil->SPIPEFIL_iFlags & O_NONBLOCK) {                      /*  非阻塞 IO                   */
         ulTimeout = LW_OPTION_NOT_WAIT;
+        bNonblock = LW_TRUE;
     } else {
         ulTimeout = pspipedev->SPIPEDEV_ulWTimeout;
+        bNonblock = LW_FALSE;
     }
     
     for (;;) {
-        ulLwErrCode = API_SemaphoreBPend(pspipedev->SPIPEDEV_hWriteLock,/*  等待空间写入                */
-                                         ulTimeout);
-        if (ulLwErrCode != ERROR_NONE) {                                /*  超时                        */
-            _ErrorHandle(EAGAIN);
-            return  (0);
-        }
-        
         LW_SPIPE_LOCK(pspipedev, return (PX_ERROR));                    /*  获取设备使用权              */
 
         if (pspipedev->SPIPEDEV_iAbortFlag & OPT_WABORT) {
@@ -441,6 +449,17 @@ __continue_write:
         }
         
         LW_SPIPE_UNLOCK(pspipedev);                                     /*  释放设备使用权              */
+    
+        ulLwErrCode = API_SemaphoreBPend(pspipedev->SPIPEDEV_hWriteLock,/*  等待空间写入                */
+                                         ulTimeout);
+        if (ulLwErrCode != ERROR_NONE) {                                /*  超时                        */
+            if (bNonblock) {
+                _ErrorHandle(EAGAIN);
+            } else {
+                _ErrorHandle(ETIMEDOUT);
+            }
+            return  (sstNBytes - stNBytes);
+        }
     }
     
     stNBytesToWrite = ((stNBytes < stFreeByteSize) ?
@@ -470,19 +489,21 @@ __continue_write:
         }
     }
     
+    if (__spipe_can_read(pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stMsgBytes,
+                         pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stTotalBytes)) {
+        bOrgReadEn = LW_TRUE;
+        
+    } else {
+        bOrgReadEn = LW_FALSE;
+    }
+    
     pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stMsgBytes += (size_t)stRetVal;
     pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_pcInPtr     = pcIn;
     
     if (__spipe_can_read(pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stMsgBytes,
-                         pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stTotalBytes)) {
+                         pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stTotalBytes) && !bOrgReadEn) {
         SEL_WAKE_UP_ALL(&pspipedev->SPIPEDEV_selwulList, SELREAD);
         API_SemaphoreBPost(pspipedev->SPIPEDEV_hReadLock);              /*  通知还有数据可读            */
-    }
-    
-    if (__spipe_can_write(pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stMsgBytes,
-                          pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stTotalBytes)) {
-        SEL_WAKE_UP_ALL(&pspipedev->SPIPEDEV_selwulList, SELWRITE);
-        API_SemaphoreBPost(pspipedev->SPIPEDEV_hWriteLock);             /*  通知可以写入数据            */
     }
     
     LW_SPIPE_UNLOCK(pspipedev);

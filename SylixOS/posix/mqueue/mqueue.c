@@ -36,6 +36,7 @@
 2016.04.13  加入 GJB7714 相关 API 支持.
 2017.07.25  当消息队列在使用时被删除, 则删除操作将在最后一次关闭时执行.
 2017.07.26  修正一些 errno 使其符合 POSIX 规范.
+2017.07.27  提高消息队列运行效率 (减少无谓的信号量发送).
 *********************************************************************************************************/
 #define  __SYLIXOS_STDARG
 #define  __SYLIXOS_STDIO
@@ -265,17 +266,13 @@ static INT  __mqueueSend (__PX_MSG  *pmq, const char  *msg, size_t  msglen,
      *  更新消息队列状态
      */
     pmq->PMSG_mqattr.mq_curmsgs++;                                      /*  缓存的消息数量++            */
-    __PX_MQ_RPOST(pmq, &ulId);                                          /*  消息队列可读                */
-    
+    if (pmq->PMSG_mqattr.mq_curmsgs == 1) {
+        __PX_MQ_RPOST(pmq, &ulId);                                      /*  消息队列可读                */
 #if LW_CFG_SIGNAL_EN > 0
-    if ((ulId == LW_OBJECT_HANDLE_INVALID) && 
-        (pmq->PMSG_mqattr.mq_curmsgs == 1)) {                           /*  信号异步通知可读            */
-        __mqueueSignalNotify(pmq);
-    }
+        if (ulId == LW_OBJECT_HANDLE_INVALID) {
+            __mqueueSignalNotify(pmq);                                  /*  信号异步通知可读            */
+        }
 #endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
-    
-    if (pmq->PMSG_pmsgmem.PMSGM_pringFreeList) {
-        __PX_MQ_WPOST(pmq);                                             /*  可写                        */
     }
     __PX_MQ_UNLOCK(pmq);                                                /*  解锁消息队列                */
 
@@ -302,6 +299,8 @@ static ssize_t  __mqueueRecv (__PX_MSG  *pmq, char  *msg, size_t  msglen,
     caddr_t             pcBuffer;                                       /*  消息缓冲                    */
     
     uint_t              uiRealPrio;
+    BOOL                bGetRSync = LW_FALSE;
+    BOOL                bPutWSync;
     ULONG               ulError;
     ULONG               ulOrgKernelTime;
 
@@ -313,7 +312,6 @@ static ssize_t  __mqueueRecv (__PX_MSG  *pmq, char  *msg, size_t  msglen,
             errno = ENOENT;
             return  (PX_ERROR);
         }
-    
         if (pmq->PMSG_mqattr.mq_curmsgs) {                              /*  有数据可读                  */
             break;
         }
@@ -338,6 +336,7 @@ static ssize_t  __mqueueRecv (__PX_MSG  *pmq, char  *msg, size_t  msglen,
             return  (PX_ERROR);
         }
         
+        bGetRSync = LW_TRUE;
         ulTimeout = _sigTimeoutRecalc(ulOrgKernelTime, ulTimeout);      /*  重新计算等待时间            */
     } while (1);
     
@@ -347,9 +346,11 @@ static ssize_t  __mqueueRecv (__PX_MSG  *pmq, char  *msg, size_t  msglen,
     pcBuffer   = ((char *)pmqn + sizeof(__PX_MSG_NODE));                /*  定位消息缓冲                */
     
     if (pmqn->PMSGN_stMsgLen > msglen) {                                /*  消息太长无法接收            */
-        __PX_MQ_RPOST(pmq, LW_NULL);
-        errno = EMSGSIZE;
+        if (bGetRSync && (pmq->PMSG_mqattr.mq_curmsgs == 1)) {
+            __PX_MQ_RPOST(pmq, LW_NULL);                                /*  通知可读                    */
+        }
         __PX_MQ_UNLOCK(pmq);                                            /*  解锁消息队列                */
+        errno = EMSGSIZE;
         return  (PX_ERROR);
     }
     
@@ -372,6 +373,9 @@ static ssize_t  __mqueueRecv (__PX_MSG  *pmq, char  *msg, size_t  msglen,
     msglen = pmqn->PMSGN_stMsgLen;                                      /*  记录消息长度                */
     lib_memcpy(msg, pcBuffer, msglen);                                  /*  保存消息                    */
     
+    bPutWSync = pmq->PMSG_pmsgmem.PMSGM_pringFreeList
+              ? LW_FALSE : LW_TRUE;                                     /*  从满状态到还剩一个消息位置  */
+    
     _List_Ring_Add_Last(&pmqn->PMSGN_ringManage,
                         &pmq->PMSG_pmsgmem.PMSGM_pringFreeList);        /*  重新加入空闲队列            */
                         
@@ -379,10 +383,8 @@ static ssize_t  __mqueueRecv (__PX_MSG  *pmq, char  *msg, size_t  msglen,
      *  更新消息队列状态
      */
     pmq->PMSG_mqattr.mq_curmsgs--;                                      /*  缓存的消息数量++            */
-    __PX_MQ_WPOST(pmq);                                                 /*  还有空间可以发送消息        */
-    
-    if (pmq->PMSG_mqattr.mq_curmsgs) {
-        __PX_MQ_RPOST(pmq, LW_NULL);                                    /*  还可以读取消息              */
+    if (bPutWSync) {
+        __PX_MQ_WPOST(pmq);                                             /*  可以发送消息                */
     }
     __PX_MQ_UNLOCK(pmq);                                                /*  解锁消息队列                */
     
@@ -481,18 +483,18 @@ static __PX_MSG  *__mqueueCreate (const char  *name, mode_t mode, struct mq_attr
     }
 #endif                                                                  /*  LW_CFG_GJB7714_EN > 0       */
     /*
-     *  初始化信号量
+     *  初始化信号量 (由于采用 test-pend 机制, 全部初始化为无效状态)
      */
-    pmq->PMSG_ulReadSync = API_SemaphoreBCreate("pxmq_rdsync", LW_FALSE, 
-                                                ulOption, LW_NULL);     /*  初始化为不可读              */
+    pmq->PMSG_ulReadSync = API_SemaphoreBCreate("pxmq_rsync", LW_FALSE, 
+                                                ulOption, LW_NULL);
     if (pmq->PMSG_ulReadSync == LW_OBJECT_HANDLE_INVALID) {
         iErrLevel = 2;
         errno     = EMFILE;
         goto    __error_handle;
     }
     
-    pmq->PMSG_ulWriteSync = API_SemaphoreBCreate("pxmq_wrsync", LW_TRUE,
-                                                 ulOption, LW_NULL);    /*  初始化为可写                */
+    pmq->PMSG_ulWriteSync = API_SemaphoreBCreate("pxmq_wsync", LW_FALSE,
+                                                 ulOption, LW_NULL);
     if (pmq->PMSG_ulWriteSync == LW_OBJECT_HANDLE_INVALID) {
         iErrLevel = 3;
         errno     = EMFILE;

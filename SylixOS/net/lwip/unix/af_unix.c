@@ -66,7 +66,8 @@ extern void  __unix_socket_event(AF_UNIX_T  *pafunix, LW_SEL_TYPE type, INT  iSo
 *********************************************************************************************************/
 #define __AF_UNIX_ADDROFFSET        offsetof(struct sockaddr_un, sun_path)
 #define __AF_UNIX_DEF_FLAG          0777
-#define __AF_UNIX_DEF_BUFMAX        65536                               /*  默认为 64K 接收缓冲         */
+#define __AF_UNIX_DEF_BUFSIZE       (LW_CFG_KB_SIZE * 64)               /*  默认为 64K 接收缓冲         */
+#define __AF_UNIX_DEF_BUFMAX        (LW_CFG_KB_SIZE * 256)              /*  默认为 256K 接收缓冲        */
 #define __AF_UNIX_DEF_BUFMIN        (LW_CFG_KB_SIZE * 8)                /*  最小接收缓冲大小            */
 #define __AF_UNIX_PIPE_BUF          (LW_CFG_KB_SIZE * 8)                /*  一次原子操作的数据大小      */
 #define __AF_UNIX_PIPE_BUF_SHIFT    13                                  /*  1 << 13 == 8K               */
@@ -692,7 +693,7 @@ static AF_UNIX_T  *__unixCreate (INT  iType)
     pafunix->UNIX_iShutDFlag   = 0;
     pafunix->UNIX_iBacklog     = 1;
     pafunix->UNIX_pafunxPeer   = LW_NULL;
-    pafunix->UNIX_stMaxBufSize = __AF_UNIX_DEF_BUFMAX;
+    pafunix->UNIX_stMaxBufSize = __AF_UNIX_DEF_BUFSIZE;
     
     pafunix->UNIX_ulSendTimeout = LW_OPTION_WAIT_INFINITE;
     pafunix->UNIX_ulRecvTimeout = LW_OPTION_WAIT_INFINITE;
@@ -1397,6 +1398,7 @@ static ssize_t  unix_recvfrom2 (AF_UNIX_T  *pafunix,
 {
     ssize_t     sstTotal = 0;
     ULONG       ulError;
+    BOOL        bNeedUpdateWriter;
     
     if (!mem || !len) {
         _ErrorHandle(EINVAL);
@@ -1427,6 +1429,12 @@ static ssize_t  unix_recvfrom2 (AF_UNIX_T  *pafunix,
         if (__unixCanRead(pafunix, flags, len)) {                       /*  可以接收                    */
             PCHAR   pcRecvMem = (PCHAR)mem;                             /*  当前接收指针                */
             ssize_t sstReadNum;                                         /*  单次接收数据长度            */
+            
+            if (__unixCanWrite(pafunix)) {
+                bNeedUpdateWriter = LW_FALSE;                           /*  本来就可以写不需要激活      */
+            } else {
+                bNeedUpdateWriter = LW_TRUE;                            /*  需要激活写任务              */
+            }
             
 __recv_more:
             sstReadNum = __unixRecvfromMsg(pafunix,
@@ -1472,7 +1480,7 @@ __recv_more:
         __AF_UNIX_LOCK();
     } while (1);
     
-    if (sstTotal > 0) {
+    if (bNeedUpdateWriter && (sstTotal > 0)) {
         __unixUpdateWriter(pafunix, ERROR_NONE);                        /*  update writer               */
     }
     __AF_UNIX_UNLOCK();
@@ -1681,7 +1689,13 @@ __try_send:
                 
                 i++;                                                    /*  发送次数++                  */
                 bNeedUpdateReader = LW_TRUE;                            /*  需要通知读端                */
-                goto    __try_send;                                     /*  重新尝试发送数据            */
+                
+                if (sstTotal >= size) {                                 /*  没有需要发送的数据了        */
+                    break;
+                
+                } else {
+                    goto    __try_send;                                 /*  重新尝试发送数据            */
+                }
                 
             } else {
                 sstWriteNum = __unixSendtoMsg(pafunix, pafunixRecver, 
