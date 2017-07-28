@@ -26,6 +26,7 @@
   ²Ã¼õ¿ØÖÆ
 *********************************************************************************************************/
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_NET_EN > 0) && (LW_CFG_DRV_NIC_SMETHND > 0)
+#include "net/if_ether.h"
 #include "smethnd.h"
 /*********************************************************************************************************
   smethnd config macro
@@ -199,6 +200,7 @@ static int  smethnd_transmit (struct netdev *netdev, struct pbuf *p)
     struct smethnd_netdev *smethnd = (struct smethnd_netdev *)netdev->priv;
     struct smethnd_mem     mem;
     struct smethnd_config *config;
+    struct ethhdr         *ethhdr;
     int                    i, remoteno;
 
     if (p->len <= SIZEOF_ETH_HDR) {
@@ -208,7 +210,8 @@ static int  smethnd_transmit (struct netdev *netdev, struct pbuf *p)
         return  (-1);
     }
 
-    if (p->flags & (PBUF_FLAG_LLMCAST | PBUF_FLAG_LLBCAST)) {
+    ethhdr = (struct ethhdr *)p->payload;
+    if (ethhdr->h_dest[0] & 1) {
         for (i = 0; i < smethnd->totalnum; i++) {
             if (i != smethnd->localno) {
                 smethnd->meminfo(smethnd, i, &mem);
@@ -362,9 +365,9 @@ INT  smethndInit (struct smethnd_netdev *smethnd, const char *ip, const char *ne
 #if LW_CFG_CPU_WORD_LENGHT == 32
     config->packet_base_hi = 0;
 #else
-    config->packet_base_hi = mem->config_base >> 32;
+    config->packet_base_hi = mem->packet_base >> 32;
 #endif
-    config->packet_base_lo = mem->config_base & 0xffffffff;
+    config->packet_base_lo = mem->packet_base & 0xffffffff;
 
     config->block_msg = 0;
     config->block_cnt = (UINT32)mem->packet_size / SMETHND_PACKET_TOTAL_SIZE;
