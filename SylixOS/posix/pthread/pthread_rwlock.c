@@ -370,6 +370,8 @@ int  pthread_rwlock_tryrdlock (pthread_rwlock_t  *prwlock)
 ** 输　出  : ERROR CODE
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : 当相距超过 ulong tick 范围时, 将自然产生溢出, 导致超时时间不准确.
+
                                            API 函数
 *********************************************************************************************************/
 LW_API 
@@ -379,7 +381,6 @@ int  pthread_rwlock_timedrdlock (pthread_rwlock_t *prwlock,
     ULONG               ulTimeout;
     ULONG               ulError;
     struct timespec     tvNow;
-    struct timespec     tvWait = {0, 0};
     
     if (prwlock == LW_NULL) {
         errno = EINVAL;
@@ -397,13 +398,11 @@ int  pthread_rwlock_timedrdlock (pthread_rwlock_t *prwlock,
     
     lib_clock_gettime(CLOCK_REALTIME, &tvNow);                          /*  获得当前系统时间            */
     if (__timespecLeftTime(&tvNow, abs_timeout)) {
-        tvWait = *abs_timeout;
-        __timespecSub(&tvWait, &tvNow);                                 /*  计算与当前等待的时间间隔    */
+        ulTimeout = __timespecToTickDiff(&tvNow, abs_timeout);
+    
+    } else {
+        ulTimeout = LW_OPTION_NOT_WAIT;
     }
-    /*
-     *  注意: 当 tvWait 超过ulong tick范围时, 将自然产生溢出, 导致超时时间不准确.
-     */
-    ulTimeout = __timespecToTick(&tvWait);                              /*  变换为 tick                 */
     
     ulError = API_SemaphoreRWPendR(prwlock->PRWLOCK_ulRwLock, ulTimeout);
     if (ulError == ERROR_THREAD_WAIT_TIMEOUT) {
@@ -427,6 +426,8 @@ int  pthread_rwlock_timedrdlock (pthread_rwlock_t *prwlock,
 ** 输　出  : ERROR CODE
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : 当相距超过 ulong tick 范围时, 将自然产生溢出, 导致超时时间不准确.
+
                                            API 函数
 *********************************************************************************************************/
 #if LW_CFG_POSIXEX_EN > 0
@@ -435,8 +436,9 @@ LW_API
 int  pthread_rwlock_reltimedrdlock_np (pthread_rwlock_t *prwlock,
                                        const struct timespec *rel_timeout)
 {
-    ULONG   ulTimeout;
-    ULONG   ulError = ERROR_NONE;
+    ULONG           ulTimeout;
+    ULONG           ulError = ERROR_NONE;
+    struct timespec tvNow, tvEnd;
 
     if ((rel_timeout == LW_NULL)    || 
         (rel_timeout->tv_nsec <  0) ||
@@ -447,10 +449,14 @@ int  pthread_rwlock_reltimedrdlock_np (pthread_rwlock_t *prwlock,
     
     __pthread_rwlock_init_invisible(prwlock);
     
-    /*
-     *  注意: 当 rel_timeout 超过ulong tick范围时, 将自然产生溢出, 导致超时时间不准确.
-     */
-    ulTimeout = __timespecToTick(rel_timeout);                          /*  变换为 tick                 */
+    lib_clock_gettime(CLOCK_REALTIME, &tvNow);                          /*  获得当前系统时间            */
+    __timespecAdd2(&tvEnd, &tvNow, rel_timeout);
+    if (__timespecLeftTime(&tvNow, &tvEnd)) {
+        ulTimeout = __timespecToTickDiff(&tvNow, &tvEnd);
+        
+    } else {
+        ulTimeout = LW_OPTION_NOT_WAIT;
+    }
     
     ulError = API_SemaphoreRWPendR(prwlock->PRWLOCK_ulRwLock, ulTimeout);
     if (ulError == ERROR_THREAD_WAIT_TIMEOUT) {
@@ -538,6 +544,8 @@ int  pthread_rwlock_trywrlock (pthread_rwlock_t  *prwlock)
 ** 输　出  : ERROR CODE
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : 当相距超过 ulong tick 范围时, 将自然产生溢出, 导致超时时间不准确.
+
                                            API 函数
 *********************************************************************************************************/
 LW_API 
@@ -547,7 +555,6 @@ int  pthread_rwlock_timedwrlock (pthread_rwlock_t *prwlock,
     ULONG               ulTimeout;
     ULONG               ulError;
     struct timespec     tvNow;
-    struct timespec     tvWait = {0, 0};
     
     if (prwlock == LW_NULL) {
         errno = EINVAL;
@@ -565,13 +572,11 @@ int  pthread_rwlock_timedwrlock (pthread_rwlock_t *prwlock,
     
     lib_clock_gettime(CLOCK_REALTIME, &tvNow);                          /*  获得当前系统时间            */
     if (__timespecLeftTime(&tvNow, abs_timeout)) {
-        tvWait = *abs_timeout;
-        __timespecSub(&tvWait, &tvNow);                                 /*  计算与当前等待的时间间隔    */
+        ulTimeout = __timespecToTickDiff(&tvNow, abs_timeout);
+    
+    } else {
+        ulTimeout = LW_OPTION_NOT_WAIT;
     }
-    /*
-     *  注意: 当 tvWait 超过ulong tick范围时, 将自然产生溢出, 导致超时时间不准确.
-     */
-    ulTimeout = __timespecToTick(&tvWait);                              /*  变换为 tick                 */
     
     ulError = API_SemaphoreRWPendW(prwlock->PRWLOCK_ulRwLock, ulTimeout);
     if (ulError == ERROR_THREAD_WAIT_TIMEOUT) {
@@ -595,6 +600,8 @@ int  pthread_rwlock_timedwrlock (pthread_rwlock_t *prwlock,
 ** 输　出  : ERROR CODE
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : 当相距超过 ulong tick 范围时, 将自然产生溢出, 导致超时时间不准确.
+
                                            API 函数
 *********************************************************************************************************/
 #if LW_CFG_POSIXEX_EN > 0
@@ -603,8 +610,9 @@ LW_API
 int  pthread_rwlock_reltimedwrlock_np (pthread_rwlock_t *prwlock,
                                        const struct timespec *rel_timeout)
 {
-    ULONG   ulTimeout;
-    ULONG   ulError;
+    ULONG           ulTimeout;
+    ULONG           ulError;
+    struct timespec tvNow, tvEnd;
     
     if ((rel_timeout == LW_NULL)    || 
         (rel_timeout->tv_nsec <  0) ||
@@ -615,10 +623,14 @@ int  pthread_rwlock_reltimedwrlock_np (pthread_rwlock_t *prwlock,
     
     __pthread_rwlock_init_invisible(prwlock);
     
-    /*
-     *  注意: 当 rel_timeout 超过ulong tick范围时, 将自然产生溢出, 导致超时时间不准确.
-     */
-    ulTimeout = __timespecToTick(rel_timeout);                          /*  变换为 tick                 */
+    lib_clock_gettime(CLOCK_REALTIME, &tvNow);                          /*  获得当前系统时间            */
+    __timespecAdd2(&tvEnd, &tvNow, rel_timeout);
+    if (__timespecLeftTime(&tvNow, &tvEnd)) {
+        ulTimeout = __timespecToTickDiff(&tvNow, &tvEnd);
+        
+    } else {
+        ulTimeout = LW_OPTION_NOT_WAIT;
+    }
     
     ulError = API_SemaphoreRWPendW(prwlock->PRWLOCK_ulRwLock, ulTimeout);
     if (ulError == ERROR_THREAD_WAIT_TIMEOUT) {

@@ -37,8 +37,8 @@
 #ifndef _RPC_CLNT_H
 #define _RPC_CLNT_H	1
 
-#include "rpc/types.h"
-#include "rpc/auth.h"
+#include "kernrpc/types.h"
+#include "kernrpc/auth.h"
 #include "socket.h"
 
 /*

@@ -58,6 +58,7 @@ static VOID   x86MpApicDataLocInfoSet(X86_MP_APIC_DATA   *pMpApicData);
 static INT    x86MpApicConfigTableInit(X86_MP_APIC_DATA  *pMpApicData);
 static INT    x86MpApicConfigTableCheck(X86_MP_HEADER    *pHeader);
 static INT8  *x86MpApicScan(INT8  *pcMatch, INT8  *pcStart, INT8  *pcEnd);
+static PVOID  x86MpApicIrqAppend(INT  iIndex);
 /*********************************************************************************************************
   外部函数声明
 *********************************************************************************************************/
@@ -136,6 +137,11 @@ __begin:
             _G_uiX86MpApicBootOpt = MP_MP_STRUCT;
             goto    __begin;
         }
+
+        /*
+         * 设置 IRQ 信息追加函数
+         */
+        _G_pfuncAcpiIrqAppend = x86MpApicIrqAppend;
 
         /*
          * 早期扫描 ACPI 设备,
@@ -534,6 +540,105 @@ static INT  x86MpApicConfigTableInit (X86_MP_APIC_DATA  *pMpApicData)
      * Set up the Local APIC base address
      */
     pMpApicData->MPAPIC_uiLocalApicBase = pHdr->HDR_uiLocalApicBaseAddr;
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+ ** 函数名称: x86MpApicIrqAppend
+ ** 功能描述: 追加 mpconfig 中的 IO 中断信息
+ ** 输　入  : iIndex           索引
+ ** 输　出  : IRQ 信息结构指针
+ ** 全局变量:
+ ** 调用模块:
+*********************************************************************************************************/
+static PVOID  x86MpApicIrqAppend (INT  iIndex)
+{
+    static X86_MP_HEADER     *pHdr;
+    INT32                     i;
+    UINT8                    *pucPtr;
+    X86_MP_FPS               *pFps;
+
+    if (pHdr == LW_NULL) {
+        /*
+         * Scan for the MP Floating Point Structure
+         */
+        pFps = (X86_MP_FPS *)x86MpApicScan((INT8 *)"_MP_", _G_pcX86EbdaStart, _G_pcX86EbdaEnd);
+        if (pFps == LW_NULL) {
+            pFps = (X86_MP_FPS *)x86MpApicScan((INT8 *)"_MP_", _G_pcX86BiosRomStart, _G_pcX86BiosRomEnd);
+        }
+        if (pFps == LW_NULL) {
+            return  (LW_NULL);
+        }
+
+        /*
+         * If featurebyte1 (array element 0) is non-zero, then we use
+         * standard configuration return PX_ERROR and let the error handle use
+         * standard addresses and Local and IO APIC ID's.
+         */
+        if ((pFps->FPS_aucFeatureByte[0] != 0) ||
+            (pFps->FPS_uiConfigTableAddr == 0)) {
+            return  (LW_NULL);
+        }
+
+        /*
+         * Get MP header pointer
+         */
+        if ((pFps->FPS_uiConfigTableAddr >= EBDA_START) &&
+            (pFps->FPS_uiConfigTableAddr  < EBDA_END)) {
+            pHdr = (X86_MP_HEADER *)((ULONG)_G_pcX86EbdaStart +
+                   ((ULONG)pFps->FPS_uiConfigTableAddr - EBDA_START));
+        } else {
+            pHdr = (X86_MP_HEADER *)((ULONG)_G_pcX86BiosRomStart +
+                   ((ULONG)pFps->FPS_uiConfigTableAddr - BIOS_ROM_START));
+        }
+
+        /*
+         * Sanity check of the MP Configuration Table
+         */
+        if (x86MpApicConfigTableCheck(pHdr) != ERROR_NONE) {
+            return  (LW_NULL);
+        }
+    }
+
+    /*
+     * First pass count the number of each important entry
+     */
+    pucPtr = (UINT8 *)pHdr + sizeof(X86_MP_HEADER);
+
+    for (i = 0; i < pHdr->HDR_usEntryCount; i++) {
+        switch (*pucPtr) {
+
+        case MP_ENTRY_CPU:                                          /*  Processor Configuration Entry   */
+            pucPtr += sizeof(X86_MP_CPU);
+            break;
+
+        case MP_ENTRY_IOAPIC:                                       /*  IO Apic Configuration Entry     */
+            pucPtr += sizeof(X86_MP_IOAPIC);
+            break;
+
+        case MP_ENTRY_BUS:
+            pucPtr += sizeof(X86_MP_BUS);
+            break;
+
+        case MP_ENTRY_IOINTERRUPT:                                  /*  IO Interrupt Entry              */
+            if (iIndex-- == 0) {
+                return  (pucPtr);
+            }
+            pucPtr += sizeof(X86_MP_INTERRUPT);
+            break;
+
+        case MP_ENTRY_LOINTERRUPT:                                  /*  Local Interrupt Entry           */
+            pucPtr += sizeof(X86_MP_INTERRUPT);
+            break;
+
+        default:
+            /*
+             * "Maybe" it is 8 bytes till the next entry
+             */
+            pucPtr += 8;
+            break;
+        }
+    }
 
     return  (ERROR_NONE);
 }

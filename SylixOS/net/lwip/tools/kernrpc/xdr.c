@@ -41,8 +41,8 @@
 
 #include "stdio.h"
 #include "stdlib.h"
-#include "rpc/types.h"
-#include "rpc/xdr.h"
+#include "kernrpc/types.h"
+#include "kernrpc/xdr.h"
 #include "string.h"
 
 #if LW_CFG_NET_RPC_EN > 0

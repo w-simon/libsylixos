@@ -58,10 +58,10 @@
  */
 
 
-#include "rpc/types.h"
-#include "rpc/xdr.h"
-#include "rpc/auth.h"
-#include "rpc/auth_unix.h"
+#include "kernrpc/types.h"
+#include "kernrpc/xdr.h"
+#include "kernrpc/auth.h"
+#include "kernrpc/auth_unix.h"
 
 #if LW_CFG_NET_RPC_EN > 0
 

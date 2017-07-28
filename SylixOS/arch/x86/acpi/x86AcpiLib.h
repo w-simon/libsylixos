@@ -84,6 +84,7 @@ extern UINT8                _G_ucAcpiIsaIntNr;
 extern UINT8                _G_ucAcpiIsaApic;
 extern UINT8               *_G_pucAcpiGlobalIrqBaseTable;
 extern X86_IRQ_OVERRIDE  *(*_G_pfuncAcpiIrqOverride)(INT  iIndex);
+extern PVOID              (*_G_pfuncAcpiIrqAppend)(INT iIndex);
 /*********************************************************************************************************
   º¯ÊýÉùÃ÷
 *********************************************************************************************************/

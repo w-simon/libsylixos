@@ -37,8 +37,8 @@
 
 #include "stdio.h"
 #include "time.h"
-#include "rpc/pmap.h"
-#include "rpc/rpc.h"
+#include "kernrpc/pmap.h"
+#include "kernrpc/rpc.h"
 #include "SylixOS.h"
 
 #if LW_CFG_NET_RPC_EN > 0

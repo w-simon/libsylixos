@@ -49,8 +49,8 @@
 
 #define __SYLIXOS_MAKEVER(a, b, c)      (((a) << 16) + ((b) << 8) + (c))
 #define __SYLIXOS_VERSION               __SYLIXOS_MAKEVER(1, 4, 3)
-#define __SYLIXOS_VERPATCH              0x11
-#define __SYLIXOS_VERSTR                "1.4.3 (11)"
+#define __SYLIXOS_VERPATCH              0x12
+#define __SYLIXOS_VERSTR                "1.4.3 (12)"
 #define __SYLIXOS_RELSTR                "LongYuan"
 
 #define __SYLIXOS_VERINFO               "SylixOS kernel version: "  \
@@ -217,6 +217,7 @@ __attribute__((weak)) char              __sylixos_version[] = __SYLIXOS_VERSTR;
   系统内部功能函数声明
 *********************************************************************************************************/
 #include "../SylixOS/kernel/include/k_internal.h"
+#include "../SylixOS/kernel/include/k_timecvt.h"
 #include "../SylixOS/kernel/include/k_kernelinit.h"                     /*  系统初始化函数集            */
 #include "../SylixOS/kernel/include/k_sched.h"                          /*  调度器                      */
 /*********************************************************************************************************

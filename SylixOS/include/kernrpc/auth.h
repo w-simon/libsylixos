@@ -1,7 +1,7 @@
 #ifndef __AUTH_H__
 #define __AUTH_H__
 
-#include "rpc/xdr.h"
+#include "kernrpc/xdr.h"
 
 /*
  * Status returned from authentication check

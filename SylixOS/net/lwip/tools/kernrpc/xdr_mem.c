@@ -40,8 +40,8 @@
  */
 #define __SYLIXOS_KERNEL
 
-#include "rpc/types.h"
-#include "rpc/xdr.h"
+#include "kernrpc/types.h"
+#include "kernrpc/xdr.h"
 #include "string.h"
 #include "limits.h"
 

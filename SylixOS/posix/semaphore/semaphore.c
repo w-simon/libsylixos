@@ -623,6 +623,8 @@ int  sem_trywait (sem_t  *psem)
 ** 输　出  : ERROR CODE
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : 当相距超过 ulong tick 范围时, 将自然产生溢出, 导致超时时间不准确.
+
                                            API 函数
 *********************************************************************************************************/
 LW_API 
@@ -631,7 +633,6 @@ int  sem_timedwait (sem_t  *psem, const struct timespec *abs_timeout)
     ULONG               ulTimeout;
     ULONG               ulError;
     struct timespec     tvNow;
-    struct timespec     tvWait = {0, 0};
     __PX_SEM           *pxsem;
     
     __sem_init_invisible(psem);
@@ -652,13 +653,11 @@ int  sem_timedwait (sem_t  *psem, const struct timespec *abs_timeout)
     
     lib_clock_gettime(CLOCK_REALTIME, &tvNow);                          /*  获得当前系统时间            */
     if (__timespecLeftTime(&tvNow, abs_timeout)) {
-        tvWait = *abs_timeout;
-        __timespecSub(&tvWait, &tvNow);                                 /*  计算与当前等待的时间间隔    */
+        ulTimeout = __timespecToTickDiff(&tvNow, abs_timeout);
+    
+    } else {
+        ulTimeout = LW_OPTION_NOT_WAIT;
     }
-    /*
-     *  注意: 当 tvWait 超过ulong tick范围时, 将自然产生溢出, 导致超时时间不准确.
-     */
-    ulTimeout = __timespecToTick(&tvWait);                              /*  变换为 tick                 */
     
     __THREAD_CANCEL_POINT();                                            /*  测试取消点                  */
     
@@ -685,6 +684,8 @@ int  sem_timedwait (sem_t  *psem, const struct timespec *abs_timeout)
 ** 输　出  : ERROR CODE
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : 当相距超过 ulong tick 范围时, 将自然产生溢出, 导致超时时间不准确.
+
                                            API 函数
 *********************************************************************************************************/
 #if LW_CFG_POSIXEX_EN > 0
@@ -695,6 +696,7 @@ int  sem_reltimedwait_np (sem_t  *psem, const struct timespec *rel_timeout)
     ULONG               ulTimeout;
     ULONG               ulError;
     __PX_SEM           *pxsem;
+    struct timespec     tvNow, tvEnd;
     
     __sem_init_invisible(psem);
     
@@ -712,10 +714,14 @@ int  sem_reltimedwait_np (sem_t  *psem, const struct timespec *rel_timeout)
     
     pxsem = (__PX_SEM *)psem->SEM_pvPxSem;
     
-    /*
-     *  注意: 当 rel_timeout 超过ulong tick范围时, 将自然产生溢出, 导致超时时间不准确.
-     */
-    ulTimeout = __timespecToTick(rel_timeout);                          /*  变换为 tick                 */
+    lib_clock_gettime(CLOCK_REALTIME, &tvNow);                          /*  获得当前系统时间            */
+    __timespecAdd2(&tvEnd, &tvNow, rel_timeout);
+    if (__timespecLeftTime(&tvNow, &tvEnd)) {
+        ulTimeout = __timespecToTickDiff(&tvNow, &tvEnd);
+        
+    } else {
+        ulTimeout = LW_OPTION_NOT_WAIT;
+    }
     
     __THREAD_CANCEL_POINT();                                            /*  测试取消点                  */
     

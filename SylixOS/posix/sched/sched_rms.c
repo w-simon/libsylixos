@@ -106,17 +106,14 @@ int  sched_rms_period (sched_rms_t  *prms, const struct timespec *period)
         
     case PRMS_STATUS_ACTIVE:
         lib_clock_gettime(CLOCK_MONOTONIC, &temp);
-        etime = temp;
-        
-        __timespecSub(&etime, &prms->PRMS_tsSave);
+        __timespecSub2(&etime, &temp, &prms->PRMS_tsSave);
         if (__timespecLeftTime(period, &etime)) {                       /*  执行时间超过周期            */
             lib_clock_gettime(CLOCK_MONOTONIC, &prms->PRMS_tsSave);     /*  获得当前时间                */
             errno = EOVERFLOW;
             return  (PX_ERROR);
         }
         
-        temp = *period;
-        __timespecSub(&temp, &etime);
+        __timespecSub2(&temp, period, &etime);
         
         /*
          *  注意: 这里直接加上周期是为了让每次测算都是以一个固定周期律进行

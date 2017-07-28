@@ -662,6 +662,8 @@ int  pthread_mutex_trylock (pthread_mutex_t  *pmutex)
 ** 输　出  : ERROR CODE
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : 当相距超过 ulong tick 范围时, 将自然产生溢出, 导致超时时间不准确.
+
                                            API 函数
 *********************************************************************************************************/
 LW_API 
@@ -670,7 +672,6 @@ int  pthread_mutex_timedlock (pthread_mutex_t  *pmutex, const struct timespec *a
     ULONG               ulTimeout;
     ULONG               ulError;
     struct timespec     tvNow;
-    struct timespec     tvWait = {0, 0};
     
     if ((abs_timeout == LW_NULL)    || 
         (abs_timeout->tv_nsec <  0) ||
@@ -683,13 +684,11 @@ int  pthread_mutex_timedlock (pthread_mutex_t  *pmutex, const struct timespec *a
     
     lib_clock_gettime(CLOCK_REALTIME, &tvNow);                          /*  获得当前系统时间            */
     if (__timespecLeftTime(&tvNow, abs_timeout)) {
-        tvWait = *abs_timeout;
-        __timespecSub(&tvWait, &tvNow);                                 /*  计算与当前等待的时间间隔    */
+        ulTimeout = __timespecToTickDiff(&tvNow, abs_timeout);
+    
+    } else {
+        ulTimeout = LW_OPTION_NOT_WAIT;
     }
-    /*
-     *  注意: 当 tvWait 超过ulong tick范围时, 将自然产生溢出, 导致超时时间不准确.
-     */
-    ulTimeout = __timespecToTick(&tvWait);                              /*  变换为 tick                 */
     
     ulError = API_SemaphoreMPend(pmutex->PMUTEX_ulMutex, ulTimeout);
     if (ulError == ERROR_THREAD_WAIT_TIMEOUT) {
@@ -713,6 +712,8 @@ int  pthread_mutex_timedlock (pthread_mutex_t  *pmutex, const struct timespec *a
 ** 输　出  : ERROR CODE
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : 当相距超过 ulong tick 范围时, 将自然产生溢出, 导致超时时间不准确.
+
                                            API 函数
 *********************************************************************************************************/
 #if LW_CFG_POSIXEX_EN > 0
@@ -722,6 +723,7 @@ int  pthread_mutex_reltimedlock_np (pthread_mutex_t  *pmutex, const struct times
 {
     ULONG               ulTimeout;
     ULONG               ulError;
+    struct timespec     tvNow, tvEnd;
     
     if ((rel_timeout == LW_NULL)    || 
         (rel_timeout->tv_nsec <  0) ||
@@ -732,10 +734,14 @@ int  pthread_mutex_reltimedlock_np (pthread_mutex_t  *pmutex, const struct times
     
     __pthread_mutex_init_invisible(pmutex);
     
-    /*
-     *  注意: 当 rel_timeout 超过ulong tick范围时, 将自然产生溢出, 导致超时时间不准确.
-     */
-    ulTimeout = __timespecToTick(rel_timeout);                          /*  变换为 tick                 */
+    lib_clock_gettime(CLOCK_REALTIME, &tvNow);                          /*  获得当前系统时间            */
+    __timespecAdd2(&tvEnd, &tvNow, rel_timeout);
+    if (__timespecLeftTime(&tvNow, &tvEnd)) {
+        ulTimeout = __timespecToTickDiff(&tvNow, &tvEnd);
+        
+    } else {
+        ulTimeout = LW_OPTION_NOT_WAIT;
+    }
     
     ulError = API_SemaphoreMPend(pmutex->PMUTEX_ulMutex, ulTimeout);
     if (ulError == ERROR_THREAD_WAIT_TIMEOUT) {

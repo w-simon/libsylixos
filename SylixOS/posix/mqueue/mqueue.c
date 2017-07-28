@@ -1080,6 +1080,8 @@ int  mq_send (mqd_t  mqd, const char  *msg, size_t  msglen, unsigned msgprio)
 ** 输　出  : ERROR CODE
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : 当相距超过 ulong tick 范围时, 将自然产生溢出, 导致超时时间不准确.
+
                                            API 函数
 *********************************************************************************************************/
 LW_API 
@@ -1094,7 +1096,6 @@ int  mq_timedsend (mqd_t  mqd, const char  *msg, size_t  msglen,
     BOOL                bNonblock;
     INT                 iRet;
     struct timespec     tvNow;
-    struct timespec     tvWait = {0, 0};
     
     if ((abs_timeout == LW_NULL)    || 
         (abs_timeout->tv_nsec <  0) ||
@@ -1129,16 +1130,6 @@ int  mq_timedsend (mqd_t  mqd, const char  *msg, size_t  msglen,
         return  (PX_ERROR);
     }
     
-    lib_clock_gettime(CLOCK_REALTIME, &tvNow);                          /*  获得当前系统时间            */
-    if (__timespecLeftTime(&tvNow, abs_timeout)) {
-        tvWait = *abs_timeout;
-        __timespecSub(&tvWait, &tvNow);                                 /*  计算与当前等待的时间间隔    */
-    }
-    /*
-     *  注意: 当 tvWait 超过ulong tick范围时, 将自然产生溢出, 导致超时时间不准确.
-     */
-    ulTimeout = __timespecToTick(&tvWait);                              /*  变换为 tick                 */
-    
     if ((pmqfile->PMSGF_iFlag & O_NONBLOCK) ||
         (pmq->PMSG_mqattr.mq_flags & O_NONBLOCK)) {                     /*  不阻塞                      */
         ulTimeout = LW_OPTION_NOT_WAIT;
@@ -1146,6 +1137,14 @@ int  mq_timedsend (mqd_t  mqd, const char  *msg, size_t  msglen,
     
     } else {
         bNonblock = LW_FALSE;
+        
+        lib_clock_gettime(CLOCK_REALTIME, &tvNow);                      /*  获得当前系统时间            */
+        if (__timespecLeftTime(&tvNow, abs_timeout)) {
+            ulTimeout = __timespecToTickDiff(&tvNow, abs_timeout);
+            
+        } else {
+            ulTimeout = LW_OPTION_NOT_WAIT;
+        }
     }
     
     __THREAD_CANCEL_POINT();                                            /*  测试取消点                  */
@@ -1166,6 +1165,8 @@ int  mq_timedsend (mqd_t  mqd, const char  *msg, size_t  msglen,
 ** 输　出  : ERROR CODE
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : 当相距超过 ulong tick 范围时, 将自然产生溢出, 导致超时时间不准确.
+
                                            API 函数
 *********************************************************************************************************/
 #if LW_CFG_POSIXEX_EN > 0
@@ -1181,6 +1182,7 @@ int  mq_reltimedsend_np (mqd_t  mqd, const char  *msg, size_t  msglen,
     ULONG               ulTimeout;
     BOOL                bNonblock;
     INT                 iRet;
+    struct timespec     tvNow, tvEnd;
     
     if ((rel_timeout == LW_NULL)    || 
         (rel_timeout->tv_nsec <  0) ||
@@ -1215,11 +1217,6 @@ int  mq_reltimedsend_np (mqd_t  mqd, const char  *msg, size_t  msglen,
         return  (PX_ERROR);
     }
     
-    /*
-     *  注意: 当 rel_timeout 超过ulong tick范围时, 将自然产生溢出, 导致超时时间不准确.
-     */
-    ulTimeout = __timespecToTick(rel_timeout);                          /*  变换为 tick                 */
-    
     if ((pmqfile->PMSGF_iFlag & O_NONBLOCK) ||
         (pmq->PMSG_mqattr.mq_flags & O_NONBLOCK)) {                     /*  不阻塞                      */
         ulTimeout = LW_OPTION_NOT_WAIT;
@@ -1227,6 +1224,15 @@ int  mq_reltimedsend_np (mqd_t  mqd, const char  *msg, size_t  msglen,
     
     } else {
         bNonblock = LW_FALSE;
+        
+        lib_clock_gettime(CLOCK_REALTIME, &tvNow);                      /*  获得当前系统时间            */
+        __timespecAdd2(&tvEnd, &tvNow, rel_timeout);
+        if (__timespecLeftTime(&tvNow, &tvEnd)) {
+            ulTimeout = __timespecToTickDiff(&tvNow, &tvEnd);
+            
+        } else {
+            ulTimeout = LW_OPTION_NOT_WAIT;
+        }
     }
     
     __THREAD_CANCEL_POINT();                                            /*  测试取消点                  */
@@ -1309,6 +1315,8 @@ ssize_t  mq_receive (mqd_t  mqd, char  *msg, size_t  msglen, unsigned *pmsgprio)
 ** 输　出  : 接收消息的长度
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : 当相距超过 ulong tick 范围时, 将自然产生溢出, 导致超时时间不准确.
+
                                            API 函数
 *********************************************************************************************************/
 LW_API 
@@ -1322,7 +1330,6 @@ ssize_t  mq_timedreceive (mqd_t  mqd, char  *msg, size_t  msglen,
     BOOL                bNonblock;
     ssize_t             sstRet;
     struct timespec     tvNow;
-    struct timespec     tvWait = {0, 0};
     
     if ((abs_timeout == LW_NULL)    || 
         (abs_timeout->tv_nsec <  0) ||
@@ -1352,16 +1359,6 @@ ssize_t  mq_timedreceive (mqd_t  mqd, char  *msg, size_t  msglen,
         return  (PX_ERROR);
     }
     
-    lib_clock_gettime(CLOCK_REALTIME, &tvNow);                          /*  获得当前系统时间            */
-    if (__timespecLeftTime(&tvNow, abs_timeout)) {
-        tvWait = *abs_timeout;
-        __timespecSub(&tvWait, &tvNow);                                 /*  计算与当前等待的时间间隔    */
-    }
-    /*
-     *  注意: 当 tvWait 超过ulong tick范围时, 将自然产生溢出, 导致超时时间不准确.
-     */
-    ulTimeout = __timespecToTick(&tvWait);                              /*  变换为 tick                 */
-    
     if ((pmqfile->PMSGF_iFlag & O_NONBLOCK) ||
         (pmq->PMSG_mqattr.mq_flags & O_NONBLOCK)) {                     /*  不阻塞                      */
         ulTimeout = LW_OPTION_NOT_WAIT;
@@ -1369,6 +1366,14 @@ ssize_t  mq_timedreceive (mqd_t  mqd, char  *msg, size_t  msglen,
     
     } else {
         bNonblock = LW_FALSE;
+        
+        lib_clock_gettime(CLOCK_REALTIME, &tvNow);                      /*  获得当前系统时间            */
+        if (__timespecLeftTime(&tvNow, abs_timeout)) {
+            ulTimeout = __timespecToTickDiff(&tvNow, abs_timeout);
+        
+        } else {
+            ulTimeout = LW_OPTION_NOT_WAIT;
+        }
     }
     
     __THREAD_CANCEL_POINT();                                            /*  测试取消点                  */
@@ -1389,6 +1394,8 @@ ssize_t  mq_timedreceive (mqd_t  mqd, char  *msg, size_t  msglen,
 ** 输　出  : 接收消息的长度
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : 当相距超过 ulong tick 范围时, 将自然产生溢出, 导致超时时间不准确.
+
                                            API 函数
 *********************************************************************************************************/
 #if LW_CFG_POSIXEX_EN > 0
@@ -1403,6 +1410,7 @@ ssize_t  mq_reltimedreceive_np (mqd_t  mqd, char  *msg, size_t  msglen,
     ULONG               ulTimeout;
     BOOL                bNonblock;
     ssize_t             sstRet;
+    struct timespec     tvNow, tvEnd;
     
     if ((rel_timeout == LW_NULL)    ||
         (rel_timeout->tv_nsec <  0) ||
@@ -1432,11 +1440,6 @@ ssize_t  mq_reltimedreceive_np (mqd_t  mqd, char  *msg, size_t  msglen,
         return  (PX_ERROR);
     }
     
-    /*
-     *  注意: 当 rel_timeout 超过ulong tick范围时, 将自然产生溢出, 导致超时时间不准确.
-     */
-    ulTimeout = __timespecToTick(rel_timeout);                          /*  变换为 tick                 */
-    
     if ((pmqfile->PMSGF_iFlag & O_NONBLOCK) ||
         (pmq->PMSG_mqattr.mq_flags & O_NONBLOCK)) {                     /*  不阻塞                      */
         ulTimeout = LW_OPTION_NOT_WAIT;
@@ -1444,6 +1447,15 @@ ssize_t  mq_reltimedreceive_np (mqd_t  mqd, char  *msg, size_t  msglen,
     
     } else {
         bNonblock = LW_FALSE;
+        
+        lib_clock_gettime(CLOCK_REALTIME, &tvNow);                      /*  获得当前系统时间            */
+        __timespecAdd2(&tvEnd, &tvNow, rel_timeout);
+        if (__timespecLeftTime(&tvNow, &tvEnd)) {
+            ulTimeout = __timespecToTickDiff(&tvNow, &tvEnd);
+            
+        } else {
+            ulTimeout = LW_OPTION_NOT_WAIT;
+        }
     }
     
     __THREAD_CANCEL_POINT();                                            /*  测试取消点                  */

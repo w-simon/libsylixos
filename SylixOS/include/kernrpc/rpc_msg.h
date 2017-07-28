@@ -32,8 +32,8 @@
 #ifndef _RPC_MSG_H
 #define _RPC_MSG_H 1
 
-#include "rpc/xdr.h"
-#include "rpc/clnt.h"
+#include "kernrpc/xdr.h"
+#include "kernrpc/clnt.h"
 
 /*
  * rpc_msg.h

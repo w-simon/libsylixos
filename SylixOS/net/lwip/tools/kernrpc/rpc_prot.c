@@ -42,7 +42,7 @@
 
 #define __SYLIXOS_KERNEL
 
-#include "rpc/rpc.h"
+#include "kernrpc/rpc.h"
 
 #if LW_CFG_NET_RPC_EN > 0
 

@@ -1,7 +1,7 @@
 #ifndef __RPC_PMAP_PROT_H__
 #define __RPC_PMAP_PROT_H__
 
-#include "rpc/xdr.h"
+#include "kernrpc/xdr.h"
 
 /* The following procedures are supported by the protocol:
  *

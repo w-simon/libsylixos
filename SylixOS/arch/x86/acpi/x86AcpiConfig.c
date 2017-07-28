@@ -56,6 +56,7 @@ UINT8                       _G_ucAcpiIsaApic       = 0;
 *********************************************************************************************************/
 UINT8                      *_G_pucAcpiGlobalIrqBaseTable         = LW_NULL;
 X86_IRQ_OVERRIDE         *(*_G_pfuncAcpiIrqOverride)(INT iIndex) = LW_NULL;
+PVOID                     (*_G_pfuncAcpiIrqAppend)(INT iIndex)   = LW_NULL;
 /*********************************************************************************************************
   外部函数声明
 *********************************************************************************************************/
@@ -1127,6 +1128,28 @@ static INT  __acpiProcessIrqOverrides (ACPI_TABLE_HEADER  *pAcpiHeader, BOOL  bP
             } else {
                 _G_pAcpiMpApicData->MPAPIC_uiIoIntNr++;
             }
+        }
+    }
+
+    /*
+     * If any BSP specific append are registered
+     */
+    if (_G_pfuncAcpiIrqAppend != LW_NULL) {
+        X86_MP_INTERRUPT  *pMpApicInterruptTable;
+        X86_MP_INTERRUPT  *pMpInt;
+
+        pMpApicInterruptTable = (X86_MP_INTERRUPT *)X86_MPAPIC_PHYS_TO_VIRT(_G_pAcpiMpApicData, MPAPIC_uiItLoc);
+
+        iIndex = 0;
+
+        while ((pMpInt = _G_pfuncAcpiIrqAppend(iIndex++)) != LW_NULL) {
+            /*
+             * Process any BSP specific append
+             */
+            if (bParseEntries) {
+                pMpApicInterruptTable[_G_pAcpiMpApicData->MPAPIC_uiIoIntNr] = *pMpInt;
+            }
+            _G_pAcpiMpApicData->MPAPIC_uiIoIntNr++;
         }
     }
 

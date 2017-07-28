@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2017-07-28: han.hui
+    使用新的连续时间离散化机制, 确保时间相互转换精确度.
+
     2017-07-27: han.hui
     管道与 POSIX 消息队列使用 test-pend 机制, 提高效率.
 

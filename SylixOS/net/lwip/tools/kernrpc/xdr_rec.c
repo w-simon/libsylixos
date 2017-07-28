@@ -49,8 +49,8 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
-#include "rpc/types.h"
-#include "rpc/xdr.h"
+#include "kernrpc/types.h"
+#include "kernrpc/xdr.h"
 #include "netinet/in.h"
 #include "unistd.h"   /* for lseek() */
 

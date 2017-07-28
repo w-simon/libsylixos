@@ -157,10 +157,17 @@ extern const struct in6_addr in6addr_any;
 #define inet_addr_to_ip4addr_p(target_ip4addr_p, source_inaddr)   ((target_ip4addr_p) = (ip4_addr_t*)&((source_inaddr)->s_addr))
 
 /* directly map this to the lwip internal functions */
+#ifdef SYLIXOS
+in_addr_t  inet_addr(const char *cp);
+int        inet_aton(const char *cp, struct in_addr *addr);
+char      *inet_ntoa(struct in_addr addr);
+char      *inet_ntoa_r(struct in_addr addr, char *buf, int buflen);
+#else
 #define inet_addr(cp)                   ipaddr_addr(cp)
 #define inet_aton(cp, addr)             ip4addr_aton(cp, (ip4_addr_t*)addr)
 #define inet_ntoa(addr)                 ip4addr_ntoa((const ip4_addr_t*)&(addr))
 #define inet_ntoa_r(addr, buf, buflen)  ip4addr_ntoa_r((const ip4_addr_t*)&(addr), buf, buflen)
+#endif
 
 #endif /* LWIP_IPV4 */
 
@@ -177,9 +184,15 @@ extern const struct in6_addr in6addr_any;
 #define inet6_addr_to_ip6addr_p(target_ip6addr_p, source_in6addr)   ((target_ip6addr_p) = (ip6_addr_t*)(source_in6addr))
 
 /* directly map this to the lwip internal functions */
+#ifdef SYLIXOS
+int    inet6_aton(const char *cp, struct in6_addr *addr);
+char  *inet6_ntoa(struct in6_addr addr);
+char  *inet6_ntoa_r(struct in6_addr addr, char *buf, int buflen);
+#else
 #define inet6_aton(cp, addr)            ip6addr_aton(cp, (ip6_addr_t*)addr)
 #define inet6_ntoa(addr)                ip6addr_ntoa((const ip6_addr_t*)&(addr))
 #define inet6_ntoa_r(addr, buf, buflen) ip6addr_ntoa_r((const ip6_addr_t*)&(addr), buf, buflen)
+#endif
 
 #endif /* LWIP_IPV6 */
 

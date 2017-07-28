@@ -181,8 +181,7 @@ ULONG  API_TimeSleepUntil (clockid_t  clockid, const struct timespec  *tv, BOOL 
         return  (ERROR_NONE);
     }
     
-    tvTemp = *tv;
-    __timespecSub(&tvTemp, &tvNow);
+    __timespecSub2(&tvTemp, tv, &tvNow);
     
     if (nanosleep(&tvTemp, LW_NULL)) {
         return  (API_GetLastError());
@@ -358,14 +357,15 @@ __wait_again:
         __timeGetHighResolution(&tvTemp);
         __timespecSub(&tvTemp, &tvStart);                               /*  计算已经延迟的时间          */
         if (__timespecLeftTime(&tvTemp, rqtp)) {                        /*  还有剩余时间需要延迟        */
-            struct timespec  tvNeed = *rqtp;
-            __timespecSub(&tvNeed, &tvTemp);
+            struct timespec  tvNeed;
+            __timespecSub2(&tvNeed, rqtp, &tvTemp);
             __timePassSpec(&tvNeed);                                    /*  平静度过                    */
         }
         if (rmtp) {
             rmtp->tv_sec  = 0;                                          /*  不存在时间差别              */
             rmtp->tv_nsec = 0;
         }
+    
     } else {                                                            /*  信号唤醒                    */
         if (rmtp) {
             *rmtp = *rqtp;

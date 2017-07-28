@@ -37,10 +37,10 @@
  */
 #define __SYLIXOS_KERNEL
 
-#include "rpc/types.h"
-#include "rpc/rpc_msg.h"
-#include "rpc/xdr.h"
-#include "rpc/auth.h"
+#include "kernrpc/types.h"
+#include "kernrpc/rpc_msg.h"
+#include "kernrpc/xdr.h"
+#include "kernrpc/auth.h"
 
 #if LW_CFG_NET_RPC_EN > 0
 

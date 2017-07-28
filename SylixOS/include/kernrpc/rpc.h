@@ -1,3 +1,4 @@
+/* @(#)rpc.h	2.3 88/08/10 4.0 RPCSRC; from 1.9 88/02/08 SMI */
 /*
  * Sun RPC is a product of Sun Microsystems, Inc. and is provided for
  * unrestricted use provided that this legend is included on all tape
@@ -26,49 +27,40 @@
  * 2550 Garcia Avenue
  * Mountain View, California  94043
  */
-/* fixincludes should not add extern "C" to this file */
+
 /*
- * Rpc additions to <sys/types.h>
+ * rpc.h, Just includes the billions of rpc header files necessary to
+ * do remote procedure calling.
+ *
+ * Copyright (C) 1984, Sun Microsystems, Inc.
  */
-#ifndef _RPC_TYPES_H
-#define _RPC_TYPES_H 1
 
-#include "SylixOS.h"
-#include "netdb.h"
-#include "socket.h"
-#include "string.h"
+#ifndef _RPC_RPC_H
+#define _RPC_RPC_H 1
 
-#ifndef RT_USING_MINILIBC
-/*
- * SylixOS already defined int8_t int16_t ... uint_t uchar_t ... types.
- */
-#else
-#include "sys/types.h"
-#include "stdint.h"
+#include "kernrpc/types.h"		/* some typedefs */
+
+/* external data representation interfaces */
+#include "kernrpc/xdr.h"		/* generic (de)serializer */
+
+#include "kernrpc/auth.h"
+
+/* Client side (mostly) remote procedure call */
+#include "kernrpc/clnt.h"		/* generic rpc stuff */
+
+/* semi-private protocol headers */
+#include "kernrpc/rpc_msg.h"	/* protocol for rpc messages */
+
+#ifndef UDPMSGSIZE
+#define UDPMSGSIZE 8800
 #endif
 
-typedef int bool_t;
-typedef int enum_t;
-
-/* This needs to be changed to uint32_t in the future */
-typedef unsigned long rpcprog_t;
-typedef unsigned long rpcvers_t;
-typedef unsigned long rpcproc_t;
-typedef unsigned long rpcprot_t;
-typedef unsigned long rpcport_t;
-
-#define        __dontcare__    -1
-
-#ifndef FALSE
-# define  FALSE   (0)
+#ifndef TCPMSGSIZE
+#define TCPMSGSIZE (32 * 1024)
 #endif
 
-#ifndef TRUE
-# define  TRUE    (1)
-#endif
+__BEGIN_DECLS
+extern int bindresvport(int, struct sockaddr_in *);
+__END_DECLS
 
-#ifndef MAXHOSTNAMELEN
-#define MAXHOSTNAMELEN  PATH_MAX
-#endif
-
-#endif /* rpc/types.h */
+#endif /* _RPC_RPC_H */

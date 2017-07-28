@@ -6,7 +6,7 @@
 #ifndef _MOUNT_H_RPCGEN
 #define	_MOUNT_H_RPCGEN
 
-#include "rpc/rpc.h"
+#include "kernrpc/rpc.h"
 
 #ifdef __cplusplus
 extern "C" {

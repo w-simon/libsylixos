@@ -25,12 +25,28 @@ char *ip4addr_ntoa (const ip4_addr_t *addr)
 }
 
 /*
+ * inet_ntoa
+ */
+char *inet_ntoa (struct in_addr addr)
+{
+    return  (ip4addr_ntoa((const ip4_addr_t*)&(addr)));
+}
+
+/*
  * ip6addr_ntoa
  */
 char *ip6addr_ntoa (const ip6_addr_t *addr)
 {
     static char str[INET6_ADDRSTRLEN];
     return ip6addr_ntoa_r(addr, str, INET6_ADDRSTRLEN);
+}
+
+/*
+ * inet6_ntoa
+ */
+char *inet6_ntoa (struct in6_addr addr)
+{
+    return  (ip6addr_ntoa((const ip6_addr_t*)&(addr)));
 }
 
 /*

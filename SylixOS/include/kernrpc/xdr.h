@@ -36,7 +36,7 @@
 #ifndef _RPC_XDR_H
 #define _RPC_XDR_H
 
-#include "rpc/types.h"
+#include "kernrpc/types.h"
 
 /* We need FILE.  */
 #include "stdio.h"

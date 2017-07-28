@@ -127,11 +127,11 @@ static void __dorand48 (unsigned short xseed[3])
 	}
 
 	accu = (unsigned long) __rand48_mult[0] * (unsigned long) xseed[0] +
-	 (unsigned long) __rand48_add;
+	       (unsigned long) __rand48_add;
 	temp[0] = (unsigned short) accu;	/* lower 16 bits */
 	accu >>= sizeof(unsigned short) * 8;
 	accu += (unsigned long) __rand48_mult[0] * (unsigned long) xseed[1] +
-	 (unsigned long) __rand48_mult[1] * (unsigned long) xseed[0];
+	        (unsigned long) __rand48_mult[1] * (unsigned long) xseed[0];
 	temp[1] = (unsigned short) accu;	/* middle 16 bits */
 	accu >>= sizeof(unsigned short) * 8;
 	accu += __rand48_mult[0] * xseed[2] + __rand48_mult[1] * xseed[1] + __rand48_mult[2] * xseed[0];
@@ -178,9 +178,9 @@ double lib_erand48 (unsigned short xseed[3])
 	u.dblfield.sig = 0;
 	u.dblfield.exp = DBL_EXP_BIAS; /* so we get [1,2) */
 	u.dblfield.frach = ((unsigned int)xseed[2] << 4)
-				| ((unsigned int)xseed[1] >> 12);
+				     | ((unsigned int)xseed[1] >> 12);
 	u.dblfield.fracl = (((unsigned int)xseed[1] & 0x0fff) << 20)
-				| ((unsigned int)xseed[0] << 4);
+				     | ((unsigned int)xseed[0] << 4);
 	return  (u.dbl - 1);
 }
 
