@@ -104,6 +104,7 @@ typedef struct netdev {
 #define NETDEV_INIT_LOAD_DNS       0x02   /* load dns parameter when add to system */
 #define NETDEV_INIT_IPV6_AUTOCFG   0x04
 #define NETDEV_INIT_AS_DEFAULT     0x08
+#define NETDEV_INIT_USE_DHCP       0x10   /* force use DHCP get address */
   UINT32 init_flags;
   
 #define NETDEV_CHKSUM_GEN_IP       0x0001   /* tcp/ip stack will generate checksum IP, UDP, TCP, ICMP, ICMP6 */
@@ -224,5 +225,18 @@ struct ip6_hdr *netdev_pbuf_ip6hdr(struct pbuf *p, int offset, int *hdrlen, int 
 struct tcp_hdr *netdev_pbuf_tcphdr(struct pbuf *p, int offset, int *hdrlen);
 struct udp_hdr *netdev_pbuf_udphdr(struct pbuf *p, int offset, int *hdrlen);
 #endif /* LW_CFG_NET_DEV_PROTO_ANALYSIS */
+
+#if LW_CFG_NET_DEV_ZCBUF_EN > 0
+/* netdev zero copy buffer pool create */
+void *netdev_zc_pbuf_pool_create(addr_t addr, UINT32 blkcnt, size_t blksize);
+/* netdev zero copy buffer pool delete */
+int netdev_zc_pbuf_pool_delete(void *hzcpool, int force);
+/* netdev input 'zero copy' buffer get a blk
+ * reserve: ETH_PAD_SIZE + SIZEOF_VLAN_HDR size. 
+ * ticks = 0  no wait
+ *       = -1 wait forever */
+struct pbuf *netdev_zc_pbuf_alloc(void *hzcpool, int ticks);
+void netdev_zc_pbuf_free(struct pbuf *p);
+#endif /* LW_CFG_NET_DEV_ZCBUF_EN */
 
 #endif /* __NETDEV_H */

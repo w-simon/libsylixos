@@ -1191,6 +1191,7 @@ SylixOS/net/lwip/lwip_socket.c \
 SylixOS/net/lwip/lwip_sylixos.c \
 SylixOS/net/lwip/event/lwip_netevent.c \
 SylixOS/net/lwip/netdev/netdev.c \
+SylixOS/net/lwip/netdev/netzcbuf.c \
 SylixOS/net/lwip/packet/af_packet.c \
 SylixOS/net/lwip/packet/af_packet_eth.c \
 SylixOS/net/lwip/proc/lwip_proc.c \

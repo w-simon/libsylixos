@@ -341,7 +341,7 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
   struct netif *netif;
   struct netdev_funcs *drv;
   void  *ifparam;
-  int  i, enable, def;
+  int  i, enable, def, dhcp;
   char macstr[32];
   int  mac[NETIF_MAX_HWADDR_LEN];
 
@@ -426,6 +426,20 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
         }
       }
       
+#if LWIP_DHCP > 0
+      if (!(netdev->init_flags & NETDEV_INIT_USE_DHCP)) {
+        if_param_getdhcp(ifparam, &dhcp);
+        if (dhcp) {
+          netdev->init_flags |= NETDEV_INIT_USE_DHCP;
+        }
+      }
+      if (netdev->init_flags & NETDEV_INIT_USE_DHCP) {
+        ip4.addr = IPADDR_ANY;
+        netmask4.addr = IPADDR_ANY;
+        gw4.addr = IPADDR_ANY;
+      }
+#endif
+
       if_param_unload(ifparam);
     }
   }
@@ -444,6 +458,13 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
     netifapi_netif_set_default(netif);
   }
   
+#if LWIP_DHCP > 0
+  if (netdev->init_flags & NETDEV_INIT_USE_DHCP) {
+    netif->flags2 |= NETIF_FLAG2_DHCP;
+    netifapi_dhcp_start(netif);
+  }
+#endif
+
   return (0);
 }
 

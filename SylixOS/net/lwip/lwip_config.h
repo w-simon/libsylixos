@@ -109,6 +109,10 @@ extern PVOID  lwip_platform_smemcpy(PVOID  pvDest, CPVOID  pvSrc, size_t  stCoun
 
 #define LWIP_NETIF_TX_SINGLE_PBUF       LW_CFG_LWIP_TX_SINGLE_PBUF
 
+#if LW_CFG_NET_DEV_ZCBUF_EN > 0
+#define LWIP_SUPPORT_CUSTOM_PBUF        1
+#endif                                                                  /*  LW_CFG_NET_DEV_ZCBUF_EN > 0 */
+
 /*********************************************************************************************************
   check sum
 *********************************************************************************************************/
