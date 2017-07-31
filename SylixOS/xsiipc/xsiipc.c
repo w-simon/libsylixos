@@ -46,6 +46,10 @@
 #define IPC_HASH_SIZE   32
 #define IPC_HASH_MASK   (IPC_HASH_SIZE - 1)
 
+LW_HANDLE ipc_lock_mutex; /* IPC lock */
+ipc_id_t *ipc_handle_table[IPC_MAX]; /* ipc id number table */
+u_long    ipc_cnt[3];
+
 /*
  * ipc private lock and ipc id
  */

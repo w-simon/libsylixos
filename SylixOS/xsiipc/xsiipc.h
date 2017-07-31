@@ -83,9 +83,9 @@ typedef struct ipc_id {
     int           idnum;
 } ipc_id_t;
 
-LW_HANDLE ipc_lock_mutex; /* IPC lock */
-ipc_id_t *ipc_handle_table[IPC_MAX]; /* ipc id number table */
-u_long    ipc_cnt[3];
+extern LW_HANDLE ipc_lock_mutex; /* IPC lock */
+extern ipc_id_t *ipc_handle_table[IPC_MAX]; /* ipc id number table */
+extern u_long    ipc_cnt[3];
 
 void        ipc_lock(void);
 void        ipc_unlock(void);
