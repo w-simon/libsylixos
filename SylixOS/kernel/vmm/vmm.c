@@ -464,7 +464,7 @@ PVOID  API_VmmDmaAlloc (size_t  stSize)
 #if LW_CFG_CACHE_EN > 0
     if (API_CacheGetMode(DATA_CACHE) & CACHE_SNOOP_ENABLE) {
         ulFlags = LW_VMM_FLAG_RDWR;
-    }
+    } else 
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
     {
         ulFlags = LW_VMM_FLAG_DMA;
@@ -490,7 +490,7 @@ PVOID  API_VmmDmaAllocAlign (size_t  stSize, size_t  stAlign)
 #if LW_CFG_CACHE_EN > 0
     if (API_CacheGetMode(DATA_CACHE) & CACHE_SNOOP_ENABLE) {
         ulFlags = LW_VMM_FLAG_RDWR;
-    }
+    } else 
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
     {
         ulFlags = LW_VMM_FLAG_DMA;
