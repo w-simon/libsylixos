@@ -43,6 +43,8 @@
 2015.01.01  修正 __unixFind() 对 DGRAM 类型判断错误.
 2015.01.08  SOCK_DGRAM 没有一次接收完整包, 剩下的数据需要丢弃.
 2016.12.14  accept connect 使用不同的阻塞信号量.
+2017.08.01  今天中国人民解放军建军 90 周年纪念日, 祝愿祖国蒸蒸日上.
+            AF_UNIX 支持多线程并行读写.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -69,8 +71,15 @@ extern void  __unix_socket_event(AF_UNIX_T  *pafunix, LW_SEL_TYPE type, INT  iSo
 #define __AF_UNIX_DEF_BUFSIZE       (LW_CFG_KB_SIZE * 64)               /*  默认为 64K 接收缓冲         */
 #define __AF_UNIX_DEF_BUFMAX        (LW_CFG_KB_SIZE * 256)              /*  默认为 256K 接收缓冲        */
 #define __AF_UNIX_DEF_BUFMIN        (LW_CFG_KB_SIZE * 8)                /*  最小接收缓冲大小            */
+
+#ifdef __SYLIXOS_LITE
+#define __AF_UNIX_PIPE_BUF          (LW_CFG_KB_SIZE * 2)                /*  一次原子操作的数据大小      */
+#define __AF_UNIX_PIPE_BUF_SHIFT    11                                  /*  1 << 11 == 2K               */
+#else
 #define __AF_UNIX_PIPE_BUF          (LW_CFG_KB_SIZE * 8)                /*  一次原子操作的数据大小      */
 #define __AF_UNIX_PIPE_BUF_SHIFT    13                                  /*  1 << 13 == 8K               */
+#endif
+
 #define __AF_UNIX_PART_256          LW_CFG_AF_UNIX_256_POOLS            /*  256 字节内存池数量          */
 #define __AF_UNIX_PART_512          LW_CFG_AF_UNIX_512_POOLS            /*  512 字节内存池数量          */
 /*********************************************************************************************************
@@ -88,8 +97,8 @@ static LW_OBJECT_HANDLE             _G_hAfUnixPart512;
 #define __AF_UNIX_PART_256_SIZE     (__AF_UNIX_PART_256 * (256 / sizeof(LW_STACK)))
 #define __AF_UNIX_PART_512_SIZE     (__AF_UNIX_PART_512 * (512 / sizeof(LW_STACK)))
 
-static LW_STACK                     _G_stackUnixPart256[__AF_UNIX_PART_256_SIZE];
-static LW_STACK                     _G_stackUnixPart512[__AF_UNIX_PART_512_SIZE];
+static LW_STACK                    *_G_pstkUnixPart256;
+static LW_STACK                    *_G_pstkUnixPart512;
 /*********************************************************************************************************
   宏操作
   
@@ -109,10 +118,12 @@ static LW_STACK                     _G_stackUnixPart512[__AF_UNIX_PART_512_SIZE]
 #define __AF_UNIX_WREAD(pafunix)    API_SemaphoreBPend(pafunix->UNIX_hCanRead, \
                                                        pafunix->UNIX_ulRecvTimeout)
 #define __AF_UNIX_SREAD(pafunix)    API_SemaphoreBPost(pafunix->UNIX_hCanRead)
+#define __AF_UNIX_CREAD(pafunix)    API_SemaphoreBClear(pafunix->UNIX_hCanRead)
                                                        
 #define __AF_UNIX_WWRITE(pafunix)   API_SemaphoreBPend(pafunix->UNIX_hCanWrite, \
                                                        pafunix->UNIX_ulSendTimeout)
 #define __AF_UNIX_SWRITE(pafunix)   API_SemaphoreBPost(pafunix->UNIX_hCanWrite)
+#define __AF_UNIX_CWRITE(pafunix)   API_SemaphoreBClear(pafunix->UNIX_hCanWrite)
 /*********************************************************************************************************
   等待判断
 *********************************************************************************************************/
@@ -157,12 +168,12 @@ static PVOID  __unixBufAlloc (size_t  stLen)
 *********************************************************************************************************/
 static VOID  __unixBufFree (PVOID  pvMem)
 {
-    if (((PLW_STACK)pvMem >= &_G_stackUnixPart256[0]) && 
-        ((PLW_STACK)pvMem <  &_G_stackUnixPart256[__AF_UNIX_PART_256_SIZE])) {
+    if (((PLW_STACK)pvMem >= &_G_pstkUnixPart256[0]) && 
+        ((PLW_STACK)pvMem <  &_G_pstkUnixPart256[__AF_UNIX_PART_256_SIZE])) {
         API_PartitionPut(_G_hAfUnixPart256, pvMem);
     
-    } else if (((PLW_STACK)pvMem >= &_G_stackUnixPart512[0]) && 
-               ((PLW_STACK)pvMem <  &_G_stackUnixPart512[__AF_UNIX_PART_512_SIZE])) {
+    } else if (((PLW_STACK)pvMem >= &_G_pstkUnixPart512[0]) && 
+               ((PLW_STACK)pvMem <  &_G_pstkUnixPart512[__AF_UNIX_PART_512_SIZE])) {
         API_PartitionPut(_G_hAfUnixPart512, pvMem);
     
     } else {
@@ -998,9 +1009,16 @@ VOID  unix_init (VOID)
                                            LW_OPTION_WAIT_PRIORITY | LW_OPTION_DELETE_SAFE |
                                            LW_OPTION_INHERIT_PRIORITY | LW_OPTION_OBJECT_GLOBAL,
                                            LW_NULL);
-    _G_hAfUnixPart256 = API_PartitionCreate("unix_256", _G_stackUnixPart256, __AF_UNIX_PART_256,
+                                           
+    _G_pstkUnixPart256 = (LW_STACK *)__SHEAP_ALLOC(__AF_UNIX_PART_256 * 256);
+    _BugHandle(!_G_pstkUnixPart256, LW_TRUE, "AF_UNIX buffer create error!\r\n");
+    
+    _G_pstkUnixPart512 = (LW_STACK *)__SHEAP_ALLOC(__AF_UNIX_PART_512 * 512);
+    _BugHandle(!_G_pstkUnixPart512, LW_TRUE, "AF_UNIX buffer create error!\r\n");
+    
+    _G_hAfUnixPart256 = API_PartitionCreate("unix_256", _G_pstkUnixPart256, __AF_UNIX_PART_256,
                                             256, LW_OPTION_OBJECT_GLOBAL, LW_NULL);
-    _G_hAfUnixPart512 = API_PartitionCreate("unix_512", _G_stackUnixPart512, __AF_UNIX_PART_512,
+    _G_hAfUnixPart512 = API_PartitionCreate("unix_512", _G_pstkUnixPart512, __AF_UNIX_PART_512,
                                             512, LW_OPTION_OBJECT_GLOBAL, LW_NULL);
 }
 /*********************************************************************************************************
@@ -1390,6 +1408,8 @@ INT  unix_connect2 (AF_UNIX_T  *pafunix0, AF_UNIX_T  *pafunix1)
 ** 输　出  : NUM
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : 多个线程同时读同一个 socket 而且使用不同的 flag 会出现唤醒逻辑性错误, 目前并没有这样设计的
+             应用.
 *********************************************************************************************************/
 static ssize_t  unix_recvfrom2 (AF_UNIX_T  *pafunix, 
                                 void *mem, size_t len, 
@@ -1456,12 +1476,20 @@ __recv_more:
             }
             break;                                                      /*  跳出接收循环                */
         
-        } else if ((__AF_UNIX_TYPE(pafunix) == SOCK_STREAM) ||
-                   (__AF_UNIX_TYPE(pafunix) == SOCK_SEQPACKET)) {       /*  面向连接类型                */
-            if (pafunix->UNIX_pafunxPeer == LW_NULL) {
-                __AF_UNIX_UNLOCK();
-                _ErrorHandle(ECONNRESET);                               /*  没有连接                    */
-                return  (PX_ERROR);
+        } else {
+#if LW_CFG_NET_UNIX_MULTI_EN > 0
+            if (__unixCanRead(pafunix, 0, 0)) {
+                __AF_UNIX_CREAD(pafunix);                               /*  不可接收                    */
+            }
+#endif
+            
+            if ((__AF_UNIX_TYPE(pafunix) == SOCK_STREAM) ||
+                (__AF_UNIX_TYPE(pafunix) == SOCK_SEQPACKET)) {          /*  面向连接类型                */
+                if (pafunix->UNIX_pafunxPeer == LW_NULL) {
+                    __AF_UNIX_UNLOCK();
+                    _ErrorHandle(ECONNRESET);                           /*  没有连接                    */
+                    return  (PX_ERROR);
+                }
             }
         }
         
@@ -1483,6 +1511,12 @@ __recv_more:
     if (bNeedUpdateWriter && (sstTotal > 0)) {
         __unixUpdateWriter(pafunix, ERROR_NONE);                        /*  update writer               */
     }
+
+#if LW_CFG_NET_UNIX_MULTI_EN > 0
+    if (__unixCanRead(pafunix, 0, 0)) {
+        __AF_UNIX_SREAD(pafunix);                                       /*  other reader can read       */
+    }
+#endif
     __AF_UNIX_UNLOCK();
     
     return  (sstTotal);
@@ -1707,7 +1741,13 @@ __try_send:
                 }
                 break;                                                  /*  发送完毕, 如果最后一次失败  */
             }                                                           /*  这里也必须退出              */
+        
+        } 
+#if LW_CFG_NET_UNIX_MULTI_EN > 0
+          else {
+            __AF_UNIX_CWRITE(pafunixRecver);                            /*  不可写                      */
         }
+#endif
         
         if (bNeedUpdateReader) {
             bNeedUpdateReader = LW_FALSE;
@@ -1736,6 +1776,12 @@ __try_send:
     if (bNeedUpdateReader) {
         __unixUpdateReader(pafunixRecver, ERROR_NONE);                  /*  update remote reader        */
     }
+    
+#if LW_CFG_NET_UNIX_MULTI_EN > 0
+    if (__unixCanWrite(pafunixRecver)) {
+        __AF_UNIX_SWRITE(pafunixRecver);                                /*  other writer can write      */
+    }
+#endif
     __AF_UNIX_UNLOCK();
     
     return  (sstTotal);

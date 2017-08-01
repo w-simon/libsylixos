@@ -86,7 +86,12 @@ VOID  x86CpuTopologyInit (X86_MP_APIC_DATA  *pMpApicData)
     pucMpLoApicIndexTable = &ucApicId;
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 
-    _K_ulNCpus = iNumCpus;                                              /*  设置逻辑 Processor 数目     */
+    if (iNumCpus > LW_CFG_MAX_PROCESSORS) {
+        _K_ulNCpus = LW_CFG_MAX_PROCESSORS;
+    
+    } else {
+        _K_ulNCpus = iNumCpus;                                          /*  设置逻辑 Processor 数目     */
+    }
 
     /*
      * Map the MP Table CPU Topology found

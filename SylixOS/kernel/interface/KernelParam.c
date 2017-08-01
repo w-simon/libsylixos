@@ -71,8 +71,12 @@ ULONG  API_KernelStartParam (CPCHAR  pcParam)
     while (pcTok) {
         if (lib_strncmp(pcTok, "ncpus=", 6) == 0) {                     /*  CPU ÊýÁ¿                    */
             INT     iCpus = lib_atoi(&pcTok[6]);
-            if (iCpus > 0 && iCpus <= LW_CFG_MAX_PROCESSORS) {
-                _K_ulNCpus = (ULONG)iCpus;
+            if (iCpus > 0) {
+                if (iCpus > LW_CFG_MAX_PROCESSORS) {
+                    _K_ulNCpus = LW_CFG_MAX_PROCESSORS;
+                } else {
+                    _K_ulNCpus = (ULONG)iCpus;
+                }
             }
             
 #if LW_CFG_LOGMESSAGE_EN > 0

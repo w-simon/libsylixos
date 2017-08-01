@@ -1290,12 +1290,12 @@ VOID __tshellRouteInit (VOID)
     API_TShellFormatAdd("route", " [add | del | change] {-host | -net} [addr] [gateway] [[dev] | if]");
     API_TShellHelpAdd("route",   "show, add, del, change route table\n"
                                  "eg. route\n"
-                                 "    route add -host(-net) 123.123.123.123 0.0.0.0 dev en1       (add a route and use netif default gatewat set)\n"
-                                 "    route add -host(-net) 123.123.123.123 123.0.0.1 dev en1     (add a route and use specified gatewat set)\n"
-                                 "    route add -host(-net) 0.0.0.0 123.0.0.1 dev en1             (set netif default gatewat: 123.0.0.1)\n"
-                                 "    route change -host(-net) 123.123.123.123 0.0.0.0 dev en2    (change a route and use netif default gatewat set)\n"
-                                 "    route change -host(-net) 123.123.123.123 123.0.0.1 dev en1  (change a route and use specified gatewat set)\n"
-                                 "    route change -host(-net) 0.0.0.0 123.0.0.1 dev en1          (set netif default gatewat: 123.0.0.1)\n"
+                                 "    route add -host(-net) 123.123.123.123 0.0.0.0 dev en1       (add a route and use netif default gateway set)\n"
+                                 "    route add -host(-net) 123.123.123.123 123.0.0.1 dev en1     (add a route and use specified gateway set)\n"
+                                 "    route add -host(-net) 0.0.0.0 123.0.0.1 dev en1             (set netif default gateway: 123.0.0.1)\n"
+                                 "    route change -host(-net) 123.123.123.123 0.0.0.0 dev en2    (change a route and use netif default gateway set)\n"
+                                 "    route change -host(-net) 123.123.123.123 123.0.0.1 dev en1  (change a route and use specified gateway set)\n"
+                                 "    route change -host(-net) 0.0.0.0 123.0.0.1 dev en1          (set netif default gateway: 123.0.0.1)\n"
                                  "    route change default dev en2                                (set default netif)\n"
                                  "    route del 145.26.122.35                                     (delete a route)\n");
                                  

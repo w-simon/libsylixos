@@ -144,9 +144,11 @@ mq_attr_t  mq_attr_default = {0, 10, 1024, 0};
 
 #define __PX_MQ_RWAIT(pmq, to)      API_SemaphoreBPend(pmq->PMSG_ulReadSync, to)
 #define __PX_MQ_RPOST(pmq, ptid)    API_SemaphoreBPost2(pmq->PMSG_ulReadSync, ptid)
+#define __PX_MQ_RCLEAR(pmq)         API_SemaphoreBClear(pmq->PMSG_ulReadSync)
 
 #define __PX_MQ_WWAIT(pmq, to)      API_SemaphoreBPend(pmq->PMSG_ulWriteSync, to)
 #define __PX_MQ_WPOST(pmq)          API_SemaphoreBPost(pmq->PMSG_ulWriteSync)
+#define __PX_MQ_WCLEAR(pmq)         API_SemaphoreBClear(pmq->PMSG_ulWriteSync)
 
 /*********************************************************************************************************
 ** 函数名称: __mqueueSignalNotify
@@ -220,11 +222,17 @@ static INT  __mqueueSend (__PX_MSG  *pmq, const char  *msg, size_t  msglen,
         }
         if (pmq->PMSG_pmsgmem.PMSGM_pringFreeList) {                    /*  可以发送                    */
             break;
-        }
-        __PX_MQ_UNLOCK(pmq);                                            /*  解锁消息队列                */
         
-        __KERNEL_TIME_GET(ulOrgKernelTime, ULONG);                      /*  记录系统时间                */
+        } 
+#if LW_CFG_POSIX_MQ_MULTI_EN > 0
+          else {
+            __PX_MQ_WCLEAR(pmq);                                        /*  不可以发送                  */
+        }
+#endif
+        __PX_MQ_UNLOCK(pmq);                                            /*  解锁消息队列                */
 
+        __KERNEL_TIME_GET(ulOrgKernelTime, ULONG);                      /*  记录系统时间                */
+        
         ulError = __PX_MQ_WWAIT(pmq, ulTimeout);                        /*  等待写同步                  */
         if (ulError == ERROR_THREAD_WAIT_TIMEOUT) {
             if (bNonblock) {
@@ -274,6 +282,12 @@ static INT  __mqueueSend (__PX_MSG  *pmq, const char  *msg, size_t  msglen,
         }
 #endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
     }
+    
+#if LW_CFG_POSIX_MQ_MULTI_EN > 0
+    if (pmq->PMSG_pmsgmem.PMSGM_pringFreeList) {                        /*  可以发送                    */
+        __PX_MQ_WPOST(pmq);
+    }
+#endif
     __PX_MQ_UNLOCK(pmq);                                                /*  解锁消息队列                */
 
     return  (ERROR_NONE);
@@ -299,7 +313,6 @@ static ssize_t  __mqueueRecv (__PX_MSG  *pmq, char  *msg, size_t  msglen,
     caddr_t             pcBuffer;                                       /*  消息缓冲                    */
     
     uint_t              uiRealPrio;
-    BOOL                bGetRSync = LW_FALSE;
     BOOL                bPutWSync;
     ULONG               ulError;
     ULONG               ulOrgKernelTime;
@@ -314,7 +327,13 @@ static ssize_t  __mqueueRecv (__PX_MSG  *pmq, char  *msg, size_t  msglen,
         }
         if (pmq->PMSG_mqattr.mq_curmsgs) {                              /*  有数据可读                  */
             break;
+        
         }
+#if LW_CFG_POSIX_MQ_MULTI_EN > 0
+          else {
+            __PX_MQ_RCLEAR(pmq);                                        /*  不可以接收                  */
+        }
+#endif
         __PX_MQ_UNLOCK(pmq);                                            /*  解锁消息队列                */
         
         __KERNEL_TIME_GET(ulOrgKernelTime, ULONG);                      /*  记录系统时间                */
@@ -336,7 +355,6 @@ static ssize_t  __mqueueRecv (__PX_MSG  *pmq, char  *msg, size_t  msglen,
             return  (PX_ERROR);
         }
         
-        bGetRSync = LW_TRUE;
         ulTimeout = _sigTimeoutRecalc(ulOrgKernelTime, ulTimeout);      /*  重新计算等待时间            */
     } while (1);
     
@@ -346,7 +364,7 @@ static ssize_t  __mqueueRecv (__PX_MSG  *pmq, char  *msg, size_t  msglen,
     pcBuffer   = ((char *)pmqn + sizeof(__PX_MSG_NODE));                /*  定位消息缓冲                */
     
     if (pmqn->PMSGN_stMsgLen > msglen) {                                /*  消息太长无法接收            */
-        if (bGetRSync && (pmq->PMSG_mqattr.mq_curmsgs == 1)) {
+        if (pmq->PMSG_mqattr.mq_curmsgs) {
             __PX_MQ_RPOST(pmq, LW_NULL);                                /*  通知可读                    */
         }
         __PX_MQ_UNLOCK(pmq);                                            /*  解锁消息队列                */
@@ -386,6 +404,12 @@ static ssize_t  __mqueueRecv (__PX_MSG  *pmq, char  *msg, size_t  msglen,
     if (bPutWSync) {
         __PX_MQ_WPOST(pmq);                                             /*  可以发送消息                */
     }
+    
+#if LW_CFG_POSIX_MQ_MULTI_EN > 0
+    if (pmq->PMSG_mqattr.mq_curmsgs) {                                  /*  有数据可读                  */
+        __PX_MQ_RPOST(pmq, LW_NULL);
+    }
+#endif
     __PX_MQ_UNLOCK(pmq);                                                /*  解锁消息队列                */
     
     return  ((ssize_t)msglen);

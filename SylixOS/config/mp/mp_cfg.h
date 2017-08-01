@@ -46,7 +46,7 @@
 
 #define LW_CFG_SMP_EN                   1               /*  是否需要系统对多处理器支持                  */
 #define LW_CFG_SMP_CPU_DOWN_EN          0               /*  是否支持动态关闭 CPU (不推荐使用)           */
-#define LW_CFG_MAX_PROCESSORS           16              /*  系统支持 SMP 处理器最大个数, 1 ~ 2048       */
+#define LW_CFG_MAX_PROCESSORS           32              /*  系统支持 SMP 处理器最大个数, 1 ~ 2048       */
 
 /*********************************************************************************************************
 *                   是否需要系统对 MPI 接口 MULTI-PROCESSOR 支持 (并行分布式系统)

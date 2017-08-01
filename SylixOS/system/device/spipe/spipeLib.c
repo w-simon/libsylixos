@@ -275,6 +275,7 @@ ssize_t  _SpipeRead (PLW_SPIPE_FILE  pspipefil,
     if (pspipefil->SPIPEFIL_iFlags & O_NONBLOCK) {                      /*  非阻塞 IO                   */
         ulTimeout = LW_OPTION_NOT_WAIT;
         bNonblock = LW_TRUE;
+    
     } else {
         ulTimeout = pspipedev->SPIPEDEV_ulRTimeout;
         bNonblock = LW_FALSE;
@@ -292,9 +293,14 @@ ssize_t  _SpipeRead (PLW_SPIPE_FILE  pspipefil,
         if (pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stMsgBytes) {
             break;                                                      /*  有数据可读                  */
         
-        } else if (pspipedev->SPIPEDEV_uiWriteCnt == 0) {               /*  已经不存在写端              */
-            LW_SPIPE_UNLOCK(pspipedev);
-            return  (0);
+        } else {
+#if LW_CFG_SPIPE_MULTI_EN > 0
+            API_SemaphoreBClear(pspipedev->SPIPEDEV_hReadLock);         /*  数据不可读                  */
+#endif
+            if (pspipedev->SPIPEDEV_uiWriteCnt == 0) {                  /*  已经不存在写端              */
+                LW_SPIPE_UNLOCK(pspipedev);
+                return  (0);
+            }
         }
         
         LW_SPIPE_UNLOCK(pspipedev);                                     /*  释放设备使用权              */
@@ -354,6 +360,13 @@ ssize_t  _SpipeRead (PLW_SPIPE_FILE  pspipefil,
         SEL_WAKE_UP_ALL(&pspipedev->SPIPEDEV_selwulList, SELWRITE);
         API_SemaphoreBPost(pspipedev->SPIPEDEV_hWriteLock);             /*  通知可以写入数据            */
     }
+    
+#if LW_CFG_SPIPE_MULTI_EN > 0
+    if (__spipe_can_read(pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stMsgBytes,
+                         pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stTotalBytes)) {
+        API_SemaphoreBPost(pspipedev->SPIPEDEV_hReadLock);              /*  通知还有数据可读            */
+    }
+#endif
     
     LW_SPIPE_UNLOCK(pspipedev);                                         /*  释放设备使用权              */
     
@@ -446,7 +459,13 @@ __continue_write:
         
         if (stFreeByteSize >= __MIN(stNBytes, PIPE_BUF)) {              /*  判断空闲空间是否满足需要    */
             break;
+        
+        } 
+#if LW_CFG_SPIPE_MULTI_EN > 0
+          else {
+            API_SemaphoreBClear(pspipedev->SPIPEDEV_hWriteLock);        /*  不可写入                    */
         }
+#endif
         
         LW_SPIPE_UNLOCK(pspipedev);                                     /*  释放设备使用权              */
     
@@ -505,6 +524,13 @@ __continue_write:
         SEL_WAKE_UP_ALL(&pspipedev->SPIPEDEV_selwulList, SELREAD);
         API_SemaphoreBPost(pspipedev->SPIPEDEV_hReadLock);              /*  通知还有数据可读            */
     }
+    
+#if LW_CFG_SPIPE_MULTI_EN > 0
+    if (__spipe_can_write(pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stMsgBytes,
+                          pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stTotalBytes)) {
+        API_SemaphoreBPost(pspipedev->SPIPEDEV_hWriteLock);             /*  通知可以写入数据            */
+    }
+#endif
     
     LW_SPIPE_UNLOCK(pspipedev);
     

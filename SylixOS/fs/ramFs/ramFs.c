@@ -990,7 +990,7 @@ static INT  __ramFsLStat (PRAM_VOLUME  pramfs, PCHAR  pcName, struct stat *pstat
     
     pramn = __ram_open(pramfs, pcName, LW_NULL, &bRoot, LW_NULL, LW_NULL);
     if (pramn) {
-        __ram_stat(pramn, LW_NULL, pstat);
+        __ram_stat(pramn, pramfs, pstat);
     
     } else if (bRoot) {
         __ram_stat(LW_NULL, pramfs, pstat);
