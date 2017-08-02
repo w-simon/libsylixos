@@ -234,16 +234,22 @@ int  pthread_join (pthread_t  thread, void **ppstatus)
     ULONG   ulError;
     
     ulError = API_ThreadJoin(thread, ppstatus);
-    if ((ulError == ERROR_KERNEL_HANDLE_NULL) ||
-        (ulError == ERROR_THREAD_NULL)) {
+    switch (ulError) {
+    
+    case ERROR_KERNEL_HANDLE_NULL:
+    case ERROR_THREAD_NULL:
         errno = ESRCH;
         return  (ESRCH);
-    
-    } else if (ulError == ERROR_THREAD_JOIN_SELF) {
+        
+    case ERROR_THREAD_JOIN_SELF:
         errno = EDEADLK;
         return  (EDEADLK);
-    
-    } else {
+        
+    case ERROR_THREAD_DETACHED:
+        errno = EINVAL;
+        return  (EINVAL);
+        
+    default:
         return  ((int)ulError);
     }
 }
@@ -264,16 +270,18 @@ int  pthread_detach (pthread_t  thread)
     PX_ID_VERIFY(thread, pthread_t);
     
     ulError = API_ThreadDetach(thread);
-    if ((ulError == ERROR_KERNEL_HANDLE_NULL) ||
-        (ulError == ERROR_THREAD_NULL)) {
+    switch (ulError) {
+    
+    case ERROR_KERNEL_HANDLE_NULL:
+    case ERROR_THREAD_NULL:
         errno = ESRCH;
         return  (ESRCH);
         
-    } else if (ulError == ERROR_THREAD_DETACHED) {
+    case ERROR_THREAD_DETACHED:
         errno = EINVAL;
         return  (EINVAL);
-    
-    } else {
+        
+    default:
         return  ((int)ulError);
     }
 }

@@ -459,8 +459,8 @@ int  pthread_attr_setinheritsched (pthread_attr_t  *pattr, int  iInherit)
     
     if ((iInherit != PTHREAD_INHERIT_SCHED) &&
         (iInherit != PTHREAD_EXPLICIT_SCHED)) {
-        errno = ENOTSUP;
-        return  (ENOTSUP);
+        errno = EINVAL;
+        return  (EINVAL);
     }
     
     pattr->PTHREADATTR_iInherit = iInherit;
@@ -514,8 +514,8 @@ int  pthread_attr_setscope (pthread_attr_t  *pattr, int  iScope)
         pattr->PTHREADATTR_ulOption &= ~LW_OPTION_THREAD_SCOPE_PROCESS;
     
     } else {
-        errno = ENOTSUP;
-        return  (ENOTSUP);
+        errno = EINVAL;
+        return  (EINVAL);
     }
     
     return  (ERROR_NONE);
