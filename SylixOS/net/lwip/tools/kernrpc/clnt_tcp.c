@@ -1,36 +1,34 @@
 /*
- * Sun RPC is a product of Sun Microsystems, Inc. and is provided for
- * unrestricted use provided that this legend is included on all tape
- * media and as a part of the software program in whole or part.  Users
- * may copy or modify Sun RPC without charge, but are not authorized
- * to license or distribute it to anyone else except as part of a product or
- * program developed by the user.
- *
- * SUN RPC IS PROVIDED AS IS WITH NO WARRANTIES OF ANY KIND INCLUDING THE
- * WARRANTIES OF DESIGN, MERCHANTIBILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE, OR ARISING FROM A COURSE OF DEALING, USAGE OR TRADE PRACTICE.
- *
- * Sun RPC is provided with no support and without any obligation on the
- * part of Sun Microsystems, Inc. to assist in its use, correction,
- * modification or enhancement.
- *
- * SUN MICROSYSTEMS, INC. SHALL HAVE NO LIABILITY WITH RESPECT TO THE
- * INFRINGEMENT OF COPYRIGHTS, TRADE SECRETS OR ANY PATENTS BY SUN RPC
- * OR ANY PART THEREOF.
- *
- * In no event will Sun Microsystems, Inc. be liable for any lost revenue
- * or profits or other special, indirect and consequential damages, even if
- * Sun has been advised of the possibility of such damages.
- *
- * Sun Microsystems, Inc.
- * 2550 Garcia Avenue
- * Mountain View, California  94043
- */
-
-/*
  * clnt_tcp.c, Implements a TCP/IP based, client side RPC.
  *
- * Copyright (C) 1984, Sun Microsystems, Inc.
+ * Copyright (c) 2010, Oracle America, Inc.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ *
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above
+ *       copyright notice, this list of conditions and the following
+ *       disclaimer in the documentation and/or other materials
+ *       provided with the distribution.
+ *     * Neither the name of the "Oracle America, Inc." nor the names of its
+ *       contributors may be used to endorse or promote products derived
+ *       from this software without specific prior written permission.
+ *
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ *   FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ *   COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ *   INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ *   DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ *   GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ *   WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ *   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * TCP based RPC supports 'batched calls'.
  * A sequence of calls may be batched-up in a send buffer.  The rpc call
@@ -46,62 +44,57 @@
  * Now go hang yourself.
  */
 
-#define __SYLIXOS_KERNEL
-
-#include "stdio.h"
-#include "stdlib.h"
-#include "unistd.h"
-#include "string.h"
-#include "sys/time.h"
-#include "kernrpc/pmap.h"
-#include "kernrpc/rpc.h"
-#include "sys/socket.h"
-#include "netdb.h"
-#include "errno.h"
-#include "sys/select.h"
-#include "sys/param.h"
+#include <netdb.h>
+#include <errno.h>
+#include <stdio.h>
+#include <unistd.h>
+#ifndef SYLIXOS
+#include <libintl.h>
+#endif
+#include <kernrpc/rpc.h>
+#include <sys/poll.h>
+#include <sys/socket.h>
+#include <kernrpc/pmap_clnt.h>
+#include <wchar.h>
 
 #if LW_CFG_NET_RPC_EN > 0
 
+extern u_long _create_xid (void);
+
 #define MCALL_MSG_SIZE 24
 
-/* sylixos fix */
-#define _RPC_close  close
-#define _RPC_read   read
-#define _RPC_write  write
+struct ct_data
+  {
+    int ct_sock;
+    bool_t ct_closeit;
+    struct timeval ct_wait;
+    bool_t ct_waitset;		/* wait set by clnt_control? */
+    struct sockaddr_in ct_addr;
+    struct rpc_err ct_error;
+    char ct_mcall[MCALL_MSG_SIZE];	/* marshalled callmsg */
+    u_int ct_mpos;		/* pos after marshal */
+    XDR ct_xdrs;
+  };
 
-static int	readtcp(char *, char*, int);
-static int	writetcp(char *, char*, int);
+static int readtcp (char *, char *, int);
+static int writetcp (char *, char *, int);
 
-static enum clnt_stat	clnttcp_call(CLIENT *, rpcproc_t, xdrproc_t, void*, xdrproc_t, void*, struct timeval);
-static void		clnttcp_abort(void);
-static void		clnttcp_geterr(CLIENT *, struct rpc_err*);
-static bool_t		clnttcp_freeres(CLIENT *, xdrproc_t, void*);
-static bool_t           clnttcp_control(CLIENT *, int, char *);
-static void		clnttcp_destroy(CLIENT *);
+static enum clnt_stat clnttcp_call (CLIENT *, u_long, xdrproc_t, caddr_t,
+				    xdrproc_t, caddr_t, struct timeval);
+static void clnttcp_abort (void);
+static void clnttcp_geterr (CLIENT *, struct rpc_err *);
+static bool_t clnttcp_freeres (CLIENT *, xdrproc_t, caddr_t);
+static bool_t clnttcp_control (CLIENT *, int, char *);
+static void clnttcp_destroy (CLIENT *);
 
-static struct clnt_ops tcp_ops = {
-	clnttcp_call,
-	clnttcp_abort,
-	clnttcp_geterr,
-	clnttcp_freeres,
-	clnttcp_destroy,
-	clnttcp_control
-};
-
-struct ct_data {
-	int		ct_sock;
-	bool_t		ct_closeit;	/* close it on destroy */
-	struct timeval	ct_wait;	/* wait interval in milliseconds */
-	bool_t          ct_waitset;       /* wait set by clnt_control? */
-	struct sockaddr_in ct_addr;
-	struct rpc_err	ct_error;
-	union {
-		char	ct_mcallc[MCALL_MSG_SIZE];	/* marshalled callmsg */
-		u_int32_t ct_mcalli;
-	} ct_u;
-	u_int		ct_mpos;			/* pos after marshal */
-	XDR		ct_xdrs;	/* XDR stream */
+static const struct clnt_ops tcp_ops =
+{
+  clnttcp_call,
+  clnttcp_abort,
+  clnttcp_geterr,
+  clnttcp_freeres,
+  clnttcp_destroy,
+  clnttcp_control
 };
 
 /*
@@ -119,385 +112,353 @@ struct ct_data {
  * something more useful.
  */
 CLIENT *
-clnttcp_create(
-	struct sockaddr_in *raddr,
-	u_long prog,		/* program number */
-	u_long vers,		/* version number */
-	int *sockp,
-	u_int sendsz,
-	u_int recvsz)
+clnttcp_create (struct sockaddr_in *raddr, u_long prog, u_long vers,
+		int *sockp, u_int sendsz, u_int recvsz)
 {
-	CLIENT *h;
-	struct ct_data *ct = NULL;	/* client handle */
-	struct timeval now;
-	struct rpc_msg call_msg;
-	static uintptr_t disrupt;
+  CLIENT *h;
+  struct ct_data *ct;
+  struct rpc_msg call_msg;
 
-	if (disrupt == 0)
-		disrupt = (uintptr_t)raddr;
+  h = (CLIENT *) mem_alloc (sizeof (*h));
+  ct = (struct ct_data *) mem_alloc (sizeof (*ct));
+  if (h == NULL || ct == NULL)
+    {
+      struct rpc_createerr *ce = &get_rpc_createerr ();
+      (void) __fxprintf (NULL, "%s: %s", __func__, _("out of memory\n"));
+      ce->cf_stat = RPC_SYSTEMERROR;
+      ce->cf_error.re_errno = ENOMEM;
+      goto fooy;
+    }
 
-	h  = (CLIENT *)sys_malloc(sizeof(*h));
-	if (h == NULL) {
-		(void)fprintf(stderr, "rpc : clnttcp_create: out of memory\n");
-		goto fooy;
+  /*
+   * If no port number given ask the pmap for one
+   */
+  if (raddr->sin_port == 0)
+    {
+      u_short port;
+      if ((port = pmap_getport (raddr, prog, vers, IPPROTO_TCP)) == 0)
+	{
+	  mem_free ((caddr_t) ct, sizeof (struct ct_data));
+	  mem_free ((caddr_t) h, sizeof (CLIENT));
+	  return ((CLIENT *) NULL);
+      }
+      raddr->sin_port = htons (port);
+    }
+
+  /*
+   * If no socket given, open one
+   */
+  if (*sockp < 0)
+    {
+      *sockp = __socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
+      (void) bindresvport (*sockp, (struct sockaddr_in *) 0);
+      if ((*sockp < 0)
+	  || (__connect (*sockp, (struct sockaddr *) raddr,
+			 sizeof (*raddr)) < 0))
+	{
+	  struct rpc_createerr *ce = &get_rpc_createerr ();
+	  ce->cf_stat = RPC_SYSTEMERROR;
+	  ce->cf_error.re_errno = errno;
+	  if (*sockp >= 0)
+	    (void) __close (*sockp);
+	  goto fooy;
 	}
-	ct = (struct ct_data *)sys_malloc(sizeof (*ct));
-	if (ct == NULL) {
-		(void)fprintf(stderr, "rpc : clnttcp_create: out of memory\n");
-		goto fooy;
+      ct->ct_closeit = TRUE;
+    }
+  else
+    {
+      ct->ct_closeit = FALSE;
+    }
+
+  /*
+   * Set up private data struct
+   */
+  ct->ct_sock = *sockp;
+  ct->ct_wait.tv_usec = 0;
+  ct->ct_waitset = FALSE;
+  ct->ct_addr = *raddr;
+
+  /*
+   * Initialize call message
+   */
+  call_msg.rm_xid = _create_xid ();
+  call_msg.rm_direction = CALL;
+  call_msg.rm_call.cb_rpcvers = RPC_MSG_VERSION;
+  call_msg.rm_call.cb_prog = prog;
+  call_msg.rm_call.cb_vers = vers;
+
+  /*
+   * pre-serialize the static part of the call msg and stash it away
+   */
+  xdrmem_create (&(ct->ct_xdrs), ct->ct_mcall, MCALL_MSG_SIZE, XDR_ENCODE);
+  if (!xdr_callhdr (&(ct->ct_xdrs), &call_msg))
+    {
+      if (ct->ct_closeit)
+	{
+	  (void) __close (*sockp);
 	}
+      goto fooy;
+    }
+  ct->ct_mpos = XDR_GETPOS (&(ct->ct_xdrs));
+  XDR_DESTROY (&(ct->ct_xdrs));
 
-	/*
-	 * If no port number given ask the pmap for one
-	 */
-	if (raddr->sin_port == 0) {
-		u_short port;
-		if ((port = pmap_getport(raddr, prog, vers, IPPROTO_TCP)) == 0) {
-			sys_free((caddr_t)ct);
-			sys_free((caddr_t)h);
-			return ((CLIENT *)NULL);
-		}
-		raddr->sin_port = htons(port);
-	}
-
-	/*
-	 * If no socket given, open one
-	 */
-	if (*sockp < 0) {
-		*sockp = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-		/* attempt to bind to prov port */
-		(void)bindresvport(*sockp, (struct sockaddr_in *)0);
-		if ((*sockp < 0)
-		    || (connect(*sockp, (struct sockaddr *)raddr,
-		    sizeof(*raddr)) < 0)) {
-			if (*sockp != -1)
-				(void)_RPC_close(*sockp);
-			goto fooy;
-		}
-		ct->ct_closeit = TRUE;
-	} else {
-		ct->ct_closeit = FALSE;
-	}
-
-	/*
-	 * Set up private data struct
-	 */
-	ct->ct_sock = *sockp;
-	ct->ct_wait.tv_usec = 0;
-	ct->ct_waitset = FALSE;
-	ct->ct_addr = *raddr;
-
-	/*
-	 * Initialize call message
-	 */
-	(void)gettimeofday(&now, (struct timezone *)0);
-	call_msg.rm_xid = (++disrupt) ^ getpid() ^ now.tv_sec ^ now.tv_usec;
-	call_msg.rm_direction = CALL;
-	call_msg.rm_call.cb_rpcvers = RPC_MSG_VERSION;
-	call_msg.rm_call.cb_prog = prog;
-	call_msg.rm_call.cb_vers = vers;
-
-	/*
-	 * pre-serialize the static part of the call msg and stash it away
-	 */
-	xdrmem_create(&(ct->ct_xdrs), ct->ct_u.ct_mcallc, MCALL_MSG_SIZE,
-	    XDR_ENCODE);
-	if (! xdr_callhdr(&(ct->ct_xdrs), &call_msg)) {
-		if (ct->ct_closeit) {
-			(void)_RPC_close(*sockp);
-		}
-		goto fooy;
-	}
-	ct->ct_mpos = XDR_GETPOS(&(ct->ct_xdrs));
-	XDR_DESTROY(&(ct->ct_xdrs));
-
-	/*
-	 * Create a client handle which uses xdrrec for serialization
-	 * and authnone for authentication.
-	 */
-	xdrrec_create(&(ct->ct_xdrs), sendsz, recvsz,
-	    (caddr_t)ct, readtcp, writetcp);
-	h->cl_ops = &tcp_ops;
-	h->cl_private = (caddr_t) ct;
-	h->cl_auth = authnone_create();
-	return (h);
+  /*
+   * Create a client handle which uses xdrrec for serialization
+   * and authnone for authentication.
+   */
+  xdrrec_create (&(ct->ct_xdrs), sendsz, recvsz,
+		 (caddr_t) ct, readtcp, writetcp);
+  h->cl_ops = (struct clnt_ops *) &tcp_ops;
+  h->cl_private = (caddr_t) ct;
+  h->cl_auth = authnone_create ();
+  return h;
 
 fooy:
-	/*
-	 * Something goofed, free stuff and barf
-	 */
-	if (ct)
-		sys_free((caddr_t)ct);
-	if (h)
-		sys_free((caddr_t)h);
-	return ((CLIENT *)NULL);
+  /*
+   * Something goofed, free stuff and barf
+   */
+  mem_free ((caddr_t) ct, sizeof (struct ct_data));
+  mem_free ((caddr_t) h, sizeof (CLIENT));
+  return ((CLIENT *) NULL);
 }
+#ifdef EXPORT_RPC_SYMBOLS
+libc_hidden_def (clnttcp_create)
+#else
+libc_hidden_nolink_sunrpc (clnttcp_create, GLIBC_2_0)
+#endif
 
 static enum clnt_stat
-clnttcp_call(
-	CLIENT *h,
-	rpcproc_t proc,
-	xdrproc_t xdr_args,
-	void *args_ptr,
-	xdrproc_t xdr_results,
-	void *results_ptr,
-	struct timeval timeout)
+clnttcp_call (CLIENT *h, u_long proc, xdrproc_t xdr_args, caddr_t args_ptr,
+	      xdrproc_t xdr_results, caddr_t results_ptr,
+	      struct timeval timeout)
 {
-	struct ct_data *ct = (struct ct_data *) h->cl_private;
-	XDR *xdrs = &(ct->ct_xdrs);
-	struct rpc_msg reply_msg;
-	u_int32_t x_id;
-	u_int32_t *msg_x_id = &ct->ct_u.ct_mcalli;	/* yuk */
-	bool_t shipnow;
-	int refreshes = 2;
+  struct ct_data *ct = (struct ct_data *) h->cl_private;
+  XDR *xdrs = &(ct->ct_xdrs);
+  struct rpc_msg reply_msg;
+  u_long x_id;
+  u_int32_t *msg_x_id = (u_int32_t *) (ct->ct_mcall);	/* yuk */
+  bool_t shipnow;
+  int refreshes = 2;
 
-	if (!ct->ct_waitset) {
-		ct->ct_wait = timeout;
-	}
+  if (!ct->ct_waitset)
+    {
+      ct->ct_wait = timeout;
+    }
 
-	shipnow =
-	    (xdr_results == (xdrproc_t)0 && timeout.tv_sec == 0
-	    && timeout.tv_usec == 0) ? FALSE : TRUE;
+  shipnow =
+    (xdr_results == (xdrproc_t) 0 && ct->ct_wait.tv_sec == 0
+     && ct->ct_wait.tv_usec == 0) ? FALSE : TRUE;
 
 call_again:
-	xdrs->x_op = XDR_ENCODE;
-	ct->ct_error.re_status = RPC_SUCCESS;
-	x_id = ntohl(--(*msg_x_id));
-	if ((! XDR_PUTBYTES(xdrs, ct->ct_u.ct_mcallc, ct->ct_mpos)) ||
-	    (! XDR_PUTLONG(xdrs, (long *)&proc)) ||
-	    (! AUTH_MARSHALL(h->cl_auth, xdrs)) ||
-	    (! (*xdr_args)(xdrs, args_ptr))) {
-		if (ct->ct_error.re_status == RPC_SUCCESS)
-			ct->ct_error.re_status = RPC_CANTENCODEARGS;
-		(void)xdrrec_endofrecord(xdrs, TRUE);
-		return (ct->ct_error.re_status);
-	}
-	if (! xdrrec_endofrecord(xdrs, shipnow)) {
-		return (ct->ct_error.re_status = RPC_CANTSEND);
-	}
-	if (! shipnow) {
-		return (RPC_SUCCESS);
-	}
-	/*
-	 * Hack to provide rpc-based message passing
-	 */
-	if (timeout.tv_sec == 0 && timeout.tv_usec == 0) {
-		return(ct->ct_error.re_status = RPC_TIMEDOUT);
-	}
+  xdrs->x_op = XDR_ENCODE;
+  ct->ct_error.re_status = RPC_SUCCESS;
+  x_id = ntohl (--(*msg_x_id));
+  if ((!XDR_PUTBYTES (xdrs, ct->ct_mcall, ct->ct_mpos)) ||
+      (!XDR_PUTLONG (xdrs, (long *) &proc)) ||
+      (!AUTH_MARSHALL (h->cl_auth, xdrs)) ||
+      (!(*xdr_args) (xdrs, args_ptr, 0)))
+    {
+      if (ct->ct_error.re_status == RPC_SUCCESS)
+	ct->ct_error.re_status = RPC_CANTENCODEARGS;
+      (void) xdrrec_endofrecord (xdrs, TRUE);
+      return (ct->ct_error.re_status);
+    }
+  if (!xdrrec_endofrecord (xdrs, shipnow))
+    return ct->ct_error.re_status = RPC_CANTSEND;
+  if (!shipnow)
+    return RPC_SUCCESS;
+  /*
+   * Hack to provide rpc-based message passing
+   */
+  if (ct->ct_wait.tv_sec == 0 && ct->ct_wait.tv_usec == 0)
+    {
+      return ct->ct_error.re_status = RPC_TIMEDOUT;
+    }
 
 
-	/*
-	 * Keep receiving until we get a valid transaction id
-	 */
-	xdrs->x_op = XDR_DECODE;
-	while (TRUE) {
-		reply_msg.acpted_rply.ar_verf = _null_auth;
-		reply_msg.acpted_rply.ar_results.where = NULL;
-		reply_msg.acpted_rply.ar_results.proc = (xdrproc_t)xdr_void;
-		if (! xdrrec_skiprecord(xdrs))
-			return (ct->ct_error.re_status);
-		/* now decode and validate the response header */
-		if (! xdr_replymsg(xdrs, &reply_msg)) {
-			if (ct->ct_error.re_status == RPC_SUCCESS)
-				continue;
-			return (ct->ct_error.re_status);
-		}
-		if (reply_msg.rm_xid == x_id)
-			break;
-	}
-
-	/*
-	 * process header
-	 */
-	_seterr_reply(&reply_msg, &(ct->ct_error));
-	if (ct->ct_error.re_status == RPC_SUCCESS) {
-		if (! AUTH_VALIDATE(h->cl_auth, &reply_msg.acpted_rply.ar_verf)) {
-			ct->ct_error.re_status = RPC_AUTHERROR;
-			ct->ct_error.re_why = AUTH_INVALIDRESP;
-		} else if (! (*xdr_results)(xdrs, results_ptr)) {
-			if (ct->ct_error.re_status == RPC_SUCCESS)
-				ct->ct_error.re_status = RPC_CANTDECODERES;
-		}
-		/* free verifier ... */
-		if (reply_msg.acpted_rply.ar_verf.oa_base != NULL) {
-			xdrs->x_op = XDR_FREE;
-			(void)xdr_opaque_auth(xdrs, &(reply_msg.acpted_rply.ar_verf));
-		}
-	}  /* end successful completion */
-	else {
-		/* maybe our credentials need to be refreshed ... */
-		if (refreshes-- && AUTH_REFRESH(h->cl_auth))
-			goto call_again;
-	}  /* end of unsuccessful completion */
+  /*
+   * Keep receiving until we get a valid transaction id
+   */
+  xdrs->x_op = XDR_DECODE;
+  while (TRUE)
+    {
+      reply_msg.acpted_rply.ar_verf = _null_auth;
+      reply_msg.acpted_rply.ar_results.where = NULL;
+      reply_msg.acpted_rply.ar_results.proc = (xdrproc_t)xdr_void;
+      if (!xdrrec_skiprecord (xdrs))
 	return (ct->ct_error.re_status);
+      /* now decode and validate the response header */
+      if (!xdr_replymsg (xdrs, &reply_msg))
+	{
+	  if (ct->ct_error.re_status == RPC_SUCCESS)
+	    continue;
+	  return ct->ct_error.re_status;
+	}
+      if ((u_int32_t) reply_msg.rm_xid == (u_int32_t) x_id)
+	break;
+    }
+
+  /*
+   * process header
+   */
+  _seterr_reply (&reply_msg, &(ct->ct_error));
+  if (ct->ct_error.re_status == RPC_SUCCESS)
+    {
+      if (!AUTH_VALIDATE (h->cl_auth, &reply_msg.acpted_rply.ar_verf))
+	{
+	  ct->ct_error.re_status = RPC_AUTHERROR;
+	  ct->ct_error.re_why = AUTH_INVALIDRESP;
+	}
+      else if (!(*xdr_results) (xdrs, results_ptr, 0))
+	{
+	  if (ct->ct_error.re_status == RPC_SUCCESS)
+	    ct->ct_error.re_status = RPC_CANTDECODERES;
+	}
+      /* free verifier ... */
+      if (reply_msg.acpted_rply.ar_verf.oa_base != NULL)
+	{
+	  xdrs->x_op = XDR_FREE;
+	  (void) xdr_opaque_auth (xdrs, &(reply_msg.acpted_rply.ar_verf));
+	}
+    }				/* end successful completion */
+  else
+    {
+      /* maybe our credentials need to be refreshed ... */
+      if (refreshes-- && AUTH_REFRESH (h->cl_auth))
+	goto call_again;
+    }				/* end of unsuccessful completion */
+  return ct->ct_error.re_status;
 }
 
 static void
-clnttcp_geterr(
-	CLIENT *h,
-	struct rpc_err *errp)
+clnttcp_geterr (CLIENT *h, struct rpc_err *errp)
 {
-	struct ct_data *ct;
+  struct ct_data *ct =
+  (struct ct_data *) h->cl_private;
 
-	ct = (struct ct_data *) h->cl_private;
-	*errp = ct->ct_error;
+  *errp = ct->ct_error;
 }
 
 static bool_t
-clnttcp_freeres(
-	CLIENT *cl,
-	xdrproc_t xdr_res,
-	void *res_ptr)
+clnttcp_freeres (CLIENT *cl, xdrproc_t xdr_res, caddr_t res_ptr)
 {
-	struct ct_data *ct;
-	XDR *xdrs;
+  struct ct_data *ct = (struct ct_data *) cl->cl_private;
+  XDR *xdrs = &(ct->ct_xdrs);
 
-	ct = (struct ct_data *)cl->cl_private;
-	xdrs = &(ct->ct_xdrs);
-	
-	xdrs->x_op = XDR_FREE;
-	return ((*xdr_res)(xdrs, res_ptr));
+  xdrs->x_op = XDR_FREE;
+  return (*xdr_res) (xdrs, res_ptr, 0);
 }
 
 static void
-clnttcp_abort(void)
+clnttcp_abort (void)
 {
 }
-
 
 static bool_t
-clnttcp_control(
-	CLIENT *cl,
-	int request,
-	char *info)
+clnttcp_control (CLIENT *cl, int request, char *info)
 {
-	struct ct_data *ct;
-	struct timeval *tv;
-	socklen_t len;
-	
-	ct = (struct ct_data *)cl->cl_private;
+  struct ct_data *ct = (struct ct_data *) cl->cl_private;
+  u_long ul;
+  u_int32_t ui32;
 
-	switch (request) {
-	case CLSET_FD_CLOSE:
-		ct->ct_closeit = TRUE;
-		break;
-	case CLSET_FD_NCLOSE:
-		ct->ct_closeit = FALSE;
-		break;
-	case CLSET_TIMEOUT:
-		if (info == NULL)
-			return(FALSE);
-		tv = (struct timeval *)info;
-		ct->ct_wait.tv_sec = tv->tv_sec;
-		ct->ct_wait.tv_usec = tv->tv_usec;
-		ct->ct_waitset = TRUE;
-		break;
-	case CLGET_TIMEOUT:
-		if (info == NULL)
-			return(FALSE);
-		*(struct timeval *)info = ct->ct_wait;
-		break;
-	case CLGET_SERVER_ADDR:
-		if (info == NULL)
-			return(FALSE);
-		*(struct sockaddr_in *)info = ct->ct_addr;
-		break;
-	case CLGET_FD:
-		if (info == NULL)
-			return(FALSE);
-		*(int *)info = ct->ct_sock;
-		break;
-	case CLGET_XID:
-		/*
-		 * use the knowledge that xid is the
-		 * first element in the call structure
-		 * This will get the xid of the PREVIOUS call
-		 */
-		if (info == NULL)
-			return(FALSE);
-		*(u_int32_t *)info =
-			ntohl(*(u_int32_t *)&ct->ct_u.ct_mcalli);
-		break;
-	case CLSET_XID:
-		/* This will set the xid of the NEXT call */
-		if (info == NULL)
-			return(FALSE);
-		*(u_int32_t *)&ct->ct_u.ct_mcalli =
-			htonl(*((u_int32_t *)info) + 1);
-		/* decrement by 1 as clnttcp_call() increments once */
-	case CLGET_VERS:
-		/*
-		 * This RELIES on the information that, in the call body,
-		 * the version number field is the fifth field from the
-		 * begining of the RPC header. MUST be changed if the
-		 * call_struct is changed
-		 */
-		if (info == NULL)
-			return(FALSE);
-		*(u_int32_t *)info =
-			ntohl(*(u_int32_t *)(ct->ct_u.ct_mcallc +
-						4 * BYTES_PER_XDR_UNIT));
-		break;
-	case CLSET_VERS:
-		if (info == NULL)
-			return(FALSE);
-		*(u_int32_t *)(ct->ct_u.ct_mcallc +
-			4 * BYTES_PER_XDR_UNIT) =
-			htonl(*(u_int32_t *)info);
-		break;
 
-	case CLGET_PROG:
-		/*
-		 * This RELIES on the information that, in the call body,
-		 * the program number field is the fourth field from the
-		 * begining of the RPC header. MUST be changed if the
-		 * call_struct is changed
-		 */
-		if (info == NULL)
-			return(FALSE);
-		*(u_int32_t *)info = ntohl(*(u_int32_t *)(ct->ct_u.ct_mcallc +
-						3 * BYTES_PER_XDR_UNIT));
-		break;
-
-	case CLSET_PROG:
-		if (info == NULL)
-			return(FALSE);
-		*(u_int32_t *)(ct->ct_u.ct_mcallc + 3 * BYTES_PER_XDR_UNIT)
-				= htonl(*(u_int32_t *)info);
-		break;
-
-	case CLGET_LOCAL_ADDR:
-		len = sizeof(struct sockaddr);
-		if (getsockname(ct->ct_sock, (struct sockaddr *)info, &len) <0)
-			return(FALSE);
-		break;
-
-	case CLGET_RETRY_TIMEOUT:
-	case CLSET_RETRY_TIMEOUT:
-	case CLGET_SVC_ADDR:
-	case CLSET_SVC_ADDR:
-	case CLSET_PUSH_TIMOD:
-	case CLSET_POP_TIMOD:
-	default:
-		return (FALSE);
-	}
-	return (TRUE);
+  switch (request)
+    {
+    case CLSET_FD_CLOSE:
+      ct->ct_closeit = TRUE;
+      break;
+    case CLSET_FD_NCLOSE:
+      ct->ct_closeit = FALSE;
+      break;
+    case CLSET_TIMEOUT:
+      ct->ct_wait = *(struct timeval *) info;
+      ct->ct_waitset = TRUE;
+      break;
+    case CLGET_TIMEOUT:
+      *(struct timeval *) info = ct->ct_wait;
+      break;
+    case CLGET_SERVER_ADDR:
+      *(struct sockaddr_in *) info = ct->ct_addr;
+      break;
+    case CLGET_FD:
+      *(int *)info = ct->ct_sock;
+      break;
+    case CLGET_XID:
+      /*
+       * use the knowledge that xid is the
+       * first element in the call structure *.
+       * This will get the xid of the PREVIOUS call
+       */
+      memcpy (&ui32, ct->ct_mcall, sizeof (ui32));
+      ul = ntohl (ui32);
+      memcpy (info, &ul, sizeof (ul));
+      break;
+    case CLSET_XID:
+      /* This will set the xid of the NEXT call */
+      memcpy (&ul, info, sizeof (ul));
+      ui32 = htonl (ul - 1);
+      memcpy (ct->ct_mcall, &ui32, sizeof (ui32));
+      /* decrement by 1 as clnttcp_call() increments once */
+      break;
+    case CLGET_VERS:
+      /*
+       * This RELIES on the information that, in the call body,
+       * the version number field is the fifth field from the
+       * beginning of the RPC header. MUST be changed if the
+       * call_struct is changed
+       */
+      memcpy (&ui32, ct->ct_mcall + 4 * BYTES_PER_XDR_UNIT, sizeof (ui32));
+      ul = ntohl (ui32);
+      memcpy (info, &ul, sizeof (ul));
+      break;
+    case CLSET_VERS:
+      memcpy (&ul, info, sizeof (ul));
+      ui32 = htonl (ul);
+      memcpy (ct->ct_mcall + 4 * BYTES_PER_XDR_UNIT, &ui32, sizeof (ui32));
+      break;
+    case CLGET_PROG:
+      /*
+       * This RELIES on the information that, in the call body,
+       * the program number field is the  field from the
+       * beginning of the RPC header. MUST be changed if the
+       * call_struct is changed
+       */
+      memcpy (&ui32, ct->ct_mcall + 3 * BYTES_PER_XDR_UNIT, sizeof (ui32));
+      ul = ntohl (ui32);
+      memcpy (info, &ul, sizeof (ul));
+      break;
+    case CLSET_PROG:
+      memcpy (&ul, info, sizeof (ul));
+      ui32 = htonl (ul);
+      memcpy (ct->ct_mcall + 3 * BYTES_PER_XDR_UNIT, &ui32, sizeof (ui32));
+      break;
+    /* The following are only possible with TI-RPC */
+    case CLGET_RETRY_TIMEOUT:
+    case CLSET_RETRY_TIMEOUT:
+    case CLGET_SVC_ADDR:
+    case CLSET_SVC_ADDR:
+    case CLSET_PUSH_TIMOD:
+    case CLSET_POP_TIMOD:
+    default:
+      return FALSE;
+    }
+  return TRUE;
 }
 
 
 static void
-clnttcp_destroy(
-	CLIENT *h)
+clnttcp_destroy (CLIENT *h)
 {
-	struct ct_data *ct =
-	    (struct ct_data *) h->cl_private;
+  struct ct_data *ct =
+  (struct ct_data *) h->cl_private;
 
-	if (ct->ct_closeit) {
-		(void)_RPC_close(ct->ct_sock);
-	}
-	XDR_DESTROY(&(ct->ct_xdrs));
-	sys_free(ct);
-	sys_free(h);
+  if (ct->ct_closeit)
+    {
+      (void) __close (ct->ct_sock);
+    }
+  XDR_DESTROY (&(ct->ct_xdrs));
+  mem_free ((caddr_t) ct, sizeof (struct ct_data));
+  mem_free ((caddr_t) h, sizeof (CLIENT));
 }
 
 /*
@@ -506,98 +467,68 @@ clnttcp_destroy(
  * around for the rpc level.
  */
 static int
-readtcp(
-	char *_ct,
-	char *buf,
-	int len)
+readtcp (char *ctptr, char *buf, int len)
 {
-	struct ct_data *ct = (struct ct_data*) _ct;
-	fd_set *fds, readfds;
-	struct timeval start, after, duration, delta, tmp, tv;
-	int r, save_errno;
+  struct ct_data *ct = (struct ct_data *)ctptr;
+  struct pollfd fd;
+  int milliseconds = (ct->ct_wait.tv_sec * 1000) +
+    (ct->ct_wait.tv_usec / 1000);
 
-	if (len == 0)
-		return (0);
+  if (len == 0)
+    return 0;
 
-	if (ct->ct_sock + 1 > FD_SETSIZE) {
-		int bytes = howmany(ct->ct_sock + 1, NFDBITS) * sizeof(fd_mask);
-		fds = (fd_set *)malloc(bytes);
-		if (fds == NULL)
-			return (-1);
-		memset(fds, 0, bytes);
-	} else {
-		fds = &readfds;
-		FD_ZERO(fds);
-	}
-
-	gettimeofday(&start, NULL);
-	delta = ct->ct_wait;
-	while (TRUE) {
-		/* XXX we know the other bits are still clear */
-		FD_SET(ct->ct_sock, fds);
-		tv = delta;	/* in case select writes back */
-		r = select(ct->ct_sock+1, fds, NULL, NULL, &tv);
-		save_errno = errno;
-
-		gettimeofday(&after, NULL);
-		timersub(&start, &after, &duration);
-		timersub(&ct->ct_wait, &duration, &tmp);
-		delta = tmp;
-		if (delta.tv_sec < 0 || !timerisset(&delta))
-			r = 0;
-
-		switch (r) {
-		case 0:
-			if (fds != &readfds)
-				free(fds);
-			ct->ct_error.re_status = RPC_TIMEDOUT;
-			return (-1);
-
-		case -1:
-			if (errno == EINTR)
-				continue;
-			if (fds != &readfds)
-				free(fds);
-			ct->ct_error.re_status = RPC_CANTRECV;
-			ct->ct_error.re_errno = save_errno;
-			return (-1);
-		}
-		break;
-	}
-	switch (len = _RPC_read(ct->ct_sock, buf, len)) {
-
+  fd.fd = ct->ct_sock;
+  fd.events = POLLIN;
+  while (TRUE)
+    {
+      switch (__poll(&fd, 1, milliseconds))
+	{
 	case 0:
-		/* premature eof */
-		ct->ct_error.re_errno = ECONNRESET;
-		ct->ct_error.re_status = RPC_CANTRECV;
-		len = -1;  /* it's really an error */
-		break;
+	  ct->ct_error.re_status = RPC_TIMEDOUT;
+	  return -1;
 
 	case -1:
-		ct->ct_error.re_errno = errno;
-		ct->ct_error.re_status = RPC_CANTRECV;
-		break;
+	  if (errno == EINTR)
+	    continue;
+	  ct->ct_error.re_status = RPC_CANTRECV;
+	  ct->ct_error.re_errno = errno;
+	  return -1;
 	}
-	return (len);
+      break;
+    }
+  switch (len = __read (ct->ct_sock, buf, len))
+    {
+
+    case 0:
+      /* premature eof */
+      ct->ct_error.re_errno = ECONNRESET;
+      ct->ct_error.re_status = RPC_CANTRECV;
+      len = -1;			/* it's really an error */
+      break;
+
+    case -1:
+      ct->ct_error.re_errno = errno;
+      ct->ct_error.re_status = RPC_CANTRECV;
+      break;
+    }
+  return len;
 }
 
 static int
-writetcp(
-	char *_ct,
-	char *buf,
-	int len)
+writetcp (char *ctptr, char *buf, int len)
 {
-	struct ct_data *ct = (struct ct_data *) _ct;
-	int i, cnt;
+  int i, cnt;
+  struct ct_data *ct = (struct ct_data*)ctptr;
 
-	for (cnt = len; cnt > 0; cnt -= i, buf += i) {
-		if ((i = _RPC_write(ct->ct_sock, buf, cnt)) == -1) {
-			ct->ct_error.re_errno = errno;
-			ct->ct_error.re_status = RPC_CANTSEND;
-			return (-1);
-		}
+  for (cnt = len; cnt > 0; cnt -= i, buf += i)
+    {
+      if ((i = __write (ct->ct_sock, buf, cnt)) == -1)
+	{
+	  ct->ct_error.re_errno = errno;
+	  ct->ct_error.re_status = RPC_CANTSEND;
+	  return -1;
 	}
-	return (len);
+    }
+  return len;
 }
-
 #endif /* LW_CFG_NET_RPC_EN > 0 */

@@ -93,6 +93,7 @@ int  pthread_create (pthread_t              *pthread,
     LW_CLASS_THREADATTR     lwattr;
     PLW_CLASS_TCB           ptcbCur;
     PCHAR                   pcName = "pthread";
+    INT                     iErrNo;
     
 #if LW_CFG_POSIXEX_EN > 0
     __PX_VPROC_CONTEXT     *pvpCtx = _posixVprocCtxGet();
@@ -148,21 +149,20 @@ int  pthread_create (pthread_t              *pthread,
      */
     ulId = API_ThreadInit(pcName, (PTHREAD_START_ROUTINE)start_routine, &lwattr, LW_NULL);
     if (ulId == 0) {
-        switch (errno) {
+        iErrNo = errno;
+        switch (iErrNo) {
         
         case ERROR_THREAD_FULL:
             errno = EAGAIN;
-            break;
+            return  (EAGAIN);
             
         case ERROR_KERNEL_LOW_MEMORY:
             errno = ENOMEM;
-            break;
+            return  (ENOMEM);
         
         default:
-            break;
+            return  (iErrNo);
         }
-        
-        return  (errno);
     }
     
     if (pattr) {
@@ -196,12 +196,20 @@ int  pthread_create (pthread_t              *pthread,
 LW_API 
 int  pthread_cancel (pthread_t  thread)
 {
+    ULONG   ulError;
+
     PX_ID_VERIFY(thread, pthread_t);
     
-    if (API_ThreadCancel(&thread)) {
-        return  (errno);
-    } else {
-        return  (ERROR_NONE);
+    ulError = API_ThreadCancel(&thread);
+    switch (ulError) {
+    
+    case ERROR_KERNEL_HANDLE_NULL:
+    case ERROR_THREAD_NULL:
+        errno = ESRCH;
+        return  (ESRCH);
+        
+    default:
+        return  ((int)ulError);
     }
 }
 /*********************************************************************************************************
@@ -364,7 +372,7 @@ int  pthread_yield (void)
 LW_API 
 int  pthread_kill (pthread_t  thread, int signo)
 {
-    int  error;
+    int  error, err_no;
 
     PX_ID_VERIFY(thread, pthread_t);
     
@@ -375,7 +383,17 @@ int  pthread_kill (pthread_t  thread, int signo)
     
     error = kill(thread, signo);
     if (error < ERROR_NONE) {
-        return  (errno);
+        err_no = errno;
+        switch (err_no) {
+    
+        case ERROR_KERNEL_HANDLE_NULL:
+        case ERROR_THREAD_NULL:
+            errno = ESRCH;
+            return  (ESRCH);
+            
+        default:
+            return  (err_no);
+        }
     
     } else {
         return  (error);
@@ -395,11 +413,21 @@ int  pthread_kill (pthread_t  thread, int signo)
 LW_API 
 int  pthread_sigmask (int  how, const sigset_t  *newmask, sigset_t *oldmask)
 {
-    int  error;
+    int  error, err_no;
     
     error = sigprocmask(how, newmask, oldmask);
     if (error < ERROR_NONE) {
-        return  (errno);
+        err_no = errno;
+        switch (err_no) {
+    
+        case ERROR_KERNEL_HANDLE_NULL:
+        case ERROR_THREAD_NULL:
+            errno = ESRCH;
+            return  (ESRCH);
+            
+        default:
+            return  (err_no);
+        }
     
     } else {
         return  (error);

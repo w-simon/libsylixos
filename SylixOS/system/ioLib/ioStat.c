@@ -271,7 +271,6 @@ INT  lstat (CPCHAR  pcName, struct stat *pstat)
     }
     
     if (ioFullFileNameGet(pcName, &pdevhdrHdr, cFullFileName) != ERROR_NONE) {
-        _ErrorHandle(ENOENT);
         return  (PX_ERROR);
     }
     

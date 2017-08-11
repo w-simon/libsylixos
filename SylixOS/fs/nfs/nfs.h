@@ -4,9 +4,7 @@
  */
 
 #ifndef _NFS_H_RPCGEN
-#define	_NFS_H_RPCGEN
-
-#include "kernrpc/rpc.h"
+#define _NFS_H_RPCGEN
 
 #ifdef __cplusplus
 extern "C" {
@@ -15,28 +13,63 @@ extern "C" {
 /* This file is copied from RFC1813
  * Copyright 1995 Sun Micrososystems (I assume)
  */
-#define	NFS3_FHSIZE 64
-#define	NFS3_COOKIEVERFSIZE 8
-#define	NFS3_CREATEVERFSIZE 8
-#define	NFS3_WRITEVERFSIZE 8
-#define	ACCESS3_READ 0x0001
-#define	ACCESS3_LOOKUP 0x0002
-#define	ACCESS3_MODIFY 0x0004
-#define	ACCESS3_EXTEND 0x0008
-#define	ACCESS3_DELETE 0x0010
-#define	ACCESS3_EXECUTE 0x0020
-#define	FSF3_LINK 0x0001
-#define	FSF3_SYMLINK 0x0002
-#define	FSF3_HOMOGENEOUS 0x0008
-#define	FSF3_CANSETTIME 0x0010
+#include <stdint.h>
+#include "kernrpc/rpc.h"
 
+/* for lack of a better place */
+#ifdef __GNUC__
+#define U(x) x __attribute__ ((unused))
+#else
+#define U(x) x
+#endif
+
+#define UNIX_PATH_MAX 108
+
+#define NFS_PORT 2049
+#define NFS_MAXDATA_TCP 524288
+#define NFS_MAXDATA_UDP 32768
+#define NFS_MAX_UDP_PACKET (NFS_MAXDATA_UDP + 4096) /* The extra 4096 bytes are for the RPC header */
+#define NFS_MAXPATHLEN 1024
+#define NFS_MAXNAMLEN 255
+#define NFS_FIFO_DEV -1
+#define NFSMODE_FMT 0170000
+#define NFSMODE_DIR 0040000
+#define NFSMODE_CHR 0020000
+#define NFSMODE_BLK 0060000
+#define NFSMODE_REG 0100000
+#define NFSMODE_LNK 0120000
+#define NFSMODE_SOCK 0140000
+#define NFSMODE_FIFO 0010000
+
+typedef char *filename;
+
+typedef char *nfspath;
+#define NFS3_FHSIZE 64
+#define NFS3_COOKIEVERFSIZE 8
+#define NFS3_CREATEVERFSIZE 8
+#define NFS3_WRITEVERFSIZE 8
+
+#ifndef HAVE_UINT64
 typedef uint64_t uint64;
+#endif
 
+#ifndef HAVE_INT64
 typedef int64_t int64;
+#endif
 
+#ifndef HAVE_UINT32
 typedef uint32_t uint32;
+#endif
 
+#ifndef HAVE_INT32
 typedef int32_t int32;
+#endif
+
+#ifndef HAVE_OFF64_T
+#ifdef __APPLE__
+typedef off_t off64_t;
+#endif
+#endif
 
 typedef char *filename3;
 
@@ -98,29 +131,15 @@ enum nfsstat3 {
 typedef enum nfsstat3 nfsstat3;
 
 enum ftype3 {
-	NFS3REG = 1,
-	NFS3DIR = 2,
-	NFS3BLK = 3,
-	NFS3CHR = 4,
-	NFS3LNK = 5,
-	NFS3SOCK = 6,
-	NFS3FIFO = 7
+	NF3REG = 1,
+	NF3DIR = 2,
+	NF3BLK = 3,
+	NF3CHR = 4,
+	NF3LNK = 5,
+	NF3SOCK = 6,
+	NF3FIFO = 7
 };
 typedef enum ftype3 ftype3;
-
-enum stable_how {
-	UNSTABLE = 0,
-	DATA_SYNC = 1,
-	FILE_SYNC = 2
-};
-typedef enum stable_how stable_how;
-
-enum createmode3 {
-	UNCHECKED = 0,
-	GUARDED = 1,
-	EXCLUSIVE = 2
-};
-typedef enum createmode3 createmode3;
 
 struct specdata3 {
 	uint32 specdata1;
@@ -325,9 +344,9 @@ struct LOOKUP3args {
 typedef struct LOOKUP3args LOOKUP3args;
 
 struct LOOKUP3resok {
+	post_op_attr dir_attributes;
 	nfs_fh3 object;
 	post_op_attr obj_attributes;
-	post_op_attr dir_attributes;
 };
 typedef struct LOOKUP3resok LOOKUP3resok;
 
@@ -344,6 +363,13 @@ struct LOOKUP3res {
 	} LOOKUP3res_u;
 };
 typedef struct LOOKUP3res LOOKUP3res;
+
+#define ACCESS3_READ 0x0001
+#define ACCESS3_LOOKUP 0x0002
+#define ACCESS3_MODIFY 0x0004
+#define ACCESS3_EXTEND 0x0008
+#define ACCESS3_DELETE 0x0010
+#define ACCESS3_EXECUTE 0x0020
 
 struct ACCESS3args {
 	nfs_fh3 object;
@@ -428,6 +454,13 @@ struct READ3res {
 };
 typedef struct READ3res READ3res;
 
+enum stable_how {
+	UNSTABLE = 0,
+	DATA_SYNC = 1,
+	FILE_SYNC = 2
+};
+typedef enum stable_how stable_how;
+
 struct WRITE3args {
 	nfs_fh3 file;
 	offset3 offset;
@@ -462,6 +495,13 @@ struct WRITE3res {
 };
 typedef struct WRITE3res WRITE3res;
 
+enum createmode3 {
+	UNCHECKED = 0,
+	GUARDED = 1,
+	EXCLUSIVE = 2
+};
+typedef enum createmode3 createmode3;
+
 struct createhow3 {
 	createmode3 mode;
 	union {
@@ -478,9 +518,9 @@ struct CREATE3args {
 typedef struct CREATE3args CREATE3args;
 
 struct CREATE3resok {
+	wcc_data dir_wcc;
 	post_op_fh3 obj;
 	post_op_attr obj_attributes;
-	wcc_data dir_wcc;
 };
 typedef struct CREATE3resok CREATE3resok;
 
@@ -505,9 +545,9 @@ struct MKDIR3args {
 typedef struct MKDIR3args MKDIR3args;
 
 struct MKDIR3resok {
+	wcc_data dir_wcc;
 	post_op_fh3 obj;
 	post_op_attr obj_attributes;
-	wcc_data dir_wcc;
 };
 typedef struct MKDIR3resok MKDIR3resok;
 
@@ -538,9 +578,9 @@ struct SYMLINK3args {
 typedef struct SYMLINK3args SYMLINK3args;
 
 struct SYMLINK3resok {
+	wcc_data dir_wcc;
 	post_op_fh3 obj;
 	post_op_attr obj_attributes;
-	wcc_data dir_wcc;
 };
 typedef struct SYMLINK3resok SYMLINK3resok;
 
@@ -580,9 +620,9 @@ struct MKNOD3args {
 typedef struct MKNOD3args MKNOD3args;
 
 struct MKNOD3resok {
+	wcc_data dir_wcc;
 	post_op_fh3 obj;
 	post_op_attr obj_attributes;
-	wcc_data dir_wcc;
 };
 typedef struct MKNOD3resok MKNOD3resok;
 
@@ -821,6 +861,10 @@ struct FSSTAT3res {
 	} FSSTAT3res_u;
 };
 typedef struct FSSTAT3res FSSTAT3res;
+#define FSF3_LINK 0x0001
+#define FSF3_SYMLINK 0x0002
+#define FSF3_HOMOGENEOUS 0x0008
+#define FSF3_CANSETTIME 0x0010
 
 struct FSINFO3args {
 	nfs_fh3 fsroot;
@@ -913,187 +957,53 @@ struct COMMIT3res {
 };
 typedef struct COMMIT3res COMMIT3res;
 
-#define	NFS_PROGRAM	100003
-#define	NFS_V3	3
+#define NFS3_PROGRAM 100003
+#define NFS_V3 3
 
-#define	NFSPROC3_NULL	0
+#define NFSPROC3_NULL   0
 extern  enum clnt_stat nfsproc3_null_3(void *, CLIENT *);
-#define	NFSPROC3_GETATTR	1
+#define NFSPROC3_GETATTR    1
 extern  enum clnt_stat nfsproc3_getattr_3(GETATTR3args , GETATTR3res *, CLIENT *);
-#define	NFSPROC3_SETATTR	2
+#define NFSPROC3_SETATTR    2
 extern  enum clnt_stat nfsproc3_setattr_3(SETATTR3args , SETATTR3res *, CLIENT *);
-#define	NFSPROC3_LOOKUP	3
+#define NFSPROC3_LOOKUP 3
 extern  enum clnt_stat nfsproc3_lookup_3(LOOKUP3args , LOOKUP3res *, CLIENT *);
-#define	NFSPROC3_ACCESS	4
+#define NFSPROC3_ACCESS 4
 extern  enum clnt_stat nfsproc3_access_3(ACCESS3args , ACCESS3res *, CLIENT *);
-#define	NFSPROC3_READLINK	5
+#define NFSPROC3_READLINK   5
 extern  enum clnt_stat nfsproc3_readlink_3(READLINK3args , READLINK3res *, CLIENT *);
-#define	NFSPROC3_READ	6
+#define NFSPROC3_READ   6
 extern  enum clnt_stat nfsproc3_read_3(READ3args , READ3res *, CLIENT *);
-#define	NFSPROC3_WRITE	7
+#define NFSPROC3_WRITE  7
 extern  enum clnt_stat nfsproc3_write_3(WRITE3args , WRITE3res *, CLIENT *);
-#define	NFSPROC3_CREATE	8
+#define NFSPROC3_CREATE 8
 extern  enum clnt_stat nfsproc3_create_3(CREATE3args , CREATE3res *, CLIENT *);
-#define	NFSPROC3_MKDIR	9
+#define NFSPROC3_MKDIR  9
 extern  enum clnt_stat nfsproc3_mkdir_3(MKDIR3args , MKDIR3res *, CLIENT *);
-#define	NFSPROC3_SYMLINK	10
+#define NFSPROC3_SYMLINK    10
 extern  enum clnt_stat nfsproc3_symlink_3(SYMLINK3args , SYMLINK3res *, CLIENT *);
-#define	NFSPROC3_MKNOD	11
+#define NFSPROC3_MKNOD  11
 extern  enum clnt_stat nfsproc3_mknod_3(MKNOD3args , MKNOD3res *, CLIENT *);
-#define	NFSPROC3_REMOVE	12
+#define NFSPROC3_REMOVE 12
 extern  enum clnt_stat nfsproc3_remove_3(REMOVE3args , REMOVE3res *, CLIENT *);
-#define	NFSPROC3_RMDIR	13
+#define NFSPROC3_RMDIR  13
 extern  enum clnt_stat nfsproc3_rmdir_3(RMDIR3args , RMDIR3res *, CLIENT *);
-#define	NFSPROC3_RENAME	14
+#define NFSPROC3_RENAME 14
 extern  enum clnt_stat nfsproc3_rename_3(RENAME3args , RENAME3res *, CLIENT *);
-#define	NFSPROC3_LINK	15
+#define NFSPROC3_LINK   15
 extern  enum clnt_stat nfsproc3_link_3(LINK3args , LINK3res *, CLIENT *);
-#define	NFSPROC3_READDIR	16
+#define NFSPROC3_READDIR    16
 extern  enum clnt_stat nfsproc3_readdir_3(READDIR3args , READDIR3res *, CLIENT *);
-#define	NFSPROC3_READDIRPLUS	17
+#define NFSPROC3_READDIRPLUS    17
 extern  enum clnt_stat nfsproc3_readdirplus_3(READDIRPLUS3args , READDIRPLUS3res *, CLIENT *);
-#define	NFSPROC3_FSSTAT	18
+#define NFSPROC3_FSSTAT 18
 extern  enum clnt_stat nfsproc3_fsstat_3(FSSTAT3args , FSSTAT3res *, CLIENT *);
-#define	NFSPROC3_FSINFO	19
+#define NFSPROC3_FSINFO 19
 extern  enum clnt_stat nfsproc3_fsinfo_3(FSINFO3args , FSINFO3res *, CLIENT *);
-#define	NFSPROC3_PATHCONF	20
+#define NFSPROC3_PATHCONF   20
 extern  enum clnt_stat nfsproc3_pathconf_3(PATHCONF3args , PATHCONF3res *, CLIENT *);
-#define	NFSPROC3_COMMIT	21
+#define NFSPROC3_COMMIT 21
 extern  enum clnt_stat nfsproc3_commit_3(COMMIT3args , COMMIT3res *, CLIENT *);
-
-/* the xdr functions */
-
-extern  bool_t xdr_uint64(XDR *, uint64*);
-extern  bool_t xdr_int64(XDR *, int64*);
-extern  bool_t xdr_uint32(XDR *, uint32*);
-extern  bool_t xdr_int32(XDR *, int32*);
-extern  bool_t xdr_filename3(XDR *, filename3*);
-extern  bool_t xdr_nfspath3(XDR *, nfspath3*);
-extern  bool_t xdr_fileid3(XDR *, fileid3*);
-extern  bool_t xdr_cookie3(XDR *, cookie3*);
-extern  bool_t xdr_cookieverf3(XDR *, cookieverf3);
-extern  bool_t xdr_createverf3(XDR *, createverf3);
-extern  bool_t xdr_writeverf3(XDR *, writeverf3);
-extern  bool_t xdr_uid3(XDR *, uid3*);
-extern  bool_t xdr_gid3(XDR *, gid3*);
-extern  bool_t xdr_size3(XDR *, size3*);
-extern  bool_t xdr_offset3(XDR *, offset3*);
-extern  bool_t xdr_mode3(XDR *, mode3*);
-extern  bool_t xdr_count3(XDR *, count3*);
-extern  bool_t xdr_nfsstat3(XDR *, nfsstat3*);
-extern  bool_t xdr_ftype3(XDR *, ftype3*);
-extern  bool_t xdr_stable_how(XDR *, stable_how*);
-extern  bool_t xdr_createmode3(XDR *, createmode3*);
-extern  bool_t xdr_specdata3(XDR *, specdata3*);
-extern  bool_t xdr_nfs_fh3(XDR *, nfs_fh3*);
-extern  bool_t xdr_nfstime3(XDR *, nfstime3*);
-extern  bool_t xdr_fattr3(XDR *, fattr3*);
-extern  bool_t xdr_post_op_attr(XDR *, post_op_attr*);
-extern  bool_t xdr_wcc_attr(XDR *, wcc_attr*);
-extern  bool_t xdr_pre_op_attr(XDR *, pre_op_attr*);
-extern  bool_t xdr_wcc_data(XDR *, wcc_data*);
-extern  bool_t xdr_post_op_fh3(XDR *, post_op_fh3*);
-extern  bool_t xdr_time_how(XDR *, time_how*);
-extern  bool_t xdr_set_mode3(XDR *, set_mode3*);
-extern  bool_t xdr_set_uid3(XDR *, set_uid3*);
-extern  bool_t xdr_set_gid3(XDR *, set_gid3*);
-extern  bool_t xdr_set_size3(XDR *, set_size3*);
-extern  bool_t xdr_set_atime(XDR *, set_atime*);
-extern  bool_t xdr_set_mtime(XDR *, set_mtime*);
-extern  bool_t xdr_sattr3(XDR *, sattr3*);
-extern  bool_t xdr_diropargs3(XDR *, diropargs3*);
-extern  bool_t xdr_GETATTR3args(XDR *, GETATTR3args*);
-extern  bool_t xdr_GETATTR3resok(XDR *, GETATTR3resok*);
-extern  bool_t xdr_GETATTR3res(XDR *, GETATTR3res*);
-extern  bool_t xdr_sattrguard3(XDR *, sattrguard3*);
-extern  bool_t xdr_SETATTR3args(XDR *, SETATTR3args*);
-extern  bool_t xdr_SETATTR3resok(XDR *, SETATTR3resok*);
-extern  bool_t xdr_SETATTR3resfail(XDR *, SETATTR3resfail*);
-extern  bool_t xdr_SETATTR3res(XDR *, SETATTR3res*);
-extern  bool_t xdr_LOOKUP3args(XDR *, LOOKUP3args*);
-extern  bool_t xdr_LOOKUP3resok(XDR *, LOOKUP3resok*);
-extern  bool_t xdr_LOOKUP3resfail(XDR *, LOOKUP3resfail*);
-extern  bool_t xdr_LOOKUP3res(XDR *, LOOKUP3res*);
-extern  bool_t xdr_ACCESS3args(XDR *, ACCESS3args*);
-extern  bool_t xdr_ACCESS3resok(XDR *, ACCESS3resok*);
-extern  bool_t xdr_ACCESS3resfail(XDR *, ACCESS3resfail*);
-extern  bool_t xdr_ACCESS3res(XDR *, ACCESS3res*);
-extern  bool_t xdr_READLINK3args(XDR *, READLINK3args*);
-extern  bool_t xdr_READLINK3resok(XDR *, READLINK3resok*);
-extern  bool_t xdr_READLINK3resfail(XDR *, READLINK3resfail*);
-extern  bool_t xdr_READLINK3res(XDR *, READLINK3res*);
-extern  bool_t xdr_READ3args(XDR *, READ3args*);
-extern  bool_t xdr_READ3resok(XDR *, READ3resok*);
-extern  bool_t xdr_READ3resfail(XDR *, READ3resfail*);
-extern  bool_t xdr_READ3res(XDR *, READ3res*);
-extern  bool_t xdr_WRITE3args(XDR *, WRITE3args*);
-extern  bool_t xdr_WRITE3resok(XDR *, WRITE3resok*);
-extern  bool_t xdr_WRITE3resfail(XDR *, WRITE3resfail*);
-extern  bool_t xdr_WRITE3res(XDR *, WRITE3res*);
-extern  bool_t xdr_createhow3(XDR *, createhow3*);
-extern  bool_t xdr_CREATE3args(XDR *, CREATE3args*);
-extern  bool_t xdr_CREATE3resok(XDR *, CREATE3resok*);
-extern  bool_t xdr_CREATE3resfail(XDR *, CREATE3resfail*);
-extern  bool_t xdr_CREATE3res(XDR *, CREATE3res*);
-extern  bool_t xdr_MKDIR3args(XDR *, MKDIR3args*);
-extern  bool_t xdr_MKDIR3resok(XDR *, MKDIR3resok*);
-extern  bool_t xdr_MKDIR3resfail(XDR *, MKDIR3resfail*);
-extern  bool_t xdr_MKDIR3res(XDR *, MKDIR3res*);
-extern  bool_t xdr_symlinkdata3(XDR *, symlinkdata3*);
-extern  bool_t xdr_SYMLINK3args(XDR *, SYMLINK3args*);
-extern  bool_t xdr_SYMLINK3resok(XDR *, SYMLINK3resok*);
-extern  bool_t xdr_SYMLINK3resfail(XDR *, SYMLINK3resfail*);
-extern  bool_t xdr_SYMLINK3res(XDR *, SYMLINK3res*);
-extern  bool_t xdr_devicedata3(XDR *, devicedata3*);
-extern  bool_t xdr_mknoddata3(XDR *, mknoddata3*);
-extern  bool_t xdr_MKNOD3args(XDR *, MKNOD3args*);
-extern  bool_t xdr_MKNOD3resok(XDR *, MKNOD3resok*);
-extern  bool_t xdr_MKNOD3resfail(XDR *, MKNOD3resfail*);
-extern  bool_t xdr_MKNOD3res(XDR *, MKNOD3res*);
-extern  bool_t xdr_REMOVE3args(XDR *, REMOVE3args*);
-extern  bool_t xdr_REMOVE3resok(XDR *, REMOVE3resok*);
-extern  bool_t xdr_REMOVE3resfail(XDR *, REMOVE3resfail*);
-extern  bool_t xdr_REMOVE3res(XDR *, REMOVE3res*);
-extern  bool_t xdr_RMDIR3args(XDR *, RMDIR3args*);
-extern  bool_t xdr_RMDIR3resok(XDR *, RMDIR3resok*);
-extern  bool_t xdr_RMDIR3resfail(XDR *, RMDIR3resfail*);
-extern  bool_t xdr_RMDIR3res(XDR *, RMDIR3res*);
-extern  bool_t xdr_RENAME3args(XDR *, RENAME3args*);
-extern  bool_t xdr_RENAME3resok(XDR *, RENAME3resok*);
-extern  bool_t xdr_RENAME3resfail(XDR *, RENAME3resfail*);
-extern  bool_t xdr_RENAME3res(XDR *, RENAME3res*);
-extern  bool_t xdr_LINK3args(XDR *, LINK3args*);
-extern  bool_t xdr_LINK3resok(XDR *, LINK3resok*);
-extern  bool_t xdr_LINK3resfail(XDR *, LINK3resfail*);
-extern  bool_t xdr_LINK3res(XDR *, LINK3res*);
-extern  bool_t xdr_READDIR3args(XDR *, READDIR3args*);
-extern  bool_t xdr_entry3(XDR *, entry3*);
-extern  bool_t xdr_dirlist3(XDR *, dirlist3*);
-extern  bool_t xdr_READDIR3resok(XDR *, READDIR3resok*);
-extern  bool_t xdr_READDIR3resfail(XDR *, READDIR3resfail*);
-extern  bool_t xdr_READDIR3res(XDR *, READDIR3res*);
-extern  bool_t xdr_READDIRPLUS3args(XDR *, READDIRPLUS3args*);
-extern  bool_t xdr_entryplus3(XDR *, entryplus3*);
-extern  bool_t xdr_dirlistplus3(XDR *, dirlistplus3*);
-extern  bool_t xdr_READDIRPLUS3resok(XDR *, READDIRPLUS3resok*);
-extern  bool_t xdr_READDIRPLUS3resfail(XDR *, READDIRPLUS3resfail*);
-extern  bool_t xdr_READDIRPLUS3res(XDR *, READDIRPLUS3res*);
-extern  bool_t xdr_FSSTAT3args(XDR *, FSSTAT3args*);
-extern  bool_t xdr_FSSTAT3resok(XDR *, FSSTAT3resok*);
-extern  bool_t xdr_FSSTAT3resfail(XDR *, FSSTAT3resfail*);
-extern  bool_t xdr_FSSTAT3res(XDR *, FSSTAT3res*);
-extern  bool_t xdr_FSINFO3args(XDR *, FSINFO3args*);
-extern  bool_t xdr_FSINFO3resok(XDR *, FSINFO3resok*);
-extern  bool_t xdr_FSINFO3resfail(XDR *, FSINFO3resfail*);
-extern  bool_t xdr_FSINFO3res(XDR *, FSINFO3res*);
-extern  bool_t xdr_PATHCONF3args(XDR *, PATHCONF3args*);
-extern  bool_t xdr_PATHCONF3resok(XDR *, PATHCONF3resok*);
-extern  bool_t xdr_PATHCONF3resfail(XDR *, PATHCONF3resfail*);
-extern  bool_t xdr_PATHCONF3res(XDR *, PATHCONF3res*);
-extern  bool_t xdr_COMMIT3args(XDR *, COMMIT3args*);
-extern  bool_t xdr_COMMIT3resok(XDR *, COMMIT3resok*);
-extern  bool_t xdr_COMMIT3resfail(XDR *, COMMIT3resfail*);
-extern  bool_t xdr_COMMIT3res(XDR *, COMMIT3res*);
 
 #ifdef __cplusplus
 }

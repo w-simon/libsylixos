@@ -205,6 +205,11 @@ ULONG  _PathCat (CPCHAR  pcDirName,
 	    return  (ERROR_NONE);
 	}
 	
+	if (lib_strnlen(pcFileName, MAX_FILENAME_LENGTH) >=
+        MAX_FILENAME_LENGTH) {                                          /*  名字太长                    */
+	    return  (ENAMETOOLONG);
+	}
+	
 	iosDevFind(pcFileName, &pcTail);
 	if (pcTail != pcFileName) {                                         /*  pcFileName 为设备名         */
 	    lib_strcpy(pcResult, pcFileName);                               /*  直接返回设备名              */
@@ -264,7 +269,6 @@ static PCHAR  _Strcatlim (PCHAR   pcStr1,
     
     stN1 = lib_strlen(pcStr1);
     if (stN1 < stLimit) {
-        
         stN2 = lib_strlen(pcStr2);
         stN2 = __MIN(stN2, (stLimit - stN1));
         

@@ -105,9 +105,9 @@ LW_API INT      API_ModuleAtExit(VOIDFUNCPTR  pfunc);                   /*  内核
 
 #if LW_CFG_MODULELOADER_GCOV_EN > 0
 LW_API INT      API_ModuleGcov(PVOID  pvModule);                        /*  内核模块生成代码覆盖率信息  */
+#endif                                                                  /*  LW_CFG_MODULELOADER_GCOV_EN */
 
 LW_API ssize_t  API_ModuleGetName(PVOID  pvAddr, PCHAR  pcFullPath, size_t  stLen);
-#endif                                                                  /*  LW_CFG_MODULELOADER_GCOV_EN */
 
 LW_API PVOID    API_ModuleGlobal(CPCHAR  pcFile, INT  iMode, PVOID  pvVProc);
                                                                         /*  修改已装载模块属性          */

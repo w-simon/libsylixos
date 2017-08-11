@@ -1,49 +1,49 @@
-/* @(#)rpc_msg.h	2.1 88/07/29 4.0 RPCSRC */
-/*
- * Sun RPC is a product of Sun Microsystems, Inc. and is provided for
- * unrestricted use provided that this legend is included on all tape
- * media and as a part of the software program in whole or part.  Users
- * may copy or modify Sun RPC without charge, but are not authorized
- * to license or distribute it to anyone else except as part of a product or
- * program developed by the user.
- *
- * SUN RPC IS PROVIDED AS IS WITH NO WARRANTIES OF ANY KIND INCLUDING THE
- * WARRANTIES OF DESIGN, MERCHANTIBILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE, OR ARISING FROM A COURSE OF DEALING, USAGE OR TRADE PRACTICE.
- *
- * Sun RPC is provided with no support and without any obligation on the
- * part of Sun Microsystems, Inc. to assist in its use, correction,
- * modification or enhancement.
- *
- * SUN MICROSYSTEMS, INC. SHALL HAVE NO LIABILITY WITH RESPECT TO THE
- * INFRINGEMENT OF COPYRIGHTS, TRADE SECRETS OR ANY PATENTS BY SUN RPC
- * OR ANY PART THEREOF.
- *
- * In no event will Sun Microsystems, Inc. be liable for any lost revenue
- * or profits or other special, indirect and consequential damages, even if
- * Sun has been advised of the possibility of such damages.
- *
- * Sun Microsystems, Inc.
- * 2550 Garcia Avenue
- * Mountain View, California  94043
- */
-/*      @(#)rpc_msg.h 1.7 86/07/16 SMI      */
-
-#ifndef _RPC_MSG_H
-#define _RPC_MSG_H 1
-
-#include "kernrpc/xdr.h"
-#include "kernrpc/clnt.h"
-
 /*
  * rpc_msg.h
  * rpc message definition
  *
- * Copyright (C) 1984, Sun Microsystems, Inc.
+ * Copyright (c) 2010, Oracle America, Inc.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ *
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above
+ *       copyright notice, this list of conditions and the following
+ *       disclaimer in the documentation and/or other materials
+ *       provided with the distribution.
+ *     * Neither the name of the "Oracle America, Inc." nor the names of its
+ *       contributors may be used to endorse or promote products derived
+ *       from this software without specific prior written permission.
+ *
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ *   FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ *   COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ *   INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ *   DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ *   GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ *   WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ *   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define RPC_MSG_VERSION		((unsigned long) 2)
-#define RPC_SERVICE_PORT	((unsigned short) 2048)
+#ifndef _RPC_MSG_H
+#define _RPC_MSG_H 1
+
+#include <sys/cdefs.h>
+
+#include <kernrpc/xdr.h>
+#include <kernrpc/clnt.h>
+
+#define RPC_MSG_VERSION		((u_long) 2)
+#define RPC_SERVICE_PORT	((u_short) 2048)
+
+__BEGIN_DECLS
 
 /*
  * Bottom up definition of an rpc message.
@@ -86,14 +86,14 @@ enum reject_stat {
  */
 struct accepted_reply {
 	struct opaque_auth	ar_verf;
-	int	                ar_stat;
+	enum accept_stat	ar_stat;
 	union {
 		struct {
-			unsigned long	low;
-			unsigned long	high;
+			u_long	low;
+			u_long	high;
 		} AR_versions;
 		struct {
-			char*	where;
+			caddr_t	where;
 			xdrproc_t proc;
 		} AR_results;
 		/* and many other null cases */
@@ -106,13 +106,13 @@ struct accepted_reply {
  * Reply to an rpc request that was rejected by the server.
  */
 struct rejected_reply {
-	int rj_stat;
+	enum reject_stat rj_stat;
 	union {
 		struct {
-			unsigned long low;
-			unsigned long high;
+			u_long low;
+			u_long high;
 		} RJ_versions;
-		int RJ_why;  /* why authentication did not work */
+		enum auth_stat RJ_why;  /* why authentication did not work */
 	} ru;
 #define	rj_vers	ru.RJ_versions
 #define	rj_why	ru.RJ_why
@@ -122,7 +122,7 @@ struct rejected_reply {
  * Body of a reply to an rpc request.
  */
 struct reply_body {
-	int rp_stat;
+	enum reply_stat rp_stat;
 	union {
 		struct accepted_reply RP_ar;
 		struct rejected_reply RP_dr;
@@ -135,10 +135,10 @@ struct reply_body {
  * Body of an rpc request call.
  */
 struct call_body {
-	unsigned long cb_rpcvers;	/* must be equal to two */
-	unsigned long cb_prog;
-	unsigned long cb_vers;
-	unsigned long cb_proc;
+	u_long cb_rpcvers;	/* must be equal to two */
+	u_long cb_prog;
+	u_long cb_vers;
+	u_long cb_proc;
 	struct opaque_auth cb_cred;
 	struct opaque_auth cb_verf; /* protocol specific - provided by client */
 };
@@ -147,8 +147,8 @@ struct call_body {
  * The rpc message
  */
 struct rpc_msg {
-	unsigned long	rm_xid;
-	int				rm_direction;
+	u_long			rm_xid;
+	enum msg_type		rm_direction;
 	union {
 		struct call_body RM_cmb;
 		struct reply_body RM_rmb;
@@ -166,13 +166,7 @@ struct rpc_msg {
  * 	XDR *xdrs;
  * 	struct rpc_msg *cmsg;
  */
-extern bool_t	xdr_callmsg (XDR *__xdrs, struct rpc_msg *__cmsg);
-
-/*
- * XDR an opaque authentication struct
- * (see auth.h)
- */
-bool_t xdr_opaque_auth(register XDR *xdrs, register struct opaque_auth *ap);
+extern bool_t	xdr_callmsg (XDR *__xdrs, struct rpc_msg *__cmsg) __THROW;
 
 /*
  * XDR routine to pre-serialize the static part of a rpc message.
@@ -180,7 +174,7 @@ bool_t xdr_opaque_auth(register XDR *xdrs, register struct opaque_auth *ap);
  * 	XDR *xdrs;
  * 	struct rpc_msg *cmsg;
  */
-extern bool_t	xdr_callhdr (XDR *__xdrs, struct rpc_msg *__cmsg);
+extern bool_t	xdr_callhdr (XDR *__xdrs, struct rpc_msg *__cmsg) __THROW;
 
 /*
  * XDR routine to handle a rpc reply.
@@ -188,7 +182,7 @@ extern bool_t	xdr_callhdr (XDR *__xdrs, struct rpc_msg *__cmsg);
  * 	XDR *xdrs;
  * 	struct rpc_msg *rmsg;
  */
-extern bool_t	xdr_replymsg (XDR *__xdrs, struct rpc_msg *__rmsg);
+extern bool_t	xdr_replymsg (XDR *__xdrs, struct rpc_msg *__rmsg) __THROW;
 
 /*
  * Fills in the error part of a reply message.
@@ -196,6 +190,9 @@ extern bool_t	xdr_replymsg (XDR *__xdrs, struct rpc_msg *__rmsg);
  * 	struct rpc_msg *msg;
  * 	struct rpc_err *error;
  */
-extern void	_seterr_reply (struct rpc_msg *__msg, struct rpc_err *__error);
+extern void	_seterr_reply (struct rpc_msg *__msg, struct rpc_err *__error)
+     __THROW;
+
+__END_DECLS
 
 #endif /* rpc/rpc_msg.h */

@@ -1,112 +1,91 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
+ * Copyright (c) 2010, 2011, Oracle America, Inc.
  *
- * @APPLE_LICENSE_HEADER_START@
- * 
- * Portions Copyright (c) 1999 Apple Computer, Inc.  All Rights
- * Reserved.  This file contains Original Code and/or Modifications of
- * Original Code as defined in and that are subject to the Apple Public
- * Source License Version 1.1 (the "License").  You may not use this file
- * except in compliance with the License.  Please obtain a copy of the
- * License at http://www.apple.com/publicsource and read it before using
- * this file.
- * 
- * The Original Code and all software distributed under the License are
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE OR NON- INFRINGEMENT.  Please see the
- * License for the specific language governing rights and limitations
- * under the License.
- * 
- * @APPLE_LICENSE_HEADER_END@
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ *
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above
+ *       copyright notice, this list of conditions and the following
+ *       disclaimer in the documentation and/or other materials
+ *       provided with the distribution.
+ *     * Neither the name of the "Oracle America, Inc." nor the names of its
+ *       contributors may be used to endorse or promote products derived
+ *       from this software without specific prior written permission.
+ *
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ *   FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ *   COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ *   INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ *   DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ *   GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ *   WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ *   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 /*
- * Sun RPC is a product of Sun Microsystems, Inc. and is provided for
- * unrestricted use provided that this legend is included on all tape
- * media and as a part of the software program in whole or part.  Users
- * may copy or modify Sun RPC without charge, but are not authorized
- * to license or distribute it to anyone else except as part of a product or
- * program developed by the user.
- * 
- * SUN RPC IS PROVIDED AS IS WITH NO WARRANTIES OF ANY KIND INCLUDING THE
- * WARRANTIES OF DESIGN, MERCHANTIBILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE, OR ARISING FROM A COURSE OF DEALING, USAGE OR TRADE PRACTICE.
- * 
- * Sun RPC is provided with no support and without any obligation on the
- * part of Sun Microsystems, Inc. to assist in its use, correction,
- * modification or enhancement.
- *
- * SUN MICROSYSTEMS, INC. SHALL HAVE NO LIABILITY WITH RESPECT TO THE
- * INFRINGEMENT OF COPYRIGHTS, TRADE SECRETS OR ANY PATENTS BY SUN RPC
- * OR ANY PART THEREOF.
- * 
- * In no event will Sun Microsystems, Inc. be liable for any lost revenue
- * or profits or other special, indirect and consequential damages, even if
- * Sun has been advised of the possibility of such damages.
- * 
- * Sun Microsystems, Inc.
- * 2550 Garcia Avenue
- * Mountain View, California  94043
- */
-
-/*
- * auth_unix.c, Implements UNIX style authentication parameters. 
- *  
- * Copyright (C) 1984, Sun Microsystems, Inc.
+ * auth_unix.c, Implements UNIX style authentication parameters.
  *
  * The system is very weak.  The client uses no encryption for it's
  * credentials and only sends null verifiers.  The server sends backs
  * null verifiers or optionally a verifier that suggests a new short hand
  * for the credentials.
- *
  */
- 
-#define __SYLIXOS_KERNEL
 
-#include "stdio.h"
-#include "stdlib.h"
-#include "unistd.h"
-#include "time.h"
+#include <errno.h>
+#include <limits.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#ifndef SYLIXOS
+#include <libintl.h>
+#endif
+#include <sys/param.h>
+#include <wchar.h>
 
-#include "kernrpc/rpc_msg.h"
-#include "kernrpc/types.h"
-#include "kernrpc/xdr.h"
-#include "kernrpc/auth.h"
-#include "kernrpc/auth_unix.h"
+#include <kernrpc/types.h>
+#include <kernrpc/xdr.h>
+#include <kernrpc/auth.h>
+#include <kernrpc/auth_unix.h>
 
 #if LW_CFG_NET_RPC_EN > 0
 
 /*
  * Unix authenticator operations vector
  */
-static void	authunix_nextverf();
-static bool_t	authunix_marshal();
-static bool_t	authunix_validate();
-static bool_t	authunix_refresh();
-static void	authunix_destroy();
+static void authunix_nextverf (AUTH *);
+static bool_t authunix_marshal (AUTH *, XDR *);
+static bool_t authunix_validate (AUTH *, struct opaque_auth *);
+static bool_t authunix_refresh (AUTH *);
+static void authunix_destroy (AUTH *);
 
-static struct auth_ops auth_unix_ops = {
-	authunix_nextverf,
-	authunix_marshal,
-	authunix_validate,
-	authunix_refresh,
-	authunix_destroy
+static const struct auth_ops auth_unix_ops = {
+  authunix_nextverf,
+  authunix_marshal,
+  authunix_validate,
+  authunix_refresh,
+  authunix_destroy
 };
 
 /*
  * This struct is pointed to by the ah_private field of an auth_handle.
  */
 struct audata {
-	struct opaque_auth	au_origcred;	/* original credentials */
-	struct opaque_auth	au_shcred;	/* short hand cred */
-	u_long			au_shfaults;	/* short hand cache faults */
-	char			au_marshed[MAX_AUTH_BYTES];
-	u_int			au_mpos;	/* xdr pos at end of marshed */
+  struct opaque_auth au_origcred;	/* original credentials */
+  struct opaque_auth au_shcred;	/* short hand cred */
+  u_long au_shfaults;		/* short hand cache faults */
+  char au_marshed[MAX_AUTH_BYTES];
+  u_int au_mpos;		/* xdr pos at end of marshed */
 };
 #define	AUTH_PRIVATE(auth)	((struct audata *)auth->ah_private)
 
-static void marshal_new_auth();
+static bool_t marshal_new_auth (AUTH *) internal_function;
 
 
 /*
@@ -114,252 +93,269 @@ static void marshal_new_auth();
  * Returns an auth handle with the given stuff in it.
  */
 AUTH *
-authunix_create(machname, uid, gid, len, aup_gids)
-	char *machname;
-	int uid;
-	int gid;
-	register int len;
-	int *aup_gids;
+authunix_create (char *machname, uid_t uid, gid_t gid, int len,
+		 gid_t *aup_gids)
 {
-	struct authunix_parms aup;
-	char mymem[MAX_AUTH_BYTES];
-	struct timeval now;
-	XDR xdrs;
-	register AUTH *auth;
-	register struct audata *au;
+  struct authunix_parms aup;
+  char mymem[MAX_AUTH_BYTES];
+  struct timeval now;
+  XDR xdrs;
+  AUTH *auth;
+  struct audata *au;
 
-	/*
-	 * Allocate and set up auth handle
-	 */
-	auth = (AUTH *)sys_malloc(sizeof(*auth));
-	if (auth == NULL) {
-		(void)fprintf(stderr, "rpc : authunix_create: out of memory\n");
-		return (NULL);
-	}
-	
-	au = (struct audata *)sys_malloc(sizeof(*au));
-	if (au == NULL) {
-		(void)fprintf(stderr, "rpc : authunix_create: out of memory\n");
-		return (NULL);
-	}
-
-	auth->ah_ops = &auth_unix_ops;
-	auth->ah_private = (caddr_t)au;
-	auth->ah_verf = au->au_shcred = _null_auth;
-	au->au_shfaults = 0;
-
-	/*
-	 * fill in param struct from the given params
-	 */
-	(void)gettimeofday(&now,  (struct timezone *)0);
-	aup.aup_time = now.tv_sec;
-	aup.aup_machname = machname;
-	aup.aup_uid = uid;
-	aup.aup_gid = gid;
-	aup.aup_len = (u_int)len;
-	aup.aup_gids = aup_gids;
-
-	/*
-	 * Serialize the parameters into origcred
-	 */
-	xdrmem_create(&xdrs, mymem, MAX_AUTH_BYTES, XDR_ENCODE);
-	if (! xdr_authunix_parms(&xdrs, &aup)) {
-		sys_free(au);
-		sys_free(auth);
-		return (NULL);
+  /*
+   * Allocate and set up auth handle
+   */
+  auth = (AUTH *) mem_alloc (sizeof (*auth));
+  au = (struct audata *) mem_alloc (sizeof (*au));
+  if (auth == NULL || au == NULL)
+    {
+no_memory:
+      (void) __fxprintf (NULL, "%s: %s", __func__, _("out of memory\n"));
+      mem_free (auth, sizeof (*auth));
+      mem_free (au, sizeof (*au));
+      return NULL;
     }
-    
-	au->au_origcred.oa_length = len = XDR_GETPOS(&xdrs);
-	au->au_origcred.oa_flavor = AUTH_UNIX;
-	if ((au->au_origcred.oa_base = sys_malloc((u_int) len)) == NULL) {
-	    sys_free(au);
-		sys_free(auth);
-		(void)fprintf(stderr, "rpc : authunix_create: out of memory\n");
-		return (NULL);
-	}
-	bcopy(mymem, au->au_origcred.oa_base, (u_int)len);
+  auth->ah_ops = (struct auth_ops *) &auth_unix_ops;
+  auth->ah_private = (caddr_t) au;
+  auth->ah_verf = au->au_shcred = _null_auth;
+  au->au_shfaults = 0;
 
-	/*
-	 * set auth handle to reflect new cred.
-	 */
-	auth->ah_cred = au->au_origcred;
-	marshal_new_auth(auth);
-	return (auth);
+  /*
+   * fill in param struct from the given params
+   */
+  (void) __gettimeofday (&now, (struct timezone *) 0);
+  aup.aup_time = now.tv_sec;
+  aup.aup_machname = machname;
+  aup.aup_uid = uid;
+  aup.aup_gid = gid;
+  aup.aup_len = (u_int) len;
+  aup.aup_gids = aup_gids;
+
+  /*
+   * Serialize the parameters into origcred
+   */
+  xdrmem_create (&xdrs, mymem, MAX_AUTH_BYTES, XDR_ENCODE);
+  if (!xdr_authunix_parms (&xdrs, &aup))
+    abort ();
+  au->au_origcred.oa_length = len = XDR_GETPOS (&xdrs);
+  au->au_origcred.oa_flavor = AUTH_UNIX;
+  au->au_origcred.oa_base = mem_alloc ((u_int) len);
+  if (au->au_origcred.oa_base == NULL)
+    goto no_memory;
+  memcpy(au->au_origcred.oa_base, mymem, (u_int) len);
+
+  /*
+   * set auth handle to reflect new cred.
+   */
+  auth->ah_cred = au->au_origcred;
+  marshal_new_auth (auth);
+  return auth;
 }
-
-/*
-* Some servers will refuse mounts if the group list is larger
-* than it expects (like 8). This allows the application to set
-* the maximum size of the group list that will be sent.
-*/
-
-static maxgrplist = NGRPS;
-
-set_rpc_maxgrouplist(num)
-	int num;
-{
-    if (num < NGRPS)
-        maxgrplist = num;
-}
+libc_hidden_nolink_sunrpc (authunix_create, GLIBC_2_0)
 
 /*
  * Returns an auth handle with parameters determined by doing lots of
  * syscalls.
  */
 AUTH *
-authunix_create_default()
+authunix_create_default (void)
 {
-	register int len;
-	char machname[MAX_MACHINE_NAME + 1];
-	register int uid;
-	register int gid;
-	int gids[NGRPS];
+  char machname[MAX_MACHINE_NAME + 1];
 
-	if (gethostname(machname, MAX_MACHINE_NAME) == -1)
-		return  (NULL);
-	machname[MAX_MACHINE_NAME] = 0;
-	uid = geteuid();
-	gid = getegid();
-	if ((len = getgroups(NGRPS, gids)) < 0)
-		return  (NULL);
-        if (len > maxgrplist) {
-            len = maxgrplist;
-        }
-	return (authunix_create(machname, uid, gid, len, gids));
+  if (__gethostname (machname, MAX_MACHINE_NAME) == -1)
+    abort ();
+  machname[MAX_MACHINE_NAME] = 0;
+  uid_t uid = __geteuid ();
+  gid_t gid = __getegid ();
+
+  int max_nr_groups;
+  /* When we have to try a second time, do not use alloca() again.  We
+     might have reached the stack limit already.  */
+  bool retry = false;
+ again:
+  /* Ask the kernel how many groups there are exactly.  Note that we
+     might have to redo all this if the number of groups has changed
+     between the two calls.  */
+  max_nr_groups = __getgroups (0, NULL);
+
+  /* Just some random reasonable stack limit.  */
+#define ALLOCA_LIMIT (1024 / sizeof (gid_t))
+  gid_t *gids = NULL;
+  if (max_nr_groups < ALLOCA_LIMIT && ! retry)
+    gids = (gid_t *) alloca (max_nr_groups * sizeof (gid_t));
+  else
+    {
+      gids = (gid_t *) malloc (max_nr_groups * sizeof (gid_t));
+      if (gids == NULL)
+	return NULL;
+    }
+
+  int len = __getgroups (max_nr_groups, gids);
+  if (len == -1)
+    {
+      if (errno == EINVAL)
+	{
+	  /* New groups added in the meantime.  Try again.  */
+	  if (max_nr_groups >= ALLOCA_LIMIT || retry)
+	    free (gids);
+	  retry = true;
+	  goto again;
+	}
+      /* No other error can happen.  */
+      abort ();
+    }
+
+  /* This braindamaged Sun code forces us here to truncate the
+     list of groups to NGRPS members since the code in
+     authuxprot.c transforms a fixed array.  Grrr.  */
+  AUTH *result = authunix_create (machname, uid, gid, MIN (NGRPS, len), gids);
+
+  if (max_nr_groups >= ALLOCA_LIMIT || retry)
+    free (gids);
+
+  return result;
 }
+#ifdef EXPORT_RPC_SYMBOLS
+libc_hidden_def (authunix_create_default)
+#else
+libc_hidden_nolink_sunrpc (authunix_create_default, GLIBC_2_0)
+#endif
 
 /*
  * authunix operations
  */
 
 static void
-authunix_nextverf(auth)
-	AUTH *auth;
+authunix_nextverf (AUTH *auth)
 {
-	/* no action necessary */
+  /* no action necessary */
 }
 
 static bool_t
-authunix_marshal(auth, xdrs)
-	AUTH *auth;
-	XDR *xdrs;
+authunix_marshal (AUTH *auth, XDR *xdrs)
 {
-	register struct audata *au = AUTH_PRIVATE(auth);
+  struct audata *au = AUTH_PRIVATE (auth);
 
-	return (XDR_PUTBYTES(xdrs, au->au_marshed, au->au_mpos));
+  return XDR_PUTBYTES (xdrs, au->au_marshed, au->au_mpos);
 }
 
 static bool_t
-authunix_validate(auth, verf)
-	register AUTH *auth;
-	struct opaque_auth verf;
+authunix_validate (AUTH *auth, struct opaque_auth *verf)
 {
-	register struct audata *au;
-	XDR xdrs;
+  struct audata *au;
+  XDR xdrs;
 
-	if (verf.oa_flavor == AUTH_SHORT) {
-		au = AUTH_PRIVATE(auth);
-		xdrmem_create(&xdrs, verf.oa_base, verf.oa_length, XDR_DECODE);
+  if (verf->oa_flavor == AUTH_SHORT)
+    {
+      au = AUTH_PRIVATE (auth);
+      xdrmem_create (&xdrs, verf->oa_base, verf->oa_length, XDR_DECODE);
 
-		if (au->au_shcred.oa_base != NULL) {
-			sys_free(au->au_shcred.oa_base);
-			au->au_shcred.oa_base = NULL;
-		}
-		if (xdr_opaque_auth(&xdrs, &au->au_shcred)) {
-			auth->ah_cred = au->au_shcred;
-		} else {
-			xdrs.x_op = XDR_FREE;
-			(void)xdr_opaque_auth(&xdrs, &au->au_shcred);
-			au->au_shcred.oa_base = NULL;
-			auth->ah_cred = au->au_origcred;
-		}
-		marshal_new_auth(auth);
+      if (au->au_shcred.oa_base != NULL)
+	{
+	  mem_free (au->au_shcred.oa_base,
+		    au->au_shcred.oa_length);
+	  au->au_shcred.oa_base = NULL;
 	}
-	return (TRUE);
+      if (xdr_opaque_auth (&xdrs, &au->au_shcred))
+	{
+	  auth->ah_cred = au->au_shcred;
+	}
+      else
+	{
+	  xdrs.x_op = XDR_FREE;
+	  (void) xdr_opaque_auth (&xdrs, &au->au_shcred);
+	  au->au_shcred.oa_base = NULL;
+	  auth->ah_cred = au->au_origcred;
+	}
+      marshal_new_auth (auth);
+    }
+  return TRUE;
 }
 
 static bool_t
-authunix_refresh(auth)
-	register AUTH *auth;
+authunix_refresh (AUTH *auth)
 {
-	register struct audata *au = AUTH_PRIVATE(auth);
-	struct authunix_parms aup;
-	struct timeval now;
-	XDR xdrs;
-	register int stat;
+  struct audata *au = AUTH_PRIVATE (auth);
+  struct authunix_parms aup;
+  struct timeval now;
+  XDR xdrs;
+  int stat;
 
-	if (auth->ah_cred.oa_base == au->au_origcred.oa_base) {
-		/* there is no hope.  Punt */
-		return (FALSE);
-	}
-	au->au_shfaults ++;
+  if (auth->ah_cred.oa_base == au->au_origcred.oa_base)
+    {
+      /* there is no hope.  Punt */
+      return FALSE;
+    }
+  au->au_shfaults++;
 
-	/* first deserialize the creds back into a struct authunix_parms */
-	aup.aup_machname = NULL;
-	aup.aup_gids = (int *)NULL;
-	xdrmem_create(&xdrs, au->au_origcred.oa_base,
-	    au->au_origcred.oa_length, XDR_DECODE);
-	stat = xdr_authunix_parms(&xdrs, &aup);
-	if (! stat) 
-		goto done;
+  /* first deserialize the creds back into a struct authunix_parms */
+  aup.aup_machname = NULL;
+  aup.aup_gids = (gid_t *) NULL;
+  xdrmem_create (&xdrs, au->au_origcred.oa_base,
+		 au->au_origcred.oa_length, XDR_DECODE);
+  stat = xdr_authunix_parms (&xdrs, &aup);
+  if (!stat)
+    goto done;
 
-	/* update the time and serialize in place */
-	(void)gettimeofday(&now, (struct timezone *)0);
-	aup.aup_time = now.tv_sec;
-	xdrs.x_op = XDR_ENCODE;
-	XDR_SETPOS(&xdrs, 0);
-	stat = xdr_authunix_parms(&xdrs, &aup);
-	if (! stat)
-		goto done;
-	auth->ah_cred = au->au_origcred;
-	marshal_new_auth(auth);
+  /* update the time and serialize in place */
+  (void) __gettimeofday (&now, (struct timezone *) 0);
+  aup.aup_time = now.tv_sec;
+  xdrs.x_op = XDR_ENCODE;
+  XDR_SETPOS (&xdrs, 0);
+  stat = xdr_authunix_parms (&xdrs, &aup);
+  if (!stat)
+    goto done;
+  auth->ah_cred = au->au_origcred;
+  marshal_new_auth (auth);
 done:
-	/* free the struct authunix_parms created by deserializing */
-	xdrs.x_op = XDR_FREE;
-	(void)xdr_authunix_parms(&xdrs, &aup);
-	XDR_DESTROY(&xdrs);
-	return (stat);
+  /* free the struct authunix_parms created by deserializing */
+  xdrs.x_op = XDR_FREE;
+  (void) xdr_authunix_parms (&xdrs, &aup);
+  XDR_DESTROY (&xdrs);
+  return stat;
 }
 
 static void
-authunix_destroy(auth)
-	register AUTH *auth;
+authunix_destroy (AUTH *auth)
 {
-	register struct audata *au = AUTH_PRIVATE(auth);
+  struct audata *au = AUTH_PRIVATE (auth);
 
-	sys_free(au->au_origcred.oa_base);
+  mem_free (au->au_origcred.oa_base, au->au_origcred.oa_length);
 
-	if (au->au_shcred.oa_base != NULL)
-		sys_free(au->au_shcred.oa_base);
+  if (au->au_shcred.oa_base != NULL)
+    mem_free (au->au_shcred.oa_base, au->au_shcred.oa_length);
 
-	sys_free(auth->ah_private);
+  mem_free (auth->ah_private, sizeof (struct audata));
 
-	if (auth->ah_verf.oa_base != NULL)
-		sys_free(auth->ah_verf.oa_base);
+  if (auth->ah_verf.oa_base != NULL)
+    mem_free (auth->ah_verf.oa_base, auth->ah_verf.oa_length);
 
-	sys_free((caddr_t)auth);
+  mem_free ((caddr_t) auth, sizeof (*auth));
 }
 
 /*
  * Marshals (pre-serializes) an auth struct.
  * sets private data, au_marshed and au_mpos
  */
-static void
-marshal_new_auth(auth)
-	register AUTH *auth;
+static bool_t
+internal_function
+marshal_new_auth (AUTH *auth)
 {
-	XDR		xdr_stream;
-	register XDR	*xdrs = &xdr_stream;
-	register struct audata *au = AUTH_PRIVATE(auth);
+  XDR xdr_stream;
+  XDR *xdrs = &xdr_stream;
+  struct audata *au = AUTH_PRIVATE (auth);
 
-	xdrmem_create(xdrs, au->au_marshed, MAX_AUTH_BYTES, XDR_ENCODE);
-	if ((! xdr_opaque_auth(xdrs, &(auth->ah_cred))) ||
-	    (! xdr_opaque_auth(xdrs, &(auth->ah_verf)))) {
-		perror("auth_none.c - Fatal marshalling problem");
-	} else {
-		au->au_mpos = XDR_GETPOS(xdrs);
-	}
-	XDR_DESTROY(xdrs);
+  xdrmem_create (xdrs, au->au_marshed, MAX_AUTH_BYTES, XDR_ENCODE);
+  if ((!xdr_opaque_auth (xdrs, &(auth->ah_cred))) ||
+      (!xdr_opaque_auth (xdrs, &(auth->ah_verf))))
+    perror (_("auth_unix.c: Fatal marshalling problem"));
+  else
+    au->au_mpos = XDR_GETPOS (xdrs);
+
+  XDR_DESTROY (xdrs);
+
+  return TRUE;
 }
 
 #endif /* LW_CFG_NET_RPC_EN > 0 */

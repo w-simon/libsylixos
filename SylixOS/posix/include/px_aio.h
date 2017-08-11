@@ -55,7 +55,7 @@ struct aioreq {
     LW_LIST_LINE            aioreq_line;                                /*  req list                    */
     LW_OBJECT_HANDLE        aioreq_thread;                              /*  req thread                  */
     uint8_t                 aioreq_prio;                                /*  req thread prio             */
-
+    uint8_t                 aioreq_flags;                               /*  req flags                   */
     int                     aioreq_error;                               /*  error code                  */
     ssize_t                 aioreq_return;                              /*  return value                */
 };

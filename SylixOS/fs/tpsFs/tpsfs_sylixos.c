@@ -1580,7 +1580,6 @@ static INT  __tpsFsRename (PLW_FD_ENTRY  pfdentry, PCHAR  pcNewName)
                               (LW_DEV_HDR **)&ptpsvolNew,
                               cNewPath) != ERROR_NONE) {                /*  获得新目录路径              */
             __TPS_FILE_UNLOCK(ptpsfile);
-            _ErrorHandle(ENOENT);
             return  (PX_ERROR);
         }
         if (ptpsvolNew != ptpsfile->TPSFIL_ptpsvol) {                   /*  必须为同一个卷              */

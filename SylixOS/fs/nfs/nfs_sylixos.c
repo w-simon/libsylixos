@@ -53,6 +53,7 @@
 #include "kernrpc/rpc.h"
 #include "nfs_mount.h"
 #include "nfs.h"
+#include "nfs_xdr.h"
 /*********************************************************************************************************
   说明:
   RPC机制使得单个远程程序一次只能支持一个远程过程调用，当前远程
@@ -324,31 +325,31 @@ static VOID  __nfsAttr2Stat (PNFS_FS  pnfsfs, fattr3  *pattr, struct stat *pstat
     
     switch (pattr->type) {
     
-    case NFS3REG:
+    case NF3REG:
         pstat->st_mode = (pattr->mode | S_IFREG);
         break;
     
-    case NFS3DIR:
+    case NF3DIR:
         pstat->st_mode = (pattr->mode | S_IFDIR);
         break;
     
-    case NFS3BLK:
+    case NF3BLK:
         pstat->st_mode = (pattr->mode | S_IFBLK);
         break;
     
-    case NFS3CHR:
+    case NF3CHR:
         pstat->st_mode = (pattr->mode | S_IFCHR);
         break;
     
-    case NFS3LNK:
+    case NF3LNK:
         pstat->st_mode = (pattr->mode | S_IFLNK);
         break;
     
-    case NFS3SOCK:
+    case NF3SOCK:
         pstat->st_mode = (pattr->mode | S_IFSOCK);
         break;
     
-    case NFS3FIFO:
+    case NF3FIFO:
         pstat->st_mode = (pattr->mode | S_IFIFO);
         break;
         
@@ -551,7 +552,7 @@ INT  API_NfsDevCreate (PCHAR   pcName, PLW_BLK_DEV  pblkd)
         lib_strcpy(cProto, "udp");                                      /*  默认使用 udp 协议           */
     }
     
-    pnfsfs->NFSFS_pclient = clnt_create(pnfsfs->NFSFS_cHost, NFS_PROGRAM, NFS_V3, cProto);
+    pnfsfs->NFSFS_pclient = clnt_create(pnfsfs->NFSFS_cHost, NFS3_PROGRAM, NFS_V3, cProto);
     if (pnfsfs->NFSFS_pclient == LW_NULL) {                             /*  NFS(100003) V:3             */
         _ErrorHandle(EIO);
         fprintf(stderr, "creat nfs client failed, NFS(100003) V:3.\n");
@@ -753,13 +754,13 @@ static BOOL  __nfsFindSymlink (PNFS_FS  pnfsfs,
         __nfsHandleCpy(&handle, &res.LOOKUP3res_u.resok.object);
         xdr_free((xdrproc_t)xdr_LOOKUP3res, (char *)&res);
         
-        if (type == NFS3LNK) {
+        if (type == NF3LNK) {
             *ppcTail    = (char *)(pcName + (pcPtr - cNameBuffer));
             *ppcSymfile = (char *)(pcName + (pcNameStart - cNameBuffer));/* point to symlink file name  */
             *phandleSym = handle;
             return  (LW_TRUE);
         
-        } else if (type != NFS3DIR) {
+        } else if (type != NF3DIR) {
             break;
         }
     }
@@ -1104,7 +1105,7 @@ static INT __nfsOpenFile (PNFS_FS        pnfsfs,
             pattributes = &res.LOOKUP3res_u.resok.dir_attributes.post_op_attr_u.attributes;
         }
         
-        if (pattributes->type == NFS3DIR) {
+        if (pattributes->type == NF3DIR) {
             bFindIsDir = LW_TRUE;
         } else {
             bFindIsDir = LW_FALSE;
@@ -1311,7 +1312,7 @@ static INT __nfsRemoveFile (PNFS_FS  pnfsfs, PCHAR  pcName)
             pattributes = &res.LOOKUP3res_u.resok.dir_attributes.post_op_attr_u.attributes;
         }
         
-        if (pattributes->type == NFS3DIR) {
+        if (pattributes->type == NF3DIR) {
             bFindIsDir = LW_TRUE;
         } else {
             bFindIsDir = LW_FALSE;
@@ -2151,7 +2152,7 @@ static ssize_t  __nfsWrite (PLW_FD_ENTRY  pfdentry,
     if (pnfsfile->NFSFIL_nfsfs->NFSFS_iFlag == O_RDONLY) {
         __NFS_FILE_UNLOCK(pnfsfile);
         _ErrorHandle(EROFS);
-        return (PX_ERROR);
+        return  (PX_ERROR);
     }
     
     if (pnfsfile->NFSFIL_iFileType != __NFS_FILE_TYPE_NODE) {
@@ -2254,7 +2255,7 @@ static ssize_t  __nfsPWrite (PLW_FD_ENTRY  pfdentry,
     if (pnfsfile->NFSFIL_nfsfs->NFSFS_iFlag == O_RDONLY) {
         __NFS_FILE_UNLOCK(pnfsfile);
         _ErrorHandle(EROFS);
-        return (PX_ERROR);
+        return  (PX_ERROR);
     }
     
     if (pnfsfile->NFSFIL_iFileType != __NFS_FILE_TYPE_NODE) {
@@ -2467,11 +2468,11 @@ static INT  __nfsRename (PLW_FD_ENTRY  pfdentry, PCHAR  pcNewName)
 
     if (__STR_IS_ROOT(pnfsfile->NFSFIL_cName)) {                        /*  检查是否为设备文件          */
         _ErrorHandle(ENOSYS);                                           /*  不支持设备重命名            */
-        return (PX_ERROR);
+        return  (PX_ERROR);
     }
     if ((pcNewName == LW_NULL) || __STR_IS_ROOT(pcNewName)) {
         _ErrorHandle(EINVAL);
-        return (PX_ERROR);
+        return  (PX_ERROR);
     }
     if (__NFS_FILE_LOCK(pnfsfile) != ERROR_NONE) {
         _ErrorHandle(ENXIO);                                            /*  设备出错                    */
@@ -2484,12 +2485,12 @@ static INT  __nfsRename (PLW_FD_ENTRY  pfdentry, PCHAR  pcNewName)
                               (LW_DEV_HDR **)&pnfsfsNew, 
                               cNewPath) != ERROR_NONE) {                /*  获得新目录路径              */
             __NFS_FILE_UNLOCK(pnfsfile);
-            return (PX_ERROR);
+            return  (PX_ERROR);
         }
         if (pnfsfsNew != pnfsfile->NFSFIL_nfsfs) {                      /*  必须为同一个 nfs 设备节点   */
             __NFS_FILE_UNLOCK(pnfsfile);
             _ErrorHandle(EXDEV);
-            return (PX_ERROR);
+            return  (PX_ERROR);
         }
         
         if (cNewPath[0] == PX_DIVIDER) {
@@ -2499,19 +2500,19 @@ static INT  __nfsRename (PLW_FD_ENTRY  pfdentry, PCHAR  pcNewName)
         if (__nfsGetDir(pnfsfile->NFSFIL_nfsfs, pnfsfile->NFSFIL_cName, 
                         &handleFromDir, &pcFromFile, LW_NULL)) {
             __NFS_FILE_UNLOCK(pnfsfile);
-            return (PX_ERROR);
+            return  (PX_ERROR);
         }
         if (__nfsGetDir(pnfsfile->NFSFIL_nfsfs, cNewPath, &handleToDir, 
                         &pcToFile, LW_NULL)) {
             xdr_free((xdrproc_t)xdr_nfs_fh3, (char *)&handleFromDir);
             __NFS_FILE_UNLOCK(pnfsfile);
-            return (PX_ERROR);
+            return  (PX_ERROR);
         }
         if (!pcFromFile || !pcToFile) {
             xdr_free((xdrproc_t)xdr_nfs_fh3, (char *)&handleFromDir);
             xdr_free((xdrproc_t)xdr_nfs_fh3, (char *)&handleToDir);
             __NFS_FILE_UNLOCK(pnfsfile);
-            return (PX_ERROR);
+            return  (PX_ERROR);
         }
         
         args.from.dir  = handleFromDir;
@@ -3131,7 +3132,7 @@ static INT __nfsSymlink (PNFS_FS  pnfsfs, PCHAR  pcName, CPCHAR  pcLinkDst)
     if (pnfsfs->NFSFS_iFlag == O_RDONLY) {
         __NFS_VOL_UNLOCK(pnfsfs);
         _ErrorHandle(EROFS);
-        return (PX_ERROR);
+        return  (PX_ERROR);
     }
     
     __nfsGetHandle(pnfsfs, pcName, &handle, &pcTail, &bIsDir, LW_NULL);
@@ -3269,7 +3270,7 @@ static INT  __nfsIoctl (PLW_FD_ENTRY  pfdentry,
     case FIOCHMOD:
         if (pnfsfile->NFSFIL_nfsfs->NFSFS_iFlag == O_RDONLY) {
             _ErrorHandle(EROFS);
-            return (PX_ERROR);
+            return  (PX_ERROR);
         }
     }
 

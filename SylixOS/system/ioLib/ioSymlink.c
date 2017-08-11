@@ -68,7 +68,6 @@ INT  symlink (CPCHAR  pcLinkDst, CPCHAR  pcSymPath)
     }
     
     if (ioFullFileNameGet(pcName, &pdevhdrHdr, cFullFileName) != ERROR_NONE) {
-        _ErrorHandle(ENOENT);
         return  (PX_ERROR);
     }
     
@@ -161,7 +160,6 @@ ssize_t  readlink (CPCHAR  pcSymPath, PCHAR  pcLinkDst, size_t  stMaxSize)
     }
     
     if (ioFullFileNameGet(pcName, &pdevhdrHdr, cFullFileName) != ERROR_NONE) {
-        _ErrorHandle(ENOENT);
         return  (PX_ERROR);
     }
     

@@ -383,11 +383,11 @@ INT  smethndInit (struct smethnd_netdev *smethnd, const char *ip, const char *ne
     snprintf(netdev->dev_name, IF_NAMESIZE, "SM-Ethernet%d", smethnd->localno);
     lib_strcpy(netdev->if_name, "se");
 
-    netdev->if_hostname  = "SylixOS AMP";
+    netdev->if_hostname  = "SylixOS smethnd";
     netdev->init_flags   = NETDEV_INIT_LOAD_PARAM
                          | NETDEV_INIT_LOAD_DNS
                          | NETDEV_INIT_IPV6_AUTOCFG;
-    netdev->chksum_flags = NETDEV_CHKSUM_DISABLE_ALL;
+    netdev->chksum_flags = smethnd->chksum_flags;
     netdev->net_type     = NETDEV_TYPE_ETHERNET;
     netdev->speed        = 0;
     netdev->mtu          = SMETHND_PACKET_PAYLOAD_SIZE;

@@ -551,7 +551,7 @@ INT  API_INetTftpReceive (CPCHAR  pcRemoteHost, CPCHAR  pcFileName, CPCHAR  pcLo
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
-    if (lib_strlen(pcFileName) >= MAX_FILENAME_LENGTH) {
+    if (lib_strnlen(pcFileName, MAX_FILENAME_LENGTH) >= MAX_FILENAME_LENGTH) {
         _ErrorHandle(ERROR_IO_NAME_TOO_LONG);
         return  (PX_ERROR);
     }
@@ -633,7 +633,7 @@ INT  API_INetTftpSend (CPCHAR  pcRemoteHost, CPCHAR  pcFileName, CPCHAR  pcLocal
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
-    if (lib_strlen(pcFileName) >= MAX_FILENAME_LENGTH) {
+    if (lib_strnlen(pcFileName, MAX_FILENAME_LENGTH) >= MAX_FILENAME_LENGTH) {
         _ErrorHandle(ERROR_IO_NAME_TOO_LONG);
         return  (PX_ERROR);
     }

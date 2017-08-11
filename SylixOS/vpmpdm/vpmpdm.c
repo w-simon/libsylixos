@@ -103,10 +103,10 @@ typedef struct vp_ctx {
     LW_OBJECT_HANDLE  locker; /* vpmpdm lock */
     LW_CLASS_HEAP  heap; /* this private heap */
     size_t  pagesize; /* vmm page size */
-    size_t  blksize; /* vmm allocate size pre time */
+    size_t  blksize; /* vmm allocate size per time */
     void  *vmem[MAX_MEM_BLKS]; /* vmm memory block pointer */
     void  *proc; /* this process */
-    int allc_en; /* allocate memory is emable */
+    int alloc_en; /* allocate memory is enable */
     exit_node *atexit_header; /* atexit node list */
 } vp_ctx;
 
@@ -261,7 +261,7 @@ void __vp_patch_ctor (void *pvproc, PVOIDFUNCPTR *ppfuncMalloc, VOIDFUNCPTR *ppf
     if (ctx.vmem[0]) {
         lib_itoa(getpid(), ctx.heap.HEAP_cHeapName, 10);
         VP_MEM_CTOR(&ctx.heap, ctx.vmem[0], ctx.blksize);
-        ctx.allc_en = 1;
+        ctx.alloc_en = 1;
     }
     
     if (ppfuncMalloc) {
@@ -281,7 +281,7 @@ void __vp_patch_dtor (void *pvproc)
 {
 #if LW_CFG_VMM_EN > 0
     int i;
-    if (ctx.allc_en) {
+    if (ctx.alloc_en) {
         VP_MEM_DTOR(&ctx.heap);
         for (i = 0; i < MAX_MEM_BLKS; i++) {
             if (ctx.vmem[i]) {
@@ -311,7 +311,7 @@ void __vp_patch_sbrk (BOOL lock)
     int i;
     volatile char  temp;
 
-    if (ctx.allc_en) {
+    if (ctx.alloc_en) {
         if (lock) {
             __vp_patch_lock();
         }
@@ -442,7 +442,7 @@ void *lib_malloc (size_t  nbytes)
     
     nbytes = (nbytes) ? nbytes : 1;
 
-    if (ctx.allc_en) {
+    if (ctx.alloc_en) {
 __re_try:
         pmem = VP_MEM_ALLOC(&ctx.heap, nbytes);
         if (pmem) {
@@ -498,7 +498,7 @@ void *lib_mallocalign (size_t  nbytes, size_t align)
     
     nbytes = (nbytes) ? nbytes : 1;
 
-    if (ctx.allc_en) {
+    if (ctx.alloc_en) {
 __re_try:
         pmem = VP_MEM_ALLOC_ALIGN(&ctx.heap, nbytes, align);
         if (pmem) {
@@ -571,7 +571,7 @@ __weak_reference(lib_free, free);
 
 void lib_free (void *ptr)
 {
-    if (ptr && ctx.allc_en) {
+    if (ptr && ctx.alloc_en) {
         VP_MEM_FREE(&ctx.heap, ptr, __HEAP_CHECK);
     }
 }
@@ -621,7 +621,7 @@ void *lib_realloc (void *ptr, size_t  new_size)
     int mextern = 0;
     void *pmem;
     
-    if (ctx.allc_en) {
+    if (ctx.alloc_en) {
 __re_try:
         pmem = VP_MEM_REALLOC(&ctx.heap, ptr, new_size, __HEAP_CHECK);
         if (pmem) {
@@ -701,7 +701,7 @@ void *lib_malloc_new (size_t  nbytes)
 
     nbytes = (nbytes) ? nbytes : 1;
 
-    if (ctx.allc_en) {
+    if (ctx.alloc_en) {
 __re_try:
         p = VP_MEM_ALLOC(&ctx.heap, nbytes);
         if (p) {

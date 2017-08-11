@@ -552,8 +552,14 @@ INT  __ldMmap (PVOID  pvBase, size_t  stAddrOft, INT  iFd, struct stat64 *pstat6
     (VOID)pstat64;
     (VOID)bCanShare;
     pvStart = (PVOID)((PCHAR)pvBase + stAddrOft);
-    sstRet  = pread(iFd, pvStart, stLen, oftOffset);
-    return  ((sstRet == (ssize_t)stLen) ? (ERROR_NONE) : (PX_ERROR));
+    if (iFd >= 0) {
+        sstRet  = pread(iFd, pvStart, stLen, oftOffset);
+        return  ((sstRet == (ssize_t)stLen) ? (ERROR_NONE) : (PX_ERROR));
+    
+    } else {
+        lib_bzero(pvStart, stLen);
+        return  (ERROR_NONE);
+    }
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 }
 /*********************************************************************************************************

@@ -585,7 +585,6 @@ SylixOS/fs/mtd/onenand/onenand_base.c \
 SylixOS/fs/mtd/onenand/onenand_bbt.c \
 SylixOS/fs/nandRCache/nandRCache.c \
 SylixOS/fs/nfs/mount_clnt.c \
-SylixOS/fs/nfs/mount_xdr.c \
 SylixOS/fs/nfs/nfs_clnt.c \
 SylixOS/fs/nfs/nfs_sylixos.c \
 SylixOS/fs/nfs/nfs_xdr.c \
@@ -938,6 +937,7 @@ SylixOS/kernel/vmm/vmmArea.c \
 SylixOS/kernel/vmm/vmmIo.c \
 SylixOS/kernel/vmm/vmmMalloc.c \
 SylixOS/kernel/vmm/vmmMmap.c \
+SylixOS/kernel/vmm/vmmStack.c \
 SylixOS/kernel/vmm/vmmSwap.c
 
 #*********************************************************************************************************
@@ -1166,6 +1166,7 @@ SylixOS/mpi/src/mpiInit.c
 #*********************************************************************************************************
 NET_SRCS = \
 SylixOS/net/libc/gethostbyht.c \
+SylixOS/net/libc/getifaddrs.c \
 SylixOS/net/libc/getproto.c \
 SylixOS/net/libc/getprotoby.c \
 SylixOS/net/libc/getprotoent.c \
@@ -1307,18 +1308,58 @@ SylixOS/net/lwip/tools/npf/lwip_npf.c \
 SylixOS/net/lwip/tools/ping/lwip_ping.c \
 SylixOS/net/lwip/tools/ping6/lwip_ping6.c \
 SylixOS/net/lwip/tools/ppp/lwip_ppp.c \
+SylixOS/net/lwip/tools/kernrpc/authdes_prot.c \
+SylixOS/net/lwip/tools/kernrpc/authuxprot.c \
 SylixOS/net/lwip/tools/kernrpc/auth_none.c \
 SylixOS/net/lwip/tools/kernrpc/auth_unix.c \
-SylixOS/net/lwip/tools/kernrpc/auth_unix_prot.c \
-SylixOS/net/lwip/tools/kernrpc/bindresvport.c \
-SylixOS/net/lwip/tools/kernrpc/clnt_generic.c \
+SylixOS/net/lwip/tools/kernrpc/bindrsvprt.c \
+SylixOS/net/lwip/tools/kernrpc/clnt_gen.c \
+SylixOS/net/lwip/tools/kernrpc/clnt_perr.c \
+SylixOS/net/lwip/tools/kernrpc/clnt_raw.c \
+SylixOS/net/lwip/tools/kernrpc/clnt_simp.c \
 SylixOS/net/lwip/tools/kernrpc/clnt_tcp.c \
 SylixOS/net/lwip/tools/kernrpc/clnt_udp.c \
-SylixOS/net/lwip/tools/kernrpc/pmap.c \
+SylixOS/net/lwip/tools/kernrpc/clnt_unix.c \
+SylixOS/net/lwip/tools/kernrpc/create_xid.c \
+SylixOS/net/lwip/tools/kernrpc/des_crypt.c \
+SylixOS/net/lwip/tools/kernrpc/des_impl.c \
+SylixOS/net/lwip/tools/kernrpc/des_soft.c \
+SylixOS/net/lwip/tools/kernrpc/getprotobyname.c \
+SylixOS/net/lwip/tools/kernrpc/getrpcport.c \
+SylixOS/net/lwip/tools/kernrpc/get_myaddr.c \
+SylixOS/net/lwip/tools/kernrpc/key_call.c \
+SylixOS/net/lwip/tools/kernrpc/key_prot.c \
+SylixOS/net/lwip/tools/kernrpc/pmap_clnt.c \
+SylixOS/net/lwip/tools/kernrpc/pmap_prot.c \
+SylixOS/net/lwip/tools/kernrpc/pmap_prot2.c \
+SylixOS/net/lwip/tools/kernrpc/pmap_rmt.c \
+SylixOS/net/lwip/tools/kernrpc/pm_getmaps.c \
+SylixOS/net/lwip/tools/kernrpc/pm_getport.c \
+SylixOS/net/lwip/tools/kernrpc/rpc_cmsg.c \
+SylixOS/net/lwip/tools/kernrpc/rpc_common.c \
+SylixOS/net/lwip/tools/kernrpc/rpc_dtable.c \
 SylixOS/net/lwip/tools/kernrpc/rpc_prot.c \
+SylixOS/net/lwip/tools/kernrpc/rpc_thread.c \
+SylixOS/net/lwip/tools/kernrpc/rtime.c \
+SylixOS/net/lwip/tools/kernrpc/svc.c \
+SylixOS/net/lwip/tools/kernrpc/svc_auth.c \
+SylixOS/net/lwip/tools/kernrpc/svc_authux.c \
+SylixOS/net/lwip/tools/kernrpc/svc_raw.c \
+SylixOS/net/lwip/tools/kernrpc/svc_run.c \
+SylixOS/net/lwip/tools/kernrpc/svc_simple.c \
+SylixOS/net/lwip/tools/kernrpc/svc_tcp.c \
+SylixOS/net/lwip/tools/kernrpc/svc_udp.c \
+SylixOS/net/lwip/tools/kernrpc/svc_unix.c \
+SylixOS/net/lwip/tools/kernrpc/xcrypt.c \
 SylixOS/net/lwip/tools/kernrpc/xdr.c \
+SylixOS/net/lwip/tools/kernrpc/xdr_array.c \
+SylixOS/net/lwip/tools/kernrpc/xdr_float.c \
+SylixOS/net/lwip/tools/kernrpc/xdr_intXX_t.c \
 SylixOS/net/lwip/tools/kernrpc/xdr_mem.c \
 SylixOS/net/lwip/tools/kernrpc/xdr_rec.c \
+SylixOS/net/lwip/tools/kernrpc/xdr_ref.c \
+SylixOS/net/lwip/tools/kernrpc/xdr_sizeof.c \
+SylixOS/net/lwip/tools/kernrpc/xdr_stdio.c \
 SylixOS/net/lwip/tools/snmp/snmpv3.c \
 SylixOS/net/lwip/tools/snmp/snmpv3_dummy.c \
 SylixOS/net/lwip/tools/snmp/snmpv3_mbedtls.c \

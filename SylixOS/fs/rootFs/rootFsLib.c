@@ -309,7 +309,7 @@ ssize_t  __rootFsReadNode (CPCHAR  pcName, PCHAR  pcBuffer, size_t  stSize)
     }
     
     if (_PathCat(_PathGetDef(), pcName, cFullPathName) != ERROR_NONE) { /*  获得从根目录开始的路径      */
-        _ErrorHandle(ENOENT);
+        _ErrorHandle(ENAMETOOLONG);
         return  (PX_ERROR);
     }
     
@@ -388,7 +388,7 @@ INT  API_RootFsMakeNode (CPCHAR  pcName, INT  iNodeType, INT  iNodeOpt, INT  iMo
     }
     
     if (_PathCat(_PathGetDef(), pcName, cFullPathName) != ERROR_NONE) { /*  获得从根目录开始的路径      */
-        _ErrorHandle(ENOENT);
+        _ErrorHandle(ENAMETOOLONG);
         return  (PX_ERROR);
     }
     
@@ -620,7 +620,7 @@ INT  API_RootFsRemoveNode (CPCHAR  pcName)
     }
     
     if (_PathCat(_PathGetDef(), pcName, cFullPathName) != ERROR_NONE) { /*  获得从根目录开始的路径      */
-        _ErrorHandle(ENOENT);
+        _ErrorHandle(ENAMETOOLONG);
         return  (PX_ERROR);
     }
     

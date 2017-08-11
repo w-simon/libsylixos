@@ -1307,15 +1307,7 @@ static INT elfPhdrRead (LW_LD_EXEC_MODULE *pmodule,
      *  分段映射可加载段
      */
 #if LW_CFG_TRUSTED_COMPUTING_EN > 0                                     /*  动态度量需要确定内存结构    */
-    pmodule->EMOD_ulSegCount = 0ul;
-    pphdr = (Elf_Phdr *)pcBuf;
-    for (i = 0; i < pehdr->e_phnum; i++, pphdr++) {
-        if ((PT_LOAD != pphdr->p_type) || (pphdr->p_filesz == 0)) {
-            continue;
-        }
-        pmodule->EMOD_ulSegCount++;
-    }
-    
+    pmodule->EMOD_ulSegCount   = pehdr->e_phnum;
     pmodule->EMOD_psegmentArry = (LW_LD_EXEC_SEGMENT *)LW_LD_SAFEMALLOC(
                                  (sizeof(LW_LD_EXEC_SEGMENT) * pmodule->EMOD_ulSegCount));
     if (!pmodule->EMOD_psegmentArry) {

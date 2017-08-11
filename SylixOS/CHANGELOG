@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2017-08-11: han.hui
+    增加对应用程序栈区越界判断保护.
+
     2017-07-30: han.hui
     netdev 提供网卡零拷贝缓存管理, 提高网卡数据吞吐率.
 
@@ -32,6 +35,9 @@ HISTORY
     加入对 4 级页表 64 位 MMU 支持.
 
 ++ Bugfixes:
+
+    2017-08-11: han.hui
+    修正 AIO errno 错误.
 
     2017-07-25: han.hui
     修正 sem_unlink(), mq_unlink() 与 POSIX 标准些许不符合行为.

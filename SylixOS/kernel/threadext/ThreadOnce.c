@@ -41,6 +41,11 @@ INT  API_ThreadOnce (BOOL  *pbOnce, VOIDFUNCPTR  pfuncRoutine)
              INTREG     iregInterLevel;
     REGISTER INT        iOk = LW_FALSE;
     
+    if (!pbOnce) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
     __LW_ATOMIC_LOCK(iregInterLevel);                                   /*  锁定                        */
     if (*pbOnce == LW_FALSE) {                                          /*  互斥的判断是否执行          */
         *pbOnce =  LW_TRUE;
@@ -71,6 +76,11 @@ INT  API_ThreadOnce2 (BOOL  *pbOnce, VOIDFUNCPTR  pfuncRoutine, PVOID  pvArg)
 {
              INTREG     iregInterLevel;
     REGISTER INT        iOk = LW_FALSE;
+    
+    if (!pbOnce) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
     
     __LW_ATOMIC_LOCK(iregInterLevel);                                   /*  锁定                        */
     if (*pbOnce == LW_FALSE) {                                          /*  互斥的判断是否执行          */

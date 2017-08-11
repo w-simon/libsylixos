@@ -21,6 +21,7 @@
 
 ** BUG:
 2013.02.22  __aioThread() 不再使用 lseek 操作, 而是使用 pread 和 pwrite 进行读写.
+2017.08.11  加入 AIO_REQ_BUSY 标识, 表明文件正在被操作.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../include/px_aio.h"                                          /*  已包含操作系统头文件        */
@@ -298,6 +299,10 @@ INT  __aioRemoveAiocb (AIO_REQ_CHAIN  *paiorc, struct aiocb *paiocb, INT  iError
         paiocbTemp  = _LIST_ENTRY(paioreqTemp, struct aiocb, aio_req);
         
         if (paiocbTemp == paiocb) {
+            if (paiocbTemp->aio_req.aioreq_flags & AIO_REQ_BUSY) {
+                return  (AIO_NOTCANCELED);
+            }
+        
             _List_Line_Del(plineTemp, 
                            &paiorc->aiorc_plineaiocb);
             
@@ -312,7 +317,7 @@ INT  __aioRemoveAiocb (AIO_REQ_CHAIN  *paiorc, struct aiocb *paiocb, INT  iError
         }
     }
     
-    return  (AIO_NOTCANCELED);
+    return  (AIO_ALLDONE);
 }
 /*********************************************************************************************************
 ** 函数名称: __aioRemoveAllAiocb
@@ -612,6 +617,9 @@ static PVOID  __aioThread (PVOID  pvArg)
                                   paioreq->aioreq_prio);                /*  设置任务优先级与请求任务相同*/
             _List_Line_Del(paiorc->aiorc_plineaiocb,
                            &paiorc->aiorc_plineaiocb);                  /*  将处理节点从 paiorc 中删除  */
+            
+            paioreq->aioreq_flags |= AIO_REQ_BUSY;                      /*  准备开始操作文件            */
+            
             API_SemaphoreMPost(paiorc->aiorc_mutex);
             
             /*
@@ -689,6 +697,8 @@ static PVOID  __aioThread (PVOID  pvArg)
                 }
                 API_SemaphoreMPost(_G_aioqueue.aioq_mutex);
             }
+            
+            paioreq->aioreq_flags &= ~AIO_REQ_BUSY;                     /*  清除忙标志                  */
         
         } else if (paiorc->aiorc_iscancel) {                            /*  被 cancel 了                */
         
@@ -775,6 +785,7 @@ int  __aioEnqueue (struct aiocb *paiocb)
     ULONG                   ulError;
     
     API_ThreadGetPriority(API_ThreadIdSelf(), &paiocb->aio_req.aioreq_prio);
+    paiocb->aio_req.aioreq_flags  = 0;
     paiocb->aio_req.aioreq_error  = EINPROGRESS;
     paiocb->aio_req.aioreq_return = 0;
     

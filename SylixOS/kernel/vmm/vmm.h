@@ -230,7 +230,15 @@ LW_API ULONG        API_VmmSetFlag(PVOID  pvVirtualAddr,
                                    
 LW_API ULONG        API_VmmGetFlag(PVOID  pvVirtualAddr, 
                                    ULONG *pulFlag);                     /*  获取虚拟地址权限            */
-                                   
+
+/*********************************************************************************************************
+  应用程序堆栈分配专用 API (会多分配一页作为堆栈保护页面)
+*********************************************************************************************************/
+
+LW_API PVOID        API_VmmStackAlloc(size_t  stSize);                  /*  分配堆栈                    */
+
+LW_API VOID         API_VmmStackFree(PVOID  pvVirtualMem);              /*  释放堆栈                    */
+
 /*********************************************************************************************************
   以下 API 只负责分配物理内存, 并没有产生映射关系. 不能直接使用, 必须通过虚拟内存映射才能使用.
 *********************************************************************************************************/
@@ -347,6 +355,9 @@ LW_API VOID         API_VmmAbortIsr(addr_t          ulRetAddr,
 #define vmmRemapArea                API_VmmRemapArea
 #define vmmInvalidateArea           API_VmmInvalidateArea
 #define vmmAbortStatus              API_VmmAbortStatus
+
+#define vmmStackAlloc               API_VmmStackAlloc
+#define vmmStackFree                API_VmmStackFree
 
 #define vmmPhyAlloc                 API_VmmPhyAlloc
 #define vmmPhyAllocEx               API_VmmPhyAllocEx

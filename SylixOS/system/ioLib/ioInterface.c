@@ -83,6 +83,7 @@
 2013.07.17  open 如果带有 O_NONBLOCK 选项, 记录锁也是非阻塞的.
             支持 O_NOFOLLOW 选项.
 2013.11.18  加入 dupminfd 支持.
+2017.08.11  ioFullFileNameGet() 内部需要处理 errno.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDARG
 #define  __SYLIXOS_STDIO
@@ -149,7 +150,7 @@ static INT _IoOpen (PCHAR            pcName,
     }
     
     if (ioFullFileNameGet(pcName, &pdevhdrHdr, cFullFileName) != ERROR_NONE) {
-        ulError   = ENOENT;
+        ulError   = API_GetLastError();
         iErrLevel = 1;
         goto    __error_handle;
     }
@@ -385,7 +386,6 @@ INT  unlink (CPCHAR       pcName)
     }
     
     if (ioFullFileNameGet(pcName, &pdevhdrHdr, cFullFileName) != ERROR_NONE) {
-        _ErrorHandle(ENOENT);
         return  (PX_ERROR);
     }
     
@@ -452,6 +452,7 @@ INT  rename (CPCHAR       pcOldName, CPCHAR       pcNewName)
 
     REGISTER INT    iFd;
     REGISTER INT    iRet;
+             ULONG  ulErrNo;
     
     if ((pcOldName == LW_NULL) || (pcNewName == LW_NULL)) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "file name invalidate.\r\n");
@@ -465,9 +466,10 @@ INT  rename (CPCHAR       pcOldName, CPCHAR       pcNewName)
     }
     
     if (ioFullFileNameGet(pcNewName, &pdevhdrHdr, cFullFileName) != ERROR_NONE) {
+        ulErrNo = API_GetLastError();
         close(iFd);
         _DebugHandle(__ERRORMESSAGE_LEVEL, "name invalidate.\r\n");
-        _ErrorHandle(ENOENT);
+        _ErrorHandle(ulErrNo);
         return  (PX_ERROR);
     }
     
@@ -1008,6 +1010,7 @@ INT  API_IoFullFileNameGet (CPCHAR         pcPathName,
     lib_bzero(cFullPathName, MAX_FILENAME_LENGTH);                      /*  CLEAR                       */
     
     if (_PathCat(_PathGetDef(), pcPathName, cFullPathName) != ERROR_NONE) {
+        _ErrorHandle(ENAMETOOLONG);
         return  (PX_ERROR);
     }
     
@@ -1024,6 +1027,7 @@ INT  API_IoFullFileNameGet (CPCHAR         pcPathName,
     
     *ppdevhdr = iosDevFind(cFullPathName, &pcTail);
     if ((*ppdevhdr) == LW_NULL) {
+        _ErrorHandle(ENOENT);
         return  (PX_ERROR);
     }
     
@@ -1061,6 +1065,7 @@ INT  API_IoPathCondense (CPCHAR  pcPath, PCHAR  pcPathCondense, size_t  stSize)
     lib_bzero(cFullPathName, MAX_FILENAME_LENGTH);                      /*  CLEAR                       */
     
     if (_PathCat(_PathGetDef(), pcPath, cFullPathName) != ERROR_NONE) {
+        _ErrorHandle(ENAMETOOLONG);
         return  (PX_ERROR);
     }
     
@@ -1145,7 +1150,7 @@ INT  API_IoDefPathSet (CPCHAR       pcName)
         return  (PX_ERROR);
     }
     
-    if (lib_strlen(pcName) >= MAX_FILENAME_LENGTH) {
+    if (lib_strnlen(pcName, MAX_FILENAME_LENGTH) >= MAX_FILENAME_LENGTH) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "name too long.\r\n");
         _ErrorHandle(ERROR_IO_NAME_TOO_LONG);
         return  (PX_ERROR);
@@ -1176,6 +1181,7 @@ INT  API_IoDefPathCat (CPCHAR  pcName)
      *  pcName 如果是设备则 cNewPath 为该设备, 否则将链接到 _PathGetDef() 后面.
      */
     if (_PathCat(_PathGetDef(), pcName, cNewPath) != ERROR_NONE) {
+        _ErrorHandle(ENAMETOOLONG);
         return  (PX_ERROR);
     }
 
@@ -1914,7 +1920,6 @@ PCHAR  realpath (CPCHAR  pcPath, PCHAR  pcResolvedPath)
     }
     
     if (ioFullFileNameGet(pcPath, &pdevhdrHdr, cFullPathName) != ERROR_NONE) {
-        _ErrorHandle(ENOENT);
         return  (LW_NULL);
     }
     

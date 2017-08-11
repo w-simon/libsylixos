@@ -37,6 +37,7 @@
 2014.05.17  断点探测不再在这里进行.
 2014.05.21  系统发生段错误时, 需要通知 dtrace.
 2016.11.24  FPU 异常需要在异常上下文保存 FPU 上下文.
+2017.08.11  加入对线程堆栈溢出的检测.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -59,9 +60,11 @@
 #define printk
 #endif                                                                  /*  printk                      */
 #if LW_CFG_MODULELOADER_EN > 0
+extern pid_t  vprocGetPidByTcbNoLock(PLW_CLASS_TCB  ptcb);
 extern pid_t  API_ModulePid(PVOID pvVProc);
 #else
-#define API_ModulePid(x)     0
+#define vprocGetPidByTcbNoLock(x)   0
+#define API_ModulePid(x)            0
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 /*********************************************************************************************************
   虚拟分页空间链表 (缺页中断查找表)
@@ -908,31 +911,101 @@ static VOID  __vmmAbortAccess (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
 ** 输　入  : ulRetAddr     异常返回地址
 **           ulAbortAddr   异常地址 (异常类型相关)
 **           pabtInfo      异常类型
+**           ptcb          出现异常的线程控制块 (不能为 NULL)
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
 static VOID  __vmmAbortFataDetected (addr_t          ulRetAddr, 
                                      addr_t          ulAbortAddr, 
-                                     PLW_VMM_ABORT   pabtInfo)
+                                     PLW_VMM_ABORT   pabtInfo,
+                                     PLW_CLASS_TCB   ptcb)
 {
-    if (LW_CPU_GET_CUR_NESTING() > 1) {
-        _DebugFormat(__ERRORMESSAGE_LEVEL, 
-                     "FATAL ERROR: abort occur in exception mode. "
-                     "ret_addr: 0x%08lx abt_addr: 0x%08lx abt_type: %s\r\n"
-                     "rebooting...\r\n",
-                     ulRetAddr, ulAbortAddr, __vmmAbortTypeStr(pabtInfo));
-        API_KernelReboot(LW_REBOOT_FORCE);                              /*  直接重新启动操作系统        */
+    struct siginfo  si;
+
+    if ((pabtInfo->VMABT_uiType == LW_VMM_ABORT_TYPE_FATAL_ERROR) ||
+        (LW_CPU_GET_CUR_NESTING() > 1)) {
+        si.si_signo = SIGSEGV;
+        si.si_errno = 0;
+        si.si_code  = -1;
+        si.si_addr  = (PVOID)ulAbortAddr;
+        
+        __LW_FATAL_ERROR_HOOK(vprocGetPidByTcbNoLock(ptcb), ptcb->TCB_ulId, &si);
+        
+        if (pabtInfo->VMABT_uiType == LW_VMM_ABORT_TYPE_FATAL_ERROR) {
+            _DebugFormat(__ERRORMESSAGE_LEVEL,                          /*  关键性错误                  */
+                         "FATAL ERROR: "
+                         "ret_addr: 0x%08lx abt_addr: 0x%08lx abt_type: %s\r\n"
+                         "rebooting...\r\n",
+                         ulRetAddr, ulAbortAddr, __vmmAbortTypeStr(pabtInfo));
+            API_KernelReboot(LW_REBOOT_FORCE);                          /*  直接重新启动操作系统        */
+        
+        } else {
+            _DebugFormat(__ERRORMESSAGE_LEVEL, 
+                         "FATAL ERROR: abort occur in exception mode. "
+                         "ret_addr: 0x%08lx abt_addr: 0x%08lx abt_type: %s\r\n"
+                         "rebooting...\r\n",
+                         ulRetAddr, ulAbortAddr, __vmmAbortTypeStr(pabtInfo));
+            API_KernelReboot(LW_REBOOT_FORCE);                          /*  直接重新启动操作系统        */
+        }
+    }
+}
+/*********************************************************************************************************
+** 函数名称: __vmmAbortStkOfDetected
+** 功能描述: 堆栈溢出错误检查
+** 输　入  : ulRetAddr     异常返回地址
+**           ulAbortAddr   异常地址 (异常类型相关)
+**           pabtInfo      异常类型
+**           ptcb          出现异常的线程控制块 (不能为 NULL)
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+#if LW_CFG_VMM_EN > 0
+
+static VOID  __vmmAbortStkOfDetected (addr_t          ulRetAddr, 
+                                      addr_t          ulAbortAddr, 
+                                      PLW_VMM_ABORT   pabtInfo,
+                                      PLW_CLASS_TCB   ptcb)
+{
+    addr_t          ulStkPtStart;
+    struct siginfo  si;
     
-    } else if (pabtInfo->VMABT_uiType == LW_VMM_ABORT_TYPE_FATAL_ERROR) {
-        _DebugFormat(__ERRORMESSAGE_LEVEL,                              /*  关键性错误                  */
-                     "FATAL ERROR: "
+#if LW_CFG_COROUTINE_EN > 0
+    PLW_CLASS_COROUTINE  pcrcbCur = _LIST_ENTRY(ptcb->TCB_pringCoroutineHeader, 
+                                                LW_CLASS_COROUTINE, 
+                                                COROUTINE_ringRoutine);
+    ulStkPtStart = (addr_t)pcrcbCur->COROUTINE_pstkStackBottom;
+#else
+    ulStkPtStart = (addr_t)ptcb->TCB_pstkStackBottom;
+#endif
+
+#if CPU_STK_GROWTH == 0
+    if ((ulAbortAddr > ulStkPtStart) && 
+        (ulAbortAddr <= (ulStkPtStart + LW_CFG_VMM_PAGE_SIZE))) 
+#else
+    if ((ulAbortAddr < ulStkPtStart) && 
+        (ulAbortAddr >= (ulStkPtStart - LW_CFG_VMM_PAGE_SIZE))) 
+#endif
+    
+    {
+        si.si_signo = SIGSEGV;
+        si.si_errno = 0;
+        si.si_code  = SEGV_MAPERR;
+        si.si_addr  = (PVOID)ulAbortAddr;
+        
+        __LW_FATAL_ERROR_HOOK(vprocGetPidByTcbNoLock(ptcb), ptcb->TCB_ulId, &si);
+        
+        _DebugFormat(__ERRORMESSAGE_LEVEL, 
+                     "FATAL ERROR: thread stack overflow. "
                      "ret_addr: 0x%08lx abt_addr: 0x%08lx abt_type: %s\r\n"
                      "rebooting...\r\n",
                      ulRetAddr, ulAbortAddr, __vmmAbortTypeStr(pabtInfo));
         API_KernelReboot(LW_REBOOT_FORCE);                              /*  直接重新启动操作系统        */
     }
 }
+
+#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 /*********************************************************************************************************
 ** 函数名称: API_VmmAbortIsr
 ** 功能描述: 当 MMU 产生访问失效时, 调用此函数(类似于中断服务函数)
@@ -961,7 +1034,11 @@ VOID  API_VmmAbortIsr (addr_t          ulRetAddr,
     PLW_STACK                pstkFailShell;                             /*  启动 fail shell 的堆栈点    */
     BYTE                    *pucStkNow;                                 /*  记录还原堆栈点              */
     
-    __vmmAbortFataDetected(ulRetAddr, ulAbortAddr, pabtInfo);           /*  致命错误探测                */
+    __vmmAbortFataDetected(ulRetAddr, ulAbortAddr, pabtInfo, ptcb);     /*  致命错误探测                */
+    
+#if LW_CFG_VMM_EN > 0
+    __vmmAbortStkOfDetected(ulRetAddr, ulAbortAddr, pabtInfo, ptcb);    /*  是否堆栈溢出                */
+#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
     
     __KERNEL_ENTER();                                                   /*  进入内核                    */
                                                                         /*  产生异常                    */

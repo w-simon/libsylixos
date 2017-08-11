@@ -423,7 +423,7 @@ typedef LW_SHELL_CONTEXT *PLW_SHELL_CONTEXT;
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 
 /*********************************************************************************************************
-  线程控制块 
+  线程控制块
   
   注意: 浮点运算器上下文指针是否有效, 由 BSP FPU 相关实现决定, 
         用户禁止使用 LW_OPTION_THREAD_USED_FP / LW_OPTION_THREAD_STK_MAIN 选项.
@@ -443,7 +443,7 @@ typedef struct __lw_tcb {
     
     PLW_STACK             TCB_pstkStackTop;                             /*  线程堆栈栈顶(起始点)        */
     PLW_STACK             TCB_pstkStackBottom;                          /*  线程堆栈栈底(结束点)        */
-    size_t                TCB_stStackSize;                              /*  线程堆栈大小(单位：字)      */
+    size_t                TCB_stStackSize;                              /*  线程堆栈大小(单位: 字)      */
     PLW_STACK             TCB_pstkStackLowAddr;                         /*  总堆栈最低地址              */
     
     PLW_STACK             TCB_pstkStackGuard;                           /*  堆栈警戒点                  */

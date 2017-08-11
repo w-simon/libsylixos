@@ -247,7 +247,6 @@ int  lio_listio (int mode, struct aiocb * const list[], int nent, struct sigeven
                 __aioAttachWaitNoCheck(list[iCnt], &paiowait[iWait]);   /*  aiocb and aiowait attach    */
                 
                 if (__aioEnqueue(list[iCnt]) == ERROR_NONE) {
-                
                     _List_Line_Add_Tail(&paiowait[iWait].aiowt_line, 
                                         &paiowc->aiowc_pline);          /*  加入 wait 链表              */
                     iWait++;
@@ -273,7 +272,6 @@ int  lio_listio (int mode, struct aiocb * const list[], int nent, struct sigeven
         return  (ERROR_NONE);
     
     } else if (mode == LIO_WAIT) {                                      /*  需要等待                    */
-        
         __aioWaitChainSetCnt(paiowc, &iWait);                           /*  设置计数变量                */
         
         while (iWait > 0) {
@@ -319,6 +317,10 @@ int  aio_cancel (int fildes, struct aiocb *paiocb)
     }
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 
+    if (iosFdGetName(fildes, LW_NULL, 0)) {                             /*  如出错 errno 自动设为 EBADF */
+        return  (PX_ERROR);
+    }
+
     API_SemaphoreMPend(_G_aioqueue.aioq_mutex, LW_OPTION_WAIT_INFINITE);
     
     if (paiocb == LW_NULL) {
@@ -354,6 +356,7 @@ int  aio_cancel (int fildes, struct aiocb *paiocb)
             API_SemaphoreMPost(_G_aioqueue.aioq_mutex);
             return  (AIO_CANCELED);
         }
+    
     } else {
         if (paiocb->aio_fildes != fildes) {
             API_SemaphoreMPost(_G_aioqueue.aioq_mutex);
@@ -422,6 +425,11 @@ int  aio_error (const struct aiocb *paiocb)
         return  (PX_ERROR);
     }
     
+    if (!_ObjectClassOK(paiocb->aio_req.aioreq_thread, _OBJECT_THREAD)) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+    
     return  (paiocb->aio_req.aioreq_error);
 }
 /*********************************************************************************************************
@@ -436,6 +444,8 @@ int  aio_error (const struct aiocb *paiocb)
 LW_API 
 ssize_t  aio_return (struct aiocb *paiocb)
 {
+    ssize_t  ret;
+
 #ifdef __SYLIXOS_KERNEL
     if (__PROC_GET_PID_CUR() != 0) {                                    /*  需要使用外部库提供的 aio    */
         errno = ENOSYS;
@@ -448,12 +458,27 @@ ssize_t  aio_return (struct aiocb *paiocb)
         return  (PX_ERROR);
     }
     
+    if (!_ObjectClassOK(paiocb->aio_req.aioreq_thread, _OBJECT_THREAD)) {
+        errno = EINVAL;
+        return  (PX_ERROR);
+    }
+    
+    if (paiocb->aio_req.aioreq_flags & AIO_REQ_FREE) {
+        errno = EINVAL;
+        return  (PX_ERROR);
+    }
+    
     if (paiocb->aio_req.aioreq_error == EINPROGRESS) {
         errno = EINPROGRESS;
         return  (PX_ERROR);
     }
     
-    return  (paiocb->aio_req.aioreq_return);
+    ret = paiocb->aio_req.aioreq_return;
+    
+    paiocb->aio_req.aioreq_return = PX_ERROR;
+    paiocb->aio_req.aioreq_flags |= AIO_REQ_FREE;
+    
+    return  (ret);
 }
 /*********************************************************************************************************
 ** 函数名称: aio_read
@@ -483,6 +508,10 @@ int  aio_read (struct aiocb *paiocb)
     
     if (paiocb->aio_offset < 0) {
         errno = EINVAL;
+        return  (PX_ERROR);
+    }
+    
+    if (iosFdGetName(paiocb->aio_fildes, LW_NULL, 0)) {                 /*  如出错 errno 自动设为 EBADF */
         return  (PX_ERROR);
     }
     
@@ -528,6 +557,10 @@ int  aio_write (struct aiocb *paiocb)
         return  (PX_ERROR);
     }
     
+    if (iosFdGetName(paiocb->aio_fildes, LW_NULL, 0)) {                 /*  如出错 errno 自动设为 EBADF */
+        return  (PX_ERROR);
+    }
+    
     paiocb->aio_lio_opcode = LIO_WRITE;
     
     paiocb->aio_req.aioreq_thread = API_ThreadIdSelf();
@@ -562,6 +595,15 @@ int  aio_fsync (int op, struct aiocb *paiocb)
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 
     if (!paiocb) {
+        errno = EINVAL;
+        return  (PX_ERROR);
+    }
+    
+    if (iosFdGetName(paiocb->aio_fildes, LW_NULL, 0)) {                 /*  如出错 errno 自动设为 EBADF */
+        return  (PX_ERROR);
+    }
+    
+    if (!_ObjectClassOK(paiocb->aio_req.aioreq_thread, _OBJECT_THREAD)) {
         errno = EINVAL;
         return  (PX_ERROR);
     }

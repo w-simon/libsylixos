@@ -40,7 +40,11 @@ struct smethnd_netdev {
 
     /*
      *  user MUST set following members before calling this module api.
+     *  If you want use this netdev with ip forward, you MUST set chksum_flags NETDEV_CHKSUM_ENABLE_ALL
+     *  or all NETDEV_CHKSUM_GEN_*
      */
+    UINT32 chksum_flags;                                                /*  netdev chksum_flags         */
+
     int localno;                                                        /*  this number 0 ~ 127         */
     int totalnum;                                                       /*  total number MAX 128        */
     struct smethnd_mem mem;                                             /*  this net device mem info    */

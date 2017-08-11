@@ -115,7 +115,7 @@ static LW_LD_EXEC_MODULE  *moduleCreate (CPCHAR  pcPath,
     size_t             stPathOff    = 0;                                /*  文件路径在结构体中的位置    */
     size_t             stSectionOff = 0;
 
-    if (lib_strlen(pcPath) >= PATH_MAX) {
+    if (lib_strnlen(pcPath, PATH_MAX + 1) >= (PATH_MAX + 1)) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "module path too long!\r\n");
         return  (LW_NULL);
     }
@@ -1228,6 +1228,8 @@ INT  API_ModuleGcov (PVOID  pvModule)
     
     return  (ERROR_NONE);
 }
+
+#endif                                                                  /*  LW_CFG_MODULELOADER_GCOV_EN */
 /*********************************************************************************************************
 ** 函数名称: API_ModuleGetName
 ** 功能描述: 通过模块内地址找到模块文件位置.
@@ -1333,7 +1335,6 @@ PVOID  API_ModuleGlobal (CPCHAR  pcFile,
     return  (pvRet);
 }
 
-#endif                                                                  /*  LW_CFG_MODULELOADER_GCOV_EN */
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 /*********************************************************************************************************
   END

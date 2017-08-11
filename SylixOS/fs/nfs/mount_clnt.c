@@ -6,7 +6,7 @@
 #define __SYLIXOS_KERNEL
 
 #include "string.h" /* for memset */
-#include "nfs_mount.h"
+#include "nfs_xdr.h"
 
 #if LW_CFG_NFS_EN > 0
 

@@ -377,7 +377,7 @@ INT  __diskCacheWpCreate (PLW_DISKCACHE_CB  pdiskc,
                                                      LW_OPTION_INHERIT_PRIORITY | 
                                                      LW_OPTION_DELETE_SAFE |
                                                      LW_OPTION_OBJECT_GLOBAL, LW_NULL);
-            if (pwp->DISKCWP_hSync == LW_OBJECT_HANDLE_INVALID) {
+            if (pwp->DISKCWP_hDev == LW_OBJECT_HANDLE_INVALID) {
                 iErrLevel = 5;
                 goto    __error_handle;
             }
