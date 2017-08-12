@@ -288,7 +288,7 @@ int  pthread_rwlock_init (pthread_rwlock_t  *prwlock, const pthread_rwlockattr_t
 LW_API 
 int  pthread_rwlock_destroy (pthread_rwlock_t  *prwlock)
 {
-    if (prwlock == LW_NULL) {
+    if ((prwlock == LW_NULL) || (prwlock->PRWLOCK_ulRwLock == LW_OBJECT_HANDLE_INVALID)) {
         errno = EINVAL;
         return  (EINVAL);
     }

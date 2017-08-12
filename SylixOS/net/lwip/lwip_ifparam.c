@@ -335,7 +335,6 @@ void  *if_param_load (const char *name)
         return  (LW_NULL);
     }
 
-    printf("[ifparam]Net interface [%s] parameter loaded.\n", name);
     return  ((void *)pinisec);
 }
 /*********************************************************************************************************

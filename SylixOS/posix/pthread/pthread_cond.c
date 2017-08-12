@@ -224,7 +224,7 @@ int  pthread_cond_init (pthread_cond_t  *pcond, const pthread_condattr_t  *pcond
 LW_API 
 int  pthread_cond_destroy (pthread_cond_t  *pcond)
 {
-    if (pcond == LW_NULL) {
+    if ((pcond == LW_NULL) || (pcond->TCD_ulSignal == LW_OBJECT_HANDLE_INVALID)) {
         errno = EINVAL;
         return  (EINVAL);
     }

@@ -578,7 +578,7 @@ int  pthread_mutex_init (pthread_mutex_t  *pmutex, const pthread_mutexattr_t *pm
 LW_API 
 int  pthread_mutex_destroy (pthread_mutex_t  *pmutex)
 {
-    if (pmutex == LW_NULL) {
+    if ((pmutex == LW_NULL) || (pmutex->PMUTEX_ulMutex == LW_OBJECT_HANDLE_INVALID)) {
         errno = EINVAL;
         return  (EINVAL);
     }
