@@ -236,6 +236,8 @@ int netdev_zc_pbuf_pool_delete(void *hzcpool, int force);
  * ticks = 0  no wait
  *       = -1 wait forever */
 struct pbuf *netdev_zc_pbuf_alloc(void *hzcpool, int ticks);
+struct pbuf *netdev_zc_pbuf_alloc_res(void *hzcpool, int ticks, UINT16 hdr_res);
+/* free zero copy pbuf */
 void netdev_zc_pbuf_free(struct pbuf *p);
 #endif /* LW_CFG_NET_DEV_ZCBUF_EN */
 

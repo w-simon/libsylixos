@@ -58,9 +58,11 @@
  *                            +--------------+               +--------------+
  */
 
+struct zc_pool;
+
 /* netdev zero copy buffer */
 struct zc_pbuf {
-  void *hzcpool;
+  struct zc_pool *zcpool;
   union {
     struct zc_pbuf *next;
     struct pbuf_custom cpbuf;
@@ -108,12 +110,13 @@ void *netdev_zc_pbuf_pool_create (addr_t addr, UINT32 blkcnt, size_t blksize)
   zcpbuf2 = (struct zc_pbuf *)((addr_t)zcpbuf1 + blksize);
   
   for (i = 0; i < (blkcnt - 1); i++) {
-    zcpbuf1->hzcpool = (void *)zcpool;
-    zcpbuf1->b.next  = zcpbuf2;
+    zcpbuf1->zcpool = zcpool;
+    zcpbuf1->b.next = zcpbuf2;
     zcpbuf1 = (struct zc_pbuf *)((addr_t)zcpbuf1 + blksize);
     zcpbuf2 = (struct zc_pbuf *)((addr_t)zcpbuf2 + blksize);
   }
   
+  zcpbuf1->zcpool = zcpool;
   zcpbuf1->b.next = NULL;
   
   zcpool->magic_no  = ZCPOOL_MAGIC;
@@ -147,7 +150,7 @@ int netdev_zc_pbuf_pool_delete (void *hzcpool, int force)
 static void netdev_zc_pbuf_free_cb (struct pbuf *p)
 {
   struct zc_pbuf *zcpbuf = _LIST_ENTRY(p, struct zc_pbuf, b.cpbuf);
-  struct zc_pool *zcpool = (struct zc_pool *)zcpbuf->hzcpool;
+  struct zc_pool *zcpool = zcpbuf->zcpool;
   int wakeup;
   
   SYS_ARCH_DECL_PROTECT(old_level);
@@ -168,13 +171,13 @@ static void netdev_zc_pbuf_free_cb (struct pbuf *p)
  * reserve: ETH_PAD_SIZE + SIZEOF_VLAN_HDR size. 
  * ticks = 0  no wait
  *       = -1 wait forever */
-struct pbuf *netdev_zc_pbuf_alloc (void *hzcpool, int ticks)
+struct pbuf *netdev_zc_pbuf_alloc_res (void *hzcpool, int ticks, UINT16 hdr_res)
 {
   struct zc_pool *zcpool = (struct zc_pool *)hzcpool;
   struct zc_pbuf *zcpbuf;
   struct pbuf *ret;
   ULONG to;
-  u16_t reserve = ETH_PAD_SIZE + SIZEOF_VLAN_HDR;
+  u16_t reserve = ETH_PAD_SIZE + SIZEOF_VLAN_HDR + hdr_res;
   
   SYS_ARCH_DECL_PROTECT(old_level);
 
@@ -217,6 +220,16 @@ struct pbuf *netdev_zc_pbuf_alloc (void *hzcpool, int ticks)
   return (ret);
 }
 
+/* netdev input 'zero copy' buffer get a blk
+ * reserve: ETH_PAD_SIZE + SIZEOF_VLAN_HDR size.
+ * ticks = 0  no wait
+ *       = -1 wait forever */
+struct pbuf *netdev_zc_pbuf_alloc (void *hzcpool, int ticks)
+{
+  return (netdev_zc_pbuf_alloc_res(hzcpool, ticks, 0));
+}
+
+/* free zero copy pbuf */
 void netdev_zc_pbuf_free (struct pbuf *p)
 {
   pbuf_free(p);

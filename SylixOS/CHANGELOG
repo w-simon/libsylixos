@@ -36,6 +36,9 @@ HISTORY
 
 ++ Bugfixes:
 
+    2017-08-12: han.hui
+    修正 netdev 接收零拷贝初始化错误.
+
     2017-08-11: han.hui
     修正 AIO errno 错误.
 
