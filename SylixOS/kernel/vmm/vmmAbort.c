@@ -44,11 +44,24 @@
 #include "../SylixOS/kernel/include/k_kernel.h"
 #include "../SylixOS/system/include/s_system.h"
 /*********************************************************************************************************
-  加入裁剪支持
+  debug support
 *********************************************************************************************************/
 #if LW_CFG_GDB_EN > 0
 #include "dtrace.h"
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
+/*********************************************************************************************************
+  loader support
+*********************************************************************************************************/
+#if LW_CFG_MODULELOADER_EN > 0
+extern pid_t  vprocGetPidByTcbNoLock(PLW_CLASS_TCB  ptcb);
+extern pid_t  API_ModulePid(PVOID pvVProc);
+#else
+#define vprocGetPidByTcbNoLock(x)   0
+#define API_ModulePid(x)            0
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
+/*********************************************************************************************************
+  加入裁剪支持
+*********************************************************************************************************/
 #if LW_CFG_VMM_EN > 0
 #include "vmmSwap.h"
 #include "phyPage.h"
@@ -59,13 +72,6 @@
 #ifndef printk
 #define printk
 #endif                                                                  /*  printk                      */
-#if LW_CFG_MODULELOADER_EN > 0
-extern pid_t  vprocGetPidByTcbNoLock(PLW_CLASS_TCB  ptcb);
-extern pid_t  API_ModulePid(PVOID pvVProc);
-#else
-#define vprocGetPidByTcbNoLock(x)   0
-#define API_ModulePid(x)            0
-#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 /*********************************************************************************************************
   虚拟分页空间链表 (缺页中断查找表)
 *********************************************************************************************************/

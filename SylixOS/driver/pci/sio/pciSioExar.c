@@ -297,6 +297,7 @@ SIO_CHAN  *pciSioExarChan (UINT               uiChannel,
      */
     psiochan->fifo_len         = 8;
     psiochan->rx_trigger_level = 1;
+    psiochan->iobase           = 0;                                     /*  NO IO Base                  */
 
     psiochan->baud   = psioexarcfg->CFG_ulBaud;
     psiochan->xtal   = psioexarcfg->CFG_ulXtal;

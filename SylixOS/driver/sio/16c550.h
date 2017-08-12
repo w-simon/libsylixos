@@ -198,6 +198,8 @@ struct sio16c550_chan {
      */
     int rx_trigger_level;                                       /* FIFO rx int trigger level (0 ~ 3)    */
 
+    UINT16 iobase;                                              /* iobase address, only for x86 io space*/
+                                                                /* (set 0 usually)                      */
     void (*setreg)(SIO16C550_CHAN *, int reg, UINT8 val);       /* set register value                   */
     UINT8 (*getreg)(SIO16C550_CHAN *, int reg);                 /* get register value                   */
 

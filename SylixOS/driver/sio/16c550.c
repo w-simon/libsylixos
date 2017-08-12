@@ -51,6 +51,55 @@
             }   \
         } while (0)
 /*********************************************************************************************************
+  8250 fintek High Baud Config
+*********************************************************************************************************/
+#ifdef __GNUC__
+
+#define DIV_ROUND_CLOSEST(x, divisor)   \
+({  \
+    typeof(x)  __x = x; \
+    typeof(divisor) __d = divisor;  \
+    (((typeof(x))-1) > 0 || \
+     ((typeof(divisor))-1) > 0 || (__x) > 0) ?  \
+        (((__x) + ((__d) / 2)) / (__d)) :   \
+        (((__x) - ((__d) / 2)) / (__d));    \
+})
+#define BIT(nr)             (1UL << (nr))
+
+#define ADDR_PORT           0                                           /* addr port register           */
+#define DATA_PORT           1                                           /* data port register           */
+#define EXIT_KEY            0xAA
+#define CHIP_ID1            0x20                                        /* chip id1 register            */
+#define CHIP_ID2            0x21                                        /* chip id2 register            */
+#define CHIP_ID_0           0x1010                                      /* chip id val                  */
+#define VENDOR_ID1          0x23                                        /* vendor id1 register          */
+#define VENDOR_ID1_VAL      0x19                                        /* vendor id1 val               */
+#define VENDOR_ID2          0x24                                        /* vendor id2 register          */
+#define VENDOR_ID2_VAL      0x34                                        /* vendor id2 val               */
+#define IO_ADDR1            0x61                                        /* base address low register    */
+#define IO_ADDR2            0x60                                        /* base address high register   */
+#define LDN 0x7
+
+#define CLOCK_REG           0xF2                                        /* clock select register        */
+#define CLK1                BIT(1)
+#define CLK0                BIT(0)
+#define CLOCK_RATE_MASK     (CLK1 | CLK0)
+#define CLKSEL_1DOT846_MHZ  0x00
+#define CLKSEL_18DOT46_MHZ  CLK0
+#define CLKSEL_24_MHZ       CLK1
+#define CLKSEL_14DOT77_MHZ  (CLK1 | CLK0)
+
+#define FIFO_CNF            0xF6                                        /* fifo mode register           */
+#define RX_MULTI_4X         BIT(5)
+#define FIFO_128B           (BIT(0) | BIT(1))
+/*********************************************************************************************************
+  8250 externed high baud rate global variable declaration
+*********************************************************************************************************/
+static UINT32 baudrate_table[] = { 1500000, 1152000, 921600 };
+static UINT8  clock_table[]    = { CLKSEL_24_MHZ, CLKSEL_18DOT46_MHZ, CLKSEL_14DOT77_MHZ };
+
+#endif                                                                  /* __GNUC__                     */
+/*********************************************************************************************************
   internal function declare
 *********************************************************************************************************/
 static INT sio16c550SetBaud(SIO16C550_CHAN *psiochan, ULONG baud);
@@ -116,6 +165,240 @@ INT  sio16c550Init (SIO16C550_CHAN *psiochan)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+  8250 externed high baud rate function
+*********************************************************************************************************/
+#ifdef __GNUC__
+/*********************************************************************************************************
+** 函数名称: sio16c550EnterKey
+** 功能描述: 打开允许访问
+** 输　入  : base_port      基本端口
+**           key            关键字
+** 输　出  : ERROR_NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  sio16c550EnterKey (UINT16 base_port, UINT8 key)
+{
+    out8(key, base_port + ADDR_PORT);
+    out8(key, base_port + ADDR_PORT);
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: sio16c550ExitKey
+** 功能描述: 关闭允许访问
+** 输　入  : base_port      基本端口
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  sio16c550ExitKey (UINT16 base_port)
+{
+    out8(EXIT_KEY, base_port + ADDR_PORT);
+}
+/*********************************************************************************************************
+** 函数名称: sio16c550CheckId
+** 功能描述: 检查ID
+** 输　入  : base_port      基本端口
+** 输　出  : PX_ERROR or ERROR_NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  sio16c550CheckId (UINT16 base_port)
+{
+    UINT16  chip;
+
+    out8(VENDOR_ID1, base_port + ADDR_PORT);
+    if (in8(base_port + DATA_PORT) != VENDOR_ID1_VAL) {
+        return  (PX_ERROR);
+    }
+
+    out8(VENDOR_ID2, base_port + ADDR_PORT);
+    if (in8(base_port + DATA_PORT) != VENDOR_ID2_VAL) {
+        return  (PX_ERROR);
+    }
+
+    out8(CHIP_ID1, base_port + ADDR_PORT);
+    chip = in8(base_port + DATA_PORT);
+    out8(CHIP_ID2, base_port + ADDR_PORT);
+    chip |= in8(base_port + DATA_PORT) << 8;
+
+    if (chip != CHIP_ID_0) {
+        return  (PX_ERROR);
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: sio16c550ConfigNode
+** 功能描述: 配置节点
+** 输　入  : port      基本端口
+**           key       关键字
+**           idx       索引
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  sio16c550ConfigNode (UINT16 port, UINT8 key, UINT8 idx)
+{
+    UINT8  tmp;
+
+    out8(LDN, port + ADDR_PORT);
+    out8(idx, port + DATA_PORT);
+
+    /*
+     * Set 128Bytes FIFO, 4x Trigger Level and IRQ Mode (Bit3=0)
+     */
+    out8(FIFO_CNF, port + ADDR_PORT);
+    out8(RX_MULTI_4X | FIFO_128B, port + DATA_PORT);
+                                                                        /* Set IRQ Edge/High for F0h    */
+    out8(0xf0, port + ADDR_PORT);
+    tmp = in8(port + DATA_PORT);
+    tmp |= BIT(0) | BIT(1);
+    out8(tmp, port + DATA_PORT);
+}
+/*********************************************************************************************************
+** 函数名称: sio16c550CheckBaud
+** 功能描述: 检查波特率
+** 输　入  : baud      波特率
+**           idx       索引
+** 输　出  : PX_ERROR or ERROR_NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  sio16c550CheckBaud (UINT32 baud, size_t *idx)
+{
+    size_t  index;
+    UINT32  quot, rem;
+
+    for (index = 0; index < sizeof(baudrate_table); ++index) {
+        /*
+         * Clock source must largeer than desire baudrate
+         */
+        if (baud > baudrate_table[index]) {
+            continue;
+        }
+
+        quot = DIV_ROUND_CLOSEST(baudrate_table[index], baud);
+        rem  = baudrate_table[index] % baud;                            /*  find divisible clock source */
+
+        if (quot && !rem) {
+            if (idx) {
+                *idx = index;
+            }
+            return  (ERROR_NONE);
+        }
+    }
+
+    return  (PX_ERROR);
+}
+/*********************************************************************************************************
+** 函数名称: sio16c550GetBasePort
+** 功能描述: 获得端口基址
+** 输　入  : iobase        IO基址
+**           key           关键字
+**           idx           索引
+** 输　出  : PX_ERROR or 端口基址
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  sio16c550GetBasePort (UINT16 iobase, UINT8 *key, UINT8 *index)
+{
+    static const UINT16 addr[] = {0x4e, 0x2e};
+    static const UINT8  keys[] = {0x77, 0xa0, 0x87, 0x67};
+                 INT    i, j, k;
+
+    for (i = 0; i < sizeof(addr); i++) {
+        for (j = 0; j < sizeof(keys); j++) {
+            if (sio16c550EnterKey(addr[i], keys[j])) {
+                continue;
+            }
+            if (sio16c550CheckId(addr[i])) {
+                sio16c550ExitKey(addr[i]);
+                continue;
+            }
+
+            for (k = 0x10; k < 0x16; k++) {
+                UINT16  aux;
+
+                out8(LDN, addr[i] + ADDR_PORT);
+                out8(k, addr[i] + DATA_PORT);
+
+                out8(IO_ADDR1, addr[i] + ADDR_PORT);
+                aux = in8(addr[i] + DATA_PORT);
+                out8(IO_ADDR2, addr[i] + ADDR_PORT);
+                aux |= in8(addr[i] + DATA_PORT) << 8;
+                
+                if (aux != iobase) {
+                    continue;
+                }
+
+                sio16c550ConfigNode(addr[i], keys[j], k);
+                sio16c550ExitKey(addr[i]);
+
+                *key   = keys[j];
+                *index = k;
+                return  (addr[i]);
+            }
+            sio16c550ExitKey(addr[i]);
+        }
+    }
+
+    return  (PX_ERROR);
+}
+/*********************************************************************************************************
+** 函数名称: sio16c550SetHighBaud
+** 功能描述: 设置高速波特率
+** 输　入  : psiochan      SIO CHAN
+**           baud          波特率
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  sio16c550SetHighBaud (SIO16C550_CHAN *psiochan, ULONG  baud)
+{
+    UINT8   key;
+    UINT8   index;
+    UINT8   tmp;
+    INT     base_port;
+    size_t  i = 0;
+
+    if (psiochan->iobase == 0) {
+        _ErrorHandle(ENODEV);
+        return  (PX_ERROR);
+    }
+    
+    base_port = sio16c550GetBasePort(psiochan->iobase, &key, &index);
+    if (base_port < 0) {
+        _ErrorHandle(ENODEV);
+        return  (PX_ERROR);
+    }
+
+    if (sio16c550EnterKey(base_port, key)) {
+        return  (PX_ERROR);
+    }
+    /*
+     * read current clock source (masked with CLOCK_RATE_MASK)
+     */
+    out8(LDN, base_port + ADDR_PORT);
+    out8(index, base_port + DATA_PORT);
+
+    out8(CLOCK_REG, base_port + ADDR_PORT);
+    tmp = in8(base_port + DATA_PORT);
+
+    if (!sio16c550CheckBaud(baud, &i)) {                                /*  had optimize value          */
+        psiochan->xtal = baudrate_table[i] * 16;
+        tmp = (tmp & ~CLOCK_RATE_MASK) | clock_table[i];
+        out8(tmp, base_port + DATA_PORT);
+    }
+    
+    sio16c550ExitKey(base_port);
+
+    return  (ERROR_NONE);
+}
+
+#endif                                                                  /*  __GNUC__                    */
+/*********************************************************************************************************
 ** 函数名称: sio16c550SetBaud
 ** 功能描述: 设置波特率
 ** 输　入  : psiochan      SIO CHAN
@@ -127,7 +410,21 @@ INT  sio16c550Init (SIO16C550_CHAN *psiochan)
 static INT sio16c550SetBaud (SIO16C550_CHAN *psiochan, ULONG  baud)
 {
     INTREG  intreg;
-    INT     divisor = (INT)((psiochan->xtal + (8 * baud)) / (16 * baud));
+    INT     divisor;
+
+#ifdef __GNUC__
+    if (baud > 115200) {
+        /*
+         *  8250 fintek High Baud Config
+         */
+        if (sio16c550SetHighBaud(psiochan, baud) < ERROR_NONE) {
+            _ErrorHandle(EIO);
+            return  (PX_ERROR);
+        }
+    }
+#endif                                                                  /*  __GNUC__                    */
+
+    divisor = (INT)((psiochan->xtal + (8 * baud)) / (16 * baud));
 
     if ((divisor < 1) || (divisor > 0xffff)) {
         _ErrorHandle(EIO);
