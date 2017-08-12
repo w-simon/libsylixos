@@ -62,10 +62,7 @@ void init_etc_passwd_group(void)
    */
   if (access("/etc/group", R_OK) < 0) {
     if ((fp = fopen("/etc/group", "w")) != NULL) {
-      fprintf(fp, "root:x:0:root\n"
-                  "server:x:100:server\n"
-                  "user:x:200:user\n"
-                  "apps:x:300:user\n"
+      fprintf(fp, "root:x:0:root,hanhui\n"
                   "anonymous:x:400:anonymous\n");
       fclose(fp);
     }
