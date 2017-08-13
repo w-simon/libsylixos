@@ -19,7 +19,8 @@
 ** 描        述: 这是系统内核启动参数设置文件。
 **
 ** BUG:
-2014/09.09  ncpus 取值范围为 [1 ~ LW_CFG_MAX_PROCESSORS].
+2014.09.09  ncpus 取值范围为 [1 ~ LW_CFG_MAX_PROCESSORS].
+2017.08.13  加入对初始状态的初始化.
 *********************************************************************************************************/
 #define  __KERNEL_NCPUS_SET
 #define  __SYLIXOS_KERNEL
@@ -32,19 +33,20 @@ static CHAR     _K_cKernelStartParam[512];
 ** 函数名称: API_KernelStartParam
 ** 功能描述: 系统内核启动参数
 ** 输　入  : pcParam       启动参数, 是以空格分开的一个字符串列表，通常具有如下形式:
-                           ncpus=1      CPU 个数
-                           dlog=no      DEBUG LOG 信息打印
-                           derror=yes   DEBUG ERROR 信息打印
-                           kfpu=no      内核态对浮点支持 (推荐为 no)
-                           heapchk=yes  内存堆越界检查
-                           hz=100       系统 tick 频率, 默认为 100 (推荐 100 ~ 10000 中间)
-                           hhz=100      高速定时器频率, 默认与 hz 相同 (需 BSP 支持)
-                           irate=5      应用定时器分辨率, 默认为 5 个 tick. (推荐 1 ~ 10 中间)
-                           hpsec=1      热插拔循环检测间隔时间, 单位: 秒 (推荐 1 ~ 5 秒)
-                           bugreboot=no 内核探测到 bug 时是否自动重启.
-                           rebootto=10  重启超时时间.
-                           fsched=no    SMP 系统内核快速调度
-                           smt=no       SMT 均衡调度
+                           ncpus=1          CPU 个数
+                           dlog=no          DEBUG LOG 信息打印
+                           derror=yes       DEBUG ERROR 信息打印
+                           kfpu=no          内核态对浮点支持 (推荐为 no)
+                           heapchk=yes      内存堆越界检查
+                           hz=100           系统 tick 频率, 默认为 100 (推荐 100 ~ 10000 中间)
+                           hhz=100          高速定时器频率, 默认与 hz 相同 (需 BSP 支持)
+                           irate=5          应用定时器分辨率, 默认为 5 个 tick. (推荐 1 ~ 10 中间)
+                           hpsec=1          热插拔循环检测间隔时间, 单位: 秒 (推荐 1 ~ 5 秒)
+                           bugreboot=yes    内核探测到 bug 时是否自动重启.
+                           rebootto=10      重启超时时间.
+                           fsched=no        SMP 系统内核快速调度
+                           smt=no           SMT 均衡调度
+                           noitmr=no        不支持 ITIMER_REAL, ITIMER_VIRTUAL, ITIMER_PROF
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
@@ -64,6 +66,8 @@ ULONG  API_KernelStartParam (CPCHAR  pcParam)
         return  (ERROR_KERNEL_RUNNING);
     }
     
+    LW_KERN_BUG_REBOOT_EN_SET(LW_TRUE);                                 /*  初始状态                    */
+
     lib_strlcpy(cParamBuffer,         pcParam, sizeof(cParamBuffer));
     lib_strlcpy(_K_cKernelStartParam, pcParam, sizeof(_K_cKernelStartParam));
 
@@ -180,6 +184,14 @@ ULONG  API_KernelStartParam (CPCHAR  pcParam)
 #endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
           
+          else if (lib_strncmp(pcTok, "noitmr=", 7) == 0) {             /*  不支持 itimer               */
+            if (pcTok[7] == 'n') {
+                LW_KERN_NO_ITIMER_EN_SET(LW_FALSE);
+            } else {
+                LW_KERN_NO_ITIMER_EN_SET(LW_TRUE);
+            }
+        }
+
 #ifdef __ARCH_KERNEL_PARAM
           else {
             __ARCH_KERNEL_PARAM(pcTok);                                 /*  体系结构相关参数            */

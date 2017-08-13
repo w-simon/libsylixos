@@ -38,6 +38,7 @@
 2014.05.21  系统发生段错误时, 需要通知 dtrace.
 2016.11.24  FPU 异常需要在异常上下文保存 FPU 上下文.
 2017.08.11  加入对线程堆栈溢出的检测.
+2018.08.13  内核线程出现严重错误, 自动重新启动系统.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -776,6 +777,7 @@ static VOID  __vmmAbortKill (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
     struct sigevent  sigeventAbort;
     INT              iSigCode;
 #endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
+    BOOL             bSerious;
 
 #if LW_CFG_GDB_EN > 0
     if (!__KERNEL_ISENTER()) {
@@ -787,7 +789,7 @@ static VOID  __vmmAbortKill (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
     
 #if LW_CFG_SIGNAL_EN > 0
-    _BugHandle((_Thread_Index_Invalid(_ObjectGetIndex(pvmpagefailctx->PAGEFCTX_ulSelf))),
+    _BugHandle((_ObjectGetIndex(pvmpagefailctx->PAGEFCTX_ptcb->TCB_ulCPUId) < LW_NCPUS),
                LW_TRUE, "idle thread serious error!\r\n");
 
     switch (__PAGEFAILCTX_ABORT_TYPE(pvmpagefailctx)) {                 /*  分析异常类型                */
@@ -795,48 +797,62 @@ static VOID  __vmmAbortKill (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
     case 0:
         sigeventAbort.sigev_signo = SIGKILL;                            /*  通过 SIGKILL 信号杀死任务   */
         iSigCode = SI_KERNEL;
+        bSerious = LW_FALSE;
         break;
     
     case LW_VMM_ABORT_TYPE_FPE:
         sigeventAbort.sigev_signo = SIGFPE;
         iSigCode = __PAGEFAILCTX_ABORT_METHOD(pvmpagefailctx);
+        bSerious = LW_TRUE;
         break;
         
     case LW_VMM_ABORT_TYPE_BUS:
         sigeventAbort.sigev_signo = SIGBUS;
         iSigCode = __PAGEFAILCTX_ABORT_METHOD(pvmpagefailctx);
+        bSerious = LW_TRUE;
         break;
         
     case LW_VMM_ABORT_TYPE_SYS:
         sigeventAbort.sigev_signo = SIGSYS;
         iSigCode = SI_KERNEL;
+        bSerious = LW_TRUE;
         break;
         
     case LW_VMM_ABORT_TYPE_UNDEF:
         sigeventAbort.sigev_signo = SIGILL;
         iSigCode = ILL_ILLOPC;
+        bSerious = LW_TRUE;
         break;
         
     case LW_VMM_ABORT_TYPE_MAP:
         sigeventAbort.sigev_signo = SIGSEGV;
         iSigCode = SEGV_MAPERR;
+        bSerious = LW_TRUE;
         break;
         
     case LW_VMM_ABORT_TYPE_PERM:                                        /*  与 default 共享分支         */
     default:
         sigeventAbort.sigev_signo = SIGSEGV;
         iSigCode = SEGV_ACCERR;
+        bSerious = LW_TRUE;
         break;
     }
 
     sigeventAbort.sigev_value.sival_ptr = (PVOID)pvmpagefailctx->PAGEFCTX_ulAbortAddr;
     sigeventAbort.sigev_notify          = SIGEV_SIGNAL;
     
-    _doSigEvent(pvmpagefailctx->PAGEFCTX_ulSelf, &sigeventAbort, iSigCode);
+    _doSigEvent(pvmpagefailctx->PAGEFCTX_ptcb->TCB_ulCPUId, &sigeventAbort, iSigCode);
     
-    if (__KERNEL_ISENTER()) {                                           /*  出现致命错误                */
+    if (__KERNEL_ISENTER()) {                                           /*  内核状态下出现严重错误      */
         API_KernelReboot(LW_REBOOT_FORCE);                              /*  直接重新启动操作系统        */
     }
+
+    if (LW_KERN_BUG_REBOOT_EN_GET()) {
+        if (bSerious && !vprocGetPidByTcbNoLock(pvmpagefailctx->PAGEFCTX_ptcb)) {
+            API_KernelReboot(LW_REBOOT_FORCE);                          /*  内核线程严重错误            */
+        }
+    }
+
 #else
     API_KernelReboot(LW_REBOOT_FORCE);                                  /*  直接重新启动操作系统        */
 #endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
@@ -867,7 +883,7 @@ static VOID  __vmmAbortAccess (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
     
     case LW_VMM_ABORT_TYPE_UNDEF:
         printk(KERN_EMERG "thread 0x%lx undefine-instruction, abt_addr: 0x%08lx.\n",
-               pvmpagefailctx->PAGEFCTX_ulSelf, 
+               pvmpagefailctx->PAGEFCTX_ptcb->TCB_ulCPUId,
                pvmpagefailctx->PAGEFCTX_ulAbortAddr);                   /*  操作异常                    */
         break;
         
@@ -882,7 +898,7 @@ static VOID  __vmmAbortAccess (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
         }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
         printk(KERN_EMERG "thread 0x%lx FPU exception, abt_addr: 0x%08lx.\n",
-               pvmpagefailctx->PAGEFCTX_ulSelf, 
+               pvmpagefailctx->PAGEFCTX_ptcb->TCB_ulCPUId,
                pvmpagefailctx->PAGEFCTX_ulAbortAddr);                   /*  操作异常                    */
         break;
         
@@ -891,7 +907,7 @@ static VOID  __vmmAbortAccess (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
         archTaskCtxShow(ioGlobalStdGet(STD_ERR), (PLW_STACK)pvmpagefailctx->PAGEFCTX_pvStackRet);
 #endif
         printk(KERN_EMERG "thread 0x%lx abort, ret_addr: 0x%08lx abt_addr: 0x%08lx abt_type: %s.\n",
-               pvmpagefailctx->PAGEFCTX_ulSelf, 
+               pvmpagefailctx->PAGEFCTX_ptcb->TCB_ulCPUId,
                pvmpagefailctx->PAGEFCTX_ulRetAddr,
                pvmpagefailctx->PAGEFCTX_ulAbortAddr, 
                __vmmAbortTypeStr(&pvmpagefailctx->PAGEFCTX_abtInfo));   /*  操作异常                    */
@@ -1059,7 +1075,7 @@ VOID  API_VmmAbortIsr (addr_t          ulRetAddr,
     pucStkNow      -= sizeof(LW_STACK);                                 /*  向空栈方向移动一个堆栈空间  */
 #endif
     
-    pvmpagefailctx->PAGEFCTX_ulSelf       = ptcb->TCB_ulId;
+    pvmpagefailctx->PAGEFCTX_ptcb         = ptcb;
     pvmpagefailctx->PAGEFCTX_ulRetAddr    = ulRetAddr;                  /*  异常返回地址                */
     pvmpagefailctx->PAGEFCTX_ulAbortAddr  = ulAbortAddr;                /*  异常地址 (异常类型相关)     */
     pvmpagefailctx->PAGEFCTX_abtInfo      = *pabtInfo;                  /*  异常类型                    */

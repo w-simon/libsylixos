@@ -1496,10 +1496,15 @@ static INT  __tshellFsCmdDf (INT  iArgC, PCHAR  ppcArgV[])
         pcRo = "y";
     }
     
-    if ((ullFree > ullTotal) || (ullTotal == 0)) {
+    if (ullFree > ullTotal) {
         printf("%-14s %4lu.%02lu%-2s   unknown ---%% %-2s %s\n", ppcArgV[1], 
                ulTotalDisp, ulTotalPoint, 
                pcTotalUnit, pcRo, pcFsType);
+
+    } else if (ullTotal == 0) {
+        printf("%-14s %4lu.%02lu%-2s %4lu.%02lu%-2s %3d%% %-2s %s\n", ppcArgV[1],
+               0ul, 0ul, "KB", 0ul, 0ul, "KB",
+               100, pcRo, pcFsType);
     
     } else {
         UINT64      ullUseBlocks = (UINT64)(statfsGet.f_blocks - statfsGet.f_bfree);

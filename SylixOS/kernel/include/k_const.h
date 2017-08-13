@@ -66,6 +66,10 @@
 #define LW_KERN_FLAG_SMP_FSCHED     0x04                                /*  SMP 是否使能快速调度        */
                                                                         /*  快速调度将产生大量的核间中断*/
 #define LW_KERN_FLAG_SMT_BSCHED     0x08                                /*  SMT 均衡调度                */
+#define LW_KERN_FLAG_NO_ITIMER      0x10                                /*  不支持 ITIMER_REAL          */
+                                                                        /*         ITIMER_VIRTUAL       */
+                                                                        /*         ITIMER_PROF          */
+                                                                        /*  提高 tick 中断执行速度      */
 /*********************************************************************************************************
   内核是否支持浮点状态
 *********************************************************************************************************/
@@ -124,6 +128,20 @@
 #define LW_KERN_SMT_BSCHED_EN_GET() (_K_ulKernFlags & LW_KERN_FLAG_SMT_BSCHED)
 
 #endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
+/*********************************************************************************************************
+  不支持 ITIMER_REAL, ITIMER_VIRTUAL, ITIMER_PROF
+*********************************************************************************************************/
+
+#define LW_KERN_NO_ITIMER_EN_SET(en)                        \
+        do {                                                \
+            if (en) {                                       \
+                _K_ulKernFlags |= LW_KERN_FLAG_NO_ITIMER;   \
+            } else {                                        \
+                _K_ulKernFlags &= ~LW_KERN_FLAG_NO_ITIMER;  \
+            }                                               \
+        } while (0)
+#define LW_KERN_NO_ITIMER_EN_GET()  (_K_ulKernFlags & LW_KERN_FLAG_NO_ITIMER)
+
 /*********************************************************************************************************
   系统状态
 *********************************************************************************************************/

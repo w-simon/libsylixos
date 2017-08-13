@@ -31,7 +31,7 @@ typedef struct {
     addr_t              PAGEFCTX_ulRetAddr;                             /*  异常返回地址                */
     addr_t              PAGEFCTX_ulAbortAddr;                           /*  内存访问失效地址            */
     LW_VMM_ABORT        PAGEFCTX_abtInfo;                               /*  异常类型                    */
-    LW_OBJECT_HANDLE    PAGEFCTX_ulSelf;                                /*  产生缺页中断的线程          */
+    PLW_CLASS_TCB       PAGEFCTX_ptcb;                                  /*  产生缺页中断的线程          */
     
     errno_t             PAGEFCTX_iLastErrno;                            /*  返回时需要恢复的信息        */
     INT                 PAGEFCTX_iKernelSpace;

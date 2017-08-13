@@ -184,7 +184,9 @@ VOID  API_KernelTicksContext (VOID)
 #endif                                                                  /*  LW_CFG_SMP_EN               */
     
 #if LW_CFG_MODULELOADER_EN > 0
-    vprocTickHook();                                                    /*  测算进程执行时间            */
+    if (!LW_KERN_NO_ITIMER_EN_GET()) {
+        vprocTickHook();                                                /*  测算进程执行时间            */
+    }
 #endif
     
     iregInterLevel = KN_INT_DISABLE();                                  /*  关闭中断                    */

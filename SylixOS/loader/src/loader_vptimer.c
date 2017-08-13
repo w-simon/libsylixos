@@ -148,6 +148,10 @@ INT  vprocSetitimer (INT        iWhich,
     LW_LD_VPROC_T   *pvptimer;
     PLW_CLASS_TCB    ptcbCur;
 
+    if (LW_KERN_NO_ITIMER_EN_GET()) {
+        _PrintHandle("Warning: no itimer support (kernel start parameter: noitmr=yes)!\r\n");
+    }
+
     LW_TCB_GET_CUR_SAFE(ptcbCur);
     
     pvproc = __LW_VP_GET_TCB_PROC(ptcbCur);
