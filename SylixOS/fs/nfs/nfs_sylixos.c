@@ -199,20 +199,56 @@ static ssize_t  __nfsReadlink(PNFS_FS       pnfsfs,
 static VOID  __nfsRpcErrorHandle (enum clnt_stat  clntstat)
 {
     switch (clntstat) {
-    /* 
-     * TODO: this is probably not complete and/or fully accurate 
-     */
-    case RPC_CANTENCODEARGS: 
-        errno = EINVAL;	
-        break;
-        
-    case RPC_AUTHERROR: 
-        errno = EPERM;
+
+    case RPC_CANTENCODEARGS:
+    case RPC_CANTDECODERES:
+        errno = EBADMSG;
         break;
 
     case RPC_CANTSEND:
-    case RPC_CANTRECV:                                                  /* hope they have errno set     */
-    case RPC_SYSTEMERROR: break;
+        errno = ECOMM;
+        break;
+
+    case RPC_CANTRECV:
+        errno = EREMOTEIO;
+        break;
+
+    case RPC_TIMEDOUT:
+        errno = ETIMEDOUT;
+        break;
+        
+    case RPC_AUTHERROR:
+        errno = EPERM;
+        break;
+
+    case RPC_VERSMISMATCH:
+    case RPC_PROGUNAVAIL:
+    case RPC_PROGVERSMISMATCH:
+    case RPC_PROCUNAVAIL:
+    case RPC_CANTDECODEARGS:
+    case RPC_SYSTEMERROR:
+    case RPC_NOBROADCAST:
+        errno = EREMOTEIO;
+        break;
+
+    case RPC_UNKNOWNHOST:
+    case RPC_UNKNOWNADDR:
+        errno = ENETUNREACH;
+        break;
+
+    case RPC_UNKNOWNPROTO:
+        errno = EPROTONOSUPPORT;
+        break;
+
+    case RPC_RPCBFAILURE:
+    case RPC_PROGNOTREGISTERED:
+    case RPC_N2AXLATEFAILURE:
+        errno = ENOPROTOOPT;
+        break;
+
+    case RPC_INPROGRESS:
+        errno = EINPROGRESS;
+        break;
 
     default: 
         errno = EIO;
@@ -1944,13 +1980,13 @@ static ssize_t  __nfsRead (PLW_FD_ENTRY   pfdentry,
     enum clnt_stat  clntstat;
     
     READ3args   args;
-	READ3res    res;
-	
-	PLW_FD_NODE pfdnode  = (PLW_FD_NODE)pfdentry->FDENTRY_pfdnode;
+    READ3res    res;
+
+    PLW_FD_NODE pfdnode  = (PLW_FD_NODE)pfdentry->FDENTRY_pfdnode;
     PNFS_FILE   pnfsfile = (PNFS_FILE)pfdnode->FDNODE_pvFile;
-	size_t      stTotal  = 0;
-	count3      countOnce;
-	BOOL        bIsEof   = LW_FALSE;                                    /*  是否到文件尾部              */
+    size_t      stTotal  = 0;
+    count3      countOnce;
+    BOOL        bIsEof   = LW_FALSE;                                    /*  是否到文件尾部              */
 
     if (!pcBuffer || !stMaxBytes) {
         _ErrorHandle(EINVAL);
@@ -2039,13 +2075,13 @@ static ssize_t  __nfsPRead (PLW_FD_ENTRY   pfdentry,
     enum clnt_stat  clntstat;
     
     READ3args   args;
-	READ3res    res;
-	
-	PLW_FD_NODE pfdnode  = (PLW_FD_NODE)pfdentry->FDENTRY_pfdnode;
+    READ3res    res;
+
+    PLW_FD_NODE pfdnode  = (PLW_FD_NODE)pfdentry->FDENTRY_pfdnode;
     PNFS_FILE   pnfsfile = (PNFS_FILE)pfdnode->FDNODE_pvFile;
-	size_t      stTotal  = 0;
-	count3      countOnce;
-	BOOL        bIsEof   = LW_FALSE;                                    /*  是否到文件尾部              */
+    size_t      stTotal  = 0;
+    count3      countOnce;
+    BOOL        bIsEof   = LW_FALSE;                                    /*  是否到文件尾部              */
 
     if (!pcBuffer || !stMaxBytes || (oftPos < 0)) {
         _ErrorHandle(EINVAL);
@@ -2132,12 +2168,12 @@ static ssize_t  __nfsWrite (PLW_FD_ENTRY  pfdentry,
     enum clnt_stat  clntstat;
 
     WRITE3args  args;
-	WRITE3res   res;
-	
-	PLW_FD_NODE pfdnode  = (PLW_FD_NODE)pfdentry->FDENTRY_pfdnode;
+    WRITE3res   res;
+
+    PLW_FD_NODE pfdnode  = (PLW_FD_NODE)pfdentry->FDENTRY_pfdnode;
     PNFS_FILE   pnfsfile = (PNFS_FILE)pfdnode->FDNODE_pvFile;
-	size_t      stTotal  = 0;
-	count3      countOnce;
+    size_t      stTotal  = 0;
+    count3      countOnce;
 
     if (!pcBuffer || !stNBytes) {
         _ErrorHandle(EINVAL);
@@ -2235,12 +2271,12 @@ static ssize_t  __nfsPWrite (PLW_FD_ENTRY  pfdentry,
     enum clnt_stat  clntstat;
 
     WRITE3args  args;
-	WRITE3res   res;
-	
-	PLW_FD_NODE pfdnode  = (PLW_FD_NODE)pfdentry->FDENTRY_pfdnode;
+    WRITE3res   res;
+
+    PLW_FD_NODE pfdnode  = (PLW_FD_NODE)pfdentry->FDENTRY_pfdnode;
     PNFS_FILE   pnfsfile = (PNFS_FILE)pfdnode->FDNODE_pvFile;
-	size_t      stTotal  = 0;
-	count3      countOnce;
+    size_t      stTotal  = 0;
+    count3      countOnce;
 
     if (!pcBuffer || !stNBytes || (oftPos < 0)) {
         _ErrorHandle(EINVAL);

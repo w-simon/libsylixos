@@ -413,7 +413,7 @@ errno_t  tpsFsFormat (PTPS_DEV pdev, UINT uiBlkSize)
     /*
      *  初始化空间管理inode和root inode
      */
-    iMode = S_IFREG | S_IRWXU | S_IRWXO | S_IRWXO;
+    iMode = S_IFREG | S_IRWXU | S_IRWXG | S_IRWXO;
     if (tpsFsCreateInode(LW_NULL, psb, psb->SB_inumSpaceMng, iMode) != TPS_ERR_NONE) {
         TPS_FREE(pucSectorBuf);
         TPS_FREE(psb);
@@ -461,7 +461,7 @@ errno_t  tpsFsFormat (PTPS_DEV pdev, UINT uiBlkSize)
         return  (EIO);
     }
 
-    iMode = S_IFDIR | S_IRWXU | S_IRWXO | S_IRWXO;
+    iMode = S_IFDIR | S_IRWXU | S_IRWXG | S_IRWXO;
     iErr  = tpsFsCreateInode(LW_NULL, psb, psb->SB_inumRoot, iMode);
     if (iErr != ERROR_NONE) {
         TPS_FREE(pucSectorBuf);
@@ -488,6 +488,7 @@ errno_t  tpsFsFormat (PTPS_DEV pdev, UINT uiBlkSize)
     TPS_FREE(pucSectorBuf);
     TPS_FREE(psb->SB_pbp);
     TPS_FREE(psb);
+    
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************

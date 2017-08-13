@@ -401,6 +401,7 @@ __error_handle:
 *********************************************************************************************************/
 static INT  __tshellFsCmdCat (INT  iArgC, PCHAR  ppcArgV[])
 {
+             BOOL           bLastLf = LW_TRUE;
     REGISTER INT            iError;
     REGISTER ssize_t        sstNum;
     REGISTER INT            iFd;
@@ -441,12 +442,15 @@ static INT  __tshellFsCmdCat (INT  iArgC, PCHAR  ppcArgV[])
         sstNum = read(iFd, cBuffer, MAX_FILENAME_LENGTH);
         if (sstNum > 0) {
             write(1, cBuffer, (size_t)sstNum);
+            bLastLf = (cBuffer[sstNum - 1] == '\n') ? LW_TRUE : LW_FALSE;
         }
     } while (sstNum > 0);
     
     API_ThreadCleanupPop(LW_TRUE);
     
-    printf("\n");
+    if (!bLastLf) {
+        printf("\n");
+    }
     
     return  (ERROR_NONE);
 }
