@@ -65,7 +65,7 @@
   常用参数
 *********************************************************************************************************/
 #define __NFS_READDIR_MAXLEN            512                             /* readdir 一次读取 entry 数量  */
-#define __NFS_BLOCK_SIZE                1024                            /* General FileSystem block size*/
+#define __NFS_BLOCK_SIZE                4096                            /* General FileSystem block size*/
 /*********************************************************************************************************
   内部结构
 *********************************************************************************************************/
@@ -350,7 +350,10 @@ static VOID  __nfsAttr2Stat (PNFS_FS  pnfsfs, fattr3  *pattr, struct stat *pstat
     pstat->st_rdev    = pattr->rdev.specdata1;
     pstat->st_size    = pattr->size;
     pstat->st_blksize = __NFS_BLOCK_SIZE;
-    pstat->st_blocks  = (long)(pstat->st_size / __NFS_BLOCK_SIZE) + 1;
+    pstat->st_blocks  = (long)(pstat->st_size / __NFS_BLOCK_SIZE);
+    if (pstat->st_size % __NFS_BLOCK_SIZE) {
+        pstat->st_blocks++;
+    }
     
     /*
      *  NFS 服务器直接使用 UTC 时间.
@@ -2728,7 +2731,7 @@ static INT  __nfsStatfs (PLW_FD_ENTRY  pfdentry, struct statfs *pstatfs)
         return  (PX_ERROR);
     }
     
-    args.fsroot = pnfsfile->NFSFIL_nfsfs->NFSFS_hRoot;
+    args.fsroot = pnfsfile->NFSFIL_handle;                              /*  以当前路径获取文件系统信息  */
 
     lib_bzero(&res, sizeof(res));
     
