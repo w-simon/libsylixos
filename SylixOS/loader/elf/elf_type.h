@@ -186,22 +186,22 @@ typedef SINT64   Elf64_Sxword;
 /*********************************************************************************************************
   e_machine 
 *********************************************************************************************************/
-#define EM_NONE		    0                                               /* e_machine                    */
-#define EM_M32		    1	                                            /* AT&T WE 32100                */
-#define EM_SPARC	    2	                                            /* Sun SPARC                    */
-#define EM_386		    3	                                            /* Intel 80386                  */
-#define EM_68K		    4	                                            /* Motorola 68000               */
-#define EM_88K		    5	                                            /* Motorola 88000               */
-#define EM_486		    6	                                            /* Intel 80486                  */
-#define EM_860		    7	                                            /* Intel i860                   */
-#define EM_MIPS		    8	                                            /* MIPS family                  */
+#define EM_NONE         0                                               /* e_machine                    */
+#define EM_M32          1                                               /* AT&T WE 32100                */
+#define EM_SPARC        2                                               /* Sun SPARC                    */
+#define EM_386          3                                               /* Intel 80386                  */
+#define EM_68K          4                                               /* Motorola 68000               */
+#define EM_88K          5                                               /* Motorola 88000               */
+#define EM_486          6                                               /* Intel 80486                  */
+#define EM_860          7                                               /* Intel i860                   */
+#define EM_MIPS         8                                               /* MIPS family                  */
 #define EM_PARISC       15                                              /* HPPA                         */
 #define EM_SPARC32PLUS  18                                              /* Sun's "v8plus"               */
 #define EM_PPC          20                                              /* PowerPC family               */
 #define EM_PPC64        21                                              /* PowerPC64                    */
 #define EM_S390         22                                              /* IBM S/390                    */
 #define EM_SPU          23                                              /* Cell BE SPU                  */
-#define EM_ARM		    40                                              /* ARM/Thumb family             */
+#define EM_ARM          40                                              /* ARM/Thumb family             */
 #define EM_SH           42                                              /* SuperH                       */
 #define EM_SPARCV9      43                                              /* SPARC v9 64-bit              */
 #define EM_H8_300       46                                              /* Renesas H8/300,300H,H8S      */
@@ -212,8 +212,9 @@ typedef SINT64   Elf64_Sxword;
 #define EM_M32R         88                                              /* Renesas M32R                 */
 #define EM_MN10300      89                                              /* Panasonic/MEI MN10300, AM33  */
 #define EM_BLACKFIN     106                                             /* ADI Blackfin Processor       */
-#define EM_DSPC66       140                                             /* TI DSP C66xx                 */
-#define EM_AARCH64	    183	                                            /* ARM 64 bit                   */
+#define EM_ALTERA_NIOS2 113                                             /* ALTERA NIOS2                 */
+#define EM_TI_C6000     140                                             /* TI DSP C6x                   */
+#define EM_AARCH64      183                                             /* ARM 64 bit                   */
 #define EM_FRV          0x5441                                          /* Fujitsu FR-V                 */
 #define EM_AVR32        0x18ad                                          /* Atmel AVR32                  */
 #define EM_ALPHA        0x9026                                          /* Alpha                        */
@@ -531,14 +532,14 @@ typedef struct elf64_hash {
 }Elf64_Hash;
 
 typedef struct elf32_auxv_t {
-    Elf32_Word	    a_type;
+    Elf32_Word      a_type;
     union {
         Elf32_Word  a_val;
     } a_un;
 } Elf32_auxv_t;
 
 typedef struct elf64_auxv_t {
-    Elf64_Word	    a_type;
+    Elf64_Word      a_type;
     union {
         Elf64_Word  a_val;
     } a_un;

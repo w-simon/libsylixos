@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2017-08-18: han.hui
+    增加对 TI C6000 系列 DSP 支持.
+
     2017-08-11: han.hui
     增加对应用程序栈区越界判断保护.
 

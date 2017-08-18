@@ -31,25 +31,25 @@ INT archElfRGetJmpBuffItemLen(PVOID  pmodule);                          /*  获取
 #if !defined(LW_CFG_CPU_ARCH_C6X)
 INT archElfRelocateRela(PVOID       pmodule,
                         Elf_Rela   *prela,
-				        Elf_Addr    addrSymVal,
-				        PCHAR       pcTargetSec,
-				        PCHAR       pcBuffer,
-				        size_t      stBuffLen);                         /*  RELA 项重定位               */
+                        Elf_Addr    addrSymVal,
+                        PCHAR       pcTargetSec,
+                        PCHAR       pcBuffer,
+                        size_t      stBuffLen);                         /*  RELA 项重定位               */
 #else
 INT archElfRelocateRela(PVOID       pmodule,
                         Elf_Rela   *prela,
                         Elf_Sym    *psym,
-				        Elf_Addr    addrSymVal,
-				        PCHAR       pcTargetSec,
-				        PCHAR       pcBuffer,
-				        size_t      stBuffLen);                         /*  RELA 项重定位               */
+                        Elf_Addr    addrSymVal,
+                        PCHAR       pcTargetSec,
+                        PCHAR       pcBuffer,
+                        size_t      stBuffLen);                         /*  RELA 项重定位               */
 #endif
 
 INT archElfRelocateRel(PVOID        pmodule,
                        Elf_Rel     *prel,
-				       Elf_Addr     addrSymVal,
-				       PCHAR        pcTargetSec,
-				       PCHAR        pcBuffer,
+                       Elf_Addr     addrSymVal,
+                       PCHAR        pcTargetSec,
+                       PCHAR        pcBuffer,
                        size_t       stBuffLen);                         /*  REL 项重定位                */
 
 #if defined(LW_CFG_CPU_ARCH_PPC) || defined(LW_CFG_CPU_ARCH_MIPS) || defined(LW_CFG_CPU_ARCH_C6X)

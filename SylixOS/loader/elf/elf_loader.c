@@ -64,6 +64,10 @@ static const PCHAR              _G_pcFiniSecArr[] = {".fini_array"};
 *********************************************************************************************************/
 extern LW_LD_EXEC_MODULE *moduleLoadSub(LW_LD_EXEC_MODULE *pmodule, CPCHAR pchLibName, BOOL bCreate);
 /*********************************************************************************************************
+  分析函数
+*********************************************************************************************************/
+static CPCHAR  __elfGetMachineStr(Elf_Half  ehMachine);
+/*********************************************************************************************************
   是否将 entry 函数导入符号表
 *********************************************************************************************************/
 #define __LW_ENTRY_SYMBOL       1
@@ -93,25 +97,27 @@ static INT elfSymHashSize (ULONG  ulSymMax)
 ** 函数名称: elfCheck
 ** 功能描述: 检查elf文件头有效性.
 ** 输　入  : pehdr         文件头
+**           bLoad         是否为装载操作
 ** 输　出  : ERROR_NONE 表示没有错误, PX_ERROR 表示错误
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static INT elfCheck (Elf_Ehdr *pehdr)
+static INT elfCheck (Elf_Ehdr *pehdr, BOOL bLoad)
 {
     if ((pehdr->e_ident[EI_MAG0] != ELFMAG0) ||                         /*  检查ELF魔数                 */
         (pehdr->e_ident[EI_MAG1] != ELFMAG1) ||
         (pehdr->e_ident[EI_MAG2] != ELFMAG2) ||
         (pehdr->e_ident[EI_MAG3] != ELFMAG3)) {
-            _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown file format!\r\n");
-            _ErrorHandle(ERROR_LOADER_FORMAT);
-            return  (PX_ERROR);
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown file format!\r\n");
+        _ErrorHandle(ERROR_LOADER_FORMAT);
+        return  (PX_ERROR);
     }
 
     if (ELF_ARCH != pehdr->e_machine) {                                 /*  检查ELF体系结构是否匹配     */
-        /*
-         *  这里不打印 __ERRORMESSAGE_LEVEL, 有可能是 modulestat 查看其他平台的 elf 文件.
-         */
+        if (bLoad) {
+            fprintf(stderr, "[ld]Architecture error: this CPU is \"%s\" but ELF file CPU is \"%s\"!\n",
+                    __elfGetMachineStr(ELF_ARCH), __elfGetMachineStr(pehdr->e_machine));
+        }
         _ErrorHandle(ERROR_LOADER_ARCH);
         return  (PX_ERROR);
     }
@@ -850,7 +856,7 @@ __finibuild:
 
     for (i = 0; i < pmodule->EMOD_ulSegCount; i++) {
         pcShName = (PCHAR)pmodule->EMOD_psegmentArry[uiShStrNdx].ESEG_ulAddr
-                 + pshdr[i].sh_name;                              	    /* 获取符号所在节名称           */
+                 + pshdr[i].sh_name;                                    /* 获取符号所在节名称           */
         paddr = (Elf_Addr *)pmodule->EMOD_psegmentArry[i].ESEG_ulAddr;
         if (pcShName == lib_strstr(pcShName, __LW_DTORS_SECTION)) {     /*  匹配.dtor节                 */
             for (k = 0; k < (pshdr[i].sh_size / sizeof(Elf_Addr)); k++) {
@@ -1073,7 +1079,6 @@ static INT dynPhdrParse (LW_LD_EXEC_MODULE *pmodule,
      *  解析dynamic段
      */
     for (i = 0; i < iPhdrCnt; i++, pphdr++) {
-
         if (PT_DYNAMIC == pphdr->p_type) {                              /*  找到dynamic段               */
             pdyn = (Elf_Dyn *)LW_LD_V2PADDR(addrMin,
                                             pmodule->EMOD_pvBaseAddr,
@@ -1175,7 +1180,7 @@ static INT dynPhdrParse (LW_LD_EXEC_MODULE *pmodule,
                                                         pmodule->EMOD_pvBaseAddr,
                                                         pdyn->d_un.d_val);
                     break;
-					
+                    
                 case DT_PLTGOT:
                     pdyndir->ulPltGotAddr  = (Elf_Addr *)LW_LD_V2PADDR(addrMin,
                                                          pmodule->EMOD_pvBaseAddr,
@@ -1243,7 +1248,6 @@ static INT dynPhdrParse (LW_LD_EXEC_MODULE *pmodule,
             if (!pdyndir->prelaTable) {
                 pdyndir->prelaTable = (Elf_Rela*)pdyndir->pvJmpRTable;
             }
-
             pdyndir->ulRelaCount += pdyndir->ulJmpRSize/sizeof(Elf_Rela);
         }
     }
@@ -1465,7 +1469,6 @@ static INT elfPhdrRelocate (LW_LD_EXEC_MODULE *pmodule, ELF_DYN_DIR  *pdyndir)
      */
     if (pdyndir->prelTable) {                                           /*  REL重定位结构               */
         for (i = 0; i < pdyndir->ulRelCount; i++) {
-
             prel = &pdyndir->prelTable[i];
             psym = &pdyndir->psymTable[ELF_R_SYM(prel->r_info)];
             pcSymName = pdyndir->pcStrTable + psym->st_name;
@@ -1503,7 +1506,6 @@ static INT elfPhdrRelocate (LW_LD_EXEC_MODULE *pmodule, ELF_DYN_DIR  *pdyndir)
         }
     } else if (pdyndir->prelaTable) {                                   /*  RELA重定位结构              */
         for (i = 0; i < pdyndir->ulRelaCount; i++) {
-
             prela = &pdyndir->prelaTable[i];
             psym = &pdyndir->psymTable[ELF_R_SYM(prela->r_info)];
             pcSymName = pdyndir->pcStrTable + psym->st_name;
@@ -1589,7 +1591,6 @@ static INT elfPhdrSymExport (LW_LD_EXEC_MODULE *pmodule, ELF_DYN_DIR  *pdyndir)
     }
 
     for (i = 0; i < pdyndir->ulSymCount; i++) {                         /*  处理符号表                  */
-
         psym = &pdyndir->psymTable[i];
         pcSymName = pdyndir->pcStrTable + psym->st_name;
         if (psym->st_shndx               == SHN_UNDEF ||
@@ -1631,7 +1632,6 @@ static INT elfPhdrBuildInitTable (LW_LD_EXEC_MODULE *pmodule,
     UINT      uiFiniTblSize = (UINT)(pdyndir->ulFiniArrSize / sizeof(Elf_Addr));
 
     if ((uiInitTblSize > 0) && (LW_NULL != pdyndir->paddrInitArray)) {
-
         pmodule->EMOD_ppfuncInitArray = 
             (VOIDFUNCPTR *)LW_LD_SAFEMALLOC(uiInitTblSize * sizeof(VOIDFUNCPTR));
         if (!pmodule->EMOD_ppfuncInitArray) {
@@ -1652,7 +1652,6 @@ static INT elfPhdrBuildInitTable (LW_LD_EXEC_MODULE *pmodule,
     }
 
     if ((uiFiniTblSize > 0) && (LW_NULL != pdyndir->paddrFiniArray)) {
-
         pmodule->EMOD_ppfuncFiniArray = 
             (VOIDFUNCPTR *)LW_LD_SAFEMALLOC(uiFiniTblSize * sizeof(VOIDFUNCPTR));
         if (!pmodule->EMOD_ppfuncFiniArray) {
@@ -1813,7 +1812,7 @@ static INT __elfLoad (LW_LD_EXEC_MODULE *pmodule, CPCHAR pcPath)
         goto    __out;
     }
 
-    if (elfCheck(&ehdr) < 0) {                                          /*  检查文件头有效性            */
+    if (elfCheck(&ehdr, LW_TRUE) < 0) {                                 /*  检查文件头有效性            */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "elf format error!\r\n");
         goto    __out;
     }
@@ -1890,7 +1889,7 @@ INT __elfListLoad (LW_LD_EXEC_MODULE *pmodule, CPCHAR pcPath)
                     fprintf(stderr, "[ld]%s insufficient permissions!\n",
                             pmodTemp->EMOD_pcModulePath);               /*  从标准错误里打印无权限信息  */
                 } else {
-                    fprintf(stderr, "[ld]Load sub-library \"%s\" error %s!\n", 
+                    fprintf(stderr, "[ld]Load file \"%s\" error %s!\n",
                             pmodTemp->EMOD_pcModulePath, lib_strerror(errno));
                     _ErrorHandle(ERROR_LOADER_NO_MODULE);
                 }
@@ -2053,6 +2052,12 @@ static CPCHAR  __elfGetMachineStr (Elf_Half  ehMachine)
     case EM_BLACKFIN:
         return  ("ADI Blackfin Processor");
     
+    case EM_ALTERA_NIOS2:
+        return  ("ALTERA NIOS2");
+
+    case EM_TI_C6000:
+        return  ("TI C6x DSPs");
+
     case EM_AARCH64:
         return  ("ARM AArch64");
     
@@ -2227,7 +2232,7 @@ INT __elfStatus (CPCHAR pcPath, INT iFd)
         return  (PX_ERROR);
     }
 
-    if (elfCheck(&ehdr) < 0) {                                          /*  检查文件头有效性            */
+    if (elfCheck(&ehdr, LW_FALSE) < 0) {                                /*  检查文件头有效性            */
         if (API_GetLastError() != ERROR_LOADER_ARCH) {                  /*  文件格式错误                */
             close(iFdElf);
             _DebugHandle(__ERRORMESSAGE_LEVEL, "elf format error!\r\n");

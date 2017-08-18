@@ -25,7 +25,7 @@
 #if defined(LW_CFG_CPU_ARCH_C6X)                                        /*  c6x 体系结构                */
 
 #define ELF_CLASS       ELFCLASS32
-#define ELF_ARCH        EM_DSPC66
+#define ELF_ARCH        EM_TI_C6000
 
 #endif                                                                  /*  LW_CFG_CPU_ARCH_X86         */
 #endif                                                                  /*  __ARCH_C6XELF_H             */
