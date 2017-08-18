@@ -490,9 +490,19 @@ __msgwrite (int sock, void *data, size_t cnt)
 #else
   struct iovec iov;
   struct msghdr msg;
+#ifndef LW_CFG_CPU_ARCH_C6X
   struct cmsghdr *cmsg = alloca (CMSG_SPACE(sizeof (struct ucred)));
+#else
+  struct cmsghdr *cmsg = malloc (CMSG_SPACE(sizeof (struct ucred)));
+#endif /* LW_CFG_CPU_ARCH_C6X */
   struct ucred cred;
   int len;
+
+#ifdef LW_CFG_CPU_ARCH_C6X
+  if (!cmsg) {
+    return -1;
+  }
+#endif
 
   /* XXX I'm not sure, if gete?id() is always correct, or if we should use
      get?id(). But since keyserv needs geteuid(), we have no other chance.
@@ -519,10 +529,18 @@ __msgwrite (int sock, void *data, size_t cnt)
 
  restart:
   len = __sendmsg (sock, &msg, 0);
-  if (len >= 0)
+  if (len >= 0) {
+#ifdef LW_CFG_CPU_ARCH_C6X
+	free (cmsg);
+#endif /* LW_CFG_CPU_ARCH_C6X */
     return len;
+  }
   if (errno == EINTR)
     goto restart;
+
+#ifdef LW_CFG_CPU_ARCH_C6X
+  free (cmsg);
+#endif /* LW_CFG_CPU_ARCH_C6X */
   return -1;
 
 #endif

@@ -28,17 +28,23 @@
 
 #include "../SylixOS/config/cpu/cpu_cfg.h"
 
-#if (defined LW_CFG_CPU_ARCH_ARM)
+#if defined(LW_CFG_CPU_ARCH_ARM)
 #include "arch/arm/elf/armElf.h"
 
-#elif (defined LW_CFG_CPU_ARCH_X86)
+#elif defined(LW_CFG_CPU_ARCH_X86)
 #include "arch/x86/elf/x86Elf.h"
 
-#elif (defined LW_CFG_CPU_ARCH_MIPS)
+#elif defined(LW_CFG_CPU_ARCH_MIPS)
 #include "arch/mips/elf/mipsElf.h"
 
-#elif (defined LW_CFG_CPU_ARCH_PPC)
+#elif defined(LW_CFG_CPU_ARCH_PPC)
 #include "arch/ppc/elf/ppcElf.h"
+
+#elif defined(LW_CFG_CPU_ARCH_C6X)
+#include "arch/c6x/elf/c6xElf.h"
+
+#elif defined(LW_CFG_CPU_ARCH_SPARC)
+#include "arch/sparc/elf/sparcElf.h"
 #endif                                                                  /*  LW_CFG_CPU_ARCH_ARM         */
 
 /*********************************************************************************************************
@@ -165,6 +171,17 @@ typedef SINT64   Elf64_Sxword;
 *********************************************************************************************************/
 #define DT_MIPS_PLTGOT          0x70000032
 #endif                                                                  /* LW_CFG_CPU_ARCH_MIPS         */
+
+/*********************************************************************************************************
+  C6X
+*********************************************************************************************************/
+#if defined(LW_CFG_CPU_ARCH_C6X)
+#define DT_C6000_DSBT_BASE      (DT_LOPROC + 0)
+#define DT_C6000_DSBT_SIZE      (DT_LOPROC + 1)
+#define DT_C6000_PREEMPTMAP     (DT_LOPROC + 2)
+#define DT_C6000_DSBT_INDEX     (DT_LOPROC + 3)
+#define DT_C6000_NUM            4
+#endif                                                                  /* LW_CFG_CPU_ARCH_C6X          */
 
 /*********************************************************************************************************
   e_machine 

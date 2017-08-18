@@ -48,7 +48,11 @@ extern void __vp_patch_unlock(void);
 /*
  *  _init_env
  */
+#if defined(LW_CFG_CPU_ARCH_C6X)
+void _init_env (void) /* c6x compiler no support constructor attribute */
+#else
 __attribute__((constructor)) static void _init_env (void)
+#endif /* LW_CFG_CPU_ARCH_C6X */
 {
     int  sysnum;
     int  dupnum;
@@ -79,7 +83,11 @@ __attribute__((constructor)) static void _init_env (void)
 /*
  *  _deinit_env
  */
+#if defined(LW_CFG_CPU_ARCH_C6X)
+void _deinit_env (void) /* c6x compiler no support destructor attribute */
+#else
 __attribute__((destructor)) static void _deinit_env (void)
+#endif /* LW_CFG_CPU_ARCH_C6X */
 {
     int  i;
     
@@ -182,6 +190,11 @@ int _start (int argc, char **argv, char **env)
     }
 
     errno = 0;
+
+#if defined(LW_CFG_CPU_ARCH_C6X)
+    _init_env();            /* c6x compiler no support constructor attribute */
+    atexit(_deinit_env);    /* c6x compiler no support destructor  attribute */
+#endif /* LW_CFG_CPU_ARCH_C6X */
     ret = pfuncMain(argc, argv, environ);
     exit(ret);
     

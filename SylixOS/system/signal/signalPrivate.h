@@ -105,6 +105,9 @@ typedef LW_CLASS_SIGPEND    *PLW_CLASS_SIGPEND;
 
 typedef struct {
     PVOID                 SIGCTLMSG_pvStackRet;                         /*  跳跃返回堆栈的地址          */
+#if defined(LW_CFG_CPU_ARCH_C6X)
+    ULONG                 SIGCTLMSG_ulContextType;                      /*  上下文类型                  */
+#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
     INT                   SIGCTLMSG_iSchedRet;                          /*  信号调度器返回值            */
     INT                   SIGCTLMSG_iKernelSpace;                       /*  产生信号是的内核空间情况    */
                                                                         /*  信号退出时需要返回之前的状态*/

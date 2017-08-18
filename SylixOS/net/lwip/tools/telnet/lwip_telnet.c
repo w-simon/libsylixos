@@ -235,8 +235,11 @@ static VOID  __telnetCommunication (INT  iDevFd)
          *  iDevFd 一定大于 STD_IN, 所以 width = iDevFd + 1;
          */
         iTemp = select(iDevFd + 1, &fdset, LW_NULL, LW_NULL, LW_NULL);  /*  永久等待                    */
-        if (iTemp <= 0) {
+        if (iTemp < 0) {
             break;                                                      /*  出现意外! 直接退出          */
+
+        } else if (iTemp == 0) {                                        /*  信号唤醒                    */
+            continue;
         }
         
         API_ThreadTestCancel();                                         /*  检测是否被删除              */

@@ -24,17 +24,23 @@
 
 #include "config/cpu/cpu_cfg.h"
 
-#if (defined LW_CFG_CPU_ARCH_ARM)
+#if defined(LW_CFG_CPU_ARCH_ARM)
 #include "./arm/arm_io.h"
 
-#elif (defined LW_CFG_CPU_ARCH_X86)
+#elif defined(LW_CFG_CPU_ARCH_X86)
 #include "./x86/x86_io.h"
 
-#elif (defined LW_CFG_CPU_ARCH_MIPS)
+#elif defined(LW_CFG_CPU_ARCH_MIPS)
 #include "./mips/mips_io.h"
 
-#elif (defined LW_CFG_CPU_ARCH_PPC)
+#elif defined(LW_CFG_CPU_ARCH_PPC)
 #include "./ppc/ppc_io.h"
+
+#elif defined(LW_CFG_CPU_ARCH_C6X)
+#include "./c6x/c6x_io.h"
+
+#elif defined(LW_CFG_CPU_ARCH_SPARC)
+#include "./sparc/sparc_io.h"
 #endif                                                                  /*  LW_CFG_CPU_ARCH_ARM         */
 
 #endif                                                                  /*  __ARCH_IO_H                 */

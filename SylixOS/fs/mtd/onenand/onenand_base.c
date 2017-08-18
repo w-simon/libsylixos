@@ -467,18 +467,18 @@ static int onenand_wait(struct mtd_info *mtd, int state)
 {
 	struct onenand_chip *this = mtd->priv;
 	unsigned int flags = ONENAND_INT_MASTER;
-	unsigned int interrupt = 0;
+	unsigned int intr = 0;
 	unsigned int ctrl;
 
 	while (1) {
-		interrupt = this->read_word(this->base + ONENAND_REG_INTERRUPT);
-		if (interrupt & flags)
+		intr = this->read_word(this->base + ONENAND_REG_INTERRUPT);
+		if (intr & flags)
 			break;
 	}
 
 	ctrl = this->read_word(this->base + ONENAND_REG_CTRL_STATUS);
 
-	if (interrupt & ONENAND_INT_READ) {
+	if (intr & ONENAND_INT_READ) {
 		int ecc = onenand_read_ecc(this);
 		if (ecc & ONENAND_ECC_2BIT_ALL) {
 			printk("onenand_wait: ECC error = 0x%04x\n", ecc);
@@ -1154,20 +1154,20 @@ static int onenand_bbt_wait(struct mtd_info *mtd, int state)
 {
 	struct onenand_chip *this = mtd->priv;
 	unsigned int flags = ONENAND_INT_MASTER;
-	unsigned int interrupt;
+	unsigned int intr;
 	unsigned int ctrl;
 
 	while (1) {
-		interrupt = this->read_word(this->base + ONENAND_REG_INTERRUPT);
-		if (interrupt & flags)
+		intr = this->read_word(this->base + ONENAND_REG_INTERRUPT);
+		if (intr & flags)
 			break;
 	}
 
 	/* To get correct interrupt status in timeout case */
-	interrupt = this->read_word(this->base + ONENAND_REG_INTERRUPT);
+	intr = this->read_word(this->base + ONENAND_REG_INTERRUPT);
 	ctrl = this->read_word(this->base + ONENAND_REG_CTRL_STATUS);
 
-	if (interrupt & ONENAND_INT_READ) {
+	if (intr & ONENAND_INT_READ) {
 		int ecc = onenand_read_ecc(this);
 		if (ecc & ONENAND_ECC_2BIT_ALL) {
 			printk(KERN_INFO "onenand_bbt_wait: ecc error = 0x%04x"
@@ -1176,7 +1176,7 @@ static int onenand_bbt_wait(struct mtd_info *mtd, int state)
 		}
 	} else {
 		printk(KERN_ERR "onenand_bbt_wait: read timeout!"
-				"ctrl=0x%04x intr=0x%04x\n", ctrl, interrupt);
+				"ctrl=0x%04x intr=0x%04x\n", ctrl, intr);
 		return ONENAND_BBT_READ_FATAL_ERROR;
 	}
 

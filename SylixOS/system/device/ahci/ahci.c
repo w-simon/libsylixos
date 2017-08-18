@@ -30,6 +30,7 @@
 2017.03.09  增加对磁盘热插拔的支持, 并可通过 AHCI_HOTPLUG_EN 进行配置. (v1.0.6-rc0)
 2017.04.24  修复同时使能 NCQ 和 TRIM 后删除大文件产生死锁(ahci_slot)的问题. (v1.0.7-rc0)
 2017.07.24  修复虚拟机的虚拟磁盘不支持诊断处理的问题. (v1.0.8-rc0)
+2017.08.13  修复非 PCI 类型设备异常的问题. (v1.1.0-rc0)
 *********************************************************************************************************/
 #define  __SYLIXOS_PCI_DRV
 #define  __SYLIXOS_STDIO
@@ -98,7 +99,7 @@ static INT  __ahciDiskDriveDiagnostic (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
      */
     hDrive     = &hCtrl->AHCICTRL_hDrive[uiDrive];
     hPciDev    = (PCI_DEV_HANDLE)hCtrl->AHCICTRL_pvPciArg;              /* 获取设备句柄                 */
-    usVendorId = hPciDev->PCIDEV_phDevHdr.hdr.PCIHH_pcidHdr.PCID_usVendorId;
+    usVendorId = PCI_DEV_VENDOR_ID(hPciDev);
 
     switch (usVendorId) {
 
@@ -136,15 +137,15 @@ static INT  __ahciDrivePhyReset (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
     UINT16                  usVendorId;
     UINT16                  usDeviceId;
 
-    if ((!hCtrl) || (!hCtrl->AHCICTRL_pvPciArg)) {
+    if (!hCtrl) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
 
-    hDrive = &hCtrl->AHCICTRL_hDrive[uiDrive];                          /* 获取驱动器句柄               */
+    hDrive        = &hCtrl->AHCICTRL_hDrive[uiDrive];                   /* 获取驱动器句柄               */
     hPciDevHandle = (PCI_DEV_HANDLE)hCtrl->AHCICTRL_pvPciArg;
-    usVendorId = hPciDevHandle->PCIDEV_phDevHdr.hdr.PCIHH_pcidHdr.PCID_usVendorId;
-    usDeviceId = hPciDevHandle->PCIDEV_phDevHdr.hdr.PCIHH_pcidHdr.PCID_usDeviceId;
+    usVendorId    = PCI_DEV_VENDOR_ID(hPciDevHandle);
+    usDeviceId    = PCI_DEV_DEVICE_ID(hPciDevHandle);
 
     switch (usVendorId) {
 
@@ -509,7 +510,7 @@ static INT  __ahciDiskCommandSend (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, AHCI_
             if ((hDrive->AHCIDRIVE_bLba == LW_TRUE) ||
                 (hCmd->AHCICMD_iFlags & AHCI_CMD_FLAG_NON_SEC_DATA)) {  /* LBA 模式或无扩展数据         */
                 AHCI_CMD_LOG(AHCI_LOG_PRT, "lba true flag non sec data ctrl %d port %d.\r\n",
-                		     hCtrl->AHCICTRL_uiIndex, uiDrive);
+                             hCtrl->AHCICTRL_uiIndex, uiDrive);
                 pucCommandFis[4] = (UINT8)hCmd->AHCI_CMD_ATA.AHCICMDATA_ullAtaLba;
                 pucCommandFis[5] = (UINT8)(hCmd->AHCI_CMD_ATA.AHCICMDATA_ullAtaLba >> 8);
                 pucCommandFis[6] = (UINT8)(hCmd->AHCI_CMD_ATA.AHCICMDATA_ullAtaLba >> 16);
@@ -531,7 +532,7 @@ static INT  __ahciDiskCommandSend (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, AHCI_
             
             } else {                                                    /* 非 LBA 模式                  */
                 AHCI_CMD_LOG(AHCI_LOG_PRT, "lba false flag sec data ctrl %d port %d.\r\n",
-                			 hCtrl->AHCICTRL_uiIndex, uiDrive);
+                             hCtrl->AHCICTRL_uiIndex, uiDrive);
                 usCylinder = (UINT16)(hCmd->AHCI_CMD_ATA.AHCICMDATA_ullAtaLba /
                                       (hDrive->AHCIDRIVE_uiSector * hDrive->AHCIDRIVE_uiHead));
                 usSector = (UINT16)(hCmd->AHCI_CMD_ATA.AHCICMDATA_ullAtaLba %
@@ -561,7 +562,7 @@ static INT  __ahciDiskCommandSend (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, AHCI_
             
             } else {                                                    /* 禁能 NCQ                     */
                 AHCI_CMD_LOG(AHCI_LOG_PRT, "flag no ncq ctrl %d port %d.\r\n",
-                			 hCtrl->AHCICTRL_uiIndex, uiDrive);
+                             hCtrl->AHCICTRL_uiIndex, uiDrive);
                 pucCommandFis[ 3] = (UINT8)(hCmd->AHCI_CMD_ATA.AHCICMDATA_uiAtaFeature);
                 pucCommandFis[11] = (UINT8)(hCmd->AHCI_CMD_ATA.AHCICMDATA_uiAtaFeature >> 8);
                 pucCommandFis[12] = (UINT8)(hCmd->AHCI_CMD_ATA.AHCICMDATA_uiAtaCount);
@@ -707,12 +708,12 @@ static INT  __ahciDiskCommandSend (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, AHCI_
 
         if (hCmd->AHCICMD_iDirection == AHCI_DATA_DIR_IN) {             /* 输入模式                     */
             AHCI_CMD_LOG(AHCI_LOG_PRT, "read buffer invalidate ctrl %d port %d.\r\n",
-            			 hCtrl->AHCICTRL_uiIndex, uiDrive);
+                         hCtrl->AHCICTRL_uiIndex, uiDrive);
                                                                         /* 无效数据区                   */
             API_CacheDmaInvalidate(hCmd->AHCICMD_pucDataBuf, (size_t)hCmd->AHCICMD_ulDataLen);
         }
 
-    	__ahciCmdReleaseResource(hDrive, bQueued);                      /* 释放控制权                   */
+        __ahciCmdReleaseResource(hDrive, bQueued);                      /* 释放控制权                   */
         API_SemaphoreMPost(hDrive->AHCIDRIVE_hDriveMuteSem);
     }
 
@@ -921,7 +922,7 @@ static INT  __ahciDiskTrimSet (AHCI_DEV_HANDLE  hDev, ULONG  ulStartSector, ULON
 
     if (hDrive->AHCIDRIVE_bTrim != LW_TRUE) {                           /* TRIM 不支持                  */
         AHCI_LOG(AHCI_LOG_PRT, "trim not support ctrl %d port %d.\r\n",
-        	     hDrive->AHCIDRIVE_hCtrl->AHCICTRL_uiIndex, hDrive->AHCIDRIVE_uiPort);
+                 hDrive->AHCIDRIVE_hCtrl->AHCICTRL_uiIndex, hDrive->AHCIDRIVE_uiPort);
         return  (ERROR_NONE);
     }
 
@@ -992,11 +993,11 @@ static INT  __ahciDiskTrimSet (AHCI_DEV_HANDLE  hDev, ULONG  ulStartSector, ULON
         }
 
         AHCI_LOG(AHCI_LOG_PRT, "send trim cmd ctrl %d port %d.\r\n",
-        	     hDrive->AHCIDRIVE_hCtrl->AHCICTRL_uiIndex, hDrive->AHCIDRIVE_uiPort);
+                 hDrive->AHCIDRIVE_hCtrl->AHCICTRL_uiIndex, hDrive->AHCIDRIVE_uiPort);
         iRet = __ahciDiskCommandSend(hDev->AHCIDEV_hCtrl, hDev->AHCIDEV_uiDrive, hCmd);
         if (iRet != ERROR_NONE) {
             AHCI_LOG(AHCI_LOG_ERR, "trim failed ctrl %d port %d.\r\n",
-        	         hDrive->AHCIDRIVE_hCtrl->AHCICTRL_uiIndex, hDrive->AHCIDRIVE_uiPort);
+                     hDrive->AHCIDRIVE_hCtrl->AHCICTRL_uiIndex, hDrive->AHCIDRIVE_uiPort);
             return  (PX_ERROR);
         }
 
@@ -1514,26 +1515,26 @@ static PLW_BLK_DEV  __ahciBlkDevCreate (AHCI_CTRL_HANDLE  hCtrl,
 
     if (!hCtrl) {                                                       /* 控制器句柄无效               */
         AHCI_LOG(AHCI_LOG_ERR, "invalid ctrl handle ctrl %d port %d.\r\n",
-        	     hCtrl->AHCICTRL_uiIndex, uiDrive);
+                 hCtrl->AHCICTRL_uiIndex, uiDrive);
         _ErrorHandle(EINVAL);
         return  (LW_NULL);
     }
 
     if (hCtrl->AHCICTRL_bDrvInstalled == LW_FALSE) {                    /* 控制器驱动未安装             */
         AHCI_LOG(AHCI_LOG_ERR, "ahci driver invalid ctrl %d port %d.\r\n",
-        	     hCtrl->AHCICTRL_uiIndex, uiDrive);
+                 hCtrl->AHCICTRL_uiIndex, uiDrive);
         _ErrorHandle(EINVAL);
         return  (LW_NULL);
     }
 
     if (hCtrl->AHCICTRL_bInstalled == LW_FALSE) {                       /* 控制器未安装                 */
         AHCI_LOG(AHCI_LOG_ERR, "invalid ctrl is not installed ctrl %d port %d.\r\n",
-        	     hCtrl->AHCICTRL_uiIndex, uiDrive);
+                 hCtrl->AHCICTRL_uiIndex, uiDrive);
         _ErrorHandle(EINVAL);
         return  (LW_NULL);
     }
 
-    if (uiDrive >= hCtrl->AHCICTRL_uiImpPortNum) {                     	/* 驱动器索引超限               */
+    if (uiDrive >= hCtrl->AHCICTRL_uiImpPortNum) {                      /* 驱动器索引超限               */
         AHCI_LOG(AHCI_LOG_ERR, "drive %d is out of range (0-%d).\r\n",
                  uiDrive, (hCtrl->AHCICTRL_uiImpPortNum - 1));
         _ErrorHandle(EINVAL);
@@ -1546,7 +1547,7 @@ static PLW_BLK_DEV  __ahciBlkDevCreate (AHCI_CTRL_HANDLE  hCtrl,
         hDev = (AHCI_DEV_HANDLE)__SHEAP_ZALLOC(sizeof(AHCI_DEV_CB));    /* 分配设备控制块               */
         if (!hDev) {                                                    /* 分配控制块失败               */
             AHCI_LOG(AHCI_LOG_ERR, "alloc ahci dev tcb failed ctrl %d port %d.\r\n",
-        	         hCtrl->AHCICTRL_uiIndex, uiDrive);
+                     hCtrl->AHCICTRL_uiIndex, uiDrive);
             return  (LW_NULL);
         }
     }
@@ -1564,7 +1565,7 @@ static PLW_BLK_DEV  __ahciBlkDevCreate (AHCI_CTRL_HANDLE  hCtrl,
         (hDrive->AHCIDRIVE_ucState != AHCI_DEV_MED_CH)) {               /* 驱动器状态错误               */
         hDrive->AHCIDRIVE_ucState = AHCI_DEV_NONE;                      /* 复位驱动器状态               */
         AHCI_LOG(AHCI_LOG_ERR, "drive state error ctrl %d port %d.\r\n",
-        	     hCtrl->AHCICTRL_uiIndex, uiDrive);
+                 hCtrl->AHCICTRL_uiIndex, uiDrive);
         return  (LW_NULL);
     }
 
@@ -1671,7 +1672,7 @@ static PLW_BLK_DEV  __ahciBlkDevCreate (AHCI_CTRL_HANDLE  hCtrl,
         }
         if (!hDev->AHCIDEV_pvOemdisk) {                                 /* 挂载失败                     */
             AHCI_LOG(AHCI_LOG_ERR, "oem disk mount failed ctrl %d port %d.\r\n",
-        	         hCtrl->AHCICTRL_uiIndex, uiDrive);
+                     hCtrl->AHCICTRL_uiIndex, uiDrive);
         }
         return  (hBlkDev);                                              /* 返回块设备句柄               */
         break;
@@ -1703,7 +1704,7 @@ static INT  __ahciDiskConfig (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, CPCHAR  cp
 
     if (!hCtrl) {                                                       /* 控制器句柄无效               */
         AHCI_LOG(AHCI_LOG_ERR, "invalid ctrl handle ctrl %d port %d.\r\n",
-        	     hCtrl->AHCICTRL_uiIndex, uiDrive);
+                 hCtrl->AHCICTRL_uiIndex, uiDrive);
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -1711,7 +1712,7 @@ static INT  __ahciDiskConfig (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, CPCHAR  cp
     if ((!cpcDevName) ||
         (cpcDevName[0] == PX_EOS)) {                                    /* 设备名称无效                 */
         AHCI_LOG(AHCI_LOG_ERR, "invalid device name ctrl %d port %d.\r\n",
-        	     hCtrl->AHCICTRL_uiIndex, uiDrive);
+                 hCtrl->AHCICTRL_uiIndex, uiDrive);
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -1719,7 +1720,7 @@ static INT  __ahciDiskConfig (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, CPCHAR  cp
     if ((hCtrl->AHCICTRL_bInstalled == LW_FALSE) ||
         (hCtrl->AHCICTRL_bDrvInstalled == LW_FALSE)) {                  /* 驱动或控制器未安装           */
         AHCI_LOG(AHCI_LOG_ERR, "ctrl or driver is not installed ctrl %d port %d.\r\n",
-        	     hCtrl->AHCICTRL_uiIndex, uiDrive);
+                 hCtrl->AHCICTRL_uiIndex, uiDrive);
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -1754,13 +1755,13 @@ static INT  __ahciDiskCtrlInit (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
 {
     REGISTER INT        i;                                              /* 循环因子                     */
     INT                 iRet;                                           /* 操作结果                     */
-    AHCI_DRV_HANDLE     hDrv;                                       	/* 驱动句柄                     */
+    AHCI_DRV_HANDLE     hDrv;                                           /* 驱动句柄                     */
     AHCI_DRIVE_HANDLE   hDrive;                                         /* 驱动器句柄                   */
     AHCI_CMD_CB         tCtrlCmd;                                       /* 命令控制块                   */
     AHCI_CMD_HANDLE     hCmd;                                           /* 命令句柄                     */
     UINT32              uiReg;                                          /* 寄存器                       */
-    ULONG				ulInterTime;									/* 超时时间间隔					*/
-    ULONG				ulInterCount;									/* 超时时间间隔数量				*/
+    ULONG               ulInterTime;                                    /* 超时时间间隔                   */
+    ULONG               ulInterCount;                                   /* 超时时间间隔数量             */
 
     AHCI_LOG(AHCI_LOG_PRT, "init ctrl %d name %s uint index %d reg addr 0x%llx.\r\n",
              hCtrl->AHCICTRL_uiIndex, hCtrl->AHCICTRL_cCtrlName, hCtrl->AHCICTRL_uiUnitIndex,
@@ -1797,7 +1798,7 @@ static INT  __ahciDiskCtrlInit (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
     AHCI_LOG(AHCI_LOG_PRT, "restart ctrl %d drive %d port %d.\r\n",
              hCtrl->AHCICTRL_uiIndex, uiDrive, hDrive->AHCIDRIVE_uiPort);
     AHCI_LOG(AHCI_LOG_PRT, "port : active, recv fis start, power on, spin up.\r\n",
-    		 hCtrl->AHCICTRL_uiIndex, uiDrive);
+             hCtrl->AHCICTRL_uiIndex, uiDrive);
     AHCI_PORT_WRITE(hDrive,
                     AHCI_PxCMD, AHCI_PCMD_ICC_ACTIVE | AHCI_PCMD_FRE | AHCI_PCMD_POD | AHCI_PCMD_SUD);
     AHCI_PORT_READ(hDrive, AHCI_PxCMD);
@@ -1823,17 +1824,17 @@ static INT  __ahciDiskCtrlInit (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
 
     ulInterTime = 0;
     iRet = hDrv->AHCIDRV_pfuncOptCtrl(hCtrl, 0,
-    							      AHCI_OPT_CMD_RSTON_INTER_TIME_GET,
-    							      (LONG)((ULONG *)&ulInterTime));
+                                      AHCI_OPT_CMD_RSTON_INTER_TIME_GET,
+                                      (LONG)((ULONG *)&ulInterTime));
     if ((iRet != ERROR_NONE) || (ulInterTime == 0)) {
-    	ulInterTime = AHCI_DRIVE_RSTON_INTER_TIME_UNIT;
+        ulInterTime = AHCI_DRIVE_RSTON_INTER_TIME_UNIT;
     }
     ulInterCount = 0;
     iRet = hDrv->AHCIDRV_pfuncOptCtrl(hCtrl, 0,
-    								  AHCI_OPT_CMD_RSTON_INTER_COUNT_GET,
-    								  (LONG)((ULONG *)&ulInterCount));
+                                      AHCI_OPT_CMD_RSTON_INTER_COUNT_GET,
+                                      (LONG)((ULONG *)&ulInterCount));
     if ((iRet != ERROR_NONE) || (ulInterCount == 0)) {
-    	ulInterCount = AHCI_DRIVE_RSTON_INTER_TIME_COUNT;
+        ulInterCount = AHCI_DRIVE_RSTON_INTER_TIME_COUNT;
     }
     hCmd->AHCICMD_iFlags = AHCI_CMD_FLAG_SRST_ON;
     __ahciDiskCommandSend(hCtrl, uiDrive, hCmd);
@@ -1845,17 +1846,17 @@ static INT  __ahciDiskCtrlInit (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
 
     ulInterTime = 0;
     iRet = hDrv->AHCIDRV_pfuncOptCtrl(hCtrl, 0,
-    								  AHCI_OPT_CMD_RSTOFF_INTER_TIME_GET,
-    								  (LONG)((ULONG *)&ulInterTime));
+                                      AHCI_OPT_CMD_RSTOFF_INTER_TIME_GET,
+                                      (LONG)((ULONG *)&ulInterTime));
     if ((iRet != ERROR_NONE) || (ulInterTime == 0)) {
-    	ulInterTime = AHCI_DRIVE_RSTOFF_INTER_TIME_UNIT;
+        ulInterTime = AHCI_DRIVE_RSTOFF_INTER_TIME_UNIT;
     }
     ulInterCount = 0;
     iRet = hDrv->AHCIDRV_pfuncOptCtrl(hCtrl, 0,
-    							      AHCI_OPT_CMD_RSTOFF_INTER_COUNT_GET,
-    							      (LONG)((ULONG *)&ulInterCount));
+                                      AHCI_OPT_CMD_RSTOFF_INTER_COUNT_GET,
+                                      (LONG)((ULONG *)&ulInterCount));
     if ((iRet != ERROR_NONE) || (ulInterCount == 0)) {
-    	ulInterCount = AHCI_DRIVE_RSTOFF_INTER_TIME_COUNT;
+        ulInterCount = AHCI_DRIVE_RSTOFF_INTER_TIME_COUNT;
     }
     hCmd->AHCICMD_iFlags = AHCI_CMD_FLAG_SRST_OFF;
     __ahciDiskCommandSend(hCtrl, uiDrive, hCmd);

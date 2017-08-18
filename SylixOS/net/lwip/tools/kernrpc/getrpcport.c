@@ -52,21 +52,41 @@ getrpcport (const char *host, u_long prognum, u_long versnum, u_int proto)
   int herr;
 
   buflen = 1024;
+#ifndef LW_CFG_CPU_ARCH_C6X
   buffer = __alloca (buflen);
+#else
+  buffer = malloc (buflen);
+  if (!buffer) {
+    return -1;
+  }
+#endif
   while (__gethostbyname_r (host, &hostbuf, buffer, buflen, &hp, &herr) != 0
 	 || hp == NULL)
-    if (herr != NETDB_INTERNAL || errno != ERANGE)
+    if (herr != NETDB_INTERNAL || errno != ERANGE) {
+#ifdef LW_CFG_CPU_ARCH_C6X
+      free (buffer);
+#endif
       return 0;
-    else
+    } else
       {
 	/* Enlarge the buffer.  */
 	buflen *= 2;
+#ifndef LW_CFG_CPU_ARCH_C6X
 	buffer = __alloca (buflen);
+#else
+	buffer = realloc (buffer, buflen);
+    if (!buffer) {
+      return -1;
+    }
+#endif
       }
 
   memcpy ((char *) &addr.sin_addr, hp->h_addr, hp->h_length);
   addr.sin_family = AF_INET;
   addr.sin_port = 0;
+#ifdef LW_CFG_CPU_ARCH_C6X
+  free (buffer);
+#endif
   return pmap_getport (&addr, prognum, versnum, proto);
 }
 

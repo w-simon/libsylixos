@@ -39,7 +39,7 @@
 ** Some compilers masquerade as gcc; patchlevel test filters them out.
 */
 #if defined (__GNUC__) && (__GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 4)) \
-	&& defined (__GNUC_PATCHLEVEL__)
+	&& defined (__GNUC_PATCHLEVEL__) && !defined(__TMS320C6X__)
 
 tlsf_decl int tlsf_ffs(unsigned int word)
 {

@@ -51,39 +51,6 @@ END_MK            = $(MKTEMP)/end.mk
 CLEAR_VARS_MK     = $(MKTEMP)/clear-vars.mk
 
 #*********************************************************************************************************
-# Toolchain select
-#*********************************************************************************************************
-CC      = $(TOOLCHAIN_PREFIX)gcc
-CXX     = $(TOOLCHAIN_PREFIX)g++
-AS      = $(TOOLCHAIN_PREFIX)gcc
-AR      = $(TOOLCHAIN_PREFIX)ar
-LD      = $(TOOLCHAIN_PREFIX)g++
-OC      = $(TOOLCHAIN_PREFIX)objcopy
-SZ      = $(TOOLCHAIN_PREFIX)size
-CPP     = $(TOOLCHAIN_PREFIX)cpp
-LZOCOM  = $(TOOLCHAIN_PREFIX)lzocom
-OBJCOPY = $(TOOLCHAIN_PREFIX)objcopy
-STRIP   = $(TOOLCHAIN_PREFIX)strip
-
-#*********************************************************************************************************
-# Commercial toolchain check
-#*********************************************************************************************************
-COMMERCIAL = $(shell $(LZOCOM) 1>null 2>null && \
-			(rm -rf null; echo 1) || \
-			(rm -rf null; echo 0))
-
-#*********************************************************************************************************
-# Toolchain version
-#*********************************************************************************************************
-ifeq ($(COMMERCIAL), 1)
-GCC_VERSION_STR   := $(shell $(CC) -dumpversion)
-GCC_VERSION_MAJOR := $(shell echo $(GCC_VERSION_STR) | cut -f1 -d.)
-GCC_VERSION_MINOR := $(shell echo $(GCC_VERSION_STR) | cut -f2 -d.)
-GCC_VERSION_PATCH := $(shell echo $(GCC_VERSION_STR) | cut -f3 -d.)
-GCC_VERSION       := $(GCC_VERSION_MAJOR)$(GCC_VERSION_MINOR)$(GCC_VERSION_PATCH)
-endif
-
-#*********************************************************************************************************
 # Build paths
 #*********************************************************************************************************
 ifeq ($(DEBUG_LEVEL), debug)
@@ -97,30 +64,17 @@ OBJPATH = $(OUTPATH)/obj
 DEPPATH = $(OUTPATH)/dep
 
 #*********************************************************************************************************
-# Compiler optimize flag
-# Do NOT use -O3 and -Os, -Os is not align for function loop and jump.
-#                         -O3 default use inline function.
-#*********************************************************************************************************
-ifeq ($(DEBUG_LEVEL), debug)
-OPTIMIZE = -O0 -g3 -gdwarf-2
-else
-OPTIMIZE = -O2 -g1 -gdwarf-2
-endif
-
-#*********************************************************************************************************
 # Define some useful variables
 #*********************************************************************************************************
-GCC_CXX_EXCEPT_CFLAGS    = -fexceptions -frtti
-GCC_NO_CXX_EXCEPT_CFLAGS = -fno-exceptions -fno-rtti
-GCC_GCOV_CFLAGS          = -fprofile-arcs -ftest-coverage
-GCC_OMP_CFLAGS           = -fopenmp
-
 BIAS  = /
 EMPTY =
 SPACE = $(EMPTY) $(EMPTY)
 
 __TARGET    = $(word 3,$(subst $(BIAS),$(SPACE),$(@)))
 __DEP       = $(addprefix $(DEPPATH)/$(__TARGET)/, $(addsuffix .d, $(basename $(<))))
+ifneq (,$(findstring cl6x,$(TOOLCHAIN_PREFIX)))
+__PP        = $(addprefix $(DEPPATH)/$(__TARGET)/, $(addsuffix .pp, $(basename $(<))))
+endif
 __LIBRARIES = $($(@F)_DEPEND_LIB_PATH) $($(@F)_DEPEND_LIB)
 __OBJS      = $($(@F)_OBJS)
 __CPUFLAGS  = $($(@F)_CPUFLAGS)
@@ -131,6 +85,15 @@ __POST_LINK_CMD  = $($(@F)_POST_LINK_CMD)
 
 __PRE_STRIP_CMD  = $($(@F)_PRE_STRIP_CMD)
 __POST_STRIP_CMD = $($(@F)_POST_STRIP_CMD)
+
+#*********************************************************************************************************
+# Include toolchain mk
+#*********************************************************************************************************
+ifneq (,$(findstring cl6x,$(TOOLCHAIN_PREFIX)))
+include $(MKTEMP)/cl6x.mk
+else
+include $(MKTEMP)/gcc.mk
+endif
 
 #*********************************************************************************************************
 # Include arch.mk

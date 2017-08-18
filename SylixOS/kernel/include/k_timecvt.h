@@ -42,6 +42,13 @@
   POSIX TIME timeval to Tick
 *********************************************************************************************************/
 
+static LW_INLINE ULONG  __timevalToTickNoPartial (const struct timeval  *ptv)
+{
+    REGISTER ULONG  ulRes = LW_TIME_MILLION / LW_TICK_HZ;
+
+    return  (LW_CONVERT_TO_TICK_NO_PARTIAL(ptv, tv_usec, ulRes, ULONG));
+}
+
 static LW_INLINE ULONG  __timevalToTick (const struct timeval  *ptv)
 {
     REGISTER ULONG  ulRes = LW_TIME_MILLION / LW_TICK_HZ;
@@ -59,6 +66,13 @@ static LW_INLINE INT64  __timevalToTick64 (const struct timeval  *ptv)
 /*********************************************************************************************************
   POSIX TIME timespec to Tick
 *********************************************************************************************************/
+
+static LW_INLINE ULONG  __timespecToTickNoPartial (const struct timespec  *ptv)
+{
+    REGISTER ULONG  ulRes = LW_TIME_BILLION / LW_TICK_HZ;
+
+    return  (LW_CONVERT_TO_TICK_NO_PARTIAL(ptv, tv_nsec, ulRes, ULONG));
+}
 
 static LW_INLINE ULONG  __timespecToTick (const struct timespec  *ptv)
 {

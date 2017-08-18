@@ -63,6 +63,8 @@
 2016.04.15  信号上下文需要保存 FPU 上下文.
 2016.07.21  简化任务就绪设计.
 2016.08.11  新建线程集成主线程信号掩码.
+2017.08.17  __sigCtlCreate() 需要处理堆栈对齐.
+2017.08.18  修正 __sigReturn() 调度器返回值可能出错的错误.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -466,14 +468,13 @@ static  VOID  __sigCtlCreate (PLW_CLASS_TCB         ptcb,
 
 #if	CPU_STK_GROWTH == 0                                                 /*  CPU_STK_GROWTH == 0         */
     pucStkNow  += sizeof(LW_STACK);                                     /*  向空栈方向移动一个堆栈空间  */
+    pucStkNow   = (BYTE *)ROUND_UP(pucStkNow, ARCH_STK_ALIGN_SIZE);
     psigctlmsg  = (PLW_CLASS_SIGCTLMSG)pucStkNow;                       /*  记录 signal contrl msg 位置 */
     pucStkNow  += __SIGCTLMSG_SIZE_ALIGN;                               /*  让出 signal contrl msg 空间 */
 
 #if LW_CFG_CPU_FPU_EN > 0
     if (ptcb->TCB_ulOption & LW_OPTION_THREAD_USED_FP) {
-        while ((addr_t)pucStkNow & (ARCH_FPU_CTX_ALIGN - 1)) {
-            pucStkNow += sizeof(LW_STACK);                              /*  必须保证浮点上下文对齐要求  */
-        }
+        pucStkNow = (BYTE *)ROUND_UP(pucStkNow, ARCH_FPU_CTX_ALIGN);    /*  必须保证浮点上下文对齐要求  */
         psigctlmsg->SIGCTLMSG_pfpuctx = (LW_FPU_CONTEXT *)pucStkNow;
         pucStkNow  += __SIGFPUCTX_SIZE_ALIGN;                           /*  让出 signal fpu ctx 空间    */
         
@@ -484,15 +485,14 @@ static  VOID  __sigCtlCreate (PLW_CLASS_TCB         ptcb,
 
 #else                                                                   /*  CPU_STK_GROWTH == 1         */
     pucStkNow  -= __SIGCTLMSG_SIZE_ALIGN;                               /*  让出 signal contrl msg 空间 */
+    pucStkNow   = (BYTE *)ROUND_DOWN(pucStkNow, ARCH_STK_ALIGN_SIZE);
     psigctlmsg  = (PLW_CLASS_SIGCTLMSG)pucStkNow;                       /*  记录 signal contrl msg 位置 */
     pucStkNow  -= sizeof(LW_STACK);                                     /*  向空栈方向移动一个堆栈空间  */
     
 #if LW_CFG_CPU_FPU_EN > 0
     if (ptcb->TCB_ulOption & LW_OPTION_THREAD_USED_FP) {
         pucStkNow  -= __SIGFPUCTX_SIZE_ALIGN;                           /*  让出 signal fpu ctx 空间    */
-        while ((addr_t)pucStkNow & (ARCH_FPU_CTX_ALIGN - 1)) {
-            pucStkNow -= sizeof(LW_STACK);                              /*  必须保证浮点上下文对齐要求  */
-        }
+        pucStkNow   = (BYTE *)ROUND_DOWN(pucStkNow, ARCH_FPU_CTX_ALIGN);/*  必须保证浮点上下文对齐要求  */
         psigctlmsg->SIGCTLMSG_pfpuctx = (LW_FPU_CONTEXT *)pucStkNow;
         pucStkNow  -= sizeof(LW_STACK);                                 /*  向空栈方向移动一个堆栈空间  */
         
@@ -505,6 +505,9 @@ static  VOID  __sigCtlCreate (PLW_CLASS_TCB         ptcb,
     psigctlmsg->SIGCTLMSG_iSchedRet       = iSchedRet;
     psigctlmsg->SIGCTLMSG_iKernelSpace    = __KERNEL_SPACE_GET2(ptcb);
     psigctlmsg->SIGCTLMSG_pvStackRet      = ptcb->TCB_pstkStackNow;
+#if defined(LW_CFG_CPU_ARCH_C6X)
+    psigctlmsg->SIGCTLMSG_ulContextType   = ptcb->TCB_ulContextType;    /*  记录当前上下文类型          */
+#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
     psigctlmsg->SIGCTLMSG_siginfo         = *psiginfo;
     psigctlmsg->SIGCTLMSG_sigsetMask      = *psigsetMask;
     psigctlmsg->SIGCTLMSG_ulLastError     = ptcb->TCB_ulLastError;      /*  记录当前错误号              */
@@ -518,7 +521,10 @@ static  VOID  __sigCtlCreate (PLW_CLASS_TCB         ptcb,
     
     archTaskCtxSetFp(pstkSignalShell, ptcb->TCB_pstkStackNow);          /*  保存 fp, 使 callstack 正常  */
     
-    ptcb->TCB_pstkStackNow = pstkSignalShell;                           /*  保存建立好的信号外壳堆栈    */
+    ptcb->TCB_pstkStackNow  = pstkSignalShell;                          /*  保存建立好的信号外壳堆栈    */
+#if defined(LW_CFG_CPU_ARCH_C6X)
+    ptcb->TCB_ulContextType = 0;                                        /*  小上下文类型                */
+#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
     
     _StackCheckGuard(ptcb);                                             /*  堆栈警戒检查                */
     
@@ -545,14 +551,10 @@ static VOID  __sigReturn (PLW_CLASS_SIGCONTEXT  psigctx,
                                                                         /*  恢复原先的掩码              */
     _sigPendRunSelf();                                                  /*  检查并运行需要运行的信号    */
     __KERNEL_SPACE_SET(psigctlmsg->SIGCTLMSG_iKernelSpace);             /*  恢复成进入信号前的状态      */
-    _SchedSetRet(psigctlmsg->SIGCTLMSG_iSchedRet);                      /*  通知调度器返回的情况        */
     __KERNEL_EXIT();                                                    /*  退出内核                    */
     
-    /*
-     *  从这里到代码返回任务堆栈上下文间隙处发生了抢占, 也不会造成 TCB_iSchedRet 被清零,
-     *  因为任务只有主动的从调度器退出时, 才能真正的获得调度器的返回值, 中途任何时候被打断都没关系
-     */
     iregInterLevel = KN_INT_DISABLE();                                  /*  关闭当前 CPU 中断           */
+    _SchedSetRet(psigctlmsg->SIGCTLMSG_iSchedRet);                      /*  通知调度器返回的情况        */
 #if LW_CFG_CPU_FPU_EN > 0
     if (psigctlmsg->SIGCTLMSG_pfpuctx &&
         (ptcbCur->TCB_ulOption & LW_OPTION_THREAD_USED_FP)) {
@@ -564,9 +566,17 @@ static VOID  __sigReturn (PLW_CLASS_SIGCONTEXT  psigctx,
     ptcbCur->TCB_ucWaitTimeout   = psigctlmsg->SIGCTLMSG_ucWaitTimeout; /*  恢复 timeout 标志           */
     ptcbCur->TCB_ucIsEventDelete = psigctlmsg->SIGCTLMSG_ucIsEventDelete;
     ptcbCur->TCB_pstkStackNow    = (PLW_STACK)psigctlmsg->SIGCTLMSG_pvStackRet;
+#if defined(LW_CFG_CPU_ARCH_C6X)
+    ptcbCur->TCB_ulContextType   = psigctlmsg->SIGCTLMSG_ulContextType; /*  恢复当前上下文类型          */
+#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
     
     KN_SMP_MB();
+#if defined(LW_CFG_CPU_ARCH_C6X)
+    archSigCtxLoad(psigctlmsg->SIGCTLMSG_pvStackRet,
+                   psigctlmsg->SIGCTLMSG_ulContextType);                /*  从信号上下文中返回          */
+#else
     archSigCtxLoad(psigctlmsg->SIGCTLMSG_pvStackRet);                   /*  从信号上下文中返回          */
+#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
     KN_INT_ENABLE(iregInterLevel);                                      /*  运行不到这里                */
 }
 /*********************************************************************************************************
@@ -682,6 +692,10 @@ static VOID  __sigShell (PLW_CLASS_SIGCTLMSG  psigctlmsg)
     REGISTER struct siginfo       *psiginfo = &psigctlmsg->SIGCTLMSG_siginfo;
     REGISTER INT                   iSigNo   = psiginfo->si_signo;
     
+#if defined(LW_CFG_CPU_ARCH_C6X)
+    archIntEnableForce();                                               /*  使能中断                    */
+#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
+
     LW_TCB_GET_CUR_SAFE(ptcbCur);
     
     psigctx = _signalGetCtx(ptcbCur);

@@ -92,11 +92,11 @@ int   ppoll (struct pollfd fds[], nfds_t nfds, const struct timespec *timeout_ts
     iRet = pselect(iMaxFd + 1, &fdsetRead, &fdsetWrite, &fdsetExcept, timeout_ts, sigmask);
     if (iRet <= 0) {
         if (errno == ERROR_IO_SELECT_UNSUPPORT_IN_DRIVER) {
-            errno =  EIO;
+            errno = EIO;
         } else if (errno == ERROR_IO_SELECT_CONTEXT) {
-            errno =  ENOMEM;
+            errno = ENOMEM;
         } else if (errno == ERROR_IO_SELECT_WIDTH) {
-            errno =  EBADF;
+            errno = EBADF;
         } else if (errno == ERROR_THREAD_WAIT_TIMEOUT) {
             errno = ETIMEDOUT;
         }

@@ -43,61 +43,61 @@
   2:0 = function
 *********************************************************************************************************/
 
-#define PCI_SLOTFN(slot, func)  			((((slot) & 0x1f) << 3) | ((func) & 0x07))
-#define PCI_DEVFN(slot, func)   			PCI_SLOTFN(slot, func)
-#define PCI_SLOT(slotfn)        			(((slotfn) >> 3) & 0x1f)
-#define PCI_FUNC(slotfn)        			((slotfn) & 0x07)
+#define PCI_SLOTFN(slot, func)              ((((slot) & 0x1f) << 3) | ((func) & 0x07))
+#define PCI_DEVFN(slot, func)               PCI_SLOTFN(slot, func)
+#define PCI_SLOT(slotfn)                    (((slotfn) >> 3) & 0x1f)
+#define PCI_FUNC(slotfn)                    ((slotfn) & 0x07)
 
 /*********************************************************************************************************
   pack parameters for the PCI Configuration Address Register
 *********************************************************************************************************/
-#define PCI_PACKET(bus, slot, func) 		((((bus) << 16) & 0x00ff0000) | \
-                                    		(((slot) << 11) & 0x0000f800) | \
-                                    		(((func) << 8)  & 0x00000700))
+#define PCI_PACKET(bus, slot, func)         ((((bus) << 16) & 0x00ff0000) | \
+                                            (((slot) << 11) & 0x0000f800) | \
+                                            (((func) << 8)  & 0x00000700))
 
 /*********************************************************************************************************
   T. Straumann, 7/31/2001: increased to 32 - PMC slots are not
   scanned on mvme2306 otherwise
 *********************************************************************************************************/
 
-#define PCI_MAX_BUS             			256
-#define PCI_MAX_SLOTS           			32
-#define PCI_MAX_FUNCTIONS       			8
+#define PCI_MAX_BUS                         256
+#define PCI_MAX_SLOTS                       32
+#define PCI_MAX_FUNCTIONS                   8
 
 /*********************************************************************************************************
   Configuration I/O addresses for mechanism 1
 *********************************************************************************************************/
 
-#define PCI_CONFIG_ADDR         			0x0cf8                		/* write 32 bits to set address */
-#define PCI_CONFIG_DATA         			0x0cfc                		/* 8, 16, or 32 bit accesses    */
+#define PCI_CONFIG_ADDR                     0x0cf8                      /* write 32 bits to set address */
+#define PCI_CONFIG_DATA                     0x0cfc                      /* 8, 16, or 32 bit accesses    */
 
 /*********************************************************************************************************
   Configuration I/O addresses for mechanism 2
 *********************************************************************************************************/
 
-#define PCI_CONFIG_CSE          			0x0cf8         				/* CSE register                 */
-#define PCI_CONFIG_FORWARD      			0x0cfa                    	/* forward register             */
-#define PCI_CONFIG_BASE         			0xc000                    	/* base register                */
+#define PCI_CONFIG_CSE                      0x0cf8                      /* CSE register                 */
+#define PCI_CONFIG_FORWARD                  0x0cfa                      /* forward register             */
+#define PCI_CONFIG_BASE                     0xc000                      /* base register                */
 
 /*********************************************************************************************************
   调试参数
 *********************************************************************************************************/
-#define PCI_DEBUG_EN            			0           				/* 是否使能调试信息             */
+#define PCI_DEBUG_EN                        0                           /* 是否使能调试信息             */
 
 /*********************************************************************************************************
   BAR 参数
 *********************************************************************************************************/
-#define PCI_DEV_BAR_MAX            		    6                     		/* 设备 BAR 最大数量          	*/
-#define PCI_BRG_BAR_MAX            		    2                     		/* 桥   BAR 最大数量          	*/
-#define PCI_CBUS_BAR_MAX            		1                     		/* 卡桥 BAR 最大数量          	*/
-#define PCI_BAR_INDEX_0					    0							/* BAR 0						*/
-#define PCI_BAR_INDEX_1					    1							/* BAR 1						*/
-#define PCI_BAR_INDEX_2					    2							/* BAR 2						*/
-#define PCI_BAR_INDEX_3					    3							/* BAR 3						*/
-#define PCI_BAR_INDEX_4					    4							/* BAR 4						*/
-#define PCI_BAR_INDEX_5					    5							/* BAR 5						*/
+#define PCI_DEV_BAR_MAX                     6                           /* 设备 BAR 最大数量            */
+#define PCI_BRG_BAR_MAX                     2                           /* 桥   BAR 最大数量            */
+#define PCI_CBUS_BAR_MAX                    1                           /* 卡桥 BAR 最大数量            */
+#define PCI_BAR_INDEX_0                     0                           /* BAR 0                        */
+#define PCI_BAR_INDEX_1                     1                           /* BAR 1                        */
+#define PCI_BAR_INDEX_2                     2                           /* BAR 2                        */
+#define PCI_BAR_INDEX_3                     3                           /* BAR 3                        */
+#define PCI_BAR_INDEX_4                     4                           /* BAR 4                        */
+#define PCI_BAR_INDEX_5                     5                           /* BAR 5                        */
 
-#define PCI_CONFIG_LEN_MAX      			256                     	/* 配置空间大小                 */
+#define PCI_CONFIG_LEN_MAX                  256                         /* 配置空间大小                 */
 
 /*********************************************************************************************************
   PCI 资源类型
@@ -260,45 +260,45 @@ enum {
 /*********************************************************************************************************
   设备参数
 *********************************************************************************************************/
-#define PCI_DEV_NAME_MAX        			(32 + 1)               		/* 设备名称最大值               */
-#define PCI_DEV_IRQ_NAME_MAX    			(32 + 1)               		/* 设备中断名称最大值           */
+#define PCI_DEV_NAME_MAX                    (32 + 1)                    /* 设备名称最大值               */
+#define PCI_DEV_IRQ_NAME_MAX                (32 + 1)                    /* 设备中断名称最大值           */
 
 /*********************************************************************************************************
   ID 配置
 *********************************************************************************************************/
-#define PCI_ANY_ID              			(~0)       					/* 任何 ID                      */
+#define PCI_ANY_ID                          (~0)                        /* 任何 ID                      */
 
-#define PCI_DEVICE(vend,dev)             	(vend),                 \
-                                        	(dev),                  \
-                                           	PCI_ANY_ID,             \
-                                           	PCI_ANY_ID
+#define PCI_DEVICE(vend,dev)                (vend),                 \
+                                            (dev),                  \
+                                            PCI_ANY_ID,             \
+                                            PCI_ANY_ID
 
-#define PCI_DEVICE_SUB(vend, dev, subvend, subdev)					\
-											(vend),                 \
-											(dev),                  \
-											(subvend),              \
-											(subdev)
+#define PCI_DEVICE_SUB(vend, dev, subvend, subdev)                  \
+                                            (vend),                 \
+                                            (dev),                  \
+                                            (subvend),              \
+                                            (subdev)
 
-#define PCI_DEVICE_CLASS(dev_class,dev_class_mask)      			\
-											PCI_ANY_ID,             \
-                                        	PCI_ANY_ID,             \
-                                          	PCI_ANY_ID,             \
-                                          	PCI_ANY_ID,             \
-                                          	(dev_class),            \
-                                        	(dev_class_mask)        \
+#define PCI_DEVICE_CLASS(dev_class,dev_class_mask)                  \
+                                            PCI_ANY_ID,             \
+                                            PCI_ANY_ID,             \
+                                            PCI_ANY_ID,             \
+                                            PCI_ANY_ID,             \
+                                            (dev_class),            \
+                                            (dev_class_mask)        \
 
-#define PCI_VDEVICE(vend, dev)         		PCI_VENDOR_ID_##vend,	\
-                                    		(dev),                  \
-                                    		PCI_ANY_ID,             \
-                                        	PCI_ANY_ID,             \
-                                        	0,                      \
-                                        	0
+#define PCI_VDEVICE(vend, dev)              PCI_VENDOR_ID_##vend,   \
+                                            (dev),                  \
+                                            PCI_ANY_ID,             \
+                                            PCI_ANY_ID,             \
+                                            0,                      \
+                                            0
 
 /*********************************************************************************************************
   调试模式配置
 *********************************************************************************************************/
 #if PCI_DEBUG_EN > 0                                                    /* 是否使能 PCI 调试模式        */
-#define PCI_DEBUG_MSG                      	_DebugHandle
+#define PCI_DEBUG_MSG                       _DebugHandle
 #define PCI_DEBUG_MSG_FMT                   _DebugFormat
 #else                                                                   /* PCI_DEBUG_EN                 */
 #define PCI_DEBUG_MSG(level, msg)
@@ -385,7 +385,7 @@ typedef struct {
     UINT8           PCID_ucHeaderType;                                  /* header type                  */
     UINT8           PCID_ucBist;                                        /* BIST                         */
     
-    UINT32          PCID_uiBase[PCI_DEV_BAR_MAX];                       /* base address               	*/
+    UINT32          PCID_uiBase[PCI_DEV_BAR_MAX];                       /* base address                 */
     
     UINT32          PCID_uiCis;                                         /* cardBus CIS pointer          */
     UINT16          PCID_usSubVendorId;                                 /* sub system vendor ID         */
@@ -659,6 +659,22 @@ typedef PCI_RESOURCE_CB    *PCI_RESOURCE_HANDLE;
 #define PCI_RESOURCE_SIZE(handle)           (((PCI_RESOURCE_HANDLE)handle)->PCIRS_stEnd -       \
                                              ((PCI_RESOURCE_HANDLE)handle)->PCIRS_stStart + 1)
 
+#define PCI_DEV_BASE_START(dev, index)      ((!dev) ? ((UINT32)0x0) :       \
+                                            ((PCI_DEV_HANDLE)(dev))->PCIDEV_phDevHdr.PCIH_pcidHdr.PCID_uiBase[index])
+
+/*********************************************************************************************************
+  PCI 设备 ID
+*********************************************************************************************************/
+#define PCI_DEV_VENDOR_ID(dev)              ((!dev) ? ((UINT16)0xFFFF) :    \
+                                            ((PCI_DEV_HANDLE)(dev))->PCIDEV_phDevHdr.PCIH_pcidHdr.PCID_usVendorId)
+#define PCI_DEV_DEVICE_ID(dev)              ((!dev) ? ((UINT16)0xFFFF) :    \
+                                            ((PCI_DEV_HANDLE)(dev))->PCIDEV_phDevHdr.PCIH_pcidHdr.PCID_usDeviceId)
+
+#define PCI_DEV_SUB_VENDOR_ID(dev)          ((!dev) ? ((UINT16)0xFFFF) :    \
+                                            ((PCI_DEV_HANDLE)(dev))->PCIDEV_phDevHdr.PCIH_pcidHdr.PCID_usSubVendorId)
+#define PCI_DEV_SUB_SYSTEM_ID(dev)          ((!dev) ? ((UINT16)0xFFFF) :    \
+                                            ((PCI_DEV_HANDLE)(dev))->PCIDEV_phDevHdr.PCIH_pcidHdr.PCID_usSubSystemId)
+
 /*********************************************************************************************************
   PCI 设备控制块 (只管理 PCI_HEADER_TYPE_NORMAL 类型设备)
 *********************************************************************************************************/
@@ -835,7 +851,7 @@ LW_API INT                  API_PciAutoCtrlRegionSet(PCI_CTRL_HANDLE  hCtrl,
 #define pciDevIoRemap           API_PciDevIoRemap
 #define pciDevIoRemapEx         API_PciDevIoRemapEx
 
-#define pciDevMasterEnable  	API_PciDevMasterEnable
+#define pciDevMasterEnable      API_PciDevMasterEnable
 
 #define pciDevInterDisable      API_PciDevInterDisable
 #define pciDevInterEnable       API_PciDevInterEnable

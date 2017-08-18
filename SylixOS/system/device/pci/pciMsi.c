@@ -887,7 +887,7 @@ INT  API_PciDevMsiRangeEnable (PCI_DEV_HANDLE  hHandle, UINT  uiVecMin, UINT  ui
      *  MSI can support only 1, 2, 4, 8, 16, 32 number of vectors
      */
     switch (hHandle->PCIDEV_uiDevIrqMsiNum) {
-	
+    
     case 1:
         ucMsiEn = 0;
         break;

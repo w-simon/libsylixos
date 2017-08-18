@@ -77,8 +77,13 @@ VOID  __tshellSysVarInit (VOID)
      *  如果可装载的应用程序模块使用了 SylixOS 模块初始化库, 
      *  则模块可以动态分配的内存大小如下环境变量确定.
      */
+#if !defined(LW_CFG_CPU_ARCH_C6X)
     API_TShellExec("SO_MEM_PAGES=8192");                                /*  动态内存虚拟页面数量        */
                                                                         /*  默认为 32 MB                */
+#else
+    API_TShellExec("SO_MEM_PAGES=256");                                 /*  动态内存虚拟页面数量 2MB    */
+#endif
+
 #if LW_KERN_FLOATING > 0
     API_TShellExec("KERN_FLOAT=1");                                     /*  内核支持浮点格式            */
 #else

@@ -41,6 +41,10 @@ VOID  _CoroutineShell (PVOID  pvArg)
              PLW_CLASS_TCB          ptcbCur;
     REGISTER PLW_CLASS_COROUTINE    pcrcb;
     
+#if defined(LW_CFG_CPU_ARCH_C6X)
+    archIntEnableForce();                                               /*  使能中断                    */
+#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
+
     LW_TCB_GET_CUR_SAFE(ptcbCur);
     
     _CoroutineReclaim(ptcbCur);                                         /*  尝试回收已经删除的协程      */

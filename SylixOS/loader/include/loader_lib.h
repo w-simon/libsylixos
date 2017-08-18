@@ -42,7 +42,7 @@
 typedef struct {
     addr_t                  ESEG_ulAddr;                                /*  内存段地址                  */
     size_t                  ESEG_stLen;                                 /*  内存段长度                  */
-#if LW_CFG_TRUSTED_COMPUTING_EN > 0
+#if (LW_CFG_TRUSTED_COMPUTING_EN > 0) || defined(LW_CFG_CPU_ARCH_C6X)   /*  C6X 使用SEGMENT实现backtrace*/
     BOOL                    ESEG_bCanExec;                              /*  是否可执行                  */
 #endif                                                                  /*  LW_CFG_TRUSTED_COMPUTING_EN */
 } LW_LD_EXEC_SEGMENT;
@@ -161,6 +161,12 @@ typedef struct {
 #ifdef LW_CFG_CPU_ARCH_MIPS
     MIPS_HI16_RELOC_INFO   *EMOD_pMIPSHi16List;
 #endif                                                                  /*  LW_CFG_CPU_ARCH_MIPS        */
+
+#ifdef LW_CFG_CPU_ARCH_C6X
+    ULONG                  *EMOD_pulDsbtTable;                          /*  DSP DSBT表位置              */
+    ULONG                   EMOD_ulDsbtSize;                            /*  DSP DSBT表大小              */
+    ULONG                   EMOD_ulDsbtIndex;                           /*  DSP DSBT表索引              */
+#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
 } LW_LD_EXEC_MODULE;
 
 /*********************************************************************************************************

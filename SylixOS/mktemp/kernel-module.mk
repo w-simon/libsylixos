@@ -27,35 +27,35 @@ include $(MKTEMP)/common.mk
 #*********************************************************************************************************
 # Depend and compiler parameter (cplusplus in kernel MUST NOT use exceptions and rtti)
 #*********************************************************************************************************
-ifneq (,$(findstring yes,$($(target)_USE_CXX_EXCEPT)))
-$(target)_CXX_EXCEPT  := $(GCC_NO_CXX_EXCEPT_CFLAGS)
+ifeq ($($(target)_USE_CXX_EXCEPT), yes)
+$(target)_CXX_EXCEPT  := $(TOOLCHAIN_NO_CXX_EXCEPT_CFLAGS)
 else
-$(target)_CXX_EXCEPT  := $(GCC_NO_CXX_EXCEPT_CFLAGS)
+$(target)_CXX_EXCEPT  := $(TOOLCHAIN_NO_CXX_EXCEPT_CFLAGS)
 endif
 
-ifneq (,$(findstring yes,$($(target)_USE_GCOV)))
-$(target)_GCOV_FLAGS  := $(GCC_GCOV_CFLAGS)
+ifeq ($($(target)_USE_GCOV), yes)
+$(target)_GCOV_FLAGS  := $(TOOLCHAIN_GCOV_CFLAGS)
 else
-$(target)_GCOV_FLAGS  :=
+$(target)_GCOV_FLAGS  := $(TOOLCHAIN_NO_GCOV_CFLAGS)
 endif
 
-ifneq (,$(findstring yes,$($(target)_USE_OMP)))
-$(target)_OMP_FLAGS   :=
+ifeq ($($(target)_USE_OMP), yes)
+$(target)_OMP_FLAGS   := $(TOOLCHAIN_NO_OMP_CFLAGS)
 else
-$(target)_OMP_FLAGS   :=
+$(target)_OMP_FLAGS   := $(TOOLCHAIN_NO_OMP_CFLAGS)
 endif
 
-$(target)_DSYMBOL     += -DSYLIXOS_LIB
-$(target)_CPUFLAGS    := $(CPUFLAGS_NOFPU)
-$(target)_COMMONFLAGS := $($(target)_CPUFLAGS) $(ARCH_COMMONFLAGS) $(OPTIMIZE) -Wall -fmessage-length=0 -fsigned-char -fno-short-enums -fno-strict-aliasing $($(target)_GCOV_FLAGS) $($(target)_OMP_FLAGS)
-$(target)_ASFLAGS     := $($(target)_COMMONFLAGS) $(ARCH_KO_CFLAGS) -x assembler-with-cpp $($(target)_DSYMBOL) $($(target)_INC_PATH)
+$(target)_DSYMBOL     += $(TOOLCHAIN_DEF_SYMBOL)SYLIXOS_LIB
+$(target)_CPUFLAGS    := $(ARCH_CPUFLAGS_NOFPU)
+$(target)_COMMONFLAGS := $($(target)_CPUFLAGS) $(ARCH_COMMONFLAGS) $(TOOLCHAIN_OPTIMIZE) $(TOOLCHAIN_COMMONFLAGS) $($(target)_GCOV_FLAGS) $($(target)_OMP_FLAGS)
+$(target)_ASFLAGS     := $($(target)_COMMONFLAGS) $(ARCH_KO_CFLAGS) $(TOOLCHAIN_ASFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH)
 $(target)_CFLAGS      := $($(target)_COMMONFLAGS) $(ARCH_KO_CFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CFLAGS)
 $(target)_CXXFLAGS    := $($(target)_COMMONFLAGS) $(ARCH_KO_CFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CXX_EXCEPT) $($(target)_CXXFLAGS)
 
 #*********************************************************************************************************
 # Depend library search paths
 #*********************************************************************************************************
-$(target)_DEPEND_LIB_PATH := -L"$(SYLIXOS_BASE_PATH)/libsylixos/$(OUTDIR)"
+$(target)_DEPEND_LIB_PATH := $(TOOLCHAIN_LIB_INC)"$(SYLIXOS_BASE_PATH)/libsylixos/$(OUTDIR)"
 $(target)_DEPEND_LIB_PATH += $(LOCAL_DEPEND_LIB_PATH)
 
 #*********************************************************************************************************
@@ -63,18 +63,18 @@ $(target)_DEPEND_LIB_PATH += $(LOCAL_DEPEND_LIB_PATH)
 #*********************************************************************************************************
 $(target)_DEPEND_LIB := $(LOCAL_DEPEND_LIB)
 
-ifneq (,$(findstring yes,$($(target)_USE_GCOV)))
-$(target)_DEPEND_LIB += -lgcov_ko
+ifeq ($($(target)_USE_GCOV), yes)
+$(target)_DEPEND_LIB += $(TOOLCHAIN_LINK_GCOV_KO)
 endif
 
-ifneq (,$(findstring yes,$($(target)_USE_OMP)))
+ifeq ($($(target)_USE_OMP), yes)
 endif
 
-ifneq (,$(findstring yes,$($(target)_USE_CXX)))
-$(target)_DEPEND_LIB += -lstdc++
+ifeq ($($(target)_USE_CXX), yes)
+$(target)_DEPEND_LIB += $(TOOLCHAIN_LINK_CXX)
 endif
 
-$(target)_DEPEND_LIB += -lm -lgcc
+$(target)_DEPEND_LIB += $(TOOLCHAIN_LINK_M) $(TOOLCHAIN_LINK_GCC)
 
 #*********************************************************************************************************
 # Targets
@@ -88,7 +88,7 @@ $(target)_STRIP_KO := $(OUTPATH)/strip/$(LOCAL_TARGET_NAME)
 $($(target)_KO): $($(target)_OBJS) $($(target)_DEPEND_TARGET)
 		@rm -f $@
 		$(__PRE_LINK_CMD)
-		$(LD) $(__CPUFLAGS) -nostdlib -r -o $@ $(__OBJS) $(__LIBRARIES)
+		$(LD) $(__CPUFLAGS) $(ARCH_KO_LDFLAGS) $(__OBJS) $(__LIBRARIES) -o $@
 		$(__POST_LINK_CMD)
 
 #*********************************************************************************************************
@@ -98,7 +98,7 @@ $($(target)_STRIP_KO): $($(target)_KO)
 		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
 		@rm -f $@
 		$(__PRE_STRIP_CMD)
-		$(STRIP) --strip-unneeded $< -o $@
+		$(STRIP) $(TOOLCHAIN_STRIP_KO_FLAGS) $< -o $@
 		$(__POST_STRIP_CMD)
 
 #*********************************************************************************************************

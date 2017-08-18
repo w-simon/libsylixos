@@ -103,17 +103,34 @@ callrpc (const char *host, u_long prognum, u_long versnum, u_long procnum,
 	}
 
       buflen = 1024;
+#ifndef LW_CFG_CPU_ARCH_C6X
       buffer = __alloca (buflen);
+#else
+      buffer = malloc (buflen);
+      if (!buffer) {
+        return -1;
+      }
+#endif
       while (__gethostbyname_r (host, &hostbuf, buffer, buflen,
 				&hp, &herr) != 0
 	     || hp == NULL)
-	if (herr != NETDB_INTERNAL || errno != ERANGE)
+	if (herr != NETDB_INTERNAL || errno != ERANGE) {
+#ifdef LW_CFG_CPU_ARCH_C6X
+	  free (buffer);
+#endif
 	  return (int) RPC_UNKNOWNHOST;
-	else
+	} else
 	  {
 	    /* Enlarge the buffer.  */
 	    buflen *= 2;
+#ifndef LW_CFG_CPU_ARCH_C6X
 	    buffer = __alloca (buflen);
+#else
+	    buffer = realloc (buffer, buflen);
+	    if (!buffer) {
+	      return -1;
+	    }
+#endif
 	  }
 
       timeout.tv_usec = 0;
@@ -121,6 +138,9 @@ callrpc (const char *host, u_long prognum, u_long versnum, u_long procnum,
       memcpy ((char *) &server_addr.sin_addr, hp->h_addr, hp->h_length);
       server_addr.sin_family = AF_INET;
       server_addr.sin_port = 0;
+#ifdef LW_CFG_CPU_ARCH_C6X
+      free (buffer);
+#endif
       if ((crp->client = clntudp_create (&server_addr, (u_long) prognum,
 			  (u_long) versnum, timeout, &crp->socket)) == NULL)
 	return (int) get_rpc_createerr().cf_stat;

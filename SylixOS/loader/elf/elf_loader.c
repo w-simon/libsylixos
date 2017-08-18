@@ -35,6 +35,7 @@
             模块内符号表使用 hash 表, 不再使用扁平数组. (韩辉)
             不再使用缓冲 IO 而是用标准 IO 接口.
 2017.02.26  加入可信计算支持.
+2017.08.17  加入 c6x DSP 的支持.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -176,6 +177,8 @@ static INT elfRelaRelocate (LW_LD_EXEC_MODULE *pmodule,
         }
 
         LD_DEBUG_MSG(("relocate %s :", pcSymName));
+
+#if !defined(LW_CFG_CPU_ARCH_C6X)
         if (archElfRelocateRela(pmodule,
                                 prela,
                                 addrSymVal,
@@ -185,6 +188,18 @@ static INT elfRelaRelocate (LW_LD_EXEC_MODULE *pmodule,
             _ErrorHandle(ERROR_LOADER_RELOCATE);
             return  (PX_ERROR);
         }
+#else
+        if (archElfRelocateRela(pmodule,
+                                prela,
+                                psym,
+                                addrSymVal,
+                                pcTargetSect,
+                                pcJmpTable,
+                                stJmpTableItem) < 0) {                  /*  与体系结构相关的重定位      */
+            _ErrorHandle(ERROR_LOADER_RELOCATE);
+            return  (PX_ERROR);
+        }
+#endif
 
         prela++;
     }
@@ -412,12 +427,21 @@ static INT elfSymbolExport (LW_LD_EXEC_MODULE *pmodule,
         return  (ERROR_NONE);
     }
 
+#if !defined(LW_CFG_CPU_ARCH_C6X)
     if ((pcShName != LW_NULL) &&
         (pmodule->EMOD_pcSymSection != LW_NULL) &&
         (0 != lib_strcmp(pcShName, pmodule->EMOD_pcSymSection)) &&
         (0 != lib_strcmp(pcSymName, "__sylixos_version"))) {            /* 只导出指定节的符号           */
         return  (ERROR_NONE);
     }
+#else
+    if ((pcShName != LW_NULL) &&
+        (pmodule->EMOD_pcSymSection != LW_NULL) &&
+        (pcShName != lib_strstr(pcShName, pmodule->EMOD_pcSymSection)) &&
+        (0 != lib_strcmp(pcSymName, "__sylixos_version"))) {            /* 只导出指定节的符号           */
+        return  (ERROR_NONE);
+    }
+#endif
 
     switch (ELF_ST_TYPE(psym->st_info)) {
 
@@ -498,7 +522,9 @@ static INT elfSymbolsExport (LW_LD_EXEC_MODULE *pmodule, Elf_Shdr *pshdrArr, UIN
             psym = &psymTable[j];
             pcSymName = pcStrTab + psym->st_name;
             if ((psym->st_shndx == SHN_UNDEF)                ||
+#if !defined(LW_CFG_CPU_ARCH_C6X)
                 (psym->st_other != STV_DEFAULT)              ||
+#endif
                 (ELF_ST_BIND(psym->st_info) == STB_LOCAL)    ||
                 (psym->st_shndx >= pmodule->EMOD_ulSegCount) ||
                 (0 == lib_strlen(pcSymName))) {
@@ -965,7 +991,7 @@ static INT elfLoadReloc (LW_LD_EXEC_MODULE *pmodule, Elf_Ehdr *pehdr, INT  iFd)
                 goto    __out2;
             }
             
-#if LW_CFG_TRUSTED_COMPUTING_EN > 0
+#if (LW_CFG_TRUSTED_COMPUTING_EN > 0) || defined(LW_CFG_CPU_ARCH_C6X)   /*  C6X 使用SEGMENT实现backtrace*/
             pmodule->EMOD_psegmentArry[i].ESEG_bCanExec = (pshdr->sh_flags & SHF_EXECINSTR) ?
                                                           LW_TRUE : LW_FALSE;
 #endif                                                                  /*  LW_CFG_TRUSTED_COMPUTING_EN */
@@ -1011,7 +1037,8 @@ __out1:
     }
     
 #if (LW_CFG_HWDBG_GDBMOD_EN == 0) && \
-    (LW_CFG_TRUSTED_COMPUTING_EN == 0)                                  /*  硬件调试器与可信计算需要    */
+    (LW_CFG_TRUSTED_COMPUTING_EN == 0) && \
+     !defined(LW_CFG_CPU_ARCH_C6X)                                      /*  硬件调试器与可信计算需要    */
     LW_LD_SAFEFREE(pmodule->EMOD_psegmentArry);
     pmodule->EMOD_ulSegCount = 0;
 #endif                                                                  /*  !LW_CFG_HWDBG_GDBMOD_EN     */
@@ -1172,6 +1199,19 @@ static INT dynPhdrParse (LW_LD_EXEC_MODULE *pmodule,
                     pdyndir->ulMIPSPltGotIdx      = pdyn->d_un.d_val;
                     break;
 #endif                                                                  /*  LW_CFG_CPU_ARCH_MIPS        */
+
+#if defined(LW_CFG_CPU_ARCH_C6X)
+                case DT_C6000_DSBT_BASE:
+                    pmodule->EMOD_pulDsbtTable = (Elf_Addr *)LW_LD_V2PADDR(addrMin,
+                                                 pmodule->EMOD_pvBaseAddr,
+                                                 pdyn->d_un.d_ptr);
+
+                case DT_C6000_DSBT_SIZE:
+                    pmodule->EMOD_ulDsbtSize   = pdyn->d_un.d_val;
+
+                case DT_C6000_DSBT_INDEX:
+                    pmodule->EMOD_ulDsbtIndex  = pdyn->d_un.d_val;
+#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
                 }
             }
             break;
@@ -1191,7 +1231,7 @@ static INT dynPhdrParse (LW_LD_EXEC_MODULE *pmodule,
     /*
      *  TODO: 目前认为JMPREL跟在REL或RELA表之后，如果没有找到REL表和RELA表，则使用JMPREL表。
      */
-#ifndef  LW_CFG_CPU_ARCH_PPC
+#if !defined(LW_CFG_CPU_ARCH_PPC) && !defined(LW_CFG_CPU_ARCH_C6X)
     if (pdyndir->pvJmpRTable) {
         if (DT_REL == pdyndir->ulPltRel) {
             if (!pdyndir->prelTable) {
@@ -1306,7 +1346,7 @@ static INT elfPhdrRead (LW_LD_EXEC_MODULE *pmodule,
     /*
      *  分段映射可加载段
      */
-#if LW_CFG_TRUSTED_COMPUTING_EN > 0                                     /*  动态度量需要确定内存结构    */
+#if (LW_CFG_TRUSTED_COMPUTING_EN > 0)  || defined(LW_CFG_CPU_ARCH_C6X)  /*  动态度量需要确定内存结构    */
     pmodule->EMOD_ulSegCount   = pehdr->e_phnum;
     pmodule->EMOD_psegmentArry = (LW_LD_EXEC_SEGMENT *)LW_LD_SAFEMALLOC(
                                  (sizeof(LW_LD_EXEC_SEGMENT) * pmodule->EMOD_ulSegCount));
@@ -1345,7 +1385,7 @@ static INT elfPhdrRead (LW_LD_EXEC_MODULE *pmodule,
             goto    __out1;
         }
         
-#if LW_CFG_TRUSTED_COMPUTING_EN > 0                                     /*  动态度量需要确定内存结构    */
+#if (LW_CFG_TRUSTED_COMPUTING_EN > 0) || defined(LW_CFG_CPU_ARCH_C6X)   /*  动态度量需要确定内存结构    */
         pmodule->EMOD_psegmentArry[i].ESEG_ulAddr   = (addr_t)pmodule->EMOD_pvBaseAddr
                                                     + dwMapOff;
         pmodule->EMOD_psegmentArry[i].ESEG_stLen    = pphdr->p_filesz;
@@ -1414,7 +1454,7 @@ static INT elfPhdrRelocate (LW_LD_EXEC_MODULE *pmodule, ELF_DYN_DIR  *pdyndir)
                                   pmodule->EMOD_pvBaseAddr,
                                   0);                                   /*  elf段0地址的加载地址        */
 
-#if defined(LW_CFG_CPU_ARCH_PPC) || defined(LW_CFG_CPU_ARCH_MIPS)
+#if defined(LW_CFG_CPU_ARCH_PPC) || defined(LW_CFG_CPU_ARCH_MIPS) || defined(LW_CFG_CPU_ARCH_C6X)
     if (archElfGotInit(pmodule) < 0) {
         return  (PX_ERROR);
     }
@@ -1490,6 +1530,7 @@ static INT elfPhdrRelocate (LW_LD_EXEC_MODULE *pmodule, ELF_DYN_DIR  *pdyndir)
                                            psym->st_value);
             }
 
+#if !defined(LW_CFG_CPU_ARCH_C6X)
             if (archElfRelocateRela(pmodule,                            /*  重定位符号                  */
                                     prela,
                                     addrSymVal,
@@ -1498,6 +1539,17 @@ static INT elfPhdrRelocate (LW_LD_EXEC_MODULE *pmodule, ELF_DYN_DIR  *pdyndir)
                 _ErrorHandle(ERROR_LOADER_RELOCATE);
                 return  (PX_ERROR);
             }
+#else
+            if (archElfRelocateRela(pmodule,                            /*  重定位符号                  */
+                                    prela,
+                                    psym,
+                                    addrSymVal,
+                                    pcBase,
+                                    LW_NULL, 0) < 0) {
+                _ErrorHandle(ERROR_LOADER_RELOCATE);
+                return  (PX_ERROR);
+            }
+#endif
         }
     }
 
@@ -1696,7 +1748,11 @@ static INT elfLoadExec (LW_LD_EXEC_MODULE *pmodule, Elf_Ehdr *pehdr, INT iFd)
             break;
         }
         pchLibName = pdyndir->pcStrTable + pdyndir->wdNeededArr[pdyndir->ulNeededCnt - i - 1];
+#if !defined(LW_CFG_CPU_ARCH_C6X)
         ppmodUseArr[i] = moduleLoadSub(pmodule, pchLibName, LW_TRUE);
+#else
+        ppmodUseArr[i] = moduleLoadSub(pmodule, _PathLastNamePtr(pchLibName), LW_TRUE);
+#endif
         if (ppmodUseArr[i] == LW_NULL) {
             goto    __out;
         }

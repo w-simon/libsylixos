@@ -209,6 +209,11 @@
 /*
  *  GCC elf symbol
  */
+#if defined(__TMS320C6X__)
+#define __strong_reference(sym,aliassym)
+#define __weak_reference(sym,alias)
+
+#else
 #ifdef __GNUC__
 # define __strong_reference(sym,aliassym)	\
 	extern __typeof (sym) aliassym __attribute__ ((__alias__ (#sym)));
@@ -238,7 +243,7 @@
 #  endif /* __STDC__ */
 # endif	/* __ELF__ */
 #endif /* __GNUC__ */
-
+#endif /* __TMS320C6X__ */
 /*
  * Macros for manipulating "link sets".  Link sets are arrays of pointers
  * to objects, which are gathered up by the linker.

@@ -226,9 +226,9 @@ SylixOS/arch/ppc/mpcore/ppcSpinlock.c \
 SylixOS/arch/ppc/param/ppcParam.c 
 
 #*********************************************************************************************************
-# x86 source
+# x86 common source
 #*********************************************************************************************************
-LOCAL_X86_SRCS = \
+LOCAL_X86_COMMON_SRCS = \
 SylixOS/arch/x86/acpi/x86AcpiSylixOS.c \
 SylixOS/arch/x86/acpi/x86AcpiLib.c \
 SylixOS/arch/x86/acpi/x86AcpiTables.c \
@@ -410,7 +410,10 @@ SylixOS/arch/x86/mpcore/x86Spinlock.c \
 SylixOS/arch/x86/pentium/x86Pentium.c \
 SylixOS/arch/x86/param/x86Param.c
 
-ifeq ($(TOOLCHAIN_PREFIX), i386-sylixos-elf-)
+#*********************************************************************************************************
+# x86 source
+#*********************************************************************************************************
+LOCAL_X86_SRCS := $(LOCAL_X86_COMMON_SRCS) 
 LOCAL_X86_SRCS += \
 SylixOS/arch/x86/dbg/x86Gdb.c \
 SylixOS/arch/x86/elf/x86Elf.c \
@@ -427,10 +430,12 @@ SylixOS/arch/x86/mm/mmu/x86Mmu.c \
 SylixOS/arch/x86/mm/mmu/x86MmuAsm.S \
 SylixOS/arch/x86/mpcore/x86MpCoreAsm.S \
 SylixOS/arch/x86/pentium/x86PentiumAsm.S
-endif
 
-ifeq ($(TOOLCHAIN_PREFIX), x86_64-sylixos-elf-)
-LOCAL_X86_SRCS += \
+#*********************************************************************************************************
+# x86-64 source
+#*********************************************************************************************************
+LOCAL_X64_SRCS := $(LOCAL_X86_COMMON_SRCS) 
+LOCAL_X64_SRCS += \
 SylixOS/arch/x86/dbg/x64Gdb.c \
 SylixOS/arch/x86/elf/x64Elf.c \
 SylixOS/arch/x86/common/x64/x64ContextAsm.S \
@@ -446,7 +451,22 @@ SylixOS/arch/x86/mm/mmu/x64Mmu.c \
 SylixOS/arch/x86/mm/mmu/x64MmuAsm.S \
 SylixOS/arch/x86/mpcore/x64MpCoreAsm.S \
 SylixOS/arch/x86/pentium/x64PentiumAsm.S
-endif
+
+#*********************************************************************************************************
+# TI C6X DSP source
+#*********************************************************************************************************
+LOCAL_C6X_SRCS = \
+SylixOS/arch/c6x/backtrace/c6xBacktrace.c \
+SylixOS/arch/c6x/common/c6xAssert.c \
+SylixOS/arch/c6x/common/c6xContext.c \
+SylixOS/arch/c6x/common/c6xExc.c \
+SylixOS/arch/c6x/common/c6xLib.c \
+SylixOS/arch/c6x/common/c6xContextAsm.asm \
+SylixOS/arch/c6x/common/c6xExcAsm.asm \
+SylixOS/arch/c6x/common/c6xLibAsm.asm \
+SylixOS/arch/c6x/elf/c6xElf.c \
+SylixOS/arch/c6x/mm/c6xCache.c \
+SylixOS/arch/c6x/param/c6xParam.c
 
 #*********************************************************************************************************
 # Buildin internal application source
@@ -1631,7 +1651,7 @@ LOCAL_SRCS += $(CPP_SRCS)
 # Header file search path (eg. LOCAL_INC_PATH := -I"Your hearder files search path")
 #*********************************************************************************************************
 LOCAL_INC_PATH := 
-ifeq ($(ARCH), x86)
+ifeq ($(ARCH), $(filter $(ARCH),x86 x64))
 LOCAL_INC_PATH += -I"./SylixOS/arch/x86/acpi/acpica/include"
 endif
 
@@ -1642,7 +1662,7 @@ LOCAL_DSYMBOL :=
 ifeq ($(BUILD_LITE_TARGET), 1)
 LOCAL_DSYMBOL += -D__SYLIXOS_LITE
 endif
-ifeq ($(ARCH), x86)
+ifeq ($(ARCH), $(filter $(ARCH),x86 x64))
 LOCAL_DSYMBOL += -DACPI_DEBUG_OUTPUT -DACPI_DISASSEMBLER -DACPI_APPLICATION
 endif
 

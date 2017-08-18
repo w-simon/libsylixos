@@ -24,7 +24,7 @@
 
 #include "config/cpu/cpu_cfg.h"
 
-#if (defined LW_CFG_CPU_ARCH_ARM)
+#if defined(LW_CFG_CPU_ARCH_ARM)
 #include "arm/arch_types.h"
 #include "arm/arch_compiler.h"
 #include "arm/arch_float.h"
@@ -32,7 +32,7 @@
 #include "arm/arch_regs.h"
 #include "arm/arch_mmu.h"
 
-#elif (defined LW_CFG_CPU_ARCH_X86)
+#elif defined(LW_CFG_CPU_ARCH_X86)
 #include "x86/arch_types.h"
 #include "x86/arch_compiler.h"
 #include "x86/arch_float.h"
@@ -41,7 +41,7 @@
 #include "x86/arch_mmu.h"
 #include "x86/arch_pc.h"
 
-#elif (defined LW_CFG_CPU_ARCH_MIPS)
+#elif defined(LW_CFG_CPU_ARCH_MIPS)
 #include "mips/arch_types.h"
 #include "mips/arch_def.h"
 #include "mips/arch_compiler.h"
@@ -50,7 +50,7 @@
 #include "mips/arch_regs.h"
 #include "mips/arch_mmu.h"
 
-#elif (defined LW_CFG_CPU_ARCH_PPC)
+#elif defined(LW_CFG_CPU_ARCH_PPC)
 #include "ppc/arch_types.h"
 #include "ppc/arch_def.h"
 #include "ppc/arch_compiler.h"
@@ -58,6 +58,22 @@
 #include "ppc/arch_limits.h"
 #include "ppc/arch_regs.h"
 #include "ppc/arch_mmu.h"
+
+#elif defined(LW_CFG_CPU_ARCH_C6X)
+#include "c6x/arch_types.h"
+#include "c6x/arch_compiler.h"
+#include "c6x/arch_float.h"
+#include "c6x/arch_limits.h"
+#include "c6x/arch_regs.h"
+#include "c6x/arch_mmu.h"
+
+#elif defined(LW_CFG_CPU_ARCH_SPARC)
+#include "sparc/arch_types.h"
+#include "sparc/arch_compiler.h"
+#include "sparc/arch_float.h"
+#include "sparc/arch_limits.h"
+#include "sparc/arch_regs.h"
+#include "sparc/arch_mmu.h"
 #endif                                                                  /*  LW_CFG_CPU_ARCH_ARM         */
 
 #endif                                                                  /*  __ARCH_INC_H                */

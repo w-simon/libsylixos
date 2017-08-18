@@ -81,12 +81,22 @@ clnt_create (const char *hostname, u_long prog, u_long vers,
     }
 
   hstbuflen = 1024;
+#ifndef LW_CFG_CPU_ARCH_C6X
   hsttmpbuf = __alloca (hstbuflen);
+#else
+  hsttmpbuf = malloc (hstbuflen);
+  if (!hsttmpbuf) {
+    return NULL;
+  }
+#endif
   while (__gethostbyname_r (hostname, &hostbuf, hsttmpbuf, hstbuflen,
 			    &h, &herr) != 0
 	 || h == NULL)
     if (herr != NETDB_INTERNAL || errno != ERANGE)
       {
+#ifdef LW_CFG_CPU_ARCH_C6X
+    free (hsttmpbuf);
+#endif
 	get_rpc_createerr().cf_stat = RPC_UNKNOWNHOST;
 	return NULL;
       }
@@ -94,7 +104,14 @@ clnt_create (const char *hostname, u_long prog, u_long vers,
       {
 	/* Enlarge the buffer.  */
 	hstbuflen *= 2;
+#ifndef LW_CFG_CPU_ARCH_C6X
 	hsttmpbuf = __alloca (hstbuflen);
+#else
+	hsttmpbuf = realloc (hsttmpbuf, hstbuflen);
+	if (!hsttmpbuf) {
+	  return NULL;
+	}
+#endif
       }
 
   if (h->h_addrtype != AF_INET)
@@ -105,15 +122,28 @@ clnt_create (const char *hostname, u_long prog, u_long vers,
       struct rpc_createerr *ce = &get_rpc_createerr ();
       ce->cf_stat = RPC_SYSTEMERROR;
       ce->cf_error.re_errno = EAFNOSUPPORT;
+#ifdef LW_CFG_CPU_ARCH_C6X
+      free (hsttmpbuf);
+#endif
       return NULL;
     }
   sin.sin_family = h->h_addrtype;
   sin.sin_port = 0;
   __bzero (sin.sin_zero, sizeof (sin.sin_zero));
   memcpy ((char *) &sin.sin_addr, h->h_addr, h->h_length);
+#ifdef LW_CFG_CPU_ARCH_C6X
+  free (hsttmpbuf);
+#endif
 
   prtbuflen = 1024;
+#ifndef LW_CFG_CPU_ARCH_C6X
   prttmpbuf = __alloca (prtbuflen);
+#else
+  prttmpbuf = malloc (prtbuflen);
+  if (!prttmpbuf) {
+    return NULL;
+  }
+#endif
   while (__getprotobyname_r (proto, &protobuf, prttmpbuf, prtbuflen, &p) != 0
 	 || p == NULL)
     if (errno != ERANGE)
@@ -121,13 +151,23 @@ clnt_create (const char *hostname, u_long prog, u_long vers,
 	struct rpc_createerr *ce = &get_rpc_createerr ();
 	ce->cf_stat = RPC_UNKNOWNPROTO;
 	ce->cf_error.re_errno = EPFNOSUPPORT;
+#ifdef LW_CFG_CPU_ARCH_C6X
+	free (prttmpbuf);
+#endif
 	return NULL;
       }
     else
       {
 	/* Enlarge the buffer.  */
 	prtbuflen *= 2;
+#ifndef LW_CFG_CPU_ARCH_C6X
 	prttmpbuf = __alloca (prtbuflen);
+#else
+    prttmpbuf = realloc (prttmpbuf, prtbuflen);
+    if (!prttmpbuf) {
+      return NULL;
+    }
+#endif
       }
 
   sock = RPC_ANYSOCK;
@@ -139,6 +179,9 @@ clnt_create (const char *hostname, u_long prog, u_long vers,
       client = clntudp_create (&sin, prog, vers, tv, &sock);
       if (client == NULL)
 	{
+#ifdef LW_CFG_CPU_ARCH_C6X
+      free (prttmpbuf);
+#endif
 	  return NULL;
 	}
 #if 0
@@ -153,6 +196,9 @@ clnt_create (const char *hostname, u_long prog, u_long vers,
       client = clnttcp_create (&sin, prog, vers, &sock, 0, 0);
       if (client == NULL)
 	{
+#ifdef LW_CFG_CPU_ARCH_C6X
+      free (prttmpbuf);
+#endif
 	  return NULL;
 	}
 #if 0
@@ -170,8 +216,15 @@ clnt_create (const char *hostname, u_long prog, u_long vers,
 	ce->cf_stat = RPC_SYSTEMERROR;
 	ce->cf_error.re_errno = EPFNOSUPPORT;
       }
+#ifdef LW_CFG_CPU_ARCH_C6X
+      free (prttmpbuf);
+#endif
       return (NULL);
     }
+
+#ifdef LW_CFG_CPU_ARCH_C6X
+  free (prttmpbuf);
+#endif
   return client;
 }
 #ifdef EXPORT_RPC_SYMBOLS

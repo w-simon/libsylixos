@@ -199,7 +199,11 @@ PCHAR  lib_strerror (INT  iNum)
      */
     case EOWNERDEAD:        return  ("Owner died");
     case ENOTRECOVERABLE:   return  ("State not recoverable");
+#if defined(LW_CFG_CPU_ARCH_C6X)
+    }
 
+    switch (iNum) {
+#endif
     /*
      *  SylixOS kernel error
      */

@@ -61,7 +61,7 @@
 
 #define PTHREAD_DESTRUCTOR_ITERATIONS       LONG_MAX
 #define PTHREAD_KEYS_MAX                    LONG_MAX
-#define PTHREAD_STACK_MIN                   LW_CFG_PTHREAD_DEFAULT_STK_SIZE
+#define PTHREAD_STACK_MIN                   LW_CFG_PTHREAD_MIN_STK_SIZE
 #define PTHREAD_THREADS_MAX                 LW_CFG_MAX_THREADS
 #define RTSIG_MAX                           (SIGRTMAX - SIGRTMIN)
 #define SEM_NSEMS_MAX                       LW_CFG_MAX_EVENTS

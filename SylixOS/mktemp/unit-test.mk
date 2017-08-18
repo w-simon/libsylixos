@@ -27,27 +27,27 @@ include $(MKTEMP)/common.mk
 #*********************************************************************************************************
 # Depend and compiler parameter (cplusplus in kernel MUST NOT use exceptions and rtti)
 #*********************************************************************************************************
-ifneq (,$(findstring yes,$($(target)_USE_CXX_EXCEPT)))
-$(target)_CXX_EXCEPT  := $(GCC_CXX_EXCEPT_CFLAGS)
+ifeq ($($(target)_USE_CXX_EXCEPT), yes)
+$(target)_CXX_EXCEPT  := $(TOOLCHAIN_CXX_EXCEPT_CFLAGS)
 else
-$(target)_CXX_EXCEPT  := $(GCC_NO_CXX_EXCEPT_CFLAGS)
+$(target)_CXX_EXCEPT  := $(TOOLCHAIN_NO_CXX_EXCEPT_CFLAGS)
 endif
 
-ifneq (,$(findstring yes,$($(target)_USE_GCOV)))
-$(target)_GCOV_FLAGS  := $(GCC_GCOV_CFLAGS)
+ifeq ($($(target)_USE_GCOV), yes)
+$(target)_GCOV_FLAGS  := $(TOOLCHAIN_GCOV_CFLAGS)
 else
-$(target)_GCOV_FLAGS  :=
+$(target)_GCOV_FLAGS  := $(TOOLCHAIN_NO_GCOV_CFLAGS)
 endif
 
-ifneq (,$(findstring yes,$($(target)_USE_OMP)))
-$(target)_OMP_FLAGS   := $(GCC_OMP_CFLAGS)
+ifeq ($($(target)_USE_OMP), yes)
+$(target)_OMP_FLAGS   := $(TOOLCHAIN_OMP_CFLAGS)
 else
-$(target)_OMP_FLAGS   :=
+$(target)_OMP_FLAGS   := $(TOOLCHAIN_NO_OMP_CFLAGS)
 endif
 
-$(target)_CPUFLAGS    := $(CPUFLAGS)
-$(target)_COMMONFLAGS := $($(target)_CPUFLAGS) $(ARCH_COMMONFLAGS) $(OPTIMIZE) -Wall -fmessage-length=0 -fsigned-char -fno-short-enums $($(target)_GCOV_FLAGS) $($(target)_OMP_FLAGS)
-$(target)_ASFLAGS     := $($(target)_COMMONFLAGS) -x assembler-with-cpp $($(target)_DSYMBOL) $($(target)_INC_PATH)
+$(target)_CPUFLAGS    := $(ARCH_CPUFLAGS)
+$(target)_COMMONFLAGS := $($(target)_CPUFLAGS) $(ARCH_COMMONFLAGS) $(TOOLCHAIN_OPTIMIZE) $(TOOLCHAIN_COMMONFLAGS) $($(target)_GCOV_FLAGS) $($(target)_OMP_FLAGS)
+$(target)_ASFLAGS     := $($(target)_COMMONFLAGS) $(ARCH_PIC_ASFLAGS) $(TOOLCHAIN_ASFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH)
 $(target)_CFLAGS      := $($(target)_COMMONFLAGS) $(ARCH_PIC_CFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CFLAGS)
 $(target)_CXXFLAGS    := $($(target)_COMMONFLAGS) $(ARCH_PIC_CFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CXX_EXCEPT) $($(target)_CXXFLAGS)
 
@@ -60,10 +60,10 @@ $(target)_STRIP_EXE := $(addprefix $(OUTPATH)/strip/$(target)/, $(basename $(LOC
 #*********************************************************************************************************
 # Depend library search paths
 #*********************************************************************************************************
-$(target)_DEPEND_LIB_PATH := -L"$(SYLIXOS_BASE_PATH)/libsylixos/$(OUTDIR)"
+$(target)_DEPEND_LIB_PATH := $(TOOLCHAIN_LIB_INC)"$(SYLIXOS_BASE_PATH)/libsylixos/$(OUTDIR)"
 
-ifneq (,$(findstring yes,$($(target)_USE_CXX)))
-$(target)_DEPEND_LIB_PATH += -L"$(SYLIXOS_BASE_PATH)/libcextern/$(OUTDIR)"
+ifeq ($($(target)_USE_CXX), yes)
+$(target)_DEPEND_LIB_PATH += $(TOOLCHAIN_LIB_INC)"$(SYLIXOS_BASE_PATH)/libcextern/$(OUTDIR)"
 endif
 
 $(target)_DEPEND_LIB_PATH += $(LOCAL_DEPEND_LIB_PATH)
@@ -72,21 +72,21 @@ $(target)_DEPEND_LIB_PATH += $(LOCAL_DEPEND_LIB_PATH)
 # Depend libraries
 #*********************************************************************************************************
 $(target)_DEPEND_LIB := $(LOCAL_DEPEND_LIB)
-$(target)_DEPEND_LIB += -lvpmpdm
+$(target)_DEPEND_LIB += $(TOOLCHAIN_LINK_VPMPDM)
 
-ifneq (,$(findstring yes,$($(target)_USE_GCOV)))
-$(target)_DEPEND_LIB += -lgcov
+ifeq ($($(target)_USE_GCOV), yes)
+$(target)_DEPEND_LIB += $(TOOLCHAIN_LINK_PIC_GCOV)
 endif
 
-ifneq (,$(findstring yes,$($(target)_USE_OMP)))
-$(target)_DEPEND_LIB += -lgomp
+ifeq ($($(target)_USE_OMP), yes)
+$(target)_DEPEND_LIB += $(TOOLCHAIN_LINK_PIC_OMP)
 endif
 
-ifneq (,$(findstring yes,$($(target)_USE_CXX)))
-$(target)_DEPEND_LIB += -lcextern -lstdc++ -Wl,-Bstatic -ldsohandle
+ifeq ($($(target)_USE_CXX), yes)
+$(target)_DEPEND_LIB += $(TOOLCHAIN_LINK_CEXTERN) $(TOOLCHAIN_LINK_PIC_CXX) $(TOOLCHAIN_LINK_DSOHANDLE)
 endif
 
-$(target)_DEPEND_LIB += -lm -lgcc
+$(target)_DEPEND_LIB += $(TOOLCHAIN_LINK_PIC_M) $(TOOLCHAIN_LINK_PIC_GCC)
 
 #*********************************************************************************************************
 # Define some useful variables
@@ -107,14 +107,35 @@ __UNIT_TEST_CPUFLAGS       = $($(__UNIT_TEST_TARGET)_CPUFLAGS)
 #*********************************************************************************************************
 # Link object files
 #*********************************************************************************************************
+ifeq ($(ARCH), c6x)
+
 define CREATE_TARGET_EXE
 $1: $2 $3
 		@if [ ! -d "$(dir $1)" ]; then mkdir -p "$(dir $1)"; fi
 		@rm -f $1
 		$(__UNIT_TEST_PRE_LINK_CMD)
-		$(LD) $(__UNIT_TEST_CPUFLAGS) $(ARCH_PIC_LDFLAGS) -o $1 $2 $(__UNIT_TEST_LIBRARIES)
+		$(LD) $(__UNIT_TEST_CPUFLAGS) $(ARCH_PIC_LDFLAGS) $2 $(__UNIT_TEST_LIBRARIES) -o $1 
+		@mv $1 $1.c6x
+		@nm $1.c6x > $1_nm.txt
+		@$(DIS) $(TOOLCHAIN_DIS_FLAGS) $1.c6x > $1_dis.txt
+		@$(LINK) $1_nm.txt $1_dis.txt $1.c6x
+		@mv $1.c6x $1
+		@rm -f $1_nm.txt $1_dis.txt
 		$(__UNIT_TEST_POST_LINK_CMD)
 endef
+
+else
+
+define CREATE_TARGET_EXE
+$1: $2 $3
+		@if [ ! -d "$(dir $1)" ]; then mkdir -p "$(dir $1)"; fi
+		@rm -f $1
+		$(__UNIT_TEST_PRE_LINK_CMD)
+		$(LD) $(__UNIT_TEST_CPUFLAGS) $(ARCH_PIC_LDFLAGS) $2 $(__UNIT_TEST_LIBRARIES) -o $1 
+		$(__UNIT_TEST_POST_LINK_CMD)
+endef
+
+endif
 
 $(foreach src,$(LOCAL_SRCS),$(eval $(call CREATE_TARGET_EXE,\
 $(addprefix $(OUTPATH)/$(target)/, $(basename $(src))),\
@@ -130,7 +151,7 @@ $1: $2
 		@if [ ! -d "$(dir $1)" ]; then mkdir -p "$(dir $1)"; fi
 		@rm -f $1
 		$(__UNIT_TEST_PRE_STRIP_CMD)
-		$(STRIP) $2 -o $1
+		$(STRIP) $(TOOLCHAIN_STRIP_FLAGS) $2 -o $1
 		$(__UNIT_TEST_POST_STRIP_CMD)
 endef
 

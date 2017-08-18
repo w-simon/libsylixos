@@ -28,6 +28,7 @@
 2011.03.11  确保超时可以返回对应的 errno 编号.
 2011.08.15  重大决定: 将所有 posix 定义的函数以函数方式(非宏)引出.
 2013.03.15  加入 pselect api.
+2017.08.18  等待时间更加精确.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -232,6 +233,7 @@ INT     pselect (INT                     iWidth,
     REGISTER ULONG               ulWaitTime;                            /*  等待时间                    */
     REGISTER LW_SEL_CONTEXT     *pselctx;
              PLW_CLASS_TCB       ptcbCur;
+             struct timespec     tvNow, tvEnd;
              
 #if LW_CFG_SIGNAL_EN > 0
              sigset_t            sigsetMaskOld;
@@ -281,8 +283,16 @@ INT     pselect (INT                     iWidth,
                                                                         
     if (!ptmspecTO) {                                                   /*  计算等待时间                */
         ulWaitTime = LW_OPTION_WAIT_INFINITE;                           /*  无限等待                    */
+
     } else {
-        ulWaitTime = __timespecToTick(ptmspecTO);                       /*  计算超时时间                */
+        lib_clock_gettime(CLOCK_REALTIME, &tvNow);                      /*  获得当前系统时间            */
+        __timespecAdd2(&tvEnd, &tvNow, ptmspecTO);
+        if (__timespecLeftTime(&tvNow, &tvEnd)) {
+            ulWaitTime = __timespecToTickDiff(&tvNow, &tvEnd);          /*  计算超时时间                */
+
+        } else {
+            ulWaitTime = LW_OPTION_NOT_WAIT;
+        }
     }
     
     pselctx->SELCTX_pfdsetReadFds   = pfdsetRead;
@@ -359,8 +369,8 @@ INT     pselect (INT                     iWidth,
     }
 #endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
     
-    API_SemaphoreBPend(pselctx->SELCTX_hSembWakeup, ulWaitTime);        /*  开始等待                    */
-    ulError = API_GetLastError();
+    ulError = API_SemaphoreBPend(pselctx->SELCTX_hSembWakeup,
+                                 ulWaitTime);                           /*  开始等待                    */
     
 #if LW_CFG_SIGNAL_EN > 0
     if (sigsetMask) {
@@ -450,6 +460,7 @@ INT     select (INT               iWidth,
         tmspec.tv_sec  = ptmvalTO->tv_sec;
         tmspec.tv_nsec = ptmvalTO->tv_usec * 1000;
         ptmspec        = &tmspec;
+
     } else {
         ptmspec        = LW_NULL;
     }

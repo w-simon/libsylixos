@@ -1210,14 +1210,14 @@ INT  API_PciDevMemConfig (PCI_DEV_HANDLE  hDevHandle,
                                       hDevHandle->PCIDEV_iDevDevice,
                                       hDevHandle->PCIDEV_iDevFunction,
                                       iBar + 4, 0xffffffff);
-				API_PciConfigInDword(hDevHandle->PCIDEV_iDevBus,
+                API_PciConfigInDword(hDevHandle->PCIDEV_iDevBus,
                                      hDevHandle->PCIDEV_iDevDevice,
                                      hDevHandle->PCIDEV_iDevFunction,
                                      iBar + 4, &uiBarResponseUpper);
-				
-				ullBar64  = ((UINT64)uiBarResponseUpper << 32) | uiBarResponse;
-				ulBarSize = ~(ullBar64 & PCI_BASE_ADDRESS_MEM_MASK) + 1;
-				
+                
+                ullBar64  = ((UINT64)uiBarResponseUpper << 32) | uiBarResponse;
+                ulBarSize = ~(ullBar64 & PCI_BASE_ADDRESS_MEM_MASK) + 1;
+                
                 iFoundMem64 = 1;
             
             } else {
@@ -1791,9 +1791,9 @@ INT  API_PciGetHeader (INT iBus, INT iSlot, INT iFunc, PCI_HDR *p_pcihdr)
     p_pcihdr->PCIH_ucType &= PCI_HEADER_TYPE_MASK;
 
     if (p_pcihdr->PCIH_ucType == PCI_HEADER_TYPE_NORMAL) {              /* PCI iSlot                   */
-        API_PciConfigInWord( iBus, iSlot, iFunc, PCI_VENDOR_ID, 	  &PCI_D.PCID_usVendorId);
+        API_PciConfigInWord( iBus, iSlot, iFunc, PCI_VENDOR_ID,       &PCI_D.PCID_usVendorId);
         API_PciConfigInWord( iBus, iSlot, iFunc, PCI_DEVICE_ID,       &PCI_D.PCID_usDeviceId);
-        API_PciConfigInWord( iBus, iSlot, iFunc, PCI_COMMAND,  	  	  &PCI_D.PCID_usCommand);
+        API_PciConfigInWord( iBus, iSlot, iFunc, PCI_COMMAND,         &PCI_D.PCID_usCommand);
         API_PciConfigInWord( iBus, iSlot, iFunc, PCI_STATUS,          &PCI_D.PCID_usStatus);
         API_PciConfigInByte( iBus, iSlot, iFunc, PCI_CLASS_REVISION,  &PCI_D.PCID_ucRevisionId);
         API_PciConfigInByte( iBus, iSlot, iFunc, PCI_CLASS_PROG,      &PCI_D.PCID_ucProgIf);
@@ -1809,20 +1809,20 @@ INT  API_PciGetHeader (INT iBus, INT iSlot, INT iFunc, PCI_HDR *p_pcihdr)
         API_PciConfigInDword(iBus, iSlot, iFunc, PCI_BASE_ADDRESS_3, &PCI_D.PCID_uiBase[PCI_BAR_INDEX_3]);
         API_PciConfigInDword(iBus, iSlot, iFunc, PCI_BASE_ADDRESS_4, &PCI_D.PCID_uiBase[PCI_BAR_INDEX_4]);
         API_PciConfigInDword(iBus, iSlot, iFunc, PCI_BASE_ADDRESS_5, &PCI_D.PCID_uiBase[PCI_BAR_INDEX_5]);
-        API_PciConfigInDword(iBus, iSlot, iFunc, PCI_CARDBUS_CIS,    	  &PCI_D.PCID_uiCis);
+        API_PciConfigInDword(iBus, iSlot, iFunc, PCI_CARDBUS_CIS,         &PCI_D.PCID_uiCis);
         API_PciConfigInWord( iBus, iSlot, iFunc, PCI_SUBSYSTEM_VENDOR_ID, &PCI_D.PCID_usSubVendorId);
         API_PciConfigInWord( iBus, iSlot, iFunc, PCI_SUBSYSTEM_ID,        &PCI_D.PCID_usSubSystemId);
         API_PciConfigInDword(iBus, iSlot, iFunc, PCI_ROM_ADDRESS,         &PCI_D.PCID_uiRomBase);
-        API_PciConfigInByte( iBus, iSlot, iFunc, PCI_INTERRUPT_LINE,	  &PCI_D.PCID_ucIntLine);
-        API_PciConfigInByte( iBus, iSlot, iFunc, PCI_INTERRUPT_PIN, 	  &PCI_D.PCID_ucIntPin);
-        API_PciConfigInByte( iBus, iSlot, iFunc, PCI_MIN_GNT,       	  &PCI_D.PCID_ucMinGrant);
-        API_PciConfigInByte( iBus, iSlot, iFunc, PCI_MAX_LAT,       	  &PCI_D.PCID_ucMaxLatency);
+        API_PciConfigInByte( iBus, iSlot, iFunc, PCI_INTERRUPT_LINE,      &PCI_D.PCID_ucIntLine);
+        API_PciConfigInByte( iBus, iSlot, iFunc, PCI_INTERRUPT_PIN,       &PCI_D.PCID_ucIntPin);
+        API_PciConfigInByte( iBus, iSlot, iFunc, PCI_MIN_GNT,             &PCI_D.PCID_ucMinGrant);
+        API_PciConfigInByte( iBus, iSlot, iFunc, PCI_MAX_LAT,             &PCI_D.PCID_ucMaxLatency);
 
     } else if (p_pcihdr->PCIH_ucType == PCI_HEADER_TYPE_BRIDGE) {       /* PCI to PCI bridge            */
-        API_PciConfigInWord( iBus, iSlot, iFunc, PCI_VENDOR_ID, 	     &PCI_B.PCIB_usVendorId);
-        API_PciConfigInWord( iBus, iSlot, iFunc, PCI_DEVICE_ID, 	     &PCI_B.PCIB_usDeviceId);
-        API_PciConfigInWord( iBus, iSlot, iFunc, PCI_COMMAND,   	     &PCI_B.PCIB_usCommand);
-        API_PciConfigInWord( iBus, iSlot, iFunc, PCI_STATUS,    	     &PCI_B.PCIB_usStatus);
+        API_PciConfigInWord( iBus, iSlot, iFunc, PCI_VENDOR_ID,          &PCI_B.PCIB_usVendorId);
+        API_PciConfigInWord( iBus, iSlot, iFunc, PCI_DEVICE_ID,          &PCI_B.PCIB_usDeviceId);
+        API_PciConfigInWord( iBus, iSlot, iFunc, PCI_COMMAND,            &PCI_B.PCIB_usCommand);
+        API_PciConfigInWord( iBus, iSlot, iFunc, PCI_STATUS,             &PCI_B.PCIB_usStatus);
         API_PciConfigInByte( iBus, iSlot, iFunc, PCI_CLASS_REVISION,     &PCI_B.PCIB_ucRevisionId);
         API_PciConfigInByte( iBus, iSlot, iFunc, PCI_CLASS_PROG,         &PCI_B.PCIB_ucProgIf);
         API_PciConfigInByte( iBus, iSlot, iFunc, PCI_CLASS_DEVICE,       &PCI_B.PCIB_ucSubClass);
@@ -1833,8 +1833,8 @@ INT  API_PciGetHeader (INT iBus, INT iSlot, INT iFunc, PCI_HDR *p_pcihdr)
         API_PciConfigInByte( iBus, iSlot, iFunc, PCI_BIST,               &PCI_B.PCIB_ucBist);
         API_PciConfigInDword(iBus, iSlot, iFunc, PCI_IO_BASE,            &PCI_B.PCIB_uiBase[0]);
         API_PciConfigInDword(iBus, iSlot, iFunc, PCI_MEMORY_BASE,        &PCI_B.PCIB_uiBase[1]);
-        API_PciConfigInByte( iBus, iSlot, iFunc, PCI_PRIMARY_BUS,    	 &PCI_B.PCIB_ucPriBus);
-        API_PciConfigInByte( iBus, iSlot, iFunc, PCI_SECONDARY_BUS,  	 &PCI_B.PCIB_ucSecBus);
+        API_PciConfigInByte( iBus, iSlot, iFunc, PCI_PRIMARY_BUS,        &PCI_B.PCIB_ucPriBus);
+        API_PciConfigInByte( iBus, iSlot, iFunc, PCI_SECONDARY_BUS,      &PCI_B.PCIB_ucSecBus);
         API_PciConfigInByte( iBus, iSlot, iFunc, PCI_SUBORDINATE_BUS,    &PCI_B.PCIB_ucSubBus);
         API_PciConfigInByte( iBus, iSlot, iFunc, PCI_SEC_LATENCY_TIMER,  &PCI_B.PCIB_ucSecLatency);
         API_PciConfigInByte( iBus, iSlot, iFunc, PCI_IO_BASE,            &PCI_B.PCIB_ucIoBase);
@@ -1848,7 +1848,7 @@ INT  API_PciGetHeader (INT iBus, INT iSlot, INT iFunc, PCI_HDR *p_pcihdr)
         API_PciConfigInDword(iBus, iSlot, iFunc, PCI_PREF_LIMIT_UPPER32, &PCI_B.PCIB_uiPreLimitUpper);
         API_PciConfigInWord( iBus, iSlot, iFunc, PCI_IO_BASE_UPPER16,    &PCI_B.PCIB_usIoBaseUpper);
         API_PciConfigInWord( iBus, iSlot, iFunc, PCI_IO_LIMIT_UPPER16,   &PCI_B.PCIB_usIoLimitUpper);
-        API_PciConfigInDword(iBus, iSlot, iFunc, PCI_ROM_ADDRESS1,     	 &PCI_B.PCIB_uiRomBase);
+        API_PciConfigInDword(iBus, iSlot, iFunc, PCI_ROM_ADDRESS1,       &PCI_B.PCIB_uiRomBase);
         API_PciConfigInByte( iBus, iSlot, iFunc, PCI_INTERRUPT_LINE,     &PCI_B.PCIB_ucIntLine);
         API_PciConfigInByte( iBus, iSlot, iFunc, PCI_INTERRUPT_PIN,      &PCI_B.PCIB_ucIntPin);
         API_PciConfigInWord( iBus, iSlot, iFunc, PCI_BRIDGE_CONTROL,     &PCI_B.PCIB_usControl);
@@ -1868,21 +1868,21 @@ INT  API_PciGetHeader (INT iBus, INT iSlot, INT iFunc, PCI_HDR *p_pcihdr)
         API_PciConfigInByte( iBus, iSlot, iFunc, PCI_BIST,            &PCI_CB.PCICB_ucBist);
         API_PciConfigInDword(iBus, iSlot, iFunc,PCI_BASE_ADDRESS_0,&PCI_CB.PCICB_uiBase[PCI_BAR_INDEX_0]);
         API_PciConfigInByte( iBus, iSlot, iFunc, PCI_CAPABILITY_LIST,        &PCI_CB.PCICB_ucCapPtr);
-        API_PciConfigInWord( iBus, iSlot, iFunc, PCI_CB_SEC_STATUS,   		 &PCI_CB.PCICB_usSecStatus);
-        API_PciConfigInByte( iBus, iSlot, iFunc, PCI_CB_PRIMARY_BUS,  		 &PCI_CB.PCICB_ucPriBus);
-        API_PciConfigInByte( iBus, iSlot, iFunc, PCI_CB_CARD_BUS,     		 &PCI_CB.PCICB_ucSecBus);
-        API_PciConfigInByte( iBus, iSlot, iFunc, PCI_CB_SUBORDINATE_BUS, 	 &PCI_CB.PCICB_ucSubBus);
-        API_PciConfigInByte( iBus, iSlot, iFunc, PCI_CB_LATENCY_TIMER,   	 &PCI_CB.PCICB_ucSecLatency);
-        API_PciConfigInDword(iBus, iSlot, iFunc, PCI_CB_MEMORY_BASE_0,   	 &PCI_CB.PCICB_uiMemBase0);
-        API_PciConfigInDword(iBus, iSlot, iFunc, PCI_CB_MEMORY_LIMIT_0,  	 &PCI_CB.PCICB_uiMemLimit0);
-        API_PciConfigInDword(iBus, iSlot, iFunc, PCI_CB_MEMORY_BASE_1,   	 &PCI_CB.PCICB_uiMemBase1);
-        API_PciConfigInDword(iBus, iSlot, iFunc, PCI_CB_MEMORY_LIMIT_1,  	 &PCI_CB.PCICB_uiMemLimit1);
-        API_PciConfigInDword(iBus, iSlot, iFunc, PCI_CB_IO_BASE_0,       	 &PCI_CB.PCICB_uiIoBase0);
-        API_PciConfigInDword(iBus, iSlot, iFunc, PCI_CB_IO_LIMIT_0,      	 &PCI_CB.PCICB_uiIoLimit0);
-        API_PciConfigInDword(iBus, iSlot, iFunc, PCI_CB_IO_BASE_1,       	 &PCI_CB.PCICB_uiIoBase1);
-        API_PciConfigInDword(iBus, iSlot, iFunc, PCI_CB_IO_LIMIT_1,      	 &PCI_CB.PCICB_uiIoLimit1);
-        API_PciConfigInByte( iBus, iSlot, iFunc, PCI_INTERRUPT_LINE,     	 &PCI_CB.PCICB_ucIntLine);
-        API_PciConfigInByte( iBus, iSlot, iFunc, PCI_INTERRUPT_PIN,      	 &PCI_CB.PCICB_ucIntPin);
+        API_PciConfigInWord( iBus, iSlot, iFunc, PCI_CB_SEC_STATUS,          &PCI_CB.PCICB_usSecStatus);
+        API_PciConfigInByte( iBus, iSlot, iFunc, PCI_CB_PRIMARY_BUS,         &PCI_CB.PCICB_ucPriBus);
+        API_PciConfigInByte( iBus, iSlot, iFunc, PCI_CB_CARD_BUS,            &PCI_CB.PCICB_ucSecBus);
+        API_PciConfigInByte( iBus, iSlot, iFunc, PCI_CB_SUBORDINATE_BUS,     &PCI_CB.PCICB_ucSubBus);
+        API_PciConfigInByte( iBus, iSlot, iFunc, PCI_CB_LATENCY_TIMER,       &PCI_CB.PCICB_ucSecLatency);
+        API_PciConfigInDword(iBus, iSlot, iFunc, PCI_CB_MEMORY_BASE_0,       &PCI_CB.PCICB_uiMemBase0);
+        API_PciConfigInDword(iBus, iSlot, iFunc, PCI_CB_MEMORY_LIMIT_0,      &PCI_CB.PCICB_uiMemLimit0);
+        API_PciConfigInDword(iBus, iSlot, iFunc, PCI_CB_MEMORY_BASE_1,       &PCI_CB.PCICB_uiMemBase1);
+        API_PciConfigInDword(iBus, iSlot, iFunc, PCI_CB_MEMORY_LIMIT_1,      &PCI_CB.PCICB_uiMemLimit1);
+        API_PciConfigInDword(iBus, iSlot, iFunc, PCI_CB_IO_BASE_0,           &PCI_CB.PCICB_uiIoBase0);
+        API_PciConfigInDword(iBus, iSlot, iFunc, PCI_CB_IO_LIMIT_0,          &PCI_CB.PCICB_uiIoLimit0);
+        API_PciConfigInDword(iBus, iSlot, iFunc, PCI_CB_IO_BASE_1,           &PCI_CB.PCICB_uiIoBase1);
+        API_PciConfigInDword(iBus, iSlot, iFunc, PCI_CB_IO_LIMIT_1,          &PCI_CB.PCICB_uiIoLimit1);
+        API_PciConfigInByte( iBus, iSlot, iFunc, PCI_INTERRUPT_LINE,         &PCI_CB.PCICB_ucIntLine);
+        API_PciConfigInByte( iBus, iSlot, iFunc, PCI_INTERRUPT_PIN,          &PCI_CB.PCICB_ucIntPin);
         API_PciConfigInWord( iBus, iSlot, iFunc, PCI_BRIDGE_CONTROL,         &PCI_CB.PCICB_usControl);
         API_PciConfigInWord( iBus, iSlot, iFunc, PCI_CB_SUBSYSTEM_VENDOR_ID, &PCI_CB.PCICB_usSubVendorId);
         API_PciConfigInWord( iBus, iSlot, iFunc, PCI_CB_SUBSYSTEM_ID,        &PCI_CB.PCICB_usSubSystemId);

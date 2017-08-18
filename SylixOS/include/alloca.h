@@ -24,7 +24,13 @@
 
 #ifdef __GNUC__
 #ifndef alloca
+#if defined(__TMS320C6X__)
+#include <stddef.h>
+
+extern void *alloca(size_t size);
+#else
 #define alloca(size)    __builtin_alloca(size)
+#endif
 #endif
 #endif                                                                  /*  __GNUC__                    */
 

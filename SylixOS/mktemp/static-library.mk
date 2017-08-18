@@ -27,29 +27,29 @@ include $(MKTEMP)/common.mk
 #*********************************************************************************************************
 # Depend and compiler parameter (cplusplus in kernel MUST NOT use exceptions and rtti)
 #*********************************************************************************************************
-ifneq (,$(findstring yes,$($(target)_USE_CXX_EXCEPT)))
-$(target)_CXX_EXCEPT  := $(GCC_CXX_EXCEPT_CFLAGS)
+ifeq ($($(target)_USE_CXX_EXCEPT), yes)
+$(target)_CXX_EXCEPT  := $(TOOLCHAIN_CXX_EXCEPT_CFLAGS)
 else
-$(target)_CXX_EXCEPT  := $(GCC_NO_CXX_EXCEPT_CFLAGS)
+$(target)_CXX_EXCEPT  := $(TOOLCHAIN_NO_CXX_EXCEPT_CFLAGS)
 endif
 
-ifneq (,$(findstring yes,$($(target)_USE_GCOV)))
-$(target)_GCOV_FLAGS  := $(GCC_GCOV_CFLAGS)
+ifeq ($($(target)_USE_GCOV), yes)
+$(target)_GCOV_FLAGS  := $(TOOLCHAIN_GCOV_CFLAGS)
 else
-$(target)_GCOV_FLAGS  :=
+$(target)_GCOV_FLAGS  := $(TOOLCHAIN_NO_GCOV_CFLAGS)
 endif
 
-ifneq (,$(findstring yes,$($(target)_USE_OMP)))
-$(target)_OMP_FLAGS   := $(GCC_OMP_CFLAGS)
+ifeq ($($(target)_USE_OMP), yes)
+$(target)_OMP_FLAGS   := $(TOOLCHAIN_OMP_CFLAGS)
 else
-$(target)_OMP_FLAGS   :=
+$(target)_OMP_FLAGS   := $(TOOLCHAIN_NO_OMP_CFLAGS)
 endif
 
-$(target)_DSYMBOL     += -DSYLIXOS_LIB
+$(target)_DSYMBOL     += $(TOOLCHAIN_DEF_SYMBOL)SYLIXOS_LIB
 
-$(target)_CPUFLAGS    := $(CPUFLAGS)
-$(target)_COMMONFLAGS := $($(target)_CPUFLAGS) $(ARCH_COMMONFLAGS) $(OPTIMIZE) -Wall -fmessage-length=0 -fsigned-char -fno-short-enums $($(target)_GCOV_FLAGS) $($(target)_OMP_FLAGS)
-$(target)_ASFLAGS     := $($(target)_COMMONFLAGS) -x assembler-with-cpp $($(target)_DSYMBOL) $($(target)_INC_PATH)
+$(target)_CPUFLAGS    := $(ARCH_CPUFLAGS)
+$(target)_COMMONFLAGS := $($(target)_CPUFLAGS) $(ARCH_COMMONFLAGS) $(TOOLCHAIN_OPTIMIZE) $(TOOLCHAIN_COMMONFLAGS) $($(target)_GCOV_FLAGS) $($(target)_OMP_FLAGS)
+$(target)_ASFLAGS     := $($(target)_COMMONFLAGS) $(ARCH_PIC_ASFLAGS) $(TOOLCHAIN_ASFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH)
 $(target)_CFLAGS      := $($(target)_COMMONFLAGS) $(ARCH_PIC_CFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CFLAGS)
 $(target)_CXXFLAGS    := $($(target)_COMMONFLAGS) $(ARCH_PIC_CFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CXX_EXCEPT) $($(target)_CXXFLAGS)
 
@@ -73,7 +73,7 @@ $(target)_DEPEND_LIB :=
 #*********************************************************************************************************
 $($(target)_A): $($(target)_OBJS)
 		@rm -f $@
-		$(AR) -r $@ $^
+		$(AR) $(TOOLCHAIN_AR_FLAGS) $@ $^
 
 #*********************************************************************************************************
 # Add targets

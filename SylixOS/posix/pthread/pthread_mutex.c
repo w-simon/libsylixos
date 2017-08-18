@@ -58,10 +58,12 @@ static LW_OBJECT_HANDLE             _G_ulPMutexInitLock;
 *********************************************************************************************************/
 VOID  _posixPMutexInit (VOID)
 {
-    _G_ulPMutexInitLock = API_SemaphoreMCreate("pmutexinit", LW_PRIO_DEF_CEILING, 
-                                               LW_OPTION_INHERIT_PRIORITY | 
-                                               LW_OPTION_WAIT_PRIORITY | 
-                                               LW_OPTION_DELETE_SAFE, LW_NULL);
+    if (!_G_ulPMutexInitLock) {
+        _G_ulPMutexInitLock = API_SemaphoreMCreate("pmutexinit", LW_PRIO_DEF_CEILING,
+                                                   LW_OPTION_INHERIT_PRIORITY |
+                                                   LW_OPTION_WAIT_PRIORITY |
+                                                   LW_OPTION_DELETE_SAFE, LW_NULL);
+    }
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: __pthread_mutex_init_invisible

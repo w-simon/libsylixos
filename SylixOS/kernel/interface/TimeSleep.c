@@ -307,7 +307,7 @@ INT  nanosleep (const struct timespec  *rqtp, struct timespec  *rmtp)
         return  (PX_ERROR);
     }
     
-    ulTick = __timespecToTick((struct timespec *)rqtp);
+    ulTick = __timespecToTickNoPartial((struct timespec *)rqtp);
     if (!ulTick) {                                                      /*  不到一个 tick               */
         __timePassSpec(rqtp);                                           /*  平静度过                    */
         if (rmtp) {

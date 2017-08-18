@@ -28,6 +28,7 @@
 2009.07.17  保存最大文件号操作应该提前, 保证 delete hook 能够正常的删除产生的节点.
 2011.03.11  确保超时可以返回对应的 errno 编号.
 2011.08.15  重大决定: 将所有 posix 定义的函数以函数方式(非宏)引出.
+2017.08.18  等待时间更加精确.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -69,7 +70,8 @@ INT     waitread (INT  iFd, struct timeval   *ptmvalTO)
     REGISTER ULONG               ulWaitTime;                            /*  等待时间                    */
     REGISTER LW_SEL_CONTEXT     *pselctx;
              PLW_CLASS_TCB       ptcbCur;
-    
+             struct timespec     tvTO, tvNow, tvEnd;
+
              fd_set              fdsetRead;
              LW_SEL_WAKEUPNODE   selwunNode;                            /*  生成的 NODE 模板            */
              ULONG               ulError;
@@ -107,8 +109,19 @@ INT     waitread (INT  iFd, struct timeval   *ptmvalTO)
 
     if (!ptmvalTO) {                                                    /*  计算等待时间                */
         ulWaitTime = LW_OPTION_WAIT_INFINITE;                           /*  无限等待                    */
+
     } else {
-        ulWaitTime = __timevalToTick(ptmvalTO);                         /*  计算超时时间                */
+        tvTO.tv_sec  = ptmvalTO->tv_sec;
+        tvTO.tv_nsec = ptmvalTO->tv_usec * 1000;
+
+        lib_clock_gettime(CLOCK_REALTIME, &tvNow);                      /*  获得当前系统时间            */
+        __timespecAdd2(&tvEnd, &tvNow, &tvTO);
+        if (__timespecLeftTime(&tvNow, &tvEnd)) {
+            ulWaitTime = __timespecToTickDiff(&tvNow, &tvEnd);          /*  计算超时时间                */
+
+        } else {
+            ulWaitTime = LW_OPTION_NOT_WAIT;
+        }
     }
     
     pselctx->SELCTX_pfdsetReadFds   = &fdsetRead;
@@ -134,9 +147,9 @@ INT     waitread (INT  iFd, struct timeval   *ptmvalTO)
         pselctx->SELCTX_bPendedOnSelect = LW_FALSE;                     /*  自行清理完毕                */
         return  (PX_ERROR);                                             /*  错误                        */
     }
-    
-    API_SemaphoreBPend(pselctx->SELCTX_hSembWakeup, ulWaitTime);        /*  开始等待                    */
-    ulError = API_GetLastError();
+
+    ulError = API_SemaphoreBPend(pselctx->SELCTX_hSembWakeup,
+                                 ulWaitTime);                           /*  开始等待                    */
     
     iIsOk = ioctl(iFd, FIOUNSELECT, (LONG)&selwunNode);                 /*  FIOUNSELECT                 */
     
@@ -178,6 +191,7 @@ INT     waitwrite (INT  iFd, struct timeval   *ptmvalTO)
     REGISTER ULONG               ulWaitTime;                            /*  等待时间                    */
     REGISTER LW_SEL_CONTEXT     *pselctx;
              PLW_CLASS_TCB       ptcbCur;
+             struct timespec     tvTO, tvNow, tvEnd;
     
              fd_set              fdsetWrite;
              LW_SEL_WAKEUPNODE   selwunNode;                            /*  生成的 NODE 模板            */
@@ -216,8 +230,19 @@ INT     waitwrite (INT  iFd, struct timeval   *ptmvalTO)
     
     if (!ptmvalTO) {                                                    /*  计算等待时间                */
         ulWaitTime = LW_OPTION_WAIT_INFINITE;                           /*  无限等待                    */
+
     } else {
-        ulWaitTime = __timevalToTick(ptmvalTO);                         /*  计算超时时间                */
+        tvTO.tv_sec  = ptmvalTO->tv_sec;
+        tvTO.tv_nsec = ptmvalTO->tv_usec * 1000;
+
+        lib_clock_gettime(CLOCK_REALTIME, &tvNow);                      /*  获得当前系统时间            */
+        __timespecAdd2(&tvEnd, &tvNow, &tvTO);
+        if (__timespecLeftTime(&tvNow, &tvEnd)) {
+            ulWaitTime = __timespecToTickDiff(&tvNow, &tvEnd);          /*  计算超时时间                */
+
+        } else {
+            ulWaitTime = LW_OPTION_NOT_WAIT;
+        }
     }
     
     pselctx->SELCTX_pfdsetReadFds   = LW_NULL;
@@ -244,8 +269,8 @@ INT     waitwrite (INT  iFd, struct timeval   *ptmvalTO)
         return  (PX_ERROR);                                             /*  错误                        */
     }
     
-    API_SemaphoreBPend(pselctx->SELCTX_hSembWakeup, ulWaitTime);        /*  开始等待                    */
-    ulError = API_GetLastError();
+    ulError = API_SemaphoreBPend(pselctx->SELCTX_hSembWakeup,
+                                 ulWaitTime);                           /*  开始等待                    */
     
     iIsOk = ioctl(iFd, FIOUNSELECT, (LONG)&selwunNode);                 /*  FIOUNSELECT                 */
     
@@ -287,6 +312,7 @@ INT     waitexcept (INT  iFd, struct timeval   *ptmvalTO)
     REGISTER ULONG               ulWaitTime;                            /*  等待时间                    */
     REGISTER LW_SEL_CONTEXT     *pselctx;
              PLW_CLASS_TCB       ptcbCur;
+             struct timespec     tvTO, tvNow, tvEnd;
     
              fd_set              fdsetExcept;
              LW_SEL_WAKEUPNODE   selwunNode;                            /*  生成的 NODE 模板            */
@@ -325,8 +351,19 @@ INT     waitexcept (INT  iFd, struct timeval   *ptmvalTO)
     
     if (!ptmvalTO) {                                                    /*  计算等待时间                */
         ulWaitTime = LW_OPTION_WAIT_INFINITE;                           /*  无限等待                    */
+
     } else {
-        ulWaitTime = __timevalToTick(ptmvalTO);                         /*  计算超时时间                */
+        tvTO.tv_sec  = ptmvalTO->tv_sec;
+        tvTO.tv_nsec = ptmvalTO->tv_usec * 1000;
+
+        lib_clock_gettime(CLOCK_REALTIME, &tvNow);                      /*  获得当前系统时间            */
+        __timespecAdd2(&tvEnd, &tvNow, &tvTO);
+        if (__timespecLeftTime(&tvNow, &tvEnd)) {
+            ulWaitTime = __timespecToTickDiff(&tvNow, &tvEnd);          /*  计算超时时间                */
+
+        } else {
+            ulWaitTime = LW_OPTION_NOT_WAIT;
+        }
     }
     
     pselctx->SELCTX_pfdsetReadFds   = LW_NULL;
@@ -353,8 +390,8 @@ INT     waitexcept (INT  iFd, struct timeval   *ptmvalTO)
         return  (PX_ERROR);                                             /*  错误                        */
     }
     
-    API_SemaphoreBPend(pselctx->SELCTX_hSembWakeup, ulWaitTime);        /*  开始等待                    */
-    ulError = API_GetLastError();
+    ulError = API_SemaphoreBPend(pselctx->SELCTX_hSembWakeup,
+                                 ulWaitTime);                           /*  开始等待                    */
     
     iIsOk = ioctl(iFd, FIOUNSELECT, (LONG)&selwunNode);                 /*  FIOUNSELECT                 */
     

@@ -193,9 +193,11 @@ __LW_RETU_FUNC_DEFINE(int, atoi, (const char *nptr), (nptr))
 __LW_RETU_FUNC_DEFINE(long, atol, (const char *nptr), (nptr))
 __LW_RETU_FUNC_DEFINE(long long, atoll, (const char *nptr), (nptr))
 
+#if !defined(LW_CFG_CPU_ARCH_C6X)                                       /*  c6x comipler builtin abs fun*/
 __LW_RETU_FUNC_DEFINE(int, abs, (int  i), (i))
 __LW_RETU_FUNC_DEFINE(long, labs, (long  l), (l))
 __LW_RETU_FUNC_DEFINE(long long, llabs, (long long ll), (ll))
+#endif                                                                  /*  !LW_CFG_CPU_ARCH_C6X        */
 
 __LW_VOID_FUNC_DEFINE(qsort, 
                       (void *base, size_t nel, size_t width, int (*compar)(const void *, const void *)), \

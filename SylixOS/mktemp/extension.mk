@@ -32,27 +32,27 @@ include $(MKTEMP)/common.mk
 #*********************************************************************************************************
 # Depend and compiler parameter (cplusplus in kernel MUST NOT use exceptions and rtti)
 #*********************************************************************************************************
-ifneq (,$(findstring yes,$($(target)_USE_CXX_EXCEPT)))
-$(target)_CXX_EXCEPT  := $(GCC_NO_CXX_EXCEPT_CFLAGS)
+ifeq ($($(target)_USE_CXX_EXCEPT), yes)
+$(target)_CXX_EXCEPT  := $(TOOLCHAIN_NO_CXX_EXCEPT_CFLAGS)
 else
-$(target)_CXX_EXCEPT  := $(GCC_NO_CXX_EXCEPT_CFLAGS)
+$(target)_CXX_EXCEPT  := $(TOOLCHAIN_NO_CXX_EXCEPT_CFLAGS)
 endif
 
-ifneq (,$(findstring yes,$($(target)_USE_GCOV)))
-$(target)_GCOV_FLAGS  :=
+ifeq ($($(target)_USE_GCOV), yes)
+$(target)_GCOV_FLAGS  := $(TOOLCHAIN_NO_GCOV_CFLAGS)
 else
-$(target)_GCOV_FLAGS  :=
+$(target)_GCOV_FLAGS  := $(TOOLCHAIN_NO_GCOV_CFLAGS)
 endif
 
-ifneq (,$(findstring yes,$($(target)_USE_OMP)))
-$(target)_OMP_FLAGS   :=
+ifeq ($($(target)_USE_OMP), yes)
+$(target)_OMP_FLAGS   := $(TOOLCHAIN_NO_OMP_CFLAGS)
 else
-$(target)_OMP_FLAGS   :=
+$(target)_OMP_FLAGS   := $(TOOLCHAIN_NO_OMP_CFLAGS)
 endif
 
-$(target)_CPUFLAGS    := $(CPUFLAGS) $(ARCH_KERNEL_CFLAGS)
-$(target)_COMMONFLAGS := $($(target)_CPUFLAGS) $(ARCH_COMMONFLAGS) $(OPTIMIZE) -Wall -fmessage-length=0 -fsigned-char -fno-short-enums $($(target)_GCOV_FLAGS) $($(target)_OMP_FLAGS)
-$(target)_ASFLAGS     := $($(target)_COMMONFLAGS) -x assembler-with-cpp $($(target)_DSYMBOL) $($(target)_INC_PATH)
+$(target)_CPUFLAGS    := $(ARCH_CPUFLAGS) $(ARCH_KERNEL_CFLAGS)
+$(target)_COMMONFLAGS := $($(target)_CPUFLAGS) $(ARCH_COMMONFLAGS) $(TOOLCHAIN_OPTIMIZE) $(TOOLCHAIN_COMMONFLAGS) $($(target)_GCOV_FLAGS) $($(target)_OMP_FLAGS)
+$(target)_ASFLAGS     := $($(target)_COMMONFLAGS) $(TOOLCHAIN_ASFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH)
 $(target)_CFLAGS      := $($(target)_COMMONFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CFLAGS)
 $(target)_CXXFLAGS    := $($(target)_COMMONFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CXX_EXCEPT) $($(target)_CXXFLAGS)
 
@@ -66,17 +66,17 @@ $(target)_DEPEND_LIB_PATH += $(LOCAL_DEPEND_LIB_PATH)
 #*********************************************************************************************************
 $(target)_DEPEND_LIB := $(LOCAL_DEPEND_LIB)
 
-ifneq (,$(findstring yes,$($(target)_USE_CXX)))
-$(target)_DEPEND_LIB += -lstdc++
+ifeq ($($(target)_USE_CXX), yes)
+$(target)_DEPEND_LIB += $(TOOLCHAIN_LINK_CXX)
 endif
 
-ifneq (,$(findstring yes,$($(target)_USE_GCOV)))
+ifeq ($($(target)_USE_GCOV), yes)
 endif
 
-ifneq (,$(findstring yes,$($(target)_USE_OMP)))
+ifeq ($($(target)_USE_OMP), yes)
 endif
 
-$(target)_DEPEND_LIB += -lm -lgcc
+$(target)_DEPEND_LIB += $(TOOLCHAIN_LINK_M) $(TOOLCHAIN_LINK_GCC)
 
 #*********************************************************************************************************
 # Targets
@@ -130,9 +130,9 @@ $($(target)_STRIP_IMG): $($(target)_IMG)
 		@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)"; fi
 		@rm -f $@
 		$(__PRE_STRIP_CMD)
-		$(STRIP) $< -o $@
+		$(STRIP) $(TOOLCHAIN_STRIP_FLAGS) $< -o $@
 		$(__POST_STRIP_CMD)
-		
+
 #*********************************************************************************************************
 # Copy SylixOSBSPSymbol.ld
 #*********************************************************************************************************
@@ -142,7 +142,7 @@ SylixOSBSPSymbol.ld: $(subst $(SPACE),\ ,$(SYLIXOS_LITE_BSP_PATH))/$(OUTDIR)/Syl
 #*********************************************************************************************************
 # Add targets
 #*********************************************************************************************************
-ifeq ($(COMMERCIAL), 1)
+ifeq ($(TOOLCHAIN_COMMERCIAL), 1)
 TARGETS := $(TARGETS) $($(target)_IMG) $($(target)_BIN) $($(target)_SIZ) $($(target)_STRIP_IMG) $($(target)_LZO) SylixOSBSPSymbol.ld
 else
 TARGETS := $(TARGETS) $($(target)_IMG) $($(target)_BIN) $($(target)_SIZ) $($(target)_STRIP_IMG) SylixOSBSPSymbol.ld

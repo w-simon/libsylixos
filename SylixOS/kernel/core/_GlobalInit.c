@@ -36,6 +36,7 @@
 2012.07.04  合并 hook 初始化.
 2012.09.11  _GlobalInit() 中加入对 FPU 的初始化.
 2013.12.19  去掉 FPU 的初始化, 放在 bsp 内核初始化回调中进行, 用户需要指定 fpu 的名称.
+2017.08.17  中断堆栈 ARCH_STK_ALIGN_SIZE 字节对齐, 确保不同体系架构安全.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #define  __KERNEL_NCPUS_SET
@@ -57,15 +58,18 @@ static VOID  __interPrimaryStackInit (VOID)
 {
     REGISTER INT            i;
              PLW_CLASS_CPU  pcpu;
+             PLW_STACK      pstk;
     
     LW_SPIN_INIT(&_K_slVectorTable);
     
     for (i = 0; i < LW_CFG_MAX_PROCESSORS; i++) {
         pcpu = LW_CPU_GET(i);
 #if CPU_STK_GROWTH == 0
-        pcpu->CPU_pstkInterBase = &_K_stkInterruptStack[i][0];
+        pstk = &_K_stkInterruptStack[i][0];
+        pcpu->CPU_pstkInterBase = (PLW_STACK)ROUND_UP(pstk, ARCH_STK_ALIGN_SIZE);
 #else
-        pcpu->CPU_pstkInterBase = &_K_stkInterruptStack[i][(LW_CFG_INT_STK_SIZE / sizeof(LW_STACK)) - 1];
+        pstk = &_K_stkInterruptStack[i][(LW_CFG_INT_STK_SIZE / sizeof(LW_STACK)) - 1];
+        pcpu->CPU_pstkInterBase = (PLW_STACK)ROUND_DOWN(pstk, ARCH_STK_ALIGN_SIZE);
 #endif                                                                  /*  CPU_STK_GROWTH              */
         lib_memset(_K_stkInterruptStack[i], LW_CFG_STK_EMPTY_FLAG, LW_CFG_INT_STK_SIZE);
     }

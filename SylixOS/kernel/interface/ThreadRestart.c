@@ -159,8 +159,11 @@ static ULONG  __threadRestart (PLW_CLASS_TCB          ptcb,
                                       pstkTop, 
                                       ptcb->TCB_ulOption);
                                           
-    ptcb->TCB_pvArg        = pvArg;
-    ptcb->TCB_pstkStackNow = pstkFristFree;
+    ptcb->TCB_pvArg         = pvArg;
+    ptcb->TCB_pstkStackNow  = pstkFristFree;
+#if defined(LW_CFG_CPU_ARCH_C6X)
+    ptcb->TCB_ulContextType = 0;                                        /*  小上下文                    */
+#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
     
     /*
      *  这里不可能是自己重启自己.

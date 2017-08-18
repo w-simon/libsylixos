@@ -179,6 +179,7 @@ authunix_create_default (void)
      between the two calls.  */
   max_nr_groups = __getgroups (0, NULL);
 
+#ifndef LW_CFG_CPU_ARCH_C6X
   /* Just some random reasonable stack limit.  */
 #define ALLOCA_LIMIT (1024 / sizeof (gid_t))
   gid_t *gids = NULL;
@@ -190,6 +191,12 @@ authunix_create_default (void)
       if (gids == NULL)
 	return NULL;
     }
+#else
+#define ALLOCA_LIMIT 0
+  gids = (gid_t *) malloc (max_nr_groups * sizeof (gid_t));
+  if (gids == NULL)
+	return NULL;
+#endif
 
   int len = __getgroups (max_nr_groups, gids);
   if (len == -1)

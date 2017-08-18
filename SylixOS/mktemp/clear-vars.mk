@@ -36,6 +36,8 @@ LOCAL_ARM_SRCS  :=
 LOCAL_MIPS_SRCS :=
 LOCAL_PPC_SRCS  :=
 LOCAL_X86_SRCS  :=
+LOCAL_X64_SRCS  :=
+LOCAL_C6X_SRCS  :=
 
 #*********************************************************************************************************
 # Exclude source files

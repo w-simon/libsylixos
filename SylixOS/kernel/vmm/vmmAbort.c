@@ -699,7 +699,12 @@ __abort_return:
     
     iregInterLevel = KN_INT_DISABLE();                                  /*  关闭当前 CPU 中断           */
     KN_SMP_MB();
+#if defined(LW_CFG_CPU_ARCH_C6X)
+    archSigCtxLoad(pvmpagefailctx->PAGEFCTX_pvStackRet,
+                   pvmpagefailctx->PAGEFCTX_ulContextType);             /*  从 page fail 上下文中返回   */
+#else
     archSigCtxLoad(pvmpagefailctx->PAGEFCTX_pvStackRet);                /*  从 page fail 上下文中返回   */
+#endif
     KN_INT_ENABLE(iregInterLevel);                                      /*  运行不到这里                */
 }
 
@@ -874,6 +879,10 @@ static VOID  __vmmAbortAccess (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
     INTREG  iregInterLevel;
     ULONG   ulErrorOrig = API_GetLastError();
     
+#if defined(LW_CFG_CPU_ARCH_C6X)
+    archIntEnableForce();                                               /*  使能中断                    */
+#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
+
 #if LW_CFG_ABORT_CALLSTACK_INFO_EN > 0
     API_BacktraceShow(ioGlobalStdGet(STD_ERR), 100);
 #endif                                                                  /*  LW_CFG_ABORT_CALLSTACK_IN...*/
@@ -924,7 +933,12 @@ static VOID  __vmmAbortAccess (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
      */
     iregInterLevel = KN_INT_DISABLE();                                  /*  关闭当前 CPU 中断           */
     KN_SMP_MB();
+#if defined(LW_CFG_CPU_ARCH_C6X)
+    archSigCtxLoad(pvmpagefailctx->PAGEFCTX_pvStackRet,
+                   pvmpagefailctx->PAGEFCTX_ulContextType);             /*  从 page fail 上下文中返回   */
+#else
     archSigCtxLoad(pvmpagefailctx->PAGEFCTX_pvStackRet);                /*  从 page fail 上下文中返回   */
+#endif
     KN_INT_ENABLE(iregInterLevel);                                      /*  运行不到这里                */
 }
 /*********************************************************************************************************
@@ -1067,21 +1081,26 @@ VOID  API_VmmAbortIsr (addr_t          ulRetAddr,
     pucStkNow = (BYTE *)ptcb->TCB_pstkStackNow;                         /*  记录还原堆栈点              */
 #if	CPU_STK_GROWTH == 0
     pucStkNow      += sizeof(LW_STACK);                                 /*  向空栈方向移动一个堆栈空间  */
+    pucStkNow       = (BYTE *)ROUND_UP(pucStkNow, ARCH_STK_ALIGN_SIZE);
     pvmpagefailctx  = (PLW_VMM_PAGE_FAIL_CTX)pucStkNow;                 /*  记录 PAGE_FAIL_CTX 位置     */
     pucStkNow      += __PAGEFAILCTX_SIZE_ALIGN;                         /*  让出 PAGE_FAIL_CTX 空间     */
 #else
     pucStkNow      -= __PAGEFAILCTX_SIZE_ALIGN;                         /*  让出 PAGE_FAIL_CTX 空间     */
+    pucStkNow       = (BYTE *)ROUND_DOWN(pucStkNow, ARCH_STK_ALIGN_SIZE);
     pvmpagefailctx  = (PLW_VMM_PAGE_FAIL_CTX)pucStkNow;                 /*  记录 PAGE_FAIL_CTX 位置     */
     pucStkNow      -= sizeof(LW_STACK);                                 /*  向空栈方向移动一个堆栈空间  */
 #endif
     
-    pvmpagefailctx->PAGEFCTX_ptcb         = ptcb;
-    pvmpagefailctx->PAGEFCTX_ulRetAddr    = ulRetAddr;                  /*  异常返回地址                */
-    pvmpagefailctx->PAGEFCTX_ulAbortAddr  = ulAbortAddr;                /*  异常地址 (异常类型相关)     */
-    pvmpagefailctx->PAGEFCTX_abtInfo      = *pabtInfo;                  /*  异常类型                    */
-    pvmpagefailctx->PAGEFCTX_pvStackRet   = ptcb->TCB_pstkStackNow;
-    pvmpagefailctx->PAGEFCTX_iLastErrno   = (errno_t)ptcb->TCB_ulLastError;
-    pvmpagefailctx->PAGEFCTX_iKernelSpace = __KERNEL_SPACE_GET2(ptcb);
+    pvmpagefailctx->PAGEFCTX_ptcb          = ptcb;
+    pvmpagefailctx->PAGEFCTX_ulRetAddr     = ulRetAddr;                 /*  异常返回地址                */
+    pvmpagefailctx->PAGEFCTX_ulAbortAddr   = ulAbortAddr;               /*  异常地址 (异常类型相关)     */
+    pvmpagefailctx->PAGEFCTX_abtInfo       = *pabtInfo;                 /*  异常类型                    */
+    pvmpagefailctx->PAGEFCTX_pvStackRet    = ptcb->TCB_pstkStackNow;
+#if defined(LW_CFG_CPU_ARCH_C6X)
+    pvmpagefailctx->PAGEFCTX_ulContextType = ptcb->TCB_ulContextType;   /*  记录上下文类型              */
+#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
+    pvmpagefailctx->PAGEFCTX_iLastErrno    = (errno_t)ptcb->TCB_ulLastError;
+    pvmpagefailctx->PAGEFCTX_iKernelSpace  = __KERNEL_SPACE_GET2(ptcb);
     
 #if LW_CFG_VMM_EN > 0
     pstkFailShell = archTaskCtxCreate((PTHREAD_START_ROUTINE)__vmmAbortShell, 
@@ -1097,6 +1116,9 @@ VOID  API_VmmAbortIsr (addr_t          ulRetAddr,
 
     archTaskCtxSetFp(pstkFailShell, ptcb->TCB_pstkStackNow);            /*  保存 fp, 使 callstack 正常  */
     ptcb->TCB_pstkStackNow = pstkFailShell;                             /*  保存建立好的陷阱外壳堆栈    */
+#if defined(LW_CFG_CPU_ARCH_C6X)
+    ptcb->TCB_ulContextType = 0;                                        /*  小上下文                    */
+#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
     _StackCheckGuard(ptcb);                                             /*  堆栈警戒检查                */
     
     __KERNEL_EXIT();                                                    /*  退出内核                    */

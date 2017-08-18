@@ -420,7 +420,7 @@ static void  *xinput_scan (void *arg)
             continue;
 
         } else if (ret == 0) {
-            continue; /* select timeout */
+            continue; /* select timeout or EINTR */
 
         } else {
             ssize_t temp;
@@ -442,7 +442,7 @@ static void  *xinput_scan (void *arg)
                         if (temp <= 0) {
                             close(input->fd);
                             input->fd = -1;
-                        } else {                                        /* must send kbd message ok     */
+                        } else {    /* must send kbd message ok     */
                             if (LW_DEV_GET_USE_COUNT(&kdb_xinput.devhdr)) {
                                 API_MsgQueueSend2(kdb_xinput.queue, (void *)&knotify,
                                                  (u_long)temp, LW_OPTION_WAIT_INFINITE);

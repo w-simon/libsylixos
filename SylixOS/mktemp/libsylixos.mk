@@ -27,30 +27,30 @@ include $(MKTEMP)/common.mk
 #*********************************************************************************************************
 # Depend and compiler parameter (cplusplus in kernel MUST NOT use exceptions and rtti)
 #*********************************************************************************************************
-ifneq (,$(findstring yes,$($(target)_USE_CXX_EXCEPT)))
-$(target)_CXX_EXCEPT  := $(GCC_NO_CXX_EXCEPT_CFLAGS)
+ifeq ($($(target)_USE_CXX_EXCEPT), yes)
+$(target)_CXX_EXCEPT  := $(TOOLCHAIN_NO_CXX_EXCEPT_CFLAGS)
 else
-$(target)_CXX_EXCEPT  := $(GCC_NO_CXX_EXCEPT_CFLAGS)
+$(target)_CXX_EXCEPT  := $(TOOLCHAIN_NO_CXX_EXCEPT_CFLAGS)
 endif
 
-ifneq (,$(findstring yes,$($(target)_USE_GCOV)))
-$(target)_GCOV_FLAGS  :=
+ifeq ($($(target)_USE_GCOV), yes)
+$(target)_GCOV_FLAGS  := $(TOOLCHAIN_NO_GCOV_CFLAGS)
 else
-$(target)_GCOV_FLAGS  :=
+$(target)_GCOV_FLAGS  := $(TOOLCHAIN_NO_GCOV_CFLAGS)
 endif
 
-ifneq (,$(findstring yes,$($(target)_USE_OMP)))
-$(target)_OMP_FLAGS   := 
+ifeq ($($(target)_USE_OMP), yes)
+$(target)_OMP_FLAGS   := $(TOOLCHAIN_NO_OMP_CFLAGS)
 else
-$(target)_OMP_FLAGS   :=
+$(target)_OMP_FLAGS   := $(TOOLCHAIN_NO_OMP_CFLAGS)
 endif
 
-$(target)_CPUFLAGS                     := $(CPUFLAGS_NOFPU) $(ARCH_KERNEL_CFLAGS)
-$(target)_CPUFLAGS_WITHOUT_FPUFLAGS    := $(CPUFLAGS_WITHOUT_FPUFLAGS) $(ARCH_KERNEL_CFLAGS)
-$(target)_COMMONFLAGS                  := $($(target)_CPUFLAGS) $(ARCH_COMMONFLAGS) $(OPTIMIZE) -Wall -fmessage-length=0 -fsigned-char -fno-short-enums -fno-strict-aliasing $($(target)_GCOV_FLAGS) $($(target)_OMP_FLAGS)
-$(target)_COMMONFLAGS_WITHOUT_FPUFLAGS := $($(target)_CPUFLAGS_WITHOUT_FPUFLAGS) $(ARCH_COMMONFLAGS) $(OPTIMIZE) -Wall -fmessage-length=0 -fsigned-char -fno-short-enums -fno-strict-aliasing $($(target)_GCOV_FLAGS) $($(target)_OMP_FLAGS)
-$(target)_ASFLAGS                      := $($(target)_COMMONFLAGS) -x assembler-with-cpp $($(target)_DSYMBOL) $($(target)_INC_PATH)
-$(target)_ASFLAGS_WITHOUT_FPUFLAGS     := $($(target)_COMMONFLAGS_WITHOUT_FPUFLAGS) -x assembler-with-cpp $($(target)_DSYMBOL) $($(target)_INC_PATH)
+$(target)_CPUFLAGS                     := $(ARCH_CPUFLAGS_NOFPU) $(ARCH_KERNEL_CFLAGS)
+$(target)_CPUFLAGS_WITHOUT_FPUFLAGS    := $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) $(ARCH_KERNEL_CFLAGS)
+$(target)_COMMONFLAGS                  := $($(target)_CPUFLAGS) $(ARCH_COMMONFLAGS) $(TOOLCHAIN_OPTIMIZE) $(TOOLCHAIN_COMMONFLAGS) $($(target)_GCOV_FLAGS) $($(target)_OMP_FLAGS)
+$(target)_COMMONFLAGS_WITHOUT_FPUFLAGS := $($(target)_CPUFLAGS_WITHOUT_FPUFLAGS) $(ARCH_COMMONFLAGS) $(TOOLCHAIN_OPTIMIZE) $(TOOLCHAIN_COMMONFLAGS) $($(target)_GCOV_FLAGS) $($(target)_OMP_FLAGS)
+$(target)_ASFLAGS                      := $($(target)_COMMONFLAGS) $(TOOLCHAIN_ASFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH)
+$(target)_ASFLAGS_WITHOUT_FPUFLAGS     := $($(target)_COMMONFLAGS_WITHOUT_FPUFLAGS) $(TOOLCHAIN_ASFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH)
 $(target)_CFLAGS                       := $($(target)_COMMONFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CFLAGS)
 $(target)_CXXFLAGS                     := $($(target)_COMMONFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CXX_EXCEPT) $($(target)_CXXFLAGS)
 
@@ -87,29 +87,38 @@ OBJS_CPP     := $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename
 $($(target)_A): $($(target)_OBJS)
 		@rm -f $@
 		$(__PRE_LINK_CMD)
-		$(AR) -r $@ $(OBJS_APPL)
-		$(AR) -r $@ $(OBJS_ARCH)
-		$(AR) -r $@ $(OBJS_DEBUG)
-		$(AR) -r $@ $(OBJS_DRV)
-		$(AR) -r $@ $(OBJS_FS)
-		$(AR) -r $@ $(OBJS_GUI)
-		$(AR) -r $@ $(OBJS_KERN)
-		$(AR) -r $@ $(OBJS_LIB)
-		$(AR) -r $@ $(OBJS_MONITOR)
-		$(AR) -r $@ $(OBJS_LOADER)
-		$(AR) -r $@ $(OBJS_MPI)
-		$(AR) -r $@ $(OBJS_NET)
-		$(AR) -r $@ $(OBJS_POSIX)
-		$(AR) -r $@ $(OBJS_SHELL)
-		$(AR) -r $@ $(OBJS_SYMBOL)
-		$(AR) -r $@ $(OBJS_SYS)
-		$(AR) -r $@ $(OBJS_SYSPERF)
-		$(AR) -r $@ $(OBJS_CPP)
+		$(AR) $(TOOLCHAIN_AR_FLAGS) $@ $(OBJS_APPL)
+		$(AR) $(TOOLCHAIN_AR_FLAGS) $@ $(OBJS_ARCH)
+		$(AR) $(TOOLCHAIN_AR_FLAGS) $@ $(OBJS_DEBUG)
+		$(AR) $(TOOLCHAIN_AR_FLAGS) $@ $(OBJS_DRV)
+		$(AR) $(TOOLCHAIN_AR_FLAGS) $@ $(OBJS_FS)
+		$(AR) $(TOOLCHAIN_AR_FLAGS) $@ $(OBJS_GUI)
+		$(AR) $(TOOLCHAIN_AR_FLAGS) $@ $(OBJS_KERN)
+		$(AR) $(TOOLCHAIN_AR_FLAGS) $@ $(OBJS_LIB)
+		$(AR) $(TOOLCHAIN_AR_FLAGS) $@ $(OBJS_MONITOR)
+		$(AR) $(TOOLCHAIN_AR_FLAGS) $@ $(OBJS_LOADER)
+		$(AR) $(TOOLCHAIN_AR_FLAGS) $@ $(OBJS_MPI)
+		$(AR) $(TOOLCHAIN_AR_FLAGS) $@ $(OBJS_NET)
+		$(AR) $(TOOLCHAIN_AR_FLAGS) $@ $(OBJS_POSIX)
+		$(AR) $(TOOLCHAIN_AR_FLAGS) $@ $(OBJS_SHELL)
+		$(AR) $(TOOLCHAIN_AR_FLAGS) $@ $(OBJS_SYMBOL)
+		$(AR) $(TOOLCHAIN_AR_FLAGS) $@ $(OBJS_SYS)
+		$(AR) $(TOOLCHAIN_AR_FLAGS) $@ $(OBJS_SYSPERF)
+		$(AR) $(TOOLCHAIN_AR_FLAGS) $@ $(OBJS_CPP)
 		$(__POST_LINK_CMD)
 
 #*********************************************************************************************************
 # Create symbol files
 #*********************************************************************************************************
+ifeq ($(ARCH), c6x)
+$(OUTPATH)/symbol.c: $($(target)_A)
+		@rm -f $@
+		cp SylixOS/hosttools/c6x/makesymbol/Makefile $(OUTDIR)
+		cp SylixOS/hosttools/c6x/makesymbol/makesymbol.bat $(OUTDIR)
+		cp SylixOS/hosttools/c6x/makesymbol/makesymbol.sh $(OUTDIR)
+		cp SylixOS/hosttools/c6x/makesymbol/nm.exe $(OUTDIR)
+		make -C $(OUTDIR)
+else
 $(OUTPATH)/symbol.c: $($(target)_A)
 		@rm -f $@
 		cp SylixOS/hosttools/makesymbol/Makefile $(OUTDIR)
@@ -117,6 +126,7 @@ $(OUTPATH)/symbol.c: $($(target)_A)
 		cp SylixOS/hosttools/makesymbol/makesymbol.sh $(OUTDIR)
 		cp SylixOS/hosttools/makesymbol/nm.exe $(OUTDIR)
 		make -C $(OUTDIR)
+endif
 
 #*********************************************************************************************************
 # Add targets

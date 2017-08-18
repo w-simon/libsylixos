@@ -21,6 +21,7 @@
 ** BUG
 2008.03.16 将 LW_HANDLE 改为 LW_OBJECT_HANDLE.
 2009.07.17 升级 __selTaskDeleteHook() 回调类型.
+2017.08.17 多路 IO 复用, 可被信号打断.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -101,7 +102,12 @@ static VOID    __selTaskCreateHook (LW_OBJECT_HANDLE  ulId, ULONG  ulOption)
     }
     
     pselctxNew->SELCTX_hSembWakeup = API_SemaphoreBCreate("sel_wakeup",
-                                        LW_TRUE, LW_OPTION_WAIT_FIFO | LW_OPTION_OBJECT_GLOBAL, 
+                                        LW_TRUE,
+                                        LW_OPTION_WAIT_FIFO |
+#if LW_CFG_SELECT_INTER_EN > 0
+                                        LW_OPTION_SIGNAL_INTER |        /*  可被信号打断                */
+#endif                                                                  /*  LW_CFG_SELECT_INTER_EN > 0  */
+                                        LW_OPTION_OBJECT_GLOBAL,
                                         LW_NULL);                       /*  创建信号量                  */
     if (!pselctxNew->SELCTX_hSembWakeup) {  
         __SHEAP_FREE(pselctxNew);                                       /*  信号量创建失败              */

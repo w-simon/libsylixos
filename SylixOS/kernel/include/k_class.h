@@ -435,6 +435,11 @@ typedef LW_SHELL_CONTEXT *PLW_SHELL_CONTEXT;
 
 typedef struct __lw_tcb {
     PLW_STACK             TCB_pstkStackNow;                             /*  线程当前堆栈指针            */
+
+#if defined(LW_CFG_CPU_ARCH_C6X)
+    ULONG                 TCB_ulContextType;                            /*  c6x 上下文类型              */
+#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
+
     PVOID                 TCB_pvStackFP;                                /*  浮点运算器上下文指针        */
     PVOID                 TCB_pvStackExt;                               /*  扩展堆栈区                  */
     

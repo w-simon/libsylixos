@@ -138,6 +138,10 @@ VOID  _TCBBuild (UINT8                    ucPriority,
 
     LW_TCB_GET_CUR_SAFE(ptcbCur);                                       /*  当前 ptcb                   */
 
+#if defined(LW_CFG_CPU_ARCH_C6X)
+    ptcb->TCB_ulContextType   = 0;                                      /*  小上下文                    */
+#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
+
     ptcb->TCB_pstkStackNow    = pstkStackNow;                           /*  堆栈指针连接                */
     ptcb->TCB_pstkStackTop    = pstkStackTop;                           /*  真实主栈区 头               */
     ptcb->TCB_pstkStackBottom = pstkStackButtom;                        /*  真实主栈区 底               */

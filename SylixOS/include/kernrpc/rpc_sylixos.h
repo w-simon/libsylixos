@@ -108,7 +108,9 @@ extern int __getprotobyname_r (const char *__name,
 #define __bzero                     bzero
 #define __set_errno(num)            errno = (num)
 #define __getpeername               getpeername
+#ifndef LW_CFG_CPU_ARCH_C6X
 #define __alloca                    alloca
+#endif
 #define __gethostbyname_r           gethostbyname_r
 #define __gethostname               gethostname
 #define __strerror_r(num, buf, len) (strerror_r(num, buf, len) == 0 ? (buf) : NULL)

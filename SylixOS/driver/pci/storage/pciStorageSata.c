@@ -465,8 +465,8 @@ static INT  pciStorageSataHeaderQuirk (PCI_DEV_HANDLE  hPciDevHandle)
         return  (PX_ERROR);
     }
 
-    usVendorId = hPciDevHandle->PCIDEV_phDevHdr.hdr.PCIHH_pcidHdr.PCID_usVendorId;
-    usDeviceId = hPciDevHandle->PCIDEV_phDevHdr.hdr.PCIHH_pcidHdr.PCID_usDeviceId;
+    usVendorId = PCI_DEV_VENDOR_ID(hPciDevHandle);
+    usDeviceId = PCI_DEV_DEVICE_ID(hPciDevHandle);
 
     switch (usVendorId) {
 
@@ -884,7 +884,7 @@ static INT  pciStorageSataVendorCtrlReadyWork (AHCI_CTRL_HANDLE  hCtrl)
              hPciDev->PCIDEV_iDevDevice,
              hPciDev->PCIDEV_iDevFunction, usPciDevId);
                                                                         /* BAR5                         */
-    stStart = hPciDev->PCIDEV_phDevHdr.PCIH_pcidHdr.PCID_uiBase[PCI_BAR_INDEX_5];
+    stStart = (pci_resource_size_t)PCI_DEV_BASE_START(hPciDev, PCI_BAR_INDEX_5);
                                                                         /* 查找对应资源信息             */
     hResource = API_PciDevStdResourceFind(hPciDev, PCI_IORESOURCE_MEM, stStart);
     if (!hResource) {

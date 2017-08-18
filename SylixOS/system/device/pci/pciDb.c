@@ -172,10 +172,10 @@ static PCI_CLASS_SUB    _G_pcsPciSubClassTable[] = {
     /*
      *  Communication controller
      */
-    {PCI_CLASS_COMMUNICATION_SERIAL,   	    "Serial controller",                        LW_NULL,    7},
+    {PCI_CLASS_COMMUNICATION_SERIAL,        "Serial controller",                        LW_NULL,    7},
     {PCI_CLASS_COMMUNICATION_PARALLEL,      "Parallel controller",                      LW_NULL,    5},
     {PCI_CLASS_COMMUNICATION_MULTISERIAL,   "Multiport serial controller",              LW_NULL,    0},
-    {PCI_CLASS_COMMUNICATION_MODEM,    	    "Modem",                                    LW_NULL,    5},
+    {PCI_CLASS_COMMUNICATION_MODEM,         "Modem",                                    LW_NULL,    5},
     {PCI_CLASS_COMMUNICATION_GPIB,          "GPIB controller",                          LW_NULL,    0},
     {PCI_CLASS_COMMUNICATION_SMARD_CARD,    "Smard Card controller",                    LW_NULL,    0},
     {PCI_CLASS_COMMUNICATION_OTHER,         "Communication controller",                 LW_NULL,    0},

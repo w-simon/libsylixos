@@ -73,6 +73,14 @@ include $(MKTEMP)/header.mk
 #*********************************************************************************************************
 include libsylixos.mk
 
+#*********************************************************************************************************
+# TI C6X DSP configure
+#*********************************************************************************************************
+ifeq ($(ARCH), c6x)
+BUILD_PROCESS_SUP_LIB = 1
+BUILD_KERNEL_MODULE   = 0
+endif
+
 ifeq ($(BUILD_PROCESS_SUP_LIB), 1)
 include libdsohandle.mk
 include libvpmpdm.mk

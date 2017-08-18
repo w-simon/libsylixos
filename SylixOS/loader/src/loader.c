@@ -47,6 +47,7 @@
 2016.05.17  内核模块支持 atexit() 操作. (韩辉)
 2017.02.26  加入可信计算支持. (韩辉)
 2017.05.31  加入 API_ModuleGlobal() 可支持 dlopen() RTLD_NOLOAD 选项. (韩辉)
+2017.08.17  加入 c6x DSP 的支持.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -59,6 +60,9 @@
 #include "../include/loader_symbol.h"
 #include "../include/loader_error.h"
 #include "../elf/elf_loader.h"
+#if defined(LW_CFG_CPU_ARCH_C6X)
+#include "../elf/elf_arch.h"
+#endif                                                                  /*  defined(LW_CFG_CPU_ARCH_C6X)*/
 /*********************************************************************************************************
   模块进程模型
   
@@ -252,6 +256,9 @@ static INT moduleDelAndDestory (LW_LD_EXEC_MODULE *pmodule)
 
     pvproc = pmodule->EMOD_pvproc;
 
+#if defined(LW_CFG_CPU_ARCH_C6X)                                        /*  C6X 内部需要使用加载器锁    */
+    LW_LD_LOCK();
+#endif
     LW_VP_LOCK(pvproc);
 
     pringTemp = pvproc->VP_ringModules;
@@ -272,6 +279,9 @@ static INT moduleDelAndDestory (LW_LD_EXEC_MODULE *pmodule)
             pringTemp = _list_ring_get_next(pringTemp);
             _List_Ring_Del(&pmodTemp->EMOD_ringModules, &pvproc->VP_ringModules);
 
+#if defined(LW_CFG_CPU_ARCH_C6X)
+            archElfDSBTRemove((PVOID)pmodTemp);                         /*  删除 DSBT 表项              */
+#endif                                                                  /*  defined(LW_CFG_CPU_ARCH_C6X)*/
             moduleDestory(pmodTemp);
 
             if (pvproc->VP_ringModules) {
@@ -285,6 +295,9 @@ static INT moduleDelAndDestory (LW_LD_EXEC_MODULE *pmodule)
     } while (pvproc->VP_ringModules && pringTemp != pvproc->VP_ringModules);
 
     LW_VP_UNLOCK(pvproc);
+#if defined(LW_CFG_CPU_ARCH_C6X)
+    LW_LD_UNLOCK();
+#endif
 
     return  (ERROR_NONE);
 }
@@ -866,15 +879,24 @@ PVOID  API_ModuleLoadEx (CPCHAR  pcFile,
         return  (LW_NULL);
     }
 
+#if defined(LW_CFG_CPU_ARCH_C6X)                                        /*  C6X 内部需要使用加载器锁    */
+    LW_LD_LOCK();
+#endif
     LW_VP_LOCK(pmodule->EMOD_pvproc);
     pmodule->EMOD_ulRefs++;
     if (__elfListLoad(pmodule, cLibPath) < 0) {                         /*  加载elf文件                 */
         LW_VP_UNLOCK(pmodule->EMOD_pvproc);
+#if defined(LW_CFG_CPU_ARCH_C6X)
+        LW_LD_UNLOCK();
+#endif
         moduleDelRef(pmodule);
         moduleDelAndDestory(pmodule);
         return  (LW_NULL);
     }
     LW_VP_UNLOCK(pmodule->EMOD_pvproc);
+#if defined(LW_CFG_CPU_ARCH_C6X)
+    LW_LD_UNLOCK();
+#endif
 
     if (ERROR_NONE != __moduleArchCheck(pmodule)) {						/*  检查模块链表fpu设置是否一致 */
         API_ModuleUnload(pmodule);

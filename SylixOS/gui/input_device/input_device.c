@@ -576,6 +576,7 @@ static PVOID  __guiInputDevProc (PVOID  pvArg)
                         if (sstTemp <= 0) {
                             close(pgidArray->GID_iFd);                  /*  关闭异常的文件              */
                             pgidArray->GID_iFd = PX_ERROR;
+
                         } else {
                             if (pfuncTemp) {
                                 LW_SOFUNC_PREPARE(pfuncTemp);

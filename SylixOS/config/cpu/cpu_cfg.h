@@ -34,6 +34,12 @@
 
 #elif defined(__i386__) || defined(__x86_64__)
 #include "cpu_cfg_x86.h"
+
+#elif defined(__TMS320C6X__)
+#include "cpu_cfg_c6x.h"
+
+#elif defined(__sparc__)
+#include "cpu_cfg_sparc.h"
 #endif
 
 #else

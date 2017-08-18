@@ -34,9 +34,12 @@
 #define LW_CFG_POSIX_EN                     1                           /*  是否使能 posix 兼容库       */
 #define LW_CFG_POSIXEX_EN                   1                           /*  是否是能 posix 扩展库       */
 #define LW_CFG_POSIX_INTER_EN               1                           /*  是否使能 sem mqueue 信号中断*/
+
 #if LW_CFG_CPU_WORD_LENGHT == 32
+#define LW_CFG_PTHREAD_MIN_STK_SIZE         (4 * LW_CFG_KB_SIZE)
 #define LW_CFG_PTHREAD_DEFAULT_STK_SIZE     (8 * LW_CFG_KB_SIZE)        /*  posix 线程默认堆栈大小      */
 #else
+#define LW_CFG_PTHREAD_MIN_STK_SIZE         ( 8 * LW_CFG_KB_SIZE)
 #define LW_CFG_PTHREAD_DEFAULT_STK_SIZE     (16 * LW_CFG_KB_SIZE)       /*  posix 线程默认堆栈大小      */
 #endif
 

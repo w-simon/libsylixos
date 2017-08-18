@@ -30,6 +30,7 @@
 2013.01.15  如果 60 秒还没有输入, 则登录失败.
 2013.12.12  登陆完成后需要清除一次缓冲区.
 2014.09.19  登录过程中不允许 Crtl+X 重启.
+2018.08.18  增加登录过程中被信号唤醒的处理.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "unistd.h"
@@ -46,6 +47,49 @@
 *********************************************************************************************************/
 #define __TTINY_SHELL_USER_TO       30                                  /*  密码超时时间                */
 /*********************************************************************************************************
+** 函数名称: __tshellWaitRead
+** 功能描述: 等待用户输入
+** 输　入  : iTtyFd        文件描述符
+**           bWaitInf      长时间等待用户输入
+** 输　出  : ERROR
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __tshellWaitRead (INT  iTtyFd, BOOL  bWaitInf)
+{
+    INT             iRetValue;
+    struct timeval  tv = {__TTINY_SHELL_USER_TO, 0};
+
+    do {
+        if (bWaitInf) {
+            iRetValue = waitread(iTtyFd, LW_NULL);
+        } else {
+            iRetValue = waitread(iTtyFd, &tv);                          /*  等待用户输入用户名          */
+        }
+        if (iRetValue != 1) {
+#if LW_CFG_SELECT_INTER_EN > 0
+            if (errno != EINTR) {
+                return  (PX_ERROR);                                     /*  非中断唤醒                  */
+
+            } else if (!bWaitInf) {
+                if (tv.tv_sec > 5) {
+                    tv.tv_sec -= 5;                                     /*  每次信号唤醒减去 5 秒钟     */
+
+                } else {
+                    return  (PX_ERROR);
+                }
+            }
+#else
+            return  (PX_ERROR);
+#endif                                                                  /*  LW_CFG_SELECT_INTER_EN > 0  */
+        } else {
+            break;
+        }
+    } while (1);
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: __tshellUserAuthen
 ** 功能描述: 用户登录认证
 ** 输　入  : iTtyFd        文件描述符
@@ -58,8 +102,7 @@ ULONG  __tshellUserAuthen (INT  iTtyFd, BOOL  bWaitInf)
 {
     INT             iOldOpt;
     INT             iRetValue;
-    struct timeval  tv = {__TTINY_SHELL_USER_TO, 0};
-    
+
     CHAR            cUserName[MAX_FILENAME_LENGTH];
     CHAR            cPassword[MAX_FILENAME_LENGTH];
     
@@ -85,12 +128,8 @@ ULONG  __tshellUserAuthen (INT  iTtyFd, BOOL  bWaitInf)
      */
     write(iTtyFd, "login: ", 7);
     
-    if (bWaitInf) {
-        iRetValue = waitread(iTtyFd, LW_NULL);
-    } else {
-        iRetValue = waitread(iTtyFd, &tv);                              /*  等待用户输入用户名          */
-    }
-    if (iRetValue != 1) {
+    iRetValue = __tshellWaitRead(iTtyFd, bWaitInf);
+    if (iRetValue < ERROR_NONE) {
         goto    __login_fail;
     }
     
@@ -121,11 +160,11 @@ ULONG  __tshellUserAuthen (INT  iTtyFd, BOOL  bWaitInf)
     ioctl(iTtyFd, FIORFLUSH);                                           /*  清除缓冲区                  */
     write(iTtyFd, "password: ", 10);
     
-    iRetValue = waitread(iTtyFd, &tv);                                  /*  等待用户输入密码            */
-    if (iRetValue != 1) {
+    iRetValue = __tshellWaitRead(iTtyFd, LW_FALSE);
+    if (iRetValue < ERROR_NONE) {
         goto    __login_fail;
     }
-    
+
     iRetValue = (INT)read(iTtyFd, cPassword, MAX_FILENAME_LENGTH);
     if (iRetValue <= 0) {
         goto    __login_fail;

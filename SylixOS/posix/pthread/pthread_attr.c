@@ -35,6 +35,7 @@
   裁剪支持
 *********************************************************************************************************/
 #if LW_CFG_POSIX_EN > 0
+#include "limits.h"
 /*********************************************************************************************************
 ** 函数名称: pthread_attr_init
 ** 功能描述: 初始化线程属性块.
@@ -103,7 +104,7 @@ int  pthread_attr_setstack (pthread_attr_t *pattr, void *pvStackAddr, size_t stS
         return  (EINVAL);
     }
     
-    if (_StackSizeCheck(stSize)) {
+    if (_StackSizeCheck(stSize) || (stSize < PTHREAD_STACK_MIN)) {
         errno = EINVAL;
         return  (EINVAL);
     }
@@ -205,7 +206,7 @@ int  pthread_attr_setstacksize (pthread_attr_t  *pattr, size_t  stSize)
     }
     
     if (stSize) {
-        if (_StackSizeCheck(stSize)) {
+        if (_StackSizeCheck(stSize) || (stSize < PTHREAD_STACK_MIN)) {
             errno = EINVAL;
             return  (EINVAL);
         }
