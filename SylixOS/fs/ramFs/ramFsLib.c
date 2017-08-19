@@ -744,8 +744,8 @@ INT  __ram_move (PRAM_NODE  pramn, PCHAR  pcNewName)
         return  (PX_ERROR);
     }
     
-    if (S_ISDIR(pramn->RAMN_mode)) {
-        if (__ram_move_check(pramn, pramnTemp)) {                       /*  检查目录合法性              */
+    if (S_ISDIR(pramn->RAMN_mode) && pramnNewFather) {
+        if (__ram_move_check(pramn, pramnNewFather)) {                  /*  检查目录合法性              */
             _ErrorHandle(EINVAL);
             return  (PX_ERROR);
         }
