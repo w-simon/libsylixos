@@ -630,10 +630,9 @@ int  sem_trywait (sem_t  *psem)
 LW_API 
 int  sem_timedwait (sem_t  *psem, const struct timespec *abs_timeout)
 {
-    ULONG               ulTimeout;
-    ULONG               ulError;
-    struct timespec     tvNow;
-    __PX_SEM           *pxsem;
+    ULONG        ulTimeout;
+    ULONG        ulError;
+    __PX_SEM    *pxsem;
     
     __sem_init_invisible(psem);
     
@@ -651,13 +650,7 @@ int  sem_timedwait (sem_t  *psem, const struct timespec *abs_timeout)
     
     pxsem = (__PX_SEM *)psem->SEM_pvPxSem;
     
-    lib_clock_gettime(CLOCK_REALTIME, &tvNow);                          /*  获得当前系统时间            */
-    if (__timespecLeftTime(&tvNow, abs_timeout)) {
-        ulTimeout = __timespecToTickDiff(&tvNow, abs_timeout);
-    
-    } else {
-        ulTimeout = LW_OPTION_NOT_WAIT;
-    }
+    ulTimeout = LW_TS_TIMEOUT_TICK(LW_FALSE, abs_timeout);              /*  转换超时时间                */
     
     __THREAD_CANCEL_POINT();                                            /*  测试取消点                  */
     
@@ -693,10 +686,9 @@ int  sem_timedwait (sem_t  *psem, const struct timespec *abs_timeout)
 LW_API  
 int  sem_reltimedwait_np (sem_t  *psem, const struct timespec *rel_timeout)
 {
-    ULONG               ulTimeout;
-    ULONG               ulError;
-    __PX_SEM           *pxsem;
-    struct timespec     tvNow, tvEnd;
+    ULONG        ulTimeout;
+    ULONG        ulError;
+    __PX_SEM    *pxsem;
     
     __sem_init_invisible(psem);
     
@@ -714,15 +706,8 @@ int  sem_reltimedwait_np (sem_t  *psem, const struct timespec *rel_timeout)
     
     pxsem = (__PX_SEM *)psem->SEM_pvPxSem;
     
-    lib_clock_gettime(CLOCK_REALTIME, &tvNow);                          /*  获得当前系统时间            */
-    __timespecAdd2(&tvEnd, &tvNow, rel_timeout);
-    if (__timespecLeftTime(&tvNow, &tvEnd)) {
-        ulTimeout = __timespecToTickDiff(&tvNow, &tvEnd);
-        
-    } else {
-        ulTimeout = LW_OPTION_NOT_WAIT;
-    }
-    
+    ulTimeout = LW_TS_TIMEOUT_TICK(LW_TRUE, rel_timeout);               /*  转换超时时间                */
+
     __THREAD_CANCEL_POINT();                                            /*  测试取消点                  */
     
     ulError = API_SemaphoreCPend(pxsem->PSEM_ulSemaphore, ulTimeout);   /*  等待信号量                  */

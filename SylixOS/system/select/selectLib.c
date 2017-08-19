@@ -233,7 +233,6 @@ INT     pselect (INT                     iWidth,
     REGISTER ULONG               ulWaitTime;                            /*  等待时间                    */
     REGISTER LW_SEL_CONTEXT     *pselctx;
              PLW_CLASS_TCB       ptcbCur;
-             struct timespec     tvNow, tvEnd;
              
 #if LW_CFG_SIGNAL_EN > 0
              sigset_t            sigsetMaskOld;
@@ -285,14 +284,7 @@ INT     pselect (INT                     iWidth,
         ulWaitTime = LW_OPTION_WAIT_INFINITE;                           /*  无限等待                    */
 
     } else {
-        lib_clock_gettime(CLOCK_REALTIME, &tvNow);                      /*  获得当前系统时间            */
-        __timespecAdd2(&tvEnd, &tvNow, ptmspecTO);
-        if (__timespecLeftTime(&tvNow, &tvEnd)) {
-            ulWaitTime = __timespecToTickDiff(&tvNow, &tvEnd);          /*  计算超时时间                */
-
-        } else {
-            ulWaitTime = LW_OPTION_NOT_WAIT;
-        }
+        ulWaitTime = LW_TS_TIMEOUT_TICK(LW_TRUE, ptmspecTO);
     }
     
     pselctx->SELCTX_pfdsetReadFds   = pfdsetRead;
@@ -457,12 +449,11 @@ INT     select (INT               iWidth,
     }
     
     if (ptmvalTO) {
-        tmspec.tv_sec  = ptmvalTO->tv_sec;
-        tmspec.tv_nsec = ptmvalTO->tv_usec * 1000;
-        ptmspec        = &tmspec;
+        LW_TIMEVAL_TO_TIMESPEC(ptmvalTO, &tmspec);
+        ptmspec = &tmspec;
 
     } else {
-        ptmspec        = LW_NULL;
+        ptmspec = LW_NULL;
     }
     
     iRet = pselect(iWidth, pfdsetRead, pfdsetWrite, pfdsetExcept, ptmspec, LW_NULL);

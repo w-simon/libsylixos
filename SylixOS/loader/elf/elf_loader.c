@@ -460,6 +460,9 @@ static INT elfSymbolExport (LW_LD_EXEC_MODULE *pmodule,
         return  (ERROR_NONE);
 
     case STT_OBJECT:                                                    /*  导出变量                    */
+#if defined(LW_CFG_CPU_ARCH_C6X)
+    case STT_COMMON:
+#endif
         if (__moduleExportSymbol(pmodule, pcSymName, addrSymVal,
                                  LW_LD_SYM_DATA,
                                  ulAllSymCnt, ulCurSymNum) < 0) {

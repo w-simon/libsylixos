@@ -62,6 +62,7 @@ VOID  _KernelPrimaryLowLevelInit (VOID)
     _EventInit();                                                       /*  事件初始化                  */
     _ThreadVarInit();                                                   /*  全局变量私有化模块初始化    */
     _TimerInit();                                                       /*  初始化定时器                */
+    _TimeCvtInit();                                                     /*  初始化超时换算函数          */
     _PriorityInit();                                                    /*  初始化优先级控制块队列      */
     _EventSetInit();                                                    /*  初始化事件集                */
     _PartitionInit();                                                   /*  初始化定长内存管理          */

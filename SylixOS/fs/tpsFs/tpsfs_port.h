@@ -77,7 +77,7 @@ typedef TPS_DEV *PTPS_DEV;
 
 #define TPS_CPU_TO_IBLK             TPS_CPU_TO_LE64
 #define TPS_IBLK_TO_CPU             TPS_LE64_TO_CPU
-#define TPS_IBLK_TO_CPU_VAL(pos)    (*(UINT64*)(pos))
+#define TPS_IBLK_TO_CPU_VAL         TPS_LE64_TO_CPU_VAL
 
 /*********************************************************************************************************
   ÄÚ´æ·ÖÅä

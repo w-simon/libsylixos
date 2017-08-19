@@ -1599,6 +1599,11 @@ static INT  __fatFsRename (PLW_FD_ENTRY  pfdentry, PCHAR  pcNewName)
         
         if (pfatfile->FATFIL_iFileType == __FAT_FILE_TYPE_NODE) {
             f_sync(&pfatfile->FATFIL_fftm.FFTM_file);
+
+        } else if (_PathMoveCheck(pfatfile->FATFIL_cName, pcNewPath)) { /*  如果时目录项则检查          */
+            __FAT_FILE_UNLOCK(pfatfile);
+            _ErrorHandle(EINVAL);
+            return  (PX_ERROR);
         }
         
         fresError = f_rename_ex(&pfatfile->FATFIL_pfatvol->FATVOL_fatfsVol,

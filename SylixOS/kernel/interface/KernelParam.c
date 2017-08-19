@@ -33,7 +33,7 @@ static CHAR     _K_cKernelStartParam[512];
 ** 函数名称: API_KernelStartParam
 ** 功能描述: 系统内核启动参数
 ** 输　入  : pcParam       启动参数, 是以空格分开的一个字符串列表，通常具有如下形式:
-                           ncpus=1          CPU 个数
+                           ncpus=1          CPU 个数 (x86/64 平台可以不设置, 操作系统会自动探测)
                            dlog=no          DEBUG LOG 信息打印
                            derror=yes       DEBUG ERROR 信息打印
                            kfpu=no          内核态对浮点支持 (推荐为 no)
@@ -46,7 +46,10 @@ static CHAR     _K_cKernelStartParam[512];
                            rebootto=10      重启超时时间.
                            fsched=no        SMP 系统内核快速调度
                            smt=no           SMT 均衡调度
-                           noitmr=no        不支持 ITIMER_REAL, ITIMER_VIRTUAL, ITIMER_PROF
+                           noitmr=no        不支持 ITIMER_REAL/ITIMER_VIRTUAL/ITIMER_PROF,
+                                            建议运动控制等高实时性应用, 可置为 yes 提高 tick 速度
+                           tmcvtsimple=no   通过 timespec 转换 tick 超时, 是否使用简单转换法.
+                                            建议 Lite 类型处理器可采用 simple 转换法.
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
@@ -189,6 +192,13 @@ ULONG  API_KernelStartParam (CPCHAR  pcParam)
                 LW_KERN_NO_ITIMER_EN_SET(LW_FALSE);
             } else {
                 LW_KERN_NO_ITIMER_EN_SET(LW_TRUE);
+            }
+
+        } else if (lib_strncmp(pcTok, "tmcvtsimple=", 12) == 0) {       /*  是否使用简单方法转换        */
+            if (pcTok[12] == 'n') {
+                LW_KERN_TMCVT_SIMPLE_EN_SET(LW_FALSE);
+            } else {
+                LW_KERN_TMCVT_SIMPLE_EN_SET(LW_TRUE);
             }
         }
 

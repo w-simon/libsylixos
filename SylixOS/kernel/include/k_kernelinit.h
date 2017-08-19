@@ -42,6 +42,7 @@ VOID  _ThreadVarInit(VOID);                                             /*  线程
 VOID  _HeapInit(VOID);                                                  /*  堆控制块初始化              */
 VOID  _MsgQueueInit(VOID);                                              /*  消息队列初始化              */
 VOID  _TimerInit(VOID);                                                 /*  定时器初始化                */
+VOID  _TimeCvtInit(VOID);                                               /*  初始化时间转换函数          */
 VOID  _PartitionInit(VOID);                                             /*  PARTITION 初始化            */
 VOID  _RmsInit(VOID);                                                   /*  RMS 调度器初始化            */
 VOID  _RtcInit(VOID);                                                   /*  RTC 时间初始化              */

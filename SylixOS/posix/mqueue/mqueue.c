@@ -1119,7 +1119,6 @@ int  mq_timedsend (mqd_t  mqd, const char  *msg, size_t  msglen,
     ULONG               ulTimeout;
     BOOL                bNonblock;
     INT                 iRet;
-    struct timespec     tvNow;
     
     if ((abs_timeout == LW_NULL)    || 
         (abs_timeout->tv_nsec <  0) ||
@@ -1160,15 +1159,8 @@ int  mq_timedsend (mqd_t  mqd, const char  *msg, size_t  msglen,
         bNonblock = LW_TRUE;
     
     } else {
+        ulTimeout = LW_TS_TIMEOUT_TICK(LW_FALSE, abs_timeout);          /*  转换超时时间                */
         bNonblock = LW_FALSE;
-        
-        lib_clock_gettime(CLOCK_REALTIME, &tvNow);                      /*  获得当前系统时间            */
-        if (__timespecLeftTime(&tvNow, abs_timeout)) {
-            ulTimeout = __timespecToTickDiff(&tvNow, abs_timeout);
-            
-        } else {
-            ulTimeout = LW_OPTION_NOT_WAIT;
-        }
     }
     
     __THREAD_CANCEL_POINT();                                            /*  测试取消点                  */
@@ -1206,7 +1198,6 @@ int  mq_reltimedsend_np (mqd_t  mqd, const char  *msg, size_t  msglen,
     ULONG               ulTimeout;
     BOOL                bNonblock;
     INT                 iRet;
-    struct timespec     tvNow, tvEnd;
     
     if ((rel_timeout == LW_NULL)    || 
         (rel_timeout->tv_nsec <  0) ||
@@ -1247,16 +1238,8 @@ int  mq_reltimedsend_np (mqd_t  mqd, const char  *msg, size_t  msglen,
         bNonblock = LW_TRUE;
     
     } else {
+        ulTimeout = LW_TS_TIMEOUT_TICK(LW_TRUE, rel_timeout);           /*  转换超时时间                */
         bNonblock = LW_FALSE;
-        
-        lib_clock_gettime(CLOCK_REALTIME, &tvNow);                      /*  获得当前系统时间            */
-        __timespecAdd2(&tvEnd, &tvNow, rel_timeout);
-        if (__timespecLeftTime(&tvNow, &tvEnd)) {
-            ulTimeout = __timespecToTickDiff(&tvNow, &tvEnd);
-            
-        } else {
-            ulTimeout = LW_OPTION_NOT_WAIT;
-        }
     }
     
     __THREAD_CANCEL_POINT();                                            /*  测试取消点                  */
@@ -1353,7 +1336,6 @@ ssize_t  mq_timedreceive (mqd_t  mqd, char  *msg, size_t  msglen,
     ULONG               ulTimeout;
     BOOL                bNonblock;
     ssize_t             sstRet;
-    struct timespec     tvNow;
     
     if ((abs_timeout == LW_NULL)    || 
         (abs_timeout->tv_nsec <  0) ||
@@ -1389,15 +1371,8 @@ ssize_t  mq_timedreceive (mqd_t  mqd, char  *msg, size_t  msglen,
         bNonblock = LW_TRUE;
     
     } else {
+        ulTimeout = LW_TS_TIMEOUT_TICK(LW_FALSE, abs_timeout);          /*  转换超时时间                */
         bNonblock = LW_FALSE;
-        
-        lib_clock_gettime(CLOCK_REALTIME, &tvNow);                      /*  获得当前系统时间            */
-        if (__timespecLeftTime(&tvNow, abs_timeout)) {
-            ulTimeout = __timespecToTickDiff(&tvNow, abs_timeout);
-        
-        } else {
-            ulTimeout = LW_OPTION_NOT_WAIT;
-        }
     }
     
     __THREAD_CANCEL_POINT();                                            /*  测试取消点                  */
@@ -1434,7 +1409,6 @@ ssize_t  mq_reltimedreceive_np (mqd_t  mqd, char  *msg, size_t  msglen,
     ULONG               ulTimeout;
     BOOL                bNonblock;
     ssize_t             sstRet;
-    struct timespec     tvNow, tvEnd;
     
     if ((rel_timeout == LW_NULL)    ||
         (rel_timeout->tv_nsec <  0) ||
@@ -1470,16 +1444,8 @@ ssize_t  mq_reltimedreceive_np (mqd_t  mqd, char  *msg, size_t  msglen,
         bNonblock = LW_TRUE;
     
     } else {
+        ulTimeout = LW_TS_TIMEOUT_TICK(LW_TRUE, rel_timeout);           /*  转换超时时间                */
         bNonblock = LW_FALSE;
-        
-        lib_clock_gettime(CLOCK_REALTIME, &tvNow);                      /*  获得当前系统时间            */
-        __timespecAdd2(&tvEnd, &tvNow, rel_timeout);
-        if (__timespecLeftTime(&tvNow, &tvEnd)) {
-            ulTimeout = __timespecToTickDiff(&tvNow, &tvEnd);
-            
-        } else {
-            ulTimeout = LW_OPTION_NOT_WAIT;
-        }
     }
     
     __THREAD_CANCEL_POINT();                                            /*  测试取消点                  */

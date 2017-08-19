@@ -59,7 +59,8 @@ static TPS_IBLK __tpsFsGetHash (CPCHAR pcFileName)
     const UINT *puiData = (const UINT *)pcFileName;
 
     while(iLen >= 8) {
-        uiK1 = *puiData++;
+        uiK1 = TPS_LE32_TO_CPU_VAL(puiData);
+        puiData++;
         uiK1 *= uiM;
         uiK1 ^= uiK1 >> iR;
         uiK1 *= uiM;
@@ -67,7 +68,8 @@ static TPS_IBLK __tpsFsGetHash (CPCHAR pcFileName)
         uiH1 ^= uiK1;
         iLen -= 4;
 
-        uiK2 = *puiData++;
+        uiK2 = TPS_LE32_TO_CPU_VAL(puiData);
+        puiData++;
         uiK2 *= uiM;
         uiK2 ^= uiK2 >> iR;
         uiK2 *= uiM;
@@ -77,7 +79,8 @@ static TPS_IBLK __tpsFsGetHash (CPCHAR pcFileName)
     }
 
     if(iLen >= 4) {
-        uiK1 = *puiData++;
+        uiK1 = TPS_LE32_TO_CPU_VAL(puiData);
+        puiData++;
         uiK1 *= uiM;
         uiK1 ^= uiK1 >> iR;
         uiK1 *= uiM;

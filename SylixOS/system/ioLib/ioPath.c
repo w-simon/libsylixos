@@ -486,6 +486,36 @@ INT  _PathBuildLink (PCHAR      pcBuildName,
     
     return  (ERROR_NONE);
 }
+/*********************************************************************************************************
+** 函数名称: _PathMoveCheck
+** 功能描述: 将一个节点(目录或文件)移动(或重命名)到另一个目录, 检查是否合法.
+** 输　入  : pcSrc         源文件或目录
+**           pcDest        目标文件或目录
+** 输　出  : ERROR
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  _PathMoveCheck (CPCHAR  pcSrc, CPCHAR  pcDest)
+{
+    CPCHAR  pcPos;
+
+    if (*pcSrc == PX_DIVIDER) {
+        pcSrc++;
+    }
+
+    if (*pcDest == PX_DIVIDER) {
+        pcDest++;
+    }
+
+    if (lib_strstr(pcDest, pcSrc) == pcDest) {
+        pcPos = pcDest + lib_strlen(pcSrc);
+        if (*pcPos == PX_DIVIDER) {
+            return  (PX_ERROR);                                         /*  不允许将父目录移至子目录    */
+        }
+    }
+
+    return  (ERROR_NONE);
+}
 
 #endif                                                                  /*  LW_CFG_DEVICE_EN            */
 /*********************************************************************************************************

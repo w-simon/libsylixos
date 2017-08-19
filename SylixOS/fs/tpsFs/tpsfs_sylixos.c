@@ -1594,6 +1594,14 @@ static INT  __tpsFsRename (PLW_FD_ENTRY  pfdentry, PCHAR  pcNewName)
             pcNewPath++;
         }
 
+        if (ptpsfile->TPSFIL_iFileType == __TPS_FILE_TYPE_DIR) {
+            if (_PathMoveCheck(ptpsfile->TPSFIL_cName, pcNewPath)) {
+                __TPS_FILE_UNLOCK(ptpsfile);
+                _ErrorHandle(EINVAL);
+                return  (PX_ERROR);
+            }
+        }
+
         iErr = tpsFsMove(ptpsfile->TPSFIL_ptpsvol->TPSVOL_tpsFsVol,
                          ptpsfile->TPSFIL_cName, pcNewPath);
         if (iErr == ERROR_NONE) {

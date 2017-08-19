@@ -89,7 +89,7 @@ extern volatile cregister UINT32  IERR;
 *********************************************************************************************************/
 #define disable_exception()
 #define get_except_type()       EFR
-#define ack_exception(type)     ECR = 1 << (type)
+#define ack_exception(type)     ECR = 1ul << (type)
 #define get_iexcept()           IERR
 #define set_iexcept(mask)       IERR = (mask)
 /*********************************************************************************************************
@@ -112,163 +112,163 @@ extern volatile cregister UINT32  IERR;
   异常信息
 *********************************************************************************************************/
 typedef struct {
-    CPCHAR      EXCI_pcString;
-    INT         EXCI_iSigNo;
-    INT         EXCI_iCode;
+    CPCHAR      EXCI_pcName;                                            /*  名字                        */
+    INT         EXCI_iType;                                             /*  类型                        */
+    INT         EXCI_iMethod;                                           /*  方法                        */
 } ARCH_C6X_EXC_INFO;
 /*********************************************************************************************************
   内部异常信息
 *********************************************************************************************************/
 static ARCH_C6X_EXC_INFO    _G_c6xIntExcTbl[11] = {
-    { "Oops - instruction fetch",     LW_VMM_ABORT_TYPE_BUS,   BUS_ADRERR },
-    { "Oops - fetch packet",          LW_VMM_ABORT_TYPE_BUS,   BUS_ADRERR },
-    { "Oops - execute packet",        LW_VMM_ABORT_TYPE_UNDEF, ILL_ILLOPC },
-    { "Oops - undefined instruction", LW_VMM_ABORT_TYPE_UNDEF, ILL_ILLOPC },
-    { "Oops - resource conflict",     LW_VMM_ABORT_TYPE_UNDEF, ILL_ILLOPC },
-    { "Oops - resource access",       LW_VMM_ABORT_TYPE_UNDEF, ILL_PRVREG },
-    { "Oops - privilege",             LW_VMM_ABORT_TYPE_UNDEF, ILL_PRVOPC },
-    { "Oops - loops buffer",          LW_VMM_ABORT_TYPE_UNDEF, ILL_ILLOPC },
-    { "Oops - software exception",    LW_VMM_ABORT_TYPE_UNDEF, ILL_ILLTRP },
-    { "Oops - unknown exception",     LW_VMM_ABORT_TYPE_UNDEF, ILL_ILLOPC },
-    { "Oops - fatal error",           LW_VMM_ABORT_TYPE_FATAL_ERROR, ILL_ILLOPC }
+    { "instruction fetch",     LW_VMM_ABORT_TYPE_BUS,   LW_VMM_ABORT_METHOD_READ },
+    { "fetch packet",          LW_VMM_ABORT_TYPE_BUS,   LW_VMM_ABORT_METHOD_READ },
+    { "execute packet",        LW_VMM_ABORT_TYPE_UNDEF, LW_VMM_ABORT_METHOD_EXEC },
+    { "undefined instruction", LW_VMM_ABORT_TYPE_UNDEF, LW_VMM_ABORT_METHOD_EXEC },
+    { "resource conflict",     LW_VMM_ABORT_TYPE_UNDEF, LW_VMM_ABORT_METHOD_EXEC },
+    { "resource access",       LW_VMM_ABORT_TYPE_UNDEF, LW_VMM_ABORT_METHOD_EXEC },
+    { "privilege",             LW_VMM_ABORT_TYPE_UNDEF, LW_VMM_ABORT_METHOD_EXEC },
+    { "loops buffer",          LW_VMM_ABORT_TYPE_UNDEF, LW_VMM_ABORT_METHOD_EXEC },
+    { "software exception",    LW_VMM_ABORT_TYPE_UNDEF, LW_VMM_ABORT_METHOD_EXEC },
+    { "unknown exception",     LW_VMM_ABORT_TYPE_UNDEF, LW_VMM_ABORT_METHOD_EXEC },
+    { "fatal error",           LW_VMM_ABORT_TYPE_FATAL_ERROR, LW_VMM_ABORT_METHOD_EXEC }
 };
 /*********************************************************************************************************
   外部异常信息
 *********************************************************************************************************/
 static ARCH_C6X_EXC_INFO    _G_c6xExtExcTbl[128] = {
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
 
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
 
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
 
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
-    { "Oops - external exception", LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
+    { "external exception", LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ },
 
-    { "Oops - CPU memory protection fault",        LW_VMM_ABORT_TYPE_MAP, SEGV_ACCERR },
-    { "Oops - CPU memory protection fault in L1P", LW_VMM_ABORT_TYPE_MAP, SEGV_ACCERR },
-    { "Oops - DMA memory protection fault in L1P", LW_VMM_ABORT_TYPE_MAP, SEGV_ACCERR },
-    { "Oops - CPU memory protection fault in L1D", LW_VMM_ABORT_TYPE_MAP, SEGV_ACCERR },
-    { "Oops - DMA memory protection fault in L1D", LW_VMM_ABORT_TYPE_MAP, SEGV_ACCERR },
-    { "Oops - CPU memory protection fault in L2",  LW_VMM_ABORT_TYPE_MAP, SEGV_ACCERR },
-    { "Oops - DMA memory protection fault in L2",  LW_VMM_ABORT_TYPE_MAP, SEGV_ACCERR },
-    { "Oops - EMC CPU memory protection fault",    LW_VMM_ABORT_TYPE_MAP, SEGV_ACCERR },
+    { "CPU memory protection fault",        LW_VMM_ABORT_TYPE_MAP, LW_VMM_ABORT_METHOD_READ },
+    { "CPU memory protection fault in L1P", LW_VMM_ABORT_TYPE_MAP, LW_VMM_ABORT_METHOD_READ },
+    { "DMA memory protection fault in L1P", LW_VMM_ABORT_TYPE_MAP, LW_VMM_ABORT_METHOD_READ },
+    { "CPU memory protection fault in L1D", LW_VMM_ABORT_TYPE_MAP, LW_VMM_ABORT_METHOD_READ },
+    { "DMA memory protection fault in L1D", LW_VMM_ABORT_TYPE_MAP, LW_VMM_ABORT_METHOD_READ },
+    { "CPU memory protection fault in L2",  LW_VMM_ABORT_TYPE_MAP, LW_VMM_ABORT_METHOD_READ },
+    { "DMA memory protection fault in L2",  LW_VMM_ABORT_TYPE_MAP, LW_VMM_ABORT_METHOD_READ },
+    { "EMC CPU memory protection fault",    LW_VMM_ABORT_TYPE_MAP, LW_VMM_ABORT_METHOD_READ },
 
-    { "Oops - EMC bus error",      LW_VMM_ABORT_TYPE_BUS, BUS_ADRERR }
+    { "EMC bus error",      LW_VMM_ABORT_TYPE_BUS, LW_VMM_ABORT_METHOD_READ }
 };
 /*********************************************************************************************************
 ** 函数名称: archExcInit
@@ -309,10 +309,12 @@ static VOID  archExcProcess (ARCH_C6X_EXC_INFO  *pExcInfo)
 
     pregctx = (ARCH_REG_IRQ_CTX *)ptcbCur->TCB_pstkStackNow;
 
-    abtInfo.VMABT_uiType   = pExcInfo->EXCI_iSigNo;
-    abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_READ;
+    abtInfo.VMABT_uiType   = pExcInfo->EXCI_iType;
+    abtInfo.VMABT_uiMethod = pExcInfo->EXCI_iMethod;
     if (abtInfo.VMABT_uiType) {
-        API_VmmAbortIsr(pregctx->REG_uiIrp, 0, &abtInfo, ptcbCur);
+        API_VmmAbortIsr(pregctx->REG_uiIrp,
+                        ((abtInfo.VMABT_uiType == LW_VMM_ABORT_TYPE_UNDEF) ? pregctx->REG_uiIrp : 0),
+                        &abtInfo, ptcbCur);
     }
 }
 /*********************************************************************************************************
@@ -330,7 +332,7 @@ static VOID  archIntExcProcess (VOID)
 
     ack_exception(EXCEPT_TYPE_IXF);                                     /*  清除异常                    */
 
-    while (iIntExcReport) {                                             /*  逐一处理异常                */
+    if (iIntExcReport) {                                                /*  TODO: 目前只能处理一个异常  */
         iIntExcNum     = __ffs(iIntExcReport);
         iIntExcReport &= ~(1 << iIntExcNum);
         set_iexcept(iIntExcReport);
@@ -349,8 +351,8 @@ static VOID  archExtExcProcess (VOID)
 {
     INT  iExtExcNum;
 
-    while ((iExtExcNum = bspExtExcGet()) >= 0) {                        /*  BSP 查询异常号              */
-        archExcProcess(&_G_c6xExtExcTbl[iExtExcNum]);
+    if ((iExtExcNum = bspExtExcGet()) >= 0) {                           /*  BSP 查询异常号              */
+        archExcProcess(&_G_c6xExtExcTbl[iExtExcNum]);                   /*  TODO: 目前只能处理一个异常  */
     }
 
     ack_exception(EXCEPT_TYPE_EXC);                                     /*  清除异常                    */
@@ -369,7 +371,8 @@ VOID  archExcHandle (VOID)
     UINT  uiTypeNum;
     UINT  uiIntExcNum = 9;                                              /*  缺省为未知异常              */
 
-    while ((uiExcType = get_except_type()) != 0) {                      /*  异常类型                    */
+    if ((uiExcType = get_except_type()) != 0) {                         /*  异常类型                    */
+                                                                        /*  TODO: 目前只能处理一个异常  */
         uiTypeNum = fls(uiExcType) - 1;                                 /*  获得异常类型号              */
 
         switch (uiTypeNum) {
@@ -399,6 +402,15 @@ VOID  archExcHandle (VOID)
             break;
         }
     }
+
+    /*
+     * TODO: 由于目前只能处理一个异常, 因此最后需要清除各类型异常
+     */
+    ack_exception(EXCEPT_TYPE_NXF);                                     /*  清除各类型异常              */
+    ack_exception(EXCEPT_TYPE_EXC);
+    ack_exception(EXCEPT_TYPE_IXF);
+    ack_exception(EXCEPT_TYPE_SXF);
+    set_iexcept(0);
 }
 /*********************************************************************************************************
   END

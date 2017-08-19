@@ -378,9 +378,8 @@ LW_API
 int  pthread_rwlock_timedrdlock (pthread_rwlock_t *prwlock,
                                  const struct timespec *abs_timeout)
 {
-    ULONG               ulTimeout;
-    ULONG               ulError;
-    struct timespec     tvNow;
+    ULONG   ulTimeout;
+    ULONG   ulError;
     
     if (prwlock == LW_NULL) {
         errno = EINVAL;
@@ -396,14 +395,8 @@ int  pthread_rwlock_timedrdlock (pthread_rwlock_t *prwlock,
     
     __pthread_rwlock_init_invisible(prwlock);
     
-    lib_clock_gettime(CLOCK_REALTIME, &tvNow);                          /*  获得当前系统时间            */
-    if (__timespecLeftTime(&tvNow, abs_timeout)) {
-        ulTimeout = __timespecToTickDiff(&tvNow, abs_timeout);
-    
-    } else {
-        ulTimeout = LW_OPTION_NOT_WAIT;
-    }
-    
+    ulTimeout = LW_TS_TIMEOUT_TICK(LW_FALSE, abs_timeout);              /*  转换超时时间                */
+
     ulError = API_SemaphoreRWPendR(prwlock->PRWLOCK_ulRwLock, ulTimeout);
     if (ulError == ERROR_THREAD_WAIT_TIMEOUT) {
         errno = ETIMEDOUT;
@@ -436,9 +429,8 @@ LW_API
 int  pthread_rwlock_reltimedrdlock_np (pthread_rwlock_t *prwlock,
                                        const struct timespec *rel_timeout)
 {
-    ULONG           ulTimeout;
-    ULONG           ulError = ERROR_NONE;
-    struct timespec tvNow, tvEnd;
+    ULONG   ulTimeout;
+    ULONG   ulError;
 
     if ((rel_timeout == LW_NULL)    || 
         (rel_timeout->tv_nsec <  0) ||
@@ -449,14 +441,7 @@ int  pthread_rwlock_reltimedrdlock_np (pthread_rwlock_t *prwlock,
     
     __pthread_rwlock_init_invisible(prwlock);
     
-    lib_clock_gettime(CLOCK_REALTIME, &tvNow);                          /*  获得当前系统时间            */
-    __timespecAdd2(&tvEnd, &tvNow, rel_timeout);
-    if (__timespecLeftTime(&tvNow, &tvEnd)) {
-        ulTimeout = __timespecToTickDiff(&tvNow, &tvEnd);
-        
-    } else {
-        ulTimeout = LW_OPTION_NOT_WAIT;
-    }
+    ulTimeout = LW_TS_TIMEOUT_TICK(LW_TRUE, rel_timeout);               /*  转换超时时间                */
     
     ulError = API_SemaphoreRWPendR(prwlock->PRWLOCK_ulRwLock, ulTimeout);
     if (ulError == ERROR_THREAD_WAIT_TIMEOUT) {
@@ -552,9 +537,8 @@ LW_API
 int  pthread_rwlock_timedwrlock (pthread_rwlock_t *prwlock,
                                  const struct timespec *abs_timeout)
 {
-    ULONG               ulTimeout;
-    ULONG               ulError;
-    struct timespec     tvNow;
+    ULONG   ulTimeout;
+    ULONG   ulError;
     
     if (prwlock == LW_NULL) {
         errno = EINVAL;
@@ -570,14 +554,8 @@ int  pthread_rwlock_timedwrlock (pthread_rwlock_t *prwlock,
     
     __pthread_rwlock_init_invisible(prwlock);
     
-    lib_clock_gettime(CLOCK_REALTIME, &tvNow);                          /*  获得当前系统时间            */
-    if (__timespecLeftTime(&tvNow, abs_timeout)) {
-        ulTimeout = __timespecToTickDiff(&tvNow, abs_timeout);
-    
-    } else {
-        ulTimeout = LW_OPTION_NOT_WAIT;
-    }
-    
+    ulTimeout = LW_TS_TIMEOUT_TICK(LW_FALSE, abs_timeout);              /*  转换超时时间                */
+
     ulError = API_SemaphoreRWPendW(prwlock->PRWLOCK_ulRwLock, ulTimeout);
     if (ulError == ERROR_THREAD_WAIT_TIMEOUT) {
         errno = ETIMEDOUT;
@@ -610,9 +588,8 @@ LW_API
 int  pthread_rwlock_reltimedwrlock_np (pthread_rwlock_t *prwlock,
                                        const struct timespec *rel_timeout)
 {
-    ULONG           ulTimeout;
-    ULONG           ulError;
-    struct timespec tvNow, tvEnd;
+    ULONG   ulTimeout;
+    ULONG   ulError;
     
     if ((rel_timeout == LW_NULL)    || 
         (rel_timeout->tv_nsec <  0) ||
@@ -623,14 +600,7 @@ int  pthread_rwlock_reltimedwrlock_np (pthread_rwlock_t *prwlock,
     
     __pthread_rwlock_init_invisible(prwlock);
     
-    lib_clock_gettime(CLOCK_REALTIME, &tvNow);                          /*  获得当前系统时间            */
-    __timespecAdd2(&tvEnd, &tvNow, rel_timeout);
-    if (__timespecLeftTime(&tvNow, &tvEnd)) {
-        ulTimeout = __timespecToTickDiff(&tvNow, &tvEnd);
-        
-    } else {
-        ulTimeout = LW_OPTION_NOT_WAIT;
-    }
+    ulTimeout = LW_TS_TIMEOUT_TICK(LW_TRUE, rel_timeout);               /*  转换超时时间                */
     
     ulError = API_SemaphoreRWPendW(prwlock->PRWLOCK_ulRwLock, ulTimeout);
     if (ulError == ERROR_THREAD_WAIT_TIMEOUT) {

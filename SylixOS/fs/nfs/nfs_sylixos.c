@@ -2536,6 +2536,14 @@ static INT  __nfsRename (PLW_FD_ENTRY  pfdentry, PCHAR  pcNewName)
             pcNewPath++;
         }
         
+        if (pnfsfile->NFSFIL_iFileType == __NFS_FILE_TYPE_DIR) {
+            if (_PathMoveCheck(pnfsfile->NFSFIL_cName, pcNewPath)) {    /*  如果时目录项则检查          */
+                __NFS_FILE_UNLOCK(pnfsfile);
+                _ErrorHandle(EINVAL);
+                return  (PX_ERROR);
+            }
+        }
+
         if (__nfsGetDir(pnfsfile->NFSFIL_nfsfs, pnfsfile->NFSFIL_cName, 
                         &handleFromDir, &pcFromFile, LW_NULL)) {
             __NFS_FILE_UNLOCK(pnfsfile);

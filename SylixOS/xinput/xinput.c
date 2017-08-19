@@ -378,7 +378,6 @@ static void  *xinput_scan (void *arg)
     fd_set                 fdset;
     int                    width;
     int                    ret;
-    struct timeval         timeval = {XINPUT_SEL_TO, 0};
 
     keyboard_event_notify  knotify;
     mouse_event_notify     mnotify[MAX_INPUT_POINTS];
@@ -408,7 +407,7 @@ static void  *xinput_scan (void *arg)
         }
         width += 1;
 
-        ret = select(width, &fdset, LW_NULL, LW_NULL, &timeval);
+        ret = select(width, &fdset, LW_NULL, LW_NULL, LW_NULL); /* no timeout needed */
         if (ret < 0) {
             xdev_close_all();
 
@@ -420,7 +419,7 @@ static void  *xinput_scan (void *arg)
             continue;
 
         } else if (ret == 0) {
-            continue; /* select timeout or EINTR */
+            continue; /* EINTR */
 
         } else {
             ssize_t temp;

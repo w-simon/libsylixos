@@ -671,9 +671,8 @@ int  pthread_mutex_trylock (pthread_mutex_t  *pmutex)
 LW_API 
 int  pthread_mutex_timedlock (pthread_mutex_t  *pmutex, const struct timespec *abs_timeout)
 {
-    ULONG               ulTimeout;
-    ULONG               ulError;
-    struct timespec     tvNow;
+    ULONG   ulTimeout;
+    ULONG   ulError;
     
     if ((abs_timeout == LW_NULL)    || 
         (abs_timeout->tv_nsec <  0) ||
@@ -684,14 +683,8 @@ int  pthread_mutex_timedlock (pthread_mutex_t  *pmutex, const struct timespec *a
     
     __pthread_mutex_init_invisible(pmutex);
     
-    lib_clock_gettime(CLOCK_REALTIME, &tvNow);                          /*  获得当前系统时间            */
-    if (__timespecLeftTime(&tvNow, abs_timeout)) {
-        ulTimeout = __timespecToTickDiff(&tvNow, abs_timeout);
-    
-    } else {
-        ulTimeout = LW_OPTION_NOT_WAIT;
-    }
-    
+    ulTimeout = LW_TS_TIMEOUT_TICK(LW_FALSE, abs_timeout);              /*  转换超时时间                */
+
     ulError = API_SemaphoreMPend(pmutex->PMUTEX_ulMutex, ulTimeout);
     if (ulError == ERROR_THREAD_WAIT_TIMEOUT) {
         errno = ETIMEDOUT;
@@ -723,9 +716,8 @@ int  pthread_mutex_timedlock (pthread_mutex_t  *pmutex, const struct timespec *a
 LW_API 
 int  pthread_mutex_reltimedlock_np (pthread_mutex_t  *pmutex, const struct timespec *rel_timeout)
 {
-    ULONG               ulTimeout;
-    ULONG               ulError;
-    struct timespec     tvNow, tvEnd;
+    ULONG   ulTimeout;
+    ULONG   ulError;
     
     if ((rel_timeout == LW_NULL)    || 
         (rel_timeout->tv_nsec <  0) ||
@@ -736,14 +728,7 @@ int  pthread_mutex_reltimedlock_np (pthread_mutex_t  *pmutex, const struct times
     
     __pthread_mutex_init_invisible(pmutex);
     
-    lib_clock_gettime(CLOCK_REALTIME, &tvNow);                          /*  获得当前系统时间            */
-    __timespecAdd2(&tvEnd, &tvNow, rel_timeout);
-    if (__timespecLeftTime(&tvNow, &tvEnd)) {
-        ulTimeout = __timespecToTickDiff(&tvNow, &tvEnd);
-        
-    } else {
-        ulTimeout = LW_OPTION_NOT_WAIT;
-    }
+    ulTimeout = LW_TS_TIMEOUT_TICK(LW_TRUE, rel_timeout);               /*  转换超时时间                */
     
     ulError = API_SemaphoreMPend(pmutex->PMUTEX_ulMutex, ulTimeout);
     if (ulError == ERROR_THREAD_WAIT_TIMEOUT) {

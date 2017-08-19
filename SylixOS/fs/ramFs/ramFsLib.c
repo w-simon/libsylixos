@@ -691,6 +691,26 @@ VOID  __ram_close (PRAM_NODE  pramn, INT  iFlag)
     }
 }
 /*********************************************************************************************************
+** 函数名称: __ram_move_check
+** 功能描述: ramfs 检查第二个节点是否为第一个节点的子孙
+** 输　入  : pramn1        第一个节点
+**           pramn2        第二个节点
+** 输　出  : ERROR
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __ram_move_check (PRAM_NODE  pramn1, PRAM_NODE  pramn2)
+{
+    do {
+        if (pramn1 == pramn2) {
+            return  (PX_ERROR);
+        }
+        pramn2 = pramn2->RAMN_pramnFather;
+    } while (pramn2);
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: __ram_move
 ** 功能描述: ramfs 移动或者重命名一个文件
 ** 输　入  : pramn            文件节点
@@ -724,6 +744,13 @@ INT  __ram_move (PRAM_NODE  pramn, PCHAR  pcNewName)
         return  (PX_ERROR);
     }
     
+    if (S_ISDIR(pramn->RAMN_mode)) {
+        if (__ram_move_check(pramn, pramnTemp)) {                       /*  检查目录合法性              */
+            _ErrorHandle(EINVAL);
+            return  (PX_ERROR);
+        }
+    }
+
     if (pramnFather != pramnNewFather) {                                /*  目录发生改变                */
         if (pramnFather) {
             _List_Line_Del(&pramn->RAMN_lineBrother, 

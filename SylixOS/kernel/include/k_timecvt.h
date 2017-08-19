@@ -195,15 +195,6 @@ static LW_INLINE INT  __timespecLeftTime (const struct timespec  *ptv1, const st
 }
 
 /*********************************************************************************************************
-  POSIX TIME diffirents to tick
-*********************************************************************************************************/
-
-ULONG  __timevalToTickDiff(const struct timeval  *ptvS, const struct timeval  *ptvE);
-INT64  __timevalToTickDiff64(const struct timeval  *ptvS, const struct timeval  *ptvE);
-ULONG  __timespecToTickDiff(const struct timespec  *ptvS, const struct timespec  *ptvE);
-INT64  __timespecToTickDiff64(const struct timespec  *ptvS, const struct timespec  *ptvE);
-
-/*********************************************************************************************************
   Macros for converting between `struct timeval' and `struct timespec'.
 *********************************************************************************************************/
 
@@ -216,6 +207,18 @@ INT64  __timespecToTickDiff64(const struct timespec  *ptvS, const struct timespe
         (tv)->tv_sec  = (ts)->tv_sec;           \
         (tv)->tv_usec = (ts)->tv_nsec / 1000;   \
 }
+
+/*********************************************************************************************************
+  POSIX timeout to tick
+*********************************************************************************************************/
+
+#ifndef __TIMECVT_MAIN_FILE
+extern ULONG  (*_K_pfuncTimespecTimeoutTick)();
+extern INT64  (*_K_pfuncTimespecTimeoutTick64)();
+#endif
+
+#define LW_TS_TIMEOUT_TICK(bRel, ptv)       _K_pfuncTimespecTimeoutTick(bRel, ptv)
+#define LW_TS_TIMEOUT_TICK64(bRel, ptv)     _K_pfuncTimespecTimeoutTick64(bRel, ptv)
 
 #endif                                                                  /*  __K_TIMECVT_H               */
 /*********************************************************************************************************

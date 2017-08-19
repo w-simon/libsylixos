@@ -336,9 +336,8 @@ int  pthread_cond_timedwait (pthread_cond_t         *pcond,
                              pthread_mutex_t        *pmutex,
                              const struct timespec  *abs_timeout)
 {
-    ULONG               ulTimeout;
-    ULONG               ulError;
-    struct timespec     tvNow;
+    ULONG   ulTimeout;
+    ULONG   ulError;
     
     if ((pcond == LW_NULL) || (pmutex == LW_NULL)) {
         errno = EINVAL;
@@ -355,14 +354,8 @@ int  pthread_cond_timedwait (pthread_cond_t         *pcond,
     __pthread_cond_init_invisible(pcond);
     __pthread_mutex_init_invisible(pmutex);
     
-    lib_clock_gettime(CLOCK_REALTIME, &tvNow);                          /*  获得当前系统时间            */
-    if (__timespecLeftTime(&tvNow, abs_timeout)) {
-        ulTimeout = __timespecToTickDiff(&tvNow, abs_timeout);
-    
-    } else {
-        ulTimeout = LW_OPTION_NOT_WAIT;
-    }
-    
+    ulTimeout = LW_TS_TIMEOUT_TICK(LW_FALSE, abs_timeout);              /*  转换超时时间                */
+
     ulError = API_ThreadCondWait(pcond, pmutex->PMUTEX_ulMutex, ulTimeout);
     if (ulError == ERROR_THREAD_WAIT_TIMEOUT) {
         errno = ETIMEDOUT;
@@ -396,9 +389,8 @@ int  pthread_cond_reltimedwait_np (pthread_cond_t         *pcond,
                                    pthread_mutex_t        *pmutex,
                                    const struct timespec  *rel_timeout)
 {
-    ULONG               ulTimeout;
-    ULONG               ulError;
-    struct timespec     tvNow, tvEnd;
+    ULONG   ulTimeout;
+    ULONG   ulError;
     
     if ((pcond == LW_NULL) || (pmutex == LW_NULL)) {
         errno = EINVAL;
@@ -415,14 +407,7 @@ int  pthread_cond_reltimedwait_np (pthread_cond_t         *pcond,
     __pthread_cond_init_invisible(pcond);
     __pthread_mutex_init_invisible(pmutex);
     
-    lib_clock_gettime(CLOCK_REALTIME, &tvNow);                          /*  获得当前系统时间            */
-    __timespecAdd2(&tvEnd, &tvNow, rel_timeout);
-    if (__timespecLeftTime(&tvNow, &tvEnd)) {
-        ulTimeout = __timespecToTickDiff(&tvNow, &tvEnd);
-        
-    } else {
-        ulTimeout = LW_OPTION_NOT_WAIT;
-    }
+    ulTimeout = LW_TS_TIMEOUT_TICK(LW_TRUE, rel_timeout);               /*  转换超时时间                */
     
     ulError = API_ThreadCondWait(pcond, pmutex->PMUTEX_ulMutex, ulTimeout);
     if (ulError == ERROR_THREAD_WAIT_TIMEOUT) {

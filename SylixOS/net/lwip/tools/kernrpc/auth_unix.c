@@ -193,6 +193,7 @@ authunix_create_default (void)
     }
 #else
 #define ALLOCA_LIMIT 0
+  gid_t *gids = NULL;
   gids = (gid_t *) malloc (max_nr_groups * sizeof (gid_t));
   if (gids == NULL)
 	return NULL;

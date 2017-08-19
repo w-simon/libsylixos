@@ -70,6 +70,8 @@
                                                                         /*         ITIMER_VIRTUAL       */
                                                                         /*         ITIMER_PROF          */
                                                                         /*  提高 tick 中断执行速度      */
+#define LW_KERN_FLAG_TMCVT_SIMPLE   0x20                                /*  timespec 转换为 tick 方法   */
+
 /*********************************************************************************************************
   内核是否支持浮点状态
 *********************************************************************************************************/
@@ -141,6 +143,20 @@
             }                                               \
         } while (0)
 #define LW_KERN_NO_ITIMER_EN_GET()  (_K_ulKernFlags & LW_KERN_FLAG_NO_ITIMER)
+
+/*********************************************************************************************************
+  timespec 转换为 tick 超时方法 (SIMPLE 速度快精度会损失一个 tick)
+*********************************************************************************************************/
+
+#define LW_KERN_TMCVT_SIMPLE_EN_SET(en)                         \
+        do {                                                    \
+            if (en) {                                           \
+                _K_ulKernFlags |= LW_KERN_FLAG_TMCVT_SIMPLE;    \
+            } else {                                            \
+                _K_ulKernFlags &= ~LW_KERN_FLAG_TMCVT_SIMPLE;   \
+            }                                                   \
+        } while (0)
+#define LW_KERN_TMCVT_SIMPLE_EN_GET()  (_K_ulKernFlags & LW_KERN_FLAG_TMCVT_SIMPLE)
 
 /*********************************************************************************************************
   系统状态

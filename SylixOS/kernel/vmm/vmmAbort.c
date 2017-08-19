@@ -794,7 +794,7 @@ static VOID  __vmmAbortKill (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
     
 #if LW_CFG_SIGNAL_EN > 0
-    _BugHandle((_ObjectGetIndex(pvmpagefailctx->PAGEFCTX_ptcb->TCB_ulCPUId) < LW_NCPUS),
+    _BugHandle((_ObjectGetIndex(pvmpagefailctx->PAGEFCTX_ptcb->TCB_ulId) < LW_NCPUS),
                LW_TRUE, "idle thread serious error!\r\n");
 
     switch (__PAGEFAILCTX_ABORT_TYPE(pvmpagefailctx)) {                 /*  分析异常类型                */
@@ -846,7 +846,7 @@ static VOID  __vmmAbortKill (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
     sigeventAbort.sigev_value.sival_ptr = (PVOID)pvmpagefailctx->PAGEFCTX_ulAbortAddr;
     sigeventAbort.sigev_notify          = SIGEV_SIGNAL;
     
-    _doSigEvent(pvmpagefailctx->PAGEFCTX_ptcb->TCB_ulCPUId, &sigeventAbort, iSigCode);
+    _doSigEvent(pvmpagefailctx->PAGEFCTX_ptcb->TCB_ulId, &sigeventAbort, iSigCode);
     
     if (__KERNEL_ISENTER()) {                                           /*  内核状态下出现严重错误      */
         API_KernelReboot(LW_REBOOT_FORCE);                              /*  直接重新启动操作系统        */
@@ -892,7 +892,7 @@ static VOID  __vmmAbortAccess (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
     
     case LW_VMM_ABORT_TYPE_UNDEF:
         printk(KERN_EMERG "thread 0x%lx undefine-instruction, abt_addr: 0x%08lx.\n",
-               pvmpagefailctx->PAGEFCTX_ptcb->TCB_ulCPUId,
+               pvmpagefailctx->PAGEFCTX_ptcb->TCB_ulId,
                pvmpagefailctx->PAGEFCTX_ulAbortAddr);                   /*  操作异常                    */
         break;
         
@@ -907,7 +907,7 @@ static VOID  __vmmAbortAccess (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
         }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
         printk(KERN_EMERG "thread 0x%lx FPU exception, abt_addr: 0x%08lx.\n",
-               pvmpagefailctx->PAGEFCTX_ptcb->TCB_ulCPUId,
+               pvmpagefailctx->PAGEFCTX_ptcb->TCB_ulId,
                pvmpagefailctx->PAGEFCTX_ulAbortAddr);                   /*  操作异常                    */
         break;
         
@@ -916,7 +916,7 @@ static VOID  __vmmAbortAccess (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
         archTaskCtxShow(ioGlobalStdGet(STD_ERR), (PLW_STACK)pvmpagefailctx->PAGEFCTX_pvStackRet);
 #endif
         printk(KERN_EMERG "thread 0x%lx abort, ret_addr: 0x%08lx abt_addr: 0x%08lx abt_type: %s.\n",
-               pvmpagefailctx->PAGEFCTX_ptcb->TCB_ulCPUId,
+               pvmpagefailctx->PAGEFCTX_ptcb->TCB_ulId,
                pvmpagefailctx->PAGEFCTX_ulRetAddr,
                pvmpagefailctx->PAGEFCTX_ulAbortAddr, 
                __vmmAbortTypeStr(&pvmpagefailctx->PAGEFCTX_abtInfo));   /*  操作异常                    */

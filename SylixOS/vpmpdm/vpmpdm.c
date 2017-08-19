@@ -279,8 +279,8 @@ void __vp_patch_ctor (void *pvproc, PVOIDFUNCPTR *ppfuncMalloc, VOIDFUNCPTR *ppf
  */
 void __vp_patch_dtor (void *pvproc)
 {
-#if LW_CFG_VMM_EN > 0
     int i;
+
     if (ctx.alloc_en) {
         VP_MEM_DTOR(&ctx.heap);
         for (i = 0; i < MAX_MEM_BLKS; i++) {
@@ -294,7 +294,6 @@ void __vp_patch_dtor (void *pvproc)
             }
         }
     }
-#endif /* LW_CFG_VMM_EN > 0 */
 
     if (ctx.locker) {
         API_SemaphoreMDelete(&ctx.locker);
