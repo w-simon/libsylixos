@@ -59,8 +59,8 @@ LW_API
 int  backtrace (void **array, int size)
 {
     INT                 iCnt     = 0;
-    ULONG              *pulEnd   = getEndStack();
-    ULONG              *pulBegin = (ULONG *)archStackPointerGet();
+    ULONG              *pulEnd   = getEndStack();                       /*  获得栈顶                    */
+    ULONG              *pulBegin = (ULONG *)archStackPointerGet();      /*  获得当前栈指针              */
     ULONG               ulValue;
 #if LW_CFG_MODULELOADER_EN > 0
     INT                 i;
@@ -71,56 +71,71 @@ int  backtrace (void **array, int size)
     LW_LD_EXEC_SEGMENT *psegment;
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 
-    extern CHAR         __text[];
-    extern CHAR         __etext[];
+    extern CHAR         __text[];                                       /*  内核代码段开始              */
+    extern CHAR         __etext[];                                      /*  内核代码段结束              */
+
+    addr_t              ulFiterBase = (addr_t)array;                    /*  将会跳过 array 数组         */
+    addr_t              ulFiterEnd  = (addr_t)array + size * sizeof(void *);
 
 #if LW_CFG_MODULELOADER_EN > 0
-    if (getpid() == 0) {
+    if (getpid() == 0) {                                                /*  内核线程                    */
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
-        while (pulBegin <= pulEnd) {
+        while ((pulBegin <= pulEnd) && (iCnt < size)) {                 /*  分析栈                      */
+            if (((addr_t)pulBegin >= ulFiterBase) && ((addr_t)pulBegin < ulFiterEnd)) {
+                pulBegin = (ULONG *)ulFiterEnd;                         /*  跳过 array 数组             */
+                continue;
+            }
+
             ulValue = *pulBegin++;
             if ((ulValue >= (ULONG)__text) && (ulValue < (ULONG)__etext)) {
-                array[iCnt++] = (VOID *)ulValue;
+                array[iCnt++] = (VOID *)ulValue;                        /*  落在内核代码段              */
             }
         }
 
 #if LW_CFG_MODULELOADER_EN > 0
     } else {
-        pvproc = vprocGetCur();
+        pvproc = vprocGetCur();                                         /*  获得当前 vproc              */
 
-        LW_VP_LOCK(pvproc);
+        LW_VP_LOCK(pvproc);                                             /*  vproc 加锁                  */
 
-        while (pulBegin <= pulEnd) {
-__next:
-            ulValue = *pulBegin++;
-
-            if ((ulValue >= (ULONG)__text) && (ulValue < (ULONG)__etext)) {
-                array[iCnt++] = (VOID *)ulValue;
+        while ((pulBegin <= pulEnd) && (iCnt < size)) {                 /*  分析栈                      */
+            if (((addr_t)pulBegin >= ulFiterBase) && ((addr_t)pulBegin < ulFiterEnd)) {
+                pulBegin = (ULONG *)ulFiterEnd;                         /*  跳过 array 数组             */
                 continue;
             }
 
-            for (pringTemp  = pvproc->VP_ringModules, bStart = LW_TRUE;
+            ulValue = *pulBegin++;
+
+            if ((ulValue >= (ULONG)__text) && (ulValue < (ULONG)__etext)) {
+                array[iCnt++] = (VOID *)ulValue;                        /*  落在内核代码段              */
+                continue;
+            }
+
+            for (pringTemp  = pvproc->VP_ringModules, bStart = LW_TRUE; /*  遍历每一个 module           */
                  pringTemp && (pringTemp != pvproc->VP_ringModules || bStart);
                  pringTemp  = _list_ring_get_next(pringTemp), bStart = LW_FALSE) {
 
                 pmodTemp = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);
-                psegment = pmodTemp->EMOD_psegmentArry;
+                psegment = pmodTemp->EMOD_psegmentArry;                 /*  遍历 module 的每一个 segment*/
                 for (i = 0; i < pmodTemp->EMOD_ulSegCount; i++, psegment++) {
-                    if (psegment->ESEG_stLen == 0) {
+                    if (psegment->ESEG_stLen == 0) {                    /*  segment 有效                */
                         continue;
                     }
-                    if (psegment->ESEG_bCanExec) {
+                    if (psegment->ESEG_bCanExec) {                      /*  segment 能执行              */
                         if ((ulValue >= psegment->ESEG_ulAddr) &&
                             (ulValue < (psegment->ESEG_ulAddr + psegment->ESEG_stLen))) {
-                            array[iCnt++] = (VOID *)ulValue;
-                            goto    __next;
+                            array[iCnt++] = (VOID *)ulValue;            /*  落在该 segment              */
+                            goto    __next;                             /*  跳出两重 for 循环           */
                         }
                     }
                 }
             }
+
+__next:
+            continue;
         }
 
-        LW_VP_UNLOCK(pvproc);
+        LW_VP_UNLOCK(pvproc);                                           /*  vproc 解锁                  */
     }
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 
