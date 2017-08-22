@@ -426,8 +426,8 @@ UINT  sleep (UINT    uiSeconds)
     __timeGetHighResolution(&tsStart);
     if (API_TimeSleepEx(ulTick, LW_TRUE) == EINTR) {
         __timeGetHighResolution(&tsEnd);
-        if (tsEnd.tv_sec > tsStart.tv_sec) {
-            uiPass = (UINT)(tsEnd.tv_sec > tsStart.tv_sec);
+        if (tsEnd.tv_sec >= tsStart.tv_sec) {
+            uiPass = (UINT)(tsEnd.tv_sec - tsStart.tv_sec);
             if (uiPass < uiSeconds) {
                 return  (uiSeconds - uiPass);
             }

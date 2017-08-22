@@ -89,6 +89,7 @@ char  *lib_strtok(char *s, const char *delim);
 char  *lib_strtok_r(char *s, const char *delim, char **last);
 size_t lib_strxfrm(char *s1, const char *s2, size_t n);
 void   lib_swab(const void *from, void *to, size_t len);
+char  *lib_strsep(char **s, const char *ct);
 
 #define lib_strcoll         lib_strcmp                                  /*  Ä¬ÈÏµÈÍ¬ lib_strcmp         */
 

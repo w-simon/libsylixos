@@ -340,6 +340,7 @@ __LW_RETU_FUNC_DEFINE(int, strcoll, (const char *pcStr1, const char *pcStr2), (p
 __LW_RETU_FUNC_DEFINE(size_t, strxfrm, (char *s1, const char *s2, size_t n), (s1, s2, n))
 
 __LW_VOID_FUNC_DEFINE(swab, (const void *from, void *to, size_t len), (from, to, len))
+__LW_RETU_FUNC_DEFINE(char *, strsep, (char **s, const char *ct), (s, ct))
 
 void *memmove (void *pvDest, const void *pvSrc, size_t stCount)
 {

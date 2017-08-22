@@ -10,37 +10,42 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: lib_strpbrk.c
+** 文   件   名: lib_strsep.c
 **
 ** 创   建   人: Han.Hui (韩辉)
 **
-** 文件创建日期: 2007 年 02 月 13 日
+** 文件创建日期: 2017 年 08 月 22 日
 **
 ** 描        述: 库
 *********************************************************************************************************/
 #include "../SylixOS/kernel/include/k_kernel.h"
 /*********************************************************************************************************
-** 函数名称: lib_strpbrk
-** 功能描述: 
-** 输　入  : 
-** 输　出  : 
-** 全局变量: 
-** 调用模块: 
+** 函数名称: lib_strsep
+** 功能描述: Split a string into tokens
+** 输　入  : s     The string to be searched
+**           ct    The characters to search for
+** 输　出  : It returns empty tokens, too, behaving exactly like the libc function
+             of that name. In fact, it was stolen from glibc2 and de-fancy-fied.
+             Same semantics, slimmer shape. ;)
+** 全局变量:
+** 调用模块:
 *********************************************************************************************************/
-PCHAR  lib_strpbrk (CPCHAR  cpcS1, CPCHAR  cpcS2)
+char *lib_strsep (char **s, const char *ct)
 {
-    const char *scanp;
-    int         c, sc;
+    char *sbegin = *s;
+    char *end;
 
-    while ((c = *cpcS1++) != 0) {
-        for (scanp = cpcS2; (sc = *scanp++) != 0;) {
-            if (sc == c) {
-                return ((char *)(cpcS1 - 1));
-            }
-        }
+    if (sbegin == LW_NULL) {
+        return  (NULL);
     }
 
-    return  (LW_NULL);
+    end = lib_strpbrk(sbegin, ct);
+    if (end) {
+        *end++ = '\0';
+    }
+    *s = end;
+
+    return  (sbegin);
 }
 /*********************************************************************************************************
   END

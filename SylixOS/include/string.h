@@ -100,6 +100,7 @@ __LW_RETU_FUNC_DECLARE(char *, strtok_r, (char *s, const char *delim, char **las
 __LW_RETU_FUNC_DECLARE(int, strcoll, (const char *pcStr1, const char *pcStr2))
 __LW_RETU_FUNC_DECLARE(size_t, strxfrm, (char *s1, const char *s2, size_t n))
 __LW_RETU_FUNC_DECLARE(void, swab, (const void *from, void *to, size_t len))
+__LW_RETU_FUNC_DECLARE(char *, strsep, (char **s, const char *ct))
 
 __LW_RETU_FUNC_DECLARE(void *, memmove, (void *pvDest, const void *pvSrc, size_t stCount))
 
