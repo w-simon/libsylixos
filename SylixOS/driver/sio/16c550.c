@@ -304,12 +304,16 @@ static INT  sio16c550CheckBaud (UINT32 baud, size_t *idx)
 *********************************************************************************************************/
 static INT  sio16c550GetBasePort (UINT16 iobase, UINT8 *key, UINT8 *index)
 {
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE(x)   (sizeof(x) / sizeof((x)[0]))
+#endif
+
     static const UINT16 addr[] = {0x4e, 0x2e};
     static const UINT8  keys[] = {0x77, 0xa0, 0x87, 0x67};
                  INT    i, j, k;
 
-    for (i = 0; i < sizeof(addr); i++) {
-        for (j = 0; j < sizeof(keys); j++) {
+    for (i = 0; i < ARRAY_SIZE(addr); i++) {
+        for (j = 0; j < ARRAY_SIZE(keys); j++) {
             if (sio16c550EnterKey(addr[i], keys[j])) {
                 continue;
             }
