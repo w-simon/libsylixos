@@ -55,6 +55,14 @@ VOID  archKernelParam (CPCHAR  pcParam)
                     pcParam + 8,
                     sizeof(_G_x86Param.X86_cConsoleDev));               /*  记录控制台设备              */
         *lib_strchr(_G_x86Param.X86_cConsoleDev, ' ') = '\0';
+
+    } else if (lib_strncmp(pcParam, "hpet=", 5) == 0) {
+        if (pcParam[5] == 'y') {                                        /*  使用HPET作为TICK定时器      */
+            _G_x86Param.X86_bUseHpet = LW_TRUE;
+
+        } else {
+            _G_x86Param.X86_bUseHpet = LW_FALSE;
+        }
     }
 }
 /*********************************************************************************************************

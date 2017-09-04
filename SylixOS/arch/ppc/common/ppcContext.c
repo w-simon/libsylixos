@@ -70,7 +70,8 @@ PLW_STACK  archTaskCtxCreate (PTHREAD_START_ROUTINE  pfuncTask,
 #define ARCH_PPC_MSR_DS             0x00000010                          /*  data address space selector */
 
         uiSrr1 |=  ARCH_PPC_MSR_EE;                                     /*  使能中断                    */
-        uiSrr1 &= ~ARCH_PPC_MSR_SPE;                                    /*  禁能 SPE                    */
+        uiSrr1 &= ~ARCH_PPC_MSR_SPE;                                    /*  禁能 SPE(E6500 时为 ALTIVEC)*/
+        uiSrr1 &= ~ARCH_PPC_MSR_FP;                                     /*  禁能 FPU(E500mc E5500 E6500)*/
         uiSrr1 &= ~(ARCH_PPC_MSR_IS | ARCH_PPC_MSR_DS);                 /*  使用地址空间 0              */
 
 #undef  ARCH_PPC_MSR_SPE

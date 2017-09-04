@@ -79,6 +79,31 @@
 #define LW_MODULE_GCOV                  "module_gcov"
 
 /*********************************************************************************************************
+  DSP C6x 析构
+  注意: DSP 编译器构造与析构函数均不能为 static, 不支持 __attribute__((destructor))
+        所以库的析构函数必须在函数定义之后加上 LW_DSP_C6X_DTOR(func); 定义.
+*********************************************************************************************************/
+
+#ifdef LW_CFG_CPU_ARCH_C6X
+#define LW_CONSTRUCTOR_BEGIN    \
+        __attribute__((constructor))
+#define LW_CONSTRUCTOR_END(f)
+
+#define LW_DESTRUCTOR_BEGIN
+#define LW_DESTRUCTOR_END(f)    \
+        __attribute__((section(".fini_array"))) void *__$$_c6x_dsp_lib_##func##_dtor = (void *)func;
+
+#else
+#define LW_CONSTRUCTOR_BEGIN    \
+        __attribute__((constructor)) static
+#define LW_CONSTRUCTOR_END(f)
+
+#define LW_DESTRUCTOR_BEGIN     \
+        __attribute__((destructor)) static
+#define LW_DESTRUCTOR_END(f)
+#endif
+
+/*********************************************************************************************************
   注册和解除注册内核模块
 *********************************************************************************************************/
 

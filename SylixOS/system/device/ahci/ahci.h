@@ -971,7 +971,7 @@ typedef enum {
     AHCI_CMD_FLAG_BLK_READ     = 0x0040,
     AHCI_CMD_FLAG_BLK_WRITE    = 0x0080,
     AHCI_CMD_FLAG_TRIM         = 0x0100,
-    AHCI_CMD_FLAG_CACHE        = 0x0200,
+    AHCI_CMD_FLAG_CACHE        = 0x0200
 } AHCI_CMD_FLAG;
 /*********************************************************************************************************
   AHCI 命令控制块
@@ -1174,34 +1174,53 @@ typedef struct ahci_dev_cb {
 } AHCI_DEV_CB;
 typedef AHCI_DEV_CB    *AHCI_DEV_HANDLE;
 /*********************************************************************************************************
+  驱动管理控制器控制块
+*********************************************************************************************************/
+typedef struct {
+    LW_LIST_LINE        AHCIDCB_lineDrvCtrlNode;                        /* 控制器节点管理               */
+    AHCI_CTRL_HANDLE    AHCIDCB_hDrvCtrlHandle;                         /* 控制器句柄                   */
+} AHCI_DRV_CTRL_CB;
+typedef AHCI_DRV_CTRL_CB       *AHCI_DRV_CTRL_HANDLE;
+/*********************************************************************************************************
   驱动控制块
 *********************************************************************************************************/
 typedef struct ahci_drv_cb {
-    LW_LIST_LINE        AHCIDRV_lineDrvNode;                            /* 驱动管理节点                 */
+    LW_LIST_LINE            AHCIDRV_lineDrvNode;                        /* 驱动管理节点                 */
 
-    CHAR                AHCIDRV_cDrvName[AHCI_DRV_NAME_MAX];            /* 驱动名称                     */
-    UINT32              AHCIDRV_uiDrvVer;                               /* 驱动版本                     */
+    CHAR                    AHCIDRV_cDrvName[AHCI_DRV_NAME_MAX];        /* 驱动名称                     */
+    UINT32                  AHCIDRV_uiDrvVer;                           /* 驱动版本                     */
 
-    AHCI_CTRL_HANDLE    AHCIDRV_hCtrl;                                  /* 控制器器句柄                 */
+    AHCI_CTRL_HANDLE        AHCIDRV_hCtrl;                              /* 控制器器句柄                 */
 
-    INT                 (*AHCIDRV_pfuncOptCtrl)(AHCI_CTRL_HANDLE hCtrl, UINT uiDrive,
-                                                INT iCmd, LONG lArg);
-    INT                 (*AHCIDRV_pfuncVendorDriveInfoShow)(AHCI_CTRL_HANDLE hCtrl, UINT uiDrive,
-                                                            AHCI_PARAM_HANDLE hParam);
-    PCHAR               (*AHCIDRV_pfuncVendorDriveRegNameGet)(AHCI_DRIVE_HANDLE hDrive, UINT32 uiOffset);
-    INT                 (*AHCIDRV_pfuncVendorDriveInit)(AHCI_DRIVE_HANDLE hDrive);
-    INT                 (*AHCIDRV_pfuncVendorCtrlInfoShow)(AHCI_CTRL_HANDLE hCtrl);
-    PCHAR               (*AHCIDRV_pfuncVendorCtrlRegNameGet)(AHCI_CTRL_HANDLE hCtrl, UINT32 uiOffset);
-    PCHAR               (*AHCIDRV_pfuncVendorCtrlTypeNameGet)(AHCI_CTRL_HANDLE hCtrl);
-    INT                 (*AHCIDRV_pfuncVendorCtrlIntEnable)(AHCI_CTRL_HANDLE hCtrl);
-    INT                 (*AHCIDRV_pfuncVendorCtrlIntConnect)(AHCI_CTRL_HANDLE hCtrl,
-                                                             PINT_SVR_ROUTINE pfuncIsr, CPCHAR cpcName);
-    INT                 (*AHCIDRV_pfuncVendorCtrlInit)(AHCI_CTRL_HANDLE hCtrl);
-    INT                 (*AHCIDRV_pfuncVendorCtrlReadyWork)(AHCI_CTRL_HANDLE hCtrl);
-    INT                 (*AHCIDRV_pfuncVendorPlatformInit)(AHCI_CTRL_HANDLE hCtrl);
-    INT                 (*AHCIDRV_pfuncVendorDrvReadyWork)(struct ahci_drv_cb *hDrv);
+    INT                     (*AHCIDRV_pfuncOptCtrl)(AHCI_CTRL_HANDLE hCtrl, UINT uiDrive,
+                                                    INT iCmd, LONG lArg);
+    INT                     (*AHCIDRV_pfuncVendorDriveInfoShow)(AHCI_CTRL_HANDLE hCtrl, UINT uiDrive,
+                                                                AHCI_PARAM_HANDLE hParam);
+    PCHAR                   (*AHCIDRV_pfuncVendorDriveRegNameGet)(AHCI_DRIVE_HANDLE hDrive,
+                                                                  UINT32 uiOffset);
+    INT                     (*AHCIDRV_pfuncVendorDriveInit)(AHCI_DRIVE_HANDLE hDrive);
+    INT                     (*AHCIDRV_pfuncVendorCtrlInfoShow)(AHCI_CTRL_HANDLE hCtrl);
+    PCHAR                   (*AHCIDRV_pfuncVendorCtrlRegNameGet)(AHCI_CTRL_HANDLE hCtrl, UINT32 uiOffset);
+    PCHAR                   (*AHCIDRV_pfuncVendorCtrlTypeNameGet)(AHCI_CTRL_HANDLE hCtrl);
+    INT                     (*AHCIDRV_pfuncVendorCtrlIntEnable)(AHCI_CTRL_HANDLE hCtrl);
+    INT                     (*AHCIDRV_pfuncVendorCtrlIntConnect)(AHCI_CTRL_HANDLE hCtrl,
+                                                                 PINT_SVR_ROUTINE pfuncIsr,
+                                                                 CPCHAR cpcName);
+    INT                     (*AHCIDRV_pfuncVendorCtrlInit)(AHCI_CTRL_HANDLE hCtrl);
+    INT                     (*AHCIDRV_pfuncVendorCtrlReadyWork)(AHCI_CTRL_HANDLE hCtrl);
+    INT                     (*AHCIDRV_pfuncVendorPlatformInit)(AHCI_CTRL_HANDLE hCtrl);
+    INT                     (*AHCIDRV_pfuncVendorDrvReadyWork)(struct ahci_drv_cb *hDrv);
+
+    INT                     (*AHCIDRV_pfuncCtrlProbe)(AHCI_CTRL_HANDLE hCtrl);
+    VOID                    (*AHCIDRV_pfuncCtrlRemove)(AHCI_CTRL_HANDLE hCtrl);
+
+#define AHCI_DRV_FLAG_MASK      0xffff                                  /*  掩码                        */
+#define AHCI_DRV_FLAG_ACTIVE    0x01                                    /*  是否激活                    */
+    INT                     AHCIDRV_iDrvFlag;                           /* 驱动标志                     */
+    UINT32                  AHCIDRV_uiDrvCtrlNum;                       /* 关联控制器数                 */
+    LW_LIST_LINE_HEADER     AHCIDRV_plineDrvCtrlHeader;                 /* 控制器管理链表头             */
 } AHCI_DRV_CB;
-typedef AHCI_DRV_CB      *AHCI_DRV_HANDLE;
+typedef AHCI_DRV_CB    *AHCI_DRV_HANDLE;
 /*********************************************************************************************************
   函数声明
 *********************************************************************************************************/

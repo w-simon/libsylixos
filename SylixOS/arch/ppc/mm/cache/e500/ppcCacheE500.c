@@ -63,19 +63,6 @@ extern VOID     ppcE500BranchPredictorInvalidate(VOID);
 extern UINT32   ppcE500CacheGetL1CFG0(VOID);
 extern UINT32   ppcE500CacheGetL1CFG1(VOID);
 /*********************************************************************************************************
-** 函数名称: ppcE500DCacheClearAll
-** 功能描述: 回写并无效所有的 D-CACHE
-** 输　入  : NONE
-** 输　出  : NONE
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-static VOID     ppcE500DCacheClearAll (VOID)
-{
-    ppcE500DCacheFlushAll();
-    ppcE500DCacheInvalidateAll();
-}
-/*********************************************************************************************************
 ** 函数名称: ppcE500CacheProbe
 ** 功能描述: CACHE 探测
 ** 输　入  : pcMachineName         机器名
@@ -87,10 +74,12 @@ static VOID     ppcE500DCacheClearAll (VOID)
 *********************************************************************************************************/
 static INT   ppcE500CacheProbe (CPCHAR  pcMachineName, PPC_CACHE  *pICache, PPC_CACHE  *pDCache)
 {
-    if (lib_strcmp(pcMachineName, PPC_MACHINE_E500)   == 0 ||
-        lib_strcmp(pcMachineName, PPC_MACHINE_E500V1) == 0 ||
-        lib_strcmp(pcMachineName, PPC_MACHINE_E500V2) == 0 ||
-        lib_strcmp(pcMachineName, PPC_MACHINE_E500MC) == 0) {
+    if ((lib_strcmp(pcMachineName, PPC_MACHINE_E500)   == 0) ||
+        (lib_strcmp(pcMachineName, PPC_MACHINE_E500V1) == 0) ||
+        (lib_strcmp(pcMachineName, PPC_MACHINE_E500V2) == 0) ||
+        (lib_strcmp(pcMachineName, PPC_MACHINE_E500MC) == 0) ||
+        (lib_strcmp(pcMachineName, PPC_MACHINE_E5500)  == 0) ||
+        (lib_strcmp(pcMachineName, PPC_MACHINE_E6500)  == 0)) {
         /*
          * D-Cache 探测
          */
@@ -188,7 +177,7 @@ PPC_L1C_DRIVER  _G_ppcE500CacheDriver = {
     ppcE500ICacheDisable,
     ppcE500ICacheEnable,
 
-    ppcE500DCacheClearAll,
+    LW_NULL,
     ppcE500DCacheFlushAll,
     ppcE500ICacheInvalidateAll,
 

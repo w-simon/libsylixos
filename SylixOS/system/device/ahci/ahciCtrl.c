@@ -41,10 +41,130 @@ static LW_LIST_LINE_HEADER      _GplineAhciCtrlHeader = LW_NULL;
 #define __AHCI_CTRL_LOCK()      API_SemaphoreMPend(_GulAhciCtrlLock, LW_OPTION_WAIT_INFINITE)
 #define __AHCI_CTRL_UNLOCK()    API_SemaphoreMPost(_GulAhciCtrlLock)
 /*********************************************************************************************************
-  函数声明
+** 函数名称: __tshellAhciCtrlCmdShow
+** 功能描述: 打印 AHCI 控制器列表
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
 *********************************************************************************************************/
-static VOID     __tshellAhciCtrlCmdShow(VOID);
-static INT      __tshellAhciCtrlCmd(INT  iArgC, PCHAR  ppcArgV[]);
+static
+VOID  __tshellAhciCtrlCmdShow (VOID)
+{
+    static PCHAR        pcAhciCtrlShowHdr = \
+    "INDEX CTRL UNIT     CTRLNAME           CTRL VER             DRIVE VER\n"
+    "----- ---- ---- ---------------- -------------------- --------------------\n";
+
+    REGISTER INT        i;
+    AHCI_CTRL_HANDLE    hCtrl     = LW_NULL;
+    PLW_LIST_LINE       plineTemp = LW_NULL;
+    CHAR                cVerNum[AHCI_DRV_VER_STR_LEN]  = {0};
+
+    printf("\nahci control number total: %d\n", _GuiAhciCtrlTotalNum);
+    printf(pcAhciCtrlShowHdr);
+
+    __AHCI_CTRL_LOCK();
+    i = 0;
+    for (plineTemp  = _GplineAhciCtrlHeader;
+         plineTemp != LW_NULL;
+         plineTemp  = _list_line_get_next(plineTemp)) {
+        hCtrl = _LIST_ENTRY(plineTemp, AHCI_CTRL_CB, AHCICTRL_lineCtrlNode);
+        printf("%5d %4d %4d %-16s",
+               i,
+               hCtrl->AHCICTRL_uiIndex,
+               hCtrl->AHCICTRL_uiUnitIndex,
+               hCtrl->AHCICTRL_cCtrlName);
+
+        if ((hCtrl) && (hCtrl->AHCICTRL_uiCoreVer)) {
+            lib_bzero(&cVerNum[0], AHCI_DRV_VER_STR_LEN);
+            snprintf(cVerNum, AHCI_DRV_VER_STR_LEN, AHCI_DRV_VER_FORMAT(hCtrl->AHCICTRL_uiCoreVer));
+            printf(" %-20s", cVerNum);
+        } else {
+            printf(" %-20s", "*");
+        }
+
+        if ((hCtrl) && (hCtrl->AHCICTRL_hDrv) && (hCtrl->AHCICTRL_hDrv->AHCIDRV_uiDrvVer)) {
+            lib_bzero(&cVerNum[0], AHCI_DRV_VER_STR_LEN);
+            snprintf(cVerNum, AHCI_DRV_VER_STR_LEN,
+                     AHCI_DRV_VER_FORMAT(hCtrl->AHCICTRL_hDrv->AHCIDRV_uiDrvVer));
+            printf(" %-20s\n", cVerNum);
+        } else {
+            printf(" %-20s\n", "*");
+        }
+
+        i += 1;
+    }
+    __AHCI_CTRL_UNLOCK();
+}
+/*********************************************************************************************************
+** 函数名称: __tshellAhciCtrlCmd
+** 功能描述: AHCI 命令 "ahcictrl"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __tshellAhciCtrlCmd (INT  iArgC, PCHAR  ppcArgV[])
+{
+    if (iArgC == 1) {
+        __tshellAhciCtrlCmdShow();
+        return  (ERROR_NONE);
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_AhciCtrlDrvDel
+** 功能描述: 删除一个 AHCI 控制器的驱动
+** 输　入  : hCtrlHandle    控制器句柄
+**           hDrvHandle     驱动句柄
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_AhciCtrlDrvDel (AHCI_CTRL_HANDLE  hCtrlHandle, AHCI_DRV_HANDLE  hDrvHandle)
+{
+    if ((!hCtrlHandle) ||
+        (!hDrvHandle)) {
+        return  (PX_ERROR);
+    }
+
+    if (hCtrlHandle->AHCICTRL_hDrv != hDrvHandle) {
+        return  (PX_ERROR);
+    }
+
+    hCtrlHandle->AHCICTRL_hDrv = LW_NULL;
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_AhciCtrlDrvUpdate
+** 功能描述: 更新一个 AHCI 设备的驱动
+** 输　入  : hCtrlHandle    控制器句柄
+**           hDrvHandle     驱动句柄
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_AhciCtrlDrvUpdate (AHCI_CTRL_HANDLE  hCtrlHandle, AHCI_DRV_HANDLE  hDrvHandle)
+{
+    if ((!hCtrlHandle) ||
+        (!hDrvHandle)) {
+        return  (PX_ERROR);
+    }
+
+    if ((hCtrlHandle->AHCICTRL_hDrv == LW_NULL) ||
+        (hCtrlHandle->AHCICTRL_hDrv != hDrvHandle)) {
+        hCtrlHandle->AHCICTRL_hDrv = hDrvHandle;
+    }
+
+    return  (ERROR_NONE);
+}
 /*********************************************************************************************************
 ** 函数名称: API_AhciCtrlDelete
 ** 功能描述: 删除一个 AHCI 控制器
@@ -68,7 +188,7 @@ INT  API_AhciCtrlDelete (AHCI_CTRL_HANDLE  hCtrl)
     __AHCI_CTRL_LOCK();
     _List_Line_Del(&hCtrl->AHCICTRL_lineCtrlNode, &_GplineAhciCtrlHeader);
     _GucAhciCtrlIndexMap &= ~(0x01 << hCtrl->AHCICTRL_uiIndex);
-    _GuiAhciCtrlTotalNum -= 1;
+    _GuiAhciCtrlTotalNum--;
     __AHCI_CTRL_UNLOCK();
 
     return  (ERROR_NONE);
@@ -95,7 +215,7 @@ INT  API_AhciCtrlAdd (AHCI_CTRL_HANDLE  hCtrl)
     __AHCI_CTRL_LOCK();
     _List_Line_Add_Ahead(&hCtrl->AHCICTRL_lineCtrlNode, &_GplineAhciCtrlHeader);
     _GucAhciCtrlIndexMap |= 0x01 << hCtrl->AHCICTRL_uiIndex;
-    _GuiAhciCtrlTotalNum += 1;
+    _GuiAhciCtrlTotalNum++;
     __AHCI_CTRL_UNLOCK();
 
     return  (ERROR_NONE);
@@ -121,7 +241,6 @@ AHCI_CTRL_HANDLE  API_AhciCtrlHandleGetFromPciArg (PVOID  pvCtrlPciArg)
          plineTemp != LW_NULL;
          plineTemp  = _list_line_get_next(plineTemp)) {
         hCtrl = _LIST_ENTRY(plineTemp, AHCI_CTRL_CB, AHCICTRL_lineCtrlNode);
-
         if (hCtrl->AHCICTRL_pvPciArg == pvCtrlPciArg) {
             break;
         }
@@ -156,7 +275,6 @@ AHCI_CTRL_HANDLE  API_AhciCtrlHandleGetFromName (CPCHAR  cpcName, UINT  uiUnit)
          plineTemp != LW_NULL;
          plineTemp  = _list_line_get_next(plineTemp)) {
         hCtrl = _LIST_ENTRY(plineTemp, AHCI_CTRL_CB, AHCICTRL_lineCtrlNode);
-
         if ((lib_strncmp(&hCtrl->AHCICTRL_cCtrlName[0], cpcName, AHCI_CTRL_NAME_MAX) == 0) &&
             (hCtrl->AHCICTRL_uiUnitIndex == uiUnit)) {
             break;
@@ -191,7 +309,6 @@ AHCI_CTRL_HANDLE  API_AhciCtrlHandleGetFromIndex (UINT  uiIndex)
          plineTemp != LW_NULL;
          plineTemp  = _list_line_get_next(plineTemp)) {
         hCtrl = _LIST_ENTRY(plineTemp, AHCI_CTRL_CB, AHCICTRL_lineCtrlNode);
-
         if (hCtrl->AHCICTRL_uiIndex == uiIndex) {
             break;
         }
@@ -272,7 +389,6 @@ INT  API_AhciCtrlInit (VOID)
     bInitFlag = LW_TRUE;
 
     _GuiAhciCtrlTotalNum  = 0;
-    _GulAhciCtrlLock      = LW_OBJECT_HANDLE_INVALID;
     _GplineAhciCtrlHeader = LW_NULL;
 
     _GulAhciCtrlLock = API_SemaphoreMCreate("ahci_ctrllock",
@@ -289,83 +405,9 @@ INT  API_AhciCtrlInit (VOID)
     API_TShellKeywordAdd("ahcictrl", __tshellAhciCtrlCmd);
     API_TShellFormatAdd("ahcictrl", " [add | del] [0:1]");
     API_TShellHelpAdd("ahcictrl", "show, add, del ahci control\n"
-                                "eg. ahcictrl\n"
-                                "    ahcictrl add imx6dq_ahci 0\n"
-                                "    ahcictrl del imx6dq_ahci 0\n");
-
-    return  (ERROR_NONE);
-}
-/*********************************************************************************************************
-** 函数名称: __tshellAhciCtrlCmdShow
-** 功能描述: 打印 AHCI 控制器列表
-** 输　入  : NONE
-** 输　出  : NONE
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-static
-VOID  __tshellAhciCtrlCmdShow (VOID)
-{
-    static PCHAR        pcAhciCtrlShowHdr = \
-    "INDEX CTRL UNIT     CTRLNAME           CTRL VER             DRIVE VER\n"
-    "----- ---- ---- ---------------- -------------------- --------------------\n";
-
-    REGISTER INT        i;
-    AHCI_CTRL_HANDLE    hCtrl     = LW_NULL;
-    PLW_LIST_LINE       plineTemp = LW_NULL;
-    CHAR                cVerNum[AHCI_DRV_VER_STR_LEN]  = {0};
-
-    printf("\nahci control number total: %d\n", _GuiAhciCtrlTotalNum);
-    printf(pcAhciCtrlShowHdr);
-
-    __AHCI_CTRL_LOCK();
-    i = 0;
-    for (plineTemp  = _GplineAhciCtrlHeader;
-         plineTemp != LW_NULL;
-         plineTemp  = _list_line_get_next(plineTemp)) {
-        hCtrl = _LIST_ENTRY(plineTemp, AHCI_CTRL_CB, AHCICTRL_lineCtrlNode);
-        printf("%5d %4d %4d %-16s",
-               i,
-               hCtrl->AHCICTRL_uiIndex,
-               hCtrl->AHCICTRL_uiUnitIndex,
-               hCtrl->AHCICTRL_cCtrlName);
-
-        if ((hCtrl) && (hCtrl->AHCICTRL_uiCoreVer)) {
-            lib_bzero(&cVerNum[0], AHCI_DRV_VER_STR_LEN);
-            snprintf(cVerNum, AHCI_DRV_VER_STR_LEN, AHCI_DRV_VER_FORMAT(hCtrl->AHCICTRL_uiCoreVer));
-            printf(" %-20s", cVerNum);
-        } else {
-            printf(" %-20s", "*");
-        }
-
-        if ((hCtrl) && (hCtrl->AHCICTRL_hDrv) && (hCtrl->AHCICTRL_hDrv->AHCIDRV_uiDrvVer)) {
-            lib_bzero(&cVerNum[0], AHCI_DRV_VER_STR_LEN);
-            snprintf(cVerNum, AHCI_DRV_VER_STR_LEN,
-                     AHCI_DRV_VER_FORMAT(hCtrl->AHCICTRL_hDrv->AHCIDRV_uiDrvVer));
-            printf(" %-20s\n", cVerNum);
-        } else {
-            printf(" %-20s\n", "*");
-        }
-
-        i += 1;
-    }
-    __AHCI_CTRL_UNLOCK();
-}
-/*********************************************************************************************************
-** 函数名称: __tshellAhciCtrlCmd
-** 功能描述: AHCI 命令 "ahcictrl"
-** 输　入  : iArgC         参数个数
-**           ppcArgV       参数表
-** 输　出  : ERROR or OK
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-static INT  __tshellAhciCtrlCmd (INT  iArgC, PCHAR  ppcArgV[])
-{
-    if (iArgC == 1) {
-        __tshellAhciCtrlCmdShow();
-        return  (ERROR_NONE);
-    }
+                                  "eg. ahcictrl\n"
+                                  "    ahcictrl add imx6dq_ahci 0\n"
+                                  "    ahcictrl del imx6dq_ahci 0\n");
 
     return  (ERROR_NONE);
 }

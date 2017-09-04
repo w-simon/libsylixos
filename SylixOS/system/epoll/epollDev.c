@@ -19,6 +19,9 @@
 ** 描        述: Linux epoll 子系统虚拟设备 (有限支持 epoll 部分主要功能).
 **
 ** 注        意: SylixOS epoll 兼容子系统是由 select 子系统模拟出来的, 所以效率没有 select 高.
+
+** BUG:
+2017.08.31  _epollFiniFdset() 返回精确的文件描述符个数.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -389,64 +392,73 @@ INT  _epollInitFdset (PLW_EPOLL_FILE  pepollfil,
 **           pfdsetExcept     异常文件描述符集合
 **           events           回写事件缓冲
 **           maxevents        回写事件缓冲大小
-** 输　出  : NONE
+** 输　出  : 有效 fd 的数量.
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-VOID  _epollFiniFdset (PLW_EPOLL_FILE      pepollfil, 
-                       INT                 iWidth,
-                       fd_set             *pfdsetRead,
-                       fd_set             *pfdsetWrite,
-                       fd_set             *pfdsetExcept,
-                       struct epoll_event *events, 
-                       int                 maxevents)
+INT  _epollFiniFdset (PLW_EPOLL_FILE      pepollfil, 
+                      INT                 iWidth,
+                      fd_set             *pfdsetRead,
+                      fd_set             *pfdsetWrite,
+                      fd_set             *pfdsetExcept,
+                      struct epoll_event *events, 
+                      int                 maxevents)
 {
-#define EPOLL_FINI_FD(mask) \
-        PLW_EPOLL_EVENT pepollevent = _epollFindEvent(pepollfil, iFdTemp);  \
-        if (pepollevent) {  \
-            if (pepollevent->EPE_epEvent.events & EPOLLONESHOT) {   \
-                pepollevent->EPE_epEvent.events = 0;    \
-            }   \
-            if (i < maxevents) {    \
-                events[i].events = (mask);    \
-                events[i].data   = pepollevent->EPE_epEvent.data;   \
-                i++;    \
-            }   \
-        }
+    BOOL                bOne;
+    INT                 i, iCnt = 0;
+    UINT32              uiEvents;
+    PLW_LIST_LINE       plineTemp;
+    PLW_EPOLL_EVENT     pepollevent;
+    
+    for (i = 0; i < LW_EPOLL_HASH_SIZE; i++) {
+        for (plineTemp  = pepollfil->EPF_plineEvent[i];
+             plineTemp != LW_NULL;
+             plineTemp  = _list_line_get_next(plineTemp)) {
 
-    INT     i = 0;
-    INT     iFdTemp;
-    ULONG   ulPartMask;
-    
-    for (iFdTemp = 0; iFdTemp < iWidth; iFdTemp++) {
-        ulPartMask = pfdsetRead->fds_bits[((unsigned)iFdTemp) / NFDBITS];
-        if (ulPartMask == 0) {
-            iFdTemp += NFDBITS - 1;
-        
-        } else if (ulPartMask & (ULONG)(1 << (((unsigned)iFdTemp) % NFDBITS))) {
-            EPOLL_FINI_FD(LW_EPOLL_INMASK);
+            bOne        = LW_FALSE;
+            uiEvents    = 0;
+            pepollevent = _LIST_ENTRY(plineTemp, LW_EPOLL_EVENT, EPE_lineManage);
+            if (pepollevent->EPE_epEvent.events & LW_EPOLL_INMASK) {
+                if (FD_ISSET(pepollevent->EPE_iFd, pfdsetRead)) {
+                    bOne      = LW_TRUE;
+                    uiEvents |= LW_EPOLL_INMASK;
+                    if (pepollevent->EPE_epEvent.events & EPOLLONESHOT) {
+                        pepollevent->EPE_epEvent.events = 0;
+                    }
+                }
+            }
+            
+            if (pepollevent->EPE_epEvent.events & LW_EPOLL_OUTMASK) {
+                if (FD_ISSET(pepollevent->EPE_iFd, pfdsetWrite)) {
+                    bOne      = LW_TRUE;
+                    uiEvents |= LW_EPOLL_OUTMASK;
+                    if (pepollevent->EPE_epEvent.events & EPOLLONESHOT) {
+                        pepollevent->EPE_epEvent.events = 0;
+                    }
+                }
+            }
+            
+            if (pepollevent->EPE_epEvent.events & LW_EPOLL_EXCMASK) {
+                if (FD_ISSET(pepollevent->EPE_iFd, pfdsetExcept)) {
+                    bOne      = LW_TRUE;
+                    uiEvents |= LW_EPOLL_EXCMASK;
+                    if (pepollevent->EPE_epEvent.events & EPOLLONESHOT) {
+                        pepollevent->EPE_epEvent.events = 0;
+                    }
+                }
+            }
+            
+            if (bOne) {
+                if (iCnt < maxevents) {
+                    events[iCnt].events = uiEvents;
+                    events[iCnt].data   = pepollevent->EPE_epEvent.data;
+                }
+                iCnt++;
+            }
         }
     }
     
-    for (iFdTemp = 0; iFdTemp < iWidth; iFdTemp++) {
-        ulPartMask = pfdsetWrite->fds_bits[((unsigned)iFdTemp) / NFDBITS];
-        if (ulPartMask == 0) {
-            iFdTemp += NFDBITS - 1;
-        
-        } else if (ulPartMask & (ULONG)(1 << (((unsigned)iFdTemp) % NFDBITS))) {
-            EPOLL_FINI_FD(LW_EPOLL_OUTMASK);
-        }
-    }
-    
-    for (iFdTemp = 0; iFdTemp < iWidth; iFdTemp++) {
-        ulPartMask = pfdsetExcept->fds_bits[((unsigned)iFdTemp) / NFDBITS];
-        if (ulPartMask == 0) {
-            iFdTemp += NFDBITS - 1;
-        
-        } else if (ulPartMask & (ULONG)(1 << (((unsigned)iFdTemp) % NFDBITS))) {
-            EPOLL_FINI_FD(LW_EPOLL_EXCMASK);
-        }
-    }
+    return  (iCnt);
 }
 
 #endif                                                                  /*  LW_CFG_DEVICE_EN > 0        */

@@ -29,6 +29,7 @@
 2016.07.12  磁盘写操作加入一个文件系统层参数.
 2016.07.13  提高 HASH 表工作效率.
 2016.07.27  的使用专用的磁盘扇区拷贝函数.
+2017.09.02  对 FIOTRIM、SYNC 相关命令与读写扇区的互斥放在 disk cache 里面完成.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -958,7 +959,8 @@ INT  __diskCacheWrite (PLW_DISKCACHE_CB   pdiskcDiskCache,
 *********************************************************************************************************/
 INT  __diskCacheIoctl (PLW_DISKCACHE_CB   pdiskcDiskCache, INT  iCmd, LONG  lArg)
 {
-    REGISTER INT            iError = PX_ERROR;
+    REGISTER INT            iError;
+    REGISTER BOOL           bMutex;
              PLW_BLK_RANGE  pblkrange;
 
     if (__LW_DISKCACHE_LOCK(pdiskcDiskCache)) {                         /*  互斥访问                    */
@@ -979,16 +981,16 @@ INT  __diskCacheIoctl (PLW_DISKCACHE_CB   pdiskcDiskCache, INT  iCmd, LONG  lArg
         return  (ERROR_NONE);
         
     case LW_BLKD_DISKCACHE_INVALID:                                     /*  全部不命中                  */
-        iError = ERROR_NONE;
         __diskCacheFlushInvRange(pdiskcDiskCache,
                                  0, (ULONG)PX_ERROR, LW_TRUE, LW_TRUE);
-        break;
+        __LW_DISKCACHE_UNLOCK(pdiskcDiskCache);                         /*  解锁                        */
+        return  (ERROR_NONE);
         
     case LW_BLKD_DISKCACHE_RAMFLUSH:                                    /*  随机回写                    */
-        iError = ERROR_NONE;
         __diskCacheFlushInvCnt(pdiskcDiskCache, 
                                (INT)lArg, LW_TRUE, LW_FALSE);
-        break;
+        __LW_DISKCACHE_UNLOCK(pdiskcDiskCache);                         /*  解锁                        */
+        return  (ERROR_NONE);
         
     case LW_BLKD_DISKCACHE_CALLBACKFUNC:                                /*  设置文件系统回调            */
         pdiskcDiskCache->DISKC_pfuncFsCallback = (VOIDFUNCPTR)lArg;
@@ -1004,6 +1006,7 @@ INT  __diskCacheIoctl (PLW_DISKCACHE_CB   pdiskcDiskCache, INT  iCmd, LONG  lArg
     case FIODATASYNC:
     case FIOFLUSH:                                                      /*  全部回写                    */
         iError = ERROR_NONE;
+        bMutex = LW_TRUE;
         __diskCacheFlushInvRange(pdiskcDiskCache,
                                  0, (ULONG)PX_ERROR, LW_TRUE, LW_FALSE);
         __diskCacheWpSync(&pdiskcDiskCache->DISKC_wpWrite);             /*  等待写结束                  */
@@ -1012,6 +1015,7 @@ INT  __diskCacheIoctl (PLW_DISKCACHE_CB   pdiskcDiskCache, INT  iCmd, LONG  lArg
     case FIOTRIM:
     case FIOSYNCMETA:                                                   /*  TRIM, SYNCMETA 需要回写区域 */
         iError    = ERROR_NONE;
+        bMutex    = LW_TRUE;
         pblkrange = (PLW_BLK_RANGE)lArg;
         __diskCacheFlushInvMeta(pdiskcDiskCache,
                                 pblkrange->BLKR_ulStartSector, 
@@ -1022,38 +1026,48 @@ INT  __diskCacheIoctl (PLW_DISKCACHE_CB   pdiskcDiskCache, INT  iCmd, LONG  lArg
         
     case FIODISKCHANGE:                                                 /*  磁盘发生改变                */
         pdiskcDiskCache->DISKC_blkdCache.BLKD_bDiskChange = LW_TRUE;
-    case FIOCANCEL:                                                     /*  停止 CACHE, 复位内存,不回写 */
     case FIOUNMOUNT:                                                    /*  卸载卷                      */
         iError = ERROR_NONE;
+        bMutex = LW_FALSE;
         __diskCacheWpSync(&pdiskcDiskCache->DISKC_wpWrite);             /*  等待写结束                  */
         __diskCacheMemReset(pdiskcDiskCache);                           /*  重新初始化 CACHE 内存       */
         break;
+
+    default:
+        iError = PX_ERROR;
+        bMutex = LW_FALSE;
+        break;
     }
     
-    __LW_DISKCACHE_UNLOCK(pdiskcDiskCache);                             /*  解锁                        */
-    
-    if (iError == ERROR_NONE) {
+    if (bMutex) {                                                       /*  互斥执行命令不能并行        */
         __LW_DISKCACHE_DISK_IOCTL(pdiskcDiskCache)(pdiskcDiskCache->DISKC_pblkdDisk, iCmd, lArg);
+        __LW_DISKCACHE_UNLOCK(pdiskcDiskCache);                         /*  解锁                        */
     
     } else {
-        iError = __LW_DISKCACHE_DISK_IOCTL(pdiskcDiskCache)(pdiskcDiskCache->DISKC_pblkdDisk, iCmd, lArg);
-    }
-    
-    if (iCmd == FIODISKINIT) {                                          /*  需要确定磁盘的最后一个扇区  */
-        ULONG           ulNDiskSector = (ULONG)PX_ERROR;
-        PLW_BLK_DEV     pblkdDisk     = pdiskcDiskCache->DISKC_pblkdDisk;
-        
-        if (pblkdDisk->BLKD_ulNSector) {
-            ulNDiskSector = pblkdDisk->BLKD_ulNSector;
+        __LW_DISKCACHE_UNLOCK(pdiskcDiskCache);                         /*  解锁                        */
+        if (iError == ERROR_NONE) {
+            __LW_DISKCACHE_DISK_IOCTL(pdiskcDiskCache)(pdiskcDiskCache->DISKC_pblkdDisk, iCmd, lArg);
         
         } else {
-            pblkdDisk->BLKD_pfuncBlkIoctl(pblkdDisk, 
-                                          LW_BLKD_GET_SECNUM, 
-                                          (LONG)&ulNDiskSector);
+            iError = __LW_DISKCACHE_DISK_IOCTL(pdiskcDiskCache)(pdiskcDiskCache->DISKC_pblkdDisk, iCmd, lArg);
         }
-        pdiskcDiskCache->DISKC_ulEndStector = ulNDiskSector - 1;        /*  获得最后一个扇区的编号      */
+        
+        if (iCmd == FIODISKINIT) {                                      /*  需要确定磁盘的最后一个扇区  */
+            ULONG           ulNDiskSector = (ULONG)PX_ERROR;
+            PLW_BLK_DEV     pblkdDisk     = pdiskcDiskCache->DISKC_pblkdDisk;
+
+            if (pblkdDisk->BLKD_ulNSector) {
+                ulNDiskSector = pblkdDisk->BLKD_ulNSector;
+
+            } else {
+                pblkdDisk->BLKD_pfuncBlkIoctl(pblkdDisk,
+                                              LW_BLKD_GET_SECNUM,
+                                              (LONG)&ulNDiskSector);
+            }
+            pdiskcDiskCache->DISKC_ulEndStector = ulNDiskSector - 1;    /*  获得最后一个扇区的编号      */
+        }
     }
-    
+
     return  (iError);
 }
 /*********************************************************************************************************

@@ -27,6 +27,10 @@
 *********************************************************************************************************/
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_AHCI_EN > 0)
 
+LW_API INT                  API_AhciCtrlDrvDel(AHCI_CTRL_HANDLE hCtrlHandle,
+                                               AHCI_DRV_HANDLE  hDrvHandle);
+LW_API INT                  API_AhciCtrlDrvDel(AHCI_CTRL_HANDLE hCtrlHandle,
+                                               AHCI_DRV_HANDLE  hDrvHandle);
 LW_API INT                  API_AhciCtrlDelete(AHCI_CTRL_HANDLE hCtrl);
 LW_API INT                  API_AhciCtrlAdd(AHCI_CTRL_HANDLE hCtrl);
 LW_API AHCI_CTRL_HANDLE     API_AhciCtrlHandleGetFromPciArg(PVOID pvCtrlPciArg);

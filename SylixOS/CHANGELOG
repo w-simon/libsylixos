@@ -4,6 +4,10 @@ HISTORY
 
 ++ New features:
 
+    2017-08-31: han.hui
+    增加对 PCI MSI-X 类型中断支持.
+    增加对 NVMe 高速 SSD 支持.
+
     2017-08-18: han.hui
     增加对 TI C6000 系列 DSP 支持.
 
@@ -38,6 +42,9 @@ HISTORY
     加入对 4 级页表 64 位 MMU 支持.
 
 ++ Bugfixes:
+
+    2017-08-31: han.hui
+    修正 PowerPC E500 MMU 地址长度错误.
 
     2017-08-18: han.hui
     修正信号返回时, 调度器返回值可能发生错误的情况.

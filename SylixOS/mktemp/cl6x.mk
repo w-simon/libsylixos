@@ -57,7 +57,7 @@ TOOLCHAIN_VERSION       = $(TOOLCHAIN_VERSION_MAJOR)$(TOOLCHAIN_VERSION_MINOR)$(
 ifeq ($(DEBUG_LEVEL), debug)
 TOOLCHAIN_OPTIMIZE = -O0 -g
 else
-TOOLCHAIN_OPTIMIZE = -O2 -g
+TOOLCHAIN_OPTIMIZE = -O1 -g
 endif
 
 #*********************************************************************************************************

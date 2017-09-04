@@ -119,6 +119,14 @@
 #include "../SylixOS/system/device/ahci/ahciDrv.h"                      /*  AHCI 驱动接口               */
 #endif                                                                  /*  __SYLIXOS_AHCI_DRV          */
 /*********************************************************************************************************
+  NVMe 总线及其设备驱动模型
+*********************************************************************************************************/
+#ifdef   __SYLIXOS_NVME_DRV
+#include "../SylixOS/system/device/nvme/nvme.h"                         /*  NVME 控制器                 */
+#include "../SylixOS/system/device/nvme/nvmeLib.h"                      /*  NVME 库                     */
+#include "../SylixOS/system/device/nvme/nvmeDrv.h"                      /*  NVME 驱动接口               */
+#endif                                                                  /*  __SYLIXOS_NVME_DRV          */
+/*********************************************************************************************************
   PCI 总线及其设备驱动模型
 *********************************************************************************************************/
 #ifdef   __SYLIXOS_PCI_DRV

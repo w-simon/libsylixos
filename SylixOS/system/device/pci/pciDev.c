@@ -198,7 +198,7 @@ INT  API_PciDevInterConnect (PCI_DEV_HANDLE    hHandle,
 }
 /*********************************************************************************************************
 ** 函数名称: API_PciDevInterVectorGet
-** 功能描述: 获取中断向量
+** 功能描述: 获取 INTx 中断向量
 ** 输　入  : hHandle        设备句柄
 **           pulVector      中断向量
 ** 输　出  : ERROR or OK
@@ -238,6 +238,50 @@ INT  API_PciDevInterVectorGet (PCI_DEV_HANDLE  hHandle, ULONG *pulVector)
                          hHandle->PCIDEV_iDevDevice,
                          hHandle->PCIDEV_iDevFunction,
                          hHandle->PCIDEV_iDevIrqMsiEn, iLine, iPin, pulVector);
+    return  (iRet);
+}
+/*********************************************************************************************************
+** 函数名称: API_PciDevInterMsiGet
+** 功能描述: 获取 MSI MSI-X 中断向量
+** 输　入  : hHandle        设备句柄
+**           pmsidesc       MSI 中断信息描述
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_PciDevInterMsiGet (PCI_DEV_HANDLE  hHandle, PCI_MSI_DESC *pmsidesc)
+{
+    INT     iRet     = PX_ERROR;
+    INT     iLine    = 0;
+    INT     iPin     = 0;
+    INT     iHdrType = 0;
+
+    if (hHandle == LW_NULL) {
+        return  (PX_ERROR);
+    }
+
+    iHdrType = hHandle->PCIDEV_phDevHdr.PCIH_ucType & PCI_HEADER_TYPE_MASK;
+    switch (iHdrType) {
+
+    case PCI_HEADER_TYPE_NORMAL:
+        iLine = hHandle->PCIDEV_phDevHdr.PCIH_pcidHdr.PCID_ucIntLine;
+        iPin  = hHandle->PCIDEV_phDevHdr.PCIH_pcidHdr.PCID_ucIntPin;;
+        break;
+
+    case PCI_HEADER_TYPE_BRIDGE:
+    case PCI_HEADER_TYPE_CARDBUS:
+        return  (PX_ERROR);
+
+    default:
+        return  (PX_ERROR);
+    }
+
+    iRet = API_PciIrqMsi(hHandle->PCIDEV_iDevBus,
+                         hHandle->PCIDEV_iDevDevice,
+                         hHandle->PCIDEV_iDevFunction,
+                         hHandle->PCIDEV_iDevIrqMsiEn, iLine, iPin, pmsidesc);
     return  (iRet);
 }
 /*********************************************************************************************************

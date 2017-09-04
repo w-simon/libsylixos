@@ -384,7 +384,20 @@ static INT  ppcE500MmuGlobalInit (CPCHAR  pcMachineName)
         ppcE500SetHID1(uiHID1);
     }
 
-    archCacheReset(pcMachineName);                                      /*  复位 Cache                  */
+    /*
+     * 有 MAS7 寄存器, 则使能 MAS7 寄存器的访问
+     */
+    if (_G_bHasMAS7) {
+        UINT32  uiHID0;
+
+        uiHID0  = ppcE500GetHID0();
+        uiHID0 |= ARCH_PPC_HID0_MAS7EN;
+        ppcE500SetHID0(uiHID0);
+    }
+
+    if (LW_CPU_GET_CUR_ID() == 0) {                                     /*  仅 Core0 复位 Cache         */
+        archCacheReset(pcMachineName);                                  /*  复位 Cache                  */
+    }
 
     ppcE500MmuInvalidateTLB();
 
@@ -818,14 +831,18 @@ VOID  ppcE500MmuInit (LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName)
      */
     MMU_MAS2_M = (LW_NCPUS > 1) ? 1 : 0;                                /*  多核一致性位设置            */
 
-    if (lib_strcmp(pcMachineName, PPC_MACHINE_E500V2) == 0 ||
-        lib_strcmp(pcMachineName, PPC_MACHINE_E500MC) == 0) {
+    if ((lib_strcmp(pcMachineName, PPC_MACHINE_E500V2) == 0) ||
+        (lib_strcmp(pcMachineName, PPC_MACHINE_E500MC) == 0) ||
+        (lib_strcmp(pcMachineName, PPC_MACHINE_E5500)  == 0) ||
+        (lib_strcmp(pcMachineName, PPC_MACHINE_E6500)  == 0)) {
         _G_bHasMAS7 = LW_TRUE;
     } else {
         _G_bHasMAS7 = LW_FALSE;
     }
 
-    if (lib_strcmp(pcMachineName, PPC_MACHINE_E500MC) == 0) {
+    if ((lib_strcmp(pcMachineName, PPC_MACHINE_E500MC) == 0) ||
+        (lib_strcmp(pcMachineName, PPC_MACHINE_E5500)  == 0) ||
+        (lib_strcmp(pcMachineName, PPC_MACHINE_E6500)  == 0)) {
         _G_bHasHID1 = LW_FALSE;
     } else {
         _G_bHasHID1 = LW_TRUE;

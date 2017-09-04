@@ -43,16 +43,22 @@ VOID  archMmuInit (CPCHAR  pcMachineName)
     _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s MMU initialization.\r\n", 
                  LW_CFG_CPU_ARCH_FAMILY, pcMachineName);
 
-    if ((lib_strcmp(pcMachineName, PPC_MACHINE_750)     == 0) ||
+    if ((lib_strcmp(pcMachineName, PPC_MACHINE_603)     == 0) ||
+        (lib_strcmp(pcMachineName, PPC_MACHINE_EC603)   == 0) ||
+        (lib_strcmp(pcMachineName, PPC_MACHINE_604)     == 0) ||
+        (lib_strcmp(pcMachineName, PPC_MACHINE_750)     == 0) ||
         (lib_strcmp(pcMachineName, PPC_MACHINE_MPC83XX) == 0) ||
+        (lib_strcmp(pcMachineName, PPC_MACHINE_745X)    == 0) ||
         (lib_strcmp(pcMachineName, PPC_MACHINE_E300)    == 0) ||
         (lib_strcmp(pcMachineName, PPC_MACHINE_E600)    == 0)) {
         ppcMmuInit(pmmuop, pcMachineName);
 
-    } else if (lib_strcmp(pcMachineName, PPC_MACHINE_E500)   == 0 ||
-               lib_strcmp(pcMachineName, PPC_MACHINE_E500V1) == 0 ||
-               lib_strcmp(pcMachineName, PPC_MACHINE_E500V2) == 0 ||
-               lib_strcmp(pcMachineName, PPC_MACHINE_E500MC) == 0) {
+    } else if ((lib_strcmp(pcMachineName, PPC_MACHINE_E500)   == 0) ||
+               (lib_strcmp(pcMachineName, PPC_MACHINE_E500V1) == 0) ||
+               (lib_strcmp(pcMachineName, PPC_MACHINE_E500V2) == 0) ||
+               (lib_strcmp(pcMachineName, PPC_MACHINE_E500MC) == 0) ||
+               (lib_strcmp(pcMachineName, PPC_MACHINE_E5500)  == 0) ||
+               (lib_strcmp(pcMachineName, PPC_MACHINE_E6500)  == 0)) {
         ppcE500MmuInit(pmmuop, pcMachineName);
 
     } else {

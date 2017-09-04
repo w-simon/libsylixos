@@ -45,6 +45,7 @@
 2016.12.14  accept connect 使用不同的阻塞信号量.
 2017.08.01  今天中国人民解放军建军 90 周年纪念日, 祝愿祖国蒸蒸日上.
             AF_UNIX 支持多线程并行读写.
+2017.08.31  shutdown 写后, 远程端有机会读出最后暂存的数据.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -665,6 +666,7 @@ static VOID  __unixShutdownR (AF_UNIX_T  *pafunix)
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : 这里并不清除读缓冲, 给对方读剩余数据的机会.
 *********************************************************************************************************/
 static VOID  __unixShutdownW (AF_UNIX_T  *pafunix)
 {
@@ -674,7 +676,6 @@ static VOID  __unixShutdownW (AF_UNIX_T  *pafunix)
         pafunix->UNIX_iShutDFlag |= __AF_UNIX_SHUTD_W;                  /*  我不能再写                  */
         if (pafunixPeer) {
             pafunixPeer->UNIX_iShutDFlag |= __AF_UNIX_SHUTD_R;          /*  远程不能再读                */
-            __unixDeleteAllMsg(pafunixPeer);
             __unixUpdateReader(pafunixPeer, ENOTCONN);                  /*  激活远程节点等待读          */
         }
         __unixUpdateWriter(pafunix, ESHUTDOWN);                         /*  激活我的等待写              */
@@ -1434,11 +1435,6 @@ static ssize_t  unix_recvfrom2 (AF_UNIX_T  *pafunix,
     do {
         if ((__AF_UNIX_TYPE(pafunix) == SOCK_STREAM) ||
             (__AF_UNIX_TYPE(pafunix) == SOCK_SEQPACKET)) {              /*  面向连接类型                */
-            if (pafunix->UNIX_iShutDFlag == __AF_UNIX_SHUTD_R) {
-                __AF_UNIX_UNLOCK();
-                _ErrorHandle(ENOTCONN);                                 /*  本地已经关闭                */
-                return  (sstTotal);
-            }
             if (pafunix->UNIX_iStatus != __AF_UNIX_STATUS_ESTAB) {
                 __AF_UNIX_UNLOCK();
                 _ErrorHandle(ENOTCONN);                                 /*  没有连接                    */
@@ -1479,12 +1475,17 @@ __recv_more:
         } else {
 #if LW_CFG_NET_UNIX_MULTI_EN > 0
             if (__unixCanRead(pafunix, 0, 0)) {
-                __AF_UNIX_CREAD(pafunix);                               /*  不可接收                    */
+                __AF_UNIX_CREAD(pafunix);                               /*  可接收, 但清除掉等待信号量  */
             }
 #endif
             
             if ((__AF_UNIX_TYPE(pafunix) == SOCK_STREAM) ||
                 (__AF_UNIX_TYPE(pafunix) == SOCK_SEQPACKET)) {          /*  面向连接类型                */
+                if (pafunix->UNIX_iShutDFlag & __AF_UNIX_SHUTD_R) {     /*  已被关闭读                  */
+                    __AF_UNIX_UNLOCK();
+                    _ErrorHandle(ENOTCONN);                             /*  本地已经关闭                */
+                    return  (sstTotal);
+                }
                 if (pafunix->UNIX_pafunxPeer == LW_NULL) {
                     __AF_UNIX_UNLOCK();
                     _ErrorHandle(ECONNRESET);                           /*  没有连接                    */
@@ -1745,7 +1746,7 @@ __try_send:
         } 
 #if LW_CFG_NET_UNIX_MULTI_EN > 0
           else {
-            __AF_UNIX_CWRITE(pafunixRecver);                            /*  不可写                      */
+            __AF_UNIX_CWRITE(pafunixRecver);                            /*  不可写, 清除掉可写信号量    */
         }
 #endif
         
@@ -2368,12 +2369,12 @@ int __unix_have_event (AF_UNIX_T *pafunix, int type, int  *piSoErr)
                     *piSoErr = ECONNRESET;                              /*  连接已经中断                */
                     iEvent   = 1;
                 
-                } else if (pafunix->UNIX_iShutDFlag & __AF_UNIX_SHUTD_R) {
-                    *piSoErr = ENOTCONN;                                /*  读已经被停止了              */
-                    iEvent   = 1;
-                
                 } else if (__unixCanRead(pafunix, 0, 0)) {              /*  可读                        */
                     *piSoErr = ERROR_NONE;
+                    iEvent   = 1;
+                
+                } else if (pafunix->UNIX_iShutDFlag & __AF_UNIX_SHUTD_R) {
+                    *piSoErr = ENOTCONN;                                /*  读已经被停止了              */
                     iEvent   = 1;
                 }
                 break;

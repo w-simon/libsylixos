@@ -60,8 +60,8 @@ PLW_STACK       archTaskCtxCreate(PTHREAD_START_ROUTINE  pfuncTask,
                                   PLW_STACK              pstkTop, 
                                   ULONG                  ulOpt);
 VOID            archTaskCtxSetFp(PLW_STACK  pstkDest, PLW_STACK  pstkSrc);
-ARCH_REG_CTX   *archTaskRegsGet(PLW_STACK  pstkTop, ARCH_REG_T *pregSp);
-VOID            archTaskRegsSet(PLW_STACK  pstkTop, const ARCH_REG_CTX  *pregctx);
+VOID            archTaskRegsGet(PLW_CLASS_TCB  ptcb, ARCH_REG_IRQ_CTX  *pregctx, ARCH_REG_T *pregSp);
+VOID            archTaskRegsSet(PLW_CLASS_TCB  ptcb, const ARCH_REG_IRQ_CTX  *pregctx);
 
 #if LW_CFG_DEVICE_EN > 0
 VOID        archTaskCtxShow(INT  iFd, PLW_STACK  pstkTop);

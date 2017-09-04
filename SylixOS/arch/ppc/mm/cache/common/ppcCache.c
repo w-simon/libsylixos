@@ -557,7 +557,8 @@ static INT  ppcCacheProbe (CPCHAR       pcMachineName)
      * Alloc a page-aligned cacheable region to use as a flush buffer.
      * Worst case PLRU flush needs 1.5 * cache size.
      */
-    _G_pucPpcCacheReadBuffer = __KHEAP_ALLOC_ALIGN((_G_DCache.CACHE_uiSize * 3) >> 1,
+    _G_pucPpcCacheReadBuffer = __KHEAP_ALLOC_ALIGN(ROUND_UP((_G_DCache.CACHE_uiSize * 3) >> 1,
+                                                   LW_CFG_VMM_PAGE_SIZE),
                                                    LW_CFG_VMM_PAGE_SIZE);
     if (!_G_pucPpcCacheReadBuffer) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "system low memory.\r\n");

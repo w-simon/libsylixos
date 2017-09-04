@@ -30,6 +30,8 @@
 
     EXPORT_LABEL(ppcE500GetDEAR)
     EXPORT_LABEL(ppcE500GetESR)
+    EXPORT_LABEL(ppcE500GetHID0)
+    EXPORT_LABEL(ppcE500SetHID0)
     EXPORT_LABEL(ppcE500GetHID1)
     EXPORT_LABEL(ppcE500SetHID1)
     EXPORT_LABEL(ppcE500GetTCR)
@@ -69,6 +71,18 @@ FUNC_DEF(ppcE500GetDEAR)
 
 FUNC_DEF(ppcE500GetESR)
     GET_SPR     ESR
+    FUNC_END()
+
+;/*********************************************************************************************************
+;  ¶ÁÐ´ HID0 ¼Ä´æÆ÷
+;*********************************************************************************************************/
+
+FUNC_DEF(ppcE500GetHID0)
+    GET_SPR     HID0
+    FUNC_END()
+
+FUNC_DEF(ppcE500SetHID0)
+    SET_SPR     HID0
     FUNC_END()
 
 ;/*********************************************************************************************************

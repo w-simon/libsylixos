@@ -72,11 +72,13 @@ FUNC_DEF(archTaskCtxSwitch)
     OR      R14, R3 , R3                                                ;/*  保存当前 CPU 信息           */
 
 #if LW_CFG_SMP_EN > 0
+    SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
     BL      _SchedSafeStack                                             ;/*  _SchedSafeStack();          */
     OR      SP , R3 , R3
     OR      R3 , R14, R14
 #endif
 
+    SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
     BL      _SchedSwp                                                   ;/*  _SchedSwp();                */
     OR      R3 , R14, R14
 
@@ -99,6 +101,7 @@ FUNC_DEF(archCrtCtxSwitch)
     STW     SP , 0(R4)
 
     OR      R14, R3 , R3                                                ;/*  保存当前 CPU 信息           */
+    SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
     BL      _SchedCrSwp                                                 ;/*  _SchedCrSwp();              */
     OR      R3 , R14, R14
 

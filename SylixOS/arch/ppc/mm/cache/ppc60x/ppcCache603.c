@@ -57,6 +57,9 @@ extern VOID     ppc603BranchPredictorInvalidate(VOID);
 *********************************************************************************************************/
 static INT   ppc603CacheProbe (CPCHAR  pcMachineName, PPC_CACHE  *pICache, PPC_CACHE  *pDCache)
 {
+    /*
+     * TODO 暂时不支持
+     */
     return  (PX_ERROR);
 }
 /*********************************************************************************************************

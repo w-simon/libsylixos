@@ -66,6 +66,7 @@
 
 #define LW_CFG_DRV_ATA_IDE                  1                           /*  ATA / IDE 驱动使能          */
 #define LW_CFG_DRV_SATA_AHCI                1                           /*  AHCI PCIe SATA 驱动使能     */
+#define LW_CFG_DRV_M2_NVME                  1                           /*  M2 NVMe 驱动使能            */
 
 /*********************************************************************************************************
 *                                       网络接口控制器驱动
@@ -73,7 +74,9 @@
 * 依存关系: 无
 *********************************************************************************************************/
 
-#define LW_CFG_DRV_NIC_INTEL                1                           /*  Intel e1000 igb 等系列网卡  */
+#define LW_CFG_DRV_NIC_INTEL                1                           /*  Intel e1000 e1000e igb 等   */
+#define LW_CFG_DRV_NIC_AMD                  1                           /*  AMD 系列网卡                */
+#define LW_CFG_DRV_NIC_RTL                  1                           /*  RTL 系列网卡                */
 #define LW_CFG_DRV_NIC_DM9000               1                           /*  dm9000                      */
 #define LW_CFG_DRV_NIC_SMETHND              1                           /*  共享内存虚拟网卡            */
 

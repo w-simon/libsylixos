@@ -107,19 +107,50 @@ VOID  archTaskCtxSetFp (PLW_STACK  pstkDest, PLW_STACK  pstkSrc)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-ARCH_REG_CTX  *archTaskRegsGet (PLW_STACK  pstkTop, ARCH_REG_T  *pregSp)
+VOID  archTaskRegsGet (PLW_CLASS_TCB  ptcb, ARCH_REG_IRQ_CTX  *pdestregctx, ARCH_REG_T *pregSp)
 {
-    ARCH_REG_T  regSp = (ARCH_REG_T)pstkTop;
-    
-#if	CPU_STK_GROWTH == 0
-    regSp -= sizeof(ARCH_REG_CTX);
-#else
-    regSp += sizeof(ARCH_REG_CTX);
-#endif
+    ARCH_REG_T  regSp = (ARCH_REG_T)ptcb->TCB_pstkStackNow;
 
-    *pregSp = regSp;
-    
-    return  ((ARCH_REG_CTX *)pstkTop);
+    if (ptcb->TCB_ulContextType) {
+        *pdestregctx = *(ARCH_REG_IRQ_CTX *)ptcb->TCB_pstkStackNow;
+        regSp       += sizeof(ARCH_REG_IRQ_CTX);
+        *pregSp      = regSp;
+
+    } else {
+        ARCH_REG_CTX  *pregctx = (ARCH_REG_CTX *)ptcb->TCB_pstkStackNow;
+
+        lib_bzero(pdestregctx, sizeof(*pdestregctx));
+        pdestregctx->REG_uiCsr    = pregctx->REG_uiCsr;
+        pdestregctx->REG_uiAmr    = pregctx->REG_uiAmr;
+        pdestregctx->REG_uiGfpgfr = pregctx->REG_uiGfpgfr;
+        pdestregctx->REG_uiB3     = pregctx->REG_uiB3;
+        pdestregctx->REG_uiIrp    = pregctx->REG_uiB3;
+        pdestregctx->REG_uiFmcr   = pregctx->REG_uiFmcr;
+        pdestregctx->REG_uiFaucr  = pregctx->REG_uiFaucr;
+        pdestregctx->REG_uiFadcr  = pregctx->REG_uiFadcr;
+        pdestregctx->REG_uiSsr    = pregctx->REG_uiSsr;
+        pdestregctx->REG_uiRilc   = pregctx->REG_uiRilc;
+        pdestregctx->REG_uiItsr   = pregctx->REG_uiItsr;
+        pdestregctx->REG_uiGplyb  = pregctx->REG_uiGplyb;
+        pdestregctx->REG_uiGplya  = pregctx->REG_uiGplya;
+        pdestregctx->REG_uiIlc    = pregctx->REG_uiIlc;
+        pdestregctx->REG_uiA13    = pregctx->REG_uiA13;
+        pdestregctx->REG_uiA12    = pregctx->REG_uiA12;
+        pdestregctx->REG_uiB13    = pregctx->REG_uiB13;
+        pdestregctx->REG_uiB12    = pregctx->REG_uiB12;
+        pdestregctx->REG_uiA11    = pregctx->REG_uiA11;
+        pdestregctx->REG_uiA10    = pregctx->REG_uiA10;
+        pdestregctx->REG_uiB11    = pregctx->REG_uiB11;
+        pdestregctx->REG_uiB10    = pregctx->REG_uiB10;
+        pdestregctx->REG_uiA15    = pregctx->REG_uiA15;
+        pdestregctx->REG_uiA14    = pregctx->REG_uiA14;
+
+        pdestregctx->REG_uiB14    = pregctx->REG_uiB14;
+        pdestregctx->REG_uiA4     = pregctx->REG_uiA4;
+
+        regSp   += sizeof(ARCH_REG_CTX);
+        *pregSp  = regSp;
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: archTaskRegsSet
@@ -127,14 +158,45 @@ ARCH_REG_CTX  *archTaskRegsGet (PLW_STACK  pstkTop, ARCH_REG_T  *pregSp)
 ** 输　入  : pstkTop        堆栈顶点
 **           pregctx        寄存器表
 ** 输　出  : 寄存器结构
-** 全局变量: 
-** 调用模块: 
+** 全局变量:
+** 调用模块:
 *********************************************************************************************************/
-VOID  archTaskRegsSet (PLW_STACK  pstkTop, const ARCH_REG_CTX  *pregctx)
+VOID  archTaskRegsSet (PLW_CLASS_TCB  ptcb, const ARCH_REG_IRQ_CTX  *pregctx)
 {
-    ARCH_REG_CTX  *pdestregctx = (ARCH_REG_CTX *)pstkTop;
+    if (ptcb->TCB_ulContextType) {
+        ARCH_REG_IRQ_CTX  *pdestregctx = (ARCH_REG_IRQ_CTX *)ptcb->TCB_pstkStackNow;
+        *pdestregctx = *pregctx;
 
-    *pdestregctx = *pregctx;
+    } else {
+        ARCH_REG_CTX  *pdestregctx = (ARCH_REG_CTX *)ptcb->TCB_pstkStackNow;
+
+        pdestregctx->REG_uiCsr    = pregctx->REG_uiCsr;
+        pdestregctx->REG_uiAmr    = pregctx->REG_uiAmr;
+        pdestregctx->REG_uiGfpgfr = pregctx->REG_uiGfpgfr;
+        pdestregctx->REG_uiB3     = pregctx->REG_uiIrp;
+        pdestregctx->REG_uiFmcr   = pregctx->REG_uiFmcr;
+        pdestregctx->REG_uiFaucr  = pregctx->REG_uiFaucr;
+        pdestregctx->REG_uiFadcr  = pregctx->REG_uiFadcr;
+        pdestregctx->REG_uiSsr    = pregctx->REG_uiSsr;
+        pdestregctx->REG_uiRilc   = pregctx->REG_uiRilc;
+        pdestregctx->REG_uiItsr   = pregctx->REG_uiItsr;
+        pdestregctx->REG_uiGplyb  = pregctx->REG_uiGplyb;
+        pdestregctx->REG_uiGplya  = pregctx->REG_uiGplya;
+        pdestregctx->REG_uiIlc    = pregctx->REG_uiIlc;
+        pdestregctx->REG_uiA13    = pregctx->REG_uiA13;
+        pdestregctx->REG_uiA12    = pregctx->REG_uiA12;
+        pdestregctx->REG_uiB13    = pregctx->REG_uiB13;
+        pdestregctx->REG_uiB12    = pregctx->REG_uiB12;
+        pdestregctx->REG_uiA11    = pregctx->REG_uiA11;
+        pdestregctx->REG_uiA10    = pregctx->REG_uiA10;
+        pdestregctx->REG_uiB11    = pregctx->REG_uiB11;
+        pdestregctx->REG_uiB10    = pregctx->REG_uiB10;
+        pdestregctx->REG_uiA15    = pregctx->REG_uiA15;
+        pdestregctx->REG_uiA14    = pregctx->REG_uiA14;
+
+        pdestregctx->REG_uiB14    = pregctx->REG_uiB14;
+        pdestregctx->REG_uiA4     = pregctx->REG_uiA4;
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: archTaskCtxShow

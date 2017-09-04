@@ -17,9 +17,7 @@ compiler:
     
     1: "SylixOS"
     2: "SylixOS/include"
-    3: "SylixOS/include/inet"
-    6: "SylixOS/include/arch/arm" (ARM)
-    7: "SylixOS/include/arch/x86" (x86)
+    3: "SylixOS/include/network"
     ...
     
 2: compiler application:

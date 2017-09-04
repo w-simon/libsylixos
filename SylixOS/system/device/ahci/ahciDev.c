@@ -113,7 +113,7 @@ INT  API_AhciDevDelete (AHCI_DEV_HANDLE  hDev)
 
     __AHCI_DEV_LOCK();
     _List_Line_Del(&hDev->AHCIDEV_lineDevNode, &_GplineAhciDevHeader);
-    _GuiAhciDevTotalNum -= 1;
+    _GuiAhciDevTotalNum--;
     __AHCI_DEV_UNLOCK();
 
     return  (ERROR_NONE);
@@ -147,7 +147,7 @@ AHCI_DEV_HANDLE  API_AhciDevAdd (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
     hDev = hDrive->AHCIDRIVE_hDev;
     __AHCI_DEV_LOCK();
     _List_Line_Add_Ahead(&hDev->AHCIDEV_lineDevNode, &_GplineAhciDevHeader);
-    _GuiAhciDevTotalNum += 1;
+    _GuiAhciDevTotalNum++;
     __AHCI_DEV_UNLOCK();
 
     return  (hDev);
@@ -227,7 +227,6 @@ INT  API_AhciDevInit (VOID)
     bInitFlag = LW_TRUE;
 
     _GuiAhciDevTotalNum  = 0;
-    _GulAhciDevLock      = LW_OBJECT_HANDLE_INVALID;
     _GplineAhciDevHeader = LW_NULL;
 
     _GulAhciDevLock = API_SemaphoreMCreate("ahci_devlock",
@@ -244,9 +243,9 @@ INT  API_AhciDevInit (VOID)
     API_TShellKeywordAdd("ahcidev", __tshellAhciDevCmd);
     API_TShellFormatAdd("ahcidev", " [[-c] 1 ...]");
     API_TShellHelpAdd("ahcidev", "show, add, del, set ahci device\n"
-                                "eg. ahcidev\n"
-                                "    ahcidev 0 0 -c 1\n"
-                                "    ahcidev 0 0 -c 0\n");
+                                 "eg. ahcidev\n"
+                                 "    ahcidev 0 0 -c 1\n"
+                                 "    ahcidev 0 0 -c 0\n");
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -284,7 +283,6 @@ static VOID  __tshellAhciDevCmdShow (AHCI_DEV_HANDLE  hDev)
 
         API_AhciDriveInfoShow(hDev->AHCIDEV_hCtrl, hDev->AHCIDEV_uiDrive,
                               &hDev->AHCIDEV_hDrive->AHCIDRIVE_tParam);
-
         return;
     }
 
@@ -376,8 +374,8 @@ static INT  __tshellAhciDevCmd (INT  iArgC, PCHAR  ppcArgV[])
     return  (ERROR_NONE);
 
 __arg_error:
-        fprintf(stderr, "argument error.\n");
-        return  (PX_ERROR);
+    fprintf(stderr, "argument error.\n");
+    return  (PX_ERROR);
 }
 
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */

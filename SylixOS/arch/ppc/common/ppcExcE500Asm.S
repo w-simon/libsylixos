@@ -34,14 +34,15 @@
     IMPORT_LABEL(API_InterStackBaseGet)
     IMPORT_LABEL(API_InterEnter)
     IMPORT_LABEL(API_InterExit)
+    IMPORT_LABEL(bspIntHandle)
 
     IMPORT_LABEL(archE500CriticalInputExceptionHandle)
     IMPORT_LABEL(archE500MachineCheckExceptionHandle)
     IMPORT_LABEL(archE500DataStorageExceptionHandle)
     IMPORT_LABEL(archE500InstructionStorageExceptionHandle)
-    IMPORT_LABEL(bspIntHandle)
     IMPORT_LABEL(archE500AlignmentExceptionHandle)
     IMPORT_LABEL(archE500ProgramExceptionHandle)
+    IMPORT_LABEL(archE500FpuUnavailableExceptionHandle)
     IMPORT_LABEL(archE500SystemCallHandle)
     IMPORT_LABEL(archE500DecrementerInterruptHandle)
     IMPORT_LABEL(archE500TimerInterruptHandle)
@@ -57,7 +58,11 @@
     IMPORT_LABEL(archE500SpeUnavailableExceptionHandle)
     IMPORT_LABEL(archE500FpDataExceptionHandle)
     IMPORT_LABEL(archE500FpRoundExceptionHandle)
+    IMPORT_LABEL(archE500AltiVecUnavailableExceptionHandle)
+    IMPORT_LABEL(archE500AltiVecAssistExceptionHandle)
     IMPORT_LABEL(archE500PerfMonitorExceptionHandle)
+    IMPORT_LABEL(archE500DoorbellExceptionHandle)
+    IMPORT_LABEL(archE500DoorbellCriticalExceptionHandle)
 
     EXPORT_LABEL(archE500CriticalInputExceptionEntry)
     EXPORT_LABEL(archE500MachineCheckExceptionEntry)
@@ -66,6 +71,7 @@
     EXPORT_LABEL(archE500ExternalInterruptEntry)
     EXPORT_LABEL(archE500AlignmentExceptionEntry)
     EXPORT_LABEL(archE500ProgramExceptionEntry)
+    EXPORT_LABEL(archE500FpuUnavailableExceptionEntry)
     EXPORT_LABEL(archE500SystemCallEntry)
     EXPORT_LABEL(archE500DecrementerInterruptEntry)
     EXPORT_LABEL(archE500TimerInterruptEntry)
@@ -76,7 +82,11 @@
     EXPORT_LABEL(archE500SpeUnavailableExceptionEntry)
     EXPORT_LABEL(archE500FpDataExceptionEntry)
     EXPORT_LABEL(archE500FpRoundExceptionEntry)
+    EXPORT_LABEL(archE500AltiVecUnavailableExceptionEntry)
+    EXPORT_LABEL(archE500AltiVecAssistExceptionEntry)
     EXPORT_LABEL(archE500PerfMonitorExceptionEntry)
+    EXPORT_LABEL(archE500DoorbellExceptionEntry)
+    EXPORT_LABEL(archE500DoorbellCriticalExceptionEntry)
 
 ;/*********************************************************************************************************
 ;  异常处理程序起始地址需要 16 字节对齐方能填入 IVOR 寄存器
@@ -101,7 +111,7 @@ func:
 
 ;/*********************************************************************************************************
 ;  异常入口宏
-;  注意: E500 有 3 类异常: 普通异常   机器检查异常   临界输入异常(包括调试异常和看门狗中断)
+;  注意: E500 有 3 类异常: 普通异常, 机器检查异常, 临界输入异常(包括调试异常和看门狗中断及门铃临界异常)
 ;  这 3 类异常使用的寄存器不一样
 ;  普通异常使用     SRR0   SRR1
 ;  机器检查异常使用 MCSRR0 MCSRR1
@@ -118,16 +128,20 @@ MACRO_DEF(E500_EXC_ENTRY, handle)
     ; *      SP = interrupt stack;
     ; *  }
     ; */
+    SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
     BL      API_InterEnter                                              ;/*  获取中断层数放到返回值 V0   */
 
     CMPWI   CR0, R3 , 1
     BNE     CR0, 1f
 
     BL      API_ThreadTcbInter                                          ;/*  get current tcb             */
+    ADDI    SP , SP , 16
     STW     SP , 0(R3)                                                  ;/*  current stack = SP          */
+    SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
 
     BL      API_InterStackBaseGet                                       ;/*  获得当前 CPU 中断堆栈栈顶   */
     OR      SP , R3 , R3
+    SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
 
 1:
     MFSPR   R3 , SRR0                                                   ;/*  传递返回地址                */
@@ -135,6 +149,7 @@ MACRO_DEF(E500_EXC_ENTRY, handle)
     BL      \handle                                                     ;/*  调用处理函数                */
 
     BL      API_InterExit
+    ADDI    SP , SP , 16
 
     RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
     MACRO_END()
@@ -152,16 +167,20 @@ MACRO_DEF(E500_CI_EXC_ENTRY, handle)
     ; *      SP = interrupt stack;
     ; *  }
     ; */
+    SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
     BL      API_InterEnter                                              ;/*  获取中断层数放到返回值 V0   */
 
     CMPWI   CR0, R3 , 1
     BNE     CR0, 1f
 
     BL      API_ThreadTcbInter                                          ;/*  get current tcb             */
+    ADDI    SP , SP , 16
     STW     SP , 0(R3)                                                  ;/*  current stack = SP          */
+    SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
 
     BL      API_InterStackBaseGet                                       ;/*  获得当前 CPU 中断堆栈栈顶   */
     OR      SP , R3 , R3
+    SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
 
 1:
     MFSPR   R3 , CSRR0                                                  ;/*  传递返回地址                */
@@ -169,6 +188,7 @@ MACRO_DEF(E500_CI_EXC_ENTRY, handle)
     BL      \handle                                                     ;/*  调用处理函数                */
 
     BL      API_InterExit
+    ADDI    SP , SP , 16
 
     RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
     MACRO_END()
@@ -186,16 +206,20 @@ MACRO_DEF(E500_MC_EXC_ENTRY, handle)
     ; *      SP = interrupt stack;
     ; *  }
     ; */
+    SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
     BL      API_InterEnter                                              ;/*  获取中断层数放到返回值 V0   */
 
     CMPWI   CR0, R3 , 1
     BNE     CR0, 1f
 
     BL      API_ThreadTcbInter                                          ;/*  get current tcb             */
+    ADDI    SP , SP , 16
     STW     SP , 0(R3)                                                  ;/*  current stack = SP          */
+    SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
 
     BL      API_InterStackBaseGet                                       ;/*  获得当前 CPU 中断堆栈栈顶   */
     OR      SP , R3 , R3
+    SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
 
 1:
     MFSPR   R3 , MCSRR0                                                 ;/*  传递返回地址                */
@@ -203,6 +227,7 @@ MACRO_DEF(E500_MC_EXC_ENTRY, handle)
     BL      \handle                                                     ;/*  调用处理函数                */
 
     BL      API_InterExit
+    ADDI    SP , SP , 16
 
     RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
     MACRO_END()
@@ -258,6 +283,14 @@ EXCE_DEF(archE500ExternalInterruptEntry)
 EXCE_DEF(archE500AlignmentExceptionEntry)
     E500_EXC_ENTRY      archE500AlignmentExceptionHandle
     EXCE_END()
+
+;/*********************************************************************************************************
+;  FPU 不可用异常入口(Vector IVOR7)
+;*********************************************************************************************************/
+
+FUNC_DEF(archE500FpuUnavailableExceptionEntry)
+    E500_EXC_ENTRY      archE500FpuUnavailableExceptionHandle
+    FUNC_END()
 
 ;/*********************************************************************************************************
 ;  程序异常入口(Vector IVOR6)
@@ -360,11 +393,43 @@ EXCE_DEF(archE500FpRoundExceptionEntry)
     EXCE_END()
 
 ;/*********************************************************************************************************
+;  AltiVec 不可用异常入口(Vector IVOR32)
+;*********************************************************************************************************/
+
+EXCE_DEF(archE500AltiVecUnavailableExceptionEntry)
+    E500_EXC_ENTRY      archE500AltiVecUnavailableExceptionHandle
+    EXCE_END()
+
+;/*********************************************************************************************************
+;  AltiVec Assist 异常入口(Vector IVOR33)
+;*********************************************************************************************************/
+
+EXCE_DEF(archE500AltiVecAssistExceptionEntry)
+    E500_EXC_ENTRY      archE500AltiVecAssistExceptionHandle
+    EXCE_END()
+
+;/*********************************************************************************************************
 ;  Performance monitor 异常入口(Vector IVOR35)
 ;*********************************************************************************************************/
 
 EXCE_DEF(archE500PerfMonitorExceptionEntry)
     E500_EXC_ENTRY      archE500PerfMonitorExceptionHandle
+    EXCE_END()
+
+;/*********************************************************************************************************
+;  Processor doorbell 异常入口(Vector IVOR36)
+;*********************************************************************************************************/
+
+EXCE_DEF(archE500DoorbellExceptionEntry)
+    E500_EXC_ENTRY      archE500DoorbellExceptionHandle
+    EXCE_END()
+
+;/*********************************************************************************************************
+;  Processor doorbell critical 异常入口(Vector IVOR37)
+;*********************************************************************************************************/
+
+EXCE_DEF(archE500DoorbellCriticalExceptionEntry)
+    E500_CI_EXC_ENTRY   archE500DoorbellCriticalExceptionHandle
     EXCE_END()
 
     FILE_END()

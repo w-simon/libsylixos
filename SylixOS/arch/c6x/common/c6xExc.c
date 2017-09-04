@@ -327,6 +327,14 @@ static VOID  archExcProcess (ARCH_C6X_EXC_INFO  *pExcInfo)
 *********************************************************************************************************/
 static VOID  archIntExcProcess (VOID)
 {
+#if LW_CFG_GDB_EN > 0
+#define C6X_BREAKPOINT_INS  0x56454314
+
+    PLW_CLASS_TCB      ptcbCur;
+    ARCH_REG_IRQ_CTX  *pregctx;
+    addr_t             ulRetAddr;
+#endif                                                                  /*  LW_CFG_GDB_EN > 0           */
+
     INT  iIntExcReport = get_iexcept();
     INT  iIntExcNum;
 
@@ -336,6 +344,24 @@ static VOID  archIntExcProcess (VOID)
         iIntExcNum     = __ffs(iIntExcReport);
         iIntExcReport &= ~(1 << iIntExcNum);
         set_iexcept(iIntExcReport);
+
+#if LW_CFG_GDB_EN > 0
+        LW_TCB_GET_CUR(ptcbCur);
+
+        pregctx   = (ARCH_REG_IRQ_CTX *)ptcbCur->TCB_pstkStackNow;
+        ulRetAddr = pregctx->REG_uiIrp;
+        if (*(ULONG *)ulRetAddr == C6X_BREAKPOINT_INS) {
+            UINT    uiBpType = archDbgTrapType(pregctx->REG_uiIrp,
+                                               (PVOID)LW_NULL);         /*  断点指令探测                */
+            if (uiBpType) {
+                if (API_DtraceBreakTrap(pregctx->REG_uiIrp,
+                                        uiBpType) == ERROR_NONE) {      /*  进入调试接口断点处理        */
+                    return;
+                }
+            }
+        }
+#endif                                                                  /*  LW_CFG_GDB_EN > 0           */
+
         archExcProcess(&_G_c6xIntExcTbl[iIntExcNum]);
     }
 }

@@ -938,6 +938,13 @@ INT  API_ModuleUnload (PVOID  pvModule)
         return  (PX_ERROR);
     }
     
+    /*
+     *  避免重复卸载，这种情况在析构函数中调用dlclose时会发生
+     */
+    if (pmodule->EMOD_ulRefs == 0) {
+        return  (ERROR_NONE);
+    }
+
     if (pvproc == &_G_vprocKernel) {
         uid_t   euid = geteuid();
         if (euid != 0) {

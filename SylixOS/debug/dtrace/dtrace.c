@@ -509,7 +509,9 @@ ULONG  API_DtraceGetRegs (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread,
 {
     REGISTER UINT16         usIndex;
     REGISTER PLW_CLASS_TCB  ptcb;
+#if !defined(LW_CFG_CPU_ARCH_C6X)
     REGISTER ARCH_REG_CTX  *pregctxGet;
+#endif
     
     PLW_DTRACE  pdtrace = (PLW_DTRACE)pvDtrace;
     
@@ -536,8 +538,12 @@ ULONG  API_DtraceGetRegs (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread,
     
     ptcb = _K_ptcbTCBIdTable[usIndex];
     
+#if !defined(LW_CFG_CPU_ARCH_C6X)
     pregctxGet = archTaskRegsGet(ptcb->TCB_pstkStackNow, pregSp);
     *pregctx   = *pregctxGet;
+#else
+    archTaskRegsGet(ptcb, (ARCH_REG_IRQ_CTX *)pregctx, pregSp);
+#endif
     __KERNEL_EXIT();                                                    /*  退出内核                    */
     
     return  (ERROR_NONE);
@@ -584,7 +590,11 @@ ULONG  API_DtraceSetRegs (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, const ARC
     
     ptcb = _K_ptcbTCBIdTable[usIndex];
     
+#if !defined(LW_CFG_CPU_ARCH_C6X)
     archTaskRegsSet(ptcb->TCB_pstkStackNow, pregctx);
+#else
+    archTaskRegsSet(ptcb, (const ARCH_REG_IRQ_CTX *)pregctx);
+#endif
     __KERNEL_EXIT();                                                    /*  退出内核                    */
     
     return  (ERROR_NONE);

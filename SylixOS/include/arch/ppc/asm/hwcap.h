@@ -22,7 +22,9 @@
 #ifndef __ASMPPC_HWCAP_H
 #define __ASMPPC_HWCAP_H
 
-#define HWCAP_VFP       (1 << 6)
+#define HWCAP_VFP       (1 << 0)
+#define HWCAP_SPE       (1 << 1)
+#define HWCAP_ALTIVEC   (1 << 2)
 
 #endif                                                                  /*  __ASMPPC_HWCAP_H            */
 /*********************************************************************************************************

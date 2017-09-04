@@ -46,7 +46,7 @@ typedef struct {
 } LW_EPOLL_DEV;
 typedef LW_EPOLL_DEV   *PLW_EPOLL_DEV;
 
-#define LW_EPOLL_HASH_SIZE  64
+#define LW_EPOLL_HASH_SIZE  16
 #define LW_EPOLL_HASH_MASK  (LW_EPOLL_HASH_SIZE - 1)
 
 typedef struct {
@@ -104,7 +104,7 @@ INT   _epollInitFdset(PLW_EPOLL_FILE  pepollfil,
                       fd_set         *pfdsetRead,
                       fd_set         *pfdsetWrite,
                       fd_set         *pfdsetExcept);
-VOID  _epollFiniFdset(PLW_EPOLL_FILE      pepollfil, 
+INT   _epollFiniFdset(PLW_EPOLL_FILE      pepollfil, 
                       INT                 iWidth,
                       fd_set             *pfdsetRead,
                       fd_set             *pfdsetWrite,

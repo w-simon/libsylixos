@@ -179,6 +179,31 @@ typedef uint_t     socklen_t;
 #undef __INT_LEAST64_TYPE__
 #undef __UINT_LEAST64_TYPE__
 
+/*********************************************************************************************************
+  wint_t & mbstate_t type
+*********************************************************************************************************/
+
+#ifndef _WINT_T
+#define _WINT_T
+#ifndef __WINT_TYPE__
+#define __WINT_TYPE__ unsigned int
+#endif
+typedef __WINT_TYPE__ wint_t;
+#endif                                                                  /* _WINT_T                      */
+
+#ifndef __mbstate_t_defined
+typedef struct {
+    int  count;
+    union {
+        wint_t  wch;
+        unsigned char wchb[4];
+    } value;
+} _mbstate_t;
+#define __mbstate_t_defined 1
+#endif
+
+typedef _mbstate_t mbstate_t;
+
 #endif                                                                  /*  __SYS_TYPES_H               */
 /*********************************************************************************************************
   END

@@ -240,8 +240,9 @@ VOID  ppcL2Init (CACHE_MODE   uiInstruction,
 {
     LW_SPIN_INIT(&_G_l2sl);
     
-    if (lib_strcmp(pcMachineName, PPC_MACHINE_750) == 0) {
-        _G_l2cdrv.L2CD_pcName    = PPC_MACHINE_750;
+    if ((lib_strcmp(pcMachineName, PPC_MACHINE_750)  == 0) ||
+        (lib_strcmp(pcMachineName, PPC_MACHINE_745X) == 0)) {
+        _G_l2cdrv.L2CD_pcName    = pcMachineName;
         _G_l2cdrv.L2CD_uiType    = 0;
         _G_l2cdrv.L2CD_uiRelease = 0;
         

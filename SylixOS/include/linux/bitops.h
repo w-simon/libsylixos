@@ -225,7 +225,7 @@ static LW_INLINE void generic_set_bit(int nr, volatile unsigned long *addr)
 	unsigned long mask = BIT_MASK(nr);
 	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
 
-	*p  |= mask;
+	*p |= mask;
 }
 
 static LW_INLINE void generic_clear_bit(int nr, volatile unsigned long *addr)
@@ -234,6 +234,14 @@ static LW_INLINE void generic_clear_bit(int nr, volatile unsigned long *addr)
 	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
 
 	*p &= ~mask;
+}
+
+static LW_INLINE int generic_test_bit(int nr, volatile unsigned long *addr)
+{
+    unsigned long mask = BIT_MASK(nr);
+	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
+	
+	return  ((*p & mask) ? 1 : 0);
 }
 
 #define hweight32(x)    generic_hweight32(x)

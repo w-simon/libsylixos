@@ -69,7 +69,10 @@ LW_API INT                  API_PciHeaderTypeGet(INT iBus, INT iSlot, INT iFunc,
 LW_API INT                  API_PciVpdRead(INT iBus, INT iSlot, INT iFunc, INT iPos, UINT8 *pucBuf, INT iLen);
 LW_API INT                  API_PciIrqGet(INT iBus, INT iSlot, INT iFunc,
                                           INT iMsiEn, INT iLine, INT iPin, ULONG *pulVector);
-
+                                                                        /*  只能用于 INTx 中断获取      */
+LW_API INT                  API_PciIrqMsi(INT iBus, INT iSlot, INT iFunc, 
+                                          INT iMsiEn, INT iLine, INT iPin, PCI_MSI_DESC *pmsidesc);
+                                                                        /*  只能用于 MSI MSI-X 中断获取 */
 LW_API INT                  API_PciConfigFetch(INT iBus, INT iSlot, INT iFunc, UINT uiPos, UINT uiLen);
 LW_API INT                  API_PciConfigBusMaxSet(INT iIndex, UINT32 uiBusMax);
 LW_API INT                  API_PciConfigBusMaxGet(INT iIndex);
@@ -88,7 +91,9 @@ LW_API INT                  API_PciDrvDelete(PCI_DRV_HANDLE  hDrvHandle);
 LW_API INT                  API_PciDrvInit(VOID);
 
 LW_API INT                  API_PciDevInterVectorGet(PCI_DEV_HANDLE  hHandle, ULONG *pulVector);
-
+                                                                        /*  只能获取 INTx 中断向量      */
+LW_API INT                  API_PciDevInterMsiGet(PCI_DEV_HANDLE  hHandle, PCI_MSI_DESC *pmsidesc);
+                                                                        /*  只能获取 MSI MSI-X 中断向量 */
 LW_API PCI_DEV_ID_HANDLE    API_PciDevMatchDrv(PCI_DEV_HANDLE hDevHandle, PCI_DRV_HANDLE hDrvHandle);
 LW_API VOID                 API_PciDevBindEachDrv(PCI_DEV_HANDLE hDevHandle);
 

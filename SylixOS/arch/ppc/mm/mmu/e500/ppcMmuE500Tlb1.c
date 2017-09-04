@@ -29,6 +29,7 @@
 #include "arch/ppc/arch_e500.h"
 #include "arch/ppc/common/ppcSprE500.h"
 #include "./ppcMmuE500Reg.h"
+#include "alloca.h"
 /*********************************************************************************************************
     The E500 MMU has two levels.  In level 1, instruction and data are
     split, while they are unified in level 2.  Level 1 is maintained by
@@ -56,7 +57,6 @@
   定义
 *********************************************************************************************************/
 #define MMU_MAS2_M              _G_bMas2MBit                            /*  是否多核一致性              */
-#define E500_TLB1_ENTRY_MAX_NR  256                                     /*  TLB1 条目的最大数目         */
 /*********************************************************************************************************
   MAS 寄存器数组
 *********************************************************************************************************/
@@ -65,6 +65,7 @@ typedef struct {
     MAS1_REG            MASR_uiMAS1;                                    /*  MAS1                        */
     MAS2_REG            MASR_uiMAS2;                                    /*  MAS2                        */
     MAS3_REG            MASR_uiMAS3;                                    /*  MAS3                        */
+    MAS7_REG            MASR_uiMAS7;                                    /*  MAS7                        */
 } MAS_REGS;
 /*********************************************************************************************************
   全局变量
@@ -80,31 +81,106 @@ extern VOID    ppcE500MmuTLB1Invalidate(VOID);
 extern VOID    ppcE500MmuTLB1InvalidateEA(addr_t  ulAddr);
 extern VOID    ppcE500MmuInvalidateTLB(VOID);
 /*********************************************************************************************************
-** 函数名称: ppcE500MmuTLB1Init
-** 功能描述: MMU TLB1 初始化
+** 函数名称: ppcE500MmuGlobalInit
+** 功能描述: 调用 BSP 对 MMU TLB1 初始化
 ** 输　入  : pcMachineName     使用的机器名称
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
-** 注  意  : 必须在关中断情况下调用
 *********************************************************************************************************/
-INT  ppcE500MmuTLB1Init (CPCHAR  pcMachineName)
+static INT  ppcE500MmuTLB1GlobalInit (CPCHAR  pcMachineName)
+{
+    MMUCFG_REG  uiMMUCFG;
+    MAS4_REG    uiMAS4;
+    UINT32      uiHID1;
+
+    /*
+     * 设置 PID
+     */
+    uiMMUCFG.MMUCFG_uiValue = ppcE500MmuGetMMUCFG();
+    ppcE500MmuSetPID0(0);
+    if (uiMMUCFG.MMUCFG_ucNPIDS > 1) {
+        ppcE500MmuSetPID1(0);
+        if (uiMMUCFG.MMUCFG_ucNPIDS > 2) {
+            ppcE500MmuSetPID2(0);
+        }
+    }
+
+    /*
+     * 设置 MAS4
+     */
+    uiMAS4.MAS4_uiValue   = 0;
+    uiMAS4.MAS4_bTLBSELD  = 0;
+    uiMAS4.MAS4_ucTIDSELD = 0;
+    uiMAS4.MAS4_ucTSIZED  = MMU_TRANS_SZ_4K;
+    uiMAS4.MAS4_bX0D      = 0;
+    uiMAS4.MAS4_bX1D      = 0;
+    uiMAS4.MAS4_bWD       = LW_FALSE;
+    uiMAS4.MAS4_bID       = LW_TRUE;
+    uiMAS4.MAS4_bMD       = LW_TRUE;
+    uiMAS4.MAS4_bGD       = LW_FALSE;
+    uiMAS4.MAS4_bED       = LW_FALSE;
+
+    ppcE500MmuSetMAS4(uiMAS4.MAS4_uiValue);
+
+    /*
+     * 使能地址广播
+     */
+    if (_G_bHasHID1) {
+        uiHID1 = ppcE500GetHID1();
+        if (MMU_MAS2_M) {
+            uiHID1 |=  ARCH_PPC_HID1_ABE;
+        } else {
+            uiHID1 &= ~ARCH_PPC_HID1_ABE;
+        }
+        ppcE500SetHID1(uiHID1);
+    }
+
+    /*
+     * 有 MAS7 寄存器, 则使能 MAS7 寄存器的访问
+     */
+    if (_G_bHasMAS7) {
+        UINT32  uiHID0;
+
+        uiHID0  = ppcE500GetHID0();
+        uiHID0 |= ARCH_PPC_HID0_MAS7EN;
+        ppcE500SetHID0(uiHID0);
+    }
+
+    ppcE500MmuInvalidateTLB();
+    ppcE500MmuTLB1Invalidate();
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: ppcE500MmuTLB1Init
+** 功能描述: MMU TLB1 系统初始化
+** 输　入  : pcMachineName     使用的机器名称
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  ppcE500MmuTLB1Init (CPCHAR  pcMachineName)
 {
     TLBCFG_REG  uiTLB1CFG;
 
     /*
      * 多核一致性须使能 HID1[ABE] 位
      */
-    MMU_MAS2_M = (LW_NCPUS > 1) ? 1 : 0;                                /*  多核一致性位设置            */
+    MMU_MAS2_M = (LW_CFG_MAX_PROCESSORS > 1) ? 1 : 0;                   /*  多核一致性位设置            */
 
-    if (lib_strcmp(pcMachineName, PPC_MACHINE_E500V2) == 0 ||
-        lib_strcmp(pcMachineName, PPC_MACHINE_E500MC) == 0) {
+    if ((lib_strcmp(pcMachineName, PPC_MACHINE_E500V2) == 0) ||
+        (lib_strcmp(pcMachineName, PPC_MACHINE_E500MC) == 0) ||
+        (lib_strcmp(pcMachineName, PPC_MACHINE_E5500)  == 0) ||
+        (lib_strcmp(pcMachineName, PPC_MACHINE_E6500)  == 0)) {
         _G_bHasMAS7 = LW_TRUE;
     } else {
         _G_bHasMAS7 = LW_FALSE;
     }
 
-    if (lib_strcmp(pcMachineName, PPC_MACHINE_E500MC) == 0) {
+    if ((lib_strcmp(pcMachineName, PPC_MACHINE_E500MC) == 0) ||
+        (lib_strcmp(pcMachineName, PPC_MACHINE_E5500)  == 0) ||
+        (lib_strcmp(pcMachineName, PPC_MACHINE_E6500)  == 0)) {
         _G_bHasHID1 = LW_FALSE;
     } else {
         _G_bHasHID1 = LW_TRUE;
@@ -115,44 +191,47 @@ INT  ppcE500MmuTLB1Init (CPCHAR  pcMachineName)
      */
     uiTLB1CFG.TLBCFG_uiValue = ppcE500MmuGetTLB1CFG();
     _G_uiTlbSize = uiTLB1CFG.TLBCFG_usNENTRY;
-    _BugHandle(_G_uiTlbSize > E500_TLB1_ENTRY_MAX_NR, LW_TRUE, "to many tlb1 entry!\r\n");
-
-    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: ppcE500MmuTLB1StaticMap
+** 函数名称: archE500MmuTLB1GlobalMap
 ** 功能描述: MMU TLB1 全局映射
-** 输　入  : pdesc         映射关系数组
+** 输　入  : pcMachineName          使用的机器名称
+**           pdesc                  映射关系数组
+**           pfuncPreRemoveTempMap  移除临时映射前的回调函数
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
 ** 注  意  : 必须在关中断情况下调用
 *********************************************************************************************************/
-INT  ppcE500MmuTLB1StaticMap (PE500_TLB1_MAP_DESC  pdesc)
+INT  archE500MmuTLB1GlobalMap (CPCHAR               pcMachineName,
+                               PE500_TLB1_MAP_DESC  pdesc,
+                               VOID                 (*pfuncPreRemoveTempMap)(VOID))
 {
     E500_TLB1_MAP_DESC      desc;
     MAS0_REG                uiMAS0;
     MAS1_REG                uiMAS1;
     MAS2_REG                uiMAS2;
     MAS3_REG                uiMAS3;
+    MAS7_REG                uiMAS7;
     UINT                    i;
     size_t                  stRemainSize;
-    MAS_REGS                masRegs[E500_TLB1_ENTRY_MAX_NR];            /*  局部变量, 多核安全          */
+    MAS_REGS               *masRegs;
 
     if (!pdesc) {
         return  (PX_ERROR);
     }
 
-    /*
-     * 无效 TLB0 和 TLB1
-     */
-    ppcE500MmuInvalidateTLB();
-    ppcE500MmuTLB1Invalidate();
+    if (LW_CPU_GET_CUR_ID() == 0) {
+        ppcE500MmuTLB1Init(pcMachineName);
+    }
+
+    ppcE500MmuTLB1GlobalInit(pcMachineName);
 
     /*
      * 第一步: 分析物理内存信息描述
      */
-    lib_bzero(masRegs, sizeof(masRegs));
+    masRegs = (MAS_REGS *)alloca(sizeof(MAS_REGS) * _G_uiTlbSize);      /*  从栈里分配                  */
+    lib_bzero(masRegs, sizeof(MAS_REGS) * _G_uiTlbSize);
 
     desc         = *pdesc;                                              /*  从第一个开始分析            */
     stRemainSize = desc.TLB1D_stSize;
@@ -165,59 +244,62 @@ INT  ppcE500MmuTLB1StaticMap (PE500_TLB1_MAP_DESC  pdesc)
             continue;
         }
 
-        uiMAS1.MAS1_uiValue = 0;                                        /*  MAS1                        */
+        /*
+         * MAS1
+         */
+        uiMAS1.MAS1_uiValue = 0;
         uiMAS1.MAS1_bVaild  = LW_TRUE;
         uiMAS1.MAS1_bIPROT  = LW_TRUE;
         uiMAS1.MAS1_ucTID   = 0;
         uiMAS1.MAS1_bTS     = 0;
 
         if ((desc.TLB1D_stSize >= 1 * LW_CFG_GB_SIZE) &&
-           !(desc.TLB1D_ulPhyAddr & (1 * LW_CFG_GB_SIZE - 1))) {
+           !(desc.TLB1D_ui64PhyAddr & (1 * LW_CFG_GB_SIZE - 1))) {
             desc.TLB1D_stSize   = 1 * LW_CFG_GB_SIZE;
             uiMAS1.MAS1_ucTSIZE = MMU_TRANS_SZ_1G;
 
         } else if ((desc.TLB1D_stSize >= 256 * LW_CFG_MB_SIZE) &&
-                  !(desc.TLB1D_ulPhyAddr & (256 * LW_CFG_MB_SIZE - 1))) {
+                  !(desc.TLB1D_ui64PhyAddr & (256 * LW_CFG_MB_SIZE - 1))) {
             desc.TLB1D_stSize   = 256 * LW_CFG_MB_SIZE;
             uiMAS1.MAS1_ucTSIZE = MMU_TRANS_SZ_256M;
 
         } else if ((desc.TLB1D_stSize >= 64 * LW_CFG_MB_SIZE) &&
-                  !(desc.TLB1D_ulPhyAddr & (64 * LW_CFG_MB_SIZE - 1))) {
+                  !(desc.TLB1D_ui64PhyAddr & (64 * LW_CFG_MB_SIZE - 1))) {
             desc.TLB1D_stSize   = 64 * LW_CFG_MB_SIZE;
             uiMAS1.MAS1_ucTSIZE = MMU_TRANS_SZ_64M;
 
         } else if ((desc.TLB1D_stSize >= 16 * LW_CFG_MB_SIZE) &&
-                  !(desc.TLB1D_ulPhyAddr & (16 * LW_CFG_MB_SIZE - 1))) {
+                  !(desc.TLB1D_ui64PhyAddr & (16 * LW_CFG_MB_SIZE - 1))) {
             desc.TLB1D_stSize   = 16 * LW_CFG_MB_SIZE;
             uiMAS1.MAS1_ucTSIZE = MMU_TRANS_SZ_16M;
 
         } else if ((desc.TLB1D_stSize >= 4 * LW_CFG_MB_SIZE) &&
-                  !(desc.TLB1D_ulPhyAddr & (4 * LW_CFG_MB_SIZE - 1))) {
+                  !(desc.TLB1D_ui64PhyAddr & (4 * LW_CFG_MB_SIZE - 1))) {
             desc.TLB1D_stSize   = 4 * LW_CFG_MB_SIZE;
             uiMAS1.MAS1_ucTSIZE = MMU_TRANS_SZ_4M;
 
         } else if ((desc.TLB1D_stSize >= 1 * LW_CFG_MB_SIZE) &&
-                  !(desc.TLB1D_ulPhyAddr & (1 * LW_CFG_MB_SIZE - 1))) {
+                  !(desc.TLB1D_ui64PhyAddr & (1 * LW_CFG_MB_SIZE - 1))) {
             desc.TLB1D_stSize   = 1 * LW_CFG_MB_SIZE;
             uiMAS1.MAS1_ucTSIZE = MMU_TRANS_SZ_1M;
 
         } else if ((desc.TLB1D_stSize >= 256 * LW_CFG_KB_SIZE) &&
-                  !(desc.TLB1D_ulPhyAddr & (256 * LW_CFG_KB_SIZE - 1))) {
+                  !(desc.TLB1D_ui64PhyAddr & (256 * LW_CFG_KB_SIZE - 1))) {
             desc.TLB1D_stSize   = 256 * LW_CFG_KB_SIZE;
             uiMAS1.MAS1_ucTSIZE = MMU_TRANS_SZ_256K;
 
         } else if ((desc.TLB1D_stSize >= 64 * LW_CFG_KB_SIZE) &&
-                  !(desc.TLB1D_ulPhyAddr & (64 * LW_CFG_KB_SIZE - 1))) {
+                  !(desc.TLB1D_ui64PhyAddr & (64 * LW_CFG_KB_SIZE - 1))) {
             desc.TLB1D_stSize   = 64 * LW_CFG_KB_SIZE;
             uiMAS1.MAS1_ucTSIZE = MMU_TRANS_SZ_64K;
 
         } else if ((desc.TLB1D_stSize >= 16 * LW_CFG_KB_SIZE) &&
-                  !(desc.TLB1D_ulPhyAddr & (16 * LW_CFG_KB_SIZE - 1))) {
+                  !(desc.TLB1D_ui64PhyAddr & (16 * LW_CFG_KB_SIZE - 1))) {
             desc.TLB1D_stSize   = 16 * LW_CFG_KB_SIZE;
             uiMAS1.MAS1_ucTSIZE = MMU_TRANS_SZ_16K;
 
         } else if ((desc.TLB1D_stSize >= 4 * LW_CFG_KB_SIZE) &&
-                  !(desc.TLB1D_ulPhyAddr & (4 * LW_CFG_KB_SIZE - 1))) {
+                  !(desc.TLB1D_ui64PhyAddr & (4 * LW_CFG_KB_SIZE - 1))) {
             desc.TLB1D_stSize   = 4 * LW_CFG_KB_SIZE;
             uiMAS1.MAS1_ucTSIZE = MMU_TRANS_SZ_4K;
 
@@ -225,7 +307,10 @@ INT  ppcE500MmuTLB1StaticMap (PE500_TLB1_MAP_DESC  pdesc)
             _BugFormat(LW_TRUE, LW_TRUE, "map size 0x%x is NOT 4K align!\r\n", pdesc->TLB1D_stSize);
         }
 
-        uiMAS2.MAS2_uiValue = 0;                                        /*  MAS2                        */
+        /*
+         * MAS2
+         */
+        uiMAS2.MAS2_uiValue = 0;
         uiMAS2.MAS2_uiEPN   = desc.TLB1D_ulVirMap >> LW_CFG_VMM_PAGE_SHIFT;
         uiMAS2.MAS2_bLittleEndian = LW_FALSE;
 
@@ -237,12 +322,15 @@ INT  ppcE500MmuTLB1StaticMap (PE500_TLB1_MAP_DESC  pdesc)
             uiMAS2.MAS2_bUnCache = LW_TRUE;                             /*  不可 Cache                  */
         }
 
-        if (MMU_MAS2_M) {
+        if ((desc.TLB1D_ulFlag & E500_TLB1_FLAG_CACHEABLE) && MMU_MAS2_M) {
             uiMAS2.MAS2_bMemCoh = LW_TRUE;                              /*  多核一致性                  */
         }
 
+        /*
+         * MAS3
+         */
         uiMAS3.MAS3_uiValue = 0;                                        /*  MAS3                        */
-        uiMAS3.MAS3_uiRPN   = desc.TLB1D_ulPhyAddr >> LW_CFG_VMM_PAGE_SHIFT;
+        uiMAS3.MAS3_uiRPN   = (desc.TLB1D_ui64PhyAddr & 0xffffffff) >> LW_CFG_VMM_PAGE_SHIFT;
 
         if (desc.TLB1D_ulFlag & E500_TLB1_FLAG_ACCESS) {
             uiMAS3.MAS3_bUserRead  = LW_FALSE;                          /*  用户态不可读                */
@@ -260,19 +348,27 @@ INT  ppcE500MmuTLB1StaticMap (PE500_TLB1_MAP_DESC  pdesc)
         }
 
         /*
+         * MAS7
+         */
+        uiMAS7.MAS7_uiValue    = 0;
+        uiMAS7.MAS7_uiHigh4RPN = desc.TLB1D_ui64PhyAddr >> 32;
+
+        /*
          * 将分析结果记录到 masRegs 数组
          */
         masRegs[i].MASR_ulFlag = desc.TLB1D_ulFlag;
         masRegs[i].MASR_uiMAS1 = uiMAS1;
         masRegs[i].MASR_uiMAS2 = uiMAS2;
         masRegs[i].MASR_uiMAS3 = uiMAS3;
+        masRegs[i].MASR_uiMAS7 = uiMAS7;
+
         i++;
 
         stRemainSize = stRemainSize - desc.TLB1D_stSize;
         if (stRemainSize > 0) {                                         /*  有未"映射"的部分            */
-            desc.TLB1D_ulPhyAddr += desc.TLB1D_stSize;                  /*  继续"映射"剩余的部分        */
-            desc.TLB1D_ulVirMap  += desc.TLB1D_stSize;
-            desc.TLB1D_stSize     = stRemainSize;
+            desc.TLB1D_ui64PhyAddr += desc.TLB1D_stSize;                /*  继续"映射"剩余的部分        */
+            desc.TLB1D_ulVirMap    += desc.TLB1D_stSize;
+            desc.TLB1D_stSize       = stRemainSize;
 
         } else {
             pdesc++;                                                    /*  "映射"下一个                */
@@ -295,12 +391,13 @@ INT  ppcE500MmuTLB1StaticMap (PE500_TLB1_MAP_DESC  pdesc)
         uiMAS0.MAS0_ucNV    = 0;
         ppcE500MmuSetMAS0(uiMAS0.MAS0_uiValue);
 
+        ppcE500MmuSetMAS0(uiMAS0.MAS0_uiValue);
         ppcE500MmuSetMAS1(masRegs[i].MASR_uiMAS1.MAS1_uiValue);
         ppcE500MmuSetMAS2(masRegs[i].MASR_uiMAS2.MAS2_uiValue);
         ppcE500MmuSetMAS3(masRegs[i].MASR_uiMAS3.MAS3_uiValue);
 
         if (_G_bHasMAS7) {
-            ppcE500MmuSetMAS7(0);
+            ppcE500MmuSetMAS7(masRegs[i].MASR_uiMAS7.MAS7_uiValue);
         }
 
         PPC_EXEC_INS("ISYNC");
@@ -308,6 +405,10 @@ INT  ppcE500MmuTLB1StaticMap (PE500_TLB1_MAP_DESC  pdesc)
         PPC_EXEC_INS("TLBWE");
         PPC_EXEC_INS("TLBSYNC");
         PPC_EXEC_INS("ISYNC");
+    }
+
+    if (pfuncPreRemoveTempMap) {
+        pfuncPreRemoveTempMap();
     }
 
     /*

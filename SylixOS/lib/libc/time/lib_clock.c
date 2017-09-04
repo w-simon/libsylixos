@@ -246,8 +246,7 @@ INT  lib_clock_nanosleep (clockid_t  clockid, int  iFlags,
         LW_SPIN_KERN_UNLOCK_QUICK(iregInterLevel);
 
         if (__timespecLeftTime(rqtp, &tvNow)) {
-            _ErrorHandle(EINVAL);
-            return  (PX_ERROR);
+            return  (ERROR_NONE);                                       /*  ²»ÐèÒªÑÓ³Ù                  */
         }
         
         __timespecSub(&tvValue, &tvNow);

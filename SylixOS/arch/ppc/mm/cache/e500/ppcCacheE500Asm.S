@@ -45,7 +45,6 @@
 
     EXPORT_LABEL(ppcE500ICacheInvalidateAll)
 
-    EXPORT_LABEL(ppcE500DCacheInvalidateAll)
     EXPORT_LABEL(ppcE500DCacheFlushAll)
 
     EXPORT_LABEL(ppcE500BranchPredictionDisable)
@@ -318,22 +317,6 @@ LINE_LABEL(cacheE500DisableFlush2)
 
 LINE_LABEL(cacheE500DisableLoadItlb2)
     B       cacheE500DisableLoadDtlb2
-    FUNC_END()
-
-;/*********************************************************************************************************
-;  D-CACHE 所有数据无效
-;*********************************************************************************************************/
-
-FUNC_DEF(ppcE500DCacheInvalidateAll)
-    MFSPR   R4 , L1CSR0
-    ORI     R5 , R4 , ARCH_PPC_L1CSR_FI                         ;/*  flash invalidate then enable        */
-
-    ;/* msync isync reqd before updating L1CSR0 register */
-    MSYNC
-    ISYNC
-    MTSPR   L1CSR0 , R5                                         ;/*  flash invalidate data cache         */
-                                                                ;/*  - 1 CPU cycle                       */
-    B       ppcE500CacheRetOK                                   ;/*  return OK                           */
     FUNC_END()
 
 ;/*********************************************************************************************************

@@ -50,8 +50,8 @@ PCI_CTRL_HANDLE     _G_hPciCtrlHandle = LW_NULL;
         PCI_CTRL->PCI_pDrvFuncs0->cfgWrite(iBus, iSlot, iFunc, iOft, iLen, uiData)
 #define PCI_VPD_READ(iBus, iSlot, iFunc, iPos, pucBuf, iLen)                                            \
         PCI_CTRL->PCI_pDrvFuncs0->vpdRead(iBus, iSlot, iFunc, iPos, pucBuf, iLen)
-#define PCI_IRQ_GET(iBus, iSlot, iFunc, iMsiEn, iLine, iPin, pulVector)                                 \
-        PCI_CTRL->PCI_pDrvFuncs0->irqGet(iBus, iSlot, iFunc, iMsiEn, iLine, iPin, pulVector)
+#define PCI_IRQ_GET(iBus, iSlot, iFunc, iMsiEn, iLine, iPin, pvIrq)                                     \
+        PCI_CTRL->PCI_pDrvFuncs0->irqGet(iBus, iSlot, iFunc, iMsiEn, iLine, iPin, pvIrq)
 #define PCI_CFG_SPCL(iBus, uiMsg)                                                                       \
         PCI_CTRL->PCI_pDrvFuncs0->cfgSpcl(iBus, uiMsg)
 #define PCI_CFG_SPCL_IS_EN()                                                                            \
@@ -74,8 +74,8 @@ PCI_CTRL_HANDLE     _G_hPciCtrlHandle = LW_NULL;
 /*********************************************************************************************************
   PCI 主控器配置中断操作 PCI_MECHANISM_1 2
 *********************************************************************************************************/
-#define PCI_IRQ_GET12(iBus, iSlot, iFunc, iMsiEn, iLine, iPin, pulVector)                               \
-        PCI_CTRL->PCI_pDrvFuncs12->irqGet(iBus, iSlot, iFunc, iMsiEn, iLine, iPin, pulVector)
+#define PCI_IRQ_GET12(iBus, iSlot, iFunc, iMsiEn, iLine, iPin, pvIrq)  \
+        PCI_CTRL->PCI_pDrvFuncs12->irqGet(iBus, iSlot, iFunc, iMsiEn, iLine, iPin, pvIrq)
 /*********************************************************************************************************
   PCI 是否为无效 VENDOR_ID
 *********************************************************************************************************/
@@ -1517,7 +1517,6 @@ static VOID  __pciDevReadBases (PCI_DEV_HANDLE hHandle, UINT uiHowMany, INT iRom
 static VOID  __pciDevReadIrq (PCI_DEV_HANDLE hHandle)
 {
     INT                     iRet;
-    ULONG                   ulVector;
     PCI_RESOURCE_HANDLE     hResource;
 
     if (!hHandle) {
@@ -1527,8 +1526,7 @@ static VOID  __pciDevReadIrq (PCI_DEV_HANDLE hHandle)
     hResource = &hHandle->PCIDEV_tResource[PCI_IRQ_RESOURCE];
 
     hHandle->PCIDEV_iDevIrqMsiEn = LW_FALSE;
-    iRet = API_PciDevInterVectorGet(hHandle, &ulVector);
-    hHandle->PCIDEV_ulDevIrqVector = ulVector;
+    iRet = API_PciDevInterVectorGet(hHandle, &hHandle->PCIDEV_ulDevIrqVector);
     if (iRet != ERROR_NONE) {
         hResource->PCIRS_pcName  = LW_NULL;
         hResource->PCIRS_stStart = 0;
@@ -1538,11 +1536,9 @@ static VOID  __pciDevReadIrq (PCI_DEV_HANDLE hHandle)
     }
 
     hResource->PCIRS_pcName  = hHandle->PCIDEV_cDevName;
-    hResource->PCIRS_stStart = ulVector;
-    hResource->PCIRS_stEnd   = ulVector;
+    hResource->PCIRS_stStart = hHandle->PCIDEV_ulDevIrqVector;
+    hResource->PCIRS_stEnd   = hHandle->PCIDEV_ulDevIrqVector;
     hResource->PCIRS_ulFlags = PCI_IORESOURCE_IRQ;
-
-    return;
 }
 /*********************************************************************************************************
 ** 函数名称: API_PciDevSetup
@@ -1974,7 +1970,7 @@ INT  API_PciVpdRead (INT iBus, INT iSlot, INT iFunc, INT iPos, UINT8 *pucBuf, IN
 }
 /*********************************************************************************************************
 ** 函数名称: API_PciIrqGet
-** 功能描述: 获取总的向量
+** 功能描述: 获取 INTx 向量
 ** 输　入  : iBus           总线号
 **           iSlot          插槽
 **           iFunc          功能
@@ -1993,17 +1989,74 @@ INT  API_PciIrqGet (INT iBus, INT iSlot, INT iFunc, INT iMsiEn, INT iLine, INT i
     INTREG  iregInterLevel;
     INT     iRetVal = PX_ERROR;
 
+    if (iMsiEn) {
+        if (pulVector) {
+            *pulVector = (ULONG)PX_ERROR;
+        }
+        return  (PX_ERROR);
+    }
+
     LW_SPIN_LOCK_QUICK(&PCI_CTRL->PCI_slLock, &iregInterLevel);
 
     switch (PCI_CTRL->PCI_ucMechanism) {
 
     case PCI_MECHANISM_0:
-        iRetVal = PCI_IRQ_GET(iBus, iSlot, iFunc, iMsiEn, iLine, iPin, pulVector);
+        iRetVal = PCI_IRQ_GET(iBus, iSlot, iFunc, iMsiEn, iLine, iPin, (PVOID)pulVector);
         break;
 
     case PCI_MECHANISM_1:
     case PCI_MECHANISM_2:
-        iRetVal = PCI_IRQ_GET12(iBus, iSlot, iFunc, iMsiEn, iLine, iPin, pulVector);
+        iRetVal = PCI_IRQ_GET12(iBus, iSlot, iFunc, iMsiEn, iLine, iPin, (PVOID)pulVector);
+        break;
+
+    default:
+        break;
+    }
+
+    LW_SPIN_UNLOCK_QUICK(&PCI_CTRL->PCI_slLock, iregInterLevel);
+
+    return  (iRetVal);
+}
+/*********************************************************************************************************
+** 函数名称: API_PciIrqMsi
+** 功能描述: 获取 MSI MSI-X 向量
+** 输　入  : iBus           总线号
+**           iSlot          插槽
+**           iFunc          功能
+**           iMsiEn         是否使能 MSI
+**           iLine          中断线
+**           iPin           中断引脚
+**           pmsidesc       MSI 中断信息描述
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_PciIrqMsi (INT iBus, INT iSlot, INT iFunc, INT iMsiEn, INT iLine, INT iPin, PCI_MSI_DESC *pmsidesc)
+{
+    INTREG  iregInterLevel;
+    INT     iRetVal = PX_ERROR;
+
+    if (iMsiEn == 0) {
+        if (pmsidesc) {
+            pmsidesc->PCIMSI_uiNum          = 0;
+            pmsidesc->PCIMSI_ulDevIrqVector = (ULONG)PX_ERROR;
+        }
+        return  (PX_ERROR);
+    }
+
+    LW_SPIN_LOCK_QUICK(&PCI_CTRL->PCI_slLock, &iregInterLevel);
+
+    switch (PCI_CTRL->PCI_ucMechanism) {
+
+    case PCI_MECHANISM_0:
+        iRetVal = PCI_IRQ_GET(iBus, iSlot, iFunc, iMsiEn, iLine, iPin, (PVOID)pmsidesc);
+        break;
+
+    case PCI_MECHANISM_1:
+    case PCI_MECHANISM_2:
+        iRetVal = PCI_IRQ_GET12(iBus, iSlot, iFunc, iMsiEn, iLine, iPin, (PVOID)pmsidesc);
         break;
 
     default:

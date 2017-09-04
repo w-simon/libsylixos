@@ -213,11 +213,10 @@ FUNC_DEF(archPageCopy)
 ;*********************************************************************************************************/
 
 MACRO_DEF(CALL_SETUP, setup)
-    SUBI    SP , SP , 16
+    SUBI    SP , SP , 32
 
-    STW     R3 , 0(SP)
-
-    STW     R4 , 4(SP)
+    STW     R3 , 8(SP)
+    STW     R4 , 12(SP)
 
     MFLR    R5
     ISYNC
@@ -231,11 +230,10 @@ MACRO_DEF(CALL_SETUP, setup)
     MTLR    R5
     ISYNC
 
-    LWZ     R4 , 4(SP)
+    LWZ     R4 , 12(SP)
+    LWZ     R3 , 8(SP)
 
-    LWZ     R3 , 0(SP)
-
-    ADDI    SP , SP , 16
+    ADDI    SP , SP , 32
     MACRO_END()
 
 ;/*********************************************************************************************************
@@ -243,7 +241,6 @@ MACRO_DEF(CALL_SETUP, setup)
 ;*********************************************************************************************************/
 
 MACRO_DEF(SAVE_NON_VOLATILE_REG)
-
     MFLR    R5
     ISYNC
     STW     R5 , 0(R3)
@@ -264,7 +261,6 @@ MACRO_DEF(SAVE_NON_VOLATILE_REG)
 ;*********************************************************************************************************/
 
 MACRO_DEF(RESTORE_NON_VOLATILE_REG)
-
     LWZ     R5 , 0(R3)
     SYNC
     MTLR    R5

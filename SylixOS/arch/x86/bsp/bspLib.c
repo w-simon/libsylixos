@@ -23,6 +23,7 @@
 #include "arch/x86/asm/hwcap.h"
 #include "arch/x86/common/x86CpuId.h"
 #include "arch/x86/acpi/x86AcpiLib.h"
+#include "arch/x86/param/x86Param.h"
 /*********************************************************************************************************
 ** 函数名称: bspInfoCpu
 ** 功能描述: BSP CPU 信息
@@ -319,7 +320,7 @@ LW_WEAK VOID  bspTickInit (VOID)
                                         &threadattr, LW_NULL);
 #endif                                                                  /*  TICK_IN_THREAD > 0          */
 
-    if (_G_pAcpiHpet) {                                                 /*  有 HPET                     */
+    if (_G_pAcpiHpet && archKernelParamGet()->X86_bUseHpet) {           /*  有 HPET 并且指定使用 HPET   */
         _G_pfuncTickHook           = bspHpetTickHook;
         _G_pfuncTickHighResolution = bspHpetTickHighResolution;
 

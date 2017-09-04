@@ -31,23 +31,11 @@
 #ifndef _WCTYPE_H_
 #define	_WCTYPE_H_
 
+#include "sys/types.h"
 #include "sys/cdefs.h"
 
 #ifndef _WCHAR_ALL_TYPE_
 #define _WCHAR_ALL_TYPE_
-typedef struct { int  dummy; }  mbstate_t;
-
-/* 
- * the following code is also in stddef.h
- */
-#ifndef _WINT_T
-#define _WINT_T
-#ifndef __WINT_TYPE__
-#define __WINT_TYPE__ unsigned int
-#endif
-typedef __WINT_TYPE__ wint_t;
-#endif /* _WINT_T */
-
 typedef void *wctrans_t;
 typedef enum {
     WC_TYPE_INVALID = 0,

@@ -212,6 +212,7 @@ SylixOS/arch/ppc/mm/cache/ppc60x/ppcCache83xx.c \
 SylixOS/arch/ppc/mm/cache/l2/ppcL2.c \
 SylixOS/arch/ppc/mm/cache/l2/ppc750/ppcL2Cache750.c \
 SylixOS/arch/ppc/mm/cache/l2/ppc750/ppcL2Cache750Asm.S \
+SylixOS/arch/ppc/mm/cache/l2/ppc750/ppcL2Cache745xAsm.S \
 SylixOS/arch/ppc/mm/mmu/common/ppcMmu.c \
 SylixOS/arch/ppc/mm/mmu/common/ppcMmuAsm.S \
 SylixOS/arch/ppc/mm/mmu/common/ppcMmuHashPageTbl.c \
@@ -567,6 +568,7 @@ SylixOS/driver/net/smethnd.c \
 SylixOS/driver/pci/sio/pciSioExar.c \
 SylixOS/driver/pci/sio/pciSioNetmos.c \
 SylixOS/driver/pci/storage/pciStorageAta.c \
+SylixOS/driver/pci/storage/pciStorageNvme.c \
 SylixOS/driver/pci/storage/pciStorageSata.c \
 SylixOS/driver/sio/16c550.c \
 SylixOS/driver/timer/i8254.c 
@@ -1524,6 +1526,12 @@ SylixOS/system/device/hwrtc/hwrtc.c \
 SylixOS/system/device/i2c/i2cLib.c \
 SylixOS/system/device/mem/memDev.c \
 SylixOS/system/device/mii/miiDev.c \
+SylixOS/system/device/nvme/nvme.c \
+SylixOS/system/device/nvme/nvmeCtrl.c \
+SylixOS/system/device/nvme/nvmeDev.c \
+SylixOS/system/device/nvme/nvmeDrv.c \
+SylixOS/system/device/nvme/nvmeLib.c \
+SylixOS/system/device/nvme/nvmePm.c \
 SylixOS/system/device/pci/pciAuto.c \
 SylixOS/system/device/pci/pciCap.c \
 SylixOS/system/device/pci/pciCapExt.c \
@@ -1533,6 +1541,7 @@ SylixOS/system/device/pci/pciDrv.c \
 SylixOS/system/device/pci/pciError.c \
 SylixOS/system/device/pci/pciLib.c \
 SylixOS/system/device/pci/pciMsi.c \
+SylixOS/system/device/pci/pciMsix.c \
 SylixOS/system/device/pci/pciPm.c \
 SylixOS/system/device/pci/pciProc.c \
 SylixOS/system/device/pci/pciScan.c \

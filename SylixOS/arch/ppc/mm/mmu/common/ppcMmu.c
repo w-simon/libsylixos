@@ -324,7 +324,9 @@ static INT  ppcMmuMemInit (PLW_MMU_CONTEXT  pmmuctx)
 *********************************************************************************************************/
 static INT  ppcMmuGlobalInit (CPCHAR  pcMachineName)
 {
-    archCacheReset(pcMachineName);
+    if (LW_CPU_GET_CUR_ID() == 0) {                                     /*  仅 Core0 复位 Cache         */
+        archCacheReset(pcMachineName);                                  /*  复位 Cache                  */
+    }
 
     ppcMmuInvalidateTLB();
 
@@ -739,6 +741,19 @@ ULONG  ppcMmuPteMissHandle (addr_t  ulAddr)
     }
 }
 /*********************************************************************************************************
+** 函数名称: bspMmuTlbSize
+** 功能描述: 获得 TLB 的数目
+** 输　入  : NONE
+** 输　出  : TLB 的数目
+** 全局变量:
+** 调用模块:
+**
+*********************************************************************************************************/
+LW_WEAK ULONG  bspMmuTlbSize (VOID)
+{
+    return  (128);                                                      /*  128 适合 750 MPC83XX 机器   */
+}
+/*********************************************************************************************************
 ** 函数名称: ppcMmuInit
 ** 功能描述: MMU 系统初始化
 ** 输　入  : pmmuop            MMU 操作函数集
@@ -749,14 +764,7 @@ ULONG  ppcMmuPteMissHandle (addr_t  ulAddr)
 *********************************************************************************************************/
 VOID  ppcMmuInit (LW_MMU_OP *pmmuop, CPCHAR  pcMachineName)
 {
-    if ((lib_strcmp(pcMachineName, PPC_MACHINE_750)     == 0) ||
-        (lib_strcmp(pcMachineName, PPC_MACHINE_MPC83XX) == 0)) {
-        _G_uiTlbNr = 128;
-    } else {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown machine name.\r\n");
-        return;
-    }
-
+    _G_uiTlbNr           = bspMmuTlbSize();                             /*  获得 TLB 的数目             */
     _G_ucWIM4CacheBuffer = M_BIT;
     _G_ucWIM4Cache       = W_BIT | M_BIT;
 

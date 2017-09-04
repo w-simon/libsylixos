@@ -19,6 +19,9 @@
 ** 描        述: Linux epoll 子系统 (有限支持 epoll 部分主要功能).
 **
 ** 注        意: SylixOS epoll 兼容子系统是由 select 子系统模拟出来的, 所以效率没有 select 高.
+
+** BUG:
+2017.08.31  epoll_pwait() 返回精确的文件描述符个数.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -238,7 +241,7 @@ int  epoll_pwait (int epfd, struct epoll_event *events, int maxevents, int timeo
     LW_EPOLL_FILE_GET(epfd);
     
     LW_EPOLL_FILE_LOCK(pepollfil);
-    _epollFiniFdset(pepollfil, iWidth, &fdsetRead, &fdsetWrite, &fdsetExcept, events, maxevents);
+    iNum = _epollFiniFdset(pepollfil, iWidth, &fdsetRead, &fdsetWrite, &fdsetExcept, events, maxevents);
     LW_EPOLL_FILE_UNLOCK(pepollfil);
     
     return  (iNum);

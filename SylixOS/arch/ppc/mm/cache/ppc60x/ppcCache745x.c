@@ -57,6 +57,9 @@ extern VOID     ppc745xBranchPredictorInvalidate(VOID);
 *********************************************************************************************************/
 static INT   ppc745xCacheProbe (CPCHAR  pcMachineName, PPC_CACHE  *pICache, PPC_CACHE  *pDCache)
 {
+    /*
+     * TODO 暂时不支持
+     */
     return  (PX_ERROR);
 }
 /*********************************************************************************************************

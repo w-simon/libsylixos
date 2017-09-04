@@ -84,8 +84,7 @@ typedef union {
     struct {
         UINT        MAS0_ucReserved0    :  3;
         UINT        MAS0_bTLBSEL        :  1;
-        UINT        MAS0_ucReserved1    :  8;
-        UINT        MAS0_ucESEL         :  4;
+        UINT        MAS0_ucESEL         : 12;
         UINT        MAS0_usReserved2    : 14;
         UINT        MAS0_ucNV           :  2;
     };
@@ -153,6 +152,14 @@ typedef union {
     };
     UINT32          MAS4_uiValue;
 } MAS4_REG;                                                             /*  MAS4 ¼Ä´æÆ÷                 */
+
+typedef union {
+    struct {
+        UINT        MAS7_ucReserved0    : 28;
+        UINT        MAS7_uiHigh4RPN     :  4;
+    };
+    UINT32          MAS7_uiValue;
+} MAS7_REG;                                                             /*  MAS7 ¼Ä´æÆ÷                 */
 
 typedef union {
     struct {

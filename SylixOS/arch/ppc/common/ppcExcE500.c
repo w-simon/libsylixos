@@ -17,16 +17,47 @@
 ** 文件创建日期: 2016 年 05 月 04 日
 **
 ** 描        述: PowerPC E500 体系构架异常处理.
+**
+** 注        意: 目前没有实现 E.HV(Embedded.Hypervisor) 和 E.HV.LRAT(Embedded.Hypervisor.LRAT) 相关的
+**               异常处理, 未来支持硬件虚拟化时需要加入相关的异常处理.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
 #include "dtrace.h"
 #include "ppcSpr.h"
 #include "ppcSprE500.h"
+#define  __SYLIXOS_PPC_E500__
+#define  __SYLIXOS_PPC_E500MC__
 #include "arch/ppc/arch_e500.h"
 #if LW_CFG_VMM_EN > 0
 #include "arch/ppc/mm/mmu/e500/ppcMmuE500.h"
 #endif
+/*********************************************************************************************************
+  汇编函数声明
+*********************************************************************************************************/
+extern VOID  archE500CriticalInputExceptionEntry(VOID);
+extern VOID  archE500MachineCheckExceptionEntry(VOID);
+extern VOID  archE500DataStorageExceptionEntry(VOID);
+extern VOID  archE500InstructionStorageExceptionEntry(VOID);
+extern VOID  archE500ExternalInterruptEntry(VOID);
+extern VOID  archE500AlignmentExceptionEntry(VOID);
+extern VOID  archE500ProgramExceptionEntry(VOID);
+extern VOID  archE500FpuUnavailableExceptionEntry(VOID);
+extern VOID  archE500SystemCallEntry(VOID);
+extern VOID  archE500DecrementerInterruptEntry(VOID);
+extern VOID  archE500TimerInterruptEntry(VOID);
+extern VOID  archE500WatchdogInterruptEntry(VOID);
+extern VOID  archE500DataTLBErrorEntry(VOID);
+extern VOID  archE500InstructionTLBErrorEntry(VOID);
+extern VOID  archE500DebugExceptionEntry(VOID);
+extern VOID  archE500SpeUnavailableExceptionEntry(VOID);
+extern VOID  archE500FpDataExceptionEntry(VOID);
+extern VOID  archE500FpRoundExceptionEntry(VOID);
+extern VOID  archE500AltiVecUnavailableExceptionEntry(VOID);
+extern VOID  archE500AltiVecAssistExceptionEntry(VOID);
+extern VOID  archE500PerfMonitorExceptionEntry(VOID);
+extern VOID  archE500DoorbellExceptionEntry(VOID);
+extern VOID  archE500DoorbellCriticalExceptionEntry(VOID);
 /*********************************************************************************************************
 ** 函数名称: archE500CriticalInputExceptionHandle
 ** 功能描述: 临界输入异常处理
@@ -201,6 +232,32 @@ VOID  archE500ProgramExceptionHandle (addr_t  ulRetAddr)
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
+** 函数名称: archE500FpuUnavailableExceptionHandle
+** 功能描述: 程序异常处理
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+** 注  意  : 此函数退出时必须为中断关闭状态.
+*********************************************************************************************************/
+VOID  archE500FpuUnavailableExceptionHandle (addr_t  ulRetAddr)
+{
+    PLW_CLASS_TCB   ptcbCur;
+    LW_VMM_ABORT    abtInfo;
+
+    LW_TCB_GET_CUR(ptcbCur);
+
+#if LW_CFG_CPU_FPU_EN > 0
+    if (archFpuUndHandle(ptcbCur) == ERROR_NONE) {                      /*  进行 FPU 指令探测           */
+        return;
+    }
+#endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FPE;
+    abtInfo.VMABT_uiMethod = FPE_FLTINV;                                /*  FPU 不可用                  */
+    API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
+}
+/*********************************************************************************************************
 ** 函数名称: archE500SystemCallHandle
 ** 功能描述: 系统调用处理
 ** 输　入  : NONE
@@ -365,6 +422,52 @@ VOID  archE500FpRoundExceptionHandle (addr_t  ulRetAddr)
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
+** 函数名称: archE500AltiVecUnavailableExceptionHandle
+** 功能描述: AltiVec 不可用异常处理
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+** 注  意  : 此函数退出时必须为中断关闭状态.
+*********************************************************************************************************/
+VOID  archE500AltiVecUnavailableExceptionHandle (addr_t  ulRetAddr)
+{
+    PLW_CLASS_TCB   ptcbCur;
+    LW_VMM_ABORT    abtInfo;
+
+    LW_TCB_GET_CUR(ptcbCur);
+
+#if LW_CFG_CPU_FPU_EN > 0
+    if (archFpuUndHandle(ptcbCur) == ERROR_NONE) {                      /*  进行 FPU 指令探测           */
+        return;
+    }
+#endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FPE;
+    abtInfo.VMABT_uiMethod = FPE_FLTINV;                                /*  FPU 不可用                  */
+    API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
+}
+/*********************************************************************************************************
+** 函数名称: archE500AltiVecAssistExceptionHandle
+** 功能描述: AltiVec Assist 异常处理
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+** 注  意  : 此函数退出时必须为中断关闭状态.
+*********************************************************************************************************/
+VOID  archE500AltiVecAssistExceptionHandle (addr_t  ulRetAddr)
+{
+    PLW_CLASS_TCB   ptcbCur;
+    LW_VMM_ABORT    abtInfo;
+
+    LW_TCB_GET_CUR(ptcbCur);
+
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FPE;
+    abtInfo.VMABT_uiMethod = FPE_FLTINV;
+    API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
+}
+/*********************************************************************************************************
 ** 函数名称: archE500PerfMonitorExceptionHandle
 ** 功能描述: Performance monitor 异常处理
 ** 输　入  : NONE
@@ -374,6 +477,30 @@ VOID  archE500FpRoundExceptionHandle (addr_t  ulRetAddr)
 ** 注  意  : 此函数退出时必须为中断关闭状态.
 *********************************************************************************************************/
 LW_WEAK VOID  archE500PerfMonitorExceptionHandle (addr_t  ulRetAddr)
+{
+}
+/*********************************************************************************************************
+** 函数名称: archE500DoorbellExceptionHandle
+** 功能描述: Processor doorbell 异常处理
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+** 注  意  : 此函数退出时必须为中断关闭状态.
+*********************************************************************************************************/
+LW_WEAK VOID  archE500DoorbellExceptionHandle (addr_t  ulRetAddr)
+{
+}
+/*********************************************************************************************************
+** 函数名称: archE500DoorbellCriticalExceptionHandle
+** 功能描述: Processor doorbell critical 异常处理
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+** 注  意  : 此函数退出时必须为中断关闭状态.
+*********************************************************************************************************/
+LW_WEAK VOID  archE500DoorbellCriticalExceptionHandle (addr_t  ulRetAddr)
 {
 }
 /*********************************************************************************************************
@@ -436,6 +563,25 @@ VOID  archE500DecrementerInterruptDisable (VOID)
     uiTCR  = ppcE500GetTCR();
     uiTCR &= ~(ARCH_PPC_TCR_DIE_U << 16);
     ppcE500SetTCR(uiTCR);
+}
+/*********************************************************************************************************
+** 函数名称: archE500DecrementerInterruptIsEnable
+** 功能描述: 判断 Decrementer 中断是否使能
+** 输　入  : NONE
+** 输　出  : LW_TRUE OR LW_FALSE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+BOOL  archE500DecrementerInterruptIsEnable (VOID)
+{
+    UINT32  uiTCR;
+
+    uiTCR = ppcE500GetTCR();
+    if (uiTCR & (ARCH_PPC_TCR_DIE_U << 16)) {
+        return  (LW_TRUE);
+    } else {
+        return  (LW_FALSE);
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: archE500DecrementerAutoReloadEnable
@@ -531,6 +677,25 @@ VOID  archE500TimerInterruptDisable (VOID)
     ppcE500SetTCR(uiTCR);
 }
 /*********************************************************************************************************
+** 函数名称: archE500TimerInterruptIsEnable
+** 功能描述: 判断固定间隔定时器中断是否使能
+** 输　入  : NONE
+** 输　出  : LW_TRUE OR LW_FALSE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+BOOL  archE500TimerInterruptIsEnable (VOID)
+{
+    UINT32  uiTCR;
+
+    uiTCR = ppcE500GetTCR();
+    if (uiTCR & (ARCH_PPC_TCR_FIE_U << 16)) {
+        return  (LW_TRUE);
+    } else {
+        return  (LW_FALSE);
+    }
+}
+/*********************************************************************************************************
 ** 函数名称: archE500WatchdogInterruptAck
 ** 功能描述: 看门狗定时器中断 ACK
 ** 输　入  : NONE
@@ -590,6 +755,80 @@ VOID  archE500WatchdogInterruptDisable (VOID)
     uiTCR  = ppcE500GetTCR();
     uiTCR &= ~(ARCH_PPC_TCR_WIE_U << 16);
     ppcE500SetTCR(uiTCR);
+}
+/*********************************************************************************************************
+** 函数名称: archE500WatchdogInterruptIsEnable
+** 功能描述: 判断看门狗定时器中断是否使能
+** 输　入  : NONE
+** 输　出  : LW_TRUE OR LW_FALSE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+BOOL  archE500WatchdogInterruptIsEnable (VOID)
+{
+    UINT32  uiTCR;
+
+    uiTCR = ppcE500GetTCR();
+    if (uiTCR & (ARCH_PPC_TCR_WIE_U << 16)) {
+        return  (LW_TRUE);
+    } else {
+        return  (LW_FALSE);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: archE500VectorInit
+** 功能描述: 初始化 E500 异常向量表
+** 输　入  : pcMachineName         机器名
+**           ulVectorBase          Interrupt Vector Prefix
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  archE500VectorInit (CPCHAR  pcMachineName, addr_t  ulVectorBase)
+{
+#define tostring(rn)    #rn
+#define mtspr(rn, v)    asm volatile("mtspr " tostring(rn) ",%0" : : "r" (v))
+
+    archE500WatchdogInterruptDisable();                                 /*   关闭看门狗中断             */
+    archE500DecrementerInterruptDisable();                              /*   关闭 DEC 中断              */
+    archE500TimerInterruptDisable();                                    /*   关闭固定间隔定时器中断     */
+
+    mtspr(IVPR, ulVectorBase);
+
+    mtspr(IVOR0,  (addr_t)archE500CriticalInputExceptionEntry - ulVectorBase);
+    mtspr(IVOR1,  (addr_t)archE500MachineCheckExceptionEntry  - ulVectorBase);
+    mtspr(IVOR2,  (addr_t)archE500DataStorageExceptionEntry - ulVectorBase);
+    mtspr(IVOR3,  (addr_t)archE500InstructionStorageExceptionEntry - ulVectorBase);
+    mtspr(IVOR4,  (addr_t)archE500ExternalInterruptEntry - ulVectorBase);
+    mtspr(IVOR5,  (addr_t)archE500AlignmentExceptionEntry - ulVectorBase);
+    mtspr(IVOR6,  (addr_t)archE500ProgramExceptionEntry - ulVectorBase);
+    mtspr(IVOR8,  (addr_t)archE500SystemCallEntry - ulVectorBase);
+    mtspr(IVOR10, (addr_t)archE500DecrementerInterruptEntry - ulVectorBase);
+    mtspr(IVOR11, (addr_t)archE500TimerInterruptEntry - ulVectorBase);
+    mtspr(IVOR12, (addr_t)archE500WatchdogInterruptEntry - ulVectorBase);
+    mtspr(IVOR13, (addr_t)archE500DataTLBErrorEntry - ulVectorBase);
+    mtspr(IVOR14, (addr_t)archE500InstructionTLBErrorEntry - ulVectorBase);
+    mtspr(IVOR15, (addr_t)archE500DebugExceptionEntry - ulVectorBase);
+    mtspr(IVOR35, (addr_t)archE500PerfMonitorExceptionEntry - ulVectorBase);
+
+    if ((lib_strcmp(pcMachineName, PPC_MACHINE_E500)   == 0) ||
+        (lib_strcmp(pcMachineName, PPC_MACHINE_E500V1) == 0) ||
+        (lib_strcmp(pcMachineName, PPC_MACHINE_E500V2) == 0)) {         /*  E500v1 v2 使用 SPE          */
+        mtspr(IVOR32, (addr_t)archE500SpeUnavailableExceptionEntry - ulVectorBase);
+        mtspr(IVOR33, (addr_t)archE500FpDataExceptionEntry - ulVectorBase);
+        mtspr(IVOR34, (addr_t)archE500FpRoundExceptionEntry - ulVectorBase);
+
+    } else {                                                            /*  E500mc E5500 等后续使用 FPU */
+        mtspr(IVOR7, (addr_t)archE500FpuUnavailableExceptionEntry - ulVectorBase);
+
+        if (lib_strcmp(pcMachineName, PPC_MACHINE_E6500) == 0) {        /*  E6500 有 AltiVec            */
+            mtspr(IVOR32, (addr_t)archE500AltiVecUnavailableExceptionEntry - ulVectorBase);
+            mtspr(IVOR33, (addr_t)archE500AltiVecAssistExceptionEntry - ulVectorBase);
+        }
+
+        mtspr(IVOR36, (addr_t)archE500DoorbellExceptionEntry - ulVectorBase);
+        mtspr(IVOR37, (addr_t)archE500DoorbellCriticalExceptionEntry - ulVectorBase);
+    }
 }
 /*********************************************************************************************************
   END

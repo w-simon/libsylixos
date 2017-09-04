@@ -25,6 +25,7 @@
 #include "pciBus.h"
 #include "pciPm.h"
 #include "pciMsi.h"
+#include "pciMsix.h"
 #include "pciCap.h"
 #include "pciCapExt.h"
 #include "pciExpress.h"
@@ -530,13 +531,16 @@ typedef struct {
 
 /*********************************************************************************************************
   PCI I/O Drv
+  
+  注意: irqGet() 方法当 iMsiEn == 0 时 pvIrq 为 ULONG *pulVect
+                     当 iMsiEn != 0 时 pvIrq 为 PCI_MSI_DESC *pmsidesc
 *********************************************************************************************************/
 
 typedef struct pci_drv_funcs0 {
     INT     (*cfgRead)(INT iBus, INT iSlot, INT iFunc, INT iOft, INT iLen, PVOID pvRet);
     INT     (*cfgWrite)(INT iBus, INT iSlot, INT iFunc, INT iOft, INT iLen, UINT32 uiData);
     INT     (*vpdRead)(INT iBus, INT iSlot, INT iFunc, INT iPos, UINT8 *pucBuf, INT iLen);
-    INT     (*irqGet)(INT iBus, INT iSlot, INT iFunc, INT iMsiEn, INT iLine, INT iPin, ULONG *pulVector);
+    INT     (*irqGet)(INT iBus, INT iSlot, INT iFunc, INT iMsiEn, INT iLine, INT iPin, PVOID pvIrq);
     INT     (*cfgSpcl)(INT iBus, UINT32 uiMsg);
 } PCI_DRV_FUNCS0;                                                       /*  PCI_MECHANISM_0             */
 
@@ -547,7 +551,7 @@ typedef struct pci_drv_funcs12 {
     VOID    (*ioOutByte)(UINT8 ucValue, addr_t ulAddr);
     VOID    (*ioOutWord)(UINT16 usValue, addr_t ulAddr);
     VOID    (*ioOutDword)(UINT32 uiValue, addr_t ulAddr);
-    INT     (*irqGet)(INT iBus, INT iSlot, INT iFunc, INT iMsiEn, INT iLine, INT iPin, ULONG *pulVector);
+    INT     (*irqGet)(INT iBus, INT iSlot, INT iFunc, INT iMsiEn, INT iLine, INT iPin, PVOID pvIrq);
 } PCI_DRV_FUNCS12;                                                      /*  PCI_MECHANISM_1 , 2         */
 
 /*********************************************************************************************************
@@ -580,9 +584,9 @@ typedef struct {
     /*
      *  配置设备及中断
      */
-    VOID                    (*PCIAUTO_pfuncDevFixup)(PVOID pvCtrl, PCI_AUTO_DEV_HANDLE hAutoDev,
-                                                     UINT16 usVendor, UINT16 usDevice, UINT16 usClass);
-    VOID                    (*PCIAUTO_pfuncDevIrqFixup)(PVOID pvCtrl, PCI_AUTO_DEV_HANDLE hAutoDev);
+    VOID                  (*PCIAUTO_pfuncDevFixup)(PVOID pvCtrl, PCI_AUTO_DEV_HANDLE hAutoDev,
+                                                   UINT16 usVendor, UINT16 usDevice, UINT16 usClass);
+    VOID                  (*PCIAUTO_pfuncDevIrqFixup)(PVOID pvCtrl, PCI_AUTO_DEV_HANDLE hAutoDev);
 
     /*
      *  资源信息
@@ -596,7 +600,7 @@ typedef struct {
     PVOID                   PCIAUTO_pvPriv;                             /* 私有数据                     */
 } PCI_AUTO_CB;
 
-typedef PCI_AUTO_CB     *PCI_AUTO_HANDLE;
+typedef PCI_AUTO_CB        *PCI_AUTO_HANDLE;
 
 /*********************************************************************************************************
   PCI access config
@@ -801,6 +805,14 @@ LW_API INT                  API_PciDevMsiVecCountGet(PCI_DEV_HANDLE hHandle, UIN
 LW_API INT                  API_PciDevMsiEnableGet(PCI_DEV_HANDLE hHandle, INT *piEnable);
 LW_API INT                  API_PciDevMsiEnableSet(PCI_DEV_HANDLE hHandle, INT iEnable);
 
+LW_API INT                  API_PciDevMsixRangeEnable(PCI_DEV_HANDLE       hHandle,
+                                                      PCI_MSI_DESC_HANDLE  hMsgHandle,
+                                                      UINT                 uiVecMin,
+                                                      UINT                 uiVecMax);
+LW_API INT                  API_PciDevMsixVecCountGet(PCI_DEV_HANDLE  hHandle, UINT32  *puiVecCount);
+LW_API INT                  API_PciDevMsixEnableGet(PCI_DEV_HANDLE  hHandle, INT  *piEnable);
+LW_API INT                  API_PciDevMsixEnableSet(PCI_DEV_HANDLE  hHandle, INT  iEnable);
+
 LW_API PCI_DEV_HANDLE       API_PciDevParentHandleGet(INT iBus, INT iDevice, INT iFunction);
 LW_API PCI_DEV_HANDLE       API_PciDevHandleGet(INT iBus, INT iDevice, INT iFunction);
 
@@ -864,6 +876,11 @@ LW_API INT                  API_PciAutoCtrlRegionSet(PCI_CTRL_HANDLE  hCtrl,
 #define pciDevMsiVecCountGet    API_PciDevMsiVecCountGet
 #define pciDevMsiEnableGet      API_PciDevMsiEnableGet
 #define pciDevMsiEnableSet      API_PciDevMsiEnableSet
+
+#define pciDevMsixRangeEnable   API_PciDevMsixRangeEnable
+#define pciDevMsixVecCountGet   API_PciDevMsixVecCountGet
+#define pciDevMsixEnableGet     API_PciDevMsixEnableGet
+#define pciDevMsixEnableSet     API_PciDevMsixEnableSet
 
 #define pciDevParentHandleGet   API_PciDevParentHandleGet
 #define pciHandleGet            API_PciDevHandleGet

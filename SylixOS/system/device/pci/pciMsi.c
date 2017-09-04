@@ -868,6 +868,7 @@ INT  API_PciDevMsiRangeEnable (PCI_DEV_HANDLE  hHandle, UINT  uiVecMin, UINT  ui
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
+
     if (uiVecNum < uiVecMin) {
         return  (PX_ERROR);
     } else if (uiVecNum > uiVecMax) {
@@ -876,10 +877,12 @@ INT  API_PciDevMsiRangeEnable (PCI_DEV_HANDLE  hHandle, UINT  uiVecMin, UINT  ui
 
     hMsgHandle = &hHandle->PCIDEV_pmdDevIrqMsiDesc;
     hMsgHandle->PCIMSI_uiNum = uiVecNum;
-    iRet = API_PciDevInterVectorGet(hHandle, (ULONG *)hMsgHandle);
+
+    iRet = API_PciDevInterMsiGet(hHandle, hMsgHandle);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
+
     hHandle->PCIDEV_uiDevIrqMsiNum = hMsgHandle->PCIMSI_uiNum;
     hHandle->PCIDEV_ulDevIrqVector = hMsgHandle->PCIMSI_ulDevIrqVector;
 
@@ -1060,6 +1063,7 @@ INT  API_PciDevMsiEnableSet (PCI_DEV_HANDLE  hHandle, INT  iEnable)
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
+    
     hHandle->PCIDEV_iDevIrqMsiEn = iEnable;
 
     return  (ERROR_NONE);

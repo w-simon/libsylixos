@@ -139,6 +139,7 @@ VOID    archBogoMipsLoop(ULONG  ulLoop);
 #define PPC_MACHINE_EC603       "EC603"
 #define PPC_MACHINE_604         "604"
 #define PPC_MACHINE_750         "750"
+#define PPC_MACHINE_745X        "745X"
 #define PPC_MACHINE_MPC83XX     "MPC83XX"
 #define PPC_MACHINE_E200        "E200"
 #define PPC_MACHINE_E300        "E300"
@@ -147,6 +148,8 @@ VOID    archBogoMipsLoop(ULONG  ulLoop);
 #define PPC_MACHINE_E500V2      "E500V2"
 #define PPC_MACHINE_E500MC      "E500MC"
 #define PPC_MACHINE_E600        "E600"
+#define PPC_MACHINE_E5500       "E5500"
+#define PPC_MACHINE_E6500       "E6500"
 
 /*********************************************************************************************************
   PowerPC 处理器 CACHE 操作
@@ -358,6 +361,7 @@ size_t  bspInfoRamSize(VOID);
 #if LW_CFG_VMM_EN > 0
 ULONG   bspMmuPgdMaxNum(VOID);
 ULONG   bspMmuPteMaxNum(VOID);
+ULONG   bspMmuTlbSize(VOID);
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 
 /*********************************************************************************************************
@@ -393,6 +397,16 @@ INT     bspTrustedModuleCheck(const PCHAR  pcPath);
 VOID    bspTrustedModuleLoad(PVOID  pvModule);
 VOID    bspTrustedModuleUnload(PVOID  pvModule);
 #endif                                                                  /*  LW_CFG_TRUSTED_COMPUTING_EN */
+
+/*********************************************************************************************************
+  多核 BSP 需要提供的函数 
+*********************************************************************************************************/
+
+#if LW_CFG_SMP_EN > 0
+VOID    bspSecondaryCpusUp(VOID);
+VOID    bspCpuIpiVectorInstall(VOID);
+CPVOID  bspFdtBase(VOID);
+#endif                                                                  /*  LW_CFG_SMP_EN               */
 
 #endif                                                                  /*  __ARCH_PPC_SUPPORT_H        */
 /*********************************************************************************************************

@@ -506,7 +506,7 @@ static CPCHAR  __oemFdiskGetType (UINT8  ucType)
     case 0xe1:  return  ("DOS access-SpeedStor 12-bit FAT ext.");
     case 0xe3:  return  ("DOS R/O or SpeedStor Partition");
     case 0xe4:  return  ("SpeedStor 16-bit FAT Ext Part. < 1024 cyl.");
-    case 0xee:  return  ("Linux Partition");
+    case 0xee:  return  ("GPT Partition");
     case 0xf1:  return  ("SpeedStor Partition");
     case 0xf2:  return  ("DOS 3.3+ secondary Partition");
     case 0xf4:  return  ("SpeedStor large partition Partition");

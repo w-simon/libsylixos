@@ -146,9 +146,9 @@ extern void udelay(unsigned long us);
  *
  * Or not use min/max at all, of course.
  */
-#define min_t(type,x,y) \
+#define min_t(type, x, y) \
 	({ type __x = (x); type __y = (y); __x < __y ? __x: __y; })
-#define max_t(type,x,y) \
+#define max_t(type, x, y) \
 	({ type __x = (x); type __y = (y); __x > __y ? __x: __y; })
 
 #ifndef BUG

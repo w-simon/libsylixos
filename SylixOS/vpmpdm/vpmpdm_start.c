@@ -48,11 +48,7 @@ extern void __vp_patch_unlock(void);
 /*
  *  _init_env
  */
-#if defined(LW_CFG_CPU_ARCH_C6X)
-void _init_env (void) /* c6x compiler no support constructor attribute */
-#else
-__attribute__((constructor)) static void _init_env (void)
-#endif /* LW_CFG_CPU_ARCH_C6X */
+LW_CONSTRUCTOR_BEGIN void __vp_patch_init_env (void)
 {
     int  sysnum;
     int  dupnum;
@@ -79,15 +75,12 @@ __attribute__((constructor)) static void _init_env (void)
         setenv("HOME", ppasswd->pw_dir, 1);
     }
 }
+LW_CONSTRUCTOR_END(__vp_patch_init_env)
 
 /*
  *  _deinit_env
  */
-#if defined(LW_CFG_CPU_ARCH_C6X)
-void _deinit_env (void) /* c6x compiler no support destructor attribute */
-#else
-__attribute__((destructor)) static void _deinit_env (void)
-#endif /* LW_CFG_CPU_ARCH_C6X */
+LW_DESTRUCTOR_BEGIN void __vp_patch_deinit_env (void)
 {
     int  i;
     
@@ -98,6 +91,7 @@ __attribute__((destructor)) static void _deinit_env (void)
         free(environ);
     }
 }
+LW_DESTRUCTOR_END(__vp_patch_deinit_env)
 
 /*
  *  _findenv
@@ -190,11 +184,6 @@ int _start (int argc, char **argv, char **env)
     }
 
     errno = 0;
-
-#if defined(LW_CFG_CPU_ARCH_C6X)
-    _init_env();            /* c6x compiler no support constructor attribute */
-    atexit(_deinit_env);    /* c6x compiler no support destructor  attribute */
-#endif /* LW_CFG_CPU_ARCH_C6X */
     ret = pfuncMain(argc, argv, environ);
     exit(ret);
     

@@ -70,16 +70,20 @@ MACRO_DEF(EXC_ENTRY, handle)
     ; *      SP = interrupt stack;
     ; *  }
     ; */
+    SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
     BL      API_InterEnter                                              ;/*  获取中断层数放到返回值 V0   */
 
     CMPWI   CR0, R3 , 1
     BNE     CR0, 1f
 
     BL      API_ThreadTcbInter                                          ;/*  get current tcb             */
+    ADDI    SP , SP , 16
     STW     SP , 0(R3)                                                  ;/*  current stack = SP          */
+    SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
 
     BL      API_InterStackBaseGet                                       ;/*  获得当前 CPU 中断堆栈栈顶   */
     OR      SP , R3 , R3
+    SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
 
 1:
     MFSPR   R3 , SRR0                                                   ;/*  传递返回地址                */
@@ -87,6 +91,7 @@ MACRO_DEF(EXC_ENTRY, handle)
     BL      \handle                                                     ;/*  调用处理函数                */
 
     BL      API_InterExit
+    ADDI    SP , SP , 16
 
     RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
     MACRO_END()

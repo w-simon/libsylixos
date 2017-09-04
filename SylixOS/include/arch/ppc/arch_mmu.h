@@ -119,7 +119,7 @@ typedef union {
 *********************************************************************************************************/
 
 typedef struct {
-    ULONG                    TLB1D_ulPhyAddr;                           /*  物理地址 (页对齐地址)       */
+    UINT64                   TLB1D_ui64PhyAddr;                         /*  物理地址 (页对齐地址)       */
     ULONG                    TLB1D_ulVirMap;                            /*  需要初始化的映射关系        */
     ULONG                    TLB1D_stSize;                              /*  物理内存区长度 (页对齐长度) */
     ULONG                    TLB1D_ulFlag;                              /*  物理内存区间类型            */
@@ -150,6 +150,7 @@ typedef struct {
                                  E500_TLB1_FLAG_CACHEABLE)              /*  普通内存                    */
 
 #define E500_TLB1_FLAG_BOOTSFR  (E500_TLB1_FLAG_VALID      | \
+                                 E500_TLB1_FLAG_GUARDED    | \
                                  E500_TLB1_FLAG_ACCESS     | \
                                  E500_TLB1_FLAG_WRITABLE   | \
                                  E500_TLB1_FLAG_UNEXECABLE | \
@@ -161,8 +162,9 @@ typedef E500_TLB1_MAP_DESC      *PE500_TLB1_MAP_DESC;
   E500 bsp 需要调用以下函数初始化 TLB1
 *********************************************************************************************************/
 
-INT  ppcE500MmuTLB1Init(CPCHAR  pcMachineName);
-INT  ppcE500MmuTLB1StaticMap(PE500_TLB1_MAP_DESC  pdesc);
+INT  archE500MmuTLB1GlobalMap(CPCHAR               pcMachineName,
+                              PE500_TLB1_MAP_DESC  pdesc,
+                              VOID                 (*pfuncPreRemoveTempMap)(VOID));
 
 #endif
 #endif                                                                  /*  __SYLIXOS_KERNEL            */

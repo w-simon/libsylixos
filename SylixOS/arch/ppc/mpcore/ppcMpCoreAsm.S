@@ -69,10 +69,10 @@ FUNC_DEF(ppcSpinTryLock)
     STWCX.  R0 , 0 , R3
     BNE     1f
     ISYNC
-    LI      R3 , 1
+    LI      R3 , 0
     BLR
 1:
-    LI      R3 , 0
+    LI      R3 , 1
     BLR
     FUNC_END()
     
