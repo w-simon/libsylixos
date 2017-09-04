@@ -79,12 +79,18 @@
 #define LW_MODULE_GCOV                  "module_gcov"
 
 /*********************************************************************************************************
-  DSP C6x 析构
-  注意: DSP 编译器构造与析构函数均不能为 static, 不支持 __attribute__((destructor))
+  DSP C6x 特殊定义
+
+  注意: DSP CCS 编译器文档指出: 跨模块函数不能使用 static 类型, 因为 static 类型不会设置 B14 寄存器, 导致
+        调用错误. 所以一些跨模块使用的函数, 例如包括定时器在内的各种回调, 线程运行函数, 皆不可是 static.
+
+        DSP 编译器构造与析构函数均不能为 static, 不支持 __attribute__((destructor))
         所以库的析构函数必须在函数定义之后加上 LW_DSP_C6X_DTOR(func); 定义.
 *********************************************************************************************************/
 
 #ifdef LW_CFG_CPU_ARCH_C6X
+#define LW_LIB_HOOK_STATIC
+
 #define LW_CONSTRUCTOR_BEGIN    \
         __attribute__((constructor))
 #define LW_CONSTRUCTOR_END(f)
@@ -94,6 +100,8 @@
         __attribute__((section(".fini_array"))) void *__$$_c6x_dsp_lib_##func##_dtor = (void *)func;
 
 #else
+#define LW_LIB_HOOK_STATIC  static
+
 #define LW_CONSTRUCTOR_BEGIN    \
         __attribute__((constructor)) static
 #define LW_CONSTRUCTOR_END(f)
