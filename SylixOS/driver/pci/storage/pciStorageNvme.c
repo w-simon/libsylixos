@@ -324,7 +324,7 @@ static INT  pciStorageNvmeVendorCtrlIntDisConnect (NVME_CTRL_HANDLE   hCtrl,
 *********************************************************************************************************/
 static INT  pciStorageNvmeVendorCtrlReadyWork (NVME_CTRL_HANDLE  hCtrl, UINT uiIrqNum)
 {
-    INT                     i, j, iRet;
+    INT                     iRet;
     PCI_DEV_HANDLE          hPciDev;
     UINT16                  usPciDevId;
     ULONG                   ulBaseAddr;
@@ -391,12 +391,6 @@ static INT  pciStorageNvmeVendorCtrlReadyWork (NVME_CTRL_HANDLE  hCtrl, UINT uiI
 
 __msi_handle:
     iRet = API_PciDevMsixEnableSet(hPciDev, LW_FALSE);                  /*  可能会失败，不做处理        */
-#ifdef LW_CFG_CPU_ARCH_X86
-    /*
-     *  x86 NVMe 使用 MSI 中断, 需要中断号必须与中断个数对齐, 这里直接使用 INTx 中断
-     */
-    goto    __intx_handle;
-#endif
     iRet = API_PciDevMsiEnableSet(hPciDev, LW_TRUE);                    /*  使能 MSI 中断               */
     if (iRet != ERROR_NONE) {
         NVME_LOG(NVME_LOG_ERR, "pci msi enable failed dev %d:%d.%d.\r\n",
@@ -404,14 +398,7 @@ __msi_handle:
         goto    __intx_handle;
     }
 
-    for (i = 0; i < 6; i++) {                                           /*  MSI 中断数量 1, 2... 32     */
-        j = 1 << i;
-        if (j >= uiIrqNum) {
-            break;
-        }
-    }
-
-    iRet = API_PciDevMsiRangeEnable(hPciDev, 1, (UINT)j);
+    iRet = API_PciDevMsiRangeEnable(hPciDev, 1, uiIrqNum);
     if (iRet != ERROR_NONE) {
         NVME_LOG(NVME_LOG_ERR, "pci msi range enable failed dev %d:%d.%d.\r\n",
                  hPciDev->PCIDEV_iDevBus, hPciDev->PCIDEV_iDevDevice, hPciDev->PCIDEV_iDevFunction);

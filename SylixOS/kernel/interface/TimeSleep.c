@@ -157,7 +157,7 @@ __wait_again:
 ** 功能描述: 线程睡眠直到一个指定的时间 (与当前时钟差值不得超过 ULONG_MAX 个 tick)
 ** 输　入  : clockid           时钟类型 CLOCK_REALTIME or CLOCK_MONOTONIC
 **           tv                指定的时间
-**           bSigRet           是否允许信号唤醒 (TODO: 当前未实现)
+**           bSigRet           是否允许信号唤醒
 ** 输　出  : ERROR_NONE or EINTR
 ** 全局变量: 
 ** 调用模块: 
@@ -169,7 +169,7 @@ LW_API
 ULONG  API_TimeSleepUntil (clockid_t  clockid, const struct timespec  *tv, BOOL  bSigRet)
 {
     struct timespec  tvNow;
-    struct timespec  tvTemp;
+    ULONG            ulTick;
     
     if ((clockid != CLOCK_REALTIME) && (clockid != CLOCK_MONOTONIC)) {
         _ErrorHandle(EINVAL);
@@ -181,14 +181,9 @@ ULONG  API_TimeSleepUntil (clockid_t  clockid, const struct timespec  *tv, BOOL 
         return  (ERROR_NONE);
     }
     
-    __timespecSub2(&tvTemp, tv, &tvNow);
+    ulTick = __timespecToTickDiff(&tvNow, tv);
     
-    if (nanosleep(&tvTemp, LW_NULL)) {
-        return  (API_GetLastError());
-    
-    } else {
-        return  (ERROR_NONE);
-    }
+    return  (API_TimeSleepEx(ulTick, bSigRet));
 }
 /*********************************************************************************************************
 ** 函数名称: API_TimeSSleep
@@ -417,11 +412,16 @@ INT  usleep (usecond_t   usecondTime)
 LW_API  
 UINT  sleep (UINT    uiSeconds)
 {
-    ULONG            ulTick = uiSeconds * LW_TICK_HZ;
+    ULONG            ulTick;
     struct timespec  tsStart, tsEnd;
     UINT             uiPass;
     
     __THREAD_CANCEL_POINT();                                            /*  测试取消点                  */
+    
+    tsStart.tv_sec  = uiSeconds;
+    tsStart.tv_nsec = 0;
+    
+    ulTick = LW_TS_TIMEOUT_TICK(LW_TRUE, &tsStart);
     
     __timeGetHighResolution(&tsStart);
     if (API_TimeSleepEx(ulTick, LW_TRUE) == EINTR) {

@@ -504,6 +504,8 @@ INT  API_PciMsixEnableGet (INT  iBus, INT  iSlot, INT  iFunc, UINT32  uiMsiCapOf
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
+** 注  意  : 每个 PCI 设备驱动程序只需要调用一次
+**
 **                                            API 函数
 *********************************************************************************************************/
 LW_API
@@ -523,6 +525,10 @@ INT  API_PciDevMsixRangeEnable (PCI_DEV_HANDLE       hHandle,
     if (hHandle == LW_NULL) {
         return  (PX_ERROR);
     }
+    
+    if ((uiVecMax < uiVecMin) || (uiVecMin < 1)) {
+        return  (PX_ERROR);
+    }
 
     iRet = API_PciCapFind(hHandle->PCIDEV_iDevBus,                      /*  获取 MSI-X 结构体偏移       */
                           hHandle->PCIDEV_iDevDevice,
@@ -530,10 +536,6 @@ INT  API_PciDevMsixRangeEnable (PCI_DEV_HANDLE       hHandle,
                           PCI_CAP_ID_MSIX,
                           &uiMsiCapOft);
     if (iRet != ERROR_NONE) {
-        return  (PX_ERROR);
-    }
-
-    if (uiVecMax < uiVecMin) {
         return  (PX_ERROR);
     }
 
@@ -556,6 +558,7 @@ INT  API_PciDevMsixRangeEnable (PCI_DEV_HANDLE       hHandle,
 
     if (uiVecNum < uiVecMin) {
         return  (PX_ERROR);
+    
     } else if (uiVecNum > uiVecMax) {
         uiVecNum = uiVecMax;
     }
@@ -576,6 +579,7 @@ INT  API_PciDevMsixRangeEnable (PCI_DEV_HANDLE       hHandle,
 
     for (i = 0; i < uiVecNum; i++) {                                    /*  循环申请每个 MSI-X 中断     */
         hMsgHandle[i].PCIMSI_uiNum = 1;                                 /*  向系统申请一个 MSI 中断     */
+        
         iRet = API_PciDevInterMsiGet(hHandle, &hMsgHandle[i]);
         if (iRet != ERROR_NONE) {
             break;
@@ -591,7 +595,12 @@ INT  API_PciDevMsixRangeEnable (PCI_DEV_HANDLE       hHandle,
 
     API_VmmIoUnmap(pvAddr);                                             /*  释放占用的逻辑空间          */
 
-    return  (iRet);
+    if (i >= uiVecMin) {
+        return  (ERROR_NONE);
+
+    } else {
+        return  (iRet);                                                 /*  TODO: 出错需要回收中断向量  */
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: API_PciDevMsixVecCountGet

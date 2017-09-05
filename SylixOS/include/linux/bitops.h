@@ -11,31 +11,31 @@
 
 static LW_INLINE int generic_ffs(int x)
 {
-	int r = 1;
+    int r = 1;
 
-	if (!x)
-		return 0;
-	if (!(x & 0xffff)) {
-		x >>= 16;
-		r += 16;
-	}
-	if (!(x & 0xff)) {
-		x >>= 8;
-		r += 8;
-	}
-	if (!(x & 0xf)) {
-		x >>= 4;
-		r += 4;
-	}
-	if (!(x & 3)) {
-		x >>= 2;
-		r += 2;
-	}
-	if (!(x & 1)) {
-		x >>= 1;
-		r += 1;
-	}
-	return r;
+    if (!x)
+        return 0;
+    if (!(x & 0xffff)) {
+        x >>= 16;
+        r += 16;
+    }
+    if (!(x & 0xff)) {
+        x >>= 8;
+        r += 8;
+    }
+    if (!(x & 0xf)) {
+        x >>= 4;
+        r += 4;
+    }
+    if (!(x & 3)) {
+        x >>= 2;
+        r += 2;
+    }
+    if (!(x & 1)) {
+        x >>= 1;
+        r += 1;
+    }
+    return r;
 }
 
 /**
@@ -47,31 +47,31 @@ static LW_INLINE int generic_ffs(int x)
  */
 static LW_INLINE int generic_fls(int x)
 {
-	int r = 32;
+    int r = 32;
 
-	if (!x)
-		return 0;
-	if (!(x & 0xffff0000u)) {
-		x <<= 16;
-		r -= 16;
-	}
-	if (!(x & 0xff000000u)) {
-		x <<= 8;
-		r -= 8;
-	}
-	if (!(x & 0xf0000000u)) {
-		x <<= 4;
-		r -= 4;
-	}
-	if (!(x & 0xc0000000u)) {
-		x <<= 2;
-		r -= 2;
-	}
-	if (!(x & 0x80000000u)) {
-		x <<= 1;
-		r -= 1;
-	}
-	return r;
+    if (!x)
+        return 0;
+    if (!(x & 0xffff0000u)) {
+        x <<= 16;
+        r -= 16;
+    }
+    if (!(x & 0xff000000u)) {
+        x <<= 8;
+        r -= 8;
+    }
+    if (!(x & 0xf0000000u)) {
+        x <<= 4;
+        r -= 4;
+    }
+    if (!(x & 0xc0000000u)) {
+        x <<= 2;
+        r -= 2;
+    }
+    if (!(x & 0x80000000u)) {
+        x <<= 1;
+        r -= 1;
+    }
+    return r;
 }
 
 /*
@@ -81,30 +81,36 @@ static LW_INLINE int generic_fls(int x)
 
 static LW_INLINE unsigned int generic_hweight32(unsigned int w)
 {
-	unsigned int res = (w & 0x55555555) + ((w >> 1) & 0x55555555);
-	res = (res & 0x33333333) + ((res >> 2) & 0x33333333);
-	res = (res & 0x0F0F0F0F) + ((res >> 4) & 0x0F0F0F0F);
-	res = (res & 0x00FF00FF) + ((res >> 8) & 0x00FF00FF);
-	return (res & 0x0000FFFF) + ((res >> 16) & 0x0000FFFF);
+    unsigned int res = (w & 0x55555555) + ((w >> 1) & 0x55555555);
+    res = (res & 0x33333333) + ((res >> 2) & 0x33333333);
+    res = (res & 0x0F0F0F0F) + ((res >> 4) & 0x0F0F0F0F);
+    res = (res & 0x00FF00FF) + ((res >> 8) & 0x00FF00FF);
+    return (res & 0x0000FFFF) + ((res >> 16) & 0x0000FFFF);
 }
 
 static LW_INLINE unsigned int generic_hweight16(unsigned int w)
 {
-	unsigned int res = (w & 0x5555) + ((w >> 1) & 0x5555);
-	res = (res & 0x3333) + ((res >> 2) & 0x3333);
-	res = (res & 0x0F0F) + ((res >> 4) & 0x0F0F);
-	return (res & 0x00FF) + ((res >> 8) & 0x00FF);
+    unsigned int res = (w & 0x5555) + ((w >> 1) & 0x5555);
+    res = (res & 0x3333) + ((res >> 2) & 0x3333);
+    res = (res & 0x0F0F) + ((res >> 4) & 0x0F0F);
+    return (res & 0x00FF) + ((res >> 8) & 0x00FF);
 }
 
 static LW_INLINE unsigned int generic_hweight8(unsigned int w)
 {
-	unsigned int res = (w & 0x55) + ((w >> 1) & 0x55);
-	res = (res & 0x33) + ((res >> 2) & 0x33);
-	return (res & 0x0F) + ((res >> 4) & 0x0F);
+    unsigned int res = (w & 0x55) + ((w >> 1) & 0x55);
+    res = (res & 0x33) + ((res >> 2) & 0x33);
+    return (res & 0x0F) + ((res >> 4) & 0x0F);
 }
 
-#define BIT_MASK(nr)		(1UL << ((nr) % BITS_PER_LONG))
-#define BIT_WORD(nr)		((nr) / BITS_PER_LONG)
+#define BIT(nr)             (1UL << (nr))
+#define BIT_ULL(nr)         (1ULL << (nr))
+#define BIT_MASK(nr)        (1UL << ((nr) % BITS_PER_LONG))
+#define BIT_WORD(nr)        ((nr) / BITS_PER_LONG)
+#define BIT_ULL_MASK(nr)    (1ULL << ((nr) % BITS_PER_LONG_LONG))
+#define BIT_ULL_WORD(nr)    ((nr) / BITS_PER_LONG_LONG)
+#define BITS_PER_BYTE       8
+#define BITS_TO_LONGS(nr)   DIV_ROUND_UP(nr, BITS_PER_BYTE * sizeof(long))
 
 /* linux/include/asm-generic/bitops/non-atomic.h */
 /* asm/bitops.h */
@@ -125,6 +131,10 @@ static LW_INLINE unsigned int generic_hweight8(unsigned int w)
 
 #ifndef PLATFORM__CLEAR_BIT
 # define __clear_bit generic_clear_bit
+#endif
+
+#ifndef PLATFORM__TEST_BIT
+# define __test_bit generic_test_bit
 #endif
 
 #ifndef PLATFORM_FFS
@@ -222,26 +232,23 @@ static LW_INLINE unsigned long __fls(unsigned long word)
  */
 static LW_INLINE void generic_set_bit(int nr, volatile unsigned long *addr)
 {
-	unsigned long mask = BIT_MASK(nr);
-	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
+    unsigned long mask = BIT_MASK(nr);
+    unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
 
-	*p |= mask;
+    *p |= mask;
 }
 
 static LW_INLINE void generic_clear_bit(int nr, volatile unsigned long *addr)
 {
-	unsigned long mask = BIT_MASK(nr);
-	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
+    unsigned long mask = BIT_MASK(nr);
+    unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
 
-	*p &= ~mask;
+    *p &= ~mask;
 }
 
-static LW_INLINE int generic_test_bit(int nr, volatile unsigned long *addr)
+static LW_INLINE int generic_test_bit(int nr, const volatile unsigned long *addr)
 {
-    unsigned long mask = BIT_MASK(nr);
-	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-	
-	return  ((*p & mask) ? 1 : 0);
+    return  1UL & (addr[BIT_WORD(nr)] >> (nr & (BITS_PER_LONG-1)));
 }
 
 #define hweight32(x)    generic_hweight32(x)

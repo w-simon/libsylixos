@@ -845,13 +845,13 @@ typedef struct nvme_drv_cb {
     INT                   (*NVMEDRV_pfuncOptCtrl)(NVME_CTRL_HANDLE  hCtrl, UINT  uiDrive,
                                                     INT  iCmd, LONG  lArg);
     INT                   (*NVMEDRV_pfuncVendorCtrlIntEnable)(NVME_CTRL_HANDLE   hCtrl,
-                                                                NVME_QUEUE_HANDLE  hQueue,
-                                                                PINT_SVR_ROUTINE   pfuncIsr,
-                                                                CPCHAR             cpcName);
+                                                              NVME_QUEUE_HANDLE  hQueue,
+                                                              PINT_SVR_ROUTINE   pfuncIsr,
+                                                              CPCHAR             cpcName);
     INT                   (*NVMEDRV_pfuncVendorCtrlIntConnect)(NVME_CTRL_HANDLE   hCtrl,
-                                                                 NVME_QUEUE_HANDLE  hQueue,
-                                                                 PINT_SVR_ROUTINE   pfuncIsr,
-                                                                 CPCHAR             cpcName);
+                                                               NVME_QUEUE_HANDLE  hQueue,
+                                                               PINT_SVR_ROUTINE   pfuncIsr,
+                                                               CPCHAR             cpcName);
     INT                   (*NVMEDRV_pfuncVendorCtrlIntDisConnect)(NVME_CTRL_HANDLE   hCtrl,
                                                                   NVME_QUEUE_HANDLE  hQueue,
                                                                   PINT_SVR_ROUTINE   pfuncIsr);

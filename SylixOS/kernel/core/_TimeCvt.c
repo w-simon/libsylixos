@@ -43,7 +43,7 @@ INT64  (*_K_pfuncTimespecTimeoutTick64)() = __timespecTimeoutTick64Simple;
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static ULONG  __timespecToTickDiff (const struct timespec  *ptvS, const struct timespec  *ptvE)
+ULONG  __timespecToTickDiff (const struct timespec  *ptvS, const struct timespec  *ptvE)
 {
     REGISTER ULONG    ulRes = LW_TIME_BILLION / LW_TICK_HZ;
 
@@ -73,7 +73,7 @@ static ULONG  __timespecToTickDiff (const struct timespec  *ptvS, const struct t
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT64  __timespecToTickDiff64 (const struct timespec  *ptvS, const struct timespec  *ptvE)
+INT64  __timespecToTickDiff64 (const struct timespec  *ptvS, const struct timespec  *ptvE)
 {
     REGISTER ULONG    ulRes = LW_TIME_BILLION / LW_TICK_HZ;
 

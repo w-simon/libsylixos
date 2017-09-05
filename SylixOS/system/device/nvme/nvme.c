@@ -638,7 +638,7 @@ static INT  __nvmeSqCmdsAlloc (NVME_CTRL_HANDLE     hCtrl,
 **           ulDmaAddr     返回信息的缓冲地址
 ** 输　出  : ERROR or OK
 ** 全局变量:
-** 调用模块
+** 调用模块:
 *********************************************************************************************************/
 static INT  __nvmeIdentify (NVME_CTRL_HANDLE  hCtrl, UINT  uiNsid, UINT  uiCns, dma_addr_t  ulDmaAddr)
 {
@@ -790,7 +790,8 @@ static INT  __nvmeUserCmdSubmit (NVME_DEV_HANDLE   hDev,
     /*
      *  设置 I/O 队列传输数据使用的 PRP
      */
-    __nvmePrpsSetup(hNvmeQueue, &hRwCmd, iCmdId, ulDmaAddr, (INT)(ulBlkCount * NVME_SECTOR_SIZE));
+    __nvmePrpsSetup(hNvmeQueue, &hRwCmd, iCmdId, ulDmaAddr, 
+                    (INT)(ulBlkCount * (1 << hDev->NVMEDEV_uiSectorShift)));
     
     __nvmeCmdSubmit(hNvmeQueue, (NVME_COMMAND_HANDLE)&hRwCmd);
     
@@ -1052,7 +1053,7 @@ static INT  __nvmeBlkIoctl (NVME_DEV_HANDLE    hDev,
 
     case LW_BLKD_GET_SECSIZE:
     case LW_BLKD_GET_BLKSIZE:                                           /*  获取扇区大小                */
-        *((ULONG *)lArg) = NVME_SECTOR_SIZE;
+        *((ULONG *)lArg) = (1 << hDev->NVMEDEV_uiSectorShift);
         break;
 
     case LW_BLKD_GET_SECNUM:                                            /*  获取扇区数量                */
@@ -1151,7 +1152,9 @@ static VOID  __nvmeNamespacesAlloc (NVME_CTRL_HANDLE      hCtrl,
 
     hIdNs = (NVME_ID_NS_HANDLE)API_VmmDmaAlloc(sizeof(NVME_ID_NS_CB));
     if (!hIdNs) {
+#if NVME_TRIM_EN > 0
         API_VmmDmaFree(hDev->NVMEDEV_hDsmRange);
+#endif                                                                  /* NVME_TRIM_EN > 0             */
         __SHEAP_FREE(hDev);
         NVME_LOG(NVME_LOG_ERR, "alloc ctrl %s unit %d dev %d failed.\r\n",
                  hCtrl->NVMECTRL_cCtrlName, hCtrl->NVMECTRL_uiUnitIndex, uiNsid);
@@ -1255,7 +1258,9 @@ static VOID  __nvmeNamespacesAlloc (NVME_CTRL_HANDLE      hCtrl,
 
 __free:
     API_VmmDmaFree(hIdNs);
+#if NVME_TRIM_EN > 0
     API_VmmDmaFree(hDev->NVMEDEV_hDsmRange);
+#endif                                                                  /* NVME_TRIM_EN > 0             */
     __SHEAP_FREE(hDev);
 }
 /*********************************************************************************************************

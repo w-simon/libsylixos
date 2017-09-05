@@ -827,23 +827,30 @@ INT  API_PciMsiEnableGet (INT  iBus, INT  iSlot, INT  iFunc, UINT32  uiMsiCapOft
 ** 函数名称: API_PciDevMsiRangeEnable
 ** 功能描述: 设置 MSI 区域使能
 ** 输　入  : hHandle        设备控制句柄
-**           uiVecMin       使能区域中断向量最小值
-**           uiVecMax       使能区域中断向量最大值
+**           uiVecMin       使能区域中断向量最小值 (程序内部会自动修正为 1, 2, 4, 8, 16, 32)
+**           uiVecMax       使能区域中断向量最大值 (程序内部会自动修正为 1, 2, 4, 8, 16, 32)
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
+** 注  意  : 每个 PCI 设备驱动程序只需要调用一次
+**
 **                                            API 函数
 *********************************************************************************************************/
 LW_API
 INT  API_PciDevMsiRangeEnable (PCI_DEV_HANDLE  hHandle, UINT  uiVecMin, UINT  uiVecMax)
 {
-    INT                     iRet        = PX_ERROR;
+    INT                     i, j, iRet  = PX_ERROR;
     UINT8                   ucMsiEn     = 0;
     UINT32                  uiMsiCapOft = 0;
     UINT32                  uiVecNum    = 0;
     PCI_MSI_DESC_HANDLE     hMsgHandle  = LW_NULL;
 
     if (hHandle == LW_NULL) {
+        return  (PX_ERROR);
+    }
+    
+    if ((uiVecMin > 32) || (uiVecMax > 32) ||
+        (uiVecMax < uiVecMin) || (uiVecMin < 1)) {
         return  (PX_ERROR);
     }
 
@@ -856,10 +863,22 @@ INT  API_PciDevMsiRangeEnable (PCI_DEV_HANDLE  hHandle, UINT  uiVecMin, UINT  ui
         (!PCI_DEV_MSI_IS_EN(hHandle))) {
         return  (PX_ERROR);
     }
-
-    if (uiVecMax < uiVecMin) {
-        return  (PX_ERROR);
+    
+    for (i = 0; i < 6; i++) {
+        j = 1 << i;
+        if (j >= uiVecMin) {
+            break;
+        }
     }
+    uiVecMin = j;
+    
+    for (i = 0; i < 6; i++) {
+        j = 1 << i;
+        if (j >= uiVecMax) {
+            break;
+        }
+    }
+    uiVecMax = j;
 
     iRet = API_PciMsiVecCountGet(hHandle->PCIDEV_iDevBus,
                                  hHandle->PCIDEV_iDevDevice,
@@ -871,6 +890,7 @@ INT  API_PciDevMsiRangeEnable (PCI_DEV_HANDLE  hHandle, UINT  uiVecMin, UINT  ui
 
     if (uiVecNum < uiVecMin) {
         return  (PX_ERROR);
+    
     } else if (uiVecNum > uiVecMax) {
         uiVecNum = uiVecMax;
     }
@@ -878,9 +898,14 @@ INT  API_PciDevMsiRangeEnable (PCI_DEV_HANDLE  hHandle, UINT  uiVecMin, UINT  ui
     hMsgHandle = &hHandle->PCIDEV_pmdDevIrqMsiDesc;
     hMsgHandle->PCIMSI_uiNum = uiVecNum;
 
+__reget:
     iRet = API_PciDevInterMsiGet(hHandle, hMsgHandle);
     if (iRet != ERROR_NONE) {
-        return  (PX_ERROR);
+        hMsgHandle->PCIMSI_uiNum >>= 1;
+        if (hMsgHandle->PCIMSI_uiNum < uiVecMin) {
+            return  (PX_ERROR);
+        }
+        goto    __reget;
     }
 
     hHandle->PCIDEV_uiDevIrqMsiNum = hMsgHandle->PCIMSI_uiNum;

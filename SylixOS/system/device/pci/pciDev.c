@@ -426,7 +426,7 @@ INT  API_PciDevConfigRead (PCI_DEV_HANDLE  hHandle, UINT  uiPos, UINT8 *pucBuf, 
         if (iRet != ERROR_NONE) {
             return  (PX_ERROR);
         }
-        ((UINT16 *)pucBuf)[0] = htole16(usData);
+        ((UINT16 *)pucBuf)[0] = usData;
         break;
 
     case 4:
@@ -437,7 +437,7 @@ INT  API_PciDevConfigRead (PCI_DEV_HANDLE  hHandle, UINT  uiPos, UINT8 *pucBuf, 
         if (iRet != ERROR_NONE) {
             return  (PX_ERROR);
         }
-        ((UINT32 *)pucBuf)[0] = htole32(uiData);
+        ((UINT32 *)pucBuf)[0] = uiData;
         break;
 
     default:
@@ -491,7 +491,7 @@ INT  API_PciDevConfigWrite (PCI_DEV_HANDLE  hHandle, UINT  uiPos, UINT8 *pucBuf,
         break;
 
     case 2:
-        usData = le16toh(((UINT16 *)pucBuf)[0]);
+        usData = ((UINT16 *)pucBuf)[0];
         iRet = API_PciConfigOutWord(hHandle->PCIDEV_iDevBus,
                                     hHandle->PCIDEV_iDevDevice,
                                     hHandle->PCIDEV_iDevFunction,
@@ -502,7 +502,7 @@ INT  API_PciDevConfigWrite (PCI_DEV_HANDLE  hHandle, UINT  uiPos, UINT8 *pucBuf,
         break;
 
     case 4:
-        uiData = le32toh(((UINT32 *)pucBuf)[0]);
+        uiData = ((UINT32 *)pucBuf)[0];
         iRet = API_PciConfigOutDword(hHandle->PCIDEV_iDevBus,
                                      hHandle->PCIDEV_iDevDevice,
                                      hHandle->PCIDEV_iDevFunction,

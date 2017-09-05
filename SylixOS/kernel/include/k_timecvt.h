@@ -212,6 +212,9 @@ static LW_INLINE INT  __timespecLeftTime (const struct timespec  *ptv1, const st
   POSIX timeout to tick
 *********************************************************************************************************/
 
+ULONG  __timespecToTickDiff(const struct timespec  *ptvS, const struct timespec  *ptvE);
+INT64  __timespecToTickDiff64(const struct timespec  *ptvS, const struct timespec  *ptvE);
+
 #ifndef __TIMECVT_MAIN_FILE
 extern ULONG  (*_K_pfuncTimespecTimeoutTick)();
 extern INT64  (*_K_pfuncTimespecTimeoutTick64)();
