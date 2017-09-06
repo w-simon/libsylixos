@@ -40,6 +40,7 @@
     EXPORT_LABEL(ppcE500SetTSR)
     EXPORT_LABEL(ppcE500GetDECAR)
     EXPORT_LABEL(ppcE500SetDECAR)
+    EXPORT_LABEL(ppcE500GetMCAR)
 
 ;/*********************************************************************************************************
 ;  SPR GET SET ºê
@@ -131,6 +132,14 @@ FUNC_DEF(ppcE500GetDECAR)
 
 FUNC_DEF(ppcE500SetDECAR)
     SET_SPR     DECAR
+    FUNC_END()
+
+;/*********************************************************************************************************
+;  ¶ÁÈ¡ MCAR ¼Ä´æÆ÷
+;*********************************************************************************************************/
+
+FUNC_DEF(ppcE500GetMCAR)
+    GET_SPR     MCAR
     FUNC_END()
 
     FILE_END()

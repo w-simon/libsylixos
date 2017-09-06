@@ -82,18 +82,35 @@
   DSP C6x 特殊定义
 
   注意: DSP CCS 编译器文档指出: 跨模块函数不能使用 static 类型, 因为 static 类型不会设置 B14 寄存器, 导致
-        调用错误. 所以一些跨模块使用的函数, 例如包括定时器在内的各种回调, 线程运行函数, 皆不可是 static.
+        调用错误. 所以一些跨模块使用的函数, 例如包括定时器在内的各种回调, 线程运行函数等, 皆不可是 static.
 
-        DSP 编译器构造与析构函数均不能为 static, 不支持 __attribute__((destructor))
-        所以库的析构函数必须在函数定义之后加上 LW_DSP_C6X_DTOR(func); 定义.
+        DSP 编译器构造与析构函数均不能为 static,
+        所以库的构造与析构函数必须使用如下定义:
+
+        LW_CONSTRUCTOR_BEGIN
+        LW_LIB_HOOK_STATIC void con_func (void)
+        {
+            ...;
+        }
+        LW_CONSTRUCTOR_END(con_func)
+
+        LW_DESTRUCTOR_BEGIN
+        LW_LIB_HOOK_STATIC void des_func (void)
+        {
+            ...;
+        }
+        LW_DESTRUCTOR_END(des_func)
 *********************************************************************************************************/
 
 #ifdef LW_CFG_CPU_ARCH_C6X
 #define LW_LIB_HOOK_STATIC
 
-#define LW_CONSTRUCTOR_BEGIN    \
-        __attribute__((constructor))
-#define LW_CONSTRUCTOR_END(f)
+#define constructor     "Warning: you must use LW_CONSTRUCTOR_BEGIN & LW_CONSTRUCTOR_END"
+#define destructor      "Warning: you must use LW_DESTRUCTOR_BEGIN & LW_DESTRUCTOR_END"
+
+#define LW_CONSTRUCTOR_BEGIN
+#define LW_CONSTRUCTOR_END(f)   \
+        __attribute__((section(".init_array"))) void *__$$_c6x_dsp_lib_##func##_ctor = (void *)func;
 
 #define LW_DESTRUCTOR_BEGIN
 #define LW_DESTRUCTOR_END(f)    \
@@ -103,11 +120,11 @@
 #define LW_LIB_HOOK_STATIC  static
 
 #define LW_CONSTRUCTOR_BEGIN    \
-        __attribute__((constructor)) static
+        __attribute__((constructor))
 #define LW_CONSTRUCTOR_END(f)
 
 #define LW_DESTRUCTOR_BEGIN     \
-        __attribute__((destructor)) static
+        __attribute__((destructor))
 #define LW_DESTRUCTOR_END(f)
 #endif
 

@@ -48,7 +48,8 @@ extern void __vp_patch_unlock(void);
 /*
  *  _init_env
  */
-LW_CONSTRUCTOR_BEGIN void __vp_patch_init_env (void)
+LW_CONSTRUCTOR_BEGIN
+LW_LIB_HOOK_STATIC void __vp_patch_init_env (void)
 {
     int  sysnum;
     int  dupnum;
@@ -80,7 +81,8 @@ LW_CONSTRUCTOR_END(__vp_patch_init_env)
 /*
  *  _deinit_env
  */
-LW_DESTRUCTOR_BEGIN void __vp_patch_deinit_env (void)
+LW_DESTRUCTOR_BEGIN
+LW_LIB_HOOK_STATIC void __vp_patch_deinit_env (void)
 {
     int  i;
     
