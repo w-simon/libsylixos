@@ -91,7 +91,17 @@ VOID  archE500MachineCheckExceptionHandle (addr_t  ulRetAddr)
     PLW_CLASS_TCB   ptcbCur;
     LW_VMM_ABORT    abtInfo;
 
+#if LW_CFG_CPU_EXC_HOOK_EN > 0
+    addr_t          ulAbortAddr = ppcE500GetMCAR();
+#endif
+
     LW_TCB_GET_CUR(ptcbCur);
+
+#if LW_CFG_CPU_EXC_HOOK_EN > 0
+    if (bspCpuExcHook(ptcbCur, ulRetAddr, ulAbortAddr, ARCH_MACHINE_EXCEPTION, 0)) {
+        return;
+    }
+#endif
 
     _DebugHandle(__ERRORMESSAGE_LEVEL, "Machine error detected!\r\n");
     abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_FATAL_ERROR;

@@ -54,9 +54,9 @@ VOID    armMmuSetProcessId(pid_t  pid);
 *********************************************************************************************************/
 
 addr_t  armGetAbtAddr(VOID);
-VOID    armGetAbtType(PLW_VMM_ABORT  pabtInfo);
+UINT32  armGetAbtType(PLW_VMM_ABORT  pabtInfo);
 addr_t  armGetPreAddr(addr_t  ulRetLr);
-VOID    armGetPreType(PLW_VMM_ABORT  pabtInfo);
+UINT32  armGetPreType(PLW_VMM_ABORT  pabtInfo);
 
 #endif                                                                  /*  __ARMMMUCOMMON_H            */
 /*********************************************************************************************************

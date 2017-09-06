@@ -107,11 +107,11 @@ addr_t  armGetAbtAddr (VOID)
 ** 函数名称: armGetAbtType
 ** 功能描述: MMU 系统发生数据访问异常时的类型
 ** 输　入  : pabtInfo      异常类型
-** 输　出  : NONE
+** 输　出  : 原始 Fault 类型
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-VOID   armGetAbtType (PLW_VMM_ABORT  pabtInfo)
+UINT32   armGetAbtType (PLW_VMM_ABORT  pabtInfo)
 {
 #if LW_CFG_VMM_EN > 0
     UINT32  uiStatus = armMmuAbtFaultStatus();
@@ -175,9 +175,13 @@ VOID   armGetAbtType (PLW_VMM_ABORT  pabtInfo)
     pabtInfo->VMABT_uiMethod = (bWrite)
                              ? LW_VMM_ABORT_METHOD_WRITE 
                              : LW_VMM_ABORT_METHOD_READ;
+    return  (uiStatus);
+    
 #else
     pabtInfo->VMABT_uiType   = LW_VMM_ABORT_TYPE_TERMINAL;
     pabtInfo->VMABT_uiMethod = 0;
+
+    return  (0);
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 }
 /*********************************************************************************************************
@@ -196,11 +200,11 @@ addr_t  armGetPreAddr (addr_t  ulRetLr)
 ** 函数名称: armGetPreType
 ** 功能描述: MMU 系统发生指令访问异常时的类型
 ** 输　入  : pabtInfo      异常类型
-** 输　出  : NONE
+** 输　出  : 原始 Fault 类型
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-VOID   armGetPreType (PLW_VMM_ABORT  pabtInfo)
+UINT32   armGetPreType (PLW_VMM_ABORT  pabtInfo)
 {
 #if LW_CFG_VMM_EN > 0
     UINT32  uiStatus = armMmuPreFaultStatus();
@@ -254,11 +258,16 @@ VOID   armGetPreType (PLW_VMM_ABORT  pabtInfo)
         pabtInfo->VMABT_uiType = LW_VMM_ABORT_TYPE_MAP;
         break;
     }
+    
 #else
+    UINT32  uiStatus = 0;
+
     pabtInfo->VMABT_uiType = LW_VMM_ABORT_TYPE_TERMINAL;
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
     
     pabtInfo->VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
+    
+    return  (uiStatus);
 }
 /*********************************************************************************************************
   END

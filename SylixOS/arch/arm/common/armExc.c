@@ -161,8 +161,32 @@ ARCH_REG_CTX  *armv7mIntHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
 
 #else
 /*********************************************************************************************************
+** 函数名称: bspCpuExcHook
+** 功能描述: 处理器异常回调
+** 输　入  : ptcb       异常上下文
+**           ulRetAddr  异常返回地址
+**           ulExcAddr  异常地址
+**           iExcType   异常类型
+**           iExcInfo   体系结构相关异常信息
+** 输　出  : 0
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+#if LW_CFG_CPU_EXC_HOOK_EN > 0
+
+LW_WEAK INT  bspCpuExcHook (PLW_CLASS_TCB   ptcb,
+                            addr_t          ulRetAddr,
+                            addr_t          ulExcAddr,
+                            INT             iExcType, 
+                            INT             iExcInfo)
+{
+    return  (0);
+}
+
+#endif                                                                  /*  LW_CFG_CPU_EXC_HOOK_EN      */
+/*********************************************************************************************************
 ** 函数名称: archAbtHandle
-** 功能描述: 系统发生 data abort 或者 prefetch_abort 异常时会调用此函数
+** 功能描述: 系统发生 data abort 或者 prefetch abort 异常时会调用此函数
 ** 输　入  : ulRetAddr     异常返回地址.
 **           uiArmExcType  ARM 异常类型
 ** 输　出  : NONE
@@ -177,17 +201,30 @@ VOID  archAbtHandle (addr_t  ulRetAddr, UINT32  uiArmExcType)
     PLW_CLASS_TCB   ptcbCur;
     LW_VMM_ABORT    abtInfo;
     addr_t          ulAbortAddr;
-    
-    if (uiArmExcType == ARM_EXC_TYPE_ABT) {
-        ulAbortAddr = armGetAbtAddr();
-        armGetAbtType(&abtInfo);
-    
-    } else {
-        ulAbortAddr = armGetPreAddr(ulRetAddr);
-        armGetPreType(&abtInfo);
-    }
+    UINT32          uiRawAbtType;
     
     LW_TCB_GET_CUR(ptcbCur);
+    
+    if (uiArmExcType == ARM_EXC_TYPE_ABT) {
+        ulAbortAddr  = armGetAbtAddr();
+        uiRawAbtType = armGetAbtType(&abtInfo);
+        
+#if LW_CFG_CPU_EXC_HOOK_EN > 0
+        if (bspCpuExcHook(ptcbCur, ulRetAddr, ulAbortAddr, ARCH_DATA_EXCEPTION, uiRawAbtType)) {
+            return;
+        }
+#endif
+    
+    } else {
+        ulAbortAddr  = armGetPreAddr(ulRetAddr);
+        uiRawAbtType = armGetPreType(&abtInfo);
+        
+#if LW_CFG_CPU_EXC_HOOK_EN > 0
+        if (bspCpuExcHook(ptcbCur, ulRetAddr, ulAbortAddr, ARCH_INSTRUCTION_EXCEPTION, uiRawAbtType)) {
+            return;
+        }
+#endif
+    }
 
     API_VmmAbortIsr(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur);
 }

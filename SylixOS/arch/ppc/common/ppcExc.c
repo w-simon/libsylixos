@@ -43,6 +43,30 @@ static BOOL     _G_bDecPreemptive[LW_CFG_MAX_PROCESSORS];
 static UINT32   _G_uiDecValue[LW_CFG_MAX_PROCESSORS];
 static BOOL     _G_bDecInited[LW_CFG_MAX_PROCESSORS];
 /*********************************************************************************************************
+** 函数名称: bspCpuExcHook
+** 功能描述: 处理器异常回调
+** 输　入  : ptcb       异常上下文
+**           ulRetAddr  异常返回地址
+**           ulExcAddr  异常地址
+**           iExcType   异常类型
+**           iExcInfo   体系结构相关异常信息
+** 输　出  : 0
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+#if LW_CFG_CPU_EXC_HOOK_EN > 0
+
+LW_WEAK INT  bspCpuExcHook (PLW_CLASS_TCB   ptcb,
+                            addr_t          ulRetAddr,
+                            addr_t          ulExcAddr,
+                            INT             iExcType,
+                            INT             iExcInfo)
+{
+    return  (0);
+}
+
+#endif                                                                  /*  LW_CFG_CPU_EXC_HOOK_EN      */
+/*********************************************************************************************************
 ** 函数名称: archIntHandle
 ** 功能描述: bspIntHandle 需要调用此函数处理中断 (关闭中断情况被调用)
 ** 输　入  : ulVector         中断向量
@@ -376,7 +400,17 @@ VOID  archMachineCheckExceptionHandle (addr_t  ulRetAddr)
     PLW_CLASS_TCB   ptcbCur;
     LW_VMM_ABORT    abtInfo;
 
+#if LW_CFG_CPU_EXC_HOOK_EN > 0
+    addr_t          ulAbortAddr = ppcGetDAR();
+#endif
+
     LW_TCB_GET_CUR(ptcbCur);
+
+#if LW_CFG_CPU_EXC_HOOK_EN > 0
+    if (bspCpuExcHook(ptcbCur, ulRetAddr, ulAbortAddr, ARCH_MACHINE_EXCEPTION, 0)) {
+        return;
+    }
+#endif
 
     _DebugHandle(__ERRORMESSAGE_LEVEL, "Machine error detected!\r\n");
     abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_FATAL_ERROR;
