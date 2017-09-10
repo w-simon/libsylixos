@@ -758,6 +758,10 @@ LW_API ULONG            API_EventSetGetName(LW_OBJECT_HANDLE  ulId,
   TIME
 *********************************************************************************************************/
 
+#ifdef __SYLIXOS_KERNEL
+LW_API INT              API_TimeNanoSleepMethod(INT  iMethod);          /*  设置 nanosleep 使用的算法   */
+#endif
+
 LW_API VOID             API_TimeSleep(ULONG    ulTick);                 /*  当前线程睡眠                */
 
 LW_API ULONG            API_TimeSleepEx(ULONG   ulTick, BOOL  bSigRet); /*  当前线程睡眠                */

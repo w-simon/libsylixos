@@ -30,6 +30,7 @@
             API_TimeMSleep 至少保证一个 tick 延迟.
 2015.02.04  nanosleep() 如果低于一个 tick 则使用 bspDelayNs() 进行延迟.
 2017.07.15  sleep() 精确到秒即可.
+2017.09.10  加入 nanosleep 算法选项设置.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -42,9 +43,13 @@
 #define __THREAD_CANCEL_POINT()
 #endif                                                                  /*  LW_CFG_THREAD_CANCEL_EN     */
 /*********************************************************************************************************
-  函数声明
+  nanosleep
 *********************************************************************************************************/
-INT  nanosleep(const struct timespec  *rqtp, struct timespec  *rmtp);
+#if LW_CFG_TIME_HIGH_RESOLUTION_EN > 0
+static INT      _K_iNanoSleepMethod = LW_TIME_NANOSLEEP_METHOD_THRS;
+#else
+static INT      _K_iNanoSleepMethod = LW_TIME_NANOSLEEP_METHOD_TICK;
+#endif                                                                  /*  LW_CFG_TIME_HIGH_RESOLUTION */
 /*********************************************************************************************************
 ** 函数名称: API_TimeSleep
 ** 功能描述: 线程睡眠函数 (此 API 不能被信号唤醒)
@@ -226,6 +231,44 @@ VOID    API_TimeMSleep (ULONG   ulMSeconds)
     API_TimeSleep(ulTicks);
 }
 /*********************************************************************************************************
+** 函数名称: API_TimeNanoSleepMethod
+** 功能描述: 设置 nanosleep 是否使用 time high resolution 方法.
+** 输　入  : LW_TIME_NANOSLEEP_METHOD_TICK:        TICK 精度
+**           LW_TIME_NANOSLEEP_METHOD_THRS:        time high resolution 修正 
+**                                                 如果 LW_CFG_TIME_HIGH_RESOLUTION_EN > 0 则此为默认选项
+** 输　出  : 之前的选项
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+                                           
+                                       (不得在中断中调用)
+*********************************************************************************************************/
+LW_API  
+INT    API_TimeNanoSleepMethod (INT  iMethod)
+{
+    INT   iOldMethod = _K_iNanoSleepMethod;
+
+    if ((iMethod != LW_TIME_NANOSLEEP_METHOD_TICK) && 
+        (iMethod != LW_TIME_NANOSLEEP_METHOD_THRS)) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+#if LW_CFG_TIME_HIGH_RESOLUTION_EN > 0
+    _K_iNanoSleepMethod = iMethod;
+    
+#else
+    if (iMethod == LW_TIME_NANOSLEEP_METHOD_THRS) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    _K_iNanoSleepMethod = LW_TIME_NANOSLEEP_METHOD_TICK;
+#endif
+    
+    return  (iOldMethod);
+}
+/*********************************************************************************************************
 ** 函数名称: __timeGetHighResolution
 ** 功能描述: 获得当前高精度时间 (使用 CLOCK_MONOTONIC)
 ** 输　入  : ptv       高精度时间
@@ -250,9 +293,10 @@ static VOID  __timeGetHighResolution (struct timespec  *ptv)
 ** 全局变量: NONE
 ** 调用模块: 
 *********************************************************************************************************/
+#if LW_CFG_TIME_HIGH_RESOLUTION_EN > 0
+
 static VOID  __timePassSpec (const struct timespec  *ptv)
 {
-#if LW_CFG_TIME_HIGH_RESOLUTION_EN > 0
     struct timespec  tvEnd, tvNow;
     
     __timeGetHighResolution(&tvEnd);
@@ -260,10 +304,9 @@ static VOID  __timePassSpec (const struct timespec  *ptv)
     do {
         __timeGetHighResolution(&tvNow);
     } while (__timespecLeftTime(&tvNow, &tvEnd));
-#else
-    bspDelayNs((ULONG)lNsec);                                           /*  使用 BSP 断延迟函数         */
-#endif                                                                  /*  LW_CFG_TIME_HIGH_RESOLUT... */
 }
+
+#endif                                                                  /*  LW_CFG_TIME_HIGH_RESOLUT... */
 /*********************************************************************************************************
 ** 函数名称: nanosleep 
 ** 功能描述: 使调用此函数的线程睡眠一个指定的时间, 睡眠过程中可能被信号唤醒. (POSIX)
@@ -302,14 +345,30 @@ INT  nanosleep (const struct timespec  *rqtp, struct timespec  *rmtp)
         return  (PX_ERROR);
     }
     
-    ulTick = __timespecToTickNoPartial((struct timespec *)rqtp);
-    if (!ulTick) {                                                      /*  不到一个 tick               */
-        __timePassSpec(rqtp);                                           /*  平静度过                    */
-        if (rmtp) {
-            rmtp->tv_sec  = 0;                                          /*  不存在时间差别              */
-            rmtp->tv_nsec = 0;
+#if LW_CFG_TIME_HIGH_RESOLUTION_EN > 0
+    if (_K_iNanoSleepMethod) {                                          /*  使用 thrs 精密延迟          */
+        ulTick = __timespecToTickNoPartial(rqtp);
+        if (!ulTick) {                                                  /*  不到一个 tick               */
+            __timePassSpec(rqtp);                                       /*  平静度过                    */
+            if (rmtp) {
+                rmtp->tv_sec  = 0;                                      /*  不存在时间差别              */
+                rmtp->tv_nsec = 0;
+            }
+            return  (ERROR_NONE);
         }
-        return  (ERROR_NONE);
+    
+    } else 
+#endif                                                                  /*  LW_CFG_TIME_HIGH_RESOLUT... */
+
+    {                                                                   /*  计算 tick 精度              */
+        ulTick = LW_TS_TIMEOUT_TICK(LW_TRUE, rqtp);
+        if (!ulTick) {
+            if (rmtp) {
+                rmtp->tv_sec  = 0;                                      /*  不存在时间差别              */
+                rmtp->tv_nsec = 0;
+            }
+            return  (ERROR_NONE);
+        }
     }
     
     __timeGetHighResolution(&tvStart);                                  /*  记录开始的时间              */
@@ -349,13 +408,17 @@ __wait_again:
     }
     
     if (ulError ==  ERROR_NONE) {                                       /*  tick 已经延迟结束           */
-        __timeGetHighResolution(&tvTemp);
-        __timespecSub(&tvTemp, &tvStart);                               /*  计算已经延迟的时间          */
-        if (__timespecLeftTime(&tvTemp, rqtp)) {                        /*  还有剩余时间需要延迟        */
-            struct timespec  tvNeed;
-            __timespecSub2(&tvNeed, rqtp, &tvTemp);
-            __timePassSpec(&tvNeed);                                    /*  平静度过                    */
+#if LW_CFG_TIME_HIGH_RESOLUTION_EN > 0
+        if (_K_iNanoSleepMethod) {                                      /*  使用 thrs 精密延迟          */
+            __timeGetHighResolution(&tvTemp);
+            __timespecSub(&tvTemp, &tvStart);                           /*  计算已经延迟的时间          */
+            if (__timespecLeftTime(&tvTemp, rqtp)) {                    /*  还有剩余时间需要延迟        */
+                struct timespec  tvNeed;
+                __timespecSub2(&tvNeed, rqtp, &tvTemp);
+                __timePassSpec(&tvNeed);                                /*  平静度过                    */
+            }
         }
+#endif                                                                  /*  LW_CFG_TIME_HIGH_RESOLUT... */
         if (rmtp) {
             rmtp->tv_sec  = 0;                                          /*  不存在时间差别              */
             rmtp->tv_nsec = 0;

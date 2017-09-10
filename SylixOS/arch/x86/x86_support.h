@@ -307,6 +307,10 @@ VOID    bspDelayUs(ULONG ulUs);
 VOID    bspDelayNs(ULONG ulNs);
 VOID    bspDelay720Ns(VOID);
 
+/*********************************************************************************************************
+  TICK 高精度时间修正
+*********************************************************************************************************/
+
 #if LW_CFG_TIME_HIGH_RESOLUTION_EN > 0
 VOID    bspTickHighResolution(struct timespec *ptv);
 #endif                                                                  /*  LW_CFG_TIME_HIGH_...        */

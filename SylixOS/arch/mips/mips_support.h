@@ -328,6 +328,11 @@ VOID    bspTickInit(VOID);
 VOID    bspDelayUs(ULONG ulUs);
 VOID    bspDelayNs(ULONG ulNs);
 
+/*********************************************************************************************************
+  TICK 高精度时间修正
+  如未实现则可定义为空函数, 同时系统初始化前需调用 API_TimeNanoSleepMethod(LW_TIME_NANOSLEEP_METHOD_TICK)
+*********************************************************************************************************/
+
 #if LW_CFG_TIME_HIGH_RESOLUTION_EN > 0
 VOID    bspTickHighResolution(struct timespec *ptv);
 #endif                                                                  /*  LW_CFG_TIME_HIGH_...        */
