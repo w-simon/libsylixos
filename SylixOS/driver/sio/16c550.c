@@ -465,7 +465,9 @@ static INT sio16c550SetBaud (SIO16C550_CHAN *psiochan, ULONG  baud)
     
     SET_REG(psiochan, FCR, 
             ((psiochan->rx_trigger_level << 6) | 
-             RxCLEAR | TxCLEAR | FIFO_ENABLE));
+             RxCLEAR | TxCLEAR));
+             
+    SET_REG(psiochan, FCR, FIFO_ENABLE);
              
     if (psiochan->channel_mode == SIO_MODE_INT) {
         SET_REG(psiochan, IER, psiochan->ier);                          /* enable interrupt             */
@@ -570,7 +572,9 @@ static INT sio16c550SetHwOption (SIO16C550_CHAN *psiochan, INT  hw_option)
      */
     SET_REG(psiochan, FCR, 
             ((psiochan->rx_trigger_level << 6) | 
-             RxCLEAR | TxCLEAR | FIFO_ENABLE));
+             RxCLEAR | TxCLEAR));
+             
+    SET_REG(psiochan, FCR, FIFO_ENABLE);
 
     if (hw_option & CREAD) {
         psiochan->ier |= RxFIFO_BIT;
@@ -640,7 +644,9 @@ static INT sio16c550Open (SIO16C550_CHAN *psiochan)
          */
         SET_REG(psiochan, FCR, 
                 ((psiochan->rx_trigger_level << 6) | 
-                 RxCLEAR | TxCLEAR | FIFO_ENABLE));
+                 RxCLEAR | TxCLEAR));
+                 
+        SET_REG(psiochan, FCR, FIFO_ENABLE);
 
         LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);
     }

@@ -266,7 +266,7 @@ INT  API_RtcSet (time_t  time)
 LW_API 
 INT  API_RtcGet (time_t  *ptime)
 {
-    INT     iFd = open(__LW_RTC_DEV_NAME, O_WRONLY);
+    INT     iFd = open(__LW_RTC_DEV_NAME, O_RDONLY);
     INT     iError;
     
     if (iFd < 0) {

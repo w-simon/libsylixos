@@ -465,6 +465,8 @@ SylixOS/arch/c6x/common/c6xLib.c \
 SylixOS/arch/c6x/common/c6xContextAsm.asm \
 SylixOS/arch/c6x/common/c6xExcAsm.asm \
 SylixOS/arch/c6x/common/c6xLibAsm.asm \
+SylixOS/arch/c6x/dbg/c6xDbg.c \
+SylixOS/arch/c6x/dbg/c6xGdb.c \
 SylixOS/arch/c6x/elf/c6xElf.c \
 SylixOS/arch/c6x/mm/c6xCache.c \
 SylixOS/arch/c6x/param/c6xParam.c

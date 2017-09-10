@@ -64,7 +64,7 @@
 /*********************************************************************************************************
   常量定义
 *********************************************************************************************************/
-#define GDB_RSP_MAX_LEN             0x1000                              /*  rsp 缓冲区大小              */
+#define GDB_RSP_MAX_LEN             0x2000                              /*  rsp 缓冲区大小              */
 #define GDB_MAX_THREAD_NUM          LW_CFG_MAX_THREADS                  /*  最大线程数                  */
 /*********************************************************************************************************
   链接 keepalive 参数配置
@@ -1405,11 +1405,11 @@ static INT gdbCmdQuery (LW_GDB_PARAM *pparam, PCHAR pcInBuff, PCHAR pcOutBuff)
     
     } else if (lib_strstr(pcInBuff, "Supported") == pcInBuff) {         /* 获取能力项                   */
 #ifdef LW_CFG_CPU_ARCH_MIPS
-        sprintf(pcOutBuff, "PacketSize=1000;"
+        sprintf(pcOutBuff, "PacketSize=2000;"
                            "qXfer:libraries:read+;"
                            "QNonStop+");
 #else
-        sprintf(pcOutBuff, "PacketSize=1000;"
+        sprintf(pcOutBuff, "PacketSize=2000;"
                            "qXfer:features:read+;"
                            "qXfer:libraries:read+;"
                            "QNonStop+");

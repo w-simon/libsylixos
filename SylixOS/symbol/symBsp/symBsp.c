@@ -103,6 +103,9 @@ static LW_SYMBOL    _G_symBsp[] = {
     {   {LW_NULL, LW_NULL}, "_K_pheapSystem", (caddr_t)&_K_pheapSystem,
          LW_SYMBOL_FLAG_STATIC | LW_SYMBOL_FLAG_REN
     },
+    {   {LW_NULL, LW_NULL}, "_K_cpuTable", (caddr_t)&_K_cpuTable,
+         LW_SYMBOL_FLAG_STATIC | LW_SYMBOL_FLAG_REN
+    },
     {
         {LW_NULL, LW_NULL}, "__c6xabi_DSBT_BASE", (caddr_t)__TI_STATIC_BASE,
          LW_SYMBOL_FLAG_STATIC | LW_SYMBOL_FLAG_REN
