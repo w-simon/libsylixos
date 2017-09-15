@@ -175,12 +175,12 @@ static VOID  __specialCompletion (NVME_QUEUE_HANDLE       hNvmeQueue,
     
     } else if (pvCtx == CMD_CTX_COMPLETED) {
         NVME_LOG(NVME_LOG_ERR, "completed id %d twice on queue %d\n",
-                 hCompletion->NVMECOMPLETION_usCommandId,
+                 hCompletion->NVMECOMPLETION_usCmdId,
                  le16_to_cpu(hCompletion->NVMECOMPLETION_usSqid));
                  
     } else if (pvCtx == CMD_CTX_INVALID) {
         NVME_LOG(NVME_LOG_ERR, "invalid id %d completed on queue %d\n",
-                 hCompletion->NVMECOMPLETION_usCommandId,
+                 hCompletion->NVMECOMPLETION_usCmdId,
                  le16_to_cpu(hCompletion->NVMECOMPLETION_usSqid));
                  
     } else {
@@ -202,13 +202,15 @@ static void  __syncCompletion (NVME_QUEUE_HANDLE       hNvmeQueue,
                                NVME_COMPLETION_HANDLE  hCompletion)
 {
     SYNC_CMD_INFO_HANDLE   hCmdInfo = (SYNC_CMD_INFO_HANDLE)pvCtx;
-    UINT16                 usCmdId  = le32_to_cpu(hCompletion->NVMECOMPLETION_usCommandId);
+    REGISTER UINT16        usCmdId  = hCompletion->NVMECOMPLETION_usCmdId;
+    REGISTER UINT16        usStatus;
 
     /*
      *  获取命令完成队列中的返回状态信息
      */
     hCmdInfo->SYNCCMDINFO_uiResult = le32_to_cpu(hCompletion->NVMECOMPLETION_uiResult);
-    hCmdInfo->SYNCCMDINFO_iStatus  = le32_to_cpu(hCompletion->NVMECOMPLETION_usStatus) >> 1;
+    usStatus                       = le16_to_cpu(hCompletion->NVMECOMPLETION_usStatus) >> 1;
+    hCmdInfo->SYNCCMDINFO_iStatus  = usStatus;
 
     NVME_QUEUE_SSYNC(hNvmeQueue, usCmdId);
 }
@@ -367,7 +369,7 @@ static VOID  __nvmeCmdSubmit (NVME_QUEUE_HANDLE  hNvmeQueue, NVME_COMMAND_HANDLE
 
    LW_SPIN_LOCK_QUICK(&hNvmeQueue->NVMEQUEUE_QueueLock, &iregInterLevel);
    usTail = hNvmeQueue->NVMEQUEUE_usSqTail;
-   lib_memcpy(&hNvmeQueue->NVMEQUEUE_hSubmissionQueue[usTail], hCmd, sizeof(*hCmd));
+   lib_memcpy(&hNvmeQueue->NVMEQUEUE_hSubmissionQueue[usTail], hCmd, sizeof(NVME_COMMAND_CB));
    
    /*
     *  若当前 SQ Tail 达到命令队列深度，则回到队列头
@@ -375,7 +377,8 @@ static VOID  __nvmeCmdSubmit (NVME_QUEUE_HANDLE  hNvmeQueue, NVME_COMMAND_HANDLE
    if (++usTail == hNvmeQueue->NVMEQUEUE_usDepth) {
        usTail = 0;
    }
-   writel(usTail, hNvmeQueue->NVMEQUEUE_puiDoorBell);                   /*  通知 NVMe 控制器有新命令产生*/
+                                                                        
+   write32(htole32(usTail), (addr_t)hNvmeQueue->NVMEQUEUE_puiDoorBell); /*  通知 NVMe 控制器有新命令产生*/
    hNvmeQueue->NVMEQUEUE_usSqTail = usTail;                             /*  更新当前 SQ 的Tail          */
    LW_SPIN_UNLOCK_QUICK(&hNvmeQueue->NVMEQUEUE_QueueLock, iregInterLevel);
 }
@@ -424,7 +427,7 @@ static INT __nvmeSyncCmdSubmit (NVME_QUEUE_HANDLE     hNvmeQueue,
         return  (iCmdId);
     }
 
-    hCmd->tCommonCmd.NVMECOMMONCMD_usCommandId = iCmdId;                /*  填充命令对应的 cmdid        */
+    hCmd->tCommonCmd.NVMECOMMONCMD_usCmdId = (UINT16)iCmdId;            /*  填充命令对应的 cmdid        */
 
     __nvmeCmdSubmit(hNvmeQueue, hCmd);
 
@@ -785,7 +788,7 @@ static INT  __nvmeUserCmdSubmit (NVME_DEV_HANDLE   hDev,
         return  (iCmdId);
     }
 
-    hRwCmd.NVMERWCMD_usCommandId = (UINT16)iCmdId;
+    hRwCmd.NVMERWCMD_usCmdId = (UINT16)iCmdId;
 
     /*
      *  设置 I/O 队列传输数据使用的 PRP
@@ -1004,7 +1007,9 @@ static INT  __nvmeBlkIoctl (NVME_DEV_HANDLE    hDev,
                             INT                iCmd,
                             LONG               lArg)
 {
-    NVME_DEV_HANDLE  hNvmeDev;
+    NVME_DEV_HANDLE     hNvmeDev;
+    NVME_CTRL_HANDLE    hCtrl;                                          /* 控制器句柄                   */
+    PLW_BLK_INFO        hBlkInfo;                                       /* 设备信息                     */
 
     if (!hDev) {
         _ErrorHandle(EINVAL);
@@ -1058,6 +1063,24 @@ static INT  __nvmeBlkIoctl (NVME_DEV_HANDLE    hDev,
 
     case LW_BLKD_GET_SECNUM:                                            /*  获取扇区数量                */
         *((ULONG *)lArg) = hDev->NVMEDEV_ulBlkCount;
+        break;
+
+    case LW_BLKD_CTRL_INFO:                                            /*  获取扇区数量                */
+        hCtrl    = hDev->NVMEDEV_hCtrl;
+        hBlkInfo = (PLW_BLK_INFO)lArg;
+        if (!hBlkInfo) {
+            _ErrorHandle(EINVAL);
+            return  (PX_ERROR);
+        }
+
+        lib_bzero(hBlkInfo, sizeof(LW_BLK_INFO));
+        hBlkInfo->BLKI_uiType = LW_BLKD_CTRL_INFO_TYPE_NVME;
+        lib_memcpy(hBlkInfo->BLKI_cSerial, hCtrl->NVMECTRL_cSerial, 
+                   __MIN(sizeof(hCtrl->NVMECTRL_cSerial), LW_BLKD_CTRL_INFO_STR_SZ));
+        lib_memcpy(hBlkInfo->BLKI_cProduct, hCtrl->NVMECTRL_cModel, 
+                   __MIN(sizeof(hCtrl->NVMECTRL_cModel), LW_BLKD_CTRL_INFO_STR_SZ));
+        lib_memcpy(hBlkInfo->BLKI_cFirmware, hCtrl->NVMECTRL_cFirmWareRev, 
+                   __MIN(sizeof(hCtrl->NVMECTRL_cFirmWareRev), LW_BLKD_CTRL_INFO_STR_SZ));
         break;
 
     default:
@@ -1175,7 +1198,7 @@ static VOID  __nvmeNamespacesAlloc (NVME_CTRL_HANDLE      hCtrl,
     hDev->NVMEDEV_uiCtrl            = hCtrl->NVMECTRL_uiIndex;
     hDev->NVMEDEV_uiNameSpaceId     = uiNsid;                           /*  块设备namespace id          */
     hDev->NVMEDEV_uiSectorShift     = hIdNs->NVMEIDNS_tLbaf[hIdNs->NVMEIDNS_ucFlbas & 0xf].NVMELBAF_Ds;
-    hDev->NVMEDEV_ulBlkCount        = (ULONG)hIdNs->NVMEIDNS_ullNcap;   /*  块设备扇区数                */
+    hDev->NVMEDEV_ulBlkCount        = (ULONG)le64_to_cpu(hIdNs->NVMEIDNS_ullNcap);
     hDev->NVMEDEV_uiMaxHwSectors    = hCtrl->NVMECTRL_uiMaxHwSize >> hDev->NVMEDEV_uiSectorShift;
     hBlkDev                         = &hDev->NVMEDEV_tBlkDev;
 
@@ -1327,6 +1350,9 @@ static INT  __nvmeQueueScan (NVME_CTRL_HANDLE  hCtrl)
     uiNameSpaceNum         = le32_to_cpu(hIdCtrl->NVMEIDCTRL_uiNn);     /*  命名空间个数                */
     hCtrl->NVMECTRL_usOncs = le16_to_cpu(hIdCtrl->NVMEIDCTRL_usOncs);   /*  可选的 NVMe 命令支持        */
     hCtrl->NVMECTRL_ucVwc  = hIdCtrl->NVMEIDCTRL_ucVwc;                 /* Volatile Write Cache         */
+    lib_memcpy(hCtrl->NVMECTRL_cSerial, hIdCtrl->NVMEIDCTRL_ucSn, sizeof(hCtrl->NVMECTRL_cSerial));
+    lib_memcpy(hCtrl->NVMECTRL_cModel, hIdCtrl->NVMEIDCTRL_ucMn, sizeof(hCtrl->NVMECTRL_cModel));
+    lib_memcpy(hCtrl->NVMECTRL_cFirmWareRev, hIdCtrl->NVMEIDCTRL_ucFr, sizeof(hCtrl->NVMECTRL_cFirmWareRev));
 
     /*
      *  根据最大传输数据获得每次能够传输的最大扇区数量，默认一个扇区 512 字节
@@ -1399,6 +1425,21 @@ static UINT  __nvmeQueueExtra (INT  iDepth)
     return  (DIV_ROUND_UP(iDepth, 8) + (iDepth * sizeof(struct nvme_cmd_info_cb)));
 }
 /*********************************************************************************************************
+** 函数名称: __nvmeCqValid
+** 功能描述: 处理命令完成队列是否有效
+** 输　入  : hQueue          命令队列
+**           usHead          完成队列头
+**           usPhase         完成队列相位
+** 输　出  : 是否有效
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static LW_INLINE BOOL  __nvmeCqValid (NVME_QUEUE_HANDLE  hQueue, UINT16  usHead, UINT16  usPhase)
+{
+    return  ((le16_to_cpu(hQueue->NVMEQUEUE_hCompletionQueue[usHead].NVMECOMPLETION_usStatus) 
+              & 1) == usPhase);
+}
+/*********************************************************************************************************
 ** 函数名称: __nvmeCqProcess
 ** 功能描述: 处理命令完成队列
 ** 输　入  : hQueue          命令队列
@@ -1414,39 +1455,27 @@ static VOID  __nvmeCqProcess (NVME_QUEUE_HANDLE  hQueue)
     usHead  = hQueue->NVMEQUEUE_usCqHead;                               /*  完成队列头                  */
     usPhase = hQueue->NVMEQUEUE_ucCqPhase;                              /*  完成队列相位                */
 
-    for (;;) {
+    while (__nvmeCqValid(hQueue, usHead, usPhase)) {
         PVOID                pvCtx;
         nvme_completion_fn   pfCompletion;
         NVME_COMPLETION_CB   tCqe = hQueue->NVMEQUEUE_hCompletionQueue[usHead];
 
-        /*
-         *  消息状态与本轮相位不同，说明不是已到队列尾部，直接跳出循环
-         */
-        if ((le16_to_cpu(tCqe.NVMECOMPLETION_usStatus) & 1) != usPhase) {
-            break;
-        }
-
-        hQueue->NVMEQUEUE_usSqHead = le16_to_cpu(tCqe.NVMECOMPLETION_usSqHead);
         if (++usHead == hQueue->NVMEQUEUE_usDepth) {                    /*  本轮循环结束，相位取反      */
             usHead  = 0;
             usPhase = !usPhase;
         }
 
-        /*
-         *  释放CMD Id，调用命令函数回调处理完成条目消息
-         */
-        pvCtx = __cmdIdFree(hQueue, tCqe.NVMECOMPLETION_usCommandId, &pfCompletion);
+        pvCtx = __cmdIdFree(hQueue, tCqe.NVMECOMPLETION_usCmdId, &pfCompletion);
         pfCompletion(hQueue, pvCtx, &tCqe);
     }
 
-    /*
-     *  可能产生卷绕
-     */
-    if (usHead == hQueue->NVMEQUEUE_usCqHead && usPhase == hQueue->NVMEQUEUE_ucCqPhase) {
+    if ((usHead  == hQueue->NVMEQUEUE_usCqHead) && 
+        (usPhase == hQueue->NVMEQUEUE_ucCqPhase)) {
         return;
     }
                                                                         /*  写DB通知控制器，清除中断    */
-    writel(usHead, hQueue->NVMEQUEUE_puiDoorBell + hQueue->NVMEQUEUE_hCtrl->NVMECTRL_uiDBStride);
+    write32(htole32(usHead), (addr_t)(hQueue->NVMEQUEUE_puiDoorBell + 
+                                      hQueue->NVMEQUEUE_hCtrl->NVMECTRL_uiDBStride));
 
     hQueue->NVMEQUEUE_usCqHead  = usHead;
     hQueue->NVMEQUEUE_ucCqPhase = usPhase;

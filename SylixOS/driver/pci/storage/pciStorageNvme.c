@@ -400,8 +400,6 @@ __msi_handle:
 
     iRet = API_PciDevMsiRangeEnable(hPciDev, 1, uiIrqNum);
     if (iRet != ERROR_NONE) {
-        NVME_LOG(NVME_LOG_ERR, "pci msi range enable failed dev %d:%d.%d.\r\n",
-                 hPciDev->PCIDEV_iDevBus, hPciDev->PCIDEV_iDevDevice, hPciDev->PCIDEV_iDevFunction);
         goto    __intx_handle;
     }
     hCtrl->NVMECTRL_uiIntNum = hPciDev->PCIDEV_uiDevIrqMsiNum;

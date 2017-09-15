@@ -88,16 +88,16 @@ extern int  __cxa_atexit(void (*f)(void *), void *p, void *d);
 /*********************************************************************************************************
 ** 函数名称: __aeabi_atexit
 ** 功能描述: eabi 设置 __cxa_finalize 时需要运行的回调方法. 
-** 输　入  : destructor         函数指针
+** 输　入  : fdestructor        函数指针
 **           object             参数
 **           dso_handle         句柄
 ** 输　出  : 0: 成功  -1:失败
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-int __attribute__((weak)) __aeabi_atexit (void *object, void (*destructor) (void *), void *dso_handle)
+int __attribute__((weak)) __aeabi_atexit (void *object, void (*fdestructor) (void *), void *dso_handle)
 {
-    return  __cxa_atexit(destructor, object, dso_handle);
+    return  __cxa_atexit(fdestructor, object, dso_handle);
 }
 /*********************************************************************************************************
 ** 函数名称: __aeabi_memcpy8

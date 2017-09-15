@@ -70,6 +70,9 @@ typedef struct {
     VOID     (*L1CD_pfuncBranchPredictionDisable)(VOID);
     VOID     (*L1CD_pfuncBranchPredictionEnable)(VOID);
     VOID     (*L1CD_pfuncBranchPredictorInvalidate)(VOID);
+
+    VOID     (*L1CD_pfuncTextUpdate)(PVOID  pvStart, PVOID  pvEnd,
+                                     UINT32  uiICacheLineSize, UINT32  uiDCacheLineSize);
 } PPC_L1C_DRIVER;
 
 /*********************************************************************************************************

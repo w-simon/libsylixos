@@ -444,7 +444,7 @@ static INT  __blkIoFsIoctl (PLW_BLKIO_DEV  pdevblk, INT  iRequest, LONG  lArg)
             *(ULONG *)lArg = pdevblk->BLKIO_pblkDev->BLKD_ulBytesPerBlock;
         } else {
             return  (pdevblk->BLKIO_pblkDev->BLKD_pfuncBlkIoctl(pdevblk->BLKIO_pblkDev,
-                     LW_BLKD_GET_BLKSIZE, lArg));
+                                                                LW_BLKD_GET_BLKSIZE, lArg));
         }
         return  (ERROR_NONE);
 
@@ -454,6 +454,10 @@ static INT  __blkIoFsIoctl (PLW_BLKIO_DEV  pdevblk, INT  iRequest, LONG  lArg)
     case LW_BLKD_CTRL_OEMDISK:
         *(CPVOID *)lArg = pdevblk->BLKIO_pvOemDisk;
         return  (ERROR_NONE);
+        
+    case LW_BLKD_CTRL_INFO:
+        return  (pdevblk->BLKIO_pblkDev->BLKD_pfuncBlkIoctl(pdevblk->BLKIO_pblkDev,
+                                                            LW_BLKD_CTRL_INFO, lArg));
 
     default:
         _ErrorHandle(ENOSYS);

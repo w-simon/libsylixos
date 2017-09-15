@@ -47,6 +47,143 @@ static INT __ataPread(__PATA_CTRL patactrler,
                       INT         iDrive,
                       PVOID       pvBuffer);
 /*********************************************************************************************************
+** 函数名称: __ataIdString
+** 功能描述: 将 ID 值转换为字符串信息
+** 输　入  : pusId      ID 参数
+**           pcBuff     字符串缓存
+**           uiLen      缓存大小
+** 输　出  : 字符串信息
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static PCHAR  __ataIdString (const UINT16 *pusId, PCHAR  pcBuff, UINT32  uiLen)
+{
+    REGISTER INT    i;
+    UINT8           ucChar   = 0;                                       /* 字节数据                     */
+    INT             iOffset  = 0;                                       /* 字偏移                       */
+    PCHAR           pcString = pcBuff;                                  /* 字符串缓冲区                 */
+
+    /*
+     *  将字数据转换为字符串数据
+     */
+    iOffset   = 0;
+    pcString = pcBuff;
+    for (i = 0; i < (uiLen - 1); ) {
+        ucChar = (UINT8)(pusId[iOffset] >> 8);
+        *pcString = ucChar;
+        pcString += 1;
+
+        ucChar = (UINT8)(pusId[iOffset] & 0xff);
+        *pcString = ucChar;
+        pcString += 1;
+
+        iOffset += 1;
+        i       += 2;
+    }
+
+    /*
+     *  删除无效空格信息
+     */
+    pcString = pcBuff + lib_strnlen(pcBuff, uiLen - 1);
+    while ((pcString > pcBuff) && (pcString[-1] == ' ')) {
+        pcString--;
+    }
+    *pcString = '\0';
+
+    iOffset   = 0;
+    pcString = pcBuff;
+    for (i = 0; i < uiLen; i++) {
+        if (pcString[iOffset] == ' ') {
+            pcString += 1;
+        } else {
+            break;
+        }
+    }
+
+    return  (pcString);
+}
+/*********************************************************************************************************
+** 函数名称: __ataDriveSerialInfoGet
+** 功能描述: 序列号信息
+** 输　入  : hDrive     驱动器句柄
+**           pcBuf      缓冲区
+**           stLen      缓冲区大小
+** 输　出  : 字符串信息
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+PCHAR  __ataDriveSerialInfoGet (__PATA_DRIVE  hDrive, PCHAR  pcBuf, size_t  stLen)
+{
+    __ATA_PARAM    *hParam;                                             /* 参数句柄                     */
+    PCHAR           pcSerial;                                           /* 设备串号                     */
+    CHAR            cSerial[21] = { 0 };                                /* 序列号缓冲区                 */
+
+    if ((!hDrive) || (!pcBuf)) {
+        return  (LW_NULL);
+    }
+
+    hParam = &hDrive->ATADRIVE_ataParam;
+    lib_bzero(&cSerial[0], 21);
+    pcSerial = __ataIdString((const UINT16 *)&hParam->ATAPAR_cSerial[0], &cSerial[0], 21);
+    lib_strncpy(pcBuf, pcSerial, __MIN(stLen, lib_strlen(pcSerial) + 1));
+
+    return  (pcSerial);
+}
+/*********************************************************************************************************
+** 函数名称: __ataDriveFwRevInfoGet
+** 功能描述: 固件版本号信息
+** 输　入  : hDrive     驱动器句柄
+**           pcBuf      缓冲区
+**           stLen      缓冲区大小
+** 输　出  : 字符串信息
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+PCHAR  __ataDriveFwRevInfoGet (__PATA_DRIVE  hDrive, PCHAR  pcBuf, size_t  stLen)
+{
+    __ATA_PARAM    *hParam;                                             /* 参数句柄                     */
+    PCHAR           pcFirmware;                                         /* 固件版本                     */
+    CHAR            cFirmware[9] = { 0 };                               /* 固件版本缓冲区               */
+
+    if ((!hDrive) || (!pcBuf)) {
+        return  (LW_NULL);
+    }
+
+    hParam = &hDrive->ATADRIVE_ataParam;
+    lib_bzero(&cFirmware[0], 9);
+    pcFirmware =__ataIdString((const UINT16 *)&hParam->ATAPAR_cRev[0], &cFirmware[0], 9);
+    lib_strncpy(pcBuf, pcFirmware, __MIN(stLen, lib_strlen(pcFirmware) + 1));
+
+    return  (pcFirmware);
+}
+/*********************************************************************************************************
+** 函数名称: __ataDriveModelInfoGet
+** 功能描述: 设备详细信息
+** 输　入  : hDrive     驱动器句柄
+**           pcBuf      缓冲区
+**           stLen      缓冲区大小
+** 输　出  : 字符串信息
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+PCHAR  __ataDriveModelInfoGet (__PATA_DRIVE  hDrive, PCHAR  pcBuf, size_t  stLen)
+{
+    __ATA_PARAM    *hParam;                                             /* 参数句柄                     */
+    PCHAR           pcProduct;                                          /* 产品信息                     */
+    CHAR            cProduct[41] = { 0 };                               /* 产品信息缓冲区               */
+
+    if ((!hDrive) || (!pcBuf)) {
+        return  (LW_NULL);
+    }
+
+    hParam = &hDrive->ATADRIVE_ataParam;
+    lib_bzero(&cProduct[0], 41);
+    pcProduct = __ataIdString((const UINT16 *)&hParam->ATAPAR_cModel[0], &cProduct[0], 41);
+    lib_strncpy(pcBuf, pcProduct, __MIN(stLen, lib_strlen(pcProduct) + 1));
+
+    return  (pcProduct);
+}
+/*********************************************************************************************************
 ** 函数名称: __ataCmd
 ** 功能描述: ATA命令
 ** 输　入  : patactrler  ATA控制器结构指针

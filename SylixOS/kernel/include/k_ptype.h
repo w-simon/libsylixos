@@ -100,7 +100,15 @@ typedef	LONG         swblk_t;
   address integer type
 *********************************************************************************************************/
 
+#ifndef __addr_t_defined
 typedef	ULONG        addr_t;
+#define __addr_t_defined 1
+#endif
+
+#ifndef __ioaddr_t_defined
+typedef	ULONG        ioaddr_t;
+#define __ioaddr_t_defined 1
+#endif
 
 /*********************************************************************************************************
   POSIX basic type

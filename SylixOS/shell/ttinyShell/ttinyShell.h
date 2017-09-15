@@ -40,6 +40,8 @@ typedef INT               (*PCOMMAND_START_ROUTINE)(INT  iArgC, PCHAR  ppcArgV[]
 *********************************************************************************************************/
 LW_API VOID                 API_TShellInit(VOID);                       /*  安装 tshell 系统            */
 
+LW_API INT                  API_TShellStartup(VOID);                    /*  shell 调用 startup.sh 脚本  */
+
 LW_API VOID                 API_TShellTermAlert(INT  iFd);              /*  响铃警报                    */
 
 LW_API VOID                 API_TShellSetTitel(INT  iFd, CPCHAR  pcTitel);
@@ -106,6 +108,7 @@ LW_API INT                  API_TShellGetOption(LW_OBJECT_HANDLE  hTShellHandle,
 *********************************************************************************************************/
 
 #define tshellInit          API_TShellInit
+#define tshellStartup       API_TShellStartup
 #define tshellSetStackSize  API_TShellSetStackSize
 #define tshellSigEvent      API_TShellSigEvent
 #define tshellCreate        API_TShellCreate

@@ -44,6 +44,7 @@
     IMPORT_LABEL(archE500ProgramExceptionHandle)
     IMPORT_LABEL(archE500FpuUnavailableExceptionHandle)
     IMPORT_LABEL(archE500SystemCallHandle)
+    IMPORT_LABEL(archE500ApUnavailableExceptionHandle)
     IMPORT_LABEL(archE500DecrementerInterruptHandle)
     IMPORT_LABEL(archE500TimerInterruptHandle)
     IMPORT_LABEL(archE500WatchdogInterruptHandle)
@@ -73,6 +74,7 @@
     EXPORT_LABEL(archE500ProgramExceptionEntry)
     EXPORT_LABEL(archE500FpuUnavailableExceptionEntry)
     EXPORT_LABEL(archE500SystemCallEntry)
+    EXPORT_LABEL(archE500ApUnavailableExceptionEntry)
     EXPORT_LABEL(archE500DecrementerInterruptEntry)
     EXPORT_LABEL(archE500TimerInterruptEntry)
     EXPORT_LABEL(archE500WatchdogInterruptEntry)
@@ -285,14 +287,6 @@ EXCE_DEF(archE500AlignmentExceptionEntry)
     EXCE_END()
 
 ;/*********************************************************************************************************
-;  FPU 不可用异常入口(Vector IVOR7)
-;*********************************************************************************************************/
-
-FUNC_DEF(archE500FpuUnavailableExceptionEntry)
-    E500_EXC_ENTRY      archE500FpuUnavailableExceptionHandle
-    FUNC_END()
-
-;/*********************************************************************************************************
 ;  程序异常入口(Vector IVOR6)
 ;*********************************************************************************************************/
 
@@ -301,11 +295,27 @@ EXCE_DEF(archE500ProgramExceptionEntry)
     EXCE_END()
 
 ;/*********************************************************************************************************
+;  FPU 不可用异常入口(Vector IVOR7)
+;*********************************************************************************************************/
+
+EXCE_DEF(archE500FpuUnavailableExceptionEntry)
+    E500_EXC_ENTRY      archE500FpuUnavailableExceptionHandle
+    FUNC_END()
+
+;/*********************************************************************************************************
 ;  系统调用入口(Vector IVOR8)
 ;*********************************************************************************************************/
 
 EXCE_DEF(archE500SystemCallEntry)
     E500_EXC_ENTRY      archE500SystemCallHandle
+    EXCE_END()
+
+;/*********************************************************************************************************
+;  AP 不可用 (not defined by Embedded Implementation Standards)用入口(Vector IVOR9)
+;*********************************************************************************************************/
+
+EXCE_DEF(archE500ApUnavailableExceptionEntry)
+    E500_EXC_ENTRY      archE500ApUnavailableExceptionHandle
     EXCE_END()
 
 ;/*********************************************************************************************************

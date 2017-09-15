@@ -3188,7 +3188,7 @@ static INT  __sdhciRegAccessDrvInit (PLW_SDHCI_HOST_ATTR  psdhcihostattr)
 *********************************************************************************************************/
 static UINT32 __sdhciIoReadL (PLW_SDHCI_HOST_ATTR   psdhcihostattr, ULONG ulAddr)
 {
-    return in32(psdhcihostattr->SDHCIHOST_ulBasePoint + ulAddr);
+    return  in32(psdhcihostattr->SDHCIHOST_ulBasePoint + ulAddr);
 }
 /*********************************************************************************************************
 ** 函数名称: __sdhciIoReadW
@@ -3200,7 +3200,7 @@ static UINT32 __sdhciIoReadL (PLW_SDHCI_HOST_ATTR   psdhcihostattr, ULONG ulAddr
 *********************************************************************************************************/
 static UINT16 __sdhciIoReadW (PLW_SDHCI_HOST_ATTR   psdhcihostattr, ULONG ulAddr)
 {
-    return in16(psdhcihostattr->SDHCIHOST_ulBasePoint + ulAddr);
+    return  in16(psdhcihostattr->SDHCIHOST_ulBasePoint + ulAddr);
 }
 /*********************************************************************************************************
 ** 函数名称: __sdhciIoReadB
@@ -3212,7 +3212,7 @@ static UINT16 __sdhciIoReadW (PLW_SDHCI_HOST_ATTR   psdhcihostattr, ULONG ulAddr
 *********************************************************************************************************/
 static UINT8 __sdhciIoReadB (PLW_SDHCI_HOST_ATTR   psdhcihostattr, ULONG ulAddr)
 {
-    return in8(psdhcihostattr->SDHCIHOST_ulBasePoint + ulAddr);
+    return  in8(psdhcihostattr->SDHCIHOST_ulBasePoint + ulAddr);
 }
 /*********************************************************************************************************
 ** 函数名称: __sdhciIoWriteL
@@ -3263,7 +3263,7 @@ static VOID __sdhciIoWriteB (PLW_SDHCI_HOST_ATTR   psdhcihostattr, ULONG ulAddr,
 *********************************************************************************************************/
 static UINT32 __sdhciMemReadL (PLW_SDHCI_HOST_ATTR   psdhcihostattr, ULONG ulAddr)
 {
-    return read32(psdhcihostattr->SDHCIHOST_ulBasePoint + ulAddr);
+    return  read32(psdhcihostattr->SDHCIHOST_ulBasePoint + ulAddr);
 }
 /*********************************************************************************************************
 ** 函数名称: __sdhciMemReadW
@@ -3275,7 +3275,7 @@ static UINT32 __sdhciMemReadL (PLW_SDHCI_HOST_ATTR   psdhcihostattr, ULONG ulAdd
 *********************************************************************************************************/
 static UINT16 __sdhciMemReadW (PLW_SDHCI_HOST_ATTR   psdhcihostattr, ULONG ulAddr)
 {
-    return read16(psdhcihostattr->SDHCIHOST_ulBasePoint + ulAddr);
+    return  read16(psdhcihostattr->SDHCIHOST_ulBasePoint + ulAddr);
 }
 /*********************************************************************************************************
 ** 函数名称: __sdhciMemReadB
@@ -3287,7 +3287,7 @@ static UINT16 __sdhciMemReadW (PLW_SDHCI_HOST_ATTR   psdhcihostattr, ULONG ulAdd
 *********************************************************************************************************/
 static UINT8 __sdhciMemReadB (PLW_SDHCI_HOST_ATTR   psdhcihostattr, ULONG ulAddr)
 {
-    return read8(psdhcihostattr->SDHCIHOST_ulBasePoint + ulAddr);
+    return  read8(psdhcihostattr->SDHCIHOST_ulBasePoint + ulAddr);
 }
 /*********************************************************************************************************
 ** 函数名称: __sdhciMemWriteL

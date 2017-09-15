@@ -175,10 +175,11 @@ typedef LW_BLK_RANGE       *PLW_BLK_RANGE;
 /*********************************************************************************************************
   IOCTL 通用指令 (磁盘设备扩展)
 *********************************************************************************************************/
-
+#ifdef __SYLIXOS_KERNEL
 #define LW_BLKD_CTRL_POWER          LW_OSIOD('b', 201, INT)             /*  控制设备电源                */
 #define LW_BLKD_POWER_OFF           0                                   /*  关闭磁盘电源                */
 #define LW_BLKD_POWER_ON            1                                   /*  打开磁盘电源                */
+#endif                                                                  /*  __SYLIXOS_KERNEL            */
 
 #define LW_BLKD_CTRL_LOCK           LW_OSIOD('b', 202, INT)             /*  锁定设备(保留)              */
 #define LW_BLKD_CTRL_EJECT          LW_OSIOD('b', 203, INT)             /*  弹出设备(保留)              */
@@ -194,13 +195,55 @@ typedef LW_BLK_RANGE       *PLW_BLK_RANGE;
 /*********************************************************************************************************
   BLOCK RAW 模式其他控制指令
 *********************************************************************************************************/
-#ifdef __SYLIXOS_KERNEL
 
+#ifdef __SYLIXOS_KERNEL
 #define LW_BLKD_CTRL_RESET          LW_OSIO('b', 207)                   /*  复位磁盘                    */
 #define LW_BLKD_CTRL_STATUS         LW_OSIO('b', 208)                   /*  检查磁盘状态                */
 #define LW_BLKD_CTRL_OEMDISK        LW_OSIOR('b', 209, LW_OEMDISK_CB)   /*  获得对应磁盘文件 OEM 控制块 */
-
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
+
+/*********************************************************************************************************
+  BLOCK 信息
+*********************************************************************************************************/
+
+#if defined(__SYLIXOS_KERNEL) || defined(__SYLIXOS_BLKDEV)
+#define LW_BLKD_CTRL_INFO_STR_SZ    48
+
+typedef struct {
+    union {
+        struct {
+            UINT32      uiType;
+#define LW_BLKD_CTRL_INFO_TYPE_RAMDISK  0
+#define LW_BLKD_CTRL_INFO_TYPE_BLKRAW   1
+#define LW_BLKD_CTRL_INFO_TYPE_ATA      2
+#define LW_BLKD_CTRL_INFO_TYPE_SATA     3
+#define LW_BLKD_CTRL_INFO_TYPE_SCSI     4
+#define LW_BLKD_CTRL_INFO_TYPE_SAS      5
+#define LW_BLKD_CTRL_INFO_TYPE_UFS      6
+#define LW_BLKD_CTRL_INFO_TYPE_NVME     7
+#define LW_BLKD_CTRL_INFO_TYPE_SDMMC    8
+#define LW_BLKD_CTRL_INFO_TYPE_MSTICK   9
+#define LW_BLKD_CTRL_INFO_TYPE_USB      10
+#define LW_BLKD_CTRL_INFO_TYPE_UNKOWN   1000
+
+            CHAR        cSerial[LW_BLKD_CTRL_INFO_STR_SZ];
+            CHAR        cFirmware[LW_BLKD_CTRL_INFO_STR_SZ];
+            CHAR        cProduct[LW_BLKD_CTRL_INFO_STR_SZ];
+            CHAR        cMedia[LW_BLKD_CTRL_INFO_STR_SZ];
+        } i;
+        UINT32          cPad[128];                                      /*  total 512 bytes             */
+    } u;
+#define BLKI_uiType     u.i.uiType
+#define BLKI_cSerial    u.i.cSerial
+#define BLKI_cFirmware  u.i.cFirmware
+#define BLKI_cProduct   u.i.cProduct
+#define BLKI_cMedia     u.i.cMedia
+} LW_BLK_INFO;
+typedef LW_BLK_INFO    *PLW_BLK_INFO;
+
+#define LW_BLKD_CTRL_INFO           LW_OSIOR('b', 210, LW_BLK_INFO)     /*  获得对应磁盘信息            */
+#endif                                                                  /*  __SYLIXOS_KERNEL            */
+                                                                        /*  __SYLIXOS_BLKDEV            */
 #endif                                                                  /*  __BLOCKIO_H                 */
 /*********************************************************************************************************
   END

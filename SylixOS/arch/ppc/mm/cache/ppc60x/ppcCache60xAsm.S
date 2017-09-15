@@ -52,6 +52,8 @@
     EXPORT_LABEL(ppc60xDCacheFlushAll)
     EXPORT_LABEL(ppc60xDCacheClearAll)
 
+    EXPORT_LABEL(ppc60xTextUpdate)
+
     EXPORT_LABEL(ppc60xBranchPredictionDisable)
     EXPORT_LABEL(ppc60xBranchPredictionEnable)
     EXPORT_LABEL(ppc60xBranchPredictorInvalidate)
@@ -579,6 +581,23 @@ FUNC_DEF(ppc60xDCacheFlush)
     BLT     ppc60xDCacheFlush
 
     SYNC                                            ;/*  Ensure all stores complete                      */
+    BLR
+    FUNC_END()
+
+;/*********************************************************************************************************
+;  Text update
+;*********************************************************************************************************/
+
+FUNC_DEF(ppc60xTextUpdate)
+    DCBST   R0 , R3
+    SYNC
+    ICBI    R0 , R3
+    ADD     R3 , R3 , R6
+    CMPLW   R3 , R4
+    BLT     ppc60xTextUpdate
+
+    ISYNC
+    SYNC
     BLR
     FUNC_END()
 

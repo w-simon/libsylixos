@@ -105,7 +105,7 @@ static LW_PROCFS_NODE_OP        _G_pfsnoKernelAffinityFuncs = {
   内核 proc 文件目录树
 *********************************************************************************************************/
 #define __PROCFS_BUFFER_SIZE_VERSION    512
-#define __PROCFS_BUFFER_SIZE_CMDLINE    512
+#define __PROCFS_BUFFER_SIZE_CMDLINE    1024
 #define __PROCFS_BUFFER_SIZE_TICK       256                             /*  tick 文件需要的缓冲大小     */
 #define __PROCFS_BUFFER_SIZE_OBJECTS    1024
 
@@ -127,7 +127,7 @@ static LW_PROCFS_NODE           _G_pfsnKernel[] =
                         (S_IFREG | S_IRUSR | S_IRGRP | S_IROTH), 
                         &_G_pfsnoKernelCmdlineFuncs, 
                         "P",
-                        __PROCFS_BUFFER_SIZE_VERSION),
+                        __PROCFS_BUFFER_SIZE_CMDLINE),
                         
     LW_PROCFS_INIT_NODE("tick", 
                         (S_IFREG | S_IRUSR | S_IRGRP | S_IROTH), 

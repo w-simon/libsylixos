@@ -31,6 +31,7 @@
 2013.06.12  SylixOS 默认不再使用 ftk 图形界面, 转而使用 Qt 图形界面.
 2015.04.06  去掉 GUILIB GUIFONT ... 默认环境变量.
 2017.01.09  加入网络黑名单参数环境变量.
+2017.09.14  加入 STARTUP_WAIT_SEC 环境变量.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -63,7 +64,8 @@ VOID  __tshellSysVarInit (VOID)
 
     API_TShellExec("TMPDIR=" LW_CFG_TMP_PATH);
     API_TShellExec("TZ=CST-8:00:00");                                   /*  默认为东8区                 */
-    
+    API_TShellExec("STARTUP_WAIT_SEC=1");                               /*  执行 startup.sh 延迟时间    */
+                                                                        /*  0 ~ 10 之间                 */
     /*
      *  图形界面
      */

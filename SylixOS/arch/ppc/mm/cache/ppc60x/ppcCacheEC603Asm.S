@@ -44,6 +44,7 @@
 #define ppc60xBranchPredictionDisable       ppcEC603BranchPredictionDisable
 #define ppc60xBranchPredictionEnable        ppcEC603BranchPredictionEnable
 #define ppc60xBranchPredictorInvalidate     ppcEC603BranchPredictorInvalidate
+#define ppc60xTextUpdate                    ppcEC603TextUpdate
 
 /*********************************************************************************************************
   °üº¬ 60X CACHE Çý¶¯

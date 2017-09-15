@@ -25,7 +25,6 @@
   ²Ã¼ôºê
 *********************************************************************************************************/
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_NVME_EN > 0)
-#include "linux/compat.h"
 #include "nvmeLib.h"
 #include "nvmeDrv.h"
 #include "nvmeDev.h"

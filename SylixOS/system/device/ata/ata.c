@@ -23,6 +23,7 @@
             并且在接收同步信号前先等待卡设备不忙
 2011.04.06  为兼容64位CPU，修改__ataBlkRW()，__ataBlkRd()，__ataBlkWrt()的参数类型.
 2014.03.03  优化代码.
+2017.09.12  支持获取磁盘信息. Gong.YuJian (弓羽箭)
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -47,6 +48,9 @@ INT                __ataCmd(__PATA_CTRL pAtaCtrl,
 INT                __ataWait(__PATA_CTRL patactrler, INT iRequest);
 INT                __ataCtrlReset(__PATA_CTRL pAtaCtrl);
 INT                __ataDriveInit(__PATA_CTRL patactrler, INT iDrive);
+PCHAR              __ataDriveSerialInfoGet(__PATA_DRIVE hDrive, PCHAR  pcBuf, size_t stLen);
+PCHAR              __ataDriveFwRevInfoGet(__PATA_DRIVE hDrive, PCHAR  pcBuf, size_t stLen);
+PCHAR              __ataDriveModelInfoGet(__PATA_DRIVE hDrive, PCHAR  pcBuf, size_t stLen);
 static __PATA_CTRL __ataSearchNode(INT iCtrl);
 static INT         __ataAddNode(__PATA_CTRL patactrl);
 static INT         __ataWrite(__PATA_CTRL patactrl);
@@ -601,6 +605,8 @@ static INT __ataIoctl (__PATA_DEV patadev,
     __PATA_CTRL     patactrl     = LW_NULL;
     ATA_DRV_FUNCS  *patadevfuscs = LW_NULL;
     struct timeval *timevalTemp  = LW_NULL;
+    __PATA_DRIVE    hDrive;                                             /* 驱动器句柄                   */
+    PLW_BLK_INFO    hBlkInfo;                                           /* 设备信息                     */
 
     INT             iReturn     = ERROR_NONE;
 
@@ -645,6 +651,20 @@ static INT __ataIoctl (__PATA_DEV patadev,
 
     case LW_BLKD_GET_BLKSIZE:
         *(ULONG *)lArg = patadev->ATAD_blkdBlkDev.BLKD_ulBytesPerBlock;
+        break;
+
+    case LW_BLKD_CTRL_INFO:
+        hDrive = &patactrl->ATACTRL_ataDrive[patadev->ATAD_iDrive];
+        hBlkInfo = (PLW_BLK_INFO)lArg;
+        if (!hBlkInfo) {
+            _ErrorHandle(EINVAL);
+            return  (PX_ERROR);
+        }
+        lib_bzero(hBlkInfo, sizeof(LW_BLK_INFO));
+        hBlkInfo->BLKI_uiType = LW_BLKD_CTRL_INFO_TYPE_ATA;
+        __ataDriveSerialInfoGet(hDrive, hBlkInfo->BLKI_cSerial, LW_BLKD_CTRL_INFO_STR_SZ);
+        __ataDriveFwRevInfoGet(hDrive, hBlkInfo->BLKI_cFirmware, LW_BLKD_CTRL_INFO_STR_SZ);
+        __ataDriveModelInfoGet(hDrive, hBlkInfo->BLKI_cProduct, LW_BLKD_CTRL_INFO_STR_SZ);
         break;
 
     case FIOWTIMEOUT:

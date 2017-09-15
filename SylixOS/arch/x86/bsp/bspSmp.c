@@ -168,14 +168,14 @@ LW_WEAK VOID   bspCpuUp (ULONG  ulCPUId)
     UINT32      uiOldResetVector;                                       /*  Warm reset vector           */
     UINT8       uiOldShutdownCode;                                      /*  CMOS shutdown code          */
 
-    x86SpinLock(&_G_slX86ApLock);
-
     pstkStack = sys_malloc(AP_BOOT_STACK_SIZE);
     if (pstkStack == LW_NULL) {
         _PrintFormat("Can't start CPU#%d, system low memory!\r\n", ulCPUId);
         return;
     }
     pulEntryAddr = (ULONG *)AP_BOOT_ENTRY_ADDR;
+
+    x86SpinLock(&_G_slX86ApLock);
 
     lib_memcpy(pulEntryAddr, _G_ucX86ApEntryCode, (size_t)sizeof(_G_ucX86ApEntryCode));
 

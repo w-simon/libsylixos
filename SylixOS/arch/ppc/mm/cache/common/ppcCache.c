@@ -102,6 +102,8 @@ static PPC_L1C_DRIVER  *_G_pcachedriver = LW_NULL;
 #define ppcBranchPredictionDisable       _G_pcachedriver->L1CD_pfuncBranchPredictionDisable
 #define ppcBranchPredictionEnable        _G_pcachedriver->L1CD_pfuncBranchPredictionEnable
 #define ppcBranchPredictorInvalidate     _G_pcachedriver->L1CD_pfuncBranchPredictorInvalidate
+
+#define ppcTextUpdate                    _G_pcachedriver->L1CD_pfuncTextUpdate
 /*********************************************************************************************************
   内部函数
 *********************************************************************************************************/
@@ -465,6 +467,12 @@ static INT  ppcCacheTextUpdate (PVOID  pvAdrs, size_t  stBytes)
 {
     addr_t  ulEnd;
 
+    if (ppcTextUpdate) {
+        PPC_CACHE_GET_END(pvAdrs, stBytes, ulEnd, _G_DCache.CACHE_uiLineSize);
+        ppcTextUpdate(pvAdrs, (PVOID)ulEnd, _G_ICache.CACHE_uiLineSize, _G_DCache.CACHE_uiLineSize);
+        return  (ERROR_NONE);
+    }
+
     if ((stBytes >= PPC_CACHE_LOOP_OP_MAX_SIZE) &&
         ppcDCacheFlushAll && ppcICacheInvalidateAll) {
         ppcDCacheFlushAll();                                            /*  DCACHE 全部回写             */
@@ -596,11 +604,7 @@ INT  ppcCacheInit (LW_CACHE_OP *pcacheop,
     ppcL2Init(uiInstruction, uiData, pcMachineName);
 #endif                                                                  /*  LW_CFG_PPC_CACHE_L2 > 0     */
 
-#if LW_CFG_SMP_EN > 0
-    pcacheop->CACHEOP_ulOption = CACHE_TEXT_UPDATE_MP;
-#else
-    pcacheop->CACHEOP_ulOption = 0ul;
-#endif                                                                  /*  LW_CFG_SMP_EN               */
+    pcacheop->CACHEOP_ulOption = 0ul;                                   /*  无须 TEXT_UPDATE_MP 选项    */
 
     pcacheop->CACHEOP_iILoc = CACHE_LOCATION_VIPT;
     pcacheop->CACHEOP_iDLoc = CACHE_LOCATION_VIPT;

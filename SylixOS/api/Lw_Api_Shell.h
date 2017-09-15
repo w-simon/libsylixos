@@ -28,6 +28,7 @@
 *********************************************************************************************************/
 
 #define Lw_TShell_Init                  API_TShellInit
+#define Lw_TShell_Startup               API_TShellStartup
 #define Lw_TShell_SetStackSize          API_TShellSetStackSize
 #define Lw_TShell_Create                API_TShellCreate
 #define Lw_TShell_CreateEx              API_TShellCreateEx

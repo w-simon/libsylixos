@@ -45,6 +45,9 @@ extern VOID     ppc604ICacheInvalidate(PVOID  pvStart, PVOID  pvEnd, UINT32  uiS
 extern VOID     ppc604BranchPredictionDisable(VOID);
 extern VOID     ppc604BranchPredictionEnable(VOID);
 extern VOID     ppc604BranchPredictorInvalidate(VOID);
+
+extern VOID     ppc604TextUpdate(PVOID  pvStart, PVOID  pvEnd,
+                                 UINT32  uiICacheLineSize, UINT32  uiDCacheLineSize);
 /*********************************************************************************************************
 ** 函数名称: ppc604CacheProbe
 ** 功能描述: CACHE 探测
@@ -101,6 +104,8 @@ PPC_L1C_DRIVER  _G_ppc604CacheDriver = {
     ppc604BranchPredictionDisable,
     ppc604BranchPredictionEnable,
     ppc604BranchPredictorInvalidate,
+
+    ppc604TextUpdate,
 };
 
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */

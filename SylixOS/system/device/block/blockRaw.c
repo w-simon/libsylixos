@@ -18,6 +18,7 @@
 **
 ** 描        述: 系统块设备 RAW IO 接口.
 *********************************************************************************************************/
+#define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
 #include "../SylixOS/system/include/s_system.h"
@@ -25,6 +26,12 @@
   裁剪宏
 *********************************************************************************************************/
 #if (LW_CFG_BLKRAW_EN > 0) && (LW_CFG_MAX_VOLUMES > 0)
+/*********************************************************************************************************
+  宏定义
+*********************************************************************************************************/
+#define __BLKRAW_SERIAL             "BLKRAW"
+#define __BLKRAW_FWREV              "VER "
+#define __BLKRAW_MODLE              "BLKRAW"
 /*********************************************************************************************************
   默认参数
 *********************************************************************************************************/
@@ -74,6 +81,8 @@ static INT  __blkRawStatus (PLW_BLK_RAW  pblkraw)
 static INT  __blkRawIoctl (PLW_BLK_RAW  pblkraw, INT  iCmd, LONG  lArg)
 {
     if (!S_ISBLK(pblkraw->BLKRAW_mode)) {
+        PLW_BLK_INFO    hBlkInfo;                                       /* 设备信息                     */
+        
         switch (iCmd) {
         
         case FIOSYNC:
@@ -87,6 +96,22 @@ static INT  __blkRawIoctl (PLW_BLK_RAW  pblkraw, INT  iCmd, LONG  lArg)
         case FIOTRIM:
         case FIOCANCEL:
         case FIODISKCHANGE:
+            return  (ERROR_NONE);
+            
+        case LW_BLKD_CTRL_INFO:
+            hBlkInfo = (PLW_BLK_INFO)lArg;
+            if (!hBlkInfo) {
+                _ErrorHandle(EINVAL);
+                return  (PX_ERROR);
+            }
+            lib_bzero(hBlkInfo, sizeof(LW_BLK_INFO));
+            hBlkInfo->BLKI_uiType = LW_BLKD_CTRL_INFO_TYPE_BLKRAW;
+            snprintf(hBlkInfo->BLKI_cSerial, LW_BLKD_CTRL_INFO_STR_SZ, "%s %08X", 
+                     __BLKRAW_SERIAL, (UINT32)pblkraw);
+            snprintf(hBlkInfo->BLKI_cFirmware, LW_BLKD_CTRL_INFO_STR_SZ, "%s%s", 
+                     __BLKRAW_FWREV, __SYLIXOS_VERSTR);
+            snprintf(hBlkInfo->BLKI_cProduct, LW_BLKD_CTRL_INFO_STR_SZ, "%s", 
+                     __BLKRAW_MODLE);
             return  (ERROR_NONE);
         }
     }

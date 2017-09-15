@@ -55,7 +55,9 @@ typedef struct __sd_blk_dev {
     BOOL                  SDBLKDEV_bNeedReSelect;                       /*  是否需要重新选择设备        */
     ULONG                 SDBLKDEV_ulSectorOff;                         /*  扇区访问偏移                */
     ULONG                 SDBLKDEV_ulDiskNSector;                       /*  挂载磁盘的实际扇区数量      */
-    /*
+    LW_BLK_INFO           SDBLKDEV_blkinfo;
+    
+	/*
      * 增加 SDM 后, 为了保持 API 不变, 增加以下成员
      */
     BOOL                  SDBLKDEV_bCoreDevSelf;                        /*  coredev 是自己创建(非SDM给) */
@@ -112,8 +114,10 @@ static INT __sdMemBlkRd(__PSD_BLK_DEV   psdblkdevice,
 static INT __sdMemIoctl(__PSD_BLK_DEV    psdblkdevice,
                         INT              iCmd,
                         LONG             lArg);
-static INT __sdMemStatus(__PSD_BLK_DEV   psdblkdevice);
-static INT __sdMemReset(__PSD_BLK_DEV    psdblkdevice);
+
+static INT __sdMemBlkInfoFmt(__PSD_BLK_DEV psdblkdevice);
+static INT __sdMemStatus(__PSD_BLK_DEV     psdblkdevice);
+static INT __sdMemReset(__PSD_BLK_DEV      psdblkdevice);
 
 static INT __sdMemSdSwCapGet(PLW_SDCORE_DEVICE  psdcoredevice,
                              LW_SDDEV_SCR      *psdscr,
@@ -282,6 +286,8 @@ LW_API PLW_BLK_DEV API_SdMemDevCreate (INT                       iAdapterType,
     pblkdevice->BLKD_uiPowerCounter    = 0;
     pblkdevice->BLKD_uiInitCounter     = 0;
 
+    __sdMemBlkInfoFmt(psdblkdevice);                                    /*  格式化块设备信息            */
+
     return  (pblkdevice);
 }
 /*********************************************************************************************************
@@ -376,8 +382,9 @@ LW_API INT  API_SdMemDevShow (PLW_BLK_DEV pblkdevice)
     uiCapMod = ullCap % LW_CFG_MB_SIZE;
 
     switch (ucType) {
+
     case SDDEV_TYPE_MMC:
-        pcTypeStr = "MMC";
+        pcTypeStr = "MMC/eMMC";
         break;
 
     case SDDEV_TYPE_SDSC:
@@ -399,9 +406,9 @@ LW_API INT  API_SdMemDevShow (PLW_BLK_DEV pblkdevice)
     pcVsnStr = __sdMemProtVsnStr(ucType, sddevcsd.DEVCSD_ucStructure);
 
     printf("\nSD Memory Information >>\n");
-    printf("Manufacturer : 0x%02x\n", sddevcid.DEVCID_ucMainFid);
+    printf("Manufacturer : 0x%02X\n", sddevcid.DEVCID_ucMainFid);
     if (ucType == SDDEV_TYPE_MMC) {
-        printf("OEM ID       : %08x\n", sddevcid.DEVCID_usOemId);
+        printf("OEM ID       : %08X\n", sddevcid.DEVCID_usOemId);
     } else {
         printf("OEM ID       : %c%c\n", sddevcid.DEVCID_usOemId >> 8,
                                         sddevcid.DEVCID_usOemId & 0xff);
@@ -416,7 +423,7 @@ LW_API INT  API_SdMemDevShow (PLW_BLK_DEV pblkdevice)
                            __SD_CID_PNAME(4));
     printf("Product Vsn  : v%d.%d\n", sddevcid.DEVCID_ucProductVsn >> 4,
                                       sddevcid.DEVCID_ucProductVsn & 0xf);
-    printf("Serial Num   : %x\n", sddevcid.DEVCID_uiSerialNum);
+    printf("Serial Num   : %X\n", sddevcid.DEVCID_uiSerialNum);
     printf("Date         : %d/%02d\n", sddevcid.DEVCID_uiYear, sddevcid.DEVCID_ucMonth);
     printf("Max Speed    : %dMB/s\n", uiMaxSpeed / __SD_MILLION);
     printf("Capacity     : %u.%03u MB\n", (UINT32)(ullCap / LW_CFG_MB_SIZE), uiCapMod / 1000);
@@ -1177,8 +1184,9 @@ static INT __sdMemIoctl (__PSD_BLK_DEV    psdblkdevice,
                          INT              iCmd,
                          LONG             lArg)
 {
-    INT          iDevSta;
-    LW_SDDEV_CSD sdcsd;
+    INT           iDevSta;
+    LW_SDDEV_CSD  sdcsd;
+    LW_BLK_INFO  *pblkinfo;
 
     if (!psdblkdevice) {
         _ErrorHandle(EINVAL);
@@ -1211,6 +1219,11 @@ static INT __sdMemIoctl (__PSD_BLK_DEV    psdblkdevice,
         *((UINT32 *)lArg) = sdcsd.DEVCSD_uiCapacity;
         break;
 
+    case LW_BLKD_CTRL_INFO:
+        pblkinfo = (LW_BLK_INFO *)lArg;
+        lib_memcpy(pblkinfo, &psdblkdevice->SDBLKDEV_blkinfo, sizeof(LW_BLK_INFO));
+        break;
+
     case FIOWTIMEOUT:
     case FIORTIMEOUT:
         break;
@@ -1219,6 +1232,86 @@ static INT __sdMemIoctl (__PSD_BLK_DEV    psdblkdevice,
         _ErrorHandle(ENOSYS);
         return  (PX_ERROR);
     }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __sdMemBlkInfoFmt
+** 功能描述: 格式化块设备信息
+** 输    入: psdblkdevice  块设备结构
+** 输    出: NONE
+** 返    回: ERROR CODE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT __sdMemBlkInfoFmt (__PSD_BLK_DEV psdblkdevice)
+{
+    PLW_SDCORE_DEVICE  psdcoredevice;
+    LW_SDDEV_CSD       sddevcsd;
+    LW_SDDEV_CID       sddevcid;
+    LW_BLK_INFO       *pblkinfo;
+
+    UINT8              ucType;
+    CPCHAR             pcTypeStr = "unknown";
+    CPCHAR             pcVsnStr  = "unknown";
+
+    psdcoredevice = psdblkdevice->SDBLKDEV_pcoreDev;
+    pblkinfo      = &psdblkdevice->SDBLKDEV_blkinfo;
+    
+    pblkinfo->BLKI_uiType = LW_BLKD_CTRL_INFO_TYPE_SDMMC;
+
+    API_SdCoreDevCsdView(psdcoredevice, &sddevcsd);
+    API_SdCoreDevCidView(psdcoredevice, &sddevcid);
+    API_SdCoreDevTypeView(psdcoredevice, &ucType);
+
+    switch (ucType) {
+
+    case SDDEV_TYPE_MMC:
+        pcTypeStr = "MMC/eMMC";
+        break;
+
+    case SDDEV_TYPE_SDSC:
+        pcTypeStr = "SDSC";
+        break;
+
+    case SDDEV_TYPE_SDHC:
+        pcTypeStr = "SDHC";
+        break;
+
+    case SDDEV_TYPE_SDXC:
+        pcTypeStr = "SDXC";
+        break;
+
+    default:
+        break;
+    }
+
+    pcVsnStr = __sdMemProtVsnStr(ucType, sddevcsd.DEVCSD_ucStructure);
+
+    snprintf(pblkinfo->BLKI_cSerial, 32,
+             "%08X",
+             sddevcid.DEVCID_uiSerialNum);
+
+    snprintf(pblkinfo->BLKI_cFirmware, 32,
+             "%d.%02d, v%d.%d",
+             sddevcid.DEVCID_uiYear,
+             sddevcid.DEVCID_ucMonth,
+             sddevcid.DEVCID_ucProductVsn >> 4,
+             sddevcid.DEVCID_ucProductVsn & 0xf);
+
+    snprintf(pblkinfo->BLKI_cProduct, 32,
+             "%c%c%c%c%c %s memory card",
+             __SD_CID_PNAME(0),
+             __SD_CID_PNAME(1),
+             __SD_CID_PNAME(2),
+             __SD_CID_PNAME(3),
+             __SD_CID_PNAME(4),
+             pcTypeStr);
+
+    snprintf(pblkinfo->BLKI_cMedia, 32,
+             "%s(%s)",
+             pcTypeStr,
+             pcVsnStr);
 
     return  (ERROR_NONE);
 }
@@ -1264,6 +1357,7 @@ static CPCHAR __sdMemProtVsnStr (UINT8 ucType, UINT8 ucVsn)
 
     if (ucType != SDDEV_TYPE_MMC) {
         switch (ucVsn) {
+
         case CSD_STRUCT_VER_1_0:
             pcVsnStr = "v1.0";
             break;
@@ -1279,6 +1373,7 @@ static CPCHAR __sdMemProtVsnStr (UINT8 ucType, UINT8 ucVsn)
 
     } else {
         switch (ucVsn) {
+
         case MMC_VERSION_1_2:
             pcVsnStr = "v1.2";
             break;

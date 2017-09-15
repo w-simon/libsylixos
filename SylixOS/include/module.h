@@ -110,11 +110,11 @@
 
 #define LW_CONSTRUCTOR_BEGIN
 #define LW_CONSTRUCTOR_END(f)   \
-        __attribute__((section(".init_array"))) void *__$$_c6x_dsp_lib_##func##_ctor = (void *)func;
+        __attribute__((section(".init_array"))) void *__$$_c6x_dsp_lib_##f##_ctor = (void *)f;
 
 #define LW_DESTRUCTOR_BEGIN
 #define LW_DESTRUCTOR_END(f)    \
-        __attribute__((section(".fini_array"))) void *__$$_c6x_dsp_lib_##func##_dtor = (void *)func;
+        __attribute__((section(".fini_array"))) void *__$$_c6x_dsp_lib_##f##_dtor = (void *)f;
 
 #else
 #define LW_LIB_HOOK_STATIC  static

@@ -45,6 +45,9 @@ extern VOID     ppc603ICacheInvalidate(PVOID  pvStart, PVOID  pvEnd, UINT32  uiS
 extern VOID     ppc603BranchPredictionDisable(VOID);
 extern VOID     ppc603BranchPredictionEnable(VOID);
 extern VOID     ppc603BranchPredictorInvalidate(VOID);
+
+extern VOID     ppc603TextUpdate(PVOID  pvStart, PVOID  pvEnd,
+                                 UINT32  uiICacheLineSize, UINT32  uiDCacheLineSize);
 /*********************************************************************************************************
 ** 函数名称: ppc603CacheProbe
 ** 功能描述: CACHE 探测
@@ -86,6 +89,8 @@ PPC_L1C_DRIVER  _G_ppc603CacheDriver = {
     ppc603BranchPredictionDisable,
     ppc603BranchPredictionEnable,
     ppc603BranchPredictorInvalidate,
+
+    ppc603TextUpdate,
 };
 
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */

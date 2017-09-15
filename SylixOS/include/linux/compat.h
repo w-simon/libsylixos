@@ -31,26 +31,45 @@
 
 /*
  * I/O memory
+ *
+ * SylixOS RW I/O memory is with CPU endian
+ *
+ * Linux RW I/O memory is always little endian.
  */
 #define readb(addr)                 read8((addr_t)(addr))
-#define readw(addr)                 read16((addr_t)(addr))
-#define readl(addr)                 read32((addr_t)(addr))
-#define readq(addr)                 read64((addr_t)(addr))
-
-#define readb_relaxed(addr)         readb((addr_t)(addr))
-#define readw_relaxed(addr)         le16_to_cpu(readw((addr_t)(addr)))
-#define readl_relaxed(addr)         le32_to_cpu(readl((addr_t)(addr)))
-#define readq_relaxed(addr)         le64_to_cpu(readq((addr_t)(addr)))
+#define readw(addr)                 le16toh(read16((addr_t)(addr)))
+#define readl(addr)                 le32toh(read32((addr_t)(addr)))
+#define readq(addr)                 le64toh(read64((addr_t)(addr)))
 
 #define writeb(val, addr)           write8(val, (addr_t)(addr))
-#define writew(val, addr)           write16(val, (addr_t)(addr))
-#define writel(val, addr)           write32(val, (addr_t)(addr))
-#define writeq(val, addr)           write64(val, (addr_t)(addr))
+#define writew(val, addr)           write16(htole16(val), (addr_t)(addr))
+#define writel(val, addr)           write32(htole32(val), (addr_t)(addr))
+#define writeq(val, addr)           write64(htole64(val), (addr_t)(addr))
+
+#define readb_relaxed(addr)         readb((addr_t)(addr))
+#define readw_relaxed(addr)         readw((addr_t)(addr))
+#define readl_relaxed(addr)         readl((addr_t)(addr))
+#define readq_relaxed(addr)         readq((addr_t)(addr))
 
 #define writeb_relaxed(val, addr)   writeb(val, (addr_t)(addr))
-#define writew_relaxed(val, addr)   writew(cpu_to_le16(val), (addr_t)(addr))
-#define writel_relaxed(val, addr)   writel(cpu_to_le32(val), (addr_t)(addr))
-#define writeq_relaxed(val, addr)   writeq(cpu_to_le64(val), (addr_t)(addr))
+#define writew_relaxed(val, addr)   writew(val, (addr_t)(addr))
+#define writel_relaxed(val, addr)   writel(val, (addr_t)(addr))
+#define writeq_relaxed(val, addr)   writeq(val, (addr_t)(addr))
+
+/*
+ * I/O port
+ *
+ * SylixOS RW I/O port is with CPU endian
+ *
+ * Linux RW I/O port is always little endian.
+ */
+#define inb(addr)                   in8((ioaddr_t)(addr))
+#define inw(addr)                   le16toh(in16((ioaddr_t)(addr)))
+#define inl(addr)                   le32toh(in32((ioaddr_t)(addr)))
+
+#define outb(val, addr)             out8(val, (addr_t)(addr))
+#define outw(val, addr)             out16(htole16(val), (addr_t)(addr))
+#define outl(val, addr)             out32(htole32(val), (addr_t)(addr))
 
 /*
  * data type

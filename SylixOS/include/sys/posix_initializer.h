@@ -46,56 +46,72 @@ extern "C" {
 *********************************************************************************************************/
 
 #define SYLIXOS_INITIALIZER_MUTEX(mutex)    \
-        __attribute__((constructor)) static void __init_mutex_##mutex (void) \
+        LW_CONSTRUCTOR_BEGIN    \
+        LW_LIB_HOOK_STATIC void __init_mutex_##mutex (void) \
         {   \
             pthread_mutex_init(&mutex, (void *)0); \
         }   \
-        __attribute__((destructor)) static void __deinit_mutex_##mutex (void) \
+        LW_CONSTRUCTOR_END(__init_mutex_##mutex)    \
+        LW_DESTRUCTOR_BEGIN     \
+        LW_LIB_HOOK_STATIC void __deinit_mutex_##mutex (void) \
         {   \
             pthread_mutex_destroy(&mutex); \
-        }
+        }   \
+        LW_DESTRUCTOR_END(__deinit_mutex_##mutex)
         
 /*********************************************************************************************************
   MUTEX INITIALIZER
 *********************************************************************************************************/
 
 #define SYLIXOS_INITIALIZER_COND(cond) \
-        __attribute__((constructor)) static void __init_cond_##cond (void) \
+        LW_CONSTRUCTOR_BEGIN    \
+        LW_LIB_HOOK_STATIC void __init_cond_##cond (void) \
         {   \
             pthread_cond_init(&cond, (void *)0); \
         }   \
-        __attribute__((destructor)) static void __deinit_cond_##cond (void) \
+        LW_CONSTRUCTOR_END(__init_cond_##cond)    \
+        LW_DESTRUCTOR_BEGIN     \
+        LW_LIB_HOOK_STATIC void __deinit_cond_##cond (void) \
         {   \
             pthread_cond_destroy(&cond); \
-        }
+        }   \
+        LW_DESTRUCTOR_END(__deinit_cond_##cond)
         
 /*********************************************************************************************************
   RWLOCK INITIALIZER
 *********************************************************************************************************/
 
 #define SYLIXOS_INITIALIZER_RWLOCK(rwlock) \
-        __attribute__((constructor)) static void __init_cond_##rwlock (void) \
+        LW_CONSTRUCTOR_BEGIN    \
+        LW_LIB_HOOK_STATIC void __init_cond_##rwlock (void) \
         {   \
             pthread_rwlock_init(&rwlock, (void *)0); \
         }   \
-        __attribute__((destructor)) static void __deinit_cond_##rwlock (void) \
+        LW_CONSTRUCTOR_END(__init_cond_##rwlock)    \
+        LW_DESTRUCTOR_BEGIN     \
+        LW_LIB_HOOK_STATIC void __deinit_cond_##rwlock (void) \
         {   \
             pthread_rwlock_destroy(&rwlock); \
-        }
+        }   \
+        LW_DESTRUCTOR_END(__deinit_cond_##rwlock)
 
 /*********************************************************************************************************
   SEMAPHORE INITIALIZER
 *********************************************************************************************************/
 
 #define SYLIXOS_INITIALIZER_SEMAPHORE(sem) \
-        __attribute__((constructor)) static void __init_cond_##sem (void) \
+        LW_CONSTRUCTOR_BEGIN    \
+        LW_LIB_HOOK_STATIC void __init_cond_##sem (void) \
         {   \
             sem_init(&sem, 0, 0); \
         }   \
-        __attribute__((destructor)) static void __deinit_cond_##sem (void) \
+        LW_CONSTRUCTOR_END(__init_cond_##sem)    \
+        LW_DESTRUCTOR_BEGIN     \
+        LW_LIB_HOOK_STATIC void __deinit_cond_##sem (void) \
         {   \
             sem_destroy(&sem); \
-        }
+        }   \
+        LW_DESTRUCTOR_END(__deinit_cond_##sem)
 
 #ifdef __cplusplus
 }

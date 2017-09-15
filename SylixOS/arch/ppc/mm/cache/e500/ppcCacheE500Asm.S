@@ -47,6 +47,8 @@
 
     EXPORT_LABEL(ppcE500DCacheFlushAll)
 
+    EXPORT_LABEL(ppcE500TextUpdate)
+
     EXPORT_LABEL(ppcE500BranchPredictionDisable)
     EXPORT_LABEL(ppcE500BranchPredictionEnable)
     EXPORT_LABEL(ppcE500BranchPredictorInvalidate)
@@ -381,6 +383,21 @@ FUNC_DEF(ppcE500DCacheFlush)
     ADD     R3 , R3 , R5
     CMPLW   R3 , R4
     BLT     ppcE500DCacheFlush
+
+    B       ppcE500CacheRetOK                                   ;/*  return OK                           */
+    FUNC_END()
+
+;/*********************************************************************************************************
+;  Text update
+;*********************************************************************************************************/
+
+FUNC_DEF(ppcE500TextUpdate)
+    DCBST   R0 , R3
+    SYNC
+    ICBI    R0 , R3
+    ADD     R3 , R3 , R6
+    CMPLW   R3 , R4
+    BLT     ppcE500TextUpdate
 
     B       ppcE500CacheRetOK                                   ;/*  return OK                           */
     FUNC_END()

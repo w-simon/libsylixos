@@ -43,6 +43,7 @@ SylixOS/arch/arm/common/armContext.c \
 SylixOS/arch/arm/common/armContextAsm.S \
 SylixOS/arch/arm/common/armExc.c \
 SylixOS/arch/arm/common/armExcAsm.S \
+SylixOS/arch/arm/common/armIo.c \
 SylixOS/arch/arm/common/armLib.c \
 SylixOS/arch/arm/common/armLibAsm.S \
 SylixOS/arch/arm/dbg/armDbg.c \
@@ -177,6 +178,7 @@ SylixOS/arch/ppc/common/ppcExc.c \
 SylixOS/arch/ppc/common/ppcExcAsm.S \
 SylixOS/arch/ppc/common/ppcExcE500.c \
 SylixOS/arch/ppc/common/ppcExcE500Asm.S \
+SylixOS/arch/ppc/common/ppcIo.c \
 SylixOS/arch/ppc/common/ppcLib.c \
 SylixOS/arch/ppc/common/ppcLibAsm.S \
 SylixOS/arch/ppc/common/ppcSprAsm.S \
@@ -461,6 +463,7 @@ SylixOS/arch/c6x/backtrace/c6xBacktrace.c \
 SylixOS/arch/c6x/common/c6xAssert.c \
 SylixOS/arch/c6x/common/c6xContext.c \
 SylixOS/arch/c6x/common/c6xExc.c \
+SylixOS/arch/c6x/common/c6xIo.c \
 SylixOS/arch/c6x/common/c6xLib.c \
 SylixOS/arch/c6x/common/c6xContextAsm.asm \
 SylixOS/arch/c6x/common/c6xExcAsm.asm \
@@ -629,6 +632,7 @@ SylixOS/fs/romFs/romFs.c \
 SylixOS/fs/romFs/romFsLib.c \
 SylixOS/fs/rootFs/rootFs.c \
 SylixOS/fs/rootFs/rootFsLib.c \
+SylixOS/fs/rootFs/rootFsMap.c \
 SylixOS/fs/tpsFs/tpsfs_btree.c \
 SylixOS/fs/tpsFs/tpsfs_dev_buf.c \
 SylixOS/fs/tpsFs/tpsfs_dir.c \

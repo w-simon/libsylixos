@@ -62,6 +62,20 @@ extern VOID     ppcE500BranchPredictorInvalidate(VOID);
 
 extern UINT32   ppcE500CacheGetL1CFG0(VOID);
 extern UINT32   ppcE500CacheGetL1CFG1(VOID);
+
+extern VOID     ppcE500TextUpdate(PVOID  pvStart, PVOID  pvEnd,
+                                  UINT32  uiICacheLineSize, UINT32  uiDCacheLineSize);
+/*********************************************************************************************************
+** 函数名称: ppcE500CacheNoop
+** 功能描述: CACHE 空操作
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  ppcE500CacheNoop (VOID)
+{
+}
 /*********************************************************************************************************
 ** 函数名称: ppcE500CacheProbe
 ** 功能描述: CACHE 探测
@@ -159,6 +173,20 @@ static INT   ppcE500CacheProbe (CPCHAR  pcMachineName, PPC_CACHE  *pICache, PPC_
             pICache->CACHE_uiWayNr    = PPC_E500_ICACHE_CNWAY;
             pICache->CACHE_uiWaySize  = pICache->CACHE_uiSetNr * pICache->CACHE_uiLineSize;
         }
+
+        if (LW_NCPUS > 1) {                                             /*  SMP                         */
+            extern PPC_L1C_DRIVER  _G_ppcE500CacheDriver;
+
+            /*
+             * SMP 机器, 以下 CACHE 操作均为空操作
+             */
+            _G_ppcE500CacheDriver.L1CD_pfuncDCacheDisable    = ppcE500CacheNoop;
+            _G_ppcE500CacheDriver.L1CD_pfuncICacheDisable    = ppcE500CacheNoop;
+            _G_ppcE500CacheDriver.L1CD_pfuncDCacheClear      = (VOID (*)(PVOID, PVOID, UINT32))ppcE500CacheNoop;
+            _G_ppcE500CacheDriver.L1CD_pfuncDCacheInvalidate = (VOID (*)(PVOID, PVOID, UINT32))ppcE500CacheNoop;
+            _G_ppcE500CacheDriver.L1CD_pfuncICacheInvalidate = (VOID (*)(PVOID, PVOID, UINT32))ppcE500CacheNoop;
+        }
+
         return  (ERROR_NONE);
 
     } else {
@@ -189,6 +217,8 @@ PPC_L1C_DRIVER  _G_ppcE500CacheDriver = {
     ppcE500BranchPredictionDisable,
     ppcE500BranchPredictionEnable,
     ppcE500BranchPredictorInvalidate,
+
+    ppcE500TextUpdate,
 };
 
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */

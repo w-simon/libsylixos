@@ -261,7 +261,8 @@
 #define LW_CFG_ISR_DEFER_EN                     1       /*  是否提供内核中断延迟处理工作队列管理        */
 #define LW_CFG_ISR_DEFER_PER_CPU                0       /*  是否为每个 CPU 提供一个队列                 */
 #define LW_CFG_ISR_DEFER_SIZE                   64      /*  每个中断延迟队列长度                        */
-                                                        
+#define LW_CFG_ISR_DEFER_PRIO                   LW_PRIO_EXTREME
+                                                        /*  中断延迟处理工作队列任务优先级              */
 /*********************************************************************************************************
 *                                   内核工作队列管理
 *

@@ -45,9 +45,6 @@
     EXPORT_LABEL(archIntDisable)
     EXPORT_LABEL(archIntEnable)
     EXPORT_LABEL(archIntEnableForce)
-#if LW_CFG_CACHE_EN > 0
-    EXPORT_LABEL(archPageCopy)
-#endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
     EXPORT_LABEL(archReboot)
     EXPORT_LABEL(archBogoMipsLoop)
 
@@ -115,76 +112,6 @@ FUNC_DEF(archFindMsb)
     FUNC_END()
 
 ;/*********************************************************************************************************
-;  页面拷贝 (代码来自 linux/arch/powerpc/kernel/misc_32.S)
-;*********************************************************************************************************/
-
-#if LW_CFG_CACHE_EN > 0
-
-#define PAGE_SZ             4096
-#define L1_CACHE_BYTES      32
-#define MAX_COPY_PREFETCH   1
-;/* LOOP = (PAGE_SIZE / L1_CACHE_BYTES - MAX_COPY_PREFETCH) */
-#define LOOP                127
-
-#define COPY_16_BYTES       \
-    LWZ     R6 , 4(R4);     \
-    LWZ     R7 , 8(R4);     \
-    LWZ     R8 , 12(R4);    \
-    LWZU    R9 , 16(R4);    \
-    STW     R6 , 4(R3);     \
-    STW     R7 , 8(R3);     \
-    STW     R8 , 12(R3);    \
-    STWU    R9 , 16(R3)
-
-FUNC_DEF(archPageCopy)
-    ADDI    R3  , R3 , -4
-    ADDI    R4  , R4 , -4
-
-    LI      R5  , 4
-
-#if MAX_COPY_PREFETCH > 1
-    LI      R0  , MAX_COPY_PREFETCH
-    LI      R11 , 4
-    MTCTR   R0
-11: DCBT    R11 , R4
-    ADDI    R11 , R11 , L1_CACHE_BYTES
-    BDNZ    11b
-#else                                                                   /*  MAX_COPY_PREFETCH == 1       */
-    DCBT    R5  , R4
-    LI      R11 , L1_CACHE_BYTES + 4
-#endif
-    LI      R0  , LOOP
-    CRCLR   4 * CR0 + EQ
-2:
-    MTCTR   R0
-1:
-    DCBT    R11 , R4
-    DCBZ    R5  , R3
-    COPY_16_BYTES
-#if L1_CACHE_BYTES >= 32
-    COPY_16_BYTES
-#if L1_CACHE_BYTES >= 64
-    COPY_16_BYTES
-    COPY_16_BYTES
-#if L1_CACHE_BYTES >= 128
-    COPY_16_BYTES
-    COPY_16_BYTES
-    COPY_16_BYTES
-    COPY_16_BYTES
-#endif
-#endif
-#endif
-    BDNZ    1b
-    BEQLR
-    CRNOT   4 * CR0 + EQ , 4 * CR0 + EQ
-    LI      R0  , MAX_COPY_PREFETCH
-    LI      R11 , 4
-    B       2b
-    FUNC_END()
-
-#endif                                                                  /*  LW_CFG_CACHE_EN > 0          */
-
-;/*********************************************************************************************************
 ;  注意: setjmp 与 longjmp 上下文结构与线程上下文结构不同
 ;
 ;  根据文档 <PowerPC-eabi_app.pdf>, 一次调用过程, Nonvolatile(非易失性)的寄存器有如下:
@@ -215,23 +142,23 @@ FUNC_DEF(archPageCopy)
 MACRO_DEF(CALL_SETUP, setup)
     SUBI    SP , SP , 32
 
-    STW     R3 , 8(SP)
-    STW     R4 , 12(SP)
+    STW     R3 , 28(SP)
+    STW     R4 , 24(SP)
 
     MFLR    R5
     ISYNC
-    STW     R5 , 8(SP)
+    STW     R5 , 20(SP)
     SYNC
 
     BL      \setup
 
-    LWZ     R5 , 8(SP)
+    LWZ     R5 , 20(SP)
     SYNC
     MTLR    R5
     ISYNC
 
-    LWZ     R4 , 12(SP)
-    LWZ     R3 , 8(SP)
+    LWZ     R4 , 24(SP)
+    LWZ     R3 , 28(SP)
 
     ADDI    SP , SP , 32
     MACRO_END()

@@ -38,7 +38,7 @@
 #define NVME_DEV_NAME_MAX                   (32 + 1)                    /* 设备名称最大值               */
 #define NVME_CTRL_IRQ_NAME_MAX              (32 + 1)                    /* 中断名称最大值               */
 #define NVME_NAME                           "nvme"
-#define NVME_MEDIA_NAME                     "/media/hdd"
+#define NVME_MEDIA_NAME                     "/media/nvme"
 #define NVME_CMD_DEPTH_MAX                  16                          /*  每个队列的命令深度          */
 #define NVME_SQ_SIZE(cmd_depth)             (cmd_depth * sizeof(NVME_COMMAND_CB))
 #define NVME_CQ_SIZE(cmd_depth)             (cmd_depth * sizeof(NVME_COMPLETION_CB))
@@ -53,8 +53,8 @@
 /*********************************************************************************************************
   命令超时参数
 *********************************************************************************************************/
-#define NVME_ADMIN_TIMEOUT                  (60 * LW_TICK_HZ)           /* Admin 命令超时时间           */
-#define NVME_IO_TIMEOUT                     (10 * LW_TICK_HZ)           /* I/O 命令超时时间             */
+#define NVME_ADMIN_TIMEOUT                  (10 * LW_TICK_HZ)           /* Admin 命令超时时间           */
+#define NVME_IO_TIMEOUT                     ( 5 * LW_TICK_HZ)           /* I/O 命令超时时间             */
 /*********************************************************************************************************
   容量参数
 *********************************************************************************************************/

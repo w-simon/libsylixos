@@ -535,8 +535,9 @@ INT  API_OemFdiskShow (CPCHAR  pcBlkDev)
     "---- --- ---------- ---------- -------------------------------------\n";
 
     PLW_OEMFDISK_PINFO   fdpInfo;
+    LW_BLK_INFO          blkinfo;
     INT                  iRet;
-    INT                  i;
+    INT                  i, iBlkFd;
     PCHAR                pcAct;
     CPCHAR               pcType;
 
@@ -547,6 +548,37 @@ INT  API_OemFdiskShow (CPCHAR  pcBlkDev)
         _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
         return  (PX_ERROR);
     }
+    
+    iBlkFd = open(pcBlkDev, O_RDONLY);
+    if (iBlkFd < ERROR_NONE) {
+        fprintf(stderr, "can not open %s: %s\n", pcBlkDev, lib_strerror(errno));
+        __SHEAP_FREE(fdpInfo);
+        return  (PX_ERROR);
+    }
+    
+    iRet = ioctl(iBlkFd, LW_BLKD_CTRL_INFO, &blkinfo);
+    if (iRet < ERROR_NONE) {
+        blkinfo.BLKI_uiType = LW_BLKD_CTRL_INFO_TYPE_UNKOWN;
+        lib_strcpy(blkinfo.BLKI_cSerial,   "N/A");
+        lib_strcpy(blkinfo.BLKI_cFirmware, "N/A");
+        lib_strcpy(blkinfo.BLKI_cProduct,  "N/A");
+        lib_strcpy(blkinfo.BLKI_cMedia,    "N/A");
+    
+    } else {
+        if (blkinfo.BLKI_cSerial[0] == PX_EOS) {
+            lib_strcpy(blkinfo.BLKI_cSerial, "N/A");
+        }
+        if (blkinfo.BLKI_cFirmware[0] == PX_EOS) {
+            lib_strcpy(blkinfo.BLKI_cFirmware, "N/A");
+        }
+        if (blkinfo.BLKI_cProduct[0] == PX_EOS) {
+            lib_strcpy(blkinfo.BLKI_cProduct, "N/A");
+        }
+        if (blkinfo.BLKI_cMedia[0] == PX_EOS) {
+            lib_strcpy(blkinfo.BLKI_cMedia, "N/A");
+        }
+    }
+    close(iBlkFd);
 
     iRet = API_OemFdiskGet(pcBlkDev, fdpInfo, LW_CFG_MAX_DISKPARTS);
     if (iRet < ERROR_NONE) {
@@ -559,8 +591,31 @@ INT  API_OemFdiskShow (CPCHAR  pcBlkDev)
         fprintf(stderr, "block device: %s do not have MBR partition table.\n", pcBlkDev);
         return  (iRet);
     }
+    
+    printf("block device  : %s\n", pcBlkDev);
+    printf("block type    : ");
+    switch (blkinfo.BLKI_uiType) {
+    
+    case LW_BLKD_CTRL_INFO_TYPE_RAMDISK:        printf("RAMDISK\n");        break;
+    case LW_BLKD_CTRL_INFO_TYPE_BLKRAW:         printf("BLKRAW\n");         break;
+    case LW_BLKD_CTRL_INFO_TYPE_ATA:            printf("ATA\n");            break;
+    case LW_BLKD_CTRL_INFO_TYPE_SATA:           printf("SATA\n");           break;
+    case LW_BLKD_CTRL_INFO_TYPE_SCSI:           printf("SCSI\n");           break;
+    case LW_BLKD_CTRL_INFO_TYPE_SAS:            printf("SAS(SCSI)\n");      break;
+    case LW_BLKD_CTRL_INFO_TYPE_UFS:            printf("UFS(SCSI)\n");      break;
+    case LW_BLKD_CTRL_INFO_TYPE_NVME:           printf("NVMe\n");           break;
+    case LW_BLKD_CTRL_INFO_TYPE_SDMMC:          printf("SD/MMC\n");         break;
+    case LW_BLKD_CTRL_INFO_TYPE_MSTICK:         printf("MEMORY-STICK\n");   break;
+    case LW_BLKD_CTRL_INFO_TYPE_USB:            printf("USB\n");            break;
+    default:                                    printf("<unkown>\n");       break;
+    }
+    
+    printf("block serial  : %s\n", blkinfo.BLKI_cSerial);
+    printf("block firmware: %s\n", blkinfo.BLKI_cFirmware);
+    printf("block product : %s\n", blkinfo.BLKI_cProduct);
+    printf("block media   : %s\n", blkinfo.BLKI_cMedia);
 
-    printf("block device: %s partition >>\n%s", pcBlkDev, pcPartInfo);
+    printf("\npartition >>\n%s", pcPartInfo);
     for (i = 0; i < iRet; i++) {
         pcAct  = (fdpInfo[i].FDP_bIsActive) ? "*" : "";
         pcType = __oemFdiskGetType(fdpInfo[i].FDP_ucPartType);

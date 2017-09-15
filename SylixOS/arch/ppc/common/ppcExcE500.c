@@ -44,6 +44,7 @@ extern VOID  archE500AlignmentExceptionEntry(VOID);
 extern VOID  archE500ProgramExceptionEntry(VOID);
 extern VOID  archE500FpuUnavailableExceptionEntry(VOID);
 extern VOID  archE500SystemCallEntry(VOID);
+extern VOID  archE500ApUnavailableExceptionEntry(VOID);
 extern VOID  archE500DecrementerInterruptEntry(VOID);
 extern VOID  archE500TimerInterruptEntry(VOID);
 extern VOID  archE500WatchdogInterruptEntry(VOID);
@@ -243,7 +244,7 @@ VOID  archE500ProgramExceptionHandle (addr_t  ulRetAddr)
 }
 /*********************************************************************************************************
 ** 函数名称: archE500FpuUnavailableExceptionHandle
-** 功能描述: 程序异常处理
+** 功能描述: FPU 不可用异常处理
 ** 输　入  : NONE
 ** 输　出  : NONE
 ** 全局变量:
@@ -251,6 +252,32 @@ VOID  archE500ProgramExceptionHandle (addr_t  ulRetAddr)
 ** 注  意  : 此函数退出时必须为中断关闭状态.
 *********************************************************************************************************/
 VOID  archE500FpuUnavailableExceptionHandle (addr_t  ulRetAddr)
+{
+    PLW_CLASS_TCB   ptcbCur;
+    LW_VMM_ABORT    abtInfo;
+
+    LW_TCB_GET_CUR(ptcbCur);
+
+#if LW_CFG_CPU_FPU_EN > 0
+    if (archFpuUndHandle(ptcbCur) == ERROR_NONE) {                      /*  进行 FPU 指令探测           */
+        return;
+    }
+#endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FPE;
+    abtInfo.VMABT_uiMethod = FPE_FLTINV;                                /*  FPU 不可用                  */
+    API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
+}
+/*********************************************************************************************************
+** 函数名称: archE500ApUnavailableExceptionHandle
+** 功能描述: AP 不可用异常处理
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+** 注  意  : 此函数退出时必须为中断关闭状态.
+*********************************************************************************************************/
+VOID  archE500ApUnavailableExceptionHandle (addr_t  ulRetAddr)
 {
     PLW_CLASS_TCB   ptcbCur;
     LW_VMM_ABORT    abtInfo;
@@ -813,6 +840,7 @@ VOID  archE500VectorInit (CPCHAR  pcMachineName, addr_t  ulVectorBase)
     mtspr(IVOR5,  (addr_t)archE500AlignmentExceptionEntry - ulVectorBase);
     mtspr(IVOR6,  (addr_t)archE500ProgramExceptionEntry - ulVectorBase);
     mtspr(IVOR8,  (addr_t)archE500SystemCallEntry - ulVectorBase);
+    mtspr(IVOR9,  (addr_t)archE500ApUnavailableExceptionEntry - ulVectorBase);
     mtspr(IVOR10, (addr_t)archE500DecrementerInterruptEntry - ulVectorBase);
     mtspr(IVOR11, (addr_t)archE500TimerInterruptEntry - ulVectorBase);
     mtspr(IVOR12, (addr_t)archE500WatchdogInterruptEntry - ulVectorBase);

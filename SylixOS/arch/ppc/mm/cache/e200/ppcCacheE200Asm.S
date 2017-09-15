@@ -40,6 +40,8 @@
     EXPORT_LABEL(ppcE200DCacheClear)
     EXPORT_LABEL(ppcE200DCacheFlush)
 
+    EXPORT_LABEL(ppcE200TextUpdate)
+
     EXPORT_LABEL(ppcE200BranchPredictionDisable)
     EXPORT_LABEL(ppcE200BranchPredictionEnable)
     EXPORT_LABEL(ppcE200BranchPredictorInvalidate)
@@ -199,6 +201,21 @@ FUNC_DEF(ppcE200DCacheFlush)
     ADD     R3 , R3 , R5
     CMPLW   R3 , R4
     BLT     ppcE200DCacheFlush
+
+    B       ppcE200CacheRetOK                                   ;/*  return OK                           */
+    FUNC_END()
+
+;/*********************************************************************************************************
+;  Text update
+;*********************************************************************************************************/
+
+FUNC_DEF(ppcE200TextUpdate)
+    DCBST   R0 , R3
+    SYNC
+    ICBI    R0 , R3
+    ADD     R3 , R3 , R6
+    CMPLW   R3 , R4
+    BLT     ppcE200TextUpdate
 
     B       ppcE200CacheRetOK                                   ;/*  return OK                           */
     FUNC_END()

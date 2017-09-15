@@ -45,6 +45,9 @@ extern VOID     ppc745xICacheInvalidate(PVOID  pvStart, PVOID  pvEnd, UINT32  ui
 extern VOID     ppc745xBranchPredictionDisable(VOID);
 extern VOID     ppc745xBranchPredictionEnable(VOID);
 extern VOID     ppc745xBranchPredictorInvalidate(VOID);
+
+extern VOID     ppc745xTextUpdate(PVOID  pvStart, PVOID  pvEnd,
+                                  UINT32  uiICacheLineSize, UINT32  uiDCacheLineSize);
 /*********************************************************************************************************
 ** 函数名称: ppc745xCacheProbe
 ** 功能描述: CACHE 探测
@@ -86,6 +89,8 @@ PPC_L1C_DRIVER  _G_ppc745xCacheDriver = {
     ppc745xBranchPredictionDisable,
     ppc745xBranchPredictionEnable,
     ppc745xBranchPredictorInvalidate,
+
+    ppc745xTextUpdate,
 };
 
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */

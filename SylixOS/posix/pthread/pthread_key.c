@@ -291,7 +291,7 @@ __re_check:
 ** 函数名称: pthread_key_create
 ** 功能描述: 创建一个数据键.
 ** 输　入  : pkey          键 (返回)
-**           destructor    删除函数
+**           fdestructor   删除函数
 ** 输　出  : ERROR CODE
 ** 全局变量: 
 ** 调用模块: 
@@ -299,7 +299,7 @@ __re_check:
                                            API 函数
 *********************************************************************************************************/
 LW_API 
-int  pthread_key_create (pthread_key_t  *pkey, void (*destructor)(void *))
+int  pthread_key_create (pthread_key_t  *pkey, void (*fdestructor)(void *))
 {
     INT              i;
     __PX_KEY_NODE   *pkeyn;
@@ -317,7 +317,7 @@ int  pthread_key_create (pthread_key_t  *pkey, void (*destructor)(void *))
         return  (ENOMEM);
     }
     pkeyn->PKEYN_lId             = (long)pkeyn;
-    pkeyn->PKEYN_pfuncDestructor = destructor;
+    pkeyn->PKEYN_pfuncDestructor = fdestructor;
     pkeyn->PKEYN_ulMutex         = API_SemaphoreMCreate("pxkey", LW_PRIO_DEF_CEILING, 
                                             LW_OPTION_WAIT_PRIORITY |
                                             LW_OPTION_INHERIT_PRIORITY |

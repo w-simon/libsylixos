@@ -22,6 +22,7 @@
 2009.11.03  初始化时 BLKD_bDiskChange 为 LW_FALSE.
 2016.06.02  支持自动分配磁盘内存.
 *********************************************************************************************************/
+#define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
 #include "../SylixOS/system/include/s_system.h"
@@ -29,6 +30,12 @@
   裁剪宏
 *********************************************************************************************************/
 #if LW_CFG_MAX_VOLUMES > 0
+/*********************************************************************************************************
+  宏定义
+*********************************************************************************************************/
+#define __RAMDISK_SERIAL    "RAMDISK"
+#define __RAMDISK_FWREV     "VER "
+#define __RAMDISK_MODLE     "RAMDISK"
 /*********************************************************************************************************
   内部类型定义
 *********************************************************************************************************/
@@ -206,6 +213,9 @@ static INT  __ramDiskStatusChk (PLW_RAM_DISK  pramd)
 *********************************************************************************************************/
 static INT  __ramDiskIoctl (PLW_RAM_DISK  pramd, INT  iCmd, LONG  lArg)
 {
+
+    PLW_BLK_INFO    hBlkInfo;                                           /* 设备信息                     */
+
     switch (iCmd) {
     
     /*
@@ -232,7 +242,23 @@ static INT  __ramDiskIoctl (PLW_RAM_DISK  pramd, INT  iCmd, LONG  lArg)
     case LW_BLKD_CTRL_LOCK:
     case LW_BLKD_CTRL_EJECT:
         break;
-    
+		
+    case LW_BLKD_CTRL_INFO:
+        hBlkInfo = (PLW_BLK_INFO)lArg;
+        if (!hBlkInfo) {
+            _ErrorHandle(EINVAL);
+            return  (PX_ERROR);
+        }
+        lib_bzero(hBlkInfo, sizeof(LW_BLK_INFO));
+        hBlkInfo->BLKI_uiType = LW_BLKD_CTRL_INFO_TYPE_RAMDISK;
+        snprintf(hBlkInfo->BLKI_cSerial, LW_BLKD_CTRL_INFO_STR_SZ, "%s %08X", 
+                 __RAMDISK_SERIAL, (UINT32)pramd->RAMD_pvMem);
+        snprintf(hBlkInfo->BLKI_cFirmware, LW_BLKD_CTRL_INFO_STR_SZ, "%s%s", 
+                 __RAMDISK_FWREV, __SYLIXOS_VERSTR);
+        snprintf(hBlkInfo->BLKI_cProduct, LW_BLKD_CTRL_INFO_STR_SZ, "%s", 
+                 __RAMDISK_MODLE);
+        break;
+
     default:
         _ErrorHandle(ERROR_IO_UNKNOWN_REQUEST);
         return  (PX_ERROR);

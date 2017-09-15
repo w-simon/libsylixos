@@ -30,7 +30,9 @@
 #include "polarssl/version.h"
 #include "string.h"
 
+#ifndef SYLIXOS
 const char version[] = POLARSSL_VERSION_STRING;
+#endif
 
 unsigned int version_get_number()
 {

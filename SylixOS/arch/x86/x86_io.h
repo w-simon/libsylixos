@@ -23,203 +23,62 @@
 #define __ARCH_X86_IO_H
 
 #include "endian.h"
+#include "common/x86Io.h"
 
 /*********************************************************************************************************
-  x86 处理器 I/O 屏障 (Non-Cache 区域 SylixOS 未使用低效率的强排序方式, 所以这里需要加入内存屏障)
+  x86 处理器 IOMEM 端口操作
+*********************************************************************************************************/
+/*********************************************************************************************************
+  read IOMEM
 *********************************************************************************************************/
 
-#define KN_IO_MB()      KN_SMP_MB()
-#define KN_IO_RMB()     KN_SMP_RMB()
-#define KN_IO_WMB()     KN_SMP_WMB()
+#define read8(a)            read8_raw(a)
+#define read16(a)           read16_raw(a)
+#define read32(a)           read32_raw(a)
+#define read64(a)           read64_raw(a)
+
+#define read8_le(a)         read8_raw(a)
+#define read16_le(a)        le16toh(read16_raw(a))
+#define read32_le(a)        le32toh(read32_raw(a))
+#define read64_le(a)        le64toh(read64_raw(a))
+
+#define read8_be(a)         read8_raw(a)
+#define read16_be(a)        be16toh(read16_raw(a))
+#define read32_be(a)        be32toh(read32_raw(a))
+#define read64_be(a)        be64toh(read64_raw(a))
+
+#define reads8(a, b, c)     reads8_raw(a, b, c)
+#define reads16(a, b, c)    reads16_raw(a, b, c)
+#define reads32(a, b, c)    reads32_raw(a, b, c)
+#define reads64(a, b, c)    reads64_raw(a, b, c)
 
 /*********************************************************************************************************
-  x86 处理器 I/O 内存读
+  write IOMEM
 *********************************************************************************************************/
 
-static LW_INLINE UINT8 read8 (addr_t  ulAddr)
-{
-    UINT8   ucVal = *(volatile UINT8 *)ulAddr;
-    KN_IO_RMB();
-    return  (ucVal);
-}
+#define write8(d, a)        write8_raw(d, a)
+#define write16(d, a)       write16_raw(d, a)
+#define write32(d, a)       write32_raw(d, a)
+#define write64(d, a)       write64_raw(d, a)
 
-static LW_INLINE UINT16 read16 (addr_t  ulAddr)
-{
-    UINT16  usVal = *(volatile UINT16 *)ulAddr;
-    KN_IO_RMB();
-    return  (usVal);
-}
+#define write8_le(d, a)     write8_raw(d, a)
+#define write16_le(d, a)    write16_raw(htole16(d), a)
+#define write32_le(d, a)    write32_raw(htole32(d), a)
+#define write64_le(d, a)    write64_raw(htole64(d), a)
 
-static LW_INLINE UINT32 read32 (addr_t  ulAddr)
-{
-    UINT32  uiVal = *(volatile UINT32 *)ulAddr;
-    KN_IO_RMB();
-    return  (uiVal);
-}
+#define write8_be(d, a)     write8_raw(d, a)
+#define write16_be(d, a)    write16_raw(htobe16(d), a)
+#define write32_be(d, a)    write32_raw(htobe32(d), a)
+#define write64_be(d, a)    write64_raw(htobe64(d), a)
 
-static LW_INLINE UINT64 read64 (addr_t  ulAddr)
-{
-    UINT64  u64Val = *(volatile UINT64 *)ulAddr;
-    KN_IO_RMB();
-    return  (u64Val);
-}
-
-/*********************************************************************************************************
-  x86 处理器 I/O 内存读 (大小端相关)
-*********************************************************************************************************/
-
-#define read8_le(a)        read8(a)
-#define read16_le(a)       le16toh(read16(a))
-#define read32_le(a)       le32toh(read32(a))
-#define read64_le(a)       le64toh(read64(a))
-
-#define read8_be(a)        read8(a)
-#define read16_be(a)       be16toh(read16(a))
-#define read32_be(a)       be32toh(read32(a))
-#define read64_be(a)       be64toh(read64(a))
-
-/*********************************************************************************************************
-  x86 处理器 I/O 内存写
-*********************************************************************************************************/
-
-static LW_INLINE VOID write8 (UINT8  ucData, addr_t  ulAddr)
-{
-    KN_IO_WMB();
-    *(volatile UINT8 *)ulAddr = ucData;
-}
-
-static LW_INLINE VOID write16 (UINT16  usData, addr_t  ulAddr)
-{
-    KN_IO_WMB();
-    *(volatile UINT16 *)ulAddr = usData;
-}
-
-static LW_INLINE VOID write32 (UINT32  uiData, addr_t  ulAddr)
-{
-    KN_IO_WMB();
-    *(volatile UINT32 *)ulAddr = uiData;
-}
-
-static LW_INLINE VOID write64 (UINT64  u64Data, addr_t  ulAddr)
-{
-    KN_IO_WMB();
-    *(volatile UINT64 *)ulAddr = u64Data;
-}
-
-/*********************************************************************************************************
-  x86 处理器 I/O 内存写 (大小端相关)
-*********************************************************************************************************/
-
-#define write8_le(v, a)     write8(v, a)
-#define write16_le(v, a)    write16(htole16(v), a)
-#define write32_le(v, a)    write32(htole32(v), a)
-#define write64_le(v, a)    write64(htole64(v), a)
-
-#define write8_be(v, a)     write8(v, a)
-#define write16_be(v, a)    write16(htobe16(v), a)
-#define write32_be(v, a)    write32(htobe32(v), a)
-#define write64_be(v, a)    write64(htobe64(v), a)
-
-/*********************************************************************************************************
-  x86 处理器 I/O 内存连续读 (数据来自单个地址)
-*********************************************************************************************************/
-
-static LW_INLINE VOID reads8 (addr_t  ulAddr, PVOID  pvBuffer, size_t  stCount)
-{
-    REGISTER UINT8  *pucBuffer = (UINT8 *)pvBuffer;
-
-    while (stCount > 0) {
-        *pucBuffer++ = *(volatile UINT8 *)ulAddr;
-        stCount--;
-        KN_IO_RMB();
-    }
-}
-
-static LW_INLINE VOID reads16 (addr_t  ulAddr, PVOID  pvBuffer, size_t  stCount)
-{
-    REGISTER UINT16  *pusBuffer = (UINT16 *)pvBuffer;
-
-    while (stCount > 0) {
-        *pusBuffer++ = *(volatile UINT16 *)ulAddr;
-        stCount--;
-        KN_IO_RMB();
-    }
-}
-
-static LW_INLINE VOID reads32 (addr_t  ulAddr, PVOID  pvBuffer, size_t  stCount)
-{
-    REGISTER UINT32  *puiBuffer = (UINT32 *)pvBuffer;
-
-    while (stCount > 0) {
-        *puiBuffer++ = *(volatile UINT32 *)ulAddr;
-        stCount--;
-        KN_IO_RMB();
-    }
-}
-
-static LW_INLINE VOID reads64 (addr_t  ulAddr, PVOID  pvBuffer, size_t  stCount)
-{
-    REGISTER UINT64  *pu64Buffer = (UINT64 *)pvBuffer;
-
-    while (stCount > 0) {
-        *pu64Buffer++ = *(volatile UINT64 *)ulAddr;
-        stCount--;
-        KN_IO_RMB();
-    }
-}
-
-/*********************************************************************************************************
-  x86 处理器 I/O 内存连续写 (数据写入单个地址)
-*********************************************************************************************************/
-
-static LW_INLINE VOID writes8 (addr_t  ulAddr, CPVOID  pvBuffer, size_t  stCount)
-{
-    REGISTER UINT8  *pucBuffer = (UINT8 *)pvBuffer;
-
-    while (stCount > 0) {
-        KN_IO_WMB();
-        *(volatile UINT8 *)ulAddr = *pucBuffer++;
-        stCount--;
-    }
-}
-
-static LW_INLINE VOID writes16 (addr_t  ulAddr, CPVOID  pvBuffer, size_t  stCount)
-{
-    REGISTER UINT16  *pusBuffer = (UINT16 *)pvBuffer;
-
-    while (stCount > 0) {
-        KN_IO_WMB();
-        *(volatile UINT16 *)ulAddr = *pusBuffer++;
-        stCount--;
-    }
-}
-
-static LW_INLINE VOID writes32 (addr_t  ulAddr, CPVOID  pvBuffer, size_t  stCount)
-{
-    REGISTER UINT32  *puiBuffer = (UINT32 *)pvBuffer;
-
-    while (stCount > 0) {
-        KN_IO_WMB();
-        *(volatile UINT32 *)ulAddr = *puiBuffer++;
-        stCount--;
-    }
-}
-
-static LW_INLINE VOID writes64 (addr_t  ulAddr, CPVOID  pvBuffer, size_t  stCount)
-{
-    REGISTER UINT64  *pu64Buffer = (UINT64 *)pvBuffer;
-
-    while (stCount > 0) {
-        KN_IO_WMB();
-        *(volatile UINT64 *)ulAddr = *pu64Buffer++;
-        stCount--;
-    }
-}
+#define writes8(a, b, c)    writes8_raw(a, b, c)
+#define writes16(a, b, c)   writes16_raw(a, b, c)
+#define writes32(a, b, c)   writes32_raw(a, b, c)
+#define writes64(a, b, c)   writes64_raw(a, b, c)
 
 /*********************************************************************************************************
   x86 处理器 I/O 端口操作
 *********************************************************************************************************/
-
 /*********************************************************************************************************
   x86 处理器 I/O 端口读
 *********************************************************************************************************/

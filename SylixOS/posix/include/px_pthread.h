@@ -331,7 +331,7 @@ LW_API int          pthread_rwlock_reltimedwrlock_np(pthread_rwlock_t *prwlock,
 #endif                                                                  /*  W_CFG_POSIXEX_EN > 0        */
 LW_API int          pthread_rwlock_unlock(pthread_rwlock_t  *prwlock);
 
-LW_API int          pthread_key_create(pthread_key_t  *pkey, void (*destructor)(void *));
+LW_API int          pthread_key_create(pthread_key_t  *pkey, void (*fdestructor)(void *));
 LW_API int          pthread_key_delete(pthread_key_t  key);
 LW_API int          pthread_setspecific(pthread_key_t  key, const void  *pvalue);
 LW_API void        *pthread_getspecific(pthread_key_t  key);

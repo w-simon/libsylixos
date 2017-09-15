@@ -50,6 +50,9 @@ extern VOID     ppcE200BranchPredictionEnable(VOID);
 extern VOID     ppcE200BranchPredictorInvalidate(VOID);
 
 extern UINT32   ppcE200CacheGetL1CFG0(VOID);
+
+extern VOID     ppcE200TextUpdate(PVOID  pvStart, PVOID  pvEnd,
+                                  UINT32  uiICacheLineSize, UINT32  uiDCacheLineSize);
 /*********************************************************************************************************
 ** 函数名称: __ppcE200CacheDisable
 ** 功能描述: 关闭 CACHE
@@ -160,6 +163,8 @@ PPC_L1C_DRIVER  _G_ppcE200CacheDriver = {
     ppcE200BranchPredictionDisable,
     ppcE200BranchPredictionEnable,
     ppcE200BranchPredictorInvalidate,
+
+    ppcE200TextUpdate,
 };
 
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */

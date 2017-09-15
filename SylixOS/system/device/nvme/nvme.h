@@ -31,7 +31,6 @@
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_NVME_EN > 0)
 
 #include "linux/types.h"
-#include "linux/compat.h"
 
 /*********************************************************************************************************
   驱动选项操作命令
@@ -63,7 +62,7 @@
 #define NVME_OPT_CMD_DC_MSG_COUNT_GET       0x11e                       /* Disk cache 消息数量          */
 #define NVME_OPT_CMD_DC_PARALLEL_EN_GET     0x11f                       /* Disk cache 并行操作是否使能  */
 /*********************************************************************************************************
-  NVMe控制器寄存器
+  NVMe 控制器寄存器
 *********************************************************************************************************/
 #define NVME_REG_CAP                        0x0000                      /* Controller Capabilities      */
 #define NVME_REG_VS                         0x0008                      /* Version                      */
@@ -80,7 +79,7 @@
 #define NVME_REG_CMBSZ                      0x003c                      /* Controller Memory Buffer Size*/
 #define NVME_REG_SQ0TDBL                    0x1000                      /* Submission Queue 0 Tail DB   */
 /*********************************************************************************************************
-  NVMe控制器 Capabilities 获取操作
+  NVMe 控制器 Capabilities 获取操作
 *********************************************************************************************************/
 #define NVME_CAP_MQES(cap)                  ((cap) & 0xffff)            /* Max Queue Entries Supported  */
 #define NVME_CAP_TIMEOUT(cap)               (((cap) >> 24) & 0xff)      /* CSTS.RDY Timeout             */
@@ -89,7 +88,7 @@
 #define NVME_CAP_MPSMIN(cap)                (((cap) >> 48) & 0xf)       /* Memory Page Size Minimum     */
 #define NVME_CAP_MPSMAX(cap)                (((cap) >> 52) & 0xf)       /* Memory Page Size Maximum     */
 /*********************************************************************************************************
-  NVMe控制器 Memory Buffer 相关操作
+  NVMe 控制器 Memory Buffer 相关操作
 *********************************************************************************************************/
 #define NVME_CMB_BIR(cmbloc)                ((cmbloc) & 0x7)            /* Base Indicator Register      */
 #define NVME_CMB_OFST(cmbloc)               (((cmbloc) >> 12) & 0xfffff)/* offset of the CMB            */
@@ -101,33 +100,33 @@
 #define NVME_CMB_CQS(cmbsz)                 ((cmbsz) & 0x2)             /* Completion Queue Support     */
 #define NVME_CMB_SQS(cmbsz)                 ((cmbsz) & 0x1)             /* Submission Queue Support     */
 /*********************************************************************************************************
-  控制器寄存器读写
+  控制器寄存器读写 (PCI: 小端)
 *********************************************************************************************************/
 #define NVME_CTRL_READ(ctrl, reg)   \
-        read32((addr_t)((ULONG)(ctrl)->NVMECTRL_pvRegAddr + reg))
+        le32toh(read32((addr_t)((ULONG)(ctrl)->NVMECTRL_pvRegAddr + reg)))
 #define NVME_CTRL_WRITE(ctrl, reg, val) \
-        write32(val, (addr_t)((ULONG)(ctrl)->NVMECTRL_pvRegAddr + reg))
+        write32(htole32(val), (addr_t)((ULONG)(ctrl)->NVMECTRL_pvRegAddr + reg))
 
 #define NVME_CTRL_RAW_READ(base, reg)   \
-        read32((addr_t)((ULONG)(base + reg)))
+        le32toh(read32((addr_t)((ULONG)(base + reg))))
 #define NVME_CTRL_RAW_WRITE(base, reg, val) \
-        write32(val, (addr_t)((ULONG)(base + reg)))
+        write32(htole32(val), (addr_t)((ULONG)(base + reg)))
 
 #define NVME_CTRL_READQ(ctrl, reg)  \
-        read64((addr_t)((ULONG)(ctrl)->NVMECTRL_pvRegAddr + reg))
+        le64toh(read64((addr_t)((ULONG)(ctrl)->NVMECTRL_pvRegAddr + reg)))
 #define NVME_CTRL_WRITEQ(ctrl, reg, val)    \
-        write64(val, (addr_t)((ULONG)(ctrl)->NVMECTRL_pvRegAddr + reg))
+        write64(htole64(val), (addr_t)((ULONG)(ctrl)->NVMECTRL_pvRegAddr + reg))
 
 #define NVME_CTRL_RAW_READQ(base, reg)  \
-        read64((addr_t)((ULONG)(base + reg)))
+        le64toh(read64((addr_t)((ULONG)(base + reg))))
 #define NVME_CTRL_RAW_WRITEQ(base, reg, val)    \
-        write64(val, (addr_t)((ULONG)(base + reg)))
+        write64(htole64(val), (addr_t)((ULONG)(base + reg)))
 /*********************************************************************************************************
   控制器版本
 *********************************************************************************************************/
 #define NVME_VS(major, minor)               (((major) << 16) | ((minor) << 8))
 /*********************************************************************************************************
-  NVMe控制器配置和状态
+  NVMe 控制器配置和状态
 *********************************************************************************************************/
 #define NVME_CC_ENABLE                      (1 << 0)                    /* Enable                       */
 #define NVME_CC_CSS_NVM                     (0 << 4)                    /* I/O Command Set NVM          */
@@ -176,7 +175,7 @@ enum {
 #define CMD_CTX_FLUSH           ((PVOID)(0x318 + (addr_t)CMD_CTX_BASE))
 #define CMD_CTX_ABORT           ((PVOID)(0x318 + (addr_t)CMD_CTX_BASE))
 /*********************************************************************************************************
- Power State Descriptor Data Structure
+  Power State Descriptor Data Structure
 *********************************************************************************************************/
 typedef struct nvme_id_power_state_cb {
     UINT16                    NVMEIDPOWERSTATE_usMaxPower;              /* Maximum Power                */
@@ -200,7 +199,7 @@ typedef NVME_ID_POWER_STATE_CB    *NVME_ID_POWER_STATE_HANDLE;
 #define NVME_PS_FLAGS_MAX_POWER_SCALE       (1 << 0)                    /* Max Power Scale              */
 #define NVME_PS_FLAGS_NON_OP_STATE          (1 << 1)                    /* Non-Operational State        */
 /*********************************************************************************************************
-   Identify Controller Data Structure
+  Identify Controller Data Structure
 *********************************************************************************************************/
 typedef struct nvme_id_ctrl_cb {
     UINT16                    NVMEIDCTRL_usVid;                         /* PCI Vendor ID                */
@@ -255,7 +254,7 @@ typedef NVME_ID_CTRL_CB      *NVME_ID_CTRL_HANDLE;
 #define NVME_CTRL_ONCS_DSM                  (1 << 2)                    /* spt Dataset Management cmd   */
 #define NVME_CTRL_VWC_PRESENT               (1 << 0)                    /* volatile write cache present */
 /*********************************************************************************************************
-   LBA Format Data Structure, NVM Command Set Specific
+  LBA Format Data Structure, NVM Command Set Specific
 *********************************************************************************************************/
 typedef struct nvme_lbaf_cb {
     UINT16                    NVMELBAF_Ms;                              /* Metadata Size                */
@@ -264,7 +263,7 @@ typedef struct nvme_lbaf_cb {
 } NVME_LBAF_CB;
 typedef NVME_LBAF_CB         *NVME_LBAF_HANDLE;
 /*********************************************************************************************************
-   Identify Namespace Data Structure, NVM Command Set Specific
+  Identify Namespace Data Structure, NVM Command Set Specific
 *********************************************************************************************************/
 typedef struct nvme_id_ns_cb {
     UINT64                    NVMEIDNS_ullNsze;                         /* Namespace Size               */
@@ -391,7 +390,7 @@ typedef struct nvme_reservation_status_cb {
 } NVME_RSV_STATUS_CB;
 typedef NVME_RSV_STATUS_CB   *NVME_RSV_STATUS_HANDLE;
 /*********************************************************************************************************
- Opcodes for NVM Commands
+  Opcodes for NVM Commands
 *********************************************************************************************************/
 #define NVME_CMD_FLUSH                      0x00                        /* Flush                        */
 #define NVME_CMD_WRITE                      0x01                        /* Write                        */
@@ -410,7 +409,7 @@ typedef NVME_RSV_STATUS_CB   *NVME_RSV_STATUS_HANDLE;
 typedef struct nvme_common_command_cb {
     UINT8                     NVMECOMMONCMD_ucOpcode;                   /* Opcode                       */
     UINT8                     NVMECOMMONCMD_ucFlags;                    /* Flags                        */
-    UINT16                    NVMECOMMONCMD_usCommandId;                /* Command Identifier           */
+    UINT16                    NVMECOMMONCMD_usCmdId;                    /* Command Identifier           */
     UINT32                    NVMECOMMONCMD_uiNsid;                     /* Namespace Identifier         */
     UINT32                    NVMECOMMONCMD_uiCdw2[2];                  /* Command Dword                */
     UINT64                    NVMECOMMONCMD_ullMetadata;                /* Metadata Pointer             */
@@ -425,7 +424,7 @@ typedef NVME_COMMON_CMD_CB   *NVME_COMMON_CMD_HANDLE;
 typedef struct nvme_rw_command_cb {
     UINT8                     NVMERWCMD_ucOpcode;                       /* Opcode                       */
     UINT8                     NVMERWCMD_ucFlags;                        /* Flags                        */
-    UINT16                    NVMERWCMD_usCommandId;                    /* Command Identifier           */
+    UINT16                    NVMERWCMD_usCmdId;                        /* Command Identifier           */
     UINT32                    NVMERWCMD_uiNsid;                         /* Namespace Identifier         */
     UINT64                    NVMERWCMD_ullRsvd2;                       /* Reserved                     */
     UINT64                    NVMERWCMD_ullMetadata;                    /* Metadata Pointer             */
@@ -468,7 +467,7 @@ typedef NVME_RW_CMD_CB       *NVME_RW_CMD_HANDLE;
 typedef struct nvme_dsm_cmd_cb {
     UINT8                     NVMEDSMCMD_ucOpcode;                      /* Opcode                       */
     UINT8                     NVMEDSMCMD_ucFlags;                       /* Flags                        */
-    UINT16                    NVMEDSMCMD_usCommandId;                   /* Command Identifier           */
+    UINT16                    NVMEDSMCMD_usCmdId;                       /* Command Identifier           */
     UINT32                    NVMEDSMCMD_uiNsid;                        /* Namespace Identifier         */
     UINT64                    NVMEDSMCMD_ullRsvd2[2];                   /* Reserved                     */
     UINT64                    NVMEDSMCMD_ullPrp1;                       /* PRP Entry 1                  */
@@ -511,7 +510,7 @@ typedef NVME_DSM_RANGE_CB    *NVME_DSM_RANGE_HANDLE;
 typedef struct nvme_identify_cb {
     UINT8                     NVMEIDENTIFY_ucOpcode;                    /* Opcode                       */
     UINT8                     NVMEIDENTIFY_ucFlags;                     /* Flags                        */
-    UINT16                    NVMEIDENTIFY_usCommandId;                 /* Command Identifier           */
+    UINT16                    NVMEIDENTIFY_usCmdId;                     /* Command Identifier           */
     UINT32                    NVMEIDENTIFY_uiNsid;                      /* Namespace Identifier         */
     UINT64                    NVMEIDENTIFY_ullRsvd2[2];                 /* Reserved                     */
     UINT64                    NVMEIDENTIFY_ullPrp1;                     /* PRP Entry 1                  */
@@ -524,7 +523,7 @@ typedef NVME_IDENTIFY_CB     *NVME_IDENTIFY_HANDLE;
 typedef struct nvme_features_cb {
     UINT8                     NVMEFEATURE_ucOpcode;                     /* Opcode                       */
     UINT8                     NVMEFEATURE_ucFlags;                      /* Flags                        */
-    UINT16                    NVMEFEATURE_usCommandId;                  /* Command Identifier           */
+    UINT16                    NVMEFEATURE_usCmdId;                      /* Command Identifier           */
     UINT32                    NVMEFEATURE_uiSsid;                       /* Namespace Identifier         */
     UINT64                    NVMEFEATURE_ullRsvd2[2];                  /* Reserved                     */
     UINT64                    NVMEFEATURE_ullPrp1;                      /* PRP Entry 1                  */
@@ -538,7 +537,7 @@ typedef NVME_FEATURE_CB      *NVME_FEATURE_HANDLE;
 typedef struct nvme_create_cq_cb {
     UINT8                     NVMECREATECQ_ucOpcode;                    /* Opcode                       */
     UINT8                     NVMECREATECQ_ucFlags;                     /* Flags                        */
-    UINT16                    NVMECREATECQ_usCommandId;                 /* Command Identifier           */
+    UINT16                    NVMECREATECQ_usCmdId;                     /* Command Identifier           */
     UINT32                    NVMECREATECQ_uiRsvd1[5];                  /* Command Dword                */
     UINT64                    NVMECREATECQ_ullPrp1;                     /* PRP Entry 1                  */
     UINT64                    NVMECREATECQ_ullRsvd8;                    /* Reserved                     */
@@ -553,7 +552,7 @@ typedef NVME_CREATE_CQ_CB    *NVME_CREATE_CQ_HANDLE;
 typedef struct nvme_create_sq_cb {
     UINT8                     NVMECREATESQ_ucOpcode;                    /* Opcode                       */
     UINT8                     NVMECREATESQ_ucFlags;                     /* Flags                        */
-    UINT16                    NVMECREATESQ_usCommandId;                 /* Command Identifier           */
+    UINT16                    NVMECREATESQ_usCmdId;                     /* Command Identifier           */
     UINT32                    NVMECREATESQ_uiRsvd1[5];                  /* Reserved                     */
     UINT64                    NVMECREATESQ_ullPrp1;                     /* PRP Entry 1                  */
     UINT64                    NVMECREATESQ_ullRsvd8;                    /* Reserved                     */
@@ -568,7 +567,7 @@ typedef NVME_CREATE_SQ_CB    *NVME_CREATE_SQ_HANDLE;
 typedef struct nvme_delete_queue_cb {
     UINT8                     NVMEDELETEQUEUE_ucOpcode;                 /* Opcode                       */
     UINT8                     NVMEDELETEQUEUE_ucFlags;                  /* Flags                        */
-    UINT16                    NVMEDELETEQUEUE_usCommandId;              /* Command Identifier           */
+    UINT16                    NVMEDELETEQUEUE_usCmdId;                  /* Command Identifier           */
     UINT32                    NVMEDELETEQUEUE_uiRsvd1[9];               /* Reserved                     */
     UINT16                    NVMEDELETEQUEUE_usQid;                    /* Queue Identifie              */
     UINT16                    NVMEDELETEQUEUE_usRsvd10;                 /* Reserved                     */
@@ -579,7 +578,7 @@ typedef NVME_DELETE_QUEUE_CB    *NVME_DELETE_QUEUE_HANDLE;
 typedef struct nvme_abort_cmd_cb {
     UINT8                     NVMEABORTCMD_ucOpcode;                    /* Opcode                       */
     UINT8                     NVMEABORTCMD_ucFlags;                     /* Flags                        */
-    UINT16                    NVMEABORTCMD_usCommandId;                 /* Command Identifier           */
+    UINT16                    NVMEABORTCMD_usCmdId;                     /* Command Identifier           */
     UINT32                    NVMEABORTCMD_uiRsvd1[9];                  /* Reserved                     */
     UINT16                    NVMEABORTCMD_usSqid;                      /* Submission Queue Identifier  */
     UINT16                    NVMEABORTCMD_usCid;                       /* Command Identifier           */
@@ -590,7 +589,7 @@ typedef NVME_ABORT_CMD_CB    *NVME_ABORT_CMD_HANDLE;
 typedef struct nvme_download_firmware_cb {
     UINT8                     NVMEDOWNLOADFIRMWARE_ucOpcode;            /* Opcode                       */
     UINT8                     NVMEDOWNLOADFIRMWARE_ucFlags;             /* Flags                        */
-    UINT16                    NVMEDOWNLOADFIRMWARE_usCommandId;         /* Command Identifier           */
+    UINT16                    NVMEDOWNLOADFIRMWARE_usCmdId;             /* Command Identifier           */
     UINT32                    NVMEDOWNLOADFIRMWARE_uiRsvd1[5];          /* Reserved                     */
     UINT64                    NVMEDOWNLOADFIRMWARE_ullPrp1;             /* PRP Entry 1                  */
     UINT64                    NVMEDOWNLOADFIRMWARE_ullPrp2;             /* PRP Entry 2                  */
@@ -603,7 +602,7 @@ typedef NVME_DOWNLOAD_FIRMWARE_CB    *NVME_DOWNLOAD_FIRMWARE_HANDLE;
 typedef struct nvme_format_cmd_cb {
     UINT8                     NVMEFORMATCMD_ucOpcode;                   /* Opcode                       */
     UINT8                     NVMEFORMATCMD_ucFlags;                    /* Flags                        */
-    UINT16                    NVMEFORMATCMD_usCommandId;                /* Command Identifier           */
+    UINT16                    NVMEFORMATCMD_usCmdId;                    /* Command Identifier           */
     UINT32                    NVMEFORMATCMD_uiNsid;                     /* Namespace Identifier         */
     UINT64                    NVMEFORMATCMD_ullRsvd2[4];                /* Reserved                     */
     UINT32                    NVMEFORMATCMD_uiCdw10;                    /* Command Dword                */
@@ -731,7 +730,7 @@ typedef struct nvme_completion_cb {
     UINT32   NVMECOMPLETION_uiRsvd;
     UINT16   NVMECOMPLETION_usSqHead;                                   /* SQ Head Pointer              */
     UINT16   NVMECOMPLETION_usSqid;                                     /* SQ Identifier                */
-    UINT16   NVMECOMPLETION_usCommandId;                                /* Command Identifier           */
+    UINT16   NVMECOMPLETION_usCmdId;                                    /* Command Identifier           */
     UINT16   NVMECOMPLETION_usStatus;                                   /* Status Field                 */
 } NVME_COMPLETION_CB;
 typedef NVME_COMPLETION_CB    *NVME_COMPLETION_HANDLE;
@@ -797,6 +796,10 @@ typedef struct nvme_ctrl_cb {
     UINT32                  NVMECTRL_uiStripeSize;
     UINT16                  NVMECTRL_usOncs;                            /* 可选的 NVMe 命令支持         */
     UINT8                   NVMECTRL_ucVwc;                             /* Volatile Write Cache         */
+    CHAR                    NVMECTRL_cSerial[20];
+    CHAR                    NVMECTRL_cModel[40];
+    CHAR                    NVMECTRL_cFirmWareRev[8];
+
     UINT32                 *NVMECTRL_puiDoorBells;                      /* Doorbell 寄存器基址          */
     UINT32                  NVMECTRL_uiDBStride;                        /* Doorbell 寄存器间跨度        */
     

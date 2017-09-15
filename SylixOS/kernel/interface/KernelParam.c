@@ -28,7 +28,10 @@
 /*********************************************************************************************************
   内核参数
 *********************************************************************************************************/
-static CHAR     _K_cKernelStartParam[512];
+static CHAR         _K_cKernelStartParam[1024];
+#if LW_CFG_DEVICE_EN > 0
+extern LW_API INT   API_RootFsMapInit(CPCHAR  pcMap);
+#endif                                                                  /*  (LW_CFG_DEVICE_EN > 0)      */
 /*********************************************************************************************************
 ** 函数名称: API_KernelStartParam
 ** 功能描述: 系统内核启动参数
@@ -50,6 +53,17 @@ static CHAR     _K_cKernelStartParam[512];
                                             建议运动控制等高实时性应用, 可置为 yes 提高 tick 速度
                            tmcvtsimple=no   通过 timespec 转换 tick 超时, 是否使用简单转换法.
                                             建议 Lite 类型处理器可采用 simple 转换法.
+                                            
+                           rfsmap=/boot:[*],/:[*],...   这是根文件系统映射关系选项, 用逗号隔开, 
+                                                        /boot /etc /tmp /apps ... 为可选映射, 
+                                                        / 为必须映射.
+                           
+                                            例如 /boot:/media/hdd0 表示将 /boot 目录映射到 /media/hdd0
+                                                 /apps:/media/hdd2 表示将 /apps 目录映射到 /media/hdd2
+                                                 /:/media/hdd1 表示将根目录整体映射到 /media/hdd1
+                                                 /:/dev/ram    表示将根目录整体映射到 ramfs 中.
+                                                 
+                                                 注意: /dev/ram 类型只能使用在 /: 映射中
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
@@ -58,7 +72,7 @@ static CHAR     _K_cKernelStartParam[512];
 LW_API
 ULONG  API_KernelStartParam (CPCHAR  pcParam)
 {
-    CHAR        cParamBuffer[512];                                      /*  参数长度不得超过 512 字节   */
+    CHAR        cParamBuffer[1024];                                     /*  参数长度不得超过 1024 字节  */
     PCHAR       pcDelim = " ";
     PCHAR       pcLast;
     PCHAR       pcTok;
@@ -186,7 +200,6 @@ ULONG  API_KernelStartParam (CPCHAR  pcParam)
         }
 #endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
-          
           else if (lib_strncmp(pcTok, "noitmr=", 7) == 0) {             /*  不支持 itimer               */
             if (pcTok[7] == 'n') {
                 LW_KERN_NO_ITIMER_EN_SET(LW_FALSE);
@@ -200,7 +213,13 @@ ULONG  API_KernelStartParam (CPCHAR  pcParam)
             } else {
                 LW_KERN_TMCVT_SIMPLE_EN_SET(LW_TRUE);
             }
+        } 
+        
+#if LW_CFG_DEVICE_EN > 0
+          else if (lib_strncmp(pcTok, "rfsmap=", 7) == 0) {             /*  根文件系统映射              */
+            API_RootFsMapInit(&pcTok[7]);
         }
+#endif                                                                  /*  (LW_CFG_DEVICE_EN > 0)      */
 
 #ifdef __ARCH_KERNEL_PARAM
           else {

@@ -211,6 +211,73 @@ VOID  API_TShellInit (VOID)
     }
 }
 /*********************************************************************************************************
+** 函数名称: API_TShellStartup
+** 功能描述: 系统启动时 shell 调用 startup.sh 脚本
+** 输　入  : NONE
+** 输　出  : 运行结果
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+INT  API_TShellStartup (VOID)
+{
+    static BOOL     bInit      = LW_FALSE;
+    INT             iOldOption = OPT_TERMINAL;
+    INT             iNewOption;
+    INT             iRet, iIgn = 0;
+    INT             iWaitIgnSec;
+    CHAR            cWaitIgnSec[16], cRead;
+    struct timeval  tv;
+    
+    if (bInit) {
+        return  (PX_ERROR);
+    }
+    bInit = LW_TRUE;
+    
+    if (API_TShellVarGetRt("STARTUP_WAIT_SEC", cWaitIgnSec, 16) > 0) {
+        iWaitIgnSec = lib_atoi(cWaitIgnSec);
+        if (iWaitIgnSec < 0) {
+            iWaitIgnSec = 0;
+        
+        } else if (iWaitIgnSec > 10) {
+            iWaitIgnSec = 10;
+        }
+        
+    } else {
+        iWaitIgnSec = 0;
+    }
+    
+    printf("Press <n> to NOT execute /etc/startup.sh (timeout: %d sec(s))\n", iWaitIgnSec);
+    
+    tv.tv_sec  = iWaitIgnSec;
+    tv.tv_usec = 0;
+    
+    ioctl(STD_IN, FIOGETOPTIONS, &iOldOption);
+    iNewOption = iOldOption & ~(OPT_ECHO | OPT_LINE);                   /*  no echo no line mode        */
+    ioctl(STD_IN, FIOSETOPTIONS, iNewOption);
+
+    if (waitread(STD_IN, &tv) > 0) {
+        if (read(STD_IN, &cRead, 1) == 1) {
+            if ((cRead == 'n') || (cRead == 'N')) {
+                iIgn = 1;
+            }
+        }
+    }
+    
+    ioctl(STD_IN, FIOSETOPTIONS, iOldOption);
+
+    if (iIgn) {
+        printf("Abort executes /etc/startup.sh\n");
+        iRet = PX_ERROR;
+        
+    } else {
+        iRet = API_TShellExec("shfile /etc/startup.sh^");
+    }
+    
+    return  (iRet);
+}
+/*********************************************************************************************************
 ** 函数名称: API_TShellSigEvent
 ** 功能描述: 向一个 shell 终端发送信号.
 ** 输　入  : ulShell               终端线程

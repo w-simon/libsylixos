@@ -76,7 +76,7 @@ VOID  _interDeferInit (VOID)
     
     API_ThreadAttrBuild(&threadattr, 
                         LW_CFG_THREAD_DEFER_STK_SIZE, 
-                        LW_PRIO_T_ISRDEFER, 
+                        LW_CFG_ISR_DEFER_PRIO, 
                         (LW_OPTION_THREAD_STK_CHK | 
                         LW_OPTION_THREAD_SAFE | 
                         LW_OPTION_OBJECT_GLOBAL |
@@ -116,7 +116,7 @@ VOID  _interDeferInit (VOID)
     
     API_ThreadAttrBuild(&threadattr, 
                         LW_CFG_THREAD_DEFER_STK_SIZE, 
-                        LW_PRIO_T_ISRDEFER, 
+                        LW_CFG_ISR_DEFER_PRIO, 
                         (LW_OPTION_THREAD_STK_CHK | 
                         LW_OPTION_THREAD_SAFE | 
                         LW_OPTION_OBJECT_GLOBAL |
