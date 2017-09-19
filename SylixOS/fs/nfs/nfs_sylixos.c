@@ -2766,8 +2766,13 @@ static INT  __nfsStatfs (PLW_FD_ENTRY  pfdentry, struct statfs *pstatfs)
     pstatfs->f_files  = (long)res.FSSTAT3res_u.resok.tfiles;            /* total file nodes in fs       */
     pstatfs->f_ffree  = (long)res.FSSTAT3res_u.resok.ffiles;            /* free file nodes in fs        */
     
+#if LW_CFG_CPU_WORD_LENGHT == 64
+    pstatfs->f_fsid.val[0] = (int32_t)((addr_t)pnfsfile->NFSFIL_nfsfs >> 32);
+    pstatfs->f_fsid.val[1] = (int32_t)((addr_t)pnfsfile->NFSFIL_nfsfs & 0xffffffff);
+#else
     pstatfs->f_fsid.val[0] = (int32_t)pnfsfile->NFSFIL_nfsfs;
     pstatfs->f_fsid.val[1] = 0;
+#endif
     
     pstatfs->f_flag = ST_NOSUID;
     if (pnfsfile->NFSFIL_nfsfs->NFSFS_iFlag == O_RDONLY) {

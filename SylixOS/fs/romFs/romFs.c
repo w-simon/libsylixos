@@ -921,8 +921,13 @@ static INT  __romFsStatfs (PLW_FD_ENTRY  pfdentry, struct statfs *pstatfs)
     pstatfs->f_files   = 0;                                             /* total file nodes in fs       */
     pstatfs->f_ffree   = 0;                                             /* free file nodes in fs        */
     
+#if LW_CFG_CPU_WORD_LENGHT == 64
+    pstatfs->f_fsid.val[0] = (int32_t)((addr_t)promfile->ROMFIL_promfs >> 32);
+    pstatfs->f_fsid.val[1] = (int32_t)((addr_t)promfile->ROMFIL_promfs & 0xffffffff);
+#else
     pstatfs->f_fsid.val[0] = (int32_t)promfile->ROMFIL_promfs;
     pstatfs->f_fsid.val[1] = 0;
+#endif
     
     pstatfs->f_flag    = ST_RDONLY;
     pstatfs->f_namelen = PATH_MAX;

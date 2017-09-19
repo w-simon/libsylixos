@@ -757,7 +757,7 @@ typedef struct nvme_queue_cb {
 
     LW_OBJECT_HANDLE        NVMEQUEUE_hSyncBSem[NVME_CMD_DEPTH_MAX];    /* 命令同步锁                   */
     LW_OBJECT_HANDLE        NVMEQUEUE_hTagMuteSem;                      /* 标签锁                       */
-    volatile UINT32         NVMEQUEUE_uiNextTag;                        /* 下一个可用标签               */
+    UINT32                  NVMEQUEUE_uiNextTag;                        /* 下一个可用标签               */
     PVOID                   NVMEQUEUE_pvPrpBuf;                         /* PRP                          */
     ULONG                   NVMEQUEUE_ulCmdIdData __flexarr;            /* 命令返回数据                 */
 } NVME_QUEUE_CB;

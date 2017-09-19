@@ -106,8 +106,8 @@ static INT  __blkRawIoctl (PLW_BLK_RAW  pblkraw, INT  iCmd, LONG  lArg)
             }
             lib_bzero(hBlkInfo, sizeof(LW_BLK_INFO));
             hBlkInfo->BLKI_uiType = LW_BLKD_CTRL_INFO_TYPE_BLKRAW;
-            snprintf(hBlkInfo->BLKI_cSerial, LW_BLKD_CTRL_INFO_STR_SZ, "%s %08X", 
-                     __BLKRAW_SERIAL, (UINT32)pblkraw);
+            snprintf(hBlkInfo->BLKI_cSerial, LW_BLKD_CTRL_INFO_STR_SZ, "%s %08lX", 
+                     __BLKRAW_SERIAL, (addr_t)pblkraw);
             snprintf(hBlkInfo->BLKI_cFirmware, LW_BLKD_CTRL_INFO_STR_SZ, "%s%s", 
                      __BLKRAW_FWREV, __SYLIXOS_VERSTR);
             snprintf(hBlkInfo->BLKI_cProduct, LW_BLKD_CTRL_INFO_STR_SZ, "%s", 
@@ -224,7 +224,7 @@ static INT  __blkRawCreate (PLW_BLK_RAW  pblkraw, INT  iFlag, BOOL  bLogic)
     
     pblkd->BLKD_bRemovable  = LW_TRUE;
     pblkd->BLKD_bDiskChange = LW_FALSE;
-    pblkd->BLKD_iRetry      = 3;
+    pblkd->BLKD_iRetry      = 2;
     pblkd->BLKD_iFlag       = iFlag;
     
     if (bLogic) {

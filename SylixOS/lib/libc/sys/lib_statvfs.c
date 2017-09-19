@@ -58,7 +58,11 @@ int fstatvfs (int  iFd, struct statvfs *pstatvfs)
     pstatvfs->f_files   = statfsBuf.f_files;
     pstatvfs->f_ffree   = statfsBuf.f_ffree;
     pstatvfs->f_favail  = 0;
+#if LW_CFG_CPU_WORD_LENGHT == 64
+    pstatvfs->f_fsid    = ((unsigned long)statfsBuf.f_fsid.val[0] << 32) | statfsBuf.f_fsid.val[1];
+#else
     pstatvfs->f_fsid    = statfsBuf.f_fsid.val[0];
+#endif
     pstatvfs->f_flag    = statfsBuf.f_flag;
     pstatvfs->f_namemax = statfsBuf.f_namelen;
     
@@ -96,7 +100,11 @@ int statvfs (const char *pcVolume, struct statvfs *pstatvfs)
     pstatvfs->f_files   = statfsBuf.f_files;
     pstatvfs->f_ffree   = statfsBuf.f_ffree;
     pstatvfs->f_favail  = 0;
+#if LW_CFG_CPU_WORD_LENGHT == 64
+    pstatvfs->f_fsid    = ((unsigned long)statfsBuf.f_fsid.val[0] << 32) | statfsBuf.f_fsid.val[1];
+#else
     pstatvfs->f_fsid    = statfsBuf.f_fsid.val[0];
+#endif
     pstatvfs->f_flag    = statfsBuf.f_flag;
     pstatvfs->f_namemax = statfsBuf.f_namelen;
     

@@ -1456,8 +1456,14 @@ static INT  __yaffsStatfsGet (PLW_FD_ENTRY  pfdentry, struct statfs *pstatfs)
         pstatfs->f_files = 0;                                           /* total file nodes in file     */
                                                                         /* system                       */
         pstatfs->f_ffree = 0;                                           /* free file nodes in fs        */
+        
+#if LW_CFG_CPU_WORD_LENGHT == 64
+        pstatfs->f_fsid.val[0] = (int32_t)((addr_t)pyaffile->YAFFIL_pyaffs >> 32);
+        pstatfs->f_fsid.val[1] = (int32_t)((addr_t)pyaffile->YAFFIL_pyaffs & 0xffffffff);
+#else
         pstatfs->f_fsid.val[0] = (int32_t)pyaffile->YAFFIL_pyaffs;      /* file system sid              */
         pstatfs->f_fsid.val[1] = 0;
+#endif
         
         pyaffsdev = (struct yaffs_dev *)yaffs_getdev(pyaffile->YAFFIL_cName);
         if (pyaffsdev && pyaffsdev->read_only) {

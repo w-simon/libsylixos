@@ -740,8 +740,13 @@ static INT  __rootFsStatfsGet (LW_DEV_HDR *pdevhdr, struct statfs *pstatfs)
         pstatfs->f_files  = (long)_G_rfsrRoot.RFSR_ulFiles;             /*  文件总数                    */
         pstatfs->f_ffree  = 0;
         
+#if LW_CFG_CPU_WORD_LENGHT == 64
+        pstatfs->f_fsid.val[0] = (int32_t)((addr_t)pdevhdr >> 32);
+        pstatfs->f_fsid.val[1] = (int32_t)((addr_t)pdevhdr & 0xffffffff);
+#else
         pstatfs->f_fsid.val[0] = (int32_t)pdevhdr;
         pstatfs->f_fsid.val[1] = 0;
+#endif
         
         pstatfs->f_flag    = 0;
         pstatfs->f_namelen = PATH_MAX;
@@ -776,8 +781,13 @@ static INT  __rootFsStatfsGet (LW_DEV_HDR *pdevhdr, struct statfs *pstatfs)
         pstatfs->f_files  = 0;
         pstatfs->f_ffree  = 0;
         
+#if LW_CFG_CPU_WORD_LENGHT == 64
+        pstatfs->f_fsid.val[0] = (int32_t)((addr_t)pdevhdr >> 32);
+        pstatfs->f_fsid.val[1] = (int32_t)((addr_t)pdevhdr & 0xffffffff);
+#else
         pstatfs->f_fsid.val[0] = (int32_t)pdevhdr;
         pstatfs->f_fsid.val[1] = 0;
+#endif
         
         pstatfs->f_flag    = 0;
         pstatfs->f_namelen = PATH_MAX;

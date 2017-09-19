@@ -1042,11 +1042,7 @@ VOID  API_VmmMmapShow (VOID)
             pcShare = "false";
         }
         
-#if LW_CFG_CPU_WORD_LENGHT == 64
-        printf("%16lx %16lx %16lx %s %s %5d %4d\n",
-#else
         printf("%08lx %8lx %16llx %s %s %5d %4d\n",
-#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT adj  */
                (addr_t)pmapn->MAPN_pvAddr,
                (ULONG)pmapn->MAPN_stLen,
                pmapn->MAPN_off,

@@ -662,9 +662,9 @@ static INT __ataIoctl (__PATA_DEV patadev,
         }
         lib_bzero(hBlkInfo, sizeof(LW_BLK_INFO));
         hBlkInfo->BLKI_uiType = LW_BLKD_CTRL_INFO_TYPE_ATA;
-        __ataDriveSerialInfoGet(hDrive, hBlkInfo->BLKI_cSerial, LW_BLKD_CTRL_INFO_STR_SZ);
-        __ataDriveFwRevInfoGet(hDrive, hBlkInfo->BLKI_cFirmware, LW_BLKD_CTRL_INFO_STR_SZ);
-        __ataDriveModelInfoGet(hDrive, hBlkInfo->BLKI_cProduct, LW_BLKD_CTRL_INFO_STR_SZ);
+        __ataDriveSerialInfoGet(hDrive, hBlkInfo->BLKI_cSerial,   LW_BLKD_CTRL_INFO_STR_SZ);
+        __ataDriveFwRevInfoGet(hDrive,  hBlkInfo->BLKI_cFirmware, LW_BLKD_CTRL_INFO_STR_SZ);
+        __ataDriveModelInfoGet(hDrive,  hBlkInfo->BLKI_cProduct,  LW_BLKD_CTRL_INFO_STR_SZ);
         break;
 
     case FIOWTIMEOUT:

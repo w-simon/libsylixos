@@ -251,8 +251,8 @@ static INT  __ramDiskIoctl (PLW_RAM_DISK  pramd, INT  iCmd, LONG  lArg)
         }
         lib_bzero(hBlkInfo, sizeof(LW_BLK_INFO));
         hBlkInfo->BLKI_uiType = LW_BLKD_CTRL_INFO_TYPE_RAMDISK;
-        snprintf(hBlkInfo->BLKI_cSerial, LW_BLKD_CTRL_INFO_STR_SZ, "%s %08X", 
-                 __RAMDISK_SERIAL, (UINT32)pramd->RAMD_pvMem);
+        snprintf(hBlkInfo->BLKI_cSerial, LW_BLKD_CTRL_INFO_STR_SZ, "%s %08lX", 
+                 __RAMDISK_SERIAL, (addr_t)pramd->RAMD_pvMem);
         snprintf(hBlkInfo->BLKI_cFirmware, LW_BLKD_CTRL_INFO_STR_SZ, "%s%s", 
                  __RAMDISK_FWREV, __SYLIXOS_VERSTR);
         snprintf(hBlkInfo->BLKI_cProduct, LW_BLKD_CTRL_INFO_STR_SZ, "%s", 

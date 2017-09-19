@@ -76,6 +76,15 @@
 
 #define AHCI_OPT_CMD_DC_MSG_COUNT_GET       0x11e                       /* Disk cache 消息数量          */
 #define AHCI_OPT_CMD_DC_PARALLEL_EN_GET     0x11f                       /* Disk cache 并行操作是否使能  */
+
+#define AHCI_OPT_CMD_CTRL_ENDIAN_TYPE_GET   0x120                       /* 获取控制器大小端属性         */
+#define AHCI_OPT_CMD_PORT_ENDIAN_TYPE_GET   0x121                       /* 获取端口大小端属性           */
+#define AHCI_OPT_CMD_PARAM_ENDIAN_TYPE_GET  0x122                       /* 获取参数大小端属性           */
+/*********************************************************************************************************
+  大小端类型
+*********************************************************************************************************/
+#define AHCI_ENDIAN_TYPE_BIG                0x4321                      /* 大端类型                     */
+#define AHCI_ENDIAN_TYPE_LITTEL             0x1234                      /* 小端类型                     */
 /*********************************************************************************************************
   设备操作命令
 *********************************************************************************************************/
@@ -98,6 +107,12 @@
 #define AHCI_DEV_MED_CH                     4                           /* Medium have been changed     */
 #define AHCI_DEV_NO_BLKDEV                  5                           /* No block device available    */
 #define AHCI_DEV_INIT                       255                         /* Uninitialized device         */
+/*********************************************************************************************************
+  PRDT
+*********************************************************************************************************/
+#define AHCI_PRDT_MAX                       16                          /* PRDT 最大值                  */
+#define AHCI_PRDT_I                         0x80000000                  /* Interrupt on Completion      */
+#define AHCI_PRDT_BYTE_MAX                  0x400000                    /* Data Byte Count              */
 /*********************************************************************************************************
   HBA Memory Registers
   +-------+-------+-------------------------------------+
@@ -224,8 +239,8 @@
 /*********************************************************************************************************
   控制器寄存器读写
 *********************************************************************************************************/
-#define AHCI_CTRL_READ(ctrl, reg)           read32((addr_t)((ULONG)(ctrl)->AHCICTRL_pvRegAddr + reg))
-#define AHCI_CTRL_WRITE(ctrl, reg, val)     write32(val, (addr_t)((ULONG)(ctrl)->AHCICTRL_pvRegAddr+reg))
+#define AHCI_CTRL_READ(ctrl, reg)           (ctrl)->AHCICTRL_pfuncCtrlRead(ctrl, (addr_t)reg)
+#define AHCI_CTRL_WRITE(ctrl, reg, val)     (ctrl)->AHCICTRL_pfuncCtrlWrite(ctrl, (addr_t)reg, val)
 
 #define AHCI_CTRL_RAW_READ(base, reg)       read32((addr_t)((ULONG)(base + reg)))
 #define AHCI_CTRL_RAW_WRITE(base, reg, val) write32(val, (addr_t)((ULONG)(base + reg)))
@@ -429,8 +444,8 @@
 /*********************************************************************************************************
   端口寄存器读写
 *********************************************************************************************************/
-#define AHCI_PORT_READ(port, reg)           readl((ULONG)(port)->AHCIDRIVE_pvRegAddr + reg)
-#define AHCI_PORT_WRITE(port, reg, val)     writel(val, (ULONG)(port)->AHCIDRIVE_pvRegAddr + reg)
+#define AHCI_PORT_READ(port, reg)           (port)->AHCIDRIVE_pfuncDriveRead(port, (addr_t)reg)
+#define AHCI_PORT_WRITE(port, reg, val)     (port)->AHCIDRIVE_pfuncDriveWrite(port, (addr_t)reg, val)
 
 #define AHCI_PORT_RAW_READ(base, reg)       read32((addr_t)((ULONG)(base + reg)))
 #define AHCI_PORT_RAW_WRITE(base, reg, val) write32(val, (addr_t)((ULONG)(base + reg)))
@@ -523,6 +538,7 @@
 #define AHCI_CMD_SMART                      0xB0                        /* SMART                        */
 #define AHCI_CMD_FLUSH_CACHE                0xE7                        /* Flush Cache                  */
 #define AHCI_CMD_FLUSH_CACHE_EXT            0xEA                        /* Flush Cache EXT              */
+#define AHCI_CMD_SFQ_DSM                    0x64                        /* SFQ DATA SET MANAGEMENT      */
 /*********************************************************************************************************
   SMART 命令
 *********************************************************************************************************/
@@ -544,6 +560,10 @@
 #define AHCI_PI_CMD_PKTCMD                  0xA0                        /* ATAPI Pakcet Command         */
 #define AHCI_PI_CMD_IDENTD                  0xA1                        /* ATAPI Identify Device        */
 #define AHCI_PI_CMD_SERVICE                 0xA2                        /* Service                      */
+/*********************************************************************************************************
+  ATAPI 命令最长长度
+*********************************************************************************************************/
+#define AHCI_ATAPI_CMD_LEN_MAX              16                          /* ATAPI 命令最大字节长度       */
 /*********************************************************************************************************
   CDROM 命令
 *********************************************************************************************************/
@@ -901,15 +921,17 @@ typedef AHCI_PARAM_CB     *AHCI_PARAM_HANDLE;
   Physical Region Descriptor Table (PRDT)
 *********************************************************************************************************/
 typedef struct ahci_prdt_cb {
-    UINT32          AHCIPRDT_uiDataBaseAddrLow;
-    UINT32          AHCIPRDT_uiDataBaseAddrHigh;
+    UINT32          AHCIPRDT_uiDataAddrLow;
+    UINT32          AHCIPRDT_uiDataAddrHigh;
     UINT32          AHCIPRDT_uiReserved0;
-    UINT32          AHCIPRDT_uiInterruptDataByteCount;
+    UINT32          AHCIPRDT_uiDataByteCount;
 } AHCI_PRDT_CB;
 typedef AHCI_PRDT_CB   *AHCI_PRDT_HANDLE;
 /*********************************************************************************************************
   Command Table
 *********************************************************************************************************/
+#define AHCI_CMD_TABLE_SIZE                 384
+
 typedef struct ahci_cmd_table_cb {
     UINT8           AHCICMDTABL_ucCommandFis[64];
     UINT8           AHCICMDTABL_ucAtapiCommand[16];
@@ -921,12 +943,13 @@ typedef AHCI_CMD_TABLE_CB     *AHCI_CMD_TABLE_HANDLE;
   Command List Structure
 *********************************************************************************************************/
 #define AHCI_CMD_LIST_ALIGN                 1024
+#define AHCI_CMD_LIST_SIZE                  1024
 
 typedef struct ahci_cmd_list_cb {
     UINT32          AHCICMDLIST_uiPrdtFlags;
     UINT32          AHCICMDLIST_uiByteCount;
-    UINT32          AHCICMDLIST_uiCmdTableAddrLow;
-    UINT32          AHCICMDLIST_uiCmdTableAddrHigh;
+    UINT32          AHCICMDLIST_uiCTAddrLow;
+    UINT32          AHCICMDLIST_uiCTAddrHigh;
     UINT32          AHCICMDLIST_uiReserved0;
     UINT32          AHCICMDLIST_uiReserved1;
     UINT32          AHCICMDLIST_uiReserved2;
@@ -936,7 +959,7 @@ typedef AHCI_CMD_LIST_CB      *AHCI_CMD_LIST_HANDLE;
 /*********************************************************************************************************
   Received FIS Structure
 *********************************************************************************************************/
-#define AHCI_RECV_FIS_ALIGN                 256
+#define AHCI_RECV_FIS_SIZE                  256
 
 typedef struct ahci_recv_fis_cb {
     UINT8           AHCIRECVFIS_ucDmaSetupFis[28];
@@ -968,35 +991,32 @@ typedef enum {
     AHCI_CMD_FLAG_ATAPI        = 0x0008,
     AHCI_CMD_FLAG_NCQ          = 0x0010,
     AHCI_CMD_FLAG_WAIT_SPINUP  = 0x0020,
-    AHCI_CMD_FLAG_BLK_READ     = 0x0040,
-    AHCI_CMD_FLAG_BLK_WRITE    = 0x0080,
-    AHCI_CMD_FLAG_TRIM         = 0x0100,
-    AHCI_CMD_FLAG_CACHE        = 0x0200
+    AHCI_CMD_FLAG_TRIM         = 0x0040,
+    AHCI_CMD_FLAG_CACHE        = 0x0080
 } AHCI_CMD_FLAG;
 /*********************************************************************************************************
   AHCI 命令控制块
 *********************************************************************************************************/
 typedef struct ahci_cmd_cb {
     union {
-        struct ahci_cmd_ata {
+        struct {
             UINT8           AHCICMDATA_ucAtaCommand;
             UINT32          AHCICMDATA_uiAtaFeature;
             UINT32          AHCICMDATA_uiAtaCount;
             UINT64          AHCICMDATA_ullAtaLba;
-        } AHCI_CMD_ATA;
+        } ata;
 
-        struct ahci_cmd_atapi {
+        struct {
             UINT8           AHCICMDATAPI_ucAtapiCommand;
             UINT8           AHCICMDATAPI_ucAtapiFeature;
             UINT8           AHCICMDATAPI_ucAtapiCmdPkt[AHCI_ATAPI_CMD_LEN_MAX];
-        } AHCI_CMD_ATAPI;
+        } atapi;
     } ahci_cmd;
 
-#define AHCI_CMD_ATA        ahci_cmd.AHCI_CMD_ATA
-#define AHCI_CMD_ATAPI      ahci_cmd.AHCI_CMD_ATAPI
+#define AHCI_CMD_ATA        ahci_cmd.ata
+#define AHCI_CMD_ATAPI      ahci_cmd.atapi
 
     INT                     AHCICMD_iFlags;
-    INT                     AHCICMD_iFlagEx;
     UINT8                  *AHCICMD_pucDataBuf;
     ULONG                   AHCICMD_ulDataLen;
     AHCI_DATA_DIR           AHCICMD_iDirection;
@@ -1005,11 +1025,10 @@ typedef AHCI_CMD_CB        *AHCI_CMD_HANDLE;
 /*********************************************************************************************************
   驱动器控制块
 *********************************************************************************************************/
-typedef struct {
+typedef struct ahci_drive_cb {
     UINT8                   AHCIDRIVE_ucType;
     UINT8                   AHCIDRIVE_ucState;
     CHAR                    AHCIDRIVE_cDevName[AHCI_DEV_NAME_MAX];
-
     spinlock_t              AHCIDRIVE_slLock;
 
     PVOID                   AHCIDRIVE_pvRegAddr;
@@ -1017,24 +1036,24 @@ typedef struct {
 
     UINT                    AHCIDRIVE_uiPort;
     struct ahci_ctrl_cb    *AHCIDRIVE_hCtrl;
-    AHCI_CMD_LIST_HANDLE    AHCIDRIVE_hCmdList;
+    
+    AHCI_CMD_LIST_HANDLE    AHCIDRIVE_hCmdList;                         /* 命令资源表                   */
     AHCI_RECV_FIS_HANDLE    AHCIDRIVE_hRecvFis;
     AHCI_CMD_TABLE_HANDLE   AHCIDRIVE_hCmdTable;
+    
     LW_OBJECT_HANDLE        AHCIDRIVE_hSyncBSem[AHCI_CMD_SLOT_MAX];     /* ahci_sync 锁                 */
     LW_OBJECT_HANDLE        AHCIDRIVE_hLockMSem;                        /* ahci_dlock 锁                */
-    LW_OBJECT_HANDLE        AHCIDRIVE_hTagMuteSem;                      /* ahci_tag 锁                  */
-    LW_OBJECT_HANDLE        AHCIDRIVE_hDriveMuteSem;                    /* ahci_dev 锁                  */
     LW_OBJECT_HANDLE        AHCIDRIVE_hQueueSlotCSem;                   /* ahci_slot 锁                 */
-    volatile UINT32         AHCIDRIVE_uiCmdStarted;
-    volatile UINT32         AHCIDRIVE_uiTrimStarted;
-    UINT32                  AHCIDRIVE_uiBuffStarted;
+    UINT32                  AHCIDRIVE_uiCmdMask;
     AHCI_PARAM_CB           AHCIDRIVE_tParam;
+    
     BOOL                    AHCIDRIVE_bMulti;
     BOOL                    AHCIDRIVE_bIordy;
     BOOL                    AHCIDRIVE_bDma;
     BOOL                    AHCIDRIVE_bLba;
     BOOL                    AHCIDRIVE_bLba48;
     BOOL                    AHCIDRIVE_bNcq;
+    
     UINT16                  AHCIDRIVE_usMultiSector;
     UINT16                  AHCIDRIVE_usPioMode;
     UINT16                  AHCIDRIVE_usSingleDmaMode;
@@ -1053,7 +1072,7 @@ typedef struct {
     UINT32                  AHCIDRIVE_uiTaskFileErrorCount;
     UINT32                  AHCIDRIVE_uiTimeoutErrorCount;
     BOOL                    AHCIDRIVE_bPortError;
-    volatile UINT32         AHCIDRIVE_uiNextTag;
+    UINT32                  AHCIDRIVE_uiNextTag;
     UINT32                  AHCIDRIVE_uiBuffNextTag;
     BOOL                    AHCIDRIVE_bQueued;
     UINT32                  AHCIDRIVE_uiQueueDepth;
@@ -1076,6 +1095,12 @@ typedef struct {
 
     UINT32                  AHCIDRIVE_uiAttachNum;
     UINT32                  AHCIDRIVE_uiRemoveNum;
+
+    INT                     AHCIDRIVE_iPortEndianType;
+    INT                     AHCIDRIVE_iParamEndianType;
+    UINT32                (*AHCIDRIVE_pfuncDriveRead)(struct ahci_drive_cb *hDrive, addr_t  ulAddr);
+    VOID                  (*AHCIDRIVE_pfuncDriveWrite)(struct ahci_drive_cb *hDrive,
+                                                       addr_t  ulAddr, UINT32  uiData);
 } AHCI_DRIVE_CB;
 typedef AHCI_DRIVE_CB      *AHCI_DRIVE_HANDLE;
 /*********************************************************************************************************
@@ -1120,7 +1145,6 @@ typedef struct ahci_ctrl_cb {
     UINT32                  AHCICTRL_uiPortNum;
     UINT32                  AHCICTRL_uiImpPortMap;
     UINT32                  AHCICTRL_uiImpPortNum;                      /* 有效端口数目                 */
-    UINT32                  AHCICTRL_uiRecvFisNum;
 
     AHCI_DRIVE_HANDLE       AHCICTRL_hDrive;
     ULONG                   AHCICTRL_ulSemTimeout;
@@ -1128,10 +1152,10 @@ typedef struct ahci_ctrl_cb {
     UINT32                  AHCICTRL_uiLbaTotalSecs[AHCI_DRIVE_MAX];
     UINT64                  AHCICTRL_ullLba48TotalSecs[AHCI_DRIVE_MAX];
 
-    UINT8                  *AHCICTRL_pucCmdList;
-
-    PVOID                   AHCICTRL_pvMemory;
-    ULONG                   AHCICTRL_ulMemorySize;
+    INT                     AHCICTRL_iEndianType;
+    UINT32                (*AHCICTRL_pfuncCtrlRead)(struct ahci_ctrl_cb *hCtrl, addr_t  ulAddr);
+    VOID                  (*AHCICTRL_pfuncCtrlWrite)(struct ahci_ctrl_cb *hCtrl,
+                                                     addr_t  ulAddr, UINT32  uiData);
 
     struct ahci_drv_cb     *AHCICTRL_hDrv;
 } AHCI_CTRL_CB;
@@ -1150,7 +1174,6 @@ typedef AHCI_MSG_CB    *AHCI_MSG_HANDLE;
 *********************************************************************************************************/
 typedef struct ahci_dev_cb {
     LW_BLK_DEV          AHCIDEV_tBlkDev;                                /* 块设备控制块, 必须放在首位   */
-
     LW_LIST_LINE        AHCIDEV_lineDevNode;                            /* 设备管理节点                 */
 
     AHCI_CTRL_HANDLE    AHCIDEV_hCtrl;                                  /* 驱动器控制句柄               */
@@ -1192,27 +1215,27 @@ typedef struct ahci_drv_cb {
 
     AHCI_CTRL_HANDLE        AHCIDRV_hCtrl;                              /* 控制器器句柄                 */
 
-    INT                     (*AHCIDRV_pfuncOptCtrl)(AHCI_CTRL_HANDLE hCtrl, UINT uiDrive,
-                                                    INT iCmd, LONG lArg);
-    INT                     (*AHCIDRV_pfuncVendorDriveInfoShow)(AHCI_CTRL_HANDLE hCtrl, UINT uiDrive,
+    INT                   (*AHCIDRV_pfuncOptCtrl)(AHCI_CTRL_HANDLE hCtrl, UINT uiDrive,
+                                                  INT iCmd, LONG lArg);
+    INT                   (*AHCIDRV_pfuncVendorDriveInfoShow)(AHCI_CTRL_HANDLE hCtrl, UINT uiDrive,
                                                                 AHCI_PARAM_HANDLE hParam);
-    PCHAR                   (*AHCIDRV_pfuncVendorDriveRegNameGet)(AHCI_DRIVE_HANDLE hDrive,
-                                                                  UINT32 uiOffset);
-    INT                     (*AHCIDRV_pfuncVendorDriveInit)(AHCI_DRIVE_HANDLE hDrive);
-    INT                     (*AHCIDRV_pfuncVendorCtrlInfoShow)(AHCI_CTRL_HANDLE hCtrl);
-    PCHAR                   (*AHCIDRV_pfuncVendorCtrlRegNameGet)(AHCI_CTRL_HANDLE hCtrl, UINT32 uiOffset);
-    PCHAR                   (*AHCIDRV_pfuncVendorCtrlTypeNameGet)(AHCI_CTRL_HANDLE hCtrl);
-    INT                     (*AHCIDRV_pfuncVendorCtrlIntEnable)(AHCI_CTRL_HANDLE hCtrl);
-    INT                     (*AHCIDRV_pfuncVendorCtrlIntConnect)(AHCI_CTRL_HANDLE hCtrl,
-                                                                 PINT_SVR_ROUTINE pfuncIsr,
-                                                                 CPCHAR cpcName);
-    INT                     (*AHCIDRV_pfuncVendorCtrlInit)(AHCI_CTRL_HANDLE hCtrl);
-    INT                     (*AHCIDRV_pfuncVendorCtrlReadyWork)(AHCI_CTRL_HANDLE hCtrl);
-    INT                     (*AHCIDRV_pfuncVendorPlatformInit)(AHCI_CTRL_HANDLE hCtrl);
-    INT                     (*AHCIDRV_pfuncVendorDrvReadyWork)(struct ahci_drv_cb *hDrv);
+    PCHAR                 (*AHCIDRV_pfuncVendorDriveRegNameGet)(AHCI_DRIVE_HANDLE hDrive,
+                                                                UINT32 uiOffset);
+    INT                   (*AHCIDRV_pfuncVendorDriveInit)(AHCI_DRIVE_HANDLE hDrive);
+    INT                   (*AHCIDRV_pfuncVendorCtrlInfoShow)(AHCI_CTRL_HANDLE hCtrl);
+    PCHAR                 (*AHCIDRV_pfuncVendorCtrlRegNameGet)(AHCI_CTRL_HANDLE hCtrl, UINT32 uiOffset);
+    PCHAR                 (*AHCIDRV_pfuncVendorCtrlTypeNameGet)(AHCI_CTRL_HANDLE hCtrl);
+    INT                   (*AHCIDRV_pfuncVendorCtrlIntEnable)(AHCI_CTRL_HANDLE hCtrl);
+    INT                   (*AHCIDRV_pfuncVendorCtrlIntConnect)(AHCI_CTRL_HANDLE hCtrl,
+                                                               PINT_SVR_ROUTINE pfuncIsr,
+                                                               CPCHAR cpcName);
+    INT                   (*AHCIDRV_pfuncVendorCtrlInit)(AHCI_CTRL_HANDLE hCtrl);
+    INT                   (*AHCIDRV_pfuncVendorCtrlReadyWork)(AHCI_CTRL_HANDLE hCtrl);
+    INT                   (*AHCIDRV_pfuncVendorPlatformInit)(AHCI_CTRL_HANDLE hCtrl);
+    INT                   (*AHCIDRV_pfuncVendorDrvReadyWork)(struct ahci_drv_cb *hDrv);
 
-    INT                     (*AHCIDRV_pfuncCtrlProbe)(AHCI_CTRL_HANDLE hCtrl);
-    VOID                    (*AHCIDRV_pfuncCtrlRemove)(AHCI_CTRL_HANDLE hCtrl);
+    INT                   (*AHCIDRV_pfuncCtrlProbe)(AHCI_CTRL_HANDLE hCtrl);
+    VOID                  (*AHCIDRV_pfuncCtrlRemove)(AHCI_CTRL_HANDLE hCtrl);
 
 #define AHCI_DRV_FLAG_MASK      0xffff                                  /*  掩码                        */
 #define AHCI_DRV_FLAG_ACTIVE    0x01                                    /*  是否激活                    */

@@ -145,7 +145,7 @@ static int  smethnd_sendto (struct smethnd_netdev *smethnd,
 #if LW_CFG_CPU_WORD_LENGHT == 32
         packet_base = config->packet_base_lo;
 #else
-        packet_base = (config->packet_base_hi << 32) + config->packet_base_lo;
+        packet_base = ((addr_t)config->packet_base_hi << 32) + config->packet_base_lo;
 #endif
         packet = (struct smethnd_packet *)(packet_base
                + (config->packet_out << SMETHND_PACKET_TOTAL_SHIFT));
@@ -260,7 +260,7 @@ static void  smethnd_receive (struct netdev *netdev, int (*input)(struct netdev 
 #if LW_CFG_CPU_WORD_LENGHT == 32
     packet_base = config->packet_base_lo;
 #else
-    packet_base = (config->packet_base_hi << 32) + (config->packet_base_lo);
+    packet_base = ((addr_t)config->packet_base_hi << 32) + (config->packet_base_lo);
 #endif
     packet = (struct smethnd_packet *)(packet_base
            + (config->packet_in << SMETHND_PACKET_TOTAL_SHIFT));

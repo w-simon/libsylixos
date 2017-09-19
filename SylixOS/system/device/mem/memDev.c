@@ -600,8 +600,13 @@ static INT  _MemStatsfs (PLW_MEM_FILE  pmemfile, struct statfs *pstatfs)
     pstatfs->f_files  = 0;
     pstatfs->f_ffree  = 0;
     
+#if LW_CFG_CPU_WORD_LENGHT == 64
+    pstatfs->f_fsid.val[0] = (int32_t)((addr_t)pmemfile->MEMF_memdev >> 32);
+    pstatfs->f_fsid.val[1] = (int32_t)((addr_t)pmemfile->MEMF_memdev & 0xffffffff);
+#else
     pstatfs->f_fsid.val[0] = (int32_t)pmemfile->MEMF_memdev;
     pstatfs->f_fsid.val[1] = 0;
+#endif
     
     pstatfs->f_flag    = 0;
     pstatfs->f_namelen = PATH_MAX;

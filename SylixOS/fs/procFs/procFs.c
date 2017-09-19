@@ -625,8 +625,13 @@ static INT  __procFsStatfsGet (PLW_PROCFS_NODE  p_pfsn, struct statfs *pstatfs)
         pstatfs->f_files  = (long)_G_pfsrRoot.PFSR_ulFiles;
         pstatfs->f_ffree  = 0;
         
+#if LW_CFG_CPU_WORD_LENGHT == 64
+        pstatfs->f_fsid.val[0] = (int32_t)((addr_t)&_G_pfsrRoot >> 32);
+        pstatfs->f_fsid.val[1] = (int32_t)((addr_t)&_G_pfsrRoot & 0xffffffff);
+#else
         pstatfs->f_fsid.val[0] = (int32_t)&_G_pfsrRoot;
         pstatfs->f_fsid.val[1] = 0;
+#endif
         
         pstatfs->f_flag    = ST_NOSUID;
         pstatfs->f_namelen = PATH_MAX;

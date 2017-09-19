@@ -853,8 +853,13 @@ VOID  __ram_statfs (PRAM_VOLUME  pramfs, struct statfs  *pstatfs)
     pstatfs->f_files  = 0;
     pstatfs->f_ffree  = 0;
     
+#if LW_CFG_CPU_WORD_LENGHT == 64
+    pstatfs->f_fsid.val[0] = (int32_t)((addr_t)pramfs >> 32);
+    pstatfs->f_fsid.val[1] = (int32_t)((addr_t)pramfs & 0xffffffff);
+#else
     pstatfs->f_fsid.val[0] = (int32_t)pramfs;
     pstatfs->f_fsid.val[1] = 0;
+#endif
     
     pstatfs->f_flag    = 0;
     pstatfs->f_namelen = PATH_MAX;

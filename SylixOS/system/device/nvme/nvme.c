@@ -305,18 +305,23 @@ static INT  __cmdIdAlloc (NVME_QUEUE_HANDLE      hNvmeQueue,
 
     NVME_QUEUE_LOCK(hNvmeQueue);
     
-    do {                                                                /*  从 ID 标签池中获取可用的标签*/
+    for (;;) {                                                          /*  从 ID 标签池中获取可用的标签*/
         LW_SPIN_LOCK_QUICK(&hNvmeQueue->NVMEQUEUE_QueueLock, &iregInterLevel);
         iCmdId = hNvmeQueue->NVMEQUEUE_uiNextTag;
         hNvmeQueue->NVMEQUEUE_uiNextTag++;
         if (hNvmeQueue->NVMEQUEUE_uiNextTag >= hNvmeQueue->NVMEQUEUE_usDepth) {
             hNvmeQueue->NVMEQUEUE_uiNextTag  = 0;
         }
-        LW_SPIN_UNLOCK_QUICK(&hNvmeQueue->NVMEQUEUE_QueueLock, iregInterLevel);
-    } while (generic_test_bit(iCmdId, hNvmeQueue->NVMEQUEUE_ulCmdIdData));
-    
-    generic_set_bit(iCmdId, hNvmeQueue->NVMEQUEUE_ulCmdIdData);
-    
+        if (!generic_test_bit(iCmdId, hNvmeQueue->NVMEQUEUE_ulCmdIdData)) {
+            generic_set_bit(iCmdId, hNvmeQueue->NVMEQUEUE_ulCmdIdData);
+            LW_SPIN_UNLOCK_QUICK(&hNvmeQueue->NVMEQUEUE_QueueLock, iregInterLevel);
+            break;
+        
+        } else {
+            LW_SPIN_UNLOCK_QUICK(&hNvmeQueue->NVMEQUEUE_QueueLock, iregInterLevel);
+        }
+    }
+
     NVME_QUEUE_UNLOCK(hNvmeQueue);
 
     /*

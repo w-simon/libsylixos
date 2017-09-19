@@ -715,8 +715,13 @@ static INT  _gpiofdIoctl (PLW_GPIOFD_FILE pgpiofdfil,
             pstatfsGet->f_files  = LW_CFG_MAX_GPIOS;
             pstatfsGet->f_ffree  = 0;
             
+#if LW_CFG_CPU_WORD_LENGHT == 64
+            pstatfsGet->f_fsid.val[0] = (int32_t)((addr_t)&_G_gpiofddev >> 32);
+            pstatfsGet->f_fsid.val[1] = (int32_t)((addr_t)&_G_gpiofddev & 0xffffffff);
+#else
             pstatfsGet->f_fsid.val[0] = (int32_t)&_G_gpiofddev;
             pstatfsGet->f_fsid.val[1] = 0;
+#endif
             
             pstatfsGet->f_flag    = 0;
             pstatfsGet->f_namelen = PATH_MAX;

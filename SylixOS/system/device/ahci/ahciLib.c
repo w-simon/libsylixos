@@ -149,32 +149,32 @@ static AHCI_DRIVE_WORK_MODE     _G_padwmAhciDriveWorkModeTable[] = {
 ** 函数名称: __ahciIdString
 ** 功能描述: 将 ID 值转换为字符串信息
 ** 输　入  : pusId      ID 参数
-**           pucBuff    字符串缓存
+**           pcBuff     字符串缓存
 **           uiLen      缓存大小
 ** 输　出  : 字符串信息
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static PUCHAR  __ahciIdString (const UINT16 *pusId, PUCHAR  pucBuff, UINT32  uiLen)
+static PCHAR  __ahciIdString (const UINT16 *pusId, PCHAR  pcBuff, UINT32  uiLen)
 {
     REGISTER INT    i;
-    UINT8           ucChar  = 0;                                        /* 字节数据                     */
-    INT             iOffset = 0;                                        /* 字偏移                       */
-    PUCHAR          pucString = pucBuff;                                /* 字符串缓冲区                 */
+    UINT8           ucChar   = 0;                                       /* 字节数据                     */
+    INT             iOffset  = 0;                                       /* 字偏移                       */
+    PCHAR           pcString = pcBuff;                                  /* 字符串缓冲区                 */
 
     /*
      *  将字数据转换为字符串数据
      */
     iOffset   = 0;
-    pucString = pucBuff;
+    pcString = pcBuff;
     for (i = 0; i < (uiLen - 1); ) {
         ucChar = (UINT8)(pusId[iOffset] >> 8);
-        *pucString = ucChar;
-        pucString += 1;
+        *pcString = ucChar;
+        pcString += 1;
 
         ucChar = (UINT8)(pusId[iOffset] & 0xff);
-        *pucString = ucChar;
-        pucString += 1;
+        *pcString = ucChar;
+        pcString += 1;
 
         iOffset += 1;
         i       += 2;
@@ -183,17 +183,110 @@ static PUCHAR  __ahciIdString (const UINT16 *pusId, PUCHAR  pucBuff, UINT32  uiL
     /*
      *  删除无效空格信息
      */
+    pcString = pcBuff + lib_strnlen(pcBuff, uiLen - 1);
+    while ((pcString > pcBuff) && (pcString[-1] == ' ')) {
+        pcString--;
+    }
+    *pcString = '\0';
+
     iOffset   = 0;
-    pucString = pucBuff;
+    pcString = pcBuff;
     for (i = 0; i < uiLen; i++) {
-        if (pucString[iOffset] == ' ') {
-            pucString += 1;
+        if (pcString[iOffset] == ' ') {
+            pcString += 1;
         } else {
             break;
         }
     }
 
-    return  (pucString);
+    return  (pcString);
+}
+/*********************************************************************************************************
+** 函数名称: API_AhciDriveSerialInfoGet
+** 功能描述: 序列号信息
+** 输　入  : hDrive     驱动器句柄
+**           pcBuf      缓冲区
+**           stLen      缓冲区大小
+** 输　出  : 字符串信息
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+PCHAR  API_AhciDriveSerialInfoGet (AHCI_DRIVE_HANDLE  hDrive, PCHAR  pcBuf, size_t  stLen)
+{
+    AHCI_PARAM_HANDLE   hParam;                                         /* 参数句柄                     */
+    PCHAR               pcSerial;                                       /* 设备串号                     */
+    CHAR                cSerial[21] = { 0 };                            /* 序列号缓冲区                 */
+
+    if ((!hDrive) || (!pcBuf)) {
+        return  (LW_NULL);
+    }
+
+    hParam = &hDrive->AHCIDRIVE_tParam;
+    lib_bzero(&cSerial[0], 21);
+    pcSerial = __ahciIdString((const UINT16 *)&hParam->AHCIPARAM_ucSerial[0], &cSerial[0], 21);
+    lib_strncpy(pcBuf, pcSerial, __MIN(stLen, lib_strlen(pcSerial) + 1));
+
+    return  (pcSerial);
+}
+/*********************************************************************************************************
+** 函数名称: API_AhciDriveFwRevInfoGet
+** 功能描述: 固件版本号信息
+** 输　入  : hDrive     驱动器句柄
+**           pcBuf      缓冲区
+**           stLen      缓冲区大小
+** 输　出  : 字符串信息
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+PCHAR  API_AhciDriveFwRevInfoGet (AHCI_DRIVE_HANDLE  hDrive, PCHAR  pcBuf, size_t  stLen)
+{
+    AHCI_PARAM_HANDLE   hParam;                                         /* 参数句柄                     */
+    PCHAR               pcFirmware;                                     /* 固件版本                     */
+    CHAR                cFirmware[9] = { 0 };                           /* 固件版本缓冲区               */
+
+    if ((!hDrive) || (!pcBuf)) {
+        return  (LW_NULL);
+    }
+
+    hParam = &hDrive->AHCIDRIVE_tParam;
+    lib_bzero(&cFirmware[0], 9);
+    pcFirmware =__ahciIdString((const UINT16 *)&hParam->AHCIPARAM_ucFwRev[0], &cFirmware[0], 9);
+    lib_strncpy(pcBuf, pcFirmware, __MIN(stLen, lib_strlen(pcFirmware) + 1));
+
+    return  (pcFirmware);
+}
+/*********************************************************************************************************
+** 函数名称: API_AhciDriveModelInfoGet
+** 功能描述: 设备详细信息
+** 输　入  : hDrive     驱动器句柄
+**           pcBuf      缓冲区
+**           stLen      缓冲区大小
+** 输　出  : 字符串信息
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+PCHAR  API_AhciDriveModelInfoGet (AHCI_DRIVE_HANDLE  hDrive, PCHAR  pcBuf, size_t  stLen)
+{
+    AHCI_PARAM_HANDLE   hParam;                                         /* 参数句柄                     */
+    PCHAR               pcProduct;                                      /* 产品信息                     */
+    CHAR                cProduct[41] = { 0 };                           /* 产品信息缓冲区               */
+
+    if ((!hDrive) || (!pcBuf)) {
+        return  (LW_NULL);
+    }
+
+    hParam = &hDrive->AHCIDRIVE_tParam;
+    lib_bzero(&cProduct[0], 41);
+    pcProduct = __ahciIdString((const UINT16 *)&hParam->AHCIPARAM_ucModel[0], &cProduct[0], 41);
+    lib_strncpy(pcBuf, pcProduct, __MIN(stLen, lib_strlen(pcProduct) + 1));
+
+    return  (pcProduct);
 }
 /*********************************************************************************************************
 ** 函数名称: API_AhciDriveSectorCountGet
@@ -273,12 +366,12 @@ INT  API_AhciDriveInfoShow (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, AHCI_PARAM_H
     AHCI_DRV_HANDLE     hDrv;                                           /* 驱动句柄                     */
     AHCI_DRIVE_HANDLE   hDrive = LW_NULL;                               /* 控制器句柄                   */
     AHCI_DEV_HANDLE     hDev = LW_NULL;                                 /* 设备句柄                     */
-    PUCHAR              pucSerial;                                      /* 设备串号                     */
-    PUCHAR              pucFirmware;                                    /* 固件版本                     */
-    PUCHAR              pucProduct;                                     /* 产品信息                     */
-    UINT8               ucSerial[21] = { 0 };                           /* 序列号缓冲区                 */
-    UINT8               ucFirmware[9] = { 0 };                          /* 固件版本缓冲区               */
-    UINT8               ucProduct[41] = { 0 };                          /* 产品信息缓冲区               */
+    PCHAR               pcSerial;                                       /* 设备串号                     */
+    PCHAR               pcFirmware;                                     /* 固件版本                     */
+    PCHAR               pcProduct;                                      /* 产品信息                     */
+    CHAR                cSerial[21] = { 0 };                            /* 序列号缓冲区                 */
+    CHAR                cFirmware[9] = { 0 };                           /* 固件版本缓冲区               */
+    CHAR                cProduct[41] = { 0 };                           /* 产品信息缓冲区               */
 
     if ((!hCtrl) || (!hParam)) {
         return  (PX_ERROR);
@@ -290,12 +383,12 @@ INT  API_AhciDriveInfoShow (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, AHCI_PARAM_H
     /*
      *  将参数信息转换为字符串信息
      */
-    lib_bzero(&ucSerial[0], 21);
-    pucSerial = __ahciIdString((const UINT16 *)&hParam->AHCIPARAM_ucSerial[0], (PUCHAR)&ucSerial[0], 21);
-    lib_bzero(&ucFirmware[0], 9);
-    pucFirmware =__ahciIdString((const UINT16 *)&hParam->AHCIPARAM_ucFwRev[0], (PUCHAR)&ucFirmware[0], 9);
-    lib_bzero(&ucProduct[0], 41);
-    pucProduct = __ahciIdString((const UINT16 *)&hParam->AHCIPARAM_ucModel[0], (PUCHAR)&ucProduct[0], 41);
+    lib_bzero(&cSerial[0], 21);
+    pcSerial = __ahciIdString((const UINT16 *)&hParam->AHCIPARAM_ucSerial[0], &cSerial[0], 21);
+    lib_bzero(&cFirmware[0], 9);
+    pcFirmware =__ahciIdString((const UINT16 *)&hParam->AHCIPARAM_ucFwRev[0], &cFirmware[0], 9);
+    lib_bzero(&cProduct[0], 41);
+    pcProduct = __ahciIdString((const UINT16 *)&hParam->AHCIPARAM_ucModel[0], &cProduct[0], 41);
 
     iRet = API_IoTaskStdGet(API_ThreadIdSelf(), STD_OUT);
     if (iRet < 0) {                                                     /* 标准输出无效                 */
@@ -354,9 +447,9 @@ INT  API_AhciDriveInfoShow (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, AHCI_PARAM_H
         printf("Cache Flush Enabled   : %s\n", "*");
     }
     printf("\n");
-    printf("S/N                   : %s\n", pucSerial);
-    printf("Firmware Version      : %s\n", pucFirmware);
-    printf("Product Model Number  : %s\n", pucProduct);
+    printf("S/N                   : %s\n", pcSerial);
+    printf("Firmware Version      : %s\n", pcFirmware);
+    printf("Product Model Number  : %s\n", pcProduct);
     printf("Device Type           : %s\n", hDrive->AHCIDRIVE_ucType == AHCI_TYPE_ATA ? "ATA" : "ATAPI");
     printf("Work Mode             : %s\n", API_AhciDriveWorkModeNameGet(hDrive->AHCIDRIVE_usRwMode));
     printf("TRIM Support          : %s\n", hDrive->AHCIDRIVE_bTrim == LW_TRUE ? "Enable" : "Disable");
@@ -1022,7 +1115,6 @@ INT  API_AhciCtrlImpPortGet (AHCI_CTRL_HANDLE  hCtrl)
     REGISTER INT    i;
     UINT32          uiReg;
 
-    hCtrl->AHCICTRL_uiRecvFisNum = AHCI_RCV_FIS_MAX;
     hCtrl->AHCICTRL_uiImpPortMap = 0;
     hCtrl->AHCICTRL_uiImpPortNum = 0;
     AHCI_CTRL_REG_MSG(hCtrl, AHCI_PI);
@@ -1032,7 +1124,6 @@ INT  API_AhciCtrlImpPortGet (AHCI_CTRL_HANDLE  hCtrl)
             hCtrl->AHCICTRL_uiImpPortMap |= 0x01 << i;
             hCtrl->AHCICTRL_uiImpPortNum += 1;
         }
-
         uiReg >>= 1;
     }
 

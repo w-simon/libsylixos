@@ -1329,9 +1329,14 @@ static INT  __tpsFsReadDir (PLW_FD_ENTRY  pfdentry, DIR  *dir)
     
     } else {
         bHash = (dir->dir_pos & 0x80000000) ? LW_TRUE : LW_FALSE;
+        
+#if LW_CFG_CPU_WORD_LENGHT == 64
+        off = (TPS_OFF_T)DIR_RESV_DATA_PV0(dir);
+#else
         off = (UINT)DIR_RESV_DATA_PV1(dir);
         off <<= 32;
         off += (UINT)DIR_RESV_DATA_PV0(dir);
+#endif
     }
 
     tpsFsReadDir(ptpsfile->TPSFIL_pinode, bHash, off, &pentry);
@@ -1356,8 +1361,12 @@ static INT  __tpsFsReadDir (PLW_FD_ENTRY  pfdentry, DIR  *dir)
         off = pentry->ENTRY_offset + pentry->ENTRY_uiLen;
     }
 
+#if LW_CFG_CPU_WORD_LENGHT == 64
+    DIR_RESV_DATA_PV0(dir) = (PVOID)off;
+#else
     DIR_RESV_DATA_PV0(dir) = (PVOID)(UINT)off;
     DIR_RESV_DATA_PV1(dir) = (PVOID)(UINT)(off >> 32);
+#endif
 
     dir->dir_dirent.d_type = IFTODT(tpsFsGetmod(pentry->ENTRY_pinode));
     dir->dir_dirent.d_shortname[0] = PX_EOS;

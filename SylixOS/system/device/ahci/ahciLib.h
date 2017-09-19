@@ -71,8 +71,13 @@
 /*********************************************************************************************************
   地址转换
 *********************************************************************************************************/
+#if LW_CFG_CPU_WORD_LENGHT == 32
 #define AHCI_ADDR_LOW32(x)                  ((UINT32)(x))
-#define AHCI_ADDR_HIGH32(x)                 (0)
+#define AHCI_ADDR_HIGH32(x)                 0
+#else
+#define AHCI_ADDR_LOW32(x)                  ((UINT32)(ULONG)(x))
+#define AHCI_ADDR_HIGH32(x)                 ((UINT32)((UINT64)(x) >> 32))
+#endif
 /*********************************************************************************************************
   版本字符串格式
 *********************************************************************************************************/
@@ -82,6 +87,13 @@
 /*********************************************************************************************************
   函数声明
 *********************************************************************************************************/
+LW_API PCHAR                API_AhciDriveSerialInfoGet(AHCI_DRIVE_HANDLE hDrive,
+                                                       PCHAR pcBuf, size_t stLen);
+LW_API PCHAR                API_AhciDriveFwRevInfoGet(AHCI_DRIVE_HANDLE hDrive,
+                                                      PCHAR pcBuf, size_t stLen);
+LW_API PCHAR                API_AhciDriveModelInfoGet(AHCI_DRIVE_HANDLE hDrive,
+                                                      PCHAR pcBuf, size_t stLen);
+
 LW_API UINT64               API_AhciDriveSectorCountGet(AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive);
 LW_API PCHAR                API_AhciDriveWorkModeNameGet(UINT  uiIndex);
 LW_API INT                  API_AhciDriveInfoShow(AHCI_CTRL_HANDLE   hCtrl,

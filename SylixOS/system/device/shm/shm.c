@@ -853,8 +853,13 @@ static INT  __shmStatfsGet (PLW_SHM_NODE  pshmn, struct statfs *pstatfs)
         pstatfs->f_files  = 0;
         pstatfs->f_ffree  = 0;
         
+#if LW_CFG_CPU_WORD_LENGHT == 64
+        pstatfs->f_fsid.val[0] = (int32_t)((addr_t)&_G_devhdrShm >> 32);
+        pstatfs->f_fsid.val[1] = (int32_t)((addr_t)&_G_devhdrShm & 0xffffffff);
+#else
         pstatfs->f_fsid.val[0] = (int32_t)&_G_devhdrShm;
         pstatfs->f_fsid.val[1] = 0;
+#endif
         
         pstatfs->f_flag    = 0;
         pstatfs->f_namelen = PATH_MAX;

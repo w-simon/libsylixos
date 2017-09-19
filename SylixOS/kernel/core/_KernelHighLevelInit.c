@@ -73,7 +73,7 @@ static VOID  _CreateIdleThread (VOID)
         CHAR    cIdle[LW_CFG_OBJECT_NAME_SIZE] = "t_idle";
         
         lib_itoa(i, &cIdle[6], 10);
-        API_ThreadAttrSetArg(&threadattr, (PVOID)i);
+        API_ThreadAttrSetArg(&threadattr, (PVOID)(ULONG)i);
         _K_ulIdleId[i] = API_ThreadInit(cIdle, _IdleThread, &threadattr, LW_NULL);
         _K_ptcbIdle[i] = _K_ptcbTCBIdTable[_ObjectGetIndex(_K_ulIdleId[i])];
         _K_ptcbIdle[i]->TCB_ucSchedPolicy = LW_OPTION_SCHED_FIFO;       /* idle 必须是 FIFO 调度器      */
