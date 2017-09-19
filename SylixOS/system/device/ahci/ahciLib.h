@@ -42,15 +42,6 @@
 #define AHCI_INT_LOG                        _DebugFormat
 #define AHCI_CMD_LOG                        _DebugFormat
 /*********************************************************************************************************
-  寄存器读写
-*********************************************************************************************************/
-#define AHCI_PCI_READ(dev, pos, len, data)  API_PciDevConfigRead(dev, pos, (UINT8 *)&data, len)
-#define AHCI_PCI_WRITE(dev, pos, len, data) do {                                                        \
-                                                UINT32  uiData;                                         \
-                                                uiData = data;                                          \
-                                                API_PciDevConfigWrite(dev, pos, (UINT8 *)&uiData, len); \
-                                            } while (0)
-/*********************************************************************************************************
   标记信息
 *********************************************************************************************************/
 #define AHCI_FLAG(x, y)                     ((x & y) ? '+' : '-')

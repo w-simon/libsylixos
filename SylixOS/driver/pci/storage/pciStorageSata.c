@@ -661,6 +661,24 @@ static INT  pciStorageSataCtrlOpt (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, INT  
         }
         break;
 
+    case AHCI_OPT_CMD_CTRL_ENDIAN_TYPE_GET:
+        if (lArg) {
+            *(INT *)lArg = (AHCI_CTRL_ENDIAN_TYPE);
+        }
+        break;
+
+    case AHCI_OPT_CMD_PORT_ENDIAN_TYPE_GET:
+        if (lArg) {
+            *(INT *)lArg = (AHCI_PORT_ENDIAN_TYPE);
+        }
+        break;
+
+    case AHCI_OPT_CMD_PARAM_ENDIAN_TYPE_GET:
+        if (lArg) {
+            *(INT *)lArg = (AHCI_PARAM_ENDIAN_TYPE);
+        }
+        break;
+
     default:
         return  (PX_ERROR);
     }
@@ -779,7 +797,7 @@ static PCHAR  pciStorageSataVendorCtrlTypeNameGet (AHCI_CTRL_HANDLE  hCtrl)
 
     hPciDev = (PCI_DEV_HANDLE)hCtrl->AHCICTRL_pvPciArg;                 /* 获取设备句柄                 */
 
-    AHCI_PCI_READ(hPciDev, PCI_CLASS_DEVICE, 2, usCap);
+    API_PciDevConfigReadWord(hPciDev, PCI_CLASS_DEVICE, &usCap);
     if (usCap == PCI_CLASS_STORAGE_IDE) {
         pcType = "IDE";
     } else if (usCap == PCI_CLASS_STORAGE_SATA) {
@@ -877,7 +895,7 @@ static INT  pciStorageSataVendorCtrlReadyWork (AHCI_CTRL_HANDLE  hCtrl)
 
     hPciDev = (PCI_DEV_HANDLE)hCtrl->AHCICTRL_pvPciArg;                 /* 获取设备句柄                 */
 
-    AHCI_PCI_READ(hPciDev, PCI_DEVICE_ID, 2, usPciDevId);
+    API_PciDevConfigReadWord(hPciDev, PCI_DEVICE_ID, &usPciDevId);
     AHCI_LOG(AHCI_LOG_PRT, "ctrl name %s index %d unit %d for pci dev %d:%d.%d dev id 0x%04x.\r\n",
              hCtrl->AHCICTRL_cCtrlName, hCtrl->AHCICTRL_uiIndex, hCtrl->AHCICTRL_uiUnitIndex,
              hPciDev->PCIDEV_iDevBus,
@@ -931,10 +949,10 @@ __intx_handle:
     hCtrl->AHCICTRL_ulIrqVector = (ULONG)PCI_RESOURCE_START(hResource);
 
 __msi_handlel:
-    AHCI_PCI_READ(hPciDev, PCI_STATUS, 2, usStatus);
-    AHCI_PCI_WRITE(hPciDev, PCI_STATUS, 2, usStatus);
-    AHCI_PCI_READ(hPciDev, PCI_COMMAND, 2, usCmd);
-    AHCI_PCI_WRITE(hPciDev, PCI_COMMAND, 2, usCmd | PCI_COMMAND_MEMORY | PCI_COMMAND_MASTER);
+    API_PciDevConfigReadWord(hPciDev,  PCI_STATUS,  &usStatus);
+    API_PciDevConfigWriteWord(hPciDev, PCI_STATUS,  usStatus);
+    API_PciDevConfigReadWord(hPciDev,  PCI_COMMAND, &usCmd);
+    API_PciDevConfigWriteWord(hPciDev, PCI_COMMAND, (usCmd | PCI_COMMAND_MEMORY | PCI_COMMAND_MASTER));
 
     return  (ERROR_NONE);
 }

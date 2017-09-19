@@ -332,7 +332,7 @@ static INT  pciStorageNvmeVendorCtrlReadyWork (NVME_CTRL_HANDLE  hCtrl, UINT uiI
 
     hPciDev = (PCI_DEV_HANDLE)hCtrl->NVMECTRL_pvArg;                    /* 获取设备句柄                 */
 
-    NVME_PCI_READ(hPciDev, PCI_DEVICE_ID, 2, usPciDevId);
+    API_PciDevConfigReadWord(hPciDev, PCI_DEVICE_ID, &usPciDevId);
     NVME_LOG(NVME_LOG_PRT, "ctrl name %s index %d unit %d for pci dev %d:%d.%d dev id 0x%04x.\r\n",
              hCtrl->NVMECTRL_cCtrlName, hCtrl->NVMECTRL_uiIndex, hCtrl->NVMECTRL_uiUnitIndex,
              hPciDev->PCIDEV_iDevBus,
