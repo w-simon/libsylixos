@@ -392,7 +392,14 @@ ULONG   bspMmuPteMaxNum(VOID);
 #if LW_CFG_SMP_EN > 0
 VOID    bspMpInt(ULONG  ulCPUId);
 VOID    bspCpuUp(ULONG  ulCPUId);                                       /*  启动一个 CPU                */
+
+#if LW_CFG_SMP_CPU_DOWN_EN > 0
 VOID    bspCpuDown(ULONG  ulCPUId);                                     /*  停止一个 CPU                */
+#endif
+
+#if LW_CFG_CPU_ARCH_SMT > 0
+ULONG   bspCpuLogic2Physical(ULONG  ulCPUId);
+#endif
 #endif                                                                  /*  LW_CFG_SMP_EN               */
 
 /*********************************************************************************************************

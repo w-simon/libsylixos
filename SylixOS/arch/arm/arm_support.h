@@ -487,6 +487,10 @@ VOID    bspCpuUp(ULONG  ulCPUId);                                       /*  Æô¶¯
 #if LW_CFG_SMP_CPU_DOWN_EN > 0
 VOID    bspCpuDown(ULONG  ulCPUId);                                     /*  Í£Ö¹Ò»¸ö CPU                */
 #endif                                                                  /*  LW_CFG_SMP_CPU_DOWN_EN > 0  */
+
+#if LW_CFG_CPU_ARCH_SMT > 0
+ULONG   bspCpuLogic2Physical(ULONG  ulCPUId);
+#endif
 #endif                                                                  /*  LW_CFG_SMP_EN               */
 
 /*********************************************************************************************************
