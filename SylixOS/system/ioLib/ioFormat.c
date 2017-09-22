@@ -58,7 +58,7 @@ INT  diskformat (CPCHAR  pcDevName)
         return  (PX_ERROR);
     }
     
-    iError = ioctl(iFd, FIODISKFORMAT);                                 /*  格式化文件                  */
+    iError = ioctl(iFd, FIODISKFORMAT, LW_OSIOD_LARG(0));               /*  格式化文件                  */
     if (iError < 0) {
         close(iFd);
         return  (PX_ERROR);
@@ -70,7 +70,7 @@ INT  diskformat (CPCHAR  pcDevName)
         return  (PX_ERROR);
     }
     
-    iError = ioctl(iFd, FIODISKINIT);                                   /*  重新初始化设备              */
+    iError = ioctl(iFd, FIODISKINIT, LW_OSIOD_LARG(0));                 /*  重新初始化设备              */
     if (iError < 0) {
         close(iFd);
         return  (PX_ERROR);
@@ -116,7 +116,7 @@ INT  diskinit (CPCHAR  pcDevName)
         return  (PX_ERROR);
     }
     
-    iError = ioctl(iFd, FIODISKINIT);                                   /*  重新初始化设备              */
+    iError = ioctl(iFd, FIODISKINIT, LW_OSIOD_LARG(0));                 /*  重新初始化设备              */
     if (iError < 0) {
         close(iFd);
         return  (PX_ERROR);

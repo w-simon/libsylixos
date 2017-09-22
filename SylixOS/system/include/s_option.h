@@ -47,6 +47,14 @@
 #define  LW_OSIOWR(g, n, t) n                                   /* 第三个参数为类型 t 指针的读写 ioctl  */
 
 /*********************************************************************************************************
+  ioctl parameter 注意凡是 LW_OSIOD(*, *, LONG) 或者 LW_OSIOD(*, *, ULONG) 第三个参数如果为立即数, 必须:
+  ioctl(fd, *, LW_OSIOD_LARG(integer))
+*********************************************************************************************************/
+
+#define  LW_OSIOD_LARG(x)   (LONG)(x)
+#define  LW_OSIOD_IARG(x)   (INT)(x)
+
+/*********************************************************************************************************
   path buffer
 *********************************************************************************************************/
 
@@ -60,12 +68,16 @@
 #define  FIOFLUSH           LW_OSIO( 'f', 2)                    /* flush any chars in buffers           */
 #define  FIOOPTIONS         LW_OSIOD('f', 3, INT)               /* set options (FIOSETOPTIONS)          */
 #define  FIOBAUDRATE        LW_OSIOD('f', 4, LONG)              /* set serial baud rate                 */
+
+#ifdef __SYLIXOS_KERNEL
 #define  FIODISKFORMAT      LW_OSIOD('f', 5, LONG)              /* format disk                          */
 #define  FIODISKINIT        LW_OSIOD('f', 6, LONG)              /* initialize disk directory            */
-#define  FIOSEEK            LW_OSIOW('f', 7, off_t)             /* set current file char position       */
-#define  FIOWHERE           LW_OSIOR('f', 8, off_t)             /* get current file char position       */
 #define  FIORENAME          LW_OSIOW('f', 10, LW_PATHB)         /* rename a directory entry             */
 #define  FIOMOVE            FIORENAME
+#endif
+
+#define  FIOSEEK            LW_OSIOW('f', 7, off_t)             /* set current file char position       */
+#define  FIOWHERE           LW_OSIOR('f', 8, off_t)             /* get current file char position       */
 #define  FIOREADYCHANGE     LW_OSIO( 'f', 11)                   /* return TRUE if there has been ready  */
 
 /*********************************************************************************************************

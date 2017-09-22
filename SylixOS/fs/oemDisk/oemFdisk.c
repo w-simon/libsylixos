@@ -22,6 +22,7 @@
 **
 ** BUG:
 2017.07.17  __oemFdisk() 加入对关键扇区的清除工作.
+2017.09.22  修正分区大小计算错误问题.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -68,8 +69,9 @@ static INT  __oemFdisk (INT                     iBlkFd,
     UINT8            *pucSecBuf, *pucFillBuf;
     UINT8            *pucPartEntry;
     BOOL              bMaster = LW_FALSE;
+    ULONG             ulLeftSec;
     UINT64            u64Temp;
-    UINT32            uiSecOff, uiPSecNext;
+    UINT32            uiPSecNext;
     UINT32            uiPStartSec[4], uiPNSec[4];
     
     UINT              uiHdStart,  uiHdEnd;
@@ -90,14 +92,14 @@ static INT  __oemFdisk (INT                     iBlkFd,
                (size_t)ulSecSize, (2050 * (off_t)ulSecSize));           /*  去掉 Linux 文件系统信息     */
     }
     
-    uiSecOff    = __DISK_PART_OFFSEC;                                   /*  2048 扇区                   */
-    ulTotalSec -= uiSecOff;                                             /*  有效的总扇区数              */
-    uiPSecNext  = uiSecOff;
+    ulTotalSec -= __DISK_PART_OFFSEC;                                   /*  有效的总扇区数              */
+    uiPSecNext  = __DISK_PART_OFFSEC;
+    ulLeftSec   = ulTotalSec;
     
     for (i = 0; i < uiNPart; i++) {                                     /*  确定分区 LBA 信息           */
         uiPStartSec[i] = uiPSecNext;
         if (fdpPart[i].FDP_ucSzPct == 0) {                              /*  剩下所有                    */
-            uiPNSec[i] = (UINT32)ulTotalSec;
+            uiPNSec[i] = (UINT32)ulLeftSec;
             break;
             
         } else {                                                        /*  按百分比分配                */
@@ -106,7 +108,7 @@ static INT  __oemFdisk (INT                     iBlkFd,
             uiPNSec[i] = (UINT32)u64Temp;
             uiPNSec[i] = ROUND_DOWN(uiPNSec[i], (stAlign / ulSecSize)); /*  对齐的扇区个数              */
             
-            ulTotalSec -= uiPNSec[i];
+            ulLeftSec  -= uiPNSec[i];
             uiPSecNext += uiPNSec[i];
         }
     }

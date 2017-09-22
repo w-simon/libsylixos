@@ -701,7 +701,7 @@ INT  fsync (INT  iFd)
 
     __THREAD_CANCEL_POINT();                                            /*  测试取消点                  */
 
-    iRet = ioctl(iFd, FIOSYNC, 0);
+    iRet = ioctl(iFd, FIOSYNC);
     
     return  (iRet);
 }
@@ -722,7 +722,7 @@ INT  fdatasync (INT  iFd)
     
     __THREAD_CANCEL_POINT();                                            /*  测试取消点                  */
     
-    iRet = ioctl(iFd, FIODATASYNC, 0);
+    iRet = ioctl(iFd, FIODATASYNC);
 
     return  (iRet);
 }

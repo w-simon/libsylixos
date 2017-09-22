@@ -151,6 +151,8 @@ VOID  ppcMmuHashPageTblFlagSet(addr_t  ulEffectiveAddr,
                                UINT32  uiPteValue1);
 VOID  ppcMmuHashPageTblPteMiss(addr_t  ulEffectiveAddr,
                                UINT32  uiPteValue1);
+VOID  ppcMmuHashPageTblPtePreLoad(addr_t  ulEffectiveAddr,
+                                  UINT32  uiPteValue1);
 
 #endif                                                                  /*  __ARCH_PPCMMUHASHTBL_H      */
 /*********************************************************************************************************

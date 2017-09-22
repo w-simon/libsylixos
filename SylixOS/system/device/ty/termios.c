@@ -210,7 +210,7 @@ int  tcdrain (int  fd)
 
     __THREAD_CANCEL_POINT();                                            /*  测试取消点                  */
 
-    iRet = ioctl(fd, FIOSYNC, 0);                                       /*  将所有数据同步输出          */
+    iRet = ioctl(fd, FIOSYNC);                                          /*  将所有数据同步输出          */
     
     return  (iRet);
 }

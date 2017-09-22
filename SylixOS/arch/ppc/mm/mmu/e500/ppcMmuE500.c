@@ -40,6 +40,8 @@ static BOOL                 _G_bHasHID1      = LW_FALSE;                /*  是否
   定义
 *********************************************************************************************************/
 #define MMU_MAS2_M          _G_bMas2MBit                                /*  是否多核一致性              */
+#define MMU_MAS4_X0D        0                                           /*  Implement depend page attr  */
+#define MMU_MAS4_X1D        0                                           /*  Implement depend page attr  */
 /*********************************************************************************************************
   外部接口声明
 *********************************************************************************************************/
@@ -132,6 +134,51 @@ VOID  archE500MmuInstructionTlbErrorHandle (addr_t  ulRetAddr)
 
     } else {
         archE500InstructionStorageExceptionHandle(ulRetAddr);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: ppcE500MmuDataTlbPreLoad
+** 功能描述: 数据访问 TLB 预加载
+** 输　入  : ulAddr        数据访问地址
+** 输　出  : ERROR CODE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  ppcE500MmuDataTlbPreLoad (addr_t  ulAddr)
+{
+    addr_t              uiEPN      = ulAddr >> LW_CFG_VMM_PAGE_SHIFT;
+    LW_PTE_TRANSENTRY  *p_pteentry = (LW_PTE_TRANSENTRY *)(_G_ulPTETable + \
+                                     uiEPN * sizeof(LW_PTE_TRANSENTRY));
+    LW_PTE_TRANSENTRY   pteentry   = *p_pteentry;
+    MAS2_REG            uiMAS2;
+
+    if (pteentry.MAS3_bValid) {
+        uiMAS2.MAS2_uiValue       = 0;
+        uiMAS2.MAS2_uiEPN         = uiEPN;
+        uiMAS2.MAS2_bX0           = MMU_MAS4_X0D;
+        uiMAS2.MAS2_bX1           = MMU_MAS4_X1D;
+        uiMAS2.MAS2_bWT           = pteentry.MAS3_bWT;
+        uiMAS2.MAS2_bUnCache      = pteentry.MAS3_bUnCache;
+        uiMAS2.MAS2_bMemCoh       = pteentry.MAS3_bMemCoh;
+        uiMAS2.MAS2_bGuarded      = LW_FALSE;
+        uiMAS2.MAS2_bLittleEndian = LW_FALSE;
+
+        ppcE500MmuSetMAS2(uiMAS2.MAS2_uiValue);
+        ppcE500MmuSetMAS3(pteentry.MAS3_uiValue);
+
+        if (_G_bHasMAS7) {
+            ppcE500MmuSetMAS7(0);
+        }
+
+        PPC_EXEC_INS("ISYNC");
+        PPC_EXEC_INS("SYNC");
+        PPC_EXEC_INS("TLBWE");
+        PPC_EXEC_INS("ISYNC");
+
+        return  (ERROR_NONE);
+
+    } else {
+        return  (PX_ERROR);
     }
 }
 /*********************************************************************************************************
@@ -361,8 +408,8 @@ static INT  ppcE500MmuGlobalInit (CPCHAR  pcMachineName)
     uiMAS4.MAS4_bTLBSELD  = 0;
     uiMAS4.MAS4_ucTIDSELD = 0;
     uiMAS4.MAS4_ucTSIZED  = MMU_TRANS_SZ_4K;
-    uiMAS4.MAS4_bX0D      = 0;
-    uiMAS4.MAS4_bX1D      = 0;
+    uiMAS4.MAS4_bX0D      = MMU_MAS4_X0D;
+    uiMAS4.MAS4_bX1D      = MMU_MAS4_X1D;
     uiMAS4.MAS4_bWD       = LW_FALSE;
     uiMAS4.MAS4_bID       = LW_TRUE;
     uiMAS4.MAS4_bMD       = LW_TRUE;

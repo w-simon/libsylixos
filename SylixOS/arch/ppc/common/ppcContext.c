@@ -191,7 +191,50 @@ ARCH_REG_CTX  *archTaskRegsGet (PLW_STACK  pstkTop, ARCH_REG_T *pregSp)
 *********************************************************************************************************/
 VOID  archTaskRegsSet (PLW_STACK  pstkTop, const ARCH_REG_CTX  *pregctx)
 {
-    *(ARCH_REG_CTX *)pstkTop = *pregctx;
+    ARCH_REG_CTX *pregDest = (ARCH_REG_CTX *)pstkTop;
+
+    pregDest->REG_uiR0   = pregctx->REG_uiR0;
+    /*
+     * R1(SP)不设置
+     */
+    pregDest->REG_uiR2   = pregctx->REG_uiR2;
+    pregDest->REG_uiR3   = pregctx->REG_uiR3;
+    pregDest->REG_uiR4   = pregctx->REG_uiR4;
+    pregDest->REG_uiR5   = pregctx->REG_uiR5;
+    pregDest->REG_uiR6   = pregctx->REG_uiR6;
+    pregDest->REG_uiR7   = pregctx->REG_uiR7;
+    pregDest->REG_uiR8   = pregctx->REG_uiR8;
+    pregDest->REG_uiR9   = pregctx->REG_uiR9;
+    pregDest->REG_uiR10  = pregctx->REG_uiR10;
+    pregDest->REG_uiR11  = pregctx->REG_uiR11;
+    pregDest->REG_uiR12  = pregctx->REG_uiR12;
+    pregDest->REG_uiR13  = pregctx->REG_uiR13;
+    pregDest->REG_uiR14  = pregctx->REG_uiR14;
+    pregDest->REG_uiR15  = pregctx->REG_uiR15;
+    pregDest->REG_uiR16  = pregctx->REG_uiR16;
+    pregDest->REG_uiR17  = pregctx->REG_uiR17;
+    pregDest->REG_uiR18  = pregctx->REG_uiR18;
+    pregDest->REG_uiR19  = pregctx->REG_uiR19;
+    pregDest->REG_uiR20  = pregctx->REG_uiR20;
+    pregDest->REG_uiR21  = pregctx->REG_uiR21;
+    pregDest->REG_uiR22  = pregctx->REG_uiR22;
+    pregDest->REG_uiR23  = pregctx->REG_uiR23;
+    pregDest->REG_uiR24  = pregctx->REG_uiR24;
+    pregDest->REG_uiR25  = pregctx->REG_uiR25;
+    pregDest->REG_uiR26  = pregctx->REG_uiR26;
+    pregDest->REG_uiR27  = pregctx->REG_uiR27;
+    pregDest->REG_uiR28  = pregctx->REG_uiR28;
+    pregDest->REG_uiR29  = pregctx->REG_uiR29;
+    pregDest->REG_uiR30  = pregctx->REG_uiR30;
+    /*
+     * R31(FP)不设置
+     */
+    pregDest->REG_uiSrr0 = pregctx->REG_uiSrr0;
+    pregDest->REG_uiSrr1 = pregctx->REG_uiSrr1;
+    pregDest->REG_uiCtr  = pregctx->REG_uiCtr;
+    pregDest->REG_uiXer  = pregctx->REG_uiXer;
+    pregDest->REG_uiCr   = pregctx->REG_uiCr;
+    pregDest->REG_uiLr   = pregctx->REG_uiLr;
 }
 /*********************************************************************************************************
 ** 函数名称: archTaskCtxShow

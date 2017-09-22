@@ -84,6 +84,7 @@
 2014.12.31  支持 ff10.c 文件系统.
 2016.09.18  支持 exFAT 文件系统格式.
 2017.04.27  fat 内部使用 O_RDWR 打开, 防止多重打开时内部权限判断错误.
+2017.09.22  格式化操作不使用 exFAT 系统, 防止 BIOS 兼容性问题.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -1512,12 +1513,12 @@ static INT  __fatFsFormat (PLW_FD_ENTRY  pfdentry, LONG  lArg)
         
         if (__blockIoDevIsLogic(pfatfile->FATFIL_pfatvol->FATVOL_iDrv)) {
             fresError = f_mkfs((BYTE)pfatfile->FATFIL_pfatvol->FATVOL_iDrv, 
-                               (BYTE)(FM_SFD | FM_ANY),
+                               (BYTE)(FM_SFD | FM_FAT | FM_FAT32),
                                (UINT16)ulClusterSize,
                                pvWork, _MAX_SS);                        /*  此磁盘为逻辑磁盘不需要分区表*/
         } else {
             fresError = f_mkfs((BYTE)pfatfile->FATFIL_pfatvol->FATVOL_iDrv, 
-                               (BYTE)(FM_ANY),
+                               (BYTE)(FM_FAT | FM_FAT32),
                                (UINT16)ulClusterSize, 
                                pvWork, _MAX_SS);                        /*  格式化带有分区表            */
         }

@@ -50,7 +50,7 @@ static INT  __blkRawReset (PLW_BLK_RAW  pblkraw)
         return  (ERROR_NONE);
     }
     
-    return  (ioctl(pblkraw->BLKRAW_iFd, LW_BLKD_CTRL_RESET, 0));
+    return  (ioctl(pblkraw->BLKRAW_iFd, LW_BLKD_CTRL_RESET));
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: __blkRawStatus

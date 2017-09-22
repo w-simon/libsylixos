@@ -279,6 +279,7 @@ static PTE  *ppcHashPageTblSearchEliminatePte (PTEG  *pPrimPteg,
 **           uiPteValue1           PTE 值1
 **           uiAPI                 API
 **           uiVSID                VSID
+**           bR                    Referenced bit
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
@@ -288,14 +289,19 @@ static VOID  ppcHashPageTblPteAdd (PTE    *pPte,
                                    UINT32  uiPteValue1,
                                    BOOL    bIsPrimary,
                                    UINT32  uiAPI,
-                                   UINT32  uiVSID)
+                                   UINT32  uiVSID,
+                                   BOOL    bR)
 {
     PTE     pteTemp;
+
+    pteTemp.words.PTE_uiWord0 = 0;
+    pteTemp.words.PTE_uiWord1 = 0;
 
     pteTemp.field.PTE_uiVSID  = uiVSID;
     pteTemp.field.PTE_bH      = !bIsPrimary;
     pteTemp.field.PTE_ucAPI   = uiAPI;
     pteTemp.field.PTE_bV      = 1;
+    pteTemp.field.PTE_bR      = bR;
     ppcHashPageTblPteSet(pPte,
                          pteTemp.words.PTE_uiWord0,
                          uiPteValue1,
@@ -418,7 +424,8 @@ VOID  ppcMmuHashPageTblMakeTrans (addr_t  ulEffectiveAddr,
                                      uiPteValue1,
                                      bIsPrimary,
                                      uiAPI,
-                                     uiVSID);
+                                     uiVSID,
+                                     LW_FALSE);
             } else {
                 /*
                  * 没有无效的 PTE，外部会无效 TLB，不作强制淘汰 PTE，让其产生 MISS
@@ -573,7 +580,92 @@ VOID  ppcMmuHashPageTblPteMiss (addr_t  ulEffectiveAddr,
                          uiPteValue1,
                          bIsPrimary,
                          uiAPI,
-                         uiVSID);
+                         uiVSID,
+                         LW_FALSE);
+
+    LW_SPIN_UNLOCK_QUICK(&_G_slHashPageTblLock, iregInterLevel);
+}
+/*********************************************************************************************************
+** 函数名称: ppcMmuHashPageTblPtePreLoad
+** 功能描述: PTE 预加载
+** 输　入  : ulEffectiveAddr       有效地址
+**           uiPteValue1           PTE 值1
+** 输　出  : ERROR CODE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  ppcMmuHashPageTblPtePreLoad (addr_t  ulEffectiveAddr,
+                                   UINT32  uiPteValue1)
+{
+    INTREG  iregInterLevel;
+    PTEG   *pPrimPteg;
+    PTEG   *pSecPteg;
+    PTE    *pPte;
+    BOOL    bIsPrimary = LW_TRUE;
+    EA      effectiveAddr;
+    UINT32  uiAPI;
+    UINT32  uiVSID;
+
+    effectiveAddr.EA_uiValue = ulEffectiveAddr;
+    ppcMmuPtegAddrGet(effectiveAddr,
+                      &pPrimPteg,
+                      &pSecPteg,
+                      &uiAPI,
+                      &uiVSID);
+
+    LW_SPIN_LOCK_QUICK(&_G_slHashPageTblLock, &iregInterLevel);
+
+    /*
+     * 搜索 EA 的 PTE
+     */
+    pPte = ppcHashPageTblSearchPteByEA(pPrimPteg,
+                                       effectiveAddr,
+                                       uiAPI,
+                                       uiVSID);
+    if (!pPte) {
+        pPte = ppcHashPageTblSearchPteByEA(pSecPteg,
+                                           effectiveAddr,
+                                           uiAPI,
+                                           uiVSID);
+    }
+
+    if (!pPte) {
+        /*
+         * 搜索一个无效的 PTE
+         */
+        pPte = ppcHashPageTblSearchInvalidPte(pPrimPteg);
+        if (!pPte) {
+            pPte = ppcHashPageTblSearchInvalidPte(pSecPteg);
+            if (pPte) {
+                bIsPrimary = LW_FALSE;
+            }
+        }
+
+        if (!pPte) {
+            /*
+             * 强制淘汰一个 PTE
+             */
+            pPte = ppcHashPageTblSearchEliminatePte(pPrimPteg,
+                                                    pSecPteg,
+                                                    &bIsPrimary);
+
+            /*
+             * 这里并不无效被淘汰的 PTE 对应的 TLB
+             * See << programming_environment_manual >> Figure 7-17 and Figure 7-26
+             */
+        }
+
+        /*
+         * 增加一个 PTE
+         */
+        ppcHashPageTblPteAdd(pPte,
+                             effectiveAddr,
+                             uiPteValue1,
+                             bIsPrimary,
+                             uiAPI,
+                             uiVSID,
+                             LW_TRUE);                                  /*  避免立即被淘汰              */
+    }
 
     LW_SPIN_UNLOCK_QUICK(&_G_slHashPageTblLock, iregInterLevel);
 }

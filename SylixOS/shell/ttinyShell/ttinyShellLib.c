@@ -1188,14 +1188,15 @@ __reauthen:
     }
     
     iRetValue = ioctl(iTtyFd, FIORBUFSET, 
-                      LW_CFG_SHELL_MAX_COMMANDLEN + 2);                 /*  设置接收缓冲区大小          */
+                      LW_OSIOD_LARG(LW_CFG_SHELL_MAX_COMMANDLEN + 2));  /*  设置接收缓冲区大小          */
                                                                         /*  为 ty 计数器保留 2 字节空间 */
     if (iRetValue < 0) {
         perror("shell can not change set read buffer size");
         exit(-1);
     }
     
-    iRetValue = ioctl(iTtyFd, FIOWBUFSET, LW_CFG_SHELL_MAX_COMMANDLEN); /*  设置发送缓冲                */
+    iRetValue = ioctl(iTtyFd, FIOWBUFSET, 
+                      LW_OSIOD_LARG(LW_CFG_SHELL_MAX_COMMANDLEN));      /*  设置发送缓冲                */
     if (iRetValue < 0) {
         perror("shell can not change set write buffer size");
         exit(-1);

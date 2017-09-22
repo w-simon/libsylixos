@@ -53,6 +53,10 @@ VOID  archDbgBpInsert (addr_t  ulAddr, size_t  stSize, ULONG  *pulIns, BOOL  bLo
 {
     ULONG ulIns = PPC_BREAKPOINT_INS;
 
+#if LW_CFG_VMM_EN > 0
+    archMmuDataTlbPreLoad(ulAddr);
+#endif
+
     lib_memcpy((PCHAR)pulIns, (PCHAR)ulAddr, stSize);                   /*  memcpy ±ÜÃâ ppc ¶ÔÆëÎÊÌâ    */
     lib_memcpy((PCHAR)ulAddr, (PCHAR)&ulIns, stSize);
     KN_SMP_MB();
@@ -77,6 +81,10 @@ VOID  archDbgBpInsert (addr_t  ulAddr, size_t  stSize, ULONG  *pulIns, BOOL  bLo
 *********************************************************************************************************/
 VOID  archDbgAbInsert (addr_t  ulAddr, ULONG  *pulIns)
 {
+#if LW_CFG_VMM_EN > 0
+    archMmuDataTlbPreLoad(ulAddr);
+#endif
+
     *pulIns = *(ULONG *)ulAddr;
     *(ULONG *)ulAddr = PPC_ABORTPOINT_INS;
     KN_SMP_MB();
@@ -98,6 +106,10 @@ VOID  archDbgAbInsert (addr_t  ulAddr, ULONG  *pulIns)
 *********************************************************************************************************/
 VOID  archDbgBpRemove (addr_t  ulAddr, size_t  stSize, ULONG  ulIns, BOOL  bLocal)
 {
+#if LW_CFG_VMM_EN > 0
+    archMmuDataTlbPreLoad(ulAddr);
+#endif
+
     lib_memcpy((PCHAR)ulAddr, (PCHAR)&ulIns, stSize);
     KN_SMP_MB();
     

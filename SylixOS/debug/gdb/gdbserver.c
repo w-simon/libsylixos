@@ -336,7 +336,7 @@ static INT gdbSerialInit (LW_GDB_PARAM *pparam, CPCHAR pcSerial)
 #define SERIAL_PARAM    "115200,n,8,1"
 #define SERIAL_BAUD     SIO_BAUD_115200
 #define SERIAL_HWOPT    (CLOCAL | CREAD | CS8 | HUPCL)
-#define SERIAL_BSIZE    1024
+#define SERIAL_BSIZE    LW_OSIOD_LARG(1024)
 
     INT  iFd;
     

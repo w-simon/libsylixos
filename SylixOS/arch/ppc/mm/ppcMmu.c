@@ -27,11 +27,13 @@
 #include "mmu/common/ppcMmu.h"
 #include "mmu/e500/ppcMmuE500.h"
 /*********************************************************************************************************
-** 函数名称: archCacheInit
-** 功能描述: 初始化 CACHE 
-** 输　入  : uiInstruction  指令 CACHE 参数
-**           uiData         数据 CACHE 参数
-**           pcMachineName  机器名称
+  MMU 数据 TLB 预加载驱动函数
+*********************************************************************************************************/
+static  INT  (*_G_pfuncMmuDataTlbPreLoad)(addr_t  ulAddr) = LW_NULL;
+/*********************************************************************************************************
+** 函数名称: archMmuInit
+** 功能描述: 初始化 MMU
+** 输　入  : pcMachineName  机器名称
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
@@ -52,6 +54,7 @@ VOID  archMmuInit (CPCHAR  pcMachineName)
         (lib_strcmp(pcMachineName, PPC_MACHINE_E300)    == 0) ||
         (lib_strcmp(pcMachineName, PPC_MACHINE_E600)    == 0)) {
         ppcMmuInit(pmmuop, pcMachineName);
+        _G_pfuncMmuDataTlbPreLoad = ppcMmuPtePreLoad;
 
     } else if ((lib_strcmp(pcMachineName, PPC_MACHINE_E500)   == 0) ||
                (lib_strcmp(pcMachineName, PPC_MACHINE_E500V1) == 0) ||
@@ -60,9 +63,26 @@ VOID  archMmuInit (CPCHAR  pcMachineName)
                (lib_strcmp(pcMachineName, PPC_MACHINE_E5500)  == 0) ||
                (lib_strcmp(pcMachineName, PPC_MACHINE_E6500)  == 0)) {
         ppcE500MmuInit(pmmuop, pcMachineName);
+        _G_pfuncMmuDataTlbPreLoad = ppcE500MmuDataTlbPreLoad;
 
     } else {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown machine name.\r\n");
+    }
+}
+/*********************************************************************************************************
+** 函数名称: archMmuDataTlbPreLoad
+** 功能描述: MMU 数据 TLB 预加载
+** 输　入  : ulAddr        访问地址
+** 输　出  : ERROR CODE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  archMmuDataTlbPreLoad (addr_t  ulAddr)
+{
+    if (_G_pfuncMmuDataTlbPreLoad) {
+        return  (_G_pfuncMmuDataTlbPreLoad(ulAddr));
+    } else {
+        return  (PX_ERROR);
     }
 }
 

@@ -716,16 +716,16 @@ static VOID  ppcMmuInvTLB (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulPageAddr, ULONG  
 *********************************************************************************************************/
 ULONG  ppcMmuPteMissHandle (addr_t  ulAddr)
 {
-    ULONG   ulCPUId = LW_CPU_GET_CUR_ID();
+    ULONG               ulCPUId = LW_CPU_GET_CUR_ID();
+    LW_PGD_TRANSENTRY  *p_pgdentry;
+    INT                 iDescType;
 
     if (!_G_pMmuContext[ulCPUId]) {
         return  (LW_VMM_ABORT_TYPE_MAP);
     }
 
-    LW_PGD_TRANSENTRY  *p_pgdentry = ppcMmuPgdOffset(_G_pMmuContext[ulCPUId], ulAddr);
-    INT                 iDescType;
-
-    iDescType = (*p_pgdentry) & 0x03;                                   /*  获得一级页表类型            */
+    p_pgdentry = ppcMmuPgdOffset(_G_pMmuContext[ulCPUId], ulAddr);
+    iDescType  = (*p_pgdentry) & 0x03;                                  /*  获得一级页表类型            */
     if (iDescType == COARSE_TBASE) {                                    /*  基于粗粒度二级页表映射      */
         LW_PTE_TRANSENTRY  *p_pteentry = ppcMmuPteOffset((LW_PMD_TRANSENTRY *)p_pgdentry, ulAddr);
 
@@ -738,6 +738,40 @@ ULONG  ppcMmuPteMissHandle (addr_t  ulAddr)
         }
     } else {
         return  (LW_VMM_ABORT_TYPE_MAP);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: ppcMmuPtePreLoad
+** 功能描述: PTE 预加载
+** 输　入  : ulAddr        数据访问地址
+** 输　出  : ERROR CODE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  ppcMmuPtePreLoad (addr_t  ulAddr)
+{
+    ULONG               ulCPUId = LW_CPU_GET_CUR_ID();
+    LW_PGD_TRANSENTRY  *p_pgdentry;
+    INT                 iDescType;
+
+    if (!_G_pMmuContext[ulCPUId]) {
+        return  (PX_ERROR);
+    }
+
+    p_pgdentry = ppcMmuPgdOffset(_G_pMmuContext[ulCPUId], ulAddr);
+    iDescType  = (*p_pgdentry) & 0x03;                                  /*  获得一级页表类型            */
+    if (iDescType == COARSE_TBASE) {                                    /*  基于粗粒度二级页表映射      */
+        LW_PTE_TRANSENTRY  *p_pteentry = ppcMmuPteOffset((LW_PMD_TRANSENTRY *)p_pgdentry, ulAddr);
+
+        if (ppcMmuPteIsOk(*p_pteentry)) {
+            ppcMmuHashPageTblPtePreLoad(ulAddr, p_pteentry->PTE_uiValue);
+            return  (ERROR_NONE);
+
+        } else {
+            return  (PX_ERROR);
+        }
+    } else {
+        return  (PX_ERROR);
     }
 }
 /*********************************************************************************************************

@@ -43,6 +43,9 @@ HISTORY
 
 ++ Bugfixes:
 
+    2017-09-22: han.hui
+    修正分区工具的分区大小计算错误.
+
     2017-08-31: han.hui
     修正 PowerPC E500 MMU 地址长度错误.
 

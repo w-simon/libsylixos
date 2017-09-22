@@ -180,11 +180,14 @@ static INT   ppcE500CacheProbe (CPCHAR  pcMachineName, PPC_CACHE  *pICache, PPC_
             /*
              * SMP 机器, 以下 CACHE 操作均为空操作
              */
-            _G_ppcE500CacheDriver.L1CD_pfuncDCacheDisable    = ppcE500CacheNoop;
-            _G_ppcE500CacheDriver.L1CD_pfuncICacheDisable    = ppcE500CacheNoop;
-            _G_ppcE500CacheDriver.L1CD_pfuncDCacheClear      = (VOID (*)(PVOID, PVOID, UINT32))ppcE500CacheNoop;
-            _G_ppcE500CacheDriver.L1CD_pfuncDCacheInvalidate = (VOID (*)(PVOID, PVOID, UINT32))ppcE500CacheNoop;
-            _G_ppcE500CacheDriver.L1CD_pfuncICacheInvalidate = (VOID (*)(PVOID, PVOID, UINT32))ppcE500CacheNoop;
+            _G_ppcE500CacheDriver.L1CD_pfuncDCacheDisable       = ppcE500CacheNoop;
+            _G_ppcE500CacheDriver.L1CD_pfuncICacheDisable       = ppcE500CacheNoop;
+            _G_ppcE500CacheDriver.L1CD_pfuncDCacheClearAll      = LW_NULL;
+            _G_ppcE500CacheDriver.L1CD_pfuncDCacheFlushAll      = LW_NULL;
+            _G_ppcE500CacheDriver.L1CD_pfuncICacheInvalidateAll = LW_NULL;
+            _G_ppcE500CacheDriver.L1CD_pfuncDCacheClear         = (VOID (*)(PVOID, PVOID, UINT32))ppcE500CacheNoop;
+            _G_ppcE500CacheDriver.L1CD_pfuncDCacheInvalidate    = (VOID (*)(PVOID, PVOID, UINT32))ppcE500CacheNoop;
+            _G_ppcE500CacheDriver.L1CD_pfuncICacheInvalidate    = (VOID (*)(PVOID, PVOID, UINT32))ppcE500CacheNoop;
         }
 
         return  (ERROR_NONE);

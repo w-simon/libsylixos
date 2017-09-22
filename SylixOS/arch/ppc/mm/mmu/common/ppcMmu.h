@@ -25,6 +25,7 @@
 VOID   ppcMmuInit(LW_MMU_OP *pmmuop, CPCHAR  pcMachineName);
 
 ULONG  ppcMmuPteMissHandle(addr_t  ulAddr);
+INT    ppcMmuPtePreLoad(addr_t  ulAddr);
 
 UINT32 ppcMmuGetSRR1(VOID);
 UINT32 ppcMmuGetDSISR(VOID);

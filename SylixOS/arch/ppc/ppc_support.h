@@ -168,6 +168,7 @@ VOID    archCacheInit(CACHE_MODE  uiInstruction, CACHE_MODE  uiData, CPCHAR  pcM
 
 #if LW_CFG_VMM_EN > 0
 VOID    archMmuInit(CPCHAR  pcMachineName);
+INT     archMmuDataTlbPreLoad(addr_t  ulAddr);
 
 #define __ARCH_MMU_INIT     archMmuInit
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */

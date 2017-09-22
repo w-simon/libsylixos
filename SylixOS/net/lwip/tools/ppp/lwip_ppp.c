@@ -360,8 +360,8 @@ INT  API_PppOsCreate (CPCHAR  pcSerial, LW_PPP_TTY  *ptty, PCHAR  pcIfName, size
     ioctl(iFd, FIOSETOPTIONS, OPT_RAW);
     ioctl(iFd, FIORTIMEOUT,   LW_NULL);
     ioctl(iFd, FIOWTIMEOUT,   LW_NULL);
-    ioctl(iFd, FIORBUFSET,    PPPRBUF_SIZE);
-    ioctl(iFd, FIOWBUFSET,    PPPWBUF_SIZE);
+    ioctl(iFd, FIORBUFSET,    LW_OSIOD_LARG(PPPRBUF_SIZE));
+    ioctl(iFd, FIOWBUFSET,    LW_OSIOD_LARG(PPPWBUF_SIZE));
 
     if (ptty) {                                                         /*  设置串口参数                */
         INT  iHwOpt = CREAD | CS8 | HUPCL;
@@ -374,7 +374,7 @@ INT  API_PppOsCreate (CPCHAR  pcSerial, LW_PPP_TTY  *ptty, PCHAR  pcIfName, size
                 iHwOpt |= PARODD;
             }
         }
-        ioctl(iFd, FIOBAUDRATE,     ptty->baud);
+        ioctl(iFd, FIOBAUDRATE,     LW_OSIOD_LARG(ptty->baud));
         ioctl(iFd, SIO_HW_OPTS_SET, iHwOpt);
     }
     __KERNEL_SPACE_EXIT();

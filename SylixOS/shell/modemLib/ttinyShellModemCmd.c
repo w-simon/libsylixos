@@ -87,7 +87,7 @@ static VOID  __tshellXmodemCleanup (INT  iFile)
     ioctl(STD_IN, FIOSETOPTIONS, OPT_TERMINAL);
     ioctl(STD_OUT, FIOSETOPTIONS, OPT_TERMINAL);
     
-    ioctl(STD_IN, FIORFLUSH, 0);                                        /*  清除读缓冲数据              */
+    ioctl(STD_IN, FIORFLUSH);                                           /*  清除读缓冲数据              */
 }
 /*********************************************************************************************************
 ** 函数名称: __tshellFsCmdXmodems

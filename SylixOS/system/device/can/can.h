@@ -92,7 +92,7 @@
         canfile = open("/dev/can0", O_RDWR);
         
         ioctl(canfile, CAN_DEV_SET_MODE, 1);
-        ioctl(canfile, CAN_DEV_SET_BAUD, *);
+        ioctl(canfile, CAN_DEV_SET_BAUD, LW_OSIOD_LARG(*));
         ioctl(canfile, CAN_DEV_STARTUP);
         
         size      = read(canfile, canframe, 10 * sizeof(CAN_FRAME));
@@ -134,7 +134,7 @@ typedef CAN_FRAME      *PCAN_FRAME;                                     /*  CAN 
         canfile = open("/dev/can0", O_RDWR);
 
         ioctl(canfile, CAN_DEV_SET_MODE, 1);
-        ioctl(canfile, CAN_DEV_SET_BAUD, *);
+        ioctl(canfile, CAN_DEV_SET_BAUD, LW_OSIOD_LARG(*));
         ioctl(canfile, CAN_FIO_CAN_FD, CAN_STD_CAN_FD); // must call this before read() write()
         ioctl(canfile, CAN_DEV_STARTUP);
 

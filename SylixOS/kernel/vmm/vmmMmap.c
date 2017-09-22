@@ -986,7 +986,7 @@ INT  API_VmmMsync (PVOID  pvAddr, size_t  stLen, INT  iInval)
             }
         }
         
-        ioctl(pmapn->MAPN_iFd, FIOSYNC, 0);
+        ioctl(pmapn->MAPN_iFd, FIOSYNC);
     }
     
     MONITOR_EVT_LONG3(MONITOR_EVENT_ID_VMM, MONITOR_EVENT_VMM_MSYNC,

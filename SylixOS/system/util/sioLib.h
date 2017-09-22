@@ -40,8 +40,8 @@
   These are used to communicate open/close between layers
 *********************************************************************************************************/
 
-#define SIO_OPEN                              LW_OSIO('s', 0x100A)
-#define SIO_HUP                               LW_OSIO('s', 0x100B)
+#define SIO_OPEN                              LW_OSIO('s', 0x100a)
+#define SIO_HUP                               LW_OSIO('s', 0x100b)
 
 /*********************************************************************************************************
   The ioctl commands listed below provide a way for reading and
@@ -54,10 +54,10 @@
   * SIO_MCTRL_OSIG_MASK: returns mask of all output(writable) modem signals.
 *********************************************************************************************************/
 
-#define SIO_MSTAT_GET                         LW_OSIO( 's', 0x100C)     /* get modem status lines       */
-#define SIO_MCTRL_BITS_SET                    LW_OSIOD('s', 0x100D, INT)/* set selected modem lines     */
-#define SIO_MCTRL_BITS_CLR                    LW_OSIOD('s', 0x100E, INT)/* clear selected modem lines   */
-#define SIO_MCTRL_ISIG_MASK                   LW_OSIOR('s', 0x100F, INT)/* mask of lines that can be rd */
+#define SIO_MSTAT_GET                         LW_OSIO( 's', 0x100c)     /* get modem status lines       */
+#define SIO_MCTRL_BITS_SET                    LW_OSIOD('s', 0x100d, INT)/* set selected modem lines     */
+#define SIO_MCTRL_BITS_CLR                    LW_OSIOD('s', 0x100e, INT)/* clear selected modem lines   */
+#define SIO_MCTRL_ISIG_MASK                   LW_OSIOR('s', 0x100f, INT)/* mask of lines that can be rd */
 #define SIO_MCTRL_OSIG_MASK                   LW_OSIOR('s', 0x1010, INT)/* mask of lines that can be set*/
 
 /*********************************************************************************************************
@@ -89,10 +89,10 @@
   *    multiple languages support.
 *********************************************************************************************************/
 
-#define SIO_KYBD_MODE_SYLIXOS                      0
-#define SIO_KYBD_MODE_RAW                          1
-#define SIO_KYBD_MODE_ASCII                        2
-#define SIO_KYBD_MODE_UNICODE                      3
+#define SIO_KYBD_MODE_SYLIXOS                 0
+#define SIO_KYBD_MODE_RAW                     1
+#define SIO_KYBD_MODE_ASCII                   2
+#define SIO_KYBD_MODE_UNICODE                 3
 
 /*********************************************************************************************************
   Ioctl cmds for reading/setting keyboard led state
@@ -117,77 +117,77 @@
   *    Sets the Scroll Lock LED on the keyboard - bit 4
 *********************************************************************************************************/
 
-#define SIO_KYBD_LED_NUM                        1
-#define SIO_KYBD_LED_CAP                        2
-#define SIO_KYBD_LED_SCR                        4
+#define SIO_KYBD_LED_NUM                      1
+#define SIO_KYBD_LED_CAP                      2
+#define SIO_KYBD_LED_SCR                      4
 
 /*********************************************************************************************************
   callback type codes
 *********************************************************************************************************/
 
-#define SIO_CALLBACK_GET_TX_CHAR                1
-#define SIO_CALLBACK_PUT_RCV_CHAR               2
-#define SIO_CALLBACK_ERROR                      3
+#define SIO_CALLBACK_GET_TX_CHAR              1
+#define SIO_CALLBACK_PUT_RCV_CHAR             2
+#define SIO_CALLBACK_ERROR                    3
 
 /*********************************************************************************************************
   Error code
 *********************************************************************************************************/
 
-#define SIO_ERROR_NONE                          (-1)
-#define SIO_ERROR_FRAMING                         0
-#define SIO_ERROR_PARITY                          1
-#define SIO_ERROR_OFLOW                           2
-#define SIO_ERROR_UFLOW                           3
-#define SIO_ERROR_CONNECT                         4
-#define SIO_ERROR_DISCONNECT                      5
-#define SIO_ERROR_NO_CLK                          6
-#define SIO_ERROR_UNKNWN                          7
+#define SIO_ERROR_NONE                        (-1)
+#define SIO_ERROR_FRAMING                     0
+#define SIO_ERROR_PARITY                      1
+#define SIO_ERROR_OFLOW                       2
+#define SIO_ERROR_UFLOW                       3
+#define SIO_ERROR_CONNECT                     4
+#define SIO_ERROR_DISCONNECT                  5
+#define SIO_ERROR_NO_CLK                      6
+#define SIO_ERROR_UNKNWN                      7
 
 /*********************************************************************************************************
   options to SIO_MODE_SET
 *********************************************************************************************************/
 
-#define	SIO_MODE_POLL                             1
-#define	SIO_MODE_INT                              2
+#define	SIO_MODE_POLL                         1
+#define	SIO_MODE_INT                          2
 
 /*********************************************************************************************************
   options to SIOBAUDSET
 *********************************************************************************************************/
 
-#define SIO_BAUD_110                            110
-#define SIO_BAUD_300                            300
-#define SIO_BAUD_600                            600
-#define SIO_BAUD_1200                          1200
-#define SIO_BAUD_2400                          2400
-#define SIO_BAUD_4800                          4800
-#define SIO_BAUD_9600                          9600
-#define SIO_BAUD_14400                        14400
-#define SIO_BAUD_19200                        19200
-#define SIO_BAUD_38400                        38400
-#define SIO_BAUD_56000                        56000
-#define SIO_BAUD_57600                        57600
-#define SIO_BAUD_115200                      115200
-#define SIO_BAUD_128000                      128000
-#define SIO_BAUD_256000                      256000
+#define SIO_BAUD_110                          110l
+#define SIO_BAUD_300                          300l
+#define SIO_BAUD_600                          600l
+#define SIO_BAUD_1200                         1200l
+#define SIO_BAUD_2400                         2400l
+#define SIO_BAUD_4800                         4800l
+#define SIO_BAUD_9600                         9600l
+#define SIO_BAUD_14400                        14400l
+#define SIO_BAUD_19200                        19200l
+#define SIO_BAUD_38400                        38400l
+#define SIO_BAUD_56000                        56000l
+#define SIO_BAUD_57600                        57600l
+#define SIO_BAUD_115200                       115200l
+#define SIO_BAUD_128000                       128000l
+#define SIO_BAUD_256000                       256000l
 
 /*********************************************************************************************************
   options to SIO_HW_OPTS_SET (ala POSIX), bitwise or'ed together
 *********************************************************************************************************/
 
-#define CLOCAL                                  0x1                     /* ignore modem status lines    */
-#define CREAD                                   0x2                     /* enable device reciever       */
+#define CLOCAL                                0x1                       /* ignore modem status lines    */
+#define CREAD                                 0x2                       /* enable device reciever       */
 
-#define CSIZE                                   0xc                     /* CSxx mask                    */
-#define CS5                                     0x0                     /* 5 bits                       */
-#define CS6                                     0x4                     /* 6 bits                       */
-#define CS7                                     0x8                     /* 7 bits                       */
-#define CS8                                     0xc                     /* 8 bits                       */
+#define CSIZE                                 0xc                       /* CSxx mask                    */
+#define CS5                                   0x0                       /* 5 bits                       */
+#define CS6                                   0x4                       /* 6 bits                       */
+#define CS7                                   0x8                       /* 7 bits                       */
+#define CS8                                   0xc                       /* 8 bits                       */
 
-#define HUPCL                                   0x10                    /* hang up on last close        */
-#define STOPB                                   0x20                    /* send two stop bits (else one)*/
-#define PARENB                                  0x40                    /* parity detection enabled     */
+#define HUPCL                                 0x10                      /* hang up on last close        */
+#define STOPB                                 0x20                      /* send two stop bits (else one)*/
+#define PARENB                                0x40                      /* parity detection enabled     */
                                                                         /* else disabled                */
-#define PARODD                                  0x80                    /* odd parity (else even)       */
+#define PARODD                                0x80                      /* odd parity (else even)       */
 
 /*********************************************************************************************************
   Modem signals definitions
@@ -199,12 +199,12 @@
   * chip to another.
 *********************************************************************************************************/
 
-#define SIO_MODEM_DTR                           0x01                    /* data terminal ready          */
-#define SIO_MODEM_RTS                           0x02                    /* request to send              */
-#define SIO_MODEM_CTS                           0x04                    /* clear to send                */
-#define SIO_MODEM_CD                            0x08                    /* carrier detect               */
-#define SIO_MODEM_RI                            0x10                    /* ring                         */
-#define SIO_MODEM_DSR                           0x20                    /* data set ready               */
+#define SIO_MODEM_DTR                         0x01                      /* data terminal ready          */
+#define SIO_MODEM_RTS                         0x02                      /* request to send              */
+#define SIO_MODEM_CTS                         0x04                      /* clear to send                */
+#define SIO_MODEM_CD                          0x08                      /* carrier detect               */
+#define SIO_MODEM_RI                          0x10                      /* ring                         */
+#define SIO_MODEM_DSR                         0x20                      /* data set ready               */
 
 /*********************************************************************************************************
   CALL BACK
