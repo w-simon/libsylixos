@@ -58,14 +58,29 @@ $(target)_EXE       := $(OUTPATH)/$(LOCAL_TARGET_NAME)
 $(target)_STRIP_EXE := $(OUTPATH)/strip/$(LOCAL_TARGET_NAME)
 
 #*********************************************************************************************************
-# Depend library search paths
+# Depend base library search paths (Select the user specified optimization level library first)
 #*********************************************************************************************************
 $(target)_DEPEND_LIB_PATH := $(TOOLCHAIN_LIB_INC)"$(SYLIXOS_BASE_PATH)/libsylixos/$(OUTDIR)"
 
-ifeq ($($(target)_USE_CXX), yes)
-$(target)_DEPEND_LIB_PATH += $(TOOLCHAIN_LIB_INC)"$(SYLIXOS_BASE_PATH)/libcextern/$(OUTDIR)"
+ifeq ($(DEBUG_LEVEL), debug)
+$(target)_DEPEND_LIB_PATH += $(TOOLCHAIN_LIB_INC)"$(SYLIXOS_BASE_PATH)/libsylixos/Release"
+else
+$(target)_DEPEND_LIB_PATH += $(TOOLCHAIN_LIB_INC)"$(SYLIXOS_BASE_PATH)/libsylixos/Debug"
 endif
 
+ifeq ($($(target)_USE_CXX), yes)
+$(target)_DEPEND_LIB_PATH += $(TOOLCHAIN_LIB_INC)"$(SYLIXOS_BASE_PATH)/libcextern/$(OUTDIR)"
+
+ifeq ($(DEBUG_LEVEL), debug)
+$(target)_DEPEND_LIB_PATH += $(TOOLCHAIN_LIB_INC)"$(SYLIXOS_BASE_PATH)/libcextern/Release"
+else
+$(target)_DEPEND_LIB_PATH += $(TOOLCHAIN_LIB_INC)"$(SYLIXOS_BASE_PATH)/libcextern/Debug"
+endif
+endif
+
+#*********************************************************************************************************
+# Depend user library search paths
+#*********************************************************************************************************
 $(target)_DEPEND_LIB_PATH += $(LOCAL_DEPEND_LIB_PATH)
 
 #*********************************************************************************************************

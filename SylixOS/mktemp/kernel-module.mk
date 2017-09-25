@@ -53,10 +53,9 @@ $(target)_CFLAGS      := $($(target)_COMMONFLAGS) $(ARCH_KO_CFLAGS) $($(target)_
 $(target)_CXXFLAGS    := $($(target)_COMMONFLAGS) $(ARCH_KO_CFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CXX_EXCEPT) $($(target)_CXXFLAGS)
 
 #*********************************************************************************************************
-# Depend library search paths
+# Depend user library search paths
 #*********************************************************************************************************
-$(target)_DEPEND_LIB_PATH := $(TOOLCHAIN_LIB_INC)"$(SYLIXOS_BASE_PATH)/libsylixos/$(OUTDIR)"
-$(target)_DEPEND_LIB_PATH += $(LOCAL_DEPEND_LIB_PATH)
+$(target)_DEPEND_LIB_PATH := $(LOCAL_DEPEND_LIB_PATH)
 
 #*********************************************************************************************************
 # Depend libraries
