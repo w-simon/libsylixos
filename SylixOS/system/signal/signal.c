@@ -813,7 +813,10 @@ INT  kill (LW_OBJECT_HANDLE  ulId, INT  iSigNo)
 {
     REGISTER UINT16             usIndex;
     REGISTER PLW_CLASS_TCB      ptcb;
+    
+#if LW_CFG_SIGNALFD_EN > 0
              LW_SEND_VAL        sendval;
+#endif
     
 #if LW_CFG_MODULELOADER_EN > 0
     if (ulId < LW_CFG_MAX_THREADS) {                                    /*  进程号                      */
@@ -872,7 +875,11 @@ INT  kill (LW_OBJECT_HANDLE  ulId, INT  iSigNo)
         return  (PX_ERROR);
     }
     
+#if LW_CFG_SIGNALFD_EN > 0
     sendval = _doKill(ptcb, iSigNo);                                    /*  产生信号                    */
+#else
+    _doKill(ptcb, iSigNo);                                              /*  产生信号                    */
+#endif
     
 #if LW_CFG_SMP_EN > 0
     if (LW_NCPUS > 1) {                                                 /*  正工作在 SMP 多核模式       */
@@ -919,7 +926,10 @@ INT  sigqueue (LW_OBJECT_HANDLE  ulId, INT   iSigNo, const union sigval  sigvalu
 {
     REGISTER UINT16             usIndex;
     REGISTER PLW_CLASS_TCB      ptcb;
+    
+#if LW_CFG_SIGNALFD_EN > 0
              LW_SEND_VAL        sendval;
+#endif
              
 #if LW_CFG_MODULELOADER_EN > 0
     if (ulId < LW_CFG_MAX_THREADS) {                                    /*  进程号                      */
@@ -979,7 +989,11 @@ INT  sigqueue (LW_OBJECT_HANDLE  ulId, INT   iSigNo, const union sigval  sigvalu
         return  (PX_ERROR);
     }
     
+#if LW_CFG_SIGNALFD_EN > 0
     sendval = _doSigQueue(ptcb, iSigNo, sigvalue);
+#else
+    _doSigQueue(ptcb, iSigNo, sigvalue);
+#endif
 
 #if LW_CFG_SMP_EN > 0
     if (LW_NCPUS > 1) {                                                 /*  正工作在 SMP 多核模式       */

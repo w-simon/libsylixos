@@ -68,7 +68,9 @@ extern void init_etc_passwd_group(void);
 /*
  * Resource
  */
+#if LW_CFG_MODULELOADER_EN > 0
 static LW_RESOURCE_RAW  udb_resraw;
+#endif
  
 /*
  * User

@@ -109,6 +109,8 @@ static void  __sem_init_invisible (sem_t  *psem)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
+#if LW_CFG_MODULELOADER_EN > 0
+
 static void  __sem_reclaim_unname (__PX_SEM  *pxsem, PLW_RESOURCE_RAW  presraw)
 {
     if (pxsem->PSEM_pxnode.PXNODE_pcName != LW_NULL) {
@@ -121,6 +123,8 @@ static void  __sem_reclaim_unname (__PX_SEM  *pxsem, PLW_RESOURCE_RAW  presraw)
 
     __SHEAP_FREE(pxsem);
 }
+
+#endif
 /*********************************************************************************************************
 ** 函数名称: sem_open_method
 ** 功能描述: 选择 sem_open 操作类型. (当前进程)

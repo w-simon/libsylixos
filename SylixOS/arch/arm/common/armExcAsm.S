@@ -52,7 +52,7 @@ FUNC_DEF(archIntEntry)
     ; *  利用优先级屏蔽中断, 才能使用 SVC
     ; */
     MRS     R3 , BASEPRI                                        ;/*  Set prio int mask to mask all       */
-    MOV     R2 , #2                                             ;/*  mask prio >= 2                      */
+    MOV     R2 , #LW_CFG_CORTEX_M_INT_MASK                      ;/*  mask prio >= 2                      */
     MSR     BASEPRI,  R2
 
     ;/*
@@ -150,7 +150,7 @@ FUNC_DEF(archSwiEntry)
     ; *  利用优先级屏蔽中断, 才能使用 SVC
     ; */
     MRS     R3 , BASEPRI                                        ;/*  Set prio int mask to mask all       */
-    MOV     R2 , #2                                             ;/*  mask prio >= 2                      */
+    MOV     R2 , #LW_CFG_CORTEX_M_INT_MASK                      ;/*  mask prio >= 2                      */
     MSR     BASEPRI,  R2
 
     ;/*

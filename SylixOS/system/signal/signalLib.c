@@ -263,10 +263,12 @@ static VOID  __signalStkShowHandle (PLW_CLASS_SIGCTLMSG   psigctlmsg)
 static VOID  __sigTaskCreateHook (LW_OBJECT_HANDLE  ulId)
 {
     PLW_CLASS_TCB          ptcb = __GET_TCB_FROM_INDEX(_ObjectGetIndex(ulId));
-    PLW_CLASS_TCB          ptcbCur;
-    
     PLW_CLASS_SIGCONTEXT   psigctx = _signalGetCtx(ptcb);
+    
+#if LW_CFG_MODULELOADER_EN > 0
+    PLW_CLASS_TCB          ptcbCur;
     PLW_CLASS_SIGCONTEXT   psigctxCur;
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN      */
     
     lib_bzero(psigctx, sizeof(LW_CLASS_SIGCONTEXT));                    /*  所有信号 DEFAULT 处理       */
 

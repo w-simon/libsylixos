@@ -74,7 +74,6 @@ $(target)_INC_PATH := $(LOCAL_INC_PATH)
 $(target)_INC_PATH += $(TOOLCHAIN_HEADER_INC)"$(SYLIXOS_BASE_PATH)/libsylixos/SylixOS"
 $(target)_INC_PATH += $(TOOLCHAIN_HEADER_INC)"$(SYLIXOS_BASE_PATH)/libsylixos/SylixOS/include"
 $(target)_INC_PATH += $(TOOLCHAIN_HEADER_INC)"$(SYLIXOS_BASE_PATH)/libsylixos/SylixOS/include/network"
-$(target)_INC_PATH += $(TOOLCHAIN_HEADER_INC)"$(SYLIXOS_BASE_PATH)/libcextern/libcextern/include"
 
 ifeq ($(ARCH), c6x)
 $(target)_INC_PATH    += $(TOOLCHAIN_HEADER_INC)"$(TOOLCHAIN_PATH)/include"

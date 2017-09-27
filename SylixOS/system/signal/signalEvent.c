@@ -126,9 +126,12 @@ static INT  _doSigEventInternal (LW_OBJECT_HANDLE  ulId, PSIGNAL_EVENT_ARG   psi
     REGISTER UINT16              usIndex;
     REGISTER PLW_CLASS_TCB       ptcb;
              LW_CLASS_SIGPEND    sigpend;
-             LW_SEND_VAL         sendval;
              INT                 iNotify;
              INT                 iError = PX_ERROR;
+             
+#if LW_CFG_SIGNALFD_EN > 0
+             LW_SEND_VAL         sendval;
+#endif
              
     struct sigevent  *psigevent = &psigea->SE_event.SE_sigevent;
     struct siginfo   *psiginfo  = &psigea->SE_event.SE_siginfo;
@@ -226,7 +229,11 @@ static INT  _doSigEventInternal (LW_OBJECT_HANDLE  ulId, PSIGNAL_EVENT_ARG   psi
         goto    __out;
     }
         
+#if LW_CFG_SIGNALFD_EN > 0
     sendval = _doSignal(ptcb, &sigpend);
+#else
+    _doSignal(ptcb, &sigpend);
+#endif
     
 #if LW_CFG_SMP_EN > 0
     if (LW_NCPUS > 1) {                                                 /*  正工作在 SMP 多核模式       */
