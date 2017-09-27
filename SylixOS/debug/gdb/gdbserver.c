@@ -2014,14 +2014,16 @@ static INT gdbRspPkgHandle (LW_GDB_PARAM    *pparam,
             LW_GDB_SAFEFREE(cOutBuff);
             return  (ERROR_NONE);
             break;
-        
+
+#if !defined(LW_CFG_CPU_ARCH_C6X)
         case 'z':
             gdbRemoveBP(pparam, cInBuff + 1, cOutBuff);
             break;
-        
+
         case 'Z':
             gdbInsertBP(pparam, cInBuff + 1, cOutBuff);
             break;
+#endif
 
         case 'v':
             if (gdbVcmdHandle(pparam, pdmsg, cInBuff + 1, cOutBuff) > 0) {

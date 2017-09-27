@@ -725,6 +725,7 @@ ULONG  API_DtraceGetMems (PVOID  pvDtrace, addr_t  ulAddr, PVOID  pvBuffer, size
     }
     
     KN_SMP_MB();
+    
     lib_memcpy(pvBuffer, (const PVOID)ulAddr, stSize);
     
     return  (ERROR_NONE);
@@ -739,7 +740,8 @@ ULONG  API_DtraceGetMems (PVOID  pvDtrace, addr_t  ulAddr, PVOID  pvBuffer, size
 ** 输　出  : ERROR
 ** 全局变量: 
 ** 调用模块: 
-** 注  意  : 内存操作长度应在 PAGESIZE 内.
+** 注  意  : 内存操作长度应在 PAGESIZE 内. C6x DSP 使用内存断点, 所以需要 cache update
+
                                            API 函数
 *********************************************************************************************************/
 LW_API 
@@ -757,6 +759,11 @@ ULONG  API_DtraceSetMems (PVOID  pvDtrace, addr_t  ulAddr, const PVOID  pvBuffer
     }
     
     lib_memcpy((PVOID)ulAddr, pvBuffer, stSize);
+
+#if defined(LW_CFG_CPU_ARCH_C6X) && (LW_CFG_CACHE_EN > 0)
+    API_CacheTextUpdate((PVOID)ulAddr, stSize);
+#endif
+
     KN_SMP_MB();
     
     __DTRACE_MSG("[DTRACE] <GDB>  Set memory @ 0x%08lx size %zu.\r\n", ulAddr, stSize);
