@@ -69,7 +69,7 @@
 FUNC_DEF(archIntDisable)
 #if defined(__SYLIXOS_ARM_ARCH_M__)
     MRS     R0 , BASEPRI                ;/*  Set prio int mask to mask all (except faults)               */
-    MOV     R1 , #13                    ;/*  利用优先级屏蔽中断，才能使用SVC                             */
+    MOV     R1 , #2                     ;/*  利用优先级屏蔽中断，才能使用SVC                             */
     MSR     BASEPRI,  R1
 #else
     MRS     R0 , CPSR

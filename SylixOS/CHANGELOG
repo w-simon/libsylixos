@@ -43,6 +43,9 @@ HISTORY
 
 ++ Bugfixes:
 
+    2017-09-27: han.hui
+    修正 Cortex-M 处理器中断屏蔽错误.
+
     2017-09-22: han.hui
     修正分区工具的分区大小计算错误.
 
