@@ -216,6 +216,7 @@ void aodv_rreq_forward (struct pbuf *p, u8_t ttl)
 {
 #if AODV_DEBUG
   char buffer[INET_ADDRSTRLEN];
+  struct in_addr inaddr;
 #endif
 
   int i;
@@ -229,9 +230,13 @@ void aodv_rreq_forward (struct pbuf *p, u8_t ttl)
   rreq = (struct aodv_rreq *)p->payload;
   rreq->hcnt++; /* Increase hopcount to account for intermediate route */
 
+#if AODV_DEBUG
+  inaddr.s_addr = (in_addr_t)rreq->orig_addr;
+#endif
+
   /* FORWARD the RREQ if the TTL allows it. */
   LWIP_DEBUGF(AODV_DEBUG, ("aodv_rreq_forward: forwarding RREQ src=%s, rreq_id=%lu\n",
-	          inet_ntoa_r(rreq->orig_addr, buffer, INET_ADDRSTRLEN), ntohl(rreq->rreq_id)));
+	          inet_ntoa_r(inaddr, buffer, INET_ADDRSTRLEN), ntohl(rreq->rreq_id)));
   
   for (i = 0; i < AODV_MAX_NETIF; i++) { /* broadcast to all aodv netif */
     if (aodv_netif[i]) {

@@ -629,7 +629,7 @@ static int  dm9000_init (struct netdev *netdev)
      * Fill device MAC address registers
      */
     for (i = 0, oft = DM9000_PAR; i < 6; i++, oft++) {
-        dm9000_io_write(dm9000, oft, dm9000->mac[i]);
+        dm9000_io_write(dm9000, oft, dm9000->netdev.hwaddr[i]);
     }
 
     /*
