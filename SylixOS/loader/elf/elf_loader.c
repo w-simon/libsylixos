@@ -184,7 +184,7 @@ static INT elfRelaRelocate (LW_LD_EXEC_MODULE *pmodule,
 
         LD_DEBUG_MSG(("relocate %s :", pcSymName));
 
-#if !defined(LW_CFG_CPU_ARCH_C6X)
+#if !defined(LW_CFG_CPU_ARCH_C6X) && !defined(LW_CFG_CPU_ARCH_SPARC)
         if (archElfRelocateRela(pmodule,
                                 prela,
                                 addrSymVal,
@@ -1239,7 +1239,7 @@ static INT dynPhdrParse (LW_LD_EXEC_MODULE *pmodule,
     /*
      *  TODO: 目前认为JMPREL跟在REL或RELA表之后，如果没有找到REL表和RELA表，则使用JMPREL表。
      */
-#if !defined(LW_CFG_CPU_ARCH_PPC) && !defined(LW_CFG_CPU_ARCH_C6X)
+#if !defined(LW_CFG_CPU_ARCH_PPC) && !defined(LW_CFG_CPU_ARCH_C6X) && !defined(LW_CFG_CPU_ARCH_SPARC)
     if (pdyndir->pvJmpRTable) {
         if (DT_REL == pdyndir->ulPltRel) {
             if (!pdyndir->prelTable) {
@@ -1535,7 +1535,7 @@ static INT elfPhdrRelocate (LW_LD_EXEC_MODULE *pmodule, ELF_DYN_DIR  *pdyndir)
                                            psym->st_value);
             }
 
-#if !defined(LW_CFG_CPU_ARCH_C6X)
+#if !defined(LW_CFG_CPU_ARCH_C6X) && !defined(LW_CFG_CPU_ARCH_SPARC)
             if (archElfRelocateRela(pmodule,                            /*  重定位符号                  */
                                     prela,
                                     addrSymVal,

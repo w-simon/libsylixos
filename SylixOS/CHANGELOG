@@ -4,6 +4,15 @@ HISTORY
 
 ++ New features:
 
+    2017-10-17: han.hui
+    增加 SPARC 体系结构支持.
+
+++ Bugfixes:
+
+(STABLE-1.5.3)
+
+++ New features:
+
     2017-08-31: han.hui
     增加对 PCI MSI-X 类型中断支持.
     增加对 NVMe 高速 SSD 支持.

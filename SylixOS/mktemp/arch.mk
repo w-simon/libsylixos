@@ -194,5 +194,26 @@ ARCH_CPUFLAGS_NOFPU            = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS)
 endif
 
 #*********************************************************************************************************
+# SPARC (Need frame pointer code to debug)
+#*********************************************************************************************************
+ifneq (,$(findstring sparc,$(TOOLCHAIN_PREFIX)))
+ARCH             = sparc
+ARCH_COMMONFLAGS = 
+
+ARCH_PIC_ASFLAGS = 
+ARCH_PIC_CFLAGS  = -fPIC
+ARCH_PIC_LDFLAGS = -Wl,-shared -fPIC -shared
+
+ARCH_KO_CFLAGS   =
+ARCH_KO_LDFLAGS  = -nostdlib -r
+
+ARCH_FPUFLAGS = -m$(FPU_TYPE)
+
+ARCH_CPUFLAGS_WITHOUT_FPUFLAGS = -mcpu=$(CPU_TYPE)
+ARCH_CPUFLAGS                  = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) $(ARCH_FPUFLAGS)
+ARCH_CPUFLAGS_NOFPU            = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) -msoft-float
+endif
+
+#*********************************************************************************************************
 # End
 #*********************************************************************************************************

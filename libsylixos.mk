@@ -475,6 +475,39 @@ SylixOS/arch/c6x/mm/c6xCache.c \
 SylixOS/arch/c6x/param/c6xParam.c
 
 #*********************************************************************************************************
+# SPARC source
+#*********************************************************************************************************
+LOCAL_SPARC_SRCS = \
+SylixOS/arch/sparc/backtrace/sparcBacktrace.c \
+SylixOS/arch/sparc/common/sparcAssert.c \
+SylixOS/arch/sparc/common/sparcContext.c \
+SylixOS/arch/sparc/common/sparcContextAsm.S \
+SylixOS/arch/sparc/common/sparcExc.c \
+SylixOS/arch/sparc/common/sparcExcAsm.S \
+SylixOS/arch/sparc/common/sparcIo.c \
+SylixOS/arch/sparc/common/sparcLib.c \
+SylixOS/arch/sparc/common/sparcLibAsm.S \
+SylixOS/arch/sparc/common/sparcUnaligned.c \
+SylixOS/arch/sparc/common/sparcUnalignedAsm.S \
+SylixOS/arch/sparc/common/sparcVectorAsm.S \
+SylixOS/arch/sparc/common/sparcWindowAsm.S \
+SylixOS/arch/sparc/dbg/sparcDbg.c \
+SylixOS/arch/sparc/dbg/sparcGdb.c \
+SylixOS/arch/sparc/elf/sparcElf.c \
+SylixOS/arch/sparc/fpu/sparcFpu.c \
+SylixOS/arch/sparc/fpu/vfp/sparcVfp.c \
+SylixOS/arch/sparc/fpu/vfp/sparcVfpAsm.S \
+SylixOS/arch/sparc/fpu/vfpnone/sparcVfpNone.c \
+SylixOS/arch/sparc/mm/cache/sparcCache.c \
+SylixOS/arch/sparc/mm/mmu/sparcMmu.c \
+SylixOS/arch/sparc/mm/mmu/sparcMmuAsm.S \
+SylixOS/arch/sparc/mm/sparcCache.c \
+SylixOS/arch/sparc/mm/sparcMmu.c \
+SylixOS/arch/sparc/mpcore/sparcMpCoreAsm.S \
+SylixOS/arch/sparc/mpcore/sparcSpinlock.c \
+SylixOS/arch/sparc/param/sparcParam.c \
+
+#*********************************************************************************************************
 # Buildin internal application source
 #*********************************************************************************************************
 ifeq ($(BUILD_LITE_TARGET), 0)
@@ -1772,7 +1805,19 @@ $(OBJPATH)/libsylixos.a/SylixOS/arch/x86/fpu/fpusse/x64FpuSseAsm.o: ./SylixOS/ar
 		@if [ ! -d "$(dir $(__DEP))" ]; then \
 			mkdir -p "$(dir $(__DEP))"; fi
 		$(AS) $(X64_FPU_ASFLAGS) $($(__TARGET)_ASFLAGS_WITHOUT_FPUFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
+		
+#*********************************************************************************************************
+# compile SPARC FPU source files
+#*********************************************************************************************************
+SPARC_FPU_ASFLAGS = -mhard-float
 
+$(OBJPATH)/libsylixos.a/SylixOS/arch/sparc/fpu/vfp/sparcVfpAsm.o: ./SylixOS/arch/sparc/fpu/vfp/sparcVfpAsm.S
+		@if [ ! -d "$(dir $@)" ]; then \
+			mkdir -p "$(dir $@)"; fi
+		@if [ ! -d "$(dir $(__DEP))" ]; then \
+			mkdir -p "$(dir $(__DEP))"; fi
+		$(AS) $(SPARC_FPU_ASFLAGS) $($(__TARGET)_ASFLAGS_WITHOUT_FPUFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
+		
 include $(LIBSYLIXOS_MK)
 
 #*********************************************************************************************************

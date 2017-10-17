@@ -70,6 +70,7 @@
 #elif defined(LW_CFG_CPU_ARCH_SPARC)
 #include "sparc/arch_types.h"
 #include "sparc/arch_compiler.h"
+#include "sparc/arch_def.h"
 #include "sparc/arch_float.h"
 #include "sparc/arch_limits.h"
 #include "sparc/arch_regs.h"

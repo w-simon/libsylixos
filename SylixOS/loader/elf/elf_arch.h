@@ -28,7 +28,7 @@
 
 INT archElfRGetJmpBuffItemLen(PVOID  pmodule);                          /*  获取跳转表项大小            */
 
-#if !defined(LW_CFG_CPU_ARCH_C6X)
+#if !defined(LW_CFG_CPU_ARCH_C6X) && !defined(LW_CFG_CPU_ARCH_SPARC)
 INT archElfRelocateRela(PVOID       pmodule,
                         Elf_Rela   *prela,
                         Elf_Addr    addrSymVal,
