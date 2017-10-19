@@ -305,10 +305,6 @@ size_t  API_CacheWaySize (LW_CACHE_TYPE  cachetype)
 LW_API  
 BOOL  API_CacheAliasProb (VOID)
 {
-    if (_G_uiDCacheMode & CACHE_SNOOP_ENABLE) {
-        return  (LW_FALSE);
-    }
-    
     if (_G_cacheopLib.CACHEOP_iDLoc == CACHE_LOCATION_VIVT) {
         return  (LW_TRUE);
     }

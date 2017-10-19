@@ -32,18 +32,12 @@
 #include "arch/sparc/param/sparcParam.h"
 
 enum direction {
-	load,    /* ld, ldd, ldh, ldsh */
-	store,   /* st, std, sth, stsh */
-	both,    /* Swap, ldstub, etc. */
-	fpload,
-	fpstore,
-	invalid,
-};
-
-/* A 32-bit register window. */
-struct reg_window32 {
-    unsigned int locals[8];
-    unsigned int ins[8];
+    load,    /* ld, ldd, ldh, ldsh */
+    store,   /* st, std, sth, stsh */
+    both,    /* Swap, ldstub, etc. */
+    fpload,
+    fpstore,
+    invalid,
 };
 
 /* sparcUnalignedAsm.S */
@@ -52,131 +46,118 @@ extern int __do_int_store(unsigned long *dst_addr, int size, unsigned long *src_
 
 static inline enum direction decode_direction(unsigned int insn)
 {
-	unsigned long tmp = (insn >> 21) & 1;
+    unsigned long tmp = (insn >> 21) & 1;
 
-	if(!tmp)
-		return load;
-	else {
-		if(((insn>>19)&0x3f) == 15)
-			return both;
-		else
-			return store;
-	}
+    if(!tmp)
+        return load;
+    else {
+        if(((insn>>19)&0x3f) == 15)
+            return both;
+        else
+            return store;
+    }
 }
 
 /* 8 = double-word, 4 = word, 2 = half-word */
 static inline int decode_access_size(unsigned int insn)
 {
-	insn = (insn >> 19) & 3;
+    insn = (insn >> 19) & 3;
 
-	if(!insn)
-		return 4;
-	else if(insn == 3)
-		return 8;
-	else if(insn == 2)
-		return 2;
-	else {
-		return -1; /* just to keep gcc happy. */
-	}
+    if(!insn)
+        return 4;
+    else if(insn == 3)
+        return 8;
+    else if(insn == 2)
+        return 2;
+    else {
+        return -1; /* just to keep gcc happy. */
+    }
 }
 
 /* 0x400000 = signed, 0 = unsigned */
 static inline int decode_signedness(unsigned int insn)
 {
-	return (insn & 0x400000);
-}
-
-static inline void maybe_flush_windows(unsigned int rs1, unsigned int rs2,
-				       unsigned int rd)
-{
-	if(rs2 >= 16 || rs1 >= 16 || rd >= 16) {
-	    SPARC_FLUSH_REG_WINDOWS();
-	}
+    return (insn & 0x400000);
 }
 
 static inline int sign_extend_imm13(int imm)
 {
-	return imm << 19 >> 19;
+    return imm << 19 >> 19;
 }
 
 static inline unsigned long fetch_reg(unsigned int reg, ARCH_REG_CTX *regs)
 {
-	struct reg_window32 *win;
+    if (reg == 0) {
+        return 0;
 
-	if (reg < 16) {
-	    if (reg == 0) {
-	        return 0;
-	    } else {
-	        if (reg < 8) {
-	            return regs->REG_uiGlobal[reg];
-	        } else {
-	            return regs->REG_uiInput[reg - 8];
-	        }
-	    }
-	}
+    } else if (reg < 8) {
+        return regs->REG_uiGlobal[reg];
 
-	/* Ho hum, the slightly complicated case. */
-	win = (struct reg_window32 *) regs->REG_uiFp;
-	return win->locals[reg - 16]; /* yes, I know what this does... */
+    } else if (reg < 16) {
+        return regs->REG_uiOutput[reg - 8];
+
+    } else if (reg < 24) {
+        return regs->REG_uiLocal[reg - 16];
+
+    } else {
+        return regs->REG_uiInput[reg - 24];
+    }
 }
 
 static inline unsigned long *fetch_reg_addr(unsigned int reg, ARCH_REG_CTX *regs)
 {
-	struct reg_window32 *win;
+    if (reg < 8) {
+        return (unsigned long *)&regs->REG_uiGlobal[reg];
 
-    if (reg < 16) {
-        if (reg < 8) {
-            return (unsigned long *)&regs->REG_uiGlobal[reg];
-        } else {
-            return (unsigned long *)&regs->REG_uiInput[reg - 8];
-        }
+    } else if (reg < 16) {
+        return (unsigned long *)&regs->REG_uiOutput[reg - 8];
+
+    } else if (reg < 24) {
+        return (unsigned long *)&regs->REG_uiLocal[reg - 16];
+
+    } else {
+        return (unsigned long *)&regs->REG_uiInput[reg - 24];
     }
-
-	win = (struct reg_window32 *) regs->REG_uiFp;
-	return (unsigned long *)&win->locals[reg - 16];
 }
 
 static unsigned long compute_effective_address(ARCH_REG_CTX *regs,
-					       unsigned int insn)
+                           unsigned int insn)
 {
-	unsigned int rs1 = (insn >> 14) & 0x1f;
-	unsigned int rs2 = insn & 0x1f;
-	unsigned int rd = (insn >> 25) & 0x1f;
+    unsigned int rs1 = (insn >> 14) & 0x1f;
+    unsigned int rs2 = insn & 0x1f;
 
-	if(insn & 0x2000) {
-		maybe_flush_windows(rs1, 0, rd);
-		return (fetch_reg(rs1, regs) + sign_extend_imm13(insn));
-	} else {
-		maybe_flush_windows(rs1, rs2, rd);
-		return (fetch_reg(rs1, regs) + fetch_reg(rs2, regs));
-	}
+    if(insn & 0x2000) {
+        return (fetch_reg(rs1, regs) + sign_extend_imm13(insn));
+    } else {
+        return (fetch_reg(rs1, regs) + fetch_reg(rs2, regs));
+    }
 }
 
 static int do_int_store(int reg_num, int size, unsigned long *dst_addr,
-			ARCH_REG_CTX *regs)
+            ARCH_REG_CTX *regs)
 {
-	unsigned long zero[2] = { 0, 0 };
-	unsigned long *src_val;
+    unsigned long zero[2] = { 0, 0 };
+    unsigned long *src_val;
 
-	if (reg_num)
-		src_val = fetch_reg_addr(reg_num, regs);
-	else {
-		src_val = &zero[0];
-		if (size == 8)
-			zero[1] = fetch_reg(1, regs);
-	}
-	return __do_int_store(dst_addr, size, src_val);
+    if (reg_num)
+        src_val = fetch_reg_addr(reg_num, regs);
+    else {
+        src_val = &zero[0];
+        if (size == 8)
+            zero[1] = fetch_reg(1, regs);
+    }
+    return __do_int_store(dst_addr, size, src_val);
 }
 
 static inline void advance(ARCH_REG_CTX *regs)
 {
-	regs->REG_uiPc   = regs->REG_uiNPc;
-	regs->REG_uiNPc += 4;
+    regs->REG_uiPc   = regs->REG_uiNPc;
+    regs->REG_uiNPc += 4;
 }
 
 static inline int floating_point_load_or_store_p(unsigned int insn)
 {
-	return (insn >> 24) & 1;
+    return (insn >> 24) & 1;
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: sparcUnalignedHandle
