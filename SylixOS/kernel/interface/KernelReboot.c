@@ -220,8 +220,8 @@ VOID   API_KernelRebootEx (INT  iRebootType, addr_t  ulStartAddress)
 #endif                                                                  /*  LW_CFG_SMP_EN               */
     
     if (iRebootType != LW_REBOOT_FORCE) {
-        __LW_KERNEL_REBOOT_HOOK(iRebootType);                           /*  调用回调函数                */
         _cppRtUninit();                                                 /*  卸载 C++ 运行时             */
+        __LW_KERNEL_REBOOT_HOOK(iRebootType);                           /*  调用回调函数                */
     }
     
     for (ulI = 0; ulI < LW_CFG_MAX_INTER_SRC; ulI++) {

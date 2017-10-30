@@ -52,6 +52,13 @@
 #if LW_CFG_DEVICE_EN > 0
 #include "limits.h"
 /*********************************************************************************************************
+  文件系统相关
+*********************************************************************************************************/
+#if (LW_CFG_MAX_VOLUMES > 0) && (LW_CFG_DISKCACHE_EN > 0)
+#include "../SylixOS/fs/include/fs_fs.h"
+#endif                                                                  /*  (LW_CFG_MAX_VOLUMES > 0)    */
+                                                                        /*  (LW_CFG_DISKCACHE_EN > 0)   */
+/*********************************************************************************************************
   进程环境
 *********************************************************************************************************/
 #if LW_CFG_MODULELOADER_EN > 0
@@ -420,7 +427,7 @@ static VOID  _IosDeleteAll (INT  iRebootType)
          plineTemp != LW_NULL;
          plineTemp  = _list_line_get_next(plineTemp)) {
         
-        pdevhdr = _LIST_ENTRY(_S_plineDevHdrHeader, LW_DEV_HDR, DEVHDR_lineManage);
+        pdevhdr = _LIST_ENTRY(plineTemp, LW_DEV_HDR, DEVHDR_lineManage);
         _IosUnlock();
         
         API_IosDevFileAbnormal(pdevhdr);                                /*  对应文件强制关闭            */
@@ -429,7 +436,10 @@ static VOID  _IosDeleteAll (INT  iRebootType)
     }
     _IosUnlock();
     
-    sync();                                                             /*  将系统所有的文件回写磁盘    */
+#if (LW_CFG_MAX_VOLUMES > 0) && (LW_CFG_DISKCACHE_EN > 0)
+    API_DiskCacheSync(LW_NULL);                                         /*  回写所有磁盘缓冲            */
+#endif                                                                  /*  (LW_CFG_MAX_VOLUMES > 0)    */
+                                                                        /*  (LW_CFG_DISKCACHE_EN > 0)   */
 }
 /*********************************************************************************************************
 ** 函数名称: _IosThreadDelete
