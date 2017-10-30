@@ -109,8 +109,8 @@ INT     archFindMsb(UINT32  ui32);
   SPARC 处理器标准底层库
 *********************************************************************************************************/
 
-#define	KN_INT_DISABLE()            archIntDisable()
-#define	KN_INT_ENABLE(intLevel)     archIntEnable(intLevel)
+#define KN_INT_DISABLE()            archIntDisable()
+#define KN_INT_ENABLE(intLevel)     archIntEnable(intLevel)
 #define KN_INT_ENABLE_FORCE()       archIntEnableForce()
 
 INTREG  archIntDisable(VOID);
@@ -130,7 +130,7 @@ VOID    archReboot(INT  iRebootType, addr_t  ulStartAddress);
 VOID    archBogoMipsLoop(ULONG  ulLoop);
 
 #define __ARCH_BOGOMIPS_LOOP            archBogoMipsLoop
-#define __ARCH_BOGOMIPS_INS_PER_LOOP    2
+#define __ARCH_BOGOMIPS_INS_PER_LOOP    3
 
 /*********************************************************************************************************
   SPARC 处理器定义
