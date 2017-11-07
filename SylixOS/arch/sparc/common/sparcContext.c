@@ -95,6 +95,7 @@ PLW_STACK  archTaskCtxCreate (PTHREAD_START_ROUTINE  pfuncTask,
     pregctx->REG_uiWim = 0x2;                                           /*  Window 1  (all empty)       */
     pregctx->REG_uiPc  = (ARCH_REG_T)pfuncTask;                         /*  PC                          */
     pregctx->REG_uiNPc = pregctx->REG_uiPc + 4;                         /*  Next PC                     */
+    pregctx->REG_uiY   = 0x00000000;                                    /*  Y ¼Ä´æÆ÷                    */
 
     pfpctx->FP_uiFp       = 0x00000000;
     pfpctx->FP_uiRetAddr  = 0x00000000;
@@ -261,7 +262,6 @@ VOID  archTaskCtxShow (INT  iFd, PLW_STACK  pstkTop)
         fdprintf(iFd, "NPC = 0x%08x\n", pregctx->REG_uiNPc);
 
         fdprintf(iFd, "SP  = 0x%08x\n", (ARCH_REG_T)pstkTop);           /*  Òì³£Ñ¹Õ»ºóµÄ SP             */
-
 
     } else {
         archTaskCtxPrint(pstkTop);

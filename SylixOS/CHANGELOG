@@ -9,6 +9,9 @@ HISTORY
 
 ++ Bugfixes:
 
+    2017-10-31: han.hui
+    修正多核亲和度调度可能产生的优先级反转错误.
+
 (STABLE-1.5.3)
 
 ++ New features:

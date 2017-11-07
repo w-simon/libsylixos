@@ -151,8 +151,8 @@ static INT  _doSigEventInternal (LW_OBJECT_HANDLE  ulId, PSIGNAL_EVENT_ARG   psi
     }
     
 #if LW_CFG_MODULELOADER_EN > 0
-    if (ulId < LW_CFG_MAX_THREADS) {                                    /*  进程号                      */
-        ulId = vprocMainThread((pid_t)ulId);
+    if (ulId <= LW_CFG_MAX_THREADS) {                                   /*  进程号                      */
+        ulId  = vprocMainThread((pid_t)ulId);
     }
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 

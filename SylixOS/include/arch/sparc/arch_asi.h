@@ -133,17 +133,15 @@
 #define ASI_M_DCDR                  0x39                    /*  Data Cache Diagnostics Register rw, ss  */
 
 #define ASI_M_VIKING_TMP1           0x40	                /*  Emulation temporary 1 on Viking         */
+#define ASI_M_VIKING_TMP2           0x41                    /*  Emulation temporary 2 on Viking         */
 /*********************************************************************************************************
   only available on SuperSparc I
 *********************************************************************************************************/
-/* #define ASI_M_VIKING_TMP2  0x41 */                       /*  Emulation temporary 2 on Viking         */
-
 #define ASI_M_ACTION                0x4c                    /*  Breakpoint Action Register (GNU/Viking) */
 /*********************************************************************************************************
   LEON ASI
 *********************************************************************************************************/
 #define ASI_LEON_NOCACHE            0x01
-
 #define ASI_LEON_DCACHE_MISS        0x01
 
 #define ASI_LEON_CACHEREGS          0x02

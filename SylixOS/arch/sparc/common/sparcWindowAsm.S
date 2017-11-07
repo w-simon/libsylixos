@@ -47,7 +47,7 @@ FUNC_DEF(archWinOverFlowEntry)
     ;/*
     ; *  Calculate new WIM by "rotating" the valid bits in the WIM right
     ; *  by one position.  The following shows how the bits move for a SPARC
-    ; *  cpu implementation where LW_CFG_CPU_REG_WIN_NR is 8.
+    ; *  cpu implementation where LW_CFG_SPARC_REG_WIN_NR is 8.
     ; *
     ; *    OLD WIM = 76543210
     ; *    NEW WIM = 07654321
@@ -59,7 +59,7 @@ FUNC_DEF(archWinOverFlowEntry)
     MOV     %wim , %l3                                  ;/*  l3 = WIM                                    */
     MOV     %g1  , %l7                                  ;/*  save g1                                     */
     SRL     %l3  , 1 , %g1                              ;/*  g1 = WIM >> 1                               */
-    SLL     %l3  , LW_CFG_CPU_REG_WIN_NR - 1 , %l4
+    SLL     %l3  , LW_CFG_SPARC_REG_WIN_NR - 1 , %l4
                                                         ;/*  l4 = WIM << (Number Windows - 1)            */
     OR      %l4  , %g1 , %g1                            ;/*  g1 = (WIM >> 1) |                           */
                                                         ;/*       (WIM << (Number Windows - 1))          */
@@ -70,13 +70,20 @@ FUNC_DEF(archWinOverFlowEntry)
     NOP
     NOP
     STD     %l0  , [%sp + SF_LOCAL(0)]
+    SPARC_B2BST_NOP
     STD     %l2  , [%sp + SF_LOCAL(2)]
+    SPARC_B2BST_NOP
     STD     %l4  , [%sp + SF_LOCAL(4)]
+    SPARC_B2BST_NOP
     STD     %l6  , [%sp + SF_LOCAL(6)]
+    SPARC_B2BST_NOP
 
     STD     %i0  , [%sp + SF_INPUT(0)]
+    SPARC_B2BST_NOP
     STD     %i2  , [%sp + SF_INPUT(2)]
+    SPARC_B2BST_NOP
     STD     %i4  , [%sp + SF_INPUT(4)]
+    SPARC_B2BST_NOP
     STD     %i6  , [%sp + SF_INPUT(6)]
     RESTORE                                             ;/*  Go back to trap window.                     */
     MOV     %l7  , %g1                                  ;/*  restore g1                                  */
@@ -98,7 +105,7 @@ FUNC_DEF(archWinUnderFlowEntry)
     ;/*
     ; *  Calculate new WIM by "rotating" the valid bits in the WIM left
     ; *  by one position.  The following shows how the bits move for a SPARC
-    ; *  cpu implementation where LW_CFG_CPU_REG_WIN_NR is 8.
+    ; *  cpu implementation where LW_CFG_SPARC_REG_WIN_NR is 8.
     ; *
     ; *    OLD WIM = 76543210
     ; *    NEW WIM = 07654321
@@ -109,7 +116,7 @@ FUNC_DEF(archWinUnderFlowEntry)
     ; */
     MOV     %wim , %l3                                  ;/*  Calculate new WIM                           */
     SLL     %l3  , 1 , %l4                              ;/*  l4 = WIM << 1                               */
-    SRL     %l3  , LW_CFG_CPU_REG_WIN_NR - 1 , %l5
+    SRL     %l3  , LW_CFG_SPARC_REG_WIN_NR - 1 , %l5
                                                         ;/*  l5 = WIM >> (Number Windows-1)              */
     OR      %l5  , %l4 , %l5                            ;/*  l5 = (WIM << 1) |                           */
                                                         ;/*       (WIM >> (Number Windows-1))            */
@@ -192,7 +199,7 @@ FUNC_DEF(archWinFlushTrapEntry)
     AND     %l0  , SPARC_PSR_CWP_MASK , %g3             ;/*  g3 = CWP                                    */
 
     ADD     %g3  , 1 , %g5                              ;/*  g5 = CWP + 1                                */
-    AND     %g5  , LW_CFG_CPU_REG_WIN_NR - 1 , %g5
+    AND     %g5  , LW_CFG_SPARC_REG_WIN_NR - 1 , %g5
 
     MOV     1    , %g4
     SLL     %g4  , %g5 , %g4                            ;/*  g4 = WIM mask for CWP+1 invalid             */
@@ -201,7 +208,7 @@ FUNC_DEF(archWinFlushTrapEntry)
 
 LINE_LABEL(save_frame_loop)
     SLL     %g4  , 1 , %g5                              ;/*  rotate the "wim" left 1                     */
-    SRL     %g4  , LW_CFG_CPU_REG_WIN_NR - 1 , %g4
+    SRL     %g4  , LW_CFG_SPARC_REG_WIN_NR - 1 , %g4
     OR      %g4  , %g5 , %g4                            ;/*  g4 = wim if we do one restore               */
 
     ;/*
@@ -217,13 +224,20 @@ LINE_LABEL(save_frame_loop)
     ; *  Now save the window just as if we overflowed to it.
     ; */
     STD     %l0 , [%sp + SF_LOCAL(0)]
+    SPARC_B2BST_NOP
     STD     %l2 , [%sp + SF_LOCAL(2)]
+    SPARC_B2BST_NOP
     STD     %l4 , [%sp + SF_LOCAL(4)]
+    SPARC_B2BST_NOP
     STD     %l6 , [%sp + SF_LOCAL(6)]
+    SPARC_B2BST_NOP
 
     STD     %i0 , [%sp + SF_INPUT(0)]
+    SPARC_B2BST_NOP
     STD     %i2 , [%sp + SF_INPUT(2)]
+    SPARC_B2BST_NOP
     STD     %i4 , [%sp + SF_INPUT(4)]
+    SPARC_B2BST_NOP
     STD     %i6 , [%sp + SF_INPUT(6)]
 
     BA      save_frame_loop
@@ -231,7 +245,7 @@ LINE_LABEL(save_frame_loop)
 
 LINE_LABEL(done_flushing)
     ADD     %g3 , 2 , %g3                               ;/*  calculate desired WIM                       */
-    AND     %g3 , LW_CFG_CPU_REG_WIN_NR - 1 , %g3
+    AND     %g3 , LW_CFG_SPARC_REG_WIN_NR - 1 , %g3
     MOV     1   , %g4
     SLL     %g4 , %g3 , %g4                             ;/*  g4 = new WIM                                */
     MOV     %g4 , %wim

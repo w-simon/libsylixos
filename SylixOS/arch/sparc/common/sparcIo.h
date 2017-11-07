@@ -173,7 +173,6 @@ static LW_INLINE VOID  writes32_raw (addr_t  ulAddr, CPVOID  pvBuffer, size_t  s
         *(volatile UINT32 *)ulAddr = *puiBuffer++;
         stCount--;
     }
-
 }
 
 static LW_INLINE VOID  writes64_raw (addr_t  ulAddr, CPVOID  pvBuffer, size_t  stCount)

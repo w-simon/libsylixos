@@ -22,6 +22,8 @@
 2013.07.29  此文件改名为 _CandTable.c 表示候选运行表操作.
 2014.01.10  将候选表放入 CPU 结构中.
 2015.04.22  加入 _CandTableResel() 提高运算速度.
+2017.10.31  当 _CandTableUpdate() 从一个核中移除一个任务时, 这个任务没有绑定 CPU, 则应该在其他 CPU 上尝试
+            调度.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -256,6 +258,8 @@ VOID _CandTableTryDel (PLW_CLASS_TCB  ptcb, PLW_CLASS_PCB  ppcb)
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : 如果新的候选任务为锁定当前 CPU 则其他核没有设置过卷绕标志, 如果同时被换出的任务可以运行在其他
+             CPU 上, 则需要设置其他 CPU 的卷绕标志.
 *********************************************************************************************************/
 VOID _CandTableUpdate (PLW_CLASS_CPU   pcpu)
 {
@@ -263,6 +267,10 @@ VOID _CandTableUpdate (PLW_CLASS_CPU   pcpu)
     REGISTER PLW_CLASS_TCB      ptcbCand;
              PLW_CLASS_PCBBMAP  ppcbbmap;
              BOOL               bNeedRotate = LW_FALSE;
+             
+#if LW_CFG_SMP_EN > 0                                                   /*  SMP 多核                    */
+             PLW_CLASS_TCB      ptcbNew;
+#endif
 
     if (!LW_CPU_IS_ACTIVE(pcpu)) {                                      /*  CPU 必须为激活状态          */
         return;
@@ -295,6 +303,35 @@ VOID _CandTableUpdate (PLW_CLASS_CPU   pcpu)
     if (bNeedRotate) {                                                  /*  存在更需要运行的线程        */
         _CandTableEmpty(pcpu);                                          /*  清空候选表                  */
         _CandTableResel(pcpu, ppcbbmap, ucPriority);                    /*  重新选择任务执行            */
+        
+#if LW_CFG_SMP_EN > 0                                                   /*  SMP 多核                    */
+        ptcbNew = LW_CAND_TCB(pcpu);
+        if (ptcbNew->TCB_bCPULock && !ptcbCand->TCB_bCPULock) {         /*  是否需要尝试标记其他 CPU    */
+            INT             i;
+            ULONG           ulCPUId = pcpu->CPU_ulCPUId;
+            PLW_CLASS_CPU   pcpuOther;
+            PLW_CLASS_TCB   ptcbOther;
+        
+            LW_CPU_FOREACH_ACTIVE_EXCEPT (i, ulCPUId) {                 /*  CPU 必须是激活状态          */
+                pcpuOther = LW_CPU_GET(i);
+                ptcbOther = LW_CAND_TCB(pcpuOther);
+                
+                if (LW_CAND_ROT(pcpuOther) == LW_FALSE) {
+                    if (ptcbOther->TCB_usSchedCounter == 0) {           /*  已经没有时间片了            */
+                        if (LW_PRIO_IS_HIGH_OR_EQU(ptcbCand->TCB_ucPriority, 
+                                                   ptcbOther->TCB_ucPriority)) {
+                            LW_CAND_ROT(pcpuOther) = LW_TRUE;
+                        }
+                    } else {
+                        if (LW_PRIO_IS_HIGH(ptcbCand->TCB_ucPriority, 
+                                            ptcbOther->TCB_ucPriority)) {
+                            LW_CAND_ROT(pcpuOther) = LW_TRUE;
+                        }
+                    }
+                }
+            }
+        }
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
     }
     
 __update_done:

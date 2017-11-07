@@ -95,10 +95,10 @@ typedef struct {
 *********************************************************************************************************/
 
 #define ARCH_REG_CTX_WORD_SIZE      ((sizeof(ARCH_REG_CTX) + sizeof(ARCH_FP_CTX)) / sizeof(ARCH_REG_T))
-#define ARCH_STK_MIN_WORD_SIZE      96
+#define ARCH_STK_MIN_WORD_SIZE      (sizeof(ARCH_FP_CTX) / sizeof(ARCH_REG_T))
 
-#define ASM_STACK_FRAME_SIZE        ARCH_STK_MIN_WORD_SIZE
-#define ASM_REG_STACK_FRAME_SIZE    ((38 + 2) * 4)
+#define ASM_STACK_FRAME_SIZE        (96)
+#define ASM_REG_STACK_FRAME_SIZE    (38 * 4)
 #define ASM_CTX_STACK_FRAME_SIZE    (ASM_REG_STACK_FRAME_SIZE + ASM_STACK_FRAME_SIZE)
 
 /*********************************************************************************************************

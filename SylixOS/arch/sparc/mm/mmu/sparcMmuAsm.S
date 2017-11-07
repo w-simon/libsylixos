@@ -43,7 +43,7 @@
 ;*********************************************************************************************************/
 
 FUNC_DEF(leonMmuGetCtrlReg)
-    LDA     [%g0] ASI_LEON_MMUREGS, %o0
+    LDA     [%g0] ASI_LEON_MMUREGS , %o0
     RETL
     NOP
     FUNC_END(leonMmuGetCtrlReg)

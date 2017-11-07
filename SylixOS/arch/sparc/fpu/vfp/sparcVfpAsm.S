@@ -41,11 +41,10 @@
 ;*********************************************************************************************************/
 
 MACRO_DEF(ENABLE_VFP)
-    MOV     %psr , %o1
-    SETHI   %hi(PSR_EF) , %o2
-    OR      %o2 , %lo(PSR_EF) , %o2
+    RD      %psr , %o1
+    SET     PSR_EF , %o2
     OR      %o1 , %o2 , %o1
-    MOV     %o1 , %psr
+    WR      %o1 , %psr
     NOP
     NOP
     NOP
@@ -66,11 +65,10 @@ FUNC_DEF(sparcVfpEnable)
 ;*********************************************************************************************************/
 
 FUNC_DEF(sparcVfpDisable)
-    MOV     %psr , %o1
-    SETHI   %hi(PSR_EF) , %o2
-    OR      %o2 , %lo(PSR_EF) , %o2
+    RD      %psr , %o1
+    SET     PSR_EF , %o2
     ANDN    %o1 , %o2 , %o1
-    MOV     %o1 , %psr
+    WR      %o1 , %psr
     NOP
     RETL
     NOP
@@ -81,11 +79,11 @@ FUNC_DEF(sparcVfpDisable)
 ;*********************************************************************************************************/
 
 FUNC_DEF(sparcVfpIsEnable)
-    MOV     %psr , %o1
-    SETHI   %hi(PSR_EF) , %o2
-    OR      %o2 , %lo(PSR_EF) , %o2
+    RD      %psr , %o1
+    SET     PSR_EF , %o2
     ANDCC   %o1 , %o2 , %g0
     BNZ     __sparcVfpIsEnable
+    NOP
     RETL
     MOV     %g0 , %o0
 LINE_LABEL(__sparcVfpIsEnable)
@@ -109,7 +107,7 @@ FUNC_DEF(sparcVfpSave)
     STD     %f14 , [%o0 + F14_F15_OFFSET]
     STD     %f16 , [%o0 + F16_F17_OFFSET]
     STD     %f18 , [%o0 + F18_F19_OFFSET]
-    std     %f20 , [%o0 + F2O_F21_OFFSET]
+    STD     %f20 , [%o0 + F2O_F21_OFFSET]
     STD     %f22 , [%o0 + F22_F23_OFFSET]
     STD     %f24 , [%o0 + F24_F25_OFFSET]
     STD     %f26 , [%o0 + F26_F27_OFFSET]

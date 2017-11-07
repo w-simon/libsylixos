@@ -374,7 +374,10 @@ size_t  bspInfoRamSize(VOID);
 *********************************************************************************************************/
 
 #if LW_CFG_PPC_CACHE_L2 > 0
-
+VOID  bspL2CacheInit(PVOID        pl2cdrv,
+                     CACHE_MODE   uiInstruction,
+                     CACHE_MODE   uiData,
+                     CPCHAR       pcMachineName);
 #endif                                                                  /*  LW_CFG_PPC_CACHE_L2 > 0     */
 
 /*********************************************************************************************************

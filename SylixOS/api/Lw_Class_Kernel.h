@@ -29,7 +29,6 @@
 #define LW_OBJECT_CLASS_SEM_RW                _OBJECT_SEM_RW            /*  读写信号量                  */
 #define LW_OBJECT_CLASS_MSGQUEUE              _OBJECT_MSGQUEUE          /*  消息队列                    */
 #define LW_OBJECT_CLASS_EVENT_SET             _OBJECT_EVENT_SET         /*  事件集                      */
-#define LW_OBJECT_CLASS_SIGNAL                _OBJECT_SIGNAL            /*  信号                        */
 #define LW_OBJECT_CLASS_TIMER                 _OBJECT_TIMER             /*  定时器                      */
 #define LW_OBJECT_CLASS_PARTITION             _OBJECT_PARTITION         /*  内存块分区                  */
 #define LW_OBJECT_CLASS_REGION                _OBJECT_REGION            /*  内存可变分区                */

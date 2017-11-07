@@ -38,7 +38,7 @@
 *********************************************************************************************************/
 
 #if LW_CFG_CPU_WORD_LENGHT == 32
-#define LW_CFG_INT_STK_SIZE                         (4 * LW_CFG_KB_SIZE)/*  系统中断堆栈大小 (字节)     */
+#define LW_CFG_INT_STK_SIZE                         (8 * LW_CFG_KB_SIZE)/*  系统中断堆栈大小 (字节)     */
 #define LW_CFG_THREAD_DEFAULT_STK_SIZE              (4 * LW_CFG_KB_SIZE)/*  系统默认堆栈大小            */
 #define LW_CFG_THREAD_DEFAULT_GUARD_SIZE            (1 * LW_CFG_KB_SIZE)/*  堆栈警戒区大小              */
 

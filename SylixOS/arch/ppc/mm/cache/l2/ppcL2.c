@@ -44,12 +44,30 @@ VOID  ppcL2Cache750Init(L2C_DRVIER  *pl2cdrv,
                         CACHE_MODE   uiData,
                         CPCHAR       pcMachineName);
 /*********************************************************************************************************
-** 函数名称: ppcL2Enable
-** 功能描述: 使能 L2 CACHE 
-** 输　入  : NONE
+** 函数名称: bspL2CacheInit
+** 功能描述: BSP 相关的 L2 CACHE 初始化
+** 输　入  : pl2cdrv            L2 驱动
+**           uiInstruction      指令 CACHE 类型
+**           uiData             数据 CACHE 类型
+**           pcMachineName      机器名称
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
+*********************************************************************************************************/
+LW_WEAK VOID  bspL2CacheInit (PVOID        pl2cdrv,
+                              CACHE_MODE   uiInstruction,
+                              CACHE_MODE   uiData,
+                              CPCHAR       pcMachineName)
+{
+    _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown machine name.\r\n");
+}
+/*********************************************************************************************************
+** 函数名称: ppcL2Enable
+** 功能描述: 使能 L2 CACHE
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
 *********************************************************************************************************/
 VOID  ppcL2Enable (VOID)
 {
@@ -252,7 +270,7 @@ VOID  ppcL2Init (CACHE_MODE   uiInstruction,
         ppcL2Cache750Init(&_G_l2cdrv, uiInstruction, uiData, pcMachineName);
 
     } else {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown machine name.\r\n");
+        bspL2CacheInit((PVOID)(&_G_l2cdrv), uiInstruction, uiData, pcMachineName);
     }
 }
 

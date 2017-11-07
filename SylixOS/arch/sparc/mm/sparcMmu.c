@@ -40,7 +40,7 @@ VOID  archMmuInit (CPCHAR  pcMachineName)
     _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s MMU initialization.\r\n",
                  LW_CFG_CPU_ARCH_FAMILY, pcMachineName);
 
-    if ((lib_strcmp(pcMachineName, SPARC_MACHINE_LEON2) == 0) ||
+    if ((lib_strcmp(pcMachineName, SPARC_MACHINE_LEON2) == 0) ||        /*  leon2 has MMU ? maybe       */
         (lib_strcmp(pcMachineName, SPARC_MACHINE_LEON3) == 0) ||
         (lib_strcmp(pcMachineName, SPARC_MACHINE_LEON4) == 0)) {
         sparcMmuInit(pmmuop, pcMachineName);

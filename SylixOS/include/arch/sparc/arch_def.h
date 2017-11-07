@@ -30,11 +30,11 @@
 *********************************************************************************************************/
 #if defined(__SYLIXOS_KERNEL) || defined(__ASSEMBLY__) || defined(ASSEMBLY)
 
-#if (LW_CFG_CPU_REG_WIN_NR == 8)
+#if (LW_CFG_SPARC_REG_WIN_NR == 8)
 #define SPARC_PSR_CWP_MASK                0x07                         /*  bits  0 -  4                 */
-#elif (LW_CFG_CPU_REG_WIN_NR == 16)
+#elif (LW_CFG_SPARC_REG_WIN_NR == 16)
 #define SPARC_PSR_CWP_MASK                0x0f                         /*  bits  0 -  4                 */
-#elif (LW_CFG_CPU_REG_WIN_NR == 32)
+#elif (LW_CFG_SPARC_REG_WIN_NR == 32)
 #define SPARC_PSR_CWP_MASK                0x1f                         /*  bits  0 -  4                 */
 #else
 #error "Unsupported number of register windows for this cpu"

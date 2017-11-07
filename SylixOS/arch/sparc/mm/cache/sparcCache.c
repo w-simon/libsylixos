@@ -115,6 +115,7 @@ static INT  leon2CacheEnable (LW_CACHE_TYPE  cachetype)
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
+** 注  意  : DCACHE 为写穿透模式, 不用回写.
 *********************************************************************************************************/
 static INT  leon2CacheDisable (LW_CACHE_TYPE  cachetype)
 {
@@ -125,9 +126,6 @@ static INT  leon2CacheDisable (LW_CACHE_TYPE  cachetype)
 
     } else {
         uiCCR &= ~(LEON2_CCR_DEN);                                      /*  禁能 ICACHE                 */
-        /*
-         * DCACHE 为写穿透模式, 不用回写
-         */
     }
 
     write32(uiCCR, LEON2_CCR);
@@ -154,8 +152,8 @@ static VOID  leon2CacheProbe (LW_CACHE_OP *pcacheop,
 
     pcacheop->CACHEOP_ulOption = 0;                                     /*  No SMP support!             */
 
-    pcacheop->CACHEOP_iILoc = CACHE_LOCATION_VIPT;
-    pcacheop->CACHEOP_iDLoc = CACHE_LOCATION_VIPT;
+    pcacheop->CACHEOP_iILoc = CACHE_LOCATION_VIVT;
+    pcacheop->CACHEOP_iDLoc = CACHE_LOCATION_VIVT;
 
     pcacheop->CACHEOP_iICacheLine = 32;
     pcacheop->CACHEOP_iDCacheLine = 32;
@@ -239,6 +237,7 @@ static INT  leon3CacheEnable (LW_CACHE_TYPE  cachetype)
                               "or   %%l2, %%l1, %%l2\n\t"               /*  使能 DCACHE SNOOP           */
                               "sta  %%l2, [%%g0] 2\n\t" : : : "l1", "l2");
     }
+
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -248,6 +247,7 @@ static INT  leon3CacheEnable (LW_CACHE_TYPE  cachetype)
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
+** 注  意  : DCACHE 为写穿透模式, 不用回写.
 *********************************************************************************************************/
 static INT  leon3CacheDisable (LW_CACHE_TYPE  cachetype)
 {
@@ -261,10 +261,8 @@ static INT  leon3CacheDisable (LW_CACHE_TYPE  cachetype)
                               "set  0x00000c, %%l2\n\t"                 /*  禁能 DCACHE                 */
                               "andn %%l2, %%l1, %%l2\n\t"
                               "sta  %%l2, [%%g0] 2\n\t" : : : "l1", "l2");
-        /*
-         * DCACHE 为写穿透模式, 不用回写
-         */
     }
+
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -346,8 +344,8 @@ static VOID  leon3CacheProbe (LW_CACHE_OP *pcacheop,
 
     pcacheop->CACHEOP_ulOption = CACHE_TEXT_UPDATE_MP;
 
-    pcacheop->CACHEOP_iILoc = CACHE_LOCATION_VIPT;
-    pcacheop->CACHEOP_iDLoc = CACHE_LOCATION_VIPT;
+    pcacheop->CACHEOP_iILoc = CACHE_LOCATION_VIVT;
+    pcacheop->CACHEOP_iDLoc = CACHE_LOCATION_VIVT;
 
     pcacheop->CACHEOP_iICacheLine = 32;
     pcacheop->CACHEOP_iDCacheLine = 32;
@@ -367,12 +365,10 @@ static VOID  leon3CacheProbe (LW_CACHE_OP *pcacheop,
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
+** 注  意  : DCACHE 为写穿透模式.
 *********************************************************************************************************/
 INT  sparcCacheFlush (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes)
 {
-    /*
-     * DCACHE 为写穿透模式
-     */
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -385,12 +381,10 @@ INT  sparcCacheFlush (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes)
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
+** 注  意  : DCACHE 为写穿透模式.
 *********************************************************************************************************/
 static INT  sparcCacheFlushPage (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, PVOID  pvPdrs, size_t  stBytes)
 {
-    /*
-     * DCACHE 为写穿透模式
-     */
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -518,13 +512,12 @@ static INT  sparcCacheUnlock (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  s
 ** 全局变量:
 ** 调用模块:
 ** 注  意  : L2 cache 为统一 CACHE 所以 text update 不需要操作 L2 cache.
+             DCACHE 为写穿透模式, 只需要无效 ICACHE.
 *********************************************************************************************************/
 static INT  sparcCacheTextUpdate (PVOID  pvAdrs, size_t  stBytes)
 {
-    /*
-     * DCACHE 为写穿透模式
-     */
     leonFlushICacheAll();
+
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -537,12 +530,10 @@ static INT  sparcCacheTextUpdate (PVOID  pvAdrs, size_t  stBytes)
 ** 全局变量:
 ** 调用模块:
 ** 注  意  : L2 cache 为统一 CACHE 所以 data update 不需要操作 L2 cache.
+             DCACHE 为写穿透模式.
 *********************************************************************************************************/
 static INT  sparcCacheDataUpdate (PVOID  pvAdrs, size_t  stBytes, BOOL  bInv)
 {
-    /*
-     * DCACHE 为写穿透模式
-     */
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -569,8 +560,8 @@ VOID  sparcCacheInit (LW_CACHE_OP *pcacheop,
         leon2CacheProbe(pcacheop, uiInstruction, uiData, pcMachineName);
     }
 
-    pcacheop->CACHEOP_pfuncLock    = sparcCacheLock;                    /*  暂时不支持锁定操作          */
-    pcacheop->CACHEOP_pfuncUnlock  = sparcCacheUnlock;
+    pcacheop->CACHEOP_pfuncLock   = sparcCacheLock;                     /*  暂时不支持锁定操作          */
+    pcacheop->CACHEOP_pfuncUnlock = sparcCacheUnlock;
 
     pcacheop->CACHEOP_pfuncFlush          = sparcCacheFlush;
     pcacheop->CACHEOP_pfuncFlushPage      = sparcCacheFlushPage;

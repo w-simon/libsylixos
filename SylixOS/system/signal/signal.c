@@ -819,8 +819,8 @@ INT  kill (LW_OBJECT_HANDLE  ulId, INT  iSigNo)
 #endif
     
 #if LW_CFG_MODULELOADER_EN > 0
-    if (ulId < LW_CFG_MAX_THREADS) {                                    /*  进程号                      */
-        ulId = vprocMainThread((pid_t)ulId);
+    if (ulId <= LW_CFG_MAX_THREADS) {                                   /*  进程号                      */
+        ulId  = vprocMainThread((pid_t)ulId);
     }
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 
@@ -932,8 +932,8 @@ INT  sigqueue (LW_OBJECT_HANDLE  ulId, INT   iSigNo, const union sigval  sigvalu
 #endif
              
 #if LW_CFG_MODULELOADER_EN > 0
-    if (ulId < LW_CFG_MAX_THREADS) {                                    /*  进程号                      */
-        ulId = vprocMainThread((pid_t)ulId);
+    if (ulId <= LW_CFG_MAX_THREADS) {                                   /*  进程号                      */
+        ulId  = vprocMainThread((pid_t)ulId);
     }
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
     

@@ -74,9 +74,7 @@ FUNC_DEF(archTaskCtxSwitch)
 #endif
 
     LD      [%l0] , %l1                                                 ;/*  %l1 = 中断安全栈            */
-
-    SUB     %l1   , ASM_STACK_FRAME_SIZE , %fp                          ;/*  开辟栈帧                    */
-    SUB     %fp   , ASM_STACK_FRAME_SIZE , %sp                          ;/*  开辟栈空间                  */
+    SUB     %l1   , ASM_STACK_FRAME_SIZE , %sp                          ;/*  开辟栈空间                  */
 
     ;/*
     ; * 调用 C 函数 _SchedSwp(%o0 为当前 CPU 控制块指针)
@@ -123,9 +121,7 @@ FUNC_DEF(archCrtCtxSwitch)
 #endif
 
     LD      [%l0] , %l1                                                 ;/*  %l1 = 中断安全栈            */
-
-    SUB     %l1   , ASM_STACK_FRAME_SIZE , %fp                          ;/*  开辟栈帧                    */
-    SUB     %fp   , ASM_STACK_FRAME_SIZE , %sp                          ;/*  开辟栈空间                  */
+    SUB     %l1   , ASM_STACK_FRAME_SIZE , %sp                          ;/*  开辟栈空间                  */
 
     ;/*
     ; * 调用 C 函数 _SchedCrSwp(%o0 为当前 CPU 控制块指针)

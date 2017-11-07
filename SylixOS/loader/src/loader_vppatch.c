@@ -755,7 +755,7 @@ LW_OBJECT_HANDLE vprocMainThread (pid_t pid)
 {
     LW_OBJECT_HANDLE  lId = LW_OBJECT_HANDLE_INVALID;
     
-    if (pid > 0 && pid < LW_CFG_MAX_THREADS) {
+    if (pid > 0 && pid <= LW_CFG_MAX_THREADS) {
         LW_LD_LOCK();
         if (_G_pvprocTable[pid - 1]) {
             lId = _G_pvprocTable[pid - 1]->VP_ulMainThread;

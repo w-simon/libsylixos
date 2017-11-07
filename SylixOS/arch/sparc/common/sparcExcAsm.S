@@ -103,59 +103,56 @@
 ;*********************************************************************************************************/
 
 MACRO_DEF(SPARC_TRAP_ENTRY handle arg)
+    ST      %l1  , [%i6 - ASM_REG_STACK_FRAME_SIZE + REG_PC]            ;/*  保存 PC                     */
+    ST      %l2  , [%i6 - ASM_REG_STACK_FRAME_SIZE + REG_NPC]           ;/*  保存 Next PC                */
+
+    STD     %i0  , [%i6 - ASM_REG_STACK_FRAME_SIZE + REG_OUTPUT(0)]     ;/*  保存输出寄存器              */
+    SPARC_B2BST_NOP
+    STD     %i2  , [%i6 - ASM_REG_STACK_FRAME_SIZE + REG_OUTPUT(2)]
+    SPARC_B2BST_NOP
+    STD     %i4  , [%i6 - ASM_REG_STACK_FRAME_SIZE + REG_OUTPUT(4)]
+    SPARC_B2BST_NOP
+    STD     %i6  , [%i6 - ASM_REG_STACK_FRAME_SIZE + REG_OUTPUT(6)]     ;/*  保存异常前的 %sp            */
+    SPARC_B2BST_NOP
+
+    ST      %g1  , [%i6 - ASM_REG_STACK_FRAME_SIZE + REG_GLOBAL(1)]     ;/*  保存全局寄存器(除了 %g0)    */
+    STD     %g2  , [%i6 - ASM_REG_STACK_FRAME_SIZE + REG_GLOBAL(2)]
+    SPARC_B2BST_NOP
+    STD     %g4  , [%i6 - ASM_REG_STACK_FRAME_SIZE + REG_GLOBAL(4)]
+    SPARC_B2BST_NOP
+    STD     %g6  , [%i6 - ASM_REG_STACK_FRAME_SIZE + REG_GLOBAL(6)]
+
+    MOV     %\arg , %g7
+
     RESTORE                                                             ;/*  回到异常前的寄存器窗口      */
 
     ;/*
     ; * 保存 CPU 上下文
     ; */
-    ST      %sp  , [%sp - ASM_REG_STACK_FRAME_SIZE*2 + REG_OUTPUT(6)]   ;/*  保存异常前的 %sp            */
+    SUB     %sp  , ASM_REG_STACK_FRAME_SIZE , %g6                       ;/*  开辟栈空间                  */
 
-    SUB     %sp  , ASM_REG_STACK_FRAME_SIZE*2 , %sp                     ;/*  开辟栈空间                  */
+    STD     %l0  , [%g6 + REG_LOCAL(0)]                                 ;/*  保存本地寄存器              */
+    SPARC_B2BST_NOP
+    STD     %l2  , [%g6 + REG_LOCAL(2)]
+    SPARC_B2BST_NOP
+    STD     %l4  , [%g6 + REG_LOCAL(4)]
+    SPARC_B2BST_NOP
+    STD     %l6  , [%g6 + REG_LOCAL(6)]
+    SPARC_B2BST_NOP
 
-    ST      %g1  , [%sp + REG_GLOBAL(1)]                                ;/*  保存全局寄存器(除了 %g0)    */
-    STD     %g2  , [%sp + REG_GLOBAL(2)]
-    STD     %g4  , [%sp + REG_GLOBAL(4)]
-    STD     %g6  , [%sp + REG_GLOBAL(6)]
+    STD     %i0  , [%g6 + REG_INPUT(0)]                                 ;/*  保存输入寄存器              */
+    SPARC_B2BST_NOP
+    STD     %i2  , [%g6 + REG_INPUT(2)]
+    SPARC_B2BST_NOP
+    STD     %i4  , [%g6 + REG_INPUT(4)]
+    SPARC_B2BST_NOP
+    STD     %i6  , [%g6 + REG_INPUT(6)]
 
-    STD     %l0  , [%sp + REG_LOCAL(0)]                                 ;/*  保存本地寄存器              */
-    STD     %l2  , [%sp + REG_LOCAL(2)]
-    STD     %l4  , [%sp + REG_LOCAL(4)]
-    STD     %l6  , [%sp + REG_LOCAL(6)]
-
-    STD     %i0  , [%sp + REG_INPUT(0)]                                 ;/*  保存输入寄存器              */
-    STD     %i2  , [%sp + REG_INPUT(2)]
-    STD     %i4  , [%sp + REG_INPUT(4)]
-    STD     %i6  , [%sp + REG_INPUT(6)]
-
-    STD     %o0  , [%sp + REG_OUTPUT(0)]                                ;/*  保存输出寄存器              */
-    STD     %o2  , [%sp + REG_OUTPUT(2)]
-    STD     %o4  , [%sp + REG_OUTPUT(4)]
-    ST      %o7  , [%sp + REG_OUTPUT(7)]                                ;/*  %o6(%sp) 已经保存           */
+    RD      %psr , %l0                                                  ;/*  必须回到异常前的寄存器窗口  */
+    ST      %l0  , [%g6 + REG_PSR]                                      ;/*  才能正确保存 PSR 状态寄存器 */
 
     RD      %y   , %l0
-    ST      %l0  , [%sp + REG_Y]                                        ;/*  保存 Y 寄存器               */
-
-    RD      %wim , %g1                                                  ;/*  %g1 记录 %wim !!!           */
-    WR      %g0  , %wim                                                 ;/*  清除 %wim, 避免异常         */
-    NOP
-    NOP
-    NOP
-
-    MOV     %sp  , %g6                                                  ;/*  %g6 = %sp !!!               */
-
-    SAVE                                                                ;/*  回到异常后的寄存器窗口      */
-
-    WR      %g1  , %wim                                                 ;/*  恢复 %wim                   */
-    NOP
-    NOP
-    NOP
-
-    ST      %l0  , [%g6 + REG_PSR]                                      ;/*  保存 PSR 状态寄存器         */
-    ST      %l1  , [%g6 + REG_PC]                                       ;/*  保存 PC                     */
-    ST      %l2  , [%g6 + REG_NPC]                                      ;/*  保存 Next PC                */
-    MOV     %\arg , %g7
-
-    RESTORE                                                             ;/*  回到异常前的寄存器窗口      */
+    ST      %l0  , [%g6 + REG_Y]                                        ;/*  保存 Y 寄存器               */
 
     ;/*
     ; *  if (API_InterEnter() == 1) {
@@ -210,9 +207,9 @@ MACRO_DEF(SPARC_TRAP_ENTRY handle arg)
     BE      2f
     NOP
 
-    SUB     %g6   , ASM_STACK_FRAME_SIZE , %fp                          ;/*  开辟栈帧                    */
+    SUB     %g6 , ASM_STACK_FRAME_SIZE , %sp                            ;/*  开辟栈空间                  */
     B       3f
-    SUB     %fp   , ASM_STACK_FRAME_SIZE , %sp                          ;/*  开辟栈空间                  */
+    ANDN    %sp , (ARCH_STK_ALIGN_SIZE - 1) , %sp                       ;/*  栈指针对齐                  */
 
 2:
     ;/*
@@ -227,9 +224,7 @@ MACRO_DEF(SPARC_TRAP_ENTRY handle arg)
 #endif
 
     LD      [%l0] , %l1                                                 ;/*  %l1 = 中断安全栈            */
-
-    SUB     %l1   , ASM_STACK_FRAME_SIZE , %fp                          ;/*  开辟栈帧                    */
-    SUB     %fp   , ASM_STACK_FRAME_SIZE , %sp                          ;/*  开辟栈空间                  */
+    SUB     %l1   , ASM_STACK_FRAME_SIZE , %sp                          ;/*  开辟栈空间                  */
 
 3:
     CALL    \handle
