@@ -51,6 +51,8 @@ SylixOS/arch/arm/dbg/armGdb.c \
 SylixOS/arch/arm/dma/pl330/armPl330.c \
 SylixOS/arch/arm/elf/armElf.c \
 SylixOS/arch/arm/elf/armUnwind.c \
+SylixOS/arch/arm/fpu/v7m/armVfpV7M.c \
+SylixOS/arch/arm/fpu/v7m/armVfpV7MAsm.S \
 SylixOS/arch/arm/fpu/vfp9/armVfp9.c \
 SylixOS/arch/arm/fpu/vfp9/armVfp9Asm.S \
 SylixOS/arch/arm/fpu/vfp11/armVfp11.c \
@@ -72,6 +74,7 @@ SylixOS/arch/arm/mm/cache/v6/armCacheV6.c \
 SylixOS/arch/arm/mm/cache/v6/armCacheV6Asm.S \
 SylixOS/arch/arm/mm/cache/v7/armCacheV7.c \
 SylixOS/arch/arm/mm/cache/v7/armCacheV7Asm.S \
+SylixOS/arch/arm/mm/cache/v7m/armCacheV7M.c \
 SylixOS/arch/arm/mm/cache/v8/armCacheV8.c \
 SylixOS/arch/arm/mm/cache/armCacheCommonAsm.S \
 SylixOS/arch/arm/mm/mmu/v4/armMmuV4.c \
@@ -79,8 +82,12 @@ SylixOS/arch/arm/mm/mmu/v7/armMmuV7.c \
 SylixOS/arch/arm/mm/mmu/v7/armMmuV7Asm.S \
 SylixOS/arch/arm/mm/mmu/armMmuCommon.c \
 SylixOS/arch/arm/mm/mmu/armMmuCommonAsm.S \
+SylixOS/arch/arm/mm/mpu/v7m/armMpuV7M.c \
+SylixOS/arch/arm/mm/mpu/v7r/armMpuV7R.c \
+SylixOS/arch/arm/mm/mpu/v7r/armMpuV7RAsm.S \
 SylixOS/arch/arm/mm/armCache.c \
 SylixOS/arch/arm/mm/armMmu.c \
+SylixOS/arch/arm/mm/armMpu.c \
 SylixOS/arch/arm/mpcore/scu/armScu.c \
 SylixOS/arch/arm/mpcore/armMpCoreAsm.S \
 SylixOS/arch/arm/mpcore/armSpinlock.c \
@@ -1736,6 +1743,13 @@ LOCAL_USE_GCOV := no
 # compile ARM FPU source files
 #*********************************************************************************************************
 ARM_FPU_ASFLAGS = -mfloat-abi=softfp -mfpu=vfpv3
+
+$(OBJPATH)/libsylixos.a/SylixOS/arch/arm/fpu/v7m/armVfpV7MAsm.o: ./SylixOS/arch/arm/fpu/v7m/armVfpV7MAsm.S
+		@if [ ! -d "$(dir $@)" ]; then \
+			mkdir -p "$(dir $@)"; fi
+		@if [ ! -d "$(dir $(__DEP))" ]; then \
+			mkdir -p "$(dir $(__DEP))"; fi
+		$(AS) $(ARM_FPU_ASFLAGS) $($(__TARGET)_ASFLAGS_WITHOUT_FPUFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
 
 $(OBJPATH)/libsylixos.a/SylixOS/arch/arm/fpu/vfp9/armVfp9Asm.o: ./SylixOS/arch/arm/fpu/vfp9/armVfp9Asm.S
 		@if [ ! -d "$(dir $@)" ]; then \

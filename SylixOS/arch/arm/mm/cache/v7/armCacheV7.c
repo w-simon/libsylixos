@@ -28,12 +28,19 @@
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
 /*********************************************************************************************************
+  ARMv7A, R 体系构架
+*********************************************************************************************************/
+#if !defined(__SYLIXOS_ARM_ARCH_M__)
+/*********************************************************************************************************
   裁剪支持
 *********************************************************************************************************/
 #if LW_CFG_CACHE_EN > 0
 #include "../armCacheCommon.h"
 #include "../../mmu/armMmuCommon.h"
 #include "../../../common/cp15/armCp15.h"
+#if defined(__SYLIXOS_ARM_ARCH_R__)
+#include "../../mpu/v7r/armMpuV7R.h"
+#endif
 /*********************************************************************************************************
   L2 CACHE 支持
 *********************************************************************************************************/
@@ -565,6 +572,12 @@ VOID  armCacheV7Init (LW_CACHE_OP *pcacheop,
         pcacheop->CACHEOP_iDLoc = CACHE_LOCATION_PIPT;
         armAuxControlFeatureEnable(AUX_CTRL_A17_L1_PREFETCH |
                                    AUX_CTRL_A17_L2_PREFETCH);
+
+    } else if ((lib_strcmp(pcMachineName, ARM_MACHINE_R4) == 0) ||
+               (lib_strcmp(pcMachineName, ARM_MACHINE_R5) == 0) ||
+               (lib_strcmp(pcMachineName, ARM_MACHINE_R7) == 0)) {
+        pcacheop->CACHEOP_iILoc = CACHE_LOCATION_PIPT;
+        pcacheop->CACHEOP_iDLoc = CACHE_LOCATION_PIPT;
     }
     
     pcacheop->CACHEOP_pfuncEnable  = armCacheV7Enable;
@@ -586,6 +599,11 @@ VOID  armCacheV7Init (LW_CACHE_OP *pcacheop,
     pcacheop->CACHEOP_pfuncDmaMalloc      = API_VmmDmaAlloc;
     pcacheop->CACHEOP_pfuncDmaMallocAlign = API_VmmDmaAllocAlign;
     pcacheop->CACHEOP_pfuncDmaFree        = API_VmmDmaFree;
+
+#elif (LW_CFG_VMM_EN == 0) && (LW_CFG_ARM_MPU > 0)
+    pcacheop->CACHEOP_pfuncDmaMalloc      = armMpuV7RDmaAlloc;
+    pcacheop->CACHEOP_pfuncDmaMallocAlign = armMpuV7RDmaAllocAlign;
+    pcacheop->CACHEOP_pfuncDmaFree        = armMpuV7RDmaFree;
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 }
 /*********************************************************************************************************
@@ -606,6 +624,7 @@ VOID  armCacheV7Reset (CPCHAR  pcMachineName)
 }
 
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
+#endif                                                                  /*  !__SYLIXOS_ARM_ARCH_M__     */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

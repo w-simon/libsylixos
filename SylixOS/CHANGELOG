@@ -4,6 +4,10 @@ HISTORY
 
 ++ New features:
 
+    2017-11-08: han.hui
+    增加 ARM MPU 管理支持.
+    增加 ARM Cortex-M Cache, VFP 管理支持.
+
     2017-10-17: han.hui
     增加 SPARC 体系结构支持.
 

@@ -342,7 +342,7 @@ static VOID  leon3CacheProbe (LW_CACHE_OP *pcacheop,
     pcacheop->CACHEOP_pfuncEnable  = leon3CacheEnable;
     pcacheop->CACHEOP_pfuncDisable = leon3CacheDisable;
 
-    pcacheop->CACHEOP_ulOption = CACHE_TEXT_UPDATE_MP;
+    pcacheop->CACHEOP_ulOption = 0ul;                                   /* No need CACHE_TEXT_UPDATE_MP */
 
     pcacheop->CACHEOP_iILoc = CACHE_LOCATION_VIVT;
     pcacheop->CACHEOP_iDLoc = CACHE_LOCATION_VIVT;

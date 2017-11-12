@@ -95,7 +95,6 @@ LW_OBJECT_HANDLE  API_TimerCreate (CPCHAR             pcName,
     ptmr->TIMER_pvArg         = LW_NULL;
     
     ptmr->TIMER_ulThreadId    = 0ul;                                    /*  没有线程拥有                */
-    ptmr->TIMER_ulTimer       = 0ul;                                    /*  非 posix 定时器             */
     ptmr->TIMER_u64Overrun    = 0ull;
     ptmr->TIMER_clockid       = CLOCK_REALTIME;
 

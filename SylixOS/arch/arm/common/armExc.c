@@ -108,14 +108,12 @@ ARCH_REG_CTX  *armv7mSvcHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
     case SVC_archTaskCtxStart:
         pcpuCur = (PLW_CLASS_CPU)pregctx->REG_uiR0;
         return  ((ARCH_REG_CTX *)(pcpuCur->CPU_ptcbTCBCur->TCB_pstkStackNow));
-        break;
 
     case SVC_archTaskCtxSwitch:
         pcpuCur = (PLW_CLASS_CPU)pregctx->REG_uiR0;
         pcpuCur->CPU_ptcbTCBCur->TCB_pstkStackNow = (PLW_STACK)pregctx;
         _SchedSwp(pcpuCur);
         return  ((ARCH_REG_CTX *)(pcpuCur->CPU_ptcbTCBCur->TCB_pstkStackNow));
-        break;
 
 #if LW_CFG_COROUTINE_EN > 0
     case SVC_archCrtCtxSwitch:
@@ -123,12 +121,10 @@ ARCH_REG_CTX  *armv7mSvcHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
         pcpuCur->CPU_pcrcbCur->COROUTINE_pstkStackNow = (PLW_STACK)pregctx;
         _SchedCrSwp(pcpuCur);
         return  ((ARCH_REG_CTX *)(pcpuCur->CPU_pcrcbCur->COROUTINE_pstkStackNow));
-        break;
 #endif
 
     case SVC_archSigCtxLoad:
         return  ((ARCH_REG_CTX *)pregctx->REG_uiR0);
-        break;
 
     default:
         _BugHandle(LW_TRUE, LW_TRUE, "unknown SVC command!\r\n");
@@ -139,17 +135,20 @@ ARCH_REG_CTX  *armv7mSvcHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
 }
 /*********************************************************************************************************
 ** 函数名称: armv7mIntHandle
-** 功能描述: NONE
-** 输　入  : NONE
-** 输　出  : NONE
+** 功能描述: 中断处理
+** 输　入  : uiVector  中断向量
+**           pregctx   上下文
+** 输　出  : 上下文
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
 ARCH_REG_CTX  *armv7mIntHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
 {
-    if (API_InterGetNesting() == 1) {
-        PLW_CLASS_TCB  ptcbTCBCur = API_ThreadTcbInter();
-        ptcbTCBCur->TCB_pstkStackNow = (PLW_STACK)pregctx;
+    if (LW_CPU_GET_CUR_NESTING() == 1) {
+        PLW_CLASS_TCB   ptcbCur;
+
+        LW_TCB_GET_CUR(ptcbCur);
+        ptcbCur->TCB_pstkStackNow = (PLW_STACK)pregctx;
     }
 
     archIntHandle((ULONG)uiVector, LW_FALSE);
@@ -157,6 +156,29 @@ ARCH_REG_CTX  *armv7mIntHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
     API_InterExit();
 
     return  (pregctx);
+}
+/*********************************************************************************************************
+** 函数名称: armv7mUndHandle
+** 功能描述: 处理未定义指令处理
+** 输　入  : ulAddr           对应的地址
+** 输　出  :  0:  尝试退出异常重新执行
+**           -1:  打印错误信息, 并重启系统.
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  armv7mUndHandle (addr_t  ulAddr)
+{
+#if LW_CFG_CPU_FPU_EN > 0
+    PLW_CLASS_TCB   ptcbCur;
+
+    LW_TCB_GET_CUR(ptcbCur);
+
+    if (archFpuUndHandle(ptcbCur) == ERROR_NONE) {                      /*  进行 FPU 指令探测           */
+        return  (ERROR_NONE);
+    }
+#endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+
+    return  (PX_ERROR);
 }
 
 #else

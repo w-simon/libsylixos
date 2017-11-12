@@ -66,6 +66,12 @@
 #define LW_CFG_ARM_CACHE_L2             1                               /*  是否允许管理 ARM 二级 CACHE */
 #define LW_CFG_ARM_CACHE_L2_ECC         1                               /*  是否打开 ARM 二级 CACHE ECC */
 
+#if defined(__ARM_ARCH_7R__) || defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_7EM__)
+#define LW_CFG_ARM_MPU                  1
+#else
+#define LW_CFG_ARM_MPU                  0
+#endif                                                                  /*  Cortex-R, M                 */
+
 /*********************************************************************************************************
   ARM spin lock 与 Cache 依赖性配置 (例如: TI A15 等处理器需要使能此选项)
 *********************************************************************************************************/

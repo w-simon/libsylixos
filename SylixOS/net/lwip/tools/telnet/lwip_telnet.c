@@ -205,9 +205,7 @@ static VOID  __telnetCommunication (INT  iDevFd)
     CHAR        cPtyRBuffer[256];                                       /*  pty 接收缓冲                */
     CHAR        cSockRBuffer[256];                                      /*  socket 接收缓冲             */
     INT         iPtyReadNum;
-    
     PCHAR       pcPtyBuffer;
-    BOOL        bIsOff = LW_FALSE;                                      /*  是否停止                    */
     
     INT         iPtyLen      = 0;
     INT         iProcessLen  = 0;
@@ -226,8 +224,7 @@ static VOID  __telnetCommunication (INT  iDevFd)
     
     FD_ZERO(&fdset);                                                    /*  文件集清空                  */
     
-    for (;bIsOff == LW_FALSE;) {
-    
+    for (;;) {
         FD_SET(STD_IN, &fdset);                                         /*  网络接口读                  */
         FD_SET(iDevFd, &fdset);                                         /*  pty 设备端读                */
     
@@ -243,6 +240,22 @@ static VOID  __telnetCommunication (INT  iDevFd)
         }
         
         API_ThreadTestCancel();                                         /*  检测是否被删除              */
+        
+        /*
+         *  检测处理 pty 事件
+         */
+        if (FD_ISSET(iDevFd, &fdset)) {
+            iPtyReadNum = (INT)read(iDevFd, cPtyRBuffer, sizeof(cPtyRBuffer));
+                                                                        /*  从 pty 设备端读出数据       */
+            if (iPtyReadNum > 0) {
+                write(STD_OUT, cPtyRBuffer, iPtyReadNum);               /*  写入 telnet 网络            */
+
+            } else {                                                    /*  停止 shell 链接             */
+                write(iDevFd, (CPVOID)_G_cTelnetAbort, sizeof(_G_cTelnetAbort));
+                break;
+            }
+        }
+        
         /*
          *  检测处理网口可读事件
          */
@@ -274,24 +287,11 @@ static VOID  __telnetCommunication (INT  iDevFd)
                 if (iProcessLen > 0) {
                     iOverplus = iSockReadNum - iProcessLen;             /*  计算未被处理的数据长度      */
                 }
+
             } else {
                 if ((errno != ETIMEDOUT) && (errno != EWOULDBLOCK)) {   /*  网络断开                    */
-                    bIsOff = LW_TRUE;                                   /*  需要退出循环                */
+                    break;                                              /*  需要退出循环                */
                 }
-            }
-        }
-        
-        /*
-         *  检测处理 pty 事件
-         */
-        if (FD_ISSET(iDevFd, &fdset)) {
-            iPtyReadNum = (INT)read(iDevFd, cPtyRBuffer, sizeof(cPtyRBuffer));
-                                                                        /*  从 pty 设备端读出数据       */
-            if (iPtyReadNum > 0) {
-                write(STD_OUT, cPtyRBuffer, iPtyReadNum);               /*  写入 telnet 网络            */
-            } else {                                                    /*  停止 shell 链接             */
-                write(iDevFd, (CPVOID)_G_cTelnetAbort, sizeof(_G_cTelnetAbort));
-                break;
             }
         }
     }

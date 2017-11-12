@@ -485,8 +485,13 @@ INT    API_CacheFlushPage (LW_CACHE_TYPE   cachetype,
     INT     iError;
     
     __CACHE_OP_ENTER(iregInterLevel);                                   /*  开始操作 cache              */
+#if LW_CFG_VMM_EN > 0
     iError = ((_G_cacheopLib.CACHEOP_pfuncFlushPage == LW_NULL) ? ERROR_NONE : 
               (_G_cacheopLib.CACHEOP_pfuncFlushPage)(cachetype, pvAdrs, pvPdrs, stBytes));
+#else
+    iError = ((_G_cacheopLib.CACHEOP_pfuncFlush == LW_NULL) ? ERROR_NONE : 
+              (_G_cacheopLib.CACHEOP_pfuncFlush)(cachetype, pvAdrs, stBytes));
+#endif
     __CACHE_OP_EXIT(iregInterLevel);                                    /*  结束操作 cache              */
     
     return  (iError);
@@ -549,11 +554,21 @@ INT    API_CacheInvalidatePage (LW_CACHE_TYPE   cachetype,
     
     __CACHE_OP_ENTER(iregInterLevel);                                   /*  开始操作 cache              */
 #if LW_CFG_VMM_L4_HYPERVISOR_EN > 0
+#if LW_CFG_VMM_EN > 0
     iError = ((_G_cacheopLib.CACHEOP_pfuncClearPage == LW_NULL) ? ERROR_NONE : 
               (_G_cacheopLib.CACHEOP_pfuncClearPage)(cachetype, pvAdrs, pvPdrs, stBytes));
 #else
+    iError = ((_G_cacheopLib.CACHEOP_pfuncClear == LW_NULL) ? ERROR_NONE : 
+              (_G_cacheopLib.CACHEOP_pfuncClear)(cachetype, pvAdrs, stBytes));
+#endif
+#else
+#if LW_CFG_VMM_EN > 0
     iError = ((_G_cacheopLib.CACHEOP_pfuncInvalidatePage == LW_NULL) ? ERROR_NONE : 
               (_G_cacheopLib.CACHEOP_pfuncInvalidatePage)(cachetype, pvAdrs, pvPdrs, stBytes));
+#else
+    iError = ((_G_cacheopLib.CACHEOP_pfuncInvalidate == LW_NULL) ? ERROR_NONE : 
+              (_G_cacheopLib.CACHEOP_pfuncInvalidate)(cachetype, pvAdrs, stBytes));
+#endif
 #endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
     __CACHE_OP_EXIT(iregInterLevel);                                    /*  结束操作 cache              */
     
@@ -607,8 +622,13 @@ INT    API_CacheClearPage (LW_CACHE_TYPE   cachetype,
     INT     iError;
 
     __CACHE_OP_ENTER(iregInterLevel);                                   /*  开始操作 cache              */
+#if LW_CFG_VMM_EN > 0
     iError = ((_G_cacheopLib.CACHEOP_pfuncClearPage == LW_NULL) ? ERROR_NONE : 
               (_G_cacheopLib.CACHEOP_pfuncClearPage)(cachetype, pvAdrs, pvPdrs, stBytes));
+#else
+    iError = ((_G_cacheopLib.CACHEOP_pfuncClear == LW_NULL) ? ERROR_NONE : 
+              (_G_cacheopLib.CACHEOP_pfuncClear)(cachetype, pvAdrs, stBytes));
+#endif
     __CACHE_OP_EXIT(iregInterLevel);                                    /*  结束操作 cache              */
     
     return  (iError);

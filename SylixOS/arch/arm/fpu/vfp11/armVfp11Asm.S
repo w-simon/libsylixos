@@ -28,6 +28,8 @@
 
 #include <arch/assembler.h>
 
+#if !defined(__SYLIXOS_ARM_ARCH_M__)
+
 #if LW_CFG_CPU_FPU_EN > 0
 
     FILE_BEGIN()
@@ -78,6 +80,7 @@ FUNC_DEF(armVfp11HwInit)
     
     FILE_END()
 
+#endif
 #endif
 ;/*********************************************************************************************************
 ;  END

@@ -141,19 +141,18 @@ INT  timer_create_internal (clockid_t  clockid, struct sigevent *sigeventT,
     __KERNEL_ENTER();                                                   /*  进入内核                    */
     ptmr = &_K_tmrBuffer[_ObjectGetIndex(ulTimer)];
     ptmr->TIMER_ulThreadId = API_ThreadIdSelf();
-    ptmr->TIMER_ulTimer    = ulTimer;                                   /*  定义为 posix 定时器         */
     ptmr->TIMER_clockid    = clockid;
     __KERNEL_EXIT();                                                    /*  退出内核                    */
     
     if (sigeventT == LW_NULL) {
         ptmr->TIMER_sigevent.sigev_signo  = SIGALRM;                    /*  默认信号事件                */
         ptmr->TIMER_sigevent.sigev_notify = SIGEV_SIGNAL;
-        ptmr->TIMER_sigevent.sigev_value.sival_ptr = (PVOID)&ptmr->TIMER_ulTimer;
+        ptmr->TIMER_sigevent.sigev_value.sival_ptr = (PVOID)ulTimer;
     } else {
         ptmr->TIMER_sigevent = *sigeventT;                              /*  记录信息                    */
     }
     
-    *ptimer = ptmr->TIMER_ulTimer;                                      /*  记录句柄                    */
+    *ptimer = ulTimer;                                                  /*  记录句柄                    */
     
     return  (ERROR_NONE);
 }
@@ -566,10 +565,7 @@ static VOID  __ptimerThreadDeleteHook (LW_OBJECT_HANDLE  ulId)
         ptmr = &_K_tmrBuffer[i];
         if (ptmr->TIMER_ucType != LW_TYPE_TIMER_UNUSED) {
             if (ptmr->TIMER_ulThreadId == ulId) {                       /*  是这个线程创建的            */
-                if (ptmr->TIMER_ulTimer != _G_ulAlarmTimerHandle) {     /*  不是全局 alarm 定时器       */
-                    API_TimerDelete(&ptmr->TIMER_ulTimer);              /*  删除这个定时器              */
-                    ptmr->TIMER_ulTimer = 0ul;                          /*  防止重启误操作              */
-                }
+                API_TimerDelete(&ptmr->TIMER_ulTimer);                  /*  删除这个定时器              */
             }
         }
     }

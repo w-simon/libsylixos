@@ -97,11 +97,11 @@
 *********************************************************************************************************/
 addr_t  armGetAbtAddr (VOID)
 {
-#if LW_CFG_VMM_EN > 0
+#if !defined(__SYLIXOS_ARM_ARCH_M__)
     return  ((addr_t)armMmuAbtFaultAddr());
 #else
     return  ((addr_t)0ul);
-#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
+#endif                                                                  /*  !__SYLIXOS_ARM_ARCH_M__     */
 }
 /*********************************************************************************************************
 ** 函数名称: armGetAbtType
@@ -113,7 +113,7 @@ addr_t  armGetAbtAddr (VOID)
 *********************************************************************************************************/
 UINT32   armGetAbtType (PLW_VMM_ABORT  pabtInfo)
 {
-#if LW_CFG_VMM_EN > 0
+#if !defined(__SYLIXOS_ARM_ARCH_M__)
     UINT32  uiStatus = armMmuAbtFaultStatus();
     UINT32  uiCode   = uiStatus & 0x0f;
     
@@ -182,7 +182,7 @@ UINT32   armGetAbtType (PLW_VMM_ABORT  pabtInfo)
     pabtInfo->VMABT_uiMethod = 0;
 
     return  (0);
-#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
+#endif                                                                  /*  !__SYLIXOS_ARM_ARCH_M__     */
 }
 /*********************************************************************************************************
 ** 函数名称: armGetPreAddr
@@ -206,7 +206,7 @@ addr_t  armGetPreAddr (addr_t  ulRetLr)
 *********************************************************************************************************/
 UINT32   armGetPreType (PLW_VMM_ABORT  pabtInfo)
 {
-#if LW_CFG_VMM_EN > 0
+#if !defined(__SYLIXOS_ARM_ARCH_M__)
     UINT32  uiStatus = armMmuPreFaultStatus();
     UINT32  uiCode   = uiStatus & 0x0f;
 
@@ -263,7 +263,7 @@ UINT32   armGetPreType (PLW_VMM_ABORT  pabtInfo)
     UINT32  uiStatus = 0;
 
     pabtInfo->VMABT_uiType = LW_VMM_ABORT_TYPE_TERMINAL;
-#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
+#endif                                                                  /*  !__SYLIXOS_ARM_ARCH_M__     */
     
     pabtInfo->VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
     

@@ -26,10 +26,14 @@
 #if LW_CFG_CPU_FPU_EN > 0
 #include "armFpu.h"
 #include "vfpnone/armVfpNone.h"
+#if defined(__SYLIXOS_ARM_ARCH_M__)
+#include "v7m/armVfpV7M.h"
+#else
 #include "vfp9/armVfp9.h"
 #include "vfp11/armVfp11.h"
 #include "vfpv3/armVfpV3.h"
 #include "vfpv4/armVfpV4.h"
+#endif                                                                  /*  !__SYLIXOS_ARM_ARCH_M__     */
 /*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
@@ -49,7 +53,26 @@ VOID  archFpuPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
     _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s %s FPU pri-core initialization.\r\n", 
                  LW_CFG_CPU_ARCH_FAMILY, pcMachineName, pcFpuName);
 
-    if (lib_strcmp(pcFpuName, ARM_FPU_NONE) == 0) {                         /*  选择 VFP 架构           */
+#if defined(__SYLIXOS_ARM_ARCH_M__)
+    if (lib_strcmp(pcFpuName, ARM_FPU_NONE) == 0) {                     /*  选择 VFP 架构               */
+        _G_pfpuop = armVfpNonePrimaryInit(pcMachineName, pcFpuName);
+
+    } else {
+        _G_pfpuop = armVfpV7MPrimaryInit(pcMachineName, pcFpuName);
+    }
+
+    lib_bzero(&_G_fpuCtxInit, sizeof(LW_FPU_CONTEXT));
+
+    ARM_VFP_ENABLE(_G_pfpuop);
+
+    ARM_VFP_SAVE(_G_pfpuop, (PVOID)&_G_fpuCtxInit);
+
+    _G_fpuCtxInit.FPUCTX_fpuctxContext.FPUCTX_uiFpscr = 0x01000000;     /*  Set FZ bit in VFP           */
+
+    ARM_VFP_DISABLE(_G_pfpuop);
+
+#else
+    if (lib_strcmp(pcFpuName, ARM_FPU_NONE) == 0) {                     /*  选择 VFP 架构               */
         _G_pfpuop = armVfpNonePrimaryInit(pcMachineName, pcFpuName);
     
     } else if ((lib_strcmp(pcFpuName, ARM_FPU_VFP9_D16) == 0) ||
@@ -85,6 +108,7 @@ VOID  archFpuPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
     _G_fpuCtxInit.FPUCTX_fpuctxContext.FPUCTX_uiFpscr = 0x01000000;     /*  Set FZ bit in VFP           */
                                                                         /*  Do not enable FPU           */
     ARM_VFP_DISABLE(_G_pfpuop);
+#endif                                                                  /*  !__SYLIXOS_ARM_ARCH_M__     */
 }
 /*********************************************************************************************************
 ** 函数名称: archFpuSecondaryInit
@@ -102,6 +126,15 @@ VOID  archFpuSecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
     _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s %s FPU sec-core initialization.\r\n", 
                  LW_CFG_CPU_ARCH_FAMILY, pcMachineName, pcFpuName);
 
+#if defined(__SYLIXOS_ARM_ARCH_M__)
+    if (lib_strcmp(pcFpuName, ARM_FPU_NONE) == 0) {                     /*  选择 VFP 架构               */
+        armVfpNoneSecondaryInit(pcMachineName, pcFpuName);
+
+    } else {
+        armVfpV7MSecondaryInit(pcMachineName, pcFpuName);
+    }
+
+#else
     if (lib_strcmp(pcFpuName, ARM_FPU_NONE) == 0) {                     /*  选择 VFP 架构               */
         armVfpNoneSecondaryInit(pcMachineName, pcFpuName);
     
@@ -122,6 +155,7 @@ VOID  archFpuSecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
         _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown fpu name.\r\n");
         return;
     }
+#endif                                                                  /*  !__SYLIXOS_ARM_ARCH_M__     */
 }
 
 #endif                                                                  /*  LW_CFG_SMP_EN               */

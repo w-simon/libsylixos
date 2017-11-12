@@ -22,6 +22,10 @@
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
 /*********************************************************************************************************
+  ARMv7A, R 体系构架
+*********************************************************************************************************/
+#if !defined(__SYLIXOS_ARM_ARCH_M__)
+/*********************************************************************************************************
   裁剪支持
 *********************************************************************************************************/
 #if LW_CFG_CPU_FPU_EN > 0
@@ -62,13 +66,13 @@ static VOID  armVfpV3CtxShow (INT iFd, PVOID pvFpuCtx)
     LW_FPU_CONTEXT  *pfpuCtx    = (LW_FPU_CONTEXT *)pvFpuCtx;
     ARCH_FPU_CTX    *pcpufpuCtx = &pfpuCtx->FPUCTX_fpuctxContext;
     
-    fdprintf(iFd, "FPSID   = 0x%08x  ", pcpufpuCtx->FPUCTX_uiFpsid);
-    fdprintf(iFd, "FPSCR   = 0x%08x\n", pcpufpuCtx->FPUCTX_uiFpscr);
-    fdprintf(iFd, "FPEXC   = 0x%08x  ", pcpufpuCtx->FPUCTX_uiFpexc);
+    fdprintf(iFd, "FPSID   = 0x%08x\n", pcpufpuCtx->FPUCTX_uiFpsid);
+    fdprintf(iFd, "FPSCR   = 0x%08x  ", pcpufpuCtx->FPUCTX_uiFpscr);
+    fdprintf(iFd, "FPEXC   = 0x%08x\n", pcpufpuCtx->FPUCTX_uiFpexc);
     fdprintf(iFd, "FPINST  = 0x%08x  ", pcpufpuCtx->FPUCTX_uiFpinst);
-    fdprintf(iFd, "FPINST2 = 0x%08x  ", pcpufpuCtx->FPUCTX_uiFpinst2);
+    fdprintf(iFd, "FPINST2 = 0x%08x\n", pcpufpuCtx->FPUCTX_uiFpinst2);
     fdprintf(iFd, "MFVFR0  = 0x%08x  ", pcpufpuCtx->FPUCTX_uiMfvfr0);
-    fdprintf(iFd, "MFVFR1  = 0x%08x  ", pcpufpuCtx->FPUCTX_uiMfvfr1);
+    fdprintf(iFd, "MFVFR1  = 0x%08x\n", pcpufpuCtx->FPUCTX_uiMfvfr1);
 
     for (i = 0; i < _G_iVfpV3DNum; i += 2) {
         fdprintf(iFd, "FPS[%02d] = 0x%08x  ", i,     pcpufpuCtx->FPUCTX_uiDreg[i]);
@@ -143,6 +147,7 @@ VOID  armVfpV3SecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 }
 
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+#endif                                                                  /*  !__SYLIXOS_ARM_ARCH_M__     */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

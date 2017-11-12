@@ -24,11 +24,15 @@
   裁剪支持
 *********************************************************************************************************/
 #if LW_CFG_CACHE_EN > 0
+#if defined(__SYLIXOS_ARM_ARCH_M__)
+#include "cache/v7m/armCacheV7M.h"
+#else
 #include "cache/v4/armCacheV4.h"
 #include "cache/v5/armCacheV5.h"
 #include "cache/v6/armCacheV6.h"
 #include "cache/v7/armCacheV7.h"
 #include "cache/v8/armCacheV8.h"
+#endif                                                                  /*  !__SYLIXOS_ARM_ARCH_M__     */
 /*********************************************************************************************************
 ** 函数名称: archCacheInit
 ** 功能描述: 初始化 CACHE 
@@ -46,6 +50,10 @@ VOID  archCacheInit (CACHE_MODE  uiInstruction, CACHE_MODE  uiData, CPCHAR  pcMa
     _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s L1 cache controller initialization.\r\n", 
                  LW_CFG_CPU_ARCH_FAMILY, pcMachineName);
 
+#if defined(__SYLIXOS_ARM_ARCH_M__)
+    armCacheV7MInit(pcacheop, uiInstruction, uiData, pcMachineName);
+
+#else
     if (lib_strcmp(pcMachineName, ARM_MACHINE_920) == 0) {
         armCacheV4Init(pcacheop, uiInstruction, uiData, pcMachineName);
         
@@ -81,13 +89,12 @@ VOID  archCacheInit (CACHE_MODE  uiInstruction, CACHE_MODE  uiData, CPCHAR  pcMa
     } else if ((lib_strcmp(pcMachineName, ARM_MACHINE_R4) == 0) ||
                (lib_strcmp(pcMachineName, ARM_MACHINE_R5) == 0) ||
                (lib_strcmp(pcMachineName, ARM_MACHINE_R7) == 0)) {
-        /*
-         * TODO: ARM Cortex-R Cache support.
-         */
+        armCacheV7Init(pcacheop, uiInstruction, uiData, pcMachineName);
     
     } else {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown machine name.\r\n");
     }
+#endif                                                                  /*  !__SYLIXOS_ARM_ARCH_M__     */
 }
 /*********************************************************************************************************
 ** 函数名称: archCacheReset
@@ -99,6 +106,10 @@ VOID  archCacheInit (CACHE_MODE  uiInstruction, CACHE_MODE  uiData, CPCHAR  pcMa
 *********************************************************************************************************/
 VOID  archCacheReset (CPCHAR  pcMachineName)
 {
+#if defined(__SYLIXOS_ARM_ARCH_M__)
+    armCacheV7MReset(pcMachineName);
+
+#else
     if (lib_strcmp(pcMachineName, ARM_MACHINE_920) == 0) {
         armCacheV4Reset(pcMachineName);
         
@@ -126,13 +137,12 @@ VOID  archCacheReset (CPCHAR  pcMachineName)
     } else if ((lib_strcmp(pcMachineName, ARM_MACHINE_R4) == 0) ||
                (lib_strcmp(pcMachineName, ARM_MACHINE_R5) == 0) ||
                (lib_strcmp(pcMachineName, ARM_MACHINE_R7) == 0)) {
-        /*
-         * TODO: ARM Cortex-R Cache support.
-         */
-         
+        armCacheV7Reset(pcMachineName);
+
     } else {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown machine name.\r\n");
     }
+#endif                                                                  /*  !__SYLIXOS_ARM_ARCH_M__     */
 }
 
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */

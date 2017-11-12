@@ -26,6 +26,8 @@
 #include <arch/assembler.h>
 #include <config/kernel/cache_cfg.h>
 
+#if !defined(__SYLIXOS_ARM_ARCH_M__)
+
 #if LW_CFG_CACHE_EN > 0
 
     FILE_BEGIN()
@@ -106,6 +108,7 @@ FUNC_DEF(armDCacheV5InvalidateAll)
 
     FILE_END()
     
+#endif
 #endif
 ;/*********************************************************************************************************
 ;  END

@@ -176,7 +176,6 @@ typedef struct {
     UINT16                     TIMER_usIndex;                           /*  数组中的索引                */
     
     LW_OBJECT_HANDLE           TIMER_ulThreadId;                        /*  线程 ID                     */
-    LW_OBJECT_HANDLE           TIMER_ulTimer;                           /*  POSIX 兼容定时器句柄        */
     struct sigevent            TIMER_sigevent;                          /*  定时器信号相关属性          */
                                                                         /*  SIGEV_THREAD 必须使能 POSIX */
     UINT64                     TIMER_u64Overrun;                        /*  timer_getoverrun            */

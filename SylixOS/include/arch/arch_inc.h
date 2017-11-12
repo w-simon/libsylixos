@@ -31,6 +31,7 @@
 #include "arm/arch_limits.h"
 #include "arm/arch_regs.h"
 #include "arm/arch_mmu.h"
+#include "arm/arch_mpu.h"
 
 #elif defined(LW_CFG_CPU_ARCH_X86)
 #include "x86/arch_types.h"

@@ -222,6 +222,7 @@ static VOID  archTaskCtxCpsr (ARCH_REG_T regCpsr, PCHAR  pcCpsr)
     } else {
         pcCpsr[7] = 't';
     }
+
     pcCpsr[8] = 0;
     
     regCpsr &= 0x1F;
@@ -368,7 +369,6 @@ VOID  archTaskCtxPrint (PLW_STACK  pstkTop)
     ARCH_REG_T  regCpsr       = (ARCH_REG_T)pstkTop[0];
 
     archTaskCtxCpsr(regCpsr, cCpsr);
-
 
     _PrintFormat("cpsr = %s\r\n",    cCpsr);
     _PrintFormat("r0  = 0x%08x  ",   pstkTop[1]);

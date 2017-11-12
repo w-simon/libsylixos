@@ -908,10 +908,11 @@ static VOID  sparcMmuInvTLB (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulPageAddr, ULONG
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : LEON 多核 SPARC 处理器不需要 LW_VMM_MMU_FLUSH_TLB_MP 操作.
 *********************************************************************************************************/
 VOID  sparcMmuInit (LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName)
 {
-    pmmuop->MMUOP_ulOption = LW_VMM_MMU_FLUSH_TLB_MP;
+    pmmuop->MMUOP_ulOption = 0ul;                                       /* No LW_VMM_MMU_FLUSH_TLB_MP   */
 
     pmmuop->MMUOP_pfuncMemInit    = sparcMmuMemInit;
     pmmuop->MMUOP_pfuncGlobalInit = sparcMmuGlobalInit;

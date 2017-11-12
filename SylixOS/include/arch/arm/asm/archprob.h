@@ -76,9 +76,6 @@
 #  undef LW_CFG_ARM_CP15
 #  define LW_CFG_ARM_CP15           0
 
-#  undef LW_CFG_CACHE_EN
-#  define LW_CFG_CACHE_EN           0
-
 #  undef LW_CFG_VMM_EN
 #  define LW_CFG_VMM_EN             0
 
