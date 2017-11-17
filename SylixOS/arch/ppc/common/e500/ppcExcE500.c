@@ -24,7 +24,7 @@
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
 #include "dtrace.h"
-#include "ppcSpr.h"
+#include "../ppcSpr.h"
 #include "ppcSprE500.h"
 #define  __SYLIXOS_PPC_E500__
 #define  __SYLIXOS_PPC_E500MC__

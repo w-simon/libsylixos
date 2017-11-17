@@ -22,6 +22,10 @@
 #include "SylixOS.h"
 #include "armMmuCommon.h"
 /*********************************************************************************************************
+  ARM 体系构架
+*********************************************************************************************************/
+#if !defined(__SYLIXOS_ARM_ARCH_M__)
+/*********************************************************************************************************
   ARM 异常类型
 *********************************************************************************************************/
 #ifdef __GNUC__
@@ -97,11 +101,7 @@
 *********************************************************************************************************/
 addr_t  armGetAbtAddr (VOID)
 {
-#if !defined(__SYLIXOS_ARM_ARCH_M__)
     return  ((addr_t)armMmuAbtFaultAddr());
-#else
-    return  ((addr_t)0ul);
-#endif                                                                  /*  !__SYLIXOS_ARM_ARCH_M__     */
 }
 /*********************************************************************************************************
 ** 函数名称: armGetAbtType
@@ -113,7 +113,6 @@ addr_t  armGetAbtAddr (VOID)
 *********************************************************************************************************/
 UINT32   armGetAbtType (PLW_VMM_ABORT  pabtInfo)
 {
-#if !defined(__SYLIXOS_ARM_ARCH_M__)
     UINT32  uiStatus = armMmuAbtFaultStatus();
     UINT32  uiCode   = uiStatus & 0x0f;
     
@@ -176,13 +175,6 @@ UINT32   armGetAbtType (PLW_VMM_ABORT  pabtInfo)
                              ? LW_VMM_ABORT_METHOD_WRITE 
                              : LW_VMM_ABORT_METHOD_READ;
     return  (uiStatus);
-    
-#else
-    pabtInfo->VMABT_uiType   = LW_VMM_ABORT_TYPE_TERMINAL;
-    pabtInfo->VMABT_uiMethod = 0;
-
-    return  (0);
-#endif                                                                  /*  !__SYLIXOS_ARM_ARCH_M__     */
 }
 /*********************************************************************************************************
 ** 函数名称: armGetPreAddr
@@ -206,7 +198,6 @@ addr_t  armGetPreAddr (addr_t  ulRetLr)
 *********************************************************************************************************/
 UINT32   armGetPreType (PLW_VMM_ABORT  pabtInfo)
 {
-#if !defined(__SYLIXOS_ARM_ARCH_M__)
     UINT32  uiStatus = armMmuPreFaultStatus();
     UINT32  uiCode   = uiStatus & 0x0f;
 
@@ -259,16 +250,12 @@ UINT32   armGetPreType (PLW_VMM_ABORT  pabtInfo)
         break;
     }
     
-#else
-    UINT32  uiStatus = 0;
-
-    pabtInfo->VMABT_uiType = LW_VMM_ABORT_TYPE_TERMINAL;
-#endif                                                                  /*  !__SYLIXOS_ARM_ARCH_M__     */
-    
     pabtInfo->VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
     
     return  (uiStatus);
 }
+
+#endif                                                                  /*  !__SYLIXOS_ARM_ARCH_M__     */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

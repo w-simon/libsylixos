@@ -63,6 +63,7 @@ static VOID  __fpuInterEnter (PLW_CLASS_CPU  pcpu)
         } else {
             __ARCH_FPU_ENABLE();                                        /*  使能当前中断下 FPU          */
         }
+
     } else {
         REGISTER ULONG  ulOldNest = ulInterNesting - 1;
         __ARCH_FPU_SAVE(__INTER_FPU_CTX(ulOldNest));
@@ -89,6 +90,7 @@ static VOID  __fpuInterExit (PLW_CLASS_CPU  pcpu)
         } else {
             __ARCH_FPU_DISABLE();                                       /*  继续执行的任务不需要 FPU    */
         }
+
     } else {                                                            /*  退出后还在中断中            */
         __ARCH_FPU_RESTORE(__INTER_FPU_CTX(ulInterNesting));
     }
@@ -114,8 +116,6 @@ ULONG    API_InterEnter (VOID)
     if (pcpu->CPU_ulInterNesting != LW_CFG_MAX_INTER_SRC) {
         pcpu->CPU_ulInterNesting++;
     }
-    
-    KN_SMP_WMB();                                                       /*  等待以上操作完成            */
 
 #if (LW_CFG_CPU_FPU_EN > 0) && (LW_CFG_INTER_FPU > 0)
     if (LW_KERN_FPU_EN_GET()) {                                         /*  中断状态允许使用浮点运算    */
@@ -150,8 +150,6 @@ VOID    API_InterExit (VOID)
     if (pcpu->CPU_ulInterNesting) {                                     /*  系统中断嵌套层数--          */
         pcpu->CPU_ulInterNesting--;
     }
-    
-    KN_SMP_WMB();                                                       /*  等待以上操作完成            */
     
     if (pcpu->CPU_ulInterNesting) {                                     /*  查看系统是否在中断嵌套中    */
 #if (LW_CFG_CPU_FPU_EN > 0) && (LW_CFG_INTER_FPU > 0)                   /*  恢复上一等级中断 FPU CTX    */

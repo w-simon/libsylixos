@@ -696,7 +696,6 @@ static ULONG   thumbGetNextPc (GDB_REG_SET *pRegs)
     }
 
     return  (ULONG)((UINT32)uiNPc & ~1);
-
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: archGdbGetNextPc

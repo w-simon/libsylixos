@@ -25,7 +25,7 @@
 
 #include <arch/assembler.h>
 #include "arch/ppc/arch_e500.h"
-#include "ppcContextAsm.h"
+#include "../ppcContextAsm.h"
 #include "ppcContextE500Asm.h"
 
     FILE_BEGIN()

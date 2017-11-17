@@ -175,9 +175,7 @@ MACRO_DEF(SPARC_TRAP_ENTRY handle arg)
     LD      [%l1] , %l0                                                 ;/*  %l0 = 中断嵌套计数          */
 
     ADD     %l0 , 1 , %g1                                               ;/*  %g1 = 中断嵌套计数加一!!!   */
-
     ST      %g1 , [%l1]                                                 ;/*  存储回去                    */
-    STBAR
 
     CMP     %g1 , 1
     BNE     1f

@@ -109,6 +109,10 @@ LW_OBJECT_HANDLE  API_TimerCreate (CPCHAR             pcName,
     if (pulId) {
         *pulId = ulIdTemp;
     }
+
+#if LW_CFG_PTIMER_AUTO_DEL_EN > 0
+    ptmr->TIMER_ulTimer = ulIdTemp;
+#endif                                                                  /*  LW_CFG_PTIMER_AUTO_DEL_EN   */
     
     __LW_OBJECT_CREATE_HOOK(ulIdTemp, ulOption);
     

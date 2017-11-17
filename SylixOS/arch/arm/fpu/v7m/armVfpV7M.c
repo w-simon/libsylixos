@@ -144,7 +144,7 @@ PARM_FPU_OP  armVfpV7MPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
     volatile UINT32 *uiCpacr = (volatile UINT32 *)ARMV7M_CPACR;
     volatile UINT32 *uiFpccr = (volatile UINT32 *)ARMV7M_FPCCR;
 
-    uiVal = *cpacr;
+    uiVal = *uiCpacr;
     if (uiVal & ((ARMV7M_CPACR_CP_FA(10) | ARMV7M_CPACR_CP_FA(11)))) {
         uiVal &= ~(ARMV7M_CPACR_CP_FA(10) | ARMV7M_CPACR_CP_FA(11));
         *uiCpacr = uiVal;                                       /* disable                              */
@@ -152,14 +152,14 @@ PARM_FPU_OP  armVfpV7MPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 
     *uiFpccr &= ~(ARMV7M_FPCCR_ASPEN | ARMV7M_FPCCR_LSPEN);     /* disable automaically FP ctx saving.  */
 
-    _G_fpuopVfpM.AFPU_pfuncEnable   = armVfpMEnable;
-    _G_fpuopVfpM.AFPU_pfuncDisable  = armVfpMDisable;
-    _G_fpuopVfpM.AFPU_pfuncIsEnable = armVfpMIsEnable;
-    _G_fpuopVfpM.AFPU_pfuncSave     = armVfpMSave;
-    _G_fpuopVfpM.AFPU_pfuncRestore  = armVfpMRestore;
-    _G_fpuopVfpM.AFPU_pfuncCtxShow  = armVfpMCtxShow;
+    _G_fpuopVfpV7M.AFPU_pfuncEnable   = armVfpV7MEnable;
+    _G_fpuopVfpV7M.AFPU_pfuncDisable  = armVfpV7MDisable;
+    _G_fpuopVfpV7M.AFPU_pfuncIsEnable = armVfpV7MIsEnable;
+    _G_fpuopVfpV7M.AFPU_pfuncSave     = armVfpV7MSave;
+    _G_fpuopVfpV7M.AFPU_pfuncRestore  = armVfpV7MRestore;
+    _G_fpuopVfpV7M.AFPU_pfuncCtxShow  = armVfpV7MCtxShow;
 
-    return  (&_G_fpuopVfpM);
+    return  (&_G_fpuopVfpV7M);
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: armVfpV7MSecondaryInit

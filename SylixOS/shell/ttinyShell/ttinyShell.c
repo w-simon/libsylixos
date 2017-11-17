@@ -63,6 +63,7 @@
 #include "ttinyShellSysCmd.h"
 #include "ttinyShellSysVar.h"
 #include "../SylixOS/shell/ttinyVar/ttinyVarLib.h"
+#include "../SylixOS/shell/extLib/ttinyShellExtCmd.h"
 #include "../SylixOS/shell/fsLib/ttinyShellFsCmd.h"
 #include "../SylixOS/shell/tarLib/ttinyShellTarCmd.h"
 #include "../SylixOS/shell/modemLib/ttinyShellModemCmd.h"
@@ -195,6 +196,10 @@ VOID  API_TShellInit (VOID)
         __tshellSysCmdInit();                                           /*  初始化系统命令              */
         __tshellFsCmdInit();                                            /*  初始化文件系统命令          */
         __tshellModemCmdInit();                                         /*  初始化 modem 命令           */
+        
+#if defined(__SYLIXOS_LITE)
+        __tshellExtCmdInit();
+#endif                                                                  /*  __SYLIXOS_LITE              */
         
 #if LW_CFG_SHELL_USER_EN > 0
         __tshellUserCmdInit();                                          /*  初始化用户管理命令          */

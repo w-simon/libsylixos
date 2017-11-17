@@ -72,7 +72,6 @@ FUNC_DEF(sparcSpinTryLock)
     FUNC_END(sparcSpinTryLock)
 
 FUNC_DEF(sparcSpinUnlock)
-    STBAR                                                               ;/*  ƒ⁄¥Ê∆¡’œ                    */
     STUB    %g0 , [%o0]                                                 ;/*  –¥ 0                        */
     RETL
     NOP

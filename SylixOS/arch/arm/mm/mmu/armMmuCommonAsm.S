@@ -26,13 +26,13 @@
 #include <arch/assembler.h>
 #include <config/kernel/vmm_cfg.h>
 
+#if !defined(__SYLIXOS_ARM_ARCH_M__)
+
     FILE_BEGIN()
 
-#if !defined(__SYLIXOS_ARM_ARCH_M__)
     EXPORT_LABEL(armMmuAbtFaultStatus)
     EXPORT_LABEL(armMmuPreFaultStatus)
     EXPORT_LABEL(armMmuAbtFaultAddr)
-#endif
 
 #if LW_CFG_VMM_EN > 0
     EXPORT_LABEL(armMmuInitSysRom)
@@ -53,7 +53,6 @@
 ;/*********************************************************************************************************
 ;  获取错误信息
 ;*********************************************************************************************************/
-#if !defined(__SYLIXOS_ARM_ARCH_M__)
 
 FUNC_DEF(armMmuAbtFaultStatus)
     MRC     p15, 0, R0, c5, c0, 0
@@ -70,7 +69,6 @@ FUNC_DEF(armMmuAbtFaultAddr)
     BX      LR
     FUNC_END()
 
-#endif
 ;/*********************************************************************************************************
 ;  初始化 SYS ROM
 ;*********************************************************************************************************/
@@ -290,6 +288,8 @@ FUNC_DEF(armMmuSetProcessId)
     MCR     p15, 0, R0, c13, c0, 0
     BX      LR
     FUNC_END()
+
+#endif
 
     FILE_END()
 

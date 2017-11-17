@@ -175,6 +175,10 @@ typedef struct {
     PVOID                      TIMER_pvArg;                             /*  定时器参数                  */
     UINT16                     TIMER_usIndex;                           /*  数组中的索引                */
     
+#if LW_CFG_PTIMER_AUTO_DEL_EN > 0
+    LW_OBJECT_HANDLE           TIMER_ulTimer;
+#endif                                                                  /*  LW_CFG_PTIMER_AUTO_DEL_EN   */
+    
     LW_OBJECT_HANDLE           TIMER_ulThreadId;                        /*  线程 ID                     */
     struct sigevent            TIMER_sigevent;                          /*  定时器信号相关属性          */
                                                                         /*  SIGEV_THREAD 必须使能 POSIX */

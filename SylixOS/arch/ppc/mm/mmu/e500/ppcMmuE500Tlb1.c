@@ -27,7 +27,7 @@
 *********************************************************************************************************/
 #if LW_CFG_VMM_EN > 0
 #include "arch/ppc/arch_e500.h"
-#include "arch/ppc/common/ppcSprE500.h"
+#include "arch/ppc/common/e500/ppcSprE500.h"
 #include "./ppcMmuE500Reg.h"
 #include "alloca.h"
 /*********************************************************************************************************

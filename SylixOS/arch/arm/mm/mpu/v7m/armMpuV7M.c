@@ -80,6 +80,7 @@ VOID  armMpuV7MInit (CPCHAR  pcMachineName, const ARM_MPU_REGION  mpuregion[])
 {
     PARM_MPU_REGION   pmpuregion;
     UINT32            uiVal;
+    UINT32            uiAP;
     size_t            stSize;
 
     if (mpuregion == LW_NULL) {
@@ -100,15 +101,16 @@ VOID  armMpuV7MInit (CPCHAR  pcMachineName, const ARM_MPU_REGION  mpuregion[])
             ARM_MPU_RBAR = pmpuregion->MPUD_uiAddr;
 
             uiVal = 0;
+            uiAP  = pmpuregion->MPUD_uiAP;
 
-            if (pmpuregion->MPUD_uiAP & ARM_MPU_AP_FLAG_EXEC) {
-                pmpuregion->MPUD_uiAP &= ~ARM_MPU_AP_FLAG_EXEC;
+            if (uiAP & ARM_MPU_AP_FLAG_EXEC) {
+                uiAP &= ~ARM_MPU_AP_FLAG_EXEC;
 
             } else {
                 uiVal |= (1 << ARM_MPU_RASR_OFT_XN);
             }
 
-            uiVal |= (pmpuregion->MPUD_uiAP << ARM_MPU_RASR_OFT_AP);
+            uiVal |= (uiAP << ARM_MPU_RASR_OFT_AP);
 
             switch (pmpuregion->MPUD_uiCPS) {
 

@@ -1743,11 +1743,13 @@ static INT  __tshellFsCmdMount (INT  iArgC, PCHAR  ppcArgV[])
     }
     
     iOptInd = optind;
+    
+    getopt_free();
+    
     if (iOptInd > (iArgC - 2)) {
         fprintf(stderr, "option error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
-    getopt_free();
     
     pcDev = ppcArgV[iOptInd];
     pcFs  = ppcArgV[iOptInd + 1];

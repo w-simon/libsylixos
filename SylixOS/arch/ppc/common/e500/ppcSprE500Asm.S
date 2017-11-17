@@ -24,7 +24,7 @@
 #endif
 
 #include <arch/assembler.h>
-#include <arch/ppc/arch_e500.h>
+#include "arch/ppc/arch_e500.h"
 
     FILE_BEGIN()
 

@@ -95,11 +95,27 @@ VOID    archDbgBpAdjust(PVOID  pvDtrace, PVOID   pvtm);
   ARM 处理器异常接口
 *********************************************************************************************************/
 
+#if !defined(__SYLIXOS_ARM_ARCH_M__)
 VOID    archIntEntry(VOID);
 VOID    archAbtEntry(VOID);
 VOID    archPreEntry(VOID);
 VOID    archUndEntry(VOID);
 VOID    archSwiEntry(VOID);
+
+#else
+VOID    archResetHandle(VOID);
+VOID    archNMIIntEntry(VOID);
+VOID    archHardFaultEntry(VOID);
+VOID    archMemFaultEntry(VOID);
+VOID    archBusFaultEntry(VOID);
+VOID    archUsageFaultEntry(VOID);
+VOID    archDebugMonitorEntry(VOID);
+VOID    archPendSVEntry(VOID);
+VOID    archSysTickIntEntry(VOID);
+VOID    archSvcEntry(VOID);
+VOID    archReservedIntEntry(VOID);
+VOID    archIntEntry16(VOID);                                           /*  archIntEntry16 ~ 255        */
+#endif                                                                  /*  !__SYLIXOS_ARM_ARCH_M__     */
 
 VOID    archIntHandle(ULONG  ulVector, BOOL  bPreemptive);              /*  bspIntHandle 需要调用此函数 */
 

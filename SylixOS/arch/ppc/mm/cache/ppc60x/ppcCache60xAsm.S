@@ -29,9 +29,9 @@
 #if LW_CFG_CACHE_EN > 0
 
 #if (__SYLIXOS_PPC_CPU__ == __SYLIXOS_PPC604__)
-#include <arch/ppc/arch_604.h>
+#include "arch/ppc/arch_604.h"
 #else
-#include <arch/ppc/arch_603.h>
+#include "arch/ppc/arch_603.h"
 #endif
 
     EXPORT_LABEL(ppc60xICacheEnable)

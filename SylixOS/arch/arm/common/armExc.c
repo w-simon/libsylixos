@@ -23,6 +23,10 @@
 #include "dtrace.h"
 #include "../mm/mmu/armMmuCommon.h"
 /*********************************************************************************************************
+  ARM 体系构架
+*********************************************************************************************************/
+#if !defined(__SYLIXOS_ARM_ARCH_M__)
+/*********************************************************************************************************
   向量使能与禁能锁
 *********************************************************************************************************/
 #if LW_CFG_SMP_EN > 0
@@ -79,110 +83,6 @@ LW_WEAK VOID  archIntHandle (ULONG  ulVector, BOOL  bPreemptive)
     }
 }
 /*********************************************************************************************************
-  ARMv7M 体系构架相关异常处理函数
-*********************************************************************************************************/
-#if defined(__SYLIXOS_ARM_ARCH_M__)
-/*********************************************************************************************************
-  系统调用 ARCH 相关命令定义
-*********************************************************************************************************/
-#define SVC_archCommand             (0xac)
-#define SVC_archTaskCtxStart        (SVC_archCommand + 0)
-#define SVC_archTaskCtxSwitch       (SVC_archCommand + 1)
-#define SVC_archCrtCtxSwitch        (SVC_archCommand + 2)
-#define SVC_archSigCtxLoad          (SVC_archCommand + 3)
-/*********************************************************************************************************
-** 函数名称: armv7mSvcHandle
-** 功能描述: NONE
-** 输　入  : NONE
-** 输　出  : NONE
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-ARCH_REG_CTX  *armv7mSvcHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
-{
-    UINT32          uiCmd = pregctx->REG_uiR1;
-    PLW_CLASS_CPU   pcpuCur;
-
-    switch (uiCmd) {
-
-    case SVC_archTaskCtxStart:
-        pcpuCur = (PLW_CLASS_CPU)pregctx->REG_uiR0;
-        return  ((ARCH_REG_CTX *)(pcpuCur->CPU_ptcbTCBCur->TCB_pstkStackNow));
-
-    case SVC_archTaskCtxSwitch:
-        pcpuCur = (PLW_CLASS_CPU)pregctx->REG_uiR0;
-        pcpuCur->CPU_ptcbTCBCur->TCB_pstkStackNow = (PLW_STACK)pregctx;
-        _SchedSwp(pcpuCur);
-        return  ((ARCH_REG_CTX *)(pcpuCur->CPU_ptcbTCBCur->TCB_pstkStackNow));
-
-#if LW_CFG_COROUTINE_EN > 0
-    case SVC_archCrtCtxSwitch:
-        pcpuCur = (PLW_CLASS_CPU)pregctx->REG_uiR0;
-        pcpuCur->CPU_pcrcbCur->COROUTINE_pstkStackNow = (PLW_STACK)pregctx;
-        _SchedCrSwp(pcpuCur);
-        return  ((ARCH_REG_CTX *)(pcpuCur->CPU_pcrcbCur->COROUTINE_pstkStackNow));
-#endif
-
-    case SVC_archSigCtxLoad:
-        return  ((ARCH_REG_CTX *)pregctx->REG_uiR0);
-
-    default:
-        _BugHandle(LW_TRUE, LW_TRUE, "unknown SVC command!\r\n");
-        break;
-    }
-
-    return  (LW_NULL);
-}
-/*********************************************************************************************************
-** 函数名称: armv7mIntHandle
-** 功能描述: 中断处理
-** 输　入  : uiVector  中断向量
-**           pregctx   上下文
-** 输　出  : 上下文
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-ARCH_REG_CTX  *armv7mIntHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
-{
-    if (LW_CPU_GET_CUR_NESTING() == 1) {
-        PLW_CLASS_TCB   ptcbCur;
-
-        LW_TCB_GET_CUR(ptcbCur);
-        ptcbCur->TCB_pstkStackNow = (PLW_STACK)pregctx;
-    }
-
-    archIntHandle((ULONG)uiVector, LW_FALSE);
-
-    API_InterExit();
-
-    return  (pregctx);
-}
-/*********************************************************************************************************
-** 函数名称: armv7mUndHandle
-** 功能描述: 处理未定义指令处理
-** 输　入  : ulAddr           对应的地址
-** 输　出  :  0:  尝试退出异常重新执行
-**           -1:  打印错误信息, 并重启系统.
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-INT  armv7mUndHandle (addr_t  ulAddr)
-{
-#if LW_CFG_CPU_FPU_EN > 0
-    PLW_CLASS_TCB   ptcbCur;
-
-    LW_TCB_GET_CUR(ptcbCur);
-
-    if (archFpuUndHandle(ptcbCur) == ERROR_NONE) {                      /*  进行 FPU 指令探测           */
-        return  (ERROR_NONE);
-    }
-#endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
-
-    return  (PX_ERROR);
-}
-
-#else
-/*********************************************************************************************************
 ** 函数名称: bspCpuExcHook
 ** 功能描述: 处理器异常回调
 ** 输　入  : ptcb       异常上下文
@@ -225,6 +125,8 @@ VOID  archAbtHandle (addr_t  ulRetAddr, UINT32  uiArmExcType)
     addr_t          ulAbortAddr;
     UINT32          uiRawAbtType;
     
+    (VOID)uiRawAbtType;
+
     LW_TCB_GET_CUR(ptcbCur);
     
     if (uiArmExcType == ARM_EXC_TYPE_ABT) {
@@ -318,7 +220,7 @@ VOID  archSwiHandle (UINT32  uiSwiNo, UINT32  *puiRegs)
     puiRegs[0] = 0x0;                                                   /*  R0 为返回值                 */
 }
 
-#endif                                                                  /*  __SYLIXOS_ARM_ARCH_M__      */
+#endif                                                                  /*  !__SYLIXOS_ARM_ARCH_M__     */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

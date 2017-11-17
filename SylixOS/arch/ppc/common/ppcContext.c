@@ -332,7 +332,7 @@ VOID  archTaskCtxPrint (PLW_STACK  pstkTop)
 {
     ARCH_REG_CTX       *pregctx = (ARCH_REG_CTX *)pstkTop;
 
-    _PrintFormat("\n");
+    _PrintFormat("\r\n");
 
     _PrintFormat("R0  = 0x%08x  ",   pregctx->REG_uiR0);
     _PrintFormat("R1  = 0x%08x\r\n", pregctx->REG_uiSp);                /*  R1 == SP Òì³£Ê±µÄ SP        */

@@ -60,15 +60,16 @@ static LW_CLASS_HEAP    _G_heapDmaPool;
 static UINT32  armMpuV7RGetAPDesc (const PARM_MPU_REGION   pmpuregion)
 {
     UINT32  uiVal = 0;
+    UINT32  uiAP  = pmpuregion->MPUD_uiAP;
 
-    if (pmpuregion->MPUD_uiAP & ARM_MPU_AP_FLAG_EXEC) {
-        pmpuregion->MPUD_uiAP &= ~ARM_MPU_AP_FLAG_EXEC;
+    if (uiAP & ARM_MPU_AP_FLAG_EXEC) {
+        uiAP &= ~ARM_MPU_AP_FLAG_EXEC;
 
     } else {
         uiVal |= 0x1000;
     }
 
-    uiVal |= (pmpuregion->MPUD_uiAP << 8);
+    uiVal |= (uiAP << 8);
 
     switch (pmpuregion->MPUD_uiCPS) {
 

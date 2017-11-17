@@ -140,6 +140,7 @@ INT  archSpinUnlock (spinlock_t  *psl)
     }
 
     psl->SL_pcpuOwner = LW_NULL;                                        /*  没有 CPU 获取               */
+    KN_SMP_WMB();
 
     sparcSpinUnlock(&psl->SL_sltData);                                  /*  汇编实现中带内存屏障        */
 

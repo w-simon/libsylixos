@@ -46,6 +46,12 @@ SylixOS/arch/arm/common/armExcAsm.S \
 SylixOS/arch/arm/common/armIo.c \
 SylixOS/arch/arm/common/armLib.c \
 SylixOS/arch/arm/common/armLibAsm.S \
+SylixOS/arch/arm/common/v7m/armContextV7M.c \
+SylixOS/arch/arm/common/v7m/armContextV7MAsm.S \
+SylixOS/arch/arm/common/v7m/armExcV7M.c \
+SylixOS/arch/arm/common/v7m/armExcV7MAsm.S \
+SylixOS/arch/arm/common/v7m/armLibV7M.c \
+SylixOS/arch/arm/common/v7m/armLibV7MAsm.S \
 SylixOS/arch/arm/dbg/armDbg.c \
 SylixOS/arch/arm/dbg/armGdb.c \
 SylixOS/arch/arm/dma/pl330/armPl330.c \
@@ -183,13 +189,13 @@ SylixOS/arch/ppc/common/ppcContext.c \
 SylixOS/arch/ppc/common/ppcContextAsm.S \
 SylixOS/arch/ppc/common/ppcExc.c \
 SylixOS/arch/ppc/common/ppcExcAsm.S \
-SylixOS/arch/ppc/common/ppcExcE500.c \
-SylixOS/arch/ppc/common/ppcExcE500Asm.S \
 SylixOS/arch/ppc/common/ppcIo.c \
 SylixOS/arch/ppc/common/ppcLib.c \
 SylixOS/arch/ppc/common/ppcLibAsm.S \
 SylixOS/arch/ppc/common/ppcSprAsm.S \
-SylixOS/arch/ppc/common/ppcSprE500Asm.S \
+SylixOS/arch/ppc/common/e500/ppcSprE500Asm.S \
+SylixOS/arch/ppc/common/e500/ppcExcE500.c \
+SylixOS/arch/ppc/common/e500/ppcExcE500Asm.S \
 SylixOS/arch/ppc/dbg/ppcDbg.c \
 SylixOS/arch/ppc/dbg/ppcGdb.c \
 SylixOS/arch/ppc/elf/ppcElf.c \
@@ -1510,6 +1516,7 @@ SylixOS/posix/utsname/utsname.c
 # Shell source
 #*********************************************************************************************************
 SHELL_SRCS = \
+SylixOS/shell/extLib/ttinyShellExtCmd.c \
 SylixOS/shell/fsLib/ttinyShellFsCmd.c \
 SylixOS/shell/getopt/getopt_bsd.c \
 SylixOS/shell/getopt/getopt_var.c \

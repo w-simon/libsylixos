@@ -44,29 +44,29 @@
 #define VFP_GPR     0x08
 
 FUNC_DEF(armVfpV7MSave)
-    STMFD   SP!, {R0}
+    STMFD   SP!, {R0, LR}
     LDR     R1 , =armVfpV7MEnable
     BLX     R1
-    LDMFD   SP!, {R0}
+    LDMFD   SP!, {R0, LR}
 
     VMRS    R1 , FPSCR
     STR     R1 , [R0, #VFP_FPSCR]
     ADD     R1 , R0, #VFP_GPR
     VSTM    R1!, {d0-d15}
-    MOV     PC , LR
+    BX      LR
     FUNC_END()
 
 FUNC_DEF(armVfpV7MRestore)
-    STMFD   SP!, {R0}
+    STMFD   SP!, {R0, LR}
     LDR     R1 , =armVfpV7MEnable
     BLX     R1
-    LDMFD   SP!, {R0}
+    LDMFD   SP!, {R0, LR}
 
     LDR     R1 , [R0, #VFP_FPSCR]
     VMSR    FPSCR , R1
     ADD     R1 , R0, #VFP_GPR
     VLDM    R1!, {d0-d15}
-    MOV     PC , LR
+    BX      LR
     FUNC_END()
 
     FILE_END()

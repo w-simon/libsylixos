@@ -200,16 +200,21 @@ VOID    archMpInt(ULONG  ulCPUId);
 *********************************************************************************************************/
 
 #define KN_BARRIER()            __asm__ __volatile__ ("" : : : "memory")
-#define KN_SYNC()               __asm__ __volatile__ ("stbar" : : : "memory")
 
-#define KN_MB()                 KN_SYNC()
-#define KN_RMB()                KN_SYNC()
-#define KN_WMB()                KN_SYNC()
+#if LW_CFG_SPARC_HAS_STBAR_INSTR > 0
+#define KN_STBAR()              __asm__ __volatile__ ("stbar" : : : "memory")
+#else
+#define KN_STBAR()              KN_BARRIER()
+#endif                                                                  /*  LW_CFG_SPARC_HAS_STBAR_INSTR*/
+
+#define KN_MB()                 KN_STBAR()
+#define KN_RMB()                KN_STBAR()
+#define KN_WMB()                KN_STBAR()
 
 #if LW_CFG_SMP_EN > 0
-#define KN_SMP_MB()             __asm__ __volatile__ ("stbar" : : : "memory")
-#define KN_SMP_RMB()            __asm__ __volatile__ ("stbar" : : : "memory")
-#define KN_SMP_WMB()            __asm__ __volatile__ ("stbar" : : : "memory")
+#define KN_SMP_MB()             KN_STBAR()
+#define KN_SMP_RMB()            KN_STBAR()
+#define KN_SMP_WMB()            KN_STBAR()
 #else
 #define KN_SMP_MB()             KN_BARRIER()
 #define KN_SMP_RMB()            KN_BARRIER()

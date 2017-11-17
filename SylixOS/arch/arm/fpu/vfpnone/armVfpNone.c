@@ -38,10 +38,14 @@ static ARM_FPU_OP   _G_fpuopVfpNone;
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if !defined(__SYLIXOS_ARM_ARCH_M__)
+
 static ULONG armVfpNoneSid (VOID)
 {
     return  (0ul);
 }
+
+#endif                                                                  /*  !__SYLIXOS_ARM_ARCH_M__     */
 /*********************************************************************************************************
 ** 函数名称: armVfpNoneEnable
 ** 功能描述: 使能 VFP
@@ -123,7 +127,9 @@ static VOID  armVfpNoneCtxShow (INT iFd, PVOID pvFpuCtx)
 *********************************************************************************************************/
 PARM_FPU_OP  armVfpNonePrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 {
+#if !defined(__SYLIXOS_ARM_ARCH_M__)
     _G_fpuopVfpNone.AFPU_pfuncHwSid    = armVfpNoneSid;
+#endif                                                                  /*  !__SYLIXOS_ARM_ARCH_M__     */
     _G_fpuopVfpNone.AFPU_pfuncEnable   = armVfpNoneEnable;
     _G_fpuopVfpNone.AFPU_pfuncDisable  = armVfpNoneDisable;
     _G_fpuopVfpNone.AFPU_pfuncIsEnable = armVfpNoneIsEnable;
