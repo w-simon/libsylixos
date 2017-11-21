@@ -66,6 +66,12 @@
 #if defined(__ARM_ARCH_7R__)
 #  define __SYLIXOS_ARM_ARCH_R__    7
 
+#  undef LW_CFG_ARM_PL330
+#  define LW_CFG_ARM_PL330          0
+
+#  undef LW_CFG_ARM_CACHE_L2
+#  define LW_CFG_ARM_CACHE_L2       0
+
 #elif defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_7EM__)
 #  define __SYLIXOS_ARM_ARCH_M__    7
 
@@ -75,6 +81,12 @@
 
 #  undef LW_CFG_ARM_CP15
 #  define LW_CFG_ARM_CP15           0
+
+#  undef LW_CFG_ARM_PL330
+#  define LW_CFG_ARM_PL330          0
+
+#  undef LW_CFG_ARM_CACHE_L2
+#  define LW_CFG_ARM_CACHE_L2       0
 
 #  undef LW_CFG_VMM_EN
 #  define LW_CFG_VMM_EN             0
