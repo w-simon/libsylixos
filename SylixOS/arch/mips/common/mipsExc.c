@@ -30,7 +30,7 @@
 /*********************************************************************************************************
   外部函数声明
 *********************************************************************************************************/
-extern VOID    archTaskCtxPrint(PLW_STACK  pstkTop);
+extern VOID    archTaskCtxPrint(PVOID  pvBuffer, size_t  stSize, PLW_STACK  pstkTop);
 #if LW_CFG_CPU_FPU_EN > 0
 extern UINT32  mipsVfp32GetFEXR(VOID);
 extern VOID    mipsVfp32ClearFEXR(VOID);
@@ -645,7 +645,7 @@ VOID  archExceptionHandle (addr_t  ulRetAddr, UINT32  uiCause, addr_t  ulAbortAd
 
     ulNesting = LW_CPU_GET_CUR_NESTING();
     if (ulNesting > 1) {                                                /*  异常出现嵌套                */
-        archTaskCtxPrint((PLW_STACK)uiSp);                              /*  直接打印寄存器              */
+        archTaskCtxPrint(LW_NULL, 0, (PLW_STACK)uiSp);                  /*  直接打印寄存器              */
     }
 
     pfuncExceptHandle = _G_mipsExceptHandle[uiExcCode];

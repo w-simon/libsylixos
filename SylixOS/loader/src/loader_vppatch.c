@@ -1187,14 +1187,41 @@ static VOID  vprocSetFilesid (LW_LD_VPROC *pvproc, CPCHAR  pcFile)
 *********************************************************************************************************/
 static INT  vprocPatchVerCheck (LW_LD_VPROC *pvproc)
 {
-    LW_LD_EXEC_MODULE *pmodule;
+    LW_LD_EXEC_MODULE *pmodule = LW_NULL;
     PCHAR              pcVersion;
     ULONG              ulMajor = 0, ulMinor = 0, ulRevision = 0;
     
     ULONG              ulLowVpVer = __SYLIXOS_MAKEVER(2, 0, 0);         /*  最低进程补丁版本要求        */
     ULONG              ulCurrent;
     
-    pmodule   = _LIST_ENTRY(pvproc->VP_ringModules, LW_LD_EXEC_MODULE, EMOD_ringModules);
+#if defined(LW_CFG_CPU_ARCH_C6X)
+    LW_LD_EXEC_MODULE *pmodTemp  = LW_NULL;
+    LW_LIST_RING      *pringTemp = pvproc->VP_ringModules;
+    PCHAR              pcModuleName;
+    BOOL               bStart;
+
+    LW_VP_LOCK(pvproc);
+    /*
+     *  手动加载的libvpmpdm.so文件模块不在应用程序elf的依赖树中，
+     *  需要先查找到libvpmpdm.so模块再在模块中查找符号
+     */
+    for (pringTemp  = pvproc->VP_ringModules, bStart = LW_TRUE;
+         pringTemp && (pringTemp != pvproc->VP_ringModules || bStart);
+         pringTemp  = _list_ring_get_next(pringTemp), bStart = LW_FALSE) {
+
+        pmodTemp = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);
+
+        _PathLastName(pmodTemp->EMOD_pcModulePath, &pcModuleName);
+        if (lib_strcmp(pcModuleName, "libvpmpdm.so") == 0) {
+            pmodule = pmodTemp;
+        	break;
+        }
+    }
+    LW_VP_UNLOCK(pvproc);
+#else
+    pmodule = _LIST_ENTRY(pvproc->VP_ringModules, LW_LD_EXEC_MODULE, EMOD_ringModules);
+#endif
+
     pcVersion = __moduleVpPatchVersion(pmodule);
     if (pcVersion == LW_NULL) {                                         /*  没有补丁, 不能执行          */
         fprintf(stderr, "[ld]No vprocess patch(libvpmpdm.so) found.\n");
@@ -1335,6 +1362,21 @@ INT  vprocRun (LW_LD_VPROC      *pvproc,
     }
 
     pfunEntry = vprocGetEntry(pvproc);                                  /*  进程寻找入口                */
+
+#if defined(LW_CFG_CPU_ARCH_C6X)
+    /*
+     *  当应用程序没有使用libvpmpdm.so中的函数时，C6X的ccs和gcc编译器会忽略-lvpmpdm链接选项，导致加载器
+     *  找不到入口函数"_start"，因此需要手动加载libvpmpdm.so
+     */
+    if (LW_NULL == pfunEntry) {
+		API_ModuleLoadEx("libvpmpdm.so", LW_OPTION_LOADER_SYM_GLOBAL,
+						 LW_NULL, LW_NULL,
+						 pcEntry, LW_NULL,
+						 pvproc);
+		pfunEntry = vprocGetEntry(pvproc);
+    }
+#endif
+
     if (LW_NULL == pfunEntry) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "can not find entry function.\r\n");
         _ErrorHandle(ERROR_LOADER_NO_ENTRY);

@@ -63,6 +63,7 @@
 2014.10.12  将环境变量删除命令改为 vardel.
             free 命令为显示当前内存使用情况.
 2014.11.11  加入 CPU 亲和度设置.
+2017.12.02  加入 cdump 命令.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -89,6 +90,9 @@
 #include "sched.h"
 #include "fnmatch.h"
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
+#if (LW_CFG_CDUMP_EN > 0) && (LW_CFG_DEVICE_EN > 0)
+#include "time.h"
+#endif
 /*********************************************************************************************************
 ** 函数名称: __tshellSysCmdArgs
 ** 功能描述: 系统命令 "args"
@@ -2400,6 +2404,75 @@ static INT  __tshellSysCmdAffinity (INT  iArgC, PCHAR  ppcArgV[])
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
                                                                         /*  LW_CFG_POSIX_EN > 0         */
 /*********************************************************************************************************
+** 函数名称: __tshellSysCmdCdump
+** 功能描述: 系统命令 "cdump"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : 0
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+#if (LW_CFG_CDUMP_EN > 0) && (LW_CFG_DEVICE_EN > 0)
+
+static INT  __tshellSysCmdCdump (INT  iArgC, PCHAR  ppcArgV[])
+{
+    INT         iC;
+    BOOL        bSave  = LW_FALSE;
+    BOOL        bClear = LW_FALSE;
+    CHAR        cFile[MAX_FILENAME_LENGTH] = "/var/log/cdump/";
+    time_t      tm;
+    
+    while ((iC = getopt(iArgC, ppcArgV, "sc")) != EOF) {
+        switch (iC) {
+        
+        case 's':
+            bSave = LW_TRUE;
+            break;
+            
+        case 'c':
+            bClear = LW_TRUE;
+            break;
+        }
+    }
+    
+    getopt_free();
+    
+    if (bSave) {
+        lib_time(&tm);
+        snprintf(cFile, MAX_FILENAME_LENGTH, "%s/%lld",
+                 "/var/log/cdump", tm);
+        
+        if (API_CrashDumpSave(cFile, O_CREAT | O_WRONLY | O_TRUNC, 
+                              DEFAULT_FILE_PERM, bClear) < ERROR_NONE) {
+            if (errno == EMSGSIZE) {
+                fprintf(stderr, "no message in crash dump buffer.\n");
+            
+            } else {
+                fprintf(stderr, "crash dump save (%s) fail: %s.\n", cFile, lib_strerror(errno));
+            }
+            
+            return  (PX_ERROR);
+            
+        } else {
+            printf("crash dump save (%s) ok.\n", cFile);
+        }
+    
+    } else {
+        if (API_CrashDumpShow(STD_OUT, bClear) < ERROR_NONE) {
+            if (errno == EMSGSIZE) {
+                fprintf(stderr, "no message in crash dump buffer.\n");
+            }
+            
+            return  (PX_ERROR);
+        }
+    }
+    
+    return  (ERROR_NONE);
+}
+
+#endif                                                                  /*  LW_CFG_CDUMP_EN > 0         */
+                                                                        /*  LW_CFG_DEVICE_EN > 0        */
+/*********************************************************************************************************
 ** 函数名称: __tshellSysCmdInit
 ** 功能描述: 初始化系统命令集
 ** 输　入  : NONE
@@ -2710,6 +2783,14 @@ VOID  __tshellSysCmdInit (VOID)
                                   "affinity 1 clear     clear process 1 affinity\n");
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
                                                                         /*  LW_CFG_POSIX_EN > 0         */
+#if (LW_CFG_CDUMP_EN > 0) && (LW_CFG_DEVICE_EN > 0)
+    API_TShellKeywordAdd("cdump", __tshellSysCmdCdump);
+    API_TShellFormatAdd("cdump", " [-s] [-c]");
+    API_TShellHelpAdd("cdump",   "show or save crash dump message.\n"
+                                 "-s    save crash dump message in /var/log/cdump\n"
+                                 "-c    after show or save clear the message\n");
+#endif                                                                  /*  LW_CFG_CDUMP_EN > 0         */
+                                                                        /*  LW_CFG_DEVICE_EN > 0        */
 }
 
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */

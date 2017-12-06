@@ -4,6 +4,12 @@ HISTORY
 
 ++ New features:
 
+    2017-12-04: han.hui
+    增加"网桥"功能支持.
+
+    2017-12-01: han.hui
+    增加 cdump 错误信息回收功能, 可回收最后一次崩溃信息.
+
     2017-11-08: han.hui
     增加 ARM MPU 管理支持.
     增加 ARM Cortex-M Cache, VFP 管理支持.

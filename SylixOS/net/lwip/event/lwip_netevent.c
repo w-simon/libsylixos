@@ -119,7 +119,6 @@ INT  _netEventInit (VOID)
 ** 输　出  : 设备是否创建成功
 ** 全局变量: 
 ** 调用模块: 
-                                           API 函数
 *********************************************************************************************************/
 INT  _netEventDevCreate (VOID)
 {
@@ -159,7 +158,6 @@ INT  _netEventDevCreate (VOID)
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
-                                           API 函数
 *********************************************************************************************************/
 static VOID  _netEventDevPutMsg (CPVOID pvMsg, size_t stSize)
 {
@@ -796,7 +794,7 @@ VOID  netEventIfWlExt2 (struct netif *pnetif,
     UINT32   uiLen = uiArg;
     PUCHAR   pucBuffer = LW_NULL;
 
-    pucBuffer = __SHEAP_ALLOC(4 + 4 + uiLen);
+    pucBuffer = (PUCHAR)__SHEAP_ALLOC(4 + 4 + uiLen);
     if (!pucBuffer) {
         return;
     }

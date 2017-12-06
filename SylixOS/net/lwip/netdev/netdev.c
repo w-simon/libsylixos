@@ -93,9 +93,22 @@ static void  netdev_netif_remove (struct netif *netif)
 static int  netdev_netif_ioctl (struct netif *netif, int cmd, void *arg)
 {
   netdev_t *netdev = (netdev_t *)(netif->state);
+  int ret;
   
   if (netdev->drv->ioctl) {
-    return (netdev->drv->ioctl(netdev, cmd, arg));
+    if (cmd == SIOCSIFHWADDR) {
+      struct ifreq *ifreq = (struct ifreq *)arg;
+    
+      ret = netdev->drv->ioctl(netdev, cmd, arg);
+      if (ret == 0) {
+        MEMCPY(netdev->hwaddr, ifreq->ifr_hwaddr.sa_data, netdev->hwaddr_len);
+      }
+      
+      return (ret);
+      
+    } else {
+      return (netdev->drv->ioctl(netdev, cmd, arg));
+    }
   }
   
   return (-1);
@@ -515,7 +528,7 @@ netdev_t *netdev_find_by_ifname (const char *if_name)
   }
   
   netif = netif_find(if_name);
-  if (netif) {
+  if (netif && (netif->ioctl == netdev_netif_ioctl)) {
     netdev = (netdev_t *)(netif->state);
     if (netdev && (netdev->magic_no == NETDEV_MAGIC)) {
       return (netdev);
@@ -535,15 +548,37 @@ netdev_t *netdev_find_by_devname (const char *dev_name)
   }
   
   for (netif = netif_list; netif != NULL; netif = netif->next) {
-    netdev = (netdev_t *)(netif->state);
-    if (netdev && (netdev->magic_no == NETDEV_MAGIC)) {
-      if (lib_strcmp(netdev->dev_name, dev_name) == 0) {
-        return (netdev);
+    if (netif->ioctl == netdev_netif_ioctl) {
+      netdev = (netdev_t *)(netif->state);
+      if (netdev && (netdev->magic_no == NETDEV_MAGIC)) {
+        if (lib_strcmp(netdev->dev_name, dev_name) == 0) {
+          return (netdev);
+        }
       }
     }
   }
   
   return (NULL);
+}
+
+/* netdev get name */
+int  netdev_ifname (netdev_t *netdev, char *ifname)
+{
+  struct netif *netif;
+  
+  if (!netdev || (netdev->magic_no != NETDEV_MAGIC)) {
+    return (-1);
+  }
+  
+  netif = (struct netif *)netdev->sys;
+  if (ifname) {
+    ifname[0] = netif->name[0];
+    ifname[1] = netif->name[1];
+    ifname[2] = (char)(netif->num + '0');
+    ifname[3] = '\0';
+  }
+  
+  return (0);
 }
 
 /* if netdev link status changed has been detected, 

@@ -26,6 +26,7 @@
 2010.05.27  如果系统支持 SSL VPN 网络, 必须使用 LWIP_TCPIP_CORE_LOCKING 使 lwip 支持安全的多线程操作.
             (SSL VPN 虚拟网卡使用多线程同时操作同一个 socket. LWIP_TCPIP_CORE_LOCKING 仍处于测试阶段!)
 2011.05.24  TCP_SND_BUF 始终设置为 64KB - 1, 可以在 non-blocking 时发送最大数据包.
+2017.12.06  加入对 LW_CFG_LWIP_MEM_TLSF 的支持.
 *********************************************************************************************************/
 
 #ifndef __LWIP_CONFIG_H
@@ -77,16 +78,35 @@ extern PVOID  lwip_platform_smemcpy(PVOID  pvDest, CPVOID  pvSrc, size_t  stCoun
 #define PBUF_POOL_BUFSIZE               LW_CFG_LWIP_POOL_SIZE           /*  pool block size             */
 
 #if MEM_SIZE >= (1 * LW_CFG_MB_SIZE)
-#define MEMP_NUM_REASSDATA              128                             /*  同时进行重组的 IP 数据包    */
+#define MEMP_NUM_REASSDATA              512                             /*  同时进行重组的 IP 数据包    */
 #elif MEM_SIZE >= (512 * LW_CFG_KB_SIZE)
-#define MEMP_NUM_REASSDATA              100
+#define MEMP_NUM_REASSDATA              256
 #elif MEM_SIZE >= (256 * LW_CFG_KB_SIZE)
-#define MEMP_NUM_REASSDATA              80
+#define MEMP_NUM_REASSDATA              128
 #elif MEM_SIZE >= (128 * LW_CFG_KB_SIZE)
-#define MEMP_NUM_REASSDATA              40
+#define MEMP_NUM_REASSDATA              64
 #else
-#define MEMP_NUM_REASSDATA              5
+#define MEMP_NUM_REASSDATA              16
 #endif                                                                  /*  MEM_SIZE >= ...             */
+
+/*********************************************************************************************************
+  Memory method
+*********************************************************************************************************/
+
+#if LW_CFG_LWIP_MEM_TLSF > 0
+#define MEM_LIBC_MALLOC                 1
+#define MEM_STATS                       1
+
+#ifdef LWIP_HDR_MEM_H
+extern void *tlsf_mem_malloc(size_t size);
+extern void *tlsf_mem_calloc(size_t count, size_t size);
+extern void  tlsf_mem_free(void *f);
+
+#define mem_clib_malloc                 tlsf_mem_malloc
+#define mem_clib_calloc                 tlsf_mem_calloc
+#define mem_clib_free                   tlsf_mem_free
+#endif                                                                  /*  LWIP_HDR_MEM_H              */
+#endif                                                                  /*  LW_CFG_LWIP_MEM_TLSF        */
 
 /*********************************************************************************************************
   ...PCB
@@ -140,7 +160,7 @@ extern PVOID  lwip_platform_smemcpy(PVOID  pvDest, CPVOID  pvSrc, size_t  stCoun
 #define IP_FORWARD                      LW_CFG_NET_GATEWAY              /*  允许 IP 转发                */
 #define IP_REASSEMBLY                   LW_CFG_LWIP_IPFRAG
 #define IP_FRAG                         LW_CFG_LWIP_IPFRAG
-#define IP_REASS_MAX_PBUFS              (MEMP_NUM_PBUF / 2)
+#define IP_REASS_MAX_PBUFS              MEMP_NUM_REASSDATA
 
 #define IP_SOF_BROADCAST                1                               /*  Use the SOF_BROADCAST       */
 #define IP_SOF_BROADCAST_RECV           1
@@ -297,14 +317,14 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrT
 #elif MEM_SIZE >= (512 * LW_CFG_KB_SIZE)
 #define TCP_WND                         (32  * LW_CFG_KB_SIZE)
 #elif MEM_SIZE >= (128 * LW_CFG_KB_SIZE)
-#define TCP_WND                         ( 8  * LW_CFG_KB_SIZE)
+#define TCP_WND                         (16  * LW_CFG_KB_SIZE)
 
 /*********************************************************************************************************
   MEM_SIZE < 128 KB  SMALL TCP_MSS XXX
 *********************************************************************************************************/
 
 #elif MEM_SIZE >= (64 * LW_CFG_KB_SIZE)
-#define TCP_WND                         ( 4  * TCP_MSS)
+#define TCP_WND                         ( 8  * TCP_MSS)
 #else
 #undef  TCP_MSS
 #define TCP_MSS                         536                             /*  small mss                   */
@@ -336,7 +356,7 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrT
 
 #if LW_CFG_LWIP_TCP_SND > 0
 #undef  TCP_SND_BUF
-#define TCP_SND_BUF                     LWIP_MIN(LW_CFG_LWIP_TCP_SND, 0xFFFF)
+#define TCP_SND_BUF                     LWIP_MIN(LW_CFG_LWIP_TCP_SND, 0xffff)
 #endif                                                                  /*  LW_CFG_LWIP_TCP_SND         */
 
 #define MEMP_NUM_TCP_SEG                (8 * TCP_SND_QUEUELEN)

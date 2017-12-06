@@ -204,7 +204,7 @@ VOID  archTaskCtxShow (INT  iFd, PLW_STACK  pstkTop)
         fdprintf(iFd, "SP  = 0x%016lx\n", (ARCH_REG_T)pstkTop);         /*  异常压栈后的 SP             */
 
     } else {
-        archTaskCtxPrint(pstkTop);
+        archTaskCtxPrint(LW_NULL, 0, pstkTop);
     }
 }
 
@@ -212,46 +212,84 @@ VOID  archTaskCtxShow (INT  iFd, PLW_STACK  pstkTop)
 /*********************************************************************************************************
 ** 函数名称: archTaskCtxPrint
 ** 功能描述: 直接打印任务上下文
-** 输　入  : pstkTop    堆栈栈顶
+** 输　入  : pvBuffer   内存缓冲区 (NULL, 表示直接打印)
+**           stSize     缓冲大小
+**           pstkTop    堆栈栈顶
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  archTaskCtxPrint (PLW_STACK  pstkTop)
+VOID  archTaskCtxPrint (PVOID  pvBuffer, size_t  stSize, PLW_STACK  pstkTop)
 {
     ARCH_REG_CTX       *pregctx = (ARCH_REG_CTX *)pstkTop;
 
-    _PrintFormat("\r\n");
-    _PrintFormat("RFLAGS = 0x%016qx\r\n", pregctx->REG_ulRFLAGS);
+    if (pvBuffer && stSize) {
+        size_t  stOft = 0;
 
-    _PrintFormat("RIP = 0x%016qx  ",   pregctx->REG_ulRIP);
-    _PrintFormat("RBP = 0x%016qx\r\n", pregctx->REG_ulRBP);
-    _PrintFormat("RSI = 0x%016qx  ",   pregctx->REG_ulRSI);
-    _PrintFormat("RDI = 0x%016qx\r\n", pregctx->REG_ulRDI);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "RFLAGS = 0x%016qx\n", pregctx->REG_ulRFLAGS);
 
-    _PrintFormat("RAX = 0x%016qx  ",   pregctx->REG_ulRAX);
-    _PrintFormat("RBX = 0x%016qx\r\n", pregctx->REG_ulRBX);
-    _PrintFormat("RCX = 0x%016qx  ",   pregctx->REG_ulRCX);
-    _PrintFormat("RDX = 0x%016qx\r\n", pregctx->REG_ulRDX);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "RIP = 0x%016qx  ", pregctx->REG_ulRIP);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "RBP = 0x%016qx\n", pregctx->REG_ulRBP);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "RSI = 0x%016qx  ", pregctx->REG_ulRSI);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "RDI = 0x%016qx\n", pregctx->REG_ulRDI);
 
-    _PrintFormat("SS  = 0x%016qx  ",   pregctx->REG_ulSS);
-    _PrintFormat("GS  = 0x%016qx\r\n", pregctx->REG_usGS);
-    _PrintFormat("FS  = 0x%016qx  ",   pregctx->REG_usFS);
-    _PrintFormat("ES  = 0x%016qx\r\n", pregctx->REG_usES);
-    _PrintFormat("DS  = 0x%016qx  ",   pregctx->REG_usDS);
-    _PrintFormat("CS  = 0x%016qx\r\n", pregctx->REG_ulCS);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "RAX = 0x%016qx  ", pregctx->REG_ulRAX);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "RBX = 0x%016qx\n", pregctx->REG_ulRBX);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "RCX = 0x%016qx  ", pregctx->REG_ulRCX);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "RDX = 0x%016qx\n", pregctx->REG_ulRDX);
 
-    _PrintFormat("R8  = 0x%016qx  ",   pregctx->REG_ulR8);
-    _PrintFormat("R9  = 0x%016qx\r\n", pregctx->REG_ulR9);
-    _PrintFormat("R10 = 0x%016qx  ",   pregctx->REG_ulR10);
-    _PrintFormat("R11 = 0x%016qx\r\n", pregctx->REG_ulR11);
-    _PrintFormat("R12 = 0x%016qx  ",   pregctx->REG_ulR12);
-    _PrintFormat("R13 = 0x%016qx\r\n", pregctx->REG_ulR13);
-    _PrintFormat("R14 = 0x%016qx  ",   pregctx->REG_ulR14);
-    _PrintFormat("R15 = 0x%016qx\r\n", pregctx->REG_ulR15);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "SS  = 0x%016qx  ", pregctx->REG_ulSS);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "GS  = 0x%016qx\n", pregctx->REG_usGS);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "FS  = 0x%016qx  ", pregctx->REG_usFS);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "ES  = 0x%016qx\n", pregctx->REG_usES);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "DS  = 0x%016qx  ", pregctx->REG_usDS);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "CS  = 0x%016qx\n", pregctx->REG_ulCS);
 
-    _PrintFormat("RSP = 0x%016qx  ",   pregctx->REG_ulRSP);             /*  异常压栈前的 SP             */
-    _PrintFormat("SP  = 0x%016qx\r\n", (ARCH_REG_T)pstkTop);            /*  异常压栈后的 SP             */
+        stOft = bnprintf(pvBuffer, stSize, stOft, "R8  = 0x%016qx  ", pregctx->REG_ulR8);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "R9  = 0x%016qx\n", pregctx->REG_ulR9);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "R10 = 0x%016qx  ", pregctx->REG_ulR10);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "R11 = 0x%016qx\n", pregctx->REG_ulR11);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "R12 = 0x%016qx  ", pregctx->REG_ulR12);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "R13 = 0x%016qx\n", pregctx->REG_ulR13);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "R14 = 0x%016qx  ", pregctx->REG_ulR14);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "R15 = 0x%016qx\n", pregctx->REG_ulR15);
+
+        stOft = bnprintf(pvBuffer, stSize, stOft, "RSP = 0x%016qx  ", pregctx->REG_ulRSP);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "SP  = 0x%016qx\n", (ARCH_REG_T)pstkTop);
+
+    } else {
+        _PrintFormat("\r\n");
+        _PrintFormat("RFLAGS = 0x%016qx\r\n", pregctx->REG_ulRFLAGS);
+
+        _PrintFormat("RIP = 0x%016qx  ",   pregctx->REG_ulRIP);
+        _PrintFormat("RBP = 0x%016qx\r\n", pregctx->REG_ulRBP);
+        _PrintFormat("RSI = 0x%016qx  ",   pregctx->REG_ulRSI);
+        _PrintFormat("RDI = 0x%016qx\r\n", pregctx->REG_ulRDI);
+
+        _PrintFormat("RAX = 0x%016qx  ",   pregctx->REG_ulRAX);
+        _PrintFormat("RBX = 0x%016qx\r\n", pregctx->REG_ulRBX);
+        _PrintFormat("RCX = 0x%016qx  ",   pregctx->REG_ulRCX);
+        _PrintFormat("RDX = 0x%016qx\r\n", pregctx->REG_ulRDX);
+
+        _PrintFormat("SS  = 0x%016qx  ",   pregctx->REG_ulSS);
+        _PrintFormat("GS  = 0x%016qx\r\n", pregctx->REG_usGS);
+        _PrintFormat("FS  = 0x%016qx  ",   pregctx->REG_usFS);
+        _PrintFormat("ES  = 0x%016qx\r\n", pregctx->REG_usES);
+        _PrintFormat("DS  = 0x%016qx  ",   pregctx->REG_usDS);
+        _PrintFormat("CS  = 0x%016qx\r\n", pregctx->REG_ulCS);
+
+        _PrintFormat("R8  = 0x%016qx  ",   pregctx->REG_ulR8);
+        _PrintFormat("R9  = 0x%016qx\r\n", pregctx->REG_ulR9);
+        _PrintFormat("R10 = 0x%016qx  ",   pregctx->REG_ulR10);
+        _PrintFormat("R11 = 0x%016qx\r\n", pregctx->REG_ulR11);
+        _PrintFormat("R12 = 0x%016qx  ",   pregctx->REG_ulR12);
+        _PrintFormat("R13 = 0x%016qx\r\n", pregctx->REG_ulR13);
+        _PrintFormat("R14 = 0x%016qx  ",   pregctx->REG_ulR14);
+        _PrintFormat("R15 = 0x%016qx\r\n", pregctx->REG_ulR15);
+
+        _PrintFormat("RSP = 0x%016qx  ",   pregctx->REG_ulRSP);         /*  异常压栈前的 SP             */
+        _PrintFormat("SP  = 0x%016qx\r\n", (ARCH_REG_T)pstkTop);        /*  异常压栈后的 SP             */
+    }
 }
 /*********************************************************************************************************
   END

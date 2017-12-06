@@ -27,6 +27,7 @@
 2009.11.23  加入名字.
 2009.12.11  修正注释.
 2013.11.14  使用对象资源管理器结构管理空闲资源.
+2017.12.01  加入 cdump 初始化.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -103,17 +104,35 @@ VOID  _HeapKernelInit (PVOID     pvKernelHeapMem,
 VOID  _HeapKernelInit (VOID)
 #endif                                                                  /*  LW_CFG_MEMORY_HEAP_...      */
 {
+    PVOID   pvHeap;
+    size_t  stSize;
+
 #if LW_CFG_MEMORY_HEAP_CONFIG_TYPE > 0
-    _K_pheapKernel = _HeapCreate(pvKernelHeapMem, stKernelHeapSize);
+    pvHeap = pvKernelHeapMem;
+    stSize = stKernelHeapSize;
+    
+    _K_pheapKernel = _HeapCreate(LW_KERNEL_HEAP_START(pvKernelHeapMem), 
+                                 LW_KERNEL_HEAP_SIZE(stKernelHeapSize));
 #else
 #if LW_CFG_MEMORY_KERNEL_HEAP_ADDRESS == 0
-    _K_pheapKernel = _HeapCreate((PVOID)_K_stkKernelHeap, LW_CFG_MEMORY_KERNEL_HEAP_SIZE_BYTE);
+    pvHeap = (PVOID)_K_stkKernelHeap;
+    stSize = LW_CFG_MEMORY_KERNEL_HEAP_SIZE_BYTE;
+
+    _K_pheapKernel = _HeapCreate(LW_KERNEL_HEAP_START(_K_stkKernelHeap), 
+                                 LW_KERNEL_HEAP_SIZE(LW_CFG_MEMORY_KERNEL_HEAP_SIZE_BYTE));
 #else
-    _K_pheapKernel = _HeapCreate((PVOID)(LW_CFG_MEMORY_KERNEL_HEAP_ADDRESS), 
-                                 LW_CFG_MEMORY_KERNEL_HEAP_SIZE_BYTE);
+    pvHeap = (PVOID)LW_CFG_MEMORY_KERNEL_HEAP_ADDRESS;
+    stSize = LW_CFG_MEMORY_KERNEL_HEAP_SIZE_BYTE;
+
+    _K_pheapKernel = _HeapCreate(LW_KERNEL_HEAP_START(LW_CFG_MEMORY_KERNEL_HEAP_ADDRESS), 
+                                 LW_KERNEL_HEAP_SIZE(LW_CFG_MEMORY_KERNEL_HEAP_SIZE_BYTE));
 #endif
 #endif                                                                  /*  LW_CFG_MEMORY_HEAP_...      */
 
+#if (LW_CFG_CDUMP_EN > 0) && (LW_CFG_DEVICE_EN > 0)
+    _CrashDumpSet(LW_KERNEL_CDUMP_START(pvHeap, stSize), LW_CFG_CDUMP_BUF_SIZE);
+#endif                                                                  /*  LW_CFG_CDUMP_EN > 0         */
+                                                                        /*  LW_CFG_DEVICE_EN > 0        */
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_FIO_LIB_EN > 0)
 #if LW_CFG_ERRORMESSAGE_EN > 0 || LW_CFG_LOGMESSAGE_EN > 0
 #if LW_CFG_MEMORY_HEAP_CONFIG_TYPE > 0

@@ -183,7 +183,30 @@
         
 #define LW_IVEC_SET_FLAG(vector, flag)  \
         (_K_idescTable[vector].IDESC_ulFlag = (flag))
-        
+
+/*********************************************************************************************************
+  堆配置
+*********************************************************************************************************/
+
+#if LW_CFG_CDUMP_EN > 0
+#define LW_KERNEL_HEAP_MIN_SIZE     (LW_CFG_KB_SIZE + LW_CFG_CDUMP_CALL_STACK_DEPTH)
+#else
+#define LW_KERNEL_HEAP_MIN_SIZE     LW_CFG_KB_SIZE
+#endif
+
+#define LW_SYSTEM_HEAP_MIN_SIZE     LW_CFG_KB_SIZE
+
+/*********************************************************************************************************
+  崩溃信息暂存配置
+*********************************************************************************************************/
+
+#if LW_CFG_CDUMP_EN > 0
+#define LW_KERNEL_HEAP_START(a)     ((PVOID)a)
+#define LW_KERNEL_HEAP_SIZE(s)      ((size_t)s - LW_CFG_CDUMP_BUF_SIZE)
+#define LW_KERNEL_CDUMP_START(a, s) ((PVOID)((addr_t)a + LW_KERNEL_HEAP_SIZE(s)))
+#define LW_KERNEL_CDUMP_SIZE(s)     LW_CFG_CDUMP_BUF_SIZE
+#endif
+
 /*********************************************************************************************************
   调试等级定义
 *********************************************************************************************************/

@@ -180,6 +180,15 @@ INT  API_RootFsMap (ULONG  ulFlags)
         symlink("/tmp", "/var/tmp");
     }
     
+    if (access("/var/log", R_OK) < 0) {
+        mkdir("/var/log", DEFAULT_DIR_PERM);
+#if LW_CFG_CDUMP_EN > 0
+        if (access("/var/log/cdump", R_OK) < 0) {
+            mkdir("/var/log/cdump", DEFAULT_DIR_PERM);
+        }
+#endif
+    }
+    
     if (ulFlags & LW_ROOTFS_MAP_LOAD_VAR) {
         lib_system("varload");
     }

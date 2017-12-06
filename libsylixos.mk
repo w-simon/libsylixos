@@ -724,6 +724,8 @@ SylixOS/gui/input_device/input_device.c
 #*********************************************************************************************************
 KERN_SRCS = \
 SylixOS/kernel/cache/cache.c \
+SylixOS/kernel/cdump/cdump.c \
+SylixOS/kernel/cdump/cdumpLib.c \
 SylixOS/kernel/core/_BitmapLib.c \
 SylixOS/kernel/core/_CandTable.c \
 SylixOS/kernel/core/_CoroutineLib.c \
@@ -1251,6 +1253,7 @@ SylixOS/net/libc/getservbyport.c \
 SylixOS/net/libc/getservent.c \
 SylixOS/net/libc/inet_ntop.c \
 SylixOS/net/libc/inet_pton.c \
+SylixOS/net/lwip/lwip_bridge.c \
 SylixOS/net/lwip/lwip_fix.c \
 SylixOS/net/lwip/lwip_hook.c \
 SylixOS/net/lwip/lwip_if.c \
@@ -1265,7 +1268,10 @@ SylixOS/net/lwip/lwip_shell.c \
 SylixOS/net/lwip/lwip_shell6.c \
 SylixOS/net/lwip/lwip_socket.c \
 SylixOS/net/lwip/lwip_sylixos.c \
+SylixOS/net/lwip/bridge/netbridge.c \
 SylixOS/net/lwip/event/lwip_netevent.c \
+SylixOS/net/lwip/mem/tlsf_mem.c \
+SylixOS/net/lwip/mem/tlsf.c \
 SylixOS/net/lwip/netdev/netdev.c \
 SylixOS/net/lwip/netdev/netzcbuf.c \
 SylixOS/net/lwip/packet/af_packet.c \

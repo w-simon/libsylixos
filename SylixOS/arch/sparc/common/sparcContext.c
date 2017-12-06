@@ -264,7 +264,7 @@ VOID  archTaskCtxShow (INT  iFd, PLW_STACK  pstkTop)
         fdprintf(iFd, "SP  = 0x%08x\n", (ARCH_REG_T)pstkTop);           /*  异常压栈后的 SP             */
 
     } else {
-        archTaskCtxPrint(pstkTop);
+        archTaskCtxPrint(LW_NULL, 0, pstkTop);
     }
 }
 
@@ -272,59 +272,109 @@ VOID  archTaskCtxShow (INT  iFd, PLW_STACK  pstkTop)
 /*********************************************************************************************************
 ** 函数名称: archTaskCtxPrint
 ** 功能描述: 直接打印任务上下文
-** 输　入  : pstkTop    堆栈栈顶
+** 输　入  : pvBuffer   内存缓冲区 (NULL, 表示直接打印)
+**           stSize     缓冲大小
+**           pstkTop    堆栈栈顶
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  archTaskCtxPrint (PLW_STACK  pstkTop)
+VOID  archTaskCtxPrint (PVOID  pvBuffer, size_t  stSize, PLW_STACK  pstkTop)
 {
     ARCH_REG_CTX       *pregctx = (ARCH_REG_CTX *)pstkTop;
 
-    _PrintFormat("\r\n");
+    if (pvBuffer && stSize) {
+        size_t  stOft = 0;
 
-    _PrintFormat("g0  = 0x%08x  ",   pregctx->REG_uiGlobal[0]);
-    _PrintFormat("g1  = 0x%08x\r\n", pregctx->REG_uiGlobal[1]);
-    _PrintFormat("g2  = 0x%08x  ",   pregctx->REG_uiGlobal[2]);
-    _PrintFormat("g3  = 0x%08x\r\n", pregctx->REG_uiGlobal[3]);
-    _PrintFormat("g4  = 0x%08x  ",   pregctx->REG_uiGlobal[4]);
-    _PrintFormat("g5  = 0x%08x\r\n", pregctx->REG_uiGlobal[5]);
-    _PrintFormat("g6  = 0x%08x  ",   pregctx->REG_uiGlobal[6]);
-    _PrintFormat("g7  = 0x%08x\r\n", pregctx->REG_uiGlobal[7]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "g0  = 0x%08x  ", pregctx->REG_uiGlobal[0]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "g1  = 0x%08x\n", pregctx->REG_uiGlobal[1]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "g2  = 0x%08x  ", pregctx->REG_uiGlobal[2]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "g3  = 0x%08x\n", pregctx->REG_uiGlobal[3]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "g4  = 0x%08x  ", pregctx->REG_uiGlobal[4]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "g5  = 0x%08x\n", pregctx->REG_uiGlobal[5]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "g6  = 0x%08x  ", pregctx->REG_uiGlobal[6]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "g7  = 0x%08x\n", pregctx->REG_uiGlobal[7]);
 
-    _PrintFormat("o0  = 0x%08x  ",   pregctx->REG_uiOutput[0]);
-    _PrintFormat("o1  = 0x%08x\r\n", pregctx->REG_uiOutput[1]);
-    _PrintFormat("o2  = 0x%08x  ",   pregctx->REG_uiOutput[2]);
-    _PrintFormat("o3  = 0x%08x\r\n", pregctx->REG_uiOutput[3]);
-    _PrintFormat("o4  = 0x%08x  ",   pregctx->REG_uiOutput[4]);
-    _PrintFormat("o5  = 0x%08x\r\n", pregctx->REG_uiOutput[5]);
-    _PrintFormat("o6  = 0x%08x  ",   pregctx->REG_uiOutput[6]);         /*  异常压栈前的 SP             */
-    _PrintFormat("o7  = 0x%08x\r\n", pregctx->REG_uiOutput[7]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "o0  = 0x%08x  ", pregctx->REG_uiOutput[0]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "o1  = 0x%08x\n", pregctx->REG_uiOutput[1]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "o2  = 0x%08x  ", pregctx->REG_uiOutput[2]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "o3  = 0x%08x\n", pregctx->REG_uiOutput[3]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "o4  = 0x%08x  ", pregctx->REG_uiOutput[4]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "o5  = 0x%08x\n", pregctx->REG_uiOutput[5]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "o6  = 0x%08x  ", pregctx->REG_uiOutput[6]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "o7  = 0x%08x\n", pregctx->REG_uiOutput[7]);
 
-    _PrintFormat("l0  = 0x%08x  ",   pregctx->REG_uiLocal[0]);
-    _PrintFormat("l1  = 0x%08x\r\n", pregctx->REG_uiLocal[1]);
-    _PrintFormat("l2  = 0x%08x  ",   pregctx->REG_uiLocal[2]);
-    _PrintFormat("l3  = 0x%08x\r\n", pregctx->REG_uiLocal[3]);
-    _PrintFormat("l4  = 0x%08x  ",   pregctx->REG_uiLocal[4]);
-    _PrintFormat("l5  = 0x%08x\r\n", pregctx->REG_uiLocal[5]);
-    _PrintFormat("l6  = 0x%08x  ",   pregctx->REG_uiLocal[6]);
-    _PrintFormat("l7  = 0x%08x\r\n", pregctx->REG_uiLocal[7]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "l0  = 0x%08x  ", pregctx->REG_uiLocal[0]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "l1  = 0x%08x\n", pregctx->REG_uiLocal[1]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "l2  = 0x%08x  ", pregctx->REG_uiLocal[2]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "l3  = 0x%08x\n", pregctx->REG_uiLocal[3]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "l4  = 0x%08x  ", pregctx->REG_uiLocal[4]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "l5  = 0x%08x\n", pregctx->REG_uiLocal[5]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "l6  = 0x%08x  ", pregctx->REG_uiLocal[6]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "l7  = 0x%08x\n", pregctx->REG_uiLocal[7]);
 
-    _PrintFormat("i0  = 0x%08x  ",   pregctx->REG_uiInput[0]);
-    _PrintFormat("i1  = 0x%08x\r\n", pregctx->REG_uiInput[1]);
-    _PrintFormat("i2  = 0x%08x  ",   pregctx->REG_uiInput[2]);
-    _PrintFormat("i3  = 0x%08x\r\n", pregctx->REG_uiInput[3]);
-    _PrintFormat("i4  = 0x%08x  ",   pregctx->REG_uiInput[4]);
-    _PrintFormat("i5  = 0x%08x\r\n", pregctx->REG_uiInput[5]);
-    _PrintFormat("i6  = 0x%08x  ",   pregctx->REG_uiInput[6]);          /*  FP                          */
-    _PrintFormat("i7  = 0x%08x\r\n", pregctx->REG_uiInput[7]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "i0  = 0x%08x  ", pregctx->REG_uiInput[0]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "i1  = 0x%08x\n", pregctx->REG_uiInput[1]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "i2  = 0x%08x  ", pregctx->REG_uiInput[2]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "i3  = 0x%08x\n", pregctx->REG_uiInput[3]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "i4  = 0x%08x  ", pregctx->REG_uiInput[4]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "i5  = 0x%08x\n", pregctx->REG_uiInput[5]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "i6  = 0x%08x  ", pregctx->REG_uiInput[6]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "i7  = 0x%08x\n", pregctx->REG_uiInput[7]);
 
-    _PrintFormat("PSR = 0x%08x  ",   pregctx->REG_uiPsr);
-    _PrintFormat("Y   = 0x%08x\r\n", pregctx->REG_uiY);
-    _PrintFormat("PC  = 0x%08x  ",   pregctx->REG_uiPc);
-    _PrintFormat("NPC = 0x%08x\r\n", pregctx->REG_uiNPc);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "PSR = 0x%08x  ", pregctx->REG_uiPsr);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "Y   = 0x%08x\n", pregctx->REG_uiY);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "PC  = 0x%08x  ", pregctx->REG_uiPc);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "NPC = 0x%08x\n", pregctx->REG_uiNPc);
 
-    _PrintFormat("SP  = 0x%08x\r\n", (ARCH_REG_T)pstkTop);              /*  异常压栈后的 SP             */
+        stOft = bnprintf(pvBuffer, stSize, stOft, "SP  = 0x%08x\n", (ARCH_REG_T)pstkTop);
+
+    } else {
+        _PrintFormat(", pregctx");
+
+        _PrintFormat("g0  = 0x%08x  ",   pregctx->REG_uiGlobal[0]);
+        _PrintFormat("g1  = 0x%08x\r\n", pregctx->REG_uiGlobal[1]);
+        _PrintFormat("g2  = 0x%08x  ",   pregctx->REG_uiGlobal[2]);
+        _PrintFormat("g3  = 0x%08x\r\n", pregctx->REG_uiGlobal[3]);
+        _PrintFormat("g4  = 0x%08x  ",   pregctx->REG_uiGlobal[4]);
+        _PrintFormat("g5  = 0x%08x\r\n", pregctx->REG_uiGlobal[5]);
+        _PrintFormat("g6  = 0x%08x  ",   pregctx->REG_uiGlobal[6]);
+        _PrintFormat("g7  = 0x%08x\r\n", pregctx->REG_uiGlobal[7]);
+
+        _PrintFormat("o0  = 0x%08x  ",   pregctx->REG_uiOutput[0]);
+        _PrintFormat("o1  = 0x%08x\r\n", pregctx->REG_uiOutput[1]);
+        _PrintFormat("o2  = 0x%08x  ",   pregctx->REG_uiOutput[2]);
+        _PrintFormat("o3  = 0x%08x\r\n", pregctx->REG_uiOutput[3]);
+        _PrintFormat("o4  = 0x%08x  ",   pregctx->REG_uiOutput[4]);
+        _PrintFormat("o5  = 0x%08x\r\n", pregctx->REG_uiOutput[5]);
+        _PrintFormat("o6  = 0x%08x  ",   pregctx->REG_uiOutput[6]);     /*  异常压栈前的 SP             */
+        _PrintFormat("o7  = 0x%08x\r\n", pregctx->REG_uiOutput[7]);
+
+        _PrintFormat("l0  = 0x%08x  ",   pregctx->REG_uiLocal[0]);
+        _PrintFormat("l1  = 0x%08x\r\n", pregctx->REG_uiLocal[1]);
+        _PrintFormat("l2  = 0x%08x  ",   pregctx->REG_uiLocal[2]);
+        _PrintFormat("l3  = 0x%08x\r\n", pregctx->REG_uiLocal[3]);
+        _PrintFormat("l4  = 0x%08x  ",   pregctx->REG_uiLocal[4]);
+        _PrintFormat("l5  = 0x%08x\r\n", pregctx->REG_uiLocal[5]);
+        _PrintFormat("l6  = 0x%08x  ",   pregctx->REG_uiLocal[6]);
+        _PrintFormat("l7  = 0x%08x\r\n", pregctx->REG_uiLocal[7]);
+
+        _PrintFormat("i0  = 0x%08x  ",   pregctx->REG_uiInput[0]);
+        _PrintFormat("i1  = 0x%08x\r\n", pregctx->REG_uiInput[1]);
+        _PrintFormat("i2  = 0x%08x  ",   pregctx->REG_uiInput[2]);
+        _PrintFormat("i3  = 0x%08x\r\n", pregctx->REG_uiInput[3]);
+        _PrintFormat("i4  = 0x%08x  ",   pregctx->REG_uiInput[4]);
+        _PrintFormat("i5  = 0x%08x\r\n", pregctx->REG_uiInput[5]);
+        _PrintFormat("i6  = 0x%08x  ",   pregctx->REG_uiInput[6]);      /*  FP                          */
+        _PrintFormat("i7  = 0x%08x\r\n", pregctx->REG_uiInput[7]);
+
+        _PrintFormat("PSR = 0x%08x  ",   pregctx->REG_uiPsr);
+        _PrintFormat("Y   = 0x%08x\r\n", pregctx->REG_uiY);
+        _PrintFormat("PC  = 0x%08x  ",   pregctx->REG_uiPc);
+        _PrintFormat("NPC = 0x%08x\r\n", pregctx->REG_uiNPc);
+
+        _PrintFormat("SP  = 0x%08x\r\n", (ARCH_REG_T)pstkTop);          /*  异常压栈后的 SP             */
+    }
 }
 /*********************************************************************************************************
   END

@@ -1237,6 +1237,8 @@ LW_API VOID             API_KernelSecondaryStart(PKERNEL_START_ROUTINE  pStartHo
 #if LW_CFG_FIO_LIB_EN > 0
 LW_API VOID             API_BacktraceShow(INT  iFd, INT  iMaxDepth);    /*  显示调用栈信息              */
 
+LW_API VOID             API_BacktracePrint(PVOID  pvBuffer, size_t  stSize, INT  iMaxDepth);
+
 LW_API VOID             API_ThreadShow(VOID);                           /*  从 STD_OUT 打印所有线程信息 */
 
 LW_API VOID             API_ThreadShowEx(pid_t  pid);                   /*  显示指定进程内线程          */

@@ -277,7 +277,7 @@ VOID  archTaskCtxShow (INT  iFd, PLW_STACK  pstkTop)
         fdprintf(iFd, "pc  = 0x%08x\n", pstkTop[15]);
 
     } else {
-        archTaskCtxPrint(pstkTop);
+        archTaskCtxPrint(LW_NULL, 0, pstkTop);
     }
 }
 
@@ -285,35 +285,60 @@ VOID  archTaskCtxShow (INT  iFd, PLW_STACK  pstkTop)
 /*********************************************************************************************************
 ** 函数名称: archTaskCtxPrint
 ** 功能描述: 直接打印任务上下文
-** 输　入  : pstkTop    堆栈栈顶
+** 输　入  : pvBuffer   内存缓冲区 (NULL, 表示直接打印)
+**           stSize     缓冲大小
+**           pstkTop    堆栈栈顶
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  archTaskCtxPrint (PLW_STACK  pstkTop)
+VOID  archTaskCtxPrint (PVOID  pvBuffer, size_t  stSize, PLW_STACK  pstkTop)
 {
     CHAR        cCpsr[32 + 1] = "\0";
     ARCH_REG_T  regCpsr       = (ARCH_REG_T)pstkTop[0];
 
     archTaskCtxCpsr(regCpsr, cCpsr);
 
-    _PrintFormat("cpsr = %s\r\n",    cCpsr);
-    _PrintFormat("r0  = 0x%08x  ",   pstkTop[1]);
-    _PrintFormat("r1  = 0x%08x\r\n", pstkTop[2]);
-    _PrintFormat("r2  = 0x%08x  ",   pstkTop[3]);
-    _PrintFormat("r3  = 0x%08x\r\n", pstkTop[4]);
-    _PrintFormat("r4  = 0x%08x  ",   pstkTop[5]);
-    _PrintFormat("r5  = 0x%08x\r\n", pstkTop[6]);
-    _PrintFormat("r6  = 0x%08x  ",   pstkTop[7]);
-    _PrintFormat("r7  = 0x%08x\r\n", pstkTop[8]);
-    _PrintFormat("r8  = 0x%08x  ",   pstkTop[9]);
-    _PrintFormat("r9  = 0x%08x\r\n", pstkTop[10]);
-    _PrintFormat("r10 = 0x%08x  ",   pstkTop[11]);
-    _PrintFormat("fp  = 0x%08x\r\n", pstkTop[12]);
-    _PrintFormat("ip  = 0x%08x  ",   pstkTop[13]);
-    _PrintFormat("sp  = 0x%08x\r\n", (ARCH_REG_T)pstkTop);
-    _PrintFormat("lr  = 0x%08x  ",   pstkTop[14]);
-    _PrintFormat("pc  = 0x%08x\r\n", pstkTop[15]);
+    if (pvBuffer && stSize) {
+        size_t  stOft = 0;
+        
+        stOft = bnprintf(pvBuffer, stSize, stOft, "cpsr = %s\n",    cCpsr);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "r0  = 0x%08x  ", pstkTop[1]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "r1  = 0x%08x\n", pstkTop[2]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "r2  = 0x%08x  ", pstkTop[3]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "r3  = 0x%08x\n", pstkTop[4]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "r4  = 0x%08x  ", pstkTop[5]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "r5  = 0x%08x\n", pstkTop[6]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "r6  = 0x%08x  ", pstkTop[7]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "r7  = 0x%08x\n", pstkTop[8]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "r8  = 0x%08x  ", pstkTop[9]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "r9  = 0x%08x\n", pstkTop[10]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "r10 = 0x%08x  ", pstkTop[11]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "fp  = 0x%08x\n", pstkTop[12]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "ip  = 0x%08x  ", pstkTop[13]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "sp  = 0x%08x\n", (ARCH_REG_T)pstkTop);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "lr  = 0x%08x  ", pstkTop[14]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "pc  = 0x%08x\n", pstkTop[15]);
+    
+    } else {
+        _PrintFormat("cpsr = %s\r\n",    cCpsr);
+        _PrintFormat("r0  = 0x%08x  ",   pstkTop[1]);
+        _PrintFormat("r1  = 0x%08x\r\n", pstkTop[2]);
+        _PrintFormat("r2  = 0x%08x  ",   pstkTop[3]);
+        _PrintFormat("r3  = 0x%08x\r\n", pstkTop[4]);
+        _PrintFormat("r4  = 0x%08x  ",   pstkTop[5]);
+        _PrintFormat("r5  = 0x%08x\r\n", pstkTop[6]);
+        _PrintFormat("r6  = 0x%08x  ",   pstkTop[7]);
+        _PrintFormat("r7  = 0x%08x\r\n", pstkTop[8]);
+        _PrintFormat("r8  = 0x%08x  ",   pstkTop[9]);
+        _PrintFormat("r9  = 0x%08x\r\n", pstkTop[10]);
+        _PrintFormat("r10 = 0x%08x  ",   pstkTop[11]);
+        _PrintFormat("fp  = 0x%08x\r\n", pstkTop[12]);
+        _PrintFormat("ip  = 0x%08x  ",   pstkTop[13]);
+        _PrintFormat("sp  = 0x%08x\r\n", (ARCH_REG_T)pstkTop);
+        _PrintFormat("lr  = 0x%08x  ",   pstkTop[14]);
+        _PrintFormat("pc  = 0x%08x\r\n", pstkTop[15]);
+    }
 }
 
 #endif                                                                  /*  !__SYLIXOS_ARM_ARCH_M__     */

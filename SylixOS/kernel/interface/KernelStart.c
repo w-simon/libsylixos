@@ -203,12 +203,12 @@ VOID  API_KernelPrimaryStart (PKERNEL_START_ROUTINE  pfuncStartHook)
 #if LW_CFG_MEMORY_HEAP_CONFIG_TYPE > 0
     _BugHandle(!pvKernelHeapMem, LW_TRUE, "heap memory invalidate.\r\n");
     _BugHandle(!_Addresses_Is_Aligned(pvKernelHeapMem), LW_TRUE, "heap memory is not align.\r\n");
-    _BugHandle(stKernelHeapSize < LW_CFG_KB_SIZE, LW_TRUE, "heap memory is too little.\r\n");
+    _BugHandle(stKernelHeapSize < LW_KERNEL_HEAP_MIN_SIZE, LW_TRUE, "heap memory is too little.\r\n");
     
     if (pvSystemHeapMem && stSystemHeapSize) {
         _BugHandle(!pvSystemHeapMem, LW_TRUE, "heap memory invalidate.\r\n");
         _BugHandle(!_Addresses_Is_Aligned(pvSystemHeapMem), LW_TRUE, "heap memory is not align.\r\n");
-        _BugHandle(stSystemHeapSize < LW_CFG_KB_SIZE, LW_TRUE, "heap memory is too little.\r\n");
+        _BugHandle(stSystemHeapSize < LW_SYSTEM_HEAP_MIN_SIZE, LW_TRUE, "heap memory is too little.\r\n");
     }
     _KernelPrimaryLowLevelInit(pvKernelHeapMem, stKernelHeapSize,
                                pvSystemHeapMem, stSystemHeapSize);      /*  ÄÚºËµ×²ã³õÊ¼»¯              */

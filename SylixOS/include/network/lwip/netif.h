@@ -355,7 +355,8 @@ struct netif {
   long flags2; /* sylixos externed flags */
 #define NETIF_FLAG2_DHCP        1
 #define NETIF_FLAG2_PROMISC     2
-  void *reserve[8];
+  void *br_eth;
+  void *reserve[7];
 #endif /* SYLIXOS */
 };
 

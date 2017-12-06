@@ -284,27 +284,21 @@ VOID  archTaskCtxShow (INT  iFd, PLW_STACK  pstkTop)
 
         fdprintf(iFd, "CSR   = 0x%08x  ", pregctx->REG_uiCsr);
         fdprintf(iFd, "AMR   = 0x%08x\n", pregctx->REG_uiAmr);
-
         fdprintf(iFd, "IRP   = 0x%08x  ", pregctx->REG_uiIrp);
         fdprintf(iFd, "FMCR  = 0x%08x\n", pregctx->REG_uiFmcr);
-
         fdprintf(iFd, "FAUCR = 0x%08x  ", pregctx->REG_uiFaucr);
         fdprintf(iFd, "FADCR = 0x%08x\n", pregctx->REG_uiFadcr);
-
         fdprintf(iFd, "SSR   = 0x%08x  ", pregctx->REG_uiSsr);
         fdprintf(iFd, "ILC   = 0x%08x\n", pregctx->REG_uiIlc);
-
         fdprintf(iFd, "RILC  = 0x%08x  ", pregctx->REG_uiRilc);
         fdprintf(iFd, "ITSR  = 0x%08x\n", pregctx->REG_uiItsr);
-
         fdprintf(iFd, "GPLYA = 0x%08x  ", pregctx->REG_uiGplya);
         fdprintf(iFd, "GPLYB = 0x%08x\n", pregctx->REG_uiGplya);
-
         fdprintf(iFd, "GFPGFR= 0x%08x  ", pregctx->REG_uiGfpgfr);
         fdprintf(iFd, "SP    = 0x%08x\n", (ARCH_REG_T)pstkTop);         /*  异常压栈后的 SP             */
 
     } else {
-        archTaskCtxPrint(pstkTop);
+        archTaskCtxPrint(LW_NULL, 0, pstkTop);
     }
 }
 
@@ -312,103 +306,185 @@ VOID  archTaskCtxShow (INT  iFd, PLW_STACK  pstkTop)
 /*********************************************************************************************************
 ** 函数名称: archTaskCtxPrint
 ** 功能描述: 直接打印任务上下文
-** 输　入  : pstkTop    堆栈栈顶
+** 输　入  : pvBuffer   内存缓冲区 (NULL, 表示直接打印)
+**           stSize     缓冲大小
+**           pstkTop    堆栈栈顶
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  archTaskCtxPrint (PLW_STACK  pstkTop)
+VOID  archTaskCtxPrint (PVOID  pvBuffer, size_t  stSize, PLW_STACK  pstkTop)
 {
     ARCH_REG_IRQ_CTX    *pregctx = (ARCH_REG_IRQ_CTX *)pstkTop;
 
-    _PrintFormat("\r\n");
+    if (pvBuffer && stSize) {
+        size_t  stOft = 0;
 
-    _PrintFormat("A0    = 0x%08x  ",   pregctx->REG_uiA0);
-    _PrintFormat("A1    = 0x%08x\r\n", pregctx->REG_uiA1);
-    _PrintFormat("A2    = 0x%08x  ",   pregctx->REG_uiA2);
-    _PrintFormat("A3    = 0x%08x\r\n", pregctx->REG_uiA3);
-    _PrintFormat("A4    = 0x%08x  ",   pregctx->REG_uiA4);
-    _PrintFormat("A5    = 0x%08x\r\n", pregctx->REG_uiA5);
-    _PrintFormat("A6    = 0x%08x  ",   pregctx->REG_uiA6);
-    _PrintFormat("A7    = 0x%08x\r\n", pregctx->REG_uiA7);
-    _PrintFormat("A8    = 0x%08x  ",   pregctx->REG_uiA8);
-    _PrintFormat("A9    = 0x%08x\r\n", pregctx->REG_uiA9);
-    _PrintFormat("A10   = 0x%08x  ",   pregctx->REG_uiA10);
-    _PrintFormat("A11   = 0x%08x\r\n", pregctx->REG_uiA11);
-    _PrintFormat("A12   = 0x%08x  ",   pregctx->REG_uiA12);
-    _PrintFormat("A13   = 0x%08x\r\n", pregctx->REG_uiA13);
-    _PrintFormat("A14   = 0x%08x  ",   pregctx->REG_uiA14);
-    _PrintFormat("A15   = 0x%08x\r\n", pregctx->REG_uiA15);
-    _PrintFormat("A16   = 0x%08x  ",   pregctx->REG_uiA16);
-    _PrintFormat("A17   = 0x%08x\r\n", pregctx->REG_uiA17);
-    _PrintFormat("A18   = 0x%08x  ",   pregctx->REG_uiA18);
-    _PrintFormat("A19   = 0x%08x\r\n", pregctx->REG_uiA19);
-    _PrintFormat("A20   = 0x%08x  ",   pregctx->REG_uiA20);
-    _PrintFormat("A21   = 0x%08x\r\n", pregctx->REG_uiA21);
-    _PrintFormat("A22   = 0x%08x  ",   pregctx->REG_uiA22);
-    _PrintFormat("A23   = 0x%08x\r\n", pregctx->REG_uiA23);
-    _PrintFormat("A24   = 0x%08x  ",   pregctx->REG_uiA24);
-    _PrintFormat("A25   = 0x%08x\r\n", pregctx->REG_uiA25);
-    _PrintFormat("A26   = 0x%08x  ",   pregctx->REG_uiA26);
-    _PrintFormat("A27   = 0x%08x\r\n", pregctx->REG_uiA27);
-    _PrintFormat("A28   = 0x%08x  ",   pregctx->REG_uiA28);
-    _PrintFormat("A29   = 0x%08x\r\n", pregctx->REG_uiA29);
-    _PrintFormat("A30   = 0x%08x  ",   pregctx->REG_uiA30);
-    _PrintFormat("A31   = 0x%08x\r\n", pregctx->REG_uiA31);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A0    = 0x%08x  ", pregctx->REG_uiA0);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A1    = 0x%08x\n", pregctx->REG_uiA1);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A2    = 0x%08x  ", pregctx->REG_uiA2);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A3    = 0x%08x\n", pregctx->REG_uiA3);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A4    = 0x%08x  ", pregctx->REG_uiA4);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A5    = 0x%08x\n", pregctx->REG_uiA5);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A6    = 0x%08x  ", pregctx->REG_uiA6);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A7    = 0x%08x\n", pregctx->REG_uiA7);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A8    = 0x%08x  ", pregctx->REG_uiA8);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A9    = 0x%08x\n", pregctx->REG_uiA9);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A10   = 0x%08x  ", pregctx->REG_uiA10);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A11   = 0x%08x\n", pregctx->REG_uiA11);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A12   = 0x%08x  ", pregctx->REG_uiA12);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A13   = 0x%08x\n", pregctx->REG_uiA13);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A14   = 0x%08x  ", pregctx->REG_uiA14);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A15   = 0x%08x\n", pregctx->REG_uiA15);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A16   = 0x%08x  ", pregctx->REG_uiA16);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A17   = 0x%08x\n", pregctx->REG_uiA17);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A18   = 0x%08x  ", pregctx->REG_uiA18);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A19   = 0x%08x\n", pregctx->REG_uiA19);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A20   = 0x%08x  ", pregctx->REG_uiA20);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A21   = 0x%08x\n", pregctx->REG_uiA21);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A22   = 0x%08x  ", pregctx->REG_uiA22);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A23   = 0x%08x\n", pregctx->REG_uiA23);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A24   = 0x%08x  ", pregctx->REG_uiA24);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A25   = 0x%08x\n", pregctx->REG_uiA25);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A26   = 0x%08x  ", pregctx->REG_uiA26);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A27   = 0x%08x\n", pregctx->REG_uiA27);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A28   = 0x%08x  ", pregctx->REG_uiA28);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A29   = 0x%08x\n", pregctx->REG_uiA29);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A30   = 0x%08x  ", pregctx->REG_uiA30);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "A31   = 0x%08x\n", pregctx->REG_uiA31);
 
-    _PrintFormat("B0    = 0x%08x  ",   pregctx->REG_uiB0);
-    _PrintFormat("B1    = 0x%08x\r\n", pregctx->REG_uiB1);
-    _PrintFormat("B2    = 0x%08x  ",   pregctx->REG_uiB2);
-    _PrintFormat("B3    = 0x%08x\r\n", pregctx->REG_uiB3);
-    _PrintFormat("B4    = 0x%08x  ",   pregctx->REG_uiB4);
-    _PrintFormat("B5    = 0x%08x\r\n", pregctx->REG_uiB5);
-    _PrintFormat("B6    = 0x%08x  ",   pregctx->REG_uiB6);
-    _PrintFormat("B7    = 0x%08x\r\n", pregctx->REG_uiB7);
-    _PrintFormat("B8    = 0x%08x  ",   pregctx->REG_uiB8);
-    _PrintFormat("B9    = 0x%08x\r\n", pregctx->REG_uiB9);
-    _PrintFormat("B10   = 0x%08x  ",   pregctx->REG_uiB10);
-    _PrintFormat("B11   = 0x%08x\r\n", pregctx->REG_uiB11);
-    _PrintFormat("B12   = 0x%08x  ",   pregctx->REG_uiB12);
-    _PrintFormat("B13   = 0x%08x\r\n", pregctx->REG_uiB13);
-    _PrintFormat("B14   = 0x%08x  ",   pregctx->REG_uiB14);
-    _PrintFormat("B15   = 0x%08x\r\n", (ARCH_REG_T)pstkTop);
-    _PrintFormat("B16   = 0x%08x  ",   pregctx->REG_uiB16);
-    _PrintFormat("B17   = 0x%08x\r\n", pregctx->REG_uiB17);
-    _PrintFormat("B18   = 0x%08x  ",   pregctx->REG_uiB18);
-    _PrintFormat("B19   = 0x%08x\r\n", pregctx->REG_uiB19);
-    _PrintFormat("B20   = 0x%08x  ",   pregctx->REG_uiB20);
-    _PrintFormat("B21   = 0x%08x\r\n", pregctx->REG_uiB21);
-    _PrintFormat("B22   = 0x%08x  ",   pregctx->REG_uiB22);
-    _PrintFormat("B23   = 0x%08x\r\n", pregctx->REG_uiB23);
-    _PrintFormat("B24   = 0x%08x  ",   pregctx->REG_uiB24);
-    _PrintFormat("B25   = 0x%08x\r\n", pregctx->REG_uiB25);
-    _PrintFormat("B26   = 0x%08x  ",   pregctx->REG_uiB26);
-    _PrintFormat("B27   = 0x%08x\r\n", pregctx->REG_uiB27);
-    _PrintFormat("B28   = 0x%08x  ",   pregctx->REG_uiB28);
-    _PrintFormat("B29   = 0x%08x\r\n", pregctx->REG_uiB29);
-    _PrintFormat("B30   = 0x%08x  ",   pregctx->REG_uiB30);
-    _PrintFormat("B31   = 0x%08x\r\n", pregctx->REG_uiB31);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B0    = 0x%08x  ", pregctx->REG_uiB0);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B1    = 0x%08x\n", pregctx->REG_uiB1);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B2    = 0x%08x  ", pregctx->REG_uiB2);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B3    = 0x%08x\n", pregctx->REG_uiB3);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B4    = 0x%08x  ", pregctx->REG_uiB4);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B5    = 0x%08x\n", pregctx->REG_uiB5);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B6    = 0x%08x  ", pregctx->REG_uiB6);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B7    = 0x%08x\n", pregctx->REG_uiB7);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B8    = 0x%08x  ", pregctx->REG_uiB8);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B9    = 0x%08x\n", pregctx->REG_uiB9);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B10   = 0x%08x  ", pregctx->REG_uiB10);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B11   = 0x%08x\n", pregctx->REG_uiB11);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B12   = 0x%08x  ", pregctx->REG_uiB12);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B13   = 0x%08x\n", pregctx->REG_uiB13);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B14   = 0x%08x  ", pregctx->REG_uiB14);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B15   = 0x%08x\n", (ARCH_REG_T)pstkTop);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B16   = 0x%08x  ", pregctx->REG_uiB16);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B17   = 0x%08x\n", pregctx->REG_uiB17);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B18   = 0x%08x  ", pregctx->REG_uiB18);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B19   = 0x%08x\n", pregctx->REG_uiB19);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B20   = 0x%08x  ", pregctx->REG_uiB20);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B21   = 0x%08x\n", pregctx->REG_uiB21);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B22   = 0x%08x  ", pregctx->REG_uiB22);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B23   = 0x%08x\n", pregctx->REG_uiB23);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B24   = 0x%08x  ", pregctx->REG_uiB24);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B25   = 0x%08x\n", pregctx->REG_uiB25);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B26   = 0x%08x  ", pregctx->REG_uiB26);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B27   = 0x%08x\n", pregctx->REG_uiB27);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B28   = 0x%08x  ", pregctx->REG_uiB28);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B29   = 0x%08x\n", pregctx->REG_uiB29);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B30   = 0x%08x  ", pregctx->REG_uiB30);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "B31   = 0x%08x\n", pregctx->REG_uiB31);
 
-    _PrintFormat("CSR   = 0x%08x  ",   pregctx->REG_uiCsr);
-    _PrintFormat("AMR   = 0x%08x\r\n", pregctx->REG_uiAmr);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "CSR   = 0x%08x  ", pregctx->REG_uiCsr);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "AMR   = 0x%08x\n", pregctx->REG_uiAmr);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "IRP   = 0x%08x  ", pregctx->REG_uiIrp);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "FMCR  = 0x%08x\n", pregctx->REG_uiFmcr);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "FAUCR = 0x%08x  ", pregctx->REG_uiFaucr);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "FADCR = 0x%08x\n", pregctx->REG_uiFadcr);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "SSR   = 0x%08x  ", pregctx->REG_uiSsr);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "ILC   = 0x%08x\n", pregctx->REG_uiIlc);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "RILC  = 0x%08x  ", pregctx->REG_uiRilc);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "ITSR  = 0x%08x\n", pregctx->REG_uiItsr);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "GPLYA = 0x%08x  ", pregctx->REG_uiGplya);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "GPLYB = 0x%08x\n", pregctx->REG_uiGplya);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "GFPGFR= 0x%08x  ", pregctx->REG_uiGfpgfr);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "SP    = 0x%08x\n", (ARCH_REG_T)pstkTop);
 
-    _PrintFormat("IRP   = 0x%08x  ",   pregctx->REG_uiIrp);
-    _PrintFormat("FMCR  = 0x%08x\r\n", pregctx->REG_uiFmcr);
+    } else {
+        _PrintFormat("\r\n");
 
-    _PrintFormat("FAUCR = 0x%08x  ",   pregctx->REG_uiFaucr);
-    _PrintFormat("FADCR = 0x%08x\r\n", pregctx->REG_uiFadcr);
+        _PrintFormat("A0    = 0x%08x  ",   pregctx->REG_uiA0);
+        _PrintFormat("A1    = 0x%08x\r\n", pregctx->REG_uiA1);
+        _PrintFormat("A2    = 0x%08x  ",   pregctx->REG_uiA2);
+        _PrintFormat("A3    = 0x%08x\r\n", pregctx->REG_uiA3);
+        _PrintFormat("A4    = 0x%08x  ",   pregctx->REG_uiA4);
+        _PrintFormat("A5    = 0x%08x\r\n", pregctx->REG_uiA5);
+        _PrintFormat("A6    = 0x%08x  ",   pregctx->REG_uiA6);
+        _PrintFormat("A7    = 0x%08x\r\n", pregctx->REG_uiA7);
+        _PrintFormat("A8    = 0x%08x  ",   pregctx->REG_uiA8);
+        _PrintFormat("A9    = 0x%08x\r\n", pregctx->REG_uiA9);
+        _PrintFormat("A10   = 0x%08x  ",   pregctx->REG_uiA10);
+        _PrintFormat("A11   = 0x%08x\r\n", pregctx->REG_uiA11);
+        _PrintFormat("A12   = 0x%08x  ",   pregctx->REG_uiA12);
+        _PrintFormat("A13   = 0x%08x\r\n", pregctx->REG_uiA13);
+        _PrintFormat("A14   = 0x%08x  ",   pregctx->REG_uiA14);
+        _PrintFormat("A15   = 0x%08x\r\n", pregctx->REG_uiA15);
+        _PrintFormat("A16   = 0x%08x  ",   pregctx->REG_uiA16);
+        _PrintFormat("A17   = 0x%08x\r\n", pregctx->REG_uiA17);
+        _PrintFormat("A18   = 0x%08x  ",   pregctx->REG_uiA18);
+        _PrintFormat("A19   = 0x%08x\r\n", pregctx->REG_uiA19);
+        _PrintFormat("A20   = 0x%08x  ",   pregctx->REG_uiA20);
+        _PrintFormat("A21   = 0x%08x\r\n", pregctx->REG_uiA21);
+        _PrintFormat("A22   = 0x%08x  ",   pregctx->REG_uiA22);
+        _PrintFormat("A23   = 0x%08x\r\n", pregctx->REG_uiA23);
+        _PrintFormat("A24   = 0x%08x  ",   pregctx->REG_uiA24);
+        _PrintFormat("A25   = 0x%08x\r\n", pregctx->REG_uiA25);
+        _PrintFormat("A26   = 0x%08x  ",   pregctx->REG_uiA26);
+        _PrintFormat("A27   = 0x%08x\r\n", pregctx->REG_uiA27);
+        _PrintFormat("A28   = 0x%08x  ",   pregctx->REG_uiA28);
+        _PrintFormat("A29   = 0x%08x\r\n", pregctx->REG_uiA29);
+        _PrintFormat("A30   = 0x%08x  ",   pregctx->REG_uiA30);
+        _PrintFormat("A31   = 0x%08x\r\n", pregctx->REG_uiA31);
 
-    _PrintFormat("SSR   = 0x%08x  ",   pregctx->REG_uiSsr);
-    _PrintFormat("ILC   = 0x%08x\r\n", pregctx->REG_uiIlc);
+        _PrintFormat("B0    = 0x%08x  ",   pregctx->REG_uiB0);
+        _PrintFormat("B1    = 0x%08x\r\n", pregctx->REG_uiB1);
+        _PrintFormat("B2    = 0x%08x  ",   pregctx->REG_uiB2);
+        _PrintFormat("B3    = 0x%08x\r\n", pregctx->REG_uiB3);
+        _PrintFormat("B4    = 0x%08x  ",   pregctx->REG_uiB4);
+        _PrintFormat("B5    = 0x%08x\r\n", pregctx->REG_uiB5);
+        _PrintFormat("B6    = 0x%08x  ",   pregctx->REG_uiB6);
+        _PrintFormat("B7    = 0x%08x\r\n", pregctx->REG_uiB7);
+        _PrintFormat("B8    = 0x%08x  ",   pregctx->REG_uiB8);
+        _PrintFormat("B9    = 0x%08x\r\n", pregctx->REG_uiB9);
+        _PrintFormat("B10   = 0x%08x  ",   pregctx->REG_uiB10);
+        _PrintFormat("B11   = 0x%08x\r\n", pregctx->REG_uiB11);
+        _PrintFormat("B12   = 0x%08x  ",   pregctx->REG_uiB12);
+        _PrintFormat("B13   = 0x%08x\r\n", pregctx->REG_uiB13);
+        _PrintFormat("B14   = 0x%08x  ",   pregctx->REG_uiB14);
+        _PrintFormat("B15   = 0x%08x\r\n", (ARCH_REG_T)pstkTop);
+        _PrintFormat("B16   = 0x%08x  ",   pregctx->REG_uiB16);
+        _PrintFormat("B17   = 0x%08x\r\n", pregctx->REG_uiB17);
+        _PrintFormat("B18   = 0x%08x  ",   pregctx->REG_uiB18);
+        _PrintFormat("B19   = 0x%08x\r\n", pregctx->REG_uiB19);
+        _PrintFormat("B20   = 0x%08x  ",   pregctx->REG_uiB20);
+        _PrintFormat("B21   = 0x%08x\r\n", pregctx->REG_uiB21);
+        _PrintFormat("B22   = 0x%08x  ",   pregctx->REG_uiB22);
+        _PrintFormat("B23   = 0x%08x\r\n", pregctx->REG_uiB23);
+        _PrintFormat("B24   = 0x%08x  ",   pregctx->REG_uiB24);
+        _PrintFormat("B25   = 0x%08x\r\n", pregctx->REG_uiB25);
+        _PrintFormat("B26   = 0x%08x  ",   pregctx->REG_uiB26);
+        _PrintFormat("B27   = 0x%08x\r\n", pregctx->REG_uiB27);
+        _PrintFormat("B28   = 0x%08x  ",   pregctx->REG_uiB28);
+        _PrintFormat("B29   = 0x%08x\r\n", pregctx->REG_uiB29);
+        _PrintFormat("B30   = 0x%08x  ",   pregctx->REG_uiB30);
+        _PrintFormat("B31   = 0x%08x\r\n", pregctx->REG_uiB31);
 
-    _PrintFormat("RILC  = 0x%08x  ",   pregctx->REG_uiRilc);
-    _PrintFormat("ITSR  = 0x%08x\r\n", pregctx->REG_uiItsr);
-
-    _PrintFormat("GPLYA = 0x%08x  ",   pregctx->REG_uiGplya);
-    _PrintFormat("GPLYB = 0x%08x\r\n", pregctx->REG_uiGplya);
-
-    _PrintFormat("GFPGFR= 0x%08x  ",   pregctx->REG_uiGfpgfr);
-    _PrintFormat("SP    = 0x%08x\r\n", (ARCH_REG_T)pstkTop);            /*  异常压栈后的 SP             */
+        _PrintFormat("CSR   = 0x%08x  ",   pregctx->REG_uiCsr);
+        _PrintFormat("AMR   = 0x%08x\r\n", pregctx->REG_uiAmr);
+        _PrintFormat("IRP   = 0x%08x  ",   pregctx->REG_uiIrp);
+        _PrintFormat("FMCR  = 0x%08x\r\n", pregctx->REG_uiFmcr);
+        _PrintFormat("FAUCR = 0x%08x  ",   pregctx->REG_uiFaucr);
+        _PrintFormat("FADCR = 0x%08x\r\n", pregctx->REG_uiFadcr);
+        _PrintFormat("SSR   = 0x%08x  ",   pregctx->REG_uiSsr);
+        _PrintFormat("ILC   = 0x%08x\r\n", pregctx->REG_uiIlc);
+        _PrintFormat("RILC  = 0x%08x  ",   pregctx->REG_uiRilc);
+        _PrintFormat("ITSR  = 0x%08x\r\n", pregctx->REG_uiItsr);
+        _PrintFormat("GPLYA = 0x%08x  ",   pregctx->REG_uiGplya);
+        _PrintFormat("GPLYB = 0x%08x\r\n", pregctx->REG_uiGplya);
+        _PrintFormat("GFPGFR= 0x%08x  ",   pregctx->REG_uiGfpgfr);
+        _PrintFormat("SP    = 0x%08x\r\n", (ARCH_REG_T)pstkTop);        /*  异常压栈后的 SP             */
+    }
 }
 /*********************************************************************************************************
   END

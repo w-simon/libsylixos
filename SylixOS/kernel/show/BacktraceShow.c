@@ -77,7 +77,7 @@ VOID  API_BacktraceShow (INT  iFd, INT  iMaxDepth)
                     fdprintf(iFd, "[%d] %p (%s+%zu)\n", iCnt - i, pvFrame[i], dlinfo.dli_sname,
                                                         ((size_t)pvFrame[i] - (size_t)dlinfo.dli_saddr));
                 } else {
-                    _DebugFormat(__PRINTMESSAGE_LEVEL, "[%d] %p (%s+%zu)\n",
+                    _DebugFormat(__PRINTMESSAGE_LEVEL, "[%d] %p (%s+%zu)\r\n",
                                  iCnt - i, pvFrame[i], dlinfo.dli_sname,
                                  ((size_t)pvFrame[i] - (size_t)dlinfo.dli_saddr));
                 }
@@ -87,7 +87,7 @@ VOID  API_BacktraceShow (INT  iFd, INT  iMaxDepth)
                     fdprintf(iFd, "[%d] %p (<unknown>)\n", iCnt - i, pvFrame[i]);
                 
                 } else {
-                    _DebugFormat(__PRINTMESSAGE_LEVEL, "[%d] %p (<unknown>)\n", iCnt - i, pvFrame[i]);
+                    _DebugFormat(__PRINTMESSAGE_LEVEL, "[%d] %p (<unknown>)\r\n", iCnt - i, pvFrame[i]);
                 }
             }
         }
@@ -97,8 +97,63 @@ VOID  API_BacktraceShow (INT  iFd, INT  iMaxDepth)
                 fdprintf(iFd, "[%d] %p\n", iCnt - i, pvFrame[i]);
                 
             } else {
-                _DebugFormat(__PRINTMESSAGE_LEVEL, "[%d] %p\n", iCnt - i, pvFrame[i]);
+                _DebugFormat(__PRINTMESSAGE_LEVEL, "[%d] %p\r\n", iCnt - i, pvFrame[i]);
             }
+        }
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
+    }
+#endif                                                                  /*  !__GNUC__                   */
+}
+/*********************************************************************************************************
+** 函数名称: API_BacktracePrint
+** 功能描述: 打印调用栈信息到缓存.
+** 输　入  : pvBuffer  缓存位置
+**           stSize    缓存大小
+**           iMaxDepth 最大堆栈深度
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+                                           
+                                       (不得在中断中调用)
+*********************************************************************************************************/
+LW_API  
+VOID  API_BacktracePrint (PVOID  pvBuffer, size_t  stSize, INT  iMaxDepth)
+{
+#ifdef __GNUC__
+#define SHOWSTACK_SIZE  100
+
+    PVOID   pvFrame[SHOWSTACK_SIZE];
+    INT     i, iCnt;
+    size_t  stOft = 0;
+    
+    if (iMaxDepth > SHOWSTACK_SIZE) {
+        iMaxDepth = SHOWSTACK_SIZE;
+    
+    } else if (iMaxDepth < 0) {
+        iMaxDepth = 1;
+    }
+    
+    iCnt = backtrace(pvFrame, iMaxDepth);
+    if (iCnt > 0) {
+#if LW_CFG_MODULELOADER_EN > 0
+        Dl_info         dlinfo;
+        LW_LD_VPROC    *pvproc = vprocGetCur();
+    
+        for (i = 0; i < iCnt; i++) {
+            if ((API_ModuleAddr(pvFrame[i], &dlinfo, pvproc) == ERROR_NONE) &&
+                (dlinfo.dli_sname)) {
+                stOft = bnprintf(pvBuffer, stSize, stOft, "[%d] %p (%s+%zu)\n", 
+                                 iCnt - i, pvFrame[i], dlinfo.dli_sname,
+                                 ((size_t)pvFrame[i] - (size_t)dlinfo.dli_saddr));
+            
+            } else {
+                stOft = bnprintf(pvBuffer, stSize, stOft, "[%d] %p (<unknown>)\n", iCnt - i, pvFrame[i]);
+            }
+        }
+#else
+        for (i = 0; i < iCnt; i++) {
+            stOft = bnprintf(pvBuffer, stSize, stOft, "[%d] %p\n", iCnt - i, pvFrame[i]);
         }
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
     }

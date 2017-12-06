@@ -48,9 +48,9 @@
 *********************************************************************************************************/
 
 #define __SYLIXOS_MAKEVER(a, b, c)      (((a) << 16) + ((b) << 8) + (c))
-#define __SYLIXOS_VERSION               __SYLIXOS_MAKEVER(1, 5, 5)
+#define __SYLIXOS_VERSION               __SYLIXOS_MAKEVER(1, 5, 6)
 #define __SYLIXOS_VERPATCH              0x0
-#define __SYLIXOS_VERSTR                "1.5.5"
+#define __SYLIXOS_VERSTR                "1.5.6"
 #define __SYLIXOS_RELSTR                "LongYuan"
 
 #define __SYLIXOS_VERINFO               "SylixOS kernel version: "  \
@@ -232,6 +232,11 @@ __attribute__((weak)) char              __sylixos_version[] = __SYLIXOS_VERSTR;
   内核扫描链
 *********************************************************************************************************/
 #include "../SylixOS/kernel/include/k_scanlink.h"
+/*********************************************************************************************************
+  系统/应用崩溃信息记录
+*********************************************************************************************************/
+#include "../SylixOS/kernel/cdump/cdumpLib.h"
+#include "../SylixOS/kernel/cdump/cdump.h"
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 /*********************************************************************************************************
   MMU & CACHE

@@ -151,6 +151,7 @@ typedef struct netdev {
 int  netdev_add(netdev_t *netdev, const char *ip, const char *netmask, const char *gw, int if_flags);
 int  netdev_delete(netdev_t *netdev);
 int  netdev_index(netdev_t *netdev, unsigned int *index);
+int  netdev_ifname(netdev_t *netdev, char *ifname);
 
 /* netdev find (MUST in NETIF_LOCK mode) */
 netdev_t *netdev_find_by_ifname(const char *if_name);

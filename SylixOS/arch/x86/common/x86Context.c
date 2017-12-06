@@ -179,7 +179,7 @@ VOID  archTaskCtxShow (INT  iFd, PLW_STACK  pstkTop)
         fdprintf(iFd, "SP  = 0x%08x\n", (ARCH_REG_T)pstkTop);           /*  异常压栈后的 SP             */
 
     } else {
-        archTaskCtxPrint(pstkTop);
+        archTaskCtxPrint(LW_NULL, 0, pstkTop);
     }
 }
 
@@ -187,36 +187,64 @@ VOID  archTaskCtxShow (INT  iFd, PLW_STACK  pstkTop)
 /*********************************************************************************************************
 ** 函数名称: archTaskCtxPrint
 ** 功能描述: 直接打印任务上下文
-** 输　入  : pstkTop    堆栈栈顶
+** 输　入  : pvBuffer   内存缓冲区 (NULL, 表示直接打印)
+**           stSize     缓冲大小
+**           pstkTop    堆栈栈顶
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  archTaskCtxPrint (PLW_STACK  pstkTop)
+VOID  archTaskCtxPrint (PVOID  pvBuffer, size_t  stSize, PLW_STACK  pstkTop)
 {
     ARCH_REG_CTX       *pregctx = (ARCH_REG_CTX *)pstkTop;
 
-    _PrintFormat("\r\n");
-    _PrintFormat("EFLAGS = 0x%08x\r\n", pregctx->REG_uiEFLAGS);
+    if (pvBuffer && stSize) {
+        size_t  stOft = 0;
 
-    _PrintFormat("EIP = 0x%08x  ",   pregctx->REG_uiEIP);
-    _PrintFormat("EBP = 0x%08x\r\n", pregctx->REG_uiEBP);
-    _PrintFormat("ESI = 0x%08x  ",   pregctx->REG_uiESI);
-    _PrintFormat("EDI = 0x%08x\r\n", pregctx->REG_uiEDI);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "EFLAGS = 0x%08x\n", pregctx->REG_uiEFLAGS);
 
-    _PrintFormat("EAX = 0x%08x  ",   pregctx->REG_uiEAX);
-    _PrintFormat("EBX = 0x%08x\r\n", pregctx->REG_uiEBX);
-    _PrintFormat("ECX = 0x%08x  ",   pregctx->REG_uiECX);
-    _PrintFormat("EDX = 0x%08x\r\n", pregctx->REG_uiEDX);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "EIP = 0x%08x  ", pregctx->REG_uiEIP);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "EBP = 0x%08x\n", pregctx->REG_uiEBP);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "ESI = 0x%08x  ", pregctx->REG_uiESI);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "EDI = 0x%08x\n", pregctx->REG_uiEDI);
 
-    _PrintFormat("SS  = 0x%08x  ",   pregctx->REG_usSS);
-    _PrintFormat("GS  = 0x%08x\r\n", pregctx->REG_usGS);
-    _PrintFormat("FS  = 0x%08x  ",   pregctx->REG_usFS);
-    _PrintFormat("ES  = 0x%08x\r\n", pregctx->REG_usES);
-    _PrintFormat("DS  = 0x%08x  ",   pregctx->REG_usDS);
-    _PrintFormat("CS  = 0x%08x\r\n", pregctx->REG_uiCS);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "EAX = 0x%08x  ", pregctx->REG_uiEAX);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "EBX = 0x%08x\n", pregctx->REG_uiEBX);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "ECX = 0x%08x  ", pregctx->REG_uiECX);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "EDX = 0x%08x\n", pregctx->REG_uiEDX);
 
-    _PrintFormat("SP  = 0x%08x\r\n", (ARCH_REG_T)pstkTop);              /*  异常压栈后的 SP             */
+        stOft = bnprintf(pvBuffer, stSize, stOft, "SS  = 0x%08x  ", pregctx->REG_usSS);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "GS  = 0x%08x\n", pregctx->REG_usGS);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "FS  = 0x%08x  ", pregctx->REG_usFS);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "ES  = 0x%08x\n", pregctx->REG_usES);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "DS  = 0x%08x  ", pregctx->REG_usDS);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "CS  = 0x%08x\n", pregctx->REG_uiCS);
+
+        stOft = bnprintf(pvBuffer, stSize, stOft, "SP  = 0x%08x\n", (ARCH_REG_T)pstkTop);
+
+    } else {
+        _PrintFormat("\r\n");
+        _PrintFormat("EFLAGS = 0x%08x\r\n", pregctx->REG_uiEFLAGS);
+
+        _PrintFormat("EIP = 0x%08x  ",   pregctx->REG_uiEIP);
+        _PrintFormat("EBP = 0x%08x\r\n", pregctx->REG_uiEBP);
+        _PrintFormat("ESI = 0x%08x  ",   pregctx->REG_uiESI);
+        _PrintFormat("EDI = 0x%08x\r\n", pregctx->REG_uiEDI);
+
+        _PrintFormat("EAX = 0x%08x  ",   pregctx->REG_uiEAX);
+        _PrintFormat("EBX = 0x%08x\r\n", pregctx->REG_uiEBX);
+        _PrintFormat("ECX = 0x%08x  ",   pregctx->REG_uiECX);
+        _PrintFormat("EDX = 0x%08x\r\n", pregctx->REG_uiEDX);
+
+        _PrintFormat("SS  = 0x%08x  ",   pregctx->REG_usSS);
+        _PrintFormat("GS  = 0x%08x\r\n", pregctx->REG_usGS);
+        _PrintFormat("FS  = 0x%08x  ",   pregctx->REG_usFS);
+        _PrintFormat("ES  = 0x%08x\r\n", pregctx->REG_usES);
+        _PrintFormat("DS  = 0x%08x  ",   pregctx->REG_usDS);
+        _PrintFormat("CS  = 0x%08x\r\n", pregctx->REG_uiCS);
+
+        _PrintFormat("SP  = 0x%08x\r\n", (ARCH_REG_T)pstkTop);          /*  异常压栈后的 SP             */
+    }
 }
 /*********************************************************************************************************
   END

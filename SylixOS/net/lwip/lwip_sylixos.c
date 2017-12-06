@@ -50,37 +50,49 @@
 #include "./proc/lwip_proc.h"
 #endif                                                                  /*  LW_CFG_PROCFS_EN            */
 /*********************************************************************************************************
+  网络动态内存管理
+*********************************************************************************************************/
+#if LW_CFG_LWIP_MEM_TLSF > 0
+extern void  tlsf_mem_create(void);
+#endif                                                                  /*  LW_CFG_LWIP_MEM_TLSF        */
+/*********************************************************************************************************
   网络驱动工作队列函数声明
 *********************************************************************************************************/
-INT   _netJobqueueInit(VOID);
+extern INT   _netJobqueueInit(VOID);
 /*********************************************************************************************************
   网络函数声明
 *********************************************************************************************************/
 #if LW_CFG_SHELL_EN > 0
-VOID  __tshellNetInit(VOID);
-VOID  __tshellNet6Init(VOID);
+extern VOID  __tshellNetInit(VOID);
+extern VOID  __tshellNet6Init(VOID);
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 /*********************************************************************************************************
   互联网函数声明
 *********************************************************************************************************/
-VOID  __inetHostTableInit(VOID);
+extern VOID  __inetHostTableInit(VOID);
 /*********************************************************************************************************
   网络事件初始化
 *********************************************************************************************************/
-INT   _netEventInit(VOID);
-INT   _netEventDevCreate(VOID);
+extern INT   _netEventInit(VOID);
+extern INT   _netEventDevCreate(VOID);
 /*********************************************************************************************************
   VLAN 支持
 *********************************************************************************************************/
 #if LW_CFG_NET_VLAN_EN > 0
-VOID  __netVlanInit(VOID);
+extern VOID  __netVlanInit(VOID);
 #endif                                                                  /*  LW_CFG_NET_VLAN_EN > 0      */
+/*********************************************************************************************************
+  网桥支持
+*********************************************************************************************************/
+#if LW_CFG_NET_DEV_BRIDGE_EN > 0
+extern INT  _netBridgeInit(VOID);
+#endif                                                                  /*  LW_CFG_NET_DEV_BRIDGE_EN    */
 /*********************************************************************************************************
   拨号网络函数声明
 *********************************************************************************************************/
 #if LW_CFG_LWIP_PPP > 0 || LW_CFG_LWIP_PPPOE > 0
 #if __LWIP_USE_PPP_NEW == 0
-err_t pppInit(void);
+extern err_t pppInit(void);
 #endif
 #endif                                                                  /*  LW_CFG_LWIP_PPP             */
                                                                         /*  LW_CFG_LWIP_PPPOE           */
@@ -162,13 +174,17 @@ static VOID  __netCfgFileInit (VOID)
 LW_API  
 VOID  API_NetInit (VOID)
 {
-    static BOOL            bIsInit = LW_FALSE;
+    static BOOL   bIsInit = LW_FALSE;
     
     if (bIsInit) {
         return;
-    } else {
-        bIsInit = LW_TRUE;
     }
+    
+    bIsInit = LW_TRUE;
+    
+#if LW_CFG_LWIP_MEM_TLSF > 0
+    tlsf_mem_create();
+#endif                                                                  /*  LW_CFG_LWIP_MEM_TLSF        */
     
 #if LW_CFG_NET_VLAN_EN > 0
     __netVlanInit();                                                    /*  初始化 vlan                 */
@@ -209,6 +225,10 @@ VOID  API_NetInit (VOID)
     __tshellNet6Init();                                                 /*  注册 IPv6 专属命令          */
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
     
+#if LW_CFG_NET_DEV_BRIDGE_EN > 0
+    _netBridgeInit();
+#endif                                                                  /*  LW_CFG_NET_DEV_BRIDGE_EN    */
+
     /*
      *  密切相关工具初始化.
      */

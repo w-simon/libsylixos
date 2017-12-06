@@ -232,7 +232,7 @@ VOID  archTaskCtxShow (INT  iFd, PLW_STACK  pstkTop)
         fdprintf(iFd, "IE  = %d\n", (uiCP0Status & M_StatusIE)  >> S_StatusIE);
 
     } else {
-        archTaskCtxPrint(pstkTop);
+        archTaskCtxPrint(LW_NULL, 0, pstkTop);
     }
 }
 
@@ -240,89 +240,168 @@ VOID  archTaskCtxShow (INT  iFd, PLW_STACK  pstkTop)
 /*********************************************************************************************************
 ** 函数名称: archTaskCtxPrint
 ** 功能描述: 通过 _PrintFormat 打印任务上下文
-** 输　入  : pstkTop    堆栈栈顶
+** 输　入  : pvBuffer   内存缓冲区 (NULL, 表示直接打印)
+**           stSize     缓冲大小
+**           pstkTop    堆栈栈顶
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  archTaskCtxPrint (PLW_STACK  pstkTop)
+VOID  archTaskCtxPrint (PVOID  pvBuffer, size_t  stSize, PLW_STACK  pstkTop)
 {
     UINT32              uiCP0Status;
     ARCH_REG_CTX       *pregctx = (ARCH_REG_CTX *)pstkTop;
 
-    _PrintFormat("\r\n");
+    if (pvBuffer && stSize) {
+        size_t  stOft = 0;
 
-    _PrintFormat("SP        = 0x%08x\r\n", (ARCH_REG_T)pstkTop);
-    _PrintFormat("EPC       = 0x%08x\r\n", (ARCH_REG_T)pregctx->REG_uiCP0EPC);
-    _PrintFormat("BADVADDR  = 0x%08x\r\n", (ARCH_REG_T)pregctx->REG_uiCP0BadVAddr);
-    _PrintFormat("CAUSE     = 0x%08x\r\n", (ARCH_REG_T)pregctx->REG_uiCP0Cause);
-    _PrintFormat("LO        = 0x%08x\r\n", (ARCH_REG_T)pregctx->REG_uiCP0DataLO);
-    _PrintFormat("HI        = 0x%08x\r\n", (ARCH_REG_T)pregctx->REG_uiCP0DataHI);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "SP        = 0x%08x\n", (ARCH_REG_T)pstkTop);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "EPC       = 0x%08x\n", (ARCH_REG_T)pregctx->REG_uiCP0EPC);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "BADVADDR  = 0x%08x\n", (ARCH_REG_T)pregctx->REG_uiCP0BadVAddr);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "CAUSE     = 0x%08x\n", (ARCH_REG_T)pregctx->REG_uiCP0Cause);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "LO        = 0x%08x\n", (ARCH_REG_T)pregctx->REG_uiCP0DataLO);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "HI        = 0x%08x\n", (ARCH_REG_T)pregctx->REG_uiCP0DataHI);
 
-    _PrintFormat("$00(ZERO) = 0x%08x\r\n", pregctx->REG_uiReg[REG_ZERO]);
-    _PrintFormat("$01(AT)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_AT]);
-    _PrintFormat("$02(V0)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_V0]);
-    _PrintFormat("$03(V1)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_V1]);
-    _PrintFormat("$04(A0)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_A0]);
-    _PrintFormat("$05(A1)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_A1]);
-    _PrintFormat("$06(A2)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_A2]);
-    _PrintFormat("$07(A3)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_A3]);
-    _PrintFormat("$08(T0)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_T0]);
-    _PrintFormat("$09(T1)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_T1]);
-    _PrintFormat("$10(T2)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_T2]);
-    _PrintFormat("$11(T3)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_T3]);
-    _PrintFormat("$12(T4)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_T4]);
-    _PrintFormat("$13(T5)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_T5]);
-    _PrintFormat("$14(T6)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_T6]);
-    _PrintFormat("$15(T7)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_T7]);
-    _PrintFormat("$16(S0)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_S0]);
-    _PrintFormat("$17(S1)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_S1]);
-    _PrintFormat("$18(S2)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_S2]);
-    _PrintFormat("$19(S3)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_S3]);
-    _PrintFormat("$20(S4)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_S4]);
-    _PrintFormat("$21(S5)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_S5]);
-    _PrintFormat("$22(S6)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_S6]);
-    _PrintFormat("$23(S7)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_S7]);
-    _PrintFormat("$24(T8)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_T8]);
-    _PrintFormat("$25(T9)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_T9]);
-    _PrintFormat("$28(GP)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_GP]);
-    _PrintFormat("$29(SP)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_SP]);
-    _PrintFormat("$30(FP)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_FP]);
-    _PrintFormat("$31(RA)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_RA]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "$00(ZERO) = 0x%08x\n", pregctx->REG_uiReg[REG_ZERO]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "$01(AT)   = 0x%08x\n", pregctx->REG_uiReg[REG_AT]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "$02(V0)   = 0x%08x\n", pregctx->REG_uiReg[REG_V0]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "$03(V1)   = 0x%08x\n", pregctx->REG_uiReg[REG_V1]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "$04(A0)   = 0x%08x\n", pregctx->REG_uiReg[REG_A0]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "$05(A1)   = 0x%08x\n", pregctx->REG_uiReg[REG_A1]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "$06(A2)   = 0x%08x\n", pregctx->REG_uiReg[REG_A2]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "$07(A3)   = 0x%08x\n", pregctx->REG_uiReg[REG_A3]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "$08(T0)   = 0x%08x\n", pregctx->REG_uiReg[REG_T0]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "$09(T1)   = 0x%08x\n", pregctx->REG_uiReg[REG_T1]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "$10(T2)   = 0x%08x\n", pregctx->REG_uiReg[REG_T2]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "$11(T3)   = 0x%08x\n", pregctx->REG_uiReg[REG_T3]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "$12(T4)   = 0x%08x\n", pregctx->REG_uiReg[REG_T4]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "$13(T5)   = 0x%08x\n", pregctx->REG_uiReg[REG_T5]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "$14(T6)   = 0x%08x\n", pregctx->REG_uiReg[REG_T6]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "$15(T7)   = 0x%08x\n", pregctx->REG_uiReg[REG_T7]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "$16(S0)   = 0x%08x\n", pregctx->REG_uiReg[REG_S0]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "$17(S1)   = 0x%08x\n", pregctx->REG_uiReg[REG_S1]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "$18(S2)   = 0x%08x\n", pregctx->REG_uiReg[REG_S2]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "$19(S3)   = 0x%08x\n", pregctx->REG_uiReg[REG_S3]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "$20(S4)   = 0x%08x\n", pregctx->REG_uiReg[REG_S4]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "$21(S5)   = 0x%08x\n", pregctx->REG_uiReg[REG_S5]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "$22(S6)   = 0x%08x\n", pregctx->REG_uiReg[REG_S6]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "$23(S7)   = 0x%08x\n", pregctx->REG_uiReg[REG_S7]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "$24(T8)   = 0x%08x\n", pregctx->REG_uiReg[REG_T8]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "$25(T9)   = 0x%08x\n", pregctx->REG_uiReg[REG_T9]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "$28(GP)   = 0x%08x\n", pregctx->REG_uiReg[REG_GP]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "$29(SP)   = 0x%08x\n", pregctx->REG_uiReg[REG_SP]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "$30(FP)   = 0x%08x\n", pregctx->REG_uiReg[REG_FP]);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "$31(RA)   = 0x%08x\n", pregctx->REG_uiReg[REG_RA]);
 
-    uiCP0Status = pregctx->REG_uiCP0Status;
+        uiCP0Status = pregctx->REG_uiCP0Status;
 
-    _PrintFormat("CP0 Status Register:\r\n");
-    _PrintFormat("CU3 = %d  ",   (uiCP0Status & M_StatusCU3) >> S_StatusCU3);
-    _PrintFormat("CU2 = %d\r\n", (uiCP0Status & M_StatusCU2) >> S_StatusCU2);
-    _PrintFormat("CU1 = %d  ",   (uiCP0Status & M_StatusCU1) >> S_StatusCU1);
-    _PrintFormat("CU0 = %d\r\n", (uiCP0Status & M_StatusCU0) >> S_StatusCU0);
-    _PrintFormat("RP  = %d  ",   (uiCP0Status & M_StatusRP)  >> S_StatusRP);
-    _PrintFormat("FR  = %d\r\n", (uiCP0Status & M_StatusFR)  >> S_StatusFR);
-    _PrintFormat("RE  = %d  ",   (uiCP0Status & M_StatusRE)  >> S_StatusRE);
-    _PrintFormat("MX  = %d\r\n", (uiCP0Status & M_StatusMX)  >> S_StatusMX);
-    _PrintFormat("PX  = %d  ",   (uiCP0Status & M_StatusPX)  >> S_StatusPX);
-    _PrintFormat("BEV = %d\r\n", (uiCP0Status & M_StatusBEV) >> S_StatusBEV);
-    _PrintFormat("TS  = %d  ",   (uiCP0Status & M_StatusTS)  >> S_StatusTS);
-    _PrintFormat("SR  = %d\r\n", (uiCP0Status & M_StatusSR)  >> S_StatusSR);
-    _PrintFormat("NMI = %d  ",   (uiCP0Status & M_StatusNMI) >> S_StatusNMI);
-    _PrintFormat("IM7 = %d\r\n", (uiCP0Status & M_StatusIM7) >> S_StatusIM7);
-    _PrintFormat("IM6 = %d  ",   (uiCP0Status & M_StatusIM6) >> S_StatusIM6);
-    _PrintFormat("IM5 = %d\r\n", (uiCP0Status & M_StatusIM5) >> S_StatusIM5);
-    _PrintFormat("IM4 = %d  ",   (uiCP0Status & M_StatusIM4) >> S_StatusIM4);
-    _PrintFormat("IM3 = %d\r\n", (uiCP0Status & M_StatusIM3) >> S_StatusIM3);
-    _PrintFormat("IM2 = %d  ",   (uiCP0Status & M_StatusIM2) >> S_StatusIM2);
-    _PrintFormat("IM1 = %d\r\n", (uiCP0Status & M_StatusIM1) >> S_StatusIM1);
-    _PrintFormat("IM0 = %d  ",   (uiCP0Status & M_StatusIM0) >> S_StatusIM0);
-    _PrintFormat("KX  = %d\r\n", (uiCP0Status & M_StatusKX)  >> S_StatusKX);
-    _PrintFormat("SX  = %d  ",   (uiCP0Status & M_StatusSX)  >> S_StatusSX);
-    _PrintFormat("UX  = %d\r\n", (uiCP0Status & M_StatusUX)  >> S_StatusUX);
-    _PrintFormat("KSU = %d  ",   (uiCP0Status & M_StatusKSU) >> S_StatusKSU);
-    _PrintFormat("UM  = %d\r\n", (uiCP0Status & M_StatusUM)  >> S_StatusUM);
-    _PrintFormat("SM  = %d  ",   (uiCP0Status & M_StatusSM)  >> S_StatusSM);
-    _PrintFormat("ERL = %d\r\n", (uiCP0Status & M_StatusERL) >> S_StatusERL);
-    _PrintFormat("EXL = %d  ",   (uiCP0Status & M_StatusEXL) >> S_StatusEXL);
-    _PrintFormat("IE  = %d\r\n", (uiCP0Status & M_StatusIE)  >> S_StatusIE);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "CP0 Status Register:\n");
+        stOft = bnprintf(pvBuffer, stSize, stOft, "CU3 = %d  ", (uiCP0Status & M_StatusCU3) >> S_StatusCU3);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "CU2 = %d\n", (uiCP0Status & M_StatusCU2) >> S_StatusCU2);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "CU1 = %d  ", (uiCP0Status & M_StatusCU1) >> S_StatusCU1);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "CU0 = %d\n", (uiCP0Status & M_StatusCU0) >> S_StatusCU0);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "RP  = %d  ", (uiCP0Status & M_StatusRP)  >> S_StatusRP);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "FR  = %d\n", (uiCP0Status & M_StatusFR)  >> S_StatusFR);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "RE  = %d  ", (uiCP0Status & M_StatusRE)  >> S_StatusRE);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "MX  = %d\n", (uiCP0Status & M_StatusMX)  >> S_StatusMX);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "PX  = %d  ", (uiCP0Status & M_StatusPX)  >> S_StatusPX);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "BEV = %d\n", (uiCP0Status & M_StatusBEV) >> S_StatusBEV);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "TS  = %d  ", (uiCP0Status & M_StatusTS)  >> S_StatusTS);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "SR  = %d\n", (uiCP0Status & M_StatusSR)  >> S_StatusSR);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "NMI = %d  ", (uiCP0Status & M_StatusNMI) >> S_StatusNMI);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "IM7 = %d\n", (uiCP0Status & M_StatusIM7) >> S_StatusIM7);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "IM6 = %d  ", (uiCP0Status & M_StatusIM6) >> S_StatusIM6);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "IM5 = %d\n", (uiCP0Status & M_StatusIM5) >> S_StatusIM5);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "IM4 = %d  ", (uiCP0Status & M_StatusIM4) >> S_StatusIM4);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "IM3 = %d\n", (uiCP0Status & M_StatusIM3) >> S_StatusIM3);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "IM2 = %d  ", (uiCP0Status & M_StatusIM2) >> S_StatusIM2);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "IM1 = %d\n", (uiCP0Status & M_StatusIM1) >> S_StatusIM1);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "IM0 = %d  ", (uiCP0Status & M_StatusIM0) >> S_StatusIM0);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "KX  = %d\n", (uiCP0Status & M_StatusKX)  >> S_StatusKX);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "SX  = %d  ", (uiCP0Status & M_StatusSX)  >> S_StatusSX);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "UX  = %d\n", (uiCP0Status & M_StatusUX)  >> S_StatusUX);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "KSU = %d  ", (uiCP0Status & M_StatusKSU) >> S_StatusKSU);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "UM  = %d\n", (uiCP0Status & M_StatusUM)  >> S_StatusUM);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "SM  = %d  ", (uiCP0Status & M_StatusSM)  >> S_StatusSM);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "ERL = %d\n", (uiCP0Status & M_StatusERL) >> S_StatusERL);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "EXL = %d  ", (uiCP0Status & M_StatusEXL) >> S_StatusEXL);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "IE  = %d\n", (uiCP0Status & M_StatusIE)  >> S_StatusIE);
+
+    } else {
+        _PrintFormat("\r\n");
+
+        _PrintFormat("SP        = 0x%08x\r\n", (ARCH_REG_T)pstkTop);
+        _PrintFormat("EPC       = 0x%08x\r\n", (ARCH_REG_T)pregctx->REG_uiCP0EPC);
+        _PrintFormat("BADVADDR  = 0x%08x\r\n", (ARCH_REG_T)pregctx->REG_uiCP0BadVAddr);
+        _PrintFormat("CAUSE     = 0x%08x\r\n", (ARCH_REG_T)pregctx->REG_uiCP0Cause);
+        _PrintFormat("LO        = 0x%08x\r\n", (ARCH_REG_T)pregctx->REG_uiCP0DataLO);
+        _PrintFormat("HI        = 0x%08x\r\n", (ARCH_REG_T)pregctx->REG_uiCP0DataHI);
+
+        _PrintFormat("$00(ZERO) = 0x%08x\r\n", pregctx->REG_uiReg[REG_ZERO]);
+        _PrintFormat("$01(AT)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_AT]);
+        _PrintFormat("$02(V0)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_V0]);
+        _PrintFormat("$03(V1)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_V1]);
+        _PrintFormat("$04(A0)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_A0]);
+        _PrintFormat("$05(A1)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_A1]);
+        _PrintFormat("$06(A2)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_A2]);
+        _PrintFormat("$07(A3)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_A3]);
+        _PrintFormat("$08(T0)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_T0]);
+        _PrintFormat("$09(T1)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_T1]);
+        _PrintFormat("$10(T2)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_T2]);
+        _PrintFormat("$11(T3)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_T3]);
+        _PrintFormat("$12(T4)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_T4]);
+        _PrintFormat("$13(T5)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_T5]);
+        _PrintFormat("$14(T6)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_T6]);
+        _PrintFormat("$15(T7)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_T7]);
+        _PrintFormat("$16(S0)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_S0]);
+        _PrintFormat("$17(S1)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_S1]);
+        _PrintFormat("$18(S2)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_S2]);
+        _PrintFormat("$19(S3)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_S3]);
+        _PrintFormat("$20(S4)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_S4]);
+        _PrintFormat("$21(S5)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_S5]);
+        _PrintFormat("$22(S6)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_S6]);
+        _PrintFormat("$23(S7)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_S7]);
+        _PrintFormat("$24(T8)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_T8]);
+        _PrintFormat("$25(T9)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_T9]);
+        _PrintFormat("$28(GP)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_GP]);
+        _PrintFormat("$29(SP)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_SP]);
+        _PrintFormat("$30(FP)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_FP]);
+        _PrintFormat("$31(RA)   = 0x%08x\r\n", pregctx->REG_uiReg[REG_RA]);
+
+        uiCP0Status = pregctx->REG_uiCP0Status;
+
+        _PrintFormat("CP0 Status Register:\r\n");
+        _PrintFormat("CU3 = %d  ",   (uiCP0Status & M_StatusCU3) >> S_StatusCU3);
+        _PrintFormat("CU2 = %d\r\n", (uiCP0Status & M_StatusCU2) >> S_StatusCU2);
+        _PrintFormat("CU1 = %d  ",   (uiCP0Status & M_StatusCU1) >> S_StatusCU1);
+        _PrintFormat("CU0 = %d\r\n", (uiCP0Status & M_StatusCU0) >> S_StatusCU0);
+        _PrintFormat("RP  = %d  ",   (uiCP0Status & M_StatusRP)  >> S_StatusRP);
+        _PrintFormat("FR  = %d\r\n", (uiCP0Status & M_StatusFR)  >> S_StatusFR);
+        _PrintFormat("RE  = %d  ",   (uiCP0Status & M_StatusRE)  >> S_StatusRE);
+        _PrintFormat("MX  = %d\r\n", (uiCP0Status & M_StatusMX)  >> S_StatusMX);
+        _PrintFormat("PX  = %d  ",   (uiCP0Status & M_StatusPX)  >> S_StatusPX);
+        _PrintFormat("BEV = %d\r\n", (uiCP0Status & M_StatusBEV) >> S_StatusBEV);
+        _PrintFormat("TS  = %d  ",   (uiCP0Status & M_StatusTS)  >> S_StatusTS);
+        _PrintFormat("SR  = %d\r\n", (uiCP0Status & M_StatusSR)  >> S_StatusSR);
+        _PrintFormat("NMI = %d  ",   (uiCP0Status & M_StatusNMI) >> S_StatusNMI);
+        _PrintFormat("IM7 = %d\r\n", (uiCP0Status & M_StatusIM7) >> S_StatusIM7);
+        _PrintFormat("IM6 = %d  ",   (uiCP0Status & M_StatusIM6) >> S_StatusIM6);
+        _PrintFormat("IM5 = %d\r\n", (uiCP0Status & M_StatusIM5) >> S_StatusIM5);
+        _PrintFormat("IM4 = %d  ",   (uiCP0Status & M_StatusIM4) >> S_StatusIM4);
+        _PrintFormat("IM3 = %d\r\n", (uiCP0Status & M_StatusIM3) >> S_StatusIM3);
+        _PrintFormat("IM2 = %d  ",   (uiCP0Status & M_StatusIM2) >> S_StatusIM2);
+        _PrintFormat("IM1 = %d\r\n", (uiCP0Status & M_StatusIM1) >> S_StatusIM1);
+        _PrintFormat("IM0 = %d  ",   (uiCP0Status & M_StatusIM0) >> S_StatusIM0);
+        _PrintFormat("KX  = %d\r\n", (uiCP0Status & M_StatusKX)  >> S_StatusKX);
+        _PrintFormat("SX  = %d  ",   (uiCP0Status & M_StatusSX)  >> S_StatusSX);
+        _PrintFormat("UX  = %d\r\n", (uiCP0Status & M_StatusUX)  >> S_StatusUX);
+        _PrintFormat("KSU = %d  ",   (uiCP0Status & M_StatusKSU) >> S_StatusKSU);
+        _PrintFormat("UM  = %d\r\n", (uiCP0Status & M_StatusUM)  >> S_StatusUM);
+        _PrintFormat("SM  = %d  ",   (uiCP0Status & M_StatusSM)  >> S_StatusSM);
+        _PrintFormat("ERL = %d\r\n", (uiCP0Status & M_StatusERL) >> S_StatusERL);
+        _PrintFormat("EXL = %d  ",   (uiCP0Status & M_StatusEXL) >> S_StatusEXL);
+        _PrintFormat("IE  = %d\r\n", (uiCP0Status & M_StatusIE)  >> S_StatusIE);
+    }
 }
 /*********************************************************************************************************
   END

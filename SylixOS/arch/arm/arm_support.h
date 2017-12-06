@@ -66,7 +66,7 @@ VOID            archTaskRegsSet(PLW_STACK  pstkTop, const ARCH_REG_CTX  *pregctx
 #if LW_CFG_DEVICE_EN > 0
 VOID        archTaskCtxShow(INT  iFd, PLW_STACK  pstkTop);
 #endif                                                                  /*  LW_CFG_DEVICE_EN > 0        */
-VOID        archTaskCtxPrint(PLW_STACK  pstkTop);
+VOID        archTaskCtxPrint(PVOID  pvBuffer, size_t  stSize, PLW_STACK  pstkTop);
 
 VOID        archTaskCtxStart(PLW_CLASS_CPU  pcpuSw);
 VOID        archTaskCtxSwitch(PLW_CLASS_CPU  pcpuSw);
