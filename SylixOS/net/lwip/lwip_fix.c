@@ -69,6 +69,11 @@
 #include "lwip/init.h"
 #include "lwip/pbuf.h"
 #include "netif/aodvif.h"
+#if LW_CFG_NET_ROUTER > 0
+#include "net/route.h"
+#include "route/ip4_route.h"
+#include "route/ip6_route.h"
+#endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
 #if PPP_SUPPORT > 0 || PPPOE_SUPPORT > 0
 #include "net/if.h"
 #include "netif/ppp/pppapi.h"
@@ -979,15 +984,18 @@ extern VOID  nat_ip_input_hook(struct pbuf *p, struct netif *inp);
 *********************************************************************************************************/
 PVOID ip_route_src_hook (const PVOID pvDest, const PVOID pvSrc)
 {
-extern struct netif *sys_ip_route_src_hook(const ip4_addr_t *pipaddrDest, const ip4_addr_t *pipaddrSrc);
-
+#if LW_CFG_NET_ROUTER > 0
     const  ip4_addr_t *dest = (const ip4_addr_t *)pvDest;
     const  ip4_addr_t *src  = (const ip4_addr_t *)pvSrc;
     struct netif      *netif;
     
-    netif = sys_ip_route_src_hook(dest, src);
+    netif = rt_route_search_hook(dest, src);
 
     return  ((PVOID)netif);
+    
+#else
+    return  (LW_NULL);
+#endif                                                                  /*  LW_CFG_NET_ROUTER           */
 }
 /*********************************************************************************************************
 ** 函数名称: ip_gw_hook
@@ -999,13 +1007,64 @@ extern struct netif *sys_ip_route_src_hook(const ip4_addr_t *pipaddrDest, const 
 *********************************************************************************************************/
 PVOID ip_gw_hook (PVOID  pvNetif, const PVOID pvDest)
 {
-extern ip_addr_t *sys_ip_gw_hook(struct netif *netif, const ip4_addr_t *pipaddrDest);
-
+#if LW_CFG_NET_ROUTER > 0
     const  ip4_addr_t *dest  = (const ip4_addr_t *)pvDest;
     struct netif      *netif = (struct netif *)pvNetif;
 
-    return  ((PVOID)sys_ip_gw_hook(netif, dest));
+    return  ((PVOID)rt_route_gateway_hook(netif, dest));
+    
+#else
+    return  (LW_NULL);
+#endif                                                                  /*  LW_CFG_NET_ROUTER           */
 }
+/*********************************************************************************************************
+** 函数名称: ip6_route_src_hook
+** 功能描述: sylixos ip route hook
+** 输　入  : pvSrc source address
+**           dest  destination route netif
+** 输　出  : netif
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+#if LWIP_IPV6 > 0
+
+PVOID ip6_route_src_hook (const PVOID pvSrc, const PVOID pvDest)
+{
+#if LW_CFG_NET_ROUTER > 0
+    const  ip6_addr_t *dest6 = (const ip6_addr_t *)pvDest;
+    const  ip6_addr_t *src6  = (const ip6_addr_t *)pvSrc;
+    struct netif      *netif;
+    
+    netif = rt6_route_search_hook(dest6, src6);
+
+    return  ((PVOID)netif);
+    
+#else
+    return  (LW_NULL);
+#endif                                                                  /*  LW_CFG_NET_ROUTER           */
+}
+/*********************************************************************************************************
+** 函数名称: ip6_gw_hook
+** 功能描述: sylixos ip6 route gw hook
+** 输　入  : dest  destination route netif
+** 输　出  : netif
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+PVOID ip6_gw_hook (PVOID  pvNetif, const PVOID pvDest)
+{
+#if LW_CFG_NET_ROUTER > 0
+    const  ip6_addr_t *dest6 = (const ip6_addr_t *)pvDest;
+    struct netif      *netif = (struct netif *)pvNetif;
+
+    return  ((PVOID)rt6_route_gateway_hook(netif, dest6));
+    
+#else
+    return  (LW_NULL);
+#endif                                                                  /*  LW_CFG_NET_ROUTER           */
+}
+
+#endif                                                                  /*  LWIP_IPV6 > 0               */
 /*********************************************************************************************************
 ** 函数名称: link_input_hook
 ** 功能描述: sylixos link input hook (没有在 CORELOCK 锁中)

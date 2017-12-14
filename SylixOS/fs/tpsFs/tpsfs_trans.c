@@ -189,15 +189,64 @@ PTPS_TRANS  tpsFsTransAllocAndInit (PTPS_SUPER_BLOCK psb)
 *********************************************************************************************************/
 TPS_RESULT  tpsFsTransRollBackAndFree (PTPS_TRANS ptrans)
 {
-    PTPS_TRANS_SB ptranssb = ptrans->TRANS_psb->SB_ptranssb;
+    INT           i;
+    UINT64        ui64SecStart;
+    UINT          uiSecCnt;
+
+    PTPS_INODE       pinode   = LW_NULL;
+    PTPS_SUPER_BLOCK psb      = ptrans->TRANS_psb;
+    PTPS_TRANS_SB    ptranssb = ptrans->TRANS_psb->SB_ptranssb;
+
+    UINT64        ui64BpSecStart;
+    UINT64        ui64BpSecCnt;
+    BOOL          bBpInvalid  = LW_FALSE;
+
+    /*
+     * 计算块缓冲区起始扇区以及扇区数
+     */
+    ui64BpSecStart  = psb->SB_ui64BPStartBlk << psb->SB_uiBlkShift >> psb->SB_uiSectorShift;
+    ui64BpSecCnt    = psb->SB_ui64BPBlkCnt << psb->SB_uiBlkShift >> psb->SB_uiSectorShift;
+
+    for (i = 0; i < ptrans->TRANS_pdata->TD_uiSecAreaCnt; i++) {        /* 无效inode中的事务相关缓冲块  */
+        ui64SecStart = ptrans->TRANS_pdata->TD_secareaArr[i].TD_ui64SecStart;
+        uiSecCnt     = ptrans->TRANS_pdata->TD_secareaArr[i].TD_uiSecCnt;
+        pinode = psb->SB_pinodeOpenList;
+        while (pinode) {
+            if (tpsFsInodeBuffInvalid(pinode, ui64SecStart, uiSecCnt) != TPS_ERR_NONE) {
+                psb->SB_uiFlags |= TPS_TRANS_FAULT;
+                return  (TPS_ERR_TRANS_ROLLBK_FAULT);
+            }
+
+            pinode = pinode->IND_pnext;
+        }
+
+        if (max(ui64BpSecStart, ui64SecStart) <
+            min((ui64SecStart + uiSecCnt), (ui64BpSecStart + ui64BpSecCnt))) {
+            bBpInvalid = LW_TRUE;
+        }
+    }
+
+    if (psb->SB_pinodeDeleted != LW_NULL) {
+        if (tpsFsCloseInode(psb->SB_pinodeDeleted) != TPS_ERR_NONE) {   /* 清除已删除inode链表缓冲      */
+            psb->SB_uiFlags |= TPS_TRANS_FAULT;
+            return  (TPS_ERR_TRANS_ROLLBK_FAULT);
+        }
+        psb->SB_pinodeDeleted = LW_NULL;
+    }
 
     ptrans->TRANS_ui64SerialNum          = ptranssb->TSP_ui64SerialNum;
     ptrans->TRANS_uiDataSecNum           = ptranssb->TSP_ui64DataCurSec;
     ptrans->TRANS_uiDataSecCnt           = 0;
     ptrans->TRANS_ui64Time               = TPS_UTC_TIME();
     ptrans->TRANS_pdata->TD_uiSecAreaCnt = 0;
+    ptrans->TRANS_iStatus                = TPS_TRANS_STATUS_UNINIT;
 
-    ptrans->TRANS_iStatus = TPS_TRANS_STATUS_INIT;
+    if (bBpInvalid) {                                                   /* 重新读取块缓冲区             */
+        if (tpsFsBtreeReadBP(psb) != TPS_ERR_NONE) {
+            psb->SB_uiFlags |= TPS_TRANS_FAULT;
+            return  (TPS_ERR_BP_READ);
+        }
+    }
 
     return  (TPS_ERR_NONE);
 }
@@ -558,7 +607,7 @@ TPS_RESULT  tpsFsTransCommitAndFree (PTPS_TRANS ptrans)
             ptranssb->TSB_ui64TransCurSec = ptranssb->TSB_ui64TransSecStart;
         }
 
-        lib_memset(ptranssb->TSB_pucSecBuff, 0, psb->SB_uiSectorSize);
+        lib_bzero(ptranssb->TSB_pucSecBuff, psb->SB_uiSectorSize);
     }
 
     ptranssb->TSP_ui64DataCurSec = ptrans->TRANS_uiDataSecNum + ptrans->TRANS_uiDataSecCnt;
@@ -615,7 +664,7 @@ TPS_RESULT  tspFsCheckTrans (PTPS_SUPER_BLOCK psb)
              *  起始16个事务一直无效表示还没有事务提交过
              */
             if (i == 16) {
-                ui64MIndex = ui64HIndex;
+                ui64MIndex = ui64LIndex;
                 break;
             }
         }
@@ -1111,8 +1160,16 @@ TPS_RESULT  tpsFsTransWrite (PTPS_TRANS        ptrans,
 *********************************************************************************************************/
 BOOL  tpsFsTransTrigerChk (PTPS_TRANS ptrans)
 {
+    PTPS_SUPER_BLOCK psb      = ptrans->TRANS_psb;
+    PTPS_TRANS_SB    ptranssb = psb->SB_ptranssb;
+
     if (LW_NULL == ptrans) {
         return  (LW_FALSE);
+    }
+
+    if (((ptrans->TRANS_uiDataSecNum + ptrans->TRANS_uiDataSecCnt) >
+        (ptranssb->TSB_ui64TransDataStart + ptranssb->TSB_ui64TransDataCnt - TPS_TRANS_REV_DATASEC))) {
+        return (LW_TRUE);
     }
 
     return (ptrans->TRANS_pdata->TD_uiSecAreaCnt > TPS_TRANS_TRIGGERREA ? LW_TRUE : LW_FALSE);

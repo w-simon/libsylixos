@@ -86,8 +86,8 @@ ULONG  API_ThreadSetAffinity (LW_OBJECT_HANDLE  ulId, size_t  stSize, const PLW_
     __KERNEL_ENTER();                                                   /*  进入内核                    */
     if (_Thread_Invalid(usIndex)) {
         __KERNEL_EXIT();                                                /*  退出内核                    */
-        _ErrorHandle(EINVAL);
-        return  (PX_ERROR);
+        _ErrorHandle(ERROR_KERNEL_HANDLE_NULL);
+        return  (ERROR_KERNEL_HANDLE_NULL);
     }
     
     ptcb = _K_ptcbTCBIdTable[usIndex];

@@ -45,6 +45,7 @@
 #include "lwip/snmp/snmp.h"
 #include "lwip/snmp/snmp_mib2.h"
 #include "./unix/af_unix.h"
+#include "./route/af_route.h"
 #include "./packet/af_packet.h"
 #if LW_CFG_PROCFS_EN > 0
 #include "./proc/lwip_proc.h"
@@ -53,33 +54,33 @@
   网络动态内存管理
 *********************************************************************************************************/
 #if LW_CFG_LWIP_MEM_TLSF > 0
-extern void  tlsf_mem_create(void);
+extern void tlsf_mem_create(void);
 #endif                                                                  /*  LW_CFG_LWIP_MEM_TLSF        */
 /*********************************************************************************************************
   网络驱动工作队列函数声明
 *********************************************************************************************************/
-extern INT   _netJobqueueInit(VOID);
+extern INT  _netJobqueueInit(VOID);
 /*********************************************************************************************************
   网络函数声明
 *********************************************************************************************************/
 #if LW_CFG_SHELL_EN > 0
-extern VOID  __tshellNetInit(VOID);
-extern VOID  __tshellNet6Init(VOID);
+extern VOID __tshellNetInit(VOID);
+extern VOID __tshellNet6Init(VOID);
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 /*********************************************************************************************************
   互联网函数声明
 *********************************************************************************************************/
-extern VOID  __inetHostTableInit(VOID);
+extern VOID __inetHostTableInit(VOID);
 /*********************************************************************************************************
   网络事件初始化
 *********************************************************************************************************/
-extern INT   _netEventInit(VOID);
-extern INT   _netEventDevCreate(VOID);
+extern INT  _netEventInit(VOID);
+extern INT  _netEventDevCreate(VOID);
 /*********************************************************************************************************
   VLAN 支持
 *********************************************************************************************************/
 #if LW_CFG_NET_VLAN_EN > 0
-extern VOID  __netVlanInit(VOID);
+extern VOID __netVlanInit(VOID);
 #endif                                                                  /*  LW_CFG_NET_VLAN_EN > 0      */
 /*********************************************************************************************************
   网桥支持
@@ -118,6 +119,23 @@ static VOID  __netCloseAll (VOID)
 #endif                                                                  /*  LWIP_DHCP > 0               */
 }
 /*********************************************************************************************************
+** 函数名称: snmp_mib2_threadsync
+** 功能描述: SNMP mib2 线程同步回调函数.
+** 输　入  : pfunc     回调函数
+**           pvArg     回调参数
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+#if LWIP_SNMP > 0
+
+static VOID  snmp_mib2_threadsync (snmp_threadsync_called_fn  pfunc, PVOID  pvArg)
+{
+    if (pfunc) {
+        pfunc(pvArg);
+    }
+}
+/*********************************************************************************************************
 ** 函数名称: __netSnmpInit
 ** 功能描述: 初始化 SNMP 默认信息.
 ** 输　入  : NONE
@@ -125,8 +143,6 @@ static VOID  __netCloseAll (VOID)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-#if LWIP_SNMP > 0
-
 static VOID  __netSnmpInit (VOID)
 {
     static const u16_t  ucContactLen  = 17;
@@ -140,6 +156,8 @@ static VOID  __netSnmpInit (VOID)
                                                                         /*  at CHINA ^_^                */
     snmp_mib2_set_sysdescr((u8_t *)"sylixos", &ucDesrLen);
     snmp_mib2_set_sysname_readonly((u8_t *)"device based on sylixos", &ucNameLen);
+
+    snmp_threadsync_init(&snmp_mib2_lwip_locks, snmp_mib2_threadsync);
 }
 
 #endif                                                                  /*  LWIP_SNMP > 0               */
@@ -202,6 +220,10 @@ VOID  API_NetInit (VOID)
 #if LW_CFG_NET_UNIX_EN > 0
     unix_init();                                                        /*  初始化 AF_UNIX 域协议       */
 #endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
+
+#if LW_CFG_NET_ROUTER > 0
+    route_init();
+#endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
 
     packet_init();                                                      /*  初始化 AF_PACKET 协议       */
     

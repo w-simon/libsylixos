@@ -26,6 +26,7 @@
 *********************************************************************************************************/
 #if LW_CFG_NET_EN > 0
 #include "lwip/tcpip.h"
+#include "net/if_flags.h"
 #include "lwip_hook.h"
 /*********************************************************************************************************
   »Øµ÷µã
@@ -319,31 +320,7 @@ int  net_ip_hook_netif_get_type (struct netif *pnetif, int *type)
 int  net_ip_hook_netif_get_flags (struct netif *pnetif, int *flags)
 {
     if (pnetif && flags) {
-        *flags = 0;
-        if (pnetif->flags & NETIF_FLAG_UP) {
-            *flags |= IFF_UP;
-        }
-        if (pnetif->flags & NETIF_FLAG_BROADCAST) {
-            *flags |= IFF_BROADCAST;
-        } else {
-            *flags |= IFF_POINTOPOINT;
-        }
-        if (pnetif->flags & NETIF_FLAG_LINK_UP) {
-            *flags |= IFF_RUNNING;
-        }
-        if (pnetif->flags & NETIF_FLAG_IGMP) {
-            *flags |= IFF_MULTICAST;
-        }
-        if ((pnetif->flags & NETIF_FLAG_ETHARP) == 0) {
-            *flags |= IFF_NOARP;
-        }
-        if (netif_ip4_addr(pnetif)->addr == ntohl(INADDR_LOOPBACK)) {
-            *flags |= IFF_LOOPBACK;
-        }
-        if ((pnetif->flags2 & NETIF_FLAG2_PROMISC)) {
-            *flags |= IFF_PROMISC;
-        }
-        
+        *flags = netif_get_flags(pnetif);
         return  (ERROR_NONE);
     }
     

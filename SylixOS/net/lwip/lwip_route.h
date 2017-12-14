@@ -32,9 +32,6 @@ INT  __tshellRoute(INT  iArgC, PCHAR  *ppcArgV);
 VOID __tshellRouteInit(VOID);
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 
-VOID rt_netif_add_hook(struct netif *netif);
-VOID rt_netif_remove_hook(struct netif *netif);
-
 #endif                                                                  /*  LW_CFG_NET_EN               */
 #endif                                                                  /*  __LWIP_ROUTE_H              */
 /*********************************************************************************************************

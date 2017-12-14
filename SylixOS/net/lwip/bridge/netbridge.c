@@ -47,6 +47,7 @@
 #include "lwip/tcpip.h"
 #include "lwip/netif.h"
 #include "lwip/netifapi.h"
+#include "net/if_flags.h"
 #include "net/if_ether.h"
 #include "netif/etharp.h"
 
@@ -146,6 +147,18 @@ static err_t  netbr_input (struct pbuf *p, struct netif *netif)
   
   if (!(netif_br->flags & NETIF_FLAG_UP)) {
     return (ERR_IF); /* bridge was down */
+  }
+  
+  /* adjust pbuf length */
+  if (eh->type == PP_HTONS(ETHTYPE_VLAN)) {
+    if (p->tot_len > (netif->mtu + SIZEOF_ETH_HDR + SIZEOF_VLAN_HDR)) {
+      pbuf_realloc(p, (u16_t)(netif->mtu + SIZEOF_ETH_HDR + SIZEOF_VLAN_HDR));
+    }
+    
+  } else {
+    if (p->tot_len > (netif->mtu + SIZEOF_ETH_HDR)) {
+      pbuf_realloc(p, (u16_t)(netif->mtu + SIZEOF_ETH_HDR));
+    }
   }
   
   /* update mac cache */
@@ -270,7 +283,7 @@ static void  netbr_poll (netdev_t *netdev_br)
             sub_is_ifname == 1: if name */
 int  netbr_add_dev (const char *brdev, const char *sub, int sub_is_ifname)
 {
-  int found, need_up = 0;
+  int found, flags, need_up = 0;
   struct netif *netif;
   struct netif *netif_br;
   netbr_t *netbr;
@@ -357,9 +370,10 @@ int  netbr_add_dev (const char *brdev, const char *sub, int sub_is_ifname)
     }
   }
   
-  if (!(netif->flags2 & NETIF_FLAG2_PROMISC)) {
+  flags = netif_get_flags(netif);
+  if (!(flags & IFF_PROMISC)) {
     ifreq.ifr_name[0] = 0;
-    ifreq.ifr_flags   = IFF_PROMISC;
+    ifreq.ifr_flags   = flags | IFF_PROMISC;
     if (netif->ioctl) {
       if (netif->ioctl(netif, SIOCSIFFLAGS, &ifreq)) { /* make IFF_PROMISC */
         _PrintHandle("sub ethernet device can not support IFF_PROMISC!\r\n");
@@ -379,7 +393,7 @@ int  netbr_add_dev (const char *brdev, const char *sub, int sub_is_ifname)
             sub_is_ifname == 1: if name */
 int  netbr_delete_dev (const char *brdev, const char *sub, int sub_is_ifname)
 {
-  int found;
+  int found, flags;
   char subif[IFNAMSIZ];
   struct netif *netif;
   netbr_t *netbr;
@@ -433,9 +447,10 @@ int  netbr_delete_dev (const char *brdev, const char *sub, int sub_is_ifname)
   }
   LWIP_NETIF_UNLOCK();
   
-  if (netif->flags2 & NETIF_FLAG2_PROMISC) {
+  flags = netif_get_flags(netif);
+  if (flags & IFF_PROMISC) {
     ifreq.ifr_name[0] = 0;
-    ifreq.ifr_flags   = 0;
+    ifreq.ifr_flags   = flags & ~IFF_PROMISC;
     if (netif->ioctl) {
       if (netif->ioctl(netif, SIOCSIFFLAGS, &ifreq)) { /* make Non IFF_PROMISC */
         _PrintHandle("sub ethernet device can not support IFF_PROMISC!\r\n");
@@ -461,10 +476,13 @@ int  netbr_delete_dev (const char *brdev, const char *sub, int sub_is_ifname)
   
   mem_free(netbr_eth);
   
+  netdev->init_flags |= NETDEV_INIT_DO_NOT;
   if (netdev_add(netdev, NULL, NULL, NULL,
                  IFF_UP | IFF_RUNNING | IFF_BROADCAST | IFF_MULTICAST) < 0) { /* add to system */
+    netdev->init_flags &= ~NETDEV_INIT_DO_NOT;
     return (-1);
   }
+  netdev->init_flags &= ~NETDEV_INIT_DO_NOT;
   
   return (0);
 }
@@ -530,7 +548,7 @@ int  netbr_add (const char *brdev, const char *ip,
    'brdev' bridge device name (not ifname) */
 int  netbr_delete (const char *brdev)
 {
-  int found;
+  int found, flags;
   struct netif *netif;
   netbr_t *netbr;
   netbr_eth_t *netbr_eth;
@@ -569,9 +587,10 @@ int  netbr_delete (const char *brdev)
     _List_Line_Del(&netbr_eth->list, &netbr->eth_list);
     UNLOCK_TCPIP_CORE();
     
-    if (netif->flags2 & NETIF_FLAG2_PROMISC) {
+    flags = netif_get_flags(netif);
+    if (flags & IFF_PROMISC) {
       ifreq.ifr_name[0] = 0;
-      ifreq.ifr_flags   = 0;
+      ifreq.ifr_flags   = flags & ~IFF_PROMISC;
       if (netif->ioctl) {
         if (netif->ioctl(netif, SIOCSIFFLAGS, &ifreq)) {
           _PrintHandle("sub ethernet device can not support IFF_PROMISC!\r\n");
@@ -593,10 +612,12 @@ int  netbr_delete (const char *brdev)
   
     mem_free(netbr_eth);
   
+    netdev->init_flags |= NETDEV_INIT_DO_NOT;
     if (netdev_add(netdev, NULL, NULL, NULL,
                    IFF_UP | IFF_RUNNING | IFF_BROADCAST | IFF_MULTICAST) < 0) {
       _PrintHandle("sub ethernet device can not mount to system!\r\n");
     }
+    netdev->init_flags &= ~NETDEV_INIT_DO_NOT;
                
     LOCK_TCPIP_CORE();
   }

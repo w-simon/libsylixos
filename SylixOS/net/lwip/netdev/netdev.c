@@ -128,9 +128,11 @@ static err_t  netdev_netif_igmp_mac_filter (struct netif *netif,
   
   if (action == NETIF_DEL_MAC_FILTER) {
     NETDEV_MACFILTER(netdev, NETDRV_MACFILTER_DEL, (struct sockaddr *)&inaddr);
+    netif_set_maddr_hook(netif, (const void *)group, 0);
     
   } else {
     NETDEV_MACFILTER(netdev, NETDRV_MACFILTER_ADD, (struct sockaddr *)&inaddr);
+    netif_set_maddr_hook(netif, (const void *)group, 1);
   }
   
   return (0);
@@ -150,9 +152,11 @@ static err_t  netdev_netif_mld_mac_filter (struct netif *netif,
   
   if (action == NETIF_DEL_MAC_FILTER) {
     NETDEV_MACFILTER(netdev, NETDRV_MACFILTER_DEL, (struct sockaddr *)&in6addr);
+    netif_set_maddr6_hook(netif, (const void *)group, 0);
     
   } else {
     NETDEV_MACFILTER(netdev, NETDRV_MACFILTER_ADD, (struct sockaddr *)&in6addr);
+    netif_set_maddr6_hook(netif, (const void *)group, 1);
   }
   
   return (0);
@@ -306,16 +310,20 @@ static err_t  netdev_netif_init (struct netif *netif)
   netif->down = netdev_netif_down;
   netif->ioctl = netdev_netif_ioctl;
   
+  netif->flags2 = 0;
   if (netdev->if_flags & IFF_PROMISC) {
-    netif->flags2 = NETIF_FLAG2_PROMISC;
-  } else {
-    netif->flags2 = 0;
+    netif->flags2 |= NETIF_FLAG2_PROMISC;
+  }
+  if (netdev->if_flags & IFF_ALLMULTI) {
+    netif->flags2 |= NETIF_FLAG2_ALLMULTI;
   }
   
-  if (netdev->drv->init) { 
-    if (netdev->drv->init(netdev) < 0) {
-      return (ERR_IF);
-    } 
+  if (!(netdev->init_flags & NETDEV_INIT_DO_NOT)) {
+    if (netdev->drv->init) {
+      if (netdev->drv->init(netdev) < 0) {
+        return (ERR_IF);
+      } 
+    }
   }
   
   /* Update netif hwaddr */

@@ -392,16 +392,18 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
      *  ¥Ú”° ipv6 –≈œ¢
      */
     for (i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++) {
-        PCHAR       pcAddrStat;
         PCHAR       pcAddrType;
+        CHAR        cAddrStat[64];
         CHAR        cBuffer[64];
         
-        if (ip6_addr_istentative(netif->ip6_addr_state[i])) {
-            pcAddrStat = "tentative";
-        } else if (ip6_addr_isvalid(netif->ip6_addr_state[i])) {
-            pcAddrStat = "valid";
-        } else if (ip6_addr_ispreferred(netif->ip6_addr_state[i])) {
-            pcAddrStat = "preferred";
+        if (ip6_addr_isvalid(netif->ip6_addr_state[i])) {
+            lib_strcpy(cAddrStat, "valid");
+            if (ip6_addr_ispreferred(netif->ip6_addr_state[i])) {
+                lib_strcpy(cAddrStat, "preferred");
+            }
+            if (ip6_addr_istentative(netif->ip6_addr_state[i])) {
+                lib_strcat(cAddrStat, ", tentative");
+            }
         } else {
             continue;
         }
@@ -422,7 +424,7 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
         
         printf("          inet6 addr: %s Scope:%s <%s>\n", 
                ip6addr_ntoa_r(ip_2_ip6(&netif->ip6_addr[i]), cBuffer, sizeof(cBuffer)),
-               pcAddrType, pcAddrStat);
+               pcAddrType, cAddrStat);
     }
     
     /*

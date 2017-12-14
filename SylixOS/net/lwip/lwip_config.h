@@ -157,7 +157,7 @@ extern void  tlsf_mem_free(void *f);
   sylixos do not use MEMP_NUM_NETCONN, because sylixos use another socket interface.
 *********************************************************************************************************/
 
-#define IP_FORWARD                      LW_CFG_NET_GATEWAY              /*  允许 IP 转发                */
+#define IP_FORWARD                      LW_CFG_NET_ROUTER               /*  允许 IP 转发                */
 #define IP_REASSEMBLY                   LW_CFG_LWIP_IPFRAG
 #define IP_FRAG                         LW_CFG_LWIP_IPFRAG
 #define IP_REASS_MAX_PBUFS              MEMP_NUM_REASSDATA
@@ -177,7 +177,7 @@ extern void  tlsf_mem_free(void *f);
 
 #define LWIP_IPV6                       1
 #define LWIP_IPV6_MLD                   1
-#define LWIP_IPV6_FORWARD               LW_CFG_NET_GATEWAY
+#define LWIP_IPV6_FORWARD               LW_CFG_NET_ROUTER
 #define LWIP_ICMP6                      1
 #define LWIP_IPV6_FRAG                  LW_CFG_LWIP_IPFRAG
 #define LWIP_IPV6_REASS                 LW_CFG_LWIP_IPFRAG
@@ -591,13 +591,28 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrT
 #define LWIP_SYLIXOS_SOCKET_NAME        "/dev/socket"                   /*  socket file name            */
 
 /*********************************************************************************************************
-  lwip create or remove netif hook
+  basice netif function externd
+*********************************************************************************************************/
+
+extern UINT  netif_get_num(VOID);
+extern PVOID netif_get_by_index(UINT uiIndex);
+
+/*********************************************************************************************************
+  netif op hook for lwip
 *********************************************************************************************************/
 
 extern INT   netif_add_hook(PVOID  pvNetif);
 extern VOID  netif_remove_hook(PVOID  pvNetif);
-extern UINT  netif_get_num(VOID);
-extern PVOID netif_get_by_index(UINT uiIndex);
+extern VOID  netif_updown_hook(PVOID  pvNetif, INT up);
+extern VOID  netif_set_addr_hook(PVOID  pvNetif, const PVOID pvIpaddr);
+extern VOID  netif_set_addr6_hook(PVOID  pvNetif, const PVOID pvIp6addr, INT iIndex);
+
+/*********************************************************************************************************
+  netif op hook for netdev
+*********************************************************************************************************/
+
+extern VOID  netif_set_maddr_hook(PVOID  pvNetif, const PVOID pvIpaddr, INT iAdd);
+extern VOID  netif_set_maddr6_hook(PVOID  pvNetif, const PVOID pvIp6addr, INT iAdd);
 
 /*********************************************************************************************************
   lwip ip route hook (return is the netif has been route)
@@ -608,6 +623,14 @@ extern PVOID ip_route_src_hook(const PVOID pvDest, const PVOID pvSrc);
 
 extern PVOID ip_gw_hook(PVOID  pvNetif, const PVOID pvDest);
 #define LWIP_HOOK_ETHARP_GET_GW         ip_gw_hook
+
+#if LWIP_IPV6 > 0
+extern PVOID ip6_route_src_hook(const PVOID pvSrc, const PVOID pvDest);
+#define LWIP_HOOK_IP6_ROUTE             ip6_route_src_hook
+
+extern PVOID ip6_gw_hook(PVOID  pvNetif, const PVOID pvDest);
+#define LWIP_HOOK_ND6_GET_GW            ip6_gw_hook
+#endif                                                                  /*  LWIP_IPV6 > 0               */
 
 /*********************************************************************************************************
   lwip ip input hook (return is the packet has been eaten)

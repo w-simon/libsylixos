@@ -63,6 +63,7 @@ typedef enum {
     TPS_ERR_INODE_SYNC,                                                 /* 同步inode错误                */
     TPS_ERR_INODE_SERIAL,                                               /* 序列号inode错误              */
     TPS_ERR_INODE_HASHNOEMPTY,                                          /* 目录非空                     */
+    TPS_ERR_INODE_BUFF,                                                 /* inode缓冲区错误              */
 
     TPS_ERR_BTREE_INIT,                                                 /* 初始化b+tree                 */
     TPS_ERR_BTREE_INSERT,                                               /* 插入块到b+tree错误           */
@@ -95,6 +96,7 @@ typedef enum {
     TPS_ERR_TRANS_NEED_COMMIT,                                          /* 事务需要提交                 */
     TPS_TRAN_INIT_SIZE,                                                 /* 初始化事务区间大小错误       */
     TPS_ERR_TRANS_COMMIT_FAULT,                                         /* 事务提交过程出错             */
+    TPS_ERR_TRANS_ROLLBK_FAULT,                                         /* 回滚事务过程出错             */
     TPS_ERR_TRANS_READ,                                                 /* 事务读取失败                 */
 
     TPS_ERR_ENTRY_NOT_EXIST,                                            /* 文件不存在                   */

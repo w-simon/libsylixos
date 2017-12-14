@@ -558,6 +558,11 @@ netif_set_ipaddr(struct netif *netif, const ip4_addr_t *ipaddr)
 
     mib2_remove_ip4(netif);
     mib2_remove_route_ip4(0, netif);
+    
+#ifdef SYLIXOS
+    netif_set_addr_hook(netif, (const void *)ipaddr);
+#endif
+
     /* set new IP address to netif */
     ip4_addr_set(ip_2_ip4(&netif->ip_addr), ipaddr);
     IP_SET_TYPE_VAL(netif->ip_addr, IPADDR_TYPE_V4);
@@ -675,6 +680,7 @@ netif_set_up(struct netif *netif)
     
 #ifdef SYLIXOS
     netEventIfUp(netif);
+    netif_updown_hook(netif, 1);
 #endif
   }
 }
@@ -745,6 +751,7 @@ netif_set_down(struct netif *netif)
       netif->down(netif);
     }
     netEventIfDown(netif);
+    netif_updown_hook(netif, 0);
 #endif
   }
 }
@@ -1114,6 +1121,15 @@ netif_ip6_addr_set_parts(struct netif *netif, s8_t addr_idx, u32_t i0, u32_t i1,
       raw_netif_ip_addr_changed(netif_ip_addr6(netif, addr_idx), &new_ipaddr);
 #endif /* LWIP_RAW */
     }
+    
+#ifdef SYLIXOS
+    {
+      ip6_addr_t new_ipaddr;
+      IP6_ADDR(&new_ipaddr, i0, i1, i2, i3);
+      netif_set_addr6_hook(netif, &new_ipaddr, addr_idx);
+    }
+#endif
+    
     /* @todo: remove/readd mib2 ip6 entries? */
 
     IP6_ADDR(ip_2_ip6(&(netif->ip6_addr[addr_idx])), i0, i1, i2, i3);

@@ -83,6 +83,20 @@ char *telcmds[] = {
 #define TELOPT_SNDLOC       23                      /* send location                                    */
 #define TELOPT_TTYPE        24                      /* terminal type                                    */
 #define TELOPT_EOR          25                      /* end or record                                    */
+#define TELOPT_TUID         26                      /* TACACS user identification                       */
+#define TELOPT_OUTMRK       27                      /* output marking                                   */
+#define TELOPT_TTYLOC       28                      /* terminal location number                         */
+#define TELOPT_3270REGIME   29                      /* 3270 regime                                      */
+#define TELOPT_X3PAD        30                      /* X.3 PAD                                          */
+#define TELOPT_NAWS         31                      /* window size                                      */
+#define TELOPT_TSPEED       32                      /* terminal speed                                   */
+#define TELOPT_LFLOW        33                      /* remote flow control                              */
+#define TELOPT_LINEMODE     34                      /* Linemode option                                  */
+#define TELOPT_XDISPLOC     35                      /* X Display Location                               */
+#define TELOPT_OLD_ENVIRON  36                      /* Old - Environment variables                      */
+#define TELOPT_AUTHENTICATION   37                  /* Authenticate                                     */
+#define TELOPT_ENCRYPT      38                      /* Encryption option                                */
+#define TELOPT_NEW_ENVIRON  39                      /* New - Environment variables                      */
 #define TELOPT_EXOPL        255                     /* extended-options-list                            */
 
 #ifdef TELOPTS

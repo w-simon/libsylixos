@@ -41,6 +41,13 @@
 #include "lwip/tcpip.h"
 #include "lwip/stats.h"
 /*********************************************************************************************************
+  aodv
+*********************************************************************************************************/
+#if LW_CFG_NET_ROUTER > 0
+#include "net/if.h"
+#include "net/route.h"
+#endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
+/*********************************************************************************************************
   unix
 *********************************************************************************************************/
 #if LW_CFG_NET_UNIX_EN > 0
@@ -79,10 +86,6 @@ extern struct raw_pcb *raw_pcbs;
 *********************************************************************************************************/
 #include "lwip/igmp.h"
 #include "lwip/mld6.h"
-/*********************************************************************************************************
-  ROUTE
-*********************************************************************************************************/
-#include "sys/route.h"
 /*********************************************************************************************************
   ARP
 *********************************************************************************************************/
@@ -136,10 +139,18 @@ static ssize_t  __procFsNetIgmp6Read(PLW_PROCFS_NODE  p_pfsn,
                                      PCHAR            pcBuffer, 
                                      size_t           stMaxBytes,
                                      off_t            oft);
+#if LW_CFG_NET_ROUTER > 0
 static ssize_t  __procFsNetRouteRead(PLW_PROCFS_NODE  p_pfsn, 
                                      PCHAR            pcBuffer, 
                                      size_t           stMaxBytes,
                                      off_t            oft);
+#if LWIP_IPV6
+static ssize_t  __procFsNetRoute6Read(PLW_PROCFS_NODE  p_pfsn, 
+                                      PCHAR            pcBuffer, 
+                                      size_t           stMaxBytes,
+                                      off_t            oft);
+#endif                                                                  /*  LWIP_IPV6                   */
+#endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
 static ssize_t  __procFsNetTcpipStatRead(PLW_PROCFS_NODE  p_pfsn, 
                                          PCHAR            pcBuffer, 
                                          size_t           stMaxBytes,
@@ -227,9 +238,16 @@ static LW_PROCFS_NODE_OP    _G_pfsnoNetIgmpFuncs = {
 static LW_PROCFS_NODE_OP    _G_pfsnoNetIgmp6Funcs = {
     __procFsNetIgmp6Read,       LW_NULL
 };
+#if LW_CFG_NET_ROUTER > 0
 static LW_PROCFS_NODE_OP    _G_pfsnoNetRouteFuncs = {
     __procFsNetRouteRead,       LW_NULL
 };
+#if LWIP_IPV6
+static LW_PROCFS_NODE_OP    _G_pfsnoNetRoute6Funcs = {
+    __procFsNetRoute6Read,      LW_NULL
+};
+#endif                                                                  /*  LWIP_IPV6                   */
+#endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
 static LW_PROCFS_NODE_OP    _G_pfsnoNetTcpipStatFuncs = {
     __procFsNetTcpipStatRead,   LW_NULL
 };
@@ -364,12 +382,21 @@ static LW_PROCFS_NODE       _G_pfsnNet[] =
                         "r",
                         0),
                         
+#if LW_CFG_NET_ROUTER > 0
     LW_PROCFS_INIT_NODE("route", 
                         (S_IFREG | S_IRUSR | S_IRGRP | S_IROTH), 
                         &_G_pfsnoNetRouteFuncs, 
                         "r",
                         0),
-                        
+#if LWIP_IPV6
+    LW_PROCFS_INIT_NODE("route6", 
+                        (S_IFREG | S_IRUSR | S_IRGRP | S_IROTH), 
+                        &_G_pfsnoNetRoute6Funcs, 
+                        "r",
+                        0),
+#endif
+#endif
+
     LW_PROCFS_INIT_NODE("tcpip_stat", 
                         (S_IFREG | S_IRUSR | S_IRGRP | S_IROTH), 
                         &_G_pfsnoNetTcpipStatFuncs, 
@@ -1205,14 +1232,14 @@ static VOID  __procFsNetIgmp6Print (struct mld_group *group, struct netif *netif
                                     PCHAR  pcBuffer, size_t  stTotalSize, size_t *pstOft)
 {
     *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
-                       "%c%c%d: %08X%08X%08X%08X %d\n",
+                       "%c%c%d: %08x%08x%08x%08x %d\n",
                        netif->name[0],
                        netif->name[1],
                        netif->num,
-                       group->group_address.addr[0],
-                       group->group_address.addr[1],
-                       group->group_address.addr[2],
-                       group->group_address.addr[3],
+                       PP_NTOHL(group->group_address.addr[0]),
+                       PP_NTOHL(group->group_address.addr[1]),
+                       PP_NTOHL(group->group_address.addr[2]),
+                       PP_NTOHL(group->group_address.addr[3]),
                        (u32_t)group->use);
 }
 
@@ -1514,7 +1541,7 @@ static ssize_t  __procFsNetTcpipStatRead (PLW_PROCFS_NODE  p_pfsn,
 /*********************************************************************************************************
 ** 函数名称: __procFsNetRoutePrint
 ** 功能描述: 打印网络 route 文件
-** 输　入  : msgbuf        路由表信息
+** 输　入  : pentry        路由表信息
 **           pcBuffer      缓冲
 **           stTotalSize   缓冲区大小
 **           pstOft        当前偏移量
@@ -1522,39 +1549,28 @@ static ssize_t  __procFsNetTcpipStatRead (PLW_PROCFS_NODE  p_pfsn,
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID  __procFsNetRoutePrint (struct route_msg *msgbuf,
+#if LW_CFG_NET_ROUTER > 0
+
+static VOID  __procFsNetRoutePrint (struct rtentry *pentry,
                                     PCHAR  pcBuffer, size_t  stTotalSize, size_t *pstOft)
 {
-    CHAR    cIpDest[INET_ADDRSTRLEN];
-    CHAR    cGateway[INET_ADDRSTRLEN] = "*";
-    CHAR    cMask[INET_ADDRSTRLEN]    = "*";
-    CHAR    cFlag[6] = "\0";
     
-    inet_ntoa_r(msgbuf->rm_dst, cIpDest, INET_ADDRSTRLEN);
-    if (msgbuf->rm_if.s_addr != INADDR_ANY) {
-        inet_ntoa_r(msgbuf->rm_gw, cGateway, INET_ADDRSTRLEN);
-        inet_ntoa_r(msgbuf->rm_mask, cMask, INET_ADDRSTRLEN);
-    }
-    
-    if (msgbuf->rm_flag & ROUTE_RTF_UP) {
-        lib_strcat(cFlag, "U");
-    }
-    if (msgbuf->rm_flag & ROUTE_RTF_GATEWAY) {
-        lib_strcat(cFlag, "G");
-    } else {
-        lib_strcpy(cGateway, "*");
-    }
-    if (msgbuf->rm_flag & ROUTE_RTF_HOST) {
-        lib_strcat(cFlag, "H");
-    }
-
     *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
-                       "%-18s %-18s %-18s %-8s %6d %-3s\n",
-                       cIpDest, cGateway, cMask, cFlag, msgbuf->rm_metric, msgbuf->rm_ifname);
+                       "%-7s %08X        %08X        %07X %-7d %-7d %-7d %08X        %-7d %-7d %-7d\n",
+                       pentry->rt_ifname,
+                       ((struct sockaddr_in *)&pentry->rt_dst)->sin_addr.s_addr,
+                       ((struct sockaddr_in *)&pentry->rt_gateway)->sin_addr.s_addr,
+                       pentry->rt_flags,
+                       pentry->rt_refcnt, 0,
+                       pentry->rt_metric,
+                       ((struct sockaddr_in *)&pentry->rt_genmask)->sin_addr.s_addr,
+                       pentry->rt_mtu,
+                       pentry->rt_window,
+                       pentry->rt_irtt);
 }
 /*********************************************************************************************************
 ** 函数名称: __procFsNetRouteRead
-** 功能描述: procfs 读一个读取网络 igmp6 文件
+** 功能描述: procfs 读一个读取网络 route 文件
 ** 输　入  : p_pfsn        节点控制块
 **           pcBuffer      缓冲区
 **           stMaxBytes    缓冲区大小
@@ -1568,8 +1584,8 @@ static ssize_t  __procFsNetRouteRead (PLW_PROCFS_NODE  p_pfsn,
                                       size_t           stMaxBytes,
                                       off_t            oft)
 {
-    const CHAR      cRouteInfoHdr[] = 
-    "destination        gateway            mask               flag     metric interface\n";
+    const CHAR      cRouteInfoHdr[] = \
+    "Iface   Destination     Gateway         Flags   RefCnt  Use     Metric  Mask            MTU     Window  IRTT\n";
           PCHAR     pcFileBuffer;
           size_t    stRealSize;                                         /*  实际的文件内容大小          */
           size_t    stCopeBytes;
@@ -1580,27 +1596,50 @@ static ssize_t  __procFsNetRouteRead (PLW_PROCFS_NODE  p_pfsn,
     pcFileBuffer = (PCHAR)API_ProcFsNodeBuffer(p_pfsn);
     if (pcFileBuffer == LW_NULL) {                                      /*  还没有分配内存              */
         size_t              stNeedBufferSize = 0;
-        INT                 i;
-        INT                 iRouteNum;
-        struct route_msg   *msgbuf;
+        INT                 iSock, i;
+        struct rtentry_list rtlBuf;
         
-        iRouteNum = route_getnum();
-        stNeedBufferSize = (iRouteNum * 128) + sizeof(cRouteInfoHdr);
+        iSock = socket(AF_INET, SOCK_DGRAM, 0);                         /*  创建路由 socket             */
+        if (iSock < 0) {
+            return  (0);
+        }
         
-        msgbuf = (struct route_msg *)__SHEAP_ALLOC(sizeof(struct route_msg) * (size_t)iRouteNum);
-        if (!msgbuf) {
+        rtlBuf.rtl_bcnt  = 0;
+        rtlBuf.rtl_num   = 0;
+        rtlBuf.rtl_total = 0;
+        rtlBuf.rtl_buf   = LW_NULL;
+        
+        if (ioctl(iSock, SIOCLSTRT, &rtlBuf)) {                         /*  获得路由条目个数            */
+            close(iSock);
+            return  (0);
+        }
+        
+        if (rtlBuf.rtl_total == 0) {                                    /*  路由表为空                  */
+            close(iSock);
+            return  (0);
+        }
+        
+        rtlBuf.rtl_buf = (struct rtentry *)__SHEAP_ALLOC(sizeof(struct rtentry) * rtlBuf.rtl_total);
+        if (!rtlBuf.rtl_buf) {
+            close(iSock);
             _ErrorHandle(ENOMEM);
             return  (0);
         }
         
-        iRouteNum = route_get(0, msgbuf, (size_t)iRouteNum);
-        if (iRouteNum <= 0) {
-            __SHEAP_FREE(msgbuf);
+        rtlBuf.rtl_bcnt = rtlBuf.rtl_total;
+        
+        if (ioctl(iSock, SIOCLSTRT, &rtlBuf)) {                         /*  dump 整个路由表             */
+            __SHEAP_FREE(rtlBuf.rtl_buf);
+            close(iSock);
             return  (0);
         }
         
+        close(iSock);                                                   /*  关闭 socket                 */
+        
+        stNeedBufferSize = (rtlBuf.rtl_num * 128) + sizeof(cRouteInfoHdr);
+        
         if (API_ProcFsAllocNodeBuffer(p_pfsn, stNeedBufferSize)) {
-            __SHEAP_FREE(msgbuf);
+            __SHEAP_FREE(rtlBuf.rtl_buf);
             _ErrorHandle(ENOMEM);
             return  (0);
         }
@@ -1608,11 +1647,11 @@ static ssize_t  __procFsNetRouteRead (PLW_PROCFS_NODE  p_pfsn,
         
         stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, 0, cRouteInfoHdr); 
                                                                         /*  打印头信息                  */
-        for (i = 0; i < iRouteNum; i++) {
-            __procFsNetRoutePrint(msgbuf + i, pcFileBuffer, stNeedBufferSize, &stRealSize);
+        for (i = 0; i < rtlBuf.rtl_num; i++) {
+            __procFsNetRoutePrint(&rtlBuf.rtl_buf[i], pcFileBuffer, stNeedBufferSize, &stRealSize);
         }
-                                                                        
-        __SHEAP_FREE(msgbuf);
+        
+        __SHEAP_FREE(rtlBuf.rtl_buf);
         
         API_ProcFsNodeSetRealFileSize(p_pfsn, stRealSize);
     } else {
@@ -1628,6 +1667,155 @@ static ssize_t  __procFsNetRouteRead (PLW_PROCFS_NODE  p_pfsn,
     
     return  ((ssize_t)stCopeBytes);
 }
+/*********************************************************************************************************
+** 函数名称: __procFsNetRoute6Print
+** 功能描述: 打印网络 route 文件
+** 输　入  : pentry        路由表信息
+**           pcBuffer      缓冲
+**           stTotalSize   缓冲区大小
+**           pstOft        当前偏移量
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+#if LWIP_IPV6
+
+static VOID  __procFsNetRoute6Print (struct rtentry *pentry,
+                                     PCHAR  pcBuffer, size_t  stTotalSize, size_t *pstOft)
+{
+    extern int  rt6_netmask_to_prefix(struct ip6_addr *netmask);
+
+    ip6_addr_t  ip6addr;
+    ip6_addr_t  ip6gateway;
+    ip6_addr_t  ip6netmask;
+    int         iPrefix;
+    
+    inet6_addr_to_ip6addr(&ip6addr,    &((struct sockaddr_in6 *)&pentry->rt_dst)->sin6_addr);
+    inet6_addr_to_ip6addr(&ip6gateway, &((struct sockaddr_in6 *)&pentry->rt_gateway)->sin6_addr);
+    inet6_addr_to_ip6addr(&ip6netmask, &((struct sockaddr_in6 *)&pentry->rt_genmask)->sin6_addr);
+    iPrefix = rt6_netmask_to_prefix(&ip6netmask);
+    
+    *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
+                       "%-7s %08x%08x%08x%08x %08x%08x%08x%08x %07X %-7d %-7d %-7d %-7d %-7d %-7d %-7d\n",
+                       pentry->rt_ifname,
+                       PP_NTOHL(ip6addr.addr[0]), 
+                       PP_NTOHL(ip6addr.addr[1]), 
+                       PP_NTOHL(ip6addr.addr[2]), 
+                       PP_NTOHL(ip6addr.addr[3]), 
+                       PP_NTOHL(ip6gateway.addr[0]), 
+                       PP_NTOHL(ip6gateway.addr[1]), 
+                       PP_NTOHL(ip6gateway.addr[2]), 
+                       PP_NTOHL(ip6gateway.addr[3]), 
+                       pentry->rt_flags,
+                       pentry->rt_refcnt, 0,
+                       pentry->rt_metric,
+                       iPrefix,
+                       pentry->rt_mtu,
+                       pentry->rt_window,
+                       pentry->rt_irtt);
+}
+/*********************************************************************************************************
+** 函数名称: __procFsNetRoute6Read
+** 功能描述: procfs 读一个读取网络 route6 文件
+** 输　入  : p_pfsn        节点控制块
+**           pcBuffer      缓冲区
+**           stMaxBytes    缓冲区大小
+**           oft           文件指针
+** 输　出  : 实际读取的数目
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static ssize_t  __procFsNetRoute6Read (PLW_PROCFS_NODE  p_pfsn, 
+                                       PCHAR            pcBuffer, 
+                                       size_t           stMaxBytes,
+                                       off_t            oft)
+{
+    const CHAR      cRouteInfoHdr[] = \
+    "Iface   Destination                      Gateway                          Flags   RefCnt  Use     Metric  Prefix  MTU     Window  IRTT\n";
+          PCHAR     pcFileBuffer;
+          size_t    stRealSize;                                         /*  实际的文件内容大小          */
+          size_t    stCopeBytes;
+    
+    /*
+     *  由于预置内存大小为 0 , 所以打开后第一次读取需要手动开辟内存.
+     */
+    pcFileBuffer = (PCHAR)API_ProcFsNodeBuffer(p_pfsn);
+    if (pcFileBuffer == LW_NULL) {                                      /*  还没有分配内存              */
+        size_t              stNeedBufferSize = 0;
+        INT                 iSock, i;
+        struct rtentry_list rtlBuf;
+        
+        iSock = socket(AF_INET6, SOCK_DGRAM, 0);                        /*  创建路由 socket             */
+        if (iSock < 0) {
+            return  (0);
+        }
+        
+        rtlBuf.rtl_bcnt  = 0;
+        rtlBuf.rtl_num   = 0;
+        rtlBuf.rtl_total = 0;
+        rtlBuf.rtl_buf   = LW_NULL;
+        
+        if (ioctl(iSock, SIOCLSTRT, &rtlBuf)) {                         /*  获得路由条目个数            */
+            close(iSock);
+            return  (0);
+        }
+        
+        if (rtlBuf.rtl_total == 0) {                                    /*  路由表为空                  */
+            close(iSock);
+            return  (0);
+        }
+        
+        rtlBuf.rtl_buf = (struct rtentry *)__SHEAP_ALLOC(sizeof(struct rtentry) * rtlBuf.rtl_total);
+        if (!rtlBuf.rtl_buf) {
+            close(iSock);
+            _ErrorHandle(ENOMEM);
+            return  (0);
+        }
+        
+        rtlBuf.rtl_bcnt = rtlBuf.rtl_total;
+        
+        if (ioctl(iSock, SIOCLSTRT, &rtlBuf)) {                         /*  dump 整个路由表             */
+            __SHEAP_FREE(rtlBuf.rtl_buf);
+            close(iSock);
+            return  (0);
+        }
+        
+        close(iSock);                                                   /*  关闭 socket                 */
+        
+        stNeedBufferSize = (rtlBuf.rtl_num * 160) + sizeof(cRouteInfoHdr);
+        
+        if (API_ProcFsAllocNodeBuffer(p_pfsn, stNeedBufferSize)) {
+            __SHEAP_FREE(rtlBuf.rtl_buf);
+            _ErrorHandle(ENOMEM);
+            return  (0);
+        }
+        pcFileBuffer = (PCHAR)API_ProcFsNodeBuffer(p_pfsn);             /*  重新获得文件缓冲区地址      */
+        
+        stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, 0, cRouteInfoHdr); 
+                                                                        /*  打印头信息                  */
+        for (i = 0; i < rtlBuf.rtl_num; i++) {
+            __procFsNetRoute6Print(&rtlBuf.rtl_buf[i], pcFileBuffer, stNeedBufferSize, &stRealSize);
+        }
+        
+        __SHEAP_FREE(rtlBuf.rtl_buf);
+        
+        API_ProcFsNodeSetRealFileSize(p_pfsn, stRealSize);
+    } else {
+        stRealSize = API_ProcFsNodeGetRealFileSize(p_pfsn);
+    }
+    if (oft >= stRealSize) {
+        _ErrorHandle(ENOSPC);
+        return  (0);
+    }
+    
+    stCopeBytes  = __MIN(stMaxBytes, (size_t)(stRealSize - oft));       /*  计算实际拷贝的字节数        */
+    lib_memcpy(pcBuffer, (CPVOID)(pcFileBuffer + oft), (UINT)stCopeBytes);
+    
+    return  ((ssize_t)stCopeBytes);
+}
+
+#endif                                                                  /*  LWIP_IPV6                   */
+#endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
 /*********************************************************************************************************
 ** 函数名称: __procFsNetUnixGetCnt
 ** 功能描述: 读取网络 unix 文件数量
@@ -1916,22 +2104,41 @@ static ssize_t  __procFsNetDevRead (PLW_PROCFS_NODE  p_pfsn,
 static VOID  __procFsNetIfInet6Print (struct netif *netif, PCHAR  pcBuffer, 
                                       size_t  stTotalSize, size_t *pstOft)
 {
-    INT     i;
+    INT     i, iPrefix;
+    PCHAR   pcScope;
     CHAR    cFlag[10];
     
     __procFsNetGetIfFlag(netif, cFlag);
     
     for (i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++) {
         if (ip6_addr_isvalid(netif->ip6_addr_state[i])) {
+            if (ip6_addr_isloopback(netif_ip6_addr(netif, i))) {
+                iPrefix = 128;
+            } else {
+                iPrefix = 64;
+            }
+            if (ip6_addr_isglobal(ip_2_ip6(&netif->ip6_addr[i]))) {
+                pcScope = "global";
+            } else if (ip6_addr_islinklocal(ip_2_ip6(&netif->ip6_addr[i]))) {
+                pcScope = "link";
+            } else if (ip6_addr_issitelocal(ip_2_ip6(&netif->ip6_addr[i]))) {
+                pcScope = "site";
+            } else if (ip6_addr_isuniquelocal(ip_2_ip6(&netif->ip6_addr[i]))) {
+                pcScope = "uniquelocal";
+            } else if (ip6_addr_isloopback(ip_2_ip6(&netif->ip6_addr[i]))) {
+                pcScope = "loopback";
+            } else {
+                pcScope = "unknown";
+            }
             *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
-                               "%08X%08X%08X%08X %-5d %-9s %-5s %-9s %c%c%d\n",
-                               ip_2_ip6(&netif->ip6_addr[i])->addr[0],
-                               ip_2_ip6(&netif->ip6_addr[i])->addr[1],
-                               ip_2_ip6(&netif->ip6_addr[i])->addr[2],
-                               ip_2_ip6(&netif->ip6_addr[i])->addr[3],
+                               "%08x%08x%08x%08x %-5d %-10d %-11s %-9s %c%c%d\n",
+                               PP_NTOHL(ip_2_ip6(&netif->ip6_addr[i])->addr[0]),
+                               PP_NTOHL(ip_2_ip6(&netif->ip6_addr[i])->addr[1]),
+                               PP_NTOHL(ip_2_ip6(&netif->ip6_addr[i])->addr[2]),
+                               PP_NTOHL(ip_2_ip6(&netif->ip6_addr[i])->addr[3]),
                                netif->num,
-                               "--",
-                               "--",
+                               iPrefix,
+                               pcScope,
                                cFlag,
                                netif->name[0], netif->name[1], netif->num);
         }
@@ -1954,7 +2161,7 @@ static ssize_t  __procFsNetIfInet6Read (PLW_PROCFS_NODE  p_pfsn,
                                         off_t            oft)
 {
     const CHAR      cIfInet6InfoHdr[] = 
-    "INET6                            INDEX REFIX-LEN SCOPE FLAG      FACE\n";
+    "INET6                            INDEX PREFIX-LEN SCOPE       FLAG      FACE\n";
           PCHAR     pcFileBuffer;
           size_t    stRealSize;                                         /*  实际的文件内容大小          */
           size_t    stCopeBytes;
@@ -2019,17 +2226,17 @@ static ssize_t  __procFsNetIfInet6Read (PLW_PROCFS_NODE  p_pfsn,
 **           pcBuffer      缓冲
 **           stTotalSize   缓冲区大小
 **           pstOft        当前偏移量
-** 输　出  : NONE
+** 输　出  : ERROR_NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID  __procFsNetArpPrint (struct netif      *netif, 
-                                  ip_addr_t         *ipaddr, 
-                                  struct eth_addr   *ethaddr,
-                                  INT                iIsStatic, 
-                                  PCHAR              pcBuffer, 
-                                  size_t             stTotalSize, 
-                                  size_t            *pstOft)
+static INT  __procFsNetArpPrint (struct netif      *netif, 
+                                 ip_addr_t         *ipaddr, 
+                                 struct eth_addr   *ethaddr,
+                                 INT                iIsStatic, 
+                                 PCHAR              pcBuffer, 
+                                 size_t             stTotalSize, 
+                                 size_t            *pstOft)
 {
     CHAR    cBuffer[INET_ADDRSTRLEN];
 
@@ -2044,6 +2251,8 @@ static VOID  __procFsNetArpPrint (struct netif      *netif,
                        ethaddr->addr[4],
                        ethaddr->addr[5],
                        (iIsStatic) ? "static" : "dynamic");
+                       
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: __procFsNetArpRead
@@ -2062,7 +2271,7 @@ static ssize_t  __procFsNetArpRead (PLW_PROCFS_NODE  p_pfsn,
                                     off_t            oft)
 {
     extern void etharp_traversal(struct netif *netif, 
-                                 void (*callback)(),
+                                 int (*callback)(),
                                  void *arg0,
                                  void *arg1,
                                  void *arg2,
@@ -2301,7 +2510,7 @@ static ssize_t  __procFsNetAodvRtRead (PLW_PROCFS_NODE  p_pfsn,
                                        off_t            oft)
 {
     const CHAR      cAodvRtInfoHdr[] = 
-    "destination        nexthop            flag     metric interface\n";
+    "Destination        Nexthop            Flags    Metric Iface\n";
           PCHAR     pcFileBuffer;
           size_t    stRealSize;                                         /*  实际的文件内容大小          */
           size_t    stCopeBytes;
@@ -2762,7 +2971,12 @@ VOID  __procFsNetInit (VOID)
     API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
     API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
     API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
+#if LW_CFG_NET_ROUTER > 0
     API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
+#if LWIP_IPV6
+    API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
+#endif                                                                  /*  LWIP_IPV6                   */
+#endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
     API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
     API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
     API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");

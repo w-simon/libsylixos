@@ -1548,21 +1548,21 @@ ssize_t  unix_recvmsg (AF_UNIX_T  *pafunix, struct msghdr *msg, int flags)
     
     } else {
         struct iovec    liovec, *msg_iov;
-		size_t          msg_iovlen;
-		ssize_t         sstRecvCnt;
-		unsigned int    i, totalsize;
-		char           *lbuf;
-		char           *temp;
-		
-		msg_iov    = msg->msg_iov;
-		msg_iovlen = msg->msg_iovlen;
-		
-		for (i = 0, totalsize = 0; i < msg_iovlen; i++) {
-		    if ((msg_iov[i].iov_len == 0) || (msg_iov[i].iov_base == LW_NULL)) {
-		        _ErrorHandle(EINVAL);
-		        return  (PX_ERROR);
-		    }
-			totalsize += (unsigned int)msg_iov[i].iov_len;
+        size_t          msg_iovlen;
+        ssize_t         sstRecvCnt;
+        unsigned int    i, totalsize;
+        char           *lbuf;
+        char           *temp;
+        
+        msg_iov    = msg->msg_iov;
+        msg_iovlen = msg->msg_iovlen;
+        
+        for (i = 0, totalsize = 0; i < msg_iovlen; i++) {
+            if ((msg_iov[i].iov_len == 0) || (msg_iov[i].iov_base == LW_NULL)) {
+                _ErrorHandle(EINVAL);
+                return  (PX_ERROR);
+            }
+            totalsize += (unsigned int)msg_iov[i].iov_len;
         }
         
         lbuf = (char *)__unixBufAlloc(totalsize);
@@ -1571,23 +1571,23 @@ ssize_t  unix_recvmsg (AF_UNIX_T  *pafunix, struct msghdr *msg, int flags)
             return  (PX_ERROR);
         }
         
-		liovec.iov_base = (PVOID)lbuf;
-		liovec.iov_len  = (size_t)totalsize;
-		
-		sstRecvLen = unix_recvfrom2(pafunix, liovec.iov_base, liovec.iov_len, 
-		                            msg->msg_control, &msg->msg_controllen, flags, 
-		                            (struct sockaddr *)msg->msg_name, &msg->msg_namelen);
-		
-		sstRecvCnt = sstRecvLen;
-		temp       = lbuf;
-		for (i = 0; sstRecvCnt > 0 && i < msg_iovlen; i++) {
-			size_t   qty = (size_t)((sstRecvCnt > msg_iov[i].iov_len) ? msg_iov[i].iov_len : sstRecvCnt);
-			lib_memcpy(msg_iov[i].iov_base, temp, qty);
-			temp += qty;
-			sstRecvCnt -= qty;
-		}
-		
-		__unixBufFree(lbuf);
+        liovec.iov_base = (PVOID)lbuf;
+        liovec.iov_len  = (size_t)totalsize;
+        
+        sstRecvLen = unix_recvfrom2(pafunix, liovec.iov_base, liovec.iov_len, 
+                                    msg->msg_control, &msg->msg_controllen, flags, 
+                                    (struct sockaddr *)msg->msg_name, &msg->msg_namelen);
+        
+        sstRecvCnt = sstRecvLen;
+        temp       = lbuf;
+        for (i = 0; sstRecvCnt > 0 && i < msg_iovlen; i++) {
+            size_t   qty = (size_t)((sstRecvCnt > msg_iov[i].iov_len) ? msg_iov[i].iov_len : sstRecvCnt);
+            lib_memcpy(msg_iov[i].iov_base, temp, qty);
+            temp += qty;
+            sstRecvCnt -= qty;
+        }
+        
+        __unixBufFree(lbuf);
     }
     
     return  (sstRecvLen);
@@ -1807,56 +1807,56 @@ ssize_t  unix_sendmsg (AF_UNIX_T  *pafunix, const struct msghdr *msg, int flags)
     }
     
     if (msg->msg_iovlen == 1) {
-		sstSendLen = unix_sendto2(pafunix, msg->msg_iov->iov_base, msg->msg_iov->iov_len, 
-		                          msg->msg_control, msg->msg_controllen, flags, 
-				                  (const struct sockaddr *)msg->msg_name, msg->msg_namelen);
-				                  
+        sstSendLen = unix_sendto2(pafunix, msg->msg_iov->iov_base, msg->msg_iov->iov_len, 
+                                  msg->msg_control, msg->msg_controllen, flags, 
+                                  (const struct sockaddr *)msg->msg_name, msg->msg_namelen);
+                                  
     } else {
-	    struct iovec    liovec,*msg_iov;
-		size_t          msg_iovlen;
-		unsigned int    i, totalsize;
-		ssize_t         size;
-		char           *lbuf;
-		char           *temp;
-		
-		msg_iov    = msg->msg_iov;
-		msg_iovlen = msg->msg_iovlen;
-		
-		for (i = 0, totalsize = 0; i < msg_iovlen; i++) {
-		    if ((msg_iov[i].iov_len == 0) || (msg_iov[i].iov_base == LW_NULL)) {
-		        _ErrorHandle(EINVAL);
-		        return  (PX_ERROR);
-		    }
-			totalsize += (unsigned int)msg_iov[i].iov_len;
-		}
-		
-		lbuf = (char *)__unixBufAlloc(totalsize);
+        struct iovec    liovec,*msg_iov;
+        size_t          msg_iovlen;
+        unsigned int    i, totalsize;
+        ssize_t         size;
+        char           *lbuf;
+        char           *temp;
+        
+        msg_iov    = msg->msg_iov;
+        msg_iovlen = msg->msg_iovlen;
+        
+        for (i = 0, totalsize = 0; i < msg_iovlen; i++) {
+            if ((msg_iov[i].iov_len == 0) || (msg_iov[i].iov_base == LW_NULL)) {
+                _ErrorHandle(EINVAL);
+                return  (PX_ERROR);
+            }
+            totalsize += (unsigned int)msg_iov[i].iov_len;
+        }
+        
+        lbuf = (char *)__unixBufAlloc(totalsize);
         if (lbuf == LW_NULL) {
             _ErrorHandle(ENOMEM);
             return  (PX_ERROR);
         }
-		
-		liovec.iov_base = (PVOID)lbuf;
-		liovec.iov_len  = (size_t)totalsize;
-		
-		size = totalsize;
-		
-		temp = lbuf;
-		for (i = 0; size > 0 && i < msg_iovlen; i++) {
-			int     qty = msg_iov[i].iov_len;
-			lib_memcpy(temp, msg_iov[i].iov_base, qty);
-			temp += qty;
-			size -= qty;
-		}
-		
-		sstSendLen = unix_sendto2(pafunix, liovec.iov_base, liovec.iov_len, 
-		                          msg->msg_control, msg->msg_controllen, flags, 
-		                          (const struct sockaddr *)msg->msg_name, msg->msg_namelen);
-		                   
+        
+        liovec.iov_base = (PVOID)lbuf;
+        liovec.iov_len  = (size_t)totalsize;
+        
+        size = totalsize;
+        
+        temp = lbuf;
+        for (i = 0; size > 0 && i < msg_iovlen; i++) {
+            int     qty = msg_iov[i].iov_len;
+            lib_memcpy(temp, msg_iov[i].iov_base, qty);
+            temp += qty;
+            size -= qty;
+        }
+        
+        sstSendLen = unix_sendto2(pafunix, liovec.iov_base, liovec.iov_len, 
+                                  msg->msg_control, msg->msg_controllen, flags, 
+                                  (const struct sockaddr *)msg->msg_name, msg->msg_namelen);
+                           
         __unixBufFree(lbuf);
-	}
-	
-	return  (sstSendLen);
+    }
+    
+    return  (sstSendLen);
 }
 /*********************************************************************************************************
 ** 函数名称: unix_sendto
@@ -1893,7 +1893,7 @@ ssize_t  unix_send (AF_UNIX_T  *pafunix, const void *data, size_t size, int flag
 }
 /*********************************************************************************************************
 ** 函数名称: unix_close
-** 功能描述: close (目前不支持 SO_LINGER close 将会丢弃数据立即关闭)
+** 功能描述: close 
 ** 输　入  : pafunix   unix file
 ** 输　出  : ERROR
 ** 全局变量: 

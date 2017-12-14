@@ -34,8 +34,6 @@
 #define AF_NETBEUI      13                              /* Reserved for 802.2LLC project                */
 #define AF_SECURITY     14                              /* Security callback pseudo AF                  */
 #define AF_KEY          15                              /* PF_KEY key management API                    */
-#define AF_NETLINK      16
-#define AF_ROUTE        AF_NETLINK                      /* Alias to emulate 4.4BSD                      */
 #define AF_LINK         18                              /* link                                         */
 #define AF_ECONET       19                              /* Acorn Econet                                 */
 #define AF_ATMSVC       20                              /* ATM SVCs                                     */
@@ -70,7 +68,6 @@
 #define PF_NETBEUI      AF_NETBEUI
 #define PF_SECURITY     AF_SECURITY
 #define PF_KEY          AF_KEY
-#define PF_NETLINK      AF_NETLINK
 #define PF_ROUTE        AF_ROUTE
 #define PF_LINK         AF_LINK
 #define PF_ECONET       AF_ECONET

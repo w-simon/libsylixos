@@ -723,7 +723,8 @@ errno_t  tpsFsWrite (PTPS_INODE  pinode,
                      TPS_SIZE_T  szLen,
                      TPS_SIZE_T *pszRet)
 {
-    PTPS_TRANS  ptrans = LW_NULL;
+    PTPS_TRANS  ptrans  = LW_NULL;
+    TPS_SIZE_T  szWrite = 0;
     errno_t     iErr;
 
     if (LW_NULL == pszRet) {
@@ -744,21 +745,27 @@ errno_t  tpsFsWrite (PTPS_INODE  pinode,
         return  (EISDIR);
     }
 
-    ptrans = tpsFsTransAllocAndInit(pinode->IND_psb);                   /* 分配事物                     */
-    if (ptrans == LW_NULL) {
-        return  (ENOMEM);
-    }
+    while (szLen > 0) {                                                 /* 避免事务过大可能将写操作分解 */
+        ptrans = tpsFsTransAllocAndInit(pinode->IND_psb);               /* 分配事务                     */
+        if (ptrans == LW_NULL) {
+            return  (ENOMEM);
+        }
 
-    *pszRet = tpsFsInodeWrite(ptrans, pinode, off, pucBuff, szLen, LW_FALSE);
-    if (*pszRet < 0) {
-        tpsFsTransRollBackAndFree(ptrans);
-        iErr = (errno_t)(-(*pszRet));
-        return  (iErr);
-    }
+        szWrite = tpsFsInodeWrite(ptrans, pinode, (off + (*pszRet)),
+                                  (pucBuff + (*pszRet)), szLen, LW_FALSE);
+        if (szWrite <= 0) {
+            tpsFsTransRollBackAndFree(ptrans);
+            iErr = (errno_t)(-szWrite);
+            return  (iErr);
+        }
 
-    if (tpsFsTransCommitAndFree(ptrans) != TPS_ERR_NONE) {              /* 提交事务                     */
-        tpsFsTransRollBackAndFree(ptrans);
-        return  (EIO);
+        if (tpsFsTransCommitAndFree(ptrans) != TPS_ERR_NONE) {          /* 提交事务                     */
+            tpsFsTransRollBackAndFree(ptrans);
+            return  (EIO);
+        }
+
+        (*pszRet) += szWrite;
+        szLen     -= szWrite;
     }
 
     return  (ERROR_NONE);
@@ -1018,7 +1025,7 @@ VOID  tpsFsStat (PTPS_SUPER_BLOCK  psb, PTPS_INODE  pinode, struct stat *pstat)
 {
     if (pinode) {
         if (LW_NULL == pinode->IND_psb) {
-            lib_memset(pstat, 0, sizeof(struct stat));
+            lib_bzero(pstat, sizeof(struct stat));
 
         } else {
             pstat->st_dev     = (dev_t)pinode->IND_psb->SB_dev;

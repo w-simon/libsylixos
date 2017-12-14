@@ -144,6 +144,8 @@ TPS_RESULT tpsFsFlushSuperBlock(PTPS_TRANS ptrans, PTPS_SUPER_BLOCK psb);
 TPS_RESULT tpsFsInodeAllocBlk(PTPS_TRANS ptrans, PTPS_SUPER_BLOCK psb,
                               TPS_IBLK blkKey, TPS_IBLK blkCnt,
                               TPS_IBLK *blkAllocStart, TPS_IBLK *blkAllocCnt);
+                                                                        /* 无效inode事务相关缓冲区      */
+TPS_RESULT tpsFsInodeBuffInvalid(PTPS_INODE pinode, UINT64 ui64SecStart, UINT uiSecCnt);
 
 #endif                                                                  /* LW_CFG_TPSFS_EN > 0          */
 #endif                                                                  /* __TPSFS_INODE_H              */

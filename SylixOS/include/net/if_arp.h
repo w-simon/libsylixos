@@ -23,6 +23,7 @@
 #define __IF_ARP_H
 
 #include "sys/types.h"
+#include "sys/ioctl.h"
 
 /*********************************************************************************************************
   ²Ã¼ô¿ØÖÆ
@@ -74,9 +75,11 @@ struct arphdr {
 *********************************************************************************************************/
 
 struct arpreq {
-    struct    sockaddr arp_pa;                              /* protocol address                         */
-    struct    sockaddr arp_ha;                              /* hardware address                         */
+    struct sockaddr    arp_pa;                              /* protocol address                         */
+    struct sockaddr    arp_ha;                              /* hardware address                         */
     int                arp_flags;                           /* flags                                    */
+    struct sockaddr    arp_netmask;                         /* netmask (only for proxy arps)            */
+    char               arp_dev[16];
 };
 
 /*********************************************************************************************************
@@ -88,6 +91,14 @@ struct arpreq {
 #define ATF_PERM            0x04                            /* permanent entry                          */
 #define ATF_PUBL            0x08                            /* publish entry (respond for other host)   */
 #define ATF_USETRAILERS     0x10                            /* has requested trailers                   */
+
+/*********************************************************************************************************
+ * arp ioctl command
+*********************************************************************************************************/
+
+#define SIOCSARP            _IOW('i', 30, struct arpreq)    /* set arp entry                            */
+#define SIOCGARP            _IOWR('i',38, struct arpreq)    /* get arp entry                            */
+#define SIOCDARP            _IOW('i', 32, struct arpreq)    /* delete arp entry                         */
 
 #endif                                                      /*  LW_CFG_NET_EN                           */
 #endif                                                      /*  __IF_ARP_H                              */

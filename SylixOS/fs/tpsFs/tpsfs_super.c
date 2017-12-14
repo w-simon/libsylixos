@@ -472,7 +472,7 @@ errno_t  tpsFsFormat (PTPS_DEV pdev, UINT uiBlkSize)
 
     tpsFsCloseInode(psb->SB_pinodeSpaceMng);
 
-    lib_memset(pucSectorBuf, 0, uiSectorSize);
+    lib_bzero(pucSectorBuf, uiSectorSize);
 
     __tpsFsSBSerial(psb, pucSectorBuf, uiSectorSize);
 

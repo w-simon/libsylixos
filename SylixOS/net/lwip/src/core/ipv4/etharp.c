@@ -417,7 +417,10 @@ etharp_find_entry(const ip4_addr_t *ipaddr, u8_t flags, struct netif* netif)
  *
  * @see pbuf_free()
  */
-static err_t
+#ifndef SYLIXOS
+static 
+#endif
+err_t
 etharp_update_arp_entry(struct netif *netif, const ip4_addr_t *ipaddr, struct eth_addr *ethaddr, u8_t flags)
 {
   s8_t i;
@@ -1255,7 +1258,7 @@ etharp_request(struct netif *netif, const ip4_addr_t *ipaddr)
  */
 void
 etharp_traversal(struct netif *netif, 
-                 void (*callback)(),
+                 int (*callback)(),
                  void *arg0,
                  void *arg1,
                  void *arg2,
@@ -1272,9 +1275,11 @@ etharp_traversal(struct netif *netif,
     if ((arp_table[i].state == ETHARP_STATE_STABLE) ||
         (arp_table[i].state == ETHARP_STATE_STATIC)) {
       if ((!netif) || (arp_table[i].netif == netif)) {
-        callback(arp_table[i].netif, &arp_table[i].ipaddr, &arp_table[i].ethaddr, 
-                 (arp_table[i].state == ETHARP_STATE_STATIC),
-                 arg0, arg1, arg2, arg3, arg4, arg5);
+        if (callback(arp_table[i].netif, &arp_table[i].ipaddr, &arp_table[i].ethaddr, 
+                     (arp_table[i].state == ETHARP_STATE_STATIC),
+                     arg0, arg1, arg2, arg3, arg4, arg5)) {
+          break;
+        }
       }
     }
   }

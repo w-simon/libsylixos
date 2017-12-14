@@ -34,1019 +34,488 @@
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
-#include "../SylixOS/kernel/include/k_kernel.h"
-#include "../SylixOS/system/include/s_system.h"
+#include "SylixOS.h"
 /*********************************************************************************************************
   裁剪控制
 *********************************************************************************************************/
-#if LW_CFG_NET_EN > 0
+#if LW_CFG_NET_EN > 0 && LW_CFG_NET_ROUTER > 0
 #include "sys/route.h"
-#include "net/if.h"
-#include "lwip/tcpip.h"
-#include "lwip/inet.h"
-#include "lwip/api.h"
-#include "lwip/netif.h"
+#include "net/route.h"
 #if LW_CFG_NET_AODV_EN > 0
 #include "src/netif/aodv/aodv_route.h"                                  /*  AODV 路由表                 */
 #endif
 /*********************************************************************************************************
-  最多网络接口数
-*********************************************************************************************************/
-#define __LW_NETIF_MAX_NUM  10
-/*********************************************************************************************************
-  路由表节点
-*********************************************************************************************************/
-typedef struct {
-    LW_LIST_LINE    RTE_lineManage;                                     /*  management list             */
-    ip4_addr_t      RTE_ipaddrDest;                                     /*  dest address                */
-    ip4_addr_t      RTE_ipaddrGw;                                       /*  gw IPADDR_ANY use netif->gw */
-    struct netif   *RTE_pnetif;                                         /*  net device                  */
-    CHAR            RTE_cNetifName[IF_NAMESIZE];                        /*  net device name             */
-    UINT            RTE_uiFlag;                                         /*  route entry flag            */
-} LW_RT_ENTRY;
-typedef LW_RT_ENTRY        *PLW_RT_ENTRY;
-
-#define LW_RT_FLAG_U        0x01                                        /*  valid                       */
-#define LW_RT_FLAG_G        0x02                                        /*  to route                    */
-#define LW_RT_FLAG_H        0x04                                        /*  to host                     */
-#define LW_RT_FLAG_D        0x08                                        /*  icmp create                 */
-#define LW_RT_FLAG_M        0x10                                        /*  icmp modify                 */
-/*********************************************************************************************************
-  全局变量
-*********************************************************************************************************/
-static UINT             _G_uiTotalNum;
-static UINT             _G_uiActiveNum;
-
-#define LW_RT_TABLESIZE     32                                          /*  2 ^ 5 个入口                */
-#define LW_RT_TABLEMASK     (LW_RT_TABLESIZE - 1)
-#define LW_RT_TABLESHIFT    (32 - 5)                                    /*  使用 ip 地址高 5 位为 hash  */
-
-#define LW_RT_HASHINDEX(pipaddr)    \
-        (((pipaddr)->addr >> LW_RT_TABLESHIFT) & LW_RT_TABLEMASK)
-        
-static PLW_LIST_LINE    _G_plineRtHashHeader[LW_RT_TABLESIZE];
-/*********************************************************************************************************
-  CACHE
-*********************************************************************************************************/
-typedef struct {
-    ip4_addr_t      RTCACHE_ipaddrDest;
-    PLW_RT_ENTRY    RTCACHE_prteCache;
-} LW_RT_CACHE;
-static LW_RT_CACHE      _G_rtcache;
-
-#define LW_RT_CACHE_INVAL(prte)                                 \
-        if (_G_rtcache.RTCACHE_prteCache == prte) {             \
-            _G_rtcache.RTCACHE_prteCache       = LW_NULL;       \
-            _G_rtcache.RTCACHE_ipaddrDest.addr = IPADDR_ANY;    \
-        }
-        
-typedef struct {
-    ip4_addr_t      GWCACHE_ipaddrDest;
-    PLW_RT_ENTRY    GWCACHE_prteCache;
-} LW_GW_CACHE;
-static LW_GW_CACHE      _G_gwcache[__LW_NETIF_MAX_NUM];
-
-#define LW_GW_CACHE_INVAL(index, prte)                                  \
-        if (_G_gwcache[index].GWCACHE_prteCache == prte) {              \
-            _G_gwcache[index].GWCACHE_prteCache       = LW_NULL;        \
-            _G_gwcache[index].GWCACHE_ipaddrDest.addr = IPADDR_ANY;     \
-        }
-/*********************************************************************************************************
-** 函数名称: __rtSafeRun
-** 功能描述: 安全的运行一个回调函数, 不能破坏协议栈
-** 输　入  : pfuncHook     执行函数
-**           pvArg0...5    参数
-** 输　出  : 执行结果
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-static INT __rtSafeRun (FUNCPTR  pfuncHook,
-                        PVOID    pvArg0,
-                        PVOID    pvArg1,
-                        PVOID    pvArg2,
-                        PVOID    pvArg3,
-                        PVOID    pvArg4,
-                        PVOID    pvArg5)
-{
-#if LWIP_TCPIP_CORE_LOCKING < 1
-#error sylixos need LWIP_TCPIP_CORE_LOCKING > 0
-#endif                                                                  /*  LWIP_TCPIP_CORE_LOCKING     */
-
-    INT     iError;
-
-    if (sys_mutex_valid(&lock_tcpip_core)) {
-        LOCK_TCPIP_CORE();
-        iError = pfuncHook(pvArg0, pvArg1, pvArg2, pvArg3, pvArg4, pvArg5);
-        UNLOCK_TCPIP_CORE();
-    } else {
-        iError = pfuncHook(pvArg0, pvArg1, pvArg2, pvArg3, pvArg4, pvArg5);
-    }
-    
-    return  (iError);
-}
-/*********************************************************************************************************
-** 函数名称: __rtMatch
-** 功能描述: 匹配一个 sylixos 路由条目 (优先选择主机路由, 然后选择网络路由)
-** 输　入  : pipaddrDest    目标地址
-** 输　出  : 如果查询到, 则返回路由表节点
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-static PLW_RT_ENTRY __rtMatch (const ip4_addr_t *pipaddrDest)
-{
-    INT             iHash = LW_RT_HASHINDEX(pipaddrDest);
-    PLW_LIST_LINE   plineTemp;
-    PLW_RT_ENTRY    prte;
-    PLW_RT_ENTRY    prteNet = LW_NULL;                                  /*  缓冲遍历是产生的网络地址    */
-    
-    for (plineTemp  = _G_plineRtHashHeader[iHash];
-         plineTemp != LW_NULL;
-         plineTemp  = _list_line_get_next(plineTemp)) {
-         
-        prte = (PLW_RT_ENTRY)plineTemp;
-        if (prte->RTE_uiFlag & LW_RT_FLAG_U) {                          /*  路由节点有效                */
-            if ((prte->RTE_uiFlag & LW_RT_FLAG_H) &&
-                (prte->RTE_ipaddrDest.addr == pipaddrDest->addr)) {     /*  主机匹配检查                */
-                return  (prte);
-            
-            } else if ((prteNet == LW_NULL) &&                          /*  网络匹配检查                */
-                       (ip4_addr_netcmp(pipaddrDest, 
-                                        netif_ip4_addr(prte->RTE_pnetif),   
-                                        netif_ip4_netmask(prte->RTE_pnetif)))) {
-                prteNet = prte;
-            }
-        }
-    }
-    
-    return  (prteNet);
-}
-/*********************************************************************************************************
-** 函数名称: __rtFind
-** 功能描述: 查找一个 sylixos 路由条目
-** 输　入  : pipaddrDest   目标地址
-**           ulFlag        需要满足的标志
-** 输　出  : 如果查询到, 则返回路由表节点
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-static PLW_RT_ENTRY __rtFind (ip4_addr_t *pipaddrDest, UINT  ulFlag)
-{
-    INT             iHash = LW_RT_HASHINDEX(pipaddrDest);
-    PLW_LIST_LINE   plineTemp;
-    PLW_RT_ENTRY    prte;
-    
-    for (plineTemp  = _G_plineRtHashHeader[iHash];
-         plineTemp != LW_NULL;
-         plineTemp  = _list_line_get_next(plineTemp)) {
-         
-        prte = (PLW_RT_ENTRY)plineTemp;
-        if ((prte->RTE_ipaddrDest.addr == pipaddrDest->addr) &&
-            ((prte->RTE_uiFlag & ulFlag) == ulFlag)) {                  /*  满足条件直接返回            */
-            return  (prte);
-        }
-    }
-    
-    return  (LW_NULL);
-}
-/*********************************************************************************************************
-** 函数名称: __rtFind
-** 功能描述: 遍历 sylixos 路由条目
-** 输　入  : pfuncHook     遍历回调函数
-**           pvArg0...4    参数
-** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-static VOID __rtTraversal (VOIDFUNCPTR  pfuncHook,
-                           PVOID        pvArg0,
-                           PVOID        pvArg1,
-                           PVOID        pvArg2,
-                           PVOID        pvArg3,
-                           PVOID        pvArg4)
-{
-    INT             i;
-    PLW_LIST_LINE   plineTemp;
-    PLW_RT_ENTRY    prte;
-    
-    for (i = 0; i < LW_RT_TABLESIZE; i++) {
-        for (plineTemp  = _G_plineRtHashHeader[i];
-             plineTemp != LW_NULL;
-             plineTemp  = _list_line_get_next(plineTemp)) {
-             
-            prte = (PLW_RT_ENTRY)plineTemp;
-            if (prte->RTE_pnetif) {
-                prte->RTE_uiFlag |= LW_RT_FLAG_U;                       /*  路由有效                    */
-                if ((prte->RTE_ipaddrDest.addr != IPADDR_BROADCAST) &&
-                    !ip4_addr_netcmp(&prte->RTE_ipaddrDest,
-                                     netif_ip4_addr(prte->RTE_pnetif),
-                                     netif_ip4_netmask(prte->RTE_pnetif))) {
-                    prte->RTE_uiFlag |= LW_RT_FLAG_G;                   /*  间接路由                    */
-                } else {
-                    prte->RTE_uiFlag &= ~LW_RT_FLAG_G;
-                }
-            }
-            pfuncHook(prte, pvArg0, pvArg1, pvArg2, pvArg3, pvArg4);
-        }
-    }
-}
-/*********************************************************************************************************
-** 函数名称: __rtFind
-** 功能描述: 遍历 sylixos 路由条目
-** 输　入  : pfuncHook     遍历回调函数
-**           pvArg0...4    参数
-** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-static VOID __rtBuildinTraversal (VOIDFUNCPTR  pfuncHook,
-                                  PVOID        pvArg0,
-                                  PVOID        pvArg1,
-                                  PVOID        pvArg2,
-                                  PVOID        pvArg3,
-                                  PVOID        pvArg4)
-{
-    struct netif  *netif;
-    LW_RT_ENTRY    rte;
-    
-    for (netif = netif_list; netif != NULL; netif = netif->next) {
-        rte.RTE_ipaddrDest.addr = netif_ip4_addr(netif)->addr;
-        rte.RTE_ipaddrGw.addr   = IPADDR_ANY;
-        rte.RTE_pnetif          = netif;
-        rte.RTE_cNetifName[0]   = netif->name[0];
-        rte.RTE_cNetifName[1]   = netif->name[1];
-        rte.RTE_cNetifName[2]   = (char)(netif->num + '0');
-        rte.RTE_cNetifName[3]   = PX_EOS;
-        
-        if (netif_is_up(netif) && netif_is_link_up(netif)) {
-            rte.RTE_uiFlag = LW_RT_FLAG_U | LW_RT_FLAG_H;
-        
-        } else {
-            rte.RTE_uiFlag = LW_RT_FLAG_H;
-        }
-        
-        pfuncHook(&rte, pvArg0, pvArg1, pvArg2, pvArg3, pvArg4);
-        
-        if ((netif->flags & NETIF_FLAG_BROADCAST) == 0) {               /*  PPP / SLIP 连接             */
-            rte.RTE_ipaddrDest.addr = netif_ip4_gw(netif)->addr;
-            
-        } else {                                                        /*  普通链接                    */
-            rte.RTE_ipaddrDest.addr = netif_ip4_addr(netif)->addr & netif_ip4_netmask(netif)->addr;
-            rte.RTE_uiFlag &= ~LW_RT_FLAG_H;
-        }
-        
-        pfuncHook(&rte, pvArg0, pvArg1, pvArg2, pvArg3, pvArg4);
-    }
-    
-    if (netif_default) {                                                /*  默认出口                    */
-        rte.RTE_ipaddrDest.addr = IPADDR_ANY;                           /*  目的地址为 0                */
-        rte.RTE_ipaddrGw.addr   = IPADDR_ANY;
-        rte.RTE_pnetif          = netif_default;
-        rte.RTE_cNetifName[0]   = netif_default->name[0];
-        rte.RTE_cNetifName[1]   = netif_default->name[1];
-        rte.RTE_cNetifName[2]   = (char)(netif_default->num + '0');
-        rte.RTE_cNetifName[3]   = PX_EOS;
-        
-        if (netif_is_up(netif_default) && netif_is_link_up(netif_default)) {
-            rte.RTE_uiFlag = LW_RT_FLAG_U | LW_RT_FLAG_G;
-        
-        } else {
-            rte.RTE_uiFlag = LW_RT_FLAG_G;
-        }
-        
-        pfuncHook(&rte, pvArg0, pvArg1, pvArg2, pvArg3, pvArg4);
-    }
-}
-/*********************************************************************************************************
-** 函数名称: __rtAddCallback
-** 功能描述: 添加一个 sylixos 路由条目(加入链表, 在 TCPIP 上下文中执行)
-** 输　入  : ipaddrDest    目的地址
-**           pipaddrGw     网关
-**           uiFlag        flag
-**           pcNetifName   路由设备接口名
-** 输　出  : ERROR_NONE
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-static INT __rtAddCallback (ip4_addr_t *pipaddrDest, 
-                            ip4_addr_t *pipaddrGw, 
-                            UINT        uiFlag, 
-                            CPCHAR      pcNetifName)
-{
-    INT             iHash = LW_RT_HASHINDEX(pipaddrDest);
-    PLW_RT_ENTRY    prte;
-    
-    prte = (PLW_RT_ENTRY)__SHEAP_ALLOC(sizeof(LW_RT_ENTRY));
-    if (prte == LW_NULL) {
-        _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
-        return  (PX_ERROR);
-    }
-    
-    prte->RTE_ipaddrDest = *pipaddrDest;
-    prte->RTE_ipaddrGw   = *pipaddrGw;
-    prte->RTE_pnetif     = netif_find((PCHAR)pcNetifName);
-    prte->RTE_uiFlag     = uiFlag;
-    lib_strlcpy(prte->RTE_cNetifName, pcNetifName, IF_NAMESIZE);
-    if (prte->RTE_pnetif) {
-        prte->RTE_uiFlag |= LW_RT_FLAG_U;                               /*  路由有效                    */
-        _G_uiActiveNum++;
-    }
-    _G_uiTotalNum++;
-    
-    _List_Line_Add_Ahead(&prte->RTE_lineManage, &_G_plineRtHashHeader[iHash]);
-
-    return  (ERROR_NONE);
-}
-/*********************************************************************************************************
-** 函数名称: __rtDelCallback
-** 功能描述: 删除一个 sylixos 路由条目(从链表中移除, 在 TCPIP 上下文中执行)
-** 输　入  : pipaddrDest    目标地址
-** 输　出  : ERROR
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-static INT __rtDelCallback (ip4_addr_t *pipaddrDest)
-{
-    PLW_RT_ENTRY    prte;
-    
-    prte = __rtFind(pipaddrDest, 0);
-    if (prte) {
-        INT     iHash = LW_RT_HASHINDEX(&prte->RTE_ipaddrDest);
-        
-        if (prte->RTE_uiFlag & LW_RT_FLAG_U) {
-            _G_uiActiveNum--;
-        }
-        _G_uiTotalNum--;
-        
-        LW_RT_CACHE_INVAL(prte);
-        if (prte->RTE_pnetif) {
-            LW_GW_CACHE_INVAL(prte->RTE_pnetif->num, prte);
-        }
-        
-        _List_Line_Del(&prte->RTE_lineManage, &_G_plineRtHashHeader[iHash]);
-        
-        __SHEAP_FREE(prte);
-        
-        return  (ERROR_NONE);
-    }
-    
-    _ErrorHandle(EINVAL);
-    return  (PX_ERROR);
-}
-/*********************************************************************************************************
-** 函数名称: __rtChangeCallback
-** 功能描述: 修改一个 sylixos 路由条目(在 TCPIP 上下文中执行)
-** 输　入  : ipaddrDest    目的地址
-**           pipaddrGw     网关
-**           uiFlag        flag
-**           pcNetifName   路由设备接口名
-** 输　出  : ERROR
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-static INT __rtChangeCallback (ip4_addr_t *pipaddrDest, 
-                               ip4_addr_t *pipaddrGw, 
-                               UINT        uiFlag, 
-                               CPCHAR      pcNetifName)
-{
-    PLW_RT_ENTRY    prte;
-    
-    prte = __rtFind(pipaddrDest, 0);
-    if (prte) {
-        INT     iHash = LW_RT_HASHINDEX(&prte->RTE_ipaddrDest);
-        
-        if (prte->RTE_uiFlag & LW_RT_FLAG_U) {
-            _G_uiActiveNum--;
-        }
-        _G_uiTotalNum--;
-        
-        LW_RT_CACHE_INVAL(prte);
-        if (prte->RTE_pnetif) {
-            LW_GW_CACHE_INVAL(prte->RTE_pnetif->num, prte);
-        }
-        
-        _List_Line_Del(&prte->RTE_lineManage, &_G_plineRtHashHeader[iHash]);
-        
-        prte->RTE_ipaddrDest = *pipaddrDest;
-        prte->RTE_ipaddrGw   = *pipaddrGw;
-        prte->RTE_pnetif     = netif_find((PCHAR)pcNetifName);
-        prte->RTE_uiFlag     = uiFlag;
-        lib_strlcpy(prte->RTE_cNetifName, pcNetifName, IF_NAMESIZE);
-        if (prte->RTE_pnetif) {
-            prte->RTE_uiFlag |= LW_RT_FLAG_U;                           /*  路由有效                    */
-            _G_uiActiveNum++;
-        }
-        _G_uiTotalNum++;
-        
-        iHash = LW_RT_HASHINDEX(&prte->RTE_ipaddrDest);
-        
-        _List_Line_Add_Ahead(&prte->RTE_lineManage, &_G_plineRtHashHeader[iHash]);
-        
-        return  (ERROR_NONE);
-    }
-    
-    _ErrorHandle(EINVAL);
-    return  (PX_ERROR);
-}
-/*********************************************************************************************************
-** 函数名称: __rtSetGwCallback
-** 功能描述: 设置网络接口的网关(在 TCPIP 上下文中执行)
-** 输　入  : pipaddrGw     网关地址
-**           uiGwFlags     网关设置属性
-**           pcNetifName   网络接口名
-** 输　出  : ERROR_NONE
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-static INT __rtSetGwCallback (ip4_addr_t *pipaddrGw, UINT  uiGwFlags, CPCHAR  pcNetifName)
-{
-#define LW_RT_GW_FLAG_SET       0x1
-#define LW_RT_GW_FLAG_DEFAULT   0x2
-
-    struct netif  *pnetif = netif_find((PCHAR)pcNetifName);
-    
-    if (pnetif) {
-        if (uiGwFlags & LW_RT_GW_FLAG_SET) {
-            netif_set_gw(pnetif, pipaddrGw);
-        }
-        if (uiGwFlags & LW_RT_GW_FLAG_DEFAULT) {
-            netif_set_default(pnetif);
-        }
-        return  (ERROR_NONE);
-    
-    } else {
-        _ErrorHandle(ENXIO);
-        return  (PX_ERROR);
-    }
-}
-/*********************************************************************************************************
-** 函数名称: __rtGetCallback
-** 功能描述: 获取路由表接口(在 TCPIP 上下文中执行)
-** 输　入  : prte          路由条目
-**           flag          获取的类型掩码 
-**           msgbuf        缓冲表
-**           num           缓冲表总数
-**           piIndex       当前下标
-** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-static VOID __rtGetCallback (PLW_RT_ENTRY       prte, 
-                             u_char             flag, 
-                             struct route_msg  *msgbuf, 
-                             size_t             num, 
-                             int               *piIndex)
-{
-    struct  netif  *pnetif = prte->RTE_pnetif;
-    u_char  ucGetFlag = 0;
-
-    if (*piIndex >= num) {
-        return;
-    }
-    
-    if (prte->RTE_uiFlag & LW_RT_FLAG_U) {                              /*  有效路由                    */
-        ucGetFlag |= ROUTE_RTF_UP;
-    }
-    if (prte->RTE_uiFlag & LW_RT_FLAG_H) {
-        ucGetFlag |= ROUTE_RTF_HOST;                                    /*  主机路由                    */
-    }
-    if (prte->RTE_uiFlag & LW_RT_FLAG_G) {
-        ucGetFlag |= ROUTE_RTF_GATEWAY;                                 /*  目的是一个网关的路由        */
-    }
-    
-    if ((ucGetFlag & flag) == flag) {                                   /*  满足获取条件                */
-        msgbuf[*piIndex].rm_flag        = ucGetFlag;
-        msgbuf[*piIndex].rm_metric      = 1;
-        msgbuf[*piIndex].rm_dst.s_addr  = prte->RTE_ipaddrDest.addr;    /*  目的地址                    */
-        if (pnetif) {
-            if (prte->RTE_ipaddrGw.addr != IPADDR_ANY) {
-                msgbuf[*piIndex].rm_gw.s_addr = prte->RTE_ipaddrGw.addr;
-            } else {                                                    /*  网关地址                    */
-                msgbuf[*piIndex].rm_gw.s_addr = netif_ip4_gw(pnetif)->addr;
-            }                                                           /*  子网掩码                    */
-            msgbuf[*piIndex].rm_mask.s_addr  = netif_ip4_netmask(pnetif)->addr;
-            msgbuf[*piIndex].rm_if.s_addr    = netif_ip4_addr(pnetif)->addr;
-                                                                        /*  网络接口 IP                 */
-        } else {
-            msgbuf[*piIndex].rm_gw.s_addr   = IPADDR_ANY;
-            msgbuf[*piIndex].rm_mask.s_addr = IPADDR_ANY;
-            msgbuf[*piIndex].rm_if.s_addr   = IPADDR_ANY;
-        }
-        lib_memcpy(msgbuf[*piIndex].rm_ifname, 
-                   prte->RTE_cNetifName, IF_NAMESIZE);                  /*  网卡名称                    */
-        (*piIndex)++;                                                   /*  索引向下移动                */
-    }
-}
-/*********************************************************************************************************
-** 函数名称: __rtAdd
-** 功能描述: 添加一个 sylixos 路由条目
-** 输　入  : ipaddrDest    目的地址
-**           pipaddrGw     网关地址
-**           uiFlag        flag
-**           pcNetifName   路由设备接口名
-** 输　出  : ERROR
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-static INT __rtAdd (ip4_addr_t *pipaddrDest, ip4_addr_t *pipaddrGw, UINT  uiFlag, CPCHAR  pcNetifName)
-{
-    INT     iError;
-    
-    if (pipaddrDest == LW_NULL) {
-        _ErrorHandle(EINVAL);
-        return  (PX_ERROR);
-    }
-    
-    if (pipaddrDest->addr == IPADDR_ANY) {                              /*  设置网卡默认网关            */
-        iError = __rtSafeRun(__rtSetGwCallback, pipaddrGw, (PVOID)LW_RT_GW_FLAG_SET, 
-                             (PVOID)pcNetifName, 0, 0, 0);
-    
-    } else {                                                            /*  设置路由信息                */
-        iError = __rtSafeRun(__rtAddCallback, pipaddrDest, pipaddrGw, 
-                             (PVOID)uiFlag, (PVOID)pcNetifName, 0, 0);
-    }
-    
-    return  (iError);
-}
-/*********************************************************************************************************
-** 函数名称: __rtDelete
-** 功能描述: 移除一个 sylixos 路由条目
-** 输　入  : ipaddrDest    目标地址
-** 输　出  : ERROR
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-static INT __rtDel (ip4_addr_t *pipaddrDest)
-{
-    INT     iError;
-
-    if (pipaddrDest == LW_NULL) {
-        _ErrorHandle(EINVAL);
-        return  (PX_ERROR);
-    }
-
-    iError = __rtSafeRun(__rtDelCallback, pipaddrDest, 0, 0, 0, 0, 0);
-
-    return  (iError);
-}
-/*********************************************************************************************************
-** 函数名称: __rtChange
-** 功能描述: 改变一个 sylixos 路由条目
-** 输　入  : ipaddrDest    目的地址
-**           pipaddrGw     网关地址
-**           uiFlag        flag
-**           pcNetifName   路由设备接口名
-** 输　出  : ERROR
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-static INT __rtChange (ip4_addr_t *pipaddrDest, ip4_addr_t *pipaddrGw, UINT  uiFlag, CPCHAR  pcNetifName)
-{
-    INT     iError;
-    
-    if (pipaddrDest == LW_NULL) {
-        _ErrorHandle(EINVAL);
-        return  (PX_ERROR);
-    }
-    
-    if (pipaddrDest->addr == IPADDR_ANY) {                              /*  设置网卡默认网关            */
-        iError = __rtSafeRun(__rtSetGwCallback, pipaddrGw, (PVOID)LW_RT_GW_FLAG_SET, 
-                             (PVOID)pcNetifName, 0, 0, 0);
-    
-    } else {                                                            /*  设置路由信息                */
-        iError = __rtSafeRun(__rtChangeCallback, pipaddrDest, pipaddrGw, 
-                             (PVOID)uiFlag, (PVOID)pcNetifName, 0, 0);
-    }
-    
-    return  (iError);
-}
-/*********************************************************************************************************
-** 函数名称: __rtSetDefautNetif
-** 功能描述: 设置一个默认网络出口
-** 输　入  : pcNetifName   设备接口名
-** 输　出  : ERROR
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-static INT __rtSetDefautNetif (CPCHAR  pcNetifName)
-{
-    INT     iError;
-    
-    if (pcNetifName == LW_NULL) {
-        _ErrorHandle(EINVAL);
-        return  (PX_ERROR);
-    }
-    
-    iError = __rtSafeRun(__rtSetGwCallback, LW_NULL, (PVOID)LW_RT_GW_FLAG_DEFAULT, 
-                         (PVOID)pcNetifName, 0, 0, 0);
-    
-    return  (iError);
-}
-/*********************************************************************************************************
-** 函数名称: __rtGet
-** 功能描述: 获取路由表
-** 输　入  : flag          获取的类型掩码 
-**           msgbuf        路由表缓冲区
-**           num           缓冲数量
-** 输　出  : 获取的数量
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-static INT __rtGet (u_char  flag, struct route_msg  *msgbuf, size_t  num)
-{
-    INT     iNum = 0;
-    
-    __rtSafeRun((FUNCPTR)__rtTraversal, (void *)__rtGetCallback,
-                (PVOID)(ULONG)flag, (PVOID)msgbuf, (PVOID)num, (PVOID)&iNum, 0);
-                
-    __rtSafeRun((FUNCPTR)__rtBuildinTraversal, (void *)__rtGetCallback,
-                (PVOID)(ULONG)flag, (PVOID)msgbuf, (PVOID)num, (PVOID)&iNum, 0);
-
-    return  (iNum);
-}
-/*********************************************************************************************************
-** 函数名称: __rtNeifAddCallback
-** 功能描述: 添加网络接口回调(网络安全)
-** 输　入  : netif     网络接口
-** 输　出  : NONE
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-static VOID __rtNeifAddCallback (struct netif *netif)
-{
-    INT             i;
-    PLW_LIST_LINE   plineTemp;
-    PLW_RT_ENTRY    prte;
-    CHAR            cNetifName[IF_NAMESIZE];
-
-    if_indextoname(netif->num, cNetifName);
-
-    for (i = 0; i < LW_RT_TABLESIZE; i++) {
-        for (plineTemp  = _G_plineRtHashHeader[i];
-             plineTemp != LW_NULL;
-             plineTemp  = _list_line_get_next(plineTemp)) {
-
-            prte = (PLW_RT_ENTRY)plineTemp;
-            if (lib_strncmp(cNetifName, prte->RTE_cNetifName, IF_NAMESIZE) == 0) {
-                prte->RTE_pnetif  = netif;                              /*  对应的路由条目有效          */
-                prte->RTE_uiFlag |= LW_RT_FLAG_U;
-                _G_uiActiveNum++;
-            }
-        }
-    }
-}
-/*********************************************************************************************************
-** 函数名称: __rtNeifRemoveCallback
-** 功能描述: 移除网络接口回调(网络安全)
-** 输　入  : netif     网络接口
-** 输　出  : NONE
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-static VOID __rtNeifRemoveCallback (struct netif *netif)
-{
-    INT             i;
-    PLW_LIST_LINE   plineTemp;
-    PLW_RT_ENTRY    prte;
-
-    for (i = 0; i < LW_RT_TABLESIZE; i++) {
-        for (plineTemp  = _G_plineRtHashHeader[i];
-             plineTemp != LW_NULL;
-             plineTemp  = _list_line_get_next(plineTemp)) {
-
-            prte = (PLW_RT_ENTRY)plineTemp;
-            if (prte->RTE_pnetif == netif) {                            /*  对应的路由条目应该无效      */
-                prte->RTE_pnetif  = LW_NULL;
-                prte->RTE_uiFlag &= ~LW_RT_FLAG_U;
-
-                LW_RT_CACHE_INVAL(prte);                                /*  无效对应 cache              */
-                LW_GW_CACHE_INVAL(netif->num, prte);
-                _G_uiActiveNum--;
-            }
-        }
-    }
-}
-/*********************************************************************************************************
-** 函数名称: __rtNeifAddHook
-** 功能描述: 添加网络接口回调
-** 输　入  : netif     网络接口
-** 输　出  : NONE
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-VOID rt_netif_add_hook (struct netif *netif)
-{
-    __rtSafeRun((FUNCPTR)__rtNeifAddCallback, (PVOID)netif, 0, 0, 0, 0, 0);
-}
-/*********************************************************************************************************
-** 函数名称: __rtNeifRemoveHook
-** 功能描述: 移除网络接口回调
-** 输　入  : netif     网络接口
-** 输　出  : NONE
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-VOID rt_netif_remove_hook (struct netif *netif)
-{
-    __rtSafeRun((FUNCPTR)__rtNeifRemoveCallback, (PVOID)netif, 0, 0, 0, 0, 0);
-}
-/*********************************************************************************************************
-** 函数名称: sys_ip_route_src_hook
-** 功能描述: sylixos 路由查找接口
-** 输　入  : pipaddrDest   目标地址
-**           pipaddrSrc    源地址
-** 输　出  : 如果查询到, 则返回路由接口
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-struct netif *sys_ip_route_src_hook (const ip4_addr_t *pipaddrDest, const ip4_addr_t *pipaddrSrc)
-{
-    PLW_RT_ENTRY    prte;
-    
-    if ((pipaddrDest->addr == IPADDR_BROADCAST) && 
-        pipaddrSrc && (pipaddrSrc->addr != IPADDR_ANY)) {               /*  有限广播                    */
-        struct netif  *netif;
-        for (netif = netif_list; netif != NULL; netif = netif->next) {
-            if (ip4_addr_cmp(netif_ip4_addr(netif), pipaddrSrc)) {
-                return  (netif);
-            }
-        }
-    }
-
-    if (_G_uiActiveNum == 0) {
-        return  (LW_NULL);
-    }
-    
-    if ((_G_rtcache.RTCACHE_prteCache) &&
-        (_G_rtcache.RTCACHE_prteCache->RTE_uiFlag & LW_RT_FLAG_U) &&
-        (_G_rtcache.RTCACHE_ipaddrDest.addr == pipaddrDest->addr)) {    /*  首先判断 CACHE 是否命中     */
-        return  (_G_rtcache.RTCACHE_prteCache->RTE_pnetif);
-    }
-    
-    prte = __rtMatch(pipaddrDest);                                      /*  寻找有效目的路由            */
-    if (prte) {
-        _G_rtcache.RTCACHE_prteCache = prte;
-        _G_rtcache.RTCACHE_ipaddrDest.addr = pipaddrDest->addr;
-        return  (prte->RTE_pnetif);
-    }
-    
-    return  (LW_NULL);                                                  /*  使用 lwip 内建路由          */
-}
-/*********************************************************************************************************
-** 函数名称: sys_ip_gw_hook
-** 功能描述: sylixos 路由查找接口 (查找网关)
-** 输　入  : netif         网络接口
-**           pipaddrDest   目标地址
-** 输　出  : 网关接口
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-ip4_addr_t *sys_ip_gw_hook (struct netif *netif, const ip4_addr_t *pipaddrDest)
-{
-    PLW_RT_ENTRY    prte;
-
-    if (_G_uiActiveNum == 0) {
-        return  (LW_NULL);
-    }
-                                                                        /*  首先判断 CACHE 是否命中     */
-    if ((_G_gwcache[netif->num].GWCACHE_prteCache) &&
-        (_G_gwcache[netif->num].GWCACHE_prteCache->RTE_uiFlag & LW_RT_FLAG_U) &&
-        (_G_gwcache[netif->num].GWCACHE_ipaddrDest.addr == pipaddrDest->addr)) {    
-        if ((_G_gwcache[netif->num].GWCACHE_prteCache)->RTE_ipaddrGw.addr != IPADDR_ANY) {
-            return  (&(_G_gwcache[netif->num].GWCACHE_prteCache)->RTE_ipaddrGw);
-        
-        } else {
-            return  (LW_NULL);
-        }
-    }
-    
-    prte = __rtMatch(pipaddrDest);                                      /*  寻找有效目的路由            */
-    if (prte) {
-        _G_gwcache[netif->num].GWCACHE_prteCache = prte;
-        _G_gwcache[netif->num].GWCACHE_ipaddrDest.addr = pipaddrDest->addr;
-        if (prte->RTE_ipaddrGw.addr != IPADDR_ANY) {
-            return  (&prte->RTE_ipaddrGw);
-        
-        } else {
-            return  (LW_NULL);
-        }
-    }
-    
-    return  (LW_NULL);
-}
-
-/*********************************************************************************************************
-** 函数名称: __rtEntryPrint
-** 功能描述: 打印一条路由信息
-** 输　入  : prte      路由表节点
-**           pcBuffer  缓冲区
-**           stSize    缓冲区大小
-**           pstOffset 偏移量
+** 函数名称: __route_show_ipv4
+** 功能描述: 打印 IPv4 路由表
+** 输　入  : NONE
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
 #if LW_CFG_SHELL_EN > 0
 
-static VOID __rtEntryPrint (PLW_RT_ENTRY prte, PCHAR  pcBuffer, size_t  stSize, size_t *pstOffset)
+static VOID  __route_show_ipv4 (VOID)
 {
-    CHAR    cIpDest[INET_ADDRSTRLEN];
-    CHAR    cGateway[INET_ADDRSTRLEN] = "*";
-    CHAR    cMask[INET_ADDRSTRLEN]    = "*";
-    CHAR    cFlag[6] = "\0";
+    INT                  iRet, i;
+    INT                  iSock;
+    CHAR                 cFlags[10];
+    CHAR                 cStrDest[IP4ADDR_STRLEN_MAX];
+    CHAR                 cStrGateway[IP4ADDR_STRLEN_MAX];
+    CHAR                 cStrNetmask[IP4ADDR_STRLEN_MAX];
+    struct rtentry_list  rtentrylist;
+    struct rtentry      *prtentry;
     
-    ip4addr_ntoa_r(&prte->RTE_ipaddrDest, cIpDest, INET_ADDRSTRLEN);
-    if (prte->RTE_pnetif) {
-        if (prte->RTE_ipaddrGw.addr != IPADDR_ANY) {
-            ip4addr_ntoa_r(&prte->RTE_ipaddrGw, cGateway, INET_ADDRSTRLEN);
-        } else {
-            ip4addr_ntoa_r(netif_ip4_gw(prte->RTE_pnetif), cGateway, INET_ADDRSTRLEN);
+    rtentrylist.rtl_bcnt  = 0;
+    rtentrylist.rtl_num   = 0;
+    rtentrylist.rtl_total = 0;
+    rtentrylist.rtl_buf   = LW_NULL;
+    
+    printf("IPv4 Route Table:\n");
+    printf("Destination     Gateway         Genmask         Flags Metric Ref    Use Iface\n");
+    
+    iSock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (iSock < 0) {
+        fprintf(stderr, "can not create socket error: %s!\n", lib_strerror(errno));
+        return;
+    }
+    
+    iRet = ioctl(iSock, SIOCLSTRT, &rtentrylist);
+    if (iRet < 0) {
+        close(iSock);
+        fprintf(stderr, "command 'SIOCLSTRT' error: %s!\n", lib_strerror(errno));
+        return;
+    }
+    
+    if (rtentrylist.rtl_total == 0) {
+        close(iSock);
+        printf("\n");
+        return;
+    }
+    
+    rtentrylist.rtl_buf = (struct rtentry *)__SHEAP_ALLOC(sizeof(struct rtentry) * rtentrylist.rtl_total);
+    if (!rtentrylist.rtl_buf) {
+        close(iSock);
+        fprintf(stderr, "error: %s!\n", lib_strerror(errno));
+        return;
+    }
+    
+    rtentrylist.rtl_bcnt = rtentrylist.rtl_total;
+    iRet = ioctl(iSock, SIOCLSTRT, &rtentrylist);
+    if (iRet < 0) {
+        close(iSock);
+        fprintf(stderr, "command 'SIOCLSTRT' error: %s!\n", lib_strerror(errno));
+        return;
+    }
+    
+    for (i = 0; i < rtentrylist.rtl_num; i++) {
+        prtentry = &rtentrylist.rtl_buf[i];
+        inet_ntoa_r(((struct sockaddr_in *)&prtentry->rt_dst)->sin_addr,     cStrDest,    IP4ADDR_STRLEN_MAX);
+        inet_ntoa_r(((struct sockaddr_in *)&prtentry->rt_gateway)->sin_addr, cStrGateway, IP4ADDR_STRLEN_MAX);
+        inet_ntoa_r(((struct sockaddr_in *)&prtentry->rt_genmask)->sin_addr, cStrNetmask, IP4ADDR_STRLEN_MAX);
+        
+        cFlags[0] = '\0';
+        if (prtentry->rt_flags & RTF_UP) {
+            lib_strcat(cFlags, "U");
         }
-        ip4addr_ntoa_r(netif_ip4_netmask(prte->RTE_pnetif), cMask, INET_ADDRSTRLEN);
+        if (prtentry->rt_flags & RTF_GATEWAY) {
+            lib_strcat(cFlags, "G");
+        }
+        if (prtentry->rt_flags & RTF_HOST) {
+            lib_strcat(cFlags, "H");
+        }
+        if (prtentry->rt_flags & RTF_DYNAMIC) {
+            lib_strcat(cFlags, "D");
+        }
+        
+        printf("%-15s %-15s %-15s %-5s %-6d %-6d %3d %s\n", 
+               cStrDest, cStrGateway, cStrNetmask, cFlags,
+               prtentry->rt_metric, prtentry->rt_refcnt, 
+               0, prtentry->rt_ifname);
     }
     
-    if (prte->RTE_uiFlag & LW_RT_FLAG_U) {
-        lib_strcat(cFlag, "U");
-    }
-    if (prte->RTE_uiFlag & LW_RT_FLAG_G) {
-        lib_strcat(cFlag, "G");
-    } else {
-        lib_strcpy(cGateway, "*");
-    }
-    if (prte->RTE_uiFlag & LW_RT_FLAG_H) {
-        lib_strcat(cFlag, "H");
-    }
-    if (prte->RTE_uiFlag & LW_RT_FLAG_D) {
-        lib_strcat(cFlag, "D");
-    }
-    if (prte->RTE_uiFlag & LW_RT_FLAG_M) {
-        lib_strcat(cFlag, "M");
-    }
-    
-    *pstOffset = bnprintf(pcBuffer, stSize, *pstOffset,
-                          "%-18s %-18s %-18s %-8s %-3s\n",
-                          cIpDest, cGateway, cMask, cFlag, prte->RTE_cNetifName);
+    __SHEAP_FREE(rtentrylist.rtl_buf);
+    close(iSock);
+    printf("\n");
 }
 /*********************************************************************************************************
-** 函数名称: __aodvEntryPrint
-** 功能描述: 打印 aodv 路由信息
-** 输　入  : rt        aodv 路由条目
-**           pcBuffer  缓冲区
-**           stSize    缓冲区大小
-**           pstOffset 偏移量
-** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-#if LW_CFG_NET_AODV_EN > 0
-
-static VOID __aodvEntryPrint (struct aodv_rtnode *rt, PCHAR  pcBuffer, size_t  stSize, size_t *pstOffset)
-{
-    CHAR    cIpDest[INET_ADDRSTRLEN];
-    CHAR    cNextHop[INET_ADDRSTRLEN];
-    CHAR    cMask[INET_ADDRSTRLEN];
-    CHAR    cFlag[16] = "\0";
-    CHAR    cIfName[IF_NAMESIZE] = "\0";
-    
-    inet_ntoa_r(rt->dest_addr, cIpDest, INET_ADDRSTRLEN);
-    inet_ntoa_r(rt->next_hop, cNextHop, INET_ADDRSTRLEN);
-    
-    if (rt->state & AODV_VALID) {
-        lib_strcat(cFlag, "U");
-    }
-    if (rt->hcnt > 0) {
-        lib_strcat(cFlag, "G");
-    }
-    if ((rt->flags & AODV_RT_GATEWAY) == 0) {
-        lib_strcat(cFlag, "H");
-    }
-    if ((rt->flags & AODV_RT_UNIDIR) == 0) {                            /*  单向连接                    */
-        lib_strcat(cFlag, "-ud");
-    }
-    
-    /*
-     *  aodv 路由节点网络接口一定有效
-     */
-    ip4addr_ntoa_r(netif_ip4_netmask(rt->netif), cMask, INET_ADDRSTRLEN);
-    if_indextoname(rt->netif->num, cIfName);
-    
-    *pstOffset = bnprintf(pcBuffer, stSize, *pstOffset,
-                          "%-18s %-18s %-18s %-8s %8d %-3s\n",
-                          cIpDest, cNextHop, cMask, cFlag, rt->hcnt, cIfName);
-}
-
-#endif                                                                  /*  LW_CFG_NET_AODV_EN > 0      */
-/*********************************************************************************************************
-** 函数名称: __buildinRtPrint
-** 功能描述: 打印 lwip 内建路由信息
-** 输　入  : pcBuffer  缓冲区
-             stSize    大小
-             pstOffset 打印偏移
-** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-static VOID __buildinRtPrint (PCHAR  pcBuffer, size_t  stSize, size_t *pstOffset)
-{
-    struct netif *netif;
-    ip4_addr_t    ipaddr;
-    
-    CHAR    cIpDest[INET_ADDRSTRLEN];
-    CHAR    cGateway[INET_ADDRSTRLEN] = "*";
-    CHAR    cMask[INET_ADDRSTRLEN];
-    CHAR    cFlag[6];
-    CHAR    cIfName[IF_NAMESIZE] = "\0";
-    
-    for (netif = netif_list; netif != NULL; netif = netif->next) {
-        if ((netif->flags & NETIF_FLAG_BROADCAST) == 0) {               /*  PPP / SLIP 连接             */
-            ipaddr.addr = netif_ip4_gw(netif)->addr;
-            ip4addr_ntoa_r(&ipaddr, cIpDest, INET_ADDRSTRLEN);
-            ip4addr_ntoa_r(netif_ip4_netmask(netif), cMask, INET_ADDRSTRLEN);
-            if_indextoname(netif->num, cIfName);
-            
-            if (netif_is_up(netif) && netif_is_link_up(netif)) {
-                lib_strcpy(cFlag, "UH");
-            
-            } else {
-                lib_strcpy(cFlag, "H");
-            }
-            
-        } else {                                                        /*  普通链接                    */
-            ipaddr.addr = netif_ip4_addr(netif)->addr & netif_ip4_netmask(netif)->addr;
-            ip4addr_ntoa_r(&ipaddr, cIpDest, INET_ADDRSTRLEN);
-            ip4addr_ntoa_r(netif_ip4_netmask(netif), cMask, INET_ADDRSTRLEN);
-            if_indextoname(netif->num, cIfName);
-            
-            if (netif_is_up(netif) && netif_is_link_up(netif)) {
-                lib_strcpy(cFlag, "U");
-            
-            } else {
-                cFlag[0] = PX_EOS;
-            }
-        }
-        
-        *pstOffset = bnprintf(pcBuffer, stSize, *pstOffset,
-                              "%-18s %-18s %-18s %-8s %-3s\n",
-                              cIpDest, cGateway, cMask, cFlag, cIfName);
-
-        ip4addr_ntoa_r(netif_ip4_addr(netif), cIpDest, INET_ADDRSTRLEN);
-        
-        if (netif_is_up(netif) && netif_is_link_up(netif)) {
-            lib_strcpy(cFlag, "UH");
-        
-        } else {
-            lib_strcpy(cFlag, "H");
-        }
-        
-        *pstOffset = bnprintf(pcBuffer, stSize, *pstOffset,
-                              "%-18s %-18s %-18s %-8s %-3s\n",
-                              cIpDest, cGateway, cMask, cFlag, cIfName);
-    }
-    
-    if (netif_default) {
-        ip4addr_ntoa_r(netif_ip4_gw(netif_default), cGateway, INET_ADDRSTRLEN);
-        ip4addr_ntoa_r(netif_ip4_netmask(netif_default), cMask, INET_ADDRSTRLEN);
-        if_indextoname(netif_default->num, cIfName);
-        
-        if (netif_is_up(netif_default) && netif_is_link_up(netif_default)) {
-            lib_strcpy(cFlag, "UG");
-            
-        } else {
-            lib_strcpy(cFlag, "G");
-        }
-
-        *pstOffset = bnprintf(pcBuffer, stSize, *pstOffset,
-                              "%-18s %-18s %-18s %-8s %-3s\n",
-                              "default", cGateway, cMask, cFlag, cIfName);
-    }
-}
-/*********************************************************************************************************
-** 函数名称: __rtTotalEntry
-** 功能描述: 获得三组路由(包含 kernel, aodv, build-in)入口, 最大的一组个数
+** 函数名称: __route_show_ipv6
+** 功能描述: 打印 IPv6 路由表
 ** 输　入  : NONE
-** 输　出  : 最大的一组个数
-** 全局变量:
-** 调用模块:
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
 *********************************************************************************************************/
-static UINT __rtEntryMaxNum (VOID)
+#if LWIP_IPV6
+
+static VOID  __route_show_ipv6 (VOID)
 {
-    UINT    uiMax;
+    extern int  rt6_netmask_to_prefix(struct ip6_addr *netmask);
 
-    /*
-     *  total entry include : kernel + aodv + (netifnum * 2) + default
-     */
-    uiMax = _G_uiTotalNum;                                              /*  kernel route entry          */
+    INT                  iRet, i;
+    INT                  iSock, iPrefix;
+    CHAR                 cFlags[10];
+    CHAR                 cStrDest[IP6ADDR_STRLEN_MAX];
+    CHAR                 cStrGateway[IP6ADDR_STRLEN_MAX];
+    struct ip6_addr      ip6addr;
+    struct rtentry_list  rtentrylist;
+    struct rtentry      *prtentry;
+    
+    rtentrylist.rtl_bcnt  = 0;
+    rtentrylist.rtl_num   = 0;
+    rtentrylist.rtl_total = 0;
+    rtentrylist.rtl_buf   = LW_NULL;
+    
+    printf("IPv6 Route Table:\n");
+    printf("Destination                      Gateway                          Prefix Flags Metric Ref    Use Iface\n");
+    
+    iSock = socket(AF_INET6, SOCK_DGRAM, 0);
+    if (iSock < 0) {
+        fprintf(stderr, "can not create socket error: %s!\n", lib_strerror(errno));
+        return;
+    }
+    
+    iRet = ioctl(iSock, SIOCLSTRT, &rtentrylist);
+    if (iRet < 0) {
+        close(iSock);
+        fprintf(stderr, "command 'SIOCLSTRT' error: %s!\n", lib_strerror(errno));
+        return;
+    }
+    
+    if (rtentrylist.rtl_total == 0) {
+        close(iSock);
+        printf("\n");
+        return;
+    }
+    
+    rtentrylist.rtl_buf = (struct rtentry *)__SHEAP_ALLOC(sizeof(struct rtentry) * rtentrylist.rtl_total);
+    if (!rtentrylist.rtl_buf) {
+        close(iSock);
+        fprintf(stderr, "error: %s!\n", lib_strerror(errno));
+        return;
+    }
+    
+    rtentrylist.rtl_bcnt = rtentrylist.rtl_total;
+    iRet = ioctl(iSock, SIOCLSTRT, &rtentrylist);
+    if (iRet < 0) {
+        close(iSock);
+        fprintf(stderr, "command 'SIOCLSTRT' error: %s!\n", lib_strerror(errno));
+        return;
+    }
+    
+    for (i = 0; i < rtentrylist.rtl_num; i++) {
+        prtentry = &rtentrylist.rtl_buf[i];
+        inet6_ntoa_r(((struct sockaddr_in6 *)&prtentry->rt_dst)->sin6_addr,     cStrDest,    IP6ADDR_STRLEN_MAX);
+        inet6_ntoa_r(((struct sockaddr_in6 *)&prtentry->rt_gateway)->sin6_addr, cStrGateway, IP6ADDR_STRLEN_MAX);
+        inet6_addr_to_ip6addr(&ip6addr, &((struct sockaddr_in6 *)&prtentry->rt_genmask)->sin6_addr);
+        iPrefix = rt6_netmask_to_prefix(&ip6addr);
+        
+        cFlags[0] = '\0';
+        if (prtentry->rt_flags & RTF_UP) {
+            lib_strcat(cFlags, "U");
+        }
+        if (prtentry->rt_flags & RTF_GATEWAY) {
+            lib_strcat(cFlags, "G");
+        }
+        if (prtentry->rt_flags & RTF_HOST) {
+            lib_strcat(cFlags, "H");
+        }
+        if (prtentry->rt_flags & RTF_DYNAMIC) {
+            lib_strcat(cFlags, "D");
+        }
+        
+        printf("%-32s %-32s %-6d %-5s %-6d %-6d %3d %s\n", 
+               cStrDest, cStrGateway, iPrefix, cFlags,
+               prtentry->rt_metric, prtentry->rt_refcnt, 
+               0, prtentry->rt_ifname);
+    }
+    
+    __SHEAP_FREE(rtentrylist.rtl_buf);
+    close(iSock);
+    printf("\n");
+}
 
+#endif                                                                  /*  LWIP_IPV6                   */
+/*********************************************************************************************************
+** 函数名称: __route_show_aodv
+** 功能描述: 打印 AODV 路由表
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
 #if LW_CFG_NET_AODV_EN > 0
-    if (uiMax < AODV_RT_NUM_ENTRIES()) {
-        uiMax = AODV_RT_NUM_ENTRIES();                                  /*  aodv route entry            */
+
+static VOID  __route_show_aodv (VOID)
+{
+    INT     iFd = open("/proc/net/mesh-adhoc/aodv_rt", O_RDONLY);
+    CHAR    cBuf[128];
+    ssize_t sstNum;
+    
+    if (iFd < 0) {
+        fprintf(stderr, "can not open '/proc/net/mesh-adhoc/aodv_rt' error: %s!\n", lib_strerror(errno));
+        return;
     }
+    
+    printf("AODV Route Table:\n");
+    
+    for (;;) {
+        sstNum = read(iFd, cBuf, sizeof(cBuf));
+        if (sstNum > 0) {
+            write(STD_OUT, cBuf, (size_t)sstNum);
+        } else {
+            break;
+        }
+    }
+    
+    close(iFd);
+    printf("\n");
+}
+
 #endif                                                                  /*  LW_CFG_NET_AODV_EN > 0      */
-
-    if (uiMax < (netif_get_num() * 2) + 1) {                            /*  lwip build-in route entry   */
-        uiMax = (netif_get_num() * 2) + 1;
+/*********************************************************************************************************
+** 函数名称: __route_default
+** 功能描述: shell 命令添加默认路由
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+**           prtentry      路由条目
+** 输　出  : ERROR or OK
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static INT  __route_default (INT  iArgC, PCHAR  *ppcArgV, struct rtentry *prtentry)
+{
+    if ((iArgC == 5) && (!lib_strcmp(ppcArgV[2], "default")) && (!lib_strcmp(ppcArgV[3], "dev"))) {
+        if (!inet_aton("255.255.255.255", &((struct sockaddr_in *)&prtentry->rt_gateway)->sin_addr)) {
+            goto    __arg_error;
+        }
+        lib_strlcpy(prtentry->rt_ifname, ppcArgV[4], IF_NAMESIZE);
+    
+    } else if ((iArgC >= 5) && (!lib_strcmp(ppcArgV[2], "default")) && (!lib_strcmp(ppcArgV[3], "gw"))) {
+        if (!inet_aton(ppcArgV[4], &((struct sockaddr_in *)&prtentry->rt_gateway)->sin_addr)) {
+            goto    __arg_error;
+        }
+        
+        if ((iArgC >= 7) && (!lib_strcmp(ppcArgV[5], "dev"))) {
+            lib_strlcpy(prtentry->rt_ifname, ppcArgV[6], IF_NAMESIZE);
+        }
+        
+    } else {
+__arg_error:
+        fprintf(stderr, "arguments error!\n");
+        return  (-ERROR_TSHELL_EPARAM);
+    }
+    
+    if (route_add(prtentry) < 0) {
+        fprintf(stderr, "add default route fail, error: %s!\n", lib_strerror(errno));
+        return  (PX_ERROR);
+    }
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __route_add
+** 功能描述: shell 命令添加一条路由
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : ERROR or OK
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static INT  __route_add (INT  iArgC, PCHAR  *ppcArgV)
+{
+    INT             i, iMetric = 0;
+    struct rtentry  rtentry;
+    
+    lib_bzero(&rtentry, sizeof(struct rtentry));
+    
+    rtentry.rt_flags |= RTF_UP;
+    
+    rtentry.rt_dst.sa_len    = sizeof(struct sockaddr_in);
+    rtentry.rt_dst.sa_family = AF_INET;
+    
+    rtentry.rt_genmask.sa_len    = sizeof(struct sockaddr_in);
+    rtentry.rt_genmask.sa_family = AF_INET;
+    
+    rtentry.rt_gateway.sa_len    = sizeof(struct sockaddr_in);
+    rtentry.rt_gateway.sa_family = AF_INET;
+    
+    if ((iArgC > 3) && (!lib_strcmp(ppcArgV[2], "default"))) {
+        return  (__route_default(iArgC, ppcArgV, &rtentry));
+    }
+    
+    if ((iArgC < 7) || !lib_strstr(ppcArgV[4], "mask")) {
+__arg_error:
+        fprintf(stderr, "arguments error!\n");
+        return  (-ERROR_TSHELL_EPARAM);
     }
 
-    return  (uiMax);
+    if (!lib_strcmp(ppcArgV[2], "-host")) {
+        rtentry.rt_flags |= RTF_HOST;
+    
+    } else if (!lib_strcmp(ppcArgV[2], "-gateway")) {
+        rtentry.rt_flags |= RTF_HOST | RTF_GATEWAY;
+        
+    } else {
+        goto    __arg_error;
+    }
+    
+    if (!inet_aton(ppcArgV[3], &((struct sockaddr_in *)&rtentry.rt_dst)->sin_addr)) {
+        goto    __arg_error;
+    }
+    
+    if (!inet_aton(ppcArgV[5], &((struct sockaddr_in *)&rtentry.rt_genmask)->sin_addr)) {
+        goto    __arg_error;
+    }
+    
+    if (!inet_aton(ppcArgV[6], &((struct sockaddr_in *)&rtentry.rt_gateway)->sin_addr)) {
+        goto    __arg_error;
+    }
+    
+    i = 7;
+    if (iArgC > (i + 1)) {
+        if (lib_strstr(ppcArgV[i], "metric")) {
+            if (sscanf(ppcArgV[i + 1], "%d", &iMetric) != 1) {
+                goto    __arg_error;
+            }
+            i += 2;
+        }
+    }
+    
+    if (iArgC > (i + 1)) {
+        if (lib_strstr(ppcArgV[i], "dev")) {
+            lib_strlcpy(rtentry.rt_ifname, ppcArgV[i + 1], IF_NAMESIZE);
+        }
+    }
+    
+    rtentry.rt_metric = (short)iMetric;
+    
+    if (route_add(&rtentry) < 0) {
+        fprintf(stderr, "add route fail, error: %s!\n", lib_strerror(errno));
+        return  (PX_ERROR);
+    }
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __route_delete
+** 功能描述: shell 命令添加一条路由
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : ERROR or OK
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static INT  __route_delete (INT  iArgC, PCHAR  *ppcArgV)
+{
+    struct rtentry  rtentry;
+
+    if (iArgC < 3) {
+__arg_error:
+        fprintf(stderr, "arguments error!\n");
+        return  (-ERROR_TSHELL_EPARAM);
+    }
+    
+    lib_bzero(&rtentry, sizeof(struct rtentry));
+    
+    rtentry.rt_dst.sa_len    = sizeof(struct sockaddr_in);
+    rtentry.rt_dst.sa_family = AF_INET;
+    
+    rtentry.rt_genmask.sa_len    = sizeof(struct sockaddr_in);
+    rtentry.rt_genmask.sa_family = AF_INET;
+    
+    rtentry.rt_gateway.sa_len    = sizeof(struct sockaddr_in);
+    rtentry.rt_gateway.sa_family = AF_INET;
+    
+    if (!inet_aton(ppcArgV[2], &((struct sockaddr_in *)&rtentry.rt_dst)->sin_addr)) {
+        goto    __arg_error;
+    }
+    
+    if (route_delete(&rtentry) < 0) {
+        fprintf(stderr, "add route fail, error: %s!\n", lib_strerror(errno));
+        return  (PX_ERROR);
+    }
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __route_change
+** 功能描述: shell 命令更改一条路由
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : ERROR or OK
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static INT  __route_change (INT  iArgC, PCHAR  *ppcArgV)
+{
+    INT             i, iMetric = 0;
+    struct rtentry  rtentry;
+    
+    lib_bzero(&rtentry, sizeof(struct rtentry));
+    
+    rtentry.rt_flags |= RTF_UP;
+    
+    rtentry.rt_dst.sa_len    = sizeof(struct sockaddr_in);
+    rtentry.rt_dst.sa_family = AF_INET;
+    
+    rtentry.rt_genmask.sa_len    = sizeof(struct sockaddr_in);
+    rtentry.rt_genmask.sa_family = AF_INET;
+    
+    rtentry.rt_gateway.sa_len    = sizeof(struct sockaddr_in);
+    rtentry.rt_gateway.sa_family = AF_INET;
+    
+    if ((iArgC < 7) || !lib_strstr(ppcArgV[4], "mask")) {
+__arg_error:
+        fprintf(stderr, "arguments error!\n");
+        return  (-ERROR_TSHELL_EPARAM);
+    }
+
+    if (!lib_strcmp(ppcArgV[2], "-host")) {
+        rtentry.rt_flags |= RTF_HOST;
+    
+    } else if (!lib_strcmp(ppcArgV[2], "-gateway")) {
+        rtentry.rt_flags |= RTF_HOST | RTF_GATEWAY;
+        
+    } else {
+        goto    __arg_error;
+    }
+    
+    if (!inet_aton(ppcArgV[3], &((struct sockaddr_in *)&rtentry.rt_dst)->sin_addr)) {
+        goto    __arg_error;
+    }
+    
+    if (!inet_aton(ppcArgV[5], &((struct sockaddr_in *)&rtentry.rt_genmask)->sin_addr)) {
+        goto    __arg_error;
+    }
+    
+    if (!inet_aton(ppcArgV[6], &((struct sockaddr_in *)&rtentry.rt_gateway)->sin_addr)) {
+        goto    __arg_error;
+    }
+    
+    i = 7;
+    if (iArgC > (i + 1)) {
+        if (lib_strstr(ppcArgV[i], "metric")) {
+            if (sscanf(ppcArgV[i + 1], "%d", &iMetric) != 1) {
+                goto    __arg_error;
+            }
+            i += 2;
+        }
+    }
+    
+    if (iArgC > (i + 1)) {
+        if (lib_strstr(ppcArgV[i], "dev")) {
+            lib_strlcpy(rtentry.rt_ifname, ppcArgV[i + 1], IF_NAMESIZE);
+        }
+    }
+    
+    rtentry.rt_metric = (short)iMetric;
+    
+    if (route_change(&rtentry) < 0) {
+        fprintf(stderr, "change route fail, error: %s!\n", lib_strerror(errno));
+        return  (PX_ERROR);
+    }
+    
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: __tshellRoute
@@ -1059,223 +528,38 @@ static UINT __rtEntryMaxNum (VOID)
 *********************************************************************************************************/
 INT  __tshellRoute (INT  iArgC, PCHAR  *ppcArgV)
 {
-#define LW_RT_PRINT_SIZE        74
-
-    INT         iError;
-    FUNCPTR     pfuncAddOrChange;
-    PCHAR       pcOpAddorChange;
-
-    UINT        uiFlag = 0;
-    ip4_addr_t  ipaddr;
-    ip4_addr_t  ipaddrGw;
-    CHAR        cNetifName[IF_NAMESIZE];
+    INT  iRet;
 
     if (iArgC == 1) {
-        PCHAR   pcBuffer;
-        size_t  stSize;
-        size_t  stOffset;
-        UINT    uiNumEntries;
-
-        uiNumEntries = (UINT)__rtSafeRun((FUNCPTR)__rtEntryMaxNum, 0, 0, 0, 0, 0, 0);
-        if (uiNumEntries == 0) {
-            printf("no route entry.\n");
-            return  (ERROR_NONE);
-        }
-
-        /*
-         *  在 net safe 状态下不允许调用 printf 等使用 IO 的语句. 所以只能打印到缓冲区中,
-         *  然后统一使用 IO 打印.
-         */
-        stSize   = LW_RT_PRINT_SIZE * uiNumEntries;
-        pcBuffer = (PCHAR)__SHEAP_ALLOC(stSize);
-        if (pcBuffer == LW_NULL) {
-            fprintf(stderr, "system low memory.\n");
-            return  (PX_ERROR);
-        }
-
-        /*
-         *  打印 kernel route entry
-         */
-        stOffset = 0;
-        printf("kernel routing tables\n");
-        printf("Destination        Gateway            Mask               Flag     Interface\n");
-        __rtSafeRun((FUNCPTR)__rtTraversal, (void *)__rtEntryPrint,
-                    pcBuffer, (PVOID)stSize, &stOffset, 0, 0);
-        if (stOffset > 0) {
-            fwrite(pcBuffer, stOffset, 1, stdout);
-            fflush(stdout);                                             /*  这里必须确保输出完成        */
-        }
-        
-        /*
-         *  打印 lwip build-in route entry
-         */
-        stOffset = 0;
-        printf("\nbuild-in routing tables\n");
-        printf("Destination        Gateway            Mask               Flag     Interface\n");
-        __rtSafeRun((FUNCPTR)__buildinRtPrint,
-                    pcBuffer, (PVOID)stSize, &stOffset, 0, 0, 0);
-        if (stOffset > 0) {
-            fwrite(pcBuffer, stOffset, 1, stdout);
-            fflush(stdout);                                             /*  这里必须确保输出完成        */
-        }
-
-        __SHEAP_FREE(pcBuffer);
-
-        return  (ERROR_NONE);
-        
-    } else {                                                            /*  操作路由表                  */
-        if (lib_strcmp(ppcArgV[1], "add") == 0) {
-            pfuncAddOrChange = __rtAdd;
-            pcOpAddorChange  = "add";
-
-        } else if (lib_strcmp(ppcArgV[1], "change") == 0) {
-            pfuncAddOrChange = __rtChange;
-            pcOpAddorChange  = "change";
-
-        } else {
-            pfuncAddOrChange = LW_NULL;
-        }
-
-        if (pfuncAddOrChange && (iArgC == 7)) {                         /*  添加或者修改路由表          */
-            if (!ip4addr_aton(ppcArgV[3], &ipaddr)) {
-                fprintf(stderr, "inet address format error.\n");
-                goto    __error_handle;
-            }
-            if (!ip4addr_aton(ppcArgV[4], &ipaddrGw)) {
-                fprintf(stderr, "gw address format error.\n");
-                goto    __error_handle;
-            }
-
-            if (lib_strcmp(ppcArgV[5], "if") == 0) {                    /*  使用 ifindex 查询网卡       */
-                INT   iIndex = lib_atoi(ppcArgV[6]);
-                if (if_indextoname(iIndex, cNetifName) == LW_NULL) {
-                    fprintf(stderr, "can not find net interface with ifindex %d.\n", iIndex);
-                    goto    __error_handle;
-                }
-
-            } else if (lib_strcmp(ppcArgV[5], "dev") == 0) {
-                lib_strlcpy(cNetifName, ppcArgV[6], IF_NAMESIZE);
-
-            } else {
-                fprintf(stderr, "net interface argument error.\n");
-                goto    __error_handle;
-            }
-
-            if (lib_strcmp(ppcArgV[2], "-host") == 0) {                 /*  主机路由                    */
-                uiFlag |= LW_RT_FLAG_H;
-
-            } else if (lib_strcmp(ppcArgV[2], "-net") != 0) {           /*  非网络路由                  */
-                fprintf(stderr, "route add must determine -host or -net.\n");
-                goto    __error_handle;
-            }
-
-            iError = pfuncAddOrChange(&ipaddr, &ipaddrGw, uiFlag, cNetifName);
-            if (iError >= 0) {                                          /*  操作路由表                  */
-                printf("route %s %s successful.\n", ppcArgV[3], pcOpAddorChange);
-                return  (ERROR_NONE);
-            }
-        
-        } else if (pfuncAddOrChange && (iArgC == 5)) {                  /*  设置默认网络接口            */
-            if (lib_strcmp(ppcArgV[2], "default") != 0) {
-                goto    __error_handle;
-            }
-            
-            if (lib_strcmp(ppcArgV[3], "if") == 0) {                    /*  使用 ifindex 查询网卡       */
-                INT   iIndex = lib_atoi(ppcArgV[4]);
-                if (if_indextoname(iIndex, cNetifName) == LW_NULL) {
-                    fprintf(stderr, "can not find net interface with ifindex %d.\n", iIndex);
-                    goto    __error_handle;
-                }
-
-            } else if (lib_strcmp(ppcArgV[3], "dev") == 0) {
-                lib_strlcpy(cNetifName, ppcArgV[4], IF_NAMESIZE);
-
-            } else {
-                fprintf(stderr, "net interface argument error.\n");
-                goto    __error_handle;
-            }
-            
-            uiFlag |= LW_RT_GW_FLAG_DEFAULT;
-            pfuncAddOrChange = __rtSetDefautNetif;
-            
-            iError = pfuncAddOrChange(cNetifName);                      /*  设置默认网络出口            */
-            if (iError >= 0) {
-                printf("default device set successful.\n");
-                return  (ERROR_NONE);
-            }
-
-        } else if ((lib_strcmp(ppcArgV[1], "del") == 0) && (iArgC == 3)) {
-            if (!ip4addr_aton(ppcArgV[2], &ipaddr)) {                   /*  删除一个路由表项            */
-                fprintf(stderr, "inet address format error.\n");
-                goto    __error_handle;
-            }
-
-            iError = __rtDel(&ipaddr);
-            if (iError >= 0) {
-                printf("route %s delete successful.\n", ppcArgV[2]);
-                return  (ERROR_NONE);
-            }
-        }
-    }
-    
-__error_handle:
-    fprintf(stderr, "arguments error!\n");
-    return  (-ERROR_TSHELL_EPARAM);
-}
-/*********************************************************************************************************
-** 函数名称: __tshellAodvs
-** 功能描述: 系统命令 "aodvs"
-** 输　入  : iArgC         参数个数
-**           ppcArgV       参数表
-** 输　出  : ERROR
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
+        __route_show_ipv4();
+        __route_show_ipv6();
 #if LW_CFG_NET_AODV_EN > 0
-
-static INT  __tshellAodvs (INT  iArgC, PCHAR  *ppcArgV)
-{
-    PCHAR   pcBuffer;
-    size_t  stSize;
-    size_t  stOffset;
-    UINT    uiNumEntries;
-
-    uiNumEntries = (UINT)__rtSafeRun((FUNCPTR)__rtEntryMaxNum, 0, 0, 0, 0, 0, 0);
-    if (uiNumEntries == 0) {
-        printf("no route entry.\n");
+        __route_show_aodv();
+#endif                                                                  /*  LW_CFG_NET_AODV_EN > 0      */
         return  (ERROR_NONE);
+    
+    } else if (iArgC > 1) {
+        if (!lib_strcmp(ppcArgV[1], "add")) {
+            iRet = __route_add(iArgC, ppcArgV);
+            
+        } else if (!lib_strcmp(ppcArgV[1], "del") || !lib_strcmp(ppcArgV[1], "delete")) {
+            iRet = __route_delete(iArgC, ppcArgV);
+            
+        } else if (!lib_strcmp(ppcArgV[1], "chg") || !lib_strcmp(ppcArgV[1], "change")) {
+            iRet = __route_change(iArgC, ppcArgV);
+            
+        } else {
+            goto    __arg_error;
+        }
+        
+    } else {
+__arg_error:
+        fprintf(stderr, "arguments error!\n");
+        return  (-ERROR_TSHELL_EPARAM);
     }
     
-    /*
-     *  在 net safe 状态下不允许调用 printf 等使用 IO 的语句. 所以只能打印到缓冲区中,
-     *  然后统一使用 IO 打印.
-     */
-    stSize   = LW_RT_PRINT_SIZE * uiNumEntries;
-    pcBuffer = (PCHAR)__SHEAP_ALLOC(stSize);
-    if (pcBuffer == LW_NULL) {
-        fprintf(stderr, "system low memory.\n");
-        return  (PX_ERROR);
-    }
-
-    /*
-     *  打印 aodv route entry
-     */
-    stOffset = 0;
-    printf("aodv routing tables\n");
-    printf("Destination        Gateway            Mask               Flag     Hops     Interface\n");
-    __rtSafeRun((FUNCPTR)aodv_rt_traversal, (void *)__aodvEntryPrint,
-                pcBuffer, (PVOID)stSize, &stOffset, 0, 0);
-    if (stOffset > 0) {
-        fwrite(pcBuffer, stOffset, 1, stdout);
-        fflush(stdout);                                                 /*  这里必须确保输出完成        */
-    }
-
-    __SHEAP_FREE(pcBuffer);
-
-    return  (ERROR_NONE);
+    return  (iRet);
 }
-
-#endif                                                                  /*  LW_CFG_NET_AODV_EN > 0      */
 /*********************************************************************************************************
 ** 函数名称: __tshellRouteInit
 ** 功能描述: 注册路由器命令
@@ -1287,98 +571,94 @@ static INT  __tshellAodvs (INT  iArgC, PCHAR  *ppcArgV)
 VOID __tshellRouteInit (VOID)
 {
     API_TShellKeywordAdd("route", __tshellRoute);
-    API_TShellFormatAdd("route", " [add | del | change] {-host | -net} [addr] [gateway] [[dev] | if]");
+    API_TShellFormatAdd("route", " [add | del | chg] {-host | -net | -gateway} [dest] [netmask] [gateway] {metric} [dev]");
     API_TShellHelpAdd("route",   "show, add, del, change route table\n"
-                                 "eg. route\n"
-                                 "    route add -host(-net) 123.123.123.123 0.0.0.0 dev en1       (add a route and use netif default gateway set)\n"
-                                 "    route add -host(-net) 123.123.123.123 123.0.0.1 dev en1     (add a route and use specified gateway set)\n"
-                                 "    route add -host(-net) 0.0.0.0 123.0.0.1 dev en1             (set netif default gateway: 123.0.0.1)\n"
-                                 "    route change -host(-net) 123.123.123.123 0.0.0.0 dev en2    (change a route and use netif default gateway set)\n"
-                                 "    route change -host(-net) 123.123.123.123 123.0.0.1 dev en1  (change a route and use specified gateway set)\n"
-                                 "    route change -host(-net) 0.0.0.0 123.0.0.1 dev en1          (set netif default gateway: 123.0.0.1)\n"
-                                 "    route change default dev en2                                (set default netif)\n"
-                                 "    route del 145.26.122.35                                     (delete a route)\n");
-                                 
-#if LW_CFG_NET_AODV_EN > 0
-    API_TShellKeywordAdd("aodvs", __tshellAodvs);
-    API_TShellHelpAdd("aodvs",   "show AODV route table\n");
-#endif                                                                  /*  LW_CFG_NET_AODV_EN > 0      */
+    "eg. route\n"
+    "    route add -host(-net) 123.123.123.123 mask 255.0.0.0 0.0.0.0 metric 5 dev en1  (add a route and use netif default gateway set)\n"
+    "    route add -host(-net) 123.123.123.123 mask 255.0.0.0123.0.0.1 dev en1          (add a route and use specified gateway set)\n"
+    "    route add -host(-net) 0.0.0.0 mask 0.0.0.0 123.0.0.1 dev en1                   (set netif default gateway: 123.0.0.1)\n"
+    "    route chg -host(-net) 123.123.123.123 mask 255.0.0.0 0.0.0.0 dev en2           (change a route and use netif default gateway set)\n"
+    "    route chg -host(-net) 123.123.123.123 mask 255.0.0.0 123.0.0.1 dev en1         (change a route and use specified gateway set)\n"
+    "    route chg -host(-net) 0.0.0.0 mask 255.0.0.0 123.0.0.1 dev en1                 (set netif default gateway: 123.0.0.1)\n"
+    "    route add -host(-net) 0.0.0.0 mask 0.0.0.0 192.168.1.1 dev en2                 (set default netif)\n"
+    "    route add default dev en2                                                      (set default netif)\n"
+    "    route add default gw 192.168.1.1                                               (set default netif)\n"
+    "    route add default gw 192.168.1.1 dev en1                                       (set default netif)\n"
+    "    route del 145.26.122.35                                                        (delete a route)\n");
 }
 
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 /*********************************************************************************************************
-  以下代码为 2013.01.16 添加
-*********************************************************************************************************/
-/*********************************************************************************************************
 ** 函数名称: route_add
 ** 功能描述: 加入一条路由信息
-** 输　入  : pinaddr       路由地址
-**           pinaddrGw     网关地址
-**           type          HOST / NET
-**           ifname        目标网卡
+** 输　入  : prtentry      路由条目
 ** 输　出  : ERROR or OK
 ** 全局变量: 
 ** 调用模块: 
                                            API 函数
 *********************************************************************************************************/
 LW_API
-int  route_add (struct in_addr *pinaddr, struct in_addr *pinaddrGw, int  type, const char *ifname)
+int  route_add (const struct rtentry *prtentry)
 {
-    ip4_addr_t  ipaddr;
-    ip4_addr_t  ipaddrGw;
-    INT         iError;
-
-    if (!pinaddr) {
+    INT   iSock, iRet, iErrNo;
+    
+    if (!prtentry) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
     
-    ipaddr.addr   = pinaddr->s_addr;
-    ipaddrGw.addr = pinaddrGw->s_addr;
-    
-    switch (type) {
-    
-    case ROUTE_TYPE_HOST:                                               /*  添加一条主机路由            */
-        iError = __rtAdd(&ipaddr, &ipaddrGw, LW_RT_FLAG_H, ifname);
-        break;
-        
-    case ROUTE_TYPE_NET:                                                /*  添加一条网络路由            */
-        iError = __rtAdd(&ipaddr, &ipaddrGw, 0ul, ifname);
-        break;
-        
-    case ROUTE_TYPE_DEFAULT:                                            /*  设置默认网关                */
-        iError = __rtSetDefautNetif(ifname);
-        break;
-        
-    default:
-        iError = PX_ERROR;
-        _ErrorHandle(EINVAL);
+    iSock = socket(prtentry->rt_dst.sa_family, SOCK_DGRAM, 0);
+    if (iSock < 0) {
+        return  (PX_ERROR);
     }
     
-    return  (iError);
+    iRet = ioctl(iSock, SIOCADDRT, prtentry);
+    if (iRet < 0) {
+        iErrNo = errno;
+        close(iSock);
+        errno = iErrNo;
+    
+    } else {
+        close(iSock);
+    }
+    
+    return  (iRet);
 }
 /*********************************************************************************************************
 ** 函数名称: route_delete
 ** 功能描述: 删除一条路由信息
-** 输　入  : pinaddr       路由地址 (HOST or NET)
+** 输　入  : prtentry      路由条目
 ** 输　出  : ERROR or OK
 ** 全局变量: 
 ** 调用模块: 
                                            API 函数
 *********************************************************************************************************/
 LW_API
-int  route_delete (struct in_addr *pinaddr)
+int  route_delete (const struct rtentry *prtentry)
 {
-    ip4_addr_t   ipaddr;
-
-    if (!pinaddr) {
+    INT   iSock, iRet, iErrNo;
+    
+    if (!prtentry) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
     
-    ipaddr.addr = pinaddr->s_addr;
+    iSock = socket(prtentry->rt_dst.sa_family, SOCK_DGRAM, 0);
+    if (iSock < 0) {
+        return  (PX_ERROR);
+    }
     
-    return  (__rtDel(&ipaddr));
+    iRet = ioctl(iSock, SIOCDELRT, prtentry);
+    if (iRet < 0) {
+        iErrNo = errno;
+        close(iSock);
+        errno = iErrNo;
+    
+    } else {
+        close(iSock);
+    }
+    
+    return  (iRet);
 }
 /*********************************************************************************************************
 ** 函数名称: route_change
@@ -1393,78 +673,108 @@ int  route_delete (struct in_addr *pinaddr)
                                            API 函数
 *********************************************************************************************************/
 LW_API
-int  route_change (struct in_addr *pinaddr, struct in_addr *pinaddrGw, int  type, const char *ifname)
+int  route_change (const struct rtentry *prtentry)
 {
-    ip4_addr_t  ipaddr;
-    ip4_addr_t  ipaddrGw;
-    INT         iError;
-
-    if (!pinaddr) {
+    INT   iSock, iRet, iErrNo;
+    
+    if (!prtentry) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
     
-    ipaddr.addr   = pinaddr->s_addr;
-    ipaddrGw.addr = pinaddrGw->s_addr;
-    
-    switch (type) {
-    
-    case ROUTE_TYPE_HOST:                                               /*  修改一条主机路由            */
-        iError = __rtChange(&ipaddr, &ipaddrGw, LW_RT_FLAG_H, ifname);
-        break;
-        
-    case ROUTE_TYPE_NET:                                                /*  修改一条网络路由            */
-        iError = __rtChange(&ipaddr, &ipaddrGw, 0ul, ifname);
-        break;
-        
-    case ROUTE_TYPE_DEFAULT:                                            /*  设置默认网关                */
-        iError = __rtSetDefautNetif(ifname);
-        break;
-        
-    default:
-        iError = PX_ERROR;
-        _ErrorHandle(EINVAL);
+    iSock = socket(prtentry->rt_dst.sa_family, SOCK_DGRAM, 0);
+    if (iSock < 0) {
+        return  (PX_ERROR);
     }
     
-    return  (iError);
-}
-/*********************************************************************************************************
-** 函数名称: route_getnum
-** 功能描述: 获取路由表信息的总数量 (不包含 aodv)
-** 输　入  : NONE
-** 输　出  : 数量
-** 全局变量: 
-** 调用模块: 
-                                           API 函数
-*********************************************************************************************************/
-LW_API
-int  route_getnum (void)
-{
-    INT     iNum = 1;                                                   /*  1 default gw                */
+    iRet = ioctl(iSock, SIOCCHGRT, prtentry);
+    if (iRet < 0) {
+        iErrNo = errno;
+        close(iSock);
+        errno = iErrNo;
     
-    iNum += (netif_get_num() * 2);                                      /*  每一个网卡两个 buildin 条目 */
-    iNum += _G_uiTotalNum;                                              /*  路由数量                    */
+    } else {
+        close(iSock);
+    }
     
-    return  (iNum);
+    return  (iRet);
 }
 /*********************************************************************************************************
 ** 函数名称: route_get
-** 功能描述: 获取路由表信息
-** 输　入  : flag          获取的类型掩码 
-**           msgbuf        路由表缓冲区
-**           num           缓冲数量
-** 输　出  : 获取的数量
+** 功能描述: 获取指定路由表条目
+** 输　入  : prtentry      获取的路由信息
+** 输　出  : ERROR or OK
 ** 全局变量: 
 ** 调用模块: 
                                            API 函数
 *********************************************************************************************************/
 LW_API
-int  route_get (u_char flag, struct route_msg  *msgbuf, size_t  num)
+int  route_get (struct rtentry *prtentry)
 {
-    return  (__rtGet(flag, msgbuf, num));
+    INT   iSock, iRet, iErrNo;
+    
+    if (!prtentry) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    iSock = socket(prtentry->rt_dst.sa_family, SOCK_DGRAM, 0);
+    if (iSock < 0) {
+        return  (PX_ERROR);
+    }
+    
+    iRet = ioctl(iSock, SIOCGETRT, prtentry);
+    if (iRet < 0) {
+        iErrNo = errno;
+        close(iSock);
+        errno = iErrNo;
+    
+    } else {
+        close(iSock);
+    }
+    
+    return  (iRet);
+}
+/*********************************************************************************************************
+** 函数名称: route_list
+** 功能描述: 获取路由表信息
+** 输　入  : iFamily        AF_INET / AF_INET6
+**           prtentrylist   路由列表缓冲
+** 输　出  : ERROR or OK
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+int  route_list (INT  iFamily, struct rtentry_list *prtentrylist)
+{
+    INT   iSock, iRet, iErrNo;
+    
+    if (!prtentrylist) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    iSock = socket(iFamily, SOCK_DGRAM, 0);
+    if (iSock < 0) {
+        return  (PX_ERROR);
+    }
+    
+    iRet = ioctl(iSock, SIOCLSTRT, prtentrylist);
+    if (iRet < 0) {
+        iErrNo = errno;
+        close(iSock);
+        errno = iErrNo;
+    
+    } else {
+        close(iSock);
+    }
+    
+    return  (iRet);
 }
 
 #endif                                                                  /*  LW_CFG_NET_EN               */
+                                                                        /*  LW_CFG_NET_ROUTER           */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

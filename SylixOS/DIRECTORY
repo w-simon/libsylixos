@@ -30,7 +30,7 @@ directory overview
          tree       (tree function)
          show       (show kernel information)
          vmm        (virtual memory management)
-         threadext  (thread extened function)
+         threadext  (thread extend function)
    lib          (SylixOS basic C lib)
    license      (SylixOS license)
    mktemp       (SylixOS Makefile template)

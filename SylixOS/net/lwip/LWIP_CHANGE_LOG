@@ -39,3 +39,7 @@
 15: ip_route() and ip6_route() must detect netif linkup status.
 
 16: etharp.c add addr conflict check.
+
+17: etharp_update_arp_entry() export.
+
+18: netif_set_ipaddr() netif_set_up() netif_set_down() netif_ip6_addr_set_parts() hook.

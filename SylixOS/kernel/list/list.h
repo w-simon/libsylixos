@@ -23,7 +23,10 @@
 #define  __LIST_H
 
 #include "../SylixOS/kernel/list/listType.h"
+
+#ifdef __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/list/listOp.h"
+#endif
 
 #endif                                                                  /*  __LIST_H                    */
 /*********************************************************************************************************

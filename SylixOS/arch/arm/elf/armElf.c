@@ -185,8 +185,7 @@ INT  archElfRelocateRel (PVOID        pmodule,
     INT32      addrTmp;
     Elf_Sword  swordAddend;
     Elf_Sword  swordTopBits;
-
-    Elf_Addr  upper, lower, sign, j1, j2, H;
+    Elf_Addr   upper, lower, sign, j1, j2, H;
 
     paddrWhere = (Elf_Addr *)((size_t)pcTargetSec + prel->r_offset);    /*  计算重定位目标地址          */
 
@@ -356,7 +355,6 @@ INT  archElfRelocateRel (PVOID        pmodule,
         *(UINT16 *)paddrWhere = upper;
         *(UINT16 *)(paddrWhere + 2) = lower;
         break;
-
 
     default:
         _DebugFormat(__ERRORMESSAGE_LEVEL, "unknown relocate type %d.\r\n", ELF_R_TYPE(prel->r_info));

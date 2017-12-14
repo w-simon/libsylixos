@@ -71,6 +71,7 @@ struct netdev_funcs {
   /* netdev ioctl 
    * cmd: SIOCSIFMTU:    arg is struct ifreq *pifreq, set MTU      (pifreq->ifr_mtu)
    *      SIOCSIFFLAGS:  arg is struct ifreq *pifreq, set PROMISC  (pifreq->ifr_flags & IFF_PROMISC)
+   *                                                      ALLMULTI (pifreq->ifr_flags & IFF_ALLMULTI)
    *      SIOCSIFHWADDR: arg is struct ifreq *pifreq, set hwaddr   (pifreq->ifr_hwaddr[]) */
   int  (*ioctl)(struct netdev *netdev, int cmd, void *arg);
 
@@ -100,11 +101,12 @@ typedef struct netdev {
   char  if_name[IF_NAMESIZE];   /* add to system netif name (such as 'en') */
   char *if_hostname;
   
-#define NETDEV_INIT_LOAD_PARAM     0x01   /* load netif parameter when add to system */
-#define NETDEV_INIT_LOAD_DNS       0x02   /* load dns parameter when add to system */
+#define NETDEV_INIT_LOAD_PARAM     0x01     /* load netif parameter when add to system */
+#define NETDEV_INIT_LOAD_DNS       0x02     /* load dns parameter when add to system */
 #define NETDEV_INIT_IPV6_AUTOCFG   0x04
 #define NETDEV_INIT_AS_DEFAULT     0x08
-#define NETDEV_INIT_USE_DHCP       0x10   /* force use DHCP get address */
+#define NETDEV_INIT_USE_DHCP       0x10     /* force use DHCP get address */
+#define NETDEV_INIT_DO_NOT         0x20     /* do not call init() function (Only used for net bridge) */
   UINT32 init_flags;
   
 #define NETDEV_CHKSUM_GEN_IP       0x0001   /* tcp/ip stack will generate checksum IP, UDP, TCP, ICMP, ICMP6 */

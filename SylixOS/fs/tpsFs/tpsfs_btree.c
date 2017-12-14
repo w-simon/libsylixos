@@ -306,7 +306,7 @@ static TPS_IBLK  __tpsFsBtrAllocNodeBlk (PTPS_TRANS         ptrans,
 
     if (pinode != psb->SB_pinodeSpaceMng) {                             /* 非空间b+tree用空间b+tree分配 */
         if (tpsFsBtreeAllocBlk(ptrans, psb->SB_pinodeSpaceMng,
-                               0, 1, &blkStart, &blkCnt) != TPS_ERR_NONE) {
+                               MAX_BLK_NUM, 1, &blkStart, &blkCnt) != TPS_ERR_NONE) {
             return  (0);
         }
 
@@ -1006,7 +1006,7 @@ static TPS_RESULT  __tpsFsBtreeRemoveNode (PTPS_TRANS      ptrans,
             goto    error_out;
         }
 
-        if (pndParent->ND_uiEntrys == 2) {                /* root的大小需要特殊处理       */
+        if (pndParent->ND_uiEntrys == 2) {                              /* root的大小需要特殊处理       */
             uiMaxCnt = MAX_NODE_CNT((psb->SB_uiBlkSize - TPS_INODE_DATASTART), pbtrnode->ND_iType);
         }
 
@@ -1155,7 +1155,8 @@ static TPS_RESULT  __tpsFsBtreeRemoveNode (PTPS_TRANS      ptrans,
                     if (__tpsFsUpdateKey(ptrans, pinode, pbtrnode,
                                          blkKey,
                                          pbtrnode->ND_kvArr[0].KV_blkKey) != TPS_ERR_NONE) {
-                        return  (TPS_ERR_BTREE_UPDATE_KEY);
+                        tpsresRet = TPS_ERR_BTREE_UPDATE_KEY;
+                        goto    error_out;
                     }
                 }
 
@@ -2097,35 +2098,34 @@ TPS_RESULT  tpsFsBtreeAdjustBP (PTPS_TRANS ptrans, PTPS_SUPER_BLOCK psb)
 
     pbp = psb->SB_pbp;
 
+    /*
+     * 为控制事务大小每次只调整一块,每次事务提交前检查是否需要调整,将调整操作分散到多个事务
+     */
     if (pbp->BP_uiBlkCnt >= TPS_MAX_BP_BLK) {                           /* 空闲块过多                   */
-        while(pbp->BP_uiBlkCnt > TPS_ADJUST_BP_BLK) {
-            blk = __tpsFsBtrAllocNodeBlk(ptrans, psb,
-                                         psb->SB_pinodeSpaceMng);       /* 释放缓冲区块                 */
-            if (blk <= 0) {
-                return  (TPS_ERR_BP_ALLOC);
-            }
+        blk = __tpsFsBtrAllocNodeBlk(ptrans, psb,
+                                     psb->SB_pinodeSpaceMng);           /* 释放缓冲区块                 */
+        if (blk <= 0) {
+            return  (TPS_ERR_BP_ALLOC);
+        }
 
-            if (tpsFsBtreeFreeBlk(ptrans, psb->SB_pinodeSpaceMng,
-                                  blk, blk, 1, LW_FALSE) != TPS_ERR_NONE) {
+        if (tpsFsBtreeFreeBlk(ptrans, psb->SB_pinodeSpaceMng,
+                              blk, blk, 1, LW_FALSE) != TPS_ERR_NONE) {
                                                                         /* 回收到空间管理b+tree         */
-                return  (TPS_ERR_BTREE_FREE);
-            }
+            return  (TPS_ERR_BTREE_FREE);
         }
     }
 
     if (pbp->BP_uiBlkCnt <= TPS_MIN_BP_BLK) {                           /* 空闲块太少                   */
-        while (pbp->BP_uiBlkCnt < TPS_ADJUST_BP_BLK) {
-            if (tpsFsBtreeAllocBlk(ptrans, psb->SB_pinodeSpaceMng,
-                                   0, 1, &blkStart,
-                                   &blkCnt) != TPS_ERR_NONE) {          /* 从空间管理b+tree分配块       */
-                return  (TPS_ERR_BTREE_ALLOC);
-            }
+        if (tpsFsBtreeAllocBlk(ptrans, psb->SB_pinodeSpaceMng,
+                               MAX_BLK_NUM, 1, &blkStart,
+                               &blkCnt) != TPS_ERR_NONE) {              /* 从空间管理b+tree分配块       */
+            return  (TPS_ERR_BTREE_ALLOC);
+        }
 
-            if (__tpsFsBtrFreeNodeBlk(ptrans, psb,
-                                      psb->SB_pinodeSpaceMng,
-                                      blkStart) != TPS_ERR_NONE) {      /* 添加到块缓冲区               */
-                return  (TPS_ERR_BP_FREE);
-            }
+        if (__tpsFsBtrFreeNodeBlk(ptrans, psb,
+                                  psb->SB_pinodeSpaceMng,
+                                  blkStart) != TPS_ERR_NONE) {          /* 添加到块缓冲区               */
+            return  (TPS_ERR_BP_FREE);
         }
     }
 
@@ -2200,7 +2200,7 @@ TPS_RESULT  tpsFsBtreeReadBP (PTPS_SUPER_BLOCK psb)
         }
 
         for (; j < psb->SB_uiBlkSize &&
-             psb->SB_pbp->BP_uiBlkCnt < TPS_MAX_BP_BLK;
+             psb->SB_pbp->BP_uiBlkCnt < TPS_BP_SIZE;
              j += sizeof(TPS_IBLK)) {                                   /* 查找结束位置                 */
             if (TPS_IBLK_TO_CPU_VAL(pucBuff + j) != 0) {
                 psb->SB_pbp->BP_blkArr[psb->SB_pbp->BP_uiBlkCnt] = TPS_IBLK_TO_CPU_VAL(pucBuff + j);
@@ -2211,7 +2211,7 @@ TPS_RESULT  tpsFsBtreeReadBP (PTPS_SUPER_BLOCK psb)
         }
 
         if (j < psb->SB_uiBlkSize ||
-            psb->SB_pbp->BP_uiBlkCnt >= TPS_MAX_BP_BLK) {
+            psb->SB_pbp->BP_uiBlkCnt >= TPS_BP_SIZE) {
             break;
         }
 
@@ -2222,11 +2222,6 @@ TPS_RESULT  tpsFsBtreeReadBP (PTPS_SUPER_BLOCK psb)
     }
 
     TPS_FREE(pucBuff);
-
-    if (psb->SB_pbp->BP_uiBlkCnt >= TPS_MAX_BP_BLK ||
-        psb->SB_pbp->BP_uiBlkCnt <= TPS_MIN_BP_BLK) {
-        return  (tpsFsBtreeAdjustBP(LW_NULL, psb));
-    }
 
     return  (TPS_ERR_NONE);
 }

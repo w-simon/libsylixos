@@ -35,6 +35,16 @@ extern "C" {
 #define LW_OPTION_OBJECT_GLOBAL     0x80000000
 #endif
 /*********************************************************************************************************
+  链表操作宏
+*********************************************************************************************************/
+#define _LIST_OFFSETOF(type, member)                          \
+        ((size_t)&((type *)0)->member)
+#define _LIST_CONTAINER_OF(ptr, type, member)                 \
+        ((type *)((size_t)ptr - _LIST_OFFSETOF(type, member)))
+#define _LIST_ENTRY(ptr, type, member)                        \
+        _LIST_CONTAINER_OF(ptr, type, member)
+#define _LIST_LINE_GET_NEXT(pline)      ((pline)->LINE_plistNext)
+/*********************************************************************************************************
   sylixos 内核函数
 *********************************************************************************************************/
 extern VOID  _List_Line_Add_Ahead(PLW_LIST_LINE  plineNew, LW_LIST_LINE_HEADER  *pplineHeader);
@@ -241,7 +251,7 @@ void __cxa_finalize (void  *d)
         plinTemp = _G_plineCppFuncList;
         while (plinTemp) {
             pcppfl    = _LIST_ENTRY(plinTemp, __LW_CPP_FUNC_LIST, CPPFL_lineManage);
-            plinTemp  = _list_line_get_next(plinTemp);
+            plinTemp  = _LIST_LINE_GET_NEXT(plinTemp);
             if (pcppfl->CPPFL_pvHandle == d) {
                 _List_Line_Del(&pcppfl->CPPFL_lineManage, &_G_plineCppFuncList);
                 __LW_CPP_RT_UNLOCK();
@@ -291,7 +301,7 @@ void __cxa_module_finalize (void *pvBase, size_t stLen, BOOL bCall)
     plinTemp = _G_plineCppFuncList;
     while (plinTemp) {
         pcppfl    = _LIST_ENTRY(plinTemp, __LW_CPP_FUNC_LIST, CPPFL_lineManage);
-        plinTemp  = _list_line_get_next(plinTemp);
+        plinTemp  = _LIST_LINE_GET_NEXT(plinTemp);
         if (((PCHAR)pcppfl->CPPFL_pvHandle >= (PCHAR)pvBase) &&
             ((PCHAR)pcppfl->CPPFL_pvHandle <  (PCHAR)pvBase + stLen)) {
             _List_Line_Del(&pcppfl->CPPFL_lineManage, &_G_plineCppFuncList);

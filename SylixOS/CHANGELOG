@@ -4,6 +4,18 @@ HISTORY
 
 ++ New features:
 
+    2017-12-13: han.hui
+    加入 IPv6 路由支持.
+    支持标准 BSD 路由 ioctl() 命令: SIOCADDRT & SIOCDELRT (支持 IPv6 路由表)
+    增加 SIOCCHGRT, SIOCGETRT, SIOCLSTRT (改, 查, 列) 路由命令.
+    增加 BSD 兼容 AF_ROUTE 路由协议域.
+
+    2017-12-10: han.hui
+    重构 IPv4 路由系统.
+
+    2017-12-06: han.hui
+    网络系统使用更加高效的内存管理技术.
+
     2017-12-04: han.hui
     增加"网桥"功能支持.
 
@@ -18,6 +30,9 @@ HISTORY
     增加 SPARC 体系结构支持.
 
 ++ Bugfixes:
+
+    2017-12-14: han.hui
+    修正 tpsFs 事务回滚错误.
 
     2017-10-31: han.hui
     修正多核亲和度调度可能产生的优先级反转错误.

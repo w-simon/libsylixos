@@ -23,7 +23,10 @@
 #define __TREE_H
 
 #include "../SylixOS/kernel/tree/treeType.h"                            /*  所有树类型                  */
+
+#ifdef __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/tree/treeOp.h"                              /*  操作库                      */
+#endif
 
 #endif                                                                  /*  __TREE_H                    */
 /*********************************************************************************************************
