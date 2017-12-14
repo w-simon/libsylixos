@@ -116,6 +116,8 @@
                                                                         /* fd                           */
 #define F_RSETLKW                   13                                  /* Set or Clear remote          */
                                                                         /* record-lock(Blocking)        */
+#define F_GETSIG                    14                                  /* Get device notify signo      */
+#define F_SETSIG                    15                                  /* Set device notify signo      */
 
 /*********************************************************************************************************
   POSIX.1-2008

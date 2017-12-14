@@ -166,6 +166,12 @@
 
 #define  FIOCHMOD           LW_OSIOD('f', 70, INT)              /* chmod                                */
 #define  FIOCHOWN           LW_OSIOW('f', 71, LW_IO_USR)        /* chown                                */
+
+#define  FIOGETOWN          LW_OSIOR('f', 75, pid_t)            /* F_GETOWN                             */
+#define  FIOSETOWN          LW_OSIOD('f', 76, pid_t)            /* F_SETOWN                             */
+
+#define  FIOGETSIG          LW_OSIOR('f', 77, INT)              /* F_GETSIG                             */
+#define  FIOSETSIG          LW_OSIOD('f', 78, INT)              /* F_SETSIG                             */
 #endif
 
 #define  FIOFSTYPE          LW_OSIOR('f', 80, LW_PATHB)         /* get file system type sring           */

@@ -51,6 +51,8 @@ INT  fcntl (INT  iFd, INT  iCmd, ...)
              va_list       varlist;
              INT           iFd2;
              INT           iFlag;
+             INT           iSigno;
+             pid_t         pidOwn;
              INT           iRetVal = ERROR_NONE;
              INT           iNbioStat;
              struct flock *pfl;
@@ -142,6 +144,20 @@ INT  fcntl (INT  iFd, INT  iCmd, ...)
         va_end(varlist);
         break;
         
+    case F_GETOWN:                                                      /* Get owner - for ASYNC        */
+        iRetVal = ioctl(iFd, FIOGETOWN, &pidOwn);
+        if (iRetVal >= ERROR_NONE) {
+            iRetVal = (INT)pidOwn;
+        }
+        break;
+        
+    case F_SETOWN:                                                      /* Set owner - for ASYNC        */
+        va_start(varlist, iCmd);
+        pidOwn = va_arg(varlist, pid_t);
+        iRetVal = ioctl(iFd, FIOSETOWN, (void *)pidOwn);
+        va_end(varlist);
+        break;
+        
     case F_GETLK:                                                       /* Get record-locking           */
         va_start(varlist, iCmd);
         pfl = va_arg(varlist, struct flock *);
@@ -160,6 +176,20 @@ INT  fcntl (INT  iFd, INT  iCmd, ...)
         va_start(varlist, iCmd);
         pfl = va_arg(varlist, struct flock *);
         iRetVal = ioctl(iFd, FIOSETLKW, pfl);
+        va_end(varlist);
+        break;
+    
+    case F_GETSIG:                                                      /* Get device notify signo      */
+        iRetVal = ioctl(iFd, FIOGETSIG, &iSigno);
+        if (iRetVal >= ERROR_NONE) {
+            iRetVal = iSigno;
+        }
+        break;
+        
+    case F_SETSIG:                                                      /* Set device notify signo      */
+        va_start(varlist, iCmd);
+        iSigno = va_arg(varlist, INT);
+        iRetVal = ioctl(iFd, FIOSETSIG, (void *)iSigno);
         va_end(varlist);
         break;
     
