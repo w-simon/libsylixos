@@ -19,6 +19,8 @@
  *    and/or other materials provided with the distribution.
  * 3. The name of the author may not be used to endorse or promote products
  *    derived from this software without specific prior written permission. 
+ * 4. This code has been or is applying for intellectual property protection 
+ *    and can only be used with acoinfo software products.
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED 
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
@@ -38,7 +40,9 @@
 #ifndef __IP4_ROUTE_H
 #define __IP4_ROUTE_H
 
+#include "net/if.h"
 #include "net/if_dl.h"
+#include "net/route.h"
 
 /* tcpip safety call */
 #ifndef RT_LOCK
@@ -71,6 +75,8 @@ struct rt_entry {
   u_long            rt_flags;   /* flags */
   struct netif     *rt_netif;   /* netif */
   char              rt_ifname[IF_NAMESIZE]; /* ifname */
+  
+  u_long            rt_inits;   /* which metrics we are initializing */
   struct rt_metrics rt_rmx;     /* metrics */
   int               rt_metric;  /* value of metric */
   u_long            rt_refcnt;  /* references counter */
@@ -84,9 +90,12 @@ struct rt_entry {
 };
 
 /* route internal functions */
-void  rt_traversal_entry(VOIDFUNCPTR func, void *arg0, void *arg1, 
-                         void *arg2, void *arg3, void *arg4, void *arg5);
-struct rt_entry *rt_find_entry(const ip4_addr_t *ipdest, u_long flags);
+void rt_traversal_entry(VOIDFUNCPTR func, void *arg0, void *arg1, 
+                        void *arg2, void *arg3, void *arg4, void *arg5);
+struct rt_entry *rt_find_entry(const ip4_addr_t *ipdest, 
+                               const ip4_addr_t *ipnetmask, 
+                               const ip4_addr_t *ipgateway,
+                               const char *ifname, u_long flags);
 int  rt_add_entry(struct rt_entry *entry);
 void rt_delete_entry(struct rt_entry *entry);
 void rt_total_entry(unsigned int *cnt);
@@ -100,9 +109,12 @@ int  rt_msghdr_to_entry(struct rt_entry *entry, const struct rt_msghdr *rtmsghdr
 void rt_entry_to_rtentry(struct rtentry *rtentry, const struct rt_entry *entry);
 void rt_rtentry_to_entry(struct rt_entry *entry, const struct rtentry *rtentry);
 
+/* netif hooks */
+void rt_netif_add_hook(struct netif *netif);
+void rt_netif_remove_hook(struct netif *netif);
+void rt_netif_invcache_hook(struct netif *netif);
+
 /* tcpip hooks */
-void  rt_netif_add_hook(struct netif *netif);
-void  rt_netif_remove_hook(struct netif *netif);
 struct netif *rt_route_search_hook(const ip4_addr_t *ipdest, const ip4_addr_t *ipsrc);
 ip4_addr_t *rt_route_gateway_hook(struct netif *netif, const ip4_addr_t *ipdest);
 

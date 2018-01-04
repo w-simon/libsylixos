@@ -65,6 +65,10 @@ int  getrusage (int  who, struct rusage *r_usage)
     } else if (who == RUSAGE_CHILDREN) {
         __tickToTimeval(tmsBuf.tms_cutime, &r_usage->ru_utime);
         __tickToTimeval(tmsBuf.tms_cstime, &r_usage->ru_stime);
+    
+    } else {
+        errno = EINVAL;
+        return  (PX_ERROR);
     }
     
     return  (ERROR_NONE);

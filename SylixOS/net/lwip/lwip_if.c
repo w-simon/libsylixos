@@ -298,8 +298,7 @@ char *if_indextoname (unsigned  ifindex, char *ifname)
     if (pnetif) {
         ifname[0] = pnetif->name[0];
         ifname[1] = pnetif->name[1];
-        ifname[2] = (char)(pnetif->num + '0');
-        ifname[3] = PX_EOS;
+        lib_itoa(pnetif->num, &ifname[2], 10);
     }
     LWIP_NETIF_UNLOCK();                                                /*  ÍË³öÁÙ½çÇø                  */
     
@@ -334,15 +333,14 @@ struct if_nameindex *if_nameindex (void)
     if (pifnameindexArry) {
         int     i = 0;
         
-        for(pnetif  = netif_list; 
-            pnetif != LW_NULL; 
-            pnetif  = pnetif->next) {
+        for (pnetif  = netif_list; 
+             pnetif != LW_NULL; 
+             pnetif  = pnetif->next) {
             
             pifnameindexArry[i].if_index = (unsigned)pnetif->num;
             pifnameindexArry[i].if_name_buf[0] = pnetif->name[0];
             pifnameindexArry[i].if_name_buf[1] = pnetif->name[1];
-            pifnameindexArry[i].if_name_buf[2] = (char)(pnetif->num + '0');
-            pifnameindexArry[i].if_name_buf[3] = PX_EOS;
+            lib_itoa(pnetif->num, &pifnameindexArry[i].if_name_buf[2], 10);
             pifnameindexArry[i].if_name = pifnameindexArry[i].if_name_buf;
             i++;
         }

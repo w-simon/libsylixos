@@ -1196,6 +1196,9 @@ LW_API ULONG            API_KernelHookDelete(ULONG  ulOpt);             /*  É¾³ý
 LW_API INT              API_KernelSmpCall(ULONG  ulCPUId, FUNCPTR  pfunc, PVOID  pvArg,
                                           VOIDFUNCPTR  pfuncAsync, PVOID  pvAsync, INT  iOpt);
 
+LW_API VOID             API_KernelSmpCallAll(FUNCPTR  pfunc,  PVOID  pvArg, 
+                                             VOIDFUNCPTR  pfuncAsync, PVOID  pvAsync, INT  iOpt);
+
 LW_API VOID             API_KernelSmpCallAllOther(FUNCPTR  pfunc, PVOID  pvArg,
                                                   VOIDFUNCPTR  pfuncAsync, PVOID  pvAsync, INT  iOpt);
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */

@@ -331,7 +331,7 @@ static ssize_t  _evtfdRead (PLW_EVTFD_FILE  pevtfdfil,
     
     if (pevtfdfil->EF_iFlag & EFD_SEMAPHORE) {                          /*  EFD_SEMAPHORE               */
         UINT64  u64One = 1;
-        lib_memcpy(pcBuffer, &u64One, sizeof(UINT64));                  /*  host bytes order            */
+        lib_memcpy(pcBuffer, &u64One, sizeof(UINT64));                  /*  host byte order             */
         pevtfdfil->EF_u64Counter--;
     
     } else {

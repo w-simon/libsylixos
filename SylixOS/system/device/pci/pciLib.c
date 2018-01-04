@@ -204,32 +204,24 @@ pci_size_t  API_PciSizeNumGet (pci_size_t stSize)
 LW_API 
 PCI_CTRL_HANDLE  API_PciCtrlCreate (PCI_CTRL_HANDLE hCtrl)
 {
-    PCI_AUTO_HANDLE         hPciAuto;
-    PCI_AUTO_DEV_HANDLE     hAutoDev;
-
     if (PCI_CTRL == LW_NULL) {
-        PCI_CTRL =  hCtrl;
+        PCI_CTRL = hCtrl;
         
         LW_SPIN_INIT(&PCI_CTRL->PCI_slLock);
         
-        hPciAuto = &PCI_CTRL->PCI_tAutoConfig;
-        if (hPciAuto->PCIAUTO_iConfigEn) {
-            API_PciAutoCtrlInit(PCI_CTRL);
-            for (hAutoDev  = PCI_AUTO_BDF(hPciAuto->PCIAUTO_uiFirstBusNo, 0, 0);
-                 hAutoDev  < PCI_AUTO_BDF(hPciAuto->PCIAUTO_uiFirstBusNo,
-                                          PCI_MAX_SLOTS - 1, PCI_MAX_FUNCTIONS - 1);
-                 hAutoDev += PCI_AUTO_BDF(0, 0, 1)) {
-                API_PciAutoDeviceConfig(PCI_CTRL, hAutoDev, &hPciAuto->PCIAUTO_uiLastBusNo);
-                PCI_CTRL->PCI_iBusMax = hPciAuto->PCIAUTO_uiLastBusNo;
-            }
-        }
+        API_PciDevInit();
+        API_PciDevListCreate();
+
+        /*
+         *  需要在设备列表创建完成之后再进行自动配置
+         *  因为部分平台配置寄存器的读写需要依赖父节点的索引参数
+         */
+        API_PciAutoScan(hCtrl, (UINT32 *)&hCtrl->PCI_iBusMax);
 
 #if LW_CFG_PROCFS_EN > 0
         __procFsPciInit();
 #endif                                                                  /*  LW_CFG_PROCFS_EN > 0        */
 
-        API_PciDevInit();
-        API_PciDevListCreate();
         API_PciDevSetupAll();
         API_PciDrvInit();
 
@@ -1556,18 +1548,33 @@ INT  API_PciDevSetup (PCI_DEV_HANDLE  hDevHandle)
         return  (PX_ERROR);
     }
 
+    /*
+     *  当执行自动配置后, 需要主动更新设备信息
+     */
+    API_PciGetHeader(hDevHandle->PCIDEV_iDevBus,
+                     hDevHandle->PCIDEV_iDevDevice,
+                     hDevHandle->PCIDEV_iDevFunction,
+                     &hDevHandle->PCIDEV_phDevHdr);                     /* 更新设备信息                 */
+
+    hDevHandle->PCIDEV_iType = hDevHandle->PCIDEV_phDevHdr.PCIH_ucType & PCI_HEADER_TYPE_MASK;
     switch (hDevHandle->PCIDEV_iType) {
 
     case PCI_HEADER_TYPE_NORMAL:
         __pciDevReadIrq(hDevHandle);
         __pciDevReadBases(hDevHandle, PCI_DEV_BAR_MAX, PCI_ROM_ADDRESS);
         hDevHandle->PCIDEV_uiResourceNum = PCI_NUM_RESOURCES;
+        hDevHandle->PCIDEV_ucPin         = hDevHandle->PCIDEV_phDevHdr.PCIH_pcidHdr.PCID_ucIntPin;
+        hDevHandle->PCIDEV_ucLine        = hDevHandle->PCIDEV_phDevHdr.PCIH_pcidHdr.PCID_ucIntLine;
         break;
 
     case PCI_HEADER_TYPE_BRIDGE:
+        hDevHandle->PCIDEV_ucPin  = hDevHandle->PCIDEV_phDevHdr.PCIH_pcibHdr.PCIB_ucIntPin;
+        hDevHandle->PCIDEV_ucLine = hDevHandle->PCIDEV_phDevHdr.PCIH_pcibHdr.PCIB_ucIntLine;
         break;
 
     case PCI_HEADER_TYPE_CARDBUS:
+        hDevHandle->PCIDEV_ucPin  = hDevHandle->PCIDEV_phDevHdr.PCIH_pcicbHdr.PCICB_ucIntPin;
+        hDevHandle->PCIDEV_ucLine = hDevHandle->PCIDEV_phDevHdr.PCIH_pcicbHdr.PCICB_ucIntLine;
         break;
 
     default:

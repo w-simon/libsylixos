@@ -19,6 +19,8 @@
  *    and/or other materials provided with the distribution.
  * 3. The name of the author may not be used to endorse or promote products
  *    derived from this software without specific prior written permission. 
+ * 4. This code has been or is applying for intellectual property protection 
+ *    and can only be used with acoinfo software products.
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED 
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
@@ -36,7 +38,7 @@
  */
 
 #define __SYLIXOS_KERNEL
-#include "unistd.h"
+#include "unistd.h" /* for getpid() */
 
 #if LW_CFG_NET_ROUTER > 0
 
@@ -66,7 +68,11 @@ static pid_t rt_pid_default;
 #define RT_HASH_MASK    (RT_HASH_SIZE - 1)
 
 /* route hash index */
+#if BYTE_ORDER == BIG_ENDIAN
 #define RT_HASH_INDEX(ipaddr)   (((ipaddr)->addr >> (RT_HASH_SIZE - RT_HASH_SHIFT)) & RT_HASH_MASK)
+#else
+#define RT_HASH_INDEX(ipaddr)   (((ipaddr)->addr >> (8 - RT_HASH_SHIFT)) & RT_HASH_MASK)
+#endif
 
 /* route hash table */
 static LW_LIST_LINE_HEADER  rt_table[RT_HASH_SIZE];
@@ -74,6 +80,7 @@ static LW_LIST_LINE_HEADER  rt_table[RT_HASH_SIZE];
 /* route cache */
 struct rt_cache {
   struct rt_entry *rt_entry;
+  ip4_addr_t rt_dest;
 };
 
 static struct rt_cache  rt_cache;
@@ -81,11 +88,13 @@ static struct rt_cache  rt_cache;
 #define RT_CACHE_INVAL(entry) \
         if (rt_cache.rt_entry == entry) { \
           rt_cache.rt_entry = NULL; \
+          rt_cache.rt_dest.addr = IPADDR_ANY; \
         }
 
 /* gateway cache */
 struct gw_cache {
   struct rt_entry *rt_entry;
+  ip4_addr_t rt_dest;
   ip4_addr_t rt_gateway;
 };
 
@@ -94,8 +103,15 @@ static struct gw_cache  gw_cache[LW_CFG_NET_DEV_MAX];
 #define GW_CACHE_INVAL(index, entry) \
         if (gw_cache[index].rt_entry == entry) { \
           gw_cache[index].rt_entry = NULL; \
+          gw_cache[index].rt_dest.addr = IPADDR_ANY; \
           gw_cache[index].rt_gateway.addr = IPADDR_ANY; \
         }
+        
+/* netif is valid */
+#define RT_NETIF_AVLID(netif) \
+        ((netif_ip4_addr(netif)->addr != IPADDR_ANY) && \
+         (netif_ip4_netmask(netif)->addr != IPADDR_ANY) && \
+         (netif_ip4_gw(netif)->addr != IPADDR_ANY))
 
 /* route table match */
 static struct rt_entry *rt_match (const ip4_addr_t *ipdest)
@@ -108,12 +124,13 @@ static struct rt_entry *rt_match (const ip4_addr_t *ipdest)
   for (pline = rt_table[hash]; pline != NULL; pline = _list_line_get_next(pline)) {
     entry = (struct rt_entry *)pline;
     if (RTF_VALID(entry->rt_flags)) {
-      if ((entry->rt_flags & RTF_HOST) && 
-          (entry->rt_dest.addr == ipdest->addr)) {
-        return (entry); /* match to host */
+      if (netif_is_up(entry->rt_netif) && netif_is_link_up(entry->rt_netif)) {
+        if (entry->rt_flags & RTF_HOST) {
+          if (entry->rt_dest.addr == ipdest->addr) {
+            return (entry); /* match to host */
+          }
       
-      } else if (entry_net == NULL) {
-        if (netif_is_up(entry->rt_netif) && netif_is_link_up(entry->rt_netif)) {
+        } else if (entry_net == NULL) {
           if (ip4_addr_netcmp(&entry->rt_dest, ipdest, &entry->rt_netmask)) {
             entry_net = entry; /* match to net */
           }
@@ -123,6 +140,12 @@ static struct rt_entry *rt_match (const ip4_addr_t *ipdest)
   }
   
   return (entry_net);
+}
+
+/* route table cnt */
+static void rt_counter (struct rt_entry *entry, int *cnt)
+{
+  (*cnt) += 1;
 }
 
 /* buildin route table walk call */
@@ -137,53 +160,57 @@ static void  rt_traversal_buildin (VOIDFUNCPTR func, void *arg0, void *arg1,
   entry.rt_metric = rt_bi_mbase + 1;
   
   if (netif_default) {
-    entry.rt_dest.addr = IPADDR_ANY;
-    entry.rt_netmask.addr = IPADDR_ANY;
-    entry.rt_gateway.addr = netif_ip4_gw(netif_default)->addr;
-    entry.rt_ifaddr.addr = netif_ip4_addr(netif_default)->addr;
-    entry.rt_netif = netif_default;
-    entry.rt_ifname[0] = netif_default->name[0];
-    entry.rt_ifname[1] = netif_default->name[1];
-    lib_itoa(netif_default->num, &entry.rt_ifname[2], 10);
-    
-    if (netif_is_up(netif_default) && netif_is_link_up(netif_default)) {
-      entry.rt_flags = RTF_UP | RTF_GATEWAY | RTF_RUNNING | RTF_LOCAL;
-    } else {
-      entry.rt_flags = RTF_UP | RTF_GATEWAY | RTF_LOCAL;
+    if (RT_NETIF_AVLID(netif_default)) {
+      entry.rt_dest.addr = IPADDR_ANY;
+      entry.rt_netmask.addr = IPADDR_ANY;
+      entry.rt_gateway.addr = netif_ip4_gw(netif_default)->addr;
+      entry.rt_ifaddr.addr = netif_ip4_addr(netif_default)->addr;
+      entry.rt_netif = netif_default;
+      entry.rt_ifname[0] = netif_default->name[0];
+      entry.rt_ifname[1] = netif_default->name[1];
+      lib_itoa(netif_default->num, &entry.rt_ifname[2], 10);
+      
+      if (netif_is_up(netif_default) && netif_is_link_up(netif_default)) {
+        entry.rt_flags = RTF_UP | RTF_GATEWAY | RTF_RUNNING | RTF_LOCAL;
+      } else {
+        entry.rt_flags = RTF_UP | RTF_GATEWAY | RTF_LOCAL;
+      }
+      
+      func(&entry, arg0, arg1, arg2, arg3, arg4, arg5);
     }
-    
-    func(&entry, arg0, arg1, arg2, arg3, arg4, arg5);
   }
   
   for (netif = netif_list; netif != NULL; netif = netif->next) {
-    entry.rt_dest.addr = netif_ip4_addr(netif)->addr;  /* destination address */
-    entry.rt_netmask.addr = IPADDR_NONE;
-    entry.rt_gateway.addr = IPADDR_ANY;
-    entry.rt_ifaddr.addr = netif_ip4_addr(netif)->addr;
-    entry.rt_netif = netif;
-    entry.rt_ifname[0] = netif->name[0];
-    entry.rt_ifname[1] = netif->name[1];
-    lib_itoa(netif->num, &entry.rt_ifname[2], 10);
+    if (RT_NETIF_AVLID(netif)) {
+      entry.rt_dest.addr = netif_ip4_addr(netif)->addr;  /* destination address */
+      entry.rt_netmask.addr = IPADDR_NONE;
+      entry.rt_gateway.addr = IPADDR_ANY;
+      entry.rt_ifaddr.addr = netif_ip4_addr(netif)->addr;
+      entry.rt_netif = netif;
+      entry.rt_ifname[0] = netif->name[0];
+      entry.rt_ifname[1] = netif->name[1];
+      lib_itoa(netif->num, &entry.rt_ifname[2], 10);
     
-    if (netif_is_up(netif) && netif_is_link_up(netif)) {
-      entry.rt_flags = RTF_UP | RTF_HOST | RTF_RUNNING | RTF_LOCAL;
-    } else {
-      entry.rt_flags = RTF_UP | RTF_HOST | RTF_LOCAL;
-    }
+      if (netif_is_up(netif) && netif_is_link_up(netif)) {
+        entry.rt_flags = RTF_UP | RTF_HOST | RTF_RUNNING | RTF_LOCAL;
+      } else {
+        entry.rt_flags = RTF_UP | RTF_HOST | RTF_LOCAL;
+      }
     
-    func(&entry, arg0, arg1, arg2, arg3, arg4, arg5);
+      func(&entry, arg0, arg1, arg2, arg3, arg4, arg5);
     
-    entry.rt_netmask.addr = netif_ip4_netmask(netif)->addr;
-    if (!ip4_addr_isloopback(&entry.rt_dest) &&
-        ((netif->flags & NETIF_FLAG_BROADCAST) == 0)) {
-      entry.rt_dest.addr = netif_ip4_gw(netif)->addr;
+      entry.rt_netmask.addr = netif_ip4_netmask(netif)->addr;
+      if (!ip4_addr_isloopback(&entry.rt_dest) &&
+          ((netif->flags & NETIF_FLAG_BROADCAST) == 0)) {
+        entry.rt_dest.addr = netif_ip4_gw(netif)->addr;
   
-    } else {
-      entry.rt_dest.addr = netif_ip4_addr(netif)->addr & netif_ip4_netmask(netif)->addr;
-      entry.rt_flags &= ~RTF_HOST;
-    }
+      } else {
+        entry.rt_dest.addr = netif_ip4_addr(netif)->addr & netif_ip4_netmask(netif)->addr;
+        entry.rt_flags &= ~RTF_HOST;
+      }
     
-    func(&entry, arg0, arg1, arg2, arg3, arg4, arg5);
+      func(&entry, arg0, arg1, arg2, arg3, arg4, arg5);
+    }
   }
 }
 
@@ -216,7 +243,10 @@ void  rt_traversal_entry (VOIDFUNCPTR func, void *arg0, void *arg1,
 }
 
 /* find route entry */
-struct rt_entry *rt_find_entry (const ip4_addr_t *ipdest, u_long flags)
+struct rt_entry *rt_find_entry (const ip4_addr_t *ipdest, 
+                                const ip4_addr_t *ipnetmask, 
+                                const ip4_addr_t *ipgateway,
+                                const char *ifname, u_long host)
 {
   int hash = RT_HASH_INDEX(ipdest);
   LW_LIST_LINE *pline;
@@ -224,10 +254,24 @@ struct rt_entry *rt_find_entry (const ip4_addr_t *ipdest, u_long flags)
   
   for (pline = rt_table[hash]; pline != NULL; pline = _list_line_get_next(pline)) {
     entry = (struct rt_entry *)pline;
-    if (entry->rt_dest.addr == ipdest->addr) {
-      if (!flags || ((entry->rt_flags & ~RTF_RUNNING) == (flags & ~RTF_RUNNING))) {
-        return (entry);
+    if (((host & RTF_HOST) == (entry->rt_flags & RTF_HOST)) &&
+        (entry->rt_dest.addr == ipdest->addr)) {
+      if (!ip4_addr_isany(ipnetmask)) {
+        if (entry->rt_netmask.addr != ipnetmask->addr) {
+          continue;
+        }
       }
+      if (!ip4_addr_isany(ipgateway)) {
+        if (entry->rt_gateway.addr != ipgateway->addr) {
+          continue;
+        }
+      }
+      if (ifname && ifname[0]) {
+        if (lib_strcmp(entry->rt_ifname, ifname)) {
+          continue;
+        }
+      }
+      return (entry);
     }
   }
   
@@ -349,11 +393,14 @@ void rt_delete_entry (struct rt_entry *entry)
   _List_Line_Del(&entry->rt_list, &rt_table[hash]);
 }
 
-/* delete route entry */
+/* get route entry total num */
 void rt_total_entry (unsigned int *cnt)
 {
+  int count = 0;
+
+  rt_traversal_entry(rt_counter, &count, NULL, NULL, NULL, NULL, NULL);
   if (cnt) {
-    *cnt = rt_total + (netif_get_num() * 2) + 1;
+    *cnt = count;
   }
 }
 
@@ -470,10 +517,24 @@ void  rt_netif_remove_hook (struct netif *netif)
   RT_UNLOCK();
 }
 
+/* rt_netif_invcache_hook */
+void  rt_netif_invcache_hook (struct netif *netif)
+{
+  RT_LOCK();
+  if (rt_cache.rt_entry) {
+    if (rt_cache.rt_entry->rt_netif == netif) {
+      RT_CACHE_INVAL(rt_cache.rt_entry);
+      GW_CACHE_INVAL(netif->num, rt_cache.rt_entry);
+    }
+  }
+  RT_UNLOCK();
+}
+
 /* rt_route_src_hook */
 struct netif *rt_route_search_hook (const ip4_addr_t *ipdest, const ip4_addr_t *ipsrc)
 {
   struct netif *netif;
+  struct gw_cache *gwc;
   struct rt_entry *entry;
   
   if ((ipdest->addr == IPADDR_BROADCAST) && 
@@ -490,14 +551,27 @@ struct netif *rt_route_search_hook (const ip4_addr_t *ipdest, const ip4_addr_t *
   }
   
   if (rt_cache.rt_entry && 
-      RTF_VALID(rt_cache.rt_entry->rt_flags) && 
-      (rt_cache.rt_entry->rt_dest.addr == ipdest->addr)) {
-    return (rt_cache.rt_entry->rt_netif);
+      RTF_VALID(rt_cache.rt_entry->rt_flags)) {
+    if (rt_cache.rt_dest.addr == ipdest->addr) {
+      return (rt_cache.rt_entry->rt_netif);
+    
+    } else if (!(rt_cache.rt_entry->rt_flags & RTF_HOST)) {
+      if (ip4_addr_netcmp(&rt_cache.rt_entry->rt_dest, ipdest, 
+                          &rt_cache.rt_entry->rt_netmask)) {
+        rt_cache.rt_dest.addr = ipdest->addr;
+        return (rt_cache.rt_entry->rt_netif);
+      }
+    }
   }
   
   entry = rt_match(ipdest);
   if (entry) {
     rt_cache.rt_entry = entry;
+    rt_cache.rt_dest.addr = ipdest->addr;
+    gwc = &gw_cache[entry->rt_netif->num];
+    gwc->rt_entry = entry;
+    gwc->rt_dest.addr = ipdest->addr;
+    gwc->rt_gateway.addr = entry->rt_gateway.addr;
     return (entry->rt_netif);
   }
   
@@ -516,20 +590,36 @@ ip4_addr_t *rt_route_gateway_hook (struct netif *netif, const ip4_addr_t *ipdest
   
   gwc = &gw_cache[netif->num];
   if (gwc->rt_entry &&
-      RTF_VALID(gwc->rt_entry->rt_flags) && 
-      (gwc->rt_entry->rt_dest.addr == ipdest->addr)) {
-    if (gwc->rt_gateway.addr != IPADDR_ANY) {
-      return (&gwc->rt_gateway);
-    } else {
-      return (NULL);
+      RTF_VALID(gwc->rt_entry->rt_flags)) {
+    if (gwc->rt_dest.addr == ipdest->addr) {
+      if ((gwc->rt_gateway.addr != IPADDR_ANY) &&
+          (gwc->rt_entry->rt_netif == netif)) {
+        return (&gwc->rt_gateway);
+      } else {
+        return (NULL);
+      }
+    
+    } else if (!(gwc->rt_entry->rt_flags & RTF_HOST)) {
+      if (ip4_addr_netcmp(&gwc->rt_entry->rt_dest, ipdest, 
+                          &gwc->rt_entry->rt_netmask)) {
+        gwc->rt_dest.addr = ipdest->addr;
+        if ((gwc->rt_gateway.addr != IPADDR_ANY) &&
+            (gwc->rt_entry->rt_netif == netif)) {
+          return (&gwc->rt_gateway);
+        } else {
+          return (NULL);
+        }
+      }
     }
   }
   
   entry = rt_match(ipdest);
   if (entry) {
     gwc->rt_entry = entry;
+    gwc->rt_dest.addr = ipdest->addr;
     gwc->rt_gateway.addr = entry->rt_gateway.addr;
-    if (gwc->rt_gateway.addr != IPADDR_ANY) {
+    if ((gwc->rt_gateway.addr != IPADDR_ANY) &&
+        (entry->rt_netif == netif)) {
       return (&gwc->rt_gateway);
     } else {
       return (NULL);

@@ -27,27 +27,27 @@
 #if LW_CFG_SHELL_PASS_CRYPT_EN > 0
 
 typedef UINT32  u32_t;
-#include "polarssl/md5.h"
+#include "mbedtls/md5.h"
 
 #include "crypt_internal.h"
 
-typedef md5_context     MD5_CTX;
+typedef mbedtls_md5_context     MD5_CTX;
 
 #define MD5_MAGIC	"$1$"
 #define MD5_MAGIC_LEN	3
 
 /*
- *  polarssl md5_finish(ctx, output) not MD5Final(output, ctx)!!!
+ *  mbedtls md5_finish(ctx, output) not MD5Final(output, ctx)!!!
  */
 
 #ifdef libcrypto
-#define	INIT(x)			md5_starts((x))
-#define	UPDATE(x, b, l)		md5_update((x), (b), (l))
-#define	FINAL(v, x)		md5_finish((x), (v))
+#define	INIT(x)			mbedtls_md5_starts((x))
+#define	UPDATE(x, b, l)		mbedtls_md5_update((x), (b), (l))
+#define	FINAL(v, x)		mbedtls_md5_finish((x), (v))
 #else
-#define	INIT(x)			md5_starts((x))
-#define	UPDATE(x, b, l)		md5_update((x), (b), (l))
-#define	FINAL(v, x)		md5_finish((x), (v))
+#define	INIT(x)			mbedtls_md5_starts((x))
+#define	UPDATE(x, b, l)		mbedtls_md5_update((x), (b), (l))
+#define	FINAL(v, x)		mbedtls_md5_finish((x), (v))
 #endif
 
 /*

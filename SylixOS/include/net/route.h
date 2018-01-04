@@ -32,6 +32,10 @@
 
 #include "if.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif                                          /*  __cplusplus                                         */
+
 /*********************************************************************************************************
   These numbers are used by reliable protocols for determining
   retransmission behavior and are included in the routing structure.
@@ -209,7 +213,7 @@ struct rtentry {
 #define SIOCADDRT       _IOW( 'r', 10, struct rtentry)
 #define SIOCDELRT       _IOW( 'r', 11, struct rtentry)
 #define SIOCCHGRT       _IOW( 'r', 12, struct rtentry)
-#define SIOCGETRT       _IOW( 'r', 13, struct rtentry)
+#define SIOCGETRT       _IOWR('r', 13, struct rtentry)
 
 /*********************************************************************************************************
   This structure gets passed by the SIOCLSTRT calls. 
@@ -227,6 +231,7 @@ struct rtentry_list {
 /*********************************************************************************************************
   This structure gets passed by the SIOCLSTRTM calls. 
 *********************************************************************************************************/
+
 struct rt_msghdr_list {
     size_t              rtml_bsize;             /* struct rtml_buf buffer size in bytes                 */
     size_t              rtml_rsize;             /* system return how many route entry in bytes          */
@@ -235,6 +240,10 @@ struct rt_msghdr_list {
 };
 
 #define SIOCLSTRTM      _IOWR('r', 15, struct rt_msghdr_list)
+
+#ifdef __cplusplus
+}
+#endif                                          /*  __cplusplus                                         */
 
 #endif                                          /*  LW_CFG_NET_EN > 0                                   */
                                                 /*  LW_CFG_NET_ROUTER > 0                               */

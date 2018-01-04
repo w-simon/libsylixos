@@ -20,6 +20,8 @@
  *    and/or other materials provided with the distribution.
  * 3. The name of the author may not be used to endorse or promote products
  *    derived from this software without specific prior written permission. 
+ * 4. This code has been or is applying for intellectual property protection 
+ *    and can only be used with acoinfo software products.
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED 
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
@@ -489,7 +491,8 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
   return (0);
 }
 
-/* netdev driver call the following functions delete a network interface */
+/* netdev driver call the following functions delete a network interface 
+ * WARNING: You MUST DO NOT lock device then call this function, it will cause a deadlock with TCP LOCK */
 int  netdev_delete (netdev_t *netdev)
 {
   struct netif *netif;
@@ -582,15 +585,15 @@ int  netdev_ifname (netdev_t *netdev, char *ifname)
   if (ifname) {
     ifname[0] = netif->name[0];
     ifname[1] = netif->name[1];
-    ifname[2] = (char)(netif->num + '0');
-    ifname[3] = '\0';
+    lib_itoa(netif->num, &ifname[2], 10);
   }
   
   return (0);
 }
 
 /* if netdev link status changed has been detected, 
- * driver must call the following functions */
+ * driver must call the following functions 
+ * WARNING: You MUST DO NOT lock device then call this function, it will cause a deadlock with TCP LOCK */
 int  netdev_set_linkup (netdev_t *netdev, int linkup, UINT64 speed)
 {
   struct netif *netif;
@@ -857,6 +860,17 @@ struct pbuf *netdev_pbuf_alloc (UINT16 len)
 void netdev_pbuf_free (struct pbuf *p)
 {
   pbuf_free(p);
+}
+
+struct pbuf *netdev_pbuf_alloc_ram (UINT16 len, UINT16 res)
+{
+  struct pbuf *p = pbuf_alloc(PBUF_RAW, (u16_t)(len + res), PBUF_POOL);
+  
+  if (p) {
+    pbuf_header(p, (u16_t)-res);
+  }
+  
+  return (p);
 }
 
 /* netdev input buffer push */

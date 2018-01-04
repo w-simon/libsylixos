@@ -29,6 +29,7 @@
 2012.05.10  加入符号表遍历函数 API_SymbolTraverse().
 2012.12.18  __symbolHashInsert() 不加入表头, 这样优先使用 bsp 和 libc 安装的符号.
 2013.01.13  进程中不可使用这些 API
+2018.01.03  涉及兼容性符号不可导出.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -69,6 +70,13 @@ size_t                          _G_stSymbolNameTotalLen = 0;
 *********************************************************************************************************/
 static PVOIDFUNCPTR             _G_pfuncSymbolFindHook     = LW_NULL;
 static VOIDFUNCPTR              _G_pfuncSymbolTraverseHook = LW_NULL;
+/*********************************************************************************************************
+  不可以倒出的符号
+*********************************************************************************************************/
+static const PCHAR              _G_pcSymHoldBack[] = {
+    "pbuf_alloc",
+    "pbuf_alloced_custom"
+};
 /*********************************************************************************************************
 ** 函数名称: __symbolFindHookSet
 ** 功能描述: 设置查找回调函数.
@@ -238,6 +246,10 @@ VOID  API_SymbolInit (VOID)
 LW_API 
 INT  API_SymbolAddStatic (PLW_SYMBOL  psymbol, INT  iNum)
 {
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE(x)   (sizeof(x) / sizeof((x)[0]))
+#endif
+
     INT      i;
 
     if (!psymbol || !iNum) {
@@ -259,6 +271,10 @@ INT  API_SymbolAddStatic (PLW_SYMBOL  psymbol, INT  iNum)
         psymbol++;
     }
     __LW_SYMBOL_UNLOCK();                                               /*  解锁符号表                  */
+    
+    for (i = 0; i < ARRAY_SIZE(_G_pcSymHoldBack); i++) {
+        API_SymbolDelete(_G_pcSymHoldBack[i], LW_SYMBOL_FLAG_XEN);
+    }
     
     return  (ERROR_NONE);
 }

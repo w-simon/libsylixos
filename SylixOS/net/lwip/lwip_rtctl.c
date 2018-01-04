@@ -26,9 +26,6 @@
 *********************************************************************************************************/
 #if LW_CFG_NET_EN > 0 && LW_CFG_NET_ROUTER > 0
 #include "sys/socket.h"
-#include "net/if.h"
-#include "net/if_dl.h"
-#include "net/route.h"
 #include "lwip/mem.h"
 #include "lwip/tcpip.h"
 #include "route/af_route.h"
@@ -75,7 +72,8 @@ static INT  __rtAdd4 (const struct rtentry  *prtentry)
         
     } else {
         RT_LOCK();
-        if (rt_find_entry(&pentry4->rt_dest, 0)) {
+        if (rt_find_entry(&pentry4->rt_dest, &pentry4->rt_netmask, &pentry4->rt_gateway, 
+                          pentry4->rt_ifname, pentry4->rt_flags)) {
             RT_UNLOCK();
             mem_free(pentry4);
             _ErrorHandle(EEXIST);
@@ -115,7 +113,7 @@ static INT  __rtAdd6 (const struct rtentry  *prtentry)
     
     inet6_addr_to_ip6addr(&ip6addr, &((struct sockaddr_in6 *)&prtentry->rt_dst)->sin6_addr);
     
-    if (ip6_addr_isany(&ip6addr)) {                                     /*  设置默认路由                */
+    if (ip6_addr_isany_val(ip6addr)) {                                  /*  设置默认路由                */
         _ErrorHandle(ENETUNREACH);
         return  (PX_ERROR);
     
@@ -127,15 +125,16 @@ static INT  __rtAdd6 (const struct rtentry  *prtentry)
         }
         lib_bzero(pentry6, sizeof(struct rt6_entry));
         
+        rt6_rtentry_to_entry(pentry6, prtentry);                        /*  转换为 rt6_entry            */
+        
         RT_LOCK();
-        if (rt6_find_entry(&ip6addr, 0)) {
+        if (rt6_find_entry(&pentry6->rt6_dest, &pentry6->rt6_netmask, &pentry6->rt6_gateway, 
+                           pentry6->rt6_ifname, pentry6->rt6_flags)) {
             RT_UNLOCK();
             mem_free(pentry6);
             _ErrorHandle(EEXIST);
             return  (PX_ERROR);
         }
-        
-        rt6_rtentry_to_entry(pentry6, prtentry);                        /*  转换为 rt6_entry            */
         
         iRet = rt6_add_entry(pentry6);
         if (iRet < 0) {
@@ -166,8 +165,12 @@ static INT  __rtDel4 (const struct rtentry  *prtentry)
 {
     struct rt_entry    *pentry4;
     ip4_addr_t          ipaddr;
+    ip4_addr_t          ipnetmask;
+    ip4_addr_t          ipgateway;
     
-    inet_addr_to_ip4addr(&ipaddr, &((struct sockaddr_in *)&prtentry->rt_dst)->sin_addr);
+    inet_addr_to_ip4addr(&ipaddr,    &((struct sockaddr_in *)&prtentry->rt_dst)->sin_addr);
+    inet_addr_to_ip4addr(&ipnetmask, &((struct sockaddr_in *)&prtentry->rt_genmask)->sin_addr);
+    inet_addr_to_ip4addr(&ipgateway, &((struct sockaddr_in *)&prtentry->rt_gateway)->sin_addr);
     
     if (ipaddr.addr == IPADDR_ANY) {
         _ErrorHandle(ENETUNREACH);
@@ -175,7 +178,8 @@ static INT  __rtDel4 (const struct rtentry  *prtentry)
     }
     
     RT_LOCK();
-    pentry4 = rt_find_entry(&ipaddr, 0);
+    pentry4 = rt_find_entry(&ipaddr, &ipnetmask, &ipgateway, 
+                            prtentry->rt_ifname, prtentry->rt_flags);
     if (!pentry4 || pentry4->rt_type) {
         RT_UNLOCK();
         _ErrorHandle(ENETUNREACH);
@@ -203,16 +207,21 @@ static INT  __rtDel6 (const struct rtentry  *prtentry)
 {
     struct rt6_entry    *pentry6;
     ip6_addr_t           ip6addr;
+    ip6_addr_t           ip6netmask;
+    ip6_addr_t           ip6gateway;
     
-    inet6_addr_to_ip6addr(&ip6addr, &((struct sockaddr_in6 *)&prtentry->rt_dst)->sin6_addr);
+    inet6_addr_to_ip6addr(&ip6addr,    &((struct sockaddr_in6 *)&prtentry->rt_dst)->sin6_addr);
+    inet6_addr_to_ip6addr(&ip6netmask, &((struct sockaddr_in6 *)&prtentry->rt_genmask)->sin6_addr);
+    inet6_addr_to_ip6addr(&ip6gateway, &((struct sockaddr_in6 *)&prtentry->rt_gateway)->sin6_addr);
     
-    if (ip6_addr_isany(&ip6addr)) {
+    if (ip6_addr_isany_val(ip6addr)) {
         _ErrorHandle(ENETUNREACH);
         return  (PX_ERROR);
     }
 
     RT_LOCK();
-    pentry6 = rt6_find_entry(&ip6addr, 0);
+    pentry6 = rt6_find_entry(&ip6addr, &ip6netmask, &ip6gateway, 
+                             prtentry->rt_ifname, prtentry->rt_flags);
     if (!pentry6 || pentry6->rt6_type) {
         RT_UNLOCK();
         _ErrorHandle(ENETUNREACH);
@@ -241,9 +250,11 @@ static INT  __rtChg4 (const struct rtentry  *prtentry)
     INT                 iRet;
     struct rt_entry    *pentry4;
     ip4_addr_t          ipaddr;
+    ip4_addr_t          ipnetmask;
     ip4_addr_t          ipgateway;
     
     inet_addr_to_ip4addr(&ipaddr,    &((struct sockaddr_in *)&prtentry->rt_dst)->sin_addr);
+    inet_addr_to_ip4addr(&ipnetmask, &((struct sockaddr_in *)&prtentry->rt_genmask)->sin_addr);
     inet_addr_to_ip4addr(&ipgateway, &((struct sockaddr_in *)&prtentry->rt_gateway)->sin_addr);
     
     if (ipaddr.addr == IPADDR_ANY) {                                    /*  设置默认路由                */
@@ -273,7 +284,8 @@ static INT  __rtChg4 (const struct rtentry  *prtentry)
         
     } else {                                                            /*  修改路由表项                */
         RT_LOCK();
-        pentry4 = rt_find_entry(&ipaddr, 0);
+        pentry4 = rt_find_entry(&ipaddr, &ipnetmask, &ipgateway, 
+                                prtentry->rt_ifname, prtentry->rt_flags);
         if (!pentry4 || pentry4->rt_type) {
             RT_UNLOCK();
             _ErrorHandle(ENETUNREACH);
@@ -313,16 +325,21 @@ static INT  __rtChg6 (const struct rtentry  *prtentry)
     INT                 iRet;
     struct rt6_entry   *pentry6;
     ip6_addr_t          ip6addr;
+    ip6_addr_t          ip6netmask;
+    ip6_addr_t          ip6gateway;
     
-    inet6_addr_to_ip6addr(&ip6addr, &((struct sockaddr_in6 *)&prtentry->rt_dst)->sin6_addr);
+    inet6_addr_to_ip6addr(&ip6addr,    &((struct sockaddr_in6 *)&prtentry->rt_dst)->sin6_addr);
+    inet6_addr_to_ip6addr(&ip6netmask, &((struct sockaddr_in6 *)&prtentry->rt_genmask)->sin6_addr);
+    inet6_addr_to_ip6addr(&ip6gateway, &((struct sockaddr_in6 *)&prtentry->rt_gateway)->sin6_addr);
     
-    if (ip6_addr_isany(&ip6addr)) {                                     /*  设置默认路由                */
+    if (ip6_addr_isany_val(ip6addr)) {                                  /*  设置默认路由                */
         _ErrorHandle(ENETUNREACH);
         return  (PX_ERROR);
     
     } else {                                                            /*  添加路由表项                */
         RT_LOCK();
-        pentry6 = rt6_find_entry(&ip6addr, 0);
+        pentry6 = rt6_find_entry(&ip6addr, &ip6netmask, &ip6gateway, 
+                                 prtentry->rt_ifname, prtentry->rt_flags);
         if (!pentry6 || pentry6->rt6_type) {
             RT_UNLOCK();
             _ErrorHandle(ENETUNREACH);
@@ -454,7 +471,7 @@ static INT  __rtGet6 (struct rtentry  *prtentry)
 ** 功能描述: 遍历 IPv4 路由信息
 ** 输　入  : pentry4    内部路由表项
 **           prtelist   路由信息缓存
-** 输　出  : ERROR or OK
+** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
@@ -517,7 +534,7 @@ static VOID  __rtLst6Walk (struct rt6_entry    *pentry6,
 ** 函数名称: __rtLst6
 ** 功能描述: 获取整个 IPv6 路由信息
 ** 输　入  : prtelist  路由信息缓存
-** 输　出  : ERROR or OK
+** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
@@ -645,7 +662,7 @@ static INT  __rtmLst6 (struct rt_msghdr_list *prtmlist)
 #endif                                                                  /*  LWIP_IPV6                   */
 /*********************************************************************************************************
 ** 函数名称: __rtIoctlInet
-** 功能描述: SIOCADDRT / SIOCDELRT 命令处理接口
+** 功能描述: SIOCADDRT / SIOCDELRT ... 命令处理接口
 ** 输　入  : iFamily    AF_INET / AF_INET6
 **           iCmd       SIOCADDRT / SIOCDELRT
 **           pvArg      struct arpreq

@@ -26,7 +26,7 @@
 #if (LW_CFG_MONITOR_EN > 0) && (LW_CFG_NET_EN > 0)
 #include "socket.h"
 #include "netinet/in.h"
-#include "netinet/in6.h"
+#include "netinet6/in6.h"
 /*********************************************************************************************************
 ** 函数名称: API_MonitorNetUploadCreate
 ** 功能描述: 创建一个采用网络上传方式的监控跟踪节点

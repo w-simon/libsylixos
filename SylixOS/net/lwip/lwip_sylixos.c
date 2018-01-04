@@ -30,8 +30,7 @@
 2016.10.21  简化系统重启操作.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
-#include "../SylixOS/kernel/include/k_kernel.h"
-#include "../SylixOS/system/include/s_system.h"
+#include "SylixOS.h"
 /*********************************************************************************************************
   裁剪控制
 *********************************************************************************************************/
@@ -75,7 +74,12 @@ extern VOID __inetHostTableInit(VOID);
   网络事件初始化
 *********************************************************************************************************/
 extern INT  _netEventInit(VOID);
-extern INT  _netEventDevCreate(VOID);
+/*********************************************************************************************************
+  虚拟网络设备支持
+*********************************************************************************************************/
+#if LW_CFG_NET_VNETDEV_EN > 0
+extern INT  _netVndInit(VOID);
+#endif                                                                  /*  LW_CFG_NET_VNETDEV_EN > 0   */
 /*********************************************************************************************************
   VLAN 支持
 *********************************************************************************************************/
@@ -209,8 +213,8 @@ VOID  API_NetInit (VOID)
 #endif                                                                  /*  LW_CFG_NET_VLAN_EN > 0      */
     
     _netJobqueueInit();                                                 /*  创建网络驱动作业处理队列    */
+    
     _netEventInit();                                                    /*  初始化网络事件              */
-    _netEventDevCreate();                                               /*  创建网络事件设备            */
     
     API_SystemHookAdd((LW_HOOK_FUNC)__netCloseAll, 
                       LW_OPTION_KERNEL_REBOOT);                         /*  安装系统关闭时, 回调函数    */
@@ -229,13 +233,16 @@ VOID  API_NetInit (VOID)
     
     __socketInit();                                                     /*  初始化 socket 系统          */
 
+#if LW_CFG_NET_VNETDEV_EN > 0
+    _netVndInit();                                                      /*  初始化虚拟网络设备          */
+#endif                                                                  /*  LW_CFG_NET_VNETDEV_EN > 0   */
+
 #if LW_CFG_LWIP_PPP > 0 || LW_CFG_LWIP_PPPOE > 0
 #if __LWIP_USE_PPP_NEW == 0
     pppInit();                                                          /*  初始化 point to point proto */
 #endif                                                                  /*  !__LWIP_USE_PPP_NEW         */
 #endif                                                                  /*  LW_CFG_LWIP_PPP             */
                                                                         /*  LW_CFG_LWIP_PPPOE           */
-    
 #if LWIP_SNMP > 0
     __netSnmpInit();                                                    /*  初始化 SNMP 基本信息        */
 #endif                                                                  /*  LWIP_SNMP > 0               */

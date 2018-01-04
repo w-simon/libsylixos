@@ -30,7 +30,7 @@
 LW_API VOID         API_INetNatInit(VOID);
 LW_API INT          API_INetNatStart(CPCHAR  pcLocalNetif, CPCHAR  pcApNetif);
 LW_API INT          API_INetNatStop(VOID);
-LW_API INT          API_INetNatMapAdd(CPCHAR  pcLocalIp, UINT16  usLocalPort, 
+LW_API INT          API_INetNatMapAdd(CPCHAR  pcLocalIp, UINT16  usIpCnt, UINT16  usLocalPort, 
                                       UINT16  usAssPort, UINT8   ucProto);
 LW_API INT          API_INetNatMapDelete(CPCHAR  pcLocalIp, UINT16  usLocalPort, 
                                          UINT16  usAssPort, UINT8   ucProto);

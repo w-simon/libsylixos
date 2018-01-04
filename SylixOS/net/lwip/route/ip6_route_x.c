@@ -19,6 +19,8 @@
  *    and/or other materials provided with the distribution.
  * 3. The name of the author may not be used to endorse or promote products
  *    derived from this software without specific prior written permission. 
+ * 4. This code has been or is applying for intellectual property protection 
+ *    and can only be used with acoinfo software products.
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED 
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
@@ -36,7 +38,7 @@
  */
 
 #define __SYLIXOS_KERNEL
-#include "unistd.h"
+#include "SylixOS.h"
 
 #if LW_CFG_NET_ROUTER > 0
 
@@ -56,7 +58,6 @@ size_t rt6_entry_to_msghdr (struct rt_msghdr *rtmsghdr, const struct rt6_entry *
   size_t size;
   struct sockaddr_in6 *sin6;
   struct sockaddr_dl *sdl;
-  ip6_addr_t ip6netmask;
   
   size = sizeof(struct rt_msghdr) + (SO_ROUND_UP(sizeof(struct sockaddr_in6)) * 4);
   if (entry6->rt6_netif) {
@@ -77,7 +78,7 @@ size_t rt6_entry_to_msghdr (struct rt_msghdr *rtmsghdr, const struct rt6_entry *
   rtmsghdr->rtm_seq   = entry6->rt6_seq;
   rtmsghdr->rtm_errno = 0;
   rtmsghdr->rtm_use   = 0;
-  rtmsghdr->rtm_inits = entry6->rt6_metric;
+  rtmsghdr->rtm_inits = entry6->rt6_inits;
   rtmsghdr->rtm_rmx   = entry6->rt6_rmx;
 
   if (entry6->rt6_netif) {
@@ -97,17 +98,15 @@ size_t rt6_entry_to_msghdr (struct rt_msghdr *rtmsghdr, const struct rt6_entry *
   sin6->sin6_family = AF_INET6;
   inet6_addr_from_ip6addr(&sin6->sin6_addr, &entry6->rt6_gateway);
 
-  rt6_netmask_from_prefix(&ip6netmask, entry6->rt6_prefix);
+  sin6 = SA_NEXT(struct sockaddr_in6 *, sin6);
+  sin6->sin6_len = sizeof(struct sockaddr_in6);
+  sin6->sin6_family = AF_INET6;
+  inet6_addr_from_ip6addr(&sin6->sin6_addr, &entry6->rt6_netmask);
 
   sin6 = SA_NEXT(struct sockaddr_in6 *, sin6);
   sin6->sin6_len = sizeof(struct sockaddr_in6);
   sin6->sin6_family = AF_INET6;
-  inet6_addr_from_ip6addr(&sin6->sin6_addr, &ip6netmask);
-
-  sin6 = SA_NEXT(struct sockaddr_in6 *, sin6);
-  sin6->sin6_len = sizeof(struct sockaddr_in6);
-  sin6->sin6_family = AF_INET6;
-  inet6_addr_from_ip6addr(&sin6->sin6_addr, &ip6netmask);
+  inet6_addr_from_ip6addr(&sin6->sin6_addr, &entry6->rt6_netmask);
 
   if (entry6->rt6_netif) {
     sdl = SA_NEXT(struct sockaddr_dl *, sin6);
@@ -123,7 +122,6 @@ int rt6_msghdr_to_entry (struct rt6_entry *entry6, const struct rt_msghdr *rtmsg
 {
   struct netif *netif;
   struct sockaddr_in6 *sin6;
-  ip6_addr_t ip6netmask;
   
   if (!rtmsghdr || 
       ((rtmsghdr->rtm_addrs & (RTA_DST | RTA_GATEWAY)) != 
@@ -140,10 +138,16 @@ int rt6_msghdr_to_entry (struct rt6_entry *entry6, const struct rt_msghdr *rtmsg
     
   entry6->rt6_flags  = rtmsghdr->rtm_flags;
   entry6->rt6_rmx    = rtmsghdr->rtm_rmx;
-  entry6->rt6_metric = (int)rtmsghdr->rtm_rmx.rmx_hopcount;
   entry6->rt6_refcnt = 0;
   entry6->rt6_pid    = rtmsghdr->rtm_pid;
   entry6->rt6_seq    = rtmsghdr->rtm_seq;
+  entry6->rt6_inits  = rtmsghdr->rtm_inits;
+  
+  if (entry6->rt6_inits & RTV_HOPCOUNT) {
+    entry6->rt6_metric = (int)rtmsghdr->rtm_rmx.rmx_hopcount;
+  } else {
+    entry6->rt6_metric = 0;
+  }
     
   sin6 = (struct sockaddr_in6 *)(rtmsghdr + 1);
   inet6_addr_to_ip6addr(&entry6->rt6_dest, &sin6->sin6_addr);
@@ -153,14 +157,12 @@ int rt6_msghdr_to_entry (struct rt6_entry *entry6, const struct rt_msghdr *rtmsg
     
   if (rtmsghdr->rtm_addrs & RTA_NETMASK) {
     sin6 = SA_NEXT(struct sockaddr_in6 *, sin6);
-    inet6_addr_to_ip6addr(&ip6netmask, &sin6->sin6_addr);
-    entry6->rt6_prefix = rt6_netmask_to_prefix(&ip6netmask);
+    inet6_addr_to_ip6addr(&entry6->rt6_netmask, &sin6->sin6_addr);
   } 
     
   if (rtmsghdr->rtm_addrs & RTA_GENMASK) {
     sin6 = SA_NEXT(struct sockaddr_in6 *, sin6);
-    inet6_addr_to_ip6addr(&ip6netmask, &sin6->sin6_addr);
-    entry6->rt6_prefix = rt6_netmask_to_prefix(&ip6netmask);
+    inet6_addr_to_ip6addr(&entry6->rt6_netmask, &sin6->sin6_addr);
   }
   
   return (0);
@@ -169,12 +171,16 @@ int rt6_msghdr_to_entry (struct rt6_entry *entry6, const struct rt_msghdr *rtmsg
 /* rt6_entry to struct rtentry */
 void rt6_entry_to_rtentry (struct rtentry *rtentry, const struct rt6_entry *entry6)
 {
-  ip6_addr_t ip6netmask;
-  
-  inet6_addr_from_ip6addr(&((struct sockaddr_in6 *)&rtentry->rt_dst)->sin6_addr, &entry6->rt6_dest);
+  rtentry->rt_dst.sa_len = sizeof(struct sockaddr_in6);
+  rtentry->rt_dst.sa_family = AF_INET6;
+  rtentry->rt_gateway.sa_len = sizeof(struct sockaddr_in6);
+  rtentry->rt_gateway.sa_family = AF_INET6;
+  rtentry->rt_genmask.sa_len = sizeof(struct sockaddr_in6);
+  rtentry->rt_genmask.sa_family = AF_INET6;
+
+  inet6_addr_from_ip6addr(&((struct sockaddr_in6 *)&rtentry->rt_dst)->sin6_addr,     &entry6->rt6_dest);
   inet6_addr_from_ip6addr(&((struct sockaddr_in6 *)&rtentry->rt_gateway)->sin6_addr, &entry6->rt6_gateway);
-  rt6_netmask_from_prefix(&ip6netmask, entry6->rt6_prefix);
-  inet6_addr_from_ip6addr(&((struct sockaddr_in6 *)&rtentry->rt_genmask)->sin6_addr, &ip6netmask);
+  inet6_addr_from_ip6addr(&((struct sockaddr_in6 *)&rtentry->rt_genmask)->sin6_addr, &entry6->rt6_netmask);
 
   lib_strlcpy(rtentry->rt_ifname, entry6->rt6_ifname, IF_NAMESIZE);
 
@@ -192,12 +198,9 @@ void rt6_entry_to_rtentry (struct rtentry *rtentry, const struct rt6_entry *entr
 /* struct rtentry to rt6_entry */
 void rt6_rtentry_to_entry (struct rt6_entry *entry6, const struct rtentry *rtentry)
 {
-  ip6_addr_t ip6netmask;
-
-  inet6_addr_to_ip6addr(&entry6->rt6_dest, &((struct sockaddr_in6 *)&rtentry->rt_dst)->sin6_addr);
+  inet6_addr_to_ip6addr(&entry6->rt6_dest,    &((struct sockaddr_in6 *)&rtentry->rt_dst)->sin6_addr);
   inet6_addr_to_ip6addr(&entry6->rt6_gateway, &((struct sockaddr_in6 *)&rtentry->rt_gateway)->sin6_addr);
-  inet6_addr_to_ip6addr(&ip6netmask, &((struct sockaddr_in6 *)&rtentry->rt_genmask)->sin6_addr);
-  entry6->rt6_prefix = rt6_netmask_to_prefix(&ip6netmask);
+  inet6_addr_to_ip6addr(&entry6->rt6_netmask, &((struct sockaddr_in6 *)&rtentry->rt_genmask)->sin6_addr);
   ip6_addr_set_any(&entry6->rt6_ifaddr);
     
   lib_strlcpy(entry6->rt6_ifname, rtentry->rt_ifname, IF_NAMESIZE);

@@ -4,6 +4,25 @@ HISTORY
 
 ++ New features:
 
+    2017-12-27: han.hui
+    支持路由 IP 再分片.
+
+    2017-12-26: han.hui
+    系统最多可支持 256 个网络接口.
+
+    2017-12-24: han.hui
+    使用 mbedTLS 替换古老的 polarSSL.
+
+    2017-12-21: han.hui
+    加入 KidVPN 支持.
+
+    2017-12-18: han.hui
+    加入源地址负载均衡路由支持.
+    NAT 加入负载均衡支持.
+
+    2017-12-17: han.hui
+    加入网络流量控制支持.
+
     2017-12-13: han.hui
     加入 IPv6 路由支持.
     支持标准 BSD 路由 ioctl() 命令: SIOCADDRT & SIOCDELRT (支持 IPv6 路由表)
@@ -30,6 +49,18 @@ HISTORY
     增加 SPARC 体系结构支持.
 
 ++ Bugfixes:
+
+    2017-12-28: han.hui
+    修正 gpio 复用中断向量时的中断风险.
+
+    2017-12-27: han.hui
+    修正网络黑名单策略可能遭受到拒绝服务攻击.
+
+    2017-12-27: han.hui
+    修正 rename() 使之完全符合 POSIX 标准.
+
+    2017-12-26: han.hui
+    修正 ATA(IDE) 对大容量磁盘的支持.
 
     2017-12-14: han.hui
     修正 tpsFs 事务回滚错误.

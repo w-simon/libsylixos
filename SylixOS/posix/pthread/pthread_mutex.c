@@ -674,9 +674,8 @@ int  pthread_mutex_timedlock (pthread_mutex_t  *pmutex, const struct timespec *a
     ULONG   ulTimeout;
     ULONG   ulError;
     
-    if ((abs_timeout == LW_NULL)    || 
-        (abs_timeout->tv_nsec <  0) ||
-        (abs_timeout->tv_nsec >= __TIMEVAL_NSEC_MAX)) {
+    if ((abs_timeout == LW_NULL) || 
+        LW_NSEC_INVALD(abs_timeout->tv_nsec)) {
         errno = EINVAL;
         return  (EINVAL);
     }
@@ -719,9 +718,8 @@ int  pthread_mutex_reltimedlock_np (pthread_mutex_t  *pmutex, const struct times
     ULONG   ulTimeout;
     ULONG   ulError;
     
-    if ((rel_timeout == LW_NULL)    || 
-        (rel_timeout->tv_nsec <  0) ||
-        (rel_timeout->tv_nsec >= __TIMEVAL_NSEC_MAX)) {
+    if ((rel_timeout == LW_NULL) || 
+        LW_NSEC_INVALD(rel_timeout->tv_nsec)) {
         errno = EINVAL;
         return  (EINVAL);
     }

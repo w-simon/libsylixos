@@ -41,6 +41,9 @@
 #if LW_CFG_NET_EN > 0 && LW_CFG_NET_ROUTER > 0
 #include "sys/route.h"
 #include "net/route.h"
+#if LW_CFG_NET_BALANCING > 0
+#include "net/sroute.h"
+#endif                                                                  /*  LW_CFG_NET_BALANCING > 0    */
 #if LW_CFG_NET_AODV_EN > 0
 #include "src/netif/aodv/aodv_route.h"                                  /*  AODV 路由表                 */
 #endif
@@ -81,8 +84,8 @@ static VOID  __route_show_ipv4 (VOID)
     
     iRet = ioctl(iSock, SIOCLSTRT, &rtentrylist);
     if (iRet < 0) {
-        close(iSock);
         fprintf(stderr, "command 'SIOCLSTRT' error: %s!\n", lib_strerror(errno));
+        close(iSock);
         return;
     }
     
@@ -94,18 +97,19 @@ static VOID  __route_show_ipv4 (VOID)
     
     rtentrylist.rtl_buf = (struct rtentry *)__SHEAP_ALLOC(sizeof(struct rtentry) * rtentrylist.rtl_total);
     if (!rtentrylist.rtl_buf) {
-        close(iSock);
         fprintf(stderr, "error: %s!\n", lib_strerror(errno));
+        close(iSock);
         return;
     }
     
     rtentrylist.rtl_bcnt = rtentrylist.rtl_total;
     iRet = ioctl(iSock, SIOCLSTRT, &rtentrylist);
     if (iRet < 0) {
-        close(iSock);
         fprintf(stderr, "command 'SIOCLSTRT' error: %s!\n", lib_strerror(errno));
+        close(iSock);
         return;
     }
+    close(iSock);
     
     for (i = 0; i < rtentrylist.rtl_num; i++) {
         prtentry = &rtentrylist.rtl_buf[i];
@@ -134,7 +138,6 @@ static VOID  __route_show_ipv4 (VOID)
     }
     
     __SHEAP_FREE(rtentrylist.rtl_buf);
-    close(iSock);
     printf("\n");
 }
 /*********************************************************************************************************
@@ -176,8 +179,8 @@ static VOID  __route_show_ipv6 (VOID)
     
     iRet = ioctl(iSock, SIOCLSTRT, &rtentrylist);
     if (iRet < 0) {
-        close(iSock);
         fprintf(stderr, "command 'SIOCLSTRT' error: %s!\n", lib_strerror(errno));
+        close(iSock);
         return;
     }
     
@@ -189,18 +192,19 @@ static VOID  __route_show_ipv6 (VOID)
     
     rtentrylist.rtl_buf = (struct rtentry *)__SHEAP_ALLOC(sizeof(struct rtentry) * rtentrylist.rtl_total);
     if (!rtentrylist.rtl_buf) {
-        close(iSock);
         fprintf(stderr, "error: %s!\n", lib_strerror(errno));
+        close(iSock);
         return;
     }
     
     rtentrylist.rtl_bcnt = rtentrylist.rtl_total;
     iRet = ioctl(iSock, SIOCLSTRT, &rtentrylist);
     if (iRet < 0) {
-        close(iSock);
         fprintf(stderr, "command 'SIOCLSTRT' error: %s!\n", lib_strerror(errno));
+        close(iSock);
         return;
     }
+    close(iSock);
     
     for (i = 0; i < rtentrylist.rtl_num; i++) {
         prtentry = &rtentrylist.rtl_buf[i];
@@ -230,7 +234,6 @@ static VOID  __route_show_ipv6 (VOID)
     }
     
     __SHEAP_FREE(rtentrylist.rtl_buf);
-    close(iSock);
     printf("\n");
 }
 
@@ -355,7 +358,7 @@ __arg_error:
     } else if (!lib_strcmp(ppcArgV[2], "-gateway")) {
         rtentry.rt_flags |= RTF_HOST | RTF_GATEWAY;
         
-    } else {
+    } else if (lib_strcmp(ppcArgV[2], "-net")) {
         goto    __arg_error;
     }
     
@@ -409,7 +412,7 @@ static INT  __route_delete (INT  iArgC, PCHAR  *ppcArgV)
 {
     struct rtentry  rtentry;
 
-    if (iArgC < 3) {
+    if (iArgC < 4) {
 __arg_error:
         fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
@@ -426,9 +429,41 @@ __arg_error:
     rtentry.rt_gateway.sa_len    = sizeof(struct sockaddr_in);
     rtentry.rt_gateway.sa_family = AF_INET;
     
-    if (!inet_aton(ppcArgV[2], &((struct sockaddr_in *)&rtentry.rt_dst)->sin_addr)) {
+    if (!lib_strcmp(ppcArgV[2], "-host")) {
+        rtentry.rt_flags |= RTF_HOST;
+        
+    } else if (lib_strcmp(ppcArgV[2], "-net")) {
         goto    __arg_error;
     }
+    
+    if (!inet_aton(ppcArgV[3], &((struct sockaddr_in *)&rtentry.rt_dst)->sin_addr)) {
+        goto    __arg_error;
+    }
+    
+    if (rtentry.rt_flags & RTF_HOST) {
+        if (iArgC > 5) {
+            if (lib_strstr(ppcArgV[4], "dev")) {
+                lib_strlcpy(rtentry.rt_ifname, ppcArgV[5], IF_NAMESIZE);
+            
+            } else if (lib_strstr(ppcArgV[4], "gw")) {
+                if (!inet_aton(ppcArgV[5], &((struct sockaddr_in *)&rtentry.rt_gateway)->sin_addr)) {
+                    goto    __arg_error;
+                }
+            }
+        }
+        
+    } else {
+        if (iArgC < 6) {
+            goto    __arg_error;
+        }
+        if (!lib_strstr(ppcArgV[4], "mask")) {
+            goto    __arg_error;
+        }
+        if (!inet_aton(ppcArgV[5], &((struct sockaddr_in *)&rtentry.rt_genmask)->sin_addr)) {
+            goto    __arg_error;
+        }
+    }
+    
     
     if (route_delete(&rtentry) < 0) {
         fprintf(stderr, "add route fail, error: %s!\n", lib_strerror(errno));
@@ -476,7 +511,7 @@ __arg_error:
     } else if (!lib_strcmp(ppcArgV[2], "-gateway")) {
         rtentry.rt_flags |= RTF_HOST | RTF_GATEWAY;
         
-    } else {
+    } else if (lib_strcmp(ppcArgV[2], "-net")) {
         goto    __arg_error;
     }
     
@@ -532,7 +567,9 @@ INT  __tshellRoute (INT  iArgC, PCHAR  *ppcArgV)
 
     if (iArgC == 1) {
         __route_show_ipv4();
+#if LWIP_IPV6
         __route_show_ipv6();
+#endif                                                                  /*  LWIP_IPV6                   */
 #if LW_CFG_NET_AODV_EN > 0
         __route_show_aodv();
 #endif                                                                  /*  LW_CFG_NET_AODV_EN > 0      */
@@ -572,7 +609,7 @@ VOID __tshellRouteInit (VOID)
 {
     API_TShellKeywordAdd("route", __tshellRoute);
     API_TShellFormatAdd("route", " [add | del | chg] {-host | -net | -gateway} [dest] [netmask] [gateway] {metric} [dev]");
-    API_TShellHelpAdd("route",   "show, add, del, change route table\n"
+    API_TShellHelpAdd("route",   "show, add, delete, change route table\n"
     "eg. route\n"
     "    route add -host(-net) 123.123.123.123 mask 255.0.0.0 0.0.0.0 metric 5 dev en1  (add a route and use netif default gateway set)\n"
     "    route add -host(-net) 123.123.123.123 mask 255.0.0.0123.0.0.1 dev en1          (add a route and use specified gateway set)\n"
@@ -584,9 +621,406 @@ VOID __tshellRouteInit (VOID)
     "    route add default dev en2                                                      (set default netif)\n"
     "    route add default gw 192.168.1.1                                               (set default netif)\n"
     "    route add default gw 192.168.1.1 dev en1                                       (set default netif)\n"
-    "    route del 145.26.122.35                                                        (delete a route)\n");
+    "    route del -net  123.0.0.0 mask 255.0.0.0                                       (delete a net route)\n"
+    "    route del -host 145.26.122.35 gw 192.168.1.1                                   (delete a host route)\n"
+    "    route del -host 145.26.122.35 dev en1                                          (delete a host route)\n");
+}
+/*********************************************************************************************************
+** 函数名称: __sroute_show_ipv4
+** 功能描述: 打印 IPv4 源路由表
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+#if LW_CFG_NET_BALANCING > 0
+
+static VOID  __sroute_show_ipv4 (VOID)
+{
+    INT                  iRet, i;
+    INT                  iSock;
+    CHAR                 cFlags[10];
+    CHAR                 cStrSSrc[IP4ADDR_STRLEN_MAX];
+    CHAR                 cStrESrc[IP4ADDR_STRLEN_MAX];
+    struct srtentry_list srtentrylist;
+    struct srtentry     *psrtentry;
+    
+    srtentrylist.srtl_bcnt  = 0;
+    srtentrylist.srtl_num   = 0;
+    srtentrylist.srtl_total = 0;
+    srtentrylist.srtl_buf   = LW_NULL;
+    
+    printf("IPv4 Source route Table:\n");
+    printf("Source(s)       Source(e)       Flags Iface\n");
+    
+    iSock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (iSock < 0) {
+        fprintf(stderr, "can not create socket error: %s!\n", lib_strerror(errno));
+        return;
+    }
+    
+    iRet = ioctl(iSock, SIOCLSTSRT, &srtentrylist);
+    if (iRet < 0) {
+        fprintf(stderr, "command 'SIOCLSTSRT' error: %s!\n", lib_strerror(errno));
+        close(iSock);
+        return;
+    }
+    
+    if (srtentrylist.srtl_total == 0) {
+        close(iSock);
+        printf("\n");
+        return;
+    }
+    
+    srtentrylist.srtl_buf = (struct srtentry *)__SHEAP_ALLOC(sizeof(struct srtentry) * srtentrylist.srtl_total);
+    if (!srtentrylist.srtl_buf) {
+        fprintf(stderr, "error: %s!\n", lib_strerror(errno));
+        close(iSock);
+        return;
+    }
+    
+    srtentrylist.srtl_bcnt = srtentrylist.srtl_total;
+    iRet = ioctl(iSock, SIOCLSTSRT, &srtentrylist);
+    if (iRet < 0) {
+        fprintf(stderr, "command 'SIOCLSTSRT' error: %s!\n", lib_strerror(errno));
+        close(iSock);
+        return;
+    }
+    close(iSock);
+    
+    for (i = 0; i < srtentrylist.srtl_num; i++) {
+        psrtentry = &srtentrylist.srtl_buf[i];
+        inet_ntoa_r(((struct sockaddr_in *)&psrtentry->srt_ssrc)->sin_addr, cStrSSrc, IP4ADDR_STRLEN_MAX);
+        inet_ntoa_r(((struct sockaddr_in *)&psrtentry->srt_esrc)->sin_addr, cStrESrc, IP4ADDR_STRLEN_MAX);
+        
+        cFlags[0] = '\0';
+        if (psrtentry->srt_flags & RTF_UP) {
+            lib_strcat(cFlags, "U");
+        }
+        if (psrtentry->srt_flags & RTF_DYNAMIC) {
+            lib_strcat(cFlags, "D");
+        }
+        
+        printf("%-15s %-15s %-5s %s\n", 
+               cStrSSrc, cStrESrc, cFlags, psrtentry->srt_ifname);
+    }
+    
+    __SHEAP_FREE(srtentrylist.srtl_buf);
+    printf("\n");
+}
+/*********************************************************************************************************
+** 函数名称: __sroute_show_ipv6
+** 功能描述: 打印 IPv4 源路由表
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+#if LWIP_IPV6
+
+static VOID  __sroute_show_ipv6 (VOID)
+{
+    INT                  iRet, i;
+    INT                  iSock;
+    CHAR                 cFlags[10];
+    CHAR                 cStrSSrc[IP6ADDR_STRLEN_MAX];
+    CHAR                 cStrESrc[IP6ADDR_STRLEN_MAX];
+    struct srtentry_list srtentrylist;
+    struct srtentry     *psrtentry;
+    
+    srtentrylist.srtl_bcnt  = 0;
+    srtentrylist.srtl_num   = 0;
+    srtentrylist.srtl_total = 0;
+    srtentrylist.srtl_buf   = LW_NULL;
+    
+    printf("IPv6 Source route Table:\n");
+    printf("Source(s)                        Source(e)                        Flags Iface\n");
+    
+    iSock = socket(AF_INET6, SOCK_DGRAM, 0);
+    if (iSock < 0) {
+        fprintf(stderr, "can not create socket error: %s!\n", lib_strerror(errno));
+        return;
+    }
+    
+    iRet = ioctl(iSock, SIOCLSTSRT, &srtentrylist);
+    if (iRet < 0) {
+        fprintf(stderr, "command 'SIOCLSTSRT' error: %s!\n", lib_strerror(errno));
+        close(iSock);
+        return;
+    }
+    
+    if (srtentrylist.srtl_total == 0) {
+        close(iSock);
+        printf("\n");
+        return;
+    }
+    
+    srtentrylist.srtl_buf = (struct srtentry *)__SHEAP_ALLOC(sizeof(struct srtentry) * srtentrylist.srtl_total);
+    if (!srtentrylist.srtl_buf) {
+        fprintf(stderr, "error: %s!\n", lib_strerror(errno));
+        close(iSock);
+        return;
+    }
+    
+    srtentrylist.srtl_bcnt = srtentrylist.srtl_total;
+    iRet = ioctl(iSock, SIOCLSTSRT, &srtentrylist);
+    if (iRet < 0) {
+        fprintf(stderr, "command 'SIOCLSTSRT' error: %s!\n", lib_strerror(errno));
+        close(iSock);
+        return;
+    }
+    close(iSock);
+    
+    for (i = 0; i < srtentrylist.srtl_num; i++) {
+        psrtentry = &srtentrylist.srtl_buf[i];
+        inet6_ntoa_r(((struct sockaddr_in6 *)&psrtentry->srt_ssrc)->sin6_addr, cStrSSrc, IP6ADDR_STRLEN_MAX);
+        inet6_ntoa_r(((struct sockaddr_in6 *)&psrtentry->srt_esrc)->sin6_addr, cStrESrc, IP6ADDR_STRLEN_MAX);
+        
+        cFlags[0] = '\0';
+        if (psrtentry->srt_flags & RTF_UP) {
+            lib_strcat(cFlags, "U");
+        }
+        if (psrtentry->srt_flags & RTF_DYNAMIC) {
+            lib_strcat(cFlags, "D");
+        }
+        
+        printf("%-32s %-32s %-5s %s\n", 
+               cStrSSrc, cStrESrc, cFlags, psrtentry->srt_ifname);
+    }
+    
+    __SHEAP_FREE(srtentrylist.srtl_buf);
+    printf("\n");
 }
 
+#endif                                                                  /*  LWIP_IPV6                   */
+/*********************************************************************************************************
+** 函数名称: __sroute_add
+** 功能描述: shell 命令添加一条源路由
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : ERROR or OK
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static INT  __sroute_add (INT  iArgC, PCHAR  *ppcArgV)
+{
+    INT              iSock, iRet;
+    struct srtentry  srtentry;
+    
+    lib_bzero(&srtentry, sizeof(struct srtentry));
+    
+    srtentry.srt_flags |= RTF_UP;
+    
+    srtentry.srt_ssrc.sa_len    = sizeof(struct sockaddr_in);
+    srtentry.srt_ssrc.sa_family = AF_INET;
+    
+    srtentry.srt_esrc.sa_len    = sizeof(struct sockaddr_in);
+    srtentry.srt_esrc.sa_family = AF_INET;
+    
+    if ((iArgC < 6) || lib_strcmp(ppcArgV[4], "dev")) {
+__arg_error:
+        fprintf(stderr, "arguments error!\n");
+        return  (-ERROR_TSHELL_EPARAM);
+    }
+    
+    if (!inet_aton(ppcArgV[2], &((struct sockaddr_in *)&srtentry.srt_ssrc)->sin_addr)) {
+        goto    __arg_error;
+    }
+    
+    if (!inet_aton(ppcArgV[3], &((struct sockaddr_in *)&srtentry.srt_esrc)->sin_addr)) {
+        goto    __arg_error;
+    }
+    
+    lib_strlcpy(srtentry.srt_ifname, ppcArgV[5], IF_NAMESIZE);
+    
+    iSock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (iSock < 0) {
+        fprintf(stderr, "can not create socket error: %s!\n", lib_strerror(errno));
+        return  (PX_ERROR);
+    }
+    
+    iRet = ioctl(iSock, SIOCADDSRT, &srtentry);
+    if (iRet < 0) {
+        fprintf(stderr, "command 'SIOCADDSRT' error: %s!\n", lib_strerror(errno));
+        close(iSock);
+        return  (PX_ERROR);
+    }
+    close(iSock);
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __sroute_delete
+** 功能描述: shell 命令删除一条源路由
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : ERROR or OK
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static INT  __sroute_delete (INT  iArgC, PCHAR  *ppcArgV)
+{
+    INT              iSock, iRet;
+    struct srtentry  srtentry;
+    
+    lib_bzero(&srtentry, sizeof(struct srtentry));
+    
+    srtentry.srt_flags |= RTF_UP;
+    
+    srtentry.srt_ssrc.sa_len    = sizeof(struct sockaddr_in);
+    srtentry.srt_ssrc.sa_family = AF_INET;
+    
+    srtentry.srt_esrc.sa_len    = sizeof(struct sockaddr_in);
+    srtentry.srt_esrc.sa_family = AF_INET;
+    
+    if (iArgC < 4) {
+__arg_error:
+        fprintf(stderr, "arguments error!\n");
+        return  (-ERROR_TSHELL_EPARAM);
+    }
+    
+    if (!inet_aton(ppcArgV[2], &((struct sockaddr_in *)&srtentry.srt_ssrc)->sin_addr)) {
+        goto    __arg_error;
+    }
+    
+    if (!inet_aton(ppcArgV[3], &((struct sockaddr_in *)&srtentry.srt_esrc)->sin_addr)) {
+        goto    __arg_error;
+    }
+    
+    iSock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (iSock < 0) {
+        fprintf(stderr, "can not create socket error: %s!\n", lib_strerror(errno));
+        return  (PX_ERROR);
+    }
+    
+    iRet = ioctl(iSock, SIOCDELSRT, &srtentry);
+    if (iRet < 0) {
+        fprintf(stderr, "command 'SIOCDELSRT' error: %s!\n", lib_strerror(errno));
+        close(iSock);
+        return  (PX_ERROR);
+    }
+    close(iSock);
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __sroute_change
+** 功能描述: shell 命令修改一条源路由
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : ERROR or OK
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static INT  __sroute_change (INT  iArgC, PCHAR  *ppcArgV)
+{
+    INT              iSock, iRet;
+    struct srtentry  srtentry;
+    
+    lib_bzero(&srtentry, sizeof(struct srtentry));
+    
+    srtentry.srt_flags |= RTF_UP;
+    
+    srtentry.srt_ssrc.sa_len    = sizeof(struct sockaddr_in);
+    srtentry.srt_ssrc.sa_family = AF_INET;
+    
+    srtentry.srt_esrc.sa_len    = sizeof(struct sockaddr_in);
+    srtentry.srt_esrc.sa_family = AF_INET;
+    
+    if ((iArgC < 6) || lib_strcmp(ppcArgV[4], "dev")) {
+__arg_error:
+        fprintf(stderr, "arguments error!\n");
+        return  (-ERROR_TSHELL_EPARAM);
+    }
+    
+    if (!inet_aton(ppcArgV[2], &((struct sockaddr_in *)&srtentry.srt_ssrc)->sin_addr)) {
+        goto    __arg_error;
+    }
+    
+    if (!inet_aton(ppcArgV[3], &((struct sockaddr_in *)&srtentry.srt_esrc)->sin_addr)) {
+        goto    __arg_error;
+    }
+    
+    lib_strlcpy(srtentry.srt_ifname, ppcArgV[5], IF_NAMESIZE);
+    
+    iSock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (iSock < 0) {
+        fprintf(stderr, "can not create socket error: %s!\n", lib_strerror(errno));
+        return  (PX_ERROR);
+    }
+    
+    iRet = ioctl(iSock, SIOCCHGSRT, &srtentry);
+    if (iRet < 0) {
+        fprintf(stderr, "command 'SIOCCHGSRT' error: %s!\n", lib_strerror(errno));
+        close(iSock);
+        return  (PX_ERROR);
+    }
+    close(iSock);
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __tshellSroute
+** 功能描述: 系统命令 "sroute"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : ERROR
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static INT  __tshellSroute (INT  iArgC, PCHAR  *ppcArgV)
+{
+    INT  iRet;
+
+    if (iArgC == 1) {
+        __sroute_show_ipv4();
+#if LWIP_IPV6
+        __sroute_show_ipv6();
+#endif                                                                  /*  LWIP_IPV6                   */
+        return  (ERROR_NONE);
+    
+    } else if (iArgC > 1) {
+        if (!lib_strcmp(ppcArgV[1], "add")) {
+            iRet = __sroute_add(iArgC, ppcArgV);
+            
+        } else if (!lib_strcmp(ppcArgV[1], "del") || !lib_strcmp(ppcArgV[1], "delete")) {
+            iRet = __sroute_delete(iArgC, ppcArgV);
+            
+        } else if (!lib_strcmp(ppcArgV[1], "chg") || !lib_strcmp(ppcArgV[1], "change")) {
+            iRet = __sroute_change(iArgC, ppcArgV);
+            
+        } else {
+            goto    __arg_error;
+        }
+        
+    } else {
+__arg_error:
+        fprintf(stderr, "arguments error!\n");
+        return  (-ERROR_TSHELL_EPARAM);
+    }
+    
+    return  (iRet);
+}
+/*********************************************************************************************************
+** 函数名称: __tshellSrouteInit
+** 功能描述: 注册源路由器命令
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+VOID __tshellSrouteInit (VOID)
+{
+    API_TShellKeywordAdd("sroute", __tshellSroute);
+    API_TShellFormatAdd("sroute", " [add | del | chg] [start ip] [end ip] dev [dev]");
+    API_TShellHelpAdd("sroute",   "show, add, delete, change source route table\n"
+    "eg. sroute\n"
+    "    sroute add 192.168.1.1 192.168.1.10 dev en1  (add source ip from 192.168.1.1 ~ 192.168.1.10 route to en1)\n"
+    "    sroute chg 192.168.1.1 192.168.1.10 dev en2  (change source ip from 192.168.1.1 ~ 192.168.1.10 route to en2)\n"
+    "    sroute del 192.168.1.1 192.168.1.10          (delete source ip from 192.168.1.1 ~ 192.168.1.10 route)\n");
+}
+
+#endif                                                                  /*  LW_CFG_NET_BALANCING > 0    */
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 /*********************************************************************************************************
 ** 函数名称: route_add

@@ -64,6 +64,11 @@
 #include "lwip/inet_chksum.h"
 #endif
 
+#if LW_CFG_NET_MROUTER > 0
+#include "netinet/ip_mroute.h"
+#include "net/lwip/mroute/ip4_mrt.h"
+#endif /* LW_CFG_NET_MROUTER */
+
 #include <string.h>
 
 /* If the netconn API is not required publicly, then we include the necessary
@@ -2188,6 +2193,18 @@ lwip_getsockopt_impl(int s, int level, int optname, void *optval, socklen_t *opt
                   s, *(int *)optval));
       break;
 #endif /* LWIP_MULTICAST_TX_OPTIONS */
+#if LW_CFG_NET_MROUTER > 0
+    case MRT_VERSION:
+    case MRT_ASSERT:
+    case MRT_API_SUPPORT:
+    case MRT_API_CONFIG:
+      if ((NETCONNTYPE_GROUP(sock->conn->type) != NETCONN_RAW) ||
+        (sock->conn->pcb.raw->protocol != IPPROTO_IGMP)) {
+        return ENOPROTOOPT;
+      }
+      err = ip4_mrt_getsockopt(sock->conn->pcb.raw, optname, optval, optlen);
+      break;
+#endif /* LW_CFG_NET_MROUTER */
     default:
       LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_getsockopt(%d, IPPROTO_IP, UNIMPL: optname=0x%x, ..)\n",
                   s, optname));
@@ -2600,6 +2617,22 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
       }
       break;
 #endif /* LWIP_IGMP */
+#if LW_CFG_NET_MROUTER > 0
+    case MRT_INIT:
+    case MRT_DONE:
+    case MRT_ADD_VIF:
+    case MRT_DEL_VIF:
+    case MRT_ADD_MFC:
+    case MRT_DEL_MFC:
+    case MRT_ASSERT:
+    case MRT_API_CONFIG:
+      if ((NETCONNTYPE_GROUP(sock->conn->type) != NETCONN_RAW) ||
+        (sock->conn->pcb.raw->protocol != IPPROTO_IGMP)) {
+        return ENOPROTOOPT;
+      }
+      err = ip4_mrt_setsockopt(sock->conn->pcb.raw, optname, optval, optlen);
+      break;
+#endif /* LW_CFG_NET_MROUTER */
     default:
       LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_setsockopt(%d, IPPROTO_IP, UNIMPL: optname=0x%x, ..)\n",
                   s, optname));

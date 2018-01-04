@@ -19,6 +19,8 @@
  *    and/or other materials provided with the distribution.
  * 3. The name of the author may not be used to endorse or promote products
  *    derived from this software without specific prior written permission. 
+ * 4. This code has been or is applying for intellectual property protection 
+ *    and can only be used with acoinfo software products.
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED 
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
@@ -36,7 +38,7 @@
  */
 
 #define __SYLIXOS_KERNEL
-#include "unistd.h"
+#include "unistd.h" /* for getpid() */
 
 #if LW_CFG_NET_ROUTER > 0
 
@@ -68,7 +70,11 @@ static int rt6_bi_mbase;
 #define RT6_HASH_MASK    (RT6_HASH_SIZE - 1)
 
 /* route hash index */
+#if BYTE_ORDER == BIG_ENDIAN
 #define RT6_HASH_INDEX(ip6addr) (((ip6addr)->addr[0] >> (RT6_HASH_SIZE - RT6_HASH_SHIFT)) & RT6_HASH_MASK)
+#else
+#define RT6_HASH_INDEX(ip6addr) (((ip6addr)->addr[0] >> (8 - RT6_HASH_SHIFT)) & RT6_HASH_MASK)
+#endif
 
 /* route hash table */
 static LW_LIST_LINE_HEADER  rt6_table[RT6_HASH_SIZE];
@@ -76,6 +82,7 @@ static LW_LIST_LINE_HEADER  rt6_table[RT6_HASH_SIZE];
 /* route cache */
 struct rt6_cache {
   struct rt6_entry *rt6_entry;
+  ip6_addr_t rt6_dest;
 };
 
 static struct rt6_cache  rt6_cache;
@@ -83,12 +90,14 @@ static struct rt6_cache  rt6_cache;
 #define RT6_CACHE_INVAL(entry) \
         if (rt6_cache.rt6_entry == entry) { \
           rt6_cache.rt6_entry = NULL; \
+          ip6_addr_set_any(&rt6_cache.rt6_dest); \
         }
 
 /* gateway cache */
 struct gw6_cache {
   struct rt6_entry *rt6_entry;
-  ip6_addr_t  rt6_gateway;
+  ip6_addr_t rt6_dest;
+  ip6_addr_t rt6_gateway;
 };
 
 static struct gw6_cache  gw6_cache[LW_CFG_NET_DEV_MAX];
@@ -96,6 +105,7 @@ static struct gw6_cache  gw6_cache[LW_CFG_NET_DEV_MAX];
 #define GW6_CACHE_INVAL(index, entry) \
         if (gw6_cache[index].rt6_entry == entry) { \
           gw6_cache[index].rt6_entry = NULL; \
+          ip6_addr_set_any(&gw6_cache[index].rt6_dest); \
           ip6_addr_set_any(&gw6_cache[index].rt6_gateway); \
         }
         
@@ -147,7 +157,16 @@ void  rt6_netmask_from_prefix (struct ip6_addr *netmask, int prefix)
     *pnt = maskbit[bit];
   }
 }
-        
+
+/* route rt6_net_cmp */
+static int rt6_net_cmp (const ip6_addr_t *ip6_a, const ip6_addr_t *ip6_b, const ip6_addr_t *ip6msk)
+{
+  return ((((ip6_a)->addr[0] & (ip6msk)->addr[0]) == ((ip6_b)->addr[0] & (ip6msk)->addr[0])) &&
+          (((ip6_a)->addr[1] & (ip6msk)->addr[1]) == ((ip6_b)->addr[1] & (ip6msk)->addr[1])) &&
+          (((ip6_a)->addr[2] & (ip6msk)->addr[2]) == ((ip6_b)->addr[2] & (ip6msk)->addr[2])) &&
+          (((ip6_a)->addr[3] & (ip6msk)->addr[3]) == ((ip6_b)->addr[3] & (ip6msk)->addr[3])));
+}
+
 /* route table match */
 static struct rt6_entry *rt6_match (const ip6_addr_t *ip6dest)
 {
@@ -163,13 +182,14 @@ static struct rt6_entry *rt6_match (const ip6_addr_t *ip6dest)
   for (pline = rt6_table[hash]; pline != NULL; pline = _list_line_get_next(pline)) {
     entry = (struct rt6_entry *)pline;
     if (RTF_VALID(entry->rt6_flags)) {
-      if ((entry->rt6_flags & RTF_HOST) && 
-          ip6_addr_cmp(&entry->rt6_dest, ip6dest)) {
-        return (entry); /* match to host */
-      
-      } else if (entry_net == NULL) {
-        if (netif_is_up(entry->rt6_netif) && netif_is_link_up(entry->rt6_netif)) {
-          if (ip6_addr_netcmp(&entry->rt6_dest, ip6dest)) {
+      if (netif_is_up(entry->rt6_netif) && netif_is_link_up(entry->rt6_netif)) {
+        if (entry->rt6_flags & RTF_HOST) {
+          if (ip6_addr_cmp(&entry->rt6_dest, ip6dest)) {
+            return (entry); /* match to host */
+          }
+        
+        } else if (entry_net == NULL) {
+          if (rt6_net_cmp(&entry->rt6_dest, ip6dest, &entry->rt6_netmask)) {
             entry_net = entry; /* match to net */
           }
         }
@@ -202,7 +222,7 @@ static void  rt6_traversal_buildin (VOIDFUNCPTR func, void *arg0, void *arg1,
     for (i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++) {
       if (ip6_addr_isvalid(netif_ip6_addr_state(netif, i))) {
         ip6_addr_set(&entry.rt6_dest, netif_ip6_addr(netif, i));
-        entry.rt6_prefix = 128;
+        rt6_netmask_from_prefix(&entry.rt6_netmask, 128);
         ip6_addr_set_any(&entry.rt6_gateway);
         ip6_addr_set(&entry.rt6_ifaddr, netif_ip6_addr(netif, i));
         entry.rt6_netif = netif;
@@ -221,7 +241,7 @@ static void  rt6_traversal_buildin (VOIDFUNCPTR func, void *arg0, void *arg1,
         if (ip6_addr_islinklocal(netif_ip6_addr(netif, i))) {
           entry.rt6_dest.addr[2] = 0;
           entry.rt6_dest.addr[3] = 0;
-          entry.rt6_prefix = 64;
+          rt6_netmask_from_prefix(&entry.rt6_netmask, 64);
           entry.rt6_flags &= ~RTF_HOST;
           
           func(&entry, arg0, arg1, arg2, arg3, arg4, arg5);
@@ -230,7 +250,7 @@ static void  rt6_traversal_buildin (VOIDFUNCPTR func, void *arg0, void *arg1,
           entry.rt6_dest.addr[1] = 0;
           entry.rt6_dest.addr[2] = 0;
           entry.rt6_dest.addr[3] = 0;
-          entry.rt6_prefix = 8;
+          rt6_netmask_from_prefix(&entry.rt6_netmask, 8);
           
           func(&entry, arg0, arg1, arg2, arg3, arg4, arg5);
         }
@@ -274,9 +294,9 @@ static void  rt6_traversal_nd6 (VOIDFUNCPTR func, void *arg0, void *arg1,
   
   for (i = 0; i < LWIP_ND6_NUM_DESTINATIONS; i++) {
     destination = &destination_cache[i];
-    if (!ip6_addr_isany(&destination->destination_addr)) {
+    if (!ip6_addr_isany_val(destination->destination_addr)) {
       ip6_addr_set(&entry.rt6_dest, &destination->destination_addr);
-      entry.rt6_prefix = 64;
+      rt6_netmask_from_prefix(&entry.rt6_netmask, 64);
       ip6_addr_set(&entry.rt6_gateway, &destination->next_hop_addr);
       netif = NULL;
       for (j = 0; j < LWIP_ND6_NUM_ROUTERS; j++) {
@@ -323,7 +343,7 @@ static void  rt6_traversal_nd6 (VOIDFUNCPTR func, void *arg0, void *arg1,
         (nd6_entry->neighbor_entry->state == ND6_REACHABLE)) {
       netif = nd6_entry->neighbor_entry->netif;
       ip6_addr_set_any(&entry.rt6_dest);
-      entry.rt6_prefix = 64;
+      rt6_netmask_from_prefix(&entry.rt6_netmask, 64);
       ip6_addr_set(&entry.rt6_gateway, &nd6_entry->neighbor_entry->next_hop_address);
       ip6_addr_set_any(&entry.rt6_ifaddr);
       entry.rt6_netif = netif;
@@ -353,7 +373,10 @@ void  rt6_traversal_entry (VOIDFUNCPTR func, void *arg0, void *arg1,
 }
 
 /* find route entry */
-struct rt6_entry *rt6_find_entry (const ip6_addr_t *ip6dest, u_long flags)
+struct rt6_entry *rt6_find_entry (const ip6_addr_t *ip6dest, 
+                                  const ip6_addr_t *ip6netmask, 
+                                  const ip6_addr_t *ip6gateway, 
+                                  const char *ifname, u_long host)
 {
   int hash = RT6_HASH_INDEX(ip6dest);
   LW_LIST_LINE *pline;
@@ -361,10 +384,24 @@ struct rt6_entry *rt6_find_entry (const ip6_addr_t *ip6dest, u_long flags)
   
   for (pline = rt6_table[hash]; pline != NULL; pline = _list_line_get_next(pline)) {
     entry = (struct rt6_entry *)pline;
-    if (ip6_addr_cmp(&entry->rt6_dest, ip6dest)) {
-      if (!flags || ((entry->rt6_flags & ~RTF_RUNNING) == (flags & ~RTF_RUNNING))) {
-        return (entry);
+    if (((host & RTF_HOST) == (entry->rt6_flags & RTF_HOST)) &&
+        (ip6_addr_cmp(&entry->rt6_dest, ip6dest))) {
+      if (!ip6_addr_isany(ip6netmask)) {
+        if (!ip6_addr_cmp(&entry->rt6_netmask, ip6netmask)) {
+          continue;
+        }
       }
+      if (!ip6_addr_isany(ip6gateway)) {
+        if (!ip6_addr_cmp(&entry->rt6_gateway, ip6gateway)) {
+          continue;
+        }
+      }
+      if (ifname && ifname[0]) {
+        if (lib_strcmp(entry->rt6_ifname, ifname)) {
+          continue;
+        }
+      }
+      return (entry);
     }
   }
   
@@ -382,11 +419,16 @@ int  rt6_add_entry (struct rt6_entry *entry)
   
   entry->rt6_flags &= ~RTF_DONE; /* not confirmed */
   entry->rt6_type = RT6_TYPE_USER;
-  entry->rt6_prefix = 64;
   entry->rt6_pid = getpid();
   
+  if (!(entry->rt6_flags & RTF_HOST)) { /* to sub net */
+    if (ip6_addr_isany_val(entry->rt6_netmask)) {
+      rt6_netmask_from_prefix(&entry->rt6_netmask, 64);
+    }
+  }
+  
   if (entry->rt6_ifname[0] == '\0') { /* No network interface is specified */
-    if (ip6_addr_isany(&entry->rt6_gateway)) {
+    if (ip6_addr_isany_val(entry->rt6_gateway)) {
       return (-1);
     }
     for (netif = netif_list; netif != NULL; netif = netif->next) {
@@ -479,7 +521,7 @@ void rt6_delete_entry (struct rt6_entry *entry)
   _List_Line_Del(&entry->rt6_list, &rt6_table[hash]);
 }
 
-/* delete route entry */
+/* get route entry total num */
 void rt6_total_entry (unsigned int *cnt)
 {
   int count = 0;
@@ -539,9 +581,23 @@ void  rt6_netif_remove_hook (struct netif *netif)
   RT_UNLOCK();
 }
 
+/* rt6_netif_invcache_hook */
+void  rt6_netif_invcache_hook (struct netif *netif)
+{
+  RT_LOCK();
+  if (rt6_cache.rt6_entry) {
+    if (rt6_cache.rt6_entry->rt6_netif == netif) {
+      RT6_CACHE_INVAL(rt6_cache.rt6_entry);
+      GW6_CACHE_INVAL(netif->num, rt6_cache.rt6_entry);
+    }
+  }
+  RT_UNLOCK();
+}
+
 /* rt6_route_src_hook */
 struct netif *rt6_route_search_hook (const ip6_addr_t *ip6dest, const ip6_addr_t *ipsrc)
 {
+  struct gw6_cache *gwc;
   struct rt6_entry *entry;
   
   if (!rt6_active) {
@@ -549,14 +605,27 @@ struct netif *rt6_route_search_hook (const ip6_addr_t *ip6dest, const ip6_addr_t
   }
   
   if (rt6_cache.rt6_entry && 
-      RTF_VALID(rt6_cache.rt6_entry->rt6_flags) && 
-      ip6_addr_cmp(&rt6_cache.rt6_entry->rt6_dest, ip6dest)) {
-    return (rt6_cache.rt6_entry->rt6_netif);
+      RTF_VALID(rt6_cache.rt6_entry->rt6_flags)) {
+    if (ip6_addr_cmp(&rt6_cache.rt6_dest, ip6dest)) {
+      return (rt6_cache.rt6_entry->rt6_netif);
+    
+    } else if (!(rt6_cache.rt6_entry->rt6_flags & RTF_HOST)) {
+      if (rt6_net_cmp(&rt6_cache.rt6_entry->rt6_dest, ip6dest, 
+                      &rt6_cache.rt6_entry->rt6_netmask)) {
+        ip6_addr_copy(rt6_cache.rt6_dest, *ip6dest);
+        return (rt6_cache.rt6_entry->rt6_netif);
+      }
+    }
   }
   
   entry = rt6_match(ip6dest);
   if (entry) {
     rt6_cache.rt6_entry = entry;
+    ip6_addr_copy(rt6_cache.rt6_dest, *ip6dest);
+    gwc = &gw6_cache[entry->rt6_netif->num];
+    gwc->rt6_entry = entry;
+    ip6_addr_copy(gwc->rt6_dest, *ip6dest);
+    ip6_addr_copy(gwc->rt6_gateway, entry->rt6_gateway);
     return (entry->rt6_netif);
   }
   
@@ -575,20 +644,36 @@ ip6_addr_t *rt6_route_gateway_hook(struct netif *netif, const ip6_addr_t *ip6des
   
   gwc = &gw6_cache[netif->num];
   if (gwc->rt6_entry &&
-      RTF_VALID(gwc->rt6_entry->rt6_flags) && 
-      ip6_addr_cmp(&gwc->rt6_entry->rt6_dest, ip6dest)) {
-    if (!ip6_addr_isany(&gwc->rt6_gateway)) {
-      return (&gwc->rt6_gateway);
-    } else {
-      return (NULL);
+      RTF_VALID(gwc->rt6_entry->rt6_flags)) {
+    if (ip6_addr_cmp(&gwc->rt6_dest, ip6dest)) {
+      if (!ip6_addr_isany_val(gwc->rt6_gateway) &&
+          (gwc->rt6_entry->rt6_netif == netif)) {
+        return (&gwc->rt6_gateway);
+      } else {
+        return (NULL);
+      }
+    
+    } else if (!(gwc->rt6_entry->rt6_flags & RTF_HOST)) {
+      if (rt6_net_cmp(&gwc->rt6_entry->rt6_dest, ip6dest, 
+                      &gwc->rt6_entry->rt6_netmask)) {
+        ip6_addr_copy(gwc->rt6_dest, *ip6dest);
+        if (!ip6_addr_isany_val(gwc->rt6_gateway) &&
+            (gwc->rt6_entry->rt6_netif == netif)) {
+          return (&gwc->rt6_gateway);
+        } else {
+          return (NULL);
+        }
+      }
     }
   }
   
   entry = rt6_match(ip6dest);
   if (entry) {
     gwc->rt6_entry = entry;
-    ip6_addr_set(&gwc->rt6_gateway, &entry->rt6_gateway);
-    if (!ip6_addr_isany(&gwc->rt6_gateway)) {
+    ip6_addr_copy(gwc->rt6_dest, *ip6dest);
+    ip6_addr_copy(gwc->rt6_gateway, entry->rt6_gateway);
+    if (!ip6_addr_isany_val(gwc->rt6_gateway) &&
+        (entry->rt6_netif == netif)) {
       return (&gwc->rt6_gateway);
     } else {
       return (NULL);

@@ -51,6 +51,16 @@ BUILD_PROCESS_SUP_LIB = 0
 endif
 
 #*********************************************************************************************************
+# Build options
+# Do you want build tls support library
+#*********************************************************************************************************
+ifeq ($(BUILD_LITE_TARGET), 0)
+BUILD_TLS_SUP_LIB = 1
+else
+BUILD_TLS_SUP_LIB = 0
+endif
+
+#*********************************************************************************************************
 # Do you want build some usefull kernel module
 #*********************************************************************************************************
 ifeq ($(BUILD_LITE_TARGET), 0)
@@ -85,6 +95,13 @@ ifeq ($(BUILD_PROCESS_SUP_LIB), 1)
 include libdsohandle.mk
 include libvpmpdm.mk
 include environ.mk
+endif
+
+ifeq ($(BUILD_TLS_SUP_LIB), 1)
+include libmbedcrypto.mk
+include libmbedx509.mk
+include libmbedtls.mk
+include kidvpn.mk
 endif
 
 ifeq ($(BUILD_KERNEL_MODULE), 1)

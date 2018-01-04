@@ -31,6 +31,10 @@
 *********************************************************************************************************/
 #if LW_CFG_NET_EN > 0
 
+#ifdef __cplusplus
+extern "C" {
+#endif                                                                  /*  __cplusplus                 */
+
 /*********************************************************************************************************
  --- VERSION ---
 *********************************************************************************************************/
@@ -1218,6 +1222,10 @@ struct iw_event {
 #define IW_EV_ADDR_PK_LEN   (IW_EV_LCP_PK_LEN + sizeof(struct sockaddr))
 #define IW_EV_QUAL_PK_LEN   (IW_EV_LCP_PK_LEN + sizeof(struct iw_quality))
 #define IW_EV_POINT_PK_LEN  (IW_EV_LCP_PK_LEN + 4)
+
+#ifdef __cplusplus
+}
+#endif                                                                  /*  __cplusplus                 */
 
 #endif                                                                  /*  LW_CFG_NET_EN               */
 #endif                                                                  /*  __IF_WIRELESS_H             */

@@ -12,7 +12,7 @@
 
 2: change sockets.h do not extern select() (use sylixos select function)
 
-3: add netifadd_hook() and netifremove_hook(). (netif.c)
+3: add netifadd_hook(), netifremove_hook(), netifup_hook(), netifdown_hook() (netif.c)
 
 4: add ip_input_hook() (ip.c)
 
@@ -30,7 +30,7 @@
 
 11: ip6_addr.h add ip6_addr_isloopback()
 
-12: netif_set_link_up() and netif_set_link_down() add hotplug message.
+12: netif_set_link_up() and netif_set_link_down() add hook.
 
 13: netif add ioctl();
 
@@ -43,3 +43,11 @@
 17: etharp_update_arp_entry() export.
 
 18: netif_set_ipaddr() netif_set_up() netif_set_down() netif_ip6_addr_set_parts() hook.
+
+19: pppcrypt.h add mbedtls include files.
+
+20: ip4_frag() support ip with MF flag fragment.
+
+21: include/network/lwip add ip4_mroute.h, ip4_mrt.h
+
+22: socket.c setsockopt() getsockopt() add ip4_mrt_setsockopt() ip4_mrt_getsockopt().

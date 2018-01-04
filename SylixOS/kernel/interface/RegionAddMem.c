@@ -83,10 +83,8 @@ ULONG  API_RegionAddMem (LW_OBJECT_HANDLE  ulId, PVOID  pvMem, size_t  stByteSiz
     pheap = &_K_heapBuffer[usIndex];
 
     __KERNEL_EXIT();                                                    /*  ÍË³öÄÚºË                    */
-
-    _HeapAddMemory(pheap, pvMem, stByteSize);
     
-    return  (ERROR_NONE);
+    return  (_HeapAddMemory(pheap, pvMem, stByteSize));
 }
 
 #endif                                                                  /*  (LW_CFG_REGION_EN > 0) &&   */

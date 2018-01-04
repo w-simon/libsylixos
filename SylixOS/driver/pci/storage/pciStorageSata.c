@@ -943,7 +943,6 @@ __intx_handle:
     if (iRet != ERROR_NONE) {
         AHCI_LOG(AHCI_LOG_ERR, "pci msi disable failed dev %d:%d.%d.\r\n",
                  hPciDev->PCIDEV_iDevBus, hPciDev->PCIDEV_iDevDevice, hPciDev->PCIDEV_iDevFunction);
-        return  (PX_ERROR);
     }
     hResource = API_PciDevResourceGet(hPciDev, PCI_IORESOURCE_IRQ, 0);
     hCtrl->AHCICTRL_ulIrqVector = (ULONG)PCI_RESOURCE_START(hResource);

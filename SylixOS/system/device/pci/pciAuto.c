@@ -41,17 +41,18 @@
 *********************************************************************************************************/
 static INT  __pciAutoDevSkip (PCI_CTRL_HANDLE  hCtrl, PCI_AUTO_DEV_HANDLE  hAutoDev)
 {
-    PCI_AUTO_HANDLE     hPciAuto = &hCtrl->PCI_tAutoConfig;             /* 自动配置句柄                 */
-    INT                 iBus     = PCI_AUTO_BUS(hAutoDev);              /* 总线号                       */
-    INT                 iDev     = PCI_AUTO_DEV(hAutoDev);              /* 设备号                       */
-    INT                 iFunc    = PCI_AUTO_FUNC(hAutoDev);             /* 功能号                       */
+    PCI_AUTO_HANDLE     hPciAuto;                                       /* 自动配置句柄                 */
 
-    if (hPciAuto->PCIAUTO_uiFirstBusNo == iBus) {                       /* 是否为起始总线号             */
+    hPciAuto = &hCtrl->PCI_tAutoConfig;                                 /* 获取自动配置句柄             */
+                                                                        /* 是否为起始设备               */
+    if (hAutoDev == PCI_AUTO_BDF(hPciAuto->PCIAUTO_uiFirstBusNo, 0, 0)) {
         if (hPciAuto->PCIAUTO_iHostBridegCfgEn) {                       /* 配置主桥使能                 */
             return  (PX_ERROR);
         
         } else {                                                        /* 不配置主桥                   */
-            PCI_AUTO_LOG(PCI_AUTO_LOG_PRT, "%02x:%02x.%01x dev skip.\n", iBus, iDev, iFunc);
+            PCI_AUTO_LOG(PCI_AUTO_LOG_PRT,
+                         "%02x:%02x.%01x dev skip.\n",
+                         PCI_AUTO_BUS(hAutoDev), PCI_AUTO_DEV(hAutoDev), PCI_AUTO_FUNC(hAutoDev));
             return  (ERROR_NONE);                                       /* 忽略设备                     */
         }
     }
@@ -79,13 +80,16 @@ INT  API_PciAutoBusReset (PCI_CTRL_HANDLE  hCtrl)
     UINT16                  usClass;                                    /* 类信息                       */
     UINT8                   ucHeaderType;                               /* 设备头类型                   */
 
+    uiMulti = 0;
+
     for (iBus = 0; iBus < PCI_MAX_BUS; iBus++) {                        /* 遍历所有总线                 */
-        uiMulti = 0;
         for (hAutoDev  = PCI_AUTO_BDF(iBus, 0, 0);
-             hAutoDev  < PCI_AUTO_BDF(iBus, PCI_MAX_SLOTS - 1, PCI_MAX_FUNCTIONS - 1);
+             hAutoDev <= PCI_AUTO_BDF(iBus, PCI_MAX_SLOTS - 1, PCI_MAX_FUNCTIONS - 1);
              hAutoDev += PCI_AUTO_BDF(0, 0, 1)) {                       /* 遍历设备与功能               */
             iDev  = PCI_AUTO_DEV(hAutoDev);
             iFunc = PCI_AUTO_FUNC(hAutoDev);
+
+            PCI_AUTO_LOG(PCI_AUTO_LOG_PRT, "dev reset %02x:%02x.%01x.\n", iBus, iDev, iFunc);
 
             if ((PCI_AUTO_FUNC(hAutoDev)) && (!uiMulti)) {              /* 单功能设备                   */
                 continue;
@@ -171,8 +175,17 @@ LW_API
 INT  API_PciAutoScan (PCI_CTRL_HANDLE  hCtrl, UINT32 *puiSubBus)
 {
     INT                 iRet;                                           /* 操作结果                     */
-    PCI_AUTO_HANDLE     hPciAuto = &hCtrl->PCI_tAutoConfig;             /* 自动配置控制句柄             */
+    PCI_AUTO_HANDLE     hPciAuto;                                       /* 自动配置控制句柄             */
     UINT32              uiSubBus = 0;                                   /* 子总线                       */
+
+    if (!hCtrl) {
+        return  (PX_ERROR);
+    }
+
+    hPciAuto = &hCtrl->PCI_tAutoConfig;
+    if (!hPciAuto->PCIAUTO_iConfigEn) {                                 /* 自动配置禁能                 */
+        return  (ERROR_NONE);
+    }
 
     if (hPciAuto->PCIAUTO_uiFirstBusNo > hPciAuto->PCIAUTO_uiCurrentBusNo) {
         hPciAuto->PCIAUTO_uiCurrentBusNo = hPciAuto->PCIAUTO_uiFirstBusNo;
@@ -191,6 +204,8 @@ INT  API_PciAutoScan (PCI_CTRL_HANDLE  hCtrl, UINT32 *puiSubBus)
     if (puiSubBus) {
         *puiSubBus = uiSubBus;                                          /* 保存总线数                   */
     }
+
+    hPciAuto->PCIAUTO_uiLastBusNo = uiSubBus;                           /* 更新结束总线号               */
 
     PCI_AUTO_LOG(PCI_AUTO_LOG_PRT, "scan bus no %02x.\n", uiSubBus);
 
@@ -227,10 +242,12 @@ INT  API_PciAutoBusScan (PCI_CTRL_HANDLE  hCtrl, INT  iBus, UINT32 *puiSubBus)
     uiMulti = 0;
 
     for (hAutoDev  = PCI_AUTO_BDF(iBus, 0, 0);
-         hAutoDev  < PCI_AUTO_BDF(iBus, PCI_MAX_SLOTS - 1, PCI_MAX_FUNCTIONS - 1);
+         hAutoDev <= PCI_AUTO_BDF(iBus, PCI_MAX_SLOTS - 1, PCI_MAX_FUNCTIONS - 1);
          hAutoDev += PCI_AUTO_BDF(0, 0, 1)) {                           /* 遍历当前总线上的设备         */
         iDev  = PCI_AUTO_DEV(hAutoDev);
         iFunc = PCI_AUTO_FUNC(hAutoDev);
+
+        PCI_AUTO_LOG(PCI_AUTO_LOG_PRT, "dev scan %02x:%02x.%01x.\n", iBus, iDev, iFunc);
 
         iRet = __pciAutoDevSkip(hCtrl, hAutoDev);                       /* 是否忽略设备                 */
         if (iRet == ERROR_NONE) {
@@ -900,6 +917,11 @@ INT  API_PciAutoCtrlInit (PCI_CTRL_HANDLE  hCtrl)
     hPciAuto->PCIAUTO_hRegionIo  = LW_NULL;
     hPciAuto->PCIAUTO_hRegionMem = LW_NULL;
     hPciAuto->PCIAUTO_hRegionPre = LW_NULL;
+    hPciAuto->PCIAUTO_pvPriv     = (PVOID)hCtrl;
+
+    if (!hPciAuto->PCIAUTO_iConfigEn) {
+        return  (ERROR_NONE);
+    }
 
     /*
      *  获取资源信息

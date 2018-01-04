@@ -1166,7 +1166,7 @@ PCI_DEV_HANDLE  API_PciDevAdd (INT  iBus, INT  iDevice, INT  iFunction)
         break;
 
     case PCI_HEADER_TYPE_CARDBUS:
-        hDevHandle->PCIDEV_iType  = PCI_HEADER_TYPE_BRIDGE;
+        hDevHandle->PCIDEV_iType  = PCI_HEADER_TYPE_CARDBUS;
         hDevHandle->PCIDEV_ucPin  = hDevHandle->PCIDEV_phDevHdr.PCIH_pcicbHdr.PCICB_ucIntPin;
         hDevHandle->PCIDEV_ucLine = hDevHandle->PCIDEV_phDevHdr.PCIH_pcicbHdr.PCICB_ucIntLine;
         break;

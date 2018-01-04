@@ -91,8 +91,7 @@ ULONG  API_TimerDelete (LW_OBJECT_HANDLE  *pulId)
         goto    __delete;
     }
     
-    ptmr->TIMER_ulCounter = 0ul;                                        /*  清除计数器                  */
-    ptmr->TIMER_ucStatus  = LW_TIMER_STATUS_STOP;
+    ptmr->TIMER_ucStatus = LW_TIMER_STATUS_STOP;
     
     if (ptmr->TIMER_ucType == LW_TYPE_TIMER_ITIMER) {                   /*  从扫描队列删除              */
         _WakeupDel(&_K_wuITmr, &ptmr->TIMER_wunTimer);
@@ -101,6 +100,8 @@ ULONG  API_TimerDelete (LW_OBJECT_HANDLE  *pulId)
         _WakeupDel(&_K_wuHTmr, &ptmr->TIMER_wunTimer);
     }
     
+    ptmr->TIMER_ulCounter = 0ul;                                        /*  清除计数器                  */
+
 __delete:
     ptmr->TIMER_ucType = LW_TYPE_TIMER_UNUSED;                          /*  删除标志                    */
     

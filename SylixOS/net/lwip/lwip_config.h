@@ -71,8 +71,17 @@ extern PVOID  lwip_platform_smemcpy(PVOID  pvDest, CPVOID  pvSrc, size_t  stCoun
 #error "LW_CFG_LWIP_POOL_SIZE must bigger than 256!"
 #endif
 
+#if LW_CFG_NET_DEV_MAX > 256
+#error "LW_CFG_NET_DEV_MAX must less than 256!"
+#endif
+
+#if LW_CFG_NET_FLOWCTL_EN > 0
+#define MEM_SIZE                        (LW_CFG_NET_FLOWCTL_MEM_SIZE + LW_CFG_LWIP_MEM_SIZE)
+#else
+#define MEM_SIZE                        LW_CFG_LWIP_MEM_SIZE            /*  mem_malloc 堆大小           */
+#endif                                                                  /*  LW_CFG_NET_FLOWCTL_EN > 0   */
+
 #define MEM_ALIGNMENT                   (LW_CFG_CPU_WORD_LENGHT / NBBY) /*  内存对齐情况                */
-#define MEM_SIZE                        LW_CFG_LWIP_MEM_SIZE            /*  malloc 堆大小               */
 #define MEMP_NUM_PBUF                   LW_CFG_LWIP_NUM_PBUFS           /*  npbufs                      */
 #define PBUF_POOL_SIZE                  LW_CFG_LWIP_NUM_POOLS           /*  pool num                    */
 #define PBUF_POOL_BUFSIZE               LW_CFG_LWIP_POOL_SIZE           /*  pool block size             */
@@ -157,10 +166,11 @@ extern void  tlsf_mem_free(void *f);
   sylixos do not use MEMP_NUM_NETCONN, because sylixos use another socket interface.
 *********************************************************************************************************/
 
-#define IP_FORWARD                      LW_CFG_NET_ROUTER               /*  允许 IP 转发                */
+#define IP_FORWARD                      LW_CFG_NET_ROUTER               /*  是否允许 IP 转发            */
 #define IP_REASSEMBLY                   LW_CFG_LWIP_IPFRAG
 #define IP_FRAG                         LW_CFG_LWIP_IPFRAG
 #define IP_REASS_MAX_PBUFS              MEMP_NUM_REASSDATA
+#define IP_REASS_MAXAGE                 LW_CFG_LWIP_IP_REASS_MAXAGE
 
 #define IP_SOF_BROADCAST                1                               /*  Use the SOF_BROADCAST       */
 #define IP_SOF_BROADCAST_RECV           1
@@ -192,6 +202,7 @@ extern void  tlsf_mem_free(void *f);
 #if LW_CFG_CPU_WORD_LENGHT > 32
 #define IPV6_FRAG_COPYHEADER            1
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT > 32 */
+
 /*********************************************************************************************************
   dhcp & autoip
 *********************************************************************************************************/
@@ -215,7 +226,8 @@ extern void  tlsf_mem_free(void *f);
                                          (PPP_SUPPORT * 6 * MEMP_NUM_PPP_PCB) + \
                                          (LWIP_IPV6 ? (1 + LWIP_IPV6_REASS + LWIP_IPV6_MLD) : 0))
 
-#define MEMP_NUM_SYS_TIMEOUT            MEMP_NUM_SYS_TIMEOUT_DEFAULT + 10
+#define MEMP_NUM_SYS_TIMEOUT            (MEMP_NUM_SYS_TIMEOUT_DEFAULT + 10 + LW_CFG_NET_FLOWCTL_EN + \
+                                         LW_CFG_NET_MROUTER)
 
 #define MEMP_NUM_NETBUF                 LW_CFG_LWIP_NUM_NETBUF
 
@@ -246,9 +258,11 @@ extern void  tlsf_mem_free(void *f);
 #define SNMP_LWIP_MIB2_SYSCONTACT       "acoinfo@acoinfo.com"
 #define SNMP_LWIP_MIB2_SYSLOCATION      "@universe"
 
-#define LWIP_SNMP_V3                    0                               /*  todo: medtls for futrue     */
-#define LWIP_SNMP_V3_CRYPTO             0
-#define LWIP_SNMP_V3_MBEDTLS            0
+#if LW_CFG_SHELL_PASS_CRYPT_EN > 0
+#define LWIP_SNMP_V3                    1
+#define LWIP_SNMP_V3_CRYPTO             1
+#define LWIP_SNMP_V3_MBEDTLS            1
+#endif                                                                  /*  LW_CFG_SHELL_PASS_CRYPT_EN  */
 
 /*********************************************************************************************************
   IGMP
@@ -256,6 +270,15 @@ extern void  tlsf_mem_free(void *f);
 
 #define LWIP_IGMP                       1
 #define MEMP_NUM_IGMP_GROUP             LW_CFG_LWIP_IGMP_GROUP
+
+/*********************************************************************************************************
+  multicast router.
+*********************************************************************************************************/
+
+#if !IP_FORWARD || !LWIP_IGMP
+#undef LW_CFG_NET_MROUTER
+#define LW_CFG_NET_MROUTER              0
+#endif
 
 /*********************************************************************************************************
   DNS
@@ -469,6 +492,10 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrT
   PPP options
 *********************************************************************************************************/
 
+#if LW_CFG_SHELL_PASS_CRYPT_EN > 0
+#define LWIP_USE_EXTERNAL_MBEDTLS       1                               /*  we use mbedtls now          */
+#endif                                                                  /*  LW_CFG_SHELL_PASS_CRYPT_EN  */
+
 #define PPP_SUPPORT                     LW_CFG_LWIP_PPP
 #define PPPOS_SUPPORT                   LW_CFG_LWIP_PPP
 #define PPPOE_SUPPORT                   LW_CFG_LWIP_PPPOE
@@ -547,6 +574,7 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrT
 *********************************************************************************************************/
 
 #define LWIP_TCPIP_CORE_LOCKING         1
+#define LWIP_TCPIP_TIMEOUT              0                               /*  暂时不需要                  */
                                                                         
 /*********************************************************************************************************
   Debugging options (TCP UDP IP debug & only can print message)
@@ -604,6 +632,7 @@ extern PVOID netif_get_by_index(UINT uiIndex);
 extern INT   netif_add_hook(PVOID  pvNetif);
 extern VOID  netif_remove_hook(PVOID  pvNetif);
 extern VOID  netif_updown_hook(PVOID  pvNetif, INT up);
+extern VOID  netif_link_updown_hook(PVOID  pvNetif, INT linkup);
 extern VOID  netif_set_addr_hook(PVOID  pvNetif, const PVOID pvIpaddr);
 extern VOID  netif_set_addr6_hook(PVOID  pvNetif, const PVOID pvIp6addr, INT iIndex);
 
@@ -653,11 +682,14 @@ extern int link_output_hook(PVOID  pvPBuf, PVOID  pvNetif);
   lwip vlan hook (for AF_PACKET and Net Defender)
 *********************************************************************************************************/
 
-extern int etharp_vlan_set_hook(PVOID pvNetif, PVOID pvPBuf, const PVOID pvEthSrc, const PVOID pvEthDst, UINT16  usEthType);
-#define LWIP_HOOK_VLAN_SET              etharp_vlan_set_hook
+#if LW_CFG_NET_VLAN_EN > 0
+extern int ethernet_vlan_set_hook(void *pv_netif, void *pv_buf, const void *pv_ethsrc, 
+                                  const void *pvethdst, UINT16 eth_type);
+#define LWIP_HOOK_VLAN_SET              ethernet_vlan_set_hook
 
-extern int etharp_vlan_check_hook(PVOID pvNetif, PVOID pvEthhdr, PVOID pvVlanhdr);
-#define LWIP_HOOK_VLAN_CHECK            etharp_vlan_check_hook
+extern int ethernet_vlan_check_hook(void *pv_netif, const void *eth_hdr, const void *vlan_hdr);
+#define LWIP_HOOK_VLAN_CHECK            ethernet_vlan_check_hook
+#endif                                                                  /*  LW_CFG_NET_VLAN_EN > 0      */
 
 /*********************************************************************************************************
   lwip ppp status hook

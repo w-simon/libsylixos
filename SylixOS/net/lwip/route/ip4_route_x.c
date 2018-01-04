@@ -19,6 +19,8 @@
  *    and/or other materials provided with the distribution.
  * 3. The name of the author may not be used to endorse or promote products
  *    derived from this software without specific prior written permission. 
+ * 4. This code has been or is applying for intellectual property protection 
+ *    and can only be used with acoinfo software products.
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED 
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
@@ -36,7 +38,7 @@
  */
 
 #define __SYLIXOS_KERNEL
-#include "unistd.h"
+#include "SylixOS.h"
 
 #if LW_CFG_NET_ROUTER > 0
 
@@ -101,7 +103,7 @@ size_t  rt_entry_to_msghdr (struct rt_msghdr *rtmsghdr, const struct rt_entry *e
   rtmsghdr->rtm_seq   = entry->rt_seq;
   rtmsghdr->rtm_errno = 0;
   rtmsghdr->rtm_use   = 0;
-  rtmsghdr->rtm_inits = entry->rt_metric;
+  rtmsghdr->rtm_inits = entry->rt_inits;
   rtmsghdr->rtm_rmx   = entry->rt_rmx;
 
   if (entry->rt_netif) {
@@ -161,10 +163,16 @@ int  rt_msghdr_to_entry (struct rt_entry *entry, const struct rt_msghdr *rtmsghd
   
   entry->rt_flags  = rtmsghdr->rtm_flags;
   entry->rt_rmx    = rtmsghdr->rtm_rmx;
-  entry->rt_metric = (int)rtmsghdr->rtm_rmx.rmx_hopcount;
   entry->rt_refcnt = 0;
   entry->rt_pid    = rtmsghdr->rtm_pid;
   entry->rt_seq    = rtmsghdr->rtm_seq;
+  entry->rt_inits  = rtmsghdr->rtm_inits;
+  
+  if (entry->rt_inits & RTV_HOPCOUNT) {
+    entry->rt_metric = (int)rtmsghdr->rtm_rmx.rmx_hopcount;
+  } else {
+    entry->rt_metric = 0;
+  }
     
   sin = (struct sockaddr_in *)(rtmsghdr + 1);
   entry->rt_dest.addr = sin->sin_addr.s_addr;
@@ -188,6 +196,13 @@ int  rt_msghdr_to_entry (struct rt_entry *entry, const struct rt_msghdr *rtmsghd
 /* rt_entry to struct rtentry */
 void  rt_entry_to_rtentry (struct rtentry *rtentry, const struct rt_entry *entry)
 {
+  rtentry->rt_dst.sa_len = sizeof(struct sockaddr_in);
+  rtentry->rt_dst.sa_family = AF_INET;
+  rtentry->rt_gateway.sa_len = sizeof(struct sockaddr_in);
+  rtentry->rt_gateway.sa_family = AF_INET;
+  rtentry->rt_genmask.sa_len = sizeof(struct sockaddr_in);
+  rtentry->rt_genmask.sa_family = AF_INET;
+
   inet_addr_from_ip4addr(&((struct sockaddr_in *)&rtentry->rt_dst)->sin_addr, &entry->rt_dest);
   inet_addr_from_ip4addr(&((struct sockaddr_in *)&rtentry->rt_gateway)->sin_addr, &entry->rt_gateway);
   inet_addr_from_ip4addr(&((struct sockaddr_in *)&rtentry->rt_genmask)->sin_addr, &entry->rt_netmask);

@@ -80,8 +80,7 @@ static VOID __ifConf (struct ifconf  *pifconf)
         }
         pifreq->ifr_name[0] = pnetif->name[0];
         pifreq->ifr_name[1] = pnetif->name[1];
-        pifreq->ifr_name[2] = (char)(pnetif->num + '0');
-        pifreq->ifr_name[3] = PX_EOS;
+        lib_itoa(pnetif->num, &pifreq->ifr_name[2], 10);
         
         psockaddrin = (struct sockaddr_in *)&(pifreq->ifr_addr);
         psockaddrin->sin_len    = sizeof(struct sockaddr_in);
@@ -105,12 +104,13 @@ static VOID __ifConf (struct ifconf  *pifconf)
 *********************************************************************************************************/
 static struct netif *__ifFindByName (CPCHAR  pcName)
 {
-    struct netif    *pnetif;
+    struct netif  *pnetif;
+    INT            iIndex = lib_atoi(&pcName[2]);
     
     for (pnetif = netif_list; pnetif != LW_NULL; pnetif = pnetif->next) {  
         if ((pcName[0] == pnetif->name[0]) &&
             (pcName[1] == pnetif->name[1]) &&
-            (pcName[2] == pnetif->num + '0')) {                         /*  匹配网络接口                */
+            (iIndex    == pnetif->num)) {                               /*  匹配网络接口                */
             break;
         }
     }

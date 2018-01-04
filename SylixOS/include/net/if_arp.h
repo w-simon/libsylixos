@@ -30,6 +30,10 @@
 *********************************************************************************************************/
 #if LW_CFG_NET_EN > 0
 
+#ifdef __cplusplus
+extern "C" {
+#endif                                                      /*  __cplusplus                             */
+
 /*********************************************************************************************************
  * Address Resolution Protocol.
  *
@@ -99,6 +103,10 @@ struct arpreq {
 #define SIOCSARP            _IOW('i', 30, struct arpreq)    /* set arp entry                            */
 #define SIOCGARP            _IOWR('i',38, struct arpreq)    /* get arp entry                            */
 #define SIOCDARP            _IOW('i', 32, struct arpreq)    /* delete arp entry                         */
+
+#ifdef __cplusplus
+}
+#endif                                                      /*  __cplusplus                             */
 
 #endif                                                      /*  LW_CFG_NET_EN                           */
 #endif                                                      /*  __IF_ARP_H                              */

@@ -77,41 +77,15 @@ static INT      _nevtIoctl(PLW_NEVT_FILE  pnevtfil,
 *********************************************************************************************************/
 #define NEVT_MAKE_EVENT(netif, buf, event)              \
         do {                                            \
+            lib_bzero(buf, sizeof(buf));                \
             buf[0] = (UCHAR)((event >> 24) & 0xff);     \
             buf[1] = (UCHAR)((event >> 16) & 0xff);     \
             buf[2] = (UCHAR)((event >>  8) & 0xff);     \
             buf[3] = (UCHAR)((event)       & 0xff);     \
             buf[4] = netif->name[0];                    \
             buf[5] = netif->name[1];                    \
-            buf[6] = (UCHAR)(netif->num + '0');         \
-            buf[7] = PX_EOS;                            \
-            lib_bzero(&buf[8], sizeof(buf) - 8);        \
+            lib_itoa(netif->num, (char *)&buf[6], 10);  \
         } while (0)
-/*********************************************************************************************************
-** 函数名称: _netEventInit
-** 功能描述: 初始化网络事件
-** 输　入  : NONE
-** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-INT  _netEventInit (VOID)
-{
-    if (_G_iNevtDrvNum <= 0) {
-        _G_iNevtDrvNum  = iosDrvInstall(_nevtOpen,
-                                        LW_NULL,
-                                        _nevtOpen,
-                                        _nevtClose,
-                                        _nevtRead,
-                                        _nevtWrite,
-                                        _nevtIoctl);
-        DRIVER_LICENSE(_G_iNevtDrvNum,     "Dual BSD/GPL->Ver 1.0");
-        DRIVER_AUTHOR(_G_iNevtDrvNum,      "Han.hui");
-        DRIVER_DESCRIPTION(_G_iNevtDrvNum, "net event message driver.");
-    }
-    
-    return  ((_G_iNevtDrvNum == (PX_ERROR)) ? (PX_ERROR) : (ERROR_NONE));
-}
 /*********************************************************************************************************
 ** 函数名称: _netEventDevCreate
 ** 功能描述: 安装 nevt 消息设备
@@ -120,7 +94,7 @@ INT  _netEventInit (VOID)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-INT  _netEventDevCreate (VOID)
+static INT  _netEventDevCreate (VOID)
 {
     if (_G_iNevtDrvNum <= 0) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "no driver.\r\n");
@@ -149,6 +123,36 @@ INT  _netEventDevCreate (VOID)
     }
     
     return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: _netEventInit
+** 功能描述: 初始化网络事件
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+INT  _netEventInit (VOID)
+{
+    if (_G_iNevtDrvNum <= 0) {
+        _G_iNevtDrvNum  = iosDrvInstall(_nevtOpen,
+                                        LW_NULL,
+                                        _nevtOpen,
+                                        _nevtClose,
+                                        _nevtRead,
+                                        _nevtWrite,
+                                        _nevtIoctl);
+        DRIVER_LICENSE(_G_iNevtDrvNum,     "Dual BSD/GPL->Ver 1.0");
+        DRIVER_AUTHOR(_G_iNevtDrvNum,      "Han.hui");
+        DRIVER_DESCRIPTION(_G_iNevtDrvNum, "net event message driver.");
+    }
+    
+    if (_G_iNevtDrvNum > 0) { 
+        return  (_netEventDevCreate());
+        
+    } else {
+        return  (PX_ERROR);
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: _netEventDevPutMsg
@@ -488,7 +492,7 @@ static INT  _nevtIoctl (PLW_NEVT_FILE  pnevtfil,
 *********************************************************************************************************/
 VOID  netEventIfAdd (struct netif *pnetif)
 {
-    UCHAR   ucBuffer[4 + 4 + (4 * 4)];
+    UCHAR   ucBuffer[NET_EVENT_DEV_MAX_MSGSIZE];
     
     NEVT_MAKE_EVENT(pnetif, ucBuffer, NET_EVENT_ADD);
     
@@ -504,7 +508,7 @@ VOID  netEventIfAdd (struct netif *pnetif)
 *********************************************************************************************************/
 VOID  netEventIfRemove (struct netif *pnetif)
 {
-    UCHAR   ucBuffer[4 + 4 + (4 * 4)];
+    UCHAR   ucBuffer[NET_EVENT_DEV_MAX_MSGSIZE];
     
     NEVT_MAKE_EVENT(pnetif, ucBuffer, NET_EVENT_REMOVE);
     
@@ -520,7 +524,7 @@ VOID  netEventIfRemove (struct netif *pnetif)
 *********************************************************************************************************/
 VOID  netEventIfUp (struct netif *pnetif)
 {
-    UCHAR   ucBuffer[4 + 4 + (4 * 4)];
+    UCHAR   ucBuffer[NET_EVENT_DEV_MAX_MSGSIZE];
     
     NEVT_MAKE_EVENT(pnetif, ucBuffer, NET_EVENT_UP);
     
@@ -543,7 +547,7 @@ VOID  netEventIfUp (struct netif *pnetif)
 *********************************************************************************************************/
 VOID  netEventIfDown (struct netif *pnetif)
 {
-    UCHAR   ucBuffer[4 + 4 + (4 * 4)];
+    UCHAR   ucBuffer[NET_EVENT_DEV_MAX_MSGSIZE];
     
     NEVT_MAKE_EVENT(pnetif, ucBuffer, NET_EVENT_DOWN);
     
@@ -564,7 +568,7 @@ VOID  netEventIfDown (struct netif *pnetif)
 *********************************************************************************************************/
 VOID  netEventIfLink (struct netif *pnetif)
 {
-    UCHAR   ucBuffer[4 + 4 + (4 * 4)];
+    UCHAR   ucBuffer[NET_EVENT_DEV_MAX_MSGSIZE];
     
     NEVT_MAKE_EVENT(pnetif, ucBuffer, NET_EVENT_LINK);
     
@@ -587,7 +591,7 @@ VOID  netEventIfLink (struct netif *pnetif)
 *********************************************************************************************************/
 VOID  netEventIfUnlink (struct netif *pnetif)
 {
-    UCHAR   ucBuffer[4 + 4 + (4 * 4)];
+    UCHAR   ucBuffer[NET_EVENT_DEV_MAX_MSGSIZE];
     
     NEVT_MAKE_EVENT(pnetif, ucBuffer, NET_EVENT_UNLINK);
     
@@ -608,7 +612,7 @@ VOID  netEventIfUnlink (struct netif *pnetif)
 *********************************************************************************************************/
 VOID  netEventIfAddr (struct netif *pnetif)
 {
-    UCHAR   ucBuffer[4 + 4 + (4 * 4)];
+    UCHAR   ucBuffer[NET_EVENT_DEV_MAX_MSGSIZE];
     
     NEVT_MAKE_EVENT(pnetif, ucBuffer, NET_EVENT_ADDR);
     
@@ -626,7 +630,7 @@ VOID  netEventIfAddr (struct netif *pnetif)
 *********************************************************************************************************/
 VOID  netEventIfAddrConflict (struct netif *pnetif, UINT8  ucHw[], UINT  uiHwLen)
 {
-    UCHAR   ucBuffer[4 + 4 + (4 * 4)];
+    UCHAR   ucBuffer[NET_EVENT_DEV_MAX_MSGSIZE];
     CHAR    cIp[IP4ADDR_STRLEN_MAX];
     INT     i;
     
@@ -653,7 +657,7 @@ VOID  netEventIfAddrConflict (struct netif *pnetif, UINT8  ucHw[], UINT  uiHwLen
 *********************************************************************************************************/
 VOID  netEventIfAuthFail (struct netif *pnetif)
 {
-    UCHAR   ucBuffer[4 + 4 + (4 * 4)];
+    UCHAR   ucBuffer[NET_EVENT_DEV_MAX_MSGSIZE];
     
     NEVT_MAKE_EVENT(pnetif, ucBuffer, NET_EVENT_AUTH_FAIL);
     
@@ -669,7 +673,7 @@ VOID  netEventIfAuthFail (struct netif *pnetif)
 *********************************************************************************************************/
 VOID  netEventIfAuthTo (struct netif *pnetif)
 {
-    UCHAR   ucBuffer[4 + 4 + (4 * 4)];
+    UCHAR   ucBuffer[NET_EVENT_DEV_MAX_MSGSIZE];
     
     NEVT_MAKE_EVENT(pnetif, ucBuffer, NET_EVENT_AUTH_TO);
     
@@ -686,7 +690,7 @@ VOID  netEventIfAuthTo (struct netif *pnetif)
 *********************************************************************************************************/
 VOID  netEventIfPppExt (struct netif *pnetif, UINT32  uiEvent)
 {
-    UCHAR   ucBuffer[4 + 4 + (4 * 4)];
+    UCHAR   ucBuffer[NET_EVENT_DEV_MAX_MSGSIZE];
 
     NEVT_MAKE_EVENT(pnetif, ucBuffer, uiEvent);
 
@@ -702,7 +706,7 @@ VOID  netEventIfPppExt (struct netif *pnetif, UINT32  uiEvent)
 *********************************************************************************************************/
 VOID  netEventIfWlQual (struct netif *pnetif)
 {
-    UCHAR   ucBuffer[4 + 4 + (4 * 4)];
+    UCHAR   ucBuffer[NET_EVENT_DEV_MAX_MSGSIZE];
     
     NEVT_MAKE_EVENT(pnetif, ucBuffer, NET_EVENT_WL_QUAL);
     
@@ -718,7 +722,7 @@ VOID  netEventIfWlQual (struct netif *pnetif)
 *********************************************************************************************************/
 VOID  netEventIfWlScan (struct netif *pnetif)
 {
-    UCHAR   ucBuffer[4 + 4 + (4 * 4)];
+    UCHAR   ucBuffer[NET_EVENT_DEV_MAX_MSGSIZE];
     
     NEVT_MAKE_EVENT(pnetif, ucBuffer, NET_EVENT_WL_SCAN);
     
@@ -742,7 +746,7 @@ VOID  netEventIfWlExt (struct netif *pnetif,
                        UINT32        uiArg3)
 {
     size_t  i;
-    UCHAR   ucBuffer[4 + 4 + (4 * 4)];
+    UCHAR   ucBuffer[NET_EVENT_DEV_MAX_MSGSIZE];
 
     ucBuffer[0] = (UCHAR)((uiEvent >> 24) & 0xff);
     ucBuffer[1] = (UCHAR)((uiEvent >> 16) & 0xff);
@@ -750,10 +754,9 @@ VOID  netEventIfWlExt (struct netif *pnetif,
     ucBuffer[3] = (UCHAR)((uiEvent)       & 0xff);
     ucBuffer[4] = pnetif->name[0];
     ucBuffer[5] = pnetif->name[1];
-    ucBuffer[6] = (UCHAR)(pnetif->num + '0');
-    ucBuffer[7] = PX_EOS;
+    lib_itoa(pnetif->num, (char *)&ucBuffer[6], 10);
     
-    i = 8;
+    i = 6 + lib_strlen((char *)&ucBuffer[6]) + 1;
     
     ucBuffer[i++] = (UCHAR)((uiArg0 >> 24) & 0xff);                     /*  MSB                         */
     ucBuffer[i++] = (UCHAR)((uiArg0 >> 16) & 0xff);
@@ -792,23 +795,27 @@ VOID  netEventIfWlExt2 (struct netif *pnetif,
                         UINT32        uiArg)
 {
     UINT32   uiLen = uiArg;
+    UINT32   uiOft;
     PUCHAR   pucBuffer = LW_NULL;
 
-    pucBuffer = (PUCHAR)__SHEAP_ALLOC(4 + 4 + uiLen);
+    pucBuffer = (PUCHAR)__SHEAP_ALLOC(4 + IFNAMSIZ + uiLen);
     if (!pucBuffer) {
         return;
     }
+    lib_bzero(pucBuffer, 4 + IFNAMSIZ + uiLen);
+    
+    pucBuffer[0] = (UCHAR)((NET_EVENT_WL_EXT2 >> 24) & 0xff);
+    pucBuffer[1] = (UCHAR)((NET_EVENT_WL_EXT2 >> 16) & 0xff);
+    pucBuffer[2] = (UCHAR)((NET_EVENT_WL_EXT2 >>  8) & 0xff);
+    pucBuffer[3] = (UCHAR)((NET_EVENT_WL_EXT2)       & 0xff);
+    
+    pucBuffer[4] = pnetif->name[0];
+    pucBuffer[5] = pnetif->name[1];
+    lib_itoa(pnetif->num, (char *)&pucBuffer[6], 10);
+    uiOft = 6 + lib_strlen((char *)&pucBuffer[6]) + 1;
+    lib_memcpy(pucBuffer + uiOft, (PUCHAR)pvEvent, uiLen);
 
-    lib_bzero(pucBuffer, 4 + 4 + uiLen);
-
-    *(pucBuffer + 4) = pnetif->name[0];
-    *(pucBuffer + 5) = pnetif->name[1];
-    *(pucBuffer + 6) = (UCHAR)(pnetif->num + '0');
-    *(pucBuffer + 7) = PX_EOS;
-
-    lib_memcpy(pucBuffer + 8, (PUCHAR)pvEvent, uiLen);
-
-    _netEventDevPutMsg(pucBuffer, 4 + 4 + uiLen);
+    _netEventDevPutMsg(pucBuffer, uiOft + uiLen);
 
     __SHEAP_FREE(pucBuffer);
 }

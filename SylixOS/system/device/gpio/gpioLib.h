@@ -57,6 +57,10 @@
   GC_pfuncSet
   设置 GPIO 输出值
   
+  GC_pfuncGetIrq
+  获取 GPIO IRQ 向量号, 不设置 GPIO 中断, 仅仅获取 IRQ 号
+  bIsLevel 1: 电平触发 0:边沿触发, uiType 1:上升沿触发 0:下降沿触发 2:双边沿触发
+  
   GC_pfuncSetupIrq
   设置 GPIO 为外部中断输入口, 同时返回对应的 IRQ 向量号
   bIsLevel 1: 电平触发 0:边沿触发, uiType 1:上升沿触发 0:下降沿触发 2:双边沿触发
@@ -69,12 +73,15 @@
   如果不是, 则返回 LW_IRQ_NONE.
   
   以上函数 uiOffset 参数为针对 GC_uiBase 的偏移量, GPIO 驱动程序需要通过此数值确定对应的硬件寄存器.
+  注意: 相同条件下 GC_pfuncGetIrq, GC_pfuncSetupIrq 返回值必须相同.
 *********************************************************************************************************/
 
 struct lw_gpio_desc;
 typedef struct lw_gpio_chip {
     CPCHAR                  GC_pcLabel;
     LW_LIST_LINE            GC_lineManage;
+    ULONG                   GC_ulVerMagic;
+#define LW_GPIO_VER_MAGIC   0xfffffff1
     
     INT                   (*GC_pfuncRequest)(struct lw_gpio_chip *pgchip, UINT uiOffset);
     VOID                  (*GC_pfuncFree)(struct lw_gpio_chip *pgchip, UINT uiOffset);
@@ -87,7 +94,9 @@ typedef struct lw_gpio_chip {
                                                  UINT uiDebounce);
     INT                   (*GC_pfuncSetPull)(struct lw_gpio_chip *pgchip, UINT uiOffset, UINT uiType);
     VOID                  (*GC_pfuncSet)(struct lw_gpio_chip *pgchip, UINT uiOffset, INT iValue);
-    INT                   (*GC_pfuncSetupIrq)(struct lw_gpio_chip *pgchip, UINT uiOffset,
+    ULONG                 (*GC_pfuncGetIrq)(struct lw_gpio_chip *pgchip, UINT uiOffset,
+                                            BOOL bIsLevel, UINT uiType);
+    ULONG                 (*GC_pfuncSetupIrq)(struct lw_gpio_chip *pgchip, UINT uiOffset,
                                               BOOL bIsLevel, UINT uiType);
     VOID                  (*GC_pfuncClearIrq)(struct lw_gpio_chip *pgchip, UINT uiOffset);
     irqreturn_t           (*GC_pfuncSvrIrq)(struct lw_gpio_chip *pgchip, UINT uiOffset);
@@ -172,7 +181,8 @@ LW_API INT              API_GpioDirectionInput(UINT uiGpio);
 LW_API INT              API_GpioDirectionOutput(UINT uiGpio, INT iValue);
 LW_API INT              API_GpioGetValue(UINT uiGpio);
 LW_API VOID             API_GpioSetValue(UINT uiGpio, INT iValue);
-LW_API INT              API_GpioSetupIrq(UINT uiGpio, BOOL bIsLevel, UINT uiType);
+LW_API ULONG            API_GpioGetIrq(UINT uiGpio, BOOL bIsLevel, UINT uiType);
+LW_API ULONG            API_GpioSetupIrq(UINT uiGpio, BOOL bIsLevel, UINT uiType);
 LW_API VOID             API_GpioClearIrq(UINT uiGpio);
 LW_API irqreturn_t      API_GpioSvrIrq(UINT uiGpio);
 
@@ -195,6 +205,7 @@ LW_API irqreturn_t      API_GpioSvrIrq(UINT uiGpio);
 #define gpioDirectionOutput     API_GpioDirectionOutput
 #define gpioGetValue            API_GpioGetValue
 #define gpioSetValue            API_GpioSetValue
+#define gpioGetIrq              API_GpioGetIrq
 #define gpioSetupIrq            API_GpioSetupIrq
 #define gpioClearIrq            API_GpioClearIrq
 #define gpioSvrIrq              API_GpioSvrIrq

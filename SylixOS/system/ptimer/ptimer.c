@@ -386,7 +386,9 @@ INT  timer_settime (timer_t                  timer,
         }
     }
     
-    if (ptvNew == LW_NULL) {
+    if ((ptvNew == LW_NULL) || 
+        LW_NSEC_INVALD(ptvNew->it_value.tv_nsec) ||
+        LW_NSEC_INVALD(ptvNew->it_interval.tv_nsec)) {                  /*  时间无效                    */
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }

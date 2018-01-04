@@ -94,6 +94,7 @@
  */
 #if LWIP_USE_EXTERNAL_MBEDTLS
 
+#include "mbedtls/md4.h"
 #define lwip_md4_context mbedtls_md4_context
 #define lwip_md4_init mbedtls_md4_init
 #define lwip_md4_starts mbedtls_md4_starts
@@ -101,6 +102,7 @@
 #define lwip_md4_finish mbedtls_md4_finish
 #define lwip_md4_free mbedtls_md4_free
 
+#include "mbedtls/md5.h"
 #define lwip_md5_context mbedtls_md5_context
 #define lwip_md5_init mbedtls_md5_init
 #define lwip_md5_starts mbedtls_md5_starts
@@ -108,6 +110,7 @@
 #define lwip_md5_finish mbedtls_md5_finish
 #define lwip_md5_free mbedtls_md5_free
 
+#include "mbedtls/sha1.h"
 #define lwip_sha1_context mbedtls_sha1_context
 #define lwip_sha1_init mbedtls_sha1_init
 #define lwip_sha1_starts mbedtls_sha1_starts
@@ -115,12 +118,14 @@
 #define lwip_sha1_finish mbedtls_sha1_finish
 #define lwip_sha1_free mbedtls_sha1_free
 
+#include "mbedtls/des.h"
 #define lwip_des_context mbedtls_des_context
 #define lwip_des_init mbedtls_des_init
 #define lwip_des_setkey_enc mbedtls_des_setkey_enc
 #define lwip_des_crypt_ecb mbedtls_des_crypt_ecb
 #define lwip_des_free mbedtls_des_free
 
+#include "mbedtls/arc4.h"
 #define lwip_arc4_context mbedtls_arc4_context
 #define lwip_arc4_init mbedtls_arc4_init
 #define lwip_arc4_setup mbedtls_arc4_setup

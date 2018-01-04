@@ -42,7 +42,7 @@
 *********************************************************************************************************/
 VOID        __natPoolCreate(VOID);
 VOID        __natTimer(VOID);
-INT         __natMapAdd(ip4_addr_t  *pipaddr, u16_t  usPort, u16_t  AssPort, u8_t  ucProto);
+INT         __natMapAdd(ip4_addr_t  *pipaddr, u16_t  usIpCnt, u16_t  usPort, u16_t  AssPort, u8_t  ucProto);
 INT         __natMapDelete(ip4_addr_t  *pipaddr, u16_t  usPort, u16_t  AssPort, u8_t  ucProto);
 INT         __natAliasAdd(const ip4_addr_t  *pipaddrAlias, 
                           const ip4_addr_t  *ipaddrSLocalIp,
@@ -133,9 +133,10 @@ VOID  API_INetNatInit (VOID)
                                      "    natalias del 11.22.33.44                          (delete alias)\n");
                                      
     API_TShellKeywordAdd("natmap", __tshellNatMap);
-    API_TShellFormatAdd("natmap",  " {[add] | [del]} [WAN port] [LAN port] [LAN IP] [protocol]");
+    API_TShellFormatAdd("natmap",  " {[add] | [del]} [WAN port] [LAN port] [LAN IP] [protocol] [ip_cnt]");
     API_TShellHelpAdd("natmap",    "add or delete NAT maps.\n"
                                      "eg. natmap add 80 80 192.168.1.2 tcp (map webserver as 192..2)\n"
+                                     "    natmap add 80 80 192.168.1.2 tcp 5 (map webserver as 192..2 ~ 192..7)\n"
                                      "    natmap del 80 80 192.168.1.2 tcp (unmap webserver as 192..2)\n");
                                      
     API_TShellKeywordAdd("nats", __tshellNatShow);
@@ -298,6 +299,7 @@ INT  API_INetNatLocalDelete (CPCHAR  pcLocalNetif)
 ** 函数名称: API_INetNatMapAdd
 ** 功能描述: 创建内网外网映射
 ** 输　入  : pcLocalIp         内网 IP
+**           usIpCnt           内网 IP 个数 (负载均衡)
 **           usLocalPort       内网 端口
 **           usAssPort         映射 端口
 **           ucProto           协议 IP_PROTO_TCP / IP_PROTO_UDP
@@ -307,12 +309,18 @@ INT  API_INetNatLocalDelete (CPCHAR  pcLocalNetif)
                                            API 函数
 *********************************************************************************************************/
 LW_API  
-INT  API_INetNatMapAdd (CPCHAR  pcLocalIp, UINT16  usLocalPort, UINT16  usAssPort, UINT8  ucProto)
+INT  API_INetNatMapAdd (CPCHAR  pcLocalIp, UINT16  usIpCnt, UINT16  usLocalPort, 
+                        UINT16  usAssPort, UINT8  ucProto)
 {
     ip4_addr_t ipaddr;
     INT        iRet;
     
     if (!pcLocalIp) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    if (usIpCnt < 1) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -332,7 +340,7 @@ INT  API_INetNatMapAdd (CPCHAR  pcLocalIp, UINT16  usLocalPort, UINT16  usAssPor
         return  (PX_ERROR);
     }
     
-    iRet = __natMapAdd(&ipaddr, htons(usLocalPort), htons(usAssPort), ucProto);
+    iRet = __natMapAdd(&ipaddr, usIpCnt, htons(usLocalPort), htons(usAssPort), ucProto);
     
     return  (iRet);
 }
@@ -521,11 +529,12 @@ static INT  __tshellNatLocal (INT  iArgC, PCHAR  ppcArgV[])
 static INT  __tshellNatMap (INT  iArgC, PCHAR  ppcArgV[])
 {
     INT         iError;
+    INT         iIpCnt;
     INT         iWanPort;
     INT         iLanPort;
     UINT8       ucProto;
     
-    if (iArgC != 6) {
+    if (iArgC < 6) {
         fprintf(stderr, "option error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
@@ -550,8 +559,19 @@ static INT  __tshellNatMap (INT  iArgC, PCHAR  ppcArgV[])
         return  (-ERROR_TSHELL_EPARAM);
     }
     
+    if (iArgC > 6) {
+        if ((sscanf(ppcArgV[6], "%d", &iIpCnt) != 1) ||
+            (iIpCnt < 1) || (iIpCnt > __ARCH_USHRT_MAX)) {
+            fprintf(stderr, "IP cnt error option error!\n");
+            return  (-ERROR_TSHELL_EPARAM);
+        }
+    
+    } else {
+        iIpCnt = 1;
+    }
+    
     if (lib_strcmp(ppcArgV[1], "add") == 0) {
-        iError = API_INetNatMapAdd(ppcArgV[4], (UINT16)iLanPort, (UINT16)iWanPort, ucProto);
+        iError = API_INetNatMapAdd(ppcArgV[4], (UINT16)iIpCnt, (UINT16)iLanPort, (UINT16)iWanPort, ucProto);
         if (iError < 0) {
             fprintf(stderr, "add NAT map error: %s!\n", lib_strerror(errno));
             return  (-ERROR_TSHELL_EPARAM);

@@ -690,7 +690,10 @@ TPS_RESULT  tpsFsTruncInode (PTPS_TRANS ptrans, PTPS_INODE pinode, TPS_SIZE_T si
         return  (TPS_ERR_BTREE_TRUNC);
     }
 
-    pinode->IND_szData = size;
+    pinode->IND_szData    = size;
+    pinode->IND_ui64MTime = TPS_UTC_TIME();
+    pinode->IND_ui64ATime = pinode->IND_ui64MTime;
+    pinode->IND_bDirty    = LW_TRUE;
 
     pucBuff = pinode->IND_pucBuff;
 
@@ -900,10 +903,10 @@ TPS_SIZE_T  tpsFsInodeWrite (PTPS_TRANS ptrans, PTPS_INODE pinode, TPS_OFF_T off
 
     pinode->IND_ui64MTime = TPS_UTC_TIME();
     pinode->IND_ui64ATime = pinode->IND_ui64MTime;
+    pinode->IND_bDirty    = LW_TRUE;
 
     if (off > pinode->IND_szData) {
         pinode->IND_szData = off;
-        pinode->IND_bDirty = LW_TRUE;
         if (bTransData || (pinode->IND_iFlag & (O_SYNC | O_DSYNC))) {
             if (tpsFsFlushInodeHead(ptrans, pinode) != TPS_ERR_NONE) {
                 return  (-EIO);

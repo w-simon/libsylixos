@@ -29,6 +29,10 @@
 *********************************************************************************************************/
 #if LW_CFG_NET_EN > 0
 
+#ifdef __cplusplus
+extern "C" {
+#endif                                                                  /*  __cplusplus                 */
+
 struct sockaddr_dl {
     u_char      sdl_len;                                                /* Total length of sockaddr     */
     u_char      sdl_family;                                             /* AF_LINK                      */
@@ -48,8 +52,12 @@ struct sockaddr_dl {
 #define LLADDR(s)  ((caddr_t)((s)->sdl_data + (s)->sdl_nlen))
 #define CLLADDR(s) ((const char *)((s)->sdl_data + (s)->sdl_nlen))
 
+#ifdef __cplusplus
+}
+#endif                                                                  /*  __cplusplus                 */
+
 #endif                                                                  /*  LW_CFG_NET_EN               */
-#endif                                                                  /*  __IF_H                      */
+#endif                                                                  /*  __IF_DL_H                   */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

@@ -74,6 +74,9 @@
 #define __ATA_PCMCIA                        1                           /*  ctrl type: PCMCIA           */
 
 #define __ATA_SEM_TIMEOUT_DEF               30000
+
+#define __ATA_MAX_28LBA                     0x0fffffff
+#define __ATA_MAX_48LBA                     (0xffffffff | ((UINT64)0xffff << 32))
 /*********************************************************************************************************
   以下为本驱动定义部份，用户不需改动
 *********************************************************************************************************/
@@ -416,9 +419,28 @@ typedef struct __ata_param {
                                                                             F 2 1 = Ultra DMA mode 2 and below are supported
                                                                             F 1 1 = Ultra DMA mode 1 and below are supported
                                                                             F 0 1 = Ultra DMA mode 0 is supported*/
-    INT16  ATAPAR_sReserved89[39];                                      /*  reserved                    */
-    INT16  ATAPAR_sVendor[32];                                          /*  vendor specific             */
-    INT16  ATAPAR_sReserved160[96];                                     /*  reserved                    */
+    INT16  ATAPAR_sSecurityEraseTime;                                   /*  Time Required for security
+                                                                            erase unit completion(F)    */
+    INT16  ATAPAR_sEnSecurityEraseTime;                                 /*  Time Required for enhansed
+                                                                            security erase completion(F)*/
+    INT16  ATAPAR_sAdvPowerManVal;                                      /*  Current adv. power mgmnt
+                                                                            value (V)                   */
+    INT16  ATAPAR_sMasterPassRev;                                       /*  Master password Revision
+                                                                            code (V)                    */
+    INT16  ATAPAR_sHardResetResult;                                     /*  Hardware Reset result       */
+    INT16  ATAPAR_sAcousticMgmt;                                        /*  acoustic management         */
+    INT16  ATAPAR_sReserved95[5];                                       /*  reserved                    */
+    UINT16 ATAPAR_sMaxLBA[4];                                           /*  MAX LBA                     */
+    INT16  ATAPAR_sReserved104[23];                                     /*  reserved                    */
+    INT16  ATAPAR_sRemoveNotification;                                  /*  Removable Media Status Notification
+                                                                            feature set supported       */
+    INT16  ATAPAR_sSecurityStatus;                                      /*  Security status             */
+    INT16  ATAPAR_sVendor[31];                                          /*  Vendor Specifc              */
+    INT16  ATAPAR_sCfaPowerMode;                                        /*  CFA power mode 1            */
+    INT16  ATAPAR_sReserved161[15];                                     /*  reserved                    */
+    INT16  ATAPAR_sMediaSerialNum[60];                                  /*  current media serial number */
+    INT16  ATAPAR_sReserved205[49];                                     /*  reserved                    */
+    INT16  ATAPAR_sIntegrityWord;                                       /*  Integrity word              */
 } __ATA_PARAM;
 /*********************************************************************************************************
   ATA设备信息

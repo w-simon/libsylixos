@@ -35,7 +35,7 @@
 #include <net/if_arp.h>
 #include <net/if_dl.h>
 #include <net/if_type.h>
-#include <netinet/in6.h>
+#include <netinet6/in6.h>
 #include <netpacket/packet.h>
 
 #include <assert.h>
@@ -46,13 +46,15 @@
 
 #if LW_CFG_NET_EN > 0
 
-#define MAX_IF          16
-#define MAX_IPV6        10
+#define MAX_IF    LW_CFG_NET_DEV_MAX
+#define MAX_IPV6  10
 
-#define SIZE_ADDR       max(sizeof(struct sockaddr_in6), max(sizeof(struct sockaddr_ll), sizeof(struct sockaddr_dl)))
-#define ADD_SIZE_ADDR   (SIZE_ADDR * 3)
-#define ADD_SIZE        (ADD_SIZE_ADDR + IFNAMSIZ)
-#define IFADDR_SIZE     (sizeof(struct ifaddrs) + ADD_SIZE)
+#define ADDR_ROUND_UP(len)  ROUND_UP((len), sizeof(size_t))
+#define SIZE_SOADDR         (max(sizeof(struct sockaddr_in6), max(sizeof(struct sockaddr_ll), sizeof(struct sockaddr_dl))))
+#define SIZE_ADDR           (ADDR_ROUND_UP(SIZE_SOADDR))
+#define ADD_SIZE_ADDR       (SIZE_ADDR * 3)
+#define ADD_SIZE            (ADD_SIZE_ADDR + IFNAMSIZ)
+#define IFADDR_SIZE         (sizeof(struct ifaddrs) + ADD_SIZE)
 
 #ifndef _DIAGASSERT
 #define _DIAGASSERT(c)  assert(c)

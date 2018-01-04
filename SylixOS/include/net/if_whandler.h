@@ -31,6 +31,10 @@
 *********************************************************************************************************/
 #if LW_CFG_NET_EN > 0
 
+#ifdef __cplusplus
+extern "C" {
+#endif                                                                  /*  __cplusplus                 */
+
 #define CONFIG_WIRELESS_EXT     1                                       /*  use CONFIG_WIRELESS_EXT cfg */
 
 /*********************************************************************************************************
@@ -478,6 +482,10 @@ iwe_stream_add_value (struct iw_request_info *info, char *event, char *value,
     
     return value;
 }
+
+#ifdef __cplusplus
+}
+#endif                                                                  /*  __cplusplus                 */
 
 #endif                                                                  /*  LW_CFG_NET_EN               */
 #endif                                                                  /*  __IF_WHANDLER_H             */

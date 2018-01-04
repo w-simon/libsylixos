@@ -63,6 +63,7 @@
 #define ARM_MPU_RASR_OFT_B              16
 #define ARM_MPU_RASR_OFT_SRD            8
 #define ARM_MPU_RASR_OFT_SIZE           1
+#define ARM_MPU_RASR_OFT_EN             0
 /*********************************************************************************************************
   DMA Pool
 *********************************************************************************************************/
@@ -176,7 +177,7 @@ VOID  armMpuV7MInit (CPCHAR  pcMachineName, const ARM_MPU_REGION  mpuregion[])
 
             uiVal |= (pmpuregion->MPUD_ucSize << ARM_MPU_RASR_OFT_SIZE);
 
-            ARM_MPU_RASR = uiVal;
+            ARM_MPU_RASR = uiVal | (1 << ARM_MPU_RASR_OFT_EN);
 
             if (pmpuregion->MPUD_bDmaPool &&
                 (pmpuregion->MPUD_ucSize >= ARM_MPU_REGION_SIZE_512B)) {

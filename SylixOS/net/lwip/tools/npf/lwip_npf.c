@@ -45,7 +45,8 @@
   宏定义
 *********************************************************************************************************/
 #define __NPF_NETIF_RULE_MAX                4                           /*  规则表种类                  */
-#define __NPF_NETIF_HASH_SIZE               5                           /*  网络接口 hash 表大小        */
+#define __NPF_NETIF_HASH_SIZE               16                          /*  网络接口 hash 表大小        */
+#define __NPF_NETIF_HASH_MASK               (__NPF_NETIF_HASH_SIZE - 1) /*  hash 掩码                   */
 #define __NPF_NETIF_DEFAULT_INPUT           tcpip_input                 /*  网络接口默认输入函数        */
 /*********************************************************************************************************
   规则表操作锁
@@ -160,7 +161,7 @@ static __PNPF_NETIF_CB  __npfNetifFind (CPCHAR  pcName, UINT8  ucNum)
              PLW_LIST_LINE          plineTemp;
              __PNPF_NETIF_CB        pnpfniTemp;
 
-    iIndex = (pcName[0] + pcName[1] + ucNum) % __NPF_NETIF_HASH_SIZE;
+    iIndex = (pcName[0] + pcName[1] + ucNum) & __NPF_NETIF_HASH_MASK;
 
     for (plineTemp  = _G_plineNpfHash[iIndex];
          plineTemp != LW_NULL;
@@ -195,7 +196,7 @@ static __PNPF_NETIF_CB  __npfNetifFind2 (CPCHAR  pcNetifName)
         return  (LW_NULL);
     }
     ucNum  = (UINT8)(pcNetifName[2] - '0');
-    iIndex = (pcNetifName[0] + pcNetifName[1] + ucNum) % __NPF_NETIF_HASH_SIZE;
+    iIndex = (pcNetifName[0] + pcNetifName[1] + ucNum) & __NPF_NETIF_HASH_MASK;
 
     for (plineTemp  = _G_plineNpfHash[iIndex];
          plineTemp != LW_NULL;
@@ -227,7 +228,7 @@ static VOID  __npfNetifInsertHash (__PNPF_NETIF_CB  pnpfni)
     iIndex = (pnpfni->NPFNI_cName[0]
            +  pnpfni->NPFNI_cName[1]
            +  pnpfni->NPFNI_ucNum)
-           %  __NPF_NETIF_HASH_SIZE;
+           & __NPF_NETIF_HASH_MASK;
 
     ppline = &_G_plineNpfHash[iIndex];
 
@@ -249,7 +250,7 @@ static VOID  __npfNetifDeleteHash (__PNPF_NETIF_CB  pnpfni)
     iIndex = (pnpfni->NPFNI_cName[0]
            +  pnpfni->NPFNI_cName[1]
            +  pnpfni->NPFNI_ucNum)
-           %  __NPF_NETIF_HASH_SIZE;
+           & __NPF_NETIF_HASH_MASK;
 
     ppline = &_G_plineNpfHash[iIndex];
 

@@ -13,7 +13,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <netinet/in.h>
-#include <netinet/in6.h>
+#include <netinet6/in6.h>
 
 /*
  * ipaddr_ntoa

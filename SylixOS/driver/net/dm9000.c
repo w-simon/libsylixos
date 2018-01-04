@@ -927,13 +927,11 @@ static int  dm9000_transmit (struct netdev *netdev, struct pbuf *p)
 *********************************************************************************************************/
 static void  dm9000_watchdog (struct netdev *netdev)
 {
-    struct dm9000_priv   *priv = netdev->priv;
     struct dm9000_netdev *dm9000 = (struct dm9000_netdev *)netdev;
     UINT16 link;
     int    linkup;
 
     API_InterVectorDisable(dm9000->irq);
-    API_SemaphoreMPend(priv->lock, LW_OPTION_WAIT_INFINITE);
 
     if ((dm9000_phy_read(dm9000, 1) & 0x20)) {
         netdev_get_linkup(netdev, &linkup);
@@ -975,7 +973,6 @@ static void  dm9000_watchdog (struct netdev *netdev)
         }
     }
 
-    API_SemaphoreMPost(priv->lock);
     API_InterVectorEnable(dm9000->irq);
 }
 /*********************************************************************************************************

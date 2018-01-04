@@ -73,6 +73,11 @@
 #include "net/route.h"
 #include "route/ip4_route.h"
 #include "route/ip6_route.h"
+#if LW_CFG_NET_BALANCING > 0
+#include "net/sroute.h"
+#include "balancing/ip4_sroute.h"
+#include "balancing/ip6_sroute.h"
+#endif                                                                  /*  LW_CFG_NET_BALANCING > 0    */
 #endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
 #if PPP_SUPPORT > 0 || PPPOE_SUPPORT > 0
 #include "net/if.h"
@@ -989,7 +994,15 @@ PVOID ip_route_src_hook (const PVOID pvDest, const PVOID pvSrc)
     const  ip4_addr_t *src  = (const ip4_addr_t *)pvSrc;
     struct netif      *netif;
     
-    netif = rt_route_search_hook(dest, src);
+#if LW_CFG_NET_BALANCING > 0
+    netif = srt_route_search_hook(dest, src);                           /*  source route first          */
+#else
+    netif = LW_NULL;
+#endif
+    
+    if (netif == LW_NULL) {
+        netif = rt_route_search_hook(dest, src);
+    }
 
     return  ((PVOID)netif);
     
@@ -1035,7 +1048,15 @@ PVOID ip6_route_src_hook (const PVOID pvSrc, const PVOID pvDest)
     const  ip6_addr_t *src6  = (const ip6_addr_t *)pvSrc;
     struct netif      *netif;
     
-    netif = rt6_route_search_hook(dest6, src6);
+#if LW_CFG_NET_BALANCING > 0
+    netif = srt6_route_search_hook(dest6, src6);                        /*  source route first          */
+#else
+    netif = LW_NULL;
+#endif
+    
+    if (netif == LW_NULL) {
+        netif = rt6_route_search_hook(dest6, src6);
+    }
 
     return  ((PVOID)netif);
     
@@ -1260,6 +1281,97 @@ uint16_t ntohs (uint16_t x)
 #else
     return  x;
 #endif
+}
+/*********************************************************************************************************
+** 函数名称: inet_addr
+** 功能描述: ipaddr_addr(cp)
+** 输　入  :
+** 输　出  :
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+in_addr_t  inet_addr (const char *cp)
+{
+    return  (ipaddr_addr(cp));
+}
+/*********************************************************************************************************
+** 函数名称: inet_aton
+** 功能描述: ip4addr_aton(cp, (ip4_addr_t*)addr)
+** 输　入  :
+** 输　出  :
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+int  inet_aton (const char *cp, struct in_addr *addr)
+{
+    return  (ip4addr_aton(cp, (ip4_addr_t*)addr));
+}
+/*********************************************************************************************************
+** 函数名称: inet_ntoa
+** 功能描述: ip4addr_ntoa((const ip4_addr_t*)&(addr))
+** 输　入  :
+** 输　出  :
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+char  *inet_ntoa (struct in_addr addr)
+{
+    return  (ip4addr_ntoa((const ip4_addr_t*)&(addr)));
+}
+/*********************************************************************************************************
+** 函数名称: inet_ntoa_r
+** 功能描述: ip4addr_ntoa_r((const ip4_addr_t*)&(addr), buf, buflen)
+** 输　入  :
+** 输　出  :
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+char  *inet_ntoa_r (struct in_addr addr, char *buf, int buflen)
+{
+    return  (ip4addr_ntoa_r((const ip4_addr_t*)&(addr), buf, buflen));
+}
+/*********************************************************************************************************
+** 函数名称: inet6_aton
+** 功能描述: ip6addr_aton(cp, (ip6_addr_t*)addr)
+** 输　入  :
+** 输　出  :
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+int  inet6_aton (const char *cp, struct in6_addr *addr)
+{
+    return  (ip6addr_aton(cp, (ip6_addr_t*)addr));
+}
+/*********************************************************************************************************
+** 函数名称: inet6_ntoa
+** 功能描述: ip6addr_ntoa((const ip6_addr_t*)&(addr))
+** 输　入  :
+** 输　出  :
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+char  *inet6_ntoa (struct in6_addr addr)
+{
+    return  (ip6addr_ntoa((const ip6_addr_t*)&(addr)));
+}
+/*********************************************************************************************************
+** 函数名称: inet6_ntoa_r
+** 功能描述: ip6addr_ntoa_r((const ip6_addr_t*)&(addr), buf, buflen)
+** 输　入  :
+** 输　出  :
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+char  *inet6_ntoa_r (struct in6_addr addr, char *buf, int buflen)
+{
+    return  (ip6addr_ntoa_r((const ip6_addr_t*)&(addr), buf, buflen));
 }
 
 #endif                                                                  /*  LW_CFG_NET_EN               */

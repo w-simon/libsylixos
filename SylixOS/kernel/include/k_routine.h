@@ -58,16 +58,20 @@ typedef size_t     *PLW_STACK;
 *********************************************************************************************************/
 #ifdef __SYLIXOS_KERNEL
 
+#define LW_VECTOR_INVALID   ((irqvect_t)-1l)                            /*  无效中断向量                */
+
+typedef ULONG       irqvect_t;                                          /*  中断向量, ULONG 前向兼容    */
+
 #define LW_IRQ_NONE         0
 #define LW_IRQ_HANDLED      1
 #define LW_IRQ_HANDLED_DISV 2                                           /*  中断处理结束并且屏蔽本中断  */
 #define LW_IRQ_RETVAL(x)    ((x) != 0)
 
-#endif                                                                  /*  __SYLIXOS_KERNEL            */
-
 typedef INT         irqreturn_t;
 
 typedef irqreturn_t (*PINT_SVR_ROUTINE)(PVOID pvArg, ULONG ulVector);   /*  系统中断服务函数            */
+
+#endif                                                                  /*  __SYLIXOS_KERNEL            */
 /*********************************************************************************************************
   系统使用的函数类型
 *********************************************************************************************************/

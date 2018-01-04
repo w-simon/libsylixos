@@ -231,7 +231,8 @@ static ssize_t  __routeRtmAdd4 (struct rt_msghdr  *pmsghdr)
         mem_free(pentry);
     
     } else {
-        if (rt_find_entry(&pentry->rt_dest, 0)) {
+        if (rt_find_entry(&pentry->rt_dest, &pentry->rt_netmask, &pentry->rt_gateway, 
+                          pentry->rt_ifname, pentry->rt_flags)) {
             mem_free(pentry);
             _ErrorHandle(EEXIST);
             return  (0);
@@ -283,13 +284,14 @@ static ssize_t  __routeRtmAdd6 (struct rt_msghdr  *pmsghdr)
         return  (0);
     }
     
-    if (ip6_addr_isany(&pentry6->rt6_gateway)) {
+    if (ip6_addr_isany_val(pentry6->rt6_dest)) {
         mem_free(pentry6);
         _ErrorHandle(ENETUNREACH);
         return  (0);
     
     } else {
-        if (rt6_find_entry(&pentry6->rt6_dest, 0)) {
+        if (rt6_find_entry(&pentry6->rt6_dest, &pentry6->rt6_netmask, &pentry6->rt6_gateway, 
+                           pentry6->rt6_ifname, pentry6->rt6_flags)) {
             mem_free(pentry6);
             _ErrorHandle(EEXIST);
             return  (0);
@@ -325,6 +327,7 @@ static ssize_t  __routeRtmChange4 (struct rt_msghdr  *pmsghdr)
     struct rt_entry    *pentry;
     struct sockaddr_in *psockaddrin;
     ip4_addr_t          ipaddr;
+    ip4_addr_t          ipnetmask;
     ip4_addr_t          ipgateway;
     CHAR                cIfName[IF_NAMESIZE] = "";
     
@@ -345,6 +348,13 @@ static ssize_t  __routeRtmChange4 (struct rt_msghdr  *pmsghdr)
     
     psockaddrin = SA_NEXT(struct sockaddr_in *, psockaddrin);
     ipgateway.addr = psockaddrin->sin_addr.s_addr;
+    
+    if (pmsghdr->rtm_addrs & RTA_NETMASK) {
+        psockaddrin = SA_NEXT(struct sockaddr_in *, psockaddrin);
+        ipnetmask.addr = psockaddrin->sin_addr.s_addr;
+    } else {
+        ipnetmask.addr = IPADDR_ANY;
+    }
     
     if (ipaddr.addr == IPADDR_ANY) {                                    /*  设置默认路由                */
         if ((ipgateway.addr == IPADDR_ANY) && (cIfName[0] == '\0')) {
@@ -368,7 +378,8 @@ static ssize_t  __routeRtmChange4 (struct rt_msghdr  *pmsghdr)
         }
         
     } else {
-        pentry = rt_find_entry(&ipaddr, 0);
+        pentry = rt_find_entry(&ipaddr, &ipnetmask, &ipgateway, 
+                               cIfName, pmsghdr->rtm_flags);
         if (!pentry || pentry->rt_type) {
             _ErrorHandle(ENETUNREACH);
             return  (0);
@@ -406,24 +417,46 @@ static ssize_t  __routeRtmChange4 (struct rt_msghdr  *pmsghdr)
 static ssize_t  __routeRtmChange6 (struct rt_msghdr  *pmsghdr)
 {
     INT                  iRet;
+    struct netif        *pnetif;
     struct rt6_entry    *pentry6;
     struct sockaddr_in6 *psockaddrin6;
     ip6_addr_t           ip6addr;
+    ip6_addr_t           ip6netmask;
+    ip6_addr_t           ip6gateway;
+    CHAR                 cIfName[IF_NAMESIZE] = "";
     
     if ((pmsghdr->rtm_addrs & (RTA_DST | RTA_GATEWAY)) != (RTA_DST | RTA_GATEWAY)) {
         _ErrorHandle(EINVAL);
         return  (0);
     }
     
+    pnetif = (struct netif *)netif_get_by_index(pmsghdr->rtm_index);
+    if (pnetif) {
+        cIfName[0] = pnetif->name[0];
+        cIfName[1] = pnetif->name[1];
+        lib_itoa(pnetif->num, &cIfName[2], 10);
+    }
+    
     psockaddrin6 = (struct sockaddr_in6 *)(pmsghdr + 1);
     inet6_addr_to_ip6addr(&ip6addr, &psockaddrin6->sin6_addr);
     
-    if (ip6_addr_isany(&ip6addr)) {
+    psockaddrin6 = SA_NEXT(struct sockaddr_in6 *, psockaddrin6);
+    inet6_addr_to_ip6addr(&ip6gateway, &psockaddrin6->sin6_addr);
+    
+    if (pmsghdr->rtm_addrs & RTA_NETMASK) {
+        psockaddrin6 = SA_NEXT(struct sockaddr_in6 *, psockaddrin6);
+        inet6_addr_to_ip6addr(&ip6netmask, &psockaddrin6->sin6_addr);
+    } else {
+        ip6_addr_set_any(&ip6netmask);
+    }
+    
+    if (ip6_addr_isany_val(ip6addr)) {
         _ErrorHandle(ENETUNREACH);
         return  (0);
 
     } else {
-        pentry6 = rt6_find_entry(&ip6addr, 0);
+        pentry6 = rt6_find_entry(&ip6addr, &ip6netmask, &ip6gateway, 
+                                 cIfName, pmsghdr->rtm_flags);
         if (!pentry6 || pentry6->rt6_type) {
             _ErrorHandle(ENETUNREACH);
             return  (0);
@@ -460,24 +493,45 @@ static ssize_t  __routeRtmChange6 (struct rt_msghdr  *pmsghdr)
 *********************************************************************************************************/
 static ssize_t  __routeRtmDelete4 (struct rt_msghdr  *pmsghdr)
 {
+    struct netif       *pnetif;
     struct rt_entry    *pentry;
     struct sockaddr_in *psockaddrin;
     ip4_addr_t          ipaddr;
+    ip4_addr_t          ipnetmask;
+    ip4_addr_t          ipgateway;
+    CHAR                cIfName[IF_NAMESIZE] = "";
     
     if (!(pmsghdr->rtm_addrs & RTA_DST)) {
         _ErrorHandle(EINVAL);
         return  (0);
     }
     
+    pnetif = (struct netif *)netif_get_by_index(pmsghdr->rtm_index);
+    if (pnetif) {
+        cIfName[0] = pnetif->name[0];
+        cIfName[1] = pnetif->name[1];
+        lib_itoa(pnetif->num, &cIfName[2], 10);
+    }
+    
     psockaddrin = (struct sockaddr_in *)(pmsghdr + 1);
     ipaddr.addr = psockaddrin->sin_addr.s_addr;
     
-    if (ipaddr.addr == IPADDR_ANY) {
-        _ErrorHandle(ENETUNREACH);
-        return  (0);
+    if (pmsghdr->rtm_addrs & RTA_GATEWAY) {
+        psockaddrin = SA_NEXT(struct sockaddr_in *, psockaddrin);
+        ipgateway.addr = psockaddrin->sin_addr.s_addr;
+    } else {
+        ipgateway.addr = IPADDR_ANY;
     }
     
-    pentry = rt_find_entry(&ipaddr, 0);
+    if (pmsghdr->rtm_addrs & RTA_NETMASK) {
+        psockaddrin = SA_NEXT(struct sockaddr_in *, psockaddrin);
+        ipnetmask.addr = psockaddrin->sin_addr.s_addr;
+    } else {
+        ipnetmask.addr = IPADDR_ANY;
+    }
+    
+    pentry = rt_find_entry(&ipaddr, &ipnetmask, &ipgateway, 
+                           cIfName, pmsghdr->rtm_flags);
     if (!pentry || pentry->rt_type) {
         _ErrorHandle(ENETUNREACH);
         return  (0);
@@ -501,24 +555,50 @@ static ssize_t  __routeRtmDelete4 (struct rt_msghdr  *pmsghdr)
 
 static ssize_t  __routeRtmDelete6 (struct rt_msghdr  *pmsghdr)
 {
+    struct netif       *pnetif;
     struct rt6_entry    *pentry6;
     struct sockaddr_in6 *psockaddrin6;
     ip6_addr_t           ip6addr;
+    ip6_addr_t           ip6netmask;
+    ip6_addr_t           ip6gateway;
+    CHAR                 cIfName[IF_NAMESIZE] = "";
     
     if (!(pmsghdr->rtm_addrs & RTA_DST)) {
         _ErrorHandle(EINVAL);
         return  (0);
     }
     
+    pnetif = (struct netif *)netif_get_by_index(pmsghdr->rtm_index);
+    if (pnetif) {
+        cIfName[0] = pnetif->name[0];
+        cIfName[1] = pnetif->name[1];
+        lib_itoa(pnetif->num, &cIfName[2], 10);
+    }
+    
     psockaddrin6 = (struct sockaddr_in6 *)(pmsghdr + 1);
     inet6_addr_to_ip6addr(&ip6addr, &psockaddrin6->sin6_addr);
     
-    if (ip6_addr_isany(&ip6addr)) {
+    if (pmsghdr->rtm_addrs & RTA_GATEWAY) {
+        psockaddrin6 = SA_NEXT(struct sockaddr_in6 *, psockaddrin6);
+        inet6_addr_to_ip6addr(&ip6gateway, &psockaddrin6->sin6_addr);
+    } else {
+        ip6_addr_set_any(&ip6gateway);
+    }
+    
+    if (pmsghdr->rtm_addrs & RTAX_NETMASK) {
+        psockaddrin6 = SA_NEXT(struct sockaddr_in6 *, psockaddrin6);
+        inet6_addr_to_ip6addr(&ip6netmask, &psockaddrin6->sin6_addr);
+    } else {
+        ip6_addr_set_any(&ip6netmask);
+    }
+    
+    if (ip6_addr_isany_val(ip6addr)) {
         _ErrorHandle(ENETUNREACH);
         return  (0);
     }
     
-    pentry6 = rt6_find_entry(&ip6addr, 0);
+    pentry6 = rt6_find_entry(&ip6addr, &ip6netmask, &ip6gateway, 
+                             cIfName, pmsghdr->rtm_flags);
     if (!pentry6 || pentry6->rt6_type) {
         _ErrorHandle(ENETUNREACH);
         return  (0);
@@ -535,19 +615,37 @@ static ssize_t  __routeRtmDelete6 (struct rt_msghdr  *pmsghdr)
 /*********************************************************************************************************
 ** 函数名称: __routeRtmGet4Walk
 ** 功能描述: 获取一条 IPv4 路由遍历
-** 输　入  : pentry   路由条目
-**           ipaddr   地址
-**           iRet     完成情况
+** 输　入  : pentry     路由条目
+**           ipaddr     地址
+**           ipgateway  网关地址
+**           pcIfname   网络接口名
+**           iRet       完成情况
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID  __routeRtmGet4Walk (struct rt_entry *pentry, ip4_addr_t *ipaddr, INT *iRet)
+static VOID  __routeRtmGet4Walk (struct rt_entry *pentry, 
+                                 ip4_addr_t      *ipaddr, 
+                                 ip4_addr_t      *ipgateway, 
+                                 char            *pcIfname,
+                                 INT             *iRet)
 {
-    if (pentry->rt_dest.addr == ipaddr->addr) {
-        route_hook_rt_ipv4(RTM_GET, pentry, 1);
-        *iRet = ERROR_NONE;
+    if (pentry->rt_dest.addr != ipaddr->addr) {
+        return;
     }
+    
+    if ((ipgateway->addr != IPADDR_ANY) && 
+        (pentry->rt_gateway.addr != ipgateway->addr)) {
+        return;
+    }
+    
+    if ((pcIfname[0] != PX_EOS) && 
+        lib_strcmp(pentry->rt_ifname, pcIfname)) {
+        return;
+    }
+
+    route_hook_rt_ipv4(RTM_GET, pentry, 1);
+    *iRet = ERROR_NONE;
 }
 /*********************************************************************************************************
 ** 函数名称: __routeRtmGet4
@@ -561,7 +659,10 @@ static ssize_t  __routeRtmGet4 (struct rt_msghdr  *pmsghdr)
 {
     INT                 iRet = PX_ERROR;
     struct sockaddr_in *psockaddrin;
+    struct sockaddr_dl *psockaddrdl;
     ip4_addr_t          ipaddr;
+    ip4_addr_t          ipgateway;
+    char                cIfname[IF_NAMESIZE] = "";
     
     if (!(pmsghdr->rtm_addrs & RTA_DST)) {
         _ErrorHandle(EINVAL);
@@ -571,7 +672,30 @@ static ssize_t  __routeRtmGet4 (struct rt_msghdr  *pmsghdr)
     psockaddrin = (struct sockaddr_in *)(pmsghdr + 1);
     ipaddr.addr = psockaddrin->sin_addr.s_addr;
     
-    rt_traversal_entry(__routeRtmGet4Walk, &ipaddr, &iRet, LW_NULL, LW_NULL, LW_NULL, LW_NULL);
+    if (pmsghdr->rtm_addrs & RTA_GATEWAY) {
+        psockaddrin = SA_NEXT(struct sockaddr_in *, psockaddrin);
+        ipgateway.addr = psockaddrin->sin_addr.s_addr;
+    
+    } else {
+        ipgateway.addr = IPADDR_ANY;
+    }
+    
+    if (pmsghdr->rtm_addrs & RTA_NETMASK) {
+        psockaddrin = SA_NEXT(struct sockaddr_in *, psockaddrin);
+    }
+    
+    if (pmsghdr->rtm_addrs & RTA_GENMASK) {
+        psockaddrin = SA_NEXT(struct sockaddr_in *, psockaddrin);
+    }
+    
+    if (pmsghdr->rtm_addrs & RTA_IFP) {
+        psockaddrdl = SA_NEXT(struct sockaddr_dl *, psockaddrin);
+        if (psockaddrdl->sdl_family == AF_LINK) {
+            lib_strlcpy(cIfname, psockaddrdl->sdl_data, IF_NAMESIZE);
+        }
+    }
+    
+    rt_traversal_entry(__routeRtmGet4Walk, &ipaddr, &ipgateway, cIfname, &iRet, LW_NULL, LW_NULL);
     if (iRet < 0) {
         _ErrorHandle(ENETUNREACH);
         return  (0);
@@ -582,21 +706,39 @@ static ssize_t  __routeRtmGet4 (struct rt_msghdr  *pmsghdr)
 /*********************************************************************************************************
 ** 函数名称: __routeRtmGet6Walk
 ** 功能描述: 获取一条 IPv6 路由遍历
-** 输　入  : pentry   路由条目
-**           ipaddr   地址
-**           iRet     完成情况
+** 输　入  : pentry      路由条目
+**           ip6addr     地址
+**           ip6gateway  网关地址
+**           pcIfname    网络接口名
+**           iRet        完成情况
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
 #if LWIP_IPV6
 
-static VOID  __routeRtmGet6Walk (struct rt6_entry *pentry6, ip6_addr_t *ip6addr, INT *iRet)
+static VOID  __routeRtmGet6Walk (struct rt6_entry *pentry6, 
+                                 ip6_addr_t       *ip6addr, 
+                                 ip6_addr_t       *ip6gateway, 
+                                 char             *pcIfname,
+                                 INT              *iRet)
 {
-    if (ip6_addr_cmp(&pentry6->rt6_dest, ip6addr)) {
-        route_hook_rt_ipv6(RTM_GET, pentry6, 1);
-        *iRet = ERROR_NONE;
+    if (!ip6_addr_cmp(&pentry6->rt6_dest, ip6addr)) {
+        return;
     }
+    
+    if (!ip6_addr_isany(ip6gateway) && 
+        !ip6_addr_cmp(&pentry6->rt6_gateway, ip6gateway)) {
+        return;
+    }
+    
+    if ((pcIfname[0] != PX_EOS) && 
+        lib_strcmp(pentry6->rt6_ifname, pcIfname)) {
+        return;
+    }
+    
+    route_hook_rt_ipv6(RTM_GET, pentry6, 1);
+    *iRet = ERROR_NONE;
 }
 /*********************************************************************************************************
 ** 函数名称: __routeRtmGet6
@@ -610,7 +752,10 @@ static ssize_t  __routeRtmGet6 (struct rt_msghdr  *pmsghdr)
 {
     INT                  iRet = PX_ERROR;
     struct sockaddr_in6 *psockaddrin6;
+    struct sockaddr_dl  *psockaddrdl;
     ip6_addr_t           ip6addr;
+    ip6_addr_t           ip6gateway;
+    char                 cIfname[IF_NAMESIZE] = "";
     
     if (!(pmsghdr->rtm_addrs & RTA_DST)) {
         _ErrorHandle(EINVAL);
@@ -620,7 +765,30 @@ static ssize_t  __routeRtmGet6 (struct rt_msghdr  *pmsghdr)
     psockaddrin6 = (struct sockaddr_in6 *)(pmsghdr + 1);
     inet6_addr_to_ip6addr(&ip6addr, &psockaddrin6->sin6_addr);
     
-    rt6_traversal_entry(__routeRtmGet6Walk, &ip6addr, &iRet, LW_NULL, LW_NULL, LW_NULL, LW_NULL);
+    if (pmsghdr->rtm_addrs & RTA_GATEWAY) {
+        psockaddrin6 = SA_NEXT(struct sockaddr_in6 *, psockaddrin6);
+        inet6_addr_to_ip6addr(&ip6gateway, &psockaddrin6->sin6_addr);
+    
+    } else {
+        ip6_addr_set_any(&ip6gateway);
+    }
+    
+    if (pmsghdr->rtm_addrs & RTA_NETMASK) {
+        psockaddrin6 = SA_NEXT(struct sockaddr_in6 *, psockaddrin6);
+    }
+    
+    if (pmsghdr->rtm_addrs & RTA_GENMASK) {
+        psockaddrin6 = SA_NEXT(struct sockaddr_in6 *, psockaddrin6);
+    }
+    
+    if (pmsghdr->rtm_addrs & RTA_IFP) {
+        psockaddrdl = SA_NEXT(struct sockaddr_dl *, psockaddrin6);
+        if (psockaddrdl->sdl_family == AF_LINK) {
+            lib_strlcpy(cIfname, psockaddrdl->sdl_data, IF_NAMESIZE);
+        }
+    }
+    
+    rt6_traversal_entry(__routeRtmGet6Walk, &ip6addr, &ip6gateway, cIfname, &iRet, LW_NULL, LW_NULL);
     if (iRet < 0) {
         _ErrorHandle(ENETUNREACH);
         return  (0);

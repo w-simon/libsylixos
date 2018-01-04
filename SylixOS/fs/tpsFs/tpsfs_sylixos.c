@@ -1554,6 +1554,9 @@ static INT  __tpsFsFormat (PLW_FD_ENTRY  pfdentry, LONG  lArg)
 ** 输　出  : < 0 表示错误
 ** 全局变量:
 ** 调用模块:
+** 注  意  : 为了减小内存分片的产生, 将文件名和控制结构分配在同一内存分段, 这时无法更改 ptpsfile 保存的
+             文件名, 所以文件名完全错误, 这时, 此文件不能再次操作, 所以, 用户必须调用 rename() 函数来完成
+             此操作, 不能独立调用 ioctl() 来操作.
 *********************************************************************************************************/
 static INT  __tpsFsRename (PLW_FD_ENTRY  pfdentry, PCHAR  pcNewName)
 {
@@ -1582,56 +1585,43 @@ static INT  __tpsFsRename (PLW_FD_ENTRY  pfdentry, PCHAR  pcNewName)
         _ErrorHandle(ENXIO);                                            /*  设备出错                    */
         return  (PX_ERROR);
     }
-
-    if ((ptpsfile->TPSFIL_iFileType == __TPS_FILE_TYPE_NODE) ||
-        (ptpsfile->TPSFIL_iFileType == __TPS_FILE_TYPE_DIR)) {          /*  open 创建的普通文件或目录   */
-        if (ioFullFileNameGet(pcNewName,
-                              (LW_DEV_HDR **)&ptpsvolNew,
-                              cNewPath) != ERROR_NONE) {                /*  获得新目录路径              */
-            __TPS_FILE_UNLOCK(ptpsfile);
-            return  (PX_ERROR);
-        }
-        if (ptpsvolNew != ptpsfile->TPSFIL_ptpsvol) {                   /*  必须为同一个卷              */
-            __TPS_FILE_UNLOCK(ptpsfile);
-            _ErrorHandle(EXDEV);
-            return  (PX_ERROR);
-        }
-        /*
-         *  注意: TpsFs 文件系统 rename 的第二个参数不能以 '/' 为起始字符
-         */
-        if (cNewPath[0] == PX_DIVIDER) {
-            pcNewPath++;
-        }
-
-        if (ptpsfile->TPSFIL_iFileType == __TPS_FILE_TYPE_DIR) {
-            if (_PathMoveCheck(ptpsfile->TPSFIL_cName, pcNewPath)) {
-                __TPS_FILE_UNLOCK(ptpsfile);
-                _ErrorHandle(EINVAL);
-                return  (PX_ERROR);
-            }
-        }
-
-        iErr = tpsFsMove(ptpsfile->TPSFIL_ptpsvol->TPSVOL_tpsFsVol,
-                         ptpsfile->TPSFIL_cName, pcNewPath);
-        if (iErr == ERROR_NONE) {
-            /*
-             *  注意: 为了减小内存分片的产生, 将文件名和控制结构分配在
-             *        同一内存分段, 这时无法更改 ptpsfile 保存的文件名
-             *        所以文件名完全错误, 这时, 此文件不能再次操作, 所
-             *        以, 用户必须调用 rename() 函数来完成此操作, 不能
-             *        独立调用 ioctl() 来操作.
-             */
-            /*
-             *  这里等待添加新的高效处理方式...
-             */
-        } else {
-            __TPS_FILE_UNLOCK(ptpsfile);
-            _ErrorHandle(iErr);                                         /*  设备出错                    */
-            return  (PX_ERROR);
-        }
-    } else {
+    
+    if (ptpsfile->TPSFIL_iFileType == __TPS_FILE_TYPE_DEV) {            /*  设备本身不能改名            */
         __TPS_FILE_UNLOCK(ptpsfile);
-        _ErrorHandle(EFORMAT);
+        _ErrorHandle(ENOSYS);
+        return  (PX_ERROR);
+    }
+    
+    if (ioFullFileNameGet(pcNewName,
+                          (LW_DEV_HDR **)&ptpsvolNew,
+                          cNewPath) != ERROR_NONE) {                    /*  获得新目录路径              */
+        __TPS_FILE_UNLOCK(ptpsfile);
+        return  (PX_ERROR);
+    }
+    
+    if (ptpsvolNew != ptpsfile->TPSFIL_ptpsvol) {                       /*  必须为同一个卷              */
+        __TPS_FILE_UNLOCK(ptpsfile);
+        _ErrorHandle(EXDEV);
+        return  (PX_ERROR);
+    }
+    
+    if (cNewPath[0] == PX_DIVIDER) {                                    /*  tpsFs 文件系统 rename 的第  */
+        pcNewPath++;                                                    /*  2 个参数不能以'/'为起始字符 */
+    }
+    
+    if (ptpsfile->TPSFIL_iFileType == __TPS_FILE_TYPE_DIR) {
+        if (_PathMoveCheck(ptpsfile->TPSFIL_cName, pcNewPath)) {
+            __TPS_FILE_UNLOCK(ptpsfile);
+            _ErrorHandle(EINVAL);
+            return  (PX_ERROR);
+        }
+    }
+    
+    iErr = tpsFsMove(ptpsfile->TPSFIL_ptpsvol->TPSVOL_tpsFsVol,
+                     ptpsfile->TPSFIL_cName, pcNewPath);
+    if (iErr) {
+        __TPS_FILE_UNLOCK(ptpsfile);
+        _ErrorHandle(iErr);                                             /*  重命名出错                  */
         return  (PX_ERROR);
     }
     

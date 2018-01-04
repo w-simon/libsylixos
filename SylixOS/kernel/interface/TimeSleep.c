@@ -338,9 +338,8 @@ INT  nanosleep (const struct timespec  *rqtp, struct timespec  *rmtp)
              struct timespec    tvStart;
              struct timespec    tvTemp;
     
-    if ((!rqtp)              ||
-        (rqtp->tv_nsec <  0) ||
-        (rqtp->tv_nsec >= __TIMEVAL_NSEC_MAX)) {                        /*  时间格式错误                */
+    if ((!rqtp) ||
+        LW_NSEC_INVALD(rqtp->tv_nsec)) {                                /*  时间格式错误                */
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }

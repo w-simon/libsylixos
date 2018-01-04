@@ -174,6 +174,7 @@ static ssize_t  __packetBufRecv (AF_PACKET_T *pafpacket, PVOID  pvBuffer, size_t
         } else {
             stRetLen = stMaxBytes;
         }
+    
     } else {
         pbuf_copy_partial(pktm->PKTM_p, pvBuffer, (u16_t)stMsgLen, usCpyOft);
         stRetLen = stMsgLen;
@@ -675,9 +676,11 @@ static VOID  __packetBufInput (AF_PACKET_T *pafpacket, struct pbuf *p, struct ne
     
     if (pafpacket->PACKET_iType == SOCK_RAW) {
         stMsgLen = p->tot_len - ETH_PAD_SIZE;
+    
     } else {
         if (pethhdr->type == PP_HTONS(ETHTYPE_VLAN)) {
             stMsgLen = p->tot_len - ETH_HLEN - SIZEOF_VLAN_HDR - ETH_PAD_SIZE;
+        
         } else {
             stMsgLen = p->tot_len - ETH_HLEN - ETH_PAD_SIZE;
         }
@@ -699,6 +702,7 @@ static VOID  __packetBufInput (AF_PACKET_T *pafpacket, struct pbuf *p, struct ne
     if (lib_memcmp(pethhdr->dest.addr, inp->hwaddr, 
                    ETHARP_HWADDR_LEN) == 0) {
         pktm->PKTM_ucForme = 1;
+    
     } else {
         pktm->PKTM_ucForme = 0;
     }
@@ -777,6 +781,7 @@ static VOID  __packetMapInput (AF_PACKET_T *pafpacket, struct pbuf *p, struct ne
         } else {
             stCaplen = pmmapRx->PKTB_reqbuf.tp_frame_size - usMacoff;
         }
+    
     } else {
         stMsgLen = stPktLen - stMaclen;
         usMacoff = usNetoff;
@@ -913,7 +918,6 @@ INT  packet_link_input (struct pbuf *p, struct netif *inp, BOOL bOutgo)
                 bRecv = LW_TRUE;
             }
         }
-        
         
         if (bRecv) {                                                    /*  Ð­ÒéÆ¥Åä                    */
 #if LW_CFG_NET_PACKET_MMAP > 0

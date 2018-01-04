@@ -239,7 +239,7 @@ static LONG  _gpiofdOpen (PLW_GPIOFD_DEV pgpiofddev,
         
         pgpiofdfil->GF_iFlag  = iFlags;
         pgpiofdfil->GF_uiGpio = uiGpio;
-        pgpiofdfil->GF_iIrq   = PX_ERROR;
+        pgpiofdfil->GF_ulIrq  = LW_VECTOR_INVALID;
         
         API_GpioGetFlags(pgpiofdfil->GF_uiGpio, &ulGpioLibFlags);
         
@@ -295,10 +295,9 @@ static INT  _gpiofdClose (PLW_GPIOFD_FILE  pgpiofdfil)
         if (!GPIO_IS_ROOT(pgpiofdfil->GF_uiGpio)) {
             API_GpioFree(pgpiofdfil->GF_uiGpio);
             
-            if (pgpiofdfil->GF_iIrq >= 0) {
-                API_InterVectorDisable((ULONG)pgpiofdfil->GF_iIrq);
-                API_InterVectorDisconnect((ULONG)pgpiofdfil->GF_iIrq, 
-                                          (PINT_SVR_ROUTINE)_gpiofdIsr,
+            if (pgpiofdfil->GF_ulIrq != LW_VECTOR_INVALID) {
+                API_InterVectorDisable(pgpiofdfil->GF_ulIrq);
+                API_InterVectorDisconnect(pgpiofdfil->GF_ulIrq, (PINT_SVR_ROUTINE)_gpiofdIsr,
                                           (PVOID)pgpiofdfil);
             }
         }
@@ -439,8 +438,9 @@ static irqreturn_t  _gpiofdIsr (PLW_GPIOFD_FILE pgpiofdfil)
 *********************************************************************************************************/
 static INT  _gpiofdSetFlagsIrq (PLW_GPIOFD_FILE pgpiofdfil, INT  iFlags)
 {
-    BOOL bIsLevel;
-    UINT uiType;
+    BOOL   bIsLevel;
+    UINT   uiType;
+    ULONG  ulIrq;
     
     if (iFlags & GPIO_FLAG_TRIG_LEVEL) {
         bIsLevel = LW_TRUE;
@@ -463,15 +463,22 @@ static INT  _gpiofdSetFlagsIrq (PLW_GPIOFD_FILE pgpiofdfil, INT  iFlags)
         return  (PX_ERROR);
     }
     
-    pgpiofdfil->GF_iIrq = API_GpioSetupIrq(pgpiofdfil->GF_uiGpio, bIsLevel, uiType);
-    if (pgpiofdfil->GF_iIrq < 0) {
+    ulIrq = API_GpioGetIrq(pgpiofdfil->GF_uiGpio, bIsLevel, uiType);
+    if (ulIrq == LW_VECTOR_INVALID) {
         return  (PX_ERROR);
     }
     
-    API_InterVectorConnect((ULONG)pgpiofdfil->GF_iIrq, 
-                           (PINT_SVR_ROUTINE)_gpiofdIsr,
+    API_InterVectorConnect(ulIrq, (PINT_SVR_ROUTINE)_gpiofdIsr,
                            (PVOID)pgpiofdfil, "gpiofd_isr");
-    API_InterVectorEnable((ULONG)pgpiofdfil->GF_iIrq);
+    
+    pgpiofdfil->GF_ulIrq = API_GpioSetupIrq(pgpiofdfil->GF_uiGpio, bIsLevel, uiType);
+    if (pgpiofdfil->GF_ulIrq == LW_VECTOR_INVALID) {
+        API_InterVectorDisconnect(pgpiofdfil->GF_ulIrq, 
+                                  (PINT_SVR_ROUTINE)_gpiofdIsr, (PVOID)pgpiofdfil);
+        return  (PX_ERROR);
+    }
+    
+    API_InterVectorEnable(pgpiofdfil->GF_ulIrq);
     
     return  (ERROR_NONE);
 }
@@ -512,12 +519,10 @@ static INT  _gpiofdSetFlagsOrg (PLW_GPIOFD_FILE pgpiofdfil, INT  iFlags)
         API_GpioOpenSource(pgpiofdfil->GF_uiGpio, LW_FALSE);
     }
     
-    if (pgpiofdfil->GF_iIrq >= 0) {
-        API_InterVectorDisable((ULONG)pgpiofdfil->GF_iIrq);
-        API_InterVectorDisconnect((ULONG)pgpiofdfil->GF_iIrq, 
-                                  (PINT_SVR_ROUTINE)_gpiofdIsr,
-                                  (PVOID)pgpiofdfil);
-        pgpiofdfil->GF_iIrq = PX_ERROR;
+    if (pgpiofdfil->GF_ulIrq != LW_VECTOR_INVALID) {
+        API_InterVectorDisable(pgpiofdfil->GF_ulIrq);
+        API_InterVectorDisconnect(pgpiofdfil->GF_ulIrq, (PINT_SVR_ROUTINE)_gpiofdIsr, (PVOID)pgpiofdfil);
+        pgpiofdfil->GF_ulIrq = LW_VECTOR_INVALID;
     }
     
     return  (ERROR_NONE);

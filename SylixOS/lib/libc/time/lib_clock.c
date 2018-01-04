@@ -224,9 +224,8 @@ INT  lib_clock_nanosleep (clockid_t  clockid, int  iFlags,
         return  (PX_ERROR);
     }
     
-    if ((!rqtp)              ||
-        (rqtp->tv_nsec <  0) ||
-        (rqtp->tv_nsec >= __TIMEVAL_NSEC_MAX)) {                        /*  时间格式错误                */
+    if ((!rqtp) ||
+        LW_NSEC_INVALD(rqtp->tv_nsec)) {                                /*  时间格式错误                */
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }

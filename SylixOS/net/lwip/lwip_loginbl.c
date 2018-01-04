@@ -20,6 +20,7 @@
 **
 ** BUG:
 2017.04.10  增加白名单功能.
+2017.12.28  修正可能产生的拒绝服务攻击缺陷.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -212,6 +213,36 @@ static VOID  __LoginBlTimer (VOID)
     }
 }
 /*********************************************************************************************************
+** 函数名称: __LoginBlIsLocal
+** 功能描述: 检查是否为内网地址
+** 输　入  : pipaddr   IP 地址
+** 输　出  : 是否为直连机器
+** 全局变量: 
+** 调用模块: 
+** 注  意  : 我们假设伪造源地址的数据包不能够返回到发送者, 
+             所以使用此方法可以有效避免来自外网的拒绝服务攻击.
+*********************************************************************************************************/
+static BOOL  __LoginBlIsLocal (ip4_addr_t *pipaddr)
+{
+#define LW_LBL_NETIF_AVLID(pnetif) \
+        ((netif_ip4_addr(pnetif)->addr != IPADDR_ANY) && \
+         (netif_ip4_netmask(pnetif)->addr != IPADDR_ANY) && \
+         (netif_ip4_gw(pnetif)->addr != IPADDR_ANY))
+
+    struct netif *pnetif;
+    
+    for (pnetif = netif_list; pnetif != LW_NULL; pnetif = pnetif->next) {
+        if (LW_LBL_NETIF_AVLID(pnetif)) {
+            if (ip4_addr_netcmp(netif_ip4_addr(pnetif), 
+                                pipaddr, netif_ip4_netmask(pnetif))) {
+                return  (LW_TRUE);
+            }
+        }
+    }
+    
+    return  (LW_FALSE);
+}
+/*********************************************************************************************************
 ** 函数名称: API_LoginBlAdd
 ** 功能描述: 将一个网络地址添加到黑名单
 ** 输　入  : addr      网络地址
@@ -253,6 +284,11 @@ INT  API_LoginBlAdd (const struct sockaddr *addr, UINT  uiRep, UINT  uiSec)
     ipaddr.addr = ((struct sockaddr_in *)addr)->sin_addr.s_addr;
     
     LOCK_TCPIP_CORE();                                                  /*  锁定协议栈                  */
+    if (__LoginBlIsLocal(&ipaddr)) {
+        UNLOCK_TCPIP_CORE();
+        return  (ERROR_NONE);                                           /*  不锁定本地机器              */
+    }
+    
     plbl = __LoginBlFind(ipaddr);
     if (plbl) {
         plbl->LBL_uiRep = uiRep;

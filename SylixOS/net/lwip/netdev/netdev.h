@@ -20,6 +20,8 @@
  *    and/or other materials provided with the distribution.
  * 3. The name of the author may not be used to endorse or promote products
  *    derived from this software without specific prior written permission. 
+ * 4. This code has been or is applying for intellectual property protection 
+ *    and can only be used with acoinfo software products.
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED 
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
@@ -151,7 +153,7 @@ typedef struct netdev {
  * if this device not in '/etc/if_param.ini' ip, netmask, gw is default configuration.
  * 'if_flags' defined in net/if.h such as IFF_UP, IFF_BROADCAST, IFF_RUNNING, IFF_NOARP, IFF_MULTICAST, IFF_PROMISC ... */
 int  netdev_add(netdev_t *netdev, const char *ip, const char *netmask, const char *gw, int if_flags);
-int  netdev_delete(netdev_t *netdev);
+int  netdev_delete(netdev_t *netdev); /* WARNING: You MUST DO NOT lock device then call this function, it will cause a deadlock with TCP LOCK */
 int  netdev_index(netdev_t *netdev, unsigned int *index);
 int  netdev_ifname(netdev_t *netdev, char *ifname);
 
@@ -161,7 +163,8 @@ netdev_t *netdev_find_by_devname(const char *dev_name);
 
 /* if netdev link status changed has been detected, 
  * driver must call the following functions 
- * linkup 1: linked up  0:not link */
+ * linkup 1: linked up  0:not link 
+ * WARNING: You MUST DO NOT lock device then call this function, it will cause a deadlock with TCP LOCK */
 int  netdev_set_linkup(netdev_t *netdev, int linkup, UINT64 speed);
 int  netdev_get_linkup(netdev_t *netdev, int *linkup);
 
@@ -204,10 +207,15 @@ void netdev_linkinfo_xmit_inc(netdev_t *netdev);
   (((p)->tot_len == (p)->len) ? \
     ((((p)->type != PBUF_REF) && ((p)->type != PBUF_ROM)) ? \
       1 : 0) : 0)
+      
+/* netdev buffer data ? */
+#define NETDEV_PBUF_DATA(p, type) \
+  (type)((p)->payload)
 
 /* netdev input buffer get 
  * reserve ETH_PAD_SIZE + SIZEOF_VLAN_HDR size. */
 struct pbuf *netdev_pbuf_alloc(UINT16 len);
+struct pbuf *netdev_pbuf_alloc_ram(UINT16 len, UINT16 res);
 void netdev_pbuf_free(struct pbuf *p);
 UINT8 *netdev_pbuf_push(struct pbuf *p, UINT16 len);
 UINT8 *netdev_pbuf_pull(struct pbuf *p, UINT16 len);

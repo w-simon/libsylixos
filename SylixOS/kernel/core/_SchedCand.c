@@ -156,7 +156,7 @@ VOID  _SchedYield (PLW_CLASS_TCB  ptcb, PLW_CLASS_PCB  ppcb)
     REGISTER PLW_CLASS_CPU  pcpu;
 
     if (__LW_THREAD_IS_RUNNING(ptcb)) {                                 /*  必须正在执行                */
-        pcpu = LW_CPU_GET_CUR();
+        pcpu = LW_CPU_GET(ptcb->TCB_ulCPUId);
         if (_SchedSeekPriority(pcpu, &ucPriority) &&                    /*  就绪未运行任务的最高优先级  */
             LW_PRIO_IS_HIGH_OR_EQU(ucPriority,
                                    ptcb->TCB_ucPriority)) {

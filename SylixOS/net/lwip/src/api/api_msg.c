@@ -134,7 +134,7 @@ recv_raw(void *arg, struct raw_pcb *pcb, struct pbuf *p,
 
       buf->p = q;
       buf->ptr = q;
-      ip_addr_copy(buf->addr, *ip_current_src_addr());
+      ip_addr_copy(buf->addr, *addr); /* sylixos must use *addr */
       buf->port = pcb->protocol;
 
       len = q->tot_len;

@@ -85,6 +85,7 @@
 2016.09.18  支持 exFAT 文件系统格式.
 2017.04.27  fat 内部使用 O_RDWR 打开, 防止多重打开时内部权限判断错误.
 2017.09.22  格式化操作不使用 exFAT 系统, 防止 BIOS 兼容性问题.
+2017.12.27  修正 rename 符合 POSIX 标准.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -1547,6 +1548,9 @@ static INT  __fatFsFormat (PLW_FD_ENTRY  pfdentry, LONG  lArg)
 ** 输　出  : < 0 表示错误
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : 为了减小内存分片的产生, 将文件名和控制结构分配在同一内存分段, 这时无法更改 pfatfile 保存的
+             文件名, 所以文件名完全错误, 这时, 此文件不能再次操作, 所以, 用户必须调用 rename() 函数来完成
+             此操作, 不能独立调用 ioctl() 来操作.
 *********************************************************************************************************/
 static INT  __fatFsRename (PLW_FD_ENTRY  pfdentry, PCHAR  pcNewName)
 {
@@ -1559,6 +1563,7 @@ static INT  __fatFsRename (PLW_FD_ENTRY  pfdentry, PCHAR  pcNewName)
              PLW_FD_NODE    pfdnode   = (PLW_FD_NODE)pfdentry->FDENTRY_pfdnode;
              PFAT_FILE      pfatfile  = (PFAT_FILE)pfdnode->FDNODE_pvFile;
              PFAT_VOLUME    pfatvolNew;
+             FILINFO        fileinfo;
 
     if (__STR_IS_ROOT(pfatfile->FATFIL_cName)) {                        /*  检查是否为设备文件          */
         _ErrorHandle(ERROR_IOS_DRIVER_NOT_SUP);                         /*  不支持设备重命名            */
@@ -1578,56 +1583,83 @@ static INT  __fatFsRename (PLW_FD_ENTRY  pfdentry, PCHAR  pcNewName)
         return  (PX_ERROR);
     }
     
-    if ((pfatfile->FATFIL_iFileType == __FAT_FILE_TYPE_NODE) ||
-        (pfatfile->FATFIL_iFileType == __FAT_FILE_TYPE_DIR)) {          /*  open 创建的普通文件或目录   */
-        if (ioFullFileNameGet(pcNewName, 
-                              (LW_DEV_HDR **)&pfatvolNew, 
-                              cNewPath) != ERROR_NONE) {                /*  获得新目录路径              */
+    if (pfatfile->FATFIL_iFileType == __FAT_FILE_TYPE_DEV) {            /*  设备本身不能改名            */
+        __FAT_FILE_UNLOCK(pfatfile);
+        _ErrorHandle(ENOSYS);
+        return  (PX_ERROR);
+    }
+    
+    if (ioFullFileNameGet(pcNewName, 
+                          (LW_DEV_HDR **)&pfatvolNew, 
+                          cNewPath) != ERROR_NONE) {                    /*  获得新目录路径              */
+        __FAT_FILE_UNLOCK(pfatfile);
+        return  (PX_ERROR);
+    }
+    
+    if (pfatvolNew != pfatfile->FATFIL_pfatvol) {                       /*  必须为同一个卷              */
+        __FAT_FILE_UNLOCK(pfatfile);
+        _ErrorHandle(EXDEV);
+        return  (PX_ERROR);
+    }
+    
+    if (cNewPath[0] == PX_DIVIDER) {                                    /*  FatFs 文件系统 rename 的第  */
+        pcNewPath++;                                                    /*  2 个参数不能以'/'为起始字符 */
+    }
+    
+    if (pfatfile->FATFIL_iFileType == __FAT_FILE_TYPE_NODE) {
+        f_sync(&pfatfile->FATFIL_fftm.FFTM_file);
+
+    } else if (_PathMoveCheck(pfatfile->FATFIL_cName, pcNewPath)) {     /*  如果是目录项则检查          */
+        __FAT_FILE_UNLOCK(pfatfile);
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    fresError = f_rename_ex(&pfatfile->FATFIL_pfatvol->FATVOL_fatfsVol,
+                            pfatfile->FATFIL_cName, pcNewPath);         /*  开始重命名操作              */
+    if (fresError == FR_EXIST) {
+        if (f_stat_ex(&pfatfile->FATFIL_pfatvol->FATVOL_fatfsVol,
+                      pcNewPath, &fileinfo)) {
             __FAT_FILE_UNLOCK(pfatfile);
+            _ErrorHandle(EIO);
             return  (PX_ERROR);
         }
-        if (pfatvolNew != pfatfile->FATFIL_pfatvol) {                   /*  必须为同一个卷              */
+        if ((pfatfile->FATFIL_iFileType == __FAT_FILE_TYPE_NODE) &&
+            (fileinfo.fattrib & AM_DIR)) {
             __FAT_FILE_UNLOCK(pfatfile);
-            _ErrorHandle(EXDEV);
+            _ErrorHandle(EISDIR);
             return  (PX_ERROR);
         }
-        /*
-         *  注意: FatFs 文件系统 rename 的第二个参数不能以 '/' 为起始字符
-         */
-        if (cNewPath[0] == PX_DIVIDER) {
-            pcNewPath++;
+        if ((pfatfile->FATFIL_iFileType == __FAT_FILE_TYPE_DIR) &&
+            !(fileinfo.fattrib & AM_DIR)) {
+            __FAT_FILE_UNLOCK(pfatfile);
+            _ErrorHandle(ENOTDIR);
+            return  (PX_ERROR);
         }
         
-        if (pfatfile->FATFIL_iFileType == __FAT_FILE_TYPE_NODE) {
-            f_sync(&pfatfile->FATFIL_fftm.FFTM_file);
-
-        } else if (_PathMoveCheck(pfatfile->FATFIL_cName, pcNewPath)) { /*  如果时目录项则检查          */
+        fresError = f_unlink_ex(&pfatfile->FATFIL_pfatvol->FATVOL_fatfsVol,
+                                pcNewPath);                             /*  删除目标                    */
+        if (fresError == FR_DENIED) {
+            if (fileinfo.fattrib & AM_RDO) {
+                ulError = EROFS;
+            } else {
+                ulError = ENOTEMPTY;
+            }
             __FAT_FILE_UNLOCK(pfatfile);
-            _ErrorHandle(EINVAL);
+            _ErrorHandle(ulError);
             return  (PX_ERROR);
         }
         
         fresError = f_rename_ex(&pfatfile->FATFIL_pfatvol->FATVOL_fatfsVol,
-                                (CPCHAR)pfatfile->FATFIL_cName,
-                                (CPCHAR)pcNewPath);                     /*  开始重命名操作              */
-        ulError = __fatFsGetError(fresError);                           /*  转换错误编号                */
-        if (ulError == ERROR_NONE) {
-            /*
-             *  注意: 为了减小内存分片的产生, 将文件名和控制结构分配在
-             *        同一内存分段, 这时无法更改 pfatfile 保存的文件名
-             *        所以文件名完全错误, 这时, 此文件不能再次操作, 所
-             *        以, 用户必须调用 rename() 函数来完成此操作, 不能
-             *        独立调用 ioctl() 来操作.
-             */
-            /*
-             *  这里等待添加新的高效处理方式...
-             */
-        } else {
-            iError  = PX_ERROR;
-        }
-    } else {
-        ulError = ENOSYS;
+                                pfatfile->FATFIL_cName, pcNewPath);     /*  重新重命名                  */
+    }
+    
+    if (fresError) {
+        ulError = __fatFsGetError(fresError);
         iError  = PX_ERROR;
+    
+    } else {
+        iError  = ERROR_NONE;
     }
     __FAT_FILE_UNLOCK(pfatfile);
     

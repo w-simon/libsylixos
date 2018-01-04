@@ -575,6 +575,18 @@ INT __ataDriveInit (__PATA_CTRL patactrler, INT iDrive)
             (UINT)((((UINT)((pataparam->ATAPAR_usSectors0) & 0x0000ffff)) << 0) |
             (((UINT)((pataparam->ATAPAR_usSectors1) & 0x0000ffff)) << 16));
 
+            if (patadrive->ATADRIVE_uiCapacity == __ATA_MAX_28LBA) {
+                patadrive->ATADRIVE_uiCapacity = ((INT64)pataparam->ATAPAR_sMaxLBA[0]) |
+                                                 ((INT64)pataparam->ATAPAR_sMaxLBA[1] << 16) |
+                                                 ((INT64)pataparam->ATAPAR_sMaxLBA[2] << 32) |
+                                                 ((INT64)pataparam->ATAPAR_sMaxLBA[3] << 48);
+
+            }
+
+            if (patadrive->ATADRIVE_uiCapacity > __ATA_MAX_48LBA) {
+                return  (PX_ERROR);
+            }
+
             ATA_DEBUG_MSG(("ID_iDrive reports LBA (60-61) as 0x%x\n",
                            patadrive->ATADRIVE_uiCapacity));
         }

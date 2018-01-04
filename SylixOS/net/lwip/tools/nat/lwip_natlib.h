@@ -53,6 +53,7 @@ typedef struct {
     
     u8_t                NAT_ucProto;                                    /*  协议                        */
     ip4_addr_t          NAT_ipaddrLocalIp;                              /*  本地 IP 地址                */
+    u16_t               NAT_usLocalCnt;                                 /*  本地 IP 段个数 (负载均衡)   */
     u16_t               NAT_usLocalPort;                                /*  本地端口号                  */
     u16_t               NAT_usAssPort;                                  /*  映射端口号 (唯一的)         */
 } __NAT_MAP;

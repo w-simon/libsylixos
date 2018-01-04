@@ -42,9 +42,23 @@
 #include "lwip/autoip.h"
 #include "lwip/err.h"
 #include "lwip_if.h"
+#include "net/if.h"
 #if LW_CFG_NET_ROUTER > 0
 #include "net/route.h"
 #include "route/af_route.h"
+#include "route/ip4_route.h"
+#include "route/ip6_route.h"
+#if LW_CFG_NET_BALANCING > 0
+#include "net/sroute.h"
+#include "balancing/ip4_sroute.h"
+#include "balancing/ip6_sroute.h"
+#endif                                                                  /*  LW_CFG_NET_BALANCING > 0    */
+#endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
+#if LW_CFG_NET_MROUTER > 0
+#include "mroute/ip4_mrt.h"
+#endif                                                                  /*  LW_CFG_NET_MROUTER > 0      */
+#if LW_CFG_NET_FLOWCTL_EN > 0
+#include "flowctl/net_flowctl.h"
 #endif
 /*********************************************************************************************************
   网络接口数量宏定义
@@ -99,13 +113,22 @@ INT  netif_add_hook (PVOID  pvNetif)
         return  (ERR_USE);
     }
     
+#if LW_CFG_NET_ROUTER > 0
     rt_netif_add_hook(netif);                                           /*  更新路由表有效标志          */
 #if LWIP_IPV6
     rt6_netif_add_hook(netif);
 #endif
-#if LW_CFG_NET_ROUTER > 0
-    route_hook_netif_ann(netif, 0);
+#if LW_CFG_NET_BALANCING > 0
+    srt_netif_add_hook(netif);
+#if LWIP_IPV6
+    srt6_netif_add_hook(netif);
 #endif
+#endif                                                                  /*  LW_CFG_NET_BALANCING > 0    */
+    route_hook_netif_ann(netif, 0);
+#endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
+#if LW_CFG_NET_FLOWCTL_EN > 0
+    fcnet_netif_attach(netif);
+#endif                                                                  /*  LW_CFG_NET_FLOWCTL_EN > 0   */
     
     return  (ERR_OK);
 }
@@ -122,13 +145,25 @@ VOID  netif_remove_hook (PVOID  pvNetif)
     struct netif  *netif = (struct netif *)pvNetif;
     INT            iNum  = (INT)netif->num;
     
+#if LW_CFG_NET_ROUTER > 0
     rt_netif_remove_hook(netif);                                        /*  更新路由表有效标志          */
 #if LWIP_IPV6
     rt6_netif_remove_hook(netif);
 #endif
-#if LW_CFG_NET_ROUTER > 0
-    route_hook_netif_ann(netif, 1);
+#if LW_CFG_NET_BALANCING > 0
+    srt_netif_remove_hook(netif);
+#if LWIP_IPV6
+    srt6_netif_remove_hook(netif);
 #endif
+#endif                                                                  /*  LW_CFG_NET_BALANCING > 0    */
+#if LW_CFG_NET_MROUTER > 0
+    ip4_mrt_if_detach(netif);
+#endif                                                                  /*  LW_CFG_NET_MROUTER > 0      */
+    route_hook_netif_ann(netif, 1);
+#endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
+#if LW_CFG_NET_FLOWCTL_EN > 0
+    fcnet_netif_detach(netif);
+#endif                                                                  /*  LW_CFG_NET_FLOWCTL_EN > 0   */
     
     if (iNum < __LW_NETIF_MAX_NUM) {
         LWIP_NETIF_LOCK();                                              /*  进入临界区                  */
@@ -169,7 +204,35 @@ VOID netif_updown_hook (PVOID  pvNetif, INT up)
     struct netif  *netif = (struct netif *)pvNetif;
     
 #if LW_CFG_NET_ROUTER > 0
+    if (!up) {
+        rt_netif_invcache_hook(netif);
+#if LWIP_IPV6
+        rt6_netif_invcache_hook(netif);
+#endif
+    }
     route_hook_netif_updown(netif, up);
+#endif
+}
+/*********************************************************************************************************
+** 函数名称: netif_link_updown_hook
+** 功能描述: 网络接口 link 连接状态回调.
+** 输　入  : pvNetif    网络接口
+**           linkup     1: 连接 0: 禁能
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID netif_link_updown_hook (PVOID  pvNetif, INT linkup)
+{
+    struct netif  *netif = (struct netif *)pvNetif;
+    
+#if LW_CFG_NET_ROUTER > 0
+    if (!linkup) {
+        rt_netif_invcache_hook(netif);
+#if LWIP_IPV6
+        rt6_netif_invcache_hook(netif);
+#endif
+    }
 #endif
 }
 /*********************************************************************************************************

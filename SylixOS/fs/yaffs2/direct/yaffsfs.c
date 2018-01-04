@@ -1214,6 +1214,9 @@ static int yaffsfs_do_read(int handle, void *vbuf, unsigned int nbyte,
 	} else if (nbyte > YAFFS_MAX_FILE_SIZE) {
 		yaffsfs_SetError(-EINVAL);
 		totalRead = -1;
+	} else if (isPread && (offset < 0)) {	/* sylixos fix bug */
+	    yaffsfs_SetError(-EINVAL);
+		totalRead = -1;
 	} else {
 		if (isPread)
 			startPos = offset;
@@ -1334,6 +1337,9 @@ static int yaffsfs_do_write(int handle, const void *vbuf, unsigned int nbyte,
 		totalWritten = -1;
 	} else if (obj->my_dev->read_only) {
 		yaffsfs_SetError(-EROFS);
+		totalWritten = -1;
+    } else if (isPwrite && (offset < 0)) { /* sylixos fix bug */
+        yaffsfs_SetError(-EINVAL);
 		totalWritten = -1;
 	} else {
 		if (fd->append)

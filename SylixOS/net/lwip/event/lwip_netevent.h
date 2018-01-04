@@ -29,6 +29,10 @@
 
 #include "net/if.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif                                                                  /*  __cplusplus                 */
+
 /*********************************************************************************************************
   网络事件文件
 *********************************************************************************************************/
@@ -80,6 +84,7 @@
 #define NET_EVENT_WL_QUAL       (NET_EVENT_WL + 0)                      /*  网卡无线环境变化(信号强度等)*/
 #define NET_EVENT_WL_SCAN       (NET_EVENT_WL + 1)                      /*  无线网卡 AP 扫描结束        */
 #define NET_EVENT_WL_EXT        (NET_EVENT_WL + 50)                     /*  用户自定义无线事件          */
+#define NET_EVENT_WL_EXT2       (NET_EVENT_WL + 51)                     /*  用户自定义无线事件2         */
 
 /*********************************************************************************************************
   内核 API
@@ -109,6 +114,10 @@ VOID  netEventIfWlExt2(struct netif *pnetif,
                        PVOID         pvEvent,
                        UINT32        uiArg);
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
+
+#ifdef __cplusplus
+}
+#endif                                                                  /*  __cplusplus                 */
 
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */
 #endif                                                                  /*  __LWIP_NETEVENT_H           */

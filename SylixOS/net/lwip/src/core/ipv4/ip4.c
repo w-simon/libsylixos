@@ -107,6 +107,13 @@ extern int lwip_ip_hook(int ip_type, int hook_type, struct pbuf *p, struct netif
 /** The IP header ID of the next outgoing IP packet */
 static u16_t ip_id;
 
+#ifdef SYLIXOS
+u16_t *ip4_get_ip_id(void)
+{
+  return (&ip_id);
+}
+#endif
+
 #if LWIP_MULTICAST_TX_OPTIONS
 /** The default netif used for multicast */
 static struct netif* ip4_default_multicast_netif;
@@ -484,6 +491,13 @@ ip4_input(struct pbuf *p, struct netif *inp)
   /* match packet against an interface, i.e. is this packet for us? */
   if (ip4_addr_ismulticast(ip4_current_dest_addr())) {
 #if LWIP_IGMP
+#if LW_CFG_NET_MROUTER > 0
+    if (ip4_mrt_forward(p, iphdr, inp)) {
+      pbuf_free(p);
+      IP_STATS_INC(ip.drop);
+      return ERR_OK;
+    }
+#endif
     if ((inp->flags & NETIF_FLAG_IGMP) && (igmp_lookfor_group(inp, ip4_current_dest_addr()))) {
       /* IGMP snooping switches need 0.0.0.0 to be allowed as source address (RFC 4541) */
       ip4_addr_t allsystems;

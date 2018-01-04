@@ -51,6 +51,7 @@
 2014.04.21  内核模块插入或卸载打印相关路径名.
 2014.05.02  加入 lsmod 命令.
 2017.02.06  ps加入显示进程状态. (张荣荣)
+2017.12.26  调整 64 位打印宽度.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -84,8 +85,8 @@ VOID          __moduleTraverseKernelSymHook(BOOL (*pfuncCb)(PVOID, PLW_SYMBOL), 
 #if LW_CFG_SHELL_EN > 0
 #if LW_CFG_CPU_WORD_LENGHT == 64
 static const CHAR               _G_cModuleInfoHdr[] = "\n\
-            NAME              HANDLE     TYPE  GLB     BASE        SIZE   SYMCNT\n\
-------------------------- ------------- ------ --- ------------- -------- ------\n";
+            NAME               HANDLE       TYPE  GLB       BASE         SIZE   SYMCNT\n\
+------------------------- ---------------- ------ --- ---------------- -------- ------\n";
 #else
 static const CHAR               _G_cModuleInfoHdr[] = "\n\
             NAME           HANDLE   TYPE  GLB   BASE     SIZE   SYMCNT\n\
@@ -833,7 +834,7 @@ static INT  __tshellModuleShow (INT  iArgC, PCHAR  *ppcArgV)
             _PathLastName(pmodTemp->EMOD_pcModulePath, &pcModuleName);
 
 #if LW_CFG_CPU_WORD_LENGHT == 64
-            printf("+ %-23s %13lx %-6s %-3s %13lx %8lx %6ld\n",
+            printf("+ %-23s %16lx %-6s %-3s %16lx %8lx %6ld\n",
 #else
             printf("+ %-23s %08lx %-6s %-3s %08lx %8lx %6ld\n",
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT adj  */

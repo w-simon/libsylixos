@@ -34,6 +34,7 @@
 2015.12.16  增加 NAT 别名支持能力.
             增加主动连接映射功能.
 2016.08.25  修正主动连接缺少代理控制块的问题.
+2017.12.19  加入 MAP 负载均衡功能.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -44,6 +45,7 @@
   裁剪控制
 *********************************************************************************************************/
 #if (LW_CFG_NET_EN > 0) && (LW_CFG_NET_NAT_EN > 0)
+#include "net/if.h"
 #include "lwip/opt.h"
 #include "lwip/inet.h"
 #include "lwip/ip.h"
@@ -184,6 +186,7 @@ static VOID   __natPoolFree (__PNAT_CB  pnatcb)
 ** 函数名称: __natNewmap
 ** 功能描述: 创建一个 NAT 外网映射对象.
 ** 输　入  : pipaddr       本地机器 IP
+**           usIpCnt       本地 IP 数量 (负载均衡)
 **           usPort        本地机器 端口
 **           AssPort       映射端口 
 **           ucProto       使用的协议
@@ -191,7 +194,7 @@ static VOID   __natPoolFree (__PNAT_CB  pnatcb)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-INT   __natMapAdd (ip4_addr_t  *pipaddr, u16_t  usPort, u16_t  AssPort, u8_t  ucProto)
+INT   __natMapAdd (ip4_addr_t  *pipaddr, u16_t  usIpCnt, u16_t  usPort, u16_t  AssPort, u8_t  ucProto)
 {
     __PNAT_MAP      pnatmap;
     
@@ -203,6 +206,7 @@ INT   __natMapAdd (ip4_addr_t  *pipaddr, u16_t  usPort, u16_t  AssPort, u8_t  uc
     
     pnatmap->NAT_ucProto            = ucProto;
     pnatmap->NAT_ipaddrLocalIp.addr = pipaddr->addr;
+    pnatmap->NAT_usLocalCnt         = usIpCnt;
     pnatmap->NAT_usLocalPort        = usPort;
     pnatmap->NAT_usAssPort          = AssPort;
     
@@ -618,9 +622,10 @@ static err_t  __natLocalInput (struct pbuf *p, struct netif *netif)
     iphdrlen  = (u16_t)IPH_HL(iphdr);                                   /*  获得 IP 报头长度            */
     iphdrlen *= 4;
     
-    /*
-     *  这里必须保证 p->payload 足够大装入了 IP + UDP/TCP/ICMP 的报头
-     */
+    if (p->len < iphdrlen + TCP_HLEN) {                                 /*  缓冲错误                    */
+        return  (ERR_OK);
+    }
+    
     ucProto = IPH_PROTO(iphdr);
     switch (ucProto) {
     
@@ -789,9 +794,10 @@ static err_t  __natApInput (struct pbuf *p, struct netif *netif)
     iphdrlen  = (u16_t)IPH_HL(iphdr);                                   /*  获得 IP 报头长度            */
     iphdrlen *= 4;
     
-    /*
-     *  这里必须保证 p->payload 足够大装入了 IP + UDP/TCP/ICMP 的报头
-     */
+    if (p->len < iphdrlen + TCP_HLEN) {                                 /*  缓冲错误                    */
+        return  (ERR_OK);
+    }
+    
     ucProto = IPH_PROTO(iphdr);
     switch (ucProto) {
     
@@ -836,6 +842,8 @@ static err_t  __natApInput (struct pbuf *p, struct netif *netif)
         }
         
         if (pnatmap) {
+            ip4_addr_p_t  ipaddr;                                       /*  内网映射服务器 IP           */
+            
             for (plineTemp  = plineHeader;
                  plineTemp != LW_NULL;
                  plineTemp  = _list_line_get_next(plineTemp)) {
@@ -847,9 +855,12 @@ static err_t  __natApInput (struct pbuf *p, struct netif *netif)
                 }
             }
             if (plineTemp == LW_NULL) {
-                ip4_addr_p_t  ipaddr;
-            
-                ipaddr.addr = pnatmap->NAT_ipaddrLocalIp.addr;
+                u32_t   uiHost;
+                
+                uiHost  = (u32_t)PP_NTOHL(pnatmap->NAT_ipaddrLocalIp.addr);
+                uiHost += (iphdr->src.addr % pnatmap->NAT_usLocalCnt);  /*  根据源地址散列做均衡        */
+                ipaddr.addr = (u32_t)PP_HTONL(uiHost);
+                
                 pnatcb = __natNew(&ipaddr, 
                                   pnatmap->NAT_usLocalPort, ucProto);   /*  新建控制块                  */
                 pnatcb->NAT_usAssPort = pnatmap->NAT_usAssPort;
@@ -859,7 +870,7 @@ static err_t  __natApInput (struct pbuf *p, struct netif *netif)
              *  将数据包目标转为本地内网目标地址
              */
             u32OldAddr = iphdr->dest.addr;
-            ((ip4_addr_t *)&(iphdr->dest))->addr = pnatmap->NAT_ipaddrLocalIp.addr;
+            ((ip4_addr_t *)&(iphdr->dest))->addr = ipaddr.addr;
             __natChksumAdjust((u8_t *)&IPH_CHKSUM(iphdr),(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->dest.addr, 4);
         
             /*
@@ -1068,8 +1079,8 @@ static ssize_t  __procFsNatSummaryRead (PLW_PROCFS_NODE  p_pfsn,
     "--------------- --------------- ---------------\n";
 
     const CHAR   cMapInfoHeader[] = "\n"
-    " ASS PORT  LOCAL PORT    LOCAL IP      PROTO\n"
-    "---------- ---------- --------------- --------\n";
+    " ASS PORT  LOCAL PORT    LOCAL IP      IP CNT   PROTO\n"
+    "---------- ---------- --------------- -------- -------\n";
     
           PCHAR     pcFileBuffer;
           size_t    stRealSize;                                         /*  实际的文件内容大小          */
@@ -1082,8 +1093,8 @@ static ssize_t  __procFsNatSummaryRead (PLW_PROCFS_NODE  p_pfsn,
     if (pcFileBuffer == LW_NULL) {                                      /*  还没有分配内存              */
         size_t          stNeedBufferSize;
         UINT            uiAssNum = 0;
-        CHAR            cNetifAp[8];
-        CHAR            cNetifLocal[8];
+        CHAR            cNetifAp[IF_NAMESIZE];
+        CHAR            cNetifLocal[IF_NAMESIZE];
         PLW_LIST_LINE   plineTemp;
         PCHAR           pcProto;
         __PNAT_ALIAS    pnatalias;
@@ -1163,12 +1174,13 @@ static ssize_t  __procFsNatSummaryRead (PLW_PROCFS_NODE  p_pfsn,
                 }
                 
                 stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
-                                      "%10d %10d %-15s %s\n",
+                                      "%10d %10d %-15s %8d %s\n",
                                       ntohs(pnatmap->NAT_usAssPort),
                                       ntohs(pnatmap->NAT_usLocalPort),
                                       ip4addr_ntoa_r(&pnatmap->NAT_ipaddrLocalIp, 
                                                      cIpBuffer, INET_ADDRSTRLEN),
-                                       pcProto);
+                                      pnatmap->NAT_usLocalCnt,
+                                      pcProto);
             }
             
             for (plineTemp  = _G_plineNatcbTcp;
@@ -1189,13 +1201,11 @@ static ssize_t  __procFsNatSummaryRead (PLW_PROCFS_NODE  p_pfsn,
             
             cNetifAp[0] = _G_pnetifNatAp->name[0];
             cNetifAp[1] = _G_pnetifNatAp->name[1];
-            cNetifAp[2] = (CHAR)(_G_pnetifNatAp->num + '0');
-            cNetifAp[3] = PX_EOS;
+            lib_itoa(_G_pnetifNatAp->num, &cNetifAp[2], 10);
             
             cNetifLocal[0] = _G_pnetifNatLocal->name[0];
             cNetifLocal[1] = _G_pnetifNatLocal->name[1];
-            cNetifLocal[2] = (CHAR)(_G_pnetifNatLocal->num + '0');
-            cNetifLocal[3] = PX_EOS;
+            lib_itoa(_G_pnetifNatLocal->num, &cNetifLocal[2], 10);
             __NAT_OP_UNLOCK();                                          /*  解锁 NAT 链表               */
     
             stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 

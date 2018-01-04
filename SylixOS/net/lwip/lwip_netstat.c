@@ -112,7 +112,7 @@ static VOID  __GroupPrint (struct igmp_group *group, struct netif *netif,
     CHAR    cBuffer[INET_ADDRSTRLEN];
 
     *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
-                       "%c%c%d %-15s %d\n",
+                       "%c%c%-2d %-15s %d\n",
                        netif->name[0],
                        netif->name[1],
                        netif->num,
@@ -137,7 +137,7 @@ static VOID  __Group6Print (struct mld_group *mld_group, struct netif *netif,
     CHAR    cBuffer[INET6_ADDRSTRLEN];
     
     *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
-                       "%c%c%d %-39s %d\n",
+                       "%c%c%-2d %-39s %d\n",
                        netif->name[0],
                        netif->name[1],
                        netif->num,
@@ -155,10 +155,10 @@ static VOID  __Group6Print (struct mld_group *mld_group, struct netif *netif,
 VOID  __tshellNetstatGroup (INT  iNetType)
 {
     const CHAR           cIgmpInfoHdr[] = 
-    "DEV GROUP           COUNT\n";
+    "DEV  GROUP           COUNT\n";
     
     const CHAR           cIgmp6InfoHdr[] = 
-    "\nDEV GROUP6                                  COUNT\n";
+    "\nDEV  GROUP6                                  COUNT\n";
 
     size_t               stNeedBufferSize = 0;
     struct igmp_group   *group;

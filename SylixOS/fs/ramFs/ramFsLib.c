@@ -20,6 +20,7 @@
 **
 ** BUG:
 2015.11.25  修正 ramFs seek 反向查找错误.
+2017.12.27  修正 __ram_move() 符合 POSIX 规范.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -413,7 +414,7 @@ static INT  __ram_automem (PRAM_NODE  pramn, ULONG  ulNBlk, size_t  stStart, siz
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  __ram_increase(PRAM_NODE  pramn, size_t  stNewSize)
+VOID  __ram_increase (PRAM_NODE  pramn, size_t  stNewSize)
 {
     if (pramn->RAMN_stSize < stNewSize) {
         pramn->RAMN_stSize = stNewSize;
@@ -721,6 +722,7 @@ static INT  __ram_move_check (PRAM_NODE  pramn1, PRAM_NODE  pramn2)
 *********************************************************************************************************/
 INT  __ram_move (PRAM_NODE  pramn, PCHAR  pcNewName)
 {
+    INT         iRet;
     PRAM_VOLUME pramfs;
     PRAM_NODE   pramnTemp;
     PRAM_NODE   pramnFather;
@@ -735,13 +737,13 @@ INT  __ram_move (PRAM_NODE  pramn, PCHAR  pcNewName)
     pramnFather = pramn->RAMN_pramnFather;
     
     pramnTemp = __ram_open(pramfs, pcNewName, &pramnNewFather, &bRoot, &bLast, &pcTail);
-    if (pramnTemp) {
-        _ErrorHandle(EEXIST);
-        return  (PX_ERROR);
-    }
-    if (bRoot || (bLast == LW_FALSE)) {                                 /*  新名字指向根或者没有目录    */
+    if (!pramnTemp && (bRoot || (bLast == LW_FALSE))) {                 /*  新名字指向根或者没有目录    */
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
+    }
+    
+    if (pramn == pramnTemp) {                                           /*  相同                        */
+        return  (ERROR_NONE);
     }
     
     if (S_ISDIR(pramn->RAMN_mode) && pramnNewFather) {
@@ -750,7 +752,40 @@ INT  __ram_move (PRAM_NODE  pramn, PCHAR  pcNewName)
             return  (PX_ERROR);
         }
     }
-
+    
+    pcFileName = lib_rindex(pcNewName, PX_DIVIDER);
+    if (pcFileName) {
+        pcFileName++;
+    } else {
+        pcFileName = pcNewName;
+    }
+    
+    pcTemp = (PCHAR)__SHEAP_ALLOC(lib_strlen(pcFileName) + 1);          /*  预分配名字缓存              */
+    if (pcTemp == LW_NULL) {
+        _ErrorHandle(ENOMEM);
+        return  (PX_ERROR);
+    }
+    lib_strcpy(pcTemp, pcFileName);
+    
+    if (pramnTemp) {
+        if (!S_ISDIR(pramn->RAMN_mode) && S_ISDIR(pramnTemp->RAMN_mode)) {
+            __SHEAP_FREE(pcTemp);
+            _ErrorHandle(EISDIR);
+            return  (PX_ERROR);
+        }
+        if (S_ISDIR(pramn->RAMN_mode) && !S_ISDIR(pramnTemp->RAMN_mode)) {
+            __SHEAP_FREE(pcTemp);
+            _ErrorHandle(ENOTDIR);
+            return  (PX_ERROR);
+        }
+        
+        iRet = __ram_unlink(pramnTemp);                                 /*  删除目标                    */
+        if (iRet) {
+            __SHEAP_FREE(pcTemp);
+            return  (PX_ERROR);
+        }
+    }
+    
     if (pramnFather != pramnNewFather) {                                /*  目录发生改变                */
         if (pramnFather) {
             _List_Line_Del(&pramn->RAMN_lineBrother, 
@@ -768,20 +803,7 @@ INT  __ram_move (PRAM_NODE  pramn, PCHAR  pcNewName)
         }
     }
     
-    pcFileName = lib_rindex(pcNewName, PX_DIVIDER);
-    if (pcFileName) {
-        pcFileName++;
-    } else {
-        pcFileName = pcNewName;
-    }
-    
-    pcTemp = (PCHAR)__SHEAP_ALLOC(lib_strlen(pcFileName) + 1);
-    if (pcTemp == LW_NULL) {
-        _ErrorHandle(ENOMEM);
-        return  (PX_ERROR);
-    }
-    lib_strcpy(pcTemp, pcFileName);
-    __SHEAP_FREE(pramn->RAMN_pcName);
+    __SHEAP_FREE(pramn->RAMN_pcName);                                   /*  释放老名字                  */
     pramn->RAMN_pcName = pcTemp;
     
     return  (ERROR_NONE);

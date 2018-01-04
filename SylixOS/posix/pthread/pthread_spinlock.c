@@ -199,7 +199,7 @@ int  pthread_spin_unlock_irq_np (pthread_spinlock_t  *pspinlock, pthread_int_t i
 LW_API 
 int  pthread_spin_trylock_irq_np (pthread_spinlock_t  *pspinlock, pthread_int_t *irqctx)
 {
-    if (pspinlock == LW_NULL) {
+    if ((pspinlock == LW_NULL) || (irqctx == NULL)) {
         errno = EINVAL;
         return  (EINVAL);
     }

@@ -48,6 +48,54 @@ static const PCI_DEV_ID_CB  pciStorageAtaIdTbl[] = {
         PCI_VDEVICE(INTEL, 0x7010), 
         board_std
     },
+    {
+        PCI_VDEVICE(INTEL, 0x2850),                                 /* ICH8 Mobile PATA Controller      */
+        board_res
+    },
+    {
+        PCI_VDEVICE(INTEL, 0x2828),                                 /* Mobile SATA Controller IDE       */
+        board_res
+    },
+    {
+        PCI_VDEVICE(INTEL, 0x8c00),                                 /* SATA Controller IDE(Lynx Point)  */
+        board_res
+    },
+    {
+        PCI_VDEVICE(INTEL, 0x8c01),                                 /* SATA Controller IDE(Lynx Point)  */
+        board_res
+    },
+    {
+        PCI_VDEVICE(INTEL, 0x8c80),                                 /* SATA Controller IDE(9 Series)    */
+        board_res
+    },
+    {
+        PCI_VDEVICE(INTEL, 0x8c81),                                 /* SATA Controller IDE(9 Series)    */
+        board_res
+    },
+    {
+        PCI_VDEVICE(INTEL, 0x8d00),                                 /* SATA Controller IDE(Wellsburg)   */
+        board_res
+    },
+    {
+        PCI_VDEVICE(INTEL, 0x8d60),                                 /* SATA Controller IDE(Wellsburg)   */
+        board_res
+    },
+    {
+        PCI_VDEVICE(INTEL, 0x9c00),                                 /* SATA Controller IDE(Lynx PLP)    */
+        board_res
+    },
+    {
+        PCI_VDEVICE(INTEL, 0x9c01),                                 /* SATA Controller IDE(Lynx PLP)    */
+        board_res
+    },
+    {
+        PCI_VDEVICE(INTEL, 0x1f20),                                 /* SATA Controller IDE(Avoton)      */
+        board_res
+    },
+    {
+        PCI_VDEVICE(INTEL, 0x1f21),                                 /* SATA Controller IDE(Avoton)      */
+        board_res
+    },
     
     {   
         PCI_ANY_ID, PCI_ANY_ID, PCI_ANY_ID, PCI_ANY_ID, 
@@ -391,9 +439,10 @@ static VOID  pciStorageAtaDevRemove (PCI_DEV_HANDLE hHandle)
 *********************************************************************************************************/
 static INT  pciStorageAtaDevProbe (PCI_DEV_HANDLE hPciDevHandle, const PCI_DEV_ID_HANDLE hIdEntry)
 {
-    PCI_ATA_PORT   *pataport;
-    UINT            uiChannel;
-    UINT32          uiBase, uiCtrl;                                     /*  起始地址                    */
+    PCI_ATA_PORT           *pataport;
+    UINT                    uiChannel;
+    addr_t                  ulBase, ulCtrl;                             /*  起始地址                    */
+    PCI_RESOURCE_HANDLE     hResource;
 
     if ((!hPciDevHandle) || (!hIdEntry)) {                              /*  设备参数无效                */
         _ErrorHandle(EINVAL);                                           /*  标记错误                    */
@@ -423,10 +472,15 @@ static INT  pciStorageAtaDevProbe (PCI_DEV_HANDLE hPciDevHandle, const PCI_DEV_I
             }
         
         } else {
-            API_PciDevConfigReadDword(hPciDevHandle, 2 * uiChannel,     &uiBase);
-            API_PciDevConfigReadDword(hPciDevHandle, 2 * uiChannel + 1, &uiCtrl);
-            
-            pciStorageAtaCreateDrv(uiBase, uiCtrl);
+            hResource = API_PciDevResourceGet(hPciDevHandle, PCI_IORESOURCE_IO, 2 * uiChannel);
+            ulBase = (addr_t)(PCI_RESOURCE_START(hResource));
+
+            hResource = API_PciDevResourceGet(hPciDevHandle, PCI_IORESOURCE_IO, 2 * uiChannel + 1);
+            ulCtrl = (addr_t)(PCI_RESOURCE_START(hResource));
+
+            if (pciStorageAtaCreateDrv(ulBase, ulCtrl) < 0) {
+                continue;
+            }
         }
         
         if (uiChannel) {

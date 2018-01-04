@@ -20,6 +20,8 @@
  *    and/or other materials provided with the distribution.
  * 3. The name of the author may not be used to endorse or promote products
  *    derived from this software without specific prior written permission. 
+ * 4. This code has been or is applying for intellectual property protection 
+ *    and can only be used with acoinfo software products.
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED 
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
@@ -42,11 +44,11 @@
 
 #if LW_CFG_NET_DEV_BRIDGE_EN > 0
 
-#include "../lwip_if.h"
 #include "lwip/mem.h"
 #include "lwip/tcpip.h"
 #include "lwip/netif.h"
 #include "lwip/netifapi.h"
+#include "net/if_lock.h"
 #include "net/if_flags.h"
 #include "net/if_ether.h"
 #include "netif/etharp.h"

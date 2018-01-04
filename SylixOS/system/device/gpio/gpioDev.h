@@ -46,7 +46,7 @@ typedef struct {
     INT                 GF_iFlag;
     UINT                GF_uiGpio;
     INT                 GF_iGpioFlags;
-    INT                 GF_iIrq;
+    ULONG               GF_ulIrq;
     LW_SEL_WAKEUPLIST   GF_selwulist;
 } LW_GPIOFD_FILE;
 typedef LW_GPIOFD_FILE *PLW_GPIOFD_FILE;

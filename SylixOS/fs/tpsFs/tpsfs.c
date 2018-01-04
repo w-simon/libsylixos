@@ -390,6 +390,7 @@ entry_ok:
 errno_t  tpsFsRemove (PTPS_SUPER_BLOCK psb, CPCHAR pcPath)
 {
     PTPS_ENTRY pentry       = LW_NULL;
+    PTPS_ENTRY pentrySub    = LW_NULL;
     PTPS_TRANS ptrans       = LW_NULL;
     PCHAR      pcRemain     = LW_NULL;
     PTPS_INODE pinodeDir    = LW_NULL;
@@ -414,6 +415,19 @@ errno_t  tpsFsRemove (PTPS_SUPER_BLOCK psb, CPCHAR pcPath)
     if (*pcRemain != 0) {
         tpsFsEntryFree(pentry);
         return  (ENOENT);
+    }
+
+    if (S_ISDIR(pentry->ENTRY_pinode->IND_iMode)) {                     /* 不能删除非空目录             */
+        iErr = tpsFsReadDir(pentry->ENTRY_pinode, LW_TRUE,
+                            MAX_BLK_NUM, &pentrySub);
+        if (pentrySub) {
+            tpsFsEntryFree(pentrySub);
+        }
+
+        if (iErr != ENOENT) {
+            tpsFsEntryFree(pentry);
+            return  (ENOTEMPTY);
+        }
     }
 
     while (LW_TRUE) {
@@ -448,7 +462,6 @@ errno_t  tpsFsRemove (PTPS_SUPER_BLOCK psb, CPCHAR pcPath)
         tpsFsEntryFree(pentry);
 
         if (tpsFsTransCommitAndFree(ptrans) != TPS_ERR_NONE) {          /* 提交事务                     */
-            tpsFsEntryFree(pentry);
             tpsFsTransRollBackAndFree(ptrans);
             return  (EIO);
         }
@@ -514,10 +527,42 @@ errno_t  tpsFsMove (PTPS_SUPER_BLOCK psb, CPCHAR pcPathSrc, CPCHAR pcPathDst)
         return  (iErr);
     }
 
-    if (*pcRemain == 0) {                                               /* 文件已存在                   */
+    if (pentrySrc->ENTRY_inumDir == pentryDst->ENTRY_inumDir &&
+        pentrySrc->ENTRY_offset == pentryDst->ENTRY_offset   &&
+        pentrySrc->ENTRY_bInHash == pentryDst->ENTRY_bInHash) {         /* 源和目标路径相等             */
         tpsFsEntryFree(pentryDst);
         tpsFsEntryFree(pentrySrc);
-        return  (EEXIST);
+        return  (ERROR_NONE);
+    }
+
+    if (*pcRemain == 0) {                                               /* 目标已存在                   */
+        if (!S_ISDIR(pentrySrc->ENTRY_pinode->IND_iMode) &&
+            S_ISDIR(pentryDst->ENTRY_pinode->IND_iMode)) {              /* 源为文件而目标为目录         */
+            tpsFsEntryFree(pentryDst);
+            tpsFsEntryFree(pentrySrc);
+            return  (EISDIR);
+        }
+
+        if (S_ISDIR(pentrySrc->ENTRY_pinode->IND_iMode) &&
+            !S_ISDIR(pentryDst->ENTRY_pinode->IND_iMode)) {             /* 源为目录而目标为文件         */
+            tpsFsEntryFree(pentryDst);
+            tpsFsEntryFree(pentrySrc);
+            return  (ENOTDIR);
+        }
+
+        tpsFsEntryFree(pentryDst);
+
+        iErr = tpsFsRemove(psb, pcPathDst);                             /* 删除现有目标                 */
+        if (iErr) {
+            tpsFsEntryFree(pentrySrc);
+            return  (iErr);
+        }
+
+        pentryDst = __tpsFsWalkPath(psb, pcPathDst, &pcRemain, &iErr);  /* 获取目标父目录节点           */
+        if (LW_NULL == pentryDst) {
+            tpsFsEntryFree(pentrySrc);
+            return  (iErr);
+        }
     }
 
     pcFileName = lib_rindex(pcPathDst, PX_DIVIDER);                     /* 获取文件名                   */

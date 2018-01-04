@@ -77,8 +77,7 @@ ULONG  API_TimerCancel (LW_OBJECT_HANDLE  ulId)
         return  (ERROR_TIMER_TIME);
     }
     
-    ptmr->TIMER_ulCounter = 0ul;                                        /*  清除计数器                  */
-    ptmr->TIMER_ucStatus  = LW_TIMER_STATUS_STOP;
+    ptmr->TIMER_ucStatus = LW_TIMER_STATUS_STOP;
     
     if (ptmr->TIMER_ucType == LW_TYPE_TIMER_ITIMER) {                   /*  从扫描队列删除              */
         _WakeupDel(&_K_wuITmr, &ptmr->TIMER_wunTimer);
@@ -87,6 +86,8 @@ ULONG  API_TimerCancel (LW_OBJECT_HANDLE  ulId)
         _WakeupDel(&_K_wuHTmr, &ptmr->TIMER_wunTimer);
     }
     
+    ptmr->TIMER_ulCounter = 0ul;                                        /*  清除计数器                  */
+
     __KERNEL_EXIT_IRQ(iregInterLevel);                                  /*  退出内核并打开中断          */
     
     return  (ERROR_NONE);

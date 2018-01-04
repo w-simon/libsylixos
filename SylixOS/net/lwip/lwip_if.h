@@ -26,6 +26,7 @@
   ÍøÂç½Ó¿ÚËø
 *********************************************************************************************************/
 
+#ifdef  __SYLIXOS_KERNEL
 #ifndef __NETIF_MAIN_FILE
 extern LW_OBJECT_HANDLE     _G_ulNetifLock;
 #else
@@ -34,6 +35,7 @@ extern LW_OBJECT_HANDLE     _G_ulNetifLock;
 
 #define LWIP_NETIF_LOCK()   API_SemaphoreMPend(_G_ulNetifLock, LW_OPTION_WAIT_INFINITE)
 #define LWIP_NETIF_UNLOCK() API_SemaphoreMPost(_G_ulNetifLock)
+#endif                                                                  /*  __SYLIXOS_KERNEL            */
 
 #endif                                                                  /*  __LWIP_IF_H                 */
 /*********************************************************************************************************

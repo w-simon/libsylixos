@@ -20,6 +20,7 @@
 **
 ** BUG:
 2014.05.25  加入 get flags 操作.
+2017.12.29  加入 API_GpioGetIrq() 解决多个 GPIO 共享一路中断的竞争风险.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -187,6 +188,13 @@ INT  API_GpioChipAdd (PLW_GPIO_CHIP pgchip)
     
     if (!pgchip) {
         _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    if (pgchip->GC_ulVerMagic != LW_GPIO_VER_MAGIC) {                   /*  驱动不匹配                  */
+        _DebugHandle(__ERRORMESSAGE_LEVEL, 
+                     "GPIO driver version not matching this kernel.\r\n");
+        _ErrorHandle(EFTYPE);
         return  (PX_ERROR);
     }
     
@@ -809,35 +817,69 @@ VOID  API_GpioSetValue (UINT uiGpio, INT iValue)
     }
 }
 /*********************************************************************************************************
-** 函数名称: API_GpioSetupIrq
-** 功能描述: 根据指定 GPIO 号设置相应的外部中断, 并返回对应的 IRQ 号
+** 函数名称: API_GpioGetIrq
+** 功能描述: 根据指定 GPIO 号返回对应的 IRQ 号
 ** 输　入  : uiGpio        GPIO 号
 **           bIsLevel      是否为电平触发
 **           uiType        如果为电平触发, 1 表示高电平触发, 0 表示低电平触发
 **                         如果为边沿触发, 1 表示上升沿触发, 0 表示下降沿触发, 2 表示双边沿触发
-** 输　出  : IRQ 号, 错误返回 PX_ERROR
+** 输　出  : IRQ 号, 错误返回 LW_VECTOR_INVALID
 ** 全局变量: 
 ** 调用模块: 
                                            API 函数
 *********************************************************************************************************/
 LW_API  
-INT  API_GpioSetupIrq (UINT uiGpio, BOOL bIsLevel, UINT uiType)
+ULONG  API_GpioGetIrq (UINT uiGpio, BOOL bIsLevel, UINT uiType)
 {
-    INT             iError;
     PLW_GPIO_DESC   pgdesc;
     PLW_GPIO_CHIP   pgchip;
 
     pgdesc = __gpioGetDesc(uiGpio, LW_TRUE);
     if (!pgdesc) {
         _ErrorHandle(EINVAL);
-        return  (PX_ERROR);
+        return  (LW_VECTOR_INVALID);
+    }
+    
+    pgchip = pgdesc->GD_pgcChip;
+    
+    if (pgchip->GC_pfuncGetIrq) {
+        return  (pgchip->GC_pfuncGetIrq(pgchip, GPIO_CHIP_HWGPIO(pgdesc), bIsLevel, uiType));
+    
+    } else {
+        _ErrorHandle(ENXIO);
+        return  (LW_VECTOR_INVALID);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: API_GpioSetupIrq
+** 功能描述: 根据指定 GPIO 号设置相应的外部中断, 并返回对应的 IRQ 号
+** 输　入  : uiGpio        GPIO 号
+**           bIsLevel      是否为电平触发
+**           uiType        如果为电平触发, 1 表示高电平触发, 0 表示低电平触发
+**                         如果为边沿触发, 1 表示上升沿触发, 0 表示下降沿触发, 2 表示双边沿触发
+** 输　出  : IRQ 号, 错误返回 LW_VECTOR_INVALID
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+ULONG  API_GpioSetupIrq (UINT uiGpio, BOOL bIsLevel, UINT uiType)
+{
+    ULONG           ulVector;
+    PLW_GPIO_DESC   pgdesc;
+    PLW_GPIO_CHIP   pgchip;
+
+    pgdesc = __gpioGetDesc(uiGpio, LW_TRUE);
+    if (!pgdesc) {
+        _ErrorHandle(EINVAL);
+        return  (LW_VECTOR_INVALID);
     }
     
     pgchip = pgdesc->GD_pgcChip;
     
     if (pgchip->GC_pfuncSetupIrq) {
-        iError = pgchip->GC_pfuncSetupIrq(pgchip, GPIO_CHIP_HWGPIO(pgdesc), bIsLevel, uiType);
-        if (iError >= 0) {                                              /*  外部中断设置成功            */
+        ulVector = pgchip->GC_pfuncSetupIrq(pgchip, GPIO_CHIP_HWGPIO(pgdesc), bIsLevel, uiType);
+        if (ulVector != LW_VECTOR_INVALID) {                            /*  外部中断设置成功            */
             if (bIsLevel) {
                 pgdesc->GD_ulFlags |= LW_GPIODF_TRIG_LEVEL;
             }
@@ -851,11 +893,11 @@ INT  API_GpioSetupIrq (UINT uiGpio, BOOL bIsLevel, UINT uiType)
                 pgdesc->GD_ulFlags |= (LW_GPIODF_TRIG_FALL | LW_GPIODF_TRIG_RISE);
             }
         }
-        return  (iError);
+        return  (ulVector);
     
     } else {
         _ErrorHandle(ENXIO);
-        return  (PX_ERROR);
+        return  (LW_VECTOR_INVALID);
     }
 }
 /*********************************************************************************************************

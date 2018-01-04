@@ -320,7 +320,10 @@ netif_add(struct netif *netif,
   netif->up = NULL;
   netif->down = NULL;
   netif->flags2 = 0l;
-  lib_bzero(netif->reserve, sizeof(void *[8]));
+  netif->br_eth = NULL;
+  netif->flowctl = NULL;
+  netif->vlanid = (u16_t)-1;
+  lib_bzero(netif->reserve, sizeof(void *[6]));
 #endif /* SYLIXOS */
 
   /* call user specified initialization function for netif */
@@ -511,7 +514,7 @@ netif_find(const char *name)
     return NULL;
   }
 
-  num = (u8_t)(name[2] - '0');
+  num = (u8_t)lib_atoi(&name[2]);
 
   for (netif = netif_list; netif != NULL; netif = netif->next) {
     if (num == netif->num &&
@@ -808,6 +811,7 @@ netif_set_link_up(struct netif *netif)
     NETIF_LINK_CALLBACK(netif);
     
 #ifdef SYLIXOS
+    netif_link_updown_hook(netif, 1);
     netEventIfLink(netif);
 #endif
   }
@@ -825,6 +829,7 @@ netif_set_link_down(struct netif *netif )
     NETIF_LINK_CALLBACK(netif);
     
 #ifdef SYLIXOS
+    netif_link_updown_hook(netif, 0);
     netEventIfUnlink(netif);
 #endif
   }

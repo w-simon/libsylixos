@@ -87,7 +87,7 @@ static INT  __ifArpSearch (struct netif    *netif,
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT  __ifArpSet (struct arpreq  *parpreq)
+static INT  __ifArpSet (const struct arpreq  *parpreq)
 {
     err_t                err;
     u8_t                 flags;
@@ -180,7 +180,7 @@ static INT  __ifArpGet (struct arpreq  *parpreq)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT  __ifArpDel (struct arpreq  *parpreq)
+static INT  __ifArpDel (const struct arpreq  *parpreq)
 {
     err_t                err;
     ip4_addr_t           ipaddr;

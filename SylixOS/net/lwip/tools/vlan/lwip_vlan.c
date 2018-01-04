@@ -19,81 +19,13 @@
 ** 描        述: lwip vlan 支持.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
-#include "../SylixOS/kernel/include/k_kernel.h"
-#include "../SylixOS/system/include/s_system.h"
-#include "../SylixOS/net/include/net_net.h"
+#include "SylixOS.h"
 /*********************************************************************************************************
   裁剪控制
 *********************************************************************************************************/
-#if LW_CFG_NET_EN > 0
-#include "../../lwip_if.h"
-#include "lwip/ip.h"
-#include "netif/etharp.h"
-/*********************************************************************************************************
-  网络接口数量宏定义
-*********************************************************************************************************/
-#if LW_CFG_NET_VLAN_EN > 0
-#define __LW_NETIF_MAX_NUM              10
-/*********************************************************************************************************
-  内部变量
-*********************************************************************************************************/
-static INT          _G_iNetifVlanIdTbl[__LW_NETIF_MAX_NUM];
-#endif                                                                  /*  LW_CFG_NET_VLAN_EN > 0      */
-/*********************************************************************************************************
-** 函数名称: etharp_vlan_set_hook
-** 功能描述: 设置网络以太网络分组 VLAN ID (LWIP_HOOK_VLAN_SET)
-** 输　入  : pvNetif             以太网络接口.
-             pvPBuf              以太数据报文.
-             pvEthSrc            源地址
-             pvEthDst            目的地址
-             usEthType           网络类型.
-** 输　出  : vlan id or -1
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-int  etharp_vlan_set_hook (PVOID pvNetif, PVOID pvPBuf,
-                           const PVOID pvEthSrc, const PVOID pvEthDst, UINT16  usEthType)
-{
-#if LW_CFG_NET_VLAN_EN > 0
-    REGISTER struct netif *netif = (struct netif *)pvNetif;
-    
-    if (netif->num < __LW_NETIF_MAX_NUM) {
-        if (_G_iNetifVlanIdTbl[netif->num] > 0) {
-            return  ((s32_t)_G_iNetifVlanIdTbl[netif->num]);
-        }
-    }
-#endif                                                                  /*  LW_CFG_NET_VLAN_EN > 0      */
-    
-    return  (-1);
-}
-/*********************************************************************************************************
-** 函数名称: etharp_vlan_check_hook
-** 功能描述: 检查网络以太网络分组 VLAN ID (LWIP_HOOK_VLAN_SET)
-** 输　入  : pvNetif             以太网络接口.
-             pvEthhdr            以太数据包头.
-             pvVlanhdr           VLAN 数据包头.
-** 输　出  : 0: 不接收
-**           1: 接收
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-int  etharp_vlan_check_hook (PVOID pvNetif, PVOID pvEthhdr, PVOID pvVlanhdr)
-{
-#if LW_CFG_NET_VLAN_EN > 0
-    REGISTER struct netif        *netif   = (struct netif *)pvNetif;
-    REGISTER struct eth_vlan_hdr *vlanhdr = (struct eth_vlan_hdr *)pvVlanhdr;
-
-    if (netif->num < __LW_NETIF_MAX_NUM) {
-        if (_G_iNetifVlanIdTbl[netif->num] > 0) {
-            if (vlanhdr->prio_vid != htons((u16_t)_G_iNetifVlanIdTbl[netif->num])) {
-                return  (0);
-            }
-        }
-    }
-#endif                                                                  /*  LW_CFG_NET_VLAN_EN > 0      */
-
-    return  (1);
-}
+#if LW_CFG_NET_EN > 0 && LW_CFG_NET_VLAN_EN > 0
+#include "socket.h"
+#include "net/if_vlan.h"
 /*********************************************************************************************************
 ** 函数名称: API_VlanSet
 ** 功能描述: 设置一个网络接口的 VLAN ID
@@ -109,25 +41,24 @@ int  etharp_vlan_check_hook (PVOID pvNetif, PVOID pvEthhdr, PVOID pvVlanhdr)
 LW_API  
 INT  API_VlanSet (CPCHAR  pcEthIf, INT  iVlanId)
 {
-    struct netif  *pnetif;
-
-    if (!pcEthIf) {
-        _ErrorHandle(EINVAL);
-        return  (PX_ERROR);
-    }
-
-    LWIP_NETIF_LOCK();
-    pnetif = netif_find((char *)pcEthIf);
-    if (!pnetif) {
-        LWIP_NETIF_UNLOCK();
-        _ErrorHandle(ENODEV);
+    struct vlanreq  vlanreq;
+    INT             iSock;
+    
+    iSock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (iSock < 0) {
         return  (PX_ERROR);
     }
     
-    if (pnetif->num < __LW_NETIF_MAX_NUM) {
-        _G_iNetifVlanIdTbl[pnetif->num] = iVlanId;
+    lib_strlcpy(vlanreq.vlr_ifname, pcEthIf, IFNAMSIZ);
+    vlanreq.vlr_tag = (u_short)(iVlanId & 0x1fff);
+    vlanreq.vlr_pri = (u_short)((iVlanId >> 13) & 0x3);
+    
+    if (ioctl(iSock, SIOCSETVLAN, &vlanreq)) {
+        close(iSock);
+        return  (PX_ERROR);
     }
-    LWIP_NETIF_UNLOCK();
+    
+    close(iSock);
     
     return  (ERROR_NONE);
 }
@@ -144,25 +75,26 @@ INT  API_VlanSet (CPCHAR  pcEthIf, INT  iVlanId)
 LW_API  
 INT  API_VlanGet (CPCHAR  pcEthIf, INT  *piVlanId)
 {
-    struct netif  *pnetif;
-
-    if (!pcEthIf || !piVlanId) {
-        _ErrorHandle(EINVAL);
+    struct vlanreq  vlanreq;
+    INT             iSock;
+    
+    iSock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (iSock < 0) {
         return  (PX_ERROR);
     }
     
-    LWIP_NETIF_LOCK();
-    pnetif = netif_find((char *)pcEthIf);
-    if (!pnetif) {
-        LWIP_NETIF_UNLOCK();
-        _ErrorHandle(ENODEV);
+    lib_strlcpy(vlanreq.vlr_ifname, pcEthIf, IFNAMSIZ);
+    
+    if (ioctl(iSock, SIOCGETVLAN, &vlanreq)) {
+        close(iSock);
         return  (PX_ERROR);
     }
     
-    if (pnetif->num < __LW_NETIF_MAX_NUM) {
-        *piVlanId = _G_iNetifVlanIdTbl[pnetif->num];
+    close(iSock);
+    
+    if (piVlanId) {
+        *piVlanId = vlanreq.vlr_tag | (vlanreq.vlr_pri << 13);
     }
-    LWIP_NETIF_UNLOCK();
     
     return  (ERROR_NONE);
 }
@@ -179,20 +111,55 @@ LW_API
 VOID  API_VlanShow (VOID)
 {
     static const CHAR   cVlanInfoHdr[] = "\n"
-    "INDEX  VLAN ID\n"
-    "----- ---------\n";
+    "IFACE  VLAN ID   TAG  PRI\n"
+    "----- --------- ----- ---\n";
     
-    INT     i;
+    struct vlanreq_list vlrlist;
+    struct vlanreq     *pvlanreq;
+    INT                 iSock, i;
+    
+    vlrlist.vlrl_bcnt = 0;
+    vlrlist.vlrl_num  = 0;
+    vlrlist.vlrl_buf  = LW_NULL;
     
     printf(cVlanInfoHdr);
     
-    LWIP_NETIF_LOCK();
-    for (i = 0; i < __LW_NETIF_MAX_NUM; i++) {
-        if (_G_iNetifVlanIdTbl[i] >= 0) {
-            printf("%5d %9d\n", i, _G_iNetifVlanIdTbl[i]);
-        }
+    iSock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (iSock < 0) {
+        return;
     }
-    LWIP_NETIF_UNLOCK();
+    
+    if (ioctl(iSock, SIOCLSTVLAN, &vlrlist)) {
+        close(iSock);
+        return;
+    }
+    
+    if (!vlrlist.vlrl_total) {
+        close(iSock);
+        return;
+    }
+    
+    vlrlist.vlrl_buf  = (struct vlanreq *)__SHEAP_ALLOC(sizeof(struct vlanreq) * vlrlist.vlrl_total);
+    vlrlist.vlrl_bcnt = vlrlist.vlrl_total;
+    
+    if (ioctl(iSock, SIOCLSTVLAN, &vlrlist)) {
+        __SHEAP_FREE(vlrlist.vlrl_buf);
+        close(iSock);
+        return;
+    }
+    
+    close(iSock);
+    
+    for (i = 0; i < vlrlist.vlrl_total; i++) {
+        pvlanreq = &vlrlist.vlrl_buf[i];
+        printf("%-5s %9d %5d %3d\n",
+               pvlanreq->vlr_ifname,
+               pvlanreq->vlr_tag | (pvlanreq->vlr_pri << 13),
+               pvlanreq->vlr_tag,
+               pvlanreq->vlr_pri);
+    }
+    
+    __SHEAP_FREE(vlrlist.vlrl_buf);
 }
 /*********************************************************************************************************
 ** 函数名称: __tshellVlan
@@ -230,6 +197,7 @@ static INT  __tshellVlan (INT  iArgC, PCHAR  *ppcArgV)
             fprintf(stderr, "VLAN ID Set error: %s\n", lib_strerror(errno));
             return  (PX_ERROR);
         }
+    
     } else if (lib_strcmp(ppcArgV[1], "clear") == 0) {
         if (iArgC != 3) {
             fprintf(stderr, "arguments error!\n");
@@ -242,6 +210,7 @@ static INT  __tshellVlan (INT  iArgC, PCHAR  *ppcArgV)
             fprintf(stderr, "VLAN ID Clear error: %s\n", lib_strerror(errno));
             return  (PX_ERROR);
         }
+    
     } else {
         fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
@@ -259,15 +228,9 @@ static INT  __tshellVlan (INT  iArgC, PCHAR  *ppcArgV)
 *********************************************************************************************************/
 VOID  __netVlanInit (VOID)
 {
-    INT     i;
-    
-    for (i = 0; i < __LW_NETIF_MAX_NUM; i++) {
-        _G_iNetifVlanIdTbl[i] = -1;
-    }
-    
 #if LW_CFG_SHELL_EN > 0
     API_TShellKeywordAdd("vlan", __tshellVlan);
-    API_TShellFormatAdd("vlan", " [{set | clear}] [netifname]");
+    API_TShellFormatAdd("vlan", " [{set | clear}] [ifname]");
     API_TShellHelpAdd("vlan",   "show | set | clear net interface VLAN ID.\n"
                                 "eg. vlan               show all vlan id.\n"
                                 "    vlan set en0 3     set netif:en0 VLAN ID 3.\n"

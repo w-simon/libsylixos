@@ -123,23 +123,14 @@
 #define LW_CFG_NET_VLAN_EN                          1                   /*  是否使能 VLAN 工具          */
 
 /*********************************************************************************************************
-                                            VPN (虚拟专用网络)
-*  依存关系: 1: 网络 (必须支持多线程安全的读写操作)
-             2: 第三方 polarSSL 支持库 (appl/ssl/polarssl)
+                                            VPN (KidVPN 虚拟专用网络)
+*  依存关系: 1: 网络
 *********************************************************************************************************/
 
-#ifdef  __GNUC__
-#define LW_CFG_NET_VPN_EN                           1                   /*  是否使用 VPN 服务           */
-#else
-#define LW_CFG_NET_VPN_EN                           0                   /*  是否使用 VPN 服务           */
-#endif                                                                  /*  __GNUC__                    */
+#define LW_CFG_NET_VPN_EN                           1
+#define LW_CFG_NET_KIDVPN_EN                        LW_CFG_NET_VPN_EN   /*  是否使用 KidVPN 服务        */
+#define LW_CFG_NET_VNETDEV_EN                       LW_CFG_NET_VPN_EN   /*  虚拟网卡                    */
 
-#if LW_CFG_CPU_WORD_LENGHT == 32
-#define LW_CFG_NET_VPN_STK_SIZE                     (12 * LW_CFG_KB_SIZE)
-#else
-#define LW_CFG_NET_VPN_STK_SIZE                     (24 * LW_CFG_KB_SIZE)
-#endif
-                                                                        /*  VPN 线程堆栈                */
 /*********************************************************************************************************
                                             NPF (基于规则的网络数据报过滤器)
 *  依存关系: 1: 网络

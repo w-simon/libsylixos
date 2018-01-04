@@ -32,6 +32,10 @@
 
 #include "if.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif                                                      /*  __cplusplus                             */
+
 /*********************************************************************************************************
  ÍøÇÅ¿ØÖÆ²ÎÊý.
 *********************************************************************************************************/
@@ -50,6 +54,10 @@ struct net_bridge_ctl {
 #define NETBR_CTL_CACHE_FLUSH   FIOFLUSH
 
 #define NETBR_CTL_PATH          "/dev/netbr"
+
+#ifdef __cplusplus
+}
+#endif                                                      /*  __cplusplus                             */
 
 #endif                                                      /*  LW_CFG_NET_EN                           */
                                                             /*  LW_CFG_NET_DEV_BRIDGE_EN                */

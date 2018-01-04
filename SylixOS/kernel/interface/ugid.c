@@ -337,13 +337,14 @@ int setgroups (int groupsun, const gid_t grlist[])
 ** 输　出  : 返回值为实际存储到grlist的gid个数。。 groupsize为预读的gid最大数，grlist存储gid
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : POSIX 规定, 参数大小必须可以容纳所有添加组信息.
+
                                            API 函数
 *********************************************************************************************************/
 LW_API 
 int getgroups (int groupsize, gid_t grlist[])
 {
     INT             i;
-    INT             iMax;
     PLW_CLASS_TCB   ptcbCur;
     
     LW_TCB_GET_CUR_SAFE(ptcbCur);
@@ -352,12 +353,13 @@ int getgroups (int groupsize, gid_t grlist[])
     if ((groupsize == 0) || (grlist == LW_NULL)) {                      /*  只统计数量                  */
         i = (int)ptcbCur->TCB_iNumSuppGid;
     
+    } else if (groupsize < ptcbCur->TCB_iNumSuppGid) {
+        __KERNEL_EXIT();
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+        
     } else {
-        iMax = (groupsize < ptcbCur->TCB_iNumSuppGid)
-             ? (groupsize) 
-             : (ptcbCur->TCB_iNumSuppGid);
-    
-        for (i = 0; i < iMax; i++) {
+        for (i = 0; i < (int)ptcbCur->TCB_iNumSuppGid; i++) {
             grlist[i] = ptcbCur->TCB_suppgid[i];
         }
     }

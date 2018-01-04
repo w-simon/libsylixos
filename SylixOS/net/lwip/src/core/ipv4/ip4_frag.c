@@ -695,7 +695,7 @@ ip4_frag(struct pbuf *p, struct netif *netif, const ip4_addr_t *dest)
   const u16_t nfb = (netif->mtu - IP_HLEN) / 8;
   u16_t left, fragsize;
   u16_t ofo;
-  int last;
+  int last, omf;
   u16_t poff = IP_HLEN;
   u16_t tmp;
 
@@ -706,7 +706,11 @@ ip4_frag(struct pbuf *p, struct netif *netif, const ip4_addr_t *dest)
   /* Save original offset */
   tmp = lwip_ntohs(IPH_OFFSET(iphdr));
   ofo = tmp & IP_OFFMASK;
+#ifdef SYLIXOS
+  omf = tmp & IP_MF;
+#else
   LWIP_ERROR("ip_frag(): MF already set", (tmp & IP_MF) == 0, return ERR_VAL);
+#endif /* SYLIXOS */
 
   left = p->tot_len - IP_HLEN;
 
@@ -791,7 +795,11 @@ ip4_frag(struct pbuf *p, struct netif *netif, const ip4_addr_t *dest)
 
     /* Set new offset and MF flag */
     tmp = (IP_OFFMASK & (ofo));
+#ifdef SYLIXOS
+    if (!last || omf) {
+#else
     if (!last) {
+#endif /* SYLIXOS */
       tmp = tmp | IP_MF;
     }
     IPH_OFFSET_SET(iphdr, lwip_htons(tmp));

@@ -396,8 +396,7 @@ INT  API_PppOsCreate (CPCHAR  pcSerial, LW_PPP_TTY  *ptty, PCHAR  pcIfName, size
     
     pcIfName[0] = pctxp->CTXP_netif.name[0];
     pcIfName[1] = pctxp->CTXP_netif.name[1];
-    pcIfName[2] = pctxp->CTXP_netif.num + '0';
-    pcIfName[3] = PX_EOS;
+    lib_itoa(pctxp->CTXP_netif.num, &pcIfName[2], 10);
     
     return  (ERROR_NONE);
     
@@ -466,8 +465,7 @@ INT  API_PppOeCreate (CPCHAR  pcEthIf, PCHAR  pcIfName, size_t  stMaxSize)
 
     pcIfName[0] = pctxp->CTXP_netif.name[0];
     pcIfName[1] = pctxp->CTXP_netif.name[1];
-    pcIfName[2] = pctxp->CTXP_netif.num + '0';
-    pcIfName[3] = PX_EOS;
+    lib_itoa(pctxp->CTXP_netif.num, &pcIfName[2], 10);
 
     return  (ERROR_NONE);
 
@@ -550,8 +548,7 @@ INT  API_PppOl2tpCreate (CPCHAR  pcEthIf,
 
     pcIfName[0] = pctxp->CTXP_netif.name[0];
     pcIfName[1] = pctxp->CTXP_netif.name[1];
-    pcIfName[2] = pctxp->CTXP_netif.num + '0';
-    pcIfName[3] = PX_EOS;
+    lib_itoa(pctxp->CTXP_netif.num, &pcIfName[2], 10);
 
     return  (ERROR_NONE);
 

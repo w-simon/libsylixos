@@ -75,6 +75,11 @@ extern LW_SEND_VAL           _doSigQueue(PLW_CLASS_TCB  ptcb, INT  iSigNo, const
 LW_API  
 INT  sigemptyset (sigset_t    *psigset)
 {
+    if (!psigset) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
     *psigset = 0;
     
     return  (ERROR_NONE);
@@ -91,6 +96,11 @@ INT  sigemptyset (sigset_t    *psigset)
 LW_API  
 INT  sigfillset (sigset_t	*psigset)
 {
+    if (!psigset) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
     *psigset = ~0;
     
     return  (ERROR_NONE);
@@ -108,13 +118,14 @@ INT  sigfillset (sigset_t	*psigset)
 LW_API  
 INT  sigaddset (sigset_t  *psigset, INT  iSigNo)
 {
-    if (__issig(iSigNo)) {
-        *psigset |= __sigmask(iSigNo);
-        return  (ERROR_NONE);
+    if (!psigset || !__issig(iSigNo)) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
     }
     
-    _ErrorHandle(EINVAL);
-    return  (PX_ERROR);
+    *psigset |= __sigmask(iSigNo);
+    
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: sigdelset
@@ -129,13 +140,14 @@ INT  sigaddset (sigset_t  *psigset, INT  iSigNo)
 LW_API  
 INT  sigdelset (sigset_t  *psigset, INT  iSigNo)
 {
-    if (__issig(iSigNo)) {
-        *psigset &= ~__sigmask(iSigNo);
-        return  (ERROR_NONE);
+    if (!psigset || !__issig(iSigNo)) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
     }
     
-    _ErrorHandle(EINVAL);
-    return  (PX_ERROR);
+    *psigset &= ~__sigmask(iSigNo);
+    
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: sigismember
@@ -151,17 +163,17 @@ INT  sigdelset (sigset_t  *psigset, INT  iSigNo)
 LW_API  
 INT  sigismember (const sigset_t  *psigset, INT  iSigNo)
 {
-    if (__issig(iSigNo)) {
-        if (*psigset & __sigmask(iSigNo)) {
-            return  (1);
-        
-        } else {
-            return  (0);
-        }
+    if (!psigset || !__issig(iSigNo)) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
     }
     
-    _ErrorHandle(EINVAL);
-    return  (PX_ERROR);
+    if (*psigset & __sigmask(iSigNo)) {
+        return  (1);
+    
+    } else {
+        return  (0);
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: __sigaction

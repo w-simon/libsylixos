@@ -303,7 +303,10 @@ static INT gdbTcpSockInit (LW_GDB_PARAM *pparam, UINT32 ui32Ip, UINT16 usPort)
     
     pparam->GDB_iCommListenFd = iSockListen;
 
-    LW_GDB_MSG("[GDB]Waiting for connect...\n");
+    /*
+     *  此处使用printf输出到telnet终端，IDE检测本输出以确保可以启动gdb调试
+     */
+    printf("[GDB]Waiting for connect...\n");
     
     iSockNew = accept(iSockListen, (struct sockaddr *)&addrClient, &iAddrLen);
     if (iSockNew < 0) {
@@ -317,8 +320,8 @@ static INT gdbTcpSockInit (LW_GDB_PARAM *pparam, UINT32 ui32Ip, UINT16 usPort)
     setsockopt(iSockNew, IPPROTO_TCP, TCP_KEEPINTVL, (const void *)&iKeepInterval, sizeof(INT));
     setsockopt(iSockNew, IPPROTO_TCP, TCP_KEEPCNT,   (const void *)&iKeepCount,    sizeof(INT));
 
-    LW_GDB_MSG("[GDB]Connected. host: %s\n",
-               inet_ntoa_r(addrClient.sin_addr, cIpBuff, sizeof(cIpBuff)));
+    printf("[GDB]Connected. host: %s\n",
+           inet_ntoa_r(addrClient.sin_addr, cIpBuff, sizeof(cIpBuff)));
 
     return  (iSockNew);
 }

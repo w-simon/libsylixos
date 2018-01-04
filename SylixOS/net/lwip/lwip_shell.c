@@ -55,6 +55,7 @@
 #include "lwip/dhcp.h"
 #include "lwip/tcpip.h"
 #include "lwip_route.h"
+#include "lwip_flowsh.h"
 #include "lwip_if.h"
 #if LW_CFG_NET_LOGINBL_EN > 0
 #include "lwip_loginbl.h"
@@ -314,7 +315,7 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
     /*
      *  打印网口基本信息
      */
-    printf("%c%c%d       ",   netif->name[0], netif->name[1], netif->num);
+    printf("%c%c%-3d     ",   netif->name[0], netif->name[1], netif->num);
     printf("enable: %s ",     (netif_is_up(netif) > 0) ? "true" : "false");
     printf("linkup: %s ",     (netif_is_link_up(netif) > 0) ? "true" : "false");
     printf("MTU: %d ",        netif->mtu);
@@ -388,6 +389,7 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
         printf("broadcast: Non\n");
     }
     
+#if LWIP_IPV6
     /*
      *  打印 ipv6 信息
      */
@@ -426,6 +428,7 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
                ip6addr_ntoa_r(ip_2_ip6(&netif->ip6_addr[i]), cBuffer, sizeof(cBuffer)),
                pcAddrType, cAddrStat);
     }
+#endif
     
     /*
      *  打印网口收发数据信息
@@ -474,8 +477,7 @@ static VOID  __netIfShowAll (VOID)
     if (netif_default) {
         cName[0] = netif_default->name[0];
         cName[1] = netif_default->name[1];
-        cName[2] = (CHAR)(netif_default->num + '0');
-        cName[3] = PX_EOS;
+        lib_itoa(netif_default->num, &cName[2], 10);
     }
     
     printf("default device is: %s\n", cName);                           /*  显示路由端口                */
@@ -945,7 +947,16 @@ __error:
 *********************************************************************************************************/
 VOID  __tshellNetInit (VOID)
 {
+#if LW_CFG_NET_ROUTER > 0
     __tshellRouteInit();                                                /*  注册 route 命令             */
+#if LW_CFG_NET_BALANCING > 0
+    __tshellSrouteInit();
+#endif                                                                  /*  LW_CFG_NET_BALANCING > 0    */
+#endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
+
+#if LW_CFG_NET_FLOWCTL_EN > 0
+    __tshellFlowctlInit();
+#endif                                                                  /*  LW_CFG_NET_FLOWCTL_EN > 0   */
 
     API_TShellKeywordAdd("netstat", __tshellNetstat);
     API_TShellFormatAdd("netstat",  " {[-wtux --A] -i | [-hrigsapl]}");
@@ -983,7 +994,6 @@ VOID  __tshellNetInit (VOID)
                                "        eg. arp -s 192.168.1.100 00:11:22:33:44:55\n"
                                "-d      delete a STATIC arp entry.\n"
                                "        eg. arp -d 192.168.1.100\n");
-
 #if LW_CFG_NET_LOGINBL_EN > 0
     API_TShellKeywordAdd("loginbl", __tshellLoginBl);
     API_TShellFormatAdd("loginbl", " [{add | del}] [ipaddr]");

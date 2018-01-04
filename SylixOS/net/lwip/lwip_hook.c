@@ -276,8 +276,7 @@ int  net_ip_hook_netif_get_name (struct netif *pnetif, char *name, size_t size)
     
     name[0] = pnetif->name[0];
     name[1] = pnetif->name[1];
-    name[2] = (char)(pnetif->num + '0');
-    name[3] = PX_EOS;
+    lib_itoa(pnetif->num, &name[2], 10);
     
     return  (3);
 }

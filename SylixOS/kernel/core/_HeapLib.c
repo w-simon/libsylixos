@@ -455,11 +455,11 @@ PLW_CLASS_HEAP  _HeapDelete (PLW_CLASS_HEAP  pheap, BOOL  bIsCheckUsed)
 ** 输　入  : pheap                 堆控制块
 **           pvMemory              需要添加的内存 (必须保证对其)
 **           stSize                内存大小 (必须大于一个分段大小最小值)
-** 输　出  : SEGMENT 的数量
+** 输　出  : 是否添加成功
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-VOID  _HeapAddMemory (PLW_CLASS_HEAP  pheap, PVOID  pvMemory, size_t  stSize)
+ULONG  _HeapAddMemory (PLW_CLASS_HEAP  pheap, PVOID  pvMemory, size_t  stSize)
 {
     REGISTER PLW_LIST_LINE      plineTemp;
     REGISTER PLW_CLASS_SEGMENT  psegmentLast;
@@ -467,16 +467,18 @@ VOID  _HeapAddMemory (PLW_CLASS_HEAP  pheap, PVOID  pvMemory, size_t  stSize)
     REGISTER ULONG              ulLockErr;
     REGISTER addr_t             ulStart      = (addr_t)pvMemory;
     REGISTER addr_t             ulStartAlign = ROUND_UP(ulStart, LW_CFG_HEAP_ALIGNMENT);
+    REGISTER addr_t             ulEnd, ulSeg;
     
     if (ulStartAlign > ulStart) {
         stSize -= (size_t)(ulStartAlign - ulStart);                     /*  去掉前面的不对齐长度        */
     }
     
     stSize = ROUND_DOWN(stSize, LW_CFG_HEAP_ALIGNMENT);                 /*  分段大小对其                */
+    ulEnd  = ulStartAlign + stSize - 1;
 
     ulLockErr = __heap_lock(pheap);
     if (ulLockErr) {                                                    /*  出现锁错误                  */
-        return;
+        return  (ulLockErr);
     }
     
     psegmentLast = (PLW_CLASS_SEGMENT)pheap->HEAP_pvStartAddress;
@@ -486,6 +488,20 @@ VOID  _HeapAddMemory (PLW_CLASS_HEAP  pheap, PVOID  pvMemory, size_t  stSize)
         if (_list_line_get_next(plineTemp) == LW_NULL) {
             break;
         }
+                                                                        /*  判断地址是否发生重叠        */
+        psegmentLast = _LIST_ENTRY(plineTemp, LW_CLASS_SEGMENT, SEGMENT_lineManage);
+        ulSeg = (addr_t)__HEAP_SEGMENT_DATA_PTR(psegmentLast);
+        if ((ulStartAlign >= ulSeg) && 
+            (ulStartAlign < (ulSeg + psegmentLast->SEGMENT_stByteSize))) {
+            __heap_unlock(pheap);
+            return  (EFAULT);
+        }
+        if ((ulEnd >= ulSeg) && 
+            (ulEnd < (ulSeg + psegmentLast->SEGMENT_stByteSize))) {
+            __heap_unlock(pheap);
+            return  (EFAULT);
+        }
+        
         plineTemp = _list_line_get_next(plineTemp);
     } while (1);
     
@@ -506,6 +522,8 @@ VOID  _HeapAddMemory (PLW_CLASS_HEAP  pheap, PVOID  pvMemory, size_t  stSize)
     pheap->HEAP_stFreeByteSize  += psegmentNew->SEGMENT_stByteSize;
     
     __heap_unlock(pheap);
+    
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: _HeapGetInfo

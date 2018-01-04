@@ -30,6 +30,9 @@
 #if LW_CFG_SHELL_EN > 0
 INT  __tshellRoute(INT  iArgC, PCHAR  *ppcArgV);
 VOID __tshellRouteInit(VOID);
+#if LW_CFG_NET_BALANCING > 0
+VOID __tshellSrouteInit(VOID);
+#endif                                                                  /*  LW_CFG_NET_BALANCING > 0    */
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 
 #endif                                                                  /*  LW_CFG_NET_EN               */

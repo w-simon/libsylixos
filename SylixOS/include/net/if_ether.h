@@ -29,6 +29,10 @@
 *********************************************************************************************************/
 #if LW_CFG_NET_EN > 0
 
+#ifdef __cplusplus
+extern "C" {
+#endif                                                                  /*  __cplusplus                 */
+
 /*********************************************************************************************************
   IEEE 802.3 Ethernet magic constants.  The frame sizes omit the preamble
   and FCS/CRC (frame check sequence).
@@ -139,6 +143,10 @@ struct ethhdr {
     u_char      h_source[ETH_ALEN];                                     /* source ether addr            */
     u_short     h_proto;                                                /* packet type ID field         */
 } __attribute__((packed));
+
+#ifdef __cplusplus
+}
+#endif                                                                  /*  __cplusplus                 */
 
 #endif                                                                  /*  LW_CFG_NET_EN               */
 #endif                                                                  /*  __IF_ETHER_H                */

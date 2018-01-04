@@ -113,9 +113,7 @@ ULONG    API_InterEnter (VOID)
     PLW_CLASS_CPU  pcpu;
     
     pcpu = LW_CPU_GET_CUR();
-    if (pcpu->CPU_ulInterNesting != LW_CFG_MAX_INTER_SRC) {
-        pcpu->CPU_ulInterNesting++;
-    }
+    pcpu->CPU_ulInterNesting++;
 
 #if (LW_CFG_CPU_FPU_EN > 0) && (LW_CFG_INTER_FPU > 0)
     if (LW_KERN_FPU_EN_GET()) {                                         /*  中断状态允许使用浮点运算    */

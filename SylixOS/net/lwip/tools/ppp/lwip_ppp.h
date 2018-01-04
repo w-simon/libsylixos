@@ -27,6 +27,10 @@
 *********************************************************************************************************/
 #if (LW_CFG_NET_EN > 0) && (LW_CFG_LWIP_PPP > 0)
 
+#ifdef __cplusplus
+extern "C" {
+#endif                                                                  /*  __cplusplus                 */
+
 /*********************************************************************************************************
   ppp ²¦ºÅ´®¿Ú²ÎÊý
 *********************************************************************************************************/
@@ -65,6 +69,10 @@ LW_API INT  API_PppGetPhase(CPCHAR  pcIfName, INT  *piPhase);
 #define pppConnect      API_PppConnect
 #define pppDisconnect   API_PppDisconnect
 #define pppGetPhase     API_PppGetPhase
+
+#ifdef __cplusplus
+}
+#endif                                                                  /*  __cplusplus                 */
 
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */
                                                                         /*  LW_CFG_LWIP_PPP > 0         */

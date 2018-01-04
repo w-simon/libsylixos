@@ -1120,9 +1120,8 @@ int  mq_timedsend (mqd_t  mqd, const char  *msg, size_t  msglen,
     BOOL                bNonblock;
     INT                 iRet;
     
-    if ((abs_timeout == LW_NULL)    || 
-        (abs_timeout->tv_nsec <  0) ||
-        (abs_timeout->tv_nsec >= __TIMEVAL_NSEC_MAX)) {
+    if ((abs_timeout == LW_NULL) || 
+        LW_NSEC_INVALD(abs_timeout->tv_nsec)) {
         errno = EINVAL;
         return  (PX_ERROR);
     }
@@ -1199,9 +1198,8 @@ int  mq_reltimedsend_np (mqd_t  mqd, const char  *msg, size_t  msglen,
     BOOL                bNonblock;
     INT                 iRet;
     
-    if ((rel_timeout == LW_NULL)    || 
-        (rel_timeout->tv_nsec <  0) ||
-        (rel_timeout->tv_nsec >= __TIMEVAL_NSEC_MAX)) {
+    if ((rel_timeout == LW_NULL) || 
+        LW_NSEC_INVALD(rel_timeout->tv_nsec)) {
         errno = EINVAL;
         return  (PX_ERROR);
     }
@@ -1337,9 +1335,8 @@ ssize_t  mq_timedreceive (mqd_t  mqd, char  *msg, size_t  msglen,
     BOOL                bNonblock;
     ssize_t             sstRet;
     
-    if ((abs_timeout == LW_NULL)    || 
-        (abs_timeout->tv_nsec <  0) ||
-        (abs_timeout->tv_nsec >= __TIMEVAL_NSEC_MAX)) {
+    if ((abs_timeout == LW_NULL) || 
+        LW_NSEC_INVALD(abs_timeout->tv_nsec)) {
         errno = EINVAL;
         return  (PX_ERROR);
     }
@@ -1410,9 +1407,8 @@ ssize_t  mq_reltimedreceive_np (mqd_t  mqd, char  *msg, size_t  msglen,
     BOOL                bNonblock;
     ssize_t             sstRet;
     
-    if ((rel_timeout == LW_NULL)    ||
-        (rel_timeout->tv_nsec <  0) ||
-        (rel_timeout->tv_nsec >= __TIMEVAL_NSEC_MAX)) {
+    if ((rel_timeout == LW_NULL) ||
+        LW_NSEC_INVALD(rel_timeout->tv_nsec)) {
         errno = EINVAL;
         return  (PX_ERROR);
     }

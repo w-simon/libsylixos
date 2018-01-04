@@ -47,6 +47,7 @@
 2015.04.06  *_socket_event() 不再需要 socket lock 保护.
 2015.04.17  将无线扩展 ioctl 专门封装.
 2017.12.08  加入 AF_ROUTE 支持.
+2017.12.20  加入流控接口支持.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -61,12 +62,34 @@
 #include "lwip/dns.h"
 #include "net/if.h"
 #include "net/if_arp.h"
+#include "net/if_vlan.h"
 #include "net/route.h"
 #include "lwip_arpctl.h"
 #include "lwip_ifctl.h"
+#include "lwip_vlanctl.h"
+/*********************************************************************************************************
+  路由
+*********************************************************************************************************/
 #if LW_CFG_NET_ROUTER > 0
 #include "lwip_rtctl.h"
+#if LW_CFG_NET_BALANCING > 0
+#include "net/sroute.h"
+#include "lwip_srtctl.h"
+#endif                                                                  /*  LW_CFG_NET_BALANCING > 0    */
 #endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
+#if LW_CFG_NET_MROUTER > 0
+#include "lwip_mrtctl.h"
+#endif                                                                  /*  LW_CFG_NET_MROUTER > 0      */
+/*********************************************************************************************************
+  流控
+*********************************************************************************************************/
+#if LW_CFG_NET_FLOWCTL_EN > 0
+#include "lwip_flowctl.h"
+#include "net/flowctl.h"
+#endif                                                                  /*  LW_CFG_NET_FLOWCTL_EN > 0   */
+/*********************************************************************************************************
+  无线
+*********************************************************************************************************/
 #if LW_CFG_NET_WIRELESS_EN > 0
 #include "net/if_wireless.h"
 #endif                                                                  /*  LW_CFG_NET_WIRELESS_EN > 0  */
@@ -740,6 +763,14 @@ static INT  __socketIoctl (SOCKET_T *psock, INT  iCmd, PVOID  pvArg)
                 iRet = __ifIoctlArp(iCmd, pvArg);
                 break;
                 
+#if LW_CFG_NET_VLAN_EN > 0
+            case SIOCSETVLAN:
+            case SIOCGETVLAN:
+            case SIOCLSTVLAN:
+                iRet = __ifIoctlVlan(iCmd, pvArg);
+                break;
+#endif                                                                  /*  LW_CFG_NET_VLAN_EN > 0      */
+                
 #if LW_CFG_NET_ROUTER > 0
             case SIOCADDRT:
             case SIOCDELRT:
@@ -749,6 +780,33 @@ static INT  __socketIoctl (SOCKET_T *psock, INT  iCmd, PVOID  pvArg)
             case SIOCLSTRTM:
                 iRet = __rtIoctlInet(psock->SOCK_iFamily, iCmd, pvArg);
                 break;
+                
+#if LW_CFG_NET_BALANCING > 0
+            case SIOCADDSRT:
+            case SIOCDELSRT:
+            case SIOCCHGSRT:
+            case SIOCGETSRT:
+            case SIOCLSTSRT:
+                iRet = __srtIoctlInet(psock->SOCK_iFamily, iCmd, pvArg);
+                break;
+#endif                                                                  /*  LW_CFG_NET_BALANCING > 0    */
+
+#if LW_CFG_NET_MROUTER > 0
+            case SIOCGETVIFCNT:
+            case SIOCGETSGCNT:
+                iRet = __mrtIoctlInet(psock->SOCK_iFamily, iCmd, pvArg);
+                break;
+#endif                                                                  /*  LW_CFG_NET_MROUTER > 0      */
+
+#if LW_CFG_NET_FLOWCTL_EN > 0
+            case SIOCADDFC:
+            case SIOCDELFC:
+            case SIOCCHGFC:
+            case SIOCGETFC:
+            case SIOCLSTFC:
+                iRet = __fcIoctlInet(psock->SOCK_iFamily, iCmd, pvArg);
+                break;
+#endif                                                                  /*  LW_CFG_NET_FLOWCTL_EN > 0   */
 #endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
             
             default:
