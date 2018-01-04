@@ -57,7 +57,7 @@ INT     __selDoIoctls (fd_set               *pfdset,
         if (ulPartMask == 0) {                                          /*  这个组中与这个文件无关      */
             iFdTemp += NFDBITS - 1;                                     /*  进行下一个掩码组判断        */
         
-        } else if (ulPartMask & (ULONG)(1 << (((unsigned)iFdTemp) % NFDBITS))) {
+        } else if (ulPartMask & (ULONG)(1ul << (((unsigned)iFdTemp) % NFDBITS))) {
             pselwunNode->SELWUN_iFd = iFdTemp;
             
             iIsOk = ioctl(iFdTemp, iFunc, (LONG)pselwunNode);

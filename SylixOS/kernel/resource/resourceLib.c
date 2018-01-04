@@ -328,7 +328,6 @@ INT  __resPidReclaim (pid_t  pid)
     }
 #endif                                                                  /*  LW_CFG_THREAD_POOL_EN > 0   */
                                                                         /*  LW_CFG_MAX_THREAD_POOLS > 0 */
-    
     for (i = 0; i < LW_CFG_MAX_EVENTS; i++) {                           /*  处理事件                    */
         presh = &_G_reshEventBuffer[i];
         if ((presh->RESH_pid == pid) && !presh->RESH_bIsGlobal) {
@@ -340,40 +339,50 @@ INT  __resPidReclaim (pid_t  pid)
         }
     }
     
+#if (LW_CFG_EVENTSET_EN > 0) && (LW_CFG_MAX_EVENTSETS > 0)
     for (i = 0; i < LW_CFG_MAX_EVENTSETS; i++) {                        /*  处理事件组                  */
         presh = &_G_reshEventsetBuffer[i];
         if ((presh->RESH_pid == pid) && !presh->RESH_bIsGlobal) {
             API_EventSetDelete(&presh->RESH_ulHandle);
         }
     }
+#endif
     
+#if	((LW_CFG_HTIMER_EN > 0) || (LW_CFG_ITIMER_EN > 0)) && (LW_CFG_MAX_TIMERS > 0)
     for (i = 0; i < LW_CFG_MAX_TIMERS; i++) {                           /*  处理定时器                  */
         presh = &_G_reshTimerBuffer[i];
         if ((presh->RESH_pid == pid) && !presh->RESH_bIsGlobal) {
             API_TimerDelete(&presh->RESH_ulHandle);
         }
     }
-    
+#endif
+
+#if (LW_CFG_RMS_EN > 0) && (LW_CFG_MAX_RMSS > 0)
     for (i = 0; i < LW_CFG_MAX_RMSS; i++) {                             /*  处理 RMS                    */
         presh = &_G_reshRmsBuffer[i];
         if ((presh->RESH_pid == pid) && !presh->RESH_bIsGlobal) {
             API_RmsDeleteEx(&presh->RESH_ulHandle, LW_TRUE);
         }
     }
+#endif
     
+#if (LW_CFG_PARTITION_EN > 0) && (LW_CFG_MAX_PARTITIONS > 0)
     for (i = 0; i < LW_CFG_MAX_PARTITIONS; i++) {                       /*  处理 PATITIONS              */
         presh = &_G_reshPartitionBuffer[i];
         if ((presh->RESH_pid == pid) && !presh->RESH_bIsGlobal) {
             API_PartitionDeleteEx(&presh->RESH_ulHandle, LW_TRUE);
         }
     }
+#endif
     
+#if (LW_CFG_REGION_EN > 0) && (LW_CFG_MAX_REGIONS > 0)
     for (i = 0; i < LW_CFG_MAX_REGIONS; i++) {                          /*  最后处理可变内存            */
         presh = &_G_reshRegionBuffer[i];
         if ((presh->RESH_pid == pid) && !presh->RESH_bIsGlobal) {
             API_RegionDeleteEx(&presh->RESH_ulHandle, LW_TRUE);
         }
     }
+#endif
     
     return  (ERROR_NONE);
 }

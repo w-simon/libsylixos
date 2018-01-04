@@ -66,9 +66,9 @@ typedef struct fd_set {
   USER OP MACRO
 *********************************************************************************************************/
 
-#define FD_SET(n, p)        ((p)->fds_bits[(n) / NFDBITS] |= (ULONG)( (1u << ((n) % NFDBITS))))
-#define FD_CLR(n, p)        ((p)->fds_bits[(n) / NFDBITS] &= (ULONG)(~(1u << ((n) % NFDBITS))))
-#define FD_ISSET(n, p)      ((p)->fds_bits[(n) / NFDBITS] &  (ULONG)( (1u << ((n) % NFDBITS))))
+#define FD_SET(n, p)        ((p)->fds_bits[(n) / NFDBITS] |= (ULONG)( (1ul << ((n) % NFDBITS))))
+#define FD_CLR(n, p)        ((p)->fds_bits[(n) / NFDBITS] &= (ULONG)(~(1ul << ((n) % NFDBITS))))
+#define FD_ISSET(n, p)      ((p)->fds_bits[(n) / NFDBITS] &  (ULONG)( (1ul << ((n) % NFDBITS))))
 #define FD_ZERO(p)          lib_bzero((PVOID)(p), sizeof(*(p)))         /*  编译时兼容不同的 FD_SETSIZE */
 
 /*********************************************************************************************************
