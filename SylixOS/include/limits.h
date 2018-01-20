@@ -36,6 +36,10 @@
   POSIX limits
 *********************************************************************************************************/
 
+#ifndef SSIZE_MAX
+#define SSIZE_MAX                           LONG_MAX
+#endif
+
 #define AIO_LISTIO_MAX                      LONG_MAX
 #define AIO_MAX                             LONG_MAX
 #define AIO_PRIO_DELTA_MAX                  0

@@ -21,7 +21,7 @@
 char *ip4addr_ntoa (const ip4_addr_t *addr)
 {
     static char str[INET_ADDRSTRLEN];
-    return ip4addr_ntoa_r(addr, str, INET_ADDRSTRLEN);
+    return  (ip4addr_ntoa_r(addr, str, INET_ADDRSTRLEN));
 }
 
 /*
@@ -38,7 +38,7 @@ char *inet_ntoa (struct in_addr addr)
 char *ip6addr_ntoa (const ip6_addr_t *addr)
 {
     static char str[INET6_ADDRSTRLEN];
-    return ip6addr_ntoa_r(addr, str, INET6_ADDRSTRLEN);
+    return  (ip6addr_ntoa_r(addr, str, INET6_ADDRSTRLEN));
 }
 
 /*
@@ -55,7 +55,7 @@ char *inet6_ntoa (struct in6_addr addr)
 char *strtok (char *s, const char *delim)
 {
     static char *last;
-    return strtok_r(s, delim, &last);
+    return  (strtok_r(s, delim, &last));
 }
 
 /*
@@ -71,4 +71,3 @@ char *getlogin (void)
 /*
  * end
  */
- 

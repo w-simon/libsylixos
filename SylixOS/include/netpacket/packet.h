@@ -51,11 +51,8 @@ struct sockaddr_ll {
 #define PACKET_OUTGOING     4                                           /*  Originated by us            */
 
 /*********************************************************************************************************
-  packet socket options
+  packet membership
 *********************************************************************************************************/
-
-#define PACKET_ADD_MEMBERSHIP   1
-#define PACKET_DROP_MEMBERSHIP  2
 
 struct packet_mreq {
     int             mr_ifindex;                                         /* interface index              */
@@ -64,17 +61,24 @@ struct packet_mreq {
     u_char          mr_address[8];                                      /* physical layer address       */
 };
 
-#define PACKET_MR_MULTICAST 0
-#define PACKET_MR_PROMISC   1
-#define PACKET_MR_ALLMULTI  2
+#define PACKET_MR_MULTICAST     0
+#define PACKET_MR_PROMISC       1
+#define PACKET_MR_ALLMULTI      2
 
-#define PACKET_RECV_OUTPUT  3
-#define PACKET_RX_RING      5
-#define PACKET_STATISTICS   6
+/*********************************************************************************************************
+  packet socket options
+*********************************************************************************************************/
 
-#define PACKET_VERSION      10
-#define PACKET_HDRLEN       11
-#define PACKET_RESERVE      12
+#define PACKET_ADD_MEMBERSHIP   1
+#define PACKET_DROP_MEMBERSHIP  2
+
+#define PACKET_RECV_OUTPUT      3
+#define PACKET_RX_RING          5
+#define PACKET_STATISTICS       6
+
+#define PACKET_VERSION          10
+#define PACKET_HDRLEN           11
+#define PACKET_RESERVE          12
 
 struct tpacket_stats {
     u_int       tp_packets;                                             /* Total packet count           */

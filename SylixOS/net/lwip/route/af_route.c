@@ -336,11 +336,9 @@ static ssize_t  __routeRtmChange4 (struct rt_msghdr  *pmsghdr)
         return  (0);
     }
     
-    pnetif = (struct netif *)netif_get_by_index(pmsghdr->rtm_index);
+    pnetif = netif_get_by_index(pmsghdr->rtm_index);
     if (pnetif) {
-        cIfName[0] = pnetif->name[0];
-        cIfName[1] = pnetif->name[1];
-        lib_itoa(pnetif->num, &cIfName[2], 10);
+        netif_get_name(pnetif, cIfName);
     }
     
     psockaddrin = (struct sockaddr_in *)(pmsghdr + 1);
@@ -430,11 +428,9 @@ static ssize_t  __routeRtmChange6 (struct rt_msghdr  *pmsghdr)
         return  (0);
     }
     
-    pnetif = (struct netif *)netif_get_by_index(pmsghdr->rtm_index);
+    pnetif = netif_get_by_index(pmsghdr->rtm_index);
     if (pnetif) {
-        cIfName[0] = pnetif->name[0];
-        cIfName[1] = pnetif->name[1];
-        lib_itoa(pnetif->num, &cIfName[2], 10);
+        netif_get_name(pnetif, cIfName);
     }
     
     psockaddrin6 = (struct sockaddr_in6 *)(pmsghdr + 1);
@@ -506,11 +502,9 @@ static ssize_t  __routeRtmDelete4 (struct rt_msghdr  *pmsghdr)
         return  (0);
     }
     
-    pnetif = (struct netif *)netif_get_by_index(pmsghdr->rtm_index);
+    pnetif = netif_get_by_index(pmsghdr->rtm_index);
     if (pnetif) {
-        cIfName[0] = pnetif->name[0];
-        cIfName[1] = pnetif->name[1];
-        lib_itoa(pnetif->num, &cIfName[2], 10);
+        netif_get_name(pnetif, cIfName);
     }
     
     psockaddrin = (struct sockaddr_in *)(pmsghdr + 1);
@@ -568,11 +562,9 @@ static ssize_t  __routeRtmDelete6 (struct rt_msghdr  *pmsghdr)
         return  (0);
     }
     
-    pnetif = (struct netif *)netif_get_by_index(pmsghdr->rtm_index);
+    pnetif = netif_get_by_index(pmsghdr->rtm_index);
     if (pnetif) {
-        cIfName[0] = pnetif->name[0];
-        cIfName[1] = pnetif->name[1];
-        lib_itoa(pnetif->num, &cIfName[2], 10);
+        netif_get_name(pnetif, cIfName);
     }
     
     psockaddrin6 = (struct sockaddr_in6 *)(pmsghdr + 1);
@@ -913,13 +905,15 @@ VOID  route_hook_rt_ipv6 (u_char type, const struct rt6_entry *pentry, int noloc
 /*********************************************************************************************************
 ** 函数名称: route_hook_netif_ipv4
 ** 功能描述: 网络接口修改 IPv4 地址
-** 输　入  : pnetif    网络接口
-**           pipaddr   新的地址
+** 输　入  : pnetif      网络接口
+**           pipaddr     地址
+**           pnetmask    掩码
+**           type        RTM_DELADDR / RTM_ADDADDR
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-VOID  route_hook_netif_ipv4 (struct netif *pnetif, const ip4_addr_t *pipaddr)
+VOID  route_hook_netif_ipv4 (struct netif *pnetif, const ip4_addr_t *pipaddr, const ip4_addr_t *pnetmask, u_char type)
 {
     size_t               stMsgLen;
     struct sockaddr_in  *psockaddrin;
@@ -956,66 +950,17 @@ VOID  route_hook_netif_ipv4 (struct netif *pnetif, const ip4_addr_t *pipaddr)
             
             pmsghdr->ifam_msglen  = (u_short)stMsgLen;
             pmsghdr->ifam_version = RTM_VERSION;
-            pmsghdr->ifam_type    = RTM_DELADDR;
+            pmsghdr->ifam_type    = type;
             
             pmsghdr->ifam_addrs  = RTA_NETMASK | RTA_IFP | RTA_IFA | RTA_BRD;
             pmsghdr->ifam_flags  = iFlags;
-            pmsghdr->ifam_index  = pnetif->num;
+            pmsghdr->ifam_index  = netif_get_index(pnetif);
             pmsghdr->ifam_metric = 0;
             
             psockaddrin = (struct sockaddr_in *)(pmsghdr + 1);
             psockaddrin->sin_len         = sizeof(struct sockaddr_in);
             psockaddrin->sin_family      = AF_INET;
-            psockaddrin->sin_addr.s_addr = netif_ip4_netmask(pnetif)->addr;
-            
-            psockaddrdl = SA_NEXT(struct sockaddr_dl *, psockaddrin);
-            lib_bzero(psockaddrdl, sizeof(struct sockaddr_dl));
-            rt_build_sockaddr_dl(psockaddrdl, pnetif);
-            
-            psockaddrin = SA_NEXT(struct sockaddr_in *, psockaddrdl);
-            psockaddrin->sin_len         = sizeof(struct sockaddr_in);
-            psockaddrin->sin_family      = AF_INET;
-            psockaddrin->sin_addr.s_addr = netif_ip4_addr(pnetif)->addr;
-            
-            psockaddrin = SA_NEXT(struct sockaddr_in *, psockaddrin);
-            if (pnetif->flags & NETIF_FLAG_BROADCAST) {
-                psockaddrin->sin_len         = sizeof(struct sockaddr_in);
-                psockaddrin->sin_family      = AF_INET;
-                psockaddrin->sin_addr.s_addr = (netif_ip4_addr(pnetif)->addr | (~netif_ip4_netmask(pnetif)->addr));
-            
-            } else {
-                psockaddrin->sin_len         = sizeof(struct sockaddr_in);
-                psockaddrin->sin_family      = AF_INET;
-                psockaddrin->sin_addr.s_addr = netif_ip4_gw(pnetif)->addr;
-            }
-            
-            prouteq = &pafroute->ROUTE_rtq;
-            _list_mono_free_seq(&prouteq->RTQ_pmonoHeader,
-                                &prouteq->RTQ_pmonoTail,
-                                &prouten->RTM_monoManage);
-            prouteq->RTQ_stTotal += prouten->RTM_stLen;
-            
-            prouten = (AF_ROUTE_N *)mem_malloc(sizeof(AF_ROUTE_N) + stMsgLen);
-            if (!prouten) {
-                break;
-            }
-            
-            prouten->RTM_stLen = stMsgLen;
-            pmsghdr = (struct ifa_msghdr *)(prouten + 1);
-            
-            pmsghdr->ifam_msglen  = (u_short)stMsgLen;
-            pmsghdr->ifam_version = RTM_VERSION;
-            pmsghdr->ifam_type    = RTM_NEWADDR;
-            
-            pmsghdr->ifam_addrs  = RTA_NETMASK | RTA_IFP | RTA_IFA | RTA_BRD;
-            pmsghdr->ifam_flags  = iFlags;
-            pmsghdr->ifam_index  = pnetif->num;
-            pmsghdr->ifam_metric = 0;
-            
-            psockaddrin = (struct sockaddr_in *)(pmsghdr + 1);
-            psockaddrin->sin_len         = sizeof(struct sockaddr_in);
-            psockaddrin->sin_family      = AF_INET;
-            psockaddrin->sin_addr.s_addr = netif_ip4_netmask(pnetif)->addr;
+            psockaddrin->sin_addr.s_addr = pnetmask->addr;
             
             psockaddrdl = SA_NEXT(struct sockaddr_dl *, psockaddrin);
             lib_bzero(psockaddrdl, sizeof(struct sockaddr_dl));
@@ -1030,7 +975,7 @@ VOID  route_hook_netif_ipv4 (struct netif *pnetif, const ip4_addr_t *pipaddr)
             if (pnetif->flags & NETIF_FLAG_BROADCAST) {
                 psockaddrin->sin_len         = sizeof(struct sockaddr_in);
                 psockaddrin->sin_family      = AF_INET;
-                psockaddrin->sin_addr.s_addr = (pipaddr->addr | (~netif_ip4_netmask(pnetif)->addr));
+                psockaddrin->sin_addr.s_addr = (pipaddr->addr | (~pnetmask->addr));
             
             } else {
                 psockaddrin->sin_len         = sizeof(struct sockaddr_in);
@@ -1054,7 +999,7 @@ VOID  route_hook_netif_ipv4 (struct netif *pnetif, const ip4_addr_t *pipaddr)
 ** 功能描述: 网络接口添加 / 删除一条 IPv6 地址回调
 ** 输　入  : pnetif         网络接口
 **           pip6addr       地址
-**           addr_index     下标
+**           type           RTM_DELADDR / RTM_ADDADDR
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
@@ -1103,7 +1048,7 @@ VOID  route_hook_netif_ipv6 (struct netif *pnetif, const ip6_addr_t *pip6addr, u
             
             pmsghdr->ifam_addrs  = RTA_NETMASK | RTA_IFP | RTA_IFA | RTA_BRD;
             pmsghdr->ifam_flags  = iFlags;
-            pmsghdr->ifam_index  = pnetif->num;
+            pmsghdr->ifam_index  = netif_get_index(pnetif);
             pmsghdr->ifam_metric = 0;
             
             psockaddrin6 = (struct sockaddr_in6 *)(pmsghdr + 1);
@@ -1191,7 +1136,7 @@ VOID  route_hook_maddr_ipv4 (struct netif *pnetif, const ip4_addr_t *pipaddr, u_
             
             pmsghdr->ifmam_addrs = RTA_DST | RTA_IFP;
             pmsghdr->ifmam_flags = iFlags;
-            pmsghdr->ifmam_index = pnetif->num;
+            pmsghdr->ifmam_index = netif_get_index(pnetif);
             
             psockaddrin = (struct sockaddr_in *)(pmsghdr + 1);
             psockaddrin->sin_len         = sizeof(struct sockaddr_in);
@@ -1266,7 +1211,7 @@ VOID  route_hook_maddr_ipv6 (struct netif *pnetif, const ip6_addr_t *pip6addr, u
             
             pmsghdr->ifmam_addrs = RTA_DST | RTA_IFP;
             pmsghdr->ifmam_flags = iFlags;
-            pmsghdr->ifmam_index = pnetif->num;
+            pmsghdr->ifmam_index = netif_get_index(pnetif);
             
             psockaddrin6 = (struct sockaddr_in6 *)(pmsghdr + 1);
             psockaddrin6->sin6_len    = sizeof(struct sockaddr_in6);
@@ -1332,12 +1277,10 @@ VOID  route_hook_netif_ann (struct netif *pnetif, int what)
             pmsghdr->ifan_version = RTM_VERSION;
             pmsghdr->ifan_type    = RTM_IFANNOUNCE;
             
-            pmsghdr->ifan_index = pnetif->num;
+            pmsghdr->ifan_index = netif_get_index(pnetif);
             pmsghdr->ifan_what  = (u_short)what;
             
-            pmsghdr->ifan_name[0] = pnetif->name[0];
-            pmsghdr->ifan_name[1] = pnetif->name[1];
-            lib_itoa(pnetif->num, &pmsghdr->ifan_name[2], 10);
+            netif_get_name(pnetif, pmsghdr->ifan_name);
             
             prouteq = &pafroute->ROUTE_rtq;
             _list_mono_free_seq(&prouteq->RTQ_pmonoHeader,
@@ -1352,14 +1295,13 @@ VOID  route_hook_netif_ann (struct netif *pnetif, int what)
 }
 /*********************************************************************************************************
 ** 函数名称: route_hook_netif_updown
-** 功能描述: 启动 / 停止 网络接口
+** 功能描述: 启动 / 停止 / 断线 / 链接网络接口
 ** 输　入  : pnetif    网络接口
-**           up        1: up  0: down
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-VOID  route_hook_netif_updown (struct netif *pnetif, int up)
+VOID  route_hook_netif_updown (struct netif *pnetif)
 {
 #define MIB2_NETIF(netif)   (&((netif)->mib2_counters))
 
@@ -1402,7 +1344,7 @@ VOID  route_hook_netif_updown (struct netif *pnetif, int up)
             
             pmsghdr->ifm_addrs = RTA_IFP;
             pmsghdr->ifm_flags = iFlags;
-            pmsghdr->ifm_index = pnetif->num;
+            pmsghdr->ifm_index = netif_get_index(pnetif);
             
             pifdata = &pmsghdr->ifm_data;
             lib_bzero(pifdata, sizeof(struct if_data));

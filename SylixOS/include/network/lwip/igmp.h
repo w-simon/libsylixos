@@ -51,6 +51,13 @@
 extern "C" {
 #endif
 
+/* SylixOS Add multicast filter support */
+struct igmp_src {
+  struct igmp_src *next;
+  /** the source address */
+  ip4_addr_t src_addr;
+};
+
 /* IGMP timer */
 #define IGMP_TMR_INTERVAL              100 /* Milliseconds */
 #define IGMP_V1_DELAYING_MEMBER_TMR   (1000/IGMP_TMR_INTERVAL)
@@ -82,6 +89,16 @@ struct igmp_group {
   u8_t               group_state;
   /** timer for reporting, negative is OFF */
   u16_t              timer;
+#if LWIP_IGMP_V3 /* SylixOS Add IGMPv3 Support */
+  /** Last report fmode */
+  u8_t               v3_fmode;
+  /** signifies we were the last person to report */
+  u8_t               v3_last_reporter_flag;
+  /** current state of the group */
+  u8_t               v3_group_state;
+  /** timer for reporting, negative is OFF */
+  u16_t              v3_timer;
+#endif /* LWIP_IGMP_V3 */
   /** counter of simultaneous uses */
   u8_t               use;
 };

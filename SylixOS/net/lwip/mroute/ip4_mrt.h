@@ -52,7 +52,6 @@
 #include "lwip/netif.h"
 #include "netinet/in.h"
 #include "netinet/ip_mroute.h"
-#include "net/lwip/route/ip4_route.h"
 
 /* mroute lock */
 /* tcpip safety call */
@@ -67,8 +66,10 @@
         }
 #endif
 
-/* route cache */
+/* route time */
+#ifndef GET_TIME
 #define GET_TIME(tv)  lib_gettimeofday(tv, NULL)
+#endif
 
 /* The kernel's virtual-interface structure. */
 struct vif {
@@ -116,7 +117,7 @@ struct rtdetq {
   LW_LIST_RING        list;      /* list (struct rtdetq) */
   struct pbuf_custom  p;         /* A copy of the packet */
   struct netif       *ifp;       /* Interface pkt came in on */
-  vifi_t              xmt_vif;   /* Saved copy of imo_multicast_vif  */
+  vifi_t              xmt_vif;   /* Saved copy of imo_multicast_vif */
 };
 
 /* max. no of pkts in upcall Q */
@@ -134,13 +135,20 @@ struct rtdetq {
 u8_t  ip4_mrt_setsockopt(struct raw_pcb *pcb, int optname, const void *optval, socklen_t optlen);
 u8_t  ip4_mrt_getsockopt(struct raw_pcb *pcb, int optname, const void *optval, socklen_t *optlen);
 u8_t  ip4_mrt_ioctl(int cmd, void *data);
-err_t ip4_mrt_forward(struct pbuf *p, struct ip_hdr *iphdr, struct netif *ifp);
+err_t ip4_mrt_forward(struct pbuf *p, const struct ip_hdr *iphdr, struct netif *ifp);
 u8_t  ip4_mrt_ipip_input(struct pbuf *p, struct netif *inp);
 u8_t  ip4_mrt_pim_input(struct pbuf *p, struct netif *inp);
 void  ip4_mrt_clean(struct raw_pcb *pcb);
 u32_t ip4_mrt_mcast_src(int vifi);
 int   ip4_mrt_legal_vif_num(int vifi);
 void  ip4_mrt_if_detach(struct netif *ifp);
+int   ip4_mrt_is_on(void);
+void  ip4_mrt_traversal_mfc(void (*callback)(), void *arg0, void *arg1,
+                            void *arg2, void *arg3, void *arg4, void *arg5);
+
+/* multicast router statistics */
+struct mrtstat *ip4_mrt_mrtstat(void);
+struct pimstat *ip4_mrt_pimstat(void);
 
 #endif /* LW_CFG_NET_MROUTER */
 #endif /* __IP4_MRT_H */

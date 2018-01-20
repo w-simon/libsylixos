@@ -17,6 +17,9 @@
 ** 文件创建日期: 2013 年 12 月 01 日
 **
 ** 描        述: 这是系统异步工作队列.
+**
+** BUG:
+2018.01.05  _jobQueueDel() 如果 pfunc 参数为 NULL 则表示任意函数.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -232,20 +235,20 @@ VOID  _jobQueueDel (PLW_JOB_QUEUE pjobq,
         switch (uiMatchArgNum) {
         
         case 0:
-            if (pjobmsg->JOBM_pfuncFunc == pfunc) {
+            if (pjobmsg->JOBM_pfuncFunc == pfunc || !pfunc) {
                 pjobmsg->JOBM_pfuncFunc =  LW_NULL;
             }
             break;
             
         case 1:
-            if ((pjobmsg->JOBM_pfuncFunc == pfunc) &&
+            if ((pjobmsg->JOBM_pfuncFunc == pfunc || !pfunc) &&
                 (pjobmsg->JOBM_pvArg[0]  == pvArg0)) {
                 pjobmsg->JOBM_pfuncFunc  =  LW_NULL;
             }
             break;
             
         case 2:
-            if ((pjobmsg->JOBM_pfuncFunc == pfunc)  &&
+            if ((pjobmsg->JOBM_pfuncFunc == pfunc || !pfunc)  &&
                 (pjobmsg->JOBM_pvArg[0]  == pvArg0) &&
                 (pjobmsg->JOBM_pvArg[1]  == pvArg1)) {
                 pjobmsg->JOBM_pfuncFunc  =  LW_NULL;
@@ -253,7 +256,7 @@ VOID  _jobQueueDel (PLW_JOB_QUEUE pjobq,
             break;
             
         case 3:
-            if ((pjobmsg->JOBM_pfuncFunc == pfunc)  &&
+            if ((pjobmsg->JOBM_pfuncFunc == pfunc || !pfunc)  &&
                 (pjobmsg->JOBM_pvArg[0]  == pvArg0) &&
                 (pjobmsg->JOBM_pvArg[1]  == pvArg1) &&
                 (pjobmsg->JOBM_pvArg[2]  == pvArg2)) {
@@ -262,7 +265,7 @@ VOID  _jobQueueDel (PLW_JOB_QUEUE pjobq,
             break;
             
         case 4:
-            if ((pjobmsg->JOBM_pfuncFunc == pfunc)  &&
+            if ((pjobmsg->JOBM_pfuncFunc == pfunc || !pfunc)  &&
                 (pjobmsg->JOBM_pvArg[0]  == pvArg0) &&
                 (pjobmsg->JOBM_pvArg[1]  == pvArg1) &&
                 (pjobmsg->JOBM_pvArg[2]  == pvArg2) &&
@@ -272,7 +275,7 @@ VOID  _jobQueueDel (PLW_JOB_QUEUE pjobq,
             break;
             
         case 5:
-            if ((pjobmsg->JOBM_pfuncFunc == pfunc)  &&
+            if ((pjobmsg->JOBM_pfuncFunc == pfunc || !pfunc)  &&
                 (pjobmsg->JOBM_pvArg[0]  == pvArg0) &&
                 (pjobmsg->JOBM_pvArg[1]  == pvArg1) &&
                 (pjobmsg->JOBM_pvArg[2]  == pvArg2) &&
@@ -283,7 +286,7 @@ VOID  _jobQueueDel (PLW_JOB_QUEUE pjobq,
             break;
             
         case 6:
-            if ((pjobmsg->JOBM_pfuncFunc == pfunc)  &&
+            if ((pjobmsg->JOBM_pfuncFunc == pfunc || !pfunc)  &&
                 (pjobmsg->JOBM_pvArg[0]  == pvArg0) &&
                 (pjobmsg->JOBM_pvArg[1]  == pvArg1) &&
                 (pjobmsg->JOBM_pvArg[2]  == pvArg2) &&

@@ -39,7 +39,7 @@ int yaffs1_scan(struct yaffs_dev *dev)
 {
 	struct yaffs_ext_tags tags;
 	int blk;
-	int result;
+	int __unused result;
 	int chunk;
 	int c;
 	int deleted;

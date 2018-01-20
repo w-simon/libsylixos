@@ -301,7 +301,7 @@ static ppp_pcb  *__pppGet (CPCHAR  pcIfName)
         return  (LW_NULL);
     }
 
-    netif = netif_find((char *)pcIfName);
+    netif = netif_find(pcIfName);
     if (netif == LW_NULL) {
         _ErrorHandle(ENODEV);
         return  (LW_NULL);
@@ -330,7 +330,7 @@ INT  API_PppOsCreate (CPCHAR  pcSerial, LW_PPP_TTY  *ptty, PCHAR  pcIfName, size
     INT             iFd;
     PPP_CTX_PRIV   *pctxp;
     
-    if (!pcSerial || !pcIfName || (stMaxSize < 4)) {
+    if (!pcSerial || !pcIfName || (stMaxSize < IF_NAMESIZE)) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -394,9 +394,7 @@ INT  API_PppOsCreate (CPCHAR  pcSerial, LW_PPP_TTY  *ptty, PCHAR  pcIfName, size
 
     pppapi_set_notify_phase_callback(pctxp->CTXP_pcb, __pppNotifyPhaseCb);
     
-    pcIfName[0] = pctxp->CTXP_netif.name[0];
-    pcIfName[1] = pctxp->CTXP_netif.name[1];
-    lib_itoa(pctxp->CTXP_netif.num, &pcIfName[2], 10);
+    netif_get_name(&pctxp->CTXP_netif, pcIfName);
     
     return  (ERROR_NONE);
     
@@ -428,7 +426,7 @@ INT  API_PppOeCreate (CPCHAR  pcEthIf, PCHAR  pcIfName, size_t  stMaxSize)
     PPP_CTX_PRIV   *pctxp;
     struct netif   *netif;
 
-    if (!pcEthIf || !pcIfName || (stMaxSize < 4)) {
+    if (!pcEthIf || !pcIfName || (stMaxSize < IF_NAMESIZE)) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -440,7 +438,7 @@ INT  API_PppOeCreate (CPCHAR  pcEthIf, PCHAR  pcIfName, size_t  stMaxSize)
     }
     lib_bzero(pctxp, sizeof(PPP_CTX_PRIV));
 
-    netif = netif_find((char *)pcEthIf);
+    netif = netif_find(pcEthIf);
     if ((netif == LW_NULL) || ((netif->flags & (NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET)) == 0)) {
         _ErrorHandle(ENODEV);
         iErrLevel = 1;
@@ -463,9 +461,7 @@ INT  API_PppOeCreate (CPCHAR  pcEthIf, PCHAR  pcIfName, size_t  stMaxSize)
 
     pppapi_set_notify_phase_callback(pctxp->CTXP_pcb, __pppNotifyPhaseCb);
 
-    pcIfName[0] = pctxp->CTXP_netif.name[0];
-    pcIfName[1] = pctxp->CTXP_netif.name[1];
-    lib_itoa(pctxp->CTXP_netif.num, &pcIfName[2], 10);
+    netif_get_name(&pctxp->CTXP_netif, pcIfName);
 
     return  (ERROR_NONE);
 
@@ -505,7 +501,7 @@ INT  API_PppOl2tpCreate (CPCHAR  pcEthIf,
     struct netif   *netif;
     ip_addr_t       ipaddr;
 
-    if (!pcEthIf || !pcIp || !usPort || !pcIfName || (stMaxSize < 4)) {
+    if (!pcEthIf || !pcIp || !usPort || !pcIfName || (stMaxSize < IF_NAMESIZE)) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -522,7 +518,7 @@ INT  API_PppOl2tpCreate (CPCHAR  pcEthIf,
     }
     lib_bzero(pctxp, sizeof(PPP_CTX_PRIV));
 
-    netif = netif_find((char *)pcEthIf);
+    netif = netif_find(pcEthIf);
     if (netif == LW_NULL) {
         _ErrorHandle(ENODEV);
         iErrLevel = 1;
@@ -546,9 +542,7 @@ INT  API_PppOl2tpCreate (CPCHAR  pcEthIf,
 
     pppapi_set_notify_phase_callback(pctxp->CTXP_pcb, __pppNotifyPhaseCb);
 
-    pcIfName[0] = pctxp->CTXP_netif.name[0];
-    pcIfName[1] = pctxp->CTXP_netif.name[1];
-    lib_itoa(pctxp->CTXP_netif.num, &pcIfName[2], 10);
+    netif_get_name(&pctxp->CTXP_netif, pcIfName);
 
     return  (ERROR_NONE);
 

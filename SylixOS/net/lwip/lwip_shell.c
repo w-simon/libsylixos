@@ -47,6 +47,7 @@
   裁剪控制
 *********************************************************************************************************/
 #if (LW_CFG_NET_EN > 0) && (LW_CFG_SHELL_EN > 0)
+#include "net/if_lock.h"
 #include "lwip/opt.h"
 #include "lwip/netif.h"
 #include "lwip/netifapi.h"
@@ -56,7 +57,6 @@
 #include "lwip/tcpip.h"
 #include "lwip_route.h"
 #include "lwip_flowsh.h"
-#include "lwip_if.h"
 #if LW_CFG_NET_LOGINBL_EN > 0
 #include "lwip_loginbl.h"
 #endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
@@ -148,7 +148,9 @@ static INT  __tshellNetstat (INT  iArgC, PCHAR  *ppcArgV)
             
         case 'r':                                                       /*  显示路由表                  */
             ppcArgV[1] = LW_NULL;
+#if LW_CFG_NET_ROUTER > 0
             __tshellRoute(1, ppcArgV);
+#endif
             return  (ERROR_NONE);
             
         case 'i':                                                       /*  显示网络接口信息            */
@@ -288,6 +290,7 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
 
     struct netif    *netif;
     struct netdev   *netdev;
+    CHAR             cIfName[NETIF_NAMESIZE];
     CHAR             cSpeed[32];
     PCHAR            pcDevName = "N/A";
     ip4_addr_t       ipaddrBroadcast;
@@ -315,20 +318,13 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
     /*
      *  打印网口基本信息
      */
-    printf("%c%c%-3d     ",   netif->name[0], netif->name[1], netif->num);
+    printf("%-5s     ",       netif_get_name(netif, cIfName));
     printf("enable: %s ",     (netif_is_up(netif) > 0) ? "true" : "false");
     printf("linkup: %s ",     (netif_is_link_up(netif) > 0) ? "true" : "false");
     printf("MTU: %d ",        netif->mtu);
     printf("multicast: %s\n", (netif->flags & NETIF_FLAG_IGMP) ? "true" : "false");
-
-    /*
-     *  打印路由信息
-     */
-    if (netif == netif_default) {                                       /*  route interface             */
-        printf("          metric: 1 ");
-    } else {
-        printf("          metric: 0 ");
-    }
+    printf("          metric: %d ", netif->metric);
+    
     /*
      *  打印网口硬件地址信息
      */
@@ -347,12 +343,13 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
     __netIfSpeed(netif, cSpeed, sizeof(cSpeed));
     
 #if LWIP_DHCP
-    printf("          Dev: %s DHCP: %s(%s) speed: %s\n", 
-                                pcDevName,
+    printf("          Dev: %s Ifidx: %d DHCP: %s(%s) speed: %s\n", 
+                                pcDevName, netif_get_index(netif),
                                 (netif->flags2 & NETIF_FLAG2_DHCP) ? "Enable" : "Disable",
                                 (netif_dhcp_data(netif)) ? "On" : "Off", cSpeed);
 #else
-    printf("          Dev: %s speed: %s\n", pcDevName, cSpeed);         /*  打印链接速度                */
+    printf("          Dev: %s Ifidx: %d speed: %s\n", 
+                                pcDevName, netif_get_index(netif), cSpeed);
 #endif                                                                  /*  LWIP_DHCP                   */
                                                                         
     /*
@@ -453,12 +450,12 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
 *********************************************************************************************************/
 static VOID  __netIfShowAll (VOID)
 {
-    struct netif *netif = netif_list;
+    struct netif *netif;
     INT           iCounter = 0;
     INT           i;
-    CHAR          cName[5] = "null";                                    /*  当前默认路由网络接口名      */
+    CHAR          cName[NETIF_NAMESIZE] = "null";                       /*  当前默认路由网络接口名      */
 
-    for (; netif != LW_NULL; netif = netif->next) {
+    NETIF_FOREACH(netif) {
         __netIfShow(LW_NULL, netif);
         iCounter++;
     }
@@ -475,9 +472,7 @@ static VOID  __netIfShowAll (VOID)
 #endif                                                                  /*  LWIP_DNS                    */
 
     if (netif_default) {
-        cName[0] = netif_default->name[0];
-        cName[1] = netif_default->name[1];
-        lib_itoa(netif_default->num, &cName[2], 10);
+        netif_get_name(netif_default, cName);
     }
     
     printf("default device is: %s\n", cName);                           /*  显示路由端口                */
@@ -536,27 +531,22 @@ static INT  __tshellIfconfig (INT  iArgC, PCHAR  *ppcArgV)
     ip_addr_t        ipaddr;
 
     if (iArgC == 1) {
-        LWIP_NETIF_LOCK();
+        LWIP_IF_LIST_LOCK(LW_FALSE);
         __netIfShowAll();                                               /*  打印所有网口信息            */
-        LWIP_NETIF_UNLOCK();
+        LWIP_IF_LIST_UNLOCK();
         return  (ERROR_NONE);
     
     } else if (iArgC == 2) {
-        LWIP_NETIF_LOCK();
+        LWIP_IF_LIST_LOCK(LW_FALSE);
         __netIfShow(ppcArgV[1], LW_NULL);                               /*  打印指定网口信息            */
-        LWIP_NETIF_UNLOCK();
+        LWIP_IF_LIST_UNLOCK();
         return  (ERROR_NONE);
     }
 
-    /*
-     *  网络设置
-     */
-    if (iArgC >= 4) {
-        if (lib_strcmp(ppcArgV[1], "dns") == 0) {
-            /*
-             *  指定 DNS 设置
-             */
+    if (iArgC >= 4) {                                                   /*  网络接口参数设置            */
+        if (lib_strcmp(ppcArgV[1], "dns") == 0) {                       /*  指定 DNS 设置               */
             INT     iDnsIndex = 0;
+            
             sscanf(ppcArgV[2], "%d", &iDnsIndex);
             if (iDnsIndex >= DNS_MAX_SERVERS) {
                 fprintf(stderr, "arguments error!\n");
@@ -570,13 +560,13 @@ static INT  __tshellIfconfig (INT  iArgC, PCHAR  *ppcArgV)
             IP_SET_TYPE_VAL(ipaddr, IPADDR_TYPE_V4);
             dns_setserver((u8_t)iDnsIndex, &ipaddr);                    /*  设置 DNS                    */
         
-        } else {
-            /*
-             *  指定网络接口设置
-             */
+        } else {                                                        /*  指定网络接口设置            */
             INT     iIndex;
+            
+            LWIP_IF_LIST_LOCK(LW_FALSE);
             netif = netif_find(ppcArgV[1]);                             /*  查询网络接口                */
             if (netif == LW_NULL) {
+                LWIP_IF_LIST_UNLOCK();
                 fprintf(stderr, "can not find net interface.\n");
                 return  (-ERROR_TSHELL_EPARAM);
             }
@@ -589,6 +579,7 @@ static INT  __tshellIfconfig (INT  iArgC, PCHAR  *ppcArgV)
                 IP_SET_TYPE_VAL(ipaddr, IPADDR_TYPE_V4);
                 __netIfSet(netif, ppcArgV[iIndex], ip_2_ip4(&ipaddr));  /*  设置网络接口                */
             }
+            LWIP_IF_LIST_UNLOCK();
         }
     }
 
@@ -612,6 +603,7 @@ static INT  __tshellIfUp (INT  iArgC, PCHAR  *ppcArgV)
     if (iArgC < 2) {
         fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
+    
     } else if (iArgC > 2) {
         if (lib_strcmp(ppcArgV[2], "-dhcp") == 0) {
             bUseDHCP = LW_TRUE;                                         /*  使用 DHCP 启动              */
@@ -620,8 +612,10 @@ static INT  __tshellIfUp (INT  iArgC, PCHAR  *ppcArgV)
         }
     }
 
+    LWIP_IF_LIST_LOCK(LW_FALSE);
     netif = netif_find(ppcArgV[1]);                                     /*  查询网络接口                */
     if (netif == LW_NULL) {
+        LWIP_IF_LIST_UNLOCK();
         fprintf(stderr, "can not find net interface.\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
@@ -629,8 +623,7 @@ static INT  __tshellIfUp (INT  iArgC, PCHAR  *ppcArgV)
     if (netif_is_up(netif)) {                                           /*  网卡是否已经启动            */
 #if LWIP_DHCP > 0                                                       /*  首先关闭网卡                */
         if (netif_dhcp_data(netif)) {
-            netifapi_dhcp_release(netif);                               /*  解除 DHCP 租约              */
-            netifapi_dhcp_stop(netif);                                  /*  释放资源                    */
+            netifapi_dhcp_release_and_stop(netif);                      /*  解除 DHCP 租约并释放资源    */
         }
 #endif                                                                  /*  LWIP_DHCP > 0               */
         netifapi_netif_set_down(netif);                                 /*  禁用网卡                    */
@@ -659,7 +652,8 @@ static INT  __tshellIfUp (INT  iArgC, PCHAR  *ppcArgV)
         }
     }
 #endif                                                                  /*  LWIP_DHCP > 0               */
-
+    LWIP_IF_LIST_UNLOCK();
+    
     printf("net interface \"%s\" set up.\n", ppcArgV[1]);
     return  (ERROR_NONE);
 }
@@ -681,26 +675,29 @@ static INT  __tshellIfDown (INT  iArgC, PCHAR  *ppcArgV)
         return  (-ERROR_TSHELL_EPARAM);
     }
 
+    LWIP_IF_LIST_LOCK(LW_FALSE);
     netif = netif_find(ppcArgV[1]);                                     /*  查询网络接口                */
     if (netif == LW_NULL) {
+        LWIP_IF_LIST_UNLOCK();
         fprintf(stderr, "can not find net interface.\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
 
     if (!netif_is_up(netif)) {
+        LWIP_IF_LIST_UNLOCK();
         fprintf(stderr, "net interface already set down.\n");
         return  (PX_ERROR);
     }
 
 #if LWIP_DHCP > 0
     if (netif_dhcp_data(netif)) {
-        netifapi_dhcp_release(netif);                                   /*  解除 DHCP 租约              */
-        netifapi_dhcp_stop(netif);                                      /*  释放资源                    */
+        netifapi_dhcp_release_and_stop(netif);                          /*  解除 DHCP 租约并释放资源    */
     }
 #endif                                                                  /*  LWIP_DHCP > 0               */
 
     netifapi_netif_set_down(netif);                                     /*  禁用网卡                    */
-
+    LWIP_IF_LIST_UNLOCK();
+    
     printf("net interface \"%s\" set down.\n", ppcArgV[1]);
     return  (ERROR_NONE);
 }
@@ -786,10 +783,7 @@ static INT  __tshellArp (INT  iArgC, PCHAR  *ppcArgV)
             ethaddr.addr[i] = (u8_t)iTemp[i];
         }
         
-        LOCK_TCPIP_CORE();
-        err = etharp_add_static_entry(&ipaddr, &ethaddr);
-        UNLOCK_TCPIP_CORE();
-        
+        err = netifapi_arp_add(&ipaddr, &ethaddr, NETIFAPI_ARP_PERM);
         return  (err ? PX_ERROR : ERROR_NONE);
     
     } else if (lib_strcmp(ppcArgV[1], "-d") == 0) {                     /*  删除一个静态转换关系        */
@@ -799,13 +793,13 @@ static INT  __tshellArp (INT  iArgC, PCHAR  *ppcArgV)
         if (iArgC != 3) {                                               /*  删除全部转换关系            */
             struct netif *netif;
             
-            LWIP_NETIF_LOCK();
-            for (netif = netif_list; netif != LW_NULL; netif = netif->next) {
+            LWIP_IF_LIST_LOCK(LW_FALSE);
+            NETIF_FOREACH(netif) {
                 if (netif->flags & NETIF_FLAG_ETHARP) {
-                    netifapi_netif_common(netif, etharp_cleanup_netif, LW_NULL);
+                    netifapi_arp_cleanup(netif);
                 }
             }
-            LWIP_NETIF_UNLOCK();
+            LWIP_IF_LIST_UNLOCK();
             
             return  (ERROR_NONE);
         }
@@ -816,10 +810,7 @@ static INT  __tshellArp (INT  iArgC, PCHAR  *ppcArgV)
             return  (-ERROR_TSHELL_EPARAM);
         }
         
-        LOCK_TCPIP_CORE();
-        err = etharp_remove_static_entry(&ipaddr);
-        UNLOCK_TCPIP_CORE();
-        
+        err = netifapi_arp_remove(&ipaddr, NETIFAPI_ARP_PERM);
         return  (err ? PX_ERROR : ERROR_NONE);
     
     } else {
@@ -864,6 +855,7 @@ static INT  __tshellLoginBl (INT  iArgC, PCHAR  *ppcArgV)
             pin6addr->sin6_len    = sizeof(struct sockaddr_in6);
             pin6addr->sin6_family = AF_INET6;
         }
+    
     } else {
         pinaddr->sin_len    = sizeof(struct sockaddr_in);
         pinaddr->sin_family = AF_INET;
@@ -917,6 +909,7 @@ static INT  __tshellLoginWl (INT  iArgC, PCHAR  *ppcArgV)
             pin6addr->sin6_len    = sizeof(struct sockaddr_in6);
             pin6addr->sin6_family = AF_INET6;
         }
+    
     } else {
         pinaddr->sin_len    = sizeof(struct sockaddr_in);
         pinaddr->sin_family = AF_INET;

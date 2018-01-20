@@ -35,6 +35,25 @@
 #include "tpsfs_inode.h"
 #include "tpsfs_dir.h"
 /*********************************************************************************************************
+** 函数名称: __tpsFsLE32ToCpuVal
+** 功能描述: 小端数组转主机序整型，字符串哈希算法中不能使用TPS_LE32_TO_CPU_VAL，部分体现结果存在对齐问题
+** 输　入  : pucData   小端数组
+** 输　出  : 主机序整型
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static UINT __tpsFsLE32ToCpuVal (const UCHAR *pucData)
+{
+    UINT uiRet = 0;
+
+    uiRet  = ((UINT)pucData[3]) << 24;
+    uiRet += ((UINT)pucData[2]) << 16;
+    uiRet += ((UINT)pucData[1]) << 8;
+    uiRet += ((UINT)pucData[0]);
+
+    return  (uiRet);
+}
+/*********************************************************************************************************
 ** 函数名称: __tpsFsGetHash
 ** 功能描述: 获取文件名hash值 (murmurhash算法)
 ** 输　入  : pcFileName       文件名
@@ -56,11 +75,11 @@ static TPS_IBLK __tpsFsGetHash (CPCHAR pcFileName)
     UINT        uiK1;
     UINT        uiK2;
 
-    const UINT *puiData = (const UINT *)pcFileName;
+    const UCHAR *pucData = (const UCHAR *)pcFileName;
 
     while(iLen >= 8) {
-        uiK1 = TPS_LE32_TO_CPU_VAL(puiData);
-        puiData++;
+        uiK1     = __tpsFsLE32ToCpuVal(pucData);
+        pucData += 4;
         uiK1 *= uiM;
         uiK1 ^= uiK1 >> iR;
         uiK1 *= uiM;
@@ -68,8 +87,8 @@ static TPS_IBLK __tpsFsGetHash (CPCHAR pcFileName)
         uiH1 ^= uiK1;
         iLen -= 4;
 
-        uiK2 = TPS_LE32_TO_CPU_VAL(puiData);
-        puiData++;
+        uiK2     = __tpsFsLE32ToCpuVal(pucData);
+        pucData += 4;
         uiK2 *= uiM;
         uiK2 ^= uiK2 >> iR;
         uiK2 *= uiM;
@@ -79,8 +98,8 @@ static TPS_IBLK __tpsFsGetHash (CPCHAR pcFileName)
     }
 
     if(iLen >= 4) {
-        uiK1 = TPS_LE32_TO_CPU_VAL(puiData);
-        puiData++;
+        uiK1     = __tpsFsLE32ToCpuVal(pucData);
+        pucData += 4;
         uiK1 *= uiM;
         uiK1 ^= uiK1 >> iR;
         uiK1 *= uiM;
@@ -91,11 +110,11 @@ static TPS_IBLK __tpsFsGetHash (CPCHAR pcFileName)
 
     switch(iLen) {
     case 3:
-        uiH2 ^= ((unsigned char*)puiData)[2] << 16;
+        uiH2 ^= ((UINT)pucData[2]) << 16;
     case 2:
-        uiH2 ^= ((unsigned char*)puiData)[1] << 8;
+        uiH2 ^= ((UINT)pucData[1]) << 8;
     case 1:
-        uiH2 ^= ((unsigned char*)puiData)[0];
+        uiH2 ^= ((UINT)pucData[0]);
         uiH2 *= uiM;
     }
 
@@ -107,7 +126,7 @@ static TPS_IBLK __tpsFsGetHash (CPCHAR pcFileName)
     ui64H = uiH1;
     ui64H = (ui64H << 32) | uiH2;
 
-    return  ((TPS_IBLK)ui64H & 0x7FFFFFFFFFFFFFFF);                     /* 最高位保留，返回有符号正数   */
+    return  ((TPS_IBLK)ui64H & 0x7FFFFFFFFFFFFFFFull);                  /* 最高位保留，返回有符号正数   */
 }
 /*********************************************************************************************************
 ** 函数名称: __tpsFsHashEntryCreate

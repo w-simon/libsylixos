@@ -51,7 +51,7 @@
 struct dhcp6
 {
   /*@todo: implement DHCP6*/
-  u8_t  temp;
+  u8_t pad;
 };
 
 #endif /* LWIP_IPV6_DHCP6 */

@@ -67,6 +67,11 @@ LW_API char                 *if_indextoname(unsigned  ifindex, char *ifname);
 LW_API struct if_nameindex  *if_nameindex(void);
 LW_API void                  if_freenameindex(struct if_nameindex *ptr);
 
+#ifdef __SYLIXOS_KERNEL                                         /* user DO NOT use these API            */
+LW_API size_t                if_nameindex_bufsize(void);
+LW_API struct if_nameindex  *if_nameindex_rnp(void *buffer, size_t bufsize);
+#endif                                                          /* __SYLIXOS_KERNEL                     */
+
 /*********************************************************************************************************
   posix if flag (same as lwip)
 *********************************************************************************************************/
@@ -152,6 +157,9 @@ struct ifconf {
 #define SIOCGIFDSTADDR      _IOWR('i', 34, struct ifreq)
 #define SIOCGIFBRDADDR      _IOWR('i', 35, struct ifreq)
 #define SIOCGIFFLAGS        _IOWR('i', 17, struct ifreq)
+
+#define SIOCGIFMETRIC       _IOWR('i', 23, struct ifreq)
+#define SIOCSIFMETRIC       _IOW( 'i', 24, struct ifreq)
 
 #define SIOCGIFTYPE         _IOR('i',  49, struct ifreq)
 #define SIOCGIFNAME         _IOWR('i', 50, struct ifreq)

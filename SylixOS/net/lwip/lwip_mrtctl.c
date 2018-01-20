@@ -59,11 +59,25 @@ static INT  __mrtGetVifCnt4 (PVOID  pvArg)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if LWIP_IPV6
+
 static INT  __mrtGetVifCnt6 (PVOID  pvArg)
 {
-    _ErrorHandle(ENOSYS);
-    return  (PX_ERROR);
+    INT  iErrNo;
+    
+    MRT6_LOCK();
+    iErrNo = ip6_mrt_ioctl(SIOCGETVIFCNT, pvArg);
+    if (iErrNo) {
+        MRT6_UNLOCK();
+        _ErrorHandle(iErrNo);
+        return  (PX_ERROR);
+    }
+    MRT6_UNLOCK();
+    
+    return  (ERROR_NONE);
 }
+
+#endif
 /*********************************************************************************************************
 ** 函数名称: __mrtGetSgCnt4
 ** 功能描述: 获得 IPv4 sg cnt 信息
@@ -95,11 +109,25 @@ static INT  __mrtGetSgCnt4 (PVOID  pvArg)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if LWIP_IPV6
+
 static INT  __mrtGetSgCnt6 (PVOID  pvArg)
 {
-    _ErrorHandle(ENOSYS);
-    return  (PX_ERROR);
+    INT  iErrNo;
+    
+    MRT6_LOCK();
+    iErrNo = ip6_mrt_ioctl(SIOCGETSGCNT, pvArg);
+    if (iErrNo) {
+        MRT6_UNLOCK();
+        _ErrorHandle(iErrNo);
+        return  (PX_ERROR);
+    }
+    MRT6_UNLOCK();
+    
+    return  (ERROR_NONE);
 }
+
+#endif
 /*********************************************************************************************************
 ** 函数名称: __mrtIoctlInet
 ** 功能描述: SIOCGETVIFCNT / SIOCGETSGCNT ... 命令处理接口

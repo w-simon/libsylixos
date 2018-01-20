@@ -252,20 +252,16 @@ static void null_rdc_input (struct lowpanif *lowpanif, struct pbuf *p)
   /* Send ack packet */
   if (lowpanif->ack_type == LOWPAN_ACK_SW) { /* Need ack */
     if (REQ_ACK(p)) {
-      struct pbuf ack;
       u8_t ack_buf[ACK_LEN];
-      ack.next = NULL;
-      ack.payload = (void *)ack_buf;
-      ack.tot_len = ack.len = ACK_LEN;
-      ack.type = PBUF_ROM;
-      ack.flags = 0;
-      ack.ref = 1;
-      ieee802154_frame_create_ack(ack_buf, ACK_LEN, SEQ_NO(p));
-      if (lowpanif->csma_type == LOWPAN_CSMA_HW) {
-        RADIO_DRIVER(lowpanif)->send(lowpanif, &ack);
-      } else {
-        RADIO_DRIVER(lowpanif)->prepare(lowpanif, &ack);
-        RADIO_DRIVER(lowpanif)->transmit(lowpanif, &ack);
+      struct pbuf *ack = pbuf_alloc_reference(ack_buf, ACK_LEN, PBUF_ROM);
+      if (ack) {
+        ieee802154_frame_create_ack(ack_buf, ACK_LEN, SEQ_NO(p));
+        if (lowpanif->csma_type == LOWPAN_CSMA_HW) {
+          RADIO_DRIVER(lowpanif)->send(lowpanif, ack);
+        } else {
+          RADIO_DRIVER(lowpanif)->prepare(lowpanif, ack);
+          RADIO_DRIVER(lowpanif)->transmit(lowpanif, ack);
+        }
       }
     }
   }

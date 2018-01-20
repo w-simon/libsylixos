@@ -962,7 +962,7 @@ static inline int yaffs2_scan_chunk(struct yaffs_dev *dev,
 	int is_shrink;
 	int is_unlinked;
 	struct yaffs_ext_tags tags;
-	int result;
+	int __unused result;
 	int alloc_failed = 0;
 	int chunk = blk * dev->param.chunks_per_block + chunk_in_block;
 	struct yaffs_file_var *file_var;

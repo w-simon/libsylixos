@@ -54,6 +54,13 @@
 extern "C" {
 #endif
 
+/* SylixOS Add multicast filter support */
+struct mld6_src {
+  struct mld6_src *next;
+  /** the source address */
+  ip6_addr_t src_addr;
+};
+
 /** MLD group */
 struct mld_group {
   /** next link */

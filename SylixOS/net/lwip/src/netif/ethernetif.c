@@ -142,7 +142,7 @@ low_level_output(struct netif *netif, struct pbuf *p)
   initiate transfer();
 
 #if ETH_PAD_SIZE
-  pbuf_header(p, -ETH_PAD_SIZE); /* drop the padding word */
+  pbuf_remove_header(p, ETH_PAD_SIZE); /* drop the padding word */
 #endif
 
   for (q = p; q != NULL; q = q->next) {
@@ -155,7 +155,7 @@ low_level_output(struct netif *netif, struct pbuf *p)
   signal that packet should be sent();
 
   MIB2_STATS_NETIF_ADD(netif, ifoutoctets, p->tot_len);
-  if (((u8_t*)p->payload)[0] & 1) {
+  if (((u8_t *)p->payload)[0] & 1) {
     /* broadcast or multicast packet*/
     MIB2_STATS_NETIF_INC(netif, ifoutnucastpkts);
   } else {
@@ -165,7 +165,7 @@ low_level_output(struct netif *netif, struct pbuf *p)
   /* increase ifoutdiscards or ifouterrors on error */
 
 #if ETH_PAD_SIZE
-  pbuf_header(p, ETH_PAD_SIZE); /* reclaim the padding word */
+  pbuf_add_header(p, ETH_PAD_SIZE); /* reclaim the padding word */
 #endif
 
   LINK_STATS_INC(link.xmit);
@@ -202,7 +202,7 @@ low_level_input(struct netif *netif)
   if (p != NULL) {
 
 #if ETH_PAD_SIZE
-    pbuf_header(p, -ETH_PAD_SIZE); /* drop the padding word */
+    pbuf_remove_header(p, ETH_PAD_SIZE); /* drop the padding word */
 #endif
 
     /* We iterate over the pbuf chain until we have read the entire
@@ -221,7 +221,7 @@ low_level_input(struct netif *netif)
     acknowledge that packet has been read();
 
     MIB2_STATS_NETIF_ADD(netif, ifinoctets, p->tot_len);
-    if (((u8_t*)p->payload)[0] & 1) {
+    if (((u8_t *)p->payload)[0] & 1) {
       /* broadcast or multicast packet*/
       MIB2_STATS_NETIF_INC(netif, ifinnucastpkts);
     } else {
@@ -229,7 +229,7 @@ low_level_input(struct netif *netif)
       MIB2_STATS_NETIF_INC(netif, ifinucastpkts);
     }
 #if ETH_PAD_SIZE
-    pbuf_header(p, ETH_PAD_SIZE); /* reclaim the padding word */
+    pbuf_add_header(p, ETH_PAD_SIZE); /* reclaim the padding word */
 #endif
 
     LINK_STATS_INC(link.recv);
@@ -318,13 +318,15 @@ ethernetif_init(struct netif *netif)
    * You can instead declare your own function an call etharp_output()
    * from it if you have to do some checks before sending (e.g. if link
    * is available...) */
+#if LWIP_IPV4
   netif->output = etharp_output;
+#endif /* LWIP_IPV4 */
 #if LWIP_IPV6
   netif->output_ip6 = ethip6_output;
 #endif /* LWIP_IPV6 */
   netif->linkoutput = low_level_output;
 
-  ethernetif->ethaddr = (struct eth_addr *)&(netif->hwaddr[0]);
+  ethernetif->ethaddr = (struct eth_addr *) & (netif->hwaddr[0]);
 
   /* initialize the hardware */
   low_level_init(netif);

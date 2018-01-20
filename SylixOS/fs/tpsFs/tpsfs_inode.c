@@ -693,7 +693,6 @@ TPS_RESULT  tpsFsTruncInode (PTPS_TRANS ptrans, PTPS_INODE pinode, TPS_SIZE_T si
     pinode->IND_szData    = size;
     pinode->IND_ui64MTime = TPS_UTC_TIME();
     pinode->IND_ui64ATime = pinode->IND_ui64MTime;
-    pinode->IND_bDirty    = LW_TRUE;
 
     pucBuff = pinode->IND_pucBuff;
 

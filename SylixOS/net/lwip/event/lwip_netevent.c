@@ -82,9 +82,7 @@ static INT      _nevtIoctl(PLW_NEVT_FILE  pnevtfil,
             buf[1] = (UCHAR)((event >> 16) & 0xff);     \
             buf[2] = (UCHAR)((event >>  8) & 0xff);     \
             buf[3] = (UCHAR)((event)       & 0xff);     \
-            buf[4] = netif->name[0];                    \
-            buf[5] = netif->name[1];                    \
-            lib_itoa(netif->num, (char *)&buf[6], 10);  \
+            netif_get_name(netif, (char *)&buf[4]);     \
         } while (0)
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: _netEventDevCreate
@@ -632,11 +630,12 @@ VOID  netEventIfAddrConflict (struct netif *pnetif, UINT8  ucHw[], UINT  uiHwLen
 {
     UCHAR   ucBuffer[NET_EVENT_DEV_MAX_MSGSIZE];
     CHAR    cIp[IP4ADDR_STRLEN_MAX];
+    CHAR    cName[NETIF_NAMESIZE];
     INT     i;
     
     if (ucHw && uiHwLen) {
-        _PrintFormat("Warning: net interface: %d IP address %s conflict with: ",
-                     pnetif->num, ip4addr_ntoa_r(ip_2_ip4(&(pnetif->ip_addr)), cIp, IP4ADDR_STRLEN_MAX));
+        _PrintFormat("Warning: net interface: %s IP address %s conflict with: ",
+                     netif_get_name(pnetif, cName), ip4addr_ntoa_r(ip_2_ip4(&(pnetif->ip_addr)), cIp, IP4ADDR_STRLEN_MAX));
         for (i = 0; i < (uiHwLen - 1); i++) {
             _PrintFormat("%02x:", ucHw[i]);
         }
@@ -752,9 +751,7 @@ VOID  netEventIfWlExt (struct netif *pnetif,
     ucBuffer[1] = (UCHAR)((uiEvent >> 16) & 0xff);
     ucBuffer[2] = (UCHAR)((uiEvent >>  8) & 0xff);
     ucBuffer[3] = (UCHAR)((uiEvent)       & 0xff);
-    ucBuffer[4] = pnetif->name[0];
-    ucBuffer[5] = pnetif->name[1];
-    lib_itoa(pnetif->num, (char *)&ucBuffer[6], 10);
+    netif_get_name(pnetif, (char *)&ucBuffer[4]);
     
     i = 6 + lib_strlen((char *)&ucBuffer[6]) + 1;
     
@@ -809,9 +806,7 @@ VOID  netEventIfWlExt2 (struct netif *pnetif,
     pucBuffer[2] = (UCHAR)((NET_EVENT_WL_EXT2 >>  8) & 0xff);
     pucBuffer[3] = (UCHAR)((NET_EVENT_WL_EXT2)       & 0xff);
     
-    pucBuffer[4] = pnetif->name[0];
-    pucBuffer[5] = pnetif->name[1];
-    lib_itoa(pnetif->num, (char *)&pucBuffer[6], 10);
+    netif_get_name(pnetif, (char *)&pucBuffer[4]);
     uiOft = 6 + lib_strlen((char *)&pucBuffer[6]) + 1;
     lib_memcpy(pucBuffer + uiOft, (PUCHAR)pvEvent, uiLen);
 

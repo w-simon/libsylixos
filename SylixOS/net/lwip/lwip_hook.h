@@ -14,85 +14,89 @@
 **
 ** 创   建   人: Han.Hui (韩辉)
 **
-** 文件创建日期: 2017 年 05 月 12 日
+** 文件创建日期: 2018 年 01 月 05 日
 **
-** 描        述: lwip SylixOS HOOK.
+** 描        述: lwip hook 声明.
 *********************************************************************************************************/
 
 #ifndef __LWIP_HOOK_H
 #define __LWIP_HOOK_H
 
-#include "lwip/pbuf.h"
-#include "lwip/netif.h"
-#include "netdev.h"
-#include "net/if.h"
-#include "net/if_type.h"
+#define __SYLIXOS_KERNEL
 
 /*********************************************************************************************************
-  数据包类型
+  其他头文件
 *********************************************************************************************************/
 
-#define IP_HOOK_V4      4
-#define IP_HOOK_V6      6
+#if LW_CFG_NET_MROUTER > 0
+#include "netinet/in.h"
+#include "netinet/ip_mroute.h"
+#include "net/lwip/mroute/ip4_mrt.h"
+#if LWIP_IPV6 && LWIP_IPV6_MLD
+#include "netinet6/in6.h"
+#include "netinet6/ip6_mroute.h"
+#include "net/lwip/mroute/ip6_mrt.h"
+#endif
+#endif
+
+#include "net/if_event.h"
+#include "net/if_iphook.h"
 
 /*********************************************************************************************************
-  回调类型
-  
-                                               TCP/IP stack  
-                                         ^                     |
-                                         |                     |
-                                         |                     \/
-                                     [LOCAL_IN]           [LOCAL_OUT] ???
-                                         ^                     |
-                                         |                     |
-                                         |                route output
-                                         |                     |
-                                         |                     |
-                                         |                     \/
-  packet input --> [PRE_ROUTING] --> route input --> [FORWARD] --> [POST_ROUTING] --> packet output 
-  
+  netdev 增加或删除组播地址
 *********************************************************************************************************/
 
-#define IP_HT_PRE_ROUTING       0
-#define IP_HT_LOCAL_IN          1
-#define IP_HT_FORWARD           2
-#define IP_HT_LOCAL_OUT         3                                       /*  TODO: not support now!      */
-#define IP_HT_POST_ROUTING      4
+extern VOID  netif_set_maddr_hook(struct netif *pnetif, const ip4_addr_t *pipaddr, INT iAdd);
+
+#if LWIP_IPV6 && LWIP_IPV6_MLD
+extern VOID  netif_set_maddr6_hook(struct netif *pnetif, const ip6_addr_t *pip6addr, INT iAdd);
+#endif
 
 /*********************************************************************************************************
-  内核函数
+  IP 路由
 *********************************************************************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif                                                                  /*  __cplusplus                 */
+extern struct netif *ip_route_src_hook(const ip4_addr_t *pipsrc, const ip4_addr_t *pipdest);
+extern ip4_addr_t   *ip_gw_hook(struct netif *pnetif, const ip4_addr_t *pipdest);
 
-int  net_ip_hook_add(const char *name, int (*hook)(int ip_type, int hook_type, struct pbuf *p, 
-                                                   struct netif *in, struct netif *out));
-int  net_ip_hook_delete(int (*hook)(int ip_type, int hook_type, struct pbuf *p, 
-                                    struct netif *in, struct netif *out));
-                                    
+#if LWIP_IPV6
+extern struct netif *ip6_route_src_hook(const ip6_addr_t *pip6src, const ip6_addr_t *pip6dest);
+extern ip6_addr_t   *ip6_gw_hook(struct netif *pnetif, const ip6_addr_t *pip6dest);
+#endif
+
 /*********************************************************************************************************
-  获取 netif 成员
-  
-  注意: 出于兼容性考虑, 不允许直接从 netif 结构中访问数据, 必须要通过以下接口函数来访问 netif 中的成员.
+  lwip ip input hook (return is the packet has been eaten)
 *********************************************************************************************************/
 
-netdev_t          *net_ip_hook_netif_get_netdev(struct netif *pnetif);
-const ip4_addr_t  *net_ip_hook_netif_get_ipaddr(struct netif *pnetif);
-const ip4_addr_t  *net_ip_hook_netif_get_netmask(struct netif *pnetif);
-const ip4_addr_t  *net_ip_hook_netif_get_gw(struct netif *pnetif);
-const ip6_addr_t  *net_ip_hook_netif_get_ip6addr(struct netif *pnetif, int  addr_index, int *addr_state);
-UINT8             *net_ip_hook_netif_get_hwaddr(struct netif *pnetif, int *hwaddr_len);
-int                net_ip_hook_netif_get_index(struct netif *pnetif);
-int                net_ip_hook_netif_get_name(struct netif *pnetif, char *name, size_t size);
-int                net_ip_hook_netif_get_type(struct netif *pnetif, int *type);
-int                net_ip_hook_netif_get_flags(struct netif *pnetif, int *flags);
-UINT64             net_ip_hook_netif_get_linkspeed(struct netif *pnetif);
+extern int ip_input_hook(struct pbuf *p, struct netif *pnetif);
 
-#ifdef __cplusplus
-}
-#endif                                                                  /*  __cplusplus                 */
+#if LWIP_IPV6
+extern int ip6_input_hook(struct pbuf *p, struct netif *pnetif);
+#endif
+
+/*********************************************************************************************************
+  lwip link input/output hook (for AF_PACKET and Net Defender)
+*********************************************************************************************************/
+
+extern int link_input_hook(struct pbuf *p, struct netif *pnetif);
+extern int link_output_hook(struct pbuf *p, struct netif *pnetif);
+
+/*********************************************************************************************************
+  lwip vlan hook (for AF_PACKET and Net Defender)
+*********************************************************************************************************/
+
+#if LW_CFG_NET_VLAN_EN > 0
+extern int ethernet_vlan_set_hook(struct netif *pnetif, struct pbuf *p, const struct eth_addr *src, 
+                                  const struct eth_addr *dst, u16_t eth_type);
+extern int ethernet_vlan_check_hook(struct netif *pnetif, const struct eth_hdr *ethhdr, 
+                                    const struct eth_vlan_hdr *vlanhdr);
+#endif
+
+/*********************************************************************************************************
+  ip hook
+*********************************************************************************************************/
+
+extern int lwip_ip_hook(int ip_type, int hook_type, struct pbuf *p, struct netif *in, struct netif *out);
 
 #endif                                                                  /*  __LWIP_HOOK_H               */
 /*********************************************************************************************************

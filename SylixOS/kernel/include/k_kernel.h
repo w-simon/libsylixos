@@ -30,6 +30,7 @@
 2013.08.27  加入内核事件监控器.
 2015.11.20  修改项目代号为: NeZha(哪吒).
 2016.10.08  修改项目代号为: LongYuan(龙渊).
+2018.01.18  修改项目代号为: Octopus(八爪鱼).
 *********************************************************************************************************/
 
 #ifndef __K_KERNEL_H
@@ -48,10 +49,10 @@
 *********************************************************************************************************/
 
 #define __SYLIXOS_MAKEVER(a, b, c)      (((a) << 16) + ((b) << 8) + (c))
-#define __SYLIXOS_VERSION               __SYLIXOS_MAKEVER(1, 5, 6)
-#define __SYLIXOS_VERPATCH              0x4
-#define __SYLIXOS_VERSTR                "1.5.6-4"
-#define __SYLIXOS_RELSTR                "LongYuan"
+#define __SYLIXOS_VERSION               __SYLIXOS_MAKEVER(1, 6, 0)
+#define __SYLIXOS_VERPATCH              0x2
+#define __SYLIXOS_VERSTR                "1.6.0-2"
+#define __SYLIXOS_RELSTR                "Octopus"
 
 #define __SYLIXOS_VERINFO               "SylixOS kernel version: "  \
                                         __SYLIXOS_VERSTR            \

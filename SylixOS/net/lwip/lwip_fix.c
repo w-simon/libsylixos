@@ -143,7 +143,11 @@ void  sys_arch_unprotect (INTREG  ireg)
 *********************************************************************************************************/
 void  sys_assert_print (const char *msg, const char *func, const char *file, int line)
 {
-    fprintf(stderr, "lwip assert: %s func: %s file: %s line: %d\n", msg, func, file, line);
+    char  *fname;
+    
+    _PathLastName(file, &fname);                                        /*  只显示文件名                */
+    
+    fprintf(stderr, "[NET] Assert: %s func: %s() file: %s line: %d\n", msg, func, fname, line);
 }
 /*********************************************************************************************************
 ** 函数名称: sys_error_print
@@ -158,7 +162,11 @@ void  sys_assert_print (const char *msg, const char *func, const char *file, int
 *********************************************************************************************************/
 void  sys_error_print (const char *msg, const char *func, const char *file, int line)
 {
-    fprintf(stderr, "lwip error: %s func: %s file: %s line: %d\n", msg, func, file, line);
+    char  *fname;
+    
+    _PathLastName(file, &fname);                                        /*  只显示文件名                */
+    
+    fprintf(stderr, "[NET] Error: %s func: %s() file: %s line: %d\n", msg, func, fname, line);
 }
 /*********************************************************************************************************
 ** 函数名称: lwip_platform_memcpy
@@ -199,13 +207,13 @@ LW_WEAK PVOID  lwip_platform_smemcpy (PVOID  pvDest, CPVOID  pvSrc, size_t  stCo
 err_t  sys_mutex_new (sys_mutex_t *pmutex)
 {
     SYS_ARCH_DECL_PROTECT(lev);
-    LW_OBJECT_HANDLE    hMutex = API_SemaphoreMCreate("lwip_mutex", LW_PRIO_DEF_CEILING, 
+    LW_OBJECT_HANDLE    hMutex = API_SemaphoreMCreate("net_mutex", LW_PRIO_DEF_CEILING, 
                                                       LW_OPTION_WAIT_PRIORITY |
                                                       LW_OPTION_INHERIT_PRIORITY |
                                                       LW_OPTION_DELETE_SAFE |
                                                       LW_OPTION_OBJECT_GLOBAL, LW_NULL);
     if (hMutex == LW_OBJECT_HANDLE_INVALID) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "can not create lwip mutex.\r\n");
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "can not create net mutex.\r\n");
         SYS_STATS_INC(mutex.err);
         return  (ERR_MEM);
     
@@ -308,11 +316,11 @@ void  sys_mutex_set_invalid (sys_mutex_t *pmutex)
 err_t  sys_sem_new (sys_sem_t  *psem, u8_t  count)
 {
     SYS_ARCH_DECL_PROTECT(lev);
-    LW_OBJECT_HANDLE    hSemaphore = API_SemaphoreCCreate("lwip_sem", (ULONG)count, 0x1, 
+    LW_OBJECT_HANDLE    hSemaphore = API_SemaphoreCCreate("net_sem", (ULONG)count, 0x1, 
                                                           LW_OPTION_WAIT_FIFO |
                                                           LW_OPTION_OBJECT_GLOBAL, LW_NULL);
     if (hSemaphore == LW_OBJECT_HANDLE_INVALID) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "can not create lwip sem.\r\n");
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "can not create net sem.\r\n");
         SYS_STATS_INC(sem.err);
         return  (ERR_MEM);
     
@@ -444,14 +452,14 @@ err_t  sys_mbox_new (sys_mbox_t *pmbox, INT  size)
 {
     SYS_ARCH_DECL_PROTECT(lev);
 
-    LW_OBJECT_HANDLE    hMsgQueue = API_MsgQueueCreate("lwip_msg", 
+    LW_OBJECT_HANDLE    hMsgQueue = API_MsgQueueCreate("net_msg", 
                                                        LWIP_MSGQUEUE_SIZE, 
                                                        sizeof(PVOID), 
                                                        LW_OPTION_WAIT_FIFO |
                                                        LW_OPTION_OBJECT_GLOBAL,
                                                        LW_NULL);
     if (hMsgQueue == LW_OBJECT_HANDLE_INVALID) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "can not create lwip msgqueue.\r\n");
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "can not create net msgqueue.\r\n");
         SYS_STATS_INC(mbox.err);
         return  (ERR_MEM);
     
@@ -530,7 +538,7 @@ err_t  sys_mbox_trypost (sys_mbox_t *pmbox, void *msg)
     }
 #if LW_CFG_LWIP_DEBUG > 0
       else if (ulError != ERROR_MSGQUEUE_FULL) {
-        panic("lwip sys_mbox_trypost() msgqueue error: %s\n", lib_strerror(errno));
+        panic("[NET] Panic: sys_mbox_trypost() msgqueue error: %s\n", lib_strerror(errno));
         return  (ERR_MEM);
     }
 #endif                                                                  /*  LW_CFG_LWIP_DEBUG > 0       */
@@ -538,6 +546,30 @@ err_t  sys_mbox_trypost (sys_mbox_t *pmbox, void *msg)
       else {
         return  (ERR_MEM);
     }
+}
+/*********************************************************************************************************
+** 函数名称: sys_mbox_trypost_fromisr
+** 功能描述: 中断中发送一个邮箱消息(满则退出)
+** 输　入  : pmbox  邮箱句柄指针
+**           msg    消息
+** 输　出  : 
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+err_t sys_mbox_trypost_fromisr (sys_mbox_t *pmbox, void *msg)
+{
+    ULONG   ulError;
+    
+    if (pmbox == LW_NULL) {
+        return  (ERR_MEM);
+    }
+    
+    ulError = API_MsgQueueSend(*pmbox, &msg, sizeof(PVOID));
+    if (ulError == ERROR_NONE) {                                        /*  发送成功                    */
+        return  (ERR_OK);
+    }
+    
+    return  (ERR_MEM);
 }
 /*********************************************************************************************************
 ** 函数名称: sys_arch_mbox_fetch
@@ -946,62 +978,59 @@ void  sio_read_abort (sio_fd_t  fd)
 /*********************************************************************************************************
 ** 函数名称: ip_input_hook
 ** 功能描述: sylixos ip input hook
-** 输　入  : pvPBuf        pbuf
-**           pvNetif       net interface
+** 输　入  : p        pbuf
+**           pnetif   net interface
 ** 输　出  : 是否被 eaten
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-int ip_input_hook (PVOID  pvPBuf, PVOID  pvNetif)
+int ip_input_hook (struct pbuf *p, struct netif *pnetif)
 {
 #if LW_CFG_NET_LOGINBL_EN > 0
 extern INT   loginbl_input_hook(struct pbuf *p, struct netif *inp);
 #endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
 
-#if LW_CFG_NET_NAT_EN > 0
-extern VOID  nat_ip_input_hook(struct pbuf *p, struct netif *inp);
-#endif                                                                  /*  LW_CFG_NET_NAT_EN > 0       */
-
-    struct pbuf  *p   = (struct pbuf  *)pvPBuf;
-    struct netif *inp = (struct netif *)pvNetif;
-    
-    (VOID)p;
-    (VOID)inp;
-    
-#if LW_CFG_NET_NAT_EN > 0
-    nat_ip_input_hook(p, inp);
-#endif                                                                  /*  LW_CFG_NET_NAT_EN > 0       */
-
 #if LW_CFG_NET_LOGINBL_EN > 0
-    return  (loginbl_input_hook(p, inp));
+    return  (loginbl_input_hook(p, pnetif));
 #endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
 
     return  (0);                                                        /*  do not eaten packet         */
 }
 /*********************************************************************************************************
+** 函数名称: ip_input_hook
+** 功能描述: sylixos ipv6 input hook
+** 输　入  : p        pbuf
+**           pnetif   net interface
+** 输　出  : 是否被 eaten
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+int ip6_input_hook (struct pbuf *p, struct netif *pnetif)
+{
+    return  (0);                                                        /*  do not eaten packet         */
+}
+/*********************************************************************************************************
 ** 函数名称: ip_route_src_hook
 ** 功能描述: sylixos ip route hook
-** 输　入  : dest  destination route netif
-**           pvSrc source address
+** 输　入  : pipsrc   source address
+**           pipdest  destination route netif
 ** 输　出  : netif
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-PVOID ip_route_src_hook (const PVOID pvDest, const PVOID pvSrc)
+struct netif *ip_route_src_hook (const ip4_addr_t *pipsrc, const ip4_addr_t *pipdest)
 {
 #if LW_CFG_NET_ROUTER > 0
-    const  ip4_addr_t *dest = (const ip4_addr_t *)pvDest;
-    const  ip4_addr_t *src  = (const ip4_addr_t *)pvSrc;
-    struct netif      *netif;
+    struct netif  *netif;
     
 #if LW_CFG_NET_BALANCING > 0
-    netif = srt_route_search_hook(dest, src);                           /*  source route first          */
+    netif = srt_route_search_hook(pipsrc, pipdest);                     /*  source route first          */
 #else
     netif = LW_NULL;
 #endif
     
     if (netif == LW_NULL) {
-        netif = rt_route_search_hook(dest, src);
+        netif = rt_route_search_hook(pipsrc, pipdest);
     }
 
     return  ((PVOID)netif);
@@ -1013,18 +1042,16 @@ PVOID ip_route_src_hook (const PVOID pvDest, const PVOID pvSrc)
 /*********************************************************************************************************
 ** 函数名称: ip_gw_hook
 ** 功能描述: sylixos ip route gw hook
-** 输　入  : dest  destination route netif
+** 输　入  : pnetif  netif
+**           pipdest destination
 ** 输　出  : netif
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-PVOID ip_gw_hook (PVOID  pvNetif, const PVOID pvDest)
+ip4_addr_t *ip_gw_hook (struct netif *pnetif, const ip4_addr_t *pipdest)
 {
 #if LW_CFG_NET_ROUTER > 0
-    const  ip4_addr_t *dest  = (const ip4_addr_t *)pvDest;
-    struct netif      *netif = (struct netif *)pvNetif;
-
-    return  ((PVOID)rt_route_gateway_hook(netif, dest));
+    return  (rt_route_gateway_hook(pnetif, pipdest));
     
 #else
     return  (LW_NULL);
@@ -1033,29 +1060,27 @@ PVOID ip_gw_hook (PVOID  pvNetif, const PVOID pvDest)
 /*********************************************************************************************************
 ** 函数名称: ip6_route_src_hook
 ** 功能描述: sylixos ip route hook
-** 输　入  : pvSrc source address
-**           dest  destination route netif
+** 输　入  : pip6src     source address
+**           pip6dest    destination route netif
 ** 输　出  : netif
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
 #if LWIP_IPV6 > 0
 
-PVOID ip6_route_src_hook (const PVOID pvSrc, const PVOID pvDest)
+struct netif *ip6_route_src_hook (const ip6_addr_t *pip6src, const ip6_addr_t *pip6dest)
 {
 #if LW_CFG_NET_ROUTER > 0
-    const  ip6_addr_t *dest6 = (const ip6_addr_t *)pvDest;
-    const  ip6_addr_t *src6  = (const ip6_addr_t *)pvSrc;
-    struct netif      *netif;
+    struct netif  *netif;
     
 #if LW_CFG_NET_BALANCING > 0
-    netif = srt6_route_search_hook(dest6, src6);                        /*  source route first          */
+    netif = srt6_route_search_hook(pip6src, pip6dest);                  /*  source route first          */
 #else
     netif = LW_NULL;
 #endif
     
     if (netif == LW_NULL) {
-        netif = rt6_route_search_hook(dest6, src6);
+        netif = rt6_route_search_hook(pip6src, pip6dest);
     }
 
     return  ((PVOID)netif);
@@ -1072,13 +1097,10 @@ PVOID ip6_route_src_hook (const PVOID pvSrc, const PVOID pvDest)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-PVOID ip6_gw_hook (PVOID  pvNetif, const PVOID pvDest)
+ip6_addr_t *ip6_gw_hook (struct netif *pnetif, const ip6_addr_t *pip6dest)
 {
 #if LW_CFG_NET_ROUTER > 0
-    const  ip6_addr_t *dest6 = (const ip6_addr_t *)pvDest;
-    struct netif      *netif = (struct netif *)pvNetif;
-
-    return  ((PVOID)rt6_route_gateway_hook(netif, dest6));
+    return  (rt6_route_gateway_hook(pnetif, pip6dest));
     
 #else
     return  (LW_NULL);
@@ -1089,127 +1111,37 @@ PVOID ip6_gw_hook (PVOID  pvNetif, const PVOID pvDest)
 /*********************************************************************************************************
 ** 函数名称: link_input_hook
 ** 功能描述: sylixos link input hook (没有在 CORELOCK 锁中)
-** 输　入  : pvPBuf        pbuf
-**           pvNetif       net interface
+** 输　入  : p             pbuf
+**           pnetif        net interface
 ** 输　出  : 是否被 eaten
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-int link_input_hook (PVOID  pvPBuf, PVOID  pvNetif)
+int link_input_hook (struct pbuf *p, struct netif *pnetif)
 {
 extern INT packet_link_input(struct pbuf *p, struct netif *inp, BOOL bOutgo);
 
-    if (!netif_is_up((struct netif *)pvNetif)) {
+    if (!netif_is_up(pnetif)) {
         return  (1);                                                    /*  没有使能的网卡不接收        */
     }
 
-    return  (packet_link_input((struct pbuf *)pvPBuf, (struct netif *)pvNetif, LW_FALSE));
+    return  (packet_link_input(p, pnetif, LW_FALSE));
 }
 /*********************************************************************************************************
 ** 函数名称: link_output_hook
 ** 功能描述: sylixos link output hook (在 CORELOCK 锁中)
-** 输　入  : pvPBuf        pbuf
-**           pvNetif       net interface
+** 输　入  : p             pbuf
+**           pnetif        net interface
 ** 输　出  : 是否被 eaten
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-int link_output_hook (PVOID  pvPBuf, PVOID  pvNetif)
+int link_output_hook (struct pbuf *p, struct netif *pnetif)
 {
 extern INT packet_link_input(struct pbuf *p, struct netif *inp, BOOL bOutgo);
 
-    return  (packet_link_input((struct pbuf *)pvPBuf, (struct netif *)pvNetif, LW_TRUE));
+    return  (packet_link_input(p, pnetif, LW_TRUE));
 }
-/*********************************************************************************************************
-** 函数名称: ppp_link_status_hook
-** 功能描述: sylixos provide ppp status call back
-** 输　入  : pcb       pcb
-**           iError    error code
-**           pvArg     arg
-** 输　出  : netif
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-#if PPP_SUPPORT > 0 || PPPOE_SUPPORT > 0
-
-VOID ppp_link_status_hook (PVOID pvPPP, INT iError, PVOID pvArg)
-{
-    ppp_pcb *pcb = (ppp_pcb *)pvPPP;
-    
-    char    *pcError = "<unknown>";
-    char     cNetifName[16];
-    char    *pcNetifName;
-    
-    switch (iError) {
-    
-    case PPPERR_NONE:
-        pcError = "link is up";
-        break;
-        
-    case PPPERR_PARAM:
-        pcError = "invalid parameter";
-        break;
-        
-    case PPPERR_OPEN:
-        pcError = "unable to open PPP session";
-        break;
-        
-    case PPPERR_DEVICE:
-        pcError = "invalid I/O device for PPP";
-        break;
-        
-    case PPPERR_ALLOC:
-        pcError = "unable to allocate resources";
-        break;
-        
-    case PPPERR_USER:
-        pcError = "user interrupt";
-        break;
-        
-    case PPPERR_CONNECT:
-        pcError = "connection lost";
-        break;
-        
-    case PPPERR_AUTHFAIL:
-        pcError = "failed authentication challenge";
-        break;
-        
-    case PPPERR_PROTOCOL:
-        pcError = "failed to meet protocol";
-        break;
-        
-    case PPPERR_PEERDEAD:
-        pcError = "connection timeout";
-        break;
-        
-    case PPPERR_IDLETIMEOUT:
-        pcError = "idle Timeout";
-        break;
-        
-    case PPPERR_CONNECTTIME:
-        pcError = "max connect time reached";
-        break;
-        
-    case PPPERR_LOOPBACK:
-        pcError = "loopback detected";
-        break;
-    }
-    
-    pcNetifName = if_indextoname(pcb->netif->num, cNetifName);
-    if (!pcNetifName) {
-        pcNetifName = "<unknown>";
-    }
-    
-    if (iError == PPPERR_NONE) {
-        printk(KERN_INFO "ppp %s status: %s.\n", pcNetifName, pcError);
-    
-    } else {
-        printk(KERN_ERR "ppp %s status: %s.\n", pcNetifName, pcError);
-    }
-}
-
-#endif                                                                  /*  PPP_SUPPORT > 0 ||          */
-                                                                        /*  PPPOE_SUPPORT > 0           */
 /*********************************************************************************************************
 ** 函数名称: htonl
 ** 功能描述: inet htonl

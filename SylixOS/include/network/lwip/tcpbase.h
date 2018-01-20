@@ -1,11 +1,11 @@
 /**
  * @file
- *
- * 6LowPAN output for IPv6. Uses ND tables for link-layer addressing. Fragments packets to 6LowPAN units.
+ * Base TCP API definitions shared by TCP and ALTCP\n
+ * See also @ref tcp_raw
  */
 
 /*
- * Copyright (c) 2015 Inico Technologies Ltd.
+ * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification,
@@ -32,55 +32,57 @@
  *
  * This file is part of the lwIP TCP/IP stack.
  *
- * Author: Ivan Delamer <delamer@inicotech.com>
+ * Author: Adam Dunkels <adam@sics.se>
  *
- *
- * Please coordinate changes and requests with Ivan Delamer
- * <delamer@inicotech.com>
  */
+#ifndef LWIP_HDR_TCPBASE_H
+#define LWIP_HDR_TCPBASE_H
 
-#ifndef LWIP_HDR_LOWPAN6_H
-#define LWIP_HDR_LOWPAN6_H
+#include "lwip/opt.h"
 
-#include "netif/lowpan6_opts.h"
-
-#if LWIP_IPV6 && LWIP_6LOWPAN /* don't build if not configured for use in lwipopts.h */
-
-#include "lwip/pbuf.h"
-#include "lwip/ip.h"
-#include "lwip/ip_addr.h"
-#include "lwip/netif.h"
+#if LWIP_TCP /* don't build if not configured for use in lwipopts.h */
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/** 1 second period */
-#define LOWPAN6_TMR_INTERVAL 1000
 
-void lowpan6_tmr(void);
+#if LWIP_WND_SCALE
+typedef u32_t tcpwnd_size_t;
+#else
+typedef u16_t tcpwnd_size_t;
+#endif
 
-err_t lowpan6_set_context(u8_t index, const ip6_addr_t * context);
-err_t lowpan6_set_short_addr(u8_t addr_high, u8_t addr_low);
+enum tcp_state {
+  CLOSED      = 0,
+  LISTEN      = 1,
+  SYN_SENT    = 2,
+  SYN_RCVD    = 3,
+  ESTABLISHED = 4,
+  FIN_WAIT_1  = 5,
+  FIN_WAIT_2  = 6,
+  CLOSE_WAIT  = 7,
+  CLOSING     = 8,
+  LAST_ACK    = 9,
+  TIME_WAIT   = 10
+};
+/* ATTENTION: this depends on state number ordering! */
+#define TCP_STATE_IS_CLOSING(state) ((state) >= FIN_WAIT_1)
 
-#if LWIP_IPV4
-err_t lowpan4_output(struct netif *netif, struct pbuf *q, const ip4_addr_t *ipaddr);
-#endif /* LWIP_IPV4 */
-err_t lowpan6_output(struct netif *netif, struct pbuf *q, const ip6_addr_t *ip6addr);
-err_t lowpan6_input(struct pbuf * p, struct netif *netif);
-err_t lowpan6_if_init(struct netif *netif);
+/* Flags for "apiflags" parameter in tcp_write */
+#define TCP_WRITE_FLAG_COPY 0x01
+#define TCP_WRITE_FLAG_MORE 0x02
 
-/* pan_id in network byte order. */
-err_t lowpan6_set_pan_id(u16_t pan_id);
+#define TCP_PRIO_MIN    1
+#define TCP_PRIO_NORMAL 64
+#define TCP_PRIO_MAX    127
 
-#if !NO_SYS
-err_t tcpip_6lowpan_input(struct pbuf *p, struct netif *inp);
-#endif /* !NO_SYS */
+const char* tcp_debug_state_str(enum tcp_state s);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* LWIP_IPV6 && LWIP_6LOWPAN */
+#endif /* LWIP_TCP */
 
-#endif /* LWIP_HDR_LOWPAN6_H */
+#endif /* LWIP_HDR_TCPBASE_H */

@@ -53,9 +53,9 @@
 #define LOWPAN_NULL_MAC 1
 #endif
 
-/** LOWPAN_XMAC_RDC==1: Enable XMAC RDC drvier */
+/** LOWPAN_XMAC_RDC==1: Enable XMAC RDC drvier (Unimplemented!) */
 #ifndef LOWPAN_XMAC_RDC
-#define LOWPAN_XMAC_RDC 1
+#define LOWPAN_XMAC_RDC 0
 #endif
 
 /** LOWPAN_NULL_RDC==1: Enable NULL RDC drvier */

@@ -70,7 +70,7 @@ struct netdev_funcs {
   int  (*down)(struct netdev *netdev);
   int  (*remove)(struct netdev *netdev);
   
-  /* netdev ioctl 
+  /* netdev ioctl (Only 3 commands, SIOCSIFFLAGS command only 'IFF_PROMISC', 'IFF_ALLMULTI' should do)
    * cmd: SIOCSIFMTU:    arg is struct ifreq *pifreq, set MTU      (pifreq->ifr_mtu)
    *      SIOCSIFFLAGS:  arg is struct ifreq *pifreq, set PROMISC  (pifreq->ifr_flags & IFF_PROMISC)
    *                                                      ALLMULTI (pifreq->ifr_flags & IFF_ALLMULTI)
@@ -96,7 +96,8 @@ struct netdev_funcs {
  * network device struct.
  */
 typedef struct netdev {
-#define NETDEV_MAGIC    0xf7e34a81
+#define NETDEV_VERSION  (0x00020001)
+#define NETDEV_MAGIC    (0xf7e34a81 + NETDEV_VERSION)
   UINT32 magic_no;  /* MUST be NETDEV_MAGIC */
 
   char  dev_name[IF_NAMESIZE];  /* user network device name (such as igb* rtl* also call initialize with '\0') */
@@ -146,6 +147,10 @@ typedef struct netdev {
   void *wireless_handlers; /* iw_handler_def ptr */
   void *wireless_data; /* iw_public_data ptr */
   
+  /* SylixOS Reserve */
+  void *kern_priv; /* kernel priv */
+  void *kern_res[16];
+  
   ULONG sys[254];  /* reserve for netif */
 } netdev_t;
 
@@ -163,8 +168,7 @@ netdev_t *netdev_find_by_devname(const char *dev_name);
 
 /* if netdev link status changed has been detected, 
  * driver must call the following functions 
- * linkup 1: linked up  0:not link 
- * WARNING: You MUST DO NOT lock device then call this function, it will cause a deadlock with TCP LOCK */
+ * linkup 1: linked up  0:not link */
 int  netdev_set_linkup(netdev_t *netdev, int linkup, UINT64 speed);
 int  netdev_get_linkup(netdev_t *netdev, int *linkup);
 
@@ -203,22 +207,28 @@ void netdev_linkinfo_recv_inc(netdev_t *netdev);
 void netdev_linkinfo_xmit_inc(netdev_t *netdev);
 
 /* netdev send can ref pbuf ? */
-#define NETDEV_TX_CAN_REF_PBUF(p) \
-  (((p)->tot_len == (p)->len) ? \
-    ((((p)->type != PBUF_REF) && ((p)->type != PBUF_ROM)) ? \
-      1 : 0) : 0)
-      
+#define NETDEV_TX_CAN_REF_PBUF(p) netdev_pbuf_can_ref(p)
+
 /* netdev buffer data ? */
-#define NETDEV_PBUF_DATA(p, type) \
-  (type)((p)->payload)
+#define NETDEV_PBUF_DATA(p, type) (type)netdev_pbuf_data(p)
 
 /* netdev input buffer get 
- * reserve ETH_PAD_SIZE + SIZEOF_VLAN_HDR size. */
+ * netdev_pbuf_alloc auto reserve ETH_PAD_SIZE + SIZEOF_VLAN_HDR size. */
 struct pbuf *netdev_pbuf_alloc(UINT16 len);
 struct pbuf *netdev_pbuf_alloc_ram(UINT16 len, UINT16 res);
 void netdev_pbuf_free(struct pbuf *p);
+
+/* pbuf stat and data */
+BOOL netdev_pbuf_can_ref(struct pbuf *p);
+void *netdev_pbuf_data(struct pbuf *p);
+
+/* netdev buffer header move */
 UINT8 *netdev_pbuf_push(struct pbuf *p, UINT16 len);
 UINT8 *netdev_pbuf_pull(struct pbuf *p, UINT16 len);
+
+/* netdev buffer tail cat and truncate */
+int netdev_pbuf_link(struct pbuf *h, struct pbuf *t, BOOL ref_t);
+int netdev_pbuf_trunc(struct pbuf *p, UINT16 len);
 
 /* netdev buffer get vlan info */
 int  netdev_pbuf_vlan_present(struct pbuf *p);

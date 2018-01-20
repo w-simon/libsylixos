@@ -56,18 +56,24 @@ extern "C" {
 /** This netbuf includes a checksum */
 #define NETBUF_FLAG_CHKSUM      0x02
 
+#ifdef SYLIXOS /* SylixOS Add IPV6_RECVHOPLIMIT support for ripng */
+/** This netbuf has hoplim set */
+#define NETBUF_FLAG_HOPLIM      0x80
+#endif /* SYLIXOS */
+
 /** "Network buffer" - contains data and addressing info */
 struct netbuf {
   struct pbuf *p, *ptr;
   ip_addr_t addr;
   u16_t port;
 #if LWIP_NETBUF_RECVINFO || LWIP_CHECKSUM_ON_COPY
-#if LWIP_CHECKSUM_ON_COPY
   u8_t flags;
-#endif /* LWIP_CHECKSUM_ON_COPY */
   u16_t toport_chksum;
 #if LWIP_NETBUF_RECVINFO
   ip_addr_t toaddr;
+#if defined(SYLIXOS) && LWIP_IPV6
+  u8_t hoplim;
+#endif /* LWIP_IPV6 */
 #endif /* LWIP_NETBUF_RECVINFO */
 #endif /* LWIP_NETBUF_RECVINFO || LWIP_CHECKSUM_ON_COPY */
 };

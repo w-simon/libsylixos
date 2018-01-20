@@ -1548,7 +1548,7 @@ ssize_t  unix_recvmsg (AF_UNIX_T  *pafunix, struct msghdr *msg, int flags)
     
     } else {
         struct iovec    liovec, *msg_iov;
-        size_t          msg_iovlen;
+        int             msg_iovlen;
         ssize_t         sstRecvCnt;
         unsigned int    i, totalsize;
         char           *lbuf;
@@ -1813,7 +1813,7 @@ ssize_t  unix_sendmsg (AF_UNIX_T  *pafunix, const struct msghdr *msg, int flags)
                                   
     } else {
         struct iovec    liovec,*msg_iov;
-        size_t          msg_iovlen;
+        int             msg_iovlen;
         unsigned int    i, totalsize;
         ssize_t         size;
         char           *lbuf;

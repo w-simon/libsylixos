@@ -92,7 +92,7 @@ void srt6_srtentry_to_sentry(struct srt6_entry *sentry6, const struct srtentry *
 /* tcpip hooks */
 void srt6_netif_add_hook(struct netif *netif);
 void srt6_netif_remove_hook(struct netif *netif);
-struct netif *srt6_route_search_hook(const ip6_addr_t *ip6dest, const ip6_addr_t *ip6src);
+struct netif *srt6_route_search_hook(const ip6_addr_t *ip6src, const ip6_addr_t *ip6dest);
 
 #endif /* LWIP_IPV6 */
 #endif /* __IP6_SROUTE_H */

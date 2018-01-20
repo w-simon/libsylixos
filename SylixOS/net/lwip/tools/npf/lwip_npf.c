@@ -867,7 +867,7 @@ INT  API_INetNpfAttach (CPCHAR  pcNetifName)
     }
 
     __NPF_LOCK();                                                       /*  锁定 NPF 表                 */
-    pnetif = netif_find((PCHAR)pcNetifName);
+    pnetif = netif_find(pcNetifName);
     if (pnetif == LW_NULL) {
         __NPF_UNLOCK();                                                 /*  解锁 NPF 表                 */
         _ErrorHandle(EINVAL);
@@ -913,7 +913,7 @@ INT  API_INetNpfDetach (CPCHAR  pcNetifName)
     }
 
     __NPF_LOCK();                                                       /*  锁定 NPF 表                 */
-    pnetif = netif_find((PCHAR)pcNetifName);
+    pnetif = netif_find(pcNetifName);
     if (pnetif == LW_NULL) {
         __NPF_UNLOCK();                                                 /*  解锁 NPF 表                 */
         _ErrorHandle(EINVAL);

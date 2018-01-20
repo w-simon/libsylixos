@@ -41,6 +41,7 @@
   gateway=192.168.1.1
   default=1
   mac=00:11:22:33:44:55
+  ipv6_auto_cfg=1         (如果将 SylixOS 作为 IPv6 路由器, 则 ipv6_auto_cfg=0)
   
   或者
   
@@ -56,15 +57,16 @@
 /*********************************************************************************************************
   配置文件位置
 *********************************************************************************************************/
-#define LW_IFPARAM_PATH     "/etc/ifparam.ini"
-#define LW_RESCONF_PATH     "/etc/resolv.conf"
-#define LW_IFPARAM_ENABLE   "enable"
-#define LW_IFPARAM_IPADDR   "ipaddr"
-#define LW_IFPARAM_MASK     "netmask"
-#define LW_IFPARAM_GW       "gateway"
-#define LW_IFPARAM_MAC      "mac"
-#define LW_IFPARAM_DEFAULT  "default"
-#define LW_IFPARAM_DHCP     "dhcp"
+#define LW_IFPARAM_PATH         "/etc/ifparam.ini"
+#define LW_RESCONF_PATH         "/etc/resolv.conf"
+#define LW_IFPARAM_ENABLE       "enable"
+#define LW_IFPARAM_IPADDR       "ipaddr"
+#define LW_IFPARAM_MASK         "netmask"
+#define LW_IFPARAM_GW           "gateway"
+#define LW_IFPARAM_MAC          "mac"
+#define LW_IFPARAM_DEFAULT      "default"
+#define LW_IFPARAM_DHCP         "dhcp"
+#define LW_IFPARAM_IPV6_ACFG    "ipv6_auto_cfg"
 /*********************************************************************************************************
   ini 配置
 *********************************************************************************************************/
@@ -426,6 +428,37 @@ int  if_param_getdhcp (void *pifparam, int *dhcp)
     }
 
     *dhcp = __iniGetInt(pinisec, LW_IFPARAM_DHCP, 0);
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: if_param_ipv6autocfg
+** 功能描述: 读取网卡是否使用 IPv6 地址自动配置 (如果未找到则按照默认网卡初始化参数进行)
+** 输　入  : pifparam      配置句柄
+**           def           是否为默认路由
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+** 注  意  : IPv6 路由器不应使能此选项
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+int  if_param_ipv6autocfg (void *pifparam, int *autocfg)
+{
+    PLW_INI_SEC  pinisec = (PLW_INI_SEC)pifparam;
+    INT          iRet;
+
+    if (!pinisec || !autocfg) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    iRet = __iniGetInt(pinisec, LW_IFPARAM_IPV6_ACFG, PX_ERROR);
+    if (iRet < 0) {
+        return  (PX_ERROR);
+    }
+    
+    *autocfg = iRet;
 
     return  (ERROR_NONE);
 }

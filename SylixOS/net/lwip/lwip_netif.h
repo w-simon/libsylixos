@@ -28,7 +28,10 @@
 #if LW_CFG_NET_EN > 0
 
 #ifdef __SYLIXOS_KERNEL
-INT  netif_get_flags(struct netif *pnetif);
+#include "lwip/netif.h"
+
+INT   netif_get_flags(struct netif *pnetif);
+VOID  netif_callback_init(VOID);
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 
 #endif                                                                  /*  LW_CFG_NET_EN               */

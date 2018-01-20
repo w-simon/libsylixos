@@ -69,11 +69,6 @@ typedef struct {
     ip4_addr_t          NAT_ipaddrELocalIp;
 } __NAT_ALIAS;
 typedef __NAT_ALIAS    *__PNAT_ALIAS;
-/*********************************************************************************************************
-  NAT ²Ù×÷Ëø
-*********************************************************************************************************/
-#define __NAT_OP_LOCK()     API_SemaphoreMPend(_G_ulNatOpLock, LW_OPTION_WAIT_INFINITE)
-#define __NAT_OP_UNLOCK()   API_SemaphoreMPost(_G_ulNatOpLock)
 
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */
                                                                         /*  LW_CFG_NET_NAT_EN > 0       */

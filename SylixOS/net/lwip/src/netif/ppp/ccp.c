@@ -31,7 +31,7 @@
 #include "netif/ppp/ppp_opts.h"
 #if PPP_SUPPORT && CCP_SUPPORT  /* don't build if not configured for use in lwipopts.h */
 
-#include "stdlib.h"
+#include <stdlib.h>
 #include <string.h>
 
 #include "netif/ppp/ppp_impl.h"

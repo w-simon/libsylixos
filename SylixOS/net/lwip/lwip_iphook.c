@@ -10,13 +10,13 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: lwip_hook.c
+** 文   件   名: lwip_iphook.c
 **
 ** 创   建   人: Han.Hui (韩辉)
 **
 ** 文件创建日期: 2017 年 05 月 12 日
 **
-** 描        述: lwip SylixOS HOOK.
+** 描        述: lwip IP HOOK.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -26,8 +26,9 @@
 *********************************************************************************************************/
 #if LW_CFG_NET_EN > 0
 #include "lwip/tcpip.h"
+#include "net/if.h"
 #include "net/if_flags.h"
-#include "lwip_hook.h"
+#include "lwip_iphook.h"
 /*********************************************************************************************************
   回调点
 *********************************************************************************************************/
@@ -256,11 +257,11 @@ UINT8  *net_ip_hook_netif_get_hwaddr (struct netif *pnetif, int *hwaddr_len)
 *********************************************************************************************************/
 int  net_ip_hook_netif_get_index (struct netif *pnetif)
 {
-    return  (pnetif ? pnetif->num : PX_ERROR);
+    return  (pnetif ? netif_get_index(pnetif) : 0);
 }
 /*********************************************************************************************************
 ** 函数名称: net_ip_hook_netif_get_name
-** 功能描述: 获取网卡 index
+** 功能描述: 获取网卡 name
 ** 输　入  : pnetif        网络接口
 **           name          名字
 **           size          缓冲区长度
@@ -270,15 +271,13 @@ int  net_ip_hook_netif_get_index (struct netif *pnetif)
 *********************************************************************************************************/
 int  net_ip_hook_netif_get_name (struct netif *pnetif, char *name, size_t size)
 {
-    if (pnetif && name && (size > 3)) {
+    if (pnetif && name && (size < IF_NAMESIZE)) {
         return  (PX_ERROR);
     }
     
-    name[0] = pnetif->name[0];
-    name[1] = pnetif->name[1];
-    lib_itoa(pnetif->num, &name[2], 10);
+    netif_get_name(pnetif, name);
     
-    return  (3);
+    return  (lib_strlen(name));
 }
 /*********************************************************************************************************
 ** 函数名称: net_ip_hook_netif_get_type
@@ -296,7 +295,7 @@ int  net_ip_hook_netif_get_type (struct netif *pnetif, int *type)
             *type = IFT_PPP;
         } else if (pnetif->flags & (NETIF_FLAG_ETHERNET | NETIF_FLAG_ETHARP)) {
             *type = IFT_ETHER;
-        } else if (pnetif->num == 0) {
+        } else if (ip4_addr_isloopback(netif_ip4_addr(pnetif))) {
             *type = IFT_LOOP;
         } else {
             *type = IFT_OTHER;

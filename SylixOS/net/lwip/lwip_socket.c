@@ -489,6 +489,14 @@ static ssize_t  __socketRead (SOCKET_T *psock, PVOID  pvBuffer, size_t  stLen)
         break;
     }
     
+    if (sstNum <= 0) {
+        psock->SOCK_iSoErr = errno;
+    
+    } else {
+        MONITOR_EVT_LONG3(MONITOR_EVENT_ID_NETWORK, MONITOR_EVENT_NETWORK_RECV, 
+                          0, 0, sstNum, LW_NULL);                       /*  目前无法获取 fd             */
+    }
+    
     return  (sstNum);
 }
 /*********************************************************************************************************
@@ -534,6 +542,14 @@ static ssize_t  __socketWrite (SOCKET_T *psock, CPVOID  pvBuffer, size_t  stLen)
             sstNum = lwip_write(psock->SOCK_iLwipFd, pvBuffer, stLen);
         }
         break;
+    }
+    
+    if (sstNum <= 0) {
+        psock->SOCK_iSoErr = errno;
+    
+    } else {
+        MONITOR_EVT_LONG3(MONITOR_EVENT_ID_NETWORK, MONITOR_EVENT_NETWORK_SEND, 
+                          0, 0, sstNum, LW_NULL);                       /*  目前无法获取 fd             */
     }
     
     return  (sstNum);
@@ -746,6 +762,10 @@ static INT  __socketIoctl (SOCKET_T *psock, INT  iCmd, PVOID  pvArg)
             case SIOCSIFMTU:
             case SIOCGIFHWADDR:
             case SIOCSIFHWADDR:
+            case SIOCGIFMETRIC:
+            case SIOCSIFMETRIC:
+            case SIOCADDMULTI:
+            case SIOCDELMULTI:
             case SIOCGSIZIFREQ6:
             case SIOCSIFADDR6:
             case SIOCSIFNETMASK6:
@@ -921,68 +941,6 @@ VOID  __socketReset (PLW_FD_ENTRY  pfdentry)
             lwip_setsockopt(psock->SOCK_iLwipFd, SOL_SOCKET, SO_LINGER, 
                             &lingerReset, sizeof(struct linger));
         }
-    }
-}
-/*********************************************************************************************************
-** 函数名称: lwip_recvmsg
-** 功能描述: lwip recvmsg
-** 输　入  : lwipfd      lwip 文件
-**           msg         消息
-**           flags       flag
-** 输　出  : 接收的数据长度
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-static ssize_t  lwip_recvmsg (int  s, struct msghdr *msg, int flags)
-{
-    msg->msg_controllen = 0;
-    
-    if (msg->msg_iovlen == 1) {
-        return  (lwip_recvfrom(s, msg->msg_iov->iov_base, msg->msg_iov->iov_len, flags,
-                               (struct sockaddr *)msg->msg_name, &msg->msg_namelen));
-    
-    } else {
-        struct iovec    liovec, *msg_iov;
-        size_t          msg_iovlen;
-        unsigned int    i, totalsize;
-        ssize_t         size;
-        char           *lbuf;
-        char           *temp;
-        
-        msg_iov    = msg->msg_iov;
-        msg_iovlen = msg->msg_iovlen;
-        
-        for (i = 0, totalsize = 0; i < msg_iovlen; i++) {
-            if ((msg_iov[i].iov_len == 0) || (msg_iov[i].iov_base == LW_NULL)) {
-                _ErrorHandle(EINVAL);
-                return  (PX_ERROR);
-            }
-            totalsize += (unsigned int)msg_iov[i].iov_len;
-        }
-        
-        lbuf = (char *)mem_malloc(totalsize);
-        if (lbuf == LW_NULL) {
-            _ErrorHandle(ENOMEM);
-            return  (PX_ERROR);
-        }
-        
-        liovec.iov_base = (PVOID)lbuf;
-        liovec.iov_len  = (size_t)totalsize;
-        
-        size = lwip_recvfrom(s, liovec.iov_base, liovec.iov_len, flags, 
-                             (struct sockaddr *)msg->msg_name, &msg->msg_namelen);
-        
-        temp = lbuf;
-        for (i = 0; size > 0 && i < msg_iovlen; i++) {
-            size_t   qty = (size_t)((size > msg_iov[i].iov_len) ? msg_iov[i].iov_len : size);
-            lib_memcpy(msg_iov[i].iov_base, temp, qty);
-            temp += qty;
-            size -= qty;
-        }
-        
-        mem_free(lbuf);
-        
-        return  (size);
     }
 }
 /*********************************************************************************************************

@@ -17,6 +17,9 @@
 ** 文件创建日期: 2014 年 03 月 21 日
 **
 ** 描        述: AF_PACKET 支持
+**
+** BUG:
+2018.01.11  支持组播设置.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -25,9 +28,11 @@
   裁剪控制
 *********************************************************************************************************/
 #if LW_CFG_NET_EN > 0
-#include "sys/socket.h"
+#include "net/if.h"
 #include "net/if_arp.h"
 #include "net/if_ether.h"
+#include "net/if_flags.h"
+#include "sys/socket.h"
 #include "netif/etharp.h"
 #include "lwip/mem.h"
 #include "lwip/pbuf.h"
@@ -41,8 +46,9 @@ extern void  __packet_socket_event(AF_PACKET_T *pafpacket, LW_SEL_TYPE type, INT
 /*********************************************************************************************************
   宏配置
 *********************************************************************************************************/
-#define __AF_PACKET_DEF_BUFMAX      65536                               /*  默认为 64K 接收缓冲         */
-#define __AF_PACKET_DEF_BUFMIN      (LW_CFG_KB_SIZE * 16)               /*  最小接收缓冲大小            */
+#define __AF_PACKET_BUF_MAX         (LW_CFG_KB_SIZE * 256)              /*  默认为 64K 接收缓冲         */
+#define __AF_PACKET_BUF_MIN         (LW_CFG_KB_SIZE * 16)               /*  最小接收缓冲大小            */
+#define __AF_PACKET_BUF_DEF         (LW_CFG_KB_SIZE * 64)
 #define __AF_PACKET_PKT_NODES       LW_CFG_LWIP_NUM_POOLS
 /*********************************************************************************************************
   全局变量
@@ -61,7 +67,6 @@ static LW_STACK                     _G_stackPacketNodes[__AF_PACKET_PKT_NODES_SI
 *********************************************************************************************************/
 #define __AF_PACKET_IS_NBIO(pafpacket, flags)   \
         ((pafpacket->PACKET_iFlag & O_NONBLOCK) || (flags & MSG_DONTWAIT))
-        
 #define __AF_PACKET_TYPE(pafpacket) (pafpacket->PACKET_iType)
 /*********************************************************************************************************
 ** 函数名称: __packetBufAlloc
@@ -73,8 +78,9 @@ static LW_STACK                     _G_stackPacketNodes[__AF_PACKET_PKT_NODES_SI
 *********************************************************************************************************/
 static AF_PACKET_N  *__packetBufAlloc (size_t  stLen)
 {
-    AF_PACKET_N  *pktm = (AF_PACKET_N *)API_PartitionGet(_G_hAfPacketNodes);
+    AF_PACKET_N  *pktm;
     
+    pktm = (AF_PACKET_N *)API_PartitionGet(_G_hAfPacketNodes);
     if (pktm == LW_NULL) {
         return  (LW_NULL);
     }
@@ -183,9 +189,8 @@ static ssize_t  __packetBufRecv (AF_PACKET_T *pafpacket, PVOID  pvBuffer, size_t
     if ((flags & MSG_PEEK) == 0) {
         _list_mono_allocate_seq(&pktq->PKTQ_pmonoHeader,
                                 &pktq->PKTQ_pmonoTail);                 /*  将消息从队列中删除          */
-                                
         __packetBufFree(pktm);
-                                
+        
         pktq->PKTQ_stTotal -= stMsgLen;                                 /*  更新缓冲区中的总数据        */
     }
     
@@ -218,7 +223,90 @@ static VOID  __packetUpdateReader (AF_PACKET_T *pafpacket, INT  iSoErr)
 *********************************************************************************************************/
 static INT  __packetSetMembership (AF_PACKET_T *pafpacket, INT  iCmd, struct packet_mreq  *pmreq)
 {
-    return  (PX_ERROR);
+    struct sockaddr_in *psaddr;
+    struct netif       *pnetif;
+    struct ifreq        ifreq;
+    ip4_addr_t          ipaddr;
+    
+    pnetif = netif_get_by_index((u8_t)pmreq->mr_ifindex);
+    if (!pnetif) {
+        _ErrorHandle(ENXIO);
+        return  (PX_ERROR);
+    }
+    
+    if (!(pnetif->flags & (NETIF_FLAG_ETHERNET | NETIF_FLAG_ETHARP)) || !pnetif->ioctl) {
+        _ErrorHandle(EOPNOTSUPP);
+        return  (PX_ERROR);
+    }
+    
+    switch (pmreq->mr_type) {
+    
+    case PACKET_MR_MULTICAST:                                           /*  组播地址                    */
+        psaddr = (struct sockaddr_in *)&ifreq.ifr_addr;
+        psaddr->sin_len    = sizeof(struct sockaddr_in);
+        psaddr->sin_family = AF_INET;
+        IP4_ADDR(&ipaddr, 224, pmreq->mr_address[3], 
+                 pmreq->mr_address[4], pmreq->mr_address[5]);
+        psaddr->sin_addr.s_addr = ipaddr.addr;
+        
+        if (iCmd == PACKET_ADD_MEMBERSHIP) {
+            return  (pnetif->ioctl(pnetif, SIOCADDMULTI, &ifreq));
+        
+        } else {
+            return  (pnetif->ioctl(pnetif, SIOCDELMULTI, &ifreq));
+        }
+        break;
+        
+    case PACKET_MR_PROMISC:                                             /*  混杂模式                    */
+        ifreq.ifr_flags = netif_get_flags(pnetif);
+        if (iCmd == PACKET_ADD_MEMBERSHIP) {
+            if (!(ifreq.ifr_flags & IFF_PROMISC)) {
+                ifreq.ifr_flags |= IFF_PROMISC;
+                if (pnetif->ioctl(pnetif, SIOCSIFFLAGS, &ifreq)) {
+                    return  (PX_ERROR);
+                }
+                pnetif->flags2 |= NETIF_FLAG2_PROMISC;
+            }
+        
+        } else {
+            if (ifreq.ifr_flags & IFF_PROMISC) {
+                ifreq.ifr_flags &= ~IFF_PROMISC;
+                if (pnetif->ioctl(pnetif, SIOCSIFFLAGS, &ifreq)) {
+                    return  (PX_ERROR);
+                }
+                pnetif->flags2 &= ~NETIF_FLAG2_PROMISC;
+            }
+        }
+        break;
+        
+    case PACKET_MR_ALLMULTI:                                            /*  全部组播                    */
+        ifreq.ifr_flags = netif_get_flags(pnetif);
+        if (iCmd == PACKET_ADD_MEMBERSHIP) {
+            if (!(ifreq.ifr_flags & IFF_ALLMULTI)) {
+                ifreq.ifr_flags |= IFF_ALLMULTI;
+                if (pnetif->ioctl(pnetif, SIOCSIFFLAGS, &ifreq)) {
+                    return  (PX_ERROR);
+                }
+                pnetif->flags2 |= NETIF_FLAG2_ALLMULTI;
+            }
+        
+        } else {
+            if (ifreq.ifr_flags & IFF_ALLMULTI) {
+                ifreq.ifr_flags &= ~IFF_ALLMULTI;
+                if (pnetif->ioctl(pnetif, SIOCSIFFLAGS, &ifreq)) {
+                    return  (PX_ERROR);
+                }
+                pnetif->flags2 &= ~NETIF_FLAG2_ALLMULTI;
+            }
+        }
+        break;
+        
+    default:
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: __packetRingTraversal
@@ -474,7 +562,6 @@ static BOOL  __packetCanRead (AF_PACKET_T *pafpacket, INT  flags, size_t  stLen)
     if (pafpacket->PACKET_bMmap == LW_FALSE) {
 #endif                                                                  /*  LW_CFG_NET_PACKET_MMAP > 0  */
         pktq = &pafpacket->PACKET_pktq;
-        
         if (pktq->PKTQ_pmonoHeader == LW_NULL) {                        /*  没有信息可接收              */
             return  (LW_FALSE);
         }
@@ -488,6 +575,7 @@ static BOOL  __packetCanRead (AF_PACKET_T *pafpacket, INT  flags, size_t  stLen)
 #if LW_CFG_NET_PACKET_MMAP > 0
     } else {
         BOOL  bCanRead = LW_FALSE;
+        
         __packetRingTraversal(&pafpacket->PACKET_mmapRx, __packetCanReadCb,
                               pafpacket, &bCanRead, LW_NULL, LW_NULL, 
                               LW_NULL, LW_NULL);
@@ -522,7 +610,7 @@ static AF_PACKET_T  *__packetCreate (INT  iType, INT  iProtocol)
     pafpacket->PACKET_iShutDFlag    = 0;
     pafpacket->PACKET_bRecvOut      = LW_TRUE;
     pafpacket->PACKET_iIfIndex      = PX_ERROR;
-    pafpacket->PACKET_stMaxBufSize  = __AF_PACKET_DEF_BUFMAX;
+    pafpacket->PACKET_stMaxBufSize  = __AF_PACKET_BUF_DEF;
     pafpacket->PACKET_ulRecvTimeout = LW_OPTION_WAIT_INFINITE;
     pafpacket->PACKET_tpver         = TPACKET_V1;
     pafpacket->PACKET_uiHdrLen      = TPACKET_HDRLEN;
@@ -559,16 +647,16 @@ static VOID  __packetDelete (AF_PACKET_T *pafpacket)
     __AF_PACKET_LOCK();
     __packetBufFreeAll(pafpacket);
     _List_Line_Del(&pafpacket->PACKET_lineManage, &_G_plineAfPacket);
+    __AF_PACKET_UNLOCK();
+    
 #if LW_CFG_NET_PACKET_MMAP > 0
     if (pafpacket->PACKET_bMmap) {
         API_VmmFreeArea(pafpacket->PACKET_mmapRx.PKTB_pvVirMem);
         API_VmmPhyFree(pafpacket->PACKET_mmapRx.PKTB_pvPhyMem);
     }
 #endif                                                                  /*  LW_CFG_NET_PACKET_MMAP > 0  */
-    __AF_PACKET_UNLOCK();
-    
+
     API_SemaphoreBDelete(&pafpacket->PACKET_hCanRead);
-    
     __SHEAP_FREE(pafpacket);
 }
 /*********************************************************************************************************
@@ -707,8 +795,8 @@ static VOID  __packetBufInput (AF_PACKET_T *pafpacket, struct pbuf *p, struct ne
         pktm->PKTM_ucForme = 0;
     }
     
-    pktm->PKTM_ucIndex  = inp->num;
-    pktm->PKTM_ucOutgo  = (u8_t)bOutgo;
+    pktm->PKTM_ucIndex = netif_get_index(inp);
+    pktm->PKTM_ucOutgo = (u8_t)bOutgo;
     
     _list_mono_free_seq(&pktq->PKTQ_pmonoHeader,
                         &pktq->PKTQ_pmonoTail,
@@ -890,7 +978,7 @@ INT  packet_link_input (struct pbuf *p, struct netif *inp, BOOL bOutgo)
     
         pafpacket = (AF_PACKET_T *)plineTemp;
         if ((pafpacket->PACKET_iIfIndex > 0) &&
-            (pafpacket->PACKET_iIfIndex != inp->num)) {                 /*  不是绑定的网卡              */
+            (pafpacket->PACKET_iIfIndex != netif_get_index(inp))) {     /*  不是绑定的网卡              */
             continue;
         }
         
@@ -950,6 +1038,7 @@ VOID  packet_init (VOID)
                                              LW_OPTION_WAIT_PRIORITY | LW_OPTION_DELETE_SAFE |
                                              LW_OPTION_INHERIT_PRIORITY | LW_OPTION_OBJECT_GLOBAL,
                                              LW_NULL);
+                                             
     _G_hAfPacketNodes = API_PartitionCreate("afpacket_nodes", _G_stackPacketNodes, __AF_PACKET_PKT_NODES,
                                             sizeof(AF_PACKET_N), LW_OPTION_OBJECT_GLOBAL, LW_NULL);
 }
@@ -1282,6 +1371,7 @@ ssize_t  packet_sendto (AF_PACKET_T *pafpacket, const void *data, size_t size, i
     if (err) {
         _ErrorHandle(err);
         return  (0);
+    
     } else {
         return  ((ssize_t)size);
     }
@@ -1438,6 +1528,7 @@ INT  packet_getsockname (AF_PACKET_T *pafpacket, struct sockaddr *name, socklen_
     if (err) {
         _ErrorHandle(err);
         return  (PX_ERROR);
+    
     } else {
         if (namelen) {
             *namelen = sizeof(struct sockaddr_ll);
@@ -1559,10 +1650,10 @@ INT  packet_setsockopt (AF_PACKET_T *pafpacket, int level, int optname,
         
         case SO_RCVBUF:
             pafpacket->PACKET_stMaxBufSize = *(INT *)optval;
-            if (pafpacket->PACKET_stMaxBufSize < __AF_PACKET_DEF_BUFMIN) {
-                pafpacket->PACKET_stMaxBufSize = __AF_PACKET_DEF_BUFMIN;
-            } else if (pafpacket->PACKET_stMaxBufSize > __AF_PACKET_DEF_BUFMAX) {
-                pafpacket->PACKET_stMaxBufSize = __AF_PACKET_DEF_BUFMAX;
+            if (pafpacket->PACKET_stMaxBufSize < __AF_PACKET_BUF_MIN) {
+                pafpacket->PACKET_stMaxBufSize = __AF_PACKET_BUF_MIN;
+            } else if (pafpacket->PACKET_stMaxBufSize > __AF_PACKET_BUF_MAX) {
+                pafpacket->PACKET_stMaxBufSize = __AF_PACKET_BUF_MAX;
             }
             iRet = ERROR_NONE;
             break;
@@ -1682,6 +1773,11 @@ INT  packet_getsockopt (AF_PACKET_T *pafpacket, int level, int optname, void *op
         
     case SOL_SOCKET:
         switch (optname) {
+        
+        case SO_TYPE:
+            *(INT *)optval = pafpacket->PACKET_iType;
+            iRet = ERROR_NONE;
+            break;
         
         case SO_RCVBUF:
             *(INT *)optval = pafpacket->PACKET_stMaxBufSize;

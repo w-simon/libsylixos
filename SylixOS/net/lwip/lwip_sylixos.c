@@ -35,6 +35,8 @@
   裁剪控制
 *********************************************************************************************************/
 #if LW_CFG_NET_EN > 0
+#include "net/if_lock.h"
+#include "net/if_flags.h"
 #include "lwip/tcpip.h"
 #include "lwip/inet.h"
 #include "lwip/netif.h"
@@ -43,6 +45,12 @@
 #include "lwip/sockets.h"
 #include "lwip/snmp/snmp.h"
 #include "lwip/snmp/snmp_mib2.h"
+/*********************************************************************************************************
+  内部头文件
+*********************************************************************************************************/
+#if LWIP_SNMP > 0 && LWIP_SNMP_V3 > 0
+#include "./tools/snmp/snmpv3_sylixos.h"
+#endif                                                                  /*  LWIP_SNMP && LWIP_SNMP_V3   */
 #include "./unix/af_unix.h"
 #include "./route/af_route.h"
 #include "./packet/af_packet.h"
@@ -112,12 +120,11 @@ extern err_t pppInit(void);
 static VOID  __netCloseAll (VOID)
 {
 #if LWIP_DHCP > 0
-    struct netif    *netif = netif_list;
+    struct netif  *netif;
 
-    for (; netif != LW_NULL; netif = netif->next) {
+    NETIF_FOREACH(netif) {
         if (netif_dhcp_data(netif)) {
-            netifapi_dhcp_release(netif);                               /*  解除 DHCP 租约, 同时停止网卡*/
-            netifapi_dhcp_stop(netif);                                  /*  释放资源                    */
+            netifapi_dhcp_release_and_stop(netif);                      /*  解除 DHCP 租约, 同时停止网卡*/
         }
     }
 #endif                                                                  /*  LWIP_DHCP > 0               */
@@ -149,7 +156,7 @@ static VOID  snmp_mib2_threadsync (snmp_threadsync_called_fn  pfunc, PVOID  pvAr
 *********************************************************************************************************/
 static VOID  __netSnmpInit (VOID)
 {
-    static const u16_t  ucContactLen  = 17;
+    static const u16_t  ucContactLen  = 19;
     static const u16_t  ucLocationLen = 6;
     
     static const u16_t  ucDesrLen = 7;
@@ -204,6 +211,8 @@ VOID  API_NetInit (VOID)
     
     bIsInit = LW_TRUE;
     
+    if_list_init();                                                     /*  网络接口链锁初始化          */
+    
 #if LW_CFG_LWIP_MEM_TLSF > 0
     tlsf_mem_create();
 #endif                                                                  /*  LW_CFG_LWIP_MEM_TLSF        */
@@ -218,7 +227,9 @@ VOID  API_NetInit (VOID)
     
     API_SystemHookAdd((LW_HOOK_FUNC)__netCloseAll, 
                       LW_OPTION_KERNEL_REBOOT);                         /*  安装系统关闭时, 回调函数    */
-                      
+
+    netif_callback_init();                                              /*  设置网络接口回调            */
+
     tcpip_init(LW_NULL, LW_NULL);                                       /*  以多任务形式初始化 lwip     */
     
 #if LW_CFG_NET_UNIX_EN > 0
@@ -279,7 +290,17 @@ VOID  API_NetInit (VOID)
 LW_API  
 VOID  API_NetSnmpInit (VOID)
 {
+#if LWIP_SNMP > 0
     snmp_init();
+
+#if LWIP_SNMP_V3 > 0
+    snmpv3_sylixos_init();
+#endif                                                                  /*  LWIP_SNMP_V3 > 0            */
+
+    snmp_v1_enable(LW_CFG_NET_SNMP_V1_EN);
+    snmp_v2c_enable(LW_CFG_NET_SNMP_V2_EN);
+    snmp_v3_enable(LW_CFG_NET_SNMP_V3_EN);
+#endif                                                                  /*  LWIP_SNMP > 0               */
 }
 
 #endif                                                                  /*  LW_CFG_NET_EN               */

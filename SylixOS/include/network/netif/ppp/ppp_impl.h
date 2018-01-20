@@ -138,10 +138,10 @@
  */
 struct link_callbacks {
   /* Start a connection (e.g. Initiate discovery phase) */
-  err_t (*connect) (ppp_pcb *pcb, void *ctx);
+  void (*connect) (ppp_pcb *pcb, void *ctx);
 #if PPP_SERVER
   /* Listen for an incoming connection (Passive mode) */
-  err_t (*listen) (ppp_pcb *pcb, void *ctx);
+  void (*listen) (ppp_pcb *pcb, void *ctx);
 #endif /* PPP_SERVER */
   /* End a connection (i.e. initiate disconnect phase) */
   void (*disconnect) (ppp_pcb *pcb, void *ctx);
@@ -405,9 +405,6 @@ void ppp_link_end(ppp_pcb *pcb);
 
 /* function called to process input packet */
 void ppp_input(ppp_pcb *pcb, struct pbuf *pb);
-
-/* helper function, merge a pbuf chain into one pbuf */
-struct pbuf *ppp_singlebuf(struct pbuf *p);
 
 
 /*

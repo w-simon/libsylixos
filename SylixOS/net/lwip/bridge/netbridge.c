@@ -151,18 +151,6 @@ static err_t  netbr_input (struct pbuf *p, struct netif *netif)
     return (ERR_IF); /* bridge was down */
   }
   
-  /* adjust pbuf length */
-  if (eh->type == PP_HTONS(ETHTYPE_VLAN)) {
-    if (p->tot_len > (netif->mtu + SIZEOF_ETH_HDR + SIZEOF_VLAN_HDR)) {
-      pbuf_realloc(p, (u16_t)(netif->mtu + SIZEOF_ETH_HDR + SIZEOF_VLAN_HDR));
-    }
-    
-  } else {
-    if (p->tot_len > (netif->mtu + SIZEOF_ETH_HDR)) {
-      pbuf_realloc(p, (u16_t)(netif->mtu + SIZEOF_ETH_HDR));
-    }
-  }
-  
   /* update mac cache */
   key = (eh->src.addr[ETH_ALEN - 1] & NETBRIDGE_MAC_CACHE_MASK);
   mac = &netbr_eth->mcache[key];
@@ -298,7 +286,7 @@ int  netbr_add_dev (const char *brdev, const char *sub, int sub_is_ifname)
     return (-1);
   }
   
-  LWIP_NETIF_LOCK();
+  LWIP_IF_LIST_LOCK(FALSE);
   found = 0;
   netdev_br = netdev_find_by_devname(brdev);
   if (netdev_br && (netdev_br->drv->transmit == netbr_transmit)) {
@@ -309,7 +297,7 @@ int  netbr_add_dev (const char *brdev, const char *sub, int sub_is_ifname)
     }
   }
   if (!found) {
-    LWIP_NETIF_UNLOCK();
+    LWIP_IF_LIST_UNLOCK();
     return (-1);
   }
   
@@ -324,10 +312,10 @@ int  netbr_add_dev (const char *brdev, const char *sub, int sub_is_ifname)
     found = 1;
   }
   if (!found || (netdev->net_type != NETDEV_TYPE_ETHERNET)) {
-    LWIP_NETIF_UNLOCK();
+    LWIP_IF_LIST_UNLOCK();
     return (-1);
   }
-  LWIP_NETIF_UNLOCK();
+  LWIP_IF_LIST_UNLOCK();
   
   netbr_eth = (netbr_eth_t *)mem_malloc(sizeof(netbr_eth_t));
   if (!netbr_eth) {
@@ -409,7 +397,7 @@ int  netbr_delete_dev (const char *brdev, const char *sub, int sub_is_ifname)
     return (-1);
   }
   
-  LWIP_NETIF_LOCK();
+  LWIP_IF_LIST_LOCK(FALSE);
   found = 0;
   netdev_br = netdev_find_by_devname(brdev);
   if (netdev_br && (netdev_br->drv->transmit == netbr_transmit)) {
@@ -419,7 +407,7 @@ int  netbr_delete_dev (const char *brdev, const char *sub, int sub_is_ifname)
     }
   }
   if (!found) {
-    LWIP_NETIF_UNLOCK();
+    LWIP_IF_LIST_UNLOCK();
     return (-1);
   }
   
@@ -444,10 +432,10 @@ int  netbr_delete_dev (const char *brdev, const char *sub, int sub_is_ifname)
     }
   }
   if (!found) {
-    LWIP_NETIF_UNLOCK();
+    LWIP_IF_LIST_UNLOCK();
     return (-1);
   }
-  LWIP_NETIF_UNLOCK();
+  LWIP_IF_LIST_UNLOCK();
   
   flags = netif_get_flags(netif);
   if (flags & IFF_PROMISC) {
@@ -562,7 +550,7 @@ int  netbr_delete (const char *brdev)
     return (-1);
   }
   
-  LWIP_NETIF_LOCK();
+  LWIP_IF_LIST_LOCK(FALSE);
   found = 0;
   netdev_br = netdev_find_by_devname(brdev);
   if (netdev_br && (netdev_br->drv->transmit == netbr_transmit)) {
@@ -572,10 +560,10 @@ int  netbr_delete (const char *brdev)
     }
   }
   if (!found) {
-    LWIP_NETIF_UNLOCK();
+    LWIP_IF_LIST_UNLOCK();
     return (-1);
   }
-  LWIP_NETIF_UNLOCK();
+  LWIP_IF_LIST_UNLOCK();
   
   netdev_delete(netdev_br);
   
@@ -645,7 +633,7 @@ int  netbr_flush_cache (const char *brdev)
     return (-1);
   }
   
-  LWIP_NETIF_LOCK();
+  LWIP_IF_LIST_LOCK(FALSE);
   found = 0;
   netdev_br = netdev_find_by_devname(brdev);
   if (netdev_br && (netdev_br->drv->transmit == netbr_transmit)) {
@@ -655,10 +643,10 @@ int  netbr_flush_cache (const char *brdev)
     }
   }
   if (!found) {
-    LWIP_NETIF_UNLOCK();
+    LWIP_IF_LIST_UNLOCK();
     return (-1);
   }
-  LWIP_NETIF_UNLOCK();
+  LWIP_IF_LIST_UNLOCK();
   
   LOCK_TCPIP_CORE();
   for (pline = netbr->eth_list; pline != NULL; pline = _list_line_get_next(pline)) {

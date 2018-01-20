@@ -166,7 +166,7 @@ static struct pim_encap_pimhdr pim_encap_pimhdr = {
                                  ((g) >> 20) ^ ((g) >> 10) ^ (g))
 
 /* internal functions */
-static err_t ip4_mrt_ip_mdq(struct pbuf *p, struct netif *ifp, struct mfc *rt, vifi_t xmt_vif);
+static err_t ip4_mrt_ip_mdq(struct pbuf *p, struct netif *ifp, struct mfc *rt);
 
 /* ip4_mrt_rate_check */
 static int ip4_mrt_rate_check (struct timeval *tv, const struct timeval *period)
@@ -375,6 +375,10 @@ static void ip4_mrt_expire_upcalls (void *arg)
 /* ip4_mrt_init */
 static u8_t ip4_mrt_init (struct raw_pcb *pcb, int val)
 {
+  if (val == 0) {
+    return (ENOPROTOOPT);
+  }
+
   if (ip_mroute_pcb) {
     return (EADDRINUSE);
   }
@@ -399,6 +403,10 @@ static u8_t ip4_mrt_down (struct raw_pcb *pcb)
   vifi_t vifi;
   struct netif *ifp;
   struct ifreq ifr;
+  
+  if (ip_mroute_pcb == NULL) {
+    return (EINVAL);
+  }
   
   /* For each phyint in use, disable promiscuous reception of all IP
    * multicasts. */
@@ -512,8 +520,8 @@ static u8_t ip4_mrt_add_vif (struct vifctl *vifcp)
   } else { /* TUNNEL or real */
     if (vifcp->vifc_flags & VIFF_USE_IFINDEX) {
       /* Find the interface with an index */
-      for (ifp = netif_list; ifp != NULL; ifp = ifp->next) {
-        if (ifp->num == vifcp->vifc_lcl_ifindex) {
+      NETIF_FOREACH(ifp) {
+        if (netif_get_index(ifp) == vifcp->vifc_lcl_ifindex) {
           ifa.addr = netif_ip4_addr(ifp)->addr;
           vifcp->vifc_lcl_addr.s_addr = ifa.addr;
           break;
@@ -523,7 +531,7 @@ static u8_t ip4_mrt_add_vif (struct vifctl *vifcp)
     } else {
       /* Find the interface with an address */
       ifa.addr = vifcp->vifc_lcl_addr.s_addr;
-      for (ifp = netif_list; ifp != NULL; ifp = ifp->next) {
+      NETIF_FOREACH(ifp) {
         if (ip4_addr_cmp(&ifa, netif_ip4_addr(ifp))) {
           break;
         }
@@ -542,7 +550,7 @@ static u8_t ip4_mrt_add_vif (struct vifctl *vifcp)
         have_encap_tunnel = 1;
         multicast_decap_if.name[0] = 'm';
         multicast_decap_if.name[1] = 'c';
-        multicast_decap_if.num     = 255;
+        multicast_decap_if.num     = 254;
       }
     
       /* Set interface to fake encapsulator interface */
@@ -676,7 +684,6 @@ static u8_t ip4_mrt_add_mfc (struct mfcctl2 *mfccp)
   }
   
   /* Find the entry for which the upcall was made and update */
-  nstl = 0;
   hash = MFCHASH(mfccp->mfcc_origin.s_addr, mfccp->mfcc_mcastgrp.s_addr);
   for (pline = mfctable[hash], nstl = 0; pline != NULL; pline = _list_line_get_next(pline)) {
     rt = _LIST_ENTRY(pline, struct mfc, mfc_list);
@@ -702,10 +709,11 @@ static u8_t ip4_mrt_add_mfc (struct mfcctl2 *mfccp)
       
       /* free packets Qed at the end of this entry */
       while (rt->mfc_stall) {
-        struct rtdetq *rte = _LIST_ENTRY(rt->mfc_stall, struct rtdetq, list);
+        PLW_LIST_RING pring = _list_ring_get_prev(rt->mfc_stall);
+        struct rtdetq *rte = _LIST_ENTRY(pring, struct rtdetq, list);
         _List_Ring_Del(&rte->list, &rt->mfc_stall);
         if (rte->ifp) {
-          ip4_mrt_ip_mdq(&rte->p.pbuf, rte->ifp, rt, (vifi_t)-1);
+          ip4_mrt_ip_mdq(&rte->p.pbuf, rte->ifp, rt);
         }
         mem_free(rte);
         rt->mfc_nstall--;
@@ -744,7 +752,6 @@ static u8_t ip4_mrt_add_mfc (struct mfcctl2 *mfccp)
       rt->mfc_expire = 0;
       rt->mfc_nstall = 0;
       rt->mfc_stall  = NULL;
-      rt->mfc_nstall = 0;
       
       /* link into table */
       _List_Line_Add_Ahead(&rt->mfc_list, &mfctable[hash]);
@@ -786,8 +793,19 @@ static void ip4_mrt_raw_send (struct raw_pcb *pcb, struct pbuf *p, const ip4_add
 }
 
 /* ip4_mrt_phyif_send */
-static void ip4_mrt_phyint_send (struct ip_hdr *iphdr, struct vif *vifp, struct pbuf *p)
+static void ip4_mrt_phyint_send (struct vif *vifp, struct pbuf *p)
 {
+  struct ip_hdr *iphdr;
+  struct pbuf *p_out;
+  
+  p_out = pbuf_alloc(PBUF_LINK, p->tot_len, PBUF_RAM); /* allocate a new pbuf for sending */
+  if (p_out == NULL) {
+    return; /* ENOBUFS */
+  }
+  pbuf_copy(p_out, p);
+  
+  iphdr = ptod(p_out, struct ip_hdr *);
+
   /* decrement TTL */
   IPH_TTL_SET(iphdr, IPH_TTL(iphdr) - 1);
   
@@ -798,14 +816,17 @@ static void ip4_mrt_phyint_send (struct ip_hdr *iphdr, struct vif *vifp, struct 
     IPH_CHKSUM_SET(iphdr, IPH_CHKSUM(iphdr) + PP_HTONS(0x100));
   }
   
-  ip4_output_if_src(p, NULL, LWIP_IP_HDRINCL, 0, 0, 0, vifp->v_ifp);
+  /* TOS == 1 to determining this is a ip_mforward packet */
+  ip4_output_if_src(p, NULL, LWIP_IP_HDRINCL, 0, 1, 0, vifp->v_ifp);
+  pbuf_free(p_out);
 }
 
 /* ip4_mrt_encap_send */
-static void ip4_mrt_encap_send (struct ip_hdr *iphdr, struct vif *vifp, struct pbuf *p)
+static void ip4_mrt_encap_send (struct vif *vifp, struct pbuf *p)
 {
   struct pbuf *p_out;
   struct ip_hdr *iphdr_out;
+  struct ip_hdr *iphdr = ptod(p, struct ip_hdr *);
   struct netif *netif;
   ip4_addr_t src, dest;
   u16_t *id = ip4_get_ip_id();
@@ -817,6 +838,16 @@ static void ip4_mrt_encap_send (struct ip_hdr *iphdr, struct vif *vifp, struct p
     return; /* to big!!! */
   }
   
+  p_out = pbuf_alloc(PBUF_LINK + IP_HLEN, p->tot_len, PBUF_RAM); /* allocate a new pbuf for sending */
+  if (p_out == NULL) {
+    return; /* ENOBUFS */
+  }
+  pbuf_copy(p_out, p);
+  
+  iphdr = ptod(p_out, struct ip_hdr *); /* inner iphdr */
+  pbuf_header(p_out, IP_HLEN); /* move to outer header */
+  iphdr_out = ptod(p_out, struct ip_hdr *); /* outer iphdr */
+  
   /* decrement TTL */
   IPH_TTL_SET(iphdr, IPH_TTL(iphdr) - 1);
   
@@ -827,27 +858,19 @@ static void ip4_mrt_encap_send (struct ip_hdr *iphdr, struct vif *vifp, struct p
     IPH_CHKSUM_SET(iphdr, IPH_CHKSUM(iphdr) + PP_HTONS(0x100));
   }
   
-  p_out = pbuf_alloc(PBUF_LINK, PBUF_IP_HLEN, PBUF_RAM);
-  if (p_out == NULL) {
-    return;
-  }
-  
-  iphdr_out = ptod(p_out, struct ip_hdr *);
-  
   /* fill in the encapsulating IP header. */
   *iphdr_out = multicast_encap_iphdr;
   IPH_ID_SET(iphdr_out, PP_HTONS(*id));
   (*id)++;
-  len = PP_NTOHS(IPH_LEN(iphdr_out)) + PP_NTOHS(IPH_LEN(iphdr));
+  len = sizeof(multicast_encap_iphdr) + PP_NTOHS(IPH_LEN(iphdr));
   IPH_LEN_SET(iphdr_out, PP_HTONS(len));
   IPH_TOS_SET(iphdr_out, IPH_TOS(iphdr));
   iphdr_out->src.addr  = vifp->v_lcl_addr.s_addr;
   iphdr_out->dest.addr = vifp->v_rmt_addr.s_addr;
-  pbuf_chain(p_out, p); /* must use pbuf_chain() */
   
   src.addr = iphdr_out->src.addr;
   dest.addr = iphdr_out->dest.addr;
-  netif = ip4_route_src(&dest, &src); /* find route */
+  netif = ip4_route_src(&src, &dest); /* find route */
   if (netif == NULL) {
     IP_STATS_INC(ip.rterr);
     goto out;
@@ -864,7 +887,7 @@ out:
 }
 
 /* ip4_mrt_pim_send_rp */
-static void ip4_mrt_pim_send_rp (struct ip_hdr *iphdr, struct vif *vifp, struct pbuf *p, struct mfc *rt)
+static void ip4_mrt_pim_send_rp (const struct ip_hdr *iphdr, struct vif *vifp, struct pbuf *p, struct mfc *rt)
 {
   struct ip_hdr *iphdr_out;
   struct pim_encap_pimhdr *pimhdr;
@@ -907,7 +930,7 @@ static void ip4_mrt_pim_send_rp (struct ip_hdr *iphdr, struct vif *vifp, struct 
   
   src.addr = iphdr_out->src.addr;
   dest.addr = iphdr_out->dest.addr;
-  netif = ip4_route_src(&dest, &src); /* find route */
+  netif = ip4_route_src(&src, &dest); /* find route */
   if (netif == NULL) {
     IP_STATS_INC(ip.rterr);
     return;
@@ -925,22 +948,15 @@ static void ip4_mrt_pim_send_rp (struct ip_hdr *iphdr, struct vif *vifp, struct 
 }
 
 /* ip4_mrt_pim_send_upcall */
-static void ip4_mrt_pim_send_upcall (struct ip_hdr *iphdr, struct vif *vifp, struct pbuf *p)
+static void ip4_mrt_pim_send_upcall (const struct ip_hdr *iphdr, struct vif *vifp, struct pbuf *p)
 {
-  struct pbuf *toup;
   struct igmpmsg *im;
   int len = PP_NTOHS(IPH_LEN(iphdr));
   ip4_addr_t src;
   
   /* Send message to routing daemon to install
    * a route into the kernel table */
-  toup = pbuf_alloc(PBUF_RAW, sizeof(struct igmpmsg), PBUF_RAM);
-  if (toup == NULL) {
-    return; /* ENOBUF */
-  }
-  
-  /* Send message to routing daemon */
-  im = ptod(toup, struct igmpmsg *);
+  im = ptod(p, struct igmpmsg *);
   im->im_msgtype    = IGMPMSG_WHOLEPKT;
   im->im_mbz        = 0;
   im->im_vif        = vifp - viftable;
@@ -948,9 +964,7 @@ static void ip4_mrt_pim_send_upcall (struct ip_hdr *iphdr, struct vif *vifp, str
   im->im_dst.s_addr = iphdr->dest.addr;
   
   src.addr = iphdr->src.addr;
-  pbuf_chain(toup, p); /* must use pbuf_chain() */
-  ip4_mrt_raw_send(ip_mroute_pcb, toup, &src); /* send to daemon */
-  pbuf_free(toup);
+  ip4_mrt_raw_send(ip_mroute_pcb, p, &src); /* send to daemon */
   
   /* Keep statistics */
   PIMSTAT_INC(pims_snd_registers_msgs);
@@ -958,8 +972,9 @@ static void ip4_mrt_pim_send_upcall (struct ip_hdr *iphdr, struct vif *vifp, str
 }
 
 /* ip4_mrt_pim_send */
-static void ip4_mrt_pim_send (struct ip_hdr *iphdr, struct vif *vifp, struct pbuf *p, struct mfc *rt)
+static void ip4_mrt_pim_send (struct vif *vifp, struct pbuf *p, struct mfc *rt)
 {
+  struct ip_hdr *iphdr = ptod(p, struct ip_hdr *);
   struct pbuf *p_pim;
   int mtu;
   
@@ -972,40 +987,45 @@ static void ip4_mrt_pim_send (struct ip_hdr *iphdr, struct vif *vifp, struct pbu
     if (rt->mfc_rp.s_addr == INADDR_ANY) {
       return; /* rt->mfc_rp.s_addr must not 0 */
     }
-    p_pim = pbuf_alloc(PBUF_LINK, sizeof(pim_encap_iphdr) + sizeof(pim_encap_pimhdr), PBUF_RAM);
-    if (p_pim == NULL) {
-      return; /* ENOBUF */
-    }
-    pbuf_chain(p_pim, p); /* must use pbuf_chain() */
+  }
+  
+  /* allocate a new pbuf for sending */
+  p_pim = pbuf_alloc(PBUF_LINK + sizeof(pim_encap_iphdr) + sizeof(pim_encap_pimhdr), p->tot_len, PBUF_RAM);
+  if (p_pim == NULL) {
+    return; /* ENOBUF */
+  }
+  pbuf_copy(p_pim, p);
+  iphdr = ptod(p_pim, struct ip_hdr *); /* inner iphdr */
+  
+  /* decrement TTL */
+  IPH_TTL_SET(iphdr, IPH_TTL(iphdr) - 1);
+  
+  /* Incrementally update the IP checksum. */
+  if (IPH_CHKSUM(iphdr) >= PP_HTONS(0xffffU - 0x100)) {
+    IPH_CHKSUM_SET(iphdr, IPH_CHKSUM(iphdr) + PP_HTONS(0x100) + 1);
+  } else {
+    IPH_CHKSUM_SET(iphdr, IPH_CHKSUM(iphdr) + PP_HTONS(0x100));
+  }
+
+  if (mrt_api_config & MRT_MFC_RP) {
+    pbuf_header(p_pim, sizeof(pim_encap_iphdr) + sizeof(pim_encap_pimhdr)); /* move p_pim to outer header */
     ip4_mrt_pim_send_rp(iphdr, vifp, p_pim, rt);
-    pbuf_free(p_pim);
   
   } else {
-    ip4_mrt_pim_send_upcall(iphdr, vifp, p);
+    pbuf_header(p_pim, sizeof(struct igmpmsg));
+    ip4_mrt_pim_send_upcall(iphdr, vifp, p_pim);
   }
+  
+  pbuf_free(p_pim);
 }
 
 /* ip4_mrt_ip_mdq */
-static err_t ip4_mrt_ip_mdq (struct pbuf *p, struct netif *ifp, struct mfc *rt, vifi_t xmt_vif)
+static err_t ip4_mrt_ip_mdq (struct pbuf *p, struct netif *ifp, struct mfc *rt)
 {
   struct ip_hdr *iphdr = ptod(p, struct ip_hdr *);
   vifi_t vifi;
   int plen = PP_NTOHS(IPH_LEN(iphdr));
 
-  if (xmt_vif < numvifs) {
-    if (viftable[xmt_vif].v_flags & VIFF_REGISTER) {
-      ip4_mrt_pim_send(iphdr, viftable + xmt_vif, p, rt);
-    
-    } else if (viftable[xmt_vif].v_flags & VIFF_TUNNEL) {
-      ip4_mrt_encap_send(iphdr, viftable + xmt_vif, p);
-    
-    } else {
-      ip4_mrt_phyint_send(iphdr, viftable + xmt_vif, p);
-    }
-    
-    return (ERR_OK);
-  }
-  
   /*
    * Don't forward if it didn't arrive from the parent vif for its origin.
    */
@@ -1082,17 +1102,19 @@ static err_t ip4_mrt_ip_mdq (struct pbuf *p, struct netif *ifp, struct mfc *rt, 
    *        - the ttl exceeds the vif's threshold
    *        - there are group members downstream on interface */
   for (vifi = 0; vifi < numvifs; vifi++) {
-    if ((rt->mfc_ttls[vifi] > 0) && (IPH_TTL(iphdr) > rt->mfc_ttls[vifi])) {
+    if ((viftable[vifi].v_ifp) && 
+        (rt->mfc_ttls[vifi] > 0) && 
+        (IPH_TTL(iphdr) > rt->mfc_ttls[vifi])) {
       viftable[vifi].v_pkt_out++;
       viftable[vifi].v_bytes_out += plen;
       if (viftable[vifi].v_flags & VIFF_REGISTER) {
-        ip4_mrt_pim_send(iphdr, viftable + vifi, p, rt);
+        ip4_mrt_pim_send(viftable + vifi, p, rt);
       
       } else if (viftable[vifi].v_flags & VIFF_TUNNEL) {
-        ip4_mrt_encap_send(iphdr, viftable + vifi, p);
+        ip4_mrt_encap_send(viftable + vifi, p);
       
       } else {
-        ip4_mrt_phyint_send(iphdr, viftable + vifi, p);
+        ip4_mrt_phyint_send(viftable + vifi, p);
       }
     }
   }
@@ -1102,7 +1124,7 @@ static err_t ip4_mrt_ip_mdq (struct pbuf *p, struct netif *ifp, struct mfc *rt, 
 
 /* ip4_mrt_forward 
    return no ERR_OK ip_input will drop this packet */
-err_t ip4_mrt_forward (struct pbuf *p, struct ip_hdr *iphdr, struct netif *ifp)
+err_t ip4_mrt_forward (struct pbuf *p, const struct ip_hdr *iphdr, struct netif *ifp)
 {
 #define IP_HDR_LEN  20  /* # bytes of fixed IP header (excluding options) */
 #define TUNNEL_LEN  12  /* # bytes of IP option for tunnel encapsulation  */
@@ -1121,7 +1143,7 @@ err_t ip4_mrt_forward (struct pbuf *p, struct ip_hdr *iphdr, struct netif *ifp)
   }
   
   LWIP_DEBUGF(IP_DEBUG, ("ip4_mrt_forward src %x, dst %x, ifp index %d\n",
-              PP_NTOHL(iphdr->src.addr), PP_NTOHL(iphdr->dest.addr), ifp->num));
+              PP_NTOHL(iphdr->src.addr), PP_NTOHL(iphdr->dest.addr), netif_get_index(ifp)));
   
   if (IPH_HL(iphdr) < ((IP_HLEN + TUNNEL_LEN) >> 2) ||
       ((u_char *)(iphdr + 1))[1] != IPOPT_LSRR) {
@@ -1149,7 +1171,7 @@ err_t ip4_mrt_forward (struct pbuf *p, struct ip_hdr *iphdr, struct netif *ifp)
   /* Entry exists, so forward if necessary */
   rt = ip4_mrt_find_mfc((uint32_t)iphdr->src.addr, (uint32_t)iphdr->dest.addr);
   if (rt != NULL) {
-    return (ip4_mrt_ip_mdq(p, ifp, rt, (vifi_t)-1));
+    return (ip4_mrt_ip_mdq(p, ifp, rt));
   
   } else {
     struct rtdetq *rte;
@@ -1171,7 +1193,6 @@ err_t ip4_mrt_forward (struct pbuf *p, struct ip_hdr *iphdr, struct netif *ifp)
     if (rte == NULL) {
       return (ERR_OK);
     }
-    
     pbuf_copy(&rte->p.pbuf, p);
     
     hash = MFCHASH(iphdr->src.addr, iphdr->dest.addr);
@@ -1314,6 +1335,7 @@ u8_t ip4_mrt_ipip_input (struct pbuf *p, struct netif *inp)
     return (1);
   }
   
+  p->flags |= PBUF_FLAG_LLMCAST; /* input is a mcast packet */
   pbuf_header(p, (u16_t)-hlen); /* remove outer ip header */
   if (tcpip_inpkt(p, inp, ip_input)) { /* use inp ??? */
     pbuf_free(p); /* loop error */
@@ -1426,6 +1448,7 @@ u8_t ip4_mrt_pim_input (struct pbuf *p, struct netif *inp)
       return (1);
     }
     pbuf_copy(input, p);
+    input->flags |= PBUF_FLAG_LLMCAST; /* input is a mcast packet */
     
     /* remove outer ip and pimhdr */
     pbuf_header(input, (u16_t)-(iphlen + sizeof(struct pim_encap_pimhdr)));
@@ -1438,7 +1461,7 @@ u8_t ip4_mrt_pim_input (struct pbuf *p, struct netif *inp)
     
     /* pass the 'head' only up to the daemon. This includes the
      * outer IP header, PIM header, PIM-Register header and the inner IP header */
-    pbuf_realloc(p, (u16_t)(iphlen + sizeof(struct pim_encap_pimhdr) + IPH_LEN(encap_iphdr)));
+    pbuf_realloc(p, (u16_t)(iphlen + sizeof(struct pim_encap_pimhdr) + PP_NTOHS(IPH_LEN(encap_iphdr))));
   }
   
 pim_input_to_daemon:
@@ -1502,13 +1525,13 @@ u8_t ip4_mrt_setsockopt (struct raw_pcb *pcb, int optname, const void *optval, s
       if (optlen < sizeof(struct mfcctl2)) {
         return (EINVAL);
       }
-      lib_bcmp(&mfcctl2, optval, sizeof(struct mfcctl2));
+      lib_memcpy(&mfcctl2, optval, sizeof(struct mfcctl2));
     
     } else {
       if (optlen < sizeof(struct mfcctl)) {
         return (EINVAL);
       }
-      lib_bcmp(&mfcctl2, optval, sizeof(struct mfcctl));
+      lib_memcpy(&mfcctl2, optval, sizeof(struct mfcctl));
       lib_bzero((caddr_t)&mfcctl2 + sizeof(struct mfcctl),
                 sizeof(mfcctl2) - sizeof(struct mfcctl));
     }
@@ -1674,6 +1697,37 @@ int ip4_mrt_legal_vif_num (int vifi)
   }
 }
 
+/* ip4_mrt_is_on */
+int ip4_mrt_is_on (void)
+{
+  return (ip_mroute_pcb ? 1 : 0);
+}
+
+/* ip4_mrt_traversal_mfc */
+void ip4_mrt_traversal_mfc (void (*callback)(), void *arg0, void *arg1,
+                            void *arg2, void *arg3, void *arg4, void *arg5)
+{
+  int i;
+  struct vif *vifp;
+  struct mfc *rt;
+  LW_LIST_LINE *pline;
+  
+  for (i = 0; i < MFCTBLSIZ; i++) {
+    for (pline = mfctable[i]; pline != NULL; pline = _list_line_get_next(pline)) {
+      rt = _LIST_ENTRY(pline, struct mfc, mfc_list);
+      if (rt->mfc_stall == NULL) {
+        vifp = NULL;
+        if (rt->mfc_parent < numvifs) {
+          if (viftable[rt->mfc_parent].v_lcl_addr.s_addr) {
+            vifp = &viftable[rt->mfc_parent];
+          }
+        }
+        callback(rt, vifp, arg0, arg1, arg2, arg3, arg4, arg5);
+      }
+    }
+  }
+}
+
 /* ip4_mrt_if_detach */
 void ip4_mrt_if_detach (struct netif *ifp)
 {
@@ -1712,6 +1766,18 @@ void ip4_mrt_if_detach (struct netif *ifp)
   }
 
   MRT_UNLOCK();
+}
+
+/* ip4_mrt_mrtstat */
+struct mrtstat *ip4_mrt_mrtstat (void)
+{
+  return (&mrtstat);
+}
+
+/* ip4_mrt_pimstat */
+struct pimstat *ip4_mrt_pimstat (void)
+{
+  return (&pimstat);
 }
 
 #endif /* LW_CFG_NET_MROUTER */

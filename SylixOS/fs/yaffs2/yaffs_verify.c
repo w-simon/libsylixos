@@ -224,7 +224,7 @@ void yaffs_verify_file(struct yaffs_obj *obj)
 {
 	u32 x;
 	int required_depth;
-	int actual_depth;
+	int __unused actual_depth;
 	int last_chunk;
 	u32 offset_in_chunk;
 	u32 the_chunk;

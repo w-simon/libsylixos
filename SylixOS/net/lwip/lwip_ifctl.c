@@ -27,11 +27,11 @@
 #include "net/if.h"
 #include "net/if_arp.h"
 #include "net/if_type.h"
+#include "net/if_lock.h"
 #include "net/if_flags.h"
 #include "sys/socket.h"
 #include "lwip/netif.h"
 #include "lwip/tcpip.h"
-#include "lwip_if.h"
 #if LW_CFG_NET_WIRELESS_EN > 0
 #include "net/if_wireless.h"
 #include "./wireless/lwip_wl.h"
@@ -49,7 +49,7 @@ static VOID __ifConfSize (INT  *piSize)
            INT       iNum = 0;
     struct netif    *pnetif;
     
-    for (pnetif = netif_list; pnetif != LW_NULL; pnetif = pnetif->next) {
+    NETIF_FOREACH(pnetif) {
         iNum += sizeof(struct ifreq);
     }
     
@@ -74,14 +74,11 @@ static VOID __ifConf (struct ifconf  *pifconf)
     iSize = pifconf->ifc_len / sizeof(struct ifreq);                    /*  缓冲区个数                  */
     
     pifreq = pifconf->ifc_req;
-    for (pnetif = netif_list; pnetif != LW_NULL; pnetif = pnetif->next) {
+    NETIF_FOREACH(pnetif) {
         if (iNum >= iSize) {
             break;
         }
-        pifreq->ifr_name[0] = pnetif->name[0];
-        pifreq->ifr_name[1] = pnetif->name[1];
-        lib_itoa(pnetif->num, &pifreq->ifr_name[2], 10);
-        
+        netif_get_name(pnetif, pifreq->ifr_name);
         psockaddrin = (struct sockaddr_in *)&(pifreq->ifr_addr);
         psockaddrin->sin_len    = sizeof(struct sockaddr_in);
         psockaddrin->sin_family = AF_INET;
@@ -95,59 +92,6 @@ static VOID __ifConf (struct ifconf  *pifconf)
     pifconf->ifc_len = iNum * sizeof(struct ifreq);                     /*  读取个数                    */
 }
 /*********************************************************************************************************
-** 函数名称: __ifFindByName
-** 功能描述: 通过接口名获取接口结构
-** 输　入  : pcName    网络接口名
-** 输　出  : 网络接口结构
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-static struct netif *__ifFindByName (CPCHAR  pcName)
-{
-    struct netif  *pnetif;
-    INT            iIndex = lib_atoi(&pcName[2]);
-    
-    for (pnetif = netif_list; pnetif != LW_NULL; pnetif = pnetif->next) {  
-        if ((pcName[0] == pnetif->name[0]) &&
-            (pcName[1] == pnetif->name[1]) &&
-            (iIndex    == pnetif->num)) {                               /*  匹配网络接口                */
-            break;
-        }
-    }
-    
-    if (pnetif == LW_NULL) {
-        return  (LW_NULL);
-    
-    } else {
-        return  (pnetif);
-    }
-}
-/*********************************************************************************************************
-** 函数名称: __ifFindByName
-** 功能描述: 通过 index 获取接口结构
-** 输　入  : iIndex   网络结构 index
-** 输　出  : 网络接口结构
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-static struct netif *__ifFindByIndex (INT  iIndex)
-{
-    struct netif    *pnetif;
-    
-    for (pnetif = netif_list; pnetif != LW_NULL; pnetif = pnetif->next) {  
-        if ((int)pnetif->num == iIndex) {
-            break;
-        }
-    }
-    
-    if (pnetif == LW_NULL) {
-        return  (LW_NULL);
-    
-    } else {
-        return  (pnetif);
-    }
-}
-/*********************************************************************************************************
 ** 函数名称: __ifReq6Size
 ** 功能描述: 获得网络接口 IPv6 地址数目
 ** 输　入  : ifreq6    ifreq6 请求控制块
@@ -159,7 +103,7 @@ static INT __ifReq6Size (struct in6_ifreq  *pifreq6)
 {
     INT              i;
     INT              iNum   = 0;
-    struct netif    *pnetif = __ifFindByIndex(pifreq6->ifr6_ifindex);
+    struct netif    *pnetif = netif_get_by_index(pifreq6->ifr6_ifindex);
     
     if (pnetif == LW_NULL) {
         _ErrorHandle(EADDRNOTAVAIL);                                    /*  未找到指定的网络接口        */
@@ -194,7 +138,7 @@ static INT  __ifSubIoctlIf (INT  iCmd, PVOID  pvArg)
     
     pifreq = (struct ifreq *)pvArg;
     
-    pnetif = __ifFindByName(pifreq->ifr_name);
+    pnetif = netif_find(pifreq->ifr_name);
     if (pnetif == LW_NULL) {
         _ErrorHandle(EADDRNOTAVAIL);                                    /*  未找到指定的网络接口        */
         return  (iRet);
@@ -241,7 +185,7 @@ static INT  __ifSubIoctlIf (INT  iCmd, PVOID  pvArg)
             pifreq->ifr_type = IFT_PPP;
         } else if (pnetif->flags & (NETIF_FLAG_ETHERNET | NETIF_FLAG_ETHARP)) {
             pifreq->ifr_type = IFT_ETHER;
-        } else if (pnetif->num == 0) {
+        } else if (ip4_addr_isloopback(netif_ip4_addr(pnetif))) {
             pifreq->ifr_type = IFT_LOOP;
         } else {
             pifreq->ifr_type = IFT_OTHER;
@@ -250,7 +194,7 @@ static INT  __ifSubIoctlIf (INT  iCmd, PVOID  pvArg)
         break;
         
     case SIOCGIFINDEX:                                                  /*  获得网卡 index              */
-        pifreq->ifr_ifindex = (int)pnetif->num;
+        pifreq->ifr_ifindex = netif_get_index(pnetif);
         iRet = ERROR_NONE;
         break;
         
@@ -306,6 +250,21 @@ static INT  __ifSubIoctlIf (INT  iCmd, PVOID  pvArg)
             _ErrorHandle(EINVAL);
         }
         break;
+        
+    case SIOCGIFMETRIC:                                                 /*  获得网卡测度                */
+        pifreq->ifr_metric = pnetif->metric;
+        break;
+        
+    case SIOCSIFMETRIC:                                                 /*  设置网卡测度                */
+        pnetif->metric = pifreq->ifr_metric;                            /*  目前不做处理                */
+        break;
+        
+    case SIOCADDMULTI:                                                  /*  设置组播滤波器              */
+    case SIOCDELMULTI:
+        if (pnetif->ioctl) {
+            iRet = pnetif->ioctl(pnetif, iCmd, pvArg);
+        }
+        break;
     }
     
     return  (iRet);
@@ -328,7 +287,7 @@ static INT  __ifSubIoctl4 (INT  iCmd, PVOID  pvArg)
     
     pifreq = (struct ifreq *)pvArg;
     
-    pnetif = __ifFindByName(pifreq->ifr_name);
+    pnetif = netif_find(pifreq->ifr_name);
     if (pnetif == LW_NULL) {
         _ErrorHandle(EADDRNOTAVAIL);                                    /*  未找到指定的网络接口        */
         return  (iRet);
@@ -465,7 +424,7 @@ static INT  __ifSubIoctl6 (INT  iCmd, PVOID  pvArg)
     
     pifreq6 = (struct in6_ifreq *)pvArg;
     
-    pnetif = __ifFindByIndex(pifreq6->ifr6_ifindex);
+    pnetif = netif_get_by_index(pifreq6->ifr6_ifindex);
     if (pnetif == LW_NULL) {
         _ErrorHandle(EADDRNOTAVAIL);                                    /*  未找到指定的网络接口        */
         return  (iRet);
@@ -590,7 +549,7 @@ static INT  __ifSubIoctlCommon (INT  iCmd, PVOID  pvArg)
         
     case SIOCGIFNUM: {                                                  /*  获得网络接口数量            */
             if (pvArg) {
-                *(INT *)pvArg = netif_get_num();
+                *(INT *)pvArg = (INT)netif_get_total();
                 iRet = ERROR_NONE;
             } else {
                 _ErrorHandle(EINVAL);
@@ -646,9 +605,9 @@ INT  __ifIoctlInet (INT  iCmd, PVOID  pvArg)
     case SIOCGIFNUM:
     case SIOCGSIZIFCONF:
     case SIOCGSIZIFREQ6:
-        LWIP_NETIF_LOCK();                                              /*  进入临界区                  */
+        LWIP_IF_LIST_LOCK(LW_FALSE);                                    /*  进入临界区                  */
         iRet = __ifSubIoctlCommon(iCmd, pvArg);
-        LWIP_NETIF_UNLOCK();                                            /*  退出临界区                  */
+        LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
         break;
     
     case SIOCSIFFLAGS:                                                  /*  基本网络接口操作            */
@@ -659,9 +618,13 @@ INT  __ifIoctlInet (INT  iCmd, PVOID  pvArg)
     case SIOCSIFMTU:
     case SIOCGIFHWADDR:
     case SIOCSIFHWADDR:
-        LWIP_NETIF_LOCK();                                              /*  进入临界区                  */
+    case SIOCGIFMETRIC:
+    case SIOCSIFMETRIC:
+    case SIOCADDMULTI:
+    case SIOCDELMULTI:
+        LWIP_IF_LIST_LOCK(LW_FALSE);                                    /*  进入临界区                  */
         iRet = __ifSubIoctlIf(iCmd, pvArg);
-        LWIP_NETIF_UNLOCK();                                            /*  退出临界区                  */
+        LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
         break;
     
     case SIOCGIFADDR:                                                   /*  ipv4 操作                   */
@@ -672,9 +635,9 @@ INT  __ifIoctlInet (INT  iCmd, PVOID  pvArg)
     case SIOCSIFNETMASK:
     case SIOCSIFDSTADDR:
     case SIOCSIFBRDADDR:
-        LWIP_NETIF_LOCK();                                              /*  进入临界区                  */
+        LWIP_IF_LIST_LOCK(LW_FALSE);                                    /*  进入临界区                  */
         iRet = __ifSubIoctl4(iCmd, pvArg);
-        LWIP_NETIF_UNLOCK();                                            /*  退出临界区                  */
+        LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
         break;
         
     case SIOCGIFADDR6:                                                  /*  ipv6 操作                   */
@@ -684,9 +647,9 @@ INT  __ifIoctlInet (INT  iCmd, PVOID  pvArg)
     case SIOCSIFNETMASK6:
     case SIOCSIFDSTADDR6:
     case SIOCDIFADDR6:
-        LWIP_NETIF_LOCK();                                              /*  进入临界区                  */
+        LWIP_IF_LIST_LOCK(LW_FALSE);                                    /*  进入临界区                  */
         iRet = __ifSubIoctl6(iCmd, pvArg);
-        LWIP_NETIF_UNLOCK();                                            /*  退出临界区                  */
+        LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
         break;
     
     default:
@@ -712,9 +675,9 @@ INT  __ifIoctlWireless (INT  iCmd, PVOID  pvArg)
     INT     iRet = PX_ERROR;
     
     if ((iCmd >= SIOCIWFIRST) && (iCmd <= SIOCIWLASTPRIV)) {            /*  无线连接设置                */
-        LWIP_NETIF_LOCK();                                              /*  进入临界区                  */
+        LWIP_IF_LIST_LOCK(LW_FALSE);                                    /*  进入临界区                  */
         iRet = wext_handle_ioctl(iCmd, (struct ifreq *)pvArg);
-        LWIP_NETIF_UNLOCK();                                            /*  退出临界区                  */
+        LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
         if (iRet) {
             _ErrorHandle(lib_abs(iRet));
             iRet = PX_ERROR;
@@ -759,9 +722,9 @@ INT  __ifIoctlPacket (INT  iCmd, PVOID  pvArg)
     case SIOCGIFNUM:
     case SIOCGSIZIFCONF:
     case SIOCGSIZIFREQ6:
-        LWIP_NETIF_LOCK();                                              /*  进入临界区                  */
+        LWIP_IF_LIST_LOCK(LW_FALSE);                                    /*  进入临界区                  */
         iRet = __ifSubIoctlCommon(iCmd, pvArg);
-        LWIP_NETIF_UNLOCK();                                            /*  退出临界区                  */
+        LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
         break;
     
     case SIOCSIFFLAGS:                                                  /*  基本网络接口操作            */
@@ -772,9 +735,9 @@ INT  __ifIoctlPacket (INT  iCmd, PVOID  pvArg)
     case SIOCSIFMTU:
     case SIOCGIFHWADDR:
     case SIOCSIFHWADDR:
-        LWIP_NETIF_LOCK();                                              /*  进入临界区                  */
+        LWIP_IF_LIST_LOCK(LW_FALSE);                                    /*  进入临界区                  */
         iRet = __ifSubIoctlIf(iCmd, pvArg);
-        LWIP_NETIF_UNLOCK();                                            /*  退出临界区                  */
+        LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
         break;
     
     default:

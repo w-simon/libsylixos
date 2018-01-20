@@ -200,9 +200,7 @@ void srt_netif_add_hook (struct netif *netif)
   LW_LIST_LINE *pline;
   struct srt_entry *sentry;
   
-  ifname[0] = netif->name[0];
-  ifname[1] = netif->name[1];
-  lib_itoa(netif->num, &ifname[2], 10);
+  netif_get_name(netif, ifname);
   
   SRT_LOCK();
   for (pline = srt_table; pline != NULL; pline = _list_line_get_next(pline)) {
@@ -236,12 +234,12 @@ void srt_netif_remove_hook (struct netif *netif)
 }
 
 /* rt_route_src_hook */
-struct netif *srt_route_search_hook (const ip4_addr_t *ipdest, const ip4_addr_t *ipsrc)
+struct netif *srt_route_search_hook (const ip4_addr_t *ipsrc, const ip4_addr_t *ipdest)
 {
   struct srt_entry *sentry;
   ip4_addr_t ipsrc_hbo;
 
-  if (ipdest->addr == IPADDR_BROADCAST) {
+  if (!ipsrc || ipdest->addr == IPADDR_BROADCAST) {
     return (NULL);
   }
   

@@ -102,11 +102,12 @@ struct gw6_cache {
 
 static struct gw6_cache  gw6_cache[LW_CFG_NET_DEV_MAX];
 
-#define GW6_CACHE_INVAL(index, entry) \
-        if (gw6_cache[index].rt6_entry == entry) { \
-          gw6_cache[index].rt6_entry = NULL; \
-          ip6_addr_set_any(&gw6_cache[index].rt6_dest); \
-          ip6_addr_set_any(&gw6_cache[index].rt6_gateway); \
+#define GW6_CACHE_INVAL(num, entry) \
+        LWIP_ASSERT("GW6_CACHE_INVAL() num invalide!", (num) < LW_CFG_NET_DEV_MAX); \
+        if (gw6_cache[num].rt6_entry == entry) { \
+          gw6_cache[num].rt6_entry = NULL; \
+          ip6_addr_set_any(&gw6_cache[num].rt6_dest); \
+          ip6_addr_set_any(&gw6_cache[num].rt6_gateway); \
         }
         
 /* route rt6_netmask_to_prefix */
@@ -218,7 +219,7 @@ static void  rt6_traversal_buildin (VOIDFUNCPTR func, void *arg0, void *arg1,
   entry.rt6_type = RT6_TYPE_BUILDIN;
   entry.rt6_metric = rt6_bi_mbase + 1;
   
-  for (netif = netif_list; netif != NULL; netif = netif->next) {
+  NETIF_FOREACH(netif) {
     for (i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++) {
       if (ip6_addr_isvalid(netif_ip6_addr_state(netif, i))) {
         ip6_addr_set(&entry.rt6_dest, netif_ip6_addr(netif, i));
@@ -226,9 +227,7 @@ static void  rt6_traversal_buildin (VOIDFUNCPTR func, void *arg0, void *arg1,
         ip6_addr_set_any(&entry.rt6_gateway);
         ip6_addr_set(&entry.rt6_ifaddr, netif_ip6_addr(netif, i));
         entry.rt6_netif = netif;
-        entry.rt6_ifname[0] = netif->name[0];
-        entry.rt6_ifname[1] = netif->name[1];
-        lib_itoa(netif->num, &entry.rt6_ifname[2], 10);
+        netif_get_name(netif, entry.rt6_ifname);
         
         if (netif_is_up(netif) && netif_is_link_up(netif)) {
           entry.rt6_flags = RTF_UP | RTF_HOST | RTF_RUNNING | RTF_LOCAL;
@@ -321,9 +320,7 @@ static void  rt6_traversal_nd6 (VOIDFUNCPTR func, void *arg0, void *arg1,
         if (j < LWIP_IPV6_NUM_ADDRESSES) {
           ip6_addr_set(&entry.rt6_ifaddr, netif_ip6_addr(netif, j));
           entry.rt6_netif = netif;
-          entry.rt6_ifname[0] = netif->name[0];
-          entry.rt6_ifname[1] = netif->name[1];
-          lib_itoa(netif->num, &entry.rt6_ifname[2], 10);
+          netif_get_name(netif, entry.rt6_ifname);
           
           if (netif_is_up(netif) && netif_is_link_up(netif)) {
             entry.rt6_flags = RTF_UP | RTF_HOST | RTF_RUNNING | RTF_DYNAMIC;
@@ -347,9 +344,7 @@ static void  rt6_traversal_nd6 (VOIDFUNCPTR func, void *arg0, void *arg1,
       ip6_addr_set(&entry.rt6_gateway, &nd6_entry->neighbor_entry->next_hop_address);
       ip6_addr_set_any(&entry.rt6_ifaddr);
       entry.rt6_netif = netif;
-      entry.rt6_ifname[0] = netif->name[0];
-      entry.rt6_ifname[1] = netif->name[1];
-      lib_itoa(netif->num, &entry.rt6_ifname[2], 10);
+      netif_get_name(netif, entry.rt6_ifname);
       
       if (netif_is_up(netif) && netif_is_link_up(netif)) {
         entry.rt6_flags = RTF_UP | RTF_GATEWAY | RTF_RUNNING | RTF_LOCAL;
@@ -431,7 +426,7 @@ int  rt6_add_entry (struct rt6_entry *entry)
     if (ip6_addr_isany_val(entry->rt6_gateway)) {
       return (-1);
     }
-    for (netif = netif_list; netif != NULL; netif = netif->next) {
+    NETIF_FOREACH(netif) {
       for (i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++) {
         if (ip6_addr_isvalid(netif_ip6_addr_state(netif, i)) &&
             netif_ip6_addr_isstatic(netif, i) &&
@@ -447,9 +442,7 @@ int  rt6_add_entry (struct rt6_entry *entry)
     if (!netif_p) {
       return (-1);
     }
-    entry->rt6_ifname[0] = netif_p->name[0];
-    entry->rt6_ifname[1] = netif_p->name[1];
-    lib_itoa(netif_p->num, &entry->rt6_ifname[2], 10);
+    netif_get_name(netif_p, entry->rt6_ifname);
     entry->rt6_netif = netif_p;
   
   } else {
@@ -540,9 +533,7 @@ void  rt6_netif_add_hook (struct netif *netif)
   LW_LIST_LINE *pline;
   struct rt6_entry *entry;
   
-  ifname[0] = netif->name[0];
-  ifname[1] = netif->name[1];
-  lib_itoa(netif->num, &ifname[2], 10);
+  netif_get_name(netif, ifname);
   
   RT_LOCK();
   for (i = 0; i < RT6_HASH_SIZE; i++) {
@@ -595,7 +586,7 @@ void  rt6_netif_invcache_hook (struct netif *netif)
 }
 
 /* rt6_route_src_hook */
-struct netif *rt6_route_search_hook (const ip6_addr_t *ip6dest, const ip6_addr_t *ipsrc)
+struct netif *rt6_route_search_hook (const ip6_addr_t *ipsrc, const ip6_addr_t *ip6dest)
 {
   struct gw6_cache *gwc;
   struct rt6_entry *entry;

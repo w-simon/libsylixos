@@ -61,6 +61,7 @@
 int ethernet_vlan_get (struct vlanreq *req)
 {
   struct netif *netif;
+  SYS_ARCH_DECL_PROTECT(lev);
   
   netif = netif_find(req->vlr_ifname);
   if (netif == NULL) {
@@ -71,8 +72,10 @@ int ethernet_vlan_get (struct vlanreq *req)
     return (ETH_VLAN_ENOETH);
   }
   
+  SYS_ARCH_PROTECT(lev);
   req->vlr_tag = VLAN_TAG_GET(netif->vlanid);
   req->vlr_pri = VLAN_PRI_GET(netif->vlanid);
+  SYS_ARCH_UNPROTECT(lev);
   
   return (ETH_VLAN_OK);
 }
@@ -81,6 +84,7 @@ int ethernet_vlan_get (struct vlanreq *req)
 int ethernet_vlan_set (const struct vlanreq *req)
 {
   struct netif *netif;
+  SYS_ARCH_DECL_PROTECT(lev);
   
   netif = netif_find(req->vlr_ifname);
   if (netif == NULL) {
@@ -91,7 +95,9 @@ int ethernet_vlan_set (const struct vlanreq *req)
     return (ETH_VLAN_ENOETH);
   }
   
+  SYS_ARCH_PROTECT(lev);
   netif->vlanid = VLAN_ID_SET(req->vlr_tag, req->vlr_pri);
+  SYS_ARCH_UNPROTECT(lev);
   
   return (ETH_VLAN_OK);
 }
@@ -102,15 +108,17 @@ void ethernet_vlan_traversal (VOIDFUNCPTR func, void *arg0, void *arg1,
 {
   struct netif *netif;
   struct vlanreq req;
+  SYS_ARCH_DECL_PROTECT(lev);
   
-  for (netif = netif_list; netif != NULL; netif = netif->next) {
+  NETIF_FOREACH(netif) {
     if ((netif->flags & (NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET)) && 
         VLAN_ID_VALID(netif->vlanid)) {
-      req.vlr_ifname[0] = netif->name[0];
-      req.vlr_ifname[1] = netif->name[1];
-      lib_itoa(netif->num, &req.vlr_ifname[2], 10);
+      netif_get_name(netif, req.vlr_ifname);
+      
+      SYS_ARCH_PROTECT(lev);
       req.vlr_tag = VLAN_TAG_GET(netif->vlanid);
       req.vlr_pri = VLAN_PRI_GET(netif->vlanid);
+      SYS_ARCH_UNPROTECT(lev);
       
       func(&req, arg0, arg1, arg2, arg3, arg4, arg5);
     }
@@ -135,10 +143,9 @@ void ethernet_vlan_total (unsigned int *cnt)
 }
 
 /* lwip vlan set hook */
-int ethernet_vlan_set_hook (void *pv_netif, void *pv_buf, const void *pv_ethsrc, const void *pvethdst, UINT16 eth_type)
+int ethernet_vlan_set_hook (struct netif *netif, struct pbuf *p, const struct eth_addr *src, 
+                            const struct eth_addr *dst, u16_t eth_type)
 {
-  struct netif *netif = (struct netif *)pv_netif;
-  
   if (VLAN_ID_VALID(netif->vlanid)) {
     return ((int)netif->vlanid);
   }
@@ -147,11 +154,9 @@ int ethernet_vlan_set_hook (void *pv_netif, void *pv_buf, const void *pv_ethsrc,
 }
 
 /* lwip vlan check hook */
-int ethernet_vlan_check_hook (void *pv_netif, const void *eth_hdr, const void *vlan_hdr)
+int ethernet_vlan_check_hook (struct netif *netif, const struct eth_hdr *ethhdr, 
+                              const struct eth_vlan_hdr *vlanhdr)
 {
-  struct netif *netif = (struct netif *)pv_netif;
-  struct eth_vlan_hdr *vlanhdr = (struct eth_vlan_hdr *)vlan_hdr;
-  
   if (VLAN_ID_VALID(netif->vlanid)) {
     if (VLAN_TAG_GET(netif->vlanid) != VLAN_TAG_GET(vlanhdr->prio_vid)) {
       return (0);

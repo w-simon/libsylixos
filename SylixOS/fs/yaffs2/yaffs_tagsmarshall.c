@@ -60,7 +60,7 @@ static int yaffs_tags_marshall_read(struct yaffs_dev *dev,
 				   int nand_chunk, u8 *data,
 				   struct yaffs_ext_tags *tags)
 {
-	int retval = 0;
+	int __unused retval = 0;
 	int local_data = 0;
 	u8 spare_buffer[100];
 	enum yaffs_ecc_result ecc_result;

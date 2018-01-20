@@ -30,6 +30,8 @@
 LW_API VOID         API_INetNatInit(VOID);
 LW_API INT          API_INetNatStart(CPCHAR  pcLocalNetif, CPCHAR  pcApNetif);
 LW_API INT          API_INetNatStop(VOID);
+LW_API INT          API_INetNatLocalAdd(CPCHAR  pcLocalNetif);
+LW_API INT          API_INetNatWanAdd(CPCHAR  pcApNetif);
 LW_API INT          API_INetNatMapAdd(CPCHAR  pcLocalIp, UINT16  usIpCnt, UINT16  usLocalPort, 
                                       UINT16  usAssPort, UINT8   ucProto);
 LW_API INT          API_INetNatMapDelete(CPCHAR  pcLocalIp, UINT16  usLocalPort, 
@@ -40,6 +42,8 @@ LW_API INT          API_INetNatAliasDelete(CPCHAR  pcAliasIp);
 #define inetNatInit         API_INetNatInit
 #define inetNatStart        API_INetNatStart
 #define inetNatStop         API_INetNatStop
+#define inetNatLocalAdd     API_INetNatLocalAdd
+#define inetNatWanAdd       API_INetNatWanAdd
 #define inetNatMapAdd       API_INetNatMapAdd
 #define inetNatMapDelete    API_INetNatMapDelete
 #define inetNatAliasAdd     API_INetNatAliasAdd

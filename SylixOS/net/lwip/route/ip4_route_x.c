@@ -55,7 +55,7 @@ void  rt_build_sockaddr_dl (struct sockaddr_dl *sdl, struct netif *netif)
 {
   sdl->sdl_len = sizeof(struct sockaddr_dl);
   sdl->sdl_family = AF_LINK;
-  sdl->sdl_index = netif->num;
+  sdl->sdl_index = netif_get_index(netif);
   sdl->sdl_slen = 0;
   
   if (netif->flags & NETIF_FLAG_ETHERNET) {
@@ -71,9 +71,7 @@ void  rt_build_sockaddr_dl (struct sockaddr_dl *sdl, struct netif *netif)
     sdl->sdl_alen = 0;
   }
   
-  sdl->sdl_data[0] = netif->name[0];
-  sdl->sdl_data[1] = netif->name[1];
-  lib_itoa(netif->num, &sdl->sdl_data[2], 10);
+  netif_get_name(netif, sdl->sdl_data);
   sdl->sdl_nlen = (u_char)lib_strlen(sdl->sdl_data);
 }
 
@@ -107,10 +105,10 @@ size_t  rt_entry_to_msghdr (struct rt_msghdr *rtmsghdr, const struct rt_entry *e
   rtmsghdr->rtm_rmx   = entry->rt_rmx;
 
   if (entry->rt_netif) {
-    rtmsghdr->rtm_index  = entry->rt_netif->num;
+    rtmsghdr->rtm_index  = netif_get_index(entry->rt_netif);
     rtmsghdr->rtm_addrs |= RTA_IFP;
   } else {
-    rtmsghdr->rtm_index  = (u_short)-1;
+    rtmsghdr->rtm_index  = 0;
   }
 
   sin = (struct sockaddr_in *)(rtmsghdr + 1);
@@ -154,11 +152,9 @@ int  rt_msghdr_to_entry (struct rt_entry *entry, const struct rt_msghdr *rtmsghd
     return (-1);
   }
   
-  netif = (struct netif *)netif_get_by_index(rtmsghdr->rtm_index);
+  netif = netif_get_by_index(rtmsghdr->rtm_index);
   if (netif) {
-    entry->rt_ifname[0] = netif->name[0];
-    entry->rt_ifname[1] = netif->name[1];
-    lib_itoa(netif->num, &entry->rt_ifname[2], 10);
+    netif_get_name(netif, entry->rt_ifname);
   }
   
   entry->rt_flags  = rtmsghdr->rtm_flags;

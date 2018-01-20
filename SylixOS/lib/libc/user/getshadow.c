@@ -73,8 +73,10 @@ void setspent(void)
 
 void endspent(void)
 {
-  if (shadow_fp != NULL)
+  if (shadow_fp != NULL) {
     fclose(shadow_fp);
+    shadow_fp = NULL;
+  }
 }
 
 /*

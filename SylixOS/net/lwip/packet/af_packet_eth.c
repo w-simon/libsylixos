@@ -58,7 +58,7 @@ errno_t  __packetEthRawSendto (CPVOID                pvPacket,
     }
     
     LOCK_TCPIP_CORE();
-    pnetif = (struct netif *)netif_get_by_index((UINT)psockaddrll->sll_ifindex);
+    pnetif = netif_get_by_index(psockaddrll->sll_ifindex);
     if (pnetif == LW_NULL) {
         UNLOCK_TCPIP_CORE();
         return  (ENODEV);
@@ -137,7 +137,7 @@ errno_t  __packetEthDgramSendto (CPVOID                pvPacket,
     }
     
     LOCK_TCPIP_CORE();
-    pnetif = (struct netif *)netif_get_by_index((UINT)psockaddrll->sll_ifindex);
+    pnetif = netif_get_by_index(psockaddrll->sll_ifindex);
     if (pnetif == LW_NULL) {
         UNLOCK_TCPIP_CORE();
         return  (ENODEV);
@@ -245,6 +245,7 @@ size_t  __packetEthHeaderInfo (AF_PACKET_N  *pktm, struct sockaddr_ll *paddrll)
             } else {
                 paddrll->sll_pkttype = PACKET_MULTICAST;
             }
+        
         } else if (pktm->PKTM_ucForme) {
             paddrll->sll_pkttype = PACKET_HOST;
         
@@ -280,7 +281,7 @@ size_t  __packetEthHeaderInfo2 (struct pbuf *p, struct netif *inp, BOOL bOutgo,
         paddrll->sll_len      = sizeof(struct sockaddr_ll);
         paddrll->sll_family   = AF_PACKET;
         paddrll->sll_protocol = pethhdr->type;
-        paddrll->sll_ifindex  = inp->num;
+        paddrll->sll_ifindex  = netif_get_index(inp);
         paddrll->sll_hatype   = ARPHRD_ETHER;
         paddrll->sll_halen    = ETHARP_HWADDR_LEN;
         
@@ -311,6 +312,7 @@ size_t  __packetEthHeaderInfo2 (struct pbuf *p, struct netif *inp, BOOL bOutgo,
             } else {
                 paddrll->sll_pkttype = PACKET_MULTICAST;
             }
+        
         } else if (lib_memcmp(pethhdr->dest.addr, inp->hwaddr, 
                    ETHARP_HWADDR_LEN) == 0) {
             paddrll->sll_pkttype = PACKET_HOST;
@@ -345,7 +347,7 @@ errno_t  __packetEthIfInfo (INT  iIndex, struct sockaddr_ll *paddrll)
     }
     
     LOCK_TCPIP_CORE();
-    pnetif = (struct netif *)netif_get_by_index((UINT)iIndex);
+    pnetif = netif_get_by_index(iIndex);
     if (pnetif == LW_NULL) {
         UNLOCK_TCPIP_CORE();
         return  (ENODEV);

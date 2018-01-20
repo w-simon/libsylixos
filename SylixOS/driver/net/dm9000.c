@@ -758,8 +758,8 @@ static void  dm9000_receive (struct netdev *netdev, int (*input)(struct netdev *
     int    good_pkt;
     int    err;
 
-    API_InterVectorDisable(dm9000->irq);
     API_SemaphoreMPend(priv->lock, LW_OPTION_WAIT_INFINITE);
+    API_InterVectorDisable(dm9000->irq);
 
     do {
         dm9000_io_read(dm9000, DM9000_MRCMDX);
@@ -850,8 +850,8 @@ __recv_over:
     reg |= IMR_PRM;
     dm9000_io_write(dm9000, DM9000_IMR, reg);
 
-    API_SemaphoreMPost(priv->lock);
     API_InterVectorEnable(dm9000->irq);
+    API_SemaphoreMPost(priv->lock);
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: dm9000_transmit
@@ -870,12 +870,12 @@ static int  dm9000_transmit (struct netdev *netdev, struct pbuf *p)
     struct pbuf *q;
     UINT16 tx_len;
 
-    API_InterVectorDisable(dm9000->irq);
     API_SemaphoreMPend(priv->lock, LW_OPTION_WAIT_INFINITE);
+    API_InterVectorDisable(dm9000->irq);
 
     while (API_AtomicGet(&priv->tx_pkt_cnt) > 1) {
-        API_SemaphoreMPost(priv->lock);
         API_InterVectorEnable(dm9000->irq);
+        API_SemaphoreMPost(priv->lock);
 
         if (API_SemaphoreBPend(priv->tx_sync,
                                LW_MSECOND_TO_TICK_1(2000)) == ERROR_THREAD_WAIT_TIMEOUT) {
@@ -884,8 +884,8 @@ static int  dm9000_transmit (struct netdev *netdev, struct pbuf *p)
             return  (-1);
 
         } else {
-            API_InterVectorDisable(dm9000->irq);
             API_SemaphoreMPend(priv->lock, LW_OPTION_WAIT_INFINITE);
+            API_InterVectorDisable(dm9000->irq);
         }
     }
 
@@ -904,8 +904,8 @@ static int  dm9000_transmit (struct netdev *netdev, struct pbuf *p)
         dm9000_io_write(dm9000, DM9000_TCR, TCR_TXREQ);
     }
 
-    API_SemaphoreMPost(priv->lock);
     API_InterVectorEnable(dm9000->irq);
+    API_SemaphoreMPost(priv->lock);
 
     netdev_linkinfo_xmit_inc(netdev);
     netdev_statinfo_total_add(netdev, LINK_OUTPUT, tx_len);

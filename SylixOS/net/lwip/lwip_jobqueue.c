@@ -244,12 +244,22 @@ VOID  API_NetJobDeleteEx (UINT         uiQ,
                           PVOID        pvArg4,
                           PVOID        pvArg5)
 {
+    UINT  i;
+
     if (!pfunc) {
         return;
     }
     
-    _jobQueueDel(&_G_jobqNet[uiQ & (_G_uiJobqNum - 1)], uiMatchArgNum, 
-                 pfunc, pvArg0, pvArg1, pvArg2, pvArg3, pvArg4, pvArg5);
+    if (uiQ == LW_NETJOB_Q_ALL) {
+        for (i = 0; i < _G_uiJobqNum; i++) {
+            _jobQueueDel(&_G_jobqNet[i], uiMatchArgNum, 
+                         pfunc, pvArg0, pvArg1, pvArg2, pvArg3, pvArg4, pvArg5);
+        }
+    
+    } else {
+        _jobQueueDel(&_G_jobqNet[uiQ & (_G_uiJobqNum - 1)], uiMatchArgNum, 
+                     pfunc, pvArg0, pvArg1, pvArg2, pvArg3, pvArg4, pvArg5);
+    }
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: _NetJobThread

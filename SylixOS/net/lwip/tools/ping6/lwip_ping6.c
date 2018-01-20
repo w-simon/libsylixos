@@ -21,6 +21,7 @@
 ** BUG:
 2011.06.07  2011年6月8日是世界首个IPv6日, SylixOS在6月8日前开始支持IPv6.
 2014.02.24  加入对指定 IPv6 网络接口的参数支持.
+2018.01.08  对 linklocal 地址的 ping6 需要 SO_BINDTODEVICE.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -37,52 +38,14 @@
 #include "lwip/tcpip.h"
 #include "lwip/inet_chksum.h"
 #include "lwip/netdb.h"
+#include "net/if.h"
 #include "sys/socket.h"
-/*********************************************************************************************************
-** 函数名称: __inetPing6FindSrc
-** 功能描述: 确定源端地址
-** 输　入  : netif         输出接口 (NULL 表示自动确定接口)
-**           pip6addrDest  目的地址
-**           pip6addrSrc   根据判断, 决定采用的 IPv6 源地址
-** 输　出  : -1: 无法确定网络接口
-**           -2: 路由错误
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-#if CHECKSUM_GEN_ICMP6
-
-static INT  __inetPing6FindSrc (struct netif    *netif, 
-                                struct ip6_addr *pip6addrDest,
-                                struct ip6_addr *pip6addrSrc)
-{
-    static struct ip6_addr     ip6addrAny = {{0, 0, 0, 0}};
-           const  ip_addr_t   *pipaddr;
-
-    if (netif == LW_NULL) {
-        netif =  ip6_route(&ip6addrAny, pip6addrDest);
-        if (netif == LW_NULL) {
-            return  (-1);
-        }
-    }
-    
-    pipaddr = ip6_select_source_address(netif, pip6addrDest);
-    if (pipaddr == NULL) {
-        return  (-2);
-    }
-    
-    ip6_addr_copy(*pip6addrSrc, *ip_2_ip6(pipaddr));
-    
-    return  (ERROR_NONE);
-}
-
-#endif                                                                  /*  CHECKSUM_GEN_ICMP6          */
 /*********************************************************************************************************
 ** 函数名称: __inetPing6Prepare
 ** 功能描述: 构造 ping 包
 ** 输　入  : icmp6hdrEcho  数据
 **           pip6addrDest  目标 IP
 **           iDataSize     数据大小
-**           pcNetif       网络接口名 (NULL 表示自动确定接口)
 **           pusSeqRecv    需要判断的 seq
 ** 输　出  : ERROR
 ** 全局变量: 
@@ -91,18 +54,10 @@ static INT  __inetPing6FindSrc (struct netif    *netif,
 static INT  __inetPing6Prepare (struct icmp6_echo_hdr   *icmp6hdrEcho, 
                                 struct ip6_addr         *pip6addrDest,
                                 INT                      iDataSize, 
-                                CPCHAR                   pcNetif,
                                 UINT16                  *pusSeqRecv)
 {
     static u16_t    usSeqNum = 1;
     REGISTER INT    i;
-    
-#if CHECKSUM_GEN_ICMP6
-           INT      iError;
-    struct ip6_addr ip6addrSrc;
-    struct pbuf     pbuf;
-    struct netif   *netif;
-#endif                                                                  /*  CHECKSUM_GEN_ICMP6          */
     
     SYS_ARCH_DECL_PROTECT(x);
 
@@ -111,51 +66,16 @@ static INT  __inetPing6Prepare (struct icmp6_echo_hdr   *icmp6hdrEcho,
     
     *pusSeqRecv = usSeqNum;
     
-    icmp6hdrEcho->chksum = 0;
-    icmp6hdrEcho->id     = 0xAFAF;                                      /*  ID                          */
+    icmp6hdrEcho->chksum = 0;                                           /*  raw socket chksum auto      */
+    icmp6hdrEcho->id     = 0xafaf;                                      /*  ID                          */
     icmp6hdrEcho->seqno  = htons(usSeqNum);
     
     /*
      *  填充数据
      */
-    for(i = 0; i < iDataSize; i++) {
+    for (i = 0; i < iDataSize; i++) {
         ((PCHAR)icmp6hdrEcho)[sizeof(struct icmp6_echo_hdr) + i] = (CHAR)(i % 256);
     }
-    
-#if CHECKSUM_GEN_ICMP6
-    LOCK_TCPIP_CORE();
-    if (pcNetif) {
-        netif = netif_find((PCHAR)pcNetif);
-        if (netif == LW_NULL) {
-            UNLOCK_TCPIP_CORE();
-            fprintf(stderr, "Invalid interface.\n");
-            return  (PX_ERROR);
-        }
-    } else {
-        netif = LW_NULL;
-    }
-    iError = __inetPing6FindSrc(netif, pip6addrDest, &ip6addrSrc);
-    UNLOCK_TCPIP_CORE();
-    
-    if (iError == -1) {
-        fprintf(stderr, "You must determine net interface.\n");
-        return  (PX_ERROR);
-    
-    } else if (iError == -2) {
-        fprintf(stderr, "Unreachable destination.\n");
-        return  (PX_ERROR);
-    }
-    
-    pbuf.next    = LW_NULL;
-    pbuf.payload = (void *)icmp6hdrEcho;
-    pbuf.tot_len = (u16_t)(iDataSize + sizeof(struct icmp6_echo_hdr));
-    pbuf.len     = pbuf.tot_len;
-    pbuf.type    = PBUF_ROM;
-    pbuf.flags   = 0;
-    pbuf.ref     = 1;
-    
-    icmp6hdrEcho->chksum = 0;                                           /*  ipv6 raw stack will gen auto*/
-#endif                                                                  /*  CHECKSUM_GEN_ICMP6          */
     
     SYS_ARCH_PROTECT(x);
     usSeqNum++;
@@ -168,8 +88,8 @@ static INT  __inetPing6Prepare (struct icmp6_echo_hdr   *icmp6hdrEcho,
 ** 功能描述: 发送 ping 包
 ** 输　入  : iSock         套接字
 **           pin6addr      目标 ip 地址.
+**           uiScopeId     scope id
 **           iDataSize     数据大小
-**           pcNetif       网络接口名 (NULL 表示自动确定接口)
 **           pusSeqRecv    需要判断的 seq
 ** 输　出  : ERROR
 ** 全局变量: 
@@ -177,8 +97,8 @@ static INT  __inetPing6Prepare (struct icmp6_echo_hdr   *icmp6hdrEcho,
 *********************************************************************************************************/
 static INT  __inetPing6Send (INT              iSock, 
                              struct in6_addr *pin6addr, 
+                             UINT32           uiScopeId,
                              INT              iDataSize, 
-                             CPCHAR           pcNetif,
                              UINT16          *pusSeqRecv)
 {
     REGISTER size_t                 stPingSize = sizeof(struct icmp6_echo_hdr) + iDataSize;
@@ -198,14 +118,15 @@ static INT  __inetPing6Send (INT              iSock,
     ip6addrDest.addr[2] = pin6addr->un.u32_addr[2];
     ip6addrDest.addr[3] = pin6addr->un.u32_addr[3];
     
-    if (__inetPing6Prepare(icmp6hdrEcho, &ip6addrDest, iDataSize, pcNetif, pusSeqRecv) < ERROR_NONE) {
+    if (__inetPing6Prepare(icmp6hdrEcho, &ip6addrDest, iDataSize, pusSeqRecv) < ERROR_NONE) {
         return  (ERR_VAL);
     }
     
-    sockaddrin6.sin6_len    = sizeof(struct sockaddr_in);
-    sockaddrin6.sin6_family = AF_INET6;
-    sockaddrin6.sin6_port   = 0;
-    sockaddrin6.sin6_addr   = *pin6addr;
+    sockaddrin6.sin6_len      = sizeof(struct sockaddr_in);
+    sockaddrin6.sin6_family   = AF_INET6;
+    sockaddrin6.sin6_port     = 0;
+    sockaddrin6.sin6_addr     = *pin6addr;
+    sockaddrin6.sin6_scope_id = uiScopeId;
     
     sstError = sendto(iSock, icmp6hdrEcho, stPingSize, 0, 
                       (const struct sockaddr *)&sockaddrin6, 
@@ -353,9 +274,10 @@ INT  API_INetPing6 (struct in6_addr  *pin6addr,
         return  (PX_ERROR);
     }
     
-    sockaddrin6To.sin6_len    = sizeof(struct sockaddr_in6);
-    sockaddrin6To.sin6_family = AF_INET6;
-    sockaddrin6To.sin6_addr   = *pin6addr;
+    sockaddrin6To.sin6_len      = sizeof(struct sockaddr_in6);
+    sockaddrin6To.sin6_family   = AF_INET6;
+    sockaddrin6To.sin6_addr     = *pin6addr;
+    sockaddrin6To.sin6_scope_id = 0;
     
     iSock = socket(AF_INET6, SOCK_RAW, IPPROTO_ICMPV6);                 /*  必须原子运行到 push         */
     if (iSock < 0) {
@@ -364,7 +286,19 @@ INT  API_INetPing6 (struct in6_addr  *pin6addr,
     API_ThreadCleanupPush(__inetPing6Cleanup, (PVOID)iSock);            /*  加入清除函数                */
     
     setsockopt(iSock, SOL_SOCKET, SO_RCVTIMEO, &iTimeout, sizeof(INT));
-    setsockopt(iSock, IPPROTO_RAW, IPV6_CHECKSUM, &On, sizeof(INT));
+    setsockopt(iSock, IPPROTO_RAW, IPV6_CHECKSUM, &On, sizeof(INT));    /*  自动计算 checksum           */
+    
+    if (pcNetif) {
+        struct ifreq ifreq;
+        lib_strlcpy(ifreq.ifr_name, pcNetif, IFNAMSIZ);                 /*  绑定指定的设备              */
+        setsockopt(iSock, SOL_SOCKET, SO_BINDTODEVICE, &ifreq, sizeof(ifreq));
+        if (ioctl(iSock, SIOCGIFINDEX, &ifreq) < 0) {
+            fprintf(stderr, "SIOCGIFINDEX command error: %s\n", lib_strerror(errno));
+            close(iSock);
+            return  (PX_ERROR);
+        }
+        sockaddrin6To.sin6_scope_id = ifreq.ifr_ifindex;                /*  设置 sin6_scope_id          */
+    }
     
     connect(iSock, (struct sockaddr *)&sockaddrin6To, 
             sizeof(struct sockaddr_in6));                               /*  设定目标                    */
@@ -372,8 +306,8 @@ INT  API_INetPing6 (struct in6_addr  *pin6addr,
     printf("Pinging %s\n\n", inet6_ntoa_r(*pin6addr, cInetAddr, sizeof(cInetAddr)));
     
     for (i = 0; ;) {
-        if (__inetPing6Send(iSock, pin6addr, iDataSize, pcNetif, &usSeqRecv) < 0) {
-                                                                        /*  发送 icmp 数据包            */
+        if (__inetPing6Send(iSock, pin6addr, sockaddrin6To.sin6_scope_id,
+                            iDataSize, &usSeqRecv) < 0) {               /*  发送 icmp 数据包            */
             fprintf(stderr, "error: %s.\n", lib_strerror(errno));
         
             i++;

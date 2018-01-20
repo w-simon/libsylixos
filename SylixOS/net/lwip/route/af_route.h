@@ -80,7 +80,7 @@ INT          route_shutdown(AF_ROUTE_T  *pafroute, int how);
 INT          route_ioctl(AF_ROUTE_T  *pafroute, INT  iCmd, PVOID  pvArg);
 
 /*********************************************************************************************************
-  消息接口
+  消息接口 (iAddrType: 0: ipaddr 1: netmask)
 *********************************************************************************************************/
 
 #ifdef __SYLIXOS_RTHOOK
@@ -89,7 +89,7 @@ VOID         route_hook_rt_ipv4(u_char type, const struct rt_entry *pentry, int 
 VOID         route_hook_rt_ipv6(u_char type, const struct rt6_entry *pentry, int nolock);
 #endif                                                                  /*  LWIP_IPV6                   */
 
-VOID         route_hook_netif_ipv4(struct netif *pnetif, const ip4_addr_t *pipaddr);
+VOID         route_hook_netif_ipv4(struct netif *pnetif, const ip4_addr_t *pipaddr, const ip4_addr_t *pnetmask, u_char type);
 #if LWIP_IPV6
 VOID         route_hook_netif_ipv6(struct netif *pnetif, const ip6_addr_t *pipaddr, u_char type);
 #endif                                                                  /*  LWIP_IPV6                   */
@@ -101,7 +101,7 @@ VOID         route_hook_maddr_ipv6(struct netif *pnetif, const ip6_addr_t *pip6a
 
 VOID         route_hook_netif_ann(struct netif *pnetif, int what);
 
-VOID         route_hook_netif_updown(struct netif *pnetif, int up);
+VOID         route_hook_netif_updown(struct netif *pnetif);
 #endif                                                                  /*  __SYLIXOS_RTHOOK            */
 
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */

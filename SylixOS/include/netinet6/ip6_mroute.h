@@ -38,8 +38,8 @@
 #define MRT6_BASE           200
 #define MRT6_INIT           (MRT6_BASE)                         /* initialize mrouted                   */
 #define MRT6_DONE           (MRT6_BASE + 1)                     /* shut down mrouted                    */
-#define MRT6_ADD_VIF        (MRT6_BASE + 2)                     /* create virtual interface             */
-#define MRT6_DEL_VIF        (MRT6_BASE + 3)                     /* delete virtual interface             */
+#define MRT6_ADD_MIF        (MRT6_BASE + 2)                     /* create virtual interface             */
+#define MRT6_DEL_MIF        (MRT6_BASE + 3)                     /* delete virtual interface             */
 #define MRT6_ADD_MFC        (MRT6_BASE + 4)                     /* insert forwarding cache entry        */
 #define MRT6_DEL_MFC        (MRT6_BASE + 5)                     /* delete forwarding cache entry        */
 #define MRT6_VERSION        (MRT6_BASE + 6)                     /* get kernel version number            */
@@ -80,9 +80,9 @@ typedef struct if_set {
 struct mif6ctl {
     mifi_t      mif6c_mifi;                                     /* Index of MIF                         */
     u_char      mif6c_flags;                                    /* MIFF_ flags                          */
-    u_char      vifc_threshold;                                 /* ttl limit                            */
+    u_char      mif6c_pad1;                                     /* vifc_threshold                       */
     u_short     mif6c_pifi;                                     /* the index of the physical IF         */
-    u_int       vifc_rate_limit;                                /* Rate limiter values (NI)             */
+    u_int       mif6c_pad2;                                     /* max rate (NI)                        */
 };
 
 #define MIFF_REGISTER   0x1                                     /* mif represents a register end-point  */
@@ -124,13 +124,13 @@ struct mrt6stat {
 
 struct sioc_mif_req6 {
     mifi_t      mifi;                                           /* Which iface                          */
-    u_long      icount;                                         /* In packets                           */
-    u_long      ocount;                                         /* Out packets                          */
-    u_long      ibytes;                                         /* In bytes                             */
-    u_long      obytes;                                         /* Out bytes                            */
+    u_quad_t    icount;                                         /* In packets                           */
+    u_quad_t    ocount;                                         /* Out packets                          */
+    u_quad_t    ibytes;                                         /* In bytes                             */
+    u_quad_t    obytes;                                         /* Out bytes                            */
 };
 
-#define SIOCGETVIFCNT_IN6   (SIOCPROTOPRIVATE)
+#define SIOCGETMIFCNT_IN6   (SIOCPROTOPRIVATE)
 
 /*********************************************************************************************************
   Group count retrieval for pim6sd
@@ -139,9 +139,9 @@ struct sioc_mif_req6 {
 struct sioc_sg_req6 {
     struct sockaddr_in6 src;
     struct sockaddr_in6 grp;
-    u_long              pktcnt;
-    u_long              bytecnt;
-    u_long              wrong_if;
+    u_quad_t            pktcnt;
+    u_quad_t            bytecnt;
+    u_quad_t            wrong_if;
 };
 
 #define SIOCGETSGCNT_IN6    (SIOCPROTOPRIVATE + 1)

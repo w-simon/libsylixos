@@ -110,12 +110,12 @@
 #define  LW_OPTION_THREAD_NOTEPAD_7                     0x07
 #define  LW_OPTION_THREAD_NOTEPAD_8                     0x08
 #define  LW_OPTION_THREAD_NOTEPAD_9                     0x09
-#define  LW_OPTION_THREAD_NOTEPAD_10                    0x0A
-#define  LW_OPTION_THREAD_NOTEPAD_11                    0x0B
-#define  LW_OPTION_THREAD_NOTEPAD_12                    0x0C
-#define  LW_OPTION_THREAD_NOTEPAD_13                    0x0D
-#define  LW_OPTION_THREAD_NOTEPAD_14                    0x0E
-#define  LW_OPTION_THREAD_NOTEPAD_15                    0x0F            /*  线程记事本号                */
+#define  LW_OPTION_THREAD_NOTEPAD_10                    0x0a
+#define  LW_OPTION_THREAD_NOTEPAD_11                    0x0b
+#define  LW_OPTION_THREAD_NOTEPAD_12                    0x0c
+#define  LW_OPTION_THREAD_NOTEPAD_13                    0x0d
+#define  LW_OPTION_THREAD_NOTEPAD_14                    0x0e
+#define  LW_OPTION_THREAD_NOTEPAD_15                    0x0f            /*  线程记事本号                */
 #define  LW_OPTION_THREAD_NOTEPAD_NO(n)                 (n)
 
 /*********************************************************************************************************
@@ -241,7 +241,7 @@
 #define  LW_OPTION_EVENT_29                             0x20000000
 #define  LW_OPTION_EVENT_30                             0x40000000
 #define  LW_OPTION_EVENT_31                             0x80000000
-#define  LW_OPTION_EVENT_ALL                           (0xFFFFFFFF)     /*  事件集的所有事件位          */
+#define  LW_OPTION_EVENT_ALL                           (0xffffffff)     /*  事件集的所有事件位          */
 
 /*********************************************************************************************************
   SCHEDLER

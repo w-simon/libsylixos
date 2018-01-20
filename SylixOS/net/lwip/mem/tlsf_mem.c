@@ -90,7 +90,9 @@ void *tlsf_mem_calloc (size_t count, size_t size)
 /* tlsf free */
 void tlsf_mem_free (void *f)
 {
+  LW_SPIN_LOCK_TASK(&tlsf_lock);
   tlsf_free(tlsf_mem, f);
+  LW_SPIN_UNLOCK_TASK(&tlsf_lock);
 }
 
 #endif /* LW_CFG_LWIP_MEM_TLSF */

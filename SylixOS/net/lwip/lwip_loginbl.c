@@ -231,7 +231,7 @@ static BOOL  __LoginBlIsLocal (ip4_addr_t *pipaddr)
 
     struct netif *pnetif;
     
-    for (pnetif = netif_list; pnetif != LW_NULL; pnetif = pnetif->next) {
+    NETIF_FOREACH(pnetif) {
         if (LW_LBL_NETIF_AVLID(pnetif)) {
             if (ip4_addr_netcmp(netif_ip4_addr(pnetif), 
                                 pipaddr, netif_ip4_netmask(pnetif))) {

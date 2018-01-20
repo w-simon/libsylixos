@@ -37,12 +37,15 @@
 *********************************************************************************************************/
 #if LW_CFG_NET_EN > 0
 #include "lwip/mem.h"
+#include "lwip/snmp.h"
 #include "lwip/netif.h"
+#include "lwip/netifapi.h"
 #include "lwip/dhcp.h"
 #include "lwip/autoip.h"
 #include "lwip/err.h"
-#include "lwip_if.h"
 #include "net/if.h"
+#include "net/if_event.h"
+#include "net/if_lock.h"
 #if LW_CFG_NET_ROUTER > 0
 #include "net/route.h"
 #include "route/af_route.h"
@@ -56,21 +59,11 @@
 #endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
 #if LW_CFG_NET_MROUTER > 0
 #include "mroute/ip4_mrt.h"
+#include "mroute/ip6_mrt.h"
 #endif                                                                  /*  LW_CFG_NET_MROUTER > 0      */
 #if LW_CFG_NET_FLOWCTL_EN > 0
 #include "flowctl/net_flowctl.h"
 #endif
-/*********************************************************************************************************
-  网络接口数量宏定义
-*********************************************************************************************************/
-#define __LW_NETIF_MAX_NUM      LW_CFG_NET_DEV_MAX
-#define __LW_NETIF_USED         1
-#define __LW_NETIF_UNUSED       0
-/*********************************************************************************************************
-  全局变量
-*********************************************************************************************************/
-static struct netif *_G_pnetifArray[__LW_NETIF_MAX_NUM];
-static UINT          _G_uiNetifNum = 0;
 /*********************************************************************************************************
   函数声明
 *********************************************************************************************************/
@@ -78,225 +71,282 @@ static UINT          _G_uiNetifNum = 0;
 VOID  __npfNetifRemoveHook(struct netif  *pnetif);
 #endif                                                                  /*  LW_CFG_NET_NPF_EN > 0       */
 /*********************************************************************************************************
+  函数声明
+*********************************************************************************************************/
+#if LW_CFG_NET_ROUTER == 0
+enum if_addr_type {
+    IPADDR = 0,
+    NETMASK
+};
+#endif                                                                  /*  LW_CFG_NET_ROUTER == 0      */
+/*********************************************************************************************************
 ** 函数名称: netif_add_hook
-** 功能描述: 创建网络接口回调函数, 返回网络接口号 (网络上下文中调用)
-** 输　入  : pvNetif     网络接口
-** 输　出  : ERR
+** 功能描述: 创建网络接口回调函数
+** 输　入  : pnetif     网络接口
+** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-INT  netif_add_hook (PVOID  pvNetif)
+static VOID  netif_add_hook (struct netif *pnetif)
 {
-    struct netif  *netif = (struct netif *)pvNetif;
-    INT            i;
-    
-    if (_G_ulNetifLock == 0) {
-        _G_ulNetifLock =  API_SemaphoreMCreate("netif_lock", LW_PRIO_DEF_CEILING, 
-                                               LW_OPTION_WAIT_PRIORITY |
-                                               LW_OPTION_DELETE_SAFE |
-                                               LW_OPTION_INHERIT_PRIORITY |
-                                               LW_OPTION_OBJECT_GLOBAL, LW_NULL);
-    }
-    
-    LWIP_NETIF_LOCK();                                                  /*  进入临界区                  */
-    for (i = 0; i < __LW_NETIF_MAX_NUM; i++) {
-        if (_G_pnetifArray[i] == LW_NULL) {
-            _G_pnetifArray[i] =  netif;
-            netif->num        =  (UINT8)i;
-            _G_uiNetifNum++;
-            break;
-        }
-    }
-    LWIP_NETIF_UNLOCK();                                                /*  退出临界区                  */
-    
-    if (i >= __LW_NETIF_MAX_NUM) {
-        return  (ERR_USE);
-    }
-    
 #if LW_CFG_NET_ROUTER > 0
-    rt_netif_add_hook(netif);                                           /*  更新路由表有效标志          */
+    rt_netif_add_hook(pnetif);                                          /*  更新路由表有效标志          */
 #if LWIP_IPV6
-    rt6_netif_add_hook(netif);
+    rt6_netif_add_hook(pnetif);
 #endif
 #if LW_CFG_NET_BALANCING > 0
-    srt_netif_add_hook(netif);
+    srt_netif_add_hook(pnetif);
 #if LWIP_IPV6
-    srt6_netif_add_hook(netif);
+    srt6_netif_add_hook(pnetif);
 #endif
 #endif                                                                  /*  LW_CFG_NET_BALANCING > 0    */
-    route_hook_netif_ann(netif, 0);
+    route_hook_netif_ann(pnetif, 0);
 #endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
 #if LW_CFG_NET_FLOWCTL_EN > 0
-    fcnet_netif_attach(netif);
+    fcnet_netif_attach(pnetif);
 #endif                                                                  /*  LW_CFG_NET_FLOWCTL_EN > 0   */
-    
-    return  (ERR_OK);
+
+    netEventIfAdd(pnetif);
 }
 /*********************************************************************************************************
 ** 函数名称: netif_remove_hook
 ** 功能描述: 删除网络接口回调函数. (网络上下文中调用)
-** 输　入  : pvNetif     网络接口
+** 输　入  : pnetif     网络接口
 ** 输　出  : 
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-VOID  netif_remove_hook (PVOID  pvNetif)
+static VOID  netif_remove_hook (struct netif *pnetif)
 {
-    struct netif  *netif = (struct netif *)pvNetif;
-    INT            iNum  = (INT)netif->num;
-    
+    netEventIfRemove(pnetif);
+
 #if LW_CFG_NET_ROUTER > 0
-    rt_netif_remove_hook(netif);                                        /*  更新路由表有效标志          */
+    rt_netif_remove_hook(pnetif);                                       /*  更新路由表有效标志          */
 #if LWIP_IPV6
-    rt6_netif_remove_hook(netif);
+    rt6_netif_remove_hook(pnetif);
 #endif
 #if LW_CFG_NET_BALANCING > 0
-    srt_netif_remove_hook(netif);
+    srt_netif_remove_hook(pnetif);
 #if LWIP_IPV6
-    srt6_netif_remove_hook(netif);
+    srt6_netif_remove_hook(pnetif);
 #endif
 #endif                                                                  /*  LW_CFG_NET_BALANCING > 0    */
 #if LW_CFG_NET_MROUTER > 0
-    ip4_mrt_if_detach(netif);
+    ip4_mrt_if_detach(pnetif);
+#if LWIP_IPV6
+    ip6_mrt_if_detach(pnetif);
+#endif
 #endif                                                                  /*  LW_CFG_NET_MROUTER > 0      */
-    route_hook_netif_ann(netif, 1);
+    route_hook_netif_ann(pnetif, 1);
 #endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
 #if LW_CFG_NET_FLOWCTL_EN > 0
-    fcnet_netif_detach(netif);
+    fcnet_netif_detach(pnetif);
 #endif                                                                  /*  LW_CFG_NET_FLOWCTL_EN > 0   */
     
-    if (iNum < __LW_NETIF_MAX_NUM) {
-        LWIP_NETIF_LOCK();                                              /*  进入临界区                  */
-        _G_pnetifArray[iNum] = LW_NULL;
-        _G_uiNetifNum--;
-        LWIP_NETIF_UNLOCK();                                            /*  退出临界区                  */
-    }
-    
 #if LW_CFG_NET_NPF_EN > 0
-    __npfNetifRemoveHook(netif);
+    __npfNetifRemoveHook(pnetif);
 #endif                                                                  /*  LW_CFG_NET_NPF_EN > 0       */
 
 #if LWIP_DHCP > 0
-    if (netif_dhcp_data(netif)) {
-        dhcp_stop(netif);                                               /*  关闭 DHCP 回收 UDP 控制块   */
-        dhcp_cleanup(netif);                                            /*  回收 DHCP 内存              */
+    if (netif_dhcp_data(pnetif)) {
+        netifapi_dhcp_release_and_stop(pnetif);
+        dhcp_cleanup(pnetif);                                           /*  回收 DHCP 内存              */
     }
 #endif                                                                  /*  LWIP_DHCP > 0               */
 
 #if LWIP_AUTOIP > 0
-    if (netif_autoip_data(netif)) {
-        mem_free(netif_autoip_data(netif));                             /*  回收 AUTOIP 内存            */
-        netif_set_client_data(netif, LWIP_NETIF_CLIENT_DATA_INDEX_AUTOIP, NULL);
+    if (netif_autoip_data(pnetif)) {
+        mem_free(netif_autoip_data(pnetif));                            /*  回收 AUTOIP 内存            */
+        netif_set_client_data(pnetif, LWIP_NETIF_CLIENT_DATA_INDEX_AUTOIP, NULL);
     }
 #endif                                                                  /*  LWIP_AUTOIP > 0             */
 }
 /*********************************************************************************************************
 ** 函数名称: netif_updown_hook
 ** 功能描述: 网络接口使能禁能回调.
-** 输　入  : pvNetif    网络接口
+** 输　入  : pnetif     网络接口
 **           up         1: 使能 0: 禁能
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID netif_updown_hook (PVOID  pvNetif, INT up)
+static VOID  netif_updown_hook (struct netif *pnetif, INT up)
 {
-    struct netif  *netif = (struct netif *)pvNetif;
+    if (up) {
+        if (pnetif->up) {
+            pnetif->up(pnetif);
+        }
+        netEventIfUp(pnetif);
+        
+    } else {
+        if (pnetif->down) {
+            pnetif->down(pnetif);
+        }
+        netEventIfDown(pnetif);
+        
+#if LW_CFG_NET_ROUTER > 0
+        rt_netif_invcache_hook(pnetif);
+#if LWIP_IPV6
+        rt6_netif_invcache_hook(pnetif);
+#endif                                                                  /*  LWIP_IPV6 > 0               */
+#endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
+    }
     
 #if LW_CFG_NET_ROUTER > 0
-    if (!up) {
-        rt_netif_invcache_hook(netif);
-#if LWIP_IPV6
-        rt6_netif_invcache_hook(netif);
-#endif
-    }
-    route_hook_netif_updown(netif, up);
-#endif
+    route_hook_netif_updown(pnetif);
+#endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
 }
 /*********************************************************************************************************
 ** 函数名称: netif_link_updown_hook
 ** 功能描述: 网络接口 link 连接状态回调.
-** 输　入  : pvNetif    网络接口
+** 输　入  : pnetif     网络接口
 **           linkup     1: 连接 0: 禁能
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID netif_link_updown_hook (PVOID  pvNetif, INT linkup)
+static VOID  netif_link_updown_hook (struct netif *pnetif, INT linkup)
 {
-    struct netif  *netif = (struct netif *)pvNetif;
+    if (linkup) {
+        netEventIfLink(pnetif);
+        
+    } else {
+        netEventIfUnlink(pnetif);
     
 #if LW_CFG_NET_ROUTER > 0
-    if (!linkup) {
-        rt_netif_invcache_hook(netif);
+        rt_netif_invcache_hook(pnetif);
 #if LWIP_IPV6
-        rt6_netif_invcache_hook(netif);
-#endif
+        rt6_netif_invcache_hook(pnetif);
+#endif                                                                  /*  LWIP_IPV6 > 0               */
+#endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
     }
-#endif
+    
+#if LW_CFG_NET_ROUTER > 0
+    route_hook_netif_updown(pnetif);
+#endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
 }
 /*********************************************************************************************************
 ** 函数名称: netif_set_addr_hook
 ** 功能描述: 网络接口设置地址.
-** 输　入  : pvNetif    网络接口
-**           pvIpaddr   新地址
+** 输　入  : pnetif        网络接口
+**           pipaddr       旧地址
+**           iAddrType:    0: ipaddr 1: netmask 2: gateway
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID netif_set_addr_hook (PVOID  pvNetif, const PVOID pvIpaddr)
+static VOID  netif_set_addr_hook (struct netif *pnetif, const ip4_addr_t *pipaddr, INT  iAddrType)
 {
-    struct netif  *netif = (struct netif *)pvNetif;
-    
+#define NETIF_SET_IPV4_ADDR     0
+#define NETIF_SET_IPV4_NETMASK  1
+#define NETIF_SET_IPV4_GATEWAY  2
+
 #if LW_CFG_NET_ROUTER > 0
-    route_hook_netif_ipv4(netif, (ip4_addr_t *)pvIpaddr);
-#endif
+    ip4_addr_t  ipaddr;
+    ip4_addr_t  ipnetmask;
+    
+    ip4_addr_set(&ipaddr, netif_ip4_addr(pnetif));
+    ip4_addr_set(&ipnetmask, netif_ip4_netmask(pnetif));
+    
+    switch (iAddrType) {
+    
+    case NETIF_SET_IPV4_ADDR:
+        if (!ip4_addr_isany(pipaddr)) {
+            route_hook_netif_ipv4(pnetif, pipaddr, &ipnetmask, RTM_DELADDR);
+        }
+        if (!ip4_addr_isany_val(ipaddr)) {
+            route_hook_netif_ipv4(pnetif, &ipaddr, &ipnetmask, RTM_NEWADDR);
+        }
+        break;
+        
+    case NETIF_SET_IPV4_NETMASK:
+        if (!ip4_addr_isany_val(ipaddr)) {
+            route_hook_netif_ipv4(pnetif, &ipaddr, pipaddr,    RTM_DELADDR);
+            route_hook_netif_ipv4(pnetif, &ipaddr, &ipnetmask, RTM_NEWADDR);
+        }
+        break;
+        
+    default:
+        break;
+    }
+#endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
 }
 /*********************************************************************************************************
 ** 函数名称: netif_set_addr6_hook
 ** 功能描述: 网络接口设置地址.
-** 输　入  : pvNetif    网络接口
-**           pvIpaddr   新地址
+** 输　入  : pnetif     网络接口
+**           pip6addr   旧地址
 **           iIndex     地址下标
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID netif_set_addr6_hook (PVOID  pvNetif, const PVOID pvIp6addr, INT iIndex)
-{
-    struct netif  *netif = (struct netif *)pvNetif;
-    
-#if LW_CFG_NET_ROUTER > 0
-    const ip6_addr_t  *pip6addr;
+#if LWIP_IPV6
 
-    pip6addr = netif_ip6_addr(netif, iIndex);
-    if (!ip6_addr_isany(pip6addr)) {
-        route_hook_netif_ipv6(netif, pip6addr, RTM_DELADDR);
-    }
+static VOID netif_set_addr6_hook (struct netif *pnetif, const ip6_addr_t *pip6addr, INT iIndex)
+{
+#if LW_CFG_NET_ROUTER > 0
+    ip6_addr_t  ip6addrNew;
+
+    if (netif_ip6_addr_state(pnetif, iIndex) & IP6_ADDR_VALID) {
+        if (!ip6_addr_isany(pip6addr)) {
+            route_hook_netif_ipv6(pnetif, pip6addr, RTM_DELADDR);
+        }
     
-    pip6addr = (ip6_addr_t *)pvIp6addr;
-    if (!ip6_addr_isany(pip6addr)) {
-        route_hook_netif_ipv6(netif, pip6addr, RTM_NEWADDR);
+        ip6_addr_set(&ip6addrNew, netif_ip6_addr(pnetif, iIndex));
+        if (!ip6_addr_isany_val(ip6addrNew)) {
+            route_hook_netif_ipv6(pnetif, pip6addr, RTM_NEWADDR);
+        }
     }
-#endif
+#endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
 }
+/*********************************************************************************************************
+** 函数名称: netif_set_stat6_hook
+** 功能描述: 网络接口设置地址状态.
+** 输　入  : pnetif     网络接口
+**           pip6addr   旧地址
+**           iIndex     地址下标
+**           ostat      之前的状态
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID netif_set_stat6_hook (struct netif *pnetif, const ip6_addr_t *pip6addr, INT iIndex, UINT8 ostat)
+{
+#if LW_CFG_NET_ROUTER > 0
+    UINT8       nstat = netif_ip6_addr_state(pnetif, iIndex);
+    ip6_addr_t  ip6addrNew;
+
+    if ((nstat & IP6_ADDR_VALID) && !(ostat & IP6_ADDR_VALID)) {
+        ip6_addr_set(&ip6addrNew, netif_ip6_addr(pnetif, iIndex));
+        if (!ip6_addr_isany_val(ip6addrNew)) {
+            route_hook_netif_ipv6(pnetif, pip6addr, RTM_NEWADDR);
+        }
+    
+    } else if (!(nstat & IP6_ADDR_VALID) && (ostat & IP6_ADDR_VALID)) {
+        if (!ip6_addr_isany(pip6addr)) {
+            route_hook_netif_ipv6(pnetif, pip6addr, RTM_DELADDR);
+        }
+    }
+#endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
+}
+
+#endif                                                                  /*  LWIP_IPV6                   */
 /*********************************************************************************************************
 ** 函数名称: netif_set_maddr_hook
 ** 功能描述: 网络接口 添加 / 删除 组播地址.
-** 输　入  : pvNetif    网络接口
-**           pvIpaddr   新地址
+** 输　入  : pnetif     网络接口
+**           pipaddr    组播地址
 **           iAdd       是否为添加
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID netif_set_maddr_hook (PVOID  pvNetif, const PVOID pvIpaddr, INT iAdd)
+VOID netif_set_maddr_hook (struct netif *pnetif, const ip4_addr_t *pipaddr, INT iAdd)
 {
-    struct netif  *netif = (struct netif *)pvNetif;
-    
 #if LW_CFG_NET_ROUTER > 0
-    route_hook_maddr_ipv4(netif, (ip4_addr_t *)pvIpaddr, (u_char)(iAdd ? RTM_NEWMADDR : RTM_DELMADDR));
-#endif
+    route_hook_maddr_ipv4(pnetif, pipaddr, (u_char)(iAdd ? RTM_NEWMADDR : RTM_DELMADDR));
+#endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
 }
 /*********************************************************************************************************
 ** 函数名称: netif_set_addr6_hook
@@ -309,41 +359,108 @@ VOID netif_set_maddr_hook (PVOID  pvNetif, const PVOID pvIpaddr, INT iAdd)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID netif_set_maddr6_hook (PVOID  pvNetif, const PVOID pvIp6addr,  INT iAdd)
+#if LWIP_IPV6 && LWIP_IPV6_MLD
+
+VOID netif_set_maddr6_hook (struct netif *pnetif, const ip6_addr_t *pip6addr, INT iAdd)
 {
-    struct netif  *netif = (struct netif *)pvNetif;
-    
 #if LW_CFG_NET_ROUTER > 0
-    route_hook_maddr_ipv6(netif, (ip6_addr_t *)pvIp6addr, (u_char)(iAdd ? RTM_NEWMADDR : RTM_DELMADDR));
-#endif
+    route_hook_maddr_ipv6(pnetif, pip6addr, (u_char)(iAdd ? RTM_NEWMADDR : RTM_DELMADDR));
+#endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
 }
+
+#endif                                                                  /*  LWIP_IPV6 && LWIP_IPV6_MLD  */
 /*********************************************************************************************************
-** 函数名称: netif_get_num
-** 功能描述: 获得网络接口数量.
+** 函数名称: netif_callback_func
+** 功能描述: 网络接口回调.
 ** 输　入  : NONE
-** 输　出  : 网络接口数量
+** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-UINT netif_get_num (VOID)
+static VOID  netif_callback_func (struct netif *pnetif, netif_nsc_reason_t reason, 
+                                  const netif_ext_callback_args_t *args)
 {
-    return  (_G_uiNetifNum);
-}
-/*********************************************************************************************************
-** 函数名称: netif_get_by_index
-** 功能描述: 通过 index 获得网络接口结构. (没有加锁)
-** 输　入  : uiIndex       index
-** 输　出  : 网络接口
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-PVOID netif_get_by_index (UINT uiIndex)
-{
-    if (uiIndex < __LW_NETIF_MAX_NUM) {
-        return  (_G_pnetifArray[uiIndex]);
+    /*
+     * netif was added. arg: NULL. Called AFTER netif was added.
+     */
+    if (reason & LWIP_NSC_NETIF_ADDED) {
+        netif_add_hook(pnetif);
     }
     
-    return  (LW_NULL);
+    /*
+     * netif was removed. arg: NULL. Called BEFORE netif is removed.
+     */
+    if (reason & LWIP_NSC_NETIF_REMOVED) {
+        netif_remove_hook(pnetif);
+    }
+    
+    /*
+     * link changed.
+     */
+    if (reason & LWIP_NSC_LINK_CHANGED) {
+        netif_link_updown_hook(pnetif, args->link_changed.state);
+    }
+
+    /*
+     * netif administrative status changed.
+     * up is called AFTER netif is set up.
+     * down is called BEFORE the netif is actually set down.
+     */
+    if (reason & LWIP_NSC_STATUS_CHANGED) {
+        netif_updown_hook(pnetif, args->status_changed.state);
+    }
+
+    /*
+     * IPv4 address has changed.
+     */
+    if (reason & LWIP_NSC_IPV4_ADDRESS_CHANGED) {
+        netif_set_addr_hook(pnetif, ip_2_ip4(args->ipv4_changed.old_address), NETIF_SET_IPV4_ADDR);
+    }
+    
+    /*
+     * IPv4 netmask has changed.
+     */
+    if (reason & LWIP_NSC_IPV4_NETMASK_CHANGED) {
+        netif_set_addr_hook(pnetif, ip_2_ip4(args->ipv4_changed.old_netmask), NETIF_SET_IPV4_NETMASK);
+    }
+    
+    /*
+     * IPv4 gateway has changed.
+     */
+    if (reason & LWIP_NSC_IPV4_GATEWAY_CHANGED) {
+        netif_set_addr_hook(pnetif, ip_2_ip4(args->ipv4_changed.old_gw), NETIF_SET_IPV4_GATEWAY);
+    }
+    
+#if LWIP_IPV6
+    /*
+     * IPv6 address was added.
+     */
+    if (reason & LWIP_NSC_IPV6_SET) {
+        netif_set_addr6_hook(pnetif, ip_2_ip6(args->ipv6_set.old_address), args->ipv6_set.addr_index);
+    }
+    
+    /*
+     * IPv6 address state has changed.
+     */
+    if (reason & LWIP_NSC_IPV6_ADDR_STATE_CHANGED) {
+        netif_set_stat6_hook(pnetif, ip_2_ip6(args->ipv6_addr_state_changed.address), 
+                             args->ipv6_addr_state_changed.addr_index, args->ipv6_addr_state_changed.old_state);
+    }
+#endif                                                                  /*  LWIP_IPV6                   */
+}
+/*********************************************************************************************************
+** 函数名称: netif_callback_init
+** 功能描述: 网络接口回调初始化.
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID netif_callback_init (VOID)
+{
+    static netif_ext_callback_t netifcallback;
+
+    netif_add_ext_callback(&netifcallback, netif_callback_func);
 }
 /*********************************************************************************************************
 ** 函数名称: netif_get_flags
@@ -374,7 +491,7 @@ INT  netif_get_flags (struct netif *pnetif)
     if ((pnetif->flags & NETIF_FLAG_ETHARP) == 0) {
         iFlags |= IFF_NOARP;
     }
-    if (netif_ip4_addr(pnetif)->addr == ntohl(INADDR_LOOPBACK)) {
+    if (pnetif->link_type == snmp_ifType_softwareLoopback) {
         iFlags |= IFF_LOOPBACK;
     }
     if ((pnetif->flags2 & NETIF_FLAG2_PROMISC)) {

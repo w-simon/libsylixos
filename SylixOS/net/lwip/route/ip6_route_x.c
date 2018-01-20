@@ -82,10 +82,10 @@ size_t rt6_entry_to_msghdr (struct rt_msghdr *rtmsghdr, const struct rt6_entry *
   rtmsghdr->rtm_rmx   = entry6->rt6_rmx;
 
   if (entry6->rt6_netif) {
-    rtmsghdr->rtm_index  = entry6->rt6_netif->num;
+    rtmsghdr->rtm_index  = netif_get_index(entry6->rt6_netif);
     rtmsghdr->rtm_addrs |= RTA_IFP;
   } else {
-    rtmsghdr->rtm_index = (u_short)-1;
+    rtmsghdr->rtm_index  = 0;
   }
 
   sin6 = (struct sockaddr_in6 *)(rtmsghdr + 1);
@@ -129,11 +129,9 @@ int rt6_msghdr_to_entry (struct rt6_entry *entry6, const struct rt_msghdr *rtmsg
     return (-1);
   }
   
-  netif = (struct netif *)netif_get_by_index(rtmsghdr->rtm_index);
+  netif = netif_get_by_index(rtmsghdr->rtm_index);
   if (netif) {
-    entry6->rt6_ifname[0] = netif->name[0];
-    entry6->rt6_ifname[1] = netif->name[1];
-    lib_itoa(netif->num, &entry6->rt6_ifname[2], 10);
+    netif_get_name(netif, entry6->rt6_ifname);
   }
     
   entry6->rt6_flags  = rtmsghdr->rtm_flags;

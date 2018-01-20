@@ -46,12 +46,10 @@ extern struct tcp_pcb           *tcp_tw_pcbs;
   UDP
 *********************************************************************************************************/
 #include "lwip/udp.h"
-extern struct udp_pcb *udp_pcbs;
 /*********************************************************************************************************
   RAW
 *********************************************************************************************************/
 #include "lwip/raw.h"
-extern struct raw_pcb *raw_pcbs;
 /*********************************************************************************************************
   IGMP
 *********************************************************************************************************/
@@ -110,12 +108,11 @@ static VOID  __GroupPrint (struct igmp_group *group, struct netif *netif,
                            PCHAR  pcBuffer, size_t  stTotalSize, size_t *pstOft)
 {
     CHAR    cBuffer[INET_ADDRSTRLEN];
+    CHAR    cIfName[NETIF_NAMESIZE];
 
     *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
-                       "%c%c%-2d %-15s %d\n",
-                       netif->name[0],
-                       netif->name[1],
-                       netif->num,
+                       "%-4s %-15s %d\n",
+                       netif_get_name(netif, cIfName),
                        ip4addr_ntoa_r(&group->group_address, cBuffer, sizeof(cBuffer)),
                        (u32_t)group->use);
 }
@@ -135,12 +132,11 @@ static VOID  __Group6Print (struct mld_group *mld_group, struct netif *netif,
                             PCHAR  pcBuffer, size_t  stTotalSize, size_t *pstOft)
 {
     CHAR    cBuffer[INET6_ADDRSTRLEN];
+    CHAR    cIfName[NETIF_NAMESIZE];
     
     *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
-                       "%c%c%-2d %-39s %d\n",
-                       netif->name[0],
-                       netif->name[1],
-                       netif->num,
+                       "%-4s %-39s %d\n",
+                       netif_get_name(netif, cIfName),
                        ip6addr_ntoa_r(&mld_group->group_address, cBuffer, sizeof(cBuffer)),
                        (u32_t)mld_group->use);
 }
@@ -169,14 +165,14 @@ VOID  __tshellNetstatGroup (INT  iNetType)
     
     LOCK_TCPIP_CORE();
     if (__NETSTAT_INC_IPV4(iNetType)) {
-        for (netif = netif_list; netif != LW_NULL; netif = netif->next) {
+        NETIF_FOREACH(netif) {
             for (group = netif_igmp_data(netif); group != NULL; group = group->next) {
                 stNeedBufferSize += 128;
             }
         }
     }
     if (__NETSTAT_INC_IPV6(iNetType)) {
-        for (netif = netif_list; netif != LW_NULL; netif = netif->next) {
+        NETIF_FOREACH(netif) {
             for (mld_group = netif_mld6_data(netif); mld_group != NULL; mld_group = mld_group->next) {
                 stNeedBufferSize += 256;
             }
@@ -196,7 +192,7 @@ VOID  __tshellNetstatGroup (INT  iNetType)
     LOCK_TCPIP_CORE();
     if (__NETSTAT_INC_IPV4(iNetType)) {
         stRealSize = bnprintf(pcPrintBuf, stNeedBufferSize, stRealSize, cIgmpInfoHdr);
-        for (netif = netif_list; netif != LW_NULL; netif = netif->next) {
+        NETIF_FOREACH(netif) {
             for (group = netif_igmp_data(netif); group != NULL; group = group->next) {
                 __GroupPrint(group, netif, pcPrintBuf, stNeedBufferSize, &stRealSize);
             }
@@ -204,7 +200,7 @@ VOID  __tshellNetstatGroup (INT  iNetType)
     }
     if (__NETSTAT_INC_IPV6(iNetType)) {
         stRealSize = bnprintf(pcPrintBuf, stNeedBufferSize, stRealSize, cIgmp6InfoHdr);
-        for (netif = netif_list; netif != LW_NULL; netif = netif->next) {
+        NETIF_FOREACH(netif) {
             for (mld_group = netif_mld6_data(netif); mld_group != NULL; mld_group = mld_group->next) {
                 __Group6Print(mld_group, netif, pcPrintBuf, stNeedBufferSize, &stRealSize);
             }

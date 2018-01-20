@@ -23,21 +23,10 @@
 #define __LIB_STDINT_H
 
 #include "../SylixOS/kernel/include/k_kernel.h"
+#include "../SylixOS/lib/libc/limits/lib_limits.h"
 
 #ifdef __cplusplus
 extern "C" {
-#endif
-
-#if defined(__GNUC__) && \
-    ((__GNUC__ >= 4) || \
-    ((__GNUC__ >= 3) && defined(__GNUC_MINOR__) && (__GNUC_MINOR__ > 2)))
-/*********************************************************************************************************
-  gcc > 3.2 implicitly defines the values we are interested
-*********************************************************************************************************/
-#define __STDINT_EXP(x) __##x##__
-#else
-#define __STDINT_EXP(x) x
-#include "../limits/lib_limits.h"
 #endif
 
 /*********************************************************************************************************
@@ -152,15 +141,28 @@ typedef uint64_t    uint_fast64_t;
   This must match size_t in stddef.h, currently long unsigned int
 *********************************************************************************************************/
 
-#define SIZE_MIN            (-__STDINT_EXP(LONG_MAX) - 1L)
-#define SIZE_MAX            __STDINT_EXP(LONG_MAX)
+#ifndef SIZE_MIN
+#define SIZE_MIN            0
+#endif
+
+#ifndef SIZE_MAX
+#define SIZE_MAX            ULONG_MAX
+#endif
+
+#ifndef SSIZE_MIN
+#define SSIZE_MIN           LONG_MIN
+#endif
+
+#ifndef SSIZE_MAX
+#define SSIZE_MAX           LONG_MAX
+#endif
 
 /*********************************************************************************************************
   This must match sig_atomic_t in <signal.h> (currently int)
 *********************************************************************************************************/
 
-#define SIG_ATOMIC_MIN      (-__STDINT_EXP(INT_MAX) - 1)
-#define SIG_ATOMIC_MAX      __STDINT_EXP(INT_MAX)
+#define SIG_ATOMIC_MIN      INT_MIN
+#define SIG_ATOMIC_MAX      INT_MAX
 
 #define INTPTR_MIN          INT32_MIN
 #define INTPTR_MAX          INT32_MAX
@@ -170,8 +172,8 @@ typedef uint64_t    uint_fast64_t;
   This must match ptrdiff_t  in <stddef.h> (currently long int)
 *********************************************************************************************************/
 
-#define PTRDIFF_MIN         (-__STDINT_EXP(LONG_MAX) - 1L)
-#define PTRDIFF_MAX         __STDINT_EXP(LONG_MAX)
+#define PTRDIFF_MIN         LONG_MIN
+#define PTRDIFF_MAX         LONG_MAX
 
 /*********************************************************************************************************
   Macros for minimum-width integer constant expressions 

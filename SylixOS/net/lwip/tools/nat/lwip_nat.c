@@ -33,6 +33,7 @@
 *********************************************************************************************************/
 #if (LW_CFG_NET_EN > 0) && (LW_CFG_NET_NAT_EN > 0)
 #include "socket.h"
+#include "net/if_lock.h"
 #include "lwip/netif.h"
 #include "lwip/tcpip.h"
 #include "lwip/inet.h"
@@ -40,8 +41,11 @@
 /*********************************************************************************************************
   函数声明
 *********************************************************************************************************/
-VOID        __natPoolCreate(VOID);
-VOID        __natTimer(VOID);
+VOID        __natInit(VOID);
+INT         __natStart(struct netif *pnetifLocal, struct netif *pnetifAp);
+INT         __natStop(VOID);
+INT         __natAddLocal(struct netif *pnetifLocal);
+INT         __natAddAp(struct netif *pnetifAp);
 INT         __natMapAdd(ip4_addr_t  *pipaddr, u16_t  usIpCnt, u16_t  usPort, u16_t  AssPort, u8_t  ucProto);
 INT         __natMapDelete(ip4_addr_t  *pipaddr, u16_t  usPort, u16_t  AssPort, u8_t  ucProto);
 INT         __natAliasAdd(const ip4_addr_t  *pipaddrAlias, 
@@ -56,26 +60,11 @@ VOID        __procFsNatInit(VOID);
 #if LW_CFG_SHELL_EN > 0
 static INT  __tshellNat(INT  iArgC, PCHAR  ppcArgV[]);
 static INT  __tshellNatLocal(INT  iArgC, PCHAR  ppcArgV[]);
+static INT  __tshellNatWan(INT  iArgC, PCHAR  ppcArgV[]);
 static INT  __tshellNatMap(INT  iArgC, PCHAR  ppcArgV[]);
 static INT  __tshellNatAlias(INT  iArgC, PCHAR  ppcArgV[]);
 static INT  __tshellNatShow(INT  iArgC, PCHAR  ppcArgV[]);
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
-/*********************************************************************************************************
-  NAT 本地内网与 AP 外网网络接口
-*********************************************************************************************************/
-#if LW_CFG_NET_NAT_MAX_LOCAL_IF > 1
-extern struct netif        *_G_pnetifNatLocalEx[LW_CFG_NET_NAT_MAX_LOCAL_IF - 1];
-#endif
-extern struct netif        *_G_pnetifNatLocal;
-extern struct netif        *_G_pnetifNatAp;
-/*********************************************************************************************************
-  NAT 操作锁
-*********************************************************************************************************/
-extern LW_OBJECT_HANDLE     _G_ulNatOpLock;
-/*********************************************************************************************************
-  NAT 刷新定时器
-*********************************************************************************************************/
-static LW_OBJECT_HANDLE     _G_ulNatTimer;
 /*********************************************************************************************************
 ** 函数名称: API_INetNatInit
 ** 功能描述: internet NAT 初始化
@@ -94,22 +83,7 @@ VOID  API_INetNatInit (VOID)
         return;
     }
     
-    __natPoolCreate();                                                  /*  创建 NAT 控制块缓冲池       */
-    
-    _G_ulNatOpLock = API_SemaphoreMCreate("nat_lock", LW_PRIO_DEF_CEILING, 
-                                          LW_OPTION_WAIT_PRIORITY |
-                                          LW_OPTION_INHERIT_PRIORITY |
-                                          LW_OPTION_DELETE_SAFE |
-                                          LW_OPTION_OBJECT_GLOBAL,
-                                          LW_NULL);                     /*  创建 NAT 操作锁             */
-                                          
-    _G_ulNatTimer = API_TimerCreate("nat_timer", LW_OPTION_ITIMER | LW_OPTION_OBJECT_GLOBAL, LW_NULL);
-    
-    API_TimerStart(_G_ulNatTimer, 
-                   (LW_TICK_HZ * 60),
-                   LW_OPTION_AUTO_RESTART,
-                   (PTIMER_CALLBACK_ROUTINE)__natTimer,
-                   LW_NULL);                                            /*  每分钟执行一次              */
+    __natInit();
     
 #if LW_CFG_PROCFS_EN > 0
     __procFsNatInit();
@@ -117,14 +91,18 @@ VOID  API_INetNatInit (VOID)
     
 #if LW_CFG_SHELL_EN > 0
     API_TShellKeywordAdd("nat", __tshellNat);
-    API_TShellFormatAdd("nat",  " [stop] | {[LAN netif] [WAN netif]}");
-    API_TShellHelpAdd("nat",   "start or stop NAT network.\n"
-                               "eg. nat wl2 en1 (start NAT network use wl2 as LAN, en1 as WAN)\n"
-                               "    nat stop    (stop NAT network)\n");
+    API_TShellFormatAdd("nat",  " [stop] | {[LAN Iface] [WAN Iface]}");
+    API_TShellHelpAdd("nat",    "start or stop NAT network.\n"
+                                "eg. nat wl2 en1 (start NAT network use wl2 as LAN, en1 as WAN)\n"
+                                "    nat stop    (stop NAT network)\n");
     
     API_TShellKeywordAdd("natlocal", __tshellNatLocal);
-    API_TShellFormatAdd("natlocal",  " [LAN netif]");
-    API_TShellHelpAdd("natlocal",   "add local net interface to NAT network.\n");
+    API_TShellFormatAdd("natlocal",  " [LAN Iface]");
+    API_TShellHelpAdd("natlocal",    "add LAN net interface to NAT network.\n");
+    
+    API_TShellKeywordAdd("natwan", __tshellNatWan);
+    API_TShellFormatAdd("natwan",  " [WAN Iface]");
+    API_TShellHelpAdd("natwan",    "add WAN net interface to NAT network.\n");
     
     API_TShellKeywordAdd("natalias", __tshellNatAlias);
     API_TShellFormatAdd("natalias",  " {[add] [alias] [LAN start] [LAN end]} | {[del] [alias]}");
@@ -166,27 +144,20 @@ INT  API_INetNatStart (CPCHAR  pcLocalNetif, CPCHAR  pcApNetif)
         return  (PX_ERROR);
     }
     
-    if (_G_pnetifNatLocal || _G_pnetifNatAp) {                          /*  NAT 正在工作                */
-        _ErrorHandle(EISCONN);
-        return  (PX_ERROR);
-    }
-    
-    __NAT_OP_LOCK();                                                    /*  锁定 NAT 链表               */
-    pnetifLocal = netif_find((PCHAR)pcLocalNetif);
-    pnetifAp    = netif_find((PCHAR)pcApNetif);
-    
+    LWIP_IF_LIST_LOCK(LW_FALSE);
+    pnetifLocal = netif_find(pcLocalNetif);
+    pnetifAp    = netif_find(pcApNetif);
     if (!pnetifLocal || !pnetifAp) {                                    /*  有网络接口不存在            */
-        __NAT_OP_UNLOCK();                                              /*  解锁 NAT 链表               */
-        _ErrorHandle(EINVAL);
+        LWIP_IF_LIST_UNLOCK();
+        _ErrorHandle(ENXIO);
         return  (PX_ERROR);
     }
     
-    __KERNEL_ENTER();
-    _G_pnetifNatLocal = pnetifLocal;                                    /*  保存网络接口                */
-    _G_pnetifNatAp    = pnetifAp;
-    __KERNEL_EXIT();
-    
-    __NAT_OP_UNLOCK();                                                  /*  解锁 NAT 链表               */
+    if (__natStart(pnetifLocal, pnetifAp)) {                            /*  启动 NAT                    */
+        LWIP_IF_LIST_UNLOCK();
+        return  (PX_ERROR);
+    }
+    LWIP_IF_LIST_UNLOCK();
     
     return  (ERROR_NONE);
 }
@@ -202,28 +173,10 @@ INT  API_INetNatStart (CPCHAR  pcLocalNetif, CPCHAR  pcApNetif)
 LW_API  
 INT  API_INetNatStop (VOID)
 {
-#if LW_CFG_NET_NAT_MAX_LOCAL_IF > 1
-    INT  i;
-#endif
-
-    if (!_G_pnetifNatLocal || !_G_pnetifNatAp) {                        /*  NAT 没有工作                */
+    if (__natStop()) {
         _ErrorHandle(ENOTCONN);
         return  (PX_ERROR);
     }
-    
-    __NAT_OP_LOCK();                                                    /*  锁定 NAT 链表               */
-    
-    __KERNEL_ENTER();
-#if LW_CFG_NET_NAT_MAX_LOCAL_IF > 1
-    for (i = 0; i < (LW_CFG_NET_NAT_MAX_LOCAL_IF - 1); i++) {
-        _G_pnetifNatLocalEx[i] = LW_NULL;
-    }
-#endif
-    _G_pnetifNatLocal = LW_NULL;
-    _G_pnetifNatAp    = LW_NULL;
-    __KERNEL_EXIT();
-    
-    __NAT_OP_UNLOCK();                                                  /*  解锁 NAT 链表               */
     
     return  (ERROR_NONE);
 }
@@ -239,61 +192,53 @@ INT  API_INetNatStop (VOID)
 LW_API  
 INT  API_INetNatLocalAdd (CPCHAR  pcLocalNetif)
 {
-#if LW_CFG_NET_NAT_MAX_LOCAL_IF > 1
-           INT      i;
     struct netif   *pnetifLocal;
-
-    if (!_G_pnetifNatLocal || !_G_pnetifNatAp) {                        /*  NAT 没有工作                */
-        _ErrorHandle(ENOTCONN);
-        return  (PX_ERROR);
-    }
     
-    __NAT_OP_LOCK();                                                    /*  锁定 NAT 链表               */
-    pnetifLocal = netif_find((PCHAR)pcLocalNetif);
+    LWIP_IF_LIST_LOCK(LW_FALSE);
+    pnetifLocal = netif_find(pcLocalNetif);
     if (!pnetifLocal) {                                                 /*  有网络接口不存在            */
-        __NAT_OP_UNLOCK();                                              /*  解锁 NAT 链表               */
-        _ErrorHandle(EINVAL);
+        LWIP_IF_LIST_UNLOCK();
+        _ErrorHandle(ENXIO);
         return  (PX_ERROR);
     }
     
-    __KERNEL_ENTER();
-    for (i = 0; i < (LW_CFG_NET_NAT_MAX_LOCAL_IF - 1); i++) {
-        if (_G_pnetifNatLocalEx[i] == LW_NULL) {
-            _G_pnetifNatLocalEx[i] =  pnetifLocal;
-            break;
-        }
-    }
-    if (i >= (LW_CFG_NET_NAT_MAX_LOCAL_IF - 1)) {                       /*  已经满了                    */
-        __KERNEL_EXIT();
-        __NAT_OP_UNLOCK();                                              /*  解锁 NAT 链表               */
-        _ErrorHandle(EMFILE);
+    if (__natAddLocal(pnetifLocal)) {
+        LWIP_IF_LIST_UNLOCK();
         return  (PX_ERROR);
     }
-    __KERNEL_EXIT();
-    
-    __NAT_OP_UNLOCK();                                                  /*  解锁 NAT 链表               */
+    LWIP_IF_LIST_UNLOCK();
     
     return  (ERROR_NONE);
-    
-#else
-    _ErrorHandle(ENOSYS);
-    return  (PX_ERROR);
-#endif                                                                  /*  LW_CFG_NET_NAT_MAX_LOCAL_IF */
 }
 /*********************************************************************************************************
-** 函数名称: API_INetNatLocalDelete
-** 功能描述: 在 NAT 网络中减少本地接口 (目前不支持)
-** 输　入  : pcLocalNetif          本地内网网络接口名
+** 函数名称: API_INetNatWanAdd
+** 功能描述: 在 NAT 网络中增加 WAN 接口
+** 输　入  : pcApNetif             外网网络接口名
 ** 输　出  : ERROR or OK
 ** 全局变量: 
 ** 调用模块: 
                                            API 函数
 *********************************************************************************************************/
 LW_API  
-INT  API_INetNatLocalDelete (CPCHAR  pcLocalNetif)
+INT  API_INetNatWanAdd (CPCHAR  pcApNetif)
 {
-    _ErrorHandle(ENOSYS);
-    return  (PX_ERROR);
+    struct netif   *pnetifAp;
+    
+    LWIP_IF_LIST_LOCK(LW_FALSE);
+    pnetifAp = netif_find(pcApNetif);
+    if (!pnetifAp) {                                                    /*  有网络接口不存在            */
+        LWIP_IF_LIST_UNLOCK();
+        _ErrorHandle(ENXIO);
+        return  (PX_ERROR);
+    }
+    
+    if (__natAddAp(pnetifAp)) {
+        LWIP_IF_LIST_UNLOCK();
+        return  (PX_ERROR);
+    }
+    LWIP_IF_LIST_UNLOCK();
+    
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: API_INetNatMapAdd
@@ -512,6 +457,29 @@ static INT  __tshellNatLocal (INT  iArgC, PCHAR  ppcArgV[])
     
     if (API_INetNatLocalAdd(ppcArgV[1]) != ERROR_NONE) {
         fprintf(stderr, "can not add NAT network local net interface, errno: %s\n", lib_strerror(errno));
+        return  (PX_ERROR);
+    }
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __tshellNatWan
+** 功能描述: 系统命令 "natwan"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : 0
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static INT  __tshellNatWan (INT  iArgC, PCHAR  ppcArgV[])
+{
+    if (iArgC != 2) {
+        fprintf(stderr, "option error!\n");
+        return  (-ERROR_TSHELL_EPARAM);
+    }
+    
+    if (API_INetNatWanAdd(ppcArgV[1]) != ERROR_NONE) {
+        fprintf(stderr, "can not add NAT network WAN net interface, errno: %s\n", lib_strerror(errno));
         return  (PX_ERROR);
     }
     

@@ -115,7 +115,7 @@ void rt_netif_remove_hook(struct netif *netif);
 void rt_netif_invcache_hook(struct netif *netif);
 
 /* tcpip hooks */
-struct netif *rt_route_search_hook(const ip4_addr_t *ipdest, const ip4_addr_t *ipsrc);
+struct netif *rt_route_search_hook(const ip4_addr_t *ipsrc, const ip4_addr_t *ipdest);
 ip4_addr_t *rt_route_gateway_hook(struct netif *netif, const ip4_addr_t *ipdest);
 
 #endif /* __IP4_ROUTE_H */

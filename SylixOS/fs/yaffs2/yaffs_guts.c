@@ -298,7 +298,7 @@ static int yaffs_check_chunk_erased(struct yaffs_dev *dev, int nand_chunk)
 	int retval = YAFFS_OK;
 	u8 *data = yaffs_get_temp_buffer(dev);
 	struct yaffs_ext_tags tags;
-	int result;
+	int __unused result;
 
 	result = yaffs_rd_chunk_tags_nand(dev, nand_chunk, data, &tags);
 
@@ -326,7 +326,7 @@ static int yaffs_verify_chunk_written(struct yaffs_dev *dev,
 	int retval = YAFFS_OK;
 	struct yaffs_ext_tags temp_tags;
 	u8 *buffer = yaffs_get_temp_buffer(dev);
-	int result;
+	int __unused result;
 
 	result = yaffs_rd_chunk_tags_nand(dev, nand_chunk, buffer, &temp_tags);
 	if (memcmp(buffer, data, dev->data_bytes_per_chunk) ||
@@ -3219,8 +3219,8 @@ static void yaffs_check_obj_details_loaded(struct yaffs_obj *in)
 	struct yaffs_obj_hdr *oh;
 	struct yaffs_dev *dev;
 	struct yaffs_ext_tags tags;
-	int result;
-	int alloc_failed = 0;
+	int __unused result;
+	int __unused alloc_failed = 0;
 
 	if (!in || !in->lazy_loaded || in->hdr_chunk < 1)
 		return;
@@ -3256,7 +3256,7 @@ int yaffs_update_oh(struct yaffs_obj *in, const YCHAR *name, int force,
 	struct yaffs_dev *dev = in->my_dev;
 	int prev_chunk_id;
 	int ret_val = 0;
-	int result = 0;
+	int __unused result = 0;
 	int new_chunk_id;
 	struct yaffs_ext_tags new_tags;
 	struct yaffs_ext_tags old_tags;
@@ -4484,7 +4484,7 @@ int yaffs_get_obj_name(struct yaffs_obj *obj, YCHAR *name, int buffer_size)
 	} else if (obj->short_name[0]) {
 		strcpy(name, obj->short_name);
 	} else if (obj->hdr_chunk > 0) {
-		int result;
+		int __unused result;
 		u8 *buffer = yaffs_get_temp_buffer(obj->my_dev);
 
 		struct yaffs_obj_hdr *oh = (struct yaffs_obj_hdr *)buffer;

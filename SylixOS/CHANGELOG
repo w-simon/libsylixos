@@ -4,6 +4,28 @@ HISTORY
 
 ++ New features:
 
+    2018-01-20: han.hui
+    加入 IGMPv3 支持 (支持 PIM-SSM 组播路由).
+
+    2018-01-18: han.hui
+    协议栈加入完整的组播滤波器.
+
+    2018-01-16: han.hui
+    NAT 支持多 WAN 口, 多 LAN 口.
+
+    2018-01-11: han.hui
+    加入 IP_MINTTL, IPV6_MINHOPCNT 支持提高 BGP 网关安全性 (RFC5082).
+
+    2018-01-09: han.hui
+    支持 Quagga 核心网路由系统框架 
+    包括: RIP, RIPv2, RIPng(IPv6), OSPFv2, OSPFv3, IS-IS, BGP, PIM-SM, PIM-DM 等.
+
+    2018-01-07: han.hui
+    升级 lwip 支持新的诸多特性.
+
+    2018-01-04: han.hui
+    升级 tcpip 支持新的组播诸多特性.
+
     2017-12-27: han.hui
     支持路由 IP 再分片.
 

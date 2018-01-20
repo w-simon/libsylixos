@@ -31,10 +31,81 @@
   裁剪控制
 *********************************************************************************************************/
 #if LW_CFG_NET_EN > 0
+#include "net/if.h"
+#include "net/if_lock.h"
 #include "lwip/netif.h"
 #include "lwip/netifapi.h"
-#include "net/if.h"
-#include "lwip_if.h"
+#include "lwip/tcpip.h"
+/*********************************************************************************************************
+  全局变量
+*********************************************************************************************************/
+static LW_OBJECT_HANDLE  _G_hNetListRWLock;
+/*********************************************************************************************************
+** 函数名称: if_list_init
+** 功能描述: 网络接口链锁初始化
+** 输　入  : NONE
+** 输　出  : 是否成功
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+INT  if_list_init (VOID)
+{
+    _G_hNetListRWLock = API_SemaphoreRWCreate("if_list", LW_OPTION_OBJECT_GLOBAL | 
+                                              LW_OPTION_DELETE_SAFE | LW_OPTION_WAIT_PRIORITY, LW_NULL);
+    if (_G_hNetListRWLock == LW_OBJECT_HANDLE_INVALID) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "network interface list lock create error.\r\n");
+        return  (PX_ERROR);
+    }
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: if_list_lock
+** 功能描述: 锁定网络接口链
+** 输　入  : bWrite        TRUE: 写 FALSE: 读
+** 输　出  : 是否成功
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+INT  if_list_lock (BOOL  bWrite)
+{
+    LW_OBJECT_HANDLE  hMe;
+    LW_OBJECT_HANDLE  hCLOwner;
+    ULONG             ulError;
+
+    hMe = API_ThreadIdSelf();
+    if (!hMe) {
+        return  (PX_ERROR);
+    }
+    
+    API_SemaphoreMStatusEx(lock_tcpip_core, LW_NULL, LW_NULL, LW_NULL, &hCLOwner);
+    if (hMe == hCLOwner) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "network dead lock detected.\r\n");
+        return  (PX_ERROR);
+    }
+    
+    if (bWrite) {
+        ulError = API_SemaphoreRWPendW(_G_hNetListRWLock, LW_OPTION_WAIT_INFINITE);
+    
+    } else {
+        ulError = API_SemaphoreRWPendR(_G_hNetListRWLock, LW_OPTION_WAIT_INFINITE);
+    }
+    
+    return  (ulError ? PX_ERROR : ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: if_list_unlock
+** 功能描述: 解锁网络接口链
+** 输　入  : NONE
+** 输　出  : 是否成功
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+INT  if_list_unlock (VOID)
+{
+    API_SemaphoreRWPost(_G_hNetListRWLock);
+    return  (ERROR_NONE);
+}
 /*********************************************************************************************************
 ** 函数名称: if_down
 ** 功能描述: 关闭网卡
@@ -47,32 +118,31 @@
 LW_API  
 INT  if_down (const char *ifname)
 {
-    INT            iError;
     struct netif  *pnetif;
     
-    LWIP_NETIF_LOCK();                                                  /*  进入临界区                  */
-    pnetif = netif_find((char *)ifname);
-    if (pnetif) {
-        if (pnetif->flags & NETIF_FLAG_UP) {
-#if LWIP_DHCP > 0
-            if (netif_dhcp_data(pnetif)) {
-                netifapi_dhcp_release(pnetif);                          /*  解除 DHCP 租约, 同时停止网卡*/
-                netifapi_dhcp_stop(pnetif);                             /*  释放资源                    */
-            }
-#endif                                                                  /*  LWIP_DHCP > 0               */
-            netifapi_netif_set_down(pnetif);                            /*  禁用网卡                    */
-            iError = ERROR_NONE;
-        } else {
-            _ErrorHandle(EALREADY);
-            iError = PX_ERROR;
-        }
-    } else {
+    LWIP_IF_LIST_LOCK(LW_FALSE);                                        /*  进入临界区                  */
+    pnetif = netif_find(ifname);
+    if (pnetif == LW_NULL) {
+        LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
         _ErrorHandle(ENXIO);
-        iError = PX_ERROR;
+        return  (PX_ERROR);
     }
-    LWIP_NETIF_UNLOCK();                                                /*  退出临界区                  */
+    if (!netif_is_up(pnetif)) {
+        LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
+        _ErrorHandle(EALREADY);
+        return  (PX_ERROR);
+    }
     
-    return  (iError);
+#if LWIP_DHCP > 0
+    netifapi_dhcp_release_and_stop(pnetif);
+#endif                                                                  /*  LWIP_DHCP > 0               */
+#if LWIP_AUTOIP > 0
+    netifapi_autoip_stop(pnetif);
+#endif                                                                  /*  LWIP_AUTOIP > 0             */
+    netifapi_netif_set_down(pnetif);
+    LWIP_IF_LIST_UNLOCK();                                              /*  退出临界区                  */
+    
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: if_up
@@ -86,34 +156,31 @@ INT  if_down (const char *ifname)
 LW_API  
 INT  if_up (const char *ifname)
 {
-    INT            iError;
     struct netif  *pnetif;
     
-    LWIP_NETIF_LOCK();                                                  /*  进入临界区                  */
-    pnetif = netif_find((char *)ifname);
-    if (pnetif) {
-        if (!(pnetif->flags & NETIF_FLAG_UP)) {
-            netifapi_netif_set_up(pnetif);
-#if LWIP_DHCP > 0
-            if (pnetif->flags2 & NETIF_FLAG2_DHCP) {
-                ip4_addr_t   inaddrNone;
-                lib_bzero(&inaddrNone, sizeof(ip_addr_t));
-                netifapi_netif_set_addr(pnetif, &inaddrNone, &inaddrNone, &inaddrNone);
-                netifapi_dhcp_start(pnetif);
-            }
-#endif                                                                  /*  LWIP_DHCP > 0               */
-            iError = ERROR_NONE;
-        } else {
-            _ErrorHandle(EALREADY);
-            iError = PX_ERROR;
-        }
-    } else {
+    LWIP_IF_LIST_LOCK(LW_FALSE);                                        /*  进入临界区                  */
+    pnetif = netif_find(ifname);
+    if (pnetif == LW_NULL) {
+        LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
         _ErrorHandle(ENXIO);
-        iError = PX_ERROR;
+        return  (PX_ERROR);
     }
-    LWIP_NETIF_UNLOCK();                                                /*  退出临界区                  */
+    if (netif_is_up(pnetif)) {
+        LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
+        _ErrorHandle(EALREADY);
+        return  (PX_ERROR);
+    }
     
-    return  (iError);
+    netifapi_netif_set_up(pnetif);
+#if LWIP_DHCP > 0
+    if (pnetif->flags2 & NETIF_FLAG2_DHCP) {
+        netifapi_netif_set_addr(pnetif, IP4_ADDR_ANY4, IP4_ADDR_ANY4, IP4_ADDR_ANY4);
+        netifapi_dhcp_start(pnetif);
+    }
+#endif                                                                  /*  LWIP_DHCP > 0               */
+    LWIP_IF_LIST_UNLOCK();                                              /*  退出临界区                  */
+    
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: if_isup
@@ -130,19 +197,16 @@ INT  if_isup (const char *ifname)
     INT            iRet;
     struct netif  *pnetif;
     
-    LWIP_NETIF_LOCK();                                                  /*  进入临界区                  */
-    pnetif = netif_find((char *)ifname);
-    if (pnetif) {
-        if (pnetif->flags & NETIF_FLAG_UP) {
-            iRet = 1;
-        } else {
-            iRet = 0;
-        }
-    } else {
+    LWIP_IF_LIST_LOCK(LW_FALSE);                                        /*  进入临界区                  */
+    pnetif = netif_find(ifname);
+    if (pnetif == LW_NULL) {
+        LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
         _ErrorHandle(ENXIO);
-        iRet = PX_ERROR;
+        return  (PX_ERROR);
     }
-    LWIP_NETIF_UNLOCK();                                                /*  退出临界区                  */
+    
+    iRet = netif_is_up(pnetif);
+    LWIP_IF_LIST_UNLOCK();                                              /*  退出临界区                  */
     
     return  (iRet);
 }
@@ -161,20 +225,17 @@ INT  if_islink (const char *ifname)
     INT            iRet;
     struct netif  *pnetif;
     
-    LWIP_NETIF_LOCK();                                                  /*  进入临界区                  */
-    pnetif = netif_find((char *)ifname);
-    if (pnetif) {
-        if (pnetif->flags & NETIF_FLAG_LINK_UP) {
-            iRet = 1;
-        } else {
-            iRet = 0;
-        }
-    } else {
+    LWIP_IF_LIST_LOCK(LW_FALSE);                                        /*  进入临界区                  */
+    pnetif = netif_find(ifname);
+    if (pnetif == LW_NULL) {
+        LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
         _ErrorHandle(ENXIO);
-        iRet = PX_ERROR;
+        return  (PX_ERROR);
     }
-    LWIP_NETIF_UNLOCK();                                                /*  退出临界区                  */
     
+    iRet = netif_is_link_up(pnetif);
+    LWIP_IF_LIST_UNLOCK();                                              /*  退出临界区                  */
+
     return  (iRet);
 }
 /*********************************************************************************************************
@@ -195,24 +256,25 @@ INT  if_set_dhcp (const char *ifname, int en)
 #if LWIP_DHCP > 0
     struct netif  *pnetif;
     
-    LWIP_NETIF_LOCK();                                                  /*  进入临界区                  */
-    pnetif = netif_find((char *)ifname);
-    if (pnetif) {
-        if (pnetif->flags & NETIF_FLAG_UP) {
-            _ErrorHandle(EISCONN);
-            
-        } else {
-            if (en) {
-                pnetif->flags2 |= NETIF_FLAG2_DHCP;
-            } else {
-                pnetif->flags2 &= ~NETIF_FLAG2_DHCP;
-            }
-            iRet = ERROR_NONE;
-        }
-    } else {
+    LWIP_IF_LIST_LOCK(LW_FALSE);                                        /*  进入临界区                  */
+    pnetif = netif_find(ifname);
+    if (pnetif == LW_NULL) {
+        LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
         _ErrorHandle(ENXIO);
+        return  (PX_ERROR);
     }
-    LWIP_NETIF_UNLOCK();                                                /*  退出临界区                  */
+    if (netif_is_up(pnetif)) {
+        LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
+        _ErrorHandle(EISCONN);
+        return  (PX_ERROR);
+    }
+    
+    if (en) {
+        pnetif->flags2 |= NETIF_FLAG2_DHCP;
+    } else {
+        pnetif->flags2 &= ~NETIF_FLAG2_DHCP;
+    }
+    LWIP_IF_LIST_UNLOCK();                                              /*  退出临界区                  */
 #else
     _ErrorHandle(ENOSYS);
 #endif                                                                  /*  LWIP_DHCP > 0               */
@@ -234,19 +296,16 @@ INT  if_get_dhcp (const char *ifname)
     INT            iRet;
     struct netif  *pnetif;
     
-    LWIP_NETIF_LOCK();                                                  /*  进入临界区                  */
+    LWIP_IF_LIST_LOCK(LW_FALSE);                                        /*  进入临界区                  */
     pnetif = netif_find((char *)ifname);
-    if (pnetif) {
-        if (pnetif->flags2 & NETIF_FLAG2_DHCP) {
-            iRet = 1;
-        } else {
-            iRet = 0;
-        }
-    } else {
+    if (pnetif == LW_NULL) {
+        LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
         _ErrorHandle(ENXIO);
-        iRet = PX_ERROR;
+        return  (PX_ERROR);
     }
-    LWIP_NETIF_UNLOCK();                                                /*  退出临界区                  */
+    
+    iRet = (pnetif->flags2 & NETIF_FLAG2_DHCP) ? 1 : 0;
+    LWIP_IF_LIST_UNLOCK();                                              /*  退出临界区                  */
     
     return  (iRet);
 }
@@ -262,15 +321,15 @@ INT  if_get_dhcp (const char *ifname)
 LW_API  
 unsigned  if_nametoindex (const char *ifname)
 {
-    struct netif    *pnetif;
-    unsigned         uiIndex = 0;
+    unsigned  uiIndex = 0;
     
-    LWIP_NETIF_LOCK();                                                  /*  进入临界区                  */
-    pnetif = netif_find((char *)ifname);
-    if (pnetif) {
-        uiIndex = (unsigned)pnetif->num;
+    LWIP_IF_LIST_LOCK(LW_FALSE);                                        /*  进入临界区                  */
+    uiIndex = netif_name_to_index(ifname);
+    LWIP_IF_LIST_UNLOCK();                                              /*  退出临界区                  */
+    
+    if (uiIndex == 0) {
+        _ErrorHandle(ENXIO);
     }
-    LWIP_NETIF_UNLOCK();                                                /*  退出临界区                  */
     
     return  (uiIndex);
 }
@@ -287,27 +346,21 @@ unsigned  if_nametoindex (const char *ifname)
 LW_API  
 char *if_indextoname (unsigned  ifindex, char *ifname)
 {
-    struct netif    *pnetif;
+    char  *ret;
 
     if (!ifname) {
         errno = EINVAL;
     }
     
-    LWIP_NETIF_LOCK();                                                  /*  进入临界区                  */
-    pnetif = (struct netif *)netif_get_by_index(ifindex);
-    if (pnetif) {
-        ifname[0] = pnetif->name[0];
-        ifname[1] = pnetif->name[1];
-        lib_itoa(pnetif->num, &ifname[2], 10);
-    }
-    LWIP_NETIF_UNLOCK();                                                /*  退出临界区                  */
+    LWIP_IF_LIST_LOCK(LW_FALSE);                                        /*  进入临界区                  */
+    ret = netif_index_to_name(ifindex, ifname);
+    LWIP_IF_LIST_UNLOCK();                                              /*  退出临界区                  */
     
-    if (pnetif) {
-        return  (ifname);
-    } else {
-        errno = ENXIO;
-        return  (LW_NULL);
+    if (ret == LW_NULL) {
+        _ErrorHandle(ENXIO);
     }
+    
+    return  (ret);
 }
 /*********************************************************************************************************
 ** 函数名称: if_nameindex
@@ -322,37 +375,96 @@ LW_API
 struct if_nameindex *if_nameindex (void)
 {
     struct netif           *pnetif;
-    int                     iNum = 1;                                   /*  需要一个空闲的位置          */
+    int                     i = 0, iNum = 1;                            /*  需要一个空闲的位置          */
     struct if_nameindex    *pifnameindexArry;
     
-    LWIP_NETIF_LOCK();                                                  /*  进入临界区                  */
-    for(pnetif = netif_list; pnetif != LW_NULL; pnetif = pnetif->next) {
+    LWIP_IF_LIST_LOCK(LW_FALSE);                                        /*  进入临界区                  */
+    NETIF_FOREACH(pnetif) {
         iNum++;
     }
     pifnameindexArry = (struct if_nameindex *)__SHEAP_ALLOC(sizeof(struct if_nameindex) * (size_t)iNum);
-    if (pifnameindexArry) {
-        int     i = 0;
-        
-        for (pnetif  = netif_list; 
-             pnetif != LW_NULL; 
-             pnetif  = pnetif->next) {
-            
-            pifnameindexArry[i].if_index = (unsigned)pnetif->num;
-            pifnameindexArry[i].if_name_buf[0] = pnetif->name[0];
-            pifnameindexArry[i].if_name_buf[1] = pnetif->name[1];
-            lib_itoa(pnetif->num, &pifnameindexArry[i].if_name_buf[2], 10);
-            pifnameindexArry[i].if_name = pifnameindexArry[i].if_name_buf;
-            i++;
-        }
-        
-        pifnameindexArry[i].if_index = 0;
-        pifnameindexArry[i].if_name_buf[0] = PX_EOS;
-        pifnameindexArry[i].if_name = pifnameindexArry[i].if_name_buf;
-        
-    } else {
-        errno = ENOMEM;
+    if (pifnameindexArry == LW_NULL) {
+        LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
+        _ErrorHandle(ENOMEM);
+        return  (LW_NULL);
     }
-    LWIP_NETIF_UNLOCK();                                                /*  退出临界区                  */
+    
+    NETIF_FOREACH(pnetif) {
+        pifnameindexArry[i].if_index = netif_get_index(pnetif);
+        pifnameindexArry[i].if_name  = netif_index_to_name(pifnameindexArry[i].if_index, 
+                                                           pifnameindexArry[i].if_name_buf);
+        i++;
+    }
+    
+    pifnameindexArry[i].if_index       = 0;
+    pifnameindexArry[i].if_name_buf[0] = PX_EOS;
+    pifnameindexArry[i].if_name        = pifnameindexArry[i].if_name_buf;
+    LWIP_IF_LIST_UNLOCK();                                              /*  退出临界区                  */
+    
+    return  (pifnameindexArry);
+}
+/*********************************************************************************************************
+** 函数名称: if_nameindex_bufsize
+** 功能描述: 计算 if_nameindex 所需的缓存大小
+** 输　入  : NONE
+** 输　出  : 缓存大小
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+size_t if_nameindex_bufsize (void)
+{
+    struct netif  *pnetif;
+    INT            iNum = 1;
+
+    LWIP_IF_LIST_LOCK(LW_FALSE);                                        /*  进入临界区                  */
+    NETIF_FOREACH(pnetif) {
+        iNum++;
+    }
+    LWIP_IF_LIST_UNLOCK();                                              /*  退出临界区                  */
+    
+    return  (sizeof(struct if_nameindex) * (size_t)iNum);
+}
+/*********************************************************************************************************
+** 函数名称: if_nameindex
+** 功能描述: return all network interface names and indexes
+** 输　入  : buffer    缓存位置
+**           bufsize   缓存大小
+** 输　出  : An array of structures identifying local interfaces
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+struct if_nameindex *if_nameindex_rnp (void *buffer, size_t bufsize)
+{
+    struct netif           *pnetif;
+    int                     iMax = bufsize / sizeof(struct if_nameindex);
+    int                     i = 0;
+    struct if_nameindex    *pifnameindexArry;
+    
+    if (!buffer || (bufsize < sizeof(struct if_nameindex))) {
+        errno = EINVAL;
+        return  (LW_NULL);
+    }
+    
+    LWIP_IF_LIST_LOCK(LW_FALSE);                                        /*  进入临界区                  */
+    pifnameindexArry = (struct if_nameindex *)buffer;
+    NETIF_FOREACH(pnetif) {
+        if (i >= (iMax - 1)) {
+            break;
+        }
+        pifnameindexArry[i].if_index = netif_get_index(pnetif);
+        pifnameindexArry[i].if_name  = netif_index_to_name(pifnameindexArry[i].if_index, 
+                                                           pifnameindexArry[i].if_name_buf);
+        i++;
+    }
+    
+    pifnameindexArry[i].if_index       = 0;
+    pifnameindexArry[i].if_name_buf[0] = PX_EOS;
+    pifnameindexArry[i].if_name        = pifnameindexArry[i].if_name_buf;
+    LWIP_IF_LIST_UNLOCK();                                              /*  退出临界区                  */
     
     return  (pifnameindexArry);
 }

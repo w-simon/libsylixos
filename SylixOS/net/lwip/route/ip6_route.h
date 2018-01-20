@@ -120,7 +120,7 @@ void rt6_netif_remove_hook(struct netif *netif);
 void rt6_netif_invcache_hook(struct netif *netif);
 
 /* tcpip hooks */
-struct netif *rt6_route_search_hook(const ip6_addr_t *ip6dest, const ip6_addr_t *ip6src);
+struct netif *rt6_route_search_hook(const ip6_addr_t *ip6src, const ip6_addr_t *ip6dest);
 ip6_addr_t *rt6_route_gateway_hook(struct netif *netif, const ip6_addr_t *ip6dest);
 
 #endif /* LWIP_IPV6 */

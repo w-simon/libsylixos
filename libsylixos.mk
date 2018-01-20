@@ -1284,7 +1284,7 @@ SylixOS/net/lwip/lwip_bridge.c \
 SylixOS/net/lwip/lwip_fix.c \
 SylixOS/net/lwip/lwip_flowctl.c \
 SylixOS/net/lwip/lwip_flowsh.c \
-SylixOS/net/lwip/lwip_hook.c \
+SylixOS/net/lwip/lwip_iphook.c \
 SylixOS/net/lwip/lwip_if.c \
 SylixOS/net/lwip/lwip_ifctl.c \
 SylixOS/net/lwip/lwip_ifparam.c \
@@ -1338,11 +1338,14 @@ SylixOS/net/lwip/src/api/netdb.c \
 SylixOS/net/lwip/src/api/netifapi.c \
 SylixOS/net/lwip/src/api/sockets.c \
 SylixOS/net/lwip/src/api/tcpip.c \
+SylixOS/net/lwip/src/core/altcp.c \
+SylixOS/net/lwip/src/core/altcp_tcp.c \
 SylixOS/net/lwip/src/core/def.c \
 SylixOS/net/lwip/src/core/dns.c \
 SylixOS/net/lwip/src/core/inet_chksum.c \
 SylixOS/net/lwip/src/core/init.c \
 SylixOS/net/lwip/src/core/ip.c \
+SylixOS/net/lwip/src/core/mcast.c \
 SylixOS/net/lwip/src/core/mem.c \
 SylixOS/net/lwip/src/core/memp.c \
 SylixOS/net/lwip/src/core/netif.c \
@@ -1375,7 +1378,6 @@ SylixOS/net/lwip/src/core/ipv6/nd6.c \
 SylixOS/net/lwip/src/netif/ethernet.c \
 SylixOS/net/lwip/src/netif/ethernetif.c \
 SylixOS/net/lwip/src/netif/ifqueue.c \
-SylixOS/net/lwip/src/netif/lowpan6.c \
 SylixOS/net/lwip/src/netif/slipif.c \
 SylixOS/net/lwip/src/netif/aodv/aodv_hello.c \
 SylixOS/net/lwip/src/netif/aodv/aodv_if.c \
@@ -1431,6 +1433,7 @@ SylixOS/net/lwip/src/netif/radio/null_rdc.c \
 SylixOS/net/lwip/src/netif/radio/simple_crypt.c \
 SylixOS/net/lwip/src/netif/radio/tdma_mac.c \
 SylixOS/net/lwip/src/netif/radio/xmac_rdc.c \
+SylixOS/net/lwip/tcpsig/tcp_sig.c \
 SylixOS/net/lwip/tools/ftp/lwip_ftp.c \
 SylixOS/net/lwip/tools/ftp/lwip_ftpd.c \
 SylixOS/net/lwip/tools/hosttable/lwip_hosttable.c \
@@ -1495,8 +1498,8 @@ SylixOS/net/lwip/tools/kernrpc/xdr_ref.c \
 SylixOS/net/lwip/tools/kernrpc/xdr_sizeof.c \
 SylixOS/net/lwip/tools/kernrpc/xdr_stdio.c \
 SylixOS/net/lwip/tools/snmp/snmpv3.c \
-SylixOS/net/lwip/tools/snmp/snmpv3_dummy.c \
 SylixOS/net/lwip/tools/snmp/snmpv3_mbedtls.c \
+SylixOS/net/lwip/tools/snmp/snmpv3_sylixos.c \
 SylixOS/net/lwip/tools/snmp/snmp_asn1.c \
 SylixOS/net/lwip/tools/snmp/snmp_core.c \
 SylixOS/net/lwip/tools/snmp/snmp_mib2.c \
@@ -1512,6 +1515,8 @@ SylixOS/net/lwip/tools/snmp/snmp_netconn.c \
 SylixOS/net/lwip/tools/snmp/snmp_pbuf_stream.c \
 SylixOS/net/lwip/tools/snmp/snmp_raw.c \
 SylixOS/net/lwip/tools/snmp/snmp_scalar.c \
+SylixOS/net/lwip/tools/snmp/snmp_snmpv2_framework.c \
+SylixOS/net/lwip/tools/snmp/snmp_snmpv2_usm.c \
 SylixOS/net/lwip/tools/snmp/snmp_table.c \
 SylixOS/net/lwip/tools/snmp/snmp_threadsync.c \
 SylixOS/net/lwip/tools/snmp/snmp_traps.c \

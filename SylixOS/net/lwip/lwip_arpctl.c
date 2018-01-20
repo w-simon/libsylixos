@@ -27,10 +27,10 @@
 #include "sys/socket.h"
 #include "net/if_arp.h"
 #include "net/if_ether.h"
-#include "lwip/netif.h"
+#include "net/if_lock.h"
+#include "lwip/netifapi.h"
 #include "lwip/tcpip.h"
 #include "lwip/etharp.h"
-#include "lwip_if.h"
 /*********************************************************************************************************
   函数声明
 *********************************************************************************************************/
@@ -39,9 +39,6 @@
 #define ETHARP_FLAG_FIND_ONLY    2
 #define ETHARP_FLAG_STATIC_ENTRY 4
 #endif
-
-extern void  etharp_traversal(struct netif *netif, int (*callback)(), void *arg0, void *arg1,
-                              void *arg2, void *arg3, void *arg4, void *arg5);
 /*********************************************************************************************************
 ** 函数名称: __ifArpSearch
 ** 功能描述: arp 遍历
@@ -113,7 +110,7 @@ static INT  __ifArpSet (const struct arpreq  *parpreq)
     netif = netif_find(parpreq->arp_dev);
     if (!netif) {
         LOCK_TCPIP_CORE();
-        netif = ip4_route(&ipaddr);
+        netif = ip4_route_src(LW_NULL, &ipaddr);
         UNLOCK_TCPIP_CORE();
         if (!netif) {
             _ErrorHandle(EHOSTUNREACH);
@@ -122,9 +119,7 @@ static INT  __ifArpSet (const struct arpreq  *parpreq)
     }
     MEMCPY(ethaddr.addr, parpreq->arp_ha.sa_data, ETH_ALEN);
     
-    LOCK_TCPIP_CORE();
-    err = etharp_update_arp_entry(netif, &ipaddr, &ethaddr, flags);
-    UNLOCK_TCPIP_CORE();
+    err = netifapi_arp_update(netif, &ipaddr, &ethaddr, flags);
     if (err) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
@@ -154,10 +149,8 @@ static INT  __ifArpGet (struct arpreq  *parpreq)
     ipaddr.addr = ((struct sockaddr_in *)&parpreq->arp_pa)->sin_addr.s_addr;
     
     netif = LW_NULL;
-    LOCK_TCPIP_CORE();
-    etharp_traversal(LW_NULL, __ifArpSearch, &ipaddr, &netif, &arp_flags, 
-                     &ethaddr, LW_NULL, LW_NULL);
-    UNLOCK_TCPIP_CORE();
+    netifapi_arp_traversal(LW_NULL, __ifArpSearch, &ipaddr, &netif, &arp_flags, 
+                           &ethaddr, LW_NULL, LW_NULL);
     if (!netif) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
@@ -166,9 +159,7 @@ static INT  __ifArpGet (struct arpreq  *parpreq)
     parpreq->arp_ha.sa_len    = sizeof(struct sockaddr);
     parpreq->arp_ha.sa_family = AF_UNSPEC;
     MEMCPY(parpreq->arp_ha.sa_data, ethaddr.addr, ETH_ALEN);
-    parpreq->arp_dev[0] = netif->name[0];
-    parpreq->arp_dev[1] = netif->name[1];
-    lib_itoa(netif->num, &parpreq->arp_dev[2], 10);
+    netif_get_name(netif, parpreq->arp_dev);
     
     return  (ERROR_NONE);
 }
@@ -191,9 +182,7 @@ static INT  __ifArpDel (const struct arpreq  *parpreq)
     }
     ipaddr.addr = ((struct sockaddr_in *)&parpreq->arp_pa)->sin_addr.s_addr;
     
-    LOCK_TCPIP_CORE();
-    err = etharp_remove_static_entry(&ipaddr);
-    UNLOCK_TCPIP_CORE();
+    err = netifapi_arp_remove(&ipaddr, NETIFAPI_ARP_PERM);
     if (err) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
@@ -223,21 +212,21 @@ INT  __ifIoctlArp (INT  iCmd, PVOID  pvArg)
     switch (iCmd) {
     
     case SIOCSARP:
-        LWIP_NETIF_LOCK();
+        LWIP_IF_LIST_LOCK(LW_FALSE);
         iRet = __ifArpSet(parpreq);
-        LWIP_NETIF_UNLOCK();
+        LWIP_IF_LIST_UNLOCK();
         break;
         
     case SIOCGARP:
-        LWIP_NETIF_LOCK();
+        LWIP_IF_LIST_LOCK(LW_FALSE);
         iRet = __ifArpGet(parpreq);
-        LWIP_NETIF_UNLOCK();
+        LWIP_IF_LIST_UNLOCK();
         break;
     
     case SIOCDARP:
-        LWIP_NETIF_LOCK();
+        LWIP_IF_LIST_LOCK(LW_FALSE);
         iRet = __ifArpDel(parpreq);
-        LWIP_NETIF_UNLOCK();
+        LWIP_IF_LIST_UNLOCK();
         break;
         
     default:

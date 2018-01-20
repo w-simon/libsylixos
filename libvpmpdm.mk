@@ -67,6 +67,8 @@ SylixOS/vpmpdm/cfloat/wchar/wchar.c \
 SylixOS/vpmpdm/cfloat/wchar/wcsdup.c \
 SylixOS/vpmpdm/dlmalloc/dl_malloc.c \
 SylixOS/vpmpdm/dlmalloc/dlmalloc.c \
+SylixOS/vpmpdm/net/getifaddrs.c \
+SylixOS/vpmpdm/net/if.c \
 SylixOS/vpmpdm/tlsf/tlsf.c \
 SylixOS/vpmpdm/vpmpdm_cpp.cpp \
 SylixOS/vpmpdm/vpmpdm_lm.c \

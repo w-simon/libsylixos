@@ -193,7 +193,7 @@ INT  API_GpioChipAdd (PLW_GPIO_CHIP pgchip)
     
     if (pgchip->GC_ulVerMagic != LW_GPIO_VER_MAGIC) {                   /*  Çý¶¯²»Æ¥Åä                  */
         _DebugHandle(__ERRORMESSAGE_LEVEL, 
-                     "GPIO driver version not matching this kernel.\r\n");
+                     "GPIO driver version not matching to current system.\r\n");
         _ErrorHandle(EFTYPE);
         return  (PX_ERROR);
     }

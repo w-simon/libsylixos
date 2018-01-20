@@ -111,31 +111,24 @@
  * ipv6 Options and types for UDP multicast traffic handling
 *********************************************************************************************************/
 
-#ifndef IPV6_MULTICAST_IF
+#ifndef IPV6_UNICAST_HOPS
+#define IPV6_UNICAST_HOPS   16
 #define IPV6_MULTICAST_IF	17
 #define IPV6_MULTICAST_HOPS	18
 #define IPV6_MULTICAST_LOOP	19
-#define IPV6_JOIN_GROUP		20
-#define IPV6_LEAVE_GROUP	21
 #endif
 
 /*********************************************************************************************************
  * Advanced API (RFC3542) (1)
 *********************************************************************************************************/
 
+#ifndef IPV6_RECVPKTINFO
 #define IPV6_RECVPKTINFO    49
 #define IPV6_PKTINFO        50
 #define IPV6_RECVHOPLIMIT   51
 #define IPV6_HOPLIMIT       52
-
-/*********************************************************************************************************
- * ipv6 packet information
-*********************************************************************************************************/
-
-struct in6_pktinfo {
-    struct in6_addr  ipi6_addr;                                         /* src/dst IPv6 address         */
-    unsigned int     ipi6_ifindex;                                      /* send/recv interface index    */
-};
+#define IPV6_MINHOPCNT      99
+#endif
 
 /*********************************************************************************************************
  * ipv6 MTU information
@@ -144,15 +137,6 @@ struct in6_pktinfo {
 struct ip6_mtuinfo {
     struct sockaddr_in6 ip6m_addr;                                      /* dst address including zone ID*/
     uint32_t            ip6m_mtu;                                       /* path MTU in host byte order  */
-};
-
-/*********************************************************************************************************
- * ipv6 space
-*********************************************************************************************************/
-
-struct ipv6_mreq {
-    struct in6_addr  ipv6mr_multiaddr;                                  /* IPv6 multicast address.      */
-    unsigned         ipv6mr_interface;                                  /* Interface index.             */
 };
 
 extern const struct in6_addr in6addr_any;

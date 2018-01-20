@@ -883,11 +883,11 @@ LW_API INT                  API_PciAutoCtrlRegionSet(PCI_CTRL_HANDLE  hCtrl,
 #define pciDevMsixEnableSet     API_PciDevMsixEnableSet
 
 #define pciDevParentHandleGet   API_PciDevParentHandleGet
-#define pciHandleGet            API_PciDevHandleGet
+#define pciDevHandleGet         API_PciDevHandleGet
 
 #define pciDevSetupAll          API_PciDevSetupAll
-
 #define pciAutoCtrlRegionSet    API_PciAutoCtrlRegionSet
+
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */
                                                                         /*  (LW_CFG_PCI_EN > 0)         */
 #endif                                                                  /*  __PCIDEV_H                  */

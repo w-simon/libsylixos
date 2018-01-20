@@ -27,14 +27,12 @@
 *********************************************************************************************************/
 
 #ifdef  __SYLIXOS_KERNEL
-#ifndef __NETIF_MAIN_FILE
-extern LW_OBJECT_HANDLE     _G_ulNetifLock;
-#else
-       LW_OBJECT_HANDLE     _G_ulNetifLock;
-#endif                                                                  /*  __NETIF_MAIN_FILE           */
+INT  if_list_init(VOID);
+INT  if_list_lock(BOOL  bWrite);
+INT  if_list_unlock(VOID);
 
-#define LWIP_NETIF_LOCK()   API_SemaphoreMPend(_G_ulNetifLock, LW_OPTION_WAIT_INFINITE)
-#define LWIP_NETIF_UNLOCK() API_SemaphoreMPost(_G_ulNetifLock)
+#define LWIP_IF_LIST_LOCK(w)    if_list_lock(w)
+#define LWIP_IF_LIST_UNLOCK()   if_list_unlock()
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 
 #endif                                                                  /*  __LWIP_IF_H                 */

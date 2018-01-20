@@ -44,10 +44,6 @@
 extern "C" {
 #endif
 
-#define DHCP_CLIENT_PORT  68
-#define DHCP_SERVER_PORT  67
-
-
  /* DHCP message item offsets and length */
 #define DHCP_CHADDR_LEN   16U
 #define DHCP_SNAME_OFS    44U
@@ -127,9 +123,6 @@ typedef enum {
 #define DHCP_NAK                    6
 #define DHCP_RELEASE                7
 #define DHCP_INFORM                 8
-
-/** DHCP hardware type, currently only ethernet is supported */
-#define DHCP_HTYPE_ETH              1
 
 #define DHCP_MAGIC_COOKIE           0x63825363UL
 

@@ -24,11 +24,7 @@
 
 #include <sys/endian.h>
 #include <sys/types.h>
-#include "lwip/sockets.h"
-
-#ifndef TCP_NODELAY
-#define TCP_NODELAY         0x01
-#endif                                                                  /*  TCP_NODELAY                 */
+#include <socket.h>
 
 typedef u_int32_t   tcp_seq;
 
@@ -38,63 +34,33 @@ typedef u_int32_t   tcp_seq;
 *********************************************************************************************************/
 
 struct tcphdr {
-    union {
-        struct {
-            u_int16_t   th_sport;                                       /* source port                  */
-            u_int16_t   th_dport;                                       /* destination port             */
-            tcp_seq     th_seq;                                         /* sequence number              */
-            tcp_seq     th_ack;                                         /* acknowledgement number       */
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-            u_int8_t    th_x2:4;                                        /* (unused)                     */
-            u_int8_t    th_off:4;                                       /* data offset                  */
-#else
-            u_int8_t    th_off:4;                                       /* data offset                  */
-            u_int8_t    th_x2:4;                                        /* (unused)                     */
+    u_short     th_sport;                                               /* source port                  */
+    u_short     th_dport;                                               /* destination port             */
+    tcp_seq     th_seq;                                                 /* sequence number              */
+    tcp_seq     th_ack;                                                 /* acknowledgement number       */
+#if BYTE_ORDER == LITTLE_ENDIAN
+    u_char      th_x2:4,                                                /* (unused)                     */
+                th_off:4;                                               /* data offset                  */
 #endif
-            u_int8_t    th_flags;
-#define TH_FIN  0x01
-#define TH_SYN  0x02
-#define TH_RST  0x04
-#define TH_PUSH 0x08
-#define TH_ACK  0x10
-#define TH_URG  0x20
-            u_int16_t   th_win;                                         /* window                       */
-            u_int16_t   th_sum;                                         /* checksum                     */
-            u_int16_t   th_urp;                                         /* urgent pointer               */
-        };
+#if BYTE_ORDER == BIG_ENDIAN
+    u_char      th_off:4,                                               /* data offset                  */
+                th_x2:4;                                                /* (unused)                     */
+#endif
+    u_char      th_flags;
+#define TH_FIN          0x01
+#define TH_SYN          0x02
+#define TH_RST          0x04
+#define TH_PUSH         0x08
+#define TH_ACK          0x10
+#define TH_URG          0x20
+#define TH_ECE          0x40
+#define TH_CWR          0x80
+#define TH_FLAGS        (TH_FIN | TH_SYN | TH_RST | TH_PUSH | TH_ACK | TH_URG | TH_ECE | TH_CWR)
+#define PRINT_TH_FLAGS  "\20\1FIN\2SYN\3RST\4PUSH\5ACK\6URG\7ECE\10CWR"
 
-        struct {
-            u_int16_t   source;
-            u_int16_t   dest;
-            u_int32_t   seq;
-            u_int32_t   ack_seq;
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-            u_int16_t   res1:4;
-            u_int16_t   doff:4;
-            u_int16_t   fin:1;
-            u_int16_t   syn:1;
-            u_int16_t   rst:1;
-            u_int16_t   psh:1;
-            u_int16_t   ack:1;
-            u_int16_t   urg:1;
-            u_int16_t   res2:2;
-#else
-            u_int16_t   doff:4;
-            u_int16_t   res1:4;
-            u_int16_t   res2:2;
-            u_int16_t   urg:1;
-            u_int16_t   ack:1;
-            u_int16_t   psh:1;
-            u_int16_t   rst:1;
-            u_int16_t   syn:1;
-            u_int16_t   fin:1;
-# endif
-
-            u_int16_t   window;
-            u_int16_t   check;
-            u_int16_t   urg_ptr;
-        };
-    };
+    u_short     th_win;                                                 /* window                       */
+    u_short     th_sum;                                                 /* checksum                     */
+    u_short     th_urp;                                                 /* urgent pointer               */
 } __attribute__((__packed__));
 
 #endif                                                                  /*  __NETINET_TCP_H             */

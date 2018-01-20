@@ -88,6 +88,7 @@ err_t etharp_request(struct netif *netif, const ip4_addr_t *ipaddr);
 #define etharp_gratuitous(netif) etharp_request((netif), netif_ip4_addr(netif))
 void etharp_cleanup_netif(struct netif *netif);
 
+/* SylixOS Add */
 #ifdef SYLIXOS
 err_t etharp_update_arp_entry(struct netif *netif, const ip4_addr_t *ipaddr, struct eth_addr *ethaddr, u8_t flags);
 #endif
@@ -96,6 +97,19 @@ err_t etharp_update_arp_entry(struct netif *netif, const ip4_addr_t *ipaddr, str
 err_t etharp_add_static_entry(const ip4_addr_t *ipaddr, struct eth_addr *ethaddr);
 err_t etharp_remove_static_entry(const ip4_addr_t *ipaddr);
 #endif /* ETHARP_SUPPORT_STATIC_ENTRIES */
+
+#ifdef SYLIXOS /* SylixOS Add Traversal ARP table */
+/**
+ * Traversal ARP table.
+ *
+ * @param netif the lwip network interface on which to send the request
+ * @param callback call back function
+ * @param arg0 ~ arg5 arglist.
+ * @return NONE
+ */
+void etharp_traversal(struct netif *netif, int (*callback)(), void *arg0, void *arg1,
+                      void *arg2, void *arg3, void *arg4, void *arg5);
+#endif /* SYLIXOS */
 
 #endif /* LWIP_IPV4 && LWIP_ARP */
 

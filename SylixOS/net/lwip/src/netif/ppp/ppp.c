@@ -80,8 +80,8 @@
  */
 
 /**
- * @defgroup ppp PPP netif
- * @ingroup addons
+ * @defgroup ppp PPP
+ * @ingroup netifs
  * @verbinclude "ppp.txt"
  */
 
@@ -275,8 +275,8 @@ err_t ppp_connect(ppp_pcb *pcb, u16_t holdoff) {
   PPPDEBUG(LOG_DEBUG, ("ppp_connect[%d]: holdoff=%d\n", pcb->netif->num, holdoff));
 
   if (holdoff == 0) {
-    new_phase(pcb, PPP_PHASE_INITIALIZE);
-    return pcb->link_cb->connect(pcb, pcb->link_ctx_cb);
+    ppp_do_connect(pcb);
+    return ERR_OK;
   }
 
   new_phase(pcb, PPP_PHASE_HOLDOFF);
@@ -302,7 +302,8 @@ err_t ppp_listen(ppp_pcb *pcb) {
 
   if (pcb->link_cb->listen) {
     new_phase(pcb, PPP_PHASE_INITIALIZE);
-    return pcb->link_cb->listen(pcb, pcb->link_ctx_cb);
+    pcb->link_cb->listen(pcb, pcb->link_ctx_cb);
+    return ERR_OK;
   }
   return ERR_IF;
 }
@@ -783,7 +784,7 @@ void ppp_input(ppp_pcb *pcb, struct pbuf *pb) {
   ppp_dump_packet(pcb, "rcvd", (unsigned char *)pb->payload, pb->len);
 #endif /* PRINTPKT_SUPPORT */
 
-  pbuf_header(pb, -(s16_t)sizeof(protocol));
+  pbuf_remove_header(pb, sizeof(protocol));
 
   LINK_STATS_INC(link.recv);
   MIB2_STATS_NETIF_INC(pcb->netif, ifinucastpkts);
@@ -859,10 +860,10 @@ void ppp_input(ppp_pcb *pcb, struct pbuf *pb) {
     pl = (u8_t*)pb->payload;
     if (pl[0] & 0x01) {
       protocol = pl[0];
-      pbuf_header(pb, -(s16_t)1);
+      pbuf_remove_header(pb, 1);
     } else {
       protocol = (pl[0] << 8) | pl[1];
-      pbuf_header(pb, -(s16_t)2);
+      pbuf_remove_header(pb, 2);
     }
   }
 #endif /* CCP_SUPPORT */
@@ -922,7 +923,7 @@ void ppp_input(ppp_pcb *pcb, struct pbuf *pb) {
        */
       for (i = 0; (protp = protocols[i]) != NULL; ++i) {
         if (protp->protocol == protocol) {
-          pb = ppp_singlebuf(pb);
+          pb = pbuf_coalesce(pb, PBUF_RAW);
           (*protp->input)(pcb, (u8_t*)pb->payload, pb->len);
           goto out;
         }
@@ -956,7 +957,7 @@ void ppp_input(ppp_pcb *pcb, struct pbuf *pb) {
 #endif /* PPP_PROTOCOLNAME */
         ppp_warn("Unsupported protocol 0x%x received", protocol);
 #endif /* PPP_DEBUG */
-        pbuf_header(pb, (s16_t)sizeof(protocol));
+        pbuf_add_header(pb, sizeof(protocol));
         lcp_sprotrej(pcb, (u8_t*)pb->payload, pb->len);
       }
       break;
@@ -968,32 +969,6 @@ drop:
 
 out:
   pbuf_free(pb);
-}
-
-/* merge a pbuf chain into one pbuf */
-struct pbuf *ppp_singlebuf(struct pbuf *p) {
-  struct pbuf *q, *b;
-  u8_t *pl;
-
-  if(p->tot_len == p->len) {
-    return p;
-  }
-
-  q = pbuf_alloc(PBUF_RAW, p->tot_len, PBUF_RAM);
-  if(!q) {
-    PPPDEBUG(LOG_ERR,
-             ("ppp_singlebuf: unable to alloc new buf (%d)\n", p->tot_len));
-    return p; /* live dangerously */
-  }
-
-  for(b = p, pl = (u8_t*)q->payload; b != NULL; b = b->next) {
-    MEMCPY(pl, b->payload, b->len);
-    pl += b->len;
-  }
-
-  pbuf_free(p);
-
-  return q;
 }
 
 /*
@@ -1126,9 +1101,9 @@ int sdns(ppp_pcb *pcb, u32_t ns1, u32_t ns2) {
   ip_addr_t ns;
   LWIP_UNUSED_ARG(pcb);
 
-  ip_addr_set_ip4_u32(&ns, ns1);
+  ip_addr_set_ip4_u32_val(ns, ns1);
   dns_setserver(0, &ns);
-  ip_addr_set_ip4_u32(&ns, ns2);
+  ip_addr_set_ip4_u32_val(ns, ns2);
   dns_setserver(1, &ns);
   return 1;
 }
@@ -1143,12 +1118,12 @@ int cdns(ppp_pcb *pcb, u32_t ns1, u32_t ns2) {
   LWIP_UNUSED_ARG(pcb);
 
   nsa = dns_getserver(0);
-  ip_addr_set_ip4_u32(&nsb, ns1);
+  ip_addr_set_ip4_u32_val(nsb, ns1);
   if (ip_addr_cmp(nsa, &nsb)) {
     dns_setserver(0, IP_ADDR_ANY);
   }
   nsa = dns_getserver(1);
-  ip_addr_set_ip4_u32(&nsb, ns2);
+  ip_addr_set_ip4_u32_val(nsb, ns2);
   if (ip_addr_cmp(nsa, &nsb)) {
     dns_setserver(1, IP_ADDR_ANY);
   }
@@ -1273,8 +1248,8 @@ int cif6addr(ppp_pcb *pcb, eui64_t our_eui64, eui64_t his_eui64) {
   LWIP_UNUSED_ARG(our_eui64);
   LWIP_UNUSED_ARG(his_eui64);
 
-  netif_ip6_addr_set(pcb->netif, 0, IP6_ADDR_ANY6);
   netif_ip6_addr_set_state(pcb->netif, 0, IP6_ADDR_INVALID);
+  netif_ip6_addr_set(pcb->netif, 0, IP6_ADDR_ANY6);
   return 1;
 }
 

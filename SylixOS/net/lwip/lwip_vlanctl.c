@@ -25,8 +25,8 @@
 *********************************************************************************************************/
 #if LW_CFG_NET_EN > 0 && LW_CFG_NET_VLAN_EN > 0
 #include "net/if_vlan.h"
+#include "net/if_lock.h"
 #include "vlan/eth_vlan.h"
-#include "lwip_if.h"
 /*********************************************************************************************************
 ** 函数名称: __ifVlanSet
 ** 功能描述: 设置 VLAN 参数
@@ -134,21 +134,21 @@ INT  __ifIoctlVlan (INT  iCmd, PVOID  pvArg)
     switch (iCmd) {
     
     case SIOCSETVLAN:
-        LWIP_NETIF_LOCK();
+        LWIP_IF_LIST_LOCK(LW_FALSE);
         iRet = __ifVlanSet(pvlanreq);
-        LWIP_NETIF_UNLOCK();
+        LWIP_IF_LIST_UNLOCK();
         break;
         
     case SIOCGETVLAN:
-        LWIP_NETIF_LOCK();
+        LWIP_IF_LIST_LOCK(LW_FALSE);
         iRet = __ifVlanGet(pvlanreq);
-        LWIP_NETIF_UNLOCK();
+        LWIP_IF_LIST_UNLOCK();
         break;
     
     case SIOCLSTVLAN:
-        LWIP_NETIF_LOCK();
+        LWIP_IF_LIST_LOCK(LW_FALSE);
         iRet = __ifVlanLst((struct vlanreq_list *)pvArg);
-        LWIP_NETIF_UNLOCK();
+        LWIP_IF_LIST_UNLOCK();
         break;
         
     default:

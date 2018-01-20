@@ -40,146 +40,28 @@ extern "C" {
 #define SOMAXCONN       255                                             /* lwip max backlog is 0xff     */
 
 /*********************************************************************************************************
-  sockaddr_storage
-  Desired design of maximum size and alignment.
-*********************************************************************************************************/
-
-#define _SS_MAXSIZE     128                                             /* maximum size.                */
-#define _SS_ALIGNSIZE   (sizeof(int64_t))                               /* desired alignment.           */
-
-/*********************************************************************************************************
-  Definitions used for sockaddr_storage structure paddings design.
-*********************************************************************************************************/
-
-#define _SS_PAD1SIZE    (_SS_ALIGNSIZE - sizeof(sa_family_t))
-#define _SS_PAD2SIZE    (_SS_MAXSIZE - (sizeof(sa_family_t) + \
-                         _SS_PAD1SIZE + _SS_ALIGNSIZE))
-
-/*********************************************************************************************************
-  sockaddr_storage
-*********************************************************************************************************/
-
-struct sockaddr_storage {
-  u8_t          ss_len;
-  sa_family_t   ss_family;
-  
-  /*
-   * Following fields are implementation-defined.
-   */
-  /* 
-   * 6-byte pad; this is to make implementation-defined
-   * pad up to alignment field that follows explicit in
-   * the data structure. 
-   */
-  char          _ss_pad1[_SS_PAD1SIZE];
-  
-  /* 
-   * Field to force desired structure
-   * storage alignment. 
-   */
-  int64_t       _ss_align;
-  
-  /* 
-   * 112-byte pad to achieve desired size,
-   * _SS_MAXSIZE value minus size of ss_family
-   * __ss_pad1, __ss_align fields is 112. 
-   */
-  char          _ss_pad2[_SS_PAD2SIZE];
-};
-
-/*********************************************************************************************************
-  control data lost before delivery
-*********************************************************************************************************/
-
-#ifndef MSG_CTRUNC
-#define MSG_CTRUNC          0x1000
-#endif
-
-/*********************************************************************************************************
-  AF_PACKET flags
-*********************************************************************************************************/
-
-#ifndef MSG_TRUNC
-#define MSG_TRUNC           0x200
-#endif
-
-/*********************************************************************************************************
   AF_UNIX sockopt
 *********************************************************************************************************/
 
-#ifndef SO_PASSCRED
-#define SO_PASSCRED         16
-#endif
-
-#ifndef SO_PEERCRED
-#define SO_PEERCRED         17
-#endif
-
-#ifndef MSG_NOSIGNAL
-#define MSG_NOSIGNAL        0x4000
-#endif
-
-#ifndef MSG_CMSG_CLOEXEC
-#define MSG_CMSG_CLOEXEC    0x40000
-#endif
-
-struct cmsghdr {
-    socklen_t     cmsg_len;                                             /* Data byte count,             */
-                                                                        /* including the cmsghdr.       */
-    int           cmsg_level;                                           /* Originating protocol.        */
-    int           cmsg_type;                                            /* Protocol-specific type.      */
-    /* 
-     * followed by u_char cmsg_data[];
-     */
-};
-
-/*********************************************************************************************************
-  RFC 2292 additions
-*********************************************************************************************************/
-
-#ifndef ROUND_UP
-#define ROUND_UP(x, align)      (size_t)(((size_t)(x) +  (align - 1)) & ~(align - 1))
-#endif
-
-#define CMSG_ALIGN(nbytes)      ROUND_UP(nbytes, sizeof(size_t))
-#define CMSG_LEN(nbytes)        (CMSG_ALIGN(sizeof(struct cmsghdr)) + (nbytes))
-#define CMSG_SPACE(nbytes)      (CMSG_ALIGN(sizeof(struct cmsghdr)) + CMSG_ALIGN(nbytes))
-
-/*********************************************************************************************************
-  given pointer to struct adatahdr, return pointer to data
-*********************************************************************************************************/
-
-#define	CMSG_DATA(cmsg)         ((u_char *)(cmsg) + CMSG_ALIGN(sizeof(struct cmsghdr)))
-
-/*********************************************************************************************************
-  given pointer to struct adatahdr, return pointer to next adatahdr
-*********************************************************************************************************/
-
-#define CMSG_NXTHDR(mhdr, cmsg) \
-        (((caddr_t)(cmsg) + CMSG_ALIGN((cmsg)->cmsg_len) + \
-        CMSG_ALIGN(sizeof(struct cmsghdr)) > \
-	    (caddr_t)(mhdr)->msg_control + (mhdr)->msg_controllen) ? \
-	    (struct cmsghdr *)NULL : \
-	    (struct cmsghdr *)((caddr_t)(cmsg) + CMSG_ALIGN((cmsg)->cmsg_len)))
-        
-#define CMSG_FIRSTHDR(mhdr)     ((struct cmsghdr *)(mhdr)->msg_control)
+#define SO_PASSCRED     16
+#define SO_PEERCRED     17
 
 /*********************************************************************************************************
   "Socket"-level control message types:
 *********************************************************************************************************/
 
-#define SCM_RIGHTS              0x01                                    /* access rights (array of int) */
-#define SCM_CREDENTIALS         0x02                                    /* Linux certificate            */
-#define SCM_CRED                0x03                                    /* BSD certificate              */
+#define SCM_RIGHTS      0x01                                            /* access rights (array of int) */
+#define SCM_CREDENTIALS 0x02                                            /* Linux certificate            */
+#define SCM_CRED        0x03                                            /* BSD certificate              */
 
 /*********************************************************************************************************
   AF_UNIX Linux certificate 
 *********************************************************************************************************/
 
 struct ucred {                                                          /* Linux                        */
-    uint32_t        pid;                                                /* Sender's process ID          */
-    uint32_t        uid;                                                /* Sender's user ID             */
-    uint32_t        gid;                                                /* Sender's group ID            */
+    uint32_t    pid;                                                    /* Sender's process ID          */
+    uint32_t    uid;                                                    /* Sender's user ID             */
+    uint32_t    gid;                                                    /* Sender's group ID            */
 };
 
 /*********************************************************************************************************
@@ -189,12 +71,12 @@ struct ucred {                                                          /* Linux
 #define CMGROUP_MAX 16
 
 struct cmsgcred {                                                       /* FreeBSD                      */
-    pid_t           cmcred_pid;                                         /* PID of sending process       */
-    uid_t           cmcred_uid;                                         /* real UID of sending process  */
-    uid_t           cmcred_euid;                                        /* effective UID of sending process */
-    gid_t           cmcred_gid;                                         /* real GID of sending process  */
-    short           cmcred_ngroups;                                     /* number or groups             */
-    gid_t           cmcred_groups[CMGROUP_MAX];                         /* groups                       */
+    pid_t   cmcred_pid;                                                 /* PID of sending process       */
+    uid_t   cmcred_uid;                                                 /* real UID of sending process  */
+    uid_t   cmcred_euid;                                                /* effective UID of sending process */
+    gid_t   cmcred_gid;                                                 /* real GID of sending process  */
+    short   cmcred_ngroups;                                             /* number or groups             */
+    gid_t   cmcred_groups[CMGROUP_MAX];                                 /* groups                       */
 };
 
 /*********************************************************************************************************

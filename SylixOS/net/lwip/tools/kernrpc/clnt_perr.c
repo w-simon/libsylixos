@@ -43,7 +43,7 @@
 
 #if LW_CFG_NET_RPC_EN > 0
 
-static char *auth_errmsg (enum auth_stat stat) internal_function;
+static const char *auth_errmsg (enum auth_stat stat) internal_function;
 
 #ifdef _RPC_THREAD_SAFE_
 /*
@@ -69,7 +69,7 @@ clnt_sperror (CLIENT * rpch, const char *msg)
 
   char chrbuf[1024];
   char *str;
-  char *tmpstr;
+  const char *tmpstr;
   int res;
   switch (e.re_status)
     {
@@ -252,7 +252,7 @@ static const struct rpc_errtab rpc_errlist[] =
 /*
  * This interface for use by clntrpc
  */
-char *
+const char *
 clnt_sperrno (enum clnt_stat stat)
 {
   size_t i;
@@ -378,7 +378,7 @@ static const struct auth_errtab auth_errlist[] =
   { AUTH_FAILED, AUTH_FAILED_IDX }
 };
 
-static char *
+static const char *
 internal_function
 auth_errmsg (enum auth_stat stat)
 {

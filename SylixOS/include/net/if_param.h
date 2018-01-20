@@ -40,6 +40,7 @@
   gateway=192.168.1.1
   default=1
   mac=00:11:22:33:44:55
+  ipv6_auto_cfg=1
   
   Лђеп
   
@@ -62,6 +63,7 @@ LW_API void   if_param_unload(void *pifparam);
 LW_API int    if_param_getenable(void *pifparam, int *enable);
 LW_API int    if_param_getdefault(void *pifparam, int *def);
 LW_API int    if_param_getdhcp(void *pifparam, int *dhcp);
+LW_API int    if_param_ipv6autocfg(void *pifparam, int *autocfg);
 LW_API int    if_param_getipaddr(void *pifparam, ip4_addr_t *ipaddr);
 LW_API int    if_param_getinaddr(void *pifparam, struct in_addr *inaddr);
 LW_API int    if_param_getnetmask(void *pifparam, ip4_addr_t *mask);

@@ -273,8 +273,10 @@ void setpwent(void)
 
 void endpwent(void)
 {
-  if (passwd_fp != NULL)
+  if (passwd_fp != NULL) {
     fclose(passwd_fp);
+    passwd_fp = NULL;
+  }
 }
 
 /*
@@ -432,8 +434,10 @@ void setgrent(void)
 
 void endgrent(void)
 {
-  if (group_fp != NULL)
+  if (group_fp != NULL) {
     fclose(group_fp);
+    group_fp = NULL;
+  }
 }
 
 int 

@@ -398,7 +398,7 @@ extern struct rpc_createerr rpc_createerr;
 /*
  * Copy error message to buffer.
  */
-extern char *clnt_sperrno (enum clnt_stat __num) __THROW;	/* string */
+extern const char *clnt_sperrno (enum clnt_stat __num) __THROW;	/* string */
 
 /*
  * get the port number on the host for the rpc program,version and proto

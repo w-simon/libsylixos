@@ -61,10 +61,11 @@ struct in_addr {
 
 struct in6_addr {
   union {
-    u8_t  u8_addr[16]; /* SylixOS change u8 in front */
+    u8_t  u8_addr[16]; /* SylixOS move u8_addr upper */
     u32_t u32_addr[4];
   } un;
-#define s6_addr  un.u8_addr
+#define s6_addr    un.u8_addr
+#define s6_addr32  un.u32_addr /* SylixOS Add s6_addr32 */
 };
 
 /** 255.255.255.255 */
@@ -153,11 +154,9 @@ extern const struct in6_addr in6addr_any;
 
 #define inet_addr_from_ip4addr(target_inaddr, source_ipaddr) ((target_inaddr)->s_addr = ip4_addr_get_u32(source_ipaddr))
 #define inet_addr_to_ip4addr(target_ipaddr, source_inaddr)   (ip4_addr_set_u32(target_ipaddr, (source_inaddr)->s_addr))
-/* ATTENTION: the next define only works because both s_addr and ip4_addr_t are an u32_t effectively! */
-#define inet_addr_to_ip4addr_p(target_ip4addr_p, source_inaddr)   ((target_ip4addr_p) = (ip4_addr_t*)&((source_inaddr)->s_addr))
 
 /* directly map this to the lwip internal functions */
-#ifdef SYLIXOS
+#ifdef SYLIXOS /* SylixOS Changed */
 in_addr_t  inet_addr(const char *cp);
 int        inet_aton(const char *cp, struct in_addr *addr);
 char      *inet_ntoa(struct in_addr addr);
@@ -167,7 +166,7 @@ char      *inet_ntoa_r(struct in_addr addr, char *buf, int buflen);
 #define inet_aton(cp, addr)             ip4addr_aton(cp, (ip4_addr_t*)addr)
 #define inet_ntoa(addr)                 ip4addr_ntoa((const ip4_addr_t*)&(addr))
 #define inet_ntoa_r(addr, buf, buflen)  ip4addr_ntoa_r((const ip4_addr_t*)&(addr), buf, buflen)
-#endif
+#endif /* !SYLIXOS */
 
 #endif /* LWIP_IPV4 */
 
@@ -179,12 +178,11 @@ char      *inet_ntoa_r(struct in_addr addr, char *buf, int buflen);
 #define inet6_addr_to_ip6addr(target_ip6addr, source_in6addr)   {(target_ip6addr)->addr[0] = (source_in6addr)->un.u32_addr[0]; \
                                                                  (target_ip6addr)->addr[1] = (source_in6addr)->un.u32_addr[1]; \
                                                                  (target_ip6addr)->addr[2] = (source_in6addr)->un.u32_addr[2]; \
-                                                                 (target_ip6addr)->addr[3] = (source_in6addr)->un.u32_addr[3];}
-/* ATTENTION: the next define only works because both in6_addr and ip6_addr_t are an u32_t[4] effectively! */
-#define inet6_addr_to_ip6addr_p(target_ip6addr_p, source_in6addr)   ((target_ip6addr_p) = (ip6_addr_t*)(source_in6addr))
+                                                                 (target_ip6addr)->addr[3] = (source_in6addr)->un.u32_addr[3]; \
+                                                                 ip6_addr_clear_zone(target_ip6addr);}
 
 /* directly map this to the lwip internal functions */
-#ifdef SYLIXOS
+#ifdef SYLIXOS /* SylixOS Changed */
 int    inet6_aton(const char *cp, struct in6_addr *addr);
 char  *inet6_ntoa(struct in6_addr addr);
 char  *inet6_ntoa_r(struct in6_addr addr, char *buf, int buflen);
@@ -192,10 +190,9 @@ char  *inet6_ntoa_r(struct in6_addr addr, char *buf, int buflen);
 #define inet6_aton(cp, addr)            ip6addr_aton(cp, (ip6_addr_t*)addr)
 #define inet6_ntoa(addr)                ip6addr_ntoa((const ip6_addr_t*)&(addr))
 #define inet6_ntoa_r(addr, buf, buflen) ip6addr_ntoa_r((const ip6_addr_t*)&(addr), buf, buflen)
-#endif
+#endif /* !SYLIXOS */
 
 #endif /* LWIP_IPV6 */
-
 
 #ifdef __cplusplus
 }

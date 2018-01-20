@@ -58,8 +58,8 @@
   IP 参数
 *********************************************************************************************************/
 
-#define LW_CFG_LWIP_IP_REASS_MAXAGE     8                               /*  IP 分片生存时间             */
-                                                                        /*  公网使用 KidVPN 需要稍长一些*/
+#define LW_CFG_LWIP_IP_REASS_MAXAGE     15                              /*  IP 分片生存时间             */
+
 /*********************************************************************************************************
   网卡缓存优化设置 (如果 UDP 发送速度达不到要求, 可使能此配置宏, 优化网卡发送操作, 
                     缺点是网络内存消耗大, LW_CFG_LWIP_MEM_SIZE 需要配置的稍多)
@@ -68,7 +68,7 @@
 #define LW_CFG_LWIP_TX_SINGLE_PBUF      1                               /*  是否在发送时使用连续缓存    */
 
 /*********************************************************************************************************
-  pbuf chksum on copy
+  pbuf chksum on copy (如果网卡支持硬件 checksum 这里建议为 0)
 *********************************************************************************************************/
 
 #define LW_CFG_LWIP_CHECKSUM_ON_COPY    0                               /*  pbuf chksum on copy         */
@@ -97,13 +97,13 @@
   则完全可以配置为 65535 (例如: 各种 PCIe 接口高性能网卡).
   
   LW_CFG_LWIP_TCP_SCALE 为窗口扩大因子, 
-  如果 LW_CFG_LWIP_TCP_SCALE 为 0 表示不使用窗口扩大则
+  如果 LW_CFG_LWIP_TCP_SCALE 为 0 表示不使用窗口扩大选项
   LW_CFG_LWIP_TCP_WND, LW_CFG_LWIP_TCP_SND 最大值为 65535
   
-  如果 LW_CFG_LWIP_TCP_SCALE 为 1 表示不使用窗口扩大则
+  如果 LW_CFG_LWIP_TCP_SCALE 为 1 表示使用窗口扩大选项
   LW_CFG_LWIP_TCP_WND, LW_CFG_LWIP_TCP_SND 最大值为 65535 * 2^1 = 131070
   
-  如果 LW_CFG_LWIP_TCP_SCALE 为 2 表示不使用窗口扩大则
+  如果 LW_CFG_LWIP_TCP_SCALE 为 2 表示使用窗口扩大选项
   LW_CFG_LWIP_TCP_WND, LW_CFG_LWIP_TCP_SND 最大值为 65535 * 2^2 = 262140
   
   ... 
@@ -114,7 +114,8 @@
 #define LW_CFG_LWIP_TCP_WND             8192                            /*  接收缓冲大小, 0 为自动      */
 #define LW_CFG_LWIP_TCP_SND             65535                           /*  发送缓冲大小, 0 为自动      */
 #define LW_CFG_LWIP_TCP_SCALE           0                               /*  接收窗口扩大指数 0 ~ 14     */
-
+#define LW_CFG_LWIP_TCP_ACK_THRESHOLD   0                               /*  ACK 阀值 1/2 ~ 1/4 窗口最佳 */
+                                                                        /*  0 为自动                    */
 #define LW_CFG_LWIP_TCP_MAXRTX          8                               /*  TCP 最大重传数, 1 ~ 12      */
 #define LW_CFG_LWIP_TCP_SYNMAXRTX       6                               /*  最大 SYN 重传数, 1 ~ 12     */
 

@@ -38,6 +38,7 @@ extern "C" {
 
 #define LWIP_NO_STDINT_H            1
 #define LWIP_NO_INTTYPES_H          1
+#define LWIP_HAVE_INT64             1
 
 typedef UINT8                       u8_t;
 typedef SINT8                       s8_t;
@@ -45,13 +46,17 @@ typedef UINT16                      u16_t;
 typedef SINT16                      s16_t;
 typedef UINT32                      u32_t;
 typedef SINT32                      s32_t;
+typedef UINT64                      u64_t;
+typedef SINT64                      s64_t;
 
 typedef ULONG                       mem_ptr_t;
 
 #define U16_F                       "u"
-#define U32_F                       "u"
 #define S16_F                       "d"
+#define U32_F                       "u"
 #define S32_F                       "d"
+#define U64_F                       "qu"
+#define S64_F                       "qd"
 #define X16_F                       "x"
 #define X32_F                       "x"
 #define SZT_F                       "zu"

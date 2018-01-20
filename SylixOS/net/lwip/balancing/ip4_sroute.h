@@ -80,7 +80,7 @@ void srt_srtentry_to_sentry(struct srt_entry *sentry, const struct srtentry *srt
 /* tcpip hooks */
 void srt_netif_add_hook(struct netif *netif);
 void srt_netif_remove_hook(struct netif *netif);
-struct netif *srt_route_search_hook(const ip4_addr_t *ipdest, const ip4_addr_t *ipsrc);
+struct netif *srt_route_search_hook(const ip4_addr_t *ipsrc, const ip4_addr_t *ipdest);
 
 #endif /* __IP4_SROUTE_H */
 /*

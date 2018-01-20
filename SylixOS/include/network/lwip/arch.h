@@ -52,6 +52,8 @@
  * @ingroup sys_layer
  * All defines related to this section must not be placed in lwipopts.h,
  * but in arch/cc.h!
+ * If the compiler does not provide memset() this file must include a
+ * definition of it, or include a file which defines it.
  * These options cannot be \#defined in lwipopts.h since they are not options
  * of lwIP itself, but options of the lwIP port to your system.
  * @{
@@ -66,7 +68,7 @@
 #endif
 
 /** Define random number generator function of your system */
-#ifndef LWIP_RAND
+#ifdef __DOXYGEN__
 #define LWIP_RAND() ((u32_t)rand())
 #endif
 
@@ -76,9 +78,9 @@
  * systems, this should be defined to something less resource-consuming.
  */
 #ifndef LWIP_PLATFORM_DIAG
-#define LWIP_PLATFORM_DIAG(x)	do {printf x;} while(0)
-#include <stdio.h>
-#include <stdlib.h>
+#define LWIP_PLATFORM_DIAG(x) do {printf x;} while(0)
+#include "stdio.h"
+#include "stdlib.h"
 #endif
 
 /** Platform specific assertion handling.\n
@@ -89,8 +91,8 @@
 #ifndef LWIP_PLATFORM_ASSERT
 #define LWIP_PLATFORM_ASSERT(x) do {printf("Assertion \"%s\" failed at line %d in %s\n", \
                                      x, __LINE__, __FILE__); fflush(NULL); abort();} while(0)
-#include <stdio.h>
-#include <stdlib.h>
+#include "stdio.h"
+#include "stdlib.h"
 #endif
 
 /** Define this to 1 in arch/cc.h of your port if you do not want to
@@ -102,7 +104,7 @@
 #endif
 
 #if !LWIP_NO_STDDEF_H
-#include <stddef.h> /* for size_t */
+#include "stddef.h" /* for size_t */
 #endif
 
 /** Define this to 1 in arch/cc.h of your port if your compiler does not provide
@@ -116,12 +118,20 @@
 /* Define generic types used in lwIP */
 #if !LWIP_NO_STDINT_H
 #include "stdint.h"
+/* stdint.h is C99 which should also provide support for 64-bit integers */
+#if !defined(LWIP_HAVE_INT64) && defined(UINT64_MAX)
+#define LWIP_HAVE_INT64 1
+#endif
 typedef uint8_t   u8_t;
 typedef int8_t    s8_t;
 typedef uint16_t  u16_t;
 typedef int16_t   s16_t;
 typedef uint32_t  u32_t;
 typedef int32_t   s32_t;
+#if LWIP_HAVE_INT64
+typedef uint64_t  u64_t;
+typedef int64_t   s64_t;
+#endif
 typedef uintptr_t mem_ptr_t;
 #endif
 
@@ -162,6 +172,63 @@ typedef uintptr_t mem_ptr_t;
 #endif
 #endif
 
+/** Define this to 1 in arch/cc.h of your port if your compiler does not provide
+ * the limits.h header. You need to define the type limits yourself in this case
+ * (e.g. INT_MAX, SSIZE_MAX).
+ */
+#ifndef LWIP_NO_LIMITS_H
+#define LWIP_NO_LIMITS_H 0
+#endif
+
+/* Include limits.h? */
+#if !LWIP_NO_LIMITS_H
+#include "limits.h"
+#endif
+
+/* Do we need to define ssize_t? This is a compatibility hack:
+ * Unfortunately, this type seems to be unavailable on some systems (even if
+ * sys/types or unistd.h are available).
+ * Being like that, we define it to 'int' if SSIZE_MAX is not defined.
+ */
+#ifdef SSIZE_MAX
+/* If SSIZE_MAX is defined, unistd.h should provide the type as well */
+#ifndef LWIP_NO_UNISTD_H
+#define LWIP_NO_UNISTD_H 0
+#endif
+#if !LWIP_NO_UNISTD_H
+#include "unistd.h"
+#endif
+#else /* SSIZE_MAX */
+typedef int ssize_t;
+#define SSIZE_MAX INT_MAX
+#endif /* SSIZE_MAX */
+
+/* some maximum values needed in lwip code */
+#define LWIP_UINT32_MAX 0xffffffff
+
+/** Define this to 1 in arch/cc.h of your port if your compiler does not provide
+ * the ctype.h header. If ctype.h is available, a few character functions
+ * are mapped to the appropriate functions (lwip_islower, lwip_isdigit...), if
+ * not, a private implementation is provided.
+ */
+#ifndef LWIP_NO_CTYPE_H
+#define LWIP_NO_CTYPE_H 0
+#endif
+
+#if LWIP_NO_CTYPE_H
+#define lwip_in_range(c, lo, up)  ((u8_t)(c) >= (lo) && (u8_t)(c) <= (up))
+#define lwip_isdigit(c)           lwip_in_range((c), '0', '9')
+#define lwip_isxdigit(c)          (lwip_isdigit(c) || lwip_in_range((c), 'a', 'f') || lwip_in_range((c), 'A', 'F'))
+#define lwip_islower(c)           lwip_in_range((c), 'a', 'z')
+#define lwip_isspace(c)           ((c) == ' ' || (c) == '\f' || (c) == '\n' || (c) == '\r' || (c) == '\t' || (c) == '\v')
+#else
+#include "ctype.h"
+#define lwip_isdigit(c)           isdigit((unsigned char)(c))
+#define lwip_isxdigit(c)          isxdigit((unsigned char)(c))
+#define lwip_islower(c)           islower((unsigned char)(c))
+#define lwip_isspace(c)           isspace((unsigned char)(c))
+#endif
+
 /** C++ const_cast<target_type>(val) equivalent to remove constness from a value (GCC -Wcast-qual) */
 #ifndef LWIP_CONST_CAST
 #define LWIP_CONST_CAST(target_type, val) ((target_type)((ptrdiff_t)val))
@@ -177,6 +244,11 @@ typedef uintptr_t mem_ptr_t;
  */
 #ifndef LWIP_PTR_NUMERIC_CAST
 #define LWIP_PTR_NUMERIC_CAST(target_type, val) LWIP_CONST_CAST(target_type, val)
+#endif
+
+/** Avoid warnings/errors related to implicitly casting away packed attributes by doing a explicit cast */
+#ifndef LWIP_PACKED_CAST
+#define LWIP_PACKED_CAST(target_type, val) LWIP_CONST_CAST(target_type, val)
 #endif
 
 /** Allocates a memory buffer of specified size that is of sufficient size to align
@@ -278,7 +350,7 @@ extern "C" {
 #define PACK_STRUCT_FLD_S(x) PACK_STRUCT_FIELD(x)
 #endif /* PACK_STRUCT_FLD_S */
 
-/** Packed structs support using \#include files before and after struct to be packed.\n
+/** PACK_STRUCT_USE_INCLUDES==1: Packed structs support using \#include files before and after struct to be packed.\n
  * The file included BEFORE the struct is "arch/bpstruct.h".\n
  * The file included AFTER the struct is "arch/epstruct.h".\n
  * This can be used to implement struct packing on MS Visual C compilers, see
@@ -294,6 +366,15 @@ extern "C" {
 #ifndef LWIP_UNUSED_ARG
 #define LWIP_UNUSED_ARG(x) (void)x
 #endif /* LWIP_UNUSED_ARG */
+
+/** LWIP_PROVIDE_ERRNO==1: Let lwIP provide ERRNO values and the 'errno' variable.
+ * If this is disabled, cc.h must either define 'errno', include <errno.h>,
+ * define LWIP_ERRNO_STDINCLUDE to get <errno.h> included or
+ * define LWIP_ERRNO_INCLUDE to <errno.h> or equivalent.
+ */
+#if defined __DOXYGEN__
+#define LWIP_PROVIDE_ERRNO
+#endif
 
 /**
  * @}

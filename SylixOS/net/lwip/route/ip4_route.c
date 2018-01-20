@@ -100,11 +100,12 @@ struct gw_cache {
 
 static struct gw_cache  gw_cache[LW_CFG_NET_DEV_MAX];
 
-#define GW_CACHE_INVAL(index, entry) \
-        if (gw_cache[index].rt_entry == entry) { \
-          gw_cache[index].rt_entry = NULL; \
-          gw_cache[index].rt_dest.addr = IPADDR_ANY; \
-          gw_cache[index].rt_gateway.addr = IPADDR_ANY; \
+#define GW_CACHE_INVAL(num, entry) \
+        LWIP_ASSERT("GW_CACHE_INVAL() num invalide!", (num) < LW_CFG_NET_DEV_MAX); \
+        if (gw_cache[num].rt_entry == entry) { \
+          gw_cache[num].rt_entry = NULL; \
+          gw_cache[num].rt_dest.addr = IPADDR_ANY; \
+          gw_cache[num].rt_gateway.addr = IPADDR_ANY; \
         }
         
 /* netif is valid */
@@ -166,9 +167,7 @@ static void  rt_traversal_buildin (VOIDFUNCPTR func, void *arg0, void *arg1,
       entry.rt_gateway.addr = netif_ip4_gw(netif_default)->addr;
       entry.rt_ifaddr.addr = netif_ip4_addr(netif_default)->addr;
       entry.rt_netif = netif_default;
-      entry.rt_ifname[0] = netif_default->name[0];
-      entry.rt_ifname[1] = netif_default->name[1];
-      lib_itoa(netif_default->num, &entry.rt_ifname[2], 10);
+      netif_get_name(netif_default, entry.rt_ifname);
       
       if (netif_is_up(netif_default) && netif_is_link_up(netif_default)) {
         entry.rt_flags = RTF_UP | RTF_GATEWAY | RTF_RUNNING | RTF_LOCAL;
@@ -180,16 +179,14 @@ static void  rt_traversal_buildin (VOIDFUNCPTR func, void *arg0, void *arg1,
     }
   }
   
-  for (netif = netif_list; netif != NULL; netif = netif->next) {
+  NETIF_FOREACH(netif) {
     if (RT_NETIF_AVLID(netif)) {
       entry.rt_dest.addr = netif_ip4_addr(netif)->addr;  /* destination address */
       entry.rt_netmask.addr = IPADDR_NONE;
       entry.rt_gateway.addr = IPADDR_ANY;
       entry.rt_ifaddr.addr = netif_ip4_addr(netif)->addr;
       entry.rt_netif = netif;
-      entry.rt_ifname[0] = netif->name[0];
-      entry.rt_ifname[1] = netif->name[1];
-      lib_itoa(netif->num, &entry.rt_ifname[2], 10);
+      netif_get_name(netif, entry.rt_ifname);
     
       if (netif_is_up(netif) && netif_is_link_up(netif)) {
         entry.rt_flags = RTF_UP | RTF_HOST | RTF_RUNNING | RTF_LOCAL;
@@ -306,7 +303,7 @@ int  rt_add_entry (struct rt_entry *entry)
     if (entry->rt_gateway.addr == IPADDR_ANY) {
       return (-1);
     }
-    for (netif = netif_list; netif != NULL; netif = netif->next) {
+    NETIF_FOREACH(netif) {
       if (entry->rt_gateway.addr == netif_ip4_gw(netif)->addr) {
         netif_p = netif;
         break;
@@ -319,9 +316,7 @@ int  rt_add_entry (struct rt_entry *entry)
     if (!netif_p) {
       return (-1);
     }
-    entry->rt_ifname[0] = netif_p->name[0];
-    entry->rt_ifname[1] = netif_p->name[1];
-    lib_itoa(netif_p->num, &entry->rt_ifname[2], 10);
+    netif_get_name(netif_p, entry->rt_ifname);
     entry->rt_netif = netif_p;
     
   } else {
@@ -415,7 +410,7 @@ int  rt_change_default (const ip4_addr_t *ipgateway, const char *ifname)
       return (-1);
     }
   } else {
-    for (netif = netif_list; netif != NULL; netif = netif->next) {
+    NETIF_FOREACH(netif) {
       if (ipgateway->addr == netif_ip4_gw(netif)->addr) {
         netif_p = netif;
         break;
@@ -452,9 +447,7 @@ int  rt_get_default (struct rt_entry *entry)
     entry->rt_gateway.addr = netif_ip4_gw(netif_default)->addr;
     entry->rt_ifaddr.addr = netif_ip4_addr(netif_default)->addr;
     entry->rt_netif = netif_default;
-    entry->rt_ifname[0] = netif_default->name[0];
-    entry->rt_ifname[1] = netif_default->name[1];
-    lib_itoa(netif_default->num, &entry->rt_ifname[2], 10);
+    netif_get_name(netif_default, entry->rt_ifname);
     
     if (netif_is_up(netif_default) && netif_is_link_up(netif_default)) {
       entry->rt_flags = RTF_UP | RTF_GATEWAY | RTF_RUNNING | RTF_LOCAL;
@@ -476,9 +469,7 @@ void  rt_netif_add_hook (struct netif *netif)
   LW_LIST_LINE *pline;
   struct rt_entry *entry;
   
-  ifname[0] = netif->name[0];
-  ifname[1] = netif->name[1];
-  lib_itoa(netif->num, &ifname[2], 10);
+  netif_get_name(netif, ifname);
   
   RT_LOCK();
   for (i = 0; i < RT_HASH_SIZE; i++) {
@@ -531,7 +522,7 @@ void  rt_netif_invcache_hook (struct netif *netif)
 }
 
 /* rt_route_src_hook */
-struct netif *rt_route_search_hook (const ip4_addr_t *ipdest, const ip4_addr_t *ipsrc)
+struct netif *rt_route_search_hook (const ip4_addr_t *ipsrc, const ip4_addr_t *ipdest)
 {
   struct netif *netif;
   struct gw_cache *gwc;
@@ -539,7 +530,7 @@ struct netif *rt_route_search_hook (const ip4_addr_t *ipdest, const ip4_addr_t *
   
   if ((ipdest->addr == IPADDR_BROADCAST) && 
       ipsrc && (ipsrc->addr != IPADDR_ANY)) {
-    for (netif = netif_list; netif != NULL; netif = netif->next) {
+    NETIF_FOREACH(netif) {
       if (ip4_addr_cmp(netif_ip4_addr(netif), ipsrc)) {
         return (netif);
       }

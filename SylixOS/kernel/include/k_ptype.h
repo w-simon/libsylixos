@@ -93,20 +93,20 @@ typedef UINT16       ushort_t;
 typedef UINT         uint_t;
 typedef ULONG        ulong_t;
 typedef LONG         daddr_t;
-typedef	PCHAR        caddr_t;
-typedef	LONG         swblk_t;
+typedef PCHAR        caddr_t;
+typedef LONG         swblk_t;
 
 /*********************************************************************************************************
   address integer type
 *********************************************************************************************************/
 
 #ifndef __addr_t_defined
-typedef	ULONG        addr_t;
+typedef ULONG        addr_t;
 #define __addr_t_defined 1
 #endif
 
 #ifndef __ioaddr_t_defined
-typedef	ULONG        ioaddr_t;
+typedef ULONG        ioaddr_t;
 #define __ioaddr_t_defined 1
 #endif
 
@@ -124,8 +124,8 @@ typedef INT64        quad_t;
 
 typedef ULONG        dev_t;                                             /*  in sylixos save a pointer   */
 typedef UINT32       gid_t;
-typedef	ULONG        ino_t;
-typedef	UINT64       ino64_t;
+typedef ULONG        ino_t;
+typedef UINT64       ino64_t;
 typedef INT          mode_t;
 typedef UINT32       nlink_t;
 typedef INT64        off_t;                                             /*  64 bit off_t                */
@@ -139,7 +139,7 @@ typedef LONG         blkcnt_t;
 typedef INT64        blkcnt64_t;
 
 typedef UINT         useconds_t;
-typedef LONG	     suseconds_t;
+typedef LONG         suseconds_t;
 
 typedef UINT         second_t;
 typedef UINT         usecond_t;
@@ -369,7 +369,7 @@ typedef struct sigevent {
 *********************************************************************************************************/
 
 struct tm {
-    INT             tm_sec;	                                            /* seconds after the minute - [0, 59]  */
+    INT             tm_sec;                                             /* seconds after the minute - [0, 59]  */
     INT             tm_min;                                             /* minutes after the hour   - [0, 59]  */
     INT             tm_hour;                                            /* hours after midnight     - [0, 23]  */
     INT             tm_mday;                                            /* day of the month         - [1, 31]  */

@@ -130,8 +130,6 @@ __mapsave:
 LW_API 
 INT  API_RootFsMap (ULONG  ulFlags)
 {
-
-
     static BOOL     bInit = LW_FALSE;
     CHAR            cMap[MAX_FILENAME_LENGTH];
     LW_BLK_DEV      blkdevRam;

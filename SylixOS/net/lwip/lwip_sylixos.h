@@ -28,6 +28,12 @@
 #if LW_CFG_NET_EN > 0
 
 /*********************************************************************************************************
+  API_NetJobDeleteEx() 第一个参数为 LW_NETJOB_Q_ALL 表示对所有队列均有效
+*********************************************************************************************************/
+
+#define LW_NETJOB_Q_ALL     ((UINT)-1)
+
+/*********************************************************************************************************
   网络初始化及网卡工作队列.
 *********************************************************************************************************/
 
@@ -68,11 +74,12 @@ LW_API VOID         API_NetJobDeleteEx(UINT         uiQ,
                                        PVOID        pvArg3,
                                        PVOID        pvArg4,
                                        PVOID        pvArg5);            /*  net job delete              */
-                                  
+
 LW_API size_t       API_NetJobGetLost(VOID);
 
 #define netInit             API_NetInit
 #define netSnmpInit         API_NetSnmpInit
+
 #define netJobAdd           API_NetJobAdd
 #define netJobAddEx         API_NetJobAddEx
 #define netJobDelete        API_NetJobDelete

@@ -49,11 +49,17 @@
 #include "lwip/snmp.h"
 #include "lwip/tcpip.h"
 #include "lwip/sockets.h"
+#include "net/if_lock.h"
+#include "net/if_flags.h"
 #include "net/if_param.h"
 #include "net/if_ether.h"
 
 #include "string.h"
 #include "netdev.h"
+
+#ifdef LWIP_HOOK_FILENAME
+#include LWIP_HOOK_FILENAME
+#endif
 
 #define NETDEV_INIT(netdev)             if ((netdev)->drv->init) { (netdev)->drv->init((netdev)); }
 #define NETDEV_UP(netdev)               if ((netdev)->drv->up) { (netdev)->drv->up((netdev)); }
@@ -95,25 +101,82 @@ static void  netdev_netif_remove (struct netif *netif)
 static int  netdev_netif_ioctl (struct netif *netif, int cmd, void *arg)
 {
   netdev_t *netdev = (netdev_t *)(netif->state);
-  int ret;
+  struct ifreq *ifreq;
+  int ret = -1;
   
   if (netdev->drv->ioctl) {
-    if (cmd == SIOCSIFHWADDR) {
-      struct ifreq *ifreq = (struct ifreq *)arg;
+    switch (cmd) {
     
-      ret = netdev->drv->ioctl(netdev, cmd, arg);
-      if (ret == 0) {
-        MEMCPY(netdev->hwaddr, ifreq->ifr_hwaddr.sa_data, netdev->hwaddr_len);
+    case SIOCSIFHWADDR:  /* set hwaddr */
+      {
+        ifreq = (struct ifreq *)arg;
+        ret = netdev->drv->ioctl(netdev, cmd, arg);
+        if (ret == 0) {
+          MEMCPY(netdev->hwaddr, ifreq->ifr_hwaddr.sa_data, netdev->hwaddr_len);
+        }
       }
+      break;
       
-      return (ret);
+    case SIOCSIFMTU:    /* set mtu */
+      {
+        ifreq = (struct ifreq *)arg;
+        ret = netdev->drv->ioctl(netdev, cmd, arg);
+        if (ret == 0) {
+          netdev->mtu = ifreq->ifr_mtu;
+        }
+      }
+      break;
       
-    } else {
-      return (netdev->drv->ioctl(netdev, cmd, arg));
+    case SIOCADDMULTI:  /* add / del mcast addr */
+    case SIOCDELMULTI:
+      {
+        struct sockaddr_in *inaddr;
+        ip4_addr_t group4;
+#if LWIP_IPV6 && LWIP_IPV6_MLD
+        struct sockaddr_in6 *in6addr;
+        ip6_addr_t group6;
+#endif /* LWIP_IPV6 && LWIP_IPV6_MLD */
+        
+        ifreq = (struct ifreq *)arg;
+        if (ifreq->ifr_addr.sa_family == AF_INET) {
+          inaddr = (struct sockaddr_in *)&ifreq->ifr_addr;
+          inet_addr_to_ip4addr(&group4, &inaddr->sin_addr);
+          if (cmd == SIOCADDMULTI) {
+            NETDEV_MACFILTER(netdev, NETDRV_MACFILTER_ADD, &ifreq->ifr_addr);
+            netif_set_maddr_hook(netif, &group4, 1);
+          
+          } else {
+            NETDEV_MACFILTER(netdev, NETDRV_MACFILTER_DEL, &ifreq->ifr_addr);
+            netif_set_maddr_hook(netif, &group4, 0);
+          }
+          ret = 0;
+        }
+        
+#if LWIP_IPV6 && LWIP_IPV6_MLD
+          else if (ifreq->ifr_addr.sa_family == AF_INET6) {
+          in6addr = (struct sockaddr_in6 *)&ifreq->ifr_addr;
+          inet6_addr_to_ip6addr(&group6, &in6addr->sin6_addr);
+          if (cmd == SIOCADDMULTI) {
+            NETDEV_MACFILTER(netdev, NETDRV_MACFILTER_ADD, &ifreq->ifr_addr);
+            netif_set_maddr6_hook(netif, &group6, 1);
+          
+          } else {
+            NETDEV_MACFILTER(netdev, NETDRV_MACFILTER_DEL, &ifreq->ifr_addr);
+            netif_set_maddr6_hook(netif, &group6, 0);
+          }
+          ret = 0;
+        }
+#endif /* LWIP_IPV6 && LWIP_IPV6_MLD */
+      }
+      break;
+      
+    default:
+      ret = netdev->drv->ioctl(netdev, cmd, arg);
+      break;
     }
   }
   
-  return (-1);
+  return (ret);
 }
 
 /* lwip netif igmp mac filter hook function */
@@ -130,16 +193,17 @@ static err_t  netdev_netif_igmp_mac_filter (struct netif *netif,
   
   if (action == NETIF_DEL_MAC_FILTER) {
     NETDEV_MACFILTER(netdev, NETDRV_MACFILTER_DEL, (struct sockaddr *)&inaddr);
-    netif_set_maddr_hook(netif, (const void *)group, 0);
+    netif_set_maddr_hook(netif, group, 0);
     
   } else {
     NETDEV_MACFILTER(netdev, NETDRV_MACFILTER_ADD, (struct sockaddr *)&inaddr);
-    netif_set_maddr_hook(netif, (const void *)group, 1);
+    netif_set_maddr_hook(netif, group, 1);
   }
   
   return (0);
 }
 
+#if LWIP_IPV6 && LWIP_IPV6_MLD
 /* lwip netif mld mac filter hook function */
 static err_t  netdev_netif_mld_mac_filter (struct netif *netif,
                                            const ip6_addr_t *group, 
@@ -154,15 +218,16 @@ static err_t  netdev_netif_mld_mac_filter (struct netif *netif,
   
   if (action == NETIF_DEL_MAC_FILTER) {
     NETDEV_MACFILTER(netdev, NETDRV_MACFILTER_DEL, (struct sockaddr *)&in6addr);
-    netif_set_maddr6_hook(netif, (const void *)group, 0);
+    netif_set_maddr6_hook(netif, group, 0);
     
   } else {
     NETDEV_MACFILTER(netdev, NETDRV_MACFILTER_ADD, (struct sockaddr *)&in6addr);
-    netif_set_maddr6_hook(netif, (const void *)group, 1);
+    netif_set_maddr6_hook(netif, group, 1);
   }
   
   return (0);
 }
+#endif /* LWIP_IPV6 && LWIP_IPV6_MLD */
 
 /* lwip netif rawoutput hook function */
 static err_t  netdev_netif_rawoutput4 (struct netif *netif, struct pbuf *p, const ip4_addr_t *ipaddr)
@@ -197,6 +262,9 @@ static err_t  netdev_netif_linkoutput (struct netif *netif, struct pbuf *p)
   netdev_t *netdev = (netdev_t *)(netif->state);
   int ret;
 
+  LWIP_ASSERT("netdev linkoutput must ethernet type.", 
+              (netdev->net_type == NETDEV_TYPE_ETHERNET)); /* must a ethernet */
+
 #if ETH_PAD_SIZE
   pbuf_header(p, -ETH_PAD_SIZE);
 #endif
@@ -218,16 +286,64 @@ static err_t  netdev_netif_linkoutput (struct netif *netif, struct pbuf *p)
 static int  netdev_netif_linkinput (netdev_t *netdev, struct pbuf *p)
 {
   struct netif *netif = (struct netif *)netdev->sys;
+  struct eth_hdr *eh;
   
+  /* fixed pad */
+  if (netdev->net_type == NETDEV_TYPE_ETHERNET) {
 #if ETH_PAD_SIZE
   pbuf_header(p, ETH_PAD_SIZE);
 #endif
+
+    /* adjust pbuf length */
+    eh = (struct eth_hdr *)p->payload;
+    if (eh->type == PP_HTONS(ETHTYPE_VLAN)) {
+      if (p->tot_len > (netif->mtu + SIZEOF_ETH_HDR + SIZEOF_VLAN_HDR)) {
+        pbuf_realloc(p, (u16_t)(netif->mtu + SIZEOF_ETH_HDR + SIZEOF_VLAN_HDR));
+      }
+    
+    } else {
+      if (p->tot_len > (netif->mtu + SIZEOF_ETH_HDR)) {
+        pbuf_realloc(p, (u16_t)(netif->mtu + SIZEOF_ETH_HDR));
+      }
+    }
+  }
 
   if (netif->input(p, netif)) {
     return (-1);
     
   } else {
     return (0);
+  }
+}
+
+/* lwip netif linkup changed */
+static void  netdev_netif_linkup (netdev_t *netdev, int linkup, UINT32 speed_high, UINT32 speed_low)
+{
+  UINT64 speed = ((UINT64)speed_high << 32) + speed_low;
+  struct netif *netif;
+  
+  if (!netdev || (netdev->magic_no != NETDEV_MAGIC)) {
+    return;
+  }
+  
+  netif = (struct netif *)netdev->sys;
+  
+  if (linkup) {
+    netif->ts = sys_jiffies();
+    netdev->speed = speed;
+    
+    netifapi_netif_set_link_up(netif);
+    netdev->if_flags |= IFF_RUNNING;
+
+    if (speed > 0xffffffff) {
+      netif->link_speed = 0;
+    } else {
+      netif->link_speed = (u32_t)speed;
+    }
+  
+  } else {
+    netifapi_netif_set_link_down(netif);
+    netdev->if_flags &= ~IFF_RUNNING;
   }
 }
 
@@ -259,7 +375,7 @@ static err_t  netdev_netif_init (struct netif *netif)
     netif->flags = 0;
     netif->output = netdev_netif_rawoutput4;
 #if LWIP_IPV6
-  netif->output_ip6 = netdev_netif_rawoutput6;
+    netif->output_ip6 = netdev_netif_rawoutput6;
 #endif /* LWIP_IPV6 */
     break;
   }
@@ -364,11 +480,13 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
   struct netif *netif;
   struct netdev_funcs *drv;
   void  *ifparam;
-  int  i, enable, def, dhcp;
+  int  i, enable, def, dhcp, autocfg;
   char macstr[32];
   int  mac[NETIF_MAX_HWADDR_LEN];
 
   if (!netdev || (netdev->magic_no != NETDEV_MAGIC) || !netdev->drv) {
+    _DebugHandle(__ERRORMESSAGE_LEVEL, 
+                 "netdev driver version not matching to current system.\r\n");
     return (-1);
   }
   
@@ -449,6 +567,16 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
         }
       }
       
+#if LWIP_IPV6
+      if (!if_param_ipv6autocfg(ifparam, &autocfg)) {
+        if (autocfg) {
+          netdev->init_flags |= NETDEV_INIT_IPV6_AUTOCFG;
+        } else {
+          netdev->init_flags &= ~NETDEV_INIT_IPV6_AUTOCFG;
+        }
+      }
+#endif
+      
 #if LWIP_DHCP > 0
       if (!(netdev->init_flags & NETDEV_INIT_USE_DHCP)) {
         if_param_getdhcp(ifparam, &dhcp);
@@ -503,7 +631,11 @@ int  netdev_delete (netdev_t *netdev)
   
   netif = (struct netif *)netdev->sys;
   
+  LWIP_IF_LIST_LOCK(LW_TRUE);
   netifapi_netif_remove(netif);
+  LWIP_IF_LIST_UNLOCK();
+  
+  netJobDeleteEx(LW_NETJOB_Q_ALL, 1, NULL, netdev, 0, 0, 0, 0, 0); /* delete all netjob message */
   
   return (0);
 }
@@ -520,7 +652,7 @@ int  netdev_index (netdev_t *netdev, unsigned int *index)
   netif = (struct netif *)netdev->sys;
   
   if (index) {
-    *index = netif->num;
+    *index = netif_get_index(netif);
     return (0);
     
   } else {
@@ -558,7 +690,7 @@ netdev_t *netdev_find_by_devname (const char *dev_name)
     return (NULL);
   }
   
-  for (netif = netif_list; netif != NULL; netif = netif->next) {
+  NETIF_FOREACH(netif) {
     if (netif->ioctl == netdev_netif_ioctl) {
       netdev = (netdev_t *)(netif->state);
       if (netdev && (netdev->magic_no == NETDEV_MAGIC)) {
@@ -583,9 +715,7 @@ int  netdev_ifname (netdev_t *netdev, char *ifname)
   
   netif = (struct netif *)netdev->sys;
   if (ifname) {
-    ifname[0] = netif->name[0];
-    ifname[1] = netif->name[1];
-    lib_itoa(netif->num, &ifname[2], 10);
+    netif_get_name(netif, ifname);
   }
   
   return (0);
@@ -593,36 +723,14 @@ int  netdev_ifname (netdev_t *netdev, char *ifname)
 
 /* if netdev link status changed has been detected, 
  * driver must call the following functions 
- * WARNING: You MUST DO NOT lock device then call this function, it will cause a deadlock with TCP LOCK */
+ * NOTICE: In order to avoid deadlocks (between TCPIP LOCK and Device Lock. so wei use netjob do this) */
 int  netdev_set_linkup (netdev_t *netdev, int linkup, UINT64 speed)
 {
-  struct netif *netif;
-  
-  if (!netdev || (netdev->magic_no != NETDEV_MAGIC)) {
-    return (-1);
-  }
-  
-  netif = (struct netif *)netdev->sys;
-  
-  if (linkup) {
-    netif->ts = sys_jiffies();
-    netdev->speed = speed;
-    
-    netifapi_netif_set_link_up(netif);
-    netdev->if_flags |= IFF_RUNNING;
+  UINT32 speed_high = (UINT32)((speed >> 32) & 0xffffffff);
+  UINT32 speed_low = (UINT32)(speed & 0xffffffff);
 
-    if (speed > 0xffffffff) {
-      netif->link_speed = 0;
-    } else {
-      netif->link_speed = (u32_t)speed;
-    }
-  
-  } else {
-    netifapi_netif_set_link_down(netif);
-    netdev->if_flags &= ~IFF_RUNNING;
-  }
-  
-  return (0);
+  return (netJobAdd(netdev_netif_linkup, netdev, 
+                    (void *)linkup, (void *)speed_high, (void *)speed_low, 0, 0));
 }
 
 int  netdev_get_linkup (netdev_t *netdev, int *linkup)
@@ -873,6 +981,28 @@ struct pbuf *netdev_pbuf_alloc_ram (UINT16 len, UINT16 res)
   return (p);
 }
 
+/* netdev transmit function can ref this packet? */
+BOOL netdev_pbuf_can_ref (struct pbuf *p)
+{
+  u8_t type;
+
+  if (p->tot_len == p->len) {
+    type = pbuf_get_allocsrc(p);
+    if ((type == PBUF_TYPE_ALLOC_SRC_MASK_STD_HEAP) || 
+        (type == PBUF_TYPE_ALLOC_SRC_MASK_STD_MEMP_PBUF_POOL)) {
+      return (TRUE);
+    }
+  }
+  
+  return (FALSE);
+}
+
+/* get netdev data buffer */
+void *netdev_pbuf_data (struct pbuf *p)
+{
+  return (p->payload);
+}
+
 /* netdev input buffer push */
 UINT8 *netdev_pbuf_push (struct pbuf *p, UINT16 len)
 {
@@ -895,6 +1025,32 @@ UINT8 *netdev_pbuf_pull (struct pbuf *p, UINT16 len)
   }
   
   return (NULL);
+}
+
+/* netdev input buffer cat */
+int netdev_pbuf_link (struct pbuf *h, struct pbuf *t, BOOL ref_t)
+{
+  if (h && t) {
+    if (ref_t) {
+      pbuf_chain(h, t);
+    } else {
+      pbuf_cat(h, t);
+    }
+    return (0);
+  }
+  
+  return (-1);
+}
+
+/* netdev input buffer trunc */
+int netdev_pbuf_trunc (struct pbuf *p, UINT16 len)
+{
+  if (p && (p->tot_len >= len)) {
+    pbuf_realloc(p, len);
+    return (0);
+  }
+  
+  return (-1);
 }
 
 /* netdev buffer get vlan info */

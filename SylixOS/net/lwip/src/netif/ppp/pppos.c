@@ -57,9 +57,9 @@ LWIP_MEMPOOL_DECLARE(PPPOS_PCB, MEMP_NUM_PPPOS_INTERFACES, sizeof(pppos_pcb), "P
 /* callbacks called from PPP core */
 static err_t pppos_write(ppp_pcb *ppp, void *ctx, struct pbuf *p);
 static err_t pppos_netif_output(ppp_pcb *ppp, void *ctx, struct pbuf *pb, u16_t protocol);
-static err_t pppos_connect(ppp_pcb *ppp, void *ctx);
+static void pppos_connect(ppp_pcb *ppp, void *ctx);
 #if PPP_SERVER
-static err_t pppos_listen(ppp_pcb *ppp, void *ctx);
+static void pppos_listen(ppp_pcb *ppp, void *ctx);
 #endif /* PPP_SERVER */
 static void pppos_disconnect(ppp_pcb *ppp, void *ctx);
 static err_t pppos_destroy(ppp_pcb *ppp, void *ctx);
@@ -217,6 +217,9 @@ pppos_write(ppp_pcb *ppp, void *ctx, struct pbuf *p)
     return ERR_MEM;
   }
 
+  /* Set nb->tot_len to actual payload length */
+  nb->tot_len = p->len;
+
   /* If the link has been idle, we'll send a fresh flag character to
    * flush any noise. */
   err = ERR_OK;
@@ -262,6 +265,9 @@ pppos_netif_output(ppp_pcb *ppp, void *ctx, struct pbuf *pb, u16_t protocol)
     return ERR_MEM;
   }
 
+  /* Set nb->tot_len to actual payload length */
+  nb->tot_len = pb->tot_len;
+
   /* If the link has been idle, we'll send a fresh flag character to
    * flush any noise. */
   err = ERR_OK;
@@ -298,7 +304,7 @@ pppos_netif_output(ppp_pcb *ppp, void *ctx, struct pbuf *pb, u16_t protocol)
   return err;
 }
 
-static err_t
+static void
 pppos_connect(ppp_pcb *ppp, void *ctx)
 {
   pppos_pcb *pppos = (pppos_pcb *)ctx;
@@ -327,11 +333,10 @@ pppos_connect(ppp_pcb *ppp, void *ctx)
    */
   PPPDEBUG(LOG_INFO, ("pppos_connect: unit %d: connecting\n", ppp->netif->num));
   ppp_start(ppp); /* notify upper layers */
-  return ERR_OK;
 }
 
 #if PPP_SERVER
-static err_t
+static void
 pppos_listen(ppp_pcb *ppp, void *ctx)
 {
   pppos_pcb *pppos = (pppos_pcb *)ctx;
@@ -360,7 +365,6 @@ pppos_listen(ppp_pcb *ppp, void *ctx)
    */
   PPPDEBUG(LOG_INFO, ("pppos_listen: unit %d: listening\n", ppp->netif->num));
   ppp_start(ppp); /* notify upper layers */
-  return ERR_OK;
 }
 #endif /* PPP_SERVER */
 
@@ -543,10 +547,10 @@ pppos_input(ppp_pcb *ppp, u8_t *s, int l)
           pppos->in_tail = NULL;
 #if IP_FORWARD || LWIP_IPV6_FORWARD
           /* hide the room for Ethernet forwarding header */
-          pbuf_header(inp, -(s16_t)(PBUF_LINK_ENCAPSULATION_HLEN + PBUF_LINK_HLEN));
+          pbuf_remove_header(inp, PBUF_LINK_ENCAPSULATION_HLEN + PBUF_LINK_HLEN);
 #endif /* IP_FORWARD || LWIP_IPV6_FORWARD */
 #if PPP_INPROC_IRQ_SAFE
-          if(tcpip_callback_with_block(pppos_input_callback, inp, 0) != ERR_OK) {
+          if(tcpip_try_callback(pppos_input_callback, inp) != ERR_OK) {
             PPPDEBUG(LOG_ERR, ("pppos_input[%d]: tcpip_callback() failed, dropping packet\n", ppp->netif->num));
             pbuf_free(inp);
             LINK_STATS_INC(link.drop);
@@ -601,6 +605,7 @@ pppos_input(ppp_pcb *ppp, u8_t *s, int l)
 
           /* Else assume compressed address and control fields so
            * fall through to get the protocol... */
+          /* Fall through */
         case PDCONTROL:                 /* Process control field. */
           /* If we don't get a valid control code, restart. */
           if (cur_char == PPP_UI) {
@@ -616,7 +621,9 @@ pppos_input(ppp_pcb *ppp, u8_t *s, int l)
             pppos->in_state = PDSTART;
           }
 #endif
-        case PDPROTOCOL1:               /* Process protocol field 1. */
+          /* Fall through */
+
+      case PDPROTOCOL1:               /* Process protocol field 1. */
           /* If the lower bit is set, this is the end of the protocol
            * field. */
           if (cur_char & 1) {
@@ -700,8 +707,8 @@ static void pppos_input_callback(void *arg) {
   ppp_pcb *ppp;
 
   ppp = ((struct pppos_input_header*)pb->payload)->ppp;
-  if(pbuf_header(pb, -(s16_t)sizeof(struct pppos_input_header))) {
-    LWIP_ASSERT("pbuf_header failed\n", 0);
+  if(pbuf_remove_header(pb, sizeof(struct pppos_input_header))) {
+    LWIP_ASSERT("pbuf_remove_header failed\n", 0);
     goto drop;
   }
 
