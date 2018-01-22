@@ -1508,6 +1508,82 @@ static VOID  __procFsNetTcpipStatPrintSys (struct stats_sys *sys,
                        "", (u32_t)sys->mbox.used, (u32_t)sys->mbox.max, (u32_t)sys->mbox.err);
 }
 /*********************************************************************************************************
+** 函数名称: __procFsNetTcpipStatPrintPim
+** 功能描述: 打印网络 tcpip_stat 文件 pim 部分
+** 输　入  : pcBuffer      缓冲
+**           stTotalSize   缓冲区大小
+**           pstOft        当前偏移量
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+#if LW_CFG_NET_MROUTER > 0
+
+static VOID  __procFsNetTcpipStatPrintPim (PCHAR  pcBuffer, size_t  stTotalSize, size_t *pstOft)
+{
+    struct mrtstat  *pmrtstat  = ip4_mrt_mrtstat();
+    struct pimstat  *ppimstat  = ip4_mrt_pimstat();
+    
+#if LWIP_IPV6
+    struct mrt6stat *pmrt6stat = ip6_mrt_mrt6stat();
+    struct pim6stat *ppim6stat = ip6_mrt_pim6stat();
+#endif
+
+    *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
+                       "\n%-9s %-11s %-11s %-11s %-11s %-11s %-11s %-11s %-11s %-11s %-11s %-11s\n", 
+                       "name",
+                       "mfc-loopup", "mfc-misses", "upcalls", "no-rtes", 
+                       "bad-tunnel", "cant-tunnel", "wrong-if", "upq-ovrflw",
+                       "cache-clean", "drop-sel", "q-ovrflw");
+                       
+    *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
+                       "%-9s %-11lu %-11lu %-11lu %-11lu %-11lu %-11lu %-11lu %-11lu %-11lu %-11lu %-11lu\n", 
+                       "MRT",
+                       pmrtstat->mrts_mfc_lookups, pmrtstat->mrts_mfc_misses, pmrtstat->mrts_upcalls,
+                       pmrtstat->mrts_no_route, pmrtstat->mrts_bad_tunnel, pmrtstat->mrts_cant_tunnel,
+                       pmrtstat->mrts_wrong_if, pmrtstat->mrts_upq_ovflw, pmrtstat->mrts_cache_cleanups,
+                       pmrtstat->mrts_drop_sel, pmrtstat->mrts_q_overflow);
+#if LWIP_IPV6
+    *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
+                       "%-9s %-11qu %-11qu %-11qu %-11qu %-11qu %-11qu %-11qu %-11qu %-11qu %-11qu %-11qu\n", 
+                       "MRTv6",
+                       pmrt6stat->mrt6s_mfc_lookups, pmrt6stat->mrt6s_mfc_misses, pmrt6stat->mrt6s_upcalls,
+                       pmrt6stat->mrt6s_no_route, pmrt6stat->mrt6s_bad_tunnel, pmrt6stat->mrt6s_cant_tunnel,
+                       pmrt6stat->mrt6s_wrong_if, pmrt6stat->mrt6s_upq_ovflw, pmrt6stat->mrt6s_cache_cleanups,
+                       pmrt6stat->mrt6s_drop_sel, pmrt6stat->mrt6s_q_overflow);
+#endif
+    
+    *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
+                       "\n%-9s %-12s %-12s %-12s %-12s %-12s %-12s %-12s %-12s %-12s %-12s %-12s\n", 
+                       "name",
+                       "r-tot-msgs", "r-tot-bytes", "r-tooshort", "r-badsum", "r-badver", 
+                       "r-reg-msgs", "r-reg-bytes", "r-reg-wif", "r-reg-bad",
+                       "s-reg-msgs", "s-reg-bytes");
+                       
+    *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
+                       "%-9s %-12qu %-12qu %-12qu %-12qu %-12qu %-12qu %-12qu %-12qu %-12qu %-12qu %-12qu\n", 
+                       "PIM",
+                       ppimstat->pims_rcv_total_msgs, ppimstat->pims_rcv_total_bytes, 
+                       ppimstat->pims_rcv_tooshort, ppimstat->pims_rcv_badsum, 
+                       ppimstat->pims_rcv_badversion, ppimstat->pims_rcv_registers_msgs,
+                       ppimstat->pims_rcv_registers_bytes, ppimstat->pims_rcv_registers_wrongiif,
+                       ppimstat->pims_rcv_badregisters, ppimstat->pims_snd_registers_msgs, 
+                       ppimstat->pims_snd_registers_bytes);
+#if LWIP_IPV6
+    *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
+                       "%-9s %-12qu %-12s %-12qu %-12qu %-12qu %-12qu %-12s %-12s %-12qu %-12qu %-12s\n", 
+                       "PIMv6",
+                       ppim6stat->pim6s_rcv_total, "-", 
+                       ppim6stat->pim6s_rcv_tooshort, ppim6stat->pim6s_rcv_badsum, 
+                       ppim6stat->pim6s_rcv_badversion, ppim6stat->pim6s_rcv_registers,
+                       "-", "-",
+                       ppim6stat->pim6s_rcv_badregisters, ppim6stat->pim6s_snd_registers, 
+                       "-");
+#endif
+}
+
+#endif                                                                  /*  LW_CFG_NET_MROUTER > 0      */
+/*********************************************************************************************************
 ** 函数名称: __procFsNetTcpipStatPrint
 ** 功能描述: 打印网络 tcpip_stat 文件
 ** 输　入  : pcBuffer      缓冲
@@ -1546,7 +1622,7 @@ static VOID  __procFsNetTcpipStatPrint (PCHAR  pcBuffer, size_t  stTotalSize, si
 
 #if LWIP_IGMP > 0
     __procFsNetTcpipStatPrintIgmp(&lwip_stats.igmp,      "IGMP",      pcBuffer, stTotalSize, pstOft);
-    __procFsNetTcpipStatPrintIgmp(&lwip_stats.mld6,      "MLDv1",     pcBuffer, stTotalSize, pstOft);
+    __procFsNetTcpipStatPrintIgmp(&lwip_stats.mld6,      "MLD",       pcBuffer, stTotalSize, pstOft);
 #endif
     
     *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
@@ -1559,6 +1635,10 @@ static VOID  __procFsNetTcpipStatPrint (PCHAR  pcBuffer, size_t  stTotalSize, si
     
     __procFsNetTcpipStatPrintProto(&lwip_stats.udp,      "UDP",       pcBuffer, stTotalSize, pstOft);
     __procFsNetTcpipStatPrintProto(&lwip_stats.tcp,      "TCP",       pcBuffer, stTotalSize, pstOft);
+    
+#if LW_CFG_NET_MROUTER > 0
+    __procFsNetTcpipStatPrintPim(pcBuffer, stTotalSize, pstOft);
+#endif
     
     *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
                        "\n%-15s %-8s %-8s %-8s %-8s\n",

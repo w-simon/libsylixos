@@ -142,7 +142,7 @@ void             raw_recv       (struct raw_pcb *pcb, raw_recv_fn recv, void *re
 #define          raw_is_flag_set(pcb, flag)        (((pcb)->flags & (flag)) != 0)
 
 /* The following functions are the lower layer interface to RAW. */
-u8_t             raw_input      (struct pbuf *p, struct netif *inp);
+u8_t             raw_input      (struct pbuf *p, struct netif *inp, u8_t *deliver);
 #define raw_init() /* Compatibility define, no init needed. */
 
 void raw_netif_ip_addr_changed(const ip_addr_t* old_addr, const ip_addr_t* new_addr);

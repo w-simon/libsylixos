@@ -34,13 +34,10 @@
 
 /*********************************************************************************************************
   PIM packet header
-  
-  the PIM message type, currently they are:
-  Hello, Register, Register-Stop, Join/Prune,
-  Bootstrap, Assert, Graft (PIM-DM only),
-  Graft-Ack (PIM-DM only), C-RP-Adv
 *********************************************************************************************************/
 
+#ifndef __pim_defined
+#define __pim_defined   1
 struct pim {
 #if defined(BYTE_ORDER) && (BYTE_ORDER == LITTLE_ENDIAN)
     u_char  pim_type:4,     
@@ -53,25 +50,43 @@ struct pim {
     u_short pim_cksum;                                          /* IP style check sum                   */
 };
 
+#define PIM_REG_MINLEN      (PIM_MINLEN + 20)                   /* PIM Register hdr + inner IPv4 hdr    */
+#define PIM6_REG_MINLEN     (PIM_MINLEN + 40)                   /* PIM Register hdr + inner IPv6 hdr    */
+
 /*********************************************************************************************************
   KAME-related name backward compatibility
 *********************************************************************************************************/
 
 #define PIM_VERSION         2
 #define PIM_MINLEN          8                                   /* PIM message min. length              */
-#define PIM6_REG_MINLEN     (PIM_MINLEN + 40)                   /* PIM Register hdr + inner IPv6 hdr    */
+#endif                                                          /* __pim_defined                        */
 
 /*********************************************************************************************************
   Message types
 *********************************************************************************************************/
 
+#ifndef PIM_REGISTER
 #define PIM_REGISTER        1                                   /* PIM Register type is 1               */
+#endif                                                          /* !PIM_REGISTER                        */
 
 /*********************************************************************************************************
   PIM-Register message flags
 *********************************************************************************************************/
 
+#ifndef PIM_NULL_REGISTER
 #define PIM_NULL_REGISTER   0x40000000U                         /* The Null-Register bit (host-order)   */
+#endif                                                          /* !PIM_NULL_REGISTER                   */
+
+/*********************************************************************************************************
+  All-PIM-Routers IPv6 multicast addresses
+*********************************************************************************************************/
+
+#ifndef IN6ADDR_LINKLOCAL_ALLPIM_ROUTERS
+#define IN6ADDR_LINKLOCAL_ALLPIM_ROUTERS    "ff02::d"
+#define IN6ADDR_LINKLOCAL_ALLPIM_ROUTERS_INIT \
+        {{{ 0xff, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, \
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0d }}}
+#endif                                                          /* !IN6ADDR_LINKLOCAL_ALLPIM_ROUTERS    */
 
 /*********************************************************************************************************
   PIM statistics kept in the kernel

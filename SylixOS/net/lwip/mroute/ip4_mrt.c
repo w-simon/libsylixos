@@ -45,9 +45,6 @@
 #define _PIM_VT 1
 
 #include "ip4_mrt.h"
-#include "netinet/in.h"
-#include "netinet/ip_mroute.h"
-#include "netinet/pim.h"
 #include "net/if_flags.h"
 #include "sys/time.h"
 #include "lwip/tcpip.h"

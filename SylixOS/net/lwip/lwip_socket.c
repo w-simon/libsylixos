@@ -385,6 +385,7 @@ static LONG  __socketOpen (LW_DEV_HDR *pdevhdr, PCHAR  pcName, INT  iFlag, mode_
     psock->SOCK_iFamily = AF_UNSPEC;
     psock->SOCK_iLwipFd = PX_ERROR;
     psock->SOCK_iHash   = PX_ERROR;
+    psock->SOCK_iSoErr  = 0;
     
     lib_bzero(&psock->SOCK_selwulist, sizeof(LW_SEL_WAKEUPLIST));
     psock->SOCK_selwulist.SELWUL_hListLock = _G_hSockSelMutex;

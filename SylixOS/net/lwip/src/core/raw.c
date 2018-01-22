@@ -134,6 +134,7 @@ raw_input_local_match(struct raw_pcb *pcb, u8_t broadcast, struct netif *inp)
  *
  * @param p pbuf to be demultiplexed to a RAW PCB.
  * @param inp network interface on which the datagram was received.
+ * @param deliver whether this packet is delivered.
  * @return - 1 if the packet has been eaten by a RAW PCB receive
  *           callback function. The caller MAY NOT not reference the
  *           packet any longer, and MAY NOT call pbuf_free().
@@ -142,7 +143,7 @@ raw_input_local_match(struct raw_pcb *pcb, u8_t broadcast, struct netif *inp)
  *
  */
 u8_t
-raw_input(struct pbuf *p, struct netif *inp)
+raw_input(struct pbuf *p, struct netif *inp, u8_t *deliver)
 {
   struct raw_pcb *pcb, *prev;
   s16_t proto;
@@ -174,6 +175,7 @@ raw_input(struct pbuf *p, struct netif *inp)
   }
 #endif /* LWIP_IPV4 */
 
+  *deliver = 0;
   prev = NULL;
   pcb = raw_pcbs;
   /* loop through all raw pcbs until the packet is eaten by one */
@@ -200,6 +202,7 @@ raw_input(struct pbuf *p, struct netif *inp)
 #ifndef LWIP_NOASSERT
         void *old_payload = p->payload;
 #endif
+        *deliver = 1;
         /* the receive callback function did not eat the packet? */
         eaten = pcb->recv(pcb->recv_arg, pcb, p, ip_current_src_addr());
         if (eaten != 0) {

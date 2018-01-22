@@ -49,6 +49,7 @@
 #include "lwip/snmp.h"
 #include "lwip/tcpip.h"
 #include "lwip/sockets.h"
+#include "netif/ethernet.h"
 #include "net/if_lock.h"
 #include "net/if_flags.h"
 #include "net/if_param.h"
@@ -67,9 +68,13 @@
 #define NETDEV_REMOVE(netdev)           if ((netdev)->drv->remove) { (netdev)->drv->remove((netdev)); }
 #define NETDEV_IOCTL(netdev, a, b)      if ((netdev)->drv->ioctl) { (netdev)->drv->ioctl((netdev), (a), (b)); }
 #define NETDEV_PROMISC(netdev, a, b)    if ((netdev)->drv->promisc) { (netdev)->drv->promisc((netdev), (a), (b)); }
-#define NETDEV_MACFILTER(netdev, a, b)  if ((netdev)->drv->macfilter) { (netdev)->drv->macfilter((netdev), (a), (b)); }
+#define NETDEV_MFUPDATE(netdev)         if ((netdev)->drv->mfupdate) { (netdev)->drv->mfupdate((netdev)); }
 #define NETDEV_TRANSMIT(netdev, a)      (netdev)->drv->transmit((netdev), a)
 #define NETDEV_RECEIVE(netdev, input)   (netdev)->drv->receive((netdev), input)
+
+/* functions declaration */
+static struct netdev_mac *netdev_macfilter_find(netdev_t *netdev, const UINT8 hwaddr[], struct netdev_mac **prev_save);
+static void netdev_macfilter_clean(netdev_t *netdev);
 
 /* lwip netif up hook function */
 static void  netdev_netif_up (struct netif *netif)
@@ -97,11 +102,150 @@ static void  netdev_netif_remove (struct netif *netif)
   NETDEV_REMOVE(netdev);
 }
 
+/* lwip netif igmp mac filter hook function */
+static err_t  netdev_netif_igmp_mac_filter (struct netif *netif,
+                                            const ip4_addr_t *group, 
+                                            enum netif_mac_filter_action action)
+{
+  netdev_t *netdev = (netdev_t *)(netif->state);
+  struct netdev_mac *mac, *prev;
+  UINT8 hwaddr[NETIF_MAX_HWADDR_LEN];
+  
+  if (netdev->net_type != NETDEV_TYPE_ETHERNET) {
+    return (ERR_OK);
+  }
+  
+  if (!ip4_addr_ismulticast(group)) {
+    return (ERR_VAL);
+  }
+  
+  hwaddr[0] = LL_IP4_MULTICAST_ADDR_0;
+  hwaddr[1] = LL_IP4_MULTICAST_ADDR_1;
+  hwaddr[2] = LL_IP4_MULTICAST_ADDR_2;
+  hwaddr[3] = ip4_addr2(group) & 0x7f;
+  hwaddr[4] = ip4_addr3(group);
+  hwaddr[5] = ip4_addr4(group);
+  
+  mac = netdev_macfilter_find(netdev, hwaddr, &prev);
+  if (action == NETIF_DEL_MAC_FILTER) {
+    if (!mac) {
+      return (ERR_VAL);
+    }
+    if (mac->ref > 1) {
+      mac->ref--;
+      return (ERR_OK);
+    }
+    if (prev) {
+      prev->next = mac->next;
+    } else {
+      netdev->mac_filter = mac->next;
+    }
+    
+    mem_free(mac);
+    NETDEV_MFUPDATE(netdev);
+    netif_set_maddr_hook(netif, group, 0);
+    
+  } else {
+    if (mac) {
+      mac->ref++;
+      return (ERR_OK);
+    }
+    
+    mac = (struct netdev_mac *)mem_malloc(sizeof(struct netdev_mac));
+    if (!mac) {
+      return (ERR_MEM);
+    }
+    
+    mac->nouse = NULL;
+    mac->type  = NETDEV_MAC_TYPE_MULTICAST;
+    mac->ref   = 1;
+    MEMCPY(mac->hwaddr, hwaddr, netdev->hwaddr_len);
+    
+    mac->next = netdev->mac_filter;
+    netdev->mac_filter = mac;
+    NETDEV_MFUPDATE(netdev);
+    netif_set_maddr_hook(netif, group, 1);
+  }
+  
+  return (ERR_OK);
+}
+
+#if LWIP_IPV6 && LWIP_IPV6_MLD
+/* lwip netif mld mac filter hook function */
+static err_t  netdev_netif_mld_mac_filter (struct netif *netif,
+                                           const ip6_addr_t *group, 
+                                           enum netif_mac_filter_action action)
+{
+  netdev_t *netdev = (netdev_t *)(netif->state);
+  struct netdev_mac *mac, *prev;
+  UINT8 hwaddr[NETIF_MAX_HWADDR_LEN];
+  
+  if (netdev->net_type != NETDEV_TYPE_ETHERNET) {
+    return (ERR_OK);
+  }
+  
+  if (!ip6_addr_ismulticast(group)) {
+    return (ERR_VAL);
+  }
+  
+  hwaddr[0] = LL_IP6_MULTICAST_ADDR_0;
+  hwaddr[1] = LL_IP6_MULTICAST_ADDR_1;
+  hwaddr[2] = ((UINT8 *)(&(group->addr[3])))[0];
+  hwaddr[3] = ((UINT8 *)(&(group->addr[3])))[1];
+  hwaddr[4] = ((UINT8 *)(&(group->addr[3])))[2];
+  hwaddr[5] = ((UINT8 *)(&(group->addr[3])))[3];
+  
+  mac = netdev_macfilter_find(netdev, hwaddr, &prev);
+  if (action == NETIF_DEL_MAC_FILTER) {
+    if (!mac) {
+      return (ERR_VAL);
+    }
+    if (mac->ref > 1) {
+      mac->ref--;
+      return (ERR_OK);
+    }
+    if (prev) {
+      prev->next = mac->next;
+    } else {
+      netdev->mac_filter = mac->next;
+    }
+    
+    mem_free(mac);
+    NETDEV_MFUPDATE(netdev);
+    netif_set_maddr6_hook(netif, group, 0);
+    
+  } else {
+    if (mac) {
+      mac->ref++;
+      return (ERR_OK);
+    }
+    
+    mac = (struct netdev_mac *)mem_malloc(sizeof(struct netdev_mac));
+    if (!mac) {
+      return (ERR_MEM);
+    }
+    
+    mac->nouse = NULL;
+    mac->type  = NETDEV_MAC_TYPE_MULTICAST;
+    mac->ref   = 1;
+    MEMCPY(mac->hwaddr, hwaddr, netdev->hwaddr_len);
+    
+    mac->next = netdev->mac_filter;
+    netdev->mac_filter = mac;
+    NETDEV_MFUPDATE(netdev);
+    netif_set_maddr6_hook(netif, group, 1);
+  }
+  
+  return (ERR_OK);
+}
+#endif /* LWIP_IPV6 && LWIP_IPV6_MLD */
+
 /* lwip netif ioctl hook function */
 static int  netdev_netif_ioctl (struct netif *netif, int cmd, void *arg)
 {
   netdev_t *netdev = (netdev_t *)(netif->state);
   struct ifreq *ifreq;
+  err_t err;
   int ret = -1;
   
   if (netdev->drv->ioctl) {
@@ -129,44 +273,29 @@ static int  netdev_netif_ioctl (struct netif *netif, int cmd, void *arg)
       
     case SIOCADDMULTI:  /* add / del mcast addr */
     case SIOCDELMULTI:
-      {
-        struct sockaddr_in *inaddr;
+      ifreq = (struct ifreq *)arg;
+      if (ifreq->ifr_addr.sa_family == AF_INET) {
         ip4_addr_t group4;
+        inet_addr_to_ip4addr(&group4, &((struct sockaddr_in *)&ifreq->ifr_addr)->sin_addr);
+        err = netdev_netif_igmp_mac_filter(netif, &group4, ((cmd == SIOCADDMULTI) ? 
+                                           NETIF_ADD_MAC_FILTER : NETIF_DEL_MAC_FILTER));
+      }
 #if LWIP_IPV6 && LWIP_IPV6_MLD
-        struct sockaddr_in6 *in6addr;
+        else if (ifreq->ifr_addr.sa_family == AF_INET6) {
         ip6_addr_t group6;
-#endif /* LWIP_IPV6 && LWIP_IPV6_MLD */
-        
-        ifreq = (struct ifreq *)arg;
-        if (ifreq->ifr_addr.sa_family == AF_INET) {
-          inaddr = (struct sockaddr_in *)&ifreq->ifr_addr;
-          inet_addr_to_ip4addr(&group4, &inaddr->sin_addr);
-          if (cmd == SIOCADDMULTI) {
-            NETDEV_MACFILTER(netdev, NETDRV_MACFILTER_ADD, &ifreq->ifr_addr);
-            netif_set_maddr_hook(netif, &group4, 1);
-          
-          } else {
-            NETDEV_MACFILTER(netdev, NETDRV_MACFILTER_DEL, &ifreq->ifr_addr);
-            netif_set_maddr_hook(netif, &group4, 0);
-          }
-          ret = 0;
+        inet6_addr_to_ip6addr(&group6, &((struct sockaddr_in6 *)&ifreq->ifr_addr)->sin6_addr);
+        err = netdev_netif_mld_mac_filter(netif, &group6, ((cmd == SIOCADDMULTI) ? 
+                                          NETIF_ADD_MAC_FILTER : NETIF_DEL_MAC_FILTER));
+      }
+#endif
+      if (err) {
+        if (err == ERR_MEM) {
+          errno = ENOMEM;
+        } else if (err == ERR_VAL) {
+          errno = EINVAL;
         }
-        
-#if LWIP_IPV6 && LWIP_IPV6_MLD
-          else if (ifreq->ifr_addr.sa_family == AF_INET6) {
-          in6addr = (struct sockaddr_in6 *)&ifreq->ifr_addr;
-          inet6_addr_to_ip6addr(&group6, &in6addr->sin6_addr);
-          if (cmd == SIOCADDMULTI) {
-            NETDEV_MACFILTER(netdev, NETDRV_MACFILTER_ADD, &ifreq->ifr_addr);
-            netif_set_maddr6_hook(netif, &group6, 1);
-          
-          } else {
-            NETDEV_MACFILTER(netdev, NETDRV_MACFILTER_DEL, &ifreq->ifr_addr);
-            netif_set_maddr6_hook(netif, &group6, 0);
-          }
-          ret = 0;
-        }
-#endif /* LWIP_IPV6 && LWIP_IPV6_MLD */
+      } else {
+        ret = 0;
       }
       break;
       
@@ -178,56 +307,6 @@ static int  netdev_netif_ioctl (struct netif *netif, int cmd, void *arg)
   
   return (ret);
 }
-
-/* lwip netif igmp mac filter hook function */
-static err_t  netdev_netif_igmp_mac_filter (struct netif *netif,
-                                            const ip4_addr_t *group, 
-                                            enum netif_mac_filter_action action)
-{
-  netdev_t *netdev = (netdev_t *)(netif->state);
-  struct sockaddr_in inaddr;
-  
-  inaddr.sin_len    = sizeof(struct sockaddr_in);
-  inaddr.sin_family = AF_INET;
-  inet_addr_from_ip4addr(&inaddr.sin_addr, group);
-  
-  if (action == NETIF_DEL_MAC_FILTER) {
-    NETDEV_MACFILTER(netdev, NETDRV_MACFILTER_DEL, (struct sockaddr *)&inaddr);
-    netif_set_maddr_hook(netif, group, 0);
-    
-  } else {
-    NETDEV_MACFILTER(netdev, NETDRV_MACFILTER_ADD, (struct sockaddr *)&inaddr);
-    netif_set_maddr_hook(netif, group, 1);
-  }
-  
-  return (0);
-}
-
-#if LWIP_IPV6 && LWIP_IPV6_MLD
-/* lwip netif mld mac filter hook function */
-static err_t  netdev_netif_mld_mac_filter (struct netif *netif,
-                                           const ip6_addr_t *group, 
-                                           enum netif_mac_filter_action action)
-{
-  netdev_t *netdev = (netdev_t *)(netif->state);
-  struct sockaddr_in6 in6addr;
-  
-  in6addr.sin6_len    = sizeof(struct sockaddr_in6);
-  in6addr.sin6_family = AF_INET6;
-  inet6_addr_from_ip6addr(&in6addr.sin6_addr, group);
-  
-  if (action == NETIF_DEL_MAC_FILTER) {
-    NETDEV_MACFILTER(netdev, NETDRV_MACFILTER_DEL, (struct sockaddr *)&in6addr);
-    netif_set_maddr6_hook(netif, group, 0);
-    
-  } else {
-    NETDEV_MACFILTER(netdev, NETDRV_MACFILTER_ADD, (struct sockaddr *)&in6addr);
-    netif_set_maddr6_hook(netif, group, 1);
-  }
-  
-  return (0);
-}
-#endif /* LWIP_IPV6 && LWIP_IPV6_MLD */
 
 /* lwip netif rawoutput hook function */
 static err_t  netdev_netif_rawoutput4 (struct netif *netif, struct pbuf *p, const ip4_addr_t *ipaddr)
@@ -525,6 +604,7 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
   }
   
   netdev->if_flags = if_flags;
+  netdev->mac_filter = NULL;
   
   if (netdev->init_flags & NETDEV_INIT_LOAD_PARAM) {
     ifparam = if_param_load(netdev->dev_name);
@@ -635,6 +715,7 @@ int  netdev_delete (netdev_t *netdev)
   netifapi_netif_remove(netif);
   LWIP_IF_LIST_UNLOCK();
   
+  netdev_macfilter_clean(netdev);
   netJobDeleteEx(LW_NETJOB_Q_ALL, 1, NULL, netdev, 0, 0, 0, 0, 0); /* delete all netjob message */
   
   return (0);
@@ -661,6 +742,22 @@ int  netdev_index (netdev_t *netdev, unsigned int *index)
 }
 
 /* netdev find (MUST in NETIF_LOCK mode) */
+netdev_t *netdev_find_by_index (unsigned int index)
+{
+  struct netif *netif;
+  netdev_t     *netdev;
+  
+  netif = netif_get_by_index((u8_t)index);
+  if (netif && (netif->ioctl == netdev_netif_ioctl)) {
+    netdev = (netdev_t *)(netif->state);
+    if (netdev && (netdev->magic_no == NETDEV_MAGIC)) {
+      return (netdev);
+    }
+  }
+  
+  return (NULL);
+}
+
 netdev_t *netdev_find_by_ifname (const char *if_name)
 {
   struct netif *netif;
@@ -775,6 +872,135 @@ int  netdev_linkup_poll_delete (netdev_t *netdev, void  (*linkup_poll)(netdev_t 
   }
 #endif /* LW_CFG_HOTPLUG_EN */
   return (-1);
+}
+
+/* netdev mac filter is empty */
+int  netdev_macfilter_isempty (netdev_t *netdev)
+{
+  return (!netdev->mac_filter);
+}
+
+/* netdev mac filter cnt */
+int  netdev_macfilter_count (netdev_t *netdev)
+{
+  struct netdev_mac *ha;
+  int cnt = 0;
+  
+  NETDEV_MACFILTER_FOREACH(netdev, ha) {
+    cnt++;
+  }
+  
+  return (cnt);
+}
+
+/* netdev mac filter add a hwaddr and allow to recv */
+int  netdev_macfilter_add (netdev_t *netdev, const UINT8 hwaddr[])
+{
+  struct netdev_mac *mac, *prev;
+  int type;
+  
+  if (netdev->net_type != NETDEV_TYPE_ETHERNET) {
+    return (-1);
+  }
+  
+  if ((hwaddr[0] == LL_IP4_MULTICAST_ADDR_0) &&
+      (hwaddr[1] == LL_IP4_MULTICAST_ADDR_1) &&
+      (hwaddr[2] == LL_IP4_MULTICAST_ADDR_2)) {
+    type = NETDEV_MAC_TYPE_MULTICAST;
+  
+  } else if ((hwaddr[0] == LL_IP6_MULTICAST_ADDR_0) &&
+             (hwaddr[1] == LL_IP6_MULTICAST_ADDR_1)) {
+    type = NETDEV_MAC_TYPE_MULTICAST;
+  
+  } else {
+    type = NETDEV_MAC_TYPE_UNICAST;
+  }
+  
+  mac = netdev_macfilter_find(netdev, hwaddr, &prev);
+  if (mac) {
+    mac->ref++;
+    return (0);
+  }
+  
+  mac = (struct netdev_mac *)mem_malloc(sizeof(struct netdev_mac));
+  if (!mac) {
+    errno = ENOMEM;
+    return (-1);
+  }
+  
+  mac->nouse = NULL;
+  mac->type  = type;
+  mac->ref   = 1;
+  MEMCPY(mac->hwaddr, hwaddr, netdev->hwaddr_len);
+  
+  mac->next = netdev->mac_filter;
+  netdev->mac_filter = mac;
+  NETDEV_MFUPDATE(netdev);
+  
+  return (0);
+}
+
+/* netdev mac filter delete a hwaddr */
+int  netdev_macfilter_delete (netdev_t *netdev, const UINT8 hwaddr[])
+{
+  struct netdev_mac *mac, *prev;
+  
+  if (netdev->net_type != NETDEV_TYPE_ETHERNET) {
+    return (-1);
+  }
+  
+  mac = netdev_macfilter_find(netdev, hwaddr, &prev);
+  if (!mac) {
+    errno = EINVAL;
+    return (-1);
+  }
+  
+  if (mac->ref > 1) {
+    mac->ref--;
+    return (0);
+  }
+  
+  if (prev) {
+    prev->next = mac->next;
+  } else {
+    netdev->mac_filter = mac->next;
+  }
+  
+  mem_free(mac);
+  NETDEV_MFUPDATE(netdev);
+  
+  return (0);
+}
+
+/* netdev mac filter find */
+static struct netdev_mac *netdev_macfilter_find (netdev_t *netdev, const UINT8 hwaddr[], struct netdev_mac **prev_save)
+{
+  struct netdev_mac *ha;
+  struct netdev_mac *prev = NULL;
+  
+  NETDEV_MACFILTER_FOREACH(netdev, ha) {
+    if (!lib_memcmp(ha->hwaddr, hwaddr, netdev->hwaddr_len)) {
+      if (prev_save) {
+        *prev_save = prev;
+      }
+      return (ha);
+    }
+    prev = ha;
+  }
+  
+  return (NULL);
+}
+
+/* netdev mac filter clean */
+static void netdev_macfilter_clean (netdev_t *netdev)
+{
+  struct netdev_mac *ha;
+  
+  while (netdev->mac_filter) {
+    ha = netdev->mac_filter;
+    netdev->mac_filter = ha->next;
+    mem_free(ha);
+  }
 }
 
 /* if netdev detected a packet in netdev buffer, driver can call this function to receive this packet.

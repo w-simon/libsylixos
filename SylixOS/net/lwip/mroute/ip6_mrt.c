@@ -44,9 +44,6 @@
 #if LW_CFG_NET_MROUTER > 0 && LWIP_IPV6
 
 #include "ip6_mrt.h"
-#include "netinet6/in6.h"
-#include "netinet6/ip6_mroute.h"
-#include "netinet6/pim6.h"
 #include "net/if_flags.h"
 #include "sys/time.h"
 #include "lwip/icmp6.h"

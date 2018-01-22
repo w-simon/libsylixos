@@ -79,7 +79,6 @@ INT sja1000Init (SJA1000_CHAN *pcanchan)
     LW_SPIN_INIT(&pcanchan->slock);
 
     pcanchan->pDrvFuncs = &sja1000_drv_funcs;
-    pcanchan->channel   = 0;
 
     pcanchan->canmode = PELI_CAN;
     pcanchan->baud    = BTR_500K;                                       /* default baudrate             */

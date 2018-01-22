@@ -28,8 +28,10 @@
   裁剪控制
 *********************************************************************************************************/
 #if LW_CFG_NET_EN > 0
+#include "netdev.h"
 #include "net/if.h"
 #include "net/if_arp.h"
+#include "net/if_lock.h"
 #include "net/if_ether.h"
 #include "net/if_flags.h"
 #include "sys/socket.h"
@@ -223,37 +225,34 @@ static VOID  __packetUpdateReader (AF_PACKET_T *pafpacket, INT  iSoErr)
 *********************************************************************************************************/
 static INT  __packetSetMembership (AF_PACKET_T *pafpacket, INT  iCmd, struct packet_mreq  *pmreq)
 {
-    struct sockaddr_in *psaddr;
     struct netif       *pnetif;
+    struct netdev      *pnetdev;
     struct ifreq        ifreq;
-    ip4_addr_t          ipaddr;
+    INT                 iRet = PX_ERROR;
     
-    pnetif = netif_get_by_index((u8_t)pmreq->mr_ifindex);
-    if (!pnetif) {
+    LWIP_IF_LIST_LOCK(LW_FALSE);
+    pnetdev = netdev_find_by_index((UINT)pmreq->mr_ifindex);
+    if (!pnetdev) {
+        LWIP_IF_LIST_UNLOCK();
         _ErrorHandle(ENXIO);
         return  (PX_ERROR);
     }
     
-    if (!(pnetif->flags & (NETIF_FLAG_ETHERNET | NETIF_FLAG_ETHARP)) || !pnetif->ioctl) {
+    if (pnetdev->net_type != NETDEV_TYPE_ETHERNET) {
+        LWIP_IF_LIST_UNLOCK();
         _ErrorHandle(EOPNOTSUPP);
         return  (PX_ERROR);
     }
     
+    pnetif = (struct netif *)pnetdev->sys;
+    
     switch (pmreq->mr_type) {
     
     case PACKET_MR_MULTICAST:                                           /*  组播地址                    */
-        psaddr = (struct sockaddr_in *)&ifreq.ifr_addr;
-        psaddr->sin_len    = sizeof(struct sockaddr_in);
-        psaddr->sin_family = AF_INET;
-        IP4_ADDR(&ipaddr, 224, pmreq->mr_address[3], 
-                 pmreq->mr_address[4], pmreq->mr_address[5]);
-        psaddr->sin_addr.s_addr = ipaddr.addr;
-        
         if (iCmd == PACKET_ADD_MEMBERSHIP) {
-            return  (pnetif->ioctl(pnetif, SIOCADDMULTI, &ifreq));
-        
+            iRet = netdev_macfilter_add(pnetdev, pmreq->mr_address);
         } else {
-            return  (pnetif->ioctl(pnetif, SIOCDELMULTI, &ifreq));
+            iRet = netdev_macfilter_delete(pnetdev, pmreq->mr_address);
         }
         break;
         
@@ -262,19 +261,18 @@ static INT  __packetSetMembership (AF_PACKET_T *pafpacket, INT  iCmd, struct pac
         if (iCmd == PACKET_ADD_MEMBERSHIP) {
             if (!(ifreq.ifr_flags & IFF_PROMISC)) {
                 ifreq.ifr_flags |= IFF_PROMISC;
-                if (pnetif->ioctl(pnetif, SIOCSIFFLAGS, &ifreq)) {
-                    return  (PX_ERROR);
+                iRet = pnetif->ioctl(pnetif, SIOCSIFFLAGS, &ifreq);
+                if (iRet == ERROR_NONE) {
+                    pnetif->flags2 |= NETIF_FLAG2_PROMISC;
                 }
-                pnetif->flags2 |= NETIF_FLAG2_PROMISC;
             }
-        
         } else {
             if (ifreq.ifr_flags & IFF_PROMISC) {
                 ifreq.ifr_flags &= ~IFF_PROMISC;
-                if (pnetif->ioctl(pnetif, SIOCSIFFLAGS, &ifreq)) {
-                    return  (PX_ERROR);
+                iRet = pnetif->ioctl(pnetif, SIOCSIFFLAGS, &ifreq);
+                if (iRet == ERROR_NONE) {
+                    pnetif->flags2 &= ~NETIF_FLAG2_PROMISC;
                 }
-                pnetif->flags2 &= ~NETIF_FLAG2_PROMISC;
             }
         }
         break;
@@ -284,29 +282,29 @@ static INT  __packetSetMembership (AF_PACKET_T *pafpacket, INT  iCmd, struct pac
         if (iCmd == PACKET_ADD_MEMBERSHIP) {
             if (!(ifreq.ifr_flags & IFF_ALLMULTI)) {
                 ifreq.ifr_flags |= IFF_ALLMULTI;
-                if (pnetif->ioctl(pnetif, SIOCSIFFLAGS, &ifreq)) {
-                    return  (PX_ERROR);
+                iRet = pnetif->ioctl(pnetif, SIOCSIFFLAGS, &ifreq);
+                if (iRet == ERROR_NONE) {
+                    pnetif->flags2 |= NETIF_FLAG2_ALLMULTI;
                 }
-                pnetif->flags2 |= NETIF_FLAG2_ALLMULTI;
             }
-        
         } else {
             if (ifreq.ifr_flags & IFF_ALLMULTI) {
                 ifreq.ifr_flags &= ~IFF_ALLMULTI;
-                if (pnetif->ioctl(pnetif, SIOCSIFFLAGS, &ifreq)) {
-                    return  (PX_ERROR);
+                iRet = pnetif->ioctl(pnetif, SIOCSIFFLAGS, &ifreq);
+                if (iRet == ERROR_NONE) {
+                    pnetif->flags2 &= ~NETIF_FLAG2_ALLMULTI;
                 }
-                pnetif->flags2 &= ~NETIF_FLAG2_ALLMULTI;
             }
         }
         break;
         
     default:
         _ErrorHandle(EINVAL);
-        return  (PX_ERROR);
+        break;
     }
+    LWIP_IF_LIST_UNLOCK();
     
-    return  (ERROR_NONE);
+    return  (iRet);
 }
 /*********************************************************************************************************
 ** 函数名称: __packetRingTraversal
@@ -1587,7 +1585,9 @@ INT  packet_setsockopt (AF_PACKET_T *pafpacket, int level, int optname,
         case PACKET_DROP_MEMBERSHIP:
             pmreq = (struct packet_mreq *)optval;
             if (pmreq) {
+                __AF_PACKET_UNLOCK();
                 iRet = __packetSetMembership(pafpacket, optname, pmreq);
+                __AF_PACKET_LOCK();
             } else {
                 _ErrorHandle(EINVAL);
             }

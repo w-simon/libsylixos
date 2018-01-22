@@ -822,11 +822,11 @@ mcast_leave_group(struct ip_mc *ipmc, const ip_addr_t *if_addr, const ip_addr_t 
  * @param ipmc multicast filter control block
  * @param netif the network interface which group we already join.
  * @param multi_addr the address of the group to add source
- * @param block_addr block multicast source address
+ * @param blk_addr block multicast source address
  * @return lwIP error definitions
  */
 err_t
-mcast_block_netif(struct ip_mc *ipmc, struct netif *netif, const ip_addr_t *multi_addr, const ip_addr_t *block_addr)
+mcast_block_netif(struct ip_mc *ipmc, struct netif *netif, const ip_addr_t *multi_addr, const ip_addr_t *blk_addr)
 {
 #if LWIP_IPV4 && LWIP_IGMP
   if (IP_IS_V4(multi_addr)) {
@@ -834,20 +834,20 @@ mcast_block_netif(struct ip_mc *ipmc, struct netif *netif, const ip_addr_t *mult
     struct igmp_src *src;
     
     mc = mcast_ip4_mc_find(ipmc, netif, ip_2_ip4(multi_addr), NULL);
-    if (mc) {
+    if (mc == NULL) {
       return ERR_VAL;
     }
     if (mc->fmode != MCAST_EXCLUDE) { /* we must in exclude mode */
       return ERR_VAL;
     }
     
-    src = mcast_ip4_mc_src_find(mc, ip_2_ip4(block_addr), NULL);
+    src = mcast_ip4_mc_src_find(mc, ip_2_ip4(blk_addr), NULL);
     if (src == NULL) {
       src = (struct igmp_src *)mem_malloc(sizeof(struct igmp_src));
       if (src == NULL) {
         return ERR_MEM;
       }
-      ip4_addr_set(&src->src_addr, ip_2_ip4(block_addr));
+      ip4_addr_set(&src->src_addr, ip_2_ip4(blk_addr));
       src->next = mc->src;
       mc->src = src;
       IP4_MC_TRIGGER_CALL(netif, ip_2_ip4(multi_addr)); /* trigger a report */
@@ -860,20 +860,20 @@ mcast_block_netif(struct ip_mc *ipmc, struct netif *netif, const ip_addr_t *mult
     struct mld6_src *src;
     
     mc = mcast_ip6_mc_find(ipmc, netif, ip_2_ip6(multi_addr), NULL);
-    if (mc) {
+    if (mc == NULL) {
       return ERR_VAL;
     }
     if (mc->fmode != MCAST_EXCLUDE) { /* we must in exclude mode */
       return ERR_VAL;
     }
     
-    src = mcast_ip6_mc_src_find(mc, ip_2_ip6(block_addr), NULL);
+    src = mcast_ip6_mc_src_find(mc, ip_2_ip6(blk_addr), NULL);
     if (src == NULL) {
       src = (struct mld6_src *)mem_malloc(sizeof(struct mld6_src));
       if (src == NULL) {
         return ERR_MEM;
       }
-      ip6_addr_set(&src->src_addr, ip_2_ip6(block_addr));
+      ip6_addr_set(&src->src_addr, ip_2_ip6(blk_addr));
       src->next = mc->src;
       mc->src = src;
       IP6_MC_TRIGGER_CALL(netif, ip_2_ip6(multi_addr)); /* trigger a report */
@@ -888,11 +888,11 @@ mcast_block_netif(struct ip_mc *ipmc, struct netif *netif, const ip_addr_t *mult
  * @param ipmc multicast filter control block
  * @param netif the network interface which group we already join.
  * @param multi_addr the address of the group to add source
- * @param unblock_addr unblock multicast source address
+ * @param unblk_addr unblock multicast source address
  * @return lwIP error definitions
  */
 err_t
-mcast_unblock_netif(struct ip_mc *ipmc, struct netif *netif, const ip_addr_t *multi_addr, const ip_addr_t *unblock_addr)
+mcast_unblock_netif(struct ip_mc *ipmc, struct netif *netif, const ip_addr_t *multi_addr, const ip_addr_t *unblk_addr)
 {
 #if LWIP_IPV4 && LWIP_IGMP
   if (IP_IS_V4(multi_addr)) {
@@ -901,14 +901,14 @@ mcast_unblock_netif(struct ip_mc *ipmc, struct netif *netif, const ip_addr_t *mu
     struct igmp_src *src;
     
     mc = mcast_ip4_mc_find(ipmc, netif, ip_2_ip4(multi_addr), NULL);
-    if (mc) {
+    if (mc == NULL) {
       return ERR_VAL;
     }
     if (mc->fmode != MCAST_EXCLUDE) { /* we must in exclude mode */
       return ERR_VAL;
     }
     
-    src = mcast_ip4_mc_src_find(mc, ip_2_ip4(unblock_addr), &src_prev);
+    src = mcast_ip4_mc_src_find(mc, ip_2_ip4(unblk_addr), &src_prev);
     if (src == NULL) {
       return ERR_VAL;
     }
@@ -928,14 +928,14 @@ mcast_unblock_netif(struct ip_mc *ipmc, struct netif *netif, const ip_addr_t *mu
     struct mld6_src *src;
     
     mc = mcast_ip6_mc_find(ipmc, netif, ip_2_ip6(multi_addr), NULL);
-    if (mc) {
+    if (mc == NULL) {
       return ERR_VAL;
     }
     if (mc->fmode != MCAST_EXCLUDE) { /* we must in exclude mode */
       return ERR_VAL;
     }
     
-    src = mcast_ip6_mc_src_find(mc, ip_2_ip6(unblock_addr), &src_prev);
+    src = mcast_ip6_mc_src_find(mc, ip_2_ip6(unblk_addr), &src_prev);
     if (src == NULL) {
       return ERR_VAL;
     }
@@ -970,7 +970,7 @@ mcast_set_msfilter_netif(struct ip_mc *ipmc, struct netif *netif, const ip_addr_
     u32_t i;
     
     mc = mcast_ip4_mc_find(ipmc, netif, ip_2_ip4(multi_addr), NULL);
-    if (mc) {
+    if (mc == NULL) {
       return ERR_VAL;
     }
     
@@ -1017,7 +1017,7 @@ mcast_set_groupfilter_netif(struct ip_mc *ipmc, struct netif *netif, const ip_ad
     u32_t i;
     
     mc = mcast_ip4_mc_find(ipmc, netif, ip_2_ip4(multi_addr), NULL);
-    if (mc) {
+    if (mc == NULL) {
       return ERR_VAL;
     }
     
@@ -1045,7 +1045,7 @@ mcast_set_groupfilter_netif(struct ip_mc *ipmc, struct netif *netif, const ip_ad
     u32_t i;
     
     mc = mcast_ip6_mc_find(ipmc, netif, ip_2_ip6(multi_addr), NULL);
-    if (mc) {
+    if (mc == NULL) {
       return ERR_VAL;
     }
     
@@ -1088,7 +1088,7 @@ mcast_get_msfilter_netif(struct ip_mc *ipmc, struct netif *netif, const ip_addr_
     u32_t i, cnt;
     
     mc = mcast_ip4_mc_find(ipmc, netif, ip_2_ip4(multi_addr), NULL);
-    if (mc) {
+    if (mc == NULL) {
       return ERR_VAL;
     }
     
@@ -1139,7 +1139,7 @@ mcast_get_groupfilter_netif(struct ip_mc *ipmc, struct netif *netif, const ip_ad
     u32_t i, cnt;
     
     mc = mcast_ip4_mc_find(ipmc, netif, ip_2_ip4(multi_addr), NULL);
-    if (mc) {
+    if (mc == NULL) {
       return ERR_VAL;
     }
     
@@ -1172,7 +1172,7 @@ mcast_get_groupfilter_netif(struct ip_mc *ipmc, struct netif *netif, const ip_ad
     u32_t i, cnt;
     
     mc = mcast_ip6_mc_find(ipmc, netif, ip_2_ip6(multi_addr), NULL);
-    if (mc) {
+    if (mc == NULL) {
       return ERR_VAL;
     }
     
@@ -1382,7 +1382,7 @@ mcast_sock_add_drop_source_membership(struct ip_mc *ipmc, int optname, const str
   IP_SET_TYPE_VAL(multi_addr, IPADDR_TYPE_V4);
   IP_SET_TYPE_VAL(src_addr, IPADDR_TYPE_V4);
   
-  if (!ip4_addr_ismulticast(ip_2_ip4(&multi_addr))) {
+  if (!ip4_addr_ismulticast(ip_2_ip4(&multi_addr)) || ip4_addr_isany(ip_2_ip4(&src_addr))) {
     return EADDRNOTAVAIL;
   }
   
@@ -1430,7 +1430,7 @@ mcast_sock_block_unblock_source(struct ip_mc *ipmc, int optname, const struct ip
   IP_SET_TYPE_VAL(multi_addr, IPADDR_TYPE_V4);
   IP_SET_TYPE_VAL(blk_addr, IPADDR_TYPE_V4);
   
-  if (!ip4_addr_ismulticast(ip_2_ip4(&multi_addr))) {
+  if (!ip4_addr_ismulticast(ip_2_ip4(&multi_addr)) || ip4_addr_isany(ip_2_ip4(&blk_addr))) {
     return EADDRNOTAVAIL;
   }
   
@@ -1593,7 +1593,7 @@ mcast_sock_join_leave_source_group(struct ip_mc *ipmc, int optname, const struct
     inet_addr_to_ip4addr(ip_2_ip4(&src_addr), &(((struct sockaddr_in *)&(gsr->gsr_source))->sin_addr));
     IP_SET_TYPE_VAL(multi_addr, IPADDR_TYPE_V4);
     IP_SET_TYPE_VAL(src_addr, IPADDR_TYPE_V4);
-    if (!ip4_addr_ismulticast(ip_2_ip4(&multi_addr))) {
+    if (!ip4_addr_ismulticast(ip_2_ip4(&multi_addr)) || ip4_addr_isany(ip_2_ip4(&src_addr))) {
       return EADDRNOTAVAIL;
     }
   
@@ -1602,7 +1602,7 @@ mcast_sock_join_leave_source_group(struct ip_mc *ipmc, int optname, const struct
     inet6_addr_to_ip6addr(ip_2_ip6(&src_addr), &(((struct sockaddr_in6 *)&(gsr->gsr_source))->sin6_addr));
     IP_SET_TYPE_VAL(multi_addr, IPADDR_TYPE_V6);
     IP_SET_TYPE_VAL(src_addr, IPADDR_TYPE_V6);
-    if (!ip6_addr_ismulticast(ip_2_ip6(&multi_addr))) {
+    if (!ip6_addr_ismulticast(ip_2_ip6(&multi_addr)) || ip6_addr_isany(ip_2_ip6(&src_addr))) {
       return EADDRNOTAVAIL;
     }
   
@@ -1632,24 +1632,24 @@ mcast_sock_block_unblock_source_group(struct ip_mc *ipmc, int optname, const str
 {
   struct netif *netif;
   ip_addr_t multi_addr;
-  ip_addr_t src_addr;
+  ip_addr_t blk_addr;
   err_t err;
   
   if (gsr->gsr_group.ss_family == AF_INET) {
     inet_addr_to_ip4addr(ip_2_ip4(&multi_addr), &(((struct sockaddr_in *)&(gsr->gsr_group))->sin_addr));
-    inet_addr_to_ip4addr(ip_2_ip4(&src_addr), &(((struct sockaddr_in *)&(gsr->gsr_source))->sin_addr));
+    inet_addr_to_ip4addr(ip_2_ip4(&blk_addr), &(((struct sockaddr_in *)&(gsr->gsr_source))->sin_addr));
     IP_SET_TYPE_VAL(multi_addr, IPADDR_TYPE_V4);
-    IP_SET_TYPE_VAL(src_addr, IPADDR_TYPE_V4);
-    if (!ip4_addr_ismulticast(ip_2_ip4(&multi_addr))) {
+    IP_SET_TYPE_VAL(blk_addr, IPADDR_TYPE_V4);
+    if (!ip4_addr_ismulticast(ip_2_ip4(&multi_addr)) || ip4_addr_isany(ip_2_ip4(&blk_addr))) {
       return EADDRNOTAVAIL;
     }
   
   } else if (gsr->gsr_group.ss_family == AF_INET6) {
     inet6_addr_to_ip6addr(ip_2_ip6(&multi_addr), &(((struct sockaddr_in6 *)&(gsr->gsr_group))->sin6_addr));
-    inet6_addr_to_ip6addr(ip_2_ip6(&src_addr), &(((struct sockaddr_in6 *)&(gsr->gsr_source))->sin6_addr));
+    inet6_addr_to_ip6addr(ip_2_ip6(&blk_addr), &(((struct sockaddr_in6 *)&(gsr->gsr_source))->sin6_addr));
     IP_SET_TYPE_VAL(multi_addr, IPADDR_TYPE_V6);
-    IP_SET_TYPE_VAL(src_addr, IPADDR_TYPE_V6);
-    if (!ip6_addr_ismulticast(ip_2_ip6(&multi_addr))) {
+    IP_SET_TYPE_VAL(blk_addr, IPADDR_TYPE_V6);
+    if (!ip6_addr_ismulticast(ip_2_ip6(&multi_addr)) || ip6_addr_isany(ip_2_ip6(&blk_addr))) {
       return EADDRNOTAVAIL;
     }
   
@@ -1663,9 +1663,9 @@ mcast_sock_block_unblock_source_group(struct ip_mc *ipmc, int optname, const str
   }
   
   if (optname == MCAST_BLOCK_SOURCE) {
-    err = mcast_block_netif(ipmc, netif, &multi_addr, &src_addr);
+    err = mcast_block_netif(ipmc, netif, &multi_addr, &blk_addr);
   } else {
-    err = mcast_unblock_netif(ipmc, netif, &multi_addr, &src_addr);
+    err = mcast_unblock_netif(ipmc, netif, &multi_addr, &blk_addr);
   }
   
   return err_to_errno(err);

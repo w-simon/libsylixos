@@ -51,6 +51,7 @@
 #include "lwip/pbuf.h"
 #include "lwip/netif.h"
 #include "netinet6/in6.h"
+#include "netinet6/pim6.h"
 #include "netinet6/ip6_mroute.h"
 
 /* mroute lock */

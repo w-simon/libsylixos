@@ -59,6 +59,32 @@
 struct netdev;
 
 /*
+ * netdev media address list
+ */
+struct netdev_mac {
+  /* list */
+  struct netdev_mac *next;
+  struct netdev_mac *nouse;
+  
+  /* mac addr */
+  UINT8 hwaddr[NETIF_MAX_HWADDR_LEN];
+  /* mac addr type */
+#define NETDEV_MAC_TYPE_UNICAST    0
+#define NETDEV_MAC_TYPE_MULTICAST  1
+  int type;
+  
+  /* system used */
+  int ref;
+  int res[6];
+};
+
+/* 
+ * netdev mac filter traversal
+ */
+#define NETDEV_MACFILTER_FOREACH(netdev, ha) \
+  for ((ha) = (netdev)->mac_filter; (ha) != NULL; (ha) = (ha)->next)
+
+/*
  * network driver functions.
  */
 struct netdev_funcs {
@@ -77,10 +103,9 @@ struct netdev_funcs {
    *      SIOCSIFHWADDR: arg is struct ifreq *pifreq, set hwaddr   (pifreq->ifr_hwaddr[]) */
   int  (*ioctl)(struct netdev *netdev, int cmd, void *arg);
 
-  /* netdev add or del mac filter */
-#define NETDRV_MACFILTER_DEL  0
-#define NETDRV_MACFILTER_ADD  1
-  int  (*macfilter)(struct netdev *netdev, int op, struct sockaddr *addr);
+  /* netdev mac filter updated, driver must allow all multicast address in mac list (can use NETDEV_MACFILTER_FOREACH() traverse) 
+   * after SIOCSIFFLAGS if application remove IFF_PROMISC or IFF_ALLMULTI driver must call this function automatic */
+  int  (*mfupdate)(struct netdev *netdev);
   
   /* netdev transmit a packet, and if success return 0 or return -1. */
   int  (*transmit)(struct netdev *netdev, struct pbuf *p);
@@ -96,7 +121,7 @@ struct netdev_funcs {
  * network device struct.
  */
 typedef struct netdev {
-#define NETDEV_VERSION  (0x00020001)
+#define NETDEV_VERSION  (0x00020002)
 #define NETDEV_MAGIC    (0xf7e34a81 + NETDEV_VERSION)
   UINT32 magic_no;  /* MUST be NETDEV_MAGIC */
 
@@ -147,6 +172,9 @@ typedef struct netdev {
   void *wireless_handlers; /* iw_handler_def ptr */
   void *wireless_data; /* iw_public_data ptr */
   
+  /* hwaddr filter list */
+  struct netdev_mac *mac_filter;
+  
   /* SylixOS Reserve */
   void *kern_priv; /* kernel priv */
   void *kern_res[16];
@@ -162,7 +190,14 @@ int  netdev_delete(netdev_t *netdev); /* WARNING: You MUST DO NOT lock device th
 int  netdev_index(netdev_t *netdev, unsigned int *index);
 int  netdev_ifname(netdev_t *netdev, char *ifname);
 
+/* netdev mac filter */
+int  netdev_macfilter_isempty(netdev_t *netdev);
+int  netdev_macfilter_count(netdev_t *netdev);
+int  netdev_macfilter_add(netdev_t *netdev, const UINT8 hwaddr[]);
+int  netdev_macfilter_delete(netdev_t *netdev, const UINT8 hwaddr[]);
+
 /* netdev find (MUST in NETIF_LOCK mode) */
+netdev_t *netdev_find_by_index(unsigned int index);
 netdev_t *netdev_find_by_ifname(const char *if_name);
 netdev_t *netdev_find_by_devname(const char *dev_name);
 

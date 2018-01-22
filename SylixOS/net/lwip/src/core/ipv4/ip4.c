@@ -446,6 +446,9 @@ ip4_input(struct pbuf *p, struct netif *inp)
 #if IP_ACCEPT_LINK_LAYER_ADDRESSING || LWIP_IGMP
   int check_ip_src = 1;
 #endif /* IP_ACCEPT_LINK_LAYER_ADDRESSING || LWIP_IGMP */
+#if LWIP_RAW
+  u8_t raw_deliver;
+#endif /* LWIP_RAW */
 
   LWIP_ASSERT_CORE_LOCKED();
 
@@ -739,7 +742,7 @@ ip4_input(struct pbuf *p, struct netif *inp)
 
 #if LWIP_RAW
   /* raw input did not eat the packet? */
-  if (raw_input(p, inp) == 0)
+  if (raw_input(p, inp, &raw_deliver) == 0)
 #endif /* LWIP_RAW */
   {
     pbuf_remove_header(p, iphdr_hlen); /* Move to payload, no check necessary. */
@@ -773,11 +776,16 @@ ip4_input(struct pbuf *p, struct netif *inp)
 #endif /* LWIP_IGMP */
       default:
 #if LWIP_ICMP
-        /* send ICMP destination protocol unreachable unless is was a broadcast */
-        if (!ip4_addr_isbroadcast(ip4_current_dest_addr(), netif) &&
-            !ip4_addr_ismulticast(ip4_current_dest_addr())) {
-          pbuf_header_force(p, (s16_t)iphdr_hlen); /* Move to ip header, no check necessary. */
-          icmp_dest_unreach(p, ICMP_DUR_PROTO);
+#if LWIP_RAW
+        if (!raw_deliver) 
+#endif /* LWIP_RAW */
+        {
+          /* send ICMP destination protocol unreachable unless is was a broadcast */
+          if (!ip4_addr_isbroadcast(ip4_current_dest_addr(), netif) &&
+              !ip4_addr_ismulticast(ip4_current_dest_addr())) {
+            pbuf_header_force(p, (s16_t)iphdr_hlen); /* Move to ip header, no check necessary. */
+            icmp_dest_unreach(p, ICMP_DUR_PROTO);
+          }
         }
 #endif /* LWIP_ICMP */
         pbuf_free(p);

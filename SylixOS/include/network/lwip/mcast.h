@@ -140,8 +140,8 @@ err_t   mcast_join_netif(struct ip_mc *ipmc, struct netif *netif, const ip_addr_
 err_t   mcast_join_group(struct ip_mc *ipmc, const ip_addr_t *if_addr, const ip_addr_t *multi_addr, const ip_addr_t *src_addr);
 err_t   mcast_leave_netif(struct ip_mc *ipmc, struct netif *netif, const ip_addr_t *multi_addr, const ip_addr_t *src_addr);
 err_t   mcast_leave_group(struct ip_mc *ipmc, const ip_addr_t *if_addr, const ip_addr_t *multi_addr, const ip_addr_t *src_addr);
-err_t   mcast_block_netif(struct ip_mc *ipmc, struct netif *netif, const ip_addr_t *multi_addr, const ip_addr_t *block_addr);
-err_t   mcast_unblock_netif(struct ip_mc *ipmc, struct netif *netif, const ip_addr_t *multi_addr, const ip_addr_t *unblock_addr);
+err_t   mcast_block_netif(struct ip_mc *ipmc, struct netif *netif, const ip_addr_t *multi_addr, const ip_addr_t *blk_addr);
+err_t   mcast_unblock_netif(struct ip_mc *ipmc, struct netif *netif, const ip_addr_t *multi_addr, const ip_addr_t *unblk_addr);
 
 #if LWIP_SOCKET
 err_t   mcast_set_msfilter_netif(struct ip_mc *ipmc, struct netif *netif, const ip_addr_t *multi_addr, const struct ip_msfilter *imsf);
