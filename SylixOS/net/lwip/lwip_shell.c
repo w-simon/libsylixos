@@ -264,20 +264,30 @@ __show:
 *********************************************************************************************************/
 static VOID  __netIfSpeed (struct netif  *netif, PCHAR  pcSpeedStr, size_t  stSize)
 {
-    if (netif->link_speed == 0) {
+    netdev_t  *pnetdev;
+    UINT64     u64Speed;
+    
+    pnetdev = netdev_find_by_index(netif_get_index(netif));
+    if (pnetdev) {
+        u64Speed = pnetdev->speed;
+    } else {
+        u64Speed = (UINT64)netif->link_speed;
+    }
+
+    if (u64Speed == 0) {
         lib_strlcpy(pcSpeedStr, "N/A", stSize);
         
-    } else if (netif->link_speed < 1000) {
-        snprintf(pcSpeedStr, stSize, "%d bps", netif->link_speed);
+    } else if (u64Speed < 1000ull) {
+        snprintf(pcSpeedStr, stSize, "%qu bps", u64Speed);
     
-    } else if (netif->link_speed < 5000 * 1000) {
-        snprintf(pcSpeedStr, stSize, "%d Kbps", netif->link_speed / 1000);
+    } else if (u64Speed < 5000000ull) {
+        snprintf(pcSpeedStr, stSize, "%qu Kbps", u64Speed / 1000);
     
-    } else if (netif->link_speed < 1000 * 1000 * 1000) {
-        snprintf(pcSpeedStr, stSize, "%d Mbps", netif->link_speed / 1000000);
+    } else if (u64Speed < 5000000000ull) {
+        snprintf(pcSpeedStr, stSize, "%qu Mbps", u64Speed / 1000000);
     
     } else {
-        snprintf(pcSpeedStr, stSize, "%d Gbps", netif->link_speed / 1000000000);
+        snprintf(pcSpeedStr, stSize, "%qu Gbps", u64Speed / 1000000000);
     }
 }
 /*********************************************************************************************************

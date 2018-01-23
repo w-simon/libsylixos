@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2018-01-23: han.hui
+    网络设备加入 Linux 兼容的组播滤波器.
+
     2018-01-20: han.hui
     加入 IGMPv3 支持 (支持 PIM-SSM 组播路由).
 

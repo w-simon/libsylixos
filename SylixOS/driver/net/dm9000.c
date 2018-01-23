@@ -748,12 +748,16 @@ static void dm9000_drop (struct dm9000_netdev *dm9000)
 *********************************************************************************************************/
 static int  dm9000_rxmode (struct netdev *netdev, int flags)
 {
+    struct dm9000_priv   *priv = netdev->priv;
     struct dm9000_netdev *dm9000 = (struct dm9000_netdev *)netdev;
     struct netdev_mac    *ha;
     int i, oft;
     UINT32 hash_val;
     UINT16 hash_table[4] = { 0, 0, 0, 0x8000 };                         /* broadcast address            */
     UINT8  rcr = RCR_DIS_LONG | RCR_DIS_CRC | RCR_RXEN;
+
+    API_SemaphoreMPend(priv->lock, LW_OPTION_WAIT_INFINITE);
+    API_InterVectorDisable(dm9000->irq);
 
     if (flags & IFF_PROMISC) {
         rcr |= RCR_PRMSC;
@@ -780,6 +784,9 @@ static int  dm9000_rxmode (struct netdev *netdev, int flags)
     }
 
     dm9000_io_write(dm9000, DM9000_RCR, rcr);
+
+    API_InterVectorEnable(dm9000->irq);
+    API_SemaphoreMPost(priv->lock);
 
     return  (0);
 }
@@ -975,41 +982,19 @@ static int  dm9000_transmit (struct netdev *netdev, struct pbuf *p)
 static void  dm9000_watchdog (struct netdev *netdev)
 {
     struct dm9000_netdev *dm9000 = (struct dm9000_netdev *)netdev;
-    UINT16 link;
+    UINT8  nsr, ncr;
     int    linkup;
 
     API_InterVectorDisable(dm9000->irq);
 
     if ((dm9000_phy_read(dm9000, 1) & 0x20)) {
         netdev_get_linkup(netdev, &linkup);
-        if (!linkup) {
-            link = dm9000_phy_read(dm9000, 17) >> 12;                   /*  see what we've got          */
-            switch (link) {
-
-            case 1:
-                netdev_set_linkup(netdev, 1, 10000000);                 /* 10Mbps                       */
-                printk(KERN_INFO "dm9000_watchdog: operating at 10M half duplex mode\n");
-                break;
-
-            case 2:
-                netdev_set_linkup(netdev, 1, 10000000);                 /* 10Mbps                       */
-                printk(KERN_INFO "dm9000_watchdog: operating at 10M full duplex mode\n");
-                break;
-
-            case 4:
-                netdev_set_linkup(netdev, 1, 100000000);                /* 100Mbps                      */
-                printk(KERN_INFO "dm9000_watchdog: operating at 100M half duplex mode\n");
-                break;
-
-            case 8:
-                netdev_set_linkup(netdev, 1, 100000000);                /* 100Mbps                      */
-                printk(KERN_INFO "dm9000_watchdog: operating at 100M full duplex mode\n");
-                break;
-
-            default:
-                printk(KERN_INFO "dm9000_watchdog: operating at unknown 0x%02x mode\n", link);
-                break;
-            }
+        if (!linkup || (netdev->speed == 0)) {
+            nsr = dm9000_io_read(dm9000, DM9000_NSR);
+            ncr = dm9000_io_read(dm9000, DM9000_NCR);
+            netdev_set_linkup(netdev, 1, (nsr & NSR_SPEED) ? 100000000 : 10000000);
+            printk(KERN_INFO "dm9000_watchdog: operating at %dM %s duplex mode\n",
+                   (nsr & NSR_SPEED) ? 10 : 100, (ncr & NCR_FDX) ? "full" : "half");
         }
 
     } else {
