@@ -134,15 +134,21 @@ u16_t   mcast_ip6_filter_info(struct netif *netif, const ip6_addr_t *multi_addr,
 u8_t    mcast_ip6_filter_interest(struct netif *netif, const ip6_addr_t *multi_addr, const ip6_addr_p_t src_addr[], u16_t arr_cnt);
 #endif /* LWIP_IPV6 && LWIP_IPV6_MLD && LWIP_IPV6_MLD_V2 */
 
+/* UDP or RAW use the following functions */
 void    mcast_pcb_remove(struct ip_mc *ipmc);
 u8_t    mcast_input_local_match(struct ip_mc *ipmc, struct netif *inp);
+
+/* The following functions is for Non-Socket API user */
 err_t   mcast_join_netif(struct ip_mc *ipmc, struct netif *netif, const ip_addr_t *multi_addr, const ip_addr_t *src_addr);
 err_t   mcast_join_group(struct ip_mc *ipmc, const ip_addr_t *if_addr, const ip_addr_t *multi_addr, const ip_addr_t *src_addr);
 err_t   mcast_leave_netif(struct ip_mc *ipmc, struct netif *netif, const ip_addr_t *multi_addr, const ip_addr_t *src_addr);
 err_t   mcast_leave_group(struct ip_mc *ipmc, const ip_addr_t *if_addr, const ip_addr_t *multi_addr, const ip_addr_t *src_addr);
 err_t   mcast_block_netif(struct ip_mc *ipmc, struct netif *netif, const ip_addr_t *multi_addr, const ip_addr_t *blk_addr);
+err_t   mcast_block_group(struct ip_mc *ipmc, const ip_addr_t *if_addr, const ip_addr_t *multi_addr, const ip_addr_t *blk_addr);
 err_t   mcast_unblock_netif(struct ip_mc *ipmc, struct netif *netif, const ip_addr_t *multi_addr, const ip_addr_t *unblk_addr);
+err_t   mcast_unblock_group(struct ip_mc *ipmc, const ip_addr_t *if_addr, const ip_addr_t *multi_addr, const ip_addr_t *unblk_addr);
 
+/* The following functions is for socket API use */
 #if LWIP_SOCKET
 err_t   mcast_set_msfilter_netif(struct ip_mc *ipmc, struct netif *netif, const ip_addr_t *multi_addr, const struct ip_msfilter *imsf);
 err_t   mcast_set_groupfilter_netif(struct ip_mc *ipmc, struct netif *netif, const ip_addr_t *multi_addr, const struct group_filter *gf);

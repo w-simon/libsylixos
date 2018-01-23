@@ -68,9 +68,9 @@
 #define NETDEV_REMOVE(netdev)           if ((netdev)->drv->remove) { (netdev)->drv->remove((netdev)); }
 #define NETDEV_IOCTL(netdev, a, b)      if ((netdev)->drv->ioctl) { (netdev)->drv->ioctl((netdev), (a), (b)); }
 #define NETDEV_PROMISC(netdev, a, b)    if ((netdev)->drv->promisc) { (netdev)->drv->promisc((netdev), (a), (b)); }
-#define NETDEV_MFUPDATE(netdev)         if ((netdev)->drv->mfupdate) { (netdev)->drv->mfupdate((netdev)); }
-#define NETDEV_TRANSMIT(netdev, a)      (netdev)->drv->transmit((netdev), a)
-#define NETDEV_RECEIVE(netdev, input)   (netdev)->drv->receive((netdev), input)
+#define NETDEV_RXMODE(netdev, a)        if ((netdev)->drv->rxmode) { (netdev)->drv->rxmode((netdev), (a)); }
+#define NETDEV_TRANSMIT(netdev, a)      (netdev)->drv->transmit((netdev), (a))
+#define NETDEV_RECEIVE(netdev, input)   (netdev)->drv->receive((netdev), (input))
 
 /* functions declaration */
 static struct netdev_mac *netdev_macfilter_find(netdev_t *netdev, const UINT8 hwaddr[], struct netdev_mac **prev_save);
@@ -110,6 +110,7 @@ static err_t  netdev_netif_igmp_mac_filter (struct netif *netif,
   netdev_t *netdev = (netdev_t *)(netif->state);
   struct netdev_mac *mac, *prev;
   UINT8 hwaddr[NETIF_MAX_HWADDR_LEN];
+  int flags;
   
   if (netdev->net_type != NETDEV_TYPE_ETHERNET) {
     return (ERR_OK);
@@ -142,8 +143,12 @@ static err_t  netdev_netif_igmp_mac_filter (struct netif *netif,
     }
     
     mem_free(mac);
-    NETDEV_MFUPDATE(netdev);
     netif_set_maddr_hook(netif, group, 0);
+    
+    flags = netif_get_flags(netif);
+    if (!(flags & (IFF_PROMISC | IFF_ALLMULTI))) {
+      NETDEV_RXMODE(netdev, flags);
+    }
     
   } else {
     if (mac) {
@@ -163,8 +168,12 @@ static err_t  netdev_netif_igmp_mac_filter (struct netif *netif,
     
     mac->next = netdev->mac_filter;
     netdev->mac_filter = mac;
-    NETDEV_MFUPDATE(netdev);
     netif_set_maddr_hook(netif, group, 1);
+    
+    flags = netif_get_flags(netif);
+    if (!(flags & (IFF_PROMISC | IFF_ALLMULTI))) {
+      NETDEV_RXMODE(netdev, flags);
+    }
   }
   
   return (ERR_OK);
@@ -179,6 +188,7 @@ static err_t  netdev_netif_mld_mac_filter (struct netif *netif,
   netdev_t *netdev = (netdev_t *)(netif->state);
   struct netdev_mac *mac, *prev;
   UINT8 hwaddr[NETIF_MAX_HWADDR_LEN];
+  int flags;
   
   if (netdev->net_type != NETDEV_TYPE_ETHERNET) {
     return (ERR_OK);
@@ -211,8 +221,12 @@ static err_t  netdev_netif_mld_mac_filter (struct netif *netif,
     }
     
     mem_free(mac);
-    NETDEV_MFUPDATE(netdev);
     netif_set_maddr6_hook(netif, group, 0);
+    
+    flags = netif_get_flags(netif);
+    if (!(flags & (IFF_PROMISC | IFF_ALLMULTI))) {
+      NETDEV_RXMODE(netdev, flags);
+    }
     
   } else {
     if (mac) {
@@ -232,8 +246,12 @@ static err_t  netdev_netif_mld_mac_filter (struct netif *netif,
     
     mac->next = netdev->mac_filter;
     netdev->mac_filter = mac;
-    NETDEV_MFUPDATE(netdev);
     netif_set_maddr6_hook(netif, group, 1);
+    
+    flags = netif_get_flags(netif);
+    if (!(flags & (IFF_PROMISC | IFF_ALLMULTI))) {
+      NETDEV_RXMODE(netdev, flags);
+    }
   }
   
   return (ERR_OK);
@@ -246,63 +264,77 @@ static int  netdev_netif_ioctl (struct netif *netif, int cmd, void *arg)
   netdev_t *netdev = (netdev_t *)(netif->state);
   struct ifreq *ifreq;
   err_t err;
+  int flags;
   int ret = -1;
   
-  if (netdev->drv->ioctl) {
-    switch (cmd) {
-    
-    case SIOCSIFHWADDR:  /* set hwaddr */
-      {
-        ifreq = (struct ifreq *)arg;
-        ret = netdev->drv->ioctl(netdev, cmd, arg);
-        if (ret == 0) {
-          MEMCPY(netdev->hwaddr, ifreq->ifr_hwaddr.sa_data, netdev->hwaddr_len);
-        }
-      }
-      break;
-      
-    case SIOCSIFMTU:    /* set mtu */
-      {
-        ifreq = (struct ifreq *)arg;
-        ret = netdev->drv->ioctl(netdev, cmd, arg);
-        if (ret == 0) {
-          netdev->mtu = ifreq->ifr_mtu;
-        }
-      }
-      break;
-      
-    case SIOCADDMULTI:  /* add / del mcast addr */
-    case SIOCDELMULTI:
+  switch (cmd) {
+
+  case SIOCSIFHWADDR:  /* set hwaddr */
+    if (netdev->drv->ioctl) {
       ifreq = (struct ifreq *)arg;
-      if (ifreq->ifr_addr.sa_family == AF_INET) {
-        ip4_addr_t group4;
-        inet_addr_to_ip4addr(&group4, &((struct sockaddr_in *)&ifreq->ifr_addr)->sin_addr);
-        err = netdev_netif_igmp_mac_filter(netif, &group4, ((cmd == SIOCADDMULTI) ? 
-                                           NETIF_ADD_MAC_FILTER : NETIF_DEL_MAC_FILTER));
-      }
-#if LWIP_IPV6 && LWIP_IPV6_MLD
-        else if (ifreq->ifr_addr.sa_family == AF_INET6) {
-        ip6_addr_t group6;
-        inet6_addr_to_ip6addr(&group6, &((struct sockaddr_in6 *)&ifreq->ifr_addr)->sin6_addr);
-        err = netdev_netif_mld_mac_filter(netif, &group6, ((cmd == SIOCADDMULTI) ? 
-                                          NETIF_ADD_MAC_FILTER : NETIF_DEL_MAC_FILTER));
-      }
-#endif
-      if (err) {
-        if (err == ERR_MEM) {
-          errno = ENOMEM;
-        } else if (err == ERR_VAL) {
-          errno = EINVAL;
-        }
-      } else {
-        ret = 0;
-      }
-      break;
-      
-    default:
       ret = netdev->drv->ioctl(netdev, cmd, arg);
-      break;
+      if (ret == 0) {
+        MEMCPY(netdev->hwaddr, ifreq->ifr_hwaddr.sa_data, netdev->hwaddr_len);
+      }
     }
+    break;
+
+  case SIOCSIFMTU:    /* set mtu */
+    if (netdev->drv->ioctl) {
+      ifreq = (struct ifreq *)arg;
+      ret = netdev->drv->ioctl(netdev, cmd, arg);
+      if (ret == 0) {
+        netdev->mtu = ifreq->ifr_mtu;
+      }
+    }
+    break;
+
+  case SIOCSIFFLAGS:  /* set flags */
+    if (netdev->drv->rxmode) {
+      ifreq = (struct ifreq *)arg;
+      flags = netif_get_flags(netif);
+      if ((flags & (IFF_PROMISC | IFF_ALLMULTI)) != 
+          (ifreq->ifr_flags & (IFF_PROMISC | IFF_ALLMULTI))) { /* rx mode changed */
+        ret = netdev->drv->rxmode(netdev, ifreq->ifr_flags);
+      } else {
+        ret = 0; /* do not allow to change other flags */
+      }
+    }
+    break;
+
+  case SIOCADDMULTI:  /* add / del mcast addr */
+  case SIOCDELMULTI:
+    ifreq = (struct ifreq *)arg;
+    if (ifreq->ifr_addr.sa_family == AF_INET) {
+      ip4_addr_t group4;
+      inet_addr_to_ip4addr(&group4, &((struct sockaddr_in *)&ifreq->ifr_addr)->sin_addr);
+      err = netdev_netif_igmp_mac_filter(netif, &group4, ((cmd == SIOCADDMULTI) ? 
+                                         NETIF_ADD_MAC_FILTER : NETIF_DEL_MAC_FILTER));
+    }
+#if LWIP_IPV6 && LWIP_IPV6_MLD
+      else if (ifreq->ifr_addr.sa_family == AF_INET6) {
+      ip6_addr_t group6;
+      inet6_addr_to_ip6addr(&group6, &((struct sockaddr_in6 *)&ifreq->ifr_addr)->sin6_addr);
+      err = netdev_netif_mld_mac_filter(netif, &group6, ((cmd == SIOCADDMULTI) ? 
+                                        NETIF_ADD_MAC_FILTER : NETIF_DEL_MAC_FILTER));
+    }
+#endif
+    if (err) {
+      if (err == ERR_MEM) {
+        errno = ENOMEM;
+      } else if (err == ERR_VAL) {
+        errno = EINVAL;
+      }
+    } else {
+      ret = 0;
+    }
+    break;
+      
+  default:
+    if (netdev->drv->ioctl) {
+      ret = netdev->drv->ioctl(netdev, cmd, arg);
+    }
+    break;
   }
   
   return (ret);
@@ -546,6 +578,8 @@ static err_t  netdev_netif_init (struct netif *netif)
     netif->mld_mac_filter(netif, &ip6_allnodes_ll, NETIF_ADD_MAC_FILTER);
   }
 #endif /* LWIP_IPV6 && LWIP_IPV6_MLD */
+
+  NETDEV_RXMODE(netdev, netdev->if_flags); /* init rxmode */
 
   return (ERR_OK);
 }
@@ -897,7 +931,7 @@ int  netdev_macfilter_count (netdev_t *netdev)
 int  netdev_macfilter_add (netdev_t *netdev, const UINT8 hwaddr[])
 {
   struct netdev_mac *mac, *prev;
-  int type;
+  int type, flags;
   
   if (netdev->net_type != NETDEV_TYPE_ETHERNET) {
     return (-1);
@@ -935,7 +969,12 @@ int  netdev_macfilter_add (netdev_t *netdev, const UINT8 hwaddr[])
   
   mac->next = netdev->mac_filter;
   netdev->mac_filter = mac;
-  NETDEV_MFUPDATE(netdev);
+  
+  flags = netif_get_flags((struct netif *)(netdev->sys));
+  if (!(flags & (IFF_PROMISC | IFF_ALLMULTI)) || 
+      (type != NETDEV_MAC_TYPE_MULTICAST)) {
+    NETDEV_RXMODE(netdev, flags);
+  }
   
   return (0);
 }
@@ -944,6 +983,7 @@ int  netdev_macfilter_add (netdev_t *netdev, const UINT8 hwaddr[])
 int  netdev_macfilter_delete (netdev_t *netdev, const UINT8 hwaddr[])
 {
   struct netdev_mac *mac, *prev;
+  int type, flags;
   
   if (netdev->net_type != NETDEV_TYPE_ETHERNET) {
     return (-1);
@@ -966,8 +1006,14 @@ int  netdev_macfilter_delete (netdev_t *netdev, const UINT8 hwaddr[])
     netdev->mac_filter = mac->next;
   }
   
+  type = mac->type;
   mem_free(mac);
-  NETDEV_MFUPDATE(netdev);
+  
+  flags = netif_get_flags((struct netif *)(netdev->sys));
+  if (!(flags & (IFF_PROMISC | IFF_ALLMULTI)) || 
+      (type != NETDEV_MAC_TYPE_MULTICAST)) {
+    NETDEV_RXMODE(netdev, flags);
+  }
   
   return (0);
 }

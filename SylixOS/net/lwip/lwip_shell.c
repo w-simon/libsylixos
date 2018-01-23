@@ -48,7 +48,9 @@
 *********************************************************************************************************/
 #if (LW_CFG_NET_EN > 0) && (LW_CFG_SHELL_EN > 0)
 #include "net/if_lock.h"
+#include "net/if_flags.h"
 #include "lwip/opt.h"
+#include "lwip/snmp.h"
 #include "lwip/netif.h"
 #include "lwip/netifapi.h"
 #include "lwip/dns.h"
@@ -263,16 +265,19 @@ __show:
 static VOID  __netIfSpeed (struct netif  *netif, PCHAR  pcSpeedStr, size_t  stSize)
 {
     if (netif->link_speed == 0) {
-        lib_strlcpy(pcSpeedStr, "AUTO", stSize);
+        lib_strlcpy(pcSpeedStr, "N/A", stSize);
         
     } else if (netif->link_speed < 1000) {
-        snprintf(pcSpeedStr, stSize, "%d(bps)", netif->link_speed);
+        snprintf(pcSpeedStr, stSize, "%d bps", netif->link_speed);
     
-    } else if (netif->link_speed < 5000000) {
-        snprintf(pcSpeedStr, stSize, "%d(Kbps)", netif->link_speed / 1000);
+    } else if (netif->link_speed < 5000 * 1000) {
+        snprintf(pcSpeedStr, stSize, "%d Kbps", netif->link_speed / 1000);
+    
+    } else if (netif->link_speed < 1000 * 1000 * 1000) {
+        snprintf(pcSpeedStr, stSize, "%d Mbps", netif->link_speed / 1000000);
     
     } else {
-        snprintf(pcSpeedStr, stSize, "%d(Mbps)", netif->link_speed / 1000000);
+        snprintf(pcSpeedStr, stSize, "%d Gbps", netif->link_speed / 1000000000);
     }
 }
 /*********************************************************************************************************
@@ -294,7 +299,7 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
     CHAR             cSpeed[32];
     PCHAR            pcDevName = "N/A";
     ip4_addr_t       ipaddrBroadcast;
-    INT              i;
+    INT              i, iFlags;
 
     if ((pcIfName == LW_NULL) && (netifShow == LW_NULL)) {
         return;
@@ -315,95 +320,67 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
         pcDevName = netdev->dev_name;
     }
 
-    /*
-     *  打印网口基本信息
-     */
-    printf("%-5s     ",       netif_get_name(netif, cIfName));
-    printf("enable: %s ",     (netif_is_up(netif) > 0) ? "true" : "false");
-    printf("linkup: %s ",     (netif_is_link_up(netif) > 0) ? "true" : "false");
-    printf("MTU: %d ",        netif->mtu);
-    printf("multicast: %s\n", (netif->flags & NETIF_FLAG_IGMP) ? "true" : "false");
-    printf("          metric: %d ", netif->metric);
+    printf("%-5s%4s ", netif_get_name(netif, cIfName), "");             /*  网卡名称                    */
     
-    /*
-     *  打印网口硬件地址信息
-     */
-    if (netif->flags & NETIF_FLAG_ETHARP) {
-        printf("type: Ethernet-Cap HWaddr: ");                          /*  以太网络                    */
+    if (netif->flags & (NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET)) {     /*  以太网络                    */
+        printf("Link encap: Ethernet HWaddr: ");
         for (i = 0; i < netif->hwaddr_len - 1; i++) {
-            printf("%02X:", netif->hwaddr[i]);
+            printf("%02x:", netif->hwaddr[i]);
         }
-        printf("%02X\n", netif->hwaddr[netif->hwaddr_len - 1]);
-    } else if ((netif->flags & NETIF_FLAG_BROADCAST) == 0) {
-        printf("type: WAN(PPP/SLIP)\n");                                /*  点对点网络接口              */
-    } else {
-        printf("type: General\n");                                      /*  通用网络接口                */
+        printf("%02x\n", netif->hwaddr[netif->hwaddr_len - 1]);
+        
+    } else if ((netif->flags & NETIF_FLAG_BROADCAST) == 0) {            /*  点对点网络接口              */
+        if (netif->link_type == snmp_ifType_softwareLoopback) {
+            printf("Link encap: Local Loopback\n");
+        } else {
+            printf("Link encap: WAN(PPP/SLIP)\n");
+        }
+        
+    } else {                                                            /*  通用网络接口                */
+        printf("Link encap: General\n");
     }
     
     __netIfSpeed(netif, cSpeed, sizeof(cSpeed));
     
 #if LWIP_DHCP
-    printf("          Dev: %s Ifidx: %d DHCP: %s(%s) speed: %s\n", 
-                                pcDevName, netif_get_index(netif),
-                                (netif->flags2 & NETIF_FLAG2_DHCP) ? "Enable" : "Disable",
-                                (netif_dhcp_data(netif)) ? "On" : "Off", cSpeed);
+    printf("%9s Dev: %s Ifidx: %d DHCP: %s(%s) Spd: %s\n", "", 
+           pcDevName, netif_get_index(netif),
+           (netif->flags2 & NETIF_FLAG2_DHCP) ? "En" : "Dis",
+           (netif_dhcp_data(netif)) ? "On" : "Off", cSpeed);
 #else
-    printf("          Dev: %s Ifidx: %d speed: %s\n", 
-                                pcDevName, netif_get_index(netif), cSpeed);
+    printf("%9s Dev: %s Ifidx: %d Spd: %s\n", "", 
+           pcDevName, netif_get_index(netif), cSpeed);
 #endif                                                                  /*  LWIP_DHCP                   */
-                                                                        
-    /*
-     *  打印网口协议地址信息
-     */
-    printf("          inet addr: %d.%d.%d.%d ", ip4_addr1(netif_ip4_addr(netif)),
-                                                ip4_addr2(netif_ip4_addr(netif)),
-                                                ip4_addr3(netif_ip4_addr(netif)),
-                                                ip4_addr4(netif_ip4_addr(netif)));
-    printf("netmask: %d.%d.%d.%d\n", ip4_addr1(netif_ip4_netmask(netif)),
-                                     ip4_addr2(netif_ip4_netmask(netif)),
-                                     ip4_addr3(netif_ip4_netmask(netif)),
-                                     ip4_addr4(netif_ip4_netmask(netif)));
-
-    if ((netif->flags & NETIF_FLAG_BROADCAST) == 0) {
-        printf("          P-to-P: %d.%d.%d.%d ", ip4_addr1(netif_ip4_gw(netif)),
-                                                 ip4_addr2(netif_ip4_gw(netif)),
-                                                 ip4_addr3(netif_ip4_gw(netif)),
-                                                 ip4_addr4(netif_ip4_gw(netif)));
-    } else {
-        printf("          gateway: %d.%d.%d.%d ", ip4_addr1(netif_ip4_gw(netif)),
-                                                  ip4_addr2(netif_ip4_gw(netif)),
-                                                  ip4_addr3(netif_ip4_gw(netif)),
-                                                  ip4_addr4(netif_ip4_gw(netif)));
-    }
     
-    if (netif->flags & NETIF_FLAG_BROADCAST) {                          /*  打印广播地址信息            */
-        ipaddrBroadcast.addr = (netif_ip4_addr(netif)->addr | (~netif_ip4_netmask(netif)->addr));
-        printf("broadcast: %d.%d.%d.%d\n", ip4_addr1(&ipaddrBroadcast),
-                                           ip4_addr2(&ipaddrBroadcast),
-                                           ip4_addr3(&ipaddrBroadcast),
-                                           ip4_addr4(&ipaddrBroadcast));
-    } else {
+    printf("%9s inet addr: %d.%d.%d.%d ", "",
+           ip4_addr1(netif_ip4_addr(netif)), ip4_addr2(netif_ip4_addr(netif)),
+           ip4_addr3(netif_ip4_addr(netif)), ip4_addr4(netif_ip4_addr(netif)));
+    printf("netmask: %d.%d.%d.%d\n", 
+           ip4_addr1(netif_ip4_netmask(netif)), ip4_addr2(netif_ip4_netmask(netif)),
+           ip4_addr3(netif_ip4_netmask(netif)), ip4_addr4(netif_ip4_netmask(netif)));
+    
+    if ((netif->flags & NETIF_FLAG_BROADCAST) == 0) {
+        printf("%9s P-to-P: %d.%d.%d.%d ", "",
+               ip4_addr1(netif_ip4_gw(netif)), ip4_addr2(netif_ip4_gw(netif)),
+               ip4_addr3(netif_ip4_gw(netif)), ip4_addr4(netif_ip4_gw(netif)));
         printf("broadcast: Non\n");
+    
+    } else {
+        printf("%9s gateway: %d.%d.%d.%d ", "",
+               ip4_addr1(netif_ip4_gw(netif)), ip4_addr2(netif_ip4_gw(netif)),
+               ip4_addr3(netif_ip4_gw(netif)), ip4_addr4(netif_ip4_gw(netif)));
+        ipaddrBroadcast.addr = (netif_ip4_addr(netif)->addr | (~netif_ip4_netmask(netif)->addr));
+        printf("broadcast: %d.%d.%d.%d\n", 
+               ip4_addr1(&ipaddrBroadcast), ip4_addr2(&ipaddrBroadcast),
+               ip4_addr3(&ipaddrBroadcast), ip4_addr4(&ipaddrBroadcast));
     }
     
 #if LWIP_IPV6
-    /*
-     *  打印 ipv6 信息
-     */
     for (i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++) {
         PCHAR       pcAddrType;
-        CHAR        cAddrStat[64];
         CHAR        cBuffer[64];
         
-        if (ip6_addr_isvalid(netif->ip6_addr_state[i])) {
-            lib_strcpy(cAddrStat, "valid");
-            if (ip6_addr_ispreferred(netif->ip6_addr_state[i])) {
-                lib_strcpy(cAddrStat, "preferred");
-            }
-            if (ip6_addr_istentative(netif->ip6_addr_state[i])) {
-                lib_strcat(cAddrStat, ", tentative");
-            }
-        } else {
+        if (!ip6_addr_isvalid(netif->ip6_addr_state[i])) {
             continue;
         }
         
@@ -421,23 +398,42 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
             pcAddrType = "unknown";
         }
         
-        printf("          inet6 addr: %s Scope:%s <%s>\n", 
+        printf("%9s inet6 addr: %s Scope:%s\n", "",
                ip6addr_ntoa_r(ip_2_ip6(&netif->ip6_addr[i]), cBuffer, sizeof(cBuffer)),
-               pcAddrType, cAddrStat);
+               pcAddrType);
     }
-#endif
+#endif                                                                  /*  LWIP_IPV6                   */
     
-    /*
-     *  打印网口收发数据信息
-     */
-    printf("          RX ucast packets:%u nucast packets:%u dropped:%u\n", MIB2_NETIF(netif)->ifinucastpkts,
-                                                                           MIB2_NETIF(netif)->ifinnucastpkts,
-                                                                           MIB2_NETIF(netif)->ifindiscards);
-    printf("          TX ucast packets:%u nucast packets:%u dropped:%u\n", MIB2_NETIF(netif)->ifoutucastpkts,
-                                                                           MIB2_NETIF(netif)->ifoutnucastpkts,
-                                                                           MIB2_NETIF(netif)->ifoutdiscards);
-    printf("          RX bytes:%u TX bytes:%u\n", MIB2_NETIF(netif)->ifinoctets,
-                                                  MIB2_NETIF(netif)->ifoutoctets);
+    printf("%9s ", "");
+    iFlags = netif_get_flags(netif);
+    if (iFlags & IFF_UP) {
+        printf("UP ");
+    }
+    if (iFlags & IFF_BROADCAST) {
+        printf("BROADCAST ");
+    }
+    if (iFlags & IFF_LOOPBACK) {
+        printf("LOOPBACK ");
+    }
+    if (iFlags & IFF_RUNNING) {
+        printf("RUNNING ");
+    }
+    if (iFlags & IFF_MULTICAST) {
+        printf("MULTICAST ");
+    }
+    if (netif->flags & (NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET)) {
+        if (iFlags & IFF_NOARP) {
+            printf("NOARP ");
+        }
+    }
+    printf("MTU:%d METRIC:%d\n", netif->mtu, netif->metric);
+    
+    printf("%9s RX ucast packets:%u nucast packets:%u dropped:%u\n", "",
+           MIB2_NETIF(netif)->ifinucastpkts, MIB2_NETIF(netif)->ifinnucastpkts, MIB2_NETIF(netif)->ifindiscards);
+    printf("%9s TX ucast packets:%u nucast packets:%u dropped:%u\n", "",
+           MIB2_NETIF(netif)->ifoutucastpkts, MIB2_NETIF(netif)->ifoutnucastpkts, MIB2_NETIF(netif)->ifoutdiscards);
+    printf("%9s RX bytes:%u TX bytes:%u\n", "",
+           MIB2_NETIF(netif)->ifinoctets, MIB2_NETIF(netif)->ifoutoctets);
     printf("\n");
 }
 /*********************************************************************************************************

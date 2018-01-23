@@ -96,16 +96,16 @@ struct netdev_funcs {
   int  (*down)(struct netdev *netdev);
   int  (*remove)(struct netdev *netdev);
   
-  /* netdev ioctl (Only 3 commands, SIOCSIFFLAGS command only 'IFF_PROMISC', 'IFF_ALLMULTI' should do)
-   * cmd: SIOCSIFMTU:    arg is struct ifreq *pifreq, set MTU      (pifreq->ifr_mtu)
-   *      SIOCSIFFLAGS:  arg is struct ifreq *pifreq, set PROMISC  (pifreq->ifr_flags & IFF_PROMISC)
-   *                                                      ALLMULTI (pifreq->ifr_flags & IFF_ALLMULTI)
-   *      SIOCSIFHWADDR: arg is struct ifreq *pifreq, set hwaddr   (pifreq->ifr_hwaddr[]) */
+  /* netdev ioctl (Only 2 commands should do)
+   * cmd: SIOCSIFMTU:    arg is struct ifreq *pifreq, set MTU    (pifreq->ifr_mtu)
+   *      SIOCSIFHWADDR: arg is struct ifreq *pifreq, set hwaddr (pifreq->ifr_hwaddr[]) */
   int  (*ioctl)(struct netdev *netdev, int cmd, void *arg);
 
-  /* netdev mac filter updated, driver must allow all multicast address in mac list (can use NETDEV_MACFILTER_FOREACH() traverse) 
-   * after SIOCSIFFLAGS if application remove IFF_PROMISC or IFF_ALLMULTI driver must call this function automatic */
-  int  (*mfupdate)(struct netdev *netdev);
+  /* netdev rx mode updated: (Must be in strict accordance with the following order of judgment)
+   * if flags & IFF_PROMISC, driver must allow all packet input.
+   * if flags & IFF_ALLMULTI, driver must allow all multicast packet input.
+   * other, driver must allow all multicast address in mac list (can use NETDEV_MACFILTER_FOREACH() traverse) */
+  int  (*rxmode)(struct netdev *netdev, int flags);
   
   /* netdev transmit a packet, and if success return 0 or return -1. */
   int  (*transmit)(struct netdev *netdev, struct pbuf *p);

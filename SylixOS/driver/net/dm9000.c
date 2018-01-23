@@ -26,6 +26,7 @@
 *********************************************************************************************************/
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_NET_EN > 0) && (LW_CFG_DRV_NIC_DM9000 > 0)
 #include "linux/compat.h"
+#include "linux/crc32.h"
 #include "dm9000.h"
 /*********************************************************************************************************
   dm9000 register
@@ -737,6 +738,52 @@ static void dm9000_drop (struct dm9000_netdev *dm9000)
     } while (rx_byte & DM9000_PKT_RDY);
 }
 /*********************************************************************************************************
+** 函数名称: dm9000_rxmode
+** 功能描述: dm9000 set rx mode
+** 输　入  : dm9000      netdev
+**           flags       new flags
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static int  dm9000_rxmode (struct netdev *netdev, int flags)
+{
+    struct dm9000_netdev *dm9000 = (struct dm9000_netdev *)netdev;
+    struct netdev_mac    *ha;
+    int i, oft;
+    UINT32 hash_val;
+    UINT16 hash_table[4] = { 0, 0, 0, 0x8000 };                         /* broadcast address            */
+    UINT8  rcr = RCR_DIS_LONG | RCR_DIS_CRC | RCR_RXEN;
+
+    if (flags & IFF_PROMISC) {
+        rcr |= RCR_PRMSC;
+    }
+
+    if (flags & IFF_ALLMULTI) {
+        rcr |= RCR_ALL;
+    }
+
+    /*
+     * the multicast address in Hash Table : 64 bits
+     */
+    NETDEV_MACFILTER_FOREACH(netdev, ha) {
+        hash_val = ether_crc_le(6, ha->hwaddr) & 0x3f;
+        hash_table[hash_val / 16] |= (UINT16) 1 << (hash_val % 16);
+    }
+
+    /*
+     * Write the hash table to MAC MD table
+     */
+    for (i = 0, oft = DM9000_MAR; i < 4; i++) {
+        dm9000_io_write(dm9000, oft++, hash_table[i]);
+        dm9000_io_write(dm9000, oft++, hash_table[i] >> 8);
+    }
+
+    dm9000_io_write(dm9000, DM9000_RCR, rcr);
+
+    return  (0);
+}
+/*********************************************************************************************************
 ** 函数名称: dm9000_receive
 ** 功能描述: dm9000 receive packet
 ** 输　入  : netdev      netdev
@@ -1064,6 +1111,7 @@ INT  dm9000Init (struct dm9000_netdev *dm9000, const char *ip, const char *netma
 {
     static struct netdev_funcs  dm9000_drv = {
         .init     = dm9000_init,
+        .rxmode   = dm9000_rxmode,
         .transmit = dm9000_transmit,
         .receive  = dm9000_receive,
     };

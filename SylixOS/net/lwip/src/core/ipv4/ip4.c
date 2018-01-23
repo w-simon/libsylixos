@@ -177,7 +177,8 @@ ip4_route(const ip4_addr_t *dest)
 #if LWIP_MULTICAST_TX_OPTIONS
   /* Use administratively selected interface for multicast by default */ /* SylixOS Add NETIF_CAN_SEND() */
   if (ip4_addr_ismulticast(dest) && ip4_default_multicast_netif && NETIF_CAN_SEND(ip4_default_multicast_netif)) {
-    return ip4_default_multicast_netif;
+    /* SylixOS Fixed here */
+    return (ip4_default_multicast_netif ? ip4_default_multicast_netif : netif_default);
   }
 #endif /* LWIP_MULTICAST_TX_OPTIONS */
 

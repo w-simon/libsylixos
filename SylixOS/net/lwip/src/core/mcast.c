@@ -650,13 +650,18 @@ mcast_join_netif(struct ip_mc *ipmc, struct netif *netif, const ip_addr_t *multi
 err_t
 mcast_join_group(struct ip_mc *ipmc, const ip_addr_t *if_addr, const ip_addr_t *multi_addr, const ip_addr_t *src_addr)
 {
+  err_t err = ERR_VAL; /* no matching interface */
+  
 #if LWIP_IPV4 && LWIP_IGMP
   if (IP_IS_V4(multi_addr)) {
     struct netif *netif;
     
     NETIF_FOREACH(netif) {
       if ((netif->flags & NETIF_FLAG_IGMP) && ((ip4_addr_isany(ip_2_ip4(if_addr)) || ip4_addr_cmp(netif_ip4_addr(netif), ip_2_ip4(if_addr))))) {
-        return mcast_join_netif(ipmc, netif, multi_addr, src_addr);
+        err = mcast_join_netif(ipmc, netif, multi_addr, src_addr);
+        if (err != ERR_OK) {
+          return (err);
+        }
       }
     }
   } else 
@@ -668,12 +673,15 @@ mcast_join_group(struct ip_mc *ipmc, const ip_addr_t *if_addr, const ip_addr_t *
     NETIF_FOREACH(netif) {
       if (ip6_addr_isany(ip_2_ip6(if_addr)) ||
           netif_get_ip6_addr_match(netif, ip_2_ip6(if_addr)) >= 0) {
-        return mcast_join_netif(ipmc, netif, multi_addr, src_addr);
+        err = mcast_join_netif(ipmc, netif, multi_addr, src_addr);
+        if (err != ERR_OK) {
+          return (err);
+        }
       }
     }
 #endif /* LWIP_IPV6 && LWIP_IPV6_MLD */
   }
-  return ERR_VAL;
+  return err;
 }
 
 /** Leave or drop a source from group on a network interface.
@@ -791,13 +799,18 @@ mcast_leave_netif(struct ip_mc *ipmc, struct netif *netif, const ip_addr_t *mult
 err_t
 mcast_leave_group(struct ip_mc *ipmc, const ip_addr_t *if_addr, const ip_addr_t *multi_addr, const ip_addr_t *src_addr)
 {
+  err_t res, err = ERR_VAL; /* no matching interface */
+
 #if LWIP_IPV4 && LWIP_IGMP
   if (IP_IS_V4(multi_addr)) {
     struct netif *netif;
     
     NETIF_FOREACH(netif) {
       if ((netif->flags & NETIF_FLAG_IGMP) && ((ip4_addr_isany(ip_2_ip4(if_addr)) || ip4_addr_cmp(netif_ip4_addr(netif), ip_2_ip4(if_addr))))) {
-        return mcast_leave_netif(ipmc, netif, multi_addr, src_addr);
+        res = mcast_leave_netif(ipmc, netif, multi_addr, src_addr);
+        if (err != ERR_OK) {
+          err = res;
+        }
       }
     }
   } else 
@@ -809,12 +822,15 @@ mcast_leave_group(struct ip_mc *ipmc, const ip_addr_t *if_addr, const ip_addr_t 
     NETIF_FOREACH(netif) {
       if (ip6_addr_isany(ip_2_ip6(if_addr)) ||
           netif_get_ip6_addr_match(netif, ip_2_ip6(if_addr)) >= 0) {
-        return mcast_leave_netif(ipmc, netif, multi_addr, src_addr);
+        res = mcast_leave_netif(ipmc, netif, multi_addr, src_addr);
+        if (err != ERR_OK) {
+          err = res;
+        }
       }
     }
 #endif /* LWIP_IPV6 && LWIP_IPV6_MLD */
   }
-  return ERR_VAL;
+  return err;
 }
 
 /** Add a block source address to a multicast group
@@ -883,6 +899,51 @@ mcast_block_netif(struct ip_mc *ipmc, struct netif *netif, const ip_addr_t *mult
   return ERR_OK;
 }
 
+/** Add a block source address to a multicast group
+ *
+ * @param ipmc multicast filter control block
+ * @param if_addr the network interface address.
+ * @param multi_addr the address of the group to add source
+ * @param blk_addr block multicast source address
+ * @return lwIP error definitions
+ */
+err_t
+mcast_block_group(struct ip_mc *ipmc, const ip_addr_t *if_addr, const ip_addr_t *multi_addr, const ip_addr_t *blk_addr)
+{
+  err_t err = ERR_VAL; /* no matching interface */
+  
+#if LWIP_IPV4 && LWIP_IGMP
+  if (IP_IS_V4(multi_addr)) {
+    struct netif *netif;
+    
+    NETIF_FOREACH(netif) {
+      if ((netif->flags & NETIF_FLAG_IGMP) && ((ip4_addr_isany(ip_2_ip4(if_addr)) || ip4_addr_cmp(netif_ip4_addr(netif), ip_2_ip4(if_addr))))) {
+        err = mcast_block_netif(ipmc, netif, multi_addr, blk_addr);
+        if (err != ERR_OK) {
+          return (err);
+        }
+      }
+    }
+  } else 
+#endif /* LWIP_IPV4 && LWIP_IGMP */
+  {
+#if LWIP_IPV6 && LWIP_IPV6_MLD
+    struct netif *netif;
+    
+    NETIF_FOREACH(netif) {
+      if (ip6_addr_isany(ip_2_ip6(if_addr)) ||
+          netif_get_ip6_addr_match(netif, ip_2_ip6(if_addr)) >= 0) {
+        err = mcast_block_netif(ipmc, netif, multi_addr, blk_addr);
+        if (err != ERR_OK) {
+          return (err);
+        }
+      }
+    }
+#endif /* LWIP_IPV6 && LWIP_IPV6_MLD */
+  }
+  return err;
+}
+
 /** Remove a block source address from a multicast group
  *
  * @param ipmc multicast filter control block
@@ -949,6 +1010,51 @@ mcast_unblock_netif(struct ip_mc *ipmc, struct netif *netif, const ip_addr_t *mu
 #endif /* LWIP_IPV6 && LWIP_IPV6_MLD */
   }
   return ERR_OK;
+}
+
+/** Remove a block source address from a multicast group
+ *
+ * @param ipmc multicast filter control block
+ * @param if_addr the network interface address.
+ * @param multi_addr the address of the group to add source
+ * @param unblk_addr unblock multicast source address
+ * @return lwIP error definitions
+ */
+err_t
+mcast_unblock_group(struct ip_mc *ipmc, const ip_addr_t *if_addr, const ip_addr_t *multi_addr, const ip_addr_t *unblk_addr)
+{
+  err_t res, err = ERR_VAL; /* no matching interface */
+
+#if LWIP_IPV4 && LWIP_IGMP
+  if (IP_IS_V4(multi_addr)) {
+    struct netif *netif;
+    
+    NETIF_FOREACH(netif) {
+      if ((netif->flags & NETIF_FLAG_IGMP) && ((ip4_addr_isany(ip_2_ip4(if_addr)) || ip4_addr_cmp(netif_ip4_addr(netif), ip_2_ip4(if_addr))))) {
+        res = mcast_unblock_netif(ipmc, netif, multi_addr, unblk_addr);
+        if (err != ERR_OK) {
+          err = res;
+        }
+      }
+    }
+  } else 
+#endif /* LWIP_IPV4 && LWIP_IGMP */
+  {
+#if LWIP_IPV6 && LWIP_IPV6_MLD
+    struct netif *netif;
+    
+    NETIF_FOREACH(netif) {
+      if (ip6_addr_isany(ip_2_ip6(if_addr)) ||
+          netif_get_ip6_addr_match(netif, ip_2_ip6(if_addr)) >= 0) {
+        res = mcast_unblock_netif(ipmc, netif, multi_addr, unblk_addr);
+        if (err != ERR_OK) {
+          err = res;
+        }
+      }
+    }
+#endif /* LWIP_IPV6 && LWIP_IPV6_MLD */
+  }
+  return err;
 }
 
 #if LWIP_SOCKET
@@ -1338,26 +1444,38 @@ mcast_sock_add_drop_membership(struct ip_mc *ipmc, int optname, const struct ip_
     return EADDRNOTAVAIL;
   }
   
-  if (!(ip_2_ip4(&if_addr)->addr & PP_HTONL(IP_CLASSA_NET))) { /* IS a BSD style index ? */
-    u8_t idx = (u8_t)PP_NTOHL(ip_2_ip4(&if_addr)->addr);
-    netif = netif_get_by_index(idx);
-    *ip_2_ip4(&if_addr) = *netif_ip4_addr(netif);
+  if (ip4_addr_isany(ip_2_ip4(&if_addr))) { /* To all network interface */
+    if (optname == IP_ADD_MEMBERSHIP) {
+      err = mcast_join_group(ipmc, &if_addr, &multi_addr, NULL);
+    } else {
+      err = mcast_leave_group(ipmc, &if_addr, &multi_addr, NULL);
+    }
+    
+  } else { /* To specified network interface */
+    if (!(ip_2_ip4(&if_addr)->addr & PP_HTONL(IP_CLASSA_NET))) { /* IS a BSD style index ? */
+      u8_t idx = (u8_t)PP_NTOHL(ip_2_ip4(&if_addr)->addr);
+      netif = netif_get_by_index(idx);
+      if (netif == NULL) {
+        return ENXIO;
+      }
+      *ip_2_ip4(&if_addr) = *netif_ip4_addr(netif);
   
-  } else {
-    NETIF_FOREACH(netif) {
-      if (ip4_addr_cmp(ip_2_ip4(&if_addr), netif_ip4_addr(netif))) {
-        break;
+    } else {
+      NETIF_FOREACH(netif) {
+        if (ip4_addr_cmp(ip_2_ip4(&if_addr), netif_ip4_addr(netif))) {
+          break;
+        }
+      }
+      if (netif == NULL) {
+        return ENXIO;
       }
     }
-    if (netif == NULL) {
-      return ENXIO;
-    }
-  }
   
-  if (optname == IP_ADD_MEMBERSHIP) {
-    err = mcast_join_netif(ipmc, netif, &multi_addr, NULL);
-  } else {
-    err = mcast_leave_netif(ipmc, netif, &multi_addr, NULL);
+    if (optname == IP_ADD_MEMBERSHIP) {
+      err = mcast_join_netif(ipmc, netif, &multi_addr, NULL);
+    } else {
+      err = mcast_leave_netif(ipmc, netif, &multi_addr, NULL);
+    }
   }
   
   return (u8_t)err_to_errno(err);
@@ -1386,26 +1504,38 @@ mcast_sock_add_drop_source_membership(struct ip_mc *ipmc, int optname, const str
     return EADDRNOTAVAIL;
   }
   
-  if (!(ip_2_ip4(&if_addr)->addr & PP_HTONL(IP_CLASSA_NET))) { /* IS a BSD style index ? */
-    u8_t idx = (u8_t)PP_NTOHL(ip_2_ip4(&if_addr)->addr);
-    netif = netif_get_by_index(idx);
-    *ip_2_ip4(&if_addr) = *netif_ip4_addr(netif);
+  if (ip4_addr_isany(ip_2_ip4(&if_addr))) { /* To all network interface */
+    if (optname == IP_ADD_SOURCE_MEMBERSHIP) {
+      err = mcast_join_group(ipmc, &if_addr, &multi_addr, &src_addr);
+    } else {
+      err = mcast_leave_group(ipmc, &if_addr, &multi_addr, &src_addr);
+    }
   
-  } else {
-    NETIF_FOREACH(netif) {
-      if (ip4_addr_cmp(ip_2_ip4(&if_addr), netif_ip4_addr(netif))) {
-        break;
+  } else { /* To specified network interface */
+    if (!(ip_2_ip4(&if_addr)->addr & PP_HTONL(IP_CLASSA_NET))) { /* IS a BSD style index ? */
+      u8_t idx = (u8_t)PP_NTOHL(ip_2_ip4(&if_addr)->addr);
+      netif = netif_get_by_index(idx);
+      if (netif == NULL) {
+        return ENXIO;
+      }
+      *ip_2_ip4(&if_addr) = *netif_ip4_addr(netif);
+
+    } else {
+      NETIF_FOREACH(netif) {
+        if (ip4_addr_cmp(ip_2_ip4(&if_addr), netif_ip4_addr(netif))) {
+          break;
+        }
+      }
+      if (netif == NULL) {
+        return ENXIO;
       }
     }
-    if (netif == NULL) {
-      return ENXIO;
-    }
-  }
   
-  if (optname == IP_ADD_SOURCE_MEMBERSHIP) {
-    err = mcast_join_netif(ipmc, netif, &multi_addr, &src_addr);
-  } else {
-    err = mcast_leave_netif(ipmc, netif, &multi_addr, &src_addr);
+    if (optname == IP_ADD_SOURCE_MEMBERSHIP) {
+      err = mcast_join_netif(ipmc, netif, &multi_addr, &src_addr);
+    } else {
+      err = mcast_leave_netif(ipmc, netif, &multi_addr, &src_addr);
+    }
   }
   
   return err_to_errno(err);
@@ -1434,26 +1564,38 @@ mcast_sock_block_unblock_source(struct ip_mc *ipmc, int optname, const struct ip
     return EADDRNOTAVAIL;
   }
   
-  if (!(ip_2_ip4(&if_addr)->addr & PP_HTONL(IP_CLASSA_NET))) { /* IS a BSD style index ? */
-    u8_t idx = (u8_t)PP_NTOHL(ip_2_ip4(&if_addr)->addr);
-    netif = netif_get_by_index(idx);
-    *ip_2_ip4(&if_addr) = *netif_ip4_addr(netif);
+  if (ip4_addr_isany(ip_2_ip4(&if_addr))) { /* To all network interface */
+    if (optname == IP_BLOCK_SOURCE) {
+      err = mcast_block_group(ipmc, &if_addr, &multi_addr, &blk_addr);
+    } else {
+      err = mcast_unblock_group(ipmc, &if_addr, &multi_addr, &blk_addr);
+    }
+    
+  } else { /* To specified network interface */
+    if (!(ip_2_ip4(&if_addr)->addr & PP_HTONL(IP_CLASSA_NET))) { /* IS a BSD style index ? */
+      u8_t idx = (u8_t)PP_NTOHL(ip_2_ip4(&if_addr)->addr);
+      netif = netif_get_by_index(idx);
+      if (netif == NULL) {
+        return ENXIO;
+      }
+      *ip_2_ip4(&if_addr) = *netif_ip4_addr(netif);
   
-  } else {
-    NETIF_FOREACH(netif) {
-      if (ip4_addr_cmp(ip_2_ip4(&if_addr), netif_ip4_addr(netif))) {
-        break;
+    } else {
+      NETIF_FOREACH(netif) {
+        if (ip4_addr_cmp(ip_2_ip4(&if_addr), netif_ip4_addr(netif))) {
+          break;
+        }
+      }
+      if (netif == NULL) {
+        return ENXIO;
       }
     }
-    if (netif == NULL) {
-      return ENXIO;
+    
+    if (optname == IP_BLOCK_SOURCE) {
+      err = mcast_block_netif(ipmc, netif, &multi_addr, &blk_addr);
+    } else {
+      err = mcast_unblock_netif(ipmc, netif, &multi_addr, &blk_addr);
     }
-  }
-  
-  if (optname == IP_BLOCK_SOURCE) {
-    err = mcast_block_netif(ipmc, netif, &multi_addr, &blk_addr);
-  } else {
-    err = mcast_unblock_netif(ipmc, netif, &multi_addr, &blk_addr);
   }
   
   return err_to_errno(err);
@@ -1481,6 +1623,9 @@ mcast_sock_set_msfilter(struct ip_mc *ipmc, int optname, const struct ip_msfilte
   if (!(ip_2_ip4(&if_addr)->addr & PP_HTONL(IP_CLASSA_NET))) { /* IS a BSD style index ? */
     u8_t idx = (u8_t)PP_NTOHL(ip_2_ip4(&if_addr)->addr);
     netif = netif_get_by_index(idx);
+    if (netif == NULL) {
+      return ENXIO;
+    }
     *ip_2_ip4(&if_addr) = *netif_ip4_addr(netif);
   
   } else {
@@ -1519,6 +1664,9 @@ mcast_sock_get_msfilter(struct ip_mc *ipmc, int optname, struct ip_msfilter *ims
   if (!(ip_2_ip4(&if_addr)->addr & PP_HTONL(IP_CLASSA_NET))) { /* IS a BSD style index ? */
     u8_t idx = (u8_t)PP_NTOHL(ip_2_ip4(&if_addr)->addr);
     netif = netif_get_by_index(idx);
+    if (netif == NULL) {
+      return ENXIO;
+    }
     *ip_2_ip4(&if_addr) = *netif_ip4_addr(netif);
   
   } else {
@@ -1563,7 +1711,11 @@ mcast_sock_join_leave_group(struct ip_mc *ipmc, int optname, const struct group_
     return EADDRNOTAVAIL;
   }
 
-  netif = netif_get_by_index((u8_t)gr->gr_interface);
+  if (gr->gr_interface) {
+    netif = netif_get_by_index((u8_t)gr->gr_interface);
+  } else {
+    netif = netif_default; /* To default network interface */
+  }
   if (netif == NULL) {
     return ENXIO;
   }
@@ -1610,7 +1762,11 @@ mcast_sock_join_leave_source_group(struct ip_mc *ipmc, int optname, const struct
     return EADDRNOTAVAIL;
   }
   
-  netif = netif_get_by_index((u8_t)gsr->gsr_interface);
+  if (gsr->gsr_interface) {
+    netif = netif_get_by_index((u8_t)gsr->gsr_interface);
+  } else {
+    netif = netif_default; /* To default network interface */
+  }
   if (netif == NULL) {
     return ENXIO;
   }
@@ -1657,7 +1813,11 @@ mcast_sock_block_unblock_source_group(struct ip_mc *ipmc, int optname, const str
     return EADDRNOTAVAIL;
   }
   
-  netif = netif_get_by_index((u8_t)gsr->gsr_interface);
+  if (gsr->gsr_interface) {
+    netif = netif_get_by_index((u8_t)gsr->gsr_interface);
+  } else {
+    netif = netif_default; /* To default network interface */
+  }
   if (netif == NULL) {
     return ENXIO;
   }
@@ -1698,7 +1858,11 @@ mcast_sock_set_groupfilter(struct ip_mc *ipmc, int optname, const struct group_f
     return EADDRNOTAVAIL;
   }
   
-  netif = netif_get_by_index((u8_t)gf->gf_interface);
+  if (gf->gf_interface) {
+    netif = netif_get_by_index((u8_t)gf->gf_interface);
+  } else {
+    netif = netif_default; /* To default network interface */
+  }
   if (netif == NULL) {
     return ENXIO;
   }
@@ -1733,7 +1897,11 @@ mcast_sock_get_groupfilter(struct ip_mc *ipmc, int optname, struct group_filter 
     return EADDRNOTAVAIL;
   }
   
-  netif = netif_get_by_index((u8_t)gf->gf_interface);
+  if (gf->gf_interface) {
+    netif = netif_get_by_index((u8_t)gf->gf_interface);
+  } else {
+    netif = netif_default; /* To default network interface */
+  }
   if (netif == NULL) {
     return ENXIO;
   }
@@ -1758,7 +1926,11 @@ mcast_sock_ipv6_add_drop_membership(struct ip_mc *ipmc, int optname, const struc
     return EADDRNOTAVAIL;
   }
   
-  netif = netif_get_by_index((u8_t)imr->ipv6mr_interface);
+  if (imr->ipv6mr_interface) {
+    netif = netif_get_by_index((u8_t)imr->ipv6mr_interface);
+  } else {
+    netif = netif_default; /* To default network interface */
+  }
   if (netif == NULL) {
     return ENXIO;
   }
