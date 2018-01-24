@@ -219,6 +219,12 @@ struct pbuf {
 
   /** For incoming packets, this contains the input netif's index */
   u8_t if_idx;
+  
+  /** SylixOS Add
+   *  For IP_HT_LOCAL_OUT hook only, the hook function can change this variable to 
+   *  change the output netif, NULL means use system route table
+   */
+  void *if_out; /* struct netif * */
 };
 
 

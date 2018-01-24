@@ -68,7 +68,7 @@
   函数声明
 *********************************************************************************************************/
 #if LW_CFG_NET_NPF_EN > 0
-VOID  __npfNetifRemoveHook(struct netif  *pnetif);
+VOID  npf_netif_detach(struct netif  *pnetif);
 #endif                                                                  /*  LW_CFG_NET_NPF_EN > 0       */
 /*********************************************************************************************************
   函数声明
@@ -144,7 +144,7 @@ static VOID  netif_remove_hook (struct netif *pnetif)
 #endif                                                                  /*  LW_CFG_NET_FLOWCTL_EN > 0   */
     
 #if LW_CFG_NET_NPF_EN > 0
-    __npfNetifRemoveHook(pnetif);
+    npf_netif_detach(pnetif);
 #endif                                                                  /*  LW_CFG_NET_NPF_EN > 0       */
 
 #if LWIP_DHCP > 0

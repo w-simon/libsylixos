@@ -312,7 +312,7 @@ ip4_forward(struct pbuf *p, struct ip_hdr *iphdr, struct netif *inp)
   if (lwip_ip_hook(IP_HOOK_V4, IP_HT_FORWARD, p, inp, netif)) {
     goto return_noroute;
   }
-#endif
+#endif /* SYLIXOS */
   
 #if !IP_FORWARD_ALLOW_TX_ON_RX_NETIF
   /* Do not forward packets onto the same network interface on which
@@ -346,10 +346,10 @@ ip4_forward(struct pbuf *p, struct ip_hdr *iphdr, struct netif *inp)
 
 #ifdef SYLIXOS /* SylixOS Add this hook */
   if (lwip_ip_hook(IP_HOOK_V4, IP_HT_POST_ROUTING, p, inp, netif)) {
-    IP_STATS_INC(ip.drop);
+    IP_STATS_INC(ip.err);
     return;
   }
-#endif
+#endif /* SYLIXOS */
 
   LWIP_DEBUGF(IP_DEBUG, ("ip4_forward: forwarding packet to %"U16_F".%"U16_F".%"U16_F".%"U16_F"\n",
                          ip4_addr1_16(ip4_current_dest_addr()), ip4_addr2_16(ip4_current_dest_addr()),
@@ -474,7 +474,7 @@ ip4_input(struct pbuf *p, struct netif *inp)
     IP_STATS_INC(ip.drop);
     return ERR_OK;
   }
-#endif
+#endif /* SYLIXOS */
 
 #ifdef LWIP_HOOK_IP4_INPUT
   if (LWIP_HOOK_IP4_INPUT(p, inp)) {
@@ -722,7 +722,7 @@ ip4_input(struct pbuf *p, struct netif *inp)
     IP_STATS_INC(ip.drop);
     return ERR_OK;
   }
-#endif
+#endif /* SYLIXOS */
 
 #if LW_CFG_NET_MROUTER > 0 /* SylixOS Add mroute support */
   switch (IPH_PROTO(iphdr)) {
@@ -1036,11 +1036,22 @@ ip4_output_if_opt_src(struct pbuf *p, const ip4_addr_t *src, const ip4_addr_t *d
   }
 
 #ifdef SYLIXOS /* SylixOS Add this hook */
+#if LW_CFG_NET_MROUTER > 0
+  if (!mforward)
+#endif
+  {
+    p->if_out = (void *)netif;
+    if (lwip_ip_hook(IP_HOOK_V4, IP_HT_LOCAL_OUT, p, NULL, netif)) {
+      IP_STATS_INC(ip.err);
+      return ERR_RTE;
+    }
+    netif = (struct netif *)p->if_out;
+  }
   if (lwip_ip_hook(IP_HOOK_V4, IP_HT_POST_ROUTING, p, NULL, netif)) {
-    IP_STATS_INC(ip.drop);
+    IP_STATS_INC(ip.err);
     return ERR_RTE;
   }
-#endif
+#endif /* SYLIXOS */
 
   IP_STATS_INC(ip.xmit);
 

@@ -42,7 +42,14 @@
 #include <linux/compat.h>
 #include <linux/crc32.h>
 
-#define tole(x)               ((u32)cpu_to_le32(x))
+#if BYTE_ORDER == LITTLE_ENDIAN
+#define tole(x)     (x)
+#else
+#define tole(x)     ((((x) & (u32)0x000000ffUL) << 24) | \
+                     (((x) & (u32)0x0000ff00UL) <<  8) | \
+                     (((x) & (u32)0x00ff0000UL) >>  8) | \
+                     (((x) & (u32)0xff000000UL) >> 24))
+#endif /* BYTE_ORDER == LITTLE_ENDIAN */
 
 #define CRCPOLY_LE            0xedb88320
 #define CRCPOLY_BE            0x04c11db7

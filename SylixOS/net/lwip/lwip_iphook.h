@@ -42,7 +42,7 @@
                                          ^                     |
                                          |                     |
                                          |                     \/
-                                     [LOCAL_IN]           [LOCAL_OUT] ???
+                                     [LOCAL_IN]           [LOCAL_OUT]
                                          ^                     |
                                          |                     |
                                          |                route output
@@ -51,12 +51,15 @@
                                          |                     \/
   packet input --> [PRE_ROUTING] --> route input --> [FORWARD] --> [POST_ROUTING] --> packet output 
   
+  NOTICE: The NF_IP_LOCAL_OUT hook is called for packets that are created locally. Here you can see 
+          that routing occurs after this hook is called: in fact, the routing code is called first 
+          if you want to alter the routing, you must alter the `pbuf->if_out' field yourself.
 *********************************************************************************************************/
 
 #define IP_HT_PRE_ROUTING       0
 #define IP_HT_LOCAL_IN          1
 #define IP_HT_FORWARD           2
-#define IP_HT_LOCAL_OUT         3                                       /*  TODO: not support now!      */
+#define IP_HT_LOCAL_OUT         3
 #define IP_HT_POST_ROUTING      4
 
 /*********************************************************************************************************
@@ -71,7 +74,15 @@ int  net_ip_hook_add(const char *name, int (*hook)(int ip_type, int hook_type, s
                                                    struct netif *in, struct netif *out));
 int  net_ip_hook_delete(int (*hook)(int ip_type, int hook_type, struct pbuf *p, 
                                     struct netif *in, struct netif *out));
-                                    
+
+/*********************************************************************************************************
+  设置 pbuf 成员
+  
+  注意: 出于兼容性考虑, 不允许直接设置 if_out 成员变量.
+*********************************************************************************************************/
+
+void net_ip_hook_pbuf_set_ifout (struct pbuf *p, struct netif *pnetif);
+
 /*********************************************************************************************************
   获取 netif 成员
   

@@ -410,7 +410,7 @@ ip6_forward(struct pbuf *p, struct ip6_hdr *iphdr, struct netif *inp)
     IP6_STATS_INC(ip6.drop);
     return;
   }
-#endif
+#endif /* SYLIXOS */
 
 #if LWIP_IPV6_SCOPES
   /* Do not forward packets with a zoned (e.g., link-local) source address
@@ -462,10 +462,10 @@ ip6_forward(struct pbuf *p, struct ip6_hdr *iphdr, struct netif *inp)
 
 #ifdef SYLIXOS /* SylixOS Add this hook */
   if (lwip_ip_hook(IP_HOOK_V6, IP_HT_POST_ROUTING, p, inp, netif)) {
-    IP6_STATS_INC(ip6.drop);
+    IP6_STATS_INC(ip6.err);
     return;
   }
-#endif
+#endif /* SYLIXOS */
 
   LWIP_DEBUGF(IP6_DEBUG, ("ip6_forward: forwarding packet to %"X16_F":%"X16_F":%"X16_F":%"X16_F":%"X16_F":%"X16_F":%"X16_F":%"X16_F"\n",
       IP6_ADDR_BLOCK1(ip6_current_dest_addr()),
@@ -562,7 +562,7 @@ ip6_input(struct pbuf *p, struct netif *inp)
     IP6_STATS_INC(ip6.drop);
     return ERR_OK;
   }
-#endif
+#endif /* SYLIXOS */
 
 #ifdef LWIP_HOOK_IP6_INPUT
   if (LWIP_HOOK_IP6_INPUT(p, inp)) {
@@ -1097,7 +1097,7 @@ options_done:
     IP6_STATS_INC(ip6.drop);
     goto ip6_input_cleanup;
   }
-#endif
+#endif /* SYLIXOS */
 
 #if LW_CFG_NET_MROUTER > 0 /* SylixOS Add mroute support */
   if (*nexth == IPPROTO_PIM) {
@@ -1295,11 +1295,22 @@ ip6_output_if_src(struct pbuf *p, const ip6_addr_t *src, const ip6_addr_t *dest,
   }
 
 #ifdef SYLIXOS /* SylixOS Add this hook */
+#if LW_CFG_NET_MROUTER > 0
+  if (!mforward)
+#endif
+  {
+    p->if_out = (void *)netif;
+    if (lwip_ip_hook(IP_HOOK_V6, IP_HT_LOCAL_OUT, p, NULL, netif)) {
+      IP6_STATS_INC(ip6.err);
+      return ERR_RTE;
+    }
+    netif = (struct netif *)p->if_out;
+  }
   if (lwip_ip_hook(IP_HOOK_V6, IP_HT_POST_ROUTING, p, NULL, netif)) {
-    IP6_STATS_INC(ip6.drop);
+    IP6_STATS_INC(ip6.err);
     return ERR_RTE;
   }
-#endif
+#endif /* SYLIXOS */
 
   IP6_STATS_INC(ip6.xmit);
 

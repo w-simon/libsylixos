@@ -355,6 +355,7 @@ netif_add(struct netif *netif,
   netif->ioctl = NULL;
   netif->up = NULL;
   netif->down = NULL;
+  netif->firewall = NULL;
   netif->flags2 = 0l;
   netif->br_eth = NULL;
   netif->flowctl = NULL;

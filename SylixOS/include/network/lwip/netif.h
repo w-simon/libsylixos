@@ -368,7 +368,9 @@ struct netif {
   int (*ioctl)(struct netif *, int, void *);
   void (*up)(struct netif *); /* make net device up */
   void (*down)(struct netif *); /* make net device down */
-  long flags2; /* sylixos externed flags */
+  int (*firewall)(struct netif *, struct pbuf *p); /* net packet filter hook */
+  /* sylixos externed flags */
+  long flags2; 
 #define NETIF_FLAG2_DHCP        1
 #define NETIF_FLAG2_PROMISC     2
 #define NETIF_FLAG2_ALLMULTI    4

@@ -419,6 +419,10 @@ static int  netdev_netif_linkinput (netdev_t *netdev, struct pbuf *p)
     }
   }
 
+  if (netif->firewall && netif->firewall(netif, p)) {
+    return (0); /* firewall eaten */
+  }
+
   if (netif->input(p, netif)) {
     return (-1);
     
