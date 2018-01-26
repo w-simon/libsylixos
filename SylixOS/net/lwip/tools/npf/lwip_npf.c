@@ -558,7 +558,7 @@ VOID  npf_netif_detach (struct netif  *pnetif)
     INT                 i;
     __PNPF_NETIF_CB     pnpfni;
 
-    if (pnetif->firewall != npf_netif_firewall) {                       /*  不是过滤器输入函数          */
+    if (pnetif->inner_fw != npf_netif_firewall) {                       /*  不是过滤器输入函数          */
         return;
     }
 
@@ -568,7 +568,7 @@ VOID  npf_netif_detach (struct netif  *pnetif)
         __NPF_UNLOCK();                                                 /*  解锁 NPF 表                 */
         return;
     }
-    pnetif->firewall = LW_NULL;                                         /*  不再使用 npf 输入函数       */
+    pnetif->inner_fw = LW_NULL;                                         /*  不再使用 npf 输入函数       */
 
     pnpfni->NPFNI_uiAttachCounter--;
     if (pnpfni->NPFNI_uiAttachCounter == 0) {                           /*  没有任何 attach             */
@@ -869,7 +869,7 @@ INT  API_INetNpfAttach (CPCHAR  pcNetifName)
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
-    if (pnetif->firewall == npf_netif_firewall) {                       /*  已经是过滤器输入函数        */
+    if (pnetif->inner_fw == npf_netif_firewall) {                       /*  已经是过滤器输入函数        */
         LWIP_IF_LIST_UNLOCK();
         _ErrorHandle(EALREADY);
         return  (PX_ERROR);
@@ -882,7 +882,7 @@ INT  API_INetNpfAttach (CPCHAR  pcNetifName)
         LWIP_IF_LIST_UNLOCK();
         return  (PX_ERROR);
     }
-    pnetif->firewall = npf_netif_firewall;                              /*  使用 npf 输入函数           */
+    pnetif->inner_fw = npf_netif_firewall;                              /*  使用 npf 输入函数           */
     KN_SMP_MB();
     LWIP_IF_LIST_UNLOCK();
     
@@ -919,7 +919,7 @@ INT  API_INetNpfDetach (CPCHAR  pcNetifName)
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
-    if (pnetif->firewall != npf_netif_firewall) {                       /*  不是过滤器输入函数          */
+    if (pnetif->inner_fw != npf_netif_firewall) {                       /*  不是过滤器输入函数          */
         LWIP_IF_LIST_UNLOCK();
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
@@ -933,7 +933,7 @@ INT  API_INetNpfDetach (CPCHAR  pcNetifName)
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
-    pnetif->firewall = LW_NULL;                                         /*  不再使用 npf 输入函数       */
+    pnetif->inner_fw = LW_NULL;                                         /*  不再使用 npf 输入函数       */
     KN_SMP_MB();
     LWIP_IF_LIST_UNLOCK();
     

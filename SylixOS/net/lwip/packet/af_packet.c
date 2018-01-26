@@ -265,6 +265,8 @@ static INT  __packetSetMembership (AF_PACKET_T *pafpacket, INT  iCmd, struct pac
                 if (iRet == ERROR_NONE) {
                     pnetif->flags2 |= NETIF_FLAG2_PROMISC;
                 }
+            } else {
+                iRet = ERROR_NONE;
             }
         } else {
             if (ifreq.ifr_flags & IFF_PROMISC) {
@@ -273,6 +275,8 @@ static INT  __packetSetMembership (AF_PACKET_T *pafpacket, INT  iCmd, struct pac
                 if (iRet == ERROR_NONE) {
                     pnetif->flags2 &= ~NETIF_FLAG2_PROMISC;
                 }
+            } else {
+                iRet = ERROR_NONE;
             }
         }
         break;
@@ -286,6 +290,8 @@ static INT  __packetSetMembership (AF_PACKET_T *pafpacket, INT  iCmd, struct pac
                 if (iRet == ERROR_NONE) {
                     pnetif->flags2 |= NETIF_FLAG2_ALLMULTI;
                 }
+            } else {
+                iRet = ERROR_NONE;
             }
         } else {
             if (ifreq.ifr_flags & IFF_ALLMULTI) {
@@ -294,6 +300,8 @@ static INT  __packetSetMembership (AF_PACKET_T *pafpacket, INT  iCmd, struct pac
                 if (iRet == ERROR_NONE) {
                     pnetif->flags2 &= ~NETIF_FLAG2_ALLMULTI;
                 }
+            } else {
+                iRet = ERROR_NONE;
             }
         }
         break;

@@ -242,8 +242,8 @@ input_p:
   }
 }
 
-/* net bridge link poll function */
-static void  netbr_poll (netdev_t *netdev_br)
+/* net bridge link watchdog function */
+static void  netbr_wd (netdev_t *netdev_br)
 {
   netbr_t *netbr = (netbr_t *)netdev_br->priv;
   netbr_eth_t *netbr_eth;
@@ -525,7 +525,7 @@ int  netbr_add (const char *brdev, const char *ip,
     return (-1);
   }
   
-  netdev_linkup_poll_add(netdev_br, netbr_poll); /* add poll function */
+  netdev_linkup_wd_add(netdev_br, netbr_wd); /* add watchdog function */
 
   if (index) {
     netdev_index(netdev_br, (unsigned int *)index);
@@ -567,7 +567,7 @@ int  netbr_delete (const char *brdev)
   
   netdev_delete(netdev_br);
   
-  netdev_linkup_poll_delete(netdev_br, netbr_poll); /* delete poll function */
+  netdev_linkup_wd_delete(netdev_br, netbr_wd); /* delete watchdog function */
   
   LOCK_TCPIP_CORE();
   while (netbr->eth_list) {

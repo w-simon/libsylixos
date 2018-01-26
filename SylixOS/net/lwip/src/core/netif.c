@@ -59,7 +59,7 @@
 #include "lwip/netif.h"
 #include "lwip/priv/tcp_priv.h"
 #include "lwip/udp.h"
-#include "lwip/raw.h"
+#include "lwip/priv/raw_priv.h"
 #include "lwip/snmp.h"
 #include "lwip/igmp.h"
 #include "lwip/etharp.h"
@@ -355,7 +355,8 @@ netif_add(struct netif *netif,
   netif->ioctl = NULL;
   netif->up = NULL;
   netif->down = NULL;
-  netif->firewall = NULL;
+  netif->inner_fw = NULL;
+  netif->outer_fw = NULL;
   netif->flags2 = 0l;
   netif->br_eth = NULL;
   netif->flowctl = NULL;
@@ -1428,18 +1429,17 @@ netif_ip6_addr_set_state(struct netif *netif, s8_t addr_idx, u8_t state)
       /* address state has changed -> call the callback function */
       NETIF_STATUS_CALLBACK(netif);
     }
-  }
 
 #if LWIP_NETIF_EXT_STATUS_CALLBACK
-  {
-    netif_ext_callback_args_t args;
-    args.ipv6_addr_state_changed.addr_index = addr_idx;
-    args.ipv6_addr_state_changed.address    = netif_ip_addr6(netif, addr_idx);
-    args.ipv6_addr_state_changed.old_state  = old_state; /* SylixOS Add old_stat info */
-    netif_invoke_ext_callback(netif, LWIP_NSC_IPV6_ADDR_STATE_CHANGED, &args);
-  }
+    {
+      netif_ext_callback_args_t args;
+      args.ipv6_addr_state_changed.addr_index = addr_idx;
+      args.ipv6_addr_state_changed.old_state  = old_state;
+      args.ipv6_addr_state_changed.address    = netif_ip_addr6(netif, addr_idx);
+      netif_invoke_ext_callback(netif, LWIP_NSC_IPV6_ADDR_STATE_CHANGED, &args);
+    }
 #endif
-
+  }
   LWIP_DEBUGF(NETIF_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_STATE, ("netif: IPv6 address %d of interface %c%c set to %s/0x%"X8_F"\n",
               addr_idx, netif->name[0], netif->name[1], ip6addr_ntoa(netif_ip6_addr(netif, addr_idx)),
               netif_ip6_addr_state(netif, addr_idx)));

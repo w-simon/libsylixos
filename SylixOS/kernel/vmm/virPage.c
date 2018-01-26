@@ -53,11 +53,12 @@ static addr_t               _G_ulVmmSwitchAddr = (addr_t)PX_ERROR;
 ** 功能描述: 获得虚拟空间区域.
 ** 输　入  : uiType        类型
 **           ulZoneIndex   虚拟区间下标
+**           pulFreePage   剩余空间页面数
 ** 输　出  : 虚拟空间描述
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-PLW_MMU_VIRTUAL_DESC  __vmmVirtualDesc (UINT32  uiType, ULONG  ulZoneIndex)
+PLW_MMU_VIRTUAL_DESC  __vmmVirtualDesc (UINT32  uiType, ULONG  ulZoneIndex, ULONG  *pulFreePage)
 {
     if (ulZoneIndex >= LW_CFG_VMM_VIR_NUM) {
         _ErrorHandle(EINVAL);
@@ -65,9 +66,15 @@ PLW_MMU_VIRTUAL_DESC  __vmmVirtualDesc (UINT32  uiType, ULONG  ulZoneIndex)
     }
 
     if (uiType == LW_VIRTUAL_MEM_APP) {
+        if (pulFreePage) {
+            *pulFreePage = _G_vmzoneVirApp[ulZoneIndex].ZONE_ulFreePage;
+        }
         return  (&_G_vmvirDescApp[ulZoneIndex]);
     
     } else {
+        if (pulFreePage) {
+            *pulFreePage = _G_vmzoneVirDev.ZONE_ulFreePage;
+        }
         return  (&_G_vmvirDescDev);
     }
 }

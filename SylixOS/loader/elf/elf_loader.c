@@ -112,6 +112,16 @@ static INT elfCheck (Elf_Ehdr *pehdr, BOOL bLoad)
         _ErrorHandle(ERROR_LOADER_FORMAT);
         return  (PX_ERROR);
     }
+    
+    if (ELF_CLASS != pehdr->e_ident[EI_CLASS]) {                        /*  检查ELF CPU字长是否匹配     */
+        if (bLoad) {
+            fprintf(stderr, "[ld]Architecture error: this CPU is %d-bits but ELF file is %d-bits!\n",
+                    (ELF_CLASS == ELFCLASS32) ? 32 : 64,
+                    (pehdr->e_ident[EI_CLASS] == ELFCLASS32) ? 32 : 64);
+        }
+        _ErrorHandle(ERROR_LOADER_ARCH);
+        return  (PX_ERROR);
+    }
 
     if (ELF_ARCH != pehdr->e_machine) {                                 /*  检查ELF体系结构是否匹配     */
         if (bLoad) {

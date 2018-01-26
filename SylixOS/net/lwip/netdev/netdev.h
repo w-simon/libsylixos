@@ -56,6 +56,7 @@
 #include "lwip/prot/ethernet.h"
 #endif /* LW_CFG_NET_DEV_PROTO_ANALYSIS */
 
+/* netdev declaration */
 struct netdev;
 
 /*
@@ -83,6 +84,28 @@ struct netdev_mac {
  */
 #define NETDEV_MACFILTER_FOREACH(netdev, ha) \
   for ((ha) = (netdev)->mac_filter; (ha) != NULL; (ha) = (ha)->next)
+
+/*
+ * netdev poll mode
+ */
+struct netdev_poll {
+  /* SylixOS Real-Time externd */
+#define NETDEV_POLLMODE_DIS 0
+#define NETDEV_POLLMODE_EN  1
+  int poll_mode;
+  
+  /* user poll argument */
+  void *poll_arg;
+  
+  /* user poll input function.
+   * The system will automatically call poll_input() with each received packet */
+  int (*poll_input)(struct netdev *, struct pbuf *);
+};
+
+/*
+ * netdev poll_arg
+ */
+#define NETDEV_POLL_ARG(netdev) ((netdev)->poll.poll_arg)
 
 /*
  * network driver functions.
@@ -113,20 +136,29 @@ struct netdev_funcs {
   /* netdev receive a packet, system will call this function receive a packet. */
   void (*receive)(struct netdev *netdev, int (*input)(struct netdev *, struct pbuf *));
   
+  /* If netdev support poll mode you must set the following functions 
+   * Poll mode is often used for High-Speed, Real-Time network applications */
+  /* pollrecv() will be called by real-time applications. 
+   * if a packet arrived, pollrecv() must invoke netdev_notify(netdev, LINK_INPUT, 0); to receive packet */
+  void (*pollrecv)(struct netdev *netdev);
+  
+  /* intctl() can enable or disable netdev interrupt, in poll mode, SylixOS will disable netdev interrupt */
+  int (*intctl)(struct netdev *netdev, int en);
+  
   /* reserve for futrue */
-  void *reserved[8];
+  void (*reserved[6])();
 };
 
 /*
  * network device struct.
  */
 typedef struct netdev {
-#define NETDEV_VERSION  (0x00020002)
+#define NETDEV_VERSION  (0x00020003)
 #define NETDEV_MAGIC    (0xf7e34a81 + NETDEV_VERSION)
   UINT32 magic_no;  /* MUST be NETDEV_MAGIC */
 
   char  dev_name[IF_NAMESIZE];  /* user network device name (such as igb* rtl* also call initialize with '\0') */
-  char  if_name[IF_NAMESIZE];   /* add to system netif name (such as 'en') */
+  char  if_name[IF_NAMESIZE];   /* add to system netif name (such as 'en'), after netdev_add() if_name saved full ifname by system */
   char *if_hostname;
   
 #define NETDEV_INIT_LOAD_PARAM     0x01     /* load netif parameter when add to system */
@@ -175,6 +207,9 @@ typedef struct netdev {
   /* hwaddr filter list */
   struct netdev_mac *mac_filter;
   
+  /* SylixOS Real-Time externd(poll mode) */
+  struct netdev_poll poll;
+  
   /* SylixOS Reserve */
   void *kern_priv; /* kernel priv */
   void *kern_res[16];
@@ -189,6 +224,24 @@ int  netdev_add(netdev_t *netdev, const char *ip, const char *netmask, const cha
 int  netdev_delete(netdev_t *netdev); /* WARNING: You MUST DO NOT lock device then call this function, it will cause a deadlock with TCP LOCK */
 int  netdev_index(netdev_t *netdev, unsigned int *index);
 int  netdev_ifname(netdev_t *netdev, char *ifname);
+
+/* netdev outer firewall set,
+ * The system will automatically call fw() with each received packet,
+ * If fw() return 1, this indicates that the packet was eaten by fw(), 
+ * fw() must release the pbuf, then system will not receive this packet. */
+int  netdev_firewall(netdev_t *netdev, int (*fw)(netdev_t *, struct pbuf *));
+int  netdev_foreache(FUNCPTR pfunc, void *arg0, void *arg1, void *arg2, void *arg3, void *arg4, void *arg5);
+
+/* netdev poll mode set,
+ * Real-Time module can use netdev_poll_enable() to start a poll mode,
+ * and then Real-Time module must constantly call netdev_poll_svc().
+ * if driver received a packet, netdev will call poll_input() (which installed by netdev_poll_enable())
+ * Real-Time module can receive packet in poll_input() function.
+ * if poll_input() return 1, this indicates that the packet was eaten by poll_input(), 
+ * poll_input() must release the pbuf, then system will not receive this packet. */
+int  netdev_poll_enable(netdev_t *netdev, int (*poll_input)(struct netdev *, struct pbuf *), void *poll_arg);
+int  netdev_poll_disable(netdev_t *netdev);
+int  netdev_poll_svc(netdev_t *netdev);
 
 /* netdev mac filter */
 int  netdev_macfilter_isempty(netdev_t *netdev);
@@ -207,11 +260,12 @@ netdev_t *netdev_find_by_devname(const char *dev_name);
 int  netdev_set_linkup(netdev_t *netdev, int linkup, UINT64 speed);
 int  netdev_get_linkup(netdev_t *netdev, int *linkup);
 
-/* netdev linkup poll function 
- * NOTICE: one netdev can ONLY add one linkup_poll function.
- *         when netdev removed driver must delete poll function manually. */
-int  netdev_linkup_poll_add(netdev_t *netdev, void  (*linkup_poll)(netdev_t *));
-int  netdev_linkup_poll_delete(netdev_t *netdev, void  (*linkup_poll)(netdev_t *));
+/* netdev linkup watchdog function
+ * NOTICE: one netdev can ONLY add one linkup_wd function.
+ *         when netdev removed driver must delete watchdog function manually. 
+ *         this watchdog function only check and update the linkup state */
+int  netdev_linkup_wd_add(netdev_t *netdev, void  (*linkup_wd)(netdev_t *));
+int  netdev_linkup_wd_delete(netdev_t *netdev, void  (*linkup_wd)(netdev_t *));
 
 typedef enum {
   LINK_INPUT = 0,   /* packet input */

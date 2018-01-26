@@ -1169,7 +1169,7 @@ INT  dm9000Init (struct dm9000_netdev *dm9000, const char *ip, const char *netma
 
     if (netdev_add(&dm9000->netdev, ip, netmask, gw,
                    IFF_UP | IFF_RUNNING | IFF_BROADCAST | IFF_MULTICAST) == 0) {
-        netdev_linkup_poll_add(&dm9000->netdev, dm9000_watchdog);
+        netdev_linkup_wd_add(&dm9000->netdev, dm9000_watchdog);
         return  (0);
 
     } else {

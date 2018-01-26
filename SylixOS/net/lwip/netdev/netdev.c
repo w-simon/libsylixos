@@ -402,7 +402,7 @@ static int  netdev_netif_linkinput (netdev_t *netdev, struct pbuf *p)
   /* fixed pad */
   if (netdev->net_type == NETDEV_TYPE_ETHERNET) {
 #if ETH_PAD_SIZE
-  pbuf_header(p, ETH_PAD_SIZE);
+    pbuf_header(p, ETH_PAD_SIZE);
 #endif
 
     /* adjust pbuf length */
@@ -419,8 +419,18 @@ static int  netdev_netif_linkinput (netdev_t *netdev, struct pbuf *p)
     }
   }
 
-  if (netif->firewall && netif->firewall(netif, p)) {
-    return (0); /* firewall eaten */
+  if (netif->inner_fw && netif->inner_fw(netif, p)) {
+    return (0); /* inner firewall eaten */
+  }
+
+  if (netif->outer_fw && netif->outer_fw(netdev, p)) {
+    return (0); /* outer firewall eaten */
+  }
+  
+  if (netdev->poll.poll_mode == NETDEV_POLLMODE_EN) {
+    if (netdev->poll.poll_input(netdev, p)) {
+      return (0); /* poll hook eaten */
+    }
   }
 
   if (netif->input(p, netif)) {
@@ -643,6 +653,7 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
   
   netdev->if_flags = if_flags;
   netdev->mac_filter = NULL;
+  netdev->poll.poll_mode = NETDEV_POLLMODE_DIS; /* Initialize to normal mode */
   
   if (netdev->init_flags & NETDEV_INIT_LOAD_PARAM) {
     ifparam = if_param_load(netdev->dev_name);
@@ -693,7 +704,7 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
           netdev->init_flags &= ~NETDEV_INIT_IPV6_AUTOCFG;
         }
       }
-#endif
+#endif /* LWIP_IPV6 */
       
 #if LWIP_DHCP > 0
       if (!(netdev->init_flags & NETDEV_INIT_USE_DHCP)) {
@@ -707,7 +718,7 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
         netmask4.addr = IPADDR_ANY;
         gw4.addr = IPADDR_ANY;
       }
-#endif
+#endif /* LWIP_DHCP */
 
       if_param_unload(ifparam);
     }
@@ -720,8 +731,12 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
   if (netifapi_netif_add(netif, &ip4, &netmask4, &gw4, netdev, netdev_netif_init, tcpip_input)) {
     return (-1);
   }
-  
+
+  netif_get_name(netif, netdev->if_name); /* update netdev if_name */
+
+#if LWIP_IPV6
   netif_create_ip6_linklocal_address(netif, 1);
+#endif /* LWIP_IPV6 */
   
   if (netdev->init_flags & NETDEV_INIT_AS_DEFAULT) {
     netifapi_netif_set_default(netif);
@@ -732,7 +747,7 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
     netif->flags2 |= NETIF_FLAG2_DHCP;
     netifapi_dhcp_start(netif);
   }
-#endif
+#endif /* LWIP_DHCP */
 
   return (0);
 }
@@ -777,6 +792,107 @@ int  netdev_index (netdev_t *netdev, unsigned int *index)
   } else {
     return (-1);
   }
+}
+
+/* netdev set firewall */
+int  netdev_firewall (netdev_t *netdev, int (*fw)(netdev_t *, struct pbuf *))
+{
+  struct netif *netif;
+
+  if (!netdev || (netdev->magic_no != NETDEV_MAGIC)) {
+    return (-1);
+  }
+  
+  netif = (struct netif *)netdev->sys;
+  netif->outer_fw = (int (*)(void *, struct pbuf *))fw;
+  
+  return (0);
+}
+
+/* netdev traversal */
+int  netdev_foreache (FUNCPTR pfunc, void *arg0, void *arg1, 
+                      void *arg2, void *arg3, void *arg4, void *arg5)
+{
+  struct netif *netif;
+  netdev_t     *netdev;
+  
+  if (!pfunc) {
+    return (-1);
+  }
+  
+  NETIF_FOREACH(netif) {
+    if (netif->ioctl == netdev_netif_ioctl) {
+      netdev = (netdev_t *)(netif->state);
+      if (pfunc(netdev, arg0, arg1, arg2, arg3, arg4, arg5)) {
+        break;
+      }
+    }
+  }
+  
+  return (0);
+}
+
+/* netdev start poll mode */
+int  netdev_poll_enable (netdev_t *netdev, int (*poll_input)(struct netdev *, struct pbuf *), void *poll_arg)
+{
+  if (!netdev || !poll_input || (netdev->magic_no != NETDEV_MAGIC)) {
+    return (-1);
+  }
+  
+  if (!netdev->drv->pollrecv || !netdev->drv->intctl) {
+    errno = ENOTSUP;
+    return (-1);
+  }
+  
+  if (netdev->poll.poll_mode == NETDEV_POLLMODE_EN) {
+    errno = EBUSY;
+    return (-1);
+  }
+  
+  if (netdev->drv->intctl(netdev, 0)) {
+    return (-1);
+  }
+  
+  netdev->poll.poll_arg = poll_arg;
+  netdev->poll.poll_input = poll_input;
+  netdev->poll.poll_mode = NETDEV_POLLMODE_EN;
+  
+  return (0);
+}
+
+/* netdev stop poll mode */
+int  netdev_poll_disable (netdev_t *netdev)
+{
+  if (!netdev || (netdev->magic_no != NETDEV_MAGIC)) {
+    return (-1);
+  }
+  
+  if (netdev->poll.poll_mode == NETDEV_POLLMODE_DIS) {
+    return (0);
+  }
+  
+  netdev->poll.poll_mode = NETDEV_POLLMODE_DIS;
+  netdev->drv->intctl(netdev, 1);
+  
+  return (0);
+}
+
+/* netdev poll mode service */
+int  netdev_poll_svc (netdev_t *netdev)
+{
+  if (!netdev || (netdev->magic_no != NETDEV_MAGIC)) {
+    return (-1);
+  }
+  
+  if (netdev->poll.poll_mode == NETDEV_POLLMODE_DIS) {
+    return (-1);
+  }
+  
+  if (netdev->drv->pollrecv) {
+    netdev->drv->pollrecv(netdev);
+  }
+  
+  return (0);
 }
 
 /* netdev find (MUST in NETIF_LOCK mode) */
@@ -889,24 +1005,24 @@ int  netdev_get_linkup (netdev_t *netdev, int *linkup)
   return (0);
 }
 
-/* netdev linkup poll function 
- * NOTICE: one netdev can ONLY add one linkup_poll function.
- *         when netdev removed driver must delete poll function manually. */
-int  netdev_linkup_poll_add (netdev_t *netdev, void  (*linkup_poll)(netdev_t *))
+/* netdev linkup watchdog function 
+ * NOTICE: one netdev can ONLY add one linkup_wd function.
+ *         when netdev removed driver must delete watchdog function manually. */
+int  netdev_linkup_wd_add (netdev_t *netdev, void  (*linkup_wd)(netdev_t *))
 {
 #if LW_CFG_HOTPLUG_EN > 0
-  if (netdev && linkup_poll) {
-    return (hotplugPollAdd(linkup_poll, netdev));
+  if (netdev && linkup_wd) {
+    return (hotplugPollAdd(linkup_wd, netdev));
   }
 #endif /* LW_CFG_HOTPLUG_EN */
   return (-1);
 }
 
-int  netdev_linkup_poll_delete (netdev_t *netdev, void  (*linkup_poll)(netdev_t *))
+int  netdev_linkup_wd_delete (netdev_t *netdev, void  (*linkup_wd)(netdev_t *))
 {
 #if LW_CFG_HOTPLUG_EN > 0
-  if (netdev && linkup_poll) {
-    return (hotplugPollDelete(linkup_poll, netdev));
+  if (netdev && linkup_wd) {
+    return (hotplugPollDelete(linkup_wd, netdev));
   }
 #endif /* LW_CFG_HOTPLUG_EN */
   return (-1);

@@ -26,8 +26,8 @@
   time invald
 *********************************************************************************************************/
 
-#define LW_NSEC_INVALD(nsec)    (((nsec) < 0) || ((nsec) > __TIMEVAL_NSEC_MAX))
-#define LW_USEC_INVALD(usec)    (((usec) < 0) || ((usec) > __TIMEVAL_USEC_MAX))
+#define LW_NSEC_INVALD(nsec)    (((nsec) < 0) || ((nsec) >= __TIMEVAL_NSEC_MAX))
+#define LW_USEC_INVALD(usec)    (((usec) < 0) || ((usec) >= __TIMEVAL_USEC_MAX))
 
 /*********************************************************************************************************
   million and billion

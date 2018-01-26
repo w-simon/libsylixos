@@ -55,7 +55,7 @@ extern errno_t *__errno(VOID);                                          /* get e
 #define	EBADF			9		                                        /* Bad file number              */
 #define	ECHILD			10		                                        /* No children                  */
 #define	EAGAIN			11		                                        /* No more processes            */
-#define	ENOMEM			12		                                        /* Not enough core              */
+#define	ENOMEM			12		                                        /* No enough memory             */
 #define	EACCES			13		                                        /* Permission denied            */
 #define	EFAULT			14		                                        /* Bad address                  */
 #define	ENOTEMPTY		15		                                        /* Directory not empty          */

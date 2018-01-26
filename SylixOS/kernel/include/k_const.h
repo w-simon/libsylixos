@@ -205,6 +205,9 @@
 #define LW_KERNEL_HEAP_SIZE(s)      ((size_t)s - LW_CFG_CDUMP_BUF_SIZE)
 #define LW_KERNEL_CDUMP_START(a, s) ((PVOID)((addr_t)a + LW_KERNEL_HEAP_SIZE(s)))
 #define LW_KERNEL_CDUMP_SIZE(s)     LW_CFG_CDUMP_BUF_SIZE
+#else
+#define LW_KERNEL_HEAP_START(a)     ((PVOID)a)
+#define LW_KERNEL_HEAP_SIZE(s)      ((size_t)s)
 #endif
 
 /*********************************************************************************************************

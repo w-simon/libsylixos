@@ -238,8 +238,10 @@ igmp_report_groups(struct netif *netif)
 #if LWIP_IGMP_V3 /* SylixOS Add IGMPv3 Support */
   group = netif_igmp_data(netif);
   
-  /* We use first group to determine report all groups */
-  igmp_v3_delaying_member(group, IGMP_JOIN_DELAYING_MEMBER_TMR);
+  if (group) {
+    /* We use first group to determine report all groups */
+    igmp_v3_delaying_member(group, IGMP_JOIN_DELAYING_MEMBER_TMR);
+  }
 #endif /* LWIP_IGMP_V3 */
 }
 
@@ -299,7 +301,7 @@ igmp_lookup_group(struct netif *ifp, const ip4_addr_t *addr)
     group->last_reporter_flag = 0;
     group->use                = 0;
 #if LWIP_IGMP_V3 /* SylixOS Add IGMPv3 Support */
-    group->v3_fmode              = 2; /* Non mode with init-stat */
+    group->v3_fmode              = IGMP_FMODE_INIT; /* Non mode with init-stat */
     group->v3_timer              = 0; /* Not running */
     group->v3_group_state        = IGMP_GROUP_NON_MEMBER;
     group->v3_last_reporter_flag = 0;
@@ -415,8 +417,11 @@ igmp_input(struct pbuf *p, struct netif *inp, const ip4_addr_t *dest)
         if ((ip4_addr_cmp(dest, &allsystems)) && ip4_addr_isany(&igmp_v3->igmp_v3_group_address)) {
           /* THIS IS THE GENERAL QUERY */
           groupref = netif_igmp_data(inp);
-          /* We use first group to determine report all groups */
-          igmp_v3_delaying_member(groupref, igmp_v3->igmp_v3_maxresp);
+          
+          if (groupref) {
+            /* We use first group to determine report all groups */
+            igmp_v3_delaying_member(groupref, igmp_v3->igmp_v3_maxresp);
+          }
         
         } else {
           /* IGMP_MEMB_QUERY to a specific group ? */

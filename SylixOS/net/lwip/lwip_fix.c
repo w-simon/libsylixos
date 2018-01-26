@@ -809,7 +809,7 @@ void  sys_arch_msleep (u32_t ms)
 *********************************************************************************************************/
 u32_t  sys_now (void)
 {
-    UINT64      ullTemp = (UINT64)API_TimeGet64();                      /*  使用 64 位, 避免溢出        */
+    UINT64  ullTemp = (UINT64)API_TimeGet64();                          /*  使用 64 位, 避免溢出        */
     
     ullTemp = ((ullTemp * 1000) / LW_TICK_HZ);                          /*  变换为毫秒计数              */
     

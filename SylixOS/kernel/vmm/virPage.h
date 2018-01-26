@@ -29,7 +29,7 @@
   ÐéÄâ¿Õ¼ä²Ù×÷
 *********************************************************************************************************/
 
-PLW_MMU_VIRTUAL_DESC    __vmmVirtualDesc(UINT32  uiType, ULONG  ulZoneIndex);
+PLW_MMU_VIRTUAL_DESC    __vmmVirtualDesc(UINT32  uiType, ULONG  ulZoneIndex, ULONG  *pulFreePage);
 addr_t                  __vmmVirtualSwitch(VOID);
 
 BOOL                    __vmmVirtualIsInside(addr_t  ulAddr);

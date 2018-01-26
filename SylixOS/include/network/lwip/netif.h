@@ -368,9 +368,11 @@ struct netif {
   int (*ioctl)(struct netif *, int, void *);
   void (*up)(struct netif *); /* make net device up */
   void (*down)(struct netif *); /* make net device down */
-  int (*firewall)(struct netif *, struct pbuf *p); /* net packet filter hook */
-  /* sylixos externed flags */
-  long flags2; 
+  /* SylixOS firewall */
+  int (*inner_fw)(struct netif *, struct pbuf *p); /* inner firewall: net packet filter hook */
+  int (*outer_fw)(void *, struct pbuf *p); /* outer firewall (first arg is netdev *) */
+  /* SylixOS externed flags */
+  long flags2;
 #define NETIF_FLAG2_DHCP        1
 #define NETIF_FLAG2_PROMISC     2
 #define NETIF_FLAG2_ALLMULTI    4
@@ -620,10 +622,10 @@ typedef union
   {
     /** Index of affected IPv6 address */
     s8_t addr_index;
+    /** Old IPv6 address state */
+    u8_t old_state;
     /** Affected IPv6 address */
     const ip_addr_t* address;
-    /** SylixOS Add Old stat info */
-    u8_t old_state;
   } ipv6_addr_state_changed;
 } netif_ext_callback_args_t;
 

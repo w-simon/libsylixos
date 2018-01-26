@@ -81,7 +81,7 @@ int  net_ip_hook_delete(int (*hook)(int ip_type, int hook_type, struct pbuf *p,
   注意: 出于兼容性考虑, 不允许直接设置 if_out 成员变量.
 *********************************************************************************************************/
 
-void net_ip_hook_pbuf_set_ifout (struct pbuf *p, struct netif *pnetif);
+void net_ip_hook_pbuf_set_ifout(struct pbuf *p, struct netif *pnetif);
 
 /*********************************************************************************************************
   获取 netif 成员

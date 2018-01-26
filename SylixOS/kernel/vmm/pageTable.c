@@ -91,14 +91,14 @@ BOOL  __vmmLibVirtualOverlap (addr_t  ulAddr, size_t  stSize)
     PLW_MMU_VIRTUAL_DESC    pvirdescDev;
 
     for (i = 0; i < LW_CFG_VMM_VIR_NUM; i++) {
-        pvirdescApp = __vmmVirtualDesc(LW_VIRTUAL_MEM_APP, i);
+        pvirdescApp = __vmmVirtualDesc(LW_VIRTUAL_MEM_APP, i, LW_NULL);
         if (pvirdescApp->VIRD_stSize) {
             __ADDR_OVERLAP(pvirdescApp, ulAddr);
             __ADDR_OVERLAP(pvirdescApp, ulAddr + stSize - 1);
         }
     }
 
-    pvirdescDev = __vmmVirtualDesc(LW_VIRTUAL_MEM_DEV, 0);
+    pvirdescDev = __vmmVirtualDesc(LW_VIRTUAL_MEM_DEV, 0, LW_NULL);
     if (pvirdescDev->VIRD_stSize) {
         __ADDR_OVERLAP(pvirdescDev, ulAddr);
         __ADDR_OVERLAP(pvirdescDev, ulAddr + stSize - 1);

@@ -47,7 +47,7 @@ PCHAR  lib_strerror (INT  iNum)
     case EBADF:         return  ("Bad file number");
     case ECHILD:        return  ("No children");
     case EAGAIN:        return  ("No more processes or operation would block");
-    case ENOMEM:        return  ("Not enough core");
+    case ENOMEM:        return  ("No enough memory");
     case EACCES:        return  ("Permission denied or can not access");
     case EFAULT:        return  ("Bad address");
     case ENOTEMPTY:     return  ("Directory not empty");

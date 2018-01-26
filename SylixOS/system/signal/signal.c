@@ -846,7 +846,6 @@ INT  kill (LW_OBJECT_HANDLE  ulId, INT  iSigNo)
         _ErrorHandle(ESRCH);
         return  (PX_ERROR);
     }
-    
     if (iSigNo == 0) {                                                  /*  测试目标是否存在            */
         return  (ERROR_NONE);
     
@@ -923,21 +922,20 @@ INT  raise (INT  iSigNo)
     return  (kill(API_ThreadIdSelf(), iSigNo));
 }
 /*********************************************************************************************************
-** 函数名称: sigqueue
+** 函数名称: __sigqueue
 ** 功能描述: 发送队列类型信号, 如果是进程, 将发送给其主线程.
 ** 输　入  : ulId                    线程 id 或者 进程号
 **           iSigNo                  信号
-**           sigvalue                信号 value
+**           psigvalue               信号 value
 ** 输　出  : ERROR or OK
 ** 全局变量: 
 ** 调用模块: 
-                                           API 函数
 *********************************************************************************************************/
-LW_API  
-INT  sigqueue (LW_OBJECT_HANDLE  ulId, INT   iSigNo, const union sigval  sigvalue)
+static INT  __sigqueue (LW_OBJECT_HANDLE  ulId, INT   iSigNo, const union sigval *psigvalue)
 {
     REGISTER UINT16             usIndex;
     REGISTER PLW_CLASS_TCB      ptcb;
+    union    sigval             sigvalue = *psigvalue;
     
 #if LW_CFG_SIGNALFD_EN > 0
              LW_SEND_VAL        sendval;
@@ -951,27 +949,12 @@ INT  sigqueue (LW_OBJECT_HANDLE  ulId, INT   iSigNo, const union sigval  sigvalu
     
     usIndex = _ObjectGetIndex(ulId);
     
-    if (!_ObjectClassOK(ulId, _OBJECT_THREAD)) {                        /*  检查 ID 类型有效性          */
-        _ErrorHandle(ESRCH);
-        return  (PX_ERROR);
-    }
-    if (_Thread_Index_Invalid(usIndex)) {                               /*  检查线程有效性              */
-        _ErrorHandle(ESRCH);
-        return  (PX_ERROR);
-    }
-    
     if (iSigNo == 0) {                                                  /*  测试目标是否存在            */
         return  (ERROR_NONE);
     
     } else if (!__issig(iSigNo)) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
-    }
-    
-    if (LW_CPU_GET_CUR_NESTING() || (ulId == API_ThreadIdSelf())) {
-        _excJobAdd((VOIDFUNCPTR)sigqueue, (PVOID)ulId, (PVOID)iSigNo, (PVOID)sigvalue.sival_ptr, 
-                   0, 0, 0);
-        return  (ERROR_NONE);
     }
     
 #if LW_CFG_SMP_EN > 0
@@ -1021,6 +1004,46 @@ INT  sigqueue (LW_OBJECT_HANDLE  ulId, INT   iSigNo, const union sigval  sigvalu
 #endif                                                                  /*  LW_CFG_SIGNALFD_EN > 0      */
     
     return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: sigqueue
+** 功能描述: 发送队列类型信号, 如果是进程, 将发送给其主线程.
+** 输　入  : ulId                    线程 id 或者 进程号
+**           iSigNo                  信号
+**           sigvalue                信号 value
+** 输　出  : ERROR or OK
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+INT  sigqueue (LW_OBJECT_HANDLE  ulId, INT   iSigNo, const union sigval  sigvalue)
+{
+    REGISTER UINT16  usIndex;
+
+#if LW_CFG_MODULELOADER_EN > 0
+    if (ulId <= LW_CFG_MAX_THREADS) {                                   /*  进程号                      */
+        ulId  = vprocMainThread((pid_t)ulId);
+    }
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
+
+    usIndex = _ObjectGetIndex(ulId);
+    
+    if (!_ObjectClassOK(ulId, _OBJECT_THREAD)) {                        /*  检查 ID 类型有效性          */
+        _ErrorHandle(ESRCH);
+        return  (PX_ERROR);
+    }
+    if (_Thread_Index_Invalid(usIndex)) {                               /*  检查线程有效性              */
+        _ErrorHandle(ESRCH);
+        return  (PX_ERROR);
+    }
+
+    if (LW_CPU_GET_CUR_NESTING() || (ulId == API_ThreadIdSelf())) {
+        _excJobAdd((VOIDFUNCPTR)__sigqueue, (PVOID)ulId, (PVOID)iSigNo, (PVOID)&sigvalue, 0, 0, 0);
+        return  (ERROR_NONE);
+    }
+    
+    return  (__sigqueue(ulId, iSigNo, &sigvalue));
 }
 /*********************************************************************************************************
 ** 函数名称: sigTrap

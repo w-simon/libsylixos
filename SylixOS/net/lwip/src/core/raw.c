@@ -54,6 +54,7 @@
 #include "lwip/ip_addr.h"
 #include "lwip/netif.h"
 #include "lwip/raw.h"
+#include "lwip/priv/raw_priv.h"
 #include "lwip/stats.h"
 #include "lwip/ip6.h"
 #include "lwip/ip6_addr.h"
@@ -142,12 +143,12 @@ raw_input_local_match(struct raw_pcb *pcb, u8_t broadcast, struct netif *inp)
  *           caller).
  *
  */
-u8_t
-raw_input(struct pbuf *p, struct netif *inp, u8_t *deliver)
+raw_input_state_t
+raw_input(struct pbuf *p, struct netif *inp)
 {
   struct raw_pcb *pcb, *prev;
   s16_t proto;
-  u8_t eaten = 0;
+  raw_input_state_t ret = RAW_INPUT_NONE;
   u8_t broadcast = ip_addr_isbroadcast(ip_current_dest_addr(), ip_current_netif());
 
   LWIP_UNUSED_ARG(inp);
@@ -175,12 +176,11 @@ raw_input(struct pbuf *p, struct netif *inp, u8_t *deliver)
   }
 #endif /* LWIP_IPV4 */
 
-  *deliver = 0;
   prev = NULL;
   pcb = raw_pcbs;
   /* loop through all raw pcbs until the packet is eaten by one */
   /* this allows multiple pcbs to match against the packet by design */
-  while ((eaten == 0) && (pcb != NULL)) {
+  while (pcb != NULL) {
     if ((pcb->protocol == proto) && raw_input_local_match(pcb, broadcast, inp) &&
         (((pcb->flags & RAW_FLAGS_CONNECTED) == 0) ||
          ip_addr_cmp(&pcb->remote_ip, ip_current_src_addr()))) {
@@ -199,16 +199,16 @@ raw_input(struct pbuf *p, struct netif *inp, u8_t *deliver)
 #endif /* SYLIXOS */
       /* receive callback function available? */
       if (pcb->recv != NULL) {
+        u8_t eaten;
 #ifndef LWIP_NOASSERT
         void *old_payload = p->payload;
 #endif
-        *deliver = 1;
+        ret = RAW_INPUT_DELIVERED;
         /* the receive callback function did not eat the packet? */
         eaten = pcb->recv(pcb->recv_arg, pcb, p, ip_current_src_addr());
         if (eaten != 0) {
           /* receive function ate the packet */
           p = NULL;
-          eaten = 1;
           if (prev != NULL) {
             /* move the pcb to the front of raw_pcbs so that is
                found faster next time */
@@ -216,6 +216,7 @@ raw_input(struct pbuf *p, struct netif *inp, u8_t *deliver)
             pcb->next = raw_pcbs;
             raw_pcbs = pcb;
           }
+          return RAW_INPUT_EATEN;
         } else {
           /* sanity-check that the receive callback did not alter the pbuf */
           LWIP_ASSERT("raw pcb recv callback altered pbuf payload pointer without eating packet",
@@ -228,7 +229,7 @@ raw_input(struct pbuf *p, struct netif *inp, u8_t *deliver)
     prev = pcb;
     pcb = pcb->next;
   }
-  return eaten;
+  return ret;
 }
 
 /**

@@ -50,11 +50,6 @@
 #include "lwip/etharp.h"
 #include "netif/ethernet.h"
 
-/* SylixOS Add need some hooks */
-#ifdef LWIP_HOOK_FILENAME
-#include LWIP_HOOK_FILENAME
-#endif
-
 #define TCPIP_MSG_VAR_REF(name)     API_VAR_REF(name)
 #define TCPIP_MSG_VAR_DECLARE(name) API_VAR_DECLARE(struct tcpip_msg, name)
 #define TCPIP_MSG_VAR_ALLOC(name)   API_VAR_ALLOC(struct tcpip_msg, MEMP_TCPIP_MSG_API, name, ERR_MEM)
@@ -285,14 +280,6 @@ tcpip_inpkt(struct pbuf *p, struct netif *inp, netif_input_fn input_fn)
 err_t
 tcpip_input(struct pbuf *p, struct netif *inp)
 {
-#if defined(SYLIXOS) && defined(LWIP_HOOK_LINK_INPUT) /* SylixOS Add this hook */
-  if (LWIP_HOOK_LINK_INPUT(p, inp)) {
-    /* the packet has been eaten */
-    pbuf_free(p);
-    return ERR_OK;
-  }
-#endif /* SYLIXOS && LWIP_HOOK_TCPIP_INPUT */
-
 #if LWIP_ETHERNET
   if (inp->flags & (NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET)) {
     return tcpip_inpkt(p, inp, ethernet_input);

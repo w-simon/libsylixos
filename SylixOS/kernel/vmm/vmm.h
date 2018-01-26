@@ -139,20 +139,25 @@ LW_API VOID         API_VmmFree(PVOID  pvVirtualMem);                   /*  回收
 
 LW_API ULONG        API_VmmVirtualToPhysical(addr_t  ulVirtualAddr, 
                                              addr_t *pulPhysicalAddr);  /*  通过虚拟地址获取物理地址    */
-                                             
+
 LW_API BOOL         API_VmmVirtualIsInside(addr_t  ulAddr);             /*  指定地址是否在管理的虚拟空间*/
-                                             
+
 LW_API ULONG        API_VmmZoneStatus(ULONG     ulZoneIndex,
-                                      addr_t   *pulPhysicalAddr,
+                                      addr_t   *pulPhysicalAddr,        /*  0 ~ LW_CFG_VMM_ZONE_NUM - 1 */
                                       size_t   *pstSize,
                                       addr_t   *pulPgd,
                                       ULONG    *pulFreePage,
-                                      BOOL     *puiAttr);               /*  获得物理区域的信息          */
-                                      
-LW_API ULONG        API_VmmVirtualStatus(addr_t  *pulVirtualAddr,
+                                      UINT     *puiAttr);               /*  获得物理区域的信息          */
+
+LW_API ULONG        API_VmmVirtualStatus(UINT32   uiType,               /*  LW_VIRTUAL_MEM_APP / DEV    */
+                                         ULONG    ulZoneIndex,          /*  0 ~ LW_CFG_VMM_VIR_NUM - 1  */
+                                         addr_t  *pulVirtualAddr,
                                          size_t  *pulSize,
                                          ULONG   *pulFreePage);         /*  获得虚拟空间信息            */
-                                         
+
+LW_API VOID         API_VmmPhysicalKernelDesc(PLW_MMU_PHYSICAL_DESC  pphydescText, 
+                                              PLW_MMU_PHYSICAL_DESC  pphydescData);
+                                                                        /*  获得内核 TEXT DATA 段描述   */
 /*********************************************************************************************************
   VMM 扩展操作
   
@@ -379,6 +384,7 @@ LW_API VOID         API_VmmAbortIsr(addr_t          ulRetAddr,
 
 #define vmmZoneStatus               API_VmmZoneStatus
 #define vmmVirtualStatus            API_VmmVirtualStatus
+#define vmmPhysicalKernelDesc       API_VmmPhysicalKernelDesc
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */

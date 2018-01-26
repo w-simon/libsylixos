@@ -67,6 +67,10 @@ struct igmp_src {
 #define IGMP_DEL_MAC_FILTER            NETIF_DEL_MAC_FILTER
 #define IGMP_ADD_MAC_FILTER            NETIF_ADD_MAC_FILTER
 
+#if LWIP_IGMP_V3 /* SylixOS Add IGMPv3 Support */
+#define IGMP_FMODE_INIT                2 /* Not MCAST_INCLUDE or MCAST_EXCLUDE */
+#endif /* LWIP_IGMP_V3 */
+
 /**
  * igmp group structure - there is
  * a list of groups for each interface

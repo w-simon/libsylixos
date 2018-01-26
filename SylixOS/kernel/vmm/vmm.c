@@ -812,7 +812,7 @@ ULONG  API_VmmZoneStatus (ULONG     ulZoneIndex,
                           size_t   *pstSize,
                           addr_t   *pulPgd,
                           ULONG    *pulFreePage,
-                          BOOL     *puiAttr)
+                          UINT     *puiAttr)
 {
 #if LW_CFG_VMM_L4_HYPERVISOR_EN == 0
     PLW_MMU_CONTEXT    pmmuctx = __vmmGetCurCtx();
@@ -850,7 +850,9 @@ ULONG  API_VmmZoneStatus (ULONG     ulZoneIndex,
 /*********************************************************************************************************
 ** 函数名称: API_VmmVirtualStatus
 ** 功能描述: 获得 virtual 的情况
-** 输　入  : pulVirtualAddr     虚拟地址
+** 输　入  : uiType             虚拟空间类型 LW_VIRTUAL_MEM_APP / LW_VIRTUAL_MEM_DEV
+**           ulZoneIndex        虚拟空间索引 [0 ~ LW_CFG_VMM_VIR_NUM - 1]
+**           pulVirtualAddr     虚拟地址
 **           pstSize            大小
 **           pulFreePage        页面的个数
 ** 输　出  : ERROR CODE
@@ -859,12 +861,46 @@ ULONG  API_VmmZoneStatus (ULONG     ulZoneIndex,
                                            API 函数
 *********************************************************************************************************/
 LW_API  
-ULONG  API_VmmVirtualStatus (addr_t   *pulVirtualAddr,
+ULONG  API_VmmVirtualStatus (UINT32    uiType,
+                             ULONG     ulZoneIndex,
+                             addr_t   *pulVirtualAddr,
                              size_t   *pstSize,
                              ULONG    *pulFreePage)
 {
-    _ErrorHandle(ENOSYS);
-    return  (ERROR_NONE);
+    PLW_MMU_VIRTUAL_DESC    pvmvirDesc;
+    
+    __VMM_LOCK();
+    pvmvirDesc = __vmmVirtualDesc(uiType, ulZoneIndex, pulFreePage);
+    if (pvmvirDesc) {
+        __VMM_UNLOCK();
+        if (pulVirtualAddr) {
+            *pulVirtualAddr = pvmvirDesc->VIRD_ulVirAddr;
+        }
+        if (pstSize) {
+            *pstSize = pvmvirDesc->VIRD_stSize;
+        }
+        return  (ERROR_NONE);
+    
+    } else {
+        __VMM_UNLOCK();
+        _ErrorHandle(EINVAL);
+        return  (ERROR_NONE);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: API_VmmPhysicalKernelDesc
+** 功能描述: 获得物理内存内核 TEXT DATA 段描述
+** 输　入  : pphydescText      内核 TEXT 段描述
+**           pphydescData      内核 DATA 段描述
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+LW_API
+VOID  API_VmmPhysicalKernelDesc (PLW_MMU_PHYSICAL_DESC  pphydescText, 
+                                 PLW_MMU_PHYSICAL_DESC  pphydescData)
+{
+    __vmmPhysicalGetKernelDesc(pphydescText, pphydescData);
 }
 /*********************************************************************************************************
 ** 函数名称: getpagesize

@@ -88,6 +88,13 @@ ethernet_input(struct pbuf *p, struct netif *netif)
 
   LWIP_ASSERT_CORE_LOCKED();
 
+#if defined(SYLIXOS) && defined(LWIP_HOOK_LINK_INPUT) /* SylixOS Add this hook */
+  if (LWIP_HOOK_LINK_INPUT(p, netif)) {
+    /* the packet has been eaten */
+    goto free_and_return;
+  }
+#endif /* SYLIXOS && LWIP_HOOK_TCPIP_INPUT */
+
   if (p->len <= SIZEOF_ETH_HDR) {
     /* a packet with only an ethernet header (or less) is not valid for us */
     ETHARP_STATS_INC(etharp.proterr);

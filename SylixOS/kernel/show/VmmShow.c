@@ -55,14 +55,6 @@ VIRTUAL    SIZE   WRITE CACHE\n\
 -------- -------- ----- -----\n";
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT adj  */
 /*********************************************************************************************************
-  全局变量声明
-*********************************************************************************************************/
-extern LW_VMM_ZONE          _G_vmzonePhysical[LW_CFG_VMM_ZONE_NUM];     /*  物理区域                    */
-/*********************************************************************************************************
-  内部函数声明
-*********************************************************************************************************/
-extern ULONG                __vmmLibVirtualToPhysical(addr_t  ulVirtualAddr, addr_t  *pulPhysical);
-/*********************************************************************************************************
 ** 函数名称: API_VmmPhysicalShow
 ** 功能描述: 显示 vmm 物理存储器信息
 ** 输　入  : NONE
@@ -75,55 +67,47 @@ LW_API
 VOID  API_VmmPhysicalShow (VOID)
 {
     REGISTER INT                    i;
+             addr_t                 ulPhysicalAddr;
              LW_MMU_PHYSICAL_DESC   phydescKernel[2];
              PCHAR                  pcDma;
+             UINT                   uiAttr;
+             ULONG                  ulFreePage;
+             addr_t                 ulPgd;
+             size_t                 stSize;
              size_t                 stUsed;
              
              size_t                 stTotalSize = 0;
              size_t                 stFreeSize  = 0;
-             
-#if LW_CFG_VMM_L4_HYPERVISOR_EN == 0
-             PLW_MMU_CONTEXT        pmmuctx = __vmmGetCurCtx();
-#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
 
     printf("vmm physical zone show >>\n");
     printf(_G_cZoneInfoHdr);                                            /*  打印欢迎信息                */
     
-    __VMM_LOCK();
     for (i = 0; i < LW_CFG_VMM_ZONE_NUM; i++) {
-        if (!_G_vmzonePhysical[i].ZONE_stSize) {
-            break;
+        if (API_VmmZoneStatus(i, &ulPhysicalAddr, &stSize, 
+                              &ulPgd, &ulFreePage, &uiAttr)) {
+            continue;
         }
-    
-        pcDma  = (_G_vmzonePhysical[i].ZONE_uiAttr & LW_ZONE_ATTR_DMA) ? "true" : "false";
-        stUsed = (_G_vmzonePhysical[i].ZONE_stSize 
-               - (size_t)(_G_vmzonePhysical[i].ZONE_ulFreePage << LW_CFG_VMM_PAGE_SHIFT));
-        stUsed = (stUsed / (_G_vmzonePhysical[i].ZONE_stSize / 100));   /*  防止溢出                    */
+        if (!stSize) {
+            continue;
+        }
+        
+        pcDma  = (uiAttr & LW_ZONE_ATTR_DMA) ? "true" : "false";
+        stUsed = stSize - (ulFreePage << LW_CFG_VMM_PAGE_SHIFT);
+        stUsed = (stUsed / (stSize / 100));                             /*  防止溢出                    */
         
 #if LW_CFG_CPU_WORD_LENGHT == 64
         printf("%4d %16lx %12zx %8zx %16lx %8ld %-5s %3zd%%\n",
 #else
         printf("%4d %08lx %8zx %8zx %08lx %8ld %-5s %3zd%%\n",
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT adj  */
-               i, 
-               _G_vmzonePhysical[i].ZONE_ulAddr,
-               _G_vmzonePhysical[i].ZONE_stSize,
-               (size_t)LW_CFG_VMM_PAGE_SIZE,
-#if LW_CFG_VMM_L4_HYPERVISOR_EN > 0
-               (addr_t)0,
-#else
-               (addr_t)pmmuctx->MMUCTX_pgdEntry,
-#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
-               _G_vmzonePhysical[i].ZONE_ulFreePage,
-               pcDma,
-               stUsed);
+               i, ulPhysicalAddr, stSize, (size_t)LW_CFG_VMM_PAGE_SIZE,
+               ulPgd, ulFreePage, pcDma, stUsed);
                
-        stTotalSize += (size_t)(_G_vmzonePhysical[i].ZONE_stSize);
-        stFreeSize  += (size_t)(_G_vmzonePhysical[i].ZONE_ulFreePage * LW_CFG_VMM_PAGE_SIZE);
+        stTotalSize += stSize;
+        stFreeSize  += (ulFreePage << LW_CFG_VMM_PAGE_SHIFT);
     }
     
-    __vmmPhysicalGetKernelDesc(&phydescKernel[0], &phydescKernel[1]);
-    __VMM_UNLOCK();
+    API_VmmPhysicalKernelDesc(&phydescKernel[0], &phydescKernel[1]);
     
     printf("\n"
            "ALL-Physical memory size: %zu MBytes (%zu Bytes)\n"
@@ -180,29 +164,41 @@ static VOID  __vmmVirtualPrint (PLW_VMM_PAGE  pvmpage)
 LW_API  
 VOID  API_VmmVirtualShow (VOID)
 {
-    INT                     i;
-    PLW_MMU_VIRTUAL_DESC    pvirdescApp;
-    PLW_MMU_VIRTUAL_DESC    pvirdescDev;
+    INT     i;
+    addr_t  ulVirtualAddr;
+    size_t  stSize;
+    ULONG   ulFreePage;
+    size_t  stUsed;
     
     printf("vmm virtual area show >>\n");
     
     for (i = 0; i < LW_CFG_VMM_VIR_NUM; i++) {
-        pvirdescApp = __vmmVirtualDesc(LW_VIRTUAL_MEM_APP, i);
-        if (pvirdescApp->VIRD_stSize) {
-            printf("vmm virtual program from: 0x%08lx, size: 0x%08zx\n", 
-                   pvirdescApp->VIRD_ulVirAddr,
-                   pvirdescApp->VIRD_stSize);
+        if (API_VmmVirtualStatus(LW_VIRTUAL_MEM_APP, i, &ulVirtualAddr, &stSize, &ulFreePage)) {
+            continue;
         }
+        if (!stSize) {
+            continue;
+        }
+        
+        stUsed = stSize - (ulFreePage << LW_CFG_VMM_PAGE_SHIFT);
+        stUsed = (stUsed / (stSize / 100));
+        
+        printf("vmm virtual program from: 0x%08lx, size: 0x%08zx, used: %zd%%\n", 
+               ulVirtualAddr, stSize, stUsed);
     }
 
-    pvirdescDev = __vmmVirtualDesc(LW_VIRTUAL_MEM_DEV, 0);
-    if (pvirdescDev->VIRD_stSize) {
-        printf("vmm virtual ioremap from: 0x%08lx, size: 0x%08zx\n", 
-                      pvirdescDev->VIRD_ulVirAddr,
-                      pvirdescDev->VIRD_stSize);
-        printf("vmm virtual area usage as follow:\n");
+    if (API_VmmVirtualStatus(LW_VIRTUAL_MEM_DEV, 0, &ulVirtualAddr, &stSize, &ulFreePage)) {
+        return;
     }
-                  
+    
+    stUsed = stSize - (ulFreePage << LW_CFG_VMM_PAGE_SHIFT);
+    stUsed = (stUsed / (stSize / 100));
+    
+    printf("vmm virtual ioremap from: 0x%08lx, size: 0x%08zx, used: %zd%%\n", 
+           ulVirtualAddr, stSize, stUsed);
+    
+    printf("vmm virtual area usage as follow:\n");
+    
     printf(_G_cAreaInfoHdr);                                            /*  打印欢迎信息                */
     
     __VMM_LOCK();
