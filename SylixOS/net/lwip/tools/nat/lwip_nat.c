@@ -41,22 +41,6 @@
 /*********************************************************************************************************
   函数声明
 *********************************************************************************************************/
-VOID        __natInit(VOID);
-INT         __natStart(struct netif *pnetifLocal, struct netif *pnetifAp);
-INT         __natStop(VOID);
-INT         __natAddLocal(struct netif *pnetifLocal);
-INT         __natAddAp(struct netif *pnetifAp);
-INT         __natMapAdd(ip4_addr_t  *pipaddr, u16_t  usIpCnt, u16_t  usPort, u16_t  AssPort, u8_t  ucProto);
-INT         __natMapDelete(ip4_addr_t  *pipaddr, u16_t  usPort, u16_t  AssPort, u8_t  ucProto);
-INT         __natAliasAdd(const ip4_addr_t  *pipaddrAlias, 
-                          const ip4_addr_t  *ipaddrSLocalIp,
-                          const ip4_addr_t  *ipaddrELocalIp);
-INT         __natAliasDelete(const ip4_addr_t  *pipaddrAlias);
-
-#if LW_CFG_PROCFS_EN > 0
-VOID        __procFsNatInit(VOID);
-#endif                                                                  /*  LW_CFG_PROCFS_EN > 0        */
-
 #if LW_CFG_SHELL_EN > 0
 static INT  __tshellNat(INT  iArgC, PCHAR  ppcArgV[]);
 static INT  __tshellNatLocal(INT  iArgC, PCHAR  ppcArgV[]);
@@ -136,24 +120,13 @@ VOID  API_INetNatInit (VOID)
 LW_API  
 INT  API_INetNatStart (CPCHAR  pcLocalNetif, CPCHAR  pcApNetif)
 {
-    struct netif   *pnetifLocal;
-    struct netif   *pnetifAp;
-
     if (!pcLocalNetif || !pcApNetif) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
     
     LWIP_IF_LIST_LOCK(LW_FALSE);
-    pnetifLocal = netif_find(pcLocalNetif);
-    pnetifAp    = netif_find(pcApNetif);
-    if (!pnetifLocal || !pnetifAp) {                                    /*  有网络接口不存在            */
-        LWIP_IF_LIST_UNLOCK();
-        _ErrorHandle(ENXIO);
-        return  (PX_ERROR);
-    }
-    
-    if (__natStart(pnetifLocal, pnetifAp)) {                            /*  启动 NAT                    */
+    if (__natStart(pcLocalNetif, pcApNetif)) {                          /*  启动 NAT                    */
         LWIP_IF_LIST_UNLOCK();
         return  (PX_ERROR);
     }
@@ -192,17 +165,8 @@ INT  API_INetNatStop (VOID)
 LW_API  
 INT  API_INetNatLocalAdd (CPCHAR  pcLocalNetif)
 {
-    struct netif   *pnetifLocal;
-    
     LWIP_IF_LIST_LOCK(LW_FALSE);
-    pnetifLocal = netif_find(pcLocalNetif);
-    if (!pnetifLocal) {                                                 /*  有网络接口不存在            */
-        LWIP_IF_LIST_UNLOCK();
-        _ErrorHandle(ENXIO);
-        return  (PX_ERROR);
-    }
-    
-    if (__natAddLocal(pnetifLocal)) {
+    if (__natAddLocal(pcLocalNetif)) {
         LWIP_IF_LIST_UNLOCK();
         return  (PX_ERROR);
     }
@@ -222,17 +186,8 @@ INT  API_INetNatLocalAdd (CPCHAR  pcLocalNetif)
 LW_API  
 INT  API_INetNatWanAdd (CPCHAR  pcApNetif)
 {
-    struct netif   *pnetifAp;
-    
     LWIP_IF_LIST_LOCK(LW_FALSE);
-    pnetifAp = netif_find(pcApNetif);
-    if (!pnetifAp) {                                                    /*  有网络接口不存在            */
-        LWIP_IF_LIST_UNLOCK();
-        _ErrorHandle(ENXIO);
-        return  (PX_ERROR);
-    }
-    
-    if (__natAddAp(pnetifAp)) {
+    if (__natAddAp(pcApNetif)) {
         LWIP_IF_LIST_UNLOCK();
         return  (PX_ERROR);
     }
@@ -348,8 +303,7 @@ INT  API_INetNatAliasAdd (CPCHAR  pcAliasIp, CPCHAR  pcSLocalIp, CPCHAR  pcELoca
     ip4_addr_t  ipaddrAlias;
     ip4_addr_t  ipaddrSLocalIp;
     ip4_addr_t  ipaddrELocalIp;
-    
-    INT        iRet;
+    INT         iRet;
     
     if (!pcAliasIp || !pcSLocalIp || !pcELocalIp) {
         _ErrorHandle(EINVAL);
@@ -388,7 +342,7 @@ LW_API
 INT  API_INetNatAliasDelete (CPCHAR  pcAliasIp)
 {
     ip4_addr_t  ipaddrAlias;
-    INT        iRet;
+    INT         iRet;
     
     if (!pcAliasIp) {
         _ErrorHandle(EINVAL);

@@ -65,12 +65,19 @@
 #define __NAT_LOCK()        LOCK_TCPIP_CORE()
 #define __NAT_UNLOCK()      UNLOCK_TCPIP_CORE()
 /*********************************************************************************************************
+  NAT 接口类型
+*********************************************************************************************************/
+typedef struct {
+    CHAR            NATIF_cIfName[IF_NAMESIZE];
+    struct netif   *NATIF_pnetif;
+} __NAT_IF;
+typedef __NAT_IF   *__PNAT_IF;
+/*********************************************************************************************************
   NAT 本地内网与 AP 外网网络接口
 *********************************************************************************************************/
-static struct netif        *_G_pnetifNatAp[LW_CFG_NET_NAT_MAX_AP_IF];
-static struct netif        *_G_pnetifNatLocal[LW_CFG_NET_NAT_MAX_LOCAL_IF];
-static UINT                 _G_uiNatApCnt;
-static UINT                 _G_uiNatLocalCnt;
+static __NAT_IF             _G_natifAp[LW_CFG_NET_NAT_MAX_AP_IF];
+static __NAT_IF             _G_natifLocal[LW_CFG_NET_NAT_MAX_LOCAL_IF];
+static BOOL                 _G_bNatStart = LW_FALSE;
 /*********************************************************************************************************
   NAT 控制块缓冲池
 *********************************************************************************************************/
@@ -91,6 +98,77 @@ static LW_LIST_LINE_HEADER  _G_plineNatalias = LW_NULL;
   NAT 外网主动连接
 *********************************************************************************************************/
 static LW_LIST_LINE_HEADER  _G_plineNatmap = LW_NULL;
+/*********************************************************************************************************
+** 函数名称: nat_netif_add_hook
+** 功能描述: NAT 网络接口加入回调
+** 输　入  : pnetif    被加入的网络接口
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+VOID  nat_netif_add_hook (struct netif *pnetif)
+{
+    INT    i;
+    CHAR   cIfName[IF_NAMESIZE];
+    
+    if (!_G_bNatStart) {
+        return;
+    }
+    
+    __NAT_LOCK();
+    netif_get_name(pnetif, cIfName);
+    
+    for (i = 0; i < LW_CFG_NET_NAT_MAX_AP_IF; i++) {
+        if (_G_natifAp[i].NATIF_pnetif == LW_NULL) {
+            if (!lib_strcmp(cIfName, _G_natifAp[i].NATIF_cIfName)) {
+                _G_natifAp[i].NATIF_pnetif = pnetif;
+                goto    out;
+            }
+        }
+    }
+    for (i = 0; i < LW_CFG_NET_NAT_MAX_LOCAL_IF; i++) {
+        if (_G_natifLocal[i].NATIF_pnetif == LW_NULL) {
+            if (!lib_strcmp(cIfName, _G_natifLocal[i].NATIF_cIfName)) {
+                _G_natifLocal[i].NATIF_pnetif = pnetif;
+                goto    out;
+            }
+        }
+    }
+out:
+    __NAT_UNLOCK();
+}
+/*********************************************************************************************************
+** 函数名称: nat_netif_remove_hook
+** 功能描述: NAT 网络接口移除回调
+** 输　入  : pnetif    被移除的网络接口
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+VOID  nat_netif_remove_hook (struct netif *pnetif)
+{
+    INT  i;
+    
+    if (!_G_bNatStart) {
+        return;
+    }
+    
+    __NAT_LOCK();
+    for (i = 0; i < LW_CFG_NET_NAT_MAX_AP_IF; i++) {
+        if (_G_natifAp[i].NATIF_pnetif == pnetif) {
+            _G_natifAp[i].NATIF_pnetif =  LW_NULL;
+            goto    out;
+        }
+    }
+    for (i = 0; i < LW_CFG_NET_NAT_MAX_LOCAL_IF; i++) {
+        if (_G_natifLocal[i].NATIF_pnetif == pnetif) {
+            _G_natifLocal[i].NATIF_pnetif =  LW_NULL;
+            goto    out;
+        }
+    }
+out:
+    __NAT_UNLOCK();
+}
 /*********************************************************************************************************
 ** 函数名称: __natChksumAdjust
 ** 功能描述: 调整 NAT 数据包校验和.
@@ -612,7 +690,6 @@ static err_t  __natApInput (struct pbuf *p, struct netif *netifIn)
     PLW_LIST_LINE            plineTemp;
     LW_LIST_LINE_HEADER      plineHeader;
     
-    
     iphdrlen  = (u16_t)IPH_HL(iphdr);                                   /*  获得 IP 报头长度            */
     iphdrlen *= 4;
     
@@ -812,12 +889,12 @@ static err_t  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct net
     PLW_LIST_LINE            plineTemp;
     LW_LIST_LINE_HEADER      plineHeader;
     
-    for (i = 0; i < _G_uiNatLocalCnt; i++) {
-        if (_G_pnetifNatLocal[i] == pnetifIn) {
+    for (i = 0; i < LW_CFG_NET_NAT_MAX_LOCAL_IF; i++) {
+        if (_G_natifLocal[i].NATIF_pnetif == pnetifIn) {
             break;
         }
     }
-    if (i >= _G_uiNatLocalCnt) {
+    if (i >= LW_CFG_NET_NAT_MAX_LOCAL_IF) {
         return  (ERR_OK);                                               /*  不需要进行 NAT 地址转换     */
     }
     
@@ -980,8 +1057,8 @@ static INT  __natIphook (INT  iIpType, INT  iHookType, struct pbuf  *p,
     
     case IP_HT_PRE_ROUTING:                                             /*  网口接收                    */
         iphdr = (struct ip_hdr *)p->payload;
-        for (i = 0; i < _G_uiNatApCnt; i++) {
-            if (_G_pnetifNatAp[i] == pnetifIn) {
+        for (i = 0; i < LW_CFG_NET_NAT_MAX_AP_IF; i++) {
+            if (_G_natifAp[i].NATIF_pnetif == pnetifIn) {
                 if (ip4_addr_cmp(&iphdr->dest, netif_ip4_addr(pnetifIn))) {
                     __natApInput(p, pnetifIn);
                 }
@@ -990,9 +1067,9 @@ static INT  __natIphook (INT  iIpType, INT  iHookType, struct pbuf  *p,
         break;
         
     case IP_HT_POST_ROUTING:                                            /*  网口发送                    */
-        if (pnetifIn) {
-            for (i = 0; i < _G_uiNatApCnt; i++) {
-                if (_G_pnetifNatAp[i] == pnetifOut) {
+        if (pnetifIn) {                                                 /*  非本机发送                  */
+            for (i = 0; i < LW_CFG_NET_NAT_MAX_AP_IF; i++) {
+                if (_G_natifAp[i].NATIF_pnetif == pnetifOut) {
                     __natApOutput(p, pnetifIn, pnetifOut);
                 }
             }
@@ -1022,24 +1099,24 @@ VOID  __natInit (VOID)
 /*********************************************************************************************************
 ** 函数名称: __natStart
 ** 功能描述: NAT 启动
-** 输　入  : pnetifLocal    本地网络接口
-**           pnetifAp       出口网络接口
+** 输　入  : pcLocal    本地网络接口
+**           pcAp       出口网络接口
 ** 输　出  : ERROR or OK
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-INT  __natStart (struct netif *pnetifLocal, struct netif *pnetifAp)
+INT  __natStart (CPCHAR  pcLocal, CPCHAR  pcAp)
 {
-    if (_G_uiNatApCnt || _G_uiNatLocalCnt) {
+    if (_G_bNatStart) {
         _ErrorHandle(EBUSY);
         return  (PX_ERROR);
     }
     
-    _G_pnetifNatLocal[0] = pnetifLocal;
-    _G_pnetifNatAp[0]    = pnetifAp;
+    lib_strlcpy(_G_natifAp[0].NATIF_cIfName, pcAp, IF_NAMESIZE);
+    lib_strlcpy(_G_natifLocal[0].NATIF_cIfName, pcLocal, IF_NAMESIZE);
     
-    _G_uiNatApCnt    = 1;
-    _G_uiNatLocalCnt = 1;
+    _G_natifLocal[0].NATIF_pnetif = netif_find(pcLocal);
+    _G_natifAp[0].NATIF_pnetif    = netif_find(pcAp);
     
     if (net_ip_hook_add("nat", __natIphook)) {
         return  (PX_ERROR);
@@ -1047,6 +1124,10 @@ INT  __natStart (struct netif *pnetifLocal, struct netif *pnetifAp)
     
     API_TimerStart(_G_ulNatcbTimer, (LW_TICK_HZ * 60), LW_OPTION_AUTO_RESTART,
                    (PTIMER_CALLBACK_ROUTINE)__natTimer, (PVOID)LW_CFG_NET_NAT_IDLE_TIMEOUT);
+    
+    __NAT_LOCK();
+    _G_bNatStart = LW_TRUE;
+    __NAT_UNLOCK();
     
     return  (ERROR_NONE);
 }
@@ -1060,6 +1141,8 @@ INT  __natStart (struct netif *pnetifLocal, struct netif *pnetifAp)
 *********************************************************************************************************/
 INT  __natStop (VOID)
 {
+    INT  i;
+
     if (net_ip_hook_delete(__natIphook)) {
         return  (PX_ERROR);
     }
@@ -1067,64 +1150,88 @@ INT  __natStop (VOID)
     API_TimerCancel(_G_ulNatcbTimer);
     __natTimer(0);
     
-    _G_uiNatApCnt    = 0;
-    _G_uiNatLocalCnt = 0;
+    __NAT_LOCK();
+    for (i = 1; i < LW_CFG_NET_NAT_MAX_AP_IF; i++) {
+        _G_natifAp[i].NATIF_cIfName[0] = PX_EOS;
+        _G_natifAp[i].NATIF_pnetif     = LW_NULL;
+    }
+    
+    for (i = 1; i < LW_CFG_NET_NAT_MAX_LOCAL_IF; i++) {
+        _G_natifLocal[i].NATIF_cIfName[0] = PX_EOS;
+        _G_natifLocal[i].NATIF_pnetif     = LW_NULL;
+    }
+    _G_bNatStart = LW_FALSE;
+    __NAT_UNLOCK();
     
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: __natAddLocal
 ** 功能描述: NAT 增加一个本地网络接口
-** 输　入  : pnetifLocal    本地网络接口
+** 输　入  : pcLocal    本地网络接口
 ** 输　出  : ERROR or OK
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-INT  __natAddLocal (struct netif *pnetifLocal)
+INT  __natAddLocal (CPCHAR  pcLocal)
 {
+    INT  i;
+
     __NAT_LOCK();
-    if (!_G_uiNatLocalCnt) {
+    if (!_G_bNatStart) {
         __NAT_UNLOCK();
         _ErrorHandle(ENOTCONN);
         return  (PX_ERROR);
     }
-    if (_G_uiNatLocalCnt >= LW_CFG_NET_NAT_MAX_LOCAL_IF) {
+    for (i = 0; i < LW_CFG_NET_NAT_MAX_LOCAL_IF; i++) {
+        if (_G_natifLocal[i].NATIF_cIfName[0] == PX_EOS) {
+            lib_strlcpy(_G_natifLocal[i].NATIF_cIfName, pcLocal, IF_NAMESIZE);
+            break;
+        }
+    }
+    if (i >= LW_CFG_NET_NAT_MAX_LOCAL_IF) {
         __NAT_UNLOCK();
         _ErrorHandle(ENOSPC);
         return  (PX_ERROR);
     }
-    
-    _G_pnetifNatLocal[_G_uiNatLocalCnt] = pnetifLocal;
-    _G_uiNatLocalCnt++;
     __NAT_UNLOCK();
+    
+    _G_natifLocal[i].NATIF_pnetif = netif_find(pcLocal);
     
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: __natAddAp
 ** 功能描述: NAT 增加一个出口网络接口
-** 输　入  : pnetifAp       出口网络接口
+** 输　入  : pcAp       出口网络接口
 ** 输　出  : ERROR or OK
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-INT  __natAddAp (struct netif *pnetifAp)
+INT  __natAddAp (CPCHAR  pcAp)
 {
+    INT  i;
+
     __NAT_LOCK();
-    if (!_G_uiNatApCnt) {
+    if (!_G_bNatStart) {
         __NAT_UNLOCK();
         _ErrorHandle(ENOTCONN);
         return  (PX_ERROR);
     }
-    if (_G_uiNatApCnt >= LW_CFG_NET_NAT_MAX_AP_IF) {
+    for (i = 0; i < LW_CFG_NET_NAT_MAX_AP_IF; i++) {
+        if (_G_natifAp[i].NATIF_cIfName[0] == PX_EOS) {
+            lib_strlcpy(_G_natifAp[i].NATIF_cIfName, pcAp, IF_NAMESIZE);
+            break;
+        }
+    }
+    if (i >= LW_CFG_NET_NAT_MAX_AP_IF) {
         __NAT_UNLOCK();
         _ErrorHandle(ENOSPC);
         return  (PX_ERROR);
     }
-    
-    _G_pnetifNatAp[_G_uiNatApCnt] = pnetifAp;
-    _G_uiNatApCnt++;
     __NAT_UNLOCK();
+    
+    _G_natifAp[i].NATIF_pnetif = netif_find(pcAp);
     
     return  (ERROR_NONE);
 }
@@ -1211,7 +1318,6 @@ static ssize_t  __procFsNatSummaryRead (PLW_PROCFS_NODE  p_pfsn,
         size_t          stNeedBufferSize;
         UINT            i;
         UINT            uiAssNum = 0;
-        CHAR            cNetif[IF_NAMESIZE];
         PLW_LIST_LINE   plineTemp;
         PCHAR           pcProto;
         __PNAT_ALIAS    pnatalias;
@@ -1239,7 +1345,7 @@ static ssize_t  __procFsNatSummaryRead (PLW_PROCFS_NODE  p_pfsn,
         pcFileBuffer = (PCHAR)API_ProcFsNodeBuffer(p_pfsn);             /*  重新获得文件缓冲区地址      */
         
         __NAT_LOCK();
-        if (!_G_uiNatApCnt) {
+        if (!_G_bNatStart) {
             __NAT_UNLOCK();
             stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, 0, 
                                   "NAT networking off!\n");
@@ -1320,22 +1426,20 @@ static ssize_t  __procFsNatSummaryRead (PLW_PROCFS_NODE  p_pfsn,
             stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
                                   "    LAN: ");
                                   
-            for (i = 0; i < _G_uiNatLocalCnt; i++) {
-                if (_G_pnetifNatLocal[i]) {
-                    netif_get_name(_G_pnetifNatLocal[i], cNetif);
+            for (i = 0; i < LW_CFG_NET_NAT_MAX_LOCAL_IF; i++) {
+                if (_G_natifLocal[i].NATIF_cIfName[0]) {
                     stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
-                                          "%s ", cNetif);
+                                          "%s ", _G_natifLocal[i].NATIF_cIfName);
                 }
             }
             
             stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
                                   "\n    WAN: ");
             
-            for (i = 0; i < _G_uiNatApCnt; i++) {
-                if (_G_pnetifNatAp[i]) {
-                    netif_get_name(_G_pnetifNatAp[i], cNetif);
+            for (i = 0; i < LW_CFG_NET_NAT_MAX_AP_IF; i++) {
+                if (_G_natifAp[i].NATIF_cIfName[0]) {
                     stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
-                                          "%s ", cNetif);
+                                          "%s ", _G_natifAp[i].NATIF_cIfName);
                 }
             }
             __NAT_UNLOCK();

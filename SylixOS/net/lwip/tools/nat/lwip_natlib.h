@@ -70,6 +70,31 @@ typedef struct {
 } __NAT_ALIAS;
 typedef __NAT_ALIAS    *__PNAT_ALIAS;
 
+/*********************************************************************************************************
+  网卡事件回调
+*********************************************************************************************************/
+VOID  nat_netif_add_hook(struct netif *pnetif);
+VOID  nat_netif_remove_hook(struct netif *pnetif);
+
+/*********************************************************************************************************
+  函数声明
+*********************************************************************************************************/
+VOID        __natInit(VOID);
+INT         __natStart(CPCHAR  pcLocal, CPCHAR  pcAp);
+INT         __natStop(VOID);
+INT         __natAddLocal(CPCHAR  pcLocal);
+INT         __natAddAp(CPCHAR  pcAp);
+INT         __natMapAdd(ip4_addr_t  *pipaddr, u16_t  usIpCnt, u16_t  usPort, u16_t  AssPort, u8_t  ucProto);
+INT         __natMapDelete(ip4_addr_t  *pipaddr, u16_t  usPort, u16_t  AssPort, u8_t  ucProto);
+INT         __natAliasAdd(const ip4_addr_t  *pipaddrAlias, 
+                          const ip4_addr_t  *ipaddrSLocalIp,
+                          const ip4_addr_t  *ipaddrELocalIp);
+INT         __natAliasDelete(const ip4_addr_t  *pipaddrAlias);
+
+#if LW_CFG_PROCFS_EN > 0
+VOID        __procFsNatInit(VOID);
+#endif                                                                  /*  LW_CFG_PROCFS_EN > 0        */
+
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */
                                                                         /*  LW_CFG_NET_NAT_EN > 0       */
 #endif                                                                  /*  __LWIP_NATLIB_H             */

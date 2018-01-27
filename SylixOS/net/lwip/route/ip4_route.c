@@ -111,8 +111,7 @@ static struct gw_cache  gw_cache[LW_CFG_NET_DEV_MAX];
 /* netif is valid */
 #define RT_NETIF_AVLID(netif) \
         ((netif_ip4_addr(netif)->addr != IPADDR_ANY) && \
-         (netif_ip4_netmask(netif)->addr != IPADDR_ANY) && \
-         (netif_ip4_gw(netif)->addr != IPADDR_ANY))
+         (netif_ip4_netmask(netif)->addr != IPADDR_ANY))
 
 /* route table match */
 static struct rt_entry *rt_match (const ip4_addr_t *ipdest)
@@ -307,10 +306,13 @@ int  rt_add_entry (struct rt_entry *entry)
       if (entry->rt_gateway.addr == netif_ip4_gw(netif)->addr) {
         netif_p = netif;
         break;
-      } else if (ip4_addr_netcmp(&entry->rt_gateway, 
-                                 netif_ip4_addr(netif), 
-                                 netif_ip4_netmask(netif))) {
-        netif_p = netif;
+      
+      } else if (RT_NETIF_AVLID(netif)) {
+        if (ip4_addr_netcmp(&entry->rt_gateway, 
+                            netif_ip4_addr(netif), 
+                            netif_ip4_netmask(netif))) {
+          netif_p = netif;
+        }
       }
     }
     if (!netif_p) {
@@ -414,10 +416,13 @@ int  rt_change_default (const ip4_addr_t *ipgateway, const char *ifname)
       if (ipgateway->addr == netif_ip4_gw(netif)->addr) {
         netif_p = netif;
         break;
-      } else if (ip4_addr_netcmp(ipgateway, 
-                                 netif_ip4_addr(netif), 
-                                 netif_ip4_netmask(netif))) {
-        netif_p = netif;
+      
+      } else if (RT_NETIF_AVLID(netif)) {
+        if (ip4_addr_netcmp(ipgateway, 
+                            netif_ip4_addr(netif), 
+                            netif_ip4_netmask(netif))) {
+          netif_p = netif;
+        }
       }
     }
     if (!netif_p) {

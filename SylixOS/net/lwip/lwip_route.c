@@ -612,7 +612,7 @@ VOID __tshellRouteInit (VOID)
     API_TShellHelpAdd("route",   "show, add, delete, change route table\n"
     "eg. route\n"
     "    route add -host(-net) 123.123.123.123 mask 255.0.0.0 0.0.0.0 metric 5 dev en1  (add a route and use netif default gateway set)\n"
-    "    route add -host(-net) 123.123.123.123 mask 255.0.0.0123.0.0.1 dev en1          (add a route and use specified gateway set)\n"
+    "    route add -host(-net) 123.123.123.123 mask 255.0.0.0 123.0.0.1 dev en1         (add a route and use specified gateway set)\n"
     "    route add -host(-net) 0.0.0.0 mask 0.0.0.0 123.0.0.1 dev en1                   (set netif default gateway: 123.0.0.1)\n"
     "    route chg -host(-net) 123.123.123.123 mask 255.0.0.0 0.0.0.0 dev en2           (change a route and use netif default gateway set)\n"
     "    route chg -host(-net) 123.123.123.123 mask 255.0.0.0 123.0.0.1 dev en1         (change a route and use specified gateway set)\n"

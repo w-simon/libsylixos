@@ -64,6 +64,9 @@
 #if LW_CFG_NET_FLOWCTL_EN > 0
 #include "flowctl/net_flowctl.h"
 #endif
+#if LW_CFG_NET_NAT_EN > 0
+#include "tools/nat/lwip_natlib.h"
+#endif                                                                  /*  LW_CFG_NET_NAT_EN > 0       */
 /*********************************************************************************************************
   º¯ÊýÉùÃ÷
 *********************************************************************************************************/
@@ -105,6 +108,9 @@ static VOID  netif_add_hook (struct netif *pnetif)
 #if LW_CFG_NET_FLOWCTL_EN > 0
     fcnet_netif_attach(pnetif);
 #endif                                                                  /*  LW_CFG_NET_FLOWCTL_EN > 0   */
+#if LW_CFG_NET_NAT_EN > 0
+    nat_netif_add_hook(pnetif);
+#endif                                                                  /*  LW_CFG_NET_NAT_EN > 0       */
 
     netEventIfAdd(pnetif);
 }
@@ -142,10 +148,12 @@ static VOID  netif_remove_hook (struct netif *pnetif)
 #if LW_CFG_NET_FLOWCTL_EN > 0
     fcnet_netif_detach(pnetif);
 #endif                                                                  /*  LW_CFG_NET_FLOWCTL_EN > 0   */
-    
 #if LW_CFG_NET_NPF_EN > 0
     npf_netif_detach(pnetif);
 #endif                                                                  /*  LW_CFG_NET_NPF_EN > 0       */
+#if LW_CFG_NET_NAT_EN > 0
+    nat_netif_remove_hook(pnetif);
+#endif                                                                  /*  LW_CFG_NET_NAT_EN > 0       */
 
 #if LWIP_DHCP > 0
     if (netif_dhcp_data(pnetif)) {
