@@ -135,7 +135,6 @@ raw_input_local_match(struct raw_pcb *pcb, u8_t broadcast, struct netif *inp)
  *
  * @param p pbuf to be demultiplexed to a RAW PCB.
  * @param inp network interface on which the datagram was received.
- * @param deliver whether this packet is delivered.
  * @return - 1 if the packet has been eaten by a RAW PCB receive
  *           callback function. The caller MAY NOT not reference the
  *           packet any longer, and MAY NOT call pbuf_free().

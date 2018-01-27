@@ -174,7 +174,7 @@ recv_raw(void *arg, struct raw_pcb *pcb, struct pbuf *p,
         /* If we use mroute this packet maybe a mroute fake packet so we must get ipv4/ipv6 header */
         if (IP_IS_V4(addr)) {
           struct ip_hdr *iphdr = (struct ip_hdr *)p->payload;
-          ip_addr_set_ip4_u32(&buf->toaddr, iphdr->dest.addr);
+          ip_addr_copy_from_ip4(buf->toaddr, iphdr->dest);
         } else 
 #if LWIP_IPV6
         {
