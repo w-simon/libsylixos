@@ -42,20 +42,20 @@ static INT  __srtAdd4 (const struct srtentry  *psrtentry)
 {
     INT                 iRet;
     struct srt_entry   *psentry4;
-    ip4_addr_t          ipsaddr;
-    ip4_addr_t          ipeaddr;
     
-    inet_addr_to_ip4addr(&ipsaddr, &((struct sockaddr_in *)&psrtentry->srt_ssrc)->sin_addr);
-    inet_addr_to_ip4addr(&ipeaddr, &((struct sockaddr_in *)&psrtentry->srt_esrc)->sin_addr);
-
-    SRT_LOCK();
-    if (srt_search_entry(&ipsaddr) ||
-        srt_search_entry(&ipeaddr)) {
-        SRT_UNLOCK();
-        _ErrorHandle(EEXIST);
+    if ((psrtentry->srt_mode != SRT_MODE_EXCLUDE) &&
+        (psrtentry->srt_mode != SRT_MODE_INCLUDE)) {
+        _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
-    
+
+    if ((psrtentry->srt_prio != SRT_PRIO_HIGH) &&
+        (psrtentry->srt_prio != SRT_PRIO_DEFAULT)) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    SRT_LOCK();
     psentry4 = (struct srt_entry *)mem_malloc(sizeof(struct srt_entry));
     if (!psentry4) {
         SRT_UNLOCK();
@@ -90,20 +90,20 @@ static INT  __srtAdd6 (const struct srtentry  *psrtentry)
 {
     INT                 iRet;
     struct srt6_entry  *psentry6;
-    ip6_addr_t          ip6saddr;
-    ip6_addr_t          ip6eaddr;
     
-    inet6_addr_to_ip6addr(&ip6saddr, &((struct sockaddr_in6 *)&psrtentry->srt_ssrc)->sin6_addr);
-    inet6_addr_to_ip6addr(&ip6eaddr, &((struct sockaddr_in6 *)&psrtentry->srt_esrc)->sin6_addr);
-    
-    SRT_LOCK();
-    if (srt6_search_entry(&ip6saddr) ||
-        srt6_search_entry(&ip6eaddr)) {
-        SRT_UNLOCK();
-        _ErrorHandle(EEXIST);
+    if ((psrtentry->srt_mode != SRT_MODE_EXCLUDE) &&
+        (psrtentry->srt_mode != SRT_MODE_INCLUDE)) {
+        _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
-    
+
+    if ((psrtentry->srt_prio != SRT_PRIO_HIGH) &&
+        (psrtentry->srt_prio != SRT_PRIO_DEFAULT)) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    SRT_LOCK();
     psentry6 = (struct srt6_entry *)mem_malloc(sizeof(struct srt6_entry));
     if (!psentry6) {
         SRT_UNLOCK();
@@ -137,14 +137,16 @@ static INT  __srtAdd6 (const struct srtentry  *psrtentry)
 static INT  __srtDel4 (const struct srtentry  *psrtentry)
 {
     struct srt_entry   *psentry4;
-    ip4_addr_t          ipsaddr;
-    ip4_addr_t          ipeaddr;
+    ip4_addr_t          ipsaddr, ipeaddr;
+    ip4_addr_t          ipsdest, ipedest;
     
     inet_addr_to_ip4addr(&ipsaddr, &((struct sockaddr_in *)&psrtentry->srt_ssrc)->sin_addr);
     inet_addr_to_ip4addr(&ipeaddr, &((struct sockaddr_in *)&psrtentry->srt_esrc)->sin_addr);
+    inet_addr_to_ip4addr(&ipsdest, &((struct sockaddr_in *)&psrtentry->srt_sdest)->sin_addr);
+    inet_addr_to_ip4addr(&ipedest, &((struct sockaddr_in *)&psrtentry->srt_edest)->sin_addr);
     
     SRT_LOCK();
-    psentry4 = srt_find_entry(&ipsaddr, &ipeaddr);
+    psentry4 = srt_find_entry(&ipsaddr, &ipeaddr, &ipsdest, &ipedest);
     if (!psentry4) {
         SRT_UNLOCK();
         _ErrorHandle(ENETUNREACH);
@@ -170,14 +172,16 @@ static INT  __srtDel4 (const struct srtentry  *psrtentry)
 static INT  __srtDel6 (const struct srtentry  *psrtentry)
 {
     struct srt6_entry  *psentry6;
-    ip6_addr_t          ip6saddr;
-    ip6_addr_t          ip6eaddr;
+    ip6_addr_t          ip6saddr, ip6eaddr;
+    ip6_addr_t          ip6sdest, ip6edest;
     
     inet6_addr_to_ip6addr(&ip6saddr, &((struct sockaddr_in6 *)&psrtentry->srt_ssrc)->sin6_addr);
     inet6_addr_to_ip6addr(&ip6eaddr, &((struct sockaddr_in6 *)&psrtentry->srt_esrc)->sin6_addr);
-    
+    inet6_addr_to_ip6addr(&ip6sdest, &((struct sockaddr_in6 *)&psrtentry->srt_sdest)->sin6_addr);
+    inet6_addr_to_ip6addr(&ip6edest, &((struct sockaddr_in6 *)&psrtentry->srt_edest)->sin6_addr);
+
     SRT_LOCK();
-    psentry6 = srt6_find_entry(&ip6saddr, &ip6eaddr);
+    psentry6 = srt6_find_entry(&ip6saddr, &ip6eaddr, &ip6sdest, &ip6edest);
     if (!psentry6) {
         SRT_UNLOCK();
         _ErrorHandle(ENETUNREACH);
@@ -204,14 +208,28 @@ static INT  __srtChg4 (const struct srtentry  *psrtentry)
 {
     INT                 iRet;
     struct srt_entry   *psentry4;
-    ip4_addr_t          ipsaddr;
-    ip4_addr_t          ipeaddr;
+    ip4_addr_t          ipsaddr, ipeaddr;
+    ip4_addr_t          ipsdest, ipedest;
     
+    if ((psrtentry->srt_mode != SRT_MODE_EXCLUDE) &&
+        (psrtentry->srt_mode != SRT_MODE_INCLUDE)) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    if ((psrtentry->srt_prio != SRT_PRIO_HIGH) &&
+        (psrtentry->srt_prio != SRT_PRIO_DEFAULT)) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
     inet_addr_to_ip4addr(&ipsaddr, &((struct sockaddr_in *)&psrtentry->srt_ssrc)->sin_addr);
     inet_addr_to_ip4addr(&ipeaddr, &((struct sockaddr_in *)&psrtentry->srt_esrc)->sin_addr);
+    inet_addr_to_ip4addr(&ipsdest, &((struct sockaddr_in *)&psrtentry->srt_sdest)->sin_addr);
+    inet_addr_to_ip4addr(&ipedest, &((struct sockaddr_in *)&psrtentry->srt_edest)->sin_addr);
     
     SRT_LOCK();
-    psentry4 = srt_find_entry(&ipsaddr, &ipeaddr);
+    psentry4 = srt_find_entry(&ipsaddr, &ipeaddr, &ipsdest, &ipedest);
     if (!psentry4) {
         SRT_UNLOCK();
         _ErrorHandle(ENETUNREACH);
@@ -245,14 +263,28 @@ static INT  __srtChg6 (const struct srtentry  *psrtentry)
 {
     INT                 iRet;
     struct srt6_entry  *psentry6;
-    ip6_addr_t          ip6saddr;
-    ip6_addr_t          ip6eaddr;
+    ip6_addr_t          ip6saddr, ip6eaddr;
+    ip6_addr_t          ip6sdest, ip6edest;
     
+    if ((psrtentry->srt_mode != SRT_MODE_EXCLUDE) &&
+        (psrtentry->srt_mode != SRT_MODE_INCLUDE)) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    if ((psrtentry->srt_prio != SRT_PRIO_HIGH) &&
+        (psrtentry->srt_prio != SRT_PRIO_DEFAULT)) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
     inet6_addr_to_ip6addr(&ip6saddr, &((struct sockaddr_in6 *)&psrtentry->srt_ssrc)->sin6_addr);
     inet6_addr_to_ip6addr(&ip6eaddr, &((struct sockaddr_in6 *)&psrtentry->srt_esrc)->sin6_addr);
+    inet6_addr_to_ip6addr(&ip6sdest, &((struct sockaddr_in6 *)&psrtentry->srt_sdest)->sin6_addr);
+    inet6_addr_to_ip6addr(&ip6edest, &((struct sockaddr_in6 *)&psrtentry->srt_edest)->sin6_addr);
     
     SRT_LOCK();
-    psentry6 = srt6_find_entry(&ip6saddr, &ip6eaddr);
+    psentry6 = srt6_find_entry(&ip6saddr, &ip6eaddr, &ip6sdest, &ip6edest);
     if (!psentry6) {
         SRT_UNLOCK();
         _ErrorHandle(ENETUNREACH);
@@ -285,12 +317,13 @@ static INT  __srtChg6 (const struct srtentry  *psrtentry)
 static INT  __srtGet4 (struct srtentry  *psrtentry)
 {
     struct srt_entry   *psentry4;
-    ip4_addr_t          ipsaddr;
+    ip4_addr_t          ipaddr, ipdest;
     
-    inet_addr_to_ip4addr(&ipsaddr, &((struct sockaddr_in *)&psrtentry->srt_ssrc)->sin_addr);
+    inet_addr_to_ip4addr(&ipaddr, &((struct sockaddr_in *)&psrtentry->srt_ssrc)->sin_addr);
+    inet_addr_to_ip4addr(&ipdest, &((struct sockaddr_in *)&psrtentry->srt_sdest)->sin_addr);
     
     SRT_LOCK();
-    psentry4 = srt_search_entry(&ipsaddr);
+    psentry4 = srt_search_entry(&ipaddr, &ipdest);
     if (!psentry4) {
         SRT_UNLOCK();
         _ErrorHandle(ENETUNREACH);
@@ -314,12 +347,13 @@ static INT  __srtGet4 (struct srtentry  *psrtentry)
 static INT  __srtGet6 (struct srtentry  *psrtentry)
 {
     struct srt6_entry  *psentry6;
-    ip6_addr_t          ip6saddr;
+    ip6_addr_t          ip6addr, ip6dest;
     
-    inet6_addr_to_ip6addr(&ip6saddr, &((struct sockaddr_in6 *)&psrtentry->srt_ssrc)->sin6_addr);
+    inet6_addr_to_ip6addr(&ip6addr, &((struct sockaddr_in6 *)&psrtentry->srt_ssrc)->sin6_addr);
+    inet6_addr_to_ip6addr(&ip6dest, &((struct sockaddr_in6 *)&psrtentry->srt_sdest)->sin6_addr);
     
     SRT_LOCK();
-    psentry6 = srt6_search_entry(&ip6saddr);
+    psentry6 = srt6_search_entry(&ip6addr, &ip6dest);
     if (!psentry6) {
         SRT_UNLOCK();
         _ErrorHandle(ENETUNREACH);

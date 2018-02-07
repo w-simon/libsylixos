@@ -46,6 +46,12 @@
 #include "lwip/snmp/snmp.h"
 #include "lwip/snmp/snmp_mib2.h"
 /*********************************************************************************************************
+  TCP Ext
+*********************************************************************************************************/
+#if LW_CFG_LWIP_TCP_SIG_EN > 0
+#include "tcpsig/tcp_md5.h"
+#endif                                                                  /*  LW_CFG_LWIP_TCP_SIG_EN > 0  */
+/*********************************************************************************************************
   内部头文件
 *********************************************************************************************************/
 #if LWIP_SNMP > 0 && LWIP_SNMP_V3 > 0
@@ -232,6 +238,10 @@ VOID  API_NetInit (VOID)
 
     tcpip_init(LW_NULL, LW_NULL);                                       /*  以多任务形式初始化 lwip     */
     
+#if LW_CFG_LWIP_TCP_SIG_EN > 0
+    tcp_md5_init();
+#endif                                                                  /*  LW_CFG_LWIP_TCP_SIG_EN > 0  */
+
 #if LW_CFG_NET_UNIX_EN > 0
     unix_init();                                                        /*  初始化 AF_UNIX 域协议       */
 #endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */

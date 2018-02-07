@@ -74,6 +74,8 @@ int  net_ip_hook_add(const char *name, int (*hook)(int ip_type, int hook_type, s
                                                    struct netif *in, struct netif *out));
 int  net_ip_hook_delete(int (*hook)(int ip_type, int hook_type, struct pbuf *p, 
                                     struct netif *in, struct netif *out));
+int  net_ip_hook_isadd(int (*hook)(int ip_type, int hook_type, struct pbuf *p,
+                                   struct netif *in, struct netif *out), BOOL *pbIsAdd);
 
 /*********************************************************************************************************
   …Ë÷√ pbuf ≥…‘±

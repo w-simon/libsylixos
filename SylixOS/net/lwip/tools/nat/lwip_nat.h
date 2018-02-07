@@ -25,7 +25,7 @@
 /*********************************************************************************************************
   ²Ã¼ô¿ØÖÆ
 *********************************************************************************************************/
-#if (LW_CFG_NET_EN > 0) && (LW_CFG_NET_NAT_EN > 0)
+#if (LW_CFG_NET_EN > 0) && (LW_CFG_NET_ROUTER > 0) && (LW_CFG_NET_NAT_EN > 0)
 
 LW_API VOID         API_INetNatInit(VOID);
 LW_API INT          API_INetNatStart(CPCHAR  pcLocalNetif, CPCHAR  pcApNetif);
@@ -50,6 +50,7 @@ LW_API INT          API_INetNatAliasDelete(CPCHAR  pcAliasIp);
 #define inetNatAliasDelete  API_INetNatAliasDelete
 
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */
+                                                                        /*  LW_CFG_NET_ROUTER > 0       */
                                                                         /*  LW_CFG_NET_NAT_EN > 0       */
 #endif                                                                  /*  __LWIP_NAT_H                */
 /*********************************************************************************************************

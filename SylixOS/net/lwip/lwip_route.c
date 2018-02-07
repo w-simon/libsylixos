@@ -464,9 +464,8 @@ __arg_error:
         }
     }
     
-    
     if (route_delete(&rtentry) < 0) {
-        fprintf(stderr, "add route fail, error: %s!\n", lib_strerror(errno));
+        fprintf(stderr, "delete route fail, error: %s!\n", lib_strerror(errno));
         return  (PX_ERROR);
     }
     
@@ -598,6 +597,55 @@ __arg_error:
     return  (iRet);
 }
 /*********************************************************************************************************
+** 函数名称: __tshellTcpMssAdj
+** 功能描述: 系统命令 "rtmssadj"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : ERROR
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  __tshellTcpMssAdj (INT  iArgC, PCHAR  *ppcArgV)
+{
+    INT   iSock, iRet, iEnbale;
+
+    iSock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (iSock < 0) {
+        fprintf(stderr, "can not create route socket, error: %s!\n", lib_strerror(errno));
+        return  (PX_ERROR);
+    }
+
+    if (iArgC <= 1) {
+        iRet = ioctl(iSock, SIOCGTCPMSSADJ, &iEnbale);
+        if (iRet < 0) {
+            fprintf(stderr, "command 'SIOCGTCPMSSADJ', error: %s!\n", lib_strerror(errno));
+            close(iSock);
+            return  (PX_ERROR);
+        }
+
+        printf("TCP forward MSS adjust: %s\n", iEnbale ? "On" : "Off");
+
+    } else {
+        if (sscanf(ppcArgV[1], "%d", &iEnbale) != 1) {
+            fprintf(stderr, "arguments error!\n");
+            close(iSock);
+            return  (-ERROR_TSHELL_EPARAM);
+        }
+
+        iRet = ioctl(iSock, SIOCSTCPMSSADJ, &iEnbale);
+        if (iRet < 0) {
+            fprintf(stderr, "command 'SIOCSTCPMSSADJ', error: %s!\n", lib_strerror(errno));
+            close(iSock);
+            return  (PX_ERROR);
+        }
+
+        printf("TCP forward MSS adjust: %s\n", iEnbale ? "On" : "Off");
+    }
+
+    close(iSock);
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: __tshellRouteInit
 ** 功能描述: 注册路由器命令
 ** 输　入  : NONE
@@ -624,6 +672,10 @@ VOID __tshellRouteInit (VOID)
     "    route del -net  123.0.0.0 mask 255.0.0.0                                       (delete a net route)\n"
     "    route del -host 145.26.122.35 gw 192.168.1.1                                   (delete a host route)\n"
     "    route del -host 145.26.122.35 dev en1                                          (delete a host route)\n");
+
+    API_TShellKeywordAdd("rtmssadj", __tshellTcpMssAdj);
+    API_TShellFormatAdd("rtmssadj", " [0 / 1]");
+    API_TShellHelpAdd("rtmssadj", "Set/Get TCP forward MSS adjust status\n");
 }
 /*********************************************************************************************************
 ** 函数名称: __sroute_show_ipv4
@@ -642,6 +694,8 @@ static VOID  __sroute_show_ipv4 (VOID)
     CHAR                 cFlags[10];
     CHAR                 cStrSSrc[IP4ADDR_STRLEN_MAX];
     CHAR                 cStrESrc[IP4ADDR_STRLEN_MAX];
+    CHAR                 cStrSDest[IP4ADDR_STRLEN_MAX];
+    CHAR                 cStrEDest[IP4ADDR_STRLEN_MAX];
     struct srtentry_list srtentrylist;
     struct srtentry     *psrtentry;
     
@@ -651,7 +705,7 @@ static VOID  __sroute_show_ipv4 (VOID)
     srtentrylist.srtl_buf   = LW_NULL;
     
     printf("IPv4 Source route Table:\n");
-    printf("Source(s)       Source(e)       Flags Iface\n");
+    printf("Source(s)       Source(e)       Flags Destination(s)  Destination(e)  Mode Prio Iface\n");
     
     iSock = socket(AF_INET, SOCK_DGRAM, 0);
     if (iSock < 0) {
@@ -692,7 +746,9 @@ static VOID  __sroute_show_ipv4 (VOID)
         psrtentry = &srtentrylist.srtl_buf[i];
         inet_ntoa_r(((struct sockaddr_in *)&psrtentry->srt_ssrc)->sin_addr, cStrSSrc, IP4ADDR_STRLEN_MAX);
         inet_ntoa_r(((struct sockaddr_in *)&psrtentry->srt_esrc)->sin_addr, cStrESrc, IP4ADDR_STRLEN_MAX);
-        
+        inet_ntoa_r(((struct sockaddr_in *)&psrtentry->srt_sdest)->sin_addr, cStrSDest, IP4ADDR_STRLEN_MAX);
+        inet_ntoa_r(((struct sockaddr_in *)&psrtentry->srt_edest)->sin_addr, cStrEDest, IP4ADDR_STRLEN_MAX);
+
         cFlags[0] = '\0';
         if (psrtentry->srt_flags & RTF_UP) {
             lib_strcat(cFlags, "U");
@@ -701,8 +757,11 @@ static VOID  __sroute_show_ipv4 (VOID)
             lib_strcat(cFlags, "D");
         }
         
-        printf("%-15s %-15s %-5s %s\n", 
-               cStrSSrc, cStrESrc, cFlags, psrtentry->srt_ifname);
+        printf("%-15s %-15s %-5s %-15s %-15s %-4s %-4s %s\n",
+               cStrSSrc, cStrESrc, cFlags, cStrSDest, cStrEDest,
+               (psrtentry->srt_mode == SRT_MODE_EXCLUDE) ? "EXC" : "INC",
+               (psrtentry->srt_prio == SRT_PRIO_HIGH) ? "HIGH" : "DEF",
+               psrtentry->srt_ifname);
     }
     
     __SHEAP_FREE(srtentrylist.srtl_buf);
@@ -725,6 +784,8 @@ static VOID  __sroute_show_ipv6 (VOID)
     CHAR                 cFlags[10];
     CHAR                 cStrSSrc[IP6ADDR_STRLEN_MAX];
     CHAR                 cStrESrc[IP6ADDR_STRLEN_MAX];
+    CHAR                 cStrSDest[IP6ADDR_STRLEN_MAX];
+    CHAR                 cStrEDest[IP6ADDR_STRLEN_MAX];
     struct srtentry_list srtentrylist;
     struct srtentry     *psrtentry;
     
@@ -734,7 +795,8 @@ static VOID  __sroute_show_ipv6 (VOID)
     srtentrylist.srtl_buf   = LW_NULL;
     
     printf("IPv6 Source route Table:\n");
-    printf("Source(s)                        Source(e)                        Flags Iface\n");
+    printf("Source(s)                        Source(e)                        Flags "
+           "Destination(s)                   Destination(e)                   Mode Prio Iface\n");
     
     iSock = socket(AF_INET6, SOCK_DGRAM, 0);
     if (iSock < 0) {
@@ -775,7 +837,9 @@ static VOID  __sroute_show_ipv6 (VOID)
         psrtentry = &srtentrylist.srtl_buf[i];
         inet6_ntoa_r(((struct sockaddr_in6 *)&psrtentry->srt_ssrc)->sin6_addr, cStrSSrc, IP6ADDR_STRLEN_MAX);
         inet6_ntoa_r(((struct sockaddr_in6 *)&psrtentry->srt_esrc)->sin6_addr, cStrESrc, IP6ADDR_STRLEN_MAX);
-        
+        inet6_ntoa_r(((struct sockaddr_in6 *)&psrtentry->srt_sdest)->sin6_addr, cStrSDest, IP6ADDR_STRLEN_MAX);
+        inet6_ntoa_r(((struct sockaddr_in6 *)&psrtentry->srt_edest)->sin6_addr, cStrEDest, IP6ADDR_STRLEN_MAX);
+
         cFlags[0] = '\0';
         if (psrtentry->srt_flags & RTF_UP) {
             lib_strcat(cFlags, "U");
@@ -784,8 +848,11 @@ static VOID  __sroute_show_ipv6 (VOID)
             lib_strcat(cFlags, "D");
         }
         
-        printf("%-32s %-32s %-5s %s\n", 
-               cStrSSrc, cStrESrc, cFlags, psrtentry->srt_ifname);
+        printf("%-32s %-32s %-5s %-32s %-32s %-4s %-4s %s\n",
+               cStrSSrc, cStrESrc, cFlags, cStrSDest, cStrEDest,
+               (psrtentry->srt_mode == SRT_MODE_EXCLUDE) ? "EXC" : "INC",
+               (psrtentry->srt_prio == SRT_PRIO_HIGH) ? "HIGH" : "DEF",
+               psrtentry->srt_ifname);
     }
     
     __SHEAP_FREE(srtentrylist.srtl_buf);
@@ -817,7 +884,13 @@ static INT  __sroute_add (INT  iArgC, PCHAR  *ppcArgV)
     srtentry.srt_esrc.sa_len    = sizeof(struct sockaddr_in);
     srtentry.srt_esrc.sa_family = AF_INET;
     
-    if ((iArgC < 6) || lib_strcmp(ppcArgV[4], "dev")) {
+    srtentry.srt_sdest.sa_len    = sizeof(struct sockaddr_in);
+    srtentry.srt_sdest.sa_family = AF_INET;
+
+    srtentry.srt_edest.sa_len    = sizeof(struct sockaddr_in);
+    srtentry.srt_edest.sa_family = AF_INET;
+
+    if ((iArgC < 10) || lib_strcmp(ppcArgV[8], "dev")) {
 __arg_error:
         fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
@@ -831,7 +904,37 @@ __arg_error:
         goto    __arg_error;
     }
     
-    lib_strlcpy(srtentry.srt_ifname, ppcArgV[5], IF_NAMESIZE);
+    if (!inet_aton(ppcArgV[4], &((struct sockaddr_in *)&srtentry.srt_sdest)->sin_addr)) {
+        goto    __arg_error;
+    }
+
+    if (!inet_aton(ppcArgV[5], &((struct sockaddr_in *)&srtentry.srt_edest)->sin_addr)) {
+        goto    __arg_error;
+    }
+
+    if (!lib_strcasecmp(ppcArgV[6], "INC")) {
+        srtentry.srt_mode = SRT_MODE_INCLUDE;
+
+    } else if (!lib_strcasecmp(ppcArgV[6], "EXC")) {
+        srtentry.srt_mode = SRT_MODE_EXCLUDE;
+
+    } else {
+        fprintf(stderr, "mode must be INC or EXC!\n");
+        goto    __arg_error;
+    }
+
+    if (!lib_strcasecmp(ppcArgV[7], "HIGH")) {
+        srtentry.srt_prio = SRT_PRIO_HIGH;
+
+    } else if (!lib_strcasecmp(ppcArgV[7], "DEF")) {
+        srtentry.srt_prio = SRT_PRIO_DEFAULT;
+
+    } else {
+        fprintf(stderr, "prio must be HIGH or DEF!\n");
+        goto    __arg_error;
+    }
+
+    lib_strlcpy(srtentry.srt_ifname, ppcArgV[9], IF_NAMESIZE);
     
     iSock = socket(AF_INET, SOCK_DGRAM, 0);
     if (iSock < 0) {
@@ -873,7 +976,13 @@ static INT  __sroute_delete (INT  iArgC, PCHAR  *ppcArgV)
     srtentry.srt_esrc.sa_len    = sizeof(struct sockaddr_in);
     srtentry.srt_esrc.sa_family = AF_INET;
     
-    if (iArgC < 4) {
+    srtentry.srt_sdest.sa_len    = sizeof(struct sockaddr_in);
+    srtentry.srt_sdest.sa_family = AF_INET;
+
+    srtentry.srt_edest.sa_len    = sizeof(struct sockaddr_in);
+    srtentry.srt_edest.sa_family = AF_INET;
+
+    if (iArgC < 6) {
 __arg_error:
         fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
@@ -887,6 +996,14 @@ __arg_error:
         goto    __arg_error;
     }
     
+    if (!inet_aton(ppcArgV[4], &((struct sockaddr_in *)&srtentry.srt_sdest)->sin_addr)) {
+        goto    __arg_error;
+    }
+
+    if (!inet_aton(ppcArgV[5], &((struct sockaddr_in *)&srtentry.srt_edest)->sin_addr)) {
+        goto    __arg_error;
+    }
+
     iSock = socket(AF_INET, SOCK_DGRAM, 0);
     if (iSock < 0) {
         fprintf(stderr, "can not create socket error: %s!\n", lib_strerror(errno));
@@ -927,7 +1044,13 @@ static INT  __sroute_change (INT  iArgC, PCHAR  *ppcArgV)
     srtentry.srt_esrc.sa_len    = sizeof(struct sockaddr_in);
     srtentry.srt_esrc.sa_family = AF_INET;
     
-    if ((iArgC < 6) || lib_strcmp(ppcArgV[4], "dev")) {
+    srtentry.srt_sdest.sa_len    = sizeof(struct sockaddr_in);
+    srtentry.srt_sdest.sa_family = AF_INET;
+
+    srtentry.srt_edest.sa_len    = sizeof(struct sockaddr_in);
+    srtentry.srt_edest.sa_family = AF_INET;
+
+    if ((iArgC < 10) || lib_strcmp(ppcArgV[8], "dev")) {
 __arg_error:
         fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
@@ -941,7 +1064,37 @@ __arg_error:
         goto    __arg_error;
     }
     
-    lib_strlcpy(srtentry.srt_ifname, ppcArgV[5], IF_NAMESIZE);
+    if (!inet_aton(ppcArgV[4], &((struct sockaddr_in *)&srtentry.srt_sdest)->sin_addr)) {
+        goto    __arg_error;
+    }
+
+    if (!inet_aton(ppcArgV[5], &((struct sockaddr_in *)&srtentry.srt_edest)->sin_addr)) {
+        goto    __arg_error;
+    }
+
+    if (!lib_strcasecmp(ppcArgV[6], "INC")) {
+        srtentry.srt_mode = SRT_MODE_INCLUDE;
+
+    } else if (!lib_strcasecmp(ppcArgV[6], "EXC")) {
+        srtentry.srt_mode = SRT_MODE_EXCLUDE;
+
+    } else {
+        fprintf(stderr, "mode must be INC or EXC!\n");
+        goto    __arg_error;
+    }
+
+    if (!lib_strcasecmp(ppcArgV[7], "HIGH")) {
+        srtentry.srt_prio = SRT_PRIO_HIGH;
+
+    } else if (!lib_strcasecmp(ppcArgV[7], "DEF")) {
+        srtentry.srt_prio = SRT_PRIO_DEFAULT;
+
+    } else {
+        fprintf(stderr, "prio must be HIGH or DEF!\n");
+        goto    __arg_error;
+    }
+
+    lib_strlcpy(srtentry.srt_ifname, ppcArgV[9], IF_NAMESIZE);
     
     iSock = socket(AF_INET, SOCK_DGRAM, 0);
     if (iSock < 0) {
@@ -1012,12 +1165,15 @@ __arg_error:
 VOID __tshellSrouteInit (VOID)
 {
     API_TShellKeywordAdd("sroute", __tshellSroute);
-    API_TShellFormatAdd("sroute", " [add | del | chg] [start ip] [end ip] dev [dev]");
+    API_TShellFormatAdd("sroute", " [add | del | chg] [start src] [end src] [start dest] [end dest] [INC/EXC] [HIGH/DEF] dev [dev]");
     API_TShellHelpAdd("sroute",   "show, add, delete, change source route table\n"
     "eg. sroute\n"
-    "    sroute add 192.168.1.1 192.168.1.10 dev en1  (add source ip from 192.168.1.1 ~ 192.168.1.10 route to en1)\n"
-    "    sroute chg 192.168.1.1 192.168.1.10 dev en2  (change source ip from 192.168.1.1 ~ 192.168.1.10 route to en2)\n"
-    "    sroute del 192.168.1.1 192.168.1.10          (delete source ip from 192.168.1.1 ~ 192.168.1.10 route)\n");
+    "    sroute add 192.168.1.1 192.168.1.10 123.0.0.1 126.0.0.1 INC DEF dev en1\n"
+    "       add source ip from 192.168.1.1 ~ 192.168.1.10 dest 123.0.0.1 ~ 126.0.0.1 route to en1 as default priority.\n\n"
+    "    sroute chg 192.168.1.1 192.168.1.10 0.0.0.0 0.0.0.0 EXC HIGH dev en2\n"
+    "       change source ip from 192.168.1.1 ~ 192.168.1.10 route to en2 as high priority.\n\n"
+    "    sroute del 192.168.1.1 192.168.1.10 123.0.0.1 126.0.0.1\n"
+    "       delete source ip from 192.168.1.1 ~ 192.168.1.10 dest 123.0.0.1 ~ 126.0.0.1 route\n\n");
 }
 
 #endif                                                                  /*  LW_CFG_NET_BALANCING > 0    */

@@ -52,37 +52,55 @@
 void srt_sentry_to_srtentry (struct srtentry *srtentry, const struct srt_entry *sentry)
 {
   ip4_addr_t ipssrc, ipesrc;
+  ip4_addr_t ipsdest, ipedest;
 
   srtentry->srt_ssrc.sa_len = sizeof(struct sockaddr_in);
   srtentry->srt_ssrc.sa_family = AF_INET;
   srtentry->srt_esrc.sa_len = sizeof(struct sockaddr_in);
   srtentry->srt_esrc.sa_family = AF_INET;
+  srtentry->srt_sdest.sa_len = sizeof(struct sockaddr_in);
+  srtentry->srt_sdest.sa_family = AF_INET;
+  srtentry->srt_edest.sa_len = sizeof(struct sockaddr_in);
+  srtentry->srt_edest.sa_family = AF_INET;
   
-  ipssrc.addr = PP_HTONL(sentry->srt_ssrc_hbo.addr);
-  ipesrc.addr = PP_HTONL(sentry->srt_esrc_hbo.addr);
+  ipssrc.addr  = PP_HTONL(sentry->srt_ssrc_hbo.addr);
+  ipesrc.addr  = PP_HTONL(sentry->srt_esrc_hbo.addr);
+  ipsdest.addr = PP_HTONL(sentry->srt_sdest_hbo.addr);
+  ipedest.addr = PP_HTONL(sentry->srt_edest_hbo.addr);
 
   inet_addr_from_ip4addr(&((struct sockaddr_in *)&srtentry->srt_ssrc)->sin_addr, &ipssrc);
   inet_addr_from_ip4addr(&((struct sockaddr_in *)&srtentry->srt_esrc)->sin_addr, &ipesrc);
+  inet_addr_from_ip4addr(&((struct sockaddr_in *)&srtentry->srt_sdest)->sin_addr, &ipsdest);
+  inet_addr_from_ip4addr(&((struct sockaddr_in *)&srtentry->srt_edest)->sin_addr, &ipedest);
   
   lib_strlcpy(srtentry->srt_ifname, sentry->srt_ifname, IF_NAMESIZE);
   
   srtentry->srt_flags = (u_short)sentry->srt_flags;
+  srtentry->srt_mode  = sentry->srt_mode;
+  srtentry->srt_prio  = sentry->srt_prio;
 }
 
 /* struct srtentry to srt_entry */
 void srt_srtentry_to_sentry (struct srt_entry *sentry, const struct srtentry *srtentry)
 {
   ip4_addr_t ipssrc, ipesrc;
+  ip4_addr_t ipsdest, ipedest;
 
   inet_addr_to_ip4addr(&ipssrc, &((struct sockaddr_in *)&srtentry->srt_ssrc)->sin_addr);
   inet_addr_to_ip4addr(&ipesrc, &((struct sockaddr_in *)&srtentry->srt_esrc)->sin_addr);
+  inet_addr_to_ip4addr(&ipsdest, &((struct sockaddr_in *)&srtentry->srt_sdest)->sin_addr);
+  inet_addr_to_ip4addr(&ipedest, &((struct sockaddr_in *)&srtentry->srt_edest)->sin_addr);
   
-  sentry->srt_ssrc_hbo.addr = PP_NTOHL(ipssrc.addr);
-  sentry->srt_esrc_hbo.addr = PP_NTOHL(ipesrc.addr);
+  sentry->srt_ssrc_hbo.addr  = PP_NTOHL(ipssrc.addr);
+  sentry->srt_esrc_hbo.addr  = PP_NTOHL(ipesrc.addr);
+  sentry->srt_sdest_hbo.addr = PP_NTOHL(ipsdest.addr);
+  sentry->srt_edest_hbo.addr = PP_NTOHL(ipedest.addr);
   
   lib_strlcpy(sentry->srt_ifname, srtentry->srt_ifname, IF_NAMESIZE);
   
-  sentry->srt_flags  = srtentry->srt_flags;
+  sentry->srt_flags = srtentry->srt_flags;
+  sentry->srt_mode  = srtentry->srt_mode;
+  sentry->srt_prio  = srtentry->srt_prio;
 }
 
 #endif /* LW_CFG_NET_ROUTER && LW_CFG_NET_BALANCING */

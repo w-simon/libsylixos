@@ -142,7 +142,7 @@ ip4_route_src(const ip4_addr_t *src, const ip4_addr_t *dest)
       return netif;
     }
   }
-  return ip4_route(dest);
+  return ip4_route(src, dest);
 }
 #endif /* LWIP_HOOK_IP4_ROUTE_SRC */
 
@@ -156,7 +156,7 @@ ip4_route_src(const ip4_addr_t *src, const ip4_addr_t *dest)
  * @return the netif on which to send to reach dest
  */
 struct netif *
-ip4_route(const ip4_addr_t *dest)
+ip4_route(const ip4_addr_t *src, const ip4_addr_t *dest) /* SylixOS Add src argument */
 {
 #if !LWIP_SINGLE_NETIF
   /* SylixOS Fixed add linkup detected */
@@ -219,6 +219,13 @@ ip4_route(const ip4_addr_t *dest)
   /* SylixOS Pull LWIP_HOOK_IP4_ROUTE_SRC, LWIP_HOOK_IP4_ROUTE up */
 
 #endif /* !LWIP_SINGLE_NETIF */
+
+#ifdef LWIP_HOOK_IP4_ROUTE_DEFAULT /* SylixOS Add This Hook */
+  netif = LWIP_HOOK_IP4_ROUTE_DEFAULT(src, dest);
+  if (netif != NULL) {
+    return netif;
+  }
+#endif
 
   if ((netif_default == NULL) || !netif_is_up(netif_default) || !netif_is_link_up(netif_default) ||
       ip4_addr_isany_val(*netif_ip4_addr(netif_default))) {

@@ -70,8 +70,12 @@ struct srt6_entry {
   
   struct ip6_addr   srt6_ssrc_hbo;   /* source address start */
   struct ip6_addr   srt6_esrc_hbo;   /* source address end */
+  struct ip6_addr   srt6_sdest_hbo;  /* destination address start (host byte order) */
+  struct ip6_addr   srt6_edest_hbo;  /* destination address end (host byte order) */
   
   u_long            srt6_flags;  /* flags */
+  u_short           srt6_mode;   /* mode SRT_MODE_EXCLUDE / SRT_MODE_INCLUDE */
+  u_short           srt6_prio;   /* priority */
   struct netif     *srt6_netif;  /* netif */
   char              srt6_ifname[IF_NAMESIZE]; /* ifname */
 };
@@ -79,8 +83,9 @@ struct srt6_entry {
 /* source route internal functions */
 void srt6_traversal_entry(VOIDFUNCPTR func, void *arg0, void *arg1, 
                           void *arg2, void *arg3, void *arg4, void *arg5);
-struct srt6_entry *srt6_search_entry(const ip6_addr_t *ip6src);
-struct srt6_entry *srt6_find_entry(const ip6_addr_t *ip6ssrc, const ip6_addr_t *ip6esrc);
+struct srt6_entry *srt6_search_entry(const ip6_addr_t *ip6src, const ip6_addr_t *ip6dest);
+struct srt6_entry *srt6_find_entry(const ip6_addr_t *ip6ssrc, const ip6_addr_t *ip6esrc,
+                                   const ip6_addr_t *ip6sdest, const ip6_addr_t *ip6edest);
 int  srt6_add_entry(struct srt6_entry *sentry6);
 void srt6_delete_entry(struct srt6_entry *sentry6);
 void srt6_total_entry(unsigned int *cnt);
@@ -93,6 +98,7 @@ void srt6_srtentry_to_sentry(struct srt6_entry *sentry6, const struct srtentry *
 void srt6_netif_add_hook(struct netif *netif);
 void srt6_netif_remove_hook(struct netif *netif);
 struct netif *srt6_route_search_hook(const ip6_addr_t *ip6src, const ip6_addr_t *ip6dest);
+struct netif *srt6_route_default_hook(const ip6_addr_t *ip6src, const ip6_addr_t *ip6dest);
 
 #endif /* LWIP_IPV6 */
 #endif /* __IP6_SROUTE_H */

@@ -40,6 +40,22 @@
 #ifndef __TCP_SIG_H
 #define __TCP_SIG_H
 
+#include "lwip/opt.h"
+
+#if LW_CFG_LWIP_TCP_SIG_EN > 0
+
+#include "lwip/ip_addr.h"
+#include "lwip/err.h"
+#include "lwip/priv/sockets_priv.h"
+#include "lwip/priv/tcp_priv.h"
+
+void   tcp_md5_init(void);
+err_t  tcp_md5_check_inpacket(struct tcp_pcb* pcb, struct tcp_hdr *hdr, u16_t optlen, u16_t opt1len, u8_t *opt2, struct pbuf *p);
+u8_t   tcp_md5_get_additional_option_length(const struct tcp_pcb *pcb, u8_t internal_option_length);
+u32_t *tcp_md5_add_tx_options(struct pbuf *p, struct tcp_hdr *hdr, const struct tcp_pcb *pcb, u32_t *opts);
+int    tcp_md5_setsockopt(struct lwip_sock *sock, int optname, const void *optval);
+
+#endif /* LW_CFG_LWIP_TCP_SIG_EN */
 #endif /* __TCP_SIG_H */
 /*
  * end

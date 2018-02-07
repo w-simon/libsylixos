@@ -54,37 +54,53 @@
 void srt6_sentry_to_srtentry (struct srtentry *srtentry, const struct srt6_entry *sentry6)
 {
   ip6_addr_t ip6ssrc, ip6esrc;
+  ip6_addr_t ip6sdest, ip6edest;
   
   srtentry->srt_ssrc.sa_len = sizeof(struct sockaddr_in6);
   srtentry->srt_ssrc.sa_family = AF_INET6;
   srtentry->srt_esrc.sa_len = sizeof(struct sockaddr_in6);
   srtentry->srt_esrc.sa_family = AF_INET6;
+  srtentry->srt_sdest.sa_len = sizeof(struct sockaddr_in6);
+  srtentry->srt_sdest.sa_family = AF_INET6;
+  srtentry->srt_edest.sa_len = sizeof(struct sockaddr_in6);
+  srtentry->srt_edest.sa_family = AF_INET6;
   
   srt6_addr_hton(&ip6ssrc, &sentry6->srt6_ssrc_hbo);
   srt6_addr_hton(&ip6esrc, &sentry6->srt6_esrc_hbo);
+  srt6_addr_hton(&ip6sdest, &sentry6->srt6_sdest_hbo);
+  srt6_addr_hton(&ip6edest, &sentry6->srt6_edest_hbo);
 
   inet6_addr_from_ip6addr(&((struct sockaddr_in6 *)&srtentry->srt_ssrc)->sin6_addr, &ip6ssrc);
   inet6_addr_from_ip6addr(&((struct sockaddr_in6 *)&srtentry->srt_esrc)->sin6_addr, &ip6esrc);
+  inet6_addr_from_ip6addr(&((struct sockaddr_in6 *)&srtentry->srt_sdest)->sin6_addr, &ip6sdest);
+  inet6_addr_from_ip6addr(&((struct sockaddr_in6 *)&srtentry->srt_edest)->sin6_addr, &ip6edest);
   
   lib_strlcpy(srtentry->srt_ifname, sentry6->srt6_ifname, IF_NAMESIZE);
   
   srtentry->srt_flags = (u_short)sentry6->srt6_flags;
+  srtentry->srt_mode  = sentry6->srt6_mode;
+  srtentry->srt_prio  = sentry6->srt6_prio;
 }
 
 /* struct srtentry to srt6_entry */
 void srt6_srtentry_to_sentry (struct srt6_entry *sentry6, const struct srtentry *srtentry)
 {
   ip6_addr_t ip6ssrc, ip6esrc;
+  ip6_addr_t ip6sdest, ip6edest;
 
   inet6_addr_to_ip6addr(&ip6ssrc, &((struct sockaddr_in6 *)&srtentry->srt_ssrc)->sin6_addr);
   inet6_addr_to_ip6addr(&ip6esrc, &((struct sockaddr_in6 *)&srtentry->srt_esrc)->sin6_addr);
-  
+  inet6_addr_to_ip6addr(&ip6sdest, &((struct sockaddr_in6 *)&srtentry->srt_sdest)->sin6_addr);
+  inet6_addr_to_ip6addr(&ip6edest, &((struct sockaddr_in6 *)&srtentry->srt_edest)->sin6_addr);
+
   srt6_addr_ntoh(&sentry6->srt6_ssrc_hbo, &ip6ssrc);
   srt6_addr_ntoh(&sentry6->srt6_ssrc_hbo, &ip6esrc);
   
   lib_strlcpy(sentry6->srt6_ifname, srtentry->srt_ifname, IF_NAMESIZE);
   
-  sentry6->srt6_flags  = srtentry->srt_flags;
+  sentry6->srt6_flags = srtentry->srt_flags;
+  sentry6->srt6_mode  = srtentry->srt_mode;
+  sentry6->srt6_prio  = srtentry->srt_prio;
 }
 
 #endif /* LWIP_IPV6 */

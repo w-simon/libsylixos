@@ -45,12 +45,21 @@ extern "C" {
 struct srtentry {
     struct sockaddr srt_ssrc;                   /* source address start                                 */
     struct sockaddr srt_esrc;                   /* source address end                                   */
-    struct sockaddr srt_notuse;                 /* not use                                              */
+    struct sockaddr srt_sdest;                  /* destination address start                            */
+    struct sockaddr srt_edest;                  /* destination address end                              */
     char            srt_ifname[IF_NAMESIZE];    /* interface                                            */
     u_short         srt_flags;
+    u_short         srt_mode;
+    u_short         srt_prio;
     u_short         srt_pad1;
     u_long          srt_pad2[16];               /* for feature                                          */
 };
+
+#define SRT_MODE_EXCLUDE    0                   /* exclude destination                                  */
+#define SRT_MODE_INCLUDE    1                   /* include destination                                  */
+
+#define SRT_PRIO_HIGH       0                   /* priority high than route table                       */
+#define SRT_PRIO_DEFAULT    1                   /* priority low than route table                        */
 
 #define SIOCADDSRT  _IOW( 'r', 100, struct srtentry)
 #define SIOCDELSRT  _IOW( 'r', 101, struct srtentry)

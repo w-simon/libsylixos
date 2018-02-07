@@ -2000,7 +2000,7 @@ static ssize_t  __procFsNetSrouteRead (PLW_PROCFS_NODE  p_pfsn,
                                        off_t            oft)
 {
     const CHAR      cRouteInfoHdr[] = \
-    "Iface   Source(s)       Source(e)       Flags\n";
+    "Iface   Source(s)       Source(e)       Flags   Destination(s)  Destination(e)  Mode Prio\n";
           PCHAR     pcFileBuffer;
           size_t    stRealSize;                                         /*  实际的文件内容大小          */
           size_t    stCopeBytes;
@@ -2066,11 +2066,15 @@ static ssize_t  __procFsNetSrouteRead (PLW_PROCFS_NODE  p_pfsn,
         for (i = 0; i < srtlBuf.srtl_num; i++) {
             psrtentry  = &srtlBuf.srtl_buf[i];
             stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
-                                  "%-7s %08X        %08X        %07X\n",
+                                  "%-7s %08X        %08X        %07X %08X        %08X        %-4d %d\n",
                                   psrtentry->srt_ifname,
                                   ((struct sockaddr_in *)&psrtentry->srt_ssrc)->sin_addr.s_addr,
                                   ((struct sockaddr_in *)&psrtentry->srt_esrc)->sin_addr.s_addr,
-                                  psrtentry->srt_flags); 
+                                  psrtentry->srt_flags,
+                                  ((struct sockaddr_in *)&psrtentry->srt_sdest)->sin_addr.s_addr,
+                                  ((struct sockaddr_in *)&psrtentry->srt_edest)->sin_addr.s_addr,
+                                  psrtentry->srt_mode,
+                                  psrtentry->srt_prio);
         }
         
         __SHEAP_FREE(srtlBuf.srtl_buf);
@@ -2108,7 +2112,8 @@ static ssize_t  __procFsNetSroute6Read (PLW_PROCFS_NODE  p_pfsn,
                                         off_t            oft)
 {
     const CHAR      cRouteInfoHdr[] = \
-    "Iface   Source(s)                        Source(s)                        Flags\n";
+    "Iface   Source(s)                        Source(s)                        Flags   "
+    "Destination(s)                   Destination(e)                   Mode Prio\n";
           PCHAR     pcFileBuffer;
           size_t    stRealSize;                                         /*  实际的文件内容大小          */
           size_t    stCopeBytes;
@@ -2174,13 +2179,18 @@ static ssize_t  __procFsNetSroute6Read (PLW_PROCFS_NODE  p_pfsn,
         for (i = 0; i < srtlBuf.srtl_num; i++) {
             ip6_addr_t   ip6saddr;
             ip6_addr_t   ip6eaddr;
+            ip6_addr_t   ip6sdest;
+            ip6_addr_t   ip6edest;
             
             psrtentry = &srtlBuf.srtl_buf[i];
             inet6_addr_to_ip6addr(&ip6saddr, &((struct sockaddr_in6 *)&psrtentry->srt_ssrc)->sin6_addr);
             inet6_addr_to_ip6addr(&ip6eaddr, &((struct sockaddr_in6 *)&psrtentry->srt_esrc)->sin6_addr);
+            inet6_addr_to_ip6addr(&ip6sdest, &((struct sockaddr_in6 *)&psrtentry->srt_sdest)->sin6_addr);
+            inet6_addr_to_ip6addr(&ip6edest, &((struct sockaddr_in6 *)&psrtentry->srt_edest)->sin6_addr);
             
             stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
-                                  "%-7s %08x%08x%08x%08x %08x%08x%08x%08x %07X\n",
+                                  "%-7s %08x%08x%08x%08x %08x%08x%08x%08x %07X "
+                                  "%08x%08x%08x%08x %08x%08x%08x%08x %-4d %d\n",
                                   psrtentry->srt_ifname,
                                   PP_NTOHL(ip6saddr.addr[0]), 
                                   PP_NTOHL(ip6saddr.addr[1]), 
@@ -2190,7 +2200,17 @@ static ssize_t  __procFsNetSroute6Read (PLW_PROCFS_NODE  p_pfsn,
                                   PP_NTOHL(ip6eaddr.addr[1]), 
                                   PP_NTOHL(ip6eaddr.addr[2]), 
                                   PP_NTOHL(ip6eaddr.addr[3]), 
-                                  psrtentry->srt_flags); 
+                                  psrtentry->srt_flags,
+                                  PP_NTOHL(ip6sdest.addr[0]),
+                                  PP_NTOHL(ip6sdest.addr[1]),
+                                  PP_NTOHL(ip6sdest.addr[2]),
+                                  PP_NTOHL(ip6sdest.addr[3]),
+                                  PP_NTOHL(ip6edest.addr[0]),
+                                  PP_NTOHL(ip6edest.addr[1]),
+                                  PP_NTOHL(ip6edest.addr[2]),
+                                  PP_NTOHL(ip6edest.addr[3]),
+                                  psrtentry->srt_mode,
+                                  psrtentry->srt_prio);
         }
         
         __SHEAP_FREE(srtlBuf.srtl_buf);

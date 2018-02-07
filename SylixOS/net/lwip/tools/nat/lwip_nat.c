@@ -31,7 +31,7 @@
 /*********************************************************************************************************
   ²Ã¼ô¿ØÖÆ
 *********************************************************************************************************/
-#if (LW_CFG_NET_EN > 0) && (LW_CFG_NET_NAT_EN > 0)
+#if (LW_CFG_NET_EN > 0) && (LW_CFG_NET_ROUTER > 0) && (LW_CFG_NET_NAT_EN > 0)
 #include "socket.h"
 #include "net/if_lock.h"
 #include "lwip/netif.h"
@@ -589,6 +589,7 @@ static INT  __tshellNatShow (INT  iArgC, PCHAR  ppcArgV[])
 
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */
+                                                                        /*  LW_CFG_NET_ROUTER > 0       */
                                                                         /*  LW_CFG_NET_NAT_EN > 0       */
 /*********************************************************************************************************
   END

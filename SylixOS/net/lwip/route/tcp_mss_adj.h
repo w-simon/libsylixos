@@ -1,8 +1,6 @@
 /**
  * @file
- * KidVPN client.
- * as much as possible compatible with different versions of LwIP
- * Verification using sylixos(tm) real-time operating system
+ * Lwip platform independent net route TCP MSS Adjust.
  */
 
 /*
@@ -37,13 +35,13 @@
  *
  */
 
-#ifndef __KV_CLIENT_H
-#define __KV_CLIENT_H
+#ifndef __TCP_MSS_ADJ_H
+#define __TCP_MSS_ADJ_H
 
-/* KidVPN client start */
-int kv_cli_start(int vnd_id, const unsigned char *key, unsigned int keybits, const char *server, int mtu);
+/* tcp_forward_mss_adj (Only used for IPv4) */
+int tcp_forward_mss_adj(int ip_type, int hook_type, struct pbuf *p, struct netif *inp, struct netif *outp);
 
-#endif /* __KV_CLIENT_H */
+#endif /* __TCP_MSS_ADJ_H */
 /*
  * end
  */

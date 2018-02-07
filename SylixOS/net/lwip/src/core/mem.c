@@ -53,7 +53,7 @@
  *
  */
 
-#define __SYLIXOS_NET_OPT_MALLOC /* SylixOS Add this macro */
+#define __SYLIXOS_NET_MALLOC /* SylixOS Add this macro */
 #include "lwip/opt.h"
 #include "lwip/mem.h"
 #include "lwip/def.h"

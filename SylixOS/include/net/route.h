@@ -241,6 +241,13 @@ struct rt_msghdr_list {
 
 #define SIOCLSTRTM      _IOWR('r', 15, struct rt_msghdr_list)
 
+/*********************************************************************************************************
+  Set tcp mss adjust in ipv4 forward.
+*********************************************************************************************************/
+
+#define SIOCGTCPMSSADJ  _IOR('r', 20, int)      /* get ipv4 forward TCP MSS adjust status               */
+#define SIOCSTCPMSSADJ  _IOW('r', 20, int)      /* set ipv4 forward TCP MSS adjust status (1: enable)   */
+
 #ifdef __cplusplus
 }
 #endif                                          /*  __cplusplus                                         */

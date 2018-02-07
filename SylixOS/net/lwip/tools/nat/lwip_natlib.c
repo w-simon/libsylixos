@@ -45,7 +45,7 @@
 /*********************************************************************************************************
   裁剪控制
 *********************************************************************************************************/
-#if (LW_CFG_NET_EN > 0) && (LW_CFG_NET_NAT_EN > 0)
+#if (LW_CFG_NET_EN > 0) && (LW_CFG_NET_ROUTER > 0) && (LW_CFG_NET_NAT_EN > 0)
 #include "net/if.h"
 #include "net/if_iphook.h"
 #include "lwip/opt.h"
@@ -55,6 +55,7 @@
 #include "lwip/priv/tcp_priv.h"
 #include "lwip/udp.h"
 #include "lwip/icmp.h"
+#include "lwip/inet_chksum.h"
 #include "lwip/err.h"
 #include "lwip/netif.h"
 #include "lwip/tcpip.h"
@@ -168,51 +169,6 @@ VOID  nat_netif_remove_hook (struct netif *pnetif)
     }
 out:
     __NAT_UNLOCK();
-}
-/*********************************************************************************************************
-** 函数名称: __natChksumAdjust
-** 功能描述: 调整 NAT 数据包校验和.
-** 输　入  : ucChksum        points to the chksum in the packet
-**           ucOptr          points to the old data in the packet
-**           sOlen           old len
-**           ucNptr          points to the new data in the packet
-**           sNlen           new len
-** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-static VOID  __natChksumAdjust (u8_t  *ucChksum, u8_t  *ucOptr, s16_t  sOlen, u8_t  *ucNptr, s16_t  sNlen)
-{
-    s32_t     i32X, i32Old, i32New;
-  
-    i32X = (ucChksum[0] << 8) + ucChksum[1];
-    i32X = ~i32X & 0xFFFF;
-    
-    while (sOlen) {
-        i32Old  = (ucOptr[0] << 8) + ucOptr[1];
-        ucOptr += 2;
-        i32X   -= i32Old & 0xffff;
-        if (i32X <= 0) {
-            i32X--; 
-            i32X &= 0xffff;
-        }
-        sOlen -= 2;
-    }
-    
-    while (sNlen) {
-        i32New  = (ucNptr[0] << 8) + ucNptr[1]; 
-        ucNptr +=2;
-        i32X   += i32New & 0xffff;
-        if (i32X & 0x10000) {
-            i32X++; 
-            i32X &= 0xffff; 
-        }
-        sNlen -= 2;
-    }
-    
-    i32X = ~i32X & 0xFFFF;
-    ucChksum[0] = (u8_t)(i32X >> 8);
-    ucChksum[1] = (u8_t)(i32X & 0xff);
 }
 /*********************************************************************************************************
 ** 函数名称: __natPoolInit
@@ -769,27 +725,27 @@ static err_t  __natApInput (struct pbuf *p, struct netif *netifIn)
              */
             u32OldAddr = iphdr->dest.addr;
             ((ip4_addr_t *)&(iphdr->dest))->addr = ipaddr.addr;
-            __natChksumAdjust((u8_t *)&IPH_CHKSUM(iphdr),(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->dest.addr, 4);
+            inet_chksum_adjust((u8_t *)&IPH_CHKSUM(iphdr),(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->dest.addr, 4);
         
             /*
              *  本机发送到内网的数据包目标端口为 NAT_usLocalPort
              */
             if (IPH_PROTO(iphdr) == IP_PROTO_TCP) {
-                __natChksumAdjust((u8_t *)&tcphdr->chksum,(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->dest.addr, 4);
+                inet_chksum_adjust((u8_t *)&tcphdr->chksum,(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->dest.addr, 4);
                 tcphdr->dest = pnatmap->NAT_usLocalPort;
-                __natChksumAdjust((u8_t *)&tcphdr->chksum,(u8_t *)&usDestPort, 2, (u8_t *)&tcphdr->dest, 2);
+                inet_chksum_adjust((u8_t *)&tcphdr->chksum,(u8_t *)&usDestPort, 2, (u8_t *)&tcphdr->dest, 2);
             
             } else if (IPH_PROTO(iphdr) == IP_PROTO_UDP) {
                 if (udphdr->chksum != 0) {
-                    __natChksumAdjust((u8_t *)&udphdr->chksum,(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->dest.addr, 4);
+                    inet_chksum_adjust((u8_t *)&udphdr->chksum,(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->dest.addr, 4);
     	            udphdr->dest = pnatmap->NAT_usLocalPort;
-    	            __natChksumAdjust((u8_t *)&udphdr->chksum,(u8_t *)&usDestPort, 2, (u8_t *)&udphdr->dest, 2);
+    	            inet_chksum_adjust((u8_t *)&udphdr->chksum,(u8_t *)&usDestPort, 2, (u8_t *)&udphdr->dest, 2);
                 }
                 
             } else if ((IPH_PROTO(iphdr) == IP_PROTO_ICMP) && 
                        ((ICMPH_CODE(icmphdr) == ICMP_ECHO || ICMPH_CODE(icmphdr) == ICMP_ER))) {
                 icmphdr->id = pnatmap->NAT_usLocalPort;
-                __natChksumAdjust((u8_t *)&icmphdr->chksum,(u8_t *)&usDestPort, 2, (u8_t *)&icmphdr->id, 2);
+                inet_chksum_adjust((u8_t *)&icmphdr->chksum,(u8_t *)&usDestPort, 2, (u8_t *)&icmphdr->id, 2);
             }
         }
     
@@ -816,27 +772,27 @@ static err_t  __natApInput (struct pbuf *p, struct netif *netifIn)
              */
             u32OldAddr = iphdr->dest.addr;
             ((ip4_addr_t *)&(iphdr->dest))->addr = pnatcb->NAT_ipaddrLocalIp.addr;
-            __natChksumAdjust((u8_t *)&IPH_CHKSUM(iphdr),(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->dest.addr, 4);
+            inet_chksum_adjust((u8_t *)&IPH_CHKSUM(iphdr),(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->dest.addr, 4);
             
             /*
              *  本机发送到内网的数据包目标端口为 NAT_usLocalPort
              */
             if (IPH_PROTO(iphdr) == IP_PROTO_TCP) {
-                __natChksumAdjust((u8_t *)&tcphdr->chksum,(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->dest.addr, 4);
+                inet_chksum_adjust((u8_t *)&tcphdr->chksum,(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->dest.addr, 4);
                 tcphdr->dest = pnatcb->NAT_usLocalPort;
-                __natChksumAdjust((u8_t *)&tcphdr->chksum,(u8_t *)&usDestPort, 2, (u8_t *)&tcphdr->dest, 2);
+                inet_chksum_adjust((u8_t *)&tcphdr->chksum,(u8_t *)&usDestPort, 2, (u8_t *)&tcphdr->dest, 2);
             
             } else if (IPH_PROTO(iphdr) == IP_PROTO_UDP) {
                 if (udphdr->chksum != 0) {
-                    __natChksumAdjust((u8_t *)&udphdr->chksum,(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->dest.addr, 4);
+                    inet_chksum_adjust((u8_t *)&udphdr->chksum,(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->dest.addr, 4);
     	            udphdr->dest = pnatcb->NAT_usLocalPort;
-    	            __natChksumAdjust((u8_t *)&udphdr->chksum,(u8_t *)&usDestPort, 2, (u8_t *)&udphdr->dest, 2);
+    	            inet_chksum_adjust((u8_t *)&udphdr->chksum,(u8_t *)&usDestPort, 2, (u8_t *)&udphdr->dest, 2);
                 }
                 
             } else if ((IPH_PROTO(iphdr) == IP_PROTO_ICMP) && 
                        ((ICMPH_CODE(icmphdr) == ICMP_ECHO || ICMPH_CODE(icmphdr) == ICMP_ER))) {
                 icmphdr->id = pnatcb->NAT_usLocalPort;
-                __natChksumAdjust((u8_t *)&icmphdr->chksum,(u8_t *)&usDestPort, 2, (u8_t *)&icmphdr->id, 2);
+                inet_chksum_adjust((u8_t *)&icmphdr->chksum,(u8_t *)&usDestPort, 2, (u8_t *)&icmphdr->id, 2);
             }
             
             /*
@@ -980,7 +936,7 @@ static err_t  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct net
         } else {                                                        /*  源 IP 使用 AP 接口 IP       */
             ((ip4_addr_t *)&(iphdr->src))->addr = netif_ip4_addr(netifOut)->addr;
         }
-        __natChksumAdjust((u8_t *)&IPH_CHKSUM(iphdr),(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->src.addr, 4);
+        inet_chksum_adjust((u8_t *)&IPH_CHKSUM(iphdr),(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->src.addr, 4);
         
         /*
          *  本机发送到外网的数据包使用 NAT_usAssPort (唯一的分配端口)
@@ -988,22 +944,22 @@ static err_t  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct net
         switch (IPH_PROTO(iphdr)) {
         
         case IP_PROTO_TCP:
-            __natChksumAdjust((u8_t *)&tcphdr->chksum,(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->src.addr, 4);
+            inet_chksum_adjust((u8_t *)&tcphdr->chksum,(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->src.addr, 4);
             tcphdr->src = pnatcb->NAT_usAssPort;
-            __natChksumAdjust((u8_t *)&tcphdr->chksum,(u8_t *)&usSrcPort, 2, (u8_t *)&tcphdr->src, 2);
+            inet_chksum_adjust((u8_t *)&tcphdr->chksum,(u8_t *)&usSrcPort, 2, (u8_t *)&tcphdr->src, 2);
             break;
             
         case IP_PROTO_UDP:
             if (udphdr->chksum != 0) {
-        	    __natChksumAdjust((u8_t *)&udphdr->chksum,(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->src.addr, 4);
+                inet_chksum_adjust((u8_t *)&udphdr->chksum,(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->src.addr, 4);
         	    udphdr->src = pnatcb->NAT_usAssPort;
-        	    __natChksumAdjust((u8_t *)&udphdr->chksum,(u8_t *)&usSrcPort, 2, (u8_t *)&udphdr->src, 2);
+        	    inet_chksum_adjust((u8_t *)&udphdr->chksum,(u8_t *)&usSrcPort, 2, (u8_t *)&udphdr->src, 2);
         	}
             break;
             
         case IP_PROTO_ICMP:
             icmphdr->id = pnatcb->NAT_usAssPort;
-            __natChksumAdjust((u8_t *)&icmphdr->chksum,(u8_t *)&usSrcPort, 2, (u8_t *)&icmphdr->id, 2);
+            inet_chksum_adjust((u8_t *)&icmphdr->chksum,(u8_t *)&usSrcPort, 2, (u8_t *)&icmphdr->id, 2);
             break;
             
         default:
@@ -1653,6 +1609,7 @@ VOID  __procFsNatInit (VOID)
 
 #endif                                                                  /*  LW_CFG_PROCFS_EN > 0        */
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */
+                                                                        /*  LW_CFG_NET_ROUTER > 0       */
                                                                         /*  LW_CFG_NET_NAT_EN > 0       */
 /*********************************************************************************************************
   END

@@ -606,3 +606,49 @@ lwip_chksum_copy(void *dst, const void *src, u16_t len)
   return LWIP_CHKSUM(dst, len);
 }
 #endif /* (LWIP_CHKSUM_COPY_ALGORITHM == 1) */
+
+#ifdef SYLIXOS /* SylixOS Add chksum adjust */
+/**
+ * Adjust checksum.
+ *
+ * @param chksum checksum pointer.
+ * @param old_ptr old data pointer.
+ * @param old_len old data length.
+ * @param new_ptr new data pointer.
+ * @param new_len new data length.
+ */
+void
+inet_chksum_adjust(u8_t *chksum, u8_t *old_ptr, u16_t old_len, u8_t *new_ptr, u16_t new_len)
+{
+  s32_t x, old, new;
+
+  x = (chksum[0] << 8) + chksum[1];
+  x = ~x & 0xffff;
+
+  while (old_len) {
+    old = (old_ptr[0] << 8) + old_ptr[1];
+    x -= old & 0xffff;
+    if (x <= 0) {
+      x--;
+      x &= 0xffff;
+    }
+    old_ptr += 2;
+    old_len -= 2;
+  }
+
+  while (new_len) {
+    new  = (new_ptr[0] << 8) + new_ptr[1];
+    x += new & 0xffff;
+    if (x & 0x10000) {
+      x++;
+      x &= 0xffff;
+    }
+    new_ptr += 2;
+    new_len -= 2;
+  }
+
+  x = ~x & 0xffff;
+  chksum[0] = (u8_t)(x >> 8);
+  chksum[1] = (u8_t)(x & 0xff);
+}
+#endif /* SYLIXOS */

@@ -1040,6 +1040,25 @@ struct netif *ip_route_src_hook (const ip4_addr_t *pipsrc, const ip4_addr_t *pip
 #endif                                                                  /*  LW_CFG_NET_ROUTER           */
 }
 /*********************************************************************************************************
+** 函数名称: ip_route_default_hook
+** 功能描述: sylixos ip route hook
+** 输　入  : pipsrc   source address
+**           pipdest  destination route netif
+** 输　出  : netif
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+struct netif *ip_route_default_hook (const ip4_addr_t *pipsrc, const ip4_addr_t *pipdest)
+{
+#if LW_CFG_NET_ROUTER > 0
+#if LW_CFG_NET_BALANCING > 0
+    return  (srt_route_default_hook(pipsrc, pipdest));
+#endif
+#else
+    return  (LW_NULL);
+#endif                                                                  /*  LW_CFG_NET_ROUTER           */
+}
+/*********************************************************************************************************
 ** 函数名称: ip_gw_hook
 ** 功能描述: sylixos ip route gw hook
 ** 输　入  : pnetif  netif
@@ -1085,6 +1104,25 @@ struct netif *ip6_route_src_hook (const ip6_addr_t *pip6src, const ip6_addr_t *p
 
     return  ((PVOID)netif);
     
+#else
+    return  (LW_NULL);
+#endif                                                                  /*  LW_CFG_NET_ROUTER           */
+}
+/*********************************************************************************************************
+** 函数名称: ip6_route_default_hook
+** 功能描述: sylixos ip route hook
+** 输　入  : pip6src     source address
+**           pip6dest    destination route netif
+** 输　出  : netif
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+struct netif *ip6_route_default_hook (const ip6_addr_t *pip6src, const ip6_addr_t *pip6dest)
+{
+#if LW_CFG_NET_ROUTER > 0
+#if LW_CFG_NET_BALANCING > 0
+    return  (srt6_route_default_hook(pip6src, pip6dest));
+#endif
 #else
     return  (LW_NULL);
 #endif                                                                  /*  LW_CFG_NET_ROUTER           */

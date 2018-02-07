@@ -65,7 +65,6 @@
 
 #include <string.h>
 
-/* SylixOS Add need some hooks */
 #ifdef LWIP_HOOK_FILENAME
 #include LWIP_HOOK_FILENAME
 #endif
@@ -918,14 +917,6 @@ lwip_recv_tcp(struct lwip_sock *sock, void *mem, size_t len, int flags)
         if (recvd > 0) {
           /* already received data, return that (this trusts in getting the same error from
              netconn layer again next time netconn_recv is called) */
-          if (err == ERR_CLSD) {
-            /* closed but already received data, ensure select gets the FIN, too */
-            if (sock->conn->callback != NULL) {
-              LOCK_TCPIP_CORE();
-              sock->conn->callback(sock->conn, NETCONN_EVT_RCVPLUS, 0);
-              UNLOCK_TCPIP_CORE();
-            }
-          }
           goto lwip_recv_tcp_done;
         }
         /* We should really do some error checking here. */
@@ -981,7 +972,7 @@ lwip_recv_tcp(struct lwip_sock *sock, void *mem, size_t len, int flags)
       }
     }
     /* once we have some data to return, only add more if we don't need to wait */
-    apiflags |= NETCONN_DONTBLOCK;
+    apiflags |= NETCONN_DONTBLOCK | NETCONN_NOFIN;
     /* @todo: do we need to support peeking more than one pbuf? */
   } while ((recv_left > 0) && !(flags & MSG_PEEK));
 lwip_recv_tcp_done:
@@ -2942,6 +2933,12 @@ lwip_getsockopt_impl(int s, int level, int optname, void *optval, socklen_t *opt
     return EBADF;
   }
 
+#ifdef LWIP_HOOK_SOCKETS_GETSOCKOPT
+  if (LWIP_HOOK_SOCKETS_GETSOCKOPT(s, sock, level, optname, optval, optlen, &err)) {
+    return err;
+  }
+#endif
+
   switch (level) {
 
     /* Level: SOL_SOCKET */
@@ -3610,6 +3607,12 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
     return EBADF;
   }
 
+#ifdef LWIP_HOOK_SOCKETS_SETSOCKOPT
+  if (LWIP_HOOK_SOCKETS_SETSOCKOPT(s, sock, level, optname, optval, optlen, &err)) {
+    return err;
+  }
+#endif
+
   switch (level) {
 
     /* Level: SOL_SOCKET */
@@ -4131,6 +4134,17 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
     case IPPROTO_TCP:
       /* Special case: all IPPROTO_TCP option take an int */
       LWIP_SOCKOPT_CHECK_OPTLEN_CONN_PCB_TYPE(sock, optlen, int, NETCONN_TCP);
+#if defined(SYLIXOS) && (LW_CFG_LWIP_TCP_SIG_EN > 0) /* SylixOS Add TCP MD5 Signatrue */
+      if (optname == TCP_MD5SIG) {
+        if ((optval == NULL) || (optlen < sizeof(struct tcp_md5sig)) || (sock->conn->pcb.tcp == NULL)) {
+          done_socket(sock);
+          return EINVAL;
+        }
+        err = tcp_md5_setsockopt(sock, optname, optval);
+        done_socket(sock);
+        return err;
+      }
+#endif /* SYLIXOS && (LW_CFG_LWIP_TCP_SIG_EN > 0) */
       if (sock->conn->pcb.tcp->state == LISTEN) {
         done_socket(sock);
         return EINVAL;
@@ -4557,10 +4571,10 @@ lwip_ioctl(int s, long cmd, void *argp)
 
       /* Check if there is data left from the last recv operation. /maq 041215 */
       if (sock->lastdata.netbuf) {
-        if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) != NETCONN_TCP) {
-          recv_avail += sock->lastdata.netbuf->p->tot_len;
-        } else {
+        if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_TCP) {
           recv_avail += sock->lastdata.pbuf->tot_len;
+        } else {
+          recv_avail += sock->lastdata.netbuf->p->tot_len;
         }
       }
       *((int *)argp) = recv_avail;

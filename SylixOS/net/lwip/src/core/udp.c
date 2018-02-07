@@ -45,6 +45,7 @@
 /* @todo Check the use of '(struct udp_pcb).chksum_len_rx'!
  */
 
+#define __SYLIXOS_NET_PORT_RNG /* SylixOS Add this macro */
 #include "lwip/opt.h"
 
 #if LWIP_UDP /* don't build if not configured for use in lwipopts.h */

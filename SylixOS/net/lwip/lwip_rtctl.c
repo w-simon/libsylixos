@@ -25,10 +25,12 @@
   裁剪控制
 *********************************************************************************************************/
 #if LW_CFG_NET_EN > 0 && LW_CFG_NET_ROUTER > 0
-#include "sys/socket.h"
+#include "socket.h"
+#include "net/if_iphook.h"
 #include "lwip/mem.h"
 #include "lwip/tcpip.h"
 #include "route/af_route.h"
+#include "route/tcp_mss_adj.h"
 /*********************************************************************************************************
 ** 函数名称: __rtAdd4
 ** 功能描述: 添加一条 IPv4 路由信息
@@ -661,6 +663,44 @@ static INT  __rtmLst6 (struct rt_msghdr_list *prtmlist)
 
 #endif                                                                  /*  LWIP_IPV6                   */
 /*********************************************************************************************************
+** 函数名称: __rtSetTcpMssAdj
+** 功能描述: 设置 ipv4 forward TCP MSS adjust status
+** 输　入  : *piEnable  是否使能
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __rtSetTcpMssAdj (INT *piEnable)
+{
+    INT  iRet;
+
+    if (*piEnable) {
+        iRet = net_ip_hook_add("tcp_forward_mss_adj", tcp_forward_mss_adj);
+
+    } else {
+        iRet = net_ip_hook_delete(tcp_forward_mss_adj);
+    }
+
+    return  (iRet);
+}
+/*********************************************************************************************************
+** 函数名称: __rtGetTcpMssAdj
+** 功能描述: 获取 ipv4 forward TCP MSS adjust status
+** 输　入  : *piEnable  是否使能
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __rtGetTcpMssAdj (INT *piEnable)
+{
+    BOOL  bIsAdd;
+
+    net_ip_hook_isadd(tcp_forward_mss_adj, &bIsAdd);
+    *piEnable = (bIsAdd) ? 1 : 0;
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: __rtIoctlInet
 ** 功能描述: SIOCADDRT / SIOCDELRT ... 命令处理接口
 ** 输　入  : iFamily    AF_INET / AF_INET6
@@ -746,6 +786,14 @@ INT  __rtIoctlInet (INT  iFamily, INT  iCmd, PVOID  pvArg)
             iRet = __rtmLst6((struct rt_msghdr_list *)pvArg);
         }
 #endif
+        break;
+
+    case SIOCGTCPMSSADJ:
+        iRet = __rtGetTcpMssAdj((INT *)pvArg);
+        break;
+
+    case SIOCSTCPMSSADJ:
+        iRet = __rtSetTcpMssAdj((INT *)pvArg);
         break;
 
     default:

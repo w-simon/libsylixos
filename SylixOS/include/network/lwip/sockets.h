@@ -288,7 +288,7 @@ struct linger {
 #define MSG_DONTWAIT   0x08    /* Nonblocking i/o for this operation only */
 #define MSG_MORE       0x10    /* Sender will send more */
 
-/* SylixOS SylixOS Changed for compatibility */
+/* SylixOS Changed for compatibility */
 #define MSG_NOSIGNAL        0x4000
 #define MSG_CMSG_CLOEXEC    0x40000
 
@@ -325,6 +325,23 @@ struct linger {
 #define TCP_KEEPIDLE   0x03    /* set pcb->keep_idle  - Same as TCP_KEEPALIVE, but use seconds for get/setsockopt */
 #define TCP_KEEPINTVL  0x04    /* set pcb->keep_intvl - Use seconds for get/setsockopt */
 #define TCP_KEEPCNT    0x05    /* set pcb->keep_cnt   - Use number of probes sent for get/setsockopt */
+
+/* SylixOS Add TCP MD5 SIG Support */
+#ifdef SYLIXOS
+#if LW_CFG_LWIP_TCP_SIG_EN > 0
+#define TCP_MD5SIG     0x0e    /* TCP MD5 Signatrue (14) */
+
+#define TCP_MD5SIG_MAXKEYLEN    80
+
+struct tcp_md5sig {
+  struct  sockaddr_storage tcpm_addr;
+  u16_t   __tcpm_pad1;
+  u16_t   tcpm_keylen;
+  u32_t   __tcpm_pad2;
+  u8_t    tcpm_key[TCP_MD5SIG_MAXKEYLEN];
+};
+#endif /* LW_CFG_LWIP_TCP_SIG_EN */
+#endif /* SYLIXOS */
 #endif /* LWIP_TCP */
 
 #if LWIP_IPV6

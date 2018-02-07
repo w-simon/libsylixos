@@ -84,7 +84,9 @@ int  lwip_ip_hook (int ip_type, int hook_type, struct pbuf *p, struct netif *in,
 int  net_ip_hook_add (const char *name, int (*hook)(int ip_type, int hook_type, struct pbuf *p, 
                                                     struct netif *in, struct netif *out))
 {
+    PLW_LIST_LINE   pline;
     PIP_HOOK_NODE   pipnod;
+    PIP_HOOK_NODE   pipnodTemp;
     
     if (!name || !hook) {
         _ErrorHandle(EINVAL);
@@ -101,6 +103,20 @@ int  net_ip_hook_add (const char *name, int (*hook)(int ip_type, int hook_type, 
     lib_strcpy(pipnod->IPHOOK_cName, name);
     
     LOCK_TCPIP_CORE();
+    for (pline  = _G_plineIpHook;
+         pline != LW_NULL;
+         pline  = _list_line_get_next(pline)) {
+        pipnodTemp = _LIST_ENTRY(pline, IP_HOOK_NODE, IPHOOK_lineManage);
+        if (pipnodTemp->IPHOOK_pfuncHook == hook) {
+            break;
+        }
+    }
+    if (pline) {
+        UNLOCK_TCPIP_CORE();
+        __SHEAP_FREE(pipnod);
+        _ErrorHandle(EALREADY);
+        return  (PX_ERROR);
+    }
     _List_Line_Add_Ahead(&pipnod->IPHOOK_lineManage, &_G_plineIpHook);
     UNLOCK_TCPIP_CORE();
     
@@ -146,6 +162,47 @@ int  net_ip_hook_delete (int (*hook)(int ip_type, int hook_type, struct pbuf *p,
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
+}
+/*********************************************************************************************************
+** 函数名称: net_ip_hook_isadd
+** 功能描述: lwip ip 回调函数是否已经安装
+** 输　入  : hook          回调函数
+**           pbIsAdd       是否已经添加了
+** 输　出  : -1: 失败
+**            0: 成功
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+int  net_ip_hook_isadd (int (*hook)(int ip_type, int hook_type, struct pbuf *p,
+                                    struct netif *in, struct netif *out), BOOL *pbIsAdd)
+{
+    PLW_LIST_LINE   pline;
+    PIP_HOOK_NODE   pipnod;
+
+    if (!hook || !pbIsAdd) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    LOCK_TCPIP_CORE();
+    for (pline  = _G_plineIpHook;
+         pline != LW_NULL;
+         pline  = _list_line_get_next(pline)) {
+        pipnod = _LIST_ENTRY(pline, IP_HOOK_NODE, IPHOOK_lineManage);
+        if (pipnod->IPHOOK_pfuncHook == hook) {
+            break;
+        }
+    }
+    UNLOCK_TCPIP_CORE();
+
+    if (pline) {
+        *pbIsAdd = LW_TRUE;
+
+    } else {
+        *pbIsAdd = LW_FALSE;
+    }
+
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: net_ip_hook_pbuf_set_ifout 

@@ -27,6 +27,7 @@
   ²Ã¼ô¿ØÖÆ
 *********************************************************************************************************/
 #if (LW_CFG_NET_EN > 0) && (LW_CFG_LWIP_PPP > 0)
+#include "lwip/snmp.h"
 #include "lwip/netif.h"
 #include "netif/ppp/pppapi.h"
 #include "netif/ppp/pppos.h"
@@ -302,7 +303,7 @@ static ppp_pcb  *__pppGet (CPCHAR  pcIfName)
     }
 
     netif = netif_find(pcIfName);
-    if (netif == LW_NULL) {
+    if ((netif == LW_NULL) || (netif->link_type != snmp_ifType_ppp)) {
         _ErrorHandle(ENODEV);
         return  (LW_NULL);
     }

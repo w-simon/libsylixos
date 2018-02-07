@@ -263,7 +263,7 @@ static int  netdev_netif_ioctl (struct netif *netif, int cmd, void *arg)
 {
   netdev_t *netdev = (netdev_t *)(netif->state);
   struct ifreq *ifreq;
-  err_t err;
+  err_t err = ERR_VAL;
   int flags;
   int ret = -1;
   

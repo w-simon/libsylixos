@@ -253,6 +253,13 @@ ip6_route(const ip6_addr_t *src, const ip6_addr_t *dest)
 #endif /* LWIP_NETIF_LOOPBACK && !LWIP_HAVE_LOOPIF */
 #endif /* !LWIP_SINGLE_NETIF */
 
+#ifdef LWIP_HOOK_IP6_ROUTE_DEFAULT /* SylixOS Add this hook */
+  netif = LWIP_HOOK_IP6_ROUTE_DEFAULT(src, dest);
+  if (netif != NULL) {
+    return netif;
+  }
+#endif
+
   /* no matching netif found, use default netif, if up */
   if ((netif_default == NULL) || !netif_is_up(netif_default) || !netif_is_link_up(netif_default)) {
     return NULL;

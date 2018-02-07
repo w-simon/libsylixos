@@ -1333,6 +1333,7 @@ SylixOS/net/lwip/route/ip4_route.c \
 SylixOS/net/lwip/route/ip4_route_x.c \
 SylixOS/net/lwip/route/ip6_route.c \
 SylixOS/net/lwip/route/ip6_route_x.c \
+SylixOS/net/lwip/route/tcp_mss_adj.c \
 SylixOS/net/lwip/src/api/api_lib.c \
 SylixOS/net/lwip/src/api/api_msg.c \
 SylixOS/net/lwip/src/api/err.c \
@@ -1436,7 +1437,7 @@ SylixOS/net/lwip/src/netif/radio/null_rdc.c \
 SylixOS/net/lwip/src/netif/radio/simple_crypt.c \
 SylixOS/net/lwip/src/netif/radio/tdma_mac.c \
 SylixOS/net/lwip/src/netif/radio/xmac_rdc.c \
-SylixOS/net/lwip/tcpsig/tcp_sig.c \
+SylixOS/net/lwip/tcpsig/tcp_md5.c \
 SylixOS/net/lwip/tools/ftp/lwip_ftp.c \
 SylixOS/net/lwip/tools/ftp/lwip_ftpd.c \
 SylixOS/net/lwip/tools/hosttable/lwip_hosttable.c \

@@ -112,7 +112,7 @@ extern PVOID  lwip_platform_smemcpy(PVOID  pvDest, CPVOID  pvSrc, size_t  stCoun
 #define MEM_LIBC_MALLOC                 1
 #define MEM_STATS                       1
 
-#ifdef __SYLIXOS_NET_OPT_MALLOC
+#ifdef __SYLIXOS_NET_MALLOC
 extern void *tlsf_mem_malloc(size_t size);
 extern void *tlsf_mem_calloc(size_t count, size_t size);
 extern void  tlsf_mem_free(void *f);
@@ -312,8 +312,40 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrT
         __inetHostTableGetItem(name, addr, type)
 
 /*********************************************************************************************************
+  TCP UDP 随机端口范围
+*********************************************************************************************************/
+
+#if (LW_CFG_NET_ROUTER > 0) && (LW_CFG_NET_NAT_EN > 0)
+#if LW_CFG_NET_NAT_MAX_SESSION < 128
+#error "LW_CFG_NET_NAT_MAX_SESSION must bigger than 128!"
+#endif                                                                  /*  MAX_SESSION < 128           */
+#if LW_CFG_NET_NAT_MAX_SESSION > 8192
+#error "LW_CFG_NET_NAT_MAX_SESSION must less than 8192!"
+#endif                                                                  /*  MAX_SESSION > 8192          */
+
+#define LW_CFG_NET_NAT_MAX_PORT     (65535)
+#define LW_CFG_NET_NAT_MIN_PORT     (65535 - LW_CFG_NET_NAT_MAX_PORT)   /*  NAT 端口映射范围            */
+
+#ifdef __SYLIXOS_NET_PORT_RNG
+#define TCP_LOCAL_PORT_RANGE_START        0xc000
+#define TCP_LOCAL_PORT_RANGE_END          (LW_CFG_NET_NAT_MIN_PORT - 1)
+#define TCP_ENSURE_LOCAL_PORT_RANGE(port) ((u16_t)(((port) & (u16_t)~TCP_LOCAL_PORT_RANGE_START) + \
+                                           TCP_LOCAL_PORT_RANGE_START))
+
+#define UDP_LOCAL_PORT_RANGE_START        0xc000
+#define UDP_LOCAL_PORT_RANGE_END          (LW_CFG_NET_NAT_MIN_PORT - 1)
+#define UDP_ENSURE_LOCAL_PORT_RANGE(port) ((u16_t)(((port) & (u16_t)~UDP_LOCAL_PORT_RANGE_START) + \
+                                           UDP_LOCAL_PORT_RANGE_START))
+#endif                                                                  /*  __SYLIXOS_NET_PORT_RNG      */
+#endif                                                                  /*  LW_CFG_NET_ROUTER           */
+                                                                        /*  LW_CFG_NET_NAT_EN           */
+/*********************************************************************************************************
   TCP basic
 *********************************************************************************************************/
+
+#if LW_CFG_LWIP_TCP_SIG_EN > 0
+#define LWIP_TCP_PCB_NUM_EXT_ARGS       1
+#endif
 
 #if LW_CFG_LWIP_TCP_MAXRTX > 0
 #define TCP_MAXRTX                      LW_CFG_LWIP_TCP_MAXRTX
@@ -657,10 +689,12 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrT
 *********************************************************************************************************/
 
 #define LWIP_HOOK_IP4_ROUTE_SRC     ip_route_src_hook
+#define LWIP_HOOK_IP4_ROUTE_DEFAULT ip_route_default_hook
 #define LWIP_HOOK_ETHARP_GET_GW     ip_gw_hook
 
 #if LWIP_IPV6 > 0
 #define LWIP_HOOK_IP6_ROUTE         ip6_route_src_hook
+#define LWIP_HOOK_IP6_ROUTE_DEFAULT ip6_route_default_hook
 #define LWIP_HOOK_ND6_GET_GW        ip6_gw_hook
 #endif                                                                  /*  LWIP_IPV6 > 0               */
 
@@ -686,6 +720,16 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrT
 #define LWIP_HOOK_VLAN_SET          ethernet_vlan_set_hook
 #define LWIP_HOOK_VLAN_CHECK        ethernet_vlan_check_hook
 #endif                                                                  /*  LW_CFG_NET_VLAN_EN > 0      */
+
+/*********************************************************************************************************
+  TCP hook
+*********************************************************************************************************/
+
+#if LW_CFG_LWIP_TCP_SIG_EN > 0
+#define LWIP_HOOK_TCP_INPACKET_PCB          tcp_md5_check_inpacket
+#define LWIP_HOOK_TCP_OPT_LENGTH_SEGMENT    tcp_md5_get_additional_option_length
+#define LWIP_HOOK_TCP_ADD_TX_OPTIONS        tcp_md5_add_tx_options
+#endif                                                                  /*  LW_CFG_LWIP_TCP_SIG_EN > 0  */
 
 /*********************************************************************************************************
   lwip socket.h 相关宏重定义, 以兼容绝大多数的应用

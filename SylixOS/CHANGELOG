@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2018-02-01: han.hui
+    加入对 TCP MSS 在不同 MTU 网口间转发的 MSS 调整功能.
+
     2018-01-26: han.hui
     netdev 模型支持轮询模式, 支持高速实时网络应用.
 

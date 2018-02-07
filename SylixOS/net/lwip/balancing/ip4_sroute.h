@@ -58,8 +58,12 @@ struct srt_entry {
   
   struct ip4_addr   srt_ssrc_hbo;   /* source address start (host byte order) */
   struct ip4_addr   srt_esrc_hbo;   /* source address end (host byte order) */
+  struct ip4_addr   srt_sdest_hbo;  /* destination address start (host byte order) */
+  struct ip4_addr   srt_edest_hbo;  /* destination address end (host byte order) */
   
   u_long            srt_flags;  /* flags */
+  u_short           srt_mode;   /* mode SRT_MODE_EXCLUDE / SRT_MODE_INCLUDE */
+  u_short           srt_prio;   /* priority */
   struct netif     *srt_netif;  /* netif */
   char              srt_ifname[IF_NAMESIZE]; /* ifname */
 };
@@ -67,8 +71,9 @@ struct srt_entry {
 /* source route internal functions */
 void srt_traversal_entry(VOIDFUNCPTR func, void *arg0, void *arg1, 
                          void *arg2, void *arg3, void *arg4, void *arg5);
-struct srt_entry *srt_search_entry(const ip4_addr_t *ipsrc);
-struct srt_entry *srt_find_entry(const ip4_addr_t *ipssrc, const ip4_addr_t *ipesrc);
+struct srt_entry *srt_search_entry(const ip4_addr_t *ipsrc, const ip4_addr_t *ipdest);
+struct srt_entry *srt_find_entry(const ip4_addr_t *ipssrc, const ip4_addr_t *ipesrc,
+                                 const ip4_addr_t *ipsdest, const ip4_addr_t *ipedest);
 int  srt_add_entry(struct srt_entry *sentry);
 void srt_delete_entry(struct srt_entry *sentry);
 void srt_total_entry(unsigned int *cnt);
@@ -81,6 +86,7 @@ void srt_srtentry_to_sentry(struct srt_entry *sentry, const struct srtentry *srt
 void srt_netif_add_hook(struct netif *netif);
 void srt_netif_remove_hook(struct netif *netif);
 struct netif *srt_route_search_hook(const ip4_addr_t *ipsrc, const ip4_addr_t *ipdest);
+struct netif *srt_route_default_hook(const ip4_addr_t *ipsrc, const ip4_addr_t *ipdest);
 
 #endif /* __IP4_SROUTE_H */
 /*

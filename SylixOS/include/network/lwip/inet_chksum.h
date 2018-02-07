@@ -97,6 +97,10 @@ u16_t ip_chksum_pseudo(struct pbuf *p, u8_t proto, u16_t proto_len,
 u16_t ip_chksum_pseudo_partial(struct pbuf *p, u8_t proto, u16_t proto_len,
        u16_t chksum_len, const ip_addr_t *src, const ip_addr_t *dest);
 
+#ifdef SYLIXOS /* SylixOS Add chksum adjust */
+void  inet_chksum_adjust(u8_t *chksum, u8_t *old_ptr, u16_t old_len, u8_t *new_ptr, u16_t new_len);
+#endif /* SYLIXOS */
+
 #ifdef __cplusplus
 }
 #endif

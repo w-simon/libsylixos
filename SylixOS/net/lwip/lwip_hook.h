@@ -28,6 +28,9 @@
   其他头文件
 *********************************************************************************************************/
 
+#if LW_CFG_LWIP_TCP_SIG_EN > 0
+#include "tcpsig/tcp_md5.h"
+#endif
 #if LW_CFG_NET_MROUTER > 0
 #include "netinet/in.h"
 #include "netinet/ip_mroute.h"
@@ -57,10 +60,12 @@ extern VOID  netif_set_maddr6_hook(struct netif *pnetif, const ip6_addr_t *pip6a
 *********************************************************************************************************/
 
 extern struct netif *ip_route_src_hook(const ip4_addr_t *pipsrc, const ip4_addr_t *pipdest);
+extern struct netif *ip_route_default_hook(const ip4_addr_t *pipsrc, const ip4_addr_t *pipdest);
 extern ip4_addr_t   *ip_gw_hook(struct netif *pnetif, const ip4_addr_t *pipdest);
 
 #if LWIP_IPV6
 extern struct netif *ip6_route_src_hook(const ip6_addr_t *pip6src, const ip6_addr_t *pip6dest);
+extern struct netif *ip6_route_default_hook(const ip6_addr_t *pip6src, const ip6_addr_t *pip6dest);
 extern ip6_addr_t   *ip6_gw_hook(struct netif *pnetif, const ip6_addr_t *pip6dest);
 #endif
 
