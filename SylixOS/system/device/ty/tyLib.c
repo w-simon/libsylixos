@@ -493,6 +493,7 @@ VOID  API_TyMonitorTrapSet (CHAR  cMonitorTrap)
 ** 输　出  : 
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : 如果出现多任务同时 drain 则有可能发生无法唤醒其他任务的情况, 这里每一个 tick 都检测 ring 缓冲
 *********************************************************************************************************/
 static INT  _TyDrain (TY_DEV_ID  ptyDev)
 {
@@ -509,11 +510,12 @@ static INT  _TyDrain (TY_DEV_ID  ptyDev)
         if (iFree == 0) {
             return  (ERROR_NONE);
         }
-        
-        ulError = API_SemaphoreBPend(ptyDev->TYDEV_hDrainSyncSemB, LW_OPTION_WAIT_INFINITE);
-    } while (ulError == ERROR_NONE);
+                                                                        /*  仅等待一个时钟周期          */
+        ulError = API_SemaphoreBPend(ptyDev->TYDEV_hDrainSyncSemB, LW_OPTION_WAIT_A_TICK);
+    } while ((ulError == ERROR_NONE) || 
+             (ulError == ERROR_THREAD_WAIT_TIMEOUT));
     
-    _ErrorHandle(ERROR_IO_DEVICE_TIMEOUT);                              /*   超时                       */
+    _ErrorHandle(ERROR_IO_DEVICE_TIMEOUT);                              /*  超时                        */
     return  (PX_ERROR);
 }
 /*********************************************************************************************************

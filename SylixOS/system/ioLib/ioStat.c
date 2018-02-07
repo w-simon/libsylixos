@@ -740,6 +740,7 @@ VOID  sync (VOID)
 {
     REGISTER PLW_LIST_LINE  plineFdEntry;
     REGISTER PLW_FD_ENTRY   pfdentry;
+    REGISTER PLW_DEV_HDR    pdevhdr;
     
     _IosLock();                                                         /*  进入 IO 临界区              */
     
@@ -748,13 +749,22 @@ VOID  sync (VOID)
     plineFdEntry = _S_plineFileEntryHeader;
     while (plineFdEntry) {
         pfdentry = _LIST_ENTRY(plineFdEntry, LW_FD_ENTRY, FDENTRY_lineManage);
+        pdevhdr = pfdentry->FDENTRY_pdevhdrHdr;
         plineFdEntry = _list_line_get_next(plineFdEntry);
         
-        if (pfdentry->FDENTRY_iAbnormity == 0) {
-            _IosUnlock();                                               /*  退出 IO 临界区              */
-            _IosFileIoctl(pfdentry, FIOSYNC, 0);                        /*  调用驱动同步数据            */
-            _IosLock();                                                 /*  进入 IO 临界区              */
+        if ((pdevhdr->DEVHDR_ucType == DT_CHR)  ||
+            (pdevhdr->DEVHDR_ucType == DT_FIFO) ||
+            (pdevhdr->DEVHDR_ucType == DT_SOCK)) {                      /*  CHR, FIFO, SOCK 不操作      */
+            continue;
         }
+        
+        if (pfdentry->FDENTRY_iAbnormity) {
+            continue;
+        }
+        
+        _IosUnlock();                                                   /*  退出 IO 临界区              */
+        _IosFileIoctl(pfdentry, FIOSYNC, 0);                            /*  调用驱动同步数据            */
+        _IosLock();                                                     /*  进入 IO 临界区              */
     }
     
     _IosUnlock();                                                       /*  退出 IO 临界区              */
