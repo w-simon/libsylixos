@@ -136,7 +136,7 @@ extern void  tlsf_mem_free(void *f);
                                          LW_CFG_LWIP_TCP_PCB)
 
 #define MEMP_NUM_TCPIP_MSG_API          (LW_CFG_LWIP_TCP_PCB + LW_CFG_LWIP_UDP_PCB + LW_CFG_LWIP_RAW_PCB)
-#define MEMP_NUM_TCPIP_MSG_INPKT        LW_CFG_LWIP_MSG_SIZE            /*  tcp input msgqueue use      */
+#define MEMP_NUM_TCPIP_MSG_INPKT        LW_CFG_LWIP_NUM_POOLS           /*  tcp input msgqueue use      */
 
 /*********************************************************************************************************
   PBUF
