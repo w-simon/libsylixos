@@ -490,7 +490,7 @@ static __PNAT_CB  __natNew (ip4_addr_p_t  *pipaddr, u16_t  usPort, u8_t  ucProto
             break;
             
         default:                                                        /*  不应该运行到这里            */
-            _List_Line_Del(&pnatcb->NAT_lineManage, &_G_plineNatcbIcmp);
+            _BugHandle(LW_TRUE, LW_TRUE, "NAT Protocol error!\r\n");
             break;
         }
     }
@@ -521,7 +521,7 @@ static __PNAT_CB  __natNew (ip4_addr_p_t  *pipaddr, u16_t  usPort, u8_t  ucProto
         break;
         
     default:                                                            /*  不应该运行到这里            */
-        _List_Line_Add_Ahead(&pnatcb->NAT_lineManage, &_G_plineNatcbIcmp);
+        _BugHandle(LW_TRUE, LW_TRUE, "NAT Protocol error!\r\n");
         break;
     }
     
@@ -556,7 +556,7 @@ static VOID  __natClose (__PNAT_CB  pnatcb)
         break;
         
     default:                                                            /*  不应该运行到这里            */
-        _List_Line_Del(&pnatcb->NAT_lineManage, &_G_plineNatcbIcmp);
+        _BugHandle(LW_TRUE, LW_TRUE, "NAT Protocol error!\r\n");
         break;
     }
 
@@ -624,11 +624,11 @@ static VOID  __natTimer (ULONG  ulIdlTo)
 ** 功能描述: NAT AP 网络接口输.
 ** 输　入  : p             数据包
 **           netifIn       网络接口
-** 输　出  : NONE
+** 输　出  : 0: ok 1: eaten
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static err_t  __natApInput (struct pbuf *p, struct netif *netifIn)
+static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
 {
     struct ip_hdr           *iphdr   = (struct ip_hdr *)p->payload;
     struct tcp_hdr          *tcphdr  = LW_NULL;
@@ -650,7 +650,11 @@ static err_t  __natApInput (struct pbuf *p, struct netif *netifIn)
     iphdrlen *= 4;
     
     if (p->len < iphdrlen + TCP_HLEN) {                                 /*  缓冲错误                    */
-        return  (ERR_OK);
+        return  (0);
+    }
+
+    if ((IPH_OFFSET(iphdr) & PP_HTONS(IP_OFFMASK | IP_MF)) != 0) {      /*  不处理分片包                */
+        return  (0);
     }
     
     ucProto = IPH_PROTO(iphdr);
@@ -675,8 +679,7 @@ static err_t  __natApInput (struct pbuf *p, struct netif *netifIn)
         break;
     
     default:
-        plineHeader = _G_plineNatcbIcmp;
-        break;
+        return  (0);                                                    /*  不能处理的协议              */
     }
 
     if ((PP_NTOHS(usDestPort) < LW_CFG_NET_NAT_MIN_PORT) || 
@@ -814,7 +817,7 @@ static err_t  __natApInput (struct pbuf *p, struct netif *netifIn)
         }
     }
 
-    return  (ERR_OK);
+    return  (0);
 }
 /*********************************************************************************************************
 ** 函数名称: __natApOutput
@@ -822,11 +825,11 @@ static err_t  __natApInput (struct pbuf *p, struct netif *netifIn)
 ** 输　入  : p             数据包
 **           pnetifIn      数据包输入网络接口
 **           netif         数据包输出网络接口
-** 输　出  : NONE
+** 输　出  : 0: ok 1: eaten
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static err_t  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct netif *netifOut)
+static INT  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct netif *netifOut)
 {
     struct ip_hdr           *iphdr   = (struct ip_hdr *)p->payload;
     struct tcp_hdr          *tcphdr  = LW_NULL;
@@ -851,14 +854,18 @@ static err_t  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct net
         }
     }
     if (i >= LW_CFG_NET_NAT_MAX_LOCAL_IF) {
-        return  (ERR_OK);                                               /*  不需要进行 NAT 地址转换     */
+        return  (0);                                                    /*  不需要进行 NAT 地址转换     */
     }
     
     iphdrlen  = (u16_t)IPH_HL(iphdr);                                   /*  获得 IP 报头长度            */
     iphdrlen *= 4;
     
     if (p->len < iphdrlen + TCP_HLEN) {                                 /*  缓冲错误                    */
-        return  (ERR_OK);
+        return  (1);                                                    /*  删除此数据包                */
+    }
+
+    if ((IPH_OFFSET(iphdr) & PP_HTONS(IP_OFFMASK | IP_MF)) != 0) {      /*  不处理分片包                */
+        return  (1);                                                    /*  删除此数据包                */
     }
     
     ucProto = IPH_PROTO(iphdr);
@@ -885,8 +892,7 @@ static err_t  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct net
         break;
     
     default:
-        plineHeader = _G_plineNatcbIcmp;
-        break;
+        return  (1);                                                    /*  不能处理的协议              */
     }
     
     for (plineTemp  = plineHeader;
@@ -963,7 +969,7 @@ static err_t  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct net
             break;
             
         default:
-            return  (ERR_RTE);
+            _BugHandle(LW_TRUE, LW_TRUE, "NAT Protocol error!\r\n");
             break;
         }
         
@@ -985,7 +991,7 @@ static err_t  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct net
         }
     }
 
-    return  (ERR_OK);
+    return  (0);
 }
 /*********************************************************************************************************
 ** 函数名称: __natIphook
@@ -995,14 +1001,14 @@ static err_t  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct net
 **           p         数据包
 **           pnetifIn  输入网络接口
 **           pnetifOut 输出网络接口
-** 输　出  : NONE
+** 输　出  : 0: ok 1: eaten
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
 static INT  __natIphook (INT  iIpType, INT  iHookType, struct pbuf  *p, 
                          struct netif  *pnetifIn, struct netif  *pnetifOut)
 {
-    INT             i;
+    INT             i, iRet = 0;
     struct ip_hdr  *iphdr;
 
     if (iIpType != IP_HOOK_V4) {
@@ -1016,7 +1022,8 @@ static INT  __natIphook (INT  iIpType, INT  iHookType, struct pbuf  *p,
         for (i = 0; i < LW_CFG_NET_NAT_MAX_AP_IF; i++) {
             if (_G_natifAp[i].NATIF_pnetif == pnetifIn) {
                 if (ip4_addr_cmp(&iphdr->dest, netif_ip4_addr(pnetifIn))) {
-                    __natApInput(p, pnetifIn);
+                    iRet = __natApInput(p, pnetifIn);
+                    break;
                 }
             }
         }
@@ -1026,7 +1033,8 @@ static INT  __natIphook (INT  iIpType, INT  iHookType, struct pbuf  *p,
         if (pnetifIn) {                                                 /*  非本机发送                  */
             for (i = 0; i < LW_CFG_NET_NAT_MAX_AP_IF; i++) {
                 if (_G_natifAp[i].NATIF_pnetif == pnetifOut) {
-                    __natApOutput(p, pnetifIn, pnetifOut);
+                    iRet = __natApOutput(p, pnetifIn, pnetifOut);
+                    break;
                 }
             }
         }
@@ -1036,7 +1044,7 @@ static INT  __natIphook (INT  iIpType, INT  iHookType, struct pbuf  *p,
         break;
     }
 
-    return  (0);
+    return  (iRet);
 }
 /*********************************************************************************************************
 ** 函数名称: __natInit

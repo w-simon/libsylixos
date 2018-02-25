@@ -353,10 +353,17 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
     __netIfSpeed(netif, cSpeed, sizeof(cSpeed));
     
 #if LWIP_DHCP
-    printf("%9s Dev: %s Ifidx: %d DHCP: %s(%s) Spd: %s\n", "", 
+    printf("%9s Dev: %s Ifidx: %d DHCP: %s%s %s%s Spd: %s\n", "", 
            pcDevName, netif_get_index(netif),
-           (netif->flags2 & NETIF_FLAG2_DHCP) ? "En" : "Dis",
-           (netif_dhcp_data(netif)) ? "On" : "Off", cSpeed);
+           (netif->flags2 & NETIF_FLAG2_DHCP) ? "E4" : "D4",
+           (netif->flags2 & NETIF_FLAG2_DHCP) ? ((netif_dhcp_data(netif)) ? "(On)" : "(Off)") : "",
+#if LWIP_IPV6_DHCP6
+           (netif->flags2 & NETIF_FLAG2_DHCP6) ? "E6" : "D6",
+           (netif->flags2 & NETIF_FLAG2_DHCP6) ? ((netif_dhcp6_data(netif)) ? "(On)" : "(Off)") : "",
+#else
+           "", "", 
+#endif                                                                  /*  LWIP_IPV6_DHCP6             */
+           cSpeed);
 #else
     printf("%9s Dev: %s Ifidx: %d Spd: %s\n", "", 
            pcDevName, netif_get_index(netif), cSpeed);
@@ -602,19 +609,34 @@ static INT  __tshellIfconfig (INT  iArgC, PCHAR  *ppcArgV)
 *********************************************************************************************************/
 static INT  __tshellIfUp (INT  iArgC, PCHAR  *ppcArgV)
 {
+    INT           i;
     struct netif *netif;
-    BOOL          bUseDHCP      = LW_FALSE;                             /*  是否使用自动获取 IP         */
-    BOOL          bShutDownDHCP = LW_FALSE;                             /*  是否强制关闭 DHCP           */
+    BOOL          bUseDHCP       = LW_FALSE;                            /*  是否使用自动获取 IP         */
+    BOOL          bShutDownDHCP  = LW_FALSE;                            /*  是否强制关闭 DHCP           */
+
+#if LWIP_IPV6_DHCP6 > 0
+    BOOL          bUseDHCP6      = LW_FALSE;                            /*  是否使用自动获取 IP         */
+    BOOL          bShutDownDHCP6 = LW_FALSE;                            /*  是否强制关闭 DHCP           */
+#endif                                                                  /*  LWIP_IPV6_DHCP6             */
 
     if (iArgC < 2) {
         fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     
     } else if (iArgC > 2) {
-        if (lib_strcmp(ppcArgV[2], "-dhcp") == 0) {
-            bUseDHCP = LW_TRUE;                                         /*  使用 DHCP 启动              */
-        } else if (lib_strcmp(ppcArgV[2], "-nodhcp") == 0) {
-            bShutDownDHCP = LW_TRUE;
+        for (i = 2; i < iArgC; i++) {
+            if (lib_strcmp(ppcArgV[i], "-dhcp") == 0) {
+                bUseDHCP = LW_TRUE;                                     /*  使用 DHCP 启动              */
+            } else if (lib_strcmp(ppcArgV[i], "-nodhcp") == 0) {
+                bShutDownDHCP = LW_TRUE;
+            } 
+#if LWIP_IPV6_DHCP6 > 0
+              else if (lib_strcmp(ppcArgV[i], "-dhcp6") == 0) {
+                bUseDHCP6 = LW_TRUE;
+            } else if (lib_strcmp(ppcArgV[i], "-nodhcp6") == 0) {
+                bShutDownDHCP6 = LW_TRUE;
+            }
+#endif                                                                  /*  LWIP_IPV6_DHCP6             */
         }
     }
 
@@ -632,6 +654,11 @@ static INT  __tshellIfUp (INT  iArgC, PCHAR  *ppcArgV)
             netifapi_dhcp_release_and_stop(netif);                      /*  解除 DHCP 租约并释放资源    */
         }
 #endif                                                                  /*  LWIP_DHCP > 0               */
+#if LWIP_IPV6_DHCP6 > 0
+        if (netif_dhcp6_data(netif)) {
+            netifapi_dhcp6_disable(netif);
+        }
+#endif                                                                  /*  LWIP_IPV6_DHCP6             */
         netifapi_netif_set_down(netif);                                 /*  禁用网卡                    */
     }
 
@@ -658,6 +685,23 @@ static INT  __tshellIfUp (INT  iArgC, PCHAR  *ppcArgV)
         }
     }
 #endif                                                                  /*  LWIP_DHCP > 0               */
+
+#if LWIP_IPV6_DHCP6 > 0
+    if (bUseDHCP6) {
+        netif->flags2 |= NETIF_FLAG2_DHCP6;                             /*  使用 DHCP 启动              */
+    } else if (bShutDownDHCP6) {
+        netif->flags2 &= ~NETIF_FLAG2_DHCP6;                            /*  强制关闭 DHCP               */
+    }
+    
+    if (netif->flags2 & NETIF_FLAG2_DHCP6) {
+        printf("DHCPv6 client starting...\n");
+        if (netifapi_dhcp6_enable_stateless(netif) < ERR_OK) {
+            printf("DHCPv6 client serious error.\n");
+        } else {
+            printf("DHCPv6 client start.\n");
+        }
+    }
+#endif                                                                  /*  LWIP_IPV6_DHCP6             */
     LWIP_IF_LIST_UNLOCK();
     
     printf("net interface \"%s\" set up.\n", ppcArgV[1]);
@@ -700,6 +744,12 @@ static INT  __tshellIfDown (INT  iArgC, PCHAR  *ppcArgV)
         netifapi_dhcp_release_and_stop(netif);                          /*  解除 DHCP 租约并释放资源    */
     }
 #endif                                                                  /*  LWIP_DHCP > 0               */
+
+#if LWIP_IPV6_DHCP6 > 0
+    if (netif_dhcp6_data(netif)) {
+        netifapi_dhcp6_disable(netif);
+    }
+#endif                                                                  /*  LWIP_IPV6_DHCP6             */
 
     netifapi_netif_set_down(netif);                                     /*  禁用网卡                    */
     LWIP_IF_LIST_UNLOCK();

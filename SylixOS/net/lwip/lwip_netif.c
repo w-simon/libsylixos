@@ -41,6 +41,7 @@
 #include "lwip/netif.h"
 #include "lwip/netifapi.h"
 #include "lwip/dhcp.h"
+#include "lwip/dhcp6.h"
 #include "lwip/autoip.h"
 #include "lwip/err.h"
 #include "net/if.h"
@@ -168,6 +169,13 @@ static VOID  netif_remove_hook (struct netif *pnetif)
         netif_set_client_data(pnetif, LWIP_NETIF_CLIENT_DATA_INDEX_AUTOIP, NULL);
     }
 #endif                                                                  /*  LWIP_AUTOIP > 0             */
+
+#if LWIP_IPV6_DHCP6 > 0
+    if (netif_dhcp6_data(pnetif)) {
+        netifapi_dhcp6_disable(pnetif);
+        dhcp6_cleanup(pnetif);                                          /*  回收 DHCPv6 内存            */
+    }
+#endif                                                                  /*  LWIP_IPV6_DHCP6 > 0         */
 }
 /*********************************************************************************************************
 ** 函数名称: netif_updown_hook

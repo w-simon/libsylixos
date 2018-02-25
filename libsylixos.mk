@@ -1343,6 +1343,7 @@ SylixOS/net/lwip/src/api/netifapi.c \
 SylixOS/net/lwip/src/api/sockets.c \
 SylixOS/net/lwip/src/api/tcpip.c \
 SylixOS/net/lwip/src/core/altcp.c \
+SylixOS/net/lwip/src/core/altcp_alloc.c \
 SylixOS/net/lwip/src/core/altcp_tcp.c \
 SylixOS/net/lwip/src/core/def.c \
 SylixOS/net/lwip/src/core/dns.c \

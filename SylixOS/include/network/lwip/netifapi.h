@@ -39,6 +39,7 @@
 #include "lwip/sys.h"
 #include "lwip/netif.h"
 #include "lwip/dhcp.h"
+#include "lwip/dhcp6.h" /* SylixOS Add */
 #include "lwip/autoip.h"
 #include "lwip/priv/tcpip_priv.h"
 #include "lwip/priv/api_msg.h"
@@ -158,6 +159,23 @@ err_t netifapi_netif_index_to_name(u8_t index, char *name);
   * @see autoip_stop()
   */
 #define netifapi_autoip_stop(n)       netifapi_netif_common(n, NULL, autoip_stop)
+
+#ifdef SYLIXOS /* SylixOS Add this safe function */
+#if LWIP_IPV6 && LWIP_IPV6_DHCP6
+/** @ingroup netifapi_dhcp6
+  * @see dhcp6_enable_stateful()
+  */
+#define netifapi_dhcp6_enable_stateful(n)   netifapi_netif_common(n, NULL, dhcp6_enable_stateful)
+/** @ingroup netifapi_dhcp6
+  * @see dhcp6_enable_stateless()
+  */
+#define netifapi_dhcp6_enable_stateless(n)  netifapi_netif_common(n, NULL, dhcp6_enable_stateless)
+/** @ingroup netifapi_dhcp6
+  * @see dhcp6_disable()
+  */
+#define netifapi_dhcp6_disable(n)           netifapi_netif_common(n, dhcp6_disable, NULL)
+#endif /* LWIP_IPV6 && LWIP_IPV6_DHCP6 */
+#endif /* SYLIXOS */
 
 #ifdef __cplusplus
 }

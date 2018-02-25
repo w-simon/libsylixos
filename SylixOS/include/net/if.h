@@ -62,6 +62,9 @@ LW_API INT                   if_islink(const char *ifname);     /* net interface
 LW_API INT                   if_get_dhcp(const char *ifname);   /* get net if dhcp flag                 */
 LW_API INT                   if_set_dhcp(const char *ifname, int en);   
                                                                 /* set net if dhcp flag                 */
+LW_API INT                   if_set_dhcp6(const char *ifname, int en, int stateless);
+LW_API INT                   if_get_dhcp6(const char *ifname);
+                                                                
 LW_API unsigned              if_nametoindex(const char *ifname);
 LW_API char                 *if_indextoname(unsigned  ifindex, char *ifname);
 LW_API struct if_nameindex  *if_nameindex(void);

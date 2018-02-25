@@ -102,7 +102,7 @@ Han.hui
 #include "lwip/mcast.h"
 #endif /* LWIP_IGMP_V3 */
 
-#include "string.h"
+#include <string.h>
 
 static struct igmp_group *igmp_lookup_group(struct netif *ifp, const ip4_addr_t *addr);
 static err_t  igmp_remove_group(struct netif *netif, struct igmp_group *group);

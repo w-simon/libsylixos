@@ -1,13 +1,16 @@
 /**
  * @file
- * IANA assigned numbers (RFC 1700 and successors)
+ * Application layered TCP connection API (to be used from TCPIP thread)\n
+ * This interface mimics the tcp callback API to the application while preventing
+ * direct linking (much like virtual functions).
+ * This way, an application can make use of other application layer protocols
+ * on top of TCP without knowing the details (e.g. TLS, proxy connection).
  *
- * @defgroup iana IANA assigned numbers
- * @ingroup infrastructure
+ * This file contains allocation implementation that combine several layers.
  */
 
 /*
- * Copyright (c) 2017 Dirk Ziegelmeier.
+ * Copyright (c) 2017 Simon Goldschmidt
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification,
@@ -34,56 +37,45 @@
  *
  * This file is part of the lwIP TCP/IP stack.
  *
- * Author: Dirk Ziegelmeier <dziegel@gmx.de>
+ * Author: Simon Goldschmidt <goldsimon@gmx.de>
  *
  */
 
-#ifndef LWIP_HDR_PROT_IANA_H
-#define LWIP_HDR_PROT_IANA_H
+#include "lwip/opt.h"
 
-/**
- * @ingroup iana
- * Hardware types
- */
-enum lwip_iana_hwtype {
-  /** Ethernet */
-  LWIP_IANA_HWTYPE_ETHERNET = 1
-};
+#if LWIP_ALTCP /* don't build if not configured for use in lwipopts.h */
 
-/**
- * @ingroup iana
- * Port numbers
- * https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.txt
- */
-enum lwip_iana_port_number {
-  /** SMTP */
-  LWIP_IANA_PORT_SMTP        = 25,
-  /** DHCP server */
-  LWIP_IANA_PORT_DHCP_SERVER = 67,
-  /** DHCP client */
-  LWIP_IANA_PORT_DHCP_CLIENT = 68,
-  /** TFTP */
-  LWIP_IANA_PORT_TFTP        = 69,
-  /** HTTP */
-  LWIP_IANA_PORT_HTTP        = 80,
-  /** SNTP */
-  LWIP_IANA_PORT_SNTP        = 123,
-  /** NETBIOS */
-  LWIP_IANA_PORT_NETBIOS     = 137,
-  /** SNMP */
-  LWIP_IANA_PORT_SNMP        = 161,
-  /** SNMP traps */
-  LWIP_IANA_PORT_SNMP_TRAP   = 162,
-  /** HTTPS */
-  LWIP_IANA_PORT_HTTPS       = 443,
-  /** SMTPS */
-  LWIP_IANA_PORT_SMTPS       = 465,
-  /** MQTT */
-  LWIP_IANA_PORT_MQTT        = 1883,
-  /** MDNS */
-  LWIP_IANA_PORT_MDNS        = 5353,
-  /** Secure MQTT */
-  LWIP_IANA_PORT_SECURE_MQTT = 8883
-};
+#include "lwip/altcp.h"
+#include "lwip/altcp_tcp.h"
+#include "lwip/altcp_tls.h"
+#include "lwip/priv/altcp_priv.h"
+#include "lwip/mem.h"
 
-#endif /* LWIP_HDR_PROT_IANA_H */
+#include <string.h>
+
+#if LWIP_ALTCP_TLS
+
+/** This standard allocator function creates an altcp pcb for
+ * TLS over TCP */
+struct altcp_pcb *
+altcp_tls_alloc(void *arg, u8_t ip_type)
+{
+  struct altcp_pcb *inner_conn, *ret;
+  struct altcp_tls_config *config = (struct altcp_tls_config *)arg;
+  LWIP_UNUSED_ARG(ip_type);
+
+  inner_conn = altcp_tcp_new_ip_type(ip_type);
+  if (inner_conn == NULL) {
+    return NULL;
+  }
+  ret = altcp_tls_new(config, inner_conn);
+  if (ret == NULL) {
+    altcp_close(inner_conn);
+  }
+  return ret;
+}
+
+
+#endif /* LWIP_ALTCP_TLS */
+
+#endif /* LWIP_ALTCP */

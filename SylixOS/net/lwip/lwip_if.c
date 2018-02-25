@@ -139,6 +139,9 @@ INT  if_down (const char *ifname)
 #if LWIP_AUTOIP > 0
     netifapi_autoip_stop(pnetif);
 #endif                                                                  /*  LWIP_AUTOIP > 0             */
+#if LWIP_IPV6_DHCP6 > 0
+    netifapi_dhcp6_disable(pnetif);
+#endif                                                                  /*  LWIP_IPV6_DHCP6 > 0         */
     netifapi_netif_set_down(pnetif);
     LWIP_IF_LIST_UNLOCK();                                              /*  退出临界区                  */
     
@@ -172,12 +175,19 @@ INT  if_up (const char *ifname)
     }
     
     netifapi_netif_set_up(pnetif);
+    
 #if LWIP_DHCP > 0
     if (pnetif->flags2 & NETIF_FLAG2_DHCP) {
         netifapi_netif_set_addr(pnetif, IP4_ADDR_ANY4, IP4_ADDR_ANY4, IP4_ADDR_ANY4);
         netifapi_dhcp_start(pnetif);
     }
 #endif                                                                  /*  LWIP_DHCP > 0               */
+
+#if LWIP_IPV6_DHCP6 > 0
+    if (pnetif->flags2 & NETIF_FLAG2_DHCP6) {
+        netifapi_dhcp6_enable_stateless(pnetif);
+    }
+#endif                                                                  /*  LWIP_IPV6_DHCP6 > 0         */
     LWIP_IF_LIST_UNLOCK();                                              /*  退出临界区                  */
     
     return  (ERROR_NONE);
@@ -305,6 +315,78 @@ INT  if_get_dhcp (const char *ifname)
     }
     
     iRet = (pnetif->flags2 & NETIF_FLAG2_DHCP) ? 1 : 0;
+    LWIP_IF_LIST_UNLOCK();                                              /*  退出临界区                  */
+    
+    return  (iRet);
+}
+/*********************************************************************************************************
+** 函数名称: if_set_dhcp6
+** 功能描述: 设置网卡 dhcp v6 选项 (必须在网卡禁能时设置)
+** 输　入  : ifname        if name
+**           en            1: 使能 dhcp  0: 禁能 dhcp
+**           stateless     1: stateless  0: stateful (NOT support now)
+** 输　出  : OK or ERROR
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+INT  if_set_dhcp6 (const char *ifname, int en, int stateless)
+{
+    INT     iRet = PX_ERROR;
+
+#if LWIP_IPV6_DHCP6 > 0
+    struct netif  *pnetif;
+    
+    LWIP_IF_LIST_LOCK(LW_FALSE);                                        /*  进入临界区                  */
+    pnetif = netif_find(ifname);
+    if (pnetif == LW_NULL) {
+        LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
+        _ErrorHandle(ENXIO);
+        return  (PX_ERROR);
+    }
+    if (netif_is_up(pnetif)) {
+        LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
+        _ErrorHandle(EISCONN);
+        return  (PX_ERROR);
+    }
+    
+    if (en) {
+        pnetif->flags2 |= NETIF_FLAG2_DHCP6;
+    } else {
+        pnetif->flags2 &= ~NETIF_FLAG2_DHCP6;
+    }
+    LWIP_IF_LIST_UNLOCK();                                              /*  退出临界区                  */
+#else
+    _ErrorHandle(ENOSYS);
+#endif                                                                  /*  LWIP_IPV6_DHCP6 > 0         */
+    
+    return  (iRet);
+}
+/*********************************************************************************************************
+** 函数名称: if_get_dhcp6
+** 功能描述: 获取网卡 dhcp v6 选项
+** 输　入  : ifname        if name
+** 输　出  : 1: 使能 dhcp  0: 禁能 dhcp -1: 网卡名字错误
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+INT  if_get_dhcp6 (const char *ifname)
+{
+    INT            iRet;
+    struct netif  *pnetif;
+    
+    LWIP_IF_LIST_LOCK(LW_FALSE);                                        /*  进入临界区                  */
+    pnetif = netif_find((char *)ifname);
+    if (pnetif == LW_NULL) {
+        LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
+        _ErrorHandle(ENXIO);
+        return  (PX_ERROR);
+    }
+    
+    iRet = (pnetif->flags2 & NETIF_FLAG2_DHCP6) ? 1 : 0;
     LWIP_IF_LIST_UNLOCK();                                              /*  退出临界区                  */
     
     return  (iRet);

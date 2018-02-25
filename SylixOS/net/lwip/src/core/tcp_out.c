@@ -965,9 +965,7 @@ tcp_split_unsent_seg(struct tcp_pcb *pcb, u16_t split)
 memerr:
   TCP_STATS_INC(tcp.memerr);
 
-  if (seg != NULL) {
-    tcp_segs_free(seg);
-  }
+  LWIP_ASSERT("seg == NULL", seg == NULL);
   if (p != NULL) {
     pbuf_free(p);
   }
@@ -1426,6 +1424,9 @@ tcp_output_segment(struct tcp_seg *seg, struct tcp_pcb *pcb, struct netif *netif
   err_t err;
   u16_t len;
   u32_t *opts;
+#if TCP_CHECKSUM_ON_COPY
+  int seg_chksum_was_swapped = 0;
+#endif
 
   if (tcp_output_segment_busy(seg)) {
     /* This should not happen: rexmit functions should have checked this.
@@ -1543,6 +1544,7 @@ tcp_output_segment(struct tcp_seg *seg, struct tcp_pcb *pcb, struct netif *netif
                                    seg->p->tot_len, TCPH_HDRLEN_BYTES(seg->tcphdr), &pcb->local_ip, &pcb->remote_ip);
     /* add payload checksum */
     if (seg->chksum_swapped) {
+      seg_chksum_was_swapped = 1;
       seg->chksum = SWAP_BYTES_IN_WORD(seg->chksum);
       seg->chksum_swapped = 0;
     }
@@ -1568,6 +1570,16 @@ tcp_output_segment(struct tcp_seg *seg, struct tcp_pcb *pcb, struct netif *netif
   err = ip_output_if(seg->p, &pcb->local_ip, &pcb->remote_ip, pcb->ttl,
                      pcb->tos, IP_PROTO_TCP, netif);
   NETIF_RESET_HINTS(netif);
+
+#if TCP_CHECKSUM_ON_COPY
+  if (seg_chksum_was_swapped) {
+    /* if data is added to this segment later, chksum needs to be swapped,
+       so restore this now */
+    seg->chksum = SWAP_BYTES_IN_WORD(seg->chksum);
+    seg->chksum_swapped = 1;
+  }
+#endif
+
   return err;
 }
 
@@ -1808,6 +1820,7 @@ tcp_output_fill_options(const struct tcp_pcb *pcb, struct pbuf *p, u8_t optflags
 {
   struct tcp_hdr *tcphdr = (struct tcp_hdr *)p->payload;
   u32_t *opts = (u32_t *)(void *)(tcphdr + 1);
+  u16_t sacks_len = 0;
 
   /* NB. MSS and window scale options are only sent on SYNs, so ignore them here */
 
@@ -1822,7 +1835,8 @@ tcp_output_fill_options(const struct tcp_pcb *pcb, struct pbuf *p, u8_t optflags
   if (num_sacks > 0) {
     tcp_build_sack_option(pcb, opts, num_sacks);
     /* 1 word for SACKs header (including 2xNOP), and 2 words for each SACK */
-    opts += 1 + num_sacks * 2;
+    sacks_len = 1 + num_sacks * 2;
+    opts += sacks_len;
   }
 #else
   LWIP_UNUSED_ARG(num_sacks);
@@ -1833,7 +1847,8 @@ tcp_output_fill_options(const struct tcp_pcb *pcb, struct pbuf *p, u8_t optflags
 #endif
 
   LWIP_UNUSED_ARG(pcb);
-  LWIP_ASSERT("options not filled", (u8_t *)opts == ((u8_t *)(tcphdr + 1)) + LWIP_TCP_OPT_LENGTH_SEGMENT(optflags, pcb));
+  LWIP_UNUSED_ARG(sacks_len);
+  LWIP_ASSERT("options not filled", (u8_t *)opts == ((u8_t *)(tcphdr + 1)) + sacks_len * 4 + LWIP_TCP_OPT_LENGTH_SEGMENT(optflags, pcb));
 }
 
 /** Output a control segment pbuf to IP.

@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2018-02-25: han.hui
+    加入 DHCPv6 支持.
+
     2018-02-01: han.hui
     加入对 TCP MSS 在不同 MTU 网口间转发的 MSS 调整功能.
 

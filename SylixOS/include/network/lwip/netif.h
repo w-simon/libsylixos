@@ -112,6 +112,7 @@ extern "C" {
 
 enum lwip_internal_netif_client_data_index
 {
+#if LWIP_IPV4
 #if LWIP_DHCP
    LWIP_NETIF_CLIENT_DATA_INDEX_DHCP,
 #endif
@@ -121,9 +122,15 @@ enum lwip_internal_netif_client_data_index
 #if LWIP_IGMP
    LWIP_NETIF_CLIENT_DATA_INDEX_IGMP,
 #endif
+#endif /* LWIP_IPV4 */
+#if LWIP_IPV6
+#if LWIP_IPV6_DHCP6
+   LWIP_NETIF_CLIENT_DATA_INDEX_DHCP6,
+#endif
 #if LWIP_IPV6_MLD
    LWIP_NETIF_CLIENT_DATA_INDEX_MLD6,
 #endif
+#endif /* LWIP_IPV6 */
    LWIP_NETIF_CLIENT_DATA_INDEX_MAX
 };
 
@@ -214,7 +221,9 @@ typedef err_t (*netif_mld_mac_filter_fn)(struct netif *netif,
 #endif /* LWIP_IPV6 && LWIP_IPV6_MLD */
 
 #if LWIP_DHCP || LWIP_AUTOIP || LWIP_IGMP || LWIP_IPV6_MLD || (LWIP_NUM_NETIF_CLIENT_DATA > 0)
+#if LWIP_NUM_NETIF_CLIENT_DATA > 0
 u8_t netif_alloc_client_data_id(void);
+#endif
 /** @ingroup netif_cd
  * Set client data. Obtain ID from netif_alloc_client_data_id().
  */
@@ -374,6 +383,7 @@ struct netif {
   /* SylixOS externed flags */
   long flags2;
 #define NETIF_FLAG2_DHCP        1
+#define NETIF_FLAG2_DHCP6       8
 #define NETIF_FLAG2_PROMISC     2
 #define NETIF_FLAG2_ALLMULTI    4
   void *br_eth; /* net bridge ctl */

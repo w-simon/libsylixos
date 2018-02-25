@@ -200,7 +200,6 @@ extern void  tlsf_mem_free(void *f);
 #define MEMP_NUM_MLD6_GROUP             LW_CFG_LWIP_GROUP_MAX
 #define LWIP_ND6_NUM_NEIGHBORS          LW_CFG_LWIP_ARP_TABLE_SIZE
 #define LWIP_ND6_NUM_DESTINATIONS       LW_CFG_LWIP_ARP_TABLE_SIZE
-#define LWIP_IPV6_DHCP6                 1
 
 #define LWIP_IPV6_NUM_ADDRESSES         5                               /*  one face max 5 ipv6 addr    */
 
@@ -222,11 +221,13 @@ extern void  tlsf_mem_free(void *f);
 #endif                                                                  /*  (LWIP_DHCP > 0)             */
                                                                         /*  (LWIP_AUTOIP > 0)           */
 
+#define LWIP_IPV6_DHCP6                 LWIP_IPV6                       /*  DHCPv6                      */
+
 /*********************************************************************************************************
   timeouts (default + 10, aodv, lowpan ...)
 *********************************************************************************************************/
 
-#define MEMP_NUM_SYS_TIMEOUT            (LWIP_NUM_SYS_TIMEOUT_INTERNAL + 10 + LW_CFG_NET_FLOWCTL_EN + \
+#define MEMP_NUM_SYS_TIMEOUT            (LWIP_NUM_SYS_TIMEOUT_INTERNAL + 11 + LW_CFG_NET_FLOWCTL_EN + \
                                          (LW_CFG_NET_MROUTER * 2))
 
 #define MEMP_NUM_NETBUF                 LW_CFG_LWIP_NUM_NETBUF

@@ -373,7 +373,7 @@ static LW_INLINE size_t  emitFLUSHP (BOOL  bSizeOnly, UINT8 *pucBuffer, UINT8  u
     
     pucBuffer[0] = CMD_DMAFLUSHP;
     
-    ucPeri  &= 0x1f;
+    ucPeri &= 0x1f;
     ucPeri <<= 3;
     pucBuffer[1] = ucPeri;
     
@@ -1185,7 +1185,7 @@ static VOID  armDmaPl330Reset (UINT  uiChan, PLW_DMA_FUNCS  pdmafuncs)
     }
     
     uiCs  = PL330_CS(pl330->PL330_ulBase, uiInnerChan);
-    uiCs &= 0xF;
+    uiCs &= 0xf;
     
     if ((uiCs == DS_ST_STOP) ||
         (uiCs == DS_ST_CMPLT) ||
@@ -1355,7 +1355,7 @@ static INT  armDmaPl330Status (UINT  uiChan, PLW_DMA_FUNCS  pdmafuncs)
     }
     
     uiCs  = PL330_CS(pl330->PL330_ulBase, uiInnerChan);
-    uiCs &= 0xF;
+    uiCs &= 0xf;
     
     switch (uiCs) {
     
