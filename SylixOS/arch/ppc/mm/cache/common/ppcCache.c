@@ -467,6 +467,10 @@ static INT  ppcCacheTextUpdate (PVOID  pvAdrs, size_t  stBytes)
 {
     addr_t  ulEnd;
 
+    if (stBytes == sizeof(addr_t)) {
+        stBytes = _G_DCache.CACHE_uiLineSize << 2;                      /*  XXX ?                       */
+    }
+
     if (ppcTextUpdate) {
         PPC_CACHE_GET_END(pvAdrs, stBytes, ulEnd, _G_DCache.CACHE_uiLineSize);
         ppcTextUpdate(pvAdrs, (PVOID)ulEnd, _G_ICache.CACHE_uiLineSize, _G_DCache.CACHE_uiLineSize);

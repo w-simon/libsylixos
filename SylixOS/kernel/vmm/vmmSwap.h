@@ -27,10 +27,7 @@
 *********************************************************************************************************/
 
 typedef struct {
-    PVOID               PAGEFCTX_pvStackRet;                            /*  跳跃返回堆栈的地址          */
-#if defined(LW_CFG_CPU_ARCH_C6X)
-    ULONG               PAGEFCTX_ulContextType;                         /*  上下文类型                  */
-#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
+    ARCH_REG_CTX        PAGEFCTX_archRegCtx;                            /*  寄存器上下文                */
     addr_t              PAGEFCTX_ulRetAddr;                             /*  异常返回地址                */
     addr_t              PAGEFCTX_ulAbortAddr;                           /*  内存访问失效地址            */
     LW_VMM_ABORT        PAGEFCTX_abtInfo;                               /*  异常类型                    */

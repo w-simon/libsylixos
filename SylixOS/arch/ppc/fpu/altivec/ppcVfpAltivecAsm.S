@@ -78,6 +78,8 @@ FUNC_DEF(ppcVfpAltivecEnable)
 ;*********************************************************************************************************/
 
 FUNC_DEF(ppcVfpAltivecDisable)
+    ISYNC
+    SYNC
     MFMSR   R3
     ISYNC
     ALTIVEC_MASK(R3 , R3)

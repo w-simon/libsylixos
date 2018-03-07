@@ -12,30 +12,28 @@
 **
 ** 文   件   名: mipsExcAsm.h
 **
-** 创   建   人: Ryan.Xin (信金龙)
+** 创   建   人: Jiao.JinXing (焦进星)
 **
 ** 文件创建日期: 2015 年 09 月 01 日
 **
-** 描        述: MIPS 体系构架异常处理.
+** 描        述: MIPS 体系架构异常处理.
 *********************************************************************************************************/
 
-#ifndef __MIPSEXCASM_H
-#define __MIPSEXCASM_H
+#ifndef __ARCH_MIPSEXCASM_H
+#define __ARCH_MIPSEXCASM_H
 
     IMPORT_LABEL(archInterruptEntry)
     IMPORT_LABEL(archCacheErrorEntry)
     IMPORT_LABEL(archExceptionEntry)
-    IMPORT_LABEL(mips32TlbRefillEntry)
+    IMPORT_LABEL(mipsMmuTlbRefillEntry)
 
 ;/*********************************************************************************************************
-;  Cache 错误异常入口跳转
+;  CACHE 错误异常入口跳转
 ;*********************************************************************************************************/
 
 MACRO_DEF(MIPS_CACHE_ERROR_HANDLE)
     .set    push
     .set    noat
-    .set    noreorder
-    .set    volatile
 
     J       archCacheErrorEntry
     NOP
@@ -50,8 +48,6 @@ MACRO_DEF(MIPS_CACHE_ERROR_HANDLE)
 MACRO_DEF(MIPS_EXCEPTION_HANDLE)
     .set    push
     .set    noat
-    .set    noreorder
-    .set    volatile
 
     J       archExceptionEntry
     NOP
@@ -66,8 +62,6 @@ MACRO_DEF(MIPS_EXCEPTION_HANDLE)
 MACRO_DEF(MIPS_INTERRUPT_HANDLE)
     .set    push
     .set    noat
-    .set    noreorder
-    .set    volatile
 
     J       archInterruptEntry
     NOP
@@ -79,19 +73,47 @@ MACRO_DEF(MIPS_INTERRUPT_HANDLE)
 ;  TLB 重填入口跳转
 ;*********************************************************************************************************/
 
-MACRO_DEF(MIPS32_TLB_REFILL_HANDLE)
+MACRO_DEF(MIPS_TLB_REFILL_HANDLE)
     .set    push
     .set    noat
-    .set    noreorder
-    .set    volatile
 
-    J       mips32TlbRefillEntry
+    J       mipsMmuTlbRefillEntry
     NOP
 
     .set    pop
     MACRO_END()
 
-#endif                                                                  /*  __MIPSEXCASM_H              */
+;/*********************************************************************************************************
+;  XTLB 重填入口跳转
+;*********************************************************************************************************/
+
+#if LW_CFG_CPU_WORD_LENGHT == 64
+MACRO_DEF(MIPS_XTLB_REFILL_HANDLE)
+    .set    push
+    .set    noat
+
+    J       mipsMmuTlbRefillEntry
+    NOP
+
+    .set    pop
+    MACRO_END()
+#endif
+
+;/*********************************************************************************************************
+;  TLB 重填入口跳转(老 BSP 兼容接口, 新 BSP 建议使用 MIPS_TLB_REFILL_HANDLE 宏)
+;*********************************************************************************************************/
+
+MACRO_DEF(MIPS32_TLB_REFILL_HANDLE)
+    .set    push
+    .set    noat
+
+    J       mipsMmuTlbRefillEntry
+    NOP
+
+    .set    pop
+    MACRO_END()
+
+#endif
 ;/*********************************************************************************************************
 ;  END
 ;*********************************************************************************************************/

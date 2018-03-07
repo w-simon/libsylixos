@@ -22,10 +22,6 @@
 #ifndef __ARCH_MIPSUNALIGNED_H
 #define __ARCH_MIPSUNALIGNED_H
 
-/*********************************************************************************************************
-  MIPS 非对齐处理
-*********************************************************************************************************/
-
 ULONG  mipsUnalignedHandle(ARCH_REG_CTX  *pregctx, addr_t  ulAbortAddr);
 
 #endif                                                                  /*  __ARCH_MIPSUNALIGNED_H      */

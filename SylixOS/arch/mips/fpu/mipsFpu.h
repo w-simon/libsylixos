@@ -12,15 +12,15 @@
 **
 ** 文   件   名: mipsFpu.h
 **
-** 创   建   人: Ryan.Xin (信金龙)
+** 创   建   人: Jiao.JinXing (焦进星)
 **
 ** 文件创建日期: 2015 年 11 月 17 日
 **
 ** 描        述: MIPS 体系架构硬件浮点运算器 (VFP).
 *********************************************************************************************************/
 
-#ifndef __MIPSFPU_H
-#define __MIPSFPU_H
+#ifndef __ARCH_MIPSFPU_H
+#define __ARCH_MIPSFPU_H
 
 /*********************************************************************************************************
   裁剪支持
@@ -38,6 +38,8 @@ typedef struct {
     VOIDFUNCPTR     MFPU_pfuncSave;
     VOIDFUNCPTR     MFPU_pfuncRestore;
     VOIDFUNCPTR     MFPU_pfuncCtxShow;
+    ULONGFUNCPTR    MFPU_pfuncGetFIR;
+    VOIDFUNCPTR     MFPU_pfuncEnableTask;
 } MIPS_FPU_OP;
 typedef MIPS_FPU_OP *PMIPS_FPU_OP;
 
@@ -51,9 +53,11 @@ typedef MIPS_FPU_OP *PMIPS_FPU_OP;
 #define MIPS_VFP_SAVE(op, ctx)           op->MFPU_pfuncSave((ctx))
 #define MIPS_VFP_RESTORE(op, ctx)        op->MFPU_pfuncRestore((ctx))
 #define MIPS_VFP_CTXSHOW(op, fd, ctx)    op->MFPU_pfuncCtxShow((fd), (ctx))
+#define MIPS_VFP_GETFIR(op)              op->MFPU_pfuncGetFIR()
+#define MIPS_VFP_ENABLE_TASK(op, tcb)    op->MFPU_pfuncEnableTask((tcb))
 
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
-#endif                                                                  /*  __MIPSFPU_H                 */
+#endif                                                                  /*  __ARCH_MIPSFPU_H            */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

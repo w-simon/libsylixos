@@ -32,7 +32,7 @@
 *********************************************************************************************************/
 VOID  archPageCopy (PVOID  pvTo, PVOID  pvFrom)
 {
-#if defined(TMS320C6400_PLUS)
+#if defined(_TMS320C6400_PLUS)
     archC64PlusMemcpy(pvTo, pvFrom, LW_CFG_VMM_PAGE_SIZE);
 #else
     REGISTER INT      i;
@@ -57,7 +57,7 @@ VOID  archPageCopy (PVOID  pvTo, PVOID  pvFrom)
         *pu64To++ = *pu64From++;
         *pu64To++ = *pu64From++;
     }
-#endif                                                                  /*  !defined(TMS320C6400_PLUS)  */
+#endif                                                                  /*  !defined(_TMS320C6400_PLUS) */
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: archReboot

@@ -122,7 +122,7 @@
 /*********************************************************************************************************
   Mouse (MSE)
 *********************************************************************************************************/
-#define MSE_INT_LVL                 (0x0c)                          /*  IRQ 12 assuming PS/2 mouse      */
+#define MSE_INT_LVL                 0x0c                            /*  IRQ 12 assuming PS/2 mouse      */
 /*********************************************************************************************************
   Key board (KBD)
 *********************************************************************************************************/
@@ -161,11 +161,11 @@
 #define MONO_SEL_REG                0x3b4
 #define MONO_VAL_REG                0x3b5
 
-#define VESA_BIOS_DATA_ADDRESS      (0xbfb00)                       /*  BIOS data storage               */
+#define VESA_BIOS_DATA_ADDRESS      0xbfb00                         /*  BIOS data storage               */
 #define VESA_BIOS_DATA_PREFIX       (VESA_BIOS_DATA_ADDRESS - 8)
-#define VESA_BIOS_DATA_SIZE         (0x500)                         /*  Vesa BIOS data size             */
-#define VESA_BIOS_KEY_1             (0x534F4942)                    /*  "BIOS"                          */
-#define VESA_BIOS_KEY_2             (0x41544144)                    /*  "DATA"                          */
+#define VESA_BIOS_DATA_SIZE         0x500                           /*  Vesa BIOS data size             */
+#define VESA_BIOS_KEY_1             0x534f4942                      /*  "BIOS"                          */
+#define VESA_BIOS_KEY_2             0x41544144                      /*  "DATA"                          */
 /*********************************************************************************************************
   PCI IOAPIC defines
 *********************************************************************************************************/

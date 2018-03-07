@@ -348,13 +348,13 @@ INT  archElfRGetJmpBuffItemLen (PVOID  pmodule)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-INT archElfGotInit (PVOID  pmodule)
+INT  archElfGotInit (PVOID  pmodule)
 {
     Elf32_Word   *pplt, *pdataWords;
     Elf32_Word    numPltEntries;
     ELF_DYN_DIR  *pdyndir = (ELF_DYN_DIR *)(((LW_LD_EXEC_MODULE *)pmodule)->EMOD_pvFormatInfo);
 
-	pplt          = (Elf32_Word *)pdyndir->ulPltGotAddr;
+    pplt          = (Elf32_Word *)pdyndir->ulPltGotAddr;
     numPltEntries = pdyndir->ulJmpRSize / sizeof(Elf32_Rela);
     pdataWords    = pplt + PLT_DATA_START_WORDS(numPltEntries);
 

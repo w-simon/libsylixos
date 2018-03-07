@@ -68,11 +68,6 @@ static const CHAR   _G_cX86CoreXml[] = \
       "<reg name=\"eip\" bitsize=\"32\" type=\"code_ptr\"/>"
       "<reg name=\"eflags\" bitsize=\"32\" type=\"i386_eflags\"/>"
       "<reg name=\"cs\" bitsize=\"32\" type=\"int32\"/>"
-      "<reg name=\"ss\" bitsize=\"32\" type=\"int32\"/>"
-      "<reg name=\"ds\" bitsize=\"32\" type=\"int32\"/>"
-      "<reg name=\"es\" bitsize=\"32\" type=\"int32\"/>"
-      "<reg name=\"fs\" bitsize=\"32\" type=\"int32\"/>"
-      "<reg name=\"gs\" bitsize=\"32\" type=\"int32\"/>"
     "</feature>";
 /*********************************************************************************************************
   Xfer:features:read:target.xml 回应包
@@ -97,12 +92,7 @@ static const CHAR   _G_cX86TargetXml[] = \
 #define GDB_X86_EIP_INDEX       8
 #define GDB_X86_EFLAGS_INDEX    9
 #define GDB_X86_CS_INDEX        10
-#define GDB_X86_SS_INDEX        11
-#define GDB_X86_DS_INDEX        12
-#define GDB_X86_ES_INDEX        13
-#define GDB_X86_FS_INDEX        14
-#define GDB_X86_GS_INDEX        15
-#define GDB_X86_REG_NR          16
+#define GDB_X86_REG_NR          11
 /*********************************************************************************************************
 ** 函数名称: archGdbTargetXml
 ** 功能描述: 获得 Xfer:features:read:target.xml 回复 XML
@@ -160,11 +150,6 @@ INT  archGdbRegsGet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, GDB_REG_SET  *
 
     pregset->regArr[GDB_X86_EFLAGS_INDEX].GDBRA_ulValue = regctx.REG_uiEFLAGS;
     pregset->regArr[GDB_X86_CS_INDEX].GDBRA_ulValue     = regctx.REG_uiCS;
-    pregset->regArr[GDB_X86_SS_INDEX].GDBRA_ulValue     = regctx.REG_usSS;
-    pregset->regArr[GDB_X86_DS_INDEX].GDBRA_ulValue     = regctx.REG_usDS;
-    pregset->regArr[GDB_X86_ES_INDEX].GDBRA_ulValue     = regctx.REG_usES;
-    pregset->regArr[GDB_X86_FS_INDEX].GDBRA_ulValue     = regctx.REG_usFS;
-    pregset->regArr[GDB_X86_GS_INDEX].GDBRA_ulValue     = regctx.REG_usGS;
 
     return  (ERROR_NONE);
 }
@@ -196,11 +181,6 @@ INT  archGdbRegsSet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, GDB_REG_SET  *
 
     regctx.REG_uiEFLAGS = pregset->regArr[GDB_X86_EFLAGS_INDEX].GDBRA_ulValue;
     regctx.REG_uiCS     = pregset->regArr[GDB_X86_CS_INDEX].GDBRA_ulValue;
-    regctx.REG_usSS     = pregset->regArr[GDB_X86_SS_INDEX].GDBRA_ulValue;
-    regctx.REG_usDS     = pregset->regArr[GDB_X86_DS_INDEX].GDBRA_ulValue;
-    regctx.REG_usES     = pregset->regArr[GDB_X86_ES_INDEX].GDBRA_ulValue;
-    regctx.REG_usFS     = pregset->regArr[GDB_X86_FS_INDEX].GDBRA_ulValue;
-    regctx.REG_usGS     = pregset->regArr[GDB_X86_GS_INDEX].GDBRA_ulValue;
 
     API_DtraceSetRegs(pvDtrace, ulThread, &regctx);
 

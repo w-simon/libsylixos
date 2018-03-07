@@ -84,7 +84,11 @@ static  VOID  _KernelPrimaryCoreStartup (PLW_CLASS_CPU   pcpuCur)
     _DebugHandle(__LOGMESSAGE_LEVEL, "primary cpu multi-task start...\r\n");
     
 #if LW_CFG_CPU_FPU_EN > 0
-    _ThreadFpuSwith(LW_FALSE);                                          /*  初始化将要运行任务 FPU 环境 */
+    _ThreadFpuSwitch(LW_FALSE);                                         /*  初始化将要运行任务 FPU 环境 */
+#endif
+
+#if LW_CFG_CPU_DSP_EN > 0
+    _ThreadDspSwitch(LW_FALSE);                                         /*  初始化将要运行任务 DSP 环境 */
 #endif
 
     errno = ERROR_NONE;                                                 /*  清除错误                    */
@@ -120,7 +124,11 @@ static  VOID  _KernelSecondaryCoreStartup (PLW_CLASS_CPU   pcpuCur)
     _DebugHandle(__LOGMESSAGE_LEVEL, "secondary cpu multi-task start...\r\n");
     
 #if LW_CFG_CPU_FPU_EN > 0
-    _ThreadFpuSwith(LW_FALSE);                                          /*  初始化将要运行任务 FPU 环境 */
+    _ThreadFpuSwitch(LW_FALSE);                                         /*  初始化将要运行任务 FPU 环境 */
+#endif
+
+#if LW_CFG_CPU_DSP_EN > 0
+    _ThreadDspSwitch(LW_FALSE);                                         /*  初始化将要运行任务 DSP 环境 */
 #endif
 
     errno = ERROR_NONE;                                                 /*  清除错误                    */

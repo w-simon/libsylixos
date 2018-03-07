@@ -25,7 +25,7 @@
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
 /*********************************************************************************************************
-** 函数名称: _ThreadFpuSwith
+** 函数名称: _ThreadFpuSwitch
 ** 功能描述: 线程 FPU 切换 (在关闭中断状态下被调用)
 ** 输　入  : bIntSwitch    是否为 _SchedInt() 等中断状态下的调度函数调用
 ** 输　出  : 
@@ -34,7 +34,7 @@
 *********************************************************************************************************/
 #if LW_CFG_CPU_FPU_EN > 0
 
-VOID  _ThreadFpuSwith (BOOL bIntSwitch)
+VOID  _ThreadFpuSwitch (BOOL bIntSwitch)
 {
     PLW_CLASS_TCB   ptcbCur;
     PLW_CLASS_TCB   ptcbHigh;

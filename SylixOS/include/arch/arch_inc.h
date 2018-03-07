@@ -47,6 +47,7 @@
 #include "mips/arch_def.h"
 #include "mips/arch_compiler.h"
 #include "mips/arch_float.h"
+#include "mips/arch_dsp.h"
 #include "mips/arch_limits.h"
 #include "mips/arch_regs.h"
 #include "mips/arch_mmu.h"

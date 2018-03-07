@@ -10,7 +10,7 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: mipsInst.h
+** 文   件   名: inst.h
 **
 ** 创   建   人: Jiao.JinXing (焦进星)
 **
@@ -31,7 +31,7 @@
 #ifndef __ASM_INST_H
 #define __ASM_INST_H
 
-#include "./mipsUapiInst.h"
+#include "./uapi-inst.h"
 
 /* HACHACHAHCAHC ...  */
 

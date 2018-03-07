@@ -28,6 +28,10 @@
     .ref    API_InterStackBaseGet
     .ref    API_ThreadTcbInter
 
+    .ref    _G_ulIntSafeStack
+    .ref    _G_ulIntNesting
+    .ref    _G_ulCpu
+
     .global archIntEntry1
     .global archIntEntry2
     .global archIntEntry3
@@ -48,105 +52,169 @@
 
 ;/*********************************************************************************************************
 ;  中断进入点
-;  注意: 在跳转到 ARCH_INT_ENTRY 前必须完成以下操作:
-;   STW     B11 , *B15--
-;   STW     A11 , *B15--
-;   STW     A10 , *B15--
 ;*********************************************************************************************************/
 
 ARCH_INT_ENTRY  .macro  vector
-    SAVE_BIG_CTX_IRQ
-
-    NOP     4                                                   ;/*  确保上下文保存完成                  */
-    MV      B15 , A10                                           ;/*  A10 = B15                           */
-    AND     ~7  , B15 , B15                                     ;/*  SP 向下 16 字节对齐                 */
+    .newblock
 
     ;/*
-    ; *  if (API_InterEnter() == 1) {
-    ; *      current stack = SP;
-    ; *      SP = interrupt stack;
-    ; *  }
+    ; * 中断嵌套计数加一
     ; */
-    B       API_InterEnter                                      ;/*  CALL A4 = API_InterEnter();         */
-    ADDKPC  $1  , B3 , 4
-$1:
-    CMPGT   A4  , 1 , A1                                        ;/*  A1 = A4 > 1 ? 1 : 0;                */
-    [A1]    BNOP $4 , 5                                         ;/*  if (A1) { goto $4; }                */
+    MVKL    _G_ulIntNesting , B1
+    MVKH    _G_ulIntNesting , B1
+    LDW     *+B1(0) , B1
+    NOP     4
 
-    B       API_ThreadTcbInter                                  ;/*  CALL A4 = API_ThreadTcbInter();     */
+    LDW     *+B1(0) , B0                                        ;/*  B0 = 中断嵌套计数                   */
+    NOP     4
+
+    ADDK    +1 , B0
+    STW     B0 , *+B1(0)
+
+    CMPGT   B0  , 1 , B1
+    [B1]    BNOP $4 , 5
+
+    ;/*
+    ; * 第一次进入中断
+    ; */
+    ;/*
+    ; * 获取当前 TCB 的 REG_CTX 地址
+    ; */
+    MVKL    _G_ulCpu , B1
+    MVKH    _G_ulCpu , B1
+    LDW     *+B1(0) , B0
+    NOP     4
+
+    LDW     *+B0(0) , B1                                        ;/*  B1 = 当前 TCB 的 REG_CTX 地址       */
+    NOP     4
+
+    ;/*
+    ; * 保存寄存器到当前 TCB 的 REG_CTX
+    ; */
+    IRQ_SAVE_BIG_REG_CTX    IRP
+
+    ;/*
+    ; * 第一次进入中断: 获得当前 CPU 中断堆栈栈顶, 并设置 SP
+    ; */
+    MVKL    _G_ulIntSafeStack , B1
+    MVKH    _G_ulIntSafeStack , B1
+    LDW     *+B1(0) , B15
+    NOP     4
+
+$1:
+    ;/*
+    ; * handle(vector)
+    ; */
+    MVK     vector , A4
+    B       bspIntHandle
     ADDKPC  $2  , B3 , 4
 $2:
-    STW     A10 , *+A4(0)                                       ;/*  Save current context sp             */
- || MVK     1   , A2
-    STW     A2  , *+A4(4)                                       ;/*  Set big context flag                */
- || B       API_InterStackBaseGet                               ;/*  CALL A4 = API_InterStackBaseGet();  */
+
+    ;/*
+    ; * API_InterExit()
+    ; * 如果没有发生中断嵌套, 则 API_InterExit 会调用 archIntCtxLoad 函数
+    ; */
+    B       API_InterExit
     ADDKPC  $3  , B3 , 4
 $3:
-    MV      A4  , B15                                           ;/*  B15 = A4;                           */
+
+    ;/*
+    ; * 来到这里, 说明发生了中断嵌套
+    ; */
+    IRQ_NEST_RESTORE_BIG_REG_CTX
 
 $4:
-    B       bspIntHandle                                        ;/*  CALL bspIntHandle(vector);          */
- || MVK     vector , A4                                         ;/*  参数为 vector                       */
-    ADDKPC  $5  , B3 , 4
-$5:
+    ;/*
+    ; * 不是第一次进入中断
+    ; */
+    IRQ_NEST_SAVE_BIG_REG_CTX   IRP
 
-    B       API_InterExit                                       ;/*  CALL API_InterExit();               */
-    ADDKPC  $6  , B3 , 4
-$6:
-
-    MV      A10 , B15                                           ;/*  B15 = A10                           */
-    RESTORE_BIG_CTX                                             ;/*  Restore big context                 */
+    BNOP    $1 , 5
     .endm
 
 ;/*********************************************************************************************************
 ;  异常进入点
-;  注意: 在跳转到 ARCH_EXC_ENTRY 前必须完成以下操作:
-;   STW     B11 , *B15--
-;   STW     A11 , *B15--
-;   STW     A10 , *B15--
 ;*********************************************************************************************************/
 
 ARCH_EXC_ENTRY  .macro  vector
-    SAVE_BIG_CTX_EXC
-
-    NOP     4                                                   ;/*  确保上下文保存完成                  */
-    MV      B15 , A10                                           ;/*  A10 = B15                           */
-    AND     ~7  , B15 , B15                                     ;/*  SP 向下 16 字节对齐                 */
+    .newblock
 
     ;/*
-    ; *  if (API_InterEnter() == 1) {
-    ; *      current stack = SP;
-    ; *      SP = interrupt stack;
-    ; *  }
+    ; * 中断嵌套计数加一
     ; */
-    B       API_InterEnter                                      ;/*  CALL A4 = API_InterEnter();         */
-    ADDKPC  $1  , B3 , 4
-$1:
-    CMPGT   A4  , 1 , A1                                        ;/*  A1 = A4 > 1 ? 1 : 0;                */
-    [A1]    BNOP $4 , 5                                         ;/*  if (A1) { goto $4; }                */
+    MVKL    _G_ulIntNesting , B1
+    MVKH    _G_ulIntNesting , B1
+    LDW     *+B1(0) , B1
+    NOP     4
 
-    B       API_ThreadTcbInter                                  ;/*  CALL A4 = API_ThreadTcbInter();     */
+    LDW     *+B1(0) , B0                                        ;/*  B0 = 中断嵌套计数                   */
+    NOP     4
+
+    ADDK    +1 , B0
+    STW     B0 , *+B1(0)
+
+    CMPGT   B0  , 1 , B1
+    [B1]    BNOP $4 , 5
+
+    ;/*
+    ; * 第一次进入中断
+    ; */
+    ;/*
+    ; * 获取当前 TCB 的 REG_CTX 地址
+    ; */
+    MVKL    _G_ulCpu , B1
+    MVKH    _G_ulCpu , B1
+    LDW     *+B1(0) , B0
+    NOP     4
+
+    LDW     *+B0(0) , B1                                        ;/*  B1 = 当前 TCB 的 REG_CTX 地址       */
+    NOP     4
+
+    ;/*
+    ; * 保存寄存器到当前 TCB 的 REG_CTX
+    ; */
+    IRQ_SAVE_BIG_REG_CTX    NRP
+
+    ;/*
+    ; * 第一次进入中断: 获得当前 CPU 中断堆栈栈顶, 并设置 SP
+    ; */
+    MVKL    _G_ulIntSafeStack , B1
+    MVKH    _G_ulIntSafeStack , B1
+    LDW     *+B1(0) , B15
+    NOP     4
+
+    MV      A1 , A4                                             ;/*  当前 TCB 的 REG_CTX 地址作为参数    */
+
+$1:
+    ;/*
+    ; * archExcHandle(寄存器上下文)
+    ; */
+    B       archExcHandle
     ADDKPC  $2  , B3 , 4
 $2:
-    STW     A10 , *+A4(0)                                       ;/*  Save current context sp             */
- || MVK     1   , A2
-    STW     A2  , *+A4(4)                                       ;/*  Set big context flag                */
- || B       API_InterStackBaseGet                               ;/*  CALL A4 = API_InterStackBaseGet();  */
+
+    ;/*
+    ; * API_InterExit()
+    ; * 如果没有发生中断嵌套, 则 API_InterExit 会调用 archIntCtxLoad 函数
+    ; */
+    B       API_InterExit
     ADDKPC  $3  , B3 , 4
 $3:
-    MV      A4  , B15                                           ;/*  B15 = A4;                           */
+
+    ;/*
+    ; * 来到这里, 说明发生了中断嵌套
+    ; */
+    IRQ_NEST_RESTORE_BIG_REG_CTX
 
 $4:
-    B       archExcHandle                                       ;/*  CALL archExcHandle();               */
-    ADDKPC  $5  , B3 , 4
-$5:
+    ;/*
+    ; * 不是第一次进入中断
+    ; */
+    IRQ_NEST_SAVE_BIG_REG_CTX   NRP
 
-    B       API_InterExit                                       ;/*  CALL API_InterExit();               */
-    ADDKPC  $6  , B3 , 4
-$6:
-
-    MV      A10 , B15                                           ;/*  B15 = A10                           */
-    RESTORE_BIG_CTX                                             ;/*  Restore big context                 */
+    B       $1
+    ADD     +8  , B15 , A4                                      ;/*  栈中 ARCH_REG_CTX 地址作为参数      */
+    NOP     4
     .endm
 
 ;/*********************************************************************************************************

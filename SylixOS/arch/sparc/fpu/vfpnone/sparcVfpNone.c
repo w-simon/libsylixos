@@ -116,6 +116,7 @@ static VOID  sparcVfpNoneEnableTask (PLW_CLASS_TCB  ptcbCur)
 ** 函数名称: sparcVfpNonePrimaryInit
 ** 功能描述: 获取 VFP 控制器操作函数集
 ** 输　入  : pcMachineName 机器名
+**           pcFpuName     浮点运算器名
 ** 输　出  : 操作函数集
 ** 全局变量: 
 ** 调用模块: 

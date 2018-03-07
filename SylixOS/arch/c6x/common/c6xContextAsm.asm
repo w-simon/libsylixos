@@ -34,72 +34,14 @@
     .sect .text
 
 ;/*********************************************************************************************************
-;  初始化任务上下文中的特殊功能寄存器部分
-;*********************************************************************************************************/
-
-archTaskCtxInit: .asmfunc
-    MVC     ILC  , B16
-    STW     B16  , *A4--                                                ;/*  ILC                         */
- || MVC     GPLYA, B17
-
-    STW     B17  , *A4--                                                ;/*  GPLYA                       */
- || MVC     GPLYB, B18
-
-    STW     B18  , *A4--                                                ;/*  GPLYB                       */
- || MVC     ITSR , B19
-
-    STW     B19  , *A4--                                                ;/*  ITSR                        */
- || MVC     RILC , B20
-
-    STW     B20  , *A4--                                                ;/*  RILC                        */
- || MVC     SSR  , B21
-
-    .if (.TMS320C6740)
-    STW     B21  , *A4--                                                ;/*  SSR                         */
- || MVC     FADCR, B22
-
-    STW     B22  , *A4--                                                ;/*  FADCR                       */
- || MVC     FAUCR, B23
-
-    STW     B23  , *A4--                                                ;/*  FAUCR                       */
- || MVC     FMCR , B24
-    .else
-    STW     B21  , *A4--                                                ;/*  SSR                         */
-    STW     B22  , *A4--                                                ;/*  FADCR                       */
-    STW     B23  , *A4--                                                ;/*  FAUCR                       */
-    .endif
-
-    STW     B24  , *A4--                                                ;/*  FMCR                        */
-
-    ADDK    -4   , A4                                                   ;/*  Align 64bit                 */
-
-    MVC     GFPGFR, B7
-
-    STW     B3   , *A4--                                                ;/*  B3                          */
- || MVC     AMR  , B8
-
-    STW     B7   , *A4--                                                ;/*  GFPGFR                      */
- || MVC     CSR  , B9
-
-    STW     B8   , *A4--                                                ;/*  AMR                         */
-
-    B       B3
- || STW     B9   , *A4--                                                ;/*  CSR                         */
-
-    NOP     5
-    .endasmfunc
-
-;/*********************************************************************************************************
 ;  当前 CPU 开始运行多任务执行
 ;  参数(A4 寄存器)为当前 CPU 控制块
 ;*********************************************************************************************************/
 
 archTaskCtxStart: .asmfunc
-    LDW     *+A4(0) , A3                                                ;/*  Load new tcb                */
+    LDW     *+A4(0) , A1                                                ;/*  获取当前 TCB 的 REG_CTX 地址*/
     NOP     4
-    LDW     *+A3(0) , B15                                               ;/*  Load new context SP         */
-    NOP     4
-    RESTORE_SMALL_CTX                                                   ;/*  Restore small context       */
+    RESTORE_SMALL_REG_CTX                                               ;/*  恢复小寄存器上下文          */
     .endasmfunc
 
 ;/*********************************************************************************************************
@@ -108,32 +50,27 @@ archTaskCtxStart: .asmfunc
 ;*********************************************************************************************************/
 
 archTaskCtxSwitch: .asmfunc
-    SAVE_SMALL_CTX                                                      ;/*  Save small context          */
-
-    LDW     *+A4(0) , A3                                                ;/*  Load current tcb            */
+    LDW     *+A4(0) , A1                                                ;/*  获取当前 TCB 的 REG_CTX 地址*/
     NOP     4
 
-    STW     B15 , *+A3(0)                                               ;/*  Save current context SP     */
- || MVK     0   , A2
-    STW     A2  , *+A3(4)                                               ;/*  Set small context flag      */
- || MV      A4  , A10                                                   ;/*  Save A4 to A10              */
-    B       _SchedSwp                                                   ;/*  CALL _SchedSwp()            */
- || AND     ~7  , B15 , B15
+    SAVE_SMALL_REG_CTX                                                  ;/*  保存小寄存器上下文          */
+
+    MV      A4 , A10                                                    ;/*  A10 暂存 A4                 */
+    B       _SchedSwp                                                   ;/*  _SchedSwp();                */
     ADDKPC  _SchedSwpRet , B3 , 4
 _SchedSwpRet:
 
-    LDW     *+A10(0) , A3                                               ;/*  Load new tcb                */
+    LDW     *+A10(0) , A1                                               ;/*  获取当前 TCB 的 REG_CTX 地址*/
     NOP     4
 
-    LDW     *+A3(4) , A2                                                ;/*  Load context flag           */
-    LDW     *+A3(0) , B15                                               ;/*  Load new context SP         */
-    NOP     3
+    LDW     *+A1(0) , A2                                                ;/*  获得上下文类型              */
+    NOP     4
     [A2]    BNOP  _RestoreBigCtx , 5
 
-    RESTORE_SMALL_CTX                                                   ;/*  Restore small context       */
+    RESTORE_SMALL_REG_CTX                                               ;/*  恢复小寄存器上下文          */
 
 _RestoreBigCtx:
-    RESTORE_BIG_CTX                                                     ;/*  Restore big context         */
+    RESTORE_BIG_REG_CTX                                                 ;/*  恢复大寄存器上下文          */
     .endasmfunc
 
 ;/*********************************************************************************************************
@@ -142,25 +79,20 @@ _RestoreBigCtx:
 ;*********************************************************************************************************/
 
 archCrtCtxSwitch: .asmfunc
-    SAVE_SMALL_CTX                                                      ;/*  Save big context            */
-
-    LDW     *+A4(8) , A3                                                ;/*  Load current crcb           */
+    LDW     *+A4(8) , A1                                                ;/*  获取当前 CCB 的 REG_CTX 地址*/
     NOP     4
 
-    STW     B15 , *+A3(0)                                               ;/*  Save current context SP     */
- || MV      A4  , A10                                                   ;/*  Save A4 to A10              */
-    B       _SchedCrSwp                                                 ;/*  CALL _SchedCrSwp()          */
- || AND     ~7  , B15 , B15
+    SAVE_SMALL_REG_CTX                                                  ;/*  保存小寄存器上下文          */
+
+    MV      A4 , A10                                                    ;/*  A10 暂存 A4                 */
+    B       _SchedCrSwp                                                 ;/*  _SchedCrSwp();              */
     ADDKPC  _SchedCrSwpRet , B3 , 4
 _SchedCrSwpRet:
 
-    LDW     *+A10(8) , A3                                               ;/*  Load new crcb               */
+    LDW     *+A10(8) , A1                                               ;/*  获取当前 CCB 的 REG_CTX 地址*/
     NOP     4
 
-    LDW     *+A3(0) , B15                                               ;/*  Load new context SP         */
-    NOP     4
-
-    RESTORE_SMALL_CTX                                                   ;/*  Restore big context         */
+    RESTORE_SMALL_REG_CTX                                               ;/*  恢复小寄存器上下文          */
     .endasmfunc
 
 ;/*********************************************************************************************************
@@ -169,35 +101,29 @@ _SchedCrSwpRet:
 ;*********************************************************************************************************/
 
 archIntCtxLoad: .asmfunc
-    LDW     *+A4(0) , A3                                                ;/*  Load new tcb                */
+    LDW     *+A4(0) , A1                                                ;/*  获取当前 TCB 的 REG_CTX 地址*/
     NOP     4
 
-    LDW     *+A3(4) , A2                                                ;/*  Load context flag           */
-    LDW     *+A3(0) , B15                                               ;/*  Load new context SP         */
-    NOP     3
-    [A2]    BNOP  _RestoreBigCtx2 , 5
+    LDW     *+A1(0) , A2                                                ;/*  获得上下文类型              */
+    NOP     4
+    [A2]    BNOP  _RestoreBigCtx , 5                                    ;/*  跳到恢复大寄存器上下文      */
 
-    RESTORE_SMALL_CTX                                                   ;/*  Restore small context       */
-
-_RestoreBigCtx2:
-    RESTORE_BIG_CTX                                                     ;/*  Restore big context         */
+    RESTORE_SMALL_REG_CTX                                               ;/*  恢复小寄存器上下文          */
     .endasmfunc
 
 ;/*********************************************************************************************************
 ;  信号上下文返回
-;  参数1(A4 寄存器)为需要返回的堆栈栈顶位置
-;  参数2(B4 寄存器)为上下文类型
+;  参数1(A4 寄存器) 为 ARCH_REG_CTX 地址
 ;*********************************************************************************************************/
 
 archSigCtxLoad: .asmfunc
-    MV      A4 , B15                                                    ;/*  Load new context SP         */
-    MV      B4 , A2
-    [A2]    BNOP  _RestoreBigCtx3 , 5
+    MV      A4 , A1
 
-    RESTORE_SMALL_CTX                                                   ;/*  Restore small context       */
+    LDW     *+A1(0) , A2                                                ;/*  获得上下文类型              */
+    NOP     4
+    [A2]    BNOP  _RestoreBigCtx , 5                                    ;/*  跳到恢复大寄存器上下文      */
 
-_RestoreBigCtx3:
-    RESTORE_BIG_CTX                                                     ;/*  Restore big context         */
+    RESTORE_SMALL_REG_CTX                                               ;/*  恢复小寄存器上下文          */
     .endasmfunc
 
 ;/*********************************************************************************************************

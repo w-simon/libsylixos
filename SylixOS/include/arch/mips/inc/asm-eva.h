@@ -30,7 +30,7 @@
 #ifndef __ASM_ASM_EVA_H
 #define __ASM_ASM_EVA_H
 
-#ifndef __ASSEMBLY__
+#if !defined(__ASSEMBLY__) && !defined(ASSEMBLY)
 
 /* Kernel variants */
 

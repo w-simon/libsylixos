@@ -104,28 +104,27 @@ SylixOS/arch/arm/param/armParam.c
 #*********************************************************************************************************
 LOCAL_MIPS_SRCS = \
 SylixOS/arch/mips/backtrace/mipsBacktrace.c \
-SylixOS/arch/mips/common/cp0/mipsCp0Asm.S \
-SylixOS/arch/mips/common/mipsAssert.c \
-SylixOS/arch/mips/common/mipsContext.c \
-SylixOS/arch/mips/common/mipsContextAsm.S \
-SylixOS/arch/mips/common/mipsExc.c \
-SylixOS/arch/mips/common/mipsExcAsm.S \
-SylixOS/arch/mips/common/mipsLib.c \
-SylixOS/arch/mips/common/mipsLibAsm.S \
-SylixOS/arch/mips/common/mipsBranch.c \
-SylixOS/arch/mips/common/unaligned/mipsUnaligned.c \
-SylixOS/arch/mips/common/mipsIdle.c \
-SylixOS/arch/mips/common/mipsIdleAsm.S \
-SylixOS/arch/mips/common/mipsIo.c \
 SylixOS/arch/mips/common/mips64.c \
 SylixOS/arch/mips/common/mips64Asm.S \
+SylixOS/arch/mips/common/mipsAssert.c \
+SylixOS/arch/mips/common/mipsBranch.c \
+SylixOS/arch/mips/common/mipsContext.c \
+SylixOS/arch/mips/common/mipsContextAsm.S \
 SylixOS/arch/mips/common/mipsCpuProbe.c \
+SylixOS/arch/mips/common/mipsExc.c \
+SylixOS/arch/mips/common/mipsExcAsm.S \
+SylixOS/arch/mips/common/mipsIdle.c \
+SylixOS/arch/mips/common/mipsIdleAsm.S \
+SylixOS/arch/mips/common/mipsIo32.c \
+SylixOS/arch/mips/common/mipsIo64.c \
+SylixOS/arch/mips/common/mipsLib.c \
+SylixOS/arch/mips/common/mipsLibAsm.S \
+SylixOS/arch/mips/common/unaligned/mipsUnaligned.c \
 SylixOS/arch/mips/dbg/mipsDbg.c \
 SylixOS/arch/mips/dbg/mipsGdb.c \
-SylixOS/arch/mips/elf/mipsElf.c \
-SylixOS/arch/mips/fpu/fpu32/mipsVfp32.c \
-SylixOS/arch/mips/fpu/vfpnone/mipsVfpNone.c \
-SylixOS/arch/mips/fpu/fpu32/mipsVfp32Asm.S \
+SylixOS/arch/mips/elf/mipsElf32.c \
+SylixOS/arch/mips/elf/mipsElf64.c \
+SylixOS/arch/mips/elf/mipsElfCommon.c \
 SylixOS/arch/mips/fpu/emu/cp1emu.c \
 SylixOS/arch/mips/fpu/emu/dp_2008class.c \
 SylixOS/arch/mips/fpu/emu/dp_add.c \
@@ -138,6 +137,7 @@ SylixOS/arch/mips/fpu/emu/dp_fmin.c \
 SylixOS/arch/mips/fpu/emu/dp_fsp.c \
 SylixOS/arch/mips/fpu/emu/dp_maddf.c \
 SylixOS/arch/mips/fpu/emu/dp_mul.c \
+SylixOS/arch/mips/fpu/emu/dp_rint.c \
 SylixOS/arch/mips/fpu/emu/dp_simple.c \
 SylixOS/arch/mips/fpu/emu/dp_sqrt.c \
 SylixOS/arch/mips/fpu/emu/dp_sub.c \
@@ -148,6 +148,7 @@ SylixOS/arch/mips/fpu/emu/ieee754.c \
 SylixOS/arch/mips/fpu/emu/ieee754d.c \
 SylixOS/arch/mips/fpu/emu/ieee754dp.c \
 SylixOS/arch/mips/fpu/emu/ieee754sp.c \
+SylixOS/arch/mips/fpu/emu/mipsFpuEmu.c \
 SylixOS/arch/mips/fpu/emu/sp_2008class.c \
 SylixOS/arch/mips/fpu/emu/sp_add.c \
 SylixOS/arch/mips/fpu/emu/sp_cmp.c \
@@ -159,25 +160,42 @@ SylixOS/arch/mips/fpu/emu/sp_fmax.c \
 SylixOS/arch/mips/fpu/emu/sp_fmin.c \
 SylixOS/arch/mips/fpu/emu/sp_maddf.c \
 SylixOS/arch/mips/fpu/emu/sp_mul.c \
+SylixOS/arch/mips/fpu/emu/sp_rint.c \
 SylixOS/arch/mips/fpu/emu/sp_simple.c \
 SylixOS/arch/mips/fpu/emu/sp_sqrt.c \
 SylixOS/arch/mips/fpu/emu/sp_sub.c \
 SylixOS/arch/mips/fpu/emu/sp_tint.c \
 SylixOS/arch/mips/fpu/emu/sp_tlong.c \
+SylixOS/arch/mips/fpu/fpu32/mipsVfp32.c \
+SylixOS/arch/mips/fpu/fpu32/mipsVfp32Asm.S \
 SylixOS/arch/mips/fpu/mipsFpu.c \
-SylixOS/arch/mips/mm/cache/r4k/mipsCacheR4k.c \
-SylixOS/arch/mips/mm/cache/r4k/mipsCacheR4kAsm.S \
-SylixOS/arch/mips/mm/cache/loongson3x/mipsCacheLs3x.c \
-SylixOS/arch/mips/mm/cache/loongson3x/mipsCacheLs3xAsm.S \
+SylixOS/arch/mips/fpu/vfpnone/mipsVfpNone.c \
+SylixOS/arch/mips/dsp/mipsDsp.c \
+SylixOS/arch/mips/dsp/dsp/mipsDsp.c \
+SylixOS/arch/mips/dsp/hr2vector/mipsHr2Vector.c \
+SylixOS/arch/mips/dsp/hr2vector/mipsHr2VectorAsm.S \
+SylixOS/arch/mips/dsp/dspnone/mipsDspNone.c \
 SylixOS/arch/mips/mm/cache/l2/mipsL2R4k.c \
 SylixOS/arch/mips/mm/cache/l2/mipsL2R4kAsm.S \
-SylixOS/arch/mips/mm/mmu/mips32/mips32Mmu.c \
-SylixOS/arch/mips/mm/mmu/mips32/mips32MmuAsm.S \
+SylixOS/arch/mips/mm/cache/loongson3x/mipsCacheLs3x.c \
+SylixOS/arch/mips/mm/cache/mipsCacheCommon.c \
+SylixOS/arch/mips/mm/cache/r4k/mipsCacheR4k.c \
+SylixOS/arch/mips/mm/cache/r4k/mipsCacheR4kAsm.S \
 SylixOS/arch/mips/mm/mipsCache.c \
 SylixOS/arch/mips/mm/mipsMmu.c \
+SylixOS/arch/mips/mm/mmu/mips32/mips32Mmu.c \
+SylixOS/arch/mips/mm/mmu/mips32/mips32MmuAsm.S \
+SylixOS/arch/mips/mm/mmu/mips64/mips64Mmu.c \
+SylixOS/arch/mips/mm/mmu/mips64/mips64MmuAsm.S \
+SylixOS/arch/mips/mm/mmu/mipsMmuCommon.c \
 SylixOS/arch/mips/mpcore/mipsMpCoreAsm.S \
 SylixOS/arch/mips/mpcore/mipsSpinlock.c \
-SylixOS/arch/mips/param/mipsParam.c 
+SylixOS/arch/mips/param/mipsParam.c
+
+#*********************************************************************************************************
+# MIPS64 source
+#*********************************************************************************************************
+LOCAL_MIPS64_SRCS = $(LOCAL_MIPS_SRCS)
 
 #*********************************************************************************************************
 # PowerPC source
@@ -409,7 +427,6 @@ SylixOS/arch/x86/bsp/bspTimeHpet.c \
 SylixOS/arch/x86/common/x86Assert.c \
 SylixOS/arch/x86/common/x86CpuId.c \
 SylixOS/arch/x86/common/x86Exc.c \
-SylixOS/arch/x86/common/x86Gdt.c \
 SylixOS/arch/x86/common/x86Idt.c \
 SylixOS/arch/x86/common/x86Lib.c \
 SylixOS/arch/x86/common/x86Topology.c \
@@ -440,6 +457,7 @@ SylixOS/arch/x86/common/x86Context.c \
 SylixOS/arch/x86/common/x86IoAsm.S \
 SylixOS/arch/x86/common/x86LibAsm.S \
 SylixOS/arch/x86/common/x86CrAsm.S \
+SylixOS/arch/x86/common/x86Gdt.c \
 SylixOS/arch/x86/fpu/fpusse/x86FpuSseAsm.S \
 SylixOS/arch/x86/mm/cache/x86CacheAsm.S \
 SylixOS/arch/x86/mm/mmu/x86Mmu.c \
@@ -461,6 +479,7 @@ SylixOS/arch/x86/common/x64/x64Context.c \
 SylixOS/arch/x86/common/x64/x64IoAsm.S \
 SylixOS/arch/x86/common/x64/x64LibAsm.S \
 SylixOS/arch/x86/common/x64/x64CrAsm.S \
+SylixOS/arch/x86/common/x64/x64Gdt.c \
 SylixOS/arch/x86/fpu/fpusse/x64FpuSseAsm.S \
 SylixOS/arch/x86/mm/cache/x64CacheAsm.S \
 SylixOS/arch/x86/mm/mmu/x64Mmu.c \
@@ -795,6 +814,7 @@ SylixOS/kernel/core/_SmpSpinlockKernel.c \
 SylixOS/kernel/core/_StackCheckInit.c \
 SylixOS/kernel/core/_StackMem.c \
 SylixOS/kernel/core/_ThreadAffinity.c \
+SylixOS/kernel/core/_ThreadDsp.c \
 SylixOS/kernel/core/_ThreadFpu.c \
 SylixOS/kernel/core/_ThreadIdInit.c \
 SylixOS/kernel/core/_ThreadInit.c \
@@ -841,6 +861,7 @@ SylixOS/kernel/interface/InterVectorFlag.c \
 SylixOS/kernel/interface/InterVectorIsr.c \
 SylixOS/kernel/interface/InterVectorMeasure.c \
 SylixOS/kernel/interface/KernelAtomic.c \
+SylixOS/kernel/interface/KernelDsp.c \
 SylixOS/kernel/interface/KernelFpu.c \
 SylixOS/kernel/interface/KernelGetKid.c \
 SylixOS/kernel/interface/KernelGetPriority.c \

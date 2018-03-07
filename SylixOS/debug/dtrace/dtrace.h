@@ -94,12 +94,21 @@ LW_API ULONG    API_DtraceSetRegs(PVOID  pvDtrace,
                                   
 #if LW_CFG_CPU_FPU_EN > 0
 LW_API ULONG    API_DtraceGetFpuRegs(PVOID  pvDtrace, 
-                                    LW_OBJECT_HANDLE  ulThread, 
-                                    ARCH_FPU_CTX  *pfpuctx);
+                                     LW_OBJECT_HANDLE  ulThread,
+                                     ARCH_FPU_CTX  *pfpuctx);
 LW_API ULONG    API_DtraceSetFpuRegs(PVOID  pvDtrace, 
                                      LW_OBJECT_HANDLE  ulThread, 
                                      const ARCH_FPU_CTX  *pfpuctx);
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+
+#if LW_CFG_CPU_DSP_EN > 0
+LW_API ULONG    API_DtraceGetDspRegs(PVOID  pvDtrace,
+                                     LW_OBJECT_HANDLE  ulThread,
+                                     ARCH_DSP_CTX  *pdspctx);
+LW_API ULONG    API_DtraceSetDspRegs(PVOID  pvDtrace,
+                                     LW_OBJECT_HANDLE  ulThread,
+                                     const ARCH_DSP_CTX  *pdspctx);
+#endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
                                      
 LW_API ULONG    API_DtraceGetMems(PVOID  pvDtrace, addr_t  ulAddr, PVOID  pvBuffer, size_t  stSize);
 LW_API ULONG    API_DtraceSetMems(PVOID  pvDtrace, addr_t  ulAddr, const PVOID  pvBuffer, size_t  stSize);

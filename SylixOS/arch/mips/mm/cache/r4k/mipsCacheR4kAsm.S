@@ -43,19 +43,11 @@
     EXPORT_LABEL(mipsICacheR4kFill)
     EXPORT_LABEL(mipsICacheR4kIndexStoreTag)
 
-    EXPORT_LABEL(mipsBranchPredictionDisable)
-    EXPORT_LABEL(mipsBranchPredictionEnable)
-    EXPORT_LABEL(mipsBranchPredictorInvalidate)
-
     IMPORT_LABEL(mipsICacheR4kInvalidateAll)
     IMPORT_LABEL(mipsDCacheR4kClearAll)
 #if LW_CFG_MIPS_CACHE_L2 > 0
     IMPORT_LABEL(mipsL2R4kClearAll)
 #endif
-
-    WEAK(mipsBranchPredictionDisable)
-    WEAK(mipsBranchPredictionEnable)
-    WEAK(mipsBranchPredictorInvalidate)
 
     FILE_BEGIN()
 
@@ -64,47 +56,41 @@
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsCacheR4kDisableHw)
-    .set    push
-    .set    noreorder
-    .set    volatile
-
-    MFC0(T0, CP0_CONFIG)
-    ANDI    T0 , T0 , M_ConfigK0
-    LI      T1 , MIPS_UNCACHED
-    BEQ     T0 , T1 , 1f
+    MFC0_EHB(T0, CP0_CONFIG)
+    ANDI        T0 , T0 , CONF_CM_CMASK
+    LI          T1 , CONF_CM_UNCACHED
+    BEQ         T0 , T1 , 1f
     NOP
 
-    SUBU    SP , 32
-    SW      RA , 28(SP)
-    SW      FP , 24(SP)
-    MOV     FP , SP
+    REG_SUBU    SP , ARCH_STK_VAR_SIZE
+    REG_S       RA , ARCH_STK_OFF_VAR(0)(SP)
+    REG_S       FP , ARCH_STK_OFF_VAR(1)(SP)
+    MOV         FP , SP
 
-    JAL     mipsDCacheR4kClearAll
+    JAL         mipsDCacheR4kClearAll
     NOP
 
-    JAL     mipsICacheR4kInvalidateAll
+    JAL         mipsICacheR4kInvalidateAll
     NOP
 
 #if LW_CFG_MIPS_CACHE_L2 > 0
-    JAL     mipsL2R4kClearAll
+    JAL         mipsL2R4kClearAll
     NOP
 #endif
 
-    MOV     SP , FP
-    LW      RA , 28(SP)
-    LW      FP , 24(SP)
-    ADDU    SP , 32
+    MOV         SP , FP
+    REG_L       RA , ARCH_STK_OFF_VAR(0)(SP)
+    REG_L       FP , ARCH_STK_OFF_VAR(1)(SP)
+    REG_ADDU    SP , ARCH_STK_VAR_SIZE
 
-    MFC0(T0, CP0_CONFIG)
-    AND     T0 , T0 , ~M_ConfigK0
-    ORI     T0 , T0 , MIPS_UNCACHED
-    MTC0(T0, CP0_CONFIG)
+    MFC0_EHB(T0, CP0_CONFIG)
+    AND         T0 , T0 , ~CONF_CM_CMASK
+    ORI         T0 , T0 , CONF_CM_UNCACHED
+    MTC0_EHB(T0, CP0_CONFIG)
 
 1:
-    JR      RA
+    JR          RA
     NOP
-
-    .set    pop
     FUNC_END(mipsCacheR4kDisableHw)
 
 ;/*********************************************************************************************************
@@ -112,53 +98,30 @@ FUNC_DEF(mipsCacheR4kDisableHw)
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsCacheR4kEnableHw)
-    .set    push
-    .set    noreorder
-    .set    volatile
-
-    MFC0(T0, CP0_CONFIG)
-    ANDI    T0 , T0 , M_ConfigK0
-    LI      T1 , MIPS_CACHABLE_NONCOHERENT
-    BEQ     T0 , T1 , 1f
+    MFC0_EHB(T0, CP0_CONFIG)
+    ANDI        T0 , T0 , CONF_CM_CMASK
+    LI          T1 , CONF_CM_CACHABLE_NONCOHERENT
+    BEQ         T0 , T1 , 1f
     NOP
 
-    MFC0(T0, CP0_CONFIG)
-    AND     T0 , T0 , ~M_ConfigK0
-    ORI     T0 , MIPS_CACHABLE_NONCOHERENT
-    MTC0(T0, CP0_CONFIG)
+    MFC0_EHB(T0, CP0_CONFIG)
+    AND         T0 , T0 , ~CONF_CM_CMASK
+    ORI         T0 , CONF_CM_CACHABLE_NONCOHERENT
+    MTC0_EHB(T0, CP0_CONFIG)
 
 1:
-    JR      RA
+    JR          RA
     NOP
-
-    .set    pop
     FUNC_END(mipsCacheR4kEnableHw)
-
-;/*********************************************************************************************************
-;  CACHE 操作宏
-;*********************************************************************************************************/
-
-MACRO_DEF(CACHE_OP op addr)
-    .set    push
-    .set    noat
-    .set    noreorder
-    .set    volatile
-    .set    mips32
-
-    cache   \op , 0(\addr)
-
-    JR      RA
-    NOP
-
-    .set    pop
-    MACRO_END()
 
 ;/*********************************************************************************************************
 ;  回写一个 DCACHE 行
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsDCacheR4kLineFlush)
-    CACHE_OP    Hit_Writeback_D         A0
+    CACHE       Hit_Writeback_D , 0(A0)
+    JR          RA
+    NOP
     FUNC_END(mipsDCacheR4kLineFlush)
 
 ;/*********************************************************************************************************
@@ -166,7 +129,9 @@ FUNC_DEF(mipsDCacheR4kLineFlush)
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsDCacheR4kLineClear)
-    CACHE_OP    Hit_Writeback_Inv_D     A0
+    CACHE       Hit_Writeback_Inv_D , 0(A0)
+    JR          RA
+    NOP
     FUNC_END(mipsDCacheR4kLineClear)
 
 ;/*********************************************************************************************************
@@ -174,15 +139,19 @@ FUNC_DEF(mipsDCacheR4kLineClear)
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsDCacheR4kLineInvalidate)
-    CACHE_OP    Hit_Invalidate_D        A0
+    CACHE       Hit_Invalidate_D , 0(A0)
+    JR          RA
+    NOP
     FUNC_END(mipsDCacheR4kLineInvalidate)
 
 ;/*********************************************************************************************************
-;  通过 Cache 存储器的地址索引回写并无效一个 DCACHE 行
+;  通过 CACHE 存储器的地址索引回写并无效一个 DCACHE 行
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsDCacheR4kIndexClear)
-    CACHE_OP    Index_Writeback_Inv_D   A0
+    CACHE       Index_Writeback_Inv_D , 0(A0)
+    JR          RA
+    NOP
     FUNC_END(mipsDCacheR4kIndexClear)
 
 ;/*********************************************************************************************************
@@ -190,7 +159,9 @@ FUNC_DEF(mipsDCacheR4kIndexClear)
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsICacheR4kLineInvalidate)
-    CACHE_OP    Hit_Invalidate_I        A0
+    CACHE       Hit_Invalidate_I , 0(A0)
+    JR          RA
+    NOP
     FUNC_END(mipsICacheR4kLineInvalidate)
 
 ;/*********************************************************************************************************
@@ -198,7 +169,9 @@ FUNC_DEF(mipsICacheR4kLineInvalidate)
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsICacheR4kIndexInvalidate)
-    CACHE_OP    Index_Invalidate_I      A0
+    CACHE       Index_Invalidate_I , 0(A0)
+    JR          RA
+    NOP
     FUNC_END(mipsICacheR4kIndexInvalidate)
 
 ;/*********************************************************************************************************
@@ -206,7 +179,9 @@ FUNC_DEF(mipsICacheR4kIndexInvalidate)
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsICacheR4kFill)
-    CACHE_OP    Fill_I                  A0
+    CACHE       Fill , 0(A0)
+    JR          RA
+    NOP
     FUNC_END(mipsICacheR4kFill)
 
 ;/*********************************************************************************************************
@@ -214,7 +189,9 @@ FUNC_DEF(mipsICacheR4kFill)
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsDCacheR4kIndexStoreTag)
-    CACHE_OP    Index_Store_Tag_D       A0
+    CACHE       Index_Store_Tag_D , 0(A0)
+    JR          RA
+    NOP
     FUNC_END(mipsDCacheR4kIndexStoreTag)
 
 ;/*********************************************************************************************************
@@ -222,35 +199,10 @@ FUNC_DEF(mipsDCacheR4kIndexStoreTag)
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsICacheR4kIndexStoreTag)
-    CACHE_OP    Index_Store_Tag_I       A0
+    CACHE       Index_Store_Tag_I , 0(A0)
+    JR          RA
+    NOP
     FUNC_END(mipsICacheR4kIndexStoreTag)
-
-;/*********************************************************************************************************
-;  禁能分支预测
-;*********************************************************************************************************/
-
-FUNC_DEF(mipsBranchPredictionDisable)
-    JR      RA
-    NOP
-    FUNC_END(mipsBranchPredictionDisable)
-
-;/*********************************************************************************************************
-;  使能分支预测
-;*********************************************************************************************************/
-
-FUNC_DEF(mipsBranchPredictionEnable)
-    JR      RA
-    NOP
-    FUNC_END(mipsBranchPredictionEnable)
-
-;/*********************************************************************************************************
-;  无效分支预测
-;*********************************************************************************************************/
-
-FUNC_DEF(mipsBranchPredictorInvalidate)
-    JR      RA
-    NOP
-    FUNC_END(mipsBranchPredictorInvalidate)
 
     FILE_END()
 

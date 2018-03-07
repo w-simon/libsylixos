@@ -95,6 +95,68 @@
 #define TRAP_TYPE_ARG_REG   l3
 
 ;/*********************************************************************************************************
+;  异常保存寄存器
+;*********************************************************************************************************/
+
+MACRO_DEF(EXC_SAVE_REGS  arg)
+    ST      %g1  , [%l4 + REG_GLOBAL(1)]                                ;/*  保存全局寄存器(除了 %g0)    */
+    STD     %g2  , [%l4 + REG_GLOBAL(2)]
+    SPARC_B2BST_NOP
+    STD     %g4  , [%l4 + REG_GLOBAL(4)]
+    SPARC_B2BST_NOP
+    STD     %g6  , [%l4 + REG_GLOBAL(6)]
+    SPARC_B2BST_NOP
+
+    STD     %i0  , [%l4 + REG_OUTPUT(0)]                                ;/*  保存输出寄存器              */
+    SPARC_B2BST_NOP
+    STD     %i2  , [%l4 + REG_OUTPUT(2)]
+    SPARC_B2BST_NOP
+    STD     %i4  , [%l4 + REG_OUTPUT(4)]
+    SPARC_B2BST_NOP
+    STD     %i6  , [%l4 + REG_OUTPUT(6)]
+
+    ST      %l1  , [%l4 + REG_PC]                                       ;/*  保存 PC                     */
+    ST      %l2  , [%l4 + REG_NPC]                                      ;/*  保存 Next PC                */
+
+    RD      %y   , %l5
+    ST      %l5  , [%l4 + REG_Y]                                        ;/*  保存 Y 寄存器               */
+
+    AND     %l0  , SPARC_PSR_CWP_MASK , %l5                             ;/*  %l5 = CWP                   */
+    ANDN    %l0  , SPARC_PSR_CWP_MASK , %l0                             ;/*  %l0 = l0 & ~CWP_MASK        */
+    ADD     %l5  , 1 , %l5                                              ;/*  %l5 = (CWP + 1) % NWIN      */
+    AND     %l5  , LW_CFG_SPARC_REG_WIN_NR - 1 , %l5
+    OR      %l0  , %l5 , %l0
+    ST      %l0  , [%l4 + REG_PSR]                                      ;/*  保存 PSR 寄存器             */
+
+    MOV     %l4   , %g1
+    MOV     %\arg , %g7
+
+    RESTORE                                                             ;/*  回到异常前的寄存器窗口      */
+
+    STD     %l0  , [%g1 + REG_LOCAL(0)]                                 ;/*  保存本地寄存器              */
+    SPARC_B2BST_NOP
+    STD     %l2  , [%g1 + REG_LOCAL(2)]
+    SPARC_B2BST_NOP
+    STD     %l4  , [%g1 + REG_LOCAL(4)]
+    SPARC_B2BST_NOP
+    STD     %l6  , [%g1 + REG_LOCAL(6)]
+    SPARC_B2BST_NOP
+
+    STD     %i0  , [%g1 + REG_INPUT(0)]                                 ;/*  保存输入寄存器              */
+    SPARC_B2BST_NOP
+    STD     %i2  , [%g1 + REG_INPUT(2)]
+    SPARC_B2BST_NOP
+    STD     %i4  , [%g1 + REG_INPUT(4)]
+    SPARC_B2BST_NOP
+    STD     %i6  , [%g1 + REG_INPUT(6)]
+
+    ;/*
+    ; * %g1 %g6 %g7 不会被破坏
+    ; */
+    FLUSH_WINDOWS                                                       ;/*  flush 窗口                  */
+    MACRO_END()
+
+;/*********************************************************************************************************
 ;  SPARC 异常入口宏
 ;   l0 = PSR
 ;   l1 = PC
@@ -103,115 +165,49 @@
 ;*********************************************************************************************************/
 
 MACRO_DEF(SPARC_TRAP_ENTRY handle arg)
-    ST      %l1  , [%i6 - ASM_REG_STACK_FRAME_SIZE + REG_PC]            ;/*  保存 PC                     */
-    ST      %l2  , [%i6 - ASM_REG_STACK_FRAME_SIZE + REG_NPC]           ;/*  保存 Next PC                */
-
-    STD     %i0  , [%i6 - ASM_REG_STACK_FRAME_SIZE + REG_OUTPUT(0)]     ;/*  保存输出寄存器              */
-    SPARC_B2BST_NOP
-    STD     %i2  , [%i6 - ASM_REG_STACK_FRAME_SIZE + REG_OUTPUT(2)]
-    SPARC_B2BST_NOP
-    STD     %i4  , [%i6 - ASM_REG_STACK_FRAME_SIZE + REG_OUTPUT(4)]
-    SPARC_B2BST_NOP
-    STD     %i6  , [%i6 - ASM_REG_STACK_FRAME_SIZE + REG_OUTPUT(6)]     ;/*  保存异常前的 %sp            */
-    SPARC_B2BST_NOP
-
-    ST      %g1  , [%i6 - ASM_REG_STACK_FRAME_SIZE + REG_GLOBAL(1)]     ;/*  保存全局寄存器(除了 %g0)    */
-    STD     %g2  , [%i6 - ASM_REG_STACK_FRAME_SIZE + REG_GLOBAL(2)]
-    SPARC_B2BST_NOP
-    STD     %g4  , [%i6 - ASM_REG_STACK_FRAME_SIZE + REG_GLOBAL(4)]
-    SPARC_B2BST_NOP
-    STD     %g6  , [%i6 - ASM_REG_STACK_FRAME_SIZE + REG_GLOBAL(6)]
-
-    MOV     %\arg , %g7
-
-    RESTORE                                                             ;/*  回到异常前的寄存器窗口      */
-
-    ;/*
-    ; * 保存 CPU 上下文
-    ; */
-    SUB     %sp  , ASM_REG_STACK_FRAME_SIZE , %g6                       ;/*  开辟栈空间                  */
-
-    STD     %l0  , [%g6 + REG_LOCAL(0)]                                 ;/*  保存本地寄存器              */
-    SPARC_B2BST_NOP
-    STD     %l2  , [%g6 + REG_LOCAL(2)]
-    SPARC_B2BST_NOP
-    STD     %l4  , [%g6 + REG_LOCAL(4)]
-    SPARC_B2BST_NOP
-    STD     %l6  , [%g6 + REG_LOCAL(6)]
-    SPARC_B2BST_NOP
-
-    STD     %i0  , [%g6 + REG_INPUT(0)]                                 ;/*  保存输入寄存器              */
-    SPARC_B2BST_NOP
-    STD     %i2  , [%g6 + REG_INPUT(2)]
-    SPARC_B2BST_NOP
-    STD     %i4  , [%g6 + REG_INPUT(4)]
-    SPARC_B2BST_NOP
-    STD     %i6  , [%g6 + REG_INPUT(6)]
-
-    RD      %psr , %l0                                                  ;/*  必须回到异常前的寄存器窗口  */
-    ST      %l0  , [%g6 + REG_PSR]                                      ;/*  才能正确保存 PSR 状态寄存器 */
-
-    RD      %y   , %l0
-    ST      %l0  , [%g6 + REG_Y]                                        ;/*  保存 Y 寄存器               */
-
-    ;/*
-    ; *  if (API_InterEnter() == 1) {
-    ; *      current stack = SP;
-    ; *      SP = interrupt stack;
-    ; *  }
-    ; */
     ;/*
     ; * 中断嵌套计数加一
     ; */
-    SET     _G_ulIntNesting , %l0                                       ;/*  %l0 = _G_ulIntNesting       */
+    SET     _G_ulIntNesting , %l4                                       ;/*  %l4 = _G_ulIntNesting       */
 
 #if LW_CFG_SMP_EN > 0
-    READ_CPUID(%l2)                                                     ;/*  %l2 = CPU_ID                */
-    SLL     %l2   , 2   , %l2                                           ;/*  %l2 = CPU_ID * 4            */
-    ADD     %l2   , %l0 , %l0                                           ;/*  %l0 = &nesting[CPU_ID]      */
+    READ_CPUID(%l5)                                                     ;/*  %l5 = CPU_ID                */
+    SLL     %l5   , 2   , %l5                                           ;/*  %l5 = CPU_ID * 4            */
+    ADD     %l5   , %l4 , %l4                                           ;/*  %l4 = &nesting[CPU_ID]      */
 #endif
 
-    LD      [%l0] , %l1                                                 ;/*  %l1 = 中断嵌套计数地址      */
-    LD      [%l1] , %l0                                                 ;/*  %l0 = 中断嵌套计数          */
+    LD      [%l4] , %l4                                                 ;/*  %l4 = 中断嵌套计数地址      */
+    LD      [%l4] , %l6                                                 ;/*  %l6 = 中断嵌套计数          */
 
-    ADD     %l0 , 1 , %g1                                               ;/*  %g1 = 中断嵌套计数加一!!!   */
-    ST      %g1 , [%l1]                                                 ;/*  存储回去                    */
+    ADD     %l6 , 1 , %l6                                               ;/*  %l6 = 中断嵌套计数加一!!!   */
+    ST      %l6 , [%l4]                                                 ;/*  存储回去                    */
 
-    CMP     %g1 , 1
-    BNE     1f
+    CMP     %l6 , 1
+    BNE     2f
     NOP
 
-    SET     _G_ulCpu , %l0                                              ;/*  %l0 = _G_ulCpu              */
-
-#if LW_CFG_SMP_EN > 0
-    ADD     %l2 , %l0 , %l0                                             ;/*  %l0 = &_G_ulCpu[CPU_ID]     */
-#endif
-
-    LD      [%l0] , %l1                                                 ;/*  %l1 = 当前 CPU 结构指针     */
-    LD      [%l1] , %l0                                                 ;/*  %l0 = 当前 TCB 结构指针     */
-
-    ST      %g6  , [%l0]                                                ;/*  保存当前的栈指针到当前 TCB  */
-
-1:
     ;/*
-    ; * %g1 = 当前中断嵌套计数, 保证 flush 窗口后, 还能通过 %g1 获取当前中断嵌套计数
-    ; * %g6 = 当前 %sp, 保证 flush 窗口后, 还能通过 %g6 获取当前栈指针
-    ; * %g7 = trap type 或 PC
+    ; * 第一次进入中断
     ; */
-
-    FLUSH_WINDOWS                                                       ;/*  flush 窗口                  */
-
-    CMP     %g1 , 1
-    BE      2f
-    NOP
-
-    SUB     %g6 , ASM_STACK_FRAME_SIZE , %sp                            ;/*  开辟栈空间                  */
-    B       3f
-    ANDN    %sp , (ARCH_STK_ALIGN_SIZE - 1) , %sp                       ;/*  栈指针对齐                  */
-
-2:
     ;/*
-    ; * 切换到中断安全栈
+    ; * 获取当前 TCB 的 REG_CTX 地址
+    ; */
+    SET     _G_ulCpu , %l4                                              ;/*  %l4 = _G_ulCpu              */
+
+#if LW_CFG_SMP_EN > 0
+    ADD     %l5   , %l4 , %l4                                           ;/*  %l4 = &_G_ulCpu[CPU_ID]     */
+#endif
+
+    LD      [%l4] , %l4                                                 ;/*  %l4 = 当前 CPU 结构指针     */
+    LD      [%l4] , %l4                                                 ;/*  %l4 = 当前 TCB 结构指针     */
+
+    ;/*
+    ; * 保存寄存器到当前 TCB 的 REG_CTX
+    ; */
+    EXC_SAVE_REGS   \arg
+
+    ;/*
+    ; * 第一次进入中断: 获得当前 CPU 中断堆栈栈顶, 并设置 SP
     ; */
     SET     _G_ulIntSafeStack , %l0                                     ;/*  %l0 = _G_ulIntSafeStack     */
 
@@ -222,17 +218,48 @@ MACRO_DEF(SPARC_TRAP_ENTRY handle arg)
 #endif
 
     LD      [%l0] , %l1                                                 ;/*  %l1 = 中断安全栈            */
-    SUB     %l1   , ASM_STACK_FRAME_SIZE , %sp                          ;/*  开辟栈空间                  */
+    SUB     %l1   , ARCH_STK_FRAME_SIZE , %sp                           ;/*  开辟栈帧空间                */
 
-3:
-    CALL    \handle
+1:
+    ;/*
+    ; * handle(trap type 或 PC, 寄存器上下文)
+    ; */
     MOV     %g7   , %o0
+    MOV     %g1   , %o1
+    CALL    \handle
+    NOP
 
+    ;/*
+    ; * API_InterExit()
+    ; * 如果没有发生中断嵌套, 则 API_InterExit 会调用 archIntCtxLoad 函数
+    ; */
     CALL    API_InterExit
     NOP
 
-    MOV     %g6   , %g1
+    ;/*
+    ; * 来到这里, 说明发生了中断嵌套
+    ; */
+    ADD     %sp  , ARCH_STK_FRAME_SIZE , %sp                            ;/*  回收栈帧空间                */
+
+    ;/*
+    ; * 从中断栈中恢复寄存器
+    ; */
+    MOV     %sp  , %g1
     RESTORE_REGS
+
+2:
+    ;/*
+    ; * 不是第一次进入中断
+    ; */
+    SUB     %i6  , ARCH_REG_CTX_SIZE , %l4                              ;/*  在中断栈中开辟寄存器保存空间*/
+
+    ;/*
+    ; * 保存寄存器到中断栈中
+    ; */
+    EXC_SAVE_REGS   \arg
+
+    B       1b
+    SUB     %g1  , ARCH_STK_FRAME_SIZE , %sp                            ;/*  开辟栈帧空间                */
     MACRO_END()
 
 ;/*********************************************************************************************************

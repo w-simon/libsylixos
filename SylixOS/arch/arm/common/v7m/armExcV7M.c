@@ -110,8 +110,8 @@ typedef struct {
 /*********************************************************************************************************
   Memory mapping of Cortex-M Hardware
 *********************************************************************************************************/
-#define SCS_BASE            (0xe000e000)                        /*  System Control Space Base Address   */
-#define SCB_BASE            (SCS_BASE + 0x0d00)                 /*  System Control Block Base Address   */
+#define SCS_BASE            (0xe000e000)                                /*  System Control Space Address*/
+#define SCB_BASE            (SCS_BASE + 0x0d00)                         /*  System Control Block Address*/
 #define SCB                 ((SCB_Type *)SCB_BASE)
 /*********************************************************************************************************
   数据类型定义
@@ -188,7 +188,7 @@ VOID  armv7mTrapsInit (VOID)
     write32(read32((addr_t)&SCB->SHCSR) | USGFAULTENA | BUSFAULTENA,
             (addr_t)&SCB->SHCSR);
 
-    write32(UNALIGN_TRP | DIV_0_TRP | read32((addr_t)&SCB->CCR),
+    write32(DIV_0_TRP | read32((addr_t)&SCB->CCR),
             (addr_t)&SCB->CCR);
 }
 /*********************************************************************************************************
@@ -200,33 +200,33 @@ VOID  armv7mTrapsInit (VOID)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-ARCH_REG_CTX  *armv7mSvcHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
+ARCH_REG_CTX  *armv7mSvcHandle (ARCH_HW_SAVE_REG_CTX  *pHwSaveCtx, ARCH_SW_SAVE_REG_CTX  *pSwSaveCtx)
 {
-    UINT32          uiCmd = pregctx->REG_uiR1;
+    UINT32          uiCmd = pHwSaveCtx->REG_uiR1;
     PLW_CLASS_CPU   pcpuCur;
 
     switch (uiCmd) {
 
     case SVC_archTaskCtxStart:
-        pcpuCur = (PLW_CLASS_CPU)pregctx->REG_uiR0;
-        return  ((ARCH_REG_CTX *)(pcpuCur->CPU_ptcbTCBCur->TCB_pstkStackNow));
+        pcpuCur = (PLW_CLASS_CPU)pHwSaveCtx->REG_uiR0;
+        return  (&pcpuCur->CPU_ptcbTCBCur->TCB_archRegCtx);
 
     case SVC_archTaskCtxSwitch:
-        pcpuCur = (PLW_CLASS_CPU)pregctx->REG_uiR0;
-        pcpuCur->CPU_ptcbTCBCur->TCB_pstkStackNow = (PLW_STACK)pregctx;
+        pcpuCur = (PLW_CLASS_CPU)pHwSaveCtx->REG_uiR0;
+        archTaskCtxCopy(&pcpuCur->CPU_ptcbTCBCur->TCB_archRegCtx, pSwSaveCtx, pHwSaveCtx);
         _SchedSwp(pcpuCur);
-        return  ((ARCH_REG_CTX *)(pcpuCur->CPU_ptcbTCBCur->TCB_pstkStackNow));
+        return  (&pcpuCur->CPU_ptcbTCBCur->TCB_archRegCtx);
 
 #if LW_CFG_COROUTINE_EN > 0
     case SVC_archCrtCtxSwitch:
         pcpuCur = (PLW_CLASS_CPU)pregctx->REG_uiR0;
-        pcpuCur->CPU_pcrcbCur->COROUTINE_pstkStackNow = (PLW_STACK)pregctx;
+        archTaskCtxCopy(&pcpuCur->CPU_pcrcbCur->COROUTINE_archRegCtx, pSwSaveCtx, pHwSaveCtx);
         _SchedCrSwp(pcpuCur);
-        return  ((ARCH_REG_CTX *)(pcpuCur->CPU_pcrcbCur->COROUTINE_pstkStackNow));
-#endif
+        return  (&pcpuCur->CPU_pcrcbCur->COROUTINE_archRegCtx));
+#endif                                                                  /*  LW_CFG_COROUTINE_EN > 0     */
 
     case SVC_archSigCtxLoad:
-        return  ((ARCH_REG_CTX *)pregctx->REG_uiR0);
+        return  ((ARCH_REG_CTX *)pHwSaveCtx->REG_uiR0);
 
     default:
         _BugHandle(LW_TRUE, LW_TRUE, "unknown SVC command!\r\n");
@@ -240,50 +240,39 @@ ARCH_REG_CTX  *armv7mSvcHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
 ** 功能描述: 中断处理
 ** 输　入  : uiVector  中断向量
 **           pregctx   上下文
-** 输　出  : 上下文
+** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-ARCH_REG_CTX  *armv7mIntHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
+VOID  armv7mIntHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
 {
-    if (LW_CPU_GET_CUR_NESTING() == 1) {
-        PLW_CLASS_TCB   ptcbCur;
-
-        LW_TCB_GET_CUR(ptcbCur);
-        ptcbCur->TCB_pstkStackNow = (PLW_STACK)pregctx;
-    }
-
     archIntHandle((ULONG)uiVector, LW_FALSE);
-
-    API_InterExit();
-
-    return  (pregctx);
 }
 /*********************************************************************************************************
 ** 函数名称: armv7mNMIIntHandle
 ** 功能描述: NMI 处理
 ** 输　入  : uiVector  中断向量
 **           pregctx   上下文
-** 输　出  : 上下文
+** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-LW_WEAK ARCH_REG_CTX  *armv7mNMIIntHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
+LW_WEAK VOID  armv7mNMIIntHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
 {
-    return  (armv7mIntHandle(uiVector, pregctx));
+    armv7mIntHandle(uiVector, pregctx);
 }
 /*********************************************************************************************************
 ** 函数名称: armv7mSysTickIntHandle
 ** 功能描述: SysTick 中断处理
 ** 输　入  : uiVector  中断向量
 **           pregctx   上下文
-** 输　出  : 上下文
+** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-ARCH_REG_CTX  *armv7mSysTickIntHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
+VOID  armv7mSysTickIntHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
 {
-    return  (armv7mIntHandle(uiVector, pregctx));
+    armv7mIntHandle(uiVector, pregctx);
 }
 /*********************************************************************************************************
 ** 函数名称: armv7mFaultPrintInfo
@@ -363,93 +352,68 @@ static VOID  armv7mFaultCommonHandle (ARCH_REG_CTX   *pregctx,
 ** 功能描述: Hard Fault 处理
 ** 输　入  : uiVector  中断向量
 **           pregctx   上下文
-** 输　出  : 上下文
+** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-ARCH_REG_CTX  *armv7mHardFaultHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
+VOID  armv7mHardFaultHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
 {
     PLW_CLASS_TCB   ptcbCur;
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    if (LW_CPU_GET_CUR_NESTING() == 1) {
-        ptcbCur->TCB_pstkStackNow = (PLW_STACK)pregctx;
-    }
-
     armv7mFaultCommonHandle(pregctx, ptcbCur, HARDFAULT);
-
-    API_InterExit();
-
-    return  ((ARCH_REG_CTX *)ptcbCur->TCB_pstkStackNow);
 }
 /*********************************************************************************************************
 ** 函数名称: armv7mBusFaultHandle
 ** 功能描述: Bus Fault 处理
 ** 输　入  : uiVector  中断向量
 **           pregctx   上下文
-** 输　出  : 上下文
+** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-ARCH_REG_CTX  *armv7mBusFaultHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
+VOID  armv7mBusFaultHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
 {
     PLW_CLASS_TCB   ptcbCur;
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    if (LW_CPU_GET_CUR_NESTING() == 1) {
-        ptcbCur->TCB_pstkStackNow = (PLW_STACK)pregctx;
-    }
-
     armv7mFaultCommonHandle(pregctx, ptcbCur, BUSFAULT);
-
-    API_InterExit();
-
-    return  ((ARCH_REG_CTX *)ptcbCur->TCB_pstkStackNow);
 }
 /*********************************************************************************************************
 ** 函数名称: armv7mUsageFaultHandle
 ** 功能描述: Usage Fault 处理
 ** 输　入  : uiVector  中断向量
 **           pregctx   上下文
-** 输　出  : 上下文
+** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-ARCH_REG_CTX  *armv7mUsageFaultHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
+VOID  armv7mUsageFaultHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
 {
     PLW_CLASS_TCB   ptcbCur;
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    if (LW_CPU_GET_CUR_NESTING() == 1) {
-        ptcbCur->TCB_pstkStackNow = (PLW_STACK)pregctx;
-    }
-
 #if LW_CFG_CPU_FPU_EN > 0
     if (archFpuUndHandle(ptcbCur) == ERROR_NONE) {                      /*  进行 FPU 指令探测           */
-        API_InterExit();
-        return  (pregctx);
+        return;
     }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 
     armv7mFaultCommonHandle(pregctx, ptcbCur, USAGEFAULT);
-
-    API_InterExit();
-
-    return  ((ARCH_REG_CTX *)ptcbCur->TCB_pstkStackNow);
 }
 /*********************************************************************************************************
 ** 函数名称: armv7mMemFaultHandle
 ** 功能描述: Mem Fault 处理
 ** 输　入  : uiVector  中断向量
 **           pregctx   上下文
-** 输　出  : 上下文
+** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-ARCH_REG_CTX  *armv7mMemFaultHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
+VOID  armv7mMemFaultHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
 {
     UINT32          uiLStatus;
     addr_t          ulAddr;
@@ -457,10 +421,6 @@ ARCH_REG_CTX  *armv7mMemFaultHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
     PLW_CLASS_TCB   ptcbCur;
 
     LW_TCB_GET_CUR(ptcbCur);
-
-    if (LW_CPU_GET_CUR_NESTING() == 1) {
-        ptcbCur->TCB_pstkStackNow = (PLW_STACK)pregctx;
-    }
 
     /*
      * Read the fault status register from the MPU hardware
@@ -472,7 +432,7 @@ ARCH_REG_CTX  *armv7mMemFaultHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
      */
     write32(uiLStatus, (addr_t)&SCB->CFSR);
 
-    if ((uiLStatus & 0xF0) == 0x80) {
+    if ((uiLStatus & 0xf0) == 0x80) {
         /*
          * Did we get a valid address in the memory fault address register?
          * If so, this is a data access failure (can't tell read or write).
@@ -512,30 +472,22 @@ ARCH_REG_CTX  *armv7mMemFaultHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
 #endif
 
     API_VmmAbortIsr(pregctx->REG_uiPc, ulAddr, &abtInfo, ptcbCur);
-
-    API_InterExit();
-
-    return  ((ARCH_REG_CTX *)ptcbCur->TCB_pstkStackNow);
 }
 /*********************************************************************************************************
 ** 函数名称: armv7mDebugMonitorHandle
 ** 功能描述: Debug Monitor 处理
 ** 输　入  : uiVector  中断向量
 **           pregctx   上下文
-** 输　出  : 上下文
+** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-ARCH_REG_CTX  *armv7mDebugMonitorHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
+VOID  armv7mDebugMonitorHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
 {
     LW_VMM_ABORT    abtInfo;
     PLW_CLASS_TCB   ptcbCur;
 
     LW_TCB_GET_CUR(ptcbCur);
-
-    if (LW_CPU_GET_CUR_NESTING() == 1) {
-        ptcbCur->TCB_pstkStackNow = (PLW_STACK)pregctx;
-    }
 
 #if LW_CFG_CORTEX_M_FAULT_REBOOT > 0
     abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_FATAL_ERROR;
@@ -546,30 +498,22 @@ ARCH_REG_CTX  *armv7mDebugMonitorHandle (UINT32  uiVector, ARCH_REG_CTX  *pregct
     abtInfo.VMABT_uiMethod = 0;
 
     API_VmmAbortIsr(pregctx->REG_uiPc, pregctx->REG_uiPc, &abtInfo, ptcbCur);
-
-    API_InterExit();
-
-    return  ((ARCH_REG_CTX *)ptcbCur->TCB_pstkStackNow);
 }
 /*********************************************************************************************************
 ** 函数名称: armv7mPendSVHandle
 ** 功能描述: PendSV 处理
 ** 输　入  : uiVector  中断向量
 **           pregctx   上下文
-** 输　出  : 上下文
+** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-ARCH_REG_CTX  *armv7mPendSVHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
+VOID  armv7mPendSVHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
 {
     LW_VMM_ABORT    abtInfo;
     PLW_CLASS_TCB   ptcbCur;
 
     LW_TCB_GET_CUR(ptcbCur);
-
-    if (LW_CPU_GET_CUR_NESTING() == 1) {
-        ptcbCur->TCB_pstkStackNow = (PLW_STACK)pregctx;
-    }
 
 #if LW_CFG_CORTEX_M_FAULT_REBOOT > 0
     abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_FATAL_ERROR;
@@ -580,30 +524,22 @@ ARCH_REG_CTX  *armv7mPendSVHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
     abtInfo.VMABT_uiMethod = 0;
 
     API_VmmAbortIsr(pregctx->REG_uiPc, pregctx->REG_uiPc, &abtInfo, ptcbCur);
-
-    API_InterExit();
-
-    return  ((ARCH_REG_CTX *)ptcbCur->TCB_pstkStackNow);
 }
 /*********************************************************************************************************
 ** 函数名称: armv7mReservedIntHandle
 ** 功能描述: Reserved 中断处理
 ** 输　入  : uiVector  中断向量
 **           pregctx   上下文
-** 输　出  : 上下文
+** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-ARCH_REG_CTX  *armv7mReservedIntHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
+VOID  armv7mReservedIntHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx)
 {
     LW_VMM_ABORT    abtInfo;
     PLW_CLASS_TCB   ptcbCur;
 
     LW_TCB_GET_CUR(ptcbCur);
-
-    if (LW_CPU_GET_CUR_NESTING() == 1) {
-        ptcbCur->TCB_pstkStackNow = (PLW_STACK)pregctx;
-    }
 
 #if LW_CFG_CORTEX_M_FAULT_REBOOT > 0
     abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_FATAL_ERROR;
@@ -614,10 +550,6 @@ ARCH_REG_CTX  *armv7mReservedIntHandle (UINT32  uiVector, ARCH_REG_CTX  *pregctx
     abtInfo.VMABT_uiMethod = 0;
 
     API_VmmAbortIsr(pregctx->REG_uiPc, pregctx->REG_uiPc, &abtInfo, ptcbCur);
-
-    API_InterExit();
-
-    return  ((ARCH_REG_CTX *)ptcbCur->TCB_pstkStackNow);
 }
 
 #endif                                                                  /*  __SYLIXOS_ARM_ARCH_M__      */

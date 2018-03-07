@@ -41,10 +41,6 @@ PVOID  _ThreadShell (PVOID  pvThreadStartAddress)
     PVOID               pvReturnVal;
     LW_OBJECT_HANDLE    ulId;
     
-#if defined(LW_CFG_CPU_ARCH_C6X)
-    archIntEnableForce();                                               /*  使能中断                    */
-#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
-
     LW_TCB_GET_CUR_SAFE(ptcbCur);                                       /*  当前任务控制块              */
     
 #if LW_CFG_CPU_FPU_EN > 0
@@ -55,6 +51,14 @@ PVOID  _ThreadShell (PVOID  pvThreadStartAddress)
     }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
     
+#if LW_CFG_CPU_DSP_EN > 0
+    if (ptcbCur->TCB_ulOption & LW_OPTION_THREAD_USED_DSP) {            /*  强制使用 DSP                */
+        iregInterLevel = KN_INT_DISABLE();                              /*  关闭中断                    */
+        __ARCH_DSP_ENABLE();                                            /*  使能 DSP                    */
+        KN_INT_ENABLE(iregInterLevel);                                  /*  打开中断                    */
+    }
+#endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
+
     LW_SOFUNC_PREPARE(pvThreadStartAddress);
     pvReturnVal = ((PTHREAD_START_ROUTINE)pvThreadStartAddress)
                   (ptcbCur->TCB_pvArg);                                 /*  执行线程                    */

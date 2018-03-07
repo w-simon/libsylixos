@@ -12,11 +12,11 @@
 **
 ** 文   件   名: mips_gdb.h
 **
-** 创   建   人: Ryan.Xin (信金龙)
+** 创   建   人: Jiao.JinXing (焦进星)
 **
 ** 文件创建日期: 2019 年 09 月 01 日
 **
-** 描        述: MIPS 体系构架 GDB 调试接口.
+** 描        述: MIPS 体系架构 GDB 调试接口.
 *********************************************************************************************************/
 
 #ifndef __ARCH_MIPS_GDB_H
@@ -33,10 +33,10 @@
 *********************************************************************************************************/
 
 typedef struct {
-    INT         GDBR_iRegCnt;                                           /* 寄存器数量                   */
+    INT         GDBR_iRegCnt;                                           /*  寄存器数量                  */
     struct {
-        ULONG   GDBRA_ulValue;                                          /* 寄存器值                     */
-    } regArr[GDB_MAX_REG_CNT];                                          /* 寄存器数组                   */
+        ULONG   GDBRA_ulValue;                                          /*  寄存器值                    */
+    } regArr[GDB_MAX_REG_CNT];                                          /*  寄存器数组                  */
 } GDB_REG_SET;
 
 /*********************************************************************************************************
@@ -62,7 +62,7 @@ INT     archGdbRegsSet(PVOID               pvDtrace,
 INT     archGdbRegSetPc(PVOID              pvDtrace,
                         LW_OBJECT_HANDLE   ulThread,
                         ULONG              uiPc);                       /*  设置 PC 寄存器              */
-						
+
 ULONG   archGdbRegGetPc(GDB_REG_SET *pRegs);                            /*  获取 PC 寄存器值            */
 
 ULONG   archGdbGetNextPc(PVOID pvDtrace,

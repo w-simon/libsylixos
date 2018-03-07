@@ -705,12 +705,7 @@ __abort_return:
     
     iregInterLevel = KN_INT_DISABLE();                                  /*  关闭当前 CPU 中断           */
     KN_SMP_MB();
-#if defined(LW_CFG_CPU_ARCH_C6X)
-    archSigCtxLoad(pvmpagefailctx->PAGEFCTX_pvStackRet,
-                   pvmpagefailctx->PAGEFCTX_ulContextType);             /*  从 page fail 上下文中返回   */
-#else
-    archSigCtxLoad(pvmpagefailctx->PAGEFCTX_pvStackRet);                /*  从 page fail 上下文中返回   */
-#endif
+    archSigCtxLoad(&pvmpagefailctx->PAGEFCTX_archRegCtx);               /*  从 page fail 上下文中返回   */
     KN_INT_ENABLE(iregInterLevel);                                      /*  运行不到这里                */
 }
 
@@ -754,6 +749,9 @@ static PCHAR  __vmmAbortTypeStr (PLW_VMM_ABORT  pabtInfo)
     
     case LW_VMM_ABORT_TYPE_FPE:
         return  ("float points");
+
+    case LW_VMM_ABORT_TYPE_DSPE:
+        return  ("dsp error");
     
     case LW_VMM_ABORT_TYPE_BUS:
         return  ("bus error");
@@ -885,10 +883,6 @@ static VOID  __vmmAbortAccess (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
     INTREG  iregInterLevel;
     ULONG   ulErrorOrig = API_GetLastError();
     
-#if defined(LW_CFG_CPU_ARCH_C6X)
-    archIntEnableForce();                                               /*  使能中断                    */
-#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
-
 #if (LW_CFG_CDUMP_EN > 0) && (LW_CFG_DEVICE_EN > 0)
     _CrashDumpAbortAccess(pvmpagefailctx, __vmmAbortTypeStr(&pvmpagefailctx->PAGEFCTX_abtInfo));
 #endif
@@ -901,7 +895,7 @@ static VOID  __vmmAbortAccess (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
     switch (__PAGEFAILCTX_ABORT_TYPE(pvmpagefailctx)) {
     
     case LW_VMM_ABORT_TYPE_UNDEF:
-        printk(KERN_EMERG "UNDEF ERROR: abort in thread %lx[%s]. \n",
+        printk(KERN_EMERG "UNDEF ERROR: abort in thread %lx[%s]. \n"
                "ret_addr: 0x%08lx abt_addr: 0x%08lx, abt_type: %s.\n",
                pvmpagefailctx->PAGEFCTX_ptcb->TCB_ulId,
                pvmpagefailctx->PAGEFCTX_ptcb->TCB_cThreadName,
@@ -929,9 +923,28 @@ static VOID  __vmmAbortAccess (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
                __vmmAbortTypeStr(&pvmpagefailctx->PAGEFCTX_abtInfo));   /*  操作异常                    */
         break;
         
+    case LW_VMM_ABORT_TYPE_DSPE:
+#if (LW_CFG_CPU_DSP_EN > 0) && (LW_CFG_DEVICE_EN > 0)
+        {
+            PLW_CLASS_TCB   ptcbCur;
+            LW_TCB_GET_CUR_SAFE(ptcbCur);
+            if (ptcbCur->TCB_ulOption & LW_OPTION_THREAD_USED_DSP) {
+                __ARCH_DSP_CTX_SHOW(ioGlobalStdGet(STD_ERR), ptcbCur->TCB_pvStackDSP);
+            }
+        }
+#endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
+        printk(KERN_EMERG "DSP ERROR: abort in thread %lx[%s]. "
+               "ret_addr: 0x%08lx abt_addr: 0x%08lx, abt_type: %s.\n",
+               pvmpagefailctx->PAGEFCTX_ptcb->TCB_ulId,
+               pvmpagefailctx->PAGEFCTX_ptcb->TCB_cThreadName,
+               pvmpagefailctx->PAGEFCTX_ulRetAddr,
+               pvmpagefailctx->PAGEFCTX_ulAbortAddr,
+               __vmmAbortTypeStr(&pvmpagefailctx->PAGEFCTX_abtInfo));   /*  操作异常                    */
+        break;
+
     default:
 #if LW_CFG_DEVICE_EN > 0
-        archTaskCtxShow(ioGlobalStdGet(STD_ERR), (PLW_STACK)pvmpagefailctx->PAGEFCTX_pvStackRet);
+        archTaskCtxShow(ioGlobalStdGet(STD_ERR), &pvmpagefailctx->PAGEFCTX_archRegCtx);
 #endif
         printk(KERN_EMERG "ACCESS ERROR: abort in thread %lx[%s]. "
                "ret_addr: 0x%08lx abt_addr: 0x%08lx, abt_type: %s.\n",
@@ -953,12 +966,7 @@ static VOID  __vmmAbortAccess (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
      */
     iregInterLevel = KN_INT_DISABLE();                                  /*  关闭当前 CPU 中断           */
     KN_SMP_MB();
-#if defined(LW_CFG_CPU_ARCH_C6X)
-    archSigCtxLoad(pvmpagefailctx->PAGEFCTX_pvStackRet,
-                   pvmpagefailctx->PAGEFCTX_ulContextType);             /*  从 page fail 上下文中返回   */
-#else
-    archSigCtxLoad(pvmpagefailctx->PAGEFCTX_pvStackRet);                /*  从 page fail 上下文中返回   */
-#endif
+    archSigCtxLoad(&pvmpagefailctx->PAGEFCTX_archRegCtx);               /*  从 page fail 上下文中返回   */
     KN_INT_ENABLE(iregInterLevel);                                      /*  运行不到这里                */
 }
 /*********************************************************************************************************
@@ -1108,7 +1116,7 @@ VOID  API_VmmAbortIsr (addr_t          ulRetAddr,
     
     __KERNEL_ENTER();                                                   /*  进入内核                    */
                                                                         /*  产生异常                    */
-    pucStkNow = (BYTE *)ptcb->TCB_pstkStackNow;                         /*  记录还原堆栈点              */
+    pucStkNow = (BYTE *)archCtxStackEnd(&ptcb->TCB_archRegCtx);         /*  记录还原堆栈点              */
 #if	CPU_STK_GROWTH == 0
     pucStkNow      += sizeof(LW_STACK);                                 /*  向空栈方向移动一个堆栈空间  */
     pucStkNow       = (BYTE *)ROUND_UP(pucStkNow, ARCH_STK_ALIGN_SIZE);
@@ -1125,30 +1133,28 @@ VOID  API_VmmAbortIsr (addr_t          ulRetAddr,
     pvmpagefailctx->PAGEFCTX_ulRetAddr     = ulRetAddr;                 /*  异常返回地址                */
     pvmpagefailctx->PAGEFCTX_ulAbortAddr   = ulAbortAddr;               /*  异常地址 (异常类型相关)     */
     pvmpagefailctx->PAGEFCTX_abtInfo       = *pabtInfo;                 /*  异常类型                    */
-    pvmpagefailctx->PAGEFCTX_pvStackRet    = ptcb->TCB_pstkStackNow;
-#if defined(LW_CFG_CPU_ARCH_C6X)
-    pvmpagefailctx->PAGEFCTX_ulContextType = ptcb->TCB_ulContextType;   /*  记录上下文类型              */
-#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
+    pvmpagefailctx->PAGEFCTX_archRegCtx    = ptcb->TCB_archRegCtx;
     pvmpagefailctx->PAGEFCTX_iLastErrno    = (errno_t)ptcb->TCB_ulLastError;
     pvmpagefailctx->PAGEFCTX_iKernelSpace  = __KERNEL_SPACE_GET2(ptcb);
     
 #if LW_CFG_VMM_EN > 0
-    pstkFailShell = archTaskCtxCreate((PTHREAD_START_ROUTINE)__vmmAbortShell, 
+    pstkFailShell = archTaskCtxCreate(&ptcb->TCB_archRegCtx,
+                                      (PTHREAD_START_ROUTINE)__vmmAbortShell,
                                       (PVOID)pvmpagefailctx,
                                       (PLW_STACK)pucStkNow,
                                       0);                               /*  建立缺页处理陷阱外壳环境    */
 #else
-    pstkFailShell = archTaskCtxCreate((PTHREAD_START_ROUTINE)__vmmAbortAccess, 
+    pstkFailShell = archTaskCtxCreate(&ptcb->TCB_archRegCtx,
+                                      (PTHREAD_START_ROUTINE)__vmmAbortAccess,
                                       (PVOID)pvmpagefailctx,
                                       (PLW_STACK)pucStkNow,
                                       0);                               /*  建立访问异常陷阱外壳环境    */
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 
-    archTaskCtxSetFp(pstkFailShell, ptcb->TCB_pstkStackNow);            /*  保存 fp, 使 callstack 正常  */
-    ptcb->TCB_pstkStackNow = pstkFailShell;                             /*  保存建立好的陷阱外壳堆栈    */
-#if defined(LW_CFG_CPU_ARCH_C6X)
-    ptcb->TCB_ulContextType = 0;                                        /*  小上下文                    */
-#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
+    archTaskCtxSetFp(pstkFailShell,
+                     &ptcb->TCB_archRegCtx,
+                     &pvmpagefailctx->PAGEFCTX_archRegCtx);             /*  保存 fp, 使 callstack 正常  */
+
     _StackCheckGuard(ptcb);                                             /*  堆栈警戒检查                */
     
     __KERNEL_EXIT();                                                    /*  退出内核                    */
@@ -1160,6 +1166,14 @@ VOID  API_VmmAbortIsr (addr_t          ulRetAddr,
         }
     }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+
+#if LW_CFG_CPU_DSP_EN > 0
+    if (__PAGEFAILCTX_ABORT_TYPE(pvmpagefailctx) == LW_VMM_ABORT_TYPE_DSPE) {
+        if (ptcb->TCB_ulOption & LW_OPTION_THREAD_USED_DSP) {           /*  如果为 DSP 异常             */
+            __ARCH_DSP_SAVE(ptcb->TCB_pvStackDSP);                      /*  需要保存当前 DSP CTX        */
+        }
+    }
+#endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
 }
 /*********************************************************************************************************
 ** 函数名称: API_VmmAbortStatus

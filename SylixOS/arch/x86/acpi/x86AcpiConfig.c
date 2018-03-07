@@ -252,8 +252,8 @@ static VOID  acpiLibIsaMap (VOID)
         pMpApicInterruptTable[ucIndex].INT_ucDestApicIntIn = ucIndex;
         ACPI_VERBOSE_PRINT("  filling in pMpApicInterruptTable[%d]= 0x%08x 0x%08x\n",
                            ucIndex,
-                           ((UINT32* )&pMpApicInterruptTable[ucIndex])[0],
-                           ((UINT32* )&pMpApicInterruptTable[ucIndex])[1]);
+                           ((UINT32 *)&pMpApicInterruptTable[ucIndex])[0],
+                           ((UINT32 *)&pMpApicInterruptTable[ucIndex])[1]);
     }
 
     _G_pAcpiMpApicData->MPAPIC_uiIoIntNr = 16;
@@ -397,8 +397,8 @@ static VOID  acpiLibIrqProcess (UINT8  *pucBuf, UINT8  ucSourceBusId, BOOL  bFil
 
                 ACPI_VERBOSE_PRINT("  Filling in pMpApicInterruptTable[%d]="
                                    " 0x%08x 0x%08x\n",              _G_pAcpiMpApicData->MPAPIC_uiIoIntNr,
-                                   ((UINT32* )&pMpApicInterruptTable[_G_pAcpiMpApicData->MPAPIC_uiIoIntNr])[0],
-                                   ((UINT32* )&pMpApicInterruptTable[_G_pAcpiMpApicData->MPAPIC_uiIoIntNr])[1]);
+                                   ((UINT32 *)&pMpApicInterruptTable[_G_pAcpiMpApicData->MPAPIC_uiIoIntNr])[0],
+                                   ((UINT32 *)&pMpApicInterruptTable[_G_pAcpiMpApicData->MPAPIC_uiIoIntNr])[1]);
             }
         }
 
@@ -583,8 +583,8 @@ VOID  acpiLibGetIsaIrqResources (ACPI_RESOURCE  *pResourceList, BOOL  bFillinTab
 
                     ACPI_VERBOSE_PRINT("  Filling in pMpApicInterruptTable[%d]="
                                        " 0x%08x 0x%08x\n", _G_pAcpiMpApicData->MPAPIC_uiIoIntNr,
-                                       ((UINT32* )&pMpApicInterruptTable[_G_pAcpiMpApicData->MPAPIC_uiIoIntNr])[0],
-                                       ((UINT32* )&pMpApicInterruptTable[_G_pAcpiMpApicData->MPAPIC_uiIoIntNr])[1]);
+                                       ((UINT32 *)&pMpApicInterruptTable[_G_pAcpiMpApicData->MPAPIC_uiIoIntNr])[0],
+                                       ((UINT32 *)&pMpApicInterruptTable[_G_pAcpiMpApicData->MPAPIC_uiIoIntNr])[1]);
                     _G_pAcpiMpApicData->MPAPIC_uiIoIntNr++;
                     _G_ucAcpiIsaIntNr++;
 
@@ -1025,8 +1025,8 @@ static VOID  __acpiParseIrqOverride (UINT8   ucSourceIrq,
 
         ACPI_VERBOSE_PRINT("  filling in pMpApicInterruptTable[%d]= 0x%08x 0x%08x\n",
                            0,
-                           ((UINT32* )&pMpApicInterruptTable[0])[0],
-                           ((UINT32* )&pMpApicInterruptTable[0])[1]);
+                           ((UINT32 *)&pMpApicInterruptTable[0])[0],
+                           ((UINT32 *)&pMpApicInterruptTable[0])[1]);
         return;
     }
 
@@ -1064,8 +1064,8 @@ static VOID  __acpiParseIrqOverride (UINT8   ucSourceIrq,
 
         ACPI_VERBOSE_PRINT("  filling in pMpApicInterruptTable[%d]= 0x%08x 0x%08x\n",
                            _G_pAcpiMpApicData->MPAPIC_uiIoIntNr,
-                           ((UINT32* )&pMpApicInterruptTable[_G_pAcpiMpApicData->MPAPIC_uiIoIntNr])[0],
-                           ((UINT32* )&pMpApicInterruptTable[_G_pAcpiMpApicData->MPAPIC_uiIoIntNr])[1]);
+                           ((UINT32 *)&pMpApicInterruptTable[_G_pAcpiMpApicData->MPAPIC_uiIoIntNr])[0],
+                           ((UINT32 *)&pMpApicInterruptTable[_G_pAcpiMpApicData->MPAPIC_uiIoIntNr])[1]);
 
         _G_pAcpiMpApicData->MPAPIC_uiIoIntNr++;
         _G_ucAcpiIsaIntNr++;

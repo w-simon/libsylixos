@@ -170,7 +170,11 @@ static INT elfRelaRelocate (LW_LD_EXEC_MODULE *pmodule,
         pmodule->EMOD_psegmentArry[pmodule->EMOD_ulSegCount].ESEG_stLen;
 
     for (i = 0; i < ulRelocCount; i++) {
+#if defined(LW_CFG_CPU_ARCH_MIPS64)
+        psym = &psymTable[ELF_MIPS_R_SYM(prela)];
+#else
         psym = &psymTable[ELF_R_SYM(prela->r_info)];
+#endif                                                                  /*  LW_CFG_CPU_ARCH_MIPS64      */
         if (SHN_UNDEF == psym->st_shndx) {                              /*  外部符号需查找符号表        */
             pcSymName = pcStrTab + psym->st_name;
             if (lib_strlen(pcSymName) == 0) {                           /* 特殊符号，和体系结构相关     */
@@ -258,7 +262,11 @@ static INT elfRelRelocate (LW_LD_EXEC_MODULE *pmodule,
             pmodule->EMOD_psegmentArry[pmodule->EMOD_ulSegCount].ESEG_stLen;
 
     for (i = 0; i < ulRelocCount; i++) {
+#if defined(LW_CFG_CPU_ARCH_MIPS64)
+        psym = &psymTable[ELF_MIPS_R_SYM(prel)];
+#else
         psym = &psymTable[ELF_R_SYM(prel->r_info)];
+#endif                                                                  /*  LW_CFG_CPU_ARCH_MIPS64      */
         pcSymName = pcStrTab + psym->st_name;
         if (SHN_UNDEF == psym->st_shndx) {                              /*  外部符号需查找符号表        */
             if (lib_strlen(pcSymName) == 0) {                           /* 特殊符号，和体系结构相关     */
@@ -1483,7 +1491,11 @@ static INT elfPhdrRelocate (LW_LD_EXEC_MODULE *pmodule, ELF_DYN_DIR  *pdyndir)
     if (pdyndir->prelTable) {                                           /*  REL重定位结构               */
         for (i = 0; i < pdyndir->ulRelCount; i++) {
             prel = &pdyndir->prelTable[i];
+#if defined(LW_CFG_CPU_ARCH_MIPS64)
+            psym = &pdyndir->psymTable[ELF_MIPS_R_SYM(prel)];
+#else
             psym = &pdyndir->psymTable[ELF_R_SYM(prel->r_info)];
+#endif                                                                  /*  LW_CFG_CPU_ARCH_MIPS64      */
             pcSymName = pdyndir->pcStrTable + psym->st_name;
 
             addrSymVal = 0;
@@ -1520,7 +1532,11 @@ static INT elfPhdrRelocate (LW_LD_EXEC_MODULE *pmodule, ELF_DYN_DIR  *pdyndir)
     } else if (pdyndir->prelaTable) {                                   /*  RELA重定位结构              */
         for (i = 0; i < pdyndir->ulRelaCount; i++) {
             prela = &pdyndir->prelaTable[i];
+#if defined(LW_CFG_CPU_ARCH_MIPS64)
+            psym = &pdyndir->psymTable[ELF_MIPS_R_SYM(prela)];
+#else
             psym = &pdyndir->psymTable[ELF_R_SYM(prela->r_info)];
+#endif                                                                  /*  LW_CFG_CPU_ARCH_MIPS64      */
             pcSymName = pdyndir->pcStrTable + psym->st_name;
 
             addrSymVal = 0;

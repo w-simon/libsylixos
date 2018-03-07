@@ -67,7 +67,7 @@
   任务私有变量切换
 *********************************************************************************************************/
 #if (LW_CFG_SMP_EN == 0) && (LW_CFG_THREAD_PRIVATE_VARS_EN > 0) && (LW_CFG_MAX_THREAD_GLB_VARS > 0)
-#define __LW_TASK_SWITCH_VAR(ptcbCur, ptcbHigh)     _ThreadVarSwith(ptcbCur, ptcbHigh)
+#define __LW_TASK_SWITCH_VAR(ptcbCur, ptcbHigh)     _ThreadVarSwitch(ptcbCur, ptcbHigh)
 #if LW_CFG_SMP_CPU_DOWN_EN > 0
 #define __LW_TASK_SAVE_VAR(ptcbCur)                 _ThreadVarSave(ptcbCur)
 #endif
@@ -81,7 +81,7 @@
   任务 FPU 上下文切换
 *********************************************************************************************************/
 #if LW_CFG_CPU_FPU_EN > 0
-#define __LW_TASK_SWITCH_FPU(bIntSwitch)            _ThreadFpuSwith(bIntSwitch)
+#define __LW_TASK_SWITCH_FPU(bIntSwitch)            _ThreadFpuSwitch(bIntSwitch)
 #if LW_CFG_SMP_CPU_DOWN_EN > 0
 #define __LW_TASK_SAVE_FPU(ptcbCur, bIntSwitch)     _ThreadFpuSave(ptcbCur, bIntSwitch)
 #endif
@@ -89,6 +89,20 @@
 #define __LW_TASK_SWITCH_FPU(bIntSwitch)
 #if LW_CFG_SMP_CPU_DOWN_EN > 0
 #define __LW_TASK_SAVE_FPU(ptcbCur, bIntSwitch)
+#endif
+#endif
+/*********************************************************************************************************
+  任务 DSP 上下文切换
+*********************************************************************************************************/
+#if LW_CFG_CPU_DSP_EN > 0
+#define __LW_TASK_SWITCH_DSP(bIntSwitch)            _ThreadDspSwitch(bIntSwitch)
+#if LW_CFG_SMP_CPU_DOWN_EN > 0
+#define __LW_TASK_SAVE_DSP(ptcbCur, bIntSwitch)     _ThreadDspSave(ptcbCur, bIntSwitch)
+#endif
+#else
+#define __LW_TASK_SWITCH_DSP(bIntSwitch)
+#if LW_CFG_SMP_CPU_DOWN_EN > 0
+#define __LW_TASK_SAVE_DSP(ptcbCur, bIntSwitch)
 #endif
 #endif
 /*********************************************************************************************************
@@ -207,7 +221,7 @@ static VOID  _SchedSmpSmtNotify (ULONG  ulCPUIdCur)
 *********************************************************************************************************/
 #if LW_CFG_SMP_CPU_DOWN_EN > 0
 
-static LW_INLINE VOID  _SchedCpuDown (PLW_CLASS_CPU  pcpuCur, BOOL  bIsIntSwtich)
+static LW_INLINE VOID  _SchedCpuDown (PLW_CLASS_CPU  pcpuCur, BOOL  bIsIntSwitch)
 {
     REGISTER PLW_CLASS_TCB  ptcbCur = pcpuCur->CPU_ptcbTCBCur;
     REGISTER ULONG          ulCPUId = pcpuCur->CPU_ulCPUId;
@@ -215,7 +229,8 @@ static LW_INLINE VOID  _SchedCpuDown (PLW_CLASS_CPU  pcpuCur, BOOL  bIsIntSwtich
     _CpuInactive(pcpuCur);                                              /*  停止 CPU                    */
     
     __LW_TASK_SAVE_VAR(ptcbCur);
-    __LW_TASK_SAVE_FPU(ptcbCur, bIsIntSwtich);
+    __LW_TASK_SAVE_FPU(ptcbCur, bIsIntSwitch);
+    __LW_TASK_SAVE_DSP(ptcbCur, bIsIntSwitch);
     
     _SchedSmpFschedNotify(ulCPUId);                                     /*  请求其他 CPU 调度           */
     
@@ -253,16 +268,17 @@ VOID _SchedSwp (PLW_CLASS_CPU pcpuCur)
     REGISTER PLW_CLASS_TCB      ptcbHigh     = pcpuCur->CPU_ptcbTCBHigh;
     REGISTER LW_OBJECT_HANDLE   ulCurId      = ptcbCur->TCB_ulId;
     REGISTER LW_OBJECT_HANDLE   ulHighId     = ptcbHigh->TCB_ulId;
-             BOOL               bIsIntSwtich = pcpuCur->CPU_bIsIntSwtich;
+             BOOL               bIsIntSwitch = pcpuCur->CPU_bIsIntSwitch;
 
 #if (LW_CFG_SMP_EN > 0) && (LW_CFG_SMP_CPU_DOWN_EN > 0)
     if (LW_CPU_GET_IPI_PEND(pcpuCur->CPU_ulCPUId) & LW_IPI_DOWN_MSK) {  /*  当前 CPU 需要停止           */
-        _SchedCpuDown(pcpuCur, bIsIntSwtich);
+        _SchedCpuDown(pcpuCur, bIsIntSwitch);
     }
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
                                                                         /*  LW_CFG_SMP_CPU_DOWN_EN > 0  */
     __LW_TASK_SWITCH_VAR(ptcbCur, ptcbHigh);                            /*  线程私有化变量切换          */
-    __LW_TASK_SWITCH_FPU(bIsIntSwtich);
+    __LW_TASK_SWITCH_FPU(bIsIntSwitch);
+    __LW_TASK_SWITCH_DSP(bIsIntSwitch);
     
     bspTaskSwapHook(ulCurId, ulHighId);                                 /*  调用 hook 函数              */
     __LW_THREAD_SWAP_HOOK(ulCurId, ulHighId);
@@ -288,7 +304,7 @@ VOID _SchedSwp (PLW_CLASS_CPU pcpuCur)
 
     LW_SPIN_KERN_UNLOCK_SCHED(ptcbCur);                                 /*  解锁内核 spinlock           */
     
-    if (bIsIntSwtich) {
+    if (bIsIntSwitch) {
         MONITOR_EVT_LONG2(MONITOR_EVENT_ID_SCHED, MONITOR_EVENT_SCHED_INT, 
                           ulCurId, ulHighId, LW_NULL);
     } else {
@@ -362,7 +378,7 @@ INT  _Schedule (VOID)
 #if LW_CFG_SMP_EN > 0                                                   /*  SMP 系统                    */
         __LW_SPINLOCK_BUG_TRACE(pcpuCur);
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
-        pcpuCur->CPU_bIsIntSwtich = LW_FALSE;                           /*  非中断调度                  */
+        pcpuCur->CPU_bIsIntSwitch = LW_FALSE;                           /*  非中断调度                  */
         pcpuCur->CPU_ptcbTCBHigh  = ptcbCand;
         
         /*
@@ -429,7 +445,7 @@ VOID  _ScheduleInt (VOID)
 #if LW_CFG_SMP_EN > 0                                                   /*  SMP 系统                    */
         __LW_SPINLOCK_BUG_TRACE(pcpuCur);
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
-        pcpuCur->CPU_bIsIntSwtich = LW_TRUE;                            /*  中断调度                    */
+        pcpuCur->CPU_bIsIntSwitch = LW_TRUE;                            /*  中断调度                    */
         pcpuCur->CPU_ptcbTCBHigh  = ptcbCand;
         
         _SchedSwp(pcpuCur);                                             /*  直接调用 _SchedSwp()        */

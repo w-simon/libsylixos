@@ -94,7 +94,7 @@ FUNC_DEF(archIntEnableForce)
     FUNC_END()
 
 ;/*********************************************************************************************************
-;  ARM 获得 CPSR (Cortex-M no CPSR)
+;  ARM 获得 CPSR
 ;*********************************************************************************************************/
 
 FUNC_DEF(archGetCpsr)
@@ -252,6 +252,7 @@ FUNC_DEF(siglongjmp)
                                                                         ;/* Return the result argument,  */
                                                                         ;/* or 1 if it is zero.          */
     MOV     R0 , R1
+    CMP     R0 , #0
     BNE     siglongjmpnotzero
     MOV     R0 , #1
 
@@ -283,6 +284,7 @@ FUNC_DEF(longjmp)
                                                                         ;/* Return the result argument,  */
                                                                         ;/* or 1 if it is zero.          */
     MOV     R0 , R1
+    CMP     R0 , #0
     BNE     longjmpnotzero
     MOV     R0 , #1
 
@@ -301,6 +303,7 @@ FUNC_DEF(archReboot)
 ;/*********************************************************************************************************
 ;  Bogo 循环
 ;*********************************************************************************************************/
+
 FUNC_DEF(archBogoMipsLoop)
 1:
     SUBS    R0 , R0 , #1

@@ -40,6 +40,7 @@ extern LW_API INT   API_RootFsMapInit(CPCHAR  pcMap);
                            dlog=no          DEBUG LOG 信息打印
                            derror=yes       DEBUG ERROR 信息打印
                            kfpu=no          内核态对浮点支持 (推荐为 no)
+                           kdsp=no          内核态对 DSP 协处理器支持 (推荐为 no)
                            heapchk=yes      内存堆越界检查
                            hz=100           系统 tick 频率, 默认为 100 (推荐 100 ~ 10000 中间)
                            hhz=100          高速定时器频率, 默认与 hz 相同 (需 BSP 支持)
@@ -133,6 +134,18 @@ ULONG  API_KernelStartParam (CPCHAR  pcParam)
                 LW_KERN_FPU_EN_SET(LW_TRUE);
 #endif                                                                  /*  LW_CFG_CPU_ARCH_MIPS        */
 #endif                                                                  /*  LW_CFG_INTER_FPU > 0        */
+            }
+
+        } else if (lib_strncmp(pcTok, "kdsp=", 5) == 0) {               /*  是否使能内核 DSP 支持       */
+            if (pcTok[5] == 'n') {
+                LW_KERN_DSP_EN_SET(LW_FALSE);
+            } else {
+#if LW_CFG_INTER_DSP == 0
+                _BugHandle(LW_TRUE, LW_TRUE,
+                           "Please configure LW_CFG_INTER_DSP with 1 in kernel_cfg.h\r\n");
+#else
+                LW_KERN_DSP_EN_SET(LW_TRUE);
+#endif                                                                  /*  LW_CFG_INTER_DSP > 0        */
             }
 
         } else if (lib_strncmp(pcTok, "bugreboot=", 10) == 0) {         /*  探测到 bug 时是否自动重启   */

@@ -63,7 +63,6 @@ VOID  archMmuInit (CPCHAR  pcMachineName)
                (lib_strcmp(pcMachineName, PPC_MACHINE_E5500)  == 0) ||
                (lib_strcmp(pcMachineName, PPC_MACHINE_E6500)  == 0)) {
         ppcE500MmuInit(pmmuop, pcMachineName);
-        _G_pfuncMmuDataTlbPreLoad = ppcE500MmuDataTlbPreLoad;
 
     } else {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown machine name.\r\n");

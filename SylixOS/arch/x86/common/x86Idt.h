@@ -27,7 +27,7 @@
   hardware interrupt lines, hardware exceptions, and software
   interrupts, to software routines. We only define "interrupt gate" IDT entries.
 
-  @see Intel x86 doc, Vol 3, chapter 5
+  @see Intel x86 doc, Vol 3, chapter 6
 *********************************************************************************************************/
 /*********************************************************************************************************
   Number of IDT entries.
@@ -54,7 +54,7 @@
 /*********************************************************************************************************
   Standard Intel x86 exceptions.
 
-  @see Intel x86 doc vol 3, section 5.12.
+  @see Intel x86 doc vol 3, section 6.3.1.
 *********************************************************************************************************/
 
 #define X86_EXCEPT_DIVIDE_ERROR                  0                      /*  No error code               */

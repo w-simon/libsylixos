@@ -547,7 +547,6 @@ VOID           _ThreadTraversal(VOIDFUNCPTR    pfunc,
 *********************************************************************************************************/
 
 VOID           _TCBBuild(UINT8                    ucPriority,
-                         PLW_STACK                pstkStackNow,
                          PLW_STACK                pstkStackTop,
                          PLW_STACK                pstkStackButtom,
                          PLW_STACK                pstkStackGuard,
@@ -580,7 +579,7 @@ VOID           _StackFree(PLW_CLASS_TCB  ptcb, PLW_STACK  pstk);
 
 #if (LW_CFG_SMP_EN == 0) && (LW_CFG_THREAD_PRIVATE_VARS_EN > 0) && (LW_CFG_MAX_THREAD_GLB_VARS > 0)
 VOID           _ThreadVarDelete(PLW_CLASS_TCB  ptcb);
-VOID           _ThreadVarSwith(PLW_CLASS_TCB  ptcbOld, PLW_CLASS_TCB  ptcbNew);
+VOID           _ThreadVarSwitch(PLW_CLASS_TCB  ptcbOld, PLW_CLASS_TCB  ptcbNew);
 #if LW_CFG_SMP_CPU_DOWN_EN > 0
 VOID           _ThreadVarSave(PLW_CLASS_TCB  ptcbCur);
 #endif                                                                  /*  LW_CFG_SMP_CPU_DOWN_EN > 0  */
@@ -592,11 +591,22 @@ VOID           _ThreadVarSave(PLW_CLASS_TCB  ptcbCur);
 *********************************************************************************************************/
 
 #if LW_CFG_CPU_FPU_EN > 0
-VOID           _ThreadFpuSwith(BOOL bIntSwitch);
+VOID           _ThreadFpuSwitch(BOOL bIntSwitch);
 #if LW_CFG_SMP_CPU_DOWN_EN > 0
 VOID           _ThreadFpuSave(PLW_CLASS_TCB   ptcbCur, BOOL bIntSwitch);
 #endif                                                                  /*  LW_CFG_SMP_CPU_DOWN_EN > 0  */
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+
+/*********************************************************************************************************
+  线程 DSP 相关
+*********************************************************************************************************/
+
+#if LW_CFG_CPU_DSP_EN > 0
+VOID           _ThreadDspSwitch(BOOL bIntSwitch);
+#if LW_CFG_SMP_CPU_DOWN_EN > 0
+VOID           _ThreadDspSave(PLW_CLASS_TCB   ptcbCur, BOOL bIntSwitch);
+#endif                                                                  /*  LW_CFG_SMP_CPU_DOWN_EN > 0  */
+#endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
 
 /*********************************************************************************************************
   事件集内部操作

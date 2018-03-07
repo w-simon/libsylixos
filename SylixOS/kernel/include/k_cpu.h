@@ -58,7 +58,7 @@ typedef struct __lw_cpu {
     /*
      *  当前发生调度的调度方式
      */
-    BOOL                     CPU_bIsIntSwtich;                          /*  是否为中断调度              */
+    BOOL                     CPU_bIsIntSwitch;                          /*  是否为中断调度              */
 
     /*
      *  候选运行结构
@@ -141,6 +141,15 @@ typedef struct __lw_cpu {
     LW_FPU_CONTEXT           CPU_fpuctxContext[LW_CFG_MAX_INTER_SRC];   /*  中断时使用的 FPU 上下文     */
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
                                                                         /*  LW_CFG_INTER_FPU > 0        */
+
+#if (LW_CFG_CPU_DSP_EN > 0) && (LW_CFG_INTER_DSP > 0)
+    /*
+     *  中断时使用的 DSP 上下文.
+     *  只有 LW_KERN_DSP_EN_GET() 有效时才进行中断状态的 DSP 上下文操作.
+     */
+    LW_DSP_CONTEXT           CPU_dspctxContext[LW_CFG_MAX_INTER_SRC];   /*  中断时使用的 DSP 上下文     */
+#endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
+                                                                        /*  LW_CFG_INTER_DSP > 0        */
 } LW_CLASS_CPU;
 typedef LW_CLASS_CPU        *PLW_CLASS_CPU;
 

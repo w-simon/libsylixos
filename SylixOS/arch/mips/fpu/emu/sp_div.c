@@ -26,9 +26,9 @@
 
 union ieee754sp ieee754sp_div(union ieee754sp x, union ieee754sp y)
 {
-	unsigned rm;
+	unsigned int rm;
 	int re;
-	unsigned bm;
+	unsigned int bm;
 
 	COMPXSP;
 	COMPYSP;

@@ -16,7 +16,7 @@
 **
 ** 文件创建日期: 2015 年 12 月 21 日
 **
-** 描        述: PowerPC 体系架构 VPU 支持.
+** 描        述: PowerPC 体系架构 FPU 支持.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -75,9 +75,8 @@ static VOID  ppcVfpEnableTask (PLW_CLASS_TCB  ptcbCur)
 {
     ARCH_REG_CTX  *pregctx;
     ARCH_FPU_CTX  *pfpuctx;
-    ARCH_REG_T     regSp;
 
-    pregctx = archTaskRegsGet(ptcbCur->TCB_pstkStackNow, &regSp);
+    pregctx = &ptcbCur->TCB_archRegCtx;
     pregctx->REG_uiSrr1 |= ARCH_PPC_MSR_FP;
 
     pfpuctx = &ptcbCur->TCB_fpuctxContext.FPUCTX_fpuctxContext;

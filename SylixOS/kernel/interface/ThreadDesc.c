@@ -62,7 +62,7 @@ ULONG  API_ThreadDesc (LW_OBJECT_HANDLE  ulId, PLW_CLASS_TCB_DESC  ptcbdesc)
     
     ptcb = _K_ptcbTCBIdTable[usIndex];
     
-    ptcbdesc->TCBD_pstkStackNow = ptcb->TCB_pstkStackNow;
+    ptcbdesc->TCBD_pstkStackNow = archCtxStackEnd(&ptcb->TCB_archRegCtx);
     ptcbdesc->TCBD_pvStackFP    = ptcb->TCB_pvStackFP;
     ptcbdesc->TCBD_pvStackExt   = ptcb->TCB_pvStackExt;
     

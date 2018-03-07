@@ -10,21 +10,20 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: mipsIo.c
+** 文   件   名: mipsIo64.c
 **
 ** 创   建   人: Jiao.JinXing (焦进星)
 **
 ** 文件创建日期: 2016 年 11 月 02 日
 **
-** 描        述: MIPS 体系构架 I/O 端口读写函数库.
+** 描        述: MIPS64 体系架构 I/O 端口读写函数库.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
-#include "mips64.h"
 /*********************************************************************************************************
-  定义
+  MIPS64 体系架构 64 位模式才使用以下函数
 *********************************************************************************************************/
-#define __32BIT_SPACE        (4ULL * LW_CFG_GB_SIZE)                    /*  32 位空间                   */
+#if LW_CFG_CPU_WORD_LENGHT == 64
 /*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
@@ -57,12 +56,7 @@ UINT8  in8 (addr_t  ulAddr)
     UINT64  ui64Addr = _G_ui64MipsIoPortBase + ulAddr;
     UINT8   ucVal;
 
-    if (ui64Addr < __32BIT_SPACE) {
-        ucVal = *(volatile UINT8 *)(addr_t)ui64Addr;
-    } else {
-        ucVal = mips64Read8(ui64Addr);
-    }
-
+    ucVal = *(volatile UINT8 *)(addr_t)ui64Addr;
     KN_IO_RMB();
     return  (ucVal);
 }
@@ -79,12 +73,7 @@ UINT16  in16 (addr_t  ulAddr)
     UINT64  ui64Addr = _G_ui64MipsIoPortBase + ulAddr;
     UINT16  usVal;
 
-    if (ui64Addr < __32BIT_SPACE) {
-        usVal = *(volatile UINT16 *)(addr_t)ui64Addr;
-    } else {
-        usVal = mips64Read16(ui64Addr);
-    }
-
+    usVal = *(volatile UINT16 *)(addr_t)ui64Addr;
     KN_IO_RMB();
     return  (usVal);
 }
@@ -101,12 +90,7 @@ UINT32  in32 (addr_t  ulAddr)
     UINT64  ui64Addr = _G_ui64MipsIoPortBase + ulAddr;
     UINT32  uiVal;
 
-    if (ui64Addr < __32BIT_SPACE) {
-        uiVal = *(volatile UINT32 *)(addr_t)ui64Addr;
-    } else {
-        uiVal = mips64Read32(ui64Addr);
-    }
-
+    uiVal = *(volatile UINT32 *)(addr_t)ui64Addr;
     KN_IO_RMB();
     return  (uiVal);
 }
@@ -123,12 +107,7 @@ UINT64  in64 (addr_t  ulAddr)
     UINT64  ui64Addr = _G_ui64MipsIoPortBase + ulAddr;
     UINT64  ui64Val;
 
-    if (ui64Addr < __32BIT_SPACE) {
-        ui64Val = *(volatile UINT64 *)(addr_t)ui64Addr;
-    } else {
-        ui64Val = mips64Read64(ui64Addr);
-    }
-
+    ui64Val = *(volatile UINT64 *)(addr_t)ui64Addr;
     KN_IO_RMB();
     return  (ui64Val);
 }
@@ -149,11 +128,7 @@ VOID  out8 (UINT8  ucData, addr_t  ulAddr)
     UINT64  ui64Addr = _G_ui64MipsIoPortBase + ulAddr;
 
     KN_IO_WMB();
-    if (ui64Addr < __32BIT_SPACE) {
-        *(volatile UINT8 *)ulAddr = ucData;
-    } else {
-        mips64Write8(ucData, ui64Addr);
-    }
+    *(volatile UINT8 *)ui64Addr = ucData;
 }
 /*********************************************************************************************************
 ** 函数名称: out16
@@ -169,11 +144,7 @@ VOID  out16 (UINT16  usData, addr_t  ulAddr)
     UINT64  ui64Addr = _G_ui64MipsIoPortBase + ulAddr;
 
     KN_IO_WMB();
-    if (ui64Addr < __32BIT_SPACE) {
-        *(volatile UINT16 *)ulAddr = usData;
-    } else {
-        mips64Write16(usData, ui64Addr);
-    }
+    *(volatile UINT16 *)ui64Addr = usData;
 }
 /*********************************************************************************************************
 ** 函数名称: out32
@@ -189,11 +160,7 @@ VOID  out32 (UINT32  uiData, addr_t  ulAddr)
     UINT64  ui64Addr = _G_ui64MipsIoPortBase + ulAddr;
 
     KN_IO_WMB();
-    if (ui64Addr < __32BIT_SPACE) {
-        *(volatile UINT32 *)ulAddr = uiData;
-    } else {
-        mips64Write32(uiData, ui64Addr);
-    }
+    *(volatile UINT32 *)ui64Addr = uiData;
 }
 /*********************************************************************************************************
 ** 函数名称: out64
@@ -209,11 +176,7 @@ VOID  out64 (UINT64  u64Data, addr_t  ulAddr)
     UINT64  ui64Addr = _G_ui64MipsIoPortBase + ulAddr;
 
     KN_IO_WMB();
-    if (ui64Addr < __32BIT_SPACE) {
-        *(volatile UINT64 *)ulAddr = u64Data;
-    } else {
-        mips64Write64(u64Data, ui64Addr);
-    }
+    *(volatile UINT64 *)ui64Addr = u64Data;
 }
 /*********************************************************************************************************
   MIPS 处理器 I/O 端口连续读 (数据来自单个地址)
@@ -373,6 +336,8 @@ VOID  outs64 (addr_t  ulAddr, CPVOID  pvBuffer, size_t  stCount)
         stCount--;
     }
 }
+
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 64*/
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

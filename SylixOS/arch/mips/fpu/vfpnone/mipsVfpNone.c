@@ -102,21 +102,47 @@ static VOID  mipsVfpNoneCtxShow (INT  iFd, PVOID  pvFpuCtx)
 #endif
 }
 /*********************************************************************************************************
+** 函数名称: mipsVfpNoneEnableTask
+** 功能描述: 系统发生 FPU 不可用异常时, 使能任务的 VFP
+** 输　入  : ptcbCur    当前任务控制块
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  mipsVfpNoneEnableTask (PLW_CLASS_TCB  ptcbCur)
+{
+}
+/*********************************************************************************************************
+** 函数名称: mipsVfpNoneGetFIR
+** 功能描述: 获得浮点实现寄存器的值
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static ULONG  mipsVfpNoneGetFIR (VOID)
+{
+    return  (0);
+}
+/*********************************************************************************************************
 ** 函数名称: mipsVfpNonePrimaryInit
 ** 功能描述: 获取 VFP 控制器操作函数集
 ** 输　入  : pcMachineName 机器名
+**           pcFpuName     浮点运算器名
 ** 输　出  : 操作函数集
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
 PMIPS_FPU_OP  mipsVfpNonePrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 {
-    _G_fpuopVfpNone.MFPU_pfuncEnable   = mipsVfpNoneEnable;
-    _G_fpuopVfpNone.MFPU_pfuncDisable  = mipsVfpNoneDisable;
-    _G_fpuopVfpNone.MFPU_pfuncIsEnable = mipsVfpNoneIsEnable;
-    _G_fpuopVfpNone.MFPU_pfuncSave     = mipsVfpNoneSave;
-    _G_fpuopVfpNone.MFPU_pfuncRestore  = mipsVfpNoneRestore;
-    _G_fpuopVfpNone.MFPU_pfuncCtxShow  = mipsVfpNoneCtxShow;
+    _G_fpuopVfpNone.MFPU_pfuncEnable     = mipsVfpNoneEnable;
+    _G_fpuopVfpNone.MFPU_pfuncDisable    = mipsVfpNoneDisable;
+    _G_fpuopVfpNone.MFPU_pfuncIsEnable   = mipsVfpNoneIsEnable;
+    _G_fpuopVfpNone.MFPU_pfuncSave       = mipsVfpNoneSave;
+    _G_fpuopVfpNone.MFPU_pfuncRestore    = mipsVfpNoneRestore;
+    _G_fpuopVfpNone.MFPU_pfuncCtxShow    = mipsVfpNoneCtxShow;
+    _G_fpuopVfpNone.MFPU_pfuncGetFIR     = mipsVfpNoneGetFIR;
+    _G_fpuopVfpNone.MFPU_pfuncEnableTask = mipsVfpNoneEnableTask;
 
     return  (&_G_fpuopVfpNone);
 }

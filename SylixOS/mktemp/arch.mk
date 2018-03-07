@@ -33,6 +33,8 @@ ARCH_PIC_LDFLAGS = -Wl,-shared -fPIC -shared
 ARCH_KO_CFLAGS   =
 ARCH_KO_LDFLAGS  = -nostdlib -r
 
+ARCH_KLIB_CFLAGS =
+
 ARCH_KERNEL_CFLAGS  =
 ARCH_KERNEL_LDFLAGS =
 
@@ -49,13 +51,16 @@ endif
 
 ifneq (,$(findstring x86_64,$(TOOLCHAIN_PREFIX)))
 ARCH             = x64
-ARCH_COMMONFLAGS = -mno-red-zone -fno-omit-frame-pointer
+ARCH_COMMONFLAGS = -mlong-double-64 -mno-red-zone -fno-omit-frame-pointer
 
+ARCH_PIC_ASFLAGS = 
 ARCH_PIC_CFLAGS  = -fPIC
 ARCH_PIC_LDFLAGS = -Wl,-shared -fPIC -shared
 
 ARCH_KO_CFLAGS   = -mcmodel=large
 ARCH_KO_LDFLAGS  = -nostdlib -r
+
+ARCH_KLIB_CFLAGS =
 
 ARCH_KERNEL_CFLAGS  = -mcmodel=kernel
 ARCH_KERNEL_LDFLAGS = -z max-page-size=4096
@@ -80,6 +85,8 @@ ARCH_PIC_LDFLAGS = -nostdlib -Wl,-shared -fPIC -shared
 
 ARCH_KO_CFLAGS   =
 ARCH_KO_LDFLAGS  = -nostdlib -r
+
+ARCH_KLIB_CFLAGS =
 
 ARCH_KERNEL_CFLAGS  =
 ARCH_KERNEL_LDFLAGS =
@@ -109,11 +116,11 @@ ARCH_CPUFLAGS_NOFPU             = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS)
 endif
 
 #*********************************************************************************************************
-# MIPS (SylixOS toolchain 4.9.3 has loogson3x '-mhard-float' patch)
+# MIPS (SylixOS toolchain 4.9.3 has loongson3x '-mhard-float' patch)
 #*********************************************************************************************************
-ifneq (,$(findstring mips,$(TOOLCHAIN_PREFIX)))
+ifneq (,$(findstring mips-sylixos,$(TOOLCHAIN_PREFIX)))
 ARCH             = mips
-ARCH_COMMONFLAGS =
+ARCH_COMMONFLAGS = 
 
 ARCH_PIC_ASFLAGS = 
 ARCH_PIC_CFLAGS  = -fPIC -mabicalls
@@ -122,23 +129,66 @@ ARCH_PIC_LDFLAGS = -mabicalls -Wl,-shared -fPIC -shared
 ARCH_KO_CFLAGS   = -mlong-calls
 ARCH_KO_LDFLAGS  = -nostdlib -r
 
+ARCH_KLIB_CFLAGS = -mlong-calls
+
 ARCH_KERNEL_CFLAGS  =
 ARCH_KERNEL_LDFLAGS =
 
-ifeq ($(FPU_TYPE), ls3x-float)
+ifneq (,$(findstring ls3x-float,$(FPU_TYPE)))
 LS3X_NEED_NO_ODD_SPREG := $(shell expr `echo $(TOOLCHAIN_VERSION_MAJOR)` \>= 5)
 ifeq "$(LS3X_NEED_NO_ODD_SPREG)" "1"
 ARCH_FPUFLAGS = -mhard-float -mno-odd-spreg
 else
 ARCH_FPUFLAGS = -mhard-float
 endif
+ifneq (,$(findstring -mdsp,$(FPU_TYPE)))
+ARCH_FPUFLAGS += -mdsp
+endif
 else
 ARCH_FPUFLAGS = -m$(FPU_TYPE)
 endif
 
-ARCH_CPUFLAGS_WITHOUT_FPUFLAGS = -march=$(CPU_TYPE) -EL -G 0
-ARCH_CPUFLAGS                  = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) $(ARCH_FPUFLAGS)
-ARCH_CPUFLAGS_NOFPU            = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) -msoft-float
+ARCH_CPUFLAGS_WITHOUT_FPUFLAGS = -march=$(CPU_TYPE) -EL -G 0 -mno-branch-likely
+ARCH_CPUFLAGS       = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) $(ARCH_FPUFLAGS)
+ARCH_CPUFLAGS_NOFPU = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) -msoft-float
+endif
+
+#*********************************************************************************************************
+# MIPS64 (SylixOS toolchain 4.9.3 has loongson3x '-mhard-float' patch)
+#*********************************************************************************************************
+ifneq (,$(findstring mips64-sylixos,$(TOOLCHAIN_PREFIX)))
+ARCH             = mips64
+ARCH_COMMONFLAGS = 
+
+ARCH_PIC_ASFLAGS = 
+ARCH_PIC_CFLAGS  = -fPIC -mabicalls
+ARCH_PIC_LDFLAGS = -mabicalls -Wl,-shared -fPIC -shared
+
+ARCH_KO_CFLAGS   = -mlong-calls
+ARCH_KO_LDFLAGS  = -nostdlib -r
+
+ARCH_KLIB_CFLAGS = -mlong-calls
+
+ARCH_KERNEL_CFLAGS  =
+ARCH_KERNEL_LDFLAGS =
+
+ifneq (,$(findstring ls3x-float,$(FPU_TYPE)))
+LS3X_NEED_NO_ODD_SPREG := $(shell expr `echo $(TOOLCHAIN_VERSION_MAJOR)` \>= 5)
+ifeq "$(LS3X_NEED_NO_ODD_SPREG)" "1"
+ARCH_FPUFLAGS = -mhard-float -mno-odd-spreg
+else
+ARCH_FPUFLAGS = -mhard-float
+endif
+ifneq (,$(findstring -mdsp,$(FPU_TYPE)))
+ARCH_FPUFLAGS += -mdsp
+endif
+else
+ARCH_FPUFLAGS = -m$(FPU_TYPE)
+endif
+
+ARCH_CPUFLAGS_WITHOUT_FPUFLAGS = -march=$(CPU_TYPE) -EL -G 0 -mno-branch-likely -mabi=64
+ARCH_CPUFLAGS       = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) $(ARCH_FPUFLAGS)
+ARCH_CPUFLAGS_NOFPU = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) -msoft-float
 endif
 
 #*********************************************************************************************************
@@ -146,7 +196,7 @@ endif
 #*********************************************************************************************************
 ifneq (,$(findstring ppc,$(TOOLCHAIN_PREFIX)))
 ARCH             = ppc
-ARCH_COMMONFLAGS =
+ARCH_COMMONFLAGS = -G 0 -mstrict-align
 
 ARCH_PIC_ASFLAGS = 
 ARCH_PIC_CFLAGS  = -fPIC
@@ -154,6 +204,8 @@ ARCH_PIC_LDFLAGS = -Wl,-shared -fPIC -shared
 
 ARCH_KO_CFLAGS   =
 ARCH_KO_LDFLAGS  = -nostdlib -r
+
+ARCH_KLIB_CFLAGS =
 
 ARCH_KERNEL_CFLAGS  =
 ARCH_KERNEL_LDFLAGS =
@@ -183,6 +235,8 @@ ARCH_PIC_LDFLAGS =  -z --sysv --shared --trampolines=off --dsbt_size=64
 ARCH_KO_CFLAGS   =
 ARCH_KO_LDFLAGS  = --abi=eabi -z -r
 
+ARCH_KLIB_CFLAGS =
+
 ARCH_KERNEL_CFLAGS  =
 ARCH_KERNEL_LDFLAGS =
 
@@ -206,6 +260,11 @@ ARCH_PIC_LDFLAGS = -Wl,-shared -fPIC -shared
 
 ARCH_KO_CFLAGS   =
 ARCH_KO_LDFLAGS  = -nostdlib -r
+
+ARCH_KLIB_CFLAGS =
+
+ARCH_KERNEL_CFLAGS  =
+ARCH_KERNEL_LDFLAGS =
 
 ARCH_FPUFLAGS = -m$(FPU_TYPE)
 

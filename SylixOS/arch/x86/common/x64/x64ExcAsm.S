@@ -95,25 +95,27 @@
 FUNC_DEF(x86IntEntry\Id)
     INT_SAVE_REGS_FAKE_ERRNO                                            ;/*  所有寄存器入栈              */
 
-    MOV     %RSP , %R12                                                 ;/*  使用 %R12 来记录 %RSP       */
-
-    ;/*
-    ; *  if (API_InterEnter() == 1) {
-    ; *      current stack = SP;
-    ; *      SP = interrupt stack;
-    ; *  }
-    ; */
+    MOV     %RSP , %R12
+    MOV     %RSP , X86_64_ARG0
     CALL    API_InterEnter
     CMP     $1 , %RAX
-    JNE     1f
+    JNE     2f
 
-    CALL    API_ThreadTcbInter
-    MOV     %RSP , 0(%RAX)
+    ;/*
+    ; * 如果是在 RING3 被中断, 那么 %ESP 已经使用内核中断栈
+    ; */
+    MOVW    XCS(%RSP) , %AX
+    CMPW    $X86_CS_USER , %AX
+    JE      1f
 
     CALL    API_InterStackBaseGet
     MOV     %RAX , %RSP
 
 1:
+    CALL    API_ThreadTcbInter
+    MOV     %RAX , %R12
+
+2:
     MOV     $\Id , X86_64_ARG0
     MOV     %R12 , X86_64_ARG1
     LEA     _G_pfuncX86IntHandleArray , %RAX
@@ -121,8 +123,7 @@ FUNC_DEF(x86IntEntry\Id)
 
     CALL    API_InterExit
 
-    RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
-
+    INT_NESTING_RESTORE_REGS                                            ;/*  所有寄存器出栈              */
     FUNC_END(x86IntEntry\Id)
 
     .endr
@@ -144,25 +145,27 @@ FUNC_DEF(x86IntEntry\Id)
 FUNC_DEF(x86IntEntry\Id)
     INT_SAVE_REGS_HW_ERRNO                                              ;/*  所有寄存器入栈              */
 
-    MOV     %RSP , %R12                                                 ;/*  使用 %R12 来记录 %RSP       */
-
-    ;/*
-    ; *  if (API_InterEnter() == 1) {
-    ; *      current stack = SP;
-    ; *      SP = interrupt stack;
-    ; *  }
-    ; */
+    MOV     %RSP , %R12
+    MOV     %RSP , X86_64_ARG0
     CALL    API_InterEnter
     CMP     $1 , %RAX
-    JNE     1f
+    JNE     2f
 
-    CALL    API_ThreadTcbInter
-    MOV     %RSP , 0(%RAX)
+    ;/*
+    ; * 如果是在 RING3 被中断, 那么 %ESP 已经使用内核中断栈
+    ; */
+    MOVW    XCS(%RSP) , %AX
+    CMPW    $X86_CS_USER , %AX
+    JE      1f
 
     CALL    API_InterStackBaseGet
     MOV     %RAX , %RSP
 
 1:
+    CALL    API_ThreadTcbInter
+    MOV     %RAX , %R12
+
+2:
     MOV     $\Id , X86_64_ARG0
     MOV     %R12 , X86_64_ARG1
     LEA     _G_pfuncX86IntHandleArray , %RAX
@@ -170,8 +173,7 @@ FUNC_DEF(x86IntEntry\Id)
 
     CALL    API_InterExit
 
-    RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
-
+    INT_NESTING_RESTORE_REGS                                            ;/*  所有寄存器出栈              */
     FUNC_END(x86IntEntry\Id)
 
     .endr

@@ -16,7 +16,7 @@
 **
 ** 文件创建日期: 2017 年 04 月 14 日
 **
-** 描        述: MIPS 体系构架 IDLE 节能程序.
+** 描        述: MIPS 体系架构 IDLE 节能程序.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -27,9 +27,9 @@
 extern VOID  mipsWaitInstruction(VOID);
 /*********************************************************************************************************
 ** 函数名称: mipsIdleHookGet
-** 功能描述: R4K 处理器
-** 输　入  : NONE
-** 输　出  : NONE
+** 功能描述: 获得 IDLE 节能程序
+** 输　入  : pcMachineName     机器名字
+** 输　出  : IDLE 节能程序
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
@@ -41,12 +41,12 @@ VOIDFUNCPTR  mipsIdleHookGet (CPCHAR  pcMachineName)
         return  (mipsWaitInstruction);
 
     } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS3X) == 0)) {
-        UINT32  uiPrid = mipsCp0PRIdRead();
+        ARCH_REG_T  ulPrid = mipsCp0PRIdRead();
 
-        if ((uiPrid & 0xf) == PRID_REV_LOONGSON2K) {
+        if ((ulPrid & 0xf) == PRID_REV_LOONGSON2K) {
             return  (mipsWaitInstruction);
 
-        } else if ((uiPrid & 0xf) != PRID_REV_LOONGSON3A_R1) {
+        } else if ((ulPrid & 0xf) != PRID_REV_LOONGSON3A_R1) {
             return  (mipsWaitInstruction);
         }
     }

@@ -32,7 +32,7 @@
 #include <linux/sched.h>
 #include <asm/bitfield.h>
 #else
-#include "arch/mips/common/mipsBitfield.h"
+#include "arch/mips/inc/bitfield.h"
 #include "./config.h"
 #include "./porting.h"
 #endif
@@ -73,6 +73,7 @@ union ieee754sp ieee754sp_div(union ieee754sp x, union ieee754sp y);
 union ieee754sp ieee754sp_fint(int x);
 union ieee754sp ieee754sp_flong(s64 x);
 union ieee754sp ieee754sp_fdp(union ieee754dp x);
+union ieee754sp ieee754sp_rint(union ieee754sp x);
 
 int ieee754sp_tint(union ieee754sp x);
 s64 ieee754sp_tlong(union ieee754sp x);
@@ -107,6 +108,7 @@ union ieee754dp ieee754dp_neg(union ieee754dp x);
 union ieee754dp ieee754dp_fint(int x);
 union ieee754dp ieee754dp_flong(s64 x);
 union ieee754dp ieee754dp_fsp(union ieee754sp x);
+union ieee754dp ieee754dp_rint(union ieee754dp x);
 
 int ieee754dp_tint(union ieee754dp x);
 s64 ieee754dp_tlong(union ieee754dp x);
@@ -173,11 +175,12 @@ struct _ieee754_csr {
 #define ieee754_csr (*(struct _ieee754_csr *)(&GET_CUR_THREAD_FPU_FCR31))
 #endif
 
-static inline unsigned ieee754_getrm(void)
+static inline unsigned int ieee754_getrm(void)
 {
 	return (ieee754_csr.rm);
 }
-static inline unsigned ieee754_setrm(unsigned rm)
+
+static inline unsigned int ieee754_setrm(unsigned int rm)
 {
 	return (ieee754_csr.rm = rm);
 }
@@ -185,14 +188,14 @@ static inline unsigned ieee754_setrm(unsigned rm)
 /*
  * get current exceptions
  */
-static inline unsigned ieee754_getcx(void)
+static inline unsigned int ieee754_getcx(void)
 {
 	return (ieee754_csr.cx);
 }
 
 /* test for current exception condition
  */
-static inline int ieee754_cxtest(unsigned n)
+static inline int ieee754_cxtest(unsigned int n)
 {
 	return (ieee754_csr.cx & n);
 }
@@ -200,21 +203,21 @@ static inline int ieee754_cxtest(unsigned n)
 /*
  * get sticky exceptions
  */
-static inline unsigned ieee754_getsx(void)
+static inline unsigned int ieee754_getsx(void)
 {
 	return (ieee754_csr.sx);
 }
 
 /* clear sticky conditions
 */
-static inline unsigned ieee754_clrsx(void)
+static inline unsigned int ieee754_clrsx(void)
 {
 	return (ieee754_csr.sx = 0);
 }
 
 /* test for sticky exception condition
  */
-static inline int ieee754_sxtest(unsigned n)
+static inline int ieee754_sxtest(unsigned int n)
 {
 	return (ieee754_csr.sx & n);
 }

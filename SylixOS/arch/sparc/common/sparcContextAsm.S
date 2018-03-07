@@ -45,15 +45,24 @@
     EXPORT_LABEL(archSigCtxLoad)
 
 ;/*********************************************************************************************************
+;  当前 CPU 开始运行多任务执行
+;  参数为当前 CPU 控制块, 即 %o0 为当前 CPU 控制块指针
+;*********************************************************************************************************/
+
+FUNC_DEF(archTaskCtxStart)
+    LD      [%o0] , %g1                                                 ;/*  获取当前 TCB 的 REG_CTX 地址*/
+    RESTORE_REGS
+    FUNC_END(archTaskCtxStart)
+
+;/*********************************************************************************************************
 ;  线程切换
 ;  参数为当前 CPU 控制块, 即 %o0 为当前 CPU 控制块指针
 ;*********************************************************************************************************/
 
 FUNC_DEF(archTaskCtxSwitch)
-    SAVE_REGS                                                           ;/*  保存上下文                  */
+    LD      [%o0] , %g1                                                 ;/*  获取当前 TCB 的 REG_CTX 地址*/
 
-    LD      [%o0], %l0                                                  ;/*  %l0 = 当前 TCB 指针         */
-    ST      %g1  , [%l0]                                                ;/*  保存当前的栈指针到当前 TCB  */
+    SAVE_REGS                                                           ;/*  保存上下文                  */
 
     ;/*
     ; * %g1 = 当前 CPU 指针, 保证 flush 窗口后, 还能通过 %g1 获取当前 CPU 指针
@@ -74,7 +83,7 @@ FUNC_DEF(archTaskCtxSwitch)
 #endif
 
     LD      [%l0] , %l1                                                 ;/*  %l1 = 中断安全栈            */
-    SUB     %l1   , ASM_STACK_FRAME_SIZE , %sp                          ;/*  开辟栈空间                  */
+    SUB     %l1   , ARCH_STK_FRAME_SIZE , %sp                           ;/*  开辟栈帧空间                */
 
     ;/*
     ; * 调用 C 函数 _SchedSwp(%o0 为当前 CPU 控制块指针)
@@ -85,8 +94,7 @@ FUNC_DEF(archTaskCtxSwitch)
     CALL    _SchedSwp
     NOP
 
-    LD      [%l0] , %o0                                                 ;/*  %o0 = 当前 TCB 指针         */
-    LD      [%o0] , %g1                                                 ;/*  %g1 = 当前 TCB 的栈指针     */
+    LD      [%l0] , %g1                                                 ;/*  获取当前 TCB 的 REG_CTX 地址*/
     RESTORE_REGS
     FUNC_END(archTaskCtxSwitch)
 
@@ -97,10 +105,9 @@ FUNC_DEF(archTaskCtxSwitch)
 
 #if LW_CFG_COROUTINE_EN > 0
 FUNC_DEF(archCrtCtxSwitch)
-    SAVE_REGS                                                           ;/*  保存上下文                  */
+    LD      [%o0 + 8] , %g1                                             ;/*  获取当前 CCB 的 REG_CTX 地址*/
 
-    LD      [%o0 + 8], %l0                                              ;/*  %l0 = 当前 crcb 指针        */
-    ST      %g1  , [%l0]                                                ;/*  保存当前的栈指针到当前 crcb */
+    SAVE_REGS                                                           ;/*  保存上下文                  */
 
     ;/*
     ; * %g1 = 当前 CPU 指针, 保证 flush 窗口后, 还能通过 %g1 获取当前 CPU 指针
@@ -121,7 +128,7 @@ FUNC_DEF(archCrtCtxSwitch)
 #endif
 
     LD      [%l0] , %l1                                                 ;/*  %l1 = 中断安全栈            */
-    SUB     %l1   , ASM_STACK_FRAME_SIZE , %sp                          ;/*  开辟栈空间                  */
+    SUB     %l1   , ARCH_STK_FRAME_SIZE , %sp                           ;/*  开辟栈帧空间                */
 
     ;/*
     ; * 调用 C 函数 _SchedCrSwp(%o0 为当前 CPU 控制块指针)
@@ -132,22 +139,10 @@ FUNC_DEF(archCrtCtxSwitch)
     CALL    _SchedCrSwp
     NOP
 
-    LD      [%l0 + 8] , %o0                                             ;/*  %o0 = 当前 crcb 指针        */
-    LD      [%o0] , %g1                                                 ;/*  %g1 = 当前 crcb 的栈指针    */
+    LD      [%l0 + 8] , %g1                                             ;/*  获取当前 CCB 的 REG_CTX 地址*/
     RESTORE_REGS
     FUNC_END(archCrtCtxSwitch)
 #endif
-
-;/*********************************************************************************************************
-;  当前 CPU 开始运行多任务执行
-;  参数为当前 CPU 控制块, 即 %o0 为当前 CPU 控制块指针
-;*********************************************************************************************************/
-
-FUNC_DEF(archTaskCtxStart)
-    LD      [%o0] , %o0                                                 ;/*  %o0 = 当前 TCB 指针         */
-    LD      [%o0] , %g1                                                 ;/*  %g1 = 当前 TCB 的栈指针     */
-    RESTORE_REGS
-    FUNC_END(archTaskCtxStart)
 
 ;/*********************************************************************************************************
 ;  中断返回时, 线程装载
@@ -155,18 +150,17 @@ FUNC_DEF(archTaskCtxStart)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archIntCtxLoad)
-    LD      [%o0] , %o0                                                 ;/*  %o0 = 当前 TCB 指针         */
-    LD      [%o0] , %g1                                                 ;/*  %g1 = 当前 TCB 的栈指针     */
+    LD      [%o0] , %g1                                                 ;/*  获取当前 TCB 的 REG_CTX 地址*/
     RESTORE_REGS
     FUNC_END(archIntCtxLoad)
 
 ;/*********************************************************************************************************
 ;  信号上下文返回
-;  参数为需要返回的堆栈栈顶位置, 即 %o0 为堆栈栈顶位置
+;  参数为 ARCH_REG_CTX 指针, 即 %o0 为 ARCH_REG_CTX 指针
 ;*********************************************************************************************************/
 
 FUNC_DEF(archSigCtxLoad)
-    MOV     %o0 , %g1                                                   ;/*  %g1 = 堆栈栈顶位置          */
+    MOV     %o0 , %g1
     RESTORE_REGS
     FUNC_END(archSigCtxLoad)
 

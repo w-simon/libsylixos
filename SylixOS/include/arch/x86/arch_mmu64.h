@@ -67,9 +67,9 @@
 *********************************************************************************************************/
 #if !defined(__ASSEMBLY__) && !defined(ASSEMBLY)
 
-typedef UINT64  LW_PGD_TRANSENTRY;                                      /*  页目录类型                  */
-typedef UINT64  LW_PMD_TRANSENTRY;                                      /*  中间页目录类型              */
-typedef UINT64  LW_PTS_TRANSENTRY;
+typedef UINT64  LW_PGD_TRANSENTRY;                                      /*  PGD 页目录类型              */
+typedef UINT64  LW_PMD_TRANSENTRY;                                      /*  PMD 页目录类型              */
+typedef UINT64  LW_PTS_TRANSENTRY;                                      /*  PTS 页目录类型              */
 typedef UINT64  LW_PTE_TRANSENTRY;                                      /*  页表条目类型                */
 
 #endif

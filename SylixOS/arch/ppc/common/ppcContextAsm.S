@@ -52,10 +52,13 @@
 ;*********************************************************************************************************/
 
 FUNC_DEF(archTaskCtxStart)
-    LWZ     R4 , 0(R3)                                                  ;/*  获取该任务堆栈栈顶地址      */
-    LWZ     SP , 0(R4)                                                  ;/*  堆栈指针赋值                */
+    LIS     R4 , HI(~7)
+    ORI     R4 , R4 , LO(~7)
+    AND     SP , SP , R4                                                ;/*  SP 向下 8 字节对齐          */
+    MTSPR   SPRG1 , SP                                                  ;/*  设置异常临时栈(使用启动栈)  */
 
-    RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
+    LWZ     R4 , 0(R3)                                                  ;/*  获取当前 TCB 的 REG_CTX 地址*/
+    RESTORE_REGS                                                        ;/*  恢复所有寄存器              */
     FUNC_END()
 
 ;/*********************************************************************************************************
@@ -64,28 +67,24 @@ FUNC_DEF(archTaskCtxStart)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archTaskCtxSwitch)
-    SAVE_REGS                                                           ;/*  所有寄存器入栈              */
+    LWZ     R4 , 0(R3)                                                  ;/*  获取当前 TCB 的 REG_CTX 地址*/
+    SAVE_REGS                                                           ;/*  保存所有寄存器              */
 
-    LWZ     R4 , 0(R3)                                                  ;/*  stack current = SP          */
-    STW     SP , 0(R4)
-
-    OR      R14, R3 , R3                                                ;/*  保存当前 CPU 信息           */
+    OR      R14, R3 , R3                                                ;/*  备份当前 CPU 控制块         */
 
 #if LW_CFG_SMP_EN > 0
     SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
     BL      _SchedSafeStack                                             ;/*  _SchedSafeStack();          */
-    OR      SP , R3 , R3
-    OR      R3 , R14, R14
+    OR      SP , R3 , R3                                                ;/*  设置 SP                     */
+    OR      R3 , R14, R14                                               ;/*  恢复当前 CPU 控制块         */
 #endif
 
     SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
     BL      _SchedSwp                                                   ;/*  _SchedSwp();                */
-    OR      R3 , R14, R14
+    OR      R3 , R14, R14                                               ;/*  恢复当前 CPU 控制块         */
 
-    LWZ     R4 , 0(R3)                                                  ;/*  SP = stack current          */
-    LWZ     SP , 0(R4)
-
-    RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
+    LWZ     R4 , 0(R3)                                                  ;/*  获取当前 TCB 的 REG_CTX 地址*/
+    RESTORE_REGS                                                        ;/*  恢复所有寄存器              */
     FUNC_END()
 
 ;/*********************************************************************************************************
@@ -95,20 +94,16 @@ FUNC_DEF(archTaskCtxSwitch)
 
 #if LW_CFG_COROUTINE_EN > 0
 FUNC_DEF(archCrtCtxSwitch)
-    SAVE_REGS                                                           ;/*  所有寄存器入栈              */
+    LWZ     R4 , 8(R3)                                                  ;/*  获取当前 CCB 的 REG_CTX 地址*/
+    SAVE_REGS                                                           ;/*  保存所有寄存器              */
 
-    LWZ     R4 , 8(R3)                                                  ;/*  stack current = SP          */
-    STW     SP , 0(R4)
-
-    OR      R14, R3 , R3                                                ;/*  保存当前 CPU 信息           */
+    OR      R14, R3 , R3                                                ;/*  备份当前 CPU 控制块         */
     SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
     BL      _SchedCrSwp                                                 ;/*  _SchedCrSwp();              */
-    OR      R3 , R14, R14
+    OR      R3 , R14, R14                                               ;/*  恢复当前 CPU 控制块         */
 
-    LWZ     R4 , 8(R3)                                                  ;/*  SP = stack current          */
-    LWZ     SP , 0(R4)
-
-    RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
+    LWZ     R4 , 8(R3)                                                  ;/*  获取当前 CCB 的 REG_CTX 地址*/
+    RESTORE_REGS                                                        ;/*  恢复所有寄存器              */
     FUNC_END()
 #endif
 
@@ -118,21 +113,18 @@ FUNC_DEF(archCrtCtxSwitch)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archIntCtxLoad)
-    LWZ     R4 , 0(R3)                                                  ;/*  SP = stack current          */
-    LWZ     SP , 0(R4)
-
-    RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
+    LWZ     R4 , 0(R3)                                                  ;/*  获取当前 TCB 的 REG_CTX 地址*/
+    RESTORE_REGS                                                        ;/*  恢复所有寄存器              */
     FUNC_END()
 
 ;/*********************************************************************************************************
 ;  信号上下文返回
-;  参数为需要返回的堆栈栈顶位置
+;  参数为 ARCH_REG_CTX 指针
 ;*********************************************************************************************************/
 
 FUNC_DEF(archSigCtxLoad)
-    OR      SP , R3 , R3                                                ;/*  返回的堆栈指针              */
-
-    RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
+    OR      R4 , R3 , R3                                                ;/*  返回的 ARCH_REG_CTX 指针    */
+    RESTORE_REGS                                                        ;/*  恢复所有寄存器              */
     FUNC_END()
 
     FILE_END()

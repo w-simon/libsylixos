@@ -25,7 +25,6 @@
 VOID   ppcE500MmuInit(LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName);
 ULONG  ppcE500MmuDataStorageAbortType(addr_t  ulAbortAddr, BOOL  bIsWrite);
 ULONG  ppcE500MmuInstStorageAbortType(addr_t  ulAbortAddr);
-INT    ppcE500MmuDataTlbPreLoad(addr_t  ulAddr);
 
 #endif                                                                  /*  __ARCH_PPCMMUE500_H         */
 /*********************************************************************************************************

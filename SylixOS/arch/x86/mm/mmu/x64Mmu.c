@@ -919,8 +919,6 @@ static INT  x64MmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  ulFl
 #if LW_CFG_CACHE_EN > 0
                     x86DCacheFlush((PVOID)p_pteentry, sizeof(LW_PTE_TRANSENTRY));
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
-                    x64MmuInvalidateTLBMVA((PVOID)ulAddr);
-
                     return  (ERROR_NONE);
                 }
             }

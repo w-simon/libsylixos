@@ -19,76 +19,125 @@
 ** Ãè        Êö: MIPS CP0 º¯Êý¿â.
 *********************************************************************************************************/
 
-#ifndef __MIPSCP0_H
-#define __MIPSCP0_H
-
-#include "arch/mips/arch_def.h"
+#ifndef __ARCH_MIPSCP0_H
+#define __ARCH_MIPSCP0_H
 
 /*********************************************************************************************************
-  CP0 register read
+  CP0 ¼Ä´æÆ÷²Ù×÷
 *********************************************************************************************************/
 
-#define mipsCp0RegRead(name) \
-extern UINT32  mipsCp0##name##Read (VOID);
+#define mipsCp0StatusRead       read_c0_status
+#define mipsCp0StatusWrite      write_c0_status
+
+#define mipsCp0CauseRead        read_c0_cause
+#define mipsCp0CauseWrite       write_c0_cause
+
+#define mipsCp0EPCRead          read_c0_epc
+#define mipsCp0EPCWrite         write_c0_epc
+
+#define mipsCp0ERRPCRead        read_c0_errorepc
+#define mipsCp0ERRPCWrite       write_c0_errorepc
+
+#define mipsCp0BadVAddrRead     read_c0_badvaddr
+#define mipsCp0BadVAddrWrite    write_c0_badvaddr
+
+#define mipsCp0CountRead        read_c0_count
+#define mipsCp0CountWrite       write_c0_count
+
+#define mipsCp0CompareRead      read_c0_compare
+#define mipsCp0CompareWrite     write_c0_compare
+
+#define mipsCp0PRIdRead         read_c0_prid
+
+#define mipsCp0ConfigRead       read_c0_config
+#define mipsCp0ConfigWrite      write_c0_config
+
+#define mipsCp0Config1Read      read_c0_config1
+#define mipsCp0Config1Write     write_c0_config1
+
+#define mipsCp0Config2Read      read_c0_config2
+#define mipsCp0Config2Write     write_c0_config2
+
+#define mipsCp0Config3Read      read_c0_config3
+#define mipsCp0Config3Write     write_c0_config3
+
+#define mipsCp0Config4Read      read_c0_config4
+#define mipsCp0Config4Write     write_c0_config4
+
+#define mipsCp0Config5Read      read_c0_config5
+#define mipsCp0Config5Write     write_c0_config5
+
+#define mipsCp0Config6Read      read_c0_config6
+#define mipsCp0Config6Write     write_c0_config6
+
+#define mipsCp0Config7Read      read_c0_config7
+#define mipsCp0Config7Write     write_c0_config7
+
+#define mipsCp0EBaseRead        read_c0_ebase
+#define mipsCp0EBase7Write      write_c0_ebase
+
+#define mipsCp0IntCtlRead       read_c0_intctl
+#define mipsCp0IntCtlWrite      write_c0_intctl
+
+#define mipsCp0LLAddrRead       read_c0_lladdr
+#define mipsCp0LLAddrWrite      write_c0_lladdr
+
+#define mipsCp0ECCRead          read_c0_ecc
+#define mipsCp0ECCWrite         write_c0_ecc
+
+#define mipsCp0CacheErrRead     read_c0_cacheerr
+#define mipsCp0CacheErrWrite    write_c0_cacheerr
+
+#define mipsCp0IndexRead        read_c0_index
+#define mipsCp0IndexWrite       write_c0_index
+
+#define mipsCp0WiredRead        read_c0_wired
+#define mipsCp0WiredWrite       write_c0_wired
+
+#define mipsCp0RandomRead       read_c0_random
+#define mipsCp0RandomWrite      write_c0_random
+
+#define mipsCp0EntryLo0Read     read_c0_entrylo0
+#define mipsCp0EntryLo0Write    write_c0_entrylo0
+
+#define mipsCp0EntryLo1Read     read_c0_entrylo1
+#define mipsCp0EntryLo1Write    write_c0_entrylo1
+
+#define mipsCp0ContextRead      read_c0_context
+#define mipsCp0ContextWrite     write_c0_context
+
+#define mipsCp0XContextRead     read_c0_xcontext
+#define mipsCp0XContextWrite    write_c0_xcontext
+
+#define mipsCp0PageMaskRead     read_c0_pagemask
+#define mipsCp0PageMaskWrite    write_c0_pagemask
+
+#define mipsCp0EntryHiRead      read_c0_entryhi
+#define mipsCp0EntryHiWrite     write_c0_entryhi
+
+#define mipsCp0TagLoRead        read_c0_taglo
+#define mipsCp0TagLoWrite       write_c0_taglo
+
+#define mipsCp0TagHiRead        read_c0_taghi
+#define mipsCp0TagHiWrite       write_c0_taghi
+
+#define mipsCp0DiagRead         read_c0_diag
+#define mipsCp0DiagWrite        write_c0_diag
+
+#define mipsCp0PageGrainRead    read_c0_pagegrain
+#define mipsCp0PageGrainWrite   write_c0_pagegrain
+
+#define mipsCp0EBaseRead        read_c0_ebase
+#define mipsCp0EBaseWrite       write_c0_ebase
 
 /*********************************************************************************************************
-  CP0 register write
+  Loongson-1x/2x/3x CP0 ¼Ä´æÆ÷²Ù×÷
 *********************************************************************************************************/
 
-#define mipsCp0RegWrite(name) \
-extern VOID  mipsCp0##name##Write (UINT32  uiValue);
+#define mipsCp0GSConfigRead     read_c0_config6
+#define mipsCp0GSConfigWrite    write_c0_config6
 
-/*********************************************************************************************************
-  CP0 register read write
-*********************************************************************************************************/
-
-#define mipsCp0RegReadWrite(name) \
-        mipsCp0RegRead(name) \
-        mipsCp0RegWrite(name)
-
-/*********************************************************************************************************
-  CP0 register op
-*********************************************************************************************************/
-
-mipsCp0RegReadWrite(Status)
-mipsCp0RegReadWrite(Cause)
-mipsCp0RegReadWrite(EPC)
-mipsCp0RegReadWrite(BadVAddr)
-mipsCp0RegReadWrite(Count)
-mipsCp0RegReadWrite(Compare)
-mipsCp0RegReadWrite(PRId)
-mipsCp0RegReadWrite(Config)
-mipsCp0RegReadWrite(Config1)
-mipsCp0RegReadWrite(Config2)
-mipsCp0RegReadWrite(Config3)
-mipsCp0RegReadWrite(EBase)
-mipsCp0RegReadWrite(IntCtl)
-mipsCp0RegReadWrite(LLAddr)
-mipsCp0RegReadWrite(ECC)
-mipsCp0RegReadWrite(CacheErr)
-mipsCp0RegReadWrite(ERRPC)
-
-mipsCp0RegReadWrite(Index)
-mipsCp0RegReadWrite(Wired)
-mipsCp0RegReadWrite(Random)
-mipsCp0RegReadWrite(EntryLo0)
-mipsCp0RegReadWrite(EntryLo1)
-mipsCp0RegReadWrite(Context)
-mipsCp0RegReadWrite(PageMask)
-mipsCp0RegReadWrite(EntryHi)
-
-mipsCp0RegReadWrite(TagLo)
-mipsCp0RegReadWrite(TagHi)
-
-/*********************************************************************************************************
-  Loongson2/3x CP0 register op
-*********************************************************************************************************/
-
-mipsCp0RegReadWrite(Diag)
-mipsCp0RegReadWrite(PageGrain)
-mipsCp0RegReadWrite(GSConfig)
-
-#endif                                                                  /*  __MIPSCP0_H                 */
+#endif                                                                  /*  __ARCH_MIPSCP0_H            */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

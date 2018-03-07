@@ -25,6 +25,7 @@
 *********************************************************************************************************/
 #if LW_CFG_VMM_EN > 0
 #include "arch/ppc/arch_e500.h"
+#include "arch/ppc/common/ppcSpr.h"
 #include "arch/ppc/common/e500/ppcSprE500.h"
 #include "./ppcMmuE500Reg.h"
 /*********************************************************************************************************
@@ -51,136 +52,6 @@ extern INT     ppcCacheDataUpdate(PVOID  pvAdrs, size_t  stBytes, BOOL  bInv);
 
 extern VOID    ppcE500MmuInvalidateTLB(VOID);
 extern VOID    ppcE500MmuInvalidateTLBEA(addr_t  ulAddr);
-
-extern VOID    archE500InstructionStorageExceptionHandle(addr_t  ulRetAddr);
-extern VOID    archE500DataStorageExceptionHandle(addr_t  ulRetAddr);
-/*********************************************************************************************************
-** 函数名称: archE500MmuDataTlbErrorHandle
-** 功能描述: 数据访问 TLB 错误处理
-** 输　入  : NONE
-** 输　出  : NONE
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-VOID  archE500MmuDataTlbErrorHandle (addr_t  ulRetAddr)
-{
-    addr_t              ulMissAddr = ppcE500GetDEAR();
-    addr_t              uiEPN      = ulMissAddr >> LW_CFG_VMM_PAGE_SHIFT;
-    LW_PTE_TRANSENTRY  *p_pteentry = (LW_PTE_TRANSENTRY *)(_G_ulPTETable + \
-                                     uiEPN * sizeof(LW_PTE_TRANSENTRY));
-    LW_PTE_TRANSENTRY   pteentry   = *p_pteentry;
-    MAS2_REG            uiMAS2;
-
-    if (pteentry.MAS3_bValid) {
-        uiMAS2.MAS2_uiValue       = ppcE500MmuGetMAS2();
-        uiMAS2.MAS2_bWT           = pteentry.MAS3_bWT;
-        uiMAS2.MAS2_bUnCache      = pteentry.MAS3_bUnCache;
-        uiMAS2.MAS2_bMemCoh       = pteentry.MAS3_bMemCoh;
-        uiMAS2.MAS2_bGuarded      = LW_FALSE;
-        uiMAS2.MAS2_bLittleEndian = LW_FALSE;
-
-        ppcE500MmuSetMAS2(uiMAS2.MAS2_uiValue);
-        ppcE500MmuSetMAS3(pteentry.MAS3_uiValue);
-
-        if (_G_bHasMAS7) {
-            ppcE500MmuSetMAS7(0);
-        }
-
-        PPC_EXEC_INS("ISYNC");
-        PPC_EXEC_INS("SYNC");
-        PPC_EXEC_INS("TLBWE");
-        PPC_EXEC_INS("ISYNC");
-
-    } else {
-        archE500DataStorageExceptionHandle(ulRetAddr);
-    }
-}
-/*********************************************************************************************************
-** 函数名称: archE500MmuInstructionTlbErrorHandle
-** 功能描述: 指令执行 TLB 错误处理
-** 输　入  : NONE
-** 输　出  : NONE
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-VOID  archE500MmuInstructionTlbErrorHandle (addr_t  ulRetAddr)
-{
-    addr_t              ulMissAddr = ulRetAddr;
-    addr_t              uiEPN      = ulMissAddr >> LW_CFG_VMM_PAGE_SHIFT;
-    LW_PTE_TRANSENTRY  *p_pteentry = (LW_PTE_TRANSENTRY *)(_G_ulPTETable + \
-                                     uiEPN * sizeof(LW_PTE_TRANSENTRY));
-    LW_PTE_TRANSENTRY   pteentry   = *p_pteentry;
-    MAS2_REG            uiMAS2;
-
-    if (pteentry.MAS3_bValid) {
-        uiMAS2.MAS2_uiValue       = ppcE500MmuGetMAS2();
-        uiMAS2.MAS2_bWT           = pteentry.MAS3_bWT;
-        uiMAS2.MAS2_bUnCache      = pteentry.MAS3_bUnCache;
-        uiMAS2.MAS2_bMemCoh       = pteentry.MAS3_bMemCoh;
-        uiMAS2.MAS2_bGuarded      = LW_FALSE;
-        uiMAS2.MAS2_bLittleEndian = LW_FALSE;
-
-        ppcE500MmuSetMAS2(uiMAS2.MAS2_uiValue);
-        ppcE500MmuSetMAS3(pteentry.MAS3_uiValue);
-
-        if (_G_bHasMAS7) {
-            ppcE500MmuSetMAS7(0);
-        }
-
-        PPC_EXEC_INS("ISYNC");
-        PPC_EXEC_INS("SYNC");
-        PPC_EXEC_INS("TLBWE");
-        PPC_EXEC_INS("ISYNC");
-
-    } else {
-        archE500InstructionStorageExceptionHandle(ulRetAddr);
-    }
-}
-/*********************************************************************************************************
-** 函数名称: ppcE500MmuDataTlbPreLoad
-** 功能描述: 数据访问 TLB 预加载
-** 输　入  : ulAddr        数据访问地址
-** 输　出  : ERROR CODE
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-INT  ppcE500MmuDataTlbPreLoad (addr_t  ulAddr)
-{
-    addr_t              uiEPN      = ulAddr >> LW_CFG_VMM_PAGE_SHIFT;
-    LW_PTE_TRANSENTRY  *p_pteentry = (LW_PTE_TRANSENTRY *)(_G_ulPTETable + \
-                                     uiEPN * sizeof(LW_PTE_TRANSENTRY));
-    LW_PTE_TRANSENTRY   pteentry   = *p_pteentry;
-    MAS2_REG            uiMAS2;
-
-    if (pteentry.MAS3_bValid) {
-        uiMAS2.MAS2_uiValue       = 0;
-        uiMAS2.MAS2_uiEPN         = uiEPN;
-        uiMAS2.MAS2_bX0           = MMU_MAS4_X0D;
-        uiMAS2.MAS2_bX1           = MMU_MAS4_X1D;
-        uiMAS2.MAS2_bWT           = pteentry.MAS3_bWT;
-        uiMAS2.MAS2_bUnCache      = pteentry.MAS3_bUnCache;
-        uiMAS2.MAS2_bMemCoh       = pteentry.MAS3_bMemCoh;
-        uiMAS2.MAS2_bGuarded      = LW_FALSE;
-        uiMAS2.MAS2_bLittleEndian = LW_FALSE;
-
-        ppcE500MmuSetMAS2(uiMAS2.MAS2_uiValue);
-        ppcE500MmuSetMAS3(pteentry.MAS3_uiValue);
-
-        if (_G_bHasMAS7) {
-            ppcE500MmuSetMAS7(0);
-        }
-
-        PPC_EXEC_INS("ISYNC");
-        PPC_EXEC_INS("SYNC");
-        PPC_EXEC_INS("TLBWE");
-        PPC_EXEC_INS("ISYNC");
-
-        return  (ERROR_NONE);
-
-    } else {
-        return  (PX_ERROR);
-    }
-}
 /*********************************************************************************************************
 ** 函数名称: ppcE500MmuDataStorageAbortType
 ** 功能描述: 数据访问终止类型
@@ -801,6 +672,8 @@ static VOID  ppcE500MmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
 *********************************************************************************************************/
 static VOID  ppcE500MmuMakeCurCtx (PLW_MMU_CONTEXT  pmmuctx)
 {
+    ppcSetSPRG2(_G_bHasMAS7);                                           /*  使用 SPRG2 记录 bHasMAS7    */
+    ppcSetSPRG3(_G_ulPTETable);                                         /*  使用 SPRG3 记录 PTETable    */
 }
 /*********************************************************************************************************
 ** 函数名称: ppcE500MmuInvTLB

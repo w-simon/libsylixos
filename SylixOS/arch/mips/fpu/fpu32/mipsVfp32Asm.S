@@ -12,7 +12,7 @@
 ;**
 ;** 文   件   名: mipsVfp32Asm.S
 ;**
-;** 创   建   人: Ryan.Xin (信金龙)
+;** 创   建   人: Jiao.JinXing (焦进星)
 ;**
 ;** 文件创建日期: 2015 年 11 月 17 日
 ;**
@@ -31,23 +31,27 @@
     FILE_BEGIN()
 
     EXPORT_LABEL(mipsVfp32Init)
-    EXPORT_LABEL(mipsVfp32GetFIR)
     EXPORT_LABEL(mipsVfp32Enable)
     EXPORT_LABEL(mipsVfp32Disable)
     EXPORT_LABEL(mipsVfp32IsEnable)
     EXPORT_LABEL(mipsVfp32Save)
     EXPORT_LABEL(mipsVfp32Restore)
-    EXPORT_LABEL(mipsVfp32GetFEXR)
-    EXPORT_LABEL(mipsVfp32ClearFEXR)
+    EXPORT_LABEL(mipsVfp32GetFIR)
+    EXPORT_LABEL(mipsVfp32GetFCSR)
+    EXPORT_LABEL(mipsVfp32SetFCSR)
 
 ;/*********************************************************************************************************
-;  使能 FPU
+;  使能 FPU(只会破坏 T0 寄存器)
 ;*********************************************************************************************************/
 
 MACRO_DEF(ENABLE_FPU)
-    MFC0(T0, CP0_STATUS)
-    OR      T0 , M_StatusCU1
-    MTC0(T0, CP0_STATUS)
+    MFC0_EHB(T0, CP0_STATUS)
+#if LW_CFG_CPU_WORD_LENGHT == 64
+    OR      T0 , T0 , ST0_CU1 | ST0_FR
+#else
+    OR      T0 , T0 , ST0_CU1
+#endif
+    MTC0_EHB(T0, CP0_STATUS)
     MACRO_END()
 
 ;/*********************************************************************************************************
@@ -55,49 +59,84 @@ MACRO_DEF(ENABLE_FPU)
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsVfp32Init)
-    MFC0(T1, CP0_STATUS)
+    MFC0_EHB(T1, CP0_STATUS)                                            ;/*  T1 = 原 FPU 开关状态        */
 
-    ENABLE_FPU
+    ENABLE_FPU                                                          ;/*  使能 FPU                    */
 
-    MTC1    ZERO , FP0                                                  ;/* Zero the registers           */
-    MTC1    ZERO , FP1
-    MTC1    ZERO , FP2
-    MTC1    ZERO , FP3
-    MTC1    ZERO , FP4
-    MTC1    ZERO , FP5
-    MTC1    ZERO , FP6
-    MTC1    ZERO , FP7
-    MTC1    ZERO , FP8
-    MTC1    ZERO , FP9
-    MTC1    ZERO , FP10
-    MTC1    ZERO , FP11
-    MTC1    ZERO , FP12
-    MTC1    ZERO , FP13
-    MTC1    ZERO , FP14
-    MTC1    ZERO , FP15
-    MTC1    ZERO , FP16
-    MTC1    ZERO , FP17
-    MTC1    ZERO , FP18
-    MTC1    ZERO , FP19
-    MTC1    ZERO , FP20
-    MTC1    ZERO , FP21
-    MTC1    ZERO , FP22
-    MTC1    ZERO , FP23
-    MTC1    ZERO , FP24
-    MTC1    ZERO , FP25
-    MTC1    ZERO , FP26
-    MTC1    ZERO , FP27
-    MTC1    ZERO , FP28
-    MTC1    ZERO , FP29
-    MTC1    ZERO , FP30
-    MTC1    ZERO , FP31
+#if LW_CFG_CPU_WORD_LENGHT == 64
+    DMTC1   ZERO , $f1                                                  ;/*  清零 FPU 奇数编号寄存器     */
+    DMTC1   ZERO , $f3
+    DMTC1   ZERO , $f5
+    DMTC1   ZERO , $f7
+    DMTC1   ZERO , $f9
+    DMTC1   ZERO , $f11
+    DMTC1   ZERO , $f13
+    DMTC1   ZERO , $f15
+    DMTC1   ZERO , $f17
+    DMTC1   ZERO , $f19
+    DMTC1   ZERO , $f21
+    DMTC1   ZERO , $f23
+    DMTC1   ZERO , $f25
+    DMTC1   ZERO , $f27
+    DMTC1   ZERO , $f29
+    DMTC1   ZERO , $f31
 
-    CFC1(T0,  CP1_STATUS)                                               ;/*  Read to finish float oper   */
+    DMTC1   ZERO , $f0                                                 ;/*  清零 FPU 偶数编号寄存器      */
+    DMTC1   ZERO , $f2
+    DMTC1   ZERO , $f4
+    DMTC1   ZERO , $f6
+    DMTC1   ZERO , $f8
+    DMTC1   ZERO , $f10
+    DMTC1   ZERO , $f12
+    DMTC1   ZERO , $f14
+    DMTC1   ZERO , $f16
+    DMTC1   ZERO , $f18
+    DMTC1   ZERO , $f20
+    DMTC1   ZERO , $f22
+    DMTC1   ZERO , $f24
+    DMTC1   ZERO , $f26
+    DMTC1   ZERO , $f28
+    DMTC1   ZERO , $f30
 
-    LI      T0 , (1 << 24)                                              ;/*  Set FS bit                  */
-    CTC1(T0, CP1_STATUS)
+#else
+    MTC1    ZERO , $f0                                                  ;/*  清零 FPU 寄存器             */
+    MTC1    ZERO , $f1
+    MTC1    ZERO , $f2
+    MTC1    ZERO , $f3
+    MTC1    ZERO , $f4
+    MTC1    ZERO , $f5
+    MTC1    ZERO , $f6
+    MTC1    ZERO , $f7
+    MTC1    ZERO , $f8
+    MTC1    ZERO , $f9
+    MTC1    ZERO , $f10
+    MTC1    ZERO , $f11
+    MTC1    ZERO , $f12
+    MTC1    ZERO , $f13
+    MTC1    ZERO , $f14
+    MTC1    ZERO , $f15
+    MTC1    ZERO , $f16
+    MTC1    ZERO , $f17
+    MTC1    ZERO , $f18
+    MTC1    ZERO , $f19
+    MTC1    ZERO , $f20
+    MTC1    ZERO , $f21
+    MTC1    ZERO , $f22
+    MTC1    ZERO , $f23
+    MTC1    ZERO , $f24
+    MTC1    ZERO , $f25
+    MTC1    ZERO , $f26
+    MTC1    ZERO , $f27
+    MTC1    ZERO , $f28
+    MTC1    ZERO , $f29
+    MTC1    ZERO , $f30
+    MTC1    ZERO , $f31
+#endif
 
-    MTC0(T1, CP0_STATUS)
+    LI      T0 , FPU_CSR_FS                                             ;/*  非规格化结果被置为 0        */
+    CTC1_EHB(T0, CP1_STATUS)
+
+    MTC0_EHB(T1 , CP0_STATUS)                                           ;/*  恢复原 FPU 开关状态         */
     JR      RA
     NOP
     FUNC_END(mipsVfp32Init)
@@ -107,7 +146,7 @@ FUNC_DEF(mipsVfp32Init)
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsVfp32Enable)
-    ENABLE_FPU
+    ENABLE_FPU                                                          ;/*  使能 FPU                    */
     JR      RA
     NOP
     FUNC_END(mipsVfp32Enable)
@@ -117,9 +156,9 @@ FUNC_DEF(mipsVfp32Enable)
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsVfp32Disable)
-    MFC0(T0, CP0_STATUS)
-    AND     T0 , ~M_StatusCU1
-    MTC0(T0, CP0_STATUS)
+    MFC0_EHB(T0, CP0_STATUS)
+    AND     T0 , T0 , ~ST0_CU1
+    MTC0_EHB(T0, CP0_STATUS)
     JR      RA
     NOP
     FUNC_END(mipsVfp32Disable)
@@ -130,8 +169,8 @@ FUNC_DEF(mipsVfp32Disable)
 
 FUNC_DEF(mipsVfp32IsEnable)
     MOV     V0 , ZERO                                                   ;/*  FALSE return value          */
-    MFC0(T0, CP0_STATUS)
-    AND     T0 , M_StatusCU1                                            ;/*  coprocessor 1 enabled       */
+    MFC0_EHB(T0, CP0_STATUS)
+    AND     T0 , T0 , ST0_CU1                                           ;/*  coprocessor 1 enabled       */
     BEQ     T0 , ZERO, 1f
     NOP
     LI      V0 , 1                                                      ;/*  TRUE return value           */
@@ -141,63 +180,53 @@ FUNC_DEF(mipsVfp32IsEnable)
     FUNC_END(mipsVfp32IsEnable)
 
 ;/*********************************************************************************************************
-;  获得 FIR 寄存器
-;*********************************************************************************************************/
-
-FUNC_DEF(mipsVfp32GetFIR)
-    MFC0(T1, CP0_STATUS)
-
-    ENABLE_FPU
-
-    CFC1(V0,  CP1_FIR)
-
-    MTC0(T1, CP0_STATUS)
-    JR      RA
-    NOP
-    FUNC_END(mipsVfp32GetFIR)
-
-;/*********************************************************************************************************
 ;  保存 FPU 寄存器
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsVfp32Save)
-    ENABLE_FPU
+    ENABLE_FPU                                                          ;/*  使能 FPU                    */
 
-    CFC1(T0,  CP1_STATUS)
-    SW      T0   , FPCSR_OFFSET(A0)
+    CFC1_EHB(T1,  CP1_STATUS)
 
-    SWC1    FP0  , FP0_OFFSET(A0)
-    SWC1    FP1  , FP1_OFFSET(A0)
-    SWC1    FP2  , FP2_OFFSET(A0)
-    SWC1    FP3  , FP3_OFFSET(A0)
-    SWC1    FP4  , FP4_OFFSET(A0)
-    SWC1    FP5  , FP5_OFFSET(A0)
-    SWC1    FP6  , FP6_OFFSET(A0)
-    SWC1    FP7  , FP7_OFFSET(A0)
-    SWC1    FP8  , FP8_OFFSET(A0)
-    SWC1    FP9  , FP9_OFFSET(A0)
-    SWC1    FP10 , FP10_OFFSET(A0)
-    SWC1    FP11 , FP11_OFFSET(A0)
-    SWC1    FP12 , FP12_OFFSET(A0)
-    SWC1    FP13 , FP13_OFFSET(A0)
-    SWC1    FP14 , FP14_OFFSET(A0)
-    SWC1    FP15 , FP15_OFFSET(A0)
-    SWC1    FP16 , FP16_OFFSET(A0)
-    SWC1    FP17 , FP17_OFFSET(A0)
-    SWC1    FP18 , FP18_OFFSET(A0)
-    SWC1    FP19 , FP19_OFFSET(A0)
-    SWC1    FP20 , FP20_OFFSET(A0)
-    SWC1    FP21 , FP21_OFFSET(A0)
-    SWC1    FP22 , FP22_OFFSET(A0)
-    SWC1    FP23 , FP23_OFFSET(A0)
-    SWC1    FP24 , FP24_OFFSET(A0)
-    SWC1    FP25 , FP25_OFFSET(A0)
-    SWC1    FP26 , FP26_OFFSET(A0)
-    SWC1    FP27 , FP27_OFFSET(A0)
-    SWC1    FP28 , FP28_OFFSET(A0)
-    SWC1    FP29 , FP29_OFFSET(A0)
-    SWC1    FP30 , FP30_OFFSET(A0)
-    SWC1    FP31 , FP31_OFFSET(A0)
+#if LW_CFG_CPU_WORD_LENGHT == 64
+    SDC1    $f1  , FPU_OFFSET_REG(1)(A0)                                ;/*  保存 FPU 奇数编号寄存器     */
+    SDC1    $f3  , FPU_OFFSET_REG(3)(A0)
+    SDC1    $f5  , FPU_OFFSET_REG(5)(A0)
+    SDC1    $f7  , FPU_OFFSET_REG(7)(A0)
+    SDC1    $f9  , FPU_OFFSET_REG(9)(A0)
+    SDC1    $f11 , FPU_OFFSET_REG(11)(A0)
+    SDC1    $f13 , FPU_OFFSET_REG(13)(A0)
+    SDC1    $f15 , FPU_OFFSET_REG(15)(A0)
+    SDC1    $f17 , FPU_OFFSET_REG(17)(A0)
+    SDC1    $f19 , FPU_OFFSET_REG(19)(A0)
+    SDC1    $f21 , FPU_OFFSET_REG(21)(A0)
+    SDC1    $f23 , FPU_OFFSET_REG(23)(A0)
+    SDC1    $f25 , FPU_OFFSET_REG(25)(A0)
+    SDC1    $f27 , FPU_OFFSET_REG(27)(A0)
+    SDC1    $f29 , FPU_OFFSET_REG(29)(A0)
+    SDC1    $f31 , FPU_OFFSET_REG(31)(A0)
+#endif
+
+    SDC1    $f0  , FPU_OFFSET_REG(0)(A0)                                ;/*  保存 FPU 偶数编号寄存器     */
+    SDC1    $f2  , FPU_OFFSET_REG(2)(A0)
+    SDC1    $f4  , FPU_OFFSET_REG(4)(A0)
+    SDC1    $f6  , FPU_OFFSET_REG(6)(A0)
+    SDC1    $f8  , FPU_OFFSET_REG(8)(A0)
+    SDC1    $f10 , FPU_OFFSET_REG(10)(A0)
+    SDC1    $f12 , FPU_OFFSET_REG(12)(A0)
+    SDC1    $f14 , FPU_OFFSET_REG(14)(A0)
+    SDC1    $f16 , FPU_OFFSET_REG(16)(A0)
+    SDC1    $f18 , FPU_OFFSET_REG(18)(A0)
+    SDC1    $f20 , FPU_OFFSET_REG(20)(A0)
+    SDC1    $f22 , FPU_OFFSET_REG(22)(A0)
+    SDC1    $f24 , FPU_OFFSET_REG(24)(A0)
+    SDC1    $f26 , FPU_OFFSET_REG(26)(A0)
+    SDC1    $f28 , FPU_OFFSET_REG(28)(A0)
+    SDC1    $f30 , FPU_OFFSET_REG(30)(A0)
+
+    SW      T1   , FPU_OFFSET_FCSR(A0)                                 ;/*  保存 FPU 状态寄存器         */
+
+    EHB
 
     JR      RA
     NOP
@@ -208,68 +237,99 @@ FUNC_DEF(mipsVfp32Save)
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsVfp32Restore)
-    ENABLE_FPU
+    ENABLE_FPU                                                          ;/*  使能 FPU                    */
 
-    LWC1    FP0  , FP0_OFFSET(A0)
-    LWC1    FP1  , FP1_OFFSET(A0)
-    LWC1    FP2  , FP2_OFFSET(A0)
-    LWC1    FP3  , FP3_OFFSET(A0)
-    LWC1    FP4  , FP4_OFFSET(A0)
-    LWC1    FP5  , FP5_OFFSET(A0)
-    LWC1    FP6  , FP6_OFFSET(A0)
-    LWC1    FP7  , FP7_OFFSET(A0)
-    LWC1    FP8  , FP8_OFFSET(A0)
-    LWC1    FP9  , FP9_OFFSET(A0)
-    LWC1    FP10 , FP10_OFFSET(A0)
-    LWC1    FP11 , FP11_OFFSET(A0)
-    LWC1    FP12 , FP12_OFFSET(A0)
-    LWC1    FP13 , FP13_OFFSET(A0)
-    LWC1    FP14 , FP14_OFFSET(A0)
-    LWC1    FP15 , FP15_OFFSET(A0)
-    LWC1    FP16 , FP16_OFFSET(A0)
-    LWC1    FP17 , FP17_OFFSET(A0)
-    LWC1    FP18 , FP18_OFFSET(A0)
-    LWC1    FP19 , FP19_OFFSET(A0)
-    LWC1    FP20 , FP20_OFFSET(A0)
-    LWC1    FP21 , FP21_OFFSET(A0)
-    LWC1    FP22 , FP22_OFFSET(A0)
-    LWC1    FP23 , FP23_OFFSET(A0)
-    LWC1    FP24 , FP24_OFFSET(A0)
-    LWC1    FP25 , FP25_OFFSET(A0)
-    LWC1    FP26 , FP26_OFFSET(A0)
-    LWC1    FP27 , FP27_OFFSET(A0)
-    LWC1    FP28 , FP28_OFFSET(A0)
-    LWC1    FP29 , FP29_OFFSET(A0)
-    LWC1    FP30 , FP30_OFFSET(A0)
-    LWC1    FP31 , FP31_OFFSET(A0)
-    LW      T0   , FPCSR_OFFSET(A0)
+    LW      T1   , FPU_OFFSET_FCSR(A0)
 
-    CFC1(T1,  CP1_STATUS)                                               ;/*  Read to finish float oper   */
-    CTC1(T0,  CP1_STATUS)                                               ;/*  Restore fpp status reg      */
+#if LW_CFG_CPU_WORD_LENGHT == 64
+    LDC1    $f1  , FPU_OFFSET_REG(1)(A0)                                ;/*  恢复 FPU 奇数编号寄存器     */
+    LDC1    $f3  , FPU_OFFSET_REG(3)(A0)
+    LDC1    $f5  , FPU_OFFSET_REG(5)(A0)
+    LDC1    $f7  , FPU_OFFSET_REG(7)(A0)
+    LDC1    $f9  , FPU_OFFSET_REG(9)(A0)
+    LDC1    $f11 , FPU_OFFSET_REG(11)(A0)
+    LDC1    $f13 , FPU_OFFSET_REG(13)(A0)
+    LDC1    $f15 , FPU_OFFSET_REG(15)(A0)
+    LDC1    $f17 , FPU_OFFSET_REG(17)(A0)
+    LDC1    $f19 , FPU_OFFSET_REG(19)(A0)
+    LDC1    $f21 , FPU_OFFSET_REG(21)(A0)
+    LDC1    $f23 , FPU_OFFSET_REG(23)(A0)
+    LDC1    $f25 , FPU_OFFSET_REG(25)(A0)
+    LDC1    $f27 , FPU_OFFSET_REG(27)(A0)
+    LDC1    $f29 , FPU_OFFSET_REG(29)(A0)
+    LDC1    $f31 , FPU_OFFSET_REG(31)(A0)
+#endif
+
+    LDC1    $f0  , FPU_OFFSET_REG(0)(A0)                                ;/*  恢复 FPU 偶数编号寄存器     */
+    LDC1    $f2  , FPU_OFFSET_REG(2)(A0)
+    LDC1    $f4  , FPU_OFFSET_REG(4)(A0)
+    LDC1    $f6  , FPU_OFFSET_REG(6)(A0)
+    LDC1    $f8  , FPU_OFFSET_REG(8)(A0)
+    LDC1    $f10 , FPU_OFFSET_REG(10)(A0)
+    LDC1    $f12 , FPU_OFFSET_REG(12)(A0)
+    LDC1    $f14 , FPU_OFFSET_REG(14)(A0)
+    LDC1    $f16 , FPU_OFFSET_REG(16)(A0)
+    LDC1    $f18 , FPU_OFFSET_REG(18)(A0)
+    LDC1    $f20 , FPU_OFFSET_REG(20)(A0)
+    LDC1    $f22 , FPU_OFFSET_REG(22)(A0)
+    LDC1    $f24 , FPU_OFFSET_REG(24)(A0)
+    LDC1    $f26 , FPU_OFFSET_REG(26)(A0)
+    LDC1    $f28 , FPU_OFFSET_REG(28)(A0)
+    LDC1    $f30 , FPU_OFFSET_REG(30)(A0)
+
+    CTC1_EHB(T1, CP1_STATUS)                                            ;/*  恢复 FPU 状态寄存器         */
 
     JR      RA
     NOP
     FUNC_END(mipsVfp32Restore)
 
 ;/*********************************************************************************************************
-;  获得 FRXR 寄存器
+;  获得 FIR 寄存器
 ;*********************************************************************************************************/
 
-FUNC_DEF(mipsVfp32GetFEXR)
-    CFC1(V0,  CP1_FEXR)
+FUNC_DEF(mipsVfp32GetFIR)
+    MFC0_EHB(T1, CP0_STATUS)                                            ;/*  T1 = 原 FPU 开关状态        */
+
+    ENABLE_FPU                                                          ;/*  使能 FPU                    */
+
+    CFC1_EHB(V0, CP1_REVISION)                                          ;/*  V0 = CP1_REVISION           */
+
+    MTC0_EHB(T1, CP0_STATUS)                                            ;/*  恢复原 FPU 开关状态         */
     JR      RA
     NOP
-    FUNC_END(mipsVfp32GetFEXR)
+    FUNC_END(mipsVfp32GetFIR)
 
 ;/*********************************************************************************************************
-;  清除浮点异常
+;  获得 FCSR 寄存器
 ;*********************************************************************************************************/
 
-FUNC_DEF(mipsVfp32ClearFEXR)
-    CTC1(ZERO, CP1_FEXR)
+FUNC_DEF(mipsVfp32GetFCSR)
+    MFC0_EHB(T1, CP0_STATUS)                                            ;/*  T1 = 原 FPU 开关状态        */
+
+    ENABLE_FPU                                                          ;/*  使能 FPU                    */
+
+    CFC1_EHB(V0, CP1_STATUS)                                            ;/*  V0 = CP1_STATUS             */
+
+    MTC0_EHB(T1, CP0_STATUS)                                            ;/*  恢复原 FPU 开关状态         */
     JR      RA
     NOP
-    FUNC_END(mipsVfp32ClearFEXR)
+    FUNC_END(mipsVfp32GetFCSR)
+
+;/*********************************************************************************************************
+;  设置 FCSR 寄存器
+;*********************************************************************************************************/
+
+FUNC_DEF(mipsVfp32SetFCSR)
+    MFC0_EHB(T1, CP0_STATUS)                                            ;/*  T1 = 原 FPU 开关状态        */
+
+    ENABLE_FPU                                                          ;/*  使能 FPU                    */
+
+    CTC1_EHB(A0, CP1_STATUS)                                            ;/*  CP1_STATUS = A0             */
+
+    MTC0_EHB(T1, CP0_STATUS)                                            ;/*  恢复原 FPU 开关状态         */
+    JR      RA
+    NOP
+    FUNC_END(mipsVfp32SetFCSR)
 
     FILE_END()
 

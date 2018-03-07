@@ -76,7 +76,7 @@ static CHAR  *acpiScan (CHAR  *pcStart, CHAR  *pcEnd, CHAR  *pcSignature)
     pcStart = (CHAR *)((ULONG)pcStart & ~0xf);
 
     __ACPI_DEBUG_LOG("\n**** acpiScan (%p, %p, %s) strlen=%d ****\n",
-            pcStart, pcEnd, pcSignature, lib_strlen(pcSignature));
+                     pcStart, pcEnd, pcSignature, lib_strlen(pcSignature));
 
     pcEnd = (CHAR *)((ULONG)pcEnd - lib_strlen(pcSignature));
     if (pcStart <= pcEnd) {
@@ -145,8 +145,8 @@ INT  acpiTableValidate (UINT8  *pucBuffer, UINT32  uiLength, const CHAR  *pcSign
         }
     }
 
-    __ACPI_DEBUG_LOG("**** acpiTableValidate completed: pAcpiHeader %p, pSignature %s ****\n",
-            pAcpiHeader, pcSignature);
+    __ACPI_DEBUG_LOG("**** acpiTableValidate completed: pAcpiHeader %p, pcSignature %s ****\n",
+                     pAcpiHeader, pcSignature);
 
     return  (ERROR_NONE);
 }
@@ -535,7 +535,7 @@ INT  acpiTableInit (VOID)
             pAcpiHeader = AcpiOsMapMemory((ACPI_PHYSICAL_ADDRESS)pcAcpiTStart, stLength);
             if (pAcpiHeader != LW_NULL) {
                 __ACPI_DEBUG_LOG("\n  Rsdt checking table %018p, length %d\n",
-                        pAcpiHeader, (pAcpiHeader->Length));
+                                 pAcpiHeader, (pAcpiHeader->Length));
             }
 
             if ((pAcpiHeader == LW_NULL) ||
@@ -651,7 +651,7 @@ INT  acpiTableInit (VOID)
                 pAcpiHeader  = AcpiOsMapMemory((ACPI_PHYSICAL_ADDRESS)pcAcpiTStart, stLength);
                 if (pAcpiHeader != LW_NULL) {
                     __ACPI_DEBUG_LOG("\n  Xsdt checking table %p, length %d\n",
-                            pAcpiHeader, (pAcpiHeader->Length));
+                                     pAcpiHeader, (pAcpiHeader->Length));
                 }
 
                 if ((pAcpiHeader == LW_NULL) ||

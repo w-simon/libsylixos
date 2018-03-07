@@ -592,7 +592,9 @@ INT  sigignore (INT  iSigNo)
         return  (PX_ERROR);
     }
     
-    signal(iSigNo, SIG_IGN);
+    if (signal(iSigNo, SIG_IGN) == SIG_ERR) {
+        return  (PX_ERROR);
+    }
 
     return  (ERROR_NONE);
 }
@@ -742,7 +744,8 @@ INT  sigaltstack (const stack_t *ss, stack_t *oss)
     PLW_CLASS_TCB           ptcbCur;
     PLW_CLASS_SIGCONTEXT    psigctx;
     stack_t                *pstack;
-    
+    PLW_STACK               pstkStackNow = (PLW_STACK)&pstkStackNow;
+
     if (ss) {
         if ((ss->ss_flags != 0) && 
             (ss->ss_flags != SS_DISABLE)) {
@@ -770,9 +773,8 @@ INT  sigaltstack (const stack_t *ss, stack_t *oss)
     
     if (oss) {
         if (pstack->ss_flags == 0) {
-            if ((ptcbCur->TCB_pstkStackNow >= (PLW_STACK)pstack->ss_sp) && 
-                (ptcbCur->TCB_pstkStackNow <  (PLW_STACK)((size_t)pstack->ss_sp + 
-                                                          pstack->ss_size))) {
+            if ((pstkStackNow >= (PLW_STACK)pstack->ss_sp) &&
+                (pstkStackNow <  (PLW_STACK)((size_t)pstack->ss_sp + pstack->ss_size))) {
                 oss->ss_flags = SS_ONSTACK;
             } else {
                 oss->ss_flags = 0;
@@ -788,9 +790,8 @@ INT  sigaltstack (const stack_t *ss, stack_t *oss)
     }
     
     if (ss) {
-        if ((ptcbCur->TCB_pstkStackNow >= (PLW_STACK)pstack->ss_sp) && 
-            (ptcbCur->TCB_pstkStackNow <  (PLW_STACK)((size_t)pstack->ss_sp + 
-                                                      pstack->ss_size))) {
+        if ((pstkStackNow >= (PLW_STACK)pstack->ss_sp) &&
+            (pstkStackNow <  (PLW_STACK)((size_t)pstack->ss_sp + pstack->ss_size))) {
             _ErrorHandle(EPERM);                                        /*  正在信号上下文中使用此堆栈  */
             __KERNEL_EXIT();                                            /*  退出内核                    */
             return  (PX_ERROR);
@@ -931,16 +932,18 @@ INT  raise (INT  iSigNo)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT  __sigqueue (LW_OBJECT_HANDLE  ulId, INT   iSigNo, const union sigval *psigvalue)
+static INT  __sigqueue (LW_OBJECT_HANDLE  ulId, INT   iSigNo, PVOID  psigvalue)
 {
     REGISTER UINT16             usIndex;
     REGISTER PLW_CLASS_TCB      ptcb;
-    union    sigval             sigvalue = *psigvalue;
+    union    sigval             sigvalue;
     
 #if LW_CFG_SIGNALFD_EN > 0
              LW_SEND_VAL        sendval;
 #endif
              
+    sigvalue.sival_ptr = psigvalue;
+
 #if LW_CFG_MODULELOADER_EN > 0
     if (ulId <= LW_CFG_MAX_THREADS) {                                   /*  进程号                      */
         ulId  = vprocMainThread((pid_t)ulId);
@@ -1039,11 +1042,11 @@ INT  sigqueue (LW_OBJECT_HANDLE  ulId, INT   iSigNo, const union sigval  sigvalu
     }
 
     if (LW_CPU_GET_CUR_NESTING() || (ulId == API_ThreadIdSelf())) {
-        _excJobAdd((VOIDFUNCPTR)__sigqueue, (PVOID)ulId, (PVOID)iSigNo, (PVOID)&sigvalue, 0, 0, 0);
+        _excJobAdd((VOIDFUNCPTR)__sigqueue, (PVOID)ulId, (PVOID)iSigNo, sigvalue.sival_ptr, 0, 0, 0);
         return  (ERROR_NONE);
     }
     
-    return  (__sigqueue(ulId, iSigNo, &sigvalue));
+    return  (__sigqueue(ulId, iSigNo, sigvalue.sival_ptr));
 }
 /*********************************************************************************************************
 ** 函数名称: sigTrap

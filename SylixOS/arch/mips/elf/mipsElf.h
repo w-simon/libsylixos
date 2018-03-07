@@ -12,7 +12,7 @@
 **
 ** 文   件   名: mipsElf.h
 **
-** 创   建   人: Ryan.Xin (信金龙)
+** 创   建   人: Jiao.JinXing (焦进星)
 **
 ** 文件创建日期: 2015 年 09 月 09 日
 **
@@ -22,9 +22,13 @@
 #ifndef __ARCH_MIPSELF_H
 #define __ARCH_MIPSELF_H
 
-#ifdef LW_CFG_CPU_ARCH_MIPS                                             /*  MIPS 体系结构               */
+#if defined(LW_CFG_CPU_ARCH_MIPS)                                       /*  MIPS 体系结构               */
 
+#if LW_CFG_CPU_WORD_LENGHT == 32
 #define ELF_CLASS       ELFCLASS32
+#else
+#define ELF_CLASS       ELFCLASS64
+#endif
 #define ELF_ARCH        EM_MIPS
 
 #endif                                                                  /*  LW_CFG_CPU_ARCH_MIPS        */

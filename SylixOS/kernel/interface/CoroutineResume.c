@@ -83,7 +83,7 @@ ULONG  API_CoroutineResume (PVOID  pvCrcb)
     pcpuCur = LW_CPU_GET_CUR();
     pcpuCur->CPU_pcrcbCur  = pcrcbNow;
     pcpuCur->CPU_pcrcbNext = pcrcbNext;
-    archCrtCtxSwitch(LW_CPU_GET_CUR());                                 /*  协程切换                    */
+    archCrtCtxSwitch(pcpuCur);                                          /*  协程切换                    */
     
     KN_INT_ENABLE(iregInterLevel);                                      /*  打开中断                    */
     

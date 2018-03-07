@@ -12,7 +12,7 @@
 **
 ** 文   件   名: arch_float.h
 **
-** 创   建   人: Ryan.Xin (信金龙)
+** 创   建   人: Jiao.JinXing (焦进星)
 **
 ** 文件创建日期: 2015 年 09 月 01 日
 **
@@ -23,45 +23,24 @@
 #define __MIPS_ARCH_FLOAT_H
 
 /*********************************************************************************************************
-  Number of fp registers on coprocessor
+  FPU 浮点数据寄存器的相关定义
 *********************************************************************************************************/
 #if defined(__SYLIXOS_KERNEL) || defined(__ASSEMBLY__) || defined(ASSEMBLY)
 
-#define FP_NUM_DREGS            32
+#define FPU_REG_NR              32                                      /*  浮点数据寄存器的总数        */
+#if LW_CFG_MIPS_HAS_MSA_INSTR > 0
+#define FPU_REG_WIDTH           128                                     /*  浮点数据寄存器的位宽        */
+#else
+#define FPU_REG_WIDTH           64                                      /*  浮点数据寄存器的位宽        */
+#endif
+#define FPU_REG_SIZE            (FPU_REG_WIDTH / 8)                     /*  浮点数据寄存器的大小        */
 
-#define FP0_OFFSET              0x0                                     /*  OFFSET(FPX[0])              */
-#define FP1_OFFSET              0x8                                     /*  OFFSET(FPX[1])              */
-#define FP2_OFFSET              0x10                                    /*  OFFSET(FPX[2])              */
-#define FP3_OFFSET              0x18                                    /*  OFFSET(FPX[3])              */
-#define FP4_OFFSET              0x20                                    /*  OFFSET(FPX[4])              */
-#define FP5_OFFSET              0x28                                    /*  OFFSET(FPX[5])              */
-#define FP6_OFFSET              0x30                                    /*  OFFSET(FPX[6])              */
-#define FP7_OFFSET              0x38                                    /*  OFFSET(FPX[7])              */
-#define FP8_OFFSET              0x40                                    /*  OFFSET(FPX[8])              */
-#define FP9_OFFSET              0x48                                    /*  OFFSET(FPX[9])              */
-#define FP10_OFFSET             0x50                                    /*  OFFSET(FPX[10])             */
-#define FP11_OFFSET             0x58                                    /*  OFFSET(FPX[11])             */
-#define FP12_OFFSET             0x60                                    /*  OFFSET(FPX[12])             */
-#define FP13_OFFSET             0x68                                    /*  OFFSET(FPX[13])             */
-#define FP14_OFFSET             0x70                                    /*  OFFSET(FPX[14])             */
-#define FP15_OFFSET             0x78                                    /*  OFFSET(FPX[15])             */
-#define FP16_OFFSET             0x80                                    /*  OFFSET(FPX[16])             */
-#define FP17_OFFSET             0x88                                    /*  OFFSET(FPX[17])             */
-#define FP18_OFFSET             0x90                                    /*  OFFSET(FPX[18])             */
-#define FP19_OFFSET             0x98                                    /*  OFFSET(FPX[19])             */
-#define FP20_OFFSET             0xa0                                    /*  OFFSET(FPX[20])             */
-#define FP21_OFFSET             0xa8                                    /*  OFFSET(FPX[21])             */
-#define FP22_OFFSET             0xb0                                    /*  OFFSET(FPX[22])             */
-#define FP23_OFFSET             0xb8                                    /*  OFFSET(FPX[23])             */
-#define FP24_OFFSET             0xc0                                    /*  OFFSET(FPX[24])             */
-#define FP25_OFFSET             0xc8                                    /*  OFFSET(FPX[25])             */
-#define FP26_OFFSET             0xd0                                    /*  OFFSET(FPX[26])             */
-#define FP27_OFFSET             0xd8                                    /*  OFFSET(FPX[27])             */
-#define FP28_OFFSET             0xe0                                    /*  OFFSET(FPX[28])             */
-#define FP29_OFFSET             0xe8                                    /*  OFFSET(FPX[29])             */
-#define FP30_OFFSET             0xf0                                    /*  OFFSET(FPX[30])             */
-#define FP31_OFFSET             0xf8                                    /*  OFFSET(FPX[31])             */
-#define FPCSR_OFFSET            0x100                                   /*  OFFSET(ARCH_FPU_CTX, fpcsr) */
+/*********************************************************************************************************
+  定义 ARCH_FPU_CTX FPU 成员偏移
+*********************************************************************************************************/
+
+#define FPU_OFFSET_REG(n)       ((n) * FPU_REG_SIZE)                    /*  浮点数据寄存器偏移          */
+#define FPU_OFFSET_FCSR         (FPU_OFFSET_REG(FPU_REG_NR))            /*  FCSR 偏移                   */
 
 /*********************************************************************************************************
   汇编代码不包含以下内容
@@ -69,24 +48,24 @@
 
 #if (!defined(__ASSEMBLY__)) && (!defined(ASSEMBLY))
 
-#define FPU_REG_WIDTH   64
-
-union fpureg {
+typedef union fpureg {                                                  /*  FPU 寄存器类型              */
     UINT32              val32[FPU_REG_WIDTH / 32];
     UINT64              val64[FPU_REG_WIDTH / 64];
-};
+} ARCH_FPU_REG;
 
-/*
- * It would be nice to add some more fields for emulator statistics,
- * the additional information is private to the FPU emulator for now.
- */
-typedef struct arch_fpu_ctx {                                           /*  FP_CONTEXT 上下文           */
-    union fpureg        FPUCTX_reg[FP_NUM_DREGS];
-    UINT32              FPUCTX_uiFpcsr;
-    UINT32              FPUCTX_uiMsacsr;
-} ARCH_FPU_CTX;
-
+#if LW_CFG_MIPS_HAS_MSA_INSTR > 0
+#define ARCH_FPU_CTX_ALIGN      16                                      /*  FPU CTX align size          */
+#else
 #define ARCH_FPU_CTX_ALIGN      8                                       /*  FPU CTX align size          */
+#endif
+
+struct arch_fpu_ctx {                                                   /*  FPU 上下文                  */
+    ARCH_FPU_REG        FPUCTX_reg[FPU_REG_NR];                         /*  浮点数据寄存器              */
+    UINT32              FPUCTX_uiFcsr;                                  /*  FCSR                        */
+    UINT32              FPUCTX_uiPad;                                   /*  PAD                         */
+} __attribute__ ((aligned(ARCH_FPU_CTX_ALIGN)));
+
+typedef struct arch_fpu_ctx     ARCH_FPU_CTX;
 
 /*********************************************************************************************************
   float 格式 (使用 union 类型作为中间转换, 避免 GCC 3.x.x strict aliasing warning)
@@ -190,8 +169,6 @@ static LW_INLINE INT  __ARCH_DOUBLE_ISINF (double  x)
 /*********************************************************************************************************
   MIPS FPU 模拟帧
 *********************************************************************************************************/
-
-typedef UINT  MIPS_INSTRUCTION;
 
 typedef struct {
     MIPS_INSTRUCTION      MIPSFPUE_emul;

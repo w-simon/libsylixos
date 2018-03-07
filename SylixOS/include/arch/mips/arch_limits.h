@@ -12,9 +12,9 @@
 **
 ** 文   件   名: arch_limits.h
 **
-** 创   建   人: Ryan.Xin (信金龙)
+** 创   建   人: Jiao.JinXing (焦进星)
 **
-** 文件创建日期: 2015 年 09 月 01 日
+** 文件创建日期: 2016 年 06 月 25 日
 **
 ** 描        述: MIPS limits 相关.
 *********************************************************************************************************/
@@ -50,6 +50,7 @@
 #define __ARCH_INT_MIN             (-2147483647-1)
 #endif
 
+#if _MIPS_SZLONG == 32
 #ifndef __ARCH_LONG_MAX
 #define __ARCH_LONG_MAX            2147483647
 #endif
@@ -57,6 +58,16 @@
 #ifndef __ARCH_LONG_MIN
 #define __ARCH_LONG_MIN            (-2147483647-1)
 #endif
+
+#else
+#ifndef __ARCH_LONG_MAX
+#define __ARCH_LONG_MAX            9223372036854775807L
+#endif
+
+#ifndef __ARCH_LONG_MIN
+#define __ARCH_LONG_MIN            (-9223372036854775807-1)
+#endif
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
 
 #ifndef __ARCH_SCHAR_MAX
 #define __ARCH_SCHAR_MAX           127
@@ -82,6 +93,7 @@
 #endif
 #endif
 
+#if _MIPS_SZLONG == 32
 #ifndef __ARCH_ULONG_MAX
 #ifdef  __STDC__
 #define __ARCH_ULONG_MAX           4294967295u
@@ -89,6 +101,16 @@
 #define __ARCH_ULONG_MAX           4294967295
 #endif
 #endif
+
+#else
+#ifndef __ARCH_ULONG_MAX
+#ifdef  __STDC__
+#define __ARCH_ULONG_MAX           18446744073709551615UL
+#else
+#define __ARCH_ULONG_MAX           18446744073709551615
+#endif
+#endif
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
 
 #endif                                                                  /*  __MIPS_ARCH_LIMITS_H        */
 /*********************************************************************************************************

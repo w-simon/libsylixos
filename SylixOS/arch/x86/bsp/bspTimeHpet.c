@@ -95,6 +95,7 @@ INT  bspHpetTickInit (ACPI_TABLE_HPET  *pAcpiHpetPhy, ULONG  *pulVector)
 {
     ACPI_TABLE_HPET  *pAcpiHpet;
     UINT64            ui64FsPerCnt;
+    addr_t            ulHpetPhyBase;
 
     /*
      * Ó³Éä ACPI HPET ±í
@@ -104,10 +105,12 @@ INT  bspHpetTickInit (ACPI_TABLE_HPET  *pAcpiHpetPhy, ULONG  *pulVector)
         return  (PX_ERROR);
     }
 
+    ulHpetPhyBase = (addr_t)pAcpiHpet->Address.Address;
+
     /*
      * Ó³Éä HPET ¼Ä´æÆ÷
      */
-    _G_ulHpetBase = (addr_t)API_VmmIoRemapNocache((PVOID)pAcpiHpet->Address.Address,
+    _G_ulHpetBase = (addr_t)API_VmmIoRemapNocache((PVOID)ulHpetPhyBase,
                                                   LW_CFG_VMM_PAGE_SIZE);
 
     /*

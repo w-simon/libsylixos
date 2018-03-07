@@ -208,10 +208,10 @@ INT  archGdbRegsGet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, GDB_REG_SET  *
     pregset->regArr[29].GDBRA_ulValue  = regctx.REG_uiR29;
 
     pregset->regArr[30].GDBRA_ulValue  = regctx.REG_uiR30;
-    pregset->regArr[31].GDBRA_ulValue  = regctx.REG_uiFp;
+    pregset->regArr[31].GDBRA_ulValue  = regctx.REG_uiR31;
 
-    pregset->regArr[GDB_PPC_PC_INDEX].GDBRA_ulValue  = regctx.REG_uiSrr0;
-    pregset->regArr[GDB_PPC_MSR_INDEX].GDBRA_ulValue = regctx.REG_uiSrr1;
+    pregset->regArr[GDB_PPC_PC_INDEX].GDBRA_ulValue  = regctx.REG_uiPc;
+    pregset->regArr[GDB_PPC_MSR_INDEX].GDBRA_ulValue = regctx.REG_uiMsr;
     pregset->regArr[GDB_PPC_CR_INDEX].GDBRA_ulValue  = regctx.REG_uiCr;
     pregset->regArr[GDB_PPC_LR_INDEX].GDBRA_ulValue  = regctx.REG_uiLr;
     pregset->regArr[GDB_PPC_CTR_INDEX].GDBRA_ulValue = regctx.REG_uiCtr;
@@ -268,10 +268,10 @@ INT  archGdbRegsSet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, GDB_REG_SET  *
     regctx.REG_uiR29  = pregset->regArr[29].GDBRA_ulValue;
 
     regctx.REG_uiR30  = pregset->regArr[30].GDBRA_ulValue;
-    regctx.REG_uiFp   = pregset->regArr[31].GDBRA_ulValue;
+    regctx.REG_uiR31  = pregset->regArr[31].GDBRA_ulValue;
 
-    regctx.REG_uiSrr0 = pregset->regArr[GDB_PPC_PC_INDEX].GDBRA_ulValue;
-    regctx.REG_uiSrr1 = pregset->regArr[GDB_PPC_MSR_INDEX].GDBRA_ulValue;
+    regctx.REG_uiPc   = pregset->regArr[GDB_PPC_PC_INDEX].GDBRA_ulValue;
+    regctx.REG_uiMsr  = pregset->regArr[GDB_PPC_MSR_INDEX].GDBRA_ulValue;
     regctx.REG_uiCr   = pregset->regArr[GDB_PPC_CR_INDEX].GDBRA_ulValue;
     regctx.REG_uiLr   = pregset->regArr[GDB_PPC_LR_INDEX].GDBRA_ulValue;
     regctx.REG_uiCtr  = pregset->regArr[GDB_PPC_CTR_INDEX].GDBRA_ulValue;

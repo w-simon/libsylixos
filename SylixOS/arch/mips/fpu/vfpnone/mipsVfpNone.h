@@ -19,13 +19,13 @@
 ** 描        述: MIPS 体系架构无 VFP 支持.
 *********************************************************************************************************/
 
-#ifndef __MIPSVFPNONE_H
-#define __MIPSVFPNONE_H
+#ifndef __ARCH_MIPSVFPNONE_H
+#define __ARCH_MIPSVFPNONE_H
 
-PMIPS_FPU_OP  mipsVfpNonePrimaryInit(CPCHAR  pcMachineName, CPCHAR  pcFpuName);
+PMIPS_FPU_OP  mipsVfpNonePrimaryInit(CPCHAR    pcMachineName, CPCHAR  pcFpuName);
 VOID          mipsVfpNoneSecondaryInit(CPCHAR  pcMachineName, CPCHAR  pcFpuName);
 
-#endif                                                                  /*  __MIPSVFPNONE_H             */
+#endif                                                                  /*  __ARCH_MIPSVFPNONE_H        */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

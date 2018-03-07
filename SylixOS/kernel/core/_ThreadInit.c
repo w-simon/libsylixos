@@ -95,7 +95,6 @@
 ** 函数名称: _TCBBuild
 ** 功能描述: 创建一个TCB
 ** 输　入  : ucPriority                  优先级
-**           pstkStackNow                当前栈顶
 **           pstkStackTop                真实数据主栈区堆栈顶
 **           pstkStackButtom             真实数据主栈区堆栈底
 **           pstkStackGuard              堆栈警戒点
@@ -112,7 +111,6 @@
 ** 调用模块: 
 *********************************************************************************************************/
 VOID  _TCBBuild (UINT8                    ucPriority,
-                 PLW_STACK                pstkStackNow,
                  PLW_STACK                pstkStackTop,
                  PLW_STACK                pstkStackButtom,
                  PLW_STACK                pstkStackGuard,
@@ -138,11 +136,6 @@ VOID  _TCBBuild (UINT8                    ucPriority,
 
     LW_TCB_GET_CUR_SAFE(ptcbCur);                                       /*  当前 ptcb                   */
 
-#if defined(LW_CFG_CPU_ARCH_C6X)
-    ptcb->TCB_ulContextType   = 0;                                      /*  小上下文                    */
-#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
-
-    ptcb->TCB_pstkStackNow    = pstkStackNow;                           /*  堆栈指针连接                */
     ptcb->TCB_pstkStackTop    = pstkStackTop;                           /*  真实主栈区 头               */
     ptcb->TCB_pstkStackBottom = pstkStackButtom;                        /*  真实主栈区 底               */
     ptcb->TCB_pstkStackGuard  = pstkStackGuard;                         /*  堆栈警戒区                  */
@@ -226,7 +219,6 @@ VOID  _TCBBuild (UINT8                    ucPriority,
     
 #if LW_CFG_COROUTINE_EN > 0
     pcrcb = &ptcb->TCB_crcbOrigent;
-    pcrcb->COROUTINE_pstkStackNow     = pstkStackNow;
     pcrcb->COROUTINE_pstkStackTop     = pstkStackTop;
     pcrcb->COROUTINE_pstkStackBottom  = pstkStackButtom;
     pcrcb->COROUTINE_stStackSize      = stStackSize;
@@ -356,6 +348,11 @@ VOID  _TCBBuild (UINT8                    ucPriority,
     ptcb->TCB_pvStackFP = &ptcb->TCB_fpuctxContext;
     __ARCH_FPU_CTX_INIT(ptcb->TCB_pvStackFP);                           /*  初始化当前任务 FPU 上下文   */
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+
+#if LW_CFG_CPU_DSP_EN > 0
+    ptcb->TCB_pvStackDSP = &ptcb->TCB_dspctxContext;
+    __ARCH_DSP_CTX_INIT(ptcb->TCB_pvStackDSP);                          /*  初始化当前任务 DSP 上下文   */
+#endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
 
     __KERNEL_ENTER();                                                   /*  进入内核                    */
     _K_ptcbTCBIdTable[_ObjectGetIndex(ulId)] = ptcb;                    /*  保存TCB控制块               */

@@ -27,7 +27,19 @@
 *********************************************************************************************************/
 
 #define LW_CFG_CPU_ARCH_MIPS            1                               /*  CPU 架构                    */
-#define LW_CFG_CPU_ARCH_FAMILY          "MIPS(R)"                       /*  MIPS family                 */
+
+#if defined(_MIPS_ARCH_MIPS64R2)
+#define LW_CFG_CPU_ARCH_FAMILY          "MIPS64R2(R)"                   /*  MIPS64R2 family             */
+
+#elif defined(_MIPS_ARCH_MIPS64)
+#define LW_CFG_CPU_ARCH_FAMILY          "MIPS64(R)"                     /*  MIPS64 family               */
+
+#elif defined(_MIPS_ARCH_MIPS32R2)
+#define LW_CFG_CPU_ARCH_FAMILY          "MIPS32R2(R)"                   /*  MIPS32R2 family             */
+
+#else
+#define LW_CFG_CPU_ARCH_FAMILY          "MIPS32(R)"                     /*  MIPS32 family               */
+#endif
 
 /*********************************************************************************************************
   SMT 同步多线程调度优化
@@ -45,14 +57,30 @@
   CPU 字长与整型大小端定义
 *********************************************************************************************************/
 
+#if defined(__GNUC__)
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#define LW_CFG_CPU_ENDIAN               0                               /*  0: 小端                     */
+#else
+#define LW_CFG_CPU_ENDIAN               1                               /*  1: 大端                     */
+#endif                                                                  /*  __BYTE_ORDER__ == LITTLE    */
+#else
 #define LW_CFG_CPU_ENDIAN               0                               /*  0: 小端  1: 大端            */
+#endif                                                                  /*  defined(__GNUC__)           */
+
+#if defined(__mips64)
+#define LW_CFG_CPU_WORD_LENGHT          64                              /*  CPU 字长                    */
+#define LW_CFG_CPU_ARCH_MIPS64          1                               /*  CPU 架构                    */
+#else
 #define LW_CFG_CPU_WORD_LENGHT          32                              /*  CPU 字长                    */
+#endif
 
 /*********************************************************************************************************
   MIPS MMU 配置
-  12 :  4K Bytes per page.
-  14 : 16K Bytes per page.
-  16 : 64K Bytes per page.
+
+  LW_CFG_MIPS_PAGE_SHIFT 可配置的值有如下:
+        12 :  4K Bytes per page.
+        14 : 16K Bytes per page.
+        16 : 64K Bytes per page.
 *********************************************************************************************************/
 
 #define LW_CFG_MIPS_PAGE_SHIFT          14                              /*  MMU 页面大小                */
@@ -70,12 +98,24 @@
 
 #define LW_CFG_MIPS_HAS_CLZ_INSTR       1                               /*  是否支持前导零 CLZ 指令     */
 #define LW_CFG_MIPS_HAS_SYNC_INSTR      1                               /*  是否支持 SYNC 指令          */
+#define LW_CFG_MIPS_HAS_MSA_INSTR       0                               /*  是否支持 MSA(SIMD) 指令     */
+#if defined(_MIPS_ARCH_MIPS64R2)
+#define LW_CFG_MIPS_HAS_RDHWR_INSTR     1                               /*  MIPS64R2 支持 RDHWR 指令    */
+#else
+#define LW_CFG_MIPS_HAS_RDHWR_INSTR     0                               /*  是否支持 RDHWR 指令         */
+#endif
 
 /*********************************************************************************************************
   浮点运算单元
 *********************************************************************************************************/
 
 #define LW_CFG_CPU_FPU_EN               1                               /*  CPU 是否拥有 FPU            */
+
+/*********************************************************************************************************
+  DSP 数字信号处理器
+*********************************************************************************************************/
+
+#define LW_CFG_CPU_DSP_EN               1                               /*  CPU 是否拥有 DSP            */
 
 #endif                                                                  /*  __CPU_CFG_MIPS_H            */
 /*********************************************************************************************************

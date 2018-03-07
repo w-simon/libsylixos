@@ -27,7 +27,7 @@
 /*********************************************************************************************************
   The sructure of a segment descriptor.
 
-  @see Intel x86 doc, Vol 3, section 3.4.3, figure 3-8. For segment types, see section 3.5
+  @see Intel x86 doc, Vol 3, section 3.4.5, figure 3-8. For segment types, see section 3.5
 *********************************************************************************************************/
 struct x86_segment_descriptor {
     /*
@@ -59,7 +59,7 @@ typedef struct x86_segment_descriptor   X86_SEG_DESC;
 /*********************************************************************************************************
   The GDT register, which stores the address and size of the GDT.
 
-  @see Intel x86 doc vol 3, section 2.4, figure 2-4; and section 3.5.1
+  @see Intel x86 doc vol 3, section 2.4.1; and section 3.5.1
 *********************************************************************************************************/
 struct x86_gdt_register {
     /*
@@ -246,30 +246,28 @@ typedef struct x86_tss  X86_TSS;
 /*********************************************************************************************************
   全局变量定义
 *********************************************************************************************************/
-#if LW_CFG_CPU_WORD_LENGHT == 32
-static X86_SEG_DESC _G_x86GDT[] = {                                     /*  全局描述符表                */
-    [X86_SEG_NULL]       = (X86_SEG_DESC){ 0, },
-    [X86_SEG_KCODE]      = BUILD_GDTE(0, 1),
-    [X86_SEG_KDATA]      = BUILD_GDTE(0, 0),
-    [X86_SEG_UCODE]      = BUILD_GDTE(3, 1),
-    [X86_SEG_UDATA]      = BUILD_GDTE(3, 0),
-    [X86_SEG_KERNEL_TSS] = { 0, }
-};
+static X86_SEG_DESC _G_x86GDT[LW_CFG_MAX_PROCESSORS][X86_SEG_MAX];      /*  全局描述符表                */
+static X86_TSS      _G_x86KernelTss[LW_CFG_MAX_PROCESSORS];             /*  内核 TSS                    */
 
-static X86_TSS      _G_x86KernelTss;                                    /*  内核 TSS                    */
-#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
+extern LW_STACK     _K_stkInterruptStack[LW_CFG_MAX_PROCESSORS][LW_CFG_INT_STK_SIZE / sizeof(LW_STACK)];
 /*********************************************************************************************************
 ** 函数名称: x86GdtInit
 ** 功能描述: 初始化 GDT
-** 输　入  : NONE
+** 输　入  : ulCPUId       CPU ID
 ** 输　出  : ERROR CODE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-INT  x86GdtInit (VOID)
+static INT  __x86GdtInit (ULONG  ulCPUId)
 {
-#if LW_CFG_CPU_WORD_LENGHT == 32
     X86_GDT_REG  gdtr;
+
+    _G_x86GDT[ulCPUId][X86_SEG_NULL]  = (X86_SEG_DESC){ 0, };
+    _G_x86GDT[ulCPUId][X86_SEG_KCODE] = BUILD_GDTE(0, 1);
+    _G_x86GDT[ulCPUId][X86_SEG_KDATA] = BUILD_GDTE(0, 0);
+    _G_x86GDT[ulCPUId][X86_SEG_UCODE] = BUILD_GDTE(3, 1);
+    _G_x86GDT[ulCPUId][X86_SEG_UDATA] = BUILD_GDTE(3, 0);
+    _G_x86GDT[ulCPUId][X86_SEG_KERNEL_TSS] = (X86_SEG_DESC){ 0, };
 
     /*
      * Put some garbage in the padding field of the GDTR
@@ -279,12 +277,12 @@ INT  x86GdtInit (VOID)
     /*
      * Address of the GDT
      */
-    gdtr.base_addr = (addr_t)_G_x86GDT;
+    gdtr.base_addr = (addr_t)_G_x86GDT[ulCPUId];
 
     /*
      * The limit is the maximum offset in bytes from the base address of the GDT
      */
-    gdtr.limit     = sizeof(_G_x86GDT) - 1;
+    gdtr.limit     = X86_SEG_MAX * sizeof(X86_SEG_DESC) - 1;
 
     /*
      * Commit the GDT into the CPU, and update the segment
@@ -309,43 +307,48 @@ INT  x86GdtInit (VOID)
                            * field.
                            */
                           :"m"(gdtr.limit),
-                           "i"(X86_BUILD_SEGMENT_REG_VALUE(0, LW_FALSE, X86_SEG_KCODE)),
-                           "i"(X86_BUILD_SEGMENT_REG_VALUE(0, LW_FALSE, X86_SEG_KDATA))
+                           "i"(X86_CS_KERNEL),
+                           "i"(X86_DS_KERNEL)
                           :"memory", "eax");
-#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
 
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: x86GdtSecondaryInit
-** 功能描述: Secondary CPU 初始化 GDT
+** 函数名称: x86GdtInit
+** 功能描述: 初始化 GDT
 ** 输　入  : NONE
 ** 输　出  : ERROR CODE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-INT  x86GdtSecondaryInit (VOID)
+INT  x86GdtInit (VOID)
 {
-    return  (x86GdtInit());
+    /*
+     * 此时 CPU 拓扑结构还没有初始化好, 故用 0
+     */
+
+    /*
+     * BSP BOOT CPU 有调用 x86TssInit 函数
+     */
+    return  (__x86GdtInit(0));
 }
 /*********************************************************************************************************
 ** 函数名称: x86GdtRegisterKernelTss
 ** 功能描述: 注册 KERNEL TSS
-** 输　入  : NONE
+** 输　入  : ulCPUId       CPU ID
+**           ulTssVAddr    KERNEL TSS 地址
 ** 输　出  : ERROR CODE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-#if LW_CFG_CPU_WORD_LENGHT == 32
-
-static INT  x86GdtRegisterKernelTss (addr_t  ulTssVAddr)
+static INT  __x86GdtRegisterKernelTss (ULONG  ulCPUId, addr_t  ulTssVAddr)
 {
     UINT16  usTssRegVal;
 
     /*
      * Initialize the GDT entry
      */
-    _G_x86GDT[X86_SEG_KERNEL_TSS] = (X86_SEG_DESC) {
+    _G_x86GDT[ulCPUId][X86_SEG_KERNEL_TSS] = (X86_SEG_DESC) {
         .limit_15_0             = 0x67,                     /*  See Intel x86 vol 3 section 6.2.2       */
         .base_paged_addr_15_0   = (ulTssVAddr) & 0xffff,
         .base_paged_addr_23_16  = (ulTssVAddr >> 16) & 0xff,
@@ -364,28 +367,33 @@ static INT  x86GdtRegisterKernelTss (addr_t  ulTssVAddr)
     /*
      * Load the TSS register into the processor
      */
-    usTssRegVal = X86_BUILD_SEGMENT_REG_VALUE(0, LW_FALSE, X86_SEG_KERNEL_TSS);
+    usTssRegVal = X86_KERNEL_TSS;
     __asm__ __volatile__ ("ltr %0" :: "r"(usTssRegVal));
 
     return  (ERROR_NONE);
 }
-
-#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
 /*********************************************************************************************************
 ** 函数名称: x86TssInit
 ** 功能描述: 初始化 TSS
-** 输　入  : NONE
+** 输　入  : ulCPUId       CPU ID
 ** 输　出  : ERROR CODE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-INT  x86TssInit (VOID)
+static INT  __x86TssInit (ULONG  ulCPUId)
 {
-#if LW_CFG_CPU_WORD_LENGHT == 32
+    X86_TSS  *pTss;
+    addr_t    ulStackAddr;
+
+    ulStackAddr = (addr_t)&_K_stkInterruptStack[ulCPUId][(LW_CFG_INT_STK_SIZE / sizeof(LW_STACK)) - 1];
+    ulStackAddr = ROUND_DOWN(ulStackAddr, ARCH_STK_ALIGN_SIZE);
+
+    pTss = &_G_x86KernelTss[ulCPUId];
+
     /*
      * Reset the kernel TSS
      */
-    lib_bzero(&_G_x86KernelTss, sizeof(_G_x86KernelTss));
+    lib_bzero(pTss, sizeof(X86_TSS));
 
     /*
      * Now setup the kernel TSS.
@@ -397,37 +405,52 @@ INT  x86TssInit (VOID)
      * "ss0" and "esp0" fields). Since the esp0 will have to be updated
      * at privilege change time, we don't have to set it up now.
      */
-    _G_x86KernelTss.ss0 = X86_BUILD_SEGMENT_REG_VALUE(0, LW_FALSE, X86_SEG_KDATA);
+    pTss->ss0  = X86_DS_KERNEL;
+    pTss->esp0 = ulStackAddr;
 
     /*
      * Register this TSS into the gdt
      */
-    x86GdtRegisterKernelTss((addr_t)&_G_x86KernelTss);
-#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
+    __x86GdtRegisterKernelTss(ulCPUId, (addr_t)pTss);
 
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: x86TssSecondaryInit
-** 功能描述: Secondary CPU 初始化 TSS
+** 函数名称: x86TssInit
+** 功能描述: 初始化 TSS
 ** 输　入  : NONE
 ** 输　出  : ERROR CODE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-INT  x86TssSecondaryInit (VOID)
+INT  x86TssInit (VOID)
 {
-#if LW_CFG_CPU_WORD_LENGHT == 32
-    UINT16  usTssRegVal;
+    /*
+     * 此时 CPU 拓扑结构还没有初始化好, 故用 0
+     */
+    return  (__x86TssInit(0));
+}
+/*********************************************************************************************************
+** 函数名称: x86GdtSecondaryInit
+** 功能描述: Secondary CPU 初始化 GDT
+** 输　入  : NONE
+** 输　出  : ERROR CODE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  x86GdtSecondaryInit (VOID)
+{
+    /*
+     * 此时 CPU 拓扑结构已经初始化好, 故用 LW_CPU_GET_CUR_ID()
+     */
+    ULONG  ulCPUId = LW_CPU_GET_CUR_ID();
+
+    __x86GdtInit(ulCPUId);
 
     /*
-     * Load the TSS register into the processor
+     * BSP Secondary CPU 并没有调用 x86TssSecondaryInit 函数, 所以这里调用 __x86TssInit 函数
      */
-    usTssRegVal = X86_BUILD_SEGMENT_REG_VALUE(0, LW_FALSE, X86_SEG_KERNEL_TSS);
-    __asm__ __volatile__ ("ltr %0" :: "r"(usTssRegVal));
-#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
-
-    return  (ERROR_NONE);
+    return  (__x86TssInit(ulCPUId));
 }
 /*********************************************************************************************************
   END

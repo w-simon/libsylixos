@@ -40,6 +40,9 @@
 #if LW_CFG_INTER_FPU > 0
 #define __INTER_FPU_CTX(nest)      &pcpu->CPU_fpuctxContext[nest]
 #endif                                                                  /*  LW_CFG_INTER_FPU > 0        */
+#if LW_CFG_INTER_DSP > 0
+#define __INTER_DSP_CTX(nest)      &pcpu->CPU_dspctxContext[nest]
+#endif                                                                  /*  LW_CFG_INTER_DSP > 0        */
 /*********************************************************************************************************
 ** 函数名称: __fpuInterEnter
 ** 功能描述: 进入中断状态 FPU 处理 (在关中断的情况下被调用)
@@ -99,6 +102,64 @@ static VOID  __fpuInterExit (PLW_CLASS_CPU  pcpu)
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
                                                                         /*  LW_CFG_INTER_FPU > 0        */
 /*********************************************************************************************************
+** 函数名称: __dspInterEnter
+** 功能描述: 进入中断状态 DSP 处理 (在关中断的情况下被调用)
+** 输　入  : pcpu  当前 CPU 控制块
+** 输　出  :
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+#if (LW_CFG_CPU_DSP_EN > 0) && (LW_CFG_INTER_DSP > 0)
+
+static VOID  __dspInterEnter (PLW_CLASS_CPU  pcpu)
+{
+    PLW_CLASS_TCB  ptcbCur;
+    ULONG          ulInterNesting = pcpu->CPU_ulInterNesting;
+
+    if (ulInterNesting == 1) {                                          /*  从任务态进入中断            */
+        ptcbCur = pcpu->CPU_ptcbTCBCur;
+        if (ptcbCur->TCB_ulOption & LW_OPTION_THREAD_USED_DSP) {
+            __ARCH_DSP_SAVE(ptcbCur->TCB_pvStackDSP);                   /*  保存当前被中断线程 DSP CTX  */
+
+        } else {
+            __ARCH_DSP_ENABLE();                                        /*  使能当前中断下 DSP          */
+        }
+
+    } else {
+        REGISTER ULONG  ulOldNest = ulInterNesting - 1;
+        __ARCH_DSP_SAVE(__INTER_DSP_CTX(ulOldNest));
+    }
+}
+/*********************************************************************************************************
+** 函数名称: __dspInterExit
+** 功能描述: 退出中断状态 DSP 处理 (在关中断的情况下被调用)
+** 输　入  : pcpu  当前 CPU 控制块
+** 输　出  :
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  __dspInterExit (PLW_CLASS_CPU  pcpu)
+{
+    PLW_CLASS_TCB  ptcbCur;
+    ULONG          ulInterNesting = pcpu->CPU_ulInterNesting;
+
+    if (ulInterNesting == 0) {                                          /*  退出到任务状态              */
+        ptcbCur = pcpu->CPU_ptcbTCBCur;
+        if (ptcbCur->TCB_ulOption & LW_OPTION_THREAD_USED_DSP) {
+            __ARCH_DSP_RESTORE(ptcbCur->TCB_pvStackDSP);                /*  没有产生调度, 则恢复 DSP CTX*/
+
+        } else {
+            __ARCH_DSP_DISABLE();                                       /*  继续执行的任务不需要 DSP    */
+        }
+
+    } else {                                                            /*  退出后还在中断中            */
+        __ARCH_DSP_RESTORE(__INTER_DSP_CTX(ulInterNesting));
+    }
+}
+
+#endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
+                                                                        /*  LW_CFG_INTER_DSP > 0        */
+/*********************************************************************************************************
 ** 函数名称: API_InterEnter
 ** 功能描述: 内核中断入口函数 (在关中断的情况下被调用)
 ** 输　入  : 
@@ -108,12 +169,17 @@ static VOID  __fpuInterExit (PLW_CLASS_CPU  pcpu)
                                            API 函数
 *********************************************************************************************************/
 LW_API
-ULONG    API_InterEnter (VOID)
+ULONG    API_InterEnter (ARCH_REG_T  reg0,
+                         ARCH_REG_T  reg1,
+                         ARCH_REG_T  reg2,
+                         ARCH_REG_T  reg3)
 {
     PLW_CLASS_CPU  pcpu;
     
     pcpu = LW_CPU_GET_CUR();
     pcpu->CPU_ulInterNesting++;
+
+    archIntCtxSaveReg(pcpu, reg0, reg1, reg2, reg3);
 
 #if (LW_CFG_CPU_FPU_EN > 0) && (LW_CFG_INTER_FPU > 0)
     if (LW_KERN_FPU_EN_GET()) {                                         /*  中断状态允许使用浮点运算    */
@@ -121,6 +187,12 @@ ULONG    API_InterEnter (VOID)
     }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
                                                                         /*  LW_CFG_INTER_FPU > 0        */
+#if (LW_CFG_CPU_DSP_EN > 0) && (LW_CFG_INTER_DSP > 0)
+    if (LW_KERN_DSP_EN_GET()) {                                         /*  中断状态允许使用 DSP        */
+        __dspInterEnter(pcpu);
+    }
+#endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
+                                                                        /*  LW_CFG_INTER_DSP > 0        */
     return  (pcpu->CPU_ulInterNesting);
 }
 /*********************************************************************************************************
@@ -155,7 +227,13 @@ VOID    API_InterExit (VOID)
             __fpuInterExit(pcpu);
         }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
-        return;                                                         /*  LW_CFG_INTER_FPU > 0        */
+                                                                        /*  LW_CFG_INTER_FPU > 0        */
+#if (LW_CFG_CPU_DSP_EN > 0) && (LW_CFG_INTER_DSP > 0)                   /*  恢复上一等级中断 DSP CTX    */
+        if (LW_KERN_DSP_EN_GET()) {
+            __dspInterExit(pcpu);
+        }
+#endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
+        return;                                                         /*  LW_CFG_INTER_DSP > 0        */
     }
     
     __KERNEL_SCHED_INT(pcpu);                                           /*  中断中的调度                */
@@ -166,7 +244,13 @@ VOID    API_InterExit (VOID)
     }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
                                                                         /*  LW_CFG_INTER_FPU > 0        */
-                                                                        
+#if (LW_CFG_CPU_DSP_EN > 0) && (LW_CFG_INTER_DSP > 0)
+    if (LW_KERN_DSP_EN_GET()) {
+        __dspInterExit(pcpu);
+    }
+#endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
+                                                                        /*  LW_CFG_INTER_DSP > 0        */
+
     archIntCtxLoad(pcpu);                                               /*  中断返回 (当前任务 CTX 加载)*/
 }
 /*********************************************************************************************************

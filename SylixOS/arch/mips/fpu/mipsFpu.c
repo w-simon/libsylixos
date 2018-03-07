@@ -12,7 +12,7 @@
 **
 ** 文   件   名: mipsFpu.c
 **
-** 创   建   人: Ryan.Xin (信金龙)
+** 创   建   人: Jiao.JinXing (焦进星)
 **
 ** 文件创建日期: 2015 年 11 月 17 日
 **
@@ -33,10 +33,7 @@
 *********************************************************************************************************/
 static LW_FPU_CONTEXT   _G_fpuCtxInit;
 static PMIPS_FPU_OP     _G_pfpuop;
-/*********************************************************************************************************
-  外部函数声明
-*********************************************************************************************************/
-extern UINT32  mipsVfp32GetFIR(VOID);
+static UINT32           _G_uiFpuFIR;
 /*********************************************************************************************************
   Fpu 模拟器帧池
 *********************************************************************************************************/
@@ -95,11 +92,12 @@ VOID  archFpuPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
                  LW_CFG_CPU_ARCH_FAMILY, pcMachineName, pcFpuName);
 
     uiConfig1 = mipsCp0Config1Read();
-    if (uiConfig1 & M_Config1FP) {
+    if (uiConfig1 & MIPS_CONF1_FP) {
         if (lib_strcmp(pcFpuName, MIPS_FPU_NONE) == 0) {                /*  选择 VFP 架构               */
             _G_pfpuop = mipsVfpNonePrimaryInit(pcMachineName, pcFpuName);
 
-        } else if (lib_strcmp(pcFpuName, MIPS_FPU_VFP32) == 0) {
+        } else if ((lib_strcmp(pcFpuName, MIPS_FPU_VFP32) == 0) ||
+                   (lib_strcmp(pcFpuName, MIPS_FPU_AUTO)  == 0)) {
             _G_pfpuop = mipsVfp32PrimaryInit(pcMachineName, pcFpuName);
 
         } else {
@@ -119,6 +117,8 @@ VOID  archFpuPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
     MIPS_VFP_ENABLE(_G_pfpuop);
 
     MIPS_VFP_SAVE(_G_pfpuop, (PVOID)&_G_fpuCtxInit);
+
+    _G_uiFpuFIR = (UINT32)MIPS_VFP_GETFIR(_G_pfpuop);
 
     MIPS_VFP_DISABLE(_G_pfpuop);
 }
@@ -141,11 +141,12 @@ VOID  archFpuSecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
                  LW_CFG_CPU_ARCH_FAMILY, pcMachineName, pcFpuName);
 
     uiConfig1 = mipsCp0Config1Read();
-    if (uiConfig1 & M_Config1FP) {
+    if (uiConfig1 & MIPS_CONF1_FP) {
         if (lib_strcmp(pcFpuName, MIPS_FPU_NONE) == 0) {                /*  选择 VFP 架构               */
             mipsVfpNoneSecondaryInit(pcMachineName, pcFpuName);
 
-        } else if (lib_strcmp(pcFpuName, MIPS_FPU_VFP32) == 0) {
+        } else if ((lib_strcmp(pcFpuName, MIPS_FPU_VFP32) == 0) ||
+                   (lib_strcmp(pcFpuName, MIPS_FPU_AUTO)  == 0)) {
             mipsVfp32SecondaryInit(pcMachineName, pcFpuName);
 
         } else {
@@ -234,6 +235,18 @@ VOID  archFpuCtxShow (INT  iFd, PVOID  pvFpuCtx)
     MIPS_VFP_CTXSHOW(_G_pfpuop, iFd, pvFpuCtx);
 }
 /*********************************************************************************************************
+** 函数名称: archFpuGetFIR
+** 功能描述: 获得浮点实现寄存器的值.
+** 输　入  : NONE
+** 输　出  : 浮点实现寄存器的值
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+UINT32  archFpuGetFIR (VOID)
+{
+    return  (_G_uiFpuFIR);
+}
+/*********************************************************************************************************
 ** 函数名称: archFpuUndHandle
 ** 功能描述: 系统发生 undef 异常时, 调用此函数.
 **           只有某个任务或者中断, 真正使用浮点运算时 (即运行到浮点运算指令产生异常)
@@ -245,18 +258,15 @@ VOID  archFpuCtxShow (INT  iFd, PVOID  pvFpuCtx)
 *********************************************************************************************************/
 INT  archFpuUndHandle (PLW_CLASS_TCB  ptcbCur)
 {
-    ARCH_REG_CTX  *pregctx;
-    ARCH_REG_T     regSp;
-    UINT32         uiConfig1;
+    UINT32  uiConfig1;
 
     if (MIPS_VFP_ISENABLE(_G_pfpuop)) {                                 /*  如果当前上下文 FPU 使能     */
         return  (PX_ERROR);                                             /*  此未定义指令与 FPU 无关     */
     }
 
     uiConfig1 = mipsCp0Config1Read();
-    if (uiConfig1 & M_Config1FP) {                                      /*  有 FPU                      */
-        pregctx = archTaskRegsGet(ptcbCur->TCB_pstkStackNow, &regSp);
-        pregctx->REG_uiCP0Status |= M_StatusCU1;
+    if (uiConfig1 & MIPS_CONF1_FP) {                                    /*  有 FPU                      */
+        MIPS_VFP_ENABLE_TASK(_G_pfpuop, ptcbCur);                       /*  任务使能 FPU                */
     
 	} else {
         return  (PX_ERROR);                                             /*  没有 FPU                    */

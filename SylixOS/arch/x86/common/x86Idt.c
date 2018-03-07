@@ -29,7 +29,7 @@
   An entry in the IDT, or "IDTE" in the following, ie a reference to
   a interrupt/trap routine or a task gate to handle the sw/hw interrupts and exceptions.
 
-  @see figure 5-2, intel x86 doc, vol 3
+  @see figure 6-2, intel x86 doc, vol 3
 *********************************************************************************************************/
 struct x86_idt_entry {
     /*
@@ -60,7 +60,7 @@ typedef struct x86_idt_entry        X86_IDT_ENTRY, *PX86_IDT_ENTRY;
 /*********************************************************************************************************
   The IDT register, which stores the address and size of the IDT.
 
-  @see Intel x86 doc vol 3, section 2.4, figure 2-4
+  @see Intel x86 doc vol 3, section 2.4.3, figure 6-1
 *********************************************************************************************************/
 struct x86_idt_register {
     UINT16      limit;
@@ -73,39 +73,19 @@ typedef struct x86_idt_register     X86_IDT_REG;
 *********************************************************************************************************/
 static X86_IDT_ENTRY     _G_x86IDT[X86_IDTE_NUM];                       /*  中断描述符表                */
 /*********************************************************************************************************
-** 函数名称: x86IdtInit
-** 功能描述: 初始化 IDT
+** 函数名称: __x86IdtRegister
+** 功能描述: 注册 IDT
 ** 输　入  : NONE
 ** 输　出  : ERROR CODE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-INT  x86IdtInit (VOID)
+static INT  __x86IdtRegister (VOID)
 {
     X86_IDT_REG  idtr;
-    INT          i;
-
-    for (i = 0; i < X86_IDTE_NUM; i++) {
-        PX86_IDT_ENTRY  pidte = _G_x86IDT + i;
-
-        /*
-         * Setup an empty IDTE interrupt gate, see figure 5-2 in Intel x86 doc, vol 3
-         */
-        pidte->seg_sel  = X86_CS_KERNEL;
-        pidte->reserved = 0;
-        pidte->flags    = 0;
-        pidte->type     = 0x6;                                          /*  Interrupt gate (110b)       */
-        pidte->op_size  = 1;                                            /*  32bits instructions         */
-        pidte->zero     = 0;
-
-        /*
-         * Disable this IDT entry for the moment
-         */
-        x86IdtSetHandler(i, (addr_t)LW_NULL, 0);
-    }
 
     /*
-     * Setup the IDT register, see Intel x86 doc vol 3, section 5.8.
+     * Setup the IDT register, see Intel x86 doc vol 3, section 6.11.
      */
 
     /*
@@ -126,6 +106,39 @@ INT  x86IdtInit (VOID)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: x86IdtInit
+** 功能描述: 初始化 IDT
+** 输　入  : NONE
+** 输　出  : ERROR CODE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  x86IdtInit (VOID)
+{
+    INT  i;
+
+    for (i = 0; i < X86_IDTE_NUM; i++) {
+        PX86_IDT_ENTRY  pidte = _G_x86IDT + i;
+
+        /*
+         * Setup an empty IDTE interrupt gate, see figure 6-2 in Intel x86 doc, vol 3
+         */
+        pidte->seg_sel  = X86_CS_KERNEL;
+        pidte->reserved = 0;
+        pidte->flags    = 0;
+        pidte->type     = 0x6;                                          /*  Interrupt gate (110b)       */
+        pidte->op_size  = 1;                                            /*  32bits instructions         */
+        pidte->zero     = 0;
+
+        /*
+         * Disable this IDT entry for the moment
+         */
+        x86IdtSetHandler(i, (addr_t)LW_NULL, 0);
+    }
+
+    return  (__x86IdtRegister());
+}
+/*********************************************************************************************************
 ** 函数名称: x86IdtSecondaryInit
 ** 功能描述: Secondary CPU 初始化 IDT
 ** 输　入  : NONE
@@ -135,28 +148,7 @@ INT  x86IdtInit (VOID)
 *********************************************************************************************************/
 INT  x86IdtSecondaryInit (VOID)
 {
-    X86_IDT_REG  idtr;
-
-    /*
-     * Setup the IDT register, see Intel x86 doc vol 3, section 5.8.
-     */
-
-    /*
-     * Address of the IDT
-     */
-    idtr.base_addr = (addr_t)_G_x86IDT;
-
-    /*
-     * The limit is the maximum offset in bytes from the base address of the IDT
-     */
-    idtr.limit = sizeof(_G_x86IDT) - 1;
-
-    /*
-     * Commit the IDT into the CPU
-     */
-    __asm__ __volatile__ ("lidt %0" :: "m"(idtr) : "memory");
-
-    return  (ERROR_NONE);
+    return  (__x86IdtRegister());
 }
 /*********************************************************************************************************
 ** 函数名称: x86IdtSetHandler

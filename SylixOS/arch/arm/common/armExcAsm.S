@@ -25,6 +25,8 @@
 
 #include <arch/assembler.h>
 
+#include "arch/arm/arch_regs.h"
+
 #if !defined(__SYLIXOS_ARM_ARCH_M__)
 
     FILE_BEGIN()
@@ -53,62 +55,89 @@
 ;  中断入口
 ;*********************************************************************************************************/
 
-MACRO_DEF(IRQ_ENTRY)
-    STMFD   SP!, {R1-R3}                                                ;/*  寄存器压入 IRQ 模式堆栈     */
-    MOV     R1 , SP                                                     ;/*  保存 IRQ 堆栈指针           */
-    ADD     SP , SP, #12                                                ;/*  调整 IRQ 堆栈指针           */
-    SUB     R2 , LR, #4                                                 ;/*  调整用于中断返回的 PC 值    */
-    MRS     R3 , SPSR                                                   ;/*  将 SPSR_irq 拷贝到 R3       */
-    MSR     CPSR_c, #(DIS_INT | SVC32_MODE)                             ;/*  回到 SVC 模式               */
-    
-    STMFD   SP!, {R2}                                                   ;/*  任务返回地址压栈            */
-    STMFD   SP!, {LR}                                                   ;/*  LR 压栈                     */
-    STMFD   SP!, {R4-R12}                                               ;/*  R12 - R4 压栈               */
-    
-    LDMFD   R1!, {R4-R6}                                                ;/*  将任务寄存器 R1 - R3 从     */
-                                                                        ;/*  IRQ 堆栈拷贝到 SVC 堆栈     */
-    STMFD   SP!, {R4-R6}
-    STMFD   SP!, {R0}                                                   ;/*  R0 压栈                     */
-    STMFD   SP!, {R3}                                                   ;/*  CPSR 压栈                   */
+FUNC_DEF(archIntEntry)
+    ;/*
+    ; * 保存 REG 到 IRQ 模式栈空间(这里做了个必须成立的假设, 之前必须工作在 SYS 或 USR 模式)
+    ; */
+    SUB     LR , LR, #4                                                 ;/*  调整用于中断返回的 PC 值    */
+    STMFD   SP!, {LR}                                                   ;/*  保存返回地址                */
+    STMFD   SP!, {R0-R12}                                               ;/*  保存寄存器                  */
+    MOV     R1 , SP
+    MSR     CPSR_c, #(DIS_INT | SYS32_MODE)                             ;/*  回到 SYS 模式               */
+    STMFD   R1!, {SP}                                                   ;/*  保存 SP_sys                 */
+    STMFD   R1 , {LR}                                                   ;/*  保存 LR_sys                 */
+    MSR     CPSR_c, #(DIS_INT | IRQ32_MODE)                             ;/*  回到 IRQ 模式               */
+    SUB     SP , SP , #(2 * 4)                                          ;/*  调整 SP_irq                 */
+    MRS     R2 , SPSR
+    STMFD   SP!, {R2}                                                   ;/*  保存 CPSR_sys               */
     
     ;/*
-    ; *  if (API_InterEnter() == 1) {
-    ; *      current stack = SP;
-    ; *      SP = interrupt stack;
-    ; *  }
+    ; * API_InterEnter(SP_irq), 如果是第一次中断, 会将 IRQ 模式栈空间的 ARCH_REG_CTX
+    ; * 拷贝到当前任务 TCB 的 ARCH_REG_CTX 里
     ; */
-    LDR     R0 , =API_InterEnter
+    MOV     R0 , SP
+    LDR     R1 , =API_InterEnter
     MOV     LR , PC
-    BX      R0
+    BX      R1
+
+    ;/*
+    ; * 如果不是第一次进入中断, 那么上一次中断(工作在 SYS 模式)已经设置 SP_sys, 只需要回到 SYS 模式
+    ; */
     CMP     R0 , #1
     BNE     1f
-    
-    LDR     R0 , =API_ThreadTcbInter                                    ;/*  get current tcb             */
+
+    ;/*
+    ; * 第一次进入中断: 因为已经将 IRQ 模式栈空间的 ARCH_REG_CTX 拷贝到当前任务 TCB 的 ARCH_REG_CTX 里
+    ; * 调整 SP_irq
+    ; */
+    ADD     SP , SP , #(ARCH_REG_CTX_SIZE)
+
+    ;/*
+    ; * 第一次进入中断: 获得当前 CPU 中断堆栈栈顶, 并回到 SYS 模式, 并设置 SP_sys
+    ; */
+    LDR     R0 , =API_InterStackBaseGet
     MOV     LR , PC
     BX      R0
-    STR     SP , [R0]                                                   ;/*  current stack = SP          */
-        
-    LDR     R0 , =API_InterStackBaseGet                                 ;/*  获得当前 CPU 中断堆栈栈顶   */
-    MOV     LR , PC
-    BX      R0
-    MOV     SP , R0
-    
+
+    MSR     CPSR_c, #(DIS_INT | SYS32_MODE)                             ;/*  回到 SYS 模式               */
+    MOV     SP , R0                                                     ;/*  设置 SP_sys                 */
+
 1:
-    LDR     R5 , =bspIntHandle
+    MSR     CPSR_c, #(DIS_INT | SYS32_MODE)                             ;/*  回到 SYS 模式(不是多余的)   */
+
+    ;/*
+    ; * bspIntHandle()
+    ; */
+    LDR     R1 , =bspIntHandle
     MOV     LR , PC
-    BX      R5
+    BX      R1
     
-    LDR     R0 , =API_InterExit
+    ;/*
+    ; * API_InterExit()
+    ; * 如果没有发生中断嵌套, 则 API_InterExit 会调用 archIntCtxLoad 函数, SP_irq 在上面已经调整好
+    ; */
+    LDR     R1 , =API_InterExit
     MOV     LR , PC
-    BX      R0
+    BX      R1
     
-    LDMFD   SP!, {R4}
-    MSR     SPSR_cxsf, R4
-    LDMFD   SP!, {R0-R12, LR, PC}^
-    MACRO_END()
-    
-FUNC_DEF(archIntEntry)
-    IRQ_ENTRY
+    ;/*
+    ; * 来到这里, 说明发生了中断嵌套
+    ; */
+    MSR     CPSR_c, #(DIS_INT | IRQ32_MODE)                             ;/*  回到 IRQ 模式               */
+
+    MOV     R0 , SP
+    LDMIA   R0!, {R2-R4}                                                ;/*  读取 CPSR LR SP             */
+    ADD     SP , SP , #(ARCH_REG_CTX_SIZE)                              ;/*  调整 SP_irq                 */
+
+    MSR     CPSR_c, #(DIS_INT | SYS32_MODE)                             ;/*  回到 SYS 模式               */
+
+    MOV     SP , R4                                                     ;/*  恢复 SP_sys                 */
+    MOV     LR , R3                                                     ;/*  恢复 LR_sys                 */
+
+    MSR     CPSR_c, #(DIS_INT | IRQ32_MODE)                             ;/*  回到 IRQ 模式               */
+    MSR     SPSR_cxsf , R2
+    LDMIA   R0 , {R0-R12, PC}^                                          ;/*  恢复包括 PC 的所有寄存器,   */
+                                                                        ;/*  同时更新 CPSR               */
     FUNC_END()
     
 ;/*********************************************************************************************************
@@ -118,60 +147,91 @@ FUNC_DEF(archIntEntry)
 ;*********************************************************************************************************/
 
 MACRO_DEF(ABT_ENTRY retoff)
-    STMFD   SP!, {R1-R3}                                                ;/*  寄存器压入 abt 模式堆栈     */
-    MOV     R1 , SP                                                     ;/*  保存 abt 堆栈指针           */
-    ADD     SP , SP, #12                                                ;/*  调整 abt 堆栈指针           */
-    SUB     R2 , LR, #\retoff                                           ;/*  调整用于中断返回的 PC 值    */
-    MRS     R3 , SPSR                                                   ;/*  将 SPSR 拷贝到 R3           */
-    MSR     CPSR_c, #(DIS_INT | SVC32_MODE)                             ;/*  回到 SVC 模式               */
-    
-    STMFD   SP!, {R2}                                                   ;/*  任务返回地址压栈            */
-    STMFD   SP!, {LR}                                                   ;/*  LR 压栈                     */
-    STMFD   SP!, {R4-R12}                                               ;/*  R12 - R4 压栈               */
-    
-    LDMFD   R1!, {R4-R6}                                                ;/*  将任务寄存器 R1 - R3 从     */
-                                                                        ;/*  IRQ 堆栈拷贝到 SVC 堆栈     */
-    STMFD   SP!, {R4-R6}
-    STMFD   SP!, {R0}                                                   ;/*  R0 压栈                     */
-    STMFD   SP!, {R3}                                                   ;/*  CPSR 压栈                   */
-    
     ;/*
-    ; *  if (API_InterEnter() == 1) {
-    ; *      current stack = SP;
-    ; *      SP = interrupt stack;
-    ; *  }
+    ; * 保存 REG 到 ABT 模式栈空间(这里做了个必须成立的假设, 之前必须工作在 SYS 或 USR 模式)
     ; */
-    LDR     R0 , =API_InterEnter
+    SUB     LR , LR, #\retoff                                           ;/*  调整用于中断返回的 PC 值    */
+    STMFD   SP!, {LR}                                                   ;/*  保存返回地址                */
+    STMFD   SP!, {R0-R12}                                               ;/*  保存寄存器                  */
+    MOV     R1 , SP
+    MSR     CPSR_c, #(DIS_INT | SYS32_MODE)                             ;/*  回到 SYS 模式               */
+    STMFD   R1!, {SP}                                                   ;/*  保存 SP_sys                 */
+    STMFD   R1 , {LR}                                                   ;/*  保存 LR_sys                 */
+    MSR     CPSR_c, #(DIS_INT | ABT32_MODE)                             ;/*  回到 ABT 模式               */
+    SUB     SP , SP , #(2 * 4)                                          ;/*  调整 SP_abt                 */
+    MRS     R2 , SPSR
+    STMFD   SP!, {R2}                                                   ;/*  保存 CPSR_sys               */
+    MOV     R8 , LR                                                     ;/*  中断返回的 PC 值 -> R8      */
+
+    ;/*
+    ; * API_InterEnter(SP_abt) 进入中断, 如果是第一次中断, 会将 ABT 模式栈空间的 ARCH_REG_CTX
+    ; * 拷贝到当前任务 TCB 的 ARCH_REG_CTX 里
+    ; */
+    MOV     R0 , SP
+    LDR     R1 , =API_InterEnter
     MOV     LR , PC
-    BX      R0
-    LDR     R8 , [SP , #(15 * 4)]                                       ;/*  R8 -> LR 地址               */
+    BX      R1
+
+    ;/*
+    ; * 如果不是第一次进入中断, 那么上一次中断(工作在 SYS 模式)已经设置 SP_sys, 只需要回到 SYS 模式
+    ; */
     CMP     R0 , #1
     BNE     1f
-    
-    LDR     R0 , =API_ThreadTcbInter                                    ;/*  get current tcb             */
+
+    ;/*
+    ; * 第一次进入中断: 因为已经将 ABT 模式栈空间的 ARCH_REG_CTX 拷贝到当前任务 TCB 的 ARCH_REG_CTX 里
+    ; * 调整 SP_abt
+    ; */
+    ADD     SP , SP , #(ARCH_REG_CTX_SIZE)
+
+    ;/*
+    ; * 第一次进入中断: 获得当前 CPU 中断堆栈栈顶, 并回到 SYS 模式, 并设置 SP_sys
+    ; */
+    LDR     R0 , =API_InterStackBaseGet
     MOV     LR , PC
     BX      R0
-    STR     SP , [R0]                                                   ;/*  current stack = SP          */
-    
-    LDR     R0 , =API_InterStackBaseGet                                 ;/*  获得当前 CPU 中断堆栈栈顶   */
-    MOV     LR , PC
-    BX      R0
-    MOV     SP , R0
-    
+
+    MSR     CPSR_c, #(DIS_INT | SYS32_MODE)                             ;/*  回到 SYS 模式               */
+    MOV     SP , R0                                                     ;/*  设置 SP_sys                 */
+
 1:
-    MOV     R0 , R8                                                     ;/*  R8 -> LR 地址               */
+    MSR     CPSR_c, #(DIS_INT | SYS32_MODE)                             ;/*  回到 SYS 模式(不是多余的)   */
+
+    ;/*
+    ; * archAbtHandle(中断返回的 PC 值, $retoff)
+    ; */
+    MOV     R0 , R8                                                     ;/*  R8(中断返回的 PC 值)        */
     MOV     R1 , #\retoff                                               ;/*  $retoff                     */
-    LDR     R5 , =archAbtHandle
+    LDR     R2 , =archAbtHandle
     MOV     LR , PC
-    BX      R5
-    
-    LDR     R0 , =API_InterExit
+    BX      R2
+
+    ;/*
+    ; * API_InterExit()
+    ; * 如果没有发生中断嵌套, 则 API_InterExit 会调用 archIntCtxLoad 函数, SP_abt 在上面已经调整好
+    ; */
+    LDR     R1 , =API_InterExit
     MOV     LR , PC
-    BX      R0
-    
-    LDMFD   SP!, {R4}
-    MSR     SPSR_cxsf, R4
-    LDMFD   SP!, {R0-R12, LR, PC}^
+    BX      R1
+
+    ;/*
+    ; * 来到这里, 说明发生了中断嵌套
+    ; */
+    MSR     CPSR_c, #(DIS_INT | ABT32_MODE)                             ;/*  回到 ABT 模式               */
+
+    MOV     R0 , SP
+    LDMIA   R0!, {R2-R4}                                                ;/*  读取 CPSR LR SP             */
+    ADD     SP , SP , #(ARCH_REG_CTX_SIZE)                              ;/*  调整 SP_abt                 */
+
+    MSR     CPSR_c, #(DIS_INT | SYS32_MODE)                             ;/*  回到 SYS 模式               */
+
+    MOV     SP , R4                                                     ;/*  恢复 SP_sys                 */
+    MOV     LR , R3                                                     ;/*  恢复 LR_sys                 */
+
+    MSR     CPSR_c, #(DIS_INT | ABT32_MODE)                             ;/*  回到 ABT 模式               */
+    MSR     SPSR_cxsf , R2
+    LDMIA   R0 , {R0-R12, PC}^                                          ;/*  恢复包括 PC 的所有寄存器,   */
+                                                                        ;/*  同时更新 CPSR               */
     MACRO_END()
     
 FUNC_DEF(archAbtEntry)
@@ -186,68 +246,98 @@ FUNC_DEF(archPreEntry)
 ;  undefine 入口
 ;*********************************************************************************************************/
 
-MACRO_DEF(UND_ENTRY)
-    STMFD   SP!, {R1-R3}                                                ;/*  寄存器压入 und 模式堆栈     */
-    MOV     R1 , SP                                                     ;/*  保存 und 堆栈指针           */
-    ADD     SP , SP, #12                                                ;/*  调整 und 堆栈指针           */
-    MRS     R3 , SPSR                                                   ;/*  将 SPSR 拷贝到 R3           */
-    TST     R3 , #0x20                                                  ;/*  是否为 Thumb 模式           */
-    SUBNE   R2 , LR, #2                                                 ;/*  计算 Thumb 模式返回位置     */
-    SUBEQ   R2 , LR, #4                                                 ;/*  计算 ARM 模式返回位置       */
-    MSR     CPSR_c, #(DIS_INT | SVC32_MODE)                             ;/*  回到 SVC 模式               */
-    
-    STMFD   SP!, {R2}                                                   ;/*  任务返回地址压栈            */
-    STMFD   SP!, {LR}                                                   ;/*  LR 压栈                     */
-    STMFD   SP!, {R4-R12}                                               ;/*  R12 - R4 压栈               */
-    
-    LDMFD   R1!, {R4-R6}                                                ;/*  将任务寄存器 R1 - R3 从     */
-                                                                        ;/*  IRQ 堆栈拷贝到 SVC 堆栈     */
-    STMFD   SP!, {R4-R6}
-    STMFD   SP!, {R0}                                                   ;/*  R0 压栈                     */
-    STMFD   SP!, {R3}                                                   ;/*  CPSR 压栈                   */
-    
+FUNC_DEF(archUndEntry)
     ;/*
-    ; *  if (API_InterEnter() == 1) {
-    ; *      current stack = SP;
-    ; *      SP = interrupt stack;
-    ; *  }
+    ; * 保存 REG 到 UND 模式栈空间(这里做了个必须成立的假设, 之前必须工作在 SYS 或 USR 模式)
     ; */
-    LDR     R0 , =API_InterEnter
+    SUB     SP , SP , #4                                                ;/*  预留保存返回地址的空间      */
+    STMFD   SP!, {R0-R12}                                               ;/*  保存寄存器                  */
+
+    MRS     R2 , SPSR                                                   ;/*  将 SPSR 拷贝到 R2           */
+    TST     R2 , #0x20                                                  ;/*  是否为 Thumb 模式           */
+    SUBNE   LR , LR, #2                                                 ;/*  计算 Thumb 模式返回位置     */
+    SUBEQ   LR , LR, #4                                                 ;/*  计算 ARM 模式返回位置       */
+    STR     LR , [SP , #(13 * 4)]                                       ;/*  保存返回地址                */
+
+    MOV     R1 , SP
+    MSR     CPSR_c, #(DIS_INT | SYS32_MODE)                             ;/*  回到 SYS 模式               */
+    STMFD   R1!, {SP}                                                   ;/*  保存 SP_sys                 */
+    STMFD   R1 , {LR}                                                   ;/*  保存 LR_sys                 */
+    MSR     CPSR_c, #(DIS_INT | UND32_MODE)                             ;/*  回到 UND 模式               */
+    SUB     SP , SP , #(2 * 4)                                          ;/*  调整 SP_und                 */
+    STMFD   SP!, {R2}                                                   ;/*  保存 CPSR_sys               */
+    MOV     R8 , LR                                                     ;/*  中断返回的 PC 值 -> R8      */
+    MOV     R9 , R2                                                     ;/*  中断时的 CPSR    -> R9      */
+
+    ;/*
+    ; * API_InterEnter(SP_und) 进入中断, 如果是第一次中断, 会将 UND 模式栈空间的 ARCH_REG_CTX
+    ; * 拷贝到当前任务 TCB 的 ARCH_REG_CTX 里
+    ; */
+    MOV     R0 , SP
+    LDR     R1 , =API_InterEnter
     MOV     LR , PC
-    BX      R0
-    LDR     R8 , [SP, #(15 * 4)]                                        ;/*  参数为产生未定义指令中断地址*/
-    LDR     R9 , [SP]                                                   ;/*  产生异常的 CPSR             */
+    BX      R1
+
+    ;/*
+    ; * 如果不是第一次进入中断, 那么上一次中断(工作在 SYS 模式)已经设置 SP_sys, 只需要回到 SYS 模式
+    ; */
     CMP     R0 , #1
     BNE     1f
-    
-    LDR     R0 , =API_ThreadTcbInter                                    ;/*  get current tcb             */
+
+    ;/*
+    ; * 第一次进入中断: 因为已经将 UND 模式栈空间的 ARCH_REG_CTX 拷贝到当前任务 TCB 的 ARCH_REG_CTX 里
+    ; * 调整 SP_und
+    ; */
+    ADD     SP , SP , #(ARCH_REG_CTX_SIZE)
+
+    ;/*
+    ; * 第一次进入中断: 获得当前 CPU 中断堆栈栈顶, 并回到 SYS 模式, 并设置 SP_sys
+    ; */
+    LDR     R0 , =API_InterStackBaseGet
     MOV     LR , PC
     BX      R0
-    STR     SP , [R0]                                                   ;/*  current stack = SP          */
-    
-    LDR     R0 , =API_InterStackBaseGet                                 ;/*  获得当前 CPU 中断堆栈栈顶   */
-    MOV     LR , PC
-    BX      R0
-    MOV     SP , R0
-    
+
+    MSR     CPSR_c, #(DIS_INT | SYS32_MODE)                             ;/*  回到 SYS 模式               */
+    MOV     SP , R0                                                     ;/*  设置 SP_sys                 */
+
 1:
-    MOV     R0 , R8
-    MOV     R1 , R9
-    LDR     R5 , =archUndHandle
+    MSR     CPSR_c, #(DIS_INT | SYS32_MODE)                             ;/*  回到 SYS 模式(不是多余的)   */
+
+    ;/*
+    ; * archUndHandle(中断返回的 PC 值, 中断时的 CPSR)
+    ; */
+    MOV     R0 , R8                                                     ;/*  R8(中断返回的 PC 值)        */
+    MOV     R1 , R9                                                     ;/*  R9(中断时的 CPSR)           */
+    LDR     R2 , =archUndHandle
     MOV     LR , PC
-    BX      R5
-    
-    LDR     R0 , =API_InterExit
+    BX      R2
+
+    ;/*
+    ; * API_InterExit()
+    ; * 如果没有发生中断嵌套, 则 API_InterExit 会调用 archIntCtxLoad 函数, SP_und 在上面已经调整好
+    ; */
+    LDR     R1 , =API_InterExit
     MOV     LR , PC
-    BX      R0
-    
-    LDMFD   SP!, {R4}
-    MSR     SPSR_cxsf, R4
-    LDMFD   SP!, {R0-R12, LR, PC}^
-    MACRO_END()
-    
-FUNC_DEF(archUndEntry)
-    UND_ENTRY
+    BX      R1
+
+    ;/*
+    ; * 来到这里, 说明发生了中断嵌套
+    ; */
+    MSR     CPSR_c, #(DIS_INT | UND32_MODE)                             ;/*  回到 UND 模式               */
+
+    MOV     R0 , SP
+    LDMIA   R0!, {R2-R4}                                                ;/*  读取 CPSR LR SP             */
+    ADD     SP , SP , #(ARCH_REG_CTX_SIZE)                              ;/*  调整 SP_und                 */
+
+    MSR     CPSR_c, #(DIS_INT | SYS32_MODE)                             ;/*  回到 SYS 模式               */
+
+    MOV     SP , R4                                                     ;/*  恢复 SP_sys                 */
+    MOV     LR , R3                                                     ;/*  恢复 LR_sys                 */
+
+    MSR     CPSR_c, #(DIS_INT | UND32_MODE)                             ;/*  回到 UND 模式               */
+    MSR     SPSR_cxsf , R2
+    LDMIA   R0 , {R0-R12, PC}^                                          ;/*  恢复包括 PC 的所有寄存器,   */
+                                                                        ;/*  同时更新 CPSR               */
     FUNC_END()
     
 ;/*********************************************************************************************************
@@ -278,3 +368,4 @@ FUNC_DEF(archSwiEntry)
 ;/*********************************************************************************************************
 ;  END
 ;*********************************************************************************************************/
+

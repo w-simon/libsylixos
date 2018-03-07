@@ -25,6 +25,8 @@
 
 #include <arch/assembler.h>
 
+#include "arch/arm/arch_regs.h"
+
 #if defined(__SYLIXOS_ARM_ARCH_M__)
 
     FILE_BEGIN()
@@ -32,6 +34,15 @@
 ;/*********************************************************************************************************
 ;  ARMv7M 体系构架相关异常处理函数
 ;*********************************************************************************************************/
+
+    IMPORT_LABEL(API_ThreadTcbInter)
+    IMPORT_LABEL(API_InterStackBaseGet)
+    IMPORT_LABEL(API_InterEnter)
+    IMPORT_LABEL(API_InterExit)
+
+#if LW_CFG_SMP_EN > 0
+    IMPORT_LABEL(_SchedSafeStack)
+#endif
 
     IMPORT_LABEL(archResetHandle)
     IMPORT_LABEL(armv7mNMIIntHandle)
@@ -68,93 +79,124 @@
 ;  异常/中断入口宏
 ;*********************************************************************************************************/
 
-MACRO_DEF(IRQ_ENTRY  handle)
+MACRO_DEF(IRQ_ENTRY  irq  handle)
     ;/*
-    ; *  R3 记录 BASEPRI, 并关中断
-    ; *  利用优先级屏蔽中断, 才能使用 SVC
+    ; * 异常会自动将 xPSR, PC, LR, R12 以及 R3-R0 依次压入适当的堆栈中：
+    ; * 如果异常前的代码正在使用 PSP, 则压入 PSP, 也就是使用进程堆栈；
+    ; * 否则就压入 MSP, 使用主堆栈.
+    ; * 一旦进入了服务例程, 就将一直使用主堆栈
     ; */
-    MRS     R3 , BASEPRI                                        ;/*  Set prio int mask to mask all       */
+
+    ;/*
+    ; * R1 记录 BASEPRI, 并关中断(利用优先级屏蔽中断, 才能使用 SVC)
+    ; */
+    MRS     R1 , BASEPRI                                        ;/*  Set prio int mask to mask all       */
     MOV     R2 , #LW_CFG_CORTEX_M_INT_MASK                      ;/*  mask prio >= 2                      */
-    MSR     BASEPRI,  R2
+    MSR     BASEPRI , R2
 
     ;/*
-    ; *  R2 等于异常进入前使用的 SP
+    ; * R0 等于异常自动压栈前使用的 SP, 通过 EXC_RETURN(保存在 LR) 判断异常前使用何种 SP
     ; */
-    TST     LR , #0x04                                          ;/*  nonzero if context on process stack */
+    TST     LR , #(1 << 2)                                      ;/*  nonzero if context on process stack */
     ITE     EQ                                                  ;/*  next two instructions conditional   */
-    MRSEQ   R2 , MSP
-    MRSNE   R2 , PSP
+    MRSEQ   R0 , MSP
+    MRSNE   R0 , PSP
+    ADD     R0 , R0 , #(ARCH_HW_SAVE_CTX_SIZE)
 
     ;/*
-    ; *  保存余下的 R3-11, R14 寄存器到异常进入前使用的 SP
+    ; * 现在用 MSP, 如果发生中断嵌套, 需要保存寄存器上下文到 MSP 指向的栈空间里, 预留 SW SAVE 寄存器上下文空间
     ; */
-    SUBS    R2 , R2, #0x28
-    STM     R2 , {R3-R11, LR}
-
-    ;/*
-    ; *  异常进入前使用的 SP 等于 R2
-    ; */
-    TST     LR , #0x04                                          ;/*  nonzero if context on process stack */
-    IT      NE                                                  ;/*  change by hx , should use if then   */
-    MSRNE   PSP, R2
-
-    ;/*
-    ; *  现在使用的是 MSP, 所以无论如何都设置 MSP
-    ; */
+    MRS     R2 , MSP
+    SUB     R2 , R2 , #(ARCH_SW_SAVE_CTX_SIZE)
     MSR     MSP, R2
 
     ;/*
-    ; *  R0, R2 放置到 R4, R5
+    ; * API_InterEnter(异常自动压栈前使用的 SP, BASEPRI, EXC_RETURN) 进入中断,
+    ; * 如果是第一次中断,   会将 异常前 SP, BASEPRI, EXC_RETURN 保存到当前任务 TCB 的 ARCH_REG_CTX 里
+    ; * 如果不是第一次中断, 会将 异常前 SP, BASEPRI, EXC_RETURN 保存到上面预留的栈空间里
     ; */
-    MOV     R4 , R0
-    MOV     R5 , R2
+    MOV     R2 , LR
+    LDR     R3 , =API_InterEnter
+    BLX     R3
 
     ;/*
-    ; *  调用 API_InterEnter
-    ; */
-    LDR     R1 , =API_InterEnter
-    BLX     R1
-
-    ;/*
-    ; *  如果发生中断嵌套, 跳转到 2
+    ; * 如果不是第一次进入中断, 那么上一次中断已经设置 MSP
     ; */
     CMP     R0 , #1
     BNE     1f
 
     ;/*
-    ; *  调用 API_InterStackBaseGet, 获得当前 CPU 中断堆栈栈顶并设置 MSP
+    ; * 第一次进入中断: 获得当前 CPU 中断堆栈栈顶, 并设置 MSP
     ; */
-    LDR     R1 , =API_InterStackBaseGet
-    BLX     R1
-    MSR     MSP, R0
+    LDR     R3 , =API_InterStackBaseGet
+    BLX     R3
+    MSR     MSP , R0
 
     ;/*
-    ; *  R4, R5 恢复到 R0, R1
+    ; * 获得当前任务 TCB 的 ARCH_REG_CTX 地址
     ; */
-1:
-    MOV     R0 , R4
-    MOV     R1 , R5
+    LDR     R3 , =API_ThreadTcbInter
+    BLX     R3
 
     ;/*
-    ; *  调用 handle(UINT32  uiVector, ARCH_REG_CTX  *pregctx)
+    ; * 保存 R4-R11 到当前任务 TCB 的 ARCH_REG_CTX 里
     ; */
-    LDR     R2 , =\handle
-    BLX     R2
+    ADD     R1 , R0 , #(2 * 4)                                  ;/*  跳过 SP, BASEPRI 的保存             */
+    STM     R1 , {R4-R11}                                       ;/*  保存 R4-R11, 跳过 EXC_RETURN 的保存 */
+
+    LDR     R1 , [R0]                                           ;/*  R1 = 异常自动压栈前使用的 SP        */
+    SUB     R1 , R1 , #(ARCH_HW_SAVE_CTX_SIZE)                  ;/*  R1 = 异常自动压栈后使用的 SP        */
+
+    ADD     R2 , R0 , #(ARCH_SW_SAVE_CTX_SIZE)
+
+    LDM     R1 , {R4-R11}
+    STM     R2 , {R4-R11}
+
+    MOV     R1 , R0
+
+2:
+    ;/*
+    ; * handle(vector, 寄存器上下文)
+    ; */
+    MOV     R0 , \irq
+    LDR     R3 , =\handle
+    BLX     R3
 
     ;/*
-    ; *  恢复 R3-11, R14 寄存器
+    ; * API_InterExit()
+    ; * 如果没有发生中断嵌套, 则 API_InterExit 会调用 archIntCtxLoad 函数,
+    ; * 注意 MSP 并没有调整, 但不会有问题(因为下次进入中断时 MSP 会首先使用异常完全压栈后的 SP)
     ; */
-    LDM     R0 , {R3-R11, LR}
-    ADDS    R0 , R0, #0x28
+    LDR     R3 , =API_InterExit
+    BLX     R3
 
-    TST     LR , #0x04                                          ;/*  nonzero if context on process stack */
-    ITE     EQ                                                  ;/*  next two instructions conditional   */
-    MSREQ   MSP, R0
-    MSRNE   PSP, R0
+    ;/*
+    ; * 来到这里, 说明发生了中断嵌套
+    ; */
+    ;/*
+    ; * 从 MSP 指向的堆栈恢复原 SP, BASEPRI, R4-R11, EXC_RETURN(保存在 LR)寄存器
+    ; */
+    MRS     R0 , MSP
 
-    MSR     BASEPRI, R3
+    LDM     R0 , {R2-R11, LR}
+    ADD     R0 , R0 , #(ARCH_SW_SAVE_CTX_SIZE)
 
+    MSR     MSP , R0
+    MSR     BASEPRI , R3
+
+    ;/*
+    ; * 从 MSP 指向的堆栈恢复 xPSR, PC, LR, R12 以及 R3-R0 寄存器
+    ; */
     BX      LR
+
+1:
+    ;/*
+    ; * 不是第一次进入中断
+    ; */
+    MRS     R1 , MSP
+    ADD     R0 , R1 , #(2 * 4)                                  ;/*  跳过 SP, BASEPRI 的保存             */
+    STM     R0 , {R4-R11}                                       ;/*  保存 R4-R11, 跳过 EXC_RETURN 的保存 */
+    B       2b
     MACRO_END()
 
 ;/*********************************************************************************************************
@@ -163,46 +205,41 @@ MACRO_DEF(IRQ_ENTRY  handle)
 
 FUNC_DEF(archNMIIntEntry)
     ;/*
-    ; *  R0 用于记录异常号
+    ; * R0 用于记录异常号
     ; */
-    MOV         R0 , #2
-    IRQ_ENTRY   armv7mNMIIntHandle
+    IRQ_ENTRY   2   armv7mNMIIntHandle
     FUNC_END()
 
 ;/*********************************************************************************************************
-;  Hard Fault入口函数
+;  Hard Fault 入口函数
 ;*********************************************************************************************************/
 
 FUNC_DEF(archHardFaultEntry)
-    MOV         R0 , #3
-    IRQ_ENTRY   armv7mHardFaultHandle
+    IRQ_ENTRY   3   armv7mHardFaultHandle
     FUNC_END()
 
 ;/*********************************************************************************************************
-;  Mem Fault入口函数
+;  Mem Fault 入口函数
 ;*********************************************************************************************************/
 
 FUNC_DEF(archMemFaultEntry)
-    MOV         R0 , #4
-    IRQ_ENTRY   armv7mMemFaultHandle
+    IRQ_ENTRY   4   armv7mMemFaultHandle
     FUNC_END()
 
 ;/*********************************************************************************************************
-;  Bus Fault入口函数
+;  Bus Fault 入口函数
 ;*********************************************************************************************************/
 
 FUNC_DEF(archBusFaultEntry)
-    MOV         R0 , #5
-    IRQ_ENTRY   armv7mBusFaultHandle
+    IRQ_ENTRY   5   armv7mBusFaultHandle
     FUNC_END()
 
 ;/*********************************************************************************************************
-;  Usage Fault入口函数
+;  Usage Fault 入口函数
 ;*********************************************************************************************************/
 
 FUNC_DEF(archUsageFaultEntry)
-    MOV         R0 , #6
-    IRQ_ENTRY   armv7mUsageFaultHandle
+    IRQ_ENTRY   6   armv7mUsageFaultHandle
     FUNC_END()
 
 ;/*********************************************************************************************************
@@ -210,8 +247,7 @@ FUNC_DEF(archUsageFaultEntry)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archDebugMonitorEntry)
-    MOV         R0 , #12
-    IRQ_ENTRY   armv7mDebugMonitorHandle
+    IRQ_ENTRY   12  armv7mDebugMonitorHandle
     FUNC_END()
 
 ;/*********************************************************************************************************
@@ -219,8 +255,7 @@ FUNC_DEF(archDebugMonitorEntry)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archPendSVEntry)
-    MOV         R0 , #14
-    IRQ_ENTRY   armv7mPendSVHandle
+    IRQ_ENTRY   14  armv7mPendSVHandle
     FUNC_END()
 
 ;/*********************************************************************************************************
@@ -228,8 +263,7 @@ FUNC_DEF(archPendSVEntry)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archSysTickIntEntry)
-    MOV         R0 , #15
-    IRQ_ENTRY   armv7mSysTickIntHandle
+    IRQ_ENTRY   15  armv7mSysTickIntHandle
     FUNC_END()
 
 ;/*********************************************************************************************************
@@ -237,17 +271,12 @@ FUNC_DEF(archSysTickIntEntry)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archReservedIntEntry)
-    MOV         R0 , #7
-    IRQ_ENTRY   armv7mReservedIntHandle
+    IRQ_ENTRY   7   armv7mReservedIntHandle
     FUNC_END()
 
 ;/*********************************************************************************************************
 ;  16 ~ 255 号中断入口函数
 ;*********************************************************************************************************/
-
-FUNC_DEF(archIntEntryCommon)
-    IRQ_ENTRY   armv7mIntHandle
-    FUNC_END()
 
     .irp        Id,                                   \
                                    16,  17,  18,  19, \
@@ -277,8 +306,7 @@ FUNC_DEF(archIntEntryCommon)
     250, 251, 252, 253, 254, 255
     EXPORT_LABEL(archIntEntry\Id)
 FUNC_DEF(archIntEntry\Id)
-    MOV         R0 , #\Id
-    B           archIntEntryCommon
+    IRQ_ENTRY   \Id   armv7mIntHandle
     FUNC_END()
     .endr
 
@@ -288,75 +316,71 @@ FUNC_DEF(archIntEntry\Id)
 
 FUNC_DEF(archSvcEntry)
     ;/*
-    ; *  R0 用于记录异常号
+    ; * R0 用于记录异常号
     ; */
 
     ;/*
-    ; *  R3 记录 BASEPRI, 并关中断
-    ; *  利用优先级屏蔽中断, 才能使用 SVC
+    ; * 异常会自动将 xPSR, PC, LR, R12 以及 R3-R0 依次压入适当的堆栈中：
+    ; * 如果异常前的代码正在使用 PSP, 则压入 PSP, 也就是使用进程堆栈；
+    ; * 否则就压入 MSP, 使用主堆栈.
+    ; * 一旦进入了服务例程, 就将一直使用主堆栈
+    ; */
+
+    ;/*
+    ; * R3 记录 BASEPRI, 并关中断(利用优先级屏蔽中断, 才能使用 SVC)
     ; */
     MRS     R3 , BASEPRI                                        ;/*  Set prio int mask to mask all       */
     MOV     R2 , #LW_CFG_CORTEX_M_INT_MASK                      ;/*  mask prio >= 2                      */
-    MSR     BASEPRI,  R2
+    MSR     BASEPRI , R2
 
     ;/*
-    ; *  R2 等于异常进入前使用的 SP
+    ; * R0 等于异常自动压栈后使用的 SP
+    ; * R2 等于异常自动压栈前使用的 SP, 通过 EXC_RETURN(保存在 LR) 判断异常前使用何种 SP
     ; */
-    TST     LR , #0x04                                          ;/*  nonzero if context on process stack */
+    TST     LR , #(1 << 2)                                      ;/*  nonzero if context on process stack */
     ITE     EQ                                                  ;/*  next two instructions conditional   */
-    MRSEQ   R2 , MSP
-    MRSNE   R2 , PSP
+    MRSEQ   R0 , MSP
+    MRSNE   R0 , PSP
+    ADD     R2 , R0 , #(ARCH_HW_SAVE_CTX_SIZE)
 
     ;/*
-    ; *  保存余下的 R3-11, R14 寄存器到异常进入前使用的 SP
+    ; * 现在用 MSP, 需要保存寄存器上下文到 MSP 指向的栈空间里, 预留 SW SAVE 寄存器上下文空间
     ; */
-    SUBS    R2 , R2, #0x28
-    STM     R2 , {R3-R11, LR}
+    MRS     R1 , MSP
+    SUB     R1 , R1 , #(ARCH_SW_SAVE_CTX_SIZE)
+    MSR     MSP , R1
 
     ;/*
-    ; *  异常进入前使用的 SP 等于 R2
+    ; * 保存原 SP, BASEPRI, R4-R11, EXC_RETURN(保存在 LR)寄存器到预留 SW SAVE 寄存器上下文空间
     ; */
-    TST     LR , #0x04                                          ;/*  nonzero if context on process stack */
-    IT      NE
-    MSRNE   PSP, R2
+    STM     R1 , {R2-R11, LR}
 
     ;/*
-    ; *  现在使用的是 MSP, 所以无论如何都设置 MSP
+    ; * armv7mSvcHandle(HW SAVE 寄存器上下文空间, SW SAVE 寄存器上下文空间)
     ; */
-#if LW_CFG_SMP_EN > 0
-    MOV     R9 , R0
-    LDR     R2 , =_SchedSafeStack                               ;/*  _SchedSafeStack();                  */
-    BLX     R2
-    MSR     MSP, R0
-    MOV     R0 , R9
-#else
-    MSR     MSP, R2
-#endif
+    LDR     R3 , =armv7mSvcHandle
+    BLX     R3
+
+    MRS     R1 , MSP
+    ADD     R1 , R1 , #(ARCH_SW_SAVE_CTX_SIZE)
+    MSR     MSP , R1
+
+    ADD     R12 , R0 , #4                                       ;/*  最后将跳过 SP 的恢复                */
+
+    LDR     R2 , [R0]                                           ;/*  读出 SP 到 R2                       */
+    SUB     R2 , R2 , #(ARCH_HW_SAVE_CTX_SIZE)                  ;/*  从 SP 开辟自动出栈寄存器空间        */
+    MSR     PSP , R2                                            ;/*  设置 PSP                            */
+
+    ADD     R0 , R0 , #(ARCH_SW_SAVE_CTX_SIZE)                  ;/*  R0 指向 REG_CTX 中自动出栈寄存器    */
+    LDM     R0 , {R3-R10}                                       ;/*  将 REG_CTX 中自动出栈寄存器复制到   */
+    STM     R2 , {R3-R10}                                       ;/*  SP 中自动出栈寄存器空间             */
+
+    LDM     R12 , {R3-R11, LR}                                  ;/*  恢复 BASEPRI, R4-R11, EXC_RETURN    */
+    MSR     BASEPRI , R3                                        ;/*  恢复 BASEPRI                        */
 
     ;/*
-    ; *  R2 放置到 R1
+    ; * 从 SP 指向的堆栈恢复 xPSR, PC, LR, R12 以及 R3-R0 寄存器
     ; */
-    MOV     R1 , R2
-
-    ;/*
-    ; *  调用 armv7mSvcHandle(UINT32  uiVector, ARCH_REG_CTX  *pregctx)
-    ; */
-    LDR     R2 , =armv7mSvcHandle
-    BLX     R2
-
-    ;/*
-    ; *  恢复 R3-11, R14 寄存器
-    ; */
-    LDM     R0 , {R3-R11, LR}
-    ADDS    R0 , R0, #0x28
-
-    TST     LR , #0x04                                          ;/*  nonzero if context on process stack */
-    ITE     EQ                                                  ;/*  next two instructions conditional   */
-    MSREQ   MSP, R0
-    MSRNE   PSP, R0
-
-    MSR     BASEPRI, R3
-
     BX      LR
     FUNC_END()
 

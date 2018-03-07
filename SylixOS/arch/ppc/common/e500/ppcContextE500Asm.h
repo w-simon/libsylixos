@@ -25,49 +25,38 @@
 #include "arch/ppc/arch_regs.h"
 
 /*********************************************************************************************************
-  E500 异常上下文保存
+  E500 异常
+  使用异常临时栈, 并在异常临时栈开辟临时上下文保存区, 将 volatile 寄存器保存到临时上下文保存区
   E500 总是使能 MMU, 所以没有 ENABLE_MMU 操作
 *********************************************************************************************************/
 
-MACRO_DEF(E500_EXC_SAVE_REGS)
-    STWU    SP  , -STACK_FRAME_SIZE(SP)                                 /*  保存并调整 SP               */
-
-    STW     R0  ,  XR0(SP)                                              /*  保存 R0, R2 - R31           */
-    STW     R2  ,  XR2(SP)
-    STW     R3  ,  XR3(SP)
-    STW     R4  ,  XR4(SP)
-    STW     R5  ,  XR5(SP)
-    STW     R6  ,  XR6(SP)
-    STW     R7  ,  XR7(SP)
-    STW     R8  ,  XR8(SP)
-    STW     R9  ,  XR9(SP)
-    STW     R10 , XR10(SP)
-    STW     R11 , XR11(SP)
-    STW     R12 , XR12(SP)
-    STW     R13 , XR13(SP)
-    STW     R14 , XR14(SP)
-    STW     R15 , XR15(SP)
-    STW     R16 , XR16(SP)
-    STW     R17 , XR17(SP)
-    STW     R18 , XR18(SP)
-    STW     R19 , XR19(SP)
-    STW     R20 , XR20(SP)
-    STW     R21 , XR21(SP)
-    STW     R22 , XR22(SP)
-    STW     R23 , XR23(SP)
-    STW     R24 , XR24(SP)
-    STW     R25 , XR25(SP)
-    STW     R26 , XR26(SP)
-    STW     R27 , XR27(SP)
-    STW     R28 , XR28(SP)
-    STW     R29 , XR29(SP)
-    STW     R30 , XR30(SP)
-    STW     R31 , XR31(SP)
-
-    MFMSR   R0
+MACRO_DEF(E500_EXC_SAVE_VOLATILE)
+    MTSPR   SPRG0 , SP                                                  /*  SPRG0 暂存异常前 SP(R1)     */
     ISYNC
-    STW     R0  , XMSR(SP)                                              /*  保存 MSR                    */
-    SYNC
+
+    MFSPR   SP  , SPRG1                                                 /*  读出异常临时堆栈地址        */
+    ISYNC
+
+    SUBI    SP  , SP , ARCH_REG_CTX_SIZE                                /*  在临时堆栈开辟上下文保存区  */
+
+    STW     R0  , XR(0)(SP)
+
+    MFSPR   R0  , SPRG0                                                 /*  保存异常前 SP(R1)           */
+    ISYNC
+    STW     R0  , XR(1)(SP)
+
+    STW     R2  , XR(2)(SP)
+    STW     R3  , XR(3)(SP)
+    STW     R4  , XR(4)(SP)
+    STW     R5  , XR(5)(SP)
+    STW     R6  , XR(6)(SP)
+    STW     R7  , XR(7)(SP)
+    STW     R8  , XR(8)(SP)
+    STW     R9  , XR(9)(SP)
+    STW     R10 , XR(10)(SP)
+    STW     R11 , XR(11)(SP)
+    STW     R12 , XR(12)(SP)
+    STW     R13 , XR(13)(SP)
 
     MFSPR   R0  , SRR0
     ISYNC
@@ -101,49 +90,38 @@ MACRO_DEF(E500_EXC_SAVE_REGS)
     MACRO_END()
 
 /*********************************************************************************************************
-  E500 临界输入异常上下文保存
+  E500 临界输入异常
+  使用异常临时栈, 并在异常临时栈开辟临时上下文保存区, 将 volatile 寄存器保存到临时上下文保存区
   E500 总是使能 MMU, 所以没有 ENABLE_MMU 操作
 *********************************************************************************************************/
 
-MACRO_DEF(E500_CI_EXC_SAVE_REGS)
-    STWU    SP  , -STACK_FRAME_SIZE(SP)                                 /*  保存并调整 SP               */
-
-    STW     R0  ,  XR0(SP)                                              /*  保存 R0, R2 - R31           */
-    STW     R2  ,  XR2(SP)
-    STW     R3  ,  XR3(SP)
-    STW     R4  ,  XR4(SP)
-    STW     R5  ,  XR5(SP)
-    STW     R6  ,  XR6(SP)
-    STW     R7  ,  XR7(SP)
-    STW     R8  ,  XR8(SP)
-    STW     R9  ,  XR9(SP)
-    STW     R10 , XR10(SP)
-    STW     R11 , XR11(SP)
-    STW     R12 , XR12(SP)
-    STW     R13 , XR13(SP)
-    STW     R14 , XR14(SP)
-    STW     R15 , XR15(SP)
-    STW     R16 , XR16(SP)
-    STW     R17 , XR17(SP)
-    STW     R18 , XR18(SP)
-    STW     R19 , XR19(SP)
-    STW     R20 , XR20(SP)
-    STW     R21 , XR21(SP)
-    STW     R22 , XR22(SP)
-    STW     R23 , XR23(SP)
-    STW     R24 , XR24(SP)
-    STW     R25 , XR25(SP)
-    STW     R26 , XR26(SP)
-    STW     R27 , XR27(SP)
-    STW     R28 , XR28(SP)
-    STW     R29 , XR29(SP)
-    STW     R30 , XR30(SP)
-    STW     R31 , XR31(SP)
-
-    MFMSR   R0
+MACRO_DEF(E500_CI_EXC_SAVE_VOLATILE)
+    MTSPR   SPRG0 , SP                                                  /*  SPRG0 暂存异常前 SP(R1)     */
     ISYNC
-    STW     R0  , XMSR(SP)                                              /*  保存 MSR                    */
-    SYNC
+
+    MFSPR   SP  , SPRG1                                                 /*  读出异常临时堆栈地址        */
+    ISYNC
+
+    SUBI    SP  , SP , ARCH_REG_CTX_SIZE                                /*  在临时堆栈开辟上下文保存区  */
+
+    STW     R0  , XR(0)(SP)
+
+    MFSPR   R0  , SPRG0                                                 /*  保存异常前 SP(R1)           */
+    ISYNC
+    STW     R0  , XR(1)(SP)
+
+    STW     R2  , XR(2)(SP)
+    STW     R3  , XR(3)(SP)
+    STW     R4  , XR(4)(SP)
+    STW     R5  , XR(5)(SP)
+    STW     R6  , XR(6)(SP)
+    STW     R7  , XR(7)(SP)
+    STW     R8  , XR(8)(SP)
+    STW     R9  , XR(9)(SP)
+    STW     R10 , XR(10)(SP)
+    STW     R11 , XR(11)(SP)
+    STW     R12 , XR(12)(SP)
+    STW     R13 , XR(13)(SP)
 
     MFSPR   R0  , CSRR0
     ISYNC
@@ -177,49 +155,38 @@ MACRO_DEF(E500_CI_EXC_SAVE_REGS)
     MACRO_END()
 
 /*********************************************************************************************************
-  E500 机器检查异常上下文保存
+  E500 机器检查异常
+  使用异常临时栈, 并在异常临时栈开辟临时上下文保存区, 将 volatile 寄存器保存到临时上下文保存区
   E500 总是使能 MMU, 所以没有 ENABLE_MMU 操作
 *********************************************************************************************************/
 
-MACRO_DEF(E500_MC_EXC_SAVE_REGS)
-    STWU    SP  , -STACK_FRAME_SIZE(SP)                                 /*  保存并调整 SP               */
-
-    STW     R0  ,  XR0(SP)                                              /*  保存 R0, R2 - R31           */
-    STW     R2  ,  XR2(SP)
-    STW     R3  ,  XR3(SP)
-    STW     R4  ,  XR4(SP)
-    STW     R5  ,  XR5(SP)
-    STW     R6  ,  XR6(SP)
-    STW     R7  ,  XR7(SP)
-    STW     R8  ,  XR8(SP)
-    STW     R9  ,  XR9(SP)
-    STW     R10 , XR10(SP)
-    STW     R11 , XR11(SP)
-    STW     R12 , XR12(SP)
-    STW     R13 , XR13(SP)
-    STW     R14 , XR14(SP)
-    STW     R15 , XR15(SP)
-    STW     R16 , XR16(SP)
-    STW     R17 , XR17(SP)
-    STW     R18 , XR18(SP)
-    STW     R19 , XR19(SP)
-    STW     R20 , XR20(SP)
-    STW     R21 , XR21(SP)
-    STW     R22 , XR22(SP)
-    STW     R23 , XR23(SP)
-    STW     R24 , XR24(SP)
-    STW     R25 , XR25(SP)
-    STW     R26 , XR26(SP)
-    STW     R27 , XR27(SP)
-    STW     R28 , XR28(SP)
-    STW     R29 , XR29(SP)
-    STW     R30 , XR30(SP)
-    STW     R31 , XR31(SP)
-
-    MFMSR   R0
+MACRO_DEF(E500_MC_EXC_SAVE_VOLATILE)
+    MTSPR   SPRG0 , SP                                                  /*  SPRG0 暂存异常前 SP(R1)     */
     ISYNC
-    STW     R0  , XMSR(SP)                                              /*  保存 MSR                    */
-    SYNC
+
+    MFSPR   SP  , SPRG1                                                 /*  读出异常临时堆栈地址        */
+    ISYNC
+
+    SUBI    SP  , SP , ARCH_REG_CTX_SIZE                                /*  在临时堆栈开辟上下文保存区  */
+
+    STW     R0  , XR(0)(SP)
+
+    MFSPR   R0  , SPRG0                                                 /*  保存异常前 SP(R1)           */
+    ISYNC
+    STW     R0  , XR(1)(SP)
+
+    STW     R2  , XR(2)(SP)
+    STW     R3  , XR(3)(SP)
+    STW     R4  , XR(4)(SP)
+    STW     R5  , XR(5)(SP)
+    STW     R6  , XR(6)(SP)
+    STW     R7  , XR(7)(SP)
+    STW     R8  , XR(8)(SP)
+    STW     R9  , XR(9)(SP)
+    STW     R10 , XR(10)(SP)
+    STW     R11 , XR(11)(SP)
+    STW     R12 , XR(12)(SP)
+    STW     R13 , XR(13)(SP)
 
     MFSPR   R0  , MCSRR0
     ISYNC

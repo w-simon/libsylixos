@@ -122,7 +122,7 @@ static const CHAR   cTargetSystem[] = \
 /*********************************************************************************************************
   PC 与堆栈寄存器在 GDB_REG_SET 结构中的索引
 *********************************************************************************************************/
-#define C6X_REG_INDEX_PC        55
+#define C6X_REG_INDEX_PC        33
 #define C6X_REG_INDEX_B15       31
 /*********************************************************************************************************
   指令分析相关宏定义
@@ -143,30 +143,30 @@ static INT iRegMap[] = {
     /*
      * A0 - A15
      */
-    77, 76, 73, 72, 69, 68, 65, 64,
-    61, 60, 80, 81,  3,  2, 11, 10,
+    77, 76, 73, 72, 15, 14, 69, 68,
+    65, 65, 11, 10,  7,  6,  3,  2,
 
     /*
      * B0 - B15
      */
-    79, 78, 75, 74, 71, 70, 67, 66,
-    63, 62,  9, 82,  5,  4, 12, -1,
+    80, 79, 75, 74, 71, 70, 67, 66,
+    63, 62, 13, 12,  9,  8,  5,  4,
 
     /*
      * CSR PC IRP IFR NPR
      */
-    13, 16, 16, -1, -1,
+    16, 19, 19, -1, -1,
 
     /*
      * A16 - A31
      */
-    57, 56, 53, 52, 49, 48, 45, 44,
-    41, 40, 37, 36, 33, 32, 29, 28,
+    61, 60, 57, 56, 53, 52, 49, 48,
+    45, 44, 41, 40, 37, 36, 33, 32,
 
     /*
      * B16 -B31
      */
-    59, 58, 55, 54, 51, 52, 47, 46,
+    59, 58, 55, 54, 51, 50, 47, 46,
     43, 42, 39, 38, 35, 34, 31, 30,
 };
 
@@ -175,25 +175,25 @@ static INT iRegMap[] = {
     /*
      * A0 - A15
      */
-    76, 77, 72, 73, 68, 69, 64, 65,
-    60, 61, 80, 81,  2,  3, 10, 11,
+    76, 77, 72, 73, 14, 15, 68, 69,
+    64, 65, 10, 11,  6,  7,  2,  3,
 
     /*
      * B0 - B15
      */
-    78, 79, 74, 75, 70, 71, 66, 67,
-    62, 63,  8, 82,  4,  5, 12, -1,
+    79, 80, 74, 75, 70, 71, 66, 67,
+    62, 63, 12, 13,  8,  9,  4,  5,
 
     /*
      * CSR PC IRP IFR NPR
      */
-    13, 16, 16, -1, -1,
+    16, 19, 19, -1, -1,
 
     /*
      * A16 - A31
      */
-    56, 57, 52, 53, 48, 49, 44, 45,
-    40, 41, 36, 37, 32, 33, 28, 29,
+    60, 61, 56, 57, 52, 53, 48, 49,
+    44, 45, 40, 41, 36, 37, 32, 33,
 
     /*
      * B16 -B31
@@ -241,7 +241,7 @@ CPCHAR  archGdbCoreXml (VOID)
 *********************************************************************************************************/
 INT  archGdbRegsGet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, GDB_REG_SET  *pregset)
 {
-    ARCH_REG_IRQ_CTX  regctx;
+    ARCH_REG_CTX      regctx;
     ARCH_REG_T        regSp;
     INT               i = 0;
     ULONG            *pulRegVals;
@@ -259,8 +259,6 @@ INT  archGdbRegsGet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, GDB_REG_SET  *
         }
     }
 
-    pregset->regArr[C6X_REG_INDEX_B15].GDBRA_ulValue = regSp - 4;
-
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -275,7 +273,7 @@ INT  archGdbRegsGet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, GDB_REG_SET  *
 *********************************************************************************************************/
 INT  archGdbRegsSet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, GDB_REG_SET  *pregset)
 {
-    ARCH_REG_IRQ_CTX  regctx;
+    ARCH_REG_CTX      regctx;
     INT               i = 0;
     ULONG            *pulRegVals;
 
@@ -304,7 +302,7 @@ INT  archGdbRegsSet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, GDB_REG_SET  *
 *********************************************************************************************************/
 INT  archGdbRegSetPc (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, ULONG  ulPc)
 {
-    ARCH_REG_IRQ_CTX  regctx;
+    ARCH_REG_CTX      regctx;
     ARCH_REG_T        regSp;
 
     API_DtraceGetRegs(pvDtrace, ulThread, (ARCH_REG_CTX *)&regctx, &regSp);

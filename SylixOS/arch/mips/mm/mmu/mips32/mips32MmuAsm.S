@@ -25,9 +25,10 @@
 
 #include <arch/assembler.h>
 #include <config/kernel/vmm_cfg.h>
-#include "config/kernel/memory_cfg.h"
+#include <config/kernel/memory_cfg.h>
 
 #if LW_CFG_VMM_EN > 0
+#if LW_CFG_CPU_WORD_LENGHT == 32
 
 #include "arch/mips/arch_mmu.h"
 
@@ -35,8 +36,8 @@
 ;  PTE BASE 相关定义
 ;*********************************************************************************************************/
 
-#define PTE_BASE_OFFSET                 23
-#define PTE_BASE_SIZE                   9
+#define MIPS32_PTE_BASE_OFFSET          23
+#define MIPS32_PTE_BASE_SIZE            9
 
 ;/*********************************************************************************************************
 ;  BADVPN2 相关定义
@@ -50,9 +51,9 @@
 #define MIPS32_BADVPN2_SHIFT            4
 #else
 #error  LW_CFG_VMM_PAGE_SIZE must be (4K, 16K, 64K)!
-#endif                                                                   /*  LW_CFG_VMM_PAGE_SIZE        */
+#endif
 
-    EXPORT_LABEL(mips32TlbRefillEntry)
+    EXPORT_LABEL(mipsMmuTlbRefillEntry)
 
     FILE_BEGIN()
 
@@ -60,37 +61,34 @@
 ;  TLB 重填
 ;*********************************************************************************************************/
 
-FUNC_DEF(mips32TlbRefillEntry)
+FUNC_DEF(mipsMmuTlbRefillEntry)
     .set    push
     .set    noat
-    .set    noreorder
-    .set    volatile
-
     ;/*
-    ; * K1 = CP0_CTXT
+    ; * K1 = CP0_CONTEXT
     ; * K0 = K1
     ; */
-    MFC0    K1 , CP0_CTXT                                               ;/*  K1 等于 Context 寄存器      */
+    MFC0    K1 , CP0_CONTEXT                                            ;/*  K1 等于 Context 寄存器      */
     EHB
     MOVE    K0 , K1                                                     ;/*  K0 等于 Context 寄存器      */
 
     ;/*
-    ; * K1 <<= PTE_BASE_SIZE
-    ; * K1 >>= PTE_BASE_SIZE
+    ; * K1 <<= MIPS32_PTE_BASE_SIZE
+    ; * K1 >>= MIPS32_PTE_BASE_SIZE
     ; * K1 >>= 4
     ; * K1 >>= MIPS32_BADVPN2_SHIFT
     ; * K1 <<= 3
     ; */
-    SLL     K1 , PTE_BASE_SIZE
-    SRL     K1 , (PTE_BASE_SIZE + 4 + MIPS32_BADVPN2_SHIFT)             ;/*  K1 为 BAD VPN2              */
+    SLL     K1 , MIPS32_PTE_BASE_SIZE
+    SRL     K1 , (MIPS32_PTE_BASE_SIZE + 4 + MIPS32_BADVPN2_SHIFT)      ;/*  K1 为 BAD VPN2              */
     SLL     K1 , (4 - 1)
 
     ;/*
-    ; * K0 >>= PTE_BASE_OFFSET
-    ; * K0 <<= PTE_BASE_OFFSET
+    ; * K0 >>= MIPS32_PTE_BASE_OFFSET
+    ; * K0 <<= MIPS32_PTE_BASE_OFFSET
     ; */
-    SRL     K0 , PTE_BASE_OFFSET
-    SLL     K0 , PTE_BASE_OFFSET                                        ;/*  K0 为 PTE BASE              */
+    SRL     K0 , MIPS32_PTE_BASE_OFFSET
+    SLL     K0 , MIPS32_PTE_BASE_OFFSET                                 ;/*  K0 为 PTE BASE              */
 
     ;/*
     ; * K1 = K1 | K0
@@ -105,24 +103,24 @@ FUNC_DEF(mips32TlbRefillEntry)
     LW      K1 , 4(K1)
 
     ;/*
-    ; * CP0_TLBLO0 = K0
-    ; * CP0_TLBLO1 = K1
+    ; * CP0_ENTRYLO0 = K0
+    ; * CP0_ENTRYLO1 = K1
     ; */
-    MTC0    K0 , CP0_TLBLO0                                             ;/*  EntryLo0                    */
-    MTC0    K1 , CP0_TLBLO1                                             ;/*  EntryLo1                    */
+    MTC0    K0 , CP0_ENTRYLO0                                           ;/*  EntryLo0                    */
+    MTC0    K1 , CP0_ENTRYLO1                                           ;/*  EntryLo1                    */
     EHB
 
     TLBWR                                                               ;/*  TLB 随机替换                */
 
     ERET                                                                ;/*  异常返回                    */
     NOP
-
     .set    pop
-    FUNC_END(mips32TlbRefillEntry)
+    FUNC_END(mipsMmuTlbRefillEntry)
 
     FILE_END()
 
-#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
+#endif
+#endif
 ;/*********************************************************************************************************
 ;  END
 ;*********************************************************************************************************/

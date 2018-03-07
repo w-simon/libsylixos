@@ -74,8 +74,10 @@
 /*********************************************************************************************************
   GP register definitions
 *********************************************************************************************************/
+/*********************************************************************************************************
+  Volatile registers that are not saved across subroutine calls
+*********************************************************************************************************/
 
-/* Volatile registers that are not saved across subroutine calls */
 #define P0          R3                      /*  Argument register, volatile                             */
 #define P1          R4                      /*  Argument register, volatile                             */
 #define P2          R5                      /*  Argument register, volatile                             */
@@ -96,7 +98,10 @@
 #define RETVAL0     R3                      /*  Return register 0, volatile                             */
 #define RETVAL1     R4                      /*  Return register 1, volatile                             */
 
-/* Non-volatile and dedicated registers saved across subroutine calls */
+/*********************************************************************************************************
+  Non-volatile and dedicated registers saved across subroutine calls
+*********************************************************************************************************/
+
 #define SP          R1                      /*  Stack pointer, dedicated                                */
 #define T0          R14                     /*  Temporary registers, non-volatile                       */
 #define T1          R15                     /*  Temporary registers, non-volatile                       */

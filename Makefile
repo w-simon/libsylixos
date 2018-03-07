@@ -89,6 +89,7 @@ include libsylixos.mk
 ifeq ($(ARCH), c6x)
 BUILD_PROCESS_SUP_LIB = 1
 BUILD_KERNEL_MODULE   = 0
+BUILD_TLS_SUP_LIB     = 0
 endif
 
 ifeq ($(BUILD_PROCESS_SUP_LIB), 1)

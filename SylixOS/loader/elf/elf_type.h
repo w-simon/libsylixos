@@ -62,6 +62,7 @@ typedef UINT32   Elf32_Word;
 /*********************************************************************************************************
   64-bit ELF base types. 
 *********************************************************************************************************/
+typedef UINT8    Elf64_Byte;
 typedef addr_t   Elf64_Addr;
 typedef UINT16   Elf64_Half;
 typedef SINT16   Elf64_SHalf;
@@ -316,6 +317,27 @@ typedef struct elf64_sym {
     Elf64_Addr      st_value;                               /* Value of the symbol                      */
     Elf64_Xword     st_size;                                /* Associated symbol size                   */
 } Elf64_Sym;
+
+#if defined(LW_CFG_CPU_ARCH_MIPS64)
+typedef struct {
+    Elf64_Addr r_offset;                                    /*  Address of relocation.                  */
+    Elf64_Word r_sym;                                       /*  Symbol index.                           */
+    Elf64_Byte r_ssym;                                      /*  Special symbol.                         */
+    Elf64_Byte r_type3;                                     /*  Third relocation.                       */
+    Elf64_Byte r_type2;                                     /*  Second relocation.                      */
+    Elf64_Byte r_type;                                      /*  First relocation.                       */
+} Elf64_Mips_Rel;
+
+typedef struct {
+    Elf64_Addr r_offset;                                    /*  Address of relocation.                  */
+    Elf64_Word r_sym;                                       /*  Symbol index.                           */
+    Elf64_Byte r_ssym;                                      /*  Special symbol.                         */
+    Elf64_Byte r_type3;                                     /*  Third relocation.                       */
+    Elf64_Byte r_type2;                                     /*  Second relocation.                      */
+    Elf64_Byte r_type;                                      /*  First relocation.                       */
+    Elf64_Sxword r_addend;                                  /*  Addend.                                 */
+} Elf64_Mips_Rela;
+#endif                                                      /*  defined(LW_CFG_CPU_ARCH_MIPS64)         */
 
 /*********************************************************************************************************
   elf header
@@ -587,8 +609,19 @@ typedef Elf64_Addr      Elf_Addr;
 typedef Elf_Addr        Elf_Val;
 
 typedef Elf64_Dyn       Elf_Dyn;
+#if !defined(LW_CFG_CPU_ARCH_MIPS64)
 typedef Elf64_Rel       Elf_Rel;
 typedef Elf64_Rela      Elf_Rela;
+#else
+#define Elf_Mips_Rel    Elf64_Mips_Rel
+#define Elf_Mips_Rela   Elf64_Mips_Rela
+
+#define ELF_MIPS_R_SYM(rel)  (rel->r_sym)
+#define ELF_MIPS_R_TYPE(rel) (rel->r_type)
+
+typedef Elf_Mips_Rel    Elf_Rel;
+typedef Elf_Mips_Rela   Elf_Rela;
+#endif                                                      /*  !defined(LW_CFG_CPU_ARCH_MIPS64)        */
 typedef Elf64_Sym       Elf_Sym;
 typedef Elf64_Ehdr      Elf_Ehdr;
 typedef Elf64_Phdr      Elf_Phdr;

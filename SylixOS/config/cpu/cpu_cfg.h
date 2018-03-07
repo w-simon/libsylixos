@@ -26,7 +26,7 @@
 #if defined(__arm__)
 #include "cpu_cfg_arm.h"
 
-#elif defined(__mips__)
+#elif defined(__mips__) || defined(__mips64)
 #include "cpu_cfg_mips.h"
 
 #elif defined(__PPC__)

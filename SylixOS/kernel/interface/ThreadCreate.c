@@ -66,7 +66,6 @@ LW_OBJECT_HANDLE  API_ThreadCreate (CPCHAR                   pcName,
     REGISTER PLW_STACK             pstkButtom;
     REGISTER PLW_STACK             pstkGuard;
     REGISTER PLW_STACK             pstkLowAddress;
-    REGISTER PLW_STACK             pstkFristFree;
     
              size_t                stStackSize;                         /*  堆栈大小(单位：字)          */
              size_t                stGuardSize;
@@ -185,10 +184,11 @@ LW_OBJECT_HANDLE  API_ThreadCreate (CPCHAR                   pcName,
                    pthreadattr->THREADATTR_stStackByteSize);            /*  需要清除堆栈                */
     }
                                                                         /*  初始化堆栈，SHELL           */
-    pstkFristFree = archTaskCtxCreate((PTHREAD_START_ROUTINE)_ThreadShell, 
-                                      (PVOID)pfuncThread,               /*  真正的可执行代码体          */
-                                      pstkTop, 
-                                      pthreadattr->THREADATTR_ulOption);
+    archTaskCtxCreate(&ptcb->TCB_archRegCtx,
+                      (PTHREAD_START_ROUTINE)_ThreadShell,
+                      (PVOID)pfuncThread,                               /*  真正的可执行代码体          */
+                      pstkTop,
+                      pthreadattr->THREADATTR_ulOption);
     
     if (pcName) {                                                       /*  拷贝名字                    */
         lib_strcpy(ptcb->TCB_cThreadName, pcName);
@@ -205,7 +205,6 @@ LW_OBJECT_HANDLE  API_ThreadCreate (CPCHAR                   pcName,
     }
     
     _TCBBuild(pthreadattr->THREADATTR_ucPriority,                       /*  构建 TCB                    */
-              pstkFristFree,                                            /*  空闲栈区地址                */
               pstkTop,                                                  /*  主栈区地址                  */
               pstkButtom,                                               /*  栈底                        */
               pstkGuard,

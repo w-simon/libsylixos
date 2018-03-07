@@ -12,11 +12,11 @@
 **
 ** 文   件   名: mipsBacktrace.c
 **
-** 创   建   人: Ryan.Xin (信金龙)
+** 创   建   人: Jiao.JinXing (焦进星)
 **
 ** 文件创建日期: 2013 年 12 月 09 日
 **
-** 描        述: MIPS 体系构架堆栈回溯 (来源于 glibc).
+** 描        述: MIPS 体系架构堆栈回溯 (来源于 glibc).
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -30,8 +30,15 @@
 /*********************************************************************************************************
   指令定义
 *********************************************************************************************************/
-#define ADDUI_SP_INST           0x27bd0000
-#define SW_RA_INST              0xafbf0000
+#if LW_CFG_CPU_WORD_LENGHT == 32
+#define ADDUI_SP_INST           0x27bd0000                              /*  ADDIU SP                    */
+#define SW_RA_INST              0xafbf0000                              /*  SW RA                       */
+#define LONGLOG                 2
+#else
+#define ADDUI_SP_INST           0x67bd0000                              /*  DADDIU SP                   */
+#define SW_RA_INST              0xffbf0000                              /*  SD RA                       */
+#define LONGLOG                 3
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
 #define JR_RA_INST              0x03e00008
 
 #define INST_OP_MASK            0xffff0000
@@ -65,16 +72,16 @@ static PVOID  getEndStack (VOID)
 LW_API
 int  backtrace (void **array, int size)
 {
-    unsigned long  *addr;
-    unsigned long  *ra;
-    unsigned long  *sp;
-    unsigned long  *fp;
-    unsigned long  *end_stack;
-    unsigned long  *low_stack;
-    unsigned long   inst;
-    unsigned int    stack_size;
-    unsigned int    ra_offset;
-    unsigned int    cnt;
+    MIPS_INSTRUCTION  *addr;
+    unsigned long     *ra;
+    unsigned long     *sp;
+    unsigned long     *fp;
+    unsigned long     *end_stack;
+    unsigned long     *low_stack;
+    MIPS_INSTRUCTION   inst;
+    unsigned int       stack_size;
+    unsigned int       ra_offset;
+    unsigned int       cnt;
 
     if (!array || (size < 0)) {
         return  (-1);
@@ -84,10 +91,13 @@ int  backtrace (void **array, int size)
                          "move %1, $sp\n"
                          :"=r"(ra), "=r"(low_stack));
 
+    cnt = 0;
+    array[cnt++] = ra;
+
     end_stack = getEndStack();                                          /*  获得堆栈结束地址            */
 
     stack_size = 0;
-    for (addr = (unsigned long *)backtrace; ; addr++) {                 /*  从 backtrace 函数向下找     */
+    for (addr = (MIPS_INSTRUCTION *)backtrace; ; addr++) {              /*  从 backtrace 函数向下找     */
         inst = *addr;
         if ((inst & INST_OP_MASK) == ADDUI_SP_INST) {                   /*  找到类似 ADDUI SP, SP, -40  */
                                                                         /*  的堆栈开辟指令              */
@@ -96,33 +106,31 @@ int  backtrace (void **array, int size)
                 break;
             }
         } else if (inst == JR_RA_INST) {                                /*  遇上了 JR RA 指令           */
-            return  (0);                                                /*  直接返回                    */
-        } else {
-
+            return  (cnt);                                              /*  直接返回                    */
         }
     }
 
     sp = (unsigned long *)((unsigned long)low_stack + stack_size);      /*  调用者的 SP                 */
 
     if (sp[-1] != ((unsigned long)ra)) {                                /*  backtrace 保存的 RA 不对    */
-        return  (0);
+        return  (cnt);
     }
 
     fp = (unsigned long *)sp[-2];
     if (fp != sp) {                                                     /*  backtrace 保存的 FP 不对    */
-        return  (0);                                                    /*  或 Release 版本没有保存 FP  */
+        return  (cnt);                                                  /*  或 Release 版本没有保存 FP  */
     }
 
     if ((sp >= end_stack) || (sp <= low_stack)) {                       /*  SP 不合法                   */
-        return  (0);
+        return  (cnt);
     }
 
-    for (cnt = 0; cnt < size; cnt++) {                                  /*  backtrace                   */
+    for (; cnt < size; ) {                                              /*  backtrace                   */
 
         ra_offset  = 0;
         stack_size = 0;
 
-        for (addr = ra;                                                 /*  在返回的位置向上找          */
+        for (addr = (MIPS_INSTRUCTION *)ra;                             /*  在返回的位置向上找          */
              (ra_offset == 0) || (stack_size == 0);
              addr--) {
 
@@ -143,14 +151,14 @@ int  backtrace (void **array, int size)
             }
         }
 
-        ra = (unsigned long *)sp[ra_offset >> 2];                       /*  取出保存的 RA               */
+        ra = (unsigned long *)sp[ra_offset >> LONGLOG];                 /*  取出保存的 RA               */
         if (ra == 0) {                                                  /*  最后一层无返回函数          */
             break;
         }
 
-        array[cnt] = ra;
+        array[cnt++] = ra;
 
-        fp = (unsigned long *)sp[(ra_offset >> 2) - 1];                 /*  取出保存的 FP               */
+        fp = (unsigned long *)sp[(ra_offset >> LONGLOG) - 1];           /*  取出保存的 FP               */
 
         sp = (unsigned long *)((unsigned long)sp + stack_size);         /*  计算调用者的 SP             */
 

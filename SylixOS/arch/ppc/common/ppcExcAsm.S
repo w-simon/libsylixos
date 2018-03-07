@@ -62,38 +62,88 @@
 ;*********************************************************************************************************/
 
 MACRO_DEF(EXC_ENTRY, handle)
-    EXC_SAVE_REGS                                                       ;/*  所有寄存器入栈              */
+    ;/*
+    ; * 使用异常临时栈, 并在异常临时栈开辟临时上下文保存区, 将 volatile 寄存器保存到临时上下文保存区
+    ; */
+    EXC_SAVE_VOLATILE
+
+    SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
 
     ;/*
-    ; *  if (API_InterEnter() == 1) {
-    ; *      current stack = SP;
-    ; *      SP = interrupt stack;
-    ; *  }
+    ; * API_InterEnter()
     ; */
-    SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
-    BL      API_InterEnter                                              ;/*  获取中断层数放到返回值 V0   */
+    BL      API_InterEnter                                              ;/*  获取中断层数放到返回值 R3   */
 
     CMPWI   CR0, R3 , 1
     BNE     CR0, 1f
 
+    ;/*
+    ; * 获得当前任务 TCB 的 ARCH_REG_CTX 地址
+    ; */
     BL      API_ThreadTcbInter                                          ;/*  get current tcb             */
-    ADDI    SP , SP , 16
-    STW     SP , 0(R3)                                                  ;/*  current stack = SP          */
+
+    ;/*
+    ; * 拷贝 volatile 寄存器到当前任务 TCB 的 ARCH_REG_CTX 里
+    ; */
+    ADDI    SP , SP , 16                                                ;/*  回收 C 函数栈帧             */
+
+    EXC_COPY_VOLATILE
+
+    ;/*
+    ; * 保存 non volatile 寄存器到当前任务 TCB 的 ARCH_REG_CTX 里
+    ; */
+    EXC_SAVE_NON_VOLATILE
+
     SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
 
-    BL      API_InterStackBaseGet                                       ;/*  获得当前 CPU 中断堆栈栈顶   */
-    OR      SP , R3 , R3
-    SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
+    ;/*
+    ; * 第一次进入中断: 获得当前 CPU 中断堆栈栈顶, 并设置 SP
+    ; */
+    BL      API_InterStackBaseGet
+    SUBI    SP , R3 , 16                                                ;/*  开辟 C 函数栈帧             */
 
-1:
+2:
+    ;/*
+    ; * handle(返回地址)
+    ; */
     MFSPR   R3 , SRR0                                                   ;/*  传递返回地址                */
     ISYNC
     BL      \handle                                                     ;/*  调用处理函数                */
 
+    ;/*
+    ; * API_InterExit()
+    ; * 如果没有发生中断嵌套, 则 API_InterExit 会调用 archIntCtxLoad 函数
+    ; */
     BL      API_InterExit
-    ADDI    SP , SP , 16
 
-    RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
+    ;/*
+    ; * 来到这里, 说明发生了中断嵌套
+    ; */
+    ADDI    R4 , SP , 16                                                ;/*  回收 C 函数栈帧             */
+    RESTORE_REGS                                                        ;/*  恢复所有寄存器              */
+
+1:
+    ;/*
+    ; * 不是第一次进入中断
+    ; */
+    ADDI    SP , SP , 16                                                ;/*  回收 C 函数栈帧             */
+
+    MFSPR   R3 , SPRG0                                                  ;/*  异常前 SP(R1)               */
+    SUBI    R3 , R3 , ARCH_REG_CTX_SIZE                                 ;/*  在异常堆栈开辟上下文保存区  */
+
+    ;/*
+    ; * 拷贝 volatile 寄存器到异常堆栈里的上下文保存区
+    ; */
+    EXC_COPY_VOLATILE
+
+    ;/*
+    ; * 保存 non volatile 寄存器到异常堆栈里
+    ; */
+    EXC_SAVE_NON_VOLATILE
+
+    SUBI    SP , R3 , 16                                                ;/*  使用异常堆栈并开辟C函数栈帧 */
+
+    B       2b
     MACRO_END()
 
 ;/*********************************************************************************************************

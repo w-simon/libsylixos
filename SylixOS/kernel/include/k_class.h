@@ -306,7 +306,7 @@ typedef LW_CLASS_MSGQUEUE   *PLW_CLASS_MSGQUEUE;
 #if LW_CFG_COROUTINE_EN > 0
 
 typedef struct {
-    PLW_STACK             COROUTINE_pstkStackNow;                       /*  线程当前堆栈指针            */
+    ARCH_REG_CTX          COROUTINE_archRegCtx;                         /*  寄存器上下文                */
     PLW_STACK             COROUTINE_pstkStackTop;                       /*  线程主堆栈栈顶              */
                                                                         /*  不包括 CRCB 堆栈区          */
     PLW_STACK             COROUTINE_pstkStackBottom;                    /*  线程主堆栈栈底              */
@@ -407,6 +407,14 @@ typedef struct {
 typedef LW_FPU_CONTEXT   *PLW_FPU_CONTEXT;
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 
+#if LW_CFG_CPU_DSP_EN > 0
+typedef struct {
+    ARCH_DSP_CTX          DSPCTX_dspctxContext;                         /*  体系结构相关 DSP 上下文     */
+    ULONG                 DSPCTX_ulReserve[2];                          /*  调试保留                    */
+} LW_DSP_CONTEXT;
+typedef LW_DSP_CONTEXT   *PLW_DSP_CONTEXT;
+#endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
+
 /*********************************************************************************************************
   线程 shell 信息
 *********************************************************************************************************/
@@ -437,13 +445,9 @@ typedef LW_SHELL_CONTEXT *PLW_SHELL_CONTEXT;
 #endif
 
 typedef struct __lw_tcb {
-    PLW_STACK             TCB_pstkStackNow;                             /*  线程当前堆栈指针            */
-
-#if defined(LW_CFG_CPU_ARCH_C6X)
-    ULONG                 TCB_ulContextType;                            /*  c6x 上下文类型              */
-#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
-
+    ARCH_REG_CTX          TCB_archRegCtx;                               /*  寄存器上下文                */
     PVOID                 TCB_pvStackFP;                                /*  浮点运算器上下文指针        */
+    PVOID                 TCB_pvStackDSP;                               /*  DSP 上下文指针              */
     PVOID                 TCB_pvStackExt;                               /*  扩展堆栈区                  */
     
     LW_LIST_MONO          TCB_monoResrcList;                            /*  空闲资源表                  */
@@ -465,6 +469,10 @@ typedef struct __lw_tcb {
 #if LW_CFG_CPU_FPU_EN > 0
     LW_FPU_CONTEXT        TCB_fpuctxContext;                            /*  FPU 上下文                  */
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+
+#if LW_CFG_CPU_DSP_EN > 0
+    LW_DSP_CONTEXT        TCB_dspctxContext;                            /*  DSP 上下文                  */
+#endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
 
     INT                   TCB_iSchedRet;                                /*  调度器返回的值, signal      */
     ULONG                 TCB_ulOption;                                 /*  线程选项                    */

@@ -249,7 +249,7 @@ static VOID  __signalStkShowHandle (PLW_CLASS_SIGCTLMSG   psigctlmsg)
 #endif                                                                  /*  LW_CFG_ABORT_CALLSTACK_IN...*/
 
 #if LW_CFG_DEVICE_EN > 0
-    archTaskCtxShow(STD_OUT, (PLW_STACK)psigctlmsg->SIGCTLMSG_pvStackRet);
+    archTaskCtxShow(STD_OUT, &psigctlmsg->SIGCTLMSG_archRegCtx);
 #endif                                                                  /*  LW_CFG_DEVICE_EN > 0        */
 }
 /*********************************************************************************************************
@@ -452,10 +452,12 @@ static  VOID  __sigCtlCreate (PLW_CLASS_TCB         ptcb,
     stack_t             *pstack;
 
     if (psigctx && (psigctx->SIGCTX_stack.ss_flags == 0)) {             /*  使用用户指定的信号堆栈      */
+        PLW_STACK  pstkStackNow = archCtxStackEnd(&ptcb->TCB_archRegCtx);
+
         pstack = &psigctx->SIGCTX_stack;
-        if ((ptcb->TCB_pstkStackNow >= (PLW_STACK)pstack->ss_sp) && 
-            (ptcb->TCB_pstkStackNow < (PLW_STACK)((size_t)pstack->ss_sp + pstack->ss_size))) {
-            pucStkNow = (BYTE *)ptcb->TCB_pstkStackNow;                 /*  已经在用户指定的信号堆栈中  */
+        if ((pstkStackNow >= (PLW_STACK)pstack->ss_sp) &&
+            (pstkStackNow < (PLW_STACK)((size_t)pstack->ss_sp + pstack->ss_size))) {
+            pucStkNow = (BYTE *)pstkStackNow;                           /*  已经在用户指定的信号堆栈中  */
         
         } else {
 #if	CPU_STK_GROWTH == 0
@@ -465,7 +467,7 @@ static  VOID  __sigCtlCreate (PLW_CLASS_TCB         ptcb,
 #endif                                                                  /*  CPU_STK_GROWTH == 0         */
         }
     } else {
-        pucStkNow = (BYTE *)ptcb->TCB_pstkStackNow;
+        pucStkNow = (BYTE *)archCtxStackEnd(&ptcb->TCB_archRegCtx);
     }
 
 #if	CPU_STK_GROWTH == 0                                                 /*  CPU_STK_GROWTH == 0         */
@@ -485,6 +487,17 @@ static  VOID  __sigCtlCreate (PLW_CLASS_TCB         ptcb,
     }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 
+#if LW_CFG_CPU_DSP_EN > 0
+    if (ptcb->TCB_ulOption & LW_OPTION_THREAD_USED_DSP) {
+        pucStkNow = (BYTE *)ROUND_UP(pucStkNow, ARCH_DSP_CTX_ALIGN);    /*  必须保证DSP上下文对齐要求   */
+        psigctlmsg->SIGCTLMSG_pdspctx = (LW_DSP_CONTEXT *)pucStkNow;
+        pucStkNow  += __SIGDSPCTX_SIZE_ALIGN;                           /*  让出 signal dsp ctx 空间    */
+
+    } else {
+        psigctlmsg->SIGCTLMSG_pdspctx = LW_NULL;
+    }
+#endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
+
 #else                                                                   /*  CPU_STK_GROWTH == 1         */
     pucStkNow  -= __SIGCTLMSG_SIZE_ALIGN;                               /*  让出 signal contrl msg 空间 */
     pucStkNow   = (BYTE *)ROUND_DOWN(pucStkNow, ARCH_STK_ALIGN_SIZE);
@@ -502,31 +515,38 @@ static  VOID  __sigCtlCreate (PLW_CLASS_TCB         ptcb,
         psigctlmsg->SIGCTLMSG_pfpuctx = LW_NULL;
     }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+
+#if LW_CFG_CPU_DSP_EN > 0
+    if (ptcb->TCB_ulOption & LW_OPTION_THREAD_USED_DSP) {
+        pucStkNow  -= __SIGDSPCTX_SIZE_ALIGN;                           /*  让出 signal dsp ctx 空间    */
+        pucStkNow   = (BYTE *)ROUND_DOWN(pucStkNow, ARCH_DSP_CTX_ALIGN);/*  必须保证DSP上下文对齐要求   */
+        psigctlmsg->SIGCTLMSG_pdspctx = (LW_DSP_CONTEXT *)pucStkNow;
+        pucStkNow  -= sizeof(LW_STACK);                                 /*  向空栈方向移动一个堆栈空间  */
+
+    } else {
+        psigctlmsg->SIGCTLMSG_pdspctx = LW_NULL;
+    }
+#endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
 #endif                                                                  /*  CPU_STK_GROWTH              */
 
     psigctlmsg->SIGCTLMSG_iSchedRet       = iSchedRet;
     psigctlmsg->SIGCTLMSG_iKernelSpace    = __KERNEL_SPACE_GET2(ptcb);
-    psigctlmsg->SIGCTLMSG_pvStackRet      = ptcb->TCB_pstkStackNow;
-#if defined(LW_CFG_CPU_ARCH_C6X)
-    psigctlmsg->SIGCTLMSG_ulContextType   = ptcb->TCB_ulContextType;    /*  记录当前上下文类型          */
-#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
+    psigctlmsg->SIGCTLMSG_archRegCtx      = ptcb->TCB_archRegCtx;
     psigctlmsg->SIGCTLMSG_siginfo         = *psiginfo;
     psigctlmsg->SIGCTLMSG_sigsetMask      = *psigsetMask;
     psigctlmsg->SIGCTLMSG_ulLastError     = ptcb->TCB_ulLastError;      /*  记录当前错误号              */
     psigctlmsg->SIGCTLMSG_ucWaitTimeout   = ptcb->TCB_ucWaitTimeout;    /*  记录 timeout 标志           */
     psigctlmsg->SIGCTLMSG_ucIsEventDelete = ptcb->TCB_ucIsEventDelete;
     
-    pstkSignalShell = archTaskCtxCreate((PTHREAD_START_ROUTINE)__sigShell, 
+    pstkSignalShell = archTaskCtxCreate(&ptcb->TCB_archRegCtx,
+                                        (PTHREAD_START_ROUTINE)__sigShell,
                                         (PVOID)psigctlmsg,
                                         (PLW_STACK)pucStkNow,
                                         0);                             /*  建立信号外壳环境            */
     
-    archTaskCtxSetFp(pstkSignalShell, ptcb->TCB_pstkStackNow);          /*  保存 fp, 使 callstack 正常  */
-    
-    ptcb->TCB_pstkStackNow  = pstkSignalShell;                          /*  保存建立好的信号外壳堆栈    */
-#if defined(LW_CFG_CPU_ARCH_C6X)
-    ptcb->TCB_ulContextType = 0;                                        /*  小上下文类型                */
-#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
+    archTaskCtxSetFp(pstkSignalShell,
+                     &ptcb->TCB_archRegCtx,
+                     &psigctlmsg->SIGCTLMSG_archRegCtx);                /*  保存 fp, 使 callstack 正常  */
     
     _StackCheckGuard(ptcb);                                             /*  堆栈警戒检查                */
     
@@ -563,22 +583,19 @@ static VOID  __sigReturn (PLW_CLASS_SIGCONTEXT  psigctx,
         __ARCH_FPU_RESTORE((PVOID)psigctlmsg->SIGCTLMSG_pfpuctx);       /*  恢复被信号中断前 FPU 上下文 */
     }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+#if LW_CFG_CPU_DSP_EN > 0
+    if (psigctlmsg->SIGCTLMSG_pdspctx &&
+        (ptcbCur->TCB_ulOption & LW_OPTION_THREAD_USED_DSP)) {
+        __ARCH_DSP_RESTORE((PVOID)psigctlmsg->SIGCTLMSG_pdspctx);       /*  恢复被信号中断前 DSP 上下文 */
+    }
+#endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
     
     ptcbCur->TCB_ulLastError     = psigctlmsg->SIGCTLMSG_ulLastError;   /*  恢复错误号                  */
     ptcbCur->TCB_ucWaitTimeout   = psigctlmsg->SIGCTLMSG_ucWaitTimeout; /*  恢复 timeout 标志           */
     ptcbCur->TCB_ucIsEventDelete = psigctlmsg->SIGCTLMSG_ucIsEventDelete;
-    ptcbCur->TCB_pstkStackNow    = (PLW_STACK)psigctlmsg->SIGCTLMSG_pvStackRet;
-#if defined(LW_CFG_CPU_ARCH_C6X)
-    ptcbCur->TCB_ulContextType   = psigctlmsg->SIGCTLMSG_ulContextType; /*  恢复当前上下文类型          */
-#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
     
     KN_SMP_MB();
-#if defined(LW_CFG_CPU_ARCH_C6X)
-    archSigCtxLoad(psigctlmsg->SIGCTLMSG_pvStackRet,
-                   psigctlmsg->SIGCTLMSG_ulContextType);                /*  从信号上下文中返回          */
-#else
-    archSigCtxLoad(psigctlmsg->SIGCTLMSG_pvStackRet);                   /*  从信号上下文中返回          */
-#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
+    archSigCtxLoad(&psigctlmsg->SIGCTLMSG_archRegCtx);                  /*  从信号上下文中返回          */
     KN_INT_ENABLE(iregInterLevel);                                      /*  运行不到这里                */
 }
 /*********************************************************************************************************
@@ -616,7 +633,7 @@ static VOID  __sigRunHandle (PLW_CLASS_SIGCONTEXT  psigctx,
         (pfuncHandle != SIG_CATCH) &&
         (pfuncHandle != SIG_HOLD)) {
         pvCtx = (psigctlmsg) 
-              ? psigctlmsg->SIGCTLMSG_pvStackRet
+              ? &psigctlmsg->SIGCTLMSG_archRegCtx
               : LW_NULL;
               
         if (psigaction->sa_flags & SA_SIGINFO) {                        /*  需要 siginfo_t 信息         */
@@ -694,10 +711,6 @@ static VOID  __sigShell (PLW_CLASS_SIGCTLMSG  psigctlmsg)
     REGISTER struct siginfo       *psiginfo = &psigctlmsg->SIGCTLMSG_siginfo;
     REGISTER INT                   iSigNo   = psiginfo->si_signo;
     
-#if defined(LW_CFG_CPU_ARCH_C6X)
-    archIntEnableForce();                                               /*  使能中断                    */
-#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
-
     LW_TCB_GET_CUR_SAFE(ptcbCur);
     
     psigctx = _signalGetCtx(ptcbCur);
@@ -710,6 +723,15 @@ static VOID  __sigShell (PLW_CLASS_SIGCTLMSG  psigctlmsg)
     }
     KN_INT_ENABLE(iregInterLevel);                                      /*  打开当前 CPU 中断           */
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+
+#if LW_CFG_CPU_DSP_EN > 0
+    iregInterLevel = KN_INT_DISABLE();                                  /*  关闭当前 CPU 中断           */
+    if (psigctlmsg->SIGCTLMSG_pdspctx &&
+        (ptcbCur->TCB_ulOption & LW_OPTION_THREAD_USED_DSP)) {          /*  当前线程使用 DSP            */
+        *psigctlmsg->SIGCTLMSG_pdspctx = ptcbCur->TCB_dspctxContext;
+    }
+    KN_INT_ENABLE(iregInterLevel);                                      /*  打开当前 CPU 中断           */
+#endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
 
     MONITOR_EVT_LONG3(MONITOR_EVENT_ID_SIGNAL, MONITOR_EVENT_SIGNAL_SIGRUN, 
                       ptcbCur->TCB_ulId, iSigNo, psiginfo->si_code, LW_NULL);

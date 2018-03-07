@@ -190,7 +190,7 @@ FUNC_DEF(ppcE500DCacheDisable)
     SRWI    R5 , R6 , PPC_MMU_RPN_SHIFT - ARCH_PPC_CACHE_ALIGN_SHIFT
     MTSPR   CTR, R5
     LIS     R5 , HIADJ(_G_pucPpcCacheReadBuffer)
-    lwz     R5 , LO(_G_pucPpcCacheReadBuffer)(R5)
+    LWZ     R5 , LO(_G_pucPpcCacheReadBuffer)(R5)
     LI      R9 , PPC_MMU_PAGE_SIZE
 
     ;/*
@@ -340,6 +340,7 @@ FUNC_DEF(ppcE500ICacheInvalidateAll)
 ;*********************************************************************************************************/
 
 FUNC_DEF(ppcE500ICacheInvalidate)
+    XOR     R0 , R0 , R0
     ICBI    R0 , R3
     ADD     R3 , R3 , R5
     CMPLW   R3 , R4
@@ -353,6 +354,7 @@ FUNC_DEF(ppcE500ICacheInvalidate)
 ;*********************************************************************************************************/
 
 FUNC_DEF(ppcE500DCacheInvalidate)
+    XOR     R0 , R0 , R0
     DCBI    R0 , R3
     ADD     R3 , R3 , R5
     CMPLW   R3 , R4
@@ -366,6 +368,7 @@ FUNC_DEF(ppcE500DCacheInvalidate)
 ;*********************************************************************************************************/
 
 FUNC_DEF(ppcE500DCacheClear)
+    XOR     R0 , R0 , R0
     DCBF    R0 , R3                                             ;/*  PPC "flush" == SylixOS "clear"      */
     ADD     R3 , R3 , R5
     CMPLW   R3 , R4
@@ -379,6 +382,7 @@ FUNC_DEF(ppcE500DCacheClear)
 ;*********************************************************************************************************/
 
 FUNC_DEF(ppcE500DCacheFlush)
+    XOR     R0 , R0 , R0
     DCBST   R0 , R3                                             ;/*  PPC "store" == SylixOS "flush"      */
     ADD     R3 , R3 , R5
     CMPLW   R3 , R4
@@ -392,6 +396,7 @@ FUNC_DEF(ppcE500DCacheFlush)
 ;*********************************************************************************************************/
 
 FUNC_DEF(ppcE500TextUpdate)
+    XOR     R0 , R0 , R0
     DCBST   R0 , R3
     SYNC
     ICBI    R0 , R3

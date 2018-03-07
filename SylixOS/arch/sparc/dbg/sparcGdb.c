@@ -161,8 +161,8 @@ INT  archGdbRegsGet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, GDB_REG_SET  *
 
     pregset->regArr[iIndex++].GDBRA_ulValue = regctx.REG_uiY;
     pregset->regArr[iIndex++].GDBRA_ulValue = regctx.REG_uiPsr;
-    pregset->regArr[iIndex++].GDBRA_ulValue = regctx.REG_uiWim;
-    pregset->regArr[iIndex++].GDBRA_ulValue = regctx.REG_uiTbr;
+    iIndex++;
+    iIndex++;
 
     /*
      * 如果 PC 在内核地址空间，回溯并取得调用栈中第一个不在内核地址空间中的栈帧返回地址作为 PC，
@@ -213,8 +213,9 @@ INT  archGdbRegsSet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, GDB_REG_SET  *
 
     regctx.REG_uiY   = pregset->regArr[iIndex++].GDBRA_ulValue;
     regctx.REG_uiPsr = pregset->regArr[iIndex++].GDBRA_ulValue;
-    regctx.REG_uiWim = pregset->regArr[iIndex++].GDBRA_ulValue;
-    regctx.REG_uiTbr = pregset->regArr[iIndex++].GDBRA_ulValue;
+    iIndex++;
+    iIndex++;
+
     regctx.REG_uiPc  = pregset->regArr[iIndex++].GDBRA_ulValue;
     regctx.REG_uiNPc = pregset->regArr[iIndex++].GDBRA_ulValue;
 

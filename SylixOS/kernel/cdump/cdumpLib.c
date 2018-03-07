@@ -135,7 +135,7 @@ VOID  _CrashDumpAbortKernel (LW_OBJECT_HANDLE   ulOwner,
     pcCdump[3] = LW_CDUMP_MAGIC_3;
     
     archTaskCtxPrint(&pcCdump[4], (LW_CDUMP_MAX_LEN - LW_CDUMP_MAGIC_LEN), 
-                     (PLW_STACK)pvmpagefailctx->PAGEFCTX_pvStackRet);
+                     &pvmpagefailctx->PAGEFCTX_archRegCtx);
                      
     stOft = lib_strlen(pcCdump);
     
@@ -174,7 +174,7 @@ VOID  _CrashDumpAbortAccess (PVOID  pvCtx, CPCHAR  pcInfo)
     pcCdump[3] = LW_CDUMP_MAGIC_3;
     
     archTaskCtxPrint(&pcCdump[4], (LW_CDUMP_MAX_LEN - LW_CDUMP_MAGIC_LEN), 
-                     (PLW_STACK)pvmpagefailctx->PAGEFCTX_pvStackRet);
+                     &pvmpagefailctx->PAGEFCTX_archRegCtx);
     
     stOft = lib_strlen(pcCdump);
     

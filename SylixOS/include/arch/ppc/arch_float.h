@@ -91,7 +91,9 @@ typedef UINT32          ALTIVEC_REG[4];                                 /*  128 
   线程浮点运算器上下文
 *********************************************************************************************************/
 
-typedef union arch_fpu_ctx {                                            /*  VFP 上下文           		*/
+#define ARCH_FPU_CTX_ALIGN      16                                      /*  FPU CTX align size          */
+
+union arch_fpu_ctx {                                                    /*  VFP 上下文           		*/
     struct {
         double          FPUCTX_dfDreg[FP_DREG_NR];                      /*  32 个 double 寄存器         */
         UINT32          FPUCTX_uiFpscr;                                 /*  状态和控制寄存器            */
@@ -110,9 +112,9 @@ typedef union arch_fpu_ctx {                                            /*  VFP 
         UINT32          VECCTX_uiPad1;
         UINT32          VECCTX_uiPad2;
     };
-} ARCH_FPU_CTX;
+} __attribute__ ((aligned(ARCH_FPU_CTX_ALIGN)));
 
-#define ARCH_FPU_CTX_ALIGN      4                                       /* FPU CTX align size           */
+typedef union arch_fpu_ctx      ARCH_FPU_CTX;
 
 /*********************************************************************************************************
   float 格式 (使用 union 类型作为中间转换, 避免 GCC 3.x.x strict aliasing warning)

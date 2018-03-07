@@ -55,7 +55,6 @@ PVOID   API_CoroutineCreate (PCOROUTINE_START_ROUTINE pCoroutineStartAddr,
     REGISTER PLW_STACK             pstkTop;
     REGISTER PLW_STACK             pstkButtom;
     REGISTER PLW_STACK             pstkLowAddress;
-    REGISTER PLW_STACK             pstkFristFree;
     REGISTER size_t                stStackSizeWordAlign;                /*  堆栈大小(单位：字)          */
     
              PLW_CLASS_COROUTINE   pcrcbNew;
@@ -102,30 +101,36 @@ PVOID   API_CoroutineCreate (PCOROUTINE_START_ROUTINE pCoroutineStartAddr,
     pstkTop    = pstkLowAddress;
     pstkButtom = pstkLowAddress + stStackSizeWordAlign - 1;
     
-    pcrcbNew   = (PLW_CLASS_COROUTINE)pstkTop;                          /*  寻找 CRCB 区域              */
+    pstkTop    = (PLW_STACK)ROUND_UP(pstkTop, ARCH_STK_ALIGN_SIZE);
+    pcrcbNew   = (PLW_CLASS_COROUTINE)pstkTop;                          /*  记录 CRCB 位置              */
     pstkTop    = (PLW_STACK)((BYTE *)pstkTop + __CRCB_SIZE_ALIGN + sizeof(LW_STACK));    
                                                                         /*  寻找主堆栈区                */
+    stStackSizeWordAlign = pstkButtom - pstkTop + 1;
+
 #else
     pstkTop    = pstkLowAddress + stStackSizeWordAlign - 1;
     pstkButtom = pstkLowAddress;
     
-    pstkTop    = (PLW_STACK)((BYTE *)pstkTop - __CRCB_SIZE_ALIGN - sizeof(LW_STACK));
-    pcrcbNew   = (PLW_CLASS_COROUTINE)((BYTE *)pstkTop + sizeof(LW_STACK));
+    pstkTop    = (PLW_STACK)((BYTE *)pstkTop - __CRCB_SIZE_ALIGN);      /*  让出 CRCB 空间              */
+    pstkTop    = (PLW_STACK)ROUND_DOWN(pstkTop, ARCH_STK_ALIGN_SIZE);
+    pcrcbNew   = (PLW_CLASS_COROUTINE)pstkTop;                          /*  记录 CRCB 位置              */
+    pstkTop--;                                                          /*  向空栈方向移动一个堆栈空间  */
+
+    stStackSizeWordAlign = pstkTop - pstkButtom + 1;
 #endif                                                                  /*  CPU_STK_GROWTH == 0         */
     
     if (ptcbCur->TCB_ulOption & LW_OPTION_THREAD_STK_CLR) {
         lib_memset((BYTE *)pstkLowAddress,                              /*  需要清除堆栈                */
                    LW_CFG_STK_EMPTY_FLAG, 
-                   stStackByteSize);                                    /*  单位：字节                  */
+                   stStackSizeWordAlign * sizeof(LW_STACK));            /*  单位：字节                  */
     }
     
-    pstkFristFree = archTaskCtxCreate((PTHREAD_START_ROUTINE)_CoroutineShell, 
-                                      (PVOID)pCoroutineStartAddr,       /*  真正的可执行代码体          */
-                                      pstkTop, 
-                                      ptcbCur->TCB_ulOption);
-    
-    pcrcbNew->COROUTINE_pstkStackNow = pstkFristFree;                   /*  线程当前堆栈指针            */
-    
+    archTaskCtxCreate(&pcrcbNew->COROUTINE_archRegCtx,
+                      (PTHREAD_START_ROUTINE)_CoroutineShell,
+                      (PVOID)pCoroutineStartAddr,                       /*  真正的可执行代码体          */
+                      pstkTop,
+                      ptcbCur->TCB_ulOption);
+
     pcrcbNew->COROUTINE_pstkStackTop     = pstkTop;                     /*  线程主堆栈栈顶              */
     pcrcbNew->COROUTINE_pstkStackBottom  = pstkButtom;                  /*  线程主堆栈栈底              */
     pcrcbNew->COROUTINE_stStackSize      = stStackSizeWordAlign;        /*  线程堆栈大小(单位：字)      */

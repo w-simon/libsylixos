@@ -71,6 +71,7 @@
                                                                         /*         ITIMER_PROF          */
                                                                         /*  提高 tick 中断执行速度      */
 #define LW_KERN_FLAG_TMCVT_SIMPLE   0x20                                /*  timespec 转换为 tick 方法   */
+#define LW_KERN_FLAG_INT_DSP        0x40                                /*  中断中是否可以使用 DSP      */
 
 /*********************************************************************************************************
   内核是否支持浮点状态
@@ -85,6 +86,20 @@
             }                                               \
         } while (0)
 #define LW_KERN_FPU_EN_GET()        (_K_ulKernFlags & LW_KERN_FLAG_INT_FPU)
+
+/*********************************************************************************************************
+  内核是否支持 DSP 状态
+*********************************************************************************************************/
+
+#define LW_KERN_DSP_EN_SET(en)                              \
+        do {                                                \
+            if (en) {                                       \
+                _K_ulKernFlags |= LW_KERN_FLAG_INT_DSP;     \
+            } else {                                        \
+                _K_ulKernFlags &= ~LW_KERN_FLAG_INT_DSP;    \
+            }                                               \
+        } while (0)
+#define LW_KERN_DSP_EN_GET()        (_K_ulKernFlags & LW_KERN_FLAG_INT_DSP)
 
 /*********************************************************************************************************
   内核 bug 检测到 bug 后是否重启

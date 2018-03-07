@@ -30,7 +30,7 @@ extern addr_t   _G_ulX86IntEntryArray[X86_IDTE_NUM];
 /*********************************************************************************************************
   全局变量定义
 *********************************************************************************************************/
-typedef VOID (*X86_INT_HANDLER)(ULONG  ulX86Vector, ULONG  ulESP);      /*  异常/中断处理函数类型       */
+typedef VOID (*X86_INT_HANDLER)(ULONG  ulX86Vector, ARCH_REG_CTX  *pregctx);/*  异常/中断处理函数类型   */
 
 X86_INT_HANDLER _G_pfuncX86IntHandleArray[X86_IDTE_NUM];                /*  异常/中断处理函数数组       */
 
@@ -133,9 +133,8 @@ VOID  archIntHandle (ULONG  ulVector, BOOL  bPreemptive)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  x86DefaultExceptHandle (ULONG  ulX86Vector, ULONG  ulESP)
+static VOID  x86DefaultExceptHandle (ULONG  ulX86Vector, ARCH_REG_CTX  *pregctx)
 {
-    ARCH_REG_CTX   *pregctx = (ARCH_REG_CTX *)ulESP;
     PLW_CLASS_TCB   ptcbCur;
     LW_VMM_ABORT    abtInfo;
     addr_t          ulRetAddr;
@@ -158,9 +157,8 @@ static VOID  x86DefaultExceptHandle (ULONG  ulX86Vector, ULONG  ulESP)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  x86InvalidOpcodeExceptHandle (ULONG  ulX86Vector, ULONG  ulESP)
+static VOID  x86InvalidOpcodeExceptHandle (ULONG  ulX86Vector, ARCH_REG_CTX  *pregctx)
 {
-    ARCH_REG_CTX   *pregctx = (ARCH_REG_CTX *)ulESP;
     PLW_CLASS_TCB   ptcbCur;
     LW_VMM_ABORT    abtInfo;
     addr_t          ulRetAddr;
@@ -183,9 +181,8 @@ static VOID  x86InvalidOpcodeExceptHandle (ULONG  ulX86Vector, ULONG  ulESP)
 *********************************************************************************************************/
 #if LW_CFG_CPU_FPU_EN > 0
 
-static VOID  x86FpErrorExceptHandle (ULONG  ulX86Vector, ULONG  ulESP)
+static VOID  x86FpErrorExceptHandle (ULONG  ulX86Vector, ARCH_REG_CTX  *pregctx)
 {
-    ARCH_REG_CTX   *pregctx = (ARCH_REG_CTX *)ulESP;
     PLW_CLASS_TCB   ptcbCur;
     LW_VMM_ABORT    abtInfo;
     addr_t          ulRetAddr;
@@ -209,9 +206,8 @@ static VOID  x86FpErrorExceptHandle (ULONG  ulX86Vector, ULONG  ulESP)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  x86DeviceNotAvailExceptHandle (ULONG  ulX86Vector, ULONG  ulESP)
+static VOID  x86DeviceNotAvailExceptHandle (ULONG  ulX86Vector, ARCH_REG_CTX  *pregctx)
 {
-    ARCH_REG_CTX   *pregctx = (ARCH_REG_CTX *)ulESP;
     PLW_CLASS_TCB   ptcbCur;
     LW_VMM_ABORT    abtInfo;
     addr_t          ulRetAddr;
@@ -239,9 +235,8 @@ static VOID  x86DeviceNotAvailExceptHandle (ULONG  ulX86Vector, ULONG  ulESP)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  x86MachineCheckExceptHandle (ULONG  ulX86Vector, ULONG  ulESP)
+static VOID  x86MachineCheckExceptHandle (ULONG  ulX86Vector, ARCH_REG_CTX  *pregctx)
 {
-    ARCH_REG_CTX   *pregctx = (ARCH_REG_CTX *)ulESP;
     PLW_CLASS_TCB   ptcbCur;
     LW_VMM_ABORT    abtInfo;
     addr_t          ulRetAddr;
@@ -264,9 +259,8 @@ static VOID  x86MachineCheckExceptHandle (ULONG  ulX86Vector, ULONG  ulESP)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  x86PageFaultExceptHandle (ULONG  ulX86Vector, ULONG  ulESP)
+static VOID  x86PageFaultExceptHandle (ULONG  ulX86Vector, ARCH_REG_CTX  *pregctx)
 {
-    ARCH_REG_CTX   *pregctx = (ARCH_REG_CTX *)ulESP;
     PLW_CLASS_TCB   ptcbCur;
     LW_VMM_ABORT    abtInfo;
     addr_t          ulRetAddr;
@@ -303,9 +297,8 @@ static VOID  x86PageFaultExceptHandle (ULONG  ulX86Vector, ULONG  ulESP)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  x86BreakPointExceptHandle (ULONG  ulX86Vector, ULONG  ulESP)
+static VOID  x86BreakPointExceptHandle (ULONG  ulX86Vector, ARCH_REG_CTX  *pregctx)
 {
-    ARCH_REG_CTX   *pregctx = (ARCH_REG_CTX *)ulESP;
     PLW_CLASS_TCB   ptcbCur;
     LW_VMM_ABORT    abtInfo;
     addr_t          ulRetAddr;
@@ -338,9 +331,8 @@ static VOID  x86BreakPointExceptHandle (ULONG  ulX86Vector, ULONG  ulESP)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  x86DebugExceptHandle (ULONG  ulX86Vector, ULONG  ulESP)
+static VOID  x86DebugExceptHandle (ULONG  ulX86Vector, ARCH_REG_CTX  *pregctx)
 {
-    ARCH_REG_CTX   *pregctx = (ARCH_REG_CTX *)ulESP;
     PLW_CLASS_TCB   ptcbCur;
     LW_VMM_ABORT    abtInfo;
     addr_t          ulRetAddr;

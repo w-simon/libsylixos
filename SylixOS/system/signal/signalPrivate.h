@@ -104,10 +104,7 @@ typedef LW_CLASS_SIGPEND    *PLW_CLASS_SIGPEND;
 *********************************************************************************************************/
 
 typedef struct {
-    PVOID                 SIGCTLMSG_pvStackRet;                         /*  跳跃返回堆栈的地址          */
-#if defined(LW_CFG_CPU_ARCH_C6X)
-    ULONG                 SIGCTLMSG_ulContextType;                      /*  上下文类型                  */
-#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
+    ARCH_REG_CTX          SIGCTLMSG_archRegCtx;                         /*  寄存器上下文                */
     INT                   SIGCTLMSG_iSchedRet;                          /*  信号调度器返回值            */
     INT                   SIGCTLMSG_iKernelSpace;                       /*  产生信号是的内核空间情况    */
                                                                         /*  信号退出时需要返回之前的状态*/
@@ -120,6 +117,10 @@ typedef struct {
 #if LW_CFG_CPU_FPU_EN > 0
     LW_FPU_CONTEXT       *SIGCTLMSG_pfpuctx;                            /*  FPU 上下文                  */
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+
+#if LW_CFG_CPU_DSP_EN > 0
+    LW_DSP_CONTEXT       *SIGCTLMSG_pdspctx;                            /*  DSP 上下文                  */
+#endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
 } LW_CLASS_SIGCTLMSG;
 typedef LW_CLASS_SIGCTLMSG  *PLW_CLASS_SIGCTLMSG;
 
@@ -129,7 +130,8 @@ typedef LW_CLASS_SIGCTLMSG  *PLW_CLASS_SIGCTLMSG;
 
 #define __SIGCTLMSG_SIZE_ALIGN      ROUND_UP(sizeof(LW_CLASS_SIGCTLMSG), sizeof(LW_STACK))
 #define __SIGFPUCTX_SIZE_ALIGN      ROUND_UP(sizeof(LW_FPU_CONTEXT),     sizeof(LW_STACK))
-        
+#define __SIGDSPCTX_SIZE_ALIGN      ROUND_UP(sizeof(LW_DSP_CONTEXT),     sizeof(LW_STACK))
+
 /*********************************************************************************************************
   UNMASK SIG
 *********************************************************************************************************/

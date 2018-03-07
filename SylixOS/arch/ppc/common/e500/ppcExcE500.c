@@ -337,8 +337,6 @@ VOID  archE500DataTLBErrorHandle (addr_t  ulRetAddr)
     abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_TERMINAL;
     API_VmmAbortIsr(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur);
 }
-
-#endif                                                                 /*  LW_CFG_VMM_EN > 0            */
 /*********************************************************************************************************
 ** 函数名称: archE500InstructionTLBErrorHandle
 ** 功能描述: 指令访问 TLB 错误异常处理
@@ -348,8 +346,6 @@ VOID  archE500DataTLBErrorHandle (addr_t  ulRetAddr)
 ** 调用模块:
 ** 注  意  : 此函数退出时必须为中断关闭状态.
 *********************************************************************************************************/
-#if LW_CFG_VMM_EN == 0
-
 VOID  archE500InstructionTLBErrorHandle (addr_t  ulRetAddr)
 {
     PLW_CLASS_TCB   ptcbCur;
@@ -361,7 +357,7 @@ VOID  archE500InstructionTLBErrorHandle (addr_t  ulRetAddr)
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
 }
 
-#endif                                                                 /*  LW_CFG_VMM_EN > 0            */
+#endif                                                                 /*  LW_CFG_VMM_EN == 0           */
 /*********************************************************************************************************
 ** 函数名称: archE500DebugExceptionHandle
 ** 功能描述: 调试异常处理

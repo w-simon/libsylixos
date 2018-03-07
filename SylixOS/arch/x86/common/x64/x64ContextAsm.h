@@ -30,141 +30,125 @@
 #include "../x86Segment.h"
 
 /*********************************************************************************************************
-    +-----------------+
-    |       SS(8)     |
-    +-----------------+
-    |       RSP       |
-    +-----------------+
-    |     RFLAGS      |
-    +-----------------+
-    |       CS(8)     |
-    +-----------------+
-    |       RIP       |
-    +-----------------+
-    |      ERROR      |
-    +-----------------+
-    |       R15       |
-    +-----------------+
-    |       R14       |
-    +-----------------+
-    |       R13       |
-    +-----------------+
-    |       R12       |
-    +-----------------+
-    |       R11       |
-    +-----------------+
-    |       R10       |
-    +-----------------+
-    |       R9        |
-    +-----------------+
-    |       R8        |
-    +-----------------+
-    |       RBP       |
-    +-----------------+
-    |       RDI       |
-    +-----------------+
-    |       RSI       |
-    +-----------------+
-    |       RDX       |
-    +-----------------+
-    |       RCX       |
-    +-----------------+
-    |       RBX       |
-    +-----------------+
-    |       RAX       |
-    +-----------------+
-    |       DS(2)     |
-    +-----------------+
-    |       ES(2)     |
-    +-----------------+
-    |       FS(2)     |
-    +-----------------+
-    |       GS(2)     |
-    +-----------------+
+
+  高地址:  +-----------------+
+           |       SS(8)     |
+           +-----------------+
+           |       RSP       |
+           +-----------------+
+           |     RFLAGS      |
+           +-----------------+
+           |       CS(8)     |
+           +-----------------+
+           |       RIP       |
+           +-----------------+
+           |      ERROR      |
+           +-----------------+
+           |       PAD       |
+           +-----------------+
+           |       RBP       |
+           +-----------------+
+           |       R15       |
+           +-----------------+
+           |       R14       |
+           +-----------------+
+           |       R13       |
+           +-----------------+
+           |       R12       |
+           +-----------------+
+           |       R11       |
+           +-----------------+
+           |       R10       |
+           +-----------------+
+           |       R9        |
+           +-----------------+
+           |       R8        |
+           +-----------------+
+           |       RDI       |
+           +-----------------+
+           |       RSI       |
+           +-----------------+
+           |       RDX       |
+           +-----------------+
+           |       RCX       |
+           +-----------------+
+           |       RBX       |
+           +-----------------+
+           |       RAX       |
+  低地址:  +-----------------+
 
 *********************************************************************************************************/
 
-#define __SAVE_SEG_REG  0                                               /*  不保存段寄存器              */
-
 /*********************************************************************************************************
-  上下文恢复
-*********************************************************************************************************/
-
-MACRO_DEF(RESTORE_REGS)
-#if __SAVE_SEG_REG > 0
-    MOVW    ARCH_REG_OFFSET_GS(%RSP)  , %GS
-    MOVW    ARCH_REG_OFFSET_FS(%RSP)  , %FS
-    MOVW    ARCH_REG_OFFSET_ES(%RSP)  , %ES
-    MOVW    ARCH_REG_OFFSET_DS(%RSP)  , %DS
-#endif                                                                  /*  __SAVE_SEG_REG > 0          */
-
-    MOV     ARCH_REG_OFFSET_RAX(%RSP) , %RAX
-    MOV     ARCH_REG_OFFSET_RBX(%RSP) , %RBX
-    MOV     ARCH_REG_OFFSET_RCX(%RSP) , %RCX
-    MOV     ARCH_REG_OFFSET_RDX(%RSP) , %RDX
-    MOV     ARCH_REG_OFFSET_RSI(%RSP) , %RSI
-    MOV     ARCH_REG_OFFSET_RDI(%RSP) , %RDI
-    MOV     ARCH_REG_OFFSET_RBP(%RSP) , %RBP
-
-    MOV     ARCH_REG_OFFSET_R8(%RSP)  , %R8
-    MOV     ARCH_REG_OFFSET_R9(%RSP)  , %R9
-    MOV     ARCH_REG_OFFSET_R10(%RSP) , %R10
-    MOV     ARCH_REG_OFFSET_R11(%RSP) , %R11
-    MOV     ARCH_REG_OFFSET_R12(%RSP) , %R12
-    MOV     ARCH_REG_OFFSET_R13(%RSP) , %R13
-    MOV     ARCH_REG_OFFSET_R14(%RSP) , %R14
-    MOV     ARCH_REG_OFFSET_R15(%RSP) , %R15
-
-    ADD     $ARCH_REG_OFFSET_RIP , %RSP                                 /*  不弹出 ERROR CODE           */
-
-    IRETQ                                                               /*  IRETQ 会弹出 CS RIP RFLAGS  */
-                                                                        /*  SS RSP                      */
-    MACRO_END()
-
-/*********************************************************************************************************
-  上下文保存
+  保存任务寄存器(参数 %RAX: ARCH_REG_CTX 地址) 会破坏 %RCX
 *********************************************************************************************************/
 
 MACRO_DEF(SAVE_REGS)
-    MOV     %RSP , %RAX                                                 /*  暂存 RSP                    */
+    MOV     %RAX , XRAX(%RAX)
+    MOV     %RBX , XRBX(%RAX)
+    MOV     %RCX , XRCX(%RAX)
+    MOV     %RDX , XRDX(%RAX)
+
+    MOV     %RSI , XRSI(%RAX)
+    MOV     %RDI , XRDI(%RAX)
+
+    MOV     %R8  , XR8(%RAX)
+    MOV     %R9  , XR9(%RAX)
+    MOV     %R10 , XR10(%RAX)
+    MOV     %R11 , XR11(%RAX)
+    MOV     %R12 , XR12(%RAX)
+    MOV     %R13 , XR13(%RAX)
+    MOV     %R14 , XR14(%RAX)
+    MOV     %R15 , XR15(%RAX)
+
+    MOV     %RBP , XRBP(%RAX)
+    MOV     %RSP , XRSP(%RAX)
+
+    MOV     $archResumePc , %RCX
+    MOV     %RCX , XRIP(%RAX)
+
+    MOVW    %CS  , XCS(%RAX)
+    MOVW    %SS  , XSS(%RAX)
+
+    PUSHFQ
+    POPQ    %RCX
+    MOV     %RCX , XRFLAGS(%RAX)
+    MACRO_END()
+
+/*********************************************************************************************************
+  恢复任务寄存器(参数 %RAX: ARCH_REG_CTX 地址)
+*********************************************************************************************************/
+
+MACRO_DEF(RESTORE_REGS)
+    MOV     XRBX(%RAX) , %RBX
+    MOV     XRCX(%RAX) , %RCX
+    MOV     XRDX(%RAX) , %RDX
+
+    MOV     XRSI(%RAX) , %RSI
+    MOV     XRDI(%RAX) , %RDI
+
+    MOV     XR8(%RAX)  , %R8
+    MOV     XR9(%RAX)  , %R9
+    MOV     XR10(%RAX) , %R10
+    MOV     XR11(%RAX) , %R11
+    MOV     XR12(%RAX) , %R12
+    MOV     XR13(%RAX) , %R13
+    MOV     XR14(%RAX) , %R14
+    MOV     XR15(%RAX) , %R15
+
+    MOV     XRBP(%RAX) , %RBP
+
     AND     $~15 , %RSP                                                 /*  RSP 向下 16 字节对齐        */
 
-    MOV     %SS  , %RCX
-    PUSH    %RCX                                                        /*  PUSH SS                     */
-    PUSH    %RAX                                                        /*  PUSH OLD RSP                */
-    PUSHFQ                                                              /*  PUSH RFLAGS                 */
+    PUSHQ   XSS(%RAX)
+    PUSHQ   XRSP(%RAX)
+    PUSHQ   XRFLAGS(%RAX)
+    PUSHQ   XCS(%RAX)
+    PUSHQ   XRIP(%RAX)
 
-    SUB     $((ARCH_REG_CTX_WORD_SIZE - 3) * 8) , %RSP
+    MOV     XRAX(%RAX) , %RAX
 
-#if __SAVE_SEG_REG > 0
-    MOVW    %GS ,  ARCH_REG_OFFSET_GS(%RSP)
-    MOVW    %FS ,  ARCH_REG_OFFSET_FS(%RSP)
-    MOVW    %ES ,  ARCH_REG_OFFSET_ES(%RSP)
-    MOVW    %DS ,  ARCH_REG_OFFSET_DS(%RSP)
-#endif                                                                  /*  __SAVE_SEG_REG > 0          */
-
-    MOV     %RAX , ARCH_REG_OFFSET_RAX(%RSP)
-    MOV     %RBX , ARCH_REG_OFFSET_RBX(%RSP)
-    MOV     %RCX , ARCH_REG_OFFSET_RCX(%RSP)
-    MOV     %RDX , ARCH_REG_OFFSET_RDX(%RSP)
-    MOV     %RSI , ARCH_REG_OFFSET_RSI(%RSP)
-    MOV     %RDI , ARCH_REG_OFFSET_RDI(%RSP)
-    MOV     %RBP , ARCH_REG_OFFSET_RBP(%RSP)
-
-    MOV     %R8  , ARCH_REG_OFFSET_R8(%RSP)
-    MOV     %R9  , ARCH_REG_OFFSET_R9(%RSP)
-    MOV     %R10 , ARCH_REG_OFFSET_R10(%RSP)
-    MOV     %R11 , ARCH_REG_OFFSET_R11(%RSP)
-    MOV     %R12 , ARCH_REG_OFFSET_R12(%RSP)
-    MOV     %R13 , ARCH_REG_OFFSET_R13(%RSP)
-    MOV     %R14 , ARCH_REG_OFFSET_R14(%RSP)
-    MOV     %R15 , ARCH_REG_OFFSET_R15(%RSP)
-
-    MOV     $0   , %RAX
-    MOV     %RAX , ARCH_REG_OFFSET_ERROR(%RSP)
-    MOV     $archResumePc , %RAX
-    MOV     %RAX , ARCH_REG_OFFSET_RIP(%RSP)
-    MOVW    %CS  , ARCH_REG_OFFSET_CS(%RSP)
+    IRETQ                                                               /*  弹出 CS RIP RFLAGS SS RSP   */
     MACRO_END()
 
 /*********************************************************************************************************
@@ -175,31 +159,26 @@ MACRO_DEF(INT_SAVE_REGS_HW_ERRNO)
     CLI
                                                                         /*  SS RSP RFLAGS CS RIP ERRNO  */
                                                                         /*  已经 PUSH                   */
-    SUB     $((ARCH_REG_CTX_WORD_SIZE - 6) * 8) , %RSP
+    SUB     $(16 * ARCH_REG_SIZE) , %RSP
 
-#if __SAVE_SEG_REG > 0
-    MOVW    %GS ,  ARCH_REG_OFFSET_GS(%RSP)
-    MOVW    %FS ,  ARCH_REG_OFFSET_FS(%RSP)
-    MOVW    %ES ,  ARCH_REG_OFFSET_ES(%RSP)
-    MOVW    %DS ,  ARCH_REG_OFFSET_DS(%RSP)
-#endif                                                                  /*  __SAVE_SEG_REG > 0          */
+    MOV     %RAX , XRAX(%RSP)
+    MOV     %RBX , XRBX(%RSP)
+    MOV     %RCX , XRCX(%RSP)
+    MOV     %RDX , XRDX(%RSP)
 
-    MOV     %RAX , ARCH_REG_OFFSET_RAX(%RSP)
-    MOV     %RBX , ARCH_REG_OFFSET_RBX(%RSP)
-    MOV     %RCX , ARCH_REG_OFFSET_RCX(%RSP)
-    MOV     %RDX , ARCH_REG_OFFSET_RDX(%RSP)
-    MOV     %RSI , ARCH_REG_OFFSET_RSI(%RSP)
-    MOV     %RDI , ARCH_REG_OFFSET_RDI(%RSP)
-    MOV     %RBP , ARCH_REG_OFFSET_RBP(%RSP)
+    MOV     %RSI , XRSI(%RSP)
+    MOV     %RDI , XRDI(%RSP)
 
-    MOV     %R8  , ARCH_REG_OFFSET_R8(%RSP)
-    MOV     %R9  , ARCH_REG_OFFSET_R9(%RSP)
-    MOV     %R10 , ARCH_REG_OFFSET_R10(%RSP)
-    MOV     %R11 , ARCH_REG_OFFSET_R11(%RSP)
-    MOV     %R12 , ARCH_REG_OFFSET_R12(%RSP)
-    MOV     %R13 , ARCH_REG_OFFSET_R13(%RSP)
-    MOV     %R14 , ARCH_REG_OFFSET_R14(%RSP)
-    MOV     %R15 , ARCH_REG_OFFSET_R15(%RSP)
+    MOV     %R8  , XR8(%RSP)
+    MOV     %R9  , XR9(%RSP)
+    MOV     %R10 , XR10(%RSP)
+    MOV     %R11 , XR11(%RSP)
+    MOV     %R12 , XR12(%RSP)
+    MOV     %R13 , XR13(%RSP)
+    MOV     %R14 , XR14(%RSP)
+    MOV     %R15 , XR15(%RSP)
+
+    MOV     %RBP , XRBP(%RSP)
     MACRO_END()
 
 /*********************************************************************************************************
@@ -212,6 +191,35 @@ MACRO_DEF(INT_SAVE_REGS_FAKE_ERRNO)
     PUSH    $0                                                          /*  PUSH FAKE ERROR CODE        */
 
     INT_SAVE_REGS_HW_ERRNO
+    MACRO_END()
+
+/*********************************************************************************************************
+  恢复中断嵌套寄存器(参数 %RSP: ARCH_REG_CTX 地址)
+*********************************************************************************************************/
+
+MACRO_DEF(INT_NESTING_RESTORE_REGS)
+    POPQ    %RAX
+    POPQ    %RBX
+    POPQ    %RCX
+    POPQ    %RDX
+
+    POPQ    %RSI
+    POPQ    %RDI
+
+    POPQ    %R8
+    POPQ    %R9
+    POPQ    %R10
+    POPQ    %R11
+    POPQ    %R12
+    POPQ    %R13
+    POPQ    %R14
+    POPQ    %R15
+
+    POPQ    %RBP
+
+    ADD     $(2 * ARCH_REG_SIZE) , %RSP                                 /*  POP PAD ERROR               */
+
+    IRETQ                                                               /*  弹出 CS RIP RFLAGS SS RSP   */
     MACRO_END()
 
 #endif                                                                  /*  __ARCH_X64CONTEXTASM_H      */

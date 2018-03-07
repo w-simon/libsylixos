@@ -12,12 +12,11 @@
 ;**
 ;** 文   件   名: mipsLibAsm.S
 ;**
-;** 创   建   人: Ryan.Xin (信金龙)
+;** 创   建   人: Jiao.JinXing (焦进星)
 ;**
 ;** 文件创建日期: 2015 年 09 月 01 日
 ;**
-;** 描        述: MIPS 体系构架内部库.
-;**
+;** 描        述: MIPS 体系架构内部库.
 ;*********************************************************************************************************/
 
 #ifndef ASSEMBLY
@@ -36,6 +35,7 @@
     IMPORT_LABEL(__siglongjmpSetup)
     IMPORT_LABEL(bspReboot)
 
+    EXPORT_LABEL(archGetGP)
     EXPORT_LABEL(setjmp)
     EXPORT_LABEL(sigsetjmp)
     EXPORT_LABEL(longjmp)
@@ -56,23 +56,28 @@
     WEAK(archIntDisable)
     WEAK(archIntEnable)
     WEAK(archIntEnableForce)
+    WEAK(archGetGP)
+
+;/*********************************************************************************************************
+;  获得 _gp
+;*********************************************************************************************************/
+
+FUNC_DEF(archGetGP)
+    PTR_LA      V0 , _gp
+    JR          RA
+    NOP
+    FUNC_END(archGetGP)
 
 ;/*********************************************************************************************************
 ;  MIPS 关闭总中断
 ;*********************************************************************************************************/
 
 FUNC_DEF(archIntDisable)
-    .set    push
-    .set    noreorder
-    .set    volatile
-
-    MFC0(V0, CP0_STATUS)
-    AND     T0 , V0 , ~M_StatusIE
-    MTC0(T0, CP0_STATUS)
-    JR      RA
+    MFC0_EHB(V0, CP0_STATUS)
+    AND         T0 , V0 , ~ST0_IE
+    MTC0_EHB(T0, CP0_STATUS)
+    JR          RA
     NOP
-
-    .set    pop
     FUNC_END(archIntDisable)
 
 ;/*********************************************************************************************************
@@ -80,21 +85,15 @@ FUNC_DEF(archIntDisable)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archIntEnable)
-    .set    push
-    .set    noreorder
-    .set    volatile
-
-    ANDI    A0 , A0 , M_StatusIE
-    BEQ     A0 , ZERO , 1f
-	NOP
-	MFC0(T0, CP0_STATUS)
-    ORI     T1 , T0 , M_StatusIE
-    MTC0(T1, CP0_STATUS)
-1:
-    JR      RA
+    ANDI        A0 , A0 , ST0_IE
+    BEQ         A0 , ZERO , 1f
     NOP
-
-    .set    pop
+    MFC0_EHB(T0, CP0_STATUS)
+    ORI         T0 , T0 , ST0_IE
+    MTC0_EHB(T0, CP0_STATUS)
+1:
+    JR          RA
+    NOP
     FUNC_END(archIntEnable)
 
 ;/*********************************************************************************************************
@@ -102,18 +101,11 @@ FUNC_DEF(archIntEnable)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archIntEnableForce)
-    .set    push
-    .set    noat
-    .set    noreorder
-    .set    volatile
-
-    MFC0(T0, CP0_STATUS)
-    ORI     T1 , T0 , M_StatusIE
-    MTC0(T1, CP0_STATUS)
-    JR      RA
+    MFC0_EHB(T0, CP0_STATUS)
+    ORI         T0 , T0 , ST0_IE
+    MTC0_EHB(T0, CP0_STATUS)
+    JR          RA
     NOP
-
-    .set    pop
     FUNC_END(archIntEnableForce)
 
 ;/*********************************************************************************************************
@@ -122,24 +114,25 @@ FUNC_DEF(archIntEnableForce)
 
 #if LW_CFG_MIPS_HAS_CLZ_INSTR > 0
 FUNC_DEF(archFindLsb)
-    NEGU    V0 , A0
-    AND     A0 , V0 , A0
-    CLZ     A0 , A0
-    LI      V0 , 32
-    JR      RA
-    SUBU    V0 , V0 , A0
+    NEGU        V0 , A0
+    AND         A0 , V0 , A0
+    CLZ         A0 , A0
+    LI          V0 , 32
+    JR          RA
+    REG_SUBU    V0 , V0 , A0
     FUNC_END(archFindLsb)
 
 FUNC_DEF(archFindMsb)
-    CLZ     A0 , A0
-    LI      V0 , 32
-    JR      RA
-    SUBU    V0 , V0 , A0
+    CLZ         A0 , A0
+    LI          V0 , 32
+    JR          RA
+    REG_SUBU    V0 , V0 , A0
     FUNC_END(archFindMsb)
 #endif
 
 ;/*********************************************************************************************************
 ;  注意: setjmp 与 longjmp 上下文结构与线程上下文结构相同
+;        但 setjmp 与 longjmp 只保存 callee save 寄存器
 ;*********************************************************************************************************/
 
 ;/*********************************************************************************************************
@@ -149,25 +142,23 @@ FUNC_DEF(archFindMsb)
 MACRO_DEF(CALL_SETUP, setup)
     .set    push
     .set    noat
-    .set    noreorder
-    .set    volatile
 
-    SUBU    SP , 32
-    SW      RA , 28(SP)
-    SW      FP , 24(SP)
-    MOV     FP , SP
-    SW      A0 , 20(SP)
-    SW      A1 , 16(SP)
+    REG_SUBU    SP , ARCH_STK_VAR_SIZE
+    REG_S       RA , ARCH_STK_OFF_VAR(0)(SP)
+    REG_S       FP , ARCH_STK_OFF_VAR(1)(SP)
+    MOV         FP , SP
+    REG_S       A0 , ARCH_STK_OFF_VAR(2)(SP)
+    REG_S       A1 , ARCH_STK_OFF_VAR(3)(SP)
 
-    JAL     \setup
+    JAL         \setup
     NOP
 
-    MOV     SP , FP
-    LW      RA , 28(SP)
-    LW      FP , 24(SP)
-    LW      A0 , 20(SP)
-    LW      A1 , 16(SP)
-    ADDU    SP , 32
+    MOV         SP , FP
+    REG_L       RA , ARCH_STK_OFF_VAR(0)(SP)
+    REG_L       FP , ARCH_STK_OFF_VAR(1)(SP)
+    REG_L       A0 , ARCH_STK_OFF_VAR(2)(SP)
+    REG_L       A1 , ARCH_STK_OFF_VAR(3)(SP)
+    REG_ADDU    SP , ARCH_STK_VAR_SIZE
 
     .set    pop
     MACRO_END()
@@ -179,66 +170,26 @@ MACRO_DEF(CALL_SETUP, setup)
 MACRO_DEF(SAVE_NON_VOLATILE_REG)
     .set    push
     .set    noat
-    .set    noreorder
-    .set    volatile
 
-    SW      ZERO , 0(A0)
-    SW      ZERO , STK_OFFSET_LAST(A0)
-    SYNC
+    REG_S       $16 , XGREG(16)(A0)
+    REG_S       $17 , XGREG(17)(A0)
+    REG_S       $18 , XGREG(18)(A0)
+    REG_S       $19 , XGREG(19)(A0)
+    REG_S       $20 , XGREG(20)(A0)
+    REG_S       $21 , XGREG(21)(A0)
+    REG_S       $22 , XGREG(22)(A0)
+    REG_S       $23 , XGREG(23)(A0)
     ;/*
-    ; * 后面不会再发生 TLB 重填异常
-    ; */
-
-    SW      $0  , 0  * 4(A0)
-    SW      $1  , 1  * 4(A0)
-    SW      $2  , 2  * 4(A0)
-    SW      $3  , 3  * 4(A0)
-    SW      $4  , 4  * 4(A0)
-    SW      $5  , 5  * 4(A0)
-    SW      $6  , 6  * 4(A0)
-    SW      $7  , 7  * 4(A0)
-    SW      $8  , 8  * 4(A0)
-    SW      $9  , 9  * 4(A0)
-    SW      $10 , 10 * 4(A0)
-    SW      $11 , 11 * 4(A0)
-    SW      $12 , 12 * 4(A0)
-    SW      $13 , 13 * 4(A0)
-    SW      $14 , 14 * 4(A0)
-    SW      $15 , 15 * 4(A0)
-    SW      $16 , 16 * 4(A0)
-    SW      $17 , 17 * 4(A0)
-    SW      $18 , 18 * 4(A0)
-    SW      $19 , 19 * 4(A0)
-    SW      $20 , 20 * 4(A0)
-    SW      $21 , 21 * 4(A0)
-    SW      $22 , 22 * 4(A0)
-    SW      $23 , 23 * 4(A0)
-    SW      $24 , 24 * 4(A0)
-    SW      $25 , 25 * 4(A0)
-    ;/*
+    ; * $24 $25 是 T8 T9
     ; * $26 $27 是 K0 K1
     ; */
-    SW      $28 , 28 * 4(A0)
-    SW      $29 , 29 * 4(A0)
-    SW      $30 , 30 * 4(A0)
-    SW      $31 , 31 * 4(A0)
+    REG_S       $28 , XGREG(28)(A0)
+    REG_S       $29 , XGREG(29)(A0)
+    REG_S       $30 , XGREG(30)(A0)
+    REG_S       $31 , XGREG(31)(A0)
 
-    MFC0(T1, CP0_STATUS)                                                ;/*  保存 STATUS 寄存器          */
-    SW      T1 , STK_OFFSET_SR(A0)
-
-    SW      RA , STK_OFFSET_EPC(A0)                                     ;/*  RA 代替 EPC 保存            */
-
-    MFC0(T1, CP0_BADVADDR)                                              ;/*  保存 BADVADDR 寄存器        */
-    SW      T1 , STK_OFFSET_BADVADDR(A0)
-
-    MFC0(T1, CP0_CAUSE)                                                 ;/*  保存 CAUSE 寄存器           */
-    SW      T1 , STK_OFFSET_CAUSE(A0)
-
-    MFLO    T1                                                          ;/*  保存 LO 寄存器              */
-    SW      T1 , STK_OFFSET_LO(A0)
-
-    MFHI    T1                                                          ;/*  保存 HI 寄存器              */
-    SW      T1 , STK_OFFSET_HI(A0)
+    MFC0_EHB(T0, CP0_STATUS)                                            ;/*  保存 STATUS 寄存器          */
+    REG_S       T0 , XSR(A0)
 
     .set    pop
     MACRO_END()
@@ -250,76 +201,26 @@ MACRO_DEF(SAVE_NON_VOLATILE_REG)
 MACRO_DEF(RESTORE_NON_VOLATILE_REG)
     .set    push
     .set    noat
-    .set    noreorder
-    .set    volatile
 
-    LW      ZERO , 0(A0)
-    LW      ZERO , STK_OFFSET_LAST(A0)
-    SYNC
+    REG_L       $16 , XGREG(16)(A0)
+    REG_L       $17 , XGREG(17)(A0)
+    REG_L       $18 , XGREG(18)(A0)
+    REG_L       $19 , XGREG(19)(A0)
+    REG_L       $20 , XGREG(20)(A0)
+    REG_L       $21 , XGREG(21)(A0)
+    REG_L       $22 , XGREG(22)(A0)
+    REG_L       $23 , XGREG(23)(A0)
     ;/*
-    ; * 后面不会再发生 TLB 重填异常
-    ; */
-
-    ;/*
-    ; * $0 固定为 0
-    ; */
-    LW      $1  , 1  * 4(A0)
-    ;/*
-    ; * $2 是 V0(返回值寄存器)
-    ; */
-    LW      $3  , 3  * 4(A0)
-    ;/*
-    ; * $4 $5 是 A0 A1(两个参数寄存器)
-    ; */
-    LW      $6  , 6  * 4(A0)
-    LW      $7  , 7  * 4(A0)
-    LW      $8  , 8  * 4(A0)
-    ;/*
-    ; * $9 是 T1(后面会恢复)
-    ; */
-    LW      $10 , 10 * 4(A0)
-    LW      $11 , 11 * 4(A0)
-    LW      $12 , 12 * 4(A0)
-    LW      $13 , 13 * 4(A0)
-    LW      $14 , 14 * 4(A0)
-    LW      $15 , 15 * 4(A0)
-    LW      $16 , 16 * 4(A0)
-    LW      $17 , 17 * 4(A0)
-    LW      $18 , 18 * 4(A0)
-    LW      $19 , 19 * 4(A0)
-    LW      $20 , 20 * 4(A0)
-    LW      $21 , 21 * 4(A0)
-    LW      $22 , 22 * 4(A0)
-    LW      $23 , 23 * 4(A0)
-    LW      $24 , 24 * 4(A0)
-    LW      $25 , 25 * 4(A0)
-    ;/*
+    ; * $24 $25 是 T8 T9
     ; * $26 $27 是 K0 K1
     ; */
-    LW      $28 , 28 * 4(A0)
-    LW      $29 , 29 * 4(A0)
-    LW      $30 , 30 * 4(A0)
-    LW      $31 , 31 * 4(A0)
+    REG_L       $28 , XGREG(28)(A0)
+    REG_L       $29 , XGREG(29)(A0)
+    REG_L       $30 , XGREG(30)(A0)
+    REG_L       $31 , XGREG(31)(A0)
 
-    LW      T1 , STK_OFFSET_CAUSE(A0)                                   ;/*  恢复 CAUSE 寄存器           */
-    MTC0(T1, CP0_CAUSE)
-
-    LW      T1 , STK_OFFSET_BADVADDR(A0)                                ;/*  恢复 BADVADDR 寄存器        */
-    MTC0(T1, CP0_BADVADDR)
-
-    LW      T1 , STK_OFFSET_EPC(A0)                                     ;/*  恢复 EPC 寄存器             */
-    MTC0(T1, CP0_EPC)
-
-    LW      T1 , STK_OFFSET_LO(A0)                                      ;/*  恢复 LO 寄存器              */
-    MTLO    T1
-
-    LW      T1 , STK_OFFSET_HI(A0)                                      ;/*  恢复 HI 寄存器              */
-    MTHI    T1
-
-    LW      T1 , STK_OFFSET_SR(A0)                                      ;/*  恢复 SR  寄存器             */
-    MTC0(T1, CP0_STATUS)
-
-    LW      T1 , REG_T1 * 4(A0)                                         ;/*  恢复 T1 寄存器              */
+    REG_L       T0 , XSR(A0)                                            ;/*  恢复 STATUS 寄存器          */
+    MTC0_EHB(T0, CP0_STATUS)
 
     .set    pop
     MACRO_END()
@@ -329,12 +230,12 @@ MACRO_DEF(RESTORE_NON_VOLATILE_REG)
 ;*********************************************************************************************************/
 
 FUNC_DEF(sigsetjmp)
-    CALL_SETUP      __sigsetjmpSetup
+    CALL_SETUP  __sigsetjmpSetup
 
     SAVE_NON_VOLATILE_REG
 
-    JR      RA
-    MOV     V0 , ZERO
+    JR          RA
+    MOV         V0 , ZERO
     FUNC_END(sigsetjmp)
 
 ;/*********************************************************************************************************
@@ -342,12 +243,12 @@ FUNC_DEF(sigsetjmp)
 ;*********************************************************************************************************/
 
 FUNC_DEF(setjmp)
-    CALL_SETUP      __setjmpSetup
+    CALL_SETUP  __setjmpSetup
 
     SAVE_NON_VOLATILE_REG
 
-    JR      RA
-    MOV     V0 , ZERO
+    JR          RA
+    MOV         V0 , ZERO
     FUNC_END(setjmp)
 
 ;/*********************************************************************************************************
@@ -355,16 +256,16 @@ FUNC_DEF(setjmp)
 ;*********************************************************************************************************/
 
 FUNC_DEF(siglongjmp)
-    CALL_SETUP      __siglongjmpSetup
+    CALL_SETUP  __siglongjmpSetup
 
     RESTORE_NON_VOLATILE_REG
 
-    MOV     V0 , A1
-    BNE     V0 , ZERO , siglongjmpnotzero
+    MOV         V0 , A1
+    BNE         V0 , ZERO , siglongjmpnotzero
     NOP
-    LI      V0 , 1
+    LI          V0 , 1
 LINE_LABEL(siglongjmpnotzero)
-    JR      RA
+    JR          RA
     NOP
     FUNC_END(siglongjmp)
 
@@ -373,16 +274,16 @@ LINE_LABEL(siglongjmpnotzero)
 ;*********************************************************************************************************/
 
 FUNC_DEF(longjmp)
-    CALL_SETUP      __longjmpSetup
+    CALL_SETUP  __longjmpSetup
 
     RESTORE_NON_VOLATILE_REG
 
-    MOV     V0 , A1
-    BNE     V0 , ZERO , longjmpnotzero
+    MOV         V0 , A1
+    BNE         V0 , ZERO , longjmpnotzero
     NOP
-    LI      V0 , 1
+    LI          V0 , 1
 LINE_LABEL(longjmpnotzero)
-    JR      RA
+    JR          RA
     NOP
     FUNC_END(longjmp)
 
@@ -391,7 +292,7 @@ LINE_LABEL(longjmpnotzero)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archReboot)
-    J       bspReboot                                                   ;/*  由BSP进行复位操作, 不再返回 */
+    J           bspReboot                                               ;/*  由BSP进行复位操作, 不再返回 */
     NOP
     FUNC_END(archReboot)
 
@@ -401,9 +302,9 @@ FUNC_DEF(archReboot)
 
 FUNC_DEF(archBogoMipsLoop)
 1:
-    BNE     A0 , ZERO , 1b
-    SUBU    A0 , 1
-    JR      RA
+    BNE         A0 , ZERO , 1b
+    REG_SUBU    A0 , 1
+    JR          RA
     NOP
     FUNC_END(archBogoMipsLoop)
 

@@ -12,11 +12,11 @@
 **
 ** 文   件   名: mipsDbg.c
 **
-** 创   建   人: Ryan.Xin (信金龙)
+** 创   建   人: Jiao.JinXing (焦进星)
 **
 ** 文件创建日期: 2015 年 09 月 01 日
 **
-** 描        述: MIPS 体系构架调试相关.
+** 描        述: MIPS 体系架构调试相关.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -28,8 +28,8 @@
 /*********************************************************************************************************
   MIPS 断点使用 break 指令.
 *********************************************************************************************************/
-#define MIPS_BREAKPOINT_INS     0x0000000D
-#define MIPS_ABORTPOINT_INS     0x0001000D
+#define MIPS_BREAKPOINT_INS     0x0000000d
+#define MIPS_ABORTPOINT_INS     0x0001000d
 /*********************************************************************************************************
   SMP
 *********************************************************************************************************/
@@ -49,17 +49,17 @@ static addr_t   ulLastBpAddr[LW_CFG_MAX_PROCESSORS];
 *********************************************************************************************************/
 VOID  archDbgBpInsert (addr_t  ulAddr, size_t stSize, ULONG  *pulIns, BOOL  bLocal)
 {
-    ULONG ulIns = MIPS_BREAKPOINT_INS;
+    MIPS_INSTRUCTION  uiIns = MIPS_BREAKPOINT_INS;
 
     lib_memcpy((PCHAR)pulIns, (PCHAR)ulAddr, stSize);                   /*  memcpy 避免对齐问题         */
-    lib_memcpy((PCHAR)ulAddr, (PCHAR)&ulIns, stSize);
+    lib_memcpy((PCHAR)ulAddr, (PCHAR)&uiIns, sizeof(MIPS_INSTRUCTION));
     KN_SMP_MB();
 
 #if LW_CFG_CACHE_EN > 0
     if (bLocal) {
-        API_CacheLocalTextUpdate((PVOID)ulAddr, stSize);
+        API_CacheLocalTextUpdate((PVOID)ulAddr, sizeof(MIPS_INSTRUCTION));
     } else {
-        API_CacheTextUpdate((PVOID)ulAddr, stSize);
+        API_CacheTextUpdate((PVOID)ulAddr, sizeof(MIPS_INSTRUCTION));
     }
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
 }
@@ -76,11 +76,11 @@ VOID  archDbgBpInsert (addr_t  ulAddr, size_t stSize, ULONG  *pulIns, BOOL  bLoc
 VOID  archDbgAbInsert (addr_t  ulAddr, ULONG  *pulIns)
 {
     *pulIns = *(ULONG *)ulAddr;
-    *(ULONG *)ulAddr = MIPS_ABORTPOINT_INS;
+    *(MIPS_INSTRUCTION *)ulAddr = MIPS_ABORTPOINT_INS;
     KN_SMP_MB();
 
 #if LW_CFG_CACHE_EN > 0
-    API_CacheTextUpdate((PVOID)ulAddr, sizeof(ULONG));
+    API_CacheTextUpdate((PVOID)ulAddr, sizeof(MIPS_INSTRUCTION));
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
 }
 /*********************************************************************************************************
@@ -96,14 +96,14 @@ VOID  archDbgAbInsert (addr_t  ulAddr, ULONG  *pulIns)
 *********************************************************************************************************/
 VOID  archDbgBpRemove (addr_t  ulAddr, size_t stSize, ULONG  ulIns, BOOL  bLocal)
 {
-    lib_memcpy((PCHAR)ulAddr, (PCHAR)&ulIns, stSize);
+    lib_memcpy((PCHAR)ulAddr, (PCHAR)&ulIns, sizeof(MIPS_INSTRUCTION));
     KN_SMP_MB();
 
 #if LW_CFG_CACHE_EN > 0
     if (bLocal) {
-        API_CacheLocalTextUpdate((PVOID)ulAddr, stSize);
+        API_CacheLocalTextUpdate((PVOID)ulAddr, sizeof(MIPS_INSTRUCTION));
     } else {
-        API_CacheTextUpdate((PVOID)ulAddr, stSize);
+        API_CacheTextUpdate((PVOID)ulAddr, sizeof(MIPS_INSTRUCTION));
     }
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
 }
@@ -141,7 +141,7 @@ UINT  archDbgTrapType (addr_t  ulAddr, PVOID   pvArch)
         return  (LW_TRAP_INVAL);
     }
 
-    switch (*(ULONG *)ulAddr) {
+    switch (*(MIPS_INSTRUCTION *)ulAddr) {
 
     case MIPS_BREAKPOINT_INS:
         return  (LW_TRAP_BRKPT);
@@ -162,7 +162,8 @@ UINT  archDbgTrapType (addr_t  ulAddr, PVOID   pvArch)
 
         } else {
             ulLastBpAddr[ulCPUId] = ulAddr;
-            API_CacheLocalTextUpdate((PVOID)ulAddr, sizeof(ulAddr));    /*  刷新一次 I CACHE 再去尝试   */
+            API_CacheLocalTextUpdate((PVOID)ulAddr,
+                                     sizeof(MIPS_INSTRUCTION));         /*  刷新一次 I CACHE 再去尝试   */
             return  (LW_TRAP_RETRY);
         }
     } else
@@ -193,8 +194,8 @@ VOID  archDbgBpAdjust (PVOID  pvDtrace, PVOID  pvtm)
     /*
      * 如果 Cause 寄存器 BD 位置为 1，则说明引发中断的为分支延时槽指令，PC 寄存器值需调整
      */
-    if (regctx.REG_uiCP0Cause & M_CauseBD) {
-        pdtm->DTM_ulAddr += sizeof(ULONG);
+    if (regctx.REG_ulCP0Cause & CAUSEF_BD) {
+        pdtm->DTM_ulAddr += sizeof(MIPS_INSTRUCTION);
     }
 }
 

@@ -72,7 +72,6 @@ static ULONG  __threadRestart (PLW_CLASS_TCB          ptcb,
     REGISTER PLW_CLASS_PCB         ppcb;
     
     REGISTER PLW_STACK             pstkTop;
-    REGISTER PLW_STACK             pstkFristFree;
     
 #if LW_CFG_THREAD_NOTE_PAD_EN > 0
     REGISTER UINT8                 ucI;
@@ -154,16 +153,13 @@ static ULONG  __threadRestart (PLW_CLASS_TCB          ptcb,
         ptcb->TCB_pthreadStartAddress = pfuncThread;                    /*  设置新的线程入口            */
     }
     
-    pstkFristFree = archTaskCtxCreate(_ThreadShell,                     /*  初始化堆栈，SHELL           */
-                                      (PVOID)ptcb->TCB_pthreadStartAddress,
-                                      pstkTop, 
-                                      ptcb->TCB_ulOption);
+    archTaskCtxCreate(&ptcb->TCB_archRegCtx,
+                      _ThreadShell,                                     /*  初始化堆栈，SHELL           */
+                      (PVOID)ptcb->TCB_pthreadStartAddress,
+                      pstkTop,
+                      ptcb->TCB_ulOption);
                                           
-    ptcb->TCB_pvArg         = pvArg;
-    ptcb->TCB_pstkStackNow  = pstkFristFree;
-#if defined(LW_CFG_CPU_ARCH_C6X)
-    ptcb->TCB_ulContextType = 0;                                        /*  小上下文                    */
-#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
+    ptcb->TCB_pvArg = pvArg;
     
     /*
      *  这里不可能是自己重启自己.

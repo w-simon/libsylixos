@@ -17,6 +17,9 @@
 ** 文件创建日期: 2017 年 11 月 08 日
 **
 ** 描        述: ARM 体系构架 MPU 驱动.
+**
+** BUG:
+2018.1.8 Jiao.JinXing (焦进星) 加入 REGION 的使能.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -28,10 +31,6 @@
   裁剪支持
 *********************************************************************************************************/
 #if (LW_CFG_VMM_EN == 0) && (LW_CFG_ARM_MPU > 0)
-/*********************************************************************************************************
-  最大内存分区数
-*********************************************************************************************************/
-#define ARM_MPU_MAX_REGIONS     8                               /*  总 REGION 数                        */
 /*********************************************************************************************************
   寄存器地址
 *********************************************************************************************************/
@@ -46,6 +45,11 @@
 #define ARM_MPU_RASR_A2     (*(volatile UINT32 *)0xe000edb0)
 #define ARM_MPU_RBAR_A3     (*(volatile UINT32 *)0xe000edb4)
 #define ARM_MPU_RASR_A3     (*(volatile UINT32 *)0xe000edb8)
+/*********************************************************************************************************
+  TYPE 寄存器定义
+*********************************************************************************************************/
+#define ARM_MPU_TYPE_OFF_DREGION        8
+#define ARM_MPU_TYPE_MASK_DREGION       (0xff << ARM_MPU_TYPE_OFF_DREGION)
 /*********************************************************************************************************
   CTRL 寄存器定义
 *********************************************************************************************************/
@@ -83,6 +87,7 @@ VOID  armMpuV7MInit (CPCHAR  pcMachineName, const ARM_MPU_REGION  mpuregion[])
     UINT32            uiVal;
     UINT32            uiAP;
     size_t            stSize;
+    UINT32            uiMaxRegions;
 
     if (mpuregion == LW_NULL) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "MPU mpuregion[] invalid.\r\n");
@@ -91,9 +96,11 @@ VOID  armMpuV7MInit (CPCHAR  pcMachineName, const ARM_MPU_REGION  mpuregion[])
 
     ARM_MPU_CTRL &= ~1;
 
+    uiMaxRegions = (ARM_MPU_TYPE & ARM_MPU_TYPE_MASK_DREGION) >> ARM_MPU_TYPE_OFF_DREGION;
+
     for (pmpuregion = (PARM_MPU_REGION)mpuregion;
          (pmpuregion->MPUD_ucSize  != ARM_MPU_REGION_SIZE_END) &&
-         (pmpuregion->MPUD_ucNumber < ARM_MPU_MAX_REGIONS);
+         (pmpuregion->MPUD_ucNumber < uiMaxRegions);
          pmpuregion++) {
 
         ARM_MPU_RNR = (UINT32)pmpuregion->MPUD_ucNumber;
@@ -101,7 +108,7 @@ VOID  armMpuV7MInit (CPCHAR  pcMachineName, const ARM_MPU_REGION  mpuregion[])
         if (pmpuregion->MPUD_bEnable) {
             ARM_MPU_RBAR = pmpuregion->MPUD_uiAddr;
 
-            uiVal = 0;
+            uiVal = (1 << ARM_MPU_RASR_OFT_EN);
             uiAP  = pmpuregion->MPUD_uiAP;
 
             if (uiAP & ARM_MPU_AP_FLAG_EXEC) {
@@ -177,7 +184,7 @@ VOID  armMpuV7MInit (CPCHAR  pcMachineName, const ARM_MPU_REGION  mpuregion[])
 
             uiVal |= (pmpuregion->MPUD_ucSize << ARM_MPU_RASR_OFT_SIZE);
 
-            ARM_MPU_RASR = uiVal | (1 << ARM_MPU_RASR_OFT_EN);
+            ARM_MPU_RASR = uiVal;
 
             if (pmpuregion->MPUD_bDmaPool &&
                 (pmpuregion->MPUD_ucSize >= ARM_MPU_REGION_SIZE_512B)) {

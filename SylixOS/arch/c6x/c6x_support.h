@@ -55,18 +55,21 @@ VOID    archAssert(INT  iCond, CPCHAR  pcFunc, CPCHAR  pcFile, INT  iLine);
   c6x 处理器线程上下文相关接口
 *********************************************************************************************************/
 
-PLW_STACK       archTaskCtxCreate(PTHREAD_START_ROUTINE  pfuncTask,
+PLW_STACK       archTaskCtxCreate(ARCH_REG_CTX          *pregctx,
+                                  PTHREAD_START_ROUTINE  pfuncTask,
                                   PVOID                  pvArg,
                                   PLW_STACK              pstkTop, 
                                   ULONG                  ulOpt);
-VOID            archTaskCtxSetFp(PLW_STACK  pstkDest, PLW_STACK  pstkSrc);
-VOID            archTaskRegsGet(PLW_CLASS_TCB  ptcb, ARCH_REG_IRQ_CTX  *pregctx, ARCH_REG_T *pregSp);
-VOID            archTaskRegsSet(PLW_CLASS_TCB  ptcb, const ARCH_REG_IRQ_CTX  *pregctx);
+VOID            archTaskCtxSetFp(PLW_STACK               pstkDest,
+                                 ARCH_REG_CTX           *pregctxDest,
+                                 const ARCH_REG_CTX     *pregctxSrc);
+ARCH_REG_CTX   *archTaskRegsGet(ARCH_REG_CTX  *pregctx, ARCH_REG_T  *pregSp);
+VOID            archTaskRegsSet(ARCH_REG_CTX  *pregctxDest, const ARCH_REG_CTX  *pregctxSrc);
 
 #if LW_CFG_DEVICE_EN > 0
-VOID        archTaskCtxShow(INT  iFd, PLW_STACK  pstkTop);
+VOID        archTaskCtxShow(INT  iFd, const ARCH_REG_CTX  *pregctx);
 #endif                                                                  /*  LW_CFG_DEVICE_EN > 0        */
-VOID        archTaskCtxPrint(PVOID  pvBuffer, size_t  stSize, PLW_STACK  pstkTop);
+VOID        archTaskCtxPrint(PVOID  pvBuffer, size_t  stSize, const ARCH_REG_CTX  *pregctx);
 
 VOID        archTaskCtxStart(PLW_CLASS_CPU  pcpuSw);
 VOID        archTaskCtxSwitch(PLW_CLASS_CPU  pcpuSw);
@@ -76,7 +79,15 @@ VOID        archCrtCtxSwitch(PLW_CLASS_CPU  pcpuSw);
 #endif                                                                  /*  LW_CFG_COROUTINE_EN > 0     */
 
 VOID        archIntCtxLoad(PLW_CLASS_CPU  pcpuSw);
-VOID        archSigCtxLoad(PVOID  pvStack, ULONG  ulContextType);
+VOID        archSigCtxLoad(const ARCH_REG_CTX  *pregctx);
+
+VOID        archIntCtxSaveReg(PLW_CLASS_CPU  pcpu,
+                              ARCH_REG_T     reg0,
+                              ARCH_REG_T     reg1,
+                              ARCH_REG_T     reg2,
+                              ARCH_REG_T     reg3);
+
+PLW_STACK   archCtxStackEnd(const ARCH_REG_CTX  *pregctx);
 
 /*********************************************************************************************************
   c6x 处理器调试接口
@@ -282,9 +293,9 @@ ARCH_REG_T  archDataPointerGet(VOID);
 
 VOID        archTaskCtxInit(PLW_STACK);
 
-#if defined(TMS320C6400_PLUS)
+#if defined(_TMS320C6400_PLUS)
 VOID        archC64PlusMemcpy(PVOID  pvDest, CPVOID   pvSrc, size_t  stCount);
-#endif                                                                  /*  defined(TMS320C6400_PLUS)   */
+#endif                                                                  /*  defined(_TMS320C6400_PLUS)  */
 
 /*********************************************************************************************************
   bsp 需要提供的接口如下:

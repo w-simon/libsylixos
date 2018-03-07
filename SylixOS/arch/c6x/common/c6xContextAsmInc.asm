@@ -30,46 +30,46 @@
 ;       A0-A9, A16-A31, B0-B9, B16-B31
 ;
 ;  Other (c64x)
-;       AMR     Addressing mode                         Task
+;       AMR     Addressing mode                         任务
 ;         (A4-A7,B4-B7)
-;       CSR     Control status                          Task        (*1)
-;       GFPGFR  Galois field multiply control           Task
-;       ICR     Interrupt clear                         Global
-;       IER     Interrupt enable                        Global
-;       IFR     Interrupt flag                          Global
-;       IRP     Interrupt return pointer                Task
-;       ISR     Interrupt set                           Global
-;       ISTP    Interrupt service table pointer         Global
-;       NRP     Nonmaskable interrupt return pointer    Global      (*2)
-;       PCE1    Program counter, E1 phase               Global
+;       CSR     Control status                          任务      (*1)
+;       GFPGFR  Galois field multiply control           任务
+;       ICR     Interrupt clear                         全局
+;       IER     Interrupt enable                        全局
+;       IFR     Interrupt flag                          全局
+;       IRP     Interrupt return pointer                任务
+;       ISR     Interrupt set                           全局
+;       ISTP    Interrupt service table pointer         全局
+;       NRP     Nonmaskable interrupt return pointer    全局      (*2)
+;       PCE1    Program counter, E1 phase               全局
 ;
 ;  Other (c64x+)
-;       DIER    Debug interrupt enable                  Global
-;       DNUM    DSP core number                         Global
-;       ECR     Exception clear                         Global
-;       EFR     Exception flag                          Global
-;       GPLYA   GMPY A-side polynomial                  Task
-;       GPLYB   GMPY B-side polynomial                  Task
-;       IERR    Internal exception report               Global
-;       ILC     Inner loop count                        Task
-;       ITSR    Interrupt task state                    Task
+;       DIER    Debug interrupt enable                  全局
+;       DNUM    DSP core number                         全局
+;       ECR     Exception clear                         全局
+;       EFR     Exception flag                          全局
+;       GPLYA   GMPY A-side polynomial                  任务
+;       GPLYB   GMPY B-side polynomial                  任务
+;       IERR    Internal exception report               全局
+;       ILC     Inner loop count                        任务
+;       ITSR    Interrupt task state                    任务
 ;               (TSR is copied to ITSR on interrupt)
-;       NTSR    NMI/Exception task state                Global      (*2)
+;       NTSR    NMI/Exception task state                全局      (*2)
 ;               (TSR is copied to NTSR on exception)
-;       REP     Restricted entry point                  Global
-;       RILC    Reload inner loop count                 Task
-;       SSR     Saturation status                       Task        (*1)
-;       TSCH    Time-stamp counter (high 32)            Global
-;       TSCL    Time-stamp counter (low 32)             Global
-;       TSR     Task state                              Global
+;       REP     Restricted entry point                  全局
+;       RILC    Reload inner loop count                 任务
+;       SSR     Saturation status                       任务      (*1)
+;       TSCH    Time-stamp counter (high 32)            全局
+;       TSCL    Time-stamp counter (low 32)             全局
+;       TSR     Task state                              全局
 ;
 ;  Other (c66x)
-;       FADCR   Floating point adder configuration      Task
-;       FAUCR   Floating point auxiliary configuration  Task
-;       FMCR    Floating point multiplier configuration Task
+;       FADCR   Floating point adder configuration      任务
+;       FAUCR   Floating point auxiliary configuration  任务
+;       FMCR    Floating point multiplier configuration 任务
 ;
-;  (*1) See comment about SAT bit in CSR in sprugh7.
-;  (*2) Need to handle these for exception interrupt handling.
+;  (*1) 查看 sprugh7 中关于 CSR 的 SAT 位描述.
+;  (*2) 不可屏蔽中断/异常需要处理.
 ;
 ;*********************************************************************************************************/
 
@@ -101,341 +101,367 @@
 ;*********************************************************************************************************/
 
 ;/*********************************************************************************************************
-;  保存特殊功能寄存器
-;  使用寄存器: B16-B24, B3, B7-B9
+; 寄存器上下文大小(不包含最后的 Reserved4)
 ;*********************************************************************************************************/
 
-PUSH_SPECIAL_REG .macro
-    MVC     ILC  , B16
-    STW     B16  , *B15--               ;/*  ILC                                                         */
- || MVC     GPLYA, B17
-    STW     B17  , *B15--               ;/*  GPLYA                                                       */
- || MVC     GPLYB, B18
-    STW     B18  , *B15--               ;/*  GPLYB                                                       */
- || MVC     ITSR , B19
-    STW     B19  , *B15--               ;/*  ITSR                                                        */
- || MVC     RILC , B20
-    STW     B20  , *B15--               ;/*  RILC                                                        */
- || MVC     SSR  , B21
-    .if (.TMS320C6740)
-    STW     B21  , *B15--               ;/*  SSR                                                         */
- || MVC     FADCR, B22
-    STW     B22  , *B15--               ;/*  FADCR                                                       */
- || MVC     FAUCR, B23
-    STW     B23  , *B15--               ;/*  FAUCR                                                       */
- || MVC     FMCR , B24
-    .else
-    STW     B21  , *B15--               ;/*  SSR                                                         */
-    STW     B22  , *B15--               ;/*  FADCR                                                       */
-    STW     B23  , *B15--               ;/*  FAUCR                                                       */
-    .endif
-    STW     B24  , *B15--               ;/*  FMCR                                                        */
-    ADDK    -4   , B15                  ;/*  Align 64bit                                                 */
-    MVC     GFPGFR, B7
-    STW     B3   , *B15--               ;/*  B3                                                          */
+ARCH_REG_CTX_SIZE  .set    (328 - 4)
+
+;/*********************************************************************************************************
+;  保存一个小寄存器上下文(参数 A1: ARCH_REG_CTX 地址)
+;  破坏 A0 B1 B7-B9 B16-B24(调用者函数保护)
+;*********************************************************************************************************/
+
+SAVE_SMALL_REG_CTX  .macro
+    MVK     0    , A0
+    STW     A0   , *A1++(8)             ;/*  小寄存器上下文类型(跳过 Reserved1)                          */
+
+    ADD     8    , A1 , B1              ;/*  B1 与 A1 错开 8 个字节                                      */
+
+    STDW    A15:A14 , *A1++[2]          ;/*  保存 A15:A14                                                */
+ || STDW    B15:B14 , *B1++[2]          ;/*  保存 B15:B14                                                */
+
+    STDW    A13:A12 , *A1++[2]          ;/*  保存 A13:A12                                                */
+ || STDW    B13:B12 , *B1++[2]          ;/*  保存 B13:B12                                                */
+
+    STDW    A11:A10 , *A1++[2]          ;/*  保存 A11:A10                                                */
+ || STDW    B11:B10 , *B1++[2]          ;/*  保存 B11:B10                                                */
+
+    MVC     CSR  , B9
+    STW     B9   , *B1++                ;/*  CSR                                                         */
  || MVC     AMR  , B8
-    STW     B7   , *B15--               ;/*  GFPGFR                                                      */
- || MVC     CSR  , B9
-    STW     B8   , *B15--               ;/*  AMR                                                         */
-    STW     B9   , *B15--               ;/*  CSR                                                         */
-    .endm
+    STW     B8   , *B1++                ;/*  AMR                                                         */
+ || MVC     GFPGFR, B7
+    STW     B7   , *B1++                ;/*  GFPGFR                                                      */
 
-;/*********************************************************************************************************
-;  恢复特殊功能寄存器
-;  使用寄存器: B3, B7-B9, B16-B25
-;*********************************************************************************************************/
+    STW     B3   , *B1++(8)             ;/*  B3 代替 IRP 保存(跳过 Reserved2)                            */
 
-POP_SPECIAL_REG .macro
-    LDW     *++B15 , B9                 ;/*  CSR                                                         */
-    LDW     *++B15 , B8                 ;/*  AMR                                                         */
-    LDW     *++B15 , B7                 ;/*  GFPGFR                                                      */
-    LDW     *++B15 , B3                 ;/*  B3                                                          */
-    ADDK    +4     , B15                ;/*  Align 64bit                                                 */
-    LDW     *++B15 , B24                ;/*  FMCR                                                        */
-    LDW     *++B15 , B23                ;/*  FAUCR                                                       */
-    LDW     *++B15 , B22                ;/*  FADCR                                                       */
-    LDW     *++B15 , B21                ;/*  SSR                                                         */
-    LDW     *++B15 , B20                ;/*  RILC                                                        */
- || EXTU    B9  , 22 , 31 , B25         ;/*  Extract SAT bit                                             */
-    LDW     *++B15 , B19                ;/*  ITSR                                                        */
- || CLR     B9  , 9  , 9  , B9          ;/*  Clear SAT bit                                               */
-    LDW     *++B15 , B18                ;/*  GPLYB                                                       */
- || MVC     B9  , CSR                   ;/*  Restore CSR                                                 */
-    LDW     *++B15 , B17                ;/*  GPLYA                                                       */
- || SSHL    B25 , 31 , B25              ;/*  Restore SAT bit.                                            */
-    LDW     *++B15 , B16                ;/*  ILC                                                         */
- || MVC     B8  , AMR
-    MVC     B7  , GFPGFR
     .if (.TMS320C6740)
-    MVC     B24 , FMCR
-    MVC     B23 , FAUCR
-    MVC     B22 , FADCR
+    MVC     FMCR , B24
+    STW     B24  , *B1++                ;/*  FMCR                                                        */
+ || MVC     FAUCR, B23
+    STW     B23  , *B1++                ;/*  FAUCR                                                       */
+ || MVC     FADCR, B22
+    STW     B22  , *B1++                ;/*  FADCR                                                       */
+    .else
+    ADDK    +12  , B1
     .endif
-    MVC     B21 , SSR
-    MVC     B20 , RILC
-    MVC     B19 , ITSR
-    MVC     B18 , GPLYB
-    MVC     B17 , GPLYA
-    MVC     B16 , ILC
+
+    MVC     SSR  , B21
+    STW     B21  , *B1++                ;/*  SSR                                                         */
+ || MVC     RILC , B20
+    STW     B20  , *B1++                ;/*  RILC                                                        */
+ || MVC     ITSR , B19
+    STW     B19  , *B1++                ;/*  ITSR                                                        */
+ || MVC     GPLYB, B18
+    STW     B18  , *B1++                ;/*  GPLYB                                                       */
+ || MVC     GPLYA, B17
+    STW     B17  , *B1++                ;/*  GPLYA                                                       */
+ || MVC     ILC  , B16
+    STW     B16  , *B1++                ;/*  ILC                                                         */
     .endm
 
 ;/*********************************************************************************************************
-;  保存 non scratch 寄存器
-;  使用寄存器: A8
+;  恢复一个小寄存器上下文(参数 A1: ARCH_REG_CTX 地址)
+;  破坏 B1 B3 B7-B9 B16-B24(调用者函数保护)
 ;*********************************************************************************************************/
 
-PUSH_NON_SCR_REG .macro
-    ADD     -8  , B15 , A8              ;/*  A8 should push a DW after B15                               */
-    STW     B14 , *B15--(16)            ;/*  Put single word store first                                 */
- || STDW    A15:A14 , *A8--[2]
-    STDW    B11:B10 , *B15--[2]
- || STDW    A11:A10 , *A8--[2]
-    STDW    B13:B12 , *B15--[2]
- || STDW    A13:A12 , *A8
-    .endm
+RESTORE_SMALL_REG_CTX  .macro
+    ADDK    +8   , A1                   ;/*  跳过 ContextType & Reserved1                                */
+    ADD     8    , A1 , B1              ;/*  B1 与 A1 错开 8 个字节                                      */
 
-;/*********************************************************************************************************
-;  恢复 non scratch 寄存器
-;  使用寄存器: A8,A10-A15,B10-B14
-;*********************************************************************************************************/
-
-POP_NON_SCR_REG .macro
-    MV      B15 , A8
-    LDDW    *++A8[1]  , A13:A12
- || LDDW    *++B15[2] , B13:B12
-    LDDW    *++A8[2]  , A11:A10
- || LDDW    *++B15[2] , B11:B10
-    LDDW    *++A8[2]  , A15:A14
- || LDW     *++B15(16), B14             ;/*  Put single word load last                                   */
-    .endm
-
-;/*********************************************************************************************************
-;  保存 scratch 寄存器
-;  使用寄存器: A10
-;*********************************************************************************************************/
-
-PUSH_SCR_REG .macro
-    ADD     -8 , B15, A10               ;/*  A10 should push a DW after B15                              */
-    STDW    B1:B0   , *B15--[2]
- || STDW    A1:A0   , *A10--[2]
-    STDW    B3:B2   , *B15--[2]
- || STDW    A3:A2   , *A10--[2]
-    STDW    B5:B4   , *B15--[2]
- || STDW    A5:A4   , *A10--[2]
-    STDW    B7:B6   , *B15--[2]
- || STDW    A7:A6   , *A10--[2]
-    STDW    B9:B8   , *B15--[2]
- || STDW    A9:A8   , *A10--[2]
-    STDW    B17:B16 , *B15--[2]
- || STDW    A17:A16 , *A10--[2]
-    STDW    B19:B18 , *B15--[2]
- || STDW    A19:A18 , *A10--[2]
-    STDW    B21:B20 , *B15--[2]
- || STDW    A21:A20 , *A10--[2]
-    STDW    B23:B22 , *B15--[2]
- || STDW    A23:A22 , *A10--[2]
-    STDW    B25:B24 , *B15--[2]
- || STDW    A25:A24 , *A10--[2]
-    STDW    B27:B26 , *B15--[2]
- || STDW    A27:A26 , *A10--[2]
-    STDW    B29:B28 , *B15--[2]
- || STDW    A29:A28 , *A10--[2]
-    STDW    B31:B30 , *B15--[2]
- || STDW    A31:A30 , *A10
-    .endm
-
-;/*********************************************************************************************************
-;  恢复 scratch 寄存器
-;  使用寄存器: A0-A9,A10,A16-A31,B0-B9,B16-B31
-;*********************************************************************************************************/
-
-POP_SCR_REG .macro
     ;/*
     ; * 避免并行操作, 因为 DMA/L1D 的硬件 BUG
     ; */
-    MV      B15 , A10                   ;/*  A10 should pop a DW before B15                              */
-    LDDW    *++A10[1] , A31:A30
-    LDDW    *++B15[2] , B31:B30
-    LDDW    *++A10[2] , A29:A28
-    LDDW    *++B15[2] , B29:B28
-    LDDW    *++A10[2] , A27:A26
-    LDDW    *++B15[2] , B27:B26
-    LDDW    *++A10[2] , A25:A24
-    LDDW    *++B15[2] , B25:B24
-    LDDW    *++A10[2] , A23:A22
-    LDDW    *++B15[2] , B23:B22
-    LDDW    *++A10[2] , A21:A20
-    LDDW    *++B15[2] , B21:B20
-    LDDW    *++A10[2] , A19:A18
-    LDDW    *++B15[2] , B19:B18
-    LDDW    *++A10[2] , A17:A16
-    LDDW    *++B15[2] , B17:B16
-    LDDW    *++A10[2] , A9:A8
-    LDDW    *++B15[2] , B9:B8
-    LDDW    *++A10[2] , A7:A6
-    LDDW    *++B15[2] , B7:B6
-    LDDW    *++A10[2] , A5:A4
-    LDDW    *++B15[2] , B5:B4
-    LDDW    *++A10[2] , A3:A2
-    LDDW    *++B15[2] , B3:B2
-    LDDW    *++A10[2] , A1:A0
-    LDDW    *++B15[2] , B1:B0
-    .endm
+    LDDW    *A1++[2] , A15:A14          ;/*  恢复 A15:A14                                                */
+    LDDW    *B1++[2] , B15:B14          ;/*  恢复 B15:B14                                                */
 
-;/*********************************************************************************************************
-;  恢复一个大的上下文
-;*********************************************************************************************************/
+    LDDW    *A1++[2] , A13:A12          ;/*  恢复 A13:A12                                                */
+    LDDW    *B1++[2] , B13:B12          ;/*  恢复 B13:B12                                                */
 
-RESTORE_BIG_CTX     .macro
-    POP_NON_SCR_REG
+    LDDW    *A1++[2] , A11:A10          ;/*  恢复 A11:A10                                                */
+    LDDW    *B1++[2] , B11:B10          ;/*  恢复 B11:B10                                                */
 
-    POP_SPECIAL_REG
-    MVC     B3 , IRP
+    LDDW    *A1++[2] , A5:A4            ;/*  恢复 A5:A4                                                  */
 
-    POP_SCR_REG
+    LDW     *B1++ , B9                  ;/*  CSR                                                         */
+    LDW     *B1++ , B8                  ;/*  AMR                                                         */
+    LDW     *B1++ , B7                  ;/*  GFPGFR                                                      */
+    LDW     *B1++ , B3                  ;/*  B3                                                          */
+    ADDK    +4 , B1                     ;/*  Reserved2                                                   */
+    CLR     B9  , 9  , 9  , B9          ;/*  清除 SAT 位                                                 */
+    MVC     B8 , AMR
+    MVC     B7 , GFPGFR
 
-    ADDK    +4 , B15                    ;/*  Align stack                                                 */
-    LDW     *++B15 , A10                ;/*  Pop A10                                                     */
-    B       IRP                         ;/*  Return from interrupt                                       */
- || LDW     *++B15 , A11                ;/*  Pop A11                                                     */
-    LDW     *++B15 , B11                ;/*  Pop B11                                                     */
-    NOP     4                           ;/*  LDs needs to be done before branch                          */
-    .endm
-
-;/*********************************************************************************************************
-;  保存一个大的上下文
-;*********************************************************************************************************/
-
-SAVE_BIG_CTX_IRQ   .macro
-    ;/*
-    ; * Note that SP set to 64 bit alignement since uneven
-    ; * number of registers (A10,A11,B11) have been pushed to stack in _vectorXX
-    ; */
-    ADDK    -4 , B15
-
-    PUSH_SCR_REG
-
-    MVC     IRP , B3
-    PUSH_SPECIAL_REG
-
-    PUSH_NON_SCR_REG
-    .endm
-
-;/*********************************************************************************************************
-;  异常保存一个大的上下文
-;*********************************************************************************************************/
-
-SAVE_BIG_CTX_EXC   .macro
-    ;/*
-    ; * Note that SP set to 64 bit alignement since uneven
-    ; * number of registers (A10,A11,B11) have been pushed to stack in _vectorXX
-    ; */
-    ADDK    -4 , B15
-
-    PUSH_SCR_REG
-
-    MVC     NRP , B3
-    PUSH_SPECIAL_REG
-
-    PUSH_NON_SCR_REG
-    .endm
-
-;/*********************************************************************************************************
-;  恢复一个小上下文
-;*********************************************************************************************************/
-
-RESTORE_SMALL_CTX .macro
-    LDW     *++B15 , B9                 ;/*  CSR                                                         */
-    LDW     *++B15 , B8                 ;/*  AMR                                                         */
-    LDW     *++B15 , B7                 ;/*  GFPGFR                                                      */
-    LDW     *++B15 , B3                 ;/*  B3                                                          */
-    ADDK    +4     , B15                ;/*  Reserved1                                                   */
-    LDW     *++B15 , B24                ;/*  FMCR                                                        */
-    LDW     *++B15 , B23                ;/*  FAUCR                                                       */
-    LDW     *++B15 , B22                ;/*  FADCR                                                       */
-    LDW     *++B15 , B21                ;/*  SSR                                                         */
-    LDW     *++B15 , B20                ;/*  RILC                                                        */
- || EXTU    B9  , 22 , 31 , B25         ;/*  Extract SAT bit                                             */
-    LDW     *++B15 , B19                ;/*  ITSR                                                        */
- || CLR     B9  , 9  , 9  , B9          ;/*  Clear SAT bit                                               */
-    LDW     *++B15 , B18                ;/*  GPLYB                                                       */
- || MVC     B9  , CSR                   ;/*  Restore CSR                                                 */
-    LDW     *++B15 , B17                ;/*  GPLYA                                                       */
- || SSHL    B25 , 31 , B25              ;/*  Restore SAT bit.                                            */
-    LDW     *++B15 , B16                ;/*  ILC                                                         */
- || MVC     B8  , AMR
-    MVC     B7  , GFPGFR
     .if (.TMS320C6740)
+    LDW     *B1++ , B24                 ;/*  FMCR                                                        */
+    LDW     *B1++ , B23                 ;/*  FAUCR                                                       */
+    LDW     *B1++ , B22                 ;/*  FADCR                                                       */
+    NOP     2
     MVC     B24 , FMCR
     MVC     B23 , FAUCR
     MVC     B22 , FADCR
+    .else
+    ADDK    +12 , B1
     .endif
-    MVC     B21 , SSR
+
+    LDW     *B1++ , B21                 ;/*  SSR                                                         */
+    LDW     *B1++ , B20                 ;/*  RILC                                                        */
+    LDW     *B1++ , B19                 ;/*  ITSR                                                        */
+    LDW     *B1++ , B18                 ;/*  GPLYB                                                       */
+    LDW     *B1++ , B17                 ;/*  GPLYA                                                       */
+    LDW     *B1++ , B16                 ;/*  ILC                                                         */
+ || MVC     B21 , SSR
+    MVC     B20 , RILC
+    B       B3                          ;/*  返回                                                        */
+    MVC     B19 , ITSR
+    MVC     B18 , GPLYB
+    MVC     B17 , GPLYA
+    MVC     B16 , ILC
+    MVC     B9  , CSR                   ;/*  最后同时恢复 CSR                                            */
+    .endm
+
+;/*********************************************************************************************************
+;  保存一个大寄存器上下文(参数 B1: ARCH_REG_CTX ARCH_REG_PAIR(B3, B2) 低地址)
+;*********************************************************************************************************/
+
+SAVE_BIG_REG_CTX  .macro    RP_REG
+    STDW    B3:B2 , *B1--[2]
+ || STDW    A3:A2 , *A1--[2]
+
+    STDW    B5:B4 , *B1--[2]
+ || STDW    A7:A6 , *A1--[2]
+
+    STDW    B7:B6 , *B1--[2]
+ || STDW    A9:A8 , *A1--[2]
+
+    STDW    B9:B8 , *B1--[2]
+ || STDW    A17:A16 , *A1--[2]
+
+    STDW    B17:B16 , *B1--[2]
+ || STDW    A19:A18 , *A1--[2]
+
+    STDW    B19:B18 , *B1--[2]
+ || STDW    A21:A20 , *A1--[2]
+
+    STDW    B21:B20 , *B1--[2]
+ || STDW    A23:A22 , *A1--[2]
+
+    STDW    B23:B22 , *B1--[2]
+ || STDW    A25:A24 , *A1--[2]
+
+    STDW    B25:B24 , *B1--[2]
+ || STDW    A27:A26 , *A1--[2]
+
+    STDW    B27:B26 , *B1--[2]
+ || STDW    A29:A28 , *A1--[2]
+
+    STDW    B29:B28 , *B1--[2]
+ || STDW    A31:A30 , *A1--[1]          ;/*  A1 最后指向 ARCH_REG_PAIR(B31, B30) 低地址                  */
+
+    STDW    B31:B30 , *B1--[2]
+
+    ADDK    -4 , A1                     ;/*  A1 指向 ILC 地址                                            */
+
+    MVC     ILC , B16
+    STW     B16 , *A1--                 ;/*  ILC                                                         */
+ || MVC     GPLYA , B17
+    STW     B17 , *A1--                 ;/*  GPLYA                                                       */
+ || MVC     GPLYB , B18
+    STW     B18 , *A1--                 ;/*  GPLYB                                                       */
+ || MVC     ITSR , B19
+    STW     B19 , *A1--                 ;/*  ITSR                                                        */
+ || MVC     RILC , B20
+    STW     B20 , *A1--                 ;/*  RILC                                                        */
+ || MVC     SSR , B21
+    STW     B21 , *A1--                 ;/*  SSR                                                         */
+
+    .if (.TMS320C6740)
+    MVC     FADCR , B22
+    STW     B22 , *A1--                 ;/*  FADCR                                                       */
+ || MVC     FAUCR , B23
+    STW     B23 , *A1--                 ;/*  FAUCR                                                       */
+ || MVC     FMCR , B24
+    STW     B24 , *A1--(8)              ;/*  FMCR(跳过 Reserved2)                                        */
+    .else
+    ADDK    -16 , A1
+    .endif
+
+    MVC     RP_REG , B25
+    STW     B25 , *A1--                 ;/*  IRP                                                         */
+ || MVC     GFPGFR , B26
+    STW     B26 , *A1--                 ;/*  GFPGFR                                                      */
+ || MVC     AMR , B27
+    STW     B27 , *A1--                 ;/*  AMR                                                         */
+ || MVC     CSR , B28
+    STW     B28 , *A1--(8)              ;/*  CSR, A1 最后指向 ARCH_REG_PAIR(A5, A4) 低地址               */
+
+    ADD     -8 , A1 , B1                ;/*  B1 与 A1 错开 8 个字节                                      */
+
+    STDW    A5:A4 , *A1--[2]
+
+    STDW    B11:B10 , *B1--[2]
+ || STDW    A11:A10 , *A1--[2]
+
+    STDW    B13:B12 , *B1--[2]
+ || STDW    A13:A12 , *A1--[2]
+
+    STDW    B15:B14 , *B1--[2]
+ || STDW    A15:A14 , *A1--[1]
+
+    MVK     1 , B1
+    STW     B1 , *+A1(0)                ;/*  大寄存器上下文类型                                          */
+    .endm
+
+;/*********************************************************************************************************
+;  IRQ 保存一个大寄存器上下文(参数 B1: ARCH_REG_CTX 地址)
+;*********************************************************************************************************/
+
+IRQ_SAVE_BIG_REG_CTX  .macro    RP_REG
+    LDW     *+B15(8) , B0               ;/*  从栈中取出 B1 到 B0                                         */
+    ADDK    +(ARCH_REG_CTX_SIZE - 4) , B1   ;/*  B1 指向 REG_uiB1 地址                                   */
+    NOP     3
+    STW     B0 , *B1--[1]               ;/*  存储 B1 到 ARCH_REG_CTX.REG_uiB1                            */
+
+    LDW     *+B15(4) , B0               ;/*  从栈中取出 B0 到 B0                                         */
+    ADDK    +8 , B15                    ;/*  将 B15 调整回去                                             */
+    NOP     3
+    STW     B0 , *B1--(12)              ;/*  存储 B0 到 ARCH_REG_CTX.REG_uiB0                            */
+                                        ;/*  B1 最后指向 ARCH_REG_PAIR(A1, A0) 低地址                    */
+    STDW    A1:A0 , *B1--[1]            ;/*  存储 A1:A0,B1 最后指向 ARCH_REG_PAIR(B3, B2) 低地址         */
+
+    ADD     -8 , B1 , A1                ;/*  B1 与 A1 错开 8 个字节                                      */
+
+    SAVE_BIG_REG_CTX    RP_REG
+    .endm
+
+;/*********************************************************************************************************
+;  IRQ 嵌套保存一个大寄存器上下文
+;*********************************************************************************************************/
+
+IRQ_NEST_SAVE_BIG_REG_CTX  .macro    RP_REG
+    ADDK    -8 , B15                    ;/*  B15 最后指向 ARCH_REG_PAIR(A1, A0) 低地址                   */
+    STDW    A1:A0 , *B15--[1]           ;/*  存储 A1:A0,B1 最后指向 ARCH_REG_PAIR(B3, B2) 低地址         */
+
+    MV      B15 , B1
+    ADD     -8 , B1 , A1                ;/*  B1 与 A1 错开 8 个字节                                      */
+
+    ADDK    +24 , B15                   ;/*  将 B15 调整回中断前                                         */
+
+    SAVE_BIG_REG_CTX    RP_REG
+
+    ADD     -8 , A1 , B15               ;/*  B15 使用 8 字节对齐的空栈                                   */
+    .endm
+
+;/*********************************************************************************************************
+;  恢复一个大寄存器上下文(参数 A1: ARCH_REG_CTX 地址)
+;*********************************************************************************************************/
+
+RESTORE_BIG_REG_CTX  .macro
+    ADDK    +8   , A1                   ;/*  跳过 ContextType & Reserved1                                */
+    ADD     8    , A1 , B1              ;/*  B1 与 A1 错开 8 个字节                                      */
+
+    LDDW    *A1++[2] , A15:A14          ;/*  恢复 A15:A14                                                */
+    LDDW    *B1++[2] , B15:B14          ;/*  恢复 B15:B14                                                */
+
+    LDDW    *A1++[2] , A13:A12          ;/*  恢复 A13:A12                                                */
+    LDDW    *B1++[2] , B13:B12          ;/*  恢复 B13:B12                                                */
+
+    LDDW    *A1++[2] , A11:A10          ;/*  恢复 A11:A10                                                */
+    LDDW    *B1++[2] , B11:B10          ;/*  恢复 B11:B10                                                */
+
+    LDDW    *A1++[2] , A5:A4            ;/*  恢复 A5:A4                                                  */
+
+    LDW     *B1++ , B9                  ;/*  CSR                                                         */
+    LDW     *B1++ , B8                  ;/*  AMR                                                         */
+    LDW     *B1++ , B7                  ;/*  GFPGFR                                                      */
+    LDW     *B1++ , B6                  ;/*  IRP                                                         */
+
+    ADDK    +4 , B1                     ;/*  Reserved2                                                   */
+
+    CLR     B9  , 9  , 9  , B9          ;/*  清除 SAT 位                                                 */
+    MVC     B9 , CSR                    ;/*  并不会开中断                                                */
+    MVC     B8 , AMR
+    MVC     B7 , GFPGFR
+    MVC     B6 , IRP
+
+    .if (.TMS320C6740)
+    LDW     *B1++ , B24                 ;/*  FMCR                                                        */
+    LDW     *B1++ , B23                 ;/*  FAUCR                                                       */
+    LDW     *B1++ , B22                 ;/*  FADCR                                                       */
+    NOP     2
+    MVC     B24 , FMCR
+    MVC     B23 , FAUCR
+    MVC     B22 , FADCR
+    .else
+    ADDK    +12 , B1
+    .endif
+
+    LDW     *B1++ , B21                 ;/*  SSR                                                         */
+    LDW     *B1++ , B20                 ;/*  RILC                                                        */
+    LDW     *B1++ , B19                 ;/*  ITSR                                                        */
+    LDW     *B1++ , B18                 ;/*  GPLYB                                                       */
+    LDW     *B1++ , B17                 ;/*  GPLYA                                                       */
+    LDW     *B1++ , B16                 ;/*  ILC                                                         */
+ || MVC     B21 , SSR
     MVC     B20 , RILC
     MVC     B19 , ITSR
     MVC     B18 , GPLYB
     MVC     B17 , GPLYA
     MVC     B16 , ILC
-    MV      B15 , A8
-    LDDW    *++A8[1]  , A13:A12
- || LDDW    *++B15[2] , B13:B12
-    LDDW    *++A8[2]  , A11:A10
- || LDDW    *++B15[2] , B11:B10
 
-    LDDW    *++A8[2]  , A15:A14
-    LDW     *++B15(16), B14             ;/*  Get single word load last                                   */
-    B       B3
-    LDW     *++B15 , A4                 ;/*  A4                                                          */
-    NOP     4                           ;/*  LDs needs to be done before branch                          */
+    ADD     8    , B1 , A1              ;/*  A1 与 B1 错开 8 个字节                                      */
+
+    LDDW    *B1++[2] , B31:B30          ;/*  恢复 B31:B30                                                */
+    LDDW    *A1++[2] , A31:A30          ;/*  恢复 A31:A30                                                */
+
+    LDDW    *B1++[2] , B29:B28          ;/*  恢复 B29:B28                                                */
+    LDDW    *A1++[2] , A29:A28          ;/*  恢复 A29:A28                                                */
+
+    LDDW    *B1++[2] , B27:B26          ;/*  恢复 B27:B26                                                */
+    LDDW    *A1++[2] , A27:A26          ;/*  恢复 A27:A26                                                */
+
+    LDDW    *B1++[2] , B25:B24          ;/*  恢复 B25:B24                                                */
+    LDDW    *A1++[2] , A25:A24          ;/*  恢复 A25:A24                                                */
+
+    LDDW    *B1++[2] , B23:B22          ;/*  恢复 B23:B22                                                */
+    LDDW    *A1++[2] , A23:A22          ;/*  恢复 A23:A22                                                */
+
+    LDDW    *B1++[2] , B21:B20          ;/*  恢复 B21:B20                                                */
+    LDDW    *A1++[2] , A21:A20          ;/*  恢复 A21:A20                                                */
+
+    LDDW    *B1++[2] , B19:B18          ;/*  恢复 B19:B18                                                */
+    LDDW    *A1++[2] , A19:A18          ;/*  恢复 A19:A18                                                */
+
+    LDDW    *B1++[2] , B17:B16          ;/*  恢复 B17:B16                                                */
+    LDDW    *A1++[2] , A17:A16          ;/*  恢复 A17:A16                                                */
+
+    LDDW    *B1++[2] , B9:B8            ;/*  恢复 B9:B8                                                  */
+    LDDW    *A1++[2] , A9:A8            ;/*  恢复 A9:A8                                                  */
+
+    LDDW    *B1++[2] , B7:B6            ;/*  恢复 B7:B6                                                  */
+    LDDW    *A1++[2] , A7:A6            ;/*  恢复 A7:A6                                                  */
+
+    LDDW    *B1++[2] , B5:B4            ;/*  恢复 B5:B4                                                  */
+    LDDW    *A1++[2] , A3:A2            ;/*  恢复 A3:A2                                                  */
+
+    LDDW    *B1++[2] , B3:B2            ;/*  恢复 B3:B2                                                  */
+    LDDW    *A1      , A1:A0            ;/*  恢复 A1:A0                                                  */
+
+    B       IRP
+ || LDW     *+B1(4)  , B0               ;/*  恢复 B1:B0                                                  */
+    LDW     *+B1(8)  , B1
+    NOP     4
     .endm
 
 ;/*********************************************************************************************************
-;  保存一个小上下文
+;  IRQ 嵌套恢复一个大寄存器上下文
 ;*********************************************************************************************************/
 
-SAVE_SMALL_CTX  .macro
-    ADDK    -4   , B15
-    ADD     -8   , B15 , A8             ;/*  A8 should push a DW after B15                               */
-    STW     B14  , *B15--(16)           ;/*  Put single word store first                                 */
- || STDW    A15:A14 ,  *A8--[2]
-    STDW    B11:B10 , *B15--[2]
- || STDW    A11:A10 ,  *A8--[2]
-    STDW    B13:B12 , *B15--[2]
- || STDW    A13:A12 ,  *A8
- || MVC     ILC  , B16
-    STW     B16  , *B15--               ;/*  ILC                                                         */
- || MVC     GPLYA, B17
-    STW     B17  , *B15--               ;/*  GPLYA                                                       */
- || MVC     GPLYB, B18
-    STW     B18  , *B15--               ;/*  GPLYB                                                       */
- || MVC     ITSR , B19
-    STW     B19  , *B15--               ;/*  ITSR                                                        */
- || MVC     RILC , B20
-    STW     B20  , *B15--               ;/*  RILC                                                        */
- || MVC     SSR  , B21
-    .if (.TMS320C6740)
-    STW     B21  , *B15--               ;/*  SSR                                                         */
- || MVC     FADCR, B22
-    STW     B22  , *B15--               ;/*  FADCR                                                       */
- || MVC     FAUCR, B23
-    STW     B23  , *B15--               ;/*  FAUCR                                                       */
- || MVC     FMCR , B24
-    .else
-    STW     B21  , *B15--               ;/*  SSR                                                         */
-    STW     B22  , *B15--               ;/*  FADCR                                                       */
-    STW     B23  , *B15--               ;/*  FAUCR                                                       */
-    .endif
-    STW     B24  , *B15--               ;/*  FMCR                                                        */
-    ADDK    -4   , B15                  ;/*  Reserved1                                                   */
-    MVC     GFPGFR, B7
-    STW     B3   , *B15--               ;/*  B3                                                          */
- || MVC     AMR  , B8
-    STW     B7   , *B15--               ;/*  GFPGFR                                                      */
- || MVC     CSR  , B9
-    STW     B8   , *B15--               ;/*  AMR                                                         */
-    STW     B9   , *B15--               ;/*  CSR                                                         */
+IRQ_NEST_RESTORE_BIG_REG_CTX  .macro
+    ADD     +8 , B15 , A1               ;/*  参数 A1: ARCH_REG_CTX 地址(B15 使用 8 字节对齐的空栈, 见上) */
+    RESTORE_BIG_REG_CTX
     .endm
-    
+
 ;/*********************************************************************************************************
 ;  END
 ;*********************************************************************************************************/

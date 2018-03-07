@@ -28,6 +28,11 @@ UINT32  ppcGetDAR(VOID);
 VOID    ppcSetDEC(UINT32);
 UINT32  ppcGetDEC(VOID);
 
+VOID    ppcSetSPRG0(UINT32);
+VOID    ppcSetSPRG1(UINT32);
+VOID    ppcSetSPRG2(UINT32);
+VOID    ppcSetSPRG3(UINT32);
+
 #endif                                                                  /*  __ARCH_PPCSPR_H             */
 /*********************************************************************************************************
   END

@@ -16,7 +16,7 @@
 **
 ** 文件创建日期: 2016 年 11 月 02 日
 **
-** 描        述: MIPS64 体系构架相关函数库.
+** 描        述: MIPS64 体系架构相关函数库.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -32,16 +32,20 @@
 *********************************************************************************************************/
 PCHAR  mips64MemDup (UINT64  ui64Addr, size_t  stLen)
 {
-    size_t  i;
-    PCHAR   pcPtr;
     PCHAR   pcBuffer;
 
     pcBuffer = __SHEAP_ALLOC(stLen);
     if (pcBuffer) {
-        pcPtr = pcBuffer;
+#if LW_CFG_CPU_WORD_LENGHT == 32
+        size_t  i;
+        PCHAR   pcPtr = pcBuffer;
+
         for (i = 0; i < stLen; i++) {
             *pcPtr++ = mips64Read8(ui64Addr++);
         }
+#else
+        lib_memcpy(pcBuffer, (CPVOID)ui64Addr, stLen);
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
     }
 
     return  (pcBuffer);

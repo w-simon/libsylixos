@@ -322,6 +322,7 @@ typedef struct __lw_vmm_abort {
 #define LW_VMM_ABORT_TYPE_BREAK             6                           /*  断点异常                    */
 #define LW_VMM_ABORT_TYPE_SYS               7                           /*  系统调用异常                */
 #define LW_VMM_ABORT_TYPE_UNDEF             8                           /*  未定义指令, 将产生 SIGILL   */
+#define LW_VMM_ABORT_TYPE_DSPE              9                           /*  DSP 异常                    */
 
 #define LW_VMM_ABORT_TYPE_FATAL_ERROR       0xffffffff                  /*  致命错误, 需要立即重启      */
 

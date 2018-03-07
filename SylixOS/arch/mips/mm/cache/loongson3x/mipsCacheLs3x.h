@@ -19,8 +19,8 @@
 ** 描        述: Loongson3x 体系构架 CACHE 驱动.
 *********************************************************************************************************/
 
-#ifndef __MIPS_LS3X_CACHE_H
-#define __MIPS_LS3X_CACHE_H
+#ifndef __ARCH_MIPSCACHELS3X_H
+#define __ARCH_MIPSCACHELS3X_H
 
 VOID  ls3xCacheFlushAll(VOID);
 VOID  ls3xCacheEnableHw(VOID);
@@ -31,7 +31,7 @@ VOID  mipsCacheLs3xInit(LW_CACHE_OP *pcacheop,
                         CPCHAR       pcMachineName);
 VOID  mipsCacheLs3xReset(CPCHAR  pcMachineName);
 
-#endif                                                                  /*  __MIPS_LS3X_CACHE_H         */
+#endif                                                                  /*  __ARCH_MIPSCACHELS3X_H      */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

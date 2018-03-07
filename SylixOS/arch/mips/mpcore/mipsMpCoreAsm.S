@@ -12,11 +12,11 @@
 ;**
 ;** 文   件   名: mipsMpCoreAsm.S
 ;**
-;** 创   建   人: Ryan.Xin (信金龙)
+;** 创   建   人: Jiao.JinXing (焦进星)
 ;**
 ;** 文件创建日期: 2015 年 09 月 01 日
 ;**
-;** 描        述: MIPS 体系构架多核接口驱动.
+;** 描        述: MIPS 体系架构多核接口驱动.
 ;**
 ;** 参        考: http://www.ibm.com/developerworks/cn/linux/l-cn-spinlock_mips/index.html
 ;*********************************************************************************************************/
@@ -50,11 +50,6 @@
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsSpinLock)
-    .set    push
-    .set    noat
-    .set    noreorder
-    .set    volatile
-
 1:
     LL      T0 , 0(A0)
     BNEZ    T0 , 1b
@@ -67,16 +62,9 @@ FUNC_DEF(mipsSpinLock)
 
     JR      RA
     NOP
-
-    .set    pop
     FUNC_END(mipsSpinLock)
 
 FUNC_DEF(mipsSpinTryLock)
-    .set    push
-    .set    noat
-    .set    noreorder
-    .set    volatile
-
     LL      T0 , 0(A0)
     BNEZ    T0 , 1f
     NOP
@@ -91,21 +79,12 @@ FUNC_DEF(mipsSpinTryLock)
 1:
     JR      RA
     LI      V0 , 1
-
-    .set    pop
     FUNC_END(mipsSpinTryLock)
 
 FUNC_DEF(mipsSpinUnlock)
-    .set    push
-    .set    noat
-    .set    noreorder
-    .set    volatile
-
     SW      ZERO , 0(A0)
     JR      RA
     NOP
-
-    .set    pop
     FUNC_END(mipsSpinUnlock)
 
 ;/*********************************************************************************************************
@@ -113,8 +92,17 @@ FUNC_DEF(mipsSpinUnlock)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archMpCur)
+#if LW_CFG_MIPS_HAS_RDHWR_INSTR > 0
+    .set    push
+    .set    mips64r2
+    RDHWR   V0 , HWR_CPUNUM
+    .set    pop
+    JR      RA
+    NOP
+#else
     JR      RA
     MOV     V0 , ZERO
+#endif
     FUNC_END(archMpCur)
 
 ;/*********************************************************************************************************

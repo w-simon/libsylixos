@@ -61,12 +61,14 @@ FUNC_DEF(archResumePc)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archTaskCtxStart)
-    MOVL    X86_SP_ARG1(%ESP) , %EDI                                    ;/*  EDI = 当前 CPU 控制块指针   */
+    MOVL    X86_SP_ARG1(%ESP) , %EDX                                    ;/*  EDX = 当前 CPU 控制块指针   */
 
-    MOVL    0(%EDI) , %EAX                                              ;/*  EAX = 当前 任务 控制块指针  */
-    MOVL    0(%EAX) , %ESP                                              ;/*  修改 ESP                    */
+    MOVL    0(%EDX) , %EAX                                              ;/*  EAX = 当前TCB的 REG_CTX 地址*/
 
-    RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
+    ;/*
+    ; * 一定是恢复 RING0 上下文
+    ; */
+    KERN_RESTORE_REGS                                                   ;/*  恢复所有寄存器              */
     FUNC_END(archTaskCtxStart)
 
 ;/*********************************************************************************************************
@@ -75,12 +77,16 @@ FUNC_DEF(archTaskCtxStart)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archTaskCtxSwitch)
-    SAVE_REGS                                                           ;/*  所有寄存器入栈              */
+    MOVL    X86_SP_ARG1(%ESP) , %EDX                                    ;/*  EDX = 当前 CPU 控制块指针   */
 
-    MOVL    (X86_SP_ARG1 + ARCH_REG_CTX_WORD_SIZE * 4)(%ESP) , %EDI     ;/*  EDI = 当前 CPU 控制块指针   */
-    MOVL    0(%EDI) , %EAX                                              ;/*  EAX = 当前 任务 控制块指针  */
-    MOVL    %ESP , 0(%EAX)                                              ;/*  保存 ESP                    */
+    MOVL    0(%EDX) , %EAX                                              ;/*  EAX = 当前TCB的 REG_CTX 地址*/
 
+    ;/*
+    ; * 一定是 RING0
+    ; */
+    KERN_SAVE_REGS                                                      ;/*  保存所有寄存器              */
+
+    MOVL    %EDX , %EDI                                                 ;/*  EDI = 当前 CPU 控制块指针   */
 #if LW_CFG_SMP_EN > 0
     PUSHL   %EDI                                                        ;/*  参数 = 当前 CPU 控制块指针  */
     CALL    _SchedSafeStack                                             ;/*  _SchedSafeStack();          */
@@ -89,12 +95,14 @@ FUNC_DEF(archTaskCtxSwitch)
 
     PUSHL   %EDI                                                        ;/*  参数 = 当前 CPU 控制块指针  */
     CALL    _SchedSwp                                                   ;/*  _SchedSwp();                */
-    ADDL    $4 , %ESP
+    ADDL    $ARCH_REG_SIZE , %ESP
 
-    MOVL    0(%EDI) , %EAX                                              ;/*  EAX = 当前 任务 控制块指针  */
-    MOVL    0(%EAX) , %ESP                                              ;/*  修改 ESP                    */
+    MOVL    0(%EDI) , %EAX                                              ;/*  EAX = 当前TCB的 REG_CTX 地址*/
 
-    RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
+    ;/*
+    ; * 以后可能会返回到 RING3
+    ; */
+    KERN_RESTORE_REGS                                                   ;/*  恢复所有寄存器              */
     FUNC_END(archTaskCtxSwitch)
 
 ;/*********************************************************************************************************
@@ -104,20 +112,24 @@ FUNC_DEF(archTaskCtxSwitch)
 
 #if LW_CFG_COROUTINE_EN > 0
 FUNC_DEF(archCrtCtxSwitch)
-    SAVE_REGS                                                           ;/*  所有寄存器入栈              */
+    MOVL    X86_SP_ARG1(%ESP) , %EDX                                    ;/*  EDX = 当前 CPU 控制块指针   */
 
-    MOVL    (X86_SP_ARG1 + ARCH_REG_CTX_WORD_SIZE * 4)(%ESP) , %EDI     ;/*  EDI = 当前 CPU 控制块指针   */
-    MOVL    8(%EDI) , %EAX                                              ;/*  EAX = 当前 任务 控制块指针  */
-    MOVL    %ESP , 0(%EAX)                                              ;/*  保存 ESP                    */
+    MOVL    8(%EDX) , %EAX                                              ;/*  EAX = 当前CCB的 REG_CTX 地址*/
+
+    KERN_SAVE_REGS                                                      ;/*  保存所有寄存器              */
+
+    MOVL    %EDX , %EDI                                                 ;/*  EDI = 当前 CPU 控制块指针   */
 
     PUSHL   %EDI                                                        ;/*  参数 = 当前 CPU 控制块指针  */
     CALL    _SchedCrSwp                                                 ;/*  _SchedCrSwp();              */
-    ADDL    $4 , %ESP
+    ADDL    $ARCH_REG_SIZE , %ESP
 
-    MOVL    8(%EDI) , %EAX                                              ;/*  EAX = 当前 任务 控制块指针  */
-    MOVL    0(%EAX) , %ESP                                              ;/*  修改 ESP                    */
+    MOVL    8(%EDI) , %EAX                                              ;/*  EAX = 当前CCB的 REG_CTX 地址*/
 
-    RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
+    ;/*
+    ; * 一定是恢复同级上下文
+    ; */
+    KERN_RESTORE_REGS                                                   ;/*  恢复所有寄存器              */
     FUNC_END(archCrtCtxSwitch)
 #endif
 
@@ -127,22 +139,28 @@ FUNC_DEF(archCrtCtxSwitch)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archIntCtxLoad)
-    MOVL    (X86_SP_ARG1)(%ESP) , %EDI                                  ;/*  EDI = 当前 CPU 控制块指针   */
-    MOVL    0(%EDI) , %EAX                                              ;/*  EAX = 当前 任务 控制块指针  */
-    MOVL    0(%EAX) , %ESP                                              ;/*  修改 ESP                    */
+    MOVL    X86_SP_ARG1(%ESP) , %EDX                                    ;/*  EDX = 当前 CPU 控制块指针   */
 
-    RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
+    MOVL    0(%EDX) , %EAX                                              ;/*  EAX = 当前TCB的 REG_CTX 地址*/
+
+    ;/*
+    ; * 以后可能会返回到 RING3
+    ; */
+    KERN_RESTORE_REGS                                                   ;/*  恢复所有寄存器              */
     FUNC_END(archIntCtxLoad)
 
 ;/*********************************************************************************************************
 ;  信号上下文返回
-;  参数为需要返回的堆栈栈顶位置
+;  参数为 ARCH_REG_CTX 指针
 ;*********************************************************************************************************/
 
 FUNC_DEF(archSigCtxLoad)
-    MOVL    X86_SP_ARG1(%ESP) , %ESP                                    ;/*  ESP = 传入的参数            */
+    MOVL    X86_SP_ARG1(%ESP) , %EAX                                    ;/*  EAX = ARCH_REG_CTX 指针     */
 
-    RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
+    ;/*
+    ; * 一定是恢复同级上下文
+    ; */
+    KERN_RESTORE_REGS                                                   ;/*  恢复所有寄存器              */
     FUNC_END(archSigCtxLoad)
 
     FILE_END()

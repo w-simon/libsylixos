@@ -61,19 +61,19 @@
 FUNC_DEF(archIntDisable)
     MRS     R0 , BASEPRI                ;/*  Set prio int mask to mask all (except faults)               */
     MOV     R1 , #LW_CFG_CORTEX_M_INT_MASK
-    MSR     BASEPRI,  R1
+    MSR     BASEPRI ,  R1
     BX      LR
     FUNC_END()
 
 FUNC_DEF(archIntEnable)
-    MSR     BASEPRI, R0
+    MSR     BASEPRI , R0
     BX      LR
     FUNC_END()
 
 FUNC_DEF(archIntEnableForce)
-    CPSIE   I                            /*  Enable interrupts at processor level                        */
+    CPSIE   I                           ;/*  Enable interrupts at processor level                        */
     MOV     R1 , #0
-    MSR     BASEPRI, R1
+    MSR     BASEPRI , R1
     BX      LR
     FUNC_END()
 
@@ -82,11 +82,11 @@ FUNC_DEF(archIntEnableForce)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archFindLsb)
-    RSB     R1 , R0, #0
-    ANDS    R0 , R1, R0
+    RSB     R1 , R0 , #0
+    ANDS    R0 , R1 , R0
     ITT     NE
     CLZNE   R0 , R0
-    RSBNE   R0 , R0, #32
+    RSBNE   R0 , R0 , #32
     BX      LR
     FUNC_END()
 
@@ -94,7 +94,7 @@ FUNC_DEF(archFindMsb)
     CMP     R0 , #0
     ITT     NE
     CLZNE   R0 , R0
-    RSBNE   R0 , R0, #32
+    RSBNE   R0 , R0 , #32
     BX      LR
     FUNC_END()
 
@@ -237,6 +237,7 @@ FUNC_DEF(archReboot)
 ;/*********************************************************************************************************
 ;  Bogo Ñ­»·
 ;*********************************************************************************************************/
+
 FUNC_DEF(archBogoMipsLoop)
 1:
     SUBS    R0 , R0 , #1

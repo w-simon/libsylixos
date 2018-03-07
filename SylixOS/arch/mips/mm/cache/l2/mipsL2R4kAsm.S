@@ -38,30 +38,13 @@
     FILE_BEGIN()
 
 ;/*********************************************************************************************************
-;  CACHE 操作宏
-;*********************************************************************************************************/
-
-MACRO_DEF(CACHE_OP op addr)
-    .set    push
-    .set    noat
-    .set    noreorder
-    .set    volatile
-    .set    mips32
-
-    cache   \op , 0(\addr)
-
-    JR      RA
-    NOP
-
-    .set    pop
-    MACRO_END()
-
-;/*********************************************************************************************************
 ;  回写一个 SCACHE 行
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsL2R4kLineFlush)
-    CACHE_OP    Hit_Writeback_S         A0
+    CACHE   Hit_Writeback_SD , 0(A0)
+    JR      RA
+    NOP
     FUNC_END(mipsL2R4kLineFlush)
 
 ;/*********************************************************************************************************
@@ -69,7 +52,9 @@ FUNC_DEF(mipsL2R4kLineFlush)
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsL2R4kLineClear)
-    CACHE_OP    Hit_Writeback_Inv_S     A0
+    CACHE   Hit_Writeback_Inv_S , 0(A0)
+    JR      RA
+    NOP
     FUNC_END(mipsL2R4kLineClear)
 
 ;/*********************************************************************************************************
@@ -77,7 +62,9 @@ FUNC_DEF(mipsL2R4kLineClear)
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsL2R4kLineInvalidate)
-    CACHE_OP    Hit_Invalidate_S        A0
+    CACHE   Hit_Invalidate_S , 0(A0)
+    JR      RA
+    NOP
     FUNC_END(mipsL2R4kLineInvalidate)
 
 ;/*********************************************************************************************************
@@ -85,7 +72,9 @@ FUNC_DEF(mipsL2R4kLineInvalidate)
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsL2R4kIndexClear)
-    CACHE_OP    Index_Writeback_Inv_S   A0
+    CACHE   Index_Writeback_Inv_S , 0(A0)
+    JR      RA
+    NOP
     FUNC_END(mipsL2R4kIndexClear)
 
 ;/*********************************************************************************************************
@@ -93,7 +82,9 @@ FUNC_DEF(mipsL2R4kIndexClear)
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsL2R4kIndexStoreTag)
-    CACHE_OP    Index_Store_Tag_S       A0
+    CACHE   Index_Store_Tag_S , 0(A0)
+    JR      RA
+    NOP
     FUNC_END(mipsL2R4kIndexStoreTag)
 
     FILE_END()

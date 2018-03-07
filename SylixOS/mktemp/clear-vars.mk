@@ -32,13 +32,14 @@ LOCAL_SRCS :=
 #*********************************************************************************************************
 # Arch related source files
 #*********************************************************************************************************
-LOCAL_ARM_SRCS   :=
-LOCAL_MIPS_SRCS  :=
-LOCAL_PPC_SRCS   :=
-LOCAL_X86_SRCS   :=
-LOCAL_X64_SRCS   :=
-LOCAL_C6X_SRCS   :=
-LOCAL_SPARC_SRCS :=
+LOCAL_ARM_SRCS    :=
+LOCAL_MIPS_SRCS   :=
+LOCAL_MIPS64_SRCS :=
+LOCAL_PPC_SRCS    :=
+LOCAL_X86_SRCS    :=
+LOCAL_X64_SRCS    :=
+LOCAL_C6X_SRCS    :=
+LOCAL_SPARC_SRCS  :=
 
 #*********************************************************************************************************
 # Exclude source files

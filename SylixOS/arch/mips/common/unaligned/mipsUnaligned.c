@@ -97,15 +97,26 @@
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
 #include <linux/compat.h>
-#include "./config.h"
-#include "./porting.h"
-#include "asm-eva.h"
-#include "arch/mips/common/mipsInst.h"
-#include "arch/mips/common/mipsBranch.h"
+#include "arch/mips/inc/config.h"
+#include "arch/mips/inc/porting.h"
+#include "arch/mips/inc/asm-eva.h"
+#include "arch/mips/inc/inst.h"
+#include "arch/mips/inc/branch.h"
 #include "arch/mips/param/mipsParam.h"
+#if LW_CFG_CPU_FPU_EN > 0
+#include "arch/mips/fpu/emu/mipsFpuEmu.h"
+#if LW_CFG_MIPS_HAS_MSA_INSTR > 0
+#include "arch/mips/inc/msa.h"
+#endif                                                                  /*  LW_CFG_MIPS_HAS_MSA_INSTR   */
+#endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 
-#define STR(x)	__STR(x)
-#define __STR(x)  #x
+#undef  PTR
+#define PTR                 .word
+
+#define IS_ENABLED(config)  MIPS_##config
+
+#define cp0_epc             REG_ulCP0EPC
+#define regs                REG_ulReg
 
 #if BYTE_ORDER == BIG_ENDIAN
 #define     _LoadHW(addr, value, res, type)  \
@@ -881,24 +892,36 @@ do {                                                        \
 #define StoreDW(addr, value, res)	_StoreDW(addr, value, res)
 
 static int emulate_load_store_insn(ARCH_REG_CTX *regs,
-	void *addr, unsigned int *pc)
+	void __user *addr, unsigned int __user *pc)
 {
 	union mips_instruction insn;
 	unsigned long value;
-    unsigned int res;
+	unsigned int res;
 	unsigned long origpc;
 	unsigned long orig31;
-	void *fault_addr = NULL;
+	void __user *fault_addr = NULL;
 #ifdef	CONFIG_EVA
 	mm_segment_t seg;
 #endif
+#if LW_CFG_CPU_FPU_EN > 0
+#if LW_CFG_MIPS_HAS_MSA_INSTR > 0
+	union fpureg *fpr;
+	enum msa_2b_fmt df;
+	unsigned int wd;
+#endif                                                                  /*  MIPS_HAS_MSA_INSTR > 0      */
+    ARCH_FPU_CTX   *pFpuCtx;
+    LW_VMM_ABORT    abtInfo;
+#endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+
 	origpc = (unsigned long)pc;
-	orig31 = regs->REG_uiReg[31];
+	orig31 = regs->regs[31];
+
+	perf_sw_event(PERF_COUNT_SW_EMULATION_FAULTS, 1, regs, 0);
 
 	/*
 	 * This load never faults.
 	 */
-    insn.word = *pc;
+	res = __get_user(insn.word, pc);
 
 	switch (insn.i_format.opcode) {
 		/*
@@ -934,94 +957,120 @@ static int emulate_load_store_insn(ARCH_REG_CTX *regs,
 		 * The remaining opcodes are the ones that are really of
 		 * interest.
 		 */
-#ifdef CONFIG_EVA
 	case spec3_op:
-		/*
-		 * we can land here only from kernel accessing user memory,
-		 * so we need to "switch" the address limit to user space, so
-		 * address check can work properly.
-		 */
-		seg = get_fs();
-		set_fs(USER_DS);
-		switch (insn.spec3_format.func) {
-		case lhe_op:
-			if (!access_ok(VERIFY_READ, addr, 2)) {
-				set_fs(seg);
-				goto sigbus;
+		if (insn.dsp_format.func == lx_op) {
+			switch (insn.dsp_format.op) {
+			case lwx_op:
+				if (!access_ok(VERIFY_READ, addr, 4))
+					goto sigbus;
+				LoadW(addr, value, res);
+				if (res)
+					goto fault;
+				compute_return_epc(regs);
+				regs->regs[insn.dsp_format.rd] = value;
+				break;
+			case lhx_op:
+				if (!access_ok(VERIFY_READ, addr, 2))
+					goto sigbus;
+				LoadHW(addr, value, res);
+				if (res)
+					goto fault;
+				compute_return_epc(regs);
+				regs->regs[insn.dsp_format.rd] = value;
+				break;
+			default:
+				goto sigill;
 			}
-			LoadHWE(addr, value, res);
-			if (res) {
-				set_fs(seg);
-				goto fault;
-			}
-			compute_return_epc(regs);
-			regs->REG_uiReg[insn.spec3_format.rt] = value;
-			break;
-		case lwe_op:
-			if (!access_ok(VERIFY_READ, addr, 4)) {
-				set_fs(seg);
-				goto sigbus;
-			}
-				LoadWE(addr, value, res);
-			if (res) {
-				set_fs(seg);
-				goto fault;
-			}
-			compute_return_epc(regs);
-			regs->REG_uiReg[insn.spec3_format.rt] = value;
-			break;
-		case lhue_op:
-			if (!access_ok(VERIFY_READ, addr, 2)) {
-				set_fs(seg);
-				goto sigbus;
-			}
-			LoadHWUE(addr, value, res);
-			if (res) {
-				set_fs(seg);
-				goto fault;
-			}
-			compute_return_epc(regs);
-			regs->REG_uiReg[insn.spec3_format.rt] = value;
-			break;
-		case she_op:
-			if (!access_ok(VERIFY_WRITE, addr, 2)) {
-				set_fs(seg);
-				goto sigbus;
-			}
-			compute_return_epc(regs);
-			value = regs->REG_uiReg[insn.spec3_format.rt];
-			StoreHWE(addr, value, res);
-			if (res) {
-				set_fs(seg);
-				goto fault;
-			}
-			break;
-		case swe_op:
-			if (!access_ok(VERIFY_WRITE, addr, 4)) {
-				set_fs(seg);
-				goto sigbus;
-			}
-			compute_return_epc(regs);
-			value = regs->REG_uiReg[insn.spec3_format.rt];
-			StoreWE(addr, value, res);
-			if (res) {
-				set_fs(seg);
-				goto fault;
-			}
-			break;
-		default:
-			set_fs(seg);
-			goto sigill;
 		}
-		set_fs(seg);
-		break;
+#ifdef CONFIG_EVA
+		else {
+			/*
+			 * we can land here only from kernel accessing user
+			 * memory, so we need to "switch" the address limit to
+			 * user space, so that address check can work properly.
+			 */
+			seg = get_fs();
+			set_fs(USER_DS);
+			switch (insn.spec3_format.func) {
+			case lhe_op:
+				if (!access_ok(VERIFY_READ, addr, 2)) {
+					set_fs(seg);
+					goto sigbus;
+				}
+				LoadHWE(addr, value, res);
+				if (res) {
+					set_fs(seg);
+					goto fault;
+				}
+				compute_return_epc(regs);
+				regs->regs[insn.spec3_format.rt] = value;
+				break;
+			case lwe_op:
+				if (!access_ok(VERIFY_READ, addr, 4)) {
+					set_fs(seg);
+					goto sigbus;
+				}
+				LoadWE(addr, value, res);
+				if (res) {
+					set_fs(seg);
+					goto fault;
+				}
+				compute_return_epc(regs);
+				regs->regs[insn.spec3_format.rt] = value;
+				break;
+			case lhue_op:
+				if (!access_ok(VERIFY_READ, addr, 2)) {
+					set_fs(seg);
+					goto sigbus;
+				}
+				LoadHWUE(addr, value, res);
+				if (res) {
+					set_fs(seg);
+					goto fault;
+				}
+				compute_return_epc(regs);
+				regs->regs[insn.spec3_format.rt] = value;
+				break;
+			case she_op:
+				if (!access_ok(VERIFY_WRITE, addr, 2)) {
+					set_fs(seg);
+					goto sigbus;
+				}
+				compute_return_epc(regs);
+				value = regs->regs[insn.spec3_format.rt];
+				StoreHWE(addr, value, res);
+				if (res) {
+					set_fs(seg);
+					goto fault;
+				}
+				break;
+			case swe_op:
+				if (!access_ok(VERIFY_WRITE, addr, 4)) {
+					set_fs(seg);
+					goto sigbus;
+				}
+				compute_return_epc(regs);
+				value = regs->regs[insn.spec3_format.rt];
+				StoreWE(addr, value, res);
+				if (res) {
+					set_fs(seg);
+					goto fault;
+				}
+				break;
+			default:
+				set_fs(seg);
+				goto sigill;
+			}
+			set_fs(seg);
+		}
 #endif
+		break;
 	case lh_op:
 		if (!access_ok(VERIFY_READ, addr, 2))
 			goto sigbus;
 
 		if (IS_ENABLED(CONFIG_EVA)) {
-			if (segment_eq(get_fs(), get_ds()))
+			if (uaccess_kernel())
 				LoadHW(addr, value, res);
 			else
 				LoadHWE(addr, value, res);
@@ -1032,7 +1081,7 @@ static int emulate_load_store_insn(ARCH_REG_CTX *regs,
 		if (res)
 			goto fault;
 		compute_return_epc(regs);
-		regs->REG_uiReg[insn.i_format.rt] = value;
+		regs->regs[insn.i_format.rt] = value;
 		break;
 
 	case lw_op:
@@ -1040,7 +1089,7 @@ static int emulate_load_store_insn(ARCH_REG_CTX *regs,
 			goto sigbus;
 
 		if (IS_ENABLED(CONFIG_EVA)) {
-			if (segment_eq(get_fs(), get_ds()))
+			if (uaccess_kernel())
 				LoadW(addr, value, res);
 			else
 				LoadWE(addr, value, res);
@@ -1051,7 +1100,7 @@ static int emulate_load_store_insn(ARCH_REG_CTX *regs,
 		if (res)
 			goto fault;
 		compute_return_epc(regs);
-		regs->REG_uiReg[insn.i_format.rt] = value;
+		regs->regs[insn.i_format.rt] = value;
 		break;
 
 	case lhu_op:
@@ -1059,7 +1108,7 @@ static int emulate_load_store_insn(ARCH_REG_CTX *regs,
 			goto sigbus;
 
 		if (IS_ENABLED(CONFIG_EVA)) {
-			if (segment_eq(get_fs(), get_ds()))
+			if (uaccess_kernel())
 				LoadHWU(addr, value, res);
 			else
 				LoadHWUE(addr, value, res);
@@ -1070,7 +1119,7 @@ static int emulate_load_store_insn(ARCH_REG_CTX *regs,
 		if (res)
 			goto fault;
 		compute_return_epc(regs);
-		regs->REG_uiReg[insn.i_format.rt] = value;
+		regs->regs[insn.i_format.rt] = value;
 		break;
 
 	case lwu_op:
@@ -1089,7 +1138,7 @@ static int emulate_load_store_insn(ARCH_REG_CTX *regs,
 		if (res)
 			goto fault;
 		compute_return_epc(regs);
-		regs->REG_uiReg[insn.i_format.rt] = value;
+		regs->regs[insn.i_format.rt] = value;
 		break;
 #endif /* CONFIG_64BIT */
 
@@ -1112,7 +1161,7 @@ static int emulate_load_store_insn(ARCH_REG_CTX *regs,
 		if (res)
 			goto fault;
 		compute_return_epc(regs);
-		regs->REG_uiReg[insn.i_format.rt] = value;
+		regs->regs[insn.i_format.rt] = value;
 		break;
 #endif /* CONFIG_64BIT */
 
@@ -1124,10 +1173,10 @@ static int emulate_load_store_insn(ARCH_REG_CTX *regs,
 			goto sigbus;
 
 		compute_return_epc(regs);
-		value = regs->REG_uiReg[insn.i_format.rt];
+		value = regs->regs[insn.i_format.rt];
 
 		if (IS_ENABLED(CONFIG_EVA)) {
-			if (segment_eq(get_fs(), get_ds()))
+			if (uaccess_kernel())
 				StoreHW(addr, value, res);
 			else
 				StoreHWE(addr, value, res);
@@ -1144,10 +1193,10 @@ static int emulate_load_store_insn(ARCH_REG_CTX *regs,
 			goto sigbus;
 
 		compute_return_epc(regs);
-		value = regs->REG_uiReg[insn.i_format.rt];
+		value = regs->regs[insn.i_format.rt];
 
 		if (IS_ENABLED(CONFIG_EVA)) {
-			if (segment_eq(get_fs(), get_ds()))
+			if (uaccess_kernel())
 				StoreW(addr, value, res);
 			else
 				StoreWE(addr, value, res);
@@ -1172,7 +1221,7 @@ static int emulate_load_store_insn(ARCH_REG_CTX *regs,
 			goto sigbus;
 
 		compute_return_epc(regs);
-		value = regs->REG_uiReg[insn.i_format.rt];
+		value = regs->regs[insn.i_format.rt];
 		StoreDW(addr, value, res);
 		if (res)
 			goto fault;
@@ -1187,10 +1236,7 @@ static int emulate_load_store_insn(ARCH_REG_CTX *regs,
 	case swc1_op:
 	case sdc1_op:
 	case cop1x_op:
-	{
-        ARCH_FPU_CTX   *pFpuCtx;
-        LW_VMM_ABORT    abtInfo;
-
+#if LW_CFG_CPU_FPU_EN > 0
         pFpuCtx = &_G_mipsFpuCtx[LW_CPU_GET_CUR_ID()];
         __ARCH_FPU_SAVE(pFpuCtx);                                       /*  保存当前 FPU CTX            */
 
@@ -1230,27 +1276,75 @@ static int emulate_load_store_insn(ARCH_REG_CTX *regs,
             LW_TCB_GET_CUR(ptcbCur);
             API_VmmAbortIsr((addr_t)pc, (ULONG)addr, &abtInfo, ptcbCur);
         }
-	}
-	/*
-	 * 上面已经调用 API_VmmAbortIsr, 返回 0
-	 */
-        return  (0);
 
-	case msa_op:
-		/*
-		 * TODO MSA(MIPS SIMD架构)暂不支持模拟
-		 */
+        /*
+         * 上面已经调用 API_VmmAbortIsr, 返回 0
+         */
+        return  (0);
+#else
         goto sigill;
-		break;
+        break;
+#endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+
+    case msa_op:
+#if (LW_CFG_CPU_FPU_EN > 0) && (LW_CFG_MIPS_HAS_MSA_INSTR > 0)
+        if (!cpu_has_msa)
+            goto sigill;
+
+        pFpuCtx = &_G_mipsFpuCtx[LW_CPU_GET_CUR_ID()];
+
+        df = insn.msa_mi10_format.df;
+        wd = insn.msa_mi10_format.wd;
+        fpr = &pFpuCtx->FPUCTX_reg[wd];
+
+        switch (insn.msa_mi10_format.func) {
+        case msa_ld_op:
+            if (!access_ok(VERIFY_READ, addr, sizeof(*fpr)))
+                goto sigbus;
+
+            /*
+             * TODO 由于目前并不支持多协处理器同时使用, msa 暂不支持
+             */
+            lib_memcpy(fpr, addr, sizeof(*fpr));
+            write_msa_wr(wd, fpr, df);
+            break;
+
+        case msa_st_op:
+            if (!access_ok(VERIFY_WRITE, addr, sizeof(*fpr)))
+                goto sigbus;
+
+            read_msa_wr(wd, fpr, df);
+            lib_memcpy(addr, fpr, sizeof(*fpr));
+            break;
+
+        default:
+            goto sigbus;
+        }
+
+        compute_return_epc(regs);
+        break;
+#else
+        goto sigill;
+        break;
+#endif                                                                  /*  FPU_EN && HAS_MSA_INSTR     */
 
 #ifndef CONFIG_CPU_MIPSR6
-    case lwc2_op:
-    case ldc2_op:
-    case swc2_op:
-    case sdc2_op:
+	/*
+	 * COP2 is available to implementor for application specific use.
+	 * It's up to applications to register a notifier chain and do
+	 * whatever they have to do, including possible sending of signals.
+	 *
+	 * This instruction has been reallocated in Release 6
+	 */
+	case lwc2_op:
+	case ldc2_op:
+	case swc2_op:
+	case sdc2_op:
         /*
-         * TODO 64 位协处理器 2 指令暂不支持模拟
+         * TODO COP2 暂不支持模拟
          */
+        goto sigill;
+		break;
 #endif
 	default:
 		/*
@@ -1260,12 +1354,16 @@ static int emulate_load_store_insn(ARCH_REG_CTX *regs,
 		goto sigill;
 	}
 
+#ifdef CONFIG_DEBUG_FS
+	unaligned_instructions++;
+#endif
+
     return  (0);
 
 fault:
 	/* roll back jump/branch */
-	regs->REG_uiCP0EPC  = origpc;
-	regs->REG_uiReg[31] = orig31;
+	regs->cp0_epc  = origpc;
+	regs->regs[31] = orig31;
     return  (LW_VMM_ABORT_TYPE_TERMINAL);
 
 sigbus:
@@ -1285,14 +1383,14 @@ sigill:
 *********************************************************************************************************/
 ULONG  mipsUnalignedHandle (ARCH_REG_CTX  *pregctx, addr_t  ulAbortAddr)
 {
-    MIPS_PARAM  *param = archKernelParamGet();
-    UINT        *pc;
+    MIPS_PARAM        *param = archKernelParamGet();
+    MIPS_INSTRUCTION  *pc;
 
     /*
      * Did we catch a fault trying to load an instruction?
      * Or are we running in MIPS16 mode?
      */
-    if ((ulAbortAddr == pregctx->REG_uiCP0EPC) || (pregctx->REG_uiCP0EPC & 0x1)) {
+    if ((ulAbortAddr == pregctx->REG_ulCP0EPC) || (pregctx->REG_ulCP0EPC & 0x1)) {
         goto    sigbus;
     }
 
@@ -1303,7 +1401,7 @@ ULONG  mipsUnalignedHandle (ARCH_REG_CTX  *pregctx, addr_t  ulAbortAddr)
         goto    sigbus;
     }
 
-    pc = (UINT *)exception_epc(pregctx);
+    pc = (MIPS_INSTRUCTION *)exception_epc(pregctx);
 
     /*
      * Do branch emulation only if we didn't forward the exception.

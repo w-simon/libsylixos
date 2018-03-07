@@ -1289,8 +1289,6 @@ int  pthread_getregs (pthread_t thread, REG_SET *pregs)
 {
     UINT16         usIndex;
     PLW_CLASS_TCB  ptcb;
-    ARCH_REG_CTX  *pregctxGet;
-    ARCH_REG_T     regSp;
     
     if (!pregs) {
         errno = EINVAL;
@@ -1323,10 +1321,8 @@ int  pthread_getregs (pthread_t thread, REG_SET *pregs)
         return  (ERROR_THREAD_NULL);
     }
     
-    ptcb = _K_ptcbTCBIdTable[usIndex];
-    
-    pregctxGet = archTaskRegsGet(ptcb->TCB_pstkStackNow, &regSp);
-    *pregs     = *pregctxGet;
+    ptcb   = _K_ptcbTCBIdTable[usIndex];
+    *pregs = ptcb->TCB_archRegCtx;
     __KERNEL_EXIT();                                                    /*  ÍË³öÄÚºË                    */
     
     return  (ERROR_NONE);

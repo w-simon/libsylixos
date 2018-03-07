@@ -12,15 +12,15 @@
 **
 ** 文   件   名: mipsMpCore.h
 **
-** 创   建   人: Ryan.Xin (信金龙)
+** 创   建   人: Jiao.JinXing (焦进星)
 **
 ** 文件创建日期: 2015 年 09 月 01 日
 **
-** 描        述: MIPS 体系构架多核内部底层接口.
+** 描        述: MIPS 体系架构多核内部底层接口.
 *********************************************************************************************************/
 
-#ifndef __MIPSMPCORE_H
-#define __MIPSMPCORE_H
+#ifndef __ARCH_MIPSMPCORE_H
+#define __ARCH_MIPSMPCORE_H
 
 /*********************************************************************************************************
   MIPS 自旋锁
@@ -30,7 +30,7 @@ VOID                     mipsSpinLock(volatile SPINLOCKTYPE  *psl);
 volatile SPINLOCKTYPE    mipsSpinTryLock(volatile SPINLOCKTYPE  *psl);
 VOID                     mipsSpinUnlock(volatile SPINLOCKTYPE  *psl);
 
-#endif                                                                  /*  __MIPSMPCORE_H              */
+#endif                                                                  /*  __ARCH_MIPSMPCORE_H         */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

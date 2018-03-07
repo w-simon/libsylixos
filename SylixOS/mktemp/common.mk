@@ -35,6 +35,10 @@ ifeq ($(ARCH), mips)
 LOCAL_ARCH_SRCS := $(LOCAL_MIPS_SRCS)
 endif
 
+ifeq ($(ARCH), mips64)
+LOCAL_ARCH_SRCS := $(LOCAL_MIPS64_SRCS)
+endif
+
 ifeq ($(ARCH), ppc)
 LOCAL_ARCH_SRCS := $(LOCAL_PPC_SRCS)
 endif

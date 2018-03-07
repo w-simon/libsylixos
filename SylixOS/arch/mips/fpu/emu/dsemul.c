@@ -2,16 +2,16 @@
 #define __SYLIXOS_KERNEL
 #include "SylixOS.h"
 #include <linux/compat.h>
-
 #include "./config.h"
 #include "./porting.h"
-#include "arch/mips/common/mipsInst.h"
-#include "arch/mips/common/mipsBranch.h"
+#include "arch/mips/inc/inst.h"
+#include "arch/mips/inc/branch.h"
+#include "mipsFpuEmu.h"
 
 /**
  * struct emuframe - The 'emulation' frame structure
- * @emul:   The instruction to 'emulate'.
- * @badinst:    A break instruction to cause a return to the kernel.
+ * @emul:	The instruction to 'emulate'.
+ * @badinst:	A break instruction to cause a return to the kernel.
  *
  * This structure defines the frames placed within the delay slot emulation
  * page in response to a call to mips_dsemul(). Each thread may be allocated
@@ -145,6 +145,6 @@ int do_dsemulret(PLW_CLASS_TCB ptcbCur, ARCH_REG_CTX *xcp)
 	/* Set EPC to return to post-branch instruction */
 	xcp->cp0_epc = ptcbCur->TCB_ulBdEmuContPC;
 	pr_debug("dsemulret to 0x%08lx\n", xcp->cp0_epc);
-
-    return 0;
+	MIPS_FPU_EMU_INC_STATS(ds_emul);
+	return 0;
 }

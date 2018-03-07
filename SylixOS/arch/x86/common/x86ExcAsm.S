@@ -95,35 +95,36 @@
 FUNC_DEF(x86IntEntry\Id)
     INT_SAVE_REGS_FAKE_ERRNO                                            ;/*  所有寄存器入栈              */
 
-    MOVL    %ESP , %ESI                                                 ;/*  使用 %ESI 来记录 %ESP       */
-
-    ;/*
-    ; *  if (API_InterEnter() == 1) {
-    ; *      current stack = SP;
-    ; *      SP = interrupt stack;
-    ; *  }
-    ; */
+    MOVL    %ESP , %EAX
+    PUSHL   %EAX
     CALL    API_InterEnter
     CMPL    $1 , %EAX
-    JNE     1f
+    JNE     2f
+    ADDL    $ARCH_REG_SIZE , %ESP
 
-    CALL    API_ThreadTcbInter
-    MOVL    %ESP , 0(%EAX)
+    ;/*
+    ; * 如果是在 RING3 被中断, 那么 %ESP 已经使用内核中断栈
+    ; */
+    MOVW    XCS(%ESP) , %AX
+    CMPW    $X86_CS_USER , %AX
+    JE      1f
 
     CALL    API_InterStackBaseGet
     MOVL    %EAX , %ESP
 
 1:
-    PUSHL   %ESI
+    CALL    API_ThreadTcbInter
+    PUSHL   %EAX
+
+2:
     PUSHL   $\Id
     LEAL    _G_pfuncX86IntHandleArray , %EDI
     CALL    *(\Id * 4)(%EDI)
-    ADDL    $8 , %ESP
+    ADDL    $(2 * ARCH_REG_SIZE) , %ESP
 
     CALL    API_InterExit
 
-    RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
-
+    INT_NESTING_RESTORE_REGS                                            ;/*  所有寄存器出栈              */
     FUNC_END(x86IntEntry\Id)
 
     .endr
@@ -145,35 +146,36 @@ FUNC_DEF(x86IntEntry\Id)
 FUNC_DEF(x86IntEntry\Id)
     INT_SAVE_REGS_HW_ERRNO                                              ;/*  所有寄存器入栈              */
 
-    MOVL    %ESP , %ESI                                                 ;/*  使用 %ESI 来记录 %ESP       */
-
-    ;/*
-    ; *  if (API_InterEnter() == 1) {
-    ; *      current stack = SP;
-    ; *      SP = interrupt stack;
-    ; *  }
-    ; */
+    MOVL    %ESP , %EAX
+    PUSHL   %EAX
     CALL    API_InterEnter
     CMPL    $1 , %EAX
-    JNE     1f
+    JNE     2f
+    ADDL    $ARCH_REG_SIZE , %ESP
 
-    CALL    API_ThreadTcbInter
-    MOVL    %ESP , 0(%EAX)
+    ;/*
+    ; * 如果是在 RING3 被中断, 那么 %ESP 已经使用内核中断栈
+    ; */
+    MOVW    XCS(%ESP) , %AX
+    CMPW    $X86_CS_USER , %AX
+    JE      1f
 
     CALL    API_InterStackBaseGet
     MOVL    %EAX , %ESP
 
 1:
-    PUSHL   %ESI
+    CALL    API_ThreadTcbInter
+    PUSHL   %EAX
+
+2:
     PUSHL   $\Id
     LEAL    _G_pfuncX86IntHandleArray , %EDI
     CALL    *(\Id * 4)(%EDI)
-    ADDL    $8 , %ESP
+    ADDL    $(2 * ARCH_REG_SIZE) , %ESP
 
     CALL    API_InterExit
 
-    RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
-
+    INT_NESTING_RESTORE_REGS                                            ;/*  所有寄存器出栈              */
     FUNC_END(x86IntEntry\Id)
 
     .endr

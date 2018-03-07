@@ -25,7 +25,8 @@
 /*********************************************************************************************************
 ** 函数名称: archTaskCtxCreate
 ** 功能描述: 创建任务上下文
-** 输　入  : pfuncTask      任务入口
+** 输　入  : pregctx        寄存器上下文
+**           pfuncTask      任务入口
 **           pvArg          入口参数
 **           pstkTop        初始化堆栈起点
 **           ulOpt          任务创建选项
@@ -34,152 +35,133 @@
 ** 调用模块: 
 ** 注  意  : 堆栈从高地址向低地址增长.
 *********************************************************************************************************/
-PLW_STACK  archTaskCtxCreate (PTHREAD_START_ROUTINE  pfuncTask,
+PLW_STACK  archTaskCtxCreate (ARCH_REG_CTX          *pregctx,
+                              PTHREAD_START_ROUTINE  pfuncTask,
                               PVOID                  pvArg,
                               PLW_STACK              pstkTop, 
                               ULONG                  ulOpt)
 {
-    ARCH_REG_CTX       *pregctx;
-    ARCH_FP_CTX        *pfpctx;
+    ARCH_FP_CTX  *pfpctx;
 
-    pstkTop = (PLW_STACK)ROUND_DOWN(pstkTop, 8);                        /*  保证出栈后 SP 8 字节对齐    */
+    pstkTop = (PLW_STACK)ROUND_DOWN(pstkTop, ARCH_STK_ALIGN_SIZE);      /*  保证出栈后 SP 8 字节对齐    */
 
-    pfpctx  = (ARCH_FP_CTX  *)((PCHAR)pstkTop - sizeof(ARCH_FP_CTX));
-    pregctx = (ARCH_REG_CTX *)((PCHAR)pstkTop - sizeof(ARCH_FP_CTX) - sizeof(ARCH_REG_CTX));
+    pfpctx  = (ARCH_FP_CTX *)((PCHAR)pstkTop - sizeof(ARCH_FP_CTX));
 
     pfpctx->FP_uiArg     = (ARCH_REG_T)pvArg;
     pfpctx->FP_uiRetAddr = (ARCH_REG_T)LW_NULL;
-
-    lib_bzero(pregctx, sizeof(ARCH_REG_CTX));
 
     pregctx->REG_uiEAX = 0xeaeaeaea;                                    /*  4 个数据寄存器              */
     pregctx->REG_uiEBX = 0xebebebeb;
     pregctx->REG_uiECX = 0xecececec;
     pregctx->REG_uiEDX = 0xedededed;
 
-    pregctx->REG_uiESI   = 0xe0e0e0e0;
-    pregctx->REG_uiEDI   = 0xe1e1e1e1;                                  /*  2 个变址和指针寄存器        */
-    pregctx->REG_uiEBP   = (ARCH_REG_T)pfpctx;                          /*  EBP 指针寄存器              */
-    pregctx->REG_uiError = 0x00000000;                                  /*  ERROR CODE                  */
-    pregctx->REG_uiEIP   = (ARCH_REG_T)pfuncTask;
+    pregctx->REG_uiESI = 0xe0e0e0e0;                                    /*  2 个变址和指针寄存器        */
+    pregctx->REG_uiEDI = 0xe1e1e1e1;
 
-    pregctx->REG_uiCS = X86_CS_KERNEL;                                  /*  6 个段寄存器                */
-    pregctx->REG_usDS = X86_DS_KERNEL;
-    pregctx->REG_usES = X86_DS_KERNEL;
-    pregctx->REG_usSS = X86_DS_KERNEL;
-    pregctx->REG_usFS = X86_DS_KERNEL;
-    pregctx->REG_usGS = X86_DS_KERNEL;
+    pregctx->REG_uiEBP = (ARCH_REG_T)pfpctx;                            /*  栈帧指针寄存器              */
+    pregctx->REG_uiESP = (ARCH_REG_T)pfpctx;                            /*  堆栈指针寄存器              */
 
-    pregctx->REG_uiEFLAGS = X86_EFLAGS_IF;                              /*  设置中断使能位              */
+    pregctx->REG_uiError  = 0x00000000;                                 /*  ERROR CODE                  */
+    pregctx->REG_uiEIP    = (ARCH_REG_T)pfuncTask;                      /*  指令指针寄存器(EIP)         */
 
-    return  ((PLW_STACK)pregctx);
+    pregctx->REG_uiCS     = X86_CS_KERNEL;                              /*  代码段寄存器(CS)            */
+    pregctx->REG_uiSS     = X86_DS_KERNEL;                              /*  代码段寄存器(SS)            */
+    pregctx->REG_uiEFLAGS = X86_EFLAGS_IF;                              /*  标志寄存器设置中断使能位    */
+
+    return  ((PLW_STACK)pfpctx);
 }
 /*********************************************************************************************************
 ** 函数名称: archTaskCtxSetFp
 ** 功能描述: 设置任务上下文栈帧 (用于 backtrace 回溯, 详情请见 backtrace 相关文件)
-** 输　入  : pstkDest  目的 stack frame
-**           pstkSrc   源端 stack frame
+** 输　入  : pstkDest      目的 stack frame
+**           pregctxDest   目的寄存器上下文
+**           pregctxSrc    源寄存器上下文
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-VOID  archTaskCtxSetFp (PLW_STACK  pstkDest, PLW_STACK  pstkSrc)
+VOID  archTaskCtxSetFp (PLW_STACK               pstkDest,
+                        ARCH_REG_CTX           *pregctxDest,
+                        const ARCH_REG_CTX     *pregctxSrc)
 {
-    ARCH_FP_CTX       *pfpctx      = (ARCH_FP_CTX  *)((PCHAR)pstkDest + sizeof(ARCH_REG_CTX));
-    ARCH_REG_CTX      *pregctxDest = (ARCH_REG_CTX *)pstkDest;
-    ARCH_REG_CTX      *pregctxSrc  = (ARCH_REG_CTX *)pstkSrc;
+    ARCH_FP_CTX  *pfpctx = (ARCH_FP_CTX *)pstkDest;
 
     pregctxDest->REG_uiEBP = (ARCH_REG_T)pregctxSrc->REG_uiEBP;
     pfpctx->FP_uiRetAddr   = (ARCH_REG_T)pregctxSrc->REG_uiEIP;
 }
 /*********************************************************************************************************
 ** 函数名称: archTaskRegsGet
-** 功能描述: 通过栈顶指针获取寄存器表 (满栈结构)
-** 输　入  : pstkTop        堆栈顶点
+** 功能描述: 获取寄存器上下文
+** 输　入  : pregctx        寄存器上下文
 **           pregSp         SP 指针
-** 输　出  : 寄存器结构
-** 全局变量: 
-** 调用模块: 
+** 输　出  : 寄存器上下文
+** 全局变量:
+** 调用模块:
 *********************************************************************************************************/
-ARCH_REG_CTX  *archTaskRegsGet (PLW_STACK  pstkTop, ARCH_REG_T  *pregSp)
+ARCH_REG_CTX  *archTaskRegsGet (ARCH_REG_CTX  *pregctx, ARCH_REG_T *pregSp)
 {
-    ARCH_REG_T  regSp = (ARCH_REG_T)pstkTop;
-    
-#if	CPU_STK_GROWTH == 0
-    regSp -= sizeof(ARCH_REG_CTX);
-#else
-    regSp += sizeof(ARCH_REG_CTX);
-#endif
+    *pregSp = pregctx->REG_uiESP;
 
-    *pregSp = regSp;
-    
-    return  ((ARCH_REG_CTX *)pstkTop);
+    return  (pregctx);
 }
 /*********************************************************************************************************
 ** 函数名称: archTaskRegsSet
-** 功能描述: 通过栈顶指针设置寄存器表 (满栈结构)
-** 输　入  : pstkTop        堆栈顶点
-**           pregctx        寄存器表
-** 输　出  : 寄存器结构
-** 全局变量: 
-** 调用模块: 
-** 注  意  : 不修改段寄存器, EBP ESP
+** 功能描述: 设置寄存器上下文
+** 输　入  : pregctxDest    目的寄存器上下文
+**           pregctxSrc     源寄存器上下文
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+** 注  意  : 不修改段寄存器, EBP, ESP
 *********************************************************************************************************/
-VOID  archTaskRegsSet (PLW_STACK  pstkTop, const ARCH_REG_CTX  *pregctx)
+VOID  archTaskRegsSet (ARCH_REG_CTX  *pregctxDest, const ARCH_REG_CTX  *pregctxSrc)
 {
-    ARCH_REG_CTX  *pdestregctx = (ARCH_REG_CTX *)pstkTop;
+    pregctxDest->REG_uiEAX = pregctxSrc->REG_uiEAX;
+    pregctxDest->REG_uiEBX = pregctxSrc->REG_uiEBX;
+    pregctxDest->REG_uiECX = pregctxSrc->REG_uiECX;
+    pregctxDest->REG_uiEDX = pregctxSrc->REG_uiEDX;
 
-    pdestregctx->REG_uiEAX = pregctx->REG_uiEAX;
-    pdestregctx->REG_uiECX = pregctx->REG_uiECX;
-    pdestregctx->REG_uiEDX = pregctx->REG_uiEDX;
-    pdestregctx->REG_uiEBX = pregctx->REG_uiEBX;
+    pregctxDest->REG_uiESI = pregctxSrc->REG_uiESI;
+    pregctxDest->REG_uiEDI = pregctxSrc->REG_uiEDI;
 
-    pdestregctx->REG_uiESI = pregctx->REG_uiESI;
-    pdestregctx->REG_uiEDI = pregctx->REG_uiEDI;
-    pdestregctx->REG_uiEIP = pregctx->REG_uiEIP;
-
-    pdestregctx->REG_uiEFLAGS = pregctx->REG_uiEFLAGS;
+    pregctxDest->REG_uiEIP    = pregctxSrc->REG_uiEIP;
+    pregctxDest->REG_uiEFLAGS = pregctxSrc->REG_uiEFLAGS;
 }
 /*********************************************************************************************************
 ** 函数名称: archTaskCtxShow
 ** 功能描述: 打印任务上下文
 ** 输　入  : iFd        文件描述符
-			 pstkTop    堆栈栈顶
+**           pregctx    寄存器上下文
 ** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
+** 全局变量:
+** 调用模块:
 *********************************************************************************************************/
 #if LW_CFG_DEVICE_EN > 0
 
-VOID  archTaskCtxShow (INT  iFd, PLW_STACK  pstkTop)
+VOID  archTaskCtxShow (INT  iFd, const ARCH_REG_CTX  *pregctx)
 {
-    ARCH_REG_CTX       *pregctx = (ARCH_REG_CTX *)pstkTop;
-
     if (iFd >= 0) {
         fdprintf(iFd, "\n");
         fdprintf(iFd, "EFLAGS = 0x%08x\n", pregctx->REG_uiEFLAGS);
 
-        fdprintf(iFd, "EIP = 0x%08x  ", pregctx->REG_uiEIP);
-        fdprintf(iFd, "EBP = 0x%08x\n", pregctx->REG_uiEBP);
-        fdprintf(iFd, "ESI = 0x%08x  ", pregctx->REG_uiESI);
-        fdprintf(iFd, "EDI = 0x%08x\n", pregctx->REG_uiEDI);
+        fdprintf(iFd, "EIP = 0x%08x\n", pregctx->REG_uiEIP);
+
+        fdprintf(iFd, "CS  = 0x%08x  ", pregctx->REG_uiCS);
+        fdprintf(iFd, "SS  = 0x%08x\n", pregctx->REG_uiSS);
 
         fdprintf(iFd, "EAX = 0x%08x  ", pregctx->REG_uiEAX);
         fdprintf(iFd, "EBX = 0x%08x\n", pregctx->REG_uiEBX);
         fdprintf(iFd, "ECX = 0x%08x  ", pregctx->REG_uiECX);
         fdprintf(iFd, "EDX = 0x%08x\n", pregctx->REG_uiEDX);
 
-        fdprintf(iFd, "SS  = 0x%08x  ", pregctx->REG_usSS);
-        fdprintf(iFd, "GS  = 0x%08x\n", pregctx->REG_usGS);
-        fdprintf(iFd, "FS  = 0x%08x  ", pregctx->REG_usFS);
-        fdprintf(iFd, "ES  = 0x%08x\n", pregctx->REG_usES);
-        fdprintf(iFd, "DS  = 0x%08x  ", pregctx->REG_usDS);
-        fdprintf(iFd, "CS  = 0x%08x\n", pregctx->REG_uiCS);
+        fdprintf(iFd, "ESI = 0x%08x  ", pregctx->REG_uiESI);
+        fdprintf(iFd, "EDI = 0x%08x\n", pregctx->REG_uiEDI);
 
-        fdprintf(iFd, "SP  = 0x%08x\n", (ARCH_REG_T)pstkTop);           /*  异常压栈后的 SP             */
+        fdprintf(iFd, "EBP = 0x%08x  ", pregctx->REG_uiEBP);
+        fdprintf(iFd, "ESP = 0x%08x\n", pregctx->REG_uiESP);
 
     } else {
-        archTaskCtxPrint(LW_NULL, 0, pstkTop);
+        archTaskCtxPrint(LW_NULL, 0, pregctx);
     }
 }
 
@@ -189,62 +171,108 @@ VOID  archTaskCtxShow (INT  iFd, PLW_STACK  pstkTop)
 ** 功能描述: 直接打印任务上下文
 ** 输　入  : pvBuffer   内存缓冲区 (NULL, 表示直接打印)
 **           stSize     缓冲大小
-**           pstkTop    堆栈栈顶
+**           pregctx    寄存器上下文
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  archTaskCtxPrint (PVOID  pvBuffer, size_t  stSize, PLW_STACK  pstkTop)
+VOID  archTaskCtxPrint (PVOID  pvBuffer, size_t  stSize, const ARCH_REG_CTX  *pregctx)
 {
-    ARCH_REG_CTX       *pregctx = (ARCH_REG_CTX *)pstkTop;
-
     if (pvBuffer && stSize) {
         size_t  stOft = 0;
 
         stOft = bnprintf(pvBuffer, stSize, stOft, "EFLAGS = 0x%08x\n", pregctx->REG_uiEFLAGS);
 
-        stOft = bnprintf(pvBuffer, stSize, stOft, "EIP = 0x%08x  ", pregctx->REG_uiEIP);
-        stOft = bnprintf(pvBuffer, stSize, stOft, "EBP = 0x%08x\n", pregctx->REG_uiEBP);
-        stOft = bnprintf(pvBuffer, stSize, stOft, "ESI = 0x%08x  ", pregctx->REG_uiESI);
-        stOft = bnprintf(pvBuffer, stSize, stOft, "EDI = 0x%08x\n", pregctx->REG_uiEDI);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "EIP = 0x%08x\n", pregctx->REG_uiEIP);
+
+        stOft = bnprintf(pvBuffer, stSize, stOft, "CS  = 0x%08x  ", pregctx->REG_uiCS);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "SS  = 0x%08x\n", pregctx->REG_uiSS);
 
         stOft = bnprintf(pvBuffer, stSize, stOft, "EAX = 0x%08x  ", pregctx->REG_uiEAX);
         stOft = bnprintf(pvBuffer, stSize, stOft, "EBX = 0x%08x\n", pregctx->REG_uiEBX);
         stOft = bnprintf(pvBuffer, stSize, stOft, "ECX = 0x%08x  ", pregctx->REG_uiECX);
         stOft = bnprintf(pvBuffer, stSize, stOft, "EDX = 0x%08x\n", pregctx->REG_uiEDX);
 
-        stOft = bnprintf(pvBuffer, stSize, stOft, "SS  = 0x%08x  ", pregctx->REG_usSS);
-        stOft = bnprintf(pvBuffer, stSize, stOft, "GS  = 0x%08x\n", pregctx->REG_usGS);
-        stOft = bnprintf(pvBuffer, stSize, stOft, "FS  = 0x%08x  ", pregctx->REG_usFS);
-        stOft = bnprintf(pvBuffer, stSize, stOft, "ES  = 0x%08x\n", pregctx->REG_usES);
-        stOft = bnprintf(pvBuffer, stSize, stOft, "DS  = 0x%08x  ", pregctx->REG_usDS);
-        stOft = bnprintf(pvBuffer, stSize, stOft, "CS  = 0x%08x\n", pregctx->REG_uiCS);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "ESI = 0x%08x  ", pregctx->REG_uiESI);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "EDI = 0x%08x\n", pregctx->REG_uiEDI);
 
-        stOft = bnprintf(pvBuffer, stSize, stOft, "SP  = 0x%08x\n", (ARCH_REG_T)pstkTop);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "EBP = 0x%08x  ", pregctx->REG_uiEBP);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "ESP = 0x%08x\n", pregctx->REG_uiESP);
 
     } else {
         _PrintFormat("\r\n");
+
         _PrintFormat("EFLAGS = 0x%08x\r\n", pregctx->REG_uiEFLAGS);
 
-        _PrintFormat("EIP = 0x%08x  ",   pregctx->REG_uiEIP);
-        _PrintFormat("EBP = 0x%08x\r\n", pregctx->REG_uiEBP);
-        _PrintFormat("ESI = 0x%08x  ",   pregctx->REG_uiESI);
-        _PrintFormat("EDI = 0x%08x\r\n", pregctx->REG_uiEDI);
+        _PrintFormat("EIP = 0x%08x\r\n", pregctx->REG_uiEIP);
+
+        _PrintFormat("CS  = 0x%08x  ",   pregctx->REG_uiCS);
+        _PrintFormat("SS  = 0x%08x\r\n", pregctx->REG_uiSS);
 
         _PrintFormat("EAX = 0x%08x  ",   pregctx->REG_uiEAX);
         _PrintFormat("EBX = 0x%08x\r\n", pregctx->REG_uiEBX);
         _PrintFormat("ECX = 0x%08x  ",   pregctx->REG_uiECX);
         _PrintFormat("EDX = 0x%08x\r\n", pregctx->REG_uiEDX);
 
-        _PrintFormat("SS  = 0x%08x  ",   pregctx->REG_usSS);
-        _PrintFormat("GS  = 0x%08x\r\n", pregctx->REG_usGS);
-        _PrintFormat("FS  = 0x%08x  ",   pregctx->REG_usFS);
-        _PrintFormat("ES  = 0x%08x\r\n", pregctx->REG_usES);
-        _PrintFormat("DS  = 0x%08x  ",   pregctx->REG_usDS);
-        _PrintFormat("CS  = 0x%08x\r\n", pregctx->REG_uiCS);
+        _PrintFormat("ESI = 0x%08x  ",   pregctx->REG_uiESI);
+        _PrintFormat("EDI = 0x%08x\r\n", pregctx->REG_uiEDI);
 
-        _PrintFormat("SP  = 0x%08x\r\n", (ARCH_REG_T)pstkTop);          /*  异常压栈后的 SP             */
+        _PrintFormat("EBP = 0x%08x  ",   pregctx->REG_uiEBP);
+        _PrintFormat("ESP = 0x%08x\r\n", pregctx->REG_uiESP);
     }
+}
+/*********************************************************************************************************
+** 函数名称: archIntCtxSaveReg
+** 功能描述: 中断保存寄存器
+** 输　入  : pcpu      CPU 结构
+**           reg0      寄存器 0
+**           reg1      寄存器 1
+**           reg2      寄存器 2
+**           reg3      寄存器 3
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  archIntCtxSaveReg (PLW_CLASS_CPU  pcpu,
+                         ARCH_REG_T     reg0,
+                         ARCH_REG_T     reg1,
+                         ARCH_REG_T     reg2,
+                         ARCH_REG_T     reg3)
+{
+    ARCH_REG_CTX  *pregctx;
+    ARCH_REG_T     iD0, iD1, iD2;
+
+#define COPY_CTX(to, from, cnt)                                             \
+    __asm__ __volatile__ ("cld\n\t"                                         \
+                          "rep ; movsl"                                     \
+                          : "=&c" (iD0), "=&D" (iD1), "=&S" (iD2)           \
+                          : "0" (cnt), "1" ((LONG)to), "2" ((LONG)from)     \
+                          : "memory")
+
+    if (pcpu->CPU_ulInterNesting == 1) {
+        pregctx = (ARCH_REG_CTX *)reg0;
+        if (pregctx->REG_uiCS == X86_CS_USER) {
+            COPY_CTX(&pcpu->CPU_ptcbTCBCur->TCB_archRegCtx, pregctx, ARCH_REG_CTX_WORD_SIZE);
+
+        } else {
+            COPY_CTX(&pcpu->CPU_ptcbTCBCur->TCB_archRegCtx, pregctx, ARCH_REG_CTX_WORD_SIZE - 2);
+            pregctx = &pcpu->CPU_ptcbTCBCur->TCB_archRegCtx;
+            pregctx->REG_uiSS  = X86_DS_KERNEL;
+            pregctx->REG_uiESP = reg0 + sizeof(ARCH_REG_CTX) - 2 * sizeof(ARCH_REG_T);
+        }
+    }
+}
+/*********************************************************************************************************
+** 函数名称: archCtxStackEnd
+** 功能描述: 根据寄存器上下文获得栈结束地址
+** 输　入  : pregctx    寄存器上下文
+** 输　出  : 栈结束地址
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+PLW_STACK  archCtxStackEnd (const ARCH_REG_CTX  *pregctx)
+{
+    return  ((PLW_STACK)pregctx->REG_uiESP);
 }
 /*********************************************************************************************************
   END

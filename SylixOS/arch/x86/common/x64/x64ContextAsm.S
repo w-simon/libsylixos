@@ -60,10 +60,9 @@ FUNC_DEF(archResumePc)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archTaskCtxStart)
-    MOV     0(%RDI) , %RAX                                              ;/*  RAX = 当前 任务 控制块指针  */
-    MOV     0(%RAX) , %RSP                                              ;/*  修改 RSP                    */
+    MOV     0(%RDI) , %RAX                                              ;/*  RAX = 当前TCB的 REG_CTX 地址*/
 
-    RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
+    RESTORE_REGS                                                        ;/*  恢复所有寄存器              */
     FUNC_END(archTaskCtxStart)
 
 ;/*********************************************************************************************************
@@ -72,10 +71,9 @@ FUNC_DEF(archTaskCtxStart)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archTaskCtxSwitch)
-    SAVE_REGS                                                           ;/*  所有寄存器入栈              */
+    MOV     0(%RDI) , %RAX                                              ;/*  RAX = 当前TCB的 REG_CTX 地址*/
 
-    MOV     0(%RDI) , %RAX                                              ;/*  RAX = 当前 任务 控制块指针  */
-    MOV     %RSP , 0(%RAX)                                              ;/*  保存 RSP                    */
+    SAVE_REGS                                                           ;/*  保存所有寄存器              */
 
 #if LW_CFG_SMP_EN > 0
     MOV     %RDI , %R12                                                 ;/*  参数 = 当前 CPU 控制块指针  */
@@ -88,10 +86,9 @@ FUNC_DEF(archTaskCtxSwitch)
     CALL    _SchedSwp                                                   ;/*  _SchedSwp();                */
     MOV     %R12 , %RDI
 
-    MOV     0(%RDI) , %RAX                                              ;/*  RAX = 当前 任务 控制块指针  */
-    MOV     0(%RAX) , %RSP                                              ;/*  修改 RSP                    */
+    MOV     0(%RDI) , %RAX                                              ;/*  RAX = 当前TCB的 REG_CTX 地址*/
 
-    RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
+    RESTORE_REGS                                                        ;/*  恢复所有寄存器              */
     FUNC_END(archTaskCtxSwitch)
 
 ;/*********************************************************************************************************
@@ -101,19 +98,17 @@ FUNC_DEF(archTaskCtxSwitch)
 
 #if LW_CFG_COROUTINE_EN > 0
 FUNC_DEF(archCrtCtxSwitch)
-    SAVE_REGS                                                           ;/*  所有寄存器入栈              */
+    MOV     16(%RDI) , %RAX                                             ;/*  RAX = 当前CCB的 REG_CTX 地址*/
 
-    MOV     16(%RDI) , %RAX                                             ;/*  RAX = 当前 任务 控制块指针  */
-    MOV     %RSP , 0(%RAX)                                              ;/*  保存 RSP                    */
+    SAVE_REGS                                                           ;/*  保存所有寄存器              */
 
     MOV     %RDI , %R12                                                 ;/*  参数 = 当前 CPU 控制块指针  */
     CALL    _SchedCrSwp                                                 ;/*  _SchedCrSwp();              */
     MOV     %R12 , %RDI
 
-    MOV     16(%RDI) , %RAX                                             ;/*  RAX = 当前 任务 控制块指针  */
-    MOV     0(%RAX) , %RSP                                              ;/*  修改 RSP                    */
+    MOV     16(%RDI) , %RAX                                             ;/*  RAX = 当前CCB的 REG_CTX 地址*/
 
-    RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
+    RESTORE_REGS                                                        ;/*  恢复所有寄存器              */
     FUNC_END(archCrtCtxSwitch)
 #endif
 
@@ -123,21 +118,20 @@ FUNC_DEF(archCrtCtxSwitch)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archIntCtxLoad)
-    MOV     0(%RDI) , %RAX                                              ;/*  RAX = 当前 任务 控制块指针  */
-    MOV     0(%RAX) , %RSP                                              ;/*  修改 RSP                    */
+    MOV     0(%RDI) , %RAX                                              ;/*  RAX = 当前TCB的 REG_CTX 地址*/
 
-    RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
+    RESTORE_REGS                                                        ;/*  恢复所有寄存器              */
     FUNC_END(archIntCtxLoad)
 
 ;/*********************************************************************************************************
 ;  信号上下文返回
-;  参数为需要返回的堆栈栈顶位置(%RDI 寄存器)
+;  参数为 ARCH_REG_CTX 指针
 ;*********************************************************************************************************/
 
 FUNC_DEF(archSigCtxLoad)
-    MOV     %RDI , %RSP                                                 ;/*  RSP = 传入的参数            */
+    MOV     %RDI , %RAX                                                 ;/*  RAX = ARCH_REG_CTX 指针     */
 
-    RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
+    RESTORE_REGS                                                        ;/*  恢复所有寄存器              */
     FUNC_END(archSigCtxLoad)
 
     FILE_END()

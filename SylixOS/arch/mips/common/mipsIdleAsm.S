@@ -16,7 +16,7 @@
 ;**
 ;** 文件创建日期: 2017 年 04 月 14 日
 ;**
-;** 描        述: MIPS 体系构架 IDLE 节能程序.
+;** 描        述: MIPS 体系架构 IDLE 节能程序.
 ;*********************************************************************************************************/
 
 #ifndef ASSEMBLY
@@ -34,10 +34,6 @@
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsWaitInstruction)
-    .set    push
-    .set    noreorder
-    .set    volatile
-
     NOP
     NOP
     NOP
@@ -45,8 +41,6 @@ FUNC_DEF(mipsWaitInstruction)
     WAIT
     JR      RA
     NOP
-
-    .set    pop
     FUNC_END(mipsWaitInstruction)
 
     FILE_END()

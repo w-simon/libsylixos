@@ -12,11 +12,11 @@
 **
 ** 文   件   名: mips_support.h
 **
-** 创   建   人: Ryan.Xin (信金龙)
+** 创   建   人: Jiao.JinXing (焦进星)
 **
 ** 文件创建日期: 2015 年 09 月 01 日
 **
-** 描        述: MIPS 体系构架支持.
+** 描        述: MIPS 体系架构支持.
 *********************************************************************************************************/
 
 #ifndef __ARCH_MIPS_SUPPORT_H
@@ -55,28 +55,41 @@ VOID    archAssert(INT  iCond, CPCHAR  pcFunc, CPCHAR  pcFile, INT  iLine);
   MIPS 处理器线程上下文相关接口
 *********************************************************************************************************/
 
-PLW_STACK       archTaskCtxCreate(PTHREAD_START_ROUTINE  pfuncTask,
+PLW_STACK       archTaskCtxCreate(ARCH_REG_CTX          *pregctx,
+                                  PTHREAD_START_ROUTINE  pfuncTask,
                                   PVOID                  pvArg,
                                   PLW_STACK              pstkTop,
                                   ULONG                  ulOpt);
-VOID            archTaskCtxSetFp(PLW_STACK  pstkDest, PLW_STACK  pstkSrc);
-ARCH_REG_CTX   *archTaskRegsGet(PLW_STACK  pstkTop, ARCH_REG_T *pregSp);
-VOID            archTaskRegsSet(PLW_STACK  pstkTop, const ARCH_REG_CTX  *pregctx);
+VOID            archTaskCtxSetFp(PLW_STACK               pstkDest,
+                                 ARCH_REG_CTX           *pregctxDest,
+                                 const ARCH_REG_CTX     *pregctxSrc);
+ARCH_REG_CTX   *archTaskRegsGet(ARCH_REG_CTX  *pregctx, ARCH_REG_T  *pregSp);
+VOID            archTaskRegsSet(ARCH_REG_CTX  *pregctxDest, const ARCH_REG_CTX  *pregctxSrc);
 
 #if LW_CFG_DEVICE_EN > 0
-VOID        archTaskCtxShow(INT  iFd, PLW_STACK  pstkTop);
+VOID        archTaskCtxShow(INT  iFd, const ARCH_REG_CTX  *pregctx);
 #endif                                                                  /*  LW_CFG_DEVICE_EN > 0        */
-VOID        archTaskCtxPrint(PVOID  pvBuffer, size_t  stSize, PLW_STACK  pstkTop);
+VOID        archTaskCtxPrint(PVOID  pvBuffer, size_t  stSize, const ARCH_REG_CTX  *pregctx);
 
 VOID        archTaskCtxStart(PLW_CLASS_CPU  pcpuSw);
 VOID        archTaskCtxSwitch(PLW_CLASS_CPU  pcpuSw);
+
+VOID        archTaskCtxCopy(ARCH_REG_CTX  *pregctxDest, const ARCH_REG_CTX  *pregctxSrc);
 
 #if LW_CFG_COROUTINE_EN > 0
 VOID        archCrtCtxSwitch(PLW_CLASS_CPU  pcpuSw);
 #endif                                                                  /*  LW_CFG_COROUTINE_EN > 0     */
 
 VOID        archIntCtxLoad(PLW_CLASS_CPU  pcpuSw);
-VOID        archSigCtxLoad(PVOID  pvStack);
+VOID        archSigCtxLoad(const ARCH_REG_CTX  *pregctx);
+
+VOID        archIntCtxSaveReg(PLW_CLASS_CPU  pcpu,
+                              ARCH_REG_T     reg0,
+                              ARCH_REG_T     reg1,
+                              ARCH_REG_T     reg2,
+                              ARCH_REG_T     reg3);
+
+PLW_STACK   archCtxStackEnd(const ARCH_REG_CTX  *pregctx);
 
 /*********************************************************************************************************
   MIPS Idle Hook Prob
@@ -144,11 +157,13 @@ VOID    archBogoMipsLoop(ULONG  ulLoop);
                                    FPU       初始化选择 MIPS_MACHINE_LS2X
 *********************************************************************************************************/
 
+#define MIPS_MACHINE_AUTO   "auto"
 #define MIPS_MACHINE_24KF   "24kf"
 #define MIPS_MACHINE_LS1X   "loongson1x"
 #define MIPS_MACHINE_LS2X   "loongson2x"
 #define MIPS_MACHINE_LS3X   "loongson3x"
 #define MIPS_MACHINE_JZ47XX "jz47xx"
+#define MIPS_MACHINE_HR2    "hr2"
 
 #define MIPS_MACHINE_TYPE_24KF      0
 #define MIPS_MACHINE_TYPE_LS1X      10
@@ -237,6 +252,7 @@ VOID    archMpInt(ULONG  ulCPUId);
   MIPS 处理器浮点运算器
 *********************************************************************************************************/
 
+#define MIPS_FPU_AUTO     "auto"
 #define MIPS_FPU_VFP32    "vfp32"
 #define MIPS_FPU_NONE     "none"
 
@@ -252,12 +268,14 @@ VOID    archFpuEnable(VOID);
 VOID    archFpuDisable(VOID);
 VOID    archFpuSave(PVOID pvFpuCtx);
 VOID    archFpuRestore(PVOID pvFpuCtx);
+UINT32  archFpuGetFIR(VOID);
 
 #define __ARCH_FPU_CTX_INIT     archFpuCtxInit
 #define __ARCH_FPU_ENABLE       archFpuEnable
 #define __ARCH_FPU_DISABLE      archFpuDisable
 #define __ARCH_FPU_SAVE         archFpuSave
 #define __ARCH_FPU_RESTORE      archFpuRestore
+#define __ARCH_FPU_GET_FIR      archFpuGetFIR
 
 #if LW_CFG_DEVICE_EN > 0
 VOID    archFpuCtxShow(INT  iFd, PVOID pvFpuCtx);
@@ -266,6 +284,42 @@ VOID    archFpuCtxShow(INT  iFd, PVOID pvFpuCtx);
 
 INT     archFpuUndHandle(PLW_CLASS_TCB  ptcbCur);
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN           */
+
+/*********************************************************************************************************
+  MIPS 处理器 DSP
+*********************************************************************************************************/
+
+#define MIPS_DSP_V1             "dspv1"
+#define MIPS_DSP_V2             "dspv2"
+#define MIPS_DSP_V3             "dspv3"
+#define MIPS_DSP_HR2_VECTOR     "hr2"
+#define MIPS_DSP_NONE           "none"
+
+#if LW_CFG_CPU_DSP_EN > 0
+VOID    archDspPrimaryInit(CPCHAR  pcMachineName, CPCHAR  pcDspName);
+#if LW_CFG_SMP_EN > 0
+VOID    archDspSecondaryInit(CPCHAR  pcMachineName, CPCHAR  pcDspName);
+#endif                                                                  /*  LW_CFG_SMP_EN               */
+
+VOID    archDspCtxInit(PVOID pvDspCtx);
+VOID    archDspEnable(VOID);
+VOID    archDspDisable(VOID);
+VOID    archDspSave(PVOID pvDspCtx);
+VOID    archDspRestore(PVOID pvDspCtx);
+
+#define __ARCH_DSP_CTX_INIT     archDspCtxInit
+#define __ARCH_DSP_ENABLE       archDspEnable
+#define __ARCH_DSP_DISABLE      archDspDisable
+#define __ARCH_DSP_SAVE         archDspSave
+#define __ARCH_DSP_RESTORE      archDspRestore
+
+#if LW_CFG_DEVICE_EN > 0
+VOID    archDspCtxShow(INT  iFd, PVOID pvDspCtx);
+#define __ARCH_DSP_CTX_SHOW     archDspCtxShow
+#endif                                                                  /*  LW_CFG_DEVICE_EN            */
+
+INT     archDspUndHandle(PLW_CLASS_TCB  ptcbCur);
+#endif                                                                  /*  LW_CFG_CPU_DSP_EN           */
 
 /*********************************************************************************************************
   bsp 需要提供的接口如下:
@@ -382,6 +436,10 @@ size_t  bspInfoRamSize(VOID);
 
 #if LW_CFG_VMM_EN > 0
 ULONG   bspMmuPgdMaxNum(VOID);
+#if LW_CFG_CPU_WORD_LENGHT == 64
+ULONG   bspMmuPmdMaxNum(VOID);
+ULONG   bspMmuPtsMaxNum(VOID);
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 64*/
 ULONG   bspMmuPteMaxNum(VOID);
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 

@@ -48,9 +48,9 @@ endif
 $(target)_DSYMBOL     += $(TOOLCHAIN_DEF_SYMBOL)SYLIXOS_LIB
 $(target)_CPUFLAGS    := $(ARCH_CPUFLAGS_NOFPU) $(ARCH_KERNEL_CFLAGS)
 $(target)_COMMONFLAGS := $($(target)_CPUFLAGS) $(ARCH_COMMONFLAGS) $(TOOLCHAIN_OPTIMIZE) $(TOOLCHAIN_COMMONFLAGS) $($(target)_GCOV_FLAGS) $($(target)_OMP_FLAGS)
-$(target)_ASFLAGS     := $($(target)_COMMONFLAGS) $(TOOLCHAIN_ASFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH)
-$(target)_CFLAGS      := $($(target)_COMMONFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CFLAGS)
-$(target)_CXXFLAGS    := $($(target)_COMMONFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CXX_EXCEPT) $($(target)_CXXFLAGS)
+$(target)_ASFLAGS     := $($(target)_COMMONFLAGS) $(ARCH_KLIB_CFLAGS) $(TOOLCHAIN_ASFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH)
+$(target)_CFLAGS      := $($(target)_COMMONFLAGS) $(ARCH_KLIB_CFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CFLAGS)
+$(target)_CXXFLAGS    := $($(target)_COMMONFLAGS) $(ARCH_KLIB_CFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CXX_EXCEPT) $($(target)_CXXFLAGS)
 
 #*********************************************************************************************************
 # Targets

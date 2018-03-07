@@ -61,12 +61,14 @@
   线程浮点运算器上下文
 *********************************************************************************************************/
 
-typedef struct arch_fpu_ctx {                                           /*  VFP 上下文                  */
+#define ARCH_FPU_CTX_ALIGN      8                                       /*  FPU CTX align size          */
+
+struct arch_fpu_ctx {                                                   /*  VFP 上下文                  */
     double          FPUCTX_dfDreg[FP_DREG_NR];                          /*  16 个 double 寄存器         */
     UINT32          FPUCTX_uiFpscr;                                     /*  状态和控制寄存器            */
-} ARCH_FPU_CTX;
+} __attribute__ ((aligned(ARCH_FPU_CTX_ALIGN)));
 
-#define ARCH_FPU_CTX_ALIGN      sizeof(double)                          /*  FPU CTX align size          */
+typedef struct arch_fpu_ctx     ARCH_FPU_CTX;
 
 /*********************************************************************************************************
   float 格式 (使用 union 类型作为中间转换, 避免 GCC 3.x.x strict aliasing warning)

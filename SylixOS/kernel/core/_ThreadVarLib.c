@@ -25,7 +25,7 @@
 2007.11.18  整理注释.
 2008.05.18  使用 __KERNEL_ENTER() 代替 ThreadLock();
 2008.05.31  使用 __KERNEL_MODE_...().
-2012.07.04  合并 _ThreadVarSwith() 函数到此处.
+2012.07.04  合并 _ThreadVarSwitch() 函数到此处.
 2014.07.22  加入 _ThreadVarSave() 作为 CPU 停止时保存运行的线程私有变量.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
@@ -74,7 +74,7 @@ VOID  _ThreadVarDelete (PLW_CLASS_TCB  ptcb)
     }
 }
 /*********************************************************************************************************
-** 函数名称: _ThreadVarSwith.
+** 函数名称: _ThreadVarSwitch.
 ** 功能描述: 线程内部全局变量切换
 ** 输　入  : ptcbOld       即将被换出的线程
 **           ptcbNew       将被换入的线程
@@ -82,7 +82,7 @@ VOID  _ThreadVarDelete (PLW_CLASS_TCB  ptcb)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-VOID  _ThreadVarSwith (PLW_CLASS_TCB  ptcbOld, PLW_CLASS_TCB  ptcbNew)
+VOID  _ThreadVarSwitch (PLW_CLASS_TCB  ptcbOld, PLW_CLASS_TCB  ptcbNew)
 {
     REGISTER PLW_LIST_LINE          plineOldVar;
     REGISTER PLW_LIST_LINE          plineNewVar;

@@ -23,6 +23,17 @@
 #include "dtrace.h"
 #include <linux/compat.h>
 /*********************************************************************************************************
+  外部引用变量声明
+*********************************************************************************************************/
+extern LW_CLASS_CPU _K_cpuTable[];                                      /*  CPU 表                      */
+extern LW_STACK     _K_stkInterruptStack[LW_CFG_MAX_PROCESSORS][LW_CFG_INT_STK_SIZE / sizeof(LW_STACK)];
+/*********************************************************************************************************
+  中断相关变量定义
+*********************************************************************************************************/
+addr_t  _G_ulIntSafeStack;
+addr_t  _G_ulIntNesting;
+addr_t  _G_ulCpu;
+/*********************************************************************************************************
   向量使能与禁能锁
 *********************************************************************************************************/
 #if LW_CFG_SMP_EN > 0
@@ -280,34 +291,39 @@ static ARCH_C6X_EXC_INFO    _G_c6xExtExcTbl[128] = {
 *********************************************************************************************************/
 VOID  archExcInit (VOID)
 {
-    INTREG  intreg;
+    _G_ulCpu          = (addr_t)&_K_cpuTable[0];
+    _G_ulIntNesting   = (addr_t)&_K_cpuTable[0].CPU_ulInterNesting;
+
+#if CPU_STK_GROWTH == 0
+    _G_ulIntSafeStack = (addr_t)&_K_stkInterruptStack[0][0];
+    _G_ulIntSafeStack = ROUND_UP(_G_ulIntSafeStack, ARCH_STK_ALIGN_SIZE);
+#else
+    _G_ulIntSafeStack = (addr_t)&_K_stkInterruptStack[0][(LW_CFG_INT_STK_SIZE / sizeof(LW_STACK)) - 1];
+    _G_ulIntSafeStack = ROUND_DOWN(_G_ulIntSafeStack, ARCH_STK_ALIGN_SIZE);
+#endif                                                                  /*  CPU_STK_GROWTH              */
 
     ack_exception(EXCEPT_TYPE_NXF);                                     /*  清除各类型异常              */
     ack_exception(EXCEPT_TYPE_EXC);
     ack_exception(EXCEPT_TYPE_IXF);
     ack_exception(EXCEPT_TYPE_SXF);
 
-    intreg = KN_INT_DISABLE();
     archExcEnable();                                                    /*  使能异常                    */
-    KN_INT_ENABLE(intreg);
 }
 /*********************************************************************************************************
 ** 函数名称: archExcProcess
 ** 功能描述: 异常处理
-** 输　入  : pExcInfo      异常信息
+** 输　入  : pregctx       寄存器上下文
+**           pExcInfo      异常信息
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  archExcProcess (ARCH_C6X_EXC_INFO  *pExcInfo)
+static VOID  archExcProcess (ARCH_REG_CTX  *pregctx, ARCH_C6X_EXC_INFO  *pExcInfo)
 {
     PLW_CLASS_TCB      ptcbCur;
     LW_VMM_ABORT       abtInfo;
-    ARCH_REG_IRQ_CTX  *pregctx;
 
     LW_TCB_GET_CUR(ptcbCur);
-
-    pregctx = (ARCH_REG_IRQ_CTX *)ptcbCur->TCB_pstkStackNow;
 
     abtInfo.VMABT_uiType   = pExcInfo->EXCI_iType;
     abtInfo.VMABT_uiMethod = pExcInfo->EXCI_iMethod;
@@ -320,18 +336,16 @@ static VOID  archExcProcess (ARCH_C6X_EXC_INFO  *pExcInfo)
 /*********************************************************************************************************
 ** 函数名称: archIntExcProcess
 ** 功能描述: 处理一个内部异常 (不能被屏蔽)
-** 输　入  : NONE
+** 输　入  : pregctx       寄存器上下文
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  archIntExcProcess (VOID)
+static VOID  archIntExcProcess (ARCH_REG_CTX  *pregctx)
 {
 #if LW_CFG_GDB_EN > 0
 #define C6X_BREAKPOINT_INS  0x56454314
 
-    PLW_CLASS_TCB      ptcbCur;
-    ARCH_REG_IRQ_CTX  *pregctx;
     addr_t             ulRetAddr;
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
 
@@ -346,9 +360,6 @@ static VOID  archIntExcProcess (VOID)
         set_iexcept(iIntExcReport);
 
 #if LW_CFG_GDB_EN > 0
-        LW_TCB_GET_CUR(ptcbCur);
-
-        pregctx   = (ARCH_REG_IRQ_CTX *)ptcbCur->TCB_pstkStackNow;
         ulRetAddr = pregctx->REG_uiIrp;
         if (*(ULONG *)ulRetAddr == C6X_BREAKPOINT_INS) {
             UINT    uiBpType = archDbgTrapType(pregctx->REG_uiIrp,
@@ -362,23 +373,23 @@ static VOID  archIntExcProcess (VOID)
         }
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
 
-        archExcProcess(&_G_c6xIntExcTbl[iIntExcNum]);
+        archExcProcess(pregctx, &_G_c6xIntExcTbl[iIntExcNum]);
     }
 }
 /*********************************************************************************************************
 ** 函数名称: archExtExcProcess
 ** 功能描述: 处理一个外部异常 (能被屏蔽)
-** 输　入  : NONE
+** 输　入  : pregctx       寄存器上下文
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  archExtExcProcess (VOID)
+static VOID  archExtExcProcess (ARCH_REG_CTX  *pregctx)
 {
     INT  iExtExcNum;
 
     if ((iExtExcNum = bspExtExcGet()) >= 0) {                           /*  BSP 查询异常号              */
-        archExcProcess(&_G_c6xExtExcTbl[iExtExcNum]);                   /*  TODO: 目前只能处理一个异常  */
+        archExcProcess(pregctx, &_G_c6xExtExcTbl[iExtExcNum]);          /*  TODO: 目前只能处理一个异常  */
     }
 
     ack_exception(EXCEPT_TYPE_EXC);                                     /*  清除异常                    */
@@ -386,12 +397,12 @@ static VOID  archExtExcProcess (VOID)
 /*********************************************************************************************************
 ** 函数名称: archExcHandle
 ** 功能描述: 异常处理
-** 输　入  : NONE
+** 输　入  : pregctx       寄存器上下文
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  archExcHandle (VOID)
+VOID  archExcHandle (ARCH_REG_CTX  *pregctx)
 {
     UINT  uiExcType;
     UINT  uiTypeNum;
@@ -407,16 +418,16 @@ VOID  archExcHandle (VOID)
             ack_exception(EXCEPT_TYPE_NXF);                             /*  清除异常                    */
             if (bspNmiExcHandler() < 0) {                               /*  交由 BSP 处理               */
                 uiIntExcNum = 10;                                       /*  处理不成功: fatal error     */
-                archExcProcess(&_G_c6xIntExcTbl[uiIntExcNum]);
+                archExcProcess(pregctx, &_G_c6xIntExcTbl[uiIntExcNum]);
             }
             break;
 
         case EXCEPT_TYPE_IXF:                                           /*  内部异常                    */
-            archIntExcProcess();
+            archIntExcProcess(pregctx);
             break;
 
         case EXCEPT_TYPE_EXC:                                           /*  外部异常                    */
-            archExtExcProcess();
+            archExtExcProcess(pregctx);
             break;
 
         case EXCEPT_TYPE_SXF:
@@ -424,7 +435,7 @@ VOID  archExcHandle (VOID)
 
         default:
             ack_exception(uiTypeNum);                                   /*  清除异常                    */
-            archExcProcess(&_G_c6xIntExcTbl[uiIntExcNum]);
+            archExcProcess(pregctx, &_G_c6xIntExcTbl[uiIntExcNum]);
             break;
         }
     }

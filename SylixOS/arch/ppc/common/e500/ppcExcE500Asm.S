@@ -48,13 +48,10 @@
     IMPORT_LABEL(archE500DecrementerInterruptHandle)
     IMPORT_LABEL(archE500TimerInterruptHandle)
     IMPORT_LABEL(archE500WatchdogInterruptHandle)
-#if LW_CFG_VMM_EN > 0
-    IMPORT_LABEL(archE500MmuDataTlbErrorHandle)
-    IMPORT_LABEL(archE500MmuInstructionTlbErrorHandle)
-#else
+#if LW_CFG_VMM_EN == 0
     IMPORT_LABEL(archE500DataTLBErrorHandle)
     IMPORT_LABEL(archE500InstructionTLBErrorHandle)
-#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
+#endif                                                                  /*  LW_CFG_VMM_EN == 0          */
     IMPORT_LABEL(archE500DebugExceptionHandle)
     IMPORT_LABEL(archE500SpeUnavailableExceptionHandle)
     IMPORT_LABEL(archE500FpDataExceptionHandle)
@@ -78,8 +75,10 @@
     EXPORT_LABEL(archE500DecrementerInterruptEntry)
     EXPORT_LABEL(archE500TimerInterruptEntry)
     EXPORT_LABEL(archE500WatchdogInterruptEntry)
+#if LW_CFG_VMM_EN == 0
     EXPORT_LABEL(archE500DataTLBErrorEntry)
     EXPORT_LABEL(archE500InstructionTLBErrorEntry)
+#endif                                                                  /*  LW_CFG_VMM_EN == 0          */
     EXPORT_LABEL(archE500DebugExceptionEntry)
     EXPORT_LABEL(archE500SpeUnavailableExceptionEntry)
     EXPORT_LABEL(archE500FpDataExceptionEntry)
@@ -89,21 +88,6 @@
     EXPORT_LABEL(archE500PerfMonitorExceptionEntry)
     EXPORT_LABEL(archE500DoorbellExceptionEntry)
     EXPORT_LABEL(archE500DoorbellCriticalExceptionEntry)
-
-;/*********************************************************************************************************
-;  异常处理程序起始地址需要 16 字节对齐方能填入 IVOR 寄存器
-;*********************************************************************************************************/
-
-#ifdef __GNUC__
-#define EXCE_DEF(func)  \
-        .balign 16;     \
-        .type func, %function;  \
-func:
-
-#define EXCE_END()
-#else                                                                   /*  __GNUC__                    */
-#  error "NOT SUPPORT!"
-#endif                                                                  /*  !__GNUC__                   */
 
 ;/*********************************************************************************************************
 ;  异常处理程序都放在 .vector 节区
@@ -122,38 +106,88 @@ func:
 ;*********************************************************************************************************/
 
 MACRO_DEF(E500_EXC_ENTRY, handle)
-    E500_EXC_SAVE_REGS                                                  ;/*  所有寄存器入栈              */
+    ;/*
+    ; * 使用异常临时栈, 并在异常临时栈开辟临时上下文保存区, 将 volatile 寄存器保存到临时上下文保存区
+    ; */
+    E500_EXC_SAVE_VOLATILE
+
+    SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
 
     ;/*
-    ; *  if (API_InterEnter() == 1) {
-    ; *      current stack = SP;
-    ; *      SP = interrupt stack;
-    ; *  }
+    ; * API_InterEnter
     ; */
-    SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
-    BL      API_InterEnter                                              ;/*  获取中断层数放到返回值 V0   */
+    BL      API_InterEnter                                              ;/*  获取中断层数放到返回值 R3   */
 
     CMPWI   CR0, R3 , 1
     BNE     CR0, 1f
 
+    ;/*
+    ; * 获得当前任务 TCB 的 ARCH_REG_CTX 地址
+    ; */
     BL      API_ThreadTcbInter                                          ;/*  get current tcb             */
-    ADDI    SP , SP , 16
-    STW     SP , 0(R3)                                                  ;/*  current stack = SP          */
+
+    ;/*
+    ; * 拷贝 volatile 寄存器到当前任务 TCB 的 ARCH_REG_CTX 里
+    ; */
+    ADDI    SP , SP , 16                                                ;/*  回收 C 函数栈帧             */
+
+    EXC_COPY_VOLATILE
+
+    ;/*
+    ; * 保存 non volatile 寄存器到当前任务 TCB 的 ARCH_REG_CTX 里
+    ; */
+    EXC_SAVE_NON_VOLATILE
+
     SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
 
-    BL      API_InterStackBaseGet                                       ;/*  获得当前 CPU 中断堆栈栈顶   */
-    OR      SP , R3 , R3
-    SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
+    ;/*
+    ; * 第一次进入中断: 获得当前 CPU 中断堆栈栈顶, 并设置 SP
+    ; */
+    BL      API_InterStackBaseGet
+    SUBI    SP , R3 , 16                                                ;/*  开辟 C 函数栈帧             */
 
-1:
+2:
+    ;/*
+    ; * handle(返回地址)
+    ; */
     MFSPR   R3 , SRR0                                                   ;/*  传递返回地址                */
     ISYNC
     BL      \handle                                                     ;/*  调用处理函数                */
 
+    ;/*
+    ; * API_InterExit()
+    ; * 如果没有发生中断嵌套, 则 API_InterExit 会调用 archIntCtxLoad 函数
+    ; */
     BL      API_InterExit
-    ADDI    SP , SP , 16
 
-    RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
+    ;/*
+    ; * 来到这里, 说明发生了中断嵌套
+    ; */
+    ADDI    R4 , SP , 16                                                ;/*  回收 C 函数栈帧             */
+    RESTORE_REGS                                                        ;/*  恢复所有寄存器              */
+
+1:
+    ;/*
+    ; * 不是第一次进入中断
+    ; */
+    ADDI    SP , SP , 16                                                ;/*  回收 C 函数栈帧             */
+
+    MFSPR   R3 , SPRG0                                                  ;/*  异常前 SP(R1)               */
+    SUBI    R3 , R3 , ARCH_REG_CTX_SIZE                                 ;/*  在异常堆栈开辟上下文保存区  */
+
+    ;/*
+    ; * 拷贝 volatile 寄存器到异常堆栈里的上下文保存区
+    ; */
+    EXC_COPY_VOLATILE
+
+    ;/*
+    ; * 保存 non volatile 寄存器到异常堆栈里
+    ; */
+    EXC_SAVE_NON_VOLATILE
+
+    SUBI    SP , R3 , 16                                                ;/*  使用异常堆栈并开辟C函数栈帧 */
+
+    B       2b
     MACRO_END()
 
 ;/*********************************************************************************************************
@@ -161,38 +195,88 @@ MACRO_DEF(E500_EXC_ENTRY, handle)
 ;*********************************************************************************************************/
 
 MACRO_DEF(E500_CI_EXC_ENTRY, handle)
-    E500_CI_EXC_SAVE_REGS                                               ;/*  所有寄存器入栈              */
+    ;/*
+    ; * 使用异常临时栈, 并在异常临时栈开辟临时上下文保存区, 将 volatile 寄存器保存到临时上下文保存区
+    ; */
+    E500_CI_EXC_SAVE_VOLATILE
+
+    SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
 
     ;/*
-    ; *  if (API_InterEnter() == 1) {
-    ; *      current stack = SP;
-    ; *      SP = interrupt stack;
-    ; *  }
+    ; * API_InterEnter
     ; */
-    SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
-    BL      API_InterEnter                                              ;/*  获取中断层数放到返回值 V0   */
+    BL      API_InterEnter                                              ;/*  获取中断层数放到返回值 R3   */
 
     CMPWI   CR0, R3 , 1
     BNE     CR0, 1f
 
+    ;/*
+    ; * 获得当前任务 TCB 的 ARCH_REG_CTX 地址
+    ; */
     BL      API_ThreadTcbInter                                          ;/*  get current tcb             */
-    ADDI    SP , SP , 16
-    STW     SP , 0(R3)                                                  ;/*  current stack = SP          */
+
+    ;/*
+    ; * 拷贝 volatile 寄存器到当前任务 TCB 的 ARCH_REG_CTX 里
+    ; */
+    ADDI    SP , SP , 16                                                ;/*  回收 C 函数栈帧             */
+
+    EXC_COPY_VOLATILE
+
+    ;/*
+    ; * 保存 non volatile 寄存器到当前任务 TCB 的 ARCH_REG_CTX 里
+    ; */
+    EXC_SAVE_NON_VOLATILE
+
     SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
 
-    BL      API_InterStackBaseGet                                       ;/*  获得当前 CPU 中断堆栈栈顶   */
-    OR      SP , R3 , R3
-    SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
+    ;/*
+    ; * 第一次进入中断: 获得当前 CPU 中断堆栈栈顶, 并设置 SP
+    ; */
+    BL      API_InterStackBaseGet
+    SUBI    SP , R3 , 16                                                ;/*  开辟 C 函数栈帧             */
 
-1:
+2:
+    ;/*
+    ; * handle(返回地址)
+    ; */
     MFSPR   R3 , CSRR0                                                  ;/*  传递返回地址                */
     ISYNC
     BL      \handle                                                     ;/*  调用处理函数                */
 
+    ;/*
+    ; * API_InterExit()
+    ; * 如果没有发生中断嵌套, 则 API_InterExit 会调用 archIntCtxLoad 函数
+    ; */
     BL      API_InterExit
-    ADDI    SP , SP , 16
 
-    RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
+    ;/*
+    ; * 来到这里, 说明发生了中断嵌套
+    ; */
+    ADDI    R4 , SP , 16                                                ;/*  回收 C 函数栈帧             */
+    RESTORE_REGS                                                        ;/*  恢复所有寄存器              */
+
+1:
+    ;/*
+    ; * 不是第一次进入中断
+    ; */
+    ADDI    SP , SP , 16                                                ;/*  回收 C 函数栈帧             */
+
+    MFSPR   R3 , SPRG0                                                  ;/*  异常前 SP(R1)               */
+    SUBI    R3 , R3 , ARCH_REG_CTX_SIZE                                 ;/*  在异常堆栈开辟上下文保存区  */
+
+    ;/*
+    ; * 拷贝 volatile 寄存器到异常堆栈里的上下文保存区
+    ; */
+    EXC_COPY_VOLATILE
+
+    ;/*
+    ; * 保存 non volatile 寄存器到异常堆栈里
+    ; */
+    EXC_SAVE_NON_VOLATILE
+
+    SUBI    SP , R3 , 16                                                ;/*  使用异常堆栈并开辟C函数栈帧 */
+
+    B       2b
     MACRO_END()
 
 ;/*********************************************************************************************************
@@ -200,38 +284,88 @@ MACRO_DEF(E500_CI_EXC_ENTRY, handle)
 ;*********************************************************************************************************/
 
 MACRO_DEF(E500_MC_EXC_ENTRY, handle)
-    E500_MC_EXC_SAVE_REGS                                               ;/*  所有寄存器入栈              */
+    ;/*
+    ; * 使用异常临时栈, 并在异常临时栈开辟临时上下文保存区, 将 volatile 寄存器保存到临时上下文保存区
+    ; */
+    E500_MC_EXC_SAVE_VOLATILE
+
+    SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
 
     ;/*
-    ; *  if (API_InterEnter() == 1) {
-    ; *      current stack = SP;
-    ; *      SP = interrupt stack;
-    ; *  }
+    ; * API_InterEnter
     ; */
-    SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
-    BL      API_InterEnter                                              ;/*  获取中断层数放到返回值 V0   */
+    BL      API_InterEnter                                              ;/*  获取中断层数放到返回值 R3   */
 
     CMPWI   CR0, R3 , 1
     BNE     CR0, 1f
 
+    ;/*
+    ; * 获得当前任务 TCB 的 ARCH_REG_CTX 地址
+    ; */
     BL      API_ThreadTcbInter                                          ;/*  get current tcb             */
-    ADDI    SP , SP , 16
-    STW     SP , 0(R3)                                                  ;/*  current stack = SP          */
+
+    ;/*
+    ; * 拷贝 volatile 寄存器到当前任务 TCB 的 ARCH_REG_CTX 里
+    ; */
+    ADDI    SP , SP , 16                                                ;/*  回收 C 函数栈帧             */
+
+    EXC_COPY_VOLATILE
+
+    ;/*
+    ; * 保存 non volatile 寄存器到当前任务 TCB 的 ARCH_REG_CTX 里
+    ; */
+    EXC_SAVE_NON_VOLATILE
+
     SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
 
-    BL      API_InterStackBaseGet                                       ;/*  获得当前 CPU 中断堆栈栈顶   */
-    OR      SP , R3 , R3
-    SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
+    ;/*
+    ; * 第一次进入中断: 获得当前 CPU 中断堆栈栈顶, 并设置 SP
+    ; */
+    BL      API_InterStackBaseGet
+    SUBI    SP , R3 , 16                                                ;/*  开辟 C 函数栈帧             */
 
-1:
+2:
+    ;/*
+    ; * handle(返回地址)
+    ; */
     MFSPR   R3 , MCSRR0                                                 ;/*  传递返回地址                */
     ISYNC
     BL      \handle                                                     ;/*  调用处理函数                */
 
+    ;/*
+    ; * API_InterExit()
+    ; * 如果没有发生中断嵌套, 则 API_InterExit 会调用 archIntCtxLoad 函数
+    ; */
     BL      API_InterExit
-    ADDI    SP , SP , 16
 
-    RESTORE_REGS                                                        ;/*  所有寄存器出栈              */
+    ;/*
+    ; * 来到这里, 说明发生了中断嵌套
+    ; */
+    ADDI    R4 , SP , 16                                                ;/*  回收 C 函数栈帧             */
+    RESTORE_REGS                                                        ;/*  恢复所有寄存器              */
+
+1:
+    ;/*
+    ; * 不是第一次进入中断
+    ; */
+    ADDI    SP , SP , 16                                                ;/*  回收 C 函数栈帧             */
+
+    MFSPR   R3 , SPRG0                                                  ;/*  异常前 SP(R1)               */
+    SUBI    R3 , R3 , ARCH_REG_CTX_SIZE                                 ;/*  在异常堆栈开辟上下文保存区  */
+
+    ;/*
+    ; * 拷贝 volatile 寄存器到异常堆栈里的上下文保存区
+    ; */
+    EXC_COPY_VOLATILE
+
+    ;/*
+    ; * 保存 non volatile 寄存器到异常堆栈里
+    ; */
+    EXC_SAVE_NON_VOLATILE
+
+    SUBI    SP , R3 , 16                                                ;/*  使用异常堆栈并开辟C函数栈帧 */
+
+    B       2b
     MACRO_END()
 
 ;/*********************************************************************************************************
@@ -346,12 +480,10 @@ EXCE_DEF(archE500WatchdogInterruptEntry)
 ;  数据 TLB 错误异常入口(Vector IVOR13)
 ;*********************************************************************************************************/
 
+#if LW_CFG_VMM_EN == 0
+
 EXCE_DEF(archE500DataTLBErrorEntry)
-#if LW_CFG_VMM_EN > 0
-    E500_EXC_ENTRY      archE500MmuDataTlbErrorHandle
-#else
     E500_EXC_ENTRY      archE500DataTLBErrorHandle
-#endif                                                                  /*  LW_CFG_VMM_EN > 0            */
     EXCE_END()
 
 ;/*********************************************************************************************************
@@ -359,12 +491,10 @@ EXCE_DEF(archE500DataTLBErrorEntry)
 ;*********************************************************************************************************/
 
 EXCE_DEF(archE500InstructionTLBErrorEntry)
-#if LW_CFG_VMM_EN > 0
-    E500_EXC_ENTRY      archE500MmuInstructionTlbErrorHandle
-#else
     E500_EXC_ENTRY      archE500InstructionTLBErrorHandle
-#endif                                                                  /*  LW_CFG_VMM_EN > 0            */
     EXCE_END()
+
+#endif                                                                  /*  LW_CFG_VMM_EN == 0           */
 
 ;/*********************************************************************************************************
 ;  Debug 异常入口(Vector IVOR15)

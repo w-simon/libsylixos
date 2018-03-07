@@ -417,7 +417,7 @@ LW_WEAK VOID  archWatchPointDectectHandle (addr_t  ulRetAddr)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  archMemAddrNoAlignHandle (addr_t  ulRetAddr)
+VOID  archMemAddrNoAlignHandle (addr_t  ulRetAddr, ARCH_REG_CTX  *pregctx)
 {
     PLW_CLASS_TCB  ptcbCur;
     LW_VMM_ABORT   abtInfo;
@@ -425,7 +425,7 @@ VOID  archMemAddrNoAlignHandle (addr_t  ulRetAddr)
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    abtInfo.VMABT_uiType = sparcUnalignedHandle((ARCH_REG_CTX *)ptcbCur->TCB_pstkStackNow,
+    abtInfo.VMABT_uiType = sparcUnalignedHandle(pregctx,
                                                 &ulAbortAddr, &abtInfo.VMABT_uiMethod);
     if (abtInfo.VMABT_uiType) {
         API_VmmAbortIsr(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur);
@@ -587,10 +587,10 @@ VOID  archTrapInit (VOID)
 
 #if CPU_STK_GROWTH == 0
         _G_ulIntSafeStack[i] = (addr_t)&_K_stkInterruptStack[i][0];
-        _G_ulIntSafeStack[i] = ROUND_UP(_G_ulIntSafeStack[i], 16);
+        _G_ulIntSafeStack[i] = ROUND_UP(_G_ulIntSafeStack[i], ARCH_STK_ALIGN_SIZE);
 #else
         _G_ulIntSafeStack[i] = (addr_t)&_K_stkInterruptStack[i][(LW_CFG_INT_STK_SIZE / sizeof(LW_STACK)) - 1];
-        _G_ulIntSafeStack[i] = ROUND_DOWN(_G_ulIntSafeStack[i], 16);
+        _G_ulIntSafeStack[i] = ROUND_DOWN(_G_ulIntSafeStack[i], ARCH_STK_ALIGN_SIZE);
 #endif                                                                  /*  CPU_STK_GROWTH              */
     }
 }

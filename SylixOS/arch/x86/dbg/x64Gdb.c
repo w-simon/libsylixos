@@ -77,10 +77,6 @@ static const CHAR   _G_cX86CoreXml[] = \
       "<reg name=\"eflags\" bitsize=\"32\" type=\"i386_eflags\"/>"
       "<reg name=\"cs\" bitsize=\"32\" type=\"int32\"/>"
       "<reg name=\"ss\" bitsize=\"32\" type=\"int32\"/>"
-      "<reg name=\"ds\" bitsize=\"32\" type=\"int32\"/>"
-      "<reg name=\"es\" bitsize=\"32\" type=\"int32\"/>"
-      "<reg name=\"fs\" bitsize=\"32\" type=\"int32\"/>"
-      "<reg name=\"gs\" bitsize=\"32\" type=\"int32\"/>"
     "</feature>";
 /*********************************************************************************************************
   Xfer:features:read:target.xml »ØÓ¦°ü
@@ -191,10 +187,6 @@ INT  archGdbRegsGet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, GDB_REG_SET  *
 
     pregset->regArr[GDB_X64_CS_INDEX].GDBRA_ulValue     = regctx.REG_ulCS;
     pregset->regArr[GDB_X64_SS_INDEX].GDBRA_ulValue     = regctx.REG_ulSS;
-    pregset->regArr[GDB_X64_DS_INDEX].GDBRA_ulValue     = regctx.REG_usDS;
-    pregset->regArr[GDB_X64_ES_INDEX].GDBRA_ulValue     = regctx.REG_usES;
-    pregset->regArr[GDB_X64_FS_INDEX].GDBRA_ulValue     = regctx.REG_usFS;
-    pregset->regArr[GDB_X64_GS_INDEX].GDBRA_ulValue     = regctx.REG_usGS;
 
     return  (ERROR_NONE);
 }
@@ -239,10 +231,6 @@ INT  archGdbRegsSet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, GDB_REG_SET  *
 
     regctx.REG_ulCS     = pregset->regArr[GDB_X64_CS_INDEX].GDBRA_ulValue;
     regctx.REG_ulSS     = pregset->regArr[GDB_X64_SS_INDEX].GDBRA_ulValue;
-    regctx.REG_usDS     = pregset->regArr[GDB_X64_DS_INDEX].GDBRA_ulValue;
-    regctx.REG_usES     = pregset->regArr[GDB_X64_ES_INDEX].GDBRA_ulValue;
-    regctx.REG_usFS     = pregset->regArr[GDB_X64_FS_INDEX].GDBRA_ulValue;
-    regctx.REG_usGS     = pregset->regArr[GDB_X64_GS_INDEX].GDBRA_ulValue;
 
     API_DtraceSetRegs(pvDtrace, ulThread, &regctx);
 

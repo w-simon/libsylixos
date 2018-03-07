@@ -69,6 +69,7 @@
 #define  LW_OPTION_THREAD_STK_CHK                       0x00000003      /*  允许对任务堆栈进行检查      */
 #define  LW_OPTION_THREAD_STK_CLR                       0x00000002      /*  在任务建立时堆栈所有数据清零*/
 #define  LW_OPTION_THREAD_USED_FP                       0x00000004      /*  使用浮点运算器              */
+#define  LW_OPTION_THREAD_USED_DSP                      0x00000008      /*  使用 DSP                    */
 #define  LW_OPTION_THREAD_SUSPEND                       0x00000010      /*  建立任务后阻塞              */
 #define  LW_OPTION_THREAD_NO_AFFINITY                   0x00000020      /*  任务初始化为不继承亲和度    */
 #define  LW_OPTION_THREAD_INIT                          0x00000040      /*  初始化任务                  */

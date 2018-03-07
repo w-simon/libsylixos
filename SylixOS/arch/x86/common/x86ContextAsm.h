@@ -31,100 +31,117 @@
 
 /*********************************************************************************************************
 
-    +-----------------+
-    |     EFLAGS      |
-    +-----------------+
-    |       CS        |
-    +-----------------+
-    |       EIP       |
-    +-----------------+
-    |      ERROR      |
-    +-----------------+
-    |       EBP       |
-    +-----------------+
-    |       EDI       |
-    +-----------------+
-    |       ESI       |
-    +-----------------+
-    |       EDX       |
-    +-----------------+
-    |       ECX       |
-    +-----------------+
-    |       EBX       |
-    +-----------------+
-    |       EAX       |
-    +-----------------+
-    |       PAD(2)    |
-    +-----------------+
-    |       SS(2)     |
-    +-----------------+
-    |       DS(2)     |
-    +-----------------+
-    |       ES(2)     |
-    +-----------------+
-    |       FS(2)     |
-    +-----------------+
-    |       GS(2)     |
-    +-----------------+
+  高地址: +-----------------+
+          |        SS       |
+          +-----------------+
+          |       ESP       |
+          +-----------------+
+          |      EFLAGS     |
+          +-----------------+
+          |       CS        |
+          +-----------------+
+          |       EIP       |
+          +-----------------+
+          |      ERROR      |
+          +-----------------+
+          |       PAD       |
+          +-----------------+
+          |       EBP       |
+          +-----------------+
+          |       EDI       |
+          +-----------------+
+          |       ESI       |
+          +-----------------+
+          |       EDX       |
+          +-----------------+
+          |       ECX       |
+          +-----------------+
+          |       EBX       |
+          +-----------------+
+          |       EAX       |
+  低地址: +-----------------+
 
 *********************************************************************************************************/
-
-#define __SAVE_SEG_REG  0                                               /*  不保存段寄存器              */
 
 /*********************************************************************************************************
-  上下文恢复
+  保存内核态任务寄存器(参数 %EAX: ARCH_REG_CTX 地址) 会破坏 %ECX
 *********************************************************************************************************/
 
-MACRO_DEF(RESTORE_REGS)
-#if __SAVE_SEG_REG > 0
-    MOVW    0(%ESP)  , %GS
-    MOVW    2(%ESP)  , %FS
-    MOVW    4(%ESP)  , %ES
-    MOVW    6(%ESP)  , %DS
-    MOVW    8(%ESP)  , %SS
-#endif                                                                  /*  __SAVE_SEG_REG > 0          */
-    ADDL    $(3 * 4) , %ESP
+MACRO_DEF(KERN_SAVE_REGS)
+    MOVL    %EAX , XEAX(%EAX)
+    MOVL    %EBX , XEBX(%EAX)
+    MOVL    %ECX , XECX(%EAX)
+    MOVL    %EDX , XEDX(%EAX)
 
-    MOVL    0(%ESP)  , %EAX
-    MOVL    4(%ESP)  , %EBX
-    MOVL    8(%ESP)  , %ECX
-    MOVL    12(%ESP) , %EDX
-    MOVL    16(%ESP) , %ESI
-    MOVL    20(%ESP) , %EDI
-    MOVL    24(%ESP) , %EBP
-    ADDL    $(8 * 4) , %ESP                                             /*  不弹出 ERROR CODE           */
+    MOVL    %ESI , XESI(%EAX)
+    MOVL    %EDI , XEDI(%EAX)
 
-    IRET                                                                /*  IRET 等于弹出 CS EIP EFLAGS */
+    MOVL    %EBP , XEBP(%EAX)
+    MOVL    %ESP , XESP(%EAX)
+
+    MOVL    $archResumePc , XEIP(%EAX)
+
+    MOVW    %CS  , XCS(%EAX)
+    MOVW    %SS  , XSS(%EAX)
+
+    PUSHF
+    POPL    %ECX
+    MOVL    %ECX , XEFLAGS(%EAX)
     MACRO_END()
 
 /*********************************************************************************************************
-  上下文保存
+  恢复内核态任务寄存器(参数 %EAX: ARCH_REG_CTX 地址)
 *********************************************************************************************************/
 
-MACRO_DEF(SAVE_REGS)
-    PUSHF                                                               /*  PUSH EFLAGS                 */
+MACRO_DEF(KERN_RESTORE_REGS)
+    MOVL    XEBX(%EAX) , %EBX
+    MOVL    XECX(%EAX) , %ECX
+    MOVL    XEDX(%EAX) , %EDX
 
-    SUBL    $(10 * 4) , %ESP
-    MOVL    %EAX , 0(%ESP)
-    MOVL    %EBX , 4(%ESP)
-    MOVL    %ECX , 8(%ESP)
-    MOVL    %EDX , 12(%ESP)
-    MOVL    %ESI , 16(%ESP)
-    MOVL    %EDI , 20(%ESP)
-    MOVL    %EBP , 24(%ESP)
+    MOVL    XESI(%EAX) , %ESI
+    MOVL    XEDI(%EAX) , %EDI
 
-    MOVL    $0   , 28(%ESP)
-    MOVL    $archResumePc , 32(%ESP)
-    MOVW    %CS  , 36(%ESP)
+    MOVL    XEBP(%EAX) , %EBP
+    MOVL    XESP(%EAX) , %ESP
 
-    SUBL    $(3 * 4) , %ESP
-#if __SAVE_SEG_REG > 0
-    MOVW    %GS , 0(%ESP)
-    MOVW    %FS , 2(%ESP)
-    MOVW    %ES , 4(%ESP)
-    MOVW    %DS , 6(%ESP)
-    MOVW    %SS , 8(%ESP)
-#endif                                                                  /*  __SAVE_SEG_REG > 0          */
+    PUSHL   XEFLAGS(%EAX)
+    PUSHL   XCS(%EAX)
+    PUSHL   XEIP(%EAX)
+
+    MOVL    XEAX(%EAX) , %EAX
+
+    IRET                                                                /*  弹出 EIP CS EFLAGS          */
+    MACRO_END()
+
+/*********************************************************************************************************
+  恢复用户态任务寄存器(参数 %EAX: ARCH_REG_CTX 地址)
+*********************************************************************************************************/
+
+MACRO_DEF(USER_RESTORE_REGS)
+    MOVW    XSS(%EAX) , %BX
+    MOVW    %BX , %FS
+    MOVW    %BX , %GS
+    MOVW    %BX , %ES
+    MOVW    %BX , %DS
+
+    MOVL    XEBX(%EAX) , %EBX
+    MOVL    XECX(%EAX) , %ECX
+    MOVL    XEDX(%EAX) , %EDX
+
+    MOVL    XESI(%EAX) , %ESI
+    MOVL    XEDI(%EAX) , %EDI
+
+    MOVL    XEBP(%EAX) , %EBP
+
+    PUSHL   XSS(%EAX)
+    PUSHL   XESP(%EAX)
+    PUSHL   XEFLAGS(%EAX)
+    PUSHL   XCS(%EAX)
+    PUSHL   XEIP(%EAX)
+
+    MOVL    XEAX(%EAX) , %EAX
+
+    IRET                                                                /*  弹出 EIP CS EFLAGS ESP SS   */
     MACRO_END()
 
 /*********************************************************************************************************
@@ -132,25 +149,23 @@ MACRO_DEF(SAVE_REGS)
 *********************************************************************************************************/
 
 MACRO_DEF(INT_SAVE_REGS_HW_ERRNO)
+    /*
+     * RING0 :        EFLAGS CS EIP ERRNO 已经 PUSH
+     * RING3 : SS ESP EFLAGS CS EIP ERRNO 已经 PUSH
+     */
     CLI
-                                                                        /*  EFLAGS CS EIP ERRNO 已经PUSH*/
-    SUBL    $(7 * 4) , %ESP
-    MOVL    %EAX , 0(%ESP)
-    MOVL    %EBX , 4(%ESP)
-    MOVL    %ECX , 8(%ESP)
-    MOVL    %EDX , 12(%ESP)
-    MOVL    %ESI , 16(%ESP)
-    MOVL    %EDI , 20(%ESP)
-    MOVL    %EBP , 24(%ESP)
 
-    SUBL    $(3 * 4) , %ESP
-#if __SAVE_SEG_REG > 0
-    MOVW    %GS , 0(%ESP)
-    MOVW    %FS , 2(%ESP)
-    MOVW    %ES , 4(%ESP)
-    MOVW    %DS , 6(%ESP)
-    MOVW    %SS , 8(%ESP)
-#endif                                                                  /*  __SAVE_SEG_REG > 0          */
+    SUBL    $(8 * ARCH_REG_SIZE) , %ESP
+
+    MOVL    %EAX , XEAX(%ESP)
+    MOVL    %EBX , XEBX(%ESP)
+    MOVL    %ECX , XECX(%ESP)
+    MOVL    %EDX , XEDX(%ESP)
+
+    MOVL    %ESI , XESI(%ESP)
+    MOVL    %EDI , XEDI(%ESP)
+
+    MOVL    %EBP , XEBP(%ESP)
     MACRO_END()
 
 /*********************************************************************************************************
@@ -160,9 +175,29 @@ MACRO_DEF(INT_SAVE_REGS_HW_ERRNO)
 MACRO_DEF(INT_SAVE_REGS_FAKE_ERRNO)
     CLI
 
-    PUSHL   $0                                                          /*  PUSH FAKE ERROR CODE        */
+    PUSHL   $0                                                          /*  PUSH FAKE ERROR             */
 
     INT_SAVE_REGS_HW_ERRNO
+    MACRO_END()
+
+/*********************************************************************************************************
+  恢复中断嵌套寄存器(参数 %ESP: ARCH_REG_CTX 地址)
+*********************************************************************************************************/
+
+MACRO_DEF(INT_NESTING_RESTORE_REGS)
+    POPL    %EAX
+    POPL    %EBX
+    POPL    %ECX
+    POPL    %EDX
+
+    POPL    %ESI
+    POPL    %EDI
+
+    POPL    %EBP
+
+    ADDL    $(2 * ARCH_REG_SIZE) , %ESP                                 /*  POP PAD ERROR               */
+
+    IRET                                                                /*  弹出 EIP CS EFLAGS          */
     MACRO_END()
 
 #endif                                                                  /*  __ARCH_X86CONTEXTASM_H      */

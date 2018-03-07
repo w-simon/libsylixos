@@ -103,7 +103,7 @@ VOID  API_OpenOCDStep1 (VOID)
     popenocd->OOCD_uiThreadStat  = htole32(offsetof(LW_CLASS_TCB, TCB_usStatus));
     popenocd->OOCD_uiThreadOpt   = htole32(offsetof(LW_CLASS_TCB, TCB_ulOption));
     popenocd->OOCD_uiThreadName  = htole32(offsetof(LW_CLASS_TCB, TCB_cThreadName));
-    popenocd->OOCD_uiThreadStk   = htole32(offsetof(LW_CLASS_TCB, TCB_pstkStackNow));
+    popenocd->OOCD_uiThreadStk   = htole32(offsetof(LW_CLASS_TCB, TCB_archRegCtx));
     
 #if LW_CFG_MODULELOADER_EN > 0
     popenocd->OOCD_uiPid = htole32(offsetof(LW_LD_VPROC, VP_pid));

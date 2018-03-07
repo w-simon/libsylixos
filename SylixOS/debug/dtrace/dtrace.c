@@ -509,9 +509,7 @@ ULONG  API_DtraceGetRegs (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread,
 {
     REGISTER UINT16         usIndex;
     REGISTER PLW_CLASS_TCB  ptcb;
-#if !defined(LW_CFG_CPU_ARCH_C6X)
     REGISTER ARCH_REG_CTX  *pregctxGet;
-#endif
     
     PLW_DTRACE  pdtrace = (PLW_DTRACE)pvDtrace;
     
@@ -538,12 +536,8 @@ ULONG  API_DtraceGetRegs (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread,
     
     ptcb = _K_ptcbTCBIdTable[usIndex];
     
-#if !defined(LW_CFG_CPU_ARCH_C6X)
-    pregctxGet = archTaskRegsGet(ptcb->TCB_pstkStackNow, pregSp);
+    pregctxGet = archTaskRegsGet(&ptcb->TCB_archRegCtx, pregSp);
     *pregctx   = *pregctxGet;
-#else
-    archTaskRegsGet(ptcb, (ARCH_REG_IRQ_CTX *)pregctx, pregSp);
-#endif
     __KERNEL_EXIT();                                                    /*  退出内核                    */
     
     return  (ERROR_NONE);
@@ -590,11 +584,7 @@ ULONG  API_DtraceSetRegs (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, const ARC
     
     ptcb = _K_ptcbTCBIdTable[usIndex];
     
-#if !defined(LW_CFG_CPU_ARCH_C6X)
-    archTaskRegsSet(ptcb->TCB_pstkStackNow, pregctx);
-#else
-    archTaskRegsSet(ptcb, (const ARCH_REG_IRQ_CTX *)pregctx);
-#endif
+    archTaskRegsSet(&ptcb->TCB_archRegCtx, pregctx);
     __KERNEL_EXIT();                                                    /*  退出内核                    */
     
     return  (ERROR_NONE);
@@ -697,6 +687,104 @@ ULONG  API_DtraceSetFpuRegs (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, const 
 }
 
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+/*********************************************************************************************************
+** 函数名称: API_DtraceGetDspRegs
+** 功能描述: 获取指定调试线程 DSP 寄存器上下文
+** 输　入  : pvDtrace      dtrace 节点
+**           ulThread      线程句柄
+**           pdspctx       DSP 寄存器表
+** 输　出  : ERROR
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+#if LW_CFG_CPU_DSP_EN > 0
+
+LW_API
+ULONG  API_DtraceGetDspRegs (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, ARCH_DSP_CTX  *pdspctx)
+{
+    REGISTER UINT16         usIndex;
+    REGISTER PLW_CLASS_TCB  ptcb;
+
+    PLW_DTRACE  pdtrace = (PLW_DTRACE)pvDtrace;
+
+    if (!pdtrace || !pdspctx) {
+        _ErrorHandle(EINVAL);
+        return  (EINVAL);
+    }
+
+    usIndex = _ObjectGetIndex(ulThread);
+
+    if (!_ObjectClassOK(ulThread, _OBJECT_THREAD)) {                    /*  检查 ID 类型有效性          */
+        return  (ERROR_KERNEL_HANDLE_NULL);
+    }
+
+    if (_Thread_Index_Invalid(usIndex)) {                               /*  检查线程有效性              */
+        return  (ERROR_THREAD_NULL);
+    }
+
+    __KERNEL_ENTER();                                                   /*  进入内核                    */
+    if (_Thread_Invalid(usIndex)) {
+        __KERNEL_EXIT();                                                /*  退出内核                    */
+        return  (ERROR_THREAD_NULL);
+    }
+
+    ptcb = _K_ptcbTCBIdTable[usIndex];
+
+    *pdspctx = ptcb->TCB_dspctxContext.DSPCTX_dspctxContext;
+    __KERNEL_EXIT();                                                    /*  退出内核                    */
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_DtraceSetDspRegs
+** 功能描述: 设置指定调试线程 DSP 寄存器上下文
+** 输　入  : pvDtrace      dtrace 节点
+**           ulThread      线程句柄
+**           pdspctx       DSP 寄存器表
+** 输　出  : ERROR
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+ULONG  API_DtraceSetDspRegs (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, const ARCH_DSP_CTX  *pdspctx)
+{
+    REGISTER UINT16         usIndex;
+    REGISTER PLW_CLASS_TCB  ptcb;
+
+    PLW_DTRACE  pdtrace = (PLW_DTRACE)pvDtrace;
+
+    if (!pdtrace || !pdspctx) {
+        _ErrorHandle(EINVAL);
+        return  (EINVAL);
+    }
+
+    usIndex = _ObjectGetIndex(ulThread);
+
+    if (!_ObjectClassOK(ulThread, _OBJECT_THREAD)) {                    /*  检查 ID 类型有效性          */
+        return  (ERROR_KERNEL_HANDLE_NULL);
+    }
+
+    if (_Thread_Index_Invalid(usIndex)) {                               /*  检查线程有效性              */
+        return  (ERROR_THREAD_NULL);
+    }
+
+    __KERNEL_ENTER();                                                   /*  进入内核                    */
+    if (_Thread_Invalid(usIndex)) {
+        __KERNEL_EXIT();                                                /*  退出内核                    */
+        return  (ERROR_THREAD_NULL);
+    }
+
+    ptcb = _K_ptcbTCBIdTable[usIndex];
+
+    ptcb->TCB_dspctxContext.DSPCTX_dspctxContext = *pdspctx;
+    __KERNEL_EXIT();                                                    /*  退出内核                    */
+
+    return  (ERROR_NONE);
+}
+
+#endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
 /*********************************************************************************************************
 ** 函数名称: API_DtraceGetMems
 ** 功能描述: 拷贝内存
@@ -1068,6 +1156,7 @@ ULONG  API_DtraceThreadExtraInfo (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread,
     
     PCHAR              pcPendType = LW_NULL;
     PCHAR              pcFpu      = LW_NULL;
+    PCHAR              pcDsp      = LW_NULL;
     size_t             stFreeByteSize = 0;
     
     if (!pcExtraInfo || !stSize) {
@@ -1122,13 +1211,20 @@ ULONG  API_DtraceThreadExtraInfo (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread,
         pcFpu = "NO";
     }
     
-    snprintf(pcExtraInfo, stSize, "%s,prio:%d,stat:%s,errno:%ld,wake:%ld,fpu:%s,cpu:%ld,stackfree:%zd",
+    if (tcbdesc.TCBD_ulOption & LW_OPTION_THREAD_USED_DSP) {
+        pcDsp = "USE";
+    } else {
+        pcDsp = "NO";
+    }
+
+    snprintf(pcExtraInfo, stSize, "%s,prio:%d,stat:%s,errno:%ld,wake:%ld,fpu:%s,dsp:%s,cpu:%ld,stackfree:%zd",
              tcbdesc.TCBD_cThreadName,
              tcbdesc.TCBD_ucPriority,
              pcPendType,
              tcbdesc.TCBD_ulLastError,
              tcbdesc.TCBD_ulWakeupLeft,
              pcFpu,
+             pcDsp,
              tcbdesc.TCBD_ulCPUId,
              stFreeByteSize);
     
@@ -1300,8 +1396,6 @@ ULONG  API_DtraceThreadStepSet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, BOO
     REGISTER UINT16         usIndex;
     REGISTER PLW_CLASS_TCB  ptcb;
              PLW_DTRACE     pdtrace = (PLW_DTRACE)pvDtrace;
-             ARCH_REG_CTX  *pregctx;
-             ARCH_REG_T     regSp;
 
     if (!pdtrace) {
         _ErrorHandle(EINVAL);
@@ -1325,9 +1419,7 @@ ULONG  API_DtraceThreadStepSet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, BOO
     }
     
     ptcb = _K_ptcbTCBIdTable[usIndex];
-    
-    pregctx = archTaskRegsGet(ptcb->TCB_pstkStackNow, &regSp);
-    archDbgSetStepMode(pregctx, bEnable);
+    archDbgSetStepMode(&ptcb->TCB_archRegCtx, bEnable);
     __KERNEL_EXIT();
 
     return  (ERROR_NONE);

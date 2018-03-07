@@ -42,12 +42,13 @@
 #define X86_SEG_UCODE           3                       /*  User code segment                           */
 #define X86_SEG_UDATA           4                       /*  User data segment                           */
 #define X86_SEG_KERNEL_TSS      5                       /*  Kernel TSS for CPL3 -> CPL0 privilege change*/
+#define X86_SEG_MAX             6
 
 /*********************************************************************************************************
   Helper macro that builds a segment register's value
 *********************************************************************************************************/
 
-#ifndef ASSEMBLY
+#if !defined(__ASSEMBLY__) && !defined(ASSEMBLY)
 
 #define X86_BUILD_SEGMENT_REG_VALUE(desc_privilege, in_ldt, seg_index) \
     ((((desc_privilege) & 0x3)  << 0) \
@@ -77,6 +78,7 @@
 #define X86_DS_KERNEL       X86_BUILD_SEGMENT_REG_VALUE(0, 0, X86_SEG_KDATA)
 #define X86_CS_USER         X86_BUILD_SEGMENT_REG_VALUE(3, 0, X86_SEG_UCODE)
 #define X86_DS_USER         X86_BUILD_SEGMENT_REG_VALUE(3, 0, X86_SEG_UDATA)
+#define X86_KERNEL_TSS      X86_BUILD_SEGMENT_REG_VALUE(0, 0, X86_SEG_KERNEL_TSS)
 
 #endif                                                                  /*  __ARCH_X86SEGMENT_H         */
 /*********************************************************************************************************

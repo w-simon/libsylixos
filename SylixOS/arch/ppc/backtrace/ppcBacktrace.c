@@ -37,6 +37,35 @@
             +----------------+        +-----------------+
 *********************************************************************************************************/
 /*********************************************************************************************************
+  By default we assume that the stack grows downward.
+*********************************************************************************************************/
+#ifndef INNER_THAN
+#define INNER_THAN                  <
+#endif
+/*********************************************************************************************************
+  Get some notion of the current stack.  Need not be exactly the top
+  of the stack, just something somewhere in the current frame.
+*********************************************************************************************************/
+#ifndef CURRENT_STACK_FRAME
+#define CURRENT_STACK_FRAME         ({ char __csf; &__csf; })
+#endif
+/*********************************************************************************************************
+** 函数名称: getEndStack
+** 功能描述: 获得堆栈结束地址
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static PVOID  getEndStack (VOID)
+{
+    PLW_CLASS_TCB  ptcbCur;
+
+    LW_TCB_GET_CUR_SAFE(ptcbCur);
+
+    return  ((PVOID)ptcbCur->TCB_pstkStackTop);
+}
+/*********************************************************************************************************
 ** 函数名称: backtrace
 ** 功能描述: 获得当前任务调用栈
 ** 输　入  : array     获取数组
@@ -49,8 +78,10 @@
 LW_API 
 int  backtrace (void  **array, int  size)
 {
-    struct layout  *current;
-    int             count;
+    struct layout    *current;
+    void *__unbounded top_stack;
+    void *__unbounded end_stack;
+    int               count;
 
     /* Force gcc to spill LR.  */
     asm volatile ("" : "=l"(current));
@@ -59,9 +90,22 @@ int  backtrace (void  **array, int  size)
     asm volatile ("lwz %0 , 0(1)" : "=r"(current));
     current = BOUNDED_1(current);
 
+    top_stack = CURRENT_STACK_FRAME;
+    end_stack = getEndStack();
+
     for (count = 0;
          current != NULL && count < size;
          current = BOUNDED_1(current->next), count++) {
+
+        if ((void *) current INNER_THAN top_stack || !((void *) current INNER_THAN end_stack)) {
+            /*
+             * This means the address is out of range.  Note that for the
+             * toplevel we see a frame pointer with value NULL which clearly is
+             * out of range.
+             */
+            break;
+        }
+
         array[count] = current->return_address;
     }
 

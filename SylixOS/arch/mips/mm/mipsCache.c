@@ -12,11 +12,11 @@
 **
 ** 文   件   名: mipsCache.c
 **
-** 创   建   人: Ryan.Xin (信金龙)
+** 创   建   人: Jiao.JinXing (焦进星)
 **
 ** 文件创建日期: 2015 年 09 月 01 日
 **
-** 描        述: MIPS 体系构架 CACHE 驱动.
+** 描        述: MIPS 体系架构 CACHE 驱动.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -26,6 +26,7 @@
 #if LW_CFG_CACHE_EN > 0
 #include "cache/r4k/mipsCacheR4k.h"
 #include "cache/loongson3x/mipsCacheLs3x.h"
+#include "arch/mips/common/mipsCpuProbe.h"
 /*********************************************************************************************************
 ** 函数名称: archCacheInit
 ** 功能描述: 初始化 CACHE
@@ -43,17 +44,21 @@ VOID  archCacheInit (CACHE_MODE  uiInstruction, CACHE_MODE  uiData, CPCHAR  pcMa
     _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s L1 cache controller initialization.\r\n", 
                  LW_CFG_CPU_ARCH_FAMILY, pcMachineName);
 
-    if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS1X)   == 0) ||
-        (lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X)   == 0) ||
-        (lib_strcmp(pcMachineName, MIPS_MACHINE_24KF)   == 0) ||
-        (lib_strcmp(pcMachineName, MIPS_MACHINE_JZ47XX) == 0)) {
-        mipsCacheR4kInit(pcacheop, uiInstruction, uiData, pcMachineName);
+    mipsCpuProbe(pcMachineName);                                        /*  MIPS CPU 探测               */
 
-    } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS3X) == 0)) {
+    if (_G_uiMipsCpuType == CPU_LOONGSON3) {                            /*  Loongson-3x/2G/2H           */
         mipsCacheLs3xInit(pcacheop, uiInstruction, uiData, pcMachineName);
 
     } else {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown machine name.\r\n");
+        if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS1X)   == 0) ||
+            (lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X)   == 0) ||    /*  Loongson-2E/2F              */
+            (lib_strcmp(pcMachineName, MIPS_MACHINE_24KF)   == 0) ||
+            (lib_strcmp(pcMachineName, MIPS_MACHINE_JZ47XX) == 0)) {
+            mipsCacheR4kInit(pcacheop, uiInstruction, uiData, pcMachineName);
+
+        } else {
+            _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown machine name.\r\n");
+        }
     }
 }
 /*********************************************************************************************************
@@ -66,17 +71,21 @@ VOID  archCacheInit (CACHE_MODE  uiInstruction, CACHE_MODE  uiData, CPCHAR  pcMa
 *********************************************************************************************************/
 VOID  archCacheReset (CPCHAR  pcMachineName)
 {
-    if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS1X)   == 0) ||
-        (lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X)   == 0) ||
-        (lib_strcmp(pcMachineName, MIPS_MACHINE_24KF)   == 0) ||
-        (lib_strcmp(pcMachineName, MIPS_MACHINE_JZ47XX) == 0)) {
-        mipsCacheR4kReset(pcMachineName);
+    mipsCpuProbe(pcMachineName);                                        /*  MIPS CPU 探测               */
 
-    } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS3X) == 0)) {
+    if (_G_uiMipsCpuType == CPU_LOONGSON3) {                            /*  Loongson-3x/2G/2H           */
         mipsCacheLs3xReset(pcMachineName);
 
     } else {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown machine name.\r\n");
+        if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS1X)   == 0) ||
+            (lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X)   == 0) ||    /*  Loongson-2E/2F              */
+            (lib_strcmp(pcMachineName, MIPS_MACHINE_24KF)   == 0) ||
+            (lib_strcmp(pcMachineName, MIPS_MACHINE_JZ47XX) == 0)) {
+            mipsCacheR4kReset(pcMachineName);
+
+        } else {
+            _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown machine name.\r\n");
+        }
     }
 }
 

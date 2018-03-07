@@ -27,6 +27,8 @@
 #include <config/kernel/kernel_cfg.h>
 #include <config/mp/mp_cfg.h>
 
+#include "arch/arm/arch_regs.h"
+
 #if !defined(__SYLIXOS_ARM_ARCH_M__)
 
     FILE_BEGIN()
@@ -45,6 +47,7 @@
     
     EXPORT_LABEL(archTaskCtxStart)
     EXPORT_LABEL(archTaskCtxSwitch)
+    EXPORT_LABEL(archTaskCtxCopy)
 #if LW_CFG_COROUTINE_EN > 0
     EXPORT_LABEL(archCrtCtxSwitch)
 #endif
@@ -57,12 +60,18 @@
 ;*********************************************************************************************************/
 
 FUNC_DEF(archTaskCtxStart)
-    LDR     R4 , [R0]                                                   ;/*  获取该任务堆栈栈顶地址      */
-    LDR     SP , [R4]                                                   ;/*  堆栈指针赋值                */
+    LDR     R0 , [R0]                                                   ;/*  获取当前 TCB 的 REG_CTX 地址*/
     
-    LDR     R4 , [SP], #4                                               ;/*  CPSR 出栈                   */
-    MSR     SPSR_cxsf, R4
-    LDMFD   SP!, {R0-R12, LR, PC}^                                      ;/*  包括 PC 的所有寄存器出栈,   */
+LINE_LABEL(archTaskCtxLoad)
+    LDMIA   R0!, {R2-R4}                                                ;/*  读取 CPSR LR SP             */
+
+    MSR     CPSR_c , #(DIS_INT | SYS32_MODE)                            ;/*  进入 SYS 模式, 关中断       */
+    MOV     SP , R4                                                     ;/*  恢复 SP_sys                 */
+    MOV     LR , R3                                                     ;/*  恢复 LR_sys                 */
+
+    MSR     CPSR_c, #(DIS_INT | SVC32_MODE)                             ;/*  进入 SVC 模式, 关中断       */
+    MSR     SPSR_cxsf , R2                                              ;/*  CPSR_sys -> SPSR_svc        */
+    LDMIA   R0 , {R0-R12, PC}^                                          ;/*  恢复包括 PC 的所有寄存器,   */
                                                                         ;/*  同时更新 CPSR               */
     FUNC_END()
 
@@ -72,39 +81,32 @@ FUNC_DEF(archTaskCtxStart)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archTaskCtxSwitch)
-    STMFD   SP!, {LR}                                                   ;/*  任务返回 PC 值入栈          */
-    STMFD   SP!, {LR}
-    STMFD   SP!, {R0-R12}                                               ;/*  Push registers              */
-    MRS     R4 , CPSR                                                   ;/*  CPSR 入栈                   */
-    STMFD   SP!, {R4}
+    LDR     R1 , [R0]                                                   ;/*  获取当前 TCB                */
+    ADD     R1 , R1 , #(ARCH_REG_CTX_SIZE)                              ;/*  当前 TCB 的 REG_CTX 顶端地址*/
 
-    MOV     R4 , R0                                                     ;/*  stack current = SP          */
-    LDR     R5 , [R4]
-    STR     SP , [R5]
+    STMFD   R1!, {LR}                                                   ;/*  保存返回地址                */
+    STMFD   R1 , {R0-R12}                                               ;/*  保存寄存器                  */
+    SUB     R1 , R1 , #(13 * 4)                                         ;/*  调整 R1                     */
+    STMFD   R1!, {SP}                                                   ;/*  保存 SP                     */
+    STMFD   R1!, {LR}                                                   ;/*  保存 LR                     */
+    MRS     R2 , CPSR                                                   ;/*  保存 CPSR                   */
+    STMFD   R1!, {R2}
 
+    MOV     R9 , R0                                                     ;/*  备份 R0                     */
 #if LW_CFG_SMP_EN > 0
-    MOV     R9 , R0
     LDR     R1 , =_SchedSafeStack                                       ;/*  _SchedSafeStack();          */
     MOV     LR , PC
     BX      R1
-    MOV     SP , R0
-    MOV     R0 , R9
+    MOV     SP , R0                                                     ;/*  设置 SP                     */
+    MOV     R0 , R9                                                     ;/*  恢复 R0                     */
 #endif
 
-    STMFD   SP!, {R0}                                                   ;/*  当前 CPU 信息入栈           */
     LDR     R1 , =_SchedSwp                                             ;/*  _SchedSwp();                */
     MOV     LR , PC
     BX      R1
-    LDMFD   SP!, {R0}                                                   ;/*  当前 CPU 信息出栈           */
+    MOV     R0 , R9                                                     ;/*  恢复 R0                     */
 
-    MOV     R4 , R0                                                     ;/*  SP = stack current          */
-    LDR     R5 , [R4]
-    LDR     SP , [R5]
-
-    LDMFD   SP!, {R4}                                                   ;/*  CPSR 出栈                   */
-    MSR     SPSR_cxsf, R4
-    LDMFD   SP!, {R0-R12, LR, PC}^                                      ;/*  包括 PC 的所有寄存器出栈,   */
-                                                                        ;/*  同时更新 CPSR               */
+    B       archTaskCtxStart
     FUNC_END()
 
 ;/*********************************************************************************************************
@@ -114,30 +116,27 @@ FUNC_DEF(archTaskCtxSwitch)
 
 #if LW_CFG_COROUTINE_EN > 0
 FUNC_DEF(archCrtCtxSwitch)
-    STMFD   SP!, {LR}                                                   ;/*  任务返回 PC 值入栈          */
-    STMFD   SP!, {LR}
-    STMFD   SP!, {R0-R12}                                               ;/*  Push registers              */
-    MRS     R4 , CPSR                                                   ;/*  CPSR 入栈                   */
-    STMFD   SP!, {R4}
+    ADD     R1 , R0 , #8
+    LDR     R2 , [R1]                                                   ;/*  获取当前 CCB                */
+    ADD     R1 , R2 , #(ARCH_REG_CTX_SIZE)                              ;/*  当前 CCB 的 REG_CTX 顶端地址*/
 
-    ADD     R4 , R0 , #8                                                ;/*  get current crcb            */
-    LDR     R5 , [R4]                                                   ;/*  stack current = SP          */
-    STR     SP , [R5]
+    STMFD   R1!, {LR}                                                   ;/*  保存返回地址                */
+    STMFD   R1 , {R0-R12}                                               ;/*  保存寄存器                  */
+    SUB     R1 , R1 , #(13 * 4)                                         ;/*  调整 R1                     */
+    STMFD   R1!, {SP}                                                   ;/*  保存 SP                     */
+    STMFD   R1!, {LR}                                                   ;/*  保存 LR                     */
+    MRS     R2 , CPSR                                                   ;/*  保存 CPSR                   */
+    STMFD   R1!, {R2}
 
-    STMFD   SP!, {R0}                                                   ;/*  当前 CPU 信息入栈           */
+    MOV     R9 , R0                                                     ;/*  备份 R0                     */
     LDR     R1 , =_SchedCrSwp                                           ;/*  _SchedCrSwp();              */
     MOV     LR , PC
     BX      R1
-    LDMFD   SP!, {R0}                                                   ;/*  当前 CPU 信息出栈           */
+    MOV     R0 , R9                                                     ;/*  恢复 R0                     */
 
-    ADD     R4 , R0 , #8                                                ;/*  get current crcb            */
-    LDR     R5 , [R4]                                                   ;/*  SP = stack next crcb        */
-    LDR     SP , [R5]
-
-    LDMFD   SP!, {R4}                                                   ;/*  CPSR 出栈                   */
-    MSR     SPSR_cxsf, R4
-    LDMFD   SP!, {R0-R12, LR, PC}^                                      ;/*  包括 PC 的所有寄存器出栈,   */
-                                                                        ;/*  同时更新 CPSR               */
+    ADD     R1 , R0 , #8
+    LDR     R0 , [R1]                                                   ;/*  获取当前 CCB 的 REG_CTX 地址*/
+    B       archTaskCtxLoad
     FUNC_END()
 #endif
 
@@ -147,28 +146,33 @@ FUNC_DEF(archCrtCtxSwitch)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archIntCtxLoad)
-    MOV     R4 , R0                                                     ;/*  SP = stack current          */
-    LDR     R5 , [R4]
-    LDR     SP , [R5]
-
-    LDMFD   SP!, {R4}                                                   ;/*  CPSR 出栈                   */
-    MSR     SPSR_cxsf, R4
-    LDMFD   SP!, {R0-R12, LR, PC}^                                      ;/*  包括 PC 的所有寄存器出栈,   */
-                                                                        ;/*  同时更新 CPSR               */
+    B       archTaskCtxStart
     FUNC_END()
 
 ;/*********************************************************************************************************
 ;  信号上下文返回
-;  参数为需要返回的堆栈栈顶位置
+;  参数为 ARCH_REG_CTX 指针
 ;*********************************************************************************************************/
 
 FUNC_DEF(archSigCtxLoad)
-    MOV     SP , R0                                                     ;/*  返回的堆栈指针              */
-    
-    LDMFD   SP!, {R4}                                                   ;/*  CPSR 出栈                   */
-    MSR     SPSR_cxsf, R4
-    LDMFD   SP!, {R0-R12,LR,PC}^                                        ;/*  包括 PC 的所有寄存器出栈,   */
-                                                                        ;/*  同时更新 CPSR               */
+    B       archTaskCtxLoad
+    FUNC_END()
+
+;/*********************************************************************************************************
+;  拷贝任务上下文
+;  参数 R0 为目的 ARCH_REG_CTX 指针, R1 为源 ARCH_REG_CTX 指针
+;*********************************************************************************************************/
+
+FUNC_DEF(archTaskCtxCopy)
+    STMFD   SP! , {R4-R10}
+
+    LDMIA   R1! , {R2-R10}
+    STMIA   R0! , {R2-R10}
+    LDMIA   R1! , {R2-R9}
+    STMIA   R0! , {R2-R9}
+
+    LDMFD   SP! , {R4-R10}
+    BX      LR
     FUNC_END()
 
     FILE_END()

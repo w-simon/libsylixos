@@ -23,34 +23,32 @@
 #define __ARCHPROB_H
 
 /*********************************************************************************************************
-  定义 MIPS 架构是大/小端存储
+  mips architecture detect
 *********************************************************************************************************/
 
-#if defined(MIPSEB) || defined(__MIPSEB__)
-#undef __SYLIXOS_MIPS_BYTE_ORDER
-#define __SYLIXOS_MIPS_BYTE_ORDER   _BIG_ENDIAN
+#define __SYLIXOS_MIPS_ARCH_MIPS32      32
+#define __SYLIXOS_MIPS_ARCH_MIPS32R2    33
+#define __SYLIXOS_MIPS_ARCH_MIPS64      64
+#define __SYLIXOS_MIPS_ARCH_MIPS64R2    65
 
-#elif defined(MIPSEL) || defined(__MIPSEL__)
-#undef __SYLIXOS_MIPS_BYTE_ORDER
-#define __SYLIXOS_MIPS_BYTE_ORDER   _LITTLE_ENDIAN
+#ifdef __GNUC__
+#  if defined(_MIPS_ARCH_MIPS32)
+#    define __SYLIXOS_MIPS_ARCH__   __SYLIXOS_MIPS_ARCH_MIPS32
+
+#  elif defined(_MIPS_ARCH_MIPS32R2)
+#    define __SYLIXOS_MIPS_ARCH__   __SYLIXOS_MIPS_ARCH_MIPS32R2
+
+#  elif defined(_MIPS_ARCH_MIPS64)
+#    define __SYLIXOS_MIPS_ARCH__   __SYLIXOS_MIPS_ARCH_MIPS64
+
+#  elif defined(_MIPS_ARCH_MIPS64R2)
+#    define __SYLIXOS_MIPS_ARCH__   __SYLIXOS_MIPS_ARCH_MIPS64R2
+
+#  endif                                                                /*  user define only            */
 
 #else
-#warning "One of MIPSEL or MIPSEB must be defined."
+#  define __SYLIXOS_MIPS_ARCH__     __SYLIXOS_MIPS_ARCH_MIPS32          /*  default MIPS32              */
 #endif
-
-/*********************************************************************************************************
-  MIPS32 / MIPS64
-*********************************************************************************************************/
-
-#define __SYLIXOS_CPU_MIPS_32BIT    ((__SYLIXOS_CPU == __SYLIXOS_MIPS32)  || \
-                                     (__SYLIXOS_CPU == __SYLIXOS_MIPSI2)  || \
-                                     (__SYLIXOS_CPU == __SYLIXOS_MIPSI32) || \
-                                     (__SYLIXOS_CPU == __SYLIXOS_MIPSI32R2))
-
-#define __SYLIXOS_CPU_MIPS_64BIT    ((__SYLIXOS_CPU == __SYLIXOS_MIPS64)  || \
-                                     (__SYLIXOS_CPU == __SYLIXOS_MIPSI3)  || \
-                                     (__SYLIXOS_CPU == __SYLIXOS_MIPSI64) || \
-                                     (__SYLIXOS_CPU == __SYLIXOS_MIPSI64R2))
 
 #endif                                                                  /*  __ARCHPROB_H                */
 /*********************************************************************************************************

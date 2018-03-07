@@ -972,7 +972,10 @@ LW_API ULONG            API_InterGetNesting(VOID);                      /*  获得
 LW_API ULONG            API_InterGetNestingById(ULONG  ulCPUId, ULONG *pulMaxNesting);
                                                                         /*  获得指定 CPU 中断嵌套层数   */
 #ifdef __SYLIXOS_KERNEL
-LW_API ULONG            API_InterEnter(VOID);                           /*  进入中断                    */
+LW_API ULONG            API_InterEnter(ARCH_REG_T  reg0,
+                                       ARCH_REG_T  reg1,
+                                       ARCH_REG_T  reg2,
+                                       ARCH_REG_T  reg3);               /*  进入中断                    */
 
 LW_API VOID             API_InterExit(VOID);                            /*  退出中断                    */
 
@@ -1125,6 +1128,20 @@ LW_API VOID             API_KernelFpuSecondaryInit(CPCHAR  pcMachineName,
                                                    CPCHAR  pcFpuName);
 #endif                                                                  /*  LW_CFG_SMP_EN               */
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+#endif                                                                  /*  __SYLIXOS_KERNEL            */
+
+#ifdef __SYLIXOS_KERNEL
+#if LW_CFG_CPU_DSP_EN > 0
+LW_API VOID             API_KernelDspPrimaryInit(CPCHAR  pcMachineName,
+                                                 CPCHAR  pcDspName);    /*  初始化 DSP                  */
+
+#define API_KernelDspInit   API_KernelDspPrimaryInit
+
+#if LW_CFG_SMP_EN > 0
+LW_API VOID             API_KernelDspSecondaryInit(CPCHAR  pcMachineName,
+                                                   CPCHAR  pcDspName);
+#endif                                                                  /*  LW_CFG_SMP_EN               */
+#endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 
 LW_API VOID             API_KernelReboot(INT  iRebootType);             /*  系统重新启动                */

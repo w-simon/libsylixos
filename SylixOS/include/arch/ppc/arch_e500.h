@@ -799,6 +799,19 @@ typedef union {
 #define ARCH_PPC_MSR_SPE_U          0x0200
 #define ARCH_PPC_MSR_SPE            0x02000000
 
+/*********************************************************************************************************
+  异常处理程序起始地址需要 16 字节对齐方能填入 IVOR 寄存器
+*********************************************************************************************************/
+
+#if defined(__ASSEMBLY__) || defined(ASSEMBLY)
+#define EXCE_DEF(func)  \
+        .balign 16;     \
+        .type func, %function;  \
+func:
+
+#define EXCE_END()
+#endif                                              /*  defined(__ASSEMBLY__) || defined(ASSEMBLY)      */
+
 #endif                                              /*  __PPC_ARCH_E500_H                               */
 /*********************************************************************************************************
   END
