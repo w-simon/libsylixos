@@ -32,6 +32,7 @@
 2017.07.24  修复虚拟机的虚拟磁盘不支持诊断处理的问题. (v1.0.8-rc0)
 2017.08.13  修复非 PCI 类型设备异常的问题. (v1.1.0-rc0)
 2017.09.03  由上层 DISCACHE 保证读写命令完成后再进行 TRIM 与 CACHE 操作. (v1.1.1-rc0)
+2018.01.27  修复 MIPS x64 Release 兼容性问题. (v1.1.2-rc0)
 *********************************************************************************************************/
 #define  __SYLIXOS_PCI_DRV
 #define  __SYLIXOS_STDIO
@@ -251,25 +252,25 @@ static INT  __ahciDriveNoBusyWait (AHCI_DRIVE_HANDLE  hDrive)
     REGISTER INT    i;
     UINT32          uiReg;
 
-    for (i = 0; i < hDrive->AHCIDRIVE_uiProbTimeCount; i++) {
+    for (i = 0; i < hDrive->AHCIDRIVE_ulProbTimeCount; i++) {
         uiReg = AHCI_PORT_READ(hDrive, AHCI_PxTFD);
         if (uiReg & AHCI_STAT_ACCESS) {
-            API_TimeMSleep(hDrive->AHCIDRIVE_uiProbTimeUnit);
+            API_TimeMSleep(hDrive->AHCIDRIVE_ulProbTimeUnit);
         } else {
             break;
         }
     }
 
-    if (i >= hDrive->AHCIDRIVE_uiProbTimeCount) {
+    if (i >= hDrive->AHCIDRIVE_ulProbTimeCount) {
         AHCI_LOG(AHCI_LOG_ERR, "wait ctrl %d drive %d no busy failed time %d ms.\r\n",
                  hDrive->AHCIDRIVE_hCtrl->AHCICTRL_uiIndex, hDrive->AHCIDRIVE_uiPort,
-                 (hDrive->AHCIDRIVE_uiProbTimeUnit * hDrive->AHCIDRIVE_uiProbTimeCount));
+                 (hDrive->AHCIDRIVE_ulProbTimeUnit * hDrive->AHCIDRIVE_ulProbTimeCount));
         return  (PX_ERROR);
     }
 
     AHCI_LOG(AHCI_LOG_PRT, "wait ctrl %d drive %d no busy time %d ms.\r\n",
              hDrive->AHCIDRIVE_hCtrl->AHCICTRL_uiIndex, hDrive->AHCIDRIVE_uiPort,
-             (hDrive->AHCIDRIVE_uiProbTimeUnit * i));
+             (hDrive->AHCIDRIVE_ulProbTimeUnit * i));
 
     return  (ERROR_NONE);
 }
@@ -2502,20 +2503,20 @@ static INT  __ahciDrvInit (AHCI_CTRL_HANDLE  hCtrl)
              *  获取驱动器单次探测时间
              */
             iRet = hDrv->AHCIDRV_pfuncOptCtrl(hCtrl, 0, AHCI_OPT_CMD_PROB_TIME_UNIT_GET,
-                                              (LONG)((ULONG *)&hDrive->AHCIDRIVE_uiProbTimeUnit));
+                                              (LONG)((ULONG *)&hDrive->AHCIDRIVE_ulProbTimeUnit));
             if ((iRet != ERROR_NONE) ||
-                (hDrive->AHCIDRIVE_uiProbTimeUnit == 0)) {
-                hDrive->AHCIDRIVE_uiProbTimeUnit = AHCI_DRIVE_PROB_TIME_UNIT;
+                (hDrive->AHCIDRIVE_ulProbTimeUnit == 0)) {
+                hDrive->AHCIDRIVE_ulProbTimeUnit = AHCI_DRIVE_PROB_TIME_UNIT;
             }
             
             /*
              *  获取探测次数
              */
             iRet = hDrv->AHCIDRV_pfuncOptCtrl(hCtrl, 0, AHCI_OPT_CMD_PROB_TIME_COUNT_GET,
-                                              (LONG)((ULONG *)&hDrive->AHCIDRIVE_uiProbTimeCount));
+                                              (LONG)((ULONG *)&hDrive->AHCIDRIVE_ulProbTimeCount));
             if ((iRet != ERROR_NONE) ||
-                (hDrive->AHCIDRIVE_uiProbTimeCount == 0)) {
-                hDrive->AHCIDRIVE_uiProbTimeCount = AHCI_DRIVE_PROB_TIME_COUNT;
+                (hDrive->AHCIDRIVE_ulProbTimeCount == 0)) {
+                hDrive->AHCIDRIVE_ulProbTimeCount = AHCI_DRIVE_PROB_TIME_COUNT;
             }
 
             if (hDrv->AHCIDRV_pfuncVendorDriveInit) {

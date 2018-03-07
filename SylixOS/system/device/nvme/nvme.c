@@ -17,6 +17,9 @@
 ** 文件创建日期: 2017 年 7 月 17 日
 **
 ** 描        述: NVMe 驱动.
+
+** BUG:
+2018.01.27  修复 MIPS 平台下 NVMe 不能工作的错误, NVME_PRP_BLOCK_SIZE 未考虑对齐. Gong.YuJian (弓羽箭)
 *********************************************************************************************************/
 #define  __SYLIXOS_PCI_DRV
 #define  __SYLIXOS_STDIO
@@ -36,8 +39,8 @@
 /*********************************************************************************************************
   PRP 缓存大小配置
 *********************************************************************************************************/
-#define NVME_PRP_BLOCK_SIZE     (1 << 12)
-#define NVME_PRP_BLOCK_MASK     (NVME_PRP_BLOCK_SIZE - 1)
+#define NVME_PRP_BLOCK_SIZE                 (LW_CFG_VMM_PAGE_SIZE)
+#define NVME_PRP_BLOCK_MASK                 (NVME_PRP_BLOCK_SIZE - 1)
 /*********************************************************************************************************
   事件操作
 *********************************************************************************************************/
@@ -1169,7 +1172,7 @@ static VOID  __nvmeNamespacesAlloc (NVME_CTRL_HANDLE      hCtrl,
     }
     
 #if NVME_TRIM_EN > 0
-    hDev->NVMEDEV_hDsmRange = (NVME_DSM_RANGE_HANDLE)API_VmmDmaAlloc(sizeof(NVME_DSM_RANGE_CB));
+    hDev->NVMEDEV_hDsmRange = (NVME_DSM_RANGE_HANDLE)API_CacheDmaMalloc(sizeof(NVME_DSM_RANGE_CB));
     if (!hDev->NVMEDEV_hDsmRange) {
         __SHEAP_FREE(hDev);
         NVME_LOG(NVME_LOG_ERR, "alloc ctrl %s unit %d dev %d failed.\r\n",
@@ -1178,10 +1181,10 @@ static VOID  __nvmeNamespacesAlloc (NVME_CTRL_HANDLE      hCtrl,
     }
 #endif                                                                  /* NVME_TRIM_EN > 0             */
 
-    hIdNs = (NVME_ID_NS_HANDLE)API_VmmDmaAlloc(sizeof(NVME_ID_NS_CB));
+    hIdNs = (NVME_ID_NS_HANDLE)API_CacheDmaMalloc(sizeof(NVME_ID_NS_CB));
     if (!hIdNs) {
 #if NVME_TRIM_EN > 0
-        API_VmmDmaFree(hDev->NVMEDEV_hDsmRange);
+        API_CacheDmaFree(hDev->NVMEDEV_hDsmRange);
 #endif                                                                  /* NVME_TRIM_EN > 0             */
         __SHEAP_FREE(hDev);
         NVME_LOG(NVME_LOG_ERR, "alloc ctrl %s unit %d dev %d failed.\r\n",
@@ -1281,13 +1284,13 @@ static VOID  __nvmeNamespacesAlloc (NVME_CTRL_HANDLE      hCtrl,
     }
 
     API_NvmeDevAdd(hDev);                                               /* 块设备管理操作               */
-    API_VmmDmaFree(hIdNs);
+    API_CacheDmaFree(hIdNs);
     return;
 
 __free:
-    API_VmmDmaFree(hIdNs);
+    API_CacheDmaFree(hIdNs);
 #if NVME_TRIM_EN > 0
-    API_VmmDmaFree(hDev->NVMEDEV_hDsmRange);
+    API_CacheDmaFree(hDev->NVMEDEV_hDsmRange);
 #endif                                                                  /* NVME_TRIM_EN > 0             */
     __SHEAP_FREE(hDev);
 }
@@ -1334,7 +1337,7 @@ static INT  __nvmeQueueScan (NVME_CTRL_HANDLE  hCtrl)
     ullCap                    = NVME_CTRL_READQ(hCtrl, NVME_REG_CAP);   /*  获取控制器Capability        */
     iPageShift                = NVME_CAP_MPSMIN(ullCap) + 12;           /*  获取控制器最小页大小偏移    */
 
-    ulDmaAddr = (dma_addr_t)API_VmmDmaAlloc(sizeof(NVME_ID_CTRL_CB));
+    ulDmaAddr = (dma_addr_t)API_CacheDmaMalloc(sizeof(NVME_ID_CTRL_CB));
     if (!ulDmaAddr) {
         _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
         return  (PX_ERROR);
@@ -1342,7 +1345,7 @@ static INT  __nvmeQueueScan (NVME_CTRL_HANDLE  hCtrl)
 
     iRet = __nvmeIdentify(hCtrl, 0, 1, ulDmaAddr);                      /*  获取控制器数据结构体        */
     if (iRet != ERROR_NONE) {
-        API_VmmDmaFree((PVOID)ulDmaAddr);
+        API_CacheDmaFree((PVOID)ulDmaAddr);
         NVME_LOG(NVME_LOG_ERR, "identify controller failed (%d).\r\n", iRet);
         return  (PX_ERROR);
     }
@@ -1413,7 +1416,7 @@ __scan_ns:
     __nvmeNamespacesScan(hCtrl, uiNameSpaceNum);
 
 __done:
-    API_VmmDmaFree((PVOID)ulDmaAddr);
+    API_CacheDmaFree((PVOID)ulDmaAddr);
 
     return  (ERROR_NONE);
 }
@@ -1536,7 +1539,7 @@ static VOID  __nvmeQueueFree (NVME_QUEUE_HANDLE   hNvmeQueue)
 
     API_SemaphoreMDelete(&hNvmeQueue->NVMEQUEUE_hTagMuteSem);           /* 删除申请 cmdid 互斥信号量    */
 
-    API_VmmDmaFree(hNvmeQueue->NVMEQUEUE_pvPrpBuf);                     /* 释放队列 PRP 资源            */
+    API_CacheDmaFree(hNvmeQueue->NVMEQUEUE_pvPrpBuf);                   /* 释放队列 PRP 资源            */
 
     __SHEAP_FREE(hNvmeQueue);                                           /* 释放队列控制块资源           */
 }
@@ -1617,8 +1620,8 @@ static NVME_QUEUE_HANDLE __nvmeQueueAlloc (NVME_CTRL_HANDLE hCtrl, INT  iQueueId
              hCtrl->NVMECTRL_uiIndex, iQueueId);
     hNvmeQueue->NVMEQUEUE_uiNextTag   = 0;
     hNvmeQueue->NVMEQUEUE_hCtrl       = hCtrl;
-    hNvmeQueue->NVMEQUEUE_pvPrpBuf    = API_VmmDmaAllocAlign((size_t)(NVME_PRP_BLOCK_SIZE * iQCmdDepth), 
-                                                             NVME_PRP_BLOCK_SIZE);
+    hNvmeQueue->NVMEQUEUE_pvPrpBuf    = API_CacheDmaMallocAlign((size_t)(NVME_PRP_BLOCK_SIZE * iQCmdDepth),
+                                                                NVME_PRP_BLOCK_SIZE);
     _BugHandle(!hNvmeQueue->NVMEQUEUE_pvPrpBuf, LW_TRUE, "NVMe queue prp buffer allocate fail.\r\n");
 
     hNvmeQueue->NVMEQUEUE_usCqHead    = 0;

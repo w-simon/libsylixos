@@ -1090,8 +1090,8 @@ typedef struct ahci_drive_cb {
     INT                   (*AHCIDRIVE_pfuncReset)(struct ahci_ctrl_cb *hCtrl, UINT uiDrive);
     struct ahci_dev_cb     *AHCIDRIVE_hDev;
 
-    UINT32                  AHCIDRIVE_uiProbTimeUnit;
-    UINT32                  AHCIDRIVE_uiProbTimeCount;
+    ULONG                   AHCIDRIVE_ulProbTimeUnit;
+    ULONG                   AHCIDRIVE_ulProbTimeCount;
 
     UINT32                  AHCIDRIVE_uiAttachNum;
     UINT32                  AHCIDRIVE_uiRemoveNum;
