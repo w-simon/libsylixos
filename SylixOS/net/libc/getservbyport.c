@@ -39,6 +39,7 @@
 #if LW_CFG_NET_EN > 0
 
 extern int _serv_stayopen;
+extern LW_OBJECT_HANDLE _G_ulNetLibcLock;
 
 int getservbyport_r(
   int port,
@@ -75,6 +76,8 @@ getservbyport(
 	___getservbyproto_yp = (char *)proto;
 #endif
 
+    API_SemaphoreMPend(_G_ulNetLibcLock, LW_OPTION_WAIT_INFINITE);
+
 	setservent(_serv_stayopen);
 	while ( (p = getservent()) ) {
 		if (p->s_port != port)
@@ -84,6 +87,8 @@ getservbyport(
 	}
 	if (!_serv_stayopen)
 		endservent();
+		
+    API_SemaphoreMPost(_G_ulNetLibcLock);
 
 #ifdef YP
 	___getservbyport_yp = 0;

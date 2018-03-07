@@ -210,9 +210,12 @@ static INT  __ifSubIoctlIf (INT  iCmd, PVOID  pvArg)
                     pnetif->mtu = pifreq->ifr_mtu;
                     iRet = ERROR_NONE;
                 }
+            } else {
+                _ErrorHandle(ENOSYS);
             }
+        } else {
+            iRet = ERROR_NONE;
         }
-        _ErrorHandle(ENOSYS);
         break;
         
     case SIOCGIFHWADDR:                                                 /*  获得物理地址                */

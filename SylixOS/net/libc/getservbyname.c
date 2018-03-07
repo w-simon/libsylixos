@@ -39,6 +39,7 @@
 #if LW_CFG_NET_EN > 0
 
 extern int _serv_stayopen;
+extern LW_OBJECT_HANDLE _G_ulNetLibcLock;
 
 int getservbyname_r(
   const char *name,
@@ -76,6 +77,8 @@ getservbyname(
 	___getservbyproto_yp = (char *)proto;
 #endif
 
+    API_SemaphoreMPend(_G_ulNetLibcLock, LW_OPTION_WAIT_INFINITE);
+
 	setservent(_serv_stayopen);
 	while ( (p = getservent()) ) {
 		if (strcmp(name, p->s_name) == 0)
@@ -90,6 +93,8 @@ gotname:
 	}
 	if (!_serv_stayopen)
 		endservent();
+
+    API_SemaphoreMPost(_G_ulNetLibcLock);
 
 #ifdef YP
 	___getservbyname_yp = NULL;

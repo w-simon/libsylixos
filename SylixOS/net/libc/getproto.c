@@ -38,6 +38,7 @@
 #if LW_CFG_NET_EN > 0
 
 extern int _proto_stayopen;
+extern LW_OBJECT_HANDLE _G_ulNetLibcLock;
 
 extern struct protoent * getprotobynumber_static(int);
 
@@ -47,12 +48,16 @@ getprotobynumber(
 {
 	register struct protoent *p;
 
+    API_SemaphoreMPend(_G_ulNetLibcLock, LW_OPTION_WAIT_INFINITE);
+	
 	setprotoent(_proto_stayopen);
 	while ( (p = getprotoent()) )
 		if (p->p_proto == proto)
 			break;
 	if (!_proto_stayopen)
 		endprotoent();
+    
+    API_SemaphoreMPost(_G_ulNetLibcLock);
 
 	if ( !p )
 		p = getprotobynumber_static(proto);

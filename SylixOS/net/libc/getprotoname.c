@@ -39,6 +39,7 @@
 #if LW_CFG_NET_EN > 0
 
 extern int _proto_stayopen;
+extern LW_OBJECT_HANDLE _G_ulNetLibcLock;
 
 extern struct protoent *getprotobyname_static(const char *);
 
@@ -49,6 +50,8 @@ getprotobyname(
 	register struct protoent *p;
 	register char **cp;
 
+    API_SemaphoreMPend(_G_ulNetLibcLock, LW_OPTION_WAIT_INFINITE);
+    
 	setprotoent(_proto_stayopen);
 	while ( (p = getprotoent()) ) {
 		if (strcmp(p->p_name, name) == 0)
@@ -60,6 +63,8 @@ getprotobyname(
 found:
 	if (!_proto_stayopen)
 		endprotoent();
+
+    API_SemaphoreMPost(_G_ulNetLibcLock);
 
 	if ( !p )
 		p = getprotobyname_static(name);

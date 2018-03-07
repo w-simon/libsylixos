@@ -116,6 +116,10 @@ extern err_t pppInit(void);
 #endif                                                                  /*  LW_CFG_LWIP_PPP             */
                                                                         /*  LW_CFG_LWIP_PPPOE           */
 /*********************************************************************************************************
+  NET libc lock
+*********************************************************************************************************/
+LW_OBJECT_HANDLE    _G_ulNetLibcLock;
+/*********************************************************************************************************
 ** 函数名称: __netCloseAll
 ** 功能描述: 系统重启或关闭时回调函数.
 ** 输　入  : NONE
@@ -179,14 +183,14 @@ static VOID  __netSnmpInit (VOID)
 
 #endif                                                                  /*  LWIP_SNMP > 0               */
 /*********************************************************************************************************
-** 函数名称: __netCfgFileInit
-** 功能描述: 初始化必要的 etc 文件.
+** 函数名称: __netLibcInit
+** 功能描述: 初始化 net libc.
 ** 输　入  : NONE
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID  __netCfgFileInit (VOID)
+static VOID  __netLibcInit (VOID)
 {
     FILE   *fp;
     
@@ -196,6 +200,11 @@ static VOID  __netCfgFileInit (VOID)
             fclose(fp);
         }
     }
+    
+    _G_ulNetLibcLock = API_SemaphoreMCreate("net_libc", LW_PRIO_DEF_CEILING,
+                                            LW_OPTION_INHERIT_PRIORITY | LW_OPTION_DELETE_SAFE |
+                                            LW_OPTION_OBJECT_GLOBAL, LW_NULL);
+    _BugHandle(!_G_ulNetLibcLock, LW_TRUE, "can not create NET Libc lock.\r\n");
 }
 /*********************************************************************************************************
 ** 函数名称: API_NetInit
@@ -268,7 +277,7 @@ VOID  API_NetInit (VOID)
     __netSnmpInit();                                                    /*  初始化 SNMP 基本信息        */
 #endif                                                                  /*  LWIP_SNMP > 0               */
     
-    __netCfgFileInit();
+    __netLibcInit();
     
 #if LW_CFG_SHELL_EN > 0
     __tshellNetInit();                                                  /*  注册网络命令                */

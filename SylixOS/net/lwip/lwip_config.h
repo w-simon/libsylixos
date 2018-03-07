@@ -533,6 +533,12 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrT
 
 #define LWIP_POSIX_SOCKETS_IO_NAMES     0                               /*  do not have this!!!         */
 
+#if LW_CFG_LWIP_DEF_RECV_BUFSIZE == 0
+#define RECV_BUFSIZE_DEFAULT            INT_MAX
+#else
+#define RECV_BUFSIZE_DEFAULT            LW_CFG_LWIP_DEF_RECV_BUFSIZE
+#endif                                                                  /*  LW_CFG_LWIP_DEF_RECV_BUFSIZE*/
+
 /*********************************************************************************************************
   DNS config
 *********************************************************************************************************/
