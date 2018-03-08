@@ -324,8 +324,8 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrT
 #error "LW_CFG_NET_NAT_MAX_SESSION must less than 8192!"
 #endif                                                                  /*  MAX_SESSION > 8192          */
 
-#define LW_CFG_NET_NAT_MAX_PORT     (65535)
-#define LW_CFG_NET_NAT_MIN_PORT     (65535 - LW_CFG_NET_NAT_MAX_PORT)   /*  NAT ¶Ë¿ÚÓ³Éä·¶Î§            */
+#define LW_CFG_NET_NAT_MAX_PORT  (65535)
+#define LW_CFG_NET_NAT_MIN_PORT  (65535 - LW_CFG_NET_NAT_MAX_SESSION)   /*  NAT ¶Ë¿ÚÓ³Éä·¶Î§            */
 
 #ifdef __SYLIXOS_NET_PORT_RNG
 #define TCP_LOCAL_PORT_RANGE_START        0xc000
