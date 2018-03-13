@@ -59,9 +59,9 @@ IMAGE
 
 ËùÒÔµ¼ÖÂÔËÐÐ½á¹ûÒì³£. ÕâÊ±ÐèÒªÊ¹ÓÃ×°ÔØ³ÌÐòÖØÐÂ×°Èë³ÌÐò¼´¿É (bootloader) ÖØÐÂ boot.
 
-ÕâÖÖÇé¿öÇÐ¼É²»¿ÉÖ±½Ó½« PC Ö¸ÕëÖ¸Ïò test ¶ÎÈë¿Ú!
+ÕâÖÖÇé¿öÇÐ¼É²»¿ÉÖ±½Ó½« PC Ö¸ÕëÖ¸Ïò text ¶ÎÈë¿Ú!
 
-Ò»°ãÖ»ÓÐ³ÌÐòÊÇ±»×°ÔØÈë RAM ÔËÐÐÊ±, ÎªÁË¼õÉÙ¶Ô RAM µÄÊ¹ÓÃ, ÔËÐÐ¾µÏñ»áÊ¹ÓÃ test Óë data ¶Î½ôÁÚµÄ·½·¨Á´½Ó.
+Ò»°ãÖ»ÓÐ³ÌÐòÊÇ±»×°ÔØÈë RAM ÔËÐÐÊ±, ÎªÁË¼õÉÙ¶Ô RAM µÄÊ¹ÓÃ, ÔËÐÐ¾µÏñ»áÊ¹ÓÃ text Óë data ¶Î½ôÁÚµÄ·½·¨Á´½Ó.
 
 µÚ¶þÖÖÇé¿ö, text Óë data ²»Á¬Ðø, ÕâÖÖÔËÐÐµÄÇé¿öÒ»°ãÊÇ³ÌÐòÔÚ ROM ÖÐÔËÐÐ, Êý¾Ý¶ÎºÍ BSS ¶ÎÔÚ RAM ÖÐ. ÈçÏÂËùÊ¾:
 
@@ -76,9 +76,9 @@ IMAGE
 |    bss     |
 +------------+ 
 
-ÕâÖÖÇé¿öÏÂ, ÒòÎª test Óë data ¶Î²»Á¬Ðø, ×°ÔØÒ»¸ö bin ÎÄ¼þ²»¿ÉÄÜÍê³É¶Ô data ¶ÎµÄ³õÊ¼»¯. 
+ÕâÖÖÇé¿öÏÂ, ÒòÎª text Óë data ¶Î²»Á¬Ðø, ×°ÔØÒ»¸ö bin ÎÄ¼þ²»¿ÉÄÜÍê³É¶Ô data ¶ÎµÄ³õÊ¼»¯. 
 
-ÕâÊ±ÔÚ test ¶ÎÖÐ½«»á³öÏÖÒ»¸ö table, Õâ¸ö±í±£´æµÄ¾ÍÊÇ data ¶ÎµÄ³õÖµ. ËùÒÔÐèÒªÔÚ³ÌÐòÆô¶¯Ê±½« table ÄÚµÄÊý¾Ý¿½±´Èë
+ÕâÊ±ÔÚ text ¶ÎÖÐ½«»á³öÏÖÒ»¸ö table, Õâ¸ö±í±£´æµÄ¾ÍÊÇ data ¶ÎµÄ³õÖµ. ËùÒÔÐèÒªÔÚ³ÌÐòÆô¶¯Ê±½« table ÄÚµÄÊý¾Ý¿½±´Èë
 
 data ¶Î, Íê³É¶Ô data ¶ÎµÄ³õÊ¼»¯. bss ¶ÎµÄ³õÊ¼»¯ÓëÉÏÏàÍ¬. È»ºó³ÌÐò¾Í¿ÉÒÔÕýÈ·ÔËÐÐÁË.
 
@@ -86,7 +86,7 @@ data ¶Î, Íê³É¶Ô data ¶ÎµÄ³õÊ¼»¯. bss ¶ÎµÄ³õÊ¼»¯ÓëÉÏÏàÍ¬. È»ºó³ÌÐò¾Í¿ÉÒÔÕýÈ·ÔËÐÐÁ
 
 ½«ÕæÊµ³ÌÐòÖ´ÐÐµÄµØÖ·¿Õ¼ä³ÆÎª->ÔËÐÐÓò.
 
-ÔÚ±¾ÀýÏÂ, ²Ù×÷ÏµÍ³×öÍê±ØÒªµÄÐ¶ÔØÖ¸Áîºó, Ö»Ðè½« PC ×ªÒÆµ½ test ¶ÎÈë¿Ú¾Í¿ÉÒÔÍê³É³ÌÐòµÄÖØÆô, ÒòÎªÔÚ´úÂëÖ´ÐÐ³õÆÚ, »á×Ô¶¯½«
+ÔÚ±¾ÀýÏÂ, ²Ù×÷ÏµÍ³×öÍê±ØÒªµÄÐ¶ÔØÖ¸Áîºó, Ö»Ðè½« PC ×ªÒÆµ½ text ¶ÎÈë¿Ú¾Í¿ÉÒÔÍê³É³ÌÐòµÄÖØÆô, ÒòÎªÔÚ´úÂëÖ´ÐÐ³õÆÚ, »á×Ô¶¯½«
 
 table µÄÖµ°áÔËµ½ data ¶ÎÖÐ(Éú³É bin ÎÄ¼þÊ±, Ò»°ãÓÉÏà¹Ø¹¤¾ß×Ô¶¯²úÉú´Ë´úÂë).
 

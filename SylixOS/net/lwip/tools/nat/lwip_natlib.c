@@ -721,6 +721,9 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
                 pnatcb = __natNew(&ipaddr, 
                                   pnatmap->NAT_usLocalPort, ucProto);   /*  ÐÂ½¨¿ØÖÆ¿é                  */
                 pnatcb->NAT_usAssPort = pnatmap->NAT_usAssPort;
+            
+            } else {
+                ipaddr.addr = pnatcb->NAT_ipaddrLocalIp.addr;
             }
         
             /*
