@@ -46,7 +46,7 @@ typedef union hr2_vector_reg {                                          /*  HR2 
 
 typedef struct hr2_vector_ctx {                                         /*  HR2 向量运算单元上下文      */
     HR2_VECTOR_REG      HR2VECCTX_vectorRegs[HR2_VECTOR_REG_NR];        /*  HR2 向量数据寄存器          */
-    UINT32              HR2VECCTX_uiVcc;                                /*  HR2 向量目的寄存器          */
+    UINT32              HR2VECCTX_uiVccr;                               /*  HR2 向量目的寄存器          */
     UINT32              HR2VECCTX_uiPad;
 } HR2_VECTOR_CTX;
 

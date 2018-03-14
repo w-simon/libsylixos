@@ -476,6 +476,7 @@
 #define EXCCODE_MSAFPE      14  /* MSA floating point exception */
 #define EXCCODE_FPE     15  /* Floating point exception */
 #define EXCCODE_GSEXC   16  /* Loongson cpu exception */
+#define EXCCODE_C2E     18  /* Coprocessor 2 exception */
 #define EXCCODE_TLBRI       19  /* TLB Read-Inhibit exception */
 #define EXCCODE_TLBXI       20  /* TLB Execution-Inhibit exception */
 #define EXCCODE_MSADIS      21  /* MSA disabled exception */

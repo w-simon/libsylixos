@@ -181,6 +181,8 @@ SylixOS/arch/mips/mm/cache/loongson3x/mipsCacheLs3x.c \
 SylixOS/arch/mips/mm/cache/mipsCacheCommon.c \
 SylixOS/arch/mips/mm/cache/r4k/mipsCacheR4k.c \
 SylixOS/arch/mips/mm/cache/r4k/mipsCacheR4kAsm.S \
+SylixOS/arch/mips/mm/cache/hr2/mipsCacheHr2.c \
+SylixOS/arch/mips/mm/cache/hr2/mipsCacheHr2Asm.S \
 SylixOS/arch/mips/mm/mipsCache.c \
 SylixOS/arch/mips/mm/mipsMmu.c \
 SylixOS/arch/mips/mm/mmu/mips32/mips32Mmu.c \
@@ -1873,6 +1875,13 @@ $(OBJPATH)/libsylixos.a/SylixOS/arch/arm/fpu/vfpv3/armVfpV3Asm.o: ./SylixOS/arch
 MIPS_FPU_ASFLAGS = -mhard-float
 
 $(OBJPATH)/libsylixos.a/SylixOS/arch/mips/fpu/fpu32/mipsVfp32Asm.o: ./SylixOS/arch/mips/fpu/fpu32/mipsVfp32Asm.S
+		@if [ ! -d "$(dir $@)" ]; then \
+			mkdir -p "$(dir $@)"; fi
+		@if [ ! -d "$(dir $(__DEP))" ]; then \
+			mkdir -p "$(dir $(__DEP))"; fi
+		$(AS) $(MIPS_FPU_ASFLAGS) $($(__TARGET)_ASFLAGS_WITHOUT_FPUFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
+
+$(OBJPATH)/libsylixos.a/SylixOS/arch/mips/dsp/hr2vector/mipsHr2VectorAsm.o: ./SylixOS/arch/mips/dsp/hr2vector/mipsHr2VectorAsm.S
 		@if [ ! -d "$(dir $@)" ]; then \
 			mkdir -p "$(dir $@)"; fi
 		@if [ ! -d "$(dir $(__DEP))" ]; then \

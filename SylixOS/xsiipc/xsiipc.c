@@ -119,6 +119,9 @@ ipc_id_t *ipc_get_instance (int  idnum, int type)
     }
 
     ipc_id = ipc_handle_table[idnum];
+    if (!ipc_id) {
+        return  (NULL);
+    }
 
     if (ipc_id->type != type) {
         return  (NULL);
@@ -210,7 +213,7 @@ int ipc_perms (struct ipc_perm *perm, int flag)
  * (key_t in sylixos is 64bits)
  */
 LW_SYMBOL_EXPORT
-key_t  ftok(const char*  path, int  id)
+key_t  ftok (const char*  path, int  id)
 {
     struct stat   st;
     key_t   key;

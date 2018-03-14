@@ -10,28 +10,28 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: mipsCacheLs3x.h
+** 文   件   名: mipsCacheHr2.h
 **
 ** 创   建   人: Jiao.JinXing (焦进星)
 **
-** 文件创建日期: 2016 年 11 月 02 日
+** 文件创建日期: 2018 年 03 月 14 日
 **
-** 描        述: Loongson3x 体系构架 CACHE 驱动.
+** 描        述: 华睿 2 号处理器 CACHE 驱动.
 *********************************************************************************************************/
 
-#ifndef __ARCH_MIPSCACHELS3X_H
-#define __ARCH_MIPSCACHELS3X_H
+#ifndef __ARCH_MIPSCACHEHR2_H
+#define __ARCH_MIPSCACHEHR2_H
 
-VOID  ls3xCacheFlushAll(VOID);
-VOID  ls3xCacheEnableHw(VOID);
+VOID  hr2CacheFlushAll(VOID);
+VOID  hr2CacheEnableHw(VOID);
 
-VOID  mipsCacheLs3xInit(LW_CACHE_OP *pcacheop,
-                        CACHE_MODE   uiInstruction,
-                        CACHE_MODE   uiData,
-                        CPCHAR       pcMachineName);
-VOID  mipsCacheLs3xReset(CPCHAR  pcMachineName);
+VOID  mipsCacheHr2Init(LW_CACHE_OP *pcacheop,
+                       CACHE_MODE   uiInstruction,
+                       CACHE_MODE   uiData,
+                       CPCHAR       pcMachineName);
+VOID  mipsCacheHr2Reset(CPCHAR  pcMachineName);
 
-#endif                                                                  /*  __ARCH_MIPSCACHELS3X_H      */
+#endif                                                                  /*  __ARCH_MIPSCACHEHR2_H       */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

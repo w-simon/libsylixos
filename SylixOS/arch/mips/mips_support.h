@@ -170,6 +170,7 @@ VOID    archBogoMipsLoop(ULONG  ulLoop);
 #define MIPS_MACHINE_TYPE_LS2X      20
 #define MIPS_MACHINE_TYPE_LS3X      30
 #define MIPS_MACHINE_TYPE_JZ47XX    40
+#define MIPS_MACHINE_TYPE_HR2       50
 
 #if LW_CFG_CACHE_EN > 0
 VOID    archCacheReset(CPCHAR     pcMachineName);

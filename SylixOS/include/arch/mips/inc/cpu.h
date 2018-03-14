@@ -56,6 +56,7 @@
 #define PRID_COMP_INGENIC_D0    0xd00000                                /*  JZ4740, JZ4750              */
 #define PRID_COMP_INGENIC_D1    0xd10000                                /*  JZ4770, JZ4775              */
 #define PRID_COMP_INGENIC_E1    0xe10000                                /*  JZ4780                      */
+#define PRID_COMP_CETC          0xff0000
 /*********************************************************************************************************
   Assigned Processor ID (implementation) values for bits 15:8 of the PRId
   register.  In order to detect a certain CPU type exactly eventually
@@ -96,6 +97,7 @@
 #define PRID_IMP_R5500          0x5500
 #define PRID_IMP_LOONGSON_64    0x6300                                  /*  Loongson-2/3                */
 #define PRID_IMP_LOONGSON2K     0x6100
+#define PRID_IMP_CETC_HR2       0x0000
 #define PRID_IMP_UNKNOWN        0xff00
 /*********************************************************************************************************
   These are the PRID's for when 23:16 == PRID_COMP_MIPS
@@ -217,7 +219,7 @@ typedef enum cpu_type_enum {
      */
     CPU_5KC, CPU_5KE, CPU_20KC, CPU_25KF, CPU_SB1, CPU_SB1A, CPU_LOONGSON2,
     CPU_LOONGSON3, CPU_LOONGSON2K, CPU_CAVIUM_OCTEON, CPU_CAVIUM_OCTEON_PLUS,
-    CPU_CAVIUM_OCTEON2, CPU_CAVIUM_OCTEON3, CPU_XLR, CPU_XLP,
+    CPU_CAVIUM_OCTEON2, CPU_CAVIUM_OCTEON3, CPU_XLR, CPU_XLP, CPU_CETC_HR2,
 
     CPU_QEMU_GENERIC,
 

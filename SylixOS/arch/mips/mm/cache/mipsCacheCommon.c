@@ -16,7 +16,7 @@
 **
 ** 文件创建日期: 2015 年 12 月 01 日
 **
-** 描        述: MIPS R4K 体系构架 CACHE 驱动.
+** 描        述: MIPS 体系构架 CACHE 驱动.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -84,6 +84,7 @@ static VOID  mipsPCacheProbe (VOID)
         break;
 
     case CPU_LOONGSON3:
+    case CPU_CETC_HR2:
         uiConfig1 = mipsCp0Config1Read();
         uiLineSize = (uiConfig1 >> 19) & 7;
         if (uiLineSize) {
@@ -361,6 +362,7 @@ static VOID  mipsSCacheSetup (VOID)
         break;
 
     case CPU_LOONGSON3:
+    case CPU_CETC_HR2:
         loongson3SCacheInit();
         break;
 
@@ -454,12 +456,13 @@ VOID  mipsCacheProbe (CPCHAR  pcMachineName)
         break;
 
     case CPU_LOONGSON3:                                                 /*  Loongson-2G/2H/2K/3x        */
+    case CPU_CETC_HR2:                                                  /*  CETC-HR2                    */
         _G_bHaveTagHi = LW_TRUE;
         _G_bHaveECC   = LW_TRUE;
         _G_uiEccValue = 0x22;                                           /*  ECC 的值                    */
         break;
 
-    case CPU_JZRISC:                                                    /*  Loongson-2E/2F              */
+    case CPU_JZRISC:                                                    /*  君正 CPU                    */
         _G_bHaveTagHi = LW_FALSE;
         _G_bHaveECC   = LW_TRUE;
         _G_uiEccValue = 0;                                              /*  操作 L1C 的指令不影响 L2C   */

@@ -273,6 +273,14 @@ name:
     CFC1    dst , src;                  \
     EHB
 
+#define CTC2_EHB(src, dst)              \
+    CTC2    src , dst;                  \
+    EHB
+
+#define CFC2_EHB(dst, src)              \
+    CFC2    dst , src;                  \
+    EHB
+
 #if LW_CFG_CPU_WORD_LENGHT == 32
 
 #define MTC0_LONG(src, dst)             \

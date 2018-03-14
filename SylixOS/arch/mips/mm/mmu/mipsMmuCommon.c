@@ -37,8 +37,10 @@
 /*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
-UINT32       _G_uiMmuTlbSize  = 0;                                      /*  TLB 数组大小                */
-BOOL         _G_bMmuHasXI     = LW_FALSE;                               /*  是否有 XI 位                */
+BOOL         _G_bMmuHasXI           = LW_FALSE;                         /*  是否有 XI 位                */
+UINT32       _G_uiMmuTlbSize        = 0;                                /*  TLB 数组大小                */
+UINT32       _G_uiMmuEntryLoUnCache = CONF_CM_UNCACHED;                 /*  非高速缓存                  */
+UINT32       _G_uiMmuEntryLoCache   = CONF_CM_CACHABLE_NONCOHERENT;     /*  一致性高速缓存              */
 /*********************************************************************************************************
 ** 函数名称: mipsMmuEnable
 ** 功能描述: 使能 MMU
@@ -84,7 +86,7 @@ VOID  mipsMmuInvalidateMicroTLB (VOID)
 
     default:
         /*
-         * 君正的 CPU, ITLB 和 DTLB 对软件透明
+         * CETC-HR2 和君正的 CPU, ITLB 和 DTLB 对软件透明
          */
         break;
     }
@@ -326,7 +328,7 @@ VOID  mipsMmuInit (LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName)
     }
 
     if (uiConfig & MIPS_CONF_M) {                                       /*  有 Config1                  */
-        uiConfig     = mipsCp0Config1Read();                            /*  读 Config1                  */
+        uiConfig        = mipsCp0Config1Read();                         /*  读 Config1                  */
         _G_uiMmuTlbSize = ((uiConfig & MIPS_CONF1_TLBS) >> 25) + 1;     /*  获得 MMUSize 域             */
 
     } else {
@@ -341,10 +343,21 @@ VOID  mipsMmuInit (LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName)
     case CPU_LOONGSON2:
     case CPU_LOONGSON3:
     case CPU_JZRISC:                                                    /*  君正 CPU 都有执行阻止位     */
-        _G_bMmuHasXI = LW_TRUE;
+        _G_bMmuHasXI           = LW_TRUE;
+        _G_uiMmuEntryLoUnCache = CONF_CM_UNCACHED;                      /*  非高速缓存                  */
+        _G_uiMmuEntryLoCache   = CONF_CM_CACHABLE_NONCOHERENT;          /*  一致性高速缓存              */
+        break;
+
+    case CPU_CETC_HR2:                                                  /*  CETC-HR2                    */
+        _G_bMmuHasXI           = LW_TRUE;
+        _G_uiMmuTlbSize        = 256;                                   /*  JTLB 有 256 对奇/偶表项     */
+        _G_uiMmuEntryLoUnCache = CONF_CM_UNCACHED;                      /*  非高速缓存                  */
+        _G_uiMmuEntryLoCache   = 6;                                     /*  一致性高速缓存              */
         break;
 
     default:
+        _G_uiMmuEntryLoUnCache = CONF_CM_UNCACHED;                      /*  非高速缓存                  */
+        _G_uiMmuEntryLoCache   = CONF_CM_CACHABLE_NONCOHERENT;          /*  一致性高速缓存              */
         break;
     }
 

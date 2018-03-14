@@ -56,8 +56,10 @@ VOID  archDspPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcDspName)
                (lib_strcmp(pcDspName, MIPS_DSP_V3) == 0)) {
         _G_pdspop = mipsDspPrimaryInit(pcMachineName, pcDspName);
 
+#if defined(__CETC_HR2_DSP)
     } else if (lib_strcmp(pcDspName, MIPS_DSP_HR2_VECTOR) == 0) {
         _G_pdspop = mipsHr2VectorPrimaryInit(pcMachineName, pcDspName);
+#endif                                                                  /*  defined(__CETC_HR2_DSP)     */
 
     } else {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown dsp name.\r\n");
@@ -100,8 +102,10 @@ VOID  archDspSecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcDspName)
                (lib_strcmp(pcDspName, MIPS_DSP_V3) == 0)) {
         mipsDspSecondaryInit(pcMachineName, pcDspName);
 
+#if defined(__CETC_HR2_DSP)
     } else if (lib_strcmp(pcDspName, MIPS_DSP_HR2_VECTOR) == 0) {
         mipsHr2VectorSecondaryInit(pcMachineName, pcDspName);
+#endif                                                                  /*  defined(__CETC_HR2_DSP)     */
 
     } else {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown dsp name.\r\n");

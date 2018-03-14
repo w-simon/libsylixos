@@ -554,26 +554,67 @@ static VOID  archFloatPointExceptHandle (addr_t  ulRetAddr, addr_t  ulAbortAddr,
     }
 }
 /*********************************************************************************************************
-** 函数名称: archCoProcUnusableExceptHandle
-** 功能描述: 协处理器不可用异常处理
+** 函数名称: archCoProc2ExceptHandle
+** 功能描述: 协处理器 2 异常处理
 ** 输　入  : ulRetAddr     返回地址
 **           ulAbortAddr   终止地址
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  archCoProcUnusableExceptHandle (addr_t  ulRetAddr, addr_t  ulAbortAddr)
+#if defined(__CETC_HR2_DSP)
+
+static VOID  archCoProc2ExceptHandle (addr_t  ulRetAddr, addr_t  ulAbortAddr)
 {
     PLW_CLASS_TCB  ptcbCur;
     LW_VMM_ABORT   abtInfo;
 
     LW_TCB_GET_CUR(ptcbCur);
 
+    abtInfo.VMABT_uiMethod = 0;
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_DSPE;
+    API_VmmAbortIsr(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur);
+}
+
+#endif                                                                  /*  defined(__CETC_HR2_DSP)     */
+/*********************************************************************************************************
+** 函数名称: archCoProcUnusableExceptHandle
+** 功能描述: 协处理器不可用异常处理
+** 输　入  : ulRetAddr     返回地址
+**           ulAbortAddr   终止地址
+**           pregctx       寄存器上下文
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  archCoProcUnusableExceptHandle (addr_t  ulRetAddr, addr_t  ulAbortAddr, ARCH_REG_CTX  *pregctx)
+{
+    PLW_CLASS_TCB  ptcbCur;
+    LW_VMM_ABORT   abtInfo;
+
+    LW_TCB_GET_CUR(ptcbCur);
+
+    switch (((pregctx->REG_ulCP0Cause & CAUSEF_CE) >> CAUSEB_CE)) {
+
 #if LW_CFG_CPU_FPU_EN > 0
-    if (archFpuUndHandle(ptcbCur) == ERROR_NONE) {                      /*  进行 FPU 指令探测           */
-        return;
-    }
+    case 1:
+        if (archFpuUndHandle(ptcbCur) == ERROR_NONE) {                  /*  进行 FPU 指令探测           */
+            return;
+        }
+        break;
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+
+#if defined(__CETC_HR2_DSP) && LW_CFG_CPU_DSP_EN > 0
+    case 2:
+        if (archDspUndHandle(ptcbCur) == ERROR_NONE) {                  /*  进行 DSP 指令探测           */
+            return;
+        }
+        break;
+#endif                                                                  /*  defined(__CETC_HR2_DSP)     */
+                                                                        /*  LW_CFG_CPU_DSP_EN > 0       */
+    default:
+        break;
+    }
 
     abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_UNDEF;
@@ -671,6 +712,9 @@ static MIPS_EXCEPT_HANDLE   _G_mipsExceptHandle[32] = {
     [EXCCODE_MSAFPE]   = (PVOID)archDefaultExceptHandle,                /*  MSA floating point exception*/
     [EXCCODE_FPE]      = (PVOID)archFloatPointExceptHandle,             /*  Floating point exception    */
     [EXCCODE_GSEXC]    = (PVOID)archDefaultExceptHandle,                /*  Loongson cpu exception      */
+#if defined(__CETC_HR2_DSP)
+    [EXCCODE_C2E]      = (PVOID)archCoProc2ExceptHandle,                /*  Coprocessor 2 exception     */
+#endif                                                                  /*  defined(__CETC_HR2_DSP)     */
     /*
      * 读阻止例外没使能, 执行阻止例外复用 TLBL 例外
      */

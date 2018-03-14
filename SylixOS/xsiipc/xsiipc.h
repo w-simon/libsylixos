@@ -48,8 +48,9 @@
  * 0.0.5    2016.04.13 fixed semctl() va_arg() bug.
  * 0.0.6    2016.04.20 fixed cache alias prob.
  * 0.0.7    2016.08.19 fixed module remove procfs node delete prob.
+ * 0.0.8    2018.03.13 fixed ipc_get_instance() bug.
  */
-#define IPC_VER         "0.0.7"
+#define IPC_VER         "0.0.8"
 
 /*
  * ipc config

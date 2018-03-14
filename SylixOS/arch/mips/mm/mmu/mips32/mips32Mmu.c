@@ -82,10 +82,10 @@ static LW_PTE_TRANSENTRY  mips32MmuBuildPteEntry (addr_t  ulBaseAddr, ULONG  ulF
         pteentry |= ENTRYLO_G;                                          /*  填充 G 位                   */
 
         if (ulFlag & LW_VMM_FLAG_CACHEABLE) {                           /*  填充 C 位                   */
-            pteentry |= CONF_CM_CACHABLE_NONCOHERENT << ENTRYLO_C_SHIFT;/*  Loongson-3x 上为一致性 CACHE*/
+            pteentry |= MIPS_MMU_ENTRYLO_CACHE   << ENTRYLO_C_SHIFT;
 
         } else {
-            pteentry |= CONF_CM_UNCACHED << ENTRYLO_C_SHIFT;
+            pteentry |= MIPS_MMU_ENTRYLO_UNCACHE << ENTRYLO_C_SHIFT;
         }
 
         if (MIPS_MMU_HAS_XI) {
@@ -400,17 +400,8 @@ static ULONG  mips32MmuFlagGet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr)
 
             ulCacheAttr = (pteentry & ENTRYLO_C)
                           >> ENTRYLO_C_SHIFT;                           /*  获得 CACHE 属性             */
-            switch (ulCacheAttr) {
-
-            case CONF_CM_UNCACHED:                                      /*  不可以 CACHE                */
-                break;
-
-            case CONF_CM_CACHABLE_NONCOHERENT:                          /*  可以 CACHE, 但不参与一致性  */
-                ulFlag |= LW_VMM_FLAG_CACHEABLE;                        /*  Loongson-3x 上为一致性 CACHE*/
-                break;
-
-            default:
-                break;
+            if (ulCacheAttr == MIPS_MMU_ENTRYLO_CACHE) {                /*  可以 CACHE                  */
+                ulFlag |= LW_VMM_FLAG_CACHEABLE;
             }
 
             return  (ulFlag);

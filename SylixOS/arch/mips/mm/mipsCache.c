@@ -26,6 +26,7 @@
 #if LW_CFG_CACHE_EN > 0
 #include "cache/r4k/mipsCacheR4k.h"
 #include "cache/loongson3x/mipsCacheLs3x.h"
+#include "cache/hr2/mipsCacheHr2.h"
 #include "arch/mips/common/mipsCpuProbe.h"
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: archCacheInit
@@ -49,16 +50,17 @@ VOID  archCacheInit (CACHE_MODE  uiInstruction, CACHE_MODE  uiData, CPCHAR  pcMa
     if (_G_uiMipsCpuType == CPU_LOONGSON3) {                            /*  Loongson-3x/2G/2H           */
         mipsCacheLs3xInit(pcacheop, uiInstruction, uiData, pcMachineName);
 
-    } else {
-        if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS1X)   == 0) ||
-            (lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X)   == 0) ||    /*  Loongson-2E/2F              */
-            (lib_strcmp(pcMachineName, MIPS_MACHINE_24KF)   == 0) ||
-            (lib_strcmp(pcMachineName, MIPS_MACHINE_JZ47XX) == 0)) {
-            mipsCacheR4kInit(pcacheop, uiInstruction, uiData, pcMachineName);
+    } else if (_G_uiMipsCpuType == CPU_CETC_HR2) {                      /*  CETC-HR2                    */
+        mipsCacheHr2Init(pcacheop, uiInstruction, uiData, pcMachineName);
 
-        } else {
-            _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown machine name.\r\n");
-        }
+    } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS1X)   == 0) ||
+               (lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X)   == 0) || /*  Loongson-2E/2F              */
+               (lib_strcmp(pcMachineName, MIPS_MACHINE_24KF)   == 0) ||
+               (lib_strcmp(pcMachineName, MIPS_MACHINE_JZ47XX) == 0)) {
+        mipsCacheR4kInit(pcacheop, uiInstruction, uiData, pcMachineName);
+
+    } else {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown machine name.\r\n");
     }
 }
 /*********************************************************************************************************
@@ -76,16 +78,17 @@ VOID  archCacheReset (CPCHAR  pcMachineName)
     if (_G_uiMipsCpuType == CPU_LOONGSON3) {                            /*  Loongson-3x/2G/2H           */
         mipsCacheLs3xReset(pcMachineName);
 
-    } else {
-        if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS1X)   == 0) ||
-            (lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X)   == 0) ||    /*  Loongson-2E/2F              */
-            (lib_strcmp(pcMachineName, MIPS_MACHINE_24KF)   == 0) ||
-            (lib_strcmp(pcMachineName, MIPS_MACHINE_JZ47XX) == 0)) {
-            mipsCacheR4kReset(pcMachineName);
+    } else if (_G_uiMipsCpuType == CPU_CETC_HR2) {                      /*  CETC-HR2                    */
+        mipsCacheHr2Reset(pcMachineName);
 
-        } else {
-            _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown machine name.\r\n");
-        }
+    } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS1X)   == 0) ||
+               (lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X)   == 0) || /*  Loongson-2E/2F              */
+               (lib_strcmp(pcMachineName, MIPS_MACHINE_24KF)   == 0) ||
+               (lib_strcmp(pcMachineName, MIPS_MACHINE_JZ47XX) == 0)) {
+        mipsCacheR4kReset(pcMachineName);
+
+    } else {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown machine name.\r\n");
     }
 }
 

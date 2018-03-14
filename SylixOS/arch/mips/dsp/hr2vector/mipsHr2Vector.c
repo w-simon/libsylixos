@@ -24,7 +24,7 @@
 /*********************************************************************************************************
   裁剪支持
 *********************************************************************************************************/
-#if LW_CFG_CPU_DSP_EN > 0
+#if defined(__CETC_HR2_DSP) && LW_CFG_CPU_DSP_EN > 0
 #include "../mipsDsp.h"
 #include "arch/mips/common/cp0/mipsCp0.h"
 /*********************************************************************************************************
@@ -52,7 +52,9 @@ extern VOID  mipsHr2VectorRestore(ARCH_DSP_CTX  *pdspctx);
 static VOID  mipsHr2VectorCtxShow (INT  iFd, ARCH_DSP_CTX  *pdspctx)
 {
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_FIO_LIB_EN > 0)
-
+    /*
+     * Not in opensoure version
+     */
 #endif
 }
 /*********************************************************************************************************
@@ -65,6 +67,9 @@ static VOID  mipsHr2VectorCtxShow (INT  iFd, ARCH_DSP_CTX  *pdspctx)
 *********************************************************************************************************/
 static VOID  mipsHr2VectorEnableTask (PLW_CLASS_TCB  ptcbCur)
 {
+    /*
+     * Not in opensoure version
+     */
 }
 /*********************************************************************************************************
 ** 函数名称: mipsHr2VectorPrimaryInit
@@ -103,7 +108,8 @@ VOID  mipsHr2VectorSecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcDspName)
     mipsHr2VectorInit();
 }
 
-#endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
+#endif                                                                  /*  defined(__CETC_HR2_DSP)     */
+                                                                        /*  LW_CFG_CPU_DSP_EN > 0       */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

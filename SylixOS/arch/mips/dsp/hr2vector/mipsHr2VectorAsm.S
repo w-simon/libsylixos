@@ -25,7 +25,8 @@
 
 #include <arch/assembler.h>
 
-#if LW_CFG_CPU_DSP_EN > 0
+#if defined(__CETC_HR2_DSP) && LW_CFG_CPU_DSP_EN > 0
+
 #include "arch/mips/arch_dsp.h"
 
     FILE_BEGIN()
@@ -38,10 +39,13 @@
     EXPORT_LABEL(mipsHr2VectorRestore)
 
 ;/*********************************************************************************************************
-;  使能向量运算单元
+;  初始化向量运算单元
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsHr2VectorInit)
+    ;/*
+    ; * Not in opensource version
+    ; */
     JR      RA
     NOP
     FUNC_END(mipsHr2VectorInit)
@@ -51,6 +55,9 @@ FUNC_DEF(mipsHr2VectorInit)
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsHr2VectorEnable)
+    ;/*
+    ; * Not in opensource version
+    ; */
     JR      RA
     NOP
     FUNC_END(mipsHr2VectorEnable)
@@ -60,6 +67,9 @@ FUNC_DEF(mipsHr2VectorEnable)
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsHr2VectorDisable)
+    ;/*
+    ; * Not in opensource version
+    ; */
     JR      RA
     NOP
     FUNC_END(mipsHr2VectorDisable)
@@ -69,6 +79,9 @@ FUNC_DEF(mipsHr2VectorDisable)
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsHr2VectorIsEnable)
+    ;/*
+    ; * Not in opensource version
+    ; */
     MOV     V0 , ZERO
     JR      RA
     NOP
@@ -79,6 +92,9 @@ FUNC_DEF(mipsHr2VectorIsEnable)
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsHr2VectorSave)
+    ;/*
+    ; * Not in opensource version
+    ; */
     JR      RA
     NOP
     FUNC_END(mipsHr2VectorSave)
@@ -88,6 +104,9 @@ FUNC_DEF(mipsHr2VectorSave)
 ;*********************************************************************************************************/
 
 FUNC_DEF(mipsHr2VectorRestore)
+    ;/*
+    ; * Not in opensource version
+    ; */
     JR      RA
     NOP
     FUNC_END(mipsHr2VectorRestore)

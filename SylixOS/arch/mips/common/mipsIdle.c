@@ -49,6 +49,9 @@ VOIDFUNCPTR  mipsIdleHookGet (CPCHAR  pcMachineName)
         } else if ((ulPrid & 0xf) != PRID_REV_LOONGSON3A_R1) {
             return  (mipsWaitInstruction);
         }
+
+    } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_HR2) == 0)) {
+        return  (mipsWaitInstruction);
     }
 
     return  (LW_NULL);
