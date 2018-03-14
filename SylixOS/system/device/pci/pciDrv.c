@@ -521,6 +521,7 @@ INT  API_PciDrvRegister (PCI_DRV_HANDLE  hHandle)
     }
 
     lib_strlcpy(&hDrvHandle->PCIDRV_cDrvName[0], &hHandle->PCIDRV_cDrvName[0], PCI_DRV_NAME_MAX);
+    hDrvHandle->PCIDRV_pvPriv           = hHandle->PCIDRV_pvPriv;
     hDrvHandle->PCIDRV_hDrvIdTable      = hHandle->PCIDRV_hDrvIdTable;
     hDrvHandle->PCIDRV_uiDrvIdTableSize = hHandle->PCIDRV_uiDrvIdTableSize;
 
