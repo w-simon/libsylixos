@@ -562,7 +562,7 @@ static VOID  archFloatPointExceptHandle (addr_t  ulRetAddr, addr_t  ulAbortAddr,
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-#if defined(__CETC_HR2_DSP)
+#if defined(_MIPS_ARCH_HR2)
 
 static VOID  archCoProc2ExceptHandle (addr_t  ulRetAddr, addr_t  ulAbortAddr)
 {
@@ -576,7 +576,7 @@ static VOID  archCoProc2ExceptHandle (addr_t  ulRetAddr, addr_t  ulAbortAddr)
     API_VmmAbortIsr(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur);
 }
 
-#endif                                                                  /*  defined(__CETC_HR2_DSP)     */
+#endif                                                                  /*  defined(_MIPS_ARCH_HR2)     */
 /*********************************************************************************************************
 ** 函数名称: archCoProcUnusableExceptHandle
 ** 功能描述: 协处理器不可用异常处理
@@ -604,13 +604,13 @@ static VOID  archCoProcUnusableExceptHandle (addr_t  ulRetAddr, addr_t  ulAbortA
         break;
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 
-#if defined(__CETC_HR2_DSP) && LW_CFG_CPU_DSP_EN > 0
+#if defined(_MIPS_ARCH_HR2) && (LW_CFG_CPU_DSP_EN > 0)
     case 2:
         if (archDspUndHandle(ptcbCur) == ERROR_NONE) {                  /*  进行 DSP 指令探测           */
             return;
         }
         break;
-#endif                                                                  /*  defined(__CETC_HR2_DSP)     */
+#endif                                                                  /*  defined(_MIPS_ARCH_HR2)     */
                                                                         /*  LW_CFG_CPU_DSP_EN > 0       */
     default:
         break;
@@ -712,9 +712,9 @@ static MIPS_EXCEPT_HANDLE   _G_mipsExceptHandle[32] = {
     [EXCCODE_MSAFPE]   = (PVOID)archDefaultExceptHandle,                /*  MSA floating point exception*/
     [EXCCODE_FPE]      = (PVOID)archFloatPointExceptHandle,             /*  Floating point exception    */
     [EXCCODE_GSEXC]    = (PVOID)archDefaultExceptHandle,                /*  Loongson cpu exception      */
-#if defined(__CETC_HR2_DSP)
+#if defined(_MIPS_ARCH_HR2)
     [EXCCODE_C2E]      = (PVOID)archCoProc2ExceptHandle,                /*  Coprocessor 2 exception     */
-#endif                                                                  /*  defined(__CETC_HR2_DSP)     */
+#endif                                                                  /*  defined(_MIPS_ARCH_HR2)     */
     /*
      * 读阻止例外没使能, 执行阻止例外复用 TLBL 例外
      */

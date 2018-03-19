@@ -24,6 +24,7 @@
 2016.11.09  增加将 AMD 桥 IDE 模式切换为 AHCI 模式的特殊处理.
 2016.12.27  增加磁盘初始化复位等命令超时时间可配置.
 2017.03.29  修正部分设备如 Sunrise Point-H 内存索引非 0 的问题. (v1.0.3-rc0)
+2018.03.15  增加对 Loongson SATA 控制器 (如 7A1000) 资源索引的特殊处理. (v1.0.4-rc0)
 *********************************************************************************************************/
 #define  __SYLIXOS_PCI_DRV
 #define  __SYLIXOS_AHCI_DRV
@@ -426,6 +427,43 @@ static const PCI_DEV_ID_CB      pciStorageSataIdTbl[] = {
   AHCI 控制器计数
 *********************************************************************************************************/
 static UINT     pciStorageSataCtrlNum = 0;
+/*********************************************************************************************************
+** 函数名称: pciStorageSataBarIndexQuirk
+** 功能描述: 获取不同厂商设备的资源地址索引
+** 输　入  : hDevHandle         PCI 设备控制块句柄
+** 输　出  : 资源地址索引
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  pciStorageSataBarIndexQuirk (PCI_DEV_HANDLE  hPciDevHandle)
+{
+    UINT16      usVendorId;
+    UINT16      usDeviceId;
+    INT         iIndex = PX_ERROR;
+
+    if (!hPciDevHandle) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    usVendorId = PCI_DEV_VENDOR_ID(hPciDevHandle);
+    usDeviceId = PCI_DEV_DEVICE_ID(hPciDevHandle);
+
+    switch (usVendorId) {
+
+    case PCI_VENDOR_ID_LOONGSON:
+        if (usDeviceId == PCI_DEVICE_ID_LOONGSON_SATA) {
+            iIndex = PCI_BAR_INDEX_0;
+        }
+        break;
+
+    default:
+        iIndex = PCI_BAR_INDEX_5;
+        break;
+    }
+
+    return (iIndex);
+}
 /*********************************************************************************************************
 ** 函数名称: pciStorageSataHeaderQuirkAmdIdeMode
 ** 功能描述: 读到设备头后, 将 AMD 桥 IDE 模式切换为 AHCI 模式
@@ -892,6 +930,7 @@ static INT  pciStorageSataVendorCtrlReadyWork (AHCI_CTRL_HANDLE  hCtrl)
     ULONG                   ulBaseAddr;
     PCI_RESOURCE_HANDLE     hResource;
     pci_resource_size_t     stStart;
+    INT                     iBarIndex;
 
     hPciDev = (PCI_DEV_HANDLE)hCtrl->AHCICTRL_pvPciArg;                 /* 获取设备句柄                 */
 
@@ -901,12 +940,19 @@ static INT  pciStorageSataVendorCtrlReadyWork (AHCI_CTRL_HANDLE  hCtrl)
              hPciDev->PCIDEV_iDevBus,
              hPciDev->PCIDEV_iDevDevice,
              hPciDev->PCIDEV_iDevFunction, usPciDevId);
-                                                                        /* BAR5                         */
-    stStart = (pci_resource_size_t)PCI_DEV_BASE_START(hPciDev, PCI_BAR_INDEX_5);
+
+    iBarIndex = pciStorageSataBarIndexQuirk(hPciDev);                   /*  获取资源索引                */
+    if ((iBarIndex < 0) ||
+        (iBarIndex > PCI_BAR_INDEX_5)) {
+        AHCI_LOG(AHCI_LOG_ERR, "pci BAR index out of bounds num %d.\r\n", iBarIndex);
+        return  (PX_ERROR);
+    }
                                                                         /* 查找对应资源信息             */
+    stStart = (pci_resource_size_t)PCI_DEV_BASE_START(hPciDev, iBarIndex);
+    stStart &= PCI_BASE_ADDRESS_MEM_MASK;
     hResource = API_PciDevStdResourceFind(hPciDev, PCI_IORESOURCE_MEM, stStart);
     if (!hResource) {
-        AHCI_LOG(AHCI_LOG_ERR, "pci BAR index %d error.\r\n", PCI_BAR_INDEX_5);
+        AHCI_LOG(AHCI_LOG_ERR, "pci BAR index %d error.\r\n", iBarIndex);
         return  (PX_ERROR);
     }
 

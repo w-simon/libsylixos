@@ -24,7 +24,7 @@
 /*********************************************************************************************************
   ²Ã¼ôÖ§³Ö
 *********************************************************************************************************/
-#if defined(__CETC_HR2_DSP) && LW_CFG_CPU_DSP_EN > 0
+#if defined(_MIPS_ARCH_HR2) && LW_CFG_CPU_DSP_EN > 0
 #include "../mipsDsp.h"
 #include "arch/mips/common/cp0/mipsCp0.h"
 /*********************************************************************************************************
@@ -108,7 +108,7 @@ VOID  mipsHr2VectorSecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcDspName)
     mipsHr2VectorInit();
 }
 
-#endif                                                                  /*  defined(__CETC_HR2_DSP)     */
+#endif                                                                  /*  defined(_MIPS_ARCH_HR2)     */
                                                                         /*  LW_CFG_CPU_DSP_EN > 0       */
 /*********************************************************************************************************
   END

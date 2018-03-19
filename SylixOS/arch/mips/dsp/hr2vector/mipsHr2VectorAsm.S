@@ -25,7 +25,7 @@
 
 #include <arch/assembler.h>
 
-#if defined(__CETC_HR2_DSP) && LW_CFG_CPU_DSP_EN > 0
+#if defined(_MIPS_ARCH_HR2) && LW_CFG_CPU_DSP_EN > 0
 
 #include "arch/mips/arch_dsp.h"
 

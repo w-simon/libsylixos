@@ -115,7 +115,7 @@ static VOID  mipsMmuInvalidateTLB (VOID)
 
     mipsCp0EntryHiWrite(ulEntryHiBak);
 
-    mipsMmuInvalidateMicroTLB();                                    /*  无效 Micro TLB              */
+    mipsMmuInvalidateMicroTLB();                                        /*  无效 Micro TLB              */
 }
 /*********************************************************************************************************
 ** 函数名称: mipsMmuInvalidateTLBMVA

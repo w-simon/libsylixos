@@ -118,7 +118,7 @@ typedef struct {
   从上下文中获取信息
 *********************************************************************************************************/
 
-#define ARCH_REG_CTX_GET_PC(ctx)    ((void *)(ctx).REG_uiCP0EPC)
+#define ARCH_REG_CTX_GET_PC(ctx)    ((void *)(ctx).REG_ulCP0EPC)
 
 #endif                                                                  /*  !defined(__ASSEMBLY__)      */
 #endif                                                                  /*  __MIPS_ARCH_REGS64_H        */

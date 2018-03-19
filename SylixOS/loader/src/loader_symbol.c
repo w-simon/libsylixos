@@ -75,8 +75,14 @@ extern LW_LIST_LINE_HEADER      _G_plineVProcHeader;
 INT __moduleVerifyVersion (CPCHAR  pcModuleName, CPCHAR  pcVersion, ULONG  ulType)
 {
     ULONG       ulKoComNewest = __SYLIXOS_VERSION;                      /*  内核模块兼容的最大版本号    */
+    
+#if defined(LW_CFG_CPU_ARCH_X86) && defined(__x86_64__)                 /*  IDE 3.7.3 修正了 x64 ABI bug*/
+    ULONG       ulKoComOldest = __SYLIXOS_MAKEVER(1, 6, 4);             /*  内核模块兼容的最小版本号    */
+    ULONG       ulSoComOldest = __SYLIXOS_MAKEVER(1, 6, 4);             /*  应用动态库兼容的最小版本号  */
+#else
     ULONG       ulKoComOldest = __SYLIXOS_MAKEVER(1, 4, 0);             /*  内核模块兼容的最小版本号    */
     ULONG       ulSoComOldest = __SYLIXOS_MAKEVER(1, 4, 0);             /*  应用动态库兼容的最小版本号  */
+#endif                                                                  /*  __x86_64__                  */
     
     ULONG       ulModuleOsVersion;
     

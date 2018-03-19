@@ -3147,6 +3147,22 @@ vendor  vendor_name
 
 #define PCI_VENDOR_ID_OCZ                           0x1b85
 
+/*********************************************************************************************************
+  Loongson Technology LLC
+*********************************************************************************************************/
+#define PCI_VENDOR_ID_LOONGSON                      0x0014              /*  Loongson Technology LLC     */
+#define PCI_DEVICE_ID_LOONGSON_APB                  0x7a02              /*  APB Controller              */
+#define PCI_DEVICE_ID_LOONGSON_GMAC                 0x7a03              /*  Gigabit Ethernet Controller */
+#define PCI_DEVICE_ID_LOONGSON_OTG                  0x7a04              /*  OTG USB Controller          */
+#define PCI_DEVICE_ID_LOONGSON_VGPU                 0x7a05              /*  Vivante GPU                 */
+#define PCI_DEVICE_ID_LOONGSON_DC                   0x7a06              /*  DC (Display Controller)     */
+#define PCI_DEVICE_ID_LOONGSON_HDA                  0x7a07              /*  HDA Controller              */
+#define PCI_DEVICE_ID_LOONGSON_SATA                 0x7a08              /*  SATA AHCI Controller        */
+#define PCI_DEVICE_ID_LOONGSON_DMA                  0x7a0f              /*  DMA Controller              */
+#define PCI_DEVICE_ID_LOONGSON_EHCI                 0x7a14              /*  EHCI USB Controller         */
+#define PCI_DEVICE_ID_LOONGSON_GPU                  0x7a15              /*  GPU                         */
+#define PCI_DEVICE_ID_LOONGSON_OHCI                 0x7a24              /*  OHCI USB Controller         */
+
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */
                                                                         /*  (LW_CFG_PCI_EN > 0)         */
 #endif                                                                  /*  __PCIIDS_H                  */
