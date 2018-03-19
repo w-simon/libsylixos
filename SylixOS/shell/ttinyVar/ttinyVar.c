@@ -41,7 +41,7 @@
 /*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
-VOID   (*_G_pfuncTSVarHook)() = LW_NULL;                                /*  变量改变回调                */
+VOIDFUNCPTR  _G_pfuncTSVarHook = LW_NULL;                               /*  变量改变回调                */
 /*********************************************************************************************************
 ** 函数名称: API_TShellVarHookSet
 ** 功能描述: 当变量改变时, 调用的用户回调
@@ -52,9 +52,14 @@ VOID   (*_G_pfuncTSVarHook)() = LW_NULL;                                /*  变量
                                            API 函数
 *********************************************************************************************************/
 LW_API  
-VOID   (*API_TShellVarHookSet(VOID  (*pfuncTSVarHook)()))()
+VOIDFUNCPTR  API_TShellVarHookSet (VOIDFUNCPTR  pfuncTSVarHook)
 {
-    VOID  (*pfuncTSVarOldHook)() = _G_pfuncTSVarHook;
+    VOIDFUNCPTR  pfuncTSVarOldHook = _G_pfuncTSVarHook;
+    
+    if (__PROC_GET_PID_CUR() != 0) {                                    /*  进程中不能注册命令          */
+        _ErrorHandle(ENOTSUP);
+        return  (LW_NULL);
+    }
     
     _G_pfuncTSVarHook = pfuncTSVarHook;
     

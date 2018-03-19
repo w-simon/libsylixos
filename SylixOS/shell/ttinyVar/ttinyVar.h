@@ -30,7 +30,7 @@
 /*********************************************************************************************************
   API
 *********************************************************************************************************/
-LW_API VOID       (*API_TShellVarHookSet(VOID  (*pfuncTSVarHook)()))();
+LW_API VOIDFUNCPTR  API_TShellVarHookSet(VOIDFUNCPTR  pfuncTSVarHook);
 
 LW_API INT          API_TShellVarGetRt(CPCHAR     pcVarName, 
                                        PCHAR      pcVarValue,
