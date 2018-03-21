@@ -770,26 +770,22 @@ __weak_reference(lib_strndup, strndup);
 
 char *lib_strndup (const char *str, size_t size)
 {
-    char *mem;
-    char *end;
+    size_t len;
+    char *news;
     
     if (str == NULL) {
         return  (NULL);
     }
     
-    end = (char *)lib_memchr(str, 0, size);
-    if (end) {
-        size = end - str + 1; /* Length + 1 */
-    }
-
-    mem = (char *)lib_malloc(size);
-
-    if (size) {
-        lib_memcpy(mem, str, size - 1);
-        mem[size - 1] = '\0';
+    len = lib_strnlen(str, size);
+    news = (PCHAR)lib_malloc(len + 1);
+    if (news == NULL) {
+        return  (NULL);
     }
     
-    return  (mem);
+    news[len] = PX_EOS;
+    
+    return  (lib_memcpy(news, str, len));
 }
 
 /*

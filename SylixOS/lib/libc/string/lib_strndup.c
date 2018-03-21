@@ -29,26 +29,22 @@
 *********************************************************************************************************/
 PCHAR  lib_strndup (CPCHAR pcStr, size_t  stSize)
 {
-    PCHAR   pcMem;
-    PCHAR   pcEnd;
+    size_t  stLen;
+    PCHAR   pcNew;
     
     if (pcStr == LW_NULL) {
         return  (LW_NULL);
     }
     
-    pcEnd = (PCHAR)lib_memchr(pcStr, 0, stSize);
-    if (pcEnd) {
-        stSize = pcEnd - pcStr + 1;                                     /*  Length + 1                  */
-    }
-
-    pcMem = (PCHAR)lib_malloc(stSize);
-
-    if (stSize) {
-        lib_memcpy(pcMem, pcStr, stSize - 1);
-        pcMem[stSize - 1] = PX_EOS;
+    stLen = lib_strnlen(pcStr, stSize);
+    pcNew = (PCHAR)lib_malloc(stLen + 1);
+    if (pcNew == LW_NULL) {
+        return  (LW_NULL);
     }
     
-    return  (pcMem);
+    pcNew[stLen] = PX_EOS;
+    
+    return  (lib_memcpy(pcNew, pcStr, stLen));
 }
 /*********************************************************************************************************
   END
