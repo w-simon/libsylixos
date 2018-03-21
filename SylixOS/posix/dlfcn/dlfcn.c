@@ -67,7 +67,15 @@ int  dladdr (void *pvAddr, Dl_info *pdlinfo)
 LW_API 
 int  dlclose (void  *pvHandle)
 {
-    INT     iError = API_ModuleUnload(pvHandle);
+    INT     iError;
+    PVOID   pvVProc = (PVOID)__LW_VP_GET_CUR_PROC();
+
+    if (pvHandle == pvVProc) {
+        iError = ERROR_NONE;
+
+    } else {
+        iError = API_ModuleUnload(pvHandle);
+    }
 
     /*
      *  这里使用 loader 中的错误检查机制, 以确保 dlerror() 的正确性.
@@ -117,6 +125,10 @@ void  *dlopen (const char *pcFile, int  iMode)
         iLoaderMode = LW_OPTION_LOADER_SYM_LOCAL;
     }
     
+    if (pcFile == LW_NULL) {                                            /*  返回进程句柄                */
+        return  (pvVProc);
+    }
+
     if (iMode & RTLD_NOLOAD) {
         pvHandle = API_ModuleGlobal(pcFile, iLoaderMode, pvVProc);
     
@@ -143,7 +155,15 @@ void  *dlopen (const char *pcFile, int  iMode)
 LW_API 
 void  *dlsym (void  *pvHandle, const char *pcName)
 {
-    PVOID   pvFunc = API_ModuleSym(pvHandle, pcName);
+    PVOID   pvVProc = (PVOID)__LW_VP_GET_CUR_PROC();
+    PVOID   pvFunc  = LW_NULL;
+
+    if (pvVProc == pvHandle) {
+        pvFunc = API_ModuleProcSym(pvVProc, pcName);                    /*  在整个进程空间查找符号      */
+
+    } else {
+        pvFunc = API_ModuleSym(pvHandle, pcName);
+    }
 
     if (pvFunc) {
         errno = ERROR_NONE;

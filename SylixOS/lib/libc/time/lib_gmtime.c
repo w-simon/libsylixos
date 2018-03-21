@@ -142,8 +142,9 @@ int  __gettime (const time_t timer, struct tm *tmp)
         result = lib_lldiv(timeOfDay, SECSPERMIN);
     }
     
-    tmp->tm_min = (int)result.quot;
-    tmp->tm_sec = (int)result.rem;
+    tmp->tm_min   = (int)result.quot;
+    tmp->tm_sec   = (int)result.rem;
+    tmp->tm_isdst = 0;
 
     return  (ERROR_NONE);
 }

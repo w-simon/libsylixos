@@ -390,6 +390,7 @@ netif_add(struct netif *netif,
       }
       num_netifs = 0;
       for (netif2 = netif_list; netif2 != NULL; netif2 = netif2->next) {
+        LWIP_ASSERT("netif already added", netif2 != netif);
         num_netifs++;
 #ifdef SYLIXOS
         if (num_netifs > LW_CFG_NET_DEV_MAX) {

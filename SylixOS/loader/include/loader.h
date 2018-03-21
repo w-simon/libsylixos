@@ -73,6 +73,8 @@ LW_API PVOID    API_ModuleLoadEx(CPCHAR  pcFile,
 LW_API INT      API_ModuleUnload(PVOID  pvModule);                      /*  卸载模块                    */
 
 LW_API PVOID    API_ModuleSym(PVOID  pvModule, CPCHAR  pcName);         /*  查找装载模块的本地符号表    */
+
+LW_API PVOID    API_ModuleProcSym(PVOID  pvModule, CPCHAR  pcName);     /*  查找进程的本地符号表        */
                                 
 LW_API INT      API_ModuleStatus(CPCHAR  pcFile, INT  iFd);             /*  查看elf文件状态             */
 

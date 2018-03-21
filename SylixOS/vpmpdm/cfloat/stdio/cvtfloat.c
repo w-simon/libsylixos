@@ -137,8 +137,10 @@ int lib_cvtfloat (double  number, int  prec, BOOL  doAlt, int  fmtch, BOOL *pDoS
     int     nonZeroInt = FALSE;
     double  integer;
     double  tmp;
+    int     bufsize;
 
     dotrim = expcnt = gformat = 0;
+    bufsize = endp - startp - 1;
 
     if (number < 0) {
         number = -number;
@@ -155,6 +157,7 @@ int lib_cvtfloat (double  number, int  prec, BOOL  doAlt, int  fmtch, BOOL *pDoS
     }
 
     t = ++startp;            /* get an extra slot for rounding. */
+    bufsize--;
 
     /* get integer portion of number; put into the end of the buffer; the
      * .01 is added for modf(356.0 / 10, &integer) returning .59999999...
@@ -170,9 +173,12 @@ int lib_cvtfloat (double  number, int  prec, BOOL  doAlt, int  fmtch, BOOL *pDoS
     case 'f':
         /* reverse integer into beginning of buffer */
         if (expcnt) {
-            for (; ++p < endp; *t++ = *p);
+            for (; ++p < endp; *t++ = *p) {
+                bufsize--;
+            }
         } else {
             *t++ = '0';
+            bufsize--;
         }
 
         /* if precision required or alternate flag set, add in a
@@ -181,6 +187,7 @@ int lib_cvtfloat (double  number, int  prec, BOOL  doAlt, int  fmtch, BOOL *pDoS
 
         if (prec || doAlt) {
             *t++ = '.';
+            bufsize--;
         }
 
         /* if requires more precision and some fraction left */
@@ -190,6 +197,7 @@ int lib_cvtfloat (double  number, int  prec, BOOL  doAlt, int  fmtch, BOOL *pDoS
                 do {
                     fract = modf(fract * 10, &tmp);
                     *t++  = to_char((int)tmp);
+                    bufsize--;
                 } while (--prec && fract);
             }
 
@@ -199,7 +207,7 @@ int lib_cvtfloat (double  number, int  prec, BOOL  doAlt, int  fmtch, BOOL *pDoS
             }
         }
 
-        for (; prec--; *t++ = '0');
+        for (; bufsize-- && prec--; *t++ = '0');
         break;
 
     case 'e':
@@ -207,15 +215,17 @@ int lib_cvtfloat (double  number, int  prec, BOOL  doAlt, int  fmtch, BOOL *pDoS
 eformat:    
         if (expcnt) {
             *t++ = *++p;
-
+            bufsize--;
             if (prec || doAlt) {
                 *t++ = '.';
+                bufsize--;
             }
 
             /* if requires more precision and some integer left */
 
             for (; prec && ++p < endp; --prec) {
                 *t++ = *p;
+                bufsize--;
             }
 
             /* if done precision and more of the integer component,
@@ -243,15 +253,18 @@ eformat:
             }
 
             *t++ = to_char((int)tmp);
-
+            bufsize--;
             if (prec || doAlt) {
                 *t++ = '.';
+                bufsize--;
             }
         
         } else {
             *t++ = '0';
+            bufsize--;
             if (prec || doAlt) {
                 *t++ = '.';
+                bufsize--;
             }
         }
 
@@ -261,6 +274,7 @@ eformat:
                 do {
                     fract = modf(fract * 10, &tmp);
                     *t++ = to_char((int)tmp);
+                    bufsize--;
                 } while (--prec && fract);
             }
 
@@ -270,7 +284,13 @@ eformat:
             }
         }
 
-        for (; prec--; *t++ = '0'); /* if requires more precision */
+        bufsize -= 2;  /* exclude 'e/E' and '+/-' */
+
+        do {
+            bufsize--;
+        } while ((expcnt /= 10) > 9);
+
+        for (; bufsize-- && prec--; *t++ = '0'); /* if requires more precision */
             
         /* unless alternate flag, trim any g/G format trailing 0's */
 
