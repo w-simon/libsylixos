@@ -569,7 +569,7 @@ static ssize_t  __romFsRead (PLW_FD_ENTRY pfdentry,
     PROM_FILE     promfile = (PROM_FILE)pfdnode->FDNODE_pvFile;
     ssize_t       sstRet;
     
-    if (!pcBuffer || !stMaxBytes) {
+    if (!pcBuffer) {
         _ErrorHandle(EINVAL);
         return  (0);
     }
@@ -583,10 +583,16 @@ static ssize_t  __romFsRead (PLW_FD_ENTRY pfdentry,
         _ErrorHandle(ENXIO);
         return  (PX_ERROR);
     }
-    sstRet = __rfs_pread(promfile->ROMFIL_promfs, &promfile->ROMFIL_romfsdnt, 
-                         pcBuffer, stMaxBytes, (UINT32)pfdentry->FDENTRY_oftPtr);
-    if (sstRet > 0) {
-        pfdentry->FDENTRY_oftPtr += (off_t)sstRet;                      /*  更新文件指针                */
+    
+    if (stMaxBytes) {
+        sstRet = __rfs_pread(promfile->ROMFIL_promfs, &promfile->ROMFIL_romfsdnt, 
+                             pcBuffer, stMaxBytes, (UINT32)pfdentry->FDENTRY_oftPtr);
+        if (sstRet > 0) {
+            pfdentry->FDENTRY_oftPtr += (off_t)sstRet;                  /*  更新文件指针                */
+        }
+        
+    } else {
+        sstRet = 0;
     }
                          
     __ROMFS_FILE_UNLOCK(promfile);
@@ -613,7 +619,7 @@ static ssize_t  __romFsPRead (PLW_FD_ENTRY pfdentry,
     PROM_FILE     promfile = (PROM_FILE)pfdnode->FDNODE_pvFile;
     ssize_t       sstRet;
     
-    if (!pcBuffer || !stMaxBytes || (oftPos < 0)) {
+    if (!pcBuffer || (oftPos < 0)) {
         _ErrorHandle(EINVAL);
         return  (0);
     }
@@ -627,8 +633,14 @@ static ssize_t  __romFsPRead (PLW_FD_ENTRY pfdentry,
         _ErrorHandle(ENXIO);
         return  (PX_ERROR);
     }
-    sstRet = __rfs_pread(promfile->ROMFIL_promfs, &promfile->ROMFIL_romfsdnt, 
-                         pcBuffer, stMaxBytes, (UINT32)oftPos);
+    
+    if (stMaxBytes) {
+        sstRet = __rfs_pread(promfile->ROMFIL_promfs, &promfile->ROMFIL_romfsdnt, 
+                             pcBuffer, stMaxBytes, (UINT32)oftPos);
+    } else {
+        sstRet = 0;
+    }
+    
     __ROMFS_FILE_UNLOCK(promfile);
     
     return  (sstRet);

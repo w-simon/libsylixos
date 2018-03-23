@@ -1991,7 +1991,7 @@ static ssize_t  __nfsRead (PLW_FD_ENTRY   pfdentry,
     count3      countOnce;
     BOOL        bIsEof   = LW_FALSE;                                    /*  是否到文件尾部              */
 
-    if (!pcBuffer || !stMaxBytes) {
+    if (!pcBuffer) {
         _ErrorHandle(EINVAL);
         return  (0);
     }
@@ -2086,7 +2086,7 @@ static ssize_t  __nfsPRead (PLW_FD_ENTRY   pfdentry,
     count3      countOnce;
     BOOL        bIsEof   = LW_FALSE;                                    /*  是否到文件尾部              */
 
-    if (!pcBuffer || !stMaxBytes || (oftPos < 0)) {
+    if (!pcBuffer || (oftPos < 0)) {
         _ErrorHandle(EINVAL);
         return  (0);
     }
@@ -2178,7 +2178,7 @@ static ssize_t  __nfsWrite (PLW_FD_ENTRY  pfdentry,
     size_t      stTotal  = 0;
     count3      countOnce;
 
-    if (!pcBuffer || !stNBytes) {
+    if (!pcBuffer) {
         _ErrorHandle(EINVAL);
         return  (0);
     }
@@ -2281,7 +2281,7 @@ static ssize_t  __nfsPWrite (PLW_FD_ENTRY  pfdentry,
     size_t      stTotal  = 0;
     count3      countOnce;
 
-    if (!pcBuffer || !stNBytes || (oftPos < 0)) {
+    if (!pcBuffer || (oftPos < 0)) {
         _ErrorHandle(EINVAL);
         return  (0);
     }

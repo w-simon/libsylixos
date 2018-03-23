@@ -352,7 +352,7 @@ static ssize_t  __procFsRead (PLW_PROCFS_NODE  p_pfsn,
              ssize_t    sstNum = 0;
     REGISTER size_t     stBufferSize;                                   /*  文件缓冲区大小              */
 
-    if (!pcBuffer || !stMaxBytes) {
+    if (!pcBuffer) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -363,6 +363,10 @@ static ssize_t  __procFsRead (PLW_PROCFS_NODE  p_pfsn,
     if (!p_pfsn || !S_ISREG(p_pfsn->PFSN_mode)) {                       /*  只能读取 reg 文件           */
         _ErrorHandle(EBADF);                                            /*  文件不能读                  */
         return  (PX_ERROR);
+    }
+    
+    if (!stMaxBytes) {
+        return  (0);
     }
     
     if (p_pfsn->PFSN_p_pfsnoFuncs &&
@@ -416,7 +420,7 @@ static ssize_t  __procFsPRead (PLW_PROCFS_NODE  p_pfsn,
              ssize_t    sstNum = 0;
     REGISTER size_t     stBufferSize;                                   /*  文件缓冲区大小              */
 
-    if (!pcBuffer || !stMaxBytes || (oftPos < 0)) {
+    if (!pcBuffer || (oftPos < 0)) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -427,6 +431,10 @@ static ssize_t  __procFsPRead (PLW_PROCFS_NODE  p_pfsn,
     if (!p_pfsn || !S_ISREG(p_pfsn->PFSN_mode)) {                       /*  只能读取 reg 文件           */
         _ErrorHandle(EISDIR);                                           /*  目录不能读                  */
         return  (PX_ERROR);
+    }
+    
+    if (!stMaxBytes) {
+        return  (0);
     }
     
     if (p_pfsn->PFSN_p_pfsnoFuncs &&
@@ -519,6 +527,7 @@ static INT  __procFsStatGet (PLW_PROCFS_NODE  p_pfsn, struct stat *pstat)
         pstat->st_atime   = _G_timeProcFs;
         pstat->st_mtime   = _G_timeProcFs;
         pstat->st_ctime   = _G_timeProcFs;
+    
     } else {                                                            /*  子节点                      */
         pstat->st_dev     = (dev_t)&_G_devhdrProc;
         pstat->st_ino     = (ino_t)p_pfsn;

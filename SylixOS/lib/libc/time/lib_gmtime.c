@@ -124,8 +124,8 @@ int  __gettime (const time_t timer, struct tm *tmp)
     /* __jullday needs years since TM_YEAR_BASE (SPR 4251) */
 
     for  ( mon = 0; 
-         (days >= __julday ((int)(year - TM_YEAR_BASE), (int)(mon + 1), 0)) && (mon < 11); 
-         mon++ )
+          (mon < 11) && (days >= __julday ((int)(year - TM_YEAR_BASE), (int)(mon + 1), 0));
+          mon++ )
 	;
 
     /* Initialise tm structure */

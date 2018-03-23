@@ -82,6 +82,10 @@ LW_API time_t  API_RootFsTime(time_t  *time);
         return  (PX_ERROR);
     }
     
+    pstat->st_resv1 = LW_NULL;
+    pstat->st_resv2 = LW_NULL;
+    pstat->st_resv3 = LW_NULL;
+    
     iErrCode = API_IosFstat(iFd, pstat);                                /*  优先使用驱动表函数          */
     if (iErrCode >= ERROR_NONE) {
         return  (iErrCode);
@@ -137,6 +141,10 @@ INT  fstat64 (INT  iFd, struct stat64 *pstat64)
         errno = EINVAL;
         return  (PX_ERROR);
     }
+    
+    pstat64->st_resv1 = LW_NULL;
+    pstat64->st_resv2 = LW_NULL;
+    pstat64->st_resv3 = LW_NULL;
     
     iErrCode = ioctl(iFd, FIOFSTATGET64, (LONG)pstat64);
     if (iErrCode == ERROR_NONE) {
@@ -265,6 +273,14 @@ INT  lstat (CPCHAR  pcName, struct stat *pstat)
         _ErrorHandle(ENOENT);
         return  (PX_ERROR);
     }
+    if (!pstat) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    pstat->st_resv1 = LW_NULL;
+    pstat->st_resv2 = LW_NULL;
+    pstat->st_resv3 = LW_NULL;
     
     if (lib_strcmp(pcName, ".") == 0) {                                 /*  滤掉当前目录                */
         pcName++;
@@ -352,6 +368,10 @@ INT  lstat64 (CPCHAR  pcName, struct stat64 *pstat64)
         errno = EINVAL;
         return  (PX_ERROR);
     }
+    
+    pstat64->st_resv1 = LW_NULL;
+    pstat64->st_resv2 = LW_NULL;
+    pstat64->st_resv3 = LW_NULL;
 
     iErrCode = lstat(pcName, &statFile);
     if (iErrCode == ERROR_NONE) {

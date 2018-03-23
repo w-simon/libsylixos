@@ -1020,12 +1020,12 @@ static ssize_t  __tpsFsRead (PLW_FD_ENTRY   pfdentry,
                              PCHAR          pcBuffer,
                              size_t         stMaxBytes)
 {
-    PLW_FD_NODE   pfdnode    = (PLW_FD_NODE)pfdentry->FDENTRY_pfdnode;
-    PTPS_FILE     ptpsfile   = (PTPS_FILE)pfdnode->FDNODE_pvFile;
-    TPS_SIZE_T    szReadNum  = 0;
-    errno_t       iErr       = ERROR_NONE;
+    PLW_FD_NODE   pfdnode   = (PLW_FD_NODE)pfdentry->FDENTRY_pfdnode;
+    PTPS_FILE     ptpsfile  = (PTPS_FILE)pfdnode->FDNODE_pvFile;
+    TPS_SIZE_T    szReadNum = 0;
+    errno_t       iErr      = ERROR_NONE;
 
-    if (!pcBuffer || !stMaxBytes) {
+    if (!pcBuffer) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -1041,10 +1041,12 @@ static ssize_t  __tpsFsRead (PLW_FD_ENTRY   pfdentry,
         return  (PX_ERROR);
     }
 
-    iErr = tpsFsRead(ptpsfile->TPSFIL_pinode, (PUCHAR)pcBuffer,
-                     pfdentry->FDENTRY_oftPtr, stMaxBytes, &szReadNum);
-    if ((iErr == ERROR_NONE) && (szReadNum > 0)) {
-        pfdentry->FDENTRY_oftPtr += (off_t)szReadNum;                   /*  更新文件指针                */
+    if (stMaxBytes) {
+        iErr = tpsFsRead(ptpsfile->TPSFIL_pinode, (PUCHAR)pcBuffer,
+                         pfdentry->FDENTRY_oftPtr, stMaxBytes, &szReadNum);
+        if ((iErr == ERROR_NONE) && (szReadNum > 0)) {
+            pfdentry->FDENTRY_oftPtr += (off_t)szReadNum;               /*  更新文件指针                */
+        }
     }
 
     __TPS_FILE_UNLOCK(ptpsfile);
@@ -1068,12 +1070,12 @@ static ssize_t  __tpsFsPRead (PLW_FD_ENTRY  pfdentry,
                               size_t        stMaxBytes,
                               off_t         oftPos)
 {
-    PLW_FD_NODE   pfdnode       = (PLW_FD_NODE)pfdentry->FDENTRY_pfdnode;
-    PTPS_FILE     ptpsfile      = (PTPS_FILE)pfdnode->FDNODE_pvFile;
-    TPS_SIZE_T    szReadNum     = 0;
-    errno_t       iErr          = ERROR_NONE;
+    PLW_FD_NODE   pfdnode   = (PLW_FD_NODE)pfdentry->FDENTRY_pfdnode;
+    PTPS_FILE     ptpsfile  = (PTPS_FILE)pfdnode->FDNODE_pvFile;
+    TPS_SIZE_T    szReadNum = 0;
+    errno_t       iErr      = ERROR_NONE;
 
-    if (!pcBuffer || !stMaxBytes || (oftPos < 0)) {
+    if (!pcBuffer || (oftPos < 0)) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -1089,8 +1091,10 @@ static ssize_t  __tpsFsPRead (PLW_FD_ENTRY  pfdentry,
         return  (PX_ERROR);
     }
 
-    iErr = tpsFsRead(ptpsfile->TPSFIL_pinode, (PUCHAR)pcBuffer,
-                     oftPos, stMaxBytes, &szReadNum);
+    if (stMaxBytes) {
+        iErr = tpsFsRead(ptpsfile->TPSFIL_pinode, (PUCHAR)pcBuffer,
+                         oftPos, stMaxBytes, &szReadNum);
+    }
 
     __TPS_FILE_UNLOCK(ptpsfile);
 
@@ -1111,12 +1115,12 @@ static ssize_t  __tpsFsWrite (PLW_FD_ENTRY  pfdentry,
                               PCHAR         pcBuffer,
                               size_t        stNBytes)
 {
-    PLW_FD_NODE   pfdnode       = (PLW_FD_NODE)pfdentry->FDENTRY_pfdnode;
-    PTPS_FILE     ptpsfile      = (PTPS_FILE)pfdnode->FDNODE_pvFile;
-    TPS_SIZE_T    szWriteNum    = 0;
-    errno_t       iErr          = ERROR_NONE;
+    PLW_FD_NODE   pfdnode    = (PLW_FD_NODE)pfdentry->FDENTRY_pfdnode;
+    PTPS_FILE     ptpsfile   = (PTPS_FILE)pfdnode->FDNODE_pvFile;
+    TPS_SIZE_T    szWriteNum = 0;
+    errno_t       iErr       = ERROR_NONE;
 
-    if (!pcBuffer || !stNBytes) {
+    if (!pcBuffer) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -1136,40 +1140,42 @@ static ssize_t  __tpsFsWrite (PLW_FD_ENTRY  pfdentry,
         pfdentry->FDENTRY_oftPtr = pfdnode->FDNODE_oftSize;             /*  移动读写指针到末尾          */
     }
 
-    if (tpsFsGetSize(ptpsfile->TPSFIL_pinode) < pfdentry->FDENTRY_oftPtr) {
-        UINT uiBufSize = ptpsfile->TPSFIL_pinode->IND_psb->SB_uiBlkSize;/*  自动扩展文件                */
-        size_t szWrite;
-        PUCHAR pucZoreBuf = (PUCHAR)__SHEAP_ALLOC(uiBufSize);
-        if (pucZoreBuf == LW_NULL) {
-            __TPS_FILE_UNLOCK(ptpsfile);
-            _DebugHandle(__ERRORMESSAGE_LEVEL, "system low memory.\r\n");
-            _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
-            return  (PX_ERROR);
-        }
+    if (stNBytes) {                                                     /*  自动扩展文件                */
+        if (tpsFsGetSize(ptpsfile->TPSFIL_pinode) < pfdentry->FDENTRY_oftPtr) {
+            UINT uiBufSize = ptpsfile->TPSFIL_pinode->IND_psb->SB_uiBlkSize;
+            size_t szWrite;
+            PUCHAR pucZoreBuf = (PUCHAR)__SHEAP_ALLOC(uiBufSize);
+            if (pucZoreBuf == LW_NULL) {
+                __TPS_FILE_UNLOCK(ptpsfile);
+                _DebugHandle(__ERRORMESSAGE_LEVEL, "system low memory.\r\n");
+                _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
+                return  (PX_ERROR);
+            }
 
-        lib_bzero(pucZoreBuf, uiBufSize);
-        while (tpsFsGetSize(ptpsfile->TPSFIL_pinode) < pfdentry->FDENTRY_oftPtr) {
-            szWrite = (size_t)min(uiBufSize, pfdentry->FDENTRY_oftPtr - tpsFsGetSize(ptpsfile->TPSFIL_pinode));
-            if (tpsFsWrite(ptpsfile->TPSFIL_pinode, pucZoreBuf,
-                           tpsFsGetSize(ptpsfile->TPSFIL_pinode),
-                           szWrite, &szWriteNum) != ERROR_NONE) {
-                break;
+            lib_bzero(pucZoreBuf, uiBufSize);
+            while (tpsFsGetSize(ptpsfile->TPSFIL_pinode) < pfdentry->FDENTRY_oftPtr) {
+                szWrite = (size_t)min(uiBufSize, pfdentry->FDENTRY_oftPtr - tpsFsGetSize(ptpsfile->TPSFIL_pinode));
+                if (tpsFsWrite(ptpsfile->TPSFIL_pinode, pucZoreBuf,
+                               tpsFsGetSize(ptpsfile->TPSFIL_pinode),
+                               szWrite, &szWriteNum) != ERROR_NONE) {
+                    break;
+                }
+            }
+
+            __SHEAP_FREE(pucZoreBuf);
+            if (tpsFsGetSize(ptpsfile->TPSFIL_pinode) < pfdentry->FDENTRY_oftPtr) {
+                __TPS_FILE_UNLOCK(ptpsfile);
+                _ErrorHandle(EFBIG);
+                return  (PX_ERROR);
             }
         }
 
-        __SHEAP_FREE(pucZoreBuf);
-        if (tpsFsGetSize(ptpsfile->TPSFIL_pinode) < pfdentry->FDENTRY_oftPtr) {
-            __TPS_FILE_UNLOCK(ptpsfile);
-            _ErrorHandle(EFBIG);
-            return  (PX_ERROR);
+        iErr = tpsFsWrite(ptpsfile->TPSFIL_pinode, (PUCHAR)pcBuffer,
+                          pfdentry->FDENTRY_oftPtr, stNBytes, &szWriteNum);
+        if ((iErr == ERROR_NONE) && (szWriteNum > 0)) {
+            pfdentry->FDENTRY_oftPtr += (off_t)szWriteNum;              /*  更新文件指针                */
+            pfdnode->FDNODE_oftSize   = tpsFsGetSize(ptpsfile->TPSFIL_pinode);
         }
-    }
-
-    iErr = tpsFsWrite(ptpsfile->TPSFIL_pinode, (PUCHAR)pcBuffer,
-                      pfdentry->FDENTRY_oftPtr, stNBytes, &szWriteNum);
-    if ((iErr == ERROR_NONE) && (szWriteNum > 0)) {
-        pfdentry->FDENTRY_oftPtr += (off_t)szWriteNum;                  /*  更新文件指针                */
-        pfdnode->FDNODE_oftSize   = tpsFsGetSize(ptpsfile->TPSFIL_pinode);
     }
 
     __TPS_FILE_UNLOCK(ptpsfile);
@@ -1193,12 +1199,12 @@ static ssize_t  __tpsFsPWrite (PLW_FD_ENTRY  pfdentry,
                                size_t        stNBytes,
                                off_t         oftPos)
 {
-    PLW_FD_NODE   pfdnode       = (PLW_FD_NODE)pfdentry->FDENTRY_pfdnode;
-    PTPS_FILE     ptpsfile      = (PTPS_FILE)pfdnode->FDNODE_pvFile;
-    TPS_SIZE_T    szWriteNum    = 0;
-    errno_t       iErr          = ERROR_NONE;
+    PLW_FD_NODE   pfdnode    = (PLW_FD_NODE)pfdentry->FDENTRY_pfdnode;
+    PTPS_FILE     ptpsfile   = (PTPS_FILE)pfdnode->FDNODE_pvFile;
+    TPS_SIZE_T    szWriteNum = 0;
+    errno_t       iErr       = ERROR_NONE;
 
-    if (!pcBuffer || !stNBytes || (oftPos < 0)) {
+    if (!pcBuffer || (oftPos < 0)) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -1214,39 +1220,41 @@ static ssize_t  __tpsFsPWrite (PLW_FD_ENTRY  pfdentry,
         return  (PX_ERROR);
     }
 
-    if (tpsFsGetSize(ptpsfile->TPSFIL_pinode) < oftPos) {
-        UINT uiBufSize = ptpsfile->TPSFIL_pinode->IND_psb->SB_uiBlkSize;/*  自动扩展文件                */
-        size_t szWrite;
-        PUCHAR pucZoreBuf = (PUCHAR)__SHEAP_ALLOC(uiBufSize);
-        if (pucZoreBuf == LW_NULL) {
-            __TPS_FILE_UNLOCK(ptpsfile);
-            _DebugHandle(__ERRORMESSAGE_LEVEL, "system low memory.\r\n");
-            _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
-            return  (PX_ERROR);
-        }
+    if (stNBytes) {
+        if (tpsFsGetSize(ptpsfile->TPSFIL_pinode) < oftPos) {           /*  自动扩展文件                */
+            UINT uiBufSize = ptpsfile->TPSFIL_pinode->IND_psb->SB_uiBlkSize;
+            size_t szWrite;
+            PUCHAR pucZoreBuf = (PUCHAR)__SHEAP_ALLOC(uiBufSize);
+            if (pucZoreBuf == LW_NULL) {
+                __TPS_FILE_UNLOCK(ptpsfile);
+                _DebugHandle(__ERRORMESSAGE_LEVEL, "system low memory.\r\n");
+                _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
+                return  (PX_ERROR);
+            }
 
-        lib_bzero(pucZoreBuf, uiBufSize);
-        while (tpsFsGetSize(ptpsfile->TPSFIL_pinode) < oftPos) {
-            szWrite = (size_t)min(uiBufSize, oftPos - tpsFsGetSize(ptpsfile->TPSFIL_pinode));
-            if (tpsFsWrite(ptpsfile->TPSFIL_pinode, pucZoreBuf,
-                           tpsFsGetSize(ptpsfile->TPSFIL_pinode),
-                           szWrite, &szWriteNum) != ERROR_NONE) {
-                break;
+            lib_bzero(pucZoreBuf, uiBufSize);
+            while (tpsFsGetSize(ptpsfile->TPSFIL_pinode) < oftPos) {
+                szWrite = (size_t)min(uiBufSize, oftPos - tpsFsGetSize(ptpsfile->TPSFIL_pinode));
+                if (tpsFsWrite(ptpsfile->TPSFIL_pinode, pucZoreBuf,
+                               tpsFsGetSize(ptpsfile->TPSFIL_pinode),
+                               szWrite, &szWriteNum) != ERROR_NONE) {
+                    break;
+                }
+            }
+
+            __SHEAP_FREE(pucZoreBuf);
+            if (tpsFsGetSize(ptpsfile->TPSFIL_pinode) < oftPos) {
+                __TPS_FILE_UNLOCK(ptpsfile);
+                _ErrorHandle(EFBIG);
+                return  (PX_ERROR);
             }
         }
 
-        __SHEAP_FREE(pucZoreBuf);
-        if (tpsFsGetSize(ptpsfile->TPSFIL_pinode) < oftPos) {
-            __TPS_FILE_UNLOCK(ptpsfile);
-            _ErrorHandle(EFBIG);
-            return  (PX_ERROR);
+        iErr = tpsFsWrite(ptpsfile->TPSFIL_pinode, (PUCHAR)pcBuffer,
+                          oftPos, stNBytes, &szWriteNum);
+        if ((iErr == ERROR_NONE) && (szWriteNum > 0)) {
+            pfdnode->FDNODE_oftSize = tpsFsGetSize(ptpsfile->TPSFIL_pinode);
         }
-    }
-
-    iErr = tpsFsWrite(ptpsfile->TPSFIL_pinode, (PUCHAR)pcBuffer,
-                      oftPos, stNBytes, &szWriteNum);
-    if ((iErr == ERROR_NONE) && (szWriteNum > 0)) {
-        pfdnode->FDNODE_oftSize = tpsFsGetSize(ptpsfile->TPSFIL_pinode);
     }
 
     __TPS_FILE_UNLOCK(ptpsfile);
@@ -1254,7 +1262,6 @@ static ssize_t  __tpsFsPWrite (PLW_FD_ENTRY  pfdentry,
     _ErrorHandle(iErr);
     return  ((ssize_t)szWriteNum);
 }
-
 /*********************************************************************************************************
 ** 函数名称: __tpsFsSeek
 ** 功能描述: TPS FS 文件定位
@@ -1782,6 +1789,8 @@ static INT  __tpsFsTruncate (PLW_FD_ENTRY  pfdentry, off_t  oftSize)
                     break;
                 }
             }
+            
+            pfdnode->FDNODE_oftSize = tpsFsGetSize(ptpsfile->TPSFIL_pinode);
 
             __SHEAP_FREE(pucZoreBuf);
             if (tpsFsGetSize(ptpsfile->TPSFIL_pinode) < oftSize) {

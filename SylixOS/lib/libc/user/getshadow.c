@@ -58,6 +58,7 @@ void init_etc_shadow (void)
                   "anonymous:!!:0:0:99999:7:::\n");
 #endif /* LW_CFG_SHELL_PASS_CRYPT_EN > 0 */
       fclose(fp);
+      chmod("/etc/shadow", S_IRUSR);
     }
   }
 }
@@ -118,71 +119,88 @@ int scansp (
 int getspent_r(struct spwd *result_buf, char *buffer,
 		       size_t buflen, struct spwd **result)
 {
-    init_etc_shadow();
-    
-    if ((shadow_fp == NULL) || (result_buf == NULL)) {
-      errno = EINVAL;
-      return -1;
-    }
-    
-    if (!scansp(shadow_fp, result_buf, buffer, buflen)) {
-      errno = EINVAL;
-      return -1;
-    }
-    
-    *result = result_buf;
-    
-    return  0;
+  FILE *shadow;
+
+  init_etc_shadow();
+  
+  if (result_buf == NULL) {
+    errno = EINVAL;
+    return -1;
+  }
+  
+  shadow = fopen("/etc/shadow", "r");
+  if (shadow == NULL) {
+    return -1;
+  }
+  
+  if (!scansp(shadow, result_buf, buffer, buflen)) {
+    fclose(shadow);
+    errno = EINVAL;
+    return -1;
+  }
+  
+  *result = result_buf;
+  
+  fclose(shadow);
+  return 0;
 }
 
 int getspnam_r(const char *name, struct spwd *result_buf,
 		       char *buffer, size_t buflen,
 		       struct spwd **result)
 {
-    init_etc_shadow();
-    
-    if ((shadow_fp == NULL) || 
-        (result_buf == NULL) ||
-        (name == NULL)) {
-      errno = EINVAL;
-      return -1;
-    }
-    
-    for (;;) {
-      if (!scansp(shadow_fp, result_buf, buffer, buflen)) {
-        errno = EINVAL;
-        return -1;
-      }
-      if (strcmp(result_buf->sp_namp, name) == 0) {
-        *result = result_buf;
-        return 0;
-      }
-    }
-    
+  FILE *shadow;
+
+  init_etc_shadow();
+  
+  if ((result_buf == NULL) || (name == NULL)) {
     errno = EINVAL;
     return -1;
+  }
+  
+  shadow = fopen("/etc/shadow", "r");
+  if (shadow == NULL) {
+    return -1;
+  }
+  
+  for (;;) {
+    if (!scansp(shadow, result_buf, buffer, buflen)) {
+      fclose(shadow);
+      errno = 0;
+      return -1;
+    }
+    if (strcmp(result_buf->sp_namp, name) == 0) {
+      fclose(shadow);
+      *result = result_buf;
+      return 0;
+    }
+  }
+  
+  fclose(shadow);
+  errno = EINVAL;
+  return -1;
 }
 
 int fgetspent_r(FILE *stream, struct spwd *result_buf,
 			    char *buffer, size_t buflen,
 			    struct spwd **result)
 {
-    init_etc_shadow();
-    
-    if ((stream == NULL) || 
-        (result_buf == NULL)) {
-      errno = EINVAL;
-      return -1;
-    }
-    
-    if (!scansp(stream, result_buf, buffer, buflen)) {
-      errno = EINVAL;
-      return -1;
-    }
-    
-    *result = result_buf;
-    
-    return  0;
+  init_etc_shadow();
+  
+  if ((stream == NULL) || 
+      (result_buf == NULL)) {
+    errno = EINVAL;
+    return -1;
+  }
+  
+  if (!scansp(stream, result_buf, buffer, buflen)) {
+    errno = EINVAL;
+    return -1;
+  }
+  
+  *result = result_buf;
+  
+  return 0;
 }
 
 struct spwd *getspent(void)

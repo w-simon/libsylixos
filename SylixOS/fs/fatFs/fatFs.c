@@ -1169,7 +1169,7 @@ static ssize_t  __fatFsRead (PLW_FD_ENTRY   pfdentry,
     ULONG         ulError   = ERROR_NONE;
     UINT          uiReadNum = 0;
     
-    if (!pcBuffer || !stMaxBytes) {
+    if (!pcBuffer) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -1185,20 +1185,22 @@ static ssize_t  __fatFsRead (PLW_FD_ENTRY   pfdentry,
         return  (PX_ERROR);
     }
     
-    if (__fatFsSeekFile(pfatfile, pfdentry->FDENTRY_oftPtr)) {          /*  调整内部文件指针            */
-        __FAT_FILE_UNLOCK(pfatfile);
-        return  (PX_ERROR);
+    if (stMaxBytes) {
+        if (__fatFsSeekFile(pfatfile, pfdentry->FDENTRY_oftPtr)) {      /*  调整内部文件指针            */
+            __FAT_FILE_UNLOCK(pfatfile);
+            return  (PX_ERROR);
+        }
+        
+        fresError = f_read(&pfatfile->FATFIL_fftm.FFTM_file,
+                           (PVOID)pcBuffer, 
+                           (UINT)stMaxBytes, 
+                           &uiReadNum);
+        if ((fresError == FR_OK) && (uiReadNum > 0)) {
+            pfdentry->FDENTRY_oftPtr += (off_t)uiReadNum;               /*  更新文件指针                */
+        }
+        
+        ulError = __fatFsGetError(fresError);                           /*  转换错误编号                */
     }
-    
-    fresError = f_read(&pfatfile->FATFIL_fftm.FFTM_file,
-                       (PVOID)pcBuffer, 
-                       (UINT)stMaxBytes, 
-                       &uiReadNum);
-    if ((fresError == FR_OK) && (uiReadNum > 0)) {
-        pfdentry->FDENTRY_oftPtr += (off_t)uiReadNum;                   /*  更新文件指针                */
-    }
-    
-    ulError = __fatFsGetError(fresError);                               /*  转换错误编号                */
     
     __FAT_FILE_UNLOCK(pfatfile);
     
@@ -1227,7 +1229,7 @@ static ssize_t  __fatFsPRead (PLW_FD_ENTRY  pfdentry,
     ULONG         ulError   = ERROR_NONE;
     UINT          uiReadNum = 0;
     
-    if (!pcBuffer || !stMaxBytes || (oftPos < 0)) {
+    if (!pcBuffer || (oftPos < 0)) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -1243,17 +1245,19 @@ static ssize_t  __fatFsPRead (PLW_FD_ENTRY  pfdentry,
         return  (PX_ERROR);
     }
     
-    if (__fatFsSeekFile(pfatfile, oftPos)) {                            /*  调整内部文件指针            */
-        __FAT_FILE_UNLOCK(pfatfile);
-        return  (PX_ERROR);
+    if (stMaxBytes) {
+        if (__fatFsSeekFile(pfatfile, oftPos)) {                        /*  调整内部文件指针            */
+            __FAT_FILE_UNLOCK(pfatfile);
+            return  (PX_ERROR);
+        }
+        
+        fresError = f_read(&pfatfile->FATFIL_fftm.FFTM_file,
+                           (PVOID)pcBuffer, 
+                           (UINT)stMaxBytes, 
+                           &uiReadNum);
+                           
+        ulError = __fatFsGetError(fresError);                           /*  转换错误编号                */
     }
-    
-    fresError = f_read(&pfatfile->FATFIL_fftm.FFTM_file,
-                       (PVOID)pcBuffer, 
-                       (UINT)stMaxBytes, 
-                       &uiReadNum);
-                       
-    ulError = __fatFsGetError(fresError);                               /*  转换错误编号                */
     
     __FAT_FILE_UNLOCK(pfatfile);
     
@@ -1280,7 +1284,7 @@ static ssize_t  __fatFsWrite (PLW_FD_ENTRY  pfdentry,
     ULONG         ulError    = ERROR_NONE;
     UINT          uiWriteNum = 0;
 
-    if (!pcBuffer || !stNBytes) {
+    if (!pcBuffer) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -1306,25 +1310,27 @@ static ssize_t  __fatFsWrite (PLW_FD_ENTRY  pfdentry,
         pfdentry->FDENTRY_oftPtr = pfdnode->FDNODE_oftSize;             /*  移动读写指针到末尾          */
     }
     
-    if (__fatFsSeekFile(pfatfile, pfdentry->FDENTRY_oftPtr)) {          /*  调整内部文件指针            */
-        __FAT_FILE_UNLOCK(pfatfile);
-        return  (PX_ERROR);
+    if (stNBytes) {
+        if (__fatFsSeekFile(pfatfile, pfdentry->FDENTRY_oftPtr)) {      /*  调整内部文件指针            */
+            __FAT_FILE_UNLOCK(pfatfile);
+            return  (PX_ERROR);
+        }
+        
+        fresError = f_write(&pfatfile->FATFIL_fftm.FFTM_file,
+                            (CPVOID)pcBuffer, 
+                            (UINT)stNBytes, 
+                            &uiWriteNum);
+        if ((fresError == FR_OK) && (uiWriteNum > 0)) {
+            pfdentry->FDENTRY_oftPtr += (off_t)uiWriteNum;              /*  更新文件指针                */
+            pfdnode->FDNODE_oftSize   = (off_t)f_size(&pfatfile->FATFIL_fftm.FFTM_file);
+        }                                                               /*  更新文件大小                */
+        
+        ulError = __fatFsGetError(fresError);                           /*  转换错误编号                */
     }
-    
-    fresError = f_write(&pfatfile->FATFIL_fftm.FFTM_file,
-                        (CPVOID)pcBuffer, 
-                        (UINT)stNBytes, 
-                        &uiWriteNum);
-    if ((fresError == FR_OK) && (uiWriteNum > 0)) {
-        pfdentry->FDENTRY_oftPtr += (off_t)uiWriteNum;                  /*  更新文件指针                */
-        pfdnode->FDNODE_oftSize   = (off_t)f_size(&pfatfile->FATFIL_fftm.FFTM_file);
-    }                                                                   /*  更新文件大小                */
-    
-    ulError = __fatFsGetError(fresError);                               /*  转换错误编号                */
     
     __FAT_FILE_UNLOCK(pfatfile);
     
-    if (ulError == ERROR_NONE) {
+    if ((ulError == ERROR_NONE) && stNBytes) {
         if (pfdentry->FDENTRY_iFlag & (O_SYNC | O_DSYNC)) {             /*  需要立即同步                */
             ulError = __fatFsSync(pfdentry, LW_TRUE);
         }
@@ -1377,24 +1383,26 @@ static ssize_t  __fatFsPWrite (PLW_FD_ENTRY  pfdentry,
         return  (PX_ERROR);
     }
     
-    if (__fatFsSeekFile(pfatfile, oftPos)) {                            /*  调整内部文件指针            */
-        __FAT_FILE_UNLOCK(pfatfile);
-        return  (PX_ERROR);
+    if (stNBytes) {
+        if (__fatFsSeekFile(pfatfile, oftPos)) {                        /*  调整内部文件指针            */
+            __FAT_FILE_UNLOCK(pfatfile);
+            return  (PX_ERROR);
+        }
+        
+        fresError = f_write(&pfatfile->FATFIL_fftm.FFTM_file,
+                            (CPVOID)pcBuffer, 
+                            (UINT)stNBytes, 
+                            &uiWriteNum);
+        if ((fresError == FR_OK) && (uiWriteNum > 0)) {
+            pfdnode->FDNODE_oftSize   = (off_t)f_size(&pfatfile->FATFIL_fftm.FFTM_file);
+        }                                                               /*  更新文件大小                */
+        
+        ulError = __fatFsGetError(fresError);                           /*  转换错误编号                */
     }
-    
-    fresError = f_write(&pfatfile->FATFIL_fftm.FFTM_file,
-                        (CPVOID)pcBuffer, 
-                        (UINT)stNBytes, 
-                        &uiWriteNum);
-    if ((fresError == FR_OK) && (uiWriteNum > 0)) {
-        pfdnode->FDNODE_oftSize   = (off_t)f_size(&pfatfile->FATFIL_fftm.FFTM_file);
-    }                                                                   /*  更新文件大小                */
-    
-    ulError = __fatFsGetError(fresError);                               /*  转换错误编号                */
     
     __FAT_FILE_UNLOCK(pfatfile);
     
-    if (ulError == ERROR_NONE) {
+    if ((ulError == ERROR_NONE) && stNBytes) {
         if (pfdentry->FDENTRY_iFlag & (O_SYNC | O_DSYNC)) {             /*  需要立即同步                */
             ulError = __fatFsSync(pfdentry, LW_TRUE);
         }

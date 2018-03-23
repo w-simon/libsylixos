@@ -1077,8 +1077,8 @@ VOID  tpsFsStat (PTPS_SUPER_BLOCK  psb, PTPS_INODE  pinode, struct stat *pstat)
             pstat->st_ino     = (ino_t)pinode->IND_inum;
             pstat->st_mode    = pinode->IND_iMode;
             pstat->st_nlink   = pinode->IND_uiRefCnt;
-            pstat->st_uid     = 0;
-            pstat->st_gid     = 0;
+            pstat->st_uid     = pinode->IND_iUid;
+            pstat->st_gid     = pinode->IND_iGid;
             pstat->st_rdev    = 1;
             pstat->st_size    = pinode->IND_szData;
             pstat->st_atime   = pinode->IND_ui64ATime;

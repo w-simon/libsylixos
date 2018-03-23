@@ -550,7 +550,7 @@ static ssize_t  __ramFsRead (PLW_FD_ENTRY pfdentry,
     PRAM_NODE     pramn      = (PRAM_NODE)pfdnode->FDNODE_pvFile;
     ssize_t       sstReadNum = PX_ERROR;
     
-    if (!pcBuffer || !stMaxBytes) {
+    if (!pcBuffer) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -571,9 +571,14 @@ static ssize_t  __ramFsRead (PLW_FD_ENTRY pfdentry,
         return  (PX_ERROR);
     }
     
-    sstReadNum = __ram_read(pramn, pcBuffer, stMaxBytes, (size_t)pfdentry->FDENTRY_oftPtr);
-    if (sstReadNum > 0) {
-        pfdentry->FDENTRY_oftPtr += (off_t)sstReadNum;                  /*  更新文件指针                */
+    if (stMaxBytes) {
+        sstReadNum = __ram_read(pramn, pcBuffer, stMaxBytes, (size_t)pfdentry->FDENTRY_oftPtr);
+        if (sstReadNum > 0) {
+            pfdentry->FDENTRY_oftPtr += (off_t)sstReadNum;              /*  更新文件指针                */
+        }
+    
+    } else {
+        sstReadNum = 0;
     }
     
     __RAMFS_FILE_UNLOCK(pramn);
@@ -600,7 +605,7 @@ static ssize_t  __ramFsPRead (PLW_FD_ENTRY pfdentry,
     PRAM_NODE     pramn      = (PRAM_NODE)pfdnode->FDNODE_pvFile;
     ssize_t       sstReadNum = PX_ERROR;
     
-    if (!pcBuffer || !stMaxBytes || (oftPos < 0)) {
+    if (!pcBuffer || (oftPos < 0)) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -621,7 +626,12 @@ static ssize_t  __ramFsPRead (PLW_FD_ENTRY pfdentry,
         return  (PX_ERROR);
     }
     
-    sstReadNum = __ram_read(pramn, pcBuffer, stMaxBytes, (size_t)oftPos);
+    if (stMaxBytes) {
+        sstReadNum = __ram_read(pramn, pcBuffer, stMaxBytes, (size_t)oftPos);
+    
+    } else {
+        sstReadNum = 0;
+    }
     
     __RAMFS_FILE_UNLOCK(pramn);
     
@@ -645,7 +655,7 @@ static ssize_t  __ramFsWrite (PLW_FD_ENTRY  pfdentry,
     PRAM_NODE     pramn       = (PRAM_NODE)pfdnode->FDNODE_pvFile;
     ssize_t       sstWriteNum = PX_ERROR;
     
-    if (!pcBuffer || !stNBytes) {
+    if (!pcBuffer) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -670,10 +680,15 @@ static ssize_t  __ramFsWrite (PLW_FD_ENTRY  pfdentry,
         pfdentry->FDENTRY_oftPtr = pfdnode->FDNODE_oftSize;             /*  移动读写指针到末尾          */
     }
     
-    sstWriteNum = __ram_write(pramn, pcBuffer, stNBytes, (size_t)pfdentry->FDENTRY_oftPtr);
-    if (sstWriteNum > 0) {
-        pfdentry->FDENTRY_oftPtr += (off_t)sstWriteNum;                 /*  更新文件指针                */
-        pfdnode->FDNODE_oftSize   = (off_t)pramn->RAMN_stSize;
+    if (stNBytes) {
+        sstWriteNum = __ram_write(pramn, pcBuffer, stNBytes, (size_t)pfdentry->FDENTRY_oftPtr);
+        if (sstWriteNum > 0) {
+            pfdentry->FDENTRY_oftPtr += (off_t)sstWriteNum;             /*  更新文件指针                */
+            pfdnode->FDNODE_oftSize   = (off_t)pramn->RAMN_stSize;
+        }
+        
+    } else {
+        sstWriteNum = 0;
     }
     
     __RAMFS_FILE_UNLOCK(pramn);
@@ -700,7 +715,7 @@ static ssize_t  __ramFsPWrite (PLW_FD_ENTRY  pfdentry,
     PRAM_NODE     pramn       = (PRAM_NODE)pfdnode->FDNODE_pvFile;
     ssize_t       sstWriteNum = PX_ERROR;
     
-    if (!pcBuffer || !stNBytes || (oftPos < 0)) {
+    if (!pcBuffer || (oftPos < 0)) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -721,9 +736,14 @@ static ssize_t  __ramFsPWrite (PLW_FD_ENTRY  pfdentry,
         return  (PX_ERROR);
     }
     
-    sstWriteNum = __ram_write(pramn, pcBuffer, stNBytes, (size_t)oftPos);
-    if (sstWriteNum > 0) {
-        pfdnode->FDNODE_oftSize = (off_t)pramn->RAMN_stSize;
+    if (stNBytes) {
+        sstWriteNum = __ram_write(pramn, pcBuffer, stNBytes, (size_t)oftPos);
+        if (sstWriteNum > 0) {
+            pfdnode->FDNODE_oftSize = (off_t)pramn->RAMN_stSize;
+        }
+        
+    } else {
+        sstWriteNum = 0;
     }
     
     __RAMFS_FILE_UNLOCK(pramn);
