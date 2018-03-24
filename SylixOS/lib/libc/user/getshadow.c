@@ -119,8 +119,6 @@ int scansp (
 int getspent_r(struct spwd *result_buf, char *buffer,
 		       size_t buflen, struct spwd **result)
 {
-  FILE *shadow;
-
   init_etc_shadow();
   
   if (result_buf == NULL) {
@@ -128,20 +126,18 @@ int getspent_r(struct spwd *result_buf, char *buffer,
     return -1;
   }
   
-  shadow = fopen("/etc/shadow", "r");
-  if (shadow == NULL) {
+  if ((shadow_fp == NULL) ||
+      (result_buf == NULL)) {
+    errno = EINVAL;
     return -1;
   }
   
-  if (!scansp(shadow, result_buf, buffer, buflen)) {
-    fclose(shadow);
+  if (!scansp(shadow_fp, result_buf, buffer, buflen)) {
     errno = EINVAL;
     return -1;
   }
   
   *result = result_buf;
-  
-  fclose(shadow);
   return 0;
 }
 
@@ -199,7 +195,6 @@ int fgetspent_r(FILE *stream, struct spwd *result_buf,
   }
   
   *result = result_buf;
-  
   return 0;
 }
 

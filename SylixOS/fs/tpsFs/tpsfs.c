@@ -1095,6 +1095,7 @@ VOID  tpsFsStat (PTPS_SUPER_BLOCK  psb, PTPS_INODE  pinode, struct stat *pstat)
         pstat->st_uid     = 0;                                          /*  不支持                      */
         pstat->st_gid     = 0;                                          /*  不支持                      */
         pstat->st_rdev    = 1;                                          /*  不支持                      */
+        pstat->st_size    = 0;
         pstat->st_atime   = (time_t)psb->SB_ui64Generation;
         pstat->st_mtime   = (time_t)psb->SB_ui64Generation;
         pstat->st_ctime   = (time_t)psb->SB_ui64Generation;
@@ -1116,6 +1117,7 @@ VOID  tpsFsStat (PTPS_SUPER_BLOCK  psb, PTPS_INODE  pinode, struct stat *pstat)
         pstat->st_uid     = 0;                                          /*  不支持                      */
         pstat->st_gid     = 0;                                          /*  不支持                      */
         pstat->st_rdev    = 1;                                          /*  不支持                      */
+        pstat->st_size    = 0;
         pstat->st_atime   = (time_t)TPS_UTC_TIME();
         pstat->st_mtime   = (time_t)TPS_UTC_TIME();
         pstat->st_ctime   = (time_t)TPS_UTC_TIME();

@@ -589,7 +589,7 @@ static VOID  __natTimer (ULONG  ulIdlTo)
             if (pnatcb->NAT_iStatus == __NAT_STATUS_CLOSING) {
                 pnatcb->NAT_ulTermTimer++;
                 if ((pnatcb->NAT_ulTermTimer >= ulIdlTo) ||
-                    (pnatcb->NAT_ulTermTimer >= 2)) {                   /*  ∂œ¡¥≥¨ ±                    */
+                    (pnatcb->NAT_ulTermTimer >= 3)) {                   /*  ∂œ¡¥≥¨ ±                    */
                     __natClose(pnatcb);
                 }
             }
