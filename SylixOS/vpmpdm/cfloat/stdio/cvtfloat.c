@@ -132,6 +132,7 @@ int lib_cvtfloat (double  number, int  prec, BOOL  doAlt, int  fmtch, BOOL *pDoS
     char   *t;
     double  fract;
     int     dotrim;
+    int     exptmp;
     int     expcnt;
     int     gformat;
     int     nonZeroInt = FALSE;
@@ -285,10 +286,11 @@ eformat:
         }
 
         bufsize -= 2;  /* exclude 'e/E' and '+/-' */
+        exptmp = expcnt;
 
         do {
             bufsize--;
-        } while ((expcnt /= 10) > 9);
+        } while ((exptmp /= 10) > 9);
 
         for (; bufsize-- && prec--; *t++ = '0'); /* if requires more precision */
             

@@ -44,7 +44,7 @@
 
 #define CALIBRATE_CYCLES            14551
 #define CALIBRATE_MULT              82
-#define NSECS_PER_SEC               1000000000UL
+#define NSECS_PER_SEC               1000000000
 
 #define TOD_TSCDIFF(tod, diff_nsec)                     \
         do {                                            \

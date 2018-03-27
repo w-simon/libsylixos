@@ -394,7 +394,7 @@ INT  smethndInit (struct smethnd_netdev *smethnd, const char *ip, const char *ne
     netdev->chksum_flags = smethnd->chksum_flags;
     netdev->net_type     = NETDEV_TYPE_ETHERNET;
     netdev->speed        = 0;
-    netdev->mtu          = SMETHND_PACKET_PAYLOAD_SIZE;
+    netdev->mtu          = SMETHND_PACKET_PAYLOAD_SIZE - ETH_HLEN;
 
     netdev->hwaddr_len = 6;
     netdev->hwaddr[0]  = config->hwaddr[0];
