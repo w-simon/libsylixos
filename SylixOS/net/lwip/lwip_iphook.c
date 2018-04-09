@@ -42,6 +42,7 @@ typedef IP_HOOK_NODE   *PIP_HOOK_NODE;
   回调链
 *********************************************************************************************************/
 static LW_LIST_LINE_HEADER   _G_plineIpHook;
+static struct pbuf        *(*_G_pfuncIpHookNat)();
 /*********************************************************************************************************
 ** 函数名称: lwip_ip_hook
 ** 功能描述: lwip ip 回调函数
@@ -70,6 +71,27 @@ int  lwip_ip_hook (int ip_type, int hook_type, struct pbuf *p, struct netif *in,
     }
     
     return  (0);
+}
+/*********************************************************************************************************
+** 函数名称: lwip_ip_nat_hook
+** 功能描述: lwip ip NAT 专用回调函数
+** 输　入  : ip_type       ip 类型 IP_HOOK_V4
+**           hook_type     回调类型 IP_HT_NAT_PRE_ROUTING
+**           p             数据包
+**           in            输入网络接口
+**           out           输出网络接口
+** 输　出  : pbuf
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+struct pbuf *lwip_ip_nat_hook (int ip_type, int hook_type, struct pbuf *p, struct netif *in, struct netif *out)
+{
+    if (_G_pfuncIpHookNat) {
+        return  (_G_pfuncIpHookNat(ip_type, hook_type, p, in, out));
+    
+    } else {
+        return  (p);
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: net_ip_hook_add
@@ -201,6 +223,93 @@ int  net_ip_hook_isadd (int (*hook)(int ip_type, int hook_type, struct pbuf *p,
     } else {
         *pbIsAdd = LW_FALSE;
     }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: net_ip_hook_nat_add
+** 功能描述: lwip ip 添加 NAT 专用回调函数
+** 输　入  : hook          回调函数
+** 输　出  : -1: 失败
+**            0: 成功
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+int  net_ip_hook_nat_add (struct pbuf *(*hook)(int ip_type, int hook_type, struct pbuf *p, 
+                                               struct netif *in, struct netif *out))
+{
+    if (!hook) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    LOCK_TCPIP_CORE();
+    if (_G_pfuncIpHookNat) {
+        UNLOCK_TCPIP_CORE();
+        _ErrorHandle(EBUSY);
+        return  (PX_ERROR);
+    }
+    
+    _G_pfuncIpHookNat = hook;
+    UNLOCK_TCPIP_CORE();
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: net_ip_hook_nat_delete
+** 功能描述: lwip ip 删除 NAT 专用回调函数
+** 输　入  : hook          回调函数
+** 输　出  : -1: 失败
+**            0: 成功
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+int  net_ip_hook_nat_delete (struct pbuf *(*hook)(int ip_type, int hook_type, struct pbuf *p, 
+                                                  struct netif *in, struct netif *out))
+{
+    if (!hook) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    LOCK_TCPIP_CORE();
+    if (_G_pfuncIpHookNat != hook) {
+        UNLOCK_TCPIP_CORE();
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    _G_pfuncIpHookNat = LW_NULL;
+    UNLOCK_TCPIP_CORE();
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: net_ip_hook_nat_isadd
+** 功能描述: lwip ip 回调函数是否已经安装
+** 输　入  : hook          回调函数
+**           pbIsAdd       是否已经添加了
+** 输　出  : -1: 失败
+**            0: 成功
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+int  net_ip_hook_nat_isadd (struct pbuf *(*hook)(int ip_type, int hook_type, struct pbuf *p,
+                                                 struct netif *in, struct netif *out), BOOL *pbIsAdd)
+{
+    if (!hook || !pbIsAdd) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    LOCK_TCPIP_CORE();
+    if (_G_pfuncIpHookNat != hook) {
+        *pbIsAdd = LW_FALSE;
+        
+    } else {
+        *pbIsAdd = LW_TRUE;
+    }
+    UNLOCK_TCPIP_CORE();
 
     return  (ERROR_NONE);
 }

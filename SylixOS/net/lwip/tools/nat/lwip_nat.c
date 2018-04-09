@@ -43,6 +43,7 @@
 *********************************************************************************************************/
 #if LW_CFG_SHELL_EN > 0
 static INT  __tshellNat(INT  iArgC, PCHAR  ppcArgV[]);
+static INT  __tshellNatIpFrag(INT  iArgC, PCHAR  ppcArgV[]);
 static INT  __tshellNatLocal(INT  iArgC, PCHAR  ppcArgV[]);
 static INT  __tshellNatWan(INT  iArgC, PCHAR  ppcArgV[]);
 static INT  __tshellNatMap(INT  iArgC, PCHAR  ppcArgV[]);
@@ -79,6 +80,11 @@ VOID  API_INetNatInit (VOID)
     API_TShellHelpAdd("nat",    "start or stop NAT network.\n"
                                 "eg. nat wl2 en1 (start NAT network use wl2 as LAN, en1 as WAN)\n"
                                 "    nat stop    (stop NAT network)\n");
+    
+    API_TShellKeywordAdd("natipfrag", __tshellNatIpFrag);
+    API_TShellFormatAdd("natipfrag",  " [proto] [1/0]");
+    API_TShellHelpAdd("natipfrag",    "NAT set specified protocol to support IP fragment.\n"
+                                      "protocol support: tcp udp icmp\n");
     
     API_TShellKeywordAdd("natlocal", __tshellNatLocal);
     API_TShellFormatAdd("natlocal",  " [LAN Iface]");
@@ -148,6 +154,44 @@ INT  API_INetNatStop (VOID)
 {
     if (__natStop()) {
         _ErrorHandle(ENOTCONN);
+        return  (PX_ERROR);
+    }
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_INetNatIpFragSet
+** 功能描述: NAT 设置 IP 分片支持
+** 输　入  : ucProto    网络协议 IPPROTO_UDP / IPPROTO_TCP / IPPROTO_ICMP
+**           bOn        是否使能分片
+** 输　出  : ERROR or OK
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+LW_API  
+INT  API_INetNatIpFragSet (UINT8  ucProto, BOOL  bOn)
+{
+    if (__natIpFragSet(ucProto, bOn)) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_INetNatIpFragGet
+** 功能描述: NAT 获取 IP 分片支持
+** 输　入  : ucProto    网络协议 IPPROTO_UDP / IPPROTO_TCP / IPPROTO_ICMP
+**           pbOn       是否使能分片
+** 输　出  : ERROR or OK
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+LW_API  
+INT  API_INetNatIpFragGet (UINT8  ucProto, BOOL  *pbOn)
+{
+    if (!pbOn || __natIpFragGet(ucProto, pbOn)) {
+        _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
     
@@ -388,6 +432,58 @@ static INT  __tshellNat (INT  iArgC, PCHAR  ppcArgV[])
 
     } else {
         fprintf(stderr, "option error!\n");
+        return  (-ERROR_TSHELL_EPARAM);
+    }
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __tshellNatIpFrag
+** 功能描述: 系统命令 "natipfrag"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : 0
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static INT  __tshellNatIpFrag (INT  iArgC, PCHAR  ppcArgV[])
+{
+    INT   iOn;
+    BOOL  bOn;
+    
+    if (iArgC != 3) {
+        printf("NAT IP Fragment: ");
+        if (API_INetNatIpFragGet(IPPROTO_TCP, &bOn) == ERROR_NONE) {
+            printf("TCP-%s ", bOn ? "Enable" : "Disable");
+        }
+        if (API_INetNatIpFragGet(IPPROTO_UDP, &bOn) == ERROR_NONE) {
+            printf("UDP-%s ", bOn ? "Enable" : "Disable");
+        }
+        if (API_INetNatIpFragGet(IPPROTO_ICMP, &bOn) == ERROR_NONE) {
+            printf("ICMP-%s ", bOn ? "Enable" : "Disable");
+        }
+        printf("\n");
+        return  (ERROR_NONE);
+    }
+    
+    if (sscanf(ppcArgV[2], "%d", &iOn) != 1) {
+        fprintf(stderr, "option error! (On: 1 Off: 0)\n");
+        return  (-ERROR_TSHELL_EPARAM);
+    }
+    
+    bOn = (BOOL)iOn;
+    
+    if (!lib_strcasecmp(ppcArgV[1], "tcp")) {
+        API_INetNatIpFragSet(IPPROTO_TCP, bOn);
+        
+    } else if (!lib_strcasecmp(ppcArgV[1], "udp")) {
+        API_INetNatIpFragSet(IPPROTO_UDP, bOn);
+    
+    } else if (!lib_strcasecmp(ppcArgV[1], "icmp")) {
+        API_INetNatIpFragSet(IPPROTO_ICMP, bOn);
+    
+    } else {
+        fprintf(stderr, "protocol option error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
     

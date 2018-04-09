@@ -36,7 +36,7 @@
 #define IP_HOOK_V6      6
 
 /*********************************************************************************************************
-  回调类型
+  通用回调类型
   
                                                TCP/IP stack  
                                          ^                     |
@@ -63,7 +63,14 @@
 #define IP_HT_POST_ROUTING      4
 
 /*********************************************************************************************************
-  内核函数
+  特殊回调类型
+*********************************************************************************************************/
+
+#define IP_HT_NAT_PRE_ROUTING   0
+#define IP_HT_NAT_POST_ROUTING  4
+
+/*********************************************************************************************************
+  通用回调类型内核函数
 *********************************************************************************************************/
 
 #ifdef __cplusplus
@@ -76,6 +83,17 @@ int  net_ip_hook_delete(int (*hook)(int ip_type, int hook_type, struct pbuf *p,
                                     struct netif *in, struct netif *out));
 int  net_ip_hook_isadd(int (*hook)(int ip_type, int hook_type, struct pbuf *p,
                                    struct netif *in, struct netif *out), BOOL *pbIsAdd);
+
+/*********************************************************************************************************
+  特殊回调类型内核函数 (仅能安装一个回调, 仅用于 IP_HT_NAT_PRE_ROUTING, IP_HT_NAT_POST_ROUTING)
+*********************************************************************************************************/
+
+int  net_ip_hook_nat_add(struct pbuf *(*hook)(int ip_type, int hook_type, struct pbuf *p, 
+                                              struct netif *in, struct netif *out));
+int  net_ip_hook_nat_delete(struct pbuf *(*hook)(int ip_type, int hook_type, struct pbuf *p, 
+                                                 struct netif *in, struct netif *out));
+int  net_ip_hook_nat_isadd(struct pbuf *(*hook)(int ip_type, int hook_type, struct pbuf *p,
+                                                struct netif *in, struct netif *out), BOOL *pbIsAdd);
 
 /*********************************************************************************************************
   设置 pbuf 成员

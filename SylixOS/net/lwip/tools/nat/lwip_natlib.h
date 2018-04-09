@@ -33,6 +33,7 @@ typedef struct {
     LW_LIST_LINE        NAT_lineManage;                                 /*  NAT 控制块链表              */
     
     u8_t                NAT_ucProto;                                    /*  协议                        */
+    u16_t               NAT_usSrcHash;                                  /*  负载均衡源地址 hash         */
     ip4_addr_t          NAT_ipaddrLocalIp;                              /*  本地 IP 地址                */
     u16_t               NAT_usLocalPort;                                /*  本地端口号                  */
     u16_t               NAT_usAssPort;                                  /*  映射端口号 (唯一的)         */
@@ -82,6 +83,8 @@ VOID  nat_netif_remove_hook(struct netif *pnetif);
 VOID        __natInit(VOID);
 INT         __natStart(CPCHAR  pcLocal, CPCHAR  pcAp);
 INT         __natStop(VOID);
+INT         __natIpFragSet(UINT8  ucProto, BOOL  bOn);
+INT         __natIpFragGet(UINT8  ucProto, BOOL  *pbOn);
 INT         __natAddLocal(CPCHAR  pcLocal);
 INT         __natAddAp(CPCHAR  pcAp);
 INT         __natMapAdd(ip4_addr_t  *pipaddr, u16_t  usIpCnt, u16_t  usPort, u16_t  AssPort, u8_t  ucProto);

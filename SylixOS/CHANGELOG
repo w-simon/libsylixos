@@ -4,6 +4,18 @@ HISTORY
 
 ++ New features:
 
+    2018-04-06: han.hui
+    NAT 支持 IP 分片.
+
+++ Bugfixes:
+
+    2018-04-06: han.hui
+    修正 API_VmmIoRemap() API_VmmIoRemapEx() 针对非页面对齐物理地址映射错误.
+
+(STABLE-1.6.5)
+
+++ New features:
+
     2018-02-25: han.hui
     加入 DHCPv6 支持.
 

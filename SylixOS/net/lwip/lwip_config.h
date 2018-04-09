@@ -320,9 +320,9 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrT
 #if LW_CFG_NET_NAT_MAX_SESSION < 128
 #error "LW_CFG_NET_NAT_MAX_SESSION must bigger than 128!"
 #endif                                                                  /*  MAX_SESSION < 128           */
-#if LW_CFG_NET_NAT_MAX_SESSION > 8192
-#error "LW_CFG_NET_NAT_MAX_SESSION must less than 8192!"
-#endif                                                                  /*  MAX_SESSION > 8192          */
+#if LW_CFG_NET_NAT_MAX_SESSION > 12288
+#error "LW_CFG_NET_NAT_MAX_SESSION must less than 12288!"
+#endif                                                                  /*  MAX_SESSION > 12288         */
 
 #define LW_CFG_NET_NAT_MAX_PORT  (65535)
 #define LW_CFG_NET_NAT_MIN_PORT  (65535 - LW_CFG_NET_NAT_MAX_SESSION)   /*  NAT ¶Ë¿ÚÓ³Éä·¶Î§            */

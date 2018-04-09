@@ -36,6 +36,7 @@
 2016.08.25  修正主动连接缺少代理控制块的问题.
 2017.12.19  加入 MAP 负载均衡功能.
 2018.01.16  使用 iphook 实现更加灵活的 NAT 管理.
+2018.04.06  NAT 支持提前分片重组.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -51,6 +52,7 @@
 #include "lwip/opt.h"
 #include "lwip/inet.h"
 #include "lwip/ip.h"
+#include "lwip/ip4_frag.h"
 #include "lwip/tcp.h"
 #include "lwip/priv/tcp_priv.h"
 #include "lwip/udp.h"
@@ -91,6 +93,12 @@ static LW_OBJECT_HANDLE     _G_ulNatcbTimer = LW_OBJECT_HANDLE_INVALID;
 static LW_LIST_LINE_HEADER  _G_plineNatcbTcp  = LW_NULL;
 static LW_LIST_LINE_HEADER  _G_plineNatcbUdp  = LW_NULL;
 static LW_LIST_LINE_HEADER  _G_plineNatcbIcmp = LW_NULL;
+/*********************************************************************************************************
+  NAT 分片使能
+*********************************************************************************************************/
+static BOOL                 _G_bNatTcpFrag  = LW_FALSE;
+static BOOL                 _G_bNatUdpFrag  = LW_FALSE;
+static BOOL                 _G_bNatIcmpFrag = LW_FALSE;
 /*********************************************************************************************************
   NAT 别名
 *********************************************************************************************************/
@@ -431,46 +439,47 @@ static __PNAT_CB  __natNew (ip4_addr_p_t  *pipaddr, u16_t  usPort, u8_t  ucProto
 {
     PLW_LIST_LINE   plineTemp;
     __PNAT_CB       pnatcb = __natPoolAlloc();
-    __PNAT_CB       pnatcbOldest;
+    __PNAT_CB       pnatcbOldest = LW_NULL;
     u16_t           usNewPort;
     
     if (pnatcb == LW_NULL) {                                            /*  需要删除最古老的            */
-        /*
-         *  没有开辟出来, 所以协议代理的三个链表中, 必然至少有一个存在节点.
-         */
-        if (_G_plineNatcbTcp) {
-            pnatcbOldest = _LIST_ENTRY(_G_plineNatcbTcp, __NAT_CB, NAT_lineManage);
-        } else if (_G_plineNatcbUdp) {
-            pnatcbOldest = _LIST_ENTRY(_G_plineNatcbUdp, __NAT_CB, NAT_lineManage);
-        } else {
+        if (_G_plineNatcbIcmp) {                                        /*  优先淘汰 ICMP               */
             pnatcbOldest = _LIST_ENTRY(_G_plineNatcbIcmp, __NAT_CB, NAT_lineManage);
-        }
             
-        for (plineTemp  = _G_plineNatcbTcp;
-             plineTemp != LW_NULL;
-             plineTemp  = _list_line_get_next(plineTemp)) {
-            
-            pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
-            if (pnatcb->NAT_ulIdleTimer > pnatcbOldest->NAT_ulIdleTimer) {
-                pnatcbOldest = pnatcb;
+            for (plineTemp  = _G_plineNatcbIcmp;
+                 plineTemp != LW_NULL;
+                 plineTemp  = _list_line_get_next(plineTemp)) {
+                
+                pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
+                if (pnatcb->NAT_ulIdleTimer > pnatcbOldest->NAT_ulIdleTimer) {
+                    pnatcbOldest = pnatcb;
+                }
             }
-        }
-        for (plineTemp  = _G_plineNatcbUdp;
-             plineTemp != LW_NULL;
-             plineTemp  = _list_line_get_next(plineTemp)) {
             
-            pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
-            if (pnatcb->NAT_ulIdleTimer > pnatcbOldest->NAT_ulIdleTimer) {
-                pnatcbOldest = pnatcb;
+        } else {                                                        /*  淘汰 TCP UDP 时间最久的节点 */
+            if (_G_plineNatcbTcp) {
+                pnatcbOldest = _LIST_ENTRY(_G_plineNatcbTcp, __NAT_CB, NAT_lineManage);
+            } else {
+                pnatcbOldest = _LIST_ENTRY(_G_plineNatcbUdp, __NAT_CB, NAT_lineManage);
             }
-        }
-        for (plineTemp  = _G_plineNatcbIcmp;
-             plineTemp != LW_NULL;
-             plineTemp  = _list_line_get_next(plineTemp)) {
             
-            pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
-            if (pnatcb->NAT_ulIdleTimer > pnatcbOldest->NAT_ulIdleTimer) {
-                pnatcbOldest = pnatcb;
+            for (plineTemp  = _G_plineNatcbTcp;
+                 plineTemp != LW_NULL;
+                 plineTemp  = _list_line_get_next(plineTemp)) {
+                
+                pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
+                if (pnatcb->NAT_ulIdleTimer > pnatcbOldest->NAT_ulIdleTimer) {
+                    pnatcbOldest = pnatcb;
+                }
+            }
+            for (plineTemp  = _G_plineNatcbUdp;
+                 plineTemp != LW_NULL;
+                 plineTemp  = _list_line_get_next(plineTemp)) {
+                
+                pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
+                if (pnatcb->NAT_ulIdleTimer > pnatcbOldest->NAT_ulIdleTimer) {
+                    pnatcbOldest = pnatcb;
+                }
             }
         }
         
@@ -496,6 +505,7 @@ static __PNAT_CB  __natNew (ip4_addr_p_t  *pipaddr, u16_t  usPort, u8_t  ucProto
     }
         
     pnatcb->NAT_ucProto            = ucProto;
+    pnatcb->NAT_usSrcHash          = 0;
     pnatcb->NAT_ipaddrLocalIp.addr = pipaddr->addr;
     pnatcb->NAT_usLocalPort        = usPort;
     
@@ -649,30 +659,38 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
     iphdrlen  = (u16_t)IPH_HL(iphdr);                                   /*  获得 IP 报头长度            */
     iphdrlen *= 4;
     
-    if (p->len < iphdrlen + TCP_HLEN) {                                 /*  缓冲错误                    */
+    if (p->len < iphdrlen) {                                            /*  缓冲错误                    */
         return  (0);
     }
-
-    if ((IPH_OFFSET(iphdr) & PP_HTONS(IP_OFFMASK | IP_MF)) != 0) {      /*  不处理分片包                */
-        return  (0);
-    }
+    
+    LWIP_ASSERT("NAT Input fragment error", 
+                !(IPH_OFFSET(iphdr) & PP_HTONS(IP_OFFMASK | IP_MF)));   /*  理论上不会有分片标志        */
     
     ucProto = IPH_PROTO(iphdr);
     switch (ucProto) {
     
     case IP_PROTO_TCP:                                                  /*  TCP 数据报                  */
+        if (p->len < (iphdrlen + TCP_HLEN)) {
+            return  (0);
+        }
         tcphdr = (struct tcp_hdr *)(((u8_t *)p->payload) + iphdrlen);
         usDestPort  = tcphdr->dest;
         plineHeader = _G_plineNatcbTcp;
         break;
         
     case IP_PROTO_UDP:                                                  /*  UDP 数据报                  */
+        if (p->len < (iphdrlen + UDP_HLEN)) {
+            return  (0);
+        }
         udphdr = (struct udp_hdr *)(((u8_t *)p->payload) + iphdrlen);
         usDestPort  = udphdr->dest;
         plineHeader = _G_plineNatcbUdp;
         break;
         
     case IP_PROTO_ICMP:
+        if (p->len < (iphdrlen + sizeof(struct icmp_echo_hdr))) {
+            return  (0);
+        }
         icmphdr = (struct icmp_echo_hdr *)(((u8_t *)p->payload) + iphdrlen);
         usDestPort  = icmphdr->id;
         plineHeader = _G_plineNatcbIcmp;
@@ -682,8 +700,9 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
         return  (0);                                                    /*  不能处理的协议              */
     }
 
-    if ((PP_NTOHS(usDestPort) < LW_CFG_NET_NAT_MIN_PORT) || 
-        (PP_NTOHS(usDestPort) > LW_CFG_NET_NAT_MAX_PORT)) {             /*  目标端口不在代理端口之间    */
+    if ((ucProto != IP_PROTO_ICMP) &&
+        ((PP_NTOHS(usDestPort) < LW_CFG_NET_NAT_MIN_PORT) || 
+         (PP_NTOHS(usDestPort) > LW_CFG_NET_NAT_MAX_PORT))) {           /*  目标端口不在代理端口之间    */
         for (plineTemp  = _G_plineNatmap;
              plineTemp != LW_NULL;
              plineTemp  = _list_line_get_next(plineTemp)) {
@@ -700,13 +719,15 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
         
         if (pnatmap) {
             ip4_addr_p_t  ipaddr;                                       /*  内网映射服务器 IP           */
-            
+            u16_t         usSrcHash = iphdr->src.addr % pnatmap->NAT_usLocalCnt;
+                                                                        /*  外网 hash                   */
             for (plineTemp  = plineHeader;
                  plineTemp != LW_NULL;
                  plineTemp  = _list_line_get_next(plineTemp)) {
                  
                 pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
-                if ((usDestPort == pnatcb->NAT_usAssPort) &&
+                if ((usSrcHash  == pnatcb->NAT_usSrcHash) &&
+                    (usDestPort == pnatcb->NAT_usAssPort) &&
                     (ucProto    == pnatcb->NAT_ucProto)) {
                     break;                                              /*  找到了 NAT 控制块           */
                 }
@@ -715,15 +736,19 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
                 u32_t   uiHost;
                 
                 uiHost  = (u32_t)PP_NTOHL(pnatmap->NAT_ipaddrLocalIp.addr);
-                uiHost += (iphdr->src.addr % pnatmap->NAT_usLocalCnt);  /*  根据源地址散列做均衡        */
+                uiHost += usSrcHash;                                    /*  根据源地址散列做均衡        */
                 ipaddr.addr = (u32_t)PP_HTONL(uiHost);
                 
                 pnatcb = __natNew(&ipaddr, 
                                   pnatmap->NAT_usLocalPort, ucProto);   /*  新建控制块                  */
+
+                pnatcb->NAT_usSrcHash = usSrcHash;
                 pnatcb->NAT_usAssPort = pnatmap->NAT_usAssPort;
             
             } else {
                 ipaddr.addr = pnatcb->NAT_ipaddrLocalIp.addr;
+                
+                pnatcb->NAT_ulIdleTimer = 0;                            /*  刷新空闲时间                */
             }
         
             /*
@@ -839,7 +864,6 @@ static INT  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct netif
     struct udp_hdr          *udphdr  = LW_NULL;
     struct icmp_echo_hdr    *icmphdr = LW_NULL;
     
-    INT                      i;
     u32_t                    u32OldAddr;
     u16_t                    usDestPort, usSrcPort;
     u8_t                     ucProto;
@@ -851,30 +875,23 @@ static INT  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct netif
     PLW_LIST_LINE            plineTemp;
     LW_LIST_LINE_HEADER      plineHeader;
     
-    for (i = 0; i < LW_CFG_NET_NAT_MAX_LOCAL_IF; i++) {
-        if (_G_natifLocal[i].NATIF_pnetif == pnetifIn) {
-            break;
-        }
-    }
-    if (i >= LW_CFG_NET_NAT_MAX_LOCAL_IF) {
-        return  (0);                                                    /*  不需要进行 NAT 地址转换     */
-    }
-    
     iphdrlen  = (u16_t)IPH_HL(iphdr);                                   /*  获得 IP 报头长度            */
     iphdrlen *= 4;
     
-    if (p->len < iphdrlen + TCP_HLEN) {                                 /*  缓冲错误                    */
+    if (p->len < iphdrlen) {                                            /*  缓冲错误                    */
         return  (1);                                                    /*  删除此数据包                */
     }
 
-    if ((IPH_OFFSET(iphdr) & PP_HTONS(IP_OFFMASK | IP_MF)) != 0) {      /*  不处理分片包                */
-        return  (1);                                                    /*  删除此数据包                */
-    }
+    LWIP_ASSERT("NAT Output fragment error", 
+                !(IPH_OFFSET(iphdr) & PP_HTONS(IP_OFFMASK | IP_MF)));   /*  理论上不会有分片标志        */
     
     ucProto = IPH_PROTO(iphdr);
     switch (ucProto) {
     
     case IP_PROTO_TCP:                                                  /*  TCP 数据报                  */
+        if (p->len < (iphdrlen + TCP_HLEN)) {
+            return  (1);
+        }
         tcphdr = (struct tcp_hdr *)(((u8_t *)p->payload) + iphdrlen);
         usDestPort  = tcphdr->dest;
         usSrcPort   = tcphdr->src;
@@ -882,6 +899,9 @@ static INT  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct netif
         break;
         
     case IP_PROTO_UDP:                                                  /*  UDP 数据报                  */
+        if (p->len < (iphdrlen + UDP_HLEN)) {
+            return  (1);
+        }
         udphdr = (struct udp_hdr *)(((u8_t *)p->payload) + iphdrlen);
         usDestPort  = udphdr->dest;
         usSrcPort   = udphdr->src;
@@ -889,6 +909,9 @@ static INT  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct netif
         break;
         
     case IP_PROTO_ICMP:
+        if (p->len < (iphdrlen + sizeof(struct icmp_echo_hdr))) {
+            return  (1);
+        }
         icmphdr = (struct icmp_echo_hdr *)(((u8_t *)p->payload) + iphdrlen);
         usSrcPort   = usDestPort = icmphdr->id;
         plineHeader = _G_plineNatcbIcmp;
@@ -997,6 +1020,158 @@ static INT  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct netif
     return  (0);
 }
 /*********************************************************************************************************
+** 函数名称: __natIpInput
+** 功能描述: NAT IP 输入回调
+** 输　入  : p         数据包
+**           pnetifIn  输入网络接口
+**           pnetifOut 输出网络接口
+** 输　出  : pbuf
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static struct pbuf *__natIpInput (struct pbuf  *p, struct netif  *pnetifIn, struct netif  *pnetifOut)
+{
+    INT             i;
+    struct ip_hdr  *iphdr;
+    
+    iphdr = (struct ip_hdr *)p->payload;
+    
+    for (i = 0; i < LW_CFG_NET_NAT_MAX_AP_IF; i++) {
+        if (_G_natifAp[i].NATIF_pnetif == pnetifIn) {
+            if (ip4_addr_cmp(&iphdr->dest, netif_ip4_addr(pnetifIn))) {
+                if (IPH_OFFSET(iphdr) & PP_HTONS(IP_OFFMASK | IP_MF)) { /*  分片数据包                  */
+                    switch (IPH_PROTO(iphdr)) {
+    
+                    case IP_PROTO_TCP:
+                        if (!_G_bNatTcpFrag) {
+                            return  (p);
+                        }
+                        break;
+                    
+                    case IP_PROTO_UDP:
+                        if (!_G_bNatUdpFrag) {
+                            return  (p);
+                        }
+                        break;
+                    
+                    case IP_PROTO_ICMP:
+                        if (!_G_bNatIcmpFrag) {
+                            return  (p);
+                        }
+                        break;
+                    
+                    default:
+                        return  (p);
+                    }
+
+#if IP_REASSEMBLY
+                    p = ip4_reass(p);                                   /*  提前进行分片重组            */
+                    if (p == LW_NULL) {
+                        return  (p);                                    /*  分片不全                    */
+                    }
+#else                                                                   /*  IP_REASSEMBLY               */
+                    return  (p);
+#endif                                                                  /*  !IP_REASSEMBLY              */
+                }
+                __natApInput(p, pnetifIn);                              /*  NAT 输入                    */
+            }
+            break;
+        }
+    }
+    
+    return  (p);
+}
+/*********************************************************************************************************
+** 函数名称: __natIpOutput
+** 功能描述: NAT IP 输出回调
+** 输　入  : p         数据包
+**           pnetifIn  输入网络接口
+**           pnetifOut 输出网络接口
+** 输　出  : pbuf
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static struct pbuf *__natIpOutput (struct pbuf  *p, struct netif  *pnetifIn, struct netif  *pnetifOut)
+{
+    INT             i, j;
+    struct ip_hdr  *iphdr;
+    
+    if (!pnetifIn) {                                                    /*  本机发送                    */
+        return  (p);
+    }
+    
+    iphdr = (struct ip_hdr *)p->payload;
+    
+    for (i = 0; i < LW_CFG_NET_NAT_MAX_AP_IF; i++) {
+        if (_G_natifAp[i].NATIF_pnetif == pnetifOut) {                  /*  AP 输出                     */
+            for (j = 0; j < LW_CFG_NET_NAT_MAX_LOCAL_IF; j++) {
+                if (_G_natifLocal[j].NATIF_pnetif == pnetifIn) {
+                    break;                                              /*  LOCAL 输入                  */
+                }
+            }
+            if (j >= LW_CFG_NET_NAT_MAX_LOCAL_IF) {
+                return  (p);                                            /*  不需要进行 NAT 地址转换     */
+            }
+            
+            if (IPH_OFFSET(iphdr) & PP_HTONS(IP_OFFMASK | IP_MF)) {     /*  分片数据包                  */
+                switch (IPH_PROTO(iphdr)) {
+                
+                case IP_PROTO_TCP:
+                    if (!_G_bNatTcpFrag) {
+                        pbuf_free(p);
+                        return  (LW_NULL);
+                    }
+                    break;
+                
+                case IP_PROTO_UDP:
+                    if (!_G_bNatUdpFrag) {
+                        pbuf_free(p);
+                        return  (LW_NULL);
+                    }
+                    break;
+                
+                case IP_PROTO_ICMP:
+                    if (!_G_bNatIcmpFrag) {
+                        pbuf_free(p);
+                        return  (LW_NULL);
+                    }
+                    break;
+                
+                default:
+                    pbuf_free(p);
+                    return  (LW_NULL);
+                }
+
+#if IP_REASSEMBLY
+                p = ip4_reass(p);                                       /*  提前进行分片重组            */
+                if (p == LW_NULL) {
+                    return  (p);                                        /*  分片不全                    */
+                }
+#else
+                pbuf_free(p);
+                return  (LW_NULL);
+#endif
+                if (__natApOutput(p, pnetifIn, pnetifOut)) {            /*  NAT 输出                    */
+                    pbuf_free(p);
+                    return  (LW_NULL);
+                
+                } else {
+                    return  (p);
+                }
+                
+            } else {
+                if (__natApOutput(p, pnetifIn, pnetifOut)) {            /*  NAT 输出                    */
+                    pbuf_free(p);
+                    return  (LW_NULL);
+                }
+            }
+            break;
+        }
+    }
+    
+    return  (p);
+}
+/*********************************************************************************************************
 ** 函数名称: __natIphook
 ** 功能描述: NAT IP 回调
 ** 输　入  : iIpType   协议类型
@@ -1004,50 +1179,30 @@ static INT  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct netif
 **           p         数据包
 **           pnetifIn  输入网络接口
 **           pnetifOut 输出网络接口
-** 输　出  : 0: ok 1: eaten
+** 输　出  : pbuf
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT  __natIphook (INT  iIpType, INT  iHookType, struct pbuf  *p, 
-                         struct netif  *pnetifIn, struct netif  *pnetifOut)
+static struct pbuf *__natIphook (INT  iIpType, INT  iHookType, struct pbuf  *p, 
+                                 struct netif  *pnetifIn, struct netif  *pnetifOut)
 {
-    INT             i, iRet = 0;
-    struct ip_hdr  *iphdr;
-
     if (iIpType != IP_HOOK_V4) {
-        return  (0);
+        return  (p);
     }
     
     switch (iHookType) {
     
-    case IP_HT_PRE_ROUTING:                                             /*  网口接收                    */
-        iphdr = (struct ip_hdr *)p->payload;
-        for (i = 0; i < LW_CFG_NET_NAT_MAX_AP_IF; i++) {
-            if (_G_natifAp[i].NATIF_pnetif == pnetifIn) {
-                if (ip4_addr_cmp(&iphdr->dest, netif_ip4_addr(pnetifIn))) {
-                    iRet = __natApInput(p, pnetifIn);
-                    break;
-                }
-            }
-        }
-        break;
+    case IP_HT_NAT_PRE_ROUTING:
+        return  (__natIpInput(p, pnetifIn, pnetifOut));
         
-    case IP_HT_POST_ROUTING:                                            /*  网口发送                    */
-        if (pnetifIn) {                                                 /*  非本机发送                  */
-            for (i = 0; i < LW_CFG_NET_NAT_MAX_AP_IF; i++) {
-                if (_G_natifAp[i].NATIF_pnetif == pnetifOut) {
-                    iRet = __natApOutput(p, pnetifIn, pnetifOut);
-                    break;
-                }
-            }
-        }
-        break;
+    case IP_HT_NAT_POST_ROUTING:
+        return  (__natIpOutput(p, pnetifIn, pnetifOut));
         
     default:
         break;
     }
-
-    return  (iRet);
+    
+    return  (p);
 }
 /*********************************************************************************************************
 ** 函数名称: __natInit
@@ -1085,7 +1240,7 @@ INT  __natStart (CPCHAR  pcLocal, CPCHAR  pcAp)
     _G_natifLocal[0].NATIF_pnetif = netif_find(pcLocal);
     _G_natifAp[0].NATIF_pnetif    = netif_find(pcAp);
     
-    if (net_ip_hook_add("nat", __natIphook)) {
+    if (net_ip_hook_nat_add(__natIphook)) {
         return  (PX_ERROR);
     }
     
@@ -1110,7 +1265,7 @@ INT  __natStop (VOID)
 {
     INT  i;
 
-    if (net_ip_hook_delete(__natIphook)) {
+    if (net_ip_hook_nat_delete(__natIphook)) {
         return  (PX_ERROR);
     }
     
@@ -1129,6 +1284,69 @@ INT  __natStop (VOID)
     }
     _G_bNatStart = LW_FALSE;
     __NAT_UNLOCK();
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __natIpFragSet
+** 功能描述: NAT 设置 IP 分片支持
+** 输　入  : ucProto    网络协议 IPPROTO_UDP / IPPROTO_TCP / IPPROTO_ICMP
+**           bOn        是否使能分片
+** 输　出  : ERROR or OK
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+INT  __natIpFragSet (UINT8  ucProto, BOOL  bOn)
+{
+    switch (ucProto) {
+    
+    case IP_PROTO_TCP:
+        _G_bNatTcpFrag = bOn;
+        break;
+    
+    case IP_PROTO_UDP:
+        _G_bNatUdpFrag = bOn;
+        break;
+    
+    case IP_PROTO_ICMP:
+        _G_bNatIcmpFrag = bOn;
+        break;
+        
+    default:
+        return  (PX_ERROR);
+    }
+    
+    KN_SMP_MB();
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __natIpFragGet
+** 功能描述: NAT 获取 IP 分片支持
+** 输　入  : ucProto    网络协议 IPPROTO_UDP / IPPROTO_TCP / IPPROTO_ICMP
+**           pbOn       是否使能分片
+** 输　出  : ERROR or OK
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+INT  __natIpFragGet (UINT8  ucProto, BOOL  *pbOn)
+{
+    switch (ucProto) {
+    
+    case IP_PROTO_TCP:
+        *pbOn = _G_bNatTcpFrag;
+        break;
+    
+    case IP_PROTO_UDP:
+        *pbOn = _G_bNatUdpFrag;
+        break;
+    
+    case IP_PROTO_ICMP:
+        *pbOn = _G_bNatIcmpFrag;
+        break;
+        
+    default:
+        return  (PX_ERROR);
+    }
     
     return  (ERROR_NONE);
 }
@@ -1415,6 +1633,12 @@ static ssize_t  __procFsNatSummaryRead (PLW_PROCFS_NODE  p_pfsn,
                                   "\n    Total Ass-node: %d\n", LW_CFG_NET_NAT_MAX_SESSION);
             stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
                                   "    Used  Ass-node: %d\n", uiAssNum);
+                                  
+            stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
+                                  "    IP Fragment: TCP-%s UDP-%s ICMP-%s\n", 
+                                  _G_bNatTcpFrag  ? "Enable" : "Disable",
+                                  _G_bNatUdpFrag  ? "Enable" : "Disable",
+                                  _G_bNatIcmpFrag ? "Enable" : "Disable");
         }
         
         API_ProcFsNodeSetRealFileSize(p_pfsn, stRealSize);

@@ -17,6 +17,9 @@
 ** 文件创建日期: 2016 年 05 月 21 日
 **
 ** 描        述: 平台无关虚拟内存管理, 设备内存映射.
+
+** BUG
+2018.04.06  修正 API_VmmIoRemapEx() 针对非对齐物理内存映射错误.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -40,19 +43,20 @@
 LW_API  
 PVOID  API_VmmIoRemapEx (PVOID  pvPhysicalAddr, size_t stSize, ULONG  ulFlags)
 {
-    REGISTER ULONG          ulPageNum = (ULONG) (stSize >> LW_CFG_VMM_PAGE_SHIFT);
-    REGISTER size_t         stExcess  = (size_t)(stSize & ~LW_CFG_VMM_PAGE_MASK);
-
+    REGISTER addr_t         ulPhyPageAddr;
+    REGISTER ULONG          ulPageNum;
+    REGISTER ULONG          ulUpPad;
+    
     REGISTER PLW_VMM_PAGE   pvmpageVirtual;
              ULONG          ulError;
     
-    if (stExcess) {
-        ulPageNum++;                                                    /*  确定分页数量                */
-    }
-
-    if (ulPageNum < 1) {
-        _ErrorHandle(EINVAL);
-        return  (LW_NULL);
+    ulUpPad        = (addr_t)pvPhysicalAddr & (LW_CFG_VMM_PAGE_SIZE - 1);
+    ulPhyPageAddr  = (addr_t)pvPhysicalAddr - ulUpPad;
+    stSize        += (size_t)ulUpPad;
+    
+    ulPageNum = (ULONG)(stSize >> LW_CFG_VMM_PAGE_SHIFT);
+    if (stSize & ~LW_CFG_VMM_PAGE_MASK) {
+        ulPageNum++;
     }
     
     __VMM_LOCK();
@@ -63,7 +67,7 @@ PVOID  API_VmmIoRemapEx (PVOID  pvPhysicalAddr, size_t stSize, ULONG  ulFlags)
         return  (LW_NULL);
     }
     
-    ulError = __vmmLibPageMap((addr_t)pvPhysicalAddr,                   /*  不使用 CACHE                */
+    ulError = __vmmLibPageMap(ulPhyPageAddr,
                               pvmpageVirtual->PAGE_ulPageAddr,
                               ulPageNum, 
                               ulFlags);                                 /*  映射为连续虚拟地址          */
@@ -83,7 +87,7 @@ PVOID  API_VmmIoRemapEx (PVOID  pvPhysicalAddr, size_t stSize, ULONG  ulFlags)
     MONITOR_EVT_LONG3(MONITOR_EVENT_ID_VMM, MONITOR_EVENT_VMM_IOREMAP,
                       pvmpageVirtual->PAGE_ulPageAddr, pvPhysicalAddr, stSize, LW_NULL);
     
-    return  ((PVOID)pvmpageVirtual->PAGE_ulPageAddr);
+    return  ((PVOID)(pvmpageVirtual->PAGE_ulPageAddr + ulUpPad));
 }
 /*********************************************************************************************************
 ** 函数名称: API_VmmIoRemap
@@ -114,6 +118,8 @@ VOID  API_VmmIoUnmap (PVOID  pvVirtualAddr)
 {
     REGISTER PLW_VMM_PAGE   pvmpageVirtual;
              addr_t         ulAddr = (addr_t)pvVirtualAddr;
+    
+    ulAddr &= LW_CFG_VMM_PAGE_MASK;                                     /*  页面对齐地址                */
     
     __VMM_LOCK();
     pvmpageVirtual = __areaVirtualSearchPage(ulAddr);

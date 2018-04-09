@@ -284,8 +284,9 @@ ip4_canforward(struct pbuf *p)
  * @param p the packet to forward (p->payload points to IP header)
  * @param iphdr the IP header of the input packet
  * @param inp the netif on which this packet was received
+ * @return 1: outer do not free pbuf 0: outer free pbuf (SylixOS Add)
  */
-static void
+static u8_t
 ip4_forward(struct pbuf *p, struct ip_hdr *iphdr, struct netif *inp)
 {
   struct netif *netif;
@@ -341,7 +342,7 @@ ip4_forward(struct pbuf *p, struct ip_hdr *iphdr, struct netif *inp)
       icmp_time_exceeded(p, ICMP_TE_TTL);
     }
 #endif /* LWIP_ICMP */
-    return;
+    return 0; /* SylixOS Add return value */
   }
 
   /* Incrementally update the IP checksum. */
@@ -354,8 +355,15 @@ ip4_forward(struct pbuf *p, struct ip_hdr *iphdr, struct netif *inp)
 #ifdef SYLIXOS /* SylixOS Add this hook */
   if (lwip_ip_hook(IP_HOOK_V4, IP_HT_POST_ROUTING, p, inp, netif)) {
     IP_STATS_INC(ip.err);
-    return;
+    return 0; /* SylixOS Add return value */
   }
+  p = lwip_ip_nat_hook(IP_HOOK_V4, IP_HT_NAT_POST_ROUTING, p, inp, netif);
+  if (p == NULL) {
+    return 1; /* SylixOS Add return value (Outer do not free pbuf) */
+  }
+#if IP_REASSEMBLY
+  iphdr = (struct ip_hdr *)p->payload; /* Maybe lwip_ip_nat_hook() changed the pbuf */
+#endif /* IP_REASSEMBLY */
 #endif /* SYLIXOS */
 
   LWIP_DEBUGF(IP_DEBUG, ("ip4_forward: forwarding packet to %"U16_F".%"U16_F".%"U16_F".%"U16_F"\n",
@@ -381,13 +389,14 @@ ip4_forward(struct pbuf *p, struct ip_hdr *iphdr, struct netif *inp)
       icmp_dest_unreach(p, ICMP_DUR_FRAG);
 #endif /* LWIP_ICMP */
     }
-    return;
+    return 0; /* SylixOS Add return value */
   }
   /* transmit pbuf on chosen interface */
   netif->output(netif, p, ip4_current_dest_addr());
-  return;
+  return 0; /* SylixOS Add return value */
 return_noroute:
   MIB2_STATS_INC(mib2.ipoutnoroutes);
+  return 0; /* SylixOS Add return value */
 }
 #endif /* IP_FORWARD */
 
@@ -481,6 +490,13 @@ ip4_input(struct pbuf *p, struct netif *inp)
     IP_STATS_INC(ip.drop);
     return ERR_OK;
   }
+  p = lwip_ip_nat_hook(IP_HOOK_V4, IP_HT_NAT_PRE_ROUTING, p, inp, NULL);
+  if (p == NULL) {
+    return ERR_OK;
+  }
+#if IP_REASSEMBLY
+  iphdr = (struct ip_hdr *)p->payload; /* Maybe lwip_ip_nat_hook() changed the pbuf */
+#endif /* IP_REASSEMBLY */
 #endif /* SYLIXOS */
 
 #ifdef LWIP_HOOK_IP4_INPUT
@@ -660,15 +676,18 @@ ip4_input(struct pbuf *p, struct netif *inp)
     /* non-broadcast packet? */
     if (!ip4_addr_isbroadcast(ip4_current_dest_addr(), inp)) {
       /* try to forward IP packet on (other) interfaces */
-      ip4_forward(p, (struct ip_hdr *)p->payload, inp);
+      /* SylixOS changed here */
+      if (!ip4_forward(p, (struct ip_hdr *)p->payload, inp)) {
+        pbuf_free(p);
+      }
     } else
 #endif /* IP_FORWARD */
     {
       IP_STATS_INC(ip.drop);
       MIB2_STATS_INC(mib2.ipinaddrerrors);
       MIB2_STATS_INC(mib2.ipindiscards);
+      pbuf_free(p);
     }
-    pbuf_free(p);
     return ERR_OK;
   }
   /* packet consists of multiple fragments? */

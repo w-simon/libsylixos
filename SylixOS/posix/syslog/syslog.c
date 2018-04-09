@@ -171,7 +171,7 @@ void  openlog (const char *ident, int logopt, int facility)
         lib_bzero(&hints, sizeof(struct addrinfo));
         hints.ai_family = AF_UNSPEC;
         hints.ai_flags  = AI_CANONNAME;
-        if (getaddrinfo(cServerName, LW_NULL, &hints, &phints) >= 
+        if (getaddrinfo(cServerName, LW_NULL, &hints, &phints) == 
             ERROR_NONE) {                                               /*  仅获取网络地址              */
             if (phints->ai_addr->sa_family == AF_INET) {
                 sockaddrinRemote.sin_addr = ((struct sockaddr_in *)(phints->ai_addr))->sin_addr;
