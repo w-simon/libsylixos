@@ -118,6 +118,7 @@ __UNIT_TEST_PRE_STRIP_CMD  = $($(__UNIT_TEST_STRIP_TARGET)_PRE_STRIP_CMD)
 __UNIT_TEST_POST_STRIP_CMD = $($(__UNIT_TEST_STRIP_TARGET)_POST_STRIP_CMD)
 
 __UNIT_TEST_CPUFLAGS       = $($(__UNIT_TEST_TARGET)_CPUFLAGS)
+__UNIT_TEST_LINKFLAGS      = $($(__UNIT_TEST_TARGET)_LINKFLAGS)
 
 #*********************************************************************************************************
 # Link object files
@@ -129,7 +130,7 @@ $1: $2 $3
 		@if [ ! -d "$(dir $1)" ]; then mkdir -p "$(dir $1)"; fi
 		@rm -f $1
 		$(__UNIT_TEST_PRE_LINK_CMD)
-		$(LD) $(__UNIT_TEST_CPUFLAGS) $(ARCH_PIC_LDFLAGS) $2 $(__UNIT_TEST_LIBRARIES) -o $1 
+		$(LD) $(__UNIT_TEST_CPUFLAGS) $(ARCH_PIC_LDFLAGS) $(__UNIT_TEST_LINKFLAGS) $2 $(__UNIT_TEST_LIBRARIES) -o $1 
 		@mv $1 $1.c6x
 		@nm $1.c6x > $1_nm.txt
 		@$(DIS) $(TOOLCHAIN_DIS_FLAGS) $1.c6x > $1_dis.txt
@@ -146,7 +147,7 @@ $1: $2 $3
 		@if [ ! -d "$(dir $1)" ]; then mkdir -p "$(dir $1)"; fi
 		@rm -f $1
 		$(__UNIT_TEST_PRE_LINK_CMD)
-		$(LD) $(__UNIT_TEST_CPUFLAGS) $(ARCH_PIC_LDFLAGS) $2 $(__UNIT_TEST_LIBRARIES) -o $1 
+		$(LD) $(__UNIT_TEST_CPUFLAGS) $(ARCH_PIC_LDFLAGS) $(__UNIT_TEST_LINKFLAGS) $2 $(__UNIT_TEST_LIBRARIES) -o $1 
 		$(__UNIT_TEST_POST_LINK_CMD)
 endef
 

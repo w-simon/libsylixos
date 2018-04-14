@@ -97,8 +97,9 @@ $(target)_DSYMBOL += $(LOCAL_DSYMBOL)
 #*********************************************************************************************************
 # Compiler flags
 #*********************************************************************************************************
-$(target)_CFLAGS   := $(LOCAL_CFLAGS)
-$(target)_CXXFLAGS := $(LOCAL_CXXFLAGS)
+$(target)_CFLAGS    := $(LOCAL_CFLAGS)
+$(target)_CXXFLAGS  := $(LOCAL_CXXFLAGS)
+$(target)_LINKFLAGS := $(LOCAL_LINKFLAGS)
 
 #*********************************************************************************************************
 # Define some useful variables

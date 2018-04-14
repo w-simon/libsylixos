@@ -629,12 +629,16 @@ ip4_reass(struct pbuf *p)
     IPH_LEN_SET(fraghdr, lwip_htons(datagram_len));
     IPH_OFFSET_SET(fraghdr, 0);
     IPH_CHKSUM_SET(fraghdr, 0);
+#ifdef SYLIXOS /* SylixOS Add this to calculate checksum */
+    IPH_CHKSUM_SET(fraghdr, inet_chksum(fraghdr, IP_HLEN));
+#else /* SYLIXOS */
     /* @todo: do we need to set/calculate the correct checksum? */
 #if CHECKSUM_GEN_IP
     IF__NETIF_CHECKSUM_ENABLED(ip_current_input_netif(), NETIF_CHECKSUM_GEN_IP) {
       IPH_CHKSUM_SET(fraghdr, inet_chksum(fraghdr, IP_HLEN));
     }
 #endif /* CHECKSUM_GEN_IP */
+#endif /* !SYLIXOS */
 
     p = ipr->p;
 

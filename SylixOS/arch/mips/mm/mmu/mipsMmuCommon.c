@@ -31,9 +31,9 @@
 #include "mips32/mips32Mmu.h"
 #include "mips64/mips64Mmu.h"
 /*********************************************************************************************************
-  UNIQUE ENTRYHI
+  UNIQUE ENTRYHI(按 512KB 步进, 提升兼容性, TLB 数目最多 64 个, 不会上溢到 CKSEG1)
 *********************************************************************************************************/
-#define MIPS_UNIQUE_ENTRYHI(idx)        (CKSEG0 + ((idx) << (LW_CFG_VMM_PAGE_SHIFT + 1)))
+#define MIPS_UNIQUE_ENTRYHI(idx)        (CKSEG0 + ((idx) << (18 + 1)))
 /*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
@@ -167,6 +167,12 @@ VOID  mipsMmuDumpTLB (VOID)
     ULONG   ulPageMask;
     INT     i;
 
+#if LW_CFG_CPU_WORD_LENGHT == 32
+#define LX_FMT      "0x%08x"
+#else
+#define LX_FMT      "0x%016lx"
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
+
     for (i = 0; i < MIPS_MMU_TLB_SIZE; i++) {
         mipsCp0IndexWrite(i);
         MIPS_MMU_TLB_READ();
@@ -175,8 +181,8 @@ VOID  mipsMmuDumpTLB (VOID)
         ulEntryHi  = mipsCp0EntryHiRead();
         ulPageMask = mipsCp0PageMaskRead();
 
-        _PrintFormat("TLB[%02d]: EntryLo0=0x%08x, EntryLo1=0x%08x, "
-                     "EntryHi=0x%08x, PageMask=0x%08x\r\n",
+        _PrintFormat("TLB[%02d]: EntryLo0="LX_FMT", EntryLo1=0x%"LX_FMT", "
+                     "EntryHi="LX_FMT", PageMask="LX_FMT"\r\n",
                      i, ulEntryLo0, ulEntryLo1, ulEntryHi, ulPageMask);
     }
 
@@ -350,7 +356,6 @@ VOID  mipsMmuInit (LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName)
 
     case CPU_CETC_HR2:                                                  /*  CETC-HR2                    */
         _G_bMmuHasXI           = LW_TRUE;
-        _G_uiMmuTlbSize        = 256;                                   /*  JTLB 有 256 对奇/偶表项     */
         _G_uiMmuEntryLoUnCache = CONF_CM_UNCACHED;                      /*  非高速缓存                  */
         _G_uiMmuEntryLoCache   = 6;                                     /*  一致性高速缓存              */
         break;

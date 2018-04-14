@@ -563,14 +563,6 @@ ip6_input(struct pbuf *p, struct netif *inp)
     return ERR_OK;
   }
 
-#ifdef SYLIXOS /* SylixOS Add this hook */
-  if (lwip_ip_hook(IP_HOOK_V6, IP_HT_PRE_ROUTING, p, inp, NULL)) {
-    pbuf_free(p);
-    IP6_STATS_INC(ip6.drop);
-    return ERR_OK;
-  }
-#endif /* SYLIXOS */
-
 #ifdef LWIP_HOOK_IP6_INPUT
   if (LWIP_HOOK_IP6_INPUT(p, inp)) {
     /* the packet has been eaten */
@@ -596,6 +588,14 @@ ip6_input(struct pbuf *p, struct netif *inp)
     IP6_STATS_INC(ip6.drop);
     return ERR_OK;
   }
+
+#ifdef SYLIXOS /* SylixOS Add this hook */
+  if (lwip_ip_hook(IP_HOOK_V6, IP_HT_PRE_ROUTING, p, inp, NULL)) {
+    pbuf_free(p);
+    IP6_STATS_INC(ip6.drop);
+    return ERR_OK;
+  }
+#endif /* SYLIXOS */
 
   /* Trim pbuf. This should have been done at the netif layer,
    * but we'll do it anyway just to be sure that its done. */

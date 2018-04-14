@@ -79,6 +79,7 @@ __LIBRARIES = $($(@F)_DEPEND_LIB_PATH) $($(@F)_DEPEND_LIB)
 __OBJS      = $($(@F)_OBJS)
 __CPUFLAGS  = $($(@F)_CPUFLAGS)
 __DSYMBOL   = $($(@F)_DSYMBOL)
+__LINKFLAGS = $($(@F)_LINKFLAGS)
 
 __PRE_LINK_CMD   = $($(@F)_PRE_LINK_CMD)
 __POST_LINK_CMD  = $($(@F)_POST_LINK_CMD)

@@ -87,7 +87,7 @@ $(target)_STRIP_KO := $(OUTPATH)/strip/$(LOCAL_TARGET_NAME)
 $($(target)_KO): $($(target)_OBJS) $($(target)_DEPEND_TARGET)
 		@rm -f $@
 		$(__PRE_LINK_CMD)
-		$(LD) $(__CPUFLAGS) $(ARCH_KO_LDFLAGS) $(__OBJS) $(__LIBRARIES) -o $@
+		$(LD) $(__CPUFLAGS) $(ARCH_KO_LDFLAGS) $(__LINKFLAGS) $(__OBJS) $(__LIBRARIES) -o $@
 		$(__POST_LINK_CMD)
 
 #*********************************************************************************************************

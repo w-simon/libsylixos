@@ -99,7 +99,7 @@ $($(target)_IMG): $(LOCAL_LD_SCRIPT_NT) $($(target)_OBJS) $($(target)_DEPEND_TAR
 		@rm -f $@
 		$(__PRE_LINK_CMD)
 		$(CPP) $(__CPUFLAGS) -E -P $(__DSYMBOL) config.ld -o config.lds
-		$(LD) $(__CPUFLAGS) $(ARCH_KERNEL_LDFLAGS) -nostdlib $(addprefix -T, $<) -o $@ $(__OBJS) $(__LIBRARIES)
+		$(LD) $(__CPUFLAGS) $(ARCH_KERNEL_LDFLAGS) $(__LINKFLAGS) -nostdlib $(addprefix -T, $<) -o $@ $(__OBJS) $(__LIBRARIES)
 		$(__POST_LINK_CMD)
 
 #*********************************************************************************************************

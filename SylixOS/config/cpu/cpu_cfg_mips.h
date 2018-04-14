@@ -28,7 +28,7 @@
 
 #define LW_CFG_CPU_ARCH_MIPS            1                               /*  CPU ¼Ü¹¹                    */
 
-#if defined(_MIPS_ARCH_MIPS64R2)
+#if defined(_MIPS_ARCH_MIPS64R2) || defined(_MIPS_ARCH_HR2)
 #define LW_CFG_CPU_ARCH_FAMILY          "MIPS64R2(R)"                   /*  MIPS64R2 family             */
 
 #elif defined(_MIPS_ARCH_MIPS64)
