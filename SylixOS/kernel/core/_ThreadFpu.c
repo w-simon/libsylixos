@@ -69,8 +69,7 @@ VOID  _ThreadFpuSwitch (BOOL bIntSwitch)
             bDisable = LW_TRUE;
         }
     }
-        
-        
+
     if (ptcbHigh->TCB_ulOption & LW_OPTION_THREAD_USED_FP) {
         __ARCH_FPU_RESTORE(ptcbHigh->TCB_pvStackFP);                    /*  需要恢复新任务 FPU CTX      */
         

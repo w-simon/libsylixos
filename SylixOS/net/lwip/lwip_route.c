@@ -646,6 +646,114 @@ INT  __tshellTcpMssAdj (INT  iArgC, PCHAR  *ppcArgV)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: __tshellIpForward
+** 功能描述: 系统命令 "ipforward"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : ERROR
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  __tshellIpForward (INT  iArgC, PCHAR  *ppcArgV)
+{
+    INT                 iSock, iRet;
+    struct rt_forward   rtf;
+
+    if (iArgC == 1) {
+        iSock = socket(AF_INET, SOCK_DGRAM, 0);
+        if (iSock < 0) {
+            fprintf(stderr, "can not create route socket, error: %s!\n", lib_strerror(errno));
+            return  (PX_ERROR);
+        }
+        
+        iRet = ioctl(iSock, SIOCGFWOPT, &rtf);
+        if (iRet < 0) {
+            fprintf(stderr, "command 'SIOCGFWOPT', error: %s!\n", lib_strerror(errno));
+            close(iSock);
+            return  (PX_ERROR);
+        }
+        
+        printf("IPv4 forward: %s IPv6 forward: %s\n", 
+               rtf.rtf_ip4fw ? "On" : "Off",
+               rtf.rtf_ip6fw ? "On" : "Off");
+               
+        close(iSock);
+    
+    } else if (iArgC == 2) {
+        iSock = socket(AF_INET, SOCK_DGRAM, 0);
+        if (iSock < 0) {
+            fprintf(stderr, "can not create route socket, error: %s!\n", lib_strerror(errno));
+            return  (PX_ERROR);
+        }
+        
+        if (sscanf(ppcArgV[1], "%d", &rtf.rtf_ip4fw) != 1) {
+            fprintf(stderr, "arguments error!\n");
+            close(iSock);
+            return  (-ERROR_TSHELL_EPARAM);
+        }
+        
+        rtf.rtf_ip6fw = rtf.rtf_ip4fw;
+        
+        iRet = ioctl(iSock, SIOCSFWOPT, &rtf);
+        if (iRet < 0) {
+            fprintf(stderr, "command 'SIOCSFWOPT', error: %s!\n", lib_strerror(errno));
+            close(iSock);
+            return  (PX_ERROR);
+        }
+        
+        close(iSock);
+    
+    } else if (iArgC == 3) {
+        iSock = socket(AF_INET, SOCK_DGRAM, 0);
+        if (iSock < 0) {
+            fprintf(stderr, "can not create route socket, error: %s!\n", lib_strerror(errno));
+            return  (PX_ERROR);
+        }
+        
+        iRet = ioctl(iSock, SIOCGFWOPT, &rtf);
+        if (iRet < 0) {
+            fprintf(stderr, "command 'SIOCGFWOPT', error: %s!\n", lib_strerror(errno));
+            close(iSock);
+            return  (PX_ERROR);
+        }
+    
+        if (!lib_strcasecmp(ppcArgV[1], "ipv4")) {
+            if (sscanf(ppcArgV[2], "%d", &rtf.rtf_ip4fw) != 1) {
+                fprintf(stderr, "arguments error!\n");
+                close(iSock);
+                return  (-ERROR_TSHELL_EPARAM);
+            }
+        
+        } else if (!lib_strcasecmp(ppcArgV[1], "ipv6")) {
+            if (sscanf(ppcArgV[2], "%d", &rtf.rtf_ip6fw) != 1) {
+                fprintf(stderr, "arguments error!\n");
+                close(iSock);
+                return  (-ERROR_TSHELL_EPARAM);
+            }
+            
+        } else {
+            fprintf(stderr, "arguments error!\n");
+            close(iSock);
+            return  (-ERROR_TSHELL_EPARAM);
+        }
+        
+        iRet = ioctl(iSock, SIOCSFWOPT, &rtf);
+        if (iRet < 0) {
+            fprintf(stderr, "command 'SIOCSFWOPT', error: %s!\n", lib_strerror(errno));
+            close(iSock);
+            return  (PX_ERROR);
+        }
+        
+        close(iSock);
+    
+    } else {
+        fprintf(stderr, "arguments error!\n");
+        return  (-ERROR_TSHELL_EPARAM);
+    }
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: __tshellRouteInit
 ** 功能描述: 注册路由器命令
 ** 输　入  : NONE
@@ -676,6 +784,16 @@ VOID __tshellRouteInit (VOID)
     API_TShellKeywordAdd("rtmssadj", __tshellTcpMssAdj);
     API_TShellFormatAdd("rtmssadj", " [0 / 1]");
     API_TShellHelpAdd("rtmssadj", "Set/Get TCP forward MSS adjust status\n");
+    
+    API_TShellKeywordAdd("ipforward", __tshellIpForward);
+    API_TShellFormatAdd("ipforward", " [[ipv4 / ipv6] 0 / 1]");
+    API_TShellHelpAdd("ipforward", "Set/Get IP forward setting\n"
+    "eg. ipforward\n"
+    "    ipforward          (show IP forward setting)\n"
+    "    ipforward 1        (enable IP forward)\n"
+    "    ipforward 0        (disable IP forward)\n"
+    "    ipforward ipv4 1   (enable IPv4 forward)\n"
+    "    ipforward ipv6 0   (disable IPv6 forward)\n");
 }
 /*********************************************************************************************************
 ** 函数名称: __sroute_show_ipv4

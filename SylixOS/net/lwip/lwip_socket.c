@@ -801,6 +801,8 @@ static INT  __socketIoctl (SOCKET_T *psock, INT  iCmd, PVOID  pvArg)
             case SIOCLSTRTM:
             case SIOCGTCPMSSADJ:
             case SIOCSTCPMSSADJ:
+            case SIOCGFWOPT:
+            case SIOCSFWOPT:
                 iRet = __rtIoctlInet(psock->SOCK_iFamily, iCmd, pvArg);
                 break;
                 

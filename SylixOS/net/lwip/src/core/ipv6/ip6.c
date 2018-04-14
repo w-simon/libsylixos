@@ -366,6 +366,30 @@ ip6_select_source_address(struct netif *netif, const ip6_addr_t *dest)
 }
 
 #if LWIP_IPV6_FORWARD
+#ifdef SYLIXOS /* SylixOS Add */
+/** The IPv6 forward switch */
+static u8_t ip6_forward_on = 0;
+/**
+ * Set IPv6 forward option
+ * @param en 1: on 0: off
+ */
+void 
+ip6_forward_set(u8_t en)
+{
+  ip6_forward_on = en;
+}
+
+/**
+ * Get IPv6 forward option
+ * @param en 1: on 0: off
+ */
+u8_t 
+ip6_forward_get(void)
+{
+  return ip6_forward_on;
+}
+#endif /* SYLIXOS */
+
 /**
  * Forwards an IPv6 packet. It finds an appropriate route for the
  * packet, decrements the HL value of the packet, and outputs
@@ -379,6 +403,12 @@ static void
 ip6_forward(struct pbuf *p, struct ip6_hdr *iphdr, struct netif *inp)
 {
   struct netif *netif;
+
+#ifdef SYLIXOS /* SylixOS Add */
+  if (!ip6_forward_on) {
+    return;
+  }
+#endif /* SYLIXOS */
 
   /* do not forward link-local or loopback addresses */
   if (ip6_addr_islinklocal(ip6_current_dest_addr()) ||

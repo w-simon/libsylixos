@@ -327,7 +327,6 @@ ULONG  _CpuGetMaxNesting(VOID);
 #define LW_CPU_GET_CUR_NESTING_MAX()    _CpuGetMaxNesting()
 
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
-
 #endif                                                                  /*  __K_CPU_H                   */
 /*********************************************************************************************************
   END

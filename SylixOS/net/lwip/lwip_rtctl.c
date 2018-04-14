@@ -27,6 +27,7 @@
 #if LW_CFG_NET_EN > 0 && LW_CFG_NET_ROUTER > 0
 #include "socket.h"
 #include "net/if_iphook.h"
+#include "lwip/ip.h"
 #include "lwip/mem.h"
 #include "lwip/tcpip.h"
 #include "route/af_route.h"
@@ -701,6 +702,49 @@ static INT  __rtGetTcpMssAdj (INT *piEnable)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: __rtGetForwardOpt
+** 功能描述: 获取 ipv4 forward 使能属性
+** 输　入  : *prtf  转发状态
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __rtGetForwardOpt (struct rt_forward *prtf)
+{
+    prtf->rtf_ip4fw = ip4_forward_get();
+#if LWIP_IPV6
+    prtf->rtf_ip6fw = ip6_forward_get();
+#else
+    prtf->rtf_ip6fw = 0;
+#endif
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __rtSetForwardOpt
+** 功能描述: 设置 ipv4 forward 使能属性
+** 输　入  : *prtf  转发状态
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __rtSetForwardOpt (const struct rt_forward *prtf)
+{
+    if (geteuid()) {
+        _ErrorHandle(EACCES);
+        return  (PX_ERROR);
+    }
+    
+    RT_LOCK();
+    ip4_forward_set((UINT8)(prtf->rtf_ip4fw ? 1 : 0));
+#if LWIP_IPV6
+    ip6_forward_set((UINT8)(prtf->rtf_ip6fw ? 1 : 0));
+#endif
+    RT_UNLOCK();
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: __rtIoctlInet
 ** 功能描述: SIOCADDRT / SIOCDELRT ... 命令处理接口
 ** 输　入  : iFamily    AF_INET / AF_INET6
@@ -795,6 +839,16 @@ INT  __rtIoctlInet (INT  iFamily, INT  iCmd, PVOID  pvArg)
     case SIOCSTCPMSSADJ:
         iRet = __rtSetTcpMssAdj((INT *)pvArg);
         break;
+
+#if LW_CFG_NET_ROUTER > 0
+    case SIOCGFWOPT:
+        iRet = __rtGetForwardOpt((struct rt_forward *)pvArg);
+        break;
+        
+    case SIOCSFWOPT:
+        iRet = __rtSetForwardOpt((struct rt_forward *)pvArg);
+        break;
+#endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
 
     default:
         _ErrorHandle(ENOSYS);

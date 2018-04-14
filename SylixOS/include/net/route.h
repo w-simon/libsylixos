@@ -248,6 +248,19 @@ struct rt_msghdr_list {
 #define SIOCGTCPMSSADJ  _IOR('r', 20, int)      /* get ipv4 forward TCP MSS adjust status               */
 #define SIOCSTCPMSSADJ  _IOW('r', 20, int)      /* set ipv4 forward TCP MSS adjust status (1: enable)   */
 
+/*********************************************************************************************************
+  Set ipv4/v6 forward switch.
+*********************************************************************************************************/
+
+struct rt_forward {
+    int                 rtf_ip4fw;              /* 1: enable 0: disable ipv4 forwarding                 */
+    int                 rtf_ip6fw;              /* 1: enable 0: disable ipv6 forwarding                 */
+    u_long              rtf_pad[16];            /* for feature                                          */
+};
+
+#define SIOCGFWOPT      _IOR('r', 21, struct rt_forward)
+#define SIOCSFWOPT      _IOW('r', 21, struct rt_forward)
+
 #ifdef __cplusplus
 }
 #endif                                          /*  __cplusplus                                         */

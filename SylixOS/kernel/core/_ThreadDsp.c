@@ -66,8 +66,7 @@ VOID  _ThreadDspSwitch (BOOL bIntSwitch)
             bDisable = LW_TRUE;
         }
     }
-        
-        
+
     if (ptcbHigh->TCB_ulOption & LW_OPTION_THREAD_USED_DSP) {
         __ARCH_DSP_RESTORE(ptcbHigh->TCB_pvStackDSP);                   /*  需要恢复新任务 DSP CTX      */
         

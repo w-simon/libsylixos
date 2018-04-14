@@ -111,7 +111,7 @@ u16_t *ip4_get_ip_id(void)
 {
   return (&ip_id);
 }
-#endif
+#endif /* SYLIXOS */
 
 #if LWIP_MULTICAST_TX_OPTIONS
 /** The default netif used for multicast */
@@ -242,6 +242,30 @@ ip4_route(const ip4_addr_t *src, const ip4_addr_t *dest) /* SylixOS Add src argu
 }
 
 #if IP_FORWARD
+#ifdef SYLIXOS /* SylixOS Add */
+/** The IP forward switch */
+static u8_t ip_forward_on = 0;
+/**
+ * Set IP forward option
+ * @param en 1: on 0: off
+ */
+void 
+ip4_forward_set(u8_t en)
+{
+  ip_forward_on = en;
+}
+
+/**
+ * Get IP forward option
+ * @param en 1: on 0: off
+ */
+u8_t 
+ip4_forward_get(void)
+{
+  return ip_forward_on;
+}
+#endif /* SYLIXOS */
+
 /**
  * Determine whether an IP address is in a reserved set of addresses
  * that may not be forwarded, or whether datagrams to that destination
@@ -293,6 +317,12 @@ ip4_forward(struct pbuf *p, struct ip_hdr *iphdr, struct netif *inp)
 
   PERF_START;
   LWIP_UNUSED_ARG(inp);
+
+#ifdef SYLIXOS /* SylixOS Add */
+  if (!ip_forward_on) {
+    goto return_noroute;
+  }
+#endif /* SYLIXOS */
 
   if (!ip4_canforward(p)) {
     goto return_noroute;

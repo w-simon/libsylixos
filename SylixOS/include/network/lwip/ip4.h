@@ -94,6 +94,13 @@ void  ip4_set_default_multicast_netif(struct netif* default_multicast_netif);
 
 #define ip4_netif_get_local_ip(netif) (((netif) != NULL) ? netif_ip_addr4(netif) : NULL)
 
+#ifdef SYLIXOS /* SylixOS Add */
+#if IP_FORWARD
+void  ip4_forward_set(u8_t en);
+u8_t  ip4_forward_get(void);
+#endif /* IP_FORWARD */
+#endif /* SYLIXOS */
+
 #if IP_DEBUG
 void ip4_debug_print(struct pbuf *p);
 #else

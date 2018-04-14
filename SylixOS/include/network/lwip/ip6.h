@@ -77,6 +77,13 @@ err_t         ip6_options_add_hbh_ra(struct pbuf * p, u8_t nexth, u8_t value);
 #define ip6_netif_get_local_ip(netif, dest) (((netif) != NULL) ? \
   ip6_select_source_address(netif, dest) : NULL)
 
+#ifdef SYLIXOS /* SylixOS Add */
+#if LWIP_IPV6_FORWARD
+void          ip6_forward_set(u8_t en);
+u8_t          ip6_forward_get(void);
+#endif /* LWIP_IPV6_FORWARD */
+#endif /* SYLIXOS */
+
 #if IP6_DEBUG
 void ip6_debug_print(struct pbuf *p);
 #else
