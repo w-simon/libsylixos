@@ -488,6 +488,15 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrT
 #define ETHARP_SUPPORT_STATIC_ENTRIES   1
 #define ETHARP_TABLE_MATCH_NETIF        1
 
+#if LW_CFG_NET_ROUTER > 0
+#if LW_CFG_LWIP_NUM_ARP_QUEUE < (LW_CFG_LWIP_ARP_TABLE_SIZE * 2)
+#undef LW_CFG_LWIP_NUM_ARP_QUEUE
+#define LW_CFG_LWIP_NUM_ARP_QUEUE       (LW_CFG_LWIP_ARP_TABLE_SIZE * 2)
+#endif
+#endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
+
+#define MEMP_NUM_ARP_QUEUE              LW_CFG_LWIP_NUM_ARP_QUEUE
+
 /*********************************************************************************************************
   loop interface
 *********************************************************************************************************/
