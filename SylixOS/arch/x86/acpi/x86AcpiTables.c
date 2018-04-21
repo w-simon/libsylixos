@@ -643,7 +643,7 @@ INT  acpiTableInit (VOID)
              */
             for (i = 0; i < iTableEntriesNr; i++) {
                 pAcpiHeader     = ACPI_TO_POINTER(pXsdt->TableOffsetEntry[i]);
-                pPhysAcpiHeader = pAcpiHeader,
+                pPhysAcpiHeader = pAcpiHeader;
 
                 stLength     = acpiGetTableSize((ACPI_PHYSICAL_ADDRESS)pAcpiHeader);
                 pcAcpiTStart = (CHAR *)((ULONG)pAcpiHeader);
@@ -673,38 +673,42 @@ INT  acpiTableInit (VOID)
 
                     __ACPI_DEBUG_LOG("\n  Xsdt check Facs...\n");
 
-                    pFacs           = ACPI_TO_POINTER(pFadt->XFacs);
-                    pPhysAcpiHeader = (ACPI_TABLE_HEADER *)pFacs;
+                    pFacs = ACPI_TO_POINTER(pFadt->XFacs);
+                    if (pFacs) {
+                        pPhysAcpiHeader = (ACPI_TABLE_HEADER *)pFacs;
 
-                    stLength     = acpiGetTableSize((ACPI_PHYSICAL_ADDRESS)pFacs);
-                    pcAcpiTStart = (CHAR *)((ULONG)pFacs);
+                        stLength     = acpiGetTableSize((ACPI_PHYSICAL_ADDRESS)pFacs);
+                        pcAcpiTStart = (CHAR *)((ULONG)pFacs);
 
-                    pFacs = AcpiOsMapMemory((ACPI_PHYSICAL_ADDRESS)pcAcpiTStart, stLength);
-                    if (acpiTableValidate((UINT8 *)((size_t)pFacs),
-                                          (UINT32)(stLength),
-                                          ACPI_SIG_FACS) == ERROR_NONE) {
-                        acpiTableRegister((ACPI_TABLE_HEADER *)(pFacs),
-                                           pPhysAcpiHeader,
-                                           &_G_pcAcpiTableStart,
-                                           &_G_pcAcpiTableEnd);
+                        pFacs = AcpiOsMapMemory((ACPI_PHYSICAL_ADDRESS)pcAcpiTStart, stLength);
+                        if (acpiTableValidate((UINT8 *)((size_t)pFacs),
+                                              (UINT32)(stLength),
+                                              ACPI_SIG_FACS) == ERROR_NONE) {
+                            acpiTableRegister((ACPI_TABLE_HEADER *)(pFacs),
+                                               pPhysAcpiHeader,
+                                               &_G_pcAcpiTableStart,
+                                               &_G_pcAcpiTableEnd);
+                        }
                     }
 
                     __ACPI_DEBUG_LOG("\n  Xsdt check Dsdt...\n");
 
-                    pDsdt           = ACPI_TO_POINTER(pFadt->XDsdt);
-                    pPhysAcpiHeader = (ACPI_TABLE_HEADER *)pDsdt;
+                    pDsdt = ACPI_TO_POINTER(pFadt->XDsdt);
+                    if (pDsdt) {
+                        pPhysAcpiHeader = (ACPI_TABLE_HEADER *)pDsdt;
 
-                    stLength     = acpiGetTableSize((ACPI_PHYSICAL_ADDRESS)pDsdt);
-                    pcAcpiTStart = (CHAR *)((ULONG)pDsdt);
+                        stLength     = acpiGetTableSize((ACPI_PHYSICAL_ADDRESS)pDsdt);
+                        pcAcpiTStart = (CHAR *)((ULONG)pDsdt);
 
-                    pDsdt = AcpiOsMapMemory((ACPI_PHYSICAL_ADDRESS)pcAcpiTStart, stLength);
-                    if (acpiTableValidate((UINT8 *)((size_t)pDsdt),
-                                          (UINT32)(stLength),
-                                          ACPI_SIG_DSDT) == ERROR_NONE) {
-                        acpiTableRegister((ACPI_TABLE_HEADER *)(pDsdt),
-                                          pPhysAcpiHeader,
-                                          &_G_pcAcpiTableStart,
-                                          &_G_pcAcpiTableEnd);
+                        pDsdt = AcpiOsMapMemory((ACPI_PHYSICAL_ADDRESS)pcAcpiTStart, stLength);
+                        if (acpiTableValidate((UINT8 *)((size_t)pDsdt),
+                                              (UINT32)(stLength),
+                                              ACPI_SIG_DSDT) == ERROR_NONE) {
+                            acpiTableRegister((ACPI_TABLE_HEADER *)(pDsdt),
+                                              pPhysAcpiHeader,
+                                              &_G_pcAcpiTableStart,
+                                              &_G_pcAcpiTableEnd);
+                        }
                     }
                 }
             }

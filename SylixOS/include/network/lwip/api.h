@@ -73,6 +73,10 @@ extern "C" {
 #define NETCONN_FLAG_NON_BLOCKING             0x02
 /** Was the last connect action a non-blocking one? */
 #define NETCONN_FLAG_IN_NONBLOCKING_CONNECT   0x04
+#if LWIP_NETCONN_FULLDUPLEX
+  /** The mbox of this netconn is being deallocated, don't use it anymore */
+#define NETCONN_FLAG_MBOXINVALID              0x08
+#endif /* LWIP_NETCONN_FULLDUPLEX */
 /** If a nonblocking write has been rejected before, poll_tcp needs to
     check if the netconn is writable again */
 #define NETCONN_FLAG_CHECK_WRITESPACE         0x10
@@ -88,7 +92,7 @@ extern "C" {
 
 #ifdef SYLIXOS /* SylixOS Add IPV6_RECVHOPLIMIT support for ripng */
 /** Received hoplim will be recorded for this netconn */
-#define NETCONN_FLAG_HOPLIM                   0x08
+#define NETCONN_FLAG_HOPLIM                   0x100
 #endif /* SYLIXOS */
 #endif /* LWIP_NETBUF_RECVINFO */
 /** A FIN has been received but not passed to the application yet */
@@ -242,6 +246,11 @@ struct netconn {
       by the application thread */
   sys_mbox_t acceptmbox;
 #endif /* LWIP_TCP */
+#if LWIP_NETCONN_FULLDUPLEX
+  /** number of threads waiting on an mbox. This is required to unblock
+      all threads when closing while threads are waiting. */
+  int mbox_threads_waiting;
+#endif
   /** only used for socket layer */
 #if LWIP_SOCKET
   int socket;
@@ -270,7 +279,7 @@ struct netconn {
   s16_t linger;
 #endif /* LWIP_SO_LINGER */
   /** flags holding more netconn-internal state, see NETCONN_FLAG_* defines */
-  u8_t flags;
+  u16_t flags; /* SylixOS Changed here (u16_t) */
 #if LWIP_TCP
   /** TCP: when data passed to netconn_write doesn't fit into the send buffer,
       this temporarily stores the message.
@@ -307,6 +316,7 @@ struct netvector {
 #define netconn_new_with_callback(t, c) netconn_new_with_proto_and_callback(t, 0, c)
 struct netconn *netconn_new_with_proto_and_callback(enum netconn_type t, u8_t proto,
                                              netconn_callback callback);
+err_t   netconn_prepare_delete(struct netconn *conn);
 err_t   netconn_delete(struct netconn *conn);
 /** Get the type of a netconn (as enum netconn_type). */
 #define netconn_type(conn) (conn->type)
@@ -364,8 +374,9 @@ err_t   netconn_gethostbyname(const char *name, ip_addr_t *addr);
 err_t   netconn_err(struct netconn *conn);
 #define netconn_recv_bufsize(conn)      ((conn)->recv_bufsize)
 
-#define netconn_set_flags(conn, set_flags)     do { (conn)->flags = (u8_t)((conn)->flags |  (set_flags)); } while(0)
-#define netconn_clear_flags(conn, clr_flags)   do { (conn)->flags = (u8_t)((conn)->flags & ~(clr_flags)); } while(0)
+/* SylixOS Changed here use u16_t */
+#define netconn_set_flags(conn, set_flags)     do { (conn)->flags = (u16_t)((conn)->flags |  (set_flags)); } while(0)
+#define netconn_clear_flags(conn, clr_flags)   do { (conn)->flags = (u16_t)((conn)->flags & ~(clr_flags)); } while(0)
 #define netconn_is_flag_set(conn, flag)        (((conn)->flags & (flag)) != 0)
 
 /** Set the blocking status of netconn calls (@todo: write/send is missing) */

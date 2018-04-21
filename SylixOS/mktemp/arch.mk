@@ -187,6 +187,9 @@ ARCH_FPUFLAGS = -m$(FPU_TYPE)
 endif
 
 ARCH_CPUFLAGS_WITHOUT_FPUFLAGS = -march=$(CPU_TYPE) -EL -G 0 -mno-branch-likely -mabi=64
+ifneq (,$(findstring mips64-hrsylixos,$(TOOLCHAIN_PREFIX)))
+ARCH_CPUFLAGS_WITHOUT_FPUFLAGS += -fno-delayed-branch
+endif
 ARCH_CPUFLAGS       = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) $(ARCH_FPUFLAGS)
 ARCH_CPUFLAGS_NOFPU = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) -msoft-float
 endif

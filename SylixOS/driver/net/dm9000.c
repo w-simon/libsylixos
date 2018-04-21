@@ -702,7 +702,6 @@ static void dm9000_drop (struct dm9000_netdev *dm9000)
         }
 
         if (!(rx_byte & DM9000_PKT_RDY)) {
-            netdev_linkinfo_err_inc(&dm9000->netdev);
             return;
         }
 
@@ -824,7 +823,6 @@ static void  dm9000_receive (struct netdev *netdev, int (*input)(struct netdev *
         }
 
         if (!(rx_byte & DM9000_PKT_RDY)) {
-            netdev_linkinfo_err_inc(netdev);
             goto    __recv_over;
         }
 
