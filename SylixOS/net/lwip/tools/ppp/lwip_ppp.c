@@ -590,7 +590,6 @@ INT  API_PppDelete (CPCHAR  pcIfName)
         __KERNEL_SPACE_ENTER();
         ioctl(pctxp->CTXP_iFd, FIOCANCEL);
         __KERNEL_SPACE_EXIT();
-        return  (ERROR_NONE);
 
     } else {
         pppapi_free(pcb);                                               /*  直接删除                    */
@@ -603,7 +602,7 @@ INT  API_PppDelete (CPCHAR  pcIfName)
         __SHEAP_FREE(pctxp);
     }
 
-    return  (PX_ERROR);
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: API_PppConnect

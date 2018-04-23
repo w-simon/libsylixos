@@ -10,114 +10,67 @@
 #
 #--------------文件信息--------------------------------------------------------------------------------
 #
-# 文   件   名: Makefile
+# 文   件   名: libfdt.mk
 #
 # 创   建   人: RealEvo-IDE
 #
-# 文件创建日期: 2016 年 10 月 08 日
+# 文件创建日期: 2018 年 04 月 23 日
 #
 # 描        述: 本文件由 RealEvo-IDE 生成，用于配置 Makefile 功能，请勿手动修改
 #*********************************************************************************************************
 
 #*********************************************************************************************************
-# Include config.mk
+# Clear setting
 #*********************************************************************************************************
-CONFIG_MK_EXIST = $(shell if [ -f ../config.mk ]; then echo exist; else echo notexist; fi;)
-ifeq ($(CONFIG_MK_EXIST), exist)
-include ../config.mk
-else
-CONFIG_MK_EXIST = $(shell if [ -f config.mk ]; then echo exist; else echo notexist; fi;)
-ifeq ($(CONFIG_MK_EXIST), exist)
-include config.mk
-else
-CONFIG_MK_EXIST =
-endif
-endif
+include $(CLEAR_VARS_MK)
 
 #*********************************************************************************************************
-# Build with lite mode (SylixOS Lite)
-# Do you want build SylixOS with Lite Mode
+# Target
 #*********************************************************************************************************
-BUILD_LITE_TARGET = 0
+LOCAL_TARGET_NAME := libfdt.a
 
 #*********************************************************************************************************
-# Build options
-# Do you want build process support library
+# Source list
 #*********************************************************************************************************
-ifeq ($(BUILD_LITE_TARGET), 0)
-BUILD_PROCESS_SUP_LIB = 1
-else
-BUILD_PROCESS_SUP_LIB = 0
-endif
+LOCAL_SRCS := \
+SylixOS/driver/fdt/fdt_addresses.c \
+SylixOS/driver/fdt/fdt_empty_tree.c \
+SylixOS/driver/fdt/fdt_overlay.c \
+SylixOS/driver/fdt/fdt_ro.c \
+SylixOS/driver/fdt/fdt_rw.c \
+SylixOS/driver/fdt/fdt_strerror.c \
+SylixOS/driver/fdt/fdt_sw.c \
+SylixOS/driver/fdt/fdt_wip.c \
+SylixOS/driver/fdt/fdt.c 
 
 #*********************************************************************************************************
-# Build options
-# Do you want build tls support library
+# Header file search path (eg. LOCAL_INC_PATH := -I"Your hearder files search path")
 #*********************************************************************************************************
-ifeq ($(BUILD_LITE_TARGET), 0)
-BUILD_TLS_SUP_LIB = 1
-else
-BUILD_TLS_SUP_LIB = 0
-endif
+LOCAL_INC_PATH := -I"SylixOS/driver/fdt"
 
 #*********************************************************************************************************
-# Do you want build some usefull kernel module
+# Pre-defined macro (eg. -DYOUR_MARCO=1)
 #*********************************************************************************************************
-ifeq ($(BUILD_LITE_TARGET), 0)
-BUILD_KERNEL_MODULE = 1
-else
-BUILD_KERNEL_MODULE = 0
-endif
+LOCAL_DSYMBOL := 
 
 #*********************************************************************************************************
-# Include header.mk
+# Depend library (eg. LOCAL_DEPEND_LIB := -la LOCAL_DEPEND_LIB_PATH := -L"Your library search path")
 #*********************************************************************************************************
-EMPTY  =
-SPACE  = $(EMPTY) $(EMPTY)
-MKTEMP = $(subst $(SPACE),\ ,$(SYLIXOS_BASE_PATH))/libsylixos/SylixOS/mktemp
-
-include $(MKTEMP)/header.mk
+LOCAL_DEPEND_LIB      := 
+LOCAL_DEPEND_LIB_PATH := 
 
 #*********************************************************************************************************
-# Include targets makefiles
+# C++ config
 #*********************************************************************************************************
-include libsylixos.mk
-
-#*********************************************************************************************************
-# TI C6X DSP configure
-#*********************************************************************************************************
-ifeq ($(ARCH), c6x)
-BUILD_PROCESS_SUP_LIB = 1
-BUILD_KERNEL_MODULE   = 0
-BUILD_TLS_SUP_LIB     = 0
-endif
-
-ifeq ($(BUILD_PROCESS_SUP_LIB), 1)
-include libdsohandle.mk
-include libvpmpdm.mk
-include environ.mk
-endif
-
-ifeq ($(BUILD_TLS_SUP_LIB), 1)
-include libmbedcrypto.mk
-include libmbedx509.mk
-include libmbedtls.mk
-include kidvpn.mk
-endif
-
-ifeq ($(BUILD_KERNEL_MODULE), 1)
-include xinput.mk
-include xsiipc.mk
-endif
-
-ifeq ($(BUILD_LITE_TARGET), 0)
-include libfdt.mk
-endif
+LOCAL_USE_CXX        := no
+LOCAL_USE_CXX_EXCEPT := no
 
 #*********************************************************************************************************
-# Include end.mk
+# Code coverage config
 #*********************************************************************************************************
-include $(END_MK)
+LOCAL_USE_GCOV := no
+
+include $(KERNEL_LIBRARY_MK)
 
 #*********************************************************************************************************
 # End

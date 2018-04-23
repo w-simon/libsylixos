@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2018-04-23: han.hui
+    添加 fdt(dtb, dts)文件解析功能.
+
     2018-04-14: han.hui
     默认禁能 IP 转发功能, 可使用 SIOCSFWOPT ioctl 命令或者 ipforward shell 命令进行设置.
 
