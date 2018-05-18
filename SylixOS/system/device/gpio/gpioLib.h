@@ -167,6 +167,7 @@ LW_API PLW_GPIO_CHIP    API_GpioChipFind(PVOID pvData,
                                          BOOL (*pfuncMatch)(PLW_GPIO_CHIP pgchip, 
                                                             PVOID  pvData));
 LW_API INT              API_GpioIsValid(UINT uiGpio);
+LW_API INT              API_GpioHasDrv(UINT uiGpio);
 LW_API INT              API_GpioRequest(UINT uiGpio, CPCHAR pcLabel);
 LW_API INT              API_GpioRequestOne(UINT uiGpio, ULONG ulFlags, CPCHAR pcLabel);
 LW_API VOID             API_GpioFree(UINT uiGpio);
@@ -191,6 +192,7 @@ LW_API irqreturn_t      API_GpioSvrIrq(UINT uiGpio);
 #define gpioChipDelete          API_GpioChipDelete
 #define gpioChipFind            API_GpioChipFind
 #define gpioIsValid             API_GpioIsValid
+#define gpioHasDrv              API_GpioHasDrv
 #define gpioRequest             API_GpioRequest
 #define gpioRequestOne          API_GpioRequestOne
 #define gpioFree                API_GpioFree

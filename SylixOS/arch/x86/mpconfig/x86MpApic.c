@@ -135,6 +135,7 @@ __begin:
         iError = acpiLibInit(LW_TRUE);
         if (iError != ERROR_NONE) {
             _G_uiX86MpApicBootOpt = MP_MP_STRUCT;
+            acpiLibDisable();
             goto    __begin;
         }
 

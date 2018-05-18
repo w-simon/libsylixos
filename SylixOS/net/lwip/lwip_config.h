@@ -198,8 +198,14 @@ extern void  tlsf_mem_free(void *f);
 #define LWIP_IPV6_SCOPES                1
 
 #define MEMP_NUM_MLD6_GROUP             LW_CFG_LWIP_GROUP_MAX
+
+#if LW_CFG_LWIP_ARP_TABLE_SIZE > 127
+#define LWIP_ND6_NUM_NEIGHBORS          127                             /*  TODO: Max 127 Now!          */
+#define LWIP_ND6_NUM_DESTINATIONS       127
+#else
 #define LWIP_ND6_NUM_NEIGHBORS          LW_CFG_LWIP_ARP_TABLE_SIZE
 #define LWIP_ND6_NUM_DESTINATIONS       LW_CFG_LWIP_ARP_TABLE_SIZE
+#endif                                                                  /*  ARP_TABLE_SIZE > 127        */
 
 #define LWIP_IPV6_NUM_ADDRESSES         5                               /*  one face max 5 ipv6 addr    */
 

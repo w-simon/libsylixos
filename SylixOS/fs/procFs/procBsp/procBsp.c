@@ -387,12 +387,15 @@ static ssize_t  __procFsBspDmaRead (PLW_PROCFS_NODE  p_pfsn,
             INT     iCurNode = 0;
             
             stMaxData = (size_t)API_DmaGetMaxDataBytes(i);
-            API_DmaMaxNodeNumGet(i, &iMaxNode);
-            API_DmaJobNodeNum(i, &iCurNode);
-            
-            stRealSize = bnprintf(pcFileBuffer, stTotal, stRealSize,
-                                  "%3d %12zd %8d %8d\n", 
-                                  i, stMaxData, iMaxNode, iCurNode);
+            if (stMaxData) {                                            /*  通道有效                    */
+                API_DmaMaxNodeNumGet(i, &iMaxNode);
+                API_DmaJobNodeNum(i, &iCurNode);
+
+                stRealSize = bnprintf(pcFileBuffer, stTotal, stRealSize,
+                                      "%3d %10zuKB %8d %8d\n", 
+                                      i, stMaxData / LW_CFG_KB_SIZE, 
+                                      iMaxNode, iCurNode);
+            }
         }
         
         API_ProcFsNodeSetRealFileSize(p_pfsn, stRealSize);

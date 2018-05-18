@@ -73,8 +73,8 @@ typedef struct {
 #define DT_SOCK         12
 #define DT_WHT          14
 
-#define IFTODT(mode)    (unsigned char)(((mode) & 0xF000) >> 12)        /*  d_type to st_mode           */
-#define DTTOIF(dtype)   (mode_t)((dtype) << 12)                         /*  st_mode to d_type           */
+#define IFTODT(mode)    (unsigned char)(((mode) & 0xF000) >> 12)        /*  st_mode to d_type           */
+#define DTTOIF(dtype)   (mode_t)((dtype) << 12)                         /*  d_type to st_mode           */
 
 /*********************************************************************************************************
   POSIX API

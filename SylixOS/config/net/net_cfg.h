@@ -79,9 +79,9 @@
 #define LW_CFG_LWIP_NUM_PPP             0                               /*  lwip ppp 最大会话数         */
 #endif                                                                  /*  __GNUC__                    */
 
-#define LW_CFG_LWIP_TCP_PCB             100                             /*  允许同时的 TCP 连接数       */
-#define LW_CFG_LWIP_UDP_PCB             50                              /*  允许同时的 UDP 数量         */
-#define LW_CFG_LWIP_RAW_PCB             20                              /*  允许同时的 RAW 数量         */
+#define LW_CFG_LWIP_TCP_PCB             128                             /*  允许同时的 TCP 连接数       */
+#define LW_CFG_LWIP_UDP_PCB             64                              /*  允许同时的 UDP 数量         */
+#define LW_CFG_LWIP_RAW_PCB             32                              /*  允许同时的 RAW 数量         */
 
 /*********************************************************************************************************
 *                                       TCP 设置
@@ -103,7 +103,12 @@
 * 则推荐为 1 , 这样可以减少虚拟 ARP 数据包的数量, 从而减少无谓的无线数据包碰撞可能性. 
 *********************************************************************************************************/
 
+#if LW_CFG_NET_ROUTER > 0
+#define LW_CFG_LWIP_ARP_TABLE_SIZE      256                             /*  以太网接口 ARP 表大小       */
+#else
 #define LW_CFG_LWIP_ARP_TABLE_SIZE      127                             /*  以太网接口 ARP 表大小       */
+#endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
+
 #define LW_CFG_LWIP_ARP_TRUST_IP_MAC    1                               /*  接收 IP 包是否更新 ARP      */
 
 /*********************************************************************************************************

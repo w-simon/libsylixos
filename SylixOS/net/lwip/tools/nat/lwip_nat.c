@@ -104,7 +104,7 @@ VOID  API_INetNatInit (VOID)
     API_TShellFormatAdd("natmap",  " {[add] | [del]} [WAN port] [LAN port] [LAN IP] [protocol] [ip_cnt]");
     API_TShellHelpAdd("natmap",    "add or delete NAT maps.\n"
                                      "eg. natmap add 80 80 192.168.1.2 tcp (map webserver as 192..2)\n"
-                                     "    natmap add 80 80 192.168.1.2 tcp 5 (map webserver as 192..2 ~ 192..7)\n"
+                                     "    natmap add 80 80 192.168.1.2 tcp 5 (map webserver as 192..2 ~ 192..6)\n"
                                      "    natmap del 80 80 192.168.1.2 tcp (unmap webserver as 192..2)\n");
                                      
     API_TShellKeywordAdd("nats", __tshellNatShow);

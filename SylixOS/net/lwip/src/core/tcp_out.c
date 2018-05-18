@@ -1875,7 +1875,7 @@ tcp_output_control_segment(const struct tcp_pcb *pcb, struct pbuf *p,
     }
 #endif
     if (pcb != NULL) {
-      NETIF_SET_HINTS(netif, (struct netif_hint *)&(pcb->netif_hints)); /* SylixOS Fixed a warning */
+      NETIF_SET_HINTS(netif, LWIP_CONST_CAST(struct netif_hint*, &(pcb->netif_hints)));
       ttl = pcb->ttl;
       tos = pcb->tos;
     } else {

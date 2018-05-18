@@ -724,7 +724,7 @@ static VOID  __tshellCharTab (INT  iFd, __PSHELL_INPUT_CTX  psicContext)
              INT         i;
              PCHAR       pcCmd;
              size_t      stStrLen;
-             CHAR        cCommandBuffer[MAX_FILENAME_LENGTH];
+             CHAR        cCommandBuffer[LW_CFG_SHELL_MAX_COMMANDLEN + 1];
              PCHAR       pcParamList[LW_CFG_SHELL_MAX_PARAMNUM + 1];    /*  参数列表                    */
              
              PCHAR       pcDir;
@@ -760,9 +760,9 @@ static VOID  __tshellCharTab (INT  iFd, __PSHELL_INPUT_CTX  psicContext)
         return;
     }
     
-    lib_bzero(cCommandBuffer, LW_CFG_SHELL_MAX_COMMANDLEN);             /*  清空 cCommandBuffer 缓冲区  */
+    lib_bzero(cCommandBuffer, LW_CFG_SHELL_MAX_COMMANDLEN + 1);         /*  清空 cCommandBuffer 缓冲区  */
     
-    ulError = __tshellStrConvertVar(CTX_BUFFER, cCommandBuffer);        /*  变量替换                    */
+    ulError = __tshellStrConvertVar(pcCmd, cCommandBuffer);             /*  变量替换                    */
     if (ulError) {
         return;
     }

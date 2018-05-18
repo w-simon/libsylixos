@@ -392,19 +392,23 @@ static INT  _gpiofdReadDir (PLW_GPIOFD_FILE pgpiofdfil, DIR  *pdir)
         return  (PX_ERROR);
     }
     
-    if (pdir->dir_pos >= LW_CFG_MAX_GPIOS) {
-        _ErrorHandle(ENOENT);
-        return  (PX_ERROR);
+    while (pdir->dir_pos < LW_CFG_MAX_GPIOS) {
+        if (API_GpioHasDrv((UINT)pdir->dir_pos)) {
+            snprintf(pdir->dir_dirent.d_name, NAME_MAX + 1, "%ld", pdir->dir_pos);
+            lib_strlcpy(pdir->dir_dirent.d_shortname, 
+                        pdir->dir_dirent.d_name, 
+                        sizeof(pdir->dir_dirent.d_shortname));
+            pdir->dir_dirent.d_type = DT_CHR;
+            pdir->dir_pos++;
+            return  (ERROR_NONE);
+        
+        } else {
+            pdir->dir_pos++;
+        }
     }
     
-    snprintf(pdir->dir_dirent.d_name, NAME_MAX + 1, "%ld", pdir->dir_pos);
-    lib_strlcpy(pdir->dir_dirent.d_shortname, 
-                pdir->dir_dirent.d_name, 
-                sizeof(pdir->dir_dirent.d_shortname));
-    pdir->dir_dirent.d_type = DT_CHR;
-    pdir->dir_pos++;
-    
-    return  (ERROR_NONE);
+    _ErrorHandle(ENOENT);
+    return  (PX_ERROR);
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: _gpiofdIsr
