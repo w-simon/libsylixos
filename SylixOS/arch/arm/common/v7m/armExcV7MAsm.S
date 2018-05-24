@@ -81,6 +81,51 @@
 ;  异常/中断入口宏
 ;*********************************************************************************************************/
 
+;/*********************************************************************************************************
+;                                              IRQ_ENTRY
+;                                                  +
+;                                                  |
+;                                                  |
+;                                                  |
+;                                                  v
+;                                           API_InterEnter
+;                                                  +
+;                                                  |  中断嵌套
+;                                                  |
+;                           关中断前               +--------------------------+
+;                           或                     |                          |
+;                           任务切换时发生强占     |                          |
+;                         +------------------------+                          v
+;                         |                        |                    SAVE_CTX_REG
+;                         |                        v                          +
+;                         |               API_InterStackBaseGet               |
+;                         |                        +                          |
+;                         v                        |                          v
+;                   SAVE_CTX_REG                   |                     ISR_HANDLE
+;                         +                        v                          +
+;                         |                API_ThreadTcbInter                 |
+;                         |                        +                          |
+;                         v                        |                          |
+;                    ISR_HANDLE                    |                          v
+;                         +                        v                    API_InterExit
+;                         |                  SAVE_CTX_REG                     +
+;                         |                        +                          |
+;                         |                        |                          |
+;                         v                        |                          |
+;               API_InterExitNoSched               v                          v
+;                         +                   ISR_HANDLE                LOAD_CTX_REG
+;                         |                        +
+;                         |                        |
+;                         v                        |
+;                    SEND PendSV                   v
+;                         +                  API_InterExit
+;                         |
+;                         |
+;                         |
+;                         v
+;                   LOAD_CTX_REG
+;*********************************************************************************************************/
+
 MACRO_DEF(IRQ_ENTRY  irq  handle)
     ;/*
     ; * 异常会自动将 xPSR, PC, LR, R12 以及 R3-R0 依次压入适当的堆栈中：
@@ -132,12 +177,6 @@ MACRO_DEF(IRQ_ENTRY  irq  handle)
     BNE     2f
 
     ;/*
-    ; * 获得当前任务 TCB 的 ARCH_REG_CTX 地址
-    ; */
-    LDR     R3 , =API_ThreadTcbInter
-    BLX     R3
-
-    ;/*
     ; * 这里可以使用 R12，因为硬件自动保存了
     ; * 判断是否在关中断前或者任务切换时发生抢占
     ; */
@@ -145,17 +184,18 @@ MACRO_DEF(IRQ_ENTRY  irq  handle)
     TST     R12 , #(CORTEX_M_EXC_RETURN_MODE_MASK)
     BEQ     1f
 
-    PUSH    {R0}                                                ;/*  保存 API_ThreadTcbInter 返回值      */
-
     ;/*
     ; * 第一次进入中断: 获得当前 CPU 中断堆栈栈顶, 并设置 MSP
     ; */
     LDR     R3 , =API_InterStackBaseGet
     BLX     R3
-    POP     {R1}                                                ;/*  此时 MSP 没有改变，可以执行 POP     */
     MSR     MSP , R0
 
-    MOV     R0 , R1
+    ;/*
+    ; * 获得当前任务 TCB 的 ARCH_REG_CTX 地址
+    ; */
+    LDR     R3 , =API_ThreadTcbInter
+    BLX     R3
 
     ;/*
     ; * 保存 R4-R11 到当前任务 TCB 的 ARCH_REG_CTX 里
@@ -172,8 +212,7 @@ MACRO_DEF(IRQ_ENTRY  irq  handle)
     STM     R2 , {R4-R11}
 
     MOV     R1 , R0
-
-4:
+3:
     ;/*
     ; * handle(vector, 寄存器上下文)
     ; */
@@ -181,15 +220,12 @@ MACRO_DEF(IRQ_ENTRY  irq  handle)
     LDR     R3 , =\handle
     BLX     R3
 
-    TST     R12 , #(CORTEX_M_EXC_RETURN_MODE_MASK)
-    ITE     EQ
     ;/*
     ; * API_InterExit()
     ; * 如果没有发生中断嵌套, 则 API_InterExit 会调用 archIntCtxLoad 函数,
     ; * 注意 MSP 并没有调整, 但不会有问题(因为下次进入中断时 MSP 会首先使用异常完全压栈后的 SP)
     ; */
-    LDREQ   R3 , =API_InterExitNoSched
-    LDRNE   R3 , =API_InterExit
+    LDR     R3 , =API_InterExit
     BLX     R3
 
     ;/*
@@ -198,43 +234,67 @@ MACRO_DEF(IRQ_ENTRY  irq  handle)
     ;/*
     ; * 从 MSP 指向的堆栈恢复原 SP, BASEPRI, R4-R11, EXC_RETURN(保存在 LR)寄存器
     ; */
-    LDR     R12 , =_CpuGetNesting
-    BLX     R12
-
-    MOV     R1 , R0
-
     MRS     R0 , MSP
-
     LDM     R0 , {R2-R11, LR}
     ADD     R0 , R0 , #(ARCH_SW_SAVE_CTX_SIZE)
-
     MSR     MSP , R0
 
-    CMP     R1 , #0
-    BNE     3f
-    ;/*
-    ; * Send PendSV
-    ; */
-    LDR     R0 , =(CORTEX_M_ICSR)
-    LDR     R1 , =(CORTEX_M_PENDSV_SET_MASK)
-    STR     R1 , [R0]
-3:
     MSR     BASEPRI , R3
 
     ;/*
     ; * 从 MSP 指向的堆栈恢复 xPSR, PC, LR, R12 以及 R3-R0 寄存器
     ; */
     BX      LR
+
 2:
     POP     {R12}
-1:
     ;/*
-    ; * 不是第一次进入中断
+    ; * 中断嵌套
     ; */
     MRS     R1 , MSP
     ADD     R0 , R1 , #(2 * 4)                                  ;/*  跳过 SP, BASEPRI 的保存             */
     STM     R0 , {R4-R11}                                       ;/*  保存 R4-R11, 跳过 EXC_RETURN 的保存 */
-    B       4b
+
+    B       3b
+
+1:
+    ;/*
+    ; * 来到这里，说明在关中断前或者任务切换时发生抢占
+    ; */
+    MRS     R1 , MSP
+    ADD     R0 , R1 , #(2 * 4)                                  ;/*  跳过 SP, BASEPRI 的保存             */
+    STM     R0 , {R4-R11}                                       ;/*  保存 R4-R11, 跳过 EXC_RETURN 的保存 */
+
+    ;/*
+    ; * handle(vector, 寄存器上下文)
+    ; */
+    MOV     R0 , \irq
+    LDR     R3 , =\handle
+    BLX     R3
+
+    LDR     R3 , =API_InterExitNoSched
+    BLX     R3
+
+    ;/*
+    ; * 从 MSP 指向的堆栈恢复原 SP, BASEPRI, R4-R11, EXC_RETURN(保存在 LR)寄存器
+    ; */
+    MRS     R0 , MSP
+    LDM     R0 , {R2-R11, LR}
+    ADD     R0 , R0 , #(ARCH_SW_SAVE_CTX_SIZE)
+    MSR     MSP , R0
+
+    ;/*
+    ; * Send PendSV
+    ; */
+    LDR     R0 , =(CORTEX_M_ICSR)
+    LDR     R1 , =(CORTEX_M_PENDSV_SET_MASK)
+    STR     R1 , [R0]
+
+    MSR     BASEPRI , R3
+    ;/*
+    ; * 从 MSP 指向的堆栈恢复 xPSR, PC, LR, R12 以及 R3-R0 寄存器
+    ; */
+    BX      LR
     MACRO_END()
 
 ;/*********************************************************************************************************
@@ -415,8 +475,9 @@ FUNC_DEF(archSvcEntry)
     FUNC_END()
 
 ;/*********************************************************************************************************
-;  PENDSV 入口函数
+;  PendSV 入口函数
 ;*********************************************************************************************************/
+
 FUNC_DEF(archPendSVEntry)
     ;/*
     ; * 异常会自动将 xPSR, PC, LR, R12 以及 R3-R0 依次压入适当的堆栈中：
@@ -452,6 +513,25 @@ FUNC_DEF(archPendSVEntry)
     LDR     R3 , =API_InterEnter
     BLX     R3
 
+    ;/*
+    ; * 获得当前任务 TCB 的 ARCH_REG_CTX 地址
+    ; */
+    LDR     R3 , =API_ThreadTcbInter
+    BLX     R3
+
+    ;/*
+    ; * 保存 R4-R11 到当前任务 TCB 的 ARCH_REG_CTX 里
+    ; */
+    ADD     R1 , R0 , #(2 * 4)                                  ;/*  跳过 SP, BASEPRI 的保存             */
+    STM     R1 , {R4-R11}                                       ;/*  保存 R4-R11, 跳过 EXC_RETURN 的保存 */
+
+    LDR     R1 , [R0]                                           ;/*  R1 = 异常自动压栈前使用的 SP        */
+    SUB     R1 , R1 , #(ARCH_HW_SAVE_CTX_SIZE)                  ;/*  R1 = 异常自动压栈后使用的 SP        */
+
+    ADD     R2 , R0 , #(ARCH_SW_SAVE_CTX_SIZE)
+
+    LDM     R1 , {R4-R11}
+    STM     R2 , {R4-R11}
 
     ;/*
     ; * 第一次进入中断: 获得当前 CPU 中断堆栈栈顶, 并设置 MSP
@@ -459,8 +539,6 @@ FUNC_DEF(archPendSVEntry)
     LDR     R3 , =API_InterStackBaseGet
     BLX     R3
     MSR     MSP , R0
-
-    MOV     R0 , R1
 
     ;/*
     ; * API_InterExit()
