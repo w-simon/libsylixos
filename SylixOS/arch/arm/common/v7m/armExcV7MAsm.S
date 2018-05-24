@@ -39,6 +39,8 @@
     IMPORT_LABEL(API_InterStackBaseGet)
     IMPORT_LABEL(API_InterEnter)
     IMPORT_LABEL(API_InterExit)
+    IMPORT_LABEL(API_InterExitNoSched)
+    IMPORT_LABEL(_CpuGetNesting)
 
 #if LW_CFG_SMP_EN > 0
     IMPORT_LABEL(_SchedSafeStack)
@@ -90,14 +92,16 @@ MACRO_DEF(IRQ_ENTRY  irq  handle)
     ;/*
     ; * R1 记录 BASEPRI, 并关中断(利用优先级屏蔽中断, 才能使用 SVC)
     ; */
+    CPSID   I
     MRS     R1 , BASEPRI                                        ;/*  Set prio int mask to mask all       */
     MOV     R2 , #LW_CFG_CORTEX_M_INT_MASK                      ;/*  mask prio >= 2                      */
     MSR     BASEPRI , R2
+    CPSIE   I
 
     ;/*
     ; * R0 等于异常自动压栈前使用的 SP, 通过 EXC_RETURN(保存在 LR) 判断异常前使用何种 SP
     ; */
-    TST     LR , #(1 << 2)                                      ;/*  nonzero if context on process stack */
+    TST     LR , #(CORTEX_M_EXC_RETURN_MODE_MASK)               ;/*  nonzero if context on process stack */
     ITE     EQ                                                  ;/*  next two instructions conditional   */
     MRSEQ   R0 , MSP
     MRSNE   R0 , PSP
@@ -109,6 +113,8 @@ MACRO_DEF(IRQ_ENTRY  irq  handle)
     MRS     R2 , MSP
     SUB     R2 , R2 , #(ARCH_SW_SAVE_CTX_SIZE)
     MSR     MSP, R2
+
+    PUSH    {LR}
 
     ;/*
     ; * API_InterEnter(异常自动压栈前使用的 SP, BASEPRI, EXC_RETURN) 进入中断,
@@ -123,20 +129,33 @@ MACRO_DEF(IRQ_ENTRY  irq  handle)
     ; * 如果不是第一次进入中断, 那么上一次中断已经设置 MSP
     ; */
     CMP     R0 , #1
-    BNE     1f
-
-    ;/*
-    ; * 第一次进入中断: 获得当前 CPU 中断堆栈栈顶, 并设置 MSP
-    ; */
-    LDR     R3 , =API_InterStackBaseGet
-    BLX     R3
-    MSR     MSP , R0
+    BNE     2f
 
     ;/*
     ; * 获得当前任务 TCB 的 ARCH_REG_CTX 地址
     ; */
     LDR     R3 , =API_ThreadTcbInter
     BLX     R3
+
+    ;/*
+    ; * 这里可以使用 R12，因为硬件自动保存了
+    ; * 判断是否在关中断前或者任务切换时发生抢占
+    ; */
+    POP     {R12}
+    TST     R12 , #(CORTEX_M_EXC_RETURN_MODE_MASK)
+    BEQ     1f
+
+    PUSH    {R0}                                                ;/*  保存 API_ThreadTcbInter 返回值      */
+
+    ;/*
+    ; * 第一次进入中断: 获得当前 CPU 中断堆栈栈顶, 并设置 MSP
+    ; */
+    LDR     R3 , =API_InterStackBaseGet
+    BLX     R3
+    POP     {R1}                                                ;/*  此时 MSP 没有改变，可以执行 POP     */
+    MSR     MSP , R0
+
+    MOV     R0 , R1
 
     ;/*
     ; * 保存 R4-R11 到当前任务 TCB 的 ARCH_REG_CTX 里
@@ -154,7 +173,7 @@ MACRO_DEF(IRQ_ENTRY  irq  handle)
 
     MOV     R1 , R0
 
-2:
+4:
     ;/*
     ; * handle(vector, 寄存器上下文)
     ; */
@@ -162,12 +181,15 @@ MACRO_DEF(IRQ_ENTRY  irq  handle)
     LDR     R3 , =\handle
     BLX     R3
 
+    TST     R12 , #(CORTEX_M_EXC_RETURN_MODE_MASK)
+    ITE     EQ
     ;/*
     ; * API_InterExit()
     ; * 如果没有发生中断嵌套, 则 API_InterExit 会调用 archIntCtxLoad 函数,
     ; * 注意 MSP 并没有调整, 但不会有问题(因为下次进入中断时 MSP 会首先使用异常完全压栈后的 SP)
     ; */
-    LDR     R3 , =API_InterExit
+    LDREQ   R3 , =API_InterExitNoSched
+    LDRNE   R3 , =API_InterExit
     BLX     R3
 
     ;/*
@@ -176,19 +198,35 @@ MACRO_DEF(IRQ_ENTRY  irq  handle)
     ;/*
     ; * 从 MSP 指向的堆栈恢复原 SP, BASEPRI, R4-R11, EXC_RETURN(保存在 LR)寄存器
     ; */
+    LDR     R12 , =_CpuGetNesting
+    BLX     R12
+
+    MOV     R1 , R0
+
     MRS     R0 , MSP
 
     LDM     R0 , {R2-R11, LR}
     ADD     R0 , R0 , #(ARCH_SW_SAVE_CTX_SIZE)
 
     MSR     MSP , R0
+
+    CMP     R1 , #0
+    BNE     3f
+    ;/*
+    ; * Send PendSV
+    ; */
+    LDR     R0 , =(CORTEX_M_ICSR)
+    LDR     R1 , =(CORTEX_M_PENDSV_SET_MASK)
+    STR     R1 , [R0]
+3:
     MSR     BASEPRI , R3
 
     ;/*
     ; * 从 MSP 指向的堆栈恢复 xPSR, PC, LR, R12 以及 R3-R0 寄存器
     ; */
     BX      LR
-
+2:
+    POP     {R12}
 1:
     ;/*
     ; * 不是第一次进入中断
@@ -196,7 +234,7 @@ MACRO_DEF(IRQ_ENTRY  irq  handle)
     MRS     R1 , MSP
     ADD     R0 , R1 , #(2 * 4)                                  ;/*  跳过 SP, BASEPRI 的保存             */
     STM     R0 , {R4-R11}                                       ;/*  保存 R4-R11, 跳过 EXC_RETURN 的保存 */
-    B       2b
+    B       4b
     MACRO_END()
 
 ;/*********************************************************************************************************
@@ -248,14 +286,6 @@ FUNC_DEF(archUsageFaultEntry)
 
 FUNC_DEF(archDebugMonitorEntry)
     IRQ_ENTRY   12  armv7mDebugMonitorHandle
-    FUNC_END()
-
-;/*********************************************************************************************************
-;  PendSV 中断入口函数
-;*********************************************************************************************************/
-
-FUNC_DEF(archPendSVEntry)
-    IRQ_ENTRY   14  armv7mPendSVHandle
     FUNC_END()
 
 ;/*********************************************************************************************************
@@ -337,7 +367,7 @@ FUNC_DEF(archSvcEntry)
     ; * R0 等于异常自动压栈后使用的 SP
     ; * R2 等于异常自动压栈前使用的 SP, 通过 EXC_RETURN(保存在 LR) 判断异常前使用何种 SP
     ; */
-    TST     LR , #(1 << 2)                                      ;/*  nonzero if context on process stack */
+    TST     LR , #(CORTEX_M_EXC_RETURN_MODE_MASK)               ;/*  nonzero if context on process stack */
     ITE     EQ                                                  ;/*  next two instructions conditional   */
     MRSEQ   R0 , MSP
     MRSNE   R0 , PSP
@@ -380,6 +410,68 @@ FUNC_DEF(archSvcEntry)
 
     ;/*
     ; * 从 SP 指向的堆栈恢复 xPSR, PC, LR, R12 以及 R3-R0 寄存器
+    ; */
+    BX      LR
+    FUNC_END()
+
+;/*********************************************************************************************************
+;  PENDSV 入口函数
+;*********************************************************************************************************/
+FUNC_DEF(archPendSVEntry)
+    ;/*
+    ; * 异常会自动将 xPSR, PC, LR, R12 以及 R3-R0 依次压入适当的堆栈中：
+    ; * 如果异常前的代码正在使用 PSP, 则压入 PSP, 也就是使用进程堆栈；
+    ; * 否则就压入 MSP, 使用主堆栈.
+    ; * 一旦进入了服务例程, 就将一直使用主堆栈
+    ; */
+
+    ;/*
+    ; * R1 记录 BASEPRI, 并关中断(利用优先级屏蔽中断, 才能使用 SVC)
+    ; */
+    CPSID   I
+    MRS     R1 , BASEPRI                                        ;/*  Set prio int mask to mask all       */
+    MOV     R2 , #LW_CFG_CORTEX_M_INT_MASK                      ;/*  mask prio >= 2                      */
+    MSR     BASEPRI , R2
+    CPSIE   I
+
+    ;/*
+    ; * R0 等于异常自动压栈前使用的 SP, 通过 EXC_RETURN(保存在 LR) 判断异常前使用何种 SP
+    ; */
+    TST     LR , #(CORTEX_M_EXC_RETURN_MODE_MASK)               ;/*  nonzero if context on process stack */
+    ITE     EQ                                                  ;/*  next two instructions conditional   */
+    MRSEQ   R0 , MSP
+    MRSNE   R0 , PSP
+    ADD     R0 , R0 , #(ARCH_HW_SAVE_CTX_SIZE)
+
+    ;/*
+    ; * API_InterEnter(异常自动压栈前使用的 SP, BASEPRI, EXC_RETURN) 进入中断,
+    ; * 如果是第一次中断,   会将 异常前 SP, BASEPRI, EXC_RETURN 保存到当前任务 TCB 的 ARCH_REG_CTX 里
+    ; * 如果不是第一次中断, 会将 异常前 SP, BASEPRI, EXC_RETURN 保存到上面预留的栈空间里
+    ; */
+    MOV     R2 , LR
+    LDR     R3 , =API_InterEnter
+    BLX     R3
+
+
+    ;/*
+    ; * 第一次进入中断: 获得当前 CPU 中断堆栈栈顶, 并设置 MSP
+    ; */
+    LDR     R3 , =API_InterStackBaseGet
+    BLX     R3
+    MSR     MSP , R0
+
+    MOV     R0 , R1
+
+    ;/*
+    ; * API_InterExit()
+    ; * 如果没有发生中断嵌套, 则 API_InterExit 会调用 archIntCtxLoad 函数,
+    ; * 注意 MSP 并没有调整, 但不会有问题(因为下次进入中断时 MSP 会首先使用异常完全压栈后的 SP)
+    ; */
+    LDR     R3 , =API_InterExit
+    BLX     R3
+
+    ;/*
+    ; * 无法执行到这里，任务切换
     ; */
     BX      LR
     FUNC_END()

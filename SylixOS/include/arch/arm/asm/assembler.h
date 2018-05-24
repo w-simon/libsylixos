@@ -258,6 +258,12 @@ func
 
 #endif                                                                  /*  __ASSEMBLY__                */
 
+#if defined(__SYLIXOS_ARM_ARCH_M__)
+#  define CORTEX_M_EXC_RETURN_MODE_MASK     (1 << 2)
+#  define CORTEX_M_ICSR                     (0xe000ed04)
+#  define CORTEX_M_PENDSV_SET_MASK          (1 << 28)
+#endif
+
 #endif                                                                  /*  __ASMARM_ASSEMBLER_H        */
 /*********************************************************************************************************
   END

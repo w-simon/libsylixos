@@ -31,6 +31,8 @@
 2015.11.20  增加对特殊总线位宽的支持.
 2015.12.17  增加对 MMC/eMMC 总线位宽的兼容性处理.
 2017.02.28  增加 SDIO 外设额外电源设置和带外 SDIO 中断的 Quirk 操作.
+2018.05.22  增加 SD 卡仅能使用1位模式的处理.
+			增加 PIO 模式平台相关延时处理.
 *********************************************************************************************************/
 
 #ifndef __SDHCI_H
@@ -523,6 +525,7 @@ typedef struct lw_sdhci_host_attr {
 #define SDHCI_QUIRK_FLG_SDIO_INT_OOB                          (1 << 15) /*  SDIO OOB 中断               */
 #define SDHCI_QUIRK_FLG_SDIO_FORCE_1BIT                       (1 << 16) /*  SDIO 卡强制使用1位总线      */
 #define SDHCI_QUIRK_FLG_HAS_DATEND_IRQ_WHEN_NOT_BUSY          (1 << 17) /*  当卡不忙时会产生数据完成中断*/
+#define SDHCI_QUIRK_FLG_SD_FORCE_1BIT                         (1 << 18) /*  SD 卡强制使用1位总线        */
 
     VOID            *SDHCIHOST_pvUsrSpec;                               /*  用户驱动特殊数据            */
 } LW_SDHCI_HOST_ATTR, *PLW_SDHCI_HOST_ATTR;
@@ -648,6 +651,11 @@ struct _sdhci_quirk_op {
     VOID    (*SDHCIQOP_pfuncHwReset)                                    /*  平台相关硬件复位            */
             (
             PLW_SDHCI_HOST_ATTR  psdhcihostattr
+            );
+    VOID    (*SDHCIQOP_pfuncPioXferHook)                                /*  平台相关 PIO 传输 HOOK      */
+            (
+            PLW_SDHCI_HOST_ATTR  psdhcihostattr,
+			BOOL				 bIsRead
             );
 };
 

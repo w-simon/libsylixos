@@ -1601,6 +1601,10 @@ static __SDHCI_SDM_HOST *__sdhciSdmHostNew (__PSDHCI_HOST   psdhcihost)
                         SDHCI_QUIRK_FLG_SDIO_FORCE_1BIT)) {
         iCapablity |= SDHOST_CAP_SDIO_FORCE_1BIT;
     }
+    if (SDHCI_QUIRK_FLG(&psdhcihost->SDHCIHS_sdhcihostattr,
+    					SDHCI_QUIRK_FLG_SD_FORCE_1BIT)) {
+        iCapablity |= SDHOST_CAP_SD_FORCE_1BIT;
+    }
 
     psdhost = &psdhcisdmhost->SDHCISDMH_sdhost;
 
@@ -2891,6 +2895,7 @@ static INT  __sdhciTransCmdHandle (__SDHCI_TRANS *psdhcitrans, UINT32 uiIntSta)
 static INT __sdhciTransDatHandle (__SDHCI_TRANS *psdhcitrans, UINT32 uiIntSta)
 {
     LW_SDHCI_HOST_ATTR  *psdhcihostattr = &psdhcitrans->SDHCITS_psdhcihost->SDHCIHS_sdhcihostattr;
+    SDHCI_QUIRK_OP      *psdhciquirkop  = psdhcihostattr->SDHCIHOST_pquirkop;
 
     /*
      * 当没有数据传输时, 如果命令包含了 忙等待信号, 则也会产生数据完成中断
@@ -2951,6 +2956,9 @@ static INT __sdhciTransDatHandle (__SDHCI_TRANS *psdhcitrans, UINT32 uiIntSta)
         (psdhcitrans->SDHCITS_uiBlkCntRemain > 0)) {
         if (psdhcitrans->SDHCITS_bIsRead) {
             while (SDHCI_READL(psdhcihostattr, SDHCI_PRESENT_STATE) & SDHCI_PSTA_DATA_AVAILABLE) {
+            	if (psdhciquirkop->SDHCIQOP_pfuncPioXferHook) {
+            		psdhciquirkop->SDHCIQOP_pfuncPioXferHook(psdhcihostattr, LW_TRUE);
+            	}
                 __sdhciDataReadNorm(psdhcitrans);
                 if (psdhcitrans->SDHCITS_uiBlkCntRemain == 0) {
                     /*
@@ -2962,6 +2970,9 @@ static INT __sdhciTransDatHandle (__SDHCI_TRANS *psdhcitrans, UINT32 uiIntSta)
             }
         } else {
             while (SDHCI_READL(psdhcihostattr, SDHCI_PRESENT_STATE) & SDHCI_PSTA_SPACE_AVAILABLE) {
+            	if (psdhciquirkop->SDHCIQOP_pfuncPioXferHook) {
+            		psdhciquirkop->SDHCIQOP_pfuncPioXferHook(psdhcihostattr, LW_FALSE);
+            	}
                 __sdhciDataWriteNorm(psdhcitrans);
                 if (psdhcitrans->SDHCITS_uiBlkCntRemain == 0) {
                     /*

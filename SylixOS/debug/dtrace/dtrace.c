@@ -958,7 +958,14 @@ ULONG  API_DtraceWatchpointRemove (PVOID  pvDtrace, addr_t  ulAddr, size_t stSiz
 LW_API 
 ULONG  API_DtraceStopThread (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread)
 {
-    return  (API_ThreadStop(ulThread));
+    PLW_DTRACE    pdtrace = (PLW_DTRACE)pvDtrace;
+    LW_LD_VPROC  *pvproc  = vprocGet(pdtrace->DTRACE_pid);
+    
+    if (pvproc) {
+        vprocDebugThreadStop(pvproc, ulThread);
+    }
+
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: API_DtraceContinueThread
@@ -973,7 +980,14 @@ ULONG  API_DtraceStopThread (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread)
 LW_API 
 ULONG  API_DtraceContinueThread (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread)
 {
-    return  (API_ThreadContinue(ulThread));
+    PLW_DTRACE    pdtrace = (PLW_DTRACE)pvDtrace;
+    LW_LD_VPROC  *pvproc  = vprocGet(pdtrace->DTRACE_pid);
+    
+    if (pvproc) {
+        vprocDebugThreadContinue(pvproc, ulThread);
+    }
+
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: API_DtraceStopProcess
@@ -991,7 +1005,7 @@ ULONG  API_DtraceStopProcess (PVOID  pvDtrace)
     LW_LD_VPROC  *pvproc  = vprocGet(pdtrace->DTRACE_pid);
     
     if (pvproc) {
-        vprocThreadDebugStop(pvproc);
+        vprocDebugStop(pvproc);
     }
     
     return  (ERROR_NONE);
@@ -1012,7 +1026,7 @@ ULONG  API_DtraceContinueProcess (PVOID  pvDtrace)
     LW_LD_VPROC  *pvproc  = vprocGet(pdtrace->DTRACE_pid);
     
     if (pvproc) {
-        vprocThreadDebugContinue(pvproc);
+        vprocDebugContinue(pvproc);
     }
     
     return  (ERROR_NONE);
@@ -1130,7 +1144,7 @@ ULONG  API_DtraceProcessThread (PVOID  pvDtrace, LW_OBJECT_HANDLE ulThread[],
     }
     
     if (pvproc) {
-        *puiThreadNum = vprocThreadDebugGet(pvproc, ulThread, uiTableNum);
+        *puiThreadNum = vprocDebugThreadGet(pvproc, ulThread, uiTableNum);
     }
     
     return  (ERROR_NONE);

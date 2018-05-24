@@ -25,9 +25,6 @@
 *********************************************************************************************************/
 #if LW_CFG_MODULELOADER_EN > 0
 #include "../include/loader_lib.h"
-#if LW_CFG_VMM_EN > 0
-#include "../SylixOS/kernel/vmm/pageTable.h"
-#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 /*********************************************************************************************************
 ** 函数名称: vprocThreadAdd
 ** 功能描述: 将一个线程加入进程
@@ -108,129 +105,6 @@ INT  vprocThreadNum (pid_t  pid, ULONG  *pulNum)
     
     return  (ERROR_NONE);
 }
-/*********************************************************************************************************
-** 函数名称: vprocDebugCriResLock
-** 功能描述: 关键性资源锁定
-** 输　入  : NONE
-** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-#if LW_CFG_GDB_EN > 0
-
-static VOID  vprocDebugCriResLock (VOID)
-{
-#if LW_CFG_VMM_EN > 0
-    __VMM_LOCK();
-#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
-    API_SemaphoreMPend(_K_pheapSystem->HEAP_ulLock, LW_OPTION_WAIT_INFINITE);
-}
-/*********************************************************************************************************
-** 函数名称: vprocDebugCriResUnlock
-** 功能描述: 关键性资源解锁
-** 输　入  : NONE
-** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-static VOID  vprocDebugCriResUnlock (VOID)
-{
-#if LW_CFG_VMM_EN > 0
-    __VMM_UNLOCK();
-#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
-    API_SemaphoreMPost(_K_pheapSystem->HEAP_ulLock);
-}
-/*********************************************************************************************************
-** 函数名称: vprocThreadStop
-** 功能描述: 停止进程内的所有线程
-** 输　入  : pvVProc    进程控制块指针
-** 输　出  : NONE
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-VOID  vprocThreadDebugStop (PVOID  pvVProc)
-{
-    LW_LD_VPROC    *pvproc = (LW_LD_VPROC *)pvVProc;
-    PLW_LIST_LINE   plineTemp;
-    PLW_CLASS_TCB   ptcb;
-    
-    LW_VP_LOCK(pvproc);                                                 /*  锁定当前进程                */
-    vprocDebugCriResLock();                                             /*  等待调试关键性资源          */
-    for (plineTemp  = pvproc->VP_plineThread;
-         plineTemp != LW_NULL;
-         plineTemp  = _list_line_get_next(plineTemp)) {
-    
-        ptcb = _LIST_ENTRY(plineTemp, LW_CLASS_TCB, TCB_lineProcess);
-        if (ptcb->TCB_iDeleteProcStatus == LW_TCB_DELETE_PROC_NONE) {
-            __KERNEL_ENTER();                                           /*  进入内核                    */
-            _ThreadStop(ptcb);
-            _ThreadDebugUnpendSem(ptcb);
-            __KERNEL_EXIT();                                            /*  退出内核                    */
-        }
-    }
-    vprocDebugCriResUnlock();                                           /*  释放调试关键性资源          */
-    LW_VP_UNLOCK(pvproc);                                               /*  解锁当前进程                */
-}
-/*********************************************************************************************************
-** 函数名称: vprocThreadContinue
-** 功能描述: 恢复进程内的所有停止的线程
-** 输　入  : pvVProc    进程控制块指针
-** 输　出  : NONE
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-VOID  vprocThreadDebugContinue (PVOID  pvVProc)
-{
-    LW_LD_VPROC    *pvproc = (LW_LD_VPROC *)pvVProc;
-    PLW_LIST_LINE   plineTemp;
-    PLW_CLASS_TCB   ptcb;
-    
-    LW_VP_LOCK(pvproc);                                                 /*  锁定当前进程                */
-    for (plineTemp  = pvproc->VP_plineThread;
-         plineTemp != LW_NULL;
-         plineTemp  = _list_line_get_next(plineTemp)) {
-    
-        ptcb = _LIST_ENTRY(plineTemp, LW_CLASS_TCB, TCB_lineProcess);
-        __KERNEL_ENTER();                                               /*  进入内核                    */
-        _ThreadContinue(ptcb, LW_FALSE);
-        __KERNEL_EXIT();                                                /*  退出内核                    */
-    }
-    LW_VP_UNLOCK(pvproc);                                               /*  解锁当前进程                */
-}
-/*********************************************************************************************************
-** 函数名称: vprocThreadGet
-** 功能描述: 获得进程内的所有线程句柄
-** 输　入  : pvVProc        进程控制块指针
-**           ulThread       线程表
-**           uiTableNum     表容量
-** 输　出  : 总线程数
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-UINT  vprocThreadDebugGet (PVOID  pvVProc, LW_OBJECT_HANDLE  ulThread[], UINT   uiTableNum)
-{
-    LW_LD_VPROC    *pvproc = (LW_LD_VPROC *)pvVProc;
-    PLW_LIST_LINE   plineTemp;
-    PLW_CLASS_TCB   ptcb;
-    UINT            uiThreadNum = 0;
-    
-    __KERNEL_ENTER();                                                   /*  进入内核                    */
-    for (plineTemp  = pvproc->VP_plineThread;
-         plineTemp != LW_NULL;
-         plineTemp  = _list_line_get_next(plineTemp)) {
-    
-        ptcb = _LIST_ENTRY(plineTemp, LW_CLASS_TCB, TCB_lineProcess);
-        if (uiThreadNum < uiTableNum) {
-            ulThread[uiThreadNum] = ptcb->TCB_ulId;
-            uiThreadNum++;
-        }
-    }
-    __KERNEL_EXIT();                                                    /*  退出内核                    */
-
-    return  (uiThreadNum);
-}
-
-#endif                                                                  /*  LW_CFG_GDB_EN > 0           */
 /*********************************************************************************************************
 ** 函数名称: vprocThreadKill
 ** 功能描述: 杀死进程内的除主线程外的所有线程

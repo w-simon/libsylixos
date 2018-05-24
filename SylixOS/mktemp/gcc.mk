@@ -90,6 +90,7 @@ TOOLCHAIN_LINK_OMP       = -lgomp
 TOOLCHAIN_LINK_CXX       = -lstdc++
 TOOLCHAIN_LINK_M         = -lm
 TOOLCHAIN_LINK_GCC       = -lgcc
+TOOLCHAIN_LINK_GTEST     = -lgtest -lgmock
 
 TOOLCHAIN_LINK_PIC_GCOV  = -lgcov
 TOOLCHAIN_LINK_PIC_OMP   = -lgomp

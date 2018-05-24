@@ -612,11 +612,32 @@ static INT finiArrayCall (LW_LD_EXEC_MODULE *pmodule, BOOL  bRunFini)
             }
             
             if (bRunFini) {                                             /*  逆序调用结束函数            */
+#if defined(LW_CFG_CPU_ARCH_C6X)
+                addr_t       ulValue;
+                VOIDFUNCPTR  pfuncCallFunc;
+                                                                        /*  查找递归最多 20 层          */
+                if (__moduleTreeFindSym(pmodTemp, "__c6x_call_internal_func", 
+                                        &ulValue, LW_LD_SYM_FUNCTION, 20)) {
+                    pfuncCallFunc = LW_NULL;
+                
+                } else {
+                    pfuncCallFunc = (VOIDFUNCPTR)ulValue;               /*  C6x 需要使用此函数析构      */
+                }
+#endif                                                                  /*  defined(LW_CFG_CPU_ARCH_C6X)*/
                 for (i = (INT)pmodTemp->EMOD_ulFiniArrCnt - 1; i >= 0; i--) {
                     pfuncFini = pmodTemp->EMOD_ppfuncFiniArray[i];
                     if (pfuncFini != LW_NULL && pfuncFini != (VOIDFUNCPTR)(~0)) {
-                        LW_SOFUNC_PREPARE(pfuncFini);
-                        pfuncFini();
+#if defined(LW_CFG_CPU_ARCH_C6X)
+                        if (pfuncCallFunc) {
+                            LW_SOFUNC_PREPARE(pfuncCallFunc);
+                            pfuncCallFunc(pfuncFini);
+                            
+                        } else 
+#endif                                                                  /*  defined(LW_CFG_CPU_ARCH_C6X)*/
+                        {
+                            LW_SOFUNC_PREPARE(pfuncFini);
+                            pfuncFini();
+                        }
                     }
                 }
             }

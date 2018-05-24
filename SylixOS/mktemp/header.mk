@@ -42,6 +42,7 @@ STATIC_LIBRARY_MK = $(MKTEMP)/static-library.mk
 KERNEL_MODULE_MK  = $(MKTEMP)/kernel-module.mk
 KERNEL_LIBRARY_MK = $(MKTEMP)/kernel-library.mk
 UNIT_TEST_MK      = $(MKTEMP)/unit-test.mk
+GTEST_MK          = $(MKTEMP)/gtest.mk
 LIBSYLIXOS_MK     = $(MKTEMP)/libsylixos.mk
 DUMMY_MK          = $(MKTEMP)/dummy.mk
 BSP_MK            = $(MKTEMP)/bsp.mk

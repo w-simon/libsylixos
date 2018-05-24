@@ -211,6 +211,7 @@ err_t  sys_mutex_new (sys_mutex_t *pmutex)
                                                       LW_OPTION_WAIT_PRIORITY |
                                                       LW_OPTION_INHERIT_PRIORITY |
                                                       LW_OPTION_DELETE_SAFE |
+                                                      LW_OPTION_OBJECT_DEBUG_UNPEND |
                                                       LW_OPTION_OBJECT_GLOBAL, LW_NULL);
     if (hMutex == LW_OBJECT_HANDLE_INVALID) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "can not create net mutex.\r\n");

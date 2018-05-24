@@ -31,6 +31,7 @@
 2015.09.22  增加对 MMC/eMMC 扩展协议的支持.
 2015.12.17  增加对 MMC/eMMC 兼容性处理.
 2016.01.26  修正对 SPI 模式下的写块操作不符合协议的地方.
+2018.05.22  增加对 SD 卡仅能使用1位模式的处理.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -630,13 +631,16 @@ static INT __sdMemInit (PLW_SDCORE_DEVICE psdcoredevice)
                 return  (PX_ERROR);
             }
 
-            iError = API_SdCoreDevSetBusWidth(psdcoredevice, SDARG_SETBUSWIDTH_4);
+            if ((iHostCap & SDHOST_CAP_DATA_4BIT) &&
+                !(iHostCap & SDHOST_CAP_SD_FORCE_1BIT)) {
+            	iError = API_SdCoreDevSetBusWidth(psdcoredevice, SDARG_SETBUSWIDTH_4);
                                                                         /*  acmd6 set bus width         */
-            if (iError != ERROR_NONE) {
-                SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "set bus width error.\r\n");
-                return  (PX_ERROR);
+            	if (iError != ERROR_NONE) {
+            		SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "set bus width error.\r\n");
+            		return  (PX_ERROR);
+            	}
+            	API_SdCoreDevCtl(psdcoredevice, SDBUS_CTRL_SETBUSWIDTH, SDARG_SETBUSWIDTH_4);
             }
-            API_SdCoreDevCtl(psdcoredevice, SDBUS_CTRL_SETBUSWIDTH, SDARG_SETBUSWIDTH_4);
 
         } else {                                                        /*  mmc 总线特殊设置            */
             iError = API_SdCoreDevSetBlkLen(psdcoredevice, SD_MEM_DEFAULT_BLKSIZE);
@@ -1553,7 +1557,7 @@ static INT __sdMemMmcBusWidthChange (PLW_SDCORE_DEVICE psdcoredevice, INT iCardC
         return  (PX_ERROR);
     }
 
-    if (iHostCap & SDHOST_CAP_MMC_FORCE_1BIT) {
+    if (!(iHostCap & SDHOST_CAP_DATA_4BIT) || (iHostCap & SDHOST_CAP_MMC_FORCE_1BIT)) {
         return  (ERROR_NONE);
     }
 

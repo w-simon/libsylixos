@@ -79,7 +79,7 @@ TOOLCHAIN_DIS_FLAGS            = --all
 # Toolchain link library
 #*********************************************************************************************************
 TOOLCHAIN_LINK_VPMPDM    = -llibvpmpdm.so
-TOOLCHAIN_LINK_CEXTERN   = -llibcextern.so
+TOOLCHAIN_LINK_CEXTERN   = 
 TOOLCHAIN_LINK_DSOHANDLE = -llibdsohandle.a
 TOOLCHAIN_LINK_SYLIXOS   = -llibsylixos.a
 TOOLCHAIN_LINK_GCOV      =
@@ -88,6 +88,7 @@ TOOLCHAIN_LINK_OMP       =
 TOOLCHAIN_LINK_CXX       =
 TOOLCHAIN_LINK_M         =
 TOOLCHAIN_LINK_GCC       = -llibrts$(CPU_TYPE)_elf.a
+TOOLCHAIN_LINK_GTEST     =
 
 TOOLCHAIN_LINK_PIC_GCOV  =
 TOOLCHAIN_LINK_PIC_OMP   =

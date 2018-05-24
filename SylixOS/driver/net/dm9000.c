@@ -990,7 +990,7 @@ static void  dm9000_watchdog (struct netdev *netdev)
         if (!linkup || (netdev->speed == 0)) {
             nsr = dm9000_io_read(dm9000, DM9000_NSR);
             ncr = dm9000_io_read(dm9000, DM9000_NCR);
-            netdev_set_linkup(netdev, 1, (nsr & NSR_SPEED) ? 100000000 : 10000000);
+            netdev_set_linkup(netdev, 1, (nsr & NSR_SPEED) ? 10000000 : 100000000);
             printk(KERN_INFO "dm9000_watchdog: operating at %dM %s duplex mode\n",
                    (nsr & NSR_SPEED) ? 10 : 100, (ncr & NCR_FDX) ? "full" : "half");
         }

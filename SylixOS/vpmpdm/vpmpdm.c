@@ -20,6 +20,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <wchar.h>
+#include <pthread.h>
 
 /*
  * select heap memory algorithm.
@@ -57,7 +58,7 @@
 #include "./loader/include/loader_lib.h" /* need __eabi */
 #endif /* LW_CFG_CPU_ARCH_PPC */
 
-#define __VP_PATCH_VERSION      "2.0.6" /* vp patch version */
+#define __VP_PATCH_VERSION      "2.0.7" /* vp patch version */
 
 /*
  * fixed gcc old version.
@@ -176,6 +177,15 @@ void __eabi (void)
     }
 }
 #endif /* LW_CFG_CPU_ARCH_PPC */
+
+#if !defined(LW_CFG_CPU_ARCH_ARM) && !defined(LW_CFG_CPU_ARCH_C6X)
+/*
+ * Unwinding stack frames for c++ exception handling support. (GCC Need!)
+ */
+void           *__gnu_unwind_unseen_objects;
+void           *__gnu_unwind_seen_objects;
+pthread_mutex_t __gnu_unwind_object_mutex = PTHREAD_MUTEX_INITIALIZER;
+#endif
 
 /*
  *  get vp patch version

@@ -40,7 +40,11 @@ ARCH_KERNEL_LDFLAGS =
 
 ARCH_FPUFLAGS = -m$(FPU_TYPE)
 
+ifneq ($(CPU_TYPE),)
+ARCH_CPUFLAGS_WITHOUT_FPUFLAGS = -march=$(CPU_TYPE)
+else
 ARCH_CPUFLAGS_WITHOUT_FPUFLAGS = 
+endif
 ARCH_CPUFLAGS                  = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) $(ARCH_FPUFLAGS)
 ARCH_CPUFLAGS_NOFPU            = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) -msoft-float
 endif
@@ -48,7 +52,6 @@ endif
 #*********************************************************************************************************
 # x86-64 (Need frame pointer code to debug)
 #*********************************************************************************************************
-
 ifneq (,$(findstring x86_64,$(TOOLCHAIN_PREFIX)))
 ARCH             = x64
 ARCH_COMMONFLAGS = -mlong-double-64 -mno-red-zone -fno-omit-frame-pointer
@@ -65,11 +68,15 @@ ARCH_KLIB_CFLAGS =
 ARCH_KERNEL_CFLAGS  = -mcmodel=kernel
 ARCH_KERNEL_LDFLAGS = -z max-page-size=4096
 
-FPUFLAGS = -m$(FPU_TYPE)
+ARCH_FPUFLAGS = -m$(FPU_TYPE)
 
-CPUFLAGS_WITHOUT_FPUFLAGS = -m64
-CPUFLAGS                  = $(CPUFLAGS_WITHOUT_FPUFLAGS) $(FPUFLAGS)
-CPUFLAGS_NOFPU            = $(CPUFLAGS_WITHOUT_FPUFLAGS) -msoft-float -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-3dnow
+ifneq ($(CPU_TYPE),)
+ARCH_CPUFLAGS_WITHOUT_FPUFLAGS = -march=$(CPU_TYPE) -m64
+else
+ARCH_CPUFLAGS_WITHOUT_FPUFLAGS = -m64
+endif
+ARCH_CPUFLAGS                  = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) $(ARCH_FPUFLAGS)
+ARCH_CPUFLAGS_NOFPU            = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) -msoft-float -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-3dnow
 endif
 
 #*********************************************************************************************************
@@ -229,7 +236,8 @@ ARCH_COMMONFLAGS = \
 	--abi=eabi --c99 --gcc --linux -D__GNUC__=4 -D__GNUC_MINOR__=5 -D__STDC__ \
     -D__extension__= -D__nothrow__= -D__SIZE_TYPE__="unsigned int" \
     -D__WINT_TYPE__="unsigned int" -D__WCHAR_TYPE__="unsigned int" \
-    -D__gnuc_va_list=va_list -D__EXCLIB_STDARG --mem_model:data=far
+    -D__gnuc_va_list=va_list -D__EXCLIB_STDARG --mem_model:data=far \
+    --multithread -D__TI_SHARED_DATA_SYNCHRONIZATION -D__TI_RECURSIVE_RESOURCE_MUTEXES
 
 ARCH_PIC_ASFLAGS = --pic
 ARCH_PIC_CFLAGS  = --pic

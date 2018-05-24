@@ -252,8 +252,12 @@ VOID  archIntCtxSaveReg (PLW_CLASS_CPU  pcpu,
     ARCH_REG_CTX  *pregctx;
 
     if (pcpu->CPU_ulInterNesting == 1) {
-        pregctx = &pcpu->CPU_ptcbTCBCur->TCB_archRegCtx;
+        if (reg2 & (CORTEX_M_EXC_RETURN_MODE_MASK)) {
+            pregctx = &pcpu->CPU_ptcbTCBCur->TCB_archRegCtx;
 
+        } else {
+            pregctx = (ARCH_REG_CTX *)(reg0 - sizeof(ARCH_REG_CTX));
+        }
     } else {
         pregctx = (ARCH_REG_CTX *)(reg0 - sizeof(ARCH_REG_CTX));
     }

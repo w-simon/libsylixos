@@ -189,13 +189,6 @@ ssize_t             vprocGetModsInfo(pid_t  pid, PCHAR  pcBuff, size_t stMaxLen)
 VOID                vprocThreadAdd(PVOID   pvVProc, PLW_CLASS_TCB  ptcb);
 VOID                vprocThreadDelete(PVOID   pvVProc, PLW_CLASS_TCB  ptcb);
 INT                 vprocThreadNum(pid_t  pid, ULONG  *pulNum);
-
-#if LW_CFG_GDB_EN > 0
-VOID                vprocThreadDebugStop(PVOID  pvVProc);
-VOID                vprocThreadDebugContinue(PVOID  pvVProc);
-UINT                vprocThreadDebugGet(PVOID  pvVProc, LW_OBJECT_HANDLE  ulThread[], UINT   uiTableNum);
-#endif                                                                  /*  LW_CFG_GDB_EN > 0           */
-
 VOID                vprocThreadKill(PVOID  pvVProc);
 
 #if LW_CFG_SIGNAL_EN > 0
@@ -206,6 +199,18 @@ INT                 vprocThreadSigaction(PVOID  pvVProc, VOIDFUNCPTR  pfunc, INT
 #if LW_CFG_SMP_EN > 0
 INT                 vprocThreadAffinity(PVOID  pvVProc, size_t  stSize, const PLW_CLASS_CPUSET  pcpuset);
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
+
+/*********************************************************************************************************
+  进程调试支持
+*********************************************************************************************************/
+
+#if LW_CFG_GDB_EN > 0
+VOID                vprocDebugStop(PVOID  pvVProc);
+VOID                vprocDebugContinue(PVOID  pvVProc);
+VOID                vprocDebugThreadStop(PVOID  pvVProc, LW_OBJECT_HANDLE  ulId);
+VOID                vprocDebugThreadContinue(PVOID  pvVProc, LW_OBJECT_HANDLE  ulId);
+UINT                vprocDebugThreadGet(PVOID  pvVProc, LW_OBJECT_HANDLE  ulId[], UINT   uiTableNum);
+#endif                                                                  /*  LW_CFG_GDB_EN > 0           */
 
 /*********************************************************************************************************
   进程 CPU 亲和度

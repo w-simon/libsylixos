@@ -109,6 +109,7 @@ struct sd_host {
 #define SDHOST_CAP_DATA_8BIT_DDR        (1 << 4)                    /*  支持8位ddr数据传输              */
 #define SDHOST_CAP_MMC_FORCE_1BIT       (1 << 5)                    /*  MMC卡 强制使用 1 位总线         */
 #define SDHOST_CAP_SDIO_FORCE_1BIT      (1 << 6)                    /*  SDIO 卡 强制使用 1 位总线       */
+#define SDHOST_CAP_SD_FORCE_1BIT        (1 << 7)                    /*  SD 卡 强制使用 1 位总线         */
 
     VOID          (*SDHOST_pfuncSpicsEn)(SD_HOST *psdhost);
     VOID          (*SDHOST_pfuncSpicsDis)(SD_HOST *psdhost);

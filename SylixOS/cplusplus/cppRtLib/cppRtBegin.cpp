@@ -76,8 +76,12 @@ extern "C" {
 /*********************************************************************************************************
   C++ 全局对象构建与析构函数表 (为了和一些编译器不产生冲突, 这里使用 SylixOS 自带的符号)
 *********************************************************************************************************/
+#ifndef LW_CFG_CPU_ARCH_C6X
+#ifdef __GNUC__
 static VOIDFUNCPTR __LW_CTOR_LIST__[1] __attribute__((section(".ctors"))) = { (VOIDFUNCPTR)-1 };
 static VOIDFUNCPTR __LW_DTOR_LIST__[1] __attribute__((section(".dtors"))) = { (VOIDFUNCPTR)-1 };
+#endif                                                                  /*  __GNUC__                    */
+#endif                                                                  /*  !LW_CFG_CPU_ARCH_C6X        */
 /*********************************************************************************************************
 ** 函数名称: __cppRtDoCtors
 ** 功能描述: C++ 运行全局对象构造函数
@@ -88,6 +92,7 @@ static VOIDFUNCPTR __LW_DTOR_LIST__[1] __attribute__((section(".dtors"))) = { (V
 *********************************************************************************************************/
 VOID  __cppRtDoCtors (VOID)
 {
+#ifndef LW_CFG_CPU_ARCH_C6X
 #ifdef __GNUC__
     volatile VOIDFUNCPTR    *ppfunc;
     
@@ -97,6 +102,20 @@ VOID  __cppRtDoCtors (VOID)
         }
     }
 #endif                                                                  /*  __GNUC__                    */
+#else
+#define PINIT_BASE      __TI_INITARRAY_Base
+#define PINIT_LIMIT     __TI_INITARRAY_Limit
+
+    extern __attribute__((weak)) __far volatile VOIDFUNCPTR const PINIT_BASE[];
+    extern __attribute__((weak)) __far volatile VOIDFUNCPTR const PINIT_LIMIT[];
+
+    if (PINIT_BASE != PINIT_LIMIT) {
+        ULONG  i = 0;
+        while (&(PINIT_BASE[i]) != PINIT_LIMIT) {
+            PINIT_BASE[i++]();
+        }
+    }
+#endif                                                                  /*  !LW_CFG_CPU_ARCH_C6X        */
 }
 /*********************************************************************************************************
 ** 函数名称: __cppRtDoDtors
@@ -108,6 +127,7 @@ VOID  __cppRtDoCtors (VOID)
 *********************************************************************************************************/
 VOID  __cppRtDoDtors (VOID)
 {
+#ifndef LW_CFG_CPU_ARCH_C6X
 #ifdef __GNUC__
     volatile VOIDFUNCPTR    *ppfunc;
     
@@ -121,6 +141,7 @@ VOID  __cppRtDoDtors (VOID)
         ppfunc--;
     }
 #endif                                                                  /*  __GNUC__                    */
+#endif                                                                  /*  !LW_CFG_CPU_ARCH_C6X        */
 }
 }
 /*********************************************************************************************************

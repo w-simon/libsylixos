@@ -1263,6 +1263,7 @@ SylixOS/loader/src/loader_malloc.c \
 SylixOS/loader/src/loader_proc.c \
 SylixOS/loader/src/loader_shell.c \
 SylixOS/loader/src/loader_symbol.c \
+SylixOS/loader/src/loader_vpdebug.c \
 SylixOS/loader/src/loader_vppatch.c \
 SylixOS/loader/src/loader_vpstack.c \
 SylixOS/loader/src/loader_vpthread.c \
@@ -1839,6 +1840,7 @@ LOCAL_USE_GCOV := no
 #*********************************************************************************************************
 # compile ARM FPU source files
 #*********************************************************************************************************
+ifeq ($(ARCH), arm)
 ARM_FPU_ASFLAGS = -mfloat-abi=softfp -mfpu=vfpv3
 
 $(OBJPATH)/libsylixos.a/SylixOS/arch/arm/fpu/v7m/armVfpV7MAsm.o: ./SylixOS/arch/arm/fpu/v7m/armVfpV7MAsm.S
@@ -1868,10 +1870,12 @@ $(OBJPATH)/libsylixos.a/SylixOS/arch/arm/fpu/vfpv3/armVfpV3Asm.o: ./SylixOS/arch
 		@if [ ! -d "$(dir $(__DEP))" ]; then \
 			mkdir -p "$(dir $(__DEP))"; fi
 		$(AS) $(ARM_FPU_ASFLAGS) $($(__TARGET)_ASFLAGS_WITHOUT_FPUFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
+endif
 
 #*********************************************************************************************************
 # compile MIPS FPU source files
 #*********************************************************************************************************
+ifeq ($(ARCH), $(filter $(ARCH),mips mips64))
 MIPS_FPU_ASFLAGS = -mhard-float
 
 $(OBJPATH)/libsylixos.a/SylixOS/arch/mips/fpu/fpu32/mipsVfp32Asm.o: ./SylixOS/arch/mips/fpu/fpu32/mipsVfp32Asm.S
@@ -1887,10 +1891,12 @@ $(OBJPATH)/libsylixos.a/SylixOS/arch/mips/dsp/hr2vector/mipsHr2VectorAsm.o: ./Sy
 		@if [ ! -d "$(dir $(__DEP))" ]; then \
 			mkdir -p "$(dir $(__DEP))"; fi
 		$(AS) $(MIPS_FPU_ASFLAGS) $($(__TARGET)_ASFLAGS_WITHOUT_FPUFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
+endif
 
 #*********************************************************************************************************
 # compile PowerPC FPU source files
 #*********************************************************************************************************
+ifeq ($(ARCH), ppc)
 PPC_FPU_ASFLAGS = -mhard-float
 
 $(OBJPATH)/libsylixos.a/SylixOS/arch/ppc/fpu/vfp/ppcVfpAsm.o: ./SylixOS/arch/ppc/fpu/vfp/ppcVfpAsm.S
@@ -1899,10 +1905,12 @@ $(OBJPATH)/libsylixos.a/SylixOS/arch/ppc/fpu/vfp/ppcVfpAsm.o: ./SylixOS/arch/ppc
 		@if [ ! -d "$(dir $(__DEP))" ]; then \
 			mkdir -p "$(dir $(__DEP))"; fi
 		$(AS) $(PPC_FPU_ASFLAGS) $($(__TARGET)_ASFLAGS_WITHOUT_FPUFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
+endif
 
 #*********************************************************************************************************
 # compile x86 FPU source files
 #*********************************************************************************************************
+ifeq ($(ARCH), x86)
 X86_FPU_ASFLAGS = -mhard-float
 
 $(OBJPATH)/libsylixos.a/SylixOS/arch/x86/fpu/fpusse/x86FpuSseAsm.o: ./SylixOS/arch/x86/fpu/fpusse/x86FpuSseAsm.S
@@ -1911,10 +1919,12 @@ $(OBJPATH)/libsylixos.a/SylixOS/arch/x86/fpu/fpusse/x86FpuSseAsm.o: ./SylixOS/ar
 		@if [ ! -d "$(dir $(__DEP))" ]; then \
 			mkdir -p "$(dir $(__DEP))"; fi
 		$(AS) $(X86_FPU_ASFLAGS) $($(__TARGET)_ASFLAGS_WITHOUT_FPUFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
-		
+endif
+
 #*********************************************************************************************************
 # compile x86-64 FPU source files
 #*********************************************************************************************************
+ifeq ($(ARCH), x64)
 X64_FPU_ASFLAGS = -mhard-float
 
 $(OBJPATH)/libsylixos.a/SylixOS/arch/x86/fpu/fpusse/x64FpuSseAsm.o: ./SylixOS/arch/x86/fpu/fpusse/x64FpuSseAsm.S
@@ -1924,9 +1934,18 @@ $(OBJPATH)/libsylixos.a/SylixOS/arch/x86/fpu/fpusse/x64FpuSseAsm.o: ./SylixOS/ar
 			mkdir -p "$(dir $(__DEP))"; fi
 		$(AS) $(X64_FPU_ASFLAGS) $($(__TARGET)_ASFLAGS_WITHOUT_FPUFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
 		
+$(OBJPATH)/libsylixos.a/SylixOS/appl/ssl/mbedtls/library/aesni.o: ./SylixOS/appl/ssl/mbedtls/library/aesni.c
+		@if [ ! -d "$(dir $@)" ]; then \
+			mkdir -p "$(dir $@)"; fi
+		@if [ ! -d "$(dir $(__DEP))" ]; then \
+			mkdir -p "$(dir $(__DEP))"; fi
+		$(CC) $(X64_FPU_ASFLAGS) $($(__TARGET)_CFLAGS_WITHOUT_FPUFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
+endif
+
 #*********************************************************************************************************
 # compile SPARC FPU source files
 #*********************************************************************************************************
+ifeq ($(ARCH), sparc)
 SPARC_FPU_ASFLAGS = -mhard-float
 
 $(OBJPATH)/libsylixos.a/SylixOS/arch/sparc/fpu/vfp/sparcVfpAsm.o: ./SylixOS/arch/sparc/fpu/vfp/sparcVfpAsm.S
@@ -1935,7 +1954,8 @@ $(OBJPATH)/libsylixos.a/SylixOS/arch/sparc/fpu/vfp/sparcVfpAsm.o: ./SylixOS/arch
 		@if [ ! -d "$(dir $(__DEP))" ]; then \
 			mkdir -p "$(dir $(__DEP))"; fi
 		$(AS) $(SPARC_FPU_ASFLAGS) $($(__TARGET)_ASFLAGS_WITHOUT_FPUFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
-		
+endif
+
 include $(LIBSYLIXOS_MK)
 
 #*********************************************************************************************************
