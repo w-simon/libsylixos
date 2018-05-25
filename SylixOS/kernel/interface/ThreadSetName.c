@@ -87,7 +87,11 @@ ULONG  API_ThreadSetName (LW_OBJECT_HANDLE  ulId, CPCHAR  pcName)
     
     ptcb = _K_ptcbTCBIdTable[usIndex];
 
-    lib_strcpy(ptcb->TCB_cThreadName, pcName);                          /*  拷贝名字                    */
+    if (pcName) {
+        lib_strcpy(ptcb->TCB_cThreadName, pcName);                      /*  拷贝名字                    */
+    } else {
+        ptcb->TCB_cThreadName[0] = PX_EOS;
+    }
     
     __KERNEL_EXIT();                                                    /*  退出内核                    */
 

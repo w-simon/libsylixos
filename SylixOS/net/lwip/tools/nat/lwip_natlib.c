@@ -1530,66 +1530,68 @@ static ssize_t  __procFsNatSummaryRead (PLW_PROCFS_NODE  p_pfsn,
         pcFileBuffer = (PCHAR)API_ProcFsNodeBuffer(p_pfsn);             /*  重新获得文件缓冲区地址      */
         
         __NAT_LOCK();
+        stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, 0, 
+                              "NAT networking alias setting >>\n");
+        stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
+                              "%s", cAliasInfoHeader);
+        
+        for (plineTemp  = _G_plineNatalias;
+             plineTemp != LW_NULL;
+             plineTemp  = _list_line_get_next(plineTemp)) {             /*  别名表                      */
+        
+            CHAR    cIpBuffer1[INET_ADDRSTRLEN];
+            CHAR    cIpBuffer2[INET_ADDRSTRLEN];
+            CHAR    cIpBuffer3[INET_ADDRSTRLEN];
+            
+            pnatalias  = _LIST_ENTRY(plineTemp, __NAT_ALIAS, NAT_lineManage);
+            stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
+                                  "%-15s %-15s %-15s\n", 
+                                  ip4addr_ntoa_r(&pnatalias->NAT_ipaddrAliasIp,
+                                                 cIpBuffer1, INET_ADDRSTRLEN),
+                                  ip4addr_ntoa_r(&pnatalias->NAT_ipaddrSLocalIp, 
+                                                 cIpBuffer2, INET_ADDRSTRLEN),
+                                  ip4addr_ntoa_r(&pnatalias->NAT_ipaddrELocalIp, 
+                                                 cIpBuffer3, INET_ADDRSTRLEN));
+        }
+        
+        stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
+                              "\nNAT networking direct map setting >>\n");
+        stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
+                              "%s", cMapInfoHeader);
+                              
+        for (plineTemp  = _G_plineNatmap;
+             plineTemp != LW_NULL;
+             plineTemp  = _list_line_get_next(plineTemp)) {             /*  映射表                      */
+            
+            CHAR    cIpBuffer[INET_ADDRSTRLEN];
+            
+            pnatmap = _LIST_ENTRY(plineTemp, __NAT_MAP, NAT_lineManage);
+            switch (pnatmap->NAT_ucProto) {
+            
+            case IP_PROTO_ICMP: pcProto = "ICMP"; break;
+            case IP_PROTO_UDP:  pcProto = "UDP";  break;
+            case IP_PROTO_TCP:  pcProto = "TCP";  break;
+            default:            pcProto = "?";    break;
+            }
+            
+            stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
+                                  "%10d %10d %-15s %8d %s\n",
+                                  PP_NTOHS(pnatmap->NAT_usAssPort),
+                                  PP_NTOHS(pnatmap->NAT_usLocalPort),
+                                  ip4addr_ntoa_r(&pnatmap->NAT_ipaddrLocalIp, 
+                                                 cIpBuffer, INET_ADDRSTRLEN),
+                                  pnatmap->NAT_usLocalCnt,
+                                  pcProto);
+        }
+        
+        stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
+                              "\nNAT networking summary >>\n");
+        
         if (!_G_bNatStart) {
             __NAT_UNLOCK();
-            stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, 0, 
-                                  "NAT networking off!\n");
-        
+            stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
+                                  "    NAT networking off!\n");
         } else {
-            stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, 0, 
-                                  "NAT networking alias setting >>\n");
-            stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
-                                  "%s", cAliasInfoHeader);
-            
-            for (plineTemp  = _G_plineNatalias;
-                 plineTemp != LW_NULL;
-                 plineTemp  = _list_line_get_next(plineTemp)) {         /*  别名表                      */
-            
-                CHAR    cIpBuffer1[INET_ADDRSTRLEN];
-                CHAR    cIpBuffer2[INET_ADDRSTRLEN];
-                CHAR    cIpBuffer3[INET_ADDRSTRLEN];
-                
-                pnatalias  = _LIST_ENTRY(plineTemp, __NAT_ALIAS, NAT_lineManage);
-                stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
-                                      "%-15s %-15s %-15s\n", 
-                                      ip4addr_ntoa_r(&pnatalias->NAT_ipaddrAliasIp,
-                                                     cIpBuffer1, INET_ADDRSTRLEN),
-                                      ip4addr_ntoa_r(&pnatalias->NAT_ipaddrSLocalIp, 
-                                                     cIpBuffer2, INET_ADDRSTRLEN),
-                                      ip4addr_ntoa_r(&pnatalias->NAT_ipaddrELocalIp, 
-                                                     cIpBuffer3, INET_ADDRSTRLEN));
-            }
-            
-            stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
-                                  "\nNAT networking direct map setting >>\n");
-            stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
-                                  "%s", cMapInfoHeader);
-                                  
-            for (plineTemp  = _G_plineNatmap;
-                 plineTemp != LW_NULL;
-                 plineTemp  = _list_line_get_next(plineTemp)) {
-                
-                CHAR    cIpBuffer[INET_ADDRSTRLEN];
-                
-                pnatmap = _LIST_ENTRY(plineTemp, __NAT_MAP, NAT_lineManage);
-                switch (pnatmap->NAT_ucProto) {
-                
-                case IP_PROTO_ICMP: pcProto = "ICMP"; break;
-                case IP_PROTO_UDP:  pcProto = "UDP";  break;
-                case IP_PROTO_TCP:  pcProto = "TCP";  break;
-                default:            pcProto = "?";    break;
-                }
-                
-                stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
-                                      "%10d %10d %-15s %8d %s\n",
-                                      PP_NTOHS(pnatmap->NAT_usAssPort),
-                                      PP_NTOHS(pnatmap->NAT_usLocalPort),
-                                      ip4addr_ntoa_r(&pnatmap->NAT_ipaddrLocalIp, 
-                                                     cIpBuffer, INET_ADDRSTRLEN),
-                                      pnatmap->NAT_usLocalCnt,
-                                      pcProto);
-            }
-            
             for (plineTemp  = _G_plineNatcbTcp;
                  plineTemp != LW_NULL;
                  plineTemp  = _list_line_get_next(plineTemp)) {
@@ -1606,8 +1608,6 @@ static ssize_t  __procFsNatSummaryRead (PLW_PROCFS_NODE  p_pfsn,
                 uiAssNum++;
             }
             
-            stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
-                                  "\nNAT networking summary >>\n");
             stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
                                   "    LAN: ");
                                   
@@ -1633,13 +1633,13 @@ static ssize_t  __procFsNatSummaryRead (PLW_PROCFS_NODE  p_pfsn,
                                   "\n    Total Ass-node: %d\n", LW_CFG_NET_NAT_MAX_SESSION);
             stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
                                   "    Used  Ass-node: %d\n", uiAssNum);
-                                  
-            stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
-                                  "    IP Fragment: TCP-%s UDP-%s ICMP-%s\n", 
-                                  _G_bNatTcpFrag  ? "Enable" : "Disable",
-                                  _G_bNatUdpFrag  ? "Enable" : "Disable",
-                                  _G_bNatIcmpFrag ? "Enable" : "Disable");
         }
+        
+        stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
+                              "    IP Fragment: TCP-%s UDP-%s ICMP-%s\n", 
+                              _G_bNatTcpFrag  ? "Enable" : "Disable",
+                              _G_bNatUdpFrag  ? "Enable" : "Disable",
+                              _G_bNatIcmpFrag ? "Enable" : "Disable");
         
         API_ProcFsNodeSetRealFileSize(p_pfsn, stRealSize);
     } else {

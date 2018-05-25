@@ -192,7 +192,6 @@ LW_OBJECT_HANDLE  API_ThreadCreate (CPCHAR                   pcName,
     
     if (pcName) {                                                       /*  ¿½±´Ãû×Ö                    */
         lib_strcpy(ptcb->TCB_cThreadName, pcName);
-    
     } else {
         ptcb->TCB_cThreadName[0] = PX_EOS;
     }

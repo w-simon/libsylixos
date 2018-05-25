@@ -111,7 +111,7 @@ INT  API_SdAdapterCreate (CPCHAR pcName, PLW_SD_FUNCS psdfunc)
         return  (PX_ERROR);
     }
 
-    if (_Object_Name_Invalid(pcName)) {                                 /*  检查名字有效性              */
+    if (pcName && _Object_Name_Invalid(pcName)) {                       /*  检查名字有效性              */
         __SD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "name too long.\r\n");
         _ErrorHandle(ERROR_KERNEL_PNAME_TOO_LONG);
         return  (PX_ERROR);
@@ -244,7 +244,7 @@ PLW_SD_DEVICE  API_SdDeviceCreate (CPCHAR pcAdapterName, CPCHAR pcDeviceName)
         return  (LW_NULL);
     }
     
-    if (_Object_Name_Invalid(pcDeviceName)) {                           /*  检查名字有效性              */
+    if (pcDeviceName && _Object_Name_Invalid(pcDeviceName)) {           /*  检查名字有效性              */
         __SD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "name too long.\r\n");
         _ErrorHandle(ERROR_KERNEL_PNAME_TOO_LONG);
         return  (LW_NULL);
