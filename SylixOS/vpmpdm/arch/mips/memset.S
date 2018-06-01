@@ -27,6 +27,7 @@
  * SUCH DAMAGE.
  */
 
+#include "sysdep.h"
 #define __ANDROID__
 
 #ifdef __ANDROID__

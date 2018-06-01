@@ -55,7 +55,8 @@
     defined(_MIPS_ARCH_MIPS32R2) || \
     defined(_MIPS_ARCH_MIPS32R3) || \
     defined(_MIPS_ARCH_MIPS32R5) || \
-    defined(_MIPS_ARCH_MIPS32R6)
+    defined(_MIPS_ARCH_MIPS32R6) || \
+    defined(_MIPS_ARCH_HR2)
 #define NO_R6EMU                        0                               /*  支持 MIPSR2-R6 模拟         */
 #else
 #define NO_R6EMU                        1                               /*  不支持 MIPSR2-R6 模拟       */

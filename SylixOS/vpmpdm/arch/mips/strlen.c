@@ -30,12 +30,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "sysdep.h"
 #include <string.h>
 
 #define op_t        unsigned long int
 #define op_size     sizeof (op_t)
 
-#if __mips64 || __mips_isa_rev >= 2
+#if __mips_isa_rev >= 2
 static inline size_t __attribute__ ((always_inline))
 do_bytes (const char *base, const char *p, op_t inval)
 {

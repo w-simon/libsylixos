@@ -48,7 +48,7 @@
 ;*********************************************************************************************************/
 
 #define ARCH_TEMP_CTX_SIZE      4096
-#define XLOCK                   XGREG(0)
+#define XLOCK                   4000
 
 #if LW_CFG_MIPS_HAS_RDHWR_INSTR > 0
 MACRO_DEF(QUAD_VALUE from, to)
@@ -119,9 +119,7 @@ MACRO_DEF(EXCEPTION_ENTRY handle)
     ;/*
     ; * 保存寄存器到 archExcTempCtx
     ; */
-    ;/*
-    ; * $0 固定为 0
-    ; */
+    REG_S       $0  , XGREG(0)(K0)
     REG_S       $1  , XGREG(1)(K0)
     REG_S       $2  , XGREG(2)(K0)
     REG_S       $3  , XGREG(3)(K0)

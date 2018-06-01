@@ -1029,18 +1029,20 @@ static int cop1Emulate(ARCH_REG_CTX *xcp, ARCH_FPU_CTX *ctx,
 	if (!cpu_has_mmips && dec_insn.micro_mips_mode)
 		unreachable();
 
-#ifndef SYLIXOS
 	/* XXX NEC Vr54xx bug workaround */
 	if (delay_slot(xcp)) {
+#if cpu_has_mmips
 		if (dec_insn.micro_mips_mode) {
 			if (!mm_isBranchInstr(xcp, dec_insn, &contpc))
 				clear_delay_slot(xcp);
 		} else {
+#endif
 			if (!isBranchInstr(xcp, dec_insn, &contpc))
 				clear_delay_slot(xcp);
+#if cpu_has_mmips
 		}
-	}
 #endif
+	}
 
 	if (delay_slot(xcp)) {
 		/*

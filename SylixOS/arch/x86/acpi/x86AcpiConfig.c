@@ -76,6 +76,8 @@ static UINT32  __acpiShowIrqList (UINT8  *pucBuf)
     ACPI_PCI_ROUTING_TABLE  *pRoutingTable;
     UINT32                   uiCount;
     UINT32                   uiLocalAcpiDbgLevel;
+
+#define ACPI_MAX_STRING_PREFIX 256
     CHAR                     acBufStr[ACPI_MAX_STRING_PREFIX];
 
     /*

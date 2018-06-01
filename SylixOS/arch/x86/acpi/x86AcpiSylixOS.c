@@ -870,11 +870,13 @@ ACPI_STATUS  AcpiOsExecute (ACPI_EXECUTE_TYPE       Type,
 
 VOID ACPI_INTERNAL_VAR_XFACE AcpiOsPrintf (const CHAR  *Fmt, ...)
 {
-	va_list  Args;
-	
-	va_start(Args, Fmt);
-	AcpiOsVprintf(Fmt, Args);
-	va_end(Args);
+    if (LW_SYS_STATUS_IS_RUNNING()) {
+        va_list  Args;
+
+        va_start(Args, Fmt);
+        AcpiOsVprintf(Fmt, Args);
+        va_end(Args);
+    }
 }
 
 /******************************************************************************
@@ -892,11 +894,11 @@ VOID ACPI_INTERNAL_VAR_XFACE AcpiOsPrintf (const CHAR  *Fmt, ...)
 
 VOID  AcpiOsVprintf (const CHAR  *Fmt, va_list  Args)
 {
-    CHAR  Buffer[256];
-
-    vsnprintf(Buffer, sizeof(Buffer), Fmt, Args);
-
     if (LW_SYS_STATUS_IS_RUNNING()) {
+        CHAR  Buffer[256];
+
+        vsnprintf(Buffer, sizeof(Buffer), Fmt, Args);
+
         printk("ACPI: %s", Buffer);
     }
 }

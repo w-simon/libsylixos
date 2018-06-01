@@ -29,6 +29,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include "sysdep.h"
 #include <string.h>
 
 #define ENABLE_PREFETCH     1
@@ -41,7 +42,7 @@
 #define PREFETCH(addr)
 #endif
 
-#if __mips64 || __mips_isa_rev >= 2
+#if __mips_isa_rev >= 2
 static inline void * __attribute__ ((always_inline))
 do_bytes (const op_t* w, op_t inval)
 {

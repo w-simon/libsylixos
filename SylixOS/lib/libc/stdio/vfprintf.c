@@ -727,7 +727,7 @@ number:			if ((dprec = prec) >= 0)
 		 * fieldsz excludes decimal prec; realsz includes it.
 		 */
 		fieldsz = size;
-		if (sign)
+		if (sign && (sign != '+')) /* SylixOS Add [&& (sign != '+')] for compatibility with Linux printing */
 			fieldsz++;
 		else if (flags & HEXPREFIX)
 			fieldsz += 2;

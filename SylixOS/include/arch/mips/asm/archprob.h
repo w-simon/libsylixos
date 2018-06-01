@@ -41,7 +41,7 @@
 #  elif defined(_MIPS_ARCH_MIPS64)
 #    define __SYLIXOS_MIPS_ARCH__   __SYLIXOS_MIPS_ARCH_MIPS64
 
-#  elif defined(_MIPS_ARCH_MIPS64R2)
+#  elif defined(_MIPS_ARCH_MIPS64R2) || defined(_MIPS_ARCH_HR2)
 #    define __SYLIXOS_MIPS_ARCH__   __SYLIXOS_MIPS_ARCH_MIPS64R2
 
 #  endif                                                                /*  user define only            */

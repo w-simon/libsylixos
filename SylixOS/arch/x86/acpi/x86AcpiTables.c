@@ -362,7 +362,7 @@ ACPI_SIZE  acpiGetTableSize (ACPI_PHYSICAL_ADDRESS  where)
      * Filter out tables with invalid lengths
      * Example: The FACS table on the NORCO is not valid.
      */
-    if (size < sizeof(ACPI_TABLE_HEADER) || (size > 0x20000)) {
+    if (size < sizeof(ACPI_TABLE_HEADER) || (size > 0x40000)) {
         /*
          * Return 0 length for all bogus tables, so that we
          * know not to allocate space for it.
@@ -467,6 +467,17 @@ INT  acpiTableInit (VOID)
 
     _G_bAcpiEarlyAccess = LW_TRUE;
 
+    _G_pcAcpiTableStart = LW_NULL;
+    _G_pcAcpiTableEnd   = LW_NULL;
+
+    _G_pcAcpiRsdpPtr    = LW_NULL;
+    _G_pAcpiHpet        = LW_NULL;
+    _G_pAcpiMadt        = LW_NULL;
+    _G_pAcpiFacs        = LW_NULL;
+    _G_pAcpiRsdt        = LW_NULL;
+    _G_pAcpiXsdt        = LW_NULL;
+    _G_pAcpiFadt        = LW_NULL;
+
     __ACPI_DEBUG_LOG("\n\n**** acpiTableInit entered ****\n");
 
     /*
@@ -561,49 +572,53 @@ INT  acpiTableInit (VOID)
 
                 _G_pAcpiFadt = (ACPI_TABLE_FADT *)pFadt;
 
-                pFacs           = ACPI_TO_POINTER(pFadt->Facs);
-                pPhysAcpiHeader = (ACPI_TABLE_HEADER *)pFacs;
+                pFacs = ACPI_TO_POINTER(pFadt->Facs);
+                if (pFacs) {
+                    pPhysAcpiHeader = (ACPI_TABLE_HEADER *)pFacs;
 
-                stLength     = acpiGetTableSize((ACPI_PHYSICAL_ADDRESS)pFacs);
-                pcAcpiTStart = (CHAR *)((ULONG)pFacs);
+                    stLength     = acpiGetTableSize((ACPI_PHYSICAL_ADDRESS)pFacs);
+                    pcAcpiTStart = (CHAR *)((ULONG)pFacs);
 
-                pFacs = AcpiOsMapMemory((ACPI_PHYSICAL_ADDRESS)pcAcpiTStart, stLength);
-                if (pFacs == LW_NULL) {
-                    __ACPI_DEBUG_LOG("\n  Mapping Facs failed!\n");
-                    __ACPI_ERROR_LOG("\nACPI: Facs Mapping failed!\n");
-                    return  (PX_ERROR);
-                }
+                    pFacs = AcpiOsMapMemory((ACPI_PHYSICAL_ADDRESS)pcAcpiTStart, stLength);
+                    if (pFacs == LW_NULL) {
+                        __ACPI_DEBUG_LOG("\n  Mapping Facs failed!\n");
+                        __ACPI_ERROR_LOG("\nACPI: Facs Mapping failed!\n");
+                        return  (PX_ERROR);
+                    }
 
-                if (acpiTableValidate((UINT8 *)((size_t)pFacs),
-                                      (UINT32)(pFacs->Length),
-                                      ACPI_SIG_FACS) == ERROR_NONE) {
-                    acpiTableRegister((ACPI_TABLE_HEADER *)pFacs,
-                                      pPhysAcpiHeader,
-                                      &_G_pcAcpiTableStart,
-                                      &_G_pcAcpiTableEnd);
+                    if (acpiTableValidate((UINT8 *)((size_t)pFacs),
+                                          (UINT32)(pFacs->Length),
+                                          ACPI_SIG_FACS) == ERROR_NONE) {
+                        acpiTableRegister((ACPI_TABLE_HEADER *)pFacs,
+                                          pPhysAcpiHeader,
+                                          &_G_pcAcpiTableStart,
+                                          &_G_pcAcpiTableEnd);
+                    }
                 }
 
                 __ACPI_DEBUG_LOG("\n  Rsdt check Dsdt...\n");
-                pDsdt           = ACPI_TO_POINTER(pFadt->Dsdt);
-                pPhysAcpiHeader = (ACPI_TABLE_HEADER *)pDsdt;
+                pDsdt = ACPI_TO_POINTER(pFadt->Dsdt);
+                if (pDsdt) {
+                    pPhysAcpiHeader = (ACPI_TABLE_HEADER *)pDsdt;
 
-                stLength     = acpiGetTableSize((ACPI_PHYSICAL_ADDRESS)pDsdt);
-                pcAcpiTStart = (CHAR *)((ULONG)pDsdt);
+                    stLength     = acpiGetTableSize((ACPI_PHYSICAL_ADDRESS)pDsdt);
+                    pcAcpiTStart = (CHAR *)((ULONG)pDsdt);
 
-                pDsdt = AcpiOsMapMemory((ACPI_PHYSICAL_ADDRESS)pcAcpiTStart, stLength);
-                if (pDsdt == LW_NULL) {
-                    __ACPI_DEBUG_LOG("\n  Mapping Dsdt failed!\n");
-                    __ACPI_ERROR_LOG("\nACPI: Dsdt Mapping failed!\n");
-                    return  (PX_ERROR);
-                }
+                    pDsdt = AcpiOsMapMemory((ACPI_PHYSICAL_ADDRESS)pcAcpiTStart, stLength);
+                    if (pDsdt == LW_NULL) {
+                        __ACPI_DEBUG_LOG("\n  Mapping Dsdt failed!\n");
+                        __ACPI_ERROR_LOG("\nACPI: Dsdt Mapping failed!\n");
+                        return  (PX_ERROR);
+                    }
 
-                if (acpiTableValidate((UINT8 *)((size_t)pDsdt),
-                                      (UINT32)(pDsdt->Length),
-                                      ACPI_SIG_DSDT) == ERROR_NONE) {
-                    acpiTableRegister((ACPI_TABLE_HEADER *)pDsdt,
-                                      pPhysAcpiHeader,
-                                      &_G_pcAcpiTableStart,
-                                      &_G_pcAcpiTableEnd);
+                    if (acpiTableValidate((UINT8 *)((size_t)pDsdt),
+                                          (UINT32)(pDsdt->Length),
+                                          ACPI_SIG_DSDT) == ERROR_NONE) {
+                        acpiTableRegister((ACPI_TABLE_HEADER *)pDsdt,
+                                          pPhysAcpiHeader,
+                                          &_G_pcAcpiTableStart,
+                                          &_G_pcAcpiTableEnd);
+                    }
                 }
             }
         }
