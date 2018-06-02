@@ -269,20 +269,45 @@ INT     archFpuUndHandle(PLW_CLASS_TCB  ptcbCur);
   bsp 需要提供的接口如下:
 *********************************************************************************************************/
 /*********************************************************************************************************
-  SPARC 处理器异常回调 (可不定义)
+  SPARC 处理器异常回调
 *********************************************************************************************************/
 
 #if LW_CFG_CPU_EXC_HOOK_EN > 0
-#define ARCH_INSTRUCTION_EXCEPTION  0                                   /*  iExcType                    */
-#define ARCH_DATA_EXCEPTION         1
-#define ARCH_MACHINE_EXCEPTION      2
-#define ARCH_BUS_EXCEPTION          3
+#define SPARC_TRAP_TFLT         0x1                                     /*  Text fault                  */
+#define SPARC_TRAP_II           0x2                                     /*  Illegal Instruction         */
+#define SPARC_TRAP_PI           0x3                                     /*  Privileged Instruction      */
+#define SPARC_TRAP_FPD          0x4                                     /*  Floating Point Disabled     */
+#define SPARC_TRAP_WOVF         0x5                                     /*  Window Overflow             */
+#define SPARC_TRAP_WUNF         0x6                                     /*  Window Underflow            */
+#define SPARC_TRAP_MNA          0x7                                     /*  Memory Address Unaligned    */
+#define SPARC_TRAP_FPE          0x8                                     /*  Floating Point Exception    */
+#define SPARC_TRAP_DFLT         0x9                                     /*  Data Fault                  */
+#define SPARC_TRAP_TOF          0xa                                     /*  Tag Overflow                */
+#define SPARC_TRAP_WDOG         0xb                                     /*  Watchpoint Detected         */
 
-INT     bspCpuExcHook(PLW_CLASS_TCB   ptcb,
-                      addr_t          ulRetAddr,
-                      addr_t          ulExcAddr,
-                      INT             iExcType,
-                      INT             iExcInfo);
+#define SPARC_TRAP_RACC         0x20                                    /*  Register Access Error ???   */
+#define SPARC_TRAP_IACC         0x21                                    /*  Instruction Access Error    */
+#define SPARC_TRAP_CPDIS        0x24                                    /*  Co-Processor Disabled       */
+#define SPARC_TRAP_BADFL        0x25                                    /*  Unimplemented Flush Inst    */
+#define SPARC_TRAP_CPEXP        0x28                                    /*  Co-Processor Exception      */
+#define SPARC_TRAP_DACC         0x29                                    /*  Data Access Error           */
+#define SPARC_TRAP_DIVZ         0x2a                                    /*  Divide By Zero              */
+#define SPARC_TRAP_DSTORE       0x2b                                    /*  Data Store Error ???        */
+#define SPARC_TRAP_DMM          0x2c                                    /*  Data Access MMU Miss ???    */
+#define SPARC_TRAP_IMM          0x3c                                    /*  Instruction Access MMU Miss?*/
+
+#define SPARC_TRAP_SYSCALL(n)   (0x80 + (n))                            /*  System call                 */
+#define SPARC_TARP_NR           256
+
+/*********************************************************************************************************
+  如果使用 SYSCALL 异常回调, 则需要以下操作修正返回地址
+  ptcb->TCB_archRegCtx.REG_uiPc   = ptcb->TCB_archRegCtx.REG_uiNPc;
+  ptcb->TCB_archRegCtx.REG_uiNPc += 4;
+*********************************************************************************************************/
+
+typedef INT  (*BSP_EXC_HOOK)(PLW_CLASS_TCB  ptcb, addr_t  ulRetAddr);
+
+INT     archBspExcHookAdd(ULONG  ulTrap, BSP_EXC_HOOK  pfuncHook);
 #endif                                                                  /*  LW_CFG_CPU_EXC_HOOK_EN      */
 
 /*********************************************************************************************************

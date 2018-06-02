@@ -890,7 +890,11 @@ static VOID  __vmmAbortAccess (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
 #if LW_CFG_ABORT_CALLSTACK_INFO_EN > 0
     API_BacktraceShow(ioGlobalStdGet(STD_ERR), 100);
 #endif                                                                  /*  LW_CFG_ABORT_CALLSTACK_IN...*/
-    
+
+#if LW_CFG_DEVICE_EN > 0
+    archTaskCtxShow(ioGlobalStdGet(STD_ERR), &pvmpagefailctx->PAGEFCTX_archRegCtx);
+#endif
+
 #if LW_CFG_ABORT_BASIC_INFO_EN > 0
     switch (__PAGEFAILCTX_ABORT_TYPE(pvmpagefailctx)) {
     
@@ -943,9 +947,6 @@ static VOID  __vmmAbortAccess (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
         break;
 
     default:
-#if LW_CFG_DEVICE_EN > 0
-        archTaskCtxShow(ioGlobalStdGet(STD_ERR), &pvmpagefailctx->PAGEFCTX_archRegCtx);
-#endif
         printk(KERN_EMERG "ACCESS ERROR: abort in thread %lx[%s]. "
                "ret_addr: 0x%08lx abt_addr: 0x%08lx, abt_type: %s.\n",
                pvmpagefailctx->PAGEFCTX_ptcb->TCB_ulId,

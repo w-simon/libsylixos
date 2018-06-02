@@ -74,30 +74,30 @@ VOID  API_BacktraceShow (INT  iFd, INT  iMaxDepth)
             if ((API_ModuleAddr(pvFrame[i], &dlinfo, pvproc) == ERROR_NONE) &&
                 (dlinfo.dli_sname)) {
                 if (iFd >= 0) {
-                    fdprintf(iFd, "[%d] %p (%s+%zu)\n", iCnt - i, pvFrame[i], dlinfo.dli_sname,
+                    fdprintf(iFd, "[%02d] %p (%s+%zu)\n", iCnt - i, pvFrame[i], dlinfo.dli_sname,
                                                         ((size_t)pvFrame[i] - (size_t)dlinfo.dli_saddr));
                 } else {
-                    _DebugFormat(__PRINTMESSAGE_LEVEL, "[%d] %p (%s+%zu)\r\n",
+                    _DebugFormat(__PRINTMESSAGE_LEVEL, "[%02d] %p (%s+%zu)\r\n",
                                  iCnt - i, pvFrame[i], dlinfo.dli_sname,
                                  ((size_t)pvFrame[i] - (size_t)dlinfo.dli_saddr));
                 }
             
             } else {
                 if (iFd >= 0) {
-                    fdprintf(iFd, "[%d] %p (<unknown>)\n", iCnt - i, pvFrame[i]);
+                    fdprintf(iFd, "[%02d] %p (<unknown>)\n", iCnt - i, pvFrame[i]);
                 
                 } else {
-                    _DebugFormat(__PRINTMESSAGE_LEVEL, "[%d] %p (<unknown>)\r\n", iCnt - i, pvFrame[i]);
+                    _DebugFormat(__PRINTMESSAGE_LEVEL, "[%02d] %p (<unknown>)\r\n", iCnt - i, pvFrame[i]);
                 }
             }
         }
 #else
         for (i = 0; i < iCnt; i++) {
             if (iFd >= 0) {
-                fdprintf(iFd, "[%d] %p\n", iCnt - i, pvFrame[i]);
+                fdprintf(iFd, "[%02d] %p\n", iCnt - i, pvFrame[i]);
                 
             } else {
-                _DebugFormat(__PRINTMESSAGE_LEVEL, "[%d] %p\r\n", iCnt - i, pvFrame[i]);
+                _DebugFormat(__PRINTMESSAGE_LEVEL, "[%02d] %p\r\n", iCnt - i, pvFrame[i]);
             }
         }
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
@@ -143,17 +143,17 @@ VOID  API_BacktracePrint (PVOID  pvBuffer, size_t  stSize, INT  iMaxDepth)
         for (i = 0; i < iCnt; i++) {
             if ((API_ModuleAddr(pvFrame[i], &dlinfo, pvproc) == ERROR_NONE) &&
                 (dlinfo.dli_sname)) {
-                stOft = bnprintf(pvBuffer, stSize, stOft, "[%d] %p (%s+%zu)\n", 
+                stOft = bnprintf(pvBuffer, stSize, stOft, "[%02d] %p (%s+%zu)\n", 
                                  iCnt - i, pvFrame[i], dlinfo.dli_sname,
                                  ((size_t)pvFrame[i] - (size_t)dlinfo.dli_saddr));
             
             } else {
-                stOft = bnprintf(pvBuffer, stSize, stOft, "[%d] %p (<unknown>)\n", iCnt - i, pvFrame[i]);
+                stOft = bnprintf(pvBuffer, stSize, stOft, "[%02d] %p (<unknown>)\n", iCnt - i, pvFrame[i]);
             }
         }
 #else
         for (i = 0; i < iCnt; i++) {
-            stOft = bnprintf(pvBuffer, stSize, stOft, "[%d] %p\n", iCnt - i, pvFrame[i]);
+            stOft = bnprintf(pvBuffer, stSize, stOft, "[%02d] %p\n", iCnt - i, pvFrame[i]);
         }
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
     }

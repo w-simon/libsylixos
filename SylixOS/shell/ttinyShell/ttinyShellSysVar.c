@@ -126,6 +126,7 @@ VOID  __tshellSysVarInit (VOID)
      */
 #if LW_CFG_MODULELOADER_EN > 0
     API_TShellExec("VPROC_EXIT_FORCE=0");                               /*  1: 主线程退出自动删除子线程 */
+    API_TShellExec("VPROC_MODULE_SHOW=0");                              /*  1: 进程启动打印 module 信息 */
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
     
     /*

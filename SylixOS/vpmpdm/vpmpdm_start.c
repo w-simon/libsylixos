@@ -185,6 +185,11 @@ int _start (int argc, char **argv, char **env)
         }
     }
 
+    tmp = _find_env("VPROC_MODULE_SHOW", &off);
+    if (tmp && *tmp != '0') {
+        system("modules");
+    }
+
     errno = 0;
     ret = pfuncMain(argc, argv, environ);
     exit(ret);

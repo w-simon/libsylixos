@@ -54,6 +54,7 @@
     IMPORT_LABEL(archWinOverFlowEntry)
     IMPORT_LABEL(archWinUnderFlowEntry)
     IMPORT_LABEL(archWinFlushTrapEntry)
+    IMPORT_LABEL(archSysCallEntry)
 
     EXPORT_LABEL(vector)
 
@@ -161,38 +162,130 @@ FUNC_DEF(vector)
     TRAP( 0x81, archTrapInstEntry );                ;/*  81 breakpoint SW trap                           */
     TRAP( 0x82, archTrapInstEntry );                ;/*  81 abortpoint SW trap                           */
     TRAP( 0x83, archWinFlushTrapEntry );            ;/*  83 flush windows SW trap                        */
-
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  84 - 87                                         */
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  88 - 8B                                         */
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  8C - 8F                                         */
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  90 - 93                                         */
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  94 - 97                                         */
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  98 - 9B                                         */
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  9C - 9F                                         */
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  A0 - A3                                         */
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  A4 - A7                                         */
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  A8 - AB                                         */
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  AC - AF                                         */
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  B0 - B3                                         */
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  B4 - B7                                         */
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  B8 - BB                                         */
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  BC - BF                                         */
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  C0 - C3                                         */
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  C4 - C7                                         */
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  C8 - CB                                         */
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  CC - CF                                         */
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  D0 - D3                                         */
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  D4 - D7                                         */
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  D8 - DB                                         */
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  DC - DF                                         */
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  E0 - E3                                         */
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  E4 - E7                                         */
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  E8 - EB                                         */
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  EC - EF                                         */
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  F0 - F3                                         */
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  F4 - F7                                         */
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  F8 - FB                                         */
-    SOFT_TRAP; SOFT_TRAP; SOFT_TRAP; SOFT_TRAP;     ;/*  FC - FF                                         */
+    TRAP( 0x84, archSysCallEntry );                 ;/*  84 syscall SW trap                              */
+    TRAP( 0x85, archSysCallEntry );                 ;/*  85 syscall SW trap                              */
+    TRAP( 0x86, archSysCallEntry );                 ;/*  86 syscall SW trap                              */
+    TRAP( 0x87, archSysCallEntry );                 ;/*  87 syscall SW trap                              */
+    TRAP( 0x88, archSysCallEntry );                 ;/*  88 syscall SW trap                              */
+    TRAP( 0x89, archSysCallEntry );                 ;/*  89 syscall SW trap                              */
+    TRAP( 0x8a, archSysCallEntry );                 ;/*  8A syscall SW trap                              */
+    TRAP( 0x8b, archSysCallEntry );                 ;/*  8B syscall SW trap                              */
+    TRAP( 0x8c, archSysCallEntry );                 ;/*  8C syscall SW trap                              */
+    TRAP( 0x8d, archSysCallEntry );                 ;/*  8D syscall SW trap                              */
+    TRAP( 0x8e, archSysCallEntry );                 ;/*  8E syscall SW trap                              */
+    TRAP( 0x8f, archSysCallEntry );                 ;/*  8F syscall SW trap                              */
+    TRAP( 0x90, archSysCallEntry );                 ;/*  90 syscall SW trap                              */
+    TRAP( 0x91, archSysCallEntry );                 ;/*  91 syscall SW trap                              */
+    TRAP( 0x92, archSysCallEntry );                 ;/*  92 syscall SW trap                              */
+    TRAP( 0x93, archSysCallEntry );                 ;/*  93 syscall SW trap                              */
+    TRAP( 0x94, archSysCallEntry );                 ;/*  94 syscall SW trap                              */
+    TRAP( 0x95, archSysCallEntry );                 ;/*  95 syscall SW trap                              */
+    TRAP( 0x96, archSysCallEntry );                 ;/*  96 syscall SW trap                              */
+    TRAP( 0x97, archSysCallEntry );                 ;/*  97 syscall SW trap                              */
+    TRAP( 0x98, archSysCallEntry );                 ;/*  98 syscall SW trap                              */
+    TRAP( 0x99, archSysCallEntry );                 ;/*  99 syscall SW trap                              */
+    TRAP( 0x9a, archSysCallEntry );                 ;/*  9A syscall SW trap                              */
+    TRAP( 0x9b, archSysCallEntry );                 ;/*  9B syscall SW trap                              */
+    TRAP( 0x9c, archSysCallEntry );                 ;/*  9C syscall SW trap                              */
+    TRAP( 0x9d, archSysCallEntry );                 ;/*  9D syscall SW trap                              */
+    TRAP( 0x9e, archSysCallEntry );                 ;/*  9E syscall SW trap                              */
+    TRAP( 0x9f, archSysCallEntry );                 ;/*  9F syscall SW trap                              */
+    TRAP( 0xa0, archSysCallEntry );                 ;/*  A0 syscall SW trap                              */
+    TRAP( 0xa1, archSysCallEntry );                 ;/*  A1 syscall SW trap                              */
+    TRAP( 0xa2, archSysCallEntry );                 ;/*  A2 syscall SW trap                              */
+    TRAP( 0xa3, archSysCallEntry );                 ;/*  A3 syscall SW trap                              */
+    TRAP( 0xa4, archSysCallEntry );                 ;/*  A4 syscall SW trap                              */
+    TRAP( 0xa5, archSysCallEntry );                 ;/*  A5 syscall SW trap                              */
+    TRAP( 0xa6, archSysCallEntry );                 ;/*  A6 syscall SW trap                              */
+    TRAP( 0xa7, archSysCallEntry );                 ;/*  A7 syscall SW trap                              */
+    TRAP( 0xa8, archSysCallEntry );                 ;/*  A8 syscall SW trap                              */
+    TRAP( 0xa9, archSysCallEntry );                 ;/*  A9 syscall SW trap                              */
+    TRAP( 0xaa, archSysCallEntry );                 ;/*  AA syscall SW trap                              */
+    TRAP( 0xab, archSysCallEntry );                 ;/*  AB syscall SW trap                              */
+    TRAP( 0xac, archSysCallEntry );                 ;/*  AC syscall SW trap                              */
+    TRAP( 0xad, archSysCallEntry );                 ;/*  AD syscall SW trap                              */
+    TRAP( 0xae, archSysCallEntry );                 ;/*  AE syscall SW trap                              */
+    TRAP( 0xaf, archSysCallEntry );                 ;/*  AF syscall SW trap                              */
+    TRAP( 0xb0, archSysCallEntry );                 ;/*  B0 syscall SW trap                              */
+    TRAP( 0xb1, archSysCallEntry );                 ;/*  B1 syscall SW trap                              */
+    TRAP( 0xb2, archSysCallEntry );                 ;/*  B2 syscall SW trap                              */
+    TRAP( 0xb3, archSysCallEntry );                 ;/*  B3 syscall SW trap                              */
+    TRAP( 0xb4, archSysCallEntry );                 ;/*  B4 syscall SW trap                              */
+    TRAP( 0xb5, archSysCallEntry );                 ;/*  B5 syscall SW trap                              */
+    TRAP( 0xb6, archSysCallEntry );                 ;/*  B6 syscall SW trap                              */
+    TRAP( 0xb7, archSysCallEntry );                 ;/*  B7 syscall SW trap                              */
+    TRAP( 0xb8, archSysCallEntry );                 ;/*  B8 syscall SW trap                              */
+    TRAP( 0xb9, archSysCallEntry );                 ;/*  B9 syscall SW trap                              */
+    TRAP( 0xba, archSysCallEntry );                 ;/*  BA syscall SW trap                              */
+    TRAP( 0xbb, archSysCallEntry );                 ;/*  BB syscall SW trap                              */
+    TRAP( 0xbc, archSysCallEntry );                 ;/*  BC syscall SW trap                              */
+    TRAP( 0xbd, archSysCallEntry );                 ;/*  BD syscall SW trap                              */
+    TRAP( 0xbe, archSysCallEntry );                 ;/*  BE syscall SW trap                              */
+    TRAP( 0xbf, archSysCallEntry );                 ;/*  BF syscall SW trap                              */
+    TRAP( 0xc0, archSysCallEntry );                 ;/*  C0 syscall SW trap                              */
+    TRAP( 0xc1, archSysCallEntry );                 ;/*  C1 syscall SW trap                              */
+    TRAP( 0xc2, archSysCallEntry );                 ;/*  C2 syscall SW trap                              */
+    TRAP( 0xc3, archSysCallEntry );                 ;/*  C3 syscall SW trap                              */
+    TRAP( 0xc4, archSysCallEntry );                 ;/*  C4 syscall SW trap                              */
+    TRAP( 0xc5, archSysCallEntry );                 ;/*  C5 syscall SW trap                              */
+    TRAP( 0xc6, archSysCallEntry );                 ;/*  C6 syscall SW trap                              */
+    TRAP( 0xc7, archSysCallEntry );                 ;/*  C7 syscall SW trap                              */
+    TRAP( 0xc8, archSysCallEntry );                 ;/*  C8 syscall SW trap                              */
+    TRAP( 0xc9, archSysCallEntry );                 ;/*  C9 syscall SW trap                              */
+    TRAP( 0xca, archSysCallEntry );                 ;/*  CA syscall SW trap                              */
+    TRAP( 0xcb, archSysCallEntry );                 ;/*  CB syscall SW trap                              */
+    TRAP( 0xcc, archSysCallEntry );                 ;/*  CC syscall SW trap                              */
+    TRAP( 0xcd, archSysCallEntry );                 ;/*  CD syscall SW trap                              */
+    TRAP( 0xce, archSysCallEntry );                 ;/*  CE syscall SW trap                              */
+    TRAP( 0xcf, archSysCallEntry );                 ;/*  CF syscall SW trap                              */
+    TRAP( 0xd0, archSysCallEntry );                 ;/*  D0 syscall SW trap                              */
+    TRAP( 0xd1, archSysCallEntry );                 ;/*  D1 syscall SW trap                              */
+    TRAP( 0xd2, archSysCallEntry );                 ;/*  D2 syscall SW trap                              */
+    TRAP( 0xd3, archSysCallEntry );                 ;/*  D3 syscall SW trap                              */
+    TRAP( 0xd4, archSysCallEntry );                 ;/*  D4 syscall SW trap                              */
+    TRAP( 0xd5, archSysCallEntry );                 ;/*  D5 syscall SW trap                              */
+    TRAP( 0xd6, archSysCallEntry );                 ;/*  D6 syscall SW trap                              */
+    TRAP( 0xd7, archSysCallEntry );                 ;/*  D7 syscall SW trap                              */
+    TRAP( 0xd8, archSysCallEntry );                 ;/*  D8 syscall SW trap                              */
+    TRAP( 0xd9, archSysCallEntry );                 ;/*  D9 syscall SW trap                              */
+    TRAP( 0xda, archSysCallEntry );                 ;/*  DA syscall SW trap                              */
+    TRAP( 0xdb, archSysCallEntry );                 ;/*  DB syscall SW trap                              */
+    TRAP( 0xdc, archSysCallEntry );                 ;/*  DC syscall SW trap                              */
+    TRAP( 0xdd, archSysCallEntry );                 ;/*  DD syscall SW trap                              */
+    TRAP( 0xde, archSysCallEntry );                 ;/*  DE syscall SW trap                              */
+    TRAP( 0xdf, archSysCallEntry );                 ;/*  DF syscall SW trap                              */
+    TRAP( 0xe0, archSysCallEntry );                 ;/*  E0 syscall SW trap                              */
+    TRAP( 0xe1, archSysCallEntry );                 ;/*  E1 syscall SW trap                              */
+    TRAP( 0xe2, archSysCallEntry );                 ;/*  E2 syscall SW trap                              */
+    TRAP( 0xe3, archSysCallEntry );                 ;/*  E3 syscall SW trap                              */
+    TRAP( 0xe4, archSysCallEntry );                 ;/*  E4 syscall SW trap                              */
+    TRAP( 0xe5, archSysCallEntry );                 ;/*  E5 syscall SW trap                              */
+    TRAP( 0xe6, archSysCallEntry );                 ;/*  E6 syscall SW trap                              */
+    TRAP( 0xe7, archSysCallEntry );                 ;/*  E7 syscall SW trap                              */
+    TRAP( 0xe8, archSysCallEntry );                 ;/*  E8 syscall SW trap                              */
+    TRAP( 0xe9, archSysCallEntry );                 ;/*  E9 syscall SW trap                              */
+    TRAP( 0xea, archSysCallEntry );                 ;/*  EA syscall SW trap                              */
+    TRAP( 0xeb, archSysCallEntry );                 ;/*  EB syscall SW trap                              */
+    TRAP( 0xec, archSysCallEntry );                 ;/*  EC syscall SW trap                              */
+    TRAP( 0xed, archSysCallEntry );                 ;/*  ED syscall SW trap                              */
+    TRAP( 0xee, archSysCallEntry );                 ;/*  EE syscall SW trap                              */
+    TRAP( 0xef, archSysCallEntry );                 ;/*  EF syscall SW trap                              */
+    TRAP( 0xf0, archSysCallEntry );                 ;/*  F0 syscall SW trap                              */
+    TRAP( 0xf1, archSysCallEntry );                 ;/*  F1 syscall SW trap                              */
+    TRAP( 0xf2, archSysCallEntry );                 ;/*  F2 syscall SW trap                              */
+    TRAP( 0xf3, archSysCallEntry );                 ;/*  F3 syscall SW trap                              */
+    TRAP( 0xf4, archSysCallEntry );                 ;/*  F4 syscall SW trap                              */
+    TRAP( 0xf5, archSysCallEntry );                 ;/*  F5 syscall SW trap                              */
+    TRAP( 0xf6, archSysCallEntry );                 ;/*  F6 syscall SW trap                              */
+    TRAP( 0xf7, archSysCallEntry );                 ;/*  F7 syscall SW trap                              */
+    TRAP( 0xf8, archSysCallEntry );                 ;/*  F8 syscall SW trap                              */
+    TRAP( 0xf9, archSysCallEntry );                 ;/*  F9 syscall SW trap                              */
+    TRAP( 0xfa, archSysCallEntry );                 ;/*  FA syscall SW trap                              */
+    TRAP( 0xfb, archSysCallEntry );                 ;/*  FB syscall SW trap                              */
+    TRAP( 0xfc, archSysCallEntry );                 ;/*  FC syscall SW trap                              */
+    TRAP( 0xfd, archSysCallEntry );                 ;/*  FD syscall SW trap                              */
+    TRAP( 0xfe, archSysCallEntry );                 ;/*  FE syscall SW trap                              */
+    TRAP( 0xff, archSysCallEntry );                 ;/*  FF syscall SW trap                              */
 
     FUNC_END(vector)
 

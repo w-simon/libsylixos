@@ -61,6 +61,7 @@
     IMPORT_LABEL(archTagOverFlowHandle)
     IMPORT_LABEL(archDivZeroHandle)
     IMPORT_LABEL(archTrapInstHandle)
+    IMPORT_LABEL(archSysCallHandle)
     IMPORT_LABEL(bspIntHandle)
 
     EXPORT_LABEL(archDataStoreErrEntry)
@@ -83,6 +84,7 @@
     EXPORT_LABEL(archTagOverFlowEntry)
     EXPORT_LABEL(archDivZeroEntry)
     EXPORT_LABEL(archTrapInstEntry)
+    EXPORT_LABEL(archSysCallEntry)
     EXPORT_LABEL(archIntEntry)
 
 ;/*********************************************************************************************************
@@ -421,6 +423,14 @@ FUNC_DEF(archDivZeroEntry)
 FUNC_DEF(archTrapInstEntry)
     SPARC_TRAP_ENTRY        archTrapInstHandle  PC_ARG_REG
     FUNC_END(archIntEntry)
+
+;/*********************************************************************************************************
+;  system call 入口宏
+;*********************************************************************************************************/
+
+FUNC_DEF(archSysCallEntry)
+    SPARC_TRAP_ENTRY        archSysCallHandle  TRAP_TYPE_ARG_REG
+    FUNC_END(archSysCallEntry)
 
 ;/*********************************************************************************************************
 ;  interrupt_level_n 入口宏

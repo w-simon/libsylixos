@@ -367,7 +367,7 @@ static VOID  leon3CacheProbe (LW_CACHE_OP *pcacheop,
 ** 调用模块:
 ** 注  意  : DCACHE 为写穿透模式.
 *********************************************************************************************************/
-INT  sparcCacheFlush (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes)
+LW_WEAK INT  sparcCacheFlush (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes)
 {
     return  (ERROR_NONE);
 }
@@ -547,10 +547,10 @@ static INT  sparcCacheDataUpdate (PVOID  pvAdrs, size_t  stBytes, BOOL  bInv)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  sparcCacheInit (LW_CACHE_OP *pcacheop,
-                      CACHE_MODE   uiInstruction,
-                      CACHE_MODE   uiData,
-                      CPCHAR       pcMachineName)
+LW_WEAK VOID  sparcCacheInit (LW_CACHE_OP *pcacheop,
+                              CACHE_MODE   uiInstruction,
+                              CACHE_MODE   uiData,
+                              CPCHAR       pcMachineName)
 {
     if ((lib_strcmp(pcMachineName, SPARC_MACHINE_LEON3) == 0) ||
         (lib_strcmp(pcMachineName, SPARC_MACHINE_LEON4) == 0)) {
@@ -586,7 +586,7 @@ VOID  sparcCacheInit (LW_CACHE_OP *pcacheop,
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  sparcCacheReset (CPCHAR  pcMachineName)
+LW_WEAK VOID  sparcCacheReset (CPCHAR  pcMachineName)
 {
     if ((lib_strcmp(pcMachineName, SPARC_MACHINE_LEON3) == 0) ||
         (lib_strcmp(pcMachineName, SPARC_MACHINE_LEON4) == 0)) {

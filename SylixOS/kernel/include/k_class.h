@@ -456,9 +456,10 @@ typedef struct __lw_tcb {
     PLW_STACK             TCB_pstkStackTop;                             /*  线程堆栈栈顶(起始点)        */
     PLW_STACK             TCB_pstkStackBottom;                          /*  线程堆栈栈底(结束点)        */
     size_t                TCB_stStackSize;                              /*  线程堆栈大小(单位: 字)      */
-    PLW_STACK             TCB_pstkStackLowAddr;                         /*  总堆栈最低地址              */
     
+    PLW_STACK             TCB_pstkStackLowAddr;                         /*  总堆栈最低地址              */
     PLW_STACK             TCB_pstkStackGuard;                           /*  堆栈警戒点                  */
+
 #if LW_CFG_MODULELOADER_EN > 0
     INT                   TCB_iStkLocation;                             /*  堆栈位置                    */
 #define LW_TCB_STK_NONE   0
