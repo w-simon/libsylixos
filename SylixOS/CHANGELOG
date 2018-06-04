@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2018-06-02: han.hui
+    添加 SPARC 异常自定义接口.
+
     2018-04-23: han.hui
     添加 fdt(dtb, dts)文件解析功能.
 
@@ -14,6 +17,9 @@ HISTORY
     NAT 支持 IP 分片.
 
 ++ Bugfixes:
+
+    2018-05-25: han.hui
+    修正 ARM Cortex-M 中断嵌套一处问题.
 
     2018-05-24: han.hui
     修正调试器对关键资源的保护缺陷.

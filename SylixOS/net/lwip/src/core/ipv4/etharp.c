@@ -1244,7 +1244,7 @@ etharp_traversal(struct netif *netif,
                  void *arg4,
                  void *arg5)
 {
-  u8_t i;
+  int i;
   
   if (!callback) {
     return;
