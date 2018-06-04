@@ -304,10 +304,18 @@ SylixOS/vpmpdm/arch/x64/sse2-strcat-slm.S \
 SylixOS/vpmpdm/arch/x64/sse2-strcpy-slm.S \
 SylixOS/vpmpdm/arch/x64/sse2-strlen-slm.S \
 SylixOS/vpmpdm/arch/x64/sse2-strncat-slm.S \
-SylixOS/vpmpdm/arch/x64/sse2-strncpy-slm.S \
-SylixOS/vpmpdm/arch/x64/sse4-memcmp-slm.S \
+SylixOS/vpmpdm/arch/x64/sse2-strncpy-slm.S
+
+ifneq (,$(findstring ssse3,$(FPU_TYPE)))
+LOCAL_X64_SRCS += \
 SylixOS/vpmpdm/arch/x64/ssse3-strcmp-slm.S \
 SylixOS/vpmpdm/arch/x64/ssse3-strncmp-slm.S
+endif
+
+ifneq (,$(findstring sse4,$(FPU_TYPE)))
+LOCAL_X64_SRCS += \
+SylixOS/vpmpdm/arch/x64/sse4-memcmp-slm.S
+endif
 
 #*********************************************************************************************************
 # TI C6X DSP source
