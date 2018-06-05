@@ -48,7 +48,22 @@ addr_t  _G_ulCpu[1];
 /*********************************************************************************************************
   自定义异常处理 (航天科技五院需求)
 *********************************************************************************************************/
+#if LW_CFG_CPU_EXC_HOOK_EN > 0
 static BSP_EXC_HOOK         _G_pfuncBspCpuExcHook[SPARC_TARP_NR];       /*  BSP 异常勾子函数表          */
+/*********************************************************************************************************
+  调用自定义异常处理
+*********************************************************************************************************/
+#define CALL_BSP_EXC_HOOK(tcbCur, retAddr, trap)                \
+    do {                                                        \
+        if (_G_pfuncBspCpuExcHook[trap]) {                      \
+            if (_G_pfuncBspCpuExcHook[trap](tcbCur, retAddr)) { \
+                return;                                         \
+            }                                                   \
+        }                                                       \
+    } while (0)
+#else
+#define CALL_BSP_EXC_HOOK(tcbCur, retAddr, trap)
+#endif                                                                  /*  LW_CFG_CPU_EXC_HOOK_EN > 0  */
 /*********************************************************************************************************
   向量使能与禁能锁
 *********************************************************************************************************/
@@ -114,6 +129,8 @@ LW_WEAK VOID  archIntHandle (ULONG  ulVector, BOOL  bPreemptive)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
+#if LW_CFG_CPU_EXC_HOOK_EN > 0
+
 INT  archBspExcHookAdd (ULONG  ulTrap, BSP_EXC_HOOK  pfuncHook)
 {
     if (ulTrap < SPARC_TARP_NR) {
@@ -124,6 +141,8 @@ INT  archBspExcHookAdd (ULONG  ulTrap, BSP_EXC_HOOK  pfuncHook)
         return  (PX_ERROR);
     }
 }
+
+#endif                                                                  /*  LW_CFG_CPU_EXC_HOOK_EN > 0  */
 /*********************************************************************************************************
 ** 函数名称: archInstAccessErrHandle
 ** 功能描述: A peremptory error exception occurred on an instruction access
@@ -140,11 +159,7 @@ VOID  archInstAccessErrHandle (addr_t  ulRetAddr)
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    if (_G_pfuncBspCpuExcHook[SPARC_TRAP_IACC]) {
-        if (_G_pfuncBspCpuExcHook[SPARC_TRAP_IACC](ptcbCur, ulRetAddr)) {
-            return;
-        }
-    }
+    CALL_BSP_EXC_HOOK(ptcbCur, ulRetAddr, SPARC_TRAP_IACC);
 
     abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_FATAL_ERROR;
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
@@ -165,11 +180,7 @@ VOID  archDataStoreErrHandle (addr_t  ulRetAddr)
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    if (_G_pfuncBspCpuExcHook[SPARC_TRAP_DSTORE]) {
-        if (_G_pfuncBspCpuExcHook[SPARC_TRAP_DSTORE](ptcbCur, ulRetAddr)) {
-            return;
-        }
-    }
+    CALL_BSP_EXC_HOOK(ptcbCur, ulRetAddr, SPARC_TRAP_DSTORE);
 
     abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_FATAL_ERROR;
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
@@ -190,11 +201,7 @@ VOID  archDataAccessErrHandle (addr_t  ulRetAddr)
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    if (_G_pfuncBspCpuExcHook[SPARC_TRAP_DACC]) {
-        if (_G_pfuncBspCpuExcHook[SPARC_TRAP_DACC](ptcbCur, ulRetAddr)) {
-            return;
-        }
-    }
+    CALL_BSP_EXC_HOOK(ptcbCur, ulRetAddr, SPARC_TRAP_DACC);
 
     abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_FATAL_ERROR;
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
@@ -219,11 +226,7 @@ VOID  archInstAccessExcHandle (addr_t  ulRetAddr)
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    if (_G_pfuncBspCpuExcHook[SPARC_TRAP_TFLT]) {
-        if (_G_pfuncBspCpuExcHook[SPARC_TRAP_TFLT](ptcbCur, ulRetAddr)) {
-            return;
-        }
-    }
+    CALL_BSP_EXC_HOOK(ptcbCur, ulRetAddr, SPARC_TRAP_TFLT);
 
     ulFaultStatus = sparcMmuGetFaultStatus();
     if (ulFaultStatus & FSTAT_FAV_MASK) {
@@ -297,11 +300,7 @@ VOID  archDataAccessExcHandle (addr_t  ulRetAddr)
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    if (_G_pfuncBspCpuExcHook[SPARC_TRAP_DFLT]) {
-        if (_G_pfuncBspCpuExcHook[SPARC_TRAP_DFLT](ptcbCur, ulRetAddr)) {
-            return;
-        }
-    }
+    CALL_BSP_EXC_HOOK(ptcbCur, ulRetAddr, SPARC_TRAP_DFLT);
 
     archInstAccessExcHandle(ulRetAddr);
 }
@@ -320,11 +319,7 @@ LW_WEAK VOID  archDataAccessMmuMissHandle (addr_t  ulRetAddr)
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    if (_G_pfuncBspCpuExcHook[SPARC_TRAP_DMM]) {
-        if (_G_pfuncBspCpuExcHook[SPARC_TRAP_DMM](ptcbCur, ulRetAddr)) {
-            return;
-        }
-    }
+    CALL_BSP_EXC_HOOK(ptcbCur, ulRetAddr, SPARC_TRAP_DMM);
 }
 /*********************************************************************************************************
 ** 函数名称: archInstAccessMmuMissHandle
@@ -341,11 +336,7 @@ LW_WEAK VOID  archInstAccessMmuMissHandle (addr_t  ulRetAddr)
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    if (_G_pfuncBspCpuExcHook[SPARC_TRAP_IMM]) {
-        if (_G_pfuncBspCpuExcHook[SPARC_TRAP_IMM](ptcbCur, ulRetAddr)) {
-            return;
-        }
-    }
+    CALL_BSP_EXC_HOOK(ptcbCur, ulRetAddr, SPARC_TRAP_IMM);
 }
 /*********************************************************************************************************
 ** 函数名称: archRRegAccessErrHandle
@@ -363,11 +354,7 @@ VOID  archRRegAccessErrHandle (addr_t  ulRetAddr)
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    if (_G_pfuncBspCpuExcHook[SPARC_TRAP_RACC]) {
-        if (_G_pfuncBspCpuExcHook[SPARC_TRAP_RACC](ptcbCur, ulRetAddr)) {
-            return;
-        }
-    }
+    CALL_BSP_EXC_HOOK(ptcbCur, ulRetAddr, SPARC_TRAP_RACC);
 
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
     abtInfo.VMABT_uiMethod = BUS_OBJERR;
@@ -388,11 +375,7 @@ VOID  archPrivInstHandle (addr_t  ulRetAddr)
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    if (_G_pfuncBspCpuExcHook[SPARC_TRAP_PI]) {
-        if (_G_pfuncBspCpuExcHook[SPARC_TRAP_PI](ptcbCur, ulRetAddr)) {
-            return;
-        }
-    }
+    CALL_BSP_EXC_HOOK(ptcbCur, ulRetAddr, SPARC_TRAP_PI);
 
     abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_UNDEF;
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
@@ -413,11 +396,7 @@ VOID  archIllegalInstHandle (addr_t  ulRetAddr)
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    if (_G_pfuncBspCpuExcHook[SPARC_TRAP_II]) {
-        if (_G_pfuncBspCpuExcHook[SPARC_TRAP_II](ptcbCur, ulRetAddr)) {
-            return;
-        }
-    }
+    CALL_BSP_EXC_HOOK(ptcbCur, ulRetAddr, SPARC_TRAP_II);
 
     abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_UNDEF;
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
@@ -438,11 +417,7 @@ VOID  archFpDisableHandle (addr_t  ulRetAddr)
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    if (_G_pfuncBspCpuExcHook[SPARC_TRAP_FPD]) {
-        if (_G_pfuncBspCpuExcHook[SPARC_TRAP_FPD](ptcbCur, ulRetAddr)) {
-            return;
-        }
-    }
+    CALL_BSP_EXC_HOOK(ptcbCur, ulRetAddr, SPARC_TRAP_FPD);
 
 #if LW_CFG_CPU_FPU_EN > 0
     if (archFpuUndHandle(ptcbCur) == ERROR_NONE) {                      /*  进行 FPU 指令探测           */
@@ -470,11 +445,7 @@ VOID  archCpDisableHandle (addr_t  ulRetAddr)
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    if (_G_pfuncBspCpuExcHook[SPARC_TRAP_CPDIS]) {
-        if (_G_pfuncBspCpuExcHook[SPARC_TRAP_CPDIS](ptcbCur, ulRetAddr)) {
-            return;
-        }
-    }
+    CALL_BSP_EXC_HOOK(ptcbCur, ulRetAddr, SPARC_TRAP_CPDIS);
 
     abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_UNDEF;
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
@@ -495,11 +466,7 @@ VOID  archUnimplFlushHandle (addr_t  ulRetAddr)
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    if (_G_pfuncBspCpuExcHook[SPARC_TRAP_BADFL]) {
-        if (_G_pfuncBspCpuExcHook[SPARC_TRAP_BADFL](ptcbCur, ulRetAddr)) {
-            return;
-        }
-    }
+    CALL_BSP_EXC_HOOK(ptcbCur, ulRetAddr, SPARC_TRAP_BADFL);
 
     abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_UNDEF;
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
@@ -521,11 +488,7 @@ LW_WEAK VOID  archWatchPointDectectHandle (addr_t  ulRetAddr)
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    if (_G_pfuncBspCpuExcHook[SPARC_TRAP_WDOG]) {
-        if (_G_pfuncBspCpuExcHook[SPARC_TRAP_WDOG](ptcbCur, ulRetAddr)) {
-            return;
-        }
-    }
+    CALL_BSP_EXC_HOOK(ptcbCur, ulRetAddr, SPARC_TRAP_WDOG);
 }
 /*********************************************************************************************************
 ** 函数名称: archMemAddrNoAlignHandle
@@ -545,11 +508,7 @@ VOID  archMemAddrNoAlignHandle (addr_t  ulRetAddr, ARCH_REG_CTX  *pregctx)
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    if (_G_pfuncBspCpuExcHook[SPARC_TRAP_MNA]) {
-        if (_G_pfuncBspCpuExcHook[SPARC_TRAP_MNA](ptcbCur, ulRetAddr)) {
-            return;
-        }
-    }
+    CALL_BSP_EXC_HOOK(ptcbCur, ulRetAddr, SPARC_TRAP_MNA);
 
     abtInfo.VMABT_uiType = sparcUnalignedHandle(pregctx,
                                                 &ulAbortAddr, &abtInfo.VMABT_uiMethod);
@@ -576,11 +535,7 @@ VOID  archFpExcHandle (addr_t  ulRetAddr)
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    if (_G_pfuncBspCpuExcHook[SPARC_TRAP_FPE]) {
-        if (_G_pfuncBspCpuExcHook[SPARC_TRAP_FPE](ptcbCur, ulRetAddr)) {
-            return;
-        }
-    }
+    CALL_BSP_EXC_HOOK(ptcbCur, ulRetAddr, SPARC_TRAP_FPE);
 
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FPE;
     abtInfo.VMABT_uiMethod = FPE_FLTINV;
@@ -620,11 +575,7 @@ VOID  archCpExcHandle (addr_t  ulRetAddr)
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    if (_G_pfuncBspCpuExcHook[SPARC_TRAP_CPEXP]) {
-        if (_G_pfuncBspCpuExcHook[SPARC_TRAP_CPEXP](ptcbCur, ulRetAddr)) {
-            return;
-        }
-    }
+    CALL_BSP_EXC_HOOK(ptcbCur, ulRetAddr, SPARC_TRAP_CPEXP);
 
     abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_UNDEF;
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
@@ -645,11 +596,7 @@ VOID  archTagOverFlowHandle (addr_t  ulRetAddr)
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    if (_G_pfuncBspCpuExcHook[SPARC_TRAP_TOF]) {
-        if (_G_pfuncBspCpuExcHook[SPARC_TRAP_TOF](ptcbCur, ulRetAddr)) {
-            return;
-        }
-    }
+    CALL_BSP_EXC_HOOK(ptcbCur, ulRetAddr, SPARC_TRAP_TOF);
 
     abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_TERMINAL;
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
@@ -669,11 +616,7 @@ VOID  archDivZeroHandle (addr_t  ulRetAddr)
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    if (_G_pfuncBspCpuExcHook[SPARC_TRAP_DIVZ]) {
-        if (_G_pfuncBspCpuExcHook[SPARC_TRAP_DIVZ](ptcbCur, ulRetAddr)) {
-            return;
-        }
-    }
+    CALL_BSP_EXC_HOOK(ptcbCur, ulRetAddr, SPARC_TRAP_DIVZ);
 
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FPE;
     abtInfo.VMABT_uiMethod = FPE_FLTDIV;
@@ -720,11 +663,7 @@ VOID  archSysCallHandle (ULONG  ulTrap)
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    if (_G_pfuncBspCpuExcHook[ulTrap]) {
-        if (_G_pfuncBspCpuExcHook[ulTrap](ptcbCur, (addr_t)ARCH_REG_CTX_GET_PC(ptcbCur->TCB_archRegCtx))) {
-            return;
-        }
-    }
+    CALL_BSP_EXC_HOOK(ptcbCur, (addr_t)ARCH_REG_CTX_GET_PC(ptcbCur->TCB_archRegCtx), ulTrap);
 }
 /*********************************************************************************************************
 ** 函数名称: archTrapInit
