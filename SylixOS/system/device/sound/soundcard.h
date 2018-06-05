@@ -332,7 +332,7 @@ typedef struct count_info {
 
 typedef struct buffmem_desc {
     unsigned *buffer;
-    int size;
+    int       size;
 } buffmem_desc;
         
 #define SNDCTL_DSP_MAPINBUF                     _SIOR ('P', 19, buffmem_desc)
@@ -405,28 +405,28 @@ typedef struct buffmem_desc {
 *********************************************************************************************************/
 
 typedef struct copr_buffer {
-    int command;                                                        /* Set to 0 if not used         */
-    int flags;
-#define CPF_NONE           0x0000
-#define CPF_FIRST          0x0001                                       /* First block                  */
-#define CPF_LAST           0x0002                                       /* Last block                   */
-    int len;
-    int offs;                                                           /* If required by the device (0 if not used) */
+    int           command;                                              /* Set to 0 if not used         */
+    int           flags;
+#define CPF_NONE    0x0000
+#define CPF_FIRST   0x0001                                              /* First block                  */
+#define CPF_LAST    0x0002                                              /* Last block                   */
+    int           len;
+    int           offs;                                                 /* If required by the device (0 if not used) */
 
     unsigned char data[4000];                                           /* NOTE! 4000 is not 4k         */
 } copr_buffer;
 
 typedef struct copr_debug_buf {
-    int command;                                                        /* Used internally. Set to 0    */
-    int parm1;
-    int parm2;
-    int flags;    
-    int len;                                                            /* Length of data in bytes      */
+    int     command;                                                    /* Used internally. Set to 0    */
+    int     parm1;
+    int     parm2;
+    int     flags;    
+    int     len;                                                        /* Length of data in bytes      */
 } copr_debug_buf;
 
 typedef struct copr_msg {
-    int len;
-    unsigned char data[4000];
+    int             len;
+    unsigned char   data[4000];
 } copr_msg;
 
 #define SNDCTL_COPR_RESET               _SIO  ('C',  0)
@@ -450,12 +450,12 @@ typedef struct copr_msg {
 #define SNDCTL_TMR_CONTINUE             _SIO  ('T', 4)
 #define SNDCTL_TMR_TEMPO                _SIOWR('T', 5, int)
 #define SNDCTL_TMR_SOURCE               _SIOWR('T', 6, int)
-#  define TMR_INTERNAL             0x00000001
-#  define TMR_EXTERNAL             0x00000002
-#          define TMR_MODE_MIDI    0x00000010
-#          define TMR_MODE_FSK     0x00000020
-#          define TMR_MODE_CLS     0x00000040
-#          define TMR_MODE_SMPTE   0x00000080
+#  define TMR_INTERNAL                  0x00000001
+#  define TMR_EXTERNAL                  0x00000002
+#  define TMR_MODE_MIDI                 0x00000010
+#  define TMR_MODE_FSK                  0x00000020
+#  define TMR_MODE_CLS                  0x00000040
+#  define TMR_MODE_SMPTE                0x00000080
 #define SNDCTL_TMR_METRONOME            _SIOW ('T', 7, int)
 #define SNDCTL_TMR_SELECT               _SIOW ('T', 8, int)
 
@@ -463,18 +463,49 @@ typedef struct copr_msg {
   Volume mode decides how volumes are used
 *********************************************************************************************************/
 
-#define VOL_METHOD_ADAGIO         1
-#define VOL_METHOD_LINEAR         2
+#define VOL_METHOD_ADAGIO       1
+#define VOL_METHOD_LINEAR       2
+
+/*********************************************************************************************************
+  Timer event types
+*********************************************************************************************************/
+
+#define TMR_WAIT_REL            1                                       /* Time relative to prev time   */
+#define TMR_WAIT_ABS            2                                       /* Absolute time since TMR_START*/
+#define TMR_STOP                3
+#define TMR_START               4
+#define TMR_CONTINUE            5
+#define TMR_TEMPO               6
+#define TMR_ECHO                8
+#define TMR_CLOCK               9                                       /* MIDI clock                   */
+#define TMR_SPP                 10                                      /* Song position pointer        */
+#define TMR_TIMESIG             11                                      /* Time signature               */
 
 /*********************************************************************************************************
   Note! SEQ_WAIT, SEQ_MIDIPUTC and SEQ_ECHO are used also as
         input events.
 *********************************************************************************************************/
+
+#define SEQ_NOTEOFF             0
+#define SEQ_FMNOTEOFF           SEQ_NOTEOFF                             /* Just old name                */
+#define SEQ_NOTEON              1
+#define SEQ_FMNOTEON            SEQ_NOTEON
+#define SEQ_WAIT                TMR_WAIT_ABS
+#define SEQ_PGMCHANGE           3
+#define SEQ_FMPGMCHANGE         SEQ_PGMCHANGE
+#define SEQ_SYNCTIMER           TMR_START
+#define SEQ_MIDIPUTC            5
+#define SEQ_DRUMON              6                                       /*** OBSOLETE                 ***/
+#define SEQ_DRUMOFF             7                                       /*** OBSOLETE                 ***/
+#define SEQ_ECHO                TMR_ECHO                                /* synching programs with output*/
+#define SEQ_AFTERTOUCH          9
+#define SEQ_CONTROLLER          10
+
 /*********************************************************************************************************
   Event codes 0xf0 to 0xfc are reserved for future extensions.
 *********************************************************************************************************/
 
-#define SEQ_FULLSIZE              0xfd                                  /* Long events                  */
+#define SEQ_FULLSIZE            0xfd                                    /* Long events                  */
 
 /*********************************************************************************************************
  *      SEQ_FULLSIZE events are used for loading patches/samples to the
@@ -497,8 +528,8 @@ typedef struct copr_msg {
  *      to WAVE_PATCH.
 *********************************************************************************************************/
 
-#define SEQ_PRIVATE                0xfe                     /* Low level HW dependent events (8 bytes)  */
-#define SEQ_EXTENDED               0xff                     /* Extended events (8 bytes) OBSOLETE       */
+#define SEQ_PRIVATE             0xfe                        /* Low level HW dependent events (8 bytes)  */
+#define SEQ_EXTENDED            0xff                        /* Extended events (8 bytes) OBSOLETE       */
 
 /*********************************************************************************************************
  * Record for FM patches
@@ -544,16 +575,16 @@ struct synth_info {                                         /* Read only        
 };
 
 struct sound_timer_info {
-    char name[32];
-    int caps;
+    char   name[32];
+    int    caps;
 };
 
-#define MIDI_CAP_MPU401            1                        /* MPU-401 intelligent mode                 */
+#define MIDI_CAP_MPU401             1                       /* MPU-401 intelligent mode                 */
 
 struct midi_info {
     char           name[30];
     int            device;                                  /* 0-N. INITIALIZE BEFORE CALLING           */
-    unsigned int  capabilities;                             /* To be defined later                      */
+    unsigned int   capabilities;                            /* To be defined later                      */
     int            dev_type;
     int            dummies[18];                             /* Reserve space                            */
 };
@@ -563,9 +594,9 @@ struct midi_info {
 *********************************************************************************************************/
 
 typedef struct {
-    unsigned char cmd;
-    char nr_args, nr_returns;
-    unsigned char data[30];
+    unsigned char  cmd;
+    char           nr_args, nr_returns;
+    unsigned char  data[30];
 } mpu_command_rec;
 
 #define SNDCTL_MIDI_PRETIME         _SIOWR('m', 0, int)
@@ -577,14 +608,14 @@ typedef struct {
 *********************************************************************************************************/
 
 typedef struct synth_control {
-        int devno;                                                      /* Synthesizer #                */
+        int  devno;                                                     /* Synthesizer #                */
         char data[4000];                                                /* Device spesific command/data record */
 }synth_control;
 
 typedef struct remove_sample {
-        int devno;                                                      /* Synthesizer #                */
-        int bankno;                                                     /* MIDI bank # (0=General MIDI) */
-        int instrno;                                                    /* MIDI instrument number       */
+        int  devno;                                                     /* Synthesizer #                */
+        int  bankno;                                                    /* MIDI bank # (0=General MIDI) */
+        int  instrno;                                                   /* MIDI instrument number       */
 } remove_sample;
 
 typedef struct seq_event_rec {
