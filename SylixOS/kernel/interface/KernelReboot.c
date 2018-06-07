@@ -73,10 +73,8 @@ static VOID  __makeOtherDown (VOID)
     
     do {
         bNeedWait = LW_FALSE;
-        LW_CPU_FOREACH_EXCEPT (i, 0) {
-            if (API_CpuIsUp(i)) {                                       /*  确保除 0 核外, 其他 CPU 全关*/
-                bNeedWait = LW_TRUE;
-            }
+        LW_CPU_FOREACH_ACTIVE_EXCEPT (i, 0) {                           /*  确保除 0 核外, 其他 CPU 全关*/
+            bNeedWait = LW_TRUE;
         }
         LW_SPINLOCK_DELAY();
     } while (bNeedWait);

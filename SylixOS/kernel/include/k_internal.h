@@ -379,6 +379,11 @@ INT            _CpuActive(PLW_CLASS_CPU   pcpu);
 INT            _CpuInactive(PLW_CLASS_CPU   pcpu);
 #endif                                                                  /*  LW_CFG_SMP_CPU_DOWN_EN > 0  */
 
+#if LW_CFG_SMP_EN > 0
+VOID           _CpuSetSchedAffinity(ULONG  ulCPUId, BOOL  bEnable);
+VOID           _CpuGetSchedAffinity(ULONG  ulCPUId, BOOL  *pbEnable);
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
+
 /*********************************************************************************************************
   µ÷¶ÈÆ÷
 *********************************************************************************************************/

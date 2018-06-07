@@ -156,7 +156,7 @@ static INT  __tshellSysCmdSleep (INT  iArgC, PCHAR  ppcArgV[])
     
     if (iArgC < 2) {
         fprintf(stderr, "argument error.\n");
-        return  (-1);
+        return  (PX_ERROR);
     }
     
     lib_strlcpy(cParam, ppcArgV[1], sizeof(cParam));
@@ -341,7 +341,7 @@ static INT  __tshellSysCmdShell (INT  iArgC, PCHAR  ppcArgV[])
     
     if (iArgC < 2) {
         fprintf(stderr, "argument error.\n");
-        return  (-1);
+        return  (PX_ERROR);
     }
     
     if (iArgC > 2) {
@@ -358,27 +358,27 @@ static INT  __tshellSysCmdShell (INT  iArgC, PCHAR  ppcArgV[])
     iFd = open(ppcArgV[1], O_RDWR);
     if (iFd < 0) {
         fprintf(stderr, "open file return: %d error: %s\n", iFd, lib_strerror(errno));
-        return  (-1);
+        return  (PX_ERROR);
     }
     
     if (!isatty(iFd)) {
         fprintf(stderr, "this file is not a tty device.\n");
         close(iFd);
-        return  (-1);
+        return  (PX_ERROR);
     }
     
     if (pcDiv) {
         if (__tshellSetTtyOpt(iFd, pcDiv) < ERROR_NONE) {
             fprintf(stderr, "set tty option error.\n");
             close(iFd);
-            return  (-1);
+            return  (PX_ERROR);
         }
     }
     
     if (API_TShellCreate(iFd, ulOption) == LW_OBJECT_HANDLE_INVALID) {
         fprintf(stderr, "can not create shell: %s\n", lib_strerror(errno));
         close(iFd);
-        return  (-1);
+        return  (PX_ERROR);
     }
 
     return  (ERROR_NONE);
@@ -480,11 +480,11 @@ static INT  __tshellSysCmdHelp (INT  iArgC, PCHAR  ppcArgV[])
         } else if (iArgC == 3) {
             if (lib_strcmp("-s", ppcArgV[1])) {
                 fprintf(stderr, "option error.\n");
-                return  (-1);
+                return  (PX_ERROR);
             }
             pcKeyword = ppcArgV[2];
         } else {
-            return  (-1);
+            return  (PX_ERROR);
         }
         
         if (lib_strchr(pcKeyword, '*') ||
@@ -549,7 +549,7 @@ static INT  __tshellSysCmdVardel (INT  iArgC, PCHAR  ppcArgV[])
 {
     if (iArgC != 2) {
         fprintf(stderr, "argument error.\n");
-        return  (-1);
+        return  (PX_ERROR);
     }
     
     if (ERROR_NONE == API_TShellVarDelete(ppcArgV[1])) {
@@ -845,7 +845,7 @@ static INT  __tshellSysCmdMems (INT  iArgC, PCHAR  ppcArgV[])
         if (ppcArgV[1][0] < '0' ||
             ppcArgV[1][0] > '9') {
             fprintf(stderr, "option error.\n");
-            return  (-1);
+            return  (PX_ERROR);
         }
         sscanf(ppcArgV[1], "%lx", &ulId);
         
@@ -876,7 +876,7 @@ static INT  __tshellSysCmdKill (INT  iArgC, PCHAR  ppcArgV[])
         if (ppcArgV[1][0] < '0' ||
             ppcArgV[1][0] > '9') {
             fprintf(stderr, "option error.\n");
-            return  (-1);
+            return  (PX_ERROR);
         }
         
         sscanf(ppcArgV[1], "%lx", &ulId);
@@ -888,7 +888,7 @@ static INT  __tshellSysCmdKill (INT  iArgC, PCHAR  ppcArgV[])
     } else if (iArgC == 4) {
         if (lib_strcmp(ppcArgV[1], "-n")) {
             fprintf(stderr, "option error.\n");
-            return  (-1);
+            return  (PX_ERROR);
         }
         
         sscanf(ppcArgV[2], "%d",  &iSigNum);
@@ -900,7 +900,7 @@ static INT  __tshellSysCmdKill (INT  iArgC, PCHAR  ppcArgV[])
     
     } else {
         fprintf(stderr, "option error.\n");
-        return  (-1);
+        return  (PX_ERROR);
     }
 }
 /*********************************************************************************************************
@@ -924,7 +924,7 @@ static INT  __tshellSysCmdSigqueue (INT  iArgC, PCHAR  ppcArgV[])
         if (ppcArgV[1][0] < '0' ||
             ppcArgV[1][0] > '9') {
             fprintf(stderr, "option error.\n");
-            return  (-1);
+            return  (PX_ERROR);
         }
         
         sscanf(ppcArgV[1], "%lx", &ulId);
@@ -936,7 +936,7 @@ static INT  __tshellSysCmdSigqueue (INT  iArgC, PCHAR  ppcArgV[])
     } else if (iArgC == 4) {
         if (lib_strcmp(ppcArgV[1], "-n")) {
             fprintf(stderr, "option error.\n");
-            return  (-1);
+            return  (PX_ERROR);
         }
         
         sscanf(ppcArgV[2], "%d",  &iSigNum);
@@ -948,7 +948,7 @@ static INT  __tshellSysCmdSigqueue (INT  iArgC, PCHAR  ppcArgV[])
     
     } else {
         fprintf(stderr, "option error.\n");
-        return  (-1);
+        return  (PX_ERROR);
     }
 }
 
@@ -2350,7 +2350,7 @@ static INT  __tshellSysCmdAffinity (INT  iArgC, PCHAR  ppcArgV[])
     if (ppcArgV[1][0] < '0' ||
         ppcArgV[1][0] > '9') {
         fprintf(stderr, "option error.\n");
-        return  (-1);
+        return  (PX_ERROR);
     }
     
     sscanf(ppcArgV[1], "%lx", &ulId);
@@ -2403,6 +2403,90 @@ static INT  __tshellSysCmdAffinity (INT  iArgC, PCHAR  ppcArgV[])
 
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
                                                                         /*  LW_CFG_POSIX_EN > 0         */
+/*********************************************************************************************************
+** 函数名称: __tshellSysCmdCpuAffinity
+** 功能描述: 系统命令 "cpuaffinity"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : 0
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+#if LW_CFG_SMP_EN > 0
+
+static INT  __tshellSysCmdCpuAffinity (INT  iArgC, PCHAR  ppcArgV[])
+{
+    INT             iId;
+    INT             iEn;
+    LW_CLASS_CPUSET cpuset;
+
+    if (iArgC != 3) {
+        INT     iFd;
+        CHAR    cBuffer[512];
+        ssize_t sstNum;
+        
+        iFd = open("/proc/kernel/cpu_affinity", O_RDONLY);
+        if (iFd < 0) {
+            fprintf(stderr, "can not open /proc/kernel/cpu_affinity : %s\n", lib_strerror(errno));
+            return  (PX_ERROR);
+        }
+        
+        do {
+            sstNum = read(iFd, cBuffer, sizeof(cBuffer));
+            if (sstNum > 0) {
+                write(STDOUT_FILENO, cBuffer, (size_t)sstNum);
+            }
+        } while (sstNum > 0);
+        
+        close(iFd);
+        
+        return  (ERROR_NONE);
+    }
+    
+    if (sscanf(ppcArgV[1], "%d", &iId) != 1) {
+        fprintf(stderr, "option error.\n");
+        return  (PX_ERROR);
+    }
+    
+    if (sscanf(ppcArgV[2], "%d", &iEn) != 1) {
+        fprintf(stderr, "option error.\n");
+        return  (PX_ERROR);
+    }
+    
+    if (iId == 0) {
+        fprintf(stderr, "CPU 0 can not set or clear strongly affinity schedule.\n");
+        return  (PX_ERROR);
+    }
+    
+    if (iId >= LW_NCPUS) {
+        fprintf(stderr, "CPU ID invalid.\n");
+        return  (PX_ERROR);
+    }
+    
+    if (API_CpuGetSchedAffinity(sizeof(LW_CLASS_CPUSET), &cpuset)) {
+        fprintf(stderr, "CPU strongly affinity schedule get fail: %s.\n", lib_strerror(errno));
+        return  (PX_ERROR);
+    }
+    
+    if (iEn && !LW_CPU_ISSET(iId, &cpuset)) {
+        LW_CPU_SET(iId, &cpuset);
+        
+    } else if (!iEn && LW_CPU_ISSET(iId, &cpuset)) {
+        LW_CPU_CLR(iId, &cpuset);
+    
+    } else {
+        return  (ERROR_NONE);
+    }
+    
+    if (API_CpuSetSchedAffinity(sizeof(LW_CLASS_CPUSET), &cpuset)) {
+        fprintf(stderr, "CPU strongly affinity schedule set fail: %s.\n", lib_strerror(errno));
+        return  (PX_ERROR);
+    }
+    
+    return  (ERROR_NONE);
+}
+
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 /*********************************************************************************************************
 ** 函数名称: __tshellSysCmdCdump
 ** 功能描述: 系统命令 "cdump"
@@ -2783,6 +2867,14 @@ VOID  __tshellSysCmdInit (VOID)
                                   "affinity 1 clear     clear process 1 affinity\n");
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
                                                                         /*  LW_CFG_POSIX_EN > 0         */
+#if LW_CFG_SMP_EN > 0
+    API_TShellKeywordAdd("cpuaffinity", __tshellSysCmdCpuAffinity);
+    API_TShellFormatAdd("cpuaffinity", " [cpu id] [1 / 0]");
+    API_TShellHelpAdd("cpuaffinity", "set / clear cpu affinity schedule.\n"
+                                  "cpuaffinity 1 1     set cpu 1 strongly affinity schedule.\n"
+                                  "cpuaffinity 1 0     set cpu 1 no strongly affinity schedule\n");
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
+
 #if (LW_CFG_CDUMP_EN > 0) && (LW_CFG_DEVICE_EN > 0)
     API_TShellKeywordAdd("cdump", __tshellSysCmdCdump);
     API_TShellFormatAdd("cdump", " [-s] [-c]");

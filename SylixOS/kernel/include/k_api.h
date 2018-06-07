@@ -81,31 +81,47 @@ LW_API VOID             API_AtomicUnlock(INTREG  iregInterLevel);
   CPU
 *********************************************************************************************************/
 
+LW_API ULONG            API_CpuNum(VOID);                               /*  获得 CPU 个数               */
+
+LW_API ULONG            API_CpuUpNum(VOID);                             /*  获得启动的 CPU 个数         */
+
+LW_API ULONG            API_CpuCurId(VOID);                             /*  获得当前 CPU ID             */
+
+LW_API ULONG            API_CpuPhyId(ULONG  ulCPUId, ULONG  *pulPhyId); /*  逻辑 CPU ID to 物理 CPU ID  */
+
 #ifdef __SYLIXOS_KERNEL
 #if LW_CFG_SMP_EN > 0
-LW_API ULONG            API_CpuUp(ULONG  ulCPUId);
+LW_API ULONG            API_CpuUp(ULONG  ulCPUId);                      /*  启动指定的 CPU              */
 
 #if LW_CFG_SMP_CPU_DOWN_EN > 0
-LW_API ULONG            API_CpuDown(ULONG  ulCPUId);
+LW_API ULONG            API_CpuDown(ULONG  ulCPUId);                    /*  停止指定的 CPU              */
 #endif                                                                  /*  LW_CFG_SMP_CPU_DOWN_EN > 0  */
 
-LW_API BOOL             API_CpuIsUp(ULONG  ulCPUId);
+LW_API BOOL             API_CpuIsUp(ULONG  ulCPUId);                    /*  查看指定 CPU 是否已经被启动 */
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 
 #if LW_CFG_POWERM_EN > 0
-LW_API ULONG            API_CpuPowerSet(UINT  uiPowerLevel);
+LW_API ULONG            API_CpuPowerSet(UINT  uiPowerLevel);            /*  设置 CPU 效能等级           */
 
-LW_API ULONG            API_CpuPowerGet(UINT  *puiPowerLevel);
+LW_API ULONG            API_CpuPowerGet(UINT  *puiPowerLevel);          /*  获取 CPU 效能等级           */
 #endif                                                                  /*  LW_CFG_POWERM_EN > 0        */
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 
 LW_API ULONG            API_CpuBogoMips(ULONG  ulCPUId, ULONG  *pulKInsPerSec);
+                                                                        /*  测量指定 CPU BogoMIPS 参数  */
+#if LW_CFG_SMP_EN > 0
+LW_API ULONG            API_CpuSetSchedAffinity(size_t  stSize, const PLW_CLASS_CPUSET  pcpuset);
+                                                                        /*  设置与获取 CPU 强亲和度调度 */
+LW_API ULONG            API_CpuGetSchedAffinity(size_t  stSize, PLW_CLASS_CPUSET  pcpuset);
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 
 /*********************************************************************************************************
   SPINLOCK (此 API 仅供内核程序使用)
 *********************************************************************************************************/
 
 #ifdef __SYLIXOS_KERNEL
+LW_API ULONG            API_SpinRestrict(VOID);
+
 LW_API INT              API_SpinInit(spinlock_t *psl);
 
 LW_API INT              API_SpinDestory(spinlock_t *psl);
@@ -114,17 +130,23 @@ LW_API INT              API_SpinLock(spinlock_t *psl);
 
 LW_API INT              API_SpinLockIrq(spinlock_t *psl, INTREG  *iregInterLevel);
 
+LW_API INT              API_SpinLockIgnIrq(spinlock_t *psl);
+
 LW_API INT              API_SpinLockQuick(spinlock_t *psl, INTREG  *iregInterLevel);
 
 LW_API INT              API_SpinTryLock(spinlock_t *psl);
 
 LW_API INT              API_SpinTryLockIrq(spinlock_t *psl, INTREG  *iregInterLevel);
 
+LW_API INT              API_SpinTryLockIgnIrq(spinlock_t *psl);
+
 LW_API INT              API_SpinUnlock(spinlock_t *psl);
 
 LW_API INT              API_SpinUnlockIrq(spinlock_t *psl, INTREG  iregInterLevel);
 
 LW_API INT              API_SpinUnlockQuick(spinlock_t *psl, INTREG  iregInterLevel);
+
+LW_API INT              API_SpinUnlockIgnIrq(spinlock_t *psl);
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 
 /*********************************************************************************************************
@@ -1115,6 +1137,10 @@ LW_API ULONG            API_WorkQueueStatus(PVOID  pvWQ, UINT  *puiCount);
 *********************************************************************************************************/
 
 LW_API VOID             API_KernelNop(CPCHAR  pcArg, LONG  lArg);       /*  内核空操作                  */
+
+LW_API BOOL             API_KernelIsCpuIdle(ULONG  ulCPUId);            /*  指定 CPU 是否空闲           */
+
+LW_API BOOL             API_KernelIsSystemIdle(VOID);                   /*  所有 CPU 是否空闲           */
 
 #ifdef __SYLIXOS_KERNEL
 #if LW_CFG_CPU_FPU_EN > 0

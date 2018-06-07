@@ -81,6 +81,17 @@ LW_API int              sched_setaffinity(pid_t pid, size_t setsize, const cpu_s
 LW_API int              sched_getaffinity(pid_t pid, size_t setsize, cpu_set_t *set);
 
 /*********************************************************************************************************
+  sched cpu affinity extern api
+*********************************************************************************************************/
+
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_POSIXEX_EN > 0)
+LW_API int              sched_cpuaffinity_enable_np(size_t setsize, const cpu_set_t *set);
+LW_API int              sched_cpuaffinity_disable_np(size_t setsize, const cpu_set_t *set);
+LW_API int              sched_cpuaffinity_set_np(size_t setsize, const cpu_set_t *set);
+LW_API int              sched_cpuaffinity_get_np(size_t setsize, cpu_set_t *set);
+#endif                                                                  /*  (LW_CFG_SMP_EN > 0)         */
+                                                                        /*  (LW_CFG_POSIXEX_EN > 0)     */
+/*********************************************************************************************************
   sched GJB7714 extern api
 *********************************************************************************************************/
 

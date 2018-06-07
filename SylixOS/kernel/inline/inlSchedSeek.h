@@ -29,36 +29,35 @@
 static LW_INLINE PLW_CLASS_PCBBMAP  _SchedSeekPriority (PLW_CLASS_CPU  pcpu, UINT8 *ucPriority)
 {
 #if LW_CFG_SMP_EN > 0
-    REGISTER PLW_CLASS_PCBBMAP  ppcbbmap;
-    REGISTER UINT8              ucLocal, ucGlobal;
+    REGISTER UINT8  ucGlobal;
     
-    if (_BitmapIsEmpty(LW_CPU_RDY_BMAP(pcpu))) {                        /*  CPU 本地就绪表空            */
-        if (_BitmapIsEmpty(LW_GLOBAL_RDY_BMAP())) {
-            return  (LW_NULL);                                          /*  就绪表中无任务              */
+    if (_BitmapIsEmpty(LW_CPU_RDY_BMAP(pcpu))) {
+        if (LW_CPU_ONLY_AFFINITY_GET(pcpu) ||
+            _BitmapIsEmpty(LW_GLOBAL_RDY_BMAP())) {                     /*  就绪表为空                  */
+            return  (LW_NULL);
         }
-        *ucPriority = _BitmapHigh(LW_GLOBAL_RDY_BMAP());
-        return  (LW_GLOBAL_RDY_PCBBMAP());
-    
-    } else {                                                            /*  CPU 本地就绪表非空          */
-        if (_BitmapIsEmpty(LW_GLOBAL_RDY_BMAP())) {
-            *ucPriority = _BitmapHigh(LW_CPU_RDY_BMAP(pcpu));
-            return  (LW_CPU_RDY_PCBBMAP(pcpu));
-        }
-
-        ucLocal  = _BitmapHigh(LW_CPU_RDY_BMAP(pcpu));
-        ucGlobal = _BitmapHigh(LW_GLOBAL_RDY_BMAP());
         
-        if (LW_PRIO_IS_HIGH_OR_EQU(ucLocal, ucGlobal)) {                /*  同优先级, 优先执行 local    */
-            ppcbbmap    = LW_CPU_RDY_PCBBMAP(pcpu);
-            *ucPriority = ucLocal;
+        *ucPriority = _BitmapHigh(LW_GLOBAL_RDY_BMAP());
+        return  (LW_GLOBAL_RDY_PCBBMAP());                              /*  从全局就绪表选择            */
+    
+    } else {
+        *ucPriority = _BitmapHigh(LW_CPU_RDY_BMAP(pcpu));               /*  本地就绪表最高优先级获取    */
+        
+        if (LW_CPU_ONLY_AFFINITY_GET(pcpu) || 
+            _BitmapIsEmpty(LW_GLOBAL_RDY_BMAP())) {
+            return  (LW_CPU_RDY_PCBBMAP(pcpu));                         /*  选择本地就绪任务            */
+        }
+        
+        ucGlobal = _BitmapHigh(LW_GLOBAL_RDY_BMAP());
+        if (LW_PRIO_IS_HIGH_OR_EQU(*ucPriority, ucGlobal)) {            /*  同优先级, 优先执行 local    */
+            return  (LW_CPU_RDY_PCBBMAP(pcpu));
         
         } else {
-            ppcbbmap    = LW_GLOBAL_RDY_PCBBMAP();
             *ucPriority = ucGlobal;
+            return  (LW_GLOBAL_RDY_PCBBMAP());
         }
-        
-        return  (ppcbbmap);
     }
+    
 #else
     if (_BitmapIsEmpty(LW_GLOBAL_RDY_BMAP())) {                         /*  就绪表中无任务              */
         return  (LW_NULL);

@@ -839,6 +839,7 @@ SylixOS/kernel/interface/CoroutineResume.c \
 SylixOS/kernel/interface/CoroutineStackCheck.c \
 SylixOS/kernel/interface/CoroutineYield.c \
 SylixOS/kernel/interface/CpuActive.c \
+SylixOS/kernel/interface/CpuAffinity.c \
 SylixOS/kernel/interface/CpuPerf.c \
 SylixOS/kernel/interface/CpuPower.c \
 SylixOS/kernel/interface/EventSetCreate.c \
@@ -1592,6 +1593,7 @@ SylixOS/posix/pthread/pthread_mutex.c \
 SylixOS/posix/pthread/pthread_rwlock.c \
 SylixOS/posix/pthread/pthread_spinlock.c \
 SylixOS/posix/resource/resource.c \
+SylixOS/posix/sched/sched_cpu.c \
 SylixOS/posix/sched/sched_rms.c \
 SylixOS/posix/sched/sched.c \
 SylixOS/posix/semaphore/semaphore.c \

@@ -75,6 +75,7 @@ typedef struct __lw_cpu {
      */
 #if LW_CFG_SMP_EN > 0
     LW_CLASS_PCBBMAP         CPU_pcbbmapReady;                          /*  当前 CPU 就绪表             */
+    BOOL                     CPU_bOnlyAffinity;                         /*  是否仅运行亲和线程          */
     
     /*
      *  核间中断待处理标志, 这里最多有 ULONG 位数个核间中断类型, 和 CPU 硬件中断向量原理相同
@@ -241,13 +242,22 @@ extern LW_CLASS_PHYCPU       _K_phycpuTable[];                          /*  物理
 #endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
 
 /*********************************************************************************************************
+  CPU 强制运行亲和度线程
+*********************************************************************************************************/
+
+#if LW_CFG_SMP_EN > 0
+#define LW_CPU_ONLY_AFFINITY_SET(pcpu, val)     ((pcpu)->CPU_bOnlyAffinity = val)
+#define LW_CPU_ONLY_AFFINITY_GET(pcpu)          ((pcpu)->CPU_bOnlyAffinity)
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
+
+/*********************************************************************************************************
   CPU 就绪表
 *********************************************************************************************************/
 
 #if LW_CFG_SMP_EN > 0
-#define LW_CPU_RDY_PCBBMAP(pcpu)        (&(pcpu->CPU_pcbbmapReady))
-#define LW_CPU_RDY_BMAP(pcpu)           (&(pcpu->CPU_pcbbmapReady.PCBM_bmap))
-#define LW_CPU_RDY_PPCB(pcpu, prio)     (&(pcpu->CPU_pcbbmapReady.PCBM_pcb[prio]))
+#define LW_CPU_RDY_PCBBMAP(pcpu)        (&((pcpu)->CPU_pcbbmapReady))
+#define LW_CPU_RDY_BMAP(pcpu)           (&((pcpu)->CPU_pcbbmapReady.PCBM_bmap))
+#define LW_CPU_RDY_PPCB(pcpu, prio)     (&((pcpu)->CPU_pcbbmapReady.PCBM_pcb[prio]))
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 
 /*********************************************************************************************************
@@ -260,7 +270,7 @@ extern LW_CLASS_PHYCPU       _K_phycpuTable[];                          /*  物理
 #define LW_CPU_SPIN_NESTING_INC(pcpu)   ((pcpu)->CPU_ulSpinNesting++)
 #define LW_CPU_SPIN_NESTING_DEC(pcpu)   ((pcpu)->CPU_ulSpinNesting--)
 #else
-#define LW_CPU_SPIN_NESTING_GET(pcpu)
+#define LW_CPU_SPIN_NESTING_GET(pcpu)   (0)
 #define LW_CPU_SPIN_NESTING_INC(pcpu)
 #define LW_CPU_SPIN_NESTING_DEC(pcpu)
 #endif                                                                  /*  __LW_SPINLOCK_BUG_TRACE_EN  */

@@ -539,7 +539,7 @@ static INT  __tshellFsCmdTouch (INT  iArgC, PCHAR  ppcArgV[])
             } else {
                 fprintf(stderr, "can not create file! error: %s\n", lib_strerror(errno));
             }
-            return  (-1);
+            return  (PX_ERROR);
         }
         close(iFd);
     }
@@ -613,7 +613,7 @@ static INT  __tshellFsCmdLs (INT  iArgC, PCHAR  ppcArgV[])
         } else {
             fprintf(stderr, "can not open dir! %s\n", lib_strerror(errno));
         }
-        return  (-1);
+        return  (PX_ERROR);
     }
     
     if (ioctl(STD_OUT, TIOCGWINSZ, &winsz)) {                           /*  获得窗口信息                */
@@ -704,23 +704,23 @@ static INT  __tshellFsCmdCmp (INT  iArgC, PCHAR  ppcArgV[])
 
     if (iArgC != 3) {
         fprintf(stderr, "parameter error!\n");
-        return  (-1);
+        return  (PX_ERROR);
     }
     if (lib_strcmp(ppcArgV[1], ppcArgV[2]) == 0) {                      /*  文件相同                    */
         printf("file same!\n");
-        return  (0);
+        return  (ERROR_NONE);
     }
     
     iFdSrc = open(ppcArgV[1], O_RDONLY);
     if (iFdSrc < 0) {
         fprintf(stderr, "can not open %s!\n", ppcArgV[1]);
-        return  (-1);
+        return  (PX_ERROR);
     }
     iFdDst = open(ppcArgV[2], O_RDONLY);
     if (iFdDst < 0) {
         close(iFdSrc);
         fprintf(stderr, "can not open %s!\n", ppcArgV[2]);
-        return  (-1);
+        return  (PX_ERROR);
     }
     
     iError = fstat(iFdSrc, &statFile);                                  /*  首先比较文件大小            */
@@ -791,7 +791,7 @@ __error_handle:
         __SHEAP_FREE(pcBufferDst);
     }
     
-    return  (-1);
+    return  (PX_ERROR);
 }
 /*********************************************************************************************************
 ** 函数名称: __buildDstFileName
@@ -867,7 +867,7 @@ static INT  __tshellFsCmdCp (INT  iArgC, PCHAR  ppcArgV[])
     } else if (iArgC == 4) {
         if (ppcArgV[1][0] != '-') {
             fprintf(stderr, "option error!\n");
-            return  (-1);
+            return  (PX_ERROR);
         }
         if (lib_strchr(ppcArgV[1], 'f')) {                              /*  强行复制                    */
             bForce = LW_TRUE;
@@ -877,18 +877,18 @@ static INT  __tshellFsCmdCp (INT  iArgC, PCHAR  ppcArgV[])
         
     } else {
         fprintf(stderr, "parameter error!\n");
-        return  (-1);
+        return  (PX_ERROR);
     }
     
     if (lib_strcmp(pcSrc, pcDest) == 0) {                               /*  文件重复                    */
         fprintf(stderr, "parameter error!\n");
-        return  (-1);
+        return  (PX_ERROR);
     }
     
     iFdSrc = open(pcSrc, O_RDONLY, 0);                                  /*  打开源文件                  */
     if (iFdSrc < 0) {
         fprintf(stderr, "can not open source file!\n");
-        return  (-1);
+        return  (PX_ERROR);
     }
     
     iError = fstat(iFdSrc, &statFile);                                  /*  获得源文件属性              */
@@ -940,7 +940,7 @@ __re_select:
     if (iFdDst < 0) {
         close(iFdSrc);
         fprintf(stderr, "can not open destination file!\n");
-        return  (-1);
+        return  (PX_ERROR);
     }
     
     stOptim = (UINT)__MIN(__LW_CP_BUF_SZ, statFile.st_size);            /*  计算缓冲区                  */
@@ -1245,7 +1245,7 @@ static INT  __tshellFsCmdLl (INT  iArgC, PCHAR  ppcArgV[])
         } else {
             fprintf(stderr, "can not open dir %s!\n", lib_strerror(errno));
         }
-        return  (-1);
+        return  (PX_ERROR);
     }
     
     do {
@@ -1349,7 +1349,7 @@ static INT  __tshellFsCmdDsize (INT  iArgC, PCHAR  ppcArgV[])
     
     if (iArgC < 2) {
         fprintf(stderr, "df arguments error, (dsize directory)\n");
-        return  (-1);
+        return  (PX_ERROR);
     }
     
     if (stat(ppcArgV[1], &statGet)) {
@@ -1429,7 +1429,7 @@ static INT  __tshellFsCmdDf (INT  iArgC, PCHAR  ppcArgV[])
 
     if (iArgC != 2) {
         fprintf(stderr, "df arguments error, (df volname)\n");
-        return  (-1);
+        return  (PX_ERROR);
     }
     
     if (statfs(ppcArgV[1], &statfsGet) < 0) {
@@ -1438,7 +1438,7 @@ static INT  __tshellFsCmdDf (INT  iArgC, PCHAR  ppcArgV[])
         } else {
             perror("volume state error");
         }
-        return  (-1);
+        return  (PX_ERROR);
     }
     
     ullFree  = ((UINT64)statfsGet.f_bfree  * statfsGet.f_bsize);
@@ -1536,19 +1536,19 @@ static INT  __tshellFsCmdChmod (INT  iArgC, PCHAR  ppcArgV[])
 
     if (iArgC != 3) {
         fprintf(stderr, "chmod arguments error, (chmod newmode filename)\n");
-        return  (-1);
+        return  (PX_ERROR);
     }
     
     stLen = lib_strnlen(ppcArgV[1], 5);
     if (stLen > 4) {
         fprintf(stderr, "newmode error, (eg. 777 ... octal)\n");
-        return  (-1);
+        return  (PX_ERROR);
     }
     
     for (i = 0; i < stLen; i++) {                                       /*  必须是 8进制的              */
         if ((ppcArgV[1][i] > '7') || (ppcArgV[1][i] < '0')) {
             fprintf(stderr, "newmode error, (eg. 777 ... octal)\n");
-            return  (-1);
+            return  (PX_ERROR);
         }
     }
     
@@ -1581,7 +1581,7 @@ static INT  __tshellFsCmdChmod (INT  iArgC, PCHAR  ppcArgV[])
         pdir = opendir(cName);
         if (!pdir) {
             fprintf(stderr, "can not open dir %s error: %s\n", cName, lib_strerror(errno));
-            return  (-1);
+            return  (PX_ERROR);
         }
         
         pdirent = readdir(pdir);
@@ -1605,7 +1605,7 @@ static INT  __tshellFsCmdChmod (INT  iArgC, PCHAR  ppcArgV[])
         closedir(pdir);
 #else
         printf("sylixos do not have fnmatch().\n");
-        return  (-1);
+        return  (PX_ERROR);
 #endif
     } else {
         i = chmod(ppcArgV[2], iNewMode);                                /*  转换文件模式                */
@@ -1615,11 +1615,11 @@ static INT  __tshellFsCmdChmod (INT  iArgC, PCHAR  ppcArgV[])
             } else {
                 perror("can not change file mode error");
             }
-            return  (-1);
+            return  (PX_ERROR);
         }
     }
     
-    return  (0);
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: __tshellFsCmdMkfs

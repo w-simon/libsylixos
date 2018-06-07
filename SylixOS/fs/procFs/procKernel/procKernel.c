@@ -31,6 +31,7 @@
 2014.11.21  加入 SMP 调度亲和度信息显示.
 2016.04.07  加入 cmdline 文件.
 2017.02.27  tick 文件加入更详细内容.
+2018.06.07  加入 CPU 亲和度信息显示.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -77,6 +78,10 @@ static ssize_t  __procFsKernelAffinityRead(PLW_PROCFS_NODE  p_pfsn,
                                            PCHAR            pcBuffer, 
                                            size_t           stMaxBytes,
                                            off_t            oft);
+static ssize_t  __procFsKernelCpuAffinityRead(PLW_PROCFS_NODE  p_pfsn, 
+                                              PCHAR            pcBuffer, 
+                                              size_t           stMaxBytes,
+                                              off_t            oft);
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 /*********************************************************************************************************
   内核 proc 文件操作函数组
@@ -99,6 +104,9 @@ static LW_PROCFS_NODE_OP        _G_pfsnoKernelSmpFuncs = {
 };
 static LW_PROCFS_NODE_OP        _G_pfsnoKernelAffinityFuncs = {
     __procFsKernelAffinityRead, LW_NULL
+};
+static LW_PROCFS_NODE_OP        _G_pfsnoKernelCpuAffinityFuncs = {
+    __procFsKernelCpuAffinityRead, LW_NULL
 };
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 /*********************************************************************************************************
@@ -152,6 +160,11 @@ static LW_PROCFS_NODE           _G_pfsnKernel[] =
                         (S_IFREG | S_IRUSR | S_IRGRP | S_IROTH), 
                         &_G_pfsnoKernelAffinityFuncs, 
                         "A",
+                        0),
+    LW_PROCFS_INIT_NODE("cpu_affinity", 
+                        (S_IFREG | S_IRUSR | S_IRGRP | S_IROTH), 
+                        &_G_pfsnoKernelCpuAffinityFuncs, 
+                        "C",
                         0),
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 };
@@ -658,6 +671,73 @@ static ssize_t  __procFsKernelAffinityRead (PLW_PROCFS_NODE  p_pfsn,
     
     return  ((ssize_t)stCopeBytes);
 }
+/*********************************************************************************************************
+** 函数名称: __procFsKernelCpuAffinityRead
+** 功能描述: procfs 读一个内核 affinity proc 文件
+** 输　入  : p_pfsn        节点控制块
+**           pcBuffer      缓冲区
+**           stMaxBytes    缓冲区大小
+**           oft           文件指针
+** 输　出  : 实际读取的数目
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static ssize_t  __procFsKernelCpuAffinityRead (PLW_PROCFS_NODE  p_pfsn, 
+                                               PCHAR            pcBuffer, 
+                                               size_t           stMaxBytes,
+                                               off_t            oft)
+{
+    const CHAR      cCpuAffinityInfoHdr[] = 
+    "CPU ID AFFINITY\n"
+    "------ --------\n";
+          PCHAR     pcFileBuffer;
+          size_t    stRealSize;                                         /*  实际的文件内容大小          */
+          size_t    stCopeBytes;
+          
+    /*
+     *  由于预置内存大小为 0 , 所以打开后第一次读取需要手动开辟内存.
+     */
+    pcFileBuffer = (PCHAR)API_ProcFsNodeBuffer(p_pfsn);
+    if (pcFileBuffer == LW_NULL) {                                      /*  还没有分配内存              */
+        size_t           stNeedBufferSize;
+        LW_CLASS_CPUSET  cpuset;
+        INT              i;
+        
+        if (API_CpuGetSchedAffinity(sizeof(LW_CLASS_CPUSET), &cpuset)) {
+            return  (0);
+        }
+        
+        stNeedBufferSize  = 18 * LW_NCPUS;
+        stNeedBufferSize += sizeof(cCpuAffinityInfoHdr);
+        
+        if (API_ProcFsAllocNodeBuffer(p_pfsn, stNeedBufferSize)) {
+            _ErrorHandle(ENOMEM);
+            return  (0);
+        }
+        pcFileBuffer = (PCHAR)API_ProcFsNodeBuffer(p_pfsn);             /*  重新获得文件缓冲区地址      */
+        
+        stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, 0, cCpuAffinityInfoHdr); 
+                                                                        /*  打印头信息                  */
+        for (i = 0; i < LW_NCPUS; i++) {
+            stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize,
+                                  "%6d %s\n", i, 
+                                  LW_CPU_ISSET(i, &cpuset) ? "YES" : "*");
+        }
+        
+        API_ProcFsNodeSetRealFileSize(p_pfsn, stRealSize);
+    } else {
+        stRealSize = API_ProcFsNodeGetRealFileSize(p_pfsn);
+    }
+    if (oft >= stRealSize) {
+        _ErrorHandle(ENOSPC);
+        return  (0);
+    }
+    
+    stCopeBytes  = __MIN(stMaxBytes, (size_t)(stRealSize - oft));       /*  计算实际拷贝的字节数        */
+    lib_memcpy(pcBuffer, (CPVOID)(pcFileBuffer + oft), (UINT)stCopeBytes);
+    
+    return  ((ssize_t)stCopeBytes);
+}
 
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 /*********************************************************************************************************
@@ -678,6 +758,7 @@ VOID  __procFsKernelInfoInit (VOID)
 #if LW_CFG_SMP_EN > 0
     API_ProcFsMakeNode(&_G_pfsnKernel[5], "/");
     API_ProcFsMakeNode(&_G_pfsnKernel[6], "/kernel");
+    API_ProcFsMakeNode(&_G_pfsnKernel[7], "/kernel");
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 }
 

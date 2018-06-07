@@ -117,10 +117,8 @@ VOID  API_PowerMCpuSet (ULONG  ulNCpus, UINT  uiPowerLevel)
     }
 
 #if LW_CFG_SMP_EN > 0
-    LW_CPU_FOREACH (i) {
-        if (API_CpuIsUp(i)) {
-            ulActCnt++;
-        }
+    LW_CPU_FOREACH_ACTIVE (i) {
+        ulActCnt++;
     }
     if (ulActCnt > ulNCpus) {                                           /*  需要关闭一些 CPU            */
 #if LW_CFG_SMP_CPU_DOWN_EN > 0
@@ -184,10 +182,8 @@ VOID  API_PowerMCpuGet (ULONG  *pulNCpus, UINT  *puiPowerLevel)
     ULONG   ulActCnt = 0;
 
     if (pulNCpus) {
-        LW_CPU_FOREACH (i) {
-            if (API_CpuIsUp(i)) {
-                ulActCnt++;
-            }
+        LW_CPU_FOREACH_ACTIVE (i) {
+            ulActCnt++;
         }
         *pulNCpus = ulActCnt;
     }

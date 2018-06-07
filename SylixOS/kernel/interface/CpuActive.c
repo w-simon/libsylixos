@@ -133,5 +133,99 @@ BOOL  API_CpuIsUp (ULONG  ulCPUId)
 
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 /*********************************************************************************************************
+** 函数名称: API_CpuCurId
+** 功能描述: 获得指定 CPU 物理 CPU ID.
+** 输　入  : NONE
+** 输　出  : CPU ID
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API 
+ULONG  API_CpuCurId (VOID)
+{
+#if LW_CFG_SMP_EN > 0
+    INTREG  iregInterLevel;
+    ULONG   ulCPUId;
+    
+    iregInterLevel = KN_INT_DISABLE();
+    ulCPUId = LW_CPU_GET_CUR_ID();
+    KN_INT_ENABLE(iregInterLevel);
+    
+    return  (ulCPUId);
+#else                                                                   /*  LW_CFG_SMP_EN > 0           */
+    return  (0ul);
+#endif
+}
+/*********************************************************************************************************
+** 函数名称: API_CpuPhyId
+** 功能描述: 获得指定 CPU 物理 CPU ID.
+** 输　入  : ulCPUId       CPU ID
+**           pulPhyId      物理 CPU ID
+** 输　出  : ERROR
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API 
+ULONG  API_CpuPhyId (ULONG  ulCPUId, ULONG  *pulPhyId)
+{
+    if ((ulCPUId >= LW_NCPUS) || !pulPhyId) {
+        _ErrorHandle(EINVAL);
+        return  (EINVAL);
+    }
+    
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_CPU_ARCH_SMT > 0)
+    *pulPhyId = LW_CPU_GET(ulCPUId)->CPU_ulPhyId;
+#else
+    *pulPhyId = ulCPUId;
+#endif
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_CpuNum
+** 功能描述: CPU 个数
+** 输　入  : NONE
+** 输　出  : CPU 个数
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API 
+ULONG  API_CpuNum (VOID)
+{
+#if LW_CFG_SMP_EN > 0
+    return  (LW_NCPUS);
+#else
+    return  (1ul);
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
+}
+/*********************************************************************************************************
+** 函数名称: API_CpuUpNum
+** 功能描述: 已经启动的 CPU 个数
+** 输　入  : NONE
+** 输　出  : 已经启动的 CPU 个数
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API 
+ULONG  API_CpuUpNum (VOID)
+{
+#if LW_CFG_SMP_EN > 0
+    INT     i;
+    ULONG   ulCnt = 0;
+    
+    LW_CPU_FOREACH_ACTIVE (i) {
+        ulCnt++;
+    }
+    
+    return  (ulCnt);
+#else
+    return  (1ul);
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
+}
+/*********************************************************************************************************
   END
 *********************************************************************************************************/

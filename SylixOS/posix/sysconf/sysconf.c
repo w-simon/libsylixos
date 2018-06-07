@@ -133,10 +133,8 @@ long  sysconf (int name)
         {
             ULONG   i;
             int     iCnt = 0;
-            LW_CPU_FOREACH (i) {
-                if (API_CpuIsUp(i)) {
-                    iCnt++;
-                }
+            LW_CPU_FOREACH_ACTIVE (i) {
+                iCnt++;
             }
             return  (iCnt);
         }

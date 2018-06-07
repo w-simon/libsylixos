@@ -99,6 +99,7 @@
 #define LW_CFG_ARG_CHK_EN                       1       /*  是否允许系统参数查错                        */
 #define LW_CFG_CPU_HOOKS_EN                     1       /*  是否允许系统的钩子函数连接                  */
 #define LW_CFG_SOFTWARE_WATCHDOG_EN             1       /*  是否允许任务软件看门狗功能 (任务级)         */
+#define LW_CFG_SPINLOCK_RESTRICT_EN             0       /*  是否允许 CPU 记录自旋锁加锁情况             */
 #define LW_CFG_OBJECT_NAME_SIZE                 32      /*  系统提供控件名字最大长度                    */
 #define LW_CFG_OBJECT_SHARE_EN                  1       /*  是否允许内核与应用共享内核对象              */
 #define LW_CFG_ERRORNO_AUTO_CLEAR               0       /*  是否在 API 正确时, 自动将 errno 清零        */

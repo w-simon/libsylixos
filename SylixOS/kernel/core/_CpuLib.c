@@ -106,6 +106,7 @@ INT  _CpuInactive (PLW_CLASS_CPU   pcpu)
                                            ptcbOther->TCB_ucPriority)) {
                     LW_CAND_ROT(pcpuOther) = LW_TRUE;
                 }
+            
             } else {
                 if (LW_PRIO_IS_HIGH(ptcb->TCB_ucPriority, 
                                     ptcbOther->TCB_ucPriority)) {
@@ -165,6 +166,52 @@ ULONG  _CpuGetMaxNesting (VOID)
     return  (LW_CPU_GET_CUR()->CPU_ulInterNestingMax);
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 }
+/*********************************************************************************************************
+** 函数名称: _CpuSetSchedAffinity
+** 功能描述: 设置指定 CPU 为强亲和度调度模式. (非 0 号 CPU, 进入内核并关中断被调用)
+** 输　入  : ulCPUId       CPU ID 
+**           bEnable       是否使能为强亲和度模式
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+#if LW_CFG_SMP_EN > 0
+
+VOID  _CpuSetSchedAffinity (ULONG  ulCPUId, BOOL  bEnable)
+{
+    PLW_CLASS_CPU   pcpu;
+    
+    pcpu = LW_CPU_GET(ulCPUId);
+    if (LW_CPU_ONLY_AFFINITY_GET(pcpu) == bEnable) {
+        return;                                                         /*  不需要进行任何处理          */
+    }
+    
+    LW_CPU_ONLY_AFFINITY_SET(pcpu, bEnable);
+    LW_CAND_ROT(pcpu) = LW_TRUE;                                        /*  需要尝试调度                */
+    
+    if ((LW_CPU_GET_CUR_ID() != ulCPUId) &&
+        (LW_CPU_GET_IPI_PEND(ulCPUId) & LW_IPI_SCHED_MSK) == 0) {
+        _SmpSendIpi(ulCPUId, LW_IPI_SCHED, 0, LW_TRUE);                 /*  产生核间中断                */
+    }
+}
+/*********************************************************************************************************
+** 函数名称: _CpuGetSchedAffinity
+** 功能描述: 获取指定 CPU 是否为强亲和度调度模式. (进入内核并关中断被调用)
+** 输　入  : ulCPUId       CPU ID 
+**           pbEnable      是否使能为强亲和度模式
+** 输　出  : ERROR
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+VOID  _CpuGetSchedAffinity (ULONG  ulCPUId, BOOL  *pbEnable)
+{
+    PLW_CLASS_CPU   pcpu;
+    
+    pcpu = LW_CPU_GET(ulCPUId);
+    *pbEnable = LW_CPU_ONLY_AFFINITY_GET(pcpu);
+}
+
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

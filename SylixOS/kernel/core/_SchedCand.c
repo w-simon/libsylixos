@@ -123,12 +123,13 @@ VOID  _SchedTick (VOID)
             if (ptcb->TCB_ucSchedPolicy == LW_OPTION_SCHED_RR) {        /*  round-robin 线程            */
                 if (ptcb->TCB_usSchedCounter == 0) {                    /*  时间片已经耗尽              */
                     if (LW_CAND_ROT(pcpu) == LW_FALSE) {
-                        if (_SchedSeekPriority(pcpu, &ucPriority) &&    /*  就绪未运行任务的最高优先级  */
-                            LW_PRIO_IS_HIGH_OR_EQU(ucPriority,
+                        if (_SchedSeekPriority(pcpu, &ucPriority) &&
+                            LW_PRIO_IS_HIGH_OR_EQU(ucPriority,          /*  就绪未运行任务的最高优先级  */
                                                    ptcb->TCB_ucPriority)) {
                             LW_CAND_ROT(pcpu) = LW_TRUE;                /*  下次调度时检查轮转          */
                         }
                     }
+                
                 } else {
                     ptcb->TCB_usSchedCounter--;
                 }
@@ -157,9 +158,9 @@ VOID  _SchedYield (PLW_CLASS_TCB  ptcb, PLW_CLASS_PCB  ppcb)
 
     if (__LW_THREAD_IS_RUNNING(ptcb)) {                                 /*  必须正在执行                */
         pcpu = LW_CPU_GET(ptcb->TCB_ulCPUId);
-        if (_SchedSeekPriority(pcpu, &ucPriority) &&                    /*  就绪未运行任务的最高优先级  */
+        if (_SchedSeekPriority(pcpu, &ucPriority) &&
             LW_PRIO_IS_HIGH_OR_EQU(ucPriority,
-                                   ptcb->TCB_ucPriority)) {
+                                   ptcb->TCB_ucPriority)) {             /*  就绪未运行任务的最高优先级  */
             ptcb->TCB_usSchedCounter = 0;                               /*  没收剩余时间片              */
             LW_CAND_ROT(LW_CPU_GET(ptcb->TCB_ulCPUId)) = LW_TRUE;       /*  下次调度时检查轮转          */
         }

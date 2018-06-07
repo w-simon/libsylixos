@@ -40,6 +40,18 @@
 #define Lw_Atomic_Swp                           API_AtomicSwp
 
 /*********************************************************************************************************
+  CPU
+*********************************************************************************************************/
+
+#define Lw_Cpu_Num                              API_CpuNum
+#define Lw_Cpu_UpNum                            API_CpuUpNum
+#define Lw_Cpu_CurId                            API_CpuCurId
+#define Lw_Cpu_PhyId                            API_CpuPhyId
+#define Lw_Cpu_BogoMips                         API_CpuBogoMips
+#define Lw_Cpu_SetSchedAffinity                 API_CpuSetSchedAffinity
+#define Lw_Cpu_GetSchedAffinity                 API_CpuGetSchedAffinity
+
+/*********************************************************************************************************
   OBJECT
 *********************************************************************************************************/
 
@@ -513,6 +525,8 @@
 *********************************************************************************************************/
 
 #define Lw_Kernel_Nop                           API_KernelNop
+#define Lw_Kernel_IsCpuIdle                     API_KernelIsCpuIdle
+#define Lw_Kernel_IsSystemIdle                  API_KernelIsSystemIdle
 
 #define Lw_Kernel_Version                       API_KernelVersion
 #define Lw_Kernel_Verinfo                       API_KernelVerinfo
