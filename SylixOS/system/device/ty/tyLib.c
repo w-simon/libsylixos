@@ -1255,13 +1255,13 @@ INT  _TyIRd (TY_DEV_ID  ptyDev, CHAR   cInchar)
     REGISTER INT         iNTemp;
              BOOL        bReleaseTaskLevel;
              
-    REGISTER INT         iOpt        = ptyDev->TYDEV_iOpt;
-             BOOL        bCharEchoed = LW_FALSE;
-             INT         iStatus     = ERROR_NONE;
+    REGISTER INT         iOpt          = ptyDev->TYDEV_iOpt;
+             BOOL        bCharEchoed   = LW_FALSE;
+             BOOL        bNeedBsOrKill = LW_FALSE;
+             INT         iStatus       = ERROR_NONE;
              
     REGISTER INT         iFreeBytes;
-             BOOL        bNeedBsOrKill;
-    
+
     
     if (ptyDev->TYDEV_pfuncProtoHook) {
         if ((*ptyDev->TYDEV_pfuncProtoHook)(ptyDev->TYDEV_iProtoArg, 

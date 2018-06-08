@@ -181,7 +181,11 @@ __ultoa(val, endp, base, octzero, xdigs)
 
 	case 16:
 		do {
-			*--cp = xdigs[val & 15];
+		    if (xdigs) {
+		        *--cp = xdigs[val & 15];
+		    } else {
+		        *--cp = '@'; /* SylixOS Fixed this crash risk */
+		    }
 			val >>= 4;
 		} while (val);
 		break;
@@ -235,7 +239,11 @@ __uqtoa(val, endp, base, octzero, xdigs)
 
 	case 16:
 		do {
-			*--cp = xdigs[val & 15];
+		    if (xdigs) {
+		        *--cp = xdigs[val & 15];
+		    } else {
+		        *--cp = '@'; /* SylixOS Fixed this crash risk */
+		    }
 			val >>= 4;
 		} while (val);
 		break;
@@ -310,14 +318,14 @@ vfprintf(fp, fmt0, ap)
 	BOOL  sig = FALSE;	/* temporary negative sign for floats */
 	double _double;		/* double precision arguments %[eEfgG] */
 #endif
-	u_long	ulval;		/* integer arguments %[diouxX] */
-	u_quad_t uqval;		/* %q integers */
+	u_long	ulval = 0;		/* integer arguments %[diouxX] SylixOS Add 0 init */
+	u_quad_t uqval = 0;		/* %q integers SylixOS Add 0 init */
 	int base;		/* base for [diouxX] conversion */
 	int dprec;		/* a copy of prec if [diouxX], 0 otherwise */
 	int fieldsz;		/* field size expanded by sign, etc */
 	int realsz;		/* field size expanded by dprec */
 	int size;		/* size of converted field or string */
-	char *xdigs;		/* digits for [xX] conversion */
+	char *xdigs = NULL;		/* digits for [xX] conversion SylixOS Add NULL init */
 #define NIOV 8
 	struct __suio uio;	/* output information: summary */
 	struct __siov iov[NIOV];/* ... and individual io vectors */

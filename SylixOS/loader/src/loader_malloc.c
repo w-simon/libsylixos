@@ -115,7 +115,7 @@ typedef struct {
 *********************************************************************************************************/
 #define EXEC_SHARE_HASH_SIZE    32
 #define EXEC_SHARE_HASH_MASK    (EXEC_SHARE_HASH_SIZE - 1)
-#define EXEC_SHARE_HASH(key)    (((key) >> 4) & EXEC_SHARE_HASH_MASK)
+#define EXEC_SHARE_HASH(key)    (INT)((((key) >> 4) & EXEC_SHARE_HASH_MASK))
 static LW_LIST_LINE_HEADER      _G_plineExecShare[EXEC_SHARE_HASH_SIZE];
 /*********************************************************************************************************
   共享库内存管理锁

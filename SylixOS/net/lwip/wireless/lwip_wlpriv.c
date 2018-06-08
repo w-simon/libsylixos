@@ -261,7 +261,7 @@ int ioctl_private_call (struct netdev *dev, struct iwreq *iwr,
                         iw_handler handler)
 {
     int extra_size = 0, ret = -EINVAL;
-    const struct iw_priv_args *descr;
+    const struct iw_priv_args *descr = NULL;
 
     extra_size = get_priv_descr_and_size(dev, cmd, &descr);
 

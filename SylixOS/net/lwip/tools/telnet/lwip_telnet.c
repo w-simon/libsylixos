@@ -147,6 +147,8 @@ static INT __telnetIacProcesser (LW_OBJECT_HANDLE   ulShell,
 
         if ((pucIACBuff + 2) < pucTemp) {
             iOpt = pucIACBuff[2];                                       /*  Ñ¡ÏîÂë                      */
+        } else {
+            iOpt = LW_IAC_OPT_INVAL;
         }
 
         switch (iOpt) {

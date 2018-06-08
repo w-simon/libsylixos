@@ -76,7 +76,7 @@ fclose_ex(fp, bclose, bfree)  /*  sylixos add this function */
 	register BOOL  bclose;
 	register BOOL  bfree;
 {
-	register int r;
+	register int r = 0;
 
 	if (fp->_flags == 0) {	/* not open! */
 		errno = EBADF;

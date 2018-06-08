@@ -314,6 +314,9 @@ static INT  __ifSubIoctl4 (INT  iCmd, PVOID  pvArg)
     case SIOCSIFBRDADDR:
         psockaddrin = (struct sockaddr_in *)&(pifreq->ifr_addr);
         break;
+        
+    default:
+        return  (iRet);
     }
     
     switch (iCmd) {                                                     /*  ÃüÁî´¦ÀíÆ÷                  */

@@ -261,7 +261,7 @@ static INT __reclaimAChild (LW_LD_VPROC   *pvproc,
     LW_LD_VPROC    *pvprocChild;
     BOOL            bHasEvent    = LW_FALSE;
     BOOL            bNeedReclaim = LW_FALSE;
-    pid_t           gpid;
+    pid_t           gpid         = 0;
     
     if (pidChild < -1) {
         gpid = 0 - pidChild;                                            /*  ¾ø¶ÔÖµ                      */

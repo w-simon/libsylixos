@@ -62,7 +62,7 @@ VOID    API_SemaphoreShow (LW_OBJECT_HANDLE  ulId)
              
              PCHAR                  pcType;
              PCHAR                  pcWaitType;
-             PCHAR                  pcValue;
+             PCHAR                  pcValue = LW_NULL;
               CHAR                  cOwner[LW_CFG_OBJECT_NAME_SIZE];
               
               CHAR                  cValueStr[32];

@@ -637,7 +637,7 @@ void aodv_rreq_route_discovery (struct in_addr *dest_addr, u8_t flags,
 
   struct aodv_seeklist *seek;
   struct aodv_rtnode *rt;
-  u32_t dest_seqno;
+  u32_t dest_seqno = 0;
   u8_t grp_hcnt = 0;
   
   u8_t ttl;

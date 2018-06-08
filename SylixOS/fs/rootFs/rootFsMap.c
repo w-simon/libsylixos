@@ -79,6 +79,7 @@ INT  API_RootFsMapInit (CPCHAR  pcMap)
     
     pcDir  = cMap;
     pcNext = cMap;
+    pcMdir = LW_NULL;
     
     while (*pcNext) {
         if (*pcNext == ',') {

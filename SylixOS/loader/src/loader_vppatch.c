@@ -780,7 +780,7 @@ INT  vprocNotifyParent (LW_LD_VPROC *pvproc, INT  iSigCode, BOOL  bUpDateStat)
 {
     siginfo_t           siginfoChld;
     sigevent_t          sigeventChld;
-    LW_OBJECT_HANDLE    ulFatherMainThread;
+    LW_OBJECT_HANDLE    ulFatherMainThread = LW_OBJECT_HANDLE_INVALID;
     
     if (!pvproc) {
         return  (PX_ERROR);
@@ -829,7 +829,7 @@ INT  vprocNotifyParent (LW_LD_VPROC *pvproc, INT  iSigCode, BOOL  bUpDateStat)
     }
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
     
-    if (pvproc->VP_pvprocFather) {
+    if (ulFatherMainThread) {
         _doSigEventEx(ulFatherMainThread, &sigeventChld, &siginfoChld); /*  ²úÉú SIGCHLD ÐÅºÅ           */
         LW_LD_UNLOCK();
         return  (ERROR_NONE);

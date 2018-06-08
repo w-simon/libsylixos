@@ -87,6 +87,7 @@
 #define LW_IAC_OPT_LFLOW            33                                  /*  远程流量控制                */
 #define LW_IAC_OPT_LINEMODE         34                                  /*  行方式                      */
 #define LW_IAC_OPT_OLD_ENVIRON      36                                  /*  环境变量                    */
+#define LW_IAC_OPT_INVAL            255                                 /*  参数错误                    */
 
 /*********************************************************************************************************
   IAC 基本操作函数

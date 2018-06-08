@@ -229,7 +229,7 @@ void aodv_rrep_send (struct pbuf *p,
 #endif
 
   struct aodv_rrep *rrep;
-  struct aodv_rtnode *neighbor;
+  struct aodv_rtnode *neighbor = NULL;
   
 #if AODV_DEBUG
   struct in_addr dest;
@@ -276,7 +276,7 @@ void aodv_rrep_send (struct pbuf *p,
    */
   aodv_udp_sendto(p, &rev_rt->next_hop, (u8_t)(~0), aodv_rt_netif_index_get(rev_rt));
   
-  if (rrep->flags & RREP_ACK) {
+  if ((rrep->flags & RREP_ACK) && neighbor) {
     neighbor->flags |= AODV_RT_UNIDIR;
     
     /* Must remove any pending hello timeouts when we set the

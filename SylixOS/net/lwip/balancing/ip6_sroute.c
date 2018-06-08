@@ -193,10 +193,10 @@ struct srt6_entry *srt6_find_entry (const ip6_addr_t *ip6ssrc, const ip6_addr_t 
   for (i = 0; i < SRT_PRIO_TABLE_SIZE; i++) {
     for (pline = srt6_table[i]; pline != NULL; pline = _list_line_get_next(pline)) {
       sentry = (struct srt6_entry *)pline;
-      if (ip6_addr_cmp(&ip6ssrc_hbo, &sentry->srt6_ssrc_hbo) &&
-          ip6_addr_cmp(&ip6esrc_hbo, &sentry->srt6_esrc_hbo) &&
-          ip6_addr_cmp(&ip6sdest_hbo, &sentry->srt6_sdest_hbo) &&
-          ip6_addr_cmp(&ip6edest_hbo, &sentry->srt6_edest_hbo)) {
+      if (ip6_addr_cmp_zoneless(&ip6ssrc_hbo, &sentry->srt6_ssrc_hbo) &&
+          ip6_addr_cmp_zoneless(&ip6esrc_hbo, &sentry->srt6_esrc_hbo) &&
+          ip6_addr_cmp_zoneless(&ip6sdest_hbo, &sentry->srt6_sdest_hbo) &&
+          ip6_addr_cmp_zoneless(&ip6edest_hbo, &sentry->srt6_edest_hbo)) {
         return (sentry);
       }
     }
