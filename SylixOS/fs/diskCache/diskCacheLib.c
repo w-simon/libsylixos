@@ -66,7 +66,7 @@
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-LW_STATIC VOID  __diskCacheMemcpy (PVOID  pvTo, CPVOID  pvFrom, size_t  stSize)
+LW_WEAK VOID  __diskCacheMemcpy (PVOID  pvTo, CPVOID  pvFrom, size_t  stSize)
 {
     REGISTER INT      iMuti512;
     REGISTER INT      i;

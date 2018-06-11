@@ -134,7 +134,11 @@ struct netdev_funcs {
   int  (*transmit)(struct netdev *netdev, struct pbuf *p);
   
   /* netdev receive a packet, system will call this function receive a packet. */
+#ifdef NETDEV_RECEIVE_ARG_3
+  void (*receive)(struct netdev *netdev, int (*input)(struct netdev *, struct pbuf *), void *notify_arg);
+#else
   void (*receive)(struct netdev *netdev, int (*input)(struct netdev *, struct pbuf *));
+#endif /* NETDEV_RECEIVE_ARG_3 */
   
   /* If netdev support poll mode you must set the following functions 
    * Poll mode is often used for High-Speed, Real-Time network applications */
@@ -276,8 +280,15 @@ typedef enum {
    qen:0 do not use netjob queue 1:use netjob queue */
 int  netdev_notify(struct netdev *netdev, netdev_inout inout, int q_en);
 int  netdev_notify_ex(struct netdev *netdev, netdev_inout inout, int q_en, unsigned int qindex);
+int  netdev_notify_ex_arg(struct netdev *netdev, netdev_inout inout, int q_en, unsigned int qindex, void *arg);
+
+/* you can call clear function to clear all message 
+   netdev_notify_clear() clear all notify message in qindex==0 netjob queue.
+   netdev_notify_clear_ex() clear all notify message in qindex netjob queue. 
+   netdev_notify_clear_ex_arg clear all notify message with specified argument in qindex netjob queue. */
 int  netdev_notify_clear(struct netdev *netdev);
 int  netdev_notify_clear_ex(struct netdev *netdev, unsigned int qindex);
+int  netdev_notify_clear_ex_arg(struct netdev *netdev, unsigned int qindex, void *arg);
 
 /* netdev statistical information update functions */
 void netdev_statinfo_total_add(netdev_t *netdev, netdev_inout inout, UINT32 bytes);

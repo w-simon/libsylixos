@@ -19,6 +19,9 @@
 ** 描        述: OEM 磁盘自动生成 /dev/blk/xxx 文件.
 **
 ** 注        意: blk io 文件必须单线程读写, 非多线程安全.
+**
+** BUG:
+2018.06.11  中段传输时, 进行连续扇区读写, 提高效率.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -59,11 +62,11 @@ static LW_OBJECT_HANDLE     _G_ulBlkIoLock;
 /*********************************************************************************************************
   宏操作
 *********************************************************************************************************/
-#define BLKIO_LOCK()            API_SemaphoreMPend(_G_ulBlkIoLock, LW_OPTION_WAIT_INFINITE)
-#define BLKIO_UNLOCK()          API_SemaphoreMPost(_G_ulBlkIoLock)
+#define BLKIO_LOCK()                API_SemaphoreMPend(_G_ulBlkIoLock, LW_OPTION_WAIT_INFINITE)
+#define BLKIO_UNLOCK()              API_SemaphoreMPost(_G_ulBlkIoLock)
 
-#define BLKIO_READ(buf, sec)    (pblkDev->BLKD_pfuncBlkRd(pblkDev, buf, sec, 1))
-#define BLKIO_WRITE(buf, sec)   (pblkDev->BLKD_pfuncBlkWrt(pblkDev, buf, sec, 1))
+#define BLKIO_READ(buf, sec, n)     (pblkDev->BLKD_pfuncBlkRd(pblkDev, buf, sec, n))
+#define BLKIO_WRITE(buf, sec, n)    (pblkDev->BLKD_pfuncBlkWrt(pblkDev, buf, sec, n))
 /*********************************************************************************************************
 ** 函数名称: __blkIoFsOpen
 ** 功能描述: 打开 blk io 设备 (只能打开一次)
@@ -185,14 +188,14 @@ static ssize_t  __blkIoFsPRead (PLW_BLKIO_DEV  pdevblk, PCHAR  pcBuffer, size_t 
     ulEndOff = (oft + stMaxBytes) & ulSecMask;
 
     if (ulStartSec == ulEndSec) {
-        if (BLKIO_READ(pdevblk->BLKIO_pucSec, ulStartSec) < 0) {
+        if (BLKIO_READ(pdevblk->BLKIO_pucSec, ulStartSec, 1) < 0) {
             return  (PX_ERROR);
         }
         lib_memcpy(pcBuffer, pdevblk->BLKIO_pucSec + ulStartOff, (ulEndOff - ulStartOff));
 
     } else {
         if (ulStartOff) {
-            if (BLKIO_READ(pdevblk->BLKIO_pucSec, ulStartSec) < 0) {
+            if (BLKIO_READ(pdevblk->BLKIO_pucSec, ulStartSec, 1) < 0) {
                 return  (PX_ERROR);
             }
             lib_memcpy(pcBuffer, pdevblk->BLKIO_pucSec + ulStartOff, pdevblk->BLKIO_ulSecSize - ulStartOff);
@@ -200,16 +203,16 @@ static ssize_t  __blkIoFsPRead (PLW_BLKIO_DEV  pdevblk, PCHAR  pcBuffer, size_t 
             ulStartSec++;
         }
 
-        while (ulStartSec < ulEndSec) {
-            if (BLKIO_READ(pcBuffer, ulStartSec) < 0) {
+        if (ulEndSec > ulStartSec) {
+            if (BLKIO_READ(pcBuffer, ulStartSec, ulEndSec - ulStartSec) < 0) {
                 return  (PX_ERROR);
             }
-            pcBuffer += pdevblk->BLKIO_ulSecSize;
-            ulStartSec++;
+            pcBuffer  += (pdevblk->BLKIO_ulSecSize * (ulEndSec - ulStartSec));
+            ulStartSec = ulEndSec;
         }
 
         if (ulEndOff) {
-            if (BLKIO_READ(pdevblk->BLKIO_pucSec, ulEndSec) < 0) {
+            if (BLKIO_READ(pdevblk->BLKIO_pucSec, ulEndSec, 1) < 0) {
                 return  (PX_ERROR);
             }
             lib_memcpy(pcBuffer, pdevblk->BLKIO_pucSec, ulEndOff);
@@ -283,43 +286,43 @@ static ssize_t  __blkIoFsPWrite (PLW_BLKIO_DEV  pdevblk, PCHAR  pcBuffer, size_t
     ulEndOff = (oft + stNBytes) & ulSecMask;
 
     if (ulStartSec == ulEndSec) {
-        if (BLKIO_READ(pdevblk->BLKIO_pucSec, ulStartSec) < 0) {
+        if (BLKIO_READ(pdevblk->BLKIO_pucSec, ulStartSec, 1) < 0) {
             return  (PX_ERROR);
         }
         lib_memcpy(pdevblk->BLKIO_pucSec + ulStartOff,
                    pcBuffer, (ulEndOff - ulStartOff));
-        if (BLKIO_WRITE(pdevblk->BLKIO_pucSec, ulStartSec) < 0) {
+        if (BLKIO_WRITE(pdevblk->BLKIO_pucSec, ulStartSec, 1) < 0) {
             return  (PX_ERROR);
         }
 
     } else {
         if (ulStartOff) {
-            if (BLKIO_READ(pdevblk->BLKIO_pucSec, ulStartSec) < 0) {
+            if (BLKIO_READ(pdevblk->BLKIO_pucSec, ulStartSec, 1) < 0) {
                 return  (PX_ERROR);
             }
             lib_memcpy(pdevblk->BLKIO_pucSec + ulStartOff,
                        pcBuffer, pdevblk->BLKIO_ulSecSize - ulStartOff);
-            if (BLKIO_WRITE(pdevblk->BLKIO_pucSec, ulStartSec) < 0) {
+            if (BLKIO_WRITE(pdevblk->BLKIO_pucSec, ulStartSec, 1) < 0) {
                 return  (PX_ERROR);
             }
             pcBuffer += pdevblk->BLKIO_ulSecSize - ulStartOff;
             ulStartSec++;
         }
 
-        while (ulStartSec < ulEndSec) {
-            if (BLKIO_WRITE(pcBuffer, ulStartSec) < 0) {
+        if (ulEndSec > ulStartSec) {
+            if (BLKIO_WRITE(pcBuffer, ulStartSec, ulEndSec - ulStartSec) < 0) {
                 return  (PX_ERROR);
             }
-            pcBuffer += pdevblk->BLKIO_ulSecSize;
-            ulStartSec++;
+            pcBuffer  += (pdevblk->BLKIO_ulSecSize * (ulEndSec - ulStartSec));
+            ulStartSec = ulEndSec;
         }
 
         if (ulEndOff) {
-            if (BLKIO_READ(pdevblk->BLKIO_pucSec, ulEndSec) < 0) {
+            if (BLKIO_READ(pdevblk->BLKIO_pucSec, ulEndSec, 1) < 0) {
                 return  (PX_ERROR);
             }
             lib_memcpy(pdevblk->BLKIO_pucSec, pcBuffer, ulEndOff);
-            if (BLKIO_WRITE(pdevblk->BLKIO_pucSec, ulEndSec) < 0) {
+            if (BLKIO_WRITE(pdevblk->BLKIO_pucSec, ulEndSec, 1) < 0) {
                 return  (PX_ERROR);
             }
         }
