@@ -756,7 +756,6 @@ typedef struct nvme_queue_cb {
     UINT8                   NVMEQUEUE_ucSusPended;                      /* 队列处于SUSPEND              */
 
     LW_OBJECT_HANDLE        NVMEQUEUE_hSyncBSem[NVME_CMD_DEPTH_MAX];    /* 命令同步锁                   */
-    LW_OBJECT_HANDLE        NVMEQUEUE_hTagMuteSem;                      /* 标签锁                       */
     UINT32                  NVMEQUEUE_uiNextTag;                        /* 下一个可用标签               */
     PVOID                   NVMEQUEUE_pvPrpBuf;                         /* PRP                          */
     ULONG                   NVMEQUEUE_ulCmdIdData __flexarr;            /* 命令返回数据                 */
@@ -865,12 +864,12 @@ typedef NVME_DRV_CB        *NVME_DRV_HANDLE;
 /*********************************************************************************************************
   驱动控制块
 *********************************************************************************************************/
-typedef void (*nvme_completion_fn)(NVME_QUEUE_HANDLE,  PVOID, NVME_COMPLETION_HANDLE);
+typedef void (*NVME_COMPLETION_FN)(NVME_QUEUE_HANDLE,  PVOID, NVME_COMPLETION_HANDLE);
 /*********************************************************************************************************
   Admin 命令返回数据
 *********************************************************************************************************/
 typedef struct nvme_cmd_info_cb {
-    nvme_completion_fn      NVMECMDINFO_pfCompletion;
+    NVME_COMPLETION_FN      NVMECMDINFO_pfCompletion;
     PVOID                   NVMECMDINFO_pvCtx;
 #if NVME_ID_DELAYED_RECOVERY > 0
     INT64                   NVMECMDINFO_i64Timeout;

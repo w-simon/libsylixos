@@ -20,6 +20,7 @@
 
 ** BUG:
 2018.01.27  修复 MIPS 平台下 NVMe 不能工作的错误, NVME_PRP_BLOCK_SIZE 未考虑对齐. Gong.YuJian (弓羽箭)
+2018.06.11  移除背景线程, 修正死锁问题.
 *********************************************************************************************************/
 #define  __SYLIXOS_PCI_DRV
 #define  __SYLIXOS_STDIO
@@ -44,11 +45,6 @@
 /*********************************************************************************************************
   事件操作
 *********************************************************************************************************/
-#define NVME_QUEUE_LOCK(q)                  \
-        API_SemaphoreMPend((q)->NVMEQUEUE_hTagMuteSem, LW_OPTION_WAIT_INFINITE)
-#define NVME_QUEUE_UNLOCK(q)                \
-        API_SemaphoreMPost((q)->NVMEQUEUE_hTagMuteSem)
-
 #define NVME_QUEUE_WSYNC(q, cmdid, timeout) \
         API_SemaphoreBPend((q)->NVMEQUEUE_hSyncBSem[cmdid], timeout)
 #define NVME_QUEUE_SSYNC(q, cmdid)          \
@@ -229,7 +225,7 @@ static void  __syncCompletion (NVME_QUEUE_HANDLE       hNvmeQueue,
 *********************************************************************************************************/
 static PVOID  __cmdIdFree (NVME_QUEUE_HANDLE    hNvmeQueue,
                            INT                  iCmdId,
-                           nvme_completion_fn  *ppfCompletion)
+                           NVME_COMPLETION_FN  *ppfCompletion)
 {
     PVOID                 pvCtx;
     NVME_CMD_INFO_HANDLE  hCmdInfo = __nvmeCmdInfo(hNvmeQueue);
@@ -266,7 +262,7 @@ static PVOID  __cmdIdFree (NVME_QUEUE_HANDLE    hNvmeQueue,
 *********************************************************************************************************/
 static PVOID  __cmdIdCancel (NVME_QUEUE_HANDLE    hNvmeQueue,
                              INT                  iCmdId,
-                             nvme_completion_fn  *ppfCompletion)
+                             NVME_COMPLETION_FN  *ppfCompletion)
 {
     PVOID                 pvCtx;
     NVME_CMD_INFO_HANDLE  hCmdInfo = __nvmeCmdInfo(hNvmeQueue);
@@ -299,14 +295,12 @@ static PVOID  __cmdIdCancel (NVME_QUEUE_HANDLE    hNvmeQueue,
 *********************************************************************************************************/
 static INT  __cmdIdAlloc (NVME_QUEUE_HANDLE      hNvmeQueue,
                           PVOID                  pvCtx,
-                          nvme_completion_fn     pfHandler,
+                          NVME_COMPLETION_FN     pfHandler,
                           UINT                   uiTimeout)
 {
     INT                   iCmdId;
     INTREG                iregInterLevel;
     NVME_CMD_INFO_HANDLE  hCmdInfo = __nvmeCmdInfo(hNvmeQueue);
-
-    NVME_QUEUE_LOCK(hNvmeQueue);
     
     for (;;) {                                                          /*  从 ID 标签池中获取可用的标签*/
         LW_SPIN_LOCK_QUICK(&hNvmeQueue->NVMEQUEUE_QueueLock, &iregInterLevel);
@@ -324,8 +318,6 @@ static INT  __cmdIdAlloc (NVME_QUEUE_HANDLE      hNvmeQueue,
             LW_SPIN_UNLOCK_QUICK(&hNvmeQueue->NVMEQUEUE_QueueLock, iregInterLevel);
         }
     }
-
-    NVME_QUEUE_UNLOCK(hNvmeQueue);
 
     /*
      *  填充回调函数参数
@@ -352,7 +344,7 @@ static INT  __cmdIdAlloc (NVME_QUEUE_HANDLE      hNvmeQueue,
 *********************************************************************************************************/
 static INT  __cmdIdAllocKillable (NVME_QUEUE_HANDLE      hNvmeQueue,
                                   PVOID                  pvCtx,
-                                  nvme_completion_fn     pfHandler,
+                                  NVME_COMPLETION_FN     pfHandler,
                                   UINT                   uiTimeout)
 {
     INT   iCmdId;
@@ -1421,7 +1413,7 @@ __done:
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: __nvmeAdminQueueConfigure
+** 函数名称: __nvmeQueueExtra
 ** 功能描述: 获取 NVMe 队列需要的额外空间
 ** 输　入  : iDepth    队列深度
 ** 输　出  : 额外空间大小
@@ -1461,20 +1453,23 @@ static VOID  __nvmeCqProcess (NVME_QUEUE_HANDLE  hQueue)
     UINT16       usPhase;
 
     usHead  = hQueue->NVMEQUEUE_usCqHead;                               /*  完成队列头                  */
-    usPhase = hQueue->NVMEQUEUE_ucCqPhase;                              /*  完成队列相位                */
+    usPhase = hQueue->NVMEQUEUE_ucCqPhase;                              /*  完成队列阶段                */
 
     while (__nvmeCqValid(hQueue, usHead, usPhase)) {
         PVOID                pvCtx;
-        nvme_completion_fn   pfCompletion;
+        NVME_COMPLETION_FN   pfCompletion;
         NVME_COMPLETION_CB   tCqe = hQueue->NVMEQUEUE_hCompletionQueue[usHead];
 
-        if (++usHead == hQueue->NVMEQUEUE_usDepth) {                    /*  本轮循环结束，相位取反      */
+        if (++usHead == hQueue->NVMEQUEUE_usDepth) {                    /*  本轮循环结束，阶段取反      */
             usHead  = 0;
             usPhase = !usPhase;
         }
 
+        /*
+         * TODO: 这里会在 SPINLOCK 中发送信号量, 暂时还不能移出, 没有死锁可能.
+         */
         pvCtx = __cmdIdFree(hQueue, tCqe.NVMECOMPLETION_usCmdId, &pfCompletion);
-        pfCompletion(hQueue, pvCtx, &tCqe);
+        pfCompletion(hQueue, pvCtx, &tCqe);                             /*  填写信息, 发送信号量        */
     }
 
     if ((usHead  == hQueue->NVMEQUEUE_usCqHead) && 
@@ -1536,8 +1531,6 @@ static VOID  __nvmeQueueFree (NVME_QUEUE_HANDLE   hNvmeQueue)
     for (i = 0; i < hNvmeQueue->NVMEQUEUE_usDepth; i++) {
         API_SemaphoreBDelete(&hNvmeQueue->NVMEQUEUE_hSyncBSem[i]);      /* 释放同步命令信号量           */
     }
-
-    API_SemaphoreMDelete(&hNvmeQueue->NVMEQUEUE_hTagMuteSem);           /* 删除申请 cmdid 互斥信号量    */
 
     API_CacheDmaFree(hNvmeQueue->NVMEQUEUE_pvPrpBuf);                   /* 释放队列 PRP 资源            */
 
@@ -1607,14 +1600,6 @@ static NVME_QUEUE_HANDLE __nvmeQueueAlloc (NVME_CTRL_HANDLE hCtrl, INT  iQueueId
                                                                   LW_NULL);
     }
 
-    hNvmeQueue->NVMEQUEUE_hTagMuteSem = API_SemaphoreMCreate("nvme_tag",
-                                                             LW_PRIO_DEF_CEILING,
-                                                             (LW_OPTION_WAIT_PRIORITY    |
-                                                              LW_OPTION_DELETE_SAFE      |
-                                                              LW_OPTION_INHERIT_PRIORITY |
-                                                              LW_OPTION_OBJECT_GLOBAL),
-                                                             LW_NULL);  /* 创建 cmdid 申请互斥信号量    */
-
     LW_SPIN_INIT(&hNvmeQueue->NVMEQUEUE_QueueLock);
     snprintf(hNvmeQueue->NVMEQUEUE_cIrqName, NVME_CTRL_IRQ_NAME_MAX, "nvme%d_q%d",
              hCtrl->NVMECTRL_uiIndex, iQueueId);
@@ -1660,7 +1645,7 @@ static VOID  __nvmeQueueInit (NVME_QUEUE_HANDLE  hNvmeQueue, UINT16  usQueueId)
     UINT              uiExtra  = __nvmeQueueExtra(hNvmeQueue->NVMEQUEUE_usDepth);
     INTREG            iregInterLevel;
 
-    LW_SPIN_LOCK_IRQ(&hNvmeQueue->NVMEQUEUE_QueueLock, &iregInterLevel);
+    LW_SPIN_LOCK_QUICK(&hNvmeQueue->NVMEQUEUE_QueueLock, &iregInterLevel);
     hNvmeQueue->NVMEQUEUE_usSqTail    = 0;
     hNvmeQueue->NVMEQUEUE_usCqHead    = 0;
     hNvmeQueue->NVMEQUEUE_ucCqPhase   = 1;
@@ -1668,7 +1653,7 @@ static VOID  __nvmeQueueInit (NVME_QUEUE_HANDLE  hNvmeQueue, UINT16  usQueueId)
     lib_bzero(hNvmeQueue->NVMEQUEUE_ulCmdIdData, uiExtra);
     lib_bzero((PVOID)hNvmeQueue->NVMEQUEUE_hCompletionQueue, NVME_CQ_SIZE(hNvmeQueue->NVMEQUEUE_usDepth));
     hCtrl->NVMECTRL_uiQueuesOnline++;
-    LW_SPIN_UNLOCK_IRQ(&hNvmeQueue->NVMEQUEUE_QueueLock, iregInterLevel);
+    LW_SPIN_UNLOCK_QUICK(&hNvmeQueue->NVMEQUEUE_QueueLock, iregInterLevel);
 }
 /*********************************************************************************************************
 ** 函数名称: __nvmeAdminQueueConfigure
@@ -1818,7 +1803,7 @@ static INT  __nvmeIoQueueCreate (NVME_QUEUE_HANDLE  hNvmeQueue, UINT16  usQueueI
         goto    __release_cq;
     }
 
-    iRet =  API_NvmeCtrlIntConnect(hCtrl, hNvmeQueue, __nvmeIrq, hNvmeQueue->NVMEQUEUE_cIrqName);
+    iRet = API_NvmeCtrlIntConnect(hCtrl, hNvmeQueue, __nvmeIrq, hNvmeQueue->NVMEQUEUE_cIrqName);
     if (iRet < 0) {
         NVME_LOG(NVME_LOG_ERR, "ctrl %s unit %d irq request failed.\r\n",
                  hCtrl->NVMECTRL_cCtrlName, hCtrl->NVMECTRL_uiUnitIndex);
@@ -1916,63 +1901,6 @@ static INT  __nvmeCtrlConfig (NVME_CTRL_HANDLE  hCtrl)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: __nvmeMonitorProcess
-** 功能描述: NVMe 监测线程回调函数
-** 输　入  : hNvmeDev    NVMe 设备
-** 输　出  : ERROR or OK
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-static PVOID  __nvmeMonitorProcess (NVME_DEV_HANDLE  hNvmeDev)
-{
-    INT                   i;
-    NVME_QUEUE_HANDLE     hNvmeQueue;
-    INTREG                iregInterLevel;
-
-    for (i = 0; i < hNvmeDev->NVMEDEV_hCtrl->NVMECTRL_uiQueueCount; i++) {
-        hNvmeQueue = hNvmeDev->NVMEDEV_hCtrl->NVMECTRL_hQueues[i];
-        if (!hNvmeQueue) {
-            continue;
-        }
-        LW_SPIN_LOCK_QUICK(&hNvmeQueue->NVMEQUEUE_QueueLock, &iregInterLevel);
-        __nvmeCqProcess(hNvmeQueue);
-        LW_SPIN_UNLOCK_QUICK(&hNvmeQueue->NVMEQUEUE_QueueLock, iregInterLevel);
-    }
-
-    return  (LW_NULL);
-}
-/*********************************************************************************************************
-** 函数名称: __nvmeDevMonitor
-** 功能描述: 创建设备检测线程
-** 输　入  : hCtrl      控制器句柄
-** 输　出  : ERROR or OK
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-static INT  __nvmeDevMonitor (NVME_CTRL_HANDLE hCtrl)
-{
-    static LW_OBJECT_HANDLE     ulMonThread = 0ul;
-    LW_CLASS_THREADATTR         threadattr;
-
-    if (!ulMonThread) {
-        API_ThreadAttrBuild(&threadattr,
-                            NVME_MONITOR_STK_SIZE,
-                            NVME_MONITOR_PRIORITY,
-                            LW_OPTION_THREAD_STK_CHK | LW_OPTION_THREAD_SAFE | LW_OPTION_OBJECT_GLOBAL,
-                            (PVOID)__nvmeMonitorProcess);
-        
-        ulMonThread = API_ThreadCreate("t_nvme",
-                                       (PTHREAD_START_ROUTINE)__nvmeMonitorThread,
-                                       (PLW_CLASS_THREADATTR)&threadattr,
-                                       LW_NULL);
-        if (LW_OBJECT_HANDLE_INVALID == ulMonThread) {
-            return  (PX_ERROR);
-        }
-    }
-
-    return  (ERROR_NONE);
-}
-/*********************************************************************************************************
 ** 函数名称: API_NvmeCtrlInit
 ** 功能描述: 控制器初始化
 ** 输　入  : hCtrl    控制器句柄
@@ -2005,13 +1933,6 @@ static INT  __nvmeInit (NVME_CTRL_HANDLE  hCtrl)
     iRet = __nvmeIoQueuesConfigure(hCtrl);                              /*  配置IO队列                  */
     if (iRet != ERROR_NONE) {
         NVME_LOG(NVME_LOG_ERR, "ctrl %s unit %d setup io queues failed.\r\n",
-                 hCtrl->NVMECTRL_cCtrlName, hCtrl->NVMECTRL_uiUnitIndex);
-        return  (PX_ERROR);
-    }
-
-    iRet = __nvmeDevMonitor(hCtrl);                                     /*  初始化管理线程              */
-    if (iRet != ERROR_NONE) {
-        NVME_LOG(NVME_LOG_ERR, "ctrl %s unit %d add dev list failed.\r\n",
                  hCtrl->NVMECTRL_cCtrlName, hCtrl->NVMECTRL_uiUnitIndex);
         return  (PX_ERROR);
     }

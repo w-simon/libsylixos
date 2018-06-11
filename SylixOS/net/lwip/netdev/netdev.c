@@ -55,6 +55,8 @@
 #include "net/if_param.h"
 #include "net/if_ether.h"
 
+#define  NETDEV_RECEIVE_ARG_3   1
+
 #include "string.h"
 #include "netdev.h"
 
@@ -62,15 +64,15 @@
 #include LWIP_HOOK_FILENAME
 #endif
 
-#define NETDEV_INIT(netdev)             if ((netdev)->drv->init) { (netdev)->drv->init((netdev)); }
-#define NETDEV_UP(netdev)               if ((netdev)->drv->up) { (netdev)->drv->up((netdev)); }
-#define NETDEV_DOWN(netdev)             if ((netdev)->drv->down) { (netdev)->drv->down((netdev)); }
-#define NETDEV_REMOVE(netdev)           if ((netdev)->drv->remove) { (netdev)->drv->remove((netdev)); }
-#define NETDEV_IOCTL(netdev, a, b)      if ((netdev)->drv->ioctl) { (netdev)->drv->ioctl((netdev), (a), (b)); }
-#define NETDEV_PROMISC(netdev, a, b)    if ((netdev)->drv->promisc) { (netdev)->drv->promisc((netdev), (a), (b)); }
-#define NETDEV_RXMODE(netdev, a)        if ((netdev)->drv->rxmode) { (netdev)->drv->rxmode((netdev), (a)); }
-#define NETDEV_TRANSMIT(netdev, a)      (netdev)->drv->transmit((netdev), (a))
-#define NETDEV_RECEIVE(netdev, input)   (netdev)->drv->receive((netdev), (input))
+#define NETDEV_INIT(netdev)                 if ((netdev)->drv->init) { (netdev)->drv->init((netdev)); }
+#define NETDEV_UP(netdev)                   if ((netdev)->drv->up) { (netdev)->drv->up((netdev)); }
+#define NETDEV_DOWN(netdev)                 if ((netdev)->drv->down) { (netdev)->drv->down((netdev)); }
+#define NETDEV_REMOVE(netdev)               if ((netdev)->drv->remove) { (netdev)->drv->remove((netdev)); }
+#define NETDEV_IOCTL(netdev, a, b)          if ((netdev)->drv->ioctl) { (netdev)->drv->ioctl((netdev), (a), (b)); }
+#define NETDEV_PROMISC(netdev, a, b)        if ((netdev)->drv->promisc) { (netdev)->drv->promisc((netdev), (a), (b)); }
+#define NETDEV_RXMODE(netdev, a)            if ((netdev)->drv->rxmode) { (netdev)->drv->rxmode((netdev), (a)); }
+#define NETDEV_TRANSMIT(netdev, a)          (netdev)->drv->transmit((netdev), (a))
+#define NETDEV_RECEIVE(netdev, input, a)    (netdev)->drv->receive((netdev), (input), (a))
 
 /* functions declaration */
 static struct netdev_mac *netdev_macfilter_find(netdev_t *netdev, const UINT8 hwaddr[], struct netdev_mac **prev_save);
@@ -1192,7 +1194,7 @@ int  netdev_notify (struct netdev *netdev, netdev_inout inout, int q_en)
     }
   }
   
-  NETDEV_RECEIVE(netdev, netdev_netif_linkinput);
+  NETDEV_RECEIVE(netdev, netdev_netif_linkinput, NULL);
   
   return (0);
 }
@@ -1217,7 +1219,7 @@ int  netdev_notify_ex (struct netdev *netdev, netdev_inout inout, int q_en, unsi
     }
   }
   
-  NETDEV_RECEIVE(netdev, netdev_netif_linkinput);
+  NETDEV_RECEIVE(netdev, netdev_netif_linkinput, NULL);
   
   return (0);
 }
@@ -1242,7 +1244,7 @@ int  netdev_notify_ex_arg (struct netdev *netdev, netdev_inout inout, int q_en, 
     }
   }
   
-  NETDEV_RECEIVE(netdev, netdev_netif_linkinput);
+  NETDEV_RECEIVE(netdev, netdev_netif_linkinput, arg);
   
   return (0);
 }
