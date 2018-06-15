@@ -93,6 +93,12 @@ static struct rt6_cache  rt6_cache;
           ip6_addr_set_any(&rt6_cache.rt6_dest); \
         }
 
+#define RT6_CACHE_INVAL_ALL() \
+        { \
+          rt6_cache.rt6_entry = NULL; \
+          ip6_addr_set_any(&rt6_cache.rt6_dest); \
+        }
+
 /* gateway cache */
 struct gw6_cache {
   struct rt6_entry *rt6_entry;
@@ -105,6 +111,14 @@ static struct gw6_cache  gw6_cache[LW_CFG_NET_DEV_MAX];
 #define GW6_CACHE_INVAL(num, entry) \
         LWIP_ASSERT("GW6_CACHE_INVAL() num invalide!", (num) < LW_CFG_NET_DEV_MAX); \
         if (gw6_cache[num].rt6_entry == entry) { \
+          gw6_cache[num].rt6_entry = NULL; \
+          ip6_addr_set_any(&gw6_cache[num].rt6_dest); \
+          ip6_addr_set_any(&gw6_cache[num].rt6_gateway); \
+        }
+
+#define GW6_CACHE_INVAL_ALL(num) \
+        LWIP_ASSERT("GW6_CACHE_INVAL_ALL() num invalide!", (num) < LW_CFG_NET_DEV_MAX); \
+        { \
           gw6_cache[num].rt6_entry = NULL; \
           ip6_addr_set_any(&gw6_cache[num].rt6_dest); \
           ip6_addr_set_any(&gw6_cache[num].rt6_gateway); \
@@ -182,17 +196,15 @@ static struct rt6_entry *rt6_match (const ip6_addr_t *ip6dest)
   
   for (pline = rt6_table[hash]; pline != NULL; pline = _list_line_get_next(pline)) {
     entry = (struct rt6_entry *)pline;
-    if (RTF_VALID(entry->rt6_flags)) {
-      if (netif_is_up(entry->rt6_netif) && netif_is_link_up(entry->rt6_netif)) {
-        if (entry->rt6_flags & RTF_HOST) {
-          if (ip6_addr_cmp(&entry->rt6_dest, ip6dest)) {
-            return (entry); /* match to host */
-          }
-        
-        } else if (entry_net == NULL) {
-          if (rt6_net_cmp(&entry->rt6_dest, ip6dest, &entry->rt6_netmask)) {
-            entry_net = entry; /* match to net */
-          }
+    if (entry->rt6_netif && RTF_VALID(entry->rt6_flags)) {
+      if (entry->rt6_flags & RTF_HOST) {
+        if (ip6_addr_cmp(&entry->rt6_dest, ip6dest)) {
+          return (entry); /* match to host */
+        }
+      
+      } else if (entry_net == NULL) {
+        if (rt6_net_cmp(&entry->rt6_dest, ip6dest, &entry->rt6_netmask)) {
+          entry_net = entry; /* match to net */
         }
       }
     }
@@ -486,9 +498,11 @@ int  rt6_add_entry (struct rt6_entry *entry)
     }
   }
   
-  RT6_CACHE_INVAL(entry);
   if (entry->rt6_netif) {
-    GW6_CACHE_INVAL(entry->rt6_netif->num, entry);
+    if (RTF_VALID(entry->rt6_flags)) {
+      RT6_CACHE_INVAL_ALL();
+      GW6_CACHE_INVAL_ALL(entry->rt6_netif->num);
+    }
   }
   
   entry->rt6_flags |= RTF_DONE; /* confirmed */
@@ -542,6 +556,10 @@ void  rt6_netif_add_hook (struct netif *netif)
       if (!entry->rt6_netif && !lib_strcmp(entry->rt6_ifname, ifname)) {
         entry->rt6_netif = netif;
         entry->rt6_flags |= RTF_RUNNING;
+        if (RTF_VALID(entry->rt6_flags)) {
+          RT6_CACHE_INVAL_ALL();
+          GW6_CACHE_INVAL_ALL(netif->num);
+        }
         rt6_active++;
       }
     }
@@ -572,14 +590,33 @@ void  rt6_netif_remove_hook (struct netif *netif)
   RT_UNLOCK();
 }
 
-/* rt6_netif_invcache_hook */
-void  rt6_netif_invcache_hook (struct netif *netif)
+/* rt6_netif_linkstat_hook */
+void rt6_netif_linkstat_hook (struct netif *netif)
 {
+  int i;
+  LW_LIST_LINE *pline;
+  struct rt6_entry *entry;
+  
   RT_LOCK();
-  if (rt6_cache.rt6_entry) {
-    if (rt6_cache.rt6_entry->rt6_netif == netif) {
-      RT6_CACHE_INVAL(rt6_cache.rt6_entry);
-      GW6_CACHE_INVAL(netif->num, rt6_cache.rt6_entry);
+  for (i = 0; i < RT6_HASH_SIZE; i++) {
+    for (pline = rt6_table[i]; pline != NULL; pline = _list_line_get_next(pline)) {
+      entry = (struct rt6_entry *)pline;
+      if (entry->rt6_netif == netif) {
+        if (netif_is_up(netif) && netif_is_link_up(netif)) {
+          entry->rt6_flags |= RTF_RUNNING;
+          if (RTF_VALID(entry->rt6_flags)) {
+            RT6_CACHE_INVAL_ALL();
+            GW6_CACHE_INVAL_ALL(netif->num);
+          }
+          rt6_active++;
+        
+        } else {
+          entry->rt6_flags &= ~RTF_RUNNING;
+          RT6_CACHE_INVAL(entry);
+          GW6_CACHE_INVAL(netif->num, entry);
+          rt6_active--;
+        }
+      }
     }
   }
   RT_UNLOCK();

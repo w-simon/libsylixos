@@ -91,6 +91,12 @@ static struct rt_cache  rt_cache;
           rt_cache.rt_dest.addr = IPADDR_ANY; \
         }
 
+#define RT_CACHE_INVAL_ALL() \
+        { \
+          rt_cache.rt_entry = NULL; \
+          rt_cache.rt_dest.addr = IPADDR_ANY; \
+        }
+
 /* gateway cache */
 struct gw_cache {
   struct rt_entry *rt_entry;
@@ -103,6 +109,14 @@ static struct gw_cache  gw_cache[LW_CFG_NET_DEV_MAX];
 #define GW_CACHE_INVAL(num, entry) \
         LWIP_ASSERT("GW_CACHE_INVAL() num invalide!", (num) < LW_CFG_NET_DEV_MAX); \
         if (gw_cache[num].rt_entry == entry) { \
+          gw_cache[num].rt_entry = NULL; \
+          gw_cache[num].rt_dest.addr = IPADDR_ANY; \
+          gw_cache[num].rt_gateway.addr = IPADDR_ANY; \
+        }
+        
+#define GW_CACHE_INVAL_ALL(num) \
+        LWIP_ASSERT("GW_CACHE_INVAL_ALL() num invalide!", (num) < LW_CFG_NET_DEV_MAX); \
+        { \
           gw_cache[num].rt_entry = NULL; \
           gw_cache[num].rt_dest.addr = IPADDR_ANY; \
           gw_cache[num].rt_gateway.addr = IPADDR_ANY; \
@@ -123,17 +137,15 @@ static struct rt_entry *rt_match (const ip4_addr_t *ipdest)
   
   for (pline = rt_table[hash]; pline != NULL; pline = _list_line_get_next(pline)) {
     entry = (struct rt_entry *)pline;
-    if (RTF_VALID(entry->rt_flags)) {
-      if (netif_is_up(entry->rt_netif) && netif_is_link_up(entry->rt_netif)) {
-        if (entry->rt_flags & RTF_HOST) {
-          if (entry->rt_dest.addr == ipdest->addr) {
-            return (entry); /* match to host */
-          }
+    if (entry->rt_netif && RTF_VALID(entry->rt_flags)) {
+      if (entry->rt_flags & RTF_HOST) {
+        if (entry->rt_dest.addr == ipdest->addr) {
+          return (entry); /* match to host */
+        }
       
-        } else if (entry_net == NULL) {
-          if (ip4_addr_netcmp(&entry->rt_dest, ipdest, &entry->rt_netmask)) {
-            entry_net = entry; /* match to net */
-          }
+      } else if (entry_net == NULL) {
+        if (ip4_addr_netcmp(&entry->rt_dest, ipdest, &entry->rt_netmask)) {
+          entry_net = entry; /* match to net */
         }
       }
     }
@@ -362,9 +374,11 @@ int  rt_add_entry (struct rt_entry *entry)
     }
   }
   
-  RT_CACHE_INVAL(entry);
   if (entry->rt_netif) {
-    GW_CACHE_INVAL(entry->rt_netif->num, entry);
+    if (RTF_VALID(entry->rt_flags)) {
+      RT_CACHE_INVAL_ALL();
+      GW_CACHE_INVAL_ALL(entry->rt_netif->num);
+    }
   }
   
   entry->rt_flags |= RTF_DONE; /* confirmed */
@@ -483,6 +497,10 @@ void  rt_netif_add_hook (struct netif *netif)
       if (!entry->rt_netif && !lib_strcmp(entry->rt_ifname, ifname)) {
         entry->rt_netif = netif;
         entry->rt_flags |= RTF_RUNNING;
+        if (RTF_VALID(entry->rt_flags)) {
+          RT_CACHE_INVAL_ALL();
+          GW_CACHE_INVAL_ALL(netif->num);
+        }
         rt_active++;
       }
     }
@@ -513,14 +531,33 @@ void  rt_netif_remove_hook (struct netif *netif)
   RT_UNLOCK();
 }
 
-/* rt_netif_invcache_hook */
-void  rt_netif_invcache_hook (struct netif *netif)
+/* rt_netif_linkstat_hook */
+void rt_netif_linkstat_hook (struct netif *netif)
 {
+  int i;
+  LW_LIST_LINE *pline;
+  struct rt_entry *entry;
+
   RT_LOCK();
-  if (rt_cache.rt_entry) {
-    if (rt_cache.rt_entry->rt_netif == netif) {
-      RT_CACHE_INVAL(rt_cache.rt_entry);
-      GW_CACHE_INVAL(netif->num, rt_cache.rt_entry);
+  for (i = 0; i < RT_HASH_SIZE; i++) {
+    for (pline = rt_table[i]; pline != NULL; pline = _list_line_get_next(pline)) {
+      entry = (struct rt_entry *)pline;
+      if (entry->rt_netif == netif) {
+        if (netif_is_up(netif) && netif_is_link_up(netif)) {
+          entry->rt_flags |= RTF_RUNNING;
+          if (RTF_VALID(entry->rt_flags)) {
+            RT_CACHE_INVAL_ALL();
+            GW_CACHE_INVAL_ALL(netif->num);
+          }
+          rt_active++;
+        
+        } else {
+          entry->rt_flags &= ~RTF_RUNNING;
+          RT_CACHE_INVAL(entry);
+          GW_CACHE_INVAL(netif->num, entry);
+          rt_active--;
+        }
+      }
     }
   }
   RT_UNLOCK();

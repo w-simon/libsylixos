@@ -199,17 +199,14 @@ static VOID  netif_updown_hook (struct netif *pnetif, INT up)
             pnetif->down(pnetif);
         }
         netEventIfDown(pnetif);
-        
-#if LW_CFG_NET_ROUTER > 0
-        rt_netif_invcache_hook(pnetif);
-#if LWIP_IPV6
-        rt6_netif_invcache_hook(pnetif);
-#endif                                                                  /*  LWIP_IPV6 > 0               */
-#endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
     }
     
 #if LW_CFG_NET_ROUTER > 0
     route_hook_netif_updown(pnetif);
+    rt_netif_linkstat_hook(pnetif);
+#if LWIP_IPV6
+    rt6_netif_linkstat_hook(pnetif);
+#endif                                                                  /*  LWIP_IPV6 > 0               */
 #endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
 }
 /*********************************************************************************************************
@@ -228,17 +225,14 @@ static VOID  netif_link_updown_hook (struct netif *pnetif, INT linkup)
         
     } else {
         netEventIfUnlink(pnetif);
-    
-#if LW_CFG_NET_ROUTER > 0
-        rt_netif_invcache_hook(pnetif);
-#if LWIP_IPV6
-        rt6_netif_invcache_hook(pnetif);
-#endif                                                                  /*  LWIP_IPV6 > 0               */
-#endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
     }
     
 #if LW_CFG_NET_ROUTER > 0
     route_hook_netif_updown(pnetif);
+    rt_netif_linkstat_hook(pnetif);
+#if LWIP_IPV6
+    rt6_netif_linkstat_hook(pnetif);
+#endif                                                                  /*  LWIP_IPV6 > 0               */
 #endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
 }
 /*********************************************************************************************************

@@ -21,6 +21,9 @@ HISTORY
 
 ++ Bugfixes:
 
+    2018-06-13: han.hui
+    网络链接状态需要立即反馈到路由表状态.
+
     2018-05-25: han.hui
     修正 ARM Cortex-M 中断嵌套一处问题.
 

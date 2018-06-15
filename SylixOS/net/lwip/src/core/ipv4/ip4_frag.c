@@ -753,9 +753,10 @@ ip4_frag(struct pbuf *p, struct netif *netif, const ip4_addr_t *dest)
   const u16_t nfb = (u16_t)((netif->mtu - IP_HLEN) / 8);
   u16_t left, fragsize;
   u16_t ofo;
-  int last, omf; /* SylixOS Add 'omf' to support re-fragment */
+  int last;
   u16_t poff = IP_HLEN;
   u16_t tmp;
+  int mf_set;
 
   original_iphdr = (struct ip_hdr *)p->payload;
   iphdr = original_iphdr;
@@ -768,11 +769,8 @@ ip4_frag(struct pbuf *p, struct netif *netif, const ip4_addr_t *dest)
   /* Save original offset */
   tmp = lwip_ntohs(IPH_OFFSET(iphdr));
   ofo = tmp & IP_OFFMASK;
-#ifdef SYLIXOS
-  omf = tmp & IP_MF; /* SylixOS Support re-fragment */
-#else
-  LWIP_ERROR("ip_frag(): MF already set", (tmp & IP_MF) == 0, return ERR_VAL);
-#endif /* !SYLIXOS */
+  /* already fragmented? if so, the last fragment we create must have MF, too */
+  mf_set = tmp & IP_MF;
 
   left = (u16_t)(p->tot_len - IP_HLEN);
 
@@ -858,11 +856,8 @@ ip4_frag(struct pbuf *p, struct netif *netif, const ip4_addr_t *dest)
 
     /* Set new offset and MF flag */
     tmp = (IP_OFFMASK & (ofo));
-#ifdef SYLIXOS
-    if (!last || omf) { /* SylixOS Support re-fragment */
-#else
-    if (!last) {
-#endif /* !SYLIXOS */
+    if (!last || mf_set) {
+      /* the last fragment has MF set if the input frame had it */
       tmp = tmp | IP_MF;
     }
     IPH_OFFSET_SET(iphdr, lwip_htons(tmp));

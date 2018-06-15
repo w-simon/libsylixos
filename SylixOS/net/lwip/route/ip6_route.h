@@ -117,7 +117,7 @@ void rt6_rtentry_to_entry(struct rt6_entry *entry6, const struct rtentry *rtentr
 /* netif hooks */
 void rt6_netif_add_hook(struct netif *netif);
 void rt6_netif_remove_hook(struct netif *netif);
-void rt6_netif_invcache_hook(struct netif *netif);
+void rt6_netif_linkstat_hook(struct netif *netif);
 
 /* tcpip hooks */
 struct netif *rt6_route_search_hook(const ip6_addr_t *ip6src, const ip6_addr_t *ip6dest);

@@ -112,7 +112,7 @@ void rt_rtentry_to_entry(struct rt_entry *entry, const struct rtentry *rtentry);
 /* netif hooks */
 void rt_netif_add_hook(struct netif *netif);
 void rt_netif_remove_hook(struct netif *netif);
-void rt_netif_invcache_hook(struct netif *netif);
+void rt_netif_linkstat_hook(struct netif *netif);
 
 /* tcpip hooks */
 struct netif *rt_route_search_hook(const ip4_addr_t *ipsrc, const ip4_addr_t *ipdest);
