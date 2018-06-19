@@ -80,6 +80,7 @@ VOID  mipsMmuInvalidateMicroTLB (VOID)
         break;
 
     case CPU_LOONGSON3:
+    case CPU_LOONGSON2K:
         mipsCp0DiagWrite((LOONGSON_DIAG_DTLB) |
                          (LOONGSON_DIAG_ITLB));                         /*  无效 ITLB DTLB              */
         break;
@@ -214,7 +215,8 @@ static INT  mipsMmuGlobalInit (CPCHAR  pcMachineName)
                                                                         /*  执行阻止例外复用 TLBL 例外  */
     }
 
-    if (_G_uiMipsCpuType == CPU_LOONGSON3) {
+    if ((_G_uiMipsCpuType == CPU_LOONGSON3) ||                          /*  Loongson-3x/2G/2H           */
+        (_G_uiMipsCpuType == CPU_LOONGSON2K)) {                         /*  Loongson-2K                 */
         mipsCp0GSConfigWrite(mipsCp0GSConfigRead() |
                              MIPS_CONF6_FTLBDIS);                       /*  只用 VTLB, 不用 FTLB        */
     }
@@ -348,6 +350,7 @@ VOID  mipsMmuInit (LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName)
     case CPU_LOONGSON1:                                                 /*  Loongson-1x/2x/3x 和        */
     case CPU_LOONGSON2:
     case CPU_LOONGSON3:
+    case CPU_LOONGSON2K:
     case CPU_JZRISC:                                                    /*  君正 CPU 都有执行阻止位     */
         _G_bMmuHasXI           = LW_TRUE;
         _G_uiMmuEntryLoUnCache = CONF_CM_UNCACHED;                      /*  非高速缓存                  */

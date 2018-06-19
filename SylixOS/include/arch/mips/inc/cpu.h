@@ -156,7 +156,8 @@
 #define PRID_REV_VR4130         0x0080
 #define PRID_REV_34K_V1_0_2     0x0022
 #define PRID_REV_LOONGSON1B     0x0020
-#define PRID_REV_LOONGSON2K     0x0001
+#define PRID_REV_LOONGSON2K_R1  0x0001
+#define PRID_REV_LOONGSON2K_R2  0x0003
 #define PRID_REV_LOONGSON2E     0x0002
 #define PRID_REV_LOONGSON2F     0x0003
 #define PRID_REV_LOONGSON3A     0x0005                                  /*  Same as 2G, 2H              */

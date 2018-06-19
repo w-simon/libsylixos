@@ -43,7 +43,8 @@ VOIDFUNCPTR  mipsIdleHookGet (CPCHAR  pcMachineName)
     } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS3X) == 0)) {
         ARCH_REG_T  ulPrid = mipsCp0PRIdRead();
 
-        if ((ulPrid & 0xf) == PRID_REV_LOONGSON2K) {
+        if (((ulPrid & 0xf) == PRID_REV_LOONGSON2K_R1) ||
+            ((ulPrid & 0xf) == PRID_REV_LOONGSON2K_R2)) {
             return  (mipsWaitInstruction);
 
         } else if ((ulPrid & 0xf) != PRID_REV_LOONGSON3A_R1) {

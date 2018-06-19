@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2018-06-19: han.hui
+    x86 x64 加入 PAT 支持.
+
     2018-06-06: han.hui
     SMP 系统中, 支持 CPU 保留设置, 保留的 CPU 只运行设置亲和度的任务, 提高关键任务实时性.
 

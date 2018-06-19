@@ -162,6 +162,8 @@ X86_CPU_FEATURE         _G_x86CpuFeature = {                            /*  全局
     .CPUF_stXSaveCtxSize    = 0,                                        /*  XSAVE context size          */
     .CPUF_bHasAVX           = LW_FALSE,                                 /*  Has AVX?                    */
     .CPUF_bHasMMX           = LW_FALSE,                                 /*  Has MMX?                    */
+    .CPUF_bHasMTRR          = LW_FALSE,                                 /*  Has MTRR?                   */
+    .CPUF_bHasPAT           = LW_FALSE,                                 /*  Has PAT?                    */
     .CPUF_pcCpuInfo         = "<unknow>",                               /*  CPU info                    */
     .CPUF_pcCacheInfo       = "<unknow>",                               /*  CACHE info                  */
 };
@@ -378,9 +380,10 @@ VOID  x86CpuIdProbe (VOID)
     }
 
     /*
-     * 识别 MTRR 特性
+     * 识别 MTRR PAT 特性
      */
     pcpufeature->CPUF_bHasMTRR = features.field.mtrr ? LW_TRUE : LW_FALSE;
+    pcpufeature->CPUF_bHasPAT  = features.field.pat  ? LW_TRUE : LW_FALSE;
 }
 /*********************************************************************************************************
 ** 函数名称: x86CpuIdShow

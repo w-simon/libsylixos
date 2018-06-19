@@ -235,8 +235,9 @@ VOID  ls3xCacheFlushAll (VOID)
         ls3bCacheFlushAll();
         break;
 
-    case PRID_REV_LOONGSON3A_R1:
-    case PRID_REV_LOONGSON2K:
+    case PRID_REV_LOONGSON3A_R1:                                        /*  use default case            */
+    case PRID_REV_LOONGSON2K_R1:
+    case PRID_REV_LOONGSON2K_R2:
     default:
         ls3aR1CacheFlushAll();
         break;

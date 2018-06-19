@@ -68,7 +68,13 @@ static VOID  mispCpuProbeLegacy (VOID)
         break;
 
     case PRID_IMP_LOONGSON2K:
-        _G_uiMipsCpuType = CPU_LOONGSON3;                               /*  Loongson-2K                 */
+        switch (_G_uiMipsPridRev) {
+
+        case PRID_REV_LOONGSON2K_R1:
+        case PRID_REV_LOONGSON2K_R2:
+            _G_uiMipsCpuType = CPU_LOONGSON2K;                          /*  Loongson-2K                 */
+            break;
+        }
         break;
 
     case PRID_IMP_LOONGSON_32:                                          /*  Loongson-1x                 */

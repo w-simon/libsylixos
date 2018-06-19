@@ -882,6 +882,7 @@ typedef struct {
     BOOL        CPUF_bHasMMX;                                           /*  Has MMX?                    */
     size_t      CPUF_stXSaveCtxSize;                                    /*  XSAVE context size          */
     BOOL        CPUF_bHasMTRR;                                          /*  Has MTRR?                   */
+    BOOL        CPUF_bHasPAT;                                           /*  Has PAT?                    */
 #define INFO_STR_LEN    256
     CHAR        CPUF_pcCpuInfo[INFO_STR_LEN];                           /*  CPU info                    */
     CHAR        CPUF_pcCacheInfo[INFO_STR_LEN];                         /*  Cache info                  */
@@ -904,6 +905,7 @@ extern X86_CPU_FEATURE      _G_x86CpuFeature;
 #define X86_FEATURE_HAS_MMX            _G_x86CpuFeature.CPUF_bHasMMX
 #define X86_FEATURE_XSAVE_CTX_SIZE     _G_x86CpuFeature.CPUF_stXSaveCtxSize
 #define X86_FEATURE_HAS_MTRR           _G_x86CpuFeature.CPUF_bHasMTRR
+#define X86_FEATURE_HAS_PAT            _G_x86CpuFeature.CPUF_bHasPAT
 #define X86_FEATURE_CPU_INFO           _G_x86CpuFeature.CPUF_pcCpuInfo
 #define X86_FEATURE_CACHE_INFO         _G_x86CpuFeature.CPUF_pcCacheInfo
 

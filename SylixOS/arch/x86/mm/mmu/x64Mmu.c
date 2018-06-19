@@ -25,6 +25,7 @@
 *********************************************************************************************************/
 #if LW_CFG_VMM_EN > 0
 #include "arch/x86/common/x86Cr.h"
+#include "arch/x86/common/x86CpuId.h"
 #include "arch/x86/pentium/x86Pentium.h"
 /*********************************************************************************************************
   PML4E PDPTE PDE PTE 中的位定义
@@ -70,6 +71,11 @@
 #define X64_MMU_D_NO                (0)
 #define X64_MMU_D_SHIFT             (6)
 
+/*
+ * 配置内存类型写合并时, PAT = 1, PCD = 0, PWT = 1, 组合值为 0b101=5, 即选择 PA5,
+ * IA32_PAT MSR 的 PA5 需要配置为 0x01 即 Write Combining (WC)
+ * 其它内存类型, PAT = 0 即可
+ */
 #define X64_MMU_PAT                 (1)                                 /*  If the PAT is supported,    */
 #define X64_MMU_PAT_NO              (0)                                 /*  indirectly determines       */
 #define X64_MMU_PAT_SHIFT           (7)                                 /*  the memory type             */
@@ -116,6 +122,7 @@ static LW_OBJECT_HANDLE     _G_hPTEPartition;                           /*  PTE 
 **           pucPCD                  是否 CACHE 关闭
 **           pucA                    是否能访问
 **           pucXD                   是否禁止执行
+**           pucPAT                  PAT 位值
 ** 输　出  : ERROR CODE
 ** 全局变量: 
 ** 调用模块: 
@@ -126,7 +133,8 @@ static INT  x64MmuFlags2Attr (ULONG   ulFlag,
                               UINT8  *pucPWT,
                               UINT8  *pucPCD,
                               UINT8  *pucA,
-                              UINT8  *pucXD)
+                              UINT8  *pucXD,
+                              UINT8  *pucPAT)
 {
     if (!(ulFlag & LW_VMM_FLAG_VALID)) {                                /*  无效的映射关系              */
         return  (PX_ERROR);
@@ -139,23 +147,32 @@ static INT  x64MmuFlags2Attr (ULONG   ulFlag,
         *pucRW = X64_MMU_RW_NO;
     }
 
-    *pucUS = X64_MMU_US_NO;                                             /*  始终 supervisor             */
+    *pucUS  = X64_MMU_US_NO;                                            /*  始终 supervisor             */
+    *pucPAT = X64_MMU_PAT_NO;
 
     if ((ulFlag & LW_VMM_FLAG_CACHEABLE) &&
         (ulFlag & LW_VMM_FLAG_BUFFERABLE)) {                            /*  CACHE 与 BUFFER 控制        */
-        *pucPCD = X64_MMU_PCD_NO;
+        *pucPCD = X64_MMU_PCD_NO;                                       /*  回写                        */
         *pucPWT = X64_MMU_PWT_NO;
 
-    } else if (ulFlag & LW_VMM_FLAG_CACHEABLE) {
+    } else if (ulFlag & LW_VMM_FLAG_CACHEABLE) {                        /*  写穿透                      */
         *pucPCD = X64_MMU_PCD_NO;
         *pucPWT = X64_MMU_PWT;
 
-    } else if (ulFlag & LW_VMM_FLAG_BUFFERABLE) {
+        if (ulFlag & LW_VMM_FLAG_WRITECOMBINING) {                      /*  写合并                      */
+            *pucPAT = X64_MMU_PAT;
+        }
+
+    } else if (ulFlag & LW_VMM_FLAG_BUFFERABLE) {                       /*  写穿透                      */
         *pucPCD = X64_MMU_PCD_NO;
         *pucPWT = X64_MMU_PWT;
+
+        if (ulFlag & LW_VMM_FLAG_WRITECOMBINING) {                      /*  写合并                      */
+            *pucPAT = X64_MMU_PAT;
+        }
 
     } else {
-        *pucPCD = X64_MMU_PCD;
+        *pucPCD = X64_MMU_PCD;                                          /*  UNCACHE                     */
         *pucPWT = X64_MMU_PWT;
     }
 
@@ -184,6 +201,7 @@ static INT  x64MmuFlags2Attr (ULONG   ulFlag,
 **           ucPCD                   是否 CACHE 关闭
 **           ucA                     是否能访问
 **           ucXD                    是否禁止执行
+**           ucPAT                   PAT 位值
 **           pulFlag                 SylixOS 权限标志
 ** 输　出  : ERROR CODE
 ** 全局变量: 
@@ -195,6 +213,7 @@ static INT  x64MmuAttr2Flags (UINT8   ucRW,
                               UINT8   ucPCD,
                               UINT8   ucA,
                               UINT8   ucXD,
+                              UINT8   ucPAT,
                               ULONG  *pulFlag)
 {
     *pulFlag = LW_VMM_FLAG_VALID;
@@ -217,6 +236,12 @@ static INT  x64MmuAttr2Flags (UINT8   ucRW,
             *pulFlag |= LW_VMM_FLAG_UNBUFFERABLE;
         } else {
             *pulFlag |= LW_VMM_FLAG_BUFFERABLE;
+        }
+
+        if (ucPAT == X64_MMU_PAT) {
+            *pulFlag |= LW_VMM_FLAG_WRITECOMBINING;
+        } else {
+            *pulFlag |= LW_VMM_FLAG_UNWRITECOMBINING;
         }
     }
 
@@ -246,6 +271,7 @@ static INT  x64MmuAttr2Flags (UINT8   ucRW,
 **           ucPCD                   是否 CACHE 关闭
 **           ucA                     是否能访问
 **           ucXD                    是否禁止执行
+**           ucPAT                   PAT 位值
 ** 输　出  : 一级描述符
 ** 全局变量: 
 ** 调用模块: 
@@ -256,7 +282,8 @@ static LW_INLINE LW_PGD_TRANSENTRY  x64MmuBuildPgdEntry (addr_t  ulBaseAddr,
                                                          UINT8   ucPWT,
                                                          UINT8   ucPCD,
                                                          UINT8   ucA,
-                                                         UINT8   ucXD)
+                                                         UINT8   ucXD,
+                                                         UINT8   ucPAT)
 {
     LW_PGD_TRANSENTRY  ulDescriptor;
 
@@ -280,6 +307,7 @@ static LW_INLINE LW_PGD_TRANSENTRY  x64MmuBuildPgdEntry (addr_t  ulBaseAddr,
 **           ucPCD                   是否 CACHE 关闭
 **           ucA                     是否能访问
 **           ucXD                    是否禁止执行
+**           ucPAT                   PAT 位值
 ** 输　出  : 二级描述符
 ** 全局变量:
 ** 调用模块:
@@ -290,7 +318,8 @@ static LW_INLINE LW_PMD_TRANSENTRY  x64MmuBuildPmdEntry (addr_t  ulBaseAddr,
                                                          UINT8   ucPWT,
                                                          UINT8   ucPCD,
                                                          UINT8   ucA,
-                                                         UINT8   ucXD)
+                                                         UINT8   ucXD,
+                                                         UINT8   ucPAT)
 {
     LW_PMD_TRANSENTRY  ulDescriptor;
 
@@ -314,6 +343,7 @@ static LW_INLINE LW_PMD_TRANSENTRY  x64MmuBuildPmdEntry (addr_t  ulBaseAddr,
 **           ucPCD                   是否 CACHE 关闭
 **           ucA                     是否能访问
 **           ucXD                    是否禁止执行
+**           ucPAT                   PAT 位值
 ** 输　出  : 三级描述符
 ** 全局变量:
 ** 调用模块:
@@ -324,7 +354,8 @@ static LW_INLINE LW_PTS_TRANSENTRY  x64MmuBuildPtsEntry (addr_t  ulBaseAddr,
                                                          UINT8   ucPWT,
                                                          UINT8   ucPCD,
                                                          UINT8   ucA,
-                                                         UINT8   ucXD)
+                                                         UINT8   ucXD,
+                                                         UINT8   ucPAT)
 {
     LW_PTS_TRANSENTRY  ulDescriptor;
 
@@ -348,6 +379,7 @@ static LW_INLINE LW_PTS_TRANSENTRY  x64MmuBuildPtsEntry (addr_t  ulBaseAddr,
 **           ucPCD                   是否 CACHE 关闭
 **           ucA                     是否能访问
 **           ucXD                    是否禁止执行
+**           ucPAT                   PAT 位值
 ** 输　出  : 四级描述符
 ** 全局变量:
 ** 调用模块:
@@ -358,7 +390,8 @@ static LW_INLINE LW_PTE_TRANSENTRY  x64MmuBuildPteEntry (addr_t  ulBaseAddr,
                                                          UINT8   ucPWT,
                                                          UINT8   ucPCD,
                                                          UINT8   ucA,
-                                                         UINT8   ucXD)
+                                                         UINT8   ucXD,
+                                                         UINT8   ucPAT)
 {
     LW_PTE_TRANSENTRY  ulDescriptor;
 
@@ -368,7 +401,8 @@ static LW_INLINE LW_PTE_TRANSENTRY  x64MmuBuildPteEntry (addr_t  ulBaseAddr,
                  | (ucUS  << X64_MMU_US_SHIFT)
                  | (ucPWT << X64_MMU_PWT_SHIFT)
                  | (ucPCD << X64_MMU_PCD_SHIFT)
-                 | ((UINT64)ucXD << X64_MMU_XD_SHIFT);
+                 | ((UINT64)ucXD << X64_MMU_XD_SHIFT)
+                 | ((X86_FEATURE_HAS_PAT ? ucPAT : 0) << X64_MMU_PAT_SHIFT);
 
     return  (ulDescriptor);
 }
@@ -442,6 +476,17 @@ static INT  x64MmuGlobalInit (CPCHAR  pcMachineName)
     x86PentiumMsrGet(X86_MSR_IA32_EFER, &uiMsr);
     uiMsr |= X86_IA32_EFER_NXE;
     x86PentiumMsrSet(X86_MSR_IA32_EFER, &uiMsr);
+
+    if (X86_FEATURE_HAS_PAT) {                                          /*  有 PAT                      */
+        UINT64  ulPat;
+
+        x86PentiumMsrGet(X86_MSR_IA32_PAT, &ulPat);                     /*  获得 IA32_PAT MSR           */
+
+        ulPat &= ~(0x7ULL << 40);                                       /*  清除 PA5                    */
+        ulPat |= (0x1ULL << 40);                                        /*  PA5 = 1 Write Combining (WC)*/
+
+        x86PentiumMsrSet(X86_MSR_IA32_PAT, &ulPat);                     /*  获得 IA32_PAT MSR           */
+    }
 
     return  (ERROR_NONE);
 }
@@ -679,7 +724,8 @@ static LW_PMD_TRANSENTRY *x64MmuPmdAlloc (PLW_MMU_CONTEXT     pmmuctx,
                                       X64_MMU_PWT_NO,
                                       X64_MMU_PCD_NO,
                                       X64_MMU_A,
-                                      X64_MMU_XD_NO);                   /*  设置一级页表描述符          */
+                                      X64_MMU_XD_NO,
+                                      X64_MMU_PAT_NO);                  /*  设置一级页表描述符          */
 #if LW_CFG_CACHE_EN > 0
     iregInterLevel = KN_INT_DISABLE();
     x86DCacheFlush((PVOID)p_pgdentry, sizeof(LW_PGD_TRANSENTRY));
@@ -734,7 +780,8 @@ static LW_PTS_TRANSENTRY *x64MmuPtsAlloc (PLW_MMU_CONTEXT     pmmuctx,
                                       X64_MMU_PWT_NO,
                                       X64_MMU_PCD_NO,
                                       X64_MMU_A,
-                                      X64_MMU_XD_NO);                   /*  设置二级页表描述符          */
+                                      X64_MMU_XD_NO,
+                                      X64_MMU_PAT_NO);                  /*  设置二级页表描述符          */
 #if LW_CFG_CACHE_EN > 0
     iregInterLevel = KN_INT_DISABLE();
     x86DCacheFlush((PVOID)p_pmdentry, sizeof(LW_PMD_TRANSENTRY));
@@ -790,7 +837,8 @@ static LW_PTE_TRANSENTRY  *x64MmuPteAlloc (PLW_MMU_CONTEXT     pmmuctx,
                                       X64_MMU_PWT_NO,
                                       X64_MMU_PCD_NO,
                                       X64_MMU_A,
-                                      X64_MMU_XD_NO);                   /*  设置三级页表描述符          */
+                                      X64_MMU_XD_NO,
+                                      X64_MMU_PAT_NO);                  /*  设置三级页表描述符          */
 #if LW_CFG_CACHE_EN > 0
     iregInterLevel = KN_INT_DISABLE();
     x86DCacheFlush((PVOID)p_ptsentry, sizeof(LW_PTS_TRANSENTRY));
@@ -855,7 +903,7 @@ static ULONG  x64MmuFlagGet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr)
                 LW_PTE_TRANSENTRY   pteentry = *p_pteentry;             /*  获得四级描述符              */
 
                 if (x64MmuPteIsOk(pteentry)) {                          /*  四级描述符有效              */
-                    UINT8   ucRW, ucUS, ucPWT, ucPCD, ucA, ucXD;
+                    UINT8   ucRW, ucUS, ucPWT, ucPCD, ucA, ucXD, ucPAT;
                     ULONG   ulFlag;
 
                     ucRW  = (UINT8)((pteentry >> X64_MMU_RW_SHIFT)      & 0x01);
@@ -864,8 +912,9 @@ static ULONG  x64MmuFlagGet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr)
                     ucPCD = (UINT8)((pteentry >> X64_MMU_PCD_SHIFT)     & 0x01);
                     ucA   = (UINT8)((pteentry >> X64_MMU_PRESENT_SHIFT) & 0x01);
                     ucXD  = (UINT8)((pteentry >> X64_MMU_XD_SHIFT)      & 0x01);
+                    ucPAT = (UINT8)((pteentry >> X64_MMU_PAT_SHIFT)     & 0x01);
 
-                    x64MmuAttr2Flags(ucRW, ucUS, ucPWT, ucPCD, ucA, ucXD, &ulFlag);
+                    x64MmuAttr2Flags(ucRW, ucUS, ucPWT, ucPCD, ucA, ucXD, ucPAT, &ulFlag);
 
                     return  (ulFlag);
                 }
@@ -888,10 +937,11 @@ static ULONG  x64MmuFlagGet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr)
 *********************************************************************************************************/
 static INT  x64MmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  ulFlag)
 {
-    UINT8   ucRW, ucUS, ucPWT, ucPCD, ucA, ucXD;
+    UINT8   ucRW, ucUS, ucPWT, ucPCD, ucA, ucXD, ucPAT;
 
     if (x64MmuFlags2Attr(ulFlag, &ucRW,  &ucUS,
-                         &ucPWT, &ucPCD, &ucA, &ucXD) != ERROR_NONE) {  /*  无效的映射关系              */
+                         &ucPWT, &ucPCD, &ucA,
+                         &ucXD,  &ucPAT) != ERROR_NONE) {               /*  无效的映射关系              */
         return  (PX_ERROR);
     }
 
@@ -915,7 +965,7 @@ static INT  x64MmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  ulFl
 
                     *p_pteentry = x64MmuBuildPteEntry(ulPhysicalAddr,
                                                       ucRW,  ucUS, ucPWT,
-                                                      ucPCD, ucA,  ucXD);
+                                                      ucPCD, ucA,  ucXD, ucPAT);
 #if LW_CFG_CACHE_EN > 0
                     x86DCacheFlush((PVOID)p_pteentry, sizeof(LW_PTE_TRANSENTRY));
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
@@ -946,16 +996,17 @@ static VOID  x64MmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
                               addr_t              ulPhysicalAddr,
                               addr_t              ulFlag)
 {
-    UINT8   ucRW, ucUS, ucPWT, ucPCD, ucA, ucXD;
+    UINT8   ucRW, ucUS, ucPWT, ucPCD, ucA, ucXD, ucPAT;
     
     if (x64MmuFlags2Attr(ulFlag, &ucRW,  &ucUS,
-                         &ucPWT, &ucPCD, &ucA, &ucXD) != ERROR_NONE) {  /*  无效的映射关系              */
+                         &ucPWT, &ucPCD, &ucA,
+                         &ucXD,  &ucPAT) != ERROR_NONE) {               /*  无效的映射关系              */
         return;
     }
 
     *p_pteentry = x64MmuBuildPteEntry(ulPhysicalAddr,
                                       ucRW,  ucUS, ucPWT,
-                                      ucPCD, ucA,  ucXD);
+                                      ucPCD, ucA,  ucXD, ucPAT);
                                                         
 #if LW_CFG_CACHE_EN > 0
     x86DCacheFlush((PVOID)p_pteentry, sizeof(LW_PTE_TRANSENTRY));
