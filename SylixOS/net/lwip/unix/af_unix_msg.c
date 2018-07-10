@@ -20,6 +20,7 @@
 
 ** BUG:
 2013.11.18  加入对 MSG_CMSG_CLOEXEC 支持.
+2018.07.10  传递文件描述符前, 需要检测文件描述符有效性.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -52,12 +53,15 @@ static INT  __unix_dup (pid_t  pidSend, INT  iFdSend)
     if ((pidSend == 0) || (__PROC_GET_PID_CUR() == 0)) {                /*  不允许与内核交互文件描述符  */
         return  (PX_ERROR);
     }
+    
     if (pidSend == __PROC_GET_PID_CUR()) {
         iDup = dup(iFdSend);                                            /*  同一个进程中 dup 一次       */
+    
     } else {
         iDup = vprocIoFileDupFrom(pidSend, iFdSend);                    /*  从发送进程 dup 到本进程     */
         vprocIoFileRefDecByPid(pidSend, iFdSend);                       /*  减少发送进程对于此文件的引用*/
     }
+
 #else
     iDup = dup(iFdSend);                                                /*  内核中做一次 dup            */
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN      */
@@ -111,36 +115,42 @@ VOID  __unix_rmsg_proc (PVOID  pvMsgEx, socklen_t  uiLenEx, pid_t  pidSend, INT 
 ** 函数名称: __unix_flight 
 ** 功能描述: 使一个文件描述符在飞行
 ** 输　入  : pidSender sender pid
-**           iFd       要发送的文件描述符
-** 输　出  : NONE
+**           iFd       要发送的文件描述符表
+**           iNum      表大小
+** 输　出  : 是否飞行成功
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static  VOID  __unix_flight (pid_t  pidSend, INT  iFd)
+static INT  __unix_flight (pid_t  pidSend, INT  iFd[], INT  iNum)
 {
 #if LW_CFG_MODULELOADER_EN > 0
     if (pidSend == 0) {
-        return;
+        return  (ERROR_NONE);
     }
-    vprocIoFileRefIncByPid(pidSend, iFd);                               /*  增加发送进程对于此文件的引用*/
+    
+    return  (vprocIoFileRefIncArryByPid(pidSend, iFd, iNum));           /*  增加发送进程对于此文件的引用*/
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN      */
+
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: __unix_flight 
+** 函数名称: __unix_unflight 
 ** 功能描述: 使一个文件描述符降落
 ** 输　入  : pidSender sender pid
-**           iFd       要发送的文件描述符
+**           iFd       要发送的文件描述符表
+**           iNum      表大小
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static  VOID  __unix_unflight (pid_t  pidSend, INT  iFd)
+static VOID  __unix_unflight (pid_t  pidSend, INT  iFd[], INT  iNum)
 {
 #if LW_CFG_MODULELOADER_EN > 0
     if (pidSend == 0) {
         return;
     }
-    vprocIoFileRefDecByPid(pidSend, iFd);                               /*  减少发送进程对于此文件的引用*/
+    
+    vprocIoFileRefDecArryByPid(pidSend, iFd, iNum);                     /*  减少发送进程对于此文件的引用*/
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN      */
 }
 /*********************************************************************************************************
@@ -156,7 +166,7 @@ static  VOID  __unix_unflight (pid_t  pidSend, INT  iFd)
 *********************************************************************************************************/
 INT  __unix_smsg_proc (AF_UNIX_T  *pafunixRecver, PVOID  pvMsgEx, socklen_t  uiLenEx, pid_t  pidSend)
 {
-    INT              i;
+    INT              iFlightCnt;
     struct cmsghdr  *pcmhdr;
     struct msghdr    msghdrBuf;
     socklen_t        uiTotalLen = 0;
@@ -189,15 +199,17 @@ INT  __unix_smsg_proc (AF_UNIX_T  *pafunixRecver, PVOID  pvMsgEx, socklen_t  uiL
         pcmhdr = CMSG_NXTHDR(&msghdrBuf, pcmhdr);
     }
     
+    iFlightCnt = 0;
     pcmhdr = CMSG_FIRSTHDR(&msghdrBuf);                                 /*  遍历消息预处理发送的消息    */
     while (pcmhdr) {
         if (pcmhdr->cmsg_level == SOL_SOCKET) {
             if (pcmhdr->cmsg_type == SCM_RIGHTS) {                      /*  传送文件描述符              */
                 INT  *iFdArry = (INT *)CMSG_DATA(pcmhdr);
                 INT   iNum = (pcmhdr->cmsg_len - CMSG_LEN(0)) / sizeof(INT);
-                for (i = 0; i < iNum; i++) {
-                    __unix_flight(pidSend, iFdArry[i]);
+                if (__unix_flight(pidSend, iFdArry, iNum) < ERROR_NONE) {
+                    goto    __unix_flight_error;                        /*  文件引用出现错误            */
                 }
+                iFlightCnt++;
             
             } else if (pcmhdr->cmsg_type == SCM_CREDENTIALS) {          /*  Linux 进程凭证              */
                 struct ucred *pucred = (struct ucred *)CMSG_DATA(pcmhdr);
@@ -223,6 +235,23 @@ INT  __unix_smsg_proc (AF_UNIX_T  *pafunixRecver, PVOID  pvMsgEx, socklen_t  uiL
     }
     
     return  (ERROR_NONE);
+    
+__unix_flight_error:
+    pcmhdr = CMSG_FIRSTHDR(&msghdrBuf);                                 /*  遍历消息预处理发送的消息    */
+    while (pcmhdr && iFlightCnt) {
+        if (pcmhdr->cmsg_level == SOL_SOCKET) {
+            if (pcmhdr->cmsg_type == SCM_RIGHTS) {                      /*  传送文件描述符              */
+                INT  *iFdArry = (INT *)CMSG_DATA(pcmhdr);
+                INT   iNum = (pcmhdr->cmsg_len - CMSG_LEN(0)) / sizeof(INT);
+                __unix_unflight(pidSend, iFdArry, iNum);
+                iFlightCnt--;
+            }
+        }
+        pcmhdr = CMSG_NXTHDR(&msghdrBuf, pcmhdr);
+    }
+    
+    _ErrorHandle(EBADF);
+    return  (PX_ERROR);
 }
 /*********************************************************************************************************
 ** 函数名称: __unix_smsg_proc
@@ -236,7 +265,6 @@ INT  __unix_smsg_proc (AF_UNIX_T  *pafunixRecver, PVOID  pvMsgEx, socklen_t  uiL
 *********************************************************************************************************/
 VOID  __unix_smsg_unproc (PVOID  pvMsgEx, socklen_t  uiLenEx, pid_t  pidSend)
 {
-    INT              i;
     struct cmsghdr  *pcmhdr;
     struct msghdr    msghdrBuf;
 
@@ -255,10 +283,7 @@ VOID  __unix_smsg_unproc (PVOID  pvMsgEx, socklen_t  uiLenEx, pid_t  pidSend)
             if (pcmhdr->cmsg_type == SCM_RIGHTS) {                      /*  传送文件描述符              */
                 INT  *iFdArry = (INT *)CMSG_DATA(pcmhdr);
                 INT   iNum = (pcmhdr->cmsg_len - CMSG_LEN(0)) / sizeof(INT);
-                for (i = 0; i < iNum; i++) {
-                    __unix_unflight(pidSend, iFdArry[i]);
-                }
-            
+                __unix_unflight(pidSend, iFdArry, iNum);
             }
         }
         pcmhdr = CMSG_NXTHDR(&msghdrBuf, pcmhdr);

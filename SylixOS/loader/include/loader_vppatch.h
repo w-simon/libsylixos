@@ -241,8 +241,11 @@ INT                 vprocIoFileRefGet(INT  iFd);
 *********************************************************************************************************/
 
 INT                 vprocIoFileDupFrom(pid_t  pidSrc, INT  iFd);
+INT                 vprocIoFileRefGetByPid(pid_t  pid, INT  iFd);
 INT                 vprocIoFileRefIncByPid(pid_t  pid, INT  iFd);
 INT                 vprocIoFileRefDecByPid(pid_t  pid, INT  iFd);
+INT                 vprocIoFileRefIncArryByPid(pid_t  pid, INT  iFd[], INT  iNum);
+INT                 vprocIoFileRefDecArryByPid(pid_t  pid, INT  iFd[], INT  iNum);
 
 /*********************************************************************************************************
   资源管理器调用以下函数

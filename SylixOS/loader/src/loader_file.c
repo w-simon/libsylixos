@@ -209,7 +209,46 @@ INT  vprocIoFileDupFrom (pid_t  pidSrc, INT  iFd)
     return  (PX_ERROR);
 }
 /*********************************************************************************************************
-** 函数名称: vprocIoFileRefIncEx
+** 函数名称: vprocIoFileRefGetByPid
+** 功能描述: 通过 fd 获得设置 fd_entry 引用计数
+** 输　入  : pid           进程pid
+**           iFd           文件描述符
+** 输　出  : 引用数量
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  vprocIoFileRefGetByPid (pid_t  pid, INT  iFd)
+{
+    LW_LD_VPROC    *pvproc;
+    PLW_FD_DESC     pfddesc;
+    PLW_FD_ENTRY    pfdentry;
+    INT             iRef;
+
+    if (iFd < 0 || iFd >= LW_VP_MAX_FILES) {
+        return  (PX_ERROR);
+    }
+    
+    LW_LD_LOCK();
+    pvproc = vprocGet(pid);
+    if (!pvproc) {
+        LW_LD_UNLOCK();
+        return  (PX_ERROR);
+    }
+    
+    pfddesc = &pvproc->VP_fddescTbl[iFd];
+    
+    pfdentry = pfddesc->FDDESC_pfdentry;
+    if (pfdentry) {
+        iRef = (INT)pfddesc->FDDESC_ulRef;
+        LW_LD_UNLOCK();
+        return  (iRef);
+    }
+    LW_LD_UNLOCK();
+    
+    return  (PX_ERROR);
+}
+/*********************************************************************************************************
+** 函数名称: vprocIoFileRefIncByPid
 ** 功能描述: 通过 fd 获得设置 fd_entry 引用计数++
 ** 输　入  : pid           进程pid
 **           iFd           文件描述符
@@ -222,6 +261,7 @@ INT  vprocIoFileRefIncByPid (pid_t  pid, INT  iFd)
     LW_LD_VPROC    *pvproc;
     PLW_FD_DESC     pfddesc;
     PLW_FD_ENTRY    pfdentry;
+    INT             iRef;
 
     if (iFd < 0 || iFd >= LW_VP_MAX_FILES) {
         return  (PX_ERROR);
@@ -240,15 +280,16 @@ INT  vprocIoFileRefIncByPid (pid_t  pid, INT  iFd)
     if (pfdentry) {
         pfddesc->FDDESC_ulRef++;
         pfdentry->FDENTRY_ulCounter++;                                  /*  总引用数++                  */
+        iRef = (INT)pfddesc->FDDESC_ulRef;
         LW_LD_UNLOCK();
-        return  ((INT)pfddesc->FDDESC_ulRef);
+        return  (iRef);
     }
     LW_LD_UNLOCK();
     
     return  (PX_ERROR);
 }
 /*********************************************************************************************************
-** 函数名称: vprocIoFileRefDecEx
+** 函数名称: vprocIoFileRefDecByPid
 ** 功能描述: 通过 fd 获得设置 fd_entry 引用计数--
 ** 输　入  : pid           进程pid
 **           iFd           文件描述符
@@ -261,6 +302,7 @@ INT  vprocIoFileRefDecByPid (pid_t  pid, INT  iFd)
     LW_LD_VPROC    *pvproc;
     PLW_FD_DESC     pfddesc;
     PLW_FD_ENTRY    pfdentry;
+    INT             iRef;
 
     if (iFd < 0 || iFd >= LW_VP_MAX_FILES) {
         return  (PX_ERROR);
@@ -279,16 +321,131 @@ INT  vprocIoFileRefDecByPid (pid_t  pid, INT  iFd)
     if (pfdentry) {
         pfddesc->FDDESC_ulRef--;
         pfdentry->FDENTRY_ulCounter--;                                  /*  总引用数--                  */
+        iRef = (INT)pfddesc->FDDESC_ulRef;
         if (pfddesc->FDDESC_ulRef == 0) {
             pfddesc->FDDESC_pfdentry = LW_NULL;
             pfddesc->FDDESC_bCloExec = LW_FALSE;
         }
         LW_LD_UNLOCK();
-        return  ((INT)pfddesc->FDDESC_ulRef);
+        return  (iRef);
     }
     LW_LD_UNLOCK();
     
     return  (PX_ERROR);
+}
+/*********************************************************************************************************
+** 函数名称: vprocIoFileRefIncArryByPid
+** 功能描述: 通过 fd 获得设置 fd_entry 引用计数++
+** 输　入  : pid           进程pid
+**           iFd           文件描述符数组
+**           iNum          数组大小
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  vprocIoFileRefIncArryByPid (pid_t  pid, INT  iFd[], INT  iNum)
+{
+    LW_LD_VPROC    *pvproc;
+    PLW_FD_DESC     pfddesc;
+    PLW_FD_ENTRY    pfdentry;
+    INT             i;
+    
+    LW_LD_LOCK();
+    pvproc = vprocGet(pid);
+    if (!pvproc) {
+        LW_LD_UNLOCK();
+        return  (PX_ERROR);
+    }
+    
+    for (i = 0; i < iNum; i++) {
+        if (iFd[i] < 0 || iFd[i] >= LW_VP_MAX_FILES) {
+            break;
+        }
+        
+        pfddesc = &pvproc->VP_fddescTbl[iFd[i]];
+        
+        pfdentry = pfddesc->FDDESC_pfdentry;
+        if (!pfdentry) {
+            break;
+        }
+        
+        pfddesc->FDDESC_ulRef++;
+        pfdentry->FDENTRY_ulCounter++;                                  /*  总引用数++                  */
+    }
+    
+    if (i < iNum) {                                                     /*  是否出错                    */
+        for (--i; i >= 0; i--) {
+            if (iFd[i] < 0 || iFd[i] >= LW_VP_MAX_FILES) {
+                continue;
+            }
+            
+            pfddesc = &pvproc->VP_fddescTbl[iFd[i]];
+            
+            pfdentry = pfddesc->FDDESC_pfdentry;
+            if (!pfdentry) {
+                continue;
+            }
+            
+            pfddesc->FDDESC_ulRef--;
+            pfdentry->FDENTRY_ulCounter--;                              /*  总引用数--                  */
+            if (pfddesc->FDDESC_ulRef == 0) {
+                pfddesc->FDDESC_pfdentry = LW_NULL;
+                pfddesc->FDDESC_bCloExec = LW_FALSE;
+            }
+        }
+        LW_LD_UNLOCK();
+        return  (PX_ERROR);
+    }
+    LW_LD_UNLOCK();
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: vprocIoFileRefDecArryByPid
+** 功能描述: 通过 fd 获得设置 fd_entry 引用计数--
+** 输　入  : pid           进程pid
+**           iFd           文件描述符数组
+**           iNum          数组大小
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  vprocIoFileRefDecArryByPid (pid_t  pid, INT  iFd[], INT  iNum)
+{
+    LW_LD_VPROC    *pvproc;
+    PLW_FD_DESC     pfddesc;
+    PLW_FD_ENTRY    pfdentry;
+    INT             i;
+    
+    LW_LD_LOCK();
+    pvproc = vprocGet(pid);
+    if (!pvproc) {
+        LW_LD_UNLOCK();
+        return  (PX_ERROR);
+    }
+    
+    for (i = 0; i < iNum; i++) {
+        if (iFd[i] < 0 || iFd[i] >= LW_VP_MAX_FILES) {
+            continue;
+        }
+        
+        pfddesc = &pvproc->VP_fddescTbl[iFd[i]];
+        
+        pfdentry = pfddesc->FDDESC_pfdentry;
+        if (!pfdentry) {
+            continue;
+        }
+        
+        pfddesc->FDDESC_ulRef--;
+        pfdentry->FDENTRY_ulCounter--;                                  /*  总引用数--                  */
+        if (pfddesc->FDDESC_ulRef == 0) {
+            pfddesc->FDDESC_pfdentry = LW_NULL;
+            pfddesc->FDDESC_bCloExec = LW_FALSE;
+        }
+    }
+    LW_LD_UNLOCK();
+    
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
   以下函数为没有加进程锁的函数
