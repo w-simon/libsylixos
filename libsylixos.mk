@@ -221,12 +221,14 @@ SylixOS/arch/ppc/dbg/ppcGdb.c \
 SylixOS/arch/ppc/elf/ppcElf.c \
 SylixOS/arch/ppc/fpu/spe/ppcVfpSpe.c \
 SylixOS/arch/ppc/fpu/spe/ppcVfpSpeAsm.S \
-SylixOS/arch/ppc/fpu/altivec/ppcVfpAltivec.c \
-SylixOS/arch/ppc/fpu/altivec/ppcVfpAltivecAsm.S \
 SylixOS/arch/ppc/fpu/vfpnone/ppcVfpNone.c \
 SylixOS/arch/ppc/fpu/vfp/ppcVfp.c \
 SylixOS/arch/ppc/fpu/vfp/ppcVfpAsm.S \
 SylixOS/arch/ppc/fpu/ppcFpu.c \
+SylixOS/arch/ppc/dsp/altivec/ppcAltivec.c \
+SylixOS/arch/ppc/dsp/altivec/ppcAltivecAsm.S \
+SylixOS/arch/ppc/dsp/dspnone/ppcDspNone.c \
+SylixOS/arch/ppc/dsp/ppcDsp.c \
 SylixOS/arch/ppc/mm/ppcCache.c \
 SylixOS/arch/ppc/mm/ppcMmu.c \
 SylixOS/arch/ppc/mm/cache/common/ppcCache.c \
@@ -539,7 +541,37 @@ SylixOS/arch/sparc/mm/sparcCache.c \
 SylixOS/arch/sparc/mm/sparcMmu.c \
 SylixOS/arch/sparc/mpcore/sparcMpCoreAsm.S \
 SylixOS/arch/sparc/mpcore/sparcSpinlock.c \
-SylixOS/arch/sparc/param/sparcParam.c \
+SylixOS/arch/sparc/param/sparcParam.c
+
+#*********************************************************************************************************
+# RISC-V source
+#*********************************************************************************************************
+LOCAL_RISCV_SRCS = \
+SylixOS/arch/riscv/backtrace/riscvBacktrace.c \
+SylixOS/arch/riscv/common/riscvAssert.c \
+SylixOS/arch/riscv/common/riscvContext.c \
+SylixOS/arch/riscv/common/riscvContextAsm.S \
+SylixOS/arch/riscv/common/riscvExc.c \
+SylixOS/arch/riscv/common/riscvExcAsm.S \
+SylixOS/arch/riscv/common/riscvIo.c \
+SylixOS/arch/riscv/common/riscvLib.c \
+SylixOS/arch/riscv/common/riscvLibAsm.S \
+SylixOS/arch/riscv/dbg/riscvDbg.c \
+SylixOS/arch/riscv/dbg/riscvGdb.c \
+SylixOS/arch/riscv/elf/riscvElf.c \
+SylixOS/arch/riscv/fpu/riscvFpu.c \
+SylixOS/arch/riscv/fpu/vfp/riscvVfp.c \
+SylixOS/arch/riscv/fpu/vfp/riscvVfpAsm.S \
+SylixOS/arch/riscv/fpu/vfpnone/riscvVfpNone.c \
+SylixOS/arch/riscv/mm/cache/riscvCache.c \
+SylixOS/arch/riscv/mm/mmu/riscvSv32Mmu.c \
+SylixOS/arch/riscv/mm/mmu/riscvSv39Mmu.c \
+SylixOS/arch/riscv/mm/mmu/riscvSv48Mmu.c \
+SylixOS/arch/riscv/mm/riscvCache.c \
+SylixOS/arch/riscv/mm/riscvMmu.c \
+SylixOS/arch/riscv/mpcore/riscvMpCoreAsm.S \
+SylixOS/arch/riscv/mpcore/riscvSpinlock.c \
+SylixOS/arch/riscv/param/riscvParam.c
 
 #*********************************************************************************************************
 # Buildin internal application source

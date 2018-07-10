@@ -117,7 +117,7 @@ INT  API_PipeDevCreate (PCHAR  pcName,
                                                        _G_ulPipeLockOpt | LW_OPTION_OBJECT_GLOBAL,
                                                        LW_NULL);
     if (!p_pipedev->PIPEDEV_hMsgQueue) {
-        __SHEAP_FREE((PVOID)p_pipedev);
+        __SHEAP_FREE(p_pipedev);
         return  (PX_ERROR);
     }
     
@@ -126,7 +126,7 @@ INT  API_PipeDevCreate (PCHAR  pcName,
     if (iosDevAddEx(&p_pipedev->PIPEDEV_devhdrHdr, pcName, _G_iPipeDrvNum, DT_FIFO) != ERROR_NONE) {
         API_MsgQueueDelete(&p_pipedev->PIPEDEV_hMsgQueue);
         SEL_WAKE_UP_LIST_TERM(&p_pipedev->PIPEDEV_selwulList);
-        __SHEAP_FREE((PVOID)p_pipedev);
+        __SHEAP_FREE(p_pipedev);
         _DebugHandle(__ERRORMESSAGE_LEVEL, "no driver.\r\n");
         _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
         return  (PX_ERROR);
@@ -191,7 +191,7 @@ INT  API_PipeDevDelete (PCHAR  pcName, BOOL  bForce)
     
     API_MsgQueueDelete(&p_pipedev->PIPEDEV_hMsgQueue);
 
-    __SHEAP_FREE((PVOID)p_pipedev);
+    __SHEAP_FREE(p_pipedev);
     
     return  (ERROR_NONE);
 }

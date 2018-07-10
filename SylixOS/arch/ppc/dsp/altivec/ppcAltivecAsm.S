@@ -10,7 +10,7 @@
 ;**
 ;**--------------文件信息--------------------------------------------------------------------------------
 ;**
-;** 文   件   名: ppcVfpAltivecAsm.S
+;** 文   件   名: ppcAltivecAsm.S
 ;**
 ;** 创   建   人: Jiao.JinXing (焦进星)
 ;**
@@ -25,18 +25,18 @@
 
 #include <arch/assembler.h>
 
-#if LW_CFG_CPU_FPU_EN > 0
-#include "arch/ppc/arch_float.h"
+#if LW_CFG_CPU_DSP_EN > 0
+#include "arch/ppc/arch_dsp.h"
 #define  __SYLIXOS_PPC_HAVE_ALTIVEC 1
 #include "arch/ppc/arch_604.h"
 
     FILE_BEGIN()
 
-    EXPORT_LABEL(ppcVfpAltivecEnable)
-    EXPORT_LABEL(ppcVfpAltivecDisable)
-    EXPORT_LABEL(ppcVfpAltivecIsEnable)
-    EXPORT_LABEL(ppcVfpAltivecSave)
-    EXPORT_LABEL(ppcVfpAltivecRestore)
+    EXPORT_LABEL(ppcAltivecEnable)
+    EXPORT_LABEL(ppcAltivecDisable)
+    EXPORT_LABEL(ppcAltivecIsEnable)
+    EXPORT_LABEL(ppcAltivecSave)
+    EXPORT_LABEL(ppcAltivecRestore)
 
 ;/*********************************************************************************************************
 ;  VRSAVE 寄存器
@@ -52,7 +52,7 @@
     RLWINM  des, src, 0, ARCH_PPC_MSR_BIT_VEC + 1, ARCH_PPC_MSR_BIT_VEC - 1
 
 ;/*********************************************************************************************************
-;  使能 FPU 宏
+;  使能 ALTIVEC 宏
 ;*********************************************************************************************************/
 
 MACRO_DEF(ENABLE_ALTIVEC, Rn)
@@ -65,19 +65,19 @@ MACRO_DEF(ENABLE_ALTIVEC, Rn)
     MACRO_END()
 
 ;/*********************************************************************************************************
-;  使能 FPU
+;  使能 ALTIVEC
 ;*********************************************************************************************************/
 
-FUNC_DEF(ppcVfpAltivecEnable)
+FUNC_DEF(ppcAltivecEnable)
     ENABLE_ALTIVEC  R3
     BLR
     FUNC_END()
 
 ;/*********************************************************************************************************
-;  关闭 FPU
+;  关闭 ALTIVEC
 ;*********************************************************************************************************/
 
-FUNC_DEF(ppcVfpAltivecDisable)
+FUNC_DEF(ppcAltivecDisable)
     ISYNC
     SYNC
     MFMSR   R3
@@ -90,17 +90,17 @@ FUNC_DEF(ppcVfpAltivecDisable)
     FUNC_END()
 
 ;/*********************************************************************************************************
-;  判断 FPU 是否使能
+;  判断 ALTIVEC 是否使能
 ;*********************************************************************************************************/
 
-FUNC_DEF(ppcVfpAltivecIsEnable)
+FUNC_DEF(ppcAltivecIsEnable)
     MFMSR   R3
     ISYNC
     RLWINM  R3 , R3 , 0 , ARCH_PPC_MSR_BIT_VEC, ARCH_PPC_MSR_BIT_VEC
     CMPWI   CR0, R3 , 0
-    BNE     CR0, __ppcVfpAltivecIsEnable
+    BNE     CR0, __ppcAltivecIsEnable
     BLR
-LINE_LABEL(__ppcVfpAltivecIsEnable)
+LINE_LABEL(__ppcAltivecIsEnable)
     LI      R3 , 1
     BLR
     FUNC_END()
@@ -109,7 +109,7 @@ LINE_LABEL(__ppcVfpAltivecIsEnable)
 ;  保存寄存器
 ;*********************************************************************************************************/
 
-FUNC_DEF(ppcVfpAltivecSave)
+FUNC_DEF(ppcAltivecSave)
     ENABLE_ALTIVEC  R4
 
     MFSPR   R5  , VRSAVE_REG
@@ -199,7 +199,7 @@ FUNC_DEF(ppcVfpAltivecSave)
 ;  恢复寄存器
 ;*********************************************************************************************************/
 
-FUNC_DEF(ppcVfpAltivecRestore)
+FUNC_DEF(ppcAltivecRestore)
     ENABLE_ALTIVEC  R4
 
     LWZ     R5 , ALTIVEC_VRSAVE_OFFSET(R3)                      ;/*  Restore VRSAVE register             */

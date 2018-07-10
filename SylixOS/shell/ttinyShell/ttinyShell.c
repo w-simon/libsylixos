@@ -179,7 +179,7 @@ VOID  API_TShellInit (VOID)
             _DebugHandle(__ERRORMESSAGE_LEVEL, 
                          "tshell lock can not create.\r\n");
             _DebugHandle(__LOGMESSAGE_LEVEL,
-                         "ttniy shell system is not initialize.\r\n");
+                         "ttiny shell system is not initialize.\r\n");
             return;
         }
         API_SystemHookAdd(__tShellOptDeleteHook, 
@@ -350,13 +350,13 @@ LW_OBJECT_HANDLE  API_TShellCreateEx (INT  iTtyFd, ULONG  ulOption, FUNCPTR  pfu
     ULONG                   ulOldOption = ulOption;
     PLW_CLASS_TCB           ptcbShell;
     
-    _DebugHandle(__LOGMESSAGE_LEVEL, "ttniy shell system initialize...\r\n");
+    _DebugHandle(__LOGMESSAGE_LEVEL, "ttiny shell system initialize...\r\n");
     
     if (!isatty(iTtyFd)) {                                              /*  检测是否为终端设备          */
         _DebugHandle(__ERRORMESSAGE_LEVEL,
                      "is not a tty or pty device.\r\n");
         _DebugHandle(__LOGMESSAGE_LEVEL, 
-                     "ttniy shell system is not initialize.\r\n");
+                     "ttiny shell system is not initialize.\r\n");
         return  (0);
     }
     
@@ -398,7 +398,7 @@ LW_OBJECT_HANDLE  API_TShellCreateEx (INT  iTtyFd, ULONG  ulOption, FUNCPTR  pfu
         _DebugHandle(__ERRORMESSAGE_LEVEL, 
                      "tshell thread can not create.\r\n");
         _DebugHandle(__LOGMESSAGE_LEVEL, 
-                     "ttniy shell system is not initialize.\r\n");
+                     "ttiny shell system is not initialize.\r\n");
         return  (0);
         
     } else if ((__PROC_GET_PID_CUR() != 0) && 

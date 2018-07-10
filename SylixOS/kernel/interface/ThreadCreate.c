@@ -134,13 +134,13 @@ LW_OBJECT_HANDLE  API_ThreadCreate (CPCHAR                   pcName,
     );
     
     if (!ptcb) {                                                        /*  检查是否可以建立线程        */
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "there is no ID to buide a thread.\r\n");
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "there is no ID to build a thread.\r\n");
         _ErrorHandle(ERROR_THREAD_FULL);
         return  (LW_OBJECT_HANDLE_INVALID);
     }
     
     if (LW_SYS_STATUS_IS_RUNNING()) {
-        _ThreadSafeInternal();                                          /*  进入安全模式                */
+        LW_THREAD_SAFE();                                               /*  进入安全模式                */
     }
     
     lib_bzero(&ptcb->TCB_pstkStackTop, 
@@ -245,7 +245,7 @@ LW_OBJECT_HANDLE  API_ThreadCreate (CPCHAR                   pcName,
     }
     
     if (LW_SYS_STATUS_IS_RUNNING()) {
-        _ThreadUnsafeInternal();                                        /*  退出安全模式                */
+        LW_THREAD_UNSAFE();                                             /*  退出安全模式                */
     }
     
     _DebugFormat(__LOGMESSAGE_LEVEL, "thread \"%s\" has been create.\r\n", (pcName ? pcName : ""));
@@ -264,7 +264,7 @@ __error_handle:
         );
     }
     if (LW_SYS_STATUS_IS_RUNNING()) {
-        _ThreadUnsafeInternal();                                        /*  退出安全模式                */
+        LW_THREAD_UNSAFE();                                             /*  退出安全模式                */
     }
     
     return  (LW_OBJECT_HANDLE_INVALID);

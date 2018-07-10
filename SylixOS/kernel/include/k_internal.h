@@ -471,6 +471,10 @@ VOID           _ThreadSafeInternal(VOID);
 VOID           _ThreadUnsafeInternal(VOID);
 VOID           _ThreadUnsafeInternalEx(PLW_CLASS_TCB   ptcbDes);
 
+#define LW_THREAD_SAFE()            _ThreadSafeInternal()
+#define LW_THREAD_UNSAFE()          _ThreadUnsafeInternal()
+#define LW_THREAD_UNSAFE_EX(ptcb)   _ThreadUnsafeInternalEx(ptcb)
+
 /*********************************************************************************************************
   优先级比较
 *********************************************************************************************************/

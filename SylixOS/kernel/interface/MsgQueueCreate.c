@@ -96,7 +96,7 @@ LW_OBJECT_HANDLE  API_MsgQueueCreate (CPCHAR             pcName,
     );
     
     if (!pmsgqueue) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "there is no ID to buide a msgqueue.\r\n");
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "there is no ID to build a msgqueue.\r\n");
         _ErrorHandle(ERROR_MSGQUEUE_FULL);
         return  (LW_OBJECT_HANDLE_INVALID);
     }
@@ -109,7 +109,7 @@ LW_OBJECT_HANDLE  API_MsgQueueCreate (CPCHAR             pcName,
         __KERNEL_MODE_PROC(
             _Free_MsgQueue_Object(pmsgqueue);
         );
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "there is no ID to buide a msgqueue.\r\n");
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "there is no ID to build a msgqueue.\r\n");
         _ErrorHandle(ERROR_KERNEL_LOW_MEMORY);
         return  (LW_OBJECT_HANDLE_INVALID);
     }

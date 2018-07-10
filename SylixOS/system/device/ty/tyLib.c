@@ -840,11 +840,12 @@ ssize_t  _TyWrite (TY_DEV_ID  ptyDev,
     ptyDev->TYDEV_tydevwrstat.TYDEVWRSTAT_bCanceled = LW_FALSE;
     ptyDev->TYDEV_iAbortFlag &= ~OPT_WABORT;                            /*  清除 abort                  */
     
-    API_ThreadSafe();                                                   /*  任务提前进入安全状态        */
+    LW_THREAD_SAFE();                                                   /*  任务提前进入安全状态        */
+    
     while (stNBytes > 0) {
         ulError = API_SemaphoreBPend(ptyDev->TYDEV_hWrtSyncSemB, ptyDev->TYDEV_ulWTimeout);
         if (ulError) {
-            API_ThreadUnsafe();
+            LW_THREAD_UNSAFE();
             _ErrorHandle(ERROR_IO_DEVICE_TIMEOUT);                      /*   超时                       */
             return  (sstNbStart - stNBytes);
         }
@@ -853,14 +854,14 @@ ssize_t  _TyWrite (TY_DEV_ID  ptyDev,
         
         if (ptyDev->TYDEV_iAbortFlag & OPT_WABORT) {                    /*  is abort?                   */
             TYDEV_UNLOCK(ptyDev);                                       /*  释放设备使用权              */
-            API_ThreadUnsafe();
+            LW_THREAD_UNSAFE();
             _ErrorHandle(ERROR_IO_ABORT);                               /*  abort                       */
             return  (sstNbStart - stNBytes);
         }
         
         if (ptyDev->TYDEV_tydevwrstat.TYDEVWRSTAT_bCanceled) {          /*  检查是否被禁止输出了        */
             TYDEV_UNLOCK(ptyDev);                                       /*  释放设备使用权              */
-            API_ThreadUnsafe();
+            LW_THREAD_UNSAFE();
             _ErrorHandle(ERROR_IO_CANCELLED);
             return  (sstNbStart - stNBytes);
         }
@@ -887,7 +888,8 @@ ssize_t  _TyWrite (TY_DEV_ID  ptyDev,
         
         TYDEV_UNLOCK(ptyDev);                                           /*  释放设备使用权              */
     }
-    API_ThreadUnsafe();                                                 /*  退出安全模式                */
+    
+    LW_THREAD_UNSAFE();                                                 /*  退出安全模式                */
     
     return  (sstNbStart);
 }

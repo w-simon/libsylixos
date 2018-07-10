@@ -1021,7 +1021,7 @@ INT    __tshellBgCreateEx (INT               iFd[3],
         _DebugHandle(__ERRORMESSAGE_LEVEL, 
                      "tshellbg thread can not create.\r\n");
         _DebugHandle(__LOGMESSAGE_LEVEL, 
-                     "ttniy shell system is not initialize.\r\n");
+                     "ttiny shell system is not initialize.\r\n");
         return  (PX_ERROR);
     }
     

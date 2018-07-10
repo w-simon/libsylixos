@@ -28,7 +28,6 @@
 #include "vfpnone/ppcVfpNone.h"
 #include "vfp/ppcVfp.h"
 #include "spe/ppcVfpSpe.h"
-#include "altivec/ppcVfpAltivec.h"
 /*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
@@ -56,9 +55,6 @@ VOID  archFpuPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 
     } else if (lib_strcmp(pcFpuName, PPC_FPU_SPE) == 0) {
         _G_pfpuop    = ppcVfpSpePrimaryInit(pcMachineName, pcFpuName);
-
-    } else if (lib_strcmp(pcFpuName, PPC_FPU_ALTIVEC) == 0) {
-        _G_pfpuop    = ppcVfpAltivecPrimaryInit(pcMachineName, pcFpuName);
 
     } else {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown fpu name.\r\n");
@@ -101,9 +97,6 @@ VOID  archFpuSecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 
     } else if (lib_strcmp(pcFpuName, PPC_FPU_SPE) == 0) {
         ppcVfpSpeSecondaryInit(pcMachineName, pcFpuName);
-
-    } else if (lib_strcmp(pcFpuName, PPC_FPU_ALTIVEC) == 0) {
-        ppcVfpAltivecSecondaryInit(pcMachineName, pcFpuName);
 
     } else {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown fpu name.\r\n");

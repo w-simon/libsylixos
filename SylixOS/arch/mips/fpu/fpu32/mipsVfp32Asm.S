@@ -133,8 +133,7 @@ FUNC_DEF(mipsVfp32Init)
     MTC1    ZERO , $f31
 #endif
 
-    LI      T0 , FPU_CSR_FS                                             ;/*  非规格化结果被置为 0        */
-    CTC1_EHB(T0, CP1_STATUS)
+    CTC1_EHB(ZERO, CP1_STATUS)
 
     MTC0_EHB(T1 , CP0_STATUS)                                           ;/*  恢复原 FPU 开关状态         */
     JR      RA

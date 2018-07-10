@@ -132,7 +132,7 @@ INT  API_SpipeDevCreate (PCHAR  pcName, size_t  stBufferByteSize)
                                                          _G_ulSpipeLockOpt | LW_OPTION_OBJECT_GLOBAL, 
                                                          LW_NULL);
     if (!pspipedev->SPIPEDEV_hReadLock) {
-        __SHEAP_FREE((PVOID)pspipedev);
+        __SHEAP_FREE(pspipedev);
         return  (PX_ERROR);
     }
     
@@ -143,7 +143,7 @@ INT  API_SpipeDevCreate (PCHAR  pcName, size_t  stBufferByteSize)
                                                         
     if (!pspipedev->SPIPEDEV_hWriteLock) {
         API_SemaphoreBDelete(&pspipedev->SPIPEDEV_hReadLock);
-        __SHEAP_FREE((PVOID)pspipedev);
+        __SHEAP_FREE(pspipedev);
         return  (PX_ERROR);
     }
     
@@ -154,7 +154,7 @@ INT  API_SpipeDevCreate (PCHAR  pcName, size_t  stBufferByteSize)
     if (!pspipedev->SPIPEDEV_hOpLock) {
         API_SemaphoreBDelete(&pspipedev->SPIPEDEV_hReadLock);
         API_SemaphoreBDelete(&pspipedev->SPIPEDEV_hWriteLock);
-        __SHEAP_FREE((PVOID)pspipedev);
+        __SHEAP_FREE(pspipedev);
         return  (PX_ERROR);
     }
     
@@ -174,7 +174,7 @@ INT  API_SpipeDevCreate (PCHAR  pcName, size_t  stBufferByteSize)
         API_SemaphoreBDelete(&pspipedev->SPIPEDEV_hWriteLock);
         API_SemaphoreMDelete(&pspipedev->SPIPEDEV_hOpLock);
         SEL_WAKE_UP_LIST_TERM(&pspipedev->SPIPEDEV_selwulList);
-        __SHEAP_FREE((PVOID)pspipedev);
+        __SHEAP_FREE(pspipedev);
         return  (PX_ERROR);
     }
     
@@ -243,7 +243,7 @@ INT  API_SpipeDevDelete (PCHAR  pcName, BOOL  bForce)
     API_SemaphoreBDelete(&pspipedev->SPIPEDEV_hWriteLock);
     API_SemaphoreMDelete(&pspipedev->SPIPEDEV_hOpLock);
     
-    __SHEAP_FREE((PVOID)pspipedev);
+    __SHEAP_FREE(pspipedev);
     
     return  (ERROR_NONE);
 }

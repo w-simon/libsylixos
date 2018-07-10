@@ -57,6 +57,7 @@
 #include "ppc/arch_def.h"
 #include "ppc/arch_compiler.h"
 #include "ppc/arch_float.h"
+#include "ppc/arch_dsp.h"
 #include "ppc/arch_limits.h"
 #include "ppc/arch_regs.h"
 #include "ppc/arch_mmu.h"
@@ -77,6 +78,15 @@
 #include "sparc/arch_limits.h"
 #include "sparc/arch_regs.h"
 #include "sparc/arch_mmu.h"
+
+#elif defined(LW_CFG_CPU_ARCH_RISCV)
+#include "riscv/arch_types.h"
+#include "riscv/arch_compiler.h"
+#include "riscv/arch_def.h"
+#include "riscv/arch_float.h"
+#include "riscv/arch_limits.h"
+#include "riscv/arch_regs.h"
+#include "riscv/arch_mmu.h"
 #endif                                                                  /*  LW_CFG_CPU_ARCH_ARM         */
 
 #endif                                                                  /*  __ARCH_INC_H                */

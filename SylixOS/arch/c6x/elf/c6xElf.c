@@ -30,46 +30,46 @@
 /*********************************************************************************************************
   重定位类型定义
 *********************************************************************************************************/
-#define R_C6000_NONE		    0
-#define R_C6000_ABS32		    1
-#define R_C6000_ABS16		    2
-#define R_C6000_ABS8		    3
-#define R_C6000_PCR_S21		    4
-#define R_C6000_PCR_S12		    5
-#define R_C6000_PCR_S10		    6
-#define R_C6000_PCR_S7		    7
-#define R_C6000_ABS_S16		    8
-#define R_C6000_ABS_L16		    9
-#define R_C6000_ABS_H16		    10
-#define R_C6000_SBR_U15_B	    11
-#define R_C6000_SBR_U15_H	    12
-#define R_C6000_SBR_U15_W	    13
-#define R_C6000_SBR_S16		    14
-#define R_C6000_SBR_L16_B	    15
-#define R_C6000_SBR_L16_H	    16
-#define R_C6000_SBR_L16_W	    17
-#define R_C6000_SBR_H16_B	    18
-#define R_C6000_SBR_H16_H	    19
-#define R_C6000_SBR_H16_W	    20
-#define R_C6000_SBR_GOT_U15_W	21
-#define R_C6000_SBR_GOT_L16_W	22
-#define R_C6000_SBR_GOT_H16_W	23
-#define R_C6000_DSBT_INDEX	    24
-#define R_C6000_PREL31		    25
-#define R_C6000_COPY		    26
-#define R_C6000_JUMP_SLOT	    27
-#define R_C6000_SBR_GOT32	    28
-#define R_C6000_PCR_H16		    29
-#define R_C6000_PCR_L16		    30
-#define R_C6000_ALIGN		    253
-#define R_C6000_FPHEAD		    254
-#define R_C6000_NOCMP		    255
+#define R_C6000_NONE            0
+#define R_C6000_ABS32           1
+#define R_C6000_ABS16           2
+#define R_C6000_ABS8            3
+#define R_C6000_PCR_S21         4
+#define R_C6000_PCR_S12         5
+#define R_C6000_PCR_S10         6
+#define R_C6000_PCR_S7          7
+#define R_C6000_ABS_S16         8
+#define R_C6000_ABS_L16         9
+#define R_C6000_ABS_H16         10
+#define R_C6000_SBR_U15_B       11
+#define R_C6000_SBR_U15_H       12
+#define R_C6000_SBR_U15_W       13
+#define R_C6000_SBR_S16         14
+#define R_C6000_SBR_L16_B       15
+#define R_C6000_SBR_L16_H       16
+#define R_C6000_SBR_L16_W       17
+#define R_C6000_SBR_H16_B       18
+#define R_C6000_SBR_H16_H       19
+#define R_C6000_SBR_H16_W       20
+#define R_C6000_SBR_GOT_U15_W   21
+#define R_C6000_SBR_GOT_L16_W   22
+#define R_C6000_SBR_GOT_H16_W   23
+#define R_C6000_DSBT_INDEX      24
+#define R_C6000_PREL31          25
+#define R_C6000_COPY            26
+#define R_C6000_JUMP_SLOT       27
+#define R_C6000_SBR_GOT32       28
+#define R_C6000_PCR_H16         29
+#define R_C6000_PCR_L16         30
+#define R_C6000_ALIGN           253
+#define R_C6000_FPHEAD          254
+#define R_C6000_NOCMP           255
 /*********************************************************************************************************
   这里指令码以机器字长度的整数表示，不需要处理大小端问题，因为整数的高字节也是指令的高字节
 *********************************************************************************************************/
-#define C6X_INSTRUCTION_MVKL    0x0051d1aa                        	    /*  MVKL 指令                   */
-#define C6X_INSTRUCTION_MVKH    0X0051d1ea                        	    /*  MVKH 指令                   */
-#define C6X_INSTRUCTION_NOP     0x0080a362                        	    /*  NOP  指令                   */
+#define C6X_INSTRUCTION_MVKL    0x0051d1aa                              /*  MVKL 指令                   */
+#define C6X_INSTRUCTION_MVKH    0X0051d1ea                              /*  MVKH 指令                   */
+#define C6X_INSTRUCTION_NOP     0x0080a362                              /*  NOP  指令                   */
 /*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
@@ -78,9 +78,9 @@ extern LW_LIST_LINE_HEADER      _G_plineVProcHeader;
   跳转表项类型定义
 *********************************************************************************************************/
 typedef struct {
-    ULONG          ulInstMVKL;                                    		/*  MVKL 指令                   */
-    ULONG		   ulInstMVKH;											/*  MVKH 指令                   */
-    ULONG          ulInstNOP;                                         	/*  NOP  指令                   */
+    ULONG          ulInstMVKL;                                          /*  MVKL 指令                   */
+    ULONG          ulInstMVKH;                                          /*  MVKH 指令                   */
+    ULONG          ulInstNOP;                                           /*  NOP  指令                   */
 } LONG_JMP_ITEM;
 /*********************************************************************************************************
 ** 函数名称: jmpItemFind
@@ -101,7 +101,7 @@ static Elf_Addr jmpItemFind (Elf_Addr addrSymVal,
     ULONG          i;
 
     for (i = 0; i < ulJmpItemCnt; i++) {
-        if (pJmpTable[i].ulInstNOP != C6X_INSTRUCTION_NOP) {          	/*  创建新表项                  */
+        if (pJmpTable[i].ulInstNOP != C6X_INSTRUCTION_NOP) {            /*  创建新表项                  */
             pJmpTable[i].ulInstMVKL = (C6X_INSTRUCTION_MVKL & ~0x007fff80) | ((addrSymVal & 0xffff) << 7);
             pJmpTable[i].ulInstMVKH = (C6X_INSTRUCTION_MVKH & ~0x007fff80) | ((addrSymVal >> 9) & 0x007fff80);
             pJmpTable[i].ulInstNOP  = C6X_INSTRUCTION_NOP;
@@ -138,7 +138,7 @@ INT  archElfGotInit (PVOID  pmodule)
     LW_LD_EXEC_MODULE  *pmodTemp;
 
     BOOL                bStart;
-    ULONG	i;
+    ULONG               i;
 
     if (pmod->EMOD_ulModType == LW_LD_MOD_TYPE_KO) {
         pmod->EMOD_ulDsbtIndex = 0;
@@ -146,11 +146,11 @@ INT  archElfGotInit (PVOID  pmodule)
     }
 
     for (i = 0; i < pmod->EMOD_ulDsbtSize; i++) {
-    	if (__TI_STATIC_BASE[i] == 0) {
-    		__TI_STATIC_BASE[i] = (ULONG)pmod->EMOD_pulDsbtTable;
-    		pmod->EMOD_ulDsbtIndex = i;
-    		break;
-    	}
+        if (__TI_STATIC_BASE[i] == 0) {
+            __TI_STATIC_BASE[i] = (ULONG)pmod->EMOD_pulDsbtTable;
+            pmod->EMOD_ulDsbtIndex = i;
+            break;
+        }
     }
 
     if (i >= pmod->EMOD_ulDsbtSize) {
@@ -163,8 +163,8 @@ INT  archElfGotInit (PVOID  pmodule)
                (pmod->EMOD_ulDsbtSize * sizeof(ULONG)));
 
     for (plineTemp  = _G_plineVProcHeader;
-		 plineTemp != LW_NULL;
-		 plineTemp  = _list_line_get_next(plineTemp)) {
+         plineTemp != LW_NULL;
+         plineTemp  = _list_line_get_next(plineTemp)) {
 
         pvproc = _LIST_ENTRY(plineTemp, LW_LD_VPROC, VP_lineManage);
         for (pringTemp  = pvproc->VP_ringModules, bStart = LW_TRUE;
@@ -377,6 +377,7 @@ static LW_INLINE INT  archElfFixupPcr (Elf32_Addr  *pui32Ip,
 ** 功能描述: 重定位 REL 类型的重定位项
 ** 输  入  : pmodule      模块
 **           prel         REL 表项
+**           psym         符号
 **           addrSymVal   重定位符号的值
 **           pcTargetSec  重定位目目标节区
 **           pcBuffer     跳转表起始地址
@@ -387,6 +388,7 @@ static LW_INLINE INT  archElfFixupPcr (Elf32_Addr  *pui32Ip,
 *********************************************************************************************************/
 INT  archElfRelocateRel (PVOID        pmodule,
                          Elf_Rel     *prel,
+                         Elf_Sym     *psym,
                          Elf_Addr     addrSymVal,
                          PCHAR        pcTargetSec,
                          PCHAR        pcBuffer,
@@ -424,10 +426,10 @@ INT  archElfRelocateRel (PVOID        pmodule,
 
     case R_C6000_PCR_S21:
         if (archElfFixupPcr(paddrWhere, addrSymVal, 21, 7) != ERROR_NONE) {
-        	addrSymVal = jmpItemFind(addrSymVal, pcBuffer, stBuffLen);
-        	if (archElfFixupPcr(paddrWhere, addrSymVal, 21, 7) != ERROR_NONE) {
+            addrSymVal = jmpItemFind(addrSymVal, pcBuffer, stBuffLen);
+            if (archElfFixupPcr(paddrWhere, addrSymVal, 21, 7) != ERROR_NONE) {
                 return  (PX_ERROR);
-        	}
+            }
         }
         LD_DEBUG_MSG(("R_C6000_PCR_S21: %lx -> %lx\r\n",
                      (ULONG)paddrWhere, *paddrWhere));
@@ -435,12 +437,12 @@ INT  archElfRelocateRel (PVOID        pmodule,
 
     case R_C6000_PCR_S12:
         if (archElfFixupPcr(paddrWhere, addrSymVal, 12, 16) != ERROR_NONE) {
-        	addrSymVal = jmpItemFind(addrSymVal, pcBuffer, stBuffLen);
-        	if (archElfFixupPcr(paddrWhere, addrSymVal, 12, 16) != ERROR_NONE) {
+            addrSymVal = jmpItemFind(addrSymVal, pcBuffer, stBuffLen);
+            if (archElfFixupPcr(paddrWhere, addrSymVal, 12, 16) != ERROR_NONE) {
                 LD_DEBUG_MSG(("R_C6000_PCR_S10 failed: %lx -> %lx\r\n",
                              (ULONG)paddrWhere, *paddrWhere));
                 return  (PX_ERROR);
-        	}
+            }
         }
         LD_DEBUG_MSG(("R_C6000_PCR_S12: %lx -> %lx\r\n",
                      (ULONG)paddrWhere, *paddrWhere));
@@ -448,12 +450,12 @@ INT  archElfRelocateRel (PVOID        pmodule,
 
     case R_C6000_PCR_S10:
         if (archElfFixupPcr(paddrWhere, addrSymVal, 10, 13) != ERROR_NONE) {
-        	addrSymVal = jmpItemFind(addrSymVal, pcBuffer, stBuffLen);
-        	if (archElfFixupPcr(paddrWhere, addrSymVal, 10, 13) != ERROR_NONE) {
+            addrSymVal = jmpItemFind(addrSymVal, pcBuffer, stBuffLen);
+            if (archElfFixupPcr(paddrWhere, addrSymVal, 10, 13) != ERROR_NONE) {
                 LD_DEBUG_MSG(("R_C6000_PCR_S10 failed: %lx -> %lx\r\n",
                              (ULONG)paddrWhere, *paddrWhere));
                 return  (PX_ERROR);
-        	}
+            }
         }
         LD_DEBUG_MSG(("R_C6000_PCR_S10: %lx -> %lx\r\n",
                      (ULONG)paddrWhere, *paddrWhere));

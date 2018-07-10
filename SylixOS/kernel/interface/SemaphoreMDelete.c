@@ -138,7 +138,7 @@ ULONG  API_SemaphoreMDelete (LW_OBJECT_HANDLE  *pulId)
     
     if (ptcb) {
         if (ulOptionTemp & LW_OPTION_DELETE_SAFE) {                     /*  退出安全模式                */
-            _ThreadUnsafeInternalEx(ptcb);
+            LW_THREAD_UNSAFE_EX(ptcb);
         }
     }
     

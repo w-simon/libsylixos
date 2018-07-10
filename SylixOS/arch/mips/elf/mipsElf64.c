@@ -34,7 +34,9 @@
 /*********************************************************************************************************
 ** 函数名称: archElfRelocateRel
 ** 功能描述: 重定位 REL 类型的重定位项
-** 输  入  : prel         REL 表项
+** 输  入  : module       模块 
+**           prel         REL 表项
+**           psym         符号
 **           addrSymVal   重定位符号的值
 **           pcTargetSec  重定位目目标节区
 **           pcBuffer     跳转表起始地址
@@ -43,12 +45,13 @@
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-INT  archElfRelocateRel (PVOID      pmodule,
-                         Elf_Rel   *prel,
-                         Elf_Addr   addrSymVal,
-                         PCHAR      pcTargetSec,
-                         PCHAR      pcBuffer,
-                         size_t     stBuffLen)
+INT  archElfRelocateRel (PVOID        pmodule,
+                         Elf_Rel     *prel,
+                         Elf_Sym     *psym,
+                         Elf_Addr     addrSymVal,
+                         PCHAR        pcTargetSec,
+                         PCHAR        pcBuffer,
+                         size_t       stBuffLen)
 {
     Elf_Addr  *paddrWhere;
 
@@ -75,7 +78,9 @@ INT  archElfRelocateRel (PVOID      pmodule,
 /*********************************************************************************************************
 ** 函数名称: mipsElfRelocateRela
 ** 功能描述: 重定位 RELA 类型的重定位项
-** 输  入  : prela        RELA 表项
+** 输  入  : module       模块 
+**           prela        RELA 表项
+**           psym         符号
 **           addrSymVal   重定位符号的值
 **           pcTargetSec  重定位目目标节区
 **           pcBuffer     跳转表起始地址
@@ -84,12 +89,13 @@ INT  archElfRelocateRel (PVOID      pmodule,
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-INT  archElfRelocateRela (PVOID      pmodule,
-                          Elf_Rela  *prela,
-                          Elf_Addr   addrSymVal,
-                          PCHAR      pcTargetSec,
-                          PCHAR      pcBuffer,
-                          size_t     stBuffLen)
+INT  archElfRelocateRela (PVOID       pmodule,
+                          Elf_Rela   *prela,
+                          Elf_Sym    *psym,
+                          Elf_Addr    addrSymVal,
+                          PCHAR       pcTargetSec,
+                          PCHAR       pcBuffer,
+                          size_t      stBuffLen)
 {
     UINT32  *paddrWhere;
 

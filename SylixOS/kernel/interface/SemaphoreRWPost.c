@@ -91,7 +91,7 @@ ULONG  API_SemaphoreRWPost (LW_OBJECT_HANDLE  ulId)
             pevent->EVENT_ulCounter--;
             __KERNEL_EXIT();                                            /*  退出内核                    */
             if (pevent->EVENT_ulOption & LW_OPTION_DELETE_SAFE) {       /*  退出安全模式                */
-                _ThreadUnsafeInternal();
+                LW_THREAD_UNSAFE();
             }
             return  (ERROR_NONE);
         
@@ -142,7 +142,7 @@ __release_pend:
             __KERNEL_EXIT();                                            /*  退出内核                    */
             
             if (pevent->EVENT_ulOption & LW_OPTION_DELETE_SAFE) {       /*  退出安全模式                */
-                _ThreadUnsafeInternal();
+                LW_THREAD_UNSAFE();
             }
             return  (ERROR_NONE);
         
@@ -178,7 +178,7 @@ __release_pend:
             __KERNEL_EXIT();                                            /*  退出内核                    */
             
             if (pevent->EVENT_ulOption & LW_OPTION_DELETE_SAFE) {       /*  退出安全模式                */
-                _ThreadUnsafeInternal();
+                LW_THREAD_UNSAFE();
             }
             return  (ERROR_NONE);
         
@@ -191,7 +191,7 @@ __release_pend:
             __KERNEL_EXIT();                                            /*  退出内核                    */
             
             if (pevent->EVENT_ulOption & LW_OPTION_DELETE_SAFE) {       /*  退出安全模式                */
-                _ThreadUnsafeInternal();
+                LW_THREAD_UNSAFE();
             }
             return  (ERROR_NONE);
         }

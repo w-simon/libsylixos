@@ -102,8 +102,10 @@ LW_API INT     waitexcept(INT  iFd, struct timeval   *ptmvalTO);        /*  µÈ´ý
   select struct
 *********************************************************************************************************/
 
+#ifdef __SYLIXOS_KERNEL
 #include "selectType.h"
-                                                                        
+#endif                                                                  /*  __SYLIXOS_KERNEL            */
+
 #endif                                                                  /*  __SELECT_H                  */
 /*********************************************************************************************************
   END

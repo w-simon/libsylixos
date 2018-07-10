@@ -34,19 +34,19 @@
 
 LW_API VOID         API_SelWakeupListInit(PLW_SEL_WAKEUPLIST  pselwulList);
 LW_API VOID         API_SelWakeupListTerm(PLW_SEL_WAKEUPLIST  pselwulList);
-LW_API UINT         API_SelWakeupListLen( PLW_SEL_WAKEUPLIST  pselwulList);
+LW_API UINT         API_SelWakeupListLen(PLW_SEL_WAKEUPLIST  pselwulList);
 
-LW_API LW_SEL_TYPE  API_SelWakeupType( PLW_SEL_WAKEUPNODE   pselwunNode);
-LW_API VOID         API_SelWakeup(     PLW_SEL_WAKEUPNODE   pselwunNode);
+LW_API LW_SEL_TYPE  API_SelWakeupType(PLW_SEL_WAKEUPNODE   pselwunNode);
+LW_API VOID         API_SelWakeup(PLW_SEL_WAKEUPNODE   pselwunNode);
 LW_API VOID         API_SelWakeupError(PLW_SEL_WAKEUPNODE   pselwunNode);
 
-LW_API VOID         API_SelWakeupAll( PLW_SEL_WAKEUPLIST   pselwulList, LW_SEL_TYPE  seltyp);
+LW_API VOID         API_SelWakeupAll(PLW_SEL_WAKEUPLIST   pselwulList, LW_SEL_TYPE  seltyp);
 LW_API VOID         API_SelWakeupTerm(PLW_SEL_WAKEUPLIST   pselwulList);
 
-LW_API INT          API_SelNodeAdd(   PLW_SEL_WAKEUPLIST   pselwulList, 
-                                      PLW_SEL_WAKEUPNODE   pselwunNode);
+LW_API INT          API_SelNodeAdd(PLW_SEL_WAKEUPLIST   pselwulList, 
+                                   PLW_SEL_WAKEUPNODE   pselwunNode);
 LW_API INT          API_SelNodeDelete(PLW_SEL_WAKEUPLIST   pselwulList, 
-                                      PLW_SEL_WAKEUPNODE   pselwunNodeDelete);
+                                      PLW_SEL_WAKEUPNODE   pselwunDelete);
 
 /*********************************************************************************************************
   ²Ã¼õ¿ØÖÆ
@@ -67,17 +67,17 @@ LW_API INT          API_SelNodeDelete(PLW_SEL_WAKEUPLIST   pselwulList,
 #define SEL_WAKE_UP(pselwunNode)                API_SelWakeup(pselwunNode)
 #define SEL_WAKE_UP_ERROR(pselwunNode)          API_SelWakeupError(pselwunNode)
 
-#define SEL_WAKE_UP_ALL(pselwulList, seltyp)                    \
+#define SEL_WAKE_UP_ALL(pselwulList, seltyp)                \
         API_SelWakeupAll(pselwulList, seltyp)
         
-#define SEL_WAKE_UP_TERM(pselwulList)                           \
+#define SEL_WAKE_UP_TERM(pselwulList)                       \
         API_SelWakeupTerm(pselwulList)
 
-#define SEL_WAKE_NODE_ADD(pselwulList, pselwunNode)             \
+#define SEL_WAKE_NODE_ADD(pselwulList, pselwunNode)         \
         API_SelNodeAdd(pselwulList, pselwunNode)
         
-#define SEL_WAKE_NODE_DELETE(pselwulList, pselwunNodeDelete)    \
-        API_SelNodeDelete(pselwulList, pselwunNodeDelete)
+#define SEL_WAKE_NODE_DELETE(pselwulList, pselwunDelete)    \
+        API_SelNodeDelete(pselwulList, pselwunDelete)
         
 #else                                                                   /*  ²Ã¼õÁË select() ¿â          */
 
@@ -105,28 +105,25 @@ static LW_INLINE VOID SEL_WAKE_UP_ERROR(PLW_SEL_WAKEUPNODE   pselwunNode)
 {
     return;
 }
-static LW_INLINE VOID SEL_WAKE_UP_ALL( PLW_SEL_WAKEUPLIST   pselwulList, LW_SEL_TYPE  seltyp)
+static LW_INLINE VOID SEL_WAKE_UP_ALL(PLW_SEL_WAKEUPLIST   pselwulList, LW_SEL_TYPE  seltyp)
 {
     return;
 }
-static LW_INLINE VOID SEL_WAKE_UP_TERM( PLW_SEL_WAKEUPLIST   pselwulList)
+static LW_INLINE VOID SEL_WAKE_UP_TERM(PLW_SEL_WAKEUPLIST   pselwulList)
 {
     return;
 }
 static LW_INLINE INT  SEL_WAKE_NODE_ADD(PLW_SEL_WAKEUPLIST   pselwulList, 
-                              PLW_SEL_WAKEUPNODE   pselwunNode)
+                                        PLW_SEL_WAKEUPNODE   pselwunNode)
 {
     return  (PX_ERROR);
 }
 static LW_INLINE INT  SEL_WAKE_NODE_DELETE(PLW_SEL_WAKEUPLIST   pselwulList, 
-                                 PLW_SEL_WAKEUPNODE   pselwunNodeDelete)
+                                           PLW_SEL_WAKEUPNODE   pselwunDelete)
 {
     return  (PX_ERROR);
 }
 
-/*********************************************************************************************************
-  ²Ã¼õ¿ØÖÆ
-*********************************************************************************************************/
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */
                                                                         /*  (LW_CFG_SELECT_EN > 0)      */
 #endif                                                                  /*  __SELECTDRV_H               */

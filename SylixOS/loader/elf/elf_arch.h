@@ -26,38 +26,28 @@
   体系结构相关的重定位函数接口声明
 *********************************************************************************************************/
 
-INT archElfRGetJmpBuffItemLen(PVOID  pmodule);                          /*  获取跳转表项大小            */
+INT  archElfRGetJmpBuffItemLen(PVOID  pmodule);                         /*  获取跳转表项大小            */
 
-#if !defined(LW_CFG_CPU_ARCH_C6X) && !defined(LW_CFG_CPU_ARCH_SPARC)
-INT archElfRelocateRela(PVOID       pmodule,
-                        Elf_Rela   *prela,
-                        Elf_Addr    addrSymVal,
-                        PCHAR       pcTargetSec,
-                        PCHAR       pcBuffer,
-                        size_t      stBuffLen);                         /*  RELA 项重定位               */
-#else
-INT archElfRelocateRela(PVOID       pmodule,
-                        Elf_Rela   *prela,
-                        Elf_Sym    *psym,
-                        Elf_Addr    addrSymVal,
-                        PCHAR       pcTargetSec,
-                        PCHAR       pcBuffer,
-                        size_t      stBuffLen);                         /*  RELA 项重定位               */
-#endif
+INT  archElfRelocateRela(PVOID       pmodule,
+                         Elf_Rela   *prela,
+                         Elf_Sym    *psym,
+                         Elf_Addr    addrSymVal,
+                         PCHAR       pcTargetSec,
+                         PCHAR       pcBuffer,
+                         size_t      stBuffLen);                        /*  RELA 项重定位               */
 
-INT archElfRelocateRel(PVOID        pmodule,
-                       Elf_Rel     *prel,
-                       Elf_Addr     addrSymVal,
-                       PCHAR        pcTargetSec,
-                       PCHAR        pcBuffer,
-                       size_t       stBuffLen);                         /*  REL 项重定位                */
+INT  archElfRelocateRel(PVOID        pmodule,
+                        Elf_Rel     *prel,
+                        Elf_Sym     *psym,
+                        Elf_Addr     addrSymVal,
+                        PCHAR        pcTargetSec,
+                        PCHAR        pcBuffer,
+                        size_t       stBuffLen);                        /*  REL 项重定位                */
 
-#if defined(LW_CFG_CPU_ARCH_PPC) || defined(LW_CFG_CPU_ARCH_MIPS) || defined(LW_CFG_CPU_ARCH_C6X)
-INT archElfGotInit(PVOID  pmodule);                                     /*  初始化GOT表                 */
-#endif
+INT  archElfGotInit(PVOID  pmodule);                                    /*  初始化 GOT 表               */
 
 #if defined(LW_CFG_CPU_ARCH_C6X)
-INT archElfDSBTRemove(PVOID  pmodule);
+INT  archElfDSBTRemove(PVOID  pmodule);
 #endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
 
 #endif                                                                  /*  __ELF_ARCH_H                */

@@ -277,21 +277,15 @@ VOID  archE500FpuUnavailableExceptionHandle (addr_t  ulRetAddr)
 ** 调用模块:
 ** 注  意  : 此函数退出时必须为中断关闭状态.
 *********************************************************************************************************/
-VOID  archE500ApUnavailableExceptionHandle (addr_t  ulRetAddr)
+LW_WEAK VOID  archE500ApUnavailableExceptionHandle (addr_t  ulRetAddr)
 {
     PLW_CLASS_TCB   ptcbCur;
     LW_VMM_ABORT    abtInfo;
 
     LW_TCB_GET_CUR(ptcbCur);
 
-#if LW_CFG_CPU_FPU_EN > 0
-    if (archFpuUndHandle(ptcbCur) == ERROR_NONE) {                      /*  进行 FPU 指令探测           */
-        return;
-    }
-#endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
-
-    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FPE;
-    abtInfo.VMABT_uiMethod = FPE_FLTINV;                                /*  FPU 不可用                  */
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_UNDEF;
+    abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
@@ -470,14 +464,14 @@ VOID  archE500AltiVecUnavailableExceptionHandle (addr_t  ulRetAddr)
 
     LW_TCB_GET_CUR(ptcbCur);
 
-#if LW_CFG_CPU_FPU_EN > 0
-    if (archFpuUndHandle(ptcbCur) == ERROR_NONE) {                      /*  进行 FPU 指令探测           */
+#if LW_CFG_CPU_DSP_EN > 0
+    if (archDspUndHandle(ptcbCur) == ERROR_NONE) {                      /*  进行 AltiVec 指令探测       */
         return;
     }
-#endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+#endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
 
-    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FPE;
-    abtInfo.VMABT_uiMethod = FPE_FLTINV;                                /*  FPU 不可用                  */
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_DSPE;
+    abtInfo.VMABT_uiMethod = FPE_FLTINV;                                /*  AltiVec 不可用              */
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
@@ -496,7 +490,7 @@ VOID  archE500AltiVecAssistExceptionHandle (addr_t  ulRetAddr)
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FPE;
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_DSPE;
     abtInfo.VMABT_uiMethod = FPE_FLTINV;
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
 }

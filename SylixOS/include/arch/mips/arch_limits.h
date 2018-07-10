@@ -61,7 +61,7 @@
 
 #else
 #ifndef __ARCH_LONG_MAX
-#define __ARCH_LONG_MAX            9223372036854775807L
+#define __ARCH_LONG_MAX            9223372036854775807l
 #endif
 
 #ifndef __ARCH_LONG_MIN
@@ -105,7 +105,7 @@
 #else
 #ifndef __ARCH_ULONG_MAX
 #ifdef  __STDC__
-#define __ARCH_ULONG_MAX           18446744073709551615UL
+#define __ARCH_ULONG_MAX           18446744073709551615ul
 #else
 #define __ARCH_ULONG_MAX           18446744073709551615
 #endif

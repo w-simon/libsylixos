@@ -343,6 +343,8 @@ ULONG  API_ThreadDelete (LW_OBJECT_HANDLE  *pulId, PVOID  pvRetVal)
     
     _ObjectCloseId(pulId);                                              /*  关闭 ID                     */
     
+    ptcbCur->TCB_ulThreadSafeCounter++;                                 /*  LW_THREAD_SAFE();           */
+    
     __KERNEL_EXIT();                                                    /*  退出内核                    */
     
     if (ptcbDel == ptcbCur) {
@@ -350,6 +352,8 @@ ULONG  API_ThreadDelete (LW_OBJECT_HANDLE  *pulId, PVOID  pvRetVal)
         
         MONITOR_EVT_LONG2(MONITOR_EVENT_ID_THREAD, MONITOR_EVENT_THREAD_DELETE, 
                           ptcbDel->TCB_ulId, pvRetVal, LW_NULL);
+        
+        ptcbCur->TCB_ulThreadSafeCounter--;                             /*  LW_THREAD_UNSAFE();         */
         
         _excJobAdd((VOIDFUNCPTR)__threadDelete,
                    ptcbDel, (PVOID)LW_FALSE, pvRetVal, 
@@ -366,8 +370,10 @@ ULONG  API_ThreadDelete (LW_OBJECT_HANDLE  *pulId, PVOID  pvRetVal)
     
         MONITOR_EVT_LONG2(MONITOR_EVENT_ID_THREAD, MONITOR_EVENT_THREAD_DELETE, 
                           ptcbDel->TCB_ulId, pvRetVal, LW_NULL);
-    
+        
         ulError = __threadDelete(ptcbDel, LW_FALSE, pvRetVal, LW_TRUE);
+        
+        LW_THREAD_UNSAFE();                                             /*  退出安全模式                */
     }
     
     return  (ulError);

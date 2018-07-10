@@ -169,6 +169,7 @@ static Elf_Addr jmpItemFind (Elf_Addr addrSymVal,
 ** 功能描述: 重定位 RELA 类型的重定位项
 ** 输  入  : pmodule      模块
 **           prela        RELA 表项
+**           psym         符号
 **           addrSymVal   重定位符号的值
 **           pcTargetSec  重定位目目标节区
 **           pcBuffer     跳转表起始地址
@@ -179,6 +180,7 @@ static Elf_Addr jmpItemFind (Elf_Addr addrSymVal,
 *********************************************************************************************************/
 INT  archElfRelocateRela (PVOID       pmodule,
                           Elf_Rela   *prela,
+                          Elf_Sym    *psym,
                           Elf_Addr    addrSymVal,
                           PCHAR       pcTargetSec,
                           PCHAR       pcBuffer,
@@ -310,6 +312,7 @@ INT  archElfRelocateRela (PVOID       pmodule,
 ** 功能描述: 重定位 REL 类型的重定位项
 ** 输  入  : pmodule      模块
 **           prel         REL 表项
+**           psym         符号
 **           addrSymVal   重定位符号的值
 **           pcTargetSec  重定位目目标节区
 **           pcBuffer     跳转表起始地址
@@ -320,6 +323,7 @@ INT  archElfRelocateRela (PVOID       pmodule,
 *********************************************************************************************************/
 INT  archElfRelocateRel (PVOID        pmodule,
                          Elf_Rel     *prel,
+                         Elf_Sym     *psym,
                          Elf_Addr     addrSymVal,
                          PCHAR        pcTargetSec,
                          PCHAR        pcBuffer,

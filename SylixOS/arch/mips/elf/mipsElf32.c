@@ -34,7 +34,7 @@
 /*********************************************************************************************************
 ** 函数名称: mipsElfHI16RelocateRel
 ** 功能描述: 重定位 R_MIPS_HI16类型的重定位项
-** 输  入  : pmodule      Module描述符
+** 输  入  : pmodule      模块
 **           pRelocAdrs   重定位地址
 **           addrSymVal   重定位符号的值
 ** 输  出  : ERROR_NONE 表示没有错误, PX_ERROR 表示错误
@@ -79,7 +79,7 @@ static VOID  mipsElfFreeHI16Relocatelist (PMIPS_HI16_RELOC_INFO  pHi16Info)
 /*********************************************************************************************************
 ** 函数名称: mipsElfLO16RelocateRel
 ** 功能描述: 重定位 R_MIPS_LO16类型的重定位项
-** 输  入  : pmodule      Module描述符
+** 输  入  : pmodule      模块
 **           pRelocAdrs   重定位地址
 **           addrSymVal   重定位符号的值
 ** 输  出  : ERROR_NONE 表示没有错误, PX_ERROR 表示错误
@@ -143,7 +143,9 @@ static INT  mipsElfLO16RelocateRel (LW_LD_EXEC_MODULE  *pmodule,
 /*********************************************************************************************************
 ** 函数名称: archElfRelocateRel
 ** 功能描述: 重定位 REL 类型的重定位项
-** 输  入  : prel         REL 表项
+** 输  入  : pmodule      模块 
+**           prel         REL 表项
+**           psym         符号
 **           addrSymVal   重定位符号的值
 **           pcTargetSec  重定位目目标节区
 **           pcBuffer     跳转表起始地址
@@ -152,12 +154,13 @@ static INT  mipsElfLO16RelocateRel (LW_LD_EXEC_MODULE  *pmodule,
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-INT  archElfRelocateRel (PVOID      pmodule,
-                         Elf_Rel   *prel,
-                         Elf_Addr   addrSymVal,
-                         PCHAR      pcTargetSec,
-                         PCHAR      pcBuffer,
-                         size_t     stBuffLen)
+INT  archElfRelocateRel (PVOID        pmodule,
+                         Elf_Rel     *prel,
+                         Elf_Sym     *psym,
+                         Elf_Addr     addrSymVal,
+                         PCHAR        pcTargetSec,
+                         PCHAR        pcBuffer,
+                         size_t       stBuffLen)
 {
     Elf_Addr  *paddrWhere;
 
@@ -215,7 +218,9 @@ INT  archElfRelocateRel (PVOID      pmodule,
 /*********************************************************************************************************
 ** 函数名称: mipsElfRelocateRela
 ** 功能描述: 重定位 RELA 类型的重定位项
-** 输  入  : prela        RELA 表项
+** 输  入  : module       模块 
+**           prela        RELA 表项
+**           psym         符号
 **           addrSymVal   重定位符号的值
 **           pcTargetSec  重定位目目标节区
 **           pcBuffer     跳转表起始地址
@@ -224,12 +229,13 @@ INT  archElfRelocateRel (PVOID      pmodule,
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-INT  archElfRelocateRela (PVOID      pmodule,
-                          Elf_Rela  *prela,
-                          Elf_Addr   addrSymVal,
-                          PCHAR      pcTargetSec,
-                          PCHAR      pcBuffer,
-                          size_t     stBuffLen)
+INT  archElfRelocateRela (PVOID       pmodule,
+                          Elf_Rela   *prela,
+                          Elf_Sym    *psym,
+                          Elf_Addr    addrSymVal,
+                          PCHAR       pcTargetSec,
+                          PCHAR       pcBuffer,
+                          size_t      stBuffLen)
 {
     return  (PX_ERROR);
 }

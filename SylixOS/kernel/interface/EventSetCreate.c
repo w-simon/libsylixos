@@ -72,7 +72,7 @@ LW_OBJECT_HANDLE  API_EventSetCreate (CPCHAR             pcName,
     );
     
     if (!pes) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "there is no ID to buide a eventset.\r\n");
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "there is no ID to build a eventset.\r\n");
         _ErrorHandle(ERROR_EVENTSET_FULL);
         return  (LW_OBJECT_HANDLE_INVALID);
     }

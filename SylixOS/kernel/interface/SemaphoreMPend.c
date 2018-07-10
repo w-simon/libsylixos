@@ -134,7 +134,7 @@ __wait_again:
         pevent->EVENT_pvTcbOwn     = (PVOID)ptcbCur;                    /*  保存线程信息                */
         __KERNEL_EXIT();                                                /*  退出内核                    */
         if (pevent->EVENT_ulOption & LW_OPTION_DELETE_SAFE) {           /*  安全模式设定                */
-            _ThreadSafeInternal();
+            LW_THREAD_SAFE();
         }
         return  (ERROR_NONE);
     }
@@ -214,7 +214,7 @@ __wait_again:
     } else {
         if (ptcbCur->TCB_ucIsEventDelete == LW_EVENT_EXIST) {           /*  事件是否存在                */
             if (pevent->EVENT_ulOption & LW_OPTION_DELETE_SAFE) {       /*  安全模式设定                */
-                _ThreadSafeInternal();
+                LW_THREAD_SAFE();
             }
             return  (ERROR_NONE);
         

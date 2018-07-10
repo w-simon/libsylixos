@@ -376,7 +376,7 @@ err_t   netconn_err(struct netconn *conn);
 
 /* SylixOS Changed here use u16_t */
 #define netconn_set_flags(conn, set_flags)     do { (conn)->flags = (u16_t)((conn)->flags |  (set_flags)); } while(0)
-#define netconn_clear_flags(conn, clr_flags)   do { (conn)->flags = (u16_t)((conn)->flags & ~(clr_flags)); } while(0)
+#define netconn_clear_flags(conn, clr_flags)   do { (conn)->flags = (u16_t)((conn)->flags & (u16_t)(~(clr_flags) & 0xffff)); } while(0)
 #define netconn_is_flag_set(conn, flag)        (((conn)->flags & (flag)) != 0)
 
 /** Set the blocking status of netconn calls (@todo: write/send is missing) */

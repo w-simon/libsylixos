@@ -53,7 +53,7 @@
                                            API 函数
 *********************************************************************************************************/
 LW_API  
-LW_SEL_TYPE API_SelWakeupType (PLW_SEL_WAKEUPNODE   pselwunNode)
+LW_SEL_TYPE  API_SelWakeupType (PLW_SEL_WAKEUPNODE   pselwunNode)
 {
     if (!pselwunNode) {
         return  (SELEXCEPT);                                            /*  节点错误                    */
@@ -85,30 +85,13 @@ VOID    API_SelWakeup (PLW_SEL_WAKEUPNODE   pselwunNode)
     usIndex = _ObjectGetIndex(pselwunNode->SELWUN_hThreadId);
     
     ptcb = __GET_TCB_FROM_INDEX(usIndex);
-    if (!ptcb) {                                                        /*  线程不存在                  */
+    if (!ptcb || !ptcb->TCB_pselctxContext) {                           /*  线程不存在                  */
         return;
     }
     
-    pselctxContext = ptcb->TCB_pselctxContext;                          /*  获得 select() context       */
-    if (!pselctxContext) {
-        return;
-    }
+    LW_SELWUN_SET_READY(pselwunNode);
     
-    switch (pselwunNode->SELWUN_seltypType) {
-    
-    case SELREAD:                                                       /*  read 事件                   */
-        FD_SET(pselwunNode->SELWUN_iFd, pselctxContext->SELCTX_pfdsetReadFds);
-	    break;
-	    
-    case SELWRITE:                                                      /*  write 事件                  */
-        FD_SET(pselwunNode->SELWUN_iFd, pselctxContext->SELCTX_pfdsetWriteFds);
-	    break;
-    
-    case SELEXCEPT:                                                     /*  except 事件                 */
-        FD_SET(pselwunNode->SELWUN_iFd, pselctxContext->SELCTX_pfdsetExceptFds);
-        break;
-    }
-    
+    pselctxContext = ptcb->TCB_pselctxContext;
     API_SemaphoreBPost(pselctxContext->SELCTX_hSembWakeup);             /*  提前激活即将等待线程        */
 }
 /*********************************************************************************************************
@@ -135,14 +118,12 @@ VOID    API_SelWakeupError (PLW_SEL_WAKEUPNODE   pselwunNode)
     usIndex = _ObjectGetIndex(pselwunNode->SELWUN_hThreadId);
     
     ptcb = __GET_TCB_FROM_INDEX(usIndex);
-    if (!ptcb) {                                                        /*  线程不存在                  */
+    if (!ptcb || !ptcb->TCB_pselctxContext) {                           /*  线程不存在                  */
         return;
     }
     
-    pselctxContext = ptcb->TCB_pselctxContext;                          /*  获得 select() context       */
-    if (!pselctxContext) {
-        return;
-    }
+    pselctxContext = ptcb->TCB_pselctxContext;
+    pselctxContext->SELCTX_bBadFd = LW_TRUE;                            /*  文件描述符错误              */
     
     API_SemaphoreBPost(pselctxContext->SELCTX_hSembWakeup);             /*  提前激活即将等待线程        */
 }
@@ -218,8 +199,8 @@ VOID    API_SelWakeupTerm (PLW_SEL_WAKEUPLIST  pselwulList)
                        &pselwulList->SELWUL_plineHeader);               /*  删除此节点                  */
         pselwulList->SELWUL_ulWakeCounter--;                            /*  等待线程数量--              */
         
-        if (pselwunNode->SELWUN_bDontFree == LW_FALSE) {                /*  需要释放内存                */
-            __SHEAP_FREE((PVOID)pselwunNode);
+        if (!LW_SELWUN_IS_DFREE(pselwunNode)) {                         /*  需要释放内存                */
+            __SHEAP_FREE(pselwunNode);
         }
     }
     
@@ -250,6 +231,7 @@ INT     API_SelNodeAdd (PLW_SEL_WAKEUPLIST  pselwulList, PLW_SEL_WAKEUPNODE   ps
     if (pselwulList->SELWUL_plineHeader == LW_NULL) {                   /*  没有节点                    */
         pselwunNodeClone = &pselwulList->SELWUL_selwunFrist;
         bDontFree = LW_TRUE;
+    
     } else {                                                            /*  已经存在节点                */
         pselwunNodeClone = (PLW_SEL_WAKEUPNODE)__SHEAP_ALLOC(sizeof(LW_SEL_WAKEUPNODE));
         bDontFree = LW_FALSE;
@@ -262,7 +244,12 @@ INT     API_SelNodeAdd (PLW_SEL_WAKEUPLIST  pselwulList, PLW_SEL_WAKEUPNODE   ps
     
     *pselwunNodeClone = *pselwunNode;                                   /*  拷贝节点信息                */
     
-    pselwunNodeClone->SELWUN_bDontFree = bDontFree;                     /*  记录节点是否需要释放操作    */
+    if (bDontFree) {
+        LW_SELWUN_SET_DFREE(pselwunNodeClone);
+    
+    } else {
+        LW_SELWUN_CLEAR_DFREE(pselwunNodeClone);
+    }
     
     _List_Line_Add_Ahead(&pselwunNodeClone->SELWUN_lineManage, 
                          &pselwulList->SELWUL_plineHeader);             /*  加入等待链表                */
@@ -276,14 +263,14 @@ INT     API_SelNodeAdd (PLW_SEL_WAKEUPLIST  pselwulList, PLW_SEL_WAKEUPNODE   ps
 ** 函数名称: API_SelNodeDelete
 ** 功能描述: 从指定的 wake up list 中,删除一个等待节点.
 ** 输　入  : pselwulList        select wake up list 控制结构
-             pselwunNodeDelete  select wake up node 控制结构
-** 输　出  : 返回 ERROR_NONE ,当没有找到节点时,返回 PX_ERROR.
+             pselwunDelete      select wake up node 控制结构
+** 输　出  : 返回 ERROR_NONE, 当没有找到节点时,返回 PX_ERROR.
 ** 全局变量: 
 ** 调用模块: 
                                            API 函数
 *********************************************************************************************************/
 LW_API  
-INT     API_SelNodeDelete (PLW_SEL_WAKEUPLIST  pselwulList, PLW_SEL_WAKEUPNODE   pselwunNodeDelete)
+INT     API_SelNodeDelete (PLW_SEL_WAKEUPLIST  pselwulList, PLW_SEL_WAKEUPNODE   pselwunDelete)
 {
     REGISTER PLW_SEL_WAKEUPNODE   pselwunNode;                          /*  遍历节点                    */
     REGISTER PLW_LIST_LINE        plineNode;
@@ -295,15 +282,19 @@ INT     API_SelNodeDelete (PLW_SEL_WAKEUPLIST  pselwulList, PLW_SEL_WAKEUPNODE  
          plineNode  = _list_line_get_next(plineNode)) {                 /*  遍历所有节点                */
          
         pselwunNode = _LIST_ENTRY(plineNode, LW_SEL_WAKEUPNODE, SELWUN_lineManage);
-        if ((pselwunNode->SELWUN_hThreadId  == pselwunNodeDelete->SELWUN_hThreadId) &&
-            (pselwunNode->SELWUN_seltypType == pselwunNodeDelete->SELWUN_seltypType)) {
+        if ((pselwunNode->SELWUN_hThreadId  == pselwunDelete->SELWUN_hThreadId) &&
+            (pselwunNode->SELWUN_seltypType == pselwunDelete->SELWUN_seltypType)) {
             
             _List_Line_Del(&pselwunNode->SELWUN_lineManage, 
                            &pselwulList->SELWUL_plineHeader);
             pselwulList->SELWUL_ulWakeCounter--;                        /*  等待线程数量--              */
             
-            if (pselwunNode->SELWUN_bDontFree == LW_FALSE) {            /*  需要释放内存                */
-                __SHEAP_FREE((PVOID)pselwunNode);
+            if (LW_SELWUN_IS_READY(pselwunNode)) {
+                LW_SELWUN_SET_READY(pselwunDelete);
+            }
+            
+            if (!LW_SELWUN_IS_DFREE(pselwunNode)) {                     /*  需要释放内存                */
+                __SHEAP_FREE(pselwunNode);
             }
             
             SEL_LIST_UNLOCK(pselwulList);

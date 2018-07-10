@@ -40,6 +40,9 @@
 
 #elif defined(__sparc__)
 #include "cpu_cfg_sparc.h"
+
+#elif defined(__riscv)
+#include "cpu_cfg_riscv.h"
 #endif
 
 #else

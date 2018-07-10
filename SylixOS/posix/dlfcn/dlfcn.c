@@ -98,6 +98,10 @@ int  dlclose (void  *pvHandle)
 LW_API 
 char  *dlerror (void)
 {
+    if (!errno) {
+        return  (LW_NULL);
+    }
+
     return  (lib_strerror(errno));
 }
 /*********************************************************************************************************

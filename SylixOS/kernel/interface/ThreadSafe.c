@@ -39,7 +39,7 @@ ULONG  API_ThreadSafe (VOID)
         return  (ERROR_KERNEL_IN_ISR);
     }
     
-    _ThreadSafeInternal();
+    LW_THREAD_SAFE();
     
     return  (ERROR_NONE);
 }

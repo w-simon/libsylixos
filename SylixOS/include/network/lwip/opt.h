@@ -277,7 +277,7 @@
  * default values in pcbs struct are well initialized in all conditions.
  */
 #if !defined MEMP_MEM_INIT || defined __DOXYGEN__
-#define MEMP_MEM_INIT                 0
+#define MEMP_MEM_INIT                   0
 #endif
 
 /**
@@ -787,6 +787,8 @@
  * Since the received pbufs are enqueued, be sure to configure
  * PBUF_POOL_SIZE > IP_REASS_MAX_PBUFS so that the stack is still able to receive
  * packets even if the maximum amount of fragments is enqueued for reassembly!
+ * When IPv4 *and* IPv6 are enabled, this even changes to
+ * (PBUF_POOL_SIZE > 2 * IP_REASS_MAX_PBUFS)!
  */
 #if !defined IP_REASS_MAX_PBUFS || defined __DOXYGEN__
 #define IP_REASS_MAX_PBUFS              10
@@ -852,7 +854,7 @@
  * ICMP_TTL: Default value for Time-To-Live used by ICMP packets.
  */
 #if !defined ICMP_TTL || defined __DOXYGEN__
-#define ICMP_TTL                       (IP_DEFAULT_TTL)
+#define ICMP_TTL                        IP_DEFAULT_TTL
 #endif
 
 /**
@@ -893,7 +895,7 @@
  * LWIP_RAW==1: Enable application layer to hook into the IP layer itself.
  */
 #if !defined RAW_TTL || defined __DOXYGEN__
-#define RAW_TTL                        (IP_DEFAULT_TTL)
+#define RAW_TTL                         IP_DEFAULT_TTL
 #endif
 /**
  * @}
@@ -925,7 +927,7 @@
  * DHCP_DOES_ARP_CHECK==1: Do an ARP check on the offered address.
  */
 #if !defined DHCP_DOES_ARP_CHECK || defined __DOXYGEN__
-#define DHCP_DOES_ARP_CHECK             ((LWIP_DHCP) && (LWIP_ARP))
+#define DHCP_DOES_ARP_CHECK             (LWIP_DHCP && LWIP_ARP)
 #endif
 
 /**
@@ -1129,7 +1131,7 @@
 
 /** DNS maximum number of retries when asking for a name, before "timeout". */
 #if !defined DNS_MAX_RETRIES || defined __DOXYGEN__
-#define DNS_MAX_RETRIES           4
+#define DNS_MAX_RETRIES                 4
 #endif
 
 /** DNS do a name checking between the query and the response. */
@@ -1171,7 +1173,7 @@
 /** Set this to 1 to enable querying ".local" names via mDNS
  *  using a One-Shot Multicast DNS Query */
 #if !defined LWIP_DNS_SUPPORT_MDNS_QUERIES || defined __DOXYGEN__
-#define LWIP_DNS_SUPPORT_MDNS_QUERIES  0
+#define LWIP_DNS_SUPPORT_MDNS_QUERIES   0
 #endif
 /**
  * @}
@@ -1205,7 +1207,7 @@
  * UDP_TTL: Default Time-To-Live value.
  */
 #if !defined UDP_TTL || defined __DOXYGEN__
-#define UDP_TTL                         (IP_DEFAULT_TTL)
+#define UDP_TTL                         IP_DEFAULT_TTL
 #endif
 
 /**
@@ -1239,7 +1241,7 @@
  * TCP_TTL: Default Time-To-Live value.
  */
 #if !defined TCP_TTL || defined __DOXYGEN__
-#define TCP_TTL                         (IP_DEFAULT_TTL)
+#define TCP_TTL                         IP_DEFAULT_TTL
 #endif
 
 /**
@@ -1272,7 +1274,7 @@
  * Define to 0 if your device is low on memory.
  */
 #if !defined TCP_QUEUE_OOSEQ || defined __DOXYGEN__
-#define TCP_QUEUE_OOSEQ                 (LWIP_TCP)
+#define TCP_QUEUE_OOSEQ                 LWIP_TCP
 #endif
 
 /**
@@ -1371,7 +1373,7 @@
  */
 #if !defined TCP_OOSEQ_BYTES_LIMIT
 #if TCP_OOSEQ_MAX_BYTES
-#define TCP_OOSEQ_BYTES_LIMIT(pcb) TCP_OOSEQ_MAX_BYTES
+#define TCP_OOSEQ_BYTES_LIMIT(pcb)      TCP_OOSEQ_MAX_BYTES
 #elif defined __DOXYGEN__
 #define TCP_OOSEQ_BYTES_LIMIT(pcb)
 #endif
@@ -1394,7 +1396,7 @@
  */
 #if !defined TCP_OOSEQ_PBUFS_LIMIT
 #if TCP_OOSEQ_MAX_PBUFS
-#define TCP_OOSEQ_PBUFS_LIMIT(pcb) TCP_OOSEQ_MAX_PBUFS
+#define TCP_OOSEQ_PBUFS_LIMIT(pcb)      TCP_OOSEQ_MAX_PBUFS
 #elif defined __DOXYGEN__
 #define TCP_OOSEQ_PBUFS_LIMIT(pcb)
 #endif
@@ -1449,7 +1451,7 @@
  * explicit window update
  */
 #if !defined TCP_WND_UPDATE_THRESHOLD || defined __DOXYGEN__
-#define TCP_WND_UPDATE_THRESHOLD   LWIP_MIN((TCP_WND / 4), (TCP_MSS * 4))
+#define TCP_WND_UPDATE_THRESHOLD        LWIP_MIN((TCP_WND / 4), (TCP_MSS * 4))
 #endif
 
 /**
@@ -1563,7 +1565,7 @@
  * Default width of u8_t can be increased if 255 refs are not enough for you.
  */
 #ifndef LWIP_PBUF_REF_T
-#define LWIP_PBUF_REF_T u8_t
+#define LWIP_PBUF_REF_T                 u8_t
 #endif
 /**
  * @}
@@ -1665,7 +1667,7 @@
  *   }
  */
 #if !defined LWIP_NETIF_TX_SINGLE_PBUF || defined __DOXYGEN__
-#define LWIP_NETIF_TX_SINGLE_PBUF             0
+#define LWIP_NETIF_TX_SINGLE_PBUF       0
 #endif /* LWIP_NETIF_TX_SINGLE_PBUF */
 
 /**
@@ -1673,7 +1675,7 @@
  * data in client_data member array of struct netif (max. 256).
  */
 #if !defined LWIP_NUM_NETIF_CLIENT_DATA || defined __DOXYGEN__
-#define LWIP_NUM_NETIF_CLIENT_DATA            0
+#define LWIP_NUM_NETIF_CLIENT_DATA      0
 #endif
 /**
  * @}
@@ -1702,7 +1704,7 @@
  * LWIP_LOOPIF_MULTICAST==1: Support multicast/IGMP on loop interface (127.0.0.1).
  */
 #if !defined LWIP_LOOPIF_MULTICAST || defined __DOXYGEN__
-#define LWIP_LOOPIF_MULTICAST               0
+#define LWIP_LOOPIF_MULTICAST           0
 #endif
 
 /**
@@ -1755,7 +1757,7 @@
  * TCPIP_THREAD_NAME: The name assigned to the main tcpip thread.
  */
 #if !defined TCPIP_THREAD_NAME || defined __DOXYGEN__
-#define TCPIP_THREAD_NAME              "tcpip_thread"
+#define TCPIP_THREAD_NAME               "tcpip_thread"
 #endif
 
 /**
@@ -1797,7 +1799,7 @@
  * SLIPIF_THREAD_NAME: The name assigned to the slipif_loop thread.
  */
 #if !defined SLIPIF_THREAD_NAME || defined __DOXYGEN__
-#define SLIPIF_THREAD_NAME             "slipif_loop"
+#define SLIPIF_THREAD_NAME              "slipif_loop"
 #endif
 
 /**
@@ -1822,7 +1824,7 @@
  * DEFAULT_THREAD_NAME: The name assigned to any other lwIP thread.
  */
 #if !defined DEFAULT_THREAD_NAME || defined __DOXYGEN__
-#define DEFAULT_THREAD_NAME            "lwIP"
+#define DEFAULT_THREAD_NAME             "lwIP"
 #endif
 
 /**
@@ -2436,7 +2438,7 @@
  * LWIP_IPV6_REASS==1: reassemble incoming IPv6 packets that fragmented
  */
 #if !defined LWIP_IPV6_REASS || defined __DOXYGEN__
-#define LWIP_IPV6_REASS                 (LWIP_IPV6)
+#define LWIP_IPV6_REASS                 LWIP_IPV6
 #endif
 
 /**
@@ -2451,7 +2453,7 @@
  * LWIP_IPV6_AUTOCONFIG==1: Enable stateless address autoconfiguration as per RFC 4862.
  */
 #if !defined LWIP_IPV6_AUTOCONFIG || defined __DOXYGEN__
-#define LWIP_IPV6_AUTOCONFIG            (LWIP_IPV6)
+#define LWIP_IPV6_AUTOCONFIG            LWIP_IPV6
 #endif
 
 /**
@@ -2462,7 +2464,7 @@
  * If this option is disabled, all addresses are assumed to be static.
  */
 #if !defined LWIP_IPV6_ADDRESS_LIFETIMES || defined __DOXYGEN__
-#define LWIP_IPV6_ADDRESS_LIFETIMES     (LWIP_IPV6_AUTOCONFIG)
+#define LWIP_IPV6_ADDRESS_LIFETIMES     LWIP_IPV6_AUTOCONFIG
 #endif
 
 /**
@@ -2484,7 +2486,7 @@
  * LWIP_ICMP6==1: Enable ICMPv6 (mandatory per RFC)
  */
 #if !defined LWIP_ICMP6 || defined __DOXYGEN__
-#define LWIP_ICMP6                      (LWIP_IPV6)
+#define LWIP_ICMP6                      LWIP_IPV6
 #endif
 
 /**
@@ -2516,7 +2518,7 @@
  * indiscriminately pass all inbound IPv6 multicast traffic to lwIP.
  */
 #if !defined LWIP_IPV6_MLD || defined __DOXYGEN__
-#define LWIP_IPV6_MLD                   (LWIP_IPV6)
+#define LWIP_IPV6_MLD                   LWIP_IPV6
 #endif
 
 /**
@@ -2549,7 +2551,7 @@
  * is being resolved.
  */
 #if !defined LWIP_ND6_QUEUEING || defined __DOXYGEN__
-#define LWIP_ND6_QUEUEING               (LWIP_IPV6)
+#define LWIP_ND6_QUEUEING               LWIP_IPV6
 #endif
 
 /**

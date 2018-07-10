@@ -124,10 +124,11 @@ static inline void * __attribute__ ((always_inline))
 do_bytes_aligned (void *a, const void *b, unsigned long len, void *ret)
 {
   unsigned char *x = (unsigned char *) a;
+  const unsigned char *y = (unsigned char *) b;
 
-  if(len > 0) {
+  while(len > 0) {
     bitfields_t bw;
-    bw.v = *((reg_t*) b);
+    bw.v = *((reg_t*) y);
 
 #if __mips64
     DO_BYTE(x, 0);
@@ -138,11 +139,15 @@ do_bytes_aligned (void *a, const void *b, unsigned long len, void *ret)
     DO_BYTE(x, 5);
     DO_BYTE(x, 6);
     DO_BYTE(x, 7);
+    x += 8;
+    y += 8;
 #else
     DO_BYTE(x, 0);
     DO_BYTE(x, 1);
     DO_BYTE(x, 2);
     DO_BYTE(x, 3);
+    x += 4;
+    y += 4;
 #endif
   }
 

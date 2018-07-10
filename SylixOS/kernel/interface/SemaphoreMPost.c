@@ -136,7 +136,7 @@ ULONG  API_SemaphoreMPost (LW_OBJECT_HANDLE  ulId)
         __KERNEL_EXIT();                                                /*  退出内核                    */
         
         if (pevent->EVENT_ulOption & LW_OPTION_DELETE_SAFE) {           /*  退出安全模式                */
-            _ThreadUnsafeInternal();
+            LW_THREAD_UNSAFE();
         }
         return  (ERROR_NONE);
     
@@ -152,7 +152,7 @@ ULONG  API_SemaphoreMPost (LW_OBJECT_HANDLE  ulId)
             __KERNEL_EXIT();                                            /*  退出内核                    */
             
             if (pevent->EVENT_ulOption & LW_OPTION_DELETE_SAFE) {       /*  退出安全模式                */
-                _ThreadUnsafeInternal();
+                LW_THREAD_UNSAFE();
             }
             return  (ERROR_NONE);
         

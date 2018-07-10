@@ -247,9 +247,8 @@ VOID    archMpInt(ULONG  ulCPUId);
 *********************************************************************************************************/
 
 #define PPC_FPU_NONE        "none"
-#define PPC_FPU_VFP    		"vfp"
+#define PPC_FPU_VFP         "vfp"
 #define PPC_FPU_SPE         "spe"
-#define PPC_FPU_ALTIVEC     "altivec"
 
 #if LW_CFG_CPU_FPU_EN > 0
 VOID    archFpuPrimaryInit(CPCHAR  pcMachineName, CPCHAR  pcFpuName);
@@ -276,6 +275,39 @@ VOID    archFpuCtxShow(INT  iFd, PVOID  pvFpuCtx);
 
 INT     archFpuUndHandle(PLW_CLASS_TCB  ptcbCur);
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN           */
+
+/*********************************************************************************************************
+  PowerPC 处理器 DSP
+*********************************************************************************************************/
+
+#define PPC_DSP_NONE        "none"
+#define PPC_DSP_ALTIVEC     "altivec"
+
+#if LW_CFG_CPU_DSP_EN > 0
+VOID    archDspPrimaryInit(CPCHAR  pcMachineName, CPCHAR  pcDspName);
+#if LW_CFG_SMP_EN > 0
+VOID    archDspSecondaryInit(CPCHAR  pcMachineName, CPCHAR  pcDspName);
+#endif                                                                  /*  LW_CFG_SMP_EN               */
+
+VOID    archDspCtxInit(PVOID pvDspCtx);
+VOID    archDspEnable(VOID);
+VOID    archDspDisable(VOID);
+VOID    archDspSave(PVOID pvDspCtx);
+VOID    archDspRestore(PVOID pvDspCtx);
+
+#define __ARCH_DSP_CTX_INIT     archDspCtxInit
+#define __ARCH_DSP_ENABLE       archDspEnable
+#define __ARCH_DSP_DISABLE      archDspDisable
+#define __ARCH_DSP_SAVE         archDspSave
+#define __ARCH_DSP_RESTORE      archDspRestore
+
+#if LW_CFG_DEVICE_EN > 0
+VOID    archDspCtxShow(INT  iFd, PVOID pvDspCtx);
+#define __ARCH_DSP_CTX_SHOW     archDspCtxShow
+#endif                                                                  /*  LW_CFG_DEVICE_EN            */
+
+INT     archDspUndHandle(PLW_CLASS_TCB  ptcbCur);
+#endif                                                                  /*  LW_CFG_CPU_DSP_EN           */
 
 /*********************************************************************************************************
   bsp 需要提供的接口如下:

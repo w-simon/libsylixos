@@ -214,6 +214,12 @@ INT  _PipeIoctl (PLW_PIPE_DEV  p_pipedev,
     
     switch (iRequest) {
     
+    case FIOSEEK:
+    case FIOWHERE:
+        iErrCode = (PX_ERROR);
+        _ErrorHandle(ESPIPE);
+        break;
+        
     case FIONREAD:                                                      /*  获得管道中数据的字节个数    */
         API_MsgQueueStatus(p_pipedev->PIPEDEV_hMsgQueue,
                            LW_NULL,

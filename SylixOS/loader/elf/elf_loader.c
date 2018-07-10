@@ -198,17 +198,6 @@ static INT elfRelaRelocate (LW_LD_EXEC_MODULE *pmodule,
 
         LD_DEBUG_MSG(("relocate %s :", pcSymName));
 
-#if !defined(LW_CFG_CPU_ARCH_C6X) && !defined(LW_CFG_CPU_ARCH_SPARC)
-        if (archElfRelocateRela(pmodule,
-                                prela,
-                                addrSymVal,
-                                pcTargetSect,
-                                pcJmpTable,
-                                stJmpTableItem) < 0) {                  /*  与体系结构相关的重定位      */
-            _ErrorHandle(ERROR_LOADER_RELOCATE);
-            return  (PX_ERROR);
-        }
-#else
         if (archElfRelocateRela(pmodule,
                                 prela,
                                 psym,
@@ -219,7 +208,6 @@ static INT elfRelaRelocate (LW_LD_EXEC_MODULE *pmodule,
             _ErrorHandle(ERROR_LOADER_RELOCATE);
             return  (PX_ERROR);
         }
-#endif
 
         prela++;
     }
@@ -291,6 +279,7 @@ static INT elfRelRelocate (LW_LD_EXEC_MODULE *pmodule,
         LD_DEBUG_MSG(("relocate %s :", pcSymName));
         if (archElfRelocateRel(pmodule,
                                prel,
+                               psym,
                                symVal,
                                pcTargetSect,
                                pcJmpTable,
@@ -688,8 +677,12 @@ static INT elfModuleMemoryInit (LW_LD_EXEC_MODULE *pmodule, Elf_Shdr *pshdrArr)
     /*
      *  构造一个节用于保存跳转表
      */
+#ifndef LW_CFG_CPU_ARCH_RISCV
     pshdrArr[pmodule->EMOD_ulSegCount].sh_size  = ulJmpItemCnt
                                                 * archElfRGetJmpBuffItemLen(pmodule);
+#else
+    pshdrArr[pmodule->EMOD_ulSegCount].sh_size  = LW_CFG_RISCV_GOT_SIZE + LW_CFG_RISCV_HI20_SIZE;
+#endif                                                                  /*  LW_CFG_CPU_ARCH_RISCV       */
     pshdrArr[pmodule->EMOD_ulSegCount].sh_flags = SHF_ALLOC;
     pshdrArr[pmodule->EMOD_ulSegCount].sh_type  = SHT_NOBITS;
 
@@ -737,6 +730,13 @@ static INT elfModuleMemoryInit (LW_LD_EXEC_MODULE *pmodule, Elf_Shdr *pshdrArr)
             pmodule->EMOD_psegmentArry[i].ESEG_ulAddr += ulSecAddr;
         }
     }
+
+#ifdef LW_CFG_CPU_ARCH_RISCV
+    pmodule->EMOD_ulRiscvGotNr    = 0;
+    pmodule->EMOD_ulRiscvHi20Nr   = 0;
+    pmodule->EMOD_ulRiscvGotBase  = pmodule->EMOD_psegmentArry[pmodule->EMOD_ulSegCount].ESEG_ulAddr;
+    pmodule->EMOD_ulRiscvHi20Base = pmodule->EMOD_ulRiscvGotBase + LW_CFG_RISCV_GOT_SIZE;
+#endif                                                                  /*  LW_CFG_CPU_ARCH_RISCV       */
 
     return  (ERROR_NONE);
 }
@@ -1257,7 +1257,7 @@ static INT dynPhdrParse (LW_LD_EXEC_MODULE *pmodule,
     /*
      *  TODO: 目前认为JMPREL跟在REL或RELA表之后，如果没有找到REL表和RELA表，则使用JMPREL表。
      */
-#if !defined(LW_CFG_CPU_ARCH_PPC) && !defined(LW_CFG_CPU_ARCH_C6X) && !defined(LW_CFG_CPU_ARCH_SPARC)
+#if !defined(LW_CFG_CPU_ARCH_PPC) && !defined(LW_CFG_CPU_ARCH_C6X) && !defined(LW_CFG_CPU_ARCH_SPARC) && !defined(LW_CFG_CPU_ARCH_RISCV)
     if (pdyndir->pvJmpRTable) {
         if (DT_REL == pdyndir->ulPltRel) {
             if (!pdyndir->prelTable) {
@@ -1479,11 +1479,9 @@ static INT elfPhdrRelocate (LW_LD_EXEC_MODULE *pmodule, ELF_DYN_DIR  *pdyndir)
                                   pmodule->EMOD_pvBaseAddr,
                                   0);                                   /*  elf段0地址的加载地址        */
 
-#if defined(LW_CFG_CPU_ARCH_PPC) || defined(LW_CFG_CPU_ARCH_MIPS) || defined(LW_CFG_CPU_ARCH_C6X)
     if (archElfGotInit(pmodule) < 0) {
         return  (PX_ERROR);
     }
-#endif
 
     /*
      *  重定位
@@ -1521,7 +1519,8 @@ static INT elfPhdrRelocate (LW_LD_EXEC_MODULE *pmodule, ELF_DYN_DIR  *pdyndir)
             }
 
             if (archElfRelocateRel(pmodule,                             /*  重定位符号                  */
-                                   prel,                                
+                                   prel,
+                                   psym,
                                    addrSymVal,
                                    pcBase,
                                    LW_NULL, 0) < 0) {
@@ -1561,16 +1560,6 @@ static INT elfPhdrRelocate (LW_LD_EXEC_MODULE *pmodule, ELF_DYN_DIR  *pdyndir)
                                            psym->st_value);
             }
 
-#if !defined(LW_CFG_CPU_ARCH_C6X) && !defined(LW_CFG_CPU_ARCH_SPARC)
-            if (archElfRelocateRela(pmodule,                            /*  重定位符号                  */
-                                    prela,
-                                    addrSymVal,
-                                    pcBase,
-                                    LW_NULL, 0) < 0) {
-                _ErrorHandle(ERROR_LOADER_RELOCATE);
-                return  (PX_ERROR);
-            }
-#else
             if (archElfRelocateRela(pmodule,                            /*  重定位符号                  */
                                     prela,
                                     psym,
@@ -1580,7 +1569,6 @@ static INT elfPhdrRelocate (LW_LD_EXEC_MODULE *pmodule, ELF_DYN_DIR  *pdyndir)
                 _ErrorHandle(ERROR_LOADER_RELOCATE);
                 return  (PX_ERROR);
             }
-#endif
         }
     }
 

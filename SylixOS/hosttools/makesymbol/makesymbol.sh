@@ -40,7 +40,11 @@ cat << EOF >$symbolc
  ** 描        述: 系统 sylixos 符号表. (此文件由 makesymbol.sh 工具自动生成, 请勿修改)                
 ********************************************************************************************************/
 #ifdef __GNUC__
+#if __GNUC__ <= 4
 #pragma GCC diagnostic warning "-w"
+#else
+#pragma GCC diagnostic ignored "-Wbuiltin-declaration-mismatch"
+#endif
 #endif
 
 #include "symboltools.h"

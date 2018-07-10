@@ -38,14 +38,6 @@
 static VOID     __selTaskCreateHook(LW_OBJECT_HANDLE  ulId, ULONG  ulOption);
 static VOID     __selTaskDeleteHook(LW_OBJECT_HANDLE  ulId, PVOID  pvReturnVal, PLW_CLASS_TCB  ptcb);
 /*********************************************************************************************************
-  内部函数
-*********************************************************************************************************/
-extern INT      __selDoIoctls(fd_set               *pfdset,
-                              INT                   iFdSetWidth,
-                              INT                   iFunc,
-                              PLW_SEL_WAKEUPNODE    pselwunNode,
-                              BOOL                  bStopOnErr);
-/*********************************************************************************************************
 ** 函数名称: _SelectInit
 ** 功能描述: 初始化 select 库
 ** 输　入  : NONE
@@ -142,33 +134,27 @@ static VOID    __selTaskDeleteHook (LW_OBJECT_HANDLE  ulId, PVOID  pvReturnVal, 
     
     if (pselctxDelete->SELCTX_bPendedOnSelect) {                        /*  被 select() 阻塞            */
         selwunNode.SELWUN_hThreadId = ulId;                             /*  释放所有节点                */
-
+        
         selwunNode.SELWUN_seltypType = SELREAD;
-        __selDoIoctls(&pselctxDelete->SELCTX_fdsetOrigReadFds,
-                      pselctxDelete->SELCTX_iWidth,
-                      FIOUNSELECT,
-                      &selwunNode,
-                      LW_FALSE);                                        /*  释放所有等待读使能的节点    */
+        __selDoIoctls(&pselctxDelete->SELCTX_fdsetOrigReadFds, LW_NULL,
+                      pselctxDelete->SELCTX_iWidth, 
+                      FIOUNSELECT, &selwunNode, LW_FALSE);              /*  释放所有等待读使能的节点    */
         
         selwunNode.SELWUN_seltypType = SELWRITE;
-        __selDoIoctls(&pselctxDelete->SELCTX_fdsetOrigWriteFds,
+        __selDoIoctls(&pselctxDelete->SELCTX_fdsetOrigWriteFds, LW_NULL,
                       pselctxDelete->SELCTX_iWidth,
-                      FIOUNSELECT,
-                      &selwunNode,
-                      LW_FALSE);                                        /*  释放所有等待写使能的节点    */
+                      FIOUNSELECT, &selwunNode, LW_FALSE);              /*  释放所有等待写使能的节点    */
         
         selwunNode.SELWUN_seltypType = SELEXCEPT;
-        __selDoIoctls(&pselctxDelete->SELCTX_fdsetOrigExceptFds,
-                       pselctxDelete->SELCTX_iWidth,
-                       FIOUNSELECT,
-                      &selwunNode,
-                       LW_FALSE);                                       /*  释放所有等待异常使能的节点  */
+        __selDoIoctls(&pselctxDelete->SELCTX_fdsetOrigExceptFds, LW_NULL,
+                      pselctxDelete->SELCTX_iWidth, 
+                      FIOUNSELECT, &selwunNode, LW_FALSE);              /*  释放所有等待异常使能的节点  */
     }
     
     API_SemaphoreBDelete(&pselctxDelete->SELCTX_hSembWakeup);           /*  删除信号量                  */
     
     ptcb->TCB_pselctxContext = LW_NULL;
-    __SHEAP_FREE((PVOID)pselctxDelete);
+    __SHEAP_FREE(pselctxDelete);
 }
 
 #endif                                                                  /*  LW_CFG_DEVICE_EN > 0        */

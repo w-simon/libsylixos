@@ -277,8 +277,8 @@ LW_API
 INT     API_DmaJobAdd (UINT                 uiChannel,
                        PLW_DMA_TRANSACTION  pdmatMsg)
 {
-#define __SAFE()    if (!bInterContext) {   API_ThreadSafe();   }
-#define __UNSAFE()  if (!bInterContext) {   API_ThreadUnsafe(); }
+#define __SAFE()    if (!bInterContext) {   LW_THREAD_SAFE();   }
+#define __UNSAFE()  if (!bInterContext) {   LW_THREAD_UNSAFE(); }
 
              INTREG             iregInterLevel;
     REGISTER __PDMA_CHANNEL     pdmacChannel;
@@ -424,7 +424,7 @@ INT     API_DmaFlush (UINT   uiChannel)
     
     pdmacChannel = __DMA_CHANNEL_GET(uiChannel);                        /*  获得通道控制块              */
     
-    API_ThreadSafe();
+    LW_THREAD_SAFE();
     
     pdmacChannel->DMAC_bIsInFlush = LW_TRUE;                            /*  开始进行 FLUSH 操作         */
     for (;;) {
@@ -442,14 +442,14 @@ INT     API_DmaFlush (UINT   uiChannel)
         
         } else {
             LW_SPIN_UNLOCK_QUICK(&_G_slDmaManage, iregInterLevel);      /*  打开中断同时解锁 spinlock   */
-            __SHEAP_FREE((PVOID)pdmanNode);                             /*  释放到内存堆中              */
+            __SHEAP_FREE(pdmanNode);                                    /*  释放到内存堆中              */
         }
     }
     pdmacChannel->DMAC_bIsInFlush = LW_FALSE;                           /*  结束 FLUSH 操作             */
     
     API_SemaphoreBPost(pdmacChannel->DMAC_ulJobSync);                   /*  释放同步信号量              */
     
-    API_ThreadUnsafe();
+    LW_THREAD_UNSAFE();
     
     return  (ERROR_NONE);
 }

@@ -148,7 +148,7 @@ ULONG   API_CoroutineDelete (PVOID  pvCrcb)
         return  (API_CoroutineExit());
     }
     
-    _ThreadSafeInternal();                                              /*  进入安全模式                */
+    LW_THREAD_SAFE();                                                   /*  进入安全模式                */
 
     LW_SPIN_LOCK_QUICK(&ptcbCur->TCB_slLock, &iregInterLevel);
     _List_Ring_Del(&pcrcbDel->COROUTINE_ringRoutine,
@@ -162,7 +162,7 @@ ULONG   API_CoroutineDelete (PVOID  pvCrcb)
         _StackFree(ptcbCur, pcrcbDel->COROUTINE_pstkStackLowAddr);      /*  释放内存                    */
     }
     
-    _ThreadUnsafeInternal();                                            /*  退出安全模式                */
+    LW_THREAD_UNSAFE();                                                 /*  退出安全模式                */
     
     return  (ERROR_NONE);
 }

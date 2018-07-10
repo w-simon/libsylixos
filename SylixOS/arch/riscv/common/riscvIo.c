@@ -4,28 +4,26 @@
 **
 **                                   嵌入式实时操作系统
 **
-**                                       SylixOS(TM)
+**                                SylixOS(TM)  LW : long wing
 **
-**                               Copyright  All Rights Reserved
+**                               Copyright All Rights Reserved
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: ppcVfpAltivec.h
+** 文   件   名: riscvIo.c
 **
 ** 创   建   人: Jiao.JinXing (焦进星)
 **
-** 文件创建日期: 2016 年 05 月 04 日
+** 文件创建日期: 2018 年 03 月 20 日
 **
-** 描        述: PowerPC 体系架构 ALTIVEC 支持.
+** 描        述: RISC-V IO.
 *********************************************************************************************************/
-
-#ifndef __ARCH_PPCVFPALTIVEC_H
-#define __ARCH_PPCVFPALTIVEC_H
-
-PPPC_FPU_OP  ppcVfpAltivecPrimaryInit(CPCHAR  pcMachineName, CPCHAR  pcFpuName);
-VOID         ppcVfpAltivecSecondaryInit(CPCHAR  pcMachineName, CPCHAR  pcFpuName);
-
-#endif                                                                  /*  __ARCH_PPCVFPALTIVEC_H      */
+#define  __SYLIXOS_KERNEL
+#include "SylixOS.h"
+/*********************************************************************************************************
+  IO 基地址定义
+*********************************************************************************************************/
+LW_WEAK ioaddr_t    __IO_BASE__ = (ioaddr_t)0ul;
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

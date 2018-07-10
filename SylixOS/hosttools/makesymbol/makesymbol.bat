@@ -42,9 +42,13 @@ echo ** 文件创建日期: %date:~0,4% 年 %date:~5,2% 月 %date:~8,2% 日			>> symbol.c
 echo **														>> symbol.c
 echo ** 描        述: 系统 sylixos 符号表. (此文件由 makesymbol 工具自动生成, 请勿修改)	>> symbol.c
 echo *********************************************************************************************************/	>> symbol.c
-echo #ifdef __GNUC__										>> symbol.c
-echo #pragma GCC diagnostic warning "-w"					>> symbol.c
-echo #endif													>> symbol.c
+echo #ifdef __GNUC__                                        >> symbol.c
+echo #if __GNUC__ ^<^= 4                                    >> symbol.c
+echo #pragma GCC diagnostic warning "-w"                    >> symbol.c
+echo #else                                                  >> symbol.c
+echo #pragma GCC diagnostic ignored "-Wbuiltin-declaration-mismatch" >> symbol.c
+echo #endif                                                 >> symbol.c
+echo #endif                                                 >> symbol.c
 echo.														>> symbol.c
 echo #include "symboltools.h"								>> symbol.c
 echo.														>> symbol.c
@@ -52,16 +56,16 @@ echo #define SYMBOL_TABLE_BEGIN LW_STATIC_SYMBOL   _G_symLibSylixOS[] = {	>> sym
 echo.  														>> symbol.c
 echo #define SYMBOL_TABLE_END };							>> symbol.c
 echo.														>> symbol.c
-echo #define SYMBOL_ITEM_FUNC(pcName)                \		>> symbol.c
-echo     {   {(void *)0, (void *)0},                 \		>> symbol.c
-echo         #pcName, (char *)pcName,                \		>> symbol.c
-echo         LW_SYMBOL_TEXT                          \		>> symbol.c
+echo #define SYMBOL_ITEM_FUNC(pcName)                       \>> symbol.c
+echo     {   {(void *)0, (void *)0},                        \>> symbol.c
+echo         #pcName, (char *)pcName,                       \>> symbol.c
+echo         LW_SYMBOL_TEXT                                 \>> symbol.c
 echo     },													>> symbol.c
 echo.														>> symbol.c
-echo #define SYMBOL_ITEM_OBJ(pcName)                 \		>> symbol.c
-echo     {   {(void *)0, (void *)0},                 \		>> symbol.c
-echo         #pcName, (char *)^&pcName,               \		>> symbol.c
-echo         LW_SYMBOL_DATA                          \		>> symbol.c
+echo #define SYMBOL_ITEM_OBJ(pcName)                       \>> symbol.c
+echo     {   {(void *)0, (void *)0},                       \>> symbol.c
+echo         #pcName, (char *)^&pcName,                     \>> symbol.c
+echo         LW_SYMBOL_DATA                                \>> symbol.c
 echo     },													>> symbol.c
 echo.														>> symbol.c
 echo /*********************************************************************************************************	>> symbol.c

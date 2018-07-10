@@ -69,7 +69,7 @@ LW_OBJECT_HANDLE  API_TimerCreate (CPCHAR             pcName,
     );
     
     if (!ptmr) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "there is no ID to buide a timer.\r\n");
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "there is no ID to build a timer.\r\n");
         _ErrorHandle(ERROR_TIMER_FULL);
         return  (LW_OBJECT_HANDLE_INVALID);
     }

@@ -40,6 +40,7 @@ LOCAL_X86_SRCS    :=
 LOCAL_X64_SRCS    :=
 LOCAL_C6X_SRCS    :=
 LOCAL_SPARC_SRCS  :=
+LOCAL_RISCV_SRCS  :=
 
 #*********************************************************************************************************
 # Exclude source files

@@ -83,14 +83,16 @@ static VOID  _posixCtxDelete (LW_OBJECT_HANDLE  ulId, PVOID  pvRetVal, PLW_CLASS
 *********************************************************************************************************/
 static INT  _posixCtxCreate (PLW_CLASS_TCB   ptcb)
 {
-    API_ThreadSafe();
+    LW_THREAD_SAFE();
+    
     ptcb->TCB_pvPosixContext =  (PVOID)__SHEAP_ALLOC(sizeof(__PX_CONTEXT));
     if (ptcb->TCB_pvPosixContext == LW_NULL) {
-        API_ThreadUnsafe();                                             /*  缺少内存                    */
+        LW_THREAD_UNSAFE();                                             /*  缺少内存                    */
         errno = ENOMEM;
         return  (PX_ERROR);
     }
-    API_ThreadUnsafe();
+    
+    LW_THREAD_UNSAFE();
     
     lib_bzero(ptcb->TCB_pvPosixContext, sizeof(__PX_CONTEXT));          /*  内容清零                    */
     

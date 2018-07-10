@@ -41,6 +41,9 @@
 
 #elif defined(LW_CFG_CPU_ARCH_SPARC)
 #include "./sparc/sparc_io.h"
+
+#elif defined(LW_CFG_CPU_ARCH_RISCV)
+#include "./riscv/riscv_io.h"
 #endif                                                                  /*  LW_CFG_CPU_ARCH_ARM         */
 
 #endif                                                                  /*  __ARCH_IO_H                 */

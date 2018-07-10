@@ -121,7 +121,7 @@ INT  API_RtcDevCreate (PLW_RTC_FUNCS    prtcfuncs)
     prtcdev->RTCDEV_prtcfuncs = prtcfuncs;
     
     if (iosDevAddEx(&prtcdev->RTCDEV_devhdr, __LW_RTC_DEV_NAME, _G_iRtcDrvNum, DT_CHR) != ERROR_NONE) {
-        __SHEAP_FREE((PVOID)prtcdev);
+        __SHEAP_FREE(prtcdev);
         return  (PX_ERROR);
     }
     

@@ -33,7 +33,7 @@
 /*********************************************************************************************************
 ** 函数名称: mipsElfREL32RelocateRel
 ** 功能描述: 重定位 R_MIPS_REL32 类型的重定位项
-** 输  入  : pmodule      Module 描述符
+** 输  入  : pmodule      模块
 **           pRelocAdrs   重定位地址
 **           SymIndex     重定位符表索引值
 ** 输  出  : ERROR_NONE 表示没有错误, PX_ERROR 表示错误
@@ -64,12 +64,12 @@ INT  mipsElfREL32RelocateRel (LW_LD_EXEC_MODULE  *pmodule,
 /*********************************************************************************************************
 ** 函数名称: archElfGotInit
 ** 功能描述: MIPS GOT 重定位
-** 输　入  : pmodule       模块指针
+** 输　入  : pmodule       模块
 ** 输　出  : ERROR_NONE 表示没有错误, PX_ERROR 表示错误
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-INT archElfGotInit (PVOID  pmodule)
+INT  archElfGotInit (PVOID  pmodule)
 {
     Elf_Addr           *pMipsGotEntry;
     Elf_Sym            *pMipsSym;
@@ -124,7 +124,7 @@ INT archElfGotInit (PVOID  pmodule)
 /*********************************************************************************************************
 ** 函数名称: archElfRGetJmpBuffItemLen
 ** 功能描述: 返回跳转表项长度
-** 输  入  :
+** 输  入  : pmodule       模块
 ** 输  出  : 跳转表项长度
 ** 全局变量:
 ** 调用模块:

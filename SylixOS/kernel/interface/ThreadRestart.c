@@ -314,6 +314,8 @@ ULONG  API_ThreadRestartEx (LW_OBJECT_HANDLE  ulId, PTHREAD_START_ROUTINE  pfunc
     
     ptcb->TCB_iDeleteProcStatus = LW_TCB_DELETE_PROC_RESTART;           /*  进入重启过程                */
     
+    ptcbCur->TCB_ulThreadSafeCounter++;                                 /*  LW_THREAD_SAFE();           */
+    
     __KERNEL_EXIT();                                                    /*  退出内核                    */
     
     if (ptcb == ptcbCur) {
@@ -321,6 +323,8 @@ ULONG  API_ThreadRestartEx (LW_OBJECT_HANDLE  ulId, PTHREAD_START_ROUTINE  pfunc
         
         MONITOR_EVT_LONG2(MONITOR_EVENT_ID_THREAD, MONITOR_EVENT_THREAD_RESTART, 
                           ulId, pvArg, LW_NULL);
+        
+        ptcbCur->TCB_ulThreadSafeCounter--;                             /*  LW_THREAD_UNSAFE();         */
         
         _excJobAdd((VOIDFUNCPTR)__threadRestart,
                    ptcb, (PVOID)pfuncThread, pvArg, 
@@ -339,6 +343,8 @@ ULONG  API_ThreadRestartEx (LW_OBJECT_HANDLE  ulId, PTHREAD_START_ROUTINE  pfunc
                           ulId, pvArg, LW_NULL);
         
         ulError = __threadRestart(ptcb, pfuncThread, pvArg, LW_TRUE);
+    
+        LW_THREAD_UNSAFE();                                             /*  退出安全模式                */
     }
     
     return  (ulError);

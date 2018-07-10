@@ -44,6 +44,8 @@
     IMPORT_LABEL(archSystemCallHandle)
     IMPORT_LABEL(archTraceHandle)
     IMPORT_LABEL(archFpAssistExceptionHandle)
+    IMPORT_LABEL(archAltiVecUnavailableExceptionHandle)
+    IMPORT_LABEL(archAltiVecAssistExceptionHandle)
     
     EXPORT_LABEL(archMachineCheckExceptionEntry)
     EXPORT_LABEL(archDataStorageExceptionEntry)
@@ -56,6 +58,8 @@
     EXPORT_LABEL(archSystemCallEntry)
     EXPORT_LABEL(archTraceEntry)
     EXPORT_LABEL(archFpAssistExceptionEntry)
+    EXPORT_LABEL(archAltiVecUnavailableExceptionEntry)
+    EXPORT_LABEL(archAltiVecAssistExceptionEntry)
     
 ;/*********************************************************************************************************
 ;  异常入口宏
@@ -232,6 +236,22 @@ FUNC_DEF(archTraceEntry)
 
 FUNC_DEF(archFpAssistExceptionEntry)
     EXC_ENTRY   archFpAssistExceptionHandle
+    FUNC_END()
+
+;/*********************************************************************************************************
+;  AltiVec Unavailable 异常入口(Vector 0xF20)
+;*********************************************************************************************************/
+
+FUNC_DEF(archAltiVecUnavailableExceptionEntry)
+    EXC_ENTRY   archAltiVecUnavailableExceptionHandle
+    FUNC_END()
+
+;/*********************************************************************************************************
+;  AltiVec Assist 异常入口(Vector 0x1600)
+;*********************************************************************************************************/
+
+FUNC_DEF(archAltiVecAssistExceptionEntry)
+    EXC_ENTRY   archAltiVecAssistExceptionHandle
     FUNC_END()
 
     FILE_END()

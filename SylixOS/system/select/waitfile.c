@@ -39,14 +39,6 @@
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_SELECT_EN > 0)
 #include "select.h"
 /*********************************************************************************************************
-  select 子系统内部函数声明
-*********************************************************************************************************/
-VOID  __selFdsetInit(INT               iWidthInBytes,
-                     fd_set           *pfdsetRead,
-                     fd_set           *pfdsetWrite,
-                     fd_set           *pfdsetExcept,
-                     LW_SEL_CONTEXT   *pselctx);
-/*********************************************************************************************************
 ** 函数名称: waitread
 ** 功能描述: select() 变种,等待单个文件可读.
 ** 输　入  : iFd               文件描述符
@@ -64,7 +56,6 @@ VOID  __selFdsetInit(INT               iWidthInBytes,
 LW_API  
 INT     waitread (INT  iFd, struct timeval   *ptmvalTO)
 {
-    REGISTER INT                 iIsOk  = ERROR_NONE;                   /*  初始化为没有错误            */
     REGISTER INT                 iWidth = iFd + 1;                      /*  iFd + 1                     */
     REGISTER INT                 iWidthInBytes;                         /*  需要检测的位数占多少字节    */
     REGISTER ULONG               ulWaitTime;                            /*  等待时间                    */
@@ -72,10 +63,10 @@ INT     waitread (INT  iFd, struct timeval   *ptmvalTO)
              PLW_CLASS_TCB       ptcbCur;
              struct timespec     tvTO;
 
-             fd_set              fdsetRead;
-             LW_SEL_WAKEUPNODE   selwunNode;                            /*  生成的 NODE 模板            */
+    volatile LW_SEL_WAKEUPNODE   selwunNode;                            /*  生成的 NODE 模板            */
              ULONG               ulError;
-    
+             BOOL                bBadFd, bReady;
+             
     if (LW_CPU_GET_CUR_NESTING()) {
         _ErrorHandle(ERROR_KERNEL_IN_ISR);                              /*  不能在中断中调用            */
         return  (PX_ERROR);
@@ -99,13 +90,8 @@ INT     waitread (INT  iFd, struct timeval   *ptmvalTO)
 
     iWidthInBytes = __HOWMANY(iWidth, NFDBITS) * sizeof(fd_mask);       /*  需要检测的位数占多少字节    */
     
-    FD_ZERO(&fdsetRead);                                                /*  清除文件集                  */
-    FD_SET(iFd, &fdsetRead);                                            /*  指定文件置位                */
-    
-    __selFdsetInit(iWidthInBytes, &fdsetRead,                           /*  设置 OrigRead 文件位        */
-                   LW_NULL, LW_NULL, pselctx);                          /*  __selTaskDeleteHook 使用    */
-                   
-    FD_CLR(iFd, &fdsetRead);                                            /*  清除文件集                  */
+    lib_bzero(&pselctx->SELCTX_fdsetOrigReadFds, iWidthInBytes);
+    FD_SET(iFd, &pselctx->SELCTX_fdsetOrigReadFds);
 
     if (!ptmvalTO) {                                                    /*  计算等待时间                */
         ulWaitTime = LW_OPTION_WAIT_INFINITE;                           /*  无限等待                    */
@@ -114,49 +100,67 @@ INT     waitread (INT  iFd, struct timeval   *ptmvalTO)
         LW_TIMEVAL_TO_TIMESPEC(ptmvalTO, &tvTO);
         ulWaitTime = LW_TS_TIMEOUT_TICK(LW_TRUE, &tvTO);
     }
-    
-    pselctx->SELCTX_pfdsetReadFds   = &fdsetRead;
-    pselctx->SELCTX_pfdsetWriteFds  = LW_NULL;                          /*  保存用户参数地址            */
-    pselctx->SELCTX_pfdsetExceptFds = LW_NULL;
-    
+
     API_SemaphoreBClear(pselctx->SELCTX_hSembWakeup);                   /*  清除信号量                  */
     
     selwunNode.SELWUN_hThreadId  = API_ThreadIdSelf();
     selwunNode.SELWUN_seltypType = SELREAD;
     selwunNode.SELWUN_iFd        = iFd;
+    LW_SELWUN_CLEAR_READY(&selwunNode);
     
-    pselctx->SELCTX_iWidth = iWidth;                                    /*  记录最大文件号              */
+    LW_THREAD_SAFE();                                                   /*  进入安全模式                */
+    
+    pselctx->SELCTX_iWidth          = iWidth;                           /*  记录最大文件号              */
     pselctx->SELCTX_bPendedOnSelect = LW_TRUE;                          /*  需要 delete hook 清除 NODE  */
+    pselctx->SELCTX_bBadFd          = LW_FALSE;
     
-    iIsOk = ioctl(iFd, FIOSELECT, (LONG)&selwunNode);                   /*  FIOSELECT                   */
-    if (iIsOk != ERROR_NONE) {
-        ULONG   ulError = API_GetLastError();
-        iIsOk  = ioctl(iFd, FIOUNSELECT, (LONG)&selwunNode);            /*  FIOUNSELECT                 */
-        if (ulError == ERROR_IO_UNKNOWN_REQUEST) {
-            _ErrorHandle(ERROR_IO_SELECT_UNSUPPORT_IN_DRIVER);          /*  驱动程序不支持              */
-        }
+    if (ioctl(iFd, FIOSELECT, &selwunNode)) {                           /*  FIOSELECT                   */
+        ioctl(iFd, FIOUNSELECT, &selwunNode);                           /*  FIOUNSELECT                 */
+        
+        bBadFd = pselctx->SELCTX_bBadFd;
         pselctx->SELCTX_bPendedOnSelect = LW_FALSE;                     /*  自行清理完毕                */
+        
+        LW_THREAD_UNSAFE();                                             /*  退出安全模式                */
+        if (bBadFd) {
+            _ErrorHandle(EBADF);
+        }
         return  (PX_ERROR);                                             /*  错误                        */
+    
+    } else {
+        if (LW_SELWUN_IS_READY(&selwunNode)) {
+            LW_SELWUN_CLEAR_READY(&selwunNode);
+            bReady = LW_TRUE;
+        
+        } else {
+            bReady = LW_FALSE;
+        }
     }
+
+    LW_THREAD_UNSAFE();                                                 /*  退出安全模式                */
 
     ulError = API_SemaphoreBPend(pselctx->SELCTX_hSembWakeup,
                                  ulWaitTime);                           /*  开始等待                    */
     
-    iIsOk = ioctl(iFd, FIOUNSELECT, (LONG)&selwunNode);                 /*  FIOUNSELECT                 */
+    LW_THREAD_SAFE();                                                   /*  进入安全模式                */
     
+    if (ioctl(iFd, FIOUNSELECT, &selwunNode) == ERROR_NONE) {           /*  FIOUNSELECT                 */
+        if (!bReady && LW_SELWUN_IS_READY(&selwunNode)) {
+            bReady = LW_TRUE;
+        }
+    }
+    
+    bBadFd = pselctx->SELCTX_bBadFd;
     pselctx->SELCTX_bPendedOnSelect = LW_FALSE;                         /*  自行清理完毕                */
     
-    if (iIsOk != ERROR_NONE) {
-        return  (PX_ERROR);                                             /*  出现错误                    */
-    } else {
-        _ErrorHandle(ulError);
+    LW_THREAD_UNSAFE();                                                 /*  退出安全模式                */
+    
+    if (bBadFd) {                                                       /*  出现错误                    */
+        _ErrorHandle(EBADF);
+        return  (PX_ERROR);
     }
     
-    if (FD_ISSET(iFd, &fdsetRead)) {                                    /*  检查文件是否可读            */
-        return  (1);
-    } else {
-        return  (0);
-    }
+    _ErrorHandle(ulError);
+    return  (bReady ? 1 : 0);                                           /*  检查文件是否可读            */
 }
 /*********************************************************************************************************
 ** 函数名称: waitwrite
@@ -176,7 +180,6 @@ INT     waitread (INT  iFd, struct timeval   *ptmvalTO)
 LW_API  
 INT     waitwrite (INT  iFd, struct timeval   *ptmvalTO)
 {
-    REGISTER INT                 iIsOk  = ERROR_NONE;                   /*  初始化为没有错误            */
     REGISTER INT                 iWidth = iFd + 1;                      /*  iFd + 1                     */
     REGISTER INT                 iWidthInBytes;                         /*  需要检测的位数占多少字节    */
     REGISTER ULONG               ulWaitTime;                            /*  等待时间                    */
@@ -184,9 +187,9 @@ INT     waitwrite (INT  iFd, struct timeval   *ptmvalTO)
              PLW_CLASS_TCB       ptcbCur;
              struct timespec     tvTO;
     
-             fd_set              fdsetWrite;
              LW_SEL_WAKEUPNODE   selwunNode;                            /*  生成的 NODE 模板            */
              ULONG               ulError;
+             BOOL                bBadFd, bReady;
              
     if (LW_CPU_GET_CUR_NESTING()) {
         _ErrorHandle(ERROR_KERNEL_IN_ISR);                              /*  不能在中断中调用            */
@@ -211,13 +214,8 @@ INT     waitwrite (INT  iFd, struct timeval   *ptmvalTO)
 
     iWidthInBytes = __HOWMANY(iWidth, NFDBITS) * sizeof(fd_mask);       /*  需要检测的位数占多少字节    */
     
-    FD_ZERO(&fdsetWrite);                                               /*  清除文件集                  */
-    FD_SET(iFd, &fdsetWrite);                                           /*  指定文件置位                */
-    
-    __selFdsetInit(iWidthInBytes, LW_NULL,                              /*  设置 OrigRead 文件位        */
-                   &fdsetWrite, LW_NULL, pselctx);                      /*  __selTaskDeleteHook 使用    */
-    
-    FD_CLR(iFd, &fdsetWrite);                                           /*  清除文件集                  */
+    lib_bzero(&pselctx->SELCTX_fdsetOrigWriteFds, iWidthInBytes);
+    FD_SET(iFd, &pselctx->SELCTX_fdsetOrigWriteFds);                    /*  指定文件置位                */
     
     if (!ptmvalTO) {                                                    /*  计算等待时间                */
         ulWaitTime = LW_OPTION_WAIT_INFINITE;                           /*  无限等待                    */
@@ -227,48 +225,66 @@ INT     waitwrite (INT  iFd, struct timeval   *ptmvalTO)
         ulWaitTime = LW_TS_TIMEOUT_TICK(LW_TRUE, &tvTO);
     }
     
-    pselctx->SELCTX_pfdsetReadFds   = LW_NULL;
-    pselctx->SELCTX_pfdsetWriteFds  = &fdsetWrite;                      /*  保存用户参数地址            */
-    pselctx->SELCTX_pfdsetExceptFds = LW_NULL;
-    
     API_SemaphoreBClear(pselctx->SELCTX_hSembWakeup);                   /*  清除信号量                  */
     
     selwunNode.SELWUN_hThreadId  = API_ThreadIdSelf();
     selwunNode.SELWUN_seltypType = SELWRITE;
     selwunNode.SELWUN_iFd        = iFd;
+    LW_SELWUN_CLEAR_READY(&selwunNode);
     
-    pselctx->SELCTX_iWidth = iWidth;                                    /*  记录最大文件号              */
+    LW_THREAD_SAFE();                                                   /*  进入安全模式                */
+    
+    pselctx->SELCTX_iWidth          = iWidth;                           /*  记录最大文件号              */
     pselctx->SELCTX_bPendedOnSelect = LW_TRUE;                          /*  需要 delete hook 清除 NODE  */
+    pselctx->SELCTX_bBadFd          = LW_FALSE;
     
-    iIsOk = ioctl(iFd, FIOSELECT, (LONG)&selwunNode);                   /*  FIOSELECT                   */
-    if (iIsOk != ERROR_NONE) {
-        ULONG   ulError = API_GetLastError();
-        iIsOk  = ioctl(iFd, FIOUNSELECT, (LONG)&selwunNode);            /*  FIOUNSELECT                 */
-        if (ulError == ERROR_IO_UNKNOWN_REQUEST) {
-            _ErrorHandle(ERROR_IO_SELECT_UNSUPPORT_IN_DRIVER);          /*  驱动程序不支持              */
-        }
+    if (ioctl(iFd, FIOSELECT, &selwunNode)) {                           /*  FIOSELECT                   */
+        ioctl(iFd, FIOUNSELECT, &selwunNode);                           /*  FIOUNSELECT                 */
+        
+        bBadFd = pselctx->SELCTX_bBadFd;
         pselctx->SELCTX_bPendedOnSelect = LW_FALSE;                     /*  自行清理完毕                */
+        
+        LW_THREAD_UNSAFE();                                             /*  退出安全模式                */
+        if (bBadFd) {
+            _ErrorHandle(EBADF);
+        }
         return  (PX_ERROR);                                             /*  错误                        */
+    
+    } else {
+        if (LW_SELWUN_IS_READY(&selwunNode)) {
+            LW_SELWUN_CLEAR_READY(&selwunNode);
+            bReady = LW_TRUE;
+        
+        } else {
+            bReady = LW_FALSE;
+        }
     }
+
+    LW_THREAD_UNSAFE();                                                 /*  退出安全模式                */
     
     ulError = API_SemaphoreBPend(pselctx->SELCTX_hSembWakeup,
                                  ulWaitTime);                           /*  开始等待                    */
     
-    iIsOk = ioctl(iFd, FIOUNSELECT, (LONG)&selwunNode);                 /*  FIOUNSELECT                 */
+    LW_THREAD_SAFE();                                                   /*  进入安全模式                */
     
+    if (ioctl(iFd, FIOUNSELECT, &selwunNode) == ERROR_NONE) {           /*  FIOUNSELECT                 */
+        if (!bReady && LW_SELWUN_IS_READY(&selwunNode)) {
+            bReady = LW_TRUE;
+        }
+    }
+    
+    bBadFd = pselctx->SELCTX_bBadFd;
     pselctx->SELCTX_bPendedOnSelect = LW_FALSE;                         /*  自行清理完毕                */
     
-    if (iIsOk != ERROR_NONE) {
-        return  (PX_ERROR);                                             /*  出现错误                    */
-    } else {
-        _ErrorHandle(ulError);
+    LW_THREAD_UNSAFE();                                                 /*  退出安全模式                */
+    
+    if (bBadFd) {                                                       /*  出现错误                    */
+        _ErrorHandle(EBADF);
+        return  (PX_ERROR);
     }
     
-    if (FD_ISSET(iFd, &fdsetWrite)) {                                   /*  检查文件是否可读            */
-        return  (1);
-    } else {
-        return  (0);
-    }
+    _ErrorHandle(ulError);
+    return  (bReady ? 1 : 0);                                           /*  检查文件是否可读            */
 }
 /*********************************************************************************************************
 ** 函数名称: waitexcept
@@ -288,7 +304,6 @@ INT     waitwrite (INT  iFd, struct timeval   *ptmvalTO)
 LW_API  
 INT     waitexcept (INT  iFd, struct timeval   *ptmvalTO)
 {
-    REGISTER INT                 iIsOk  = ERROR_NONE;                   /*  初始化为没有错误            */
     REGISTER INT                 iWidth = iFd + 1;                      /*  iFd + 1                     */
     REGISTER INT                 iWidthInBytes;                         /*  需要检测的位数占多少字节    */
     REGISTER ULONG               ulWaitTime;                            /*  等待时间                    */
@@ -296,9 +311,9 @@ INT     waitexcept (INT  iFd, struct timeval   *ptmvalTO)
              PLW_CLASS_TCB       ptcbCur;
              struct timespec     tvTO;
     
-             fd_set              fdsetExcept;
              LW_SEL_WAKEUPNODE   selwunNode;                            /*  生成的 NODE 模板            */
              ULONG               ulError;
+             BOOL                bBadFd, bReady;
              
     if (LW_CPU_GET_CUR_NESTING()) {
         _ErrorHandle(ERROR_KERNEL_IN_ISR);                              /*  不能在中断中调用            */
@@ -323,13 +338,8 @@ INT     waitexcept (INT  iFd, struct timeval   *ptmvalTO)
 
     iWidthInBytes = __HOWMANY(iWidth, NFDBITS) * sizeof(fd_mask);       /*  需要检测的位数占多少字节    */
     
-    FD_ZERO(&fdsetExcept);                                              /*  清除文件集                  */
-    FD_SET(iFd, &fdsetExcept);                                          /*  指定文件置位                */
-    
-    __selFdsetInit(iWidthInBytes, LW_NULL,                              /*  设置 OrigRead 文件位        */
-                   LW_NULL, &fdsetExcept, pselctx);                     /*  __selTaskDeleteHook 使用    */
-    
-    FD_CLR(iFd, &fdsetExcept);                                          /*  清除文件集                  */
+    lib_bzero(&pselctx->SELCTX_fdsetOrigExceptFds, iWidthInBytes);
+    FD_SET(iFd, &pselctx->SELCTX_fdsetOrigExceptFds);                   /*  指定文件置位                */
     
     if (!ptmvalTO) {                                                    /*  计算等待时间                */
         ulWaitTime = LW_OPTION_WAIT_INFINITE;                           /*  无限等待                    */
@@ -339,48 +349,66 @@ INT     waitexcept (INT  iFd, struct timeval   *ptmvalTO)
         ulWaitTime = LW_TS_TIMEOUT_TICK(LW_TRUE, &tvTO);
     }
     
-    pselctx->SELCTX_pfdsetReadFds   = LW_NULL;
-    pselctx->SELCTX_pfdsetWriteFds  = LW_NULL;                          /*  保存用户参数地址            */
-    pselctx->SELCTX_pfdsetExceptFds = &fdsetExcept;
-    
     API_SemaphoreBClear(pselctx->SELCTX_hSembWakeup);                   /*  清除信号量                  */
     
     selwunNode.SELWUN_hThreadId  = API_ThreadIdSelf();
     selwunNode.SELWUN_seltypType = SELEXCEPT;
     selwunNode.SELWUN_iFd        = iFd;
+    LW_SELWUN_CLEAR_READY(&selwunNode);
     
-    pselctx->SELCTX_iWidth = iWidth;                                    /*  记录最大文件号              */
+    LW_THREAD_SAFE();                                                   /*  进入安全模式                */
+    
+    pselctx->SELCTX_iWidth          = iWidth;                           /*  记录最大文件号              */
     pselctx->SELCTX_bPendedOnSelect = LW_TRUE;                          /*  需要 delete hook 清除 NODE  */
+    pselctx->SELCTX_bBadFd          = LW_FALSE;
     
-    iIsOk = ioctl(iFd, FIOSELECT, (LONG)&selwunNode);                   /*  FIOSELECT                   */
-    if (iIsOk != ERROR_NONE) {
-        ULONG   ulError = API_GetLastError();
-        iIsOk  = ioctl(iFd, FIOUNSELECT, (LONG)&selwunNode);            /*  FIOUNSELECT                 */
-        if (ulError == ERROR_IO_UNKNOWN_REQUEST) {
-            _ErrorHandle(ERROR_IO_SELECT_UNSUPPORT_IN_DRIVER);          /*  驱动程序不支持              */
-        }
+    if (ioctl(iFd, FIOSELECT, &selwunNode)) {                           /*  FIOSELECT                   */
+        ioctl(iFd, FIOUNSELECT, &selwunNode);                           /*  FIOUNSELECT                 */
+        
+        bBadFd = pselctx->SELCTX_bBadFd;
         pselctx->SELCTX_bPendedOnSelect = LW_FALSE;                     /*  自行清理完毕                */
+        
+        LW_THREAD_UNSAFE();                                             /*  退出安全模式                */
+        if (bBadFd) {
+            _ErrorHandle(EBADF);
+        }
         return  (PX_ERROR);                                             /*  错误                        */
+    
+    } else {
+        if (LW_SELWUN_IS_READY(&selwunNode)) {
+            LW_SELWUN_CLEAR_READY(&selwunNode);
+            bReady = LW_TRUE;
+        
+        } else {
+            bReady = LW_FALSE;
+        }
     }
+
+    LW_THREAD_UNSAFE();                                                 /*  退出安全模式                */
     
     ulError = API_SemaphoreBPend(pselctx->SELCTX_hSembWakeup,
                                  ulWaitTime);                           /*  开始等待                    */
     
-    iIsOk = ioctl(iFd, FIOUNSELECT, (LONG)&selwunNode);                 /*  FIOUNSELECT                 */
+    LW_THREAD_SAFE();                                                   /*  进入安全模式                */
     
+    if (ioctl(iFd, FIOUNSELECT, &selwunNode) == ERROR_NONE) {           /*  FIOUNSELECT                 */
+        if (!bReady && LW_SELWUN_IS_READY(&selwunNode)) {
+            bReady = LW_TRUE;
+        }
+    }
+    
+    bBadFd = pselctx->SELCTX_bBadFd;
     pselctx->SELCTX_bPendedOnSelect = LW_FALSE;                         /*  自行清理完毕                */
     
-    if (iIsOk != ERROR_NONE) {
-        return  (PX_ERROR);                                             /*  出现错误                    */
-    } else {
-        _ErrorHandle(ulError);
+    LW_THREAD_UNSAFE();                                                 /*  退出安全模式                */
+    
+    if (bBadFd) {                                                       /*  出现错误                    */
+        _ErrorHandle(EBADF);
+        return  (PX_ERROR);
     }
     
-    if (FD_ISSET(iFd, &fdsetExcept)) {                                  /*  检查文件是否可读            */
-        return  (1);
-    } else {
-        return  (0);
-    }
+    _ErrorHandle(ulError);
+    return  (bReady ? 1 : 0);                                           /*  检查文件是否可读            */
 }
 
 #endif                                                                  /*  LW_CFG_DEVICE_EN > 0        */

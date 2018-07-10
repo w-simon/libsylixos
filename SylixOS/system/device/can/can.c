@@ -368,7 +368,7 @@ static VOID  __canFlushQueue (__PCAN_QUEUE pcanq)
 *********************************************************************************************************/
 static VOID __canDeleteQueue (__PCAN_QUEUE pcanq)
 {
-    __SHEAP_FREE((PVOID)pcanq);
+    __SHEAP_FREE(pcanq);
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: __canFlushRd
@@ -1246,7 +1246,7 @@ INT  API_CanDevRemove (PCHAR   pcName, BOOL  bForce)
 
     __canDevDelete(&pDevHdr->CANPORT_can);
 
-    __SHEAP_FREE((PVOID)pDevHdr);
+    __SHEAP_FREE(pDevHdr);
 
     return  (ERROR_NONE);
 }

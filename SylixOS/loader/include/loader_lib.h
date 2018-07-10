@@ -81,20 +81,21 @@ typedef struct {
 
 #define __LW_LD_EXEC_MODULE_MAGIC   0x25ef68af
 
-#ifdef LW_CFG_CPU_ARCH_MIPS
 /*********************************************************************************************************
-  MIPS_HI16_RELOC_INFO 提供一种方法把 mipsElfHI16RelocateRela() 信息传递给 mipsElfLO16RelocateRela()
+  MIPS_HI16_RELOC_INFO 提供一种方法把 HI16 重定位项信息传递给 LO16 重定位项
 *********************************************************************************************************/
+#ifdef LW_CFG_CPU_ARCH_MIPS
+
 struct __MIPS_HI16_RELOC_INFO;
 typedef struct __MIPS_HI16_RELOC_INFO  MIPS_HI16_RELOC_INFO, *PMIPS_HI16_RELOC_INFO;
 
 struct __MIPS_HI16_RELOC_INFO {
-    Elf_Addr 			   *HI16_pAddr;
+    Elf_Addr               *HI16_pAddr;
     Elf_Addr                HI16_valAddr;
     PMIPS_HI16_RELOC_INFO   HI16_pNext;
 };
-#endif                                                                  /*  LW_CFG_CPU_ARCH_MIPS        */
 
+#endif                                                                  /*  LW_CFG_CPU_ARCH_MIPS        */
 /*********************************************************************************************************
   内核模块 atexit 函数
 *********************************************************************************************************/
@@ -163,10 +164,17 @@ typedef struct {
 #endif                                                                  /*  LW_CFG_CPU_ARCH_MIPS        */
 
 #ifdef LW_CFG_CPU_ARCH_C6X
-    ULONG                  *EMOD_pulDsbtTable;                          /*  DSP DSBT表位置              */
-    ULONG                   EMOD_ulDsbtSize;                            /*  DSP DSBT表大小              */
-    ULONG                   EMOD_ulDsbtIndex;                           /*  DSP DSBT表索引              */
+    ULONG                  *EMOD_pulDsbtTable;                          /*  DSP DSBT 表位置             */
+    ULONG                   EMOD_ulDsbtSize;                            /*  DSP DSBT 表大小             */
+    ULONG                   EMOD_ulDsbtIndex;                           /*  DSP DSBT 表索引             */
 #endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
+
+#ifdef LW_CFG_CPU_ARCH_RISCV
+    addr_t                  EMOD_ulRiscvHi20Base;                       /*  HI20 重定位条目地址         */
+    ULONG                   EMOD_ulRiscvHi20Nr;                         /*  HI20 重定位条目数目         */
+    addr_t                  EMOD_ulRiscvGotBase;                        /*  内核模块 GOT 地址           */ 
+    ULONG                   EMOD_ulRiscvGotNr;                          /*  内核模块 GOT 数目           */ 
+#endif                                                                  /*  LW_CFG_CPU_ARCH_RISCV       */
 } LW_LD_EXEC_MODULE;
 
 /*********************************************************************************************************

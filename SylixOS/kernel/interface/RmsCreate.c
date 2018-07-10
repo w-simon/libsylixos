@@ -72,7 +72,7 @@ LW_OBJECT_HANDLE  API_RmsCreate (CPCHAR             pcName,
     );                                                                  /*  ÍË³öÄÚºË                    */
     
     if (!prms) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "there is no ID to buide a RMS.\r\n");
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "there is no ID to build a RMS.\r\n");
         _ErrorHandle(ERROR_RMS_NULL);
         return  (LW_OBJECT_HANDLE_INVALID);
     }

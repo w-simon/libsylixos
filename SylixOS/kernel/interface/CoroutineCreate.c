@@ -85,11 +85,11 @@ PVOID   API_CoroutineCreate (PCOROUTINE_START_ROUTINE pCoroutineStartAddr,
     }
 #endif
 
-    _ThreadSafeInternal();                                              /*  进入安全模式                */
+    LW_THREAD_SAFE();                                                   /*  进入安全模式                */
 
     pstkLowAddress = _StackAllocate(ptcbCur, 0ul, stStackByteSize);     /*  分配内存                    */
     if (!pstkLowAddress) {
-        _ThreadUnsafeInternal();                                        /*  退出安全模式                */
+        LW_THREAD_UNSAFE();                                             /*  退出安全模式                */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "kernel low memory.\r\n");
         _ErrorHandle(ERROR_KERNEL_LOW_MEMORY);
         return  (LW_NULL);
@@ -145,7 +145,7 @@ PVOID   API_CoroutineCreate (PCOROUTINE_START_ROUTINE pCoroutineStartAddr,
                         &ptcbCur->TCB_pringCoroutineHeader);            /*  插入协程表                  */
     LW_SPIN_UNLOCK_QUICK(&ptcbCur->TCB_slLock, iregInterLevel);
     
-    _ThreadUnsafeInternal();                                            /*  退出安全模式                */
+    LW_THREAD_UNSAFE();                                                 /*  退出安全模式                */
     
     MONITOR_EVT_LONG3(MONITOR_EVENT_ID_COROUTINE, MONITOR_EVENT_COROUTINE_CREATE, 
                       ptcbCur->TCB_ulId, pcrcbNew, stStackByteSize, LW_NULL);

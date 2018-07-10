@@ -463,5 +463,51 @@ VOID  archDecrementerInit (ULONG    ulVector,
     _G_bDecInited[ulCPUId] = LW_TRUE;
 }
 /*********************************************************************************************************
+** 函数名称: archAltiVecUnavailableExceptionHandle
+** 功能描述: AltiVec 不可用异常处理
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+** 注  意  : 此函数退出时必须为中断关闭状态.
+*********************************************************************************************************/
+VOID  archAltiVecUnavailableExceptionHandle (addr_t  ulRetAddr)
+{
+    PLW_CLASS_TCB   ptcbCur;
+    LW_VMM_ABORT    abtInfo;
+
+    LW_TCB_GET_CUR(ptcbCur);
+
+#if LW_CFG_CPU_DSP_EN > 0
+    if (archDspUndHandle(ptcbCur) == ERROR_NONE) {                      /*  进行 AltiVec 指令探测       */
+        return;
+    }
+#endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
+
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_DSPE;
+    abtInfo.VMABT_uiMethod = FPE_FLTINV;                                /*  AltiVec 不可用              */
+    API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
+}
+/*********************************************************************************************************
+** 函数名称: archAltiVecAssistExceptionHandle
+** 功能描述: AltiVec Assist 异常处理
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+** 注  意  : 此函数退出时必须为中断关闭状态.
+*********************************************************************************************************/
+VOID  archAltiVecAssistExceptionHandle (addr_t  ulRetAddr)
+{
+    PLW_CLASS_TCB   ptcbCur;
+    LW_VMM_ABORT    abtInfo;
+
+    LW_TCB_GET_CUR(ptcbCur);
+
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_DSPE;
+    abtInfo.VMABT_uiMethod = FPE_FLTINV;
+    API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
+}
+/*********************************************************************************************************
   END
 *********************************************************************************************************/

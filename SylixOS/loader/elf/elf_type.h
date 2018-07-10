@@ -45,6 +45,9 @@
 
 #elif defined(LW_CFG_CPU_ARCH_SPARC)
 #include "arch/sparc/elf/sparcElf.h"
+
+#elif defined(LW_CFG_CPU_ARCH_RISCV)
+#include "arch/riscv/elf/riscvElf.h"
 #endif                                                                  /*  LW_CFG_CPU_ARCH_ARM         */
 
 /*********************************************************************************************************
@@ -216,6 +219,7 @@ typedef SINT64   Elf64_Sxword;
 #define EM_ALTERA_NIOS2 113                                             /* ALTERA NIOS2                 */
 #define EM_TI_C6000     140                                             /* TI DSP C6x                   */
 #define EM_AARCH64      183                                             /* ARM 64 bit                   */
+#define EM_RISCV        243                                             /* RISC-V                       */
 #define EM_FRV          0x5441                                          /* Fujitsu FR-V                 */
 #define EM_AVR32        0x18ad                                          /* Atmel AVR32                  */
 #define EM_ALPHA        0x9026                                          /* Alpha                        */

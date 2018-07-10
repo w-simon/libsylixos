@@ -87,7 +87,7 @@ extern VOID   armMmuV7SetTTBCR(UINT32 uiTTBCR);
 /*********************************************************************************************************
 ** 函数名称: armMmuFlags2Attr
 ** 功能描述: 根据 SylixOS 权限标志, 生成 ARM MMU 权限标志
-** 输　入  : ulState                 内存访问权限
+** 输　入  : ulFlag                  内存访问权限
 **           pucAP                   访问权限
 **           pucDomain               所属控制域
 **           pucCB                   CACHE 控制参数
@@ -170,10 +170,13 @@ static INT  armMmuFlags2Attr (ULONG   ulFlag,
 /*********************************************************************************************************
 ** 函数名称: armMmuAttr2Flags
 ** 功能描述: 根据 ARM MMU 权限标志, 生成 SylixOS 权限标志
-** 输　入  : ulState                 内存访问权限
-**           pucAP                   访问权限
-**           pucDomain               所属控制域
-**           pucCB                   CACHE 控制参数
+** 输　入  : ucAP                    访问权限
+**           ucAP2                   访问权限
+**           ucDomain                所属控制域
+**           ucCB                    CACHE 控制参数
+**           ucTEX                   CACHE 控制参数
+**           ucXN                    可执行权限
+**           pulFlag                 内存访问权限
 ** 输　出  : ERROR or OK
 ** 全局变量: 
 ** 调用模块: 

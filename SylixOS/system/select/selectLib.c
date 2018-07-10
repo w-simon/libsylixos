@@ -39,14 +39,6 @@
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_SELECT_EN > 0)
 #include "select.h"
 /*********************************************************************************************************
-  内部函数
-*********************************************************************************************************/
-INT             __selDoIoctls(fd_set               *pfdset,
-                              INT                   iFdSetWidth,
-                              INT                   iFunc,
-                              PLW_SEL_WAKEUPNODE    pselwunNode,
-                              BOOL                  bStopOnErr);
-/*********************************************************************************************************
 ** 函数名称: __selIsAllFdsetEmpty
 ** 功能描述: 检测是否所有的文件集都为空 (2010.01.21 此函数无用, 很多软件使用 select 进行延迟...)
 ** 输　入  : iWidthInBytes     文件集中的最大文件号的偏移量占了多少字节, 例如: fd = 10, 就占了 2 个 Byte
@@ -90,24 +82,24 @@ VOID  __selFdsetInit (INT               iWidthInBytes,
      *  所以这里只能操作 iWidthInBytes 位以内
      */
     if (pfdsetRead) {                                                   /*  拷贝等待读的文件集          */
-        lib_bcopy((CPVOID)pfdsetRead, (PVOID)&pselctx->SELCTX_fdsetOrigReadFds,
+        lib_bcopy(pfdsetRead, &pselctx->SELCTX_fdsetOrigReadFds,
                   iWidthInBytes);
     } else {
-        lib_bzero((PVOID)&pselctx->SELCTX_fdsetOrigReadFds, iWidthInBytes);
+        lib_bzero(&pselctx->SELCTX_fdsetOrigReadFds, iWidthInBytes);
     }
 
     if (pfdsetWrite) {                                                  /*  拷贝等待写的文件集          */
-        lib_bcopy((CPVOID)pfdsetWrite, (PVOID)&pselctx->SELCTX_fdsetOrigWriteFds,
+        lib_bcopy(pfdsetWrite, &pselctx->SELCTX_fdsetOrigWriteFds,
                   iWidthInBytes);
     } else {
-        lib_bzero((PVOID)&pselctx->SELCTX_fdsetOrigWriteFds, iWidthInBytes);
+        lib_bzero(&pselctx->SELCTX_fdsetOrigWriteFds, iWidthInBytes);
     }
 
     if (pfdsetExcept) {                                                 /*  拷贝等待异常的文件集        */
-        lib_bcopy((CPVOID)pfdsetExcept, (PVOID)&pselctx->SELCTX_fdsetOrigExceptFds,
+        lib_bcopy(pfdsetExcept, &pselctx->SELCTX_fdsetOrigExceptFds,
                   iWidthInBytes);
     } else {
-        lib_bzero((PVOID)&pselctx->SELCTX_fdsetOrigExceptFds, iWidthInBytes);
+        lib_bzero(&pselctx->SELCTX_fdsetOrigExceptFds, iWidthInBytes);
     }
 }
 /*********************************************************************************************************
@@ -131,15 +123,15 @@ static VOID  __selFdsetClear (INT               iWidthInBytes,
      *  所以这里只能操作 iWidthInBytes 位以内
      */
     if (pfdsetRead) {                                                   /*  清空当前等待的读文件集      */
-        lib_bzero((PVOID)pfdsetRead, iWidthInBytes);
+        lib_bzero(pfdsetRead, iWidthInBytes);
     }
 
     if (pfdsetWrite) {                                                  /*  清空当前等待的写文件集      */
-        lib_bzero((PVOID)pfdsetWrite, iWidthInBytes);
+        lib_bzero(pfdsetWrite, iWidthInBytes);
     }
 
     if (pfdsetExcept) {                                                 /*  清空当前等待的异常文件集    */
-        lib_bzero((PVOID)pfdsetExcept, iWidthInBytes);
+        lib_bzero(pfdsetExcept, iWidthInBytes);
     }
 }
 /*********************************************************************************************************
@@ -171,6 +163,7 @@ static INT   __selFdsetGetFileConter (INT               iWidth,
             ulPartMask = pfdsetRead->fds_bits[((unsigned)iFd) / NFDBITS];
             if (ulPartMask == 0) {
                 iFd += NFDBITS - 1;
+            
             } else if (ulPartMask & (ULONG)(1 << (((unsigned)iFd) % NFDBITS))) {
                 iFoundCounter++;
             }
@@ -182,6 +175,7 @@ static INT   __selFdsetGetFileConter (INT               iWidth,
             ulPartMask = pfdsetWrite->fds_bits[((unsigned)iFd) / NFDBITS];
             if (ulPartMask == 0) {
                 iFd += NFDBITS - 1;
+            
             } else if (ulPartMask & (ULONG)(1 << (((unsigned)iFd) % NFDBITS))) {
                 iFoundCounter++;
             }
@@ -193,6 +187,7 @@ static INT   __selFdsetGetFileConter (INT               iWidth,
             ulPartMask = pfdsetExcept->fds_bits[((unsigned)iFd) / NFDBITS];
             if (ulPartMask == 0) {
                 iFd += NFDBITS - 1;
+            
             } else if (ulPartMask & (ULONG)(1 << (((unsigned)iFd) % NFDBITS))) {
                 iFoundCounter++;
             }
@@ -239,6 +234,7 @@ INT     pselect (INT                     iWidth,
 #endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
              LW_SEL_WAKEUPNODE   selwunNode;                            /*  生成的 NODE 模板            */
              ULONG               ulError;
+             BOOL                bBadFd;
     
     if (LW_CPU_GET_CUR_NESTING()) {
         _ErrorHandle(ERROR_KERNEL_IN_ISR);                              /*  不能在中断中调用            */
@@ -287,64 +283,66 @@ INT     pselect (INT                     iWidth,
         ulWaitTime = LW_TS_TIMEOUT_TICK(LW_TRUE, ptmspecTO);
     }
     
-    pselctx->SELCTX_pfdsetReadFds   = pfdsetRead;
-    pselctx->SELCTX_pfdsetWriteFds  = pfdsetWrite;                      /*  保存用户参数地址            */
-    pselctx->SELCTX_pfdsetExceptFds = pfdsetExcept;
-    
     API_SemaphoreBClear(pselctx->SELCTX_hSembWakeup);                   /*  清除信号量                  */
     
     selwunNode.SELWUN_hThreadId = API_ThreadIdSelf();
     
-    pselctx->SELCTX_iWidth = iWidth;                                    /*  保存最大文件号              */
+    LW_THREAD_SAFE();                                                   /*  进入安全模式                */
+    
+    pselctx->SELCTX_iWidth          = iWidth;                           /*  保存最大文件号              */
     pselctx->SELCTX_bPendedOnSelect = LW_TRUE;                          /*  需要 delete hook 清除 NODE  */
+    pselctx->SELCTX_bBadFd          = LW_FALSE;
     
     if (pfdsetRead) {                                                   /*  检查读文件集                */
         selwunNode.SELWUN_seltypType = SELREAD;
-        iIsOk = __selDoIoctls(&pselctx->SELCTX_fdsetOrigReadFds, 
-                              iWidth, FIOSELECT, &selwunNode,
-                              LW_TRUE);                                 /*  遇到错误,立即退出           */
-        if (iIsOk != ERROR_NONE) {
-            iIsOk  = PX_ERROR;
+        if (__selDoIoctls(&pselctx->SELCTX_fdsetOrigReadFds, 
+                          pfdsetRead, iWidth, FIOSELECT, 
+                          &selwunNode, LW_TRUE)) {                      /*  遇到错误,立即退出           */
+            iIsOk = PX_ERROR;
         }
     }
     
     if (iIsOk != PX_ERROR && pfdsetWrite) {                             /*  检查写文件集                */
         selwunNode.SELWUN_seltypType = SELWRITE;
-        iIsOk = __selDoIoctls(&pselctx->SELCTX_fdsetOrigWriteFds, 
-                              iWidth, FIOSELECT, &selwunNode,
-                              LW_TRUE);                                 /*  遇到错误,立即退出           */
-        if (iIsOk != ERROR_NONE) {
-            iIsOk  = PX_ERROR;
+        if (__selDoIoctls(&pselctx->SELCTX_fdsetOrigWriteFds, 
+                          pfdsetWrite, iWidth, FIOSELECT, 
+                          &selwunNode, LW_TRUE)) {                      /*  遇到错误,立即退出           */
+            iIsOk = PX_ERROR;
         }
     }
     
     if (iIsOk != PX_ERROR && pfdsetExcept) {                            /*  检查异常文件集              */
         selwunNode.SELWUN_seltypType = SELEXCEPT;
-        iIsOk = __selDoIoctls(&pselctx->SELCTX_fdsetOrigExceptFds, 
-                              iWidth, FIOSELECT, &selwunNode,
-                              LW_TRUE);                                 /*  遇到错误,立即退出           */
-        if (iIsOk != ERROR_NONE) {
-            iIsOk  = PX_ERROR;
+        if (__selDoIoctls(&pselctx->SELCTX_fdsetOrigExceptFds, 
+                          pfdsetExcept, iWidth, FIOSELECT, 
+                          &selwunNode, LW_TRUE)) {                      /*  遇到错误,立即退出           */
+            iIsOk = PX_ERROR;
         }
     }
     
     if (iIsOk != ERROR_NONE) {                                          /*  出现了错误                  */
         ulError = API_GetLastError();
         
-        selwunNode.SELWUN_seltypType = SELREAD;
-        __selDoIoctls(&pselctx->SELCTX_fdsetOrigReadFds, 
-                      iWidth, FIOUNSELECT, &selwunNode,
-                      LW_FALSE);                                        /*  释放节点                    */
-                      
-        selwunNode.SELWUN_seltypType = SELWRITE;
-        __selDoIoctls(&pselctx->SELCTX_fdsetOrigWriteFds, 
-                      iWidth, FIOUNSELECT, &selwunNode,
-                      LW_FALSE);                                        /*  释放节点                    */
-                      
-        selwunNode.SELWUN_seltypType = SELEXCEPT;
-        __selDoIoctls(&pselctx->SELCTX_fdsetOrigExceptFds, 
-                      iWidth, FIOUNSELECT, &selwunNode,
-                      LW_FALSE);                                        /*  释放节点                    */
+        if (pfdsetRead) {
+            selwunNode.SELWUN_seltypType = SELREAD;
+            __selDoIoctls(&pselctx->SELCTX_fdsetOrigReadFds, 
+                          LW_NULL, iWidth, FIOUNSELECT, 
+                          &selwunNode, LW_FALSE);                       /*  释放节点                    */
+        }
+        
+        if (pfdsetWrite) {
+            selwunNode.SELWUN_seltypType = SELWRITE;
+            __selDoIoctls(&pselctx->SELCTX_fdsetOrigWriteFds, 
+                          LW_NULL, iWidth, FIOUNSELECT, 
+                          &selwunNode, LW_FALSE);                       /*  释放节点                    */
+        }
+        
+        if (pfdsetExcept) {
+            selwunNode.SELWUN_seltypType = SELEXCEPT;
+            __selDoIoctls(&pselctx->SELCTX_fdsetOrigExceptFds, 
+                          LW_NULL, iWidth, FIOUNSELECT, 
+                          &selwunNode, LW_FALSE);                       /*  释放节点                    */
+        }
         
         if (ulError == ENOSYS) {
             _ErrorHandle(ERROR_IO_SELECT_UNSUPPORT_IN_DRIVER);          /*  驱动程序不支持              */
@@ -352,8 +350,11 @@ INT     pselect (INT                     iWidth,
         
         pselctx->SELCTX_bPendedOnSelect = LW_FALSE;                     /*  自行清除 NODE 完成          */
         
+        LW_THREAD_UNSAFE();                                             /*  退出安全模式                */
         return  (PX_ERROR);
     }
+    
+    LW_THREAD_UNSAFE();                                                 /*  退出安全模式                */
     
 #if LW_CFG_SIGNAL_EN > 0
     if (sigsetMask) {
@@ -370,42 +371,42 @@ INT     pselect (INT                     iWidth,
     }
 #endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
     
+    LW_THREAD_SAFE();                                                   /*  进入安全模式                */
+    
     if (pfdsetRead) {                                                   /*  检查读文件集                */
-        REGISTER INT    iTemp;
         selwunNode.SELWUN_seltypType = SELREAD;
-        iTemp = __selDoIoctls(&pselctx->SELCTX_fdsetOrigReadFds, 
-                              iWidth, FIOUNSELECT, &selwunNode,
-                              LW_FALSE);                                /*  如果存在节点,删除节点       */
-        if (iTemp != ERROR_NONE) {
-            iIsOk  = PX_ERROR;
+        if (__selDoIoctls(&pselctx->SELCTX_fdsetOrigReadFds, 
+                          pfdsetRead, iWidth, FIOUNSELECT, 
+                          &selwunNode, LW_FALSE)) {                     /*  如果存在节点,删除节点       */
+            iIsOk = PX_ERROR;
         }
     }
 
-    if (pfdsetWrite) {                                                  /*  检查写文件集                */                
-        REGISTER INT    iTemp;
+    if (pfdsetWrite) {                                                  /*  检查写文件集                */
         selwunNode.SELWUN_seltypType = SELWRITE;
-        iTemp = __selDoIoctls(&pselctx->SELCTX_fdsetOrigWriteFds, 
-                              iWidth, FIOUNSELECT, &selwunNode,
-                              LW_FALSE);                                /*  如果存在节点,删除节点       */
-        if (iTemp != ERROR_NONE) {
-            iIsOk  = PX_ERROR;
+        if (__selDoIoctls(&pselctx->SELCTX_fdsetOrigWriteFds, 
+                          pfdsetWrite, iWidth, FIOUNSELECT, 
+                          &selwunNode, LW_FALSE)) {                     /*  如果存在节点,删除节点       */
+            iIsOk = PX_ERROR;
         }
     }
     
     if (pfdsetExcept) {                                                 /*  检查异常文件集              */
-        REGISTER INT    iTemp;
         selwunNode.SELWUN_seltypType = SELEXCEPT;
-        iTemp = __selDoIoctls(&pselctx->SELCTX_fdsetOrigExceptFds, 
-                              iWidth, FIOUNSELECT, &selwunNode,
-                              LW_FALSE);                                /*  遇到错误,立即退出           */
-        if (iTemp != ERROR_NONE) {
-            iIsOk  = PX_ERROR;
+        if (__selDoIoctls(&pselctx->SELCTX_fdsetOrigExceptFds, 
+                          pfdsetExcept, iWidth, FIOUNSELECT, 
+                          &selwunNode, LW_FALSE)) {                     /*  遇到错误,立即退出           */
+            iIsOk = PX_ERROR;
         }
     }
     
+    bBadFd = pselctx->SELCTX_bBadFd;
     pselctx->SELCTX_bPendedOnSelect = LW_FALSE;
     
-    if (iIsOk == PX_ERROR) {                                            /*  出现错误                    */
+    LW_THREAD_UNSAFE();                                                 /*  退出安全模式                */
+    
+    if (bBadFd || (iIsOk == PX_ERROR)) {                                /*  出现错误                    */
+        _ErrorHandle(EBADF);
         return  (PX_ERROR);
     
     } else {

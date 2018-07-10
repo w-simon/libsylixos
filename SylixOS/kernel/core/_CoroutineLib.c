@@ -45,7 +45,7 @@ VOID  _CoroutineReclaim (PLW_CLASS_TCB  ptcb)
                             COROUTINE_ringRoutine);
     
     if (pcrcbPrev->COROUTINE_ulFlags & LW_COROUTINE_FLAG_DELETE) {
-        _ThreadSafeInternal();                                          /*  进入安全模式                */
+        LW_THREAD_SAFE();                                               /*  进入安全模式                */
         
         LW_SPIN_LOCK_QUICK(&ptcb->TCB_slLock, &iregInterLevel);
         _List_Ring_Del(&pcrcbPrev->COROUTINE_ringRoutine,
@@ -56,7 +56,7 @@ VOID  _CoroutineReclaim (PLW_CLASS_TCB  ptcb)
             _StackFree(ptcb, pcrcbPrev->COROUTINE_pstkStackLowAddr);    /*  释放内存                    */
         }
         
-        _ThreadUnsafeInternal();                                        /*  退出安全模式                */
+        LW_THREAD_UNSAFE();                                             /*  退出安全模式                */
     }
 }
 /*********************************************************************************************************

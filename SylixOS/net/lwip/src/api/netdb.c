@@ -403,7 +403,7 @@ lwip_getaddrinfo(const char *nodename, const char *servname,
     MEMCPY(ai->ai_canonname, nodename, namelen);
     ai->ai_canonname[namelen] = 0;
   }
-  ai->ai_addrlen = sizeof(struct sockaddr_storage);
+  ai->ai_addrlen = sa->ss_len; /* SylixOS Changed 'sizeof(struct sockaddr_storage)' to 'sa->ss_len' */
   ai->ai_addr = (struct sockaddr *)sa;
 
   *res = ai;

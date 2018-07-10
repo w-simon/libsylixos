@@ -376,7 +376,7 @@ ULONG  API_IosDrvRemove (INT  iDrvNum, BOOL  bForceClose)
          
          pdevhdr = _LIST_ENTRY(plineDevHdr, LW_DEV_HDR, DEVHDR_lineManage);
          if (pdevhdr->DEVHDR_usDrvNum == (UINT16)iDrvNum) {
-             __SHEAP_FREE((PVOID)pdevhdr->DEVHDR_pcName);               /*  释放名字空间                */
+             __SHEAP_FREE(pdevhdr->DEVHDR_pcName);                      /*  释放名字空间                */
              _List_Line_Del(plineDevHdr, &_S_plineDevHdrHeader);
          }
     }

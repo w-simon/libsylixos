@@ -103,7 +103,7 @@ LW_OBJECT_HANDLE  API_PartitionCreate (CPCHAR             pcName,
     );
     
     if (!p_part) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "there is no ID to buide a partition.\r\n");
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "there is no ID to build a partition.\r\n");
         _ErrorHandle(ERROR_PARTITION_FULL);
         return  (LW_OBJECT_HANDLE_INVALID);
     }

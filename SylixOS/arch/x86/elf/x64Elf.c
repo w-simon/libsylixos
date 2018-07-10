@@ -48,10 +48,23 @@
 #define R_X86_64_8          14                          /*  Direct 8 bit sign extended                  */
 #define R_X86_64_PC8        15                          /*  8 bit sign extended pc relative             */
 /*********************************************************************************************************
+** 函数名称: archElfGotInit
+** 功能描述: GOT 重定位
+** 输　入  : pmodule       模块
+** 输　出  : ERROR_NONE 表示没有错误, PX_ERROR 表示错误
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  archElfGotInit (PVOID  pmodule)
+{
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: archElfRelocateRela
 ** 功能描述: 重定位 RELA 类型的重定位项
 ** 输  入  : pmodule      模块
 **           prela        RELA 表项
+**           psym         符号
 **           addrSymVal   重定位符号的值
 **           pcTargetSec  重定位目目标节区
 **           pcBuffer     跳转表起始地址
@@ -62,6 +75,7 @@
 *********************************************************************************************************/
 INT  archElfRelocateRela (PVOID       pmodule,
                           Elf_Rela   *prela,
+                          Elf_Sym    *psym,
                           Elf_Addr    addrSymVal,
                           PCHAR       pcTargetSec,
                           PCHAR       pcBuffer,
@@ -164,6 +178,7 @@ INT  archElfRelocateRela (PVOID       pmodule,
 ** 功能描述: 重定位 REL 类型的重定位项
 ** 输  入  : pmodule      模块
 **           prel         REL 表项
+**           psym         符号
 **           addrSymVal   重定位符号的值
 **           pcTargetSec  重定位目目标节区
 **           pcBuffer     跳转表起始地址
@@ -174,6 +189,7 @@ INT  archElfRelocateRela (PVOID       pmodule,
 *********************************************************************************************************/
 INT  archElfRelocateRel (PVOID        pmodule,
                          Elf_Rel     *prel,
+                         Elf_Sym     *psym,
                          Elf_Addr     addrSymVal,
                          PCHAR        pcTargetSec,
                          PCHAR        pcBuffer,

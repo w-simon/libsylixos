@@ -224,7 +224,7 @@ ARCH_FPUFLAGS = -m$(FPU_TYPE)
 
 ARCH_CPUFLAGS_WITHOUT_FPUFLAGS = -mcpu=$(CPU_TYPE)
 ARCH_CPUFLAGS                  = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) $(ARCH_FPUFLAGS)
-ARCH_CPUFLAGS_NOFPU            = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) -msoft-float
+ARCH_CPUFLAGS_NOFPU            = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) -msoft-float -mno-spe -mno-altivec 
 endif
 
 #*********************************************************************************************************
@@ -282,6 +282,34 @@ ARCH_FPUFLAGS = -m$(FPU_TYPE)
 ARCH_CPUFLAGS_WITHOUT_FPUFLAGS = -mcpu=$(CPU_TYPE)
 ARCH_CPUFLAGS                  = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) $(ARCH_FPUFLAGS)
 ARCH_CPUFLAGS_NOFPU            = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) -msoft-float
+endif
+
+#*********************************************************************************************************
+# RISC-V (Need frame pointer code to debug)
+#*********************************************************************************************************
+ifneq (,$(findstring riscv,$(TOOLCHAIN_PREFIX)))
+ARCH             = riscv
+ARCH_COMMONFLAGS = -mstrict-align -mcmodel=medany -mno-save-restore
+
+ARCH_PIC_ASFLAGS = 
+ARCH_PIC_CFLAGS  = -fPIC
+ARCH_PIC_LDFLAGS = -nostdlib -Wl,-shared -fPIC -shared
+
+ARCH_KO_CFLAGS   = -fPIC
+ARCH_KO_LDFLAGS  = -nostdlib -r -fPIC
+
+ARCH_KLIB_CFLAGS =
+
+ARCH_KERNEL_CFLAGS  =
+ARCH_KERNEL_LDFLAGS =
+
+ARCH_FPUFLAGS = -mabi=$(FPU_TYPE)
+
+ARCH_CPUFLAGS_WITHOUT_FPUFLAGS = 
+ARCH_CPUFLAGS                  = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) -march=$(CPU_TYPE) $(ARCH_FPUFLAGS)
+ARCH_CPU_TYPE_NOFDQ            = -march=$(subst q,,$(subst d,,$(subst f,,$(CPU_TYPE))))
+ARCH_FPU_TYPE_NOFDQ            = -mabi=$(subst q,,$(subst d,,$(subst f,,$(FPU_TYPE))))
+ARCH_CPUFLAGS_NOFPU            = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) $(ARCH_CPU_TYPE_NOFDQ) $(ARCH_FPU_TYPE_NOFDQ)
 endif
 
 #*********************************************************************************************************

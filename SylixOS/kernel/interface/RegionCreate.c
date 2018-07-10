@@ -86,7 +86,7 @@ LW_OBJECT_HANDLE API_RegionCreate (CPCHAR             pcName,
     pheap = _HeapCreate(pvLowAddr, stRegionByteSize);
     
     if (!pheap) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "there is no ID to buide a region.\r\n");
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "there is no ID to build a region.\r\n");
         _ErrorHandle(ERROR_REGION_NULL);
         return  (LW_OBJECT_HANDLE_INVALID);
     }

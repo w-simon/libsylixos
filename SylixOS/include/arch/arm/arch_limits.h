@@ -84,7 +84,7 @@
 
 #ifndef __ARCH_ULONG_MAX
 #ifdef  __STDC__
-#define __ARCH_ULONG_MAX           4294967295u
+#define __ARCH_ULONG_MAX           4294967295ul
 #else
 #define __ARCH_ULONG_MAX           4294967295
 #endif

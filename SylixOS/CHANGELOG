@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2018-07-08: han.hui
+    合并 RISC-V 支持.
+
     2018-06-19: han.hui
     x86 x64 加入 PAT 支持.
 
@@ -23,6 +26,14 @@ HISTORY
     NAT 支持 IP 分片.
 
 ++ Bugfixes:
+
+    2018-07-10: han.hui
+    为支持安全沙盒, 修正 select() 实现机制.
+    修正随机数发生器重复概率高的问题.
+
+    2018-07-08: han.hui
+    修正 vpmpdm 中 MIPS memmove() 错误.
+    修正 MIPS 非规格化浮点数置为 0 错误.
 
     2018-06-13: han.hui
     网络链接状态需要立即反馈到路由表状态.

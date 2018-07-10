@@ -31,14 +31,14 @@
 /*********************************************************************************************************
   宏定义
 *********************************************************************************************************/
-#define MODULUS             2147483647L
-#define FACTOR              16807L
+#define MODULUS             2147483647L                                 /*  0x7fffffff (2^31 - 1)       */
+#define FACTOR              16807L                                      /*  7^5                         */
 #define DIVISOR             127773L
 #define REMAINDER           2836L
 /*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
-static  INT                 last_val     = 1;
+static  LONG                last_val     = 1;
 static  LONG                last_val_dom = 1;
 /*********************************************************************************************************
 ** 函数名称: lib_rand
@@ -50,14 +50,20 @@ static  LONG                last_val_dom = 1;
 *********************************************************************************************************/
 INT lib_rand (VOID)
 {
-    INT64   llTmp = (INT64)((INT64)last_val * 1103515245);
+    LONG    lQuotient, lRemainder, lTemp, lLast;
     
-    llTmp  += ((INT64)FACTOR ^ API_TimeGet());
-    llTmp >>= 16;
+    lLast      = last_val;
+    lQuotient  = lLast / DIVISOR;
+    lRemainder = lLast % DIVISOR;
+    lTemp      = (FACTOR * lRemainder) - (REMAINDER * lQuotient);
     
-    last_val = (INT)(llTmp % __ARCH_UINT_MAX);
+    if (lTemp <= 0) {
+        lTemp += MODULUS;
+    }
     
-    return  ((last_val >= 0) ? last_val : (0 - last_val));              /*  必须为正                    */
+    last_val = lTemp;
+    
+    return  ((INT)(lTemp % ((ULONG)RAND_MAX + 1)));
 }
 /*********************************************************************************************************
 ** 函数名称: lib_rand_r
@@ -69,15 +75,21 @@ INT lib_rand (VOID)
 *********************************************************************************************************/
 INT lib_rand_r (uint_t *puiSeed)
 {
-    INT64   llTmp = (INT64)((INT64)*puiSeed * 1103515245);
+    LONG    lQuotient, lRemainder, lTemp, lLast;
     
-    llTmp  += ((INT64)FACTOR ^ *puiSeed);
-    llTmp >>= 16;
+    lLast      = (LONG)(*puiSeed);
+    lQuotient  = lLast / DIVISOR;
+    lRemainder = lLast % DIVISOR;
+    lTemp      = (FACTOR * lRemainder) - (REMAINDER * lQuotient);
     
-    last_val = (INT)(llTmp % __ARCH_UINT_MAX);
+    if (lTemp <= 0) {
+        lTemp += MODULUS;
+    }
+    
+    last_val = lTemp;
     *puiSeed = (uint_t)last_val;
     
-    return  ((last_val >= 0) ? last_val : (0 - last_val));              /*  必须为正                    */
+    return  ((INT)(lTemp % ((ULONG)RAND_MAX + 1)));
 }
 /*********************************************************************************************************
 ** 函数名称: lib_srand
@@ -89,7 +101,7 @@ INT lib_rand_r (uint_t *puiSeed)
 *********************************************************************************************************/
 VOID lib_srand (uint_t uiSeed)
 {
-    last_val = (INT)uiSeed;
+    last_val = (LONG)uiSeed;
 }
 /*********************************************************************************************************
 ** 函数名称: lib_srandom
@@ -113,14 +125,49 @@ VOID lib_srandom (uint_t uiSeed)
 *********************************************************************************************************/
 LONG lib_random (VOID)
 {
-    INT64   llTmp = (INT64)((INT64)last_val_dom * 1103515245);
+    LONG    lQuotient, lRemainder, lTemp, lLast;
     
-    llTmp  += ((INT64)FACTOR ^ API_TimeGet());
-    llTmp >>= 16;
+#if LW_CFG_CPU_WORD_LENGHT == 64                                        /*  64 bits                     */
+    LONG    lQuotientH, lRemainderH, lTempH, lLastH;
+
+    lLast      = last_val_dom;
+    lQuotient  = lLast / DIVISOR;
+    lRemainder = lLast % DIVISOR;
+    lTemp      = (FACTOR * lRemainder) - (REMAINDER * lQuotient);
     
-    last_val_dom = (LONG)(llTmp % __ARCH_UINT_MAX);
+    if (lTemp <= 0) {
+        lTemp += MODULUS;
+    }
     
-    return  ((last_val_dom >= 0) ? last_val_dom : (0 - last_val_dom));
+    last_val_dom = lTemp;
+    
+    lLastH      = last_val_dom;
+    lQuotientH  = lLastH / DIVISOR;
+    lRemainderH = lLastH % DIVISOR;
+    lTempH      = (FACTOR * lRemainderH) - (REMAINDER * lQuotientH);
+    
+    if (lTempH <= 0) {
+        lTempH += MODULUS;
+    }
+    
+    lTemp += (lTempH << 32);
+    
+    return  (lTemp % ((ULONG)__ARCH_LONG_MAX + 1));
+    
+#else                                                                   /*  32 bits                     */
+    lLast      = last_val_dom;
+    lQuotient  = lLast / DIVISOR;
+    lRemainder = lLast % DIVISOR;
+    lTemp      = (FACTOR * lRemainder) - (REMAINDER * lQuotient);
+    
+    if (lTemp <= 0) {
+        lTemp += MODULUS;
+    }
+    
+    last_val_dom = lTemp;
+    
+    return  ((INT)(lTemp % ((ULONG)RAND_MAX + 1)));
+#endif
 }
 /*********************************************************************************************************
   drand

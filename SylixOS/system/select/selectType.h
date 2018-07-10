@@ -28,7 +28,6 @@
 /*********************************************************************************************************
   等待节点类型
 *********************************************************************************************************/
-#ifdef __SYLIXOS_KERNEL
 
 typedef enum {
     SELREAD,                                                            /*  读阻塞                      */
@@ -42,8 +41,25 @@ typedef enum {
 
 typedef struct {
     LW_LIST_LINE            SELWUN_lineManage;                          /*  管理链表                    */
-    BOOL                    SELWUN_bDontFree;                           /*  此节点不是动态开辟的,       */
-                                                                        /*  不需要释放                  */
+    UINT32                  SELWUN_uiFlags;
+#define LW_SELWUN_FLAG_DFREE    0x1                                     /*  此节点不需要释放            */
+
+#define LW_SELWUN_CLEAR_DFREE(node) \
+        ((node)->SELWUN_uiFlags &= ~LW_SELWUN_FLAG_DFREE)
+#define LW_SELWUN_SET_DFREE(node)   \
+        ((node)->SELWUN_uiFlags |= LW_SELWUN_FLAG_DFREE)
+#define LW_SELWUN_IS_DFREE(node)    \
+        ((node)->SELWUN_uiFlags & LW_SELWUN_FLAG_DFREE)
+
+#define LW_SELWUN_FLAG_READY   0x2                                      /*  此节点数据准备好            */
+
+#define LW_SELWUN_CLEAR_READY(node) \
+        ((node)->SELWUN_uiFlags &= ~LW_SELWUN_FLAG_READY)
+#define LW_SELWUN_SET_READY(node)   \
+        ((node)->SELWUN_uiFlags |= LW_SELWUN_FLAG_READY)
+#define LW_SELWUN_IS_READY(node)    \
+        ((node)->SELWUN_uiFlags & LW_SELWUN_FLAG_READY)
+
     LW_OBJECT_HANDLE        SELWUN_hThreadId;                           /*  创建节点的线程句柄          */
     INT                     SELWUN_iFd;                                 /*  链接点的文件描述符          */
     LW_SEL_TYPE             SELWUN_seltypType;                          /*  等待类型                    */
@@ -64,7 +80,6 @@ typedef struct {
 } LW_SEL_WAKEUPLIST;
 typedef LW_SEL_WAKEUPLIST  *PLW_SEL_WAKEUPLIST;
 
-#endif                                                                  /*  __SYLIXOS_KERNEL            */
 /*********************************************************************************************************
   每个线程都拥有的私有结构
 *********************************************************************************************************/
@@ -72,10 +87,7 @@ typedef LW_SEL_WAKEUPLIST  *PLW_SEL_WAKEUPLIST;
 typedef struct {
     LW_OBJECT_HANDLE        SELCTX_hSembWakeup;                         /*  唤醒信号量                  */
     BOOL                    SELCTX_bPendedOnSelect;                     /*  是否阻塞在 select() 上      */
-    
-    fd_set                 *SELCTX_pfdsetReadFds;                       /*  阻塞的读文件集指针          */
-    fd_set                 *SELCTX_pfdsetWriteFds;                      /*  阻塞的写文件集指针          */
-    fd_set                 *SELCTX_pfdsetExceptFds;                     /*  阻塞的异常文件集指针        */
+    BOOL                    SELCTX_bBadFd;                              /*  文件描述符错误              */
     
     fd_set                  SELCTX_fdsetOrigReadFds;                    /*  原始的读文件集              */
     fd_set                  SELCTX_fdsetOrigWriteFds;                   /*  原始的写文件集              */
@@ -84,6 +96,14 @@ typedef struct {
     INT                     SELCTX_iWidth;                              /*  select() 第一个参数         */
 } LW_SEL_CONTEXT;
 typedef LW_SEL_CONTEXT     *PLW_SEL_CONTEXT;
+
+/*********************************************************************************************************
+  内部函数
+*********************************************************************************************************/
+
+INT   __selDoIoctls(fd_set  *pfdset, fd_set  *pfdsetUpdate,
+                    INT  iFdSetWidth, INT  iFunc,
+                    PLW_SEL_WAKEUPNODE pselwun, BOOL  bStopOnErr);
 
 #endif                                                                  /*  __SELECTLIB_H               */
 /*********************************************************************************************************

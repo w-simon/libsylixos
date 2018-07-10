@@ -565,6 +565,12 @@ INT  _SpipeIoctl (PLW_SPIPE_FILE pspipefil,
     
     switch (iRequest) {
     
+    case FIOSEEK:
+    case FIOWHERE:
+        iErrCode = (PX_ERROR);
+        _ErrorHandle(ESPIPE);
+        break;
+    
     case FIONREAD:                                                      /*  获得管道中数据的字节个数    */
         *(INT *)piArgPtr = (INT)pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stMsgBytes;
         break;

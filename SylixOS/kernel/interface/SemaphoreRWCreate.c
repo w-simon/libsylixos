@@ -63,7 +63,7 @@ LW_OBJECT_HANDLE  API_SemaphoreRWCreate (CPCHAR             pcName,
     );
     
     if (!pevent) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "there is no ID to buide a semaphore.\r\n");
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "there is no ID to build a semaphore.\r\n");
         _ErrorHandle(ERROR_EVENT_FULL);
         return  (LW_OBJECT_HANDLE_INVALID);
     }
