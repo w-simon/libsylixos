@@ -163,6 +163,7 @@ static INT	armCacheV8Invalidate (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t
             ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, uiArmV8ICacheLineSize);
             armICacheInvalidate(pvAdrs, (PVOID)ulEnd, uiArmV8ICacheLineSize);
         }
+
     } else {
         if (stBytes > 0) {                                              /*  必须 > 0                    */
             addr_t  ulStart = (addr_t)pvAdrs;
@@ -211,6 +212,7 @@ static INT	armCacheV8InvalidatePage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVOI
             ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, uiArmV8ICacheLineSize);
             armICacheInvalidate(pvAdrs, (PVOID)ulEnd, uiArmV8ICacheLineSize);
         }
+
     } else {
         if (stBytes > 0) {                                              /*  必须 > 0                    */
             addr_t  ulStart = (addr_t)pvAdrs;
@@ -259,6 +261,7 @@ static INT	armCacheV8Clear (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stB
             ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, uiArmV8ICacheLineSize);
             armICacheInvalidate(pvAdrs, (PVOID)ulEnd, uiArmV8ICacheLineSize);
         }
+
     } else {
         if (stBytes >= ARMv8_CACHE_LOOP_OP_MAX_SIZE) {
             armDCacheV7ClearAll();                                      /*  全部回写并无效              */
@@ -294,6 +297,7 @@ static INT	armCacheV8ClearPage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVOID pvP
             ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, uiArmV8ICacheLineSize);
             armICacheInvalidate(pvAdrs, (PVOID)ulEnd, uiArmV8ICacheLineSize);
         }
+
     } else {
         if (stBytes >= ARMv8_CACHE_LOOP_OP_MAX_SIZE) {
             armDCacheV7ClearAll();                                      /*  全部回写并无效              */
@@ -424,11 +428,11 @@ VOID  armCacheV8Init (LW_CACHE_OP *pcacheop,
 #define ARMv8_CCSIDR_LINESIZE(x)        ((x) & ARMv8_CCSIDR_LINESIZE_MASK)
 #define ARMv8_CACHE_LINESIZE(x)         (16 << ARMv8_CCSIDR_LINESIZE(x))
 
-#define ARMv8_CCSIDR_NUMSET_MASK        0xFFFE000
+#define ARMv8_CCSIDR_NUMSET_MASK        0xfffe000
 #define ARMv8_CCSIDR_NUMSET(x)          ((x) & ARMv8_CCSIDR_NUMSET_MASK)
 #define ARMv8_CACHE_NUMSET(x)           ((ARMv8_CCSIDR_NUMSET(x) >> 13) + 1)
 
-#define ARMv8_CCSIDR_WAYNUM_MSK         0x1FF8
+#define ARMv8_CCSIDR_WAYNUM_MSK         0x1ff8
 #define ARMv8_CCSIDR_WAYNUM(x)          ((x) & ARMv8_CCSIDR_WAYNUM_MSK)
 #define ARMv8_CACHE_WAYNUM(x)           ((ARMv8_CCSIDR_NUMSET(x) >> 3) + 1)
 

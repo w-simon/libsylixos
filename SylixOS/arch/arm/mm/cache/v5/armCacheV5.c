@@ -43,7 +43,7 @@ extern VOID  armDCacheV5ClearAll(VOID);
 /*********************************************************************************************************
   CACHE 参数
 *********************************************************************************************************/
-#define ARMv5_CACHE_LINE_SIZE           32
+#define ARMv5_CACHE_LINE_SIZE           32                              /*  ARMv5 MUST 32 bytes len     */
 #define ARMv5_CACHE_LOOP_OP_MAX_SIZE    (16 * LW_CFG_KB_SIZE)
 /*********************************************************************************************************
 ** 函数名称: armCacheV5Enable
@@ -158,6 +158,7 @@ static INT	armCacheV5Invalidate (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t
             ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, ARMv5_CACHE_LINE_SIZE);
             armICacheInvalidate(pvAdrs, (PVOID)ulEnd, ARMv5_CACHE_LINE_SIZE);
         }
+
     } else {
         if (stBytes > 0) {                                              /*  必须 > 0                    */
             addr_t  ulStart = (addr_t)pvAdrs;
@@ -175,6 +176,7 @@ static INT	armCacheV5Invalidate (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t
             }
                                                                         /*  仅无效对齐部分              */
             armDCacheInvalidate((PVOID)ulStart, (PVOID)ulEnd, ARMv5_CACHE_LINE_SIZE);
+
         } else {
             _DebugHandle(__ERRORMESSAGE_LEVEL, "stBytes == 0.\r\n");
         }
@@ -205,6 +207,7 @@ static INT	armCacheV5InvalidatePage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVOI
             ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, ARMv5_CACHE_LINE_SIZE);
             armICacheInvalidate(pvAdrs, (PVOID)ulEnd, ARMv5_CACHE_LINE_SIZE);
         }
+
     } else {
         if (stBytes > 0) {                                              /*  必须 > 0                    */
             addr_t  ulStart = (addr_t)pvAdrs;
@@ -222,6 +225,7 @@ static INT	armCacheV5InvalidatePage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVOI
             }
                                                                         /*  仅无效对齐部分              */
             armDCacheInvalidate((PVOID)ulStart, (PVOID)ulEnd, ARMv5_CACHE_LINE_SIZE);
+
         } else {
             _DebugHandle(__ERRORMESSAGE_LEVEL, "stBytes == 0.\r\n");
         }
@@ -251,6 +255,7 @@ static INT	armCacheV5Clear (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stB
             ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, ARMv5_CACHE_LINE_SIZE);
             armICacheInvalidate(pvAdrs, (PVOID)ulEnd, ARMv5_CACHE_LINE_SIZE);
         }
+
     } else {
         if (stBytes >= ARMv5_CACHE_LOOP_OP_MAX_SIZE) {
             armDCacheV5ClearAll();                                      /*  全部回写并无效              */
@@ -286,6 +291,7 @@ static INT	armCacheV5ClearPage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVOID pvP
             ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, ARMv5_CACHE_LINE_SIZE);
             armICacheInvalidate(pvAdrs, (PVOID)ulEnd, ARMv5_CACHE_LINE_SIZE);
         }
+
     } else {
         if (stBytes >= ARMv5_CACHE_LOOP_OP_MAX_SIZE) {
             armDCacheV5ClearAll();                                      /*  全部回写并无效              */
@@ -406,17 +412,61 @@ VOID  armCacheV5Init (LW_CACHE_OP *pcacheop,
                       CACHE_MODE   uiData, 
                       CPCHAR       pcMachineName)
 {
+    static const INT     iCacheSizeTbl[] = {4, 8, 16, 32, 64, 128};
+                 UINT32  uiCacheType, uiICache, uiDCache, uiISize, uiDSize;
+
+    /*
+     *   31 30 29 28   25  24 23     12 11      0
+     * +---------+-------+---+---------+---------+
+     * | 0  0  0 | ctype | S |  Dsize  |  Isize  |
+     * +---------+-------+---+---------+---------+
+     *
+     * ctype The ctype field determines the cache type.
+     *     S bit Specifies whether the cache is a unified cache or separate instruction and data caches.
+     * Dsize Specifies the size, line length, and associativity of the data cache.
+     * Isize Specifies the size, line length, and associativity of the instruction cache.
+     *
+     *  11  10 9    6 5     3  2  1   0
+     * +------+------+-------+---+-----+
+     * | 0  0 | size | assoc | M | len |
+     * +------+------+-------+---+-----+
+     *
+     *  size The size field determines the cache size in conjunction with the M bit.
+     * assoc The assoc field determines the cache associativity in conjunction with the M bit.
+     *     M bit The multiplier bit. Determines the cache size and cache associativity values in
+     *       conjunction with the size and assoc fields.
+     *   len The len field determines the line length of the cache.
+     */
+
     pcacheop->CACHEOP_ulOption = 0ul;
 
     pcacheop->CACHEOP_iILoc = CACHE_LOCATION_VIVT;
     pcacheop->CACHEOP_iDLoc = CACHE_LOCATION_VIVT;
     
+    uiCacheType = armCacheTypeReg();
+    uiICache = uiCacheType & 0xfff;
+    uiDCache = (uiCacheType >> 12) & 0xfff;
+
+    uiISize = (uiICache >> 6) & 0xf;
+    uiDSize = (uiDCache >> 6) & 0xf;
+
+    _BugHandle((uiISize < 3) || (uiISize > 8), LW_TRUE, "ARMv5 I-Cache size error.\r\n");
+    _BugHandle((uiDSize < 3) || (uiDSize > 8), LW_TRUE, "ARMv5 D-Cache size error.\r\n");
+
+    uiISize = iCacheSizeTbl[uiISize - 3];
+    uiDSize = iCacheSizeTbl[uiDSize - 3];
+
     pcacheop->CACHEOP_iICacheLine = ARMv5_CACHE_LINE_SIZE;
     pcacheop->CACHEOP_iDCacheLine = ARMv5_CACHE_LINE_SIZE;
     
-    pcacheop->CACHEOP_iICacheWaySize = (4 * LW_CFG_KB_SIZE);
-    pcacheop->CACHEOP_iDCacheWaySize = (4 * LW_CFG_KB_SIZE);
+    pcacheop->CACHEOP_iICacheWaySize = (uiISize * LW_CFG_KB_SIZE) >> 2; /*  4 ways always               */
+    pcacheop->CACHEOP_iDCacheWaySize = (uiDSize * LW_CFG_KB_SIZE) >> 2;
     
+    _DebugFormat(__LOGMESSAGE_LEVEL, "ARMv5 I-Cache line size = %u bytes, Way size = %u bytes.\r\n",
+                 pcacheop->CACHEOP_iICacheLine, pcacheop->CACHEOP_iICacheWaySize);
+    _DebugFormat(__LOGMESSAGE_LEVEL, "ARMv5 D-Cache line size = %u bytes, Way size = %u bytes.\r\n",
+                 pcacheop->CACHEOP_iDCacheLine, pcacheop->CACHEOP_iDCacheWaySize);
+
     pcacheop->CACHEOP_pfuncEnable  = armCacheV5Enable;
     pcacheop->CACHEOP_pfuncDisable = armCacheV5Disable;
     

@@ -19,8 +19,9 @@
 ** 描        述: ARMv7 Cortex-Mx 体系构架 CACHE 驱动.
 **
 ** CHANGELOG:
-2018.1.2 Hou.JinYu (侯进宇)    实现 Cortex-M7 体系架构 CACHE 驱动.
-2018.1.8 Jiao.JinXing (焦进星) 加入 SCB CACHE 操作.
+2018.01.02 Hou.JinYu (侯进宇)    实现 Cortex-M7 体系架构 CACHE 驱动.
+2018.01.08 Jiao.JinXing (焦进星) 加入 SCB CACHE 操作.
+2018.07.11 Han.Hui (韩辉) 加入 Cache line size 探测.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -36,8 +37,8 @@
 /*********************************************************************************************************
   CACHE 宏
 *********************************************************************************************************/
-#define CACHE_LINE_SIZE                     (32)
-#define CACHE_LINE_MASK                     ((addr_t)CACHE_LINE_SIZE - 1)
+static UINT32                               uiArmV7MCacheLineSize;
+#define CACHE_LINE_MASK                     ((addr_t)uiArmV7MCacheLineSize - 1)
 #define CACHE_LOOP_OP_MAX_SIZE              (8 * LW_CFG_KB_SIZE)
 #define CACHE_ALIGN_ADDR(pvAdrs)            ((PVOID)((addr_t)pvAdrs & (~CACHE_LINE_MASK)))
 #define CACHE_ALIGN_SIZE(pvAdrs, stBytes)   (((addr_t)pvAdrs + stBytes) - (addr_t)CACHE_ALIGN_ADDR(pvAdrs))
@@ -218,7 +219,9 @@ typedef struct {
 #define CCSIDR_WAYS(x)                      \
     (((x) & SCB_CCSIDR_ASSOCIATIVITY_Msk) >> SCB_CCSIDR_ASSOCIATIVITY_Pos)
 #define CCSIDR_SETS(x)                      \
-    (((x) & SCB_CCSIDR_NUMSETS_Msk      ) >> SCB_CCSIDR_NUMSETS_Pos      )
+    (((x) & SCB_CCSIDR_NUMSETS_Msk) >> SCB_CCSIDR_NUMSETS_Pos)
+#define CCSIDR_LINESIZE(x)                  \
+    (((x) & SCB_CCSIDR_LINESIZE_Msk) >> SCB_CCSIDR_LINESIZE_Pos)
 /*********************************************************************************************************
 ** 函数名称: SCB_EnableICache
 ** 功能描述: Enable I-Cache
@@ -485,7 +488,7 @@ static LW_INLINE VOID  SCB_InvalidateDCache_by_Addr (UINT32  *addr, INT32  dsize
 {
     INT32   op_size  = dsize;
     UINT32  op_addr  = (UINT32)addr;
-    INT32   linesize = CACHE_LINE_SIZE;
+    INT32   linesize = uiArmV7MCacheLineSize;
 
     armDsb();
 
@@ -511,7 +514,7 @@ static LW_INLINE VOID SCB_CleanDCache_by_Addr (UINT32  *addr, INT32  dsize)
 {
     INT32  op_size  = dsize;
     UINT32 op_addr  = (UINT32)addr;
-    INT32  linesize = CACHE_LINE_SIZE;
+    INT32  linesize = uiArmV7MCacheLineSize;
 
     armDsb();
 
@@ -537,7 +540,7 @@ static LW_INLINE VOID  SCB_CleanInvalidateDCache_by_Addr (UINT32  *addr, INT32  
 {
     INT32  op_size  = dsize;
     UINT32 op_addr  = (UINT32)addr;
-    INT32  linesize = CACHE_LINE_SIZE;
+    INT32  linesize = uiArmV7MCacheLineSize;
 
     armDsb();
 
@@ -633,20 +636,21 @@ static INT  armCacheV7MInvalidate (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size
             addr_t  ulEnd   = (addr_t)pvAdrs + stBytes;
 
             if (ulStart & CACHE_LINE_MASK) {                            /*  起始地址非 cache line 对齐  */
-                 ulStart &= ~CACHE_LINE_MASK;
-                 SCB_CleanInvalidateDCache_by_Addr((VOID *)ulStart, CACHE_LINE_SIZE);
-                 ulStart += CACHE_LINE_SIZE;
-             }
+                ulStart &= ~CACHE_LINE_MASK;
+                SCB_CleanInvalidateDCache_by_Addr((VOID *)ulStart, uiArmV7MCacheLineSize);
+                ulStart += uiArmV7MCacheLineSize;
+            }
 
-             if (ulEnd & CACHE_LINE_MASK) {                             /*  结束地址非 cache line 对齐  */
-                 ulEnd &= ~CACHE_LINE_MASK;
-                 SCB_CleanInvalidateDCache_by_Addr((VOID *)ulEnd, CACHE_LINE_SIZE);
-             }
+            if (ulEnd & CACHE_LINE_MASK) {                              /*  结束地址非 cache line 对齐  */
+                ulEnd &= ~CACHE_LINE_MASK;
+                SCB_CleanInvalidateDCache_by_Addr((VOID *)ulEnd, uiArmV7MCacheLineSize);
+            }
 
             if (ulEnd > ulStart) {                                      /*  仅无效对齐部分              */
                 SCB_InvalidateDCache_by_Addr((VOID *)ulStart, ulEnd - ulStart);
             }
         }
+
     } else {
         SCB_InvalidateICache();                                         /*  全部无效指令缓存            */
     }
@@ -752,6 +756,7 @@ LW_WEAK VOID  armCacheV7MInit (LW_CACHE_OP *pcacheop,
 {
     REGISTER UINT32  ccsidr;
     REGISTER UINT32  sets;
+    REGISTER UINT32  linesize;
 
     if (lib_strcmp(pcMachineName, ARM_MACHINE_M7) != 0) {
         return;
@@ -762,13 +767,22 @@ LW_WEAK VOID  armCacheV7MInit (LW_CACHE_OP *pcacheop,
     pcacheop->CACHEOP_iILoc = CACHE_LOCATION_PIPT;
     pcacheop->CACHEOP_iDLoc = CACHE_LOCATION_PIPT;
 
-    pcacheop->CACHEOP_iICacheLine = CACHE_LINE_SIZE;
-    pcacheop->CACHEOP_iDCacheLine = CACHE_LINE_SIZE;
+    ccsidr   = SCB->CCSIDR;
+    sets     = (UINT32)(CCSIDR_SETS(ccsidr));
+    linesize = (UINT32)(CCSIDR_LINESIZE(ccsidr));
 
-    ccsidr = SCB->CCSIDR;
-    sets   = (UINT32)(CCSIDR_SETS(ccsidr));
-    pcacheop->CACHEOP_iICacheWaySize = sets * CACHE_LINE_SIZE;
+    uiArmV7MCacheLineSize = 1 << (linesize + 4);                        /*  Log2(X) = (linesize + 4)    */
+
+    pcacheop->CACHEOP_iICacheLine = uiArmV7MCacheLineSize;
+    pcacheop->CACHEOP_iDCacheLine = uiArmV7MCacheLineSize;
+
+    pcacheop->CACHEOP_iICacheWaySize = sets * uiArmV7MCacheLineSize;
     pcacheop->CACHEOP_iDCacheWaySize = pcacheop->CACHEOP_iICacheWaySize;
+
+    _DebugFormat(__LOGMESSAGE_LEVEL, "ARMv7-M I-Cache line size = %u bytes, Way size = %u bytes.\r\n",
+                 pcacheop->CACHEOP_iICacheLine, pcacheop->CACHEOP_iICacheWaySize);
+    _DebugFormat(__LOGMESSAGE_LEVEL, "ARMv7-M D-Cache line size = %u bytes, Way size = %u bytes.\r\n",
+                 pcacheop->CACHEOP_iDCacheLine, pcacheop->CACHEOP_iDCacheWaySize);
 
     pcacheop->CACHEOP_pfuncEnable  = armCacheV7MEnable;
     pcacheop->CACHEOP_pfuncDisable = armCacheV7MDisable;

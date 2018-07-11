@@ -39,7 +39,8 @@ extern VOID  armDCacheV4ClearAll(VOID);
 /*********************************************************************************************************
   CACHE 参数
 *********************************************************************************************************/
-#define ARMv4_CACHE_LINE_SIZE           32
+static UINT32                           uiArmV4ICacheLineSize;
+static UINT32                           uiArmV4DCacheLineSize;
 #define ARMv4_CACHE_LOOP_OP_MAX_SIZE    (16 * LW_CFG_KB_SIZE)
 /*********************************************************************************************************
 ** 函数名称: armCacheV4Enable
@@ -98,8 +99,8 @@ static INT	armCacheV4Flush (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stB
             armDCacheV4FlushAll();                                      /*  全部回写                    */
         
         } else {
-            ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, ARMv4_CACHE_LINE_SIZE);
-            armDCacheFlush(pvAdrs, (PVOID)ulEnd, ARMv4_CACHE_LINE_SIZE);/*  部分回写                    */
+            ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, uiArmV4DCacheLineSize);
+            armDCacheFlush(pvAdrs, (PVOID)ulEnd, uiArmV4DCacheLineSize);/*  部分回写                    */
         }
     }
     
@@ -125,8 +126,8 @@ static INT	armCacheV4FlushPage (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, PVOID  
             armDCacheV4FlushAll();                                      /*  全部回写                    */
         
         } else {
-            ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, ARMv4_CACHE_LINE_SIZE);
-            armDCacheFlush(pvAdrs, (PVOID)ulEnd, ARMv4_CACHE_LINE_SIZE);/*  部分回写                    */
+            ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, uiArmV4DCacheLineSize);
+            armDCacheFlush(pvAdrs, (PVOID)ulEnd, uiArmV4DCacheLineSize);/*  部分回写                    */
         }
     }
     
@@ -151,26 +152,28 @@ static INT	armCacheV4Invalidate (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t
             armICacheInvalidateAll();                                   /*  ICACHE 全部无效             */
         
         } else {
-            ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, ARMv4_CACHE_LINE_SIZE);
-            armICacheInvalidate(pvAdrs, (PVOID)ulEnd, ARMv4_CACHE_LINE_SIZE);
+            ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, uiArmV4ICacheLineSize);
+            armICacheInvalidate(pvAdrs, (PVOID)ulEnd, uiArmV4ICacheLineSize);
         }
+
     } else {
         if (stBytes > 0) {                                              /*  必须 > 0                    */
             addr_t  ulStart = (addr_t)pvAdrs;
                     ulEnd   = ulStart + stBytes;
             
-            if (ulStart & (ARMv4_CACHE_LINE_SIZE - 1)) {                /*  起始地址非 cache line 对齐  */
-                ulStart &= ~(ARMv4_CACHE_LINE_SIZE - 1);
-                armDCacheClear((PVOID)ulStart, (PVOID)ulStart, ARMv4_CACHE_LINE_SIZE);
-                ulStart += ARMv4_CACHE_LINE_SIZE;
+            if (ulStart & (uiArmV4DCacheLineSize - 1)) {                /*  起始地址非 cache line 对齐  */
+                ulStart &= ~(uiArmV4DCacheLineSize - 1);
+                armDCacheClear((PVOID)ulStart, (PVOID)ulStart, uiArmV4DCacheLineSize);
+                ulStart += uiArmV4DCacheLineSize;
             }
             
-            if (ulEnd & (ARMv4_CACHE_LINE_SIZE - 1)) {                  /*  结束地址非 cache line 对齐  */
-                ulEnd &= ~(ARMv4_CACHE_LINE_SIZE - 1);
-                armDCacheClear((PVOID)ulEnd, (PVOID)ulEnd, ARMv4_CACHE_LINE_SIZE);
+            if (ulEnd & (uiArmV4DCacheLineSize - 1)) {                  /*  结束地址非 cache line 对齐  */
+                ulEnd &= ~(uiArmV4DCacheLineSize - 1);
+                armDCacheClear((PVOID)ulEnd, (PVOID)ulEnd, uiArmV4DCacheLineSize);
             }
                                                                         /*  仅无效对齐部分              */
-            armDCacheInvalidate((PVOID)ulStart, (PVOID)ulEnd, ARMv4_CACHE_LINE_SIZE);
+            armDCacheInvalidate((PVOID)ulStart, (PVOID)ulEnd, uiArmV4DCacheLineSize);
+
         } else {
             _DebugHandle(__ERRORMESSAGE_LEVEL, "stBytes == 0.\r\n");
         }
@@ -198,26 +201,28 @@ static INT	armCacheV4InvalidatePage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVOI
             armICacheInvalidateAll();                                   /*  ICACHE 全部无效             */
         
         } else {
-            ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, ARMv4_CACHE_LINE_SIZE);
-            armICacheInvalidate(pvAdrs, (PVOID)ulEnd, ARMv4_CACHE_LINE_SIZE);
+            ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, uiArmV4ICacheLineSize);
+            armICacheInvalidate(pvAdrs, (PVOID)ulEnd, uiArmV4ICacheLineSize);
         }
+
     } else {
         if (stBytes > 0) {                                              /*  必须 > 0                    */
             addr_t  ulStart = (addr_t)pvAdrs;
                     ulEnd   = ulStart + stBytes;
             
-            if (ulStart & (ARMv4_CACHE_LINE_SIZE - 1)) {                /*  起始地址非 cache line 对齐  */
-                ulStart &= ~(ARMv4_CACHE_LINE_SIZE - 1);
-                armDCacheClear((PVOID)ulStart, (PVOID)ulStart, ARMv4_CACHE_LINE_SIZE);
-                ulStart += ARMv4_CACHE_LINE_SIZE;
+            if (ulStart & (uiArmV4DCacheLineSize - 1)) {                /*  起始地址非 cache line 对齐  */
+                ulStart &= ~(uiArmV4DCacheLineSize - 1);
+                armDCacheClear((PVOID)ulStart, (PVOID)ulStart, uiArmV4DCacheLineSize);
+                ulStart += uiArmV4DCacheLineSize;
             }
             
-            if (ulEnd & (ARMv4_CACHE_LINE_SIZE - 1)) {                  /*  结束地址非 cache line 对齐  */
-                ulEnd &= ~(ARMv4_CACHE_LINE_SIZE - 1);
-                armDCacheClear((PVOID)ulEnd, (PVOID)ulEnd, ARMv4_CACHE_LINE_SIZE);
+            if (ulEnd & (uiArmV4DCacheLineSize - 1)) {                  /*  结束地址非 cache line 对齐  */
+                ulEnd &= ~(uiArmV4DCacheLineSize - 1);
+                armDCacheClear((PVOID)ulEnd, (PVOID)ulEnd, uiArmV4DCacheLineSize);
             }
                                                                         /*  仅无效对齐部分              */
-            armDCacheInvalidate((PVOID)ulStart, (PVOID)ulEnd, ARMv4_CACHE_LINE_SIZE);
+            armDCacheInvalidate((PVOID)ulStart, (PVOID)ulEnd, uiArmV4DCacheLineSize);
+
         } else {
             _DebugHandle(__ERRORMESSAGE_LEVEL, "stBytes == 0.\r\n");
         }
@@ -244,16 +249,17 @@ static INT	armCacheV4Clear (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stB
             armICacheInvalidateAll();                                   /*  ICACHE 全部无效             */
             
         } else {
-            ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, ARMv4_CACHE_LINE_SIZE);
-            armICacheInvalidate(pvAdrs, (PVOID)ulEnd, ARMv4_CACHE_LINE_SIZE);
+            ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, uiArmV4ICacheLineSize);
+            armICacheInvalidate(pvAdrs, (PVOID)ulEnd, uiArmV4ICacheLineSize);
         }
+
     } else {
         if (stBytes >= ARMv4_CACHE_LOOP_OP_MAX_SIZE) {
             armDCacheV4ClearAll();                                      /*  全部回写并无效              */
         
         } else {
-            ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, ARMv4_CACHE_LINE_SIZE);
-            armDCacheClear(pvAdrs, (PVOID)ulEnd, ARMv4_CACHE_LINE_SIZE);/*  部分回写并无效              */
+            ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, uiArmV4DCacheLineSize);
+            armDCacheClear(pvAdrs, (PVOID)ulEnd, uiArmV4DCacheLineSize);/*  部分回写并无效              */
         }
     }
     
@@ -279,16 +285,17 @@ static INT	armCacheV4ClearPage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVOID pvP
             armICacheInvalidateAll();                                   /*  ICACHE 全部无效             */
             
         } else {
-            ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, ARMv4_CACHE_LINE_SIZE);
-            armICacheInvalidate(pvAdrs, (PVOID)ulEnd, ARMv4_CACHE_LINE_SIZE);
+            ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, uiArmV4ICacheLineSize);
+            armICacheInvalidate(pvAdrs, (PVOID)ulEnd, uiArmV4ICacheLineSize);
         }
+
     } else {
         if (stBytes >= ARMv4_CACHE_LOOP_OP_MAX_SIZE) {
             armDCacheV4ClearAll();                                      /*  全部回写并无效              */
         
         } else {
-            ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, ARMv4_CACHE_LINE_SIZE);
-            armDCacheClear(pvAdrs, (PVOID)ulEnd, ARMv4_CACHE_LINE_SIZE);/*  部分回写并无效              */
+            ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, uiArmV4DCacheLineSize);
+            armDCacheClear(pvAdrs, (PVOID)ulEnd, uiArmV4DCacheLineSize);/*  部分回写并无效              */
         }
     }
     
@@ -343,9 +350,13 @@ static INT	armCacheV4TextUpdate (PVOID  pvAdrs, size_t  stBytes)
         armICacheInvalidateAll();                                       /*  ICACHE 全部无效             */
         
     } else {
-        ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, ARMv4_CACHE_LINE_SIZE);
-        armDCacheFlush(pvAdrs, (PVOID)ulEnd, ARMv4_CACHE_LINE_SIZE);    /*  部分回写                    */
-        armICacheInvalidate(pvAdrs, (PVOID)ulEnd, ARMv4_CACHE_LINE_SIZE);
+        PVOID   pvAdrsBak = pvAdrs;
+
+        ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, uiArmV4DCacheLineSize);
+        armDCacheFlush(pvAdrs, (PVOID)ulEnd, uiArmV4DCacheLineSize);    /*  部分回写                    */
+
+        ARM_CACHE_GET_END(pvAdrsBak, stBytes, ulEnd, uiArmV4ICacheLineSize);
+        armICacheInvalidate(pvAdrsBak, (PVOID)ulEnd, uiArmV4ICacheLineSize);
     }
     
     return  (ERROR_NONE);
@@ -370,8 +381,8 @@ static INT	armCacheV4DataUpdate (PVOID  pvAdrs, size_t  stBytes, BOOL  bInv)
             armDCacheV4FlushAll();                                      /*  全部回写                    */
         
         } else {
-            ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, ARMv4_CACHE_LINE_SIZE);
-            armDCacheFlush(pvAdrs, (PVOID)ulEnd, ARMv4_CACHE_LINE_SIZE);/*  部分回写                    */
+            ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, uiArmV4DCacheLineSize);
+            armDCacheFlush(pvAdrs, (PVOID)ulEnd, uiArmV4DCacheLineSize);/*  部分回写                    */
         }
     
     } else {
@@ -379,8 +390,8 @@ static INT	armCacheV4DataUpdate (PVOID  pvAdrs, size_t  stBytes, BOOL  bInv)
             armDCacheV4ClearAll();                                      /*  全部回写                    */
         
         } else {
-            ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, ARMv4_CACHE_LINE_SIZE);
-            armDCacheClear(pvAdrs, (PVOID)ulEnd, ARMv4_CACHE_LINE_SIZE);/*  部分回写                    */
+            ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, uiArmV4DCacheLineSize);
+            armDCacheClear(pvAdrs, (PVOID)ulEnd, uiArmV4DCacheLineSize);/*  部分回写                    */
         }
     }
     
@@ -402,17 +413,61 @@ VOID  armCacheV4Init (LW_CACHE_OP *pcacheop,
                       CACHE_MODE   uiData, 
                       CPCHAR       pcMachineName)
 {
+    static const INT     iCacheLineTbl[] = {8, 16, 32, 64};
+                 UINT32  uiCacheType, uiICache, uiDCache;
+
+    /*
+     *   31 30 29 28   25  24 23     12 11      0
+     * +---------+-------+---+---------+---------+
+     * | 0  0  0 | ctype | S |  Dsize  |  Isize  |
+     * +---------+-------+---+---------+---------+
+     *
+     * ctype The ctype field determines the cache type.
+     *     S bit Specifies whether the cache is a unified cache or separate instruction and data caches.
+     * Dsize Specifies the size, line length, and associativity of the data cache.
+     * Isize Specifies the size, line length, and associativity of the instruction cache.
+     *
+     *  11 10 9 8    6 5     3  2  1   0
+     * +-------+------+-------+---+-----+
+     * | 0 0 0 | size | assoc | M | len |
+     * +-------+------+-------+---+-----+
+     *
+     *  size The size field determines the cache size in conjunction with the M bit.
+     * assoc The assoc field determines the cache associativity in conjunction with the M bit.
+     *     M bit The multiplier bit. Determines the cache size and cache associativity values in
+     *       conjunction with the size and assoc fields.
+     *   len The len field determines the line length of the cache.
+     */
+
     pcacheop->CACHEOP_ulOption = 0ul;
 
     pcacheop->CACHEOP_iILoc = CACHE_LOCATION_VIVT;
     pcacheop->CACHEOP_iDLoc = CACHE_LOCATION_VIVT;
     
-    pcacheop->CACHEOP_iICacheLine = ARMv4_CACHE_LINE_SIZE;
-    pcacheop->CACHEOP_iDCacheLine = ARMv4_CACHE_LINE_SIZE;
+    uiCacheType = armCacheTypeReg();
+    uiICache = uiCacheType & 0xfff;
+    uiDCache = (uiCacheType >> 12) & 0xfff;
+
+    _BugHandle(((uiICache >> 6) & 0x7) == 0x6, LW_TRUE, "ARMv4 I-Cache must be 64-ways.\r\n");
+    _BugHandle(((uiDCache >> 6) & 0x7) == 0x6, LW_TRUE, "ARMv4 D-Cache must be 64-ways.\r\n");
+
+    _BugHandle(((uiICache >> 3) & 0x7) == 0x5, LW_TRUE, "ARMv4 I-Cache must be 16KBytes.\r\n");
+    _BugHandle(((uiDCache >> 3) & 0x7) == 0x5, LW_TRUE, "ARMv4 D-Cache must be 16KBytes.\r\n");
+
+    pcacheop->CACHEOP_iICacheLine = iCacheLineTbl[uiICache & 0x3];
+    pcacheop->CACHEOP_iDCacheLine = iCacheLineTbl[uiDCache & 0x3];
     
+    uiArmV4ICacheLineSize = pcacheop->CACHEOP_iICacheLine;
+    uiArmV4DCacheLineSize = pcacheop->CACHEOP_iDCacheLine;
+
     pcacheop->CACHEOP_iICacheWaySize = ((16 * LW_CFG_KB_SIZE) / 64);
     pcacheop->CACHEOP_iDCacheWaySize = ((16 * LW_CFG_KB_SIZE) / 64);
     
+    _DebugFormat(__LOGMESSAGE_LEVEL, "ARMv4 I-Cache line size = %u bytes, Way size = %u bytes.\r\n",
+                 pcacheop->CACHEOP_iICacheLine, pcacheop->CACHEOP_iICacheWaySize);
+    _DebugFormat(__LOGMESSAGE_LEVEL, "ARMv4 D-Cache line size = %u bytes, Way size = %u bytes.\r\n",
+                 pcacheop->CACHEOP_iDCacheLine, pcacheop->CACHEOP_iDCacheWaySize);
+
     pcacheop->CACHEOP_pfuncEnable  = armCacheV4Enable;
     pcacheop->CACHEOP_pfuncDisable = armCacheV4Disable;
     
