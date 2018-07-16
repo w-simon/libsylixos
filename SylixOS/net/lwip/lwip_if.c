@@ -261,8 +261,6 @@ INT  if_islink (const char *ifname)
 LW_API  
 INT  if_set_dhcp (const char *ifname, int en)
 {
-    INT     iRet = PX_ERROR;
-
 #if LWIP_DHCP > 0
     struct netif  *pnetif;
     
@@ -285,11 +283,13 @@ INT  if_set_dhcp (const char *ifname, int en)
         pnetif->flags2 &= ~NETIF_FLAG2_DHCP;
     }
     LWIP_IF_LIST_UNLOCK();                                              /*  退出临界区                  */
+    
+    return  (ERROR_NONE);
+
 #else
     _ErrorHandle(ENOSYS);
+    return  (PX_ERROR);
 #endif                                                                  /*  LWIP_DHCP > 0               */
-    
-    return  (iRet);
 }
 /*********************************************************************************************************
 ** 函数名称: if_get_dhcp
@@ -333,8 +333,6 @@ INT  if_get_dhcp (const char *ifname)
 LW_API  
 INT  if_set_dhcp6 (const char *ifname, int en, int stateless)
 {
-    INT     iRet = PX_ERROR;
-
 #if LWIP_IPV6_DHCP6 > 0
     struct netif  *pnetif;
     
@@ -357,11 +355,13 @@ INT  if_set_dhcp6 (const char *ifname, int en, int stateless)
         pnetif->flags2 &= ~NETIF_FLAG2_DHCP6;
     }
     LWIP_IF_LIST_UNLOCK();                                              /*  退出临界区                  */
+
+    return  (ERROR_NONE);
+    
 #else
     _ErrorHandle(ENOSYS);
+    return  (PX_ERROR);
 #endif                                                                  /*  LWIP_IPV6_DHCP6 > 0         */
-    
-    return  (iRet);
 }
 /*********************************************************************************************************
 ** 函数名称: if_get_dhcp6

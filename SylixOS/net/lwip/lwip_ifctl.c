@@ -59,11 +59,11 @@ static VOID __ifConfSize (INT  *piSize)
 ** 函数名称: __ifConf
 ** 功能描述: 获得网络接口列表操作
 ** 输　入  : pifconf   列表保存缓冲
-** 输　出  : NONE
+** 输　出  : PX_ERROR or ERROR_NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID __ifConf (struct ifconf  *pifconf)
+static INT __ifConf (struct ifconf  *pifconf)
 {
            INT           iSize;
            INT           iNum = 0;
@@ -71,9 +71,14 @@ static VOID __ifConf (struct ifconf  *pifconf)
     struct ifreq        *pifreq;
     struct sockaddr_in  *psockaddrin;
     
-    iSize = pifconf->ifc_len / sizeof(struct ifreq);                    /*  缓冲区个数                  */
+    if (!pifconf->ifc_req) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
     
+    iSize  = pifconf->ifc_len / sizeof(struct ifreq);                   /*  缓冲区个数                  */
     pifreq = pifconf->ifc_req;
+    
     NETIF_FOREACH(pnetif) {
         if (iNum >= iSize) {
             break;
@@ -90,6 +95,8 @@ static VOID __ifConf (struct ifconf  *pifconf)
     }
     
     pifconf->ifc_len = iNum * sizeof(struct ifreq);                     /*  读取个数                    */
+
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: __ifReq6Size
@@ -548,8 +555,7 @@ static INT  __ifSubIoctlCommon (INT  iCmd, PVOID  pvArg)
     
     case SIOCGIFCONF: {                                                 /*  获得网卡列表                */
             struct ifconf *pifconf = (struct ifconf *)pvArg;
-            __ifConf(pifconf);
-            iRet = ERROR_NONE;
+            iRet = __ifConf(pifconf);
             break;
         }
         

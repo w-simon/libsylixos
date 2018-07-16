@@ -105,7 +105,7 @@
 static u_char *__sccl();
 
 /*
- * vfscanf
+ * __svfscanf
  */
 int
 __svfscanf(fp, fmt0, ap)
@@ -787,6 +787,18 @@ doswitch:
 		}
 	}
 	/* NOTREACHED */
+}
+
+/*
+ * vfscanf
+ */
+int
+vfscanf(fp, fmt0, ap)
+	register FILE *fp;
+	char const *fmt0;
+	va_list ap;
+{
+    return  (__svfscanf(fp, fmt0, ap));
 }
 
 #endif  /*  (LW_CFG_DEVICE_EN > 0)      */

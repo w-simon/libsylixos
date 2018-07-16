@@ -125,10 +125,6 @@ static VOID  __iniLoadSec (PLW_INI_SEC  pinisec, FILE  *fp)
             continue;
         }
         
-        pcEnd = pcLine;
-        __NEXT_WHITE(pcEnd);
-        *pcEnd = PX_EOS;
-        
         if (*pcLine == '[') {                                           /*  已经到下一个节              */
             break;
         }
@@ -137,12 +133,19 @@ static VOID  __iniLoadSec (PLW_INI_SEC  pinisec, FILE  *fp)
         if (!pcEqu) {
             continue;
         }
-        
         *pcEqu = PX_EOS;
-        pcEqu++;
         
-        pcKey   = pcLine;
-        pcValue = pcEqu;
+        pcEnd  = pcLine;
+        __NEXT_WHITE(pcEnd);
+        *pcEnd = PX_EOS;
+        pcKey  = pcLine;
+        
+        pcLine = ++pcEqu;
+        __SKIP_WHITE(pcLine);
+        pcEnd = pcLine;
+        __NEXT_WHITE(pcEnd);
+        *pcEnd  = PX_EOS;
+        pcValue = pcLine;
         
         stKeyLen   = lib_strlen(pcKey);
         stValueLen = lib_strlen(pcValue);

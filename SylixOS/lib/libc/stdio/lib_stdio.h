@@ -352,6 +352,7 @@ int  asprintf __P((char **, char const *, ...));
 int	 vsnprintf __P((char *, size_t, const char *, _BSD_VA_LIST_));
 int	 vscanf __P((const char *, _BSD_VA_LIST_));
 int	 vsscanf __P((const char *, const char *, _BSD_VA_LIST_));
+int	 vfscanf __P((FILE *, const char *, _BSD_VA_LIST_));
 FILE	*zopen __P((const char *, const char *, int));
 __END_NAMESPACE_STD
 __END_DECLS
@@ -367,13 +368,6 @@ size_t  vbnprintf __P((char *, size_t, size_t, const char *, _BSD_VA_LIST_));
 __END_NAMESPACE_STD
 __END_DECLS
 #endif
-
-/*
- * This is a #define because the function is used internally and
- * (unlike vfscanf) the name __svfscanf is guaranteed not to collide
- * with a user function when _ANSI_SOURCE or _POSIX_SOURCE is defined.
- */
-#define	 vfscanf	__svfscanf
 
 /*
  * Stdio function-access interface.
