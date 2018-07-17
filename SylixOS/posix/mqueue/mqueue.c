@@ -266,9 +266,11 @@ static INT  __mqueueSend (__PX_MSG  *pmq, const char  *msg, size_t  msglen,
     /*
      *  处理消息及位图
      */
+    if (pmq->PMSG_pringMsg[uiRealPrio] == LW_NULL) {
+        pmq->PMSG_u32Map |= (1 << uiRealPrio);                          /*  位图表处理                  */
+    }
     _List_Ring_Add_Last(&pmqn->PMSGN_ringManage,
                         &pmq->PMSG_pringMsg[uiRealPrio]);               /*  加入消息散列表              */
-    pmq->PMSG_u32Map |= (1 << uiRealPrio);                              /*  位图表处理                  */
     
     /*
      *  更新消息队列状态

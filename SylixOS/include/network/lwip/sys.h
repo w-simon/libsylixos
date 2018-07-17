@@ -302,6 +302,19 @@ void sys_mbox_post(sys_mbox_t *mbox, void *msg);
  * @param msg message to post (ATTENTION: can be NULL)
  */
 err_t sys_mbox_trypost(sys_mbox_t *mbox, void *msg);
+#ifdef SYLIXOS /* SylixOS Add mbox prio send */
+/**
+ * @ingroup sys_mbox
+ * Try to post a message to an mbox - may fail if full.
+ * Can be used from ISR (if the sys arch layer allows this).
+ * Returns ERR_MEM if it is full, else, ERR_OK if the "msg" is posted.
+ * 
+ * @param mbox mbox to posts the message
+ * @param msg message to post (ATTENTION: can be NULL)
+ * @param prio message priority
+ */
+err_t sys_mbox_trypost_prio(sys_mbox_t *mbox, void *msg, u8_t prio);
+#endif /* SYLIXOS */
 /**
  * @ingroup sys_mbox
  * Try to post a message to an mbox - may fail if full.

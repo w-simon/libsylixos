@@ -106,16 +106,14 @@ __re_send:
     
     pmsgqueue = (PLW_CLASS_MSGQUEUE)pevent->EVENT_pvPtr;
     
-    if (stMsgLen > pmsgqueue->MSGQUEUE_stEachMsgByteSize) {             /*  长度太长                    */
+    if (stMsgLen > pmsgqueue->MSGQUEUE_stMaxBytes) {                    /*  长度太长                    */
         __KERNEL_EXIT_IRQ(iregInterLevel);                              /*  退出内核                    */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "ulMsgLen invalidate.\r\n");
         _ErrorHandle(ERROR_MSGQUEUE_MSG_LEN);
         return  (ERROR_MSGQUEUE_MSG_LEN);
     }
     
-    switch (ulOption) {
-    
-    case LW_OPTION_URGENT:
+    if (ulOption & LW_OPTION_URGENT) {
         if (_EventWaitNum(EVENT_MSG_Q_R, pevent)) {
             BOOL    bSendOk = LW_TRUE;
             
@@ -159,9 +157,17 @@ __re_send:
             return  (ERROR_NONE);
         
         } else {                                                        /*  没有线程等待                */
+            UINT  uiPrio = (UINT)((ulOption >> 4) & 0xf);
+            
+            if (uiPrio > EVENT_MSG_Q_PRIO_LOW) {
+                __KERNEL_EXIT_IRQ(iregInterLevel);                      /*  退出内核                    */
+                _ErrorHandle(ERROR_MSGQUEUE_OPTION);
+                return  (ERROR_MSGQUEUE_OPTION);
+            }
+            
             if (pevent->EVENT_ulCounter < pevent->EVENT_ulMaxCounter) { /*  检查是否还有空间加          */
                 pevent->EVENT_ulCounter++;                              /*  保存消息                    */
-                _MsgQueueSendMsgUrgent(pmsgqueue, pvMsgBuffer, stMsgLen);  
+                _MsgQueuePut(pmsgqueue, pvMsgBuffer, stMsgLen, uiPrio);
                 __KERNEL_EXIT_IRQ(iregInterLevel);                      /*  退出内核                    */
                 return  (ERROR_NONE);
             
@@ -233,7 +239,7 @@ __re_send:
         }
         return  (ERROR_NONE);
         
-    case LW_OPTION_BROADCAST:                                           /*  广播发送, 只激活等待线程    */
+    } else if (ulOption & LW_OPTION_BROADCAST) {                        /*  广播发送, 只激活等待线程    */
         while (_EventWaitNum(EVENT_MSG_Q_R, pevent)) {
             if (pevent->EVENT_ulOption & LW_OPTION_WAIT_PRIORITY) {     /*  优先级等待队列              */
                 _EVENT_DEL_Q_PRIORITY(EVENT_MSG_Q_R, ppringList);       /*  激活优先级等待线程          */
@@ -271,7 +277,7 @@ __re_send:
         __KERNEL_EXIT_IRQ(iregInterLevel);                              /*  退出内核                    */
         return  (ERROR_NONE);
         
-    default:
+    } else {
         __KERNEL_EXIT_IRQ(iregInterLevel);                              /*  退出内核                    */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "ulOption invalidate.\r\n");
         _ErrorHandle(ERROR_MSGQUEUE_OPTION);

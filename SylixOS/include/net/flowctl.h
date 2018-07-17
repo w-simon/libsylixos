@@ -23,6 +23,7 @@
 #define __INC_NET_FLOWCTL_H
 
 #include "sys/types.h"
+#include "sys/ioctl.h"
 #include "sys/socket.h"
 
 /*********************************************************************************************************

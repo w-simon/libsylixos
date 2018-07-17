@@ -1350,6 +1350,7 @@ SylixOS/net/lwip/lwip_loginbl.c \
 SylixOS/net/lwip/lwip_mrtctl.c \
 SylixOS/net/lwip/lwip_netif.c \
 SylixOS/net/lwip/lwip_netstat.c \
+SylixOS/net/lwip/lwip_qosctl.c \
 SylixOS/net/lwip/lwip_route.c \
 SylixOS/net/lwip/lwip_rtctl.c \
 SylixOS/net/lwip/lwip_shell.c \

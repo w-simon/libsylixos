@@ -347,20 +347,17 @@ PLW_CLASS_EVENT  _EventUnQueue(PLW_CLASS_TCB  ptcb);
 *********************************************************************************************************/
 
 #if (LW_CFG_MSGQUEUE_EN > 0) && (LW_CFG_MAX_MSGQUEUES > 0)
-VOID            _MsgQueueGetMsg(PLW_CLASS_MSGQUEUE    pmsgqueue,
-                                PVOID                 pvMsgBuffer,
-                                size_t                stMaxByteSize,
-                                size_t               *pstMsgLen);
-
-VOID            _MsgQueueSendMsg(PLW_CLASS_MSGQUEUE    pmsgqueue,
-                                 PVOID                 pvMsgBuffer,
-                                 size_t                stMsgLen);
-
-VOID            _MsgQueueSendMsgUrgent(PLW_CLASS_MSGQUEUE    pmsgqueue,
-                                       PVOID                 pvMsgBuffer,
-                                       size_t                stMsgLen);
-
-VOID            _MsgQueueGetMsgLen(PLW_CLASS_MSGQUEUE  pmsgqueue, size_t  *pstMsgLen);
+VOID           _MsgQueueClear(PLW_CLASS_MSGQUEUE    pmsgqueue,
+                              ULONG                 ulMsgTotal);
+VOID           _MsgQueueGet(PLW_CLASS_MSGQUEUE    pmsgqueue,
+                            PVOID                 pvMsgBuffer,
+                            size_t                stMaxByteSize,
+                            size_t               *pstMsgLen);
+VOID           _MsgQueuePut(PLW_CLASS_MSGQUEUE    pmsgqueue,
+                            PVOID                 pvMsgBuffer,
+                            size_t                stMsgLen, 
+                            UINT                  uiPrio);
+VOID           _MsgQueueMsgLen(PLW_CLASS_MSGQUEUE  pmsgqueue, size_t  *pstMsgLen);
 #endif                                                                  /*  (LW_CFG_MSGQUEUE_EN > 0)    */
                                                                         /*  (LW_CFG_MAX_MSGQUEUES > 0)  */
 /*********************************************************************************************************

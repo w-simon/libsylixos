@@ -92,7 +92,7 @@ ULONG  API_MsgQueueStatusEx (LW_OBJECT_HANDLE   ulId,
     
     if (pevent->EVENT_ulCounter) {
         if (pstMsgLen) {
-            _MsgQueueGetMsgLen(pmsgqueue, pstMsgLen);                   /*  获得最近的消息长度          */
+            _MsgQueueMsgLen(pmsgqueue, pstMsgLen);                      /*  获得最近的消息长度          */
         }
     } else {
         if (pstMsgLen) {
@@ -110,7 +110,7 @@ ULONG  API_MsgQueueStatusEx (LW_OBJECT_HANDLE   ulId,
     }
     
     if (pstMaxMsgLen) {
-        *pstMaxMsgLen = pmsgqueue->MSGQUEUE_stEachMsgByteSize;          /*  最大消息大小                */
+        *pstMaxMsgLen = pmsgqueue->MSGQUEUE_stMaxBytes;                 /*  最大消息大小                */
     }
     __KERNEL_EXIT_IRQ(iregInterLevel);                                  /*  退出内核                    */
     

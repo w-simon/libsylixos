@@ -537,6 +537,7 @@ err_t  sys_mbox_trypost (sys_mbox_t *pmbox, void *msg)
         return  (ERR_OK);
     
     }
+
 #if LW_CFG_LWIP_DEBUG > 0
       else if (ulError != ERROR_MSGQUEUE_FULL) {
         panic("[NET] Panic: sys_mbox_trypost() msgqueue error: %s\n", lib_strerror(errno));
@@ -548,6 +549,54 @@ err_t  sys_mbox_trypost (sys_mbox_t *pmbox, void *msg)
         return  (ERR_MEM);
     }
 }
+/*********************************************************************************************************
+** 函数名称: sys_mbox_trypost_prio
+** 功能描述: 带有消息优先级发送一个邮箱消息(满则退出)
+** 输　入  : pmbox  邮箱句柄指针
+**           msg    消息
+**           prio   7 high ~ 0 low
+** 输　出  : 
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+#if LW_CFG_LWIP_IPQOS > 0
+
+err_t  sys_mbox_trypost_prio (sys_mbox_t *pmbox, void *msg, u8_t prio)
+{
+    ULONG   ulError;
+    ULONG   ulOption;
+    
+    if (pmbox == LW_NULL) {
+        return  (ERR_MEM);
+    }
+    
+    if (prio) {
+        prio     = (prio > 7) ? (0) : (7 - prio);
+        ulOption = LW_OPTION_URGENT | (ULONG)(prio << 4);
+        ulError  = API_MsgQueueSendEx(*pmbox, &msg, sizeof(PVOID), ulOption);
+    
+    } else {
+        ulError = API_MsgQueueSend(*pmbox, &msg, sizeof(PVOID));
+    }
+    
+    if (ulError == ERROR_NONE) {                                        /*  发送成功                    */
+        return  (ERR_OK);
+    
+    }
+
+#if LW_CFG_LWIP_DEBUG > 0
+      else if (ulError != ERROR_MSGQUEUE_FULL) {
+        panic("[NET] Panic: sys_mbox_trypost() msgqueue error: %s\n", lib_strerror(errno));
+        return  (ERR_MEM);
+    }
+#endif                                                                  /*  LW_CFG_LWIP_DEBUG > 0       */
+    
+      else {
+        return  (ERR_MEM);
+    }
+}
+
+#endif                                                                  /*  LW_CFG_LWIP_IPQOS > 0       */
 /*********************************************************************************************************
 ** 函数名称: sys_mbox_trypost_fromisr
 ** 功能描述: 中断中发送一个邮箱消息(满则退出)

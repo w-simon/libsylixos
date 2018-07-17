@@ -840,7 +840,6 @@ INT  __rtIoctlInet (INT  iFamily, INT  iCmd, PVOID  pvArg)
         iRet = __rtSetTcpMssAdj((INT *)pvArg);
         break;
 
-#if LW_CFG_NET_ROUTER > 0
     case SIOCGFWOPT:
         iRet = __rtGetForwardOpt((struct rt_forward *)pvArg);
         break;
@@ -848,7 +847,6 @@ INT  __rtIoctlInet (INT  iFamily, INT  iCmd, PVOID  pvArg)
     case SIOCSFWOPT:
         iRet = __rtSetForwardOpt((struct rt_forward *)pvArg);
         break;
-#endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
 
     default:
         _ErrorHandle(ENOSYS);

@@ -48,6 +48,7 @@
 2015.04.17  将无线扩展 ioctl 专门封装.
 2017.12.08  加入 AF_ROUTE 支持.
 2017.12.20  加入流控接口支持.
+2018.07.17  加入 QoS 接口.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -67,6 +68,13 @@
 #include "lwip_arpctl.h"
 #include "lwip_ifctl.h"
 #include "lwip_vlanctl.h"
+/*********************************************************************************************************
+  QoS
+*********************************************************************************************************/
+#if LW_CFG_LWIP_IPQOS > 0
+#include "netinet/ip_qos.h"
+#include "lwip_qosctl.h"
+#endif                                                                  /*  LW_CFG_LWIP_IPQOS > 0       */
 /*********************************************************************************************************
   路由
 *********************************************************************************************************/
@@ -783,6 +791,13 @@ static INT  __socketIoctl (SOCKET_T *psock, INT  iCmd, PVOID  pvArg)
             case SIOCDARP:
                 iRet = __ifIoctlArp(iCmd, pvArg);
                 break;
+                
+#if LW_CFG_LWIP_IPQOS > 0
+            case SIOCSETIPQOS:
+            case SIOCGETIPQOS:
+                iRet = __qosIoctlInet(psock->SOCK_iFamily, iCmd, pvArg);
+                break;
+#endif                                                                  /*  LW_CFG_LWIP_IPQOS > 0       */
                 
 #if LW_CFG_NET_VLAN_EN > 0
             case SIOCSETVLAN:

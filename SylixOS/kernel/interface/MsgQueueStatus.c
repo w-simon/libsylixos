@@ -92,7 +92,7 @@ ULONG  API_MsgQueueStatus (LW_OBJECT_HANDLE   ulId,
     
     if (pevent->EVENT_ulCounter) {
         if (pstMsgLen) {
-            _MsgQueueGetMsgLen(pmsgqueue, pstMsgLen);                   /*  获得最近的消息长度          */
+            _MsgQueueMsgLen(pmsgqueue, pstMsgLen);                      /*  获得最近的消息长度          */
         }
     } else {
         if (pstMsgLen) {

@@ -126,7 +126,7 @@ ULONG  API_MsgQueueDelete (LW_OBJECT_HANDLE  *pulId)
     pevent->EVENT_pvTcbOwn = LW_NULL;
 
     pmsgqueue = (PLW_CLASS_MSGQUEUE)pevent->EVENT_pvPtr;                /*  »ñµÃ msgqueue ¿ØÖÆ¿é        */
-    pvFreeLowAddr = (PVOID)pmsgqueue->MSGQUEUE_pucBufferLowAddr;
+    pvFreeLowAddr = (PVOID)pmsgqueue->MSGQUEUE_pvBuffer;
     
     _Free_Event_Object(pevent);
     _Free_MsgQueue_Object(pmsgqueue);

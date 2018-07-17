@@ -605,7 +605,7 @@ __arg_error:
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-INT  __tshellTcpMssAdj (INT  iArgC, PCHAR  *ppcArgV)
+static INT  __tshellTcpMssAdj (INT  iArgC, PCHAR  *ppcArgV)
 {
     INT   iSock, iRet, iEnbale;
 
@@ -654,7 +654,7 @@ INT  __tshellTcpMssAdj (INT  iArgC, PCHAR  *ppcArgV)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-INT  __tshellIpForward (INT  iArgC, PCHAR  *ppcArgV)
+static INT  __tshellIpForward (INT  iArgC, PCHAR  *ppcArgV)
 {
     INT                 iSock, iRet;
     struct rt_forward   rtf;

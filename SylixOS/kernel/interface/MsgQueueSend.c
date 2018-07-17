@@ -108,7 +108,7 @@ __re_send:
     
     pmsgqueue = (PLW_CLASS_MSGQUEUE)pevent->EVENT_pvPtr;
     
-    if (stMsgLen > pmsgqueue->MSGQUEUE_stEachMsgByteSize) {             /*  长度太长                    */
+    if (stMsgLen > pmsgqueue->MSGQUEUE_stMaxBytes) {                    /*  长度太长                    */
         __KERNEL_EXIT_IRQ(iregInterLevel);                              /*  退出内核                    */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "ulMsgLen invalidate.\r\n");
         _ErrorHandle(ERROR_MSGQUEUE_MSG_LEN);
@@ -160,7 +160,8 @@ __re_send:
     } else {                                                            /*  没有线程等待                */
         if (pevent->EVENT_ulCounter < pevent->EVENT_ulMaxCounter) {     /*  检查是否还有空间加          */
             pevent->EVENT_ulCounter++;
-            _MsgQueueSendMsg(pmsgqueue, pvMsgBuffer, stMsgLen);         /*  保存消息                    */
+            _MsgQueuePut(pmsgqueue, pvMsgBuffer, stMsgLen, 
+                         EVENT_MSG_Q_PRIO_LOW);                         /*  保存消息                    */
             __KERNEL_EXIT_IRQ(iregInterLevel);                          /*  退出内核                    */
             return  (ERROR_NONE);
         

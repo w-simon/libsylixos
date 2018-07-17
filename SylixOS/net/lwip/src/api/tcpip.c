@@ -50,6 +50,112 @@
 #include "lwip/etharp.h"
 #include "netif/ethernet.h"
 
+#if defined(SYLIXOS) && LW_CFG_LWIP_IPQOS /* SylixOS Add QoS support */
+#include "lwip/ip4.h"
+#include "lwip/ip6.h"
+
+/* IP QoS support */
+static u8_t tcpip_qos_on = 0;
+/**
+ * Set IP QoS support
+ * @param en 1: on 0: off
+ */
+void 
+tcpip_qos_set(u8_t en)
+{
+  tcpip_qos_on = en;
+}
+
+/**
+ * Get IP QoS support
+ * @param en 1: on 0: off
+ */
+u8_t 
+tcpip_qos_get(void)
+{
+  return tcpip_qos_on;
+}
+
+/**
+ * Set IP QoS support
+ * @param p the received packet
+ * @param inp the network interface on which the packet was received
+ * @return priority
+ * 111 - Network Control
+ * 110 - Internetwork Control
+ * 101 - CRITIC/ECP
+ * 100 - Flash Override
+ * 011 - Flash
+ * 010 - Immediate
+ * 001 - Priority
+ * 000 - Routine
+ */
+static u8_t
+tcpip_qos_prio(struct pbuf *p, struct netif *inp)
+{
+  u16_t iphdr_offset;
+  
+#if LWIP_IPV4
+  struct ip_hdr *iphdr;
+#endif /* LWIP_IPV4 */
+
+#if LWIP_ETHERNET
+  struct eth_hdr *ethhdr;
+  u16_t type;
+
+  if (inp->flags & (NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET)) {
+    iphdr_offset = SIZEOF_ETH_HDR;
+    if (p->len <= iphdr_offset + 4) {
+      return 0;
+    }
+    
+    ethhdr = (struct eth_hdr *)p->payload;
+    type = ethhdr->type;
+    if (type == PP_HTONS(ETHTYPE_VLAN)) {
+      struct eth_vlan_hdr *vlan = (struct eth_vlan_hdr *)(((char *)ethhdr) + SIZEOF_ETH_HDR);
+      iphdr_offset = SIZEOF_ETH_HDR + SIZEOF_VLAN_HDR;
+      if (p->len <= iphdr_offset + 4) {
+        return 0;
+      }
+      type = vlan->tpid;
+    }
+    
+    if (type != PP_HTONS(ETHTYPE_IP)) {
+      return (0);
+    }
+  
+  } else 
+#endif /* LWIP_ETHERNET */
+  {
+    iphdr_offset = 0;
+    if (p->len <= + 4) {
+      return 0;
+    }
+  }
+  
+#if LWIP_IPV4
+  iphdr = (struct ip_hdr *)((char *)p->payload + iphdr_offset);
+  if (IPH_V(iphdr) == 4) {
+    if (IPH_TOS(iphdr) & 0x10) { /* IPTOS_LOWDELAY */
+      return (5); /* CRITIC/ECP */
+    }
+    return ((u8_t)(IPH_TOS(iphdr) >> 5));
+  
+  } else 
+#endif /* LWIP_IPV4 */
+  {
+#if LWIP_IPV6
+    struct ip6_hdr *ip6hdr = (struct ip6_hdr *)((char *)p->payload + iphdr_offset);
+    if (IP6H_V(ip6hdr) == 6) {
+      return ((u8_t)(IP6H_TC(ip6hdr) >> 5));
+    }
+#endif /* LWIP_IPV6 */
+  }
+  
+  return (0);
+}
+#endif /* SYLIXOS && LW_CFG_LWIP_IPQOS */
+
 #define TCPIP_MSG_VAR_REF(name)     API_VAR_REF(name)
 #define TCPIP_MSG_VAR_DECLARE(name) API_VAR_DECLARE(struct tcpip_msg, name)
 #define TCPIP_MSG_VAR_ALLOC(name)   API_VAR_ALLOC(struct tcpip_msg, MEMP_TCPIP_MSG_API, name, ERR_MEM)
@@ -260,6 +366,15 @@ tcpip_inpkt(struct pbuf *p, struct netif *inp, netif_input_fn input_fn)
   msg->msg.inp.p = p;
   msg->msg.inp.netif = inp;
   msg->msg.inp.input_fn = input_fn;
+#if defined(SYLIXOS) && LW_CFG_LWIP_IPQOS /* SylixOS Add QoS support */
+  if (tcpip_qos_on) {
+    u8_t prio = tcpip_qos_prio(p, inp);
+    if (sys_mbox_trypost_prio(&tcpip_mbox, msg, prio) != ERR_OK) {
+      memp_free(MEMP_TCPIP_MSG_INPKT, msg);
+      return ERR_MEM;
+    }
+  } else 
+#endif /* SYLIXOS && LW_CFG_LWIP_IPQOS */
   if (sys_mbox_trypost(&tcpip_mbox, msg) != ERR_OK) {
     memp_free(MEMP_TCPIP_MSG_INPKT, msg);
     return ERR_MEM;

@@ -114,12 +114,11 @@ LW_OBJECT_HANDLE  API_MsgQueueCreate (CPCHAR             pcName,
         return  (LW_OBJECT_HANDLE_INVALID);
     }
     
-    stMaxMsgByteSizeReal = stMaxMsgByteSize + sizeof(size_t);           /*  多分配 size_t 存储长度      */
-    stMaxMsgByteSizeReal = ROUND_UP(stMaxMsgByteSizeReal, 
-                                    sizeof(LW_STACK));                  /*  对齐大小处理                */
+    stMaxMsgByteSizeReal   = ROUND_UP(stMaxMsgByteSize, sizeof(size_t))
+                           + sizeof(LW_CLASS_MSGNODE);                  /*  每条消息缓存大小            */
     
-    stHeapAllocateByteSize = ((size_t)ulMaxMsgCounter
-                           * stMaxMsgByteSizeReal);                     /*  计算需要开辟的缓冲区大小    */
+    stHeapAllocateByteSize = (size_t)ulMaxMsgCounter
+                           * stMaxMsgByteSizeReal;                      /*  需要分配的内存总大小        */
     
     pvMemAllocate = __KHEAP_ALLOC(stHeapAllocateByteSize);              /*  申请内存                    */
     if (!pvMemAllocate) {
@@ -138,11 +137,10 @@ LW_OBJECT_HANDLE  API_MsgQueueCreate (CPCHAR             pcName,
         pevent->EVENT_cEventName[0] = PX_EOS;                           /*  清空名字                    */
     }
     
-    pmsgqueue->MSGQUEUE_pucBufferLowAddr  = (UINT8 *)pvMemAllocate;
-    pmsgqueue->MSGQUEUE_pucBufferHighAddr = (UINT8 *)pvMemAllocate + stHeapAllocateByteSize;
-    pmsgqueue->MSGQUEUE_pucInputPtr       = pmsgqueue->MSGQUEUE_pucBufferLowAddr;
-    pmsgqueue->MSGQUEUE_pucOutputPtr      = pmsgqueue->MSGQUEUE_pucBufferLowAddr;
-    pmsgqueue->MSGQUEUE_stEachMsgByteSize = (stMaxMsgByteSizeReal - sizeof(size_t));
+    pmsgqueue->MSGQUEUE_pvBuffer   = pvMemAllocate;
+    pmsgqueue->MSGQUEUE_stMaxBytes = stMaxMsgByteSize;
+    
+    _MsgQueueClear(pmsgqueue, ulMaxMsgCounter);                         /*  缓存区准备好                */
     
     pevent->EVENT_ucType       = LW_TYPE_EVENT_MSGQUEUE;
     pevent->EVENT_pvTcbOwn     = LW_NULL;

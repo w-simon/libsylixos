@@ -182,10 +182,19 @@
 #define  LW_OPTION_NOERROR                              0x00400000      /*  大于缓冲区的消息自动截断    */
                                                                         /*  默认接收为此选项            */
 /*********************************************************************************************************
-  消息队列发送选项
+  消息队列发送选项 (URGENT 与 BROADCAST 不能同时设置)
 *********************************************************************************************************/
 
 #define  LW_OPTION_URGENT                               0x00000001      /*  消息队列紧急消息发送        */
+#define  LW_OPTION_URGENT_0                             LW_OPTION_URGENT/*  最高紧急优先级              */
+#define  LW_OPTION_URGENT_1                             0x00000011
+#define  LW_OPTION_URGENT_2                             0x00000021
+#define  LW_OPTION_URGENT_3                             0x00000031
+#define  LW_OPTION_URGENT_4                             0x00000041
+#define  LW_OPTION_URGENT_5                             0x00000051
+#define  LW_OPTION_URGENT_6                             0x00000061
+#define  LW_OPTION_URGENT_7                             0x00000071      /*  最低紧急优先级              */
+
 #define  LW_OPTION_BROADCAST                            0x00000002      /*  消息队列广播发送            */
 
 /*********************************************************************************************************

@@ -84,7 +84,7 @@ static LW_INLINE INT  __ARCH_FLOAT_ISINF (float  x)
 #define __ARCH_DOUBLE_INC_FLOAT_H          0                            /*  是否引用编译器 float.h 文件 */
 
 /*********************************************************************************************************
-  i386-sylixos-elf-gcc ... GNU
+  cl6x, c6x-sylixos-elf-gcc ... GNU
 *********************************************************************************************************/
 
 #if LW_CFG_CPU_ENDIAN == 0

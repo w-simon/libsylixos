@@ -20,11 +20,46 @@
 
 ** BUG:
 2009.06.19  修改注释.
+2018.07.16  使用双优先级队列模式.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
 /*********************************************************************************************************
-** 函数名称: _MsgQueueGetMsg
+** 函数名称: _MsgQueueClear
+** 功能描述: 消息队列清空
+** 输　入  : pmsgqueue     消息队列控制块
+**           ulMsgTotal    总消息个数
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+#if (LW_CFG_MSGQUEUE_EN > 0) && (LW_CFG_MAX_MSGQUEUES > 0)
+
+VOID  _MsgQueueClear (PLW_CLASS_MSGQUEUE    pmsgqueue,
+                      ULONG                 ulMsgTotal)
+{
+    ULONG               i;
+    size_t              stMaxByteAlign;
+    PLW_CLASS_MSGNODE   pmsgnode;
+
+    pmsgqueue->MSGQUEUE_pmonoFree = LW_NULL;
+    pmsgqueue->MSGQUEUE_uiMap     = 0;
+    
+    for (i = 0; i < EVENT_MSG_Q_PRIO; i++) {
+        pmsgqueue->MSGQUEUE_pmonoHeader[i] = LW_NULL;
+        pmsgqueue->MSGQUEUE_pmonoTail[i]   = LW_NULL;
+    }
+    
+    stMaxByteAlign = ROUND_UP(pmsgqueue->MSGQUEUE_stMaxBytes, sizeof(size_t));
+    pmsgnode       = (PLW_CLASS_MSGNODE)pmsgqueue->MSGQUEUE_pvBuffer;
+    
+    for (i = 0; i < ulMsgTotal; i++) {
+        _list_mono_free(&pmsgqueue->MSGQUEUE_pmonoFree, &pmsgnode->MSGNODE_monoManage);
+        pmsgnode = (PLW_CLASS_MSGNODE)((UINT8 *)pmsgnode + sizeof(LW_CLASS_MSGNODE) + stMaxByteAlign);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: _MsgQueueGet
 ** 功能描述: 从消息队列中获得一个消息
 ** 输　入  : pmsgqueue     消息队列控制块
 **         : pvMsgBuffer   接收缓冲区
@@ -34,100 +69,66 @@
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-#if (LW_CFG_MSGQUEUE_EN > 0) && (LW_CFG_MAX_MSGQUEUES > 0)
-
-VOID  _MsgQueueGetMsg (PLW_CLASS_MSGQUEUE    pmsgqueue,                 /*  消息队列                    */
-                       PVOID                 pvMsgBuffer,               /*  缓冲区                      */
-                       size_t                stMaxByteSize,             /*  缓冲区大小                  */
-                       size_t               *pstMsgLen)                 /*  实际拷贝字节数              */
+VOID  _MsgQueueGet (PLW_CLASS_MSGQUEUE    pmsgqueue,
+                    PVOID                 pvMsgBuffer,
+                    size_t                stMaxByteSize,
+                    size_t               *pstMsgLen)
 {
-    REGISTER size_t   stMsgLen;
+    INT                 iQ;
+    PLW_CLASS_MSGNODE   pmsgnode;
     
-    stMsgLen = *((size_t *)pmsgqueue->MSGQUEUE_pucOutputPtr);           /*  获得本消息大小              */
-    pmsgqueue->MSGQUEUE_pucOutputPtr += sizeof(size_t);                 /*  将指针移动到消息处          */
+    iQ = archFindLsb(pmsgqueue->MSGQUEUE_uiMap) - 1;                    /*  计算优先级                  */
     
-    *pstMsgLen = (stMaxByteSize < stMsgLen) ? 
-                 (stMaxByteSize) : (stMsgLen);                          /*  确定拷贝信息数量            */
+    _BugHandle(!pmsgqueue->MSGQUEUE_pmonoHeader[iQ], LW_TRUE, "buffer is empty!\r\n");
     
-    lib_memcpy(pvMsgBuffer,                                             /*  拷贝消息                    */
-               pmsgqueue->MSGQUEUE_pucOutputPtr,
-               *pstMsgLen);
+    pmsgnode = (PLW_CLASS_MSGNODE)_list_mono_allocate_seq(&pmsgqueue->MSGQUEUE_pmonoHeader[iQ],
+                                                          &pmsgqueue->MSGQUEUE_pmonoTail[iQ]);
     
-    pmsgqueue->MSGQUEUE_pucOutputPtr += pmsgqueue->MSGQUEUE_stEachMsgByteSize;
-    
-    if (pmsgqueue->MSGQUEUE_pucOutputPtr >= 
-        pmsgqueue->MSGQUEUE_pucBufferHighAddr) {                        /*  调整 OUT 指针               */
-        pmsgqueue->MSGQUEUE_pucOutputPtr = pmsgqueue->MSGQUEUE_pucBufferLowAddr;
+    if (pmsgqueue->MSGQUEUE_pmonoHeader[iQ] == LW_NULL) {
+        pmsgqueue->MSGQUEUE_uiMap &= ~(1 << iQ);                        /*  清除优先级位图              */
     }
+    
+    *pstMsgLen = (stMaxByteSize < pmsgnode->MSGNODE_stMsgLen) ? 
+                 (stMaxByteSize) : (pmsgnode->MSGNODE_stMsgLen);        /*  确定拷贝信息数量            */
+                 
+    lib_memcpy(pvMsgBuffer, (PVOID)(pmsgnode + 1), *pstMsgLen);         /*  拷贝消息                    */
+    
+    _list_mono_free(&pmsgqueue->MSGQUEUE_pmonoFree, &pmsgnode->MSGNODE_monoManage);
 }
 /*********************************************************************************************************
-** 函数名称: _MsgQueueSendMsg
+** 函数名称: _MsgQueuePut
 ** 功能描述: 向消息队列中写入一个消息
 ** 输　入  : pmsgqueue     消息队列控制块 
-**           pvMsgBuffer   消息缓冲区
-**         : stMsgLen      消息长度
-** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-VOID  _MsgQueueSendMsg (PLW_CLASS_MSGQUEUE    pmsgqueue,
-                        PVOID                 pvMsgBuffer,
-                        size_t                stMsgLen)
-{
-    REGISTER size_t   *pstMsgLen;
-    
-    pstMsgLen = (size_t *)pmsgqueue->MSGQUEUE_pucInputPtr;              /*  获得消息长短指针            */
-    pmsgqueue->MSGQUEUE_pucInputPtr += sizeof(size_t);                  /*  将指针移动到消息处          */
-    
-    lib_memcpy((PVOID)pmsgqueue->MSGQUEUE_pucInputPtr,                  /*  拷贝消息                    */
-               pvMsgBuffer,                                             
-               stMsgLen);
-    
-    *pstMsgLen = stMsgLen;                                              /*  记录消息长短                */
-    
-    pmsgqueue->MSGQUEUE_pucInputPtr += pmsgqueue->MSGQUEUE_stEachMsgByteSize;
-    
-    if (pmsgqueue->MSGQUEUE_pucInputPtr >= 
-        pmsgqueue->MSGQUEUE_pucBufferHighAddr) {                        /*  调整 IN 指针                */
-        pmsgqueue->MSGQUEUE_pucInputPtr = pmsgqueue->MSGQUEUE_pucBufferLowAddr;
-    }
-}
-/*********************************************************************************************************
-** 函数名称: _MsgQueueSendMsgUrgent
-** 功能描述: 向消息队列中写入一个紧急消息
-** 输　入  : pmsgqueue     消息队列控制块
 **         : pvMsgBuffer   消息缓冲区
 **         : stMsgLen      消息长度
+**         : uiPrio        消息优先级
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-VOID  _MsgQueueSendMsgUrgent (PLW_CLASS_MSGQUEUE    pmsgqueue,
-                              PVOID                 pvMsgBuffer,
-                              size_t                stMsgLen)
+VOID  _MsgQueuePut (PLW_CLASS_MSGQUEUE    pmsgqueue,
+                    PVOID                 pvMsgBuffer,
+                    size_t                stMsgLen, 
+                    UINT                  uiPrio)
 {
-    REGISTER size_t   *pstMsgLen;
-    REGISTER PBYTE     pucMsgQueueBuffer;
+    PLW_CLASS_MSGNODE  pmsgnode;
     
-    if (pmsgqueue->MSGQUEUE_pucOutputPtr == 
-        pmsgqueue->MSGQUEUE_pucBufferLowAddr) {                         /*  OUT 调整                    */
-        pmsgqueue->MSGQUEUE_pucOutputPtr = pmsgqueue->MSGQUEUE_pucBufferHighAddr;
+    pmsgnode = (PLW_CLASS_MSGNODE)_list_mono_allocate(&pmsgqueue->MSGQUEUE_pmonoFree);
+    
+    pmsgnode->MSGNODE_stMsgLen = stMsgLen;
+    
+    lib_memcpy((PVOID)(pmsgnode + 1), pvMsgBuffer, stMsgLen);           /*  拷贝消息                    */
+    
+    if (pmsgqueue->MSGQUEUE_pmonoHeader[uiPrio] == LW_NULL) {
+        pmsgqueue->MSGQUEUE_uiMap |= (1 << uiPrio);                     /*  设置优先级位图              */
     }
     
-    pmsgqueue->MSGQUEUE_pucOutputPtr -=
-        (pmsgqueue->MSGQUEUE_stEachMsgByteSize + sizeof(size_t));
-    
-    pstMsgLen = (size_t *)pmsgqueue->MSGQUEUE_pucOutputPtr;             /*  获得消息长短指针            */
-    pucMsgQueueBuffer = pmsgqueue->MSGQUEUE_pucOutputPtr + sizeof(size_t);
-    
-    lib_memcpy((PVOID)pucMsgQueueBuffer,                                /*  拷贝消息                    */
-               pvMsgBuffer,                                             
-               stMsgLen);
-               
-    *pstMsgLen = stMsgLen;                                              /*  记录消息长短                */
+    _list_mono_free_seq(&pmsgqueue->MSGQUEUE_pmonoHeader[uiPrio], 
+                        &pmsgqueue->MSGQUEUE_pmonoTail[uiPrio], 
+                        &pmsgnode->MSGNODE_monoManage);
 }
 /*********************************************************************************************************
-** 函数名称: _MsgQueueGetMsgLen
+** 函数名称: _MsgQueueMsgLen
 ** 功能描述: 从消息队列中获得一个消息的长度
 ** 输　入  : pmsgqueue     消息队列控制块
 **           pstMsgLen     消息长度
@@ -135,9 +136,18 @@ VOID  _MsgQueueSendMsgUrgent (PLW_CLASS_MSGQUEUE    pmsgqueue,
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-VOID  _MsgQueueGetMsgLen (PLW_CLASS_MSGQUEUE  pmsgqueue, size_t  *pstMsgLen)
+VOID  _MsgQueueMsgLen (PLW_CLASS_MSGQUEUE  pmsgqueue, size_t  *pstMsgLen)
 {
-    *pstMsgLen = *((size_t *)pmsgqueue->MSGQUEUE_pucOutputPtr);
+    INT                 iQ;
+    PLW_CLASS_MSGNODE   pmsgnode;
+    
+    iQ = archFindLsb(pmsgqueue->MSGQUEUE_uiMap) - 1;                    /*  计算优先级                  */
+    
+    _BugHandle(!pmsgqueue->MSGQUEUE_pmonoHeader[iQ], LW_TRUE, "buffer is empty!\r\n");
+
+    pmsgnode = (PLW_CLASS_MSGNODE)pmsgqueue->MSGQUEUE_pmonoHeader[iQ];
+    
+    *pstMsgLen = pmsgnode->MSGNODE_stMsgLen;
 }
 
 #endif                                                                  /*  (LW_CFG_MSGQUEUE_EN > 0)    */

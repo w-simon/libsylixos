@@ -73,10 +73,9 @@ ULONG  API_MsgQueueClear (LW_OBJECT_HANDLE  ulId)
     
     pmsgqueue = (PLW_CLASS_MSGQUEUE)pevent->EVENT_pvPtr;
     
-    pevent->EVENT_ulCounter = 0ul;
+    _MsgQueueClear(pmsgqueue, pevent->EVENT_ulMaxCounter);              /*  清除所有缓存消息            */
     
-    pmsgqueue->MSGQUEUE_pucInputPtr  = pmsgqueue->MSGQUEUE_pucBufferLowAddr;
-    pmsgqueue->MSGQUEUE_pucOutputPtr = pmsgqueue->MSGQUEUE_pucBufferLowAddr;
+    pevent->EVENT_ulCounter = 0ul;
     
     while (_EventWaitNum(EVENT_MSG_Q_S, pevent)) {                      /*  是否存在正在等待的任务      */
         if (pevent->EVENT_ulOption & LW_OPTION_WAIT_PRIORITY) {         /*  优先级等待队列              */

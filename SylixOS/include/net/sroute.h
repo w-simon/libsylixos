@@ -23,6 +23,7 @@
 #define __NET_SROUTE_H
 
 #include "sys/types.h"
+#include "sys/ioctl.h"
 #include "sys/socket.h"
 
 /*********************************************************************************************************

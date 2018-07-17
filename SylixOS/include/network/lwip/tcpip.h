@@ -104,6 +104,11 @@ err_t  tcpip_untimeout(sys_timeout_handler h, void *arg);
 int tcpip_thread_poll_one(void);
 #endif
 
+#ifdef SYLIXOS /* SylixOS Add QoS support */
+void tcpip_qos_set(u8_t en);
+u8_t tcpip_qos_get(void);
+#endif /* SYLIXOS */
+
 #ifdef __cplusplus
 }
 #endif

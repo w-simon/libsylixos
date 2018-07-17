@@ -284,17 +284,32 @@ typedef struct {
 typedef LW_CLASS_EVENT   *PLW_CLASS_EVENT;
 
 /*********************************************************************************************************
+  消息队列节点 (自然对齐)
+*********************************************************************************************************/
+
+typedef struct {
+    LW_LIST_MONO          MSGNODE_monoManage;                           /*  消息缓冲链表                */
+    size_t                MSGNODE_stMsgLen;                             /*  消息长度                    */
+} LW_CLASS_MSGNODE;
+typedef LW_CLASS_MSGNODE *PLW_CLASS_MSGNODE;
+
+/*********************************************************************************************************
   消息队列定义
 *********************************************************************************************************/
 
 typedef struct {
     LW_LIST_MONO          MSGQUEUE_monoResrcList;                       /*  空闲资源表                  */
-    UINT8                *MSGQUEUE_pucBufferLowAddr;                    /*  消息缓冲区首地址            */ 
-                                                                        /*  通过 KERNEL HEAP 分派       */   
-    UINT8                *MSGQUEUE_pucBufferHighAddr;                   /*  消息缓冲区最高地址          */
-    UINT8                *MSGQUEUE_pucInputPtr;                         /*  入队列指针                  */
-    UINT8                *MSGQUEUE_pucOutputPtr;                        /*  出队列指针                  */
-    size_t                MSGQUEUE_stEachMsgByteSize;                   /*  每一个消息单元的大小        */
+    LW_LIST_MONO_HEADER   MSGQUEUE_pmonoFree;                           /*  空闲消息节点链              */
+    
+#define EVENT_MSG_Q_PRIO        8
+#define EVENT_MSG_Q_PRIO_HIGH   0
+#define EVENT_MSG_Q_PRIO_LOW    7
+    LW_LIST_MONO_HEADER   MSGQUEUE_pmonoHeader[EVENT_MSG_Q_PRIO];       /*  消息头                      */
+    LW_LIST_MONO_HEADER   MSGQUEUE_pmonoTail[EVENT_MSG_Q_PRIO];         /*  消息尾                      */
+    UINT32                MSGQUEUE_uiMap;                               /*  优先级位图表                */
+    
+    PVOID                 MSGQUEUE_pvBuffer;                            /*  缓冲区                      */
+    size_t                MSGQUEUE_stMaxBytes;                          /*  每条消息最大长度            */
 } LW_CLASS_MSGQUEUE;
 typedef LW_CLASS_MSGQUEUE   *PLW_CLASS_MSGQUEUE;
 

@@ -71,6 +71,11 @@
 *********************************************************************************************************/
 #include "netdev/netdev.h"
 /*********************************************************************************************************
+  QoS 相关函数
+*********************************************************************************************************/
+#include "netinet/ip_qos.h"
+#include "netinet6/ip6_qos.h"
+/*********************************************************************************************************
   netstat 帮助信息
 *********************************************************************************************************/
 static const CHAR   _G_cNetstatHelp[] = {
@@ -987,6 +992,131 @@ __error:
 
 #endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
 /*********************************************************************************************************
+** 函数名称: __tshellIpQos
+** 功能描述: 系统命令 "ipqos"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : 0
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __tshellIpQos (INT  iArgC, PCHAR  *ppcArgV)
+{
+    INT                 iSock, iRet;
+    struct ipqosreq     ipqos;
+    struct ip6qosreq    ip6qos;
+    
+    if (iArgC == 1) {
+        iSock = socket(AF_INET, SOCK_DGRAM, 0);
+        if (iSock < 0) {
+            fprintf(stderr, "can not create socket, error: %s!\n", lib_strerror(errno));
+            return  (PX_ERROR);
+        }
+        
+        iRet = ioctl(iSock, SIOCGETIPQOS, &ipqos);
+        if (iRet < 0) {
+            fprintf(stderr, "command 'SIOCGETIPQOS', error: %s!\n", lib_strerror(errno));
+            close(iSock);
+            return  (PX_ERROR);
+        }
+        
+        close(iSock);
+        
+        iSock = socket(AF_INET6, SOCK_DGRAM, 0);
+        if (iSock < 0) {
+            fprintf(stderr, "can not create socket, error: %s!\n", lib_strerror(errno));
+            return  (PX_ERROR);
+        }
+        
+        iRet = ioctl(iSock, SIOCGETIP6QOS, &ip6qos);
+        if (iRet < 0) {
+            fprintf(stderr, "command 'SIOCGETIP6QOS', error: %s!\n", lib_strerror(errno));
+            close(iSock);
+            return  (PX_ERROR);
+        }
+        
+        close(iSock);
+        
+        printf("IPv4 QoS: %s IPv6 QoS: %s\n", 
+               ipqos.ip_qos_en ? "On" : "Off",
+               ip6qos.ip6_qos_en ? "On" : "Off");
+    
+    } else if (iArgC == 2) {
+        iSock = socket(AF_INET, SOCK_DGRAM, 0);
+        if (iSock < 0) {
+            fprintf(stderr, "can not create socket, error: %s!\n", lib_strerror(errno));
+            return  (PX_ERROR);
+        }
+        
+        if (sscanf(ppcArgV[1], "%d", &ipqos.ip_qos_en) != 1) {
+            fprintf(stderr, "arguments error!\n");
+            close(iSock);
+            return  (-ERROR_TSHELL_EPARAM);
+        }
+        
+        iRet = ioctl(iSock, SIOCSETIPQOS, &ipqos);
+        if (iRet < 0) {
+            fprintf(stderr, "command 'SIOCSETIPQOS', error: %s!\n", lib_strerror(errno));
+            close(iSock);
+            return  (PX_ERROR);
+        }
+        
+        close(iSock);
+    
+    } else if (iArgC == 3) {
+        if (!lib_strcasecmp(ppcArgV[1], "ipv4")) {
+            if (sscanf(ppcArgV[2], "%d", &ipqos.ip_qos_en) != 1) {
+                fprintf(stderr, "arguments error!\n");
+                return  (-ERROR_TSHELL_EPARAM);
+            }
+            
+            iSock = socket(AF_INET, SOCK_DGRAM, 0);
+            if (iSock < 0) {
+                fprintf(stderr, "can not create socket, error: %s!\n", lib_strerror(errno));
+                return  (PX_ERROR);
+            }
+            
+            iRet = ioctl(iSock, SIOCSETIPQOS, &ipqos);
+            if (iRet < 0) {
+                fprintf(stderr, "command 'SIOCSETIPQOS', error: %s!\n", lib_strerror(errno));
+                close(iSock);
+                return  (PX_ERROR);
+            }
+        
+        } else if (!lib_strcasecmp(ppcArgV[1], "ipv6")) {
+            if (sscanf(ppcArgV[2], "%d", &ip6qos.ip6_qos_en) != 1) {
+                fprintf(stderr, "arguments error!\n");
+                return  (-ERROR_TSHELL_EPARAM);
+            }
+            
+            iSock = socket(AF_INET6, SOCK_DGRAM, 0);
+            if (iSock < 0) {
+                fprintf(stderr, "can not create socket, error: %s!\n", lib_strerror(errno));
+                return  (PX_ERROR);
+            }
+            
+            iRet = ioctl(iSock, SIOCSETIP6QOS, &ip6qos);
+            if (iRet < 0) {
+                fprintf(stderr, "command 'SIOCSETIP6QOS', error: %s!\n", lib_strerror(errno));
+                close(iSock);
+                return  (PX_ERROR);
+            }
+            
+        } else {
+            fprintf(stderr, "arguments error!\n");
+            return  (-ERROR_TSHELL_EPARAM);
+        }
+        
+        close(iSock);
+    
+    } else {
+        fprintf(stderr, "arguments error!\n");
+        return  (-ERROR_TSHELL_EPARAM);
+    }
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: __tshellNetInit
 ** 功能描述: 注册网络命令
 ** 输　入  : NONE
@@ -1052,6 +1182,16 @@ VOID  __tshellNetInit (VOID)
     API_TShellFormatAdd("loginwl", " [{add | del}] [ipaddr]");
     API_TShellHelpAdd("loginwl", "show remote login whitelist.\n");
 #endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
+
+    API_TShellKeywordAdd("ipqos", __tshellIpQos);
+    API_TShellFormatAdd("ipqos", " [[ipv4 / ipv6] 0 / 1]");
+    API_TShellHelpAdd("ipqos", "Set/Get IP QoS support setting\n"
+    "eg. ipqos\n"
+    "    ipqos          (show IP QoS support setting)\n"
+    "    ipqos 1        (enable IP QoS support)\n"
+    "    ipqos 0        (disable IP QoS support)\n"
+    "    ipqos ipv4 1   (enable IPv4 QoS support)\n"
+    "    ipqos ipv6 0   (disable IPv6 QoS support)\n");
 }
 
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */

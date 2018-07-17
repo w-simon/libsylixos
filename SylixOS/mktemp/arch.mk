@@ -231,6 +231,15 @@ endif
 # TI C6X DSP
 #*********************************************************************************************************
 ifneq (,$(findstring cl6x,$(TOOLCHAIN_PREFIX)))
+
+ifneq (,$(findstring _be,$(CPU_TYPE)))
+ARCH_CPU_TYPE   = $(subst _be,,$(CPU_TYPE))
+ARCH_CPU_ENDIAN = --big_endian
+else
+ARCH_CPU_TYPE   = $(CPU_TYPE)
+ARCH_CPU_ENDIAN =
+endif
+
 ARCH             = c6x
 ARCH_COMMONFLAGS = \
 	--abi=eabi --c99 --gcc --linux -D__GNUC__=4 -D__GNUC_MINOR__=5 -D__STDC__ \
@@ -253,7 +262,7 @@ ARCH_KERNEL_LDFLAGS =
 
 ARCH_FPUFLAGS =
 
-ARCH_CPUFLAGS_WITHOUT_FPUFLAGS = -mv$(CPU_TYPE)
+ARCH_CPUFLAGS_WITHOUT_FPUFLAGS = -mv$(ARCH_CPU_TYPE) $(ARCH_CPU_ENDIAN)
 ARCH_CPUFLAGS                  = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) $(ARCH_FPUFLAGS)
 ARCH_CPUFLAGS_NOFPU            = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS)
 endif
