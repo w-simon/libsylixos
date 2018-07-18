@@ -458,6 +458,9 @@ VOID           _ThreadDetach(PLW_CLASS_TCB  ptcbDes);
 VOID            _ThreadLock(VOID);
 VOID            _ThreadUnlock(VOID);
 
+#define LW_THREAD_LOCK()            _ThreadLock()
+#define LW_THREAD_UNLOCK()          _ThreadUnlock()
+
 /*********************************************************************************************************
   安全模式函数
 *********************************************************************************************************/

@@ -47,10 +47,12 @@ typedef struct {
     LW_LIST_LINE                 FSN_lineManage;                        /*  管理链表                    */
     FUNCPTR                      FSN_pfuncCreate;                       /*  文件系统创建函数            */
     FUNCPTR                      FSN_pfuncCheck;                        /*  文件系统检查函数            */
+    FUNCPTR                      FSN_pfuncProb;                         /*  文件系统类型探测            */
     CHAR                         FSN_pcFsName[1];                       /*  文件系统名称                */
 } __LW_FILE_SYSTEM_NODE;
 typedef __LW_FILE_SYSTEM_NODE   *__PLW_FILE_SYSTEM_NODE;
 
+static LW_SPINLOCK_DEFINE       (_G_slFsNode) = LW_SPIN_INITIALIZER;
 static LW_LIST_LINE_HEADER       _G_plineFsNodeHeader = LW_NULL;        /*  文件系统入口表              */
 /*********************************************************************************************************
 ** 函数名称: __fsRegister
@@ -62,9 +64,10 @@ static LW_LIST_LINE_HEADER       _G_plineFsNodeHeader = LW_NULL;        /*  文件
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-INT  __fsRegister (CPCHAR  pcName, FUNCPTR  pfuncCreate, FUNCPTR  pfuncCheck)
+INT  __fsRegister (CPCHAR  pcName, FUNCPTR  pfuncCreate, FUNCPTR  pfuncCheck, FUNCPTR  pfuncProb)
 {
-    __PLW_FILE_SYSTEM_NODE      pfsnNew;
+    INTREG                  iregInterLevel;
+    __PLW_FILE_SYSTEM_NODE  pfsnNew;
 
     if (!pcName || !pfuncCreate) {
         return  (PX_ERROR);
@@ -79,11 +82,12 @@ INT  __fsRegister (CPCHAR  pcName, FUNCPTR  pfuncCreate, FUNCPTR  pfuncCheck)
     }
     pfsnNew->FSN_pfuncCreate = pfuncCreate;
     pfsnNew->FSN_pfuncCheck  = pfuncCheck;
+    pfsnNew->FSN_pfuncProb   = pfuncProb;
     lib_strcpy(pfsnNew->FSN_pcFsName, pcName);
     
-    _IosLock();
+    LW_SPIN_LOCK_QUICK(&_G_slFsNode, &iregInterLevel);
     _List_Line_Add_Ahead(&pfsnNew->FSN_lineManage, &_G_plineFsNodeHeader);
-    _IosUnlock();
+    LW_SPIN_UNLOCK_QUICK(&_G_slFsNode, iregInterLevel);
     
     return  (ERROR_NONE);
 }
@@ -99,24 +103,25 @@ INT  __fsRegister (CPCHAR  pcName, FUNCPTR  pfuncCreate, FUNCPTR  pfuncCheck)
 *********************************************************************************************************/
 FUNCPTR  __fsCreateFuncGet (CPCHAR   pcName, PLW_BLK_DEV  pblkd, UINT8  ucPartType)
 {
-    __PLW_FILE_SYSTEM_NODE      pfsnFind = LW_NULL;
-    PLW_LIST_LINE               plineTemp;
+    INTREG                  iregInterLevel;
+    __PLW_FILE_SYSTEM_NODE  pfsnFind;
+    PLW_LIST_LINE           plineTemp;
 
     if (!pcName) {
         return  (LW_NULL);
     }
     
-    _IosLock();
-    for (plineTemp  = _G_plineFsNodeHeader;
-         plineTemp != LW_NULL;
-         plineTemp  = _list_line_get_next(plineTemp)) {
-        
+    LW_SPIN_LOCK_QUICK(&_G_slFsNode, &iregInterLevel);
+    plineTemp = _G_plineFsNodeHeader;
+    LW_SPIN_UNLOCK_QUICK(&_G_slFsNode, iregInterLevel);
+    
+    while (plineTemp) {
         pfsnFind = (__PLW_FILE_SYSTEM_NODE)plineTemp;
         if (lib_strcmp(pfsnFind->FSN_pcFsName, pcName) == 0) {
             break;
         }
+        plineTemp = _list_line_get_next(plineTemp);
     }
-    _IosUnlock();
     
     if (plineTemp) {
         if (pfsnFind->FSN_pfuncCheck && pblkd) {
@@ -129,6 +134,38 @@ FUNCPTR  __fsCreateFuncGet (CPCHAR   pcName, PLW_BLK_DEV  pblkd, UINT8  ucPartTy
     } else {
         return  (LW_NULL);
     }
+}
+/*********************************************************************************************************
+** 函数名称: __fsPartitionProb
+** 功能描述: 分区类型探测
+** 输　入  : pblkd            对应磁盘
+** 输　出  : 分区类型
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+UINT8  __fsPartitionProb (PLW_BLK_DEV  pblkd)
+{
+    INTREG                  iregInterLevel;
+    __PLW_FILE_SYSTEM_NODE  pfsnProb;
+    PLW_LIST_LINE           plineTemp;
+    UINT8                   ucPartType = LW_DISK_PART_TYPE_EMPTY;
+    
+    LW_SPIN_LOCK_QUICK(&_G_slFsNode, &iregInterLevel);
+    plineTemp = _G_plineFsNodeHeader;
+    LW_SPIN_UNLOCK_QUICK(&_G_slFsNode, iregInterLevel);
+    
+    while (plineTemp) {
+        pfsnProb = (__PLW_FILE_SYSTEM_NODE)plineTemp;
+        if (pfsnProb->FSN_pfuncProb) {
+            pfsnProb->FSN_pfuncProb(pblkd, &ucPartType);
+            if (ucPartType != LW_DISK_PART_TYPE_EMPTY) {
+                break;
+            }
+        }
+        plineTemp = _list_line_get_next(plineTemp);
+    }
+    
+    return  (LW_DISK_PART_TYPE_EMPTY);
 }
 /*********************************************************************************************************
 ** 函数名称: __fsCheckFileName

@@ -159,7 +159,10 @@ static VOID  __miscPrimarySmpInit (VOID)
 
 #if LW_CFG_SMP_EN > 0
         LW_CPU_ONLY_AFFINITY_SET(pcpu, LW_FALSE);
-        pcpu->CPU_ulIPIVector   = __ARCH_ULONG_MAX;                     /*  目前不确定核间中断向量      */
+#if LW_CFG_CACHE_EN > 0
+        pcpu->CPU_bCacheBarrier = LW_FALSE;
+#endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
+        pcpu->CPU_ulIPIVector = __ARCH_ULONG_MAX;                       /*  目前不确定核间中断向量      */
         LW_SPIN_INIT(&pcpu->CPU_slIpi);                                 /*  初始化 CPU spinlock         */
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
     }

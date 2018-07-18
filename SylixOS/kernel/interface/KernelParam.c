@@ -39,7 +39,7 @@ extern LW_API INT   API_RootFsMapInit(CPCHAR  pcMap);
                            ncpus=1          CPU 个数 (x86/64 平台可以不设置, 操作系统会自动探测)
                            dlog=no          DEBUG LOG 信息打印
                            derror=yes       DEBUG ERROR 信息打印
-                           kfpu=no          内核态对浮点支持 (推荐为 no)
+                           kfpu=no          内核态对硬浮点协处理器支持 (推荐为 no)
                            kdsp=no          内核态对 DSP 协处理器支持 (推荐为 no)
                            heapchk=yes      内存堆越界检查
                            hz=100           系统 tick 频率, 默认为 100 (推荐 100 ~ 10000 中间)

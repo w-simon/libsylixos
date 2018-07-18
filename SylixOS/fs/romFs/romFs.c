@@ -139,7 +139,7 @@ INT  API_RomFsDrvInstall (VOID)
 
     _DebugHandle(__LOGMESSAGE_LEVEL, "rom file system installed.\r\n");
     
-    __fsRegister("romfs", API_RomFsDevCreate, LW_NULL);                 /*  注册文件系统                */
+    __fsRegister("romfs", API_RomFsDevCreate, LW_NULL, LW_NULL);        /*  注册文件系统                */
 
     return  ((_G_iRomfsDrvNum > 0) ? (ERROR_NONE) : (PX_ERROR));
 }

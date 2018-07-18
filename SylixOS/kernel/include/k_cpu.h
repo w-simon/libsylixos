@@ -77,6 +77,10 @@ typedef struct __lw_cpu {
     LW_CLASS_PCBBMAP         CPU_pcbbmapReady;                          /*  当前 CPU 就绪表             */
     BOOL                     CPU_bOnlyAffinity;                         /*  是否仅运行亲和线程          */
     
+#if LW_CFG_CACHE_EN > 0
+    volatile BOOL            CPU_bCacheBarrier;                         /*  CACHE 同步点                */
+#endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
+    
     /*
      *  核间中断待处理标志, 这里最多有 ULONG 位数个核间中断类型, 和 CPU 硬件中断向量原理相同
      */

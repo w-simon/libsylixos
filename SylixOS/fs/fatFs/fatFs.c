@@ -317,8 +317,8 @@ INT  API_FatFsDrvInstall (VOID)
     DRIVER_DESCRIPTION(_G_iFatDrvNum, "FAT12/16/32 driver.");
     
     _DebugHandle(__LOGMESSAGE_LEVEL, "microsoft FAT file system installed.\r\n");
-    
-    __fsRegister("vfat", API_FatFsDevCreate, (FUNCPTR)__fatFsCheck);    /*  注册文件系统                */
+                                                                        /*  注册文件系统                */
+    __fsRegister("vfat", API_FatFsDevCreate, (FUNCPTR)__fatFsCheck, LW_NULL);
     
 #if LW_CFG_SHELL_EN > 0
     API_TShellKeywordAdd("fatugid", __tshellFatUGID);

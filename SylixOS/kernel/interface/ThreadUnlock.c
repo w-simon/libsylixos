@@ -40,7 +40,7 @@
 LW_API
 INT  API_ThreadUnlock (VOID)
 {
-    _ThreadUnlock();
+    LW_THREAD_UNLOCK();
     
     return  (ERROR_NONE);
 }

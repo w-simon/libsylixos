@@ -372,7 +372,7 @@ INT  API_TpsFsDrvInstall (VOID)
 
     _DebugHandle(__LOGMESSAGE_LEVEL, "SylixOS tpsFs file system installed.\r\n");
 
-    __fsRegister("tpsfs", API_TpsFsDevCreate, LW_NULL);                 /*  注册文件系统                */
+    __fsRegister("tpsfs", API_TpsFsDevCreate, LW_NULL, LW_NULL);        /*  注册文件系统                */
 
     return  ((_G_iTpsDrvNum > 0) ? (ERROR_NONE) : (PX_ERROR));
 }

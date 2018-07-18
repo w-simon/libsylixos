@@ -34,6 +34,7 @@
 #include "../SylixOS/kernel/include/k_kernel.h"
 #include "../SylixOS/system/include/s_system.h"
 #include "../SylixOS/fs/include/fs_internal.h"
+#include "../SylixOS/fs/fsCommon/fsCommon.h"
 /*********************************************************************************************************
   裁剪宏
 *********************************************************************************************************/
@@ -243,7 +244,7 @@ static VOID  __logicDiskInit (PLW_BLK_DEV  pblkdLogic, PLW_BLK_DEV  pblkdPhysica
 **           uiCounter         分区计数器
 **           ulStartSector     起始扇区
 **           ulExtStartSector  扩展分区起始扇区
-** 输　出  : ERROR CODE
+** 输　出  : > 0 分区数量
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
@@ -350,6 +351,37 @@ static INT  __diskPartitionScan (PLW_BLK_DEV         pblkd,
     }
 }
 /*********************************************************************************************************
+** 函数名称: __diskPartitionProb
+** 功能描述: 分区表探测处理
+** 输　入  : pblkd             块设备
+**           pdptDisk          磁盘分区信息
+** 输　出  : > 0 分区个数
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static INT  __diskPartitionProb (PLW_BLK_DEV  pblkd, PLW_DISKPART_TABLE  pdptDisk)
+{
+    LW_DISKPART_OPERAT  *pdoLogic;
+    
+    pdptDisk->DPT_ulNPart = 1;                                          /*  默认为单分区无分区表磁盘    */
+    pdoLogic = &pdptDisk->DPT_dpoLogic[0];                              /*  逻辑分区信息                */
+    
+    pdoLogic->DPO_dpnEntry.DPN_ulStartSector = 0ul;
+    pdoLogic->DPO_dpnEntry.DPN_ulNSector     = pblkd->BLKD_ulNSector;
+    pdoLogic->DPO_dpnEntry.DPN_bIsActive     = LW_FALSE;
+    pdoLogic->DPO_dpnEntry.DPN_ucPartType    = LW_DISK_PART_TYPE_EMPTY;
+                                                                        /*  分区无效                    */
+    pdoLogic->DPT_pblkdDisk = pblkd;                                    /*  记录下层设备                */
+    
+    __logicDiskInit(&pdoLogic->DPO_blkdLogic,
+                    pblkd,
+                    pblkd->BLKD_ulNSector);                             /*  初始化逻辑设备控制块        */
+                    
+    pdoLogic->DPO_dpnEntry.DPN_ucPartType = __fsPartitionProb(&pdoLogic->DPO_blkdLogic);
+    
+    return  (1);
+}
+/*********************************************************************************************************
 ** 函数名称: API_DiskPartitionScan
 ** 功能描述: 分析指定物理磁盘的分区情况, (通过分区表)
 ** 输　入  : pblkd             物理块设备驱动
@@ -384,6 +416,7 @@ INT  API_DiskPartitionScan (PLW_BLK_DEV  pblkd, PLW_DISKPART_TABLE  pdptDisk)
     
     if (pblkd->BLKD_ulBytesPerSector) {
         ulBytesPerSector = pblkd->BLKD_ulBytesPerSector;
+    
     } else {
         iError = BLK_IOCTL(pblkd, LW_BLKD_GET_SECSIZE, &ulBytesPerSector);
         if (iError < 0) {
@@ -399,22 +432,7 @@ INT  API_DiskPartitionScan (PLW_BLK_DEV  pblkd, PLW_DISKPART_TABLE  pdptDisk)
         pdptDisk->DPT_ulNPart = (ULONG)iError;                          /*  记录分区数量                */
     
     } else {
-        LW_DISKPART_OPERAT  *pdoLogic;
-        
-        pdptDisk->DPT_ulNPart = 1;                                      /*  默认为单分区无分区表磁盘    */
-        pdoLogic = &pdptDisk->DPT_dpoLogic[0];                          /*  逻辑分区信息                */
-        
-        pdoLogic->DPO_dpnEntry.DPN_ulStartSector = 0ul;
-        pdoLogic->DPO_dpnEntry.DPN_ulNSector     = pblkd->BLKD_ulNSector;
-        pdoLogic->DPO_dpnEntry.DPN_bIsActive     = LW_FALSE;
-        pdoLogic->DPO_dpnEntry.DPN_ucPartType    = LW_DISK_PART_TYPE_EMPTY;
-                                                                        /*  分区无效                    */
-        pdoLogic->DPT_pblkdDisk = pblkd;                                /*  记录下层设备                */
-        
-        __logicDiskInit(&pdoLogic->DPO_blkdLogic,
-                        pblkd,
-                        pblkd->BLKD_ulNSector);                         /*  初始化逻辑设备控制块        */
-        iError = 1;                                                     /*  单分区                      */
+        iError = __diskPartitionProb(pblkd, pdptDisk);
     }
     
     return  (iError);

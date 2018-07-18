@@ -86,7 +86,7 @@ static LW_INLINE BOOL  __smp_cpu_lock (VOID)
     BOOL    bSchedLock = _SchedIsLock(0);
     
     if (bSchedLock == LW_FALSE) {
-        _ThreadLock();                                                  /*  锁定当前 CPU 执行           */
+        LW_THREAD_LOCK();                                               /*  锁定当前 CPU 执行           */
     }
     
     return  (bSchedLock ? LW_FALSE : LW_TRUE);
@@ -95,7 +95,7 @@ static LW_INLINE BOOL  __smp_cpu_lock (VOID)
 static LW_INLINE VOID  __smp_cpu_unlock (BOOL  bUnlock)
 {
     if (bUnlock) {
-        _ThreadUnlock();                                                /*  解锁当前 CPU 执行           */
+        LW_THREAD_UNLOCK();                                             /*  解锁当前 CPU 执行           */
     }
 }
 

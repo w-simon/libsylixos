@@ -427,6 +427,20 @@ __refined_seq:
                 pcFs          = "vfat";
             }
             break;
+        
+        case LW_DISK_PART_TYPE_ISO9660:
+            if (bForceFsType) {                                         /*  是否强制指定文件系统类型    */
+                pfuncFsCreate = __fsCreateFuncGet(pcFsName, 
+                                                  poemd->OEMDISK_pblkdPart[i],
+                                                  dptPart.DPT_dpoLogic[i].DPO_dpnEntry.DPN_ucPartType);
+                pcFs          = pcFsName;
+            } else {
+                pfuncFsCreate = __fsCreateFuncGet("iso9660", 
+                                                  poemd->OEMDISK_pblkdPart[i],
+                                                  dptPart.DPT_dpoLogic[i].DPO_dpnEntry.DPN_ucPartType);
+                pcFs          = "iso9660";
+            }
+            break;
             
         case LW_DISK_PART_TYPE_TPS:
             if (bForceFsType) {                                         /*  是否强制指定文件系统类型    */
@@ -718,6 +732,13 @@ __refined_seq:
             pcFs          = "vfat";
             break;
         
+        case LW_DISK_PART_TYPE_ISO9660:
+            pfuncFsCreate = __fsCreateFuncGet("iso9660",                /*  查询 9660 文件系统装载函数  */
+                                              poemd->OEMDISK_pblkdPart[i],
+                                              dptPart.DPT_dpoLogic[i].DPO_dpnEntry.DPN_ucPartType);
+            pcFs          = "iso9660";
+            break;
+            
         case LW_DISK_PART_TYPE_TPS:                                     /*  TPS 文件系统类型            */
             pfuncFsCreate = __fsCreateFuncGet("tpsfs",                  /*  查询 TPSFS 文件系统装载函数 */
                                               poemd->OEMDISK_pblkdPart[i],
@@ -1032,6 +1053,13 @@ __refined_seq:
                                               poemd->OEMDISK_pblkdPart[i],
                                               dptPart.DPT_dpoLogic[i].DPO_dpnEntry.DPN_ucPartType);
             pcFs          = "vfat";
+            break;
+        
+        case LW_DISK_PART_TYPE_ISO9660:
+            pfuncFsCreate = __fsCreateFuncGet("iso9660",                /*  查询 9660 文件系统装载函数  */
+                                              poemd->OEMDISK_pblkdPart[i],
+                                              dptPart.DPT_dpoLogic[i].DPO_dpnEntry.DPN_ucPartType);
+            pcFs          = "iso9660";
             break;
         
         case LW_DISK_PART_TYPE_TPS:                                     /*  TPS 文件系统类型            */

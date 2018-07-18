@@ -142,6 +142,10 @@ LW_API BOOL         API_CacheAliasProb(VOID);
 LW_API INT          API_CacheEnable(LW_CACHE_TYPE  cachetype);
 LW_API INT          API_CacheDisable(LW_CACHE_TYPE cachetype);
 
+#if LW_CFG_SMP_EN > 0
+LW_API INT          API_CacheBarrier(VOIDFUNCPTR pfuncHook, PVOID pvArg, size_t stSize, const PLW_CLASS_CPUSET pcpuset);
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
+
 LW_API INT          API_CacheLock(LW_CACHE_TYPE   cachetype, PVOID  pvAdrs, size_t  stBytes);
 LW_API INT          API_CacheUnlock(LW_CACHE_TYPE cachetype, PVOID  pvAdrs, size_t  stBytes);
 
@@ -184,6 +188,10 @@ LW_API VOID         API_CacheFuncsSet(VOID);
 
 #define cacheEnable                 API_CacheEnable
 #define cacheDisable                API_CacheDisable
+
+#if LW_CFG_SMP_EN > 0
+#define cacheBarrier                API_CacheBarrier
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 
 #define cacheLock                   API_CacheLock
 #define cacheUnlock                 API_CacheUnlock

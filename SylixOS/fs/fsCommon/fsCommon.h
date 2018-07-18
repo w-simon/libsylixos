@@ -29,10 +29,12 @@
 
 INT      __fsRegister(CPCHAR   pcName, 
                       FUNCPTR  pfuncCreate, 
-                      FUNCPTR  pfuncCheck);                             /*  注册文件系统                */
+                      FUNCPTR  pfuncCheck,
+                      FUNCPTR  pfuncProb);                              /*  注册文件系统                */
 FUNCPTR  __fsCreateFuncGet(CPCHAR       pcName, 
                            PLW_BLK_DEV  pblkd, 
                            UINT8        ucPartType);                    /*  获得文件系统创建函数        */
+UINT8    __fsPartitionProb(PLW_BLK_DEV  pblkd);                         /*  特殊分区探测                */
 INT      __fsCheckFileName(CPCHAR  pcName);                             /*  文件名正确性检查            */
 
 VOID     __fsDiskLinkCounterAdd(PLW_BLK_DEV  pblkd);                    /*  物理连接计数操作            */

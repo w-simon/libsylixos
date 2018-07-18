@@ -34,6 +34,7 @@
 2013.12.19 API_CacheLibPrimaryInit() 加入 CACHE 名称字串, arch 程序通过此字串提供相应的 CACHE 驱动程序.
 2014.01.03 简化 cache api 设计.
 2014.07.27 加入物理页面操作.
+2018.07.18 加入 API_CacheBarrier() 针对多核启动同时开启 CACHE 或同步 CACHE 操作封装.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -362,6 +363,7 @@ INT    API_CacheEnable (LW_CACHE_TYPE  cachetype)
 ** 全局变量: 
 ** 调用模块: 
 ** 注  意  : dcache 在关闭前, 驱动程序必须先清空数据.
+
                                            API 函数
 *********************************************************************************************************/
 LW_API  
@@ -385,6 +387,72 @@ INT    API_CacheDisable (LW_CACHE_TYPE  cachetype)
     return  (iError);
 #endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
 }
+/*********************************************************************************************************
+** 函数名称: API_CacheBarrier
+** 功能描述: 多核 CACHE 同步处理
+** 输　入  : pfuncHook             同步处理函数
+**           pvArg                 同步处理函数参数
+**           stSize                CPU 集合大小
+**           pcpuset               需要同步的 CPU 集合
+** 输　出  : ERROR or OK
+** 全局变量: 
+** 调用模块: 
+** 注  意  : 此操作一般用于多核同步 CACHE.
+
+                                           API 函数
+*********************************************************************************************************/
+#if LW_CFG_SMP_EN > 0
+
+LW_API  
+INT    API_CacheBarrier (VOIDFUNCPTR             pfuncHook, 
+                         PVOID                   pvArg, 
+                         size_t                  stSize, 
+                         const PLW_CLASS_CPUSET  pcpuset)
+{
+    BOOL            bLock;
+    ULONG           i, ulCPUId, ulNumChk;
+    PLW_CLASS_CPU   pcpu, pcpuCur;
+    
+    if (!pcpuset || !pfuncHook) {
+        return  (PX_ERROR);
+    }
+    
+    ulNumChk = ((ULONG)stSize << 3);
+    ulNumChk = (ulNumChk > LW_NCPUS) ? LW_NCPUS : ulNumChk;
+
+    bLock = __SMP_CPU_LOCK();
+
+    ulCPUId = LW_CPU_GET_CUR_ID();
+    pcpuCur = LW_CPU_GET(ulCPUId);
+    
+    pcpuCur->CPU_bCacheBarrier = LW_TRUE;                               /*  设置当前核同步点            */
+    KN_SMP_MB();
+    
+    for (i = 0; i < ulNumChk; i++) {
+        if (LW_CPU_ISSET(i, pcpuset)) {
+            pcpu = LW_CPU_GET(i);
+            while (!pcpu->CPU_bCacheBarrier);                           /*  自旋等待其他 CPU            */
+        }
+    }
+    
+    pfuncHook(pvArg);                                                   /*  执行回调函数                */
+    
+    pcpuCur->CPU_bCacheBarrier = LW_FALSE;                              /*  取消当前核同步点            */
+    KN_SMP_MB();
+    
+    for (i = 0; i < ulNumChk; i++) {
+        if (LW_CPU_ISSET(i, pcpuset)) {
+            pcpu = LW_CPU_GET(i);
+            while (pcpu->CPU_bCacheBarrier);                            /*  自旋等待其他 CPU            */
+        }
+    }
+    
+    __SMP_CPU_UNLOCK(bLock);
+    
+    return  (ERROR_NONE);
+}
+
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 /*********************************************************************************************************
 ** 函数名称: API_CacheLock
 ** 功能描述: 指定类型的 CACHE 锁定一个地址
