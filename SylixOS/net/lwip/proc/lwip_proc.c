@@ -32,6 +32,7 @@
 2017.02.13  加入网络打印裁剪.
 2017.12.19  加入源路由打印.
 2018.01.15  加入组播路由打印.
+2018.07.19  加入 QoS 打印.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -1584,6 +1585,40 @@ static VOID  __procFsNetTcpipStatPrintPim (PCHAR  pcBuffer, size_t  stTotalSize,
 
 #endif                                                                  /*  LW_CFG_NET_MROUTER > 0      */
 /*********************************************************************************************************
+** 函数名称: __procFsNetTcpipStatPrintQos
+** 功能描述: 打印网络 tcpip_stat 文件
+** 输　入  : pcBuffer      缓冲
+**           stTotalSize   缓冲区大小
+**           pstOft        当前偏移量
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+#if LW_CFG_LWIP_IPQOS > 0
+
+static VOID  __procFsNetTcpipStatPrintQos (PCHAR  pcBuffer, size_t  stTotalSize, size_t *pstOft)
+{
+    *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
+                       "\n%-9s %-8s %-8s %-8s %-8s %-8s %-8s %-8s\n",
+                       "IP-QoS", "prio_1", "prio_2", "prio_3", "prio_4", "prio_5", "prio_6", "prio_7");
+                       
+    *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
+                       "%-9s %-8u %-8u %-8u %-8u %-8u %-8u %-8u\n",
+                       "IP", tcpip_qos_stat(4, 1), 
+                       tcpip_qos_stat(4, 2), tcpip_qos_stat(4, 3), tcpip_qos_stat(4, 4), 
+                       tcpip_qos_stat(4, 5), tcpip_qos_stat(4, 6), tcpip_qos_stat(4, 7));
+                       
+#if LWIP_IPV6
+    *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
+                       "%-9s %-8u %-8u %-8u %-8u %-8u %-8u %-8u\n",
+                       "IPv6", tcpip_qos_stat(6, 1), 
+                       tcpip_qos_stat(6, 2), tcpip_qos_stat(6, 3), tcpip_qos_stat(6, 4), 
+                       tcpip_qos_stat(6, 5), tcpip_qos_stat(6, 6), tcpip_qos_stat(6, 7));
+#endif
+}
+
+#endif                                                                  /*  LW_CFG_LWIP_IPQOS > 0       */
+/*********************************************************************************************************
 ** 函数名称: __procFsNetTcpipStatPrint
 ** 功能描述: 打印网络 tcpip_stat 文件
 ** 输　入  : pcBuffer      缓冲
@@ -1638,6 +1673,10 @@ static VOID  __procFsNetTcpipStatPrint (PCHAR  pcBuffer, size_t  stTotalSize, si
     
 #if LW_CFG_NET_MROUTER > 0
     __procFsNetTcpipStatPrintPim(pcBuffer, stTotalSize, pstOft);
+#endif
+    
+#if LW_CFG_LWIP_IPQOS > 0
+    __procFsNetTcpipStatPrintQos(pcBuffer, stTotalSize, pstOft);
 #endif
     
     *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,

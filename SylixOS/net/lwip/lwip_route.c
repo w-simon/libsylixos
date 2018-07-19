@@ -498,6 +498,10 @@ static INT  __route_change (INT  iArgC, PCHAR  *ppcArgV)
     rtentry.rt_gateway.sa_len    = sizeof(struct sockaddr_in);
     rtentry.rt_gateway.sa_family = AF_INET;
     
+    if ((iArgC > 3) && (!lib_strcmp(ppcArgV[2], "default"))) {
+        return  (__route_default(iArgC, ppcArgV, &rtentry));
+    }
+    
     if ((iArgC < 7) || !lib_strstr(ppcArgV[4], "mask")) {
 __arg_error:
         fprintf(stderr, "arguments error!\n");

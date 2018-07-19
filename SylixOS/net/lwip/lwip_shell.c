@@ -1152,7 +1152,7 @@ VOID  __tshellNetInit (VOID)
                                      "ifconfig dns 0       192.168.0.2\n");
 
     API_TShellKeywordAdd("ifup", __tshellIfUp);
-    API_TShellFormatAdd("ifup", " [netifname] [{-dhcp | -nodhcp}]");
+    API_TShellFormatAdd("ifup", " [netifname] [{-dhcp | -nodhcp}] [{-dhcp6 | -nodhcp6}]");
     API_TShellHelpAdd("ifup",   "set net interface enable\n"
                                 "\"-dncp\"   mean use dhcp client get net address.\n"
                                 "\"-nodncp\" mean MUST NOT use dhcp.\n");

@@ -724,6 +724,8 @@ SylixOS/fs/fatFs/ff.c \
 SylixOS/fs/fatFs/option/unicode.c \
 SylixOS/fs/fatFs/option/syscall.c \
 SylixOS/fs/fsCommon/fsCommon.c \
+SylixOS/fs/iso9660Fs/iso9660Fs.c \
+SylixOS/fs/iso9660Fs/iso9660FsLib.c \
 SylixOS/fs/mount/mount.c \
 SylixOS/fs/mtd/mtdcore.c \
 SylixOS/fs/mtd/linux/bch.c \

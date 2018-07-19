@@ -54,8 +54,14 @@
 #include "lwip/ip4.h"
 #include "lwip/ip6.h"
 
+/* IP QoS priority */
+#define TCPIP_QOS_MAX_PRIO 8
+
 /* IP QoS support */
 static u8_t tcpip_qos_on = 0;
+static u32_t tcpip_ip_qos[TCPIP_QOS_MAX_PRIO]; /* QoS prio 0 no count */
+static u32_t tcpip_ip6_qos[TCPIP_QOS_MAX_PRIO];
+
 /**
  * Set IP QoS support
  * @param en 1: on 0: off
@@ -68,12 +74,32 @@ tcpip_qos_set(u8_t en)
 
 /**
  * Get IP QoS support
- * @param en 1: on 0: off
+ * @return en 1: on 0: off
  */
 u8_t 
 tcpip_qos_get(void)
 {
   return tcpip_qos_on;
+}
+
+/**
+ * Get IP QoS statistics
+ * @param ipv 4: IPv4 6: IPv6
+ * @param prio 0 ~ 7
+ * @return count
+ */
+u32_t
+tcpip_qos_stat(u8_t ipv, u8_t prio)
+{
+  if (prio >= TCPIP_QOS_MAX_PRIO) {
+    return 0;
+  }
+  
+  if (ipv == 4) {
+    return tcpip_ip_qos[prio];
+  } else {
+    return tcpip_ip6_qos[prio];
+  }
 }
 
 /**
@@ -93,6 +119,7 @@ tcpip_qos_get(void)
 static u8_t
 tcpip_qos_prio(struct pbuf *p, struct netif *inp)
 {
+  u8_t prio;
   u16_t iphdr_offset;
   
 #if LWIP_IPV4
@@ -137,9 +164,12 @@ tcpip_qos_prio(struct pbuf *p, struct netif *inp)
   iphdr = (struct ip_hdr *)((char *)p->payload + iphdr_offset);
   if (IPH_V(iphdr) == 4) {
     if (IPH_TOS(iphdr) & 0x10) { /* IPTOS_LOWDELAY */
+      tcpip_ip_qos[5]++;
       return (5); /* CRITIC/ECP */
     }
-    return ((u8_t)(IPH_TOS(iphdr) >> 5));
+    prio = (u8_t)(IPH_TOS(iphdr) >> 5);
+    tcpip_ip_qos[prio]++;
+    return (prio);
   
   } else 
 #endif /* LWIP_IPV4 */
@@ -147,7 +177,9 @@ tcpip_qos_prio(struct pbuf *p, struct netif *inp)
 #if LWIP_IPV6
     struct ip6_hdr *ip6hdr = (struct ip6_hdr *)((char *)p->payload + iphdr_offset);
     if (IP6H_V(ip6hdr) == 6) {
-      return ((u8_t)(IP6H_TC(ip6hdr) >> 5));
+      prio = (u8_t)(IP6H_TC(ip6hdr) >> 5);
+      tcpip_ip6_qos[prio]++;
+      return (prio);
     }
 #endif /* LWIP_IPV6 */
   }

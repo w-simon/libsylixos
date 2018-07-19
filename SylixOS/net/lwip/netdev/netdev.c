@@ -722,6 +722,15 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
       }
 #endif /* LWIP_DHCP */
 
+#if LWIP_IPV6_DHCP6 > 0
+      if (!(netdev->init_flags & NETDEV_INIT_USE_DHCP6)) {
+        if_param_getdhcp6(ifparam, &dhcp);
+        if (dhcp) {
+          netdev->init_flags |= NETDEV_INIT_USE_DHCP6;
+        }
+      }
+#endif /* LWIP_IPV6_DHCP6 */
+
       if_param_unload(ifparam);
     }
   }
@@ -750,6 +759,13 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
     netifapi_dhcp_start(netif);
   }
 #endif /* LWIP_DHCP */
+
+#if LWIP_IPV6_DHCP6 > 0
+  if (netdev->init_flags & NETDEV_INIT_USE_DHCP6) {
+    netif->flags2 |= NETIF_FLAG2_DHCP6;
+    netifapi_dhcp6_enable_stateless(netif);
+  }
+#endif /* LWIP_IPV6_DHCP6 > 0 */
 
   return (0);
 }

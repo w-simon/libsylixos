@@ -22,6 +22,8 @@
 #ifndef __ARCH_RISCV_DEF_H
 #define __ARCH_RISCV_DEF_H
 
+#if defined(__SYLIXOS_KERNEL) || defined(__ASSEMBLY__) || defined(ASSEMBLY)
+
 #if LW_CFG_RISCV_M_LEVEL > 0
 #define XSTATUS             mstatus
 #define XHARTID             mhartid
@@ -1549,7 +1551,9 @@ DECLARE_CAUSE("machine_ecall", CAUSE_MACHINE_ECALL)
 DECLARE_CAUSE("fetch page fault", CAUSE_FETCH_PAGE_FAULT)
 DECLARE_CAUSE("load page fault", CAUSE_LOAD_PAGE_FAULT)
 DECLARE_CAUSE("store page fault", CAUSE_STORE_PAGE_FAULT)
-#endif
+
+#endif                                                                  /*  __SYLIXOS_KERNEL            */
+#endif                                                                  /*  __ARCH_RISCV_DEF_H          */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

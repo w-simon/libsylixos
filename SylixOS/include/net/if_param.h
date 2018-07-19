@@ -39,15 +39,16 @@
   netmask=255.255.255.0
   gateway=192.168.1.1
   default=1
-  mac=00:11:22:33:44:55
-  ipv6_auto_cfg=1
+  mac=00:11:22:33:44:55   # 除非网卡没有 MAC 地址, 否则不建议设置 MAC
+  ipv6_auto_cfg=1         (如果将 SylixOS 作为 IPv6 路由器, 则 ipv6_auto_cfg=0)
   
   或者
   
   [dm9000a]
   enable=1
   dhcp=1
-  mac=00:11:22:33:44:55
+  dhcp6=1
+  mac=00:11:22:33:44:55   # 除非网卡没有 MAC 地址, 否则不建议设置 MAC
 
   resolver 类库配置文件范例 /etc/resolv.conf
 
@@ -63,6 +64,7 @@ LW_API void   if_param_unload(void *pifparam);
 LW_API int    if_param_getenable(void *pifparam, int *enable);
 LW_API int    if_param_getdefault(void *pifparam, int *def);
 LW_API int    if_param_getdhcp(void *pifparam, int *dhcp);
+LW_API int    if_param_getdhcp6(void *pifparam, int *dhcp);
 LW_API int    if_param_ipv6autocfg(void *pifparam, int *autocfg);
 LW_API int    if_param_getipaddr(void *pifparam, ip4_addr_t *ipaddr);
 LW_API int    if_param_getinaddr(void *pifparam, struct in_addr *inaddr);

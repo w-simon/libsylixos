@@ -40,7 +40,7 @@
   netmask=255.255.255.0
   gateway=192.168.1.1
   default=1
-  mac=00:11:22:33:44:55
+  mac=00:11:22:33:44:55   # 除非网卡没有 MAC 地址, 否则不建议设置 MAC
   ipv6_auto_cfg=1         (如果将 SylixOS 作为 IPv6 路由器, 则 ipv6_auto_cfg=0)
   
   或者
@@ -48,7 +48,8 @@
   [dm9000a]
   enable=1
   dhcp=1
-  mac=00:11:22:33:44:55
+  dhcp6=1
+  mac=00:11:22:33:44:55   # 除非网卡没有 MAC 地址, 否则不建议设置 MAC
 
   resolver 类库配置文件范例 /etc/resolv.conf
 
@@ -66,6 +67,7 @@
 #define LW_IFPARAM_MAC          "mac"
 #define LW_IFPARAM_DEFAULT      "default"
 #define LW_IFPARAM_DHCP         "dhcp"
+#define LW_IFPARAM_DHCP6        "dhcp6"
 #define LW_IFPARAM_IPV6_ACFG    "ipv6_auto_cfg"
 /*********************************************************************************************************
   ini 配置
@@ -431,6 +433,30 @@ int  if_param_getdhcp (void *pifparam, int *dhcp)
     }
 
     *dhcp = __iniGetInt(pinisec, LW_IFPARAM_DHCP, 0);
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: if_param_getdhcp6
+** 功能描述: 读取网卡是否为 dhcp6 (如果未找到配置默认为非 DHCP6)
+** 输　入  : pifparam      配置句柄
+**           def           是否为默认路由
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+int  if_param_getdhcp6 (void *pifparam, int *dhcp)
+{
+    PLW_INI_SEC  pinisec = (PLW_INI_SEC)pifparam;
+
+    if (!pinisec || !dhcp) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    *dhcp = __iniGetInt(pinisec, LW_IFPARAM_DHCP6, 0);
 
     return  (ERROR_NONE);
 }

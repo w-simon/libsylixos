@@ -167,9 +167,10 @@ typedef struct netdev {
   
 #define NETDEV_INIT_LOAD_PARAM     0x01     /* load netif parameter when add to system */
 #define NETDEV_INIT_LOAD_DNS       0x02     /* load dns parameter when add to system */
-#define NETDEV_INIT_IPV6_AUTOCFG   0x04
+#define NETDEV_INIT_IPV6_AUTOCFG   0x04     /* use IPv6 auto config */
 #define NETDEV_INIT_AS_DEFAULT     0x08
 #define NETDEV_INIT_USE_DHCP       0x10     /* force use DHCP get address */
+#define NETDEV_INIT_USE_DHCP6      0x40     /* force use IPv6 DHCP get address */
 #define NETDEV_INIT_DO_NOT         0x20     /* do not call init() function (Only used for net bridge) */
   UINT32 init_flags;
   

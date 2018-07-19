@@ -116,7 +116,7 @@ static ssize_t  __procFssupRead (PLW_PROCFS_NODE  p_pfsn,
              size_t     stCopeBytes;
 
     /*
-     *  程序运行到这里, 文件缓冲一定已经分配了预置的内存大小(创建节点时预置大小为 64 字节).
+     *  程序运行到这里, 文件缓冲一定已经分配了预置的内存大小(创建节点时预置大小为 256 字节).
      */
     pcFileBuffer = (PCHAR)API_ProcFsNodeBuffer(p_pfsn);
     if (pcFileBuffer == LW_NULL) {
@@ -143,6 +143,10 @@ static ssize_t  __procFssupRead (PLW_PROCFS_NODE  p_pfsn,
 #if LW_CFG_TPSFS_EN > 0
         lib_strlcat(pcFileBuffer, "tpsfs ", __PROCFS_BUFFER_SIZE_FSSUP);
 #endif                                                                  /*  LW_CFG_TPSFS_EN             */
+
+#if LW_CFG_ISO9660FS_EN > 0
+        lib_strlcat(pcFileBuffer, "iso9660 ", __PROCFS_BUFFER_SIZE_FSSUP);
+#endif                                                                  /*  LW_CFG_ISO9660FS_EN         */
 
         stRealSize = lib_strlen(pcFileBuffer);
         

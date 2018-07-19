@@ -2036,6 +2036,9 @@ static CPCHAR  __elfGetMachineStr (Elf_Half  ehMachine)
     case EM_SPU:
         return  ("Cell BE SPU");
 
+    case EM_CSKY:
+        return  ("C-SKY");
+
     case EM_ARM:
         return  ("ARM family");
 
@@ -2078,6 +2081,9 @@ static CPCHAR  __elfGetMachineStr (Elf_Half  ehMachine)
     case EM_AARCH64:
         return  ("ARM AArch64");
     
+    case EM_RISCV:
+        return  ("RISC-V");
+        
     case EM_FRV:
         return  ("Fujitsu FR-V");
     
