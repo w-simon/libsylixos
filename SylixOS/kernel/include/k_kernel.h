@@ -49,9 +49,9 @@
 *********************************************************************************************************/
 
 #define __SYLIXOS_MAKEVER(a, b, c)      (((a) << 16) + ((b) << 8) + (c))
-#define __SYLIXOS_VERSION               __SYLIXOS_MAKEVER(1, 7, 3)
+#define __SYLIXOS_VERSION               __SYLIXOS_MAKEVER(1, 7, 5)
 #define __SYLIXOS_VERPATCH              0x0
-#define __SYLIXOS_VERSTR                "1.7.3"
+#define __SYLIXOS_VERSTR                "1.7.5"
 #define __SYLIXOS_RELSTR                "Octopus"
 
 #define __SYLIXOS_VERINFO               "SylixOS kernel version: "  \
@@ -96,9 +96,6 @@ __attribute__((weak)) char              __sylixos_version[] = __SYLIXOS_VERSTR;
 /*********************************************************************************************************
   依存关系
 *********************************************************************************************************/
-
-#undef  LW_CFG_ARG_CHK_EN
-#define LW_CFG_ARG_CHK_EN          1                                    /*  强制参数检查                */
 
 #undef  LW_CFG_CPU_HOOKS_EN
 #define LW_CFG_CPU_HOOKS_EN        1                                    /*  0.9.5 版本后必须支持 HOOK   */
@@ -175,13 +172,13 @@ __attribute__((weak)) char              __sylixos_version[] = __SYLIXOS_VERSTR;
 /*********************************************************************************************************
   SMP
 *********************************************************************************************************/
-#ifdef   __SYLIXOS_KERNEL
+#ifdef __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_spinlock.h"
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 /*********************************************************************************************************
   系统内部功能与结构头文件
 *********************************************************************************************************/
-#ifdef   __SYLIXOS_KERNEL
+#ifdef __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_const.h"
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 #include "../SylixOS/kernel/include/k_functype.h"
@@ -193,7 +190,7 @@ __attribute__((weak)) char              __sylixos_version[] = __SYLIXOS_VERSTR;
 /*********************************************************************************************************
   JOB QUEUE
 *********************************************************************************************************/
-#ifdef   __SYLIXOS_KERNEL
+#ifdef __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_jobqueue.h"
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 /*********************************************************************************************************
@@ -208,9 +205,13 @@ __attribute__((weak)) char              __sylixos_version[] = __SYLIXOS_VERSTR;
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 #include "../SylixOS/kernel/include/k_cpu.h"
 /*********************************************************************************************************
+  ARCH 原子库
+*********************************************************************************************************/
+#ifdef __SYLIXOS_KERNEL
+#include "../SylixOS/arch/arch_atomic.h"
+/*********************************************************************************************************
   变量, 回调, 位图, 原子...
 *********************************************************************************************************/
-#ifdef   __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_globalvar.h"
 #include "../SylixOS/kernel/include/k_bitmap.h"
 #include "../SylixOS/kernel/include/k_atomic.h"
@@ -245,7 +246,7 @@ __attribute__((weak)) char              __sylixos_version[] = __SYLIXOS_VERSTR;
 #include "../SylixOS/kernel/cache/cache.h"
 #include "../SylixOS/kernel/vmm/vmm.h"
 #include "../SylixOS/kernel/vmm/vmmMmap.h"
-#ifdef   __SYLIXOS_KERNEL
+#ifdef __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/vmm/vmmIo.h"
 #include "../SylixOS/kernel/vmm/pageLib.h"
 #include "../SylixOS/kernel/vmm/vmmArea.h"
@@ -260,18 +261,18 @@ __attribute__((weak)) char              __sylixos_version[] = __SYLIXOS_VERSTR;
 /*********************************************************************************************************
   内核事件监控器
 *********************************************************************************************************/
-#ifdef   __SYLIXOS_KERNEL
+#ifdef __SYLIXOS_KERNEL
 #include "../SylixOS/monitor/include/monitor.h"
 #endif
 /*********************************************************************************************************
   体系结构支持代码
 *********************************************************************************************************/
-#ifdef   __SYLIXOS_KERNEL
+#ifdef __SYLIXOS_KERNEL
 #include "../SylixOS/arch/arch_support.h"                               /*  体系架构支持                */
-#ifdef   __SYLIXOS_IO
+#ifdef __SYLIXOS_IO
 #include "../SylixOS/arch/arch_io.h"                                    /*  体系架构 I/O 访问           */
 #endif                                                                  /*  __SYLIXOS_IO                */
-#ifdef   __SYLIXOS_GDB
+#ifdef __SYLIXOS_GDB
 #include "../SylixOS/arch/arch_gdb.h"                                   /*  体系架构 GDB 支持           */
 #endif                                                                  /*  __SYLIXOS_GDB               */
 #endif                                                                  /*  __SYLIXOS_KERNEL            */

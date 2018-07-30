@@ -214,6 +214,7 @@ ULONG  API_SystemHookAdd (LW_HOOK_FUNC  hookfunc, ULONG  ulOpt)
         }
         break;
     
+#if LW_CFG_CPU_INT_HOOK_EN > 0
     case LW_OPTION_CPU_INT_ENTER:                                       /*  CPU 进入中断(异常)模式      */
         iAddRet = HOOK_F_ADD(HOOK_T_INTENTER, pfuncnode);
         if (iAddRet == ERROR_NONE) {
@@ -227,6 +228,7 @@ ULONG  API_SystemHookAdd (LW_HOOK_FUNC  hookfunc, ULONG  ulOpt)
             _K_hookKernel.HOOK_CpuIntExit = HOOK_T_INTEXIT->HOOKCB_pfuncCall;
         }
         break;
+#endif                                                                  /*  LW_CFG_CPU_INT_HOOK_EN > 0  */
         
     case LW_OPTION_STACK_OVERFLOW_HOOK:                                 /*  堆栈溢出                    */
         iAddRet = HOOK_F_ADD(HOOK_T_STKOF, pfuncnode);
@@ -425,6 +427,7 @@ ULONG  API_SystemHookDelete (LW_HOOK_FUNC  hookfunc, ULONG  ulOpt)
         }
         break;
     
+#if LW_CFG_CPU_INT_HOOK_EN > 0
     case LW_OPTION_CPU_INT_ENTER:                                       /*  CPU 进入中断(异常)模式      */
         pfuncnode = HOOK_F_DEL(HOOK_T_INTENTER, hookfunc, &bEmpty);
         if (bEmpty) {
@@ -438,6 +441,7 @@ ULONG  API_SystemHookDelete (LW_HOOK_FUNC  hookfunc, ULONG  ulOpt)
             _K_hookKernel.HOOK_CpuIntExit = LW_NULL;
         }
         break;
+#endif                                                                  /*  LW_CFG_CPU_INT_HOOK_EN > 0  */
         
     case LW_OPTION_STACK_OVERFLOW_HOOK:                                 /*  堆栈溢出                    */
         pfuncnode = HOOK_F_DEL(HOOK_T_STKOF, hookfunc, &bEmpty);

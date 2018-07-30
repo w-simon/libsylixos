@@ -10,27 +10,25 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: ppcMpCore.h
+** 文   件   名: sparc_atomic.h
 **
-** 创   建   人: Jiao.JinXing (焦进星)
+** 创   建   人: Jiao.Jinxing (焦进星)
 **
-** 文件创建日期: 2015 年 12 月 15 日
+** 文件创建日期: 2018 年 07 月 27 日
 **
-** 描        述: PowerPC 体系构架多核内部底层接口.
+** 描        述: SPARC 体系构架 ATOMIC 接口.
 *********************************************************************************************************/
 
-#ifndef __ARCH_PPCMPCORE_H
-#define __ARCH_PPCMPCORE_H
+#ifndef __ARCH_SPARC_ATOMIC_H
+#define __ARCH_SPARC_ATOMIC_H
 
 /*********************************************************************************************************
-  PowerPC 自旋锁
+  ATOMIC
 *********************************************************************************************************/
+#if LW_CFG_CPU_ATOMIC_EN > 0
 
-VOID                    ppcSpinLock(volatile SPINLOCKTYPE  *psl);
-volatile SPINLOCKTYPE   ppcSpinTryLock(volatile SPINLOCKTYPE  *psl);
-VOID                    ppcSpinUnlock(volatile SPINLOCKTYPE  *psl);
-
-#endif                                                                  /*  __ARCH_PPCMPCORE_H          */
+#endif                                                                  /*  LW_CFG_CPU_ATOMIC_EN        */
+#endif                                                                  /*  __ARCH_SPARC_ATOMIC_H       */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

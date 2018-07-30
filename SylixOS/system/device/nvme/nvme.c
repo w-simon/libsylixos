@@ -1492,6 +1492,8 @@ static VOID  __nvmeCqProcess (NVME_QUEUE_HANDLE  hQueue)
 ** 输　出  : 中断返回值
 ** 全局变量:
 ** 调用模块:
+** 注  意  : 这个函数在 spinlock 中调用了系统 API, 此 API 不能引起 IPI 同步调用中断, 并且每个队列中断
+             只可能在顺序产生, 所以没有死锁风险.
 *********************************************************************************************************/
 static irqreturn_t  __nvmeIrq (PVOID  pvArg, ULONG  ulVector)
 {

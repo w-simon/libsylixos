@@ -73,8 +73,6 @@ ULONG  API_ThreadStartEx (LW_OBJECT_HANDLE  ulId, BOOL  bJoin, PVOID  *ppvRetVal
     }
 #endif
 
-    __THREAD_CANCEL_POINT();                                            /*  测试取消点                  */
-
     __KERNEL_ENTER();                                                   /*  进入内核                    */
     if (_Thread_Invalid(usIndex)) {
         __KERNEL_EXIT();                                                /*  退出内核                    */

@@ -21,7 +21,9 @@
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
 #include "dtrace.h"
+#if LW_CFG_VMM_EN > 0
 #include "arch/riscv/mm/mmu/riscvMmu.h"
+#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 /*********************************************************************************************************
   向量使能与禁能锁
 *********************************************************************************************************/
@@ -230,14 +232,39 @@ static VOID  archLoadAccessTrapHandle (ARCH_REG_CTX  *pregctx)
     API_VmmAbortIsr(pregctx->REG_ulEpc, pregctx->REG_ulTrapVal, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
-** 函数名称: archAmoAddrMisalignTrapHandle
-** 功能描述: AMO address misaligned
+** 函数名称: archLoadAddrMisalignTrapHandle
+** 功能描述: Load address misaligned
 ** 输　入  : pregctx       寄存器上下文
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  archAmoAddrMisalignTrapHandle (ARCH_REG_CTX  *pregctx)
+#if LW_CFG_RISCV_M_LEVEL > 0
+
+static VOID  archLoadAddrMisalignTrapHandle (ARCH_REG_CTX  *pregctx)
+{
+    PLW_CLASS_TCB  ptcbCur;
+    LW_VMM_ABORT   abtInfo;
+
+    LW_TCB_GET_CUR(ptcbCur);
+
+    abtInfo.VMABT_uiMethod = BUS_ADRERR;
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
+    if (abtInfo.VMABT_uiType) {
+        API_VmmAbortIsr(pregctx->REG_ulEpc, pregctx->REG_ulTrapVal, &abtInfo, ptcbCur);
+    }
+}
+
+#endif                                                                  /*  LW_CFG_RISCV_M_LEVEL > 0    */
+/*********************************************************************************************************
+** 函数名称: archStoreAmoAddrMisalignTrapHandle
+** 功能描述: Store/AMO address misaligned
+** 输　入  : pregctx       寄存器上下文
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  archStoreAmoAddrMisalignTrapHandle (ARCH_REG_CTX  *pregctx)
 {
     PLW_CLASS_TCB  ptcbCur;
     LW_VMM_ABORT   abtInfo;
@@ -346,6 +373,42 @@ static VOID  archStoreAmoPageTrapHandle (ARCH_REG_CTX  *pregctx)
     API_VmmAbortIsr(pregctx->REG_ulEpc, pregctx->REG_ulTrapVal, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
+  Machine cause register (mcause) values after trap
+  Interrupt Exception Code Description
+  1         0              User software interrupt
+  1         1              Supervisor software interrupt
+  1         2              Reserved
+  1         3              Machine software interrupt
+  1         4              User timer interrupt
+  1         5              Supervisor timer interrupt
+  1         6              Reserved
+  1         7              Machine timer interrupt
+  1         8              User external interrupt
+  1         9              Supervisor external interrupt
+  1         10             Reserved
+  1         11             Machine external interrupt
+  1         >=12           Reserved
+
+  0         0              Instruction address misaligned
+  0         1              Instruction access fault
+  0         2              Illegal instruction
+  0         3              Breakpoint
+  0         4              Load address misaligned
+  0         5              Load access fault
+  0         6              Store/AMO address misaligned
+  0         7              Store/AMO access fault
+  0         8              Environment call from U-mode
+  0         9              Environment call from S-mode
+  0         10             Reserved
+  0         11             Environment call from M-mode
+  0         12             Instruction page fault
+  0         13             Load page fault
+  0         14             Reserved
+  0         15             Store/AMO page fault
+  0         >=16           Reserved
+*********************************************************************************************************/
+/*********************************************************************************************************
+  Supervisor cause register (scause) values after trap.
   Interrupt Exception Code Description
   1         0              User software interrupt
   1         1              Supervisor software interrupt
@@ -383,10 +446,21 @@ static RISCV_TRAP_HANDLE   _G_riscvTrapHandle[32] = {
     [1]  = (PVOID)archInstAccessTrapHandle,                         /*  Instruction access fault        */
     [2]  = (PVOID)archIllegalInstTrapHandle,                        /*  Illegal instruction             */
     [3]  = (PVOID)archBreakpointTrapHandle,                         /*  Breakpoint                      */
+
+#if LW_CFG_RISCV_M_LEVEL > 0
+    [4]  = (PVOID)archLoadAddrMisalignTrapHandle,                   /*  Load address misaligned         */
+#endif                                                              /*  LW_CFG_RISCV_M_LEVEL > 0        */
+
     [5]  = (PVOID)archLoadAccessTrapHandle,                         /*  Load access fault               */
-    [6]  = (PVOID)archAmoAddrMisalignTrapHandle,                    /*  AMO address misaligned          */
+    [6]  = (PVOID)archStoreAmoAddrMisalignTrapHandle,               /*  Store/AMO address misaligned    */
     [7]  = (PVOID)archStoreAmoAccessTrapHandle,                     /*  Store/AMO access fault          */
-    [8]  = (PVOID)archEnvironmentCallHandle,                        /*  Environment call                */
+    [8]  = (PVOID)archEnvironmentCallHandle,                        /*  Environment call from U-mode    */
+
+#if LW_CFG_RISCV_M_LEVEL > 0
+    [9]  = (PVOID)archEnvironmentCallHandle,                        /*  Environment call from S-mode    */
+    [11] = (PVOID)archEnvironmentCallHandle,                        /*  Environment call from M-mode    */
+#endif                                                              /*  LW_CFG_RISCV_M_LEVEL > 0        */
+
     [12] = (PVOID)archInstPageTrapHandle,                           /*  Instruction page fault          */
     [13] = (PVOID)archLoadPageTrapHandle,                           /*  Load page fault                 */
     [15] = (PVOID)archStoreAmoPageTrapHandle,                       /*  Store/AMO page fault            */

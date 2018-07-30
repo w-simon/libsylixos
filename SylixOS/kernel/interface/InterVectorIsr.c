@@ -28,6 +28,7 @@
 2014.05.09  加入对中断计数器的处理.
 2014.05.09  提高 SMP 中断处理速度.
 2016.04.14  支持 GJB7714 无返回值中断.
+2018.07.30  只有 QUEUE 类型中断向量需要 spinlock 操作.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -35,10 +36,8 @@
   中断测量回调
 *********************************************************************************************************/
 #if LW_CFG_INTER_MEASURE_HOOK_EN > 0
-
 extern VOIDFUNCPTR  _K_pfuncInterVectorMeasureEnter;
 extern VOIDFUNCPTR  _K_pfuncInterVectorMeasureExit;
-
 #define INTER_VECTOR_MEASURE_ENTER(a, b, c, d)                  \
         if (_K_pfuncInterVectorMeasureEnter) {                  \
             LW_SOFUNC_PREPARE(_K_pfuncInterVectorMeasureEnter); \
@@ -50,11 +49,38 @@ extern VOIDFUNCPTR  _K_pfuncInterVectorMeasureExit;
             _K_pfuncInterVectorMeasureExit(a, b, c, d);         \
         }
 #else
-
 #define INTER_VECTOR_MEASURE_ENTER(a, b, c, d)
 #define INTER_VECTOR_MEASURE_EXIT(a, b, c, d)
-        
 #endif                                                                  /*  LW_CFG_INTER_MEASURE_HOOK_EN*/
+/*********************************************************************************************************
+  中断服务
+*********************************************************************************************************/
+#if LW_CFG_GJB7714_INT_EN > 0
+#define INTER_VECTOR_SVC_HANDLE()                                                                   \
+    if (pidesc->IDESC_ulFlag & LW_IRQ_FLAG_GJB7714) {                                               \
+        piaction->IACT_pfuncIsr(piaction->IACT_pvArg, ulVector);                                    \
+        irqret = LW_IRQ_NONE;                                                                       \
+    } else {                                                                                        \
+        irqret = piaction->IACT_pfuncIsr(piaction->IACT_pvArg, ulVector);                           \
+    }
+#else
+#define INTER_VECTOR_SVC_HANDLE()                                                                   \
+    irqret = piaction->IACT_pfuncIsr(piaction->IACT_pvArg, ulVector);
+#endif
+
+#define INTER_VECTOR_SVC(BREAK)                                                                     \
+{                                                                                                   \
+    INTER_VECTOR_MEASURE_ENTER(&tv, ulVector, LW_CPU_GET_ID(pcpu), piaction->IACT_cInterName);      \
+    INTER_VECTOR_SVC_HANDLE();                                                                      \
+    if (LW_IRQ_RETVAL(irqret)) {                                                                    \
+        INTER_VECTOR_MEASURE_EXIT(&tv, ulVector, LW_CPU_GET_ID(pcpu), piaction->IACT_cInterName);   \
+        piaction->IACT_iIntCnt[LW_CPU_GET_ID(pcpu)]++;                                              \
+        if (piaction->IACT_pfuncClear) {                                                            \
+            piaction->IACT_pfuncClear(piaction->IACT_pvArg, ulVector);                              \
+        }                                                                                           \
+        BREAK                                                                                       \
+    }                                                                                               \
+}
 /*********************************************************************************************************
 ** 函数名称: API_InterVectorIsr
 ** 功能描述: 向量中断总服务
@@ -80,7 +106,9 @@ irqreturn_t  API_InterVectorIsr (ULONG  ulVector)
            
     pcpu = LW_CPU_GET_CUR();                                            /*  中断处理程序中, 不会改变 CPU*/
     
+#if LW_CFG_CPU_INT_HOOK_EN > 0
     __LW_CPU_INT_ENTER_HOOK(ulVector, pcpu->CPU_ulInterNesting);
+#endif                                                                  /*  LW_CFG_CPU_INT_HOOK_EN > 0  */
     
 #if LW_CFG_SMP_EN > 0
     if (pcpu->CPU_ulIPIVector == ulVector) {                            /*  核间中断                    */
@@ -92,45 +120,29 @@ irqreturn_t  API_InterVectorIsr (ULONG  ulVector)
 #endif                                                                  /*  LW_CFG_SMP_EN               */
     {
         pidesc = LW_IVEC_GET_IDESC(ulVector);
-        
+        if (pidesc->IDESC_ulFlag & LW_IRQ_FLAG_QUEUE) {
 #if LW_CFG_SMP_EN > 0
-        LW_SPIN_LOCK(&pidesc->IDESC_slLock);                            /*  锁住 spinlock               */
+            LW_SPIN_LOCK(&pidesc->IDESC_slLock);                        /*  锁住 spinlock               */
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
-        
-        for (plineTemp  = pidesc->IDESC_plineAction;
-             plineTemp != LW_NULL;
-             plineTemp  = _list_line_get_next(plineTemp)) {
-            
-            piaction = _LIST_ENTRY(plineTemp, LW_CLASS_INTACT, IACT_plineManage);
-            INTER_VECTOR_MEASURE_ENTER(&tv, ulVector, pcpu->CPU_ulCPUId, piaction->IACT_cInterName);
-            
-#if LW_CFG_GJB7714_EN > 0
-            if (pidesc->IDESC_ulFlag & LW_IRQ_FLAG_GJB7714) {
-                piaction->IACT_pfuncIsr(piaction->IACT_pvArg, ulVector);
-                irqret = LW_IRQ_NONE;
-            } else
-#endif
-            {
-                irqret = piaction->IACT_pfuncIsr(piaction->IACT_pvArg, ulVector);
+            for (plineTemp  = pidesc->IDESC_plineAction;
+                 plineTemp != LW_NULL;
+                 plineTemp  = _list_line_get_next(plineTemp)) {
+                piaction = (PLW_CLASS_INTACT)plineTemp;
+                INTER_VECTOR_SVC(break;);
             }
-            
-            if (LW_IRQ_RETVAL(irqret)) {                                /*  中断是否已经被处理          */
-                INTER_VECTOR_MEASURE_EXIT(&tv, ulVector, pcpu->CPU_ulCPUId, piaction->IACT_cInterName);
-                
-                piaction->IACT_iIntCnt[pcpu->CPU_ulCPUId]++;
-                if (piaction->IACT_pfuncClear) {
-                    piaction->IACT_pfuncClear(piaction->IACT_pvArg, ulVector);
-                }
-                break;
-            }
+#if LW_CFG_SMP_EN > 0
+            LW_SPIN_UNLOCK(&pidesc->IDESC_slLock);                      /*  解锁 spinlock               */
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
+        } else {
+            piaction = (PLW_CLASS_INTACT)pidesc->IDESC_plineAction;
+            _BugFormat(!piaction, LW_TRUE, "interrupt vector: %ld no service.\r\n", ulVector);
+            INTER_VECTOR_SVC(;);
         }
-        
-#if LW_CFG_SMP_EN > 0
-        LW_SPIN_UNLOCK(&pidesc->IDESC_slLock);                          /*  解锁 spinlock               */
-#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
     }
     
+#if LW_CFG_CPU_INT_HOOK_EN > 0
     __LW_CPU_INT_EXIT_HOOK(ulVector, pcpu->CPU_ulInterNesting);
+#endif                                                                  /*  LW_CFG_CPU_INT_HOOK_EN > 0  */
                       
     return  (irqret);
 }

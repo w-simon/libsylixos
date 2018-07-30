@@ -73,10 +73,16 @@ VOID  _SmpSendIpi (ULONG  ulCPUId, ULONG  ulIPIVec, INT  iWait, BOOL  bIntLock)
         return;
     }
     
+#if LW_CFG_CPU_ATOMIC_EN == 0
     LW_IPI_LOCK(pcpuDst, bIntLock);                                     /*  锁定目标 CPU IPI            */
+#endif                                                                  /*  !LW_CFG_CPU_ATOMIC_EN       */
+    
     LW_CPU_ADD_IPI_PEND(ulCPUId, ulMask);                               /*  添加 PEND 位                */
     archMpInt(ulCPUId);
+    
+#if LW_CFG_CPU_ATOMIC_EN == 0
     LW_IPI_UNLOCK(pcpuDst, bIntLock);                                   /*  解锁目标 CPU IPI            */
+#endif                                                                  /*  !LW_CFG_CPU_ATOMIC_EN       */
     
     if (iWait) {
         while (LW_CPU_GET_IPI_PEND(ulCPUId) & ulMask) {                 /*  等待结束                    */
@@ -162,8 +168,6 @@ static VOID  _SmpCallIpiAllOther (PLW_IPI_MSG  pipim)
     KN_SMP_WMB();
     LW_CPU_FOREACH_EXCEPT (i, ulCPUId) {
         _SmpCallIpi(i, pipim);
-        
-        KN_SMP_MB();
         pipim->IPIM_iWait = iWaitSave;
         KN_SMP_WMB();
     }
@@ -367,7 +371,7 @@ VOID  _SmpUpdateIpi (PLW_CLASS_CPU  pcpu)
         return;
     }
 
-    archMpInt(pcpu->CPU_ulCPUId);
+    archMpInt(LW_CPU_GET_ID(pcpu));
 }
 
 #endif                                                                  /*  LW_CFG_SMP_EN               */

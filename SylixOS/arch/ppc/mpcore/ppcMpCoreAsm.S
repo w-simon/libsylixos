@@ -33,55 +33,12 @@
     
     IMPORT_LABEL(bspMpInt)
     
-    EXPORT_LABEL(ppcSpinLock)
-    EXPORT_LABEL(ppcSpinTryLock)
-    EXPORT_LABEL(ppcSpinUnlock)
     EXPORT_LABEL(archMpCur)
     EXPORT_LABEL(archMpInt)
     
-    WEAK(ppcSpinLock)
-    WEAK(ppcSpinTryLock)
-    WEAK(ppcSpinUnlock)
     WEAK(archMpCur)
     WEAK(archMpInt)
-
-;/*********************************************************************************************************
-;  自旋锁
-;*********************************************************************************************************/
-
-FUNC_DEF(ppcSpinLock)
-    LI      R0 , 1
-1:
-    LWARX   R4 , 0 , R3
-    CMPWI   CR0, R4 , 0
-    BNE     CR0, 1b
-    STWCX.  R0 , 0 , R3
-    BNE     1b
-    ISYNC
-    BLR
-    FUNC_END()
-
-FUNC_DEF(ppcSpinTryLock)
-    LI      R0 , 1
-    LWARX   R4 , 0 , R3
-    CMPWI   CR0, R4 , 0
-    BNE     CR0, 1f
-    STWCX.  R0 , 0 , R3
-    BNE     1f
-    ISYNC
-    LI      R3 , 0
-    BLR
-1:
-    LI      R3 , 1
-    BLR
-    FUNC_END()
     
-FUNC_DEF(ppcSpinUnlock)
-    LI      R0 , 0
-    STW     R0 , 0(R3)
-    BLR
-    FUNC_END()
-
 ;/*********************************************************************************************************
 ;  获得当前核 ID
 ;*********************************************************************************************************/

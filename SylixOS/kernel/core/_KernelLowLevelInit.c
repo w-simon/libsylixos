@@ -76,7 +76,9 @@ VOID  _KernelPrimaryLowLevelInit (VOID)
      *  注意, 当前是关闭中断状态, 当前的 CPU ID 作为启动 CPU.
      */
     pcpuCur = LW_CPU_GET_CUR();
-    pcpuCur->CPU_ptcbTCBCur = &_K_tcbDummy[pcpuCur->CPU_ulCPUId];       /*  伪内核线程                  */
+    pcpuCur->CPU_ptcbTCBCur = &_K_tcbDummy[LW_CPU_GET_ID(pcpuCur)];     /*  伪内核线程                  */
+    pcpuCur->CPU_ulStatus  |= LW_CPU_STATUS_RUNNING;
+    KN_SMP_WMB();
     
     _DebugHandle(__LOGMESSAGE_LEVEL, "kernel heap build...\r\n");
 #if LW_CFG_MEMORY_HEAP_CONFIG_TYPE > 0
@@ -113,7 +115,9 @@ VOID  _KernelSecondaryLowLevelInit (VOID)
     _GlobalSecondaryInit();                                             /*  全局变量初始化              */
     
     pcpuCur = LW_CPU_GET_CUR();
-    pcpuCur->CPU_ptcbTCBCur = &_K_tcbDummy[pcpuCur->CPU_ulCPUId];       /*  伪内核线程                  */
+    pcpuCur->CPU_ptcbTCBCur = &_K_tcbDummy[LW_CPU_GET_ID(pcpuCur)];     /*  伪内核线程                  */
+    pcpuCur->CPU_ulStatus  |= LW_CPU_STATUS_RUNNING;
+    KN_SMP_WMB();
 }
 
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */

@@ -38,6 +38,7 @@
 #define Lw_Atomic_Set                           API_AtomicSet
 #define Lw_Atomic_Get                           API_AtomicGet
 #define Lw_Atomic_Swp                           API_AtomicSwp
+#define Lw_Atomic_Cas                           API_AtomicCas
 
 /*********************************************************************************************************
   CPU

@@ -32,41 +32,11 @@
     
     IMPORT_LABEL(bspMpInt)
     
-    EXPORT_LABEL(riscvSpinLock)
-    EXPORT_LABEL(riscvSpinTryLock)
-    EXPORT_LABEL(riscvSpinUnlock)
     EXPORT_LABEL(archMpCur)
     EXPORT_LABEL(archMpInt)
     
-    WEAK(riscvSpinLock)
-    WEAK(riscvSpinTryLock)
-    WEAK(riscvSpinUnlock)
     WEAK(archMpCur)
     WEAK(archMpInt)
-
-;/*********************************************************************************************************
-;  自旋锁
-;*********************************************************************************************************/
-
-FUNC_DEF(riscvSpinLock)
-    LI              T0 , 1
-LINE_LABEL(again)
-    AMOSWAP.W.AQ    T0 , T0 , (A0)
-    BNEZ            T0 , again
-    RET
-    FUNC_END(riscvSpinLock)
-
-FUNC_DEF(riscvSpinTryLock)
-    LI              T0 , 1
-    AMOSWAP.W.AQ    T0 , T0 , (A0)
-    MOVE            RV0 , T0
-    RET
-    FUNC_END(riscvSpinTryLock)
-
-FUNC_DEF(riscvSpinUnlock)
-    AMOSWAP.W.RL    ZERO , ZERO , (A0)
-    RET
-    FUNC_END(riscvSpinUnlock)
 
 ;/*********************************************************************************************************
 ;  获得当前核 ID

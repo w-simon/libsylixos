@@ -258,7 +258,7 @@ INT  __kernelSched (VOID)
 VOID  __kernelSchedInt (PLW_CLASS_CPU    pcpuCur)
 {
     LW_SPIN_KERN_LOCK_IGNIRQ();                                         /*  锁内核 spinlock 并关闭中断  */
-    _ScheduleInt();                                                     /*  尝试调度                    */
+    _ScheduleInt(pcpuCur);                                              /*  尝试调度                    */
     LW_SPIN_KERN_UNLOCK_IGNIRQ();                                       /*  解锁内核 spinlock 并打开中断*/
 }
 /*********************************************************************************************************

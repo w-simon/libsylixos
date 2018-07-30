@@ -4,6 +4,13 @@ HISTORY
 
 ++ New features:
 
+    2018-07-28: han.hui
+    在有条件的 arch 上支持汇编原子操作.
+    调度策略增加 CACHE 热度保持, 在条件运行的情况下, 任务优先运行在之前运行的 CPU 上.
+
+    2018-07-26: han.hui
+    spinlock 支持 FIFO 排队, 提高 SMP 确定性.
+
     2018-07-16: han.hui
     支持 IPv4 IPv6 QoS 处理.
 

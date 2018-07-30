@@ -229,6 +229,25 @@ INT  _UpSpinUnlockIrq (spinlock_t *psl, INTREG  iregInterLevel)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: _UpSpinLockIrqQuick
+** 功能描述: 自旋锁加锁操作, 连同锁定中断
+** 输　入  : psl               自旋锁
+**           piregInterLevel   中断锁定信息
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+VOID  _UpSpinLockIrqQuick (spinlock_t *psl, INTREG  *piregInterLevel)
+{
+    PLW_CLASS_CPU   pcpuCur = LW_CPU_GET_CUR();
+    
+    if (!pcpuCur->CPU_ulInterNesting) {
+        __THREAD_LOCK_INC(pcpuCur->CPU_ptcbTCBCur);                     /*  锁定任务在当前 CPU          */
+    }
+    
+    *piregInterLevel = KN_INT_DISABLE();
+}
+/*********************************************************************************************************
 ** 函数名称: _UpSpinUnlockIrqQuick
 ** 功能描述: 自旋锁解锁操作, 连同解锁中断, 不进行尝试调度
 ** 输　入  : psl               自旋锁

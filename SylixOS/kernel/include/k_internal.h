@@ -63,30 +63,30 @@ extern  __typeof (name) aliasname __attribute__ ((alias(#name)));
 #endif                                                                  /*  __STDC_VERSION__ < 199901L  */
 #endif                                                                  /*  __GNUC__                    */
 
-#define  __KHEAP_ALLOC(stNBytes)        _HeapAllocate(_K_pheapKernel, stNBytes, __func__)
-#define  __SHEAP_ALLOC(stNBytes)        _HeapAllocate(_K_pheapSystem, stNBytes, __func__)
+#define __KHEAP_ALLOC(stNBytes)         _HeapAllocate(_K_pheapKernel, stNBytes, __func__)
+#define __SHEAP_ALLOC(stNBytes)         _HeapAllocate(_K_pheapSystem, stNBytes, __func__)
 
-#define  __KHEAP_ZALLOC(stNBytes)       _HeapZallocate(_K_pheapKernel, stNBytes, __func__)
-#define  __SHEAP_ZALLOC(stNBytes)       _HeapZallocate(_K_pheapSystem, stNBytes, __func__)
+#define __KHEAP_ZALLOC(stNBytes)        _HeapZallocate(_K_pheapKernel, stNBytes, __func__)
+#define __SHEAP_ZALLOC(stNBytes)        _HeapZallocate(_K_pheapSystem, stNBytes, __func__)
 
-#define  __KHEAP_REALLOC(pvMemory, stNBytes)      \
-         _HeapRealloc(_K_pheapKernel, pvMemory, stNBytes, LW_FALSE, __func__)
+#define __KHEAP_REALLOC(pvMemory, stNBytes)     \
+        _HeapRealloc(_K_pheapKernel, pvMemory, stNBytes, LW_FALSE, __func__)
          
-#define  __SHEAP_REALLOC(pvMemory, stNBytes)      \
-         _HeapRealloc(_K_pheapSystem, pvMemory, stNBytes, LW_FALSE, __func__)
+#define __SHEAP_REALLOC(pvMemory, stNBytes)     \
+        _HeapRealloc(_K_pheapSystem, pvMemory, stNBytes, LW_FALSE, __func__)
 
-#define  __KHEAP_FREE(pvMemory)         _HeapFree(_K_pheapKernel, pvMemory, LW_FALSE, __func__)
-#define  __SHEAP_FREE(pvMemory)         _HeapFree(_K_pheapSystem, pvMemory, LW_FALSE, __func__)
+#define __KHEAP_FREE(pvMemory)          _HeapFree(_K_pheapKernel, pvMemory, LW_FALSE, __func__)
+#define __SHEAP_FREE(pvMemory)          _HeapFree(_K_pheapSystem, pvMemory, LW_FALSE, __func__)
 
 /*********************************************************************************************************
   对齐内存堆宏操作
 *********************************************************************************************************/
 
-#define  __KHEAP_ALLOC_ALIGN(stNBytes, stAlgin)    \
-         _HeapAllocateAlign(_K_pheapKernel, stNBytes, stAlgin, __func__)
+#define __KHEAP_ALLOC_ALIGN(stNBytes, stAlgin)  \
+        _HeapAllocateAlign(_K_pheapKernel, stNBytes, stAlgin, __func__)
          
-#define  __SHEAP_ALLOC_ALIGN(stNBytes, stAlgin)    \
-         _HeapAllocateAlign(_K_pheapSystem, stNBytes, stAlgin, __func__)
+#define __SHEAP_ALLOC_ALIGN(stNBytes, stAlgin)  \
+        _HeapAllocateAlign(_K_pheapSystem, stNBytes, stAlgin, __func__)
          
 /*********************************************************************************************************
   内核与系统级内存堆宏操作 (驱动程序与其他内核模块必须使用 sys_malloc 分配内存)
@@ -175,7 +175,7 @@ PVOID _ITimerThread(PVOID  pvArg);
 
 #define __LW_TICK_CPUUSAGE_ENABLE()             { _K_ulCPUUsageEnable = LW_TRUE;  }
 #define __LW_TICK_CPUUSAGE_DISABLE()            { _K_ulCPUUsageEnable = LW_FALSE; }
-#define __LW_TICK_CPUUSAGE_ISENABLE()           (_K_ulCPUUsageEnable)
+#define __LW_TICK_CPUUSAGE_ISENABLE()           ( _K_ulCPUUsageEnable )
 
 #define __LW_TICK_CPUUSAGE_UPDATE(ptcb, pcpu)           \
         do {                                            \
@@ -403,7 +403,7 @@ PVOID          _SchedSafeStack(PLW_CLASS_CPU pcpuCur);
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 
 INT            _Schedule(VOID);
-VOID           _ScheduleInt(VOID);
+VOID           _ScheduleInt(PLW_CLASS_CPU  pcpuCur);
 VOID           _ScheduleInit(VOID);
 
 VOID           _SchedSetRet(INT  iSchedSetRet);

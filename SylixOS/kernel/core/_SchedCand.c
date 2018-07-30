@@ -33,6 +33,7 @@
 2014.01.10  _SchedSeekThread() 放入 _CandTable.c 中.
 2015.05.17  _SchedGetCand() 会尝试一个发给自己的 IPI 执行被延迟的 IPI CALL.
 2016.04.27  加入 _SchedIsLock() 判断调度器是否已经 lock.
+2018.07.28  简化时间片设计.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -55,6 +56,7 @@ BOOL  _SchedIsLock (ULONG  ulCurMaxLock)
 #if LW_CFG_SMP_EN > 0
     if (__KERNEL_ISLOCKBYME(LW_TRUE)) {
         bRet = LW_TRUE;
+    
     } else 
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
     {
@@ -91,7 +93,7 @@ PLW_CLASS_TCB  _SchedGetCand (PLW_CLASS_CPU  pcpuCur, ULONG  ulCurMaxLock)
         LW_CPU_CLR_SCHED_IPI_PEND(pcpuCur);
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
         if (LW_CAND_ROT(pcpuCur)) {                                     /*  产生优先级卷绕              */
-            _CandTableUpdate(pcpuCur);
+            _CandTableUpdate(pcpuCur);                                  /*  尝试更新候选表, 抢占调度    */
         }
         return  (LW_CAND_TCB(pcpuCur));
     }
@@ -108,7 +110,6 @@ VOID  _SchedTick (VOID)
 {
     REGISTER PLW_CLASS_CPU  pcpu;
     REGISTER PLW_CLASS_TCB  ptcb;
-             UINT8          ucPriority;
              INT            i;
              
 #if LW_CFG_SMP_EN > 0
@@ -122,14 +123,8 @@ VOID  _SchedTick (VOID)
             ptcb = pcpu->CPU_ptcbTCBCur;
             if (ptcb->TCB_ucSchedPolicy == LW_OPTION_SCHED_RR) {        /*  round-robin 线程            */
                 if (ptcb->TCB_usSchedCounter == 0) {                    /*  时间片已经耗尽              */
-                    if (LW_CAND_ROT(pcpu) == LW_FALSE) {
-                        if (_SchedSeekPriority(pcpu, &ucPriority) &&
-                            LW_PRIO_IS_HIGH_OR_EQU(ucPriority,          /*  就绪未运行任务的最高优先级  */
-                                                   ptcb->TCB_ucPriority)) {
-                            LW_CAND_ROT(pcpu) = LW_TRUE;                /*  下次调度时检查轮转          */
-                        }
-                    }
-                
+                    LW_CAND_ROT(pcpu) = LW_TRUE;                        /*  下次调度时检查轮转          */
+                    
                 } else {
                     ptcb->TCB_usSchedCounter--;
                 }
@@ -153,17 +148,12 @@ VOID  _SchedTick (VOID)
 
 VOID  _SchedYield (PLW_CLASS_TCB  ptcb, PLW_CLASS_PCB  ppcb)
 {
-             UINT8          ucPriority;
     REGISTER PLW_CLASS_CPU  pcpu;
 
     if (__LW_THREAD_IS_RUNNING(ptcb)) {                                 /*  必须正在执行                */
         pcpu = LW_CPU_GET(ptcb->TCB_ulCPUId);
-        if (_SchedSeekPriority(pcpu, &ucPriority) &&
-            LW_PRIO_IS_HIGH_OR_EQU(ucPriority,
-                                   ptcb->TCB_ucPriority)) {             /*  就绪未运行任务的最高优先级  */
-            ptcb->TCB_usSchedCounter = 0;                               /*  没收剩余时间片              */
-            LW_CAND_ROT(LW_CPU_GET(ptcb->TCB_ulCPUId)) = LW_TRUE;       /*  下次调度时检查轮转          */
-        }
+        ptcb->TCB_usSchedCounter = 0;                                   /*  没收剩余时间片              */
+        LW_CAND_ROT(pcpu) = LW_TRUE;                                    /*  下次调度时检查轮转          */
     }
 }
 

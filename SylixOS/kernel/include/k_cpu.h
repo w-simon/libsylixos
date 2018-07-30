@@ -30,8 +30,8 @@
   CPU 工作状态 (目前只支持 ACTIVE 模式)
 *********************************************************************************************************/
 
-#define LW_CPU_STATUS_ACTIVE            0x80000000                      /*  CPU 激活                    */
-#define LW_CPU_STATUS_INACTIVE          0x00000000                      /*  CPU 未激活                  */
+#define LW_CPU_STATUS_ACTIVE            0x80000000                      /*  CPU 激活操作系统可执行调度  */
+#define LW_CPU_STATUS_RUNNING           0x40000000                      /*  CPU 已经开始运转            */
 
 /*********************************************************************************************************
   CPU 结构 (要求 CPU ID 编号从 0 开始并由连续数字组成)
@@ -42,8 +42,8 @@ typedef struct __lw_cpu {
     /*
      *  运行线程情况
      */
-    volatile PLW_CLASS_TCB   CPU_ptcbTCBCur;                            /*  当前 TCB                    */
-    volatile PLW_CLASS_TCB   CPU_ptcbTCBHigh;                           /*  需要运行的高优先 TCB        */
+    PLW_CLASS_TCB            CPU_ptcbTCBCur;                            /*  当前 TCB                    */
+    PLW_CLASS_TCB            CPU_ptcbTCBHigh;                           /*  需要运行的高优先 TCB        */
     
 #if LW_CFG_COROUTINE_EN > 0
     /*
@@ -63,12 +63,12 @@ typedef struct __lw_cpu {
     /*
      *  候选运行结构
      */
-    volatile LW_CLASS_CAND   CPU_cand;                                  /*  候选运行的线程              */
+    LW_CLASS_CAND            CPU_cand;                                  /*  候选运行的线程              */
 
     /*
      *  内核锁定状态
      */
-    volatile INT             CPU_iKernelCounter;                        /*  内核状态计数器              */
+    INT                      CPU_iKernelCounter;                        /*  内核状态计数器              */
 
     /*
      *  当前核就绪表
@@ -93,7 +93,7 @@ typedef struct __lw_cpu {
     PVOID                    CPU_pvIPIArg;                              /*  核间中断清除参数            */
     
     INT64                    CPU_iIPICnt;                               /*  核间中断次数                */
-    volatile ULONG           CPU_ulIPIPend;                             /*  核间中断标志码              */
+    atomic_t                 CPU_iIPIPend;                              /*  核间中断标志码              */
 
 #define LW_IPI_NOP              0                                       /*  测试用核间中断向量          */
 #define LW_IPI_SCHED            1                                       /*  调度请求                    */
@@ -106,20 +106,9 @@ typedef struct __lw_cpu {
 #define LW_IPI_CALL_MSK         (1 << LW_IPI_CALL)
 
 #ifdef __LW_SPINLOCK_BUG_TRACE_EN
-    volatile ULONG           CPU_ulSpinNesting;                         /*  spinlock 加锁数量           */
+    ULONG                    CPU_ulSpinNesting;                         /*  spinlock 加锁数量           */
 #endif                                                                  /*  __LW_SPINLOCK_BUG_TRACE_EN  */
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
-     
-    /*
-     *  spinlock 等待表
-     */
-    union {
-        LW_LIST_LINE         CPUQ_lineSpinlock;                         /*  PRIORITY 等待表             */
-        LW_LIST_RING         CPUQ_ringSpinlock;                         /*  FIFO 等待表                 */
-    } CPU_cpuq;
-
-#define CPU_lineSpinlock     CPU_cpuq.CPUQ_lineSpinlock
-#define CPU_ringSpinlock     CPU_cpuq.CPUQ_ringSpinlock
 
     /*
      *  CPU 基本信息
@@ -129,13 +118,14 @@ typedef struct __lw_cpu {
 #endif                                                                  /*  LW_CFG_CPU_ARCH_SMT         */
              ULONG           CPU_ulCPUId;                               /*  CPU ID 号                   */
     volatile ULONG           CPU_ulStatus;                              /*  CPU 工作状态                */
+    volatile UINT            CPU_uiLockQuick;                           /*  是否在 Lock Quick 中        */
 
     /*
      *  中断信息
      */
-             PLW_STACK       CPU_pstkInterBase;                         /*  中断堆栈基址                */
-    volatile ULONG           CPU_ulInterNesting;                        /*  中断嵌套计数器              */
-    volatile ULONG           CPU_ulInterNestingMax;                     /*  中断嵌套最大值              */
+    PLW_STACK                CPU_pstkInterBase;                         /*  中断堆栈基址                */
+    ULONG                    CPU_ulInterNesting;                        /*  中断嵌套计数器              */
+    ULONG                    CPU_ulInterNestingMax;                     /*  中断嵌套最大值              */
     ULONG                    CPU_ulInterError[LW_CFG_MAX_INTER_SRC];    /*  中断错误信息                */
     
 #if (LW_CFG_CPU_FPU_EN > 0) && (LW_CFG_INTER_FPU > 0)
@@ -213,6 +203,7 @@ ULONG   archMpCur(VOID);
 extern LW_CLASS_CPU          _K_cpuTable[];                             /*  CPU 表                      */
 #define LW_CPU_GET_CUR()     (&_K_cpuTable[LW_CPU_GET_CUR_ID()])        /*  获得当前 CPU 结构           */
 #define LW_CPU_GET(id)       (&_K_cpuTable[(id)])                       /*  获得指定 CPU 结构           */
+#define LW_CPU_GET_ID(pcpu)  (pcpu->CPU_ulCPUId)                        /*  获得 CPU ID                 */
 
 #if (LW_CFG_SMP_EN > 0) && (LW_CFG_CPU_ARCH_SMT > 0)
 extern LW_CLASS_PHYCPU       _K_phycpuTable[];                          /*  物理 CPU 表                 */
@@ -224,26 +215,44 @@ extern LW_CLASS_PHYCPU       _K_phycpuTable[];                          /*  物理
   CPU 遍历
 *********************************************************************************************************/
 
+#if LW_CFG_SMP_REVERSE_FOREACH > 0
+#define LW_CPU_FOREACH_LOOP(i)      for (i = (LW_NCPUS - 1); (i >= 0) && (i < LW_NCPUS); i--)
+#define LW_PHYCPU_FOREACH_LOOP(i)   for (i = (LW_NPHYCPUS - 1); (i >= 0) && (i < LW_NPHYCPUS); i--)
+#else
+#define LW_CPU_FOREACH_LOOP(i)      for (i = 0; i < LW_NCPUS; i++)
+#define LW_PHYCPU_FOREACH_LOOP(i)   for (i = 0; i < LW_NPHYCPUS; i++)
+#endif
+
 #define LW_CPU_FOREACH(i)                       \
-        for (i = 0; i < LW_NCPUS; i++)
-        
+        LW_CPU_FOREACH_LOOP(i)
+
 #define LW_CPU_FOREACH_ACTIVE(i)                \
-        for (i = 0; i < LW_NCPUS; i++)          \
+        LW_CPU_FOREACH_LOOP(i)                  \
         if (LW_CPU_IS_ACTIVE(LW_CPU_GET(i)))
-                                    
+
 #define LW_CPU_FOREACH_EXCEPT(i, id)            \
-        for (i = 0; i < LW_NCPUS; i++)          \
+        LW_CPU_FOREACH_LOOP(i)                  \
         if ((i) != (id))
-        
+
 #define LW_CPU_FOREACH_ACTIVE_EXCEPT(i, id)     \
-        for (i = 0; i < LW_NCPUS; i++)          \
+        LW_CPU_FOREACH_LOOP(i)                  \
         if ((i) != (id))                        \
         if (LW_CPU_IS_ACTIVE(LW_CPU_GET(i)))
-        
+
 #if (LW_CFG_SMP_EN > 0) && (LW_CFG_CPU_ARCH_SMT > 0)
 #define LW_PHYCPU_FOREACH(i)                    \
-        for (i = 0; i < LW_NPHYCPUS; i++)
+        LW_PHYCPU_FOREACH_LOOP(i)
 #endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
+
+/*********************************************************************************************************
+  CPU LOCK QUICK 记录
+*********************************************************************************************************/
+
+#if LW_CFG_SMP_EN > 0
+#define LW_CPU_LOCK_QUICK_INC(pcpu)             ((pcpu)->CPU_uiLockQuick++)
+#define LW_CPU_LOCK_QUICK_DEC(pcpu)             ((pcpu)->CPU_uiLockQuick--)
+#define LW_CPU_LOCK_QUICK_GET(pcpu)             ((pcpu)->CPU_uiLockQuick)
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 
 /*********************************************************************************************************
   CPU 强制运行亲和度线程
@@ -287,29 +296,57 @@ extern LW_CLASS_PHYCPU       _K_phycpuTable[];                          /*  物理
 #define LW_CPU_IS_ACTIVE(pcpu)  \
         ((pcpu)->CPU_ulStatus & LW_CPU_STATUS_ACTIVE)
 
+#define LW_CPU_IS_RUNNING(pcpu) \
+        ((pcpu)->CPU_ulStatus & LW_CPU_STATUS_RUNNING)
+
 /*********************************************************************************************************
-  CPU 核间中断
+  CPU 核间中断 (如果 CPU 支持 atomic 则使用 atomic 指令, CPU 不支持使用 CPU spinlock)
 *********************************************************************************************************/
 #if LW_CFG_SMP_EN > 0
 
+#if LW_CFG_CPU_ATOMIC_EN > 0
 #define LW_CPU_ADD_IPI_PEND(id, ipi_msk)    \
-        (_K_cpuTable[(id)].CPU_ulIPIPend |= (ipi_msk))                  /*  加入指定 CPU 核间中断 pend  */
+        __LW_ATOMIC_OR(ipi_msk, &_K_cpuTable[(id)].CPU_iIPIPend)        /*  加入指定 CPU 核间中断 pend  */
 #define LW_CPU_CLR_IPI_PEND(id, ipi_msk)    \
-        (_K_cpuTable[(id)].CPU_ulIPIPend &= ~(ipi_msk))                 /*  清除指定 CPU 核间中断 pend  */
+        __LW_ATOMIC_AND(~ipi_msk, &_K_cpuTable[(id)].CPU_iIPIPend)      /*  清除指定 CPU 核间中断 pend  */
 #define LW_CPU_GET_IPI_PEND(id)             \
-        (_K_cpuTable[(id)].CPU_ulIPIPend)                               /*  获取指定 CPU 核间中断 pend  */
+        __LW_ATOMIC_GET(&_K_cpuTable[(id)].CPU_iIPIPend)                /*  获取指定 CPU 核间中断 pend  */
         
 #define LW_CPU_ADD_IPI_PEND2(pcpu, ipi_msk)    \
-        (pcpu->CPU_ulIPIPend |= (ipi_msk))                              /*  加入指定 CPU 核间中断 pend  */
+        __LW_ATOMIC_OR(ipi_msk, &pcpu->CPU_iIPIPend)                    /*  加入指定 CPU 核间中断 pend  */
 #define LW_CPU_CLR_IPI_PEND2(pcpu, ipi_msk)    \
-        (pcpu->CPU_ulIPIPend &= ~(ipi_msk))                             /*  清除指定 CPU 核间中断 pend  */
+        __LW_ATOMIC_AND(~ipi_msk, &pcpu->CPU_iIPIPend)                  /*  清除指定 CPU 核间中断 pend  */
 #define LW_CPU_GET_IPI_PEND2(pcpu)             \
-        (pcpu->CPU_ulIPIPend)                                           /*  获取指定 CPU 核间中断 pend  */
+        __LW_ATOMIC_GET(&pcpu->CPU_iIPIPend)                            /*  获取指定 CPU 核间中断 pend  */
+
+#else                                                                   /*  LW_CFG_CPU_ATOMIC_EN        */
+#define LW_CPU_ADD_IPI_PEND(id, ipi_msk)    \
+        (_K_cpuTable[(id)].CPU_iIPIPend.counter |= (ipi_msk))           /*  加入指定 CPU 核间中断 pend  */
+#define LW_CPU_CLR_IPI_PEND(id, ipi_msk)    \
+        (_K_cpuTable[(id)].CPU_iIPIPend.counter &= ~(ipi_msk))          /*  清除指定 CPU 核间中断 pend  */
+#define LW_CPU_GET_IPI_PEND(id)             \
+        (_K_cpuTable[(id)].CPU_iIPIPend.counter)                        /*  获取指定 CPU 核间中断 pend  */
         
+#define LW_CPU_ADD_IPI_PEND2(pcpu, ipi_msk)    \
+        (pcpu->CPU_iIPIPend.counter |= (ipi_msk))                       /*  加入指定 CPU 核间中断 pend  */
+#define LW_CPU_CLR_IPI_PEND2(pcpu, ipi_msk)    \
+        (pcpu->CPU_iIPIPend.counter &= ~(ipi_msk))                      /*  清除指定 CPU 核间中断 pend  */
+#define LW_CPU_GET_IPI_PEND2(pcpu)             \
+        (pcpu->CPU_iIPIPend.counter)                                    /*  获取指定 CPU 核间中断 pend  */
+#endif                                                                  /*  !LW_CFG_CPU_ATOMIC_EN       */
+
 /*********************************************************************************************************
   CPU 清除调度请求中断 (关中断情况下被调用)
 *********************************************************************************************************/
 
+#if LW_CFG_CPU_ATOMIC_EN > 0
+#define LW_CPU_CLR_SCHED_IPI_PEND(pcpu)                             \
+        do {                                                        \
+            LW_CPU_CLR_IPI_PEND2(pcpu, LW_IPI_SCHED_MSK);           \
+            LW_SPINLOCK_NOTIFY();                                   \
+        } while (0)
+
+#else                                                                   /*  LW_CFG_CPU_ATOMIC_EN        */
 #define LW_CPU_CLR_SCHED_IPI_PEND(pcpu)                             \
         do {                                                        \
             if (LW_CPU_GET_IPI_PEND2(pcpu) & LW_IPI_SCHED_MSK) {    \
@@ -319,6 +356,7 @@ extern LW_CLASS_PHYCPU       _K_phycpuTable[];                          /*  物理
             }                                                       \
             LW_SPINLOCK_NOTIFY();                                   \
         } while (0)
+#endif                                                                  /*  !LW_CFG_CPU_ATOMIC_EN       */
 
 /*********************************************************************************************************
   CPU 核间中断数量

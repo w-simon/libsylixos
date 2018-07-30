@@ -925,7 +925,8 @@ PVOID  API_ModuleLoadEx (CPCHAR  pcFile,
         return  (LW_NULL);
     }
 
-    if (pvproc->VP_ringModules == &pmodule->EMOD_ringModules) {         /*  如果是首个模块则初始化进程  */
+    if ((pvproc != &_G_vprocKernel) &&
+        (pvproc->VP_ringModules == &pmodule->EMOD_ringModules)) {       /*  如果是首个模块则初始化进程  */
         __moduleVpPatchInit(pmodule);
     }
 

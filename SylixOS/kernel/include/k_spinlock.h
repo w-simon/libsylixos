@@ -72,7 +72,7 @@
     在锁定 spinlock 的过程中, 绝不会发送任务状态迁移的操作, 或者接下来的程序将马上进行真正的调度尝试.
 *********************************************************************************************************/
 
-#define LW_SPIN_INITIALIZER     {0, LW_NULL, 0, {LW_NULL}}
+#define LW_SPIN_INITIALIZER     {{0}, LW_NULL, 0, LW_NULL}
 
 /*********************************************************************************************************
   裁剪
@@ -95,6 +95,8 @@ VOID    _SmpSpinUnlockIgnIrq(spinlock_t *psl);
 VOID    _SmpSpinLockIrq(spinlock_t *psl, INTREG  *piregInterLevel);
 BOOL    _SmpSpinTryLockIrq(spinlock_t *psl, INTREG  *piregInterLevel);
 INT     _SmpSpinUnlockIrq(spinlock_t *psl, INTREG  iregInterLevel);
+
+VOID    _SmpSpinLockIrqQuick(spinlock_t *psl, INTREG  *piregInterLevel);
 VOID    _SmpSpinUnlockIrqQuick(spinlock_t *psl, INTREG  iregInterLevel);
 
 VOID    _SmpSpinLockTask(spinlock_t *psl);
@@ -119,7 +121,7 @@ VOID    _SmpSpinUnlockRaw(spinlock_t *psl, INTREG  iregInterLevel);
 #define LW_SPIN_TRYLOCK_IRQ(psl, pireg)     _SmpSpinTryLockIrq(psl, pireg)
 #define LW_SPIN_UNLOCK_IRQ(psl, ireg)       _SmpSpinUnlockIrq(psl, ireg)
 
-#define LW_SPIN_LOCK_QUICK(psl, pireg)      _SmpSpinLockIrq(psl, pireg)
+#define LW_SPIN_LOCK_QUICK(psl, pireg)      _SmpSpinLockIrqQuick(psl, pireg)
 #define LW_SPIN_UNLOCK_QUICK(psl, ireg)     _SmpSpinUnlockIrqQuick(psl, ireg)
 
 #define LW_SPIN_LOCK_TASK(psl)              _SmpSpinLockTask(psl)
@@ -169,6 +171,8 @@ VOID    _UpSpinUnlockIgnIrq(spinlock_t *psl);
 VOID    _UpSpinLockIrq(spinlock_t *psl, INTREG  *piregInterLevel);
 BOOL    _UpSpinTryLockIrq(spinlock_t *psl, INTREG  *piregInterLevel);
 INT     _UpSpinUnlockIrq(spinlock_t *psl, INTREG  iregInterLevel);
+
+VOID    _UpSpinLockIrqQuick(spinlock_t *psl, INTREG  *piregInterLevel);
 VOID    _UpSpinUnlockIrqQuick(spinlock_t *psl, INTREG  iregInterLevel);
 
 VOID    _UpSpinLockRaw(spinlock_t *psl, INTREG  *piregInterLevel);
@@ -189,7 +193,7 @@ VOID    _UpSpinUnlockRaw(spinlock_t *psl, INTREG  iregInterLevel);
 #define LW_SPIN_TRYLOCK_IRQ(psl, pireg)     _UpSpinTryLockIrq(psl, pireg)
 #define LW_SPIN_UNLOCK_IRQ(psl, ireg)       _UpSpinUnlockIrq(psl, ireg)
 
-#define LW_SPIN_LOCK_QUICK(psl, pireg)      _UpSpinLockIrq(psl, pireg)
+#define LW_SPIN_LOCK_QUICK(psl, pireg)      _UpSpinLockIrqQuick(psl, pireg)
 #define LW_SPIN_UNLOCK_QUICK(psl, ireg)     _UpSpinUnlockIrqQuick(psl, ireg)
 
 #define LW_SPIN_LOCK_TASK(psl)              _UpSpinLock(psl)

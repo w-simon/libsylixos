@@ -46,6 +46,7 @@
 
 #define LW_CFG_SMP_EN                   1               /*  是否需要系统对多处理器支持                  */
 #define LW_CFG_SMP_CPU_DOWN_EN          0               /*  是否支持动态关闭 CPU (不推荐使用)           */
+#define LW_CFG_SMP_REVERSE_FOREACH      0               /*  CPU 遍历时从最大的 CPU 开始                 */
 #define LW_CFG_MAX_PROCESSORS           32              /*  系统支持 SMP 处理器最大个数, 1 ~ 2048       */
 
 /*********************************************************************************************************

@@ -33,7 +33,7 @@
 
 static LW_INLINE UINT16 _ObjectGetIndex (LW_OBJECT_ID    ulId)
 {
-    return  ((UINT16)(ulId & 0x0000FFFF));
+    return  ((UINT16)(ulId & 0x0000ffff));
 }
 
 /*********************************************************************************************************
@@ -42,7 +42,7 @@ static LW_INLINE UINT16 _ObjectGetIndex (LW_OBJECT_ID    ulId)
 
 static LW_INLINE ULONG _ObjectGetNode (LW_OBJECT_ID    ulId)
 {
-	return  ((ULONG)((ulId >> 16) & 0x03FF));
+	return  ((ULONG)((ulId >> 16) & 0x03ff));
 }
 
 /*********************************************************************************************************
@@ -51,7 +51,7 @@ static LW_INLINE ULONG _ObjectGetNode (LW_OBJECT_ID    ulId)
 
 static LW_INLINE ULONG _ObjectGetClass (LW_OBJECT_ID    ulId)
 {
-    return  ((ULONG)((ulId >> 26) & 0x3F));
+    return  ((ULONG)((ulId >> 26) & 0x3f));
 }
 
 /*********************************************************************************************************
@@ -60,7 +60,7 @@ static LW_INLINE ULONG _ObjectGetClass (LW_OBJECT_ID    ulId)
 
 static LW_INLINE INT   _ObjectClassOK (LW_OBJECT_ID    ulId, UINT8    ucClass)
 {
-    ulId = ((ulId >> 26) & 0x3F);
+    ulId = ((ulId >> 26) & 0x3f);
     
     return  (ulId == ucClass);
 }

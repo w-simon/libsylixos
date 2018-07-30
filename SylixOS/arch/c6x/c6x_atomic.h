@@ -10,27 +10,26 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: riscvMpCore.h
+** 文   件   名: c6x_atomic.h
 **
-** 创   建   人: Jiao.JinXing (焦进星)
+** 创   建   人: Jiao.Jinxing (焦进星)
 **
-** 文件创建日期: 2018 年 03 月 20 日
+** 文件创建日期: 2018 年 07 月 27 日
 **
-** 描        述: RISC-V 体系构架多核内部底层接口.
+** 描        述: TI C6X DSP 体系构架 ATOMIC 接口.
 *********************************************************************************************************/
 
-#ifndef __ARCH_RISCV_MPCORE_H
-#define __ARCH_RISCV_MPCORE_H
+#ifndef __ARCH_C6X_ATOMIC_H
+#define __ARCH_C6X_ATOMIC_H
 
 /*********************************************************************************************************
-  RISC-V 自旋锁
+  ATOMIC
 *********************************************************************************************************/
+#if LW_CFG_CPU_ATOMIC_EN > 0
 
-VOID                     riscvSpinLock(volatile SPINLOCKTYPE  *psl);
-volatile SPINLOCKTYPE    riscvSpinTryLock(volatile SPINLOCKTYPE  *psl);
-VOID                     riscvSpinUnlock(volatile SPINLOCKTYPE  *psl);
 
-#endif                                                                  /*  __ARCH_RISCV_MPCORE_H       */
+#endif                                                                  /*  LW_CFG_CPU_ATOMIC_EN        */
+#endif                                                                  /*  __ARCH_C6X_ATOMIC_H         */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

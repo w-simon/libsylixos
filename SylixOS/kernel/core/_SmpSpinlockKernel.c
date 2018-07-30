@@ -46,24 +46,14 @@
 VOID  _SmpKernelLockIgnIrq (VOID)
 {
     PLW_CLASS_CPU   pcpuCur;
-    INT             iRet;
     
     pcpuCur = LW_CPU_GET_CUR();
-    
-    for (;;) {
-        iRet = __ARCH_SPIN_TRYLOCK(&LW_KERN_SL);
-        if (iRet != LW_SPIN_OK) {
-            _SmpTryProcIpi(pcpuCur);                                    /*  尝试执行 IPI                */
-            LW_SPINLOCK_DELAY();
-            
-        } else {
-            if (!pcpuCur->CPU_ulInterNesting) {
-                __THREAD_LOCK_INC(pcpuCur->CPU_ptcbTCBCur);             /*  锁定任务在当前 CPU          */
-            }
-            KN_SMP_MB();
-            break;
-        }
+    if (!pcpuCur->CPU_ulInterNesting) {
+        __THREAD_LOCK_INC(pcpuCur->CPU_ptcbTCBCur);                     /*  锁定任务在当前 CPU          */
     }
+
+    __ARCH_SPIN_LOCK(&LW_KERN_SL, _SmpTryProcIpi, pcpuCur);             /*  驱动保证锁定必须成功        */
+    KN_SMP_MB();
 }
 /*********************************************************************************************************
 ** 函数名称: _SmpKernelUnlockIgnIrq
@@ -98,26 +88,16 @@ VOID  _SmpKernelUnlockIgnIrq (VOID)
 VOID  _SmpKernelLockQuick (INTREG  *piregInterLevel)
 {
     PLW_CLASS_CPU   pcpuCur;
-    INT             iRet;
     
-    for (;;) {
-        *piregInterLevel = KN_INT_DISABLE();
-        
-        iRet = __ARCH_SPIN_TRYLOCK(&LW_KERN_SL);
-        if (iRet != LW_SPIN_OK) {
-            _SmpTryProcIpi(LW_CPU_GET_CUR());                           /*  尝试执行 IPI                */
-            KN_INT_ENABLE(*piregInterLevel);
-            LW_SPINLOCK_DELAY();
-            
-        } else {
-            pcpuCur = LW_CPU_GET_CUR();
-            if (!pcpuCur->CPU_ulInterNesting) {
-                __THREAD_LOCK_INC(pcpuCur->CPU_ptcbTCBCur);             /*  锁定任务在当前 CPU          */
-            }
-            KN_SMP_MB();
-            break;
-        }
+    *piregInterLevel = KN_INT_DISABLE();
+
+    pcpuCur = LW_CPU_GET_CUR();
+    if (!pcpuCur->CPU_ulInterNesting) {
+        __THREAD_LOCK_INC(pcpuCur->CPU_ptcbTCBCur);                     /*  锁定任务在当前 CPU          */
     }
+
+    __ARCH_SPIN_LOCK(&LW_KERN_SL, _SmpTryProcIpi, pcpuCur);             /*  驱动保证锁定必须成功        */
+    KN_SMP_MB();
 }
 /*********************************************************************************************************
 ** 函数名称: _SmpKernelUnlockQuick

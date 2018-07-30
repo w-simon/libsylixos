@@ -249,6 +249,28 @@ INT  API_AtomicSwp (INT  iVal, atomic_t  *patomic)
     }
 }
 /*********************************************************************************************************
+** 函数名称: API_AtomicCas
+** 功能描述: 原子交换操作 ()
+** 输　入  : patomic   原子操作数
+**           iOldVal   旧值
+**           iNewVal   新值
+** 输　出  : 旧值, 如果返回值与 iOldVal 相同, 则表示设置成功.
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+INT  API_AtomicCas (atomic_t  *patomic, INT  iOldVal, INT  iNewVal)
+{
+    if (patomic) {
+        return  (__LW_ATOMIC_CAS(patomic, iOldVal, iNewVal));
+    
+    } else {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+}
+/*********************************************************************************************************
 ** 函数名称: API_AtomicLock
 ** 功能描述: 锁定原子锁 (只为特定系统提供服务)
 ** 输　入  : piregInterLevel   中断寄存器上下文

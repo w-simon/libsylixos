@@ -24,7 +24,6 @@
   spinlock 状态
 *********************************************************************************************************/
 #if LW_CFG_SMP_EN > 0
-#include "armMpCore.h"
 /*********************************************************************************************************
   L1 cache 同步请参考: http://www.cnblogs.com/jiayy/p/3246133.html
 *********************************************************************************************************/
@@ -32,25 +31,116 @@
   spin lock cache 依赖处理
 *********************************************************************************************************/
 #if LW_CFG_ARM_SPINLOCK_DEP_CACHE > 0
-static VOID                   armSpinLockDummy(volatile SPINLOCKTYPE  *psl);
-static volatile SPINLOCKTYPE  armSpinTryLockDummy(volatile SPINLOCKTYPE  *psl);
-static VOID                   armSpinUnlockDummy(volatile SPINLOCKTYPE  *psl);
+static VOID               armSpinLockDummy(SPINLOCKTYPE  *psl, VOIDFUNCPTR  pfuncPoll, PVOID  pvArg);
+static volatile UINT32    armSpinTryLockDummy(SPINLOCKTYPE  *psl);
+static VOID               armSpinUnlockDummy(SPINLOCKTYPE  *psl);
 
-static VOID                   (*pfuncArmSpinLock)(volatile SPINLOCKTYPE)    = armSpinLockDummy;
-static volatile SPINLOCKTYPE  (*pfuncArmSpinTryLock)(volatile SPINLOCKTYPE) = armSpinTryLockDummy;
-static VOID                   (*pfuncArmSpinUnlock)(volatile SPINLOCKTYPE)  = armSpinUnlockDummy;
+static VOID             (*pfuncArmSpinLock)(SPINLOCKTYPE *, VOIDFUNCPTR, PVOID) = armSpinLockDummy;
+static volatile UINT32  (*pfuncArmSpinTryLock)(SPINLOCKTYPE *)                  = armSpinTryLockDummy;
+static VOID             (*pfuncArmSpinUnlock)(SPINLOCKTYPE *)                   = armSpinUnlockDummy;
 #endif                                                                  /*  LW_CFG_ARM_SPINLOCK_DEP_C...*/
+/*********************************************************************************************************
+** 函数名称: armSpinLock
+** 功能描述: ARM spin lock
+** 输　入  : psld       spinlock data 指针
+**           pfuncPoll  循环等待时调用函数
+**           pvArg      回调参数
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+** 注  意  : 自旋结束时, 操作系统会调用内存屏障, 所以这里不需要调用.
+*********************************************************************************************************/
+static VOID  armSpinLock (SPINLOCKTYPE *psld, VOIDFUNCPTR  pfuncPoll, PVOID  pvArg)
+{
+#if __SYLIXOS_ARM_ARCH__ >= 6
+    UINT32          uiTemp;
+    UINT32          uiNewVal;
+    SPINLOCKTYPE    sldVal;
+
+    ARM_PREFETCH(&psld->SLD_uiLock);
+    __asm__ __volatile__(
+        "1: ldrex   %[oldvalue], [%[slock]]                 \n"
+        "   add     %[newvalue], %[oldvalue], %[tshift]     \n"
+        "   strex   %[temp],     %[newvalue], [%[slock]]    \n"
+        "   teq     %[temp],     #0                         \n"
+        "   bne     1b"
+        : [oldvalue] "=&r" (sldVal), [newvalue] "=&r" (uiNewVal), [temp] "=&r" (uiTemp)
+        : [slock] "r" (&psld->SLD_uiLock), [tshift] "I" (1 << LW_SPINLOCK_TICKET_SHIFT)
+        : "cc");
+
+    while (sldVal.SLD_usTicket != sldVal.SLD_usSvcNow) {
+        if (pfuncPoll) {
+            pfuncPoll(pvArg);
+        } else {
+            __asm__ __volatile__(ARM_WFE(""));
+        }
+        sldVal.SLD_usSvcNow = LW_ACCESS_ONCE(UINT16, psld->SLD_usSvcNow);
+    }
+#endif                                                                  /*  __SYLIXOS_ARM_ARCH__ >= 6   */
+}
+/*********************************************************************************************************
+** 函数名称: armSpinTryLock
+** 功能描述: ARM spin trylock
+** 输　入  : psld       spinlock data 指针
+** 输　出  : 1: busy 0: ok
+** 全局变量:
+** 调用模块:
+** 注  意  : 自旋结束时, 操作系统会调用内存屏障, 所以这里不需要调用.
+*********************************************************************************************************/
+static UINT32  armSpinTryLock (SPINLOCKTYPE *psld)
+{
+#if __SYLIXOS_ARM_ARCH__ >= 6
+    UINT32  uiCont, uiRes, uiLock;
+
+    ARM_PREFETCH(&psld->SLD_uiLock);
+    do {
+        __asm__ __volatile__(
+            "   ldrex   %[lock], [%[slock]]                 \n"
+            "   mov     %[res],  #0                         \n"
+            "   subs    %[cont], %[lock], %[lock], ror #16  \n"
+            "   addeq   %[lock], %[lock], %[tshift]         \n"
+            "   strexeq %[res],  %[lock], [%[slock]]"
+            : [lock] "=&r" (uiLock), [cont] "=&r" (uiCont), [res] "=&r" (uiRes)
+            : [slock] "r" (&psld->SLD_uiLock), [tshift] "I" (1 << LW_SPINLOCK_TICKET_SHIFT)
+            : "cc");
+    } while (uiRes);
+
+    if (uiCont) {
+        return  (1);
+    }
+#endif                                                                  /*  __SYLIXOS_ARM_ARCH__ >= 6   */
+
+    return  (0);
+}
+/*********************************************************************************************************
+** 函数名称: armSpinUnlock
+** 功能描述: ARM spin unlock
+** 输　入  : psld       spinlock data 指针
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  armSpinUnlock (SPINLOCKTYPE *psld)
+{
+#if __SYLIXOS_ARM_ARCH__ >= 6
+    psld->SLD_usSvcNow++;
+    armDsb();
+    __asm__ __volatile__(ARM_SEV);
+#endif                                                                  /*  __SYLIXOS_ARM_ARCH__ >= 6   */
+}
 /*********************************************************************************************************
 ** 函数名称: armSpinLockDummy
 ** 功能描述: 空操作
 ** 输　入  : psl        spinlock 指针
+**           pfuncPoll  循环等待时调用函数
+**           pvArg      回调参数
 ** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
+** 全局变量:
+** 调用模块:
 *********************************************************************************************************/
 #if LW_CFG_ARM_SPINLOCK_DEP_CACHE > 0
 
-static VOID  armSpinLockDummy (volatile SPINLOCKTYPE  *psl)
+static VOID  armSpinLockDummy (SPINLOCKTYPE  *psl, VOIDFUNCPTR  pfuncPoll, PVOID  pvArg)
 {
 }
 /*********************************************************************************************************
@@ -58,10 +148,10 @@ static VOID  armSpinLockDummy (volatile SPINLOCKTYPE  *psl)
 ** 功能描述: 空操作
 ** 输　入  : psl        spinlock 指针
 ** 输　出  : 0
-** 全局变量: 
-** 调用模块: 
+** 全局变量:
+** 调用模块:
 *********************************************************************************************************/
-static volatile SPINLOCKTYPE  armSpinTryLockDummy (volatile SPINLOCKTYPE  *psl)
+static volatile UINT32  armSpinTryLockDummy (SPINLOCKTYPE  *psl)
 {
     return  (0);
 }
@@ -70,10 +160,10 @@ static volatile SPINLOCKTYPE  armSpinTryLockDummy (volatile SPINLOCKTYPE  *psl)
 ** 功能描述: 空操作
 ** 输　入  : psl        spinlock 指针
 ** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
+** 全局变量:
+** 调用模块:
 *********************************************************************************************************/
-static VOID  armSpinUnlockDummy (volatile SPINLOCKTYPE  *psl)
+static VOID  armSpinUnlockDummy (SPINLOCKTYPE  *psl)
 {
 }
 /*********************************************************************************************************
@@ -81,9 +171,9 @@ static VOID  armSpinUnlockDummy (volatile SPINLOCKTYPE  *psl)
 ** 功能描述: spinlock 函数起效
 ** 输　入  : NONE
 ** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
-** 注  意  : 主核开启 CACHE 后, BSP 应立即调用此函数, 使 spinlock 生效, 
+** 全局变量:
+** 调用模块:
+** 注  意  : 主核开启 CACHE 后, BSP 应立即调用此函数, 使 spinlock 生效,
              从核启动到开启 CACHE 过程中, 不得操作 spinlock.
 *********************************************************************************************************/
 VOID  archSpinWork (VOID)
@@ -104,9 +194,10 @@ VOID  archSpinWork (VOID)
 *********************************************************************************************************/
 VOID  archSpinInit (spinlock_t  *psl)
 {
-    psl->SL_sltData   = 0;                                              /*  0: 未锁定状态  1: 锁定状态  */
-    psl->SL_pcpuOwner = LW_NULL;
-    psl->SL_ulCounter = 0ul;                                            /*  重入锁计数                  */
+    psl->SL_sltData.SLD_uiLock = 0;                                     /*  0: 未锁定状态  1: 锁定状态  */
+    psl->SL_pcpuOwner          = LW_NULL;
+    psl->SL_ulCounter          = 0;
+    psl->SL_pvReserved         = LW_NULL;
     KN_SMP_WMB();
 }
 /*********************************************************************************************************
@@ -139,12 +230,14 @@ VOID  archSpinNotify (VOID)
 ** 函数名称: archSpinLock
 ** 功能描述: spinlock 上锁
 ** 输　入  : psl        spinlock 指针
+**           pfuncPoll  循环等待时调用函数
+**           pvArg      回调参数
 ** 输　出  : 0: 没有获取
 **           1: 正常加锁
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-INT  archSpinLock (spinlock_t  *psl)
+INT  archSpinLock (spinlock_t  *psl, VOIDFUNCPTR  pfuncPoll, PVOID  pvArg)
 {
     if (psl->SL_pcpuOwner == LW_CPU_GET_CUR()) {
         psl->SL_ulCounter++;
@@ -154,9 +247,9 @@ INT  archSpinLock (spinlock_t  *psl)
     }
     
 #if LW_CFG_ARM_SPINLOCK_DEP_CACHE > 0
-    pfuncArmSpinLock(&psl->SL_sltData);
+    pfuncArmSpinLock(&psl->SL_sltData, pfuncPoll, pvArg);
 #else
-    armSpinLock(&psl->SL_sltData);
+    armSpinLock(&psl->SL_sltData, pfuncPoll, pvArg);
 #endif                                                                  /*  LW_CFG_ARM_SPINLOCK_DEP_C...*/
     
     psl->SL_pcpuOwner = LW_CPU_GET_CUR();                               /*  保存当前 CPU                */
@@ -237,9 +330,9 @@ INT  archSpinUnlock (spinlock_t  *psl)
 INT  archSpinLockRaw (spinlock_t  *psl)
 {
 #if LW_CFG_ARM_SPINLOCK_DEP_CACHE > 0
-    pfuncArmSpinLock(&psl->SL_sltData);
+    pfuncArmSpinLock(&psl->SL_sltData, LW_NULL, LW_NULL);
 #else
-    armSpinLock(&psl->SL_sltData);
+    armSpinLock(&psl->SL_sltData, LW_NULL, LW_NULL);
 #endif                                                                  /*  LW_CFG_ARM_SPINLOCK_DEP_C...*/
 
     return  (1);                                                        /*  加锁成功                    */

@@ -73,7 +73,10 @@ ULONG  API_CpuUp (ULONG  ulCPUId)
 LW_API  
 ULONG  API_CpuDown (ULONG  ulCPUId)
 {
+#if LW_CFG_CPU_ATOMIC_EN == 0
     INTREG          iregInterLevel;
+#endif
+    
     PLW_CLASS_CPU   pcpu;
 
     if ((ulCPUId == 0) || (ulCPUId >= LW_NCPUS)) {
@@ -89,9 +92,15 @@ ULONG  API_CpuDown (ULONG  ulCPUId)
         return  (ERROR_NONE);
     }
     
+#if LW_CFG_CPU_ATOMIC_EN == 0
     LW_SPIN_LOCK_QUICK(&pcpu->CPU_slIpi, &iregInterLevel);
+#endif
+    
     LW_CPU_ADD_IPI_PEND2(pcpu, LW_IPI_DOWN_MSK);
+    
+#if LW_CFG_CPU_ATOMIC_EN == 0
     LW_SPIN_UNLOCK_QUICK(&pcpu->CPU_slIpi, iregInterLevel);
+#endif
     
     _ThreadOffAffinity(pcpu);                                           /*  关闭与此 CPU 有关的亲和度   */
     __KERNEL_EXIT();
@@ -106,7 +115,7 @@ ULONG  API_CpuDown (ULONG  ulCPUId)
 ** 函数名称: API_CpuIsUp
 ** 功能描述: 指定 CPU 是否启动.
 ** 输　入  : ulCPUId       CPU ID
-** 输　出  : ERROR
+** 输　出  : 是否启动
 ** 全局变量: 
 ** 调用模块: 
                                            API 函数
@@ -124,6 +133,35 @@ BOOL  API_CpuIsUp (ULONG  ulCPUId)
     KN_SMP_MB();
     pcpu = LW_CPU_GET(ulCPUId);
     if (LW_CPU_IS_ACTIVE(pcpu)) {
+        return  (LW_TRUE);
+    
+    } else {
+        return  (LW_FALSE);
+    }
+}
+
+/*********************************************************************************************************
+** 函数名称: API_CpuIsRunning
+** 功能描述: 指定 CPU 是否在运行.
+** 输　入  : ulCPUId       CPU ID
+** 输　出  : 是否在运行
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+BOOL  API_CpuIsRunning (ULONG  ulCPUId)
+{
+    PLW_CLASS_CPU   pcpu;
+    
+    if (ulCPUId >= LW_NCPUS) {
+        _ErrorHandle(EINVAL);
+        return  (LW_FALSE);
+    }
+    
+    KN_SMP_MB();
+    pcpu = LW_CPU_GET(ulCPUId);
+    if (LW_CPU_IS_RUNNING(pcpu)) {
         return  (LW_TRUE);
     
     } else {

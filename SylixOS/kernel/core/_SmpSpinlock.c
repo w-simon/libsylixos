@@ -69,7 +69,7 @@ VOID  _SmpSpinLock (spinlock_t *psl)
     
     LW_CPU_SPIN_NESTING_INC(pcpuCur);
     
-    __ARCH_SPIN_LOCK(psl);                                              /*  驱动保证锁定必须成功        */
+    __ARCH_SPIN_LOCK(psl, LW_NULL, LW_NULL);                            /*  驱动保证锁定必须成功        */
     KN_SMP_MB();
     
     KN_INT_ENABLE(iregInterLevel);
@@ -173,7 +173,7 @@ VOID  _SmpSpinLockIgnIrq (spinlock_t *psl)
     
     LW_CPU_SPIN_NESTING_INC(pcpuCur);
     
-    __ARCH_SPIN_LOCK(psl);                                              /*  驱动保证锁定必须成功        */
+    __ARCH_SPIN_LOCK(psl, LW_NULL, LW_NULL);                            /*  驱动保证锁定必须成功        */
     KN_SMP_MB();
 }
 /*********************************************************************************************************
@@ -255,7 +255,7 @@ VOID  _SmpSpinLockIrq (spinlock_t *psl, INTREG  *piregInterLevel)
     
     LW_CPU_SPIN_NESTING_INC(pcpuCur);
     
-    __ARCH_SPIN_LOCK(psl);                                              /*  驱动保证锁定必须成功        */
+    __ARCH_SPIN_LOCK(psl, LW_NULL, LW_NULL);                            /*  驱动保证锁定必须成功        */
     KN_SMP_MB();
 }
 /*********************************************************************************************************
@@ -337,6 +337,34 @@ INT  _SmpSpinUnlockIrq (spinlock_t *psl, INTREG  iregInterLevel)
     }
 }
 /*********************************************************************************************************
+** 函数名称: _SmpSpinLockIrqQuick
+** 功能描述: 自旋锁加锁操作, 连同锁定中断
+** 输　入  : psl               自旋锁
+**           piregInterLevel   中断锁定信息
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+VOID  _SmpSpinLockIrqQuick (spinlock_t *psl, INTREG  *piregInterLevel)
+{
+    PLW_CLASS_CPU   pcpuCur;
+    
+    *piregInterLevel = KN_INT_DISABLE();
+    
+    pcpuCur = LW_CPU_GET_CUR();
+    if (!pcpuCur->CPU_ulInterNesting) {
+        LW_CPU_LOCK_QUICK_INC(pcpuCur);                                 /*  先于锁定任务之前            */
+        KN_SMP_WMB();
+        
+        __THREAD_LOCK_INC(pcpuCur->CPU_ptcbTCBCur);                     /*  锁定任务在当前 CPU          */
+    }
+    
+    LW_CPU_SPIN_NESTING_INC(pcpuCur);
+    
+    __ARCH_SPIN_LOCK(psl, LW_NULL, LW_NULL);                            /*  驱动保证锁定必须成功        */
+    KN_SMP_MB();
+}
+/*********************************************************************************************************
 ** 函数名称: _SmpSpinUnlockIrqQuick
 ** 功能描述: 自旋锁解锁操作, 连同解锁中断, 不进行尝试调度
 ** 输　入  : psl               自旋锁
@@ -357,6 +385,9 @@ VOID  _SmpSpinUnlockIrqQuick (spinlock_t *psl, INTREG  iregInterLevel)
     pcpuCur = LW_CPU_GET_CUR();
     if (!pcpuCur->CPU_ulInterNesting) {
         __THREAD_LOCK_DEC(pcpuCur->CPU_ptcbTCBCur);                     /*  解除任务锁定                */
+        
+        KN_SMP_WMB();
+        LW_CPU_LOCK_QUICK_DEC(pcpuCur);                                 /*  后于锁定任务之后            */
     }
     
     LW_CPU_SPIN_NESTING_DEC(pcpuCur);

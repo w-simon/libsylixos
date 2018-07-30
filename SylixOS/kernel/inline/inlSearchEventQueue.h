@@ -71,9 +71,8 @@ do {                                                                    \
     for (i = 0; i < __EVENT_Q_SIZE; i++) {                              \
         if (*ppringListPtr) {                                           \
             break;                                                      \
-        } else {                                                        \
-            ppringListPtr++;                                            \
         }                                                               \
+        ppringListPtr++;                                                \
     }                                                                   \
 } while (0)
 

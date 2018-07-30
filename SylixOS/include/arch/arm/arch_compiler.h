@@ -36,8 +36,10 @@
 
 #ifdef __GNUC__
 #define LW_INLINE               inline                                  /*  内联函数定义                */
+#define LW_ALWAYS_INLINE        __attribute__((always_inline))
 #else
 #define LW_INLINE               __inline
+#define LW_ALWAYS_INLINE        __inline
 #endif
 
 /*********************************************************************************************************

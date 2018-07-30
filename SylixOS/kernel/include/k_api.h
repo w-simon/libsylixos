@@ -73,6 +73,8 @@ LW_API INT              API_AtomicGet(atomic_t  *patomic);
 
 LW_API INT              API_AtomicSwp(INT  iVal, atomic_t  *patomic);
 
+LW_API INT              API_AtomicCas(atomic_t  *patomic, INT  iOldVal, INT  iNewVal);
+
 LW_API VOID             API_AtomicLock(INTREG  *piregInterLevel);
 
 LW_API VOID             API_AtomicUnlock(INTREG  iregInterLevel);
@@ -98,6 +100,8 @@ LW_API ULONG            API_CpuDown(ULONG  ulCPUId);                    /*  停止
 #endif                                                                  /*  LW_CFG_SMP_CPU_DOWN_EN > 0  */
 
 LW_API BOOL             API_CpuIsUp(ULONG  ulCPUId);                    /*  查看指定 CPU 是否已经被启动 */
+
+LW_API BOOL             API_CpuIsRunning(ULONG  ulCPUId);               /*  查看指定 CPU 是否已经运行   */
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 
 #if LW_CFG_POWERM_EN > 0

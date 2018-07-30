@@ -31,51 +31,11 @@
     
     IMPORT_LABEL(bspMpInt)
     
-    EXPORT_LABEL(sparcSpinLock)
-    EXPORT_LABEL(sparcSpinTryLock)
-    EXPORT_LABEL(sparcSpinUnlock)
     EXPORT_LABEL(archMpCur)
     EXPORT_LABEL(archMpInt)
-    
-    WEAK(sparcSpinLock)
-    WEAK(sparcSpinTryLock)
-    WEAK(sparcSpinUnlock)
+
     WEAK(archMpCur)
     WEAK(archMpInt)
-
-;/*********************************************************************************************************
-;  自旋锁
-;*********************************************************************************************************/
-
-FUNC_DEF(sparcSpinLock)
-LINE_LABEL(sl_retry)
-    LDSTUB  [%o0] , %g1                                                 ;/*  原子加载原值并写 1          */
-    TST     %g1
-    BE      sl_out
-    NOP
-LINE_LABEL(sl_loop)
-    LDUB    [%o0] , %g1                                                 ;/*  避免写太多次                */
-    TST     %g1
-    BNE     sl_loop
-    NOP
-    BA,a    sl_retry
-    NOP
-LINE_LABEL(sl_out)
-    RETL
-    NOP
-    FUNC_END(sparcSpinLock)
-
-FUNC_DEF(sparcSpinTryLock)
-    LDSTUB  [%o0] , %o0                                                 ;/*  原子加载原值并写 1          */
-    RETL
-    NOP
-    FUNC_END(sparcSpinTryLock)
-
-FUNC_DEF(sparcSpinUnlock)
-    STUB    %g0 , [%o0]                                                 ;/*  写 0                        */
-    RETL
-    NOP
-    FUNC_END(sparcSpinUnlock)
 
 ;/*********************************************************************************************************
 ;  获得当前核 ID

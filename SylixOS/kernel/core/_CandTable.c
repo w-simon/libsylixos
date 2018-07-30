@@ -29,7 +29,58 @@
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
 /*********************************************************************************************************
-** 函数名称: _CandSeekThread
+** 函数名称: _CandTableSeek
+** 功能描述: 调度器查询有就绪线程的最高优先级内联函数.
+** 输　入  : pcpu              CPU
+**           pucPriority       优先级返回值
+** 输　出  : 就绪表.
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static LW_INLINE PLW_CLASS_PCBBMAP  _CandTableSeek (PLW_CLASS_CPU  pcpu, UINT8 *pucPriority)
+{
+#if LW_CFG_SMP_EN > 0
+    REGISTER UINT8  ucGlobal;
+    
+    if (_BitmapIsEmpty(LW_CPU_RDY_BMAP(pcpu))) {
+        if (LW_CPU_ONLY_AFFINITY_GET(pcpu) ||
+            _BitmapIsEmpty(LW_GLOBAL_RDY_BMAP())) {                     /*  就绪表为空                  */
+            return  (LW_NULL);
+        }
+        
+        *pucPriority = _BitmapHigh(LW_GLOBAL_RDY_BMAP());
+        return  (LW_GLOBAL_RDY_PCBBMAP());                              /*  从全局就绪表选择            */
+    
+    } else {
+        *pucPriority = _BitmapHigh(LW_CPU_RDY_BMAP(pcpu));              /*  本地就绪表最高优先级获取    */
+        
+        if (LW_CPU_ONLY_AFFINITY_GET(pcpu) || 
+            _BitmapIsEmpty(LW_GLOBAL_RDY_BMAP())) {
+            return  (LW_CPU_RDY_PCBBMAP(pcpu));                         /*  选择本地就绪任务            */
+        }
+        
+        ucGlobal = _BitmapHigh(LW_GLOBAL_RDY_BMAP());
+        if (LW_PRIO_IS_HIGH_OR_EQU(*pucPriority, ucGlobal)) {           /*  同优先级, 优先执行 local    */
+            return  (LW_CPU_RDY_PCBBMAP(pcpu));
+        
+        } else {
+            *pucPriority = ucGlobal;
+            return  (LW_GLOBAL_RDY_PCBBMAP());
+        }
+    }
+    
+#else
+    if (_BitmapIsEmpty(LW_GLOBAL_RDY_BMAP())) {                         /*  就绪表中无任务              */
+        return  (LW_NULL);
+    
+    } else {
+        *pucPriority = _BitmapHigh(LW_GLOBAL_RDY_BMAP());
+        return  (LW_GLOBAL_RDY_PCBBMAP());
+    }
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
+}
+/*********************************************************************************************************
+** 函数名称: _CandTableNext
 ** 功能描述: 从就绪表中确定一个最需运行的线程.
 ** 输　入  : ppcbbmap          就绪表
 **           ucPriority        优先级
@@ -37,7 +88,7 @@
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static PLW_CLASS_TCB  _CandSeekThread (PLW_CLASS_PCBBMAP  ppcbbmap, UINT8  ucPriority)
+static PLW_CLASS_TCB  _CandTableNext (PLW_CLASS_PCBBMAP  ppcbbmap, UINT8  ucPriority)
 {
     REGISTER PLW_CLASS_PCB      ppcb;
     REGISTER PLW_CLASS_TCB      ptcb;
@@ -75,14 +126,14 @@ static VOID  _CandTableFill (PLW_CLASS_CPU   pcpu)
     REGISTER PLW_CLASS_PCBBMAP  ppcbbmap;
              UINT8              ucPriority;
 
-    ppcbbmap = _SchedSeekPriority(pcpu, &ucPriority);
+    ppcbbmap = _CandTableSeek(pcpu, &ucPriority);
     _BugHandle((ppcbbmap == LW_NULL), LW_TRUE, "serious error!\r\n");   /*  至少存在一个任务            */
     
-    ptcb = _CandSeekThread(ppcbbmap, ucPriority);                       /*  确定可以候选运行的线程      */
+    ptcb = _CandTableNext(ppcbbmap, ucPriority);                        /*  确定可以候选运行的线程      */
     ppcb = &ppcbbmap->PCBM_pcb[ucPriority];
     
     LW_CAND_TCB(pcpu) = ptcb;                                           /*  保存新的可执行线程          */
-    ptcb->TCB_ulCPUId = pcpu->CPU_ulCPUId;                              /*  记录 CPU 号                 */
+    ptcb->TCB_ulCPUId = LW_CPU_GET_ID(pcpu);                            /*  记录 CPU 号                 */
     ptcb->TCB_bIsCand = LW_TRUE;                                        /*  进入候选运行表              */
     _DelTCBFromReadyRing(ptcb, ppcb);                                   /*  从就绪环中退出              */
     
@@ -105,11 +156,11 @@ static VOID  _CandTableResel (PLW_CLASS_CPU   pcpu, PLW_CLASS_PCBBMAP  ppcbbmap,
     REGISTER PLW_CLASS_TCB      ptcb;
     REGISTER PLW_CLASS_PCB      ppcb;
     
-    ptcb = _CandSeekThread(ppcbbmap, ucPriority);                       /*  确定可以候选运行的线程      */
+    ptcb = _CandTableNext(ppcbbmap, ucPriority);                        /*  确定可以候选运行的线程      */
     ppcb = &ppcbbmap->PCBM_pcb[ucPriority];
     
     LW_CAND_TCB(pcpu) = ptcb;                                           /*  保存新的可执行线程          */
-    ptcb->TCB_ulCPUId = pcpu->CPU_ulCPUId;                              /*  记录 CPU 号                 */
+    ptcb->TCB_ulCPUId = LW_CPU_GET_ID(pcpu);                            /*  记录 CPU 号                 */
     ptcb->TCB_bIsCand = LW_TRUE;                                        /*  进入候选运行表              */
     _DelTCBFromReadyRing(ptcb, ppcb);                                   /*  从就绪环中退出              */
     
@@ -159,6 +210,7 @@ BOOL  _CandTableTryAdd (PLW_CLASS_TCB  ptcb, PLW_CLASS_PCB  ppcb)
     
 #if LW_CFG_SMP_EN > 0                                                   /*  SMP 多核                    */
     REGISTER ULONG           i;
+    REGISTER BOOL            bRotIdle;
 
     if (ptcb->TCB_bCPULock) {                                           /*  任务锁定 CPU                */
         pcpu = LW_CPU_GET(ptcb->TCB_ulCPULock);
@@ -179,22 +231,72 @@ BOOL  _CandTableTryAdd (PLW_CLASS_TCB  ptcb, PLW_CLASS_PCB  ppcb)
         }
     
     } else {                                                            /*  所有 CPU 均可运行此任务     */
-        LW_CPU_FOREACH_ACTIVE (i) {                                     /*  CPU 必须为激活状态          */
-            pcpu = LW_CPU_GET(i);
-            if (LW_CPU_ONLY_AFFINITY_GET(pcpu)) {                       /*  设置了强亲和度调度          */
-                continue;
+        bRotIdle = LW_FALSE;
+        pcpu     = LW_CPU_GET(ptcb->TCB_ulCPUId);                       /*  保持 CACHE 热度             */
+
+#if LW_CFG_SMP_CPU_DOWN_EN > 0
+        if (LW_CPU_IS_ACTIVE(pcpu)) 
+#endif                                                                  /*  LW_CFG_SMP_CPU_DOWN_EN      */
+        {
+            if (!LW_CPU_ONLY_AFFINITY_GET(pcpu)) {                      /*  没有设置强亲和度调度        */
+                ptcbCand = LW_CAND_TCB(pcpu);
+                if (ptcbCand == LW_NULL) {
+                    LW_CAND_TCB(pcpu) = ptcb;
+                    ptcb->TCB_bIsCand = LW_TRUE;                        /*  进入候选运行表              */
+                    return  (LW_TRUE);
+                }
+            
+                if (!LW_CAND_ROT(pcpu) && 
+                    (LW_PRIO_IS_EQU(LW_PRIO_LOWEST, 
+                                    ptcbCand->TCB_ucPriority))) {       /*  之前运行的 CPU 为 idle      */
+                    LW_CAND_ROT(pcpu) = LW_TRUE;                        /*  产生优先级卷绕              */
+                    bRotIdle          = LW_TRUE;
+                }
+            }
+        }
+        
+        if (!bRotIdle) {
+            LW_CPU_FOREACH_ACTIVE_EXCEPT (i, ptcb->TCB_ulCPUId) {       /*  CPU 必须为激活状态          */
+                pcpu = LW_CPU_GET(i);
+                if (LW_CPU_ONLY_AFFINITY_GET(pcpu)) {                   /*  设置了强亲和度调度          */
+                    continue;
+                }
+                
+                ptcbCand = LW_CAND_TCB(pcpu);
+                if (ptcbCand == LW_NULL) {                              /*  候选表为空                  */
+                    LW_CAND_TCB(pcpu) = ptcb;
+                    ptcb->TCB_ulCPUId = i;                              /*  记录 CPU 号                 */
+                    ptcb->TCB_bIsCand = LW_TRUE;                        /*  进入候选运行表              */
+                    return  (LW_TRUE);
+                
+                } else if (!LW_CAND_ROT(pcpu) && 
+                           (LW_PRIO_IS_EQU(LW_PRIO_LOWEST, 
+                                           ptcbCand->TCB_ucPriority))) {/*  运行 idle 任务且无标注      */
+                    LW_CAND_ROT(pcpu) = LW_TRUE;
+                    bRotIdle          = LW_TRUE;
+                    break;                                              /*  只标注一个 CPU 即可         */
+                }
             }
             
-            ptcbCand = LW_CAND_TCB(pcpu);                               /*  TODO: Cache 热度维持        */
-            if (ptcbCand == LW_NULL) {                                  /*  候选表为空                  */
-                LW_CAND_TCB(pcpu) = ptcb;
-                ptcb->TCB_ulCPUId = i;                                  /*  记录 CPU 号                 */
-                ptcb->TCB_bIsCand = LW_TRUE;                            /*  进入候选运行表              */
-                return  (LW_TRUE);
-            
-            } else if (LW_PRIO_IS_HIGH(ptcb->TCB_ucPriority, 
-                                       ptcbCand->TCB_ucPriority)) {     /*  优先级高于当前候选线程      */
-                LW_CAND_ROT(pcpu) = LW_TRUE;                            /*  产生优先级卷绕              */
+            if (!bRotIdle) {
+                LW_CPU_FOREACH_ACTIVE (i) {                             /*  CPU 必须为激活状态          */
+                    pcpu = LW_CPU_GET(i);
+                    if (LW_CPU_ONLY_AFFINITY_GET(pcpu)) {               /*  设置了强亲和度调度          */
+                        continue;
+                    }
+                    
+                    ptcbCand = LW_CAND_TCB(pcpu);
+                    if (ptcbCand == LW_NULL) {                          /*  候选表为空                  */
+                        LW_CAND_TCB(pcpu) = ptcb;
+                        ptcb->TCB_ulCPUId = i;                          /*  记录 CPU 号                 */
+                        ptcb->TCB_bIsCand = LW_TRUE;                    /*  进入候选运行表              */
+                        return  (LW_TRUE);
+                    
+                    } else if (LW_PRIO_IS_HIGH(ptcb->TCB_ucPriority,
+                                               ptcbCand->TCB_ucPriority)) {
+                        LW_CAND_ROT(pcpu) = LW_TRUE;                    /*  产生优先级卷绕              */
+                    }
+                }
             }
         }
     }
@@ -270,9 +372,13 @@ VOID _CandTableTryDel (PLW_CLASS_TCB  ptcb, PLW_CLASS_PCB  ppcb)
 static VOID _CandTableNotify (PLW_CLASS_CPU   pcpu, PLW_CLASS_TCB  ptcbCand)
 {
     INT             i;
-    ULONG           ulCPUId = pcpu->CPU_ulCPUId;
+    ULONG           ulCPUId;
     PLW_CLASS_CPU   pcpuOther;
     PLW_CLASS_TCB   ptcbOther;
+    BOOL            bRotIdle;
+    
+    bRotIdle = LW_FALSE;
+    ulCPUId  = LW_CPU_GET_ID(pcpu);
     
     LW_CPU_FOREACH_ACTIVE_EXCEPT (i, ulCPUId) {                         /*  CPU 必须是激活状态          */
         pcpuOther = LW_CPU_GET(i);
@@ -282,18 +388,27 @@ static VOID _CandTableNotify (PLW_CLASS_CPU   pcpu, PLW_CLASS_TCB  ptcbCand)
             continue;
         }
         
-        if (LW_CAND_ROT(pcpuOther) == LW_FALSE) {
-            if (ptcbOther->TCB_usSchedCounter == 0) {                   /*  已经没有时间片了            */
-                if (LW_PRIO_IS_HIGH_OR_EQU(ptcbCand->TCB_ucPriority, 
-                                           ptcbOther->TCB_ucPriority)) {
-                    LW_CAND_ROT(pcpuOther) = LW_TRUE;
-                }
+        if (!LW_CAND_ROT(pcpuOther) && 
+            (LW_PRIO_IS_EQU(LW_PRIO_LOWEST, 
+                            ptcbOther->TCB_ucPriority))) {              /*  运行 idle 任务且无标注      */
+            LW_CAND_ROT(pcpuOther) = LW_TRUE;
+            bRotIdle               = LW_TRUE;
+            break;                                                      /*  只标注一个 CPU 即可         */
+        }
+    }
+    
+    if (!bRotIdle) {
+        LW_CPU_FOREACH_ACTIVE_EXCEPT (i, ulCPUId) {                     /*  CPU 必须是激活状态          */
+            pcpuOther = LW_CPU_GET(i);
+            ptcbOther = LW_CAND_TCB(pcpuOther);
             
-            } else {
-                if (LW_PRIO_IS_HIGH(ptcbCand->TCB_ucPriority, 
-                                    ptcbOther->TCB_ucPriority)) {
-                    LW_CAND_ROT(pcpuOther) = LW_TRUE;
-                }
+            if (LW_CPU_ONLY_AFFINITY_GET(pcpuOther)) {                  /*  仅运行亲和度任务            */
+                continue;
+            }
+            
+            if (LW_PRIO_IS_HIGH(ptcbCand->TCB_ucPriority,
+                                ptcbOther->TCB_ucPriority)) {
+                LW_CAND_ROT(pcpuOther) = LW_TRUE;
             }
         }
     }
@@ -331,7 +446,7 @@ VOID _CandTableUpdate (PLW_CLASS_CPU   pcpu)
         goto    __update_done;
     }
     
-    ppcbbmap = _SchedSeekPriority(pcpu, &ucPriority);                   /*  当前就绪表中最高优先级      */
+    ppcbbmap = _CandTableSeek(pcpu, &ucPriority);                       /*  当前就绪表中最高优先级      */
     if (ppcbbmap == LW_NULL) {
         LW_CAND_ROT(pcpu) = LW_FALSE;                                   /*  清除优先级卷绕标志          */
         return;
@@ -364,7 +479,7 @@ VOID _CandTableUpdate (PLW_CLASS_CPU   pcpu)
         
 #if LW_CFG_SMP_EN > 0                                                   /*  SMP 多核                    */
         ptcbNew = LW_CAND_TCB(pcpu);
-        if (ptcbNew->TCB_bCPULock && !ptcbCand->TCB_bCPULock) {         /*  是否需要尝试标记其他 CPU    */
+        if ((ptcbNew != ptcbCand) && !ptcbCand->TCB_bCPULock) {         /*  是否需要尝试标记其他 CPU    */
             _CandTableNotify(pcpu, ptcbCand);                           /*  通知其他 CPU 进行调度查看   */
         }
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */

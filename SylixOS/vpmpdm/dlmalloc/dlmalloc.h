@@ -57,6 +57,8 @@ void *dlmalloc_mremap(void *pvAddr, size_t stOldSize, size_t stNewSize, int mv);
 #define MMAP                    dlmalloc_mmap
 #define DIRECT_MMAP             dlmalloc_mmap
 #define MREMAP                  dlmalloc_mremap
+
+#define DEFAULT_MMAP_THRESHOLD  (256 * 1024)    /* 256K */
 #endif /* LW_CFG_VMM_EN > 0 */
 
 /* Use some mutex locks */

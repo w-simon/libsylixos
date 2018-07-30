@@ -36,7 +36,11 @@
 *********************************************************************************************************/
 static LW_INLINE  VOID  riscvLocalICacheFlushAll (VOID)
 {
+#if LW_CFG_RISCV_M_LEVEL > 0
+    __asm__ __volatile__ ("fence.i" : : : "memory");
+#else
     sbi_remote_fence_i(0);
+#endif                                                                  /*  LW_CFG_RISCV_M_LEVEL > 0    */
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: riscvCacheEnable
@@ -246,7 +250,11 @@ VOID  riscvCacheInit (LW_CACHE_OP  *pcacheop,
                       CACHE_MODE    uiData,
                       CPCHAR        pcMachineName)
 {
+#if LW_CFG_RISCV_M_LEVEL > 0
+    pcacheop->CACHEOP_ulOption = CACHE_TEXT_UPDATE_MP;
+#else
     pcacheop->CACHEOP_ulOption = 0;
+#endif                                                                  /*  LW_CFG_RISCV_M_LEVEL > 0    */
 
     pcacheop->CACHEOP_iILoc = CACHE_LOCATION_VIPT;                      /*  VIPT                        */
     pcacheop->CACHEOP_iDLoc = CACHE_LOCATION_VIPT;
@@ -276,6 +284,11 @@ VOID  riscvCacheInit (LW_CACHE_OP  *pcacheop,
     pcacheop->CACHEOP_pfuncDmaMalloc      = API_VmmDmaAlloc;
     pcacheop->CACHEOP_pfuncDmaMallocAlign = API_VmmDmaAllocAlign;
     pcacheop->CACHEOP_pfuncDmaFree        = API_VmmDmaFree;
+
+#elif LW_CFG_RISCV_MPU_EN > 0
+    pcacheop->CACHEOP_pfuncDmaMalloc      = riscvMpuDmaAlloc;
+    pcacheop->CACHEOP_pfuncDmaMallocAlign = riscvMpuDmaAllocAlign;
+    pcacheop->CACHEOP_pfuncDmaFree        = riscvMpuDmaFree;
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 }
 /*********************************************************************************************************

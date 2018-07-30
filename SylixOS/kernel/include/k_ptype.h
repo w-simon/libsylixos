@@ -378,38 +378,68 @@ typedef struct sigevent {
 *********************************************************************************************************/
 
 struct tm {
-    INT             tm_sec;                                             /* seconds after the minute - [0, 59]  */
-    INT             tm_min;                                             /* minutes after the hour   - [0, 59]  */
-    INT             tm_hour;                                            /* hours after midnight     - [0, 23]  */
-    INT             tm_mday;                                            /* day of the month         - [1, 31]  */
-    INT             tm_mon;                                             /* months since January     - [0, 11]  */
-    INT             tm_year;                                            /* years since 1900                    */
-    INT             tm_wday;                                            /* days since Sunday        - [0, 6]   */
-    INT             tm_yday;                                            /* days since January 1     - [0, 365] */
+    INT             tm_sec;                                             /* seconds after minute [0, 59] */
+    INT             tm_min;                                             /* minutes after hour   [0, 59] */
+    INT             tm_hour;                                            /* hours after midnight [0, 23] */
+    INT             tm_mday;                                            /* day of the month     [1, 31] */
+    INT             tm_mon;                                             /* months since Jan     [0, 11] */
+    INT             tm_year;                                            /* years since 1900             */
+    INT             tm_wday;                                            /* days since Sunday    [0, 6]  */
+    INT             tm_yday;                                            /* days since January 1 [0, 365]*/
 #define tm_day      tm_yday
-    INT             tm_isdst;                                           /* Daylight Saving Time flag           */
-                                                                        /* must zero                           */
+    INT             tm_isdst;                                           /* Daylight Saving Time flag    */
+                                                                        /* must zero                    */
 };
 
 #endif                                                                  /*  __PTYPE                     */
 
 /*********************************************************************************************************
+  spinlock types.
+*********************************************************************************************************/
+#ifdef __SYLIXOS_KERNEL
+
+typedef union {
+    volatile UINT32 SLD_uiLock;
+    
+    struct {
+#if LW_CFG_CPU_ENDIAN > 0
+        UINT16      SLDQ_usTicket;
+        UINT16      SLDQ_usSvcNow;
+#else
+        UINT16      SLDQ_usSvcNow;
+        UINT16      SLDQ_usTicket;
+#endif                                                                  /*  LW_CFG_CPU_ENDIAN           */
+    } q;
+#define SLD_usTicket    q.SLDQ_usTicket
+#define SLD_usSvcNow    q.SLDQ_usSvcNow
+} SPINLOCKTYPE;
+
+#define LW_SPINLOCK_TICKET_SHIFT    16
+
+#endif                                                                  /*  __SYLIXOS_KERNEL            */
+/*********************************************************************************************************
   spinlock_t
 *********************************************************************************************************/
+
+#ifdef __SYLIXOS_KERNEL
 struct __lw_cpu;
+#endif                                                                  /*  __SYLIXOS_KERNEL            */
 
 typedef struct {
-    volatile SPINLOCKTYPE       SL_sltData;                             /*  自旋锁                      */
+#ifdef __SYLIXOS_KERNEL
+    SPINLOCKTYPE                SL_sltData;                             /*  自旋锁                      */
+#define SL_uiLock               SL_sltData.SLD_uiLock
+#define SL_usTicket             SL_sltData.SLD_usTicket
+#define SL_usSvcNow             SL_sltData.SLD_usSvcNow
     volatile struct __lw_cpu   *SL_pcpuOwner;                           /*  CPU 标识                    */
+
+#else
+    volatile UINT32             SL_uiLock;                              /*  自旋锁                      */
+    volatile PVOID              SL_pcpuOwner;
+#endif                                                                  /*  __SYLIXOS_KERNEL            */
+    
     ULONG                       SL_ulCounter;                           /*  锁定计数器                  */
-
-    union {
-        LW_LIST_LINE_HEADER     SLQ_plineHeader;                        /*  可实现 PRIORITY 等待        */
-        LW_LIST_RING_HEADER     SLQ_pringHeader;                        /*  可实现 FIFO     等待        */
-    } SL_slq;
-
-#define SL_plineHeader          SL_slq.SLQ_plineHeader                  /*  PRIORITY 表头               */
-#define SL_pringHeader          SL_slq.SLQ_pringHeader                  /*  FIFO 表头                   */
+    PVOID                       SL_pvReserved;                          /*  保留                        */
 } spinlock_t;
 
 #define LW_SPINLOCK_DEFINE(sl)              spinlock_t  sl

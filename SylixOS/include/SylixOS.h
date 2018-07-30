@@ -87,6 +87,7 @@ extern "C" {
 *********************************************************************************************************/
 
 #undef LW_INLINE
+#undef LW_ALWAYS_INLINE
 #undef REGISTER
 
 #else                                                                   /*  !__SYLIXOS_KERNEL           */

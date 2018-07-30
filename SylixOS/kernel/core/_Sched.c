@@ -115,14 +115,11 @@
   scheduler 通知机制
 *********************************************************************************************************/
 static VOIDFUNCPTR                                  _K_pfuncSchedSmpNotify;
-#if LW_CFG_CPU_ARCH_SMT > 0
-static VOIDFUNCPTR                                  _K_pfuncSchedSecNotify;
-#endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
 #define __LW_SMP_NOTIFY(ulCPUIdCur)                 _K_pfuncSchedSmpNotify(ulCPUIdCur)
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 /*********************************************************************************************************
-** 函数名称: _SchedSmpFschedNotify
-** 功能描述: 通知需要调度的 CPU (fast sched)
+** 函数名称: _SchedSmpNotify
+** 功能描述: 通知需要调度的 CPU
 ** 输　入  : ulCPUIdCur 当前 CPU ID
 ** 输　出  : NONE
 ** 全局变量: 
@@ -132,49 +129,22 @@ static VOIDFUNCPTR                                  _K_pfuncSchedSecNotify;
 *********************************************************************************************************/
 #if LW_CFG_SMP_EN > 0
 
-static VOID  _SchedSmpFschedNotify (ULONG  ulCPUIdCur)
+static VOID  _SchedSmpNotify (ULONG  ulCPUIdCur)
 {
     INT             i;
     PLW_CLASS_CPU   pcpu;
+    PLW_CLASS_TCB   ptcb;
     
     LW_CPU_FOREACH_ACTIVE_EXCEPT (i, ulCPUIdCur) {                      /*  遍历 CPU 检查是否需要调度   */
         pcpu = LW_CPU_GET(i);
-        if (LW_CAND_ROT(pcpu) &&
-            ((LW_CPU_GET_IPI_PEND(i) & LW_IPI_SCHED_MSK) == 0)) {
-            _SmpSendIpi(i, LW_IPI_SCHED, 0, LW_TRUE);                   /*  产生核间中断                */
-        }
-    }
-}
-/*********************************************************************************************************
-** 函数名称: _SchedSmpNormalNotify
-** 功能描述: 通知需要调度的 CPU (normal sched)
-** 输　入  : ulCPUIdCur 当前 CPU ID
-** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
-** 注  意  : 当另一个核产生了调度器卷绕, 并且没有在处理 sched 核间中断, 
-             则选择运行任务优先级最低的 CPU 发送核间中断.
-*********************************************************************************************************/
-static VOID  _SchedSmpNormalNotify (ULONG  ulCPUIdCur)
-{
-    INT             i;
-    INT             iCPUSend;
-    UINT8           ucPrioLow = 0;
-    PLW_CLASS_CPU   pcpu;
-    
-    LW_CPU_FOREACH_ACTIVE_EXCEPT (i, ulCPUIdCur) {                      /*  遍历 CPU 检查是否需要调度   */
-        pcpu = LW_CPU_GET(i);
-        if (LW_CAND_ROT(pcpu) &&
-            ((LW_CPU_GET_IPI_PEND(i) & LW_IPI_SCHED_MSK) == 0)) {
-            if (LW_PRIO_IS_HIGH(ucPrioLow, 
-                                LW_CAND_TCB(pcpu)->TCB_ucPriority)) {
-                ucPrioLow = LW_CAND_TCB(pcpu)->TCB_ucPriority;
-                iCPUSend  = i;
+        if (LW_CAND_ROT(pcpu) &&                                        /*  需要检查调度                */
+            ((LW_CPU_GET_IPI_PEND(i) & LW_IPI_SCHED_MSK) == 0) &&       /*  没有核间中断标志            */
+            !LW_ACCESS_ONCE(ULONG, pcpu->CPU_ulInterNesting)) {         /*  不在中断中                  */
+            ptcb = LW_CAND_TCB(pcpu);
+            if (LW_CPU_LOCK_QUICK_GET(pcpu) || !__THREAD_LOCK_GET(ptcb)) {
+                _SmpSendIpi(i, LW_IPI_SCHED, 0, LW_TRUE);               /*  产生核间中断                */
             }
         }
-    }
-    if (ucPrioLow) {
-        _SmpSendIpi(iCPUSend, LW_IPI_SCHED, 0, LW_TRUE);                /*  产生核间中断                */
     }
 }
 /*********************************************************************************************************
@@ -207,7 +177,7 @@ static VOID  _SchedSmpSmtNotify (ULONG  ulCPUIdCur)
         }
     }
     
-    _K_pfuncSchedSecNotify(ulCPUIdCur);                                 /*  尝试普通 SMP 调度通知       */
+    _SchedSmpNotify(ulCPUIdCur);                                        /*  尝试普通 SMP 调度通知       */
 }
 
 #endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
@@ -232,7 +202,7 @@ static LW_INLINE VOID  _SchedCpuDown (PLW_CLASS_CPU  pcpuCur, BOOL  bIsIntSwitch
     __LW_TASK_SAVE_FPU(ptcbCur, bIsIntSwitch);
     __LW_TASK_SAVE_DSP(ptcbCur, bIsIntSwitch);
     
-    _SchedSmpFschedNotify(ulCPUId);                                     /*  请求其他 CPU 调度           */
+    __LW_SMP_NOTIFY(ulCPUId);                                           /*  请求其他 CPU 调度           */
     
 #if LW_CFG_CACHE_EN > 0
     API_CacheDisable(DATA_CACHE);                                       /*  禁能 CACHE                  */
@@ -242,6 +212,8 @@ static LW_INLINE VOID  _SchedCpuDown (PLW_CLASS_CPU  pcpuCur, BOOL  bIsIntSwitch
 #if LW_CFG_VMM_EN > 0
     API_VmmMmuDisable();                                                /*  关闭 MMU                    */
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
+    
+    pcpuCur->CPU_ulStatus &= ~LW_CPU_STATUS_RUNNING;
     
     LW_SPIN_KERN_UNLOCK_SCHED(ptcbCur);                                 /*  解锁内核 spinlock           */
 
@@ -407,20 +379,18 @@ INT  _Schedule (VOID)
 /*********************************************************************************************************
 ** 函数名称: _ScheduleInt
 ** 功能描述: 中断退出时, 会调用此调度函数 (进入内核状态并关中断被调用)
-** 输　入  : NONE
+** 输　入  : pcpuCur    当前 CPU
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-VOID  _ScheduleInt (VOID)
+VOID  _ScheduleInt (PLW_CLASS_CPU  pcpuCur)
 {
     ULONG            ulCPUId;
-    PLW_CLASS_CPU    pcpuCur;
     PLW_CLASS_TCB    ptcbCur;
     PLW_CLASS_TCB    ptcbCand;
     
-    ulCPUId = LW_CPU_GET_CUR_ID();                                      /*  当前 CPUID                  */
-    pcpuCur = LW_CPU_GET(ulCPUId);                                      /*  当前 CPU 控制块             */
+    ulCPUId = LW_CPU_GET_ID(pcpuCur);                                   /*  当前 CPUID                  */
     ptcbCur = pcpuCur->CPU_ptcbTCBCur;
     
 #if LW_CFG_SMP_EN > 0
@@ -476,22 +446,11 @@ VOID  _ScheduleInit (VOID)
 #if LW_CFG_CPU_ARCH_SMT > 0
     if (LW_KERN_SMT_BSCHED_EN_GET()) {
         _K_pfuncSchedSmpNotify = _SchedSmpSmtNotify;
-        if (LW_KERN_SMP_FSCHED_EN_GET()) {
-            _K_pfuncSchedSecNotify = _SchedSmpFschedNotify;
         
-        } else {
-            _K_pfuncSchedSecNotify = _SchedSmpNormalNotify;
-        }
-    
     } else 
 #endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
     {
-        if (LW_KERN_SMP_FSCHED_EN_GET()) {
-            _K_pfuncSchedSmpNotify = _SchedSmpFschedNotify;
-        
-        } else {
-            _K_pfuncSchedSmpNotify = _SchedSmpNormalNotify;
-        }
+        _K_pfuncSchedSmpNotify = _SchedSmpNotify;
     }
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 }

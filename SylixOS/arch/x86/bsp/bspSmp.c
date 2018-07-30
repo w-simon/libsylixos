@@ -21,7 +21,6 @@
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
 #include "arch/x86/common/x86Topology.h"
-#include "arch/x86/mpcore/x86MpCore.h"
 /*********************************************************************************************************
   多核相关接口
 *********************************************************************************************************/
@@ -81,7 +80,7 @@ static const UINT8  _G_ucX86ApEntryCode[] = {                           /*  x86-
 };
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
 
-static SPINLOCKTYPE _G_slX86ApLock = 0;                                 /*  AP 启动自旋锁               */
+static LW_SPINLOCK_DEFINE_CACHE_ALIGN(_G_slX86ApLock);                  /*  AP 启动自旋锁               */
 /*********************************************************************************************************
 ** 函数名称: x86CpuIpiStartSecondary
 ** 功能描述: 启动 AP Processor
@@ -175,7 +174,7 @@ LW_WEAK VOID   bspCpuUp (ULONG  ulCPUId)
     }
     pulEntryAddr = (ULONG *)AP_BOOT_ENTRY_ADDR;
 
-    x86SpinLock(&_G_slX86ApLock);
+    archSpinLockRaw(&_G_slX86ApLock);
 
     lib_memcpy(pulEntryAddr, _G_ucX86ApEntryCode, (size_t)sizeof(_G_ucX86ApEntryCode));
 
@@ -237,7 +236,7 @@ LW_WEAK VOID   bspCpuUp (ULONG  ulCPUId)
 *********************************************************************************************************/
 LW_WEAK VOID  bspCpuUpDone (VOID)
 {
-    x86SpinUnlock(&_G_slX86ApLock);
+    archSpinUnlockRaw(&_G_slX86ApLock);
 }
 /*********************************************************************************************************
 ** 函数名称: bspSecondaryCpusUp

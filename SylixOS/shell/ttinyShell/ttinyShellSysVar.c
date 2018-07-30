@@ -85,7 +85,8 @@ VOID  __tshellSysVarInit (VOID)
 #else
     API_TShellExec("SO_MEM_PAGES=256");                                 /*  动态内存虚拟页面数量 2MB    */
 #endif
-
+    API_TShellExec("SO_MEM_DIRECT=0");                                  /*  进程 MEM 是否为直接开辟     */
+                                                                        /*  不使用缺页中断 (不建议)     */
 #if LW_KERN_FLOATING > 0
     API_TShellExec("KERN_FLOAT=1");                                     /*  内核支持浮点格式            */
 #else

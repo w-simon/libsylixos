@@ -78,6 +78,12 @@ typedef ARCH_REG_CTX            REG_SET;
 *********************************************************************************************************/
 
 #ifdef __SYLIXOS_KERNEL
+LW_API int          int_lock(void);
+LW_API void         int_unlock(int level);
+LW_API void         int_enable_pic(uint32_t irq);
+LW_API void         int_disable_pic(uint32_t irq);
+
+#if LW_CFG_GJB7714_INT_EN > 0
 typedef void      (*EXC_HANDLER)(int type);
 
 LW_API int          int_install_handler(const char  *name, 
@@ -86,16 +92,13 @@ LW_API int          int_install_handler(const char  *name,
                                         void       (*handler)(void *),
                                         void        *param);
 LW_API int          int_uninstall_handler(int   vecnum);
-LW_API int          int_lock(void);
-LW_API void         int_unlock(int level);
-LW_API void         int_enable_pic(uint32_t irq);
-LW_API void         int_disable_pic(uint32_t irq);
 LW_API EXC_HANDLER  exception_handler_set(EXC_HANDLER exc_handler);
 LW_API int          shared_int_install(int     vecnum, 
                                        void  (*handler)(void *),
                                        void   *param);
 LW_API int          shared_int_uninstall(int     vecnum, 
                                          void  (*handler)(void *));
+#endif                                                                  /*  LW_CFG_GJB7714_INT_EN > 0   */
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 
 /*********************************************************************************************************

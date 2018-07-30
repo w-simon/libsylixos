@@ -36,6 +36,7 @@ INT  _CpuActive (PLW_CLASS_CPU   pcpu)
     }
     
     pcpu->CPU_ulStatus |= LW_CPU_STATUS_ACTIVE;
+    
 #if (LW_CFG_SMP_EN > 0) && (LW_CFG_CPU_ARCH_SMT > 0)
     LW_PHYCPU_GET(pcpu->CPU_ulPhyId)->PHYCPU_uiLogic++;
 #endif
@@ -67,18 +68,21 @@ INT  _CpuActive (PLW_CLASS_CPU   pcpu)
 INT  _CpuInactive (PLW_CLASS_CPU   pcpu)
 {
     INT             i;
-    ULONG           ulCPUId = pcpu->CPU_ulCPUId;
+    ULONG           ulCPUId;
     PLW_CLASS_CPU   pcpuOther;
     PLW_CLASS_TCB   ptcbOther;
     PLW_CLASS_TCB   ptcb;
+    BOOL            bRotIdle;
 
     if (!LW_CPU_IS_ACTIVE(pcpu)) {
         return  (PX_ERROR);
     }
     
-    ptcb = LW_CAND_TCB(pcpu);
+    ulCPUId = LW_CPU_GET_ID(pcpu);
+    ptcb    = LW_CAND_TCB(pcpu);
     
     pcpu->CPU_ulStatus &= ~LW_CPU_STATUS_ACTIVE;
+    
 #if LW_CFG_CPU_ARCH_SMT > 0
     LW_PHYCPU_GET(pcpu->CPU_ulPhyId)->PHYCPU_uiLogic--;
 #endif
@@ -96,22 +100,41 @@ INT  _CpuInactive (PLW_CLASS_CPU   pcpu)
     pcpu->CPU_ptcbTCBCur  = LW_NULL;
     pcpu->CPU_ptcbTCBHigh = LW_NULL;
     
+    if (ptcb->TCB_bCPULock) {                                           /*  此任务设置了亲和度          */
+        return  (ERROR_NONE);
+    }
+    
+    bRotIdle = LW_FALSE;
+    
     LW_CPU_FOREACH_ACTIVE_EXCEPT (i, ulCPUId) {                         /*  CPU 必须是激活状态          */
         pcpuOther = LW_CPU_GET(i);
         ptcbOther = LW_CAND_TCB(pcpuOther);
         
-        if (LW_CAND_ROT(pcpuOther) == LW_FALSE) {
-            if (ptcbOther->TCB_usSchedCounter == 0) {                   /*  已经没有时间片了            */
-                if (LW_PRIO_IS_HIGH_OR_EQU(ptcb->TCB_ucPriority, 
-                                           ptcbOther->TCB_ucPriority)) {
-                    LW_CAND_ROT(pcpuOther) = LW_TRUE;
-                }
+        if (LW_CPU_ONLY_AFFINITY_GET(pcpuOther)) {                      /*  仅运行亲和度任务            */
+            continue;
+        }
+
+        if (!LW_CAND_ROT(pcpuOther) && 
+            (LW_PRIO_IS_EQU(LW_PRIO_LOWEST, 
+                            ptcbOther->TCB_ucPriority))) {              /*  运行 idle 任务且无标注      */
+            LW_CAND_ROT(pcpuOther) = LW_TRUE;
+            bRotIdle               = LW_TRUE;
+            break;                                                      /*  只标注一个 CPU 即可         */
+        }
+    }
+    
+    if (!bRotIdle) {
+        LW_CPU_FOREACH_ACTIVE_EXCEPT (i, ulCPUId) {                     /*  CPU 必须是激活状态          */
+            pcpuOther = LW_CPU_GET(i);
+            ptcbOther = LW_CAND_TCB(pcpuOther);
             
-            } else {
-                if (LW_PRIO_IS_HIGH(ptcb->TCB_ucPriority, 
-                                    ptcbOther->TCB_ucPriority)) {
-                    LW_CAND_ROT(pcpuOther) = LW_TRUE;
-                }
+            if (LW_CPU_ONLY_AFFINITY_GET(pcpuOther)) {                  /*  仅运行亲和度任务            */
+                continue;
+            }
+
+            if (LW_PRIO_IS_HIGH(ptcb->TCB_ucPriority,
+                                ptcbOther->TCB_ucPriority)) {
+                LW_CAND_ROT(pcpuOther) = LW_TRUE;
             }
         }
     }

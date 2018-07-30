@@ -24,10 +24,69 @@
   spinlock 状态
 *********************************************************************************************************/
 #if LW_CFG_SMP_EN > 0
-#include "sparcMpCore.h"
 /*********************************************************************************************************
   L1 cache 同步请参考: http://www.cnblogs.com/jiayy/p/3246133.html
 *********************************************************************************************************/
+/*********************************************************************************************************
+** 函数名称: sparcSpinLock
+** 功能描述: sparc spin lock
+** 输　入  : psld       spinlock data 指针
+**           pfuncPoll  循环等待时调用函数
+**           pvArg      回调参数
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+** 注  意  : 自旋结束时, 操作系统会调用内存屏障, 所以这里不需要调用.
+*********************************************************************************************************/
+static LW_INLINE VOID  sparcSpinLock (SPINLOCKTYPE *psld, VOIDFUNCPTR  pfuncPoll, PVOID  pvArg)
+{
+    UINT32  uiRes;
+
+    for (;;) {
+        __asm__ __volatile__("ldstub    [%1], %0"
+                             : "=r" (uiRes)
+                             : "r" (psld)
+                             : "memory");
+        if (uiRes == 0) {
+            break;
+        }
+        if (pfuncPoll) {
+            pfuncPoll(pvArg);
+        }
+    }
+}
+/*********************************************************************************************************
+** 函数名称: sparcSpinTryLock
+** 功能描述: sparc spin trylock
+** 输　入  : psld       spinlock data 指针
+** 输　出  : 1: busy 0: ok
+** 全局变量:
+** 调用模块:
+** 注  意  : 自旋结束时, 操作系统会调用内存屏障, 所以这里不需要调用.
+*********************************************************************************************************/
+static LW_INLINE UINT32  sparcSpinTryLock (SPINLOCKTYPE *psld)
+{
+    UINT32  uiRes;
+
+    __asm__ __volatile__("ldstub    [%1], %0"
+                         : "=r" (uiRes)
+                         : "r" (psld)
+                         : "memory");
+
+    return  (uiRes);
+}
+/*********************************************************************************************************
+** 函数名称: sparcSpinUnlock
+** 功能描述: sparc spin unlock
+** 输　入  : psld       spinlock data 指针
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static LW_INLINE VOID  sparcSpinUnlock (SPINLOCKTYPE *psld)
+{
+    __asm__ __volatile__("stb   %%g0, [%0]" : : "r" (psld) : "memory");
+}
 /*********************************************************************************************************
 ** 函数名称: archSpinInit
 ** 功能描述: 初始化一个 spinlock
@@ -38,9 +97,10 @@
 *********************************************************************************************************/
 VOID  archSpinInit (spinlock_t  *psl)
 {
-    psl->SL_sltData   = 0;                                              /*  0: 未锁定状态  1: 锁定状态  */
-    psl->SL_pcpuOwner = LW_NULL;
-    psl->SL_ulCounter = 0ul;                                            /*  重入锁计数                  */
+    psl->SL_sltData.SLD_uiLock = 0;                                     /*  0: 未锁定状态  1: 锁定状态  */
+    psl->SL_pcpuOwner          = LW_NULL;
+    psl->SL_ulCounter          = 0;
+    psl->SL_pvReserved         = LW_NULL;
     KN_SMP_WMB();
 }
 /*********************************************************************************************************
@@ -78,7 +138,7 @@ VOID  archSpinNotify (VOID)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-INT  archSpinLock (spinlock_t  *psl)
+INT  archSpinLock (spinlock_t  *psl, VOIDFUNCPTR  pfuncPoll, PVOID  pvArg)
 {
     if (psl->SL_pcpuOwner == LW_CPU_GET_CUR()) {
         psl->SL_ulCounter++;
@@ -87,7 +147,7 @@ INT  archSpinLock (spinlock_t  *psl)
         return  (1);                                                    /*  重复调用                    */
     }
 
-    sparcSpinLock(&psl->SL_sltData);
+    sparcSpinLock(&psl->SL_sltData, pfuncPoll, pvArg);
 
     psl->SL_pcpuOwner = LW_CPU_GET_CUR();                               /*  保存当前 CPU                */
     
@@ -157,7 +217,7 @@ INT  archSpinUnlock (spinlock_t  *psl)
 *********************************************************************************************************/
 INT  archSpinLockRaw (spinlock_t  *psl)
 {
-    sparcSpinLock(&psl->SL_sltData);
+    sparcSpinLock(&psl->SL_sltData, LW_NULL, LW_NULL);
 
     return  (1);                                                        /*  加锁成功                    */
 }

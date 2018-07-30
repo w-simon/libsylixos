@@ -31,96 +31,11 @@
     
     IMPORT_LABEL(bspMpInt)
     
-    EXPORT_LABEL(armSpinLock)
-    EXPORT_LABEL(armSpinTryLock)
-    EXPORT_LABEL(armSpinUnlock)
     EXPORT_LABEL(archMpCur)
     EXPORT_LABEL(archMpInt)
     
-    WEAK(armSpinLock)
-    WEAK(armSpinTryLock)
-    WEAK(armSpinUnlock)
     WEAK(archMpCur)
     WEAK(archMpInt)
-
-;/*********************************************************************************************************
-;  自旋锁 ARMv6/v7
-;*********************************************************************************************************/
-
-#if __SYLIXOS_ARM_ARCH__ >= 6
-FUNC_DEF(armSpinLock)
-    MOV     R1, #1
-1:
-    LDREX   R2, [R0]
-    CMP     R2, #0
-
-#if (__SYLIXOS_ARM_ARCH__ >= 7) && (ARM_SPINLOCK_EVENT > 0)
-    WFENE
-#endif
-
-    STREXEQ R2, R1, [R0]
-    CMPEQ   R2, #0
-    BNE     1b
-    ARM_DMB()
-
-    BX      LR
-    FUNC_END()
-
-FUNC_DEF(armSpinTryLock)
-    MOV     R1, #1
-    LDREX   R2, [R0]
-    CMP     R2, #0
-    STREXEQ R2, R1, [R0]
-    MOV     R0, R2
-    ARM_DMB()
-
-    BX      LR
-    FUNC_END()
-
-FUNC_DEF(armSpinUnlock)
-    MOV     R1, #0
-    STR     R1, [R0]
-    ARM_DSB()
-
-#if (__SYLIXOS_ARM_ARCH__ >= 7) && (ARM_SPINLOCK_EVENT > 0)
-    SEV
-#endif
-
-    BX      LR
-    FUNC_END()
-
-;/*********************************************************************************************************
-;  自旋锁 ARMv4/v5
-;*********************************************************************************************************/
-
-#else
-FUNC_DEF(armSpinLock)
-    MOV     R1, #1
-1:
-    LDR     R2, [R0]
-    CMP     R2, #0
-    SWPEQ   R2, R1, [R0]
-    CMPEQ   R2, #0
-    BNE     1b
-    BX      LR
-    FUNC_END()
-
-FUNC_DEF(armSpinTryLock)
-    MOV     R1, #1
-    LDR     R2, [R0]
-    CMP     R2, #0
-    SWPEQ   R2, R1, [R0]
-    MOV     R0, R2
-    BX      LR
-    FUNC_END()
-    
-FUNC_DEF(armSpinUnlock)
-    MOV     R1, #0
-    STR     R1, [R0]
-    ARM_DSB()
-    BX      LR
-    FUNC_END()
-#endif
 
 ;/*********************************************************************************************************
 ;  获得当前核 ID ARMv6/v7

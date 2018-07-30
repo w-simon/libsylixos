@@ -24,10 +24,92 @@
   spinlock 状态
 *********************************************************************************************************/
 #if LW_CFG_SMP_EN > 0
-#include "x86MpCore.h"
 /*********************************************************************************************************
   L1 cache 同步请参考: http://www.cnblogs.com/jiayy/p/3246133.html
 *********************************************************************************************************/
+#define cmpxchg(ptr, _old, _new)                                \
+({                                                              \
+        UINT32 __ret;                                           \
+        volatile UINT32 *__ptr = (volatile UINT32 *)(ptr);      \
+                                                                \
+        __asm__ __volatile__( "lock; cmpxchgl %2,%1"            \
+            : "=a" (__ret), "+m" (*__ptr)                       \
+            : "r" (_new), "0" (_old)                            \
+            : "memory");                                        \
+        __ret;                                                  \
+})
+/*********************************************************************************************************
+** 函数名称: x86SpinLock
+** 功能描述: x86 spin lock
+** 输　入  : psld       spinlock data 指针
+**           pfuncPoll  循环等待时调用函数
+**           pvArg      回调参数
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+** 注  意  : 自旋结束时, 操作系统会调用内存屏障, 所以这里不需要调用.
+*********************************************************************************************************/
+static LW_INLINE VOID  x86SpinLock (SPINLOCKTYPE *psld, VOIDFUNCPTR  pfuncPoll, PVOID  pvArg)
+{
+    UINT32          uiNewVal;
+    UINT32          uiRet;
+    SPINLOCKTYPE    sldVal;
+
+    for (;;) {
+        sldVal.SLD_uiLock = LW_ACCESS_ONCE(UINT32, psld->SLD_uiLock);
+        uiNewVal          = sldVal.SLD_uiLock + (1 << LW_SPINLOCK_TICKET_SHIFT);
+        uiRet             = cmpxchg(&psld->SLD_uiLock, sldVal, uiNewVal);
+        if (uiRet == sldVal.SLD_uiLock) {
+            break;
+        } else {
+            __asm__ __volatile__("pause");
+        }
+    }
+
+    while (sldVal.SLD_usTicket != sldVal.SLD_usSvcNow) {
+        if (pfuncPoll) {
+            pfuncPoll(pvArg);
+        }
+        sldVal.SLD_usSvcNow = LW_ACCESS_ONCE(UINT16, psld->SLD_usSvcNow);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: x86SpinTryLock
+** 功能描述: x86 spin trylock
+** 输　入  : psld       spinlock data 指针
+** 输　出  : 1: busy 0: ok
+** 全局变量:
+** 调用模块:
+** 注  意  : 自旋结束时, 操作系统会调用内存屏障, 所以这里不需要调用.
+*********************************************************************************************************/
+static LW_INLINE UINT32  x86SpinTryLock (SPINLOCKTYPE *psld)
+{
+    UINT32          uiNewVal;
+    UINT32          uiRet;
+    SPINLOCKTYPE    sldVal;
+
+    if (psld->SLD_usTicket == psld->SLD_usSvcNow) {
+        sldVal.SLD_uiLock = LW_ACCESS_ONCE(UINT32, psld->SLD_uiLock);
+        uiNewVal          = sldVal.SLD_uiLock + (1 << LW_SPINLOCK_TICKET_SHIFT);
+        uiRet             = cmpxchg(&psld->SLD_uiLock, sldVal, uiNewVal);
+        return  ((uiRet == sldVal.SLD_uiLock) ? 0 : 1);
+    
+	} else {
+        return  (1);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: x86SpinUnlock
+** 功能描述: x86 spin unlock
+** 输　入  : psld       spinlock data 指针
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static LW_INLINE VOID  x86SpinUnlock (SPINLOCKTYPE *psld)
+{
+    psld->SLD_usSvcNow++;
+}
 /*********************************************************************************************************
 ** 函数名称: archSpinInit
 ** 功能描述: 初始化一个 spinlock
@@ -38,9 +120,10 @@
 *********************************************************************************************************/
 VOID  archSpinInit (spinlock_t  *psl)
 {
-    psl->SL_sltData   = 0;                                              /*  0: 未锁定状态  1: 锁定状态  */
-    psl->SL_pcpuOwner = LW_NULL;
-    psl->SL_ulCounter = 0ul;                                            /*  重入锁计数                  */
+    psl->SL_sltData.SLD_uiLock = 0;                                     /*  0: 未锁定状态  1: 锁定状态  */
+    psl->SL_pcpuOwner          = LW_NULL;
+    psl->SL_ulCounter          = 0;
+    psl->SL_pvReserved         = LW_NULL;
     KN_SMP_WMB();
 }
 /*********************************************************************************************************
@@ -75,7 +158,7 @@ VOID  archSpinNotify (VOID)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-INT  archSpinLock (spinlock_t  *psl)
+INT  archSpinLock (spinlock_t  *psl, VOIDFUNCPTR  pfuncPoll, PVOID  pvArg)
 {
     if (psl->SL_pcpuOwner == LW_CPU_GET_CUR()) {
         psl->SL_ulCounter++;
@@ -84,7 +167,7 @@ INT  archSpinLock (spinlock_t  *psl)
         return  (1);                                                    /*  重复调用                    */
     }
     
-    x86SpinLock(&psl->SL_sltData);
+    x86SpinLock(&psl->SL_sltData, pfuncPoll, pvArg);
     
     psl->SL_pcpuOwner = LW_CPU_GET_CUR();                               /*  保存当前 CPU                */
     
@@ -154,7 +237,7 @@ INT  archSpinUnlock (spinlock_t  *psl)
 *********************************************************************************************************/
 INT  archSpinLockRaw (spinlock_t  *psl)
 {
-    x86SpinLock(&psl->SL_sltData);
+    x86SpinLock(&psl->SL_sltData, LW_NULL, LW_NULL);
 
     return  (1);                                                        /*  加锁成功                    */
 }

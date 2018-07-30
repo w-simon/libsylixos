@@ -26,6 +26,7 @@
 
 #if defined(LW_CFG_CPU_ARCH_ARM)
 #include "arm/arch_types.h"
+#include "arm/arch_def.h"
 #include "arm/arch_compiler.h"
 #include "arm/arch_float.h"
 #include "arm/arch_limits.h"

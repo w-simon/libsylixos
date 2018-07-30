@@ -10,7 +10,7 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: inlUnpreemptiveCheck.h
+** 文   件   名: inlPreemptiveCheck.h
 **
 ** 创   建   人: Han.Hui (韩辉)
 **
@@ -25,8 +25,8 @@
 2013.07.17  SMP 安全升级. 修正获取当前任务的方法.
 *********************************************************************************************************/
 
-#ifndef  __INLUNPREEMPTIVECHECK_H
-#define  __INLUNPREEMPTIVECHECK_H
+#ifndef  __INLPREEMPTIVECHECK_H
+#define  __INLPREEMPTIVECHECK_H
 
 /*********************************************************************************************************
   任务调度锁
@@ -62,10 +62,26 @@ static LW_INLINE BOOL __can_preemptive (PLW_CLASS_CPU  pcpu, ULONG  ulMaxLockCou
 }
 
 /*********************************************************************************************************
+  检查退出内核或中断时是否需要调度. (在内核状态被调用)
+*********************************************************************************************************/
+
+static LW_INLINE BOOL __can_preemptive_ki (PLW_CLASS_CPU  pcpu, ULONG  ulMaxLockCounter)
+{
+    PLW_CLASS_TCB   ptcbCur = pcpu->CPU_ptcbTCBCur;
+
+    /*
+     *  当前线程就绪且被锁定, 不允许调度.
+     */
+    return  ((__THREAD_LOCK_GET(ptcbCur) > ulMaxLockCounter) && __LW_THREAD_IS_READY(ptcbCur) ?
+             LW_FALSE : LW_TRUE);
+}
+
+/*********************************************************************************************************
   判断调度是否可执行宏. (没有嵌套发生并且有线程请求调度被激活)
 *********************************************************************************************************/
 
 #define __COULD_SCHED(pcpu, ulMaxLockCounter)    __can_preemptive(pcpu, ulMaxLockCounter)
+#define __COULD_SCHED_KI(pcpu, ulMaxLockCounter) __can_preemptive_ki(pcpu, ulMaxLockCounter)
 
 /*********************************************************************************************************
   判断是否需要调度
@@ -104,7 +120,7 @@ static LW_INLINE VOID  __smp_cpu_unlock (BOOL  bUnlock)
 
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 
-#endif                                                                  /*  __INLUNPREEMPTIVECHECK_H    */
+#endif                                                                  /*  __INLPREEMPTIVECHECK_H      */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

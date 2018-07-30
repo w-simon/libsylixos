@@ -58,7 +58,7 @@
 #include "./loader/include/loader_lib.h" /* need __eabi */
 #endif /* LW_CFG_CPU_ARCH_PPC */
 
-#define __VP_PATCH_VERSION      "2.0.9" /* vp patch version */
+#define __VP_PATCH_VERSION      "2.1.0" /* vp patch version */
 
 /*
  * fixed gcc old version.
@@ -105,6 +105,7 @@ typedef struct vp_ctx {
     LW_CLASS_HEAP  heap; /* this private heap */
     size_t  pagesize; /* vmm page size */
     size_t  blksize; /* vmm allocate size per time */
+    int memdirect; /* vmm direct allocate memory */
     void  *vmem[MAX_MEM_BLKS]; /* vmm memory block pointer */
     void  *proc; /* this process */
     int alloc_en; /* allocate memory is enable */
@@ -114,6 +115,7 @@ typedef struct vp_ctx {
 static vp_ctx ctx = {
     .pagesize = 4096, /* default vmm page size */
     .blksize = 8192, /* default vmm block memory size */
+    .memdirect = 0, /* default vmm do not direct allocate */
 };
 
 /*
@@ -240,13 +242,17 @@ void __vp_patch_ctor (void *pvproc, PVOIDFUNCPTR *ppfuncMalloc, VOIDFUNCPTR *ppf
 
     ctx.proc = pvproc; /* save this process handle, dlopen will use this */
 
-    API_TShellVarGetRt("SO_MEM_PAGES", buf, sizeof(buf)); /* must not use getenv() */
-    
-    ctx.blksize = (unsigned long)lib_atol(buf);
-    if (ctx.blksize < 0) {
-        return;
+    if (API_TShellVarGetRt("SO_MEM_PAGES", buf, sizeof(buf)) > 0) { /* must not use getenv() */
+        ctx.blksize = (size_t)lib_atol(buf);
+        if (ctx.blksize < 0) {
+            return;
+        }
     }
     
+    if (API_TShellVarGetRt("SO_MEM_DIRECT", buf, sizeof(buf)) > 0) { /* must not use getenv() */
+        ctx.memdirect = lib_atoi(buf);
+    }
+
 #if LW_CFG_VMM_EN > 0
     ctx.pagesize = (size_t)getpagesize();
 #endif /* LW_CFG_VMM_EN > 0 */
@@ -263,7 +269,11 @@ void __vp_patch_ctor (void *pvproc, PVOIDFUNCPTR *ppfuncMalloc, VOIDFUNCPTR *ppf
     }
 
 #if LW_CFG_VMM_EN > 0
-    ctx.vmem[0] = vmmMallocArea(ctx.blksize, NULL, NULL);
+    if (ctx.memdirect) {
+        ctx.vmem[0] = vmmMalloc(ctx.blksize);
+    } else {
+        ctx.vmem[0] = vmmMallocArea(ctx.blksize, NULL, NULL);
+    }
 #else
     ctx.vmem[0] = __SHEAP_ALLOC(ctx.blksize);
 #endif /* LW_CFG_VMM_EN > 0 */
@@ -296,7 +306,11 @@ void __vp_patch_dtor (void *pvproc)
         for (i = 0; i < MAX_MEM_BLKS; i++) {
             if (ctx.vmem[i]) {
 #if LW_CFG_VMM_EN > 0
-                vmmFreeArea(ctx.vmem[i]); /* free all module private memory area */
+                if (ctx.memdirect) {
+                    vmmFree(ctx.vmem[i]);
+                } else {
+                    vmmFreeArea(ctx.vmem[i]); /* free all module private memory area */
+                }
 #else
                 __SHEAP_FREE(ctx.vmem[i]);
 #endif /* LW_CFG_VMM_EN > 0 */
@@ -328,7 +342,11 @@ void __vp_patch_sbrk (BOOL lock)
         for (i = 0; i < MAX_MEM_BLKS; i++) {
             if (ctx.vmem[i] == NULL) {
 #if LW_CFG_VMM_EN > 0
-                ctx.vmem[i] = vmmMallocArea(ctx.blksize, NULL, NULL);
+                if (ctx.memdirect) {
+                    ctx.vmem[i] = vmmMalloc(ctx.blksize);
+                } else {
+                    ctx.vmem[i] = vmmMallocArea(ctx.blksize, NULL, NULL);
+                }
 #else
                 ctx.vmem[i] = __SHEAP_ALLOC(ctx.blksize);
 #endif /* LW_CFG_VMM_EN > 0 */
@@ -398,28 +416,30 @@ int atexit (void (*func)(void))
 /*
  *  pre-alloc physical pages (use page fault mechanism)
  */
-void  __vp_pre_alloc_phy (const void *pmem, size_t nbytes)
+void  __vp_pre_alloc_phy (const void *pmem, size_t nbytes, int mmap)
 {
 #if LW_CFG_VMM_EN > 0
-    unsigned long  algin = (unsigned long)pmem;
-    unsigned long  end   = algin + nbytes - 1;
-    volatile char  temp;
+    if (!ctx.memdirect || mmap) {
+        unsigned long  algin = (unsigned long)pmem;
+        unsigned long  end   = algin + nbytes - 1;
+        volatile char  temp;
+
+        if (!pmem || !nbytes) {
+            return;
+        }
     
-    if (!pmem || !nbytes) {
-        return;
-    }
-
-    temp = *(char *)algin;
-
-    algin |= (ctx.pagesize - 1);
-    algin += 1;
-
-    while (algin <= end) {
         temp = *(char *)algin;
-        algin += ctx.pagesize;
+
+        algin |= (ctx.pagesize - 1);
+        algin += 1;
+
+        while (algin <= end) {
+            temp = *(char *)algin;
+            algin += ctx.pagesize;
+        }
+
+        (void)temp; /* no warning for this variable */
     }
-    
-    (void)temp; /* no warning for this variable */
 #endif /* LW_CFG_VMM_EN > 0 */
 }
 
@@ -455,7 +475,7 @@ void *lib_malloc (size_t  nbytes)
 __re_try:
         pmem = VP_MEM_ALLOC(&ctx.heap, nbytes);
         if (pmem) {
-            __vp_pre_alloc_phy(pmem, nbytes);
+            __vp_pre_alloc_phy(pmem, nbytes, 0);
 
         } else {
             if (mextern || !NEED_CALL_SBRK) {
@@ -511,7 +531,7 @@ void *lib_mallocalign (size_t  nbytes, size_t align)
 __re_try:
         pmem = VP_MEM_ALLOC_ALIGN(&ctx.heap, nbytes, align);
         if (pmem) {
-            __vp_pre_alloc_phy(pmem, nbytes);
+            __vp_pre_alloc_phy(pmem, nbytes, 0);
 
         } else {
             if (mextern || !NEED_CALL_SBRK) {
@@ -634,7 +654,7 @@ void *lib_realloc (void *ptr, size_t  new_size)
 __re_try:
         pmem = VP_MEM_REALLOC(&ctx.heap, ptr, new_size, __HEAP_CHECK);
         if (pmem) {
-            __vp_pre_alloc_phy(pmem, new_size);
+            __vp_pre_alloc_phy(pmem, new_size, 0);
 
         } else {
             if (mextern || !NEED_CALL_SBRK) {
@@ -714,7 +734,7 @@ void *lib_malloc_new (size_t  nbytes)
 __re_try:
         p = VP_MEM_ALLOC(&ctx.heap, nbytes);
         if (p) {
-            __vp_pre_alloc_phy(p, nbytes);
+            __vp_pre_alloc_phy(p, nbytes, 0);
 
         } else {
             if (mextern || !NEED_CALL_SBRK) {

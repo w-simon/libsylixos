@@ -22,7 +22,7 @@ void __vp_patch_sbrk(BOOL lock);
 /*
  * pre allocate physical memory
  */
-void  __vp_pre_alloc_phy(const void *pmem, size_t nbytes);
+void  __vp_pre_alloc_phy(const void *pmem, size_t nbytes, int mmap);
 
 /*
  * global heap
@@ -85,7 +85,7 @@ void *dlmalloc_mmap (size_t  stLen)
 
     mem = mmap(NULL, stLen, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (mem != MAP_FAILED) {
-        __vp_pre_alloc_phy(mem, stLen);
+        __vp_pre_alloc_phy(mem, stLen, 1);
     }
 
     return  (mem);
@@ -105,7 +105,7 @@ void  *dlmalloc_mremap (void *pvAddr, size_t stOldSize, size_t stNewSize, int mv
 
     mem = mremap(pvAddr, stOldSize, stNewSize, flag);
     if (mem != MAP_FAILED) {
-        __vp_pre_alloc_phy(mem, stNewSize);
+        __vp_pre_alloc_phy(mem, stNewSize, 1);
     }
 
     return  (mem);

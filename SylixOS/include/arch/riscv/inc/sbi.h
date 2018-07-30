@@ -34,6 +34,8 @@
 #ifndef _ASM_RISCV_SBI_H
 #define _ASM_RISCV_SBI_H
 
+#if LW_CFG_RISCV_M_LEVEL == 0
+
 #define SBI_SET_TIMER 0
 #define SBI_CONSOLE_PUTCHAR 1
 #define SBI_CONSOLE_GETCHAR 2
@@ -115,6 +117,7 @@ static inline void sbi_remote_sfence_vma_asid(const unsigned long *hart_mask,
     SBI_CALL_1(SBI_REMOTE_SFENCE_VMA_ASID, hart_mask);
 }
 
+#endif
 #endif
 /*********************************************************************************************************
   END

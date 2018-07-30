@@ -454,6 +454,7 @@ LOCAL_X86_SRCS := $(LOCAL_X86_COMMON_SRCS)
 LOCAL_X86_SRCS += \
 SylixOS/arch/x86/dbg/x86Gdb.c \
 SylixOS/arch/x86/elf/x86Elf.c \
+SylixOS/arch/x86/common/x86AtomicAsm.S \
 SylixOS/arch/x86/common/x86ContextAsm.S \
 SylixOS/arch/x86/common/x86CpuIdAsm.S \
 SylixOS/arch/x86/common/x86ExcAsm.S \
@@ -466,7 +467,6 @@ SylixOS/arch/x86/fpu/fpusse/x86FpuSseAsm.S \
 SylixOS/arch/x86/mm/cache/x86CacheAsm.S \
 SylixOS/arch/x86/mm/mmu/x86Mmu.c \
 SylixOS/arch/x86/mm/mmu/x86MmuAsm.S \
-SylixOS/arch/x86/mpcore/x86MpCoreAsm.S \
 SylixOS/arch/x86/pentium/x86PentiumAsm.S
 
 #*********************************************************************************************************
@@ -476,6 +476,7 @@ LOCAL_X64_SRCS := $(LOCAL_X86_COMMON_SRCS)
 LOCAL_X64_SRCS += \
 SylixOS/arch/x86/dbg/x64Gdb.c \
 SylixOS/arch/x86/elf/x64Elf.c \
+SylixOS/arch/x86/common/x64/x64AtomicAsm.S \
 SylixOS/arch/x86/common/x64/x64ContextAsm.S \
 SylixOS/arch/x86/common/x64/x64CpuIdAsm.S \
 SylixOS/arch/x86/common/x64/x64ExcAsm.S \
@@ -488,7 +489,6 @@ SylixOS/arch/x86/fpu/fpusse/x64FpuSseAsm.S \
 SylixOS/arch/x86/mm/cache/x64CacheAsm.S \
 SylixOS/arch/x86/mm/mmu/x64Mmu.c \
 SylixOS/arch/x86/mm/mmu/x64MmuAsm.S \
-SylixOS/arch/x86/mpcore/x64MpCoreAsm.S \
 SylixOS/arch/x86/pentium/x64PentiumAsm.S
 
 #*********************************************************************************************************

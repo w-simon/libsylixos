@@ -33,59 +33,11 @@
 
     IMPORT_LABEL(bspMpInt)
 
-    EXPORT_LABEL(mipsSpinLock)
-    EXPORT_LABEL(mipsSpinTryLock)
-    EXPORT_LABEL(mipsSpinUnlock)
     EXPORT_LABEL(archMpCur)
     EXPORT_LABEL(archMpInt)
 
-    WEAK(mipsSpinLock)
-    WEAK(mipsSpinTryLock)
-    WEAK(mipsSpinUnlock)
     WEAK(archMpCur)
     WEAK(archMpInt)
-
-;/*********************************************************************************************************
-;  自旋锁
-;*********************************************************************************************************/
-
-FUNC_DEF(mipsSpinLock)
-1:
-    LL      T0 , 0(A0)
-    BNEZ    T0 , 1b
-    NOP
-
-    LI      T0 , 1
-    SC      T0 , 0(A0)
-    BEQZ    T0 , 1b
-    SYNC
-
-    JR      RA
-    NOP
-    FUNC_END(mipsSpinLock)
-
-FUNC_DEF(mipsSpinTryLock)
-    LL      T0 , 0(A0)
-    BNEZ    T0 , 1f
-    NOP
-
-    LI      T0 , 1
-    SC      T0 , 0(A0)
-    BEQZ    T0 , 1f
-    SYNC
-
-    JR      RA
-    MOV     V0 , ZERO
-1:
-    JR      RA
-    LI      V0 , 1
-    FUNC_END(mipsSpinTryLock)
-
-FUNC_DEF(mipsSpinUnlock)
-    SW      ZERO , 0(A0)
-    JR      RA
-    NOP
-    FUNC_END(mipsSpinUnlock)
 
 ;/*********************************************************************************************************
 ;  获得当前核 ID

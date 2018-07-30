@@ -481,7 +481,7 @@ typedef struct __lw_tcb {
 #define LW_TCB_STK_HEAP   1
 #define LW_TCB_STK_VMM    2
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
-    
+
 #if LW_CFG_CPU_FPU_EN > 0
     LW_FPU_CONTEXT        TCB_fpuctxContext;                            /*  FPU иообнд                  */
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */

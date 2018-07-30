@@ -99,7 +99,7 @@ VOID  _ThreadOffAffinity (PLW_CLASS_CPU  pcpu)
     REGISTER PLW_CLASS_TCB         ptcb;
     REGISTER PLW_CLASS_PCB         ppcb;
     REGISTER PLW_LIST_LINE         plineList;
-    REGISTER ULONG                 ulCPUId = pcpu->CPU_ulCPUId;
+    REGISTER ULONG                 ulCPUId = LW_CPU_GET_ID(pcpu);
              
     for (plineList  = _K_plineTCBHeader;
          plineList != LW_NULL;

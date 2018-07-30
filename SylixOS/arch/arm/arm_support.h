@@ -276,7 +276,7 @@ VOID    archSpinNotify(VOID);
 #define __ARCH_SPIN_DELAY   archSpinDelay
 #define __ARCH_SPIN_NOTIFY  archSpinNotify
 
-INT     archSpinLock(spinlock_t  *psl);
+INT     archSpinLock(spinlock_t  *psl, VOIDFUNCPTR  pfuncPoll, PVOID  pvArg);
 INT     archSpinTryLock(spinlock_t  *psl);
 INT     archSpinUnlock(spinlock_t  *psl);
 

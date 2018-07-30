@@ -27,8 +27,7 @@
 *********************************************************************************************************/
 
 #include "../SylixOS/kernel/inline/inlAddress.h"
-#include "../SylixOS/kernel/inline/inlSchedSeek.h"
-#include "../SylixOS/kernel/inline/inlUnpreemptiveCheck.h"
+#include "../SylixOS/kernel/inline/inlPreemptiveCheck.h"
 #include "../SylixOS/kernel/inline/inlErrorHandle.h"
 #include "../SylixOS/kernel/inline/inlStackSizeCheck.h"
 #include "../SylixOS/kernel/inline/inlPriorityCheck.h"
