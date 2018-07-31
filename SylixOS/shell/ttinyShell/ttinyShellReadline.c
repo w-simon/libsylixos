@@ -384,6 +384,8 @@ static VOID  __tshellCharDown (INT  iFd, PVOID *ppvCookie, __PSHELL_INPUT_CTX  p
 *********************************************************************************************************/
 static VOID  __tshellCharBackspace (INT  iFd, CHAR  cChar, __PSHELL_INPUT_CTX  psicContext)
 {
+#define __KEY_BS    0x08
+
     CHAR    cBsCharList[3];
     
     if (CTX_CURSOR == 0) {
@@ -391,14 +393,15 @@ static VOID  __tshellCharBackspace (INT  iFd, CHAR  cChar, __PSHELL_INPUT_CTX  p
     }
     
     if (CTX_CURSOR == CTX_TOTAL) {
-        cBsCharList[0] = cChar;
+        cBsCharList[0] = __KEY_BS;
         cBsCharList[1] = ' ';
-        cBsCharList[2] = cChar;
+        cBsCharList[2] = __KEY_BS;
         write(iFd, cBsCharList, 3);
         CTX_CURSOR--;
         CTX_TOTAL--;
     
     } else if (CTX_CURSOR < CTX_TOTAL) {
+        cChar = __KEY_BS;
         write(iFd, &cChar, 1);
         lib_memcpy(&CTX_BUFFER[CTX_CURSOR - 1], 
                    &CTX_BUFFER[CTX_CURSOR], 

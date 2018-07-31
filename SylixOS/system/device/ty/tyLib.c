@@ -1421,9 +1421,9 @@ INT  _TyIRd (TY_DEV_ID  ptyDev, CHAR   cInchar)
                     if (bNeedBsOrKill) {                                /*  这一行中已经有字符          */
                         CHAR    cBsCharList[3];
                         
-                        cBsCharList[0] = cInchar;                       /*  退格序列                    */
+                        cBsCharList[0] = _G_cTyBackspaceChar;           /*  退格序列                    */
                         cBsCharList[1] = ' ';
-                        cBsCharList[2] = cInchar;
+                        cBsCharList[2] = _G_cTyBackspaceChar;
                         
                         rngBufPut(ringId, cBsCharList, 3);              /*  BS 回显                     */
                         bCharEchoed = LW_TRUE;                          /*  回显成功                    */
