@@ -67,13 +67,13 @@ typedef TPS_DEV *PTPS_DEV;
   大小端转换，tpsfs 采用小端存储
 *********************************************************************************************************/
 
-#define TPS_LE32_TO_CPU(pos, val)   {   val = le32toh(*(UINT32*)pos); pos += sizeof(UINT32);    }
-#define TPS_LE64_TO_CPU(pos, val)   {   val = le64toh(*(UINT64*)pos); pos += sizeof(UINT64);    }
-#define TPS_LE32_TO_CPU_VAL(pos)    le32toh(*(UINT32*)(pos))
-#define TPS_LE64_TO_CPU_VAL(pos)    le64toh(*(UINT64*)(pos))
+#define TPS_LE32_TO_CPU(pos, val)   {   val = le32dec(pos); pos += sizeof(UINT32);    }
+#define TPS_LE64_TO_CPU(pos, val)   {   val = le64dec(pos); pos += sizeof(UINT64);    }
+#define TPS_LE32_TO_CPU_VAL(pos)    le32dec(pos)
+#define TPS_LE64_TO_CPU_VAL(pos)    le64dec(pos)
 
-#define TPS_CPU_TO_LE32(pos, val)   {   (*(UINT32*)(pos)) = htole32(val); pos += sizeof(UINT32);    }
-#define TPS_CPU_TO_LE64(pos, val)   {   (*(UINT64*)(pos)) = htole64(val); pos += sizeof(UINT64);    }
+#define TPS_CPU_TO_LE32(pos, val)   {   le32enc(pos, val); pos += sizeof(UINT32);    }
+#define TPS_CPU_TO_LE64(pos, val)   {   le64enc(pos, val); pos += sizeof(UINT64);    }
 
 #define TPS_CPU_TO_IBLK             TPS_CPU_TO_LE64
 #define TPS_IBLK_TO_CPU             TPS_LE64_TO_CPU
