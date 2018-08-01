@@ -130,13 +130,18 @@ irqreturn_t  API_InterVectorIsr (ULONG  ulVector)
                 piaction = (PLW_CLASS_INTACT)plineTemp;
                 INTER_VECTOR_SVC(break;);
             }
+
 #if LW_CFG_SMP_EN > 0
             LW_SPIN_UNLOCK(&pidesc->IDESC_slLock);                      /*  ½âËø spinlock               */
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
         } else {
             piaction = (PLW_CLASS_INTACT)pidesc->IDESC_plineAction;
-            _BugFormat(!piaction, LW_TRUE, "interrupt vector: %ld no service.\r\n", ulVector);
-            INTER_VECTOR_SVC(;);
+            if (piaction) {
+                INTER_VECTOR_SVC(;);
+            
+            } else {
+                _DebugFormat(__ERRORMESSAGE_LEVEL, "interrupt vector: %ld no service.\r\n", ulVector);
+            }
         }
     }
     

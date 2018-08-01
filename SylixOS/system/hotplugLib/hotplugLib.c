@@ -376,7 +376,7 @@ static VOID  _hotplugThread (VOID)
     }
 }
 /*********************************************************************************************************
-** 函数名称: API_NetJobGetLost
+** 函数名称: API_HotplugGetLost
 ** 功能描述: 获得 hotplug 消息丢失的数量
 ** 输　入  : NONE
 ** 输　出  : 消息丢失的数量
@@ -385,7 +385,7 @@ static VOID  _hotplugThread (VOID)
                                            API 函数
 *********************************************************************************************************/
 LW_API  
-size_t  API_HotplugGetLost (VOID)
+ULONG  API_HotplugGetLost (VOID)
 {
     return  (_jobQueueLost(&_G_jobqHotplug));
 }

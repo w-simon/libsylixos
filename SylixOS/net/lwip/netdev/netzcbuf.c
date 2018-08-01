@@ -48,6 +48,11 @@
 
 #if LW_CFG_NET_DEV_ZCBUF_EN > 0
 
+/*
+ * Statistical variable
+ */
+static u32_t zc_buf_used, zc_buf_max, zc_buf_error;
+
 /*    zc_pool
  * +------------+
  * |  magic_no  |
@@ -162,6 +167,7 @@ static void netdev_zc_pbuf_free_cb (struct pbuf *p)
   zcpbuf->b.next = zcpool->free;
   zcpool->free = zcpbuf;
   zcpool->free_cnt++;
+  zc_buf_used--;
   SYS_ARCH_UNPROTECT(old_level);
   
   if (wakeup) {
@@ -195,11 +201,13 @@ struct pbuf *netdev_zc_pbuf_alloc_res (void *hzcpool, int ticks, UINT16 hdr_res)
     SYS_ARCH_UNPROTECT(old_level);
     
     if (ticks == 0) {
+      zc_buf_error++;
       return (NULL);
     }
     
     to = (ticks == -1) ? LW_OPTION_WAIT_INFINITE : (ULONG)ticks;
     if (API_SemaphoreBPend(zcpool->sem, to)) {
+      zc_buf_error++;
       return (NULL);
     }
   } while (1);
@@ -207,6 +215,10 @@ struct pbuf *netdev_zc_pbuf_alloc_res (void *hzcpool, int ticks, UINT16 hdr_res)
   zcpbuf = zcpool->free;
   zcpool->free = zcpbuf->b.next;
   zcpool->free_cnt--;
+  zc_buf_used++;
+  if (zc_buf_used > zc_buf_max) {
+    zc_buf_max = zc_buf_used;
+  }
   SYS_ARCH_UNPROTECT(old_level);
   
   zcpbuf->b.cpbuf.custom_free_function = netdev_zc_pbuf_free_cb;
@@ -235,6 +247,22 @@ struct pbuf *netdev_zc_pbuf_alloc (void *hzcpool, int ticks)
 void netdev_zc_pbuf_free (struct pbuf *p)
 {
   pbuf_free(p);
+}
+
+/* get zero copy pbuf stat */
+void netdev_zc_pbuf_stat (u32_t *zcused, u32_t *zcmax, u32_t *zcerror)
+{
+  if (zcused) {
+    *zcused = zc_buf_used;
+  }
+
+  if (zcmax) {
+    *zcmax = zc_buf_max;
+  }
+
+  if (zcerror) {
+    *zcerror = zc_buf_error;
+  }
 }
 
 #endif /* LW_CFG_NET_DEV_ZCBUF_EN > 0 */

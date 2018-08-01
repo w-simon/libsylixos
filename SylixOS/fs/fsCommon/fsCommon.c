@@ -145,6 +145,10 @@ FUNCPTR  __fsCreateFuncGet (CPCHAR   pcName, PLW_BLK_DEV  pblkd, UINT8  ucPartTy
 *********************************************************************************************************/
 UINT8  __fsPartitionProb (PLW_BLK_DEV  pblkd)
 {
+#ifndef LW_DISK_PART_TYPE_EMPTY
+#define LW_DISK_PART_TYPE_EMPTY  0x00
+#endif
+
     INTREG                  iregInterLevel;
     __PLW_FILE_SYSTEM_NODE  pfsnProb;
     PLW_LIST_LINE           plineTemp;

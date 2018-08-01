@@ -161,7 +161,7 @@ static VOID  _ExcThread (VOID)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-size_t  _ExcGetLost (VOID)
+ULONG  _ExcGetLost (VOID)
 {
     return  (_jobQueueLost(&_G_jobqExc));
 }

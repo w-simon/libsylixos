@@ -302,10 +302,10 @@ ARCH_COMMONFLAGS = -mstrict-align -mcmodel=medany -mno-save-restore
 
 ARCH_PIC_ASFLAGS = 
 ARCH_PIC_CFLAGS  = -fPIC
-ARCH_PIC_LDFLAGS = -nostdlib -Wl,-shared -fPIC -shared
+ARCH_PIC_LDFLAGS = -Wl,-shared -fPIC -shared
 
 ARCH_KO_CFLAGS   = -fPIC
-ARCH_KO_LDFLAGS  = -nostdlib -r -fPIC
+ARCH_KO_LDFLAGS  = -r -fPIC
 
 ARCH_KLIB_CFLAGS =
 

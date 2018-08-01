@@ -75,7 +75,7 @@ LW_API VOID         API_NetJobDeleteEx(UINT         uiQ,
                                        PVOID        pvArg4,
                                        PVOID        pvArg5);            /*  net job delete              */
 
-LW_API size_t       API_NetJobGetLost(VOID);
+LW_API ULONG        API_NetJobGetLost(VOID);
 
 #define netInit             API_NetInit
 #define netSnmpInit         API_NetSnmpInit

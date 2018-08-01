@@ -31,8 +31,8 @@
 #define LW_CFG_LWIP_POOL_SIZE           1560                            /*  lwip POOL 内存块大小        */
                                                                         /*  注意: 必须是字对齐的        */
 
-#define LW_CFG_LWIP_NUM_PBUFS           512                             /*  系统总 pbuf 数量            */
-#define LW_CFG_LWIP_NUM_NETBUF          512                             /*  缓冲网络分组 netbuf 数量    */
+#define LW_CFG_LWIP_NUM_NETBUF          1024                            /*  缓冲网络分组 netbuf 数量    */
+#define LW_CFG_LWIP_NUM_PBUFS           1024                            /*  系统总 pbuf 数量            */
 #define LW_CFG_LWIP_NUM_POOLS           1024                            /*  pool 总数                   */
                                                                         /*  驱动程序与 AF_PACKET 使用   */
 /*********************************************************************************************************
@@ -56,13 +56,15 @@
 *********************************************************************************************************/
 
 #define LW_CFG_LWIP_MEM_TLSF            1                               /*  是否使用 tlfs 进行内存分配  */
+#define LW_CFG_LWIP_MEM_TLSF_BRK        1                               /*  是否允许内存扩展            */
+#define LW_CFG_LWIP_MEM_TLSF_BRK_TIMES  1                               /*  内存扩展倍数                */
 
 /*********************************************************************************************************
   流控配置
 *********************************************************************************************************/
 
 #define LW_CFG_NET_FLOWCTL_MEM_SIZE     (768 * LW_CFG_KB_SIZE)          /*  流量控制缓存大小            */
-#define LW_CFG_NET_FLOWCTL_DEF_BSIZE    (200 * LW_CFG_KB_SIZE)          /*  每条规则默认缓存大小        */
+#define LW_CFG_NET_FLOWCTL_DEF_BSIZE    (512 * LW_CFG_KB_SIZE)          /*  每条规则默认缓存大小        */
 
 /*********************************************************************************************************
   虚拟网卡
@@ -91,11 +93,14 @@
 
 /*********************************************************************************************************
   队列配置
-  注意: LW_CFG_LWIP_JOBQUEUE_NUM 必须为 1 或者 2 的指数次方, (小于等于 CPU 核心数量).
+  注意: LW_CFG_LWIP_JOBQUEUE_MERGE 如果允许 (1) 则会有多个任务同时从一个 jobq 取队列任务执行, 请确保在多核
+                                   处理器上 jobq 里的驱动函数可以被并行运行.
+        LW_CFG_LWIP_JOBQUEUE_NUM 必须为 1 或者 2 的指数次方, (小于等于 CPU 核心数量).
 *********************************************************************************************************/
 
+#define LW_CFG_LWIP_JOBQUEUE_MERGE      0                               /*  合并模式 (自动均衡)         */
 #define LW_CFG_LWIP_JOBQUEUE_NUM        2                               /*  可使能多个 netjob 并行工作  */
-#define LW_CFG_LWIP_JOBQUEUE_SIZE       1024                            /*  sylixos job queue size      */
+#define LW_CFG_LWIP_JOBQUEUE_SIZE       512                             /*  sylixos job queue size      */
 
 #if LW_CFG_CPU_WORD_LENGHT == 32
 #define LW_CFG_LWIP_JOBQUEUE_STK_SIZE   4096                            /*  job queue stksize           */
@@ -130,7 +135,7 @@
 #define LW_CFG_LWIP_TCP_WND             8192                            /*  接收缓冲大小, 0 为自动      */
 #define LW_CFG_LWIP_TCP_SND             65535                           /*  发送缓冲大小, 0 为自动      */
 #define LW_CFG_LWIP_TCP_SCALE           0                               /*  接收窗口扩大指数 0 ~ 14     */
-#define LW_CFG_LWIP_TCP_ACK_THRESHOLD   0                               /*  ACK 阀值 1/2 ~ 1/4 窗口最佳 */
+#define LW_CFG_LWIP_TCP_ACK_THRESHOLD   (LW_CFG_LWIP_TCP_WND >> 1)      /*  ACK 阀值 1/2 ~ 1/4 窗口最佳 */
                                                                         /*  0 为自动                    */
 #define LW_CFG_LWIP_TCP_MAXRTX          8                               /*  TCP 最大重传数, 1 ~ 12      */
 #define LW_CFG_LWIP_TCP_SYNMAXRTX       6                               /*  最大 SYN 重传数, 1 ~ 12     */

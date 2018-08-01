@@ -45,7 +45,7 @@ VOID   _excJobDel(UINT         uiMatchArgNum,
                   PVOID        pvArg3, 
                   PVOID        pvArg4, 
                   PVOID        pvArg5);
-size_t  _ExcGetLost(VOID);
+ULONG  _ExcGetLost(VOID);
 
 #endif                                                                  /*  __EXCLIB_H                  */
 /*********************************************************************************************************

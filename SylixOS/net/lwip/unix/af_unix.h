@@ -99,9 +99,9 @@ typedef struct af_unix_t {
     ULONG               UNIX_ulConnTimeout;                             /*  连接超时 tick               */
     
     struct linger       UNIX_linger;                                    /*  延迟关闭                    */
-    
     INT                 UNIX_iPassCred;                                 /*  是否允许传送认证信息        */
     
+    PVOID               UNIX_sockFile;                                  /*  socket file                 */
     CHAR                UNIX_cFile[MAX_FILENAME_LENGTH];
 } AF_UNIX_T;
 

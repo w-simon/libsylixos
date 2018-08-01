@@ -93,6 +93,8 @@ typedef struct af_packet_t {
 
     LW_OBJECT_HANDLE        PACKET_hCanRead;                            /*  ø…∂¡                        */
     ULONG                   PACKET_ulRecvTimeout;                       /*  ∂¡»°≥¨ ± tick               */
+    
+    PVOID                   PACKET_sockFile;                            /*  socket file                 */
 } AF_PACKET_T;
 
 /*********************************************************************************************************

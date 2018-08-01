@@ -24,6 +24,7 @@
 2009.12.09  修改注释.
 2013.12.01  不再使用消息队列, 使用内核提供的工作队列模型.
 2016.11.04  支持多条并行处理队列.
+2018.08.01  支持队列合并自动均衡.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -70,6 +71,12 @@ INT  _netJobqueueInit (VOID)
         _G_uiJobqNum >>= 1;
     }
     
+#if LW_CFG_LWIP_JOBQUEUE_MERGE > 0
+    if (_jobQueueInit(&_G_jobqNet[0], &_G_jobmsgNet[0][0], 
+                      LW_CFG_LWIP_JOBQUEUE_SIZE * LW_CFG_LWIP_JOBQUEUE_NUM, LW_FALSE)) {
+        return  (PX_ERROR);
+    }
+#else
     for (i = 0; i < _G_uiJobqNum; i++) {
         if (_jobQueueInit(&_G_jobqNet[i], &_G_jobmsgNet[i][0], 
                           LW_CFG_LWIP_JOBQUEUE_SIZE, LW_FALSE)) {
@@ -83,6 +90,7 @@ INT  _netJobqueueInit (VOID)
         }
         return  (PX_ERROR);
     }
+#endif
     
     API_ThreadAttrBuild(&threadattr, LW_CFG_LWIP_JOBQUEUE_STK_SIZE, 
                         LW_PRIO_T_NETJOB, 
@@ -90,7 +98,11 @@ INT  _netJobqueueInit (VOID)
                         LW_NULL);
     
     for (i = 0; i < _G_uiJobqNum; i++) {
+#if LW_CFG_LWIP_JOBQUEUE_MERGE > 0
+        threadattr.THREADATTR_pvArg = (PVOID)&_G_jobqNet[0];
+#else
         threadattr.THREADATTR_pvArg = (PVOID)&_G_jobqNet[i];
+#endif
         hNetJobThread[i] = API_ThreadCreate("t_netjob",
                                             (PTHREAD_START_ROUTINE)_NetJobThread,
                                             (PLW_CLASS_THREADATTR)&threadattr,
@@ -176,8 +188,15 @@ INT  API_NetJobAddEx (UINT         uiQ,
         return  (PX_ERROR);
     }
     
+#if LW_CFG_LWIP_JOBQUEUE_MERGE > 0
+    if (_jobQueueAdd(&_G_jobqNet[0], 
+                     pfunc, pvArg0, pvArg1, pvArg2, pvArg3, pvArg4, pvArg5)) 
+#else
     if (_jobQueueAdd(&_G_jobqNet[uiQ & (_G_uiJobqNum - 1)], 
-                     pfunc, pvArg0, pvArg1, pvArg2, pvArg3, pvArg4, pvArg5)) {
+                     pfunc, pvArg0, pvArg1, pvArg2, pvArg3, pvArg4, pvArg5)) 
+#endif
+                     
+    {
         _ErrorHandle(ERROR_EXCE_LOST);
         return  (PX_ERROR);
     }
@@ -244,13 +263,17 @@ VOID  API_NetJobDeleteEx (UINT         uiQ,
                           PVOID        pvArg4,
                           PVOID        pvArg5)
 {
-    UINT  i;
-
     if (!pfunc) {
         return;
     }
     
+#if LW_CFG_LWIP_JOBQUEUE_MERGE > 0
+    _jobQueueDel(&_G_jobqNet[0], uiMatchArgNum, pfunc, pvArg0, pvArg1, pvArg2, pvArg3, pvArg4, pvArg5);
+    
+#else
     if (uiQ == LW_NETJOB_Q_ALL) {
+        UINT  i;
+    
         for (i = 0; i < _G_uiJobqNum; i++) {
             _jobQueueDel(&_G_jobqNet[i], uiMatchArgNum, 
                          pfunc, pvArg0, pvArg1, pvArg2, pvArg3, pvArg4, pvArg5);
@@ -260,6 +283,7 @@ VOID  API_NetJobDeleteEx (UINT         uiQ,
         _jobQueueDel(&_G_jobqNet[uiQ & (_G_uiJobqNum - 1)], uiMatchArgNum, 
                      pfunc, pvArg0, pvArg1, pvArg2, pvArg3, pvArg4, pvArg5);
     }
+#endif
 }
 /*********************************************************************************************************
 ** 函数名称: _NetJobThread
@@ -285,16 +309,22 @@ static VOID  _NetJobThread (PLW_JOB_QUEUE  pjobq)
                                            API 函数
 *********************************************************************************************************/
 LW_API  
-size_t  API_NetJobGetLost (VOID)
+ULONG  API_NetJobGetLost (VOID)
 {
+    ULONG   ulTotal = 0;
+    
+#if LW_CFG_LWIP_JOBQUEUE_MERGE > 0
+    ulTotal = _jobQueueLost(&_G_jobqNet[0]);
+    
+#else
     INT     i;
-    size_t  stTotal = 0;
     
     for (i = 0; i < _G_uiJobqNum; i++) {
-        stTotal += _jobQueueLost(&_G_jobqNet[i]);
+        ulTotal += _jobQueueLost(&_G_jobqNet[i]);
     }
+#endif
     
-    return  (stTotal);
+    return  (ulTotal);
 }
 
 #endif                                                                  /*  LW_CFG_NET_EN               */

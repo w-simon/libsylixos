@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2018-08-01: han.hui
+    使用新的 socket event 传递方法, 加快速度.
+
     2018-07-28: han.hui
     在有条件的 arch 上支持汇编原子操作.
     调度策略增加 CACHE 热度保持, 在条件运行的情况下, 任务优先运行在之前运行的 CPU 上.

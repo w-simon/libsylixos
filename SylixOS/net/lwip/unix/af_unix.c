@@ -63,7 +63,7 @@
 /*********************************************************************************************************
   函数声明
 *********************************************************************************************************/
-extern void  __unix_socket_event(AF_UNIX_T  *pafunix, LW_SEL_TYPE type, INT  iSoErr);
+extern void  __socketEnotify(void *file, LW_SEL_TYPE type, INT  iSoErr);
 /*********************************************************************************************************
   宏配置
 *********************************************************************************************************/
@@ -557,7 +557,7 @@ static VOID  __unixUpdateReader (AF_UNIX_T  *pafunix, INT  iSoErr)
 {
     __AF_UNIX_SREAD(pafunix);
     
-    __unix_socket_event(pafunix, SELREAD, iSoErr);                      /*  本地 select 可读            */
+    __socketEnotify(pafunix->UNIX_sockFile, SELREAD, iSoErr);           /*  本地 select 可读            */
 }
 /*********************************************************************************************************
 ** 函数名称: __unixUpdateWriter
@@ -577,8 +577,8 @@ static VOID  __unixUpdateWriter (AF_UNIX_T  *pafunix, INT  iSoErr)
         
         pafunixPeer = pafunix->UNIX_pafunxPeer;                         /*  如果存在远程对等方          */
         if (pafunixPeer) {
-            __unix_socket_event(pafunixPeer, SELWRITE, iSoErr);         /*  远程对等方 select 可写      */
-        }
+            __socketEnotify(pafunixPeer->UNIX_sockFile, SELWRITE, iSoErr);
+        }                                                               /*  远程对等方 select 可写      */
     }
 }
 /*********************************************************************************************************
@@ -596,16 +596,16 @@ static VOID  __unixUpdateExcept (AF_UNIX_T  *pafunix, INT  iSoErr)
 
     __AF_UNIX_SREAD(pafunix);
     
-    __unix_socket_event(pafunix, SELREAD, iSoErr);                      /*  本地 select 可读            */
+    __socketEnotify(pafunix->UNIX_sockFile, SELREAD, iSoErr);           /*  本地 select 可读            */
     
     __AF_UNIX_SWRITE(pafunix);
     
     pafunixPeer = pafunix->UNIX_pafunxPeer;                             /*  如果存在远程对等方          */
     if (pafunixPeer) {
-        __unix_socket_event(pafunixPeer, SELWRITE, iSoErr);             /*  远程对等方 select 可写      */
+        __socketEnotify(pafunixPeer->UNIX_sockFile, SELWRITE, iSoErr);  /*  远程对等方 select 可写      */
     }
     
-    __unix_socket_event(pafunix, SELEXCEPT, iSoErr);                    /*  本地 select 可异常          */
+    __socketEnotify(pafunix->UNIX_sockFile, SELEXCEPT, iSoErr);         /*  本地 select 可异常          */
 }
 /*********************************************************************************************************
 ** 函数名称: __unixUpdateConnecter
@@ -620,7 +620,7 @@ static VOID  __unixUpdateConnecter (AF_UNIX_T  *pafunixConn, INT  iSoErr)
 {
     __AF_UNIX_SCONN(pafunixConn);
     
-    __unix_socket_event(pafunixConn, SELWRITE, iSoErr);                 /*  请求连接的节点 select 可写  */
+    __socketEnotify(pafunixConn->UNIX_sockFile, SELWRITE, iSoErr);      /*  请求连接的节点 select 可写  */
 }
 /*********************************************************************************************************
 ** 函数名称: __unixUpdateAccept
@@ -635,7 +635,7 @@ static VOID  __unixUpdateAccept (AF_UNIX_T  *pafunixAcce, INT  iSoErr)
 {
     __AF_UNIX_SACCE(pafunixAcce);
     
-    __unix_socket_event(pafunixAcce, SELREAD, iSoErr);                  /*  accept 节点 select 可读     */
+    __socketEnotify(pafunixAcce->UNIX_sockFile, SELREAD, iSoErr);       /*  accept 节点 select 可读     */
 }
 /*********************************************************************************************************
 ** 函数名称: __unixShutdownR
@@ -2458,6 +2458,19 @@ int __unix_have_event (AF_UNIX_T *pafunix, int type, int  *piSoErr)
     }
     
     return  (iEvent);
+}
+/*********************************************************************************************************
+** 函数名称: __unix_set_sockfile
+** 功能描述: 设置对应的 socket 文件
+** 输　入  : pafunix   unix file
+**           file      文件
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+void  __unix_set_sockfile (AF_UNIX_T *pafunix, void *file)
+{
+    pafunix->UNIX_sockFile = file;
 }
 
 #endif                                                                  /*  LW_CFG_NET_EN               */

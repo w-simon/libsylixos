@@ -46,16 +46,19 @@
 #include "lwip/mem.h"
 #include "tlsf.h"
 
-/* tlsf memory pool */
-static LWIP_DECLARE_MEMORY_ALIGNED(tlsf_heap, LWIP_MEM_ALIGN_SIZE(MEM_SIZE));
 static tlsf_t tlsf_mem; /* tlsf memory control */
 static spinlock_t tlsf_lock; /* tlsf memory spinlock */
+static uint_t brk_times;
 
 /* create a memory pool */
 void tlsf_mem_create (void)
 {
+  void *mem;
+
   LW_SPIN_INIT(&tlsf_lock);
-  tlsf_mem = tlsf_create_with_pool(tlsf_heap, MEM_SIZE);
+  mem = __SHEAP_ALLOC(MEM_SIZE);
+  _BugHandle(!mem, TRUE, "tlsf_mem_create() fail!\r\n");
+  tlsf_mem = tlsf_create_with_pool(mem, MEM_SIZE);
   _BugHandle(!tlsf_mem, TRUE, "tlsf_mem_create() fail!\r\n");
 }
 
@@ -63,11 +66,34 @@ void tlsf_mem_create (void)
 void *tlsf_mem_malloc (size_t size)
 {
   void *ret;
+
+#if LW_CFG_LWIP_MEM_TLSF_BRK > 0
+  void *mem;
   
+__retry:
+  LW_SPIN_LOCK_TASK(&tlsf_lock);
+  ret = tlsf_malloc(tlsf_mem, size);
+  if (ret || (brk_times >= LW_CFG_LWIP_MEM_TLSF_BRK_TIMES)) {
+    LW_SPIN_UNLOCK_TASK(&tlsf_lock);
+    return (ret);
+  }
+  brk_times++;
+  LW_SPIN_UNLOCK_TASK(&tlsf_lock); /* TODO: here unlock maybe preemptive! */
+  
+  mem = __SHEAP_ALLOC(MEM_SIZE);
+  if (mem) {
+    LW_SPIN_LOCK_TASK(&tlsf_lock);
+    tlsf_add_pool(tlsf_mem, mem, MEM_SIZE);
+    LW_SPIN_UNLOCK_TASK(&tlsf_lock);
+    goto __retry;
+  }
+
+#else
   LW_SPIN_LOCK_TASK(&tlsf_lock);
   ret = tlsf_malloc(tlsf_mem, size);
   LW_SPIN_UNLOCK_TASK(&tlsf_lock);
-  
+#endif
+
   return (ret);
 }
 
@@ -76,10 +102,7 @@ void *tlsf_mem_calloc (size_t count, size_t size)
 {
   void *ret;
   
-  LW_SPIN_LOCK_TASK(&tlsf_lock);
-  ret = tlsf_malloc(tlsf_mem, count * size);
-  LW_SPIN_UNLOCK_TASK(&tlsf_lock);
-  
+  ret = tlsf_mem_malloc(count * size);
   if (ret) {
     lib_bzero(ret, count * size);
   }

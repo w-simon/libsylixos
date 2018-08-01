@@ -44,7 +44,7 @@
   函数声明
 *********************************************************************************************************/
 extern const struct eth_addr ethbroadcast;                              /*  以太网广播地址              */
-extern void  __packet_socket_event(AF_PACKET_T *pafpacket, LW_SEL_TYPE type, INT  iSoErr);
+extern void  __socketEnotify(void *file, LW_SEL_TYPE type, INT  iSoErr);
 /*********************************************************************************************************
   宏配置
 *********************************************************************************************************/
@@ -211,7 +211,7 @@ static VOID  __packetUpdateReader (AF_PACKET_T *pafpacket, INT  iSoErr)
 {
     API_SemaphoreBPost(pafpacket->PACKET_hCanRead);
     
-    __packet_socket_event(pafpacket, SELREAD, iSoErr);                  /*  本地 select 可读            */
+    __socketEnotify(pafpacket->PACKET_sockFile, SELREAD, iSoErr);       /*  本地 select 可读            */
 }
 /*********************************************************************************************************
 ** 函数名称: __packetSetMembership
@@ -1987,6 +1987,19 @@ int __packet_have_event (AF_PACKET_T *pafpacket, int type, int  *piSoErr)
     }
     
     return  (iEvent);
+}
+/*********************************************************************************************************
+** 函数名称: __packet_set_sockfile
+** 功能描述: 设置对应的 socket 文件
+** 输　入  : pafunix   unix file
+**           file      文件
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+void  __packet_set_sockfile (AF_PACKET_T *pafpacket, void *file)
+{
+    pafpacket->PACKET_sockFile = file;
 }
 
 #endif                                                                  /*  LW_CFG_NET_EN               */

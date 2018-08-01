@@ -38,7 +38,7 @@
 /*********************************************************************************************************
   函数声明
 *********************************************************************************************************/
-extern void  __route_socket_event(AF_ROUTE_T  *pafroute, LW_SEL_TYPE type, INT  iSoErr);
+extern void  __socketEnotify(void *file, LW_SEL_TYPE type, INT  iSoErr);
 /*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
@@ -181,7 +181,7 @@ static VOID  __routeUpdateReader (AF_ROUTE_T  *pafroute, INT  iSoErr)
 {
     __AF_ROUTE_NOTIFY(pafroute);
     
-    __route_socket_event(pafroute, SELREAD, iSoErr);                    /*  本地 select 可读            */
+    __socketEnotify(pafroute->ROUTE_sockFile, SELREAD, iSoErr);         /*  本地 select 可读            */
 }
 /*********************************************************************************************************
 ** 函数名称: __routeRtmAdd4
@@ -1882,7 +1882,7 @@ INT  route_shutdown (AF_ROUTE_T  *pafroute, int how)
 /*********************************************************************************************************
 ** 函数名称: route_ioctl
 ** 功能描述: ioctl
-** 输　入  : pafunix   unix file
+** 输　入  : pafroute  route file
 **           iCmd      命令
 **           pvArg     参数
 ** 输　出  : ERROR
@@ -1934,7 +1934,7 @@ INT  route_ioctl (AF_ROUTE_T  *pafroute, INT  iCmd, PVOID  pvArg)
 /*********************************************************************************************************
 ** 函数名称: __route_have_event
 ** 功能描述: 检测对应的控制块是否可读
-** 输　入  : pafunix   unix file
+** 输　入  : pafroute  route file
 **           type      事件类型
 **           piSoErr   如果等待的事件有效则更新 SO_ERROR
 ** 输　出  : ERROR
@@ -1977,6 +1977,19 @@ int __route_have_event (AF_ROUTE_T *pafroute, int type, int  *piSoErr)
     }
     
     return  (iEvent);
+}
+/*********************************************************************************************************
+** 函数名称: __route_set_sockfile
+** 功能描述: 设置对应的 socket 文件
+** 输　入  : pafroute  route file
+**           file      文件
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+void  __route_set_sockfile (AF_ROUTE_T *pafroute, void *file)
+{
+    pafroute->ROUTE_sockFile = file;
 }
 
 #endif                                                                  /*  LW_CFG_NET_EN               */

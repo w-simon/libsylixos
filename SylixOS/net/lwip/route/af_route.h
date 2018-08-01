@@ -61,6 +61,8 @@ typedef struct af_route_t {
     
     AF_ROUTE_Q          ROUTE_rtq;                                      /*  接收消息队列                */
     size_t              ROUTE_stMaxBufSize;                             /*  最大接收缓冲大小            */
+    
+    PVOID               ROUTE_sockFile;                                 /*  socket file                 */
 } AF_ROUTE_T;
 
 /*********************************************************************************************************

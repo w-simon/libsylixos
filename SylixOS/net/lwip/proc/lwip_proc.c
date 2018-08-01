@@ -1471,6 +1471,32 @@ static VOID  __procFsNetTcpipStatPrintMem (struct stats_mem *mem, const char *na
                        name, (u32_t)mem->avail, (u32_t)mem->used, (u32_t)mem->max, (u32_t)mem->err);
 }
 /*********************************************************************************************************
+** 函数名称: __procFsNetTcpipStatPrintZcBuf
+** 功能描述: 打印网络 tcpip_stat 文件 zc buf 部分
+** 输　入  : name          名称
+**           pcBuffer      缓冲
+**           stTotalSize   缓冲区大小
+**           pstOft        当前偏移量
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+#if LW_CFG_NET_DEV_ZCBUF_EN > 0
+
+static VOID  __procFsNetTcpipStatPrintZcBuf (const char *name,
+                                             PCHAR  pcBuffer, size_t  stTotalSize, size_t *pstOft)
+{
+    u32_t  zcused, zcmax, zcerror;
+
+    netdev_zc_pbuf_stat(&zcused, &zcmax, &zcerror);
+
+    *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
+                       "%-15s %-8u %-8u %-8u %-8u\n",
+                       name, 0, zcused, zcmax, zcerror);
+}
+
+#endif                                                                  /*  LW_CFG_NET_DEV_ZCBUF_EN > 0 */
+/*********************************************************************************************************
 ** 函数名称: __procFsNetTcpipStatPrintSys
 ** 功能描述: 打印网络 tcpip_stat 文件 mem 部分
 ** 输　入  : sys           系统信息
@@ -1507,6 +1533,22 @@ static VOID  __procFsNetTcpipStatPrintSys (struct stats_sys *sys,
     *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
                        "%-9s %-8u %-8u %-8u\n",
                        "", (u32_t)sys->mbox.used, (u32_t)sys->mbox.max, (u32_t)sys->mbox.err);
+
+    *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
+                       "%-9s %-8s %-8s %-8s\n",
+                       "jobq", "-", "-", "lost");
+
+    *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
+                       "%-9s %-8s %-8s %-8lu\n",
+                       "", "-", "-", netJobGetLost());
+
+    *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
+                       "%-9s %-8s %-8s %-8s\n",
+                       "inpkt", "-", "-", "lost");
+
+    *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
+                       "%-9s %-8s %-8s %-8u\n",
+                       "", "-", "-", tcpip_inpkt_lost());
 }
 /*********************************************************************************************************
 ** 函数名称: __procFsNetTcpipStatPrintPim
@@ -1693,6 +1735,10 @@ static VOID  __procFsNetTcpipStatPrint (PCHAR  pcBuffer, size_t  stTotalSize, si
         __procFsNetTcpipStatPrintMem(lwip_stats.memp[i], memp_names[i], pcBuffer, stTotalSize, pstOft);
     }
     
+#if LW_CFG_NET_DEV_ZCBUF_EN > 0
+    __procFsNetTcpipStatPrintZcBuf("PBUF_ZC", pcBuffer, stTotalSize, pstOft);
+#endif
+
     __procFsNetTcpipStatPrintSys(&lwip_stats.sys, pcBuffer, stTotalSize, pstOft);
 }
 /*********************************************************************************************************

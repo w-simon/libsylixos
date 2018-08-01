@@ -49,6 +49,7 @@
 2017.12.08  加入 AF_ROUTE 支持.
 2017.12.20  加入流控接口支持.
 2018.07.17  加入 QoS 接口.
+2018.08.01  简化 select 查找算法, 提高效率.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -135,7 +136,6 @@ typedef struct {
         AF_PACKET_T    *SOCKF_pafpacket;                                /*  AF_PACKET 控制块            */
     } SOCK_family;
     
-    INT                 SOCK_iHash;                                     /*  hash 表下标                 */
     INT                 SOCK_iSoErr;                                    /*  最后一次错误                */
     LW_SEL_WAKEUPLIST   SOCK_selwulist;
 } SOCKET_T;
@@ -159,25 +159,21 @@ static INT              __socketUnmap(SOCKET_T *psock, PLW_DEV_MMAP_AREA  pdmap)
 *********************************************************************************************************/
 static LW_DEV_HDR           _G_devhdrSocket;
 static LW_OBJECT_HANDLE     _G_hSockSelMutex;
-static LW_OBJECT_HANDLE     _G_hSockMutex;
-
-#define __SOCKET_HASH_SIZE  16
-#define __SOCKET_HASH_MASK  (__SOCKET_HASH_SIZE - 1)
-static LW_LIST_LINE_HEADER  _G_plineSocket[__SOCKET_HASH_SIZE];
-
-#define __SOCKET_LOCK()     API_SemaphoreMPend(_G_hSockMutex, LW_OPTION_WAIT_INFINITE)
-#define __SOCKET_UNLOCK()   API_SemaphoreMPost(_G_hSockMutex)
 /*********************************************************************************************************
   lwip 与 unix 内部函数 (相关域实现代码只有在事件有效时才能更新 piSoErr)
 *********************************************************************************************************/
 extern int              __lwip_have_event(int s, int type, int *piSoErr);
+extern void             __lwip_set_sockfile(int s, void *file);
 #if LW_CFG_NET_UNIX_EN > 0
 extern int              __unix_have_event(AF_UNIX_T *pafunix, int type, int *piSoErr);
+extern void             __unix_set_sockfile(AF_UNIX_T *pafunix, void *file);
 #endif
 #if LW_CFG_NET_ROUTER > 0
 extern int              __route_have_event(AF_ROUTE_T *pafroute, int type, int  *piSoErr);
+extern void             __route_set_sockfile(AF_ROUTE_T *pafroute, void *file);
 #endif
 extern int              __packet_have_event(AF_PACKET_T *pafpacket, int type, int  *piSoErr);
+extern void             __packet_set_sockfile(AF_PACKET_T *pafpacket, void *file);
 /*********************************************************************************************************
   socket fd 有效性检查
 *********************************************************************************************************/
@@ -191,133 +187,6 @@ extern int              __packet_have_event(AF_PACKET_T *pafpacket, int type, in
                                 _ErrorHandle(ENOTSOCK);    \
                                 return  (PX_ERROR); \
                             }
-/*********************************************************************************************************
-  socket fd hash 操作 (pafunix >> 4) 在 32 或者 64 位 CPU 时忽略低位 0 .
-*********************************************************************************************************/
-#define __SOCKET_LWIP_HASH(lwipfd)      (lwipfd & __SOCKET_HASH_MASK)
-#define __SOCKET_UNIX_HASH(pafunix)     (((size_t)pafunix >> 4) & __SOCKET_HASH_MASK)
-#define __SOCKET_ROUTE_HASH(pafroute)   __SOCKET_UNIX_HASH(pafroute)
-#define __SOCKET_PACKET_HASH(pafpacket) __SOCKET_UNIX_HASH(pafpacket)
-/*********************************************************************************************************
-** 函数名称: __lwip_socket_event
-** 功能描述: lwip socket 产生事件
-** 输　入  : lwipfd      lwip 文件
-**           type        事件类型
-**           iSoErr      更新的 SO_ERROR 数值
-** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-void  __lwip_socket_event (int  lwipfd, LW_SEL_TYPE type, INT  iSoErr)
-{
-    INT             iHash = __SOCKET_LWIP_HASH(lwipfd);
-    PLW_LIST_LINE   plineTemp;
-    SOCKET_T       *psock;
-
-    for (plineTemp  = _G_plineSocket[iHash];
-         plineTemp != LW_NULL;
-         plineTemp  = _list_line_get_next(plineTemp)) {
-         
-        psock = (SOCKET_T *)plineTemp;
-        if (psock->SOCK_iLwipFd == lwipfd) {
-            psock->SOCK_iSoErr = iSoErr;                                /*  更新 SO_ERROR               */
-            SEL_WAKE_UP_ALL(&psock->SOCK_selwulist, type);
-            break;
-        }
-    }
-}
-/*********************************************************************************************************
-** 函数名称: __unix_socket_event
-** 功能描述: unix socket 产生事件
-** 输　入  : pafunix     控制块
-**           type        事件类型
-**           iSoErr      更新的 SO_ERROR 数值
-** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-#if LW_CFG_NET_UNIX_EN > 0
-
-void  __unix_socket_event (AF_UNIX_T  *pafunix, LW_SEL_TYPE type, INT  iSoErr)
-{
-    INT             iHash = __SOCKET_UNIX_HASH(pafunix);
-    PLW_LIST_LINE   plineTemp;
-    SOCKET_T       *psock;
-
-    for (plineTemp  = _G_plineSocket[iHash];
-         plineTemp != LW_NULL;
-         plineTemp  = _list_line_get_next(plineTemp)) {
-         
-        psock = (SOCKET_T *)plineTemp;
-        if (psock->SOCK_pafunix == pafunix) {
-            psock->SOCK_iSoErr = iSoErr;                                /*  更新 SO_ERROR               */
-            SEL_WAKE_UP_ALL(&psock->SOCK_selwulist, type);
-            break;
-        }
-    }
-}
-
-#endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
-/*********************************************************************************************************
-** 函数名称: __route_socket_event
-** 功能描述: route socket 产生事件
-** 输　入  : pafroute    控制块
-**           type        事件类型
-**           iSoErr      更新的 SO_ERROR 数值
-** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-#if LW_CFG_NET_ROUTER > 0
-
-void  __route_socket_event (AF_ROUTE_T  *pafroute, LW_SEL_TYPE type, INT  iSoErr)
-{
-    INT             iHash = __SOCKET_UNIX_HASH(pafroute);
-    PLW_LIST_LINE   plineTemp;
-    SOCKET_T       *psock;
-
-    for (plineTemp  = _G_plineSocket[iHash];
-         plineTemp != LW_NULL;
-         plineTemp  = _list_line_get_next(plineTemp)) {
-         
-        psock = (SOCKET_T *)plineTemp;
-        if (psock->SOCK_pafroute == pafroute) {
-            psock->SOCK_iSoErr = iSoErr;                                /*  更新 SO_ERROR               */
-            SEL_WAKE_UP_ALL(&psock->SOCK_selwulist, type);
-            break;
-        }
-    }
-}
-
-#endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
-/*********************************************************************************************************
-** 函数名称: __packet_socket_event
-** 功能描述: packet socket 产生事件
-** 输　入  : pafpacket   控制块
-**           type        事件类型
-**           iSoErr      更新的 SO_ERROR 数值
-** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-void  __packet_socket_event (AF_PACKET_T *pafpacket, LW_SEL_TYPE type, INT  iSoErr)
-{
-    INT             iHash = __SOCKET_PACKET_HASH(pafpacket);
-    PLW_LIST_LINE   plineTemp;
-    SOCKET_T       *psock;
-    
-    for (plineTemp  = _G_plineSocket[iHash];
-         plineTemp != LW_NULL;
-         plineTemp  = _list_line_get_next(plineTemp)) {
-         
-        psock = (SOCKET_T *)plineTemp;
-        if (psock->SOCK_pafpacket == pafpacket) {
-            psock->SOCK_iSoErr = iSoErr;                                /*  更新 SO_ERROR               */
-            SEL_WAKE_UP_ALL(&psock->SOCK_selwulist, type);
-            break;
-        }
-    }
-}
 /*********************************************************************************************************
 ** 函数名称: __socketInit
 ** 功能描述: 初始化 sylixos socket 系统
@@ -359,15 +228,11 @@ VOID  __socketInit (VOID)
     
     iosDevAddEx(&_G_devhdrSocket, LWIP_SYLIXOS_SOCKET_NAME, iDrv, DT_SOCK);
     
-    _G_hSockMutex = API_SemaphoreMCreate("socket_lock", LW_PRIO_DEF_CEILING, 
-                                         LW_OPTION_WAIT_PRIORITY | LW_OPTION_DELETE_SAFE |
-                                         LW_OPTION_INHERIT_PRIORITY | LW_OPTION_OBJECT_GLOBAL,
-                                         LW_NULL);
-    
     _G_hSockSelMutex = API_SemaphoreMCreate("socksel_lock", LW_PRIO_DEF_CEILING, 
                                             LW_OPTION_WAIT_PRIORITY | LW_OPTION_DELETE_SAFE |
                                             LW_OPTION_INHERIT_PRIORITY | LW_OPTION_OBJECT_GLOBAL,
                                             LW_NULL);
+    _BugHandle(!_G_hSockSelMutex, LW_TRUE, "socksel_lock create error!\r\n");
 }
 /*********************************************************************************************************
 ** 函数名称: __socketOpen
@@ -392,7 +257,6 @@ static LONG  __socketOpen (LW_DEV_HDR *pdevhdr, PCHAR  pcName, INT  iFlag, mode_
     
     psock->SOCK_iFamily = AF_UNSPEC;
     psock->SOCK_iLwipFd = PX_ERROR;
-    psock->SOCK_iHash   = PX_ERROR;
     psock->SOCK_iSoErr  = 0;
     
     lib_bzero(&psock->SOCK_selwulist, sizeof(LW_SEL_WAKEUPLIST));
@@ -442,12 +306,6 @@ static INT  __socketClose (SOCKET_T *psock)
     }
     
     SEL_WAKE_UP_TERM(&psock->SOCK_selwulist);
-    
-    __SOCKET_LOCK();
-    if (psock->SOCK_iHash >= 0) {
-        _List_Line_Del(&psock->SOCK_lineManage, &_G_plineSocket[psock->SOCK_iHash]);
-    }
-    __SOCKET_UNLOCK();
     
     __SHEAP_FREE(psock);
     
@@ -964,6 +822,25 @@ VOID  __socketReset (PLW_FD_ENTRY  pfdentry)
     }
 }
 /*********************************************************************************************************
+** 函数名称: __socketEnotify
+** 功能描述: socket 事件通知
+** 输　入  : file        SOCKET_T
+**           type        事件类型
+**           iSoErr      更新的 SO_ERROR 数值
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+void  __socketEnotify (void *file, LW_SEL_TYPE type, INT  iSoErr)
+{
+    SOCKET_T *psock = (SOCKET_T *)file;
+    
+    if (psock) {
+        psock->SOCK_iSoErr = iSoErr;                                    /*  更新 SO_ERROR               */
+        SEL_WAKE_UP_ALL(&psock->SOCK_selwulist, type);
+    }
+}
+/*********************************************************************************************************
 ** 函数名称: socketpair
 ** 功能描述: BSD socketpair
 ** 输　入  : domain        域
@@ -1040,7 +917,6 @@ int  socketpair (int domain, int type, int protocol, int sv[2])
 LW_API  
 int  socket (int domain, int type, int protocol)
 {
-    INT          iHash;
     INT          iFd     = PX_ERROR;
     INT          iLwipFd = PX_ERROR;
     
@@ -1132,32 +1008,27 @@ int  socket (int domain, int type, int protocol)
 #if LW_CFG_NET_UNIX_EN > 0
     case AF_UNIX:                                                       /*  UNIX 域协议                 */
         psock->SOCK_pafunix = pafunix;
-        iHash = __SOCKET_UNIX_HASH(pafunix);
+        __unix_set_sockfile(pafunix, psock);
         break;
 #endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
 
 #if LW_CFG_NET_ROUTER > 0
     case AF_ROUTE:                                                      /*  AF_ROUTE 域协议             */
         psock->SOCK_pafroute = pafroute;
-        iHash = __SOCKET_ROUTE_HASH(pafroute);
+        __route_set_sockfile(pafroute, psock);
         break;
 #endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
 
     case AF_PACKET:                                                     /*  PACKET                      */
         psock->SOCK_pafpacket = pafpacket;
-        iHash = __SOCKET_PACKET_HASH(pafpacket);
+        __packet_set_sockfile(pafpacket, psock);
         break;
         
     default:
         psock->SOCK_iLwipFd = iLwipFd;                                  /*  save lwip fd                */
-        iHash = __SOCKET_LWIP_HASH(iLwipFd);
+        __lwip_set_sockfile(iLwipFd, psock);
         break;
     }
-    
-    __SOCKET_LOCK();
-    psock->SOCK_iHash = iHash;
-    _List_Line_Add_Tail(&psock->SOCK_lineManage, &_G_plineSocket[iHash]);
-    __SOCKET_UNLOCK();
     
     if (iCloExec) {
         API_IosFdSetCloExec(iFd, iCloExec);
@@ -1215,8 +1086,7 @@ __error_handle:
 LW_API  
 int  accept4 (int s, struct sockaddr *addr, socklen_t *addrlen, int flags)
 {
-    INT          iHash;
-    SOCKET_T    *psock   = (SOCKET_T *)iosFdValue(s);
+    SOCKET_T    *psock = (SOCKET_T *)iosFdValue(s);
     SOCKET_T    *psockNew;
     INT          iType;
     
@@ -1290,25 +1160,20 @@ int  accept4 (int s, struct sockaddr *addr, socklen_t *addrlen, int flags)
 #if LW_CFG_NET_UNIX_EN > 0
     case AF_UNIX:                                                       /*  UNIX 域协议                 */
         psockNew->SOCK_pafunix = pafunix;
-        iHash = __SOCKET_UNIX_HASH(pafunix);
+        __unix_set_sockfile(pafunix, psockNew);
         break;
 #endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
 
     case AF_PACKET:                                                     /*  PACKET                      */
         psockNew->SOCK_pafpacket = pafpacket;
-        iHash = __SOCKET_PACKET_HASH(pafpacket);
+        __packet_set_sockfile(pafpacket, psockNew);
         break;
         
     default:
         psockNew->SOCK_iLwipFd = iRet;                                  /*  save lwip fd                */
-        iHash = __SOCKET_LWIP_HASH(iRet);
+        __lwip_set_sockfile(iRet, psockNew);
         break;
     }
-    
-    __SOCKET_LOCK();
-    psockNew->SOCK_iHash = iHash;
-    _List_Line_Add_Tail(&psockNew->SOCK_lineManage, &_G_plineSocket[iHash]);
-    __SOCKET_UNLOCK();
     
     if (iCloExec) {
         API_IosFdSetCloExec(iFdNew, iCloExec);

@@ -188,6 +188,19 @@ tcpip_qos_prio(struct pbuf *p, struct netif *inp)
 }
 #endif /* SYLIXOS && LW_CFG_LWIP_IPQOS */
 
+#ifdef SYLIXOS /* SylixOS Add input lost counter */
+static u32_t tcpip_inpkt_lost_cnt;
+/**
+ * Get input lost counter
+ * @return input lost counter
+ */
+u32_t
+tcpip_inpkt_lost (void)
+{
+  return (tcpip_inpkt_lost_cnt);
+}
+#endif /* SYLIXOS */
+
 #define TCPIP_MSG_VAR_REF(name)     API_VAR_REF(name)
 #define TCPIP_MSG_VAR_DECLARE(name) API_VAR_DECLARE(struct tcpip_msg, name)
 #define TCPIP_MSG_VAR_ALLOC(name)   API_VAR_ALLOC(struct tcpip_msg, MEMP_TCPIP_MSG_API, name, ERR_MEM)
@@ -403,12 +416,16 @@ tcpip_inpkt(struct pbuf *p, struct netif *inp, netif_input_fn input_fn)
     u8_t prio = tcpip_qos_prio(p, inp);
     if (sys_mbox_trypost_prio(&tcpip_mbox, msg, prio) != ERR_OK) {
       memp_free(MEMP_TCPIP_MSG_INPKT, msg);
+      tcpip_inpkt_lost_cnt++;
       return ERR_MEM;
     }
   } else 
 #endif /* SYLIXOS && LW_CFG_LWIP_IPQOS */
   if (sys_mbox_trypost(&tcpip_mbox, msg) != ERR_OK) {
     memp_free(MEMP_TCPIP_MSG_INPKT, msg);
+#ifdef SYLIXOS /* SylixOS Add lost counter */
+    tcpip_inpkt_lost_cnt++;
+#endif /* SYLIXOS */
     return ERR_MEM;
   }
   return ERR_OK;

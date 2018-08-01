@@ -494,6 +494,9 @@ alloc_socket(struct netconn *newconn, int accepted)
        * (unless it has been created by accept()). */
       sockets[i].sendevent  = (NETCONNTYPE_GROUP(newconn->type) == NETCONN_TCP ? (accepted != 0) : 1);
       sockets[i].errevent   = 0;
+#ifdef SYLIXOS /* SylixOS Add socket file for event */
+      sockets[i].file = NULL;
+#endif /* SYLIXOS */
 #endif /* LWIP_SOCKET_SELECT */
       return i + LWIP_SOCKET_OFFSET;
     }
@@ -577,7 +580,7 @@ free_socket(struct lwip_sock *sock, int is_tcp)
 
 
 #ifdef SYLIXOS /* SylixOS Add this functions to link with SylixOS socket */
-extern void  __lwip_socket_event(int  lwipfd, LW_SEL_TYPE type, INT  iSoErr);
+extern void  __socketEnotify(void *file, LW_SEL_TYPE type, INT  iSoErr);
 /*
  *  sylixos socket check if lwip socket some event valid
  *  only if event valid then set newest so_error
@@ -628,6 +631,27 @@ int __lwip_have_event (int s, int type, int *pso_error)
   
   done_socket(sock);
   return (event);
+}
+
+/*
+ *  set sylixos socket file
+ */
+void __lwip_set_sockfile (int s, void *file)
+{
+  struct lwip_sock *sock;
+  SYS_ARCH_DECL_PROTECT(lev);
+  
+  SYS_ARCH_PROTECT(lev);
+  sock = tryget_socket(s);
+  if (!sock) {
+    SYS_ARCH_UNPROTECT(lev);
+    return;
+  }
+  
+  sock->file = file;
+  SYS_ARCH_UNPROTECT(lev);
+  
+  done_socket(sock);
 }
 #endif /* SYLIXOS */
 
@@ -2637,13 +2661,13 @@ event_callback(struct netconn *conn, enum netconn_evt evt, u16_t len)
      * make sylixos thread wakeup
      */
     if (selread) {
-      __lwip_socket_event(s, SELREAD, err);
+      __socketEnotify(sock->file, SELREAD, err);
     }
     if (selwrite) {
-      __lwip_socket_event(s, SELWRITE, err);
+      __socketEnotify(sock->file, SELWRITE, err);
     }
     if (selexcept) {
-      __lwip_socket_event(s, SELEXCEPT, err);
+      __socketEnotify(sock->file, SELEXCEPT, err);
     }
     
     done_socket(sock);

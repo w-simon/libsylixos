@@ -44,7 +44,7 @@ typedef struct {
     UINT                    JOBQ_uiOut;
     UINT                    JOBQ_uiCnt;
     UINT                    JOBQ_uiSize;
-    size_t                  JOBQ_stLost;                                /*  丢失信息数量                */
+    ULONG                   JOBQ_ulLost;                                /*  丢失信息数量                */
     LW_OBJECT_HANDLE        JOBQ_ulSync;                                /*  同步等待                    */
     LW_SPINLOCK_DEFINE     (JOBQ_slLock);
 } LW_JOB_QUEUE;
@@ -83,7 +83,7 @@ VOID             _jobQueueDel(PLW_JOB_QUEUE pjobq,
                               PVOID         pvArg3,
                               PVOID         pvArg4,
                               PVOID         pvArg5);
-size_t           _jobQueueLost(PLW_JOB_QUEUE pjobq);
+ULONG            _jobQueueLost(PLW_JOB_QUEUE pjobq);
 ULONG            _jobQueueExec(PLW_JOB_QUEUE pjobq, ULONG  ulTimeout);
 
 #endif                                                                  /*  __K_JOBQUEUE_H              */

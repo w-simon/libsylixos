@@ -361,6 +361,8 @@ struct pbuf *netdev_zc_pbuf_alloc(void *hzcpool, int ticks);
 struct pbuf *netdev_zc_pbuf_alloc_res(void *hzcpool, int ticks, UINT16 hdr_res);
 /* free zero copy pbuf */
 void netdev_zc_pbuf_free(struct pbuf *p);
+/* get zero copy pbuf stat */
+void netdev_zc_pbuf_stat(u32_t *zcused, u32_t *zcmax, u32_t *zcerror);
 #endif /* LW_CFG_NET_DEV_ZCBUF_EN */
 
 #endif /* __NETDEV_H */

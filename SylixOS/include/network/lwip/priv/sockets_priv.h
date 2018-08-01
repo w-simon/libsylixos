@@ -80,6 +80,9 @@ struct lwip_sock {
   u16_t errevent;
   /** counter of how many threads are waiting for this socket using select */
   SELWAIT_T select_waiting;
+#ifdef SYLIXOS /* SylixOS Add socket file for event */
+  void *file;
+#endif /* SYLIXOS */
 #endif /* LWIP_SOCKET_SELECT || LWIP_SOCKET_POLL */
 #if LWIP_NETCONN_FULLDUPLEX
   /* counter of how many threads are using a struct lwip_sock (not the 'int') */

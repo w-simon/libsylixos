@@ -24,6 +24,19 @@
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
 /*********************************************************************************************************
+  JOB MSG COPY
+*********************************************************************************************************/
+#define LW_JOB_MSG_COPY(t, f)                               \
+        {                                                   \
+            (t)->JOBM_pfuncFunc = (f)->JOBM_pfuncFunc;      \
+            (t)->JOBM_pvArg[0]  = (f)->JOBM_pvArg[0];       \
+            (t)->JOBM_pvArg[1]  = (f)->JOBM_pvArg[1];       \
+            (t)->JOBM_pvArg[2]  = (f)->JOBM_pvArg[2];       \
+            (t)->JOBM_pvArg[3]  = (f)->JOBM_pvArg[3];       \
+            (t)->JOBM_pvArg[4]  = (f)->JOBM_pvArg[4];       \
+            (t)->JOBM_pvArg[5]  = (f)->JOBM_pvArg[5];       \
+        }
+/*********************************************************************************************************
 ** 函数名称: _JobQueueCreate
 ** 功能描述: 创建一个工作队列
 ** 输　入  : uiQueueSize       队列大小
@@ -49,7 +62,7 @@ PLW_JOB_QUEUE  _jobQueueCreate (UINT uiQueueSize, BOOL bNonBlock)
     pjobq->JOBQ_uiOut        = 0;
     pjobq->JOBQ_uiCnt        = 0;
     pjobq->JOBQ_uiSize       = uiQueueSize;
-    pjobq->JOBQ_stLost       = 0;
+    pjobq->JOBQ_ulLost       = 0;
     
     if (bNonBlock == LW_FALSE) {
         pjobq->JOBQ_ulSync = API_SemaphoreBCreate("job_sync", LW_FALSE, LW_OPTION_OBJECT_GLOBAL, LW_NULL);
@@ -99,7 +112,7 @@ ULONG  _jobQueueInit (PLW_JOB_QUEUE pjobq, PLW_JOB_MSG  pjobmsg, UINT uiQueueSiz
     pjobq->JOBQ_uiOut        = 0;
     pjobq->JOBQ_uiCnt        = 0;
     pjobq->JOBQ_uiSize       = uiQueueSize;
-    pjobq->JOBQ_stLost       = 0;
+    pjobq->JOBQ_ulLost       = 0;
     
     if (bNonBlock == LW_FALSE) {
         pjobq->JOBQ_ulSync = API_SemaphoreBCreate("job_sync", LW_FALSE, LW_OPTION_OBJECT_GLOBAL, LW_NULL);
@@ -174,7 +187,7 @@ ULONG  _jobQueueAdd (PLW_JOB_QUEUE pjobq,
     
     LW_SPIN_LOCK_QUICK(&pjobq->JOBQ_slLock, &iregInterLevel);
     if (pjobq->JOBQ_uiCnt == pjobq->JOBQ_uiSize) {
-        pjobq->JOBQ_stLost++;
+        pjobq->JOBQ_ulLost++;
         LW_SPIN_UNLOCK_QUICK(&pjobq->JOBQ_slLock, iregInterLevel);
         _DebugHandle(__ERRORMESSAGE_LEVEL, "job message lost.\r\n");
         return  (ENOSPC);
@@ -312,9 +325,9 @@ VOID  _jobQueueDel (PLW_JOB_QUEUE pjobq,
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-size_t  _jobQueueLost (PLW_JOB_QUEUE pjobq)
+ULONG  _jobQueueLost (PLW_JOB_QUEUE pjobq)
 {
-    return  (pjobq->JOBQ_stLost);
+    return  (pjobq->JOBQ_ulLost);
 }
 /*********************************************************************************************************
 ** 函数名称: _jobQueueExec
@@ -347,8 +360,8 @@ ULONG  _jobQueueExec (PLW_JOB_QUEUE pjobq, ULONG  ulTimeout)
     }
     
     while (pjobq->JOBQ_uiCnt) {
-        pjobmsg   = &pjobq->JOBQ_pjobmsgQueue[pjobq->JOBQ_uiOut];
-        jobmsgRun = *pjobmsg;
+        pjobmsg = &pjobq->JOBQ_pjobmsgQueue[pjobq->JOBQ_uiOut];
+        LW_JOB_MSG_COPY(&jobmsgRun, pjobmsg);
         if (pjobq->JOBQ_uiOut == (pjobq->JOBQ_uiSize - 1)) {
             pjobq->JOBQ_uiOut =  0;
         } else {
