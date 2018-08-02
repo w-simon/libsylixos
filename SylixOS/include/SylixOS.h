@@ -26,8 +26,8 @@
 2010.01.07  加入 posix 子系统.
 *********************************************************************************************************/
 
-#ifndef  __SYLIXOS_H
-#define  __SYLIXOS_H
+#ifndef __SYLIXOS_H
+#define __SYLIXOS_H
 
 /*********************************************************************************************************
   注意如果不需要使用操作系统提供的 C 兼容库时, 请在引用此头文件前, 定义宏: __EXCLIB
@@ -68,10 +68,10 @@ extern "C" {
 *********************************************************************************************************/
 #include "../SylixOS/appl/appl.h"                                       /*  应用中间件接口              */
 
-#ifndef  __SYLIXOS_KERNEL                                               /*  是否是内核模块              */
+#ifndef __SYLIXOS_KERNEL                                                /*  是否是内核模块              */
 
-#define  LW_API_EXEC(__class, __operate, __args)   \
-         Lw_##__class##_##__operate## __args
+#define LW_API_EXEC(__class, __operate, __args)   \
+        Lw_##__class##_##__operate## __args
 
 #include "../SylixOS/api/Lw_Api_Kernel.h"                               /*  内核 API                    */
 #include "../SylixOS/api/Lw_Api_System.h"                               /*  系统 API                    */

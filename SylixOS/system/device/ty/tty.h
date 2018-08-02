@@ -180,16 +180,16 @@ LW_API VOID                 API_TyMonitorTrapSet(CHAR  cMonitorTrap);
   API
 *********************************************************************************************************/
 
-#define  ttyDrv             API_TtyDrvInstall
-#define  ttyDevCreate       API_TtyDevCreate
-#define  ttyDevRemove       API_TtyDevRemove
+#define ttyDrv              API_TtyDrvInstall
+#define ttyDevCreate        API_TtyDevCreate
+#define ttyDevRemove        API_TtyDevRemove
 
-#define  tyAbortFuncSet     API_TyAbortFuncSet
-#define  tyAbortSet         API_TyAbortSet
-#define  tyBackspaceSet     API_TyBackspaceSet
-#define  tyDeleteLineSet    API_TyDeleteLineSet
-#define  tyEOFSet           API_TyEOFSet
-#define  tyMonitorTrapSet   API_TyMonitorTrapSet
+#define tyAbortFuncSet      API_TyAbortFuncSet
+#define tyAbortSet          API_TyAbortSet
+#define tyBackspaceSet      API_TyBackspaceSet
+#define tyDeleteLineSet     API_TyDeleteLineSet
+#define tyEOFSet            API_TyEOFSet
+#define tyMonitorTrapSet    API_TyMonitorTrapSet
 
 /*********************************************************************************************************
   GLOBAL VAR

@@ -22,10 +22,10 @@
 #ifndef __LIB_LIB_H
 #define __LIB_LIB_H
 
-#ifndef  __EXCLIB
+#ifndef __EXCLIB
 
-#define  __LW_RETU_FUNC_DECLARE(ret, name, declare) \
-         ret name declare;
+#define __LW_RETU_FUNC_DECLARE(ret, name, declare) \
+        ret name declare;
 
 #include "./libc/string/lib_string.h"
 #include "./libc/stdlib/lib_stdlib.h"

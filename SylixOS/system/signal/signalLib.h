@@ -19,8 +19,8 @@
 ** 描        述: 这是系统信号内部处理相关定义
 *********************************************************************************************************/
 
-#ifndef  __SIGNALLIB_H
-#define  __SIGNALLIB_H
+#ifndef __SIGNALLIB_H
+#define __SIGNALLIB_H
 
 #if  LW_CFG_SIGNAL_EN > 0
 

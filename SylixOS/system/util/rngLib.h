@@ -19,8 +19,8 @@
 ** Ãè        Êö: VXWORKS ¼æÈÝ RING BUFFER ¿â
 *********************************************************************************************************/
 
-#ifndef  __RNGLIB_H
-#define  __RNGLIB_H
+#ifndef __RNGLIB_H
+#define __RNGLIB_H
 
 /*********************************************************************************************************
   VxWorks ¼æÈÝ RING BUFFER
@@ -40,70 +40,70 @@ typedef VX_RING               *VX_RING_ID;
   MACRO
 *********************************************************************************************************/
 
-#define  __RNG_ELEM_GET(vxringid, pcB, iFrom)                \
-         (                                                   \
-             iFrom = (vxringid)->VXRING_iFromBuf,            \
-             ((vxringid)->VXRING_iToBuf == iFrom) ?          \
-             0                                               \
-             :                                               \
-             (                                               \
-                 *pcB = (vxringid)->VXRING_pcBuf[iFrom],     \
-                 ++iFrom,                                    \
-                 (vxringid)->VXRING_iFromBuf = ((iFrom == (vxringid)->VXRING_iBufByteSize) ? 0 : iFrom), \
-                 1                                           \
-             )                                               \
-         )
-         
-#define  __RNG_ELEM_PUT(vxringid, cB, iTo)                   \
-         (                                                   \
-             iTo = (vxringid)->VXRING_iToBuf,                \
-             (iTo == (vxringid)->VXRING_iFromBuf - 1) ?      \
-             0                                               \
-             :                                               \
-             (                                               \
-                 (iTo == (vxringid)->VXRING_iBufByteSize - 1) ?  \
-                 (                                           \
-                     ((vxringid)->VXRING_iFromBuf == 0) ?    \
-                     0                                       \
-                     :                                       \
-                     (                                       \
-                         (vxringid)->VXRING_pcBuf[iTo] = cB, \
-                         (vxringid)->VXRING_iToBuf = 0,      \
-                         1                                   \
-                     )                                       \
-                 )                                           \
-                 :                                           \
-                 (                                           \
-                     (vxringid)->VXRING_pcBuf[iTo] = cB,     \
-                     (vxringid)->VXRING_iToBuf++,            \
-                     1                                       \
-                 )                                           \
-             )                                               \
-         )
+#define __RNG_ELEM_GET(vxringid, pcB, iFrom)                \
+        (                                                   \
+            iFrom = (vxringid)->VXRING_iFromBuf,            \
+            ((vxringid)->VXRING_iToBuf == iFrom) ?          \
+            0                                               \
+            :                                               \
+            (                                               \
+                *pcB = (vxringid)->VXRING_pcBuf[iFrom],     \
+                ++iFrom,                                    \
+                (vxringid)->VXRING_iFromBuf = ((iFrom == (vxringid)->VXRING_iBufByteSize) ? 0 : iFrom), \
+                1                                           \
+            )                                               \
+        )
+
+#define __RNG_ELEM_PUT(vxringid, cB, iTo)                   \
+        (                                                   \
+            iTo = (vxringid)->VXRING_iToBuf,                \
+            (iTo == (vxringid)->VXRING_iFromBuf - 1) ?      \
+            0                                               \
+            :                                               \
+            (                                               \
+                (iTo == (vxringid)->VXRING_iBufByteSize - 1) ?  \
+                (                                           \
+                    ((vxringid)->VXRING_iFromBuf == 0) ?    \
+                    0                                       \
+                    :                                       \
+                    (                                       \
+                        (vxringid)->VXRING_pcBuf[iTo] = cB, \
+                        (vxringid)->VXRING_iToBuf = 0,      \
+                        1                                   \
+                    )                                       \
+                )                                           \
+                :                                           \
+                (                                           \
+                    (vxringid)->VXRING_pcBuf[iTo] = cB,     \
+                    (vxringid)->VXRING_iToBuf++,            \
+                    1                                       \
+                )                                           \
+            )                                               \
+        )
 
 /*********************************************************************************************************
   VxWorks compatible
 *********************************************************************************************************/
 
-#define  rngIsEmpty                     _rngIsEmpty
-#define  rngIsFull                      _rngIsFull
+#define rngIsEmpty                     _rngIsEmpty
+#define rngIsFull                      _rngIsFull
 
-#define  rngCreate                      _rngCreate
-#define  rngDelete                      _rngDelete
+#define rngCreate                      _rngCreate
+#define rngDelete                      _rngDelete
 
-#define  rngBufGet                      _rngBufGet
-#define  rngBufPut                      _rngBufPut
+#define rngBufGet                      _rngBufGet
+#define rngBufPut                      _rngBufPut
 
-#define  rngSizeGet                     _rngSizeGet
-#define  rngFreeBytes                   _rngFreeBytes
-#define  rngNBytes                      _rngNBytes
+#define rngSizeGet                     _rngSizeGet
+#define rngFreeBytes                   _rngFreeBytes
+#define rngNBytes                      _rngNBytes
 
-#define  rngFlush                       _rngFlush
-#define  rngMoveAhead                   _rngMoveAhead
-#define  rngPutAhead                    _rngPutAhead
+#define rngFlush                       _rngFlush
+#define rngMoveAhead                   _rngMoveAhead
+#define rngPutAhead                    _rngPutAhead
 
-#define  RNG_ELEM_GET                   __RNG_ELEM_GET
-#define  RNG_ELEM_PUT                   __RNG_ELEM_PUT
+#define RNG_ELEM_GET                   __RNG_ELEM_GET
+#define RNG_ELEM_PUT                   __RNG_ELEM_PUT
 
 /*********************************************************************************************************
   ¹¦ÄÜÉùÃ÷

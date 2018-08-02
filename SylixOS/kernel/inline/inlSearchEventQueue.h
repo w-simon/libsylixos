@@ -24,8 +24,8 @@
 2007.11.18  ÕûÀí×¢ÊÍ.
 *********************************************************************************************************/
 
-#ifndef  __INLSEARCHEVENTQUEUE_H
-#define  __INLSEARCHEVENTQUEUE_H
+#ifndef __INLSEARCHEVENTQUEUE_H
+#define __INLSEARCHEVENTQUEUE_H
 
 #if (LW_CFG_EVENT_EN > 0) && (LW_CFG_MAX_EVENTS > 0)
 

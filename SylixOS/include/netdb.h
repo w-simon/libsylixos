@@ -19,8 +19,8 @@
 ** ร่        ส๖: netdb.
 *********************************************************************************************************/
 
-#ifndef  __NETDB_H
-#define  __NETDB_H
+#ifndef __NETDB_H
+#define __NETDB_H
 
 #include "lwip/netdb.h"
 

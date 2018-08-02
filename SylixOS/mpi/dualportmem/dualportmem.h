@@ -22,8 +22,8 @@
 2007.09.12  加入裁剪支持。
 *********************************************************************************************************/
 
-#ifndef  __DUALPORTMEM_H
-#define  __DUALPORTMEM_H
+#ifndef __DUALPORTMEM_H
+#define __DUALPORTMEM_H
 
 #if LW_CFG_MPI_EN > 0
 

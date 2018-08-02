@@ -358,8 +358,8 @@ static INT    __sdhciRegAccessDrvInit(PLW_SDHCI_HOST_ATTR  psdhcihostattr);
 static VOID __sdhciPreStaShow(PLW_SDHCI_HOST_ATTR psdhcihostattr);
 static VOID __sdhciIntStaShow(PLW_SDHCI_HOST_ATTR psdhcihostattr);
 #else
-#define     __sdhciPreStaShow(x)
-#define     __sdhciIntStaShow(x)
+#define __sdhciPreStaShow(x)
+#define __sdhciIntStaShow(x)
 #endif                                                                  /*  __SYLIXOS_DEBUG             */
 /*********************************************************************************************************
   INLINE FUNCTIONS

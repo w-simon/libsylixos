@@ -26,8 +26,8 @@ PCHAR  lib_rindex(CPCHAR      pcString, INT iC);
 PCHAR  lib_index(CPCHAR       pcString, INT iC);
 PCHAR  lib_strchrnul(CPCHAR  pcString, INT iC);
 
-#define  lib_strrchr     lib_rindex
-#define  lib_strchr      lib_index
+#define lib_strrchr lib_rindex
+#define lib_strchr  lib_index
 
 PCHAR  lib_stpcpy(PCHAR  pcDest, CPCHAR  pcSrc);
 PCHAR  lib_stpncpy(PCHAR  pcDest, CPCHAR  pcSrc, size_t  stN);

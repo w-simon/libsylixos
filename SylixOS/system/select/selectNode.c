@@ -168,6 +168,67 @@ VOID    API_SelWakeupAll (PLW_SEL_WAKEUPLIST  pselwulList, LW_SEL_TYPE  seltyp)
     SEL_LIST_UNLOCK(pselwulList);
 }
 /*********************************************************************************************************
+** 函数名称: API_SelWakeupAllByFlags
+** 功能描述: 唤醒所有等待指定操作的线程
+** 输　入  : pselwulList        select wake up list 控制结构
+             uiFlags            等待类型 
+                                LW_SEL_TYPE_FLAG_READ / LW_SEL_TYPE_FLAG_WRITE / LW_SEL_TYPE_FLAG_EXCEPT
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+VOID    API_SelWakeupAllByFlags (PLW_SEL_WAKEUPLIST  pselwulList, UINT  uiFlags)
+{
+    REGISTER PLW_SEL_WAKEUPNODE     pselwunNode;
+    REGISTER PLW_LIST_LINE          plineNode;
+    
+    if (!pselwulList || !pselwulList->SELWUL_plineHeader) {             /*  没有节点                    */
+        return;
+    }
+    
+    if (LW_CPU_GET_CUR_NESTING()) {                                     /*  在中断中                    */
+        _excJobAdd((VOIDFUNCPTR)API_SelWakeupAllByFlags, (PVOID)pselwulList, (PVOID)uiFlags, 
+                   0, 0, 0, 0);                                         /*  底半中断处理                */
+        return;
+    }
+    
+    SEL_LIST_LOCK(pselwulList);
+    
+    for (plineNode  = pselwulList->SELWUL_plineHeader;
+         plineNode != LW_NULL;
+         plineNode  = _list_line_get_next(plineNode)) {                 /*  遍历所有节点                */
+        
+        pselwunNode = _LIST_ENTRY(plineNode, LW_SEL_WAKEUPNODE, SELWUN_lineManage);
+        switch (pselwunNode->SELWUN_seltypType) {
+        
+        case SELREAD:
+            if (uiFlags & LW_SEL_TYPE_FLAG_READ) {
+                API_SelWakeup(pselwunNode);                             /*  释放                        */
+            }
+            break;
+            
+        case SELWRITE:
+            if (uiFlags & LW_SEL_TYPE_FLAG_WRITE) {
+                API_SelWakeup(pselwunNode);                             /*  释放                        */
+            }
+            break;
+        
+        case SELEXCEPT:
+            if (uiFlags & LW_SEL_TYPE_FLAG_EXCEPT) {
+                API_SelWakeup(pselwunNode);                             /*  释放                        */
+            }
+            break;
+            
+        default:
+            break;
+        }
+    }
+    
+    SEL_LIST_UNLOCK(pselwulList);
+}
+/*********************************************************************************************************
 ** 函数名称: API_SelWakeupTerm
 ** 功能描述: 由于产生了错误, 唤醒所有等待指定操作的线程
 ** 输　入  : pselwulList        select wake up list 控制结构

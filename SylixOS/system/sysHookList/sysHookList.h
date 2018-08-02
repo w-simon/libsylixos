@@ -22,8 +22,8 @@
 2015.05.16  系统回调不再采用链式结构, 转而采用数组结构.
 *********************************************************************************************************/
 
-#ifndef  __SYSHOOKLIST_H
-#define  __SYSHOOKLIST_H
+#ifndef __SYSHOOKLIST_H
+#define __SYSHOOKLIST_H
 
 /*********************************************************************************************************
   FUNCTION NODE
@@ -87,10 +87,10 @@ typedef struct {
 /*********************************************************************************************************
   各种 HOOK 表
 *********************************************************************************************************/
-#ifdef   __SYSHOOKLIST_MAIN_FILE
-#define  __SYSHOOK_EXT
+#ifdef __SYSHOOKLIST_MAIN_FILE
+#define __SYSHOOK_EXT
 #else
-#define  __SYSHOOK_EXT           extern
+#define __SYSHOOK_EXT       extern
 #endif
 
 __SYSHOOK_EXT LW_HOOK_TABLE _G_hookTable;

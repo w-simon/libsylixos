@@ -47,10 +47,10 @@
 #include "getopt_var.h"
 #include "getopt.h"
 
-#define  getenv(var)                lib_getenv(var)
-#define  strchr(str, c)             lib_strchr((PCHAR)str, c)
-#define  strlen(str)                lib_strlen((PCHAR)str)
-#define  strncmp(str1, str2, n)     lib_strncmp((PCHAR)str1, (PCHAR)str2, n)
+#define getenv(var)                lib_getenv(var)
+#define strchr(str, c)             lib_strchr((PCHAR)str, c)
+#define strlen(str)                lib_strlen((PCHAR)str)
+#define strncmp(str1, str2, n)     lib_strncmp((PCHAR)str1, (PCHAR)str2, n)
 /**************************** HANHUI ***************************/
 
 /* XXX BOOTSTRAPPING */

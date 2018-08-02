@@ -24,8 +24,8 @@
 2009.12.30  将 pid_t 定义为 long 型.
 *********************************************************************************************************/
 
-#ifndef  __K_PTYPE_H
-#define  __K_PTYPE_H
+#ifndef __K_PTYPE_H
+#define __K_PTYPE_H
 
 #ifndef __PTYPE
 

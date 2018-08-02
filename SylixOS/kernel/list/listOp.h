@@ -25,8 +25,8 @@
 2013.11.29  指针转整型使用 size_t 类型.
 *********************************************************************************************************/
 
-#ifndef  __LISTOP_H
-#define  __LISTOP_H
+#ifndef __LISTOP_H
+#define __LISTOP_H
 
 #include "../SylixOS/kernel/list/listType.h"
 

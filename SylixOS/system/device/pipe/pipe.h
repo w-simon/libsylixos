@@ -23,8 +23,8 @@
 2007.11.20  加入 select 功能.
 *********************************************************************************************************/
 
-#ifndef  __PIPE_H
-#define  __PIPE_H
+#ifndef __PIPE_H
+#define __PIPE_H
 
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_PIPE_EN > 0)
 
@@ -73,9 +73,9 @@ LW_API INT          API_PipeDevDelete(PCHAR  pcName, BOOL bForce);
   API
 *********************************************************************************************************/
 
-#define  pipeDevCreate                               API_PipeDevCreate
-#define  pipeDevDelete                               API_PipeDevDelete
-#define  pipeDrv                                     API_PipeDrvInstall
+#define pipeDevCreate   API_PipeDevCreate
+#define pipeDevDelete   API_PipeDevDelete
+#define pipeDrv         API_PipeDrvInstall
 
 #endif                                                                  /*  __SPIPE_H                   */
 

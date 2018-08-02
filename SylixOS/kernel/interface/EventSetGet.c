@@ -35,23 +35,23 @@
 /*********************************************************************************************************
   MACRO
 *********************************************************************************************************/
-#define  __EVENTSET_NOT_READY() do {                          \
-             __KERNEL_EXIT_IRQ(iregInterLevel);               \
-             _ErrorHandle(ERROR_THREAD_WAIT_TIMEOUT);         \
-             return (ERROR_THREAD_WAIT_TIMEOUT);              \
-         } while (0)
+#define __EVENTSET_NOT_READY() do {                          \
+            __KERNEL_EXIT_IRQ(iregInterLevel);               \
+            _ErrorHandle(ERROR_THREAD_WAIT_TIMEOUT);         \
+            return (ERROR_THREAD_WAIT_TIMEOUT);              \
+        } while (0)
          
-#define  __EVENTSET_SAVE_RET()  do {                          \
-             if (ulOption & LW_OPTION_EVENTSET_RETURN_ALL) {  \
-                 if (pulEvent) {                              \
-                     *pulEvent = pes->EVENTSET_ulEventSets;   \
-                 }                                            \
-             } else {                                         \
-                 if (pulEvent) {                              \
-                     *pulEvent = ulEventRdy;                  \
-                 }                                            \
-             }                                                \
-         } while (0)
+#define __EVENTSET_SAVE_RET()  do {                          \
+            if (ulOption & LW_OPTION_EVENTSET_RETURN_ALL) {  \
+                if (pulEvent) {                              \
+                    *pulEvent = pes->EVENTSET_ulEventSets;   \
+                }                                            \
+            } else {                                         \
+                if (pulEvent) {                              \
+                    *pulEvent = ulEventRdy;                  \
+                }                                            \
+            }                                                \
+        } while (0)
 /*********************************************************************************************************
 ** 函数名称: API_EventSetGetEx
 ** 功能描述: 等待事件集相关事件

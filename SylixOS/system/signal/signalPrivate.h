@@ -19,8 +19,8 @@
 ** 描        述: 这是系统信号内部私有信息定义
 *********************************************************************************************************/
 
-#ifndef  __SIGNALPRIVATE_H
-#define  __SIGNALPRIVATE_H
+#ifndef __SIGNALPRIVATE_H
+#define __SIGNALPRIVATE_H
 
 #if LW_CFG_SIGNAL_EN > 0
 

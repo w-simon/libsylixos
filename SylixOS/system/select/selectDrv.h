@@ -41,6 +41,7 @@ LW_API VOID         API_SelWakeup(PLW_SEL_WAKEUPNODE   pselwunNode);
 LW_API VOID         API_SelWakeupError(PLW_SEL_WAKEUPNODE   pselwunNode);
 
 LW_API VOID         API_SelWakeupAll(PLW_SEL_WAKEUPLIST   pselwulList, LW_SEL_TYPE  seltyp);
+LW_API VOID         API_SelWakeupAllByFlags(PLW_SEL_WAKEUPLIST  pselwulList, UINT  uiFlags);
 LW_API VOID         API_SelWakeupTerm(PLW_SEL_WAKEUPLIST   pselwulList);
 
 LW_API INT          API_SelNodeAdd(PLW_SEL_WAKEUPLIST   pselwulList, 
@@ -69,6 +70,9 @@ LW_API INT          API_SelNodeDelete(PLW_SEL_WAKEUPLIST   pselwulList,
 
 #define SEL_WAKE_UP_ALL(pselwulList, seltyp)                \
         API_SelWakeupAll(pselwulList, seltyp)
+        
+#define SEL_WAKE_UP_ALL_BY_FLAGS(pselwulList, uiFlags)      \
+        API_SelWakeupAllByFlags(pselwulList, uiFlags)
         
 #define SEL_WAKE_UP_TERM(pselwulList)                       \
         API_SelWakeupTerm(pselwulList)
@@ -106,6 +110,10 @@ static LW_INLINE VOID SEL_WAKE_UP_ERROR(PLW_SEL_WAKEUPNODE   pselwunNode)
     return;
 }
 static LW_INLINE VOID SEL_WAKE_UP_ALL(PLW_SEL_WAKEUPLIST   pselwulList, LW_SEL_TYPE  seltyp)
+{
+    return;
+}
+static LW_INLINE VOID SEL_WAKE_UP_ALL_BY_FLAGS(PLW_SEL_WAKEUPLIST   pselwulList, UINT  uiFlags)
 {
     return;
 }

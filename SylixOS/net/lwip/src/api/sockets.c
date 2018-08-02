@@ -580,7 +580,7 @@ free_socket(struct lwip_sock *sock, int is_tcp)
 
 
 #ifdef SYLIXOS /* SylixOS Add this functions to link with SylixOS socket */
-extern void  __socketEnotify(void *file, LW_SEL_TYPE type, INT  iSoErr);
+extern void  __socketEnotify2(void *file, UINT uiSelFlags, INT  iSoErr);
 /*
  *  sylixos socket check if lwip socket some event valid
  *  only if event valid then set newest so_error
@@ -2639,6 +2639,7 @@ event_callback(struct netconn *conn, enum netconn_evt evt, u16_t len)
     u8_t selread = 0;
     u8_t selwrite = 0;
     u8_t selexcept = 0;
+    unsigned int flags = 0;
     int err;
     
     if (sock->lastdata.netbuf || (sock->rcvevent > 0)) {
@@ -2661,13 +2662,16 @@ event_callback(struct netconn *conn, enum netconn_evt evt, u16_t len)
      * make sylixos thread wakeup
      */
     if (selread) {
-      __socketEnotify(sock->file, SELREAD, err);
+      flags |= LW_SEL_TYPE_FLAG_READ;
     }
     if (selwrite) {
-      __socketEnotify(sock->file, SELWRITE, err);
+      flags |= LW_SEL_TYPE_FLAG_WRITE;
     }
     if (selexcept) {
-      __socketEnotify(sock->file, SELEXCEPT, err);
+      flags |= LW_SEL_TYPE_FLAG_EXCEPT;
+    }
+    if (flags) {
+      __socketEnotify2(sock->file, flags, err);
     }
     
     done_socket(sock);

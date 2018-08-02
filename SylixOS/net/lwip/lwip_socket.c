@@ -841,6 +841,25 @@ void  __socketEnotify (void *file, LW_SEL_TYPE type, INT  iSoErr)
     }
 }
 /*********************************************************************************************************
+** 函数名称: __socketEnotifyEx
+** 功能描述: socket 事件通知
+** 输　入  : file        SOCKET_T
+**           uiSelFlags  事件类型 LW_SEL_TYPE_FLAG_READ / LW_SEL_TYPE_FLAG_WRITE / LW_SEL_TYPE_FLAG_EXCEPT
+**           iSoErr      更新的 SO_ERROR 数值
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+void  __socketEnotify2 (void *file, UINT uiSelFlags, INT  iSoErr)
+{
+    SOCKET_T *psock = (SOCKET_T *)file;
+    
+    if (psock) {
+        psock->SOCK_iSoErr = iSoErr;                                    /*  更新 SO_ERROR               */
+        SEL_WAKE_UP_ALL_BY_FLAGS(&psock->SOCK_selwulist, uiSelFlags);
+    }
+}
+/*********************************************************************************************************
 ** 函数名称: socketpair
 ** 功能描述: BSD socketpair
 ** 输　入  : domain        域

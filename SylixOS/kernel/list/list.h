@@ -19,8 +19,8 @@
 ** 描        述: 这是系统使用的所有链表类型及操作定义。
 *********************************************************************************************************/
 
-#ifndef  __LIST_H
-#define  __LIST_H
+#ifndef __LIST_H
+#define __LIST_H
 
 #include "../SylixOS/kernel/list/listType.h"
 

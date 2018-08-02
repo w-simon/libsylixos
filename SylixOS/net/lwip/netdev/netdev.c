@@ -55,7 +55,7 @@
 #include "net/if_param.h"
 #include "net/if_ether.h"
 
-#define  NETDEV_RECEIVE_ARG_3   1
+#define NETDEV_RECEIVE_ARG_3    1
 
 #include "string.h"
 #include "netdev.h"

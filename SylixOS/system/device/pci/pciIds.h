@@ -2518,8 +2518,8 @@ vendor  vendor_name
 #define PCI_DEVICE_ID_ARECA_1681                    0x1681
 
 #define PCI_VENDOR_ID_S2IO                          0x17d5
-#define    PCI_DEVICE_ID_S2IO_WIN                   0x5731
-#define    PCI_DEVICE_ID_S2IO_UNI                   0x5831
+#define PCI_DEVICE_ID_S2IO_WIN                      0x5731
+#define PCI_DEVICE_ID_S2IO_UNI                      0x5831
 #define PCI_DEVICE_ID_HERC_WIN                      0x5732
 #define PCI_DEVICE_ID_HERC_UNI                      0x5832
 

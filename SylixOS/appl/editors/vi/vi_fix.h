@@ -28,45 +28,45 @@
   vi ÅäÖÃ
 *********************************************************************************************************/
 
-#ifndef  ALIGN1
-#define  ALIGN1
+#ifndef ALIGN1
+#define ALIGN1
 #endif                                                                  /*  ALIGN1                      */
 
-#ifndef  MAIN_EXTERNALLY_VISIBLE
-#define  MAIN_EXTERNALLY_VISIBLE
+#ifndef MAIN_EXTERNALLY_VISIBLE
+#define MAIN_EXTERNALLY_VISIBLE
 #endif                                                                  /*  MAIN_EXTERNALLY_VISIBLE     */
 
-typedef  int    smallint;
+typedef int    smallint;
 
-#define  ENABLE_LOCALE_SUPPORT                  0
-#define  ENABLE_FEATURE_ALLOW_EXEC              0
+#define ENABLE_LOCALE_SUPPORT                  0
+#define ENABLE_FEATURE_ALLOW_EXEC              0
 
-#define  ENABLE_FEATURE_VI_8BIT                 1
-#define  ENABLE_FEATURE_VI_OPTIMIZE_CURSOR      1
+#define ENABLE_FEATURE_VI_8BIT                 1
+#define ENABLE_FEATURE_VI_OPTIMIZE_CURSOR      1
 #if LW_CFG_SIGNAL_EN > 0
-#define  ENABLE_FEATURE_VI_USE_SIGNALS          1
+#define ENABLE_FEATURE_VI_USE_SIGNALS          1
 #else
-#define  ENABLE_FEATURE_VI_USE_SIGNALS          0
+#define ENABLE_FEATURE_VI_USE_SIGNALS          0
 #endif
-#define  ENABLE_FEATURE_VI_CRASHME              0
-#define  ENABLE_FEATURE_VI_DOT_CMD              1
-#define  ENABLE_FEATURE_VI_YANKMARK             1
-#define  ENABLE_FEATURE_VI_READONLY             0
-#define  ENABLE_FEATURE_VI_SEARCH               1
-#define  ENABLE_FEATURE_VI_COLON                1
-#define  ENABLE_FEATURE_VI_SETOPTS              1
-#define  ENABLE_FEATURE_VI_WIN_RESIZE           1
-#define  ENABLE_FEATURE_VI_SET                  1
+#define ENABLE_FEATURE_VI_CRASHME              0
+#define ENABLE_FEATURE_VI_DOT_CMD              1
+#define ENABLE_FEATURE_VI_YANKMARK             1
+#define ENABLE_FEATURE_VI_READONLY             0
+#define ENABLE_FEATURE_VI_SEARCH               1
+#define ENABLE_FEATURE_VI_COLON                1
+#define ENABLE_FEATURE_VI_SETOPTS              1
+#define ENABLE_FEATURE_VI_WIN_RESIZE           1
+#define ENABLE_FEATURE_VI_SET                  1
 
-#define  CONFIG_FEATURE_VI_MAX_LEN              2048
+#define CONFIG_FEATURE_VI_MAX_LEN              2048
 
 #define RESERVE_CONFIG_BUFFER(buffer,len)       char    buffer[len]
 
-#define  BB_VER                                 "busybox vi for sylixos : 1.10.2"
-#define  BB_BT                                  ""
+#define BB_VER                                 "vi for sylixos : 1.10.2"
+#define BB_BT                                  ""
 
-#ifndef  __cplusplus
-#define  inline                                 LW_INLINE
+#ifndef __cplusplus
+#define inline                                 LW_INLINE
 #endif                                                                  /*  __cplusplus                 */
 
 #if ENABLE_FEATURE_VI_COLON
@@ -127,17 +127,17 @@ ssize_t vi_safe_write(int fd, const void *buf, size_t len);
   sylixos º¯ÊýÉùÃ÷
 *********************************************************************************************************/
 
-#define  __VI_TERMINAL_WIDTH                    80
-#define  __VI_TERMINAL_HEIGHT                   24
+#define __VI_TERMINAL_WIDTH     80
+#define __VI_TERMINAL_HEIGHT    24
 
-extern   int        get_terminal_width_height(const int  fd, int  *width, int  *height);
-extern   char      *last_char_is(const char *s, int c);
-extern   void      *lib_xzalloc(size_t s);
-extern   ssize_t    full_write(int fd, const void *buf, size_t len);
-extern   int        isblank(int c);
-extern   int        bb_putchar(int ch);
+extern int        get_terminal_width_height(const int  fd, int  *width, int  *height);
+extern char      *last_char_is(const char *s, int c);
+extern void      *lib_xzalloc(size_t s);
+extern ssize_t    full_write(int fd, const void *buf, size_t len);
+extern int        isblank(int c);
+extern int        bb_putchar(int ch);
 
-#define xzalloc     lib_xzalloc
+#define xzalloc   lib_xzalloc
 
 #endif                                                                  /*  __VIM_FIX_H                 */
 /*********************************************************************************************************

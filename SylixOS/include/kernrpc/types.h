@@ -100,10 +100,10 @@ typedef __caddr_t caddr_t;
 #include <netinet/in.h>
 
 #ifndef INADDR_LOOPBACK
-#define       INADDR_LOOPBACK         (u_long)0x7F000001
+#define INADDR_LOOPBACK (u_long)0x7F000001
 #endif
 #ifndef MAXHOSTNAMELEN
-#define        MAXHOSTNAMELEN  64
+#define MAXHOSTNAMELEN  64
 #endif
 
 #endif /* rpc/types.h */

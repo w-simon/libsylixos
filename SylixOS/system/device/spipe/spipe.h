@@ -26,8 +26,8 @@
             2: 如果写端关闭, 读操作将会读完所有数据, 然后再次读返回 0.
 *********************************************************************************************************/
 
-#ifndef  __SPIPE_H
-#define  __SPIPE_H
+#ifndef __SPIPE_H
+#define __SPIPE_H
 
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_SPIPE_EN > 0)
 
@@ -106,9 +106,9 @@ LW_API INT          API_SpipeDevDelete(PCHAR  pcName, BOOL bForce);
   API
 *********************************************************************************************************/
 
-#define  spipeDevCreate                               API_SpipeDevCreate
-#define  spipeDevDelete                               API_SpipeDevDelete
-#define  spipeDrv                                     API_SpipeDrvInstall
+#define spipeDevCreate  API_SpipeDevCreate
+#define spipeDevDelete  API_SpipeDevDelete
+#define spipeDrv        API_SpipeDrvInstall
 
 #endif                                                                  /*  __SPIPE_H                   */
 
