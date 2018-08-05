@@ -344,12 +344,10 @@ INT    API_CacheEnable (LW_CACHE_TYPE  cachetype)
     _DebugFormat(__LOGMESSAGE_LEVEL, "%sCACHE enable.\r\n",
                  (cachetype == INSTRUCTION_CACHE) ? "I-" : "D-");
                  
-#ifdef LW_CFG_CPU_ARCH_ARM
-#if (LW_CFG_SMP_EN > 0) && (LW_CFG_ARM_SPINLOCK_DEP_CACHE > 0)
+#if defined(LW_CFG_CPU_ARCH_ARM) && LW_CFG_SMP_EN > 0
     if (cachetype == DATA_CACHE) {
         __ARCH_SPIN_WORK();                                             /*  spin lock Ê¹ÄÜ              */
     }
-#endif
 #endif
 
     return  (iError);

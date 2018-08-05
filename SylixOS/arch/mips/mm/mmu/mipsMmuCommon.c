@@ -217,8 +217,15 @@ static INT  mipsMmuGlobalInit (CPCHAR  pcMachineName)
 
     if ((_G_uiMipsCpuType == CPU_LOONGSON3) ||                          /*  Loongson-3x/2G/2H           */
         (_G_uiMipsCpuType == CPU_LOONGSON2K)) {                         /*  Loongson-2K                 */
-        mipsCp0GSConfigWrite(mipsCp0GSConfigRead() |
-                             MIPS_CONF6_FTLBDIS);                       /*  只用 VTLB, 不用 FTLB        */
+        UINT32  uiGSConfig = mipsCp0GSConfigRead();
+        uiGSConfig &= ~(1 <<  3);                                       /*  Store 操作也进行硬件自动预取*/
+        uiGSConfig &= ~(1 << 15);                                       /*  使用 VCache                 */
+        uiGSConfig |=  (1 <<  8) |                                      /*  Store 操作自动写合并        */
+                       (1 <<  1) |                                      /*  取指操作进行硬件自动预取    */
+                       (1 <<  0) |                                      /*  数据访存操作进行硬件自动预取*/
+                       MIPS_CONF6_FTLBDIS;                              /*  只用 VTLB, 不用 FTLB        */
+        __asm__ __volatile__("sync" : : : "memory");
+        mipsCp0GSConfigWrite(uiGSConfig);
     }
 
     return  (ERROR_NONE);

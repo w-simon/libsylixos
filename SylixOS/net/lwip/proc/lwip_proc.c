@@ -1549,6 +1549,14 @@ static VOID  __procFsNetTcpipStatPrintSys (struct stats_sys *sys,
     *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
                        "%-9s %-8s %-8s %-8u\n",
                        "", "-", "-", tcpip_inpkt_lost());
+    
+    *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
+                       "%-9s %-8s %-8s %-8s\n",
+                       "sockmsg", "-", "-", "lost");
+
+    *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
+                       "%-9s %-8s %-8s %-8u\n",
+                       "", "-", "-", sys_mbox_trypost_stat());
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: __procFsNetTcpipStatPrintPim

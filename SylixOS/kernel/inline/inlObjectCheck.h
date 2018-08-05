@@ -137,6 +137,15 @@ static LW_INLINE INT  _Partition_Index_Invalid (UINT16    usIndex)
 }
 
 /*********************************************************************************************************
+  _Partition_Index_Invalid
+*********************************************************************************************************/
+
+static LW_INLINE INT  _Partition_BlockSize_Invalid (size_t  stBlockSize)
+{
+    return  (stBlockSize < sizeof(LW_LIST_MONO) || !ALIGNED(stBlockSize, sizeof(PVOID)));
+}
+
+/*********************************************************************************************************
   _Partition_Type_Invalid
 *********************************************************************************************************/
 #if (LW_CFG_PARTITION_EN > 0) && (LW_CFG_MAX_PARTITIONS > 0)

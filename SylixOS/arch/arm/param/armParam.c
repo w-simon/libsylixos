@@ -24,7 +24,7 @@
 /*********************************************************************************************************
   启动参数
 *********************************************************************************************************/
-static ARM_PARAM    armParam = { LW_TRUE };
+static ARM_PARAM    armParam = { LW_TRUE, LW_FALSE };
 /*********************************************************************************************************
 ** 函数名称: archKernelParam
 ** 功能描述: ARM 体系构架启动参数设置.
@@ -42,6 +42,16 @@ VOID  archKernelParam (CPCHAR  pcParam)
         } else {
             armParam.AP_bUnalign = LW_TRUE;
         }
+    
+#if LW_CFG_SMP_EN > 0
+    } else if (lib_strncmp(pcParam, "sldepcache=", 11) == 0) {
+        if (pcParam[8] == 'n') {
+            armParam.AP_bSLDepCache = LW_FALSE;
+        } else {
+            armParam.AP_bSLDepCache = LW_TRUE;
+            __ARCH_SPIN_BYPASS();
+        }
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
     }
 }
 /*********************************************************************************************************

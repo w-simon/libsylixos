@@ -71,9 +71,9 @@ __KERNEL_EXT  ULONG                   _K_ulKernFlags;                   /*  内核
 *********************************************************************************************************/
 __KERNEL_EXT  LW_CLASS_INTDESC        _K_idescTable[LW_CFG_MAX_INTER_SRC];
 #ifdef __KERNEL_MAIN_FILE
-LW_SPINLOCK_DEFINE_CACHE_ALIGN       (_K_slVectorTable);
+LW_SPINLOCK_CA_DEFINE_CACHE_ALIGN    (_K_slcaVectorTable);
 #else
-__KERNEL_EXT  LW_SPINLOCK_DECLARE    (_K_slVectorTable);
+__KERNEL_EXT  LW_SPINLOCK_CA_DECLARE (_K_slcaVectorTable);
 #endif                                                                  /*  __KERNEL_MAIN_FILE          */
 /*********************************************************************************************************
   系统状态
@@ -249,7 +249,7 @@ __KERNEL_EXT  const  ULONG            _K_ulNPhyCpus;
 #if (LW_CFG_SMP_EN > 0) && (LW_CFG_CPU_ARCH_SMT > 0)
               LW_CLASS_PHYCPU         _K_phycpuTable[LW_CFG_MAX_PROCESSORS] LW_CACHE_LINE_ALIGN;
 #endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
-              LW_CLASS_KERNLOCK       _K_klKernel LW_CACHE_LINE_ALIGN;
+              LW_CLASS_KERNLOCK       _K_klKernel;
 #else
 __KERNEL_EXT  LW_CLASS_CPU            _K_cpuTable[LW_CFG_MAX_PROCESSORS];
 #if (LW_CFG_SMP_EN > 0) && (LW_CFG_CPU_ARCH_SMT > 0)
@@ -261,9 +261,9 @@ __KERNEL_EXT  LW_CLASS_KERNLOCK       _K_klKernel;                      /*  内核
   原子操作锁
 *********************************************************************************************************/
 #ifdef __KERNEL_MAIN_FILE
-LW_SPINLOCK_DEFINE_CACHE_ALIGN       (_K_slAtomic);
+LW_SPINLOCK_CA_DEFINE_CACHE_ALIGN    (_K_slcaAtomic);
 #else
-__KERNEL_EXT  LW_SPINLOCK_DECLARE    (_K_slAtomic);                     /*  原子操作锁                  */
+__KERNEL_EXT  LW_SPINLOCK_CA_DECLARE (_K_slcaAtomic);                   /*  原子操作锁                  */
 #endif                                                                  /*  __KERNEL_MAIN_FILE          */
 /*********************************************************************************************************
   启动时临时截获 TCB

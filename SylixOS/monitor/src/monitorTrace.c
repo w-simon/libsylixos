@@ -38,7 +38,7 @@ typedef MONITOR_TRACE          *PMONITOR_TRACE;
 /*********************************************************************************************************
   监控点全局变量
 *********************************************************************************************************/
-static LW_SPINLOCK_DEFINE_CACHE_ALIGN(_G_slMonitor);
+static LW_SPINLOCK_DEFINE      (_G_slMonitor);
 static LW_LIST_LINE_HEADER      _G_plineMonitor;
 static LW_LIST_LINE_HEADER      _G_plineMonitorWalk;
 /*********************************************************************************************************

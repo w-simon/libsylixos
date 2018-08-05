@@ -28,18 +28,6 @@
   L1 cache 同步请参考: http://www.cnblogs.com/jiayy/p/3246133.html
 *********************************************************************************************************/
 /*********************************************************************************************************
-  spin lock cache 依赖处理
-*********************************************************************************************************/
-#if LW_CFG_ARM_SPINLOCK_DEP_CACHE > 0
-static VOID               armSpinLockDummy(SPINLOCKTYPE  *psl, VOIDFUNCPTR  pfuncPoll, PVOID  pvArg);
-static volatile UINT32    armSpinTryLockDummy(SPINLOCKTYPE  *psl);
-static VOID               armSpinUnlockDummy(SPINLOCKTYPE  *psl);
-
-static VOID             (*pfuncArmSpinLock)(SPINLOCKTYPE *, VOIDFUNCPTR, PVOID) = armSpinLockDummy;
-static volatile UINT32  (*pfuncArmSpinTryLock)(SPINLOCKTYPE *)                  = armSpinTryLockDummy;
-static VOID             (*pfuncArmSpinUnlock)(SPINLOCKTYPE *)                   = armSpinUnlockDummy;
-#endif                                                                  /*  LW_CFG_ARM_SPINLOCK_DEP_C...*/
-/*********************************************************************************************************
 ** 函数名称: armSpinLock
 ** 功能描述: ARM spin lock
 ** 输　入  : psld       spinlock data 指针
@@ -138,8 +126,6 @@ static VOID  armSpinUnlock (SPINLOCKTYPE *psld)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-#if LW_CFG_ARM_SPINLOCK_DEP_CACHE > 0
-
 static VOID  armSpinLockDummy (SPINLOCKTYPE  *psl, VOIDFUNCPTR  pfuncPoll, PVOID  pvArg)
 {
 }
@@ -151,7 +137,7 @@ static VOID  armSpinLockDummy (SPINLOCKTYPE  *psl, VOIDFUNCPTR  pfuncPoll, PVOID
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static volatile UINT32  armSpinTryLockDummy (SPINLOCKTYPE  *psl)
+static UINT32  armSpinTryLockDummy (SPINLOCKTYPE  *psl)
 {
     return  (0);
 }
@@ -165,6 +151,26 @@ static volatile UINT32  armSpinTryLockDummy (SPINLOCKTYPE  *psl)
 *********************************************************************************************************/
 static VOID  armSpinUnlockDummy (SPINLOCKTYPE  *psl)
 {
+}
+/*********************************************************************************************************
+  spin lock cache 依赖处理
+*********************************************************************************************************/
+static VOID    (*pfuncArmSpinLock)(SPINLOCKTYPE *, VOIDFUNCPTR, PVOID) = armSpinLock;
+static UINT32  (*pfuncArmSpinTryLock)(SPINLOCKTYPE *)                  = armSpinTryLock;
+static VOID    (*pfuncArmSpinUnlock)(SPINLOCKTYPE *)                   = armSpinUnlock;
+/*********************************************************************************************************
+** 函数名称: archSpinBypass
+** 功能描述: spinlock 函数不起效
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  archSpinBypass (VOID)
+{
+    pfuncArmSpinLock    = armSpinLockDummy;
+    pfuncArmSpinTryLock = armSpinTryLockDummy;
+    pfuncArmSpinUnlock  = armSpinUnlockDummy;
 }
 /*********************************************************************************************************
 ** 函数名称: archSpinWork
@@ -182,8 +188,6 @@ VOID  archSpinWork (VOID)
     pfuncArmSpinTryLock = armSpinTryLock;
     pfuncArmSpinLock    = armSpinLock;
 }
-
-#endif                                                                  /*  LW_CFG_ARM_SPINLOCK_DEP_C...*/
 /*********************************************************************************************************
 ** 函数名称: archSpinInit
 ** 功能描述: 初始化一个 spinlock
@@ -246,11 +250,7 @@ INT  archSpinLock (spinlock_t  *psl, VOIDFUNCPTR  pfuncPoll, PVOID  pvArg)
         return  (1);                                                    /*  重复调用                    */
     }
     
-#if LW_CFG_ARM_SPINLOCK_DEP_CACHE > 0
     pfuncArmSpinLock(&psl->SL_sltData, pfuncPoll, pvArg);
-#else
-    armSpinLock(&psl->SL_sltData, pfuncPoll, pvArg);
-#endif                                                                  /*  LW_CFG_ARM_SPINLOCK_DEP_C...*/
     
     psl->SL_pcpuOwner = LW_CPU_GET_CUR();                               /*  保存当前 CPU                */
     
@@ -274,12 +274,7 @@ INT  archSpinTryLock (spinlock_t  *psl)
         return  (1);                                                    /*  重复调用                    */
     }
     
-#if LW_CFG_ARM_SPINLOCK_DEP_CACHE > 0
-    if (pfuncArmSpinTryLock(&psl->SL_sltData)) 
-#else
-    if (armSpinTryLock(&psl->SL_sltData)) 
-#endif                                                                  /*  LW_CFG_ARM_SPINLOCK_DEP_C...*/
-    {                                                                   /*  尝试加锁                    */
+    if (pfuncArmSpinTryLock(&psl->SL_sltData)) {                        /*  尝试加锁                    */
         return  (0);
     }
     
@@ -310,11 +305,7 @@ INT  archSpinUnlock (spinlock_t  *psl)
     psl->SL_pcpuOwner = LW_NULL;                                        /*  没有 CPU 获取               */
     KN_SMP_WMB();
     
-#if LW_CFG_ARM_SPINLOCK_DEP_CACHE > 0
     pfuncArmSpinUnlock(&psl->SL_sltData);                               /*  解锁                        */
-#else
-    armSpinUnlock(&psl->SL_sltData);
-#endif                                                                  /*  LW_CFG_ARM_SPINLOCK_DEP_C...*/
 
     return  (1);
 }
@@ -329,11 +320,7 @@ INT  archSpinUnlock (spinlock_t  *psl)
 *********************************************************************************************************/
 INT  archSpinLockRaw (spinlock_t  *psl)
 {
-#if LW_CFG_ARM_SPINLOCK_DEP_CACHE > 0
     pfuncArmSpinLock(&psl->SL_sltData, LW_NULL, LW_NULL);
-#else
-    armSpinLock(&psl->SL_sltData, LW_NULL, LW_NULL);
-#endif                                                                  /*  LW_CFG_ARM_SPINLOCK_DEP_C...*/
 
     return  (1);                                                        /*  加锁成功                    */
 }
@@ -348,12 +335,7 @@ INT  archSpinLockRaw (spinlock_t  *psl)
 *********************************************************************************************************/
 INT  archSpinTryLockRaw (spinlock_t  *psl)
 {
-#if LW_CFG_ARM_SPINLOCK_DEP_CACHE > 0
-    if (pfuncArmSpinTryLock(&psl->SL_sltData)) 
-#else
-    if (armSpinTryLock(&psl->SL_sltData)) 
-#endif                                                                  /*  LW_CFG_ARM_SPINLOCK_DEP_C...*/
-    {                                                                   /*  尝试加锁                    */
+    if (pfuncArmSpinTryLock(&psl->SL_sltData)) {                        /*  尝试加锁                    */
         return  (0);
     }
     
@@ -370,11 +352,7 @@ INT  archSpinTryLockRaw (spinlock_t  *psl)
 *********************************************************************************************************/
 INT  archSpinUnlockRaw (spinlock_t  *psl)
 {
-#if LW_CFG_ARM_SPINLOCK_DEP_CACHE > 0
     pfuncArmSpinUnlock(&psl->SL_sltData);
-#else
-    armSpinUnlock(&psl->SL_sltData);                                    /*  解锁                        */
-#endif                                                                  /*  LW_CFG_ARM_SPINLOCK_DEP_C...*/
     
     return  (1);
 }

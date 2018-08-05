@@ -40,7 +40,10 @@
   gateway=192.168.1.1
   default=1
   mac=00:11:22:33:44:55   # 除非网卡没有 MAC 地址, 否则不建议设置 MAC
-  ipv6_auto_cfg=1         (如果将 SylixOS 作为 IPv6 路由器, 则 ipv6_auto_cfg=0)
+  ipv6_auto_cfg=1         # 如果将 SylixOS 作为 IPv6 路由器, 则 ipv6_auto_cfg=0
+  tcp_ack_freq=2          # TCP Delay ACK 响应频率 (2~127), 默认为 2, 
+                            既接收两个总和大于 MSS 长度数据包立即发送 ACK
+  tcp_wnd=8192            # TCP window (tcp_wnd > 2 * MSS) && (tcp_wnd < (0xffffu << TCP_RCV_SCALE))
   
   或者
   
@@ -66,6 +69,8 @@ LW_API int    if_param_getdefault(void *pifparam, int *def);
 LW_API int    if_param_getdhcp(void *pifparam, int *dhcp);
 LW_API int    if_param_getdhcp6(void *pifparam, int *dhcp);
 LW_API int    if_param_ipv6autocfg(void *pifparam, int *autocfg);
+LW_API int    if_param_tcpackfreq(void *pifparam, int *tcpaf);
+LW_API int    if_param_tcpwnd(void *pifparam, int *tcpwnd);
 LW_API int    if_param_getipaddr(void *pifparam, ip4_addr_t *ipaddr);
 LW_API int    if_param_getinaddr(void *pifparam, struct in_addr *inaddr);
 LW_API int    if_param_getnetmask(void *pifparam, ip4_addr_t *mask);

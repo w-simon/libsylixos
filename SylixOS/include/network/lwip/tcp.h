@@ -137,12 +137,20 @@ typedef err_t (*tcp_connected_fn)(void *arg, struct tcp_pcb *tpcb, err_t err);
 #define RCV_WND_SCALE(pcb, wnd) (((wnd) >> (pcb)->rcv_scale))
 #define SND_WND_SCALE(pcb, wnd) (((wnd) << (pcb)->snd_scale))
 #define TCPWND16(x)             ((u16_t)LWIP_MIN((x), 0xFFFF))
+#ifdef SYLIXOS /* SylixOS Add netif window size support */
+#define TCP_WND_MAX(pcb)        ((tcpwnd_size_t)(((pcb)->flags & TF_WND_SCALE) ? pcb->if_wnd : TCPWND16(pcb->if_wnd)))
+#else
 #define TCP_WND_MAX(pcb)        ((tcpwnd_size_t)(((pcb)->flags & TF_WND_SCALE) ? TCP_WND : TCPWND16(TCP_WND)))
+#endif /* SYLIXOS */
 #else
 #define RCV_WND_SCALE(pcb, wnd) (wnd)
 #define SND_WND_SCALE(pcb, wnd) (wnd)
 #define TCPWND16(x)             (x)
+#ifdef SYLIXOS /* SylixOS Add netif window size support */
+#define TCP_WND_MAX(pcb)        TCPWND16(pcb->if_wnd)
+#else
 #define TCP_WND_MAX(pcb)        TCP_WND
+#endif /* SYLIXOS */
 #endif
 /* Increments a tcpwnd_size_t and holds at max value rather than rollover */
 #define TCP_WND_INC(wnd, inc)   do { \
@@ -386,6 +394,11 @@ struct tcp_pcb {
   u8_t snd_scale;
   u8_t rcv_scale;
 #endif
+
+#ifdef SYLIXOS /* SylixOS Add TCP ACK Frequency support */
+  u8_t ack_fcnt;
+  u32_t if_wnd;
+#endif /* SYLIXOS */
 };
 
 #if LWIP_EVENT_API

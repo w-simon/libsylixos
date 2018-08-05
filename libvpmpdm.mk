@@ -174,7 +174,7 @@ endif
 #*********************************************************************************************************
 LOCAL_MIPS_SRCS = \
 SylixOS/vpmpdm/arch/mips/memcmp.c \
-SylixOS/vpmpdm/arch/mips/memcpy.c \
+SylixOS/vpmpdm/arch/mips/memcpy.S \
 SylixOS/vpmpdm/arch/mips/memset.S \
 SylixOS/vpmpdm/arch/mips/strcmp.S \
 SylixOS/vpmpdm/arch/mips/strncmp.S \
@@ -190,7 +190,7 @@ SylixOS/vpmpdm/arch/mips/memmove.c
 #*********************************************************************************************************
 LOCAL_MIPS64_SRCS = \
 SylixOS/vpmpdm/arch/mips/memcmp.c \
-SylixOS/vpmpdm/arch/mips/memcpy.c \
+SylixOS/vpmpdm/arch/mips/memcpy.S \
 SylixOS/vpmpdm/arch/mips/memset.S \
 SylixOS/vpmpdm/arch/mips/strcmp.S \
 SylixOS/vpmpdm/arch/mips/strncmp.S \

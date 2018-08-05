@@ -72,8 +72,7 @@ typedef struct {
 /*********************************************************************************************************
   全局变量定义
 *********************************************************************************************************/
-static LW_SPINLOCK_DEFINE_CACHE_ALIGN(_G_slX86IoApic);              /*  访问寄存器用自旋锁              */
-
+static LW_SPINLOCK_CA_DEFINE_CACHE_ALIGN(_G_slcaX86IoApic);         /*  访问寄存器用自旋锁              */
 static X86_IOAPIC_INTR  _G_x86IoApicIntrs[IOAPIC_MAX_NR];           /*  IOAPIC 中断控制器               */
 static UINT             _G_uiX86IoApicNr           = 1;             /*  IOAPIC 中断控制器数目           */
 static UINT             _G_uiX86IoApicRedEntriesNr = 24;            /*  Redirection 条目数目            */
@@ -91,12 +90,12 @@ static UINT32  __x86IoApicRegGet (PX86_IOAPIC_INTR  pIoApicIntr, UINT8  ucRegInd
     UINT32  uiValue;
     INTREG  iregInterLevel;
 
-    LW_SPIN_LOCK_QUICK(&_G_slX86IoApic, &iregInterLevel);
+    LW_SPIN_LOCK_QUICK(&_G_slcaX86IoApic.SLCA_sl, &iregInterLevel);
 
     write32(ucRegIndex, pIoApicIntr->IOAPIC_ulBase + IOAPIC_IND);
     uiValue = read32(pIoApicIntr->IOAPIC_ulBase    + IOAPIC_DATA);
 
-    LW_SPIN_UNLOCK_QUICK(&_G_slX86IoApic, iregInterLevel);
+    LW_SPIN_UNLOCK_QUICK(&_G_slcaX86IoApic.SLCA_sl, iregInterLevel);
 
     return  (uiValue);
 }
@@ -114,12 +113,12 @@ static VOID  __x86IoApicRegSet (PX86_IOAPIC_INTR  pIoApicIntr, UINT8  ucRegIndex
 {
     INTREG  iregInterLevel;
 
-    LW_SPIN_LOCK_QUICK(&_G_slX86IoApic, &iregInterLevel);
+    LW_SPIN_LOCK_QUICK(&_G_slcaX86IoApic.SLCA_sl, &iregInterLevel);
 
     write32(ucRegIndex, pIoApicIntr->IOAPIC_ulBase + IOAPIC_IND);
     write32(uiValue,    pIoApicIntr->IOAPIC_ulBase + IOAPIC_DATA);
 
-    LW_SPIN_UNLOCK_QUICK(&_G_slX86IoApic, iregInterLevel);
+    LW_SPIN_UNLOCK_QUICK(&_G_slcaX86IoApic.SLCA_sl, iregInterLevel);
 }
 /*********************************************************************************************************
 ** 函数名称: __x86IoApicRedGetLo
@@ -544,7 +543,7 @@ INT  x86IoApicInitAll (UINT  *puiIoIntNr)
     UINT32            uiIoApicNr;
     INT               i;
 
-    LW_SPIN_INIT(&_G_slX86IoApic);
+    LW_SPIN_INIT(&_G_slcaX86IoApic.SLCA_sl);
     
     x86MpApicIoApicNrGet(&uiIoApicNr);
     _G_uiX86IoApicNr = uiIoApicNr;

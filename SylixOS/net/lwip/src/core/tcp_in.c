@@ -685,6 +685,10 @@ tcp_listen_input(struct tcp_pcb_listen *pcb)
     pcb->accepts_pending++;
     tcp_set_flags(npcb, TF_BACKLOGPEND);
 #endif /* TCP_LISTEN_BACKLOG */
+#ifdef SYLIXOS /* SylixOS Add netif window size support */
+    npcb->if_wnd = netif_get_tcp_wnd(ip_current_netif());
+    npcb->rcv_wnd = npcb->rcv_ann_wnd = TCPWND_MIN16(npcb->if_wnd);
+#endif /* SYLIXOS */
     /* Set up the new PCB. */
     ip_addr_copy(npcb->local_ip, *ip_current_dest_addr());
     ip_addr_copy(npcb->remote_ip, *ip_current_src_addr());
@@ -1633,9 +1637,28 @@ tcp_receive(struct tcp_pcb *pcb)
 #endif /* LWIP_TCP_SACK_OUT */
 #endif /* TCP_QUEUE_OOSEQ */
 
-
+#ifdef SYLIXOS /* SylixOS Add TCP ACK Frequency support */
+        if (tcp_is_flag_set(pcb, TF_ACK_DELAY) &&
+            !tcp_is_flag_set(pcb, TF_NODELAY) &&
+            (pcb->ooseq == NULL) && (tcplen >= tcp_mss(pcb))) {
+          /* 1: Is already set TF_ACK_DELAY.
+           * 2: No TF_NODELAY flag.
+           * 3: No ooseq in queue.
+           * 4: This received packet is full mss packet */
+          if (++pcb->ack_fcnt >= netif_get_tcp_ack_freq(ip_current_netif())) {
+            pcb->ack_fcnt = 0;
+            /* Acknowledge the segment(s). */
+            tcp_ack(pcb);
+          }
+        } else {
+          ++pcb->ack_fcnt;
+          /* Acknowledge the segment(s). */
+          tcp_ack(pcb);
+        }
+#else
         /* Acknowledge the segment(s). */
         tcp_ack(pcb);
+#endif /* SYLIXOS */
 
 #if LWIP_TCP_SACK_OUT
         if (LWIP_TCP_SACK_VALID(pcb, 0)) {
@@ -1975,9 +1998,15 @@ tcp_parseopt(struct tcp_pcb *pcb)
             pcb->rcv_scale = TCP_RCV_SCALE;
             tcp_set_flags(pcb, TF_WND_SCALE);
             /* window scaling is enabled, we can use the full receive window */
+#ifdef SYLIXOS /* SylixOS Add netif window size support */
+            LWIP_ASSERT("window not at default value", pcb->rcv_wnd == TCPWND_MIN16(pcb->if_wnd));
+            LWIP_ASSERT("window not at default value", pcb->rcv_ann_wnd == TCPWND_MIN16(pcb->if_wnd));
+            pcb->rcv_wnd = pcb->rcv_ann_wnd = pcb->if_wnd;
+#else /* SYLIXOS */
             LWIP_ASSERT("window not at default value", pcb->rcv_wnd == TCPWND_MIN16(TCP_WND));
             LWIP_ASSERT("window not at default value", pcb->rcv_ann_wnd == TCPWND_MIN16(TCP_WND));
             pcb->rcv_wnd = pcb->rcv_ann_wnd = TCP_WND;
+#endif /* !SYLIXOS */
           }
           break;
 #endif /* LWIP_WND_SCALE */

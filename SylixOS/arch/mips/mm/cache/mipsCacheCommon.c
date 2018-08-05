@@ -274,13 +274,7 @@ static VOID  loongson3SCacheInit (VOID)
                               _G_SCache.CACHE_uiWayNr *
                               _G_SCache.CACHE_uiLineSize;
 
-    if (_G_uiMipsCpuType == CPU_LOONGSON2K) {
-        /*
-         * Loongson-2K has 2 cores, 1MB scache for each. scaches are shared
-         */
-        _G_SCache.CACHE_uiSize *= 2;
-
-    } else {
+    if (_G_uiMipsCpuType != CPU_LOONGSON2K) {
         /*
          * Loongson-3x has 4 cores, 1MB scache for each. scaches are shared
          */

@@ -314,6 +314,11 @@ err_t sys_mbox_trypost(sys_mbox_t *mbox, void *msg);
  * @param prio message priority
  */
 err_t sys_mbox_trypost_prio(sys_mbox_t *mbox, void *msg, u8_t prio);
+/**
+ * @ingroup sys_mbox
+ * get netconn layer trypost lost statistics.
+ */
+u32_t sys_mbox_trypost_stat(void);
 #endif /* SYLIXOS */
 /**
  * @ingroup sys_mbox

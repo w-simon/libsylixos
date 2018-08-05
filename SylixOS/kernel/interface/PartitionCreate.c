@@ -85,7 +85,7 @@ LW_OBJECT_HANDLE  API_PartitionCreate (CPCHAR             pcName,
         _ErrorHandle(ERROR_PARTITION_BLOCK_COUNTER);
         return  (LW_OBJECT_HANDLE_INVALID);
     }
-    if (stBlockByteSize < sizeof(LW_LIST_MONO)) {                       /*  分段太小                    */
+    if (_Partition_BlockSize_Invalid(stBlockByteSize)) {                /*  分段太小                    */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "ulBockByteSize is too low.\r\n");
         _ErrorHandle(ERROR_PARTITION_BLOCK_SIZE);
         return  (LW_OBJECT_HANDLE_INVALID);

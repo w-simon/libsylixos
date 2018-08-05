@@ -28,8 +28,8 @@
   向量使能与禁能锁
 *********************************************************************************************************/
 #if LW_CFG_SMP_EN > 0
-#define VECTOR_OP_LOCK()    LW_SPIN_LOCK_IGNIRQ(&_K_slVectorTable)
-#define VECTOR_OP_UNLOCK()  LW_SPIN_UNLOCK_IGNIRQ(&_K_slVectorTable)
+#define VECTOR_OP_LOCK()    LW_SPIN_LOCK_IGNIRQ(&_K_slcaVectorTable.SLCA_sl)
+#define VECTOR_OP_UNLOCK()  LW_SPIN_UNLOCK_IGNIRQ(&_K_slcaVectorTable.SLCA_sl)
 #else
 #define VECTOR_OP_LOCK()
 #define VECTOR_OP_UNLOCK()

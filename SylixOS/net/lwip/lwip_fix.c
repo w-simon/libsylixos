@@ -93,7 +93,9 @@
 /*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
-static spinlock_t   _G_slLwip;                                          /*  多核自旋锁                  */
+static LW_SPINLOCK_CA_DEFINE_CACHE_ALIGN(_G_slcaLwip);                  /*  多核自旋锁                  */
+static LW_OBJECT_HANDLE                  _G_hTcpipMbox;
+static UINT32                            _G_uiAppTryLost;
 /*********************************************************************************************************
 ** 函数名称: sys_init
 ** 功能描述: 系统接口初始化
@@ -104,7 +106,7 @@ static spinlock_t   _G_slLwip;                                          /*  多核
 *********************************************************************************************************/
 void  sys_init (void)
 {
-    LW_SPIN_INIT(&_G_slLwip);                                           /*  初始化网络关键区域自旋锁    */
+    LW_SPIN_INIT(&_G_slcaLwip.SLCA_sl);                                 /*  初始化网络关键区域自旋锁    */
 }
 /*********************************************************************************************************
 ** 函数名称: sys_arch_protect
@@ -116,7 +118,7 @@ void  sys_init (void)
 *********************************************************************************************************/
 void  sys_arch_protect (INTREG  *pireg)
 {
-    LW_SPIN_LOCK_QUICK(&_G_slLwip, pireg);
+    LW_SPIN_LOCK_QUICK(&_G_slcaLwip.SLCA_sl, pireg);
 }
 /*********************************************************************************************************
 ** 函数名称: sys_arch_unprotect
@@ -128,7 +130,7 @@ void  sys_arch_protect (INTREG  *pireg)
 *********************************************************************************************************/
 void  sys_arch_unprotect (INTREG  ireg)
 {
-    LW_SPIN_UNLOCK_QUICK(&_G_slLwip, ireg);
+    LW_SPIN_UNLOCK_QUICK(&_G_slcaLwip.SLCA_sl, ireg);
 }
 /*********************************************************************************************************
 ** 函数名称: sys_assert_print
@@ -475,6 +477,10 @@ err_t  sys_mbox_new (sys_mbox_t *pmbox, INT  size)
             lwip_stats.sys.mbox.max = lwip_stats.sys.mbox.used;
         }
         SYS_ARCH_UNPROTECT(lev);
+        
+        if (TCPIP_MBOX_SIZE == size) {
+            _G_hTcpipMbox = hMsgQueue;
+        }
         return  (ERR_OK);
     }
 }
@@ -546,6 +552,9 @@ err_t  sys_mbox_trypost (sys_mbox_t *pmbox, void *msg)
 #endif                                                                  /*  LW_CFG_LWIP_DEBUG > 0       */
     
       else {
+        if (*pmbox != _G_hTcpipMbox) {
+            _G_uiAppTryLost++;
+        }
         return  (ERR_MEM);
     }
 }
@@ -586,12 +595,15 @@ err_t  sys_mbox_trypost_prio (sys_mbox_t *pmbox, void *msg, u8_t prio)
 
 #if LW_CFG_LWIP_DEBUG > 0
       else if (ulError != ERROR_MSGQUEUE_FULL) {
-        panic("[NET] Panic: sys_mbox_trypost() msgqueue error: %s\n", lib_strerror(errno));
+        panic("[NET] Panic: sys_mbox_trypost_prio() msgqueue error: %s\n", lib_strerror(errno));
         return  (ERR_MEM);
     }
 #endif                                                                  /*  LW_CFG_LWIP_DEBUG > 0       */
     
       else {
+        if (*pmbox != _G_hTcpipMbox) {
+            _G_uiAppTryLost++;
+        }
         return  (ERR_MEM);
     }
 }
@@ -620,6 +632,18 @@ err_t sys_mbox_trypost_fromisr (sys_mbox_t *pmbox, void *msg)
     }
     
     return  (ERR_MEM);
+}
+/*********************************************************************************************************
+** 函数名称: sys_mbox_trypost_stat
+** 功能描述: 获取应用层 trypost 丢失数量
+** 输　入  : NONE
+** 输　出  : 应用层 trypost 丢失数量
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+u32_t sys_mbox_trypost_stat (void)
+{
+    return  (_G_uiAppTryLost);
 }
 /*********************************************************************************************************
 ** 函数名称: sys_arch_mbox_fetch

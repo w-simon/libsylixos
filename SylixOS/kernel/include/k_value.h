@@ -136,12 +136,8 @@
 *********************************************************************************************************/
 
 #ifdef __GNUC__
-#if LW_CFG_SMP_EN > 0
-#if LW_CFG_CPU_ARCH_CACHE_LINE > 0
+#if LW_CFG_SMP_EN > 0 && LW_CFG_CPU_ARCH_CACHE_LINE > 0
 #define LW_CACHE_LINE_ALIGN         __attribute__((aligned(LW_CFG_CPU_ARCH_CACHE_LINE)))
-#else
-#define LW_CACHE_LINE_ALIGN
-#endif
 #else
 #define LW_CACHE_LINE_ALIGN
 #endif                                                                  /*  LW_CFG_CPU_ARCH_CACHE_LINE  */

@@ -41,7 +41,7 @@ extern VOID  ppcHashPageTblPteSet(PTE    *pPte,
 static SR       _G_SRs[16];
 static UINT32   _G_uiHashPageTblOrg;
 static UINT32   _G_uiHashPageTblMask;
-static LW_SPINLOCK_DEFINE_CACHE_ALIGN(_G_slHashPageTblLock);
+static LW_SPINLOCK_CA_DEFINE_CACHE_ALIGN(_G_slcaHashPageTblLock);
 
 #define __MMU_PTE_DEBUG
 #ifdef __MMU_PTE_DEBUG
@@ -107,7 +107,7 @@ INT  ppcMmuHashPageTblInit (UINT32  uiMemSize)
     PVOID   pvHashPageTblAddr;
     INT     i;
 
-    LW_SPIN_INIT(&_G_slHashPageTblLock);
+    LW_SPIN_INIT(&_G_slcaHashPageTblLock.SLCA_sl);
 
     /*
      * ÅäÖÃ 16 ¸ö¶Î¼Ä´æÆ÷£¬ÈÃ VA = EA
@@ -365,7 +365,7 @@ VOID  ppcMmuHashPageTblMakeTrans (addr_t  ulEffectiveAddr,
                       &uiAPI,
                       &uiVSID);
 
-    LW_SPIN_LOCK_QUICK(&_G_slHashPageTblLock, &iregInterLevel);
+    LW_SPIN_LOCK_QUICK(&_G_slcaHashPageTblLock.SLCA_sl, &iregInterLevel);
 
     /*
      * ËÑË÷ EA µÄ PTE
@@ -438,7 +438,7 @@ VOID  ppcMmuHashPageTblMakeTrans (addr_t  ulEffectiveAddr,
         }
     }
 
-    LW_SPIN_UNLOCK_QUICK(&_G_slHashPageTblLock, iregInterLevel);
+    LW_SPIN_UNLOCK_QUICK(&_G_slcaHashPageTblLock.SLCA_sl, iregInterLevel);
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: ppcMmuHashPageTblFlagSet
@@ -468,7 +468,7 @@ VOID  ppcMmuHashPageTblFlagSet (addr_t  ulEffectiveAddr,
                       &uiAPI,
                       &uiVSID);
 
-    LW_SPIN_LOCK_QUICK(&_G_slHashPageTblLock, &iregInterLevel);
+    LW_SPIN_LOCK_QUICK(&_G_slcaHashPageTblLock.SLCA_sl, &iregInterLevel);
 
     /*
      * ËÑË÷ EA µÄ PTE
@@ -511,7 +511,7 @@ VOID  ppcMmuHashPageTblFlagSet (addr_t  ulEffectiveAddr,
          */
     }
 
-    LW_SPIN_UNLOCK_QUICK(&_G_slHashPageTblLock, iregInterLevel);
+    LW_SPIN_UNLOCK_QUICK(&_G_slcaHashPageTblLock.SLCA_sl, iregInterLevel);
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: ppcMmuHashPageTblPteMiss
@@ -541,7 +541,7 @@ VOID  ppcMmuHashPageTblPteMiss (addr_t  ulEffectiveAddr,
                       &uiAPI,
                       &uiVSID);
 
-    LW_SPIN_LOCK_QUICK(&_G_slHashPageTblLock, &iregInterLevel);
+    LW_SPIN_LOCK_QUICK(&_G_slcaHashPageTblLock.SLCA_sl, &iregInterLevel);
 
 #ifdef __MMU_PTE_DEBUG
     _G_uiPteMissCounter++;
@@ -583,7 +583,7 @@ VOID  ppcMmuHashPageTblPteMiss (addr_t  ulEffectiveAddr,
                          uiVSID,
                          LW_FALSE);
 
-    LW_SPIN_UNLOCK_QUICK(&_G_slHashPageTblLock, iregInterLevel);
+    LW_SPIN_UNLOCK_QUICK(&_G_slcaHashPageTblLock.SLCA_sl, iregInterLevel);
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: ppcMmuHashPageTblPtePreLoad
@@ -613,7 +613,7 @@ VOID  ppcMmuHashPageTblPtePreLoad (addr_t  ulEffectiveAddr,
                       &uiAPI,
                       &uiVSID);
 
-    LW_SPIN_LOCK_QUICK(&_G_slHashPageTblLock, &iregInterLevel);
+    LW_SPIN_LOCK_QUICK(&_G_slcaHashPageTblLock.SLCA_sl, &iregInterLevel);
 
     /*
      * ËÑË÷ EA µÄ PTE
@@ -667,7 +667,7 @@ VOID  ppcMmuHashPageTblPtePreLoad (addr_t  ulEffectiveAddr,
                              LW_TRUE);                                  /*  ±ÜÃâÁ¢¼´±»ÌÔÌ­              */
     }
 
-    LW_SPIN_UNLOCK_QUICK(&_G_slHashPageTblLock, iregInterLevel);
+    LW_SPIN_UNLOCK_QUICK(&_G_slcaHashPageTblLock.SLCA_sl, iregInterLevel);
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: ppcMmuHashPageTblShow

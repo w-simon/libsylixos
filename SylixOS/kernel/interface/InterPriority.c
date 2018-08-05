@@ -45,9 +45,9 @@ ULONG  API_InterVectorSetPriority (ULONG  ulVector, UINT  uiPrio)
         return  (ERROR_KERNEL_VECTOR_NULL);
     }
 
-    LW_SPIN_LOCK_QUICK(&_K_slVectorTable, &iregInterLevel);
+    LW_SPIN_LOCK_QUICK(&_K_slcaVectorTable.SLCA_sl, &iregInterLevel);
     ulError = __ARCH_INT_VECTOR_SETPRIO(ulVector, uiPrio);
-    LW_SPIN_UNLOCK_QUICK(&_K_slVectorTable, iregInterLevel);
+    LW_SPIN_UNLOCK_QUICK(&_K_slcaVectorTable.SLCA_sl, iregInterLevel);
     
     return  (ulError);
 }
@@ -77,9 +77,9 @@ ULONG  API_InterVectorGetPriority (ULONG  ulVector, UINT  *puiPrio)
         return  (ERROR_KERNEL_VECTOR_NULL);
     }
 
-    LW_SPIN_LOCK_QUICK(&_K_slVectorTable, &iregInterLevel);
+    LW_SPIN_LOCK_QUICK(&_K_slcaVectorTable.SLCA_sl, &iregInterLevel);
     ulError = __ARCH_INT_VECTOR_GETPRIO(ulVector, puiPrio);
-    LW_SPIN_UNLOCK_QUICK(&_K_slVectorTable, iregInterLevel);
+    LW_SPIN_UNLOCK_QUICK(&_K_slcaVectorTable.SLCA_sl, iregInterLevel);
     
     return  (ulError);
 }

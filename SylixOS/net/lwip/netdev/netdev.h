@@ -259,6 +259,16 @@ netdev_t *netdev_find_by_index(unsigned int index);
 netdev_t *netdev_find_by_ifname(const char *if_name);
 netdev_t *netdev_find_by_devname(const char *dev_name);
 
+/* netdev set/get tcp ack frequecy 
+ * NOTICE: you can call these function after netdev_add() */
+int  netdev_set_tcpaf(netdev_t *netdev, UINT8 tcpaf);
+int  netdev_get_tcpaf(netdev_t *netdev, UINT8 *tcpaf);
+
+/* netdev set/get tcp window size
+ * NOTICE: you can call these function after netdev_add() */
+int  netdev_set_tcpwnd(netdev_t *netdev, UINT32 tcpwnd);
+int  netdev_get_tcpwnd(netdev_t *netdev, UINT32 *tcpwnd);
+
 /* if netdev link status changed has been detected, 
  * driver must call the following functions 
  * linkup 1: linked up  0:not link */

@@ -635,12 +635,14 @@ struct netif *rt6_route_search_hook (const ip6_addr_t *ipsrc, const ip6_addr_t *
   if (rt6_cache.rt6_entry && 
       RTF_VALID(rt6_cache.rt6_entry->rt6_flags)) {
     if (ip6_addr_cmp(&rt6_cache.rt6_dest, ip6dest)) {
+      IP6_STATS_INC(ip6.cachehit);
       return (rt6_cache.rt6_entry->rt6_netif);
     
     } else if (!(rt6_cache.rt6_entry->rt6_flags & RTF_HOST)) {
       if (rt6_net_cmp(&rt6_cache.rt6_entry->rt6_dest, ip6dest, 
                       &rt6_cache.rt6_entry->rt6_netmask)) {
         ip6_addr_copy(rt6_cache.rt6_dest, *ip6dest);
+        IP6_STATS_INC(ip6.cachehit);
         return (rt6_cache.rt6_entry->rt6_netif);
       }
     }

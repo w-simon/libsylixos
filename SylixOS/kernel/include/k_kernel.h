@@ -49,9 +49,9 @@
 *********************************************************************************************************/
 
 #define __SYLIXOS_MAKEVER(a, b, c)      (((a) << 16) + ((b) << 8) + (c))
-#define __SYLIXOS_VERSION               __SYLIXOS_MAKEVER(1, 7, 5)
+#define __SYLIXOS_VERSION               __SYLIXOS_MAKEVER(1, 7, 7)
 #define __SYLIXOS_VERPATCH              0x0
-#define __SYLIXOS_VERSTR                "1.7.5"
+#define __SYLIXOS_VERSTR                "1.7.7"
 #define __SYLIXOS_RELSTR                "Octopus"
 
 #define __SYLIXOS_VERINFO               "SylixOS kernel version: "  \

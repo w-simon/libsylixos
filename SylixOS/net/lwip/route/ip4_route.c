@@ -586,12 +586,14 @@ struct netif *rt_route_search_hook (const ip4_addr_t *ipsrc, const ip4_addr_t *i
   if (rt_cache.rt_entry && 
       RTF_VALID(rt_cache.rt_entry->rt_flags)) {
     if (rt_cache.rt_dest.addr == ipdest->addr) {
+      IP_STATS_INC(ip.cachehit);
       return (rt_cache.rt_entry->rt_netif);
     
     } else if (!(rt_cache.rt_entry->rt_flags & RTF_HOST)) {
       if (ip4_addr_netcmp(&rt_cache.rt_entry->rt_dest, ipdest, 
                           &rt_cache.rt_entry->rt_netmask)) {
         rt_cache.rt_dest.addr = ipdest->addr;
+        IP_STATS_INC(ip.cachehit);
         return (rt_cache.rt_entry->rt_netif);
       }
     }

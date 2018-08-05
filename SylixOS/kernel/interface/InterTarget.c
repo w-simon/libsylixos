@@ -51,9 +51,9 @@ ULONG  API_InterSetTarget (ULONG  ulVector, size_t  stSize, const PLW_CLASS_CPUS
         return  (ERROR_KERNEL_VECTOR_NULL);
     }
 
-    LW_SPIN_LOCK_QUICK(&_K_slVectorTable, &iregInterLevel);
+    LW_SPIN_LOCK_QUICK(&_K_slcaVectorTable.SLCA_sl, &iregInterLevel);
     ulError = __ARCH_INT_VECTOR_SETTARGET(ulVector, stSize, pcpuset);
-    LW_SPIN_UNLOCK_QUICK(&_K_slVectorTable, iregInterLevel);
+    LW_SPIN_UNLOCK_QUICK(&_K_slcaVectorTable.SLCA_sl, iregInterLevel);
     
     return  (ulError);
 }
@@ -84,9 +84,9 @@ ULONG  API_InterGetTarget (ULONG  ulVector, size_t  stSize, PLW_CLASS_CPUSET  pc
         return  (ERROR_KERNEL_VECTOR_NULL);
     }
 
-    LW_SPIN_LOCK_QUICK(&_K_slVectorTable, &iregInterLevel);
+    LW_SPIN_LOCK_QUICK(&_K_slcaVectorTable.SLCA_sl, &iregInterLevel);
     ulError = __ARCH_INT_VECTOR_GETTARGET(ulVector, stSize, pcpuset);
-    LW_SPIN_UNLOCK_QUICK(&_K_slVectorTable, iregInterLevel);
+    LW_SPIN_UNLOCK_QUICK(&_K_slcaVectorTable.SLCA_sl, iregInterLevel);
     
     return  (ulError);
 }

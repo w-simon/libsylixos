@@ -941,11 +941,13 @@ typedef LW_CLASS_CAND      *PLW_CLASS_CAND;
 *********************************************************************************************************/
 
 typedef struct {
-    LW_SPINLOCK_DEFINE     (KERN_slLock);
+    LW_SPINLOCK_CA_DEFINE  (KERN_slcaLock);
+#define KERN_slLock         KERN_slcaLock.SLCA_sl
+
     PVOID                   KERN_pvCpuOwner;
     LW_OBJECT_HANDLE        KERN_ulKernelOwner;
     CPCHAR                  KERN_pcKernelEnterFunc;
-} LW_CLASS_KERNLOCK;
+} LW_CLASS_KERNLOCK LW_CACHE_LINE_ALIGN;
 typedef LW_CLASS_KERNLOCK  *PLW_CLASS_KERNLOCK;
 
 #endif                                                                  /*  __SYLIXOS_KERNEL            */

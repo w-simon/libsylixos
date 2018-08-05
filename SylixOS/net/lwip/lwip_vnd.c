@@ -414,7 +414,7 @@ static INT  _vndAddDev (struct ifvnd *pifvnd)
     _List_Line_Add_Ahead(&pvndNew->VND_lineManage, &_G_vndmDev.VNDM_plineDev);
     VND_UNLOCK();
     
-    if (vnetdev_add(&pvndNew->VND_vnetdev, _vndNotifyDev, LW_CFG_NET_VNETDEV_DEF_BSIZE,
+    if (vnetdev_add(&pvndNew->VND_vnetdev, _vndNotifyDev, pifvnd->ifvnd_bsize,
                     pifvnd->ifvnd_id, pifvnd->ifvnd_type, pvndNew)) {
         VND_LOCK();
         _List_Line_Del(&pvndNew->VND_lineManage, &_G_vndmDev.VNDM_plineDev);

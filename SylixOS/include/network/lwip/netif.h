@@ -405,6 +405,9 @@ struct netif {
   void *flowctl; /* net flow ctl */
   u16_t vlanid; /* include tag & pri */
   int metric; /* netif metric (NOT support now) */
+  /* SylixOS TCP optimization parameters */
+  u8_t tcp_ack_freq; /* TCP ACK Delay frequecy */
+  u32_t tcp_wnd; /* TCP rcv_wnd */
   void *reserve[6];
 #endif /* SYLIXOS */
 };
@@ -572,7 +575,16 @@ u8_t netif_name_to_index(const char *name);
 char * netif_index_to_name(u8_t idx, char *name);
 struct netif* netif_get_by_index(u8_t idx);
 
-#ifdef SYLIXOS /* SylixOS Add this function */
+#ifdef SYLIXOS /* SylixOS Add these function */
+#define LWIP_NETIF_TCP_ACK_FREQ_MIN 2
+#define LWIP_NETIF_TCP_ACK_FREQ_MAX 127
+
+#define netif_set_tcp_ack_freq(netif, tcpaf)    ((netif)->tcp_ack_freq = tcpaf)
+#define netif_get_tcp_ack_freq(netif)           ((netif)->tcp_ack_freq)
+
+#define netif_set_tcp_wnd(netif, tcpwnd)        ((netif)->tcp_wnd = tcpwnd)
+#define netif_get_tcp_wnd(netif)                ((netif)->tcp_wnd)
+
 char * netif_get_name(struct netif *netif, char *name); /* name char buffer of at least NETIF_NAMESIZE bytes */
 unsigned int netif_get_total(void);
 #endif /* SYLIXOS */

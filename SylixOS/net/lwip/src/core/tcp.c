@@ -1158,9 +1158,17 @@ tcp_connect(struct tcp_pcb *pcb, const ip_addr_t *ipaddr, u16_t port,
   pcb->snd_lbb = iss - 1;
   /* Start with a window that does not need scaling. When window scaling is
      enabled and used, the window is enlarged when both sides agree on scaling. */
+#ifdef SYLIXOS /* SylixOS Add netif window size support */
+  pcb->if_wnd = netif_get_tcp_wnd(netif); /* MUST Enable WND SCALE */
+  pcb->rcv_wnd = pcb->rcv_ann_wnd = TCPWND_MIN16(pcb->if_wnd);
+  pcb->rcv_ann_right_edge = pcb->rcv_nxt;
+  pcb->snd_wnd = pcb->if_wnd; /* MUST Enable WND SCALE */
+  
+#else /* SYLIXOS */
   pcb->rcv_wnd = pcb->rcv_ann_wnd = TCPWND_MIN16(TCP_WND);
   pcb->rcv_ann_right_edge = pcb->rcv_nxt;
   pcb->snd_wnd = TCP_WND;
+#endif /* !SYLIXOS */
   /* As initial send MSS, we use TCP_MSS but limit it to 536.
      The send MSS is updated when an MSS option is received. */
   pcb->mss = INITIAL_MSS;
@@ -1900,6 +1908,9 @@ tcp_alloc(u8_t prio)
     pcb->snd_buf = TCP_SND_BUF;
     /* Start with a window that does not need scaling. When window scaling is
        enabled and used, the window is enlarged when both sides agree on scaling. */
+#ifdef SYLIXOS /* SylixOS Add netif window size support */
+    pcb->if_wnd = TCP_WND; /* initial window size */
+#endif /* SYLIXOS */
     pcb->rcv_wnd = pcb->rcv_ann_wnd = TCPWND_MIN16(TCP_WND);
     pcb->ttl = TCP_TTL;
     /* As initial send MSS, we use TCP_MSS but limit it to 536.

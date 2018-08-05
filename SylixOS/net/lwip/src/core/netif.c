@@ -374,6 +374,8 @@ netif_add(struct netif *netif,
   netif->flowctl = NULL;
   netif->vlanid = (u16_t)-1;
   netif->metric = 1;
+  netif->tcp_ack_freq = LWIP_NETIF_TCP_ACK_FREQ_MIN;
+  netif->tcp_wnd = TCP_WND;
   lib_bzero(netif->reserve, sizeof(void *[6]));
 #endif /* SYLIXOS */
 

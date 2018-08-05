@@ -612,6 +612,8 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
   int  i, enable, def, dhcp, autocfg;
   char macstr[32];
   int  mac[NETIF_MAX_HWADDR_LEN];
+  int tcp_ack_freq = LWIP_NETIF_TCP_ACK_FREQ_MIN;
+  int tcp_wnd = TCP_WND;
 
   if (!netdev || (netdev->magic_no != NETDEV_MAGIC) || !netdev->drv) {
     _DebugHandle(__ERRORMESSAGE_LEVEL, 
@@ -731,6 +733,22 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
       }
 #endif /* LWIP_IPV6_DHCP6 */
 
+      if_param_tcpackfreq(ifparam, &tcp_ack_freq);
+      if (tcp_ack_freq < LWIP_NETIF_TCP_ACK_FREQ_MIN) {
+        tcp_ack_freq = LWIP_NETIF_TCP_ACK_FREQ_MIN; /* Min 2 */
+      
+      } else if (tcp_ack_freq > LWIP_NETIF_TCP_ACK_FREQ_MAX) {
+        tcp_ack_freq = LWIP_NETIF_TCP_ACK_FREQ_MAX; /* Max 127 */
+      }
+      
+      if_param_tcpwnd(ifparam, &tcp_wnd);
+      if (tcp_wnd < (2 * TCP_MSS)) {
+        tcp_wnd = (2 * TCP_MSS);
+      
+      } else if (tcp_wnd > 0xffffu << TCP_RCV_SCALE) {
+        tcp_wnd = 0xffffu << TCP_RCV_SCALE;
+      }
+
       if_param_unload(ifparam);
     }
   }
@@ -742,6 +760,9 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
   if (netifapi_netif_add(netif, &ip4, &netmask4, &gw4, netdev, netdev_netif_init, tcpip_input)) {
     return (-1);
   }
+  
+  netif_set_tcp_ack_freq(netif, (u8_t)tcp_ack_freq);
+  netif_set_tcp_wnd(netif, (u32_t)tcp_wnd);
 
   netif_get_name(netif, netdev->if_name); /* update netdev if_name */
 
@@ -986,6 +1007,84 @@ int  netdev_ifname (netdev_t *netdev, char *ifname)
   if (ifname) {
     netif_get_name(netif, ifname);
   }
+  
+  return (0);
+}
+
+/* netdev set/get tcp ack frequecy 
+ * NOTICE: you can call these function after netdev_add() */
+int  netdev_set_tcpaf (netdev_t *netdev, UINT8 tcpaf)
+{
+  struct netif *netif;
+  
+  if (!netdev || (netdev->magic_no != NETDEV_MAGIC)) {
+    return (-1);
+  }
+  
+  netif = (struct netif *)netdev->sys;
+  
+  if (tcpaf < LWIP_NETIF_TCP_ACK_FREQ_MIN) {
+    tcpaf = LWIP_NETIF_TCP_ACK_FREQ_MIN;
+  
+  } else if (tcpaf > LWIP_NETIF_TCP_ACK_FREQ_MAX) {
+    tcpaf = LWIP_NETIF_TCP_ACK_FREQ_MAX;
+  }
+  
+  netif_set_tcp_ack_freq(netif, tcpaf);
+  
+  return (0);
+}
+
+int  netdev_get_tcpaf (netdev_t *netdev, UINT8 *tcpaf)
+{
+  struct netif *netif;
+  
+  if (!netdev || !tcpaf || (netdev->magic_no != NETDEV_MAGIC)) {
+    return (-1);
+  }
+  
+  netif = (struct netif *)netdev->sys;
+  
+  *tcpaf = netif_get_tcp_ack_freq(netif);
+  
+  return (0);
+}
+
+/* netdev set/get tcp window size
+ * NOTICE: you can call these function after netdev_add() */
+int  netdev_set_tcpwnd (netdev_t *netdev, UINT32 tcpwnd)
+{
+  struct netif *netif;
+  
+  if (!netdev || (netdev->magic_no != NETDEV_MAGIC)) {
+    return (-1);
+  }
+  
+  netif = (struct netif *)netdev->sys;
+  
+  if (tcpwnd < (2 * TCP_MSS)) {
+    tcpwnd = (2 * TCP_MSS);
+  
+  } else if (tcpwnd > 0xffffu << TCP_RCV_SCALE) {
+    tcpwnd = 0xffffu << TCP_RCV_SCALE;
+  }
+  
+  netif_set_tcp_wnd(netif, tcpwnd);
+  
+  return (0);
+}
+
+int  netdev_get_tcpwnd (netdev_t *netdev, UINT32 *tcpwnd)
+{
+  struct netif *netif;
+  
+  if (!netdev || !tcpwnd || (netdev->magic_no != NETDEV_MAGIC)) {
+    return (-1);
+  }
+  
+  netif = (struct netif *)netdev->sys;
+  
+  *tcpwnd = netif_get_tcp_wnd(netif);
   
   return (0);
 }

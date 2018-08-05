@@ -450,6 +450,9 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
     }
     printf("MTU:%d METRIC:%d\n", netif->mtu, netif->metric);
     
+    printf("%9s tcp_ack_freq:%u tcp_wnd_size:%u\n", "", 
+           netif_get_tcp_ack_freq(netif), netif_get_tcp_wnd(netif));
+    
     printf("%9s RX ucast packets:%u nucast packets:%u dropped:%u\n", "",
            MIB2_NETIF(netif)->ifinucastpkts, MIB2_NETIF(netif)->ifinnucastpkts, MIB2_NETIF(netif)->ifindiscards);
     printf("%9s TX ucast packets:%u nucast packets:%u dropped:%u\n", "",
@@ -1117,6 +1120,120 @@ static INT  __tshellIpQos (INT  iArgC, PCHAR  *ppcArgV)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: __tshellIfTcpaf
+** 功能描述: 系统命令 "iftcpaf"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : 0
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __tshellIfTcpaf (INT  iArgC, PCHAR  *ppcArgV)
+{
+    INT           iSock, iRet;
+    struct ifreq  ifreq;
+    
+    if (iArgC < 2) {
+__error:
+        fprintf(stderr, "arguments error!\n");
+        return  (-ERROR_TSHELL_EPARAM);
+    }
+    
+    if (iArgC > 2) {
+        if (sscanf(ppcArgV[2], "%d", &ifreq.ifr_tcpaf) != 1) {
+            goto    __error;
+        }
+    }
+
+    iSock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (iSock < 0) {
+        fprintf(stderr, "can not create socket, error: %s!\n", lib_strerror(errno));
+        return  (PX_ERROR);
+    }
+    
+    lib_strlcpy(ifreq.ifr_name, ppcArgV[1], IFNAMSIZ);
+    
+    if (iArgC > 2) {
+        iRet = ioctl(iSock, SIOCSIFTCPAF, &ifreq);
+        if (iRet < ERROR_NONE) {
+            fprintf(stderr, "command 'SIOCSIFTCPAF', error: %s!\n", lib_strerror(errno));
+            close(iSock);
+            return  (PX_ERROR);
+        }
+        
+    } else {
+        iRet = ioctl(iSock, SIOCGIFTCPAF, &ifreq);
+        if (iRet < ERROR_NONE) {
+            fprintf(stderr, "command 'SIOCGIFTCPAF', error: %s!\n", lib_strerror(errno));
+            close(iSock);
+            return  (PX_ERROR);
+        }
+    }
+    
+    close(iSock);
+    
+    printf("TCP ACK Frequency: %d\n", ifreq.ifr_tcpaf);
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __tshellIfTcpwnd
+** 功能描述: 系统命令 "iftcpwnd"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : 0
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __tshellIfTcpwnd (INT  iArgC, PCHAR  *ppcArgV)
+{
+    INT           iSock, iRet;
+    struct ifreq  ifreq;
+    
+    if (iArgC < 2) {
+__error:
+        fprintf(stderr, "arguments error!\n");
+        return  (-ERROR_TSHELL_EPARAM);
+    }
+    
+    if (iArgC > 2) {
+        if (sscanf(ppcArgV[2], "%d", &ifreq.ifr_tcpwnd) != 1) {
+            goto    __error;
+        }
+    }
+
+    iSock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (iSock < 0) {
+        fprintf(stderr, "can not create socket, error: %s!\n", lib_strerror(errno));
+        return  (PX_ERROR);
+    }
+    
+    lib_strlcpy(ifreq.ifr_name, ppcArgV[1], IFNAMSIZ);
+    
+    if (iArgC > 2) {
+        iRet = ioctl(iSock, SIOCSIFTCPWND, &ifreq);
+        if (iRet < ERROR_NONE) {
+            fprintf(stderr, "command 'SIOCSIFTCPWND', error: %s!\n", lib_strerror(errno));
+            close(iSock);
+            return  (PX_ERROR);
+        }
+        
+    } else {
+        iRet = ioctl(iSock, SIOCGIFTCPWND, &ifreq);
+        if (iRet < ERROR_NONE) {
+            fprintf(stderr, "command 'SIOCGIFTCPWND', error: %s!\n", lib_strerror(errno));
+            close(iSock);
+            return  (PX_ERROR);
+        }
+    }
+    
+    close(iSock);
+    
+    printf("TCP Window size: %d\n", ifreq.ifr_tcpwnd);
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: __tshellNetInit
 ** 功能描述: 注册网络命令
 ** 输　入  : NONE
@@ -1192,6 +1309,18 @@ VOID  __tshellNetInit (VOID)
     "    ipqos 0        (disable IP QoS support)\n"
     "    ipqos ipv4 1   (enable IPv4 QoS support)\n"
     "    ipqos ipv6 0   (disable IPv6 QoS support)\n");
+    
+    API_TShellKeywordAdd("iftcpaf", __tshellIfTcpaf);
+    API_TShellFormatAdd("iftcpaf", " [ifname] [tcpaf (2~127)]");
+    API_TShellHelpAdd("iftcpaf", "Set/Get TCP ACK Frequency for net interface\n"
+    "eg. iftcpaf lo0    (get 'lo0' TCP ACK Frequency setting)\n"
+    "    iftcpaf en1 4  (set 'en1' TCP ACK Frequency to 4)\n");
+    
+    API_TShellKeywordAdd("iftcpwnd", __tshellIfTcpwnd);
+    API_TShellFormatAdd("iftcpwnd", " [ifname] [tcp_wnd]");
+    API_TShellHelpAdd("iftcpwnd", "Set/Get TCP Window size for net interface\n"
+    "eg. iftcpwnd lo0        (get 'lo0' TCP Window size setting)\n"
+    "    iftcpwnd en1 65535  (set 'en1' TCP Window size to 65535)\n");
 }
 
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */

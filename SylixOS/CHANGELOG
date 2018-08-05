@@ -4,6 +4,12 @@ HISTORY
 
 ++ New features:
 
+    2018-08-05: han.hui
+    网卡加入 tcp_wnd 选项, 可根据网卡速度与缓存情况, 为每一张网卡合理设置 TCP 窗口大小.
+
+    2018-08-04: han.hui
+    网卡加入 tcp_ack_freq 选项, 可优化 TCP Delay ACK 频率, 提升接收效率.
+
     2018-08-01: han.hui
     使用新的 socket event 传递方法, 加快速度.
 

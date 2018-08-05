@@ -42,9 +42,9 @@ ULONG  API_InterVectorEnable (ULONG  ulVector)
         return  (ERROR_KERNEL_VECTOR_NULL);
     }
 
-    LW_SPIN_LOCK_QUICK(&_K_slVectorTable, &iregInterLevel);
+    LW_SPIN_LOCK_QUICK(&_K_slcaVectorTable.SLCA_sl, &iregInterLevel);
     __ARCH_INT_VECTOR_ENABLE(ulVector);
-    LW_SPIN_UNLOCK_QUICK(&_K_slVectorTable, iregInterLevel);
+    LW_SPIN_UNLOCK_QUICK(&_K_slcaVectorTable.SLCA_sl, iregInterLevel);
     
     MONITOR_EVT_LONG1(MONITOR_EVENT_ID_INT, MONITOR_EVENT_INT_VECT_EN, ulVector, LW_NULL);
     
@@ -72,9 +72,9 @@ ULONG  API_InterVectorDisable (ULONG  ulVector)
         return  (ERROR_KERNEL_VECTOR_NULL);
     }
 
-    LW_SPIN_LOCK_QUICK(&_K_slVectorTable, &iregInterLevel);
+    LW_SPIN_LOCK_QUICK(&_K_slcaVectorTable.SLCA_sl, &iregInterLevel);
     __ARCH_INT_VECTOR_DISABLE(ulVector);
-    LW_SPIN_UNLOCK_QUICK(&_K_slVectorTable, iregInterLevel);
+    LW_SPIN_UNLOCK_QUICK(&_K_slcaVectorTable.SLCA_sl, iregInterLevel);
     
     MONITOR_EVT_LONG1(MONITOR_EVENT_ID_INT, MONITOR_EVENT_INT_VECT_DIS, ulVector, LW_NULL);
     

@@ -350,6 +350,8 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrT
   TCP basic
 *********************************************************************************************************/
 
+#define TCPIP_MBOX_SIZE                 -1                              /*  特殊标记                    */
+
 #if LW_CFG_LWIP_TCP_SIG_EN > 0
 #define LWIP_TCP_PCB_NUM_EXT_ARGS       1
 #endif
@@ -363,8 +365,7 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrT
 #endif
 
 /*********************************************************************************************************
-  transmit layer (注意: 如果 TCP_WND 大于网卡接收缓冲, 可能造成批量传输时, 网卡芯片缓冲溢出.
-                        如果出现这种情况, 请在这里自行配置 TCP_WND 大小. 并确保大于 2 * TCP_MSS)
+  transmit layer
 *********************************************************************************************************/
 
 #define LWIP_UDP                        1
@@ -385,65 +386,19 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrT
 #define TCP_CALCULATE_EFF_SEND_MSS      1                               /*  use effective send MSS      */
 
 /*********************************************************************************************************
-  TCP_WND
+  TCP_WND & TCP_SND_BUF
 *********************************************************************************************************/
-
-#if MEM_SIZE >= (1 * LW_CFG_MB_SIZE)
-#define TCP_WND                         ((64 * LW_CFG_KB_SIZE) - 1)     /*  MAX WINDOW                  */
-#elif MEM_SIZE >= (512 * LW_CFG_KB_SIZE)
-#define TCP_WND                         (32  * LW_CFG_KB_SIZE)
-#elif MEM_SIZE >= (128 * LW_CFG_KB_SIZE)
-#define TCP_WND                         (16  * LW_CFG_KB_SIZE)
-
-/*********************************************************************************************************
-  MEM_SIZE < 128 KB  SMALL TCP_MSS XXX
-*********************************************************************************************************/
-
-#elif MEM_SIZE >= (64 * LW_CFG_KB_SIZE)
-#define TCP_WND                         ( 8  * TCP_MSS)
-#else
-#undef  TCP_MSS
-#define TCP_MSS                         536                             /*  small mss                   */
-#define TCP_WND                         ( 4  * TCP_MSS)
-#endif                                                                  /*  MEM_SIZE >= ...             */
-
-#if LW_CFG_LWIP_TCP_WND > 0
-#undef  TCP_WND
-#define TCP_WND                         LW_CFG_LWIP_TCP_WND
-#endif                                                                  /*  LW_CFG_LWIP_TCP_WND         */
-
-#if TCP_WND < (4  * TCP_MSS)
-#undef  TCP_WND
-#define TCP_WND                         ( 4  * TCP_MSS)                 /*  must bigger than 4 * TCP_MSS*/
-#endif                                                                  /*  TCP_WND < (4  * TCP_MSS)    */
 
 #define LWIP_WND_SCALE                  1
-#define TCP_RCV_SCALE                   LW_CFG_LWIP_TCP_SCALE
 
-#if LW_CFG_LWIP_TCP_ACK_THRESHOLD > 0
-#define TCP_WND_UPDATE_THRESHOLD        LW_CFG_LWIP_TCP_ACK_THRESHOLD
-#else
-#define TCP_WND_UPDATE_THRESHOLD        (TCP_WND / 4)
-#endif
+#define TCP_WND                         LW_CFG_LWIP_TCP_WND
+#define TCP_SND_BUF                     LWIP_MIN(LW_CFG_LWIP_TCP_SND, 0xffff)
+#define TCP_RCV_SCALE                   LW_CFG_LWIP_TCP_SCALE
+#define TCP_WND_UPDATE_THRESHOLD        (pcb->if_wnd >> 1)              /*  1/2 window size             */
 
 /*********************************************************************************************************
-  TCP_SND_BUF
+  TCP Other
 *********************************************************************************************************/
-
-#if MEM_SIZE >= (512 * LW_CFG_KB_SIZE)
-#define TCP_SND_BUF                     ((64 * LW_CFG_KB_SIZE) - 1)     /*  tcp snd buf size (max size) */
-#elif  MEM_SIZE >= (128 * LW_CFG_KB_SIZE)
-#define TCP_SND_BUF                     ((32 * LW_CFG_KB_SIZE) - 1)
-#elif  MEM_SIZE >= (64 * LW_CFG_KB_SIZE)
-#define TCP_SND_BUF                     ((8 * LW_CFG_KB_SIZE) - 1)
-#else
-#define TCP_SND_BUF                     ((4 * LW_CFG_KB_SIZE) - 1)
-#endif
-
-#if LW_CFG_LWIP_TCP_SND > 0
-#undef  TCP_SND_BUF
-#define TCP_SND_BUF                     LWIP_MIN(LW_CFG_LWIP_TCP_SND, 0xffff)
-#endif                                                                  /*  LW_CFG_LWIP_TCP_SND         */
 
 #define MEMP_NUM_TCP_SEG                (8 * TCP_SND_QUEUELEN)
 
@@ -488,7 +443,6 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrT
 #define LWIP_ARP                        1
 #define ARP_QUEUEING                    1
 #define ARP_TABLE_SIZE                  LW_CFG_LWIP_ARP_TABLE_SIZE
-#define ETHARP_TRUST_IP_MAC             LW_CFG_LWIP_ARP_TRUST_IP_MAC
 #define ETHARP_SUPPORT_VLAN             1                               /*  IEEE 802.1q VLAN            */
 #define ETH_PAD_SIZE                    2
 #define ETHARP_SUPPORT_STATIC_ENTRIES   1

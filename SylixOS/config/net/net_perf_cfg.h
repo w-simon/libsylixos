@@ -26,7 +26,7 @@
   缓存配置
 *********************************************************************************************************/
 
-#define LW_CFG_LWIP_MEM_SIZE            LW_CFG_MB_SIZE                  /*  lwip 内存大小               */
+#define LW_CFG_LWIP_MEM_SIZE            (1 * LW_CFG_MB_SIZE)            /*  lwip 内存大小               */
 #define LW_CFG_LWIP_MSG_SIZE            512                             /*  lwip 内部消息队列缓冲长度   */
 #define LW_CFG_LWIP_POOL_SIZE           1560                            /*  lwip POOL 内存块大小        */
                                                                         /*  注意: 必须是字对齐的        */
@@ -63,14 +63,14 @@
   流控配置
 *********************************************************************************************************/
 
-#define LW_CFG_NET_FLOWCTL_MEM_SIZE     (768 * LW_CFG_KB_SIZE)          /*  流量控制缓存大小            */
+#define LW_CFG_NET_FLOWCTL_MEM_SIZE     (  1 * LW_CFG_MB_SIZE)          /*  流量控制缓存大小            */
 #define LW_CFG_NET_FLOWCTL_DEF_BSIZE    (512 * LW_CFG_KB_SIZE)          /*  每条规则默认缓存大小        */
 
 /*********************************************************************************************************
   虚拟网卡
 *********************************************************************************************************/
 
-#define LW_CFG_NET_VNETDEV_DEF_BSIZE    (200 * LW_CFG_KB_SIZE)          /*  虚拟网卡发送缓存            */
+#define LW_CFG_NET_VNETDEV_DEF_BSIZE    (256 * LW_CFG_KB_SIZE)          /*  虚拟网卡发送缓存            */
 
 /*********************************************************************************************************
   IP 参数
@@ -114,8 +114,7 @@
 /*********************************************************************************************************
   TCP 设置 
   关于 LW_CFG_LWIP_TCP_WND 不能大于网卡的接收缓冲区大小, 否则可能出现网卡接收溢出的错误, 造成网络速度颠簸.
-  默认配置为 8192 主要是为了适应很多早期 16K 缓存 ISA 网卡, 如 NE2000, DM9000 等, 如果使用的是大缓存网卡
-  则完全可以配置为 65535 (例如: 各种 PCIe 接口高性能网卡).
+  LW_CFG_LWIP_TCP_WND 有效值在 1460*2 ~ (0xffff << LW_CFG_LWIP_TCP_SCALE) 之间
   
   LW_CFG_LWIP_TCP_SCALE 为窗口扩大因子, 
   如果 LW_CFG_LWIP_TCP_SCALE 为 0 表示不使用窗口扩大选项
@@ -127,16 +126,13 @@
   如果 LW_CFG_LWIP_TCP_SCALE 为 2 表示使用窗口扩大选项
   LW_CFG_LWIP_TCP_WND, LW_CFG_LWIP_TCP_SND 最大值为 65535 * 2^2 = 262140
   
-  ... 
-  
   LW_CFG_LWIP_TCP_SCALE 最大值为 14, 建议最大设置不超过 3 ~ 4
 *********************************************************************************************************/
 
-#define LW_CFG_LWIP_TCP_WND             8192                            /*  接收缓冲大小, 0 为自动      */
-#define LW_CFG_LWIP_TCP_SND             65535                           /*  发送缓冲大小, 0 为自动      */
-#define LW_CFG_LWIP_TCP_SCALE           0                               /*  接收窗口扩大指数 0 ~ 14     */
-#define LW_CFG_LWIP_TCP_ACK_THRESHOLD   (LW_CFG_LWIP_TCP_WND >> 1)      /*  ACK 阀值 1/2 ~ 1/4 窗口最佳 */
-                                                                        /*  0 为自动                    */
+#define LW_CFG_LWIP_TCP_WND             65535                           /*  TCP 默认接收窗口大小        */
+#define LW_CFG_LWIP_TCP_SND             65535                           /*  TCP 默认发送缓冲大小        */
+#define LW_CFG_LWIP_TCP_SCALE           2                               /*  窗口扩大指数 0 ~ 14         */
+
 #define LW_CFG_LWIP_TCP_MAXRTX          8                               /*  TCP 最大重传数, 1 ~ 12      */
 #define LW_CFG_LWIP_TCP_SYNMAXRTX       6                               /*  最大 SYN 重传数, 1 ~ 12     */
 

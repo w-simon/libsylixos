@@ -113,6 +113,8 @@ struct ifreq {
         int                 ifru_mtu;
         int                 ifru_metric;
         int                 ifru_type;
+        int                 ifru_tcpaf;
+        int                 ifru_tcpwnd;
         void               *ifru_data;
     } ifr_ifru;
 };
@@ -128,6 +130,8 @@ struct ifreq {
 #define ifr_mtu             ifr_ifru.ifru_mtu
 #define ifr_metric          ifr_ifru.ifru_metric
 #define ifr_type            ifr_ifru.ifru_type
+#define ifr_tcpaf           ifr_ifru.ifru_tcpaf                 /* 2 ~ 127                              */
+#define ifr_tcpwnd          ifr_ifru.ifru_tcpwnd
 #define ifr_data            ifr_ifru.ifru_data
 
 struct ifconf {
@@ -176,6 +180,12 @@ struct ifconf {
 
 #define SIOCADDMULTI        _IOW('i', 60, struct ifreq)
 #define SIOCDELMULTI        _IOW('i', 61, struct ifreq)
+
+#define SIOCGIFTCPAF        _IOWR('i', 62, struct ifreq)
+#define SIOCSIFTCPAF        _IOW('i',  63, struct ifreq)
+
+#define SIOCGIFTCPWND       _IOWR('i', 64, struct ifreq)
+#define SIOCSIFTCPWND       _IOW('i',  65, struct ifreq)
 
 /*********************************************************************************************************
   sylixos if6 structures

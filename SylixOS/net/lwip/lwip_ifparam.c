@@ -41,7 +41,10 @@
   gateway=192.168.1.1
   default=1
   mac=00:11:22:33:44:55   # 除非网卡没有 MAC 地址, 否则不建议设置 MAC
-  ipv6_auto_cfg=1         (如果将 SylixOS 作为 IPv6 路由器, 则 ipv6_auto_cfg=0)
+  ipv6_auto_cfg=1         # 如果将 SylixOS 作为 IPv6 路由器, 则 ipv6_auto_cfg=0
+  tcp_ack_freq=2          # TCP Delay ACK 响应频率 (2~127), 默认为 2, 
+                            既接收两个总和大于 MSS 长度数据包立即发送 ACK
+  tcp_wnd=8192            # TCP window (tcp_wnd > 2 * MSS) && (tcp_wnd < (0xffffu << TCP_RCV_SCALE))
   
   或者
   
@@ -69,6 +72,8 @@
 #define LW_IFPARAM_DHCP         "dhcp"
 #define LW_IFPARAM_DHCP6        "dhcp6"
 #define LW_IFPARAM_IPV6_ACFG    "ipv6_auto_cfg"
+#define LW_IFPARAM_TCP_ACK_FREQ "tcp_ack_freq"
+#define LW_IFPARAM_TCP_WND      "tcp_wnd"
 /*********************************************************************************************************
   ini 配置
 *********************************************************************************************************/
@@ -416,7 +421,7 @@ int  if_param_getdefault (void *pifparam, int *def)
 ** 函数名称: if_param_getdhcp
 ** 功能描述: 读取网卡是否为 dhcp (如果未找到配置默认为非 DHCP)
 ** 输　入  : pifparam      配置句柄
-**           def           是否为默认路由
+**           dhcp          是否为 DHCP 获取地址
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
@@ -440,7 +445,7 @@ int  if_param_getdhcp (void *pifparam, int *dhcp)
 ** 函数名称: if_param_getdhcp6
 ** 功能描述: 读取网卡是否为 dhcp6 (如果未找到配置默认为非 DHCP6)
 ** 输　入  : pifparam      配置句柄
-**           def           是否为默认路由
+**           dhcp          是否为 DHCP 获取地址
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
@@ -464,7 +469,7 @@ int  if_param_getdhcp6 (void *pifparam, int *dhcp)
 ** 函数名称: if_param_ipv6autocfg
 ** 功能描述: 读取网卡是否使用 IPv6 地址自动配置 (如果未找到则按照默认网卡初始化参数进行)
 ** 输　入  : pifparam      配置句柄
-**           def           是否为默认路由
+**           autocfg       配置
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
@@ -488,6 +493,66 @@ int  if_param_ipv6autocfg (void *pifparam, int *autocfg)
     }
     
     *autocfg = iRet;
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: if_param_tcpackfreq
+** 功能描述: 读取网卡 tcp ack freq 配置参数
+** 输　入  : pifparam      配置句柄
+**           tcpaf         配置参数
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+int  if_param_tcpackfreq (void *pifparam, int *tcpaf)
+{
+    PLW_INI_SEC  pinisec = (PLW_INI_SEC)pifparam;
+    INT          iRet;
+
+    if (!pinisec || !tcpaf) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    iRet = __iniGetInt(pinisec, LW_IFPARAM_TCP_ACK_FREQ, 2);
+    if (iRet < 0) {
+        return  (PX_ERROR);
+    }
+    
+    *tcpaf = iRet;
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: if_param_tcpwnd
+** 功能描述: 读取网卡 tcp wnd 配置参数
+** 输　入  : pifparam      配置句柄
+**           tcpwnd        配置参数
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+int  if_param_tcpwnd (void *pifparam, int *tcpwnd)
+{
+    PLW_INI_SEC  pinisec = (PLW_INI_SEC)pifparam;
+    INT          iRet;
+
+    if (!pinisec || !tcpwnd) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    iRet = __iniGetInt(pinisec, LW_IFPARAM_TCP_WND, TCP_WND);
+    if (iRet < 0) {
+        return  (PX_ERROR);
+    }
+    
+    *tcpwnd = iRet;
 
     return  (ERROR_NONE);
 }

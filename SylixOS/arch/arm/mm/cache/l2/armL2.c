@@ -34,9 +34,9 @@
 /*********************************************************************************************************
   L2 锁 (多核共享一个 L2 CACHE, 所以操作时需要加自旋锁, 由于外层已经关中断, 这里只需锁自旋锁即可)
 *********************************************************************************************************/
-static LW_SPINLOCK_DEFINE_CACHE_ALIGN(l2sl);
-#define L2_OP_ENTER()   LW_SPIN_LOCK_IGNIRQ(&l2sl)
-#define L2_OP_EXIT()    LW_SPIN_UNLOCK_IGNIRQ(&l2sl)
+static LW_SPINLOCK_CA_DEFINE_CACHE_ALIGN(l2slca);
+#define L2_OP_ENTER()   LW_SPIN_LOCK_IGNIRQ(&l2slca.SLCA_sl)
+#define L2_OP_EXIT()    LW_SPIN_UNLOCK_IGNIRQ(&l2slca.SLCA_sl)
 /*********************************************************************************************************
   L2 驱动
 *********************************************************************************************************/
@@ -260,7 +260,7 @@ VOID armL2Init (CACHE_MODE   uiInstruction,
     UINT32  uiWaySize;
     UINT32  uiWaySizeShift = L2C_WAY_SIZE_SHIFT;
 
-    LW_SPIN_INIT(&l2sl);
+    LW_SPIN_INIT(&l2slca.SLCA_sl);
     
     if (lib_strcmp(pcMachineName, ARM_MACHINE_A8) == 0) {               /*  A8 处理器 L2 CACHE          */
         l2cdrv.L2CD_pcName    = ARM_MACHINE_A8;

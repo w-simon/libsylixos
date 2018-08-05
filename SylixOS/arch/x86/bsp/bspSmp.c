@@ -80,7 +80,7 @@ static const UINT8  _G_ucX86ApEntryCode[] = {                           /*  x86-
 };
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
 
-static LW_SPINLOCK_DEFINE_CACHE_ALIGN(_G_slX86ApLock);                  /*  AP 启动自旋锁               */
+static LW_SPINLOCK_DEFINE(_G_slX86ApLock);                              /*  AP 启动自旋锁               */
 /*********************************************************************************************************
 ** 函数名称: x86CpuIpiStartSecondary
 ** 功能描述: 启动 AP Processor

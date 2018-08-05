@@ -262,11 +262,11 @@ VOID    archMpuInit(CPCHAR  pcMachineName, const ARM_MPU_REGION  mpuregion[]);
 *********************************************************************************************************/
 
 #if LW_CFG_SMP_EN > 0
-#if LW_CFG_ARM_SPINLOCK_DEP_CACHE > 0
+VOID    archSpinBypass(VOID);
 VOID    archSpinWork(VOID);
 
+#define __ARCH_SPIN_BYPASS  archSpinBypass
 #define __ARCH_SPIN_WORK    archSpinWork
-#endif                                                                  /*  LW_CFG_ARM_SPINLOCK_DEP_C...*/
 
 VOID    archSpinInit(spinlock_t  *psl);
 VOID    archSpinDelay(VOID);

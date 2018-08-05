@@ -2635,7 +2635,7 @@ event_callback(struct netconn *conn, enum netconn_evt evt, u16_t len)
   }
 
 #ifdef SYLIXOS /* SylixOS Add SylixOS select() wakeup */
-  {
+  if (check_waiters) {
     u8_t selread = 0;
     u8_t selwrite = 0;
     u8_t selexcept = 0;
@@ -2676,6 +2676,16 @@ event_callback(struct netconn *conn, enum netconn_evt evt, u16_t len)
     
     done_socket(sock);
     return;
+  
+  } else {
+    int err;
+    
+    /**
+     * SylixOS socket MUST know the NEWEST errno.
+     */
+    err = err_to_errno(netconn_err(sock->conn)); /* Get last error */
+    
+    __socketEnotify2(sock->file, 0, err);
   }
 #endif /* SYLIXOS */
 

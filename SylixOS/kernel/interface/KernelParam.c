@@ -50,6 +50,7 @@ extern LW_API INT   API_RootFsMapInit(CPCHAR  pcMap);
                            rebootto=10      重启超时时间.
                            fsched=no        SMP 系统内核快速调度
                            smt=no           SMT 均衡调度
+                           sldepcache=no    spin lock 依赖于 cache 使能. (ARM)
                            noitmr=no        不支持 ITIMER_REAL/ITIMER_VIRTUAL/ITIMER_PROF,
                                             建议运动控制等高实时性应用, 可置为 yes 提高 tick 速度
                            tmcvtsimple=no   通过 timespec 转换 tick 超时, 是否使用简单转换法.

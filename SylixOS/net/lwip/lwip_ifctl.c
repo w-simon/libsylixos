@@ -263,16 +263,48 @@ static INT  __ifSubIoctlIf (INT  iCmd, PVOID  pvArg)
         
     case SIOCGIFMETRIC:                                                 /*  获得网卡测度                */
         pifreq->ifr_metric = pnetif->metric;
+        iRet = ERROR_NONE;
         break;
         
     case SIOCSIFMETRIC:                                                 /*  设置网卡测度                */
         pnetif->metric = pifreq->ifr_metric;                            /*  目前不做处理                */
+        iRet = ERROR_NONE;
         break;
         
     case SIOCADDMULTI:                                                  /*  设置组播滤波器              */
     case SIOCDELMULTI:
         if (pnetif->ioctl) {
             iRet = pnetif->ioctl(pnetif, iCmd, pvArg);
+        }
+        break;
+        
+    case SIOCGIFTCPAF:                                                  /*  获得 tcp ack freq           */
+        pifreq->ifr_tcpaf = netif_get_tcp_ack_freq(pnetif);
+        iRet = ERROR_NONE;
+        break;
+        
+    case SIOCSIFTCPAF:                                                  /*  设置 tcp ack freq           */
+        if ((pifreq->ifr_tcpaf >= LWIP_NETIF_TCP_ACK_FREQ_MIN) && 
+            (pifreq->ifr_tcpaf <= LWIP_NETIF_TCP_ACK_FREQ_MAX)) {
+            netif_set_tcp_ack_freq(pnetif, (u8_t)pifreq->ifr_tcpaf);
+            iRet = ERROR_NONE;
+        } else {
+            _ErrorHandle(EINVAL);
+        }
+        break;
+        
+    case SIOCGIFTCPWND:                                                 /*  获得 tcp window             */
+        pifreq->ifr_tcpwnd = netif_get_tcp_wnd(pnetif);
+        iRet = ERROR_NONE;
+        break;
+        
+    case SIOCSIFTCPWND:                                                 /*  设置 tcp window             */
+        if ((pifreq->ifr_tcpwnd <= (0xffffu << TCP_RCV_SCALE)) && 
+            (pifreq->ifr_tcpwnd >= (2 * TCP_MSS))) {
+            netif_set_tcp_wnd(pnetif, (u32_t)pifreq->ifr_tcpaf);
+            iRet = ERROR_NONE;
+        } else {
+            _ErrorHandle(EINVAL);
         }
         break;
     }
@@ -634,6 +666,10 @@ INT  __ifIoctlInet (INT  iCmd, PVOID  pvArg)
     case SIOCSIFMETRIC:
     case SIOCADDMULTI:
     case SIOCDELMULTI:
+    case SIOCGIFTCPAF:
+    case SIOCSIFTCPAF:
+    case SIOCGIFTCPWND:
+    case SIOCSIFTCPWND:
         LWIP_IF_LIST_LOCK(LW_FALSE);                                    /*  进入临界区                  */
         iRet = __ifSubIoctlIf(iCmd, pvArg);
         LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */

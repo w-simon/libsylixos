@@ -255,19 +255,20 @@ INT  API_INetPing6 (struct in6_addr  *pin6addr,
     REGISTER INT        iSock;
              INT        i;
              UINT16     usSeqRecv = 0;
-             ULONG      ulTime1;
-             ULONG      ulTime2;
              
              INT        On   = 1;
              INT        iSuc = 0;
              INT        iHLRecv;
 
-    struct  sockaddr_in6    sockaddrin6To;
+    struct timespec     tvTime1;
+    struct timespec     tvTime2;
     
-    REGISTER ULONG      ulTimeMax = 0;
-    REGISTER ULONG      ulTimeMin = 0xFFFFFFFF;
-    REGISTER ULONG      ulTimeAvr = 0;
+    struct sockaddr_in6 sockaddrin6To;
     
+             UINT64     ullUSec;
+             UINT64     ullUSecMin = 0xffffffffffffffffull;
+             UINT64     ullUSecMax = 0ull;
+             UINT64     ullUSecAvr = 0ull;
     
     if ((iDataSize >= (64 * LW_CFG_KB_SIZE)) || (iDataSize < 0)) {      /*  0 - 64KB                    */
         _ErrorHandle(EINVAL);
@@ -321,7 +322,7 @@ INT  API_INetPing6 (struct in6_addr  *pin6addr,
             i++;                                                        /*  发送次数 ++                 */
         }
         
-        ulTime1 = API_TimeGet();
+        lib_clock_gettime(CLOCK_MONOTONIC, &tvTime1);
         if (__inetPing6Recv(iSock, usSeqRecv, &iHLRecv) < 0) {          /*  接收 icmp 数据包            */
             printf("Request time out.\n");                              /*  timeout                     */
             if (i >= iTimes) {
@@ -329,20 +330,23 @@ INT  API_INetPing6 (struct in6_addr  *pin6addr,
             }
         
         } else {
-            ulTime2 = API_TimeGet();
-            ulTime2 = (ulTime2 >= ulTime1) ? (ulTime2 - ulTime1) 
-                    : ((__ARCH_ULONG_MAX - ulTime1) + ulTime2 + 1);
-            ulTime2 = ((ulTime2 * 1000) / LW_TICK_HZ);                  /*  转为毫秒数                  */
+            lib_clock_gettime(CLOCK_MONOTONIC, &tvTime2);
+            if (__timespecLeftTime(&tvTime1, &tvTime2)) {
+                __timespecSub(&tvTime2, &tvTime1);
+            }
+            
+            ullUSec = (UINT64)(tvTime2.tv_sec * 1000000)
+                    + (UINT64)(tvTime2.tv_nsec / 1000);
                     
-            printf("Reply from %s: bytes=%d time=%ldms hoplim=%d\n", 
+            printf("Reply from %s: bytes=%d time=%llu.%03llums hoplim=%d\n", 
                    inet6_ntoa_r(*pin6addr, cInetAddr, sizeof(cInetAddr)),
-                   iDataSize, ulTime2, iHLRecv);
+                   iDataSize, (ullUSec / 1000), (ullUSec % 1000), iHLRecv);
         
             iSuc++;
             
-            ulTimeAvr += ulTime2;
-            ulTimeMax = (ulTimeMax > ulTime2) ? ulTimeMax : ulTime2;
-            ulTimeMin = (ulTimeMin < ulTime2) ? ulTimeMin : ulTime2;
+            ullUSecAvr += ullUSec;
+            ullUSecMax  = (ullUSecMax > ullUSec) ? ullUSecMax : ullUSec;
+            ullUSecMin  = (ullUSecMin < ullUSec) ? ullUSecMin : ullUSec;
             
             if (i >= iTimes) {
                 break;                                                  /*  ping 结束                   */
@@ -364,11 +368,13 @@ INT  API_INetPing6 (struct in6_addr  *pin6addr,
         return  (PX_ERROR);
     }
     
-    ulTimeAvr = ulTimeAvr / iSuc;
+    ullUSecAvr /= iSuc;
     
     printf("Approximate round trip times in milli-seconds:\n");
-    printf("    Minimum = %ldms, Maximum = %ldms, Average = %ldms\r\n\r\n",
-                  ulTimeMin, ulTimeMax, ulTimeAvr);
+    printf("    Minimum = %llu.%03llums, Maximum = %llu.%03llums, Average = %llu.%03llums\r\n\r\n",
+           (ullUSecMin / 1000), (ullUSecMin % 1000), 
+           (ullUSecMax / 1000), (ullUSecMax % 1000), 
+           (ullUSecAvr / 1000), (ullUSecAvr % 1000));
     
     return  (ERROR_NONE);
 }

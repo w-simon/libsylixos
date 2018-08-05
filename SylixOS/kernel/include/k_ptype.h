@@ -443,8 +443,32 @@ typedef struct {
 } spinlock_t;
 
 #define LW_SPINLOCK_DEFINE(sl)              spinlock_t  sl
-#define LW_SPINLOCK_DEFINE_CACHE_ALIGN(sl)  spinlock_t  sl  LW_CACHE_LINE_ALIGN
 #define LW_SPINLOCK_DECLARE(sl)             spinlock_t  sl
+
+/*********************************************************************************************************
+  spinlock_ca_t
+*********************************************************************************************************/
+
+#ifdef __SYLIXOS_KERNEL
+#if LW_CFG_SMP_EN > 0 && LW_CFG_CPU_ARCH_CACHE_LINE > 0
+typedef struct {
+    union {
+        spinlock_t              SLUCA_sl;
+        UINT8                   SLUCA_ucPad[LW_CFG_CPU_ARCH_CACHE_LINE];
+    } u;
+#define SLCA_sl                 u.SLUCA_sl
+} spinlock_ca_t;
+
+#else
+typedef struct {
+    spinlock_t                  SLCA_sl;
+} spinlock_ca_t;
+#endif                                                                  /*  LW_CFG_CPU_ARCH_CACHE_LINE  */
+
+#define LW_SPINLOCK_CA_DEFINE(slca)             spinlock_ca_t  slca
+#define LW_SPINLOCK_CA_DEFINE_CACHE_ALIGN(slca) spinlock_ca_t  slca LW_CACHE_LINE_ALIGN
+#define LW_SPINLOCK_CA_DECLARE(slca)            spinlock_ca_t  slca
+#endif                                                                  /*  __SYLIXOS_KERNEL            */
 
 #endif                                                                  /*  __K_PTYPE_H                 */
 /*********************************************************************************************************

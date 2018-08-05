@@ -633,6 +633,10 @@ static INT  __socketIoctl (SOCKET_T *psock, INT  iCmd, PVOID  pvArg)
             case SIOCSIFMETRIC:
             case SIOCADDMULTI:
             case SIOCDELMULTI:
+            case SIOCGIFTCPAF:
+            case SIOCSIFTCPAF:
+            case SIOCGIFTCPWND:
+            case SIOCSIFTCPWND:
             case SIOCGSIZIFREQ6:
             case SIOCSIFADDR6:
             case SIOCSIFNETMASK6:
@@ -856,7 +860,9 @@ void  __socketEnotify2 (void *file, UINT uiSelFlags, INT  iSoErr)
     
     if (psock) {
         psock->SOCK_iSoErr = iSoErr;                                    /*  ¸üÐÂ SO_ERROR               */
-        SEL_WAKE_UP_ALL_BY_FLAGS(&psock->SOCK_selwulist, uiSelFlags);
+        if (uiSelFlags) {
+            SEL_WAKE_UP_ALL_BY_FLAGS(&psock->SOCK_selwulist, uiSelFlags);
+        }
     }
 }
 /*********************************************************************************************************
