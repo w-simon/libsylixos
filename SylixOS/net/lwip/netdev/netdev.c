@@ -848,6 +848,21 @@ int  netdev_firewall (netdev_t *netdev, int (*fw)(netdev_t *, struct pbuf *))
   return (0);
 }
 
+/* netdev set qoshook */
+int  netdev_qoshook (netdev_t *netdev, UINT8 (*qos)(netdev_t *, struct pbuf *, UINT8, UINT8, UINT16, UINT8 *))
+{
+  struct netif *netif;
+
+  if (!netdev || (netdev->magic_no != NETDEV_MAGIC)) {
+    return (-1);
+  }
+  
+  netif = (struct netif *)netdev->sys;
+  netif->outer_qos = (u8_t (*)(void *, struct pbuf *, u8_t, u8_t, u16_t, u8_t *))qos;
+  
+  return (0);
+}
+
 /* netdev traversal */
 int  netdev_foreache (FUNCPTR pfunc, void *arg0, void *arg1, 
                       void *arg2, void *arg3, void *arg4, void *arg5)

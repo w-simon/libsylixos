@@ -138,27 +138,6 @@ INT  API_SpinLockIrq (spinlock_t *psl, INTREG  *iregInterLevel)
     return  (ERROR_NONE);                                               /*  正常 lock                   */
 }
 /*********************************************************************************************************
-** 函数名称: API_SpinLockIgnIrq
-** 功能描述: 自旋锁 lock (必须在中断关闭的状态下被调用)
-** 输　入  : psl               自旋锁
-** 输　出  : ERROR CODE
-** 全局变量: 
-** 调用模块: 
-                                           API 函数
-*********************************************************************************************************/
-LW_API  
-INT  API_SpinLockIgnIrq (spinlock_t *psl)
-{
-    if (psl == LW_NULL) {
-        errno = EINVAL;
-        return  (EINVAL);
-    }
-    
-    LW_SPIN_LOCK_IGNIRQ(psl);
-    
-    return  (ERROR_NONE);                                               /*  正常 lock                   */
-}
-/*********************************************************************************************************
 ** 函数名称: API_SpinLockQuick
 ** 功能描述: 自旋锁 lock 同时关闭中断 (快速方式)
 ** 输　入  : psl               自旋锁
@@ -234,31 +213,6 @@ INT  API_SpinTryLockIrq (spinlock_t *psl, INTREG  *iregInterLevel)
     }
 }
 /*********************************************************************************************************
-** 函数名称: API_SpinTryLockIgnIrq
-** 功能描述: trylock 一个自旋锁 (必须在中断关闭的状态下被调用)
-** 输　入  : psl               自旋锁
-** 输　出  : ERROR CODE
-** 全局变量: 
-** 调用模块: 
-                                           API 函数
-*********************************************************************************************************/
-LW_API  
-INT  API_SpinTryLockIgnIrq (spinlock_t *psl)
-{
-    if (psl == LW_NULL) {
-        errno = EINVAL;
-        return  (EINVAL);
-    }
-    
-    if (LW_SPIN_TRYLOCK_IGNIRQ(psl)) {
-        return  (ERROR_NONE);                                           /*  正常 unlock                 */
-    
-    } else {
-        errno = EBUSY;
-        return  (EBUSY);
-    }
-}
-/*********************************************************************************************************
 ** 函数名称: API_SpinUnlock
 ** 功能描述: unlock 一个自旋锁.
 ** 输　入  : psl               自旋锁
@@ -298,27 +252,6 @@ INT  API_SpinUnlockIrq (spinlock_t *psl, INTREG  iregInterLevel)
     }
     
     LW_SPIN_UNLOCK_IRQ(psl, iregInterLevel);
-    
-    return  (ERROR_NONE);                                               /*  正常 unlock                 */
-}
-/*********************************************************************************************************
-** 函数名称: API_SpinUnlockIgnIrq
-** 功能描述: unlock 一个自旋锁 (必须在中断关闭的状态下被调用)
-** 输　入  : psl               自旋锁
-** 输　出  : ERROR CODE
-** 全局变量: 
-** 调用模块: 
-                                           API 函数
-*********************************************************************************************************/
-LW_API  
-INT  API_SpinUnlockIgnIrq (spinlock_t *psl)
-{
-    if (psl == LW_NULL) {
-        errno = EINVAL;
-        return  (EINVAL);
-    }
-    
-    LW_SPIN_UNLOCK_IGNIRQ(psl);
     
     return  (ERROR_NONE);                                               /*  正常 unlock                 */
 }

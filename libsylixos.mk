@@ -1510,6 +1510,7 @@ SylixOS/net/lwip/tools/npf/lwip_npf.c \
 SylixOS/net/lwip/tools/ping/lwip_ping.c \
 SylixOS/net/lwip/tools/ping6/lwip_ping6.c \
 SylixOS/net/lwip/tools/ppp/lwip_ppp.c \
+SylixOS/net/lwip/tools/qos/lwip_qos.c \
 SylixOS/net/lwip/tools/kernrpc/authdes_prot.c \
 SylixOS/net/lwip/tools/kernrpc/authuxprot.c \
 SylixOS/net/lwip/tools/kernrpc/auth_none.c \

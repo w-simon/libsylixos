@@ -111,7 +111,7 @@
 #define LW_CFG_NET_NAT_EN                           1                   /*  是否使用 NAT 服务           */
 #define LW_CFG_NET_NAT_MAX_AP_IF                    2                   /*  NAT 外网接口数量            */
 #define LW_CFG_NET_NAT_MAX_LOCAL_IF                 2                   /*  NAT 内网接口数量            */
-#define LW_CFG_NET_NAT_MAX_SESSION                  2048                /*  NAT 最大会话个数 256-12288  */
+#define LW_CFG_NET_NAT_MAX_SESSION                  2048                /*  NAT 最大会话个数 256-24576  */
 #define LW_CFG_NET_NAT_IDLE_TIMEOUT                 20                  /*  NAT 空闲链接超时, 单位:分钟 */
 
 /*********************************************************************************************************
@@ -129,6 +129,13 @@
 #define LW_CFG_NET_VPN_EN                           1
 #define LW_CFG_NET_KIDVPN_EN                        LW_CFG_NET_VPN_EN   /*  是否使用 KidVPN 服务        */
 #define LW_CFG_NET_VNETDEV_EN                       LW_CFG_NET_VPN_EN   /*  虚拟网卡                    */
+
+/*********************************************************************************************************
+                                            QoS TOOL (基于规则的 QoS 工具)
+*  依存关系: 1: 网络
+*********************************************************************************************************/
+
+#define LW_CFG_NET_QOS_EN                           1                   /*  是否使能 QoS 配置工具       */
 
 /*********************************************************************************************************
                                             NPF (基于规则的网络数据报过滤器)

@@ -109,17 +109,18 @@ typedef struct __lw_cpu {
 #ifdef __LW_SPINLOCK_BUG_TRACE_EN
     ULONG                    CPU_ulSpinNesting;                         /*  spinlock 加锁数量           */
 #endif                                                                  /*  __LW_SPINLOCK_BUG_TRACE_EN  */
-#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
-
+    volatile UINT            CPU_uiLockQuick;                           /*  是否在 Lock Quick 中        */
+    
     /*
      *  CPU 基本信息
      */
-#if (LW_CFG_SMP_EN > 0) && (LW_CFG_CPU_ARCH_SMT > 0)
+#if LW_CFG_CPU_ARCH_SMT > 0
              ULONG           CPU_ulPhyId;                               /*  Physical CPU Id             */
 #endif                                                                  /*  LW_CFG_CPU_ARCH_SMT         */
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
+
              ULONG           CPU_ulCPUId;                               /*  CPU ID 号                   */
     volatile ULONG           CPU_ulStatus;                              /*  CPU 工作状态                */
-    volatile UINT            CPU_uiLockQuick;                           /*  是否在 Lock Quick 中        */
 
     /*
      *  中断信息

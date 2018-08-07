@@ -229,13 +229,22 @@ int  netdev_add(netdev_t *netdev, const char *ip, const char *netmask, const cha
 int  netdev_delete(netdev_t *netdev); /* WARNING: You MUST DO NOT lock device then call this function, it will cause a deadlock with TCP LOCK */
 int  netdev_index(netdev_t *netdev, unsigned int *index);
 int  netdev_ifname(netdev_t *netdev, char *ifname);
+int  netdev_foreache(FUNCPTR pfunc, void *arg0, void *arg1, void *arg2, void *arg3, void *arg4, void *arg5);
 
 /* netdev outer firewall set,
  * The system will automatically call fw() with each received packet,
  * If fw() return 1, this indicates that the packet was eaten by fw(), 
  * fw() must release the pbuf, then system will not receive this packet. */
 int  netdev_firewall(netdev_t *netdev, int (*fw)(netdev_t *, struct pbuf *));
-int  netdev_foreache(FUNCPTR pfunc, void *arg0, void *arg1, void *arg2, void *arg3, void *arg4, void *arg5);
+
+/* netdev outer qoshook set 
+ * The system will automatically call qos() with each received packet,
+ * qos() must return 0~7 7 is highest priority, 0 is lowest priority (for normal packet)
+ * ipver: 4 or 6: IPv4 or IPv6
+ * prio: IP priority in ip header
+ * iphdr_offset: IP header offset
+ * the last argurment is 'UINT8 *dont_drop', to determine this packet don't drop */
+int  netdev_qoshook(netdev_t *netdev, UINT8 (*qos)(netdev_t *, struct pbuf *, UINT8 ipver, UINT8 prio, UINT16 iphdr_offset, UINT8 *dont_drop));
 
 /* netdev poll mode set,
  * Real-Time module can use netdev_poll_enable() to start a poll mode,

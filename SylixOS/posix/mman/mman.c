@@ -153,7 +153,6 @@ int  mprotect (void  *pvAddr, size_t  stLen, int  iProt)
 #if LW_CFG_VMM_EN > 0
     ULONG   ulFlag = LW_VMM_FLAG_READ;
     
-    
     if (!ALIGNED(pvAddr, LW_CFG_VMM_PAGE_SIZE) || stLen == 0) {
         errno = EINVAL;
         return  (PX_ERROR);
@@ -175,12 +174,8 @@ int  mprotect (void  *pvAddr, size_t  stLen, int  iProt)
         ulFlag = LW_VMM_FLAG_FAIL;                                      /*  不允许访问                  */
     }
     
-    if (API_VmmSetFlag(pvAddr, ulFlag) == ERROR_NONE) {                 /*  重新设置新的 flag           */
-        return  (ERROR_NONE);
+    return  (API_VmmMProtect(pvAddr, stLen, ulFlag));                   /*  重新设置新的 flag           */
     
-    } else {
-        return  (PX_ERROR);
-    }
 #else
     return  (ERROR_NONE);
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */

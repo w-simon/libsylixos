@@ -1056,7 +1056,7 @@ ULONG  API_VmmPreallocArea (PVOID       pvVirtualMem,
     for (i = 0; i < ulPageNum; i++) {
         if (__vmmLibGetFlag(ulAddrPage, &ulOldFlag) == ERROR_NONE) {
             if (ulOldFlag != ulFlag) {
-                __vmmLibSetFlag(ulAddrPage, 1, ulFlag);                 /*  存在物理页面仅设置flag即可  */
+                __vmmLibSetFlag(ulAddrPage, 1, ulFlag, LW_TRUE);        /*  存在物理页面仅设置flag即可  */
             }
         
         } else {
@@ -1249,7 +1249,7 @@ ULONG  API_VmmShareArea (PVOID      pvVirtualMem1,
             }
             pvmpagePhysical2->PAGE_ulFlags = ulFlag;
             
-            __vmmLibSetFlag(ulAddr2, 1, ulFlag);                        /*  设置最终模式                */
+            __vmmLibSetFlag(ulAddr2, 1, ulFlag, LW_TRUE);               /*  设置最终模式                */
         }
         
         pvmpagePhysical2->PAGE_ulMapPageAddr = ulAddr2;                 /*  保存对应的映射虚拟地址      */

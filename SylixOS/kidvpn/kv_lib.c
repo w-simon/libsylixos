@@ -48,19 +48,19 @@ int kv_lib_init (int vnd_id, int *s_fd, int *v_fd, UINT8 hwaddr[], int mtu)
 
     so_fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (so_fd < 0) {
-        fprintf(stderr, "[KidVPN] Can not open socket error: %s\n", strerror(errno));
+        fprintf(stderr, "[KidVPN] Can not open socket error(%d): %s\n", errno, strerror(errno));
         goto    error;
     }
 
     vnd_fd = open(IF_VND_PATH, O_RDWR);
     if (vnd_fd < 0) {
-        fprintf(stderr, "[KidVPN] Can not open %s error: %s\n", IF_VND_PATH, strerror(errno));
+        fprintf(stderr, "[KidVPN] Can not open %s error(%d): %s\n", IF_VND_PATH, errno, strerror(errno));
         goto    error;
     }
 
     vnd.ifvnd_id = vnd_id;
     if (ioctl(vnd_fd, SIOCVNDSEL, &vnd)) {
-        fprintf(stderr, "[KidVPN] Command 'SIOCVNDSEL' error: %s\n", strerror(errno));
+        fprintf(stderr, "[KidVPN] Command 'SIOCVNDSEL' error(%d): %s\n", errno, strerror(errno));
         goto    error;
     }
 
@@ -71,7 +71,7 @@ int kv_lib_init (int vnd_id, int *s_fd, int *v_fd, UINT8 hwaddr[], int mtu)
 
     strcpy(req.ifr_name, vnd.ifvnd_ifname);
     if (ioctl(so_fd, SIOCGIFHWADDR, &req)) {
-        fprintf(stderr, "[KidVPN] Command 'SIOCGIFHWADDR' error: %s\n", strerror(errno));
+        fprintf(stderr, "[KidVPN] Command 'SIOCGIFHWADDR' error(%d): %s\n", errno, strerror(errno));
         goto    error;
     }
 
@@ -87,7 +87,7 @@ int kv_lib_init (int vnd_id, int *s_fd, int *v_fd, UINT8 hwaddr[], int mtu)
 
     req.ifr_mtu = mtu;
     if (ioctl(so_fd, SIOCSIFMTU, &req)) {
-        fprintf(stderr, "[KidVPN] Command 'SIOCSIFMTU' (%d) error: %s\n", mtu, strerror(errno));
+        fprintf(stderr, "[KidVPN] Command 'SIOCSIFMTU' (%d) error(%d): %s\n", mtu, errno, strerror(errno));
         goto    error;
     }
 

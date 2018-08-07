@@ -38,6 +38,9 @@ typedef struct {
     u16_t               NAT_usLocalPort;                                /*  本地端口号                  */
     u16_t               NAT_usAssPort;                                  /*  映射端口号 (唯一的)         */
     
+    u32_t               NAT_uiLocalSequence;                            /*  TCP 序列号                  */
+    u32_t               NAT_uiLocalRcvNext;                             /*  TCP 期望接收                */
+
     ULONG               NAT_ulIdleTimer;                                /*  空闲定时器                  */
     ULONG               NAT_ulTermTimer;                                /*  断链定时器                  */
     INT                 NAT_iStatus;                                    /*  通信状态                    */

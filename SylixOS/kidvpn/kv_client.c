@@ -58,6 +58,15 @@ static struct sockaddr_in serv_addr;
 /* KidVPN client aes key */
 static mbedtls_aes_context ase_enc, ase_dec;
 
+/* KidVPN client alive */
+static int cli_alive;
+
+/* KidVPN mutex */
+static pthread_mutex_t cli_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+#define KV_CLI_LOCK()      pthread_mutex_lock(&cli_mutex)
+#define KV_CLI_UNLOCK()    pthread_mutex_unlock(&cli_mutex)
+
 /* KidVPN client loop */
 static int kv_cli_loop (void)
 {
@@ -87,7 +96,7 @@ static int kv_cli_loop (void)
             num = recvfrom(cli_fd, packet_en, sizeof(packet_en), 0,
                            (struct sockaddr *)&addr_in, &slen);
             if (num <= 0) {
-                fprintf(stderr, "[KidVPN] Socket recvfrom() error: %s!\n", strerror(errno));
+                fprintf(stderr, "[KidVPN] Socket recvfrom() error(%d): %s!\n", errno, strerror(errno));
                 break; /* an error occur, exit! */
             }
 
@@ -106,9 +115,14 @@ static int kv_cli_loop (void)
                         (whdr->magic[1] == KV_CMD_MAGIC1) &&
                         (whdr->magic[2] == KV_CMD_MAGIC2) &&
                         (whdr->magic[3] == KV_CMD_MAGIC3)) {
-                        printf("[KidVPN] Server connected %s [%02x:%02x:%02x:%02x:%02x:%02x]\n",
-                               inet_ntoa(addr_in.sin_addr), whdr->hwaddr[0], whdr->hwaddr[1],
-                               whdr->hwaddr[2], whdr->hwaddr[3], whdr->hwaddr[4], whdr->hwaddr[5]);
+                        KV_CLI_LOCK();
+                        if (cli_alive == 0) {
+                            printf("[KidVPN] Server connected %s [%02x:%02x:%02x:%02x:%02x:%02x]\n",
+                                   inet_ntoa(addr_in.sin_addr), whdr->hwaddr[0], whdr->hwaddr[1],
+                                   whdr->hwaddr[2], whdr->hwaddr[3], whdr->hwaddr[4], whdr->hwaddr[5]);
+                        }
+                        cli_alive = KV_CLI_HELLO_TIMEOUT; /* keep alive */
+                        KV_CLI_UNLOCK();
                     }
 
                 } else if (packet_in[0] == KV_CMD_ERR) {
@@ -134,7 +148,7 @@ static int kv_cli_loop (void)
         if (FD_ISSET(vnd_fd, &fdset)) { /* vitural net device send a message to server */
             num = read(vnd_fd, packet_in, sizeof(packet_in));
             if (num <= 0) {
-                fprintf(stderr, "[KidVPN] Read virtual net device error: %s!\n", strerror(errno));
+                fprintf(stderr, "[KidVPN] Read virtual net device error(%d): %s!\n", errno, strerror(errno));
                 break; /* an error occur, exit! */
             }
 
@@ -155,6 +169,7 @@ static int kv_cli_loop (void)
 static void kv_cli_hello (void)
 {
     UINT32 snum = 0;
+    int con_cnt = 0;
     int aes_len;
     UINT8 packet_en[32]; /* encrypt packet */
 
@@ -167,13 +182,30 @@ static void kv_cli_hello (void)
     hello_hdr.mtu      = htons(vnd_mtu);
 
     for (;;) {
+        KV_CLI_LOCK();
+        if (cli_alive) {
+            if (cli_alive > KV_CLI_HELLO_PERIOD) {
+                cli_alive -= KV_CLI_HELLO_PERIOD;
+
+            } else {
+                cli_alive = 0;
+                con_cnt = 0;
+                printf("[KidVPN] Server lost, re-connecting...!\n");
+            }
+
+        } else {
+            con_cnt++;
+            printf("[KidVPN] Try connect server <%d times>...!\n", con_cnt);
+        }
+        KV_CLI_UNLOCK();
+
         snum++;
         hello_hdr.snum = htonl(snum);
 
         kv_lib_encode(packet_en, (UINT8 *)&hello_hdr, KV_HELLO_LEN, &aes_len, &ase_enc);
 
         if (write(cli_fd, packet_en, aes_len) != aes_len) { /* send client hello period */
-            fprintf(stderr, "[KidVPN] Socket write() error: %s!\n", strerror(errno));
+            fprintf(stderr, "[KidVPN] Socket write() error(%d): %s!\n", errno, strerror(errno));
         }
 
         sleep(KV_CLI_HELLO_PERIOD);
@@ -181,7 +213,8 @@ static void kv_cli_hello (void)
 }
 
 /* start KidVPN client */
-int kv_cli_start (int vnd_id, const unsigned char *key, unsigned int keybits, const char *server, int mtu)
+int kv_cli_start (int vnd_id, const unsigned char *key, unsigned int keybits,
+                  const char *server, unsigned int port, int mtu)
 {
     struct addrinfo hints;
     struct addrinfo *phints;
@@ -208,7 +241,7 @@ int kv_cli_start (int vnd_id, const unsigned char *key, unsigned int keybits, co
 
     serv_addr.sin_len = sizeof(struct sockaddr_in);
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(KV_SERV_PORT);
+    serv_addr.sin_port = htons(port);
 
     if (!inet_aton(server, &serv_addr.sin_addr)) {
         printf("[KidVPN] Execute a DNS query...\n");
@@ -240,13 +273,13 @@ int kv_cli_start (int vnd_id, const unsigned char *key, unsigned int keybits, co
     }
 
     if (connect(cli_fd, (struct sockaddr *)&serv_addr, sizeof(struct sockaddr_in))) { /* connect to server */
-        fprintf(stderr, "[KidVPN] Client connect() call fail: %s!\n", strerror(errno));
+        fprintf(stderr, "[KidVPN] Client connect() call fail(%d): %s!\n", errno, strerror(errno));
         kv_lib_deinit(cli_fd, vnd_fd);
         return  (-1);
     }
 
     if (pthread_create(&t_hello, NULL, (void *(*)(void *))kv_cli_hello, NULL)) {
-        fprintf(stderr, "[KidVPN] Can not create hello thread: %s.\n", strerror(errno));
+        fprintf(stderr, "[KidVPN] Can not create hello thread error(%d): %s.\n", errno, strerror(errno));
         kv_lib_deinit(cli_fd, vnd_fd);
         return  (-1);
     }

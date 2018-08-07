@@ -224,7 +224,7 @@ static INT  __vmmAbortCopyOnWrite (PLW_VMM_PAGE  pvmpageVirtual, addr_t  ulAbort
         pvmpagePhysical->PAGE_ulFlags = pvmpageVirtual->PAGE_ulFlags;
         
         __vmmLibSetFlag(ulAbortAddrAlign, 1, 
-                        pvmpageVirtual->PAGE_ulFlags);                  /*  可写                        */
+                        pvmpageVirtual->PAGE_ulFlags, LW_TRUE);         /*  可写                        */
         return  (ERROR_NONE);                                           /*  更改属性即可                */
     
     } else {                                                            /*  有其他的共享存在            */
@@ -326,7 +326,7 @@ static INT  __vmmAbortNoPage (PLW_VMM_PAGE           pvmpagePhysical,
                                pvmpagePhysical->PAGE_ulPageAddr, 
                                ulAllocPageNum);
     
-        __vmmLibSetFlag(ulSwitchAddr, 1, LW_VMM_FLAG_FAIL);             /*  VIRTUAL_SWITCH 不允许访问   */
+        __vmmLibSetFlag(ulSwitchAddr, 1, LW_VMM_FLAG_FAIL, LW_TRUE);    /*  VIRTUAL_SWITCH 不允许访问   */
     }
     
     return  (ERROR_NONE);
@@ -378,7 +378,7 @@ static INT  __vmmAbortSwapPage (PLW_VMM_PAGE  pvmpagePhysical,
                            pvmpagePhysical->PAGE_ulPageAddr, 
                            ulAllocPageNum);                             /*  cache 刷新                  */
     
-    __vmmLibSetFlag(ulSwitchAddr, 1, LW_VMM_FLAG_FAIL);                 /*  VIRTUAL_SWITCH 不允许访问   */
+    __vmmLibSetFlag(ulSwitchAddr, 1, LW_VMM_FLAG_FAIL, LW_TRUE);        /*  VIRTUAL_SWITCH 不允许访问   */
     
     return  (ERROR_NONE);
 }

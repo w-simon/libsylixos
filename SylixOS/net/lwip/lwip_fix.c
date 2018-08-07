@@ -453,14 +453,19 @@ void  sys_sem_set_invalid (sys_sem_t *psem)
 *********************************************************************************************************/
 err_t  sys_mbox_new (sys_mbox_t *pmbox, INT  size)
 {
-    SYS_ARCH_DECL_PROTECT(lev);
+    ULONG               ulMsgCnt;
+    LW_OBJECT_HANDLE    hMsgQueue;
 
-    LW_OBJECT_HANDLE    hMsgQueue = API_MsgQueueCreate("net_msg", 
-                                                       LWIP_MSGQUEUE_SIZE, 
-                                                       sizeof(PVOID), 
-                                                       LW_OPTION_WAIT_FIFO |
-                                                       LW_OPTION_OBJECT_GLOBAL,
-                                                       LW_NULL);
+    SYS_ARCH_DECL_PROTECT(lev);
+    
+    ulMsgCnt  = (TCPIP_MBOX_SIZE == size) ? LW_CFG_LWIP_NUM_INPKT : LWIP_MSGQUEUE_SIZE;
+    
+    hMsgQueue = API_MsgQueueCreate("net_msg", 
+                                   ulMsgCnt, 
+                                   sizeof(PVOID), 
+                                   LW_OPTION_WAIT_FIFO |
+                                   LW_OPTION_OBJECT_GLOBAL,
+                                   LW_NULL);
     if (hMsgQueue == LW_OBJECT_HANDLE_INVALID) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "can not create net msgqueue.\r\n");
         SYS_STATS_INC(mbox.err);
@@ -517,6 +522,38 @@ void  sys_mbox_post (sys_mbox_t *pmbox, void *msg)
     }
     
     ulError = API_MsgQueueSend2(*pmbox, &msg, sizeof(PVOID), LW_OPTION_WAIT_INFINITE);
+    if (ulError) {
+        _DebugFormat(__ERRORMESSAGE_LEVEL, "mbox send error: %s.\r\n", lib_strerror((INT)ulError));
+    }
+}
+/*********************************************************************************************************
+** 函数名称: sys_mbox_post_prio
+** 功能描述: 发送一个邮箱消息, 一定保证成功
+** 输　入  : pmbox  邮箱句柄指针
+**           msg    消息
+**           prio   7 high ~ 0 low
+** 输　出  : 
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+void  sys_mbox_post_prio (sys_mbox_t *pmbox, void *msg, u8_t prio)
+{
+    ULONG   ulError;
+    ULONG   ulOption;
+
+    if (pmbox == LW_NULL) {
+        return;
+    }
+    
+    if (prio) {
+        prio     = (prio > 7) ? (0) : (7 - prio);
+        ulOption = LW_OPTION_URGENT | (ULONG)(prio << 4);
+        ulError = API_MsgQueueSendEx2(*pmbox, &msg, sizeof(PVOID), LW_OPTION_WAIT_INFINITE, ulOption);
+        
+    } else {
+        ulError = API_MsgQueueSend2(*pmbox, &msg, sizeof(PVOID), LW_OPTION_WAIT_INFINITE);
+    }
+    
     if (ulError) {
         _DebugFormat(__ERRORMESSAGE_LEVEL, "mbox send error: %s.\r\n", lib_strerror((INT)ulError));
     }

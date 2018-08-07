@@ -329,7 +329,7 @@ static VOID  __vmmLibFlushTlbIpi (LW_VMM_FTLB_ARG  *pftlb)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID  __vmmLibFlushTlb (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulPageAddr, ULONG  ulPageNum)
+VOID  __vmmLibFlushTlb (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulPageAddr, ULONG  ulPageNum)
 {
     INTREG           iregInterLevel;
 #if LW_CFG_SMP_EN > 0
@@ -487,11 +487,12 @@ ULONG  __vmmLibGetFlag (addr_t  ulVirtualAddr, ULONG  *pulFlag)
 ** 输　入  : ulVirtualAddr         需要映射的虚拟地址
 **           ulPageNum             页面数量
 **           ulFlag                页面标志
+**           bFlushTlb             是否清除 TLB.
 ** 输　出  : ERROR CODE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-ULONG  __vmmLibSetFlag (addr_t  ulVirtualAddr, ULONG   ulPageNum, ULONG  ulFlag)
+ULONG  __vmmLibSetFlag (addr_t  ulVirtualAddr, ULONG   ulPageNum, ULONG  ulFlag, BOOL  bFlushTlb)
 {
     INTREG              iregInterLevel;
     INT                 i;
@@ -508,12 +509,13 @@ ULONG  __vmmLibSetFlag (addr_t  ulVirtualAddr, ULONG   ulPageNum, ULONG  ulFlag)
         KN_INT_ENABLE(iregInterLevel);                                  /*  打开中断                    */
         
         _BugHandle((iError < 0), LW_FALSE, "set page flag error,\r\n");
-        
         ulVirtualAddr += LW_CFG_VMM_PAGE_SIZE;
     }
     
 #if LW_CFG_VMM_L4_HYPERVISOR_EN == 0
-    __vmmLibFlushTlb(pmmuctx, ulVirtualTlb, ulPageNum);                 /*  同步刷新所有 CPU TLB        */
+    if (bFlushTlb) {
+        __vmmLibFlushTlb(pmmuctx, ulVirtualTlb, ulPageNum);             /*  同步刷新所有 CPU TLB        */
+    }
 #endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
     
     return  (ERROR_NONE);

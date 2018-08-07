@@ -435,21 +435,24 @@ static LW_INLINE VOID  __vmm_pte_free (LW_PTE_TRANSENTRY  *p_pteentry)
   ÄÚ²¿º¯Êý
 *********************************************************************************************************/
 
-PLW_MMU_CONTEXT         __vmmGetCurCtx(VOID);                           /*  get current mmu context     */
-ULONG                   __vmmLibPrimaryInit(LW_MMU_PHYSICAL_DESC  pphydesc[],
-                                            CPCHAR                pcMachineName);
+PLW_MMU_CONTEXT __vmmGetCurCtx(VOID);                                   /*  get current mmu context     */
+ULONG           __vmmLibPrimaryInit(LW_MMU_PHYSICAL_DESC  pphydesc[],
+                                    CPCHAR                pcMachineName);
                                                                         /*  init current mmu context    */
 #if LW_CFG_SMP_EN > 0
-ULONG                   __vmmLibSecondaryInit(CPCHAR  pcMachineName);
+ULONG           __vmmLibSecondaryInit(CPCHAR  pcMachineName);
 #endif                                                                  /*  LW_CFG_SMP_EN               */
 
-ULONG                   __vmmLibPageMap(addr_t ulPhysicalAddr, 
-                                        addr_t ulVirtualAddr, 
-                                        ULONG  ulPageNum, 
-                                        ULONG  ulFlag);                 /*  mmu map                     */
-ULONG                   __vmmLibGetFlag(addr_t  ulVirtualAddr, ULONG  *pulFlag);
-ULONG                   __vmmLibSetFlag(addr_t  ulVirtualAddr, ULONG   ulPageNum, ULONG  ulFlag);
-ULONG                   __vmmLibVirtualToPhysical(addr_t  ulVirtualAddr, addr_t  *pulPhysicalAddr);
+VOID            __vmmLibFlushTlb(PLW_MMU_CONTEXT  pmmuctx, addr_t  ulPageAddr, ULONG  ulPageNum);
+
+ULONG           __vmmLibPageMap(addr_t ulPhysicalAddr, 
+                                addr_t ulVirtualAddr, 
+                                ULONG  ulPageNum, 
+                                ULONG  ulFlag);                         /*  mmu map                     */
+ULONG           __vmmLibGetFlag(addr_t  ulVirtualAddr, ULONG  *pulFlag);
+ULONG           __vmmLibSetFlag(addr_t  ulVirtualAddr, ULONG   ulPageNum, ULONG  ulFlag, BOOL  bFlushTlb);
+
+ULONG           __vmmLibVirtualToPhysical(addr_t  ulVirtualAddr, addr_t  *pulPhysicalAddr);
 
 /*********************************************************************************************************
   bsp api

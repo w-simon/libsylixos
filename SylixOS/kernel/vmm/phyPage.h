@@ -48,7 +48,7 @@ PLW_VMM_PAGE    __vmmPhysicalPageClone(PLW_VMM_PAGE  pvmpage);
 PLW_VMM_PAGE    __vmmPhysicalPageRef(PLW_VMM_PAGE  pvmpage);
 VOID            __vmmPhysicalPageFree(PLW_VMM_PAGE  pvmpage);
 VOID            __vmmPhysicalPageFreeAll(PLW_VMM_PAGE  pvmpageVirtual);
-VOID            __vmmPhysicalPageSetFlag(PLW_VMM_PAGE  pvmpage, ULONG  ulFlag);
+VOID            __vmmPhysicalPageSetFlag(PLW_VMM_PAGE  pvmpage, ULONG  ulFlag, BOOL  bFlushTlb);
 VOID            __vmmPhysicalPageSetFlagAll(PLW_VMM_PAGE  pvmpageVirtual, ULONG  ulFlag);
 
 #if LW_CFG_CACHE_EN > 0

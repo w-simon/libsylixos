@@ -404,20 +404,11 @@ VOID  _SmpSpinUnlockIrqQuick (spinlock_t *psl, INTREG  iregInterLevel)
 *********************************************************************************************************/
 VOID  _SmpSpinLockTask (spinlock_t *psl)
 {
-    INTREG          iregInterLevel;
-    PLW_CLASS_CPU   pcpuCur;
+    _BugHandle(LW_CPU_GET_CUR_NESTING(), LW_TRUE, "called from ISR.\r\n");
     
-    iregInterLevel = KN_INT_DISABLE();
-    
-    pcpuCur = LW_CPU_GET_CUR();
-    _BugHandle(pcpuCur->CPU_ulInterNesting, LW_TRUE, "called from ISR.\r\n");
-    
-    __THREAD_LOCK_INC(pcpuCur->CPU_ptcbTCBCur);                         /*  锁定任务在当前 CPU          */
-    
+    LW_THREAD_LOCK();
     __ARCH_SPIN_LOCK_RAW(psl);                                          /*  驱动保证锁定必须成功        */
     KN_SMP_MB();
-    
-    KN_INT_ENABLE(iregInterLevel);
 }
 /*********************************************************************************************************
 ** 函数名称: _SmpSpinTryLockTask
@@ -429,25 +420,17 @@ VOID  _SmpSpinLockTask (spinlock_t *psl)
 *********************************************************************************************************/
 BOOL  _SmpSpinTryLockTask (spinlock_t *psl)
 {
-    INTREG          iregInterLevel;
-    PLW_CLASS_CPU   pcpuCur;
-    INT             iRet;
+    INT     iRet;
+
+    _BugHandle(LW_CPU_GET_CUR_NESTING(), LW_TRUE, "called from ISR.\r\n");
     
-    iregInterLevel = KN_INT_DISABLE();
-    
-    pcpuCur = LW_CPU_GET_CUR();
-    _BugHandle(pcpuCur->CPU_ulInterNesting, LW_TRUE, "called from ISR.\r\n");
-    
-    __THREAD_LOCK_INC(pcpuCur->CPU_ptcbTCBCur);                         /*  锁定任务在当前 CPU          */
-    
+    LW_THREAD_LOCK();
     iRet = __ARCH_SPIN_TRYLOCK_RAW(psl);
     KN_SMP_MB();
     
     if (iRet != LW_SPIN_OK) {
-        __THREAD_LOCK_DEC(pcpuCur->CPU_ptcbTCBCur);                     /*  解锁失败, 解除任务锁定      */
+        LW_THREAD_UNLOCK();
     }
-    
-    KN_INT_ENABLE(iregInterLevel);
     
     return  ((iRet == LW_SPIN_OK) ? (LW_TRUE) : (LW_FALSE));
 }
@@ -461,33 +444,13 @@ BOOL  _SmpSpinTryLockTask (spinlock_t *psl)
 *********************************************************************************************************/
 INT  _SmpSpinUnlockTask (spinlock_t *psl)
 {
-    INTREG          iregInterLevel;
-    PLW_CLASS_CPU   pcpuCur;
-    PLW_CLASS_TCB   ptcbCur;
-    BOOL            bTrySched = LW_FALSE;
-    
-    iregInterLevel = KN_INT_DISABLE();
+    _BugHandle(LW_CPU_GET_CUR_NESTING(), LW_TRUE, "called from ISR.\r\n");
     
     KN_SMP_MB();
     __ARCH_SPIN_UNLOCK_RAW(psl);
-    
-    pcpuCur = LW_CPU_GET_CUR();
-    _BugHandle(pcpuCur->CPU_ulInterNesting, LW_TRUE, "called from ISR.\r\n");
-    
-    ptcbCur = pcpuCur->CPU_ptcbTCBCur;
-    __THREAD_LOCK_DEC(ptcbCur);                                         /*  解除任务锁定                */
-    if (__ISNEED_SCHED(pcpuCur, 0)) {
-        bTrySched = LW_TRUE;                                            /*  需要尝试调度                */
-    }
-    
-    KN_INT_ENABLE(iregInterLevel);
-    
-    if (bTrySched) {
-        return  (_ThreadSched(ptcbCur));
-    
-    } else {
-        return  (ERROR_NONE);
-    }
+    LW_THREAD_UNLOCK();
+
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: _SmpSpinLockRaw
@@ -501,7 +464,6 @@ INT  _SmpSpinUnlockTask (spinlock_t *psl)
 VOID  _SmpSpinLockRaw (spinlock_t *psl, INTREG  *piregInterLevel)
 {
     *piregInterLevel = KN_INT_DISABLE();
-    
     __ARCH_SPIN_LOCK_RAW(psl);                                          /*  驱动保证锁定必须成功        */
     KN_SMP_MB();
 }
@@ -519,7 +481,6 @@ BOOL  _SmpSpinTryLockRaw (spinlock_t *psl, INTREG  *piregInterLevel)
     INT     iRet;
     
     *piregInterLevel = KN_INT_DISABLE();
-    
     iRet = __ARCH_SPIN_TRYLOCK_RAW(psl);
     KN_SMP_MB();
     
@@ -542,7 +503,6 @@ VOID  _SmpSpinUnlockRaw (spinlock_t *psl, INTREG  iregInterLevel)
 {
     KN_SMP_MB();
     __ARCH_SPIN_UNLOCK_RAW(psl);
-    
     KN_INT_ENABLE(iregInterLevel);
 }
 

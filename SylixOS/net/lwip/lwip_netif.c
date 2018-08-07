@@ -72,8 +72,13 @@
   函数声明
 *********************************************************************************************************/
 #if LW_CFG_NET_NPF_EN > 0
+VOID  npf_netif_attach(struct netif  *pnetif);
 VOID  npf_netif_detach(struct netif  *pnetif);
 #endif                                                                  /*  LW_CFG_NET_NPF_EN > 0       */
+#if LW_CFG_NET_QOS_EN > 0
+VOID  qos_netif_attach(struct netif  *pnetif);
+VOID  qos_netif_detach(struct netif  *pnetif);
+#endif                                                                  /*  LW_CFG_NET_QOS_EN > 0       */
 /*********************************************************************************************************
   函数声明
 *********************************************************************************************************/
@@ -109,6 +114,12 @@ static VOID  netif_add_hook (struct netif *pnetif)
 #if LW_CFG_NET_FLOWCTL_EN > 0
     fcnet_netif_attach(pnetif);
 #endif                                                                  /*  LW_CFG_NET_FLOWCTL_EN > 0   */
+#if LW_CFG_NET_NPF_EN > 0
+    npf_netif_attach(pnetif);
+#endif                                                                  /*  LW_CFG_NET_NPF_EN > 0       */
+#if LW_CFG_NET_QOS_EN > 0
+    qos_netif_attach(pnetif);
+#endif                                                                  /*  LW_CFG_NET_QOS_EN > 0       */
 #if LW_CFG_NET_NAT_EN > 0
     nat_netif_add_hook(pnetif);
 #endif                                                                  /*  LW_CFG_NET_NAT_EN > 0       */
@@ -152,6 +163,9 @@ static VOID  netif_remove_hook (struct netif *pnetif)
 #if LW_CFG_NET_NPF_EN > 0
     npf_netif_detach(pnetif);
 #endif                                                                  /*  LW_CFG_NET_NPF_EN > 0       */
+#if LW_CFG_NET_QOS_EN > 0
+    qos_netif_detach(pnetif);
+#endif                                                                  /*  LW_CFG_NET_QOS_EN > 0       */
 #if LW_CFG_NET_NAT_EN > 0
     nat_netif_remove_hook(pnetif);
 #endif                                                                  /*  LW_CFG_NET_NAT_EN > 0       */

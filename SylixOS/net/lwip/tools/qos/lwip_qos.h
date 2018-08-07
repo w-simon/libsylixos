@@ -10,53 +10,57 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: lwip_npf.h
+** 文   件   名: lwip_qos.h
 **
 ** 创   建   人: Han.Hui (韩辉)
 **
-** 文件创建日期: 2011 年 02 月 11 日
+** 文件创建日期: 2018 年 08 月 06 日
 **
-** 描        述: lwip net packet filter 工具.
+** 描        述: QoS 用户可配置工具.
 *********************************************************************************************************/
 
-#ifndef __LWIP_NPF_H
-#define __LWIP_NPF_H
+#ifndef __LWIP_QOS_H
+#define __LWIP_QOS_H
 
 /*********************************************************************************************************
   裁剪控制
 *********************************************************************************************************/
-#if (LW_CFG_NET_EN > 0) && (LW_CFG_NET_NPF_EN > 0)
+#if (LW_CFG_NET_EN > 0) && (LW_CFG_NET_QOS_EN > 0)
 
-#define LWIP_NPF_RULE_MAC   0
-#define LWIP_NPF_RULE_IP    1
-#define LWIP_NPF_RULE_UDP   2
-#define LWIP_NPF_RULE_TCP   3
+#define LWIP_QOS_PRIO_LOWEST    0
+#define LWIP_QOS_PRIO_HIGHEST   7
 
-LW_API INT      API_INetNpfInit(VOID);
-LW_API PVOID    API_INetNpfRuleAdd(CPCHAR  pcIfname,
+#define LWIP_QOS_RULE_IP        0
+#define LWIP_QOS_RULE_UDP       1
+#define LWIP_QOS_RULE_TCP       2
+
+#define LWIP_QOS_CMP_METHOD_SRC     1
+#define LWIP_QOS_CMP_METHOD_DEST    2
+#define LWIP_QOS_CMP_METHOD_BOTH    (LWIP_QOS_CMP_METHOD_SRC | LWIP_QOS_CMP_METHOD_DEST)
+
+LW_API INT      API_INetQosInit(VOID);
+LW_API PVOID    API_INetQosRuleAdd(CPCHAR  pcIfname,
                                    INT     iRule,
-                                   UINT8   pucMac[],
+                                   INT     iCmpMethod,
                                    CPCHAR  pcAddrStart,
                                    CPCHAR  pcAddrEnd,
                                    UINT16  usPortStart,
-                                   UINT16  usPortEnd);
-LW_API INT      API_INetNpfRuleDel(CPCHAR  pcIfname,
+                                   UINT16  usPortEnd,
+                                   UINT8   ucPrio,
+                                   BOOL    bDontDrop);
+LW_API INT      API_INetQosRuleDel(CPCHAR  pcIfname,
                                    PVOID   pvRule,
                                    INT     iSeqNum);
-LW_API ULONG    API_INetNpfDropGet(VOID);
-LW_API ULONG    API_INetNpfAllowGet(VOID);
-LW_API INT      API_INetNpfShow(INT  iFd);
+LW_API INT      API_INetQosShow(INT  iFd);
 
-#define inetNpfInit         API_INetNpfInit
-#define inetNpfRuleAdd      API_INetNpfRuleAdd
-#define inetNpfRuleDel      API_INetNpfRuleDel
-#define inetNpfDropGet      API_INetNpfDropGet
-#define inetNpfAllowGet     API_INetNpfAllowGet
-#define inetNpfShow         API_INetNpfShow
+#define inetQosInit         API_INetQosInit
+#define inetQosRuleAdd      API_INetQosRuleAdd
+#define inetQosRuleDel      API_INetQosRuleDel
+#define inetQosShow         API_INetQosShow
 
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */
-                                                                        /*  LW_CFG_NET_NPF_EN > 0       */
-#endif                                                                  /*  __LWIP_NPF_H                */
+                                                                        /*  LW_CFG_NET_QOS_EN > 0       */
+#endif                                                                  /*  __LWIP_QOS_H                */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

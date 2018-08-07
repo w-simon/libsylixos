@@ -25,6 +25,7 @@
 2013.09.12  使用 bnprintf 专用缓冲区打印函数.
 2016.04.13  __npfInput() 自己释放数据包缓存.
 2018.01.24  使用新的 firewall 接口.
+2018.08.06  改为读写锁, 删除手动 attach detach 接口, 改为自动模式.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -35,6 +36,7 @@
   裁剪控制
 *********************************************************************************************************/
 #if (LW_CFG_NET_EN > 0) && (LW_CFG_NET_NPF_EN > 0)
+#include "net/if.h"
 #include "net/if_lock.h"
 #include "lwip/netif.h"
 #include "lwip/tcpip.h"
@@ -46,6 +48,7 @@
 /*********************************************************************************************************
   宏定义
 *********************************************************************************************************/
+#define __NPF_NETIF_RULE_FAST       1                                   /*  快速检测模式                */
 #define __NPF_NETIF_RULE_MAX        4                                   /*  规则表种类                  */
 #define __NPF_NETIF_HASH_SIZE       16                                  /*  网络接口 hash 表大小        */
 #define __NPF_NETIF_HASH_MASK       (__NPF_NETIF_HASH_SIZE - 1)         /*  hash 掩码                   */
@@ -54,8 +57,9 @@
 *********************************************************************************************************/
 static LW_OBJECT_HANDLE             _G_ulNpfLock;
 
-#define __NPF_LOCK()                API_SemaphoreBPend(_G_ulNpfLock, LW_OPTION_WAIT_INFINITE)
-#define __NPF_UNLOCK()              API_SemaphoreBPost(_G_ulNpfLock)
+#define __NPF_LOCK_R()              API_SemaphoreRWPendR(_G_ulNpfLock, LW_OPTION_WAIT_INFINITE)
+#define __NPF_LOCK_W()              API_SemaphoreRWPendW(_G_ulNpfLock, LW_OPTION_WAIT_INFINITE)
+#define __NPF_UNLOCK()              API_SemaphoreRWPost(_G_ulNpfLock)
 /*********************************************************************************************************
   统计信息 (缓存不足和规则阻止, 都会造成丢弃计数器加1)
 *********************************************************************************************************/
@@ -93,7 +97,7 @@ typedef struct {
     INT                     NPFRU_iRule;
     ip4_addr_t              NPFRU_ipaddrHboS;                           /*  禁止通信 IP 段起始 IP 地址  */
     ip4_addr_t              NPFRU_ipaddrHboE;                           /*  禁止通信 IP 段结束 IP 地址  */
-    u16_t                   NPFRU_usPortHboS;                           /*  禁止通信的端口起始 网络序   */
+    u16_t                   NPFRU_usPortHboS;                           /*  禁止通信的端口起始 主机序   */
     u16_t                   NPFRU_usPortHboE;                           /*  禁止通信的端口结束          */
 } __NPF_RULE_UDP;
 typedef __NPF_RULE_UDP     *__PNPF_RULE_UDP;
@@ -103,7 +107,7 @@ typedef struct {
     INT                     NPFRT_iRule;
     ip4_addr_t              NPFRT_ipaddrHboS;                           /*  禁止通信 IP 段起始 IP 地址  */
     ip4_addr_t              NPFRT_ipaddrHboE;                           /*  禁止通信 IP 段结束 IP 地址  */
-    u16_t                   NPFRT_usPortHboS;                           /*  禁止通信的端口起始 网络序   */
+    u16_t                   NPFRT_usPortHboS;                           /*  禁止通信的端口起始 主机序   */
     u16_t                   NPFRT_usPortHboE;                           /*  禁止通信的端口结束          */
 } __NPF_RULE_TCP;
 typedef __NPF_RULE_TCP     *__PNPF_RULE_TCP;
@@ -113,10 +117,8 @@ typedef __NPF_RULE_TCP     *__PNPF_RULE_TCP;
 typedef struct {
     LW_LIST_LINE            NPFNI_lineHash;                             /*  hash 表                     */
     LW_LIST_LINE_HEADER     NPFNI_npfrnRule[__NPF_NETIF_RULE_MAX];      /*  规则表                      */
-
-    CHAR                    NPFNI_cName[2];                             /*  网络接口名                  */
-    UINT8                   NPFNI_ucNum;
-    UINT                    NPFNI_uiAttachCounter;                      /*  网卡 attach 计数器          */
+    CHAR                    NPFNI_cName[IF_NAMESIZE];                   /*  网络接口名                  */
+    BOOL                    NPFNI_bAttached;                            /*  是否已经连接                */
 } __NPF_NETIF_CB;
 typedef __NPF_NETIF_CB     *__PNPF_NETIF_CB;
 /*********************************************************************************************************
@@ -127,77 +129,50 @@ static ULONG                _G_ulNpfCounter = 0ul;                      /*  规则
 /*********************************************************************************************************
   函数声明
 *********************************************************************************************************/
+static INT    npf_netif_firewall(struct netif *pnetif, struct pbuf *p);
 #if LW_CFG_SHELL_EN > 0
 static INT    __tshellNetNpfShow(INT  iArgC, PCHAR  *ppcArgV);
 static INT    __tshellNetNpfRuleAdd(INT  iArgC, PCHAR  *ppcArgV);
 static INT    __tshellNetNpfRuleDel(INT  iArgC, PCHAR  *ppcArgV);
-static INT    __tshellNetNpfAttach(INT  iArgC, PCHAR  *ppcArgV);
-static INT    __tshellNetNpfDetach(INT  iArgC, PCHAR  *ppcArgV);
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
-
 #if LW_CFG_PROCFS_EN > 0
 static VOID   __procFsNpfInit(VOID);
 #endif                                                                  /*  LW_CFG_PROCFS_EN > 0        */
 /*********************************************************************************************************
-** 函数名称: __npfNetifFind
-** 功能描述: 查找指定的过滤器网络接口结构
-** 输　入  : pcName         网络接口名字部分
-**           ucNum          网络接口编号
+** 函数名称: __npfNetifGet
+** 功能描述: 获得指定的过滤器网络接口结构
+** 输　入  : pnetif         网络接口
 ** 输　出  : 找到的过滤器网络接口结构
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static __PNPF_NETIF_CB  __npfNetifFind (CPCHAR  pcName, UINT8  ucNum)
+static LW_INLINE __PNPF_NETIF_CB  __npfNetifGet (struct netif *pnetif)
 {
-    REGISTER INT                    iIndex;
-             PLW_LIST_LINE          plineTemp;
-             __PNPF_NETIF_CB        pnpfniTemp;
-
-    iIndex = (pcName[0] + pcName[1] + ucNum) & __NPF_NETIF_HASH_MASK;
-
-    for (plineTemp  = _G_plineNpfHash[iIndex];
-         plineTemp != LW_NULL;
-         plineTemp  = _list_line_get_next(plineTemp)) {
-
-        pnpfniTemp = _LIST_ENTRY(plineTemp, __NPF_NETIF_CB, NPFNI_lineHash);
-        if ((pnpfniTemp->NPFNI_cName[0] == pcName[0]) &&
-            (pnpfniTemp->NPFNI_cName[1] == pcName[1]) &&
-            (pnpfniTemp->NPFNI_ucNum    == ucNum)) {
-            return  (pnpfniTemp);
-        }
-    }
-
-    return  (LW_NULL);
+    return  ((__PNPF_NETIF_CB)pnetif->inner_fw_stat);
 }
 /*********************************************************************************************************
-** 函数名称: __npfNetifFind2
+** 函数名称: __npfNetifFind
 ** 功能描述: 查找指定的过滤器网络接口结构
-** 输　入  : pcNetifName      网络接口名字
+** 输　入  : pcIfname       网络接口名字
 ** 输　出  : 找到的过滤器网络接口结构
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static __PNPF_NETIF_CB  __npfNetifFind2 (CPCHAR  pcNetifName)
+static __PNPF_NETIF_CB  __npfNetifFind (CPCHAR  pcIfname)
 {
     REGISTER INT                    iIndex;
              PLW_LIST_LINE          plineTemp;
              __PNPF_NETIF_CB        pnpfniTemp;
-             UINT8                  ucNum;
 
-    if ((pcNetifName[2] < '0') || (pcNetifName[2] > '9')) {
-        return  (LW_NULL);
-    }
-    ucNum  = (UINT8)(pcNetifName[2] - '0');
-    iIndex = (pcNetifName[0] + pcNetifName[1] + ucNum) & __NPF_NETIF_HASH_MASK;
+
+    iIndex = (pcIfname[0] + pcIfname[1] + pcIfname[2]) & __NPF_NETIF_HASH_MASK;
 
     for (plineTemp  = _G_plineNpfHash[iIndex];
          plineTemp != LW_NULL;
          plineTemp  = _list_line_get_next(plineTemp)) {
 
         pnpfniTemp = _LIST_ENTRY(plineTemp, __NPF_NETIF_CB, NPFNI_lineHash);
-        if ((pnpfniTemp->NPFNI_cName[0] == pcNetifName[0]) &&
-            (pnpfniTemp->NPFNI_cName[1] == pcNetifName[1]) &&
-            (pnpfniTemp->NPFNI_ucNum    == ucNum)) {
+        if (lib_strncmp(pnpfniTemp->NPFNI_cName, pcIfname, IF_NAMESIZE) == 0) {
             return  (pnpfniTemp);
         }
     }
@@ -219,7 +194,7 @@ static VOID  __npfNetifInsertHash (__PNPF_NETIF_CB  pnpfni)
 
     iIndex = (pnpfni->NPFNI_cName[0]
            +  pnpfni->NPFNI_cName[1]
-           +  pnpfni->NPFNI_ucNum)
+           +  pnpfni->NPFNI_cName[2])
            & __NPF_NETIF_HASH_MASK;
 
     ppline = &_G_plineNpfHash[iIndex];
@@ -241,7 +216,7 @@ static VOID  __npfNetifDeleteHash (__PNPF_NETIF_CB  pnpfni)
 
     iIndex = (pnpfni->NPFNI_cName[0]
            +  pnpfni->NPFNI_cName[1]
-           +  pnpfni->NPFNI_ucNum)
+           +  pnpfni->NPFNI_cName[2])
            & __NPF_NETIF_HASH_MASK;
 
     ppline = &_G_plineNpfHash[iIndex];
@@ -251,17 +226,18 @@ static VOID  __npfNetifDeleteHash (__PNPF_NETIF_CB  pnpfni)
 /*********************************************************************************************************
 ** 函数名称: __npfNetifCreate
 ** 功能描述: 创建一个过滤器网络接口结构 (如果存在则直接返回已有的)
-** 输　入  : pcNetifName       网络接口名
+** 输　入  : pcIfname         网络接口名
 ** 输　出  : 创建出的过滤器网络接口结构
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static __PNPF_NETIF_CB  __npfNetifCreate (CPCHAR  pcNetifName)
+static __PNPF_NETIF_CB  __npfNetifCreate (CPCHAR  pcIfname)
 {
     INT                    i;
     __PNPF_NETIF_CB        pnpfni;
+    struct netif          *pnetif;
 
-    pnpfni = __npfNetifFind2(pcNetifName);
+    pnpfni = __npfNetifFind(pcIfname);
     if (pnpfni == LW_NULL) {
         pnpfni =  (__PNPF_NETIF_CB)__SHEAP_ALLOC(sizeof(__NPF_NETIF_CB));
         if (pnpfni == LW_NULL) {
@@ -269,16 +245,21 @@ static __PNPF_NETIF_CB  __npfNetifCreate (CPCHAR  pcNetifName)
             _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
             return  (LW_NULL);
         }
-        pnpfni->NPFNI_cName[0] = pcNetifName[0];
-        pnpfni->NPFNI_cName[1] = pcNetifName[1];
-        pnpfni->NPFNI_ucNum    = (UINT8)lib_atoi(&pcNetifName[2]);
-
-        pnpfni->NPFNI_uiAttachCounter = 0ul;                            /*  没有 attach                 */
-
+        lib_strlcpy(pnpfni->NPFNI_cName, pcIfname, IF_NAMESIZE);
         for (i = 0; i < __NPF_NETIF_RULE_MAX; i++) {
             pnpfni->NPFNI_npfrnRule[i] = LW_NULL;                       /*  没有任何规则                */
         }
         __npfNetifInsertHash(pnpfni);
+        
+        pnetif = netif_find(pcIfname);
+        if (pnetif) {
+            pnetif->inner_fw_stat  = (void *)pnpfni;
+            pnetif->inner_fw       = npf_netif_firewall;
+            pnpfni->NPFNI_bAttached = LW_TRUE;
+        
+        } else {
+            pnpfni->NPFNI_bAttached = LW_FALSE;
+        }
     }
 
     return  (pnpfni);
@@ -294,7 +275,6 @@ static __PNPF_NETIF_CB  __npfNetifCreate (CPCHAR  pcNetifName)
 static VOID  __npfNetifDelete (__PNPF_NETIF_CB  pnpfni)
 {
     __npfNetifDeleteHash(pnpfni);
-
     __SHEAP_FREE(pnpfni);
 }
 /*********************************************************************************************************
@@ -439,13 +419,110 @@ static INT  npf_netif_firewall (struct netif *pnetif, struct pbuf *p)
     __PNPF_NETIF_CB     pnpfni;                                         /*  过滤器网络接口              */
     INT                 iOffset = 0;                                    /*  拷贝数据的起始偏移量        */
 
+#if __NPF_NETIF_RULE_FAST > 0
+    struct eth_hdr     *pethhdr;                                        /*  eth 头                      */
+    struct ip_hdr      *piphdr;                                         /*  ip 头                       */
+    struct udp_hdr     *pudphdr;                                        /*  udp 头                      */
+    struct tcp_hdr     *ptcphdr;                                        /*  tcp 头                      */
+
+    __NPF_LOCK_R();                                                     /*  锁定 NPF 表                 */
+    pnpfni = __npfNetifGet(pnetif);                                     /*  过滤器网络接口              */
+    if (pnpfni == LW_NULL) {                                            /*  没有找到对应的控制结构      */
+        __NPF_PACKET_ALLOW_INC();
+        __NPF_UNLOCK();                                                 /*  解锁 NPF 表                 */
+        return  (0);
+    }
+    
+    /*
+     *  ethernet 过滤处理
+     */
+    if (pnetif->flags & (NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET)) {    /*  以太网接口                  */
+        if (p->len < sizeof(struct eth_hdr)) {
+            goto    __allow_input;                                      /*  无法获取 eth hdr 允许输入   */
+        }
+        
+        pethhdr = (struct eth_hdr *)((char *)p->payload + iOffset);
+        if (__npfMacRuleCheck(pnpfni, pethhdr)) {                       /*  开始检查相应的 MAC 过滤规则 */
+            iOffset += sizeof(struct eth_hdr);                          /*  允许通过                    */
+        
+        } else {
+            goto    __drop_input;
+        }
+    }
+    
+    /*
+     *  ip 过滤处理
+     */
+    if (iOffset == sizeof(struct eth_hdr)) {                            /*  前面有 eth hdr 字段         */
+        if (pethhdr->type == PP_HTONS(ETHTYPE_VLAN)) {
+            struct eth_vlan_hdr *pvlanhdr;
+            
+            if (p->len < iOffset + sizeof(struct eth_vlan_hdr)) {
+                goto    __allow_input;                                  /*  无法获取 vlan hdr 允许输入  */
+            }
+            
+            pvlanhdr = (struct eth_vlan_hdr *)((char *)p->payload + iOffset);
+            if (pvlanhdr->tpid != PP_HTONS(ETHTYPE_IP)) {
+                goto    __allow_input;
+            }
+            iOffset += sizeof(struct eth_vlan_hdr);
+        
+        } else if (pethhdr->type != PP_HTONS(ETHTYPE_IP)) {
+            goto    __allow_input;                                      /*  不是 ip 数据包, 放行        */
+        }
+    }
+    
+    piphdr = (struct ip_hdr *)((char *)p->payload + iOffset);
+    if (IPH_V(piphdr) != 4) {                                           /*  非 ipv4 数据包              */
+        goto    __allow_input;                                          /*  放行                        */
+    }
+
+    if (__npfIpRuleCheck(pnpfni, piphdr)) {                             /*  开始检查相应的 ip 过滤规则  */
+        iOffset += (IPH_HL(piphdr) << 2);                               /*  允许通过                    */
+    
+    } else {
+        goto    __drop_input;
+    }
+    
+    if ((IPH_OFFSET(piphdr) & PP_HTONS(IP_OFFMASK)) != 0) {             /*  分片数据包                  */
+        goto    __allow_input;
+    }
+    
+    switch (IPH_PROTO(piphdr)) {                                        /*  检查 ip 数据报类型          */
+
+    case IP_PROTO_UDP:                                                  /*  udp 过滤处理                */
+    case IP_PROTO_UDPLITE:
+        if (p->len < (iOffset + sizeof(struct udp_hdr))) {
+            goto    __allow_input;
+        }
+        pudphdr = (struct udp_hdr *)((char *)p->payload + iOffset);
+        if (__npfUdpRuleCheck(pnpfni, piphdr, pudphdr) == LW_FALSE) {
+            goto    __drop_input;
+        }
+        break;
+
+    case IP_PROTO_TCP:                                                  /*  tcp 过滤处理                */
+        if (p->len < (iOffset + sizeof(struct tcp_hdr))) {
+            goto    __allow_input;
+        }
+        ptcphdr = (struct tcp_hdr *)((char *)p->payload + iOffset);
+        if (__npfTcpRuleCheck(pnpfni, piphdr, ptcphdr) == LW_FALSE) {
+            goto    __drop_input;
+        }
+        break;
+
+    default:
+        break;
+    }
+    
+#else                                                                   /*  __NPF_NETIF_RULE_FAST       */
     struct eth_hdr      ethhdrChk;                                      /*  eth 头                      */
     struct ip_hdr       iphdrChk;                                       /*  ip 头                       */
     struct udp_hdr      udphdrChk;                                      /*  udp 头                      */
     struct tcp_hdr      tcphdrChk;                                      /*  tcp 头                      */
 
-    __NPF_LOCK();                                                       /*  锁定 NPF 表                 */
-    pnpfni = __npfNetifFind(pnetif->name, pnetif->num);                 /*  过滤器网络接口              */
+    __NPF_LOCK_R();                                                     /*  锁定 NPF 表                 */
+    pnpfni = __npfNetifGet();                                           /*  过滤器网络接口              */
     if (pnpfni == LW_NULL) {                                            /*  没有找到对应的控制结构      */
         __NPF_PACKET_ALLOW_INC();
         __NPF_UNLOCK();                                                 /*  解锁 NPF 表                 */
@@ -506,6 +583,10 @@ static INT  npf_netif_firewall (struct netif *pnetif, struct pbuf *p)
     } else {
         goto    __drop_input;
     }
+    
+    if ((IPH_OFFSET(&iphdrChk) & PP_HTONS(IP_OFFMASK)) != 0) {          /*  分片数据包                  */
+        goto    __allow_input;
+    }
 
     switch (IPH_PROTO((&iphdrChk))) {                                   /*  检查 ip 数据报类型          */
 
@@ -533,6 +614,7 @@ static INT  npf_netif_firewall (struct netif *pnetif, struct pbuf *p)
     default:
         break;
     }
+#endif                                                                  /*  !__NPF_NETIF_RULE_FAST      */
 
 __allow_input:
     __NPF_PACKET_ALLOW_INC();
@@ -546,10 +628,41 @@ __drop_input:
     return  (1);                                                        /*  eaten                       */
 }
 /*********************************************************************************************************
+** 函数名称: npf_netif_attach
+** 功能描述: 当网络接口添加时, 调用的 hook 函数
+** 输　入  : pnetif       网络接口
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  npf_netif_attach (struct netif  *pnetif)
+{
+    CHAR                cIfname[IF_NAMESIZE];
+    __PNPF_NETIF_CB     pnpfni;
+    
+    if (!_G_ulNpfLock) {
+        return;
+    }
+    
+    netif_get_name(pnetif, cIfname);
+    
+    __NPF_LOCK_R();                                                     /*  锁定 NPF 表                 */
+    pnpfni = __npfNetifFind(cIfname);
+    if (pnpfni == LW_NULL) {
+        __NPF_UNLOCK();                                                 /*  解锁 NPF 表                 */
+        return;
+    }
+    
+    pnetif->inner_fw_stat   = (void *)pnpfni;
+    pnetif->inner_fw        = npf_netif_firewall;
+    pnpfni->NPFNI_bAttached = LW_TRUE;
+    __NPF_UNLOCK();                                                     /*  解锁 NPF 表                 */
+}
+/*********************************************************************************************************
 ** 函数名称: npf_netif_detach
 ** 功能描述: 当网络接口删除时, 调用的 hook 函数
 ** 输　入  : pcNetifName       对应的网络接口名
-** 输　出  : ERROR_NONE or PX_ERROR
+** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
@@ -558,35 +671,31 @@ VOID  npf_netif_detach (struct netif  *pnetif)
     INT                 i;
     __PNPF_NETIF_CB     pnpfni;
 
-    if (pnetif->inner_fw != npf_netif_firewall) {                       /*  不是过滤器输入函数          */
-        return;
-    }
-
-    __NPF_LOCK();                                                       /*  锁定 NPF 表                 */
-    pnpfni = __npfNetifFind(pnetif->name, pnetif->num);
+    __NPF_LOCK_W();                                                     /*  锁定 NPF 表                 */
+    pnpfni = __npfNetifGet(pnetif);
     if (pnpfni == LW_NULL) {
         __NPF_UNLOCK();                                                 /*  解锁 NPF 表                 */
         return;
     }
-    pnetif->inner_fw = LW_NULL;                                         /*  不再使用 npf 输入函数       */
+    
+    pnpfni->NPFNI_bAttached = LW_FALSE;
+    pnetif->inner_fw_stat   = LW_NULL;
+    pnetif->inner_fw        = LW_NULL;                                  /*  不再使用 npf 输入函数       */
 
-    pnpfni->NPFNI_uiAttachCounter--;
-    if (pnpfni->NPFNI_uiAttachCounter == 0) {                           /*  没有任何 attach             */
-        for (i = 0; i < __NPF_NETIF_RULE_MAX; i++) {
-            if (pnpfni->NPFNI_npfrnRule[i]) {
-                break;
-            }
+    for (i = 0; i < __NPF_NETIF_RULE_MAX; i++) {
+        if (pnpfni->NPFNI_npfrnRule[i]) {
+            break;
         }
-        if (i >= __NPF_NETIF_RULE_MAX) {                                /*  此网络接口控制结果没有规则  */
-            __npfNetifDelete(pnpfni);
-        }
+    }
+    if (i >= __NPF_NETIF_RULE_MAX) {                                    /*  此网络接口控制结果没有规则  */
+        __npfNetifDelete(pnpfni);
     }
     __NPF_UNLOCK();                                                     /*  解锁 NPF 表                 */
 }
 /*********************************************************************************************************
 ** 函数名称: API_INetNpfRuleAdd
 ** 功能描述: net packet filter 添加一条规则
-** 输　入  : pcNetifName       对应的网络接口名
+** 输　入  : pcIfname          对应的网络接口名
 **           iRule             对应的规则, MAC/IP/UDP/TCP/...
 **           pucMac            禁止通信的 MAC 地址数组,
 **           pcAddrStart       禁止通信 IP 地址起始, 为 IP 地址字符串, 格式为: ???.???.???.???
@@ -599,7 +708,7 @@ VOID  npf_netif_detach (struct netif  *pnetif)
                                            API 函数
 *********************************************************************************************************/
 LW_API
-PVOID  API_INetNpfRuleAdd (CPCHAR  pcNetifName,
+PVOID  API_INetNpfRuleAdd (CPCHAR  pcIfname,
                            INT     iRule,
                            UINT8   pucMac[],
                            CPCHAR  pcAddrStart,
@@ -609,7 +718,7 @@ PVOID  API_INetNpfRuleAdd (CPCHAR  pcNetifName,
 {
     __PNPF_NETIF_CB        pnpfni;
 
-    if (!pcNetifName) {
+    if (!pcIfname) {
         _ErrorHandle(EINVAL);
         return  (LW_NULL);
     }
@@ -631,8 +740,8 @@ PVOID  API_INetNpfRuleAdd (CPCHAR  pcNetifName,
         pnpfrm->NPFRM_iRule = iRule;
         lib_memcpy(&pnpfrm->NPFRM_ucMac, pucMac, ETHARP_HWADDR_LEN);    /*  拷贝 6 字节                 */
 
-        __NPF_LOCK();                                                   /*  锁定 NPF 表                 */
-        pnpfni = __npfNetifCreate(pcNetifName);                         /*  创建控制块                  */
+        __NPF_LOCK_W();                                                 /*  锁定 NPF 表                 */
+        pnpfni = __npfNetifCreate(pcIfname);                            /*  创建控制块                  */
         if (pnpfni == LW_NULL) {
             __NPF_UNLOCK();                                             /*  解锁 NPF 表                 */
             return  (LW_NULL);
@@ -663,8 +772,8 @@ PVOID  API_INetNpfRuleAdd (CPCHAR  pcNetifName,
         pnpfri->NPFRI_ipaddrHboS.addr = PP_NTOHL(ipaddr_addr(pcAddrStart));
         pnpfri->NPFRI_ipaddrHboE.addr = PP_NTOHL(ipaddr_addr(pcAddrEnd));
 
-        __NPF_LOCK();                                                   /*  锁定 NPF 表                 */
-        pnpfni = __npfNetifCreate(pcNetifName);                         /*  创建控制块                  */
+        __NPF_LOCK_W();                                                 /*  锁定 NPF 表                 */
+        pnpfni = __npfNetifCreate(pcIfname);                            /*  创建控制块                  */
         if (pnpfni == LW_NULL) {
             __NPF_UNLOCK();                                             /*  解锁 NPF 表                 */
             return  (LW_NULL);
@@ -697,8 +806,8 @@ PVOID  API_INetNpfRuleAdd (CPCHAR  pcNetifName,
         pnpfru->NPFRU_usPortHboS      = PP_NTOHS(usPortStart);
         pnpfru->NPFRU_usPortHboE      = PP_NTOHS(usPortEnd);
 
-        __NPF_LOCK();                                                   /*  锁定 NPF 表                 */
-        pnpfni = __npfNetifCreate(pcNetifName);                         /*  创建控制块                  */
+        __NPF_LOCK_W();                                                 /*  锁定 NPF 表                 */
+        pnpfni = __npfNetifCreate(pcIfname);                            /*  创建控制块                  */
         if (pnpfni == LW_NULL) {
             __NPF_UNLOCK();                                             /*  解锁 NPF 表                 */
             return  (LW_NULL);
@@ -731,8 +840,8 @@ PVOID  API_INetNpfRuleAdd (CPCHAR  pcNetifName,
         pnpfrt->NPFRT_usPortHboS      = PP_NTOHS(usPortStart);
         pnpfrt->NPFRT_usPortHboE      = PP_NTOHS(usPortEnd);
 
-        __NPF_LOCK();                                                   /*  锁定 NPF 表                 */
-        pnpfni = __npfNetifCreate(pcNetifName);                         /*  创建控制块                  */
+        __NPF_LOCK_W();                                                 /*  锁定 NPF 表                 */
+        pnpfni = __npfNetifCreate(pcIfname);                            /*  创建控制块                  */
         if (pnpfni == LW_NULL) {
             __NPF_UNLOCK();                                             /*  解锁 NPF 表                 */
             return  (LW_NULL);
@@ -752,7 +861,7 @@ PVOID  API_INetNpfRuleAdd (CPCHAR  pcNetifName,
 /*********************************************************************************************************
 ** 函数名称: API_INetNpfRuleDel
 ** 功能描述: net packet filter 删除一条规则
-** 输　入  : pcNetifName       对应的网络接口名
+** 输　入  : pcIfname          对应的网络接口名
 **           pvRule            规则句柄 (可以为 NULL, 为 NULL 时表示使用规则序列号)
 **           iSeqNum           指定网络接口的规则序列号 (从 0 开始)
 ** 输　出  : ERROR_NONE or PX_ERROR
@@ -761,7 +870,7 @@ PVOID  API_INetNpfRuleAdd (CPCHAR  pcNetifName,
                                            API 函数
 *********************************************************************************************************/
 LW_API
-INT  API_INetNpfRuleDel (CPCHAR  pcNetifName,
+INT  API_INetNpfRuleDel (CPCHAR  pcIfname,
                          PVOID   pvRule,
                          INT     iSeqNum)
 {
@@ -769,7 +878,7 @@ INT  API_INetNpfRuleDel (CPCHAR  pcNetifName,
     __PNPF_NETIF_CB        pnpfni;
     __PNPF_RULE_MAC        pnpfrm;
 
-    if (!pcNetifName) {
+    if (!pcIfname) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -779,8 +888,8 @@ INT  API_INetNpfRuleDel (CPCHAR  pcNetifName,
         return  (PX_ERROR);
     }
 
-    __NPF_LOCK();                                                       /*  锁定 NPF 表                 */
-    pnpfni = __npfNetifFind2(pcNetifName);
+    __NPF_LOCK_W();                                                     /*  锁定 NPF 表                 */
+    pnpfni = __npfNetifFind(pcIfname);
     if (pnpfni == LW_NULL) {
         __NPF_UNLOCK();                                                 /*  解锁 NPF 表                 */
         _ErrorHandle(EINVAL);
@@ -794,7 +903,7 @@ INT  API_INetNpfRuleDel (CPCHAR  pcNetifName,
         _G_ulNpfCounter--;
         
     } else {                                                            /*  通过序号删除                */
-        PLW_LIST_LINE          plineTemp;
+        PLW_LIST_LINE   plineTemp;
 
         for (i = 0; i < __NPF_NETIF_RULE_MAX; i++) {
             for (plineTemp  = pnpfni->NPFNI_npfrnRule[i];
@@ -823,7 +932,7 @@ __rule_find:
     /*
      *  如果 pnpfni 中没有任何规则, 同时也没有任何网卡连接. pnpfni 可以被删除.
      */
-    if (pnpfni->NPFNI_uiAttachCounter == 0) {                           /*  没有连接的网卡              */
+    if (!pnpfni->NPFNI_bAttached) {                                     /*  没有连接的网卡              */
         INT     i;
 
         for (i = 0; i < __NPF_NETIF_RULE_MAX; i++) {
@@ -839,116 +948,6 @@ __rule_find:
     __NPF_UNLOCK();                                                     /*  解锁 NPF 表                 */
 
     __SHEAP_FREE(pvRule);                                               /*  释放内存                    */
-
-    return  (ERROR_NONE);
-}
-/*********************************************************************************************************
-** 函数名称: API_INetNpfAttach
-** 功能描述: 将 net packet filter 绑定到网卡上, 使该网卡具备 npf 功能.
-** 输　入  : pcNetifName       对应的网络接口名
-** 输　出  : ERROR_NONE or PX_ERROR
-** 全局变量:
-** 调用模块:
-                                           API 函数
-*********************************************************************************************************/
-LW_API
-INT  API_INetNpfAttach (CPCHAR  pcNetifName)
-{
-    struct netif       *pnetif;
-    __PNPF_NETIF_CB     pnpfni;
-
-    if (!pcNetifName) {
-        _ErrorHandle(EINVAL);
-        return  (PX_ERROR);
-    }
-
-    LWIP_IF_LIST_LOCK(LW_FALSE);
-    pnetif = netif_find(pcNetifName);
-    if (pnetif == LW_NULL) {
-        LWIP_IF_LIST_UNLOCK();
-        _ErrorHandle(EINVAL);
-        return  (PX_ERROR);
-    }
-    if (pnetif->inner_fw == npf_netif_firewall) {                       /*  已经是过滤器输入函数        */
-        LWIP_IF_LIST_UNLOCK();
-        _ErrorHandle(EALREADY);
-        return  (PX_ERROR);
-    }
-
-    __NPF_LOCK();                                                       /*  锁定 NPF 表                 */
-    pnpfni = __npfNetifCreate(pcNetifName);                             /*  创建控制块                  */
-    if (pnpfni == LW_NULL) {
-        __NPF_UNLOCK();                                                 /*  解锁 NPF 表                 */
-        LWIP_IF_LIST_UNLOCK();
-        return  (PX_ERROR);
-    }
-    pnetif->inner_fw = npf_netif_firewall;                              /*  使用 npf 输入函数           */
-    KN_SMP_MB();
-    LWIP_IF_LIST_UNLOCK();
-    
-    pnpfni->NPFNI_uiAttachCounter++;
-    __NPF_UNLOCK();                                                     /*  解锁 NPF 表                 */
-
-    return  (ERROR_NONE);
-}
-/*********************************************************************************************************
-** 函数名称: API_INetNpfDetach
-** 功能描述: 将 net packet filter 从绑定的网卡上分开, 使该网卡不具备 npf 功能.
-** 输　入  : pcNetifName       对应的网络接口名
-** 输　出  : ERROR_NONE or PX_ERROR
-** 全局变量:
-** 调用模块:
-                                           API 函数
-*********************************************************************************************************/
-LW_API
-INT  API_INetNpfDetach (CPCHAR  pcNetifName)
-{
-    INT                 i;
-    struct netif       *pnetif;
-    __PNPF_NETIF_CB     pnpfni;
-
-    if (!pcNetifName) {
-        _ErrorHandle(EINVAL);
-        return  (PX_ERROR);
-    }
-
-    LWIP_IF_LIST_LOCK(LW_FALSE);
-    pnetif = netif_find(pcNetifName);
-    if (pnetif == LW_NULL) {
-        LWIP_IF_LIST_UNLOCK();
-        _ErrorHandle(EINVAL);
-        return  (PX_ERROR);
-    }
-    if (pnetif->inner_fw != npf_netif_firewall) {                       /*  不是过滤器输入函数          */
-        LWIP_IF_LIST_UNLOCK();
-        _ErrorHandle(EINVAL);
-        return  (PX_ERROR);
-    }
-
-    __NPF_LOCK();                                                       /*  锁定 NPF 表                 */
-    pnpfni = __npfNetifFind2(pcNetifName);
-    if (pnpfni == LW_NULL) {
-        __NPF_UNLOCK();                                                 /*  解锁 NPF 表                 */
-        LWIP_IF_LIST_UNLOCK();
-        _ErrorHandle(EINVAL);
-        return  (PX_ERROR);
-    }
-    pnetif->inner_fw = LW_NULL;                                         /*  不再使用 npf 输入函数       */
-    KN_SMP_MB();
-    LWIP_IF_LIST_UNLOCK();
-    
-    pnpfni->NPFNI_uiAttachCounter--;
-    if (pnpfni->NPFNI_uiAttachCounter == 0) {                           /*  没有任何 attach             */
-        for (i = 0; i < __NPF_NETIF_RULE_MAX; i++) {
-            if (pnpfni->NPFNI_npfrnRule[i]) {
-                break;
-            }
-        }
-        if (i >= __NPF_NETIF_RULE_MAX) {                                /*  此网络接口控制结果没有规则  */
-            __npfNetifDelete(pnpfni);
-        }
-    }
-    __NPF_UNLOCK();                                                     /*  解锁 NPF 表                 */
 
     return  (ERROR_NONE);
 }
@@ -970,8 +969,8 @@ INT  API_INetNpfInit (VOID)
         return  (ERROR_NONE);
     }
 
-    _G_ulNpfLock = API_SemaphoreBCreate("sem_npflcok", LW_TRUE, 
-                                        LW_OPTION_WAIT_FIFO | LW_OPTION_OBJECT_GLOBAL, LW_NULL);
+    _G_ulNpfLock = API_SemaphoreRWCreate("sem_npflcok", LW_OPTION_DELETE_SAFE |
+                                         LW_OPTION_WAIT_FIFO | LW_OPTION_OBJECT_GLOBAL, LW_NULL);
     if (_G_ulNpfLock == LW_OBJECT_HANDLE_INVALID) {
         return  (PX_ERROR);
     }
@@ -993,15 +992,7 @@ INT  API_INetNpfInit (VOID)
 
     API_TShellKeywordAdd("npfruledel", __tshellNetNpfRuleDel);
     API_TShellFormatAdd("npfruledel",  " [netifname] [rule sequence num]");
-    API_TShellHelpAdd("npfruledel",    "del a rule into net packet filter.\n");
-
-    API_TShellKeywordAdd("npfattach", __tshellNetNpfAttach);
-    API_TShellFormatAdd("npfattach",  " [netifname]");
-    API_TShellHelpAdd("npfattach",    "attach net packet filter to a netif.\n");
-
-    API_TShellKeywordAdd("npfdetach", __tshellNetNpfDetach);
-    API_TShellFormatAdd("npfdetach",  " [netifname]");
-    API_TShellHelpAdd("npfdetach",    "detach net packet filter from a netif.\n");
+    API_TShellHelpAdd("npfruledel",    "del a rule from net packet filter.\n");
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 
 #if LW_CFG_PROCFS_EN > 0
@@ -1252,70 +1243,6 @@ static INT  __tshellNetNpfRuleDel (INT  iArgC, PCHAR  *ppcArgV)
 
     return  (iError);
 }
-/*********************************************************************************************************
-** 函数名称: __tshellNetNpfAttach
-** 功能描述: 系统命令 "npfattach"
-** 输　入  : iArgC         参数个数
-**           ppcArgV       参数表
-** 输　出  : 0
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-static INT  __tshellNetNpfAttach (INT  iArgC, PCHAR  *ppcArgV)
-{
-    INT     iError;
-
-    if (iArgC != 2) {
-        fprintf(stderr, "arguments error!\n");
-        return  (-ERROR_TSHELL_EPARAM);
-    }
-
-    iError = API_INetNpfAttach(ppcArgV[1]);
-    if (iError < 0) {
-        if (errno == EINVAL) {
-            fprintf(stderr, "can not find the netif!\n");
-        } else if (errno == ERROR_SYSTEM_LOW_MEMORY) {
-            fprintf(stderr, "system low memory!\n");
-        } else {
-            fprintf(stderr, "can not attach netif, error: %s\n", lib_strerror(errno));
-        }
-    } else {
-        printf("attached.\n");
-    }
-
-    return  (iError);
-}
-/*********************************************************************************************************
-** 函数名称: __tshellNetNpfDetach
-** 功能描述: 系统命令 "npfdetach"
-** 输　入  : iArgC         参数个数
-**           ppcArgV       参数表
-** 输　出  : 0
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-static INT  __tshellNetNpfDetach (INT  iArgC, PCHAR  *ppcArgV)
-{
-    INT     iError;
-
-    if (iArgC != 2) {
-        fprintf(stderr, "arguments error!\n");
-        return  (-ERROR_TSHELL_EPARAM);
-    }
-
-    iError = API_INetNpfDetach(ppcArgV[1]);
-    if (iError < 0) {
-        if (errno == EINVAL) {
-            fprintf(stderr, "netif error!\n");
-        } else {
-            fprintf(stderr, "can not detach netif, error: %s\n", lib_strerror(errno));
-        }
-    } else {
-        printf("detached.\n");
-    }
-
-    return  (iError);
-}
 
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 /*********************************************************************************************************
@@ -1385,12 +1312,10 @@ static VOID  __procFsNetFilterPrint (PCHAR  pcBuffer, size_t  stTotalSize, size_
                 pnpfrm = _LIST_ENTRY(plineTemp, __NPF_RULE_MAC, NPFRM_lineManage);
 
                 *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft, 
-                         "%c%c%d   %-6s %6d %-4s NO    "
+                         "%-5s %-6s %6d %-4s NO    "
                          "%02x:%02x:%02x:%02x:%02x:%02x %-15s %-15s %-6s %-6s\n",
-                         pnpfni->NPFNI_cName[0], pnpfni->NPFNI_cName[1], pnpfni->NPFNI_ucNum,
-                         (pnpfni->NPFNI_uiAttachCounter) ? "YES" : "NO",
-                         iSeqNum,
-                         "MAC",
+                         pnpfni->NPFNI_cName, (pnpfni->NPFNI_bAttached) ? "YES" : "NO",
+                         iSeqNum, "MAC",
                          pnpfrm->NPFRM_ucMac[0],
                          pnpfrm->NPFRM_ucMac[1],
                          pnpfrm->NPFRM_ucMac[2],
@@ -1416,11 +1341,9 @@ static VOID  __procFsNetFilterPrint (PCHAR  pcBuffer, size_t  stTotalSize, size_
                 ipaddrE.addr = PP_HTONL(pnpfri->NPFRI_ipaddrHboE.addr);
                 
                 *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft, 
-                         "%c%c%d   %-6s %6d %-4s NO    %-17s %-15s %-15s %-6s %-6s\n",
-                         pnpfni->NPFNI_cName[0], pnpfni->NPFNI_cName[1], pnpfni->NPFNI_ucNum,
-                         (pnpfni->NPFNI_uiAttachCounter) ? "YES" : "NO",
-                         iSeqNum,
-                         "IP", "N/A",
+                         "%-5s %-6s %6d %-4s NO    %-17s %-15s %-15s %-6s %-6s\n",
+                         pnpfni->NPFNI_cName, (pnpfni->NPFNI_bAttached) ? "YES" : "NO",
+                         iSeqNum, "IP", "N/A",
                          ip4addr_ntoa_r(&ipaddrS, cIpBuffer1, INET_ADDRSTRLEN),
                          ip4addr_ntoa_r(&ipaddrE, cIpBuffer2, INET_ADDRSTRLEN),
                          "N/A", "N/A");
@@ -1442,11 +1365,9 @@ static VOID  __procFsNetFilterPrint (PCHAR  pcBuffer, size_t  stTotalSize, size_
                 ipaddrE.addr = PP_HTONL(pnpfru->NPFRU_ipaddrHboE.addr);
 
                 *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft, 
-                         "%c%c%d   %-6s %6d %-4s NO    %-17s %-15s %-15s %-6d %-6d\n",
-                         pnpfni->NPFNI_cName[0], pnpfni->NPFNI_cName[1], pnpfni->NPFNI_ucNum,
-                         (pnpfni->NPFNI_uiAttachCounter) ? "YES" : "NO",
-                         iSeqNum,
-                         "UDP", "N/A",
+                         "%-5s %-6s %6d %-4s NO    %-17s %-15s %-15s %-6d %-6d\n",
+                         pnpfni->NPFNI_cName, (pnpfni->NPFNI_bAttached) ? "YES" : "NO",
+                         iSeqNum, "UDP", "N/A",
                          ip4addr_ntoa_r(&ipaddrS, cIpBuffer1, INET_ADDRSTRLEN),
                          ip4addr_ntoa_r(&ipaddrE, cIpBuffer2, INET_ADDRSTRLEN),
                          pnpfru->NPFRU_usPortHboS,
@@ -1469,11 +1390,9 @@ static VOID  __procFsNetFilterPrint (PCHAR  pcBuffer, size_t  stTotalSize, size_
                 ipaddrE.addr = PP_HTONL(pnpfrt->NPFRT_ipaddrHboE.addr);
 
                 *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft, 
-                         "%c%c%d   %-6s %6d %-4s NO    %-17s %-15s %-15s %-6d %-6d\n",
-                         pnpfni->NPFNI_cName[0], pnpfni->NPFNI_cName[1], pnpfni->NPFNI_ucNum,
-                         (pnpfni->NPFNI_uiAttachCounter) ? "YES" : "NO",
-                         iSeqNum,
-                         "TCP", "N/A",
+                         "%-5s %-6s %6d %-4s NO    %-17s %-15s %-15s %-6d %-6d\n",
+                         pnpfni->NPFNI_cName, (pnpfni->NPFNI_bAttached) ? "YES" : "NO",
+                         iSeqNum, "TCP", "N/A",
                          ip4addr_ntoa_r(&ipaddrS, cIpBuffer1, INET_ADDRSTRLEN),
                          ip4addr_ntoa_r(&ipaddrE, cIpBuffer2, INET_ADDRSTRLEN),
                          pnpfrt->NPFRT_usPortHboS,
@@ -1517,7 +1436,7 @@ static ssize_t  __procFsNetFilterRead (PLW_PROCFS_NODE  p_pfsn,
     if (pcFileBuffer == LW_NULL) {                                      /*  还没有分配内存              */
         size_t  stNeedBufferSize = 0;
         
-        __NPF_LOCK();                                                   /*  锁定 NPF 表                 */
+        __NPF_LOCK_R();                                                 /*  锁定 NPF 表                 */
         stNeedBufferSize = (size_t)(_G_ulNpfCounter * 128);
         __NPF_UNLOCK();                                                 /*  解锁 NPF 表                 */
         
@@ -1532,7 +1451,7 @@ static ssize_t  __procFsNetFilterRead (PLW_PROCFS_NODE  p_pfsn,
         stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, 0, cFilterInfoHdr);
                                                                         /*  打印头信息                  */
                                                                         
-        __NPF_LOCK();                                                   /*  锁定 NPF 表                 */
+        __NPF_LOCK_R();                                                 /*  锁定 NPF 表                 */
         __procFsNetFilterPrint(pcFileBuffer, stNeedBufferSize, &stRealSize);
         __NPF_UNLOCK();                                                 /*  解锁 NPF 表                 */
         
@@ -1564,7 +1483,6 @@ VOID  __procFsNpfInit (VOID)
 }
 
 #endif                                                                  /*  LW_CFG_PROCFS_EN > 0        */
-
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */
                                                                         /*  LW_CFG_NET_NPF_EN > 0       */
 /*********************************************************************************************************

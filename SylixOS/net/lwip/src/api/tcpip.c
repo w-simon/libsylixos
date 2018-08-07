@@ -61,6 +61,8 @@
 static u8_t tcpip_qos_on = 0;
 static u32_t tcpip_ip_qos[TCPIP_QOS_MAX_PRIO]; /* QoS prio 0 no count */
 static u32_t tcpip_ip6_qos[TCPIP_QOS_MAX_PRIO];
+static u32_t tcpip_ip_dontdrop; /* Dont drop count */
+static u32_t tcpip_ip6_dontdrop;
 
 /**
  * Set IP QoS support
@@ -103,6 +105,63 @@ tcpip_qos_stat(u8_t ipv, u8_t prio)
 }
 
 /**
+ * Get IP QoS Dont drop statistics
+ * @param ipv 4: IPv4 6: IPv6
+ * @return count
+ */
+u32_t
+tcpip_qos_dontdrop_stat(u8_t ipv)
+{
+  if (ipv == 4) {
+    return tcpip_ip_dontdrop;
+  } else {
+    return tcpip_ip6_dontdrop;
+  }
+}
+
+/*
+ * IP QoS Hook
+ * @param inp the network interface on which the packet was received
+ * @param p the received packet
+ * @param ipver IPv4 or IPv6
+ * @param prio ip hdr prio
+ * @param iphdr_offset ip hdr offset
+ * @return prio
+ */
+static u8_t
+tcpip_qos_hook(struct netif *inp, struct pbuf *p, u8_t ipver, 
+               u8_t prio, u16_t iphdr_offset, u8_t *dont_drop)
+{
+  if (inp->inner_qos) {
+    u8_t  inner_prio, inner_dd = 0;
+    
+    /* Inner QoS HOOK */
+    inner_prio = inp->inner_qos(inp, p, ipver, prio, iphdr_offset, &inner_dd);
+    if (prio < inner_prio) {
+      prio = inner_prio;
+    }
+    if (inner_dd) {
+      *dont_drop = inner_dd;
+    }
+  }
+  
+  if (inp->outer_qos) {
+    u8_t  outer_prio, outer_dd = 0;
+    
+    /* Outer QoS HOOK */
+    outer_prio = inp->outer_qos(inp->state, p, ipver, prio, iphdr_offset, &outer_dd);
+    if (prio < outer_prio) {
+      prio = outer_prio;
+    }
+    if (outer_dd) {
+      *dont_drop = outer_dd;
+    }
+  }
+  
+  return (prio);
+}
+
+/**
  * Set IP QoS support
  * @param p the received packet
  * @param inp the network interface on which the packet was received
@@ -117,7 +176,7 @@ tcpip_qos_stat(u8_t ipv, u8_t prio)
  * 000 - Routine
  */
 static u8_t
-tcpip_qos_prio(struct pbuf *p, struct netif *inp)
+tcpip_qos_prio(struct pbuf *p, struct netif *inp, u8_t *dont_drop)
 {
   u8_t prio;
   u16_t iphdr_offset;
@@ -164,10 +223,16 @@ tcpip_qos_prio(struct pbuf *p, struct netif *inp)
   iphdr = (struct ip_hdr *)((char *)p->payload + iphdr_offset);
   if (IPH_V(iphdr) == 4) {
     if (IPH_TOS(iphdr) & 0x10) { /* IPTOS_LOWDELAY */
-      tcpip_ip_qos[5]++;
-      return (5); /* CRITIC/ECP */
+      prio = 5; /* CRITIC/ECP */
+    } else {
+      prio = (u8_t)(IPH_TOS(iphdr) >> 5);
     }
-    prio = (u8_t)(IPH_TOS(iphdr) >> 5);
+    
+    *dont_drop = 0;
+    prio = tcpip_qos_hook(inp, p, 4, prio, iphdr_offset, dont_drop);
+    if (*dont_drop) {
+      tcpip_ip_dontdrop++;
+    }
     tcpip_ip_qos[prio]++;
     return (prio);
   
@@ -178,6 +243,12 @@ tcpip_qos_prio(struct pbuf *p, struct netif *inp)
     struct ip6_hdr *ip6hdr = (struct ip6_hdr *)((char *)p->payload + iphdr_offset);
     if (IP6H_V(ip6hdr) == 6) {
       prio = (u8_t)(IP6H_TC(ip6hdr) >> 5);
+      
+      *dont_drop = 0;
+      prio = tcpip_qos_hook(inp, p, 6, prio, iphdr_offset, dont_drop);
+      if (*dont_drop) {
+        tcpip_ip6_dontdrop++;
+      }
       tcpip_ip6_qos[prio]++;
       return (prio);
     }
@@ -413,8 +484,11 @@ tcpip_inpkt(struct pbuf *p, struct netif *inp, netif_input_fn input_fn)
   msg->msg.inp.input_fn = input_fn;
 #if defined(SYLIXOS) && LW_CFG_LWIP_IPQOS /* SylixOS Add QoS support */
   if (tcpip_qos_on) {
-    u8_t prio = tcpip_qos_prio(p, inp);
-    if (sys_mbox_trypost_prio(&tcpip_mbox, msg, prio) != ERR_OK) {
+    u8_t dont_drop;
+    u8_t prio = tcpip_qos_prio(p, inp, &dont_drop);
+    if (dont_drop) {
+      sys_mbox_post_prio(&tcpip_mbox, msg, prio); /* Don't drop pakcet */
+    } else if (sys_mbox_trypost_prio(&tcpip_mbox, msg, prio) != ERR_OK) {
       memp_free(MEMP_TCPIP_MSG_INPKT, msg);
       tcpip_inpkt_lost_cnt++;
       return ERR_MEM;

@@ -451,7 +451,7 @@ static __PNAT_CB  __natNew (ip4_addr_p_t  *pipaddr, u16_t  usPort, u8_t  ucProto
                  plineTemp  = _list_line_get_next(plineTemp)) {
                 
                 pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
-                if (pnatcb->NAT_ulIdleTimer > pnatcbOldest->NAT_ulIdleTimer) {
+                if (pnatcb->NAT_ulIdleTimer >= pnatcbOldest->NAT_ulIdleTimer) {
                     pnatcbOldest = pnatcb;
                 }
             }
@@ -468,7 +468,7 @@ static __PNAT_CB  __natNew (ip4_addr_p_t  *pipaddr, u16_t  usPort, u8_t  ucProto
                  plineTemp  = _list_line_get_next(plineTemp)) {
                 
                 pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
-                if (pnatcb->NAT_ulIdleTimer > pnatcbOldest->NAT_ulIdleTimer) {
+                if (pnatcb->NAT_ulIdleTimer >= pnatcbOldest->NAT_ulIdleTimer) {
                     pnatcbOldest = pnatcb;
                 }
             }
@@ -477,7 +477,7 @@ static __PNAT_CB  __natNew (ip4_addr_p_t  *pipaddr, u16_t  usPort, u8_t  ucProto
                  plineTemp  = _list_line_get_next(plineTemp)) {
                 
                 pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
-                if (pnatcb->NAT_ulIdleTimer > pnatcbOldest->NAT_ulIdleTimer) {
+                if (pnatcb->NAT_ulIdleTimer >= pnatcbOldest->NAT_ulIdleTimer) {
                     pnatcbOldest = pnatcb;
                 }
             }
@@ -508,6 +508,9 @@ static __PNAT_CB  __natNew (ip4_addr_p_t  *pipaddr, u16_t  usPort, u8_t  ucProto
     pnatcb->NAT_usSrcHash          = 0;
     pnatcb->NAT_ipaddrLocalIp.addr = pipaddr->addr;
     pnatcb->NAT_usLocalPort        = usPort;
+    
+    pnatcb->NAT_uiLocalSequence = 0;
+    pnatcb->NAT_uiLocalRcvNext  = 0;
     
     usNewPort = __natNewPort();
     pnatcb->NAT_usAssPort = PP_HTONS(usNewPort);                        /*  分配一个新的唯一端口        */
@@ -830,16 +833,28 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
              *  NAT 控制块状态更新
              */
             if (IPH_PROTO(iphdr) == IP_PROTO_TCP) {
-                if (TCPH_FLAGS(tcphdr) & TCP_RST) {
-    	            pnatcb->NAT_iStatus = __NAT_STATUS_CLOSING;
-                
-                } else if (TCPH_FLAGS(tcphdr) & TCP_FIN) {
-    	            if (pnatcb->NAT_iStatus == __NAT_STATUS_OPEN) {
-    	                pnatcb->NAT_iStatus = __NAT_STATUS_FIN;
-    	            
-    	            } else {
-    	                pnatcb->NAT_iStatus = __NAT_STATUS_CLOSING;
-    	            }
+                if (TCPH_FLAGS(tcphdr) & (TCP_RST | TCP_FIN)) {
+                    u32_t   RemoteSeq     = PP_NTOHL(tcphdr->seqno);
+                    u32_t   RemoteAck     = PP_NTOHL(tcphdr->ackno);
+                    u32_t   LocalSequence = PP_NTOHL(pnatcb->NAT_uiLocalSequence);
+                    u32_t   LocalRcvNext  = PP_NTOHL(pnatcb->NAT_uiLocalRcvNext);
+                    
+                    /*
+                     *  防止 RST FIN 攻击.
+                     */
+                    if ((RemoteAck == LocalSequence + 1) || (RemoteSeq == LocalRcvNext)) {
+                        if (TCPH_FLAGS(tcphdr) & (TCP_RST | TCP_FIN)) {
+                            pnatcb->NAT_iStatus = __NAT_STATUS_CLOSING;
+                        
+                        } else if (TCPH_FLAGS(tcphdr) & TCP_FIN) {
+                            if (pnatcb->NAT_iStatus == __NAT_STATUS_OPEN) {
+            	                pnatcb->NAT_iStatus = __NAT_STATUS_FIN;
+            	            
+            	            } else {
+            	                pnatcb->NAT_iStatus = __NAT_STATUS_CLOSING;
+            	            }
+                        }
+                    }
                 }
             }
         }
@@ -1003,6 +1018,10 @@ static INT  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct netif
          *  NAT 控制块状态更新
          */
         if (IPH_PROTO(iphdr) == IP_PROTO_TCP) {
+            pnatcb->NAT_uiLocalSequence = tcphdr->seqno;
+            if (TCPH_FLAGS(tcphdr) & TCP_ACK) {
+                pnatcb->NAT_uiLocalRcvNext = tcphdr->ackno;
+            }
             if (TCPH_FLAGS(tcphdr) & TCP_RST) {
 	            pnatcb->NAT_iStatus = __NAT_STATUS_CLOSING;
             

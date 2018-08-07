@@ -700,13 +700,9 @@ ULONG  API_VmmSetFlag (PVOID  pvVirtualAddr, ULONG  ulFlag)
     __vmmPhysicalPageClearAll(pvmpageVirtual);
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
     
-    __vmmLibSetFlag(ulVirtualAddr, 
-                    pvmpageVirtual->PAGE_ulCount, ulFlag);              /*  重新映射这些页面            */
-    
     pvmpageVirtual->PAGE_ulFlags = ulFlag;                              /*  记录新权限信息              */
     
     __vmmPhysicalPageSetFlagAll(pvmpageVirtual, ulFlag);                /*  设置所有物理页面的 flag     */
-    
     __VMM_UNLOCK();
     
     MONITOR_EVT_LONG2(MONITOR_EVENT_ID_VMM, MONITOR_EVENT_VMM_SETFLAG,
@@ -912,7 +908,7 @@ VOID  API_VmmPhysicalKernelDesc (PLW_MMU_PHYSICAL_DESC  pphydescText,
                                            API 函数
 *********************************************************************************************************/
 LW_API  
-int getpagesize (void)
+int  getpagesize (void)
 {
     return  (LW_CFG_VMM_PAGE_SIZE);
 }

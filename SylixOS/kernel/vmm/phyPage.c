@@ -38,6 +38,7 @@
 #if LW_CFG_VMM_EN > 0
 #include "phyPage.h"
 #include "virPage.h"
+#include "pageTable.h"
 /*********************************************************************************************************
   地址空间冲突检查
 *********************************************************************************************************/
@@ -45,11 +46,11 @@ extern BOOL     __vmmLibVirtualOverlap(addr_t  ulAddr, size_t  stSize);
 /*********************************************************************************************************
   物理 zone 控制块数组
 *********************************************************************************************************/
-LW_VMM_ZONE                     _G_vmzonePhysical[LW_CFG_VMM_ZONE_NUM]; /*  物理区域                    */
+LW_VMM_ZONE                 _G_vmzonePhysical[LW_CFG_VMM_ZONE_NUM];     /*  物理区域                    */
 /*********************************************************************************************************
   物理内存 text data 段大小
 *********************************************************************************************************/
-static LW_MMU_PHYSICAL_DESC     _G_vmphydescKernel[2];                  /*  内核内存信息                */
+static LW_MMU_PHYSICAL_DESC _G_vmphydescKernel[2];                      /*  内核内存信息                */
 /*********************************************************************************************************
 ** 函数名称: __vmmPhysicalCreate
 ** 功能描述: 创建一个物理分页区域.
@@ -328,7 +329,7 @@ PLW_VMM_PAGE  __vmmPhysicalPageClone (PLW_VMM_PAGE  pvmpage)
                            LW_CFG_VMM_PAGE_SIZE);                       /*  将数据写入内存并不再命中    */
     }
     
-    __vmmLibSetFlag(ulSwitchAddr, 1, LW_VMM_FLAG_FAIL);                 /*  VIRTUAL_SWITCH 不允许访问   */
+    __vmmLibSetFlag(ulSwitchAddr, 1, LW_VMM_FLAG_FAIL, LW_TRUE);        /*  VIRTUAL_SWITCH 不允许访问   */
     
     return  (pvmpageNew);
 }
@@ -418,27 +419,40 @@ VOID  __vmmPhysicalPageFreeAll (PLW_VMM_PAGE  pvmpageVirtual)
 ** 功能描述: 设置物理页面的 flag 标志
 ** 输　入  : pvmpage       页面控制块
 **           ulFlag        flag 标志
+**           bFlushTlb     清除 TLB
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-VOID  __vmmPhysicalPageSetFlag (PLW_VMM_PAGE  pvmpage, ULONG  ulFlag)
+VOID  __vmmPhysicalPageSetFlag (PLW_VMM_PAGE  pvmpage, ULONG  ulFlag, BOOL  bFlushTlb)
 {
-    pvmpage->PAGE_ulFlags = ulFlag;
+    if (pvmpage->PAGE_ulMapPageAddr != PAGE_MAP_ADDR_INV) {
+        __vmmLibSetFlag(pvmpage->PAGE_ulMapPageAddr, 1, ulFlag, bFlushTlb);
+        pvmpage->PAGE_ulFlags = ulFlag;
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: __vmmPhysicalPageSetFlagAll
 ** 功能描述: 设置虚拟空间内所有物理页面的 flag 标志
 ** 输　入  : pvmpageVirtual 虚拟空间
 **           ulFlag         flag 标志
+**           bFlushTlb      清除 TLB
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
 VOID  __vmmPhysicalPageSetFlagAll (PLW_VMM_PAGE  pvmpageVirtual, ULONG  ulFlag)
 {
+#if LW_CFG_VMM_L4_HYPERVISOR_EN == 0
+    PLW_MMU_CONTEXT    pmmuctx = __vmmGetCurCtx();
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
+
     __pageTraversalLink(pvmpageVirtual, __vmmPhysicalPageSetFlag, (PVOID)ulFlag,
-                        LW_NULL, LW_NULL, LW_NULL, LW_NULL, LW_NULL);
+                        (PVOID)LW_FALSE, LW_NULL, LW_NULL, LW_NULL, LW_NULL);
+                        
+#if LW_CFG_VMM_L4_HYPERVISOR_EN == 0
+    __vmmLibFlushTlb(pmmuctx, pvmpageVirtual->PAGE_ulPageAddr, pvmpageVirtual->PAGE_ulCount);
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
 }
 /*********************************************************************************************************
 ** 函数名称: __vmmPhysicalPageFlush

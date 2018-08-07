@@ -21,6 +21,7 @@
 ** BUG:
 2015.07.20  msync() 仅针对 SHARED 类型映射才回写文件.
 2017.06.08  修正 mmap() 针对 AF_PACKET 映射错误问题.
+2018.08.06  加入 API_VmmMProtect().
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -830,8 +831,12 @@ PVOID  API_VmmMremap (PVOID  pvAddr, size_t stOldSize, size_t stNewSize, INT  iM
 LW_API  
 INT  API_VmmMunmap (PVOID  pvAddr, size_t  stLen)
 {
-    PLW_VMM_MAP_NODE    pmapn, pmapnR, pmapnR2;
-    size_t              stSplit;
+#if LW_CFG_MONITOR_EN > 0
+    PVOID               pvAddrSave = pvAddr;
+    size_t              stLenSave  = stLen;
+#endif
+    
+    PLW_VMM_MAP_NODE    pmapn, pmapnL, pmapnR;
     
     if (!ALIGNED(pvAddr, LW_CFG_VMM_PAGE_SIZE) || (stLen == 0)) {       /*  必须页对齐                  */
         _ErrorHandle(EINVAL);
@@ -841,6 +846,85 @@ INT  API_VmmMunmap (PVOID  pvAddr, size_t  stLen)
     stLen = ROUND_UP(stLen, LW_CFG_VMM_PAGE_SIZE);                      /*  变成页面对齐大小            */
     
     __VMM_MMAP_LOCK();
+__goon:
+    pmapn = __vmmMapnFindCur(pvAddr);
+    if (pmapn == LW_NULL) {
+        if (stLen > LW_CFG_VMM_PAGE_SIZE) {
+            stLen -= LW_CFG_VMM_PAGE_SIZE;
+            pvAddr = (PVOID)((addr_t)pvAddr + LW_CFG_VMM_PAGE_SIZE);
+            goto    __goon;
+        }
+        __VMM_MMAP_UNLOCK();
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    pmapnL = LW_NULL;
+    
+    if (pmapn->MAPN_pvAddr != pvAddr) {                                 /*  将左侧分段隔开              */
+        pmapnR = __vmmMmapSplit(pmapn, (size_t)((addr_t)pvAddr - (addr_t)pmapn->MAPN_pvAddr));
+        if (pmapnR == LW_NULL) {
+            __VMM_MMAP_UNLOCK();
+            return  (PX_ERROR);
+        }
+        pmapnL = pmapn;
+        pmapn  = pmapnR;
+    }
+    
+    if (pmapn->MAPN_stLen > stLen) {
+        pmapnR = __vmmMmapSplit(pmapn, stLen);                          /*  建立一个右侧分段            */
+        if (pmapnR == LW_NULL) {
+            if (pmapnL) {
+                __vmmMmapMerge(pmapnL, pmapn);
+                __VMM_MMAP_UNLOCK();
+                return  (PX_ERROR);
+            }
+        }
+        __vmmMmapDelete(pmapn);                                         /*  删除分段                    */
+        
+    } else {
+        if (pmapn->MAPN_stLen < stLen) {
+            pvAddr = (PVOID)((addr_t)pvAddr + pmapn->MAPN_stLen);
+            stLen -= pmapn->MAPN_stLen;
+            __vmmMmapDelete(pmapn);                                     /*  删除分段                    */
+            goto    __goon;                                             /*  继续                        */
+        
+        } else {
+            __vmmMmapDelete(pmapn);                                     /*  删除分段                    */
+        }
+    }
+    __VMM_MMAP_UNLOCK();
+    
+    MONITOR_EVT_LONG2(MONITOR_EVENT_ID_VMM, MONITOR_EVENT_VMM_MUNMAP,
+                      pvAddrSave, stLenSave, LW_NULL);
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_VmmMProtect
+** 功能描述: 内存文件映射修改属性.
+** 输　入  : pvAddr        虚拟地址
+**           stLen         映射长度
+**           ulFlag        LW_VMM_FLAG_READ | LW_VMM_FLAG_RDWR | LW_VMM_FLAG_EXEC
+** 输　出  : ERROR_NONE or PX_ERROR
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API 
+INT  API_VmmMProtect (PVOID  pvAddr, size_t  stLen, ULONG  ulFlag)
+{
+    PLW_VMM_MAP_NODE    pmapn, pmapnL, pmapnR;
+
+    if (!ALIGNED(pvAddr, LW_CFG_VMM_PAGE_SIZE) || (stLen == 0)) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    stLen = ROUND_UP(stLen, LW_CFG_VMM_PAGE_SIZE);                      /*  变成页面对齐大小            */
+    
+    __VMM_MMAP_LOCK();
+__goon:
     pmapn = __vmmMapnFindCur(pvAddr);
     if (pmapn == LW_NULL) {
         __VMM_MMAP_UNLOCK();
@@ -848,57 +932,52 @@ INT  API_VmmMunmap (PVOID  pvAddr, size_t  stLen)
         return  (PX_ERROR);
     }
     
-    if (((addr_t)pmapn->MAPN_pvAddr + pmapn->MAPN_stLen) <
-        ((addr_t)pvAddr + stLen)) {                                     /*  内存越界                    */
-        __VMM_MMAP_UNLOCK();
-        _ErrorHandle(EINVAL);
-        return  (PX_ERROR);
+    pmapnL = LW_NULL;
+    
+    if (pmapn->MAPN_pvAddr != pvAddr) {                                 /*  将左侧分段隔开              */
+        pmapnR = __vmmMmapSplit(pmapn, (size_t)((addr_t)pvAddr - (addr_t)pmapn->MAPN_pvAddr));
+        if (pmapnR == LW_NULL) {
+            __VMM_MMAP_UNLOCK();
+            return  (PX_ERROR);
+        }
+        pmapnL = pmapn;
+        pmapn  = pmapnR;
     }
     
-    if (pmapn->MAPN_pvAddr == pvAddr) {                                 /*  从起始地址开始释放          */
-        if (pmapn->MAPN_stLen != stLen) {
-            pmapnR = __vmmMmapSplit(pmapn, stLen);                      /*  建立一个右侧分段            */
-            if (pmapnR == LW_NULL) {
-                __VMM_MMAP_UNLOCK();
-                return  (PX_ERROR);
-            }
+    if (pmapn->MAPN_stLen > stLen) {
+        pmapnR = __vmmMmapSplit(pmapn, stLen);                          /*  建立一个右侧分段            */
+        if (pmapnR == LW_NULL) {
+            goto    __error;
         }
-        __vmmMmapDelete(pmapn);                                         /*  删除分段                    */
+        if (API_VmmSetFlag(pvAddr, ulFlag)) {                           /*  修改属性                    */
+            __vmmMmapMerge(pmapn, pmapnR);                              /*  修改失败, 合并分段          */
+            goto    __error;
+        }
+        pmapn->MAPN_ulFlag = ulFlag;
+    
+    } else {
+        if (API_VmmSetFlag(pvAddr, ulFlag)) {                           /*  修改属性                    */
+            goto    __error;
+        }
+        pmapn->MAPN_ulFlag = ulFlag;
         
-    } else {                                                            /*  从中间地址开始删除          */
-        if (((addr_t)pmapn->MAPN_pvAddr + pmapn->MAPN_stLen) == 
-            ((addr_t)pvAddr + stLen)) {                                 /*  删除后半段                  */
-            stSplit = (addr_t)pvAddr - (addr_t)pmapn->MAPN_pvAddr;
-            pmapnR = __vmmMmapSplit(pmapn, stSplit);                    /*  建立一个右侧分段            */
-            if (pmapnR == LW_NULL) {
-                __VMM_MMAP_UNLOCK();
-                return  (PX_ERROR);
-            }
-            __vmmMmapDelete(pmapnR);                                    /*  删除右侧分段                */
-        
-        } else {                                                        /*  删除中段                    */
-            stSplit = (addr_t)pvAddr - (addr_t)pmapn->MAPN_pvAddr;
-            pmapnR  = __vmmMmapSplit(pmapn, stSplit);                   /*  建立一个右侧分段            */
-            if (pmapnR == LW_NULL) {
-                __VMM_MMAP_UNLOCK();
-                return  (PX_ERROR);
-            }
-            
-            pmapnR2 = __vmmMmapSplit(pmapnR, stLen);                    /*  建立一个右侧分段            */
-            if (pmapnR2 == LW_NULL) {
-                __vmmMmapMerge(pmapn, pmapnR);                          /*  分裂失败, 回复成之前的状态  */
-                __VMM_MMAP_UNLOCK();
-                return  (PX_ERROR);
-            }
-            __vmmMmapDelete(pmapnR);                                    /*  删除分段                    */
+        if (pmapn->MAPN_stLen < stLen) {
+            pvAddr = (PVOID)((addr_t)pvAddr + pmapn->MAPN_stLen);
+            stLen -= pmapn->MAPN_stLen;
+            goto    __goon;                                             /*  继续                        */
         }
     }
     __VMM_MMAP_UNLOCK();
     
-    MONITOR_EVT_LONG2(MONITOR_EVENT_ID_VMM, MONITOR_EVENT_VMM_MUNMAP,
-                      pvAddr, stLen, LW_NULL);
-    
     return  (ERROR_NONE);
+    
+__error:
+    if (pmapnL) {
+        __vmmMmapMerge(pmapnL, pmapn);                                  /*  修改失败, 合并分段          */
+    }
+    __VMM_MMAP_UNLOCK();
+    
+    return  (PX_ERROR);
 }
 /*********************************************************************************************************
 ** 函数名称: API_VmmMsync

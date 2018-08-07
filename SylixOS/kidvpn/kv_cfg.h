@@ -1,6 +1,6 @@
 /**
  * @file
- * KidVPN server.
+ * KidVPN configure.
  * as much as possible compatible with different versions of LwIP
  * Verification using sylixos(tm) real-time operating system
  */
@@ -37,80 +37,17 @@
  *
  */
 
-#ifndef __KV_SERV_H
-#define __KV_SERV_H
+#ifndef __KV_CFG_H
+#define __KV_CFG_H
 
-/* server port */
-#define KV_SERV_PORT    10088
+/* KidVPN config file load */
+void       *kv_cfg_load(const char *file, const char *sector);
+void        kv_cfg_unload(void *loadret);
+int         kv_cfg_getint(void *loadret, const char *keyword, int def);
+const char *kv_cfg_getstring(void *loadret, const char *keyword, const char *def);
 
-/* KidVPN magic */
-#define KV_CMD_MAGIC0   0x35
-#define KV_CMD_MAGIC1   0x22
-#define KV_CMD_MAGIC2   0xf1
-#define KV_CMD_MAGIC3   0xc2
-
-/* command */
-#define KV_CMD_HELLO    0
-#define KV_CMD_WELCOME  1
-#define KV_CMD_BYE      2
-#define KV_CMD_ERR      255
-
-/* error */
-#define KV_ERR_NONE     0
-#define KV_ERR_MTU      1
-
-/* HELLO packet */
-struct kv_hello_hdr {
-    UINT8   cmd;
-    UINT8   cmd_len;
-    UINT8   hwaddr[ETH_ALEN];
-    UINT8   magic[4];
-    UINT32  snum;
-    UINT16  mtu;
-    UINT8   pad[16]; /* for aes encode decode */
-} __attribute__((packed));
-
-#define KV_HELLO_LEN    18
-
-/* WELCOME packet */
-struct kv_welcome_hdr {
-    UINT8   cmd;
-    UINT8   cmd_len;
-    UINT8   hwaddr[ETH_ALEN];
-    UINT8   magic[4];
-    UINT32  snum;
-    UINT8   pad[16]; /* for aes encode decode */
-} __attribute__((packed));
-
-#define KV_WELCOME_LEN  16
-
-/* BYE packet */
-struct kv_bye_hdr {
-    UINT8   cmd;
-    UINT8   cmd_len;
-    UINT8   magic[4];
-    UINT8   pad[16]; /* for aes encode decode */
-} __attribute__((packed));
-
-#define KV_BYE_LEN      6
-
-/* ERR packet */
-struct kv_err_hdr {
-    UINT8   cmd;
-    UINT8   cmd_len;
-    UINT8   magic[4];
-    UINT16  err;
-    UINT16  code;
-    UINT8   pad[16]; /* for aes encode decode */
-} __attribute__((packed));
-
-#define KV_ERR_LEN      10
-
-/* KidVPN server start */
-int kv_serv_start(int vnd_id, const unsigned char *key, unsigned int keybits,
-                  const char *local, unsigned int port, int mtu);
-
-#endif /* __KV_SERV_H */
+#endif /* __KV_CFG_H */
 /*
  * end
  */
+

@@ -71,6 +71,8 @@ LW_API PVOID    API_VmmMremap(PVOID  pvAddr, size_t stOldSize, size_t stNewSize,
 
 LW_API INT      API_VmmMunmap(PVOID  pvAddr, size_t  stLen);
 
+LW_API INT      API_VmmMProtect(PVOID  pvAddr, size_t  stLen, ULONG  ulFlag);
+
 LW_API INT      API_VmmMsync(PVOID  pvAddr, size_t  stLen, INT  iInval);
 
 LW_API VOID     API_VmmMmapShow(VOID);

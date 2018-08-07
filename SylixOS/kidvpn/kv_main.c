@@ -37,12 +37,13 @@
  *
  */
 
+#include "kv_cfg.h"
 #include "kv_lib.h"
 #include "kv_serv.h"
 #include "kv_client.h"
 
 /* version */
-#define KV_VERSION  "0.0.2"
+#define KV_VERSION  "0.8.4"
 
 /* key code change function */
 static int key_code_change (unsigned char *key, unsigned int *keybits, const char *keyascii)
@@ -105,27 +106,62 @@ static int key_code_change (unsigned char *key, unsigned int *keybits, const cha
     return  (0);
 }
 
+/* key code add password function */
+static void key_code_xpw (unsigned char *keycode, unsigned int keybits, const char *password)
+{
+    int  i, loop;
+    const char *p = password;
+
+    loop = keybits / 8;
+
+    for (i = 0; i < loop; i++) {
+        keycode[i] = keycode[i] ^ *p;
+        p++;
+        if (*p == '\0') {
+            p = password;
+        }
+    }
+}
+
 /* main function */
 int main (int argc, char *argv[])
 {
-    int  i, vnd_id, rand_fd, mtu = KV_VND_DEF_MTU;
     FILE *fkey;
+    int i, vnd_id, rand_fd, mtu = KV_VND_DEF_MTU;
+    unsigned int port;
+    void *cfg;
+    const char *keyfile;
+    const char *ipaddr;
+    const char *mode;
     char *straddr;
-    char keyfile[PATH_MAX];
     char keyascii[65];
     unsigned char keycode[32];
     unsigned int keybits;
 
     if (argc < 3) {
 usage:
-        printf("USAGE: kidvpn [-c | -s] [vnd id] [-mtu MTU(1280-1472)] [server | local ip]\n"
-               "       kidvpn -c 0 -mtu 1472 123.123.123.123 "
-               "(Run as KidVPN client and use virtual net device 0 (MTU:1472) connect to server 123.123.123.123)\n"
-               "       kidvpn -s 0 -mtu 1280 192.168.0.1     "
-               "(Run as KidVPN server and use virtual net device 0 (MTU:1280) bind local ip 192.168.0.1)\n"
-               "       kidvpn -genkey 128          "
-               "(Generate a AES-128 key)\n\n"
-               "KidVPN Current Version: %s\n", KV_VERSION);
+        printf("USAGE: kidvpn [config file *.ini] [sector] [password]\n"
+               "       config file like this:\n"
+               "           [server_0]\n"
+               "           mode=server                   # Run as server mode\n"
+               "           key_file=/etc/kidvpn/serv.key # AES key file\n"
+               "           vnd_id=0                      # Virtual network device ID\n"
+               "           mtu=1472                      # 1280 ~ 1472\n"
+               "           local_ip=192.168.0.1          # Local IP address in this system\n"
+               "           port=10088                    # Local port\n\n"
+               "           [client_0]\n"
+               "           mode=client                   # Run as client mode\n"
+               "           key_file=/etc/kidvpn/cli.key  # AES key file\n"
+               "           vnd_id=0                      # Virtual network device ID\n"
+               "           mtu=1472                      # 1280 ~ 1472 must same as server\n"
+               "           server=123.123.123.123        # KidVPN Server address\n"
+               "           port=10088                    # Server port\n\n"
+               "       kidvpn -genkey 128 (Generate a AES-128 key)\n"
+               "       eg. kidvpn -genkey 128\n"
+               "           kidvpn -genkey 192\n"
+               "           kidvpn -genkey 256\n"
+               "           kidvpn -genkey 192 >keyfile\n\n"
+               "[KidVPN] Current Version: %s\n", KV_VERSION);
         return  (0);
     }
 
@@ -133,7 +169,7 @@ usage:
         if (!strcmp(argv[1], "-genkey")) {
             rand_fd = open("/dev/random", O_RDONLY);
             if (rand_fd < 0) {
-                fprintf(stderr, "[KidVPN] Can not open /dev/random file, error: %s\n", strerror(errno));
+                fprintf(stderr, "[KidVPN] Can not open /dev/random file, error(%d): %s\n", errno, strerror(errno));
                 return  (-1);
             }
 
@@ -161,7 +197,6 @@ usage:
                 return  (-1);
             }
 
-            printf("[KidVPN] Key: ");
             for (i = 0; i < (keybits >> 3); i++) {
                 printf("%02x", keycode[i]);
             }
@@ -172,54 +207,104 @@ usage:
             goto    usage;
         }
 
-    } else {
-        vnd_id = atoi(argv[2]); /* vnd id */
-        snprintf(keyfile, PATH_MAX, "/etc/kidvpn/%d.key", vnd_id); /* build key file name */
+    } else if (argc == 4) {
+        cfg = kv_cfg_load(argv[1], argv[2]);
+        if (!cfg) {
+            fprintf(stderr, "[KidVPN] Can't load configure file %s error(%d): %s\n",
+                    argv[1], errno, strerror(errno));
+            return  (-1);
+        }
+
+        mode = kv_cfg_getstring(cfg, "mode", NULL);
+        if (!mode) {
+            kv_cfg_unload(cfg);
+            fprintf(stderr, "[KidVPN] Can't found mode setting\n");
+            return  (-1);
+        }
+
+        keyfile = kv_cfg_getstring(cfg, "key_file", NULL);
+        if (!keyfile) {
+            kv_cfg_unload(cfg);
+            fprintf(stderr, "[KidVPN] Can't found key file setting\n");
+            return  (-1);
+        }
+
+        vnd_id = kv_cfg_getint(cfg, "vnd_id", -1);
+        if (vnd_id < 0) {
+            kv_cfg_unload(cfg);
+            fprintf(stderr, "[KidVPN] Can't found virtual network device ID setting\n");
+            return  (-1);
+        }
+
+        mtu = kv_cfg_getint(cfg, "mtu", KV_VND_DEF_MTU);
+        if ((mtu > KV_VND_MAX_MTU) || (mtu < KV_VND_MIN_MTU)) {
+            kv_cfg_unload(cfg);
+            fprintf(stderr, "[KidVPN] MTU must in %d ~ %d\n", KV_VND_MIN_MTU, KV_VND_MAX_MTU);
+            return  (-1);
+        }
+
+        port = (unsigned short)kv_cfg_getint(cfg, "port", KV_SERV_PORT);
+        if (!port) {
+            kv_cfg_unload(cfg);
+            fprintf(stderr, "[KidVPN] Port error\n");
+            return  (-1);
+        }
+
+        if (*mode == 's') {
+            ipaddr = kv_cfg_getstring(cfg, "local_ip", NULL);
+
+        } else {
+            ipaddr = kv_cfg_getstring(cfg, "server", NULL);
+        }
+
+        if (!ipaddr) {
+            kv_cfg_unload(cfg);
+            fprintf(stderr, "[KidVPN] Can't found address setting\n");
+            return  (-1);
+        }
+
+        straddr = strdup(ipaddr);
+        if (!straddr) {
+            kv_cfg_unload(cfg);
+            fprintf(stderr, "[KidVPN] strdup() error(%d): %s\n", errno, strerror(errno));
+            return  (-1);
+        }
 
         fkey = fopen(keyfile, "r"); /* open key file */
         if (!fkey) {
-            fprintf(stderr, "[KidVPN] Open %s error: %s\n", keyfile, strerror(errno));
+            kv_cfg_unload(cfg);
+            fprintf(stderr, "[KidVPN] Open %s error(%d): %s\n", keyfile, errno, strerror(errno));
             return  (-1);
         }
 
         if (!fgets(keyascii, 65, fkey)) { /* read aes key */
-            fprintf(stderr, "[KidVPN] Key file %s error: %s\n", keyfile, strerror(errno));
+            fprintf(stderr, "[KidVPN] Key file %s error(%d): %s\n", keyfile, errno, strerror(errno));
             fclose(fkey);
+            kv_cfg_unload(cfg);
             return  (-1);
         }
         fclose(fkey);
 
         if (key_code_change(keycode, &keybits, keyascii)) { /* get aes key */
+            kv_cfg_unload(cfg);
             return  (-1);
         }
 
-        if (!strcmp(argv[3], "-mtu")) { /* set MTU */
-            if (argc < 6) {
-                goto    usage;
-            }
+        key_code_xpw(keycode, keybits, argv[3]);
 
-            mtu = atoi(argv[4]);
-            if ((mtu > KV_VND_MAX_MTU) || (mtu < KV_VND_MIN_MTU)) {
-                fprintf(stderr, "[KidVPN] MTU must in %d ~ %d\n", KV_VND_MIN_MTU, KV_VND_MAX_MTU);
-                return  (-1);
-            }
-            straddr = argv[5];
+        kv_cfg_unload(cfg);
+
+        daemon(1, 1); /* make server to a daemon mode */
+
+        if (*mode == 's') {
+            return  (kv_serv_start(vnd_id, keycode, keybits, straddr, port, mtu));
 
         } else {
-            straddr = argv[3];
+            return  (kv_cli_start(vnd_id, keycode, keybits, straddr, port, mtu));
         }
 
-        if (!strcmp(argv[1], "-c")) {
-            daemon(1, 1); /* make client to a daemon mode */
-            return  (kv_cli_start(vnd_id, keycode, keybits, straddr, mtu));
-
-        } else if (!strcmp(argv[1], "-s")) {
-            daemon(1, 1); /* make server to a daemon mode */
-            return  (kv_serv_start(vnd_id, keycode, keybits, straddr, mtu));
-
-        } else {
-            goto    usage;
-        }
+    } else {
+        goto    usage;
     }
 }
 

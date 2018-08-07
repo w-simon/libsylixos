@@ -179,7 +179,7 @@ static int kv_serv_loop (void)
             num = recvfrom(serv_fd, packet_en, sizeof(packet_en), 0,
                            (struct sockaddr *)&addr_in, &slen);
             if (num <= 0) {
-                fprintf(stderr, "[KidVPN] Socket recvfrom() error: %s!\n", strerror(errno));
+                fprintf(stderr, "[KidVPN] Socket recvfrom() error(%d): %s!\n", errno, strerror(errno));
                 break; /* an error occur, exit! */
             }
 
@@ -194,7 +194,6 @@ static int kv_serv_loop (void)
                         (hhdr->magic[1] == KV_CMD_MAGIC1) &&
                         (hhdr->magic[2] == KV_CMD_MAGIC2) &&
                         (hhdr->magic[3] == KV_CMD_MAGIC3)) {
-                        int welcome = 0;
                         UINT16 mtu = ntohs(hhdr->mtu);
 
                         if (mtu != vnd_mtu) { /* MTU not fixed */
@@ -213,7 +212,7 @@ static int kv_serv_loop (void)
 
                             if (sendto(serv_fd, packet_en, aes_len, 0,
                                        (struct sockaddr *)&addr_in, slen) != aes_len) { /* send server welcome */
-                                fprintf(stderr, "[KidVPN] Socket sendto() error: %s!\n", strerror(errno));
+                                fprintf(stderr, "[KidVPN] Socket sendto() error(%d): %s!\n", errno, strerror(errno));
                                 break; /* an error occur, exit! */
                             }
 
@@ -234,22 +233,20 @@ static int kv_serv_loop (void)
                                     printf("[KidVPN] Client add: %s [%02x:%02x:%02x:%02x:%02x:%02x]\n",
                                            inet_ntoa(cli->addr.sin_addr), cli->hwaddr[0], cli->hwaddr[1],
                                            cli->hwaddr[2], cli->hwaddr[3], cli->hwaddr[4], cli->hwaddr[5]);
-                                    welcome = 1;
                                 }
                             }
                             KV_SERV_UNLOCK();
 
-                            if (welcome) { /* welcome client */
-                                snum++;
-                                welcome_hdr.snum = htonl(snum);
+                            /* respond client keep alive */
+                            snum++;
+                            welcome_hdr.snum = htonl(snum);
 
-                                kv_lib_encode(packet_en, (UINT8 *)&welcome_hdr, KV_WELCOME_LEN, &aes_len, &ase_enc);
+                            kv_lib_encode(packet_en, (UINT8 *)&welcome_hdr, KV_WELCOME_LEN, &aes_len, &ase_enc);
 
-                                if (sendto(serv_fd, packet_en, aes_len, 0,
-                                           (struct sockaddr *)&addr_in, slen) != aes_len) { /* send server welcome */
-                                    fprintf(stderr, "[KidVPN] Socket sendto() error: %s!\n", strerror(errno));
-                                    break; /* an error occur, exit! */
-                                }
+                            if (sendto(serv_fd, packet_en, aes_len, 0,
+                                       (struct sockaddr *)&addr_in, slen) != aes_len) { /* send server welcome */
+                                fprintf(stderr, "[KidVPN] Socket sendto() error(%d): %s!\n", errno, strerror(errno));
+                                break; /* an error occur, exit! */
                             }
                         }
                     }
@@ -302,7 +299,7 @@ static int kv_serv_loop (void)
         if (FD_ISSET(vnd_fd, &fdset)) { /* vitural net device send a message to other */
             num = read(vnd_fd, packet_in, sizeof(packet_in));
             if (num <= 0) {
-                fprintf(stderr, "[KidVPN] Read virtual net device error: %s!\n", strerror(errno));
+                fprintf(stderr, "[KidVPN] Read virtual net device error(%d): %s!\n", errno, strerror(errno));
                 break; /* an error occur, exit! */
             }
 
@@ -369,7 +366,8 @@ static void kv_serv_hello (void)
 }
 
 /* start KidVPN server */
-int kv_serv_start (int vnd_id, const unsigned char *key, unsigned int keybits, const char *local, int mtu)
+int kv_serv_start (int vnd_id, const unsigned char *key, unsigned int keybits,
+                   const char *local, unsigned int port, int mtu)
 {
     pthread_t t_hello;
 
@@ -390,7 +388,7 @@ int kv_serv_start (int vnd_id, const unsigned char *key, unsigned int keybits, c
 
     serv_addr.sin_len = sizeof(struct sockaddr_in);
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(KV_SERV_PORT);
+    serv_addr.sin_port = htons(port);
 
     if (!inet_aton(local, &serv_addr.sin_addr)) {
         fprintf(stderr, "[KidVPN] Local IP error.\n");
@@ -403,13 +401,13 @@ int kv_serv_start (int vnd_id, const unsigned char *key, unsigned int keybits, c
     }
 
     if (bind(serv_fd, (struct sockaddr *)&serv_addr, sizeof(struct sockaddr_in))) { /* bind local port */
-        fprintf(stderr, "[KidVPN] Socket bind() call fail: %s!\n", strerror(errno));
+        fprintf(stderr, "[KidVPN] Socket bind() call fail(%d): %s!\n", errno, strerror(errno));
         kv_lib_deinit(serv_fd, vnd_fd);
         return  (-1);
     }
 
     if (pthread_create(&t_hello, NULL, (void *(*)(void *))kv_serv_hello, NULL)) {
-        fprintf(stderr, "[KidVPN] Can not create hello thread: %s.\n", strerror(errno));
+        fprintf(stderr, "[KidVPN] Can not create hello thread error(%d): %s.\n", errno, strerror(errno));
         kv_lib_deinit(serv_fd, vnd_fd);
         return  (-1);
     }

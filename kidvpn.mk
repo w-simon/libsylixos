@@ -33,6 +33,7 @@ LOCAL_TARGET_NAME := kidvpn
 # Source list
 #*********************************************************************************************************
 LOCAL_SRCS := \
+SylixOS/kidvpn/kv_cfg.c \
 SylixOS/kidvpn/kv_client.c \
 SylixOS/kidvpn/kv_lib.c \
 SylixOS/kidvpn/kv_serv.c \

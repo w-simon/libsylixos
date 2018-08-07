@@ -1649,21 +1649,23 @@ static VOID  __procFsNetTcpipStatPrintPim (PCHAR  pcBuffer, size_t  stTotalSize,
 static VOID  __procFsNetTcpipStatPrintQos (PCHAR  pcBuffer, size_t  stTotalSize, size_t *pstOft)
 {
     *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
-                       "\n%-9s %-8s %-8s %-8s %-8s %-8s %-8s %-8s\n",
-                       "IP-QoS", "prio_1", "prio_2", "prio_3", "prio_4", "prio_5", "prio_6", "prio_7");
+                       "\n%-9s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-9s\n",
+                       "IP-QoS", "prio_1", "prio_2", "prio_3", "prio_4", "prio_5", "prio_6", "prio_7", "dont_drop");
                        
     *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
-                       "%-9s %-8u %-8u %-8u %-8u %-8u %-8u %-8u\n",
+                       "%-9s %-8u %-8u %-8u %-8u %-8u %-8u %-8u %-9u\n",
                        "IP", tcpip_qos_stat(4, 1), 
                        tcpip_qos_stat(4, 2), tcpip_qos_stat(4, 3), tcpip_qos_stat(4, 4), 
-                       tcpip_qos_stat(4, 5), tcpip_qos_stat(4, 6), tcpip_qos_stat(4, 7));
+                       tcpip_qos_stat(4, 5), tcpip_qos_stat(4, 6), tcpip_qos_stat(4, 7),
+                       tcpip_qos_dontdrop_stat(4));
                        
 #if LWIP_IPV6
     *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
-                       "%-9s %-8u %-8u %-8u %-8u %-8u %-8u %-8u\n",
+                       "%-9s %-8u %-8u %-8u %-8u %-8u %-8u %-8u %-9u\n",
                        "IPv6", tcpip_qos_stat(6, 1), 
                        tcpip_qos_stat(6, 2), tcpip_qos_stat(6, 3), tcpip_qos_stat(6, 4), 
-                       tcpip_qos_stat(6, 5), tcpip_qos_stat(6, 6), tcpip_qos_stat(6, 7));
+                       tcpip_qos_stat(6, 5), tcpip_qos_stat(6, 6), tcpip_qos_stat(6, 7),
+                       tcpip_qos_dontdrop_stat(6));
 #endif
 }
 

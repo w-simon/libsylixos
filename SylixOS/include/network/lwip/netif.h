@@ -393,8 +393,13 @@ struct netif {
   void (*up)(struct netif *); /* make net device up */
   void (*down)(struct netif *); /* make net device down */
   /* SylixOS firewall */
+  void *inner_fw_stat;
   int (*inner_fw)(struct netif *, struct pbuf *p); /* inner firewall: net packet filter hook */
   int (*outer_fw)(void *, struct pbuf *p); /* outer firewall (first arg is netdev *) */
+  /* SylixOS QoS hook (return 7 is highest prio, 0 is lowest prio) */
+  void *inner_qos_stat;
+  u8_t (*inner_qos)(struct netif *, struct pbuf *p, u8_t ipver, u8_t prio, u16_t iphdr_offset, u8_t *dont_drop);
+  u8_t (*outer_qos)(void *, struct pbuf *p, u8_t ipver, u8_t prio, u16_t iphdr_offset, u8_t *dont_drop);
   /* SylixOS externed flags */
   long flags2;
 #define NETIF_FLAG2_DHCP        1

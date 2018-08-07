@@ -367,8 +367,12 @@ netif_add(struct netif *netif,
   netif->ioctl = NULL;
   netif->up = NULL;
   netif->down = NULL;
+  netif->inner_fw_stat = NULL;
   netif->inner_fw = NULL;
   netif->outer_fw = NULL;
+  netif->inner_qos_stat = NULL;
+  netif->inner_qos = NULL;
+  netif->outer_qos = NULL;
   netif->flags2 = 0l;
   netif->br_eth = NULL;
   netif->flowctl = NULL;

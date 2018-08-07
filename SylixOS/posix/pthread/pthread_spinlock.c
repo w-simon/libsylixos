@@ -146,6 +146,8 @@ int  pthread_spin_trylock (pthread_spinlock_t  *pspinlock)
 ** 输　出  : ERROR CODE
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : 在 spinlock 且关中断的情况下不能调用内核 API 或产生缺页中断.
+
                                            API 函数
 *********************************************************************************************************/
 #if LW_CFG_POSIXEX_EN > 0
@@ -171,6 +173,8 @@ int  pthread_spin_lock_irq_np (pthread_spinlock_t  *pspinlock, pthread_int_t *ir
 ** 输　出  : ERROR CODE
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : 在 spinlock 且关中断的情况下不能调用内核 API 或产生缺页中断.
+
                                            API 函数
 *********************************************************************************************************/
 LW_API 
@@ -194,6 +198,8 @@ int  pthread_spin_unlock_irq_np (pthread_spinlock_t  *pspinlock, pthread_int_t i
 ** 输　出  : ERROR CODE
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : 在 spinlock 且关中断的情况下不能调用内核 API 或产生缺页中断.
+
                                            API 函数
 *********************************************************************************************************/
 LW_API 

@@ -75,10 +75,6 @@ LW_API INT              API_AtomicSwp(INT  iVal, atomic_t  *patomic);
 
 LW_API INT              API_AtomicCas(atomic_t  *patomic, INT  iOldVal, INT  iNewVal);
 
-LW_API VOID             API_AtomicLock(INTREG  *piregInterLevel);
-
-LW_API VOID             API_AtomicUnlock(INTREG  iregInterLevel);
-
 /*********************************************************************************************************
   CPU
 *********************************************************************************************************/
@@ -120,7 +116,7 @@ LW_API ULONG            API_CpuGetSchedAffinity(size_t  stSize, PLW_CLASS_CPUSET
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 
 /*********************************************************************************************************
-  SPINLOCK (此 API 仅供内核程序使用)
+  SPINLOCK (此 API 仅供内核程序使用, 在保护区间内不允许调用内核 API 不允许引起缺页中断)
 *********************************************************************************************************/
 
 #ifdef __SYLIXOS_KERNEL
@@ -134,23 +130,17 @@ LW_API INT              API_SpinLock(spinlock_t *psl);
 
 LW_API INT              API_SpinLockIrq(spinlock_t *psl, INTREG  *iregInterLevel);
 
-LW_API INT              API_SpinLockIgnIrq(spinlock_t *psl);
-
 LW_API INT              API_SpinLockQuick(spinlock_t *psl, INTREG  *iregInterLevel);
 
 LW_API INT              API_SpinTryLock(spinlock_t *psl);
 
 LW_API INT              API_SpinTryLockIrq(spinlock_t *psl, INTREG  *iregInterLevel);
 
-LW_API INT              API_SpinTryLockIgnIrq(spinlock_t *psl);
-
 LW_API INT              API_SpinUnlock(spinlock_t *psl);
 
 LW_API INT              API_SpinUnlockIrq(spinlock_t *psl, INTREG  iregInterLevel);
 
 LW_API INT              API_SpinUnlockQuick(spinlock_t *psl, INTREG  iregInterLevel);
-
-LW_API INT              API_SpinUnlockIgnIrq(spinlock_t *psl);
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 
 /*********************************************************************************************************
