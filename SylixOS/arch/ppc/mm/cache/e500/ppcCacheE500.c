@@ -39,6 +39,7 @@ UINT32  PPC_E500_DCACHE_ALIGN_SIZE = 32;
 UINT32  PPC_E500_DCACHE_CNWAY      = 8;
 UINT32  PPC_E500_DCACHE_SETS       = 128;
 UINT32  PPC_E500_DCACHE_LINE_NUM   = 128 * 8;
+UINT32  PPC_E500_DCACHE_FLUSH_NUM  = ((128 * 8) * 3) >> 1;
 /*********************************************************************************************************
   外部接口声明
 *********************************************************************************************************/
@@ -126,6 +127,7 @@ static INT   ppcE500CacheProbe (CPCHAR  pcMachineName, PPC_CACHE  *pICache, PPC_
             PPC_E500_DCACHE_CNWAY     = l1cfg0.L1CFG0_ucCNWAY + 1;
             PPC_E500_DCACHE_LINE_NUM  = (uiCacheSize / PPC_E500_DCACHE_ALIGN_SIZE);
             PPC_E500_DCACHE_SETS      = PPC_E500_DCACHE_LINE_NUM / PPC_E500_DCACHE_CNWAY;
+            PPC_E500_DCACHE_FLUSH_NUM = (PPC_E500_DCACHE_LINE_NUM * 3) >> 1;
 
             pDCache->CACHE_uiSize     = uiCacheSize;
             pDCache->CACHE_uiLineSize = PPC_E500_DCACHE_ALIGN_SIZE;

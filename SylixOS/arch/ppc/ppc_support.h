@@ -175,6 +175,12 @@ VOID    archCacheReset(CPCHAR     pcMachineName);
 VOID    archCacheInit(CACHE_MODE  uiInstruction, CACHE_MODE  uiData, CPCHAR  pcMachineName);
 
 #define __ARCH_CACHE_INIT   archCacheInit
+
+#if LW_CFG_PPC_CACHE_L2 > 0
+#include <arch/ppc/mm/cache/l2/corenet/ppcL2CacheCoreNet.h>
+#include <arch/ppc/mm/cache/l2/qoriq/ppcL2CacheQorIQ.h>
+#include <arch/ppc/mm/cache/l2/qoriq/ppcL3CacheQorIQ.h>
+#endif                                                                  /*  LW_CFG_PPC_CACHE_L2 > 0     */
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
 
 /*********************************************************************************************************
@@ -422,6 +428,10 @@ size_t  bspInfoRamSize(VOID);
 
 #if LW_CFG_PPC_CACHE_L2 > 0
 VOID  bspL2CacheInit(PVOID        pl2cdrv,
+                     CACHE_MODE   uiInstruction,
+                     CACHE_MODE   uiData,
+                     CPCHAR       pcMachineName);
+VOID  bspL3CacheInit(PVOID        pl3cdrv,
                      CACHE_MODE   uiInstruction,
                      CACHE_MODE   uiData,
                      CPCHAR       pcMachineName);

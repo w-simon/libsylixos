@@ -112,7 +112,7 @@
 #define LW_CFG_NET_NAT_MAX_AP_IF                    2                   /*  NAT 外网接口数量            */
 #define LW_CFG_NET_NAT_MAX_LOCAL_IF                 2                   /*  NAT 内网接口数量            */
 #define LW_CFG_NET_NAT_MAX_SESSION                  2048                /*  NAT 最大会话个数 256-24576  */
-#define LW_CFG_NET_NAT_IDLE_TIMEOUT                 20                  /*  NAT 空闲链接超时, 单位:分钟 */
+#define LW_CFG_NET_NAT_IDLE_TIMEOUT                 15                  /*  NAT 空闲链接超时, 单位:分钟 */
 
 /*********************************************************************************************************
                                             VLAN tools

@@ -540,8 +540,12 @@ reswitch:	switch (ch) {
 #ifdef FLOATING_POINT
 		case 'e':		/* anomalous precision */
 		case 'E':
+#ifndef SYLIXOS /* For BSD */
 			prec = (prec == -1) ?
 				DEFPREC + 1 : prec + 1;
+#else /* For SylixOS */
+            prec = (prec == -1) ? DEFPREC: prec;
+#endif
 			/* FALLTHROUGH */
 			goto fp_begin;
 		case 'f':		/* always print trailing zeroes */
@@ -733,12 +737,19 @@ number:			if ((dprec = prec) >= 0)
 		 * fieldsz excludes decimal prec; realsz includes it.
 		 */
 		fieldsz = size;
-		if (sign && (sign != '+')) /* SylixOS Add [&& (sign != '+')] for compatibility with Linux printing */
+#ifndef SYLIXOS /* For BSD */
+		if (sign)
 			fieldsz++;
-		else if (flags & HEXPREFIX)
+		else
+#endif
+        if (flags & HEXPREFIX)
 			fieldsz += 2;
 		realsz = dprec > fieldsz ? dprec : fieldsz;
 
+#ifdef SYLIXOS /* For SylixOS and Linux */
+		if (sign)
+		    realsz++;
+#endif
 		/* right-adjusting blank padding */
 		if ((flags & (LADJUST|ZEROPAD)) == 0)
 			PAD(width - realsz, blanks);

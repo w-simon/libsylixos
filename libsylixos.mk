@@ -247,9 +247,14 @@ SylixOS/arch/ppc/mm/cache/ppc60x/ppcCache604.c \
 SylixOS/arch/ppc/mm/cache/ppc60x/ppcCache745x.c \
 SylixOS/arch/ppc/mm/cache/ppc60x/ppcCache83xx.c \
 SylixOS/arch/ppc/mm/cache/l2/ppcL2.c \
+SylixOS/arch/ppc/mm/cache/l2/corenet/ppcL2CacheCoreNet.c \
+SylixOS/arch/ppc/mm/cache/l2/e500mc/ppcL2CacheE500mc.c \
+SylixOS/arch/ppc/mm/cache/l2/e500mc/ppcL2CacheE500mcAsm.s \
 SylixOS/arch/ppc/mm/cache/l2/ppc750/ppcL2Cache750.c \
 SylixOS/arch/ppc/mm/cache/l2/ppc750/ppcL2Cache750Asm.S \
 SylixOS/arch/ppc/mm/cache/l2/ppc750/ppcL2Cache745xAsm.S \
+SylixOS/arch/ppc/mm/cache/l2/qoriq/ppcL2CacheQorIQ.c \
+SylixOS/arch/ppc/mm/cache/l2/qoriq/ppcL3CacheQorIQ.c \
 SylixOS/arch/ppc/mm/mmu/common/ppcMmu.c \
 SylixOS/arch/ppc/mm/mmu/common/ppcMmuAsm.S \
 SylixOS/arch/ppc/mm/mmu/common/ppcMmuHashPageTbl.c \

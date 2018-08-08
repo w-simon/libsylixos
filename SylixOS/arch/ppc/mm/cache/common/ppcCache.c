@@ -54,7 +54,7 @@ static PPC_CACHE        _G_ICache, _G_DCache;                           /*  I-Ca
 /*********************************************************************************************************
   Pointer of a page-aligned cacheable region to use as a flush buffer.
 *********************************************************************************************************/
-UINT8                  *_G_pucPpcCacheReadBuffer;
+UINT8                  *_G_pucPpcCacheReadBuffer = (UINT8 *)0x10000;
 /*********************************************************************************************************
   CACHE 驱动
 *********************************************************************************************************/
@@ -543,8 +543,9 @@ INT  ppcCacheDataUpdate (PVOID  pvAdrs, size_t  stBytes, BOOL  bInv)
 *********************************************************************************************************/
 static INT  ppcCacheProbe (CPCHAR       pcMachineName)
 {
-    static BOOL  bProbed = LW_FALSE;
-    INT          i;
+    static BOOL             bProbed = LW_FALSE;
+    LW_MMU_PHYSICAL_DESC    phydescText;
+    INT                     i;
 
     if (bProbed) {
         return  (ERROR_NONE);
@@ -566,16 +567,13 @@ static INT  ppcCacheProbe (CPCHAR       pcMachineName)
     }
 
     /*
-     * Alloc a page-aligned cacheable region to use as a flush buffer.
-     * Worst case PLRU flush needs 1.5 * cache size.
+     * _G_pucPpcCacheReadBuffer 设置为 text 段的开始地址
+     * 因为 text 段总是映射和可 CACHE 的
+     * 当清空整个数据 CACHE 时, 它一定不是在一个脏的状态
      */
-    _G_pucPpcCacheReadBuffer = __KHEAP_ALLOC_ALIGN(ROUND_UP((_G_DCache.CACHE_uiSize * 3) >> 1,
-                                                   LW_CFG_VMM_PAGE_SIZE),
-                                                   LW_CFG_VMM_PAGE_SIZE);
-    if (!_G_pucPpcCacheReadBuffer) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "system low memory.\r\n");
-        return  (PX_ERROR);
-    }
+    API_VmmPhysicalKernelDesc(&phydescText, LW_NULL);
+
+    _G_pucPpcCacheReadBuffer = (UINT8 *)ROUND_UP(phydescText.PHYD_ulVirMap, LW_CFG_VMM_PAGE_SIZE);
 
     bProbed = LW_TRUE;
 

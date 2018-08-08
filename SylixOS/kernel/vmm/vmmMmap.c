@@ -788,6 +788,7 @@ PVOID  API_VmmMremap (PVOID  pvAddr, size_t stOldSize, size_t stNewSize, INT  iM
         return  (LW_VMM_MAP_FAILED);
     }
     
+    stOldSize = ROUND_UP(stOldSize, LW_CFG_VMM_PAGE_SIZE);              /*  变成页面对齐大小            */
     stNewSize = ROUND_UP(stNewSize, LW_CFG_VMM_PAGE_SIZE);              /*  变成页面对齐大小            */
     
     __VMM_MMAP_LOCK();

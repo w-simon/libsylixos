@@ -37,7 +37,7 @@
 #define ppc750L2CacheSetCR              ppc745xL2CacheSetCR
 #define ppc750L2CacheGetCR              ppc745xL2CacheGetCR
 
-#define ppc750L2CacheInit               ppc745xL2CacheInit
+#define ppc750L2CacheInitHw             ppc745xL2CacheInitHw
 
 #define ppc750L2CacheEnable             ppc745xL2CacheEnable
 #define ppc750L2CacheDisable            ppc745xL2CacheDisable

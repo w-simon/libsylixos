@@ -33,16 +33,33 @@ static LW_SPINLOCK_CA_DEFINE_CACHE_ALIGN(_G_l2slca);
 #define L2_OP_ENTER()   LW_SPIN_LOCK_IGNIRQ(&_G_l2slca.SLCA_sl)
 #define L2_OP_EXIT()    LW_SPIN_UNLOCK_IGNIRQ(&_G_l2slca.SLCA_sl)
 /*********************************************************************************************************
-  L2 驱动
+  L2/L3 CACHE 驱动
 *********************************************************************************************************/
 static L2C_DRVIER       _G_l2cdrv;
+static L2C_DRVIER       _G_l3cdrv;
 /*********************************************************************************************************
-  声明 L2 控制器初始化函数
+  声明 L2/L3 控制器初始化函数
 *********************************************************************************************************/
-VOID  ppcL2Cache750Init(L2C_DRVIER  *pl2cdrv,
+VOID  ppc750L2CacheInit(L2C_DRVIER  *pl2cdrv,
                         CACHE_MODE   uiInstruction,
                         CACHE_MODE   uiData,
                         CPCHAR       pcMachineName);
+VOID  ppcCoreNetL2CacheInit(L2C_DRVIER  *pl2cdrv,
+                            CACHE_MODE   uiInstruction,
+                            CACHE_MODE   uiData,
+                            CPCHAR       pcMachineName);
+VOID  ppcE500mcL2CacheInit(L2C_DRVIER  *pl2cdrv,
+                           CACHE_MODE   uiInstruction,
+                           CACHE_MODE   uiData,
+                           CPCHAR       pcMachineName);
+VOID  ppcQorIQL2CacheInit(L2C_DRVIER  *pl2cdrv,
+                          CACHE_MODE   uiInstruction,
+                          CACHE_MODE   uiData,
+                          CPCHAR       pcMachineName);
+VOID  ppcQorIQL3CacheInit(L2C_DRVIER  *pl3cdrv,
+                          CACHE_MODE   uiInstruction,
+                          CACHE_MODE   uiData,
+                          CPCHAR       pcMachineName);
 /*********************************************************************************************************
 ** 函数名称: bspL2CacheInit
 ** 功能描述: BSP 相关的 L2 CACHE 初始化
@@ -59,7 +76,25 @@ LW_WEAK VOID  bspL2CacheInit (PVOID        pl2cdrv,
                               CACHE_MODE   uiData,
                               CPCHAR       pcMachineName)
 {
-    _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown machine name.\r\n");
+    _DebugHandle(__ERRORMESSAGE_LEVEL, "L2 Cache: unknown machine name.\r\n");
+}
+/*********************************************************************************************************
+** 函数名称: bspL3CacheInit
+** 功能描述: BSP 相关的 L3 CACHE 初始化
+** 输　入  : pl3cdrv            L3 驱动
+**           uiInstruction      指令 CACHE 类型
+**           uiData             数据 CACHE 类型
+**           pcMachineName      机器名称
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+LW_WEAK VOID  bspL3CacheInit (PVOID        pl3cdrv,
+                              CACHE_MODE   uiInstruction,
+                              CACHE_MODE   uiData,
+                              CPCHAR       pcMachineName)
+{
+    _DebugHandle(__ERRORMESSAGE_LEVEL, "L3 Cache: unknown machine name.\r\n");
 }
 /*********************************************************************************************************
 ** 函数名称: ppcL2Enable
@@ -74,6 +109,9 @@ VOID  ppcL2Enable (VOID)
     L2_OP_ENTER();
     if (_G_l2cdrv.L2CD_pfuncEnable) {
         _G_l2cdrv.L2CD_pfuncEnable(&_G_l2cdrv);
+    }
+    if (_G_l3cdrv.L2CD_pfuncEnable) {
+        _G_l3cdrv.L2CD_pfuncEnable(&_G_l3cdrv);
     }
     L2_OP_EXIT();
 }
@@ -90,6 +128,9 @@ VOID  ppcL2Disable (VOID)
     L2_OP_ENTER();
     if (_G_l2cdrv.L2CD_pfuncDisable) {
         _G_l2cdrv.L2CD_pfuncDisable(&_G_l2cdrv);
+    }
+    if (_G_l3cdrv.L2CD_pfuncDisable) {
+        _G_l3cdrv.L2CD_pfuncDisable(&_G_l3cdrv);
     }
     L2_OP_EXIT();
 }
@@ -256,21 +297,36 @@ VOID  ppcL2Init (CACHE_MODE   uiInstruction,
                  CACHE_MODE   uiData,
                  CPCHAR       pcMachineName)
 {
-    LW_SPIN_INIT(&_G_l2sl);
+    LW_SPIN_INIT(&_G_l2slca.u.SLUCA_sl);
     
+    _G_l2cdrv.L2CD_uiType    = 0;
+    _G_l2cdrv.L2CD_uiRelease = 0;
+
+    _G_l3cdrv.L2CD_uiType    = 0;
+    _G_l3cdrv.L2CD_uiRelease = 0;
+
     if ((lib_strcmp(pcMachineName, PPC_MACHINE_750)  == 0) ||
         (lib_strcmp(pcMachineName, PPC_MACHINE_745X) == 0)) {
-        _G_l2cdrv.L2CD_pcName    = pcMachineName;
-        _G_l2cdrv.L2CD_uiType    = 0;
-        _G_l2cdrv.L2CD_uiRelease = 0;
-        
-        _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s L2 cache controller initialization.\r\n", 
-                     LW_CFG_CPU_ARCH_FAMILY, _G_l2cdrv.L2CD_pcName);
+        ppc750L2CacheInit(&_G_l2cdrv, uiInstruction, uiData, pcMachineName);
 
-        ppcL2Cache750Init(&_G_l2cdrv, uiInstruction, uiData, pcMachineName);
+    } else if ((lib_strcmp(pcMachineName, PPC_MACHINE_E500)   == 0) ||
+               (lib_strcmp(pcMachineName, PPC_MACHINE_E500V1) == 0) ||
+               (lib_strcmp(pcMachineName, PPC_MACHINE_E500V2) == 0)) {
+        ppcQorIQL2CacheInit(&_G_l2cdrv, uiInstruction, uiData, pcMachineName);
+
+    } else if ((lib_strcmp(pcMachineName, PPC_MACHINE_E500MC) == 0) ||
+               (lib_strcmp(pcMachineName, PPC_MACHINE_E5500)  == 0)) {
+        ppcE500mcL2CacheInit(&_G_l2cdrv, uiInstruction, uiData, pcMachineName);
+        ppcQorIQL3CacheInit (&_G_l3cdrv, uiInstruction, uiData, pcMachineName);
+
+
+    } else if (lib_strcmp(pcMachineName, PPC_MACHINE_E6500) == 0) {
+        ppcCoreNetL2CacheInit(&_G_l2cdrv, uiInstruction, uiData, pcMachineName);
+        ppcQorIQL3CacheInit  (&_G_l3cdrv, uiInstruction, uiData, pcMachineName);
 
     } else {
         bspL2CacheInit((PVOID)(&_G_l2cdrv), uiInstruction, uiData, pcMachineName);
+        bspL3CacheInit((PVOID)(&_G_l3cdrv), uiInstruction, uiData, pcMachineName);
     }
 }
 

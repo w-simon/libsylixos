@@ -33,7 +33,7 @@
     EXPORT_LABEL(ppc750L2CacheSetCR)
     EXPORT_LABEL(ppc750L2CacheGetCR)
 
-    EXPORT_LABEL(ppc750L2CacheInit)
+    EXPORT_LABEL(ppc750L2CacheInitHw)
 
     EXPORT_LABEL(ppc750L2CacheEnable)
     EXPORT_LABEL(ppc750L2CacheDisable)
@@ -145,7 +145,7 @@ LINE_LABEL(invalidateMPC745XDone)
 ;  初始化 L2 Cache
 ;*********************************************************************************************************/
 
-FUNC_DEF(ppc750L2CacheInit)
+FUNC_DEF(ppc750L2CacheInitHw)
     OR      R6 , R3 , R3                                        ;/*  R6 暂存 R3 的参数(CR 的值)          */
 
     MFSPR   R9 , PVR                                            ;/*  Read PVR                            */

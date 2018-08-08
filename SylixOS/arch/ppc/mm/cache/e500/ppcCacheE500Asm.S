@@ -58,8 +58,7 @@
 
     IMPORT_LABEL(_G_pucPpcCacheReadBuffer)
 
-    IMPORT_LABEL(PPC_E500_ICACHE_LINE_NUM)
-    IMPORT_LABEL(PPC_E500_DCACHE_LINE_NUM)
+    IMPORT_LABEL(PPC_E500_DCACHE_FLUSH_NUM)
     IMPORT_LABEL(PPC_E500_DCACHE_ALIGN_SIZE)
 
 ;/*********************************************************************************************************
@@ -176,8 +175,8 @@ FUNC_DEF(ppcE500DCacheDisable)
      ;* if the MMU is enabled , the only way to disable the cache is
      ;* via the MMU.
      ;*/
-    LIS     R6 , HIADJ(PPC_E500_DCACHE_LINE_NUM)
-    LWZ     R6 , LO(PPC_E500_DCACHE_LINE_NUM)(R6)
+    LIS     R6 , HIADJ(PPC_E500_DCACHE_FLUSH_NUM)
+    LWZ     R6 , LO(PPC_E500_DCACHE_FLUSH_NUM)(R6)
 
     ;/*
      ;* R6 contains the count of cache lines to be fetched & flushed.
@@ -256,8 +255,8 @@ LINE_LABEL(cacheE500DisableLoadItlb)
 ;*********************************************************************************************************/
 
 FUNC_DEF(ppcE500DCacheFlushAll)
-    LIS     R6 , HIADJ(PPC_E500_DCACHE_LINE_NUM)
-    LWZ     R6 , LO(PPC_E500_DCACHE_LINE_NUM)(R6)
+    LIS     R6 , HIADJ(PPC_E500_DCACHE_FLUSH_NUM)
+    LWZ     R6 , LO(PPC_E500_DCACHE_FLUSH_NUM)(R6)
 
     ;/*
      ;* R6 contains the count of cache lines to be fetched & flushed.

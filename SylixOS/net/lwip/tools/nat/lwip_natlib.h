@@ -30,13 +30,19 @@
   NAT 控制块
 *********************************************************************************************************/
 typedef struct {
-    LW_LIST_LINE        NAT_lineManage;                                 /*  NAT 控制块链表              */
+    union {
+        LW_LIST_MONO    NATL_monoFree;                                  /*  NAT 空闲链                  */
+        LW_LIST_LINE    NATL_lineManage;                                /*  NAT 控制块链表              */
+    } l;
+#define NAT_monoFree    l.NATL_monoFree
+#define NAT_lineManage  l.NATL_lineManage
     
     u8_t                NAT_ucProto;                                    /*  协议                        */
     u16_t               NAT_usSrcHash;                                  /*  负载均衡源地址 hash         */
     ip4_addr_t          NAT_ipaddrLocalIp;                              /*  本地 IP 地址                */
     u16_t               NAT_usLocalPort;                                /*  本地端口号                  */
     u16_t               NAT_usAssPort;                                  /*  映射端口号 (唯一的)         */
+    u16_t               NAT_usAssPortSave;                              /*  MAP 映射的端口需要保存      */
     
     u32_t               NAT_uiLocalSequence;                            /*  TCP 序列号                  */
     u32_t               NAT_uiLocalRcvNext;                             /*  TCP 期望接收                */
@@ -53,24 +59,24 @@ typedef __NAT_CB       *__PNAT_CB;
   NAT 外网主动连接映射关系
 *********************************************************************************************************/
 typedef struct {
-    LW_LIST_LINE        NAT_lineManage;
+    LW_LIST_LINE        NATM_lineManage;
     
-    u8_t                NAT_ucProto;                                    /*  协议                        */
-    ip4_addr_t          NAT_ipaddrLocalIp;                              /*  本地 IP 地址                */
-    u16_t               NAT_usLocalCnt;                                 /*  本地 IP 段个数 (负载均衡)   */
-    u16_t               NAT_usLocalPort;                                /*  本地端口号                  */
-    u16_t               NAT_usAssPort;                                  /*  映射端口号 (唯一的)         */
+    u8_t                NATM_ucProto;                                   /*  协议                        */
+    ip4_addr_t          NATM_ipaddrLocalIp;                             /*  本地 IP 地址                */
+    u16_t               NATM_usLocalCnt;                                /*  本地 IP 段个数 (负载均衡)   */
+    u16_t               NATM_usLocalPort;                               /*  本地端口号                  */
+    u16_t               NATM_usAssPort;                                 /*  映射端口号 (唯一的)         */
 } __NAT_MAP;
 typedef __NAT_MAP      *__PNAT_MAP;
 /*********************************************************************************************************
   NAT 别名表
 *********************************************************************************************************/
 typedef struct {
-    LW_LIST_LINE        NAT_lineManage;
+    LW_LIST_LINE        NATA_lineManage;
     
-    ip4_addr_t          NAT_ipaddrAliasIp;                              /*  别名地址                    */
-    ip4_addr_t          NAT_ipaddrSLocalIp;                             /*  别名对应本地 IP 范围        */
-    ip4_addr_t          NAT_ipaddrELocalIp;
+    ip4_addr_t          NATA_ipaddrAliasIp;                             /*  别名地址                    */
+    ip4_addr_t          NATA_ipaddrSLocalIp;                            /*  别名对应本地 IP 范围        */
+    ip4_addr_t          NATA_ipaddrELocalIp;
 } __NAT_ALIAS;
 typedef __NAT_ALIAS    *__PNAT_ALIAS;
 

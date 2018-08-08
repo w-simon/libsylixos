@@ -710,6 +710,14 @@ tcp_bind(struct tcp_pcb *pcb, const ip_addr_t *ipaddr, u16_t port)
       return ERR_BUF;
     }
   } else {
+#ifdef SYLIXOS /* SylixOS Add Check NAT port range */
+#if LW_CFG_NET_NAT_EN > 0
+    if ((port >= LW_CFG_NET_NAT_MIN_PORT) && (port <= LW_CFG_NET_NAT_MAX_PORT)) {
+      LWIP_DEBUGF(UDP_DEBUG, ("tcp_bind: can't in NAT port range\n"));
+      return ERR_USE; /* Can't in NAT port range */
+    }
+#endif /* LW_CFG_NET_NAT_EN > 0 */
+#endif /* SYLIXOS */
     /* Check if the address already is in use (on all lists) */
     for (i = 0; i < max_pcb_list; i++) {
       for (cpcb = *tcp_pcb_lists[i]; cpcb != NULL; cpcb = cpcb->next) {

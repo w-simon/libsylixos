@@ -330,19 +330,19 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrT
 #error "LW_CFG_NET_NAT_MAX_SESSION must less than 24576!"
 #endif                                                                  /*  MAX_SESSION > 24576         */
 
-#define LW_CFG_NET_NAT_MAX_PORT  (65535)
-#define LW_CFG_NET_NAT_MIN_PORT  (65535 - LW_CFG_NET_NAT_MAX_SESSION)   /*  NAT ¶Ë¿ÚÓ³Éä·¶Î§            */
+#define LW_CFG_NET_NAT_MIN_PORT  (0xffff - LW_CFG_NET_NAT_MAX_SESSION + 1)
+#define LW_CFG_NET_NAT_MAX_PORT  (0xffff)                               /*  NAT ¶Ë¿ÚÓ³Éä·¶Î§            */
 
-#ifdef __SYLIXOS_NET_PORT_RNG
-#define TCP_LOCAL_PORT_RANGE_START        0xc000
+#ifdef __SYLIXOS_NET_PORT_RNG                                           /*  0x37ff = 0x3fff - 2048      */
+#define TCP_LOCAL_PORT_RANGE_START        (LW_CFG_NET_NAT_MIN_PORT - 0x37ff)
 #define TCP_LOCAL_PORT_RANGE_END          (LW_CFG_NET_NAT_MIN_PORT - 1)
-#define TCP_ENSURE_LOCAL_PORT_RANGE(port) ((u16_t)(((port) & (u16_t)~TCP_LOCAL_PORT_RANGE_START) + \
-                                           TCP_LOCAL_PORT_RANGE_START))
+#define TCP_ENSURE_LOCAL_PORT_RANGE(port) ((port % (TCP_LOCAL_PORT_RANGE_END - TCP_LOCAL_PORT_RANGE_START)) + \
+                                           TCP_LOCAL_PORT_RANGE_START)
 
-#define UDP_LOCAL_PORT_RANGE_START        0xc000
+#define UDP_LOCAL_PORT_RANGE_START        (LW_CFG_NET_NAT_MIN_PORT - 0x37ff)
 #define UDP_LOCAL_PORT_RANGE_END          (LW_CFG_NET_NAT_MIN_PORT - 1)
-#define UDP_ENSURE_LOCAL_PORT_RANGE(port) ((u16_t)(((port) & (u16_t)~UDP_LOCAL_PORT_RANGE_START) + \
-                                           UDP_LOCAL_PORT_RANGE_START))
+#define UDP_ENSURE_LOCAL_PORT_RANGE(port) ((port % (UDP_LOCAL_PORT_RANGE_END - UDP_LOCAL_PORT_RANGE_START)) + \
+                                           UDP_LOCAL_PORT_RANGE_START)
 #endif                                                                  /*  __SYLIXOS_NET_PORT_RNG      */
 #endif                                                                  /*  LW_CFG_NET_ROUTER           */
                                                                         /*  LW_CFG_NET_NAT_EN           */
