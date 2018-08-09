@@ -99,11 +99,13 @@ typedef struct __lw_cpu {
 #define LW_IPI_NOP              0                                       /*  测试用核间中断向量          */
 #define LW_IPI_SCHED            1                                       /*  调度请求                    */
 #define LW_IPI_DOWN             2                                       /*  CPU 停止工作                */
-#define LW_IPI_CALL             3                                       /*  自定义调用 (有参数可选等待) */
+#define LW_IPI_PERF             3                                       /*  性能分析                    */
+#define LW_IPI_CALL             4                                       /*  自定义调用 (有参数可选等待) */
 
 #define LW_IPI_NOP_MSK          (1 << LW_IPI_NOP)
 #define LW_IPI_SCHED_MSK        (1 << LW_IPI_SCHED)
 #define LW_IPI_DOWN_MSK         (1 << LW_IPI_DOWN)
+#define LW_IPI_PERF_MSK         (1 << LW_IPI_PERF)
 #define LW_IPI_CALL_MSK         (1 << LW_IPI_CALL)
 
 #ifdef __LW_SPINLOCK_BUG_TRACE_EN

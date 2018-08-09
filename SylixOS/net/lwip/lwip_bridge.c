@@ -257,6 +257,12 @@ static INT  __tshellNetbr (INT  iArgC, PCHAR  *ppcArgV)
                 fprintf(stderr, "can not flush net bridge device!\n");
             }
         
+        } else if (lib_strcmp(ppcArgV[1], "show") == 0) {
+            iRet = netbr_show_dev(ppcArgV[2], STD_OUT);
+            if (iRet) {
+                fprintf(stderr, "can not show net bridge device!\n");
+            }
+        
         } else {
             goto    __arg_error;
         }
@@ -324,13 +330,14 @@ INT  _netBridgeInit (VOID)
     API_TShellKeywordAdd("netbr", __tshellNetbr);
     API_TShellFormatAdd("netbr", " [...]");
     API_TShellHelpAdd("netbr",   "add / delete / control net bridge.\n"
-                                 "eg. netbr addbr bridge0\n"
-                                 "    netbr delbr bridge0\n"
-                                 "    netbr flush bridge0\n"
-                                 "    netbr adddev bridge0 ethdev0\n"
-                                 "    netbr deldev bridge0 ethdev0\n"
-                                 "    netbr addif bridge0 en1\n"
-                                 "    netbr delif bridge0 en1\n");
+                      "eg. netbr show bridge0           (Show all net device in 'bridge0' net brigdge)\n"
+                      "    netbr addbr bridge0          (Add a net brigdge named 'bridge0')\n"
+                      "    netbr delbr bridge0          (Delete a net brigdge named 'bridge0')\n"
+                      "    netbr flush bridge0          (Flush all MAC cache in net brigdge named 'bridge0')\n"
+                      "    netbr adddev bridge0 ethdev0 (Add a net device in net brigdge named 'bridge0')\n"
+                      "    netbr deldev bridge0 ethdev0 (Delete a net device from net brigdge named 'bridge0')\n"
+                      "    netbr addif bridge0 en1      (Same as 'adddev' but use interface name)\n"
+                      "    netbr delif bridge0 en1      (Same as 'deldev' but use interface name)\n");
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 
     return  (ERROR_NONE);

@@ -96,6 +96,7 @@ ifeq ($(BUILD_PROCESS_SUP_LIB), 1)
 include libdsohandle.mk
 include libvpmpdm.mk
 include environ.mk
+include libstdc++.mk
 endif
 
 ifeq ($(BUILD_TLS_SUP_LIB), 1)

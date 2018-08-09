@@ -20,6 +20,7 @@
 
 ** BUG:
 2014.04.09  不能像没有 ACTIVE 的 CPU 发送核间中断.
+2018.08.09  加入 IPI trace 功能.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -27,6 +28,12 @@
   裁剪支持
 *********************************************************************************************************/
 #if LW_CFG_SMP_EN > 0
+/*********************************************************************************************************
+  IPI HOOK
+*********************************************************************************************************/
+#if LW_CFG_SYSPERF_EN > 0
+static VOIDFUNCPTR  _K_pfuncIpiPerf;
+#endif                                                                  /*  LW_CFG_SYSPERF_EN > 0       */
 /*********************************************************************************************************
   IPI LOCK
 *********************************************************************************************************/
@@ -51,10 +58,33 @@
             KN_INT_ENABLE(iregInterLevel);                              \
         }
 /*********************************************************************************************************
+** 函数名称: _SmpPerfIpi
+** 功能描述: 设置 IPI 跟踪回调
+** 输　入  : ulIPIVec      核间中断类型 (除自定义类型函数中断以外)
+**           pfuncHook     trace 函数
+** 输　出  : 之前的 trace 函数
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+#if LW_CFG_SYSPERF_EN > 0
+
+VOIDFUNCPTR  _SmpPerfIpi (VOIDFUNCPTR  pfuncHook)
+{
+    VOIDFUNCPTR  pfuncOld;
+    
+    pfuncOld = _K_pfuncIpiPerf;
+    _K_pfuncIpiPerf = pfuncHook;
+    KN_SMP_MB();
+    
+    return  (pfuncOld);
+}
+
+#endif                                                                  /*  LW_CFG_SYSPERF_EN > 0       */
+/*********************************************************************************************************
 ** 函数名称: _SmpSendIpi
 ** 功能描述: 发送一个除自定义以外的核间中断给指定的 CPU. (如果不等待则外部可不锁定当前 CPU)
 ** 输　入  : ulCPUId       CPU ID
-**           ulIPIVec      核间中断类型 (除自定义类型中断以外)
+**           ulIPIVec      核间中断类型 (除自定义类型函数中断以外)
 **           iWait         是否等待处理结束 (LW_IPI_SCHED 绝不允许等待, 否则会死锁)
 **           bIntLock      外部是否关中断了.
 ** 输　出  : NONE
@@ -342,6 +372,21 @@ VOID  _SmpProcIpi (PLW_CLASS_CPU  pcpuCur)
     if (LW_CPU_GET_IPI_PEND2(pcpuCur) & LW_IPI_CALL_MSK) {              /*  自定义调用 ?                */
         _SmpProcCallfunc(pcpuCur);
     }
+    
+#if LW_CFG_SYSPERF_EN > 0
+    if (LW_CPU_GET_IPI_PEND2(pcpuCur) & LW_IPI_PERF_MSK) {
+        if (_K_pfuncIpiPerf) {
+            _K_pfuncIpiPerf(pcpuCur);
+        }
+#if LW_CFG_CPU_ATOMIC_EN == 0
+        LW_SPIN_LOCK_IGNIRQ(&pcpuCur->CPU_slIpi);                       /*  锁定 CPU                    */
+#endif
+        LW_CPU_CLR_IPI_PEND2(pcpuCur, LW_IPI_PERF_MSK);                 /*  清除                        */
+#if LW_CFG_CPU_ATOMIC_EN == 0
+        LW_SPIN_UNLOCK_IGNIRQ(&pcpuCur->CPU_slIpi);                     /*  解锁 CPU                    */
+#endif
+    }
+#endif                                                                  /*  LW_CFG_SYSPERF_EN > 0       */
 }
 /*********************************************************************************************************
 ** 函数名称: _SmpTryProcIpi

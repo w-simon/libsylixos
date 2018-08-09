@@ -414,6 +414,9 @@ VOID           _SchedSetPrio(PLW_CLASS_TCB  ptcb, UINT8  ucPriority);   /*  ÉèÖÃ
 *********************************************************************************************************/
 
 #if LW_CFG_SMP_EN > 0
+#if LW_CFG_SYSPERF_EN > 0
+VOIDFUNCPTR    _SmpPerfIpi(VOIDFUNCPTR  pfuncHook);
+#endif                                                                  /* LW_CFG_SYSPERF_EN > 0        */
 VOID           _SmpSendIpi(ULONG  ulCPUId, ULONG  ulIPIVec, INT  iWait, BOOL  bIntLock);
 VOID           _SmpSendIpiAllOther(ULONG  ulIPIVec, INT  iWait);
 INT            _SmpCallFunc(ULONG  ulCPUId, FUNCPTR  pfunc, PVOID  pvArg,

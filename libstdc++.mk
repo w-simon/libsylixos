@@ -10,11 +10,11 @@
 #
 #--------------文件信息--------------------------------------------------------------------------------
 #
-# 文   件   名: libmbedtls.mk
+# 文   件   名: libstdc++.mk
 #
 # 创   建   人: RealEvo-IDE
 #
-# 文件创建日期: 2016 年 10 月 08 日
+# 文件创建日期: 2018 年 08 月 09 日
 #
 # 描        述: 本文件由 RealEvo-IDE 生成，用于配置 Makefile 功能，请勿手动修改
 #*********************************************************************************************************
@@ -27,21 +27,13 @@ include $(CLEAR_VARS_MK)
 #*********************************************************************************************************
 # Target
 #*********************************************************************************************************
-LOCAL_TARGET_NAME := libmbedtls.so
+LOCAL_TARGET_NAME := libstdcpp.so
 
 #*********************************************************************************************************
 # Source list
 #*********************************************************************************************************
 LOCAL_SRCS := \
-SylixOS/appl/ssl/mbedtls/library/debug.c \
-SylixOS/appl/ssl/mbedtls/library/net_sockets.c \
-SylixOS/appl/ssl/mbedtls/library/ssl_cache.c \
-SylixOS/appl/ssl/mbedtls/library/ssl_ciphersuites.c \
-SylixOS/appl/ssl/mbedtls/library/ssl_cli.c \
-SylixOS/appl/ssl/mbedtls/library/ssl_cookie.c \
-SylixOS/appl/ssl/mbedtls/library/ssl_srv.c \
-SylixOS/appl/ssl/mbedtls/library/ssl_ticket.c \
-SylixOS/appl/ssl/mbedtls/library/ssl_tls.c 
+SylixOS/cplusplus/stdc++/dummy.cpp
 
 #*********************************************************************************************************
 # Header file search path (eg. LOCAL_INC_PATH := -I"Your hearder files search path")
@@ -56,8 +48,8 @@ LOCAL_DSYMBOL :=
 #*********************************************************************************************************
 # Depend library (eg. LOCAL_DEPEND_LIB := -la LOCAL_DEPEND_LIB_PATH := -L"Your library search path")
 #*********************************************************************************************************
-LOCAL_DEPEND_LIB      := -lmbedcrypto -lmbedx509
-LOCAL_DEPEND_LIB_PATH := -L"./$(OUTDIR)/"
+LOCAL_DEPEND_LIB      := -Wl,--whole-archive -lstdc++ -Wl,--no-whole-archive -ldsohandle
+LOCAL_DEPEND_LIB_PATH := 
 
 #*********************************************************************************************************
 # C++ config
@@ -71,9 +63,34 @@ LOCAL_USE_CXX_EXCEPT := no
 LOCAL_USE_GCOV := no
 
 #*********************************************************************************************************
+# Command
+#*********************************************************************************************************
+LOCAL_PRE_LINK_CMD   := 
+LOCAL_POST_LINK_CMD  := 
+
+LOCAL_PRE_STRIP_CMD  :=
+LOCAL_POST_STRIP_CMD := 
+
+#*********************************************************************************************************
 # Depend target
 #*********************************************************************************************************
-LOCAL_DEPEND_TARGET := ./$(OUTDIR)/strip/libmbedcrypto.so ./$(OUTDIR)/strip/libmbedx509.so
+LOCAL_DEPEND_TARGET := ./$(OUTDIR)/libdsohandle.a
+
+#*********************************************************************************************************
+# Create shared library only
+#*********************************************************************************************************
+LOCAL_SHARED_LIB_ONLY := yes
+
+#*********************************************************************************************************
+# Add libstdc++.so targets
+#*********************************************************************************************************
+./$(OUTDIR)/libstdc++.so: ./$(OUTDIR)/strip/libstdcpp.so
+	cp ./$(OUTDIR)/libstdcpp.so ./$(OUTDIR)/libstdc++.so
+
+./$(OUTDIR)/strip/libstdc++.so: ./$(OUTDIR)/strip/libstdcpp.so
+	cp ./$(OUTDIR)/strip/libstdcpp.so ./$(OUTDIR)/strip/libstdc++.so
+
+TARGETS := $(TARGETS) ./$(OUTDIR)/libstdc++.so ./$(OUTDIR)/strip/libstdc++.so
 
 include $(LIBRARY_MK)
 

@@ -39,6 +39,7 @@
  */
 
 #define __SYLIXOS_KERNEL
+#include "stdio.h"
 #include "string.h"
 #include "netbridge.h"
 
@@ -101,7 +102,9 @@ static int  netbr_transmit (struct netdev *netdev, struct pbuf *p)
       mac = &netbr_eth->mcache[key];
       if (mac->ttl && !lib_memcmp(mac->mac, eh->h_dest, ETH_ALEN)) {
         found = 1; /* found mac cache */
-        netbr_eth->netdev->drv->transmit(netbr_eth->netdev, p); /* send packet to all port with mac address in cache */
+        if (netbr_eth->netdev->if_flags & IFF_RUNNING) { /* is linkup ? */
+          netbr_eth->netdev->drv->transmit(netbr_eth->netdev, p); /* send packet to all port with mac address in cache */
+        }
       }
     }
   }
@@ -109,7 +112,9 @@ static int  netbr_transmit (struct netdev *netdev, struct pbuf *p)
   if (!found) { /* send packet to all ports */
     for (pline = netbr->eth_list; pline != NULL; pline = _list_line_get_next(pline)) {
       netbr_eth = (netbr_eth_t *)pline;
-      netbr_eth->netdev->drv->transmit(netbr_eth->netdev, p);
+      if (netbr_eth->netdev->if_flags & IFF_RUNNING) { /* is linkup ? */
+        netbr_eth->netdev->drv->transmit(netbr_eth->netdev, p);
+      }
     }
   }
   
@@ -169,7 +174,9 @@ static err_t  netbr_input (struct pbuf *p, struct netif *netif)
     for (pline = netbr->eth_list; pline != NULL; pline = _list_line_get_next(pline)) {
       netbr_eth = (netbr_eth_t *)pline;
       if (netbr_eth->netdev != netdev) {
-        netbr_eth->netdev->drv->transmit(netbr_eth->netdev, p); /* send to all ports */
+        if (netbr_eth->netdev->if_flags & IFF_RUNNING) { /* is linkup ? */
+          netbr_eth->netdev->drv->transmit(netbr_eth->netdev, p); /* send to all ports */
+        }
       }
     }
     UNLOCK_TCPIP_CORE();
@@ -197,7 +204,9 @@ static err_t  netbr_input (struct pbuf *p, struct netif *netif)
           mac = &netbr_eth->mcache[key];
           if (mac->ttl && !lib_memcmp(mac->mac, eh->dest.addr, ETH_ALEN)) {
             found = 1;
-            netbr_eth->netdev->drv->transmit(netbr_eth->netdev, p); /* send packet to all port with mac address in cache */
+            if (netbr_eth->netdev->if_flags & IFF_RUNNING) { /* is linkup ? */
+              netbr_eth->netdev->drv->transmit(netbr_eth->netdev, p); /* send packet to all port with mac address in cache */
+            }
           }
         }
       }
@@ -205,8 +214,10 @@ static err_t  netbr_input (struct pbuf *p, struct netif *netif)
       if (!found) {
         for (pline = netbr->eth_list; pline != NULL; pline = _list_line_get_next(pline)) {
           netbr_eth = (netbr_eth_t *)pline;
-          if (netbr_eth->netdev != netdev) {
-            netbr_eth->netdev->drv->transmit(netbr_eth->netdev, p); /* send to all ports */
+          if (netbr_eth->netdev != netdev) { /* not me */
+            if (netbr_eth->netdev->if_flags & IFF_RUNNING) { /* is linkup ? */
+              netbr_eth->netdev->drv->transmit(netbr_eth->netdev, p); /* send to all ports */
+            }
           }
         }
       }
@@ -656,6 +667,67 @@ int  netbr_flush_cache (const char *brdev)
     }
   }
   UNLOCK_TCPIP_CORE();
+  
+  return (0);
+}
+
+/* net bridge show all device in bridge */
+int  netbr_show_dev (const char *brdev, int fd)
+{
+  int found;
+  int i = 0, j;
+  struct netif *netif;
+  netbr_t *netbr;
+  netbr_eth_t *netbr_eth;
+  netdev_t *netdev_br;
+  netdev_t *netdev;
+  char speed[32];
+  char ifname[NETIF_NAMESIZE];
+  LW_LIST_LINE *pline;
+  
+  if (!brdev || (fd < 0)) {
+    return (-1);
+  }
+  
+  LWIP_IF_LIST_LOCK(FALSE);
+  found = 0;
+  netdev_br = netdev_find_by_devname(brdev);
+  if (netdev_br && (netdev_br->drv->transmit == netbr_transmit)) {
+    netbr = (netbr_t *)netdev_br->priv;
+    if (netbr && netbr->magic_no == NETBRIDGE_MAGIC) {
+      found = 1;
+    }
+  }
+  if (!found) {
+    LWIP_IF_LIST_UNLOCK();
+    return (-1);
+  }
+  
+  for (pline = netbr->eth_list; pline != NULL; pline = _list_line_get_next(pline)) {
+    netbr_eth = (netbr_eth_t *)pline;
+    netdev = netbr_eth->netdev;
+    netif = (struct netif *)netdev->sys;
+    if (netdev->speed == 0) {
+      lib_strlcpy(speed, "N/A", sizeof(speed));
+    } else if (netdev->speed < 1000ull) {
+      snprintf(speed, sizeof(speed), "%qu bps", netdev->speed);
+    } else if (netdev->speed < 5000000ull) {
+      snprintf(speed, sizeof(speed), "%qu Kbps", netdev->speed / 1000);
+    } else if (netdev->speed < 5000000000ull) {
+      snprintf(speed, sizeof(speed), "%qu Mbps", netdev->speed / 1000000);
+    } else {
+      snprintf(speed, sizeof(speed), "%qu Gbps", netdev->speed / 1000000000);
+    }
+    fdprintf(fd, "<%d> Dev: %s Prev-Ifname: %s Spd: %s Linkup: %s HWaddr: ", i,
+             netdev->dev_name, netif_get_name(netif, ifname),
+             speed, netdev->if_flags & IFF_RUNNING ? "Enable" : "Disable");
+    for (j = 0; j < netif->hwaddr_len - 1; j++) {
+      fdprintf(fd, "%02x:", netif->hwaddr[j]);
+    }
+    fdprintf(fd, "%02x\n", netif->hwaddr[netif->hwaddr_len - 1]);
+    i++;
+  }
+  LWIP_IF_LIST_UNLOCK();
   
   return (0);
 }

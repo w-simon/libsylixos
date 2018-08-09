@@ -459,7 +459,11 @@ static void  netdev_netif_linkup (netdev_t *netdev, int linkup, UINT32 speed_hig
     netif->ts = sys_jiffies();
     netdev->speed = speed;
     
-    netifapi_netif_set_link_up(netif);
+    if (!netif->br_eth) { /* not in net bridge */
+      netifapi_netif_set_link_up(netif);
+    } else {
+      netif_set_flags(netif, NETIF_FLAG_LINK_UP);
+    }
     netdev->if_flags |= IFF_RUNNING;
 
     if (speed > 0xffffffff) {
@@ -469,7 +473,11 @@ static void  netdev_netif_linkup (netdev_t *netdev, int linkup, UINT32 speed_hig
     }
   
   } else {
-    netifapi_netif_set_link_down(netif);
+    if (!netif->br_eth) { /* not in net bridge */
+      netifapi_netif_set_link_down(netif);
+    } else {
+      netif_clear_flags(netif, NETIF_FLAG_LINK_UP);
+    }
     netdev->if_flags &= ~IFF_RUNNING;
   }
 }

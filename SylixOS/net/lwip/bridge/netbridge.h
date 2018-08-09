@@ -57,6 +57,9 @@ int  netbr_delete_dev(const char *brdev, const char *sub, int sub_is_ifname);
 /* net bridge mac cache flush */
 int  netbr_flush_cache(const char *brdev);
 
+/* net bridge show all device in bridge */
+int  netbr_show_dev(const char *brdev, int fd);
+
 #endif /* LW_CFG_NET_DEV_BRIDGE_EN */
 #endif /* __NETBRIDGE_H */
 /*
