@@ -143,12 +143,13 @@ static VOID  __packetBufFreeAll (AF_PACKET_T *pafpacket)
 **           stMaxBytes    缓冲区大小
 **           paddrll       发送方信息
 **           flags         接收 flags
+**           msg_flags     return flags
 ** 输　出  : 数据包大小
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
 static ssize_t  __packetBufRecv (AF_PACKET_T *pafpacket, PVOID  pvBuffer, size_t  stMaxBytes,
-                                 struct sockaddr_ll *paddrll, int flags)
+                                 struct sockaddr_ll *paddrll, int flags, int *msg_flags)
 {
     AF_PACKET_N     *pktm;
     AF_PACKET_Q     *pktq;
@@ -181,6 +182,9 @@ static ssize_t  __packetBufRecv (AF_PACKET_T *pafpacket, PVOID  pvBuffer, size_t
             stRetLen = stMsgLen;
         } else {
             stRetLen = stMaxBytes;
+        }
+        if (msg_flags) {
+            (*msg_flags) |= MSG_TRUNC;
         }
     
     } else {
@@ -1186,12 +1190,13 @@ INT  packet_connect (AF_PACKET_T *pafpacket, const struct sockaddr *name, sockle
 **           flags     flag
 **           from      packet from
 **           fromlen   name len
+**           msg_flags return flags
 ** 输　出  : NUM
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-ssize_t  packet_recvfrom (AF_PACKET_T *pafpacket, void *mem, size_t len, int flags,
-                          struct sockaddr *from, socklen_t *fromlen)
+static ssize_t  packet_recvfrom2 (AF_PACKET_T *pafpacket, void *mem, size_t len, int flags,
+                                  struct sockaddr *from, socklen_t *fromlen, int *msg_flags)
 {
     ssize_t     sstTotal = 0;
     ULONG       ulError;
@@ -1216,7 +1221,7 @@ ssize_t  packet_recvfrom (AF_PACKET_T *pafpacket, void *mem, size_t len, int fla
         
         if (__packetCanRead(pafpacket, flags, len)) {                   /*  可以接收                    */
             sstTotal = __packetBufRecv(pafpacket, mem, len, 
-                                       (struct sockaddr_ll *)from, flags);
+                                       (struct sockaddr_ll *)from, flags, msg_flags);
             if (sstTotal > 0) {
                 if (fromlen) {
                     *fromlen = sizeof(struct sockaddr_ll);
@@ -1245,6 +1250,24 @@ ssize_t  packet_recvfrom (AF_PACKET_T *pafpacket, void *mem, size_t len, int fla
     return  (sstTotal);
 }
 /*********************************************************************************************************
+** 函数名称: packet_recvfrom
+** 功能描述: recvfrom
+** 输　入  : pafpacket afpacket file
+**           mem       buffer
+**           len       buffer len
+**           flags     flag
+**           from      packet from
+**           fromlen   name len
+** 输　出  : NUM
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+ssize_t  packet_recvfrom (AF_PACKET_T *pafpacket, void *mem, size_t len, int flags,
+                          struct sockaddr *from, socklen_t *fromlen)
+{
+    return  (packet_recvfrom2(pafpacket, mem, len, flags, from, fromlen, LW_NULL));
+}
+/*********************************************************************************************************
 ** 函数名称: packet_recv
 ** 功能描述: recv
 ** 输　入  : pafpacket afpacket file
@@ -1257,7 +1280,7 @@ ssize_t  packet_recvfrom (AF_PACKET_T *pafpacket, void *mem, size_t len, int fla
 *********************************************************************************************************/
 ssize_t  packet_recv (AF_PACKET_T *pafpacket, void *mem, size_t len, int flags)
 {
-    return  (packet_recvfrom(pafpacket, mem, len, flags, LW_NULL, LW_NULL));
+    return  (packet_recvfrom2(pafpacket, mem, len, flags, LW_NULL, LW_NULL, LW_NULL));
 }
 /*********************************************************************************************************
 ** 函数名称: packet_recvmsg
@@ -1271,11 +1294,12 @@ ssize_t  packet_recv (AF_PACKET_T *pafpacket, void *mem, size_t len, int flags)
 *********************************************************************************************************/
 ssize_t  packet_recvmsg (AF_PACKET_T *pafpacket, struct msghdr *msg, int flags)
 {
+    msg->msg_flags      = 0;
     msg->msg_controllen = 0;
     
     if (msg->msg_iovlen == 1) {
-        return  (packet_recvfrom(pafpacket, msg->msg_iov->iov_base, msg->msg_iov->iov_len, flags,
-                                 (struct sockaddr *)msg->msg_name, &msg->msg_namelen));
+        return  (packet_recvfrom2(pafpacket, msg->msg_iov->iov_base, msg->msg_iov->iov_len, flags,
+                                  (struct sockaddr *)msg->msg_name, &msg->msg_namelen, &msg->msg_flags));
     
     } else {
         struct iovec    liovec, *msg_iov;
@@ -1296,6 +1320,9 @@ ssize_t  packet_recvmsg (AF_PACKET_T *pafpacket, struct msghdr *msg, int flags)
             totalsize += (unsigned int)msg_iov[i].iov_len;
         }
         
+        /*
+         * TODO: 在此过程中被 kill 有内存泄漏风险.
+         */
         lbuf = (char *)mem_malloc(totalsize);
         if (lbuf == LW_NULL) {
             _ErrorHandle(ENOMEM);
@@ -1305,8 +1332,8 @@ ssize_t  packet_recvmsg (AF_PACKET_T *pafpacket, struct msghdr *msg, int flags)
         liovec.iov_base = (PVOID)lbuf;
         liovec.iov_len  = (size_t)totalsize;
         
-        size = packet_recvfrom(pafpacket, liovec.iov_base, liovec.iov_len, flags, 
-                               (struct sockaddr *)msg->msg_name, &msg->msg_namelen);
+        size = packet_recvfrom2(pafpacket, liovec.iov_base, liovec.iov_len, flags, 
+                                (struct sockaddr *)msg->msg_name, &msg->msg_namelen, &msg->msg_flags);
         
         temp = lbuf;
         for (i = 0; size > 0 && i < msg_iovlen; i++) {
@@ -1417,6 +1444,9 @@ ssize_t  packet_sendmsg (AF_PACKET_T *pafpacket, const struct msghdr *msg, int f
             totalsize += (unsigned int)msg_iov[i].iov_len;
         }
         
+        /*
+         * TODO: 在此过程中被 kill 有内存泄漏风险.
+         */
         lbuf = (char *)mem_malloc(totalsize);
         if (lbuf == LW_NULL) {
             _ErrorHandle(ENOMEM);

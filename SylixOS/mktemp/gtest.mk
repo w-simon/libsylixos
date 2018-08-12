@@ -121,7 +121,7 @@ ifeq ($(ARCH), c6x)
 $($(target)_EXE): $($(target)_OBJS) $($(target)_DEPEND_TARGET)
 		@rm -f $@
 		$(__PRE_LINK_CMD)
-		$(LD) $(__CPUFLAGS) $(ARCH_PIC_LDFLAGS) $(__LINKFLAGS) $(__OBJS) $(__LIBRARIES) -o $@
+		$(__LD) $(__CPUFLAGS) $(ARCH_PIC_LDFLAGS) $(__LINKFLAGS) $(__OBJS) $(__LIBRARIES) -o $@
 		@mv $@ $@.c6x
 		@nm $@.c6x > $@_nm.txt
 		@$(DIS) $(TOOLCHAIN_DIS_FLAGS) $@.c6x > $@_dis.txt
@@ -133,7 +133,7 @@ else
 $($(target)_EXE): $($(target)_OBJS) $($(target)_DEPEND_TARGET)
 		@rm -f $@
 		$(__PRE_LINK_CMD)
-		$(LD) $(__CPUFLAGS) $(ARCH_PIC_LDFLAGS) $(__LINKFLAGS) $(__OBJS) $(__LIBRARIES) -o $@
+		$(__LD) $(__CPUFLAGS) $(ARCH_PIC_LDFLAGS) $(__LINKFLAGS) $(__OBJS) $(__LIBRARIES) -o $@
 		$(__POST_LINK_CMD)
 endif
 

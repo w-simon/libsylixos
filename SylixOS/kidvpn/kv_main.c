@@ -43,7 +43,7 @@
 #include "kv_client.h"
 
 /* version */
-#define KV_VERSION  "0.8.4"
+#define KV_VERSION  "0.8.5"
 
 /* key code change function */
 static int key_code_change (unsigned char *key, unsigned int *keybits, const char *keyascii)

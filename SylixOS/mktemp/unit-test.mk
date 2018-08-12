@@ -27,6 +27,12 @@ include $(MKTEMP)/common.mk
 #*********************************************************************************************************
 # Depend and compiler parameter (cplusplus in kernel MUST NOT use exceptions and rtti)
 #*********************************************************************************************************
+ifeq ($($(target)_USE_CXX), yes)
+$(target)_LD := $(CXX_LD)
+else
+$(target)_LD := $(C_LD)
+endif
+
 ifeq ($($(target)_USE_CXX_EXCEPT), yes)
 $(target)_CXX_EXCEPT  := $(TOOLCHAIN_CXX_EXCEPT_CFLAGS)
 else
@@ -120,6 +126,8 @@ __UNIT_TEST_POST_STRIP_CMD = $($(__UNIT_TEST_STRIP_TARGET)_POST_STRIP_CMD)
 __UNIT_TEST_CPUFLAGS       = $($(__UNIT_TEST_TARGET)_CPUFLAGS)
 __UNIT_TEST_LINKFLAGS      = $($(__UNIT_TEST_TARGET)_LINKFLAGS)
 
+__UNIT_TEST_LD             = $($(__UNIT_TEST_TARGET)_LD)
+
 #*********************************************************************************************************
 # Link object files
 #*********************************************************************************************************
@@ -130,7 +138,7 @@ $1: $2 $3
 		@if [ ! -d "$(dir $1)" ]; then mkdir -p "$(dir $1)"; fi
 		@rm -f $1
 		$(__UNIT_TEST_PRE_LINK_CMD)
-		$(LD) $(__UNIT_TEST_CPUFLAGS) $(ARCH_PIC_LDFLAGS) $(__UNIT_TEST_LINKFLAGS) $2 $(__UNIT_TEST_LIBRARIES) -o $1 
+		$(__UNIT_TEST_LD) $(__UNIT_TEST_CPUFLAGS) $(ARCH_PIC_LDFLAGS) $(__UNIT_TEST_LINKFLAGS) $2 $(__UNIT_TEST_LIBRARIES) -o $1 
 		@mv $1 $1.c6x
 		@nm $1.c6x > $1_nm.txt
 		@$(DIS) $(TOOLCHAIN_DIS_FLAGS) $1.c6x > $1_dis.txt
@@ -147,7 +155,7 @@ $1: $2 $3
 		@if [ ! -d "$(dir $1)" ]; then mkdir -p "$(dir $1)"; fi
 		@rm -f $1
 		$(__UNIT_TEST_PRE_LINK_CMD)
-		$(LD) $(__UNIT_TEST_CPUFLAGS) $(ARCH_PIC_LDFLAGS) $(__UNIT_TEST_LINKFLAGS) $2 $(__UNIT_TEST_LIBRARIES) -o $1 
+		$(__UNIT_TEST_LD) $(__UNIT_TEST_CPUFLAGS) $(ARCH_PIC_LDFLAGS) $(__UNIT_TEST_LINKFLAGS) $2 $(__UNIT_TEST_LIBRARIES) -o $1 
 		$(__UNIT_TEST_POST_LINK_CMD)
 endef
 

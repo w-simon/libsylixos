@@ -2956,7 +2956,7 @@ static INT __sdhciTransDatHandle (__SDHCI_TRANS *psdhcitrans, UINT32 uiIntSta)
         (psdhcitrans->SDHCITS_uiBlkCntRemain > 0)) {
         if (psdhcitrans->SDHCITS_bIsRead) {
             while (SDHCI_READL(psdhcihostattr, SDHCI_PRESENT_STATE) & SDHCI_PSTA_DATA_AVAILABLE) {
-            	if (psdhciquirkop->SDHCIQOP_pfuncPioXferHook) {
+            	if (psdhciquirkop && psdhciquirkop->SDHCIQOP_pfuncPioXferHook) {
             		psdhciquirkop->SDHCIQOP_pfuncPioXferHook(psdhcihostattr, LW_TRUE);
             	}
                 __sdhciDataReadNorm(psdhcitrans);
@@ -2970,7 +2970,7 @@ static INT __sdhciTransDatHandle (__SDHCI_TRANS *psdhcitrans, UINT32 uiIntSta)
             }
         } else {
             while (SDHCI_READL(psdhcihostattr, SDHCI_PRESENT_STATE) & SDHCI_PSTA_SPACE_AVAILABLE) {
-            	if (psdhciquirkop->SDHCIQOP_pfuncPioXferHook) {
+            	if (psdhciquirkop && psdhciquirkop->SDHCIQOP_pfuncPioXferHook) {
             		psdhciquirkop->SDHCIQOP_pfuncPioXferHook(psdhcihostattr, LW_FALSE);
             	}
                 __sdhciDataWriteNorm(psdhcitrans);

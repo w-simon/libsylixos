@@ -210,7 +210,8 @@ typedef struct {
     Elf_Word     wdNeededArr[__LW_MAX_NEEDED_LIB];
     ULONG        ulNeededCnt;
     Elf_Addr    *ulPltGotAddr;                                          /*  全局GOT的地址               */
-#ifdef  LW_CFG_CPU_ARCH_MIPS
+
+#ifdef LW_CFG_CPU_ARCH_MIPS
     ULONG        ulMIPSGotSymIdx;                                       /*  Dynsym 第一个GOT入口        */
     ULONG        ulMIPSLocalGotNumIdx;                                  /*  MIPS Local GOT 入口数量     */
     ULONG        ulMIPSSymNumIdx;                                       /*  MIPS Dynsym 入口数量        */

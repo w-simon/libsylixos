@@ -135,6 +135,17 @@ static struct kv_cli_node *kv_serv_find_cli (UINT8  hwaddr[])
     return  (NULL);
 }
 
+/* KidVPN address is same */
+static int kv_serv_addr_is_same (struct sockaddr_in *addr1, struct sockaddr_in *addr2)
+{
+    if ((addr1->sin_port == addr2->sin_port) &&
+        (addr1->sin_addr.s_addr == addr2->sin_addr.s_addr)) {
+        return  (1);
+    }
+
+    return  (0);
+}
+
 /* KidVPN server hello thread */
 static int kv_serv_loop (void)
 {
@@ -220,6 +231,12 @@ static int kv_serv_loop (void)
                             KV_SERV_LOCK();
                             cli = kv_serv_find_cli(&packet_in[2]);
                             if (cli) {
+                                if (!kv_serv_addr_is_same(&cli->addr, &addr_in)) {
+                                    cli->addr = addr_in; /* save new address */
+                                    printf("[KidVPN] Client changed: %s [%02x:%02x:%02x:%02x:%02x:%02x]\n",
+                                           inet_ntoa(cli->addr.sin_addr), cli->hwaddr[0], cli->hwaddr[1],
+                                           cli->hwaddr[2], cli->hwaddr[3], cli->hwaddr[4], cli->hwaddr[5]);
+                                }
                                 cli->alive = KV_CLI_HELLO_TIMEOUT; /* refresh client alive */
 
                             } else {
@@ -260,7 +277,7 @@ static int kv_serv_loop (void)
 
                 KV_SERV_LOCK();
                 cli = kv_serv_find_cli(&packet_in[6]);
-                if (cli) {
+                if (cli && kv_serv_addr_is_same(&cli->addr, &addr_in)) { /* address compare */
                     if (packet_in[0] & 1) { /* broadcast? */
                         for (i = 0; i < KV_SERV_HASH_SIZE; i++) {
                             for (dest = cli_header[i]; dest != NULL; dest = dest->next) {

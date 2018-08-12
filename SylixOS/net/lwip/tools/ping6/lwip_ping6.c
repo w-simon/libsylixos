@@ -333,6 +333,9 @@ INT  API_INetPing6 (struct in6_addr  *pin6addr,
             lib_clock_gettime(CLOCK_MONOTONIC, &tvTime2);
             if (__timespecLeftTime(&tvTime1, &tvTime2)) {
                 __timespecSub(&tvTime2, &tvTime1);
+            } else {
+                tvTime2.tv_sec  = 0;
+                tvTime2.tv_nsec = 0;
             }
             
             ullUSec = (UINT64)(tvTime2.tv_sec * 1000000)

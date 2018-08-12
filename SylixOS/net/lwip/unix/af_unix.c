@@ -431,6 +431,7 @@ static ssize_t  __unixSendtoMsg (AF_UNIX_T  *pafunixSender, AF_UNIX_T  *pafunixR
 **           flags                 MSG_PEEK (MSG_WAITALL 由外层 recvfrom2 支持) 
 **           from                  远程地址保存
 **           fromlen               远程地址长度
+**           msg_flags             返回 flags
 ** 输　出  : 接收的字节数
 ** 全局变量: 
 ** 调用模块: 
@@ -438,7 +439,8 @@ static ssize_t  __unixSendtoMsg (AF_UNIX_T  *pafunixSender, AF_UNIX_T  *pafunixR
 static ssize_t  __unixRecvfromMsg (AF_UNIX_T  *pafunixRecver, 
                                    PVOID pvMsg, size_t  stLen, 
                                    PVOID pvMsgEx, socklen_t  *puiLenEx, INT  flags,
-                                   struct sockaddr_un *from, socklen_t *fromlen)
+                                   struct sockaddr_un *from, socklen_t *fromlen,
+                                   INT  *msg_flags)
 {
     AF_UNIX_NEX     *punie;
     AF_UNIX_N       *pafunixmsg;
@@ -464,6 +466,9 @@ static ssize_t  __unixRecvfromMsg (AF_UNIX_T  *pafunixRecver,
             stPathLen = lib_strlen(pafunixmsg->UNIM_cPath);
             if (stPathLen > stBufPathLen) {
                 stPathLen = stBufPathLen;
+                if (msg_flags) {
+                    (*msg_flags) |= MSG_CTRUNC;
+                }
             }
             lib_strncpy(from->sun_path, pafunixmsg->UNIM_cPath, stBufPathLen);
         
@@ -473,8 +478,12 @@ static ssize_t  __unixRecvfromMsg (AF_UNIX_T  *pafunixRecver,
                 stPathLen = lib_strlen(pafunixPeer->UNIX_cFile);
                 if (stPathLen > stBufPathLen) {
                     stPathLen = stBufPathLen;
+                    if (msg_flags) {
+                        (*msg_flags) |= MSG_CTRUNC;
+                    }
                 }
                 lib_strncpy(from->sun_path, pafunixPeer->UNIX_cFile, stBufPathLen);
+            
             } else {                                                    /*  连接已经中断, 接收剩余数据  */
                 stPathLen = 0;
                 if (stBufPathLen > 0) {
@@ -517,6 +526,14 @@ static ssize_t  __unixRecvfromMsg (AF_UNIX_T  *pafunixRecver,
     stMsgLen = pafunixmsg->UNIM_stLen - pafunixmsg->UNIM_stOffset;      /*  计算消息节点内消息的长度    */
     if (stLen > stMsgLen) {                                             /*  可以获取全部信息            */
         stLen = stMsgLen;
+        if ((__AF_UNIX_TYPE(pafunixRecver) != SOCK_STREAM) && msg_flags) {
+            (*msg_flags) |= MSG_EOR;
+        }
+    
+    } else {
+        if ((__AF_UNIX_TYPE(pafunixRecver) == SOCK_DGRAM) && msg_flags) {
+            (*msg_flags) |= MSG_TRUNC;
+        }
     }
                                                                         /*  拷贝数据                    */
     lib_memcpy(pvMsg, &pafunixmsg->UNIM_pcMsg[pafunixmsg->UNIM_stOffset], stLen);
@@ -1406,6 +1423,7 @@ INT  unix_connect2 (AF_UNIX_T  *pafunix0, AF_UNIX_T  *pafunix1)
 **           flags     flag
 **           from      packet from
 **           fromlen   name len
+**           msg_flags returned flags 
 ** 输　出  : NUM
 ** 全局变量: 
 ** 调用模块: 
@@ -1415,7 +1433,7 @@ INT  unix_connect2 (AF_UNIX_T  *pafunix0, AF_UNIX_T  *pafunix1)
 static ssize_t  unix_recvfrom2 (AF_UNIX_T  *pafunix, 
                                 void *mem, size_t len, 
                                 void *mem_ex, socklen_t *plen_ex, int flags,
-                                struct sockaddr *from, socklen_t *fromlen)
+                                struct sockaddr *from, socklen_t *fromlen, int *msg_flags)
 {
     ssize_t     sstTotal = 0;
     ULONG       ulError;
@@ -1458,7 +1476,7 @@ __recv_more:
                                            (size_t)(len - sstTotal), 
                                            mem_ex, plen_ex, flags, 
                                            (struct sockaddr_un *)from, 
-                                           fromlen);                    /*  从缓冲区取一个消息          */
+                                           fromlen, msg_flags);         /*  从缓冲区取一个消息          */
             pcRecvMem += sstReadNum;
             sstTotal  += sstReadNum;
             
@@ -1541,10 +1559,13 @@ ssize_t  unix_recvmsg (AF_UNIX_T  *pafunix, struct msghdr *msg, int flags)
         return  (PX_ERROR);
     }
     
+    msg->msg_flags = 0;
+    
     if (msg->msg_iovlen == 1) {
         sstRecvLen = unix_recvfrom2(pafunix, msg->msg_iov->iov_base, msg->msg_iov->iov_len, 
                                     msg->msg_control, &msg->msg_controllen, flags, 
-                                    (struct sockaddr *)msg->msg_name, &msg->msg_namelen);
+                                    (struct sockaddr *)msg->msg_name, &msg->msg_namelen,
+                                    &msg->msg_flags);
     
     } else {
         struct iovec    liovec, *msg_iov;
@@ -1565,6 +1586,9 @@ ssize_t  unix_recvmsg (AF_UNIX_T  *pafunix, struct msghdr *msg, int flags)
             totalsize += (unsigned int)msg_iov[i].iov_len;
         }
         
+        /*
+         * TODO: 在此过程中被 kill 有内存泄漏风险.
+         */
         lbuf = (char *)__unixBufAlloc(totalsize);
         if (lbuf == LW_NULL) {
             _ErrorHandle(ENOMEM);
@@ -1576,7 +1600,8 @@ ssize_t  unix_recvmsg (AF_UNIX_T  *pafunix, struct msghdr *msg, int flags)
         
         sstRecvLen = unix_recvfrom2(pafunix, liovec.iov_base, liovec.iov_len, 
                                     msg->msg_control, &msg->msg_controllen, flags, 
-                                    (struct sockaddr *)msg->msg_name, &msg->msg_namelen);
+                                    (struct sockaddr *)msg->msg_name, &msg->msg_namelen,
+                                    &msg->msg_flags);
         
         sstRecvCnt = sstRecvLen;
         temp       = lbuf;
@@ -1608,7 +1633,7 @@ ssize_t  unix_recvmsg (AF_UNIX_T  *pafunix, struct msghdr *msg, int flags)
 ssize_t  unix_recvfrom (AF_UNIX_T  *pafunix, void *mem, size_t len, int flags,
                         struct sockaddr *from, socklen_t *fromlen)
 {
-    return  (unix_recvfrom2(pafunix, mem, len, LW_NULL, LW_NULL, flags, from, fromlen));
+    return  (unix_recvfrom2(pafunix, mem, len, LW_NULL, LW_NULL, flags, from, fromlen, LW_NULL));
 }
 /*********************************************************************************************************
 ** 函数名称: unix_recv
@@ -1623,7 +1648,7 @@ ssize_t  unix_recvfrom (AF_UNIX_T  *pafunix, void *mem, size_t len, int flags,
 *********************************************************************************************************/
 ssize_t  unix_recv (AF_UNIX_T  *pafunix, void *mem, size_t len, int flags)
 {
-    return  (unix_recvfrom2(pafunix, mem, len, LW_NULL, LW_NULL, flags, LW_NULL, LW_NULL));
+    return  (unix_recvfrom2(pafunix, mem, len, LW_NULL, LW_NULL, flags, LW_NULL, LW_NULL, LW_NULL));
 }
 /*********************************************************************************************************
 ** 函数名称: unix_sendto2
@@ -1830,6 +1855,9 @@ ssize_t  unix_sendmsg (AF_UNIX_T  *pafunix, const struct msghdr *msg, int flags)
             totalsize += (unsigned int)msg_iov[i].iov_len;
         }
         
+        /*
+         * TODO: 在此过程中被 kill 有内存泄漏风险.
+         */
         lbuf = (char *)__unixBufAlloc(totalsize);
         if (lbuf == LW_NULL) {
             _ErrorHandle(ENOMEM);

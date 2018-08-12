@@ -1721,6 +1721,8 @@ ssize_t  route_recvmsg (AF_ROUTE_T  *pafroute, struct msghdr *msg, int flags)
         return  (PX_ERROR);
     }
     
+    msg->msg_flags = 0;
+    
     if (msg->msg_iovlen == 1) {
         sstTotal = route_recv(pafroute, msg->msg_iov->iov_base, msg->msg_iov->iov_len, flags);
         

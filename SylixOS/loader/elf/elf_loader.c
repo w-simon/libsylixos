@@ -164,7 +164,7 @@ static INT elfRelaRelocate (LW_LD_EXEC_MODULE *pmodule,
 
     LD_DEBUG_MSG(("relocateSectionRela()\r\n"));
 
-    pcJmpTable     =                                                    /*  跳转表起始地址              */
+    pcJmpTable =                                                        /*  跳转表起始地址              */
         (PCHAR)pmodule->EMOD_psegmentArry[pmodule->EMOD_ulSegCount].ESEG_ulAddr;
     stJmpTableItem =                                                    /*  跳转表大小                  */
         pmodule->EMOD_psegmentArry[pmodule->EMOD_ulSegCount].ESEG_stLen;
@@ -179,8 +179,10 @@ static INT elfRelaRelocate (LW_LD_EXEC_MODULE *pmodule,
             pcSymName = pcStrTab + psym->st_name;
             if (lib_strlen(pcSymName) == 0) {                           /* 特殊符号，和体系结构相关     */
                 addrSymVal = 0;
+            
             } else {
-                BOOL    bWeak = (STB_WEAK == ELF_ST_BIND(psym->st_info));
+                BOOL  bWeak = (STB_WEAK == ELF_ST_BIND(psym->st_info));
+                
                 if (__moduleSymGetValue(pmodule,
                                         bWeak,
                                         pcSymName,
@@ -244,7 +246,7 @@ static INT elfRelRelocate (LW_LD_EXEC_MODULE *pmodule,
 
     LD_DEBUG_MSG(("relocateSectionRel()\r\n"));
 
-    pcJmpTable     =                                                    /*  跳转表起始地址              */
+    pcJmpTable =                                                        /*  跳转表起始地址              */
             (PCHAR)pmodule->EMOD_psegmentArry[pmodule->EMOD_ulSegCount].ESEG_ulAddr;
     stJmpTableItem =                                                    /*  跳转表大小                  */
             pmodule->EMOD_psegmentArry[pmodule->EMOD_ulSegCount].ESEG_stLen;
@@ -259,8 +261,10 @@ static INT elfRelRelocate (LW_LD_EXEC_MODULE *pmodule,
         if (SHN_UNDEF == psym->st_shndx) {                              /*  外部符号需查找符号表        */
             if (lib_strlen(pcSymName) == 0) {                           /* 特殊符号，和体系结构相关     */
                 symVal = 0;
+            
             } else {
-                BOOL    bWeak = (STB_WEAK == ELF_ST_BIND(psym->st_info));
+                BOOL  bWeak = (STB_WEAK == ELF_ST_BIND(psym->st_info));
+                
                 if (__moduleSymGetValue(pmodule,
                                         bWeak,
                                         pcSymName,
@@ -277,6 +281,7 @@ static INT elfRelRelocate (LW_LD_EXEC_MODULE *pmodule,
         }
 
         LD_DEBUG_MSG(("relocate %s :", pcSymName));
+        
         if (archElfRelocateRel(pmodule,
                                prel,
                                psym,
@@ -315,10 +320,11 @@ static INT elfSectionsRelocate (LW_LD_EXEC_MODULE *pmodule, Elf_Shdr *pshdrArr)
     ULONG      i;
 
     LD_DEBUG_MSG(("relocateSections()\r\n"));
+    
     pshdr = pshdrArr;
     for (i = 0; i < pmodule->EMOD_ulSegCount; i++, pshdr++) {
-        if (pshdr->sh_type != SHT_REL && pshdr->sh_type != SHT_RELA) {  /* 只处理重定位节               */
-            continue;
+        if ((pshdr->sh_type != SHT_REL) && (pshdr->sh_type != SHT_RELA)) {
+            continue;                                                   /* 只处理重定位节               */
         }
 
         if (pshdr->sh_entsize == 0) {
@@ -347,7 +353,7 @@ static INT elfSectionsRelocate (LW_LD_EXEC_MODULE *pmodule, Elf_Shdr *pshdrArr)
          *  重定位符号表使用的字符串表
          */
         ulStrShIndex = (INT)pshdrArr[pshdr->sh_link].sh_link;
-        pcStrTab    = (PCHAR)pmodule->EMOD_psegmentArry[ulStrShIndex].ESEG_ulAddr;
+        pcStrTab = (PCHAR)pmodule->EMOD_psegmentArry[ulStrShIndex].ESEG_ulAddr;
         if (LW_NULL == pcStrTab) {
             _ErrorHandle(ERROR_LOADER_FORMAT);
             return  (PX_ERROR);
@@ -380,7 +386,7 @@ static INT elfSectionsRelocate (LW_LD_EXEC_MODULE *pmodule, Elf_Shdr *pshdrArr)
             break;
         }
 
-        if(iError < 0) {
+        if (iError < 0) {
             return  (iError);
         }
     }
@@ -506,6 +512,7 @@ static INT elfSymbolsExport (LW_LD_EXEC_MODULE *pmodule, Elf_Shdr *pshdrArr, UIN
     ULONG      i, j;
 
     LD_DEBUG_MSG(("exportSymbols()\r\n"));
+    
     pshdr = pshdrArr;
     for (i = 0; i < pmodule->EMOD_ulSegCount; i++, pshdr++) {
         if (pshdr->sh_type != SHT_SYMTAB) {                             /*  只处理符号表节区            */
@@ -534,7 +541,6 @@ static INT elfSymbolsExport (LW_LD_EXEC_MODULE *pmodule, Elf_Shdr *pshdrArr, UIN
 
         ulSymCount = (ULONG)(pshdr->sh_size / sizeof(Elf_Sym));
         for (j = 0; j < ulSymCount; j++) {                              /*  遍历符号表                  */
-
             psym = &psymTable[j];
             pcSymName = pcStrTab + psym->st_name;
             if ((psym->st_shndx == SHN_UNDEF)                ||
@@ -597,7 +603,7 @@ static INT elfModuleMemoryInit (LW_LD_EXEC_MODULE *pmodule, Elf_Shdr *pshdrArr)
      *  计算跳转表、BSS和导出符号表大小
      */
     pshdr = pshdrArr;
-    for(i = 0; i < pmodule->EMOD_ulSegCount; i++, pshdr++) {
+    for (i = 0; i < pmodule->EMOD_ulSegCount; i++, pshdr++) {
         if (pshdr->sh_type != SHT_SYMTAB) {                             /*  只需处理符号表              */
             continue;
         }
@@ -614,8 +620,7 @@ static INT elfModuleMemoryInit (LW_LD_EXEC_MODULE *pmodule, Elf_Shdr *pshdrArr)
             if (SHN_UNDEF == psym->st_shndx) {                          /*  引用模块外的符号            */
                 ulJmpItemCnt++;
 
-            }else if(SHN_COMMON == psym->st_shndx) {                    /*  公共块                      */
-
+            } else if (SHN_COMMON == psym->st_shndx) {                  /*  公共块                      */
                 ulAlign = psym->st_value < sizeof(ULONG) ? sizeof(ULONG) : psym->st_value;
                 ulCommonSize += ulAlign - 1;                            /*  st_value中保存了对齐值      */
                 ulCommonSize = (ulCommonSize/ulAlign) * ulAlign;
@@ -627,7 +632,6 @@ static INT elfModuleMemoryInit (LW_LD_EXEC_MODULE *pmodule, Elf_Shdr *pshdrArr)
                 }
 
             } else if (psym->st_shndx < pmodule->EMOD_ulSegCount) {
-
                 if (SHT_NOBITS == pshdrArr[psym->st_shndx].sh_type &&   /*  计算BSS大小                 */
                     (psym->st_value + psym->st_size) >
                     pshdrArr[psym->st_shndx].sh_size) {
@@ -752,10 +756,7 @@ static INT elfModuleMemoryInit (LW_LD_EXEC_MODULE *pmodule, Elf_Shdr *pshdrArr)
 *********************************************************************************************************/
 static INT elfBuildInitTbl (LW_LD_EXEC_MODULE *pmodule, Elf_Shdr *pshdr, UINT uiShStrNdx)
 {
-    INT  i;
-    INT  j;
-    INT  k;
-
+    INT       i, j, k;
     UINT      uiInitTblSize = 0;
     UINT      uiFiniTblSize = 0;
     PCHAR     pcShName      = LW_NULL;
@@ -1056,7 +1057,7 @@ __out2:
 __out1:
     pshdr = (Elf_Shdr *)pcBuf;
     for (i = 0; i < pehdr->e_shnum; i++, pshdr++) {
-        if(!(pshdr->sh_flags & SHF_ALLOC)) {
+        if (!(pshdr->sh_flags & SHF_ALLOC)) {
             if (pmodule->EMOD_psegmentArry[i].ESEG_ulAddr) {
                 LW_LD_VMSAFEFREE(pmodule->EMOD_psegmentArry[i].ESEG_ulAddr);
             }
@@ -1257,7 +1258,8 @@ static INT dynPhdrParse (LW_LD_EXEC_MODULE *pmodule,
     /*
      *  TODO: 目前认为JMPREL跟在REL或RELA表之后，如果没有找到REL表和RELA表，则使用JMPREL表。
      */
-#if !defined(LW_CFG_CPU_ARCH_PPC) && !defined(LW_CFG_CPU_ARCH_C6X) && !defined(LW_CFG_CPU_ARCH_SPARC) && !defined(LW_CFG_CPU_ARCH_RISCV)
+#if !defined(LW_CFG_CPU_ARCH_PPC) && !defined(LW_CFG_CPU_ARCH_C6X) && \
+    !defined(LW_CFG_CPU_ARCH_SPARC) && !defined(LW_CFG_CPU_ARCH_RISCV)
     if (pdyndir->pvJmpRTable) {
         if (DT_REL == pdyndir->ulPltRel) {
             if (!pdyndir->prelTable) {
@@ -1341,7 +1343,7 @@ static INT elfPhdrRead (LW_LD_EXEC_MODULE *pmodule,
             addrMin = pphdr->p_vaddr;
         }
 
-        if (pphdr->p_vaddr + pphdr->p_memsz > addrMax) {
+        if ((pphdr->p_vaddr + pphdr->p_memsz) > addrMax) {
             addrMax = pphdr->p_vaddr + pphdr->p_memsz;
         }
 
@@ -1350,7 +1352,7 @@ static INT elfPhdrRead (LW_LD_EXEC_MODULE *pmodule,
         }
     }
 
-    if(addrMin >= addrMax) {                                            /*  没有可加载的段              */
+    if (addrMin >= addrMax) {                                           /*  没有可加载的段              */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "no segment can be loaded.\r\n");
         _ErrorHandle(ERROR_LOADER_FORMAT);
         goto    __out0;
@@ -1362,7 +1364,7 @@ static INT elfPhdrRead (LW_LD_EXEC_MODULE *pmodule,
     pmodule->EMOD_stLen      = (size_t)(addrMax - addrMin);
     pmodule->EMOD_pvBaseAddr = LW_LD_VMSAFEMALLOC_AREA_ALIGN(pmodule->EMOD_stLen,
                                                              (size_t)dwAlign);
-    if(!pmodule->EMOD_pvBaseAddr) {                                     /*  为可执行文件分配内存空间    */
+    if (!pmodule->EMOD_pvBaseAddr) {                                    /*  为可执行文件分配内存空间    */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "vmm low memory!\r\n");
         _ErrorHandle(ENOMEM);
         goto    __out0;
@@ -1500,8 +1502,10 @@ static INT elfPhdrRelocate (LW_LD_EXEC_MODULE *pmodule, ELF_DYN_DIR  *pdyndir)
             if (SHN_UNDEF == psym->st_shndx) {                          /*  外部符号需查找符号表        */
                 if (lib_strlen(pcSymName) == 0) {                       /* 特殊符号，和体系结构相关     */
                     addrSymVal = 0;
+                
                 } else {
-                    BOOL    bWeak = (STB_WEAK == ELF_ST_BIND(psym->st_info));
+                    BOOL  bWeak = (STB_WEAK == ELF_ST_BIND(psym->st_info));
+                    
                     if (__moduleSymGetValue(pmodule,
                                             bWeak,
                                             pcSymName,
@@ -1528,6 +1532,7 @@ static INT elfPhdrRelocate (LW_LD_EXEC_MODULE *pmodule, ELF_DYN_DIR  *pdyndir)
                 return  (PX_ERROR);
             }
         }
+    
     } else if (pdyndir->prelaTable) {                                   /*  RELA重定位结构              */
         for (i = 0; i < pdyndir->ulRelaCount; i++) {
             prela = &pdyndir->prelaTable[i];
@@ -1542,8 +1547,10 @@ static INT elfPhdrRelocate (LW_LD_EXEC_MODULE *pmodule, ELF_DYN_DIR  *pdyndir)
             if (SHN_UNDEF == psym->st_shndx) {                          /*  外部符号需查找符号表        */
                 if (lib_strlen(pcSymName) == 0) {                       /* 特殊符号，和体系结构相关     */
                     addrSymVal = 0;
+                
                 } else {
-                    BOOL    bWeak = (STB_WEAK == ELF_ST_BIND(psym->st_info));
+                    BOOL  bWeak = (STB_WEAK == ELF_ST_BIND(psym->st_info));
+                    
                     if (__moduleSymGetValue(pmodule,
                                             bWeak,
                                             pcSymName,
@@ -1610,9 +1617,9 @@ static INT elfPhdrSymExport (LW_LD_EXEC_MODULE *pmodule, ELF_DYN_DIR  *pdyndir)
     for (i = 0; i < pdyndir->ulSymCount; i++) {                         /*  处理符号表                  */
         psym = &pdyndir->psymTable[i];
         pcSymName = pdyndir->pcStrTable + psym->st_name;
-        if (psym->st_shndx               == SHN_UNDEF ||
-            ELF_ST_BIND(psym->st_info)   == STB_LOCAL ||
-            0 == lib_strlen(pcSymName)) {
+        if ((psym->st_shndx == SHN_UNDEF) ||
+            (ELF_ST_BIND(psym->st_info) == STB_LOCAL) ||
+            (0 == lib_strlen(pcSymName))) {
             continue;
         }
 
@@ -1643,8 +1650,7 @@ static INT elfPhdrSymExport (LW_LD_EXEC_MODULE *pmodule, ELF_DYN_DIR  *pdyndir)
 static INT elfPhdrBuildInitTable (LW_LD_EXEC_MODULE *pmodule,
                                   ELF_DYN_DIR       *pdyndir)
 {
-    INT i;
-
+    INT       i;
     UINT      uiInitTblSize = (UINT)(pdyndir->ulInitArrSize / sizeof(Elf_Addr));
     UINT      uiFiniTblSize = (UINT)(pdyndir->ulFiniArrSize / sizeof(Elf_Addr));
 
@@ -1702,11 +1708,11 @@ static INT elfPhdrBuildInitTable (LW_LD_EXEC_MODULE *pmodule,
 *********************************************************************************************************/
 static INT elfLoadExec (LW_LD_EXEC_MODULE *pmodule, Elf_Ehdr *pehdr, INT iFd)
 {
-    ELF_DYN_DIR *pdyndir     = NULL;
+    ELF_DYN_DIR *pdyndir = LW_NULL;
     INT          i;
-    PCHAR        pchLibName  = NULL;
+    PCHAR        pchLibName = LW_NULL;
 
-    LW_LD_EXEC_MODULE **ppmodUseArr = NULL;
+    LW_LD_EXEC_MODULE **ppmodUseArr = LW_NULL;
 
     if (LW_NULL != pmodule->EMOD_psegmentArry ||
         LW_NULL != pmodule->EMOD_psymbolHash  ||
@@ -1760,7 +1766,7 @@ static INT elfLoadExec (LW_LD_EXEC_MODULE *pmodule, Elf_Ehdr *pehdr, INT iFd)
      */
     ppmodUseArr = pmodule->EMOD_pvUsedArr;
     for (i = 0; i < pdyndir->ulNeededCnt; i++) {
-        if (NULL == pdyndir->pcStrTable) {
+        if (LW_NULL == pdyndir->pcStrTable) {
             break;
         }
         pchLibName = pdyndir->pcStrTable + pdyndir->wdNeededArr[pdyndir->ulNeededCnt - i - 1];

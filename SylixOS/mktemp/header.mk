@@ -82,6 +82,7 @@ __OBJS      = $($(@F)_OBJS)
 __CPUFLAGS  = $($(@F)_CPUFLAGS)
 __DSYMBOL   = $($(@F)_DSYMBOL)
 __LINKFLAGS = $($(@F)_LINKFLAGS)
+__LD        = $($(@F)_LD)
 
 __PRE_LINK_CMD   = $($(@F)_PRE_LINK_CMD)
 __POST_LINK_CMD  = $($(@F)_POST_LINK_CMD)

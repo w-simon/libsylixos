@@ -292,6 +292,7 @@ struct linger {
 
 /* SylixOS Changed for compatibility */
 #define MSG_NOSIGNAL        0x4000
+#define MSG_EOR             0x8000
 #define MSG_CMSG_CLOEXEC    0x40000
 
 /*
