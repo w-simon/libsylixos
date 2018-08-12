@@ -62,7 +62,11 @@ static int vnd_mtu = KV_VND_DEF_MTU;
 static struct sockaddr_in serv_addr;
 
 /* KidVPN server aes key */
+#ifdef USE_OPENSSL
+static AES_KEY ase_enc, ase_dec;
+#else /* USE_OPENSSL */
 static mbedtls_aes_context ase_enc, ase_dec;
+#endif /* !USE_OPENSSL */
 
 /* KidVPN server mac */
 static UINT8 serv_hwaddr[ETH_ALEN];
@@ -383,7 +387,7 @@ static void kv_serv_hello (void)
 }
 
 /* start KidVPN server */
-int kv_serv_start (int vnd_id, const unsigned char *key, unsigned int keybits,
+int kv_serv_start (int vnd_id, const char *tap_name, const unsigned char *key, unsigned int keybits,
                    const char *local, unsigned int port, int mtu)
 {
     pthread_t t_hello;
@@ -393,6 +397,18 @@ int kv_serv_start (int vnd_id, const unsigned char *key, unsigned int keybits,
         return  (-1);
     }
 
+#ifdef USE_OPENSSL
+    if (AES_set_encrypt_key(key, keybits, &ase_enc)) {
+        fprintf(stderr, "[KidVPN] Set AES encode key fail!\n");
+        return  (-1);
+    }
+
+    if (AES_set_decrypt_key(key, keybits, &ase_dec)) {
+        fprintf(stderr, "[KidVPN] Set AES decode key fail!\n");
+        return  (-1);
+    }
+
+#else /* USE_OPENSSL */
     if (mbedtls_aes_setkey_enc(&ase_enc, key, keybits)) {
         fprintf(stderr, "[KidVPN] Set AES encode key fail!\n");
         return  (-1);
@@ -402,8 +418,12 @@ int kv_serv_start (int vnd_id, const unsigned char *key, unsigned int keybits,
         fprintf(stderr, "[KidVPN] Set AES decode key fail!\n");
         return  (-1);
     }
+#endif /* !USE_OPENSSL */
 
+#ifdef SYLIXOS
     serv_addr.sin_len = sizeof(struct sockaddr_in);
+#endif /* SYLIXOS */
+
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(port);
 
@@ -413,7 +433,7 @@ int kv_serv_start (int vnd_id, const unsigned char *key, unsigned int keybits,
     }
 
     vnd_mtu = mtu;
-    if (kv_lib_init(vnd_id, &serv_fd, &vnd_fd, serv_hwaddr, mtu)) { /* init server */
+    if (kv_lib_init(vnd_id, tap_name, &serv_fd, &vnd_fd, serv_hwaddr, mtu)) { /* init server */
         return  (-1);
     }
 

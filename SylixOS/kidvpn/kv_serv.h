@@ -107,7 +107,7 @@ struct kv_err_hdr {
 #define KV_ERR_LEN      10
 
 /* KidVPN server start */
-int kv_serv_start(int vnd_id, const unsigned char *key, unsigned int keybits,
+int kv_serv_start(int vnd_id, const char *tap_name, const unsigned char *key, unsigned int keybits,
                   const char *local, unsigned int port, int mtu);
 
 #endif /* __KV_SERV_H */

@@ -63,6 +63,10 @@
 #include "lwip/tcpip.h"
 #include "lwip_natlib.h"
 /*********************************************************************************************************
+  NAT 安全配置
+*********************************************************************************************************/
+#define __NAT_STRONG_RULE   1                                           /*  不符合规定的数据包是否隔离  */
+/*********************************************************************************************************
   NAT 操作锁
 *********************************************************************************************************/
 #define __NAT_LOCK()        LOCK_TCPIP_CORE()
@@ -654,7 +658,7 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
     iphdrlen *= 4;
     
     if (p->len < iphdrlen) {                                            /*  缓冲错误                    */
-        return  (0);
+        return  (__NAT_STRONG_RULE);
     }
     
     LWIP_ASSERT("NAT Input fragment error", 
@@ -665,7 +669,7 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
     
     case IP_PROTO_TCP:                                                  /*  TCP 数据报                  */
         if (p->len < (iphdrlen + TCP_HLEN)) {
-            return  (0);
+            return  (__NAT_STRONG_RULE);
         }
         tcphdr = (struct tcp_hdr *)(((u8_t *)p->payload) + iphdrlen);
         usDestPort  = tcphdr->dest;
@@ -674,7 +678,7 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
         
     case IP_PROTO_UDP:                                                  /*  UDP 数据报                  */
         if (p->len < (iphdrlen + UDP_HLEN)) {
-            return  (0);
+            return  (__NAT_STRONG_RULE);
         }
         udphdr = (struct udp_hdr *)(((u8_t *)p->payload) + iphdrlen);
         usDestPort  = udphdr->dest;
@@ -683,7 +687,7 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
         
     case IP_PROTO_ICMP:
         if (p->len < (iphdrlen + sizeof(struct icmp_echo_hdr))) {
-            return  (0);
+            return  (__NAT_STRONG_RULE);
         }
         icmphdr = (struct icmp_echo_hdr *)(((u8_t *)p->payload) + iphdrlen);
         usDestPort  = icmphdr->id;
@@ -691,7 +695,7 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
         break;
     
     default:
-        return  (0);                                                    /*  不能处理的协议              */
+        return  (__NAT_STRONG_RULE);                                    /*  不能处理的协议              */
     }
 
     if ((ucProto != IP_PROTO_ICMP) &&
@@ -773,6 +777,9 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
                 icmphdr->id = pnatmap->NATM_usLocalPort;
                 inet_chksum_adjust((u8_t *)&icmphdr->chksum,(u8_t *)&usDestPort, 2, (u8_t *)&icmphdr->id, 2);
             }
+        
+        } else {
+            return  (__NAT_STRONG_RULE);
         }
     
     } else {                                                            /*  目标端口在代理端口之间      */
@@ -849,6 +856,9 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
                     }
                 }
             }
+        
+        } else {
+            return  (__NAT_STRONG_RULE);
         }
     }
 
@@ -1026,6 +1036,9 @@ static INT  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct netif
 	            }
             }
         }
+        
+    } else {
+        return  (1);
     }
 
     return  (0);
@@ -1084,7 +1097,10 @@ static struct pbuf *__natIpInput (struct pbuf  *p, struct netif  *pnetifIn, stru
                     return  (p);
 #endif                                                                  /*  !IP_REASSEMBLY              */
                 }
-                __natApInput(p, pnetifIn);                              /*  NAT 输入                    */
+                if (__natApInput(p, pnetifIn)) {                        /*  NAT 输入                    */
+                    pbuf_free(p);
+                    p = LW_NULL;
+                }
             }
             break;
         }

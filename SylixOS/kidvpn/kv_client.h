@@ -41,7 +41,7 @@
 #define __KV_CLIENT_H
 
 /* KidVPN client start */
-int kv_cli_start(int vnd_id, const unsigned char *key, unsigned int keybits,
+int kv_cli_start(int vnd_id, const char *tap_name, const unsigned char *key, unsigned int keybits,
                  const char *server, unsigned int port, int mtu);
 
 #endif /* __KV_CLIENT_H */

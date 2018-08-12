@@ -85,6 +85,7 @@ int vnetdev_mtu(struct vnetdev *vnetdev);
 int vnetdev_maxplen(struct vnetdev *vnetdev);
 void vnetdev_flush(struct vnetdev *vnetdev);
 int vnetdev_bufsize(struct vnetdev *vnetdev, size_t bsize);
+int vnetdev_checksum(struct vnetdev *vnetdev, int gen_en, int chk_en);
 
 #endif /* LW_CFG_NET_VNETDEV_EN */
 #endif /* __VNETDEV_H */

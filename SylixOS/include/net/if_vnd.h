@@ -38,8 +38,8 @@ extern "C" {
 
 #define IF_VND_PATH     "/dev/net/vnd"
 
-#define IF_VND_TYPE_RAW         0
-#define IF_VND_TYPE_ETHERNET    1
+#define IF_VND_TYPE_RAW         0                                       /*  IP tunnel mode like IFF_TUN */
+#define IF_VND_TYPE_ETHERNET    1                                       /*  Ethernet mode like IFF_TAP  */
 
 struct ifvnd {
     int     ifvnd_id;                                                   /*  Identification              */
@@ -84,6 +84,7 @@ struct ifvnd {
 #define SIOCVNDADD      _IOWR('v', 1, struct ifvnd)                     /*  add a vnd device            */
 #define SIOCVNDDEL      _IOWR('v', 2, struct ifvnd)                     /*  delete a vnd device         */
 #define SIOCVNDSEL      _IOWR('v', 3, struct ifvnd)                     /*  select specify id vnd device*/
+#define SIOCVNDCSUM     _IOWR('v', 4, INT)                              /*  set checksum enable/disable */
 
 #ifdef __cplusplus
 }

@@ -40,18 +40,40 @@
 #ifndef __KV_LIB_H
 #define __KV_LIB_H
 
+#define _GNU_SOURCE /* need some *np api */
+
+#ifndef SYLIXOS
+typedef unsigned char  UINT8;
+typedef unsigned short UINT16;
+typedef unsigned int   UINT32;
+#endif /* !SYLIXOS */
+
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <netdb.h>
 #include <pthread.h>
-#include <socket.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
 #include <net/if.h>
+#include <arpa/inet.h>
+
+#ifdef SYLIXOS
 #include <net/if_vnd.h>
 #include <net/if_ether.h>
-#include <arpa/inet.h>
+#else /* SYLIXOS */
+#include <linux/if_tun.h>
+#include <netinet/if_ether.h>
+#endif /* LINUX */
+
+#ifdef USE_OPENSSL
+#include <openssl/aes.h>
+#else /* USE_OPENSSL */
 #include <mbedtls/aes.h>
+#endif /* !USE_OPENSSL */
 
 /* KidVPN MTU (Try not to appear IP fragment) */
 #define KV_VND_MIN_MTU          1280
@@ -66,10 +88,17 @@
 #define KV_CLI_HELLO_PERIOD     10
 
 /* KidVPN core lib functions */
-int  kv_lib_init(int vnd_id, int *s_fd, int *v_fd, UINT8 hwaddr[], int mtu);
+int  kv_lib_init(int vnd_id, const char *tap_name, int *s_fd, int *v_fd, UINT8 hwaddr[], int mtu);
 void kv_lib_deinit(int s_fd, int v_fd);
+
+#ifdef USE_OPENSSL
+void kv_lib_encode(UINT8 *out, UINT8 *in, int len, int *rlen, AES_KEY *aes_en);
+void kv_lib_decode(UINT8 *out, UINT8 *in, int len, int *rlen, AES_KEY *aes_de);
+
+#else /* USE_OPENSSL */
 void kv_lib_encode(UINT8 *out, UINT8 *in, int len, int *rlen, mbedtls_aes_context *aes_en);
 void kv_lib_decode(UINT8 *out, UINT8 *in, int len, int *rlen, mbedtls_aes_context *aes_de);
+#endif /* !USE_OPENSSL */
 
 #endif /* __KV_LIB_H */
 /*

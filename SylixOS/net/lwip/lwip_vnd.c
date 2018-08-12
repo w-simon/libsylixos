@@ -521,6 +521,32 @@ static INT  _vndSelDev (PLW_VND_FILE  pvndfil, struct ifvnd *pifvnd)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: _vndCsum
+** 功能描述: 网络控制设备文件设置 check sum 使能或禁能
+** 输　入  : pvndfil          网络控制设备文件
+**           piEn             是否使能
+** 输　出  : ERROR
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static INT  _vndCsum (PLW_VND_FILE  pvndfil, INT *pifvnd)
+{
+    PLW_VND_DEV   pvnd;
+    INT           iRet;
+    
+    pvnd = pvndfil->VNDFIL_vndSel;                                      /*  没有选择网络设备            */
+    if (pvnd == LW_NULL) {
+        _ErrorHandle(ENODEV);
+        return  (PX_ERROR);
+    }
+    
+    VND_LOCK();
+    iRet = vnetdev_checksum(&pvnd->VND_vnetdev, 1, *pifvnd);
+    VND_UNLOCK();
+    
+    return  (iRet);
+}
+/*********************************************************************************************************
 ** 函数名称: _vndIoctl
 ** 功能描述: 控制网络控制设备文件
 ** 输　入  : pvndfil          网络控制设备文件
@@ -537,6 +563,7 @@ static INT  _vndIoctl (PLW_VND_FILE  pvndfil, INT  iRequest, LONG  lArg)
     struct stat         *pstatGet;
     PLW_VND_DEV          pvnd = pvndfil->VNDFIL_vndSel;
     INT                  iRet = PX_ERROR;
+    INT                 *piArg;
     
     switch (iRequest) {
     
@@ -681,6 +708,16 @@ static INT  _vndIoctl (PLW_VND_FILE  pvndfil, INT  iRequest, LONG  lArg)
         pifvnd = (struct ifvnd *)lArg;
         if (pifvnd) {
             iRet = _vndSelDev(pvndfil, pifvnd);
+            
+        } else {
+            _ErrorHandle(EINVAL);
+        }
+        break;
+        
+    case SIOCVNDCSUM:
+        piArg = (INT *)lArg;
+        if (piArg) {
+            iRet = _vndCsum(pvndfil, piArg);
             
         } else {
             _ErrorHandle(EINVAL);

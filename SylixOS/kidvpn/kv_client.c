@@ -56,7 +56,11 @@ static struct kv_hello_hdr hello_hdr;
 static struct sockaddr_in serv_addr;
 
 /* KidVPN client aes key */
+#ifdef USE_OPENSSL
+static AES_KEY ase_enc, ase_dec;
+#else /* USE_OPENSSL */
 static mbedtls_aes_context ase_enc, ase_dec;
+#endif /* !USE_OPENSSL */
 
 /* KidVPN client alive */
 static int cli_alive;
@@ -213,7 +217,7 @@ static void kv_cli_hello (void)
 }
 
 /* start KidVPN client */
-int kv_cli_start (int vnd_id, const unsigned char *key, unsigned int keybits,
+int kv_cli_start (int vnd_id, const char *tap_name, const unsigned char *key, unsigned int keybits,
                   const char *server, unsigned int port, int mtu)
 {
     struct addrinfo hints;
@@ -229,6 +233,18 @@ int kv_cli_start (int vnd_id, const unsigned char *key, unsigned int keybits,
         return  (-1);
     }
 
+#ifdef USE_OPENSSL
+    if (AES_set_encrypt_key(key, keybits, &ase_enc)) {
+        fprintf(stderr, "[KidVPN] Set AES encode key fail!\n");
+        return  (-1);
+    }
+
+    if (AES_set_decrypt_key(key, keybits, &ase_dec)) {
+        fprintf(stderr, "[KidVPN] Set AES decode key fail!\n");
+        return  (-1);
+    }
+
+#else /* USE_OPENSSL */
     if (mbedtls_aes_setkey_enc(&ase_enc, key, keybits)) {
         fprintf(stderr, "[KidVPN] Set AES encode key fail!\n");
         return  (-1);
@@ -238,8 +254,12 @@ int kv_cli_start (int vnd_id, const unsigned char *key, unsigned int keybits,
         fprintf(stderr, "[KidVPN] Set AES decode key fail!\n");
         return  (-1);
     }
+#endif /* !USE_OPENSSL */
 
+#ifdef SYLIXOS
     serv_addr.sin_len = sizeof(struct sockaddr_in);
+#endif /* SYLIXOS */
+
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(port);
 
@@ -268,7 +288,7 @@ int kv_cli_start (int vnd_id, const unsigned char *key, unsigned int keybits,
     }
 
     vnd_mtu = mtu;
-    if (kv_lib_init(vnd_id, &cli_fd, &vnd_fd, hello_hdr.hwaddr, mtu)) { /* init client */
+    if (kv_lib_init(vnd_id, tap_name, &cli_fd, &vnd_fd, hello_hdr.hwaddr, mtu)) { /* init client */
         return  (-1);
     }
 

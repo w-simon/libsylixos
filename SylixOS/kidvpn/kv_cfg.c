@@ -37,10 +37,14 @@
  *
  */
 
-#include <SylixOS.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifndef PX_EOS
+#define PX_EOS '\0'
+#endif
 
 /*
  * ini file key=value
@@ -66,7 +70,7 @@ static void ini_load_sector (ini_sector_t *sec, FILE *fp)
 #define INI_BUF_SZ        128
 
 #define IS_WHITE(c)       (c == ' ' || c == '\t' || c == '\r' || c == '\n')
-#define IS_END(c)         (c == '\0')
+#define IS_END(c)         (c == PX_EOS)
 #define SKIP_WHITE(str)   while (IS_WHITE(*str)) {  \
                               str++;  \
                           }

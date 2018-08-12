@@ -395,7 +395,7 @@ int  if_param_getenable (void *pifparam, int *enable)
 }
 /*********************************************************************************************************
 ** 函数名称: if_param_getdefault
-** 功能描述: 读取网卡是否为默认路由配置. (如果未找到配置默认为使能)
+** 功能描述: 读取网卡是否为默认路由配置. (如果未找到配置默认为禁能)
 ** 输　入  : pifparam      配置句柄
 **           def           是否为默认路由
 ** 输　出  : ERROR or OK
@@ -413,7 +413,7 @@ int  if_param_getdefault (void *pifparam, int *def)
         return  (PX_ERROR);
     }
 
-    *def = __iniGetInt(pinisec, LW_IFPARAM_DEFAULT, 1);
+    *def = __iniGetInt(pinisec, LW_IFPARAM_DEFAULT, 0);
 
     return  (ERROR_NONE);
 }

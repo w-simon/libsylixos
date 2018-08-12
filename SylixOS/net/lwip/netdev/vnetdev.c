@@ -143,17 +143,26 @@ static void vnetdev_receive (struct netdev *netdev, int (*input)(struct netdev *
   _BugHandle(TRUE, TRUE, "Bug in here!\r\n");
 }
 
+/* virtual netdev functions: rxmode */
+static int vnetdev_rxmode (struct netdev *netdev, int flags)
+{
+  return (0); /* receive all packet with vnetdev_put() */
+}
+
 /* create a virtual netdev */
 int vnetdev_add (struct vnetdev *vnetdev, vndnotify notify, size_t bsize, int id, int type, void *priv)
 {
   static struct netdev_funcs vnetdev_funcs = {
     NULL, NULL, NULL,NULL, 
-    vnetdev_ioctl, NULL, 
+    vnetdev_ioctl, 
+    vnetdev_rxmode, 
     vnetdev_transmit,
     vnetdev_receive
   };
   
   int  if_flags;
+  int  rd;
+  time_t tm;
   struct netdev *netdev = &vnetdev->netdev;
 
   vnetdev->id = id;
@@ -173,7 +182,7 @@ int vnetdev_add (struct vnetdev *vnetdev, vndnotify notify, size_t bsize, int id
   
   if (type == IF_VND_TYPE_RAW) {
     netdev->net_type = NETDEV_TYPE_RAW;
-    if_flags = IFF_UP | IFF_POINTOPOINT | IFF_MULTICAST;
+    if_flags = IFF_UP | IFF_POINTOPOINT;
   
   } else {
     netdev->net_type = NETDEV_TYPE_ETHERNET;
@@ -185,6 +194,19 @@ int vnetdev_add (struct vnetdev *vnetdev, vndnotify notify, size_t bsize, int id
   netdev->hwaddr_len = ETH_ALEN;
   netdev->priv = priv;
   netdev->drv = &vnetdev_funcs;
+  
+  if (netdev->net_type == NETDEV_TYPE_ETHERNET) {
+    lib_time(&tm);
+    lib_srand((uint_t)tm);
+    rd = lib_rand();
+    netdev->hwaddr[0] = (UINT8)((rd >> 24) & 0xfe);
+    netdev->hwaddr[1] = (UINT8)(rd >> 16);
+    netdev->hwaddr[2] = (UINT8)(rd >> 8);
+    netdev->hwaddr[3] = (UINT8)(rd);
+    rd = lib_rand();
+    netdev->hwaddr[4] = (UINT8)(rd >> 8);
+    netdev->hwaddr[5] = (UINT8)(rd);
+  }
   
   return (netdev_add(netdev, NULL, NULL, NULL, if_flags));
 }
@@ -341,6 +363,38 @@ int vnetdev_bufsize (struct vnetdev *vnetdev, size_t bsize)
   }
   
   vnetdev->buf_size = bsize;
+  return (0);
+}
+
+/* set virtual netdev checksum enable/disable */
+int vnetdev_checksum (struct vnetdev *vnetdev, int gen_en, int chk_en)
+{
+  UINT32 chksum_flags;
+  struct netif *netif;
+  
+  chksum_flags = vnetdev->netdev.chksum_flags;
+  if (gen_en) {
+    chksum_flags |= (NETDEV_CHKSUM_GEN_IP | NETDEV_CHKSUM_GEN_UDP | NETDEV_CHKSUM_GEN_TCP | 
+                     NETDEV_CHKSUM_GEN_ICMP | NETDEV_CHKSUM_GEN_ICMP6);
+  } else {
+    chksum_flags &= ~(NETDEV_CHKSUM_GEN_IP | NETDEV_CHKSUM_GEN_UDP | NETDEV_CHKSUM_GEN_TCP | 
+                      NETDEV_CHKSUM_GEN_ICMP | NETDEV_CHKSUM_GEN_ICMP6);
+  }
+  
+  if (chk_en) {
+    chksum_flags |= (NETDEV_CHKSUM_CHECK_IP | NETDEV_CHKSUM_CHECK_UDP | NETDEV_CHKSUM_CHECK_TCP | 
+                     NETDEV_CHKSUM_CHECK_ICMP | NETDEV_CHKSUM_CHECK_ICMP6);
+  } else {
+    chksum_flags &= ~(NETDEV_CHKSUM_CHECK_IP | NETDEV_CHKSUM_CHECK_UDP | NETDEV_CHKSUM_CHECK_TCP | 
+                      NETDEV_CHKSUM_CHECK_ICMP | NETDEV_CHKSUM_CHECK_ICMP6);
+  }
+  
+  if (chksum_flags != vnetdev->netdev.chksum_flags) {
+    vnetdev->netdev.chksum_flags = chksum_flags;
+    netif = (struct netif *)vnetdev->netdev.sys;
+    netif->chksum_flags = (UINT16)chksum_flags;
+  }
+  
   return (0);
 }
 

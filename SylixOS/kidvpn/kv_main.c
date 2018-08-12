@@ -37,13 +37,13 @@
  *
  */
 
-#include "kv_cfg.h"
 #include "kv_lib.h"
+#include "kv_cfg.h"
 #include "kv_serv.h"
 #include "kv_client.h"
 
 /* version */
-#define KV_VERSION  "0.8.5"
+#define KV_VERSION  "0.9.0"
 
 /* key code change function */
 static int key_code_change (unsigned char *key, unsigned int *keybits, const char *keyascii)
@@ -138,21 +138,28 @@ int main (int argc, char *argv[])
     unsigned char keycode[32];
     unsigned int keybits;
 
+#ifndef SYLIXOS
+    const char *tap;
+#endif /* !SYLIXOS */
+    char *tapname = NULL;
+
     if (argc < 3) {
 usage:
         printf("USAGE: kidvpn [config file *.ini] [sector] [password]\n"
                "       config file like this:\n"
                "           [server_0]\n"
                "           mode=server                   # Run as server mode\n"
-               "           key_file=/etc/kidvpn/serv.key # AES key file\n"
-               "           vnd_id=0                      # Virtual network device ID\n"
+               "           key_file=serv.key             # AES key file\n"
+               "           vnd_id=0                      # Virtual network device ID (For SylixOS)\n"
+               "           tap_name=tap0                 # Virtual network device name (For Linux & Windows)\n"
                "           mtu=1472                      # 1280 ~ 1472 (Optional default: 1472)\n"
                "           local_ip=192.168.0.1          # Local IP address in this system\n"
                "           port=10088                    # Local port (Optional default: 10088)\n\n"
                "           [client_0]\n"
                "           mode=client                   # Run as client mode\n"
-               "           key_file=/etc/kidvpn/cli.key  # AES key file\n"
-               "           vnd_id=0                      # Virtual network device ID\n"
+               "           key_file=cli.key              # AES key file\n"
+               "           vnd_id=0                      # Virtual network device ID (For SylixOS)\n"
+               "           tap_name=tap0                 # Virtual network device name (For Linux & Windows)\n"
                "           mtu=1472                      # 1280 ~ 1472 must same as server (Optional default: 1472)\n"
                "           server=123.123.123.123        # KidVPN Server address\n"
                "           port=10088                    # Server port (Optional default: 10088)\n\n"
@@ -229,12 +236,30 @@ usage:
             return  (-1);
         }
 
+#ifdef SYLIXOS
         vnd_id = kv_cfg_getint(cfg, "vnd_id", -1);
         if (vnd_id < 0) {
             kv_cfg_unload(cfg);
             fprintf(stderr, "[KidVPN] Can't found virtual network device ID setting\n");
             return  (-1);
         }
+
+#else /* SYLIXOS */
+        vnd_id = -1;
+        tap = kv_cfg_getstring(cfg, "tap_name", NULL);
+        if (!tap) {
+            kv_cfg_unload(cfg);
+            fprintf(stderr, "[KidVPN] Can't found virtual network device setting\n");
+            return  (-1);
+        }
+
+        tapname = strdup(tap);
+        if (!tapname) {
+            kv_cfg_unload(cfg);
+            fprintf(stderr, "[KidVPN] strdup() error(%d): %s\n", errno, strerror(errno));
+            return  (-1);
+        }
+#endif /* !SYLIXOS */
 
         mtu = kv_cfg_getint(cfg, "mtu", KV_VND_DEF_MTU);
         if ((mtu > KV_VND_MAX_MTU) || (mtu < KV_VND_MIN_MTU)) {
@@ -297,10 +322,10 @@ usage:
         daemon(1, 1); /* make server to a daemon mode */
 
         if (*mode == 's') {
-            return  (kv_serv_start(vnd_id, keycode, keybits, straddr, port, mtu));
+            return  (kv_serv_start(vnd_id, tapname, keycode, keybits, straddr, port, mtu));
 
         } else {
-            return  (kv_cli_start(vnd_id, keycode, keybits, straddr, port, mtu));
+            return  (kv_cli_start(vnd_id, tapname, keycode, keybits, straddr, port, mtu));
         }
 
     } else {
