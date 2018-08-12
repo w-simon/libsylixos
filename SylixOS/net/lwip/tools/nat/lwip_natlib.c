@@ -778,8 +778,8 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
                 inet_chksum_adjust((u8_t *)&icmphdr->chksum,(u8_t *)&usDestPort, 2, (u8_t *)&icmphdr->id, 2);
             }
         
-        } else {
-            return  (__NAT_STRONG_RULE);
+        } else if (!ip4_addr_cmp(&iphdr->dest, netif_ip4_addr(netifIn))) {
+            return  (__NAT_STRONG_RULE);                                /*  目标不是本机                */
         }
     
     } else {                                                            /*  目标端口在代理端口之间      */
