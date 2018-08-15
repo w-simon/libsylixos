@@ -857,8 +857,9 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
                 }
             }
         
-        } else {
-            return  (__NAT_STRONG_RULE);
+        } else if ((ucProto != IP_PROTO_ICMP) ||
+                   !ip4_addr_cmp(&iphdr->dest, netif_ip4_addr(netifIn))) {
+            return  (__NAT_STRONG_RULE);                                /*  目标不是本机                */
         }
     }
 

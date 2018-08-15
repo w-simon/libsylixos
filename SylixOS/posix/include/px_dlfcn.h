@@ -43,6 +43,11 @@ extern "C" {
 #define RTLD_LOCAL          0x08
 #define RTLD_NOLOAD         0x10                                        /*  Linux externed NOT POSIX    */
 
+#define RTLD_DEFAULT        ((void *)0)
+#ifdef __GNUC__
+#define RTLD_NEXT           ((void *)-1l)
+#endif                                                                  /*  __GNUC__                    */
+
 /*********************************************************************************************************
   dl_info
 *********************************************************************************************************/

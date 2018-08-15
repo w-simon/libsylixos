@@ -1,12 +1,11 @@
 /**
  * @file
  * KidVPN configure.
- * as much as possible compatible with different versions of LwIP
  * Verification using sylixos(tm) real-time operating system
  */
 
 /*
- * Copyright (c) 2006-2017 SylixOS Group.
+ * Copyright (c) 2006-2018 SylixOS Group.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification,
@@ -40,11 +39,19 @@
 #ifndef __KV_CFG_H
 #define __KV_CFG_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* KidVPN config file load */
 void       *kv_cfg_load(const char *file, const char *sector);
 void        kv_cfg_unload(void *loadret);
 int         kv_cfg_getint(void *loadret, const char *keyword, int def);
 const char *kv_cfg_getstring(void *loadret, const char *keyword, const char *def);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __KV_CFG_H */
 /*

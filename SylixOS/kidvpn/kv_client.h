@@ -1,12 +1,11 @@
 /**
  * @file
  * KidVPN client.
- * as much as possible compatible with different versions of LwIP
  * Verification using sylixos(tm) real-time operating system
  */
 
 /*
- * Copyright (c) 2006-2017 SylixOS Group.
+ * Copyright (c) 2006-2018 SylixOS Group.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification,
@@ -40,9 +39,17 @@
 #ifndef __KV_CLIENT_H
 #define __KV_CLIENT_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* KidVPN client start */
 int kv_cli_start(int vnd_id, const char *tap_name, const unsigned char *key, unsigned int keybits,
-                 const char *server, unsigned int port, int mtu);
+                 const char *server, unsigned int port, int mtu, int hole_punching);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __KV_CLIENT_H */
 /*

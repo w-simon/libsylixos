@@ -152,6 +152,7 @@ static int vnetdev_rxmode (struct netdev *netdev, int flags)
 /* create a virtual netdev */
 int vnetdev_add (struct vnetdev *vnetdev, vndnotify notify, size_t bsize, int id, int type, void *priv)
 {
+  static const UINT8 emty_mac[6] = {0, 0, 0, 0, 0, 0};
   static struct netdev_funcs vnetdev_funcs = {
     NULL, NULL, NULL,NULL, 
     vnetdev_ioctl, 
@@ -195,7 +196,8 @@ int vnetdev_add (struct vnetdev *vnetdev, vndnotify notify, size_t bsize, int id
   netdev->priv = priv;
   netdev->drv = &vnetdev_funcs;
   
-  if (netdev->net_type == NETDEV_TYPE_ETHERNET) {
+  if ((netdev->net_type == NETDEV_TYPE_ETHERNET) && 
+      !lib_memcmp(emty_mac, netdev->hwaddr, ETH_ALEN)) {
     lib_time(&tm);
     lib_srand((uint_t)tm);
     rd = lib_rand();

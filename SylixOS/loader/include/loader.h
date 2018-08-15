@@ -74,8 +74,6 @@ LW_API INT      API_ModuleUnload(PVOID  pvModule);                      /*  卸载
 
 LW_API PVOID    API_ModuleSym(PVOID  pvModule, CPCHAR  pcName);         /*  查找装载模块的本地符号表    */
 
-LW_API PVOID    API_ModuleProcSym(PVOID  pvModule, CPCHAR  pcName);     /*  查找进程的本地符号表        */
-                                
 LW_API INT      API_ModuleStatus(CPCHAR  pcFile, INT  iFd);             /*  查看elf文件状态             */
 
 #define moduleLoad          API_ModuleLoad
@@ -108,6 +106,10 @@ LW_API INT      API_ModuleAtExit(VOIDFUNCPTR  pfunc);                   /*  内核
 #if LW_CFG_MODULELOADER_GCOV_EN > 0
 LW_API INT      API_ModuleGcov(PVOID  pvModule);                        /*  内核模块生成代码覆盖率信息  */
 #endif                                                                  /*  LW_CFG_MODULELOADER_GCOV_EN */
+
+LW_API PVOID    API_ModuleProcSym(PVOID  pvModule,
+                                  PVOID  pvCurMod,
+                                  CPCHAR pcName);                       /*  查找进程的本地符号表        */
 
 LW_API ssize_t  API_ModuleGetName(PVOID  pvAddr, PCHAR  pcFullPath, size_t  stLen);
 

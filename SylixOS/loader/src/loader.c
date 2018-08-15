@@ -1196,6 +1196,7 @@ PVOID  API_ModuleSym (PVOID  pvModule, CPCHAR  pcName)
 ** 函数名称: API_ModuleProcSym
 ** 功能描述: 查询进程中的指定符号地址
 ** 输　入  : pvProc        进程管理句柄
+**           pvCurMod      当前模块
 **           pcName        函数名
 ** 输　出  : 函数地址
 ** 全局变量:
@@ -1203,17 +1204,22 @@ PVOID  API_ModuleSym (PVOID  pvModule, CPCHAR  pcName)
                                            API 函数
 *********************************************************************************************************/
 LW_API
-PVOID  API_ModuleProcSym (PVOID  pvProc, CPCHAR  pcName)
+PVOID  API_ModuleProcSym (PVOID  pvProc, PVOID  pvCurMod, CPCHAR  pcName)
 {
     addr_t             ulValue = (addr_t)LW_NULL;
     LW_LD_EXEC_MODULE *pmodTemp;
     LW_LIST_RING      *pringTemp;
     LW_LD_VPROC       *pvproc = (LW_LD_VPROC *)pvProc;
     BOOL               bStart;
+    BOOL               bEnabled  = LW_TRUE;
 
     if (!pcName || !pvProc) {
         _ErrorHandle(EINVAL);
         return  (LW_NULL);
+    }
+
+    if (pvCurMod) {
+        bEnabled = LW_FALSE;
     }
 
     LW_VP_LOCK(pvproc);
@@ -1224,10 +1230,17 @@ PVOID  API_ModuleProcSym (PVOID  pvProc, CPCHAR  pcName)
 
         pmodTemp = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);
 
-        if (pmodTemp->EMOD_bIsGlobal) {
+        if (bEnabled && pmodTemp->EMOD_bIsGlobal) {
             if (ERROR_NONE == __moduleFindSym(pmodTemp, pcName, &ulValue, LW_LD_SYM_ANY)) {
                 LW_VP_UNLOCK(pvproc);
                 return  ((PVOID)ulValue);
+            }
+        }
+
+        if (pvCurMod && !bEnabled) {
+            if ((pmodTemp->EMOD_pvBaseAddr <= pvCurMod) &&
+                ((PVOID)((addr_t)pmodTemp->EMOD_pvBaseAddr + pmodTemp->EMOD_stLen) > pvCurMod)) {
+                bEnabled = LW_TRUE;
             }
         }
     }

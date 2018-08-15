@@ -1,12 +1,11 @@
 /**
  * @file
  * KidVPN configure.
- * as much as possible compatible with different versions of LwIP
  * Verification using sylixos(tm) real-time operating system
  */
 
 /*
- * Copyright (c) 2006-2017 SylixOS Group.
+ * Copyright (c) 2006-2018 SylixOS Group.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification,
@@ -51,8 +50,8 @@
  */
 typedef struct ini_key_value {
     struct ini_key_value *next;
-    char *keyword;
-    char *value;
+    char                 *keyword;
+    char                 *value;
 } ini_key_value_t;
 
 /*
@@ -67,7 +66,7 @@ typedef struct {
  */
 static void ini_load_sector (ini_sector_t *sec, FILE *fp)
 {
-#define INI_BUF_SZ        128
+#define INI_BUF_SZ        256
 
 #define IS_WHITE(c)       (c == ' ' || c == '\t' || c == '\r' || c == '\n')
 #define IS_END(c)         (c == PX_EOS)

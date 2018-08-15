@@ -162,8 +162,13 @@ void  *dlsym (void  *pvHandle, const char *pcName)
     PVOID   pvVProc = (PVOID)__LW_VP_GET_CUR_PROC();
     PVOID   pvFunc  = LW_NULL;
 
-    if (pvVProc == pvHandle) {
-        pvFunc = API_ModuleProcSym(pvVProc, pcName);                    /*  在整个进程空间查找符号      */
+    if ((pvVProc == pvHandle) || (pvHandle == RTLD_DEFAULT)) {
+        pvFunc = API_ModuleProcSym(pvVProc, LW_NULL, pcName);           /*  在整个进程空间查找符号      */
+
+#ifdef __GNUC__
+    } else if (pvHandle == RTLD_NEXT) {
+        pvFunc = API_ModuleProcSym(pvVProc, __builtin_return_address(0), pcName);
+#endif                                                                  /*  __GNUC__                    */
 
     } else {
         pvFunc = API_ModuleSym(pvHandle, pcName);

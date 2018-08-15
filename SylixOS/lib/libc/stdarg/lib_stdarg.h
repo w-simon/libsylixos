@@ -92,7 +92,9 @@ typedef __builtin_va_list    va_list;
 #define __va_list__
 #endif                                                                  /*  __va_list__                 */
 
-#if !defined(__STRICT_ANSI__) || __STDC_VERSION__ + 0 >= 199900L || defined(__GXX_EXPERIMENTAL_CXX0X__)
+#if !defined(__STRICT_ANSI__) || \
+    (defined(__STDC_VERSION__) && (__STDC_VERSION__ + 0 >= 199900L)) || \
+    defined(__GXX_EXPERIMENTAL_CXX0X__)
 #ifndef va_copy
 #define va_copy(d,s)	     __builtin_va_copy(d,s)
 #endif                                                                  /*  va_copy                     */
