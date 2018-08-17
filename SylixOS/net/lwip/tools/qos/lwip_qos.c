@@ -762,7 +762,6 @@ __rule_find:
         _List_Line_Del(plineTemp,
                        &pqosni->QOSNI_qosrnRule[i]);
         _G_ulQosCounter--;
-        
         pvRule = plineTemp;
     }
 
@@ -1071,7 +1070,6 @@ static INT  __tshellNetQosRuleAdd (INT  iArgC, PCHAR  *ppcArgV)
         return  (-ERROR_TSHELL_EPARAM);
     }
 
-    printf("rule add ok\n");
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -1105,8 +1103,6 @@ static INT  __tshellNetQosRuleDel (INT  iArgC, PCHAR  *ppcArgV)
         } else {
             fprintf(stderr, "can not delete rule, error: %s\n", lib_strerror(errno));
         }
-    } else {
-        printf("delete.\n");
     }
 
     return  (iError);
