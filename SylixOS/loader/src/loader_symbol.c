@@ -123,7 +123,7 @@ __bad_version:
     return  (PX_ERROR);
 }
 /*********************************************************************************************************
-** 函数名称: __moduleFindSymHook
+** 函数名称: __moduleFindKernelSymHook
 ** 功能描述: 系统查找全局符号表的回调函数. (这里仅搜索 ko 类型全局模块)
 ** 输　入  : pcSymName     符号名
 **           iFlag         符号属性
@@ -261,17 +261,20 @@ static INT __moduleFindGlobalSym (CPCHAR pcSymName, addr_t *pulSymVal, INT iFlag
 ** 功能描述: 查找模块内符号.
 ** 输　入  : pmodule       模块指针
 **           pcSymName     符号名
-**           pulSymVal     符号值
+**           pulSymVal     返回符号值
+**           pbWeak        返回是否为弱符号
 **           iFlag         符号属性
 ** 输　出  : ERROR_NONE 表示没有错误, PX_ERROR 表示错误
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-INT __moduleFindSym (LW_LD_EXEC_MODULE  *pmodule, CPCHAR pcSymName, addr_t *pulSymVal, INT iFlag)
+INT __moduleFindSym (LW_LD_EXEC_MODULE  *pmodule, CPCHAR pcSymName, 
+                     addr_t *pulSymVal, BOOL *pbWeak, INT iFlag)
 {
-    PLW_SYMBOL          psymbol = LW_NULL;
     INT                 iHash;
-    PLW_LIST_LINE       plineTemp = LW_NULL;
+    PLW_SYMBOL          psymbolWeak = LW_NULL;
+    PLW_SYMBOL          psymbol     = LW_NULL;
+    PLW_LIST_LINE       plineTemp   = LW_NULL;
 
     LD_DEBUG_MSG(("__moduleFindSym(), name: %s\n", pcSymName));
     
@@ -284,18 +287,40 @@ INT __moduleFindSym (LW_LD_EXEC_MODULE  *pmodule, CPCHAR pcSymName, addr_t *pulS
             psymbol = _LIST_ENTRY(plineTemp, LW_SYMBOL, SYM_lineManage);
             if ((lib_strcmp(pcSymName, psymbol->SYM_pcName) == 0) &&
                 (psymbol->SYM_iFlag & iFlag) == iFlag) {
+#if LW_CFG_MODULELOADER_STRONGSYM_FIRST_EN > 0
+                if (LW_SYMBOL_IS_WEAK(psymbol->SYM_iFlag) && !psymbolWeak) {
+                    psymbolWeak = psymbol;
+                
+                } else {
+                    break;
+                }
+#else
                 break;
+#endif                                                                  /*  LW_CFG_MODULELOADER_ST...   */
             }
         }
     }
 
     if (plineTemp == LW_NULL) {
-        return  (PX_ERROR);
+        if (psymbolWeak) {
+            *pulSymVal = (addr_t)psymbolWeak->SYM_pcAddr;
+            if (pbWeak) {
+                *pbWeak = LW_TRUE;
+            }
+            return  (ERROR_NONE);
+        
+        } else {
+            return  (PX_ERROR);
+        }
+    
+    } else {
+        *pulSymVal = (addr_t)psymbol->SYM_pcAddr;
+        if (pbWeak) {
+            *pbWeak = LW_FALSE;
+        }
+
+        return  (ERROR_NONE);
     }
-
-    *pulSymVal = (addr_t)psymbol->SYM_pcAddr;
-
-    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: __moduleTraverseSym
@@ -351,9 +376,13 @@ VOID __moduleTraverseSym (LW_LD_EXEC_MODULE  *pmodule,
 INT __moduleSymGetValue (LW_LD_EXEC_MODULE  *pmodule, BOOL  bIsWeak, 
                          CPCHAR pcSymName, addr_t *pulSymVal, INT iFlag)
 {
-    LW_LD_EXEC_MODULE  *pmodTemp   = NULL;
-    PLW_LIST_RING       pringTemp  = NULL;
+    BOOL                bWeakSym;
+    addr_t              ulSymVal;
+    LW_LD_EXEC_MODULE  *pmodTemp  = NULL;
+    PLW_LIST_RING       pringTemp = NULL;
 
+    *pulSymVal = (addr_t)PX_ERROR;
+    
     /*
      *  首先查找当前进程(内核模块)链表
      */
@@ -361,8 +390,16 @@ INT __moduleSymGetValue (LW_LD_EXEC_MODULE  *pmodule, BOOL  bIsWeak,
     while (pringTemp != &pmodule->EMOD_ringModules) {
         pmodTemp = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);
         if (pmodTemp->EMOD_bIsGlobal) {
-            if (ERROR_NONE == __moduleFindSym(pmodTemp, pcSymName, pulSymVal, iFlag)) {
-                return  (ERROR_NONE);
+            if (ERROR_NONE == __moduleFindSym(pmodTemp, pcSymName, &ulSymVal, &bWeakSym, iFlag)) {
+                if (bWeakSym) {
+                    if (*pulSymVal == (addr_t)PX_ERROR) {
+                        *pulSymVal = ulSymVal;
+                    }
+                
+                } else {
+                    *pulSymVal = ulSymVal;
+                    return  (ERROR_NONE);
+                }
             }
         }
         pringTemp = _list_ring_get_next(pringTemp);
@@ -371,12 +408,16 @@ INT __moduleSymGetValue (LW_LD_EXEC_MODULE  *pmodule, BOOL  bIsWeak,
     /*
      *  查找内核全局符号表
      */
-    if (ERROR_NONE == __moduleFindGlobalSym(pcSymName, pulSymVal, iFlag)) {
+    if (ERROR_NONE == __moduleFindGlobalSym(pcSymName, &ulSymVal, iFlag)) {
+        *pulSymVal = ulSymVal;
+        return  (ERROR_NONE);
+    
+    } else if (*pulSymVal != (addr_t)PX_ERROR) {                        /*  找到了其他弱符号            */
         return  (ERROR_NONE);
     }
     
     if (bIsWeak) {
-        *pulSymVal = 0ul;                                               /*  弱符号对应 0 地址           */
+        *pulSymVal = (addr_t)LW_NULL;                                   /*  弱符号对应 0 地址           */
         return  (ERROR_NONE);
     }
     

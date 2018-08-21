@@ -157,6 +157,10 @@ netif_loopif_init(struct netif *netif)
    */
   MIB2_INIT_NETIF(netif, snmp_ifType_softwareLoopback, 0);
 
+#ifdef SYLIXOS /* SylixOS Add Loop interface can use max tcp wnd size */
+  netif->tcp_wnd = 0xffffu << TCP_RCV_SCALE;
+#endif /* SYLIXOS */
+
   netif->name[0] = 'l';
   netif->name[1] = 'o';
 #if LWIP_IPV4

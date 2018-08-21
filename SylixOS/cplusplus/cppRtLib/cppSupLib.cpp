@@ -126,18 +126,15 @@ int  __cxa_guard_acquire (int volatile  *piGv)
     
 __retry:
     if (__LW_CPP_GUARD_IS_RELE(piGv)) {                                 /*  已经被 construction 完毕    */
-        
         iIsCanCon = 0;                                                  /*  不可 construction           */
     
     } else if (__LW_CPP_GUARD_GET(piGv)) {                              /*  正在被 construction         */
-
 #if LW_CFG_THREAD_EXT_EN > 0
         API_ThreadCondWait(&_G_condGuard, _G_ulCppRtLock, LW_OPTION_WAIT_INFINITE);
         goto    __retry;
 #endif                                                                  /*  LW_CFG_THREAD_EXT_EN > 0    */
     
     } else {
-        
         __LW_CPP_GUARD_SET(piGv, 1);                                    /*  设置为正在 construction     */
         iIsCanCon = 1;                                                  /*  可以 construction           */
     }

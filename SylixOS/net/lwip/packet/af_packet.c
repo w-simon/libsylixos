@@ -20,6 +20,7 @@
 **
 ** BUG:
 2018.01.11  支持组播设置.
+2018.08.21  修正 __packetMapInput() 在 64 位模式报文缓存状态判断错误.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -857,9 +858,17 @@ static VOID  __packetMapInput (AF_PACKET_T *pafpacket, struct pbuf *p, struct ne
                         TPACKET_ALIGN(pafpacket->PACKET_uiReserve + SIZEOF_ETH_HDR + SIZEOF_VLAN_HDR));
     
     hdr.raw = __packetGetFrame(pmmapRx);
-    if (hdr.h1->tp_status != TP_STATUS_KERNEL) {
-        pafpacket->PACKET_stats.tp_drops++;
-        return;
+    if (pafpacket->PACKET_tpver == TPACKET_V1) {
+        if (hdr.h1->tp_status != TP_STATUS_KERNEL) {
+            pafpacket->PACKET_stats.tp_drops++;
+            return;
+        }
+        
+    } else {
+        if (hdr.h2->tp_status != TP_STATUS_KERNEL) {
+            pafpacket->PACKET_stats.tp_drops++;
+            return;
+        }
     }
     
     pmmapRx->PKTB_uiFramePtr++;
@@ -937,7 +946,11 @@ static VOID  __packetMapInput (AF_PACKET_T *pafpacket, struct pbuf *p, struct ne
     }
     
     KN_SMP_MB();
-    hdr.h1->tp_status = TP_STATUS_USER;
+    if (pafpacket->PACKET_tpver == TPACKET_V1) {
+        hdr.h1->tp_status = TP_STATUS_USER;
+    } else {
+        hdr.h2->tp_status = TP_STATUS_USER;
+    }
     
     __packetUpdateReader(pafpacket, ERROR_NONE);                        /*  可读                        */
 }

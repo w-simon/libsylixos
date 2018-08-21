@@ -15,8 +15,8 @@
  *	@(#)cdefs.h	8.8 (Berkeley) 1/9/95
  */
 
-#ifndef _SYS_CDEFS_H
-#define _SYS_CDEFS_H
+#ifndef __SYS_CDEFS_H
+#define __SYS_CDEFS_H
 
 # if defined(__cplusplus)
 #  define	__BEGIN_DECLS	extern "C" {
@@ -293,4 +293,4 @@
 
 #define	__link_set_entry(set, idx)	(__link_set_begin(set)[idx])
 
-#endif /* _SYS_CDEFS_H */
+#endif /* __SYS_CDEFS_H */

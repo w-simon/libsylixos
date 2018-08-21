@@ -1282,7 +1282,7 @@ static FUNCPTR  vprocGetEntry (LW_LD_VPROC  *pvproc)
         if (bStart) {
             if (__moduleFindSym(pmodTemp, LW_LD_PROCESS_ENTRY, 
                                 (addr_t *)&pvproc->VP_pfuncProcess,
-                                LW_LD_SYM_FUNCTION) != ERROR_NONE) {
+                                LW_NULL, LW_LD_SYM_FUNCTION) != ERROR_NONE) {
                 return  (LW_NULL);                                      /*  无法获取 main 符号          */
             }
         }

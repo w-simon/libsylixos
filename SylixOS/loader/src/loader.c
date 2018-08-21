@@ -520,7 +520,8 @@ static INT __moduleArchCheck (LW_LD_EXEC_MODULE *pmodule)
 
         _PathLastName(pmodTemp->EMOD_pcModulePath, &pcFileName);
         if (lib_strcmp(pcFileName, "libvpmpdm.so") == 0) {
-            __moduleFindSym(pmodTemp, "G_cpcCompileFpuType", (addr_t *)&ppcBaseFpuType, 0);
+            __moduleFindSym(pmodTemp, "G_cpcCompileFpuType", 
+                            (addr_t *)&ppcBaseFpuType, LW_NULL, LW_LD_SYM_DATA);
             break;
         }
 
@@ -538,7 +539,8 @@ static INT __moduleArchCheck (LW_LD_EXEC_MODULE *pmodule)
 
         if (pmodTemp->EMOD_ulStatus == LW_LD_STATUS_LOADED) {
             if (ERROR_NONE == __moduleFindSym(pmodTemp, "G_cpcCompileFpuType",
-                                              (addr_t *)&ppcFpuType, 0)) {
+                                              (addr_t *)&ppcFpuType, 
+                                              LW_NULL, LW_LD_SYM_DATA)) {
                 if (lib_strcmp(*ppcFpuType, *ppcBaseFpuType) != 0) {    /* 存在fpu不同的模块返回失败    */
                     fprintf(stderr, "[ld]Warning: FPU type error.\n");
                     fprintf(stderr, "    %s FPU type: %s\n", pmodTemp->EMOD_pcModulePath, *ppcFpuType);
@@ -1124,7 +1126,7 @@ static INT __moduleTreeFindSym (LW_LD_EXEC_MODULE  *pmodule,
     INT                 i;
     LW_LD_EXEC_MODULE **pmodUsedArr = LW_NULL;
 
-    if (ERROR_NONE == __moduleFindSym(pmodule, pcSymName, pulSymVal, iFlag)) {
+    if (ERROR_NONE == __moduleFindSym(pmodule, pcSymName, pulSymVal, LW_NULL, iFlag)) {
         return  (ERROR_NONE);
     }
 
@@ -1231,7 +1233,7 @@ PVOID  API_ModuleProcSym (PVOID  pvProc, PVOID  pvCurMod, CPCHAR  pcName)
         pmodTemp = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);
 
         if (bEnabled && pmodTemp->EMOD_bIsGlobal) {
-            if (ERROR_NONE == __moduleFindSym(pmodTemp, pcName, &ulValue, LW_LD_SYM_ANY)) {
+            if (ERROR_NONE == __moduleFindSym(pmodTemp, pcName, &ulValue, LW_NULL, LW_LD_SYM_ANY)) {
                 LW_VP_UNLOCK(pvproc);
                 return  ((PVOID)ulValue);
             }

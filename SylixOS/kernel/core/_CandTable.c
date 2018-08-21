@@ -219,7 +219,7 @@ BOOL  _CandTableTryAdd (PLW_CLASS_TCB  ptcb, PLW_CLASS_PCB  ppcb)
         }
         
         ptcbCand = LW_CAND_TCB(pcpu);
-        if (ptcbCand == LW_NULL) {                                      /*  候选表为空                  */
+        if (LW_UNLIKELY(ptcbCand == LW_NULL)) {                         /*  候选表为空                  */
             LW_CAND_TCB(pcpu) = ptcb;
             ptcb->TCB_ulCPUId = ptcb->TCB_ulCPULock;                    /*  记录 CPU 号                 */
             ptcb->TCB_bIsCand = LW_TRUE;                                /*  进入候选运行表              */
@@ -240,7 +240,7 @@ BOOL  _CandTableTryAdd (PLW_CLASS_TCB  ptcb, PLW_CLASS_PCB  ppcb)
         {
             if (!LW_CPU_ONLY_AFFINITY_GET(pcpu)) {                      /*  没有设置强亲和度调度        */
                 ptcbCand = LW_CAND_TCB(pcpu);
-                if (ptcbCand == LW_NULL) {
+                if (LW_UNLIKELY(ptcbCand == LW_NULL)) {
                     LW_CAND_TCB(pcpu) = ptcb;
                     ptcb->TCB_bIsCand = LW_TRUE;                        /*  进入候选运行表              */
                     return  (LW_TRUE);
@@ -263,7 +263,7 @@ BOOL  _CandTableTryAdd (PLW_CLASS_TCB  ptcb, PLW_CLASS_PCB  ppcb)
                 }
                 
                 ptcbCand = LW_CAND_TCB(pcpu);
-                if (ptcbCand == LW_NULL) {                              /*  候选表为空                  */
+                if (LW_UNLIKELY(ptcbCand == LW_NULL)) {                 /*  候选表为空                  */
                     LW_CAND_TCB(pcpu) = ptcb;
                     ptcb->TCB_ulCPUId = i;                              /*  记录 CPU 号                 */
                     ptcb->TCB_bIsCand = LW_TRUE;                        /*  进入候选运行表              */
@@ -286,7 +286,7 @@ BOOL  _CandTableTryAdd (PLW_CLASS_TCB  ptcb, PLW_CLASS_PCB  ppcb)
                     }
                     
                     ptcbCand = LW_CAND_TCB(pcpu);
-                    if (ptcbCand == LW_NULL) {                          /*  候选表为空                  */
+                    if (LW_UNLIKELY(ptcbCand == LW_NULL)) {             /*  候选表为空                  */
                         LW_CAND_TCB(pcpu) = ptcb;
                         ptcb->TCB_ulCPUId = i;                          /*  记录 CPU 号                 */
                         ptcb->TCB_bIsCand = LW_TRUE;                    /*  进入候选运行表              */
@@ -308,7 +308,7 @@ BOOL  _CandTableTryAdd (PLW_CLASS_TCB  ptcb, PLW_CLASS_PCB  ppcb)
     }
     
     ptcbCand = LW_CAND_TCB(pcpu);
-    if (ptcbCand == LW_NULL) {                                          /*  候选表为空                  */
+    if (LW_UNLIKELY(ptcbCand == LW_NULL)) {                             /*  候选表为空                  */
 __can_cand:
         LW_CAND_TCB(pcpu) = ptcb;
         ptcb->TCB_ulCPUId = 0;                                          /*  记录 CPU 号                 */

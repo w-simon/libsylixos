@@ -181,10 +181,8 @@ static INT elfRelaRelocate (LW_LD_EXEC_MODULE *pmodule,
                 addrSymVal = 0;
             
             } else {
-                BOOL  bWeak = (STB_WEAK == ELF_ST_BIND(psym->st_info));
-                
                 if (__moduleSymGetValue(pmodule,
-                                        bWeak,
+                                        (STB_WEAK == ELF_ST_BIND(psym->st_info)),
                                         pcSymName,
                                         &addrSymVal,
                                         LW_LD_SYM_ANY) < 0) {           /*  查询对应符号的地址          */
@@ -263,10 +261,8 @@ static INT elfRelRelocate (LW_LD_EXEC_MODULE *pmodule,
                 symVal = 0;
             
             } else {
-                BOOL  bWeak = (STB_WEAK == ELF_ST_BIND(psym->st_info));
-                
                 if (__moduleSymGetValue(pmodule,
-                                        bWeak,
+                                        (STB_WEAK == ELF_ST_BIND(psym->st_info)),
                                         pcSymName,
                                         &symVal,
                                         LW_LD_SYM_ANY) < 0) {           /*  查询对应符号的地址          */
@@ -416,6 +412,8 @@ static INT elfSymbolExport (LW_LD_EXEC_MODULE *pmodule,
                             ULONG              ulAllSymCnt,
                             ULONG              ulCurSymNum)
 {
+    INT  iFlag;
+
     if ((LW_NULL != pmodule->EMOD_pcInit) &&
         (0 == lib_strcmp(pcSymName, pmodule->EMOD_pcInit))) {           /*  初始化函数                  */
         pmodule->EMOD_pfuncInit = (FUNCPTR)addrSymVal;
@@ -462,12 +460,18 @@ static INT elfSymbolExport (LW_LD_EXEC_MODULE *pmodule,
     }
 #endif
 
+    if (STB_WEAK == ELF_ST_BIND(psym->st_info)) {
+        iFlag = LW_SYMBOL_FLAG_WEAK;                                    /*  弱符号                      */
+    } else {
+        iFlag = 0;
+    }
+
     switch (ELF_ST_TYPE(psym->st_info)) {
 
     case STT_FUNC:                                                      /*  导出函数                    */
+        iFlag |= LW_LD_SYM_FUNCTION;
         if (__moduleExportSymbol(pmodule, pcSymName, addrSymVal,
-                                 LW_LD_SYM_FUNCTION,
-                                 ulAllSymCnt, ulCurSymNum) < 0) {
+                                 iFlag, ulAllSymCnt, ulCurSymNum) < 0) {
             return  (PX_ERROR);
         }
         return  (ERROR_NONE);
@@ -476,9 +480,9 @@ static INT elfSymbolExport (LW_LD_EXEC_MODULE *pmodule,
 #if defined(LW_CFG_CPU_ARCH_C6X)
     case STT_COMMON:
 #endif
+        iFlag |= LW_LD_SYM_DATA;
         if (__moduleExportSymbol(pmodule, pcSymName, addrSymVal,
-                                 LW_LD_SYM_DATA,
-                                 ulAllSymCnt, ulCurSymNum) < 0) {
+                                 iFlag, ulAllSymCnt, ulCurSymNum) < 0) {
             return  (PX_ERROR);
         }
         return  (ERROR_NONE);
@@ -1504,10 +1508,8 @@ static INT elfPhdrRelocate (LW_LD_EXEC_MODULE *pmodule, ELF_DYN_DIR  *pdyndir)
                     addrSymVal = 0;
                 
                 } else {
-                    BOOL  bWeak = (STB_WEAK == ELF_ST_BIND(psym->st_info));
-                    
                     if (__moduleSymGetValue(pmodule,
-                                            bWeak,
+                                            (STB_WEAK == ELF_ST_BIND(psym->st_info)),
                                             pcSymName,
                                             &addrSymVal,
                                             LW_LD_SYM_ANY) < 0) {       /*  查询对应符号的地址          */
@@ -1549,10 +1551,8 @@ static INT elfPhdrRelocate (LW_LD_EXEC_MODULE *pmodule, ELF_DYN_DIR  *pdyndir)
                     addrSymVal = 0;
                 
                 } else {
-                    BOOL  bWeak = (STB_WEAK == ELF_ST_BIND(psym->st_info));
-                    
                     if (__moduleSymGetValue(pmodule,
-                                            bWeak,
+                                            (STB_WEAK == ELF_ST_BIND(psym->st_info)),
                                             pcSymName,
                                             &addrSymVal,
                                             LW_LD_SYM_ANY) < 0) {       /*  查询对应符号的地址          */
@@ -1859,7 +1859,8 @@ static INT __elfLoad (LW_LD_EXEC_MODULE *pmodule, CPCHAR pcPath)
         if (ERROR_NONE != __moduleFindSym(pmodule,
                                           LW_LD_VER_SYM,
                                           (ULONG*)&pcModVersion,
-                                          0)) {                         /*  获取模块版本                */
+                                          LW_NULL,
+                                          LW_LD_SYM_DATA)) {            /*  获取模块版本                */
             pcModVersion = LW_LD_DEF_VER;
         }
 

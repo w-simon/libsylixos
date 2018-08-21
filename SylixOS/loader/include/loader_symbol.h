@@ -51,7 +51,8 @@ INT __moduleVerifyVersion(CPCHAR  pcModuleName,
 
 INT __moduleFindSym(LW_LD_EXEC_MODULE  *pmodule,
                     CPCHAR              pcSymName, 
-                    ULONG              *pulSymVal, INT iFlag);          /*  查找模块内符号              */
+                    ULONG              *pulSymVal, 
+                    BOOL               *pbWeak, INT iFlag);             /*  查找模块内符号              */
 
 INT __moduleSymGetValue(LW_LD_EXEC_MODULE  *pmodule,
                         BOOL                bIsWeak,

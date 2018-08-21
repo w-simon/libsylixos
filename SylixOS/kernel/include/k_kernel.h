@@ -49,9 +49,9 @@
 *********************************************************************************************************/
 
 #define __SYLIXOS_MAKEVER(a, b, c)      (((a) << 16) + ((b) << 8) + (c))
-#define __SYLIXOS_VERSION               __SYLIXOS_MAKEVER(1, 7, 9)
+#define __SYLIXOS_VERSION               __SYLIXOS_MAKEVER(1, 8, 0)
 #define __SYLIXOS_VERPATCH              0x0
-#define __SYLIXOS_VERSTR                "1.7.9"
+#define __SYLIXOS_VERSTR                "1.8.0"
 #define __SYLIXOS_RELSTR                "Octopus"
 
 #define __SYLIXOS_VERINFO               "SylixOS kernel version: "  \
@@ -137,7 +137,12 @@ __attribute__((weak)) char              __sylixos_version[] = __SYLIXOS_VERSTR;
 #undef  LW_CFG_EVENT_EN
 #define LW_CFG_EVENT_EN            (((LW_CFG_MSGQUEUE_EN > 0) && (LW_CFG_MAX_MSGQUEUES > 0)) || \
                                     (LW_CFG_SEM_EN > 0))
-
+/*********************************************************************************************************
+  编译器
+*********************************************************************************************************/
+#ifdef __SYLIXOS_KERNEL
+#include "../SylixOS/kernel/include/k_compiler.h"
+#endif                                                                  /*  __SYLIXOS_KERNEL            */
 /*********************************************************************************************************
   系统优先级
 *********************************************************************************************************/

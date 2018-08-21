@@ -27,11 +27,15 @@
   symbol flag
 *********************************************************************************************************/
 #define LW_SYMBOL_FLAG_STATIC           0x80000000                      /*  ²»ÄÜÉ¾³ýµÄ¾²Ì¬·ûºÅ          */
+#define LW_SYMBOL_FLAG_WEAK             0x40000000                      /*  Èõ·ûºÅ                      */
+
+#define LW_SYMBOL_IS_STATIC(flag)       ((flag) & LW_SYMBOL_FLAG_STATIC)
+#define LW_SYMBOL_IS_WEAK(flag)         ((flag) & LW_SYMBOL_FLAG_WEAK)
+
 #define LW_SYMBOL_FLAG_REN              0x00000001                      /*  ¿É¶Á·ûºÅ                    */
 #define LW_SYMBOL_FLAG_WEN              0x00000002                      /*  ¿ÉÐ´·ûºÅ                    */
 #define LW_SYMBOL_FLAG_XEN              0x00000004                      /*  ¿ÉÖ´ÐÐ·ûºÅ                  */
 
-#define LW_SYMBOL_IS_STATIC(flag)       ((flag) & LW_SYMBOL_FLAG_STATIC)
 #define LW_SYMBOL_IS_REN(flag)          ((flag) & LW_SYMBOL_FLAG_REN)
 #define LW_SYMBOL_IS_WEN(flag)          ((flag) & LW_SYMBOL_FLAG_WEN)
 #define LW_SYMBOL_IS_XEN(flag)          ((flag) & LW_SYMBOL_FLAG_XEN)

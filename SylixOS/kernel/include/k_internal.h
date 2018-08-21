@@ -43,7 +43,7 @@
 extern  __typeof (name) aliasname __attribute__((weak, alias(#name)));
 
 #define _strong_alias(name, aliasname)  \
-extern  __typeof (name) aliasname __attribute__ ((alias(#name)));
+extern  __typeof (name) aliasname __attribute__((alias(#name)));
 #else 
 #define weak_alias(name, aliasname)
 #define strong_alias(name, aliasname)

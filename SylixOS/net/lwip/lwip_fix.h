@@ -133,8 +133,13 @@ void  sys_error_print(const char *msg, const char *func, const char *file, int l
 #define LWIP_PLATFORM_ASSERT(x)     {   sys_assert_print(x, __func__, __FILE__, __LINE__);  }
 #define LWIP_PLATFORM_ERROR(x)      {   sys_error_print(x, __func__, __FILE__, __LINE__);  }
 
+#ifdef LW_UNLIKELY
+#define LWIP_ERROR(message, expression, handler) do { if (LW_UNLIKELY(!(expression))) { \
+        LWIP_PLATFORM_ERROR(message); handler;}} while(0)
+#else
 #define LWIP_ERROR(message, expression, handler) do { if (!(expression)) { \
         LWIP_PLATFORM_ERROR(message); handler;}} while(0)
+#endif
 
 /*********************************************************************************************************
   关键区域保护

@@ -32,8 +32,8 @@
  * rights to redistribute these changes.
  */
  
-#ifndef _SYS_CDEFS_ELF_H
-#define _SYS_CDEFS_ELF_H
+#ifndef __SYS_CDEFS_ELF_H
+#define __SYS_CDEFS_ELF_H
 
 #ifdef __LEADING_UNDERSCORE
 # define _C_LABEL(x)        __CONCAT(_,x)
@@ -74,32 +74,27 @@
 #else /* !__STDC__ */
 
 # ifdef __LEADING_UNDERSCORE
-
 #  define __weak_alias(alias,sym) ___weak_alias(_/**/alias,_/**/sym)
 
 #  define ___weak_alias(alias,sym)					\
           __asm__(".weak alias ; alias = sym");
 # else
-
 #  define __weak_alias(alias,sym)						\
           __asm__(".weak alias ; alias = sym");
 # endif
 
 # ifdef __LEADING_UNDERSCORE
-
 #  define __weak_extern(sym) ___weak_extern(_/**/sym)
 
 #  define ___weak_extern(sym)						\
           __asm__(".weak sym");
 # else
-
 #  define __weak_extern(sym)						\
           __asm__(".weak sym");
 # endif
 
 # define __warn_references(sym,msg)					\
          __asm__(".section .gnu.warning.sym ; .ascii msg ; .text");
-
 #endif /* !__STDC__ */
 
 #if __STDC__
@@ -172,5 +167,5 @@
 #define	__link_set_count(set)						\
         (__link_set_end(set) - __link_set_start(set))
 	
-#endif /* _SYS_CDEFS_ELF_H */
+#endif /* __SYS_CDEFS_ELF_H */
 

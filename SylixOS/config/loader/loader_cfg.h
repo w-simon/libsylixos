@@ -45,7 +45,8 @@
 #define LW_CFG_MODULELOADER_ATEXIT_EN           0                       /*  是否允许内核模块 atexit()   */
 #define LW_CFG_MODULELOADER_FPUCHK_EN           0                       /*  是否强行检查 FPU 设置兼容性 */
 #define LW_CFG_MODULELOADER_RMMOD_ATREBOOT_EN   0                       /*  重启时卸载所有模块          */
-
+#define LW_CFG_MODULELOADER_STRONGSYM_FIRST_EN  0                       /*  搜索模块符号时是否优先强符号*/
+                                                                        /*  建议为 0 与其他操作系统一致 */
 /*********************************************************************************************************
 *                                        Trusted computing
 *

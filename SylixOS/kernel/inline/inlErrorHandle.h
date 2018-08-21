@@ -75,7 +75,7 @@ VOID  _DebugFmtMsg(INT  iLevel, CPCHAR  pcPosition, CPCHAR  pcFmt, ...);
 
 #if LW_CFG_BUGMESSAGE_EN > 0
 #define _BugHandle(cond, stop, msg) \
-        if (cond) {     \
+        if (LW_UNLIKELY(cond)) {    \
             _DebugMessage(__BUGMESSAGE_LEVEL, __func__, (msg)); \
             if (LW_KERN_BUG_REBOOT_EN_GET()) {  \
                 archReboot(LW_REBOOT_FORCE, 0ul);   \
@@ -86,7 +86,7 @@ VOID  _DebugFmtMsg(INT  iLevel, CPCHAR  pcPosition, CPCHAR  pcFmt, ...);
         }
 #else
 #define _BugHandle(cond, stop, msg) \
-        if (cond) {     \
+        if (LW_UNLIKELY(cond)) {    \
             if (LW_KERN_BUG_REBOOT_EN_GET()) {  \
                 archReboot(LW_REBOOT_FORCE, 0ul);   \
             }   \
@@ -102,7 +102,7 @@ VOID  _DebugFmtMsg(INT  iLevel, CPCHAR  pcPosition, CPCHAR  pcFmt, ...);
 
 #if LW_CFG_BUGMESSAGE_EN > 0
 #define _BugFormat(cond, stop, fmt, ...)    \
-        if (cond) {     \
+        if (LW_UNLIKELY(cond)) {    \
             _DebugFmtMsg(__BUGMESSAGE_LEVEL, __func__, (fmt), ##__VA_ARGS__); \
             if (LW_KERN_BUG_REBOOT_EN_GET()) {  \
                 archReboot(LW_REBOOT_FORCE, 0ul);   \
@@ -113,7 +113,7 @@ VOID  _DebugFmtMsg(INT  iLevel, CPCHAR  pcPosition, CPCHAR  pcFmt, ...);
         }
 #else
 #define _BugFormat(cond, stop, fmt, ...)    \
-        if (cond) {     \
+        if (LW_UNLIKELY(cond)) {    \
             if (LW_KERN_BUG_REBOOT_EN_GET()) {  \
                 archReboot(LW_REBOOT_FORCE, 0ul);   \
             }   \

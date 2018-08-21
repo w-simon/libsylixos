@@ -336,7 +336,7 @@ INT  _Schedule (VOID)
     ptcbCur = pcpuCur->CPU_ptcbTCBCur;
     
 #if LW_CFG_SMP_EN > 0
-    if (ptcbCur->TCB_plineStatusReqHeader) {                            /*  请求当前任务改变状态        */
+    if (LW_UNLIKELY(ptcbCur->TCB_plineStatusReqHeader)) {               /*  请求当前任务改变状态        */
         if (__LW_STATUS_CHANGE_EN(ptcbCur, pcpuCur)) {                  /*  是否可以进行状态切换        */
             _ThreadStatusChangeCur(pcpuCur);                            /*  检查是否需要进行状态切换    */
         }
@@ -395,7 +395,7 @@ VOID  _ScheduleInt (PLW_CLASS_CPU  pcpuCur)
     
 #if LW_CFG_SMP_EN > 0
     if (__LW_STATUS_CHANGE_EN(ptcbCur, pcpuCur)) {                      /*  是否可以进行状态切换        */
-        if (ptcbCur->TCB_plineStatusReqHeader) {                        /*  请求当前任务改变状态        */
+        if (LW_UNLIKELY(ptcbCur->TCB_plineStatusReqHeader)) {           /*  请求当前任务改变状态        */
             _ThreadStatusChangeCur(pcpuCur);                            /*  检查是否需要进行状态切换    */
         }
         
