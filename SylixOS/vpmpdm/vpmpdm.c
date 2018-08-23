@@ -182,7 +182,11 @@ void __eabi (void)
 
 #if !defined(LW_CFG_CPU_ARCH_ARM) && !defined(LW_CFG_CPU_ARCH_C6X)
 /*
- * Unwinding stack frames for c++ exception handling support. (GCC Need!)
+ * Unwinding stack frames for c++ exception handling support. (libstdc++ Need!)
+ * Each process needs to include the following variables.
+ * These variables are defined in stdc++ library in before,
+ * Because the shared libraries in the process may have introduced libstdc++ static libraries many times.
+ * So move the definition of variables from libstdc++ to here.
  */
 void           *__gnu_unwind_unseen_objects;
 void           *__gnu_unwind_seen_objects;

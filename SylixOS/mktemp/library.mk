@@ -65,10 +65,12 @@ $(target)_A        := $(OUTPATH)/$(addsuffix .a, $(basename $(LOCAL_TARGET_NAME)
 #*********************************************************************************************************
 $(target)_DEPEND_LIB_PATH := $(TOOLCHAIN_LIB_INC)"$(SYLIXOS_BASE_PATH)/libsylixos/$(OUTDIR)"
 
+ifeq (,$(findstring libstdcpp.so,$($(target)_SO)))
 ifeq ($(DEBUG_LEVEL), debug)
 $(target)_DEPEND_LIB_PATH += $(TOOLCHAIN_LIB_INC)"$(SYLIXOS_BASE_PATH)/libsylixos/Release"
 else
 $(target)_DEPEND_LIB_PATH += $(TOOLCHAIN_LIB_INC)"$(SYLIXOS_BASE_PATH)/libsylixos/Debug"
+endif
 endif
 
 ifeq ($($(target)_USE_CXX), yes)

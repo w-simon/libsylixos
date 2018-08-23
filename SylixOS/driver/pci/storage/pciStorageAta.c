@@ -96,7 +96,15 @@ static const PCI_DEV_ID_CB  pciStorageAtaIdTbl[] = {
         PCI_VDEVICE(INTEL, 0x1f21),                                 /* SATA Controller IDE(Avoton)      */
         board_res
     },
-    
+    {
+        PCI_VDEVICE(INTEL, 0x2653),                                 /* Mass storage Controller IDE      */
+        board_res
+    },
+    {
+        PCI_VDEVICE(INTEL, 0x266f),                                 /* Mass storage Controller IDE      */
+        board_res
+    },
+
     {   
         PCI_ANY_ID, PCI_ANY_ID, PCI_ANY_ID, PCI_ANY_ID, 
         PCI_CLASS_STORAGE_IDE << 8, 0xffffff00ul, board_std

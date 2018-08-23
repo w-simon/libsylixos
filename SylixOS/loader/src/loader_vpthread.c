@@ -91,7 +91,6 @@ INT  vprocThreadNum (pid_t  pid, ULONG  *pulNum)
     
     pvproc = vprocGet(pid);
     if (!pvproc) {
-        _ErrorHandle(ESRCH);
         return  (PX_ERROR);
     }
     

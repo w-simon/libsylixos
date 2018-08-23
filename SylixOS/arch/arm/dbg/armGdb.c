@@ -499,7 +499,7 @@ ULONG  armGetNextPc (GDB_REG_SET *pRegs)
                 base += offset;
             }
 
-            uiNPc = *(UINT *)base;
+            uiNPc = (*(UINT *)base) & 0xFFFFFFFC;
         }
         break;
 

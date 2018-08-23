@@ -506,7 +506,9 @@ int  aio_read (struct aiocb *paiocb)
         return  (PX_ERROR);
     }
     
-    if (paiocb->aio_offset < 0) {
+    if ((paiocb->aio_offset < 0) ||
+        (!paiocb->aio_buf) ||
+        (!paiocb->aio_nbytes)) {
         errno = EINVAL;
         return  (PX_ERROR);
     }
@@ -552,7 +554,9 @@ int  aio_write (struct aiocb *paiocb)
         return  (PX_ERROR);
     }
     
-    if (paiocb->aio_offset < 0) {
+    if ((paiocb->aio_offset < 0) ||
+        (!paiocb->aio_buf) ||
+        (!paiocb->aio_nbytes)) {
         errno = EINVAL;
         return  (PX_ERROR);
     }

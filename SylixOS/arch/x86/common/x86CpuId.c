@@ -169,6 +169,81 @@ X86_CPU_FEATURE         _G_x86CpuFeature = {                            /*  全局
 };
 
 size_t                  _G_stX86CacheFlushBytes = X86_CLFLUSH_DEF_BYTES;/*  CLFLUSH 字节数              */
+
+const static CHAR      *_G_x86TlbCacheDesc[0x100] = {                   /*  TLB CACHE 描述信息          */
+             LW_NULL,
+             "Instruction TLB: 4 KB Pages, 4-way set associative, 32 entries",
+             "Instruction TLB: 4 MB Pages, fully associative, 2 entries",
+             "Data TLB: 4 KB Pages, 4-way set associative, 64 entries",
+             "Data TLB: 4 MB Pages, 4-way set associative, 8 entries",
+             "Data TLB: 4 MB Pages, 4-way set associative, 32 entries",
+             "level-1 instruction cache: 8 KB, 4-way set associative, 32-byte line size",
+    [8]    = "level-1 instruction cache: 16 KB, 4-way set associative, 32-byte line size",
+    [0xa]  = "level-1 data cache: 8 KB, 2-way set associative, 32-byte line size",
+    [0xc]  = "level-1 data cache: 16 KB, 4-way set associative, 32-byte line size",
+    [0x22] = "level-3 cache: 512 KB, 4-way set associative, sectored cache, 64-byte line size",
+             "level-3 cache: 1 MB, 8-way set associative, sectored cache, 64-byte line size",
+             "level-3 cache: 2 MB, 8-way set associative, sectored cache, 64-byte line size",
+    [0x29] = "level-3 cache: 4 MB, 8-way set associative, sectored cache, 64-byte line size",
+    [0x2c] = "level-1 data cache: 32 KB, 8-way set associative, 64-byte line size",
+    [0x30] = "level-1 instruction cache: 32 KB, 8-way set associative, 64-byte line size",
+    [0x39] = "level-2 cache: 128 KB, 4-way set associative, sectored cache, 64-byte line size",
+             "level-2 cache: 192 KB, 6-way set associative, sectored cache, 64-byte line size",
+             "level-2 cache: 128 KB, 2-way set associative, sectored cache, 64-byte line size",
+             "level-2 cache: 256 KB, 4-way set associative, sectored cache, 64-byte line size",
+             "level-2 cache: 384 KB, 6-way set associative, sectored cache, 64-byte line size",
+             "level-2 cache: 512 KB, 4-way set associative, sectored cache, 64-byte line size",
+    [0x40]=  "No level-2 cache or, if processor contains a valid level-2 cache, no level-3 cache",
+             "level-2 cache: 128 KB, 4-way set associative, 32-byte line size",
+             "level-2 cache: 256 KB, 4-way set associative, 32-byte line size",
+             "level-2 cache: 512 KB, 4-way set associative, 32-byte line size",
+             "level-2 cache: 1 MB, 4-way set associative, 32-byte line size",
+             "level-2 cache: 2 MB, 4-way set associative, 32-byte line size",
+             "level-3 cache: 4 MB, 4-way set associative, 64-byte line size",
+             "level-3 cache: 8 MB, 8-way set associative, 64-byte line size",
+    [0x49] = "level-3 cache: 4 MB, 16-way set associative, 64-byte line size (Intel Xeon processor MP,Family F, Model 6)\n"
+             "level-2 cache: 4 MB, 16-way set associative, 64-byte line size",
+             "level-3 cache: 6 MB, 12-way set associative, 64-byte line size",
+             "level-3 cache: 8 MB, 16-way set associative, 64-byte line size",
+             "level-3 cache: 12 MB, 12-way set associative, 64-byte line size",
+             "level-3 cache: 16 MB, 16-way set associative, 64-byte line size",
+    [0x50] = "Instruction TLB: 4 KB, 2 MB or 4 MB pages, fully associative, 64 entries",
+             "Instruction TLB: 4 KB, 2 MB or 4 MB pages, fully associative, 128 entries",
+             "Instruction TLB: 4 KB, 2 MB or 4 MB pages, fully associative, 256 entries",
+    [0x56] = "L0 Data TLB: 4 MB pages, 4-way set associative, 16 entries",
+             "L0 Data TLB: 4 MB pages, 4-way set associative, 16 entries",
+    [0x5b] = "Data TLB: 4 KB or 4 MB pages, fully associative, 64 entries",
+             "Data TLB: 4 KB or 4 MB pages, fully associative, 128 entries",
+             "Data TLB: 4 KB or 4 MB pages, fully associative, 256 entries",
+    [0x60] = "level-1 data cache: 16 KB, 8-way set associative, sectored cache, 64-byte line size",
+    [0x66] = "level-1 data cache: 8 KB, 4-way set associative, sectored cache, 64-byte line size",
+             "level-1 data cache: 16 KB, 4-way set associative, sectored cache, 64-byte line size",
+             "level-1 data cache: 32 KB, 4 way set associative, sectored cache, 64-byte line size",
+    [0x70] = "Trace cache: 12 K-uops, 8-way set associative",
+             "Trace cache: 16 K-uops, 8-way set associative",
+             "Trace cache: 32 K-uops, 8-way set associative",
+             "Trace cache: 64 K-uops, 8-way set associative",
+    [0x78] = "level-2 cache: 1 MB, 4-way set associative, 64-byte line size",
+             "level-2 cache: 128 KB, 8-way set associative, sectored cache, 64-byte line size",
+             "level-2 cache: 256 KB, 8-way set associative, sectored cache, 64-byte line size",
+             "level-2 cache: 512 KB, 8-way set associative, sectored cache, 64-byte line size",
+             "level-2 cache: 1 MB, 8-way set associative, sectored cache, 64-byte line size",
+             "level-2 cache: 2 MB, 8-way set associative, 64-byte line size",
+    [0x7f] = "level-2 cache: 512 KB, 2-way set associative, 64-byte line size",
+    [0x82] = "level-2 cache: 256 KB, 8-way set associative, 32-byte line size",
+             "level-2 cache: 512 KB, 8-way set associative, 32-byte line size",
+             "level-2 cache: 1 MB, 8-way set associative, 32-byte line size",
+             "level-2 cache: 2 MB, 8-way set associative, 32-byte line size",
+             "level-2 cache: 512 KB, 4-way set associative, 64-byte line size",
+             "level-2 cache: 1 MB, 8-way set associative, 64-byte line size",
+    [0xb0] = "Instruction TLB: 4 KB Pages, 4-way set associative, 128 entries",
+             "Instruction TLB: 4 MB Pages, 4-way set associative, 4 entries\n"
+             "Instruction TLB: 2 MB Pages, 4-way set associative, 8 entries",
+    [0xb3] = "Data TLB: 4 KB Pages, 4-way set associative, 128 entries",
+             "Data TLB: 4 KB Pages, 4-way set associative, 256 entries",
+    [0xf0] = "64-byte Prefetching",
+             "128-byte Prefetching",
+};
 /*********************************************************************************************************
 ** 函数名称: x86CpuIdGet
 ** 功能描述: 获得 CPU 特性集
@@ -744,6 +819,22 @@ VOID  x86CpuIdShow (VOID)
         printf("    XFEATURE_ENABLED_MASK valid bitfield upper 32: 0x%08x\n", pcpuid->ext.xsaveParamsEdx);
         printf("    max size required by XFEATURE_ENABLED_MASK: %d bytes\n", pcpuid->ext.xsaveParamsEbx);
         printf("    max size of XSAVE/XRESTORE save area: %d bytes\n", pcpuid->ext.xsaveParamsEcx);
+    }
+
+    if (pcpuid->std.highestValue >= 2) {
+        printf("\nCache Features:\n");
+
+        UCHAR  *pcValue = (UCHAR *)&pcpuid->std.cacheEax;
+        INT     j;
+
+        for (j = 0; j < 4; j++) {
+            for (i = 3; i >= 0; i--) {
+                if (_G_x86TlbCacheDesc[pcValue[i]]) {
+                    printf("    %s\n", _G_x86TlbCacheDesc[pcValue[i]]);
+                }
+            }
+            pcValue += 4;
+        }
     }
 
     if (pcpuid->ext.highestExtValue < 0x80000006) {

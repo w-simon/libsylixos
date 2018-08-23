@@ -45,7 +45,6 @@ INT  vprocSetAffinity (pid_t  pid, size_t  stSize, const PLW_CLASS_CPUSET  pcpus
     pvproc = vprocGet(pid);
     if (!pvproc) {
         LW_LD_UNLOCK();
-        _ErrorHandle(ESRCH);
         return  (PX_ERROR);
     }
     

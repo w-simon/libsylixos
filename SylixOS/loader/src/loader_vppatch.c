@@ -589,7 +589,7 @@ INT vprocDestroy (LW_LD_VPROC *pvproc)
 LW_LD_VPROC *vprocGet (pid_t  pid)
 {
     if ((pid < 1) || (pid > LW_CFG_MAX_THREADS)) {
-        _ErrorHandle(EINVAL);
+        _ErrorHandle(ESRCH);
         return  (LW_NULL);
     }
 
@@ -1076,7 +1076,6 @@ INT  vprocExitModeGet (pid_t  pid, INT  *piMode)
     pvproc = vprocGet(pid);
     if (pvproc == LW_NULL) {
         LW_LD_UNLOCK();
-        _ErrorHandle(ESRCH);
         return  (PX_ERROR);
     }
     
@@ -1110,7 +1109,6 @@ INT  vprocExitModeSet (pid_t  pid, INT  iMode)
     pvproc = vprocGet(pid);
     if (pvproc == LW_NULL) {
         LW_LD_UNLOCK();
-        _ErrorHandle(ESRCH);
         return  (PX_ERROR);
     }
     
@@ -1135,7 +1133,6 @@ INT  vprocSetImmediatelyTerm (pid_t  pid)
     pvproc = vprocGet(pid);
     if (pvproc == LW_NULL) {
         LW_LD_UNLOCK();
-        _ErrorHandle(ESRCH);
         return  (PX_ERROR);
     }
     
@@ -1608,7 +1605,6 @@ static LW_LD_EXEC_MODULE  *vprocModuleFind (pid_t  pid, PCHAR  pcModPath)
     pvproc = vprocGet(pid);
     if (!pvproc) {
         LW_LD_UNLOCK();
-        _ErrorHandle(ESRCH);
         return  (LW_NULL);
     }
 

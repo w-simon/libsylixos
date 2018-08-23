@@ -79,6 +79,18 @@ clock_t  lib_clock (VOID)
 *********************************************************************************************************/
 INT  lib_clock_getcpuclockid (pid_t pid, clockid_t *clock_id)
 {
+#if LW_CFG_MODULELOADER_EN > 0
+    if (!vprocGet(pid)) {
+        return  (PX_ERROR);
+    }
+    
+#else
+    if (pid) {
+        _ErrorHandle(ESRCH);
+        return  (PX_ERROR);
+    }
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
+
     if (!clock_id) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);

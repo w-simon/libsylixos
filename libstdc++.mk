@@ -90,7 +90,11 @@ LOCAL_SHARED_LIB_ONLY := yes
 ./$(OUTDIR)/strip/libstdc++.so: ./$(OUTDIR)/strip/libstdcpp.so
 	cp ./$(OUTDIR)/strip/libstdcpp.so ./$(OUTDIR)/strip/libstdc++.so
 
-TARGETS := $(TARGETS) ./$(OUTDIR)/libstdc++.so ./$(OUTDIR)/strip/libstdc++.so
+./$(OUTDIR)/stdlib/libstdc++.so: ./$(OUTDIR)/strip/libstdcpp.so
+	mkdir -p ./$(OUTDIR)/stdlib
+	cp ./$(OUTDIR)/libstdcpp.so ./$(OUTDIR)/stdlib/libstdc++.so
+
+TARGETS := $(TARGETS) ./$(OUTDIR)/libstdc++.so ./$(OUTDIR)/strip/libstdc++.so ./$(OUTDIR)/stdlib/libstdc++.so
 
 include $(LIBRARY_MK)
 
