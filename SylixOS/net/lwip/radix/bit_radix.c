@@ -1,6 +1,6 @@
 /**
  * @file
- * core ip radix route table.
+ * bit radix route table.
  * as much as possible compatible with different versions of LwIP
  * Verification using sylixos(tm) real-time operating system
  */

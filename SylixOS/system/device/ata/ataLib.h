@@ -67,8 +67,8 @@
 #define __ATA_MAX_DRIVES                    2                           /*  定义设备数,主和从设备       */
 #define __ATA_MAX_RW_SECTORS                256                         /*  连续读取的最大扇区数        */
 
-#define __ATA_TIMEOUT_LOOP                  0x5FFFFFE                   /*  超时响应设备                */
-#define __ATA_TIMEOUT_SEC                   3                           /*  最长超时时间                */
+#define __ATA_TIMEOUT_LOOP                  0x06ffffff                  /*  最长循环次数                */
+#define __ATA_TIMEOUT_SEC                   2                           /*  超时时间                    */
 
 #define __ATA_IDE_LOCAL                     0                           /*  ctrl type: LOCAL(IDE)       */
 #define __ATA_PCMCIA                        1                           /*  ctrl type: PCMCIA           */

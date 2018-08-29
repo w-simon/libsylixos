@@ -1,6 +1,6 @@
 /**
  * @file
- * core ip radix route table.
+ * bit radix route table.
  * as much as possible compatible with different versions of LwIP
  * Verification using sylixos(tm) real-time operating system
  */
@@ -37,14 +37,14 @@
  *
  */
 
-#ifndef __COR_RADIX_H
-#define __COR_RADIX_H
+#ifndef __BIT_RADIX_H
+#define __BIT_RADIX_H
 
 /*
  * TODO: ip radix route table.
  */
 
-#endif /* __COR_RADIX_H */
+#endif /* __BIT_RADIX_H */
 /*
  * end
  */

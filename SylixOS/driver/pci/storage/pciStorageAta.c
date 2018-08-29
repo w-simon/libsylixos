@@ -316,9 +316,9 @@ static ATA_CHAN  *pciStorageAtaCreateChan (VOID)
 #define ATA_COMMAND(base0)      (base0 + 7)                             /* (W)  command register        */
 #define ATA_STATUS(base0)       (base0 + 7)                             /* (R)  immediate status        */
 
-#define ATA_A_STATUS(ctl0)      (ctl0 + 2)                              /* (R)  alternate status        */
-#define ATA_D_CONTROL(ctl0)     (ctl0 + 2)                              /* (W)  disk controller control */
-#define ATA_D_ADDRESS(ctl0)     (ctl0 + 3)                              /* (R)  disk controller address */
+#define ATA_A_STATUS(ctl0)      (ctl0 + 0)                              /* (R)  alternate status        */
+#define ATA_D_CONTROL(ctl0)     (ctl0 + 0)                              /* (W)  disk controller control */
+#define ATA_D_ADDRESS(ctl0)     (ctl0 + 1)                              /* (R)  disk controller address */
 /*********************************************************************************************************
 ** 函数名称: pciStorageAtaCreateDrv
 ** 功能描述: IDE 硬盘创建一个 ATA 设备
@@ -473,10 +473,10 @@ static INT  pciStorageAtaDevProbe (PCI_DEV_HANDLE hPciDevHandle, const PCI_DEV_I
     for (uiChannel = 0; uiChannel < pataport->ATAPORT_uiPort; uiChannel++) {
         if (pataport->ATAPORT_uiFlag & ATAPORT_IO_PORT) {
             if (uiChannel) {
-                pciStorageAtaCreateDrv(0x170, 0x374);
+                pciStorageAtaCreateDrv(0x170, 0x376);
             
             } else {
-                pciStorageAtaCreateDrv(0x1f0, 0x3f4);
+                pciStorageAtaCreateDrv(0x1f0, 0x3f6);
             }
         
         } else {

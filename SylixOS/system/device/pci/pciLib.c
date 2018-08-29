@@ -21,6 +21,7 @@
 ** BUG:
 2015.08.26  支持 PCI_MECHANISM_0 模式.
 2016.04.25  增加 设备驱动匹配 支持函数.
+2018.08.28  针对 PCI_MECHANISM_1 2 模式增加 mm config 支持.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -76,6 +77,17 @@ PCI_CTRL_HANDLE     _G_hPciCtrlHandle = LW_NULL;
 *********************************************************************************************************/
 #define PCI_IRQ_GET12(iBus, iSlot, iFunc, iMsiEn, iLine, iPin, pvIrq)  \
         PCI_CTRL->PCI_pDrvFuncs12->irqGet(iBus, iSlot, iFunc, iMsiEn, iLine, iPin, pvIrq)
+#define PCI_MM_CFG_READ12(iBus, iSlot, iFunc, iOft, iLen, pvRet)                                        \
+        PCI_CTRL->PCI_pDrvFuncs12->mmCfgRead(iBus, iSlot, iFunc, iOft, iLen, pvRet)
+#define PCI_MM_CFG_WRITE12(iBus, iSlot, iFunc, iOft, iLen, uiData)                                      \
+        PCI_CTRL->PCI_pDrvFuncs12->mmCfgWrite(iBus, iSlot, iFunc, iOft, iLen, uiData)
+/*********************************************************************************************************
+  PCI 主控器 MM Config 探测
+*********************************************************************************************************/
+#define PCI_MM_CFG_READ_CHECK()                                                                         \
+        _BugHandle(!PCI_CTRL->PCI_pDrvFuncs12->mmCfgRead, LW_TRUE, "PCI no 'mmCfgRead' for offset >= 255.")
+#define PCI_MM_CFG_WRITE_CHECK()                                                                        \
+        _BugHandle(!PCI_CTRL->PCI_pDrvFuncs12->mmCfgWrite, LW_TRUE, "PCI no 'mmCfgWrite' for offset >= 255.")
 /*********************************************************************************************************
   PCI 是否为无效 VENDOR_ID
 *********************************************************************************************************/
@@ -286,19 +298,37 @@ INT  API_PciConfigInByte (INT iBus, INT iSlot, INT iFunc, INT iOft, UINT8 *pucVa
         break;
     
     case PCI_MECHANISM_1:
-        PCI_OUT_DWORD(PCI_CONFIG_ADDR0(), (PCI_PACKET(iBus, iSlot, iFunc) | (iOft & 0xfc) | 0x80000000));
-        ucRet = PCI_IN_BYTE(PCI_CONFIG_ADDR1() + (iOft & 0x3));
-        iRetVal = ERROR_NONE;
+        if (iOft >= 255) {
+            PCI_MM_CFG_READ_CHECK();
+            if (PCI_MM_CFG_READ12(iBus, iSlot, iFunc, iOft, 1, (PVOID)&ucRet) < 0) {
+                ucRet = 0xff;
+            } else {
+                iRetVal = ERROR_NONE;
+            }
+        } else {
+            PCI_OUT_DWORD(PCI_CONFIG_ADDR0(), (PCI_PACKET(iBus, iSlot, iFunc) | (iOft & 0xfc) | 0x80000000));
+            ucRet = PCI_IN_BYTE(PCI_CONFIG_ADDR1() + (iOft & 0x3));
+            iRetVal = ERROR_NONE;
+        }
         break;
         
     case PCI_MECHANISM_2:
-        PCI_OUT_BYTE(PCI_CONFIG_ADDR0(), 0xf0 | (iFunc << 1));
-        PCI_OUT_BYTE(PCI_CONFIG_ADDR1(), iBus);
-        uiDword = PCI_IN_DWORD(PCI_CONFIG_ADDR2() | ((iSlot & 0x000f) << 8) | (iOft & 0xfc));
-        PCI_OUT_BYTE(PCI_CONFIG_ADDR0(), 0);
-        uiDword >>= (iOft & 0x03) * 8;
-        ucRet   = (UINT8)(uiDword & 0xff);
-        iRetVal = ERROR_NONE;
+        if (iOft >= 255) {
+            PCI_MM_CFG_READ_CHECK();
+            if (PCI_MM_CFG_READ12(iBus, iSlot, iFunc, iOft, 1, (PVOID)&ucRet) < 0) {
+                ucRet = 0xff;
+            } else {
+                iRetVal = ERROR_NONE;
+            }
+        } else {
+            PCI_OUT_BYTE(PCI_CONFIG_ADDR0(), 0xf0 | (iFunc << 1));
+            PCI_OUT_BYTE(PCI_CONFIG_ADDR1(), iBus);
+            uiDword = PCI_IN_DWORD(PCI_CONFIG_ADDR2() | ((iSlot & 0x000f) << 8) | (iOft & 0xfc));
+            PCI_OUT_BYTE(PCI_CONFIG_ADDR0(), 0);
+            uiDword >>= (iOft & 0x03) * 8;
+            ucRet   = (UINT8)(uiDword & 0xff);
+            iRetVal = ERROR_NONE;
+        }
         break;
         
     default:
@@ -351,19 +381,37 @@ INT  API_PciConfigInWord (INT iBus, INT iSlot, INT iFunc, INT iOft, UINT16 *pusV
         break;
 
     case PCI_MECHANISM_1:
-        PCI_OUT_DWORD(PCI_CONFIG_ADDR0(), (PCI_PACKET(iBus, iSlot, iFunc) | (iOft & 0xfc) | 0x80000000));
-        usRet = PCI_IN_WORD(PCI_CONFIG_ADDR1() + (iOft & 0x2));
-        iRetVal = ERROR_NONE;
+        if (iOft >= 255) {
+            PCI_MM_CFG_READ_CHECK();
+            if (PCI_MM_CFG_READ12(iBus, iSlot, iFunc, iOft, 2, (PVOID)&usRet) < 0) {
+                usRet = 0xffff;
+            } else {
+                iRetVal = ERROR_NONE;
+            }
+        } else {
+            PCI_OUT_DWORD(PCI_CONFIG_ADDR0(), (PCI_PACKET(iBus, iSlot, iFunc) | (iOft & 0xfc) | 0x80000000));
+            usRet = PCI_IN_WORD(PCI_CONFIG_ADDR1() + (iOft & 0x2));
+            iRetVal = ERROR_NONE;
+        }
         break;
 
     case PCI_MECHANISM_2:
-        PCI_OUT_BYTE(PCI_CONFIG_ADDR0(), 0xf0 | (iFunc << 1));
-        PCI_OUT_BYTE(PCI_CONFIG_ADDR1(), iBus);
-        uiDword = PCI_IN_DWORD(PCI_CONFIG_ADDR2() | ((iSlot & 0x000f) << 8) | (iOft & 0xfc));
-        PCI_OUT_BYTE(PCI_CONFIG_ADDR0(), 0);
-        uiDword >>= (iOft & 0x02) * 8;
-        usRet   = (UINT16)(uiDword & 0xffff);
-        iRetVal = ERROR_NONE;
+        if (iOft >= 255) {
+            PCI_MM_CFG_READ_CHECK();
+            if (PCI_MM_CFG_READ12(iBus, iSlot, iFunc, iOft, 2, (PVOID)&usRet) < 0) {
+                usRet = 0xffff;
+            } else {
+                iRetVal = ERROR_NONE;
+            }
+        } else {
+            PCI_OUT_BYTE(PCI_CONFIG_ADDR0(), 0xf0 | (iFunc << 1));
+            PCI_OUT_BYTE(PCI_CONFIG_ADDR1(), iBus);
+            uiDword = PCI_IN_DWORD(PCI_CONFIG_ADDR2() | ((iSlot & 0x000f) << 8) | (iOft & 0xfc));
+            PCI_OUT_BYTE(PCI_CONFIG_ADDR0(), 0);
+            uiDword >>= (iOft & 0x02) * 8;
+            usRet   = (UINT16)(uiDword & 0xffff);
+            iRetVal = ERROR_NONE;
+        }
         break;
 
     default:
@@ -415,17 +463,35 @@ INT  API_PciConfigInDword (INT iBus, INT iSlot, INT iFunc, INT iOft, UINT32 *pui
         break;
 
     case PCI_MECHANISM_1:
-        PCI_OUT_DWORD(PCI_CONFIG_ADDR0(), (PCI_PACKET(iBus, iSlot, iFunc) | (iOft & 0xfc) | 0x80000000));
-        uiRet = PCI_IN_DWORD(PCI_CONFIG_ADDR1());
-        iRetVal = ERROR_NONE;
+        if (iOft >= 255) {
+            PCI_MM_CFG_READ_CHECK();
+            if (PCI_MM_CFG_READ12(iBus, iSlot, iFunc, iOft, 4, (PVOID)&uiRet) < 0) {
+                uiRet = 0xffffffff;
+            } else {
+                iRetVal = ERROR_NONE;
+            }
+        } else {
+            PCI_OUT_DWORD(PCI_CONFIG_ADDR0(), (PCI_PACKET(iBus, iSlot, iFunc) | (iOft & 0xfc) | 0x80000000));
+            uiRet = PCI_IN_DWORD(PCI_CONFIG_ADDR1());
+            iRetVal = ERROR_NONE;
+        }
         break;
 
     case PCI_MECHANISM_2:
-        PCI_OUT_BYTE(PCI_CONFIG_ADDR0(), 0xf0 | (iFunc << 1));
-        PCI_OUT_BYTE(PCI_CONFIG_ADDR1(), iBus);
-        uiRet = PCI_IN_DWORD(PCI_CONFIG_ADDR2() | ((iSlot & 0x000f) << 8) | (iOft & 0xfc));
-        PCI_OUT_BYTE(PCI_CONFIG_ADDR0(), 0);
-        iRetVal = ERROR_NONE;
+        if (iOft >= 255) {
+            PCI_MM_CFG_READ_CHECK();
+            if (PCI_MM_CFG_READ12(iBus, iSlot, iFunc, iOft, 4, (PVOID)&uiRet) < 0) {
+                uiRet = 0xffffffff;
+            } else {
+                iRetVal = ERROR_NONE;
+            }
+        } else {
+            PCI_OUT_BYTE(PCI_CONFIG_ADDR0(), 0xf0 | (iFunc << 1));
+            PCI_OUT_BYTE(PCI_CONFIG_ADDR1(), iBus);
+            uiRet = PCI_IN_DWORD(PCI_CONFIG_ADDR2() | ((iSlot & 0x000f) << 8) | (iOft & 0xfc));
+            PCI_OUT_BYTE(PCI_CONFIG_ADDR0(), 0);
+            iRetVal = ERROR_NONE;
+        }
         break;
 
     default:
@@ -469,19 +535,29 @@ INT  API_PciConfigOutByte (INT iBus, INT iSlot, INT iFunc, INT iOft, UINT8 ucVal
         break;
 
     case PCI_MECHANISM_1:
-        PCI_OUT_DWORD(PCI_CONFIG_ADDR0(), (PCI_PACKET(iBus, iSlot, iFunc) | (iOft & 0xfc) | 0x80000000));
-        PCI_OUT_BYTE((PCI_CONFIG_ADDR1() + (iOft & 0x3)), ucValue);
+        if (iOft >= 255) {
+            PCI_MM_CFG_WRITE_CHECK();
+            PCI_MM_CFG_WRITE12(iBus, iSlot, iFunc, iOft, 1, ucValue);
+        } else {
+            PCI_OUT_DWORD(PCI_CONFIG_ADDR0(), (PCI_PACKET(iBus, iSlot, iFunc) | (iOft & 0xfc) | 0x80000000));
+            PCI_OUT_BYTE((PCI_CONFIG_ADDR1() + (iOft & 0x3)), ucValue);
+        }
         break;
 
     case PCI_MECHANISM_2:
-        PCI_OUT_BYTE(PCI_CONFIG_ADDR0(), 0xf0 | (iFunc << 1));
-        PCI_OUT_BYTE(PCI_CONFIG_ADDR1(), iBus);
-        uiRet    = PCI_IN_DWORD(PCI_CONFIG_ADDR2() | ((iSlot & 0x000f) << 8) | (iOft & 0xfc));
-        ucValue  = (ucValue & uiMask) << ((iOft & 0x03) * 8);
-        uiMask <<= (iOft & 0x03) * 8;
-        uiRet    = (uiRet & ~uiMask) | ucValue;
-        PCI_OUT_DWORD((PCI_CONFIG_ADDR2() | ((iSlot & 0x000f) << 8) | (iOft & 0xfc)), uiRet);
-        PCI_OUT_BYTE(PCI_CONFIG_ADDR0(), 0);
+        if (iOft >= 255) {
+            PCI_MM_CFG_WRITE_CHECK();
+            PCI_MM_CFG_WRITE12(iBus, iSlot, iFunc, iOft, 1, ucValue);
+        } else {
+            PCI_OUT_BYTE(PCI_CONFIG_ADDR0(), 0xf0 | (iFunc << 1));
+            PCI_OUT_BYTE(PCI_CONFIG_ADDR1(), iBus);
+            uiRet    = PCI_IN_DWORD(PCI_CONFIG_ADDR2() | ((iSlot & 0x000f) << 8) | (iOft & 0xfc));
+            ucValue  = (ucValue & uiMask) << ((iOft & 0x03) * 8);
+            uiMask <<= (iOft & 0x03) * 8;
+            uiRet    = (uiRet & ~uiMask) | ucValue;
+            PCI_OUT_DWORD((PCI_CONFIG_ADDR2() | ((iSlot & 0x000f) << 8) | (iOft & 0xfc)), uiRet);
+            PCI_OUT_BYTE(PCI_CONFIG_ADDR0(), 0);
+        }
         break;
 
     default:
@@ -525,19 +601,29 @@ INT  API_PciConfigOutWord (INT iBus, INT iSlot, INT iFunc, INT iOft, UINT16 usVa
         break;
 
     case PCI_MECHANISM_1:
-        PCI_OUT_DWORD(PCI_CONFIG_ADDR0(), (PCI_PACKET(iBus, iSlot, iFunc) | (iOft & 0xfc) | 0x80000000));
-        PCI_OUT_WORD((PCI_CONFIG_ADDR1() + (iOft & 0x2)), usValue);
+        if (iOft >= 255) {
+            PCI_MM_CFG_WRITE_CHECK();
+            PCI_MM_CFG_WRITE12(iBus, iSlot, iFunc, iOft, 2, usValue);
+        } else {
+            PCI_OUT_DWORD(PCI_CONFIG_ADDR0(), (PCI_PACKET(iBus, iSlot, iFunc) | (iOft & 0xfc) | 0x80000000));
+            PCI_OUT_WORD((PCI_CONFIG_ADDR1() + (iOft & 0x2)), usValue);
+        }
         break;
 
     case PCI_MECHANISM_2:
-        PCI_OUT_BYTE(PCI_CONFIG_ADDR0(), 0xf0 | (iFunc << 1));
-        PCI_OUT_BYTE(PCI_CONFIG_ADDR1(), iBus);
-        uiRet    = PCI_IN_DWORD(PCI_CONFIG_ADDR2() | ((iSlot & 0x000f) << 8) | (iOft & 0xfc));
-        usValue  = (usValue & uiMask) << ((iOft & 0x02) * 8);
-        uiMask <<= (iOft & 0x02) * 8;
-        uiRet    = (uiRet & ~uiMask) | usValue;
-        PCI_OUT_DWORD((PCI_CONFIG_ADDR2() | ((iSlot & 0x000f) << 8) | (iOft & 0xfc)), uiRet);
-        PCI_OUT_BYTE(PCI_CONFIG_ADDR0(), 0);
+        if (iOft >= 255) {
+            PCI_MM_CFG_WRITE_CHECK();
+            PCI_MM_CFG_WRITE12(iBus, iSlot, iFunc, iOft, 2, usValue);
+        } else {
+            PCI_OUT_BYTE(PCI_CONFIG_ADDR0(), 0xf0 | (iFunc << 1));
+            PCI_OUT_BYTE(PCI_CONFIG_ADDR1(), iBus);
+            uiRet    = PCI_IN_DWORD(PCI_CONFIG_ADDR2() | ((iSlot & 0x000f) << 8) | (iOft & 0xfc));
+            usValue  = (usValue & uiMask) << ((iOft & 0x02) * 8);
+            uiMask <<= (iOft & 0x02) * 8;
+            uiRet    = (uiRet & ~uiMask) | usValue;
+            PCI_OUT_DWORD((PCI_CONFIG_ADDR2() | ((iSlot & 0x000f) << 8) | (iOft & 0xfc)), uiRet);
+            PCI_OUT_BYTE(PCI_CONFIG_ADDR0(), 0);
+        }
         break;
 
     default:
@@ -579,15 +665,25 @@ INT  API_PciConfigOutDword (INT iBus, INT iSlot, INT iFunc, INT iOft, UINT32 uiV
         break;
 
     case PCI_MECHANISM_1:
-        PCI_OUT_DWORD(PCI_CONFIG_ADDR0(), (PCI_PACKET(iBus, iSlot, iFunc) | (iOft & 0xfc) | 0x80000000));
-        PCI_OUT_DWORD(PCI_CONFIG_ADDR1(), uiValue);
+        if (iOft >= 255) {
+            PCI_MM_CFG_WRITE_CHECK();
+            PCI_MM_CFG_WRITE12(iBus, iSlot, iFunc, iOft, 4, uiValue);
+        } else {
+            PCI_OUT_DWORD(PCI_CONFIG_ADDR0(), (PCI_PACKET(iBus, iSlot, iFunc) | (iOft & 0xfc) | 0x80000000));
+            PCI_OUT_DWORD(PCI_CONFIG_ADDR1(), uiValue);
+        }
         break;
 
     case PCI_MECHANISM_2:
-        PCI_OUT_BYTE(PCI_CONFIG_ADDR0(), 0xf0 | (iFunc << 1));
-        PCI_OUT_BYTE(PCI_CONFIG_ADDR1(), iBus);
-        PCI_OUT_DWORD((PCI_CONFIG_ADDR2() | ((iSlot & 0x000f) << 8) | (iOft & 0xfc)), uiValue);
-        PCI_OUT_BYTE(PCI_CONFIG_ADDR0(), 0);
+        if (iOft >= 255) {
+            PCI_MM_CFG_WRITE_CHECK();
+            PCI_MM_CFG_WRITE12(iBus, iSlot, iFunc, iOft, 4, uiValue);
+        } else {
+            PCI_OUT_BYTE(PCI_CONFIG_ADDR0(), 0xf0 | (iFunc << 1));
+            PCI_OUT_BYTE(PCI_CONFIG_ADDR1(), iBus);
+            PCI_OUT_DWORD((PCI_CONFIG_ADDR2() | ((iSlot & 0x000f) << 8) | (iOft & 0xfc)), uiValue);
+            PCI_OUT_BYTE(PCI_CONFIG_ADDR0(), 0);
+        }
         break;
 
     default:

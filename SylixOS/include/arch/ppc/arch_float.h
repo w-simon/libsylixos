@@ -74,7 +74,10 @@
 
 union arch_fpu_ctx {                                                    /*  VFP 上下文           		*/
     struct {
-        double          FPUCTX_dfDreg[FP_DREG_NR];                      /*  32 个 double 寄存器         */
+        union {
+            double      FPUCTX_dfDreg[FP_DREG_NR];                      /*  32 个 double 寄存器         */
+            UINT64      FPUCTX_ulDreg[FP_DREG_NR];
+        };
         UINT32          FPUCTX_uiFpscr;                                 /*  状态和控制寄存器            */
         UINT32          FPUCTX_uiFpscrCopy;                             /*  状态和控制寄存器的拷贝      */
     };

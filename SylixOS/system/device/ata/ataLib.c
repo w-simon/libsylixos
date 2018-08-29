@@ -332,8 +332,7 @@ INT __ataWait (__PATA_CTRL patactrler, INT iRequest)
     case __ATA_STAT_READY:
         for (i = 0; i < __ATA_TIMEOUT_LOOP; i++) {
             if ((__ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl)) & __ATA_STAT_BUSY) == 0) {
-                                                                        /*  等待设备不忙                */
-                break;
+                break;                                                  /*  等待设备不忙                */
             }
 
             lib_clock_gettime(CLOCK_MONOTONIC, &tvNow);
@@ -344,8 +343,7 @@ INT __ataWait (__PATA_CTRL patactrler, INT iRequest)
 
         for (i = 0; i < __ATA_TIMEOUT_LOOP; i++) {
             if (__ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl)) & __ATA_STAT_READY) {
-                                                                        /*  设备准备好                  */
-                return  (0);
+                return  (0);                                            /*  设备准备好                  */
             }
 
             lib_clock_gettime(CLOCK_MONOTONIC, &tvNow);
@@ -358,8 +356,7 @@ INT __ataWait (__PATA_CTRL patactrler, INT iRequest)
     case __ATA_STAT_BUSY:
         for (i = 0; i < __ATA_TIMEOUT_LOOP; i++) {
             if ((__ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl)) & __ATA_STAT_BUSY) == 0) {
-                                                                        /*  等待设备不忙                */
-                return  (ERROR_NONE);
+                return  (ERROR_NONE);                                   /*  等待设备不忙                */
             }
 
             lib_clock_gettime(CLOCK_MONOTONIC, &tvNow);
@@ -372,8 +369,7 @@ INT __ataWait (__PATA_CTRL patactrler, INT iRequest)
     case __ATA_STAT_DRQ:
         for (i = 0; i < __ATA_TIMEOUT_LOOP; i++) {
             if (__ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl)) & __ATA_STAT_DRQ) {
-                                                                        /*  设备准备好传输数据          */
-                return  (ERROR_NONE);
+                return  (ERROR_NONE);                                   /*  设备准备好传输数据          */
             }
 
             lib_clock_gettime(CLOCK_MONOTONIC, &tvNow);
@@ -386,8 +382,7 @@ INT __ataWait (__PATA_CTRL patactrler, INT iRequest)
     case __ATA_STAT_SEEKCMPLT:
         for (i = 0; i < __ATA_TIMEOUT_LOOP; i++) {
             if (__ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl)) & __ATA_STAT_SEEKCMPLT) {
-                                                                        /*  设备就绪                    */
-                return  (ERROR_NONE);
+                return  (ERROR_NONE);                                   /*  设备就绪                    */
             }
 
             lib_clock_gettime(CLOCK_MONOTONIC, &tvNow);

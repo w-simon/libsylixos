@@ -25,6 +25,7 @@
 #if LW_CFG_VMM_EN > 0
 #include "arch/ppc/mm/mmu/common/ppcMmu.h"
 #endif
+#include "arch/ppc/common/unaligned/ppcUnaligned.h"
 /*********************************************************************************************************
   向量使能与禁能锁
 *********************************************************************************************************/
@@ -247,17 +248,17 @@ VOID  archInstructionStorageExceptionHandle (addr_t  ulRetAddr)
 *********************************************************************************************************/
 VOID  archAlignmentExceptionHandle (addr_t  ulRetAddr)
 {
-    PLW_CLASS_TCB   ptcbCur;
-    addr_t          ulAbortAddr;
-    LW_VMM_ABORT    abtInfo;
-
-    ulAbortAddr            = ppcGetDAR();
-    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
-    abtInfo.VMABT_uiMethod = BUS_ADRALN;
+    PLW_CLASS_TCB  ptcbCur;
+    LW_VMM_ABORT   abtInfo;
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    API_VmmAbortIsr(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur);
+    ptcbCur->TCB_archRegCtx.REG_uiDar = ppcGetDAR();
+
+    abtInfo = ppcUnalignedHandle(&ptcbCur->TCB_archRegCtx);
+    if (abtInfo.VMABT_uiType) {
+        API_VmmAbortIsr(ulRetAddr, ptcbCur->TCB_archRegCtx.REG_uiDar, &abtInfo, ptcbCur);
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: archProgramExceptionHandle

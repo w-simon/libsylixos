@@ -10,34 +10,50 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: ppcParam.h
+** 文   件   名: config.h
 **
-** 创   建   人: Han.Hui (韩辉)
+** 创   建   人: Jiao.JinXing (焦进星)
 **
-** 文件创建日期: 2016 年 04 月 27 日
+** 文件创建日期: 2018 年 08 月 27 日
 **
-** 描        述: PowerPC 体系构架启动参数.
+** 描        述: PowerPC 体系构架非对齐配置.
 *********************************************************************************************************/
 
-#ifndef __PPCPARAM_H
-#define __PPCPARAM_H
+#ifndef __ARCH_PPC_UNALIGNED_CONFIG_H
+#define __ARCH_PPC_UNALIGNED_CONFIG_H
+
+#if LW_CFG_CPU_WORD_LENGHT == 32
+#define CONFIG_PPC32
+#else
+#define CONFIG_PPC64
+#ifndef __powerpc64__
+#define __powerpc64__
+#endif
+#endif
+
+#if LW_CFG_CPU_FPU_EN >0
+#define CONFIG_PPC_FPU
+#define CONFIG_SPE
+#endif
+
+#if LW_CFG_CPU_DSP_EN >0
+#define CONFIG_ALTIVEC
+#endif
+
+#if LW_CFG_CPU_ENDIAN == 0
+#define __LITTLE_ENDIAN__
+#endif
 
 /*********************************************************************************************************
-  启动参数
+  VSX (Vector Scalar Extension)
+  https://en.wikipedia.org/wiki/AltiVec
+  现在不支持 VSX
 *********************************************************************************************************/
+#undef CONFIG_VSX
 
-typedef struct {
-    BOOL        PP_bGenericPPC32;                                       /*  是否为通用的 PPC32 处理器   */
-    BOOL        PP_bUnalign;                                            /*  是否支持非对齐访问          */
-} PPC_PARAM;
+#define L1_CACHE_BYTES      LW_CFG_CPU_ARCH_CACHE_LINE
 
-/*********************************************************************************************************
-  获取启动参数
-*********************************************************************************************************/
-
-PPC_PARAM  *archKernelParamGet(VOID);
-
-#endif                                                                  /*  __PPCPARAM_H               */
+#endif                                                                  /* __ARCH_PPC_UNALIGNED_CONFIG_H*/
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

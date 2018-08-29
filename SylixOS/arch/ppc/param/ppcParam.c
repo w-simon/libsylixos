@@ -24,7 +24,7 @@
 /*********************************************************************************************************
   启动参数
 *********************************************************************************************************/
-static PPC_PARAM    ppcParam = { LW_TRUE };
+static PPC_PARAM    ppcParam = { LW_TRUE, LW_TRUE };
 /*********************************************************************************************************
 ** 函数名称: archKernelParam
 ** 功能描述: PowerPC 体系构架启动参数设置.
@@ -37,10 +37,17 @@ static PPC_PARAM    ppcParam = { LW_TRUE };
 VOID  archKernelParam (CPCHAR  pcParam)
 {
     if (lib_strncmp(pcParam, "ppc32=", 6) == 0) {                       /*  是否为通用的 PPC32 处理器   */
-        if (pcParam[6] == 'y') {
-            ppcParam.PP_bGenericPPC32 = LW_TRUE;
-        } else {
+        if (pcParam[6] == 'n') {
             ppcParam.PP_bGenericPPC32 = LW_FALSE;
+        } else {
+            ppcParam.PP_bGenericPPC32 = LW_TRUE;
+        }
+
+    } else if (lib_strncmp(pcParam, "unalign=", 8) == 0) {              /*  是否支持非对齐访问          */
+        if (pcParam[8] == 'n') {
+            ppcParam.PP_bUnalign = LW_FALSE;
+        } else {
+            ppcParam.PP_bUnalign = LW_TRUE;
         }
     }
 }

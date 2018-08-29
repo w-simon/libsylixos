@@ -216,6 +216,10 @@ SylixOS/arch/ppc/common/ppcSprAsm.S \
 SylixOS/arch/ppc/common/e500/ppcSprE500Asm.S \
 SylixOS/arch/ppc/common/e500/ppcExcE500.c \
 SylixOS/arch/ppc/common/e500/ppcExcE500Asm.S \
+SylixOS/arch/ppc/common/unaligned/aligned.c \
+SylixOS/arch/ppc/common/unaligned/ldstfp.S \
+SylixOS/arch/ppc/common/unaligned/sstep.c \
+SylixOS/arch/ppc/common/unaligned/ppcUnaligned.c \
 SylixOS/arch/ppc/dbg/ppcDbg.c \
 SylixOS/arch/ppc/dbg/ppcGdb.c \
 SylixOS/arch/ppc/elf/ppcElf.c \
@@ -1390,7 +1394,7 @@ SylixOS/net/lwip/netdev/vnetdev.c \
 SylixOS/net/lwip/packet/af_packet.c \
 SylixOS/net/lwip/packet/af_packet_eth.c \
 SylixOS/net/lwip/proc/lwip_proc.c \
-SylixOS/net/lwip/radix/cor_radix.c \
+SylixOS/net/lwip/radix/bit_radix.c \
 SylixOS/net/lwip/radix/ip4_radix.c \
 SylixOS/net/lwip/radix/ip6_radix.c \
 SylixOS/net/lwip/route/af_route.c \

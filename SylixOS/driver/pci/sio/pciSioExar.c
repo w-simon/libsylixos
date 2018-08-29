@@ -307,8 +307,8 @@ SIO_CHAN  *pciSioExarChan (UINT               uiChannel,
     psiochan->priv = psioexarcfg;
 
     API_PciDevInterDisable(psioexarcfg->CFG_pciHandle, psioexarcfg->CFG_ulVector,
-                              (PINT_SVR_ROUTINE)pciSioExarIsr,
-                              (PVOID)psiochan);
+                           (PINT_SVR_ROUTINE)pciSioExarIsr,
+                           (PVOID)psiochan);
 
     sio16c550Init(psiochan);
 

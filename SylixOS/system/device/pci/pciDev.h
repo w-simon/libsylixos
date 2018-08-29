@@ -552,6 +552,8 @@ typedef struct pci_drv_funcs12 {
     VOID    (*ioOutWord)(UINT16 usValue, addr_t ulAddr);
     VOID    (*ioOutDword)(UINT32 uiValue, addr_t ulAddr);
     INT     (*irqGet)(INT iBus, INT iSlot, INT iFunc, INT iMsiEn, INT iLine, INT iPin, PVOID pvIrq);
+    INT     (*mmCfgRead)(INT iBus, INT iSlot, INT iFunc, INT iOft, INT iLen, PVOID pvRet);
+    INT     (*mmCfgWrite)(INT iBus, INT iSlot, INT iFunc, INT iOft, INT iLen, UINT32 uiData);
 } PCI_DRV_FUNCS12;                                                      /*  PCI_MECHANISM_1 , 2         */
 
 /*********************************************************************************************************

@@ -42,11 +42,11 @@ VOID  archKernelParam (CPCHAR  pcParam)
                     sizeof(_G_x86Param.X86_cVideoParam));               /*  记录视频参数                */
 
     } else if (lib_strncmp(pcParam, "utc=", 4) == 0) {
-        if (pcParam[4] == 'y') {                                        /*  RTC 使用 UTC                */
-            _G_x86Param.X86_bRtcUtc = LW_TRUE;
+        if (pcParam[4] == 'n') {                                        /*  RTC 使用 UTC                */
+            _G_x86Param.X86_bRtcUtc = LW_FALSE;
 
         } else {
-            _G_x86Param.X86_bRtcUtc = LW_FALSE;
+            _G_x86Param.X86_bRtcUtc = LW_TRUE;
         }
 
     } else if (lib_strncmp(pcParam, "console=", 8) == 0) {              /*  控制台设备                  */
@@ -57,11 +57,11 @@ VOID  archKernelParam (CPCHAR  pcParam)
         *lib_strchr(_G_x86Param.X86_cConsoleDev, ' ') = '\0';
 
     } else if (lib_strncmp(pcParam, "hpet=", 5) == 0) {
-        if (pcParam[5] == 'y') {                                        /*  使用HPET作为TICK定时器      */
-            _G_x86Param.X86_bUseHpet = LW_TRUE;
+        if (pcParam[5] == 'n') {                                        /*  使用HPET作为TICK定时器      */
+            _G_x86Param.X86_bUseHpet = LW_FALSE;
 
         } else {
-            _G_x86Param.X86_bUseHpet = LW_FALSE;
+            _G_x86Param.X86_bUseHpet = LW_TRUE;
         }
     }
 }
