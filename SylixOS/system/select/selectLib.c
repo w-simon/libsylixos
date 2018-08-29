@@ -209,7 +209,6 @@ static INT   __selFdsetGetFileConter (INT               iWidth,
 **           errno == ERROR_IO_SELECT_UNSUPPORT_IN_DRIVER       驱动程序不支持
 **           errno == ERROR_IO_SELECT_CONTEXT                   线程不存在 context
 **           errno == ERROR_IO_SELECT_WIDTH                     最大文件号错误
-**           errno == ERROR_THREAD_WAIT_TIMEOUT                 等待超时
 **           errno == ERROR_KERNEL_IN_ISR                       在中断中调用
 ** 全局变量: 
 ** 调用模块: 
@@ -223,6 +222,7 @@ INT     pselect (INT                     iWidth,
                  const struct timespec  *ptmspecTO,
                  const sigset_t         *sigsetMask)
 {
+             INT                 iCnt;
     REGISTER INT                 iIsOk = ERROR_NONE;                    /*  初始化为没有错误            */
     REGISTER INT                 iWidthInBytes;                         /*  需要检测的位数占多少字节    */
     REGISTER ULONG               ulWaitTime;                            /*  等待时间                    */
@@ -408,12 +408,15 @@ INT     pselect (INT                     iWidth,
     if (bBadFd || (iIsOk == PX_ERROR)) {                                /*  出现错误                    */
         _ErrorHandle(EBADF);
         return  (PX_ERROR);
-    
-    } else {
-        _ErrorHandle(ulError);
     }
     
-    return  (__selFdsetGetFileConter(iWidth, pfdsetRead, pfdsetWrite, pfdsetExcept));
+    iCnt = __selFdsetGetFileConter(iWidth, pfdsetRead, pfdsetWrite, pfdsetExcept);
+    if ((iCnt == 0) && (ulError != ERROR_THREAD_WAIT_TIMEOUT)) {        /*  没有文件有效                */
+        _ErrorHandle(ulError);
+        return  (PX_ERROR);                                             /*  出现错误                    */
+    }
+
+    return  (iCnt);
 }
 /*********************************************************************************************************
 ** 函数名称: select

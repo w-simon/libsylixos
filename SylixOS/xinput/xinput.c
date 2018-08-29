@@ -411,6 +411,9 @@ static void  *xinput_scan (void *arg)
 
         ret = select(width, &fdset, LW_NULL, LW_NULL, LW_NULL); /* no timeout needed */
         if (ret < 0) {
+            if (errno == EINTR) {
+                continue; /* EINTR */
+            }
             xdev_close_all();
 
             LW_SPIN_LOCK_QUICK(&xinput_sl, &int_lock);
@@ -421,7 +424,7 @@ static void  *xinput_scan (void *arg)
             continue;
 
         } else if (ret == 0) {
-            continue; /* EINTR */
+            continue;
 
         } else {
             ssize_t temp;

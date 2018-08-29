@@ -525,6 +525,9 @@ static PVOID  __guiInputDevProc (PVOID  pvArg)
 
         iRet = select(iWidth, &fdsetInput, LW_NULL, LW_NULL, &timevalTO);
         if (iRet < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
             /*
              *  select() 出现错误, 可能是设备驱动不支持或者设备文件产生了变动.
              *  这里等待一段时间, 不允许此线程由于异常造成 CPU 利用率过高.

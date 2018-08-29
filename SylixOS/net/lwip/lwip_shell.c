@@ -464,12 +464,12 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
 /*********************************************************************************************************
 ** 函数名称: __netIfShowAll
 ** 功能描述: 显示所有网络接口信息 (ip v4)
-** 输　入  : NONE
+** 输　入  : iFlags   网络 flags
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  __netIfShowAll (VOID)
+static VOID  __netIfShowAll (INT  iFlags)
 {
     struct netif *netif;
     INT           iCounter = 0;
@@ -477,8 +477,10 @@ static VOID  __netIfShowAll (VOID)
     CHAR          cName[NETIF_NAMESIZE] = "null";                       /*  当前默认路由网络接口名      */
 
     NETIF_FOREACH(netif) {
-        __netIfShow(LW_NULL, netif);
-        iCounter++;
+        if ((netif_get_flags(netif) & iFlags) == iFlags) {
+            __netIfShow(LW_NULL, netif);
+            iCounter++;
+        }
     }
 
 #if LWIP_DNS > 0
@@ -497,7 +499,7 @@ static VOID  __netIfShowAll (VOID)
     }
     
     printf("default device is: %s\n", cName);                           /*  显示路由端口                */
-    printf("total net interface: %d\n", iCounter);
+    printf("list net interface: %d\n", iCounter);
 }
 /*********************************************************************************************************
 ** 函数名称: __netIfSet
@@ -550,18 +552,34 @@ static INT  __tshellIfconfig (INT  iArgC, PCHAR  *ppcArgV)
     struct netif    *netif;
     struct in_addr   inaddr;
     ip_addr_t        ipaddr;
+    INT              iFlags = 0;
 
     if (iArgC == 1) {
         LWIP_IF_LIST_LOCK(LW_FALSE);
-        __netIfShowAll();                                               /*  打印所有网口信息            */
+        __netIfShowAll(iFlags);                                         /*  打印所有网口信息            */
         LWIP_IF_LIST_UNLOCK();
         return  (ERROR_NONE);
     
     } else if (iArgC == 2) {
-        LWIP_IF_LIST_LOCK(LW_FALSE);
-        __netIfShow(ppcArgV[1], LW_NULL);                               /*  打印指定网口信息            */
-        LWIP_IF_LIST_UNLOCK();
-        return  (ERROR_NONE);
+        if (*ppcArgV[1] == '-') {
+            if (lib_strcmp(ppcArgV[1], "-u") == 0) {
+                iFlags |= IFF_UP;
+            } else if (lib_strcmp(ppcArgV[1], "-r") == 0) {
+                iFlags |= IFF_UP | IFF_RUNNING;
+            } else {
+                fprintf(stderr, "arguments error!\n");
+            }
+            LWIP_IF_LIST_LOCK(LW_FALSE);
+            __netIfShowAll(iFlags);                                     /*  打印所有符号条件的网口信息  */
+            LWIP_IF_LIST_UNLOCK();
+            return  (ERROR_NONE);
+        
+        } else {
+            LWIP_IF_LIST_LOCK(LW_FALSE);
+            __netIfShow(ppcArgV[1], LW_NULL);                           /*  打印指定网口信息            */
+            LWIP_IF_LIST_UNLOCK();
+            return  (ERROR_NONE);
+        }
     }
 
     if (iArgC >= 4) {                                                   /*  网络接口参数设置            */
@@ -1262,6 +1280,8 @@ VOID  __tshellNetInit (VOID)
     API_TShellFormatAdd("ifconfig",  " [netifname] [{inet | netmask | gateway}] [address]");
     API_TShellHelpAdd("ifconfig",    "show or set net interface parameter.\n"
                                      "if there are no arguments, it will show all interface parameter\n"
+                                     "ifconfig -u (show all interface with 'IFF_UP' state)\n"
+                                     "ifconfig -r (show all interface with 'IFF_UP' & 'IFF_RUNNING' state)\n"
                                      "set interface like following:\n"
                                      "ifconfig en1 inet    192.168.0.3\n"
                                      "ifconfig en1 netmask 255.255.255.0\n"

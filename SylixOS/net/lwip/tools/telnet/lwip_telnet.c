@@ -235,9 +235,12 @@ static VOID  __telnetCommunication (INT  iDevFd)
          */
         iTemp = select(iDevFd + 1, &fdset, LW_NULL, LW_NULL, LW_NULL);  /*  永久等待                    */
         if (iTemp < 0) {
-            break;                                                      /*  出现意外! 直接退出          */
+            if (errno != EINTR) {
+                break;                                                  /*  出现意外! 直接退出          */
+            }
+            continue;
 
-        } else if (iTemp == 0) {                                        /*  信号唤醒                    */
+        } else if (iTemp == 0) {                                        /*  超时唤醒?                   */
             continue;
         }
         
