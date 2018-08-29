@@ -54,8 +54,8 @@
   全局变量
 *********************************************************************************************************/
 static const CHAR   _G_cThreadInfoHdr[] = "\n\
-      NAME         TID    PID  PRI STAT  ERRNO     DELAY   PAGEFAILS FPU CPU\n\
----------------- ------- ----- --- ---- ------- ---------- --------- --- ---\n";
+      NAME         TID    PID  PRI STAT LOCK SAFE    DELAY   PAGEFAILS FPU CPU\n\
+---------------- ------- ----- --- ---- ---- ---- ---------- --------- --- ---\n";
 static const CHAR   _G_cThreadPendHdr[] = "\n\
       NAME         TID    PID  STAT    DELAY          PEND EVENT        OWNER\n\
 ---------------- ------- ----- ---- ---------- ----------------------- -------\n";
@@ -164,13 +164,14 @@ VOID    API_ThreadShowEx (pid_t  pid)
             pcFpu = "";
         }
         
-        printf("%-16s %7lx %5d %3d %-4s %7ld %10s %9llu %-3s %3ld\n",
+        printf("%-16s %7lx %5d %3d %-4s %4ld %-4s %10s %9llu %-3s %3ld\n",
                tcbdesc.TCBD_cThreadName,                                /*  线程名                      */
                tcbdesc.TCBD_ulId,                                       /*  ID 号                       */
                pidGet,                                                  /*  所属进程 ID                 */
                tcbdesc.TCBD_ucPriority,                                 /*  优先级                      */
                pcPendType,                                              /*  状态                        */
-               tcbdesc.TCBD_ulLastError,                                /*  错误号                      */
+               tcbdesc.TCBD_ulThreadLockCounter,                        /*  线程锁                      */
+               tcbdesc.TCBD_ulThreadSafeCounter ? "YES" : "",
                cWakeupLeft,                                             /*  等待计数器                  */
                tcbdesc.TCBD_i64PageFailCounter,                         /*  缺页中断                    */
                pcFpu,
@@ -301,6 +302,13 @@ VOID    API_ThreadPendShowEx (pid_t  pid)
             ulEvent = ptcb->TCB_ptcbJoin->TCB_ulId;
             lib_strlcpy(cEventName, ptcb->TCB_ptcbJoin->TCB_cThreadName, LW_CFG_OBJECT_NAME_SIZE);
             ulOwner = LW_OBJECT_HANDLE_INVALID;
+        
+#if LW_CFG_SMP_EN > 0
+        } else if (ptcb->TCB_ptcbWaitStatus) {
+            ulEvent = ptcb->TCB_ptcbWaitStatus->TCB_ulId;
+            lib_strlcpy(cEventName, ptcb->TCB_ptcbWaitStatus->TCB_cThreadName, LW_CFG_OBJECT_NAME_SIZE);
+            ulOwner = LW_OBJECT_HANDLE_INVALID;
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
         
         } else {
             cEventName[0] = PX_EOS;

@@ -748,9 +748,10 @@ off_t  lseek (INT      iFd,
              off_t      oftNBytes;
              
     REGISTER INT        iError;
-    REGISTER off_t      oftRetVal = API_IosLseek(iFd, oftOffset, iWhence);
+    REGISTER off_t      oftRetVal;
       struct stat       statFile;
-             
+
+    oftRetVal = API_IosLseek(iFd, oftOffset, iWhence);
     if (oftRetVal != PX_ERROR) {                                        /*  优先考虑驱动函数            */
         return  (oftRetVal);
     }

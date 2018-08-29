@@ -266,6 +266,7 @@ static VOID  __sigTaskCreateHook (LW_OBJECT_HANDLE  ulId)
     PLW_CLASS_SIGCONTEXT   psigctx = _signalGetCtx(ptcb);
     
 #if LW_CFG_MODULELOADER_EN > 0
+    INT                    i;
     PLW_CLASS_TCB          ptcbCur;
     PLW_CLASS_SIGCONTEXT   psigctxCur;
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN      */
@@ -273,15 +274,15 @@ static VOID  __sigTaskCreateHook (LW_OBJECT_HANDLE  ulId)
     lib_bzero(psigctx, sizeof(LW_CLASS_SIGCONTEXT));                    /*  所有信号 DEFAULT 处理       */
 
 #if LW_CFG_MODULELOADER_EN > 0
-    if (LW_SYS_STATUS_IS_RUNNING() && __LW_VP_GET_TCB_PROC(ptcb)) {     /*  操作系统正在运行            */
-        INT     i;
-        
-        LW_TCB_GET_CUR_SAFE(ptcbCur);
-        psigctxCur = _signalGetCtx(ptcbCur);
-        psigctx->SIGCTX_sigsetMask = psigctxCur->SIGCTX_sigsetMask;     /*  继承信号掩码                */
-        
-        for (i = 0; i < NSIG; i++) {
-            psigctx->SIGCTX_sigaction[i] = psigctxCur->SIGCTX_sigaction[i];
+    if (LW_SYS_STATUS_IS_RUNNING()) {                                   /*  操作系统正在运行            */
+        LW_TCB_GET_CUR_SAFE(ptcbCur);                                   /*  同一个进程                  */
+        if (__LW_VP_GET_TCB_PROC(ptcb) == __LW_VP_GET_TCB_PROC(ptcbCur)) {
+            psigctxCur = _signalGetCtx(ptcbCur);
+            psigctx->SIGCTX_sigsetMask = psigctxCur->SIGCTX_sigsetMask; /*  继承信号掩码                */
+            
+            for (i = 0; i < NSIG; i++) {
+                psigctx->SIGCTX_sigaction[i] = psigctxCur->SIGCTX_sigaction[i];
+            }
         }
     }
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN      */

@@ -109,6 +109,11 @@ static LW_INLINE VOID __kernelTODUpdate (VOID)
 static LW_INLINE VOID  __kernelTickUpdate (VOID)
 {
     TICK_UPDATE();
+    
+#if LW_CFG_TIME_TICK_HOOK_EN > 0
+    bspTickHook(_K_i64KernelTime);                                      /*  调用系统时钟钩子函数        */
+    __LW_THREAD_TICK_HOOK(_K_i64KernelTime);
+#endif
 }
 /*********************************************************************************************************
 ** 函数名称: API_KernelTicks
@@ -189,11 +194,6 @@ VOID  API_KernelTicksContext (VOID)
     _SchedTick();                                                       /*  处理所有 CPU 线程的时间片   */
     
     LW_SPIN_KERN_UNLOCK_QUICK(iregInterLevel);                          /*  退出内核并打开中断          */
-
-#if LW_CFG_TIME_TICK_HOOK_EN > 0
-    bspTickHook(_K_i64KernelTime);                                      /*  调用系统时钟钩子函数        */
-    __LW_THREAD_TICK_HOOK(_K_i64KernelTime);
-#endif
 }
 /*********************************************************************************************************
   END
