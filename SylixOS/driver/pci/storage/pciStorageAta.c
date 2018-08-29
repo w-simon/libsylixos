@@ -486,7 +486,7 @@ static INT  pciStorageAtaDevProbe (PCI_DEV_HANDLE hPciDevHandle, const PCI_DEV_I
             hResource = API_PciDevResourceGet(hPciDevHandle, PCI_IORESOURCE_IO, 2 * uiChannel + 1);
             ulCtrl = (addr_t)(PCI_RESOURCE_START(hResource));
 
-            if (pciStorageAtaCreateDrv(ulBase, ulCtrl) < 0) {
+            if (pciStorageAtaCreateDrv(ulBase, ulCtrl + 2) < 0) {       /*  ulCtrl + 2                  */
                 continue;
             }
         }
