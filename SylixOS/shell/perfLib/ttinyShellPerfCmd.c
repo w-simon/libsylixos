@@ -139,14 +139,14 @@ static INT  __tshellPerfCmdPerfShow (INT  iArgC, PCHAR  ppcArgV[])
 #if LW_CFG_CPU_WORD_LENGHT == 64
     static PCHAR            pcPerfTraceHdr = \
     "                                       Performance Statistics\n\n" LW_TSHELL_COLOR_LIGHT_RED
-    "            Becasue 'static' function NOT in symbol table so if SAMPLE in 'static' function,\n"
+    "            Because 'static' function NOT in symbol table so if SAMPLE in 'static' function,\n"
     "                 'POSSIBLE FUNCTION' will be the nearest symbol with sample address.\n\n" LW_TSHELL_COLOR_NONE
     "      NAME         TID    PID  CPU       SYMBOL             SAMPLE       TIME CONSUME     POSSIBLE FUNCTION\n"
     "---------------- ------- ----- --- ------------------ ------------------ ------------ -------------------------\n";
 #else
     static PCHAR            pcPerfTraceHdr = \
     "                                  Performance Statistics\n\n" LW_TSHELL_COLOR_LIGHT_RED
-    "       Becasue 'static' function NOT in symbol table so if SAMPLE in 'static' function,\n"
+    "       Because 'static' function NOT in symbol table so if SAMPLE in 'static' function,\n"
     "            'POSSIBLE FUNCTION' will be the nearest symbol with sample address.\n\n" LW_TSHELL_COLOR_NONE
     "      NAME         TID    PID  CPU   SYMBOL     SAMPLE   TIME CONSUME     POSSIBLE FUNCTION\n"
     "---------------- ------- ----- --- ---------- ---------- ------------ -------------------------\n";

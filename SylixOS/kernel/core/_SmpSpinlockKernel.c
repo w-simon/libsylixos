@@ -130,20 +130,21 @@ VOID  _SmpKernelUnlockQuick (INTREG  iregInterLevel)
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : 这里首先将 ptcbOwner lock 减一, 确保解锁后 lock 值正常.
 *********************************************************************************************************/
 VOID  _SmpKernelUnlockSched (PLW_CLASS_TCB  ptcbOwner)
 {
     PLW_CLASS_CPU   pcpuCur;
     INT             iRet;
     
-    KN_SMP_MB();
-    iRet = __ARCH_SPIN_UNLOCK(&LW_KERN_SL);
-    _BugFormat((iRet != LW_SPIN_OK), LW_TRUE, "unlock error %p!\r\n", &LW_KERN_SL);
-    
     pcpuCur = LW_CPU_GET_CUR();
     if (!pcpuCur->CPU_ulInterNesting) {
         __THREAD_LOCK_DEC(ptcbOwner);                                   /*  解除任务锁定                */
     }
+    
+    KN_SMP_MB();
+    iRet = __ARCH_SPIN_UNLOCK(&LW_KERN_SL);
+    _BugFormat((iRet != LW_SPIN_OK), LW_TRUE, "unlock error %p!\r\n", &LW_KERN_SL);
 }
 
 #endif                                                                  /*  LW_CFG_SMP_EN               */

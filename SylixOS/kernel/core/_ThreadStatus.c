@@ -51,6 +51,7 @@ static VOID  _ThreadWaitStatus (PLW_CLASS_TCB  ptcbCur, PLW_CLASS_TCB  ptcbDest,
     
     _List_Line_Add_Ahead(&ptcbCur->TCB_lineStatusPend,
                          &ptcbDest->TCB_plineStatusReqHeader);
+    KN_SMP_MB();                                                        /*  确保链表已更新              */
 }
 /*********************************************************************************************************
 ** 函数名称: _ThreadUnwaitStatus
