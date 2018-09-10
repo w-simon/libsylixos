@@ -63,6 +63,8 @@
 
 #define LW_CFG_ARM_CP15                 1                               /*  ARM9 以上必须为 1           */
 #define LW_CFG_ARM_PL330                1                               /*  是否允许 PL330 DMA 驱动     */
+#define LW_CFG_ARM_PREFETCH_W           0                               /*  是否使用 PLDW 指令          */
+                                                                        /*  ARCH >= 7 && MP Extern      */
 #define LW_CFG_ARM_CACHE_L2             1                               /*  是否允许管理 ARM 二级 CACHE */
 #define LW_CFG_ARM_CACHE_L2_ECC         1                               /*  是否打开 ARM 二级 CACHE ECC */
 

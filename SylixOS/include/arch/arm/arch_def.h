@@ -49,6 +49,16 @@
 #define ARM_PREFETCH(ptr)
 #endif                                                                  /*  __SYLIXOS_ARM_ARCH__ >= 5   */
 
+#if __SYLIXOS_ARM_ARCH__ >= 7
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_ARM_PREFETCH_W > 0)
+#define ARM_PREFETCH_W(ptr) __asm__ __volatile__("pldw %a0" :: "p" (ptr))
+#else
+#define ARM_PREFETCH_W(ptr) ARM_PREFETCH(ptr)
+#endif
+#else
+#define ARM_PREFETCH_W(ptr) ARM_PREFETCH(ptr)
+#endif                                                                  /*  __SYLIXOS_ARM_ARCH__ >= 7   */
+
 /*********************************************************************************************************
   WFE SEV
 *********************************************************************************************************/

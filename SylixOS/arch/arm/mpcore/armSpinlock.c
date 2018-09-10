@@ -45,7 +45,8 @@ static VOID  armSpinLock (SPINLOCKTYPE *psld, VOIDFUNCPTR  pfuncPoll, PVOID  pvA
     UINT32          uiNewVal;
     SPINLOCKTYPE    sldVal;
 
-    ARM_PREFETCH(&psld->SLD_uiLock);
+    ARM_PREFETCH_W(&psld->SLD_uiLock);
+
     __asm__ __volatile__(
         "1: ldrex   %[oldvalue], [%[slock]]                 \n"
         "   add     %[newvalue], %[oldvalue], %[tshift]     \n"
@@ -80,7 +81,8 @@ static UINT32  armSpinTryLock (SPINLOCKTYPE *psld)
 #if __SYLIXOS_ARM_ARCH__ >= 6
     UINT32  uiCont, uiRes, uiLock;
 
-    ARM_PREFETCH(&psld->SLD_uiLock);
+    ARM_PREFETCH_W(&psld->SLD_uiLock);
+
     do {
         __asm__ __volatile__(
             "   ldrex   %[lock], [%[slock]]                 \n"

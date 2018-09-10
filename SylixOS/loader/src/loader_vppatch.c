@@ -573,6 +573,9 @@ INT vprocDestroy (LW_LD_VPROC *pvproc)
 
     _IosEnvDelete(pvproc->VP_pioeIoEnv);                                /*  删除当前进程 IO 环境        */
     
+    if (pvproc->VP_pcCmdline) {
+        LW_LD_SAFEFREE(pvproc->VP_pcCmdline);
+    }
     LW_LD_SAFEFREE(pvproc->VP_pcName);
     LW_LD_SAFEFREE(pvproc);
 
@@ -1146,7 +1149,7 @@ INT  vprocSetImmediatelyTerm (pid_t  pid)
 ** 功能描述: 设置保存用户 uid gid (setuid 和 setgid 位)
 ** 输　入  : pvproc      进程控制块
 **           pcFile      进程文件名
-** 输　出  : 
+** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
@@ -1175,10 +1178,40 @@ static VOID  vprocSetFilesid (LW_LD_VPROC *pvproc, CPCHAR  pcFile)
     }
 }
 /*********************************************************************************************************
+** 函数名称: vprocSetCmdline
+** 功能描述: 设置进程控制块命令行信息
+** 输　入  : pvproc     进程控制块指针
+**           iArgC      参数个数
+**           ppcArgV    参数列表
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  vprocSetCmdline (LW_LD_VPROC *pvproc, INT  iArgC, CPCHAR  ppcArgV[])
+{
+    INT     i;
+    size_t  stSize = 1;
+    
+    if (!pvproc->VP_pcCmdline && (iArgC > 0)) {
+        for (i = 0; i < iArgC; i++) {
+            stSize += lib_strlen(ppcArgV[i]) + 1;
+        }
+        
+        pvproc->VP_pcCmdline = (PCHAR)LW_LD_SAFEMALLOC(stSize);
+        if (pvproc->VP_pcCmdline) {
+            lib_strlcpy(pvproc->VP_pcCmdline, ppcArgV[0], stSize);
+            for (i = 1; i < iArgC; i++) {
+                lib_strlcat(pvproc->VP_pcCmdline, " ", stSize);
+                lib_strlcat(pvproc->VP_pcCmdline, ppcArgV[i], stSize);
+            }
+        }
+    }
+}
+/*********************************************************************************************************
 ** 函数名称: vprocPatchVerCheck
 ** 功能描述: 检查进程补丁的版本, 如果没有则不允许运行 (补丁至少要是 2.0.0 版本)
 ** 输　入  : pvproc      进程控制块
-** 输　出  : 
+** 输　出  : ERROR_NONE 表示没有错误, PX_ERROR 表示错误
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
@@ -1246,7 +1279,7 @@ __bad_version:
 ** 函数名称: vprocLibcVerCheck
 ** 功能描述: 检查进程 C 库的版本, 如果没有则不允许运行.
 ** 输　入  : pvproc      进程控制块
-** 输　出  : 
+** 输　出  : ERROR_NONE 表示没有错误, PX_ERROR 表示错误
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
@@ -1389,6 +1422,7 @@ INT  vprocRun (LW_LD_VPROC      *pvproc,
     }
 
     vprocSetFilesid(pvproc, pmodule->EMOD_pcModulePath);                /*  如果允许, 设置 save uid gid */
+    vprocSetCmdline(pvproc, iArgC, ppcArgV);
     
     pvproc->VP_iStatus = __LW_VP_RUN;                                   /*  开始执行                    */
     

@@ -33,7 +33,7 @@ static LW_INLINE INT  archAtomic##op (INT  i, atomic_t  *v)                 \
     ULONG   ulTemp;                                                         \
     INT     iResult;                                                        \
                                                                             \
-    ARM_PREFETCH(&v->counter);                                              \
+    ARM_PREFETCH_W(&v->counter);                                            \
                                                                             \
     __asm__ __volatile__(                                                   \
         "1: ldrex       %0, [%2]            \n"                             \
@@ -79,7 +79,7 @@ static LW_INLINE INT  archAtomicCas (atomic_t  *v, INT  iOld, INT  iNew)
     INT    iOldVal;
     UINT   uiRes;
 
-    ARM_PREFETCH(&v->counter);
+    ARM_PREFETCH_W(&v->counter);
 
     do {
         __asm__ __volatile__(
@@ -106,7 +106,7 @@ static LW_INLINE addr_t  archAtomicAddrCas (volatile addr_t *p, addr_t  ulOld, a
     addr_t  ulOldVal;
     UINT    uiRes;
 
-    ARM_PREFETCH(p);
+    ARM_PREFETCH_W(p);
 
     do {
         __asm__ __volatile__(

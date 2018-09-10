@@ -69,6 +69,8 @@ typedef struct lw_ld_vproc {
     pid_t                   VP_pid;                                     /*  进程号                      */
     BOOL                    VP_bIssetugid;                              /*  是否设置的 ugid             */
     PCHAR                   VP_pcName;                                  /*  进程名称                    */
+    PCHAR                   VP_pcCmdline;                               /*  命令行                      */
+    
     LW_OBJECT_HANDLE        VP_ulMainThread;                            /*  主线程句柄                  */
     PVOID                   VP_pvProcInfo;                              /*  proc 文件系统信息           */
     

@@ -133,10 +133,16 @@ static ssize_t  __procFsProcCmdlineRead (PLW_PROCFS_NODE  p_pfsn,
             LW_LD_UNLOCK();
             return  (PX_ERROR);
         }
-        stRealSize = bnprintf(pcFileBuffer, 
-                              __VPROC_PROCFS_CMDLINE_SIZE, 0,
-                              "%s",
-                              pvproc->VP_pcName);
+        if (pvproc->VP_pcCmdline) {
+            stRealSize = bnprintf(pcFileBuffer, 
+                                  __VPROC_PROCFS_CMDLINE_SIZE, 0,
+                                  "%s", pvproc->VP_pcCmdline);
+        
+        } else {
+            stRealSize = bnprintf(pcFileBuffer, 
+                                  __VPROC_PROCFS_CMDLINE_SIZE, 0,
+                                  "%s", pvproc->VP_pcName);
+        }
         LW_LD_UNLOCK();
         API_ProcFsNodeSetRealFileSize(p_pfsn, stRealSize);
     }

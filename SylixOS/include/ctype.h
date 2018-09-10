@@ -62,6 +62,18 @@ extern const unsigned char *_ctype_;
 extern const short         *_toupper_tab_;
 extern const short         *_tolower_tab_;
 
+/*********************************************************************************************************
+  IEEE Std 1003.1-2008
+*********************************************************************************************************/
+
+#ifndef _tolower
+#define _tolower(c) ((_tolower_tab_ + 1)[(unsigned char)(c)])
+#endif
+
+#ifndef _toupper
+#define _toupper(c) ((_toupper_tab_ + 1)[(unsigned char)(c)])
+#endif
+
 __END_NAMESPACE_STD
 
 /*********************************************************************************************************
