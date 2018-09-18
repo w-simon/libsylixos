@@ -12,42 +12,24 @@
 **
 ** 文   件   名: ataLib.c
 **
-** 创   建   人: Hou.XiaoLong (侯小龙)
+** 创   建   人: Gong.YuJian (弓羽箭)
 **
-** 文件创建日期: 2010 年 02 月 01 日
+** 文件创建日期: 2018 年 09 月 03 日
 **
-** 描        述: ATA设备库
-
-** BUG:
-2010.03.29  __ataWait()函数使用新的延时等待机制.
+** 描        述: ATA 驱动库.
 *********************************************************************************************************/
+#define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
-#include "../SylixOS/kernel/include/k_kernel.h"
-#include "../SylixOS/system/include/s_system.h"
-#include "ataLib.h"
+#include "SylixOS.h"
 /*********************************************************************************************************
   裁剪宏
 *********************************************************************************************************/
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_ATA_EN > 0)
+#include "linux/compat.h"
+#include "ata.h"
+#include "ataLib.h"
 /*********************************************************************************************************
-  内部全局变量
-*********************************************************************************************************/
-static INT  _G_iAtaRetry    = __ATA_RETRY_TIMES;
-/*********************************************************************************************************
-  函数声明
-*********************************************************************************************************/
-INT        __ataCmd(__PATA_CTRL patactrler,
-                   INT         iDrive,
-                   INT         iCmd,
-                   INT         iArg0,
-                   INT         iArg1);
-INT        __ataDevIdentify(__PATA_CTRL patactrler, INT iDrive);
-INT        __ataWait(__PATA_CTRL patactrler, INT iRequest);
-static INT __ataPread(__PATA_CTRL patactrler,
-                      INT         iDrive,
-                      PVOID       pvBuffer);
-/*********************************************************************************************************
-** 函数名称: __ataIdString
+** 函数名称: ataIdString
 ** 功能描述: 将 ID 值转换为字符串信息
 ** 输　入  : pusId      ID 参数
 **           pcBuff     字符串缓存
@@ -56,7 +38,7 @@ static INT __ataPread(__PATA_CTRL patactrler,
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static PCHAR  __ataIdString (const UINT16 *pusId, PCHAR  pcBuff, UINT32  uiLen)
+static PCHAR  ataIdString (const UINT16 *pusId, PCHAR  pcBuff, UINT32  uiLen)
 {
     REGISTER INT    i;
     UINT8           ucChar   = 0;                                       /* 字节数据                     */
@@ -66,9 +48,10 @@ static PCHAR  __ataIdString (const UINT16 *pusId, PCHAR  pcBuff, UINT32  uiLen)
     /*
      *  将字数据转换为字符串数据
      */
-    iOffset   = 0;
+    iOffset  = 0;
     pcString = pcBuff;
-    for (i = 0; i < (uiLen - 1); ) {
+    
+    for (i = 0; i < (uiLen - 1); i += 2) {
         ucChar = (UINT8)(pusId[iOffset] >> 8);
         *pcString = ucChar;
         pcString += 1;
@@ -76,9 +59,7 @@ static PCHAR  __ataIdString (const UINT16 *pusId, PCHAR  pcBuff, UINT32  uiLen)
         ucChar = (UINT8)(pusId[iOffset] & 0xff);
         *pcString = ucChar;
         pcString += 1;
-
-        iOffset += 1;
-        i       += 2;
+        iOffset  += 1;
     }
 
     /*
@@ -90,8 +71,9 @@ static PCHAR  __ataIdString (const UINT16 *pusId, PCHAR  pcBuff, UINT32  uiLen)
     }
     *pcString = '\0';
 
-    iOffset   = 0;
+    iOffset  = 0;
     pcString = pcBuff;
+    
     for (i = 0; i < uiLen; i++) {
         if (pcString[iOffset] == ' ') {
             pcString += 1;
@@ -103,7 +85,7 @@ static PCHAR  __ataIdString (const UINT16 *pusId, PCHAR  pcBuff, UINT32  uiLen)
     return  (pcString);
 }
 /*********************************************************************************************************
-** 函数名称: __ataDriveSerialInfoGet
+** 函数名称: ataDriveSerialInfoGet
 ** 功能描述: 序列号信息
 ** 输　入  : hDrive     驱动器句柄
 **           pcBuf      缓冲区
@@ -112,25 +94,25 @@ static PCHAR  __ataIdString (const UINT16 *pusId, PCHAR  pcBuff, UINT32  uiLen)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-PCHAR  __ataDriveSerialInfoGet (__PATA_DRIVE  hDrive, PCHAR  pcBuf, size_t  stLen)
+PCHAR  ataDriveSerialInfoGet (ATA_DRIVE_HANDLE  hDrive, PCHAR  pcBuf, size_t  stLen)
 {
-    __ATA_PARAM    *hParam;                                             /* 参数句柄                     */
-    PCHAR           pcSerial;                                           /* 设备串号                     */
-    CHAR            cSerial[21] = { 0 };                                /* 序列号缓冲区                 */
+    ATA_PARAM_HANDLE        hParam;                                     /* 参数句柄                     */
+    PCHAR                   pcSerial;                                   /* 设备串号                     */
+    CHAR                    cSerial[21] = { 0 };                        /* 序列号缓冲区                 */
 
     if ((!hDrive) || (!pcBuf)) {
         return  (LW_NULL);
     }
 
-    hParam = &hDrive->ATADRIVE_ataParam;
+    hParam = &hDrive->ATADRIVE_tParam;
     lib_bzero(&cSerial[0], 21);
-    pcSerial = __ataIdString((const UINT16 *)&hParam->ATAPAR_cSerial[0], &cSerial[0], 21);
+    pcSerial = ataIdString((const UINT16 *)&hParam->ATAPARAM_ucSerial[0], &cSerial[0], 21);
     lib_strncpy(pcBuf, pcSerial, __MIN(stLen, lib_strlen(pcSerial) + 1));
 
     return  (pcSerial);
 }
 /*********************************************************************************************************
-** 函数名称: __ataDriveFwRevInfoGet
+** 函数名称: ataDriveFwRevInfoGet
 ** 功能描述: 固件版本号信息
 ** 输　入  : hDrive     驱动器句柄
 **           pcBuf      缓冲区
@@ -139,25 +121,25 @@ PCHAR  __ataDriveSerialInfoGet (__PATA_DRIVE  hDrive, PCHAR  pcBuf, size_t  stLe
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-PCHAR  __ataDriveFwRevInfoGet (__PATA_DRIVE  hDrive, PCHAR  pcBuf, size_t  stLen)
+PCHAR  ataDriveFwRevInfoGet (ATA_DRIVE_HANDLE  hDrive, PCHAR  pcBuf, size_t  stLen)
 {
-    __ATA_PARAM    *hParam;                                             /* 参数句柄                     */
-    PCHAR           pcFirmware;                                         /* 固件版本                     */
-    CHAR            cFirmware[9] = { 0 };                               /* 固件版本缓冲区               */
+    ATA_PARAM_HANDLE        hParam;                                     /* 参数句柄                     */
+    PCHAR                   pcFirmware;                                 /* 固件版本                     */
+    CHAR                    cFirmware[9] = { 0 };                       /* 固件版本缓冲区               */
 
     if ((!hDrive) || (!pcBuf)) {
         return  (LW_NULL);
     }
 
-    hParam = &hDrive->ATADRIVE_ataParam;
+    hParam = &hDrive->ATADRIVE_tParam;
     lib_bzero(&cFirmware[0], 9);
-    pcFirmware =__ataIdString((const UINT16 *)&hParam->ATAPAR_cRev[0], &cFirmware[0], 9);
+    pcFirmware = ataIdString((const UINT16 *)&hParam->ATAPARAM_ucFwRev[0], &cFirmware[0], 9);
     lib_strncpy(pcBuf, pcFirmware, __MIN(stLen, lib_strlen(pcFirmware) + 1));
 
     return  (pcFirmware);
 }
 /*********************************************************************************************************
-** 函数名称: __ataDriveModelInfoGet
+** 函数名称: ataDriveModelInfoGet
 ** 功能描述: 设备详细信息
 ** 输　入  : hDrive     驱动器句柄
 **           pcBuf      缓冲区
@@ -166,702 +148,1455 @@ PCHAR  __ataDriveFwRevInfoGet (__PATA_DRIVE  hDrive, PCHAR  pcBuf, size_t  stLen
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-PCHAR  __ataDriveModelInfoGet (__PATA_DRIVE  hDrive, PCHAR  pcBuf, size_t  stLen)
+PCHAR  ataDriveModelInfoGet (ATA_DRIVE_HANDLE  hDrive, PCHAR  pcBuf, size_t  stLen)
 {
-    __ATA_PARAM    *hParam;                                             /* 参数句柄                     */
-    PCHAR           pcProduct;                                          /* 产品信息                     */
-    CHAR            cProduct[41] = { 0 };                               /* 产品信息缓冲区               */
+    ATA_PARAM_HANDLE        hParam;                                     /* 参数句柄                     */
+    PCHAR                   pcProduct;                                  /* 产品信息                     */
+    CHAR                    cProduct[41] = { 0 };                       /* 产品信息缓冲区               */
 
     if ((!hDrive) || (!pcBuf)) {
         return  (LW_NULL);
     }
 
-    hParam = &hDrive->ATADRIVE_ataParam;
+    hParam = &hDrive->ATADRIVE_tParam;
     lib_bzero(&cProduct[0], 41);
-    pcProduct = __ataIdString((const UINT16 *)&hParam->ATAPAR_cModel[0], &cProduct[0], 41);
+    pcProduct = ataIdString((const UINT16 *)&hParam->ATAPARAM_ucModel[0], &cProduct[0], 41);
     lib_strncpy(pcBuf, pcProduct, __MIN(stLen, lib_strlen(pcProduct) + 1));
 
     return  (pcProduct);
 }
 /*********************************************************************************************************
-** 函数名称: __ataCmd
-** 功能描述: ATA命令
-** 输　入  : patactrler  ATA控制器结构指针
-**           iDrive      驱动号
-**           iCmd        ATA命令
-**           iArg0       参数0
-**           iArg1       参数1
-** 输　出  : ERROR
+** 函数名称: ataSwapBufLe16
+** 功能描述: 将小端数据转换换位本地字节序
+** 输　入  : pusBuf     控制器句柄
+**           stWords    缓冲区字长度
+** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-INT __ataCmd (__PATA_CTRL patactrler,
-              INT         iDrive,
-              INT         iCmd,
-              INT         iArg0,
-              INT         iArg1)
+VOID  ataSwapBufLe16 (UINT16 *pusBuf, size_t  stWords)
 {
-    __PATA_CTRL   patactrl    = LW_NULL;
-    __PATA_DRIVE  patadrive   = LW_NULL;
-    __PATA_TYPE   patatype    = LW_NULL;
+    REGISTER UINT   i;
 
-    INT           iRetry      = 1;
-    INT           iRetryCount = 0;
-    ULONG         ulSemStatus = 0;
+    for (i = 0; i < stWords; i++) {
+        pusBuf[i] = le16_to_cpu(pusBuf[i]);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: ataDriveSelect
+** 功能描述: 驱动器选择
+** 输　入  : hCtrl          控制器控制句柄
+**           uiCtrl         控制器索引 (ATA_CTRL_MAX)
+**           uiDrive        驱动器索引 (ATA_DRIVE_MAX)
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT ataDriveSelect (ATA_CTRL_HANDLE  hCtrl, UINT  uiCtrl, UINT  uiDrive)
+{
+    volatile INT        i;
+    UINT8               ucData;
 
-    if (!patactrler) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "parameter error.\r\n");
-        _ErrorHandle(EINVAL);
+    ucData = (UINT8)(uiDrive << ATA_DRIVE_BIT);
+    ATA_IO_BYTES_WRITE(hCtrl, ATA_SDH_D_SELECT_ADDR(hCtrl), &ucData, 1);
+
+    ATA_WAIT_STATUS(hCtrl);
+
+    i = 0;
+    while (i++ < 10000000) {
+        ATA_IO_BYTES_READ(hCtrl, ATA_STATUS_ADDR(hCtrl), &ucData, 1);
+        if ((ucData & (ATA_STAT_BUSY | ATA_STAT_DRQ)) == 0) {
+            return (ERROR_NONE);
+        }
+    }
+
+    return  (PX_ERROR);
+}
+/*********************************************************************************************************
+** 函数名称: ataUdmaCableCheck
+** 功能描述: UDMA 能力检查
+** 输　入  : hCtrl              控制器控制句柄
+**           uiCtrl             控制器索引 (ATA_CTRL_MAX)
+**           uiDrive            驱动器索引 (ATA_DRIVE_MAX)
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  ataUdmaCableCheck (ATA_CTRL_HANDLE  hCtrl, UINT  uiCtrl, UINT  uiDrive)
+{
+    hCtrl->ATACTRL_iUdmaCableOk = LW_TRUE;
+}
+/*********************************************************************************************************
+** 函数名称: API_AtaDriveCommandSend
+** 功能描述: 发送驱动器命令
+** 输　入  : hCtrl              控制器控制句柄
+**           uiCtrl             控制器索引 (ATA_CTRL_MAX)
+**           uiDrive            驱动器索引 (ATA_DRIVE_MAX)
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static void ataBestTransferModeFind (ATA_CTRL_HANDLE  hCtrl, UINT  uiCtrl, UINT  uiDrive)
+{
+    ATA_DRIVE_HANDLE        hDrive   = &hCtrl->ATACTRL_tDrive[uiDrive];
+    ATA_PARAM_HANDLE        hParam   = &hDrive->ATADRIVE_tParam;
+    UINT16                  usRwMode = hDrive->ATADRIVE_usRwMode;
+
+    switch (usRwMode) {
+
+    case ATA_DMA_ULTRA_5:
+    case ATA_DMA_ULTRA_4:
+    case ATA_DMA_ULTRA_3:
+        ataUdmaCableCheck(hCtrl, uiCtrl, uiDrive);
+        if (hCtrl->ATACTRL_iUdmaCableOk == LW_FALSE) {
+            usRwMode = ATA_DMA_ULTRA_2;
+        }
+        break;
+
+    case ATA_DMA_MULTI_2:
+        if (hParam->ATAPARAM_usCycletimeDma > 120) {
+            usRwMode = ATA_DMA_MULTI_1;
+        }
+        break;
+
+    case ATA_DMA_MULTI_1:
+        if (hParam->ATAPARAM_usCycletimeDma > 180) {
+            usRwMode = ATA_DMA_SINGLE_2;
+        }
+        break;
+
+    case ATA_DMA_SINGLE_2:
+        if (hParam->ATAPARAM_usCycletimeDma < 240) {
+            break;
+        }
+
+    case ATA_DMA_MULTI_0:
+    case ATA_DMA_SINGLE_1:
+    case ATA_DMA_SINGLE_0:
+        usRwMode = (UINT16)(ATA_PIO_W_0 + hDrive->ATADRIVE_usPioMode);
+        break;
+
+    default:
+        usRwMode = hDrive->ATADRIVE_usRwMode;
+    }
+
+
+    hDrive->ATADRIVE_usRwMode = usRwMode;
+    switch (hDrive->ATADRIVE_usRwMode) {
+
+    case ATA_PIO_W_4:
+        if (hParam->ATAPARAM_usCycletimePioIordy > 120) {
+            usRwMode = ATA_PIO_W_3;
+        }
+
+    case ATA_PIO_W_3:
+        if (hParam->ATAPARAM_usCycletimePioIordy > 180) {
+            usRwMode = ATA_PIO_W_2;
+        }
+        if (hParam->ATAPARAM_usCycletimePioIordy > 240) {
+            usRwMode = ATA_PIO_W_0;
+        }
+
+    case ATA_PIO_W_2:
+        break;
+
+    case ATA_PIO_W_1:
+    case ATA_PIO_W_0:
+        usRwMode = ATA_PIO_W_0;
+        break;
+
+    default:
+        usRwMode = hDrive->ATADRIVE_usRwMode;
+    }
+
+    hDrive->ATADRIVE_usRwMode = usRwMode;
+
+    ATA_LOG(ATA_LOG_PRT, "ctrl %d driver %d best mode find 0x%x.\r\n", uiCtrl, uiDrive, usRwMode);
+}
+/*********************************************************************************************************
+** 函数名称: ataDevIdentify
+** 功能描述: 获取驱动器参数
+** 输　入  : hCtrlDrv       控制器驱动控制句柄
+**           uiCtrl         控制器索引 (ATA_CTRL_MAX)
+**           uiDrive        驱动器索引 (ATA_DRIVE_MAX)
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT ataDevIdentify (ATA_CTRL_HANDLE  hCtrl, UINT  uiCtrl, UINT  uiDrive)
+{
+    INT                     iRet;
+    ATA_DRIVE_HANDLE        hDrive      = &hCtrl->ATACTRL_tDrive[uiDrive];
+    UINT32                  uiSignature = hDrive->ATADRIVE_uiSignature;
+    UINT8                   ucData;
+
+    if ((uiSignature != ATA_SIGNATURE) && (uiSignature != ATAPI_SIGNATURE)) {
+        hDrive->ATADRIVE_iType       = ATA_TYPE_NONE;
+        hDrive->ATADRIVE_iState      = ATA_TYPE_NONE;
+        hDrive->ATADRIVE_uiSignature = (UINT32)-1;
+
+        ATA_LOG(ATA_LOG_PRT, "ctrl %d driver %d ata dev identify device UNKNOWN 0x%08x.\r\n",
+                uiCtrl, uiDrive, uiSignature);
         return  (PX_ERROR);
     }
 
-    patactrl    = patactrler;
-    patadrive   = &patactrl->ATACTRL_ataDrive[iDrive];
-    patatype    = patadrive->ATADRIVE_patatypeDriverInfo;
+    iRet = ataDriveSelect(hCtrl, uiCtrl, uiDrive);
+    if (iRet != ERROR_NONE) {
+        ATA_LOG(ATA_LOG_ERR, "ctrl %d driver %d ata dev selected device failed.\r\n", uiCtrl, uiDrive);
+        return  (PX_ERROR);
+    }
 
-    while (iRetry) {
-        if (__ataWait(patactrler, __ATA_STAT_READY)) {                  /*  超时,错误返回               */
-            ATA_DEBUG_MSG(("__ataCmd() error : time out"));
+    ucData = (UINT8)0xaa;
+    ATA_IO_BYTES_WRITE(hCtrl, ATA_SECCNT_ADDR(hCtrl), &ucData, 1);
+    ucData = (UINT8)0x55;
+    ATA_IO_BYTES_WRITE(hCtrl, ATA_SECTOR_ADDR(hCtrl), &ucData, 1);
+
+    ATA_IO_BYTES_READ(hCtrl, ATA_SECCNT_ADDR(hCtrl), &ucData, 1);
+    if (ucData == 0xaa) {
+        if (uiSignature == ATAPI_SIGNATURE) {
+            hDrive->ATADRIVE_iType = ATA_TYPE_ATAPI;
+            ATA_LOG(ATA_LOG_PRT, "ctrl %d driver %d ATAPI device find.\r\n", uiCtrl, uiDrive);
+            return  (ERROR_NONE);
+
+        } else if (uiSignature == ATA_SIGNATURE) {
+            hDrive->ATADRIVE_iType = ATA_TYPE_ATA;
+            ATA_LOG(ATA_LOG_PRT, "ctrl %d driver %d ATA device find.\r\n", uiCtrl, uiDrive);
+            return(ERROR_NONE);
+
+        } else {
+            hDrive->ATADRIVE_iType       = ATA_TYPE_NONE;
+            hDrive->ATADRIVE_iState      = ATA_TYPE_NONE;
+            hDrive->ATADRIVE_uiSignature = 0;
+
+            ATA_LOG(ATA_LOG_ERR, "ctrl %d driver %d UNKNOWN device find.\r\n", uiCtrl, uiDrive);
             return  (PX_ERROR);
         }
+
+    } else {
+        hDrive->ATADRIVE_iType       = ATA_TYPE_NONE;
+        hDrive->ATADRIVE_iState      = ATA_TYPE_NONE;
+        hDrive->ATADRIVE_uiSignature = (UINT32)-1;
+
+        ATA_LOG(ATA_LOG_ERR, "ctrl %d driver %d UNKNOWN device find.\r\n", uiCtrl, uiDrive);
+        return  (PX_ERROR);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: ataDriveParamRead
+** 功能描述: 获取驱动器参数
+** 输　入  : hCtrlDrv       控制器驱动控制句柄
+**           uiCtrl         控制器索引 (ATA_CTRL_MAX)
+**           uiDrive        驱动器索引 (ATA_DRIVE_MAX)
+**           pvBuff         参数缓冲区
+**           iCmd           指定命令
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT ataDriveParamRead (ATA_CTRL_HANDLE  hCtrl,
+                              UINT             uiCtrl,
+                              UINT             uiDrive,
+                              PVOID            pvBuff,
+                              INT              iCmd)
+{
+    INT         iRet;
+    INT         iRetry = LW_TRUE;
+    UINT8       ucData;
+    INT         iRetryCount = 0;
+
+    while (iRetry) {
+        iRet = API_AtaCtrlStatusCheck(hCtrl, ATA_STAT_DRQ | ATA_STAT_BUSY, 0);
+        if (iRet != ERROR_NONE) {
+            continue;
+        }
+
+        ucData = (UINT8)(uiDrive << ATA_DRIVE_BIT);
+        ATA_IO_BYTES_WRITE(hCtrl, ATA_SDH_D_SELECT_ADDR(hCtrl), &ucData, 1);
+
+        ucData = (UINT8)iCmd;
+        ATA_IO_BYTES_WRITE(hCtrl, ATA_COMMAND_ADDR(hCtrl), &ucData, 1);
+
+        ATA_LOG(ATA_LOG_PRT, "ctrl %d driver %d param read wait for interrupt.\r\n", uiCtrl, uiDrive);
+
+        if (hCtrl->ATACTRL_hCtrlDrv->ATADRV_iIntDisable) {
+            iRet = API_AtaCtrlStatusCheck(hCtrl, ATA_STAT_DRQ, ATA_STAT_DRQ);
+        } else {
+            iRet = API_SemaphoreBPend(hCtrl->ATACTRL_hSemSync, LW_TICK_HZ / 5);
+        }
+        if ((hCtrl->ATACTRL_iIntStatus & ATA_STAT_ERR) ||
+            (iRet != ERROR_NONE)) {
+            ATA_IO_BYTES_READ(hCtrl, ATA_A_STATUS_ADDR(hCtrl), &ucData, 1);
+            ATA_LOG(ATA_LOG_PRT, "ctrl %d driver %d astatus 0x%x int status 0x%x.\r\n",
+                    uiCtrl, uiDrive, ucData, hCtrl->ATACTRL_iIntStatus);
+
+            ATA_IO_BYTES_READ(hCtrl, ATA_ERROR_ADDR(hCtrl), &ucData, 1);
+            ATA_LOG(ATA_LOG_PRT, "ctrl %d driver %d error 0x%x int status 0x%x.\r\n",
+                    uiCtrl, uiDrive, ucData, hCtrl->ATACTRL_iIntStatus);
+
+            if (++iRetryCount > ATA_RETRY_NUM) {
+                return  (PX_ERROR);
+
+            } else {
+                ATA_LOG(ATA_LOG_PRT, "ctrl %d driver %d try to read params again.\r\n", uiCtrl, uiDrive);
+            }
+
+        } else {
+            iRetry = LW_FALSE;
+        }
+    }
+
+    iRet = API_AtaCtrlStatusCheck(hCtrl, ATA_STAT_DRQ | ATA_STAT_BUSY, ATA_STAT_DRQ);
+    if (iRet != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
+
+    ATA_IO_WORDS_READ(hCtrl, ATA_DATA_ADDR(hCtrl), pvBuff, 256);
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: ataCtrlReset
+** 功能描述: 控制器复位
+** 输　入  : hCtrl      控制器控制句柄
+**           uiCtrl     控制器索引 (ATA_CTRL_MAX)
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT ataCtrlReset (ATA_CTRL_HANDLE  hCtrl, UINT  uiCtrl)
+{
+    ATA_DRIVE_HANDLE        hDrive;
+    UINT32                  uiSignature;
+    UINT                    uiDrive;
+    UINT8                   ucData;
+    volatile INT            i;
+
+    ucData = (UINT8)(ATA_CTL_SRST | ATA_CTL_NIEN);
+    ATA_IO_BYTES_WRITE(hCtrl, ATA_D_CONTROL_ADDR(hCtrl), &ucData, 1);
+
+    for (i = 0; i < 100; i++) {
+        ATA_DELAY_400NSEC(hCtrl);
+    }
+
+    ucData = (UINT8)0;
+    ATA_IO_BYTES_WRITE(hCtrl, ATA_D_CONTROL_ADDR(hCtrl), &ucData, 1);
+
+    for (i = 0; i < 10000; i++) {
+        ATA_DELAY_400NSEC(hCtrl);
+    }
+
+    i = 0;
+    do {
+        if (++i == 30) {
+            ATA_LOG(ATA_LOG_PRT, "ctrl %d reset timeout.\r\n", uiCtrl);
+            return  (PX_ERROR);
+        }
+
+        ucData = 0;
+        ATA_IO_BYTES_READ(hCtrl, ATA_A_STATUS_ADDR(hCtrl), &ucData, 1);
+    } while (ucData & ATA_STAT_BUSY);
+
+    ATA_LOG(ATA_LOG_PRT, "ctrl %d reset retry %d.\r\n", uiCtrl, i);
+
+    for (uiDrive = 0; uiDrive < hCtrl->ATACTRL_uiDriveNum; uiDrive++) {
+        hDrive = &hCtrl->ATACTRL_tDrive[uiDrive];
+
+        ucData = (UINT8)(uiDrive << ATA_DRIVE_BIT);
+        ATA_IO_BYTES_WRITE(hCtrl, ATA_SDH_D_SELECT_ADDR(hCtrl), &ucData, 1);
+
+        hDrive->ATADRIVE_uiSignature = 0;
+        ATA_IO_BYTES_READ(hCtrl, ATA_SECCNT_ADDR(hCtrl), &ucData, 1);
+        hDrive->ATADRIVE_uiSignature |= ucData << 24;
+        ATA_IO_BYTES_READ(hCtrl, ATA_SECTOR_ADDR(hCtrl), &ucData, 1);
+        hDrive->ATADRIVE_uiSignature |= ucData << 16;
+        ATA_IO_BYTES_READ(hCtrl, ATA_CYLLO_BCNTLO_ADDR(hCtrl), &ucData, 1);
+        hDrive->ATADRIVE_uiSignature |= ucData << 8;
+        ATA_IO_BYTES_READ(hCtrl, ATA_CYLHI_BCNTHI_ADDR(hCtrl), &ucData, 1);
+        hDrive->ATADRIVE_uiSignature |= ucData << 0;
+
+        uiSignature = hDrive->ATADRIVE_uiSignature;
+        if (uiSignature == ATA_SIGNATURE) {
+            ATA_LOG(ATA_LOG_PRT, "ctrl %d driver %d ATA device 0x%08x.\r\n", uiCtrl, uiDrive,uiSignature);
+
+        } else if (uiSignature == ATAPI_SIGNATURE) {
+            ATA_LOG(ATA_LOG_PRT, "ctrl %d driver %d ATAPI device 0x%08x.\r\n",uiCtrl,uiDrive,uiSignature);
+
+        } else {
+            ATA_LOG(ATA_LOG_PRT, "ctrl %d driver %d ERROR device 0x%08x.\r\n",uiCtrl,uiDrive,uiSignature);
+        }
+    }
+
+    ATA_LOG(ATA_LOG_PRT, "ctrl %d reset ok.\r\n", uiCtrl);
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: ataDevInit
+** 功能描述: 设备初始化
+** 输　入  : hCtrlDrv       控制器驱动控制句柄
+**           uiCtrl         控制器索引 (ATA_CTRL_MAX)
+**           uiDrive        驱动器索引 (ATA_DRIVE_MAX)
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT ataDevInit (ATA_CTRL_HANDLE  hCtrl, UINT  uiCtrl, UINT  uiDrive)
+{
+    volatile INT        i;
+    INT                 iRet;
+    UINT8               ucData;
+    UINT32              uiDevType;
+
+    ATA_LOG(ATA_LOG_PRT, "ctrl %d driver %d ata dev int.\r\n", uiCtrl, uiDrive);
+
+    ucData = ATA_CTL_SRST;
+    ATA_IO_BYTES_WRITE(hCtrl, ATA_D_CONTROL_ADDR(hCtrl), &ucData, 1);
+
+    for (i = 0; i < 20; i++) {
+        ATA_DELAY_400NSEC(hCtrl);
+    }
+
+    ucData = 0;
+    ATA_IO_BYTES_WRITE(hCtrl, ATA_D_CONTROL_ADDR(hCtrl), &ucData, 1);
+
+    for (i = 0; i < 5000; i++) {                                        /* 2 ms                         */
+        ATA_DELAY_400NSEC(hCtrl);
+    }
+
+    iRet = API_AtaCtrlStatusCheck(hCtrl, ATA_STAT_BUSY, 0);
+    if (iRet != ERROR_NONE) {
+        ATA_LOG(ATA_LOG_ERR, "ctrl %d driver %d ata dev busy.\r\n", uiCtrl, uiDrive);
+        return  (PX_ERROR);
+    }
+
+    if (hCtrl->ATACTRL_hSemSync == LW_OBJECT_HANDLE_INVALID) {
+        hCtrl->ATACTRL_hSemSync  = API_SemaphoreBCreate("ata_sync",
+                                                        LW_FALSE,
+                                                        (LW_OPTION_WAIT_FIFO | LW_OPTION_OBJECT_GLOBAL),
+                                                        LW_NULL);
+    }
+
+    uiDevType = 0;
+    ATA_IO_BYTES_READ(hCtrl, ATA_SECCNT_ADDR(hCtrl), &ucData, 1);
+    uiDevType |= ucData << 24;
+    ATA_IO_BYTES_READ(hCtrl, ATA_SECTOR_ADDR(hCtrl), &ucData, 1);
+    uiDevType |= ucData << 16;
+    ATA_IO_BYTES_READ(hCtrl, ATA_CYLLO_ADDR(hCtrl), &ucData, 1);
+    uiDevType |= ucData << 8;
+    ATA_IO_BYTES_READ(hCtrl, ATA_CYLHI_ADDR(hCtrl), &ucData, 1);
+    uiDevType |= ucData << 0;
+    if (uiDevType == ATA_SIGNATURE) {
+        ATA_LOG(ATA_LOG_PRT, "ctrl %d driver %d ata dev int device ATA.\r\n", uiCtrl, uiDrive);
+
+    } else if (uiDevType == ATAPI_SIGNATURE) {
+        ATA_LOG(ATA_LOG_PRT, "ctrl %d driver %d ata dev int device ATAPI.\r\n", uiCtrl, uiDrive);
+
+    } else {
+        ATA_LOG(ATA_LOG_PRT, "ctrl %d driver %d ata dev int device UNKNOWN.\r\n", uiCtrl, uiDrive);
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: ataCtrlDelay
+** 功能描述: 发送驱动器命令
+** 输　入  : hCtrl      控制器控制句柄
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  ataCtrlDelay (ATA_CTRL_HANDLE  hCtrl)
+{
+    UINT8       ucReg;
+
+    ATA_IO_BYTES_READ(hCtrl, ATA_A_STATUS_ADDR(hCtrl), &ucReg, 1);
+    ATA_IO_BYTES_READ(hCtrl, ATA_A_STATUS_ADDR(hCtrl), &ucReg, 1);
+    ATA_IO_BYTES_READ(hCtrl, ATA_A_STATUS_ADDR(hCtrl), &ucReg, 1);
+    ATA_IO_BYTES_READ(hCtrl, ATA_A_STATUS_ADDR(hCtrl), &ucReg, 1);
+    ATA_IO_BYTES_READ(hCtrl, ATA_A_STATUS_ADDR(hCtrl), &ucReg, 1);
+    ATA_IO_BYTES_READ(hCtrl, ATA_A_STATUS_ADDR(hCtrl), &ucReg, 1);
+}
+/*********************************************************************************************************
+** 函数名称: ataDriveCommandSend
+** 功能描述: 发送驱动器命令
+** 输　入  : hCtrl              控制器控制句柄
+**           uiCtrl             控制器索引 (ATA_CTRL_MAX)
+**           uiDrive            驱动器索引 (ATA_DRIVE_MAX)
+**           iCmd               命令
+**           uiFeature          功能寄存器
+**           usSectorCnt        扇区数量
+**           usSectorNum        扇区编号
+**           ucCylLo            柱面数量低
+**           ucCylHi            柱面数量高
+**           ucSdh              SDH 寄存器
+**           iFlags             标志参数
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  ataDriveCommandSend (ATA_CTRL_HANDLE  hCtrl,
+                          UINT             uiCtrl,
+                          UINT             uiDrive,
+                          INT              iCmd,
+                          UINT32           uiFeature,
+                          UINT16           usSectorCnt,
+                          UINT16           usSectorNum,
+                          UINT8            ucCylLo,
+                          UINT8            ucCylHi,
+                          UINT8            ucSdh)
+{
+    INT                         iRet;
+    ATA_DRIVE_HANDLE            hDrive = &hCtrl->ATACTRL_tDrive[uiDrive];
+    ATA_DRIVE_INFO_HANDLE       hInfo  = hDrive->ATADRIVE_hInfo;
+    BOOL                        bRetry = LW_TRUE;
+    INT                         iRetryCount = 0;
+    UINT8                       ucData;
+
+    ATA_LOG(ATA_LOG_PRT,
+            "ctrl %d drive %d cmd 0x%x feature 0x%x sector cnt 0x%x sector num 0x%x"
+            " cylinder low  0x%x cylinder high 0x%x sdh 0x%x.\r\n",
+            uiCtrl, uiDrive, iCmd, uiFeature, usSectorCnt, usSectorNum, ucCylLo, ucCylHi, ucSdh);
+
+    while (bRetry) {
+        ataDriveSelect(hCtrl, uiCtrl, uiDrive);
+
+        ATA_LOG(ATA_LOG_PRT, "ctrl %d drive %d cmd send start.\r\n", uiCtrl, uiDrive);
 
         switch (iCmd) {
 
-        case __ATA_CMD_DIAGNOSE:                                        /*  运行驱动器诊断              */
-        case __ATA_CMD_RECALIB:                                         /*  校准                        */
-            __ATA_CTRL_OUTBYTE(patactrl, __ATA_SDH(patactrl),
-                               (UINT8)(__ATA_SDH_LBA | (iDrive << __ATA_DRIVE_BIT)));
-            break;
-
-        case __ATA_CMD_INITP:                                           /*  驱动器参数初始化            */
-            __ATA_CTRL_OUTBYTE(patactrl, __ATA_CYLLO(patactrl), (UINT8)patatype->ATATYPE_iCylinders);
-            __ATA_CTRL_OUTBYTE(patactrl, __ATA_CYLHI(patactrl),  \
-                               (UINT8)(patatype->ATATYPE_iCylinders >> 8));
-            __ATA_CTRL_OUTBYTE(patactrl, __ATA_SECCNT(patactrl), (UINT8)patatype->ATATYPE_iSectors);
-            __ATA_CTRL_OUTBYTE(patactrl, __ATA_SDH(patactrl),    \
-                               (UINT8)(__ATA_SDH_LBA         |   \
-                               (iDrive << __ATA_DRIVE_BIT)   |   \
-                               ((patatype->ATATYPE_iHeads - 1) & 0x0f)));
-            break;
-
-        case __ATA_CMD_SEEK:                                            /*  查询定位                    */
-            __ATA_CTRL_OUTBYTE(patactrl, __ATA_CYLLO(patactrl), (UINT8)iArg0);
-            __ATA_CTRL_OUTBYTE(patactrl, __ATA_CYLHI(patactrl), (UINT8)(iArg0 >> 8));
-            __ATA_CTRL_OUTBYTE(patactrl, __ATA_SDH(patactrl),   \
-                               (UINT8)(__ATA_SDH_LBA         |  \
-                               (iDrive << __ATA_DRIVE_BIT)   |  \
-                               (iArg1 & 0xf)));
-            break;
-
-        case __ATA_CMD_SET_FEATURE:                                     /*  设置特征                    */
-            __ATA_CTRL_OUTBYTE(patactrl, __ATA_SECCNT(patactrl), (UINT8)iArg1);
-            __ATA_CTRL_OUTBYTE(patactrl, __ATA_FEATURE(patactrl), (UINT8)iArg0);
-            __ATA_CTRL_OUTBYTE(patactrl, __ATA_SDH(patactrl),   \
-                               (UINT8)(__ATA_SDH_LBA | (iDrive << __ATA_DRIVE_BIT)));
-            break;
-
-        case __ATA_CMD_SET_MULTI:                                       /*  多重模式设定                */
-            __ATA_CTRL_OUTBYTE(patactrl, __ATA_SECCNT(patactrl), (UINT8)iArg0);
-            __ATA_CTRL_OUTBYTE(patactrl, __ATA_SDH(patactrl),   \
-                               (UINT8)(__ATA_SDH_LBA | (iDrive << __ATA_DRIVE_BIT)));
-            break;
-
-        default:
-            __ATA_CTRL_OUTBYTE(patactrl, __ATA_SDH(patactrl),   \
-                               (UINT8)(__ATA_SDH_LBA | (iDrive << __ATA_DRIVE_BIT)));
-            break;
-        }
-
-        __ATA_CTRL_OUTBYTE(patactrl, __ATA_COMMAND(patactrl), (UINT8)iCmd);
-                                                                        /*  写命令寄存器                */
-        if (patactrl->ATACTRL_bIntDisable == LW_FALSE) {
-            ulSemStatus = API_SemaphoreBPend(patactrl->ATACTRL_ulSyncSem,  \
-                                patactrl->ATACTRL_ulSyncSemTimeout);    /*  等待同步信号                */
-        }
-
-        if ((patactrl->ATACTRL_iIntStatus & __ATA_STAT_ERR) || (ulSemStatus != ERROR_NONE)) {
-            ATA_DEBUG_MSG(("__ataCmd() error : status=0x%x ulSemStatus=%d err=0x%x\n",
-                           patactrl->ATACTRL_iIntStatus, ulSemStatus,
-                           __ATA_CTRL_INBYTE(patactrl, __ATA_ERROR(patactrl))));
-            if (++iRetryCount > _G_iAtaRetry) {                         /*  重试大于默认次数,错误返回   */
-                return  (PX_ERROR);
-            }
-        } else {
-            iRetry = 0;
-        }
-    }
-
-    if (iCmd == __ATA_CMD_SEEK) {
-        if (__ataWait(patactrler, __ATA_STAT_SEEKCMPLT) != ERROR_NONE) {
-            return  (PX_ERROR);
-        }
-    }
-
-    ATA_DEBUG_MSG(("__ataCmd() end : - iCtrl %d, iDrive %d: Ok\n", patactrl->ATACTRL_iCtrl, iDrive));
-
-    return  (ERROR_NONE);
-}
-/*********************************************************************************************************
-** 函数名称: __ataWait
-** 功能描述: 等待ATA设备准备好
-** 输　入  : patactrler  ATA控制器结构指针
-**           iRequest    等待状态
-** 输　出  : ERROR
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-INT __ataWait (__PATA_CTRL patactrler, INT iRequest)
-{
-    __PATA_CTRL       patactrl = LW_NULL;
-    struct timespec   tvOld;
-    struct timespec   tvNow;
-
-    volatile INT  i;
-
-    if (!patactrler) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "parameter error.\r\n");
-        _ErrorHandle(EINVAL);
-        return  (PX_ERROR);
-    }
-
-    patactrl = patactrler;
-    lib_clock_gettime(CLOCK_MONOTONIC, &tvOld);
-
-    switch (iRequest) {
-
-    case __ATA_STAT_READY:
-        for (i = 0; i < __ATA_TIMEOUT_LOOP; i++) {
-            if ((__ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl)) & __ATA_STAT_BUSY) == 0) {
-                break;                                                  /*  等待设备不忙                */
-            }
-
-            lib_clock_gettime(CLOCK_MONOTONIC, &tvNow);
-            if ((tvNow.tv_sec - tvOld.tv_sec) >= __ATA_TIMEOUT_SEC) {   /*  超时退出                    */
-                break;
-            }
-        }
-
-        for (i = 0; i < __ATA_TIMEOUT_LOOP; i++) {
-            if (__ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl)) & __ATA_STAT_READY) {
-                return  (0);                                            /*  设备准备好                  */
-            }
-
-            lib_clock_gettime(CLOCK_MONOTONIC, &tvNow);
-            if ((tvNow.tv_sec - tvOld.tv_sec) >= __ATA_TIMEOUT_SEC) {   /*  超时退出                    */
-                break;
-            }
-        }
-        break;
-
-    case __ATA_STAT_BUSY:
-        for (i = 0; i < __ATA_TIMEOUT_LOOP; i++) {
-            if ((__ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl)) & __ATA_STAT_BUSY) == 0) {
-                return  (ERROR_NONE);                                   /*  等待设备不忙                */
-            }
-
-            lib_clock_gettime(CLOCK_MONOTONIC, &tvNow);
-            if ((tvNow.tv_sec - tvOld.tv_sec) >= __ATA_TIMEOUT_SEC) {   /*  超时退出                    */
-                break;
-            }
-        }
-        break;
-
-    case __ATA_STAT_DRQ:
-        for (i = 0; i < __ATA_TIMEOUT_LOOP; i++) {
-            if (__ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl)) & __ATA_STAT_DRQ) {
-                return  (ERROR_NONE);                                   /*  设备准备好传输数据          */
-            }
-
-            lib_clock_gettime(CLOCK_MONOTONIC, &tvNow);
-            if ((tvNow.tv_sec - tvOld.tv_sec) >= __ATA_TIMEOUT_SEC) {   /*  超时退出                    */
-                break;
-            }
-        }
-        break;
-
-    case __ATA_STAT_SEEKCMPLT:
-        for (i = 0; i < __ATA_TIMEOUT_LOOP; i++) {
-            if (__ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl)) & __ATA_STAT_SEEKCMPLT) {
-                return  (ERROR_NONE);                                   /*  设备就绪                    */
-            }
-
-            lib_clock_gettime(CLOCK_MONOTONIC, &tvNow);
-            if ((tvNow.tv_sec - tvOld.tv_sec) >= __ATA_TIMEOUT_SEC) {   /*  超时退出                    */
-                break;
-            }
-        }
-        break;
-
-    case __ATA_STAT_IDLE:
-        for (i = 0; i < __ATA_TIMEOUT_LOOP; i++) {
-            if ((__ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl)) &  \
-                (__ATA_STAT_BUSY | __ATA_STAT_DRQ)) == 0) {             /*  设备空闲                    */
+        case ATA_CMD_INITP:
+            if (hDrive->ATADRIVE_iType == ATA_TYPE_ATAPI) {
+                ATA_LOG(ATA_LOG_PRT, "ctrl %d drive %d atapi ATA_CMD_INITP error.\r\n", uiCtrl, uiDrive);
                 return  (ERROR_NONE);
             }
 
-            lib_clock_gettime(CLOCK_MONOTONIC, &tvNow);
-            if ((tvNow.tv_sec - tvOld.tv_sec) >= __ATA_TIMEOUT_SEC) {   /*  超时退出                    */
-                break;
+            ucData = (UINT8)hInfo->ATADINFO_uiSectors;
+            ATA_IO_BYTES_WRITE(hCtrl, ATA_SECCNT_ADDR(hCtrl), &ucData, 1);
+
+            ucData = (UINT8)((uiDrive << ATA_DRIVE_BIT) | ((hInfo->ATADINFO_uiHeads - 1) & 0x0f));
+            ATA_IO_BYTES_WRITE(hCtrl, ATA_SDH_D_SELECT_ADDR(hCtrl), &ucData, 1);
+
+            ATA_LOG(ATA_LOG_PRT, "ctrl %d drive %d cmd CMD_INITP CNT 0x%x ATA_SDH_D_SELECT 0x%x.\r\n",
+                    uiCtrl, uiDrive, hInfo->ATADINFO_uiSectors,
+                    (uiDrive << ATA_DRIVE_BIT) | ((hInfo->ATADINFO_uiHeads - 1) & 0x0f));
+            break;
+
+        case ATA_CMD_RECALIB:
+            ucData = (UINT8)(uiDrive << ATA_DRIVE_BIT);
+            ATA_IO_BYTES_WRITE(hCtrl, ATA_SDH_D_SELECT_ADDR(hCtrl), &ucData, 1);
+
+            ATA_LOG(ATA_LOG_PRT, "ctrl %d drive %d cmd ATA_CMD_RECALIB ATA_SDH_D_SELECT 0x%x.\r\n",
+                    uiCtrl, uiDrive, uiDrive << ATA_DRIVE_BIT);
+            break;
+
+        case ATAPI_CMD_SRST:
+            if (hDrive->ATADRIVE_iType == ATA_TYPE_ATA) {
+                ATA_LOG(ATA_LOG_PRT, "ctrl %d drive %d ata ATAPI_CMD_SRST error.\r\n", uiCtrl, uiDrive);
+                return  (ERROR_NONE);
             }
-        }
-        break;
 
-    default:
-        break;
-    }
+            ucData = (UINT8)(uiDrive << ATA_DRIVE_BIT);
+            ATA_IO_BYTES_WRITE(hCtrl, ATA_SDH_D_SELECT_ADDR(hCtrl), &ucData, 1);
+            break;
 
-    return  (PX_ERROR);                                                 /*  错误返回                    */
-}
-/*********************************************************************************************************
-** 函数名称: __ataPread
-** 功能描述: 读取设备的参数
-** 输　入  : patactrler  ATA控制器结构指针
-**                       iDrive    驱动号
-**                       pvBuffer  缓冲
-** 输　出  : ERROR
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-static INT __ataPread (__PATA_CTRL patactrler,
-                       INT         iDrive,
-                       PVOID       pvBuffer)
-{
-    __PATA_CTRL patactrl = LW_NULL;
+        case ATA_CMD_DIAGNOSE:
+            break;
 
-    INT         iRetry      = 1;
-    INT         iRetryCount = 0;
-    ULONG       ulSemStatus = 0;
+        case ATA_CMD_SEEK:
+            if (hDrive->ATADRIVE_iType == ATA_TYPE_ATA) {
 
-#if LW_CFG_CPU_ENDIAN == 1
-    INT         i;
-#endif
+                ucData = (UINT8)uiFeature;
+                ATA_IO_BYTES_WRITE(hCtrl, ATA_CYLLO_BCNTLO_ADDR(hCtrl), &ucData, 1);
 
-    INT16      *psBuf = LW_NULL;
+                ucData = (UINT8)(uiFeature >> 8);
+                ATA_IO_BYTES_WRITE(hCtrl, ATA_CYLHI_BCNTHI_ADDR(hCtrl), &ucData, 1);
 
-    if ((!patactrler) || (!pvBuffer)) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "parameter error.\r\n");
-        _ErrorHandle(EINVAL);
-        return  (PX_ERROR);
-    }
+                ucData = (UINT8)(hDrive->ATADRIVE_ucOkLba |
+                                 (uiDrive << ATA_DRIVE_BIT) |
+                                 (usSectorCnt & 0xff));
+                ATA_IO_BYTES_WRITE(hCtrl, ATA_SDH_D_SELECT_ADDR(hCtrl), &ucData, 1);
 
-    patactrl = patactrler;
+            } else {
+                ATA_LOG(ATA_LOG_ERR, "ctrl %d drive %d atapi ATA_CMD_SEEK error.\r\n", uiCtrl, uiDrive);
+                return  (PX_ERROR);
+            }
+            break;
 
-    while (iRetry) {
-        if (__ataWait(patactrl, __ATA_STAT_READY) != ERROR_NONE) {
+        case ATA_CMD_SET_FEATURE:
+            ucData = (UINT8)usSectorCnt;
+            ATA_IO_BYTES_WRITE(hCtrl, ATA_SECCNT_ADDR(hCtrl), &ucData, 1);
+
+            ucData = (UINT8)uiFeature;
+            ATA_IO_BYTES_WRITE(hCtrl, ATA_FEATURE_ADDR(hCtrl), &ucData, 1);
+
+            ucData = (UINT8)(uiDrive << ATA_DRIVE_BIT);
+            ATA_IO_BYTES_WRITE(hCtrl, ATA_SDH_D_SELECT_ADDR(hCtrl), &ucData, 1);
+
+            bRetry = LW_FALSE;
+            break;
+
+        case ATA_CMD_SET_MULTI:
+            if (hDrive->ATADRIVE_iType == ATA_TYPE_ATA) {
+                ucData = (UINT8)uiFeature;
+                ATA_IO_BYTES_WRITE(hCtrl, ATA_SECCNT_ADDR(hCtrl), &ucData, 1);
+
+                ucData = (UINT8)(uiDrive << ATA_DRIVE_BIT);
+                ATA_IO_BYTES_WRITE(hCtrl, ATA_SDH_D_SELECT_ADDR(hCtrl), &ucData, 1);
+
+            } else {
+                ATA_LOG(ATA_LOG_ERR, "ctrl %d drive %d atapi CMD_SET_MULTI error.\r\n", uiCtrl, uiDrive);
+                return  (PX_ERROR);
+            }
+            break;
+
+        case ATA_CMD_IDLE:
+        case ATA_CMD_STANDBY:
+            ucData = (UINT8)uiFeature;
+            ATA_IO_BYTES_WRITE(hCtrl, ATA_SECCNT_ADDR(hCtrl), &ucData, 1);
+
+            ucData = (UINT8)(uiDrive << ATA_DRIVE_BIT);
+            ATA_IO_BYTES_WRITE(hCtrl, ATA_SDH_D_SELECT_ADDR(hCtrl), &ucData, 1);
+
+            bRetry = LW_FALSE;
+            break;
+
+        case ATA_CMD_STANDBY_IMMEDIATE:
+        case ATA_CMD_IDLE_IMMEDIATE:
+        case ATA_CMD_SLEEP:
+        case ATA_CMD_CHECK_POWER_MODE:
+        case ATA_CMD_FLUSH_CACHE:
+            ucData = (UINT8)(uiDrive << ATA_DRIVE_BIT);
+            ATA_IO_BYTES_WRITE(hCtrl, ATA_SDH_D_SELECT_ADDR(hCtrl), &ucData, 1);
+            break;
+
+        case ATA_CMD_SECURITY_ERASE_PREPARE:
+        case ATA_CMD_SECURITY_FREEZE_LOCK:
+            ucData = (UINT8)(uiDrive << ATA_DRIVE_BIT);
+            ATA_IO_BYTES_WRITE(hCtrl, ATA_SDH_D_SELECT_ADDR(hCtrl), &ucData, 1);
+            break;
+
+        case ATA_CMD_SECURITY_ERASE_UNIT:
+        case ATA_CMD_SECURITY_DISABLE_PASSWORD:
+        case ATA_CMD_SECURITY_SET_PASSWORD:
+        case ATA_CMD_SECURITY_UNLOCK:
+            break;
+
+        case ATA_CMD_SMART:
+            switch (uiFeature) {
+
+            case ATA_SMART_ATTRIB_AUTO:
+                ucData = (UINT8)usSectorCnt;
+                ATA_IO_BYTES_WRITE(hCtrl, ATA_SECCNT_ADDR(hCtrl), &ucData, 1);
+                break;
+
+            case ATA_SMART_READ_LOG_SECTOR:
+            case ATA_SMART_WRITE_LOG_SECTOR:
+                ucData = (UINT8)usSectorCnt;
+                ATA_IO_BYTES_WRITE(hCtrl, ATA_SECCNT_ADDR(hCtrl), &ucData, 1);
+
+                ucData = (UINT8)usSectorNum;
+                ATA_IO_BYTES_WRITE(hCtrl, ATA_SECTOR_ADDR(hCtrl), &ucData, 1);
+                break;
+
+            case ATA_SMART_OFFLINE_IMMED:
+                ucData = (UINT8)usSectorCnt;
+                ATA_IO_BYTES_WRITE(hCtrl, ATA_SECTOR_ADDR(hCtrl), &ucData, 1);
+                break;
+
+            case ATA_SMART_RETURN_STATUS:
+            case ATA_SMART_ENABLE_OPER:
+            case ATA_SMART_SAVE_ATTRIB:
+            case ATA_SMART_READ_DATA:
+            case ATA_SMART_DISABLE_OPER:
+                break;
+
+            default:
+                ATA_LOG(ATA_LOG_ERR, "ctrl %d drive %d smart sub cmd 0x%x error.\r\n",
+                        uiCtrl, uiDrive, uiFeature);
+                return  (PX_ERROR);
+            }
+
+            ucData = (UINT8)0x4f;
+            ATA_IO_BYTES_WRITE(hCtrl, ATA_CYLLO_BCNTLO_ADDR(hCtrl), &ucData, 1);
+
+            ucData = (UINT8)0xc2;
+            ATA_IO_BYTES_WRITE(hCtrl, ATA_CYLHI_BCNTHI_ADDR(hCtrl), &ucData, 1);
+
+            ucData = (UINT8)uiFeature;
+            ATA_IO_BYTES_WRITE(hCtrl, ATA_FEATURE_ADDR(hCtrl), &ucData, 1);
+            break;
+
+        case ATA_CMD_GET_MEDIA_STATUS:
+            ucData = (UINT8)(uiDrive << ATA_DRIVE_BIT);
+            ATA_IO_BYTES_WRITE(hCtrl, ATA_SDH_D_SELECT_ADDR(hCtrl), &ucData, 1);
+            break;
+
+        case ATA_CMD_MEDIA_EJECT:
+        case ATA_CMD_MEDIA_LOCK:
+        case ATA_CMD_MEDIA_UNLOCK:
+            if (hDrive->ATADRIVE_iType == ATA_TYPE_ATA) {
+                ucData = (UINT8)(uiDrive << ATA_DRIVE_BIT);
+                ATA_IO_BYTES_WRITE(hCtrl, ATA_SDH_D_SELECT_ADDR(hCtrl), &ucData, 1);
+
+            } else {
+                ATA_LOG(ATA_LOG_ERR, "ctrl %d drive %d atapi media commands error.\r\n", uiCtrl, uiDrive);
+                return  (PX_ERROR);
+            }
+            break;
+
+        case ATA_CMD_CFA_ERASE_SECTORS:
+        case ATA_CMD_CFA_WRITE_MULTIPLE_WITHOUT_ERASE:
+        case ATA_CMD_CFA_WRITE_SECTORS_WITHOUT_ERASE:
+            ucData = (UINT8)usSectorCnt;
+            ATA_IO_BYTES_WRITE(hCtrl, ATA_SECCNT_ADDR(hCtrl), &ucData, 1);
+            break;
+
+        case ATA_CMD_CFA_TRANSLATE_SECTOR:
+            ucData = (UINT8)usSectorNum;
+            ATA_IO_BYTES_WRITE(hCtrl, ATA_SECTOR_ADDR(hCtrl), &ucData, 1);
+
+            ucData = (UINT8)ucCylLo;
+            ATA_IO_BYTES_WRITE(hCtrl, ATA_CYLLO_BCNTLO_ADDR(hCtrl), &ucData, 1);
+
+            ucData = (UINT8)ucCylHi;
+            ATA_IO_BYTES_WRITE(hCtrl, ATA_CYLHI_BCNTHI_ADDR(hCtrl), &ucData, 1);
+
+            ucData = (UINT8)(hDrive->ATADRIVE_ucOkLba | (uiDrive << ATA_DRIVE_BIT) | (ucSdh & 0xff));
+            ATA_IO_BYTES_WRITE(hCtrl, ATA_SDH_D_SELECT_ADDR(hCtrl), &ucData, 1);
+            break;
+
+        case ATA_CMD_CFA_REQUEST_EXTENDED_ERROR_CODE:
+            break;
+
+        case ATA_CMD_READ_NATIVE_MAX_ADDRESS:
+            ucData = (UINT8)(hDrive->ATADRIVE_ucOkLba | (uiDrive << ATA_DRIVE_BIT) | (ucSdh & 0xff));
+            ATA_IO_BYTES_WRITE(hCtrl, ATA_SDH_D_SELECT_ADDR(hCtrl), &ucData, 1);
+            break;
+
+        case ATA_CMD_SET_MAX:
+            switch (uiFeature) {
+
+            case ATA_SUB_SET_MAX_ADDRESS:
+                ucData = (UINT8)usSectorCnt;
+                ATA_IO_BYTES_WRITE(hCtrl, ATA_SECCNT_ADDR(hCtrl), &ucData, 1);
+
+                ucData = (UINT8)usSectorNum;
+                ATA_IO_BYTES_WRITE(hCtrl, ATA_SECTOR_ADDR(hCtrl), &ucData, 1);
+
+                ucData = (UINT8)ucCylLo;
+                ATA_IO_BYTES_WRITE(hCtrl, ATA_CYLLO_BCNTLO_ADDR(hCtrl), &ucData, 1);
+
+                ucData = (UINT8)ucCylHi;
+                ATA_IO_BYTES_WRITE(hCtrl, ATA_CYLHI_BCNTHI_ADDR(hCtrl), &ucData, 1);
+
+                ucData = (UINT8)(hDrive->ATADRIVE_ucOkLba | (uiDrive << ATA_DRIVE_BIT) | (ucSdh & 0xff));
+                ATA_IO_BYTES_WRITE(hCtrl, ATA_SDH_D_SELECT_ADDR(hCtrl), &ucData, 1);
+                break;
+
+            case ATA_SUB_SET_MAX_SET_PASS:
+            case ATA_SUB_SET_MAX_LOCK:
+            case ATA_SUB_SET_MAX_UNLOCK:
+            case ATA_SUB_SET_MAX_FREEZE_LOCK:
+                break;
+
+            default:
+                ATA_LOG(ATA_LOG_ERR, "ctrl %d drive %d set max sub cmd 0x%x not support.\r\n",
+                        uiCtrl, uiDrive, uiFeature);
+                return  (PX_ERROR);
+            }
+
+            ucData = (UINT8)uiFeature;
+            ATA_IO_BYTES_WRITE(hCtrl, ATA_FEATURE_ADDR(hCtrl), &ucData, 1);
+            break;
+
+        case ATA_CMD_READ_VERIFY_SECTORS:
+            break;
+
+        case ATA_CMD_NOP:
+            ucData = (UINT8)uiFeature;
+            ATA_IO_BYTES_WRITE(hCtrl, ATA_FEATURE_ADDR(hCtrl), &ucData, 1);
+            break;
+
+        default:
+            ATA_LOG(ATA_LOG_ERR, "ctrl %d drive %d ata cmd 0x%x not support.\r\n", uiCtrl, uiDrive, iCmd);
             return  (PX_ERROR);
         }
 
-        __ATA_CTRL_OUTBYTE(patactrl, __ATA_SDH(patactrl),   \
-                           (UINT8)(__ATA_SDH_LBA | (iDrive << __ATA_DRIVE_BIT)));
-        __ATA_CTRL_OUTBYTE(patactrl, __ATA_COMMAND(patactrl), __ATA_CMD_READP);
-                                                                        /*  写入确认命令                */
-        if (patactrl->ATACTRL_bIntDisable == LW_FALSE) {
-            ulSemStatus = API_SemaphoreBPend(patactrl->ATACTRL_ulSyncSem,   \
-                                patactrl->ATACTRL_ulSyncSemTimeout);    /*  等待同步信号                */
-        }
+        ucData = (UINT8)iCmd;
+        ATA_IO_BYTES_WRITE(hCtrl, ATA_COMMAND_ADDR(hCtrl), &ucData, 1);
 
-        if ((patactrl->ATACTRL_iIntStatus & __ATA_STAT_ERR) || (ulSemStatus != ERROR_NONE)) {
-            ATA_DEBUG_MSG(("__ataPread() error : status=0x%x intStatus=0x%x "     \
-                           "error=0x%x ulSemStatus=%d\n",                         \
-                           __ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl)),  \
-                           patactrl->ATACTRL_iIntStatus,                          \
-                           __ATA_CTRL_INBYTE(patactrl, __ATA_ERROR(patactrl)), ulSemStatus));
-            if (++iRetryCount > _G_iAtaRetry) {
-                return  (PX_ERROR);
-            }
-        
+        if (hCtrl->ATACTRL_hCtrlDrv->ATADRV_iIntDisable) {
+            iRet = API_AtaCtrlStatusCheck(hCtrl, ATA_STAT_READY | ATA_STAT_BUSY, ATA_STAT_READY);
         } else {
-            iRetry = 0;
+            iRet = API_SemaphoreBPend(hCtrl->ATACTRL_hSemSync, hCtrl->ATACTRL_ulSemSyncTimeout);
         }
-    }
+        if ((hCtrl->ATACTRL_iIntStatus & ATA_STAT_ERR) || (iRet != ERROR_NONE)) {
+            if (hCtrl->ATACTRL_iIntStatus & ATA_STAT_ERR) {
+                ATA_IO_BYTES_READ(hCtrl, ATA_ERROR_ADDR(hCtrl), &ucData, 1);
+                if (ucData & ATA_ERR_ABRT) {
+                    ATA_LOG(ATA_LOG_PRT,
+                            "ctrl %d drive %d cmd abort int status 0x%x ret %d(0x%x) error data 0x%x"
+                            " cmd 0x%0x feature 0x%0x sector cnt 0x%x sector num 0x%x"
+                            " cyl low 0x%x cyl high 0x%x sdh 0x%x.\r\n",
+                            uiCtrl, uiDrive, hCtrl->ATACTRL_iIntStatus, iRet, iRet, ucData,
+                            iCmd, uiFeature, usSectorCnt, usSectorNum, ucCylLo, ucCylHi, ucSdh);
 
-    if (__ataWait(patactrl, __ATA_STAT_DRQ) != ERROR_NONE) {            /*  等待设备准备好传输数据      */
-        return  (PX_ERROR);
-    }
+                    return  (PX_ERROR);
+                }
 
-    psBuf = (INT16 *)pvBuffer;
-    __ATA_CTRL_INSTRING(patactrl, __ATA_DATA(patactrl), psBuf, 256);
-
-#if LW_CFG_CPU_ENDIAN == 1                                              /*  big-endian                  */
-#define __ATA_DATA_MSB(x)   (((x) >> 8) & 0xff)
-#define __ATA_DATA_LSB(x)   ((x) & 0xff)
-#define __ATA_DATA_SWAP(x)  ((__ATA_DATA_LSB(x) << 8) | __ATA_DATA_MSB(x))
-    
-    if (patactrl->ATACTRL_bPreadBeSwap) {
-        for (i = 0; i < 256; i++) {
-            psBuf[i] = (INT16)__ATA_DATA_SWAP(psBuf[i]);
-        }
-    }
-#endif
-
-    ATA_DEBUG_MSG(("__ataPread() end\n"));
-
-    return  (ERROR_NONE);
-}
-/*********************************************************************************************************
-** 函数名称: __ataDriveInit
-** 功能描述: 初始化ATA设备
-** 输　入  : patactrler  ATA控制器结构指针
-**           iDrive      驱动器号
-** 输　出  : ERROR
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-INT __ataDriveInit (__PATA_CTRL patactrler, INT iDrive)
-{
-    __ATA_CTRL   *patactrl       = LW_NULL;
-    __ATA_DRIVE  *patadrive      = LW_NULL;
-    __ATA_PARAM  *pataparam      = LW_NULL;
-    __ATA_TYPE   *patatype       = LW_NULL;
-
-    INT           iConfigType    = 0;
-
-    if (!patactrler) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "parameter error.\r\n");
-        _ErrorHandle(EINVAL);
-        return  (PX_ERROR);
-    }
-
-    ATA_DEBUG_MSG(("Enter into __ataiDriveInit()\n"));
-
-    patactrl    = patactrler;
-    patadrive   = &patactrl->ATACTRL_ataDrive[iDrive];
-    pataparam   = &patadrive->ATADRIVE_ataParam;
-    patatype    = patadrive->ATADRIVE_patatypeDriverInfo;
-    iConfigType = patactrl->ATACTRL_iConfigType;
-
-    if (__ataDevIdentify(patactrler, iDrive) != ERROR_NONE) {           /*  确认设备是否存在以及设备类型*/
-        patadrive->ATADRIVE_ucState = __ATA_DEV_NONE;
-        goto    __error_handle;
-    }
-
-    if (patadrive->ATADRIVE_ucType == __ATA_TYPE_ATA) {                 /*  设备为ATA类型设备           */
-        /*
-         *  得出设备存储的几何结构
-         */
-        if ((iConfigType & __ATA_GEO_MASK) == ATA_GEO_FORCE) {
-            __ataCmd(patactrl, iDrive, __ATA_CMD_INITP, 0, 0);
-            __ataPread(patactrl, iDrive, (INT8 *)pataparam);
-        
-        } else if ((iConfigType & __ATA_GEO_MASK) == ATA_GEO_PHYSICAL) {
-            patatype->ATATYPE_iCylinders = pataparam->ATAPAR_sCylinders;
-            patatype->ATATYPE_iHeads     = pataparam->ATAPAR_sHeads;
-            patatype->ATATYPE_iSectors   = pataparam->ATAPAR_sSectors;
-        
-        } else if ((iConfigType & __ATA_GEO_MASK) == ATA_GEO_CURRENT) {
-            if ((pataparam->ATAPAR_sCurrentCylinders != 0) &&
-                (pataparam->ATAPAR_sCurrentHeads     != 0) &&
-                (pataparam->ATAPAR_sCurrentSectors   != 0)) {
-                patatype->ATATYPE_iCylinders = pataparam->ATAPAR_sCurrentCylinders;
-                patatype->ATATYPE_iHeads     = pataparam->ATAPAR_sCurrentHeads;
-                patatype->ATATYPE_iSectors   = pataparam->ATAPAR_sCurrentSectors;
-            
             } else {
-                patatype->ATATYPE_iCylinders = pataparam->ATAPAR_sCylinders;
-                patatype->ATATYPE_iHeads     = pataparam->ATAPAR_sHeads;
-                patatype->ATATYPE_iSectors   = pataparam->ATAPAR_sSectors;
-            }
-        }
-
-        patatype->ATATYPE_iBytes = patactrl->ATACTRL_iBytesPerSector;   /*  每扇区的大小                */
-
-        if (pataparam->ATAPAR_sCapabilities & __ATA_IOLBA_MASK) {       /*  设备支持LBA模式,保存总扇区数*/
-            patadrive->ATADRIVE_uiCapacity =
-            (UINT)((((UINT)((pataparam->ATAPAR_usSectors0) & 0x0000ffff)) << 0) |
-            (((UINT)((pataparam->ATAPAR_usSectors1) & 0x0000ffff)) << 16));
-
-            if (patadrive->ATADRIVE_uiCapacity == __ATA_MAX_28LBA) {
-                patadrive->ATADRIVE_uiCapacity = ((INT64)pataparam->ATAPAR_sMaxLBA[0]) |
-                                                 ((INT64)pataparam->ATAPAR_sMaxLBA[1] << 16) |
-                                                 ((INT64)pataparam->ATAPAR_sMaxLBA[2] << 32) |
-                                                 ((INT64)pataparam->ATAPAR_sMaxLBA[3] << 48);
-
+                ATA_LOG(ATA_LOG_PRT,
+                        "ctrl %d drive %d ata cmd 0x%x retrying int status 0x%x"
+                        " sem ret 0x%x error data 0x%x.\r\n",
+                        uiCtrl, uiDrive, iCmd, hCtrl->ATACTRL_iIntStatus, iRet, ucData);
             }
 
-            if (patadrive->ATADRIVE_uiCapacity > __ATA_MAX_48LBA) {
+            if (++iRetryCount > ATA_RETRY_NUM) {
+                ATA_LOG(ATA_LOG_ERR, "ctrl %d drive %d ata cmd 0x%x retry cnt %d [0 - %d].\r\n",
+                        uiCtrl, uiDrive, iCmd, iRetryCount, ATA_RETRY_NUM);
+
                 return  (PX_ERROR);
             }
 
-            ATA_DEBUG_MSG(("ID_iDrive reports LBA (60-61) as 0x%x\n",
-                           patadrive->ATADRIVE_uiCapacity));
-        }
-    } else if (patadrive->ATADRIVE_ucType == __ATA_TYPE_ATAPI) {
-        /*
-         *  TODO: 对ATAPI类型设备的支持
-         */
-        return  (PX_ERROR);
-    
-    } else {
-        ATA_DEBUG_MSG(("__ataDriveInit() error: Unknow ata drive type!\r\n"));
-        return  (PX_ERROR);
-    }
-    
-    /*
-     *  得到设备所支持的特性
-     */
-    patadrive->ATADRIVE_sMultiSecs = (INT16)(pataparam->ATAPAR_sMultiSecs & __ATA_MULTISEC_MASK);
-    patadrive->ATADRIVE_sOkMulti   = (INT16)((patadrive->ATADRIVE_sMultiSecs != 0) ? 1 : 0);
-    patadrive->ATADRIVE_sOkIordy   = (INT16)((pataparam->ATAPAR_sCapabilities &   \
-                                     __ATA_IORDY_MASK) ? 1 : 0);
-    patadrive->ATADRIVE_sOkLba     = (INT16)((pataparam->ATAPAR_sCapabilities &   \
-                                     __ATA_IOLBA_MASK) ? 1 : 0);
-    patadrive->ATADRIVE_sOkDma     = (INT16)((pataparam->ATAPAR_sCapabilities &   \
-                                     __ATA_DMA_CAP_MASK) ? 1 : 0);
-    /*
-     *  得到设备所支持的最大PIO模式
-     */
-    patadrive->ATADRIVE_sPioMode = (INT16)((pataparam->ATAPAR_sPioMode >> 8) & __ATA_PIO_MASK_012);
-                                                                        /*  PIO 0,1,2                   */
-    if (patadrive->ATADRIVE_sPioMode > __ATA_SET_PIO_MODE_2) {
-        patadrive->ATADRIVE_sPioMode = __ATA_SET_PIO_MODE_0;
-    }
-
-    if ((patadrive->ATADRIVE_sOkIordy) && (pataparam->ATAPAR_sValid & __ATA_PIO_MASK_34)) {
-                                                                        /*  PIO 3,4                     */
-        if (pataparam->ATAPAR_sAdvancedPio & __ATA_BIT_MASK0) {
-            patadrive->ATADRIVE_sPioMode = __ATA_SET_PIO_MODE_3;
-        }
-
-        if (pataparam->ATAPAR_sAdvancedPio & __ATA_BIT_MASK1) {
-            patadrive->ATADRIVE_sPioMode = __ATA_SET_PIO_MODE_4;
-        }
-    }
-    /*
-     *  得到设备所支持的DMA模式
-     */
-    if ((patadrive->ATADRIVE_sRwDma) && (pataparam->ATAPAR_sValid & __ATA_WORD64_70_VALID)) {
-        /*
-         *  TODO: 对ATA设备DMA模式的支持, 目前为空操作
-         */
-    }
-    /*
-     *  得到所使用的传输模式
-     */
-    patadrive->ATADRIVE_sRwBits = (INT16)(iConfigType & __ATA_BITS_MASK);
-    patadrive->ATADRIVE_sRwPio  = (INT16)(iConfigType & __ATA_PIO_MASK);
-    patadrive->ATADRIVE_sRwDma  = (INT16)(iConfigType & __ATA_DMA_MASK);
-    patadrive->ATADRIVE_sRwMode = ATA_PIO_DEF_0;                      /*  默认的PIO模式               */
-    /*
-     *  设备多重扇区读写模式
-     */
-    if ((patadrive->ATADRIVE_sRwPio == ATA_PIO_MULTI) &&
-        (patadrive->ATADRIVE_ucType == __ATA_TYPE_ATA)) {
-        if (patadrive->ATADRIVE_sOkMulti) {
-            (VOID)__ataCmd(patactrler, iDrive, __ATA_CMD_SET_MULTI,
-                           patadrive->ATADRIVE_sMultiSecs, 0);
-        
         } else {
-            patadrive->ATADRIVE_sRwPio = ATA_PIO_SINGLE;
+            bRetry = LW_FALSE;
         }
     }
 
-    switch (iConfigType & __ATA_MODE_MASK) {
+    switch (iCmd) {
 
-    case ATA_PIO_DEF_0:
-    case ATA_PIO_DEF_1:
-    case ATA_PIO_0:
-    case ATA_PIO_1:
-    case ATA_PIO_2:
-    case ATA_PIO_3:
-    case ATA_PIO_4:
-        patadrive->ATADRIVE_sRwMode = (INT16)(iConfigType & __ATA_MODE_MASK);
+    case ATA_CMD_SEEK:
+        iRet = API_AtaCtrlStatusCheck(hCtrl, ATA_STAT_SEEKCMPLT, ATA_STAT_SEEKCMPLT);
+        if (iRet != ERROR_NONE) {
+            return  (PX_ERROR);
+        }
         break;
 
-    case ATA_PIO_AUTO:
-        patadrive->ATADRIVE_sRwMode = (INT16)(ATA_PIO_DEF_0 + patadrive->ATADRIVE_sPioMode);
+    case ATA_CMD_DIAGNOSE:
+        iRet = API_AtaCtrlStatusCheck(hCtrl, (ATA_STAT_BUSY|ATA_STAT_READY|ATA_STAT_DRQ), ATA_STAT_READY);
+        if (iRet != ERROR_NONE) {
+            return  (PX_ERROR);
+        }
+
+        hDrive->ATADRIVE_uiSignature = 0;
+        ATA_IO_BYTES_READ(hCtrl, ATA_SECCNT_ADDR(hCtrl), &ucData, 1);
+        hDrive->ATADRIVE_uiSignature |= ucData << 24;
+        ATA_IO_BYTES_READ(hCtrl, ATA_SECTOR_ADDR(hCtrl), &ucData, 1);
+        hDrive->ATADRIVE_uiSignature |= ucData << 16;
+        ATA_IO_BYTES_READ(hCtrl, ATA_CYLLO_BCNTLO_ADDR(hCtrl), &ucData, 1);
+        hDrive->ATADRIVE_uiSignature |= ucData << 8;
+        ATA_IO_BYTES_READ(hCtrl, ATA_CYLHI_BCNTHI_ADDR(hCtrl), &ucData, 1);
+        hDrive->ATADRIVE_uiSignature |= ucData << 0;
+
+        ATA_LOG(ATA_LOG_PRT, "ctrl %d drive %d ata cmd 0x%x ATA_CMD_DIAGNOSE signature 0x%x.\r\n",
+                uiCtrl, uiDrive, iCmd, hDrive->ATADRIVE_uiSignature);
         break;
 
-    case ATA_DMA_0:
-    case ATA_DMA_1:
-    case ATA_DMA_2:
-    case ATA_DMA_AUTO:
-        /*
-         *  TODO:对ATA设备DMA传输方式的支持
-         */
+    case ATA_CMD_CHECK_POWER_MODE:
+        ATA_IO_BYTES_READ(hCtrl, ATA_SECCNT_ADDR(hCtrl), &ucData, 1);
+        hDrive->ATADRIVE_ucCheckPower = ucData;
+
+        ATA_LOG(ATA_LOG_PRT, "ctrl %d drive %d ata cmd 0x%x ATA_CMD_CHECK_POWER_MODE mode 0x%x.\r\n",
+                uiCtrl, uiDrive, iCmd, hDrive->ATADRIVE_ucCheckPower);
+        break;
+
+    case ATA_CMD_NOP:
+        ATA_LOG(ATA_LOG_PRT, "ctrl %d drive %d cmd 0x%x ATA_CMD_NOP aborted.\r\n", uiCtrl, uiDrive, iCmd);
+        break;
+
+    case ATA_CMD_READ_VERIFY_SECTORS:
+    case ATA_CMD_FLUSH_CACHE:
         break;
 
     default:
         break;
     }
-    
-    /*
-     *  设置传输模式
-     */
-    (VOID)__ataCmd(patactrler, iDrive, __ATA_CMD_SET_FEATURE, __ATA_SUB_SET_RWMODE,
-                   patadrive->ATADRIVE_sRwMode);
 
-    patadrive->ATADRIVE_ucState = __ATA_DEV_OK;
-
-__error_handle:
-    if (patadrive->ATADRIVE_ucState != __ATA_DEV_OK) {
-        ATA_DEBUG_MSG(("__ataiDriveInit() %d/%d: ERROR: state=%d iDev=0x%x "
-                       "status=0x%x error=0x%x\n", patactrl->ATACTRL_iCtrl, iDrive,
-                       patadrive->ATADRIVE_ucState,
-                       __ATA_CTRL_INBYTE(patactrl, __ATA_SDH(patactrl)),
-                       __ATA_CTRL_INBYTE(patactrl, __ATA_STATUS(patactrl)),
-                       __ATA_CTRL_INBYTE(patactrl, __ATA_ERROR(patactrl))));
-        return  (PX_ERROR);
-    }
+    ATA_LOG(ATA_LOG_PRT, "ctrl %d drive %d ata cmd 0x%x ok.\r\n", uiCtrl, uiDrive, iCmd);
 
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: __ataDevIdentify
-** 功能描述: 确认ATA设备
-** 输　入  : patactrler  ATA控制器结构指针
-**           iDrive      驱动号
-** 输　出  : ERROR
+** 函数名称: ataDriveInit
+** 功能描述: 驱动器初始化
+** 输　入  : hCtrlDrv       控制器驱动控制句柄
+**           uiCtrl         控制器索引 (ATA_CTRL_MAX)
+**           uiDrive        驱动器索引 (ATA_DRIVE_MAX)
+** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-INT __ataDevIdentify (__PATA_CTRL patactrler, INT iDrive)
+INT ataDriveInit (ATA_CTRL_HANDLE  hCtrl, UINT  uiCtrl, UINT  uiDrive)
 {
-    __ATA_CTRL    *patactrl  = LW_NULL;
-    __ATA_DRIVE   *patadrive = LW_NULL;
-    __ATA_PARAM   *pataparam = LW_NULL;
+    INT                         iRet         = PX_ERROR;
+    ATA_DRIVE_HANDLE            hDrive       = &hCtrl->ATACTRL_tDrive[uiDrive];
+    ATA_PARAM_HANDLE            hParam       = &hDrive->ATADRIVE_tParam;
+    ATA_DRIVE_INFO_HANDLE       hInfo        = hDrive->ATADRIVE_hInfo;
+    UINT32                      uiConfigType = hCtrl->ATACTRL_uiConfigType;
+    FUNCPTR                     pfuncDmaCtrlMode;
 
-    INT            istatus   = 0;
+    ATA_LOG(ATA_LOG_PRT, "ctrl %d driver %d ata drive int.\r\n", uiCtrl, uiDrive);
 
-    if (!patactrler) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "parameter error.\r\n");
-        _ErrorHandle(EINVAL);
-        return  (PX_ERROR);
+    iRet = API_SemaphoreMPend(hCtrl->ATACTRL_hSemDev, hCtrl->ATACTRL_ulSemSyncTimeout * 2);
+    if (iRet != ERROR_NONE) {
+        ATA_LOG(ATA_LOG_ERR, "ctrl %d driver %d ata drive int get dev lock failed.\r\n", uiCtrl, uiDrive);
+        return(PX_ERROR);
     }
 
-    ATA_DEBUG_MSG(("Enter into __ataDevIdentify()\n"));
+    ATA_LOG(ATA_LOG_PRT, "ctrl %d driver %d ata drive int identify.\r\n", uiCtrl, uiDrive);
 
-    patactrl  = patactrler;
-    patadrive = &patactrl->ATACTRL_ataDrive[iDrive];
-    pataparam = &patadrive->ATADRIVE_ataParam;
-
-    patadrive->ATADRIVE_ucType = __ATA_TYPE_NONE;
-
-    istatus = __ataWait(patactrl, __ATA_STAT_IDLE);
-    if (istatus != ERROR_NONE) {
-        ATA_DEBUG_MSG(("__ataDevIdentify() %d/%d: status = 0x%x read timed out\n",
-                       patactrl->ATACTRL_iCtrl, iDrive, 
-                       __ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl))));
-        return  (PX_ERROR);
+    iRet = ataDevIdentify(hCtrl, uiCtrl, uiDrive);
+    if (iRet != ERROR_NONE) {
+        hDrive->ATADRIVE_iState = ATA_DEV_NONE;
+        goto  __error_handle;
     }
 
-    __ATA_CTRL_OUTBYTE(patactrl, __ATA_SDH(patactrl),   \
-                       (UINT8)(__ATA_SDH_LBA |          \
-                       (iDrive << __ATA_DRIVE_BIT)));                   /*  选择设备                    */
+    hDrive->ATADRIVE_iDmaUse = LW_FALSE;
 
-    istatus = __ataWait(patactrl, __ATA_STAT_BUSY);
-    if (istatus != ERROR_NONE) {                                        /*  等待设备选择完成            */
-        ATA_DEBUG_MSG(("__ataDevIdentify() %d/%d: status = 0x%x read timed out\n",
-                      patactrl->ATACTRL_iCtrl, iDrive, 
-                      __ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl))));
-        return  (PX_ERROR);
-    }
+    if (hDrive->ATADRIVE_iType == ATA_TYPE_ATA) {
+        hDrive->ATADRIVE_pfuncDevReset = LW_NULL;
 
-    __ATA_CTRL_OUTBYTE(patactrl, __ATA_DCONTROL(patactrl), (UINT8)(patactrl->ATACTRL_bIntDisable << 1));
-                                                                        /*  是否使能中断                */
-    istatus = __ataWait(patactrl, __ATA_STAT_IDLE);
-    if (istatus != ERROR_NONE) {
-        ATA_DEBUG_MSG(("__ataDevIdentify() %d/%d: status = 0x%x read timed out\n",
-                       patactrl->ATACTRL_iCtrl, iDrive, 
-                       __ATA_CTRL_INBYTE(patactrl, __ATA_ASTATUS(patactrl))));
-        return  (PX_ERROR);
-    }
+        iRet = ataDriveParamRead(hCtrl, uiCtrl, uiDrive, (PVOID)hParam, ATA_CMD_IDENT_DEV);
+        if (iRet == ERROR_NONE) {
+            if ((uiConfigType & ATA_GEO_MASK) != ATA_GEO_FORCE) {
+#if LW_CFG_CPU_ENDIAN == 1
+                if (hCtrl->ATACTRL_hCtrlDrv->ATADRV_iBeSwap) {
+                    ataSwapBufLe16((UINT16 *)hParam, (size_t)(256));
+                }
+#endif
+            }
 
-    __ATA_CTRL_OUTBYTE(patactrl, __ATA_SECCNT(patactrl), 0x23);
-    __ATA_CTRL_OUTBYTE(patactrl, __ATA_SECTOR(patactrl), 0x55);
+            if ((uiConfigType & ATA_GEO_MASK) == ATA_GEO_FORCE) {
+                ATA_LOG(ATA_LOG_PRT, "ctrl %d driver %d ata drive int config type ATA_GEO_FORCE.\r\n",
+                        uiCtrl, uiDrive);
 
-    if (__ATA_CTRL_INBYTE(patactrl, __ATA_SECCNT(patactrl)) == 0x23) {
-        /*
-         *  已确认设备存在, 然后找出设备类型, uiSignature 由 __ataCtrlReset() 函数确定
-         */
-        patactrl->ATACTRL_bIsExist = LW_TRUE;
+                ataDriveCommandSend(hCtrl, uiCtrl, uiDrive, ATA_CMD_INITP, 0, 0, 0, 0, 0, 0);
+                ataDriveParamRead(hCtrl, uiCtrl, uiDrive, (PVOID)hParam, ATA_CMD_IDENT_DEV);
 
-        if (patadrive->ATADRIVE_uiSignature == __ATAPI_SIGNATURE) {
-            patadrive->ATADRIVE_ucType = __ATA_TYPE_ATAPI;
+#if LW_CFG_CPU_ENDIAN == 1
+                if (hCtrl->ATACTRL_hCtrlDrv->ATADRV_iBeSwap) {
+                    ataSwapBufLe16((UINT16 *)hParam, (size_t)(256));
+                }
+#endif
 
-        } else if (patadrive->ATADRIVE_uiSignature == __ATA_SIGNATURE) {
-            patadrive->ATADRIVE_ucType = __ATA_TYPE_ATA;
+            } else if ((uiConfigType & ATA_GEO_MASK) == ATA_GEO_PHYSICAL) {
+                hInfo->ATADINFO_uiCylinders = hParam->ATAPARAM_usCylinders;
+                hInfo->ATADINFO_uiHeads     = hParam->ATAPARAM_usHeads;
+                hInfo->ATADINFO_uiSectors   = hParam->ATAPARAM_usSectors;
+
+                ATA_LOG(ATA_LOG_PRT,
+                        "ctrl %d driver %d ata drive ATA_GEO_PHYSICAL"
+                        "cylinders %d heads %d sectors %d.\r\n",
+                        uiCtrl, uiDrive,
+                        hInfo->ATADINFO_uiCylinders, hInfo->ATADINFO_uiHeads, hInfo->ATADINFO_uiSectors);
+
+            } else if ((uiConfigType & ATA_GEO_MASK) == ATA_GEO_CURRENT) {
+                ATA_LOG(ATA_LOG_PRT,
+                        "ctrl %d driver %d ata drive ATA_GEO_CURRENT"
+                        " logical_sector_size[0] %d logical_sector_size[1] %d phys_logical_size %d.\r\n",
+                        uiCtrl, uiDrive,
+                        hParam->ATAPARAM_usLogicSectorSize[0], hParam->ATAPARAM_usLogicSectorSize[1],
+                        hParam->ATAPARAM_usPhysicalLogicalSector);
+
+                if ((hParam->ATAPARAM_usCurrentCylinders) &&
+                    (hParam->ATAPARAM_usCurrentHeads) &&
+                    (hParam->ATAPARAM_usCurrentSectors)) {
+                    hInfo->ATADINFO_uiCylinders = hParam->ATAPARAM_usCurrentCylinders;
+                    hInfo->ATADINFO_uiHeads = hParam->ATAPARAM_usCurrentHeads;
+                    hInfo->ATADINFO_uiSectors = hParam->ATAPARAM_usCurrentSectors;
+
+                    ATA_LOG(ATA_LOG_PRT,
+                            "ctrl %d driver %d ata drive ATA_GEO_CURRENT1"
+                            " cylinders %d heads %d sectors %d.\r\n",
+                            uiCtrl, uiDrive,
+                            hInfo->ATADINFO_uiCylinders,
+                            hInfo->ATADINFO_uiHeads,
+                            hInfo->ATADINFO_uiSectors);
+
+                } else {
+                    hInfo->ATADINFO_uiCylinders = hParam->ATAPARAM_usCylinders;
+                    hInfo->ATADINFO_uiHeads = hParam->ATAPARAM_usHeads;
+                    hInfo->ATADINFO_uiSectors = hParam->ATAPARAM_usSectors;
+
+                    ATA_LOG(ATA_LOG_PRT,
+                            "ctrl %d driver %d ata drive ATA_GEO_CURRENT2"
+                            " cylinders %d heads %d sectors %d.\r\n",
+                            uiCtrl, uiDrive,
+                            hInfo->ATADINFO_uiCylinders,
+                            hInfo->ATADINFO_uiHeads,
+                            hInfo->ATADINFO_uiSectors);
+                }
+            }
+
+            if (hParam->ATAPARAM_usCapabilities & ATA_IOLBA_MASK) {
+                hDrive->ATADRIVE_ullCapacity = ((UINT64)hParam->ATAPARAM_usSectors0) |
+                                               ((UINT64)hParam->ATAPARAM_usSectors1 << 16);
+
+                ATA_LOG(ATA_LOG_PRT, "ctrl %d driver %d ata drive reports LBA (60-61) 0x%llx.\r\n",
+                        uiCtrl, uiDrive, hDrive->ATADRIVE_ullCapacity);
+            }
+
+            if (hDrive->ATADRIVE_ullCapacity == (UINT64)ATA_LBA28_MAX) {
+                hDrive->ATADRIVE_ullCapacity = ((UINT64)hParam->ATAPARAM_usLba48Size[0])       |
+                                               ((UINT64)hParam->ATAPARAM_usLba48Size[1] << 16) |
+                                               ((UINT64)hParam->ATAPARAM_usLba48Size[2] << 32) |
+                                               ((UINT64)hParam->ATAPARAM_usLba48Size[3] << 48);
+                hDrive->ATADRIVE_iUseLba48 = LW_TRUE;
+            }
+
+            if (hDrive->ATADRIVE_ullCapacity > ATA_LBA48_MAX) {
+                goto  __error_handle;
+            }
+
+            ataDriveCommandSend(hCtrl, uiCtrl, uiDrive, ATA_CMD_INITP, 0, 0, 0, 0, 0, 0);
+
+            if ((hParam->ATAPARAM_usMajorRevNum == 0) ||
+                ((~hParam->ATAPARAM_usMajorRevNum) == 0) ||
+                ((hParam->ATAPARAM_usMajorRevNum & 0xf) != 0)) {
+                ataDriveCommandSend(hCtrl, uiCtrl, uiDrive, ATA_CMD_RECALIB, 0, 0, 0, 0, 0, 0);
+            }
 
         } else {
-            patadrive->ATADRIVE_ucType      = __ATA_TYPE_NONE;
-            patadrive->ATADRIVE_uiSignature = 0;
-            ATA_DEBUG_MSG(("__ataDeviceIdentify(): Unknown device found on %d/%d\n",
-                           patactrl->ATACTRL_iCtrl, iDrive));
+            hDrive->ATADRIVE_iState = ATA_DEV_PREAD_ERR;
+            goto  __error_handle;
         }
 
-        if (patadrive->ATADRIVE_ucType != __ATA_TYPE_NONE) {
-            istatus = __ataPread(patactrler, iDrive, pataparam);
-            if (istatus != ERROR_NONE) {
+    } else if (hDrive->ATADRIVE_iType == ATA_TYPE_ATAPI) {
+        goto  __error_handle;
+    }
+
+    hDrive->ATADRIVE_iOkRemovable      = (hParam->ATAPARAM_usConfig & ATA_CONFIG_REMOVABLE) ?
+                                         LW_TRUE : LW_FALSE;
+    hDrive->ATADRIVE_iOkInterleavedDMA = (hParam->ATAPARAM_usCapabilities & ATA_INTER_DMA_MASK) ?
+                                         LW_TRUE :LW_FALSE;
+    hDrive->ATADRIVE_iOkCommandQue     = (hParam->ATAPARAM_usCapabilities & ATA_CMD_QUE_MASK  ) ?
+                                         LW_TRUE : LW_FALSE;
+    hDrive->ATADRIVE_iOkOverlap        = (hParam->ATAPARAM_usCapabilities & ATA_OVERLAP_MASK  ) ?
+                                         LW_TRUE : LW_FALSE;
+    hDrive->ATADRIVE_usMultiSecs       = (UINT16)(hParam->ATAPARAM_usMultiSecs & ATA_MULTISEC_MASK);
+    hDrive->ATADRIVE_iOkMulti          = (UINT16)((hDrive->ATADRIVE_usMultiSecs) ? LW_TRUE : LW_FALSE);
+    hDrive->ATADRIVE_iOkIoRdy          = (UINT16)((hParam->ATAPARAM_usCapabilities & ATA_IORDY_MASK)  ?
+                                         LW_TRUE : LW_FALSE);
+    hDrive->ATADRIVE_ucOkLba           = (UINT8)((hParam->ATAPARAM_usCapabilities & ATA_IOLBA_MASK)  ?
+                                         ATA_USE_LBA : 0);
+    hDrive->ATADRIVE_iOkDma            = (hParam->ATAPARAM_usCapabilities & ATA_DMA_CAP_MASK) ?
+                                         LW_TRUE : LW_FALSE;
+
+    ATA_LOG(ATA_LOG_PRT,
+            "ctrl %d driver %d ata drive int \r\n"
+            "   hDrive->ATADRIVE_usMultiSecs    0x%x \r\n"
+            "   hDrive->ATADRIVE_iOkMulti       0x%x\r\n"
+            "   hDrive->ATADRIVE_iOkIoRdy       0x%x\r\n"
+            "   hDrive->ATADRIVE_ucOkLba        0x%x\r\n"
+            "   hDrive->ATADRIVE_iOkDma         0x%x\r\n"
+            "   hDrive->ATADRIVE_iOkRemovable   0x%x.\r\n"
+            "   hDrive->ATADRIVE_iUseLba48      0x%x.\r\n",
+            uiCtrl, uiDrive,
+            hDrive->ATADRIVE_usMultiSecs, hDrive->ATADRIVE_iOkMulti,
+            hDrive->ATADRIVE_iOkIoRdy, hDrive->ATADRIVE_ucOkLba,
+            hDrive->ATADRIVE_iOkDma, hDrive->ATADRIVE_iOkRemovable, hDrive->ATADRIVE_iUseLba48);
+
+    hDrive->ATADRIVE_usPioMode       = 0xff;
+    hDrive->ATADRIVE_usSingleDmaMode = 0xff;
+    hDrive->ATADRIVE_usMultiDmaMode  = 0xff;
+    hDrive->ATADRIVE_usUltraDmaMode  = 0xff;
+    hDrive->ATADRIVE_usPioMode = (UINT16)((hParam->ATAPARAM_usPioMode >> 8) & ATA_PIO_MASK_012);
+
+    if (hDrive->ATADRIVE_usPioMode > ATA_SET_PIO_MODE_2) {
+        hDrive->ATADRIVE_usPioMode = ATA_SET_PIO_MODE_0;
+    }
+
+    if ((hDrive->ATADRIVE_iOkIoRdy) && (hParam->ATAPARAM_usValid & ATA_WORD64_70_VALID)) {
+        if (hParam->ATAPARAM_usAdvancedPio & ATA_BIT_MASK0) {
+            hDrive->ATADRIVE_usPioMode = ATA_SET_PIO_MODE_3;
+        }
+
+        if (hParam->ATAPARAM_usAdvancedPio & ATA_BIT_MASK1) {
+            hDrive->ATADRIVE_usPioMode = ATA_SET_PIO_MODE_4;
+        }
+    }
+
+    if ((hDrive->ATADRIVE_iOkDma) && (hParam->ATAPARAM_usValid & ATA_WORD64_70_VALID)) {
+        hDrive->ATADRIVE_usSingleDmaMode = (UINT16)((hParam->ATAPARAM_usDmaMode >> 8) & 0x03);
+        if (hDrive->ATADRIVE_usSingleDmaMode >= ATA_SET_SDMA_MODE_2) {
+            hDrive->ATADRIVE_usSingleDmaMode = ATA_SET_SDMA_MODE_0;
+        }
+        hDrive->ATADRIVE_usMultiDmaMode  = ATA_SET_MDMA_MODE_0;
+
+        if (hParam->ATAPARAM_usSingleDma & ATA_BIT_MASK2) {
+            hDrive->ATADRIVE_usSingleDmaMode = ATA_SET_SDMA_MODE_2;
+
+        } else if (hParam->ATAPARAM_usSingleDma & ATA_BIT_MASK1) {
+            hDrive->ATADRIVE_usSingleDmaMode = ATA_SET_SDMA_MODE_1;
+
+        } else if (hParam->ATAPARAM_usSingleDma & ATA_BIT_MASK0) {
+            hDrive->ATADRIVE_usSingleDmaMode = ATA_SET_SDMA_MODE_0;
+        }
+
+        if (hParam->ATAPARAM_usMultiDma & ATA_BIT_MASK2) {
+            hDrive->ATADRIVE_usMultiDmaMode = ATA_SET_MDMA_MODE_2;
+
+        } else if (hParam->ATAPARAM_usMultiDma & ATA_BIT_MASK1) {
+            hDrive->ATADRIVE_usMultiDmaMode = ATA_SET_MDMA_MODE_1;
+
+        } else if (hParam->ATAPARAM_usMultiDma & ATA_BIT_MASK0) {
+            hDrive->ATADRIVE_usMultiDmaMode = ATA_SET_MDMA_MODE_0;
+        }
+    }
+
+    if ((hDrive->ATADRIVE_iOkDma) && (hParam->ATAPARAM_usValid & ATA_WORD88_VALID)) {
+        if (hParam->ATAPARAM_usUltraDma & ATA_BIT_MASK5) {
+            hDrive->ATADRIVE_usUltraDmaMode = ATA_SET_UDMA_MODE_5;
+
+        } else if (hParam->ATAPARAM_usUltraDma & ATA_BIT_MASK4) {
+            hDrive->ATADRIVE_usUltraDmaMode = ATA_SET_UDMA_MODE_4;
+
+        } else if (hParam->ATAPARAM_usUltraDma & ATA_BIT_MASK3) {
+            hDrive->ATADRIVE_usUltraDmaMode = ATA_SET_UDMA_MODE_3;
+
+        } else if (hParam->ATAPARAM_usUltraDma & ATA_BIT_MASK2) {
+            hDrive->ATADRIVE_usUltraDmaMode = ATA_SET_UDMA_MODE_2;
+
+        } else if (hParam->ATAPARAM_usUltraDma & ATA_BIT_MASK1) {
+            hDrive->ATADRIVE_usUltraDmaMode = ATA_SET_UDMA_MODE_1;
+
+        } else if (hParam->ATAPARAM_usUltraDma & ATA_BIT_MASK0) {
+            hDrive->ATADRIVE_usUltraDmaMode = ATA_SET_UDMA_MODE_0;
+        }
+    }
+
+    hDrive->ATADRIVE_usRwBits = (UINT16) (uiConfigType & ATA_BITS_MASK);
+    hDrive->ATADRIVE_usRwPio  = (UINT16)(uiConfigType & ATA_PIO_MASK);
+    hDrive->ATADRIVE_usRwMode = ATA_PIO_DEF_W;
+
+    ATA_LOG(ATA_LOG_PRT,
+            "ctrl %d driver %d ata drive int \r\n"
+            "   hDrive->ATADRIVE_usPioMode          0x%x\r\n"
+            "   hDrive->ATADRIVE_usSingleDmaMode    0x%x\r\n"
+            "   hDrive->ATADRIVE_usMultiDmaMode     0x%x\r\n"
+            "   hDrive->ATADRIVE_usUltraDmaMode     0x%x\r\n"
+            "   hDrive->ATADRIVE_usRwBits           0x%x\r\n"
+            "   hDrive->ATADRIVE_usRwPio            0x%x.\r\n",
+            uiCtrl, uiDrive,
+            hDrive->ATADRIVE_usPioMode, hDrive->ATADRIVE_usSingleDmaMode,
+            hDrive->ATADRIVE_usMultiDmaMode, hDrive->ATADRIVE_usUltraDmaMode,
+            hDrive->ATADRIVE_usRwBits, hDrive->ATADRIVE_usRwPio);
+
+    ATA_LOG(ATA_LOG_PRT,
+            "ctrl %d driver %d ata drive int \r\n"
+            "Serial No         : %20s\r\n"
+            "Model Number      : %40s\r\n"
+            "Firmware revision : %8s \r\n",
+            uiCtrl, uiDrive,
+            hParam->ATAPARAM_ucSerial, hParam->ATAPARAM_ucModel, hParam->ATAPARAM_ucFwRev);
+
+    switch (uiConfigType & ATA_MODE_MASK) {
+
+    case ATA_PIO_AUTO:
+        hDrive->ATADRIVE_usRwMode = (UINT16)(ATA_PIO_W_0 + hDrive->ATADRIVE_usPioMode);
+        break;
+
+    case ATA_DMA_AUTO:
+        if (hDrive->ATADRIVE_usUltraDmaMode != 0xff) {
+            hDrive->ATADRIVE_usRwMode = (UINT16)(ATA_DMA_ULTRA_0 + hDrive->ATADRIVE_usUltraDmaMode);
+
+        } else if (hDrive->ATADRIVE_usMultiDmaMode != 0xff) {
+            if (hDrive->ATADRIVE_usMultiDmaMode) {
+                hDrive->ATADRIVE_usRwMode=(UINT16) (ATA_DMA_MULTI_0 +hDrive->ATADRIVE_usMultiDmaMode);
+
+            } else {
+                hDrive->ATADRIVE_usRwMode = (UINT16)(ATA_PIO_W_0 + hDrive->ATADRIVE_usPioMode);
+            }
+        } else if (hDrive->ATADRIVE_usSingleDmaMode != 0xff) {
+            hDrive->ATADRIVE_usRwMode = (UINT16)(((hDrive->ATADRIVE_usPioMode<=ATA_SET_PIO_MODE_1) &&
+                                                  (hDrive->ATADRIVE_usSingleDmaMode == 2)) ?
+                                                 ATA_DMA_SINGLE_2 :
+                                                 ATA_PIO_W_0 + hDrive->ATADRIVE_usPioMode);
+        } else {
+            hDrive->ATADRIVE_usRwMode = (UINT16)(ATA_PIO_W_0 + hDrive->ATADRIVE_usPioMode);
+        }
+        break;
+
+    default:
+        hDrive->ATADRIVE_usRwMode = (UINT16)(uiConfigType & ATA_MODE_MASK);
+    }
+
+    ataBestTransferModeFind(hCtrl, uiCtrl, uiDrive);
+
+    ATA_LOG(ATA_LOG_PRT, "ctrl %d driver %d ata drive best rw mode 0x%x.\r\n",
+            uiCtrl, uiDrive, hDrive->ATADRIVE_usRwMode);
+
+    hDrive->ATADRIVE_iDmaUse = LW_FALSE;
+
+    ATA_LOG(ATA_LOG_PRT, "ctrl %d driver %d ata drive rw mode before negotiation 0x%x.\r\n",
+            uiCtrl, uiDrive, hDrive->ATADRIVE_usRwMode);
+    if ((hCtrl->ATACTRL_hCtrlDrv->ATADRV_tDma.ATADRVDMA_pfuncDmaCtrlModeGet)) {
+        pfuncDmaCtrlMode = hCtrl->ATACTRL_hCtrlDrv->ATADRV_tDma.ATADRVDMA_pfuncDmaCtrlModeGet;
+        hDrive->ATADRIVE_usRwMode = (UINT16)((*pfuncDmaCtrlMode)(hDrive->ATADRIVE_usRwMode));
+    }
+    ATA_LOG(ATA_LOG_PRT, "ctrl %d driver %d ata drive rw mode after negotiation 0x%x.\r\n",
+            uiCtrl, uiDrive, hDrive->ATADRIVE_usRwMode);
+
+    hDrive->ATADRIVE_iDmaUse = (hDrive->ATADRIVE_iOkDma &&
+                                (hDrive->ATADRIVE_usRwMode >= ATA_DMA_SINGLE_0)) ? LW_TRUE : LW_FALSE;
+
+    ATA_LOG(ATA_LOG_PRT, "ctrl %d driver %d using dma %d ok dma %d rw mode %d.\r\n",
+            uiCtrl, uiDrive,
+            hDrive->ATADRIVE_iDmaUse, hDrive->ATADRIVE_iOkDma, hDrive->ATADRIVE_usRwMode);
+
+    if (!hDrive->ATADRIVE_iDmaUse) {
+        hDrive->ATADRIVE_usRwMode =(UINT16)( ATA_PIO_W_0 + hDrive->ATADRIVE_usPioMode);
+    }
+
+    if ((hCtrl->ATACTRL_hCtrlDrv->ATADRV_tDma.ATADRVDMA_pfuncDmaCtrlModeSet)) {
+        pfuncDmaCtrlMode = hCtrl->ATACTRL_hCtrlDrv->ATADRV_tDma.ATADRVDMA_pfuncDmaCtrlModeSet;
+        (*pfuncDmaCtrlMode)(hCtrl->ATACTRL_hCtrlDrv, uiCtrl, uiDrive, hDrive->ATADRIVE_usRwMode);
+    }
+
+    ataBestTransferModeFind(hCtrl, uiCtrl, uiDrive);
+
+    ataDriveCommandSend(hCtrl, uiCtrl, uiDrive,
+                        ATA_CMD_SET_FEATURE, ATA_SUB_SET_RWMODE, hDrive->ATADRIVE_usRwMode, 0, 0, 0, 0);
+    ataDriveCommandSend(hCtrl, uiCtrl, uiDrive, ATA_CMD_SET_FEATURE, ATA_SUB_DISABLE_REVE, 0, 0, 0, 0, 0);
+
+    if ((hParam->ATAPARAM_usRemovcyl == ATA_SPEC_CONFIG_VALUE_0) ||
+        (hParam->ATAPARAM_usRemovcyl == ATA_SPEC_CONFIG_VALUE_1)) {
+        ataDriveCommandSend(hCtrl, uiCtrl, uiDrive,
+                            ATA_CMD_SET_FEATURE, ATA_SUB_POW_UP_STDBY_SPIN, 0, 0, 0, 0, 0);
+    }
+
+    hDrive->ATADRIVE_iSupportSmart = LW_FALSE;
+    if ((hParam->ATAPARAM_usFeaturesEnabled0) & 0x0001) {
+        ataDriveCommandSend(hCtrl, uiCtrl, uiDrive, ATA_CMD_SMART, ATA_SMART_DISABLE_OPER, 0, 0, 0, 0, 0);
+    }
+
+    if (hParam->ATAPARAM_usFeaturesSupported1 & 0x0010) {
+        if ((hParam->ATAPARAM_usFeaturesEnabled1 & 0x0010)) {
+            ataDriveCommandSend(hCtrl, uiCtrl, uiDrive,
+                                ATA_CMD_SET_FEATURE, ATA_SUB_DISABLE_NOTIFY, 0, 0, 0, 0, 0);
+        }
+    }
+
+    if (hParam->ATAPARAM_usFeaturesSupported1 & 0x0008) {
+        if ((hParam->ATAPARAM_usFeaturesEnabled1 & 0x0008)) {
+            ataDriveCommandSend(hCtrl, uiCtrl, uiDrive,
+                                ATA_CMD_SET_FEATURE, ATA_SUB_DIS_ADV_POW_MNGMT, 0, 0, 0, 0, 0);
+        }
+    }
+
+    if ((hDrive->ATADRIVE_usRwPio == ATA_PIO_MULTI) &&
+        (hDrive->ATADRIVE_iType == ATA_TYPE_ATA)) {
+        if (hDrive->ATADRIVE_iOkMulti) {
+            ataDriveCommandSend(hCtrl, uiCtrl, uiDrive,
+                                ATA_CMD_SET_MULTI, hDrive->ATADRIVE_usMultiSecs, 0, 0, 0, 0, 0);
+
+        } else {
+            hDrive->ATADRIVE_usRwPio = ATA_PIO_SINGLE;
+        }
+    }
+
+    hDrive->ATADRIVE_iState = ATA_DEV_OK;
+
+__error_handle:
+    API_SemaphoreMPost(hCtrl->ATACTRL_hSemDev);
+
+    if (hDrive->ATADRIVE_iState != ATA_DEV_OK) {
+        return  (PX_ERROR);
+    }
+
+    ATA_LOG(ATA_LOG_PRT, "ctrl %d driver %d ata drive int ok state 0x%x.\r\n",
+            uiCtrl, uiDrive, hDrive->ATADRIVE_iState);
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: ataDrvInit
+** 功能描述: 驱动初始化
+** 输　入  : hCtrlDrv               控制器驱动控制句柄
+**           uiCtrl                 控制器索引 (ATA_CTRL_MAX)
+**           uiDrives               驱动器数量 (ATA_DRIVE_MAX)
+**           uiConfigType           配置信息, 如 DMA 模式等
+**           ulSemSyncTimeout       同步超时时间
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT ataDrvInit (ATA_DRV_HANDLE  hCtrlDrv, UINT  uiCtrl, ATA_CTRL_CFG_HANDLE  hCtrlCfg)
+{
+    REGISTER INT                i;
+    INT                         iRet = PX_ERROR;
+    ATA_CTRL_HANDLE             hCtrl;
+    ATA_DRIVE_HANDLE            hDrive;
+    ATA_DRIVE_INFO_HANDLE       hDriveInfo;
+    UINT                        uiDrives;
+    UINT32                      uiConfigType;
+    ULONG                       ulWdgTimeout;
+    ULONG                       ulSyncTimeout;
+    ULONG                       ulSyncTimeoutLoop;
+
+    if ((!hCtrlDrv) || (uiCtrl >= hCtrlDrv->ATADRV_uiCtrlNum) || (!hCtrlCfg)) {
+        ATA_LOG(ATA_LOG_ERR,
+                "drv handle %p ctrl %d [0 - %d].\r\n", hCtrlDrv, uiCtrl, hCtrlDrv->ATADRV_uiCtrlNum);
+        return  (PX_ERROR);
+    }
+
+    uiDrives = hCtrlCfg->ATACTRLCFG_ucDrives;
+    if (uiDrives > ATA_DRIVE_MAX) {
+        ATA_LOG(ATA_LOG_ERR, "drv handle %p drivers %d [0 - %d].\r\n", hCtrlDrv, uiDrives, ATA_DRIVE_MAX);
+        return  (PX_ERROR);
+    }
+
+    uiConfigType      = hCtrlCfg->ATACTRLCFG_uiConfigType;
+    ulWdgTimeout      = hCtrlCfg->ATACTRLCFG_ulWdgTimeout;
+    ulSyncTimeout     = hCtrlCfg->ATACTRLCFG_ulSyncTimeout;
+    ulSyncTimeoutLoop = hCtrlCfg->ATACTRLCFG_ulSyncTimeoutLoop;
+    ATA_LOG(ATA_LOG_PRT,
+            "ctrl %d drivers %d ata drv int ctrl config 0x%08x sync timeout %d wdg timeout %d.\r\n",
+            uiCtrl, uiDrives, uiConfigType, ulSyncTimeout, ulWdgTimeout);
+
+    hCtrl = &hCtrlDrv->ATADRV_tCtrl[uiCtrl];
+    if (hCtrl->ATACTRL_iDrvInstalled) {
+        ATA_LOG(ATA_LOG_ERR, "ctrl %d ata host controller already initialized.\r\n", uiCtrl);
+        return  (PX_ERROR);
+    }
+
+    /*
+     *  通过控制器配置更新参数
+     */
+    lib_memcpy((PVOID)&hCtrl->ATACTRL_tAtaReg, (PVOID)&hCtrlCfg->ATACTRLCFG_tAtaReg, sizeof(ATA_REG_CB));
+    hCtrl->ATACTRL_ulCtlrIntVector  = hCtrlCfg->ATACTRLCFG_ulCtlrIntVector;
+    hCtrl->ATACTRL_pfuncCtlrIntServ = hCtrlCfg->ATACTRLCFG_pfuncCtlrIntServ;
+    hCtrl->ATACTRL_pfuncCtrlIntPre  = hCtrlCfg->ATACTRLCFG_pfuncCtrlIntPre;
+    hCtrl->ATACTRL_pfuncCtrlIntPost = hCtrlCfg->ATACTRLCFG_pfuncCtrlIntPost;
+    hCtrl->ATACTRL_uiCtrl           = uiCtrl;
+    hCtrl->ATACTRL_uiConfigType     = uiConfigType;
+    hCtrl->ATACTRL_uiDriveNum       = uiDrives;
+    hCtrl->ATACTRL_hCtrlDrv         = hCtrlDrv;
+
+    if (!hCtrlCfg->ATACTRLCFG_pfuncDelay) {
+        hCtrl->ATACTRL_pfuncDelay = (FUNCPTR)ataCtrlDelay;
+
+    } else {
+        hCtrl->ATACTRL_pfuncDelay = hCtrlCfg->ATACTRLCFG_pfuncDelay;
+    }
+
+    ATA_LOG(ATA_LOG_PRT, "ctrl %d ata drv int cmd base 0x%llx ctrl base 0x%llx busm base 0x%llx.\r\n",
+            uiCtrl, hCtrl->ATA_CTRL_CMD_BASE, hCtrl->ATA_CTRL_CTRL_BASE, hCtrl->ATA_CTRL_BUSM_BASE);
+
+    iRet = ataCtrlReset(hCtrl, uiCtrl);
+    if (iRet != ERROR_NONE) {
+        ATA_LOG(ATA_LOG_PRT, "ctrl %d ata drv int controller reset failed.\r\n", uiCtrl);
+        return(PX_ERROR);
+    }
+    ATA_LOG(ATA_LOG_PRT, "ctrl %d ata drv int controller reset ok.\r\n", uiCtrl);
+
+    hCtrl->ATACTRL_hSemSync = API_SemaphoreBCreate("ata_sync",
+                                                   LW_FALSE,
+                                                   (LW_OPTION_WAIT_FIFO | LW_OPTION_OBJECT_GLOBAL),
+                                                   LW_NULL);
+    if (hCtrl->ATACTRL_hSemSync == LW_OBJECT_HANDLE_INVALID) {
+        ATA_LOG(ATA_LOG_ERR, "ctrl %d ata drv int sync semaphore create failed.\r\n", uiCtrl);
+        return  (PX_ERROR);
+    }
+
+    if (ulWdgTimeout) {
+        hCtrl->ATACTRL_ulWdgTimeout = ulWdgTimeout;
+
+    } else {
+        hCtrl->ATACTRL_ulWdgTimeout = ATA_WDG_TIMEOUT_DEF;
+    }
+    if (ulSyncTimeout) {
+        hCtrl->ATACTRL_ulSemSyncTimeout = ulSyncTimeout;
+
+    } else {
+        hCtrl->ATACTRL_ulSemSyncTimeout = ATA_SEM_TIMEOUT_DEF;
+    }
+    if (ulSyncTimeoutLoop) {
+        hCtrl->ATACTRL_ulSyncTimeoutLoop = ulSyncTimeoutLoop;
+
+    } else {
+        hCtrl->ATACTRL_ulSyncTimeoutLoop = ATA_TIMEOUT_LOOP_NUM;
+    }
+
+    hCtrl->ATACTRL_hSemDev = API_SemaphoreMCreate("ata_dlock",
+                                                  LW_PRIO_DEF_CEILING,
+                                                  (LW_OPTION_WAIT_PRIORITY | LW_OPTION_DELETE_SAFE |
+                                                   LW_OPTION_INHERIT_PRIORITY | LW_OPTION_OBJECT_GLOBAL),
+                                                  LW_NULL);
+    if (hCtrl->ATACTRL_hSemDev == LW_OBJECT_HANDLE_INVALID) {
+        ATA_LOG(ATA_LOG_ERR, "ctrl %d ata drv int dev lock semaphore create failed.\r\n", uiCtrl);
+        return  (PX_ERROR);
+    }
+
+    ATA_SPIN_ISR_INIT(hCtrl);
+
+    /*
+     *  DMA 复位及初始化
+     */
+    if ((hCtrlDrv->ATADRV_tDma.ATADRVDMA_pfuncDmaCtrlReset)) {
+        (*hCtrlDrv->ATADRV_tDma.ATADRVDMA_pfuncDmaCtrlReset)(hCtrlDrv, uiCtrl);
+    }
+
+    if ((hCtrlDrv->ATADRV_tDma.ATADRVDMA_pfuncDmaCtrlInit)) {
+        iRet = (*hCtrlDrv->ATADRV_tDma.ATADRVDMA_pfuncDmaCtrlInit)(hCtrlDrv, uiCtrl);
+        if (iRet != ERROR_NONE) {
+            hCtrlDrv->ATADRV_tDma.ATADRVDMA_iDmaCtrlSupport = LW_FALSE;
+        }
+    }
+
+    /*
+     *  中断链接与使能
+     */
+    if (!hCtrlDrv->ATADRV_iIntDisable) {
+        if ((hCtrlDrv->ATADRV_tInt.ATADRVINT_pfuncCtrlIntConnect)) {
+            iRet = (*hCtrlDrv->ATADRV_tInt.ATADRVINT_pfuncCtrlIntConnect)(hCtrlDrv, uiCtrl, "ata_isr");
+            if (iRet != ERROR_NONE) {
+                ATA_LOG(ATA_LOG_ERR, "ctrl %d ata drv interrupt connect failed.\r\n", uiCtrl);
                 return  (PX_ERROR);
             }
         }
 
-    } else {                                                            /*  设备不存在                  */
-        patadrive->ATADRIVE_ucType      = __ATA_TYPE_NONE;
-        patadrive->ATADRIVE_uiSignature = 0xffffffff;
-
-        ATA_DEBUG_MSG(("__ataDeviceIdentify() error: Unknown device found on %d/%d\n",
-                       patactrl->ATACTRL_iCtrl, iDrive));
-
-        return  (PX_ERROR);
-    }
-
-    return  (ERROR_NONE);
-}
-/*********************************************************************************************************
-** 函数名称: __ataCtrlReset
-** 功能描述: 复位ATA控制器
-** 输　入  : patactrler    控制器结构指针
-** 输　出  : ERROR
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-INT __ataCtrlReset (__PATA_CTRL patactrler)
-{
-    __PATA_CTRL    patactrl  = LW_NULL;
-    __PATA_DRIVE   patadrive = LW_NULL;
-
-    INT            iDrive;
-    volatile INT   i;
-
-    if (!patactrler) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "parameter error.\r\n");
-        _ErrorHandle(EINVAL);
-        return  (PX_ERROR);
-    }
-
-    patactrl = patactrler;
-
-    __ATA_CTRL_OUTBYTE(patactrl, __ATA_DCONTROL(patactrl), __ATA_CTL_RST | __ATA_CTL_IDS);
-    __ATA_DELAYMS(1);
-
-    __ATA_CTRL_OUTBYTE(patactrl, __ATA_DCONTROL(patactrl),  \
-                       (UINT8)(patactrl->ATACTRL_bIntDisable << 1));    /*  清除复位,并设置中断位       */
-    __ATA_DELAYMS(1);
-
-    i = 0;
-    while (i < 3) {
-        i++;
-        if (__ataWait(patactrl, __ATA_STAT_BUSY) == ERROR_NONE) {
-            break;
+        if ((hCtrlDrv->ATADRV_tInt.ATADRVINT_pfuncCtrlIntEnable)) {
+            iRet = (*hCtrlDrv->ATADRV_tInt.ATADRVINT_pfuncCtrlIntEnable)(hCtrlDrv, uiCtrl);
+            if (iRet != ERROR_NONE) {
+                ATA_LOG(ATA_LOG_ERR, "ctrl %d ata drv interrupt enable failed.\r\n", uiCtrl);
+                return  (PX_ERROR);
+            }
         }
     }
 
-    for (iDrive = 0; iDrive < patactrl->ATACTRL_iDrives; iDrive++) {
-        patadrive = &patactrl->ATACTRL_ataDrive[iDrive];
-        __ATA_CTRL_OUTBYTE(patactrl, __ATA_SDH(patactrl), (iDrive << __ATA_DRIVE_BIT));
+    hCtrl->ATACTRL_iDrvInstalled = LW_TRUE;
+    for (i = 0; i < hCtrl->ATACTRL_uiDriveNum; i++) {
+        hDrive                 = &hCtrl->ATACTRL_tDrive[i];
+        hDrive->ATADRIVE_hCtrl = hCtrl;
 
-        patadrive->ATADRIVE_uiSignature =                                         \
-                    (__ATA_CTRL_INBYTE(patactrl, __ATA_SECCNT(patactrl)) << 24) | \
-                    (__ATA_CTRL_INBYTE(patactrl, __ATA_SECTOR(patactrl)) << 16) | \
-                    (__ATA_CTRL_INBYTE(patactrl, __ATA_CYLLO(patactrl))  << 8)  | \
-                    (__ATA_CTRL_INBYTE(patactrl, __ATA_CYLHI(patactrl)));
+        hDriveInfo = &hCtrlDrv->ATADRV_tDriveInfo[uiCtrl * hCtrl->ATACTRL_uiDriveNum + i];
+
+        hDrive->ATADRIVE_hInfo         = hDriveInfo;
+        hDrive->ATADRIVE_iState        = ATA_DEV_INIT;
+        hDrive->ATADRIVE_iType         = ATA_TYPE_INIT;
+        hDrive->ATADRIVE_iDiagCode     = 0;
+        hDrive->ATADRIVE_pfuncDevReset = (FUNCPTR)ataDevInit;
+
+        ATA_LOG(ATA_LOG_PRT,
+                "ctrl %d driver %d ctrl num %d ata drv int drv info %p driver info %p bytes %d.\r\n",
+                uiCtrl, i, hCtrlDrv->ATADRV_uiCtrlNum,
+                hDriveInfo, hDrive->ATADRIVE_hInfo, hDriveInfo->ATADINFO_uiBytes);
+
+        ATA_LOG(ATA_LOG_PRT, "ctrl %d driver %d signature 0x%08x.\r\n",
+                uiCtrl, i, hDrive->ATADRIVE_uiSignature);
+
+        iRet = ataDriveInit(hCtrl, uiCtrl, i);
+        if (iRet != ERROR_NONE) {
+            ATA_LOG(ATA_LOG_PRT, "ctrl %d driver %d ata drv int drive failed.\r\n", uiCtrl, i);
+        }
     }
 
     return  (ERROR_NONE);
 }
 
-#endif                                                                  /*  (LW_CFG_DEVICE_EN > 0)      */
-                                                                        /*  (LW_CFG_ATA_EN > 0)         */
+#endif                                                                  /* (LW_CFG_DEVICE_EN > 0) &&    */
+                                                                        /* (LW_CFG_ATA_EN > 0)          */
 /*********************************************************************************************************
-    END FILE
+  END
 *********************************************************************************************************/

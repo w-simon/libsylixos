@@ -146,7 +146,7 @@ static AHCI_DRIVE_WORK_MODE     _G_padwmAhciDriveWorkModeTable[] = {
     {AHCI_DMA_ULTRA_6,  "Ultra DMA 6"                                                           },
 };
 /*********************************************************************************************************
-** 函数名称: __ahciIdString
+** 函数名称: ahciIdString
 ** 功能描述: 将 ID 值转换为字符串信息
 ** 输　入  : pusId      ID 参数
 **           pcBuff     字符串缓存
@@ -155,7 +155,7 @@ static AHCI_DRIVE_WORK_MODE     _G_padwmAhciDriveWorkModeTable[] = {
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static PCHAR  __ahciIdString (const UINT16 *pusId, PCHAR  pcBuff, UINT32  uiLen)
+static PCHAR  ahciIdString (const UINT16 *pusId, PCHAR  pcBuff, UINT32  uiLen)
 {
     REGISTER INT    i;
     UINT8           ucChar   = 0;                                       /* 字节数据                     */
@@ -165,9 +165,10 @@ static PCHAR  __ahciIdString (const UINT16 *pusId, PCHAR  pcBuff, UINT32  uiLen)
     /*
      *  将字数据转换为字符串数据
      */
-    iOffset   = 0;
+    iOffset  = 0;
     pcString = pcBuff;
-    for (i = 0; i < (uiLen - 1); ) {
+    
+    for (i = 0; i < (uiLen - 1); i += 2) {
         ucChar = (UINT8)(pusId[iOffset] >> 8);
         *pcString = ucChar;
         pcString += 1;
@@ -175,9 +176,7 @@ static PCHAR  __ahciIdString (const UINT16 *pusId, PCHAR  pcBuff, UINT32  uiLen)
         ucChar = (UINT8)(pusId[iOffset] & 0xff);
         *pcString = ucChar;
         pcString += 1;
-
-        iOffset += 1;
-        i       += 2;
+        iOffset  += 1;
     }
 
     /*
@@ -189,8 +188,9 @@ static PCHAR  __ahciIdString (const UINT16 *pusId, PCHAR  pcBuff, UINT32  uiLen)
     }
     *pcString = '\0';
 
-    iOffset   = 0;
+    iOffset  = 0;
     pcString = pcBuff;
+    
     for (i = 0; i < uiLen; i++) {
         if (pcString[iOffset] == ' ') {
             pcString += 1;
@@ -225,7 +225,7 @@ PCHAR  API_AhciDriveSerialInfoGet (AHCI_DRIVE_HANDLE  hDrive, PCHAR  pcBuf, size
 
     hParam = &hDrive->AHCIDRIVE_tParam;
     lib_bzero(&cSerial[0], 21);
-    pcSerial = __ahciIdString((const UINT16 *)&hParam->AHCIPARAM_ucSerial[0], &cSerial[0], 21);
+    pcSerial = ahciIdString((const UINT16 *)&hParam->AHCIPARAM_ucSerial[0], &cSerial[0], 21);
     lib_strncpy(pcBuf, pcSerial, __MIN(stLen, lib_strlen(pcSerial) + 1));
 
     return  (pcSerial);
@@ -254,7 +254,7 @@ PCHAR  API_AhciDriveFwRevInfoGet (AHCI_DRIVE_HANDLE  hDrive, PCHAR  pcBuf, size_
 
     hParam = &hDrive->AHCIDRIVE_tParam;
     lib_bzero(&cFirmware[0], 9);
-    pcFirmware =__ahciIdString((const UINT16 *)&hParam->AHCIPARAM_ucFwRev[0], &cFirmware[0], 9);
+    pcFirmware = ahciIdString((const UINT16 *)&hParam->AHCIPARAM_ucFwRev[0], &cFirmware[0], 9);
     lib_strncpy(pcBuf, pcFirmware, __MIN(stLen, lib_strlen(pcFirmware) + 1));
 
     return  (pcFirmware);
@@ -283,7 +283,7 @@ PCHAR  API_AhciDriveModelInfoGet (AHCI_DRIVE_HANDLE  hDrive, PCHAR  pcBuf, size_
 
     hParam = &hDrive->AHCIDRIVE_tParam;
     lib_bzero(&cProduct[0], 41);
-    pcProduct = __ahciIdString((const UINT16 *)&hParam->AHCIPARAM_ucModel[0], &cProduct[0], 41);
+    pcProduct = ahciIdString((const UINT16 *)&hParam->AHCIPARAM_ucModel[0], &cProduct[0], 41);
     lib_strncpy(pcBuf, pcProduct, __MIN(stLen, lib_strlen(pcProduct) + 1));
 
     return  (pcProduct);
@@ -384,11 +384,11 @@ INT  API_AhciDriveInfoShow (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, AHCI_PARAM_H
      *  将参数信息转换为字符串信息
      */
     lib_bzero(&cSerial[0], 21);
-    pcSerial = __ahciIdString((const UINT16 *)&hParam->AHCIPARAM_ucSerial[0], &cSerial[0], 21);
+    pcSerial = ahciIdString((const UINT16 *)&hParam->AHCIPARAM_ucSerial[0], &cSerial[0], 21);
     lib_bzero(&cFirmware[0], 9);
-    pcFirmware =__ahciIdString((const UINT16 *)&hParam->AHCIPARAM_ucFwRev[0], &cFirmware[0], 9);
+    pcFirmware = ahciIdString((const UINT16 *)&hParam->AHCIPARAM_ucFwRev[0], &cFirmware[0], 9);
     lib_bzero(&cProduct[0], 41);
-    pcProduct = __ahciIdString((const UINT16 *)&hParam->AHCIPARAM_ucModel[0], &cProduct[0], 41);
+    pcProduct = ahciIdString((const UINT16 *)&hParam->AHCIPARAM_ucModel[0], &cProduct[0], 41);
 
     iRet = API_IoTaskStdGet(API_ThreadIdSelf(), STD_OUT);
     if (iRet < 0) {                                                     /* 标准输出无效                 */
@@ -884,7 +884,6 @@ INT  API_AhciCtrlAhciModeEnable (AHCI_CTRL_HANDLE  hCtrl)
     uiReg = AHCI_CTRL_READ(hCtrl, AHCI_GHC);
     if (uiReg & AHCI_GHC_AE) {
         AHCI_CTRL_REG_MSG(hCtrl, AHCI_GHC);
-
         return  (ERROR_NONE);
     }
 
@@ -918,11 +917,12 @@ INT  API_AhciCtrlSssSet (AHCI_CTRL_HANDLE  hCtrl, INT  iSet)
 
     AHCI_CTRL_REG_MSG(hCtrl, AHCI_CAP);
     uiReg = AHCI_CTRL_READ(hCtrl, AHCI_CAP);
-    if ((iSet == LW_TRUE        ) &&
+    if ((iSet == LW_TRUE) &&
         (!(uiReg & AHCI_CAP_SSS))) {
         uiReg |= AHCI_CAP_SSS;
         AHCI_CTRL_WRITE(hCtrl, AHCI_CAP, uiReg);
-    } else if ((iSet == LW_FALSE    ) &&
+    
+    } else if ((iSet == LW_FALSE) &&
                (uiReg & AHCI_CAP_SSS)) {
         uiReg &= ~(AHCI_CAP_SSS);
         AHCI_CTRL_WRITE(hCtrl, AHCI_CAP, uiReg);
@@ -975,6 +975,7 @@ INT  API_AhciCtrlInfoShow (AHCI_CTRL_HANDLE  hCtrl)
         ((uiVer >> 16) == 1 && (uiVer & 0xFFFF) >= 0x0200)) {
         AHCI_CTRL_REG_MSG(hCtrl, AHCI_CAP2);
         uiCap2 = AHCI_CTRL_READ(hCtrl, AHCI_CAP2);
+    
     } else {
         uiCap2 = 0;
     }
@@ -1016,7 +1017,6 @@ INT  API_AhciCtrlInfoShow (AHCI_CTRL_HANDLE  hCtrl)
             uiImpPortMap |= 0x01 << i;
             uiImpPortNum += 1;
         }
-
         uiReg >>= 1;
     }
 

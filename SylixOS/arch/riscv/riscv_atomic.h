@@ -68,7 +68,7 @@ static LW_INLINE INT  archAtomicCas (atomic_t  *v, INT  iOld, INT  iNew)
     __asm__ __volatile__ (
         "0: lr.w    %0, %2              \n"
         "   bne     %0, %z3, 1f         \n"
-        "   sc.w.rl %1,  %z4, %2        \n"
+        "   sc.w.rl %1, %z4, %2         \n"
         "   bnez    %1, 0b              \n"
         "   fence   rw, rw              \n"
         "1:                             \n"
@@ -88,7 +88,7 @@ static LW_INLINE addr_t  archAtomicAddrCas (volatile addr_t *p, addr_t  ulOld, a
     __asm__ __volatile__ (
         "0: lr.d    %0, %2              \n"
         "   bne     %0, %z3, 1f         \n"
-        "   sc.d.rl %1,  %z4, %2        \n"
+        "   sc.d.rl %1, %z4, %2         \n"
         "   bnez    %1, 0b              \n"
         "   fence   rw, rw              \n"
         "1:                             \n"
@@ -100,7 +100,7 @@ static LW_INLINE addr_t  archAtomicAddrCas (volatile addr_t *p, addr_t  ulOld, a
     __asm__ __volatile__ (
         "0: lr.w    %0, %2              \n"
         "   bne     %0, %z3, 1f         \n"
-        "   sc.w.rl %1,  %z4, %2        \n"
+        "   sc.w.rl %1, %z4, %2         \n"
         "   bnez    %1, 0b              \n"
         "   fence   rw, rw              \n"
         "1:                             \n"

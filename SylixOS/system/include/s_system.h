@@ -95,7 +95,6 @@
 #ifdef   __SYLIXOS_KERNEL
 #include "../SylixOS/system/device/block/blockRaw.h"                    /*  block raw device            */
 #include "../SylixOS/system/device/block/ramDisk.h"                     /*  RAM disk                    */
-#include "../SylixOS/system/device/ata/ata.h"                           /*  ATA device                  */
 #include "../SylixOS/system/device/dma/dma.h"                           /*  DMA device                  */
 #include "../SylixOS/system/device/dma/dmaLib.h"
 #include "../SylixOS/system/device/gpio/gpioLib.h"                      /*  GPIO 驱动框架               */
@@ -110,6 +109,12 @@
 #include "../SylixOS/system/device/mem/memDev.h"                        /*  VxWorks memDev              */
 #include "../SylixOS/system/device/mii/miiDev.h"                        /*  mii phy 接口驱动            */
 #include "../SylixOS/system/device/eventfd/eventfdDev.h"                /*  eventfd 设备                */
+/*********************************************************************************************************
+  ATA 总线及其设备驱动模型
+*********************************************************************************************************/
+#ifdef   __SYLIXOS_ATA_DRV
+#include "../SylixOS/system/device/ata/ata.h"                           /*  ATA device                  */
+#endif                                                                  /*  __SYLIXOS_ATA_DRV           */
 /*********************************************************************************************************
   AHCI 总线及其设备驱动模型
 *********************************************************************************************************/
