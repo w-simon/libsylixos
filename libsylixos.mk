@@ -1388,6 +1388,7 @@ SylixOS/net/lwip/mroute/ip6_mrt.c \
 SylixOS/net/lwip/netcrc/ncrc_bitrev.c \
 SylixOS/net/lwip/netcrc/ncrc_crc16.c \
 SylixOS/net/lwip/netcrc/ncrc_crc32.c \
+SylixOS/net/lwip/netdev/netdev_mip.c \
 SylixOS/net/lwip/netdev/netdev.c \
 SylixOS/net/lwip/netdev/netzcbuf.c \
 SylixOS/net/lwip/netdev/vnetdev.c \

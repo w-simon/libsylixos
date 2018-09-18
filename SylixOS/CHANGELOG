@@ -4,6 +4,10 @@ HISTORY
 
 ++ New features:
 
+    2018-09-18: han.hui
+    ATA 加入 DMA 传输模式支持.
+    单网口加入多 IP 支持.
+
     2018-08-07: han.hui
     NAT 加入 RST, FIN 欺骗攻击防御.
     NAT 使用新的资源管理算法, 速度更快, 代理更加稳定流畅.

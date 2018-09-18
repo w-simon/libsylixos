@@ -59,6 +59,7 @@
 
 #include "string.h"
 #include "netdev.h"
+#include "netdev_mip.h"
 
 #ifdef LWIP_HOOK_FILENAME
 #include LWIP_HOOK_FILENAME
@@ -85,6 +86,10 @@ static void  netdev_netif_up (struct netif *netif)
   
   NETDEV_UP(netdev);
   netdev->if_flags |= IFF_UP;
+  
+#if LW_CFG_NET_NETDEV_MIP_EN > 0
+  netdev_mipif_update(netdev);
+#endif /* LW_CFG_NET_NETDEV_MIP_EN */
 }
 
 /* lwip netif down hook function */
@@ -94,6 +99,10 @@ static void  netdev_netif_down (struct netif *netif)
   
   NETDEV_DOWN(netdev);
   netdev->if_flags &= ~IFF_UP;
+  
+#if LW_CFG_NET_NETDEV_MIP_EN > 0
+  netdev_mipif_update(netdev);
+#endif /* LW_CFG_NET_NETDEV_MIP_EN */
 }
 
 /* lwip netif remove hook function */
@@ -101,6 +110,10 @@ static void  netdev_netif_remove (struct netif *netif)
 {
   netdev_t *netdev = (netdev_t *)(netif->state);
   
+#if LW_CFG_NET_NETDEV_MIP_EN > 0
+  netdev_mipif_clean(netdev);
+#endif /* LW_CFG_NET_NETDEV_MIP_EN */
+
   NETDEV_REMOVE(netdev);
 }
 
@@ -277,6 +290,9 @@ static int  netdev_netif_ioctl (struct netif *netif, int cmd, void *arg)
       ret = netdev->drv->ioctl(netdev, cmd, arg);
       if (ret == 0) {
         MEMCPY(netdev->hwaddr, ifreq->ifr_hwaddr.sa_data, netdev->hwaddr_len);
+#if LW_CFG_NET_NETDEV_MIP_EN > 0
+        netdev_mipif_hwaddr(netdev);
+#endif /* LW_CFG_NET_NETDEV_MIP_EN */
       }
     }
     break;
@@ -287,6 +303,9 @@ static int  netdev_netif_ioctl (struct netif *netif, int cmd, void *arg)
       ret = netdev->drv->ioctl(netdev, cmd, arg);
       if (ret == 0) {
         netdev->mtu = ifreq->ifr_mtu;
+#if LW_CFG_NET_NETDEV_MIP_EN > 0
+        netdev_mipif_update(netdev);
+#endif /* LW_CFG_NET_NETDEV_MIP_EN */
       }
     }
     break;
@@ -435,6 +454,12 @@ static int  netdev_netif_linkinput (netdev_t *netdev, struct pbuf *p)
     }
   }
 
+#if LW_CFG_NET_NETDEV_MIP_EN > 0
+  if (netif->mipif) {
+    netif = netdev_mipif_search(netdev, p);
+  }
+#endif /* LW_CFG_NET_NETDEV_MIP_EN */
+
   if (netif->input(p, netif)) {
     return (-1);
     
@@ -480,6 +505,10 @@ static void  netdev_netif_linkup (netdev_t *netdev, int linkup, UINT32 speed_hig
     }
     netdev->if_flags &= ~IFF_RUNNING;
   }
+  
+#if LW_CFG_NET_NETDEV_MIP_EN > 0
+  netdev_mipif_update(netdev);
+#endif /* LW_CFG_NET_NETDEV_MIP_EN */
 }
 
 /* lwip netif add call back function */
@@ -521,9 +550,11 @@ static err_t  netdev_netif_init (struct netif *netif)
   
   netif->chksum_flags = (u16_t)netdev->chksum_flags;
   
+#if LWIP_IPV6
   if (netdev->init_flags & NETDEV_INIT_IPV6_AUTOCFG) {
     netif->ip6_autoconfig_enabled = 1;
   }
+#endif /* LWIP_IPV6 */
   
   if (netdev->if_flags & IFF_UP) {
     netif->flags |= NETIF_FLAG_UP;
@@ -584,7 +615,7 @@ static err_t  netdev_netif_init (struct netif *netif)
                     ? netdev->hwaddr_len
                     : NETIF_MAX_HWADDR_LEN);
 
-  SMEMCPY(netif->hwaddr, netdev->hwaddr, netif->hwaddr_len);
+  MEMCPY(netif->hwaddr, netdev->hwaddr, netif->hwaddr_len);
   
   if (netdev->if_flags & IFF_UP) {
     NETDEV_UP(netdev);

@@ -54,6 +54,16 @@
 #include "lwip/ip4.h"
 #include "lwip/ip6.h"
 
+#ifndef LW_LIKELY
+#ifdef __GNUC__
+#define LW_LIKELY(x)    __builtin_expect(!!(x), 1)
+#define LW_UNLIKELY(x)  __builtin_expect(!!(x), 0)
+#else
+#define LW_LIKELY(x)    (x)
+#define LW_UNLIKELY(x)  (x)
+#endif
+#endif
+
 /* IP QoS priority */
 #define TCPIP_QOS_MAX_PRIO 8
 
@@ -191,7 +201,7 @@ tcpip_qos_prio(struct pbuf *p, struct netif *inp, u8_t *dont_drop)
 
   if (inp->flags & (NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET)) {
     iphdr_offset = SIZEOF_ETH_HDR;
-    if (p->len <= iphdr_offset + 4) {
+    if (LW_UNLIKELY(p->len < iphdr_offset + 4)) {
       return 0;
     }
     
@@ -200,7 +210,7 @@ tcpip_qos_prio(struct pbuf *p, struct netif *inp, u8_t *dont_drop)
     if (type == PP_HTONS(ETHTYPE_VLAN)) {
       struct eth_vlan_hdr *vlan = (struct eth_vlan_hdr *)(((char *)ethhdr) + SIZEOF_ETH_HDR);
       iphdr_offset = SIZEOF_ETH_HDR + SIZEOF_VLAN_HDR;
-      if (p->len <= iphdr_offset + 4) {
+      if (LW_UNLIKELY(p->len < iphdr_offset + 4)) {
         return 0;
       }
       type = vlan->tpid;
@@ -214,7 +224,7 @@ tcpip_qos_prio(struct pbuf *p, struct netif *inp, u8_t *dont_drop)
 #endif /* LWIP_ETHERNET */
   {
     iphdr_offset = 0;
-    if (p->len <= + 4) {
+    if (LW_UNLIKELY(p->len < iphdr_offset + 4)) {
       return 0;
     }
   }

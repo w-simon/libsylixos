@@ -320,7 +320,9 @@ int  netbr_add_dev (const char *brdev, const char *sub, int sub_is_ifname)
   }
   if (netdev) {
     netif = (struct netif *)netdev->sys;
-    found = 1;
+    if (!netif->is_mipif) { /* not a multi ip fake interface */
+      found = 1;
+    }
   }
   if (!found || (netdev->net_type != NETDEV_TYPE_ETHERNET)) {
     LWIP_IF_LIST_UNLOCK();

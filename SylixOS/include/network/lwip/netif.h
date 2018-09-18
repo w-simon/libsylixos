@@ -413,6 +413,9 @@ struct netif {
   /* SylixOS TCP optimization parameters */
   u8_t tcp_ack_freq; /* TCP ACK Delay frequecy */
   u32_t tcp_wnd; /* TCP rcv_wnd */
+  /* SylixOS mip externed */
+  struct netif *mipif;
+  u8_t is_mipif;
   void *reserve[6];
 #endif /* SYLIXOS */
 };

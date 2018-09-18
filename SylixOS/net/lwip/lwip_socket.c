@@ -631,6 +631,8 @@ static INT  __socketIoctl (SOCKET_T *psock, INT  iCmd, PVOID  pvArg)
             case SIOCSIFHWADDR:
             case SIOCGIFMETRIC:
             case SIOCSIFMETRIC:
+            case SIOCDIFADDR:
+            case SIOCAIFADDR:
             case SIOCADDMULTI:
             case SIOCDELMULTI:
             case SIOCGIFTCPAF:

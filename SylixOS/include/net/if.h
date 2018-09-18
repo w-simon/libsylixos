@@ -134,6 +134,13 @@ struct ifreq {
 #define ifr_tcpwnd          ifr_ifru.ifru_tcpwnd
 #define ifr_data            ifr_ifru.ifru_data
 
+struct ifaliasreq {
+    char                    ifra_name[IFNAMSIZ];                /* if name, e.g. "en1"                  */
+    struct sockaddr         ifra_addr;
+    struct sockaddr         ifra_broadaddr;
+    struct sockaddr         ifra_mask;
+};
+
 struct ifconf {
     int                     ifc_len;                            /* size of buffer in bytes              */
     union {
@@ -167,6 +174,9 @@ struct ifconf {
 
 #define SIOCGIFMETRIC       _IOWR('i', 23, struct ifreq)
 #define SIOCSIFMETRIC       _IOW( 'i', 24, struct ifreq)
+
+#define SIOCDIFADDR         _IOW('i', 25, struct ifreq)
+#define SIOCAIFADDR         _IOW('i', 26, struct ifaliasreq)
 
 #define SIOCGIFTYPE         _IOR('i',  49, struct ifreq)
 #define SIOCGIFNAME         _IOWR('i', 50, struct ifreq)

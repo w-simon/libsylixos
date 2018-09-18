@@ -784,6 +784,92 @@ static INT  __tshellIfDown (INT  iArgC, PCHAR  *ppcArgV)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: __tshellIfMip
+** 功能描述: 系统命令 "ifmip"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : 0
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+#if LW_CFG_NET_NETDEV_MIP_EN > 0
+
+static INT  __tshellIfMip (INT  iArgC, PCHAR  *ppcArgV)
+{
+    INT                  iSock, iRet;
+    struct sockaddr_in  *psockaddrin;
+
+    if ((iArgC == 4) && (lib_strcmp(ppcArgV[2], "del") == 0)) {
+        struct ifreq  ifreq;
+    
+        iSock = socket(AF_INET, SOCK_DGRAM, 0);
+        if (iSock < 0) {
+            fprintf(stderr, "can not create socket, error: %s!\n", lib_strerror(errno));
+            return  (PX_ERROR);
+        }
+        
+        lib_strlcpy(ifreq.ifr_name, ppcArgV[1], IFNAMSIZ);
+        psockaddrin = (struct sockaddr_in *)&(ifreq.ifr_addr);
+        lib_bzero(psockaddrin, sizeof(struct sockaddr_in));
+        
+        psockaddrin->sin_len         = sizeof(struct sockaddr_in);
+        psockaddrin->sin_family      = AF_INET;
+        psockaddrin->sin_addr.s_addr = inet_addr(ppcArgV[3]);
+        
+        iRet = ioctl(iSock, SIOCDIFADDR, &ifreq);
+        if (iRet < 0) {
+            fprintf(stderr, "command 'SIOCDIFADDR', error: %s!\n", lib_strerror(errno));
+            close(iSock);
+            return  (PX_ERROR);
+        }
+        
+        close(iSock);
+        
+    } else if ((iArgC == 5) && (lib_strcmp(ppcArgV[2], "add") == 0)) {
+        struct ifaliasreq  ifaliasreq;
+    
+        iSock = socket(AF_INET, SOCK_DGRAM, 0);
+        if (iSock < 0) {
+            fprintf(stderr, "can not create socket, error: %s!\n", lib_strerror(errno));
+            return  (PX_ERROR);
+        }
+        
+        lib_strlcpy(ifaliasreq.ifra_name, ppcArgV[1], IFNAMSIZ);
+        psockaddrin = (struct sockaddr_in *)&(ifaliasreq.ifra_addr);
+        lib_bzero(psockaddrin, sizeof(struct sockaddr_in));
+        
+        psockaddrin->sin_len         = sizeof(struct sockaddr_in);
+        psockaddrin->sin_family      = AF_INET;
+        psockaddrin->sin_addr.s_addr = inet_addr(ppcArgV[3]);
+        
+        psockaddrin = (struct sockaddr_in *)&(ifaliasreq.ifra_broadaddr);
+        lib_bzero(psockaddrin, sizeof(struct sockaddr_in));
+        psockaddrin = (struct sockaddr_in *)&(ifaliasreq.ifra_mask);
+        lib_bzero(psockaddrin, sizeof(struct sockaddr_in));
+        
+        psockaddrin->sin_len         = sizeof(struct sockaddr_in);
+        psockaddrin->sin_family      = AF_INET;
+        psockaddrin->sin_addr.s_addr = inet_addr(ppcArgV[4]);
+        
+        iRet = ioctl(iSock, SIOCAIFADDR, &ifaliasreq);
+        if (iRet < 0) {
+            fprintf(stderr, "command 'SIOCAIFADDR', error: %s!\n", lib_strerror(errno));
+            close(iSock);
+            return  (PX_ERROR);
+        }
+        
+        close(iSock);
+        
+    } else {
+        fprintf(stderr, "arguments error!\n");
+        return  (-ERROR_TSHELL_EPARAM);
+    }
+    
+    return  (ERROR_NONE);
+}
+
+#endif                                                                  /*  LW_CFG_NET_NETDEV_MIP_EN    */
+/*********************************************************************************************************
 ** 函数名称: __tshellIfRouter
 ** 功能描述: 系统命令 "ifrouter"
 ** 输　入  : iArgC         参数个数
@@ -1277,7 +1363,7 @@ VOID  __tshellNetInit (VOID)
     API_TShellHelpAdd("netstat",    _G_cNetstatHelp);
 
     API_TShellKeywordAdd("ifconfig", __tshellIfconfig);
-    API_TShellFormatAdd("ifconfig",  " [netifname] [{inet | netmask | gateway}] [address]");
+    API_TShellFormatAdd("ifconfig",  " [ifname] [{inet | netmask | gateway}] [address]");
     API_TShellHelpAdd("ifconfig",    "show or set net interface parameter.\n"
                                      "if there are no arguments, it will show all interface parameter\n"
                                      "ifconfig -u (show all interface with 'IFF_UP' state)\n"
@@ -1289,17 +1375,24 @@ VOID  __tshellNetInit (VOID)
                                      "ifconfig dns 0       192.168.0.2\n");
 
     API_TShellKeywordAdd("ifup", __tshellIfUp);
-    API_TShellFormatAdd("ifup", " [netifname] [{-dhcp | -nodhcp}] [{-dhcp6 | -nodhcp6}]");
+    API_TShellFormatAdd("ifup", " [ifname] [{-dhcp | -nodhcp}] [{-dhcp6 | -nodhcp6}]");
     API_TShellHelpAdd("ifup",   "set net interface enable\n"
                                 "\"-dncp\"   mean use dhcp client get net address.\n"
                                 "\"-nodncp\" mean MUST NOT use dhcp.\n");
 
     API_TShellKeywordAdd("ifdown", __tshellIfDown);
-    API_TShellFormatAdd("ifdown", " [netifname]");
+    API_TShellFormatAdd("ifdown", " [ifname]");
     API_TShellHelpAdd("ifdown",   "set net interface disable.\n");
+    
+#if LW_CFG_NET_NETDEV_MIP_EN > 0
+    API_TShellKeywordAdd("ifmip", __tshellIfMip);
+    API_TShellFormatAdd("ifmip", " [ifname] [{add | del}] [ipv4 address [netmask]]");
+    API_TShellHelpAdd("ifmip",   "net interface add / delete secondary IPv4 address.\n"
+                                 "NOTICE: a fake interface 'mi*' will be create / delete.\n");
+#endif                                                                  /*  LW_CFG_NET_NETDEV_MIP_EN    */
 
     API_TShellKeywordAdd("ifrouter", __tshellIfRouter);
-    API_TShellFormatAdd("ifrouter", " [netifname]");
+    API_TShellFormatAdd("ifrouter", " [ifname]");
     API_TShellHelpAdd("ifrouter",   "set default router net interface.\n");
     
     API_TShellKeywordAdd("arp", __tshellArp);

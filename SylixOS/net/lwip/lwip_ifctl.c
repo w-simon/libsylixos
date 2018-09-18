@@ -36,6 +36,9 @@
 #include "net/if_wireless.h"
 #include "./wireless/lwip_wl.h"
 #endif                                                                  /*  LW_CFG_NET_WIRELESS_EN > 0  */
+#if LW_CFG_NET_NETDEV_MIP_EN > 0
+#include "netdev/netdev_mip.h"
+#endif
 /*********************************************************************************************************
 ** 函数名称: __ifConfSize
 ** 功能描述: 获得网络接口列表保存所需要的内存大小
@@ -431,6 +434,74 @@ static INT  __ifSubIoctl4 (INT  iCmd, PVOID  pvArg)
     return  (iRet);
 }
 /*********************************************************************************************************
+** 函数名称: __ifSubIoctlAlias4
+** 功能描述: 网络接口 ioctl 操作 (针对添加删除 IP 操作)
+** 输　入  : iCmd      命令
+**           pvArg     参数
+** 输　出  : 处理结果
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static INT  __ifSubIoctlAlias4 (INT  iCmd, PVOID  pvArg)
+{
+#if LW_CFG_NET_NETDEV_MIP_EN > 0
+           INT           iRet    = PX_ERROR;
+    struct ifreq        *pifreq  = LW_NULL;
+    struct ifaliasreq   *pifareq = LW_NULL;
+    struct netif        *pnetif;
+    struct netdev       *pnetdev;
+    struct sockaddr_in  *psockaddrin;
+    
+    pifreq = (struct ifreq *)pvArg;                                     /*  两个结构接口名偏移量相同    */
+    
+    pnetif = netif_find(pifreq->ifr_name);
+    if (pnetif == LW_NULL) {
+        _ErrorHandle(EADDRNOTAVAIL);                                    /*  未找到指定的网络接口        */
+        return  (iRet);
+    }
+    
+    pnetdev = netdev_find_by_ifname(pifreq->ifr_name);
+    if (pnetif == LW_NULL) {
+        _ErrorHandle(EADDRNOTAVAIL);                                    /*  未找到指定的网络设备        */
+        return  (iRet);
+    }
+    
+    switch (iCmd) {                                                     /*  命令处理器                  */
+    
+    case SIOCDIFADDR:                                                   /*  删除一个辅助 IP             */
+        psockaddrin = (struct sockaddr_in *)&(pifreq->ifr_addr);
+        if (psockaddrin->sin_family == AF_INET) {
+            ip4_addr_t ipaddr;
+            ipaddr.addr = psockaddrin->sin_addr.s_addr;
+            iRet = netdev_mipif_delete(pnetdev, &ipaddr);
+        } else {
+            _ErrorHandle(EAFNOSUPPORT);
+        }
+        break;
+        
+    case SIOCAIFADDR:                                                   /*  添加一个辅助 IP             */
+        pifareq = (struct ifaliasreq *)pvArg;
+        if (pifareq->ifra_addr.sa_family == AF_INET) {
+            ip4_addr_t ipaddr, netmask;
+            psockaddrin = (struct sockaddr_in *)&(pifareq->ifra_addr);
+            ipaddr.addr = psockaddrin->sin_addr.s_addr;
+            psockaddrin = (struct sockaddr_in *)&(pifareq->ifra_mask);
+            netmask.addr = psockaddrin->sin_addr.s_addr;
+            iRet = netdev_mipif_add(pnetdev, &ipaddr, &netmask, LW_NULL);
+        } else {
+            _ErrorHandle(EAFNOSUPPORT);
+        }
+        break;
+    }
+    
+    return  (iRet);
+    
+#else
+    _ErrorHandle(ENOSYS);
+    return  (PX_ERROR);
+#endif                                                                  /*  LW_CFG_NET_NETDEV_MIP_EN    */
+}
+/*********************************************************************************************************
 ** 函数名称: __ifSubIoctl6
 ** 功能描述: 网络接口 ioctl 操作 (针对 ipv6)
 ** 输　入  : iCmd      命令
@@ -685,6 +756,18 @@ INT  __ifIoctlInet (INT  iCmd, PVOID  pvArg)
     case SIOCSIFBRDADDR:
         LWIP_IF_LIST_LOCK(LW_FALSE);                                    /*  进入临界区                  */
         iRet = __ifSubIoctl4(iCmd, pvArg);
+        LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
+        break;
+        
+    case SIOCDIFADDR:
+        LWIP_IF_LIST_LOCK(LW_TRUE);                                     /*  进入临界区                  */
+        iRet = __ifSubIoctlAlias4(iCmd, pvArg);
+        LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
+        break;
+    
+    case SIOCAIFADDR:
+        LWIP_IF_LIST_LOCK(LW_FALSE);                                    /*  进入临界区                  */
+        iRet = __ifSubIoctlAlias4(iCmd, pvArg);
         LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
         break;
         
