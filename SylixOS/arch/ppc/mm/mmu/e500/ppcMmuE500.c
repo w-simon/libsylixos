@@ -152,24 +152,27 @@ static LW_PGD_TRANSENTRY  ppcE500MmuBuildPgdesc (UINT32  uiBaseAddr)
 /*********************************************************************************************************
 ** 函数名称: ppcE500MmuBuildPtentry
 ** 功能描述: 生成一个二级描述符 (PTE 描述符)
-** 输　入  : uiBaseAddr              物理页地址
+** 输　入  : paBaseAddr              物理页地址
 **           uiFlag
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static LW_PTE_TRANSENTRY  ppcE500MmuBuildPtentry (UINT32  uiBaseAddr,
-                                                  ULONG   ulFlag)
+static LW_PTE_TRANSENTRY  ppcE500MmuBuildPtentry (phys_addr_t  paBaseAddr,
+                                                  ULONG        ulFlag)
 {
     LW_PTE_TRANSENTRY   uiDescriptor;
     UINT32              uiRPN;
 
     uiDescriptor.MAS3_uiValue = 0;
+#if LW_CFG_CPU_PHYS_ADDR_64BIT > 0
+    uiDescriptor.MAS7_uiValue = 0;
+#endif                                                                  /*  LW_CFG_CPU_PHYS_ADDR_64BIT>0*/
 
     if (ulFlag & LW_VMM_FLAG_ACCESS) {
-        uiRPN = uiBaseAddr >> LW_CFG_VMM_PAGE_SHIFT;                    /*  计算 RPN                    */
+        uiRPN = paBaseAddr >> LW_CFG_VMM_PAGE_SHIFT;                    /*  计算 RPN                    */
 
-        uiDescriptor.MAS3_uiRPN = uiRPN;                                /*  填充 RPN                    */
+        uiDescriptor.MAS3_uiRPN = uiRPN & 0xfffff;                      /*  填充 RPN                    */
 
         if (ulFlag & LW_VMM_FLAG_VALID) {
             uiDescriptor.MAS3_bValid = LW_TRUE;                         /*  有效                        */
@@ -197,6 +200,10 @@ static LW_PTE_TRANSENTRY  ppcE500MmuBuildPtentry (UINT32  uiBaseAddr,
         if (MMU_MAS2_M) {
             uiDescriptor.MAS3_bMemCoh = LW_TRUE;                        /*  多核一致性                  */
         }
+
+#if LW_CFG_CPU_PHYS_ADDR_64BIT > 0
+        uiDescriptor.MAS7_uiHigh4RPN = uiRPN >> 20;
+#endif                                                                  /*  LW_CFG_CPU_PHYS_ADDR_64BIT>0*/
     }
 
     return  (uiDescriptor);
@@ -607,14 +614,17 @@ static INT  ppcE500MmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  
         LW_PTE_TRANSENTRY   uiDescriptor = *p_pteentry;                 /*  获得二级描述符              */
 
         if (ppcE500MmuPteIsOk(uiDescriptor)) {                          /*  二级描述符有效              */
-            UINT32   uiRPN = uiDescriptor.MAS3_uiRPN;                   /*  获得物理页号                */
-            addr_t   ulPhysicalAddr = uiRPN << LW_CFG_VMM_PAGE_SHIFT;   /*  计算页面物理地址            */
+            UINT32        uiRPN = uiDescriptor.MAS3_uiRPN;              /*  获得物理页号                */
+#if LW_CFG_CPU_PHYS_ADDR_64BIT > 0
+            uiRPN |= uiDescriptor.MAS7_uiHigh4RPN << 20;
+#endif                                                                  /*  计算页面物理地址            */
+            phys_addr_t   paPhysicalAddr = ((phys_addr_t)uiRPN) << LW_CFG_VMM_PAGE_SHIFT;
 
             /*
              * 构建二级描述符并设置二级描述符
              */
-            *p_pteentry = (LW_PTE_TRANSENTRY)ppcE500MmuBuildPtentry((UINT32)ulPhysicalAddr,
-                                                                    ulFlag);
+            *p_pteentry = ppcE500MmuBuildPtentry(paPhysicalAddr, ulFlag);
+
 #if LW_CFG_CACHE_EN > 0
             ppcCacheDataUpdate((PVOID)p_pteentry,
                                sizeof(LW_PTE_TRANSENTRY), LW_FALSE);
@@ -635,7 +645,7 @@ static INT  ppcE500MmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  
 ** 输　入  : pmmuctx        mmu 上下文
 **           p_pteentry     对应的页表项
 **           ulVirtualAddr  虚拟地址
-**           ulPhysicalAddr 物理地址
+**           paPhysicalAddr 物理地址
 **           ulFlag         对应的类型
 ** 输　出  : NONE
 ** 全局变量: 
@@ -645,8 +655,8 @@ static INT  ppcE500MmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  
 static VOID  ppcE500MmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
                                   LW_PTE_TRANSENTRY  *p_pteentry,
                                   addr_t              ulVirtualAddr,
-                                  addr_t              ulPhysicalAddr,
-                                  addr_t              ulFlag)
+                                  phys_addr_t         paPhysicalAddr,
+                                  ULONG               ulFlag)
 {
     if (!(ulFlag & LW_VMM_FLAG_VALID)) {                                /*  无效的映射关系              */
         return;
@@ -655,8 +665,8 @@ static VOID  ppcE500MmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
     /*
      * 构建二级描述符并设置二级描述符
      */
-    *p_pteentry = (LW_PTE_TRANSENTRY)ppcE500MmuBuildPtentry((UINT32)ulPhysicalAddr,
-                                                            ulFlag);
+    *p_pteentry = ppcE500MmuBuildPtentry(paPhysicalAddr, ulFlag);
+
 #if LW_CFG_CACHE_EN > 0
     ppcCacheDataUpdate((PVOID)p_pteentry,
                        sizeof(LW_PTE_TRANSENTRY), LW_FALSE);

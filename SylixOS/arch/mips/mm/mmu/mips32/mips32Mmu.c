@@ -455,7 +455,7 @@ static INT  mips32MmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  u
 ** 输　入  : pmmuctx        mmu 上下文
 **           p_pteentry     对应的页表项
 **           ulVirtualAddr  虚拟地址
-**           ulPhysicalAddr 物理地址
+**           paPhysicalAddr 物理地址
 **           ulFlag         对应的类型
 ** 输　出  : NONE
 ** 全局变量: 
@@ -465,8 +465,8 @@ static INT  mips32MmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  u
 static VOID  mips32MmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
                                  LW_PTE_TRANSENTRY  *p_pteentry,
                                  addr_t              ulVirtualAddr,
-                                 addr_t              ulPhysicalAddr,
-                                 addr_t              ulFlag)
+                                 phys_addr_t         paPhysicalAddr,
+                                 ULONG               ulFlag)
 {
     if (!(ulFlag & LW_VMM_FLAG_VALID)) {                                /*  无效的映射关系              */
         return;
@@ -475,7 +475,7 @@ static VOID  mips32MmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
     /*
      * 构建二级描述符并设置二级描述符
      */
-    *p_pteentry = mips32MmuBuildPteEntry(ulPhysicalAddr, ulFlag);
+    *p_pteentry = mips32MmuBuildPteEntry((addr_t)paPhysicalAddr, ulFlag);
 }
 /*********************************************************************************************************
 ** 函数名称: mips32MmuMakeCurCtx

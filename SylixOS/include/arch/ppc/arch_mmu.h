@@ -80,7 +80,7 @@ typedef union {
 
     struct {
         /*
-         * 以下值用于 TLB MISS 时重装到 MAS2 MAS3 寄存器
+         * 以下值用于 TLB MISS 时重装到 MAS2 MAS3 MAS7 寄存器
          */
         UINT        MAS3_uiRPN      : 20;                               /*  物理页号                    */
 
@@ -110,8 +110,17 @@ typedef union {
 
         UINT        MAS3_bUserRead  :  1;                               /*  用户可读权限                */
         UINT        MAS3_bSuperRead :  1;                               /*  管理员可读权限              */
+
+#if LW_CFG_CPU_PHYS_ADDR_64BIT > 0
+        UINT        MAS7_uiReserved0: 28;                               /*  保留                        */
+        UINT        MAS7_uiHigh4RPN :  4;                               /*  高 4 位物理页号             */
+#endif                                                                  /*  LW_CFG_CPU_PHYS_ADDR_64BIT>0*/
     };                                                                  /*  E500 PTE                    */
-    UINT32          MAS3_uiValue;                                       /*  值                          */
+
+    UINT32          MAS3_uiValue;                                       /*  MAS3 值                     */
+#if LW_CFG_CPU_PHYS_ADDR_64BIT > 0
+    UINT32          MAS7_uiValue;                                       /*  MAS7 值                     */
+#endif                                                                  /*  LW_CFG_CPU_PHYS_ADDR_64BIT>0*/
 } LW_PTE_TRANSENTRY;                                                    /*  页表条目类型                */
 
 /*********************************************************************************************************

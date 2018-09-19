@@ -161,10 +161,16 @@ typedef ULONG        dma_addr_t;                                        /*  32/6
 typedef UINT64       dma64_addr_t;                                      /*  64 bit                      */
 
 /*********************************************************************************************************
-  phys addr
+  phys addr (for ioremap second version)
 *********************************************************************************************************/
 
+#ifdef __SYLIXOS_KERNEL
+#if (LW_CFG_CPU_WORD_LENGHT == 32) && (LW_CFG_CPU_PHYS_ADDR_64BIT > 0)
+typedef UINT64       phys_addr_t;
+#else
 typedef ULONG        phys_addr_t;
+#endif
+#endif
 
 /*********************************************************************************************************
   BSD SOCKET basic type

@@ -92,6 +92,20 @@
 *********************************************************************************************************/
 #if LW_CFG_VMM_EN > 0
 /*********************************************************************************************************
+  mmu 信息
+*********************************************************************************************************/
+
+typedef struct __lw_mmu_context {
+    LW_VMM_AREA              MMUCTX_vmareaVirSpace;                     /*  虚拟地址空间反查表          */
+#if LW_CFG_VMM_L4_HYPERVISOR_EN > 0
+    INT                      MMUCTX_iProcId;
+#else
+    LW_PGD_TRANSENTRY       *MMUCTX_pgdEntry;                           /*  PGD 表入口地址              */
+#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
+} LW_MMU_CONTEXT;
+typedef LW_MMU_CONTEXT      *PLW_MMU_CONTEXT;
+
+/*********************************************************************************************************
   mmu 执行功能
 *********************************************************************************************************/
 
@@ -127,6 +141,10 @@ typedef LW_PTS_TRANSENTRY  *(*PTSFUNCPTR)();
 #endif                                                                  /*  LW_CFG_VMM_PAGE_4L_EN > 0   */
 typedef LW_PTE_TRANSENTRY  *(*PTEFUNCPTR)();
 #endif                                                                  /*  __cplusplus                 */
+
+typedef VOID                (*MAKETRANSFUNCPTR)(PLW_MMU_CONTEXT, 
+                                                LW_PTE_TRANSENTRY *, 
+                                                addr_t, phys_addr_t, ULONG);
 
 typedef struct {
     ULONG                    MMUOP_ulOption;                            /*  MMU 选项                    */
@@ -165,7 +183,7 @@ typedef struct {
     ULONGFUNCPTR             MMUOP_pfuncFlagGet;                        /*  获得页面标志                */
     FUNCPTR                  MMUOP_pfuncFlagSet;                        /*  设置页面标志 (当前未使用)   */
     
-    VOIDFUNCPTR              MMUOP_pfuncMakeTrans;                      /*  设置页面转换关系描述符      */
+    MAKETRANSFUNCPTR         MMUOP_pfuncMakeTrans;                      /*  设置页面转换关系描述符      */
     VOIDFUNCPTR              MMUOP_pfuncMakeCurCtx;                     /*  激活当前的页表转换关系      */
     VOIDFUNCPTR              MMUOP_pfuncInvalidateTLB;                  /*  无效 TLB 表                 */
     
@@ -210,8 +228,8 @@ extern LW_OBJECT_HANDLE     _G_ulVmmLock;
 *********************************************************************************************************/
 #if LW_CFG_VMM_L4_HYPERVISOR_EN > 0
 
-#define __VMM_MMU_PAGE_MAP(pmmuctx, ulPhyAddr, ulVirAddr, ulFlag)   (_G_mmuOpLib.MMUOP_pfuncPageMap) ? \
-            _G_mmuOpLib.MMUOP_pfuncPageMap(pmmuctx, ulPhyAddr, ulVirAddr, ulFlag) : (PX_ERROR)
+#define __VMM_MMU_PAGE_MAP(pmmuctx, paPhyAddr, ulVirAddr, ulFlag)   (_G_mmuOpLib.MMUOP_pfuncPageMap) ? \
+            _G_mmuOpLib.MMUOP_pfuncPageMap(pmmuctx, paPhyAddr, ulVirAddr, ulFlag) : (PX_ERROR)
 
 #define __VMM_MMU_PAGE_UNMAP(pmmuctx, ulVirAddr)    (_G_mmuOpLib.MMUOP_pfuncPageUnmap) ? \
             _G_mmuOpLib.MMUOP_pfuncPageUnmap(pmmuctx, ulVirAddr) : (PX_ERROR)
@@ -252,6 +270,7 @@ extern LW_OBJECT_HANDLE     _G_ulVmmLock;
         if (_G_mmuOpLib.MMUOP_pfuncPTEFree) {   \
             _G_mmuOpLib.MMUOP_pfuncPTEFree(p_pteentry); \
         }
+
 /*********************************************************************************************************
   MMU 页面描述符判断
 *********************************************************************************************************/
@@ -312,10 +331,10 @@ extern LW_OBJECT_HANDLE     _G_ulVmmLock;
 
 #else
 
-#define __VMM_MMU_MAKE_TRANS(pmmuctx, p_pteentry, ulVirtualAddr, ulPhysicalAddr, ulFlag)   \
+#define __VMM_MMU_MAKE_TRANS(pmmuctx, p_pteentry, ulVirtualAddr, paPhysicalAddr, ulFlag)  \
         if (_G_mmuOpLib.MMUOP_pfuncMakeTrans) { \
-            _G_mmuOpLib.MMUOP_pfuncMakeTrans(pmmuctx, p_pteentry,                       \
-                                             ulVirtualAddr, ulPhysicalAddr, (ulFlag));  \
+            _G_mmuOpLib.MMUOP_pfuncMakeTrans(pmmuctx, p_pteentry,   \
+                                             ulVirtualAddr, paPhysicalAddr, (ulFlag));  \
         }
 #define __VMM_MMU_MAKE_CURCTX(pmmuctx)  \
         if (_G_mmuOpLib.MMUOP_pfuncMakeCurCtx) {    \
@@ -335,19 +354,6 @@ extern LW_OBJECT_HANDLE     _G_ulVmmLock;
         }
         
 #endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
-/*********************************************************************************************************
-  mmu 信息
-*********************************************************************************************************/
-
-typedef struct __lw_mmu_context {
-    LW_VMM_AREA              MMUCTX_vmareaVirSpace;                     /*  虚拟地址空间反查表          */
-#if LW_CFG_VMM_L4_HYPERVISOR_EN > 0
-    INT                      MMUCTX_iProcId;
-#else
-    LW_PGD_TRANSENTRY       *MMUCTX_pgdEntry;                           /*  PGD 表入口地址              */
-#endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
-} LW_MMU_CONTEXT;
-typedef LW_MMU_CONTEXT      *PLW_MMU_CONTEXT;
 
 /*********************************************************************************************************
   VMM 内部匹配
@@ -445,10 +451,11 @@ ULONG           __vmmLibSecondaryInit(CPCHAR  pcMachineName);
 
 VOID            __vmmLibFlushTlb(PLW_MMU_CONTEXT  pmmuctx, addr_t  ulPageAddr, ULONG  ulPageNum);
 
-ULONG           __vmmLibPageMap(addr_t ulPhysicalAddr, 
-                                addr_t ulVirtualAddr, 
-                                ULONG  ulPageNum, 
-                                ULONG  ulFlag);                         /*  mmu map                     */
+ULONG           __vmmLibPageMap(addr_t ulPhysicalAddr, addr_t ulVirtualAddr, 
+                                ULONG  ulPageNum, ULONG  ulFlag);       /*  mmu map                     */
+ULONG           __vmmLibPageMap2(phys_addr_t paPhysicalAddr, addr_t ulVirtualAddr, 
+                                 ULONG  ulPageNum, ULONG  ulFlag);      /*  mmu map for ioremap2        */
+                                
 ULONG           __vmmLibGetFlag(addr_t  ulVirtualAddr, ULONG  *pulFlag);
 ULONG           __vmmLibSetFlag(addr_t  ulVirtualAddr, ULONG   ulPageNum, ULONG  ulFlag, BOOL  bFlushTlb);
 

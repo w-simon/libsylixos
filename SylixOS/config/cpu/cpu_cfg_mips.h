@@ -69,9 +69,12 @@
 
 #if defined(__mips64)
 #define LW_CFG_CPU_WORD_LENGHT          64                              /*  CPU 字长                    */
+#define LW_CFG_CPU_PHYS_ADDR_64BIT      1                               /*  物理地址 64bit 宽度         */
 #define LW_CFG_CPU_ARCH_MIPS64          1                               /*  CPU 架构                    */
+
 #else
 #define LW_CFG_CPU_WORD_LENGHT          32                              /*  CPU 字长                    */
+#define LW_CFG_CPU_PHYS_ADDR_64BIT      0                               /*  物理地址 64bit 宽度         */
 #endif
 
 /*********************************************************************************************************

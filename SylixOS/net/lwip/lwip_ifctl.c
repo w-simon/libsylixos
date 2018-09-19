@@ -546,6 +546,11 @@ static INT  __ifSubIoctl6 (INT  iCmd, PVOID  pvArg)
         return  (iRet);
     }
     
+    if (netif_is_mipif(pnetif)) {
+        _ErrorHandle(ENOSYS);
+        return  (iRet);
+    }
+    
     iSize = pifreq6->ifr6_len / sizeof(struct in6_ifr_addr);            /*  »º³åÇø¸öÊı                  */
     pifr6addr = pifreq6->ifr6_addr_array;
     

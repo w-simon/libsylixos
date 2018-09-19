@@ -61,8 +61,11 @@
 #define LW_CFG_CPU_ENDIAN               0                               /*  0: 小端  1: 大端            */
 #if defined(__x86_64__)
 #define LW_CFG_CPU_WORD_LENGHT          64                              /*  CPU 字长                    */
+#define LW_CFG_CPU_PHYS_ADDR_64BIT      1                               /*  物理地址 64bit 宽度         */
+
 #else
 #define LW_CFG_CPU_WORD_LENGHT          32                              /*  CPU 字长                    */
+#define LW_CFG_CPU_PHYS_ADDR_64BIT      0                               /*  物理地址 64bit 宽度         */
 #endif
 
 /*********************************************************************************************************

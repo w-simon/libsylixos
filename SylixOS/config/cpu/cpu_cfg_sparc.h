@@ -47,6 +47,7 @@
 
 #define LW_CFG_CPU_ENDIAN               1                               /*  0: 小端  1: 大端            */
 #define LW_CFG_CPU_WORD_LENGHT          32                              /*  CPU 字长                    */
+#define LW_CFG_CPU_PHYS_ADDR_64BIT      0                               /*  物理地址 64bit 宽度         */
 
 /*********************************************************************************************************
   SPARC 配置

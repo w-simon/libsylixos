@@ -705,7 +705,7 @@ static INT  __tshellIfUp (INT  iArgC, PCHAR  *ppcArgV)
     netifapi_netif_set_up(netif);                                       /*  启动网卡                    */
 
 #if LWIP_DHCP > 0
-    if (bUseDHCP) {
+    if (bUseDHCP && !netif_is_mipif(netif)) {
         netif->flags2 |= NETIF_FLAG2_DHCP;                              /*  使用 DHCP 启动              */
     } else if (bShutDownDHCP) {
         netif->flags2 &= ~NETIF_FLAG2_DHCP;                             /*  强制关闭 DHCP               */
@@ -727,7 +727,7 @@ static INT  __tshellIfUp (INT  iArgC, PCHAR  *ppcArgV)
 #endif                                                                  /*  LWIP_DHCP > 0               */
 
 #if LWIP_IPV6_DHCP6 > 0
-    if (bUseDHCP6) {
+    if (bUseDHCP6 && !netif_is_mipif(netif)) {
         netif->flags2 |= NETIF_FLAG2_DHCP6;                             /*  使用 DHCP 启动              */
     } else if (bShutDownDHCP6) {
         netif->flags2 &= ~NETIF_FLAG2_DHCP6;                            /*  强制关闭 DHCP               */

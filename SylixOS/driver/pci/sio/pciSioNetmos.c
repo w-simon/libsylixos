@@ -282,8 +282,8 @@ static INT  pciSioNetmosProbe (PCI_DEV_HANDLE hPciDevHandle, const PCI_DEV_ID_HA
     ULONG                   ulVector;
     CHAR                    cDevName[64];
     PCI_RESOURCE_HANDLE     hResource;
+    phys_addr_t             paBaseAddr;                                 /*  起始地址                    */
     addr_t                  ulBaseAddr;                                 /*  起始地址                    */
-    PVOID                   pvBaseAddr;                                 /*  起始地址                    */
     size_t                  stBaseSize;                                 /*  资源大小                    */
     
     if ((!hPciDevHandle) || (!hIdEntry)) {
@@ -297,10 +297,10 @@ static INT  pciSioNetmosProbe (PCI_DEV_HANDLE hPciDevHandle, const PCI_DEV_ID_HA
     }
 
     hResource  = API_PciDevResourceGet(hPciDevHandle, PCI_IORESOURCE_MEM, 0);
-    ulBaseAddr = (ULONG)(PCI_RESOURCE_START(hResource));                /*  获取 MEM 的起始地址         */
+    paBaseAddr = (phys_addr_t)(PCI_RESOURCE_START(hResource));          /*  获取 MEM 的起始地址         */
     stBaseSize = (size_t)(PCI_RESOURCE_SIZE(hResource));                /*  获取 MEM 的大小             */
-    pvBaseAddr = API_PciDevIoRemap((PVOID)ulBaseAddr, stBaseSize);
-    if (!pvBaseAddr) {
+    ulBaseAddr = API_PciDevIoRemap2(paBaseAddr, stBaseSize);
+    if (!ulBaseAddr) {
         return  (PX_ERROR);
     }
 
@@ -312,7 +312,7 @@ static INT  pciSioNetmosProbe (PCI_DEV_HANDLE hPciDevHandle, const PCI_DEV_ID_HA
 
     API_PciDevMasterEnable(hPciDevHandle, LW_TRUE);
 
-    write32(0, (addr_t)pvBaseAddr + 0x3fc);
+    write32(0, ulBaseAddr + 0x3fc);
 
     /*
      *  创建串口通道
@@ -333,7 +333,7 @@ static INT  pciSioNetmosProbe (PCI_DEV_HANDLE hPciDevHandle, const PCI_DEV_ID_HA
 
         pcisiocfg->CFG_idx       = hPciDevHandle->PCIDEV_iDevFunction;
         pcisiocfg->CFG_ulVector  = ulVector;
-        pcisiocfg->CFG_ulBase    = (addr_t)pvBaseAddr;
+        pcisiocfg->CFG_ulBase    = ulBaseAddr;
         pcisiocfg->CFG_ulBaud    = pcisio->NETMOS_uiBaud;
         pcisiocfg->CFG_ulXtal    = pcisio->NETMOS_uiBaud * 16;
         pcisiocfg->CFG_pciHandle = hPciDevHandle;

@@ -939,7 +939,7 @@ static INT  sv48MmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  ulF
 ** 输　入  : pmmuctx        mmu 上下文
 **           p_pteentry     对应的页表项
 **           ulVirtualAddr  虚拟地址
-**           ulPhysicalAddr 物理地址
+**           paPhysicalAddr 物理地址
 **           ulFlag         对应的类型
 ** 输　出  : NONE
 ** 全局变量: 
@@ -949,8 +949,8 @@ static INT  sv48MmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  ulF
 static VOID  sv48MmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
                                LW_PTE_TRANSENTRY  *p_pteentry,
                                addr_t              ulVirtualAddr,
-                               addr_t              ulPhysicalAddr,
-                               addr_t              ulFlag)
+                               phys_addr_t         paPhysicalAddr,
+                               ULONG               ulFlag)
 {
     UINT8  ucV, ucR, ucW, ucX, ucU, ucG, ucRSW;
     
@@ -959,7 +959,7 @@ static VOID  sv48MmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
         return;
     }
 
-    *p_pteentry = sv48MmuBuildPteEntry(ulPhysicalAddr,
+    *p_pteentry = sv48MmuBuildPteEntry((addr_t)paPhysicalAddr,
                                        ucV, ucR, ucW, ucX, ucU, ucG, ucRSW);
 }
 /*********************************************************************************************************

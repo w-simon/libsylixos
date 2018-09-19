@@ -155,7 +155,7 @@ typedef union {
 
 typedef union {
     struct {
-        UINT        MAS7_ucReserved0    : 28;
+        UINT        MAS7_uiReserved0    : 28;
         UINT        MAS7_uiHigh4RPN     :  4;
     };
     UINT32          MAS7_uiValue;

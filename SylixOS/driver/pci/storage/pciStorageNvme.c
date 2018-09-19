@@ -327,7 +327,7 @@ static INT  pciStorageNvmeVendorCtrlReadyWork (NVME_CTRL_HANDLE  hCtrl, UINT uiI
     INT                     iRet;
     PCI_DEV_HANDLE          hPciDev;
     UINT16                  usPciDevId;
-    ULONG                   ulBaseAddr;
+    phys_addr_t             paBaseAddr;
     PCI_RESOURCE_HANDLE     hResource;
 
     hPciDev = (PCI_DEV_HANDLE)hCtrl->NVMECTRL_pvArg;                    /* 获取设备句柄                 */
@@ -345,11 +345,9 @@ static INT  pciStorageNvmeVendorCtrlReadyWork (NVME_CTRL_HANDLE  hCtrl, UINT uiI
         return  (PX_ERROR);
     }
 
-    ulBaseAddr                = (ULONG)(PCI_RESOURCE_START(hResource));
-    hCtrl->NVMECTRL_pvRegAddr = (PVOID)ulBaseAddr;
+    paBaseAddr                = (phys_addr_t)(PCI_RESOURCE_START(hResource));
     hCtrl->NVMECTRL_stRegSize = (size_t)(PCI_RESOURCE_SIZE(hResource));
-    hCtrl->NVMECTRL_pvRegAddr = API_PciDevIoRemap(hCtrl->NVMECTRL_pvRegAddr,
-                                                  hCtrl->NVMECTRL_stRegSize );
+    hCtrl->NVMECTRL_pvRegAddr = (PVOID)API_PciDevIoRemap2(paBaseAddr, hCtrl->NVMECTRL_stRegSize);
     if (hCtrl->NVMECTRL_pvRegAddr == LW_NULL) {
         NVME_LOG(NVME_LOG_ERR, "pci mem resource ioremap failed addr 0x%llx 0x%llx.\r\n",
                  hCtrl->NVMECTRL_pvRegAddr,  hCtrl->NVMECTRL_stRegSize);

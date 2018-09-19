@@ -389,8 +389,8 @@ static INT  pciSioExarProbe (PCI_DEV_HANDLE hPciDevHandle, const PCI_DEV_ID_HAND
     CHAR                    cDevName[64];
 
     PCI_RESOURCE_HANDLE     hResource;
+    phys_addr_t             paBaseAddr;                                 /*  起始地址                    */
     addr_t                  ulBaseAddr;                                 /*  起始地址                    */
-    PVOID                   pvBaseAddr;                                 /*  起始地址                    */
     size_t                  stBaseSize;                                 /*  资源大小                    */
 
     if ((!hPciDevHandle) || (!hIdEntry)) {
@@ -404,10 +404,10 @@ static INT  pciSioExarProbe (PCI_DEV_HANDLE hPciDevHandle, const PCI_DEV_ID_HAND
     }
 
     hResource  = API_PciDevResourceGet(hPciDevHandle, PCI_IORESOURCE_MEM, 0);
-    ulBaseAddr = (ULONG)(PCI_RESOURCE_START(hResource));
+    paBaseAddr = (phys_addr_t)(PCI_RESOURCE_START(hResource));
     stBaseSize = (size_t)(PCI_RESOURCE_SIZE(hResource));
-    pvBaseAddr = API_PciDevIoRemap((PVOID)ulBaseAddr, stBaseSize);
-    if (!pvBaseAddr) {
+    ulBaseAddr = API_PciDevIoRemap2(paBaseAddr, stBaseSize);
+    if (!ulBaseAddr) {
         return  (PX_ERROR);
     }
 
@@ -436,7 +436,7 @@ static INT  pciSioExarProbe (PCI_DEV_HANDLE hPciDevHandle, const PCI_DEV_ID_HAND
 
         psiocfg->CFG_idx       = i;
         psiocfg->CFG_ulVector  = ulVector;
-        psiocfg->CFG_ulBase    = (ULONG)pvBaseAddr;
+        psiocfg->CFG_ulBase    = ulBaseAddr;
         psiocfg->CFG_ulBaud    = 115200;
         psiocfg->CFG_ulXtal    = pciexar->EXAR_uiBaud * 4;
         psiocfg->CFG_pciHandle = hPciDevHandle;

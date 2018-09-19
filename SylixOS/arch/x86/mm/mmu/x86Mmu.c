@@ -660,8 +660,8 @@ static INT  x86MmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  ulFl
         if (x86MmuPteIsOk(uiDescriptor)) {                              /*  二级描述符有效              */
             addr_t  ulPhysicalAddr = (addr_t)(*p_pteentry & X86_MMU_MASK);
 
-            *p_pteentry = (LW_PTE_TRANSENTRY)x86MmuBuildPtentry((UINT32)ulPhysicalAddr,
-                                                                ucRW, ucUS, ucPWT, ucPCD, ucA, ucPAT);
+            *p_pteentry = x86MmuBuildPtentry((UINT32)ulPhysicalAddr,
+                                             ucRW, ucUS, ucPWT, ucPCD, ucA, ucPAT);
 #if LW_CFG_CACHE_EN > 0
             x86DCacheFlush((PVOID)p_pteentry, sizeof(LW_PTE_TRANSENTRY));
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
@@ -677,7 +677,7 @@ static INT  x86MmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  ulFl
 ** 输　入  : pmmuctx        mmu 上下文
 **           p_pteentry     对应的页表项
 **           ulVirtualAddr  虚拟地址
-**           ulPhysicalAddr 物理地址
+**           paPhysicalAddr 物理地址
 **           ulFlag         对应的类型
 ** 输　出  : NONE
 ** 全局变量: 
@@ -687,8 +687,8 @@ static INT  x86MmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  ulFl
 static VOID  x86MmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
                               LW_PTE_TRANSENTRY  *p_pteentry,
                               addr_t              ulVirtualAddr,
-                              addr_t              ulPhysicalAddr,
-                              addr_t              ulFlag)
+                              phys_addr_t         paPhysicalAddr,
+                              ULONG               ulFlag)
 {
     UINT8  ucRW, ucUS, ucPWT, ucPCD, ucA, ucPAT;
     
@@ -697,8 +697,8 @@ static VOID  x86MmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
         return;
     }
 
-    *p_pteentry = (LW_PTE_TRANSENTRY)x86MmuBuildPtentry((UINT32)ulPhysicalAddr,
-                                                        ucRW, ucUS, ucPWT, ucPCD, ucA, ucPAT);
+    *p_pteentry = x86MmuBuildPtentry((UINT32)paPhysicalAddr,
+                                     ucRW, ucUS, ucPWT, ucPCD, ucA, ucPAT);
                                                         
 #if LW_CFG_CACHE_EN > 0
     x86DCacheFlush((PVOID)p_pteentry, sizeof(LW_PTE_TRANSENTRY));

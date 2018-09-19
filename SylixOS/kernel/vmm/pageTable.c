@@ -361,9 +361,9 @@ VOID  __vmmLibFlushTlb (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulPageAddr, ULONG  ulP
 
 #endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
 /*********************************************************************************************************
-** 函数名称: __vmmLibPageMap
-** 功能描述: 将物理页面重新映射
-** 输　入  : ulPhysicalAddr        物理页面地址
+** 函数名称: __vmmLibPageMap2
+** 功能描述: 将物理页面重新映射 (for ioremap2 )
+** 输　入  : paPhysicalAddr        物理页面地址
 **           ulVirtualAddr         需要映射的虚拟地址
 **           ulPageNum             需要映射的页面个数
 **           ulFlag                页面标志
@@ -371,10 +371,7 @@ VOID  __vmmLibFlushTlb (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulPageAddr, ULONG  ulP
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-ULONG  __vmmLibPageMap (addr_t  ulPhysicalAddr, 
-                        addr_t  ulVirtualAddr, 
-                        ULONG   ulPageNum, 
-                        ULONG   ulFlag)
+ULONG  __vmmLibPageMap2 (phys_addr_t paPhysicalAddr, addr_t ulVirtualAddr, ULONG ulPageNum, ULONG ulFlag)
 {
     ULONG                    i;
     PLW_MMU_CONTEXT          pmmuctx = __vmmGetCurCtx();
@@ -394,11 +391,11 @@ ULONG  __vmmLibPageMap (addr_t  ulPhysicalAddr,
 #if LW_CFG_VMM_L4_HYPERVISOR_EN > 0
     if (ulFlag & LW_VMM_FLAG_ACCESS) {
         for (i = 0; i < ulPageNum; i++) {
-            if (__VMM_MMU_PAGE_MAP(pmmuctx, ulPhysicalAddr, 
+            if (__VMM_MMU_PAGE_MAP(pmmuctx, paPhysicalAddr, 
                                    ulVirtualAddr, ulFlag) < ERROR_NONE) {
                 return  (ERROR_VMM_LOW_LEVEL);
             }
-            ulPhysicalAddr += LW_CFG_VMM_PAGE_SIZE;
+            paPhysicalAddr += LW_CFG_VMM_PAGE_SIZE;
             ulVirtualAddr  += LW_CFG_VMM_PAGE_SIZE;
         }
     
@@ -407,8 +404,7 @@ ULONG  __vmmLibPageMap (addr_t  ulPhysicalAddr,
             if (__VMM_MMU_PAGE_UNMAP(pmmuctx, ulVirtualAddr) < ERROR_NONE) {
                 return  (ERROR_VMM_LOW_LEVEL);
             }
-            ulPhysicalAddr += LW_CFG_VMM_PAGE_SIZE;
-            ulVirtualAddr  += LW_CFG_VMM_PAGE_SIZE;
+            ulVirtualAddr += LW_CFG_VMM_PAGE_SIZE;
         }
     }
     
@@ -442,10 +438,10 @@ ULONG  __vmmLibPageMap (addr_t  ulPhysicalAddr,
         iregInterLevel = KN_INT_DISABLE();                              /*  关闭中断                    */
         __VMM_MMU_MAKE_TRANS(pmmuctx, p_pteentry,
                              ulVirtualAddr,
-                             ulPhysicalAddr, ulFlag);                   /*  创建映射关系                */
+                             paPhysicalAddr, ulFlag);                   /*  创建映射关系                */
         KN_INT_ENABLE(iregInterLevel);                                  /*  打开中断                    */
         
-        ulPhysicalAddr += LW_CFG_VMM_PAGE_SIZE;
+        paPhysicalAddr += LW_CFG_VMM_PAGE_SIZE;
         ulVirtualAddr  += LW_CFG_VMM_PAGE_SIZE;
     }
     
@@ -453,6 +449,21 @@ ULONG  __vmmLibPageMap (addr_t  ulPhysicalAddr,
 #endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
     
     return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __vmmLibPageMap
+** 功能描述: 将物理页面重新映射
+** 输　入  : ulPhysicalAddr        物理页面地址
+**           ulVirtualAddr         需要映射的虚拟地址
+**           ulPageNum             需要映射的页面个数
+**           ulFlag                页面标志
+** 输　出  : ERROR CODE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+ULONG  __vmmLibPageMap (addr_t  ulPhysicalAddr, addr_t  ulVirtualAddr, ULONG   ulPageNum, ULONG   ulFlag)
+{
+    return  (__vmmLibPageMap2((phys_addr_t)ulPhysicalAddr, ulVirtualAddr, ulPageNum, ulFlag));
 }
 /*********************************************************************************************************
 ** 函数名称: __vmmLibGetFlag

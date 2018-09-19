@@ -857,7 +857,7 @@ static INT  sparcMmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  ul
 ** 输　入  : pmmuctx        mmu 上下文
 **           p_pteentry     对应的页表项
 **           ulVirtualAddr  虚拟地址
-**           ulPhysicalAddr 物理地址
+**           paPhysicalAddr 物理地址
 **           ulFlag         对应的类型
 ** 输　出  : NONE
 ** 全局变量: 
@@ -867,8 +867,8 @@ static INT  sparcMmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  ul
 static VOID  sparcMmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
                                 LW_PTE_TRANSENTRY  *p_pteentry,
                                 addr_t              ulVirtualAddr,
-                                addr_t              ulPhysicalAddr,
-                                addr_t              ulFlag)
+                                phys_addr_t         paPhysicalAddr,
+                                ULONG               ulFlag)
 {
     UINT8   ucACC, ucC, ucET;
     
@@ -877,8 +877,7 @@ static VOID  sparcMmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
         return;
     }
 
-    *p_pteentry = (LW_PTE_TRANSENTRY)sparcMmuBuildPteEntry((UINT32)ulPhysicalAddr,
-                                                           ucACC, ucC, ucET);
+    *p_pteentry = sparcMmuBuildPteEntry((UINT32)paPhysicalAddr, ucACC, ucC, ucET);
                                                         
 #if LW_CFG_CACHE_EN > 0
     sparcCacheFlush(DATA_CACHE, (PVOID)p_pteentry, sizeof(LW_PTE_TRANSENTRY));

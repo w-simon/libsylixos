@@ -601,6 +601,7 @@ struct netif* netif_get_by_index(u8_t idx);
 
 char * netif_get_name(struct netif *netif, char *name); /* name char buffer of at least NETIF_NAMESIZE bytes */
 unsigned int netif_get_total(void);
+u8_t netif_ip4_addr_cmp(struct netif *netif, ip4_addr_t *addr);
 #endif /* SYLIXOS */
 
 /* Interface indexes always start at 1 per RFC 3493, section 4, num starts at 0 (internal index is 0..254)*/

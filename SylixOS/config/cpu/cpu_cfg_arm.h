@@ -56,6 +56,7 @@
 #endif                                                                  /*  defined(__GNUC__)           */
 
 #define LW_CFG_CPU_WORD_LENGHT          32                              /*  CPU 字长                    */
+#define LW_CFG_CPU_PHYS_ADDR_64BIT      0                               /*  物理地址 64bit 宽度         */
 
 /*********************************************************************************************************
   ARM 配置

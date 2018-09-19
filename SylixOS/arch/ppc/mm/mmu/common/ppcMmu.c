@@ -610,11 +610,8 @@ static INT  ppcMmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  ulFl
         if (ppcMmuPteIsOk(*p_pteentry)) {
             addr_t   ulPhysicalAddr = (addr_t)(p_pteentry->PTE_uiRPN << LW_CFG_VMM_PAGE_SHIFT);
 
-            *p_pteentry = (LW_PTE_TRANSENTRY)ppcMmuBuildPtentry((UINT32)ulPhysicalAddr,
-                                                                ucPP,
-                                                                ucWIMG,
-                                                                ucExec,
-                                                                ucType);
+            *p_pteentry = ppcMmuBuildPtentry((UINT32)ulPhysicalAddr,
+                                             ucPP, ucWIMG, ucExec, ucType);
             ppcMmuHashPageTblFlagSet(ulAddr,
                                      p_pteentry->PTE_uiValue);
 
@@ -630,7 +627,7 @@ static INT  ppcMmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  ulFl
 ** 输　入  : pmmuctx        mmu 上下文
 **           p_pteentry     对应的页表项
 **           ulVirtualAddr  虚拟地址
-**           ulPhysicalAddr 物理地址
+**           paPhysicalAddr 物理地址
 **           ulFlag         对应的类型
 ** 输　出  : NONE
 ** 全局变量:
@@ -640,8 +637,8 @@ static INT  ppcMmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  ulFl
 static VOID  ppcMmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
                               LW_PTE_TRANSENTRY  *p_pteentry,
                               addr_t              ulVirtualAddr,
-                              addr_t              ulPhysicalAddr,
-                              addr_t              ulFlag)
+                              phys_addr_t         paPhysicalAddr,
+                              ULONG               ulFlag)
 {
     UINT8   ucPP;                                                       /*  存储权限                    */
     UINT8   ucWIMG;                                                     /*  CACHE 与缓冲区控制          */
@@ -659,11 +656,8 @@ static VOID  ppcMmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
         return;
     }
 
-    *p_pteentry = (LW_PTE_TRANSENTRY)ppcMmuBuildPtentry((UINT32)ulPhysicalAddr,
-                                                        ucPP,
-                                                        ucWIMG,
-                                                        ucExec,
-                                                        ucType);
+    *p_pteentry = ppcMmuBuildPtentry((UINT32)paPhysicalAddr,
+                                     ucPP, ucWIMG, ucExec, ucType);
 
     ppcMmuHashPageTblMakeTrans(ulVirtualAddr,
                                p_pteentry->PTE_uiValue);

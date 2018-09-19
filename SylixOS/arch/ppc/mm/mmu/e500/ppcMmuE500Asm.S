@@ -94,13 +94,29 @@ MACRO_DEF(E500_TLB_ERROR_ENTRY, addr_reg, exc_entry)
 
     RLWINM      R3 , R3 , 20 , 12 , 31      ;/*  R3 = uiEPN = ulMissAddr >> LW_CFG_VMM_PAGE_SHIFT;       */
 
+#if LW_CFG_CPU_PHYS_ADDR_64BIT > 0
+    RLWINM      R3 , R3 , 3  , 0  , 28      ;/*  R3 = uiEPN * sizeof(LW_PTE_TRANSENTRY);                 */
+#else
     RLWINM      R3 , R3 , 2  , 0  , 29      ;/*  R3 = uiEPN * sizeof(LW_PTE_TRANSENTRY);                 */
+#endif
 
     MFSPR       R4 , SPRG3                  ;/*  R4 = _G_ulPTETable;                                     */
 
     ADD         R3 , R4 , R3                ;/*  R3 = p_pteentry = (_G_ulPTETable +                      */
                                             ;/*  uiEPN * sizeof(LW_PTE_TRANSENTRY));                     */
 
+    MFSPR       R4 , SPRG2                  ;/*  R4 = _G_bHasMAS7;                                       */
+    CMPWI       CR7 , R4 , 0                ;/*  if (!_G_bHasMAS7)                                       */
+    BEQ         CR7 , 1f                    ;/*  then goto 1;                                            */
+
+#if LW_CFG_CPU_PHYS_ADDR_64BIT > 0
+    LWZ         R4 , 4(R3)                  ;/*  R4 = *(p_pteentry + 4);                                 */
+#else
+    LI          R4 , 0                      ;/*  R4 = 0;                                                 */
+#endif
+    MTSPR       MAS7 , R4                   ;/*  MAS7 = R4;                                              */
+
+LINE_LABEL(1)
     LWZ         R3 , 0(R3)                  ;/*  R3 = *p_pteentry;                                       */
 
     RLWINM      R4  , R3 , 0 , 22 , 22      ;/*  R4 = pteentry.MAS3_bValid;                              */
@@ -120,14 +136,6 @@ MACRO_DEF(E500_TLB_ERROR_ENTRY, addr_reg, exc_entry)
 
     MTSPR       MAS3 , R3                   ;/*  …Ë÷√ MAS3                                               */
 
-    MFSPR       R4 , SPRG2                  ;/*  R4 = _G_bHasMAS7;                                       */
-    CMPWI       CR7 , R4 , 0                ;/*  if (!_G_bHasMAS7)                                       */
-    BEQ         CR7 , 1f                    ;/*  then goto 1;                                            */
-
-    LI          R3 , 0
-    MTSPR       MAS7 , R3                   ;/*  MAS7 = 0;                                               */
-
-LINE_LABEL(1)
     ISYNC
     SYNC
     TLBWE

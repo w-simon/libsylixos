@@ -666,11 +666,8 @@ static INT  armMmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  ulFl
                                                                   ulAddr);
         if (armMmuPteIsOk(*p_pteentry)) {
             addr_t   ulPhysicalAddr = (addr_t)(*p_pteentry & 0xFFFFF000);
-            *p_pteentry = (LW_PTE_TRANSENTRY)armMmuBuildPtentry((UINT32)ulPhysicalAddr,
-                                                                ucAP,
-                                                                ucDomain,
-                                                                ucCB,
-                                                                ucType);
+            *p_pteentry = armMmuBuildPtentry((UINT32)ulPhysicalAddr,
+                                             ucAP, ucDomain, ucCB, ucType);
 #if LW_CFG_CACHE_EN > 0
             armDCacheFlush((PVOID)p_pteentry, (PVOID)p_pteentry, 32);   /*  第三个参数无影响            */
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
@@ -686,7 +683,7 @@ static INT  armMmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  ulFl
 ** 输　入  : pmmuctx        mmu 上下文
 **           p_pteentry     对应的页表项
 **           ulVirtualAddr  虚拟地址
-**           ulPhysicalAddr 物理地址
+**           paPhysicalAddr 物理地址
 **           ulFlag         对应的类型
 ** 输　出  : NONE
 ** 全局变量: 
@@ -696,8 +693,8 @@ static INT  armMmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  ulFl
 static VOID  armMmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
                               LW_PTE_TRANSENTRY  *p_pteentry,
                               addr_t              ulVirtualAddr,
-                              addr_t              ulPhysicalAddr,
-                              addr_t              ulFlag)
+                              phys_addr_t         paPhysicalAddr,
+                              ULONG               ulFlag)
 {
     UINT8   ucAP;                                                       /*  存储权限                    */
     UINT8   ucDomain;                                                   /*  域                          */
@@ -715,11 +712,8 @@ static VOID  armMmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
         return;
     }
     
-    *p_pteentry = (LW_PTE_TRANSENTRY)armMmuBuildPtentry((UINT32)ulPhysicalAddr,
-                                                        ucAP,
-                                                        ucDomain,
-                                                        ucCB,
-                                                        ucType);
+    *p_pteentry = armMmuBuildPtentry((UINT32)paPhysicalAddr, ucAP,
+                                     ucDomain, ucCB, ucType);
                                                         
 #if LW_CFG_CACHE_EN > 0
     armDCacheFlush((PVOID)p_pteentry, (PVOID)p_pteentry, 32);           /*  第三个参数无影响            */

@@ -53,6 +53,7 @@ VOID  archMmuInit (CPCHAR  pcMachineName)
         (lib_strcmp(pcMachineName, PPC_MACHINE_745X)    == 0) ||
         (lib_strcmp(pcMachineName, PPC_MACHINE_E300)    == 0) ||
         (lib_strcmp(pcMachineName, PPC_MACHINE_E600)    == 0)) {
+        _BugHandle(LW_CFG_CPU_PHYS_ADDR_64BIT, LW_TRUE, "LW_CFG_CPU_PHYS_ADDR_64BIT MUST be 0!\r\n");
         ppcMmuInit(pmmuop, pcMachineName);
         _G_pfuncMmuDataTlbPreLoad = ppcMmuPtePreLoad;
 

@@ -692,7 +692,7 @@ etharp_input(struct pbuf *p, struct netif *netif)
   }
 
 #ifdef SYLIXOS /* SylixOS Add Check mac conflict */
-  if (ip4_addr_cmp(&sipaddr, netif_ip4_addr(netif)) &&
+  if (netif_ip4_addr_cmp(netif, &sipaddr) &&
       ((hdr->shwaddr.addr[0] != netif->hwaddr[0]) ||
        (hdr->shwaddr.addr[1] != netif->hwaddr[1]) ||
        (hdr->shwaddr.addr[2] != netif->hwaddr[2]) ||

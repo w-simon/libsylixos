@@ -1763,6 +1763,34 @@ netif_get_total(void)
   
   return total;
 }
+
+/**
+* @ingroup netif
+* netif address is same?
+*/
+u8_t
+netif_ip4_addr_cmp(struct netif *netif, ip4_addr_t *addr)
+{
+  struct netif *mipif;
+
+  if (ip4_addr_cmp(addr, netif_ip4_addr(netif))) {
+    return 1;
+  }
+  
+  if (netif_has_mipif(netif)) {
+    if (netif_is_mipif(netif)) {
+      netif = netif_get_masterif(netif);
+    }
+
+    NETIF_MIPIF_FOREACH(netif, mipif) {
+      if (ip4_addr_cmp(addr, netif_ip4_addr(mipif))) {
+        return 1;
+      }
+    }
+  }
+  
+  return 0;
+}
 #endif /* SYLIXOS */
 
 /**

@@ -132,7 +132,7 @@ VOID  API_VmmPhysicalShow (VOID)
 *********************************************************************************************************/
 static VOID  __vmmVirtualPrint (PLW_VMM_PAGE  pvmpage)
 {
-    addr_t  ulVirtualAddr  = pvmpage->PAGE_ulPageAddr;
+    addr_t  ulVirtualAddr = pvmpage->PAGE_ulPageAddr;
     
 #if LW_CFG_CPU_WORD_LENGHT == 64
     printf("%16lx %16lx ", ulVirtualAddr, (pvmpage->PAGE_ulCount << LW_CFG_VMM_PAGE_SHIFT));
