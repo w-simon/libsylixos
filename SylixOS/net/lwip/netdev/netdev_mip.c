@@ -72,6 +72,7 @@ static err_t netdev_mipif_init (struct netif *mipif)
   mipif->linkoutput = netif->linkoutput;
   
   mipif->mtu = netif->mtu;
+  mipif->link_speed = netif->link_speed;
   mipif->chksum_flags = netif->chksum_flags;
 
   mipif->hwaddr_len = netif->hwaddr_len;
@@ -83,7 +84,7 @@ static err_t netdev_mipif_init (struct netif *mipif)
   /* link to list */
   mipif->mipif = netif->mipif;
   netif->mipif = mipif;
-  mipif->is_mipif = 1;
+  mipif->masterif = netif;
   
   return (ERR_OK);
 }
@@ -111,7 +112,7 @@ int netdev_mipif_add (netdev_t *netdev, const ip4_addr_t *ip4,
     return (-1);
   }
   
-  for (mipif = netif->mipif; mipif != NULL; mipif = mipif->mipif) {
+  NETIF_MIPIF_FOREACH(netif, mipif) {
     if (ip4_addr_cmp(netif_ip4_addr(mipif), ip4)) {
       errno = EADDRINUSE;
       return (-1);
@@ -211,7 +212,7 @@ void netdev_mipif_update (netdev_t *netdev)
   
   netif = (struct netif *)netdev->sys;
   
-  for (mipif = netif->mipif; mipif != NULL; mipif = mipif->mipif) {
+  NETIF_MIPIF_FOREACH(netif, mipif) {
     mipif->mtu = netif->mtu;
     mipif->link_speed = netif->link_speed;
     if ((mipif->flags & NETIF_FLAG_UP) && !(netif->flags & NETIF_FLAG_UP)) {
@@ -220,6 +221,23 @@ void netdev_mipif_update (netdev_t *netdev)
       netif_set_up(mipif);
     }
     mipif->flags = (u8_t)(netif->flags & ~(NETIF_FLAG_IGMP | NETIF_FLAG_MLD6));
+  }
+}
+
+/* set all slave interface update tcp ack freq, tcp wnd */
+void netdev_mipif_tcpupd (netdev_t *netdev)
+{
+  struct netif *netif, *mipif;
+  
+  if (!netdev || (netdev->magic_no != NETDEV_MAGIC)) {
+    return;
+  }
+  
+  netif = (struct netif *)netdev->sys;
+  
+  NETIF_MIPIF_FOREACH(netif, mipif) {
+    netif_set_tcp_ack_freq(mipif, netif->tcp_ack_freq);
+    netif_set_tcp_wnd(mipif, netif->tcp_wnd);
   }
 }
 
@@ -234,7 +252,7 @@ void netdev_mipif_hwaddr (netdev_t *netdev)
   
   netif = (struct netif *)netdev->sys;
   
-  for (mipif = netif->mipif; mipif != NULL; mipif = mipif->mipif) {
+  NETIF_MIPIF_FOREACH(netif, mipif) {
     MEMCPY(mipif->hwaddr, netif->hwaddr, netif->hwaddr_len);
   }
 }
@@ -315,7 +333,7 @@ struct netif *netdev_mipif_search (netdev_t *netdev, struct pbuf *p)
     return (netif);
   }
   
-  for (mipif = netif->mipif; mipif != NULL; mipif = mipif->mipif) {
+  NETIF_MIPIF_FOREACH(netif, mipif) {
     if (ip4_addr_cmp(netif_ip4_addr(mipif), &destip)) {
       return (mipif);
     }

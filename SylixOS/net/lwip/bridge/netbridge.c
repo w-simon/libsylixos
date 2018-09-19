@@ -320,7 +320,7 @@ int  netbr_add_dev (const char *brdev, const char *sub, int sub_is_ifname)
   }
   if (netdev) {
     netif = (struct netif *)netdev->sys;
-    if (!netif->is_mipif) { /* not a multi ip fake interface */
+    if (!netif_is_mipif(netif)) { /* not a multi ip fake interface */
       found = 1;
     }
   }

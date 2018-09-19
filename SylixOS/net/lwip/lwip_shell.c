@@ -357,9 +357,19 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
     
     __netIfSpeed(netif, cSpeed, sizeof(cSpeed));
     
+#if LW_CFG_NET_NETDEV_MIP_EN > 0
+    if (netif_is_mipif(netif)) {
+        printf("%9s Mif: %s Ifidx: %d ", "",
+               netif_get_name(netif_get_masterif(netif), cIfName), netif_get_index(netif));
+    } else 
+#endif                                                                  /*  LW_CFG_NET_NETDEV_MIP_EN    */
+    {
+        printf("%9s Dev: %s Ifidx: %d ", "",
+               pcDevName, netif_get_index(netif));
+    }
+
 #if LWIP_DHCP
-    printf("%9s Dev: %s Ifidx: %d DHCP: %s%s %s%s Spd: %s\n", "", 
-           pcDevName, netif_get_index(netif),
+    printf("DHCP: %s%s %s%s Spd: %s\n", 
            (netif->flags2 & NETIF_FLAG2_DHCP) ? "E4" : "D4",
            (netif->flags2 & NETIF_FLAG2_DHCP) ? ((netif_dhcp_data(netif)) ? "(On)" : "(Off)") : "",
 #if LWIP_IPV6_DHCP6
@@ -370,8 +380,7 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
 #endif                                                                  /*  LWIP_IPV6_DHCP6             */
            cSpeed);
 #else
-    printf("%9s Dev: %s Ifidx: %d Spd: %s\n", "", 
-           pcDevName, netif_get_index(netif), cSpeed);
+    printf("Spd: %s\n", cSpeed);
 #endif                                                                  /*  LWIP_DHCP                   */
     
     printf("%9s inet addr: %d.%d.%d.%d ", "",
@@ -452,6 +461,11 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
     
     printf("%9s tcp_ack_freq:%u tcp_wnd_size:%u\n", "", 
            netif_get_tcp_ack_freq(netif), netif_get_tcp_wnd(netif));
+    
+    if (netif_is_mipif(netif)) {
+        printf("\n");
+        return;
+    }
     
     printf("%9s RX ucast packets:%u nucast packets:%u dropped:%u\n", "",
            MIB2_NETIF(netif)->ifinucastpkts, MIB2_NETIF(netif)->ifinnucastpkts, MIB2_NETIF(netif)->ifindiscards);

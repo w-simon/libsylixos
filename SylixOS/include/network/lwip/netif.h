@@ -415,7 +415,7 @@ struct netif {
   u32_t tcp_wnd; /* TCP rcv_wnd */
   /* SylixOS mip externed */
   struct netif *mipif;
-  u8_t is_mipif;
+  struct netif *masterif;
   void *reserve[6];
 #endif /* SYLIXOS */
 };
@@ -592,6 +592,12 @@ struct netif* netif_get_by_index(u8_t idx);
 
 #define netif_set_tcp_wnd(netif, tcpwnd)        ((netif)->tcp_wnd = tcpwnd)
 #define netif_get_tcp_wnd(netif)                ((netif)->tcp_wnd)
+
+#define netif_is_mipif(netif)                   ((netif)->masterif != NULL)
+#define netif_has_mipif(netif)                  ((netif)->mipif != NULL)
+#define netif_get_masterif(netif)               ((netif)->masterif)
+
+#define NETIF_MIPIF_FOREACH(netif, mipif)       for ((mipif) = netif->mipif; (mipif) != NULL; (mipif) = (mipif)->mipif)
 
 char * netif_get_name(struct netif *netif, char *name); /* name char buffer of at least NETIF_NAMESIZE bytes */
 unsigned int netif_get_total(void);

@@ -48,6 +48,7 @@ int  netdev_mipif_add(netdev_t *netdev, const ip4_addr_t *ip4,
 int  netdev_mipif_delete(netdev_t *netdev, const ip4_addr_t *ip4);
 void netdev_mipif_clean(netdev_t *netdev);
 void netdev_mipif_update(netdev_t *netdev);
+void netdev_mipif_tcpupd(netdev_t *netdev);
 void netdev_mipif_hwaddr(netdev_t *netdev);
 struct netif *netdev_mipif_search(netdev_t *netdev, struct pbuf *p);
 

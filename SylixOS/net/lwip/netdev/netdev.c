@@ -639,6 +639,30 @@ static err_t  netdev_netif_init (struct netif *netif)
   return (ERR_OK);
 }
 
+#if LW_CFG_NET_NETDEV_MIP_EN > 0
+/* load mip parameter */
+static void netdev_netif_mipinit (netdev_t *netdev, void  *ifparam)
+{
+  int idx;
+  ip4_addr_t ip4, netmask4, gw4;
+  
+  for (idx = 0; idx < LW_CFG_NET_DEV_MAX; idx++) {
+    if (if_param_getmipaddr(ifparam, idx, &ip4) < 0) {
+      break;
+    }
+    if (if_param_getmnetmask(ifparam, idx, &netmask4) < 0) {
+      netmask4.addr = IPADDR_ANY;
+    }
+    if (if_param_getmgw(ifparam, idx, &gw4) < 0) {
+      gw4.addr = IPADDR_ANY;
+    }
+    if (netdev_mipif_add(netdev, &ip4, &netmask4, &gw4) < 0) {
+      break;
+    }
+  }
+}
+#endif /* LW_CFG_NET_NETDEV_MIP_EN */
+
 /* netdev driver call the following functions add a network interface,
  * if this device not in '/etc/if_param.ini' ip, netmask, gw is default configuration.
  * 'if_flags' defined in net/if.h such as IFF_UP, IFF_BROADCAST, IFF_RUNNING, IFF_NOARP, IFF_MULTICAST, IFF_PROMISC ... */
@@ -647,7 +671,7 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
   ip4_addr_t ip4, netmask4, gw4;
   struct netif *netif;
   struct netdev_funcs *drv;
-  void  *ifparam;
+  void  *ifparam = NULL;
   int  i, enable, def, dhcp, autocfg;
   char macstr[32];
   int  mac[NETIF_MAX_HWADDR_LEN];
@@ -787,8 +811,6 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
       } else if (tcp_wnd > 0xffffu << TCP_RCV_SCALE) {
         tcp_wnd = 0xffffu << TCP_RCV_SCALE;
       }
-
-      if_param_unload(ifparam);
     }
   }
   
@@ -797,6 +819,9 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
   }
   
   if (netifapi_netif_add(netif, &ip4, &netmask4, &gw4, netdev, netdev_netif_init, tcpip_input)) {
+    if (ifparam) {
+      if_param_unload(ifparam);
+    }
     return (-1);
   }
   
@@ -804,6 +829,16 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
   netif_set_tcp_wnd(netif, (u32_t)tcp_wnd);
 
   netif_get_name(netif, netdev->if_name); /* update netdev if_name */
+  
+#if LW_CFG_NET_NETDEV_MIP_EN > 0
+  if (ifparam) {
+    netdev_netif_mipinit(netdev, ifparam);
+  }
+#endif /* LW_CFG_NET_NETDEV_MIP_EN */
+  
+  if (ifparam) {
+    if_param_unload(ifparam);
+  }
 
 #if LWIP_IPV6
   netif_create_ip6_linklocal_address(netif, 1);
@@ -1086,6 +1121,10 @@ int  netdev_set_tcpaf (netdev_t *netdev, UINT8 tcpaf)
   
   netif_set_tcp_ack_freq(netif, tcpaf);
   
+#if LW_CFG_NET_NETDEV_MIP_EN > 0
+  netdev_mipif_tcpupd(netdev);
+#endif /* LW_CFG_NET_NETDEV_MIP_EN */
+  
   return (0);
 }
 
@@ -1124,6 +1163,10 @@ int  netdev_set_tcpwnd (netdev_t *netdev, UINT32 tcpwnd)
   }
   
   netif_set_tcp_wnd(netif, tcpwnd);
+  
+#if LW_CFG_NET_NETDEV_MIP_EN > 0
+  netdev_mipif_tcpupd(netdev);
+#endif /* LW_CFG_NET_NETDEV_MIP_EN */
   
   return (0);
 }

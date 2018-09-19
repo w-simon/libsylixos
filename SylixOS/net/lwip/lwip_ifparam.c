@@ -46,6 +46,14 @@
                             既接收两个总和大于 MSS 长度数据包立即发送 ACK
   tcp_wnd=8192            # TCP window (tcp_wnd > 2 * MSS) && (tcp_wnd < (0xffffu << TCP_RCV_SCALE))
   
+  mipaddr=10.0.0.2        # 添加一个辅助 IP 地址
+  mnetmask=255.0.0.0
+  mgateway=10.0.0.1
+  
+  mipaddr=172.168.0.2     # 添加一个辅助 IP 地址
+  mnetmask=255.255.0.0
+  mgateway=172.168.0.2
+  
   或者
   
   [dm9000a]
@@ -53,7 +61,8 @@
   dhcp=1
   dhcp6=1
   mac=00:11:22:33:44:55   # 除非网卡没有 MAC 地址, 否则不建议设置 MAC
-
+*********************************************************************************************************/
+/*********************************************************************************************************
   resolver 类库配置文件范例 /etc/resolv.conf
 
   nameserver x.x.x.x
@@ -74,6 +83,12 @@
 #define LW_IFPARAM_IPV6_ACFG    "ipv6_auto_cfg"
 #define LW_IFPARAM_TCP_ACK_FREQ "tcp_ack_freq"
 #define LW_IFPARAM_TCP_WND      "tcp_wnd"
+/*********************************************************************************************************
+  辅助地址
+*********************************************************************************************************/
+#define LW_IFPARAM_MIPADDR      "mipaddr"
+#define LW_IFPARAM_MMASK        "mnetmask"
+#define LW_IFPARAM_MGW          "mgateway"
 /*********************************************************************************************************
   ini 配置
 *********************************************************************************************************/
@@ -321,6 +336,42 @@ static CPCHAR  __iniGetStr (PLW_INI_SEC  pinisec, CPCHAR  pcKey, CPCHAR  pcDefau
     
     return  ((CPCHAR)pcRet);
 }
+/*********************************************************************************************************
+** 函数名称: __iniGetStr
+** 功能描述: 获得指定配置项字符串
+** 输　入  : pinisec       INI 句柄
+**           pcKey         指定项
+**           pcDefault     默认值
+** 输　出  : 获取的值
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+#if LW_CFG_NET_NETDEV_MIP_EN > 0
+
+static CPCHAR  __iniGetIdxStr (PLW_INI_SEC  pinisec, INT  idx, CPCHAR  pcKey, CPCHAR  pcDefault)
+{
+    PLW_INI_KEY     pinikey;
+    PLW_LIST_LINE   pline;
+    PCHAR           pcRet = (PCHAR)pcDefault;
+    
+    for (pline  = pinisec->INIS_plineKey;
+         pline != LW_NULL;
+         pline  = _list_line_get_next(pline)) {
+         
+        pinikey = _LIST_ENTRY(pline, LW_INI_KEY, INIK_lineManage);
+        if (lib_strcmp(pinikey->INIK_pcKey, pcKey) == 0) {
+            if (idx == 0) {
+                pcRet = (PCHAR)pinikey->INIK_pcValue;
+                break;
+            }
+            idx--;
+        }
+    }
+    
+    return  ((CPCHAR)pcRet);
+}
+
+#endif                                                                  /*  LW_CFG_NET_NETDEV_MIP_EN    */
 /*********************************************************************************************************
 ** 函数名称: if_param_load
 ** 功能描述: 装载指定网络接口配置
@@ -754,6 +805,112 @@ int  if_param_getingw (void *pifparam, struct in_addr *gw)
         return  (PX_ERROR);
     }
 }
+/*********************************************************************************************************
+** 函数名称: if_param_getmipaddr
+** 功能描述: 读取辅助 IP 地址配置.
+** 输　入  : pifparam      配置句柄
+**           idx           索引 (起始为 0)
+**           ipaddr        IP 地址
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+#if LW_CFG_NET_NETDEV_MIP_EN > 0
+
+LW_API
+int  if_param_getmipaddr (void *pifparam, int  idx, ip4_addr_t *ipaddr)
+{
+    const char  *value;
+    PLW_INI_SEC  pinisec = (PLW_INI_SEC)pifparam;
+
+    if (!pinisec || !ipaddr) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    value = __iniGetIdxStr(pinisec, idx, LW_IFPARAM_MIPADDR, LW_NULL);
+    if (!value) {
+        return  (PX_ERROR);
+    }
+
+    if (ip4addr_aton(value, ipaddr)) {
+        return  (ERROR_NONE);
+
+    } else {
+        return  (PX_ERROR);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: if_param_getmnetmask
+** 功能描述: 读取辅助子网掩码配置.
+** 输　入  : pifparam      配置句柄
+**           idx           索引 (起始为 0)
+**           mask          子网掩码
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+int  if_param_getmnetmask (void *pifparam, int  idx, ip4_addr_t *mask)
+{
+    const char  *value;
+    PLW_INI_SEC  pinisec = (PLW_INI_SEC)pifparam;
+
+    if (!pinisec || !mask) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    value = __iniGetIdxStr(pinisec, idx, LW_IFPARAM_MMASK, LW_NULL);
+    if (!value) {
+        return  (PX_ERROR);
+    }
+
+    if (ip4addr_aton(value, mask)) {
+        return  (ERROR_NONE);
+
+    } else {
+        return  (PX_ERROR);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: if_param_getmgw
+** 功能描述: 读取子网掩码配置.
+** 输　入  : pifparam      配置句柄
+**           idx           索引 (起始为 0)
+**           gw            网关地址
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+int  if_param_getmgw (void *pifparam, int  idx, ip4_addr_t *gw)
+{
+    const char  *value;
+    PLW_INI_SEC  pinisec = (PLW_INI_SEC)pifparam;
+
+    if (!pinisec || !gw) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    value = __iniGetIdxStr(pinisec, idx, LW_IFPARAM_MGW, LW_NULL);
+    if (!value) {
+        return  (PX_ERROR);
+    }
+
+    if (ip4addr_aton(value, gw)) {
+        return  (ERROR_NONE);
+
+    } else {
+        return  (PX_ERROR);
+    }
+}
+
+#endif                                                                  /*  LW_CFG_NET_NETDEV_MIP_EN    */
 /*********************************************************************************************************
 ** 函数名称: if_param_getmac
 ** 功能描述: 读取 MAC 配置.

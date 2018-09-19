@@ -385,7 +385,7 @@ netif_add(struct netif *netif,
   netif->tcp_ack_freq = LWIP_NETIF_TCP_ACK_FREQ_MIN;
   netif->tcp_wnd = TCP_WND;
   netif->mipif = NULL;
-  netif->is_mipif = 0;
+  netif->masterif = NULL;
   lib_bzero(netif->reserve, sizeof(void *[6]));
 #endif /* SYLIXOS */
 
