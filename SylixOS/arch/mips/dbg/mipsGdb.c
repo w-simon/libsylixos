@@ -99,7 +99,14 @@ static const CHAR   cTargetSystem[] = \
 #define GDB_REG_INDEX_FP(n)     (38 + (n))                              /*  32 个浮点数据寄存器         */
 #define GDB_REG_INDEX_FCSR      (38 + 32 + 0)                           /*  浮点控制状态寄存器          */
 #define GDB_REG_INDEX_FIR       (38 + 32 + 1)                           /*  浮点实现寄存器              */
+
+#if (LW_CFG_CPU_DSP_EN > 0) && defined(_MIPS_ARCH_HR2)
+#define GDB_REG_INDEX_HR2_V(n, sn)  \
+                                (38 + 34 + (n) * 4 + (sn))              /*  32 个向量数据寄存器         */
+#define GDB_REG_NR              (38 + 34 + 129)                         /*  寄存器总数                  */
+#else
 #define GDB_REG_NR              (38 + 34)                               /*  寄存器总数                  */
+#endif                                                                  /*  DSP_EN & _MIPS_ARCH_HR2     */
 /*********************************************************************************************************
   浮点状态寄存器条件为，fpcsr 寄存器该位为 1 标识条件满足
 *********************************************************************************************************/
@@ -236,6 +243,18 @@ INT  archGdbRegsGet (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET *pre
         pregset->regArr[GDB_REG_INDEX_FIR].GDBRA_ulValue    = archFpuGetFIR();
     }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+
+#if (LW_CFG_CPU_DSP_EN > 0) && defined(_MIPS_ARCH_HR2)
+    if (regctx.REG_ulCP0Status & ST0_CU2) {
+        ARCH_DSP_CTX    dspctx;
+
+        API_DtraceGetDspRegs(pvDtrace, ulThread, &dspctx);
+
+        lib_memcpy(&pregset->regArr[GDB_REG_INDEX_HR2_V(0, 0)].GDBRA_ulValue,
+                   &dspctx,
+                   sizeof(ARCH_DSP_CTX));
+    }
+#endif                                                                  /*  DSP_EN & _MIPS_ARCH_HR2     */
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 64*/
 
     pregset->GDBR_iRegCnt = GDB_REG_NR;
@@ -338,6 +357,18 @@ INT  archGdbRegsSet (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET *pre
         API_DtraceSetFpuRegs(pvDtrace, ulThread, &fpuctx);
     }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+
+#if (LW_CFG_CPU_DSP_EN > 0) && defined(_MIPS_ARCH_HR2)
+    if (regctx.REG_ulCP0Status & ST0_CU2) {
+        ARCH_DSP_CTX    dspctx;
+
+        lib_memcpy(&dspctx,
+                   &pregset->regArr[GDB_REG_INDEX_HR2_V(0, 0)].GDBRA_ulValue,
+                   sizeof(ARCH_DSP_CTX));
+
+        API_DtraceSetDspRegs(pvDtrace, ulThread, &dspctx);
+    }
+#endif                                                                  /*  DSP_EN & _MIPS_ARCH_HR2     */
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 64*/
 
     return  (ERROR_NONE);
@@ -401,7 +432,28 @@ ULONG  archGdbGetNextPc (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET 
 #if LW_CFG_CPU_FPU_EN > 0
     ARCH_FPU_CTX        fpuctx;
     UINT32              uiFcsr;
+
+#define __GET_FPU_CTX(FscrDefault)                              \
+    if (regctx.REG_ulCP0Status & ST0_CU1) {                     \
+        API_DtraceGetFpuRegs(pvDtrace, ulThread, &fpuctx);      \
+        uiFcsr = fpuctx.FPUCTX_uiFcsr;                          \
+    } else {                                                    \
+        uiFcsr = FscrDefault;                                   \
+    }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+
+#if (LW_CFG_CPU_DSP_EN > 0) && defined(_MIPS_ARCH_HR2)
+    ARCH_DSP_CTX        dspctx;
+    UINT32              uiVccr;
+
+#define __GET_DSP_CTX(VccrDefault)                              \
+    if (regctx.REG_ulCP0Status & ST0_CU2) {                     \
+        API_DtraceGetDspRegs(pvDtrace, ulThread, &dspctx);      \
+        uiVccr = dspctx.DSPCTX_hr2VectorCtx.HR2VECCTX_uiVccr;   \
+    } else {                                                    \
+        uiVccr = VccrDefault;                                   \
+    }
+#endif                                                                  /*  DSP_EN & _MIPS_ARCH_HR2     */
 
     pc = (ARCH_REG_T)pRegs->regArr[GDB_REG_INDEX_PC].GDBRA_ulValue;     /*  当前 PC 指针                */
     /*
@@ -429,15 +481,6 @@ ULONG  archGdbGetNextPc (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET 
     } else {
         fccN += 24;
     }
-
-#if LW_CFG_CPU_FPU_EN > 0
-    if (regctx.REG_ulCP0Status & ST0_CU1) {                             /*  如果使用了 FPU              */
-        API_DtraceGetFpuRegs(pvDtrace, ulThread, &fpuctx);
-        uiFcsr = fpuctx.FPUCTX_uiFcsr;
-    } else {
-        uiFcsr = 0;
-    }
-#endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 
     if (((machInstr & 0xfc1f0000) == 0x04130000) ||                     /*  BGEZALL                     */
         ((machInstr & 0xfc1f0000) == 0x04030000)) {                     /*  BGEZL                       */
@@ -496,6 +539,7 @@ ULONG  archGdbGetNextPc (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET 
         npc = pc + 8;
         if (copId == 1) {                                               /*  0:bc0* 1:bc1* 2:bc2*        */
 #if LW_CFG_CPU_FPU_EN > 0
+            __GET_FPU_CTX((1 << fccN));
             if (!(uiFcsr & (1 << fccN))) {
                 npc = disp + pc + 4;
             }
@@ -507,6 +551,7 @@ ULONG  archGdbGetNextPc (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET 
         npc = pc + 8;
         if (copId == 1) {                                               /*  0:bc0* 1:bc1* 2:bc2*        */
 #if LW_CFG_CPU_FPU_EN > 0
+            __GET_FPU_CTX(~(1 << fccN));
             if (uiFcsr & (1 << fccN)) {
                 npc = disp + pc + 4;
             }
@@ -518,6 +563,7 @@ ULONG  archGdbGetNextPc (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET 
         npc = pc + 8;
         if (copId == 1) {                                               /*  0:bc0* 1:bc1* 2:bc2*        */
 #if LW_CFG_CPU_FPU_EN > 0
+            __GET_FPU_CTX((1 << fccN));
             if (!(uiFcsr & (1 << fccN))) {
                 npc = disp + pc + 4;
             }
@@ -529,6 +575,7 @@ ULONG  archGdbGetNextPc (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET 
         npc = pc + 8;
         if (copId == 1) {                                               /*  0:bc0* 1:bc1* 2:bc2*        */
 #if LW_CFG_CPU_FPU_EN > 0
+            __GET_FPU_CTX(~(1 << fccN));
             if (uiFcsr & (1 << fccN)) {
                 npc = disp + pc + 4;
             }
@@ -578,6 +625,24 @@ ULONG  archGdbGetNextPc (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET 
         } else {
             npc = pc + 8;
         }
+
+#if (LW_CFG_CPU_DSP_EN > 0) && defined(_MIPS_ARCH_HR2)
+    } else if ((machInstr & 0xffff0000) == 0xe8000000) {                /*  BC2F vcc 为 false 时分支    */
+        __GET_DSP_CTX(1);
+        if (!uiVccr) {
+            npc = disp + pc + 4;
+        } else {
+            npc = pc + 8;
+        }
+
+    } else if ((machInstr & 0xffff0000) == 0xe8010000) {                /*  BC2T vcc 为 true 时分支     */
+        __GET_DSP_CTX(0);
+        if (uiVccr) {
+            npc = disp + pc + 4;
+        } else {
+            npc = pc + 8;
+        }
+#endif                                                                  /*  DSP_EN & _MIPS_ARCH_HR2     */
     } else {
                                                                         /*  普通指令                    */
     }

@@ -171,7 +171,7 @@ static INT gdbmAddSym (INT argc, CHAR **argv)
     }
 
     printf("#attach module %s\n", pcFileName);
-    printf("add-symbol-file <YOUR PPROJECT DIR>/Debug/%s 0x%lx ", pcFileName, ulTextAddr);
+    printf("add-symbol-file <YOUR PPROJECT OUTPUT DIR>/%s 0x%lx ", pcFileName, ulTextAddr);
     for (i = 0, pshdr = (Elf_Shdr *)pcBuf; i < ehdr.e_shnum; i++, pshdr++) {
         if ((pshdr->sh_flags & SHF_ALLOC)  &&
             (pshdr->sh_type != SHT_NOBITS) &&

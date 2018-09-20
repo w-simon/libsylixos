@@ -204,6 +204,7 @@ LOCAL_MIPS64_SRCS = $(LOCAL_MIPS_SRCS)
 #*********************************************************************************************************
 LOCAL_PPC_SRCS = \
 SylixOS/arch/ppc/backtrace/ppcBacktrace.c \
+SylixOS/arch/ppc/bsp/bspSmp.c \
 SylixOS/arch/ppc/common/ppcAssert.c \
 SylixOS/arch/ppc/common/ppcContext.c \
 SylixOS/arch/ppc/common/ppcContextAsm.S \

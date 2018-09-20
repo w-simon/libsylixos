@@ -34,7 +34,11 @@
 #define ARCH_REG_SIZE           8                                       /*  寄存器大小                  */
 #define ARCH_REG_CTX_SIZE       (ARCH_REG_CTX_WORD_SIZE * ARCH_REG_SIZE)/*  寄存器上下文大小            */
 
+#if defined(_MIPS_ARCH_HR2)
+#define ARCH_STK_ALIGN_SIZE     32                                      /*  堆栈对齐要求                */
+#else
 #define ARCH_STK_ALIGN_SIZE     16                                      /*  堆栈对齐要求                */
+#endif                                                                  /*  defined(_MIPS_ARCH_HR2)     */
 
 #define ARCH_JMP_BUF_WORD_SIZE  38                                      /*  跳转缓冲字数(向后兼容)      */
 

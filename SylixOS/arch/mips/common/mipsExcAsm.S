@@ -59,17 +59,17 @@ MACRO_DEF(QUAD_VALUE from, to)
     MACRO_END()
 
     SECTION(.data)
-    .align      ARCH_STK_ALIGN_SIZE
+    .balign     ARCH_STK_ALIGN_SIZE
 LINE_LABEL(archExcTempCtx)
     QUAD_VALUE  0 , (LW_CFG_MAX_PROCESSORS - 1)
 
     SECTION(.bss)
-    .align      ARCH_STK_ALIGN_SIZE
+    .balign     ARCH_STK_ALIGN_SIZE
 LINE_LABEL(archExcTempCtxMp)
     .space      (ARCH_TEMP_CTX_SIZE * LW_CFG_MAX_PROCESSORS)
 #else
     SECTION(.bss)
-    .align      ARCH_STK_ALIGN_SIZE
+    .balign     ARCH_STK_ALIGN_SIZE
 LINE_LABEL(archExcTempCtx)
     .space      ARCH_TEMP_CTX_SIZE
 #endif

@@ -452,11 +452,11 @@ static VOID gdbReg2Asc (PCHAR pcAsc, ULONG ulReg)
 
 #if LW_CFG_CPU_ENDIAN == 0
     for (i = 0; i < sizeof(ulReg); i++, ulReg >>= 8) {
-        gdbByte2Asc(pcAsc + (i * 2), ulReg & 0xFF);
+        gdbByte2Asc(pcAsc + (i * 2), ulReg & 0xff);
     }
 #else
     for (i = 0; i < sizeof(ulReg); i++, ulReg >>= 8) {
-        gdbByte2Asc(pcAsc + ((sizeof(ulReg) - i - 1) * 2), ulReg & 0xFF);
+        gdbByte2Asc(pcAsc + ((sizeof(ulReg) - i - 1) * 2), ulReg & 0xff);
     }
 #endif
 }
@@ -474,11 +474,13 @@ static ULONG gdbAscToReg (char *pcAsc)
     INT         i;
 
 #if LW_CFG_CPU_ENDIAN == 0
-    for (i = 0; i < sizeof(ulReg); i++, ulReg <<= 8) {
+    for (i = 0; i < sizeof(ulReg); i++) {
+        ulReg <<= 8;
         ulReg += gdbAscToByte(pcAsc + ((sizeof(ulReg) - i - 1) * 2));
     }
 #else
-    for (i = 0; i < sizeof(ulReg); i++, ulReg <<= 8) {
+    for (i = 0; i < sizeof(ulReg); i++) {
+        ulReg <<= 8;
         ulReg += gdbAscToByte(pcAsc + (i * 2));
     }
 #endif

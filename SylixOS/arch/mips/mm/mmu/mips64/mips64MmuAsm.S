@@ -60,17 +60,17 @@ MACRO_DEF(QUAD_VALUE from, to)
     MACRO_END()
 
     SECTION(.data)
-    .align      ARCH_STK_ALIGN_SIZE
+    .balign     ARCH_STK_ALIGN_SIZE
 LINE_LABEL(_G_mips64MmuTlbRefillCtx)
     QUAD_VALUE  0 , (LW_CFG_MAX_PROCESSORS - 1)
 
     SECTION(.bss)
-    .align      ARCH_STK_ALIGN_SIZE
+    .balign     ARCH_STK_ALIGN_SIZE
 LINE_LABEL(_G_mips64MmuTlbRefillCtxMp)
     .space      (MIPS64_TLB_CTX_SIZE * LW_CFG_MAX_PROCESSORS)
 #else
     SECTION(.bss)
-    .align      ARCH_STK_ALIGN_SIZE
+    .balign     ARCH_STK_ALIGN_SIZE
 LINE_LABEL(_G_mips64MmuTlbRefillCtx)
     .space      MIPS64_TLB_CTX_SIZE
 #endif
