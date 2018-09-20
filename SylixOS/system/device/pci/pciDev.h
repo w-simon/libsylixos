@@ -777,10 +777,9 @@ LW_API PCI_RESOURCE_HANDLE  API_PciDevStdResourceFind(PCI_DEV_HANDLE  hDevHandle
                                                       pci_resource_size_t  stStart);
 
 LW_API PVOID                API_PciDevIoRemap(PVOID  pvPhysicalAddr, size_t  stSize);
+LW_API PVOID                API_PciDevIoRemap2(phys_addr_t  paPhysicalAddr, size_t  stSize);
 LW_API PVOID                API_PciDevIoRemapEx(PVOID  pvPhysicalAddr, size_t  stSize, ULONG  ulFlags);
-
-LW_API addr_t               API_PciDevIoRemap2(phys_addr_t  paPhysicalAddr, size_t  stSize);
-LW_API addr_t               API_PciDevIoRemapEx2(phys_addr_t  paPhysicalAddr, size_t  stSize, ULONG  ulFlags);
+LW_API PVOID                API_PciDevIoRemapEx2(phys_addr_t  paPhysicalAddr, size_t  stSize, ULONG  ulFlags);
 
 LW_API INT                  API_PciDevMasterEnable(PCI_DEV_HANDLE  hDevHandle, BOOL bEnable);
 
@@ -866,9 +865,8 @@ LW_API INT                  API_PciAutoCtrlRegionSet(PCI_CTRL_HANDLE  hCtrl,
 #define pciDevResourceGet       API_PciDevResourceGet
 
 #define pciDevIoRemap           API_PciDevIoRemap
-#define pciDevIoRemapEx         API_PciDevIoRemapEx
-
 #define pciDevIoRemap2          API_PciDevIoRemap2
+#define pciDevIoRemapEx         API_PciDevIoRemapEx
 #define pciDevIoRemapEx2        API_PciDevIoRemapEx2
 
 #define pciDevMasterEnable      API_PciDevMasterEnable

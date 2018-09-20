@@ -406,7 +406,7 @@ static INT  pciSioExarProbe (PCI_DEV_HANDLE hPciDevHandle, const PCI_DEV_ID_HAND
     hResource  = API_PciDevResourceGet(hPciDevHandle, PCI_IORESOURCE_MEM, 0);
     paBaseAddr = (phys_addr_t)(PCI_RESOURCE_START(hResource));
     stBaseSize = (size_t)(PCI_RESOURCE_SIZE(hResource));
-    ulBaseAddr = API_PciDevIoRemap2(paBaseAddr, stBaseSize);
+    ulBaseAddr = (addr_t)API_PciDevIoRemap2(paBaseAddr, stBaseSize);
     if (!ulBaseAddr) {
         return  (PX_ERROR);
     }

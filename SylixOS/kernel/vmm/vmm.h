@@ -190,16 +190,24 @@ LW_API ULONG        API_VmmMoveArea(PVOID  pvVirtualTo, PVOID  pvVirtualFrom);
 LW_API ULONG        API_VmmPCountInArea(PVOID  pvVirtualMem, ULONG  *pulPageNum);
                                                                         /*  统计缺页中断分配的内存页面  */
 
-LW_API ULONG        API_VmmRemapArea(PVOID  pvVirtualAddr, PVOID  pvPhysicalAddr, 
-                                     size_t stSize, ULONG  ulFlag,
-                                     FUNCPTR pfuncFiller, PVOID  pvArg);/*  建立新的映射关系            */
-                                                                        /*  仅供驱动程序 mmap 使用此函数*/
 LW_API ULONG        API_VmmInvalidateArea(PVOID  pvVirtualMem, 
                                           PVOID  pvSubMem, 
                                           size_t stSize);               /*  释放物理内存, 保留虚拟空间  */
                                           
 LW_API VOID         API_VmmAbortStatus(PLW_VMM_STATUS  pvmms);          /*  获得访问中止统计信息        */
-       
+
+/*********************************************************************************************************
+  启动程序使用以下函数实现 mmap 接口, (推荐使用第二套接口)
+*********************************************************************************************************/
+                                                                        /*  建立新的映射关系            */
+LW_API ULONG        API_VmmRemapArea(PVOID  pvVirtualAddr, PVOID  pvPhysicalAddr, 
+                                     size_t  stSize, ULONG  ulFlag,
+                                     FUNCPTR  pfuncFiller, PVOID  pvArg);
+                                                                        /*  建立新的映射关系            */
+LW_API ULONG        API_VmmRemapArea2(PVOID  pvVirtualAddr, phys_addr_t  paPhysicalAddr, 
+                                      size_t  stSize, ULONG  ulFlag,
+                                      FUNCPTR  pfuncFiller, PVOID  pvArg);
+
 /*********************************************************************************************************
   VMM 对于 loader 或者其他内核模块提供的共享段支持 (仅供 loader 或其他 SylixOS 内核服务自己使用)
 *********************************************************************************************************/
@@ -358,9 +366,11 @@ LW_API VOID         API_VmmAbortIsr(addr_t          ulRetAddr,
 #define vmmMallocAreaAlign          API_VmmMallocAreaAlign
 #define vmmFreeArea                 API_VmmFreeArea
 #define vmmPCountInArea             API_VmmPCountInArea
-#define vmmRemapArea                API_VmmRemapArea
 #define vmmInvalidateArea           API_VmmInvalidateArea
 #define vmmAbortStatus              API_VmmAbortStatus
+
+#define vmmRemapArea                API_VmmRemapArea
+#define vmmRemapArea2               API_VmmRemapArea2
 
 #define vmmStackAlloc               API_VmmStackAlloc
 #define vmmStackFree                API_VmmStackFree

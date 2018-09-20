@@ -958,7 +958,7 @@ static INT  pciStorageSataVendorCtrlReadyWork (AHCI_CTRL_HANDLE  hCtrl)
 
     paBaseAddr                = (phys_addr_t)(PCI_RESOURCE_START(hResource));
     hCtrl->AHCICTRL_stRegSize = (size_t)(PCI_RESOURCE_SIZE(hResource));
-    hCtrl->AHCICTRL_pvRegAddr = (PVOID)API_PciDevIoRemap2(paBaseAddr, hCtrl->AHCICTRL_stRegSize);
+    hCtrl->AHCICTRL_pvRegAddr = API_PciDevIoRemap2(paBaseAddr, hCtrl->AHCICTRL_stRegSize);
     if (hCtrl->AHCICTRL_pvRegAddr == LW_NULL) {
         AHCI_LOG(AHCI_LOG_ERR, "pci mem resource ioremap failed addr 0x%llx 0x%llx.\r\n",
                  hCtrl->AHCICTRL_pvRegAddr,  hCtrl->AHCICTRL_stRegSize);

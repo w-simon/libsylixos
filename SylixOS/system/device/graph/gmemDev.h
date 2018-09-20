@@ -86,7 +86,7 @@ typedef struct {
     ULONG               GMSI_ulId;                                      /*  ID                          */
     size_t              GMSI_stMemSize;                                 /*  framebuffer 内存大小        */
     size_t              GMSI_stMemSizePerLine;                          /*  每一行的内存大小            */
-    caddr_t             GMSI_pcMem;                                     /*  显示内存 (需要驱动程序映射) */
+    caddr_t             GMSI_pcMem;                                     /*  显示内存 (显存物理地址)     */
 } LW_GM_SCRINFO;
 typedef LW_GM_SCRINFO  *PLW_GM_SCRINFO;
 

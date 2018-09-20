@@ -1289,18 +1289,16 @@ __error_handle:
                                            API 函数
 *********************************************************************************************************/
 LW_API  
-ULONG  API_VmmRemapArea (PVOID      pvVirtualAddr, 
-                         PVOID      pvPhysicalAddr, 
-                         size_t     stSize, 
-                         ULONG      ulFlag, 
-                         FUNCPTR    pfuncFiller, 
-                         PVOID      pvArg)
+ULONG  API_VmmRemapArea2 (PVOID         pvVirtualAddr, 
+                          phys_addr_t   paPhysicalAddr, 
+                          size_t        stSize, 
+                          ULONG         ulFlag, 
+                          FUNCPTR       pfuncFiller, 
+                          PVOID         pvArg)
 {
-    REGISTER addr_t ulVirtualAddr  = (addr_t)pvVirtualAddr;
-    REGISTER addr_t ulPhysicalAddr = (addr_t)pvPhysicalAddr;
-    
-    REGISTER ULONG  ulPageNum = (ULONG) (stSize >> LW_CFG_VMM_PAGE_SHIFT);
-    REGISTER size_t stExcess  = (size_t)(stSize & ~LW_CFG_VMM_PAGE_MASK);
+    REGISTER addr_t ulVirtualAddr = (addr_t)pvVirtualAddr;
+    REGISTER ULONG  ulPageNum     = (ULONG) (stSize >> LW_CFG_VMM_PAGE_SHIFT);
+    REGISTER size_t stExcess      = (size_t)(stSize & ~LW_CFG_VMM_PAGE_MASK);
              
     REGISTER PLW_VMM_PAGE           pvmpageVirtual;
     REGISTER PLW_VMM_PAGE_PRIVATE   pvmpagep;
@@ -1317,7 +1315,7 @@ ULONG  API_VmmRemapArea (PVOID      pvVirtualAddr,
     }
     
     if (!ALIGNED(pvVirtualAddr,  LW_CFG_VMM_PAGE_SIZE) ||
-        !ALIGNED(pvPhysicalAddr, LW_CFG_VMM_PAGE_SIZE)) {
+        !ALIGNED(paPhysicalAddr, LW_CFG_VMM_PAGE_SIZE)) {
         _ErrorHandle(EINVAL);
         return  (ERROR_VMM_ALIGN);
     }
@@ -1340,19 +1338,44 @@ ULONG  API_VmmRemapArea (PVOID      pvVirtualAddr,
     pvmpagep->PAGEP_pfuncFiller = pfuncFiller;
     pvmpagep->PAGEP_pvArg       = pvArg;
                                    
-    ulError = __vmmLibPageMap(ulPhysicalAddr, ulVirtualAddr, ulPageNum, ulFlag);
+    ulError = __vmmLibPageMap2(paPhysicalAddr, ulVirtualAddr, ulPageNum, ulFlag);
     if (ulError == ERROR_NONE) {
         pvmpageVirtual->PAGE_ulFlags = ulFlag;                          /*  记录内存类型                */
     }
     __VMM_UNLOCK();
     
     if (ulError == ERROR_NONE) {
-        MONITOR_EVT_LONG4(MONITOR_EVENT_ID_VMM, MONITOR_EVENT_VMM_REMAP_A,
-                          pvVirtualAddr, pvPhysicalAddr, 
+        MONITOR_EVT_LONG5(MONITOR_EVENT_ID_VMM, MONITOR_EVENT_VMM_REMAP_A,
+                          pvVirtualAddr, (addr_t)((UINT64)paPhysicalAddr >> 32), (addr_t)(paPhysicalAddr),
                           stSize, ulFlag, LW_NULL);
     }
     
     return  (ulError);
+}
+/*********************************************************************************************************
+** 函数名称: API_VmmRemapArea
+** 功能描述: 将连续虚拟内存映射到连续的物理地址上 (驱动程序 mmap 将使用此函数做映射)
+** 输　入  : pvVirtualAddr   连续虚拟地址 (必须为 vmmMallocArea?? 返回地址)
+**           pvPhysicalAddr  物理地址
+**           stSize          映射长度
+**           ulFlag          映射 flag 标志
+**           pfuncFiller     缺页中断填充函数 (一般为 LW_NULL)
+**           pvArg           缺页中断填充函数首参数
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+ULONG  API_VmmRemapArea (PVOID      pvVirtualAddr, 
+                         PVOID      pvPhysicalAddr, 
+                         size_t     stSize, 
+                         ULONG      ulFlag, 
+                         FUNCPTR    pfuncFiller, 
+                         PVOID      pvArg)
+{
+    return  (API_VmmRemapArea2(pvVirtualAddr, (phys_addr_t)pvPhysicalAddr, 
+                               stSize, ulFlag, pfuncFiller, pvArg));
 }
 
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */

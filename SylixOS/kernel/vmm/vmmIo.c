@@ -41,7 +41,7 @@
                                            API 函数
 *********************************************************************************************************/
 LW_API  
-addr_t  API_VmmIoRemapEx2 (phys_addr_t  paPhysicalAddr, size_t stSize, ULONG  ulFlags)
+PVOID  API_VmmIoRemapEx2 (phys_addr_t  paPhysicalAddr, size_t stSize, ULONG  ulFlags)
 {
     REGISTER ULONG          ulPageNum;
     REGISTER phys_addr_t    paPhyPageAddr;
@@ -64,7 +64,7 @@ addr_t  API_VmmIoRemapEx2 (phys_addr_t  paPhysicalAddr, size_t stSize, ULONG  ul
     if (pvmpageVirtual == LW_NULL) {
         __VMM_UNLOCK();
         _ErrorHandle(ERROR_VMM_VIRTUAL_PAGE);
-        return  ((addr_t)LW_NULL);
+        return  (LW_NULL);
     }
     
     ulError = __vmmLibPageMap2(paPhyPageAddr,
@@ -75,7 +75,7 @@ addr_t  API_VmmIoRemapEx2 (phys_addr_t  paPhysicalAddr, size_t stSize, ULONG  ul
         __vmmVirDevPageFree(pvmpageVirtual);                            /*  释放虚拟地址空间            */
         __VMM_UNLOCK();
         _ErrorHandle(ulError);
-        return  ((addr_t)LW_NULL);
+        return  (LW_NULL);
     }
     
     pvmpageVirtual->PAGE_ulFlags = ulFlags;
@@ -89,7 +89,7 @@ addr_t  API_VmmIoRemapEx2 (phys_addr_t  paPhysicalAddr, size_t stSize, ULONG  ul
                       (addr_t)((UINT64)paPhysicalAddr >> 32), (addr_t)(paPhysicalAddr),
                       stSize, LW_NULL);
     
-    return  (pvmpageVirtual->PAGE_ulPageAddr + (addr_t)paUpPad);
+    return  ((PVOID)(pvmpageVirtual->PAGE_ulPageAddr + (addr_t)paUpPad));
 }
 /*********************************************************************************************************
 ** 函数名称: API_VmmIoRemapEx
@@ -105,7 +105,7 @@ addr_t  API_VmmIoRemapEx2 (phys_addr_t  paPhysicalAddr, size_t stSize, ULONG  ul
 LW_API  
 PVOID  API_VmmIoRemapEx (PVOID  pvPhysicalAddr, size_t stSize, ULONG  ulFlags)
 {
-    return  ((PVOID)API_VmmIoRemapEx2((phys_addr_t)pvPhysicalAddr, stSize, ulFlags));
+    return  (API_VmmIoRemapEx2((phys_addr_t)pvPhysicalAddr, stSize, ulFlags));
 }
 /*********************************************************************************************************
 ** 函数名称: API_VmmIoRemap2
@@ -118,7 +118,7 @@ PVOID  API_VmmIoRemapEx (PVOID  pvPhysicalAddr, size_t stSize, ULONG  ulFlags)
                                            API 函数
 *********************************************************************************************************/
 LW_API  
-addr_t  API_VmmIoRemap2 (phys_addr_t  paPhysicalAddr, size_t stSize)
+PVOID  API_VmmIoRemap2 (phys_addr_t  paPhysicalAddr, size_t stSize)
 {
     return  (API_VmmIoRemapEx2(paPhysicalAddr, stSize, LW_VMM_FLAG_DMA));
 }
@@ -135,7 +135,37 @@ addr_t  API_VmmIoRemap2 (phys_addr_t  paPhysicalAddr, size_t stSize)
 LW_API  
 PVOID  API_VmmIoRemap (PVOID  pvPhysicalAddr, size_t stSize)
 {
-    return  (API_VmmIoRemapEx(pvPhysicalAddr, stSize, LW_VMM_FLAG_DMA));
+    return  (API_VmmIoRemapEx2((phys_addr_t)pvPhysicalAddr, stSize, LW_VMM_FLAG_DMA));
+}
+/*********************************************************************************************************
+** 函数名称: API_VmmIoRemapNocache2
+** 功能描述: 将物理 IO 空间指定内存映射到逻辑空间. (非 CACHE)
+** 输　入  : paPhysicalAddr     物理内存地址
+**           stSize             需要映射的内存大小
+** 输　出  : 映射到的逻辑内存地址
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+PVOID  API_VmmIoRemapNocache2 (phys_addr_t  paPhysicalAddr, size_t stSize)
+{
+    return  (API_VmmIoRemapEx2(paPhysicalAddr, stSize, LW_VMM_FLAG_DMA));
+}
+/*********************************************************************************************************
+** 函数名称: API_VmmIoRemapNocache
+** 功能描述: 将物理 IO 空间指定内存映射到逻辑空间. (非 CACHE)
+** 输　入  : pvPhysicalAddr     物理内存地址
+**           stSize             需要映射的内存大小
+** 输　出  : 映射到的逻辑内存地址
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+PVOID  API_VmmIoRemapNocache (PVOID  pvPhysicalAddr, size_t stSize)
+{
+    return  (API_VmmIoRemapEx2((phys_addr_t)pvPhysicalAddr, stSize, LW_VMM_FLAG_DMA));
 }
 /*********************************************************************************************************
 ** 函数名称: API_VmmIoUnmap
@@ -147,9 +177,10 @@ PVOID  API_VmmIoRemap (PVOID  pvPhysicalAddr, size_t stSize)
                                            API 函数
 *********************************************************************************************************/
 LW_API  
-VOID  API_VmmIoUnmap2 (addr_t  ulVirtualAddr)
+VOID  API_VmmIoUnmap (PVOID  pvVirtualAddr)
 {
     REGISTER PLW_VMM_PAGE   pvmpageVirtual;
+             addr_t         ulVirtualAddr = (addr_t)pvVirtualAddr;
     
     ulVirtualAddr &= LW_CFG_VMM_PAGE_MASK;                              /*  页面对齐地址                */
     
@@ -179,50 +210,6 @@ VOID  API_VmmIoUnmap2 (addr_t  ulVirtualAddr)
     
     MONITOR_EVT_LONG1(MONITOR_EVENT_ID_VMM, MONITOR_EVENT_VMM_IOUNMAP,
                       ulVirtualAddr, LW_NULL);
-}
-/*********************************************************************************************************
-** 函数名称: API_VmmIoUnmap
-** 功能描述: 释放 ioremap 占用的逻辑空间
-** 输　入  : pvVirtualMem    虚拟地址
-** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
-                                           API 函数
-*********************************************************************************************************/
-LW_API  
-VOID  API_VmmIoUnmap (PVOID  pvVirtualAddr)
-{
-    API_VmmIoUnmap2((addr_t)pvVirtualAddr);
-}
-/*********************************************************************************************************
-** 函数名称: API_VmmIoRemapNocache2
-** 功能描述: 将物理 IO 空间指定内存映射到逻辑空间. (非 CACHE)
-** 输　入  : paPhysicalAddr     物理内存地址
-**           stSize             需要映射的内存大小
-** 输　出  : 映射到的逻辑内存地址
-** 全局变量: 
-** 调用模块: 
-                                           API 函数
-*********************************************************************************************************/
-LW_API  
-addr_t  API_VmmIoRemapNocache2 (phys_addr_t  paPhysicalAddr, size_t stSize)
-{
-    return  (API_VmmIoRemapEx2(paPhysicalAddr, stSize, LW_VMM_FLAG_DMA));
-}
-/*********************************************************************************************************
-** 函数名称: API_VmmIoRemapNocache
-** 功能描述: 将物理 IO 空间指定内存映射到逻辑空间. (非 CACHE)
-** 输　入  : pvPhysicalAddr     物理内存地址
-**           stSize             需要映射的内存大小
-** 输　出  : 映射到的逻辑内存地址
-** 全局变量: 
-** 调用模块: 
-                                           API 函数
-*********************************************************************************************************/
-LW_API  
-PVOID  API_VmmIoRemapNocache (PVOID  pvPhysicalAddr, size_t stSize)
-{
-    return  (API_VmmIoRemapEx(pvPhysicalAddr, stSize, LW_VMM_FLAG_DMA));
 }
 
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */

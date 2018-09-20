@@ -347,7 +347,7 @@ static INT  pciStorageNvmeVendorCtrlReadyWork (NVME_CTRL_HANDLE  hCtrl, UINT uiI
 
     paBaseAddr                = (phys_addr_t)(PCI_RESOURCE_START(hResource));
     hCtrl->NVMECTRL_stRegSize = (size_t)(PCI_RESOURCE_SIZE(hResource));
-    hCtrl->NVMECTRL_pvRegAddr = (PVOID)API_PciDevIoRemap2(paBaseAddr, hCtrl->NVMECTRL_stRegSize);
+    hCtrl->NVMECTRL_pvRegAddr = API_PciDevIoRemap2(paBaseAddr, hCtrl->NVMECTRL_stRegSize);
     if (hCtrl->NVMECTRL_pvRegAddr == LW_NULL) {
         NVME_LOG(NVME_LOG_ERR, "pci mem resource ioremap failed addr 0x%llx 0x%llx.\r\n",
                  hCtrl->NVMECTRL_pvRegAddr,  hCtrl->NVMECTRL_stRegSize);

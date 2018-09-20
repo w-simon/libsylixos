@@ -30,9 +30,9 @@
 LW_API INT  API_PciMsixPendingGet(INT  iBus, INT  iSlot, INT  iFunc,
                                   UINT32  uiMsixCapOft, INT  iVector, INT  *piPending);
 LW_API INT  API_PciMsixPendingPosGet(INT  iBus, INT  iSlot,
-                                     INT  iFunc, UINT32  uiMsixCapOft, ULONG  *pulPos);
+                                     INT  iFunc, UINT32  uiMsixCapOft, phys_addr_t  *ppaPos);
 LW_API INT  API_PciMsixTablePosGet(INT  iBus, INT  iSlot, INT  iFunc, 
-                                   UINT32  uiMsixCapOft, ULONG  *pulTablePos);
+                                   UINT32  uiMsixCapOft, phys_addr_t  *ppaTablePos);
                                    
 LW_API INT  API_PciMsixMaskSet(INT  iBus, INT  iSlot, INT iFunc,
                                UINT32  uiMsixCapOft, INT  iVector, INT  iMask);

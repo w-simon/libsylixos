@@ -299,7 +299,7 @@ static INT  pciSioNetmosProbe (PCI_DEV_HANDLE hPciDevHandle, const PCI_DEV_ID_HA
     hResource  = API_PciDevResourceGet(hPciDevHandle, PCI_IORESOURCE_MEM, 0);
     paBaseAddr = (phys_addr_t)(PCI_RESOURCE_START(hResource));          /*  获取 MEM 的起始地址         */
     stBaseSize = (size_t)(PCI_RESOURCE_SIZE(hResource));                /*  获取 MEM 的大小             */
-    ulBaseAddr = API_PciDevIoRemap2(paBaseAddr, stBaseSize);
+    ulBaseAddr = (addr_t)API_PciDevIoRemap2(paBaseAddr, stBaseSize);
     if (!ulBaseAddr) {
         return  (PX_ERROR);
     }

@@ -92,7 +92,7 @@ INT  API_PciMsixMsgRead (PVOID  pvAddr, UINT  iVector, PCI_MSI_MSG  *ppmmMsg)
 **           iSlot          插槽
 **           iFunc          功能
 **           uiMsixCapOft   偏移地址
-**           pulPos         标记位置
+**           ppaPos         标记位置
 **                          0  掩码标记无效
 **                          1  掩码标记有效
 ** 输　出  : ERROR or OK
@@ -101,13 +101,13 @@ INT  API_PciMsixMsgRead (PVOID  pvAddr, UINT  iVector, PCI_MSI_MSG  *ppmmMsg)
 **                                            API 函数
 *********************************************************************************************************/
 LW_API
-INT  API_PciMsixPendingPosGet (INT  iBus, INT  iSlot, INT  iFunc, UINT32  uiMsixCapOft, ULONG  *pulPos)
+INT  API_PciMsixPendingPosGet (INT  iBus, INT  iSlot, INT  iFunc, UINT32  uiMsixCapOft, phys_addr_t  *ppaPos)
 {
     INT                     iRet       = PX_ERROR;
     UINT32                  uiMsiTab   = 0;
     UINT32                  iBarIndex  = 0;
     UINT32                  iOffset    = 0;
-    addr_t                  ulBaseAddr = 0;
+    phys_addr_t             paBaseAddr = 0;
     PCI_RESOURCE_HANDLE     hResource  = LW_NULL;
                                                                         /*  读取 MSI-X PBA 字段         */
     iRet = API_PciConfigInDword(iBus, iSlot, iFunc, uiMsixCapOft + PCI_MSIX_PBA, &uiMsiTab);
@@ -119,10 +119,10 @@ INT  API_PciMsixPendingPosGet (INT  iBus, INT  iSlot, INT  iFunc, UINT32  uiMsix
     iOffset    = uiMsiTab & PCI_MSIX_PBA_OFFSET;                        /* MSI-X PBA所在BAR空间中偏移   */
 
     hResource  = API_PciResourceGet(iBus, iSlot, iFunc, PCI_IORESOURCE_MEM, iBarIndex);
-    ulBaseAddr = (ULONG)(PCI_RESOURCE_START(hResource));                /* MSI-X PBA所在BAR空间基址     */
+    paBaseAddr = (phys_addr_t)(PCI_RESOURCE_START(hResource));          /* MSI-X PBA所在BAR空间基址     */
 
-    if (pulPos) {
-        *pulPos = ulBaseAddr + iOffset;                                 /* MSI-X PBA 的PCI总线域地址    */
+    if (ppaPos) {
+        *ppaPos = paBaseAddr + iOffset;                                 /* MSI-X PBA 的PCI总线域地址    */
     }
 
     return  (ERROR_NONE);
@@ -150,18 +150,18 @@ INT  API_PciMsixPendingGet (INT      iBus,
                             INT     *piPending)
 {
     INT          iRet       = PX_ERROR;
-    addr_t       ulBaseAddr = 0;
+    phys_addr_t  paBaseAddr = 0;
     INT          iEntry     = (iVector + 64) >> 6;                      /* 每个条目包含 64 个 pending 位*/
     UINT64       ullPended  = 0;
     UINT64      *pullAddr   = LW_NULL;
 
                                                                         /*  获取 Pending Table 位置     */
-    iRet = API_PciMsixPendingPosGet(iBus, iSlot, iFunc, uiMsixCapOft, &ulBaseAddr);
+    iRet = API_PciMsixPendingPosGet(iBus, iSlot, iFunc, uiMsixCapOft, &paBaseAddr);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
                                                                         /*  映射Pending Table到逻辑空间 */
-    pullAddr = (UINT64 *)API_PciDevIoRemap((PVOID)ulBaseAddr, iEntry *  sizeof(UINT64));
+    pullAddr = (UINT64 *)API_PciDevIoRemap2(paBaseAddr, iEntry *  sizeof(UINT64));
     if (pullAddr == LW_NULL) {
         return  (PX_ERROR);
     }
@@ -182,20 +182,20 @@ INT  API_PciMsixPendingGet (INT      iBus,
 **           iSlot          插槽
 **           iFunc          功能
 **           uiMsixCapOft   偏移地址
-**           pulMaskPos     MSI-X Table位置
+**           ppaMaskPos     MSI-X Table位置
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
 **                                            API 函数
 *********************************************************************************************************/
 LW_API
-INT  API_PciMsixTablePosGet (INT  iBus, INT  iSlot, INT  iFunc, UINT32  uiMsixCapOft, ULONG  *pulTablePos)
+INT  API_PciMsixTablePosGet (INT  iBus, INT  iSlot, INT  iFunc, UINT32  uiMsixCapOft, phys_addr_t  *ppaTablePos)
 {
     INT                     iRet       = PX_ERROR;
     UINT32                  uiMsiTab   = 0;
     UINT32                  iBarIndex  = 0;
     UINT32                  iOffset    = 0;
-    addr_t                  ulBaseAddr = 0;
+    phys_addr_t             paBaseAddr = 0;
     PCI_RESOURCE_HANDLE     hResource  = LW_NULL;
                                                                         /*  读取 MSI-X Table 字段       */
     iRet = API_PciConfigInDword(iBus, iSlot, iFunc, uiMsixCapOft + PCI_MSIX_TABLE, &uiMsiTab);
@@ -207,10 +207,10 @@ INT  API_PciMsixTablePosGet (INT  iBus, INT  iSlot, INT  iFunc, UINT32  uiMsixCa
     iOffset    = uiMsiTab & PCI_MSIX_TABLE_OFFSET;                      /* MSI-X Table所在BAR空间中偏移 */
 
     hResource  = API_PciResourceGet(iBus, iSlot, iFunc, PCI_IORESOURCE_MEM, iBarIndex);
-    ulBaseAddr = (ULONG)(PCI_RESOURCE_START(hResource));                /* MSI-X Table所在BAR空间基址   */
+    paBaseAddr = (phys_addr_t)(PCI_RESOURCE_START(hResource));          /* MSI-X Table所在BAR空间基址   */
 
-    if (pulTablePos) {
-        *pulTablePos = ulBaseAddr + iOffset;                            /* MSI-X Table 的PCI总线域地址  */
+    if (ppaTablePos) {
+        *ppaTablePos = paBaseAddr + iOffset;                            /* MSI-X Table 的PCI总线域地址  */
     }
 
     return  (ERROR_NONE);
@@ -239,15 +239,15 @@ INT  API_PciMsixMaskSet (INT     iBus,
 {
     INT         iRet       = PX_ERROR;
     PVOID       pvAddr     = LW_NULL;
-    addr_t      ulBaseAddr = 0;
+    phys_addr_t paBaseAddr = 0;
     UINT32      uiControl  = 0;
                                                                         /*  获取 MSI-X Table 位置       */
-    iRet = API_PciMsixTablePosGet(iBus, iSlot, iFunc, uiMsixCapOft, &ulBaseAddr);
+    iRet = API_PciMsixTablePosGet(iBus, iSlot, iFunc, uiMsixCapOft, &paBaseAddr);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
                                                                         /*  映射 MSI-X Tabel到虚拟地址  */
-    pvAddr = API_PciDevIoRemap((PVOID)ulBaseAddr, (iVector + 1) * 16);
+    pvAddr = API_PciDevIoRemap2(paBaseAddr, (iVector + 1) * 16);
     if (pvAddr == LW_NULL) {
         return  (PX_ERROR);
     }
@@ -288,16 +288,16 @@ INT  API_PciMsixMaskGet (INT      iBus,
 {
     INT         iRet       = PX_ERROR;
     PVOID       pvAddr     = LW_NULL;
-    addr_t      ulBaseAddr = 0;
+    phys_addr_t paBaseAddr = 0;
     UINT32      uiControl  = 0;
 
                                                                         /*  获取 MSI-X Table 位置       */
-    iRet = API_PciMsixTablePosGet(iBus, iSlot, iFunc, uiMsixCapOft, &ulBaseAddr);
+    iRet = API_PciMsixTablePosGet(iBus, iSlot, iFunc, uiMsixCapOft, &paBaseAddr);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
                                                                         /*  获取 MSI-X Table 位置       */
-    pvAddr = API_PciDevIoRemap((PVOID)ulBaseAddr, (iVector + 1) * PCI_MSIX_ENTRY_SIZE);
+    pvAddr = API_PciDevIoRemap2(paBaseAddr, (iVector + 1) * PCI_MSIX_ENTRY_SIZE);
     if (pvAddr == LW_NULL) {
         return  (PX_ERROR);
     }
@@ -519,7 +519,7 @@ INT  API_PciDevMsixRangeEnable (PCI_DEV_HANDLE       hHandle,
     INT         iEnable     = 0;
     UINT32      uiMsiCapOft = 0;
     UINT32      uiVecNum    = 0;
-    addr_t      ulBaseAddr;
+    phys_addr_t paBaseAddr;
     PVOID       pvAddr      = 0;
 
     if (hHandle == LW_NULL) {
@@ -567,12 +567,12 @@ INT  API_PciDevMsixRangeEnable (PCI_DEV_HANDLE       hHandle,
                                   hHandle->PCIDEV_iDevDevice,
                                   hHandle->PCIDEV_iDevFunction,
                                   uiMsiCapOft,
-                                  &ulBaseAddr);
+                                  &paBaseAddr);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
                                                                         /*  映射 MSI-X Tabel到虚拟地址  */
-    pvAddr = API_PciDevIoRemap((PVOID)ulBaseAddr, uiVecNum * PCI_MSIX_ENTRY_SIZE);
+    pvAddr = API_PciDevIoRemap2(paBaseAddr, uiVecNum * PCI_MSIX_ENTRY_SIZE);
     if (pvAddr == LW_NULL) {
         return  (PX_ERROR);
     }
