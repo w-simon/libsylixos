@@ -219,6 +219,7 @@ VOID  __moduleTraverseKernelSymHook (BOOL (*pfuncCb)(PVOID, PLW_SYMBOL), PVOID  
                      plineTemp  = _list_line_get_next(plineTemp)) {
                      
                     psymbol = _LIST_ENTRY(plineTemp, LW_SYMBOL, SYM_lineManage);
+                    LW_SOFUNC_PREPARE(pfuncCb);
                     if (pfuncCb(pvArg, psymbol)) {
                         goto    __out;
                     }
@@ -352,6 +353,7 @@ VOID __moduleTraverseSym (LW_LD_EXEC_MODULE  *pmodule,
                  plineTemp  = _list_line_get_next(plineTemp)) {
                 
                 psymbol = _LIST_ENTRY(plineTemp, LW_SYMBOL, SYM_lineManage);
+                LW_SOFUNC_PREPARE(pfuncCb);
                 if (pfuncCb(pvArg, psymbol, pmodTemp)) {
                     return;
                 }

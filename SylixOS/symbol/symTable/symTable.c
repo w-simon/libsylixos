@@ -446,6 +446,7 @@ VOID  API_SymbolTraverse (BOOL (*pfuncCb)(PVOID, PLW_SYMBOL), PVOID  pvArg)
              plineTemp  = _list_line_get_next(plineTemp)) {
             
             psymbol = _LIST_ENTRY(plineTemp, LW_SYMBOL, SYM_lineManage);
+            LW_SOFUNC_PREPARE(pfuncCb);
             if (pfuncCb(pvArg, psymbol)) {
                 bStop = LW_TRUE;
                 break;
@@ -455,6 +456,7 @@ VOID  API_SymbolTraverse (BOOL (*pfuncCb)(PVOID, PLW_SYMBOL), PVOID  pvArg)
     __LW_SYMBOL_UNLOCK();                                               /*  ½âËø·ûºÅ±í                  */
     
     if ((bStop == LW_FALSE) && _G_pfuncSymbolTraverseHook) {
+        LW_SOFUNC_PREPARE(_G_pfuncSymbolTraverseHook);
         _G_pfuncSymbolTraverseHook(pfuncCb, pvArg);
     }
 }
