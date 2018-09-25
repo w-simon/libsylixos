@@ -103,10 +103,31 @@ FUNC_DEF(archIntEnableForce)
 ;*********************************************************************************************************/
 
 ;/*********************************************************************************************************
+;  调用设置函数宏
+;*********************************************************************************************************/
+
+MACRO_DEF(CALL_SETUP, setup)
+    ADDI    SP  , SP , -(4 * ARCH_REG_CTX_SIZE)
+    REG_S   A0  , ( 0 * ARCH_REG_SIZE)(SP)
+    REG_S   A1  , ( 1 * ARCH_REG_SIZE)(SP)
+    REG_S   RA  , ( 2 * ARCH_REG_SIZE)(SP)
+
+    CALL    \setup
+
+    REG_L   A0  , ( 0 * ARCH_REG_SIZE)(SP)
+    REG_L   A1  , ( 1 * ARCH_REG_SIZE)(SP)
+    REG_L   RA  , ( 2 * ARCH_REG_SIZE)(SP)
+
+    ADDI    SP  , SP , (4 * ARCH_REG_CTX_SIZE)
+    MACRO_END()
+
+;/*********************************************************************************************************
 ;  sigsetjmp (参数为 jmp_buf, mask_saved)
 ;*********************************************************************************************************/
 
 FUNC_DEF(sigsetjmp)
+    CALL_SETUP  __sigsetjmpSetup
+
     REG_S   RA  , ( 0 * ARCH_REG_SIZE)(A0)
     REG_S   S0  , ( 1 * ARCH_REG_SIZE)(A0)
     REG_S   S1  , ( 2 * ARCH_REG_SIZE)(A0)
@@ -130,6 +151,8 @@ FUNC_DEF(sigsetjmp)
 ;*********************************************************************************************************/
 
 FUNC_DEF(setjmp)
+    CALL_SETUP  __setjmpSetup
+
     REG_S   RA  , ( 0 * ARCH_REG_SIZE)(A0)
     REG_S   S0  , ( 1 * ARCH_REG_SIZE)(A0)
     REG_S   S1  , ( 2 * ARCH_REG_SIZE)(A0)
@@ -153,6 +176,8 @@ FUNC_DEF(setjmp)
 ;*********************************************************************************************************/
 
 FUNC_DEF(siglongjmp)
+    CALL_SETUP  __siglongjmpSetup
+
     REG_L   RA  , ( 0 * ARCH_REG_SIZE)(A0)
     REG_L   S0  , ( 1 * ARCH_REG_SIZE)(A0)
     REG_L   S1  , ( 2 * ARCH_REG_SIZE)(A0)
@@ -177,6 +202,8 @@ FUNC_DEF(siglongjmp)
 ;*********************************************************************************************************/
 
 FUNC_DEF(longjmp)
+    CALL_SETUP  __longjmpSetup
+
     REG_L   RA  , ( 0 * ARCH_REG_SIZE)(A0)
     REG_L   S0  , ( 1 * ARCH_REG_SIZE)(A0)
     REG_L   S1  , ( 2 * ARCH_REG_SIZE)(A0)

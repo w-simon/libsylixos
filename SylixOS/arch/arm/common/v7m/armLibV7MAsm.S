@@ -119,9 +119,9 @@ FUNC_DEF(archFindMsb)
 ;*********************************************************************************************************/
 
 FUNC_DEF(sigsetjmp)
-    STMFD   SP!, {R0, R1, LR}
+    STMFD   SP!, {R0, R1, R2, LR}
     BL      __sigsetjmpSetup
-    LDMFD   SP!, {R0, R1, LR}
+    LDMFD   SP!, {R0, R1, R2, LR}
 
     STMIA   R0!, {R4, R5, R6, R7}                                       ;/* Save registers in jump buffer*/
     MOV     R1 , R8
@@ -169,9 +169,9 @@ FUNC_DEF(setjmp)
 ;*********************************************************************************************************/
 
 FUNC_DEF(siglongjmp)
-    STMFD   SP!, {R0, R1, LR}
+    STMFD   SP!, {R0, R1, R2, LR}
     BL      __siglongjmpSetup
-    LDMFD   SP!, {R0, R1, LR}
+    LDMFD   SP!, {R0, R1, R2, LR}
 
     ADD     R0 , R0 , #16
     LDMIA   R0!, {R2, R3, R4, R5, R6}                                   ;/* Restore High regs.           */
@@ -200,9 +200,9 @@ LINE_LABEL(siglongjmpnotzero)
 ;*********************************************************************************************************/
 
 FUNC_DEF(longjmp)
-    STMFD   SP!, {R0, R1, LR}
+    STMFD   SP!, {R0, R1, R2, LR}
     BL      __longjmpSetup
-    LDMFD   SP!, {R0, R1, LR}
+    LDMFD   SP!, {R0, R1, R2, LR}
 
     ADD     R0 , R0 , #16
     LDMIA   R0!, {R2, R3, R4, R5, R6}                                   ;/* Restore High regs.           */

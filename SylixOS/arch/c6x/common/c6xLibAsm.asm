@@ -21,6 +21,11 @@
 
     .include "c6xContextAsmInc.asm"
 
+    .ref    __setjmpSetup
+    .ref    __sigsetjmpSetup
+    .ref    __longjmpSetup
+    .ref    __siglongjmpSetup
+
     .global archModeInit
     .global archDataPointerGet
     .global archStackPointerGet
@@ -139,10 +144,38 @@ archFindLsb: .asmfunc
     .endasmfunc
 
 ;/*********************************************************************************************************
+;  注意: setjmp 与 longjmp 上下文结构与线程上下文结构不同
+;*********************************************************************************************************/
+
+;/*********************************************************************************************************
+;  调用设置函数宏
+;*********************************************************************************************************/
+
+CALL_SETUP  .macro  setup
+    .newblock
+    STW     B3 , *B15--
+    STW     A4 , *B15--
+    STW     B4 , *B15--
+    ADDK    -4 ,  B15
+
+    B       setup
+    ADDKPC  $1 , B3 , 4
+$1:
+
+    ADDK    +4 ,  B15
+    LDW     *++B15 , B4
+    LDW     *++B15 , A4
+    LDW     *++B15 , B3
+    NOP     4
+    .endm
+
+;/*********************************************************************************************************
 ;  sigsetjmp (参数为 jmp_buf, mask_saved)
 ;*********************************************************************************************************/
 
 sigsetjmp: .asmfunc
+    CALL_SETUP  __sigsetjmpSetup
+
     MV      .D2X    A4 , B4                                             ;/*  jmp_buf address             */
  || STW     .D1T2   B3 , *+A4(48)                                       ;/*  return address              */
 
@@ -171,6 +204,8 @@ sigsetjmp: .asmfunc
 ;*********************************************************************************************************/
 
 siglongjmp: .asmfunc
+    CALL_SETUP  __siglongjmpSetup
+
     LDW     .D1T1   *+A4(48) , A3                                       ;/*  return address              */
     MV      .D2X    A4 , B6                                             ;/*  jmp_buf pointer             */
  || MV      .D1     A4 , A6
@@ -200,6 +235,8 @@ siglongjmp: .asmfunc
 ;*********************************************************************************************************/
 
 setjmp: .asmfunc
+    CALL_SETUP  __setjmpSetup
+
     MV      .D2X    A4 , B4                                             ;/*  jmp_buf address             */
  || STW     .D1T2   B3 , *+A4(48)                                       ;/*  return address              */
 
@@ -228,6 +265,8 @@ setjmp: .asmfunc
 ;*********************************************************************************************************/
 
 longjmp: .asmfunc
+    CALL_SETUP  __longjmpSetup
+
     LDW     .D1T1   *+A4(48) , A3                                       ;/*  return address              */
     MV      .D2X    A4 , B6                                             ;/*  jmp_buf pointer             */
  || MV      .D1     A4 , A6

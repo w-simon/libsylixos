@@ -123,6 +123,14 @@ FUNC_END(__sigjmp_save)
 ;*********************************************************************************************************/
 
 FUNC_DEF(sigsetjmp)
+    SAVE
+    MOV     %i0 , %o0
+    MOV     %i1 , %o1
+    CALL    __sigsetjmpSetup
+    NOP
+    RESTORE
+
+LINE_LABEL(__sigsetjmpSetupDone)
     ;/*
     ; * Save our PC, SP and FP.  Save the signal mask if requested with
     ; * a tail-call for simplicity; it always returns zero.
@@ -152,7 +160,13 @@ FUNC_END(sigsetjmp)
 ;*********************************************************************************************************/
 
 FUNC_DEF(setjmp)
-    B       sigsetjmp
+    SAVE
+    MOV     %i0 , %o0
+    CALL    __setjmpSetup
+    NOP
+    RESTORE
+
+    B       __sigsetjmpSetupDone
     MOV     %g0 , %o1
 FUNC_END(setjmp)
     
@@ -161,7 +175,14 @@ FUNC_END(setjmp)
 ;*********************************************************************************************************/
 
 FUNC_DEF(siglongjmp)
-    B       longjmp
+    SAVE
+    MOV     %i0 , %o0
+    MOV     %i1 , %o1
+    CALL    __siglongjmpSetup
+    NOP
+    RESTORE
+
+    B       __longjmpSetupDone
     NOP
 FUNC_END(setjmp)
 
@@ -170,6 +191,14 @@ FUNC_END(setjmp)
 ;*********************************************************************************************************/
 
 FUNC_DEF(longjmp)
+    SAVE
+    MOV     %i0 , %o0
+    MOV     %i1 , %o1
+    CALL    __longjmpSetup
+    NOP
+    RESTORE
+
+LINE_LABEL(__longjmpSetupDone)
     ;/*
     ; * Store our arguments in global registers so we can still
     ; * use them while unwinding frames and their register windows.
