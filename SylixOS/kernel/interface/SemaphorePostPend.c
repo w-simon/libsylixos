@@ -24,6 +24,7 @@
 2012.03.20  减少对 _K_ptcbTCBCur 的引用, 尽量采用局部变量, 减少对当前 CPU ID 获取的次数.
 2013.05.05  判断调度器返回值, 决定是重启调用还是退出.
 2013.07.18  使用新的获取 TCB 的方法, 确保 SMP 系统安全.
+2018.09.27  修正信号唤醒内核计数错误.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -175,6 +176,7 @@ __wait_again:
             _ErrorHandle(ERROR_THREAD_WAIT_TIMEOUT);
             return  (ERROR_THREAD_WAIT_TIMEOUT);
         }
+        __KERNEL_ENTER();                                               /*  进入内核                    */
         goto    __wait_again;
     }
     
@@ -346,6 +348,7 @@ __wait_again:
             _ErrorHandle(ERROR_THREAD_WAIT_TIMEOUT);
             return  (ERROR_THREAD_WAIT_TIMEOUT);
         }
+        __KERNEL_ENTER();                                               /*  进入内核                    */
         goto    __wait_again;
     }
     
