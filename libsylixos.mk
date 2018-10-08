@@ -100,6 +100,36 @@ SylixOS/arch/arm/mpcore/armSpinlock.c \
 SylixOS/arch/arm/param/armParam.c 
 
 #*********************************************************************************************************
+# ARM64 source
+#*********************************************************************************************************
+LOCAL_ARM64_SRCS = \
+SylixOS/arch/arm64/backtrace/arm64Backtrace.c \
+SylixOS/arch/arm64/common/arm64Assert.c \
+SylixOS/arch/arm64/common/arm64Context.c \
+SylixOS/arch/arm64/common/arm64ContextAsm.S \
+SylixOS/arch/arm64/common/arm64Exc.c \
+SylixOS/arch/arm64/common/arm64ExcAsm.S \
+SylixOS/arch/arm64/common/arm64Io.c \
+SylixOS/arch/arm64/common/arm64Lib.c \
+SylixOS/arch/arm64/common/arm64LibAsm.S \
+SylixOS/arch/arm64/dbg/arm64Dbg.c \
+SylixOS/arch/arm64/dbg/arm64Gdb.c \
+SylixOS/arch/arm64/elf/arm64Elf.c \
+SylixOS/arch/arm64/fpu/vfpnone/arm64VfpNone.c \
+SylixOS/arch/arm64/fpu/vfpv4/arm64VfpV4.c \
+SylixOS/arch/arm64/fpu/vfpv4/arm64VfpV4Asm.S \
+SylixOS/arch/arm64/fpu/arm64Fpu.c \
+SylixOS/arch/arm64/mm/cache/arm64Cache.c \
+SylixOS/arch/arm64/mm/cache/arm64CacheAsm.S \
+SylixOS/arch/arm64/mm/mmu/arm64Mmu.c \
+SylixOS/arch/arm64/mm/mmu/arm64MmuAsm.S \
+SylixOS/arch/arm64/mm/arm64Cache.c \
+SylixOS/arch/arm64/mm/arm64Mmu.c \
+SylixOS/arch/arm64/mpcore/arm64MpCoreAsm.S \
+SylixOS/arch/arm64/mpcore/arm64Spinlock.c \
+SylixOS/arch/arm64/param/arm64Param.c 
+
+#*********************************************************************************************************
 # MIPS source
 #*********************************************************************************************************
 LOCAL_MIPS_SRCS = \
@@ -1919,6 +1949,20 @@ $(OBJPATH)/libsylixos.a/SylixOS/arch/arm/fpu/vfpv3/armVfpV3Asm.o: ./SylixOS/arch
 		@if [ ! -d "$(dir $(__DEP))" ]; then \
 			mkdir -p "$(dir $(__DEP))"; fi
 		$(AS) $(ARM_FPU_ASFLAGS) $($(__TARGET)_ASFLAGS_WITHOUT_FPUFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
+endif
+
+#*********************************************************************************************************
+# compile ARM64 FPU source files
+#*********************************************************************************************************
+ifeq ($(ARCH), arm64)
+ARM64_FPU_ASFLAGS = 
+
+$(OBJPATH)/libsylixos.a/SylixOS/arch/arm64/fpu/vfpv4/arm64VfpV4Asm.o: ./SylixOS/arch/arm64/fpu/vfpv4/arm64VfpV4Asm.S
+		@if [ ! -d "$(dir $@)" ]; then \
+			mkdir -p "$(dir $@)"; fi
+		@if [ ! -d "$(dir $(__DEP))" ]; then \
+			mkdir -p "$(dir $(__DEP))"; fi
+		$(AS) $(ARM64_FPU_ASFLAGS) $($(__TARGET)_ASFLAGS_WITHOUT_FPUFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
 endif
 
 #*********************************************************************************************************

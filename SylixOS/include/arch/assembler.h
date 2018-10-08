@@ -27,6 +27,9 @@
 #if defined(LW_CFG_CPU_ARCH_ARM)
 #include "arm/asm/assembler.h"
 
+#elif defined(LW_CFG_CPU_ARCH_ARM64)
+#include "arm64/asm/assembler.h"
+
 #elif defined(LW_CFG_CPU_ARCH_X86)
 #include "x86/asm/assembler.h"
 

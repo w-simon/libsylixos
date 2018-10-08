@@ -1427,9 +1427,19 @@ static INT  __tshellFsCmdDf (INT  iArgC, PCHAR  ppcArgV[])
             */
            PCHAR        pcRo = "n";
 
-    if (iArgC != 2) {
-        fprintf(stderr, "df arguments error, (df volname)\n");
-        return  (PX_ERROR);
+    if (iArgC < 2) {
+#if LW_CFG_OEMDISK_EN > 0
+        API_OemDiskMountShow();
+        printf("\n");
+#endif                                                                  /*  LW_CFG_OEMDISK_EN > 0       */
+
+#if (LW_CFG_MAX_VOLUMES > 0) && (LW_CFG_YAFFS_EN > 0)
+        API_YaffsDevMountShow();
+        printf("\n");
+#endif                                                                  /*  (LW_CFG_MAX_VOLUMES > 0)    */
+                                                                        /*  (LW_CFG_YAFFS_EN > 0)       */
+        API_MountShow();
+        return  (ERROR_NONE);
     }
     
     if (statfs(ppcArgV[1], &statfsGet) < 0) {
@@ -2122,6 +2132,85 @@ __input_type:
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: __tshellFsCmdClrGpt
+** 功能描述: 系统命令 "clrgpt"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : 0
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __tshellFsCmdClrGpt (INT  iArgC, PCHAR  ppcArgV[])
+{
+    INT               iFdBlk;
+    ULONG             ulSecSize;
+    struct stat       statGet;
+    PCHAR             pcBlkFile;
+    PVOID             pvBuffer;
+    
+    if (iArgC == 2) {
+        pcBlkFile = ppcArgV[1];
+    } else if ((iArgC == 4) && !lib_strcmp(ppcArgV[1], "-s")) {
+        pcBlkFile = ppcArgV[3];
+    } else {
+        fprintf(stderr, "too few arguments!\n");
+        return  (-ERROR_TSHELL_EPARAM);
+    }
+    
+    iFdBlk = open(pcBlkFile, O_RDWR);
+    if (iFdBlk < 0) {
+        fprintf(stderr, "can not open: %s error: %s!\n", pcBlkFile, lib_strerror(errno));
+        return  (-ERROR_TSHELL_EPARAM);
+    }
+    
+    if (fstat(iFdBlk, &statGet)) {
+        close(iFdBlk);
+        fprintf(stderr, "can not get block device status: %s.\n", lib_strerror(errno));
+        return  (-ERROR_TSHELL_EPARAM);
+    }
+    
+    if (!S_ISBLK(statGet.st_mode)) {
+        close(iFdBlk);
+        fprintf(stderr, "%s is not a block device.\n", pcBlkFile);
+        return  (-ERROR_TSHELL_EPARAM);
+    }
+    
+    if (iArgC == 4) {
+        ulSecSize = lib_atol(ppcArgV[2]);
+        if ((ulSecSize < 512) || (ulSecSize > (16 * LW_CFG_KB_SIZE))) {
+            close(iFdBlk);
+            fprintf(stderr, "sector size must >= 512 && <= 16K Bytes!\n");
+            return  (-ERROR_TSHELL_EPARAM);
+        }
+        
+    } else {
+        if (ioctl(iFdBlk, LW_BLKD_GET_SECSIZE, &ulSecSize) < 0) {
+            close(iFdBlk);
+            fprintf(stderr, "command 'LW_BLKD_GET_SECSIZE' error: %s!\n", lib_strerror(errno));
+            return  (-ERROR_TSHELL_EPARAM);
+        }
+    }
+    
+    pvBuffer = __SHEAP_ALLOC((size_t)ulSecSize);
+    if (!pvBuffer) {
+        close(iFdBlk);
+        fprintf(stderr, "system low memory!\n");
+        return  (PX_ERROR);
+    }
+    lib_bzero(pvBuffer, (size_t)ulSecSize);
+    
+    if (pwrite(iFdBlk, pvBuffer, (size_t)ulSecSize, (off_t)ulSecSize) != ulSecSize) {
+        close(iFdBlk);
+        fprintf(stderr, "can not write data to block, error: %s!\n", lib_strerror(errno));
+        return  (PX_ERROR);
+    }
+    
+    fsync(iFdBlk);
+    close(iFdBlk);
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: __tshellFsCmdMkGrub
 ** 功能描述: 系统命令 "mkgrub"
 ** 输　入  : iArgC         参数个数
@@ -2291,6 +2380,12 @@ VOID  __tshellFsCmdInit (VOID)
     API_TShellHelpAdd("fdisk",   "show or make disk partition table\n"
                                  "eg. fdisk /dev/blk/udisk0\n"
                                  "    fdisk -f /dev/blk/sata0\n");
+                                 
+    API_TShellKeywordAdd("clrgpt", __tshellFsCmdClrGpt);
+    API_TShellFormatAdd("clrgpt", " [-s [sector size]] [block I/O device]");
+    API_TShellHelpAdd("clrgpt",   "clear GPT infomation\n"
+                                  "eg. clrgpt /dev/blk/udisk0\n"
+                                  "    clrgpt -s 512 /dev/blk/sata0\n");
 
 #ifdef LW_CFG_CPU_ARCH_X86
     API_TShellKeywordAdd("mkgrub", __tshellFsCmdMkGrub);

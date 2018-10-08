@@ -217,6 +217,7 @@ VOID    archMpInt(ULONG  ulCPUId);
 #define KN_MB()         __asm__ __volatile__ ("nop" : : : "memory")
 #define KN_RMB()        __asm__ __volatile__ ("nop" : : : "memory")
 #define KN_WMB()        __asm__ __volatile__ ("nop" : : : "memory")
+
 #else
 #define KN_MB()         __asm__ __volatile__ ("mfence" : : : "memory")
 #define KN_RMB()        __asm__ __volatile__ ("lfence" : : : "memory")
@@ -231,10 +232,14 @@ VOID    archMpInt(ULONG  ulCPUId);
 #define KN_WMB()
 #endif                                                                  /*  !__GNUC__                   */
 
+#define KN_DMA_RMB()    KN_RMB()
+#define KN_DMA_WMB()    KN_WMB()
+
 #if LW_CFG_SMP_EN > 0
 #define KN_SMP_MB()     KN_MB()
 #define KN_SMP_RMB()    KN_RMB()
 #define KN_SMP_WMB()    KN_WMB()
+
 #else
 #define KN_SMP_MB()     KN_BARRIER()
 #define KN_SMP_RMB()    KN_BARRIER()

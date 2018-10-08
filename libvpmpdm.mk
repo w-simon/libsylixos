@@ -170,6 +170,50 @@ SylixOS/vpmpdm/arch/arm/generic/strlen.c
 endif
 
 #*********************************************************************************************************
+# ARM64 source
+#*********************************************************************************************************
+LOCAL_ARM64_SRCS = \
+SylixOS/vpmpdm/arch/arm64/generic/memchr.S \
+SylixOS/vpmpdm/arch/arm64/generic/memcmp.S \
+SylixOS/vpmpdm/arch/arm64/generic/memcpy.S \
+SylixOS/vpmpdm/arch/arm64/generic/memmove.S \
+SylixOS/vpmpdm/arch/arm64/generic/memset.S \
+SylixOS/vpmpdm/arch/arm64/generic/stpcpy.S \
+SylixOS/vpmpdm/arch/arm64/generic/strchr.S \
+SylixOS/vpmpdm/arch/arm64/generic/strcmp.S \
+SylixOS/vpmpdm/arch/arm64/generic/strcpy.S \
+SylixOS/vpmpdm/arch/arm64/generic/strlen.S \
+SylixOS/vpmpdm/arch/arm64/generic/strncmp.S \
+SylixOS/vpmpdm/arch/arm64/generic/strnlen.S \
+SylixOS/vpmpdm/arch/arm64/generic/wmemmove.S
+
+ifeq ($(CPU_TYPE), cortex-a53) 
+LOCAL_ARM64_SRCS += \
+SylixOS/vpmpdm/arch/arm64/cortex-a53/memmove.S
+
+LOCAL_EXCLUDE_SRCS += \
+SylixOS/vpmpdm/arch/arm64/generic/memmove.S
+endif
+
+ifeq ($(CPU_TYPE), cortex-a73) 
+LOCAL_ARM64_SRCS += \
+SylixOS/vpmpdm/arch/arm64/cortex-a53/memmove.S
+
+LOCAL_EXCLUDE_SRCS += \
+SylixOS/vpmpdm/arch/arm64/generic/memmove.S
+endif
+
+ifeq ($(CPU_TYPE), denver64) 
+LOCAL_ARM64_SRCS += \
+SylixOS/vpmpdm/arch/arm64/denver64/memcpy.S \
+SylixOS/vpmpdm/arch/arm64/denver64/memset.S
+
+LOCAL_EXCLUDE_SRCS += \
+SylixOS/vpmpdm/arch/arm64/generic/memcpy.S \
+SylixOS/vpmpdm/arch/arm64/generic/memset.S
+endif
+
+#*********************************************************************************************************
 # MIPS source
 #*********************************************************************************************************
 LOCAL_MIPS_SRCS = \

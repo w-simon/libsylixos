@@ -921,7 +921,7 @@ PVOID  API_ModuleLoadEx (CPCHAR  pcFile,
     LW_LD_UNLOCK();
 #endif
 
-    if (ERROR_NONE != __moduleArchCheck(pmodule)) {						/*  检查模块链表fpu设置是否一致 */
+    if (ERROR_NONE != __moduleArchCheck(pmodule)) {                     /*  检查模块链表fpu设置是否一致 */
         API_ModuleUnload(pmodule);
         errno = ERROR_LOADER_UNEXPECTED;
         return  (LW_NULL);

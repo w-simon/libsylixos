@@ -27,6 +27,9 @@
 #if defined(LW_CFG_CPU_ARCH_ARM)
 #include "./arm/arm_gdb.h"
 
+#elif defined(LW_CFG_CPU_ARCH_ARM64)
+#include "./arm64/arm64_gdb.h"
+
 #elif defined(LW_CFG_CPU_ARCH_X86)
 #include "./x86/x86_gdb.h"
 

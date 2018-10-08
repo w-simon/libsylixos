@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2018-10-08: han.hui
+    加入 ARM AArch64 支持.
+
     2018-09-19: han.hui
     32 位 CPU IO MEM 映射支持 64 位物理地址.
 

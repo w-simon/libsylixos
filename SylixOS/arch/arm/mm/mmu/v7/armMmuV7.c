@@ -897,6 +897,7 @@ static VOID  armMmuInvTLB (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulPageAddr, ULONG  
 VOID  armMmuV7Init (LW_MMU_OP *pmmuop, CPCHAR  pcMachineName)
 {
     pmmuop->MMUOP_ulOption = 0ul;
+
     pmmuop->MMUOP_pfuncMemInit    = armMmuMemInit;
     pmmuop->MMUOP_pfuncGlobalInit = armMmuGlobalInit;
     

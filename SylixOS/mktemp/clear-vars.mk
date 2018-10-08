@@ -33,6 +33,7 @@ LOCAL_SRCS :=
 # Arch related source files
 #*********************************************************************************************************
 LOCAL_ARM_SRCS    :=
+LOCAL_ARM64_SRCS  :=
 LOCAL_MIPS_SRCS   :=
 LOCAL_MIPS64_SRCS :=
 LOCAL_PPC_SRCS    :=

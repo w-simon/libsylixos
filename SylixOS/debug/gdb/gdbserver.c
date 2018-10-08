@@ -909,8 +909,24 @@ static INT gdbRegsGet (LW_GDB_PARAM     *pparam,
     archGdbRegsGet(pparam->GDB_pvDtrace, ulThreadId, &regset);
 
     for (i = 0; i < regset.GDBR_iRegCnt; i++) {
+#if defined(LW_CFG_CPU_ARCH_ARM64)
+        if ((i == regset.GDBR_iPstateInx) ||
+            (i == regset.GDBR_iFpsrInx)   ||
+            (i == regset.GDBR_iFpcrInx)) {
+            INT  j;
+            for (j = 0; j < sizeof(INT); j++, regset.regArr[i].GDBRA_ulValue >>= 8) {
+                gdbByte2Asc(pcPos + (j * 2), regset.regArr[i].GDBRA_ulValue & 0xff);
+            }
+            pcPos += sizeof(ULONG);
+
+        } else {
+            gdbReg2Asc(pcPos, regset.regArr[i].GDBRA_ulValue);
+            pcPos += (2 * sizeof(ULONG));
+        }
+#else
         gdbReg2Asc(pcPos, regset.regArr[i].GDBRA_ulValue);
         pcPos += (2 * sizeof(ULONG));
+#endif
     }
 
     return  (ERROR_NONE);
@@ -1899,7 +1915,7 @@ static INT gdbRspPkgHandle (LW_GDB_PARAM    *pparam,
 #if defined(LW_CFG_CPU_ARCH_X86) && (LW_CFG_CPU_WORD_LENGHT == 32)
                     /*
                      *  x86单步时需跳过 push %ebp (0x55) 和 mov %esp %ebp指令，
-                     *  因为当停在这两条指令是可能导致gdb堆栈错误
+                     *  因为当停在这两条指令时可能导致gdb堆栈错误
                      */
                     if ((*(PUCHAR)pdmsg->DTM_ulAddr) == 0x55 ||
                         (*(PUCHAR)pdmsg->DTM_ulAddr) == 0x89) {

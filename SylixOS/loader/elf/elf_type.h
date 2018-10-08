@@ -31,6 +31,9 @@
 #if defined(LW_CFG_CPU_ARCH_ARM)
 #include "arch/arm/elf/armElf.h"
 
+#elif defined(LW_CFG_CPU_ARCH_ARM64)
+#include "arch/arm64/elf/arm64Elf.h"
+
 #elif defined(LW_CFG_CPU_ARCH_X86)
 #include "arch/x86/elf/x86Elf.h"
 

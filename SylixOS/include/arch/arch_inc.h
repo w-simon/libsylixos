@@ -34,6 +34,15 @@
 #include "arm/arch_mmu.h"
 #include "arm/arch_mpu.h"
 
+#elif defined(LW_CFG_CPU_ARCH_ARM64)
+#include "arm64/arch_types.h"
+#include "arm64/arch_def.h"
+#include "arm64/arch_compiler.h"
+#include "arm64/arch_float.h"
+#include "arm64/arch_limits.h"
+#include "arm64/arch_regs.h"
+#include "arm64/arch_mmu.h"
+
 #elif defined(LW_CFG_CPU_ARCH_X86)
 #include "x86/arch_types.h"
 #include "x86/arch_compiler.h"

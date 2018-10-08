@@ -27,6 +27,9 @@
 #if defined(LW_CFG_CPU_ARCH_ARM)
 #include "./arm/arm_support.h"
 
+#elif defined(LW_CFG_CPU_ARCH_ARM64)
+#include "./arm64/arm64_support.h"
+
 #elif defined(LW_CFG_CPU_ARCH_X86)
 #include "./x86/x86_support.h"
 

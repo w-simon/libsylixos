@@ -217,10 +217,14 @@ VOID    archMpInt(ULONG  ulCPUId);
 #define KN_RMB()                KN_FENCE(ir, ir)
 #define KN_WMB()                KN_FENCE(ow, ow)
 
+#define KN_DMA_RMB()            KN_FENCE(ir, ir)
+#define KN_DMA_WMB()            KN_FENCE(ow, ow)
+
 #if LW_CFG_SMP_EN > 0
 #define KN_SMP_MB()             KN_FENCE(rw, rw)
 #define KN_SMP_RMB()            KN_FENCE(r, r)
 #define KN_SMP_WMB()            KN_FENCE(w, w)
+
 #else
 #define KN_SMP_MB()             KN_BARRIER()
 #define KN_SMP_RMB()            KN_BARRIER()

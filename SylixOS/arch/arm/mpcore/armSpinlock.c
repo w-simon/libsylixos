@@ -114,7 +114,7 @@ static VOID  armSpinUnlock (SPINLOCKTYPE *psld)
 {
 #if __SYLIXOS_ARM_ARCH__ >= 6
     psld->SLD_usSvcNow++;
-    armDsb();
+    armDsb(ishst);
     __asm__ __volatile__(ARM_SEV);
 #endif                                                                  /*  __SYLIXOS_ARM_ARCH__ >= 6   */
 }

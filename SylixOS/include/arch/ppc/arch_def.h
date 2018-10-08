@@ -23,10 +23,20 @@
 #define __PPC_ARCH_DEF_H
 
 /*********************************************************************************************************
-  BAT definitions
+  stringify_in_c
 *********************************************************************************************************/
 #if defined(__SYLIXOS_KERNEL) || defined(__ASSEMBLY__) || defined(ASSEMBLY)
 
+#if defined(__ASSEMBLY__) || defined(ASSEMBLY)
+#define stringify_in_c(...)     __VA_ARGS__
+#else
+#define __stringify_in_c(...)   #__VA_ARGS__
+#define stringify_in_c(...)     __stringify_in_c(__VA_ARGS__) " "
+#endif                                                                  /*  __ASSEMBLY__ || ASSEMBLY    */
+
+/*********************************************************************************************************
+  BAT definitions
+*********************************************************************************************************/
 /*********************************************************************************************************
   General BAT defines for bit settings to compose BAT regs
   represent all the different block lengths

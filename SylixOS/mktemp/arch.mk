@@ -123,6 +123,32 @@ ARCH_CPUFLAGS_NOFPU             = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS)
 endif
 
 #*********************************************************************************************************
+# ARM64
+#*********************************************************************************************************
+ifneq (,$(findstring aarch64,$(TOOLCHAIN_PREFIX)))
+ARCH             = arm64
+ARCH_COMMONFLAGS = -fno-omit-frame-pointer -mstrict-align -ffixed-x18
+
+ARCH_PIC_ASFLAGS = 
+ARCH_PIC_CFLAGS  = -fPIC 
+ARCH_PIC_LDFLAGS = -Wl,-shared -fPIC -shared
+
+ARCH_KO_CFLAGS   = -mcmodel=large -mgeneral-regs-only
+ARCH_KO_LDFLAGS  = -nostdlib -r 
+
+ARCH_KLIB_CFLAGS =
+
+ARCH_KERNEL_CFLAGS  = -mgeneral-regs-only
+ARCH_KERNEL_LDFLAGS = -Wl,--build-id=none
+
+ARCH_FPUFLAGS = 
+
+ARCH_CPUFLAGS_WITHOUT_FPUFLAGS = -mcpu=$(CPU_TYPE)
+ARCH_CPUFLAGS                   = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) $(ARCH_FPUFLAGS)
+ARCH_CPUFLAGS_NOFPU             = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS)
+endif
+
+#*********************************************************************************************************
 # MIPS (SylixOS toolchain 4.9.3 has loongson3x '-mhard-float' patch)
 #*********************************************************************************************************
 ifneq (,$(findstring mips-sylixos,$(TOOLCHAIN_PREFIX)))

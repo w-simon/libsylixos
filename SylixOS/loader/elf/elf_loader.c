@@ -177,7 +177,7 @@ static INT elfRelaRelocate (LW_LD_EXEC_MODULE *pmodule,
 #endif                                                                  /*  LW_CFG_CPU_ARCH_MIPS64      */
         if (SHN_UNDEF == psym->st_shndx) {                              /*  外部符号需查找符号表        */
             pcSymName = pcStrTab + psym->st_name;
-            if (lib_strlen(pcSymName) == 0) {                           /* 特殊符号，和体系结构相关     */
+            if (lib_strlen(pcSymName) == 0) {                           /*  特殊符号，和体系结构相关    */
                 addrSymVal = 0;
             
             } else {
@@ -349,7 +349,7 @@ static INT elfSectionsRelocate (LW_LD_EXEC_MODULE *pmodule, Elf_Shdr *pshdrArr)
          *  重定位符号表使用的字符串表
          */
         ulStrShIndex = (INT)pshdrArr[pshdr->sh_link].sh_link;
-        pcStrTab = (PCHAR)pmodule->EMOD_psegmentArry[ulStrShIndex].ESEG_ulAddr;
+        pcStrTab     = (PCHAR)pmodule->EMOD_psegmentArry[ulStrShIndex].ESEG_ulAddr;
         if (LW_NULL == pcStrTab) {
             _ErrorHandle(ERROR_LOADER_FORMAT);
             return  (PX_ERROR);
@@ -833,11 +833,11 @@ __finibuild:
      *  构建Fini函数表，将Fini节中的项拷贝到Fini函数数组中
      */
     for (j = 0; j < (sizeof(_G_pcFiniSecArr) / sizeof(_G_pcFiniSecArr[0])); j++) {
-        for (i = 0; i < pmodule->EMOD_ulSegCount; i++) {                /* 计算Fini表大小               */
+        for (i = 0; i < pmodule->EMOD_ulSegCount; i++) {                /*  计算Fini表大小              */
             pcShName = (PCHAR)pmodule->EMOD_psegmentArry[uiShStrNdx].ESEG_ulAddr
-                     + pshdr[i].sh_name;                                /* 获取符号所在节名称           */
+                     + pshdr[i].sh_name;                                /*  获取符号所在节名称          */
 
-            if (0 == lib_strcmp(pcShName, _G_pcFiniSecArr[j])) {        /* 匹配.fini_array节            */
+            if (0 == lib_strcmp(pcShName, _G_pcFiniSecArr[j])) {        /*  匹配.fini_array节           */
                 uiFiniTblSize += (pshdr[i].sh_size / sizeof(Elf_Addr));
             }
         }
@@ -868,7 +868,7 @@ __finibuild:
     for (j = 0; j < (sizeof(_G_pcFiniSecArr) / sizeof(_G_pcFiniSecArr[0])); j++) {
         for (i = 0; i < pmodule->EMOD_ulSegCount; i++) {
             pcShName = (PCHAR)pmodule->EMOD_psegmentArry[uiShStrNdx].ESEG_ulAddr
-                     + pshdr[i].sh_name;                                /* 获取符号所在节名称           */
+                     + pshdr[i].sh_name;                                /*  获取符号所在节名称          */
             paddr = (Elf_Addr *)pmodule->EMOD_psegmentArry[i].ESEG_ulAddr;
 
             if (0 != lib_strcmp(pcShName, _G_pcFiniSecArr[j])) {
@@ -882,7 +882,7 @@ __finibuild:
 
     for (i = 0; i < pmodule->EMOD_ulSegCount; i++) {
         pcShName = (PCHAR)pmodule->EMOD_psegmentArry[uiShStrNdx].ESEG_ulAddr
-                 + pshdr[i].sh_name;                                    /* 获取符号所在节名称           */
+                 + pshdr[i].sh_name;                                    /*  获取符号所在节名称          */
         paddr = (Elf_Addr *)pmodule->EMOD_psegmentArry[i].ESEG_ulAddr;
         if (pcShName == lib_strstr(pcShName, __LW_DTORS_SECTION)) {     /*  匹配.dtor节                 */
             for (k = 0; k < (pshdr[i].sh_size / sizeof(Elf_Addr)); k++) {
@@ -1504,7 +1504,7 @@ static INT elfPhdrRelocate (LW_LD_EXEC_MODULE *pmodule, ELF_DYN_DIR  *pdyndir)
 
             addrSymVal = 0;
             if (SHN_UNDEF == psym->st_shndx) {                          /*  外部符号需查找符号表        */
-                if (lib_strlen(pcSymName) == 0) {                       /* 特殊符号，和体系结构相关     */
+                if (lib_strlen(pcSymName) == 0) {                       /*  特殊符号，和体系结构相关    */
                     addrSymVal = 0;
                 
                 } else {
@@ -1547,7 +1547,7 @@ static INT elfPhdrRelocate (LW_LD_EXEC_MODULE *pmodule, ELF_DYN_DIR  *pdyndir)
 
             addrSymVal = 0;
             if (SHN_UNDEF == psym->st_shndx) {                          /*  外部符号需查找符号表        */
-                if (lib_strlen(pcSymName) == 0) {                       /* 特殊符号，和体系结构相关     */
+                if (lib_strlen(pcSymName) == 0) {                       /*  特殊符号，和体系结构相关    */
                     addrSymVal = 0;
                 
                 } else {
@@ -1708,10 +1708,9 @@ static INT elfPhdrBuildInitTable (LW_LD_EXEC_MODULE *pmodule,
 *********************************************************************************************************/
 static INT elfLoadExec (LW_LD_EXEC_MODULE *pmodule, Elf_Ehdr *pehdr, INT iFd)
 {
-    ELF_DYN_DIR *pdyndir = LW_NULL;
-    INT          i;
-    PCHAR        pchLibName = LW_NULL;
-
+    ELF_DYN_DIR        *pdyndir     = LW_NULL;
+    INT                 i;
+    PCHAR               pchLibName  = LW_NULL;
     LW_LD_EXEC_MODULE **ppmodUseArr = LW_NULL;
 
     if (LW_NULL != pmodule->EMOD_psegmentArry ||

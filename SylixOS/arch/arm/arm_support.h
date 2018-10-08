@@ -206,8 +206,9 @@ VOID    armSyncBusMode(VOID);
 #define ARM_MACHINE_A9      "A9"
 #define ARM_MACHINE_A15     "A15"
 #define ARM_MACHINE_A17     "A17"
-#define ARM_MACHINE_A53     "A53"                                       /*  ARMv8                       */
-#define ARM_MACHINE_A57     "A57"                                       /*  FT1500A FT2000 ...          */
+                                                                        /*  ARMv8                       */
+#define ARM_MACHINE_A53     "A53"                                       /*  A35 ... compatible          */
+#define ARM_MACHINE_A57     "A57"                                       /*  FT1500A/2000 ... compatible */
 #define ARM_MACHINE_A72     "A72"
 #define ARM_MACHINE_A73     "A73"
 
@@ -302,44 +303,61 @@ VOID    archMpInt(ULONG  ulCPUId);
 
 #ifdef __GNUC__
 #if __SYLIXOS_ARM_ARCH__ >= 7
-#define armIsb()        __asm__ __volatile__ ("isb" : : : "memory")
-#define armDsb()        __asm__ __volatile__ ("dsb" : : : "memory")
-#define armDmb()        __asm__ __volatile__ ("dmb" : : : "memory")
+#define armIsb(opt)     __asm__ __volatile__ ("isb " #opt : : : "memory")
+#define armDsb(opt)     __asm__ __volatile__ ("dsb " #opt : : : "memory")
+#define armDmb(opt)     __asm__ __volatile__ ("dmb " #opt : : : "memory")
 
 #elif __SYLIXOS_ARM_ARCH__ == 6
-#define armIsb()        __asm__ __volatile__ ("mcr p15, 0, %0, c7, c5,  4" \
-                                              : : "r" (0) : "memory")
-#define armDsb()        __asm__ __volatile__ ("mcr p15, 0, %0, c7, c10, 4" \
-                                              : : "r" (0) : "memory")
-#define armDmb()        __asm__ __volatile__ ("mcr p15, 0, %0, c7, c10, 5" \
-                                              : : "r" (0) : "memory")
+#define armIsb(x)       __asm__ __volatile__ ("mcr p15, 0, %0, c7, c5,  4" : : "r" (0) : "memory")
+#define armDsb(x)       __asm__ __volatile__ ("mcr p15, 0, %0, c7, c10, 4" : : "r" (0) : "memory")
+#define armDmb(x)       __asm__ __volatile__ ("mcr p15, 0, %0, c7, c10, 5" : : "r" (0) : "memory")
+
 #else
-#define armIsb()        __asm__ __volatile__ ("" : : : "memory")
-#define armDsb()        __asm__ __volatile__ ("" : : : "memory")
-#define armDmb()        __asm__ __volatile__ ("" : : : "memory")
+#define armIsb(x)       __asm__ __volatile__ ("" : : : "memory")
+#define armDsb(x)       __asm__ __volatile__ ("" : : : "memory")
+#define armDmb(x)       __asm__ __volatile__ ("" : : : "memory")
 #endif                                                                  /*  __SYLIXOS_ARM_ARCH__        */
 
 #else
-VOID    armIsb(VOID);
-VOID    armDsb(VOID);
-VOID    armDmb(VOID);
+#define armIsb(x)
+#define armDsb(x)
+#define armDmb(x)
 #endif                                                                  /*  __GNUC__                    */
-
 
 #if __SYLIXOS_ARM_ARCH__ >= 7 && LW_CFG_ARM_CACHE_L2 > 0
 VOID    armL2Sync(VOID);
-#define KN_MB()         do { armDsb(); armL2Sync(); } while(0)
+#define KN_HEAVY_MB(x...)   do { armDsb(x); armL2Sync(); } while(0)
 #else
-#define KN_MB()         armDsb()
+#define KN_HEAVY_MB(x...)   armDsb(x)
 #endif                                                                  /*  __SYLIXOS_ARM_ARCH__ >= 7   */
                                                                         /*  LW_CFG_ARM_CACHE_L2 > 0     */
-#define KN_RMB()        armDsb()
-#define KN_WMB()        KN_MB()
+
+#define armIsbOp(x...)      armIsb(x)
+#define armDsbOp(x...)      armDsb(x)
+#define armDmbOp(x...)      armDmb(x)
+
+/*********************************************************************************************************
+  ARM 内存屏障标准函数
+*********************************************************************************************************/
+
+#define KN_MB()         KN_HEAVY_MB()
+#define KN_RMB()        armDsbOp()
+#define KN_WMB()        KN_HEAVY_MB(st)
+
+#define KN_DMA_RMB()    armDmb(osh)
+#define KN_DMA_WMB()    armDmb(oshst)
 
 #if LW_CFG_SMP_EN > 0
-#define KN_SMP_MB()     armDmb()
-#define KN_SMP_RMB()    armDmb()
-#define KN_SMP_WMB()    armDmb()
+#ifdef __SYLIXOS_SMPFMB                                                 /*  Fast SMP MB                 */
+#define KN_SMP_MB()     armDmb(ish)
+#define KN_SMP_RMB()    armDmb(ish)
+#define KN_SMP_WMB()    armDmb(ishst)
+
+#else                                                                   /*  __SYLIXOS_SMPFMB            */
+#define KN_SMP_MB()     armDmbOp()
+#define KN_SMP_RMB()    armDmbOp()
+#define KN_SMP_WMB()    armDmbOp()
+#endif                                                                  /*  !__SYLIXOS_SMPFMB           */
 
 #else
 #ifdef __GNUC__

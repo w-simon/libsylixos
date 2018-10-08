@@ -226,10 +226,14 @@ VOID    archMpInt(ULONG  ulCPUId);
 #define KN_RMB()                KN_STBAR()
 #define KN_WMB()                KN_STBAR()
 
+#define KN_DMA_RMB()            KN_STBAR()
+#define KN_DMA_WMB()            KN_STBAR()
+
 #if LW_CFG_SMP_EN > 0
 #define KN_SMP_MB()             KN_STBAR()
 #define KN_SMP_RMB()            KN_STBAR()
 #define KN_SMP_WMB()            KN_STBAR()
+
 #else
 #define KN_SMP_MB()             KN_BARRIER()
 #define KN_SMP_RMB()            KN_BARRIER()
