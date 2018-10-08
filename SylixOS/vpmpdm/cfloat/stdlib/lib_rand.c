@@ -17,7 +17,7 @@
 #define DIVISOR     127773L
 #define REMAINDER   2836L
 
-static INT     last_val     = 1;
+static LONG    last_val     = 1;
 static LONG    last_val_dom = 1;
 
 /*
@@ -27,14 +27,20 @@ __weak_reference(lib_rand, rand);
 
 INT lib_rand (VOID)
 {
-    INT64   llTmp = (INT64)((INT64)last_val * 1103515245);
+    LONG    lQuotient, lRemainder, lTemp, lLast;
+
+    lLast      = last_val;
+    lQuotient  = lLast / DIVISOR;
+    lRemainder = lLast % DIVISOR;
+    lTemp      = (FACTOR * lRemainder) - (REMAINDER * lQuotient);
     
-    llTmp  += ((INT64)FACTOR ^ API_TimeGet());
-    llTmp >>= 16;
+    if (lTemp <= 0) {
+        lTemp += MODULUS;
+    }
     
-    last_val = (INT)(llTmp % __ARCH_UINT_MAX);
+    last_val = lTemp;
     
-    return  ((last_val >= 0) ? last_val : (0 - last_val));
+    return  ((INT)(lTemp % ((ULONG)RAND_MAX + 1)));
 }
 
 /*
@@ -44,15 +50,21 @@ __weak_reference(lib_rand_r, rand_r);
 
 INT lib_rand_r (uint_t *puiSeed)
 {
-    INT64   llTmp = (INT64)((INT64)*puiSeed * 1103515245);
+    LONG    lQuotient, lRemainder, lTemp, lLast;
+
+    lLast      = (LONG)(*puiSeed);
+    lQuotient  = lLast / DIVISOR;
+    lRemainder = lLast % DIVISOR;
+    lTemp      = (FACTOR * lRemainder) - (REMAINDER * lQuotient);
     
-    llTmp  += ((INT64)FACTOR ^ *puiSeed);
-    llTmp >>= 16;
+    if (lTemp <= 0) {
+        lTemp += MODULUS;
+    }
     
-    last_val = (INT)(llTmp % __ARCH_UINT_MAX);
+    last_val = lTemp;
     *puiSeed = (uint_t)last_val;
     
-    return  ((last_val >= 0) ? last_val : (0 - last_val));
+    return  ((INT)(lTemp % ((ULONG)RAND_MAX + 1)));
 }
 
 /*
@@ -62,7 +74,7 @@ __weak_reference(lib_srand, srand);
 
 VOID lib_srand (uint_t uiSeed)
 {
-    last_val = (INT)uiSeed;
+    last_val = (LONG)uiSeed;
 }
 
 /*
@@ -82,14 +94,49 @@ __weak_reference(lib_random, random);
 
 LONG lib_random (VOID)
 {
-    INT64   llTmp = (INT64)((INT64)last_val_dom * 1103515245);
+    LONG    lQuotient, lRemainder, lTemp, lLast;
+
+#if LW_CFG_CPU_WORD_LENGHT == 64                                        /*  64 bits                     */
+    LONG    lQuotientH, lRemainderH, lTempH, lLastH;
+
+    lLast      = last_val_dom;
+    lQuotient  = lLast / DIVISOR;
+    lRemainder = lLast % DIVISOR;
+    lTemp      = (FACTOR * lRemainder) - (REMAINDER * lQuotient);
+
+    if (lTemp <= 0) {
+        lTemp += MODULUS;
+    }
+
+    last_val_dom = lTemp;
+
+    lLastH      = last_val_dom;
+    lQuotientH  = lLastH / DIVISOR;
+    lRemainderH = lLastH % DIVISOR;
+    lTempH      = (FACTOR * lRemainderH) - (REMAINDER * lQuotientH);
+
+    if (lTempH <= 0) {
+        lTempH += MODULUS;
+    }
+
+    lTemp += (lTempH << 32);
+
+    return  (lTemp % ((ULONG)__ARCH_LONG_MAX + 1));
+
+#else                                                                   /*  32 bits                     */
+    lLast      = last_val_dom;
+    lQuotient  = lLast / DIVISOR;
+    lRemainder = lLast % DIVISOR;
+    lTemp      = (FACTOR * lRemainder) - (REMAINDER * lQuotient);
     
-    llTmp  += ((INT64)FACTOR ^ API_TimeGet());
-    llTmp >>= 16;
+    if (lTemp <= 0) {
+        lTemp += MODULUS;
+    }
     
-    last_val_dom = (LONG)(llTmp % __ARCH_UINT_MAX);
+    last_val_dom = lTemp;
     
-    return  (LONG)((last_val_dom >= 0) ? last_val_dom : (0 - last_val_dom));
+    return  ((INT)(lTemp % ((ULONG)RAND_MAX + 1)));
+#endif
 }
 
 #define	RAND48_SEED_0	(0x330e)
