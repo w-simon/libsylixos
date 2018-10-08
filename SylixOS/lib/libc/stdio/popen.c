@@ -126,7 +126,7 @@ int pclose (FILE *fp)
 {
     LW_OBJECT_HANDLE childsh;
     int fd = fileno(fp);
-    int status = -1;
+    long status = -1; /* 32/64 bits align */
     
     if (!fp || (fd < 0)) {
         errno = EINVAL;
@@ -148,7 +148,7 @@ int pclose (FILE *fp)
      */
     API_ThreadJoin(childsh, (void **)&status);
     
-    return  (status);
+    return  ((int)status);
 }
 
 #endif  /* (LW_CFG_DEVICE_EN > 0) && (LW_CFG_FIO_LIB_EN > 0) && (LW_CFG_SHELL_EN > 0) */

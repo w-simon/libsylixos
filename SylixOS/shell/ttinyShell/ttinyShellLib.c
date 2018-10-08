@@ -960,7 +960,7 @@ INT    __tshellBgCreateEx (INT               iFd[3],
     REGISTER __PTSHELL_BACKGROUND       tsbg;
              LW_CLASS_THREADATTR        threadattrTShell;
              LW_OBJECT_HANDLE           hTShellHandle;
-             INT                        iRetValue = ERROR_NONE;
+             LONG                       lRetValue = ERROR_NONE;         /*  LONG 保证 64 位 CPU 对齐    */
              
              PLW_CLASS_TCB              ptcbShellBg;
              PLW_CLASS_TCB              ptcbCur;
@@ -1036,11 +1036,11 @@ INT    __tshellBgCreateEx (INT               iFd[3],
         *pulSh = LW_OBJECT_HANDLE_INVALID;
     }
     
-    API_ThreadStartEx(hTShellHandle, bIsJoin, (PVOID *)&iRetValue);     /*  启动 shell 线程             */
-    __TTINY_SHELL_SET_ERROR(ptcbCur, iRetValue);                        /*  记录 shell 命令产生的错误   */
+    API_ThreadStartEx(hTShellHandle, bIsJoin, (PVOID *)&lRetValue);     /*  启动 shell 线程             */
+    __TTINY_SHELL_SET_ERROR(ptcbCur, (INT)lRetValue);                   /*  记录 shell 命令产生的错误   */
     
     if (piRet) {
-        *piRet = iRetValue;
+        *piRet = (INT)lRetValue;
     }
     
     return  (ERROR_NONE);

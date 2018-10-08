@@ -26,7 +26,7 @@
 #if LW_CFG_GDB_EN > 0
 #include "dtrace.h"
 /*********************************************************************************************************
-  RISC-V 断点指令
+  RISC-V 断点指令 (必须支持压缩指令)
 *********************************************************************************************************/
 #define RISCV_BREAKPOINT_INS          0x9002
 #define RISCV_ABORTPOINT_INS          0x9003                            /*  TODO                        */
@@ -49,10 +49,10 @@ static addr_t   ulLastBpAddr[LW_CFG_MAX_PROCESSORS];
 *********************************************************************************************************/
 VOID  archDbgBpInsert (addr_t  ulAddr, size_t stSize, ULONG  *pulIns, BOOL  bLocal)
 {
-    ULONG ulIns = RISCV_BREAKPOINT_INS;
+    UINT16  usIns = RISCV_BREAKPOINT_INS;
 
     lib_memcpy((PCHAR)pulIns, (PCHAR)ulAddr, stSize);                   /*  memcpy 避免     对齐问题    */
-    lib_memcpy((PCHAR)ulAddr, (PCHAR)&ulIns, stSize);
+    lib_memcpy((PCHAR)ulAddr, (PCHAR)&usIns, sizeof(UINT16));
     KN_SMP_MB();
     
 #if LW_CFG_CACHE_EN > 0
@@ -76,7 +76,7 @@ VOID  archDbgBpInsert (addr_t  ulAddr, size_t stSize, ULONG  *pulIns, BOOL  bLoc
 VOID  archDbgAbInsert (addr_t  ulAddr, ULONG  *pulIns)
 {
     *pulIns = *(ULONG *)ulAddr;
-    *(ULONG *)ulAddr = RISCV_ABORTPOINT_INS;
+    *(UINT16 *)ulAddr = RISCV_ABORTPOINT_INS;
     KN_SMP_MB();
     
 #if LW_CFG_CACHE_EN > 0
@@ -96,7 +96,7 @@ VOID  archDbgAbInsert (addr_t  ulAddr, ULONG  *pulIns)
 *********************************************************************************************************/
 VOID  archDbgBpRemove (addr_t  ulAddr, size_t stSize, ULONG  ulIns, BOOL  bLocal)
 {
-    lib_memcpy((PCHAR)ulAddr, (PCHAR)&ulIns, stSize);
+    lib_memcpy((PCHAR)ulAddr, (PCHAR)&ulIns, sizeof(UINT16));
     KN_SMP_MB();
     
 #if LW_CFG_CACHE_EN > 0
