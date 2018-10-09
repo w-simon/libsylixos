@@ -101,8 +101,8 @@ extern VOID    arm64DCacheFlush(PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep);
 #define ARM64_PTE_AP_MASK       (0x3 << ARM64_PTE_AP_SHIFT)             /*  PTE 中的访问权限掩码        */
 #define ARM64_PTE_NS_SHIFT      (5)
 #define ARM64_PTE_NS_MASK       (0x1 << ARM64_PTE_NS_SHIFT)             /*  PTE 中的 Non-Secure         */
-#define ARM64_PTE_AIN_SHIFT     (0)
-#define ARM64_PTE_AIN_MASK      (0x3 << ARM64_PTE_AIN_SHIFT)            /*  PTE 中的 AttrIndex          */
+#define ARM64_PTE_AIN_SHIFT     (2)
+#define ARM64_PTE_AIN_MASK      (0x7 << ARM64_PTE_AIN_SHIFT)            /*  PTE 中的 AttrIndex          */
 
 #define ARM64_MMU_NS_SECURE     (0)
 #define ARM64_MMU_NS_NONSECURE  (1)
@@ -166,13 +166,13 @@ static INT  arm64MmuFlags2Attr (ULONG   ulFlag,
 
     if ((ulFlag & LW_VMM_FLAG_CACHEABLE) &&
         (ulFlag & LW_VMM_FLAG_BUFFERABLE)) {                            /* CACHE && BUFFER WRITE BACK   */
-       *pucAIn = 5 << 2;
+       *pucAIn = 5;
     } else if (ulFlag & LW_VMM_FLAG_CACHEABLE) {                        /* CACHE && BUFFER WRITE THROUGH*/
-       *pucAIn = 6 << 2;
+       *pucAIn = 6;
     } else if (ulFlag & LW_VMM_FLAG_BUFFERABLE) {                       /* UNCACHE && BUFFER            */
-       *pucAIn = 4 << 2;
+       *pucAIn = 4;
     } else {
-       *pucAIn = 0 << 2;                                                /* UNCACHE && UNBUFFER          */
+       *pucAIn = 0;                                                     /* UNCACHE && UNBUFFER          */
     }
 
     if (ulFlag & LW_VMM_FLAG_EXECABLE) {
@@ -217,8 +217,6 @@ static INT  arm64MmuAttr2Flags (UINT8  ucXN,
                                 UINT8  ucAIn,
                                 ULONG *pulFlag)
 {
-    UINT8   ucCache;
-
     (VOID)ucPXN;
 
     *pulFlag = LW_VMM_FLAG_VALID;
@@ -231,35 +229,18 @@ static INT  arm64MmuAttr2Flags (UINT8  ucXN,
         *pulFlag |= LW_VMM_FLAG_WRITABLE;
     }
 
-    ucCache = (arm64MmuGetMAIR() >> ucAIn) & 0xFF;
-    switch (ucCache) {
-
-    case 0x1:
-    case 0x2:
-    case 0x3:
-         *pulFlag |= LW_VMM_FLAG_CACHEABLE | LW_VMM_FLAG_UNBUFFERABLE;
-         break;
+    switch (ucAIn) {
 
     case 0x5:
+        *pulFlag |= LW_VMM_FLAG_CACHEABLE | LW_VMM_FLAG_BUFFERABLE;
+        break;
+        
     case 0x6:
-    case 0x7:
         *pulFlag |= LW_VMM_FLAG_CACHEABLE;
         break;
 
-    case 0x8:
-        *pulFlag |= LW_VMM_FLAG_UNCACHEABLE;
-        break;
-
-    case 0x9:
-    case 0xa:
-    case 0xb:
-        *pulFlag |= LW_VMM_FLAG_CACHEABLE | LW_VMM_FLAG_UNBUFFERABLE;
-        break;
-        
-    case 0xd:
-    case 0xe:
-    case 0xf:
-        *pulFlag |= LW_VMM_FLAG_CACHEABLE | LW_VMM_FLAG_BUFFERABLE;
+    case 0x4:
+        *pulFlag |= LW_VMM_FLAG_BUFFERABLE;
         break;
 
     default:

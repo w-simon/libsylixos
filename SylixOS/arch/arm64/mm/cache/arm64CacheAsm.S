@@ -330,8 +330,8 @@ FUNC_DEF(arm64ICacheInvalidate)
     BIC     X0  , X0 , X3                                               ;/*  取对齐地址                  */
 1:
     IC      IVAU, X0                                                    ;/*  进行 ICache 设置操作        */
-    ADD     X0  , X0 , X3                                               ;/*  每次移动 Cache Line 大小    */
-    CMP     X0  , X2                                                    ;/*  是否到达 End                */
+    ADD     X0  , X0 , X2                                               ;/*  每次移动 Cache Line 大小    */
+    CMP     X0  , X1                                                    ;/*  是否到达 End                */
     B.LO    1b
     DSB     ISH
     ARM_ISB() 

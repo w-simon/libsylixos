@@ -59,7 +59,7 @@
 
 FUNC_DEF(archTaskCtxStart)
     MOV     X1 , SP
-    BIC     X1 , X1 , #0xF                                              ;/*  SP 向下 16 字节对齐         */
+    BIC     X1 , X1 , #0xf                                              ;/*  SP 向下 16 字节对齐         */
     MOV     SP , X1
     MSR     TPIDR_EL1, X1                                               ;/*  设置异常临时栈(使用启动栈)  */
 

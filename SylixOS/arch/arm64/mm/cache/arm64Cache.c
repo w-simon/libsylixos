@@ -175,7 +175,7 @@ static INT  arm64CacheInvalidate (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_
             arm64ICacheInvalidate(pvAdrs, (PVOID)ulEnd, uiArmV8ICacheLineSize);
         }
 
-	} else {
+    } else {
         if (stBytes > 0) {                                              /*  必须 > 0                    */
             addr_t  ulStart = (addr_t)pvAdrs;
                     ulEnd   = ulStart + stBytes;
@@ -224,7 +224,7 @@ static INT  arm64CacheInvalidatePage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVO
             arm64ICacheInvalidate(pvAdrs, (PVOID)ulEnd, uiArmV8ICacheLineSize);
         }
 
-	} else {
+    } else {
         if (stBytes > 0) {                                              /*  必须 > 0                    */
             addr_t  ulStart = (addr_t)pvAdrs;
                     ulEnd   = ulStart + stBytes;
@@ -273,7 +273,7 @@ static INT  arm64CacheClear (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  st
             arm64ICacheInvalidate(pvAdrs, (PVOID)ulEnd, uiArmV8ICacheLineSize);
         }
 
-	} else {
+    } else {
         if (stBytes >= ARMv8_CACHE_LOOP_OP_MAX_SIZE) {
             arm64DCacheClearAll();                                      /*  全部回写并无效              */
         
@@ -310,7 +310,7 @@ static INT  arm64CacheClearPage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVOID pv
             arm64ICacheInvalidate(pvAdrs, (PVOID)ulEnd, uiArmV8ICacheLineSize);
         }
 
-	} else {
+    } else {
         if (stBytes >= ARMv8_CACHE_LOOP_OP_MAX_SIZE) {
             arm64DCacheClearAll();                                      /*  全部回写并无效              */
         
@@ -333,7 +333,7 @@ static INT  arm64CacheClearPage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVOID pv
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT	arm64CacheLock (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes)
+static INT  arm64CacheLock (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes)
 {
     _ErrorHandle(ENOSYS);
     return  (PX_ERROR);
@@ -348,7 +348,7 @@ static INT	arm64CacheLock (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBy
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT	arm64CacheUnlock (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes)
+static INT  arm64CacheUnlock (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes)
 {
     _ErrorHandle(ENOSYS);
     return  (PX_ERROR);
