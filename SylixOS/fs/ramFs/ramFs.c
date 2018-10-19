@@ -300,6 +300,11 @@ static LONG __ramFsOpen (PRAM_VOLUME     pramfs,
                 _ErrorHandle(EEXIST);                                   /*  已经存在文件                */
                 return  (PX_ERROR);
             
+            } else if ((iFlags & O_DIRECTORY) && !S_ISDIR(pramn->RAMN_mode)) {
+                __RAMFS_VOL_UNLOCK(pramfs);
+                _ErrorHandle(ENOTDIR);
+                return  (PX_ERROR);
+            
             } else {
                 goto    __file_open_ok;
             }

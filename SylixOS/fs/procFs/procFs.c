@@ -263,6 +263,13 @@ static LONG  __procFsOpen (PLW_DEV_HDR     pdevhdr,
         _ErrorHandle(EBUSY);
         return  (PX_ERROR);
     }
+    if ((iFlags & O_DIRECTORY) && 
+        !S_ISDIR(p_pfsn->PFSN_mode) && 
+        !S_ISLNK(p_pfsn->PFSN_mode)) {
+        __LW_PROCFS_UNLOCK();
+        _ErrorHandle(ENOTDIR);
+        return  (PX_ERROR);
+    }
     p_pfsn->PFSN_pfsnmMessage.PFSNM_oftPtr = 0;                         /*  文件指针回原位              */
     p_pfsn->PFSN_iOpenNum++;
     __LW_PROCFS_UNLOCK();                                               /*  解锁 procfs                 */

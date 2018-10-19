@@ -917,6 +917,13 @@ static LONG  __fatFsOpen (PFAT_VOLUME     pfatvol,
             return  (PX_ERROR);
         
         } else {                                                        /*  普通文件打开成功            */
+            if (iFlags & O_DIRECTORY) {
+                f_close(&pfatfile->FATFIL_fftm.FFTM_file);
+                __FAT_FILE_UNLOCK(pfatfile);
+                __SHEAP_FREE(pfatfile);
+                _ErrorHandle(ENOTDIR);
+                return  (PX_ERROR);
+            }
             pfatfile->FATFIL_fftm.FFTM_file.flag |= (FA_READ | FA_WRITE);
             f_sync(&pfatfile->FATFIL_fftm.FFTM_file);                   /*  回写磁盘(更新时间等信息)    */
         }

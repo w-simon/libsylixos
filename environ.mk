@@ -33,7 +33,7 @@ LOCAL_TARGET_NAME := env
 # Source list
 #*********************************************************************************************************
 LOCAL_SRCS := \
-SylixOS/environ/environ.c
+SylixOS/bintools/environ.c
 
 #*********************************************************************************************************
 # Header file search path (eg. LOCAL_INC_PATH := -I"Your hearder files search path")

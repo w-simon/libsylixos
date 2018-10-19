@@ -334,7 +334,7 @@ FUNC_DEF(arm64ICacheInvalidate)
     CMP     X0  , X1                                                    ;/*  ÊÇ·ñµ½´ï End                */
     B.LO    1b
     DSB     ISH
-    ARM_ISB() 
+    ARM_ISB()
     MOV     X0  , #0
     RET
     FUNC_END()

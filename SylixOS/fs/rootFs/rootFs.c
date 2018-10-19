@@ -288,6 +288,13 @@ __re_find:
                 _ErrorHandle(EEXIST);                                   /*  已经存在文件                */
                 return  (PX_ERROR);
             
+            } else if ((iFlags & O_DIRECTORY) && 
+                       (prfsn->RFSN_iNodeType != LW_ROOTFS_NODE_TYPE_DIR)) {
+                prfsn->RFSN_iOpenNum--;
+                __LW_ROOTFS_UNLOCK();                                   /*  解锁 rootfs                 */
+                _ErrorHandle(ENOTDIR);                                  /*  不是目录                    */
+                return  (PX_ERROR);
+            
             } else {
                 __LW_ROOTFS_UNLOCK();                                   /*  解锁 rootfs                 */
                 LW_DEV_INC_USE_COUNT(&_G_devhdrRoot);                   /*  更新计数器                  */

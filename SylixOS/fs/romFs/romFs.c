@@ -362,8 +362,7 @@ static LONG __romFsOpen (PROM_VOLUME     promfs,
             }
         
             if (__rfs_path_build_link(promfs, &promfile->ROMFIL_romfsdnt, pcName, PATH_MAX + 1,
-                                      pcPrefix, pcTail) == ERROR_NONE) {
-                                                                        /*  构造链接目标                */
+                                      pcPrefix, pcTail) == ERROR_NONE) {/*  构造链接目标                */
                 __ROMFS_VOL_UNLOCK(promfs);
                 __SHEAP_FREE(promfile);
                 return  (iFollowLinkType);
@@ -378,6 +377,12 @@ static LONG __romFsOpen (PROM_VOLUME     promfs,
             promfile->ROMFIL_iFileType = __ROMFS_FILE_TYPE_DIR;
         
         } else {
+            if (iFlags & O_DIRECTORY) {
+                __ROMFS_VOL_UNLOCK(promfs);
+                __SHEAP_FREE(promfile);
+                _ErrorHandle(ENOTDIR);
+                return  (PX_ERROR);
+            }
             promfile->ROMFIL_iFileType = __ROMFS_FILE_TYPE_NODE;
         }
         

@@ -376,6 +376,9 @@ FUNC_DEF(arm64EL2SwitchEL1)
     MSR     CPTR_EL2 , X0                                                ;/*  禁能协处理器陷入 EL2       */
     MSR     HSTR_EL2 , XZR
 
+    MOV     X0 , #CPACR_EL1_FPEN_EN                                      ;/*  Enable FP/SIMD at EL1      */
+    MSR     CPACR_EL1 , X0
+
     ;/*
     ; * SCTLR_EL1 初始化
     ; */

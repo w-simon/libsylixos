@@ -11,6 +11,7 @@ directory overview
          mips      (MIPS architecture support)
          ppc       (PowerPC architecture support)
          x86       (x86 architecture support)
+   bintools     (SylixOS Commonly used binary tools)
    bsp          (SylixOS board support packet)
    config       (SylixOS building config)
    cplusplus    (SylixOS C++ support)

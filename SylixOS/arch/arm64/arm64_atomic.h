@@ -105,7 +105,7 @@ static LW_INLINE addr_t  archAtomicAddrCas (volatile addr_t *p, addr_t  ulOld, a
 
     ARM_PREFETCH_W(p);
 
-    __asm__ __volatile__(           
+    __asm__ __volatile__(
         "1: ldxr   %[oldval], %[v]                  \n"
         "   eor    %[tmp],    %[oldval], %[old]     \n"
         "   cbnz   %[tmp],    2f                    \n"

@@ -139,7 +139,7 @@ DIR  *opendir (CPCHAR   pcPathName)
              struct stat    statFile;
              DIR           *pdir;
     
-    iFd = open(pcPathName, O_RDONLY, 0);
+    iFd = open(pcPathName, O_RDONLY | O_DIRECTORY, 0);
     if (iFd < 0) {
         return  (LW_NULL);
     }

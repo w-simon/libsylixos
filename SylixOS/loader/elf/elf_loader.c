@@ -55,8 +55,8 @@
   _G_pcFiniSecArr: 结束函数节区名
   目前不的实现不处理节区间调用的循序
 *********************************************************************************************************/
-static const PCHAR              _G_pcInitSecArr[] = {".preinit_array", ".init_array"};
-static const PCHAR              _G_pcFiniSecArr[] = {".fini_array"};
+static const PCHAR              _G_pcInitSecArr[] = {".preinit_array", ".init_array", ".init_array.00100"};
+static const PCHAR              _G_pcFiniSecArr[] = {".fini_array", ".fini_array.00100"};
 #define __LW_CTORS_SECTION      ".ctors"                                /*  GCC 默认构造与析构函数节    */
 #define __LW_DTORS_SECTION      ".dtors"
 /*********************************************************************************************************
@@ -1924,7 +1924,7 @@ INT __elfListLoad (LW_LD_EXEC_MODULE *pmodule, CPCHAR pcPath)
     } while (pringTemp != &pmodule->EMOD_ringModules);
 
     /*
-     *  然后装载所有需要装载的模块
+     *  然后重定位所有需要重定位的模块
      */
     pringTemp = &pmodule->EMOD_ringModules;
     do {

@@ -46,7 +46,8 @@
                                                                         /* open                         */
 #define _FBINARY                    0x10000                             /* binary mode                  */
 #define _FNOFOLLOW                  0x20000                             /* don't follow symlink.        */
-                                                                        
+#define _FDIRECTORY                 0x40000                             /* directory only               */
+
 /*********************************************************************************************************
   POSIX д╛хо mode
 *********************************************************************************************************/
@@ -84,6 +85,7 @@
 #define O_NOCTTY                    _FNOCTTY
 #define O_BINARY                    _FBINARY
 #define O_NOFOLLOW                  _FNOFOLLOW
+#define O_DIRECTORY                 _FDIRECTORY
 #define O_CLOEXEC                   0x80000
 #define O_LARGEFILE                 0x100000
 

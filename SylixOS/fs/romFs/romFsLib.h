@@ -41,7 +41,6 @@ typedef struct {
     UINT32              ROMFSDNT_uiSpec;                                /*  如果是目录则为目录内文件地址*/
     UINT32              ROMFSDNT_uiData;                                /*  数据地址                    */
     
-    
     UINT32              ROMFSDNT_uiMe;                                  /*  自身                        */
     
     struct stat         ROMFSDNT_stat;                                  /*  文件 stat                   */

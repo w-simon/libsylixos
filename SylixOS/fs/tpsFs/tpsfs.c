@@ -314,6 +314,10 @@ errno_t  tpsFsOpen (PTPS_SUPER_BLOCK     psb,
             tpsFsEntryFree(pentry);
             return  (EEXIST);
         }
+        if ((iFlags & O_DIRECTORY) && !S_ISDIR(pentry->ENTRY_pinode->IND_iMode)) {
+            tpsFsEntryFree(pentry);
+            return  (ENOTDIR);
+        }
     }
 
     if (S_ISLNK(pentry->ENTRY_pinode->IND_iMode) || (*pcRemain == 0)) {

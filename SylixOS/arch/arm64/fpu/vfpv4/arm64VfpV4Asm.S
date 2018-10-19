@@ -27,6 +27,8 @@
 
 #if LW_CFG_CPU_FPU_EN > 0
 
+#include <arch/arm64/arch_def.h>
+
     FILE_BEGIN()
 
     EXPORT_LABEL(arm64VfpV4HwInit)
@@ -53,7 +55,7 @@ FUNC_DEF(arm64VfpV4Mvfr0EL1)
     FUNC_END()
 
 FUNC_DEF(arm64VfpV4Enable)
-    MOV     X0 , #3 << 20
+    MOV     X0 , #CPACR_EL1_FPEN_EN
     MSR     CPACR_EL1 , X0
     RET
     FUNC_END()
@@ -72,7 +74,7 @@ FUNC_DEF(arm64VfpV4IsEnable)
     FUNC_END()
   
 FUNC_DEF(arm64VfpV4Save)
-    MOV     X1  , #3 << 20
+    MOV     X1  , #CPACR_EL1_FPEN_EN
     MSR     CPACR_EL1 , X1
 
     STP     Q0  , Q1  , [X0 , #16 *  0]
@@ -99,7 +101,7 @@ FUNC_DEF(arm64VfpV4Save)
     FUNC_END()
     
 FUNC_DEF(arm64VfpV4Restore)
-    MOV     X1   , #3 << 20
+    MOV     X1   , #CPACR_EL1_FPEN_EN
     MSR     CPACR_EL1  , X1
 
     LDP     Q0   ,  Q1 , [X0 , #16 *  0]

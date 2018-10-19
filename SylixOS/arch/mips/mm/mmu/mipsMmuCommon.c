@@ -368,6 +368,7 @@ VOID  mipsMmuInit (LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName)
         _G_bMmuHasXI           = LW_TRUE;
         _G_uiMmuEntryLoUnCache = CONF_CM_UNCACHED;                      /*  非高速缓存                  */
         _G_uiMmuEntryLoCache   = 6;                                     /*  一致性高速缓存              */
+        _G_uiMmuTlbSize        = 256;                                   /*  256 个 TLB 条目             */
         break;
 
     default:

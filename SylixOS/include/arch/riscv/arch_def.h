@@ -34,6 +34,8 @@
 #define XCAUSE              mcause
 #define XTVEC               mtvec
 #define XRET                mret
+#define XIE                 mie
+#define XIP                 mip
 
 #define XSTATUS_XIE         MSTATUS_MIE
 #define XSTATUS_XPIE        MSTATUS_MPIE
@@ -53,6 +55,8 @@
 #define XCAUSE              scause
 #define XTVEC               stvec
 #define XRET                sret
+#define XIE                 sie
+#define XIP                 sip
 
 #define XSTATUS_XIE         SSTATUS_SIE
 #define XSTATUS_XPIE        SSTATUS_SPIE

@@ -3,7 +3,6 @@
  * Copyright All Rights Reserved
  *
  * /bin/env /usr/bin/env
- * this file is support current module malloc/free use his own heap in a vprocess.
  *
  * Author: Han.hui <sylixos@gmail.com>
  */

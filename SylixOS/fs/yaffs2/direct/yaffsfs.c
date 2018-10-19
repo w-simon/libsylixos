@@ -907,6 +907,13 @@ int yaffs_open_sharing_reldir(struct yaffs_obj *reldir, const YCHAR *path,
 					yaffsfs_SetError(-ENFILE);
 					errorReported = 1;
 				}
+			} else if (oflag & O_DIRECTORY) { /* sylixos add O_DIRECTORY support */
+			    if ((obj->variant_type != YAFFS_OBJECT_TYPE_SYMLINK) && 
+			        (obj->variant_type != YAFFS_OBJECT_TYPE_HARDLINK)) {
+    			    openDenied = 1;
+    			    yaffsfs_SetError(-ENOTDIR);
+    			    errorReported = 1;
+    			}
 			}
 
 			/* Open should fail if O_CREAT and O_EXCL are specified
