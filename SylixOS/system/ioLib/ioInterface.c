@@ -132,6 +132,14 @@ static INT _IoOpen (PCHAR            pcName,
 
     __THREAD_CANCEL_POINT();
 
+    if (iFlag & O_DIRECTORY) {
+        if ((iFlag & O_ACCMODE) != O_RDONLY) {
+            ulError   = EISDIR;
+            iErrLevel = 1;
+            goto    __error_handle;
+        }
+    }
+
     if (pcName == LW_NULL) {                                            /*  检查文件名                  */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "name invalidate.\r\n");
         ulError   = EFAULT;                                             /*  Bad address                 */

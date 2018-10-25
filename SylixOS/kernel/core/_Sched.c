@@ -215,6 +215,8 @@ static LW_INLINE VOID  _SchedCpuDown (PLW_CLASS_CPU  pcpuCur, BOOL  bIsIntSwitch
     
     pcpuCur->CPU_ulStatus &= ~LW_CPU_STATUS_RUNNING;
     
+    LW_CPU_CLR_IPI_PEND2(pcpuCur, LW_IPI_DOWN_MSK);                     /*  清除 CPU 关闭标志           */
+    
     LW_SPIN_KERN_UNLOCK_SCHED(ptcbCur);                                 /*  解锁内核 spinlock           */
 
     LW_SPINLOCK_NOTIFY();
@@ -274,7 +276,9 @@ VOID _SchedSwp (PLW_CLASS_CPU pcpuCur)
 
     pcpuCur->CPU_ptcbTCBCur = ptcbHigh;                                 /*  切换任务                    */
 
+#if !defined(__SYLIXOS_ARM_ARCH_M__) || (LW_CFG_CORTEX_M_SVC_SWITCH > 0)
     LW_SPIN_KERN_UNLOCK_SCHED(ptcbCur);                                 /*  解锁内核 spinlock           */
+#endif
     
     if (bIsIntSwitch) {
         MONITOR_EVT_LONG2(MONITOR_EVENT_ID_SCHED, MONITOR_EVENT_SCHED_INT, 
@@ -360,7 +364,9 @@ INT  _Schedule (VOID)
          *  TASK CTX LOAD();
          */
         archTaskCtxSwitch(pcpuCur);                                     /*  线程切换,并释放内核自旋锁   */
+#if !defined(__SYLIXOS_ARM_ARCH_M__) || (LW_CFG_CORTEX_M_SVC_SWITCH > 0)
         LW_SPIN_KERN_LOCK_IGNIRQ();                                     /*  内核自旋锁重新加锁          */
+#endif                                                                  /*  LW_CFG_CORTEX_M_SVC_SWITCH  */
     }
 #if LW_CFG_SMP_EN > 0                                                   /*  SMP 系统                    */
       else {
@@ -418,12 +424,16 @@ VOID  _ScheduleInt (PLW_CLASS_CPU  pcpuCur)
         pcpuCur->CPU_bIsIntSwitch = LW_TRUE;                            /*  中断调度                    */
         pcpuCur->CPU_ptcbTCBHigh  = ptcbCand;
         
+#if !defined(__SYLIXOS_ARM_ARCH_M__) || (LW_CFG_CORTEX_M_SVC_SWITCH > 0)
         _SchedSwp(pcpuCur);                                             /*  直接调用 _SchedSwp()        */
+#endif                                                                  /*  LW_CFG_CORTEX_M_SVC_SWITCH  */
         /*
          *  TASK CTX LOAD();
          */
         archIntCtxLoad(pcpuCur);                                        /*  中断上下文中线程切换        */
+#if !defined(__SYLIXOS_ARM_ARCH_M__) || (LW_CFG_CORTEX_M_SVC_SWITCH > 0)
         _BugHandle(LW_TRUE, LW_TRUE, "serious error!\r\n");
+#endif                                                                  /*  LW_CFG_CORTEX_M_SVC_SWITCH  */
     }
 #if LW_CFG_SMP_EN > 0                                                   /*  SMP 系统                    */
       else {
@@ -431,7 +441,45 @@ VOID  _ScheduleInt (PLW_CLASS_CPU  pcpuCur)
     }
 #endif                                                                  /*  LW_CFG_SMP_EN               */
 }
+/*********************************************************************************************************
+** 函数名称: _ScheduleIntCheck
+** 功能描述: 中断退出时, 可调用此调度函数判断是否需要调度 (进入内核状态并关中断被调用)
+** 输　入  : pcpuCur    当前 CPU
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+#if defined(__SYLIXOS_ARM_ARCH_M__)
 
+BOOL  _ScheduleIntCheck (PLW_CLASS_CPU  pcpuCur)
+{
+    ULONG            ulCPUId;
+    PLW_CLASS_TCB    ptcbCur;
+    PLW_CLASS_TCB    ptcbCand;
+    BOOL             bNeedSched;
+    
+    ulCPUId = LW_CPU_GET_ID(pcpuCur);                                   /*  当前 CPUID                  */
+    ptcbCur = pcpuCur->CPU_ptcbTCBCur;
+    
+#if LW_CFG_SMP_EN > 0
+    if (__LW_STATUS_CHANGE_EN(ptcbCur, pcpuCur)) {                      /*  是否可以进行状态切换        */
+        if (LW_UNLIKELY(ptcbCur->TCB_plineStatusReqHeader)) {           /*  请求当前任务改变状态        */
+            _ThreadStatusChangeCur(pcpuCur);                            /*  检查是否需要进行状态切换    */
+        }
+    }
+#endif                                                                  /*  LW_CFG_SMP_EN               */
+
+    ptcbCand = _SchedGetCand(pcpuCur, 1ul);                             /*  获得需要运行的线程          */
+    if (ptcbCand != ptcbCur) {                                          /*  如果与当前运行的不同, 切换  */
+        bNeedSched = LW_TRUE;
+    } else {
+        bNeedSched = LW_FALSE;
+    }
+    
+    return  (bNeedSched);
+}
+
+#endif                                                                  /*  __SYLIXOS_ARM_ARCH_M__      */
 /*********************************************************************************************************
 ** 函数名称: _ScheduleInit
 ** 功能描述: 初始化调度器

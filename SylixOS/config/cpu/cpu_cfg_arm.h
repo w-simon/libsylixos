@@ -81,6 +81,7 @@
 
 #define LW_CFG_CORTEX_M_INT_MASK        (2 << 4)                        /*  关中断屏蔽的优先级          */
 #define LW_CFG_CORTEX_M_FAULT_REBOOT    1                               /*  关键性异常重启              */
+#define LW_CFG_CORTEX_M_SVC_SWITCH      1                               /*  使用 SVC 进行任务切换       */
 
 /*********************************************************************************************************
   浮点运算单元

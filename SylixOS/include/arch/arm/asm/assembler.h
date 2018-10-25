@@ -260,8 +260,12 @@ func
 
 #if defined(__SYLIXOS_ARM_ARCH_M__)
 #  define CORTEX_M_EXC_RETURN_MODE_MASK     (1 << 2)
-#  define CORTEX_M_ICSR                     (0xe000ed04)
-#  define CORTEX_M_PENDSV_SET_MASK          (1 << 28)
+
+#  define CORTEX_M_NVIC_INT_CTRL            0xe000ed04                  /*  Interrupt control state reg */
+#  define CORTEX_M_NVIC_SYSPRI2             0xe000ed22                  /*  System priority register    */
+
+#  define CORTEX_M_NVIC_PENDSV_PRI          0xff                        /*  PendSV priority value       */
+#  define CORTEX_M_NVIC_PENDSVSET           0x10000000                  /*  Value to trigger PendSV     */
 #endif
 
 #endif                                                                  /*  __ASMARM_ASSEMBLER_H        */

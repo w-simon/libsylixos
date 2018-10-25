@@ -50,6 +50,8 @@ SylixOS/arch/arm/common/v7m/armContextV7M.c \
 SylixOS/arch/arm/common/v7m/armContextV7MAsm.S \
 SylixOS/arch/arm/common/v7m/armExcV7M.c \
 SylixOS/arch/arm/common/v7m/armExcV7MAsm.S \
+SylixOS/arch/arm/common/v7m/armExcV7MPendSv.c \
+SylixOS/arch/arm/common/v7m/armExcV7MSvc.c \
 SylixOS/arch/arm/common/v7m/armLibV7M.c \
 SylixOS/arch/arm/common/v7m/armLibV7MAsm.S \
 SylixOS/arch/arm/dbg/armDbg.c \

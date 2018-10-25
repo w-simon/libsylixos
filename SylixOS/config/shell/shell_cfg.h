@@ -48,7 +48,7 @@
 #define LW_CFG_SHELL_MAX_COMMANDLEN             512                     /*  最长的 shell 命令长度       */
 #define LW_CFG_SHELL_MAX_KEYWORDLEN             64                      /*  最长的 shell 关键字长度     */
 #define LW_CFG_SHELL_MAX_PARAMNUM               64                      /*  最多的 shell 参数个数       */
-#define LW_CFG_SHELL_KEY_HASH_SIZE              27                      /*  命令哈希表的大小, (素数)    */
+#define LW_CFG_SHELL_KEY_HASH_SIZE              23                      /*  命令哈希表的大小, (素数)    */
 
 /*********************************************************************************************************
 *                                 SHELL Tar 工具
@@ -84,7 +84,7 @@
 *********************************************************************************************************/
 
 #define LW_CFG_SHELL_MAX_VARNAMELEN             64                      /*  最长的变量名                */
-#define LW_CFG_SHELL_VAR_HASH_SIZE              43                      /*  变量哈希表的大小, (素数)    */
+#define LW_CFG_SHELL_VAR_HASH_SIZE              17                      /*  变量哈希表的大小, (素数)    */
                                                                         /*  本应该使用自适应的算法, 自动*/
                                                                         /*  调整哈希表的大小, 但是这个  */
                                                                         /*  主要用于调试, 故使用固定值  */

@@ -25,14 +25,14 @@
 *********************************************************************************************************/
 static ULONG        _K_ulKInsPerSec[LW_CFG_MAX_PROCESSORS];
 /*********************************************************************************************************
-** 函数名称: _CpuBogoMips
+** 函数名称: _CpuBogoMipsCalc
 ** 功能描述: 粗略计算 CPU 运算速度.
 ** 输　入  : ulCPUId           CPU ID
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID  _CpuBogoMips (ULONG  ulCPUId)
+static VOID  _CpuBogoMipsCalc (ULONG  ulCPUId)
 {
     ULONG   ulLoopCnt = 1600000;                                        /*  认为处理器至少为 64MHz      */
     ULONG   ulKInsPerSec;
@@ -50,6 +50,18 @@ static VOID  _CpuBogoMips (ULONG  ulCPUId)
             break;
         }
     }
+}
+/*********************************************************************************************************
+** 函数名称: _CpuBogoMipsClear
+** 功能描述: 粗略计算 CPU 运算速度.
+** 输　入  : ulCPUId           CPU ID
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+VOID  _CpuBogoMipsClear (ULONG  ulCPUId)
+{
+    _K_ulKInsPerSec[ulCPUId] = 0ul;
 }
 /*********************************************************************************************************
 ** 函数名称: API_CpuBogoMips
@@ -100,13 +112,13 @@ ULONG  API_CpuBogoMips (ULONG  ulCPUId, ULONG  *pulKInsPerSec)
             LW_CPU_SET(ulCPUId, &pcpusetNew);                           /*  锁定 CPU                    */
             API_ThreadSetAffinity(ulMe, sizeof(pcpusetNew), &pcpusetNew);   
             API_TimeSleep(1);                                           /*  确保进入指定的 CPU 运行     */
-            _CpuBogoMips(ulCPUId);
+            _CpuBogoMipsCalc(ulCPUId);
             API_ThreadSetAffinity(ulMe, sizeof(pcpusetOld), &pcpusetOld);
         }
     } else 
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
     {
-        _CpuBogoMips(ulCPUId);
+        _CpuBogoMipsCalc(ulCPUId);
     }
     
     if (pulKInsPerSec) {

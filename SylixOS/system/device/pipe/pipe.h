@@ -60,25 +60,6 @@ ssize_t _PipeRead( PLW_PIPE_DEV  p_pipedev, PCHAR  pcBuffer, size_t  stMaxBytes)
 ssize_t _PipeWrite(PLW_PIPE_DEV  p_pipedev, PCHAR  pcBuffer, size_t  stNBytes);
 INT     _PipeIoctl(PLW_PIPE_DEV  p_pipedev, INT    iRequest, INT  *piArgPtr);
 
-#endif                                                                  /*  __SYLIXOS_KERNEL            */
-/*********************************************************************************************************
-  PIPE API
-*********************************************************************************************************/
-
-LW_API INT          API_PipeDrvInstall(VOID);
-LW_API INT          API_PipeDevCreate(PCHAR  pcName, ULONG  ulNMessages, size_t  stNBytes);
-LW_API INT          API_PipeDevDelete(PCHAR  pcName, BOOL bForce);
-
-/*********************************************************************************************************
-  API
-*********************************************************************************************************/
-
-#define pipeDevCreate   API_PipeDevCreate
-#define pipeDevDelete   API_PipeDevDelete
-#define pipeDrv         API_PipeDrvInstall
-
-#endif                                                                  /*  __SPIPE_H                   */
-
 /*********************************************************************************************************
   GLOBAL VAR
 *********************************************************************************************************/
@@ -101,8 +82,26 @@ __PIPE_EXT    ULONG   _G_ulPipeLockOpt;                                 /*  ËøÐÅ
 __PIPE_EXT    ULONG   _G_ulPipeLockOpt = LW_OPTION_WAIT_PRIORITY;
 #endif
 
+#endif                                                                  /*  __SYLIXOS_KERNEL            */
+/*********************************************************************************************************
+  PIPE API
+*********************************************************************************************************/
+
+LW_API INT          API_PipeDrvInstall(VOID);
+LW_API INT          API_PipeDevCreate(PCHAR  pcName, ULONG  ulNMessages, size_t  stNBytes);
+LW_API INT          API_PipeDevDelete(PCHAR  pcName, BOOL bForce);
+
+/*********************************************************************************************************
+  API
+*********************************************************************************************************/
+
+#define pipeDevCreate   API_PipeDevCreate
+#define pipeDevDelete   API_PipeDevDelete
+#define pipeDrv         API_PipeDrvInstall
+
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0)      */
                                                                         /*  (LW_CFG_PIPE_EN > 0)        */
+#endif                                                                  /*  __PIPE_H                    */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

@@ -67,11 +67,11 @@ extern VOID     armL2x0Init(L2C_DRVIER  *pl2cdrv,
 *********************************************************************************************************/
 VOID armL2Enable (VOID)
 {
-    L2_OP_ENTER();
     if (l2cdrv.L2CD_pfuncEnable) {
+        L2_OP_ENTER();
         l2cdrv.L2CD_pfuncEnable(&l2cdrv);
+        L2_OP_EXIT();
     }
-    L2_OP_EXIT();
 }
 /*********************************************************************************************************
 ** 函数名称: armL2Disable
@@ -83,11 +83,11 @@ VOID armL2Enable (VOID)
 *********************************************************************************************************/
 VOID armL2Disable (VOID)
 {
-    L2_OP_ENTER();
     if (l2cdrv.L2CD_pfuncDisable) {
+        L2_OP_ENTER();
         l2cdrv.L2CD_pfuncDisable(&l2cdrv);
+        L2_OP_EXIT();
     }
-    L2_OP_EXIT();
 }
 /*********************************************************************************************************
 ** 函数名称: armL2IsEnable
@@ -101,13 +101,14 @@ BOOL armL2IsEnable (VOID)
 {
     BOOL    bIsEnable;
 
-    L2_OP_ENTER();
     if (l2cdrv.L2CD_pfuncIsEnable) {
+        L2_OP_ENTER();
         bIsEnable = l2cdrv.L2CD_pfuncIsEnable(&l2cdrv);
+        L2_OP_EXIT();
+
     } else {
         bIsEnable = LW_FALSE;
     }
-    L2_OP_EXIT();
     
     return  (bIsEnable);
 }
@@ -121,11 +122,11 @@ BOOL armL2IsEnable (VOID)
 *********************************************************************************************************/
 VOID armL2Sync (VOID)
 {
-    L2_OP_ENTER();
     if (l2cdrv.L2CD_pfuncSync) {
+        L2_OP_ENTER();
         l2cdrv.L2CD_pfuncSync(&l2cdrv);
+        L2_OP_EXIT();
     }
-    L2_OP_EXIT();
 }
 /*********************************************************************************************************
 ** 函数名称: armL2FlushAll
@@ -137,11 +138,11 @@ VOID armL2Sync (VOID)
 *********************************************************************************************************/
 VOID armL2FlushAll (VOID)
 {
-    L2_OP_ENTER();
     if (l2cdrv.L2CD_pfuncFlushAll) {
+        L2_OP_ENTER();
         l2cdrv.L2CD_pfuncFlushAll(&l2cdrv);
+        L2_OP_EXIT();
     }
-    L2_OP_EXIT();
 }
 /*********************************************************************************************************
 ** 函数名称: armL2Flush
@@ -154,11 +155,11 @@ VOID armL2FlushAll (VOID)
 *********************************************************************************************************/
 VOID armL2Flush (PVOID  pvPdrs, size_t  stBytes)
 {
-    L2_OP_ENTER();
     if (l2cdrv.L2CD_pfuncFlush) {
+        L2_OP_ENTER();
         l2cdrv.L2CD_pfuncFlush(&l2cdrv, pvPdrs, stBytes);
+        L2_OP_EXIT();
     }
-    L2_OP_EXIT();
 }
 /*********************************************************************************************************
 ** 函数名称: armL2InvalidateAll
@@ -170,11 +171,11 @@ VOID armL2Flush (PVOID  pvPdrs, size_t  stBytes)
 *********************************************************************************************************/
 VOID armL2InvalidateAll (VOID)
 {
-    L2_OP_ENTER();
     if (l2cdrv.L2CD_pfuncInvalidateAll) {
+        L2_OP_ENTER();
         l2cdrv.L2CD_pfuncInvalidateAll(&l2cdrv);
+        L2_OP_EXIT();
     }
-    L2_OP_EXIT();
 }
 /*********************************************************************************************************
 ** 函数名称: armL2InvalidateAll
@@ -187,11 +188,11 @@ VOID armL2InvalidateAll (VOID)
 *********************************************************************************************************/
 VOID armL2Invalidate (PVOID  pvPdrs, size_t  stBytes)
 {
-    L2_OP_ENTER();
     if (l2cdrv.L2CD_pfuncInvalidate) {
+        L2_OP_ENTER();
         l2cdrv.L2CD_pfuncInvalidate(&l2cdrv, pvPdrs, stBytes);
+        L2_OP_EXIT();
     }
-    L2_OP_EXIT();
 }
 /*********************************************************************************************************
 ** 函数名称: armL2ClearAll
@@ -203,11 +204,11 @@ VOID armL2Invalidate (PVOID  pvPdrs, size_t  stBytes)
 *********************************************************************************************************/
 VOID armL2ClearAll (VOID)
 {
-    L2_OP_ENTER();
     if (l2cdrv.L2CD_pfuncClearAll) {
+        L2_OP_ENTER();
         l2cdrv.L2CD_pfuncClearAll(&l2cdrv);
+        L2_OP_EXIT();
     }
-    L2_OP_EXIT();
 }
 /*********************************************************************************************************
 ** 函数名称: armL2Clear
@@ -220,11 +221,11 @@ VOID armL2ClearAll (VOID)
 *********************************************************************************************************/
 VOID armL2Clear (PVOID  pvPdrs, size_t  stBytes)
 {
-    L2_OP_ENTER();
     if (l2cdrv.L2CD_pfuncClear) {
+        L2_OP_ENTER();
         l2cdrv.L2CD_pfuncClear(&l2cdrv, pvPdrs, stBytes);
+        L2_OP_EXIT();
     }
-    L2_OP_EXIT();
 }
 /*********************************************************************************************************
 ** 函数名称: armL2Name

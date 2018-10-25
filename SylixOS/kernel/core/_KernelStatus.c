@@ -262,6 +262,28 @@ VOID  __kernelSchedInt (PLW_CLASS_CPU    pcpuCur)
     LW_SPIN_KERN_UNLOCK_IGNIRQ();                                       /*  解锁内核 spinlock 并打开中断*/
 }
 /*********************************************************************************************************
+** 函数名称: __kernelSchedIntCheck
+** 功能描述: 退出中断时判断是否需要调度 (在关中断的情况下被调用)
+** 输　入  : pcpuCur   当前 CPU
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+#if defined(__SYLIXOS_ARM_ARCH_M__)
+
+BOOL  __kernelSchedIntCheck (PLW_CLASS_CPU    pcpuCur)
+{
+    BOOL  bNeedSched;
+    
+    LW_SPIN_KERN_LOCK_IGNIRQ();                                         /*  锁内核 spinlock 并关闭中断  */
+    bNeedSched = _ScheduleIntCheck(pcpuCur);
+    LW_SPIN_KERN_UNLOCK_IGNIRQ();                                       /*  解锁内核 spinlock 并打开中断*/
+    
+    return  (bNeedSched);
+}
+
+#endif                                                                  /*  __SYLIXOS_ARM_ARCH_M__      */
+/*********************************************************************************************************
 ** 函数名称: __kernelOwner
 ** 功能描述: 获取内核拥有者线程
 ** 输　入  : NONE

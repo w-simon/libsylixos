@@ -42,7 +42,7 @@ typedef struct {
 typedef LW_RTC_FUNCS       *PLW_RTC_FUNCS;
 
 /*********************************************************************************************************
-  rtc api
+  rtc kernel api
 *********************************************************************************************************/
 LW_API INT          API_RtcDrvInstall(VOID);
 LW_API INT          API_RtcDevCreate(PLW_RTC_FUNCS    prtcfuncs);
@@ -51,6 +51,9 @@ LW_API INT          API_RtcDevCreate(PLW_RTC_FUNCS    prtcfuncs);
 #define rtcDevCreate        API_RtcDevCreate
 
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
+/*********************************************************************************************************
+  rtc api
+*********************************************************************************************************/
 
 LW_API INT          API_RtcSet(time_t  time);
 LW_API INT          API_RtcGet(time_t  *ptime);

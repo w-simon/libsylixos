@@ -47,6 +47,11 @@ INT  API_KernelSmpCall (ULONG        ulCPUId,
     BOOL    bLock;
     INT     iRet;
     
+    if (LW_CPU_GET_CUR_NESTING()) {                                     /*  不能在中断中调用            */
+        _ErrorHandle(ERROR_KERNEL_IN_ISR);
+        return  (PX_ERROR);
+    }
+    
     bLock = __SMP_CPU_LOCK();                                           /*  锁定当前 CPU 执行           */
     
     if (ulCPUId == LW_CPU_GET_CUR_ID()) {                               /*  不能自己调用自己            */
@@ -68,19 +73,24 @@ INT  API_KernelSmpCall (ULONG        ulCPUId,
 **           pfuncAsync    异步执行函数 (被调用函数内部不允许有锁内核操作, 否则可能产生死锁)
 **           pvAsync       异步执行参数
 **           iOpt          选项 IPIM_OPT_NORMAL / IPIM_OPT_NOKERN
-** 输　出  : NONE (无法确定返回值)
+** 输　出  : 是否成功
 ** 全局变量: 
 ** 调用模块: 
                                            API 函数
 *********************************************************************************************************/
 LW_API  
-VOID  API_KernelSmpCallAll (FUNCPTR      pfunc, 
-                            PVOID        pvArg,
-                            VOIDFUNCPTR  pfuncAsync,
-                            PVOID        pvAsync,
-                            INT          iOpt)
+INT  API_KernelSmpCallAll (FUNCPTR      pfunc, 
+                           PVOID        pvArg,
+                           VOIDFUNCPTR  pfuncAsync,
+                           PVOID        pvAsync,
+                           INT          iOpt)
 {
     BOOL    bLock;
+    
+    if (LW_CPU_GET_CUR_NESTING()) {                                     /*  不能在中断中调用            */
+        _ErrorHandle(ERROR_KERNEL_IN_ISR);
+        return  (PX_ERROR);
+    }
     
     bLock = __SMP_CPU_LOCK();                                           /*  锁定当前 CPU 执行           */
     
@@ -95,6 +105,8 @@ VOID  API_KernelSmpCallAll (FUNCPTR      pfunc,
     }
     
     __SMP_CPU_UNLOCK(bLock);                                            /*  解锁当前 CPU 执行           */
+    
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: API_KernelSmpCallAllOther
@@ -104,25 +116,32 @@ VOID  API_KernelSmpCallAll (FUNCPTR      pfunc,
 **           pfuncAsync    异步执行函数 (被调用函数内部不允许有锁内核操作, 否则可能产生死锁)
 **           pvAsync       异步执行参数
 **           iOpt          选项 IPIM_OPT_NORMAL / IPIM_OPT_NOKERN
-** 输　出  : NONE (无法确定返回值)
+** 输　出  : 是否成功
 ** 全局变量: 
 ** 调用模块: 
                                            API 函数
 *********************************************************************************************************/
 LW_API  
-VOID  API_KernelSmpCallAllOther (FUNCPTR      pfunc, 
-                                 PVOID        pvArg,
-                                 VOIDFUNCPTR  pfuncAsync,
-                                 PVOID        pvAsync,
-                                 INT          iOpt)
+INT  API_KernelSmpCallAllOther (FUNCPTR      pfunc, 
+                                PVOID        pvArg,
+                                VOIDFUNCPTR  pfuncAsync,
+                                PVOID        pvAsync,
+                                INT          iOpt)
 {
     BOOL    bLock;
+    
+    if (LW_CPU_GET_CUR_NESTING()) {                                     /*  不能在中断中调用            */
+        _ErrorHandle(ERROR_KERNEL_IN_ISR);
+        return  (PX_ERROR);
+    }
     
     bLock = __SMP_CPU_LOCK();                                           /*  锁定当前 CPU 执行           */
     
     _SmpCallFuncAllOther(pfunc, pvArg, pfuncAsync, pvAsync, iOpt);
     
     __SMP_CPU_UNLOCK(bLock);                                            /*  解锁当前 CPU 执行           */
+    
+    return  (ERROR_NONE);
 }
 
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */

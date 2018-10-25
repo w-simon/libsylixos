@@ -45,26 +45,53 @@
 #endif                                                                  /*  SYLIXOS                     */
 
 /*********************************************************************************************************
+  版本号
+*********************************************************************************************************/
+
+#define __SYLIXOS_MAJOR_VER     1
+#define __SYLIXOS_MINOR_VER     8
+#define __SYLIXOS_PATCH_VER     6
+#define __SYLIXOS_PATCH_PAD     1
+
+/*********************************************************************************************************
+  版本格式
+*********************************************************************************************************/
+
+#define __SYLIXOS_STRXCHG(x)        #x
+#define __SYLIXOS_MAKEVER(a, b, c)  (((a) << 16) + ((b) << 8) + (c))
+
+#if __SYLIXOS_PATCH_PAD > 0
+#define __SYLIXOS_MAKEVERSTR(a, b, c, d)    \
+        __SYLIXOS_STRXCHG(a) "." __SYLIXOS_STRXCHG(b) "." __SYLIXOS_STRXCHG(c) "-" __SYLIXOS_STRXCHG(d)
+#else
+#define __SYLIXOS_MAKEVERSTR(a, b, c, d)    \
+        __SYLIXOS_STRXCHG(a) "." __SYLIXOS_STRXCHG(b) "." __SYLIXOS_STRXCHG(c)
+#endif                                                                  /*  __SYLIXOS_PATCH_PAD         */
+
+/*********************************************************************************************************
   版本信息
 *********************************************************************************************************/
 
-#define __SYLIXOS_MAKEVER(a, b, c)      (((a) << 16) + ((b) << 8) + (c))
-#define __SYLIXOS_VERSION               __SYLIXOS_MAKEVER(1, 8, 5)
-#define __SYLIXOS_VERPATCH              0x0
-#define __SYLIXOS_VERSTR                "1.8.5"
-#define __SYLIXOS_RELSTR                "Octopus"
+#define __SYLIXOS_VERSION       __SYLIXOS_MAKEVER(__SYLIXOS_MAJOR_VER, \
+                                                  __SYLIXOS_MINOR_VER, \
+                                                  __SYLIXOS_PATCH_VER)
+#define __SYLIXOS_VERSTR        __SYLIXOS_MAKEVERSTR(__SYLIXOS_MAJOR_VER, \
+                                                     __SYLIXOS_MINOR_VER, \
+                                                     __SYLIXOS_PATCH_VER, \
+                                                     __SYLIXOS_PATCH_PAD)
 
-#define __SYLIXOS_VERINFO               "SylixOS kernel version: "  \
-                                        __SYLIXOS_VERSTR            \
-                                        " Code name: " __SYLIXOS_RELSTR
-#define __SYLIXOS_LICENSE               "SylixOS license: Commercial & GPL."
+#define __SYLIXOS_RELSTR        "Octopus"
+#define __SYLIXOS_VERINFO       "SylixOS kernel version: "  \
+                                __SYLIXOS_VERSTR            \
+                                " Code name: " __SYLIXOS_RELSTR
+#define __SYLIXOS_LICENSE       "SylixOS license: Commercial & GPL."
 
 /*********************************************************************************************************
   版本匹配弱符号 (__sylixos_version 版本信息将保留在使用此版本头文件编译的库中)
 *********************************************************************************************************/
 
 #ifdef  __GNUC__
-__attribute__((weak)) char              __sylixos_version[] = __SYLIXOS_VERSTR;
+__attribute__((weak)) char      __sylixos_version[] = __SYLIXOS_VERSTR;
 #endif                                                                  /*  __GNUC__                    */
 
 /*********************************************************************************************************

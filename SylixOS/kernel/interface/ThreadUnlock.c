@@ -40,6 +40,11 @@
 LW_API
 INT  API_ThreadUnlock (VOID)
 {
+    if (LW_CPU_GET_CUR_NESTING()) {                                     /*  不能在中断中调用            */
+        _ErrorHandle(ERROR_KERNEL_IN_ISR);
+        return  (PX_ERROR);
+    }
+
     LW_THREAD_UNLOCK();
     
     return  (ERROR_NONE);

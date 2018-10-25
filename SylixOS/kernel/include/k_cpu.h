@@ -382,6 +382,14 @@ ULONG  _CpuGetMaxNesting(VOID);
 #define LW_CPU_GET_CUR_NESTING()        _CpuGetNesting()
 #define LW_CPU_GET_CUR_NESTING_MAX()    _CpuGetMaxNesting()
 
+/*********************************************************************************************************
+  CPU 针对特殊 ARCH 提供的接口
+*********************************************************************************************************/
+
+#if defined(__SYLIXOS_ARM_ARCH_M__)
+PLW_CLASS_CPU  _CpuGetCur(VOID);
+#endif                                                                  /*  __SYLIXOS_ARM_ARCH_M__      */
+
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 #endif                                                                  /*  __K_CPU_H                   */
 /*********************************************************************************************************

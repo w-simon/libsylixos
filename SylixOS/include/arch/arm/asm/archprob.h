@@ -99,6 +99,15 @@
 
 #  undef LW_CFG_SMP_EN
 #  define LW_CFG_SMP_EN             0
+
+#  if LW_CFG_CORTEX_M_SVC_SWITCH == 0
+#    undef LW_CFG_SIGNAL_EN
+#    define LW_CFG_SIGNAL_EN        0
+
+#    undef LW_CFG_COROUTINE_EN
+#    define LW_CFG_COROUTINE_EN     0
+#  endif
+
 #endif
 
 /*********************************************************************************************************

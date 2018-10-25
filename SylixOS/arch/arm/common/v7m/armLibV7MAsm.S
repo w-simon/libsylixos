@@ -24,6 +24,8 @@
 #endif
 
 #include <arch/assembler.h>
+#include <config/kernel/kernel_cfg.h>
+#include <config/mp/mp_cfg.h>
 
 #if defined(__SYLIXOS_ARM_ARCH_M__)
 
@@ -59,21 +61,32 @@
 ;*********************************************************************************************************/
 
 FUNC_DEF(archIntDisable)
-    MRS     R0 , BASEPRI                ;/*  Set prio int mask to mask all (except faults)               */
-    MOV     R1 , #LW_CFG_CORTEX_M_INT_MASK
+#if LW_CFG_CORTEX_M_SVC_SWITCH > 0
+    MRS     R0 , BASEPRI                                                ;/*  获得中断优先级掩码         */
+    MOV     R1 , #LW_CFG_CORTEX_M_INT_MASK                              ;/*  关中断                     */
     MSR     BASEPRI ,  R1
+#else
+    MRS     R0, PRIMASK                                                 ;/*  获得中断掩码               */
+    CPSID   I                                                           ;/*  关中断                     */
+#endif
     BX      LR
     FUNC_END()
 
 FUNC_DEF(archIntEnable)
+#if LW_CFG_CORTEX_M_SVC_SWITCH > 0
     MSR     BASEPRI , R0
+#else
+    MSR     PRIMASK , R0                                                ;/*  恢复中断掩码                */
+#endif
     BX      LR
     FUNC_END()
 
 FUNC_DEF(archIntEnableForce)
-    CPSIE   I                           ;/*  Enable interrupts at processor level                        */
+    CPSIE   I                                                           ;/*  开中断                      */
+#if LW_CFG_CORTEX_M_SVC_SWITCH > 0
     MOV     R1 , #0
     MSR     BASEPRI , R1
+#endif
     BX      LR
     FUNC_END()
 

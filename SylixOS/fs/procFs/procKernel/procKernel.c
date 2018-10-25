@@ -526,10 +526,15 @@ static ssize_t  __procFsKernelSmpRead (PLW_PROCFS_NODE  p_pfsn,
             ULONG               ulStatus;
             CHAR                cThread[LW_CFG_OBJECT_NAME_SIZE];
             
-            pcpu = LW_CPU_GET(i);
-            lib_strlcpy(cThread, pcpu->CPU_ptcbTCBCur->TCB_cThreadName, LW_CFG_OBJECT_NAME_SIZE);
+            pcpu         = LW_CPU_GET(i);
             ulMaxNesting = pcpu->CPU_ulInterNestingMax;
             ulStatus     = pcpu->CPU_ulStatus;
+            
+            if (ulStatus & LW_CPU_STATUS_ACTIVE) {
+                lib_strlcpy(cThread, pcpu->CPU_ptcbTCBCur->TCB_cThreadName, LW_CFG_OBJECT_NAME_SIZE);
+            } else {
+                lib_strlcpy(cThread, "N/A", LW_CFG_OBJECT_NAME_SIZE);
+            }
             
             __KERNEL_EXIT();
             stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize,

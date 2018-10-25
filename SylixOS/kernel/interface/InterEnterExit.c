@@ -179,7 +179,9 @@ ULONG    API_InterEnter (ARCH_REG_T  reg0,
     pcpu = LW_CPU_GET_CUR();
     pcpu->CPU_ulInterNesting++;
 
+#if !defined(__SYLIXOS_ARM_ARCH_M__) || (LW_CFG_CORTEX_M_SVC_SWITCH > 0)
     archIntCtxSaveReg(pcpu, reg0, reg1, reg2, reg3);
+#endif
 
 #if (LW_CFG_CPU_FPU_EN > 0) && (LW_CFG_INTER_FPU > 0)
     if (LW_KERN_FPU_EN_GET()) {                                         /*  中断状态允许使用浮点运算    */
@@ -251,7 +253,9 @@ VOID    API_InterExit (VOID)
 #endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
                                                                         /*  LW_CFG_INTER_DSP > 0        */
 
+#if !defined(__SYLIXOS_ARM_ARCH_M__) || (LW_CFG_CORTEX_M_SVC_SWITCH > 0)
     archIntCtxLoad(pcpu);                                               /*  中断返回 (当前任务 CTX 加载)*/
+#endif
 }
 /*********************************************************************************************************
 ** 函数名称: API_InterExitNoSched
@@ -262,12 +266,13 @@ VOID    API_InterExit (VOID)
 ** 调用模块:
                                            API 函数
 *********************************************************************************************************/
-#if defined(__SYLIXOS_ARM_ARCH_M__)
+#if defined(__SYLIXOS_ARM_ARCH_M__) && (LW_CFG_CORTEX_M_SVC_SWITCH > 0)
 
 LW_API
-VOID    API_InterExitNoSched (VOID)
+BOOL    API_InterExitNoSched (VOID)
 {
     PLW_CLASS_CPU  pcpu;
+    BOOL           bNeedSched;
 
     pcpu = LW_CPU_GET_CUR();
 
@@ -281,6 +286,8 @@ VOID    API_InterExitNoSched (VOID)
         pcpu->CPU_ulInterNesting--;
     }
 
+    bNeedSched = __KERNEL_SCHED_INT_CHECK(pcpu);
+
 #if (LW_CFG_CPU_FPU_EN > 0) && (LW_CFG_INTER_FPU > 0)
     if (LW_KERN_FPU_EN_GET()) {
         __fpuInterExit(pcpu);
@@ -293,6 +300,7 @@ VOID    API_InterExitNoSched (VOID)
     }
 #endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
                                                                         /*  LW_CFG_INTER_DSP > 0        */
+    return  (bNeedSched);
 }
 
 #endif                                                                  /*  __SYLIXOS_ARM_ARCH_M__      */

@@ -785,8 +785,8 @@ static VOID  __vmmAbortKill (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
 #if LW_CFG_SIGNAL_EN > 0
     struct sigevent  sigeventAbort;
     INT              iSigCode;
-#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
     BOOL             bSerious;
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
 
 #if LW_CFG_GDB_EN > 0
     if (!__KERNEL_ISENTER()) {
@@ -995,7 +995,11 @@ static VOID  __vmmAbortFatalDetected (addr_t          ulRetAddr,
         _CrashDumpAbortFatal(ulRetAddr, ulAbortAddr, __vmmAbortTypeStr(pabtInfo));
 #endif
         
+#if LW_CFG_SIGNAL_EN > 0
         si.si_signo = SIGSEGV;
+#else
+        si.si_signo = 11;
+#endif
         si.si_errno = 0;
         si.si_code  = -1;
         si.si_addr  = (PVOID)ulAbortAddr;
@@ -1063,7 +1067,11 @@ static VOID  __vmmAbortStkOfDetected (addr_t          ulRetAddr,
         _CrashDumpAbortStkOf(ulRetAddr, ulAbortAddr, __vmmAbortTypeStr(pabtInfo), ptcb);
 #endif
         
+#if LW_CFG_SIGNAL_EN > 0
         si.si_signo = SIGSEGV;
+#else
+        si.si_signo = 11;
+#endif
         si.si_errno = 0;
         si.si_code  = SEGV_MAPERR;
         si.si_addr  = (PVOID)ulAbortAddr;

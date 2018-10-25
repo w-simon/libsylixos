@@ -120,7 +120,6 @@ VOID  _SmpSendIpi (ULONG  ulCPUId, ULONG  ulIPIVec, INT  iWait, BOOL  bIntLock)
             LW_IPI_INT_LOCK(bIntLock);
             _SmpTryProcIpi(pcpuCur);                                    /*  尝试执行其他核发来的 IPI    */
             LW_IPI_INT_UNLOCK(bIntLock);
-            LW_SPINLOCK_DELAY();
         }
     }
 }
@@ -175,7 +174,6 @@ static INT  _SmpCallIpi (ULONG  ulCPUId, PLW_IPI_MSG  pipim)
         LW_IPI_INT_LOCK(LW_FALSE);
         _SmpTryProcIpi(pcpuCur);
         LW_IPI_INT_UNLOCK(LW_FALSE);
-        LW_SPINLOCK_DELAY();
     }
     
     return  (pipim->IPIM_iRet);

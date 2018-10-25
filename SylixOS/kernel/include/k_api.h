@@ -306,7 +306,7 @@ LW_API ULONG            API_ThreadSetName(LW_OBJECT_HANDLE  ulId,
 LW_API ULONG            API_ThreadGetName(LW_OBJECT_HANDLE  ulId, 
                                           PCHAR             pcName);    /*  获得线程名                  */
 
-LW_API VOID             API_ThreadLock(VOID);                           /*  线程锁定(调度器锁定)        */
+LW_API INT              API_ThreadLock(VOID);                           /*  线程锁定(调度器锁定)        */
 
 LW_API INT              API_ThreadUnlock(VOID);                         /*  线程解锁(调度器解锁)        */
 
@@ -1233,10 +1233,10 @@ LW_API ULONG            API_KernelHookDelete(ULONG  ulOpt);             /*  删除
 LW_API INT              API_KernelSmpCall(ULONG  ulCPUId, FUNCPTR  pfunc, PVOID  pvArg,
                                           VOIDFUNCPTR  pfuncAsync, PVOID  pvAsync, INT  iOpt);
 
-LW_API VOID             API_KernelSmpCallAll(FUNCPTR  pfunc,  PVOID  pvArg, 
+LW_API INT              API_KernelSmpCallAll(FUNCPTR  pfunc,  PVOID  pvArg, 
                                              VOIDFUNCPTR  pfuncAsync, PVOID  pvAsync, INT  iOpt);
 
-LW_API VOID             API_KernelSmpCallAllOther(FUNCPTR  pfunc, PVOID  pvArg,
+LW_API INT              API_KernelSmpCallAllOther(FUNCPTR  pfunc, PVOID  pvArg,
                                                   VOIDFUNCPTR  pfuncAsync, PVOID  pvAsync, INT  iOpt);
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 #endif                                                                  /*  __SYLIXOS_KERNEL            */

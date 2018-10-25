@@ -38,6 +38,8 @@ typedef unsigned char   cc_t;
 typedef unsigned int    speed_t;
 typedef unsigned int    tcflag_t;
 
+#define NCCS            19
+
 struct termios {
     tcflag_t    c_iflag;                                                /* input mode flags             */
     tcflag_t    c_oflag;                                                /* output mode flags            */
@@ -47,8 +49,26 @@ struct termios {
     cc_t        c_cc[NCCS];                                             /* control characters           */
 };
 /*********************************************************************************************************
-  c_cc characters (defined in tty.h)
+  c_cc characters
 *********************************************************************************************************/
+
+#define VINTR       0                                                   /* INTR character               */
+#define VQUIT       1                                                   /* QUIT character               */
+#define VERASE      2                                                   /* ERASE character              */
+#define VKILL       3                                                   /* KILL character               */
+#define VEOF        4                                                   /* EOF character                */
+#define VTIME       5                                                   /* TIME value                   */
+#define VMIN        6                                                   /* MIN value                    */
+#define VSWTC       7
+#define VSTART      8                                                   /* START character              */
+#define VSTOP       9                                                   /* STOP character               */
+#define VSUSP       10                                                  /* SUSP character               */
+#define VEOL        11                                                  /* EOL character                */
+#define VREPRINT    12
+#define VDISCARD    13
+#define VWERASE     14
+#define VLNEXT      15
+#define VEOL2       16
 
 /*********************************************************************************************************
   c_iflag bits

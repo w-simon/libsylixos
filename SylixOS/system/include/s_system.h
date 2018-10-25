@@ -46,8 +46,8 @@
 #include "../SylixOS/system/include/s_object.h"
 #ifdef   __SYLIXOS_KERNEL
 #include "../SylixOS/system/include/s_internal.h"
-#endif                                                                  /*  __SYLIXOS_KERNEL            */
 #include "../SylixOS/system/include/s_systeminit.h"
+#endif                                                                  /*  __SYLIXOS_KERNEL            */
 /*********************************************************************************************************
   ÖÐ¼ä²ã
 *********************************************************************************************************/

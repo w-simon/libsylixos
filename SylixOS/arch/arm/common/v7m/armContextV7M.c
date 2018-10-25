@@ -243,6 +243,8 @@ VOID  archTaskCtxPrint (PVOID  pvBuffer, size_t  stSize, const ARCH_REG_CTX  *pr
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
+#if LW_CFG_CORTEX_M_SVC_SWITCH > 0
+
 VOID  archIntCtxSaveReg (PLW_CLASS_CPU  pcpu,
                          ARCH_REG_T     reg0,
                          ARCH_REG_T     reg1,
@@ -266,6 +268,38 @@ VOID  archIntCtxSaveReg (PLW_CLASS_CPU  pcpu,
     pregctx->REG_uiBASEPRI = reg1;
     pregctx->REG_uiExcRet  = reg2;
 }
+/*********************************************************************************************************
+** 函数名称: archPendSvSaveReg
+** 功能描述: PendSV 中断保存寄存器
+** 输　入  : reg0      寄存器 0
+**           reg1      寄存器 1
+**           reg2      寄存器 2
+**           reg3      寄存器 3
+** 输　出  : 寄存器上下文
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+#else                                                                   /*  LW_CFG_CORTEX_M_SVC_SWITCH  */
+
+ARCH_REG_CTX  *archPendSvSaveReg (ARCH_REG_T     reg0,
+                                  ARCH_REG_T     reg1,
+                                  ARCH_REG_T     reg2,
+                                  ARCH_REG_T     reg3)
+{
+    ARCH_REG_CTX   *pregctx;
+    PLW_CLASS_TCB   ptcbCur;
+
+    LW_TCB_GET_CUR(ptcbCur);
+
+    pregctx = &ptcbCur->TCB_archRegCtx;
+
+    pregctx->REG_uiSp     = reg0;
+    pregctx->REG_uiExcRet = reg1;
+
+    return  (pregctx);
+}
+
+#endif                                                                  /*  !LW_CFG_CORTEX_M_SVC_SWITCH */
 /*********************************************************************************************************
 ** 函数名称: archCtxStackEnd
 ** 功能描述: 根据寄存器上下文获得栈结束地址

@@ -97,8 +97,10 @@ FUNC_DEF(arm64DCacheDisable)
     MOV     X13 , LR                                                    ;/*  ¼ÇÂ¼·µ»ØµØÖ·                */
     BEQ     dcache_not_en
     BL      arm64DCacheClearAll
+
     ARM_DSB()
-    ARM_ISB()    
+    ARM_ISB()
+
     MRS     X0 ,  SCTLR_EL1
     BIC     X0 ,  X0 , #(1 << 2)
     MSR     SCTLR_EL1 , X0

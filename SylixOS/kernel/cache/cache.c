@@ -344,7 +344,7 @@ INT    API_CacheEnable (LW_CACHE_TYPE  cachetype)
     _DebugFormat(__LOGMESSAGE_LEVEL, "%sCACHE enable.\r\n",
                  (cachetype == INSTRUCTION_CACHE) ? "I-" : "D-");
                  
-#if (LW_CFG_CPU_ARCH_ARM > 0) || (LW_CFG_CPU_ARCH_ARM64 > 0) && (LW_CFG_SMP_EN > 0)
+#if ((LW_CFG_CPU_ARCH_ARM > 0) || (LW_CFG_CPU_ARCH_ARM64 > 0)) && (LW_CFG_SMP_EN > 0)
     if (cachetype == DATA_CACHE) {
         __ARCH_SPIN_WORK();                                             /*  spin lock 使能              */
     }
@@ -412,6 +412,12 @@ INT    API_CacheBarrier (VOIDFUNCPTR             pfuncHook,
     PLW_CLASS_CPU   pcpu, pcpuCur;
     
     if (!pcpuset || !pfuncHook) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    if (LW_CPU_GET_CUR_NESTING()) {                                     /*  不能在中断中调用            */
+        _ErrorHandle(ERROR_KERNEL_IN_ISR);
         return  (PX_ERROR);
     }
     
@@ -745,6 +751,11 @@ INT    API_CacheTextUpdate (PVOID  pvAdrs, size_t  stBytes)
     BOOL            bLock;
 #endif                                                                  /*  LW_CFG_SMP_EN               */
                                                                         /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
+    if (LW_CPU_GET_CUR_NESTING()) {                                     /*  不能在中断中调用            */
+        _ErrorHandle(ERROR_KERNEL_IN_ISR);
+        return  (PX_ERROR);
+    }
+    
     __CACHE_OP_ENTER(iregInterLevel);                                   /*  开始操作 cache              */
     iError = ((_G_cacheopLib.CACHEOP_pfuncTextUpdate == LW_NULL) ? ERROR_NONE :
               (_G_cacheopLib.CACHEOP_pfuncTextUpdate)(pvAdrs, stBytes));

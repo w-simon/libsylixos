@@ -170,7 +170,6 @@ LW_API INT      API_HotplugPollAdd(VOIDFUNCPTR   pfunc, PVOID  pvArg);
 LW_API INT      API_HotplugPollDelete(VOIDFUNCPTR   pfunc, PVOID  pvArg);
 
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
-
 /*********************************************************************************************************
   获得热插拔事件丢失数量
 *********************************************************************************************************/

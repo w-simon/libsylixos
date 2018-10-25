@@ -30,29 +30,6 @@
 *********************************************************************************************************/
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_SIO_DEVICE_EN > 0)
 /*********************************************************************************************************
-  c_cc characters (defined in tty.h)
-*********************************************************************************************************/
-#define NCCS        19
-
-#define VINTR       0                                                   /* INTR character               */
-#define VQUIT       1                                                   /* QUIT character               */
-#define VERASE      2                                                   /* ERASE character              */
-#define VKILL       3                                                   /* KILL character               */
-#define VEOF        4                                                   /* EOF character                */
-#define VTIME       5                                                   /* TIME value                   */
-#define VMIN        6                                                   /* MIN value                    */
-#define VSWTC       7
-#define VSTART      8                                                   /* START character              */
-#define VSTOP       9                                                   /* STOP character               */
-#define VSUSP       10                                                  /* SUSP character               */
-#define VEOL        11                                                  /* EOL character                */
-#define VREPRINT    12
-#define VDISCARD    13
-#define VWERASE     14
-#define VLNEXT      15
-#define VEOL2       16
-
-/*********************************************************************************************************
   TY_DEV_WINSIZE
 *********************************************************************************************************/
 #ifdef __SYLIXOS_KERNEL
@@ -91,6 +68,7 @@ typedef struct {
 /*********************************************************************************************************
   TY_DEV
 *********************************************************************************************************/
+
 typedef struct {
     LW_DEV_HDR              TYDEV_devhdrHdr;                            /*  I/O 系统接口设备头          */
     
@@ -127,14 +105,13 @@ typedef struct {
     LW_SEL_WAKEUPLIST       TYDEV_selwulList;                           /*  select() 等待链             */
     time_t                  TYDEV_timeCreate;                           /*  创建时间                    */
 
-    CHAR                    TYDEV_cCtlChars[NCCS];                      /*  termios 控制字符            */
-
+    CHAR                    TYDEV_cCtlChars[19];                        /*  termios 控制字符 NCCS       */
     TY_DEV_WINSIZE          TYDEV_tydevwins;                            /*  窗口大小                    */
 
     LW_SPINLOCK_DEFINE     (TYDEV_slLock);                              /*  自旋锁                      */
 } TY_DEV;
-
 typedef TY_DEV             *TY_DEV_ID;
+
 /*********************************************************************************************************
   TYCO_DEV
 *********************************************************************************************************/
@@ -143,6 +120,7 @@ typedef struct {
     TY_DEV                  TYCODEV_tydevTyDev;                         /*  TY 设备                     */
     SIO_CHAN               *TYCODEV_psiochan;                           /*  同步I/O通道的功能函数       */
 } TYCO_DEV;
+
 /*********************************************************************************************************
   TTY INTERNAL FUNCTION
 *********************************************************************************************************/
@@ -157,9 +135,8 @@ ssize_t                     _TyRead(   TY_DEV_ID  ptyDev, PCHAR  pcBuffer, size_
 ssize_t                     _TyWrite(  TY_DEV_ID  ptyDev, PCHAR  pcBuffer, size_t  stNBytes);
 INT                         _TyIoctl(  TY_DEV_ID  ptyDev, INT    iRequest, LONG lArg);
 
-#endif                                                                  /*  __SYLIXOS_KERNEL            */
 /*********************************************************************************************************
-  TTY API
+  TTY KERNEL API
 *********************************************************************************************************/
 
 LW_API INT                  API_TtyDrvInstall(VOID);
@@ -169,27 +146,9 @@ LW_API INT                  API_TtyDevCreate(PCHAR     pcName,
                                              size_t    stWrtBufSize);
 LW_API INT                  API_TtyDevRemove(PCHAR   pcName, BOOL  bForce);
 
-LW_API VOID                 API_TyAbortFuncSet(FUNCPTR pfuncAbort);
-LW_API VOID                 API_TyAbortSet(CHAR        cAbort);
-LW_API VOID                 API_TyBackspaceSet(CHAR    cBackspace);
-LW_API VOID                 API_TyDeleteLineSet(CHAR   cDeleteLine);
-LW_API VOID                 API_TyEOFSet(CHAR  cEOF);
-LW_API VOID                 API_TyMonitorTrapSet(CHAR  cMonitorTrap);
-
-/*********************************************************************************************************
-  API
-*********************************************************************************************************/
-
 #define ttyDrv              API_TtyDrvInstall
 #define ttyDevCreate        API_TtyDevCreate
 #define ttyDevRemove        API_TtyDevRemove
-
-#define tyAbortFuncSet      API_TyAbortFuncSet
-#define tyAbortSet          API_TyAbortSet
-#define tyBackspaceSet      API_TyBackspaceSet
-#define tyDeleteLineSet     API_TyDeleteLineSet
-#define tyEOFSet            API_TyEOFSet
-#define tyMonitorTrapSet    API_TyMonitorTrapSet
 
 /*********************************************************************************************************
   GLOBAL VAR
@@ -212,6 +171,30 @@ __TYCO_EXT      ULONG       _G_ulMutexOptionsTyLib = (LW_OPTION_WAIT_PRIORITY
                                                    |  LW_OPTION_DELETE_SAFE
                                                    |  LW_OPTION_INHERIT_PRIORITY);
 #endif                                                                  /*  __TYCO_MAIN_FILE            */
+
+#endif                                                                  /*  __SYLIXOS_KERNEL            */
+/*********************************************************************************************************
+  TTY API
+*********************************************************************************************************/
+
+LW_API VOID                 API_TyAbortFuncSet(FUNCPTR pfuncAbort);
+LW_API VOID                 API_TyAbortSet(CHAR        cAbort);
+LW_API VOID                 API_TyBackspaceSet(CHAR    cBackspace);
+LW_API VOID                 API_TyDeleteLineSet(CHAR   cDeleteLine);
+LW_API VOID                 API_TyEOFSet(CHAR  cEOF);
+LW_API VOID                 API_TyMonitorTrapSet(CHAR  cMonitorTrap);
+
+/*********************************************************************************************************
+  API
+*********************************************************************************************************/
+
+#define tyAbortFuncSet      API_TyAbortFuncSet
+#define tyAbortSet          API_TyAbortSet
+#define tyBackspaceSet      API_TyBackspaceSet
+#define tyDeleteLineSet     API_TyDeleteLineSet
+#define tyEOFSet            API_TyEOFSet
+#define tyMonitorTrapSet    API_TyMonitorTrapSet
+
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */
                                                                         /*  (LW_CFG_SIO_DEVICE_EN > 0)  */
 #endif                                                                  /*  __TTY_H                     */

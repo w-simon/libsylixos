@@ -63,7 +63,7 @@ ULONG  API_KernelVersion (VOID)
 LW_API  
 ULONG  API_KernelVerpatch (VOID)
 {
-    return  (__SYLIXOS_VERPATCH);
+    return  (__SYLIXOS_PATCH_PAD);
 }
 /*********************************************************************************************************
   END

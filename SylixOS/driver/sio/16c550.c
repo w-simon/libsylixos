@@ -713,6 +713,33 @@ static INT sio16c550SetMode (SIO16C550_CHAN *psiochan, INT newmode)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: sio16550SetBreak
+** 功能描述: 串口 break 设置
+** 输　入  : psiochan      SIO CHAN
+**           1: send break  0: clear break
+** 输　出  : ERROR or OK
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static INT sio16550SetBreak (SIO16C550_CHAN *psiochan, INT  iBreak)
+{
+    INTREG  intreg;
+
+    LW_SPIN_LOCK_QUICK(&psiochan->slock, &intreg);
+    
+    if (iBreak) {
+        psiochan->lcr |= LCR_SBRK;
+    } else {
+        psiochan->lcr &= ~LCR_SBRK;
+    }
+    
+    SET_REG(psiochan, LCR, psiochan->lcr);
+    
+    LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: sio16c550Ioctl
 ** 功能描述: 串口接口控制
 ** 输　入  : psiochan      SIO CHAN
@@ -767,6 +794,14 @@ static INT sio16c550Ioctl (SIO16C550_CHAN *psiochan, INT cmd, LONG arg)
         if (psiochan->hw_option & HUPCL) {
             error = sio16c550Open(psiochan);
         }
+        break;
+
+    case SIO_CTL_SBRK:
+        error = sio16550SetBreak(psiochan, 1);
+        break;
+    
+    case SIO_CTL_CBRK:
+        error = sio16550SetBreak(psiochan, 0);
         break;
 
     case SIO_SWITCH_PIN_EN_SET:

@@ -90,7 +90,6 @@ INT  timer_getoverrun_64(timer_t  timer, UINT64  *pu64Overruns, BOOL  bClear);
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 
 #endif                                                                  /*  LW_CFG_PTIMER_EN > 0        */
-
 #endif                                                                  /*  __PTIMER_H                  */
 /*********************************************************************************************************
   END

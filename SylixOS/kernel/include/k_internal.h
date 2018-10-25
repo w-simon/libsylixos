@@ -237,8 +237,16 @@ CPCHAR              __kernelEnterFunc(VOID);
 INT                 __kernelSched(VOID);
 VOID                __kernelSchedInt(PLW_CLASS_CPU  pcpuCur);
 
-#define __KERNEL_SCHED()            __kernelSched()
-#define __KERNEL_SCHED_INT(pcpu)    __kernelSchedInt(pcpu)
+#define __KERNEL_SCHED()                __kernelSched()
+#define __KERNEL_SCHED_INT(pcpu)        __kernelSchedInt(pcpu)
+
+#if defined(__SYLIXOS_ARM_ARCH_M__)
+
+BOOL                __kernelSchedIntCheck(PLW_CLASS_CPU  pcpuCur);
+
+#define __KERNEL_SCHED_INT_CHECK(pcpu)  __kernelSchedIntCheck(pcpu)
+
+#endif                                                                  /*  __SYLIXOS_ARM_ARCH_M__      */
                                             
 /*********************************************************************************************************
   内核 ticks
@@ -381,6 +389,8 @@ VOID           _CpuSetSchedAffinity(ULONG  ulCPUId, BOOL  bEnable);
 VOID           _CpuGetSchedAffinity(ULONG  ulCPUId, BOOL  *pbEnable);
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 
+VOID           _CpuBogoMipsClear(ULONG  ulCPUId);
+
 /*********************************************************************************************************
   调度器
 *********************************************************************************************************/
@@ -405,6 +415,10 @@ PVOID          _SchedSafeStack(PLW_CLASS_CPU pcpuCur);
 INT            _Schedule(VOID);
 VOID           _ScheduleInt(PLW_CLASS_CPU  pcpuCur);
 VOID           _ScheduleInit(VOID);
+
+#if defined(__SYLIXOS_ARM_ARCH_M__)
+BOOL           _ScheduleIntCheck(PLW_CLASS_CPU  pcpuCur);
+#endif                                                                  /*  __SYLIXOS_ARM_ARCH_M__      */
 
 VOID           _SchedSetRet(INT  iSchedSetRet);
 VOID           _SchedSetPrio(PLW_CLASS_TCB  ptcb, UINT8  ucPriority);   /*  设置优先级                  */

@@ -62,12 +62,33 @@
 ;*********************************************************************************************************/
 
 FUNC_DEF(archTaskCtxStart)
+#if LW_CFG_CORTEX_M_SVC_SWITCH > 0
     MOV     R1 , #LW_CFG_CORTEX_M_INT_MASK
     MSR     BASEPRI , R1                                        ;/*  屏蔽除 SVC 外的中断                 */
     MOV     R1 , #SVC_archTaskCtxStart                          ;/*  使用 R1 传递 SVC 命令号             */
     CPSIE   I                                                   ;/*  使能中断                            */
     SVC     0
     BX      LR
+
+#else
+    LDR     R0 , =CORTEX_M_NVIC_SYSPRI2                         ;/*  设置 PendSV 异常优先级              */
+    LDR     R1 , =CORTEX_M_NVIC_PENDSV_PRI
+    STRB    R1 , [R0]
+
+    MOVS    R0 , #0                                             ;/*  设置 PSP 为 0 以识别第一次上下文加载*/
+    MSR     PSP, R0
+
+    LDR     R0 , =API_InterStackBaseGet                         ;/*  获得当前 CPU 中断堆栈栈顶,并设置 MSP*/
+    BLX     R0
+    MSR     MSP , R0
+
+    LDR     R0 , =CORTEX_M_NVIC_INT_CTRL                        ;/*  触发 PendSV 异常引起上下文切换      */
+    LDR     R1 , =CORTEX_M_NVIC_PENDSVSET
+    STR     R1 , [R0]
+
+    CPSIE   I                                                   ;/*  使能中断                            */
+    B       .
+#endif
     FUNC_END()
 
 ;/*********************************************************************************************************
@@ -76,8 +97,15 @@ FUNC_DEF(archTaskCtxStart)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archTaskCtxSwitch)
+#if LW_CFG_CORTEX_M_SVC_SWITCH > 0
     MOV     R1 , #SVC_archTaskCtxSwitch                         ;/*  使用 R1 传递 SVC 命令号             */
     SVC     0
+
+#else
+    LDR     R0 , =CORTEX_M_NVIC_INT_CTRL                        ;/*  触发 PendSV 异常引起上下文切换      */
+    LDR     R1 , =CORTEX_M_NVIC_PENDSVSET
+    STR     R1 , [R0]
+#endif
     BX      LR
     FUNC_END()
 
@@ -88,9 +116,14 @@ FUNC_DEF(archTaskCtxSwitch)
 
 #if LW_CFG_COROUTINE_EN > 0
 FUNC_DEF(archCrtCtxSwitch)
+#if LW_CFG_CORTEX_M_SVC_SWITCH > 0
     MOV     R1 , #SVC_archCrtCtxSwitch                          ;/*  使用 R1 传递 SVC 命令号             */
     SVC     0
     BX      LR
+
+#else
+    #error "No support coroutine when uses PendSV mode for task context switch!"
+#endif
     FUNC_END()
 #endif
 
@@ -100,6 +133,7 @@ FUNC_DEF(archCrtCtxSwitch)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archIntCtxLoad)
+#if LW_CFG_CORTEX_M_SVC_SWITCH > 0
     LDR     R0 , [R0]                                           ;/*  获取当前 TCB 的 REG_CTX 地址        */
     ADD     R12 , R0 , #4                                       ;/*  最后将跳过 SP 的恢复                */
 
@@ -118,6 +152,14 @@ FUNC_DEF(archIntCtxLoad)
     ; * 从 SP 指向的堆栈恢复 xPSR, PC, LR, R12 以及 R3-R0 寄存器
     ; */
     BX      LR
+
+#else
+    LDR     R0 , =CORTEX_M_NVIC_INT_CTRL                        ;/*  触发 PendSV 异常引起上下文切换      */
+    LDR     R1 , =CORTEX_M_NVIC_PENDSVSET
+    STR     R1 , [R0]
+
+    BX      LR
+#endif
     FUNC_END()
 
 ;/*********************************************************************************************************
@@ -126,9 +168,18 @@ FUNC_DEF(archIntCtxLoad)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archSigCtxLoad)
+#if LW_CFG_CORTEX_M_SVC_SWITCH > 0
     MOV     R1 , #SVC_archSigCtxLoad                            ;/*  使用 R1 传递 SVC 命令号             */
     SVC     0
     BX      LR
+
+#else
+    ;/*
+    ; * PendSV 方式任务切换不支持信号, 异常处理也不调用 API_VmmAbortIsr
+    ; * 所以不会运行到这里
+    ; */
+    B       .
+#endif
     FUNC_END()
 
 ;/*********************************************************************************************************

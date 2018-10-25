@@ -79,6 +79,7 @@
 *********************************************************************************************************/
 #if LW_CFG_SHELL_EN > 0
 #include "limits.h"
+#include "termios.h"
 #include "pwd.h"
 #include "ttinyShell.h"
 #include "ttinyShellLib.h"

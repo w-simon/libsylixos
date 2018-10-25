@@ -93,25 +93,6 @@ ssize_t    _SpipeRead( PLW_SPIPE_FILE pspipefil, PCHAR  pcBuffer, size_t stMaxBy
 ssize_t    _SpipeWrite(PLW_SPIPE_FILE pspipefil, PCHAR  pcBuffer, size_t stNBytes);
 INT        _SpipeIoctl(PLW_SPIPE_FILE pspipefil, INT    iRequest, INT  *piArgPtr);
 
-#endif                                                                  /*  __SYLIXOS_KERNEL            */
-/*********************************************************************************************************
-  SPIPE API
-*********************************************************************************************************/
-
-LW_API INT          API_SpipeDrvInstall(VOID);
-LW_API INT          API_SpipeDevCreate(PCHAR  pcName, size_t  stBufferByteSize);
-LW_API INT          API_SpipeDevDelete(PCHAR  pcName, BOOL bForce);
-
-/*********************************************************************************************************
-  API
-*********************************************************************************************************/
-
-#define spipeDevCreate  API_SpipeDevCreate
-#define spipeDevDelete  API_SpipeDevDelete
-#define spipeDrv        API_SpipeDrvInstall
-
-#endif                                                                  /*  __SPIPE_H                   */
-
 /*********************************************************************************************************
   GLOBAL VAR
 *********************************************************************************************************/
@@ -136,8 +117,26 @@ __SPIPE_EXT    ULONG   _G_ulSpipeLockOpt = (LW_OPTION_WAIT_PRIORITY
                                          |  LW_OPTION_INHERIT_PRIORITY);
 #endif
 
+#endif                                                                  /*  __SYLIXOS_KERNEL            */
+/*********************************************************************************************************
+  SPIPE API
+*********************************************************************************************************/
+
+LW_API INT          API_SpipeDrvInstall(VOID);
+LW_API INT          API_SpipeDevCreate(PCHAR  pcName, size_t  stBufferByteSize);
+LW_API INT          API_SpipeDevDelete(PCHAR  pcName, BOOL bForce);
+
+/*********************************************************************************************************
+  API
+*********************************************************************************************************/
+
+#define spipeDevCreate  API_SpipeDevCreate
+#define spipeDevDelete  API_SpipeDevDelete
+#define spipeDrv        API_SpipeDrvInstall
+
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0)      */
                                                                         /*  (LW_CFG_SPIPE_EN > 0)       */
+#endif                                                                  /*  __SPIPE_H                   */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

@@ -27,9 +27,9 @@
 #ifndef __SIGNAL_H
 #define __SIGNAL_H
 
-#if LW_CFG_SIGNAL_EN > 0
-
 #include "sys/cdefs.h"
+
+#if LW_CFG_SIGNAL_EN > 0
 
 /*********************************************************************************************************
   SIGNAL NUMBER ²»¿ÉÐÞ¸Ä!

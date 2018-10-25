@@ -236,12 +236,14 @@ FUNC_DEF(armMmuInvalidateTLB)                                           ;/* 快表
     MCRHI   p15, 0, R0, c8, c3, 0                                       ;/* TLBIALLIS SMP                */
     MCRLS   p15, 0, R0, c8, c7, 0                                       ;/* TLBIALL UP                   */
 #if __SYLIXOS_ARM_ARCH__ >= 6
+    ARM_ISB()
     MCRHI   p15, 0, R0, c7, c1, 6                                       ;/* BPIALLIS SMP                 */
     MCRLS   p15, 0, R0, c7, c5, 6                                       ;/* BPIALL UP                    */
 #endif
 #else
     MCR     p15, 0, R0, c8, c7, 0                                       ;/* TLBIALL UP                   */
 #if __SYLIXOS_ARM_ARCH__ >= 6
+    ARM_ISB()
     MCR     p15, 0, R0, c7, c5, 6                                       ;/* BPIALL UP                    */
 #endif
 #endif
@@ -261,6 +263,7 @@ FUNC_DEF(armMmuInvalidateTLBMVA)                                        ;/* 无效
     MCRHI   p15, 0, R0, c8, c3, 1                                       ;/* TLBIMVAIS SMP                */
     MCRLS   p15, 0, R0, c8, c7, 1                                       ;/* TLBIMVA UP                   */
 #if __SYLIXOS_ARM_ARCH__ >= 6
+    ARM_ISB()
     MOV     R0, #0
     MCRHI   p15, 0, R0, c7, c1, 6                                       ;/* BPIALLIS SMP                 */
     MCRLS   p15, 0, R0, c7, c5, 6                                       ;/* BPIALL UP                    */
@@ -268,6 +271,7 @@ FUNC_DEF(armMmuInvalidateTLBMVA)                                        ;/* 无效
 #else
     MCR     p15, 0, R0, c8, c7, 1                                       ;/* TLBIMVA UP                   */
 #if __SYLIXOS_ARM_ARCH__ >= 6
+    ARM_ISB()
     MOV     R0, #0
     MCR     p15, 0, R0, c7, c5, 6                                       ;/* BPIALL UP                    */
 #endif

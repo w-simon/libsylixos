@@ -120,12 +120,14 @@ FUNC_DEF(armICacheInvalidateAll)
     MCRHI   p15, 0, R0, c7, c1, 0                                       ;/* ICIALLUIS SMP                */
     MCRLS   p15, 0, R0, c7, c5, 0                                       ;/* ICIALLU UP                   */
 #if __SYLIXOS_ARM_ARCH__ >= 6
+    ARM_ISB()
     MCRHI   p15, 0, R0, c7, c1, 6                                       ;/* BPIALLIS SMP                 */
     MCRLS   p15, 0, R0, c7, c5, 6                                       ;/* BPIALL UP                    */
 #endif
 #else
     MCR     p15, 0, R0, c7, c5, 0                                       ;/* ICIALLU UP                   */
 #if __SYLIXOS_ARM_ARCH__ >= 6
+    ARM_ISB()
     MCR     p15, 0, R0, c7, c5, 6                                       ;/* BPIALL UP                    */
 #endif
 #endif

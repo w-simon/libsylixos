@@ -242,11 +242,17 @@ static ssize_t  __procFsBspCpuRead (PLW_PROCFS_NODE  p_pfsn,
                               bspInfoPacket());                         /*  将信息打印到缓冲            */
                  
         LW_CPU_FOREACH (i) {
-            API_CpuBogoMips(i, &ulKInsPerSec);
-            stRealSize = bnprintf(pcFileBuffer, __PROCFS_BUFFER_SIZE_CPUINFO, stRealSize,
-                                  "BogoMIPS %2d : %lu.%02lu\n", i,
-                                  ulKInsPerSec / 1000,
-                                  ulKInsPerSec % 1000);                 /*  打印 BogoMIPS 信息          */
+            if (LW_CPU_IS_ACTIVE(LW_CPU_GET(i))) {
+                API_CpuBogoMips(i, &ulKInsPerSec);
+                stRealSize = bnprintf(pcFileBuffer, __PROCFS_BUFFER_SIZE_CPUINFO, stRealSize,
+                                      "BogoMIPS %2d : %lu.%02lu\n", i,
+                                      ulKInsPerSec / 1000,
+                                      ulKInsPerSec % 1000);             /*  打印 BogoMIPS 信息          */
+            
+            } else {
+                stRealSize = bnprintf(pcFileBuffer, __PROCFS_BUFFER_SIZE_CPUINFO, stRealSize,
+                                      "BogoMIPS %2d : N/A\n", i);
+            }
         }
         
         API_ProcFsNodeSetRealFileSize(p_pfsn, stRealSize);
