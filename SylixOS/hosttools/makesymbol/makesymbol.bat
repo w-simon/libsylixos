@@ -45,7 +45,7 @@ echo ***************************************************************************
 echo #ifdef __GNUC__                                        >> symbol.c
 echo #if __GNUC__ ^<^= 4                                    >> symbol.c
 echo #pragma GCC diagnostic warning "-w"                    >> symbol.c
-echo #else                                                  >> symbol.c
+echo #elif __GNUC__ ^>^= 7                                  >> symbol.c
 echo #pragma GCC diagnostic ignored "-Wbuiltin-declaration-mismatch" >> symbol.c
 echo #endif                                                 >> symbol.c
 echo #endif                                                 >> symbol.c

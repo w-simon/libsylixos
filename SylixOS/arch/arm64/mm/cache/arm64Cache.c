@@ -451,6 +451,12 @@ VOID  arm64CacheInit (LW_CACHE_OP *pcacheop,
 #define ARMv8_CCSIDR_WAYNUM(x)          ((x) & ARMv8_CCSIDR_WAYNUM_MSK)
 #define ARMv8_CACHE_WAYNUM(x)           ((ARMv8_CCSIDR_NUMSET(x) >> 3) + 1)
 
+    if ((uiData & CACHE_SNOOP_ENABLE) && !arm64MmuShareableGet()) {
+        _DebugFormat(__ERRORMESSAGE_LEVEL,
+                     "ARMv8 D-Cache initialize with 'CACHE_SNOOP_ENABLE' flag"
+                     " you MUST set OUTER_SHAREABLE.\r\n");
+    }
+
 #if LW_CFG_SMP_EN > 0
     pcacheop->CACHEOP_ulOption = CACHE_TEXT_UPDATE_MP;
 #else

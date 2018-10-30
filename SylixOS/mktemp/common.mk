@@ -67,6 +67,10 @@ ifeq ($(ARCH), riscv)
 LOCAL_ARCH_SRCS := $(LOCAL_RISCV_SRCS)
 endif
 
+ifeq ($(ARCH), csky)
+LOCAL_ARCH_SRCS := $(LOCAL_CSKY_SRCS)
+endif
+
 LOCAL_SRCS := $(LOCAL_SRCS) $(LOCAL_ARCH_SRCS)
 LOCAL_SRCS := $(filter-out $(LOCAL_EXCLUDE_SRCS),$(LOCAL_SRCS))
 

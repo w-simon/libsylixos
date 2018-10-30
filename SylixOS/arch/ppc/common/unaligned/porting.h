@@ -93,9 +93,9 @@ static inline void prefetchw(const void *x)
     __asm__ __volatile__ ("dcbtst 0,%0" : : "r" (x));
 }
 
-#define mb()   __asm__ __volatile__ ("sync" : : : "memory")
-#define rmb()  __asm__ __volatile__ ("sync" : : : "memory")
-#define wmb()  __asm__ __volatile__ ("sync" : : : "memory")
+#define mb()   KN_MB()
+#define rmb()  KN_RMB()
+#define wmb()  KN_WMB()
 
 static inline void eieio(void)
 {

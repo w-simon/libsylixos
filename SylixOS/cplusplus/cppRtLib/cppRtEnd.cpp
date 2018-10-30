@@ -88,8 +88,8 @@ static VOIDFUNCPTR __LW_DTOR_END__[1] __attribute__((section(".dtors"))) = { (VO
 *********************************************************************************************************/
 VOID  __cppRtDummy (VOID)
 {
-    __LW_CTOR_END__[0] = (VOIDFUNCPTR)LW_NULL;
-    __LW_DTOR_END__[0] = (VOIDFUNCPTR)LW_NULL;
+    lib_bzero(&__LW_CTOR_END__[0], sizeof(VOIDFUNCPTR));
+    lib_bzero(&__LW_DTOR_END__[0], sizeof(VOIDFUNCPTR));
 }
 }
 /*********************************************************************************************************

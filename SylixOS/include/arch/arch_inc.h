@@ -97,6 +97,15 @@
 #include "riscv/arch_limits.h"
 #include "riscv/arch_regs.h"
 #include "riscv/arch_mmu.h"
+
+#elif defined(LW_CFG_CPU_ARCH_CSKY)
+#include "csky/arch_types.h"
+#include "csky/arch_compiler.h"
+#include "csky/arch_def.h"
+#include "csky/arch_float.h"
+#include "csky/arch_limits.h"
+#include "csky/arch_regs.h"
+#include "csky/arch_mmu.h"
 #endif                                                                  /*  LW_CFG_CPU_ARCH_ARM         */
 
 #endif                                                                  /*  __ARCH_INC_H                */

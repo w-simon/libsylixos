@@ -61,11 +61,15 @@
     EXPORT_LABEL(arm64GetSPSel)
     EXPORT_LABEL(arm64WaitForInterrupt)
     EXPORT_LABEL(arm64EL2SwitchEL1)
+    EXPORT_LABEL(arm64EL3SwitchEL2)
+    EXPORT_LABEL(arm64SwitchToEl1)
 
     WEAK(archIntDisable)
     WEAK(archIntEnable)
     WEAK(archIntEnableForce)
     WEAK(arm64EL2SwitchEL1)
+    WEAK(arm64EL3SwitchEL2)
+    WEAK(arm64SwitchToEl1)
 
 ;/*********************************************************************************************************
 ;  ARM64 关闭总中断
@@ -360,6 +364,64 @@ FUNC_DEF(arm64WaitForInterrupt)
 ;  EL 状态切换
 ;*********************************************************************************************************/
 
+MACRO_DEF(SWITCH_EL, xreg, el3_label, el2_label, el1_label)
+    MRS     \xreg ,  CurrentEL
+    CMP     \xreg ,  0xc
+    B.EQ    \el3_label
+    CMP     \xreg ,  0x8
+    B.EQ    \el2_label
+    CMP     \xreg ,  0x4
+    B.EQ    \el1_label
+    MACRO_END()
+
+;/*********************************************************************************************************
+;  切换到 EL1 
+;*********************************************************************************************************/
+
+FUNC_DEF(arm64SwitchToEl1)
+    MOV         X18, LR
+    SWITCH_EL   X6 , el3, el2, el1
+
+LINE_LABEL(el3)
+    BL      arm64El3SwitchEl2
+    BL      arm64EL2SwitchEL1
+    MOV     LR , X18
+    RET
+
+LINE_LABEL(el2)
+    BL      arm64EL2SwitchEL1
+    MOV     LR , X18
+    RET
+
+LINE_LABEL(el1)
+    MOV     LR , X18
+    RET
+
+;/*********************************************************************************************************
+;  EL3 切换到 EL2 
+;*********************************************************************************************************/
+
+FUNC_DEF(arm64El3SwitchEl2)
+    MOV     X0 ,       #0x5b1                                            ;/*  Non-secure EL0/1 |HVC|64bit*/
+    MSR     SCR_EL3 ,  X0
+    MSR     CPTR_EL3,  XZR                                               ;/*  禁能协处理器陷入 EL3       */
+
+    ;/*
+    ; * 从 EL3 跳转至 EL2 AARCH64
+    ; */
+    MOV     X0 ,       SP                                                ;/*  Ret EL2_SP2 mode from EL3  */
+    MSR     SP_EL2 ,   X0                                                ;/*  Migrate SP                 */
+    MOV     X0 ,       #0x3c9
+    MSR     SPSR_EL3 , X0                                                ;/*  EL2_SP2 | D | A | I | F    */
+    MSR     ELR_EL3  , LR
+
+    ERET
+    FUNC_END()
+
+;/*********************************************************************************************************
+;  EL2 切换到 EL1
+;*********************************************************************************************************/
+
 FUNC_DEF(arm64EL2SwitchEL1)
     MRS     X0 , CNTHCTL_EL2                                             ;/*  初始化通用定时器           */
     ORR     X0 , X0 , #(CNTHCTL_EL2_EL1PCEN_EN | \
@@ -378,6 +440,16 @@ FUNC_DEF(arm64EL2SwitchEL1)
 
     MOV     X0 , #CPACR_EL1_FPEN_EN                                      ;/*  Enable FP/SIMD at EL1      */
     MSR     CPACR_EL1 , X0
+
+    MRS     X0,  FPEXC32_EL2
+    ORR     X0,  X0, #(1 << 30)
+    MSR     FPEXC32_EL2, X0
+
+    MSR     DAIFSET ,  #2                                                ;/*  关中断                    */
+    ADRP    X0 ,       vector
+    ADD     X0 ,       X0 , #:lo12:vector
+    MSR     VBAR_EL2 , X0                                                ;/*  设置 EL2 的向量表地址     */
+    MSR     VBAR_EL1 , X0                                                ;/*  设置 EL1 的向量表地址     */
 
     ;/*
     ; * SCTLR_EL1 初始化

@@ -17,6 +17,9 @@
 ** 文件创建日期: 2018 年 07 月 04 日
 **
 ** 描        述: ARM64 体系构架 MMU 驱动.
+**
+** BUG：
+2018.10.26 修复在飞腾平台下因为符号位扩展导致的错误
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -34,7 +37,7 @@ extern VOID    arm64MmuEnable(VOID);
 extern VOID    arm64MmuDisable(VOID);
 extern VOID    arm64MmuInvalidateTLB(VOID);
 extern VOID    arm64MmuSetMAIR(VOID);
-extern VOID    arm64MmuSetTCR(UINT32  uiTcr);
+extern VOID    arm64MmuSetTCR(UINT64  ulTcr);
 extern UINT64  arm64MmuGetMAIR(VOID);
 extern VOID    arm64MmuSetTTBR(PVOID  pvAddr);
 extern VOID    arm64MmuInvalidateTLBMVA(PVOID  pvAddr);
@@ -70,11 +73,11 @@ extern VOID    arm64DCacheFlush(PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep);
 /*********************************************************************************************************
   PGD、PMD、PTS、PTE中的属性定义
   
-  PGD、PMD、PTS 格式
-       63      62        61     60          59
-  +---------+--------------+-----------+----------+
-  | NSTable |    APTable   |  XNTable  | PXNTable |
-  +---------+--------------+-----------+----------+
+  PGD、PMD、PTS 格式，[58:55] Reserved for software use
+       63      62        61     60          59     58     55
+  +---------+--------------+-----------+----------+---------+
+  | NSTable |    APTable   |  XNTable  | PXNTable |  Check  |
+  +---------+--------------+-----------+----------+---------+
 *********************************************************************************************************/
 #define ARM64_MMU_NS_SHIFT      (63)                                    /*  PGD、PMD、PTS 中的 Secure & */
 #define ARM64_MMU_NS_MASK       (0x1 << ARM64_MMU_NS_SHIFT)             /*  Non-Secure 标志             */
@@ -85,6 +88,8 @@ extern VOID    arm64DCacheFlush(PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep);
 #define ARM64_MMU_PXN_SHIFT     (59)
 #define ARM64_MMU_PXN_MASK      (0x1 << ARM64_MMU_PXN_SHIFT)            /*  PGD、PMD、PTS 中的 PXN      */
 
+#define ARM64_PTE_GUARD_SHIFT   (55)
+#define ARM64_PTE_GUARD_MASK    (1UL << ARM64_PTE_GUARD_SHIFT)          /*  用于记录 GUARD 标志         */
 #define ARM64_PTE_UXN_SHIFT     (54)
 #define ARM64_PTE_UXN_MASK      (1UL << ARM64_PTE_UXN_SHIFT)            /*  User XN                     */
 #define ARM64_PTE_PXN_SHIFT     (53)
@@ -114,17 +119,31 @@ extern VOID    arm64DCacheFlush(PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep);
 *********************************************************************************************************/
 #define ARM64_MMU_ADDR_MASK     (0xfffffffff000ul)                      /*  [47:12]                     */
 /*********************************************************************************************************
+  2 个检查权限定义
+*********************************************************************************************************/
+#define GUARDED_CHK          0                                          /*  做详细权限检查              */
+#define GUARDED_NOT_CHK      1                                          /*  不做详细权限检查            */
+/*********************************************************************************************************
+  全局定义
+*********************************************************************************************************/
+#define NON_SHAREABLE           0x0
+#define OUTER_SHAREABLE         0x2
+#define INNER_SHAREABLE         0x3
+#define VMSA_S                  _G_uiVMSAShare                          /*  共享位值                    */
+/*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
 static LW_OBJECT_HANDLE         _G_hPGDPartition;                       /*  系统目前仅使用一个 PGD      */
 static LW_OBJECT_HANDLE         _G_hPMDPartition;                       /*  PMD 缓冲区                  */
 static LW_OBJECT_HANDLE         _G_hPTSPartition;                       /*  PTS 缓冲区                  */
 static LW_OBJECT_HANDLE         _G_hPTEPartition;                       /*  PTE 缓冲区                  */
+static UINT                     _G_uiVMSAShare = INNER_SHAREABLE;       /*  共享位值                    */
 /*********************************************************************************************************
 ** 函数名称: arm64MmuFlags2Attr
 ** 功能描述: 根据 SylixOS 权限标志, 生成 ARM64 MMU 权限标志
 ** 输　入  : ulFlag                 内存访问权限
-** 输　出  : pucXN                  可执行权限标志
+** 输　出  : pucGuard               进行严格的权限检查
+**           pucXN                  可执行权限标志
 **           pucPXN                 特权可执行权限标志
 **           pucCon                 Contiguous 标志
 **           pucnG                  nG 标志
@@ -138,6 +157,7 @@ static LW_OBJECT_HANDLE         _G_hPTEPartition;                       /*  PTE 
 ** 调用模块: 
 *********************************************************************************************************/
 static INT  arm64MmuFlags2Attr (ULONG   ulFlag,
+                                UINT8  *pucGuard,
                                 UINT8  *pucXN,
                                 UINT8  *pucPXN,
                                 UINT8  *pucCon,
@@ -153,6 +173,11 @@ static INT  arm64MmuFlags2Attr (ULONG   ulFlag,
     }
 
     if (ulFlag & LW_VMM_FLAG_ACCESS) {                                  /*  是否拥有访问权限            */
+        if (ulFlag & LW_VMM_FLAG_GUARDED) {
+            *pucGuard = GUARDED_CHK;
+        } else {
+            *pucGuard = GUARDED_NOT_CHK;
+        }
         *pucAF = 1; 
     } else {
         *pucAF = 0;                                                     /*  访问失效                    */
@@ -182,7 +207,7 @@ static INT  arm64MmuFlags2Attr (ULONG   ulFlag,
     }
     
     *pucPXN = 0x0;
-    *pucSH  = 0x3;
+    *pucSH  = VMSA_S;
     *pucNS  = 0x0;
     *pucCon = 0x0;
     *pucnG  = 0x0;
@@ -192,21 +217,23 @@ static INT  arm64MmuFlags2Attr (ULONG   ulFlag,
 /*********************************************************************************************************
 ** 函数名称: arm64MmuAttr2Flags
 ** 功能描述: 根据 ARM64 MMU 权限标志, 生成 SylixOS 权限标志
-** 输　入  : pucXN                  可执行权限标志
-**           pucPXN                 特权可执行权限标志
-**           pucCon                 Contiguous 标志
-**           pucnG                  nG 标志
-**           pucAF                  是否拥有访问权限标志
-**           pucSH                  共享权限标志
-**           pucAP                  是否可写权限标志
-**           pucNS                  Non-Secure 标志
-**           pucAIn                 Cache 和 Bufferable 权限标志
-** 输　出  : ulFlag                 内存访问权限
+** 输　入  : ucGuard               严格的权限检查
+**           ucXN                  可执行权限标志
+**           ucPXN                 特权可执行权限标志
+**           ucCon                 Contiguous 标志
+**           ucnG                  nG 标志
+**           ucAF                  是否拥有访问权限标志
+**           ucSH                  共享权限标志
+**           ucAP                  是否可写权限标志
+**           ucNS                  Non-Secure 标志
+**           ucAIn                 Cache 和 Bufferable 权限标志
+** 输　出  : ulFlag                内存访问权限
 **           ERROR_CODE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT  arm64MmuAttr2Flags (UINT8  ucXN,
+static INT  arm64MmuAttr2Flags (UINT8  ucGuard,
+                                UINT8  ucXN,
                                 UINT8  ucPXN,
                                 UINT8  ucCon,
                                 UINT8  ucnG,
@@ -221,6 +248,10 @@ static INT  arm64MmuAttr2Flags (UINT8  ucXN,
 
     *pulFlag = LW_VMM_FLAG_VALID;
     
+    if (ucGuard == GUARDED_CHK) {
+        *pulFlag |= LW_VMM_FLAG_GUARDED;
+    }
+
     if (ucAF == 1) {        
         *pulFlag |= LW_VMM_FLAG_ACCESS;
     }
@@ -247,7 +278,7 @@ static INT  arm64MmuAttr2Flags (UINT8  ucXN,
         break;
     }
 
-    if (ucXN == 0x0) {
+    if (ucXN == 0x1) {
         *pulFlag |= LW_VMM_FLAG_EXECABLE;
     }
 
@@ -350,6 +381,7 @@ static LW_INLINE LW_PTS_TRANSENTRY  arm64MmuBuildPtsEntry (addr_t  ulBaseAddr,
 ** 函数名称: arm64MmuBuildPtentry
 ** 功能描述: 生成一个二级描述符 (PTE 描述符)
 ** 输　入  : uiBaseAddr              基地址     (页地址)
+**           ucGuard                 进行严格的权限检查
 **           ucXN                    可执行权限标志
 **           ucPXN                   特权可执行权限标志
 **           ucCon                   Contiguous 标志
@@ -365,6 +397,7 @@ static LW_INLINE LW_PTS_TRANSENTRY  arm64MmuBuildPtsEntry (addr_t  ulBaseAddr,
 ** 调用模块: 
 *********************************************************************************************************/
 static LW_PTE_TRANSENTRY  arm64MmuBuildPtentry (addr_t  ulBaseAddr,
+                                                UINT8   ucGuard,
                                                 UINT8   ucXN,
                                                 UINT8   ucPXN,
                                                 UINT8   ucCon,
@@ -382,9 +415,10 @@ static LW_PTE_TRANSENTRY  arm64MmuBuildPtentry (addr_t  ulBaseAddr,
 
     case ARM64_PTE_TYPE_PAGE:
         ulDescriptor = (ulBaseAddr & ARM64_MMU_ADDR_MASK)
-                     | ((UINT64)ucXN  << ARM64_PTE_UXN_SHIFT)
-                     | ((UINT64)ucPXN << ARM64_PTE_PXN_SHIFT)
-                     | ((UINT64)ucCon << ARM64_PTE_CONT_SHIFT)
+                     | ((UINT64)ucGuard << ARM64_PTE_GUARD_SHIFT)
+                     | ((UINT64)ucXN    << ARM64_PTE_UXN_SHIFT)
+                     | ((UINT64)ucPXN   << ARM64_PTE_PXN_SHIFT)
+                     | ((UINT64)ucCon   << ARM64_PTE_CONT_SHIFT)
                      | (ucnG  << ARM64_PTE_NG_SHIFT)
                      | (ucAF  << ARM64_PTE_AF_SHIFT)
                      | (ucSH  << ARM64_PTE_SH_SHIFT)
@@ -467,8 +501,8 @@ static INT  arm64MmuGlobalInit (CPCHAR  pcMachineName)
     archCacheReset(pcMachineName);
 
     arm64MmuInvalidateTLB();
-    
-    arm64MmuSetTCR(0x80823510);                                         /*  T0SZ = 2 ^ 48               */
+
+    arm64MmuSetTCR(0x580823510);                                        /*  T0SZ = 2 ^ 48               */
 
     arm64MmuSetMAIR();
 
@@ -864,6 +898,7 @@ static ULONG  arm64MmuFlagGet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr)
     INT                 iDescType;
     ULONG               ulFlag = 0;
 
+    UINT8               ucGuard;                                        /*  严格的权限检查              */
     UINT8               ucXN;                                           /*  可执行权限标志              */
     UINT8               ucPXN;                                          /*  特权可执行权限标志          */
     UINT8               ucCon;                                          /*  Contiguous 标志             */
@@ -892,17 +927,19 @@ static ULONG  arm64MmuFlagGet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr)
                 if (arm64MmuPteIsOk(*p_pteentry)) {
                     UINT64  u64Descriptor = (UINT64)(*p_pteentry);
 
-                    ucXN  = (UINT8)((u64Descriptor & ARM64_PTE_UXN_MASK)  >> ARM64_PTE_UXN_SHIFT);
-                    ucPXN = (UINT8)((u64Descriptor & ARM64_PTE_PXN_MASK)  >> ARM64_PTE_PXN_SHIFT);
-                    ucCon = (UINT8)((u64Descriptor & ARM64_PTE_CONT_MASK) >> ARM64_PTE_CONT_SHIFT);
-                    ucnG  = (UINT8)((u64Descriptor & ARM64_PTE_NG_MASK)   >> ARM64_PTE_NG_SHIFT);
-                    ucAF  = (UINT8)((u64Descriptor & ARM64_PTE_AF_MASK)   >> ARM64_PTE_AF_SHIFT);
-                    ucSH  = (UINT8)((u64Descriptor & ARM64_PTE_SH_MASK)   >> ARM64_PTE_SH_SHIFT);
-                    ucAP  = (UINT8)((u64Descriptor & ARM64_PTE_AP_MASK)   >> ARM64_PTE_AP_SHIFT);
-                    ucNS  = (UINT8)((u64Descriptor & ARM64_PTE_NS_MASK)   >> ARM64_PTE_NS_SHIFT);
-                    ucAIn = (UINT8)((u64Descriptor & ARM64_PTE_AIN_MASK)  >> ARM64_PTE_AIN_SHIFT);
+                    ucGuard = (UINT8)((u64Descriptor & ARM64_PTE_GUARD_MASK) >> ARM64_PTE_GUARD_SHIFT);
+                    ucXN    = (UINT8)((u64Descriptor & ARM64_PTE_UXN_MASK)   >> ARM64_PTE_UXN_SHIFT);
+                    ucPXN   = (UINT8)((u64Descriptor & ARM64_PTE_PXN_MASK)   >> ARM64_PTE_PXN_SHIFT);
+                    ucCon   = (UINT8)((u64Descriptor & ARM64_PTE_CONT_MASK)  >> ARM64_PTE_CONT_SHIFT);
+                    ucnG    = (UINT8)((u64Descriptor & ARM64_PTE_NG_MASK)    >> ARM64_PTE_NG_SHIFT);
+                    ucAF    = (UINT8)((u64Descriptor & ARM64_PTE_AF_MASK)    >> ARM64_PTE_AF_SHIFT);
+                    ucSH    = (UINT8)((u64Descriptor & ARM64_PTE_SH_MASK)    >> ARM64_PTE_SH_SHIFT);
+                    ucAP    = (UINT8)((u64Descriptor & ARM64_PTE_AP_MASK)    >> ARM64_PTE_AP_SHIFT);
+                    ucNS    = (UINT8)((u64Descriptor & ARM64_PTE_NS_MASK)    >> ARM64_PTE_NS_SHIFT);
+                    ucAIn   = (UINT8)((u64Descriptor & ARM64_PTE_AIN_MASK)   >> ARM64_PTE_AIN_SHIFT);
 
-                    arm64MmuAttr2Flags(ucXN, ucPXN, ucCon, ucnG, ucAF, ucSH, ucAP, ucNS, ucAIn, &ulFlag);
+                    arm64MmuAttr2Flags(ucGuard, ucXN, ucPXN, ucCon, ucnG,
+                                       ucAF, ucSH, ucAP, ucNS, ucAIn, &ulFlag);
 
                     return  (ulFlag);
                 }
@@ -928,6 +965,7 @@ static INT  arm64MmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  ul
     LW_PGD_TRANSENTRY  *p_pgdentry = arm64MmuPgdOffset(pmmuctx, ulAddr);/*  获取一级描述符              */
     INT                 iDescType;    
     
+    UINT8               ucGuard;                                        /*  严格的权限检查              */
     UINT8               ucXN;                                           /*  可执行权限标志              */
     UINT8               ucPXN;                                          /*  特权可执行权限标志          */
     UINT8               ucContiguous;                                   /*  Contiguous 标志             */
@@ -947,6 +985,7 @@ static INT  arm64MmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  ul
     }
 
     if (arm64MmuFlags2Attr(ulFlag,
+                           &ucGuard,
                            &ucXN, &ucPXN,
                            &ucContiguous,
                            &ucnG, &ucAF,
@@ -973,6 +1012,7 @@ static INT  arm64MmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  ul
                     addr_t   ulPhysicalAddr = (addr_t)(*p_pteentry & ARM64_MMU_ADDR_MASK);
 
                    *p_pteentry = arm64MmuBuildPtentry(ulPhysicalAddr,
+                                                      ucGuard,
                                                       ucXN, ucPXN,
                                                       ucContiguous,
                                                       ucnG, ucAF,
@@ -1009,6 +1049,7 @@ static VOID  arm64MmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
                                 phys_addr_t         paPhysicalAddr,
                                 ULONG               ulFlag)
 {
+    UINT8               ucGuard;                                        /*  严格的权限检查              */
     UINT8               ucXN;                                           /*  存储权限                    */
     UINT8               ucPXN;                                          /*  域                          */
     UINT8               ucContiguous;                                   /*  CACHE 与缓冲区控制          */
@@ -1027,6 +1068,7 @@ static VOID  arm64MmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
     }
 
     if (arm64MmuFlags2Attr(ulFlag,
+                           &ucGuard,
                            &ucXN, &ucPXN,
                            &ucContiguous,
                            &ucnG, &ucAF,
@@ -1036,6 +1078,7 @@ static VOID  arm64MmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
     }
 
     *p_pteentry = arm64MmuBuildPtentry((addr_t)paPhysicalAddr,
+                                       ucGuard,
                                        ucXN, ucPXN,
                                        ucContiguous,
                                        ucnG, ucAF,
@@ -1134,6 +1177,39 @@ VOID  arm64MmuInit (LW_MMU_OP *pmmuop, CPCHAR  pcMachineName)
     pmmuop->MMUOP_pfuncSetEnable     = arm64MmuEnable;
     pmmuop->MMUOP_pfuncSetDisable    = arm64MmuDisable;
 }
+/*********************************************************************************************************
+** 函数名称: arm64MmuShareableSet
+** 功能描述: MMU 系统 share 模式设置 (如果 CACHE 使用 SNOOP 则提前设置为 OUTER_SHAREABLE)
+** 输　入  : bInnerOrOuter     0: INNER_SHAREABLE  1: OUTER_SHAREABLE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  arm64MmuShareableSet (INT  iInnerOrOuter)
+{
+    if (iInnerOrOuter) {
+        VMSA_S = OUTER_SHAREABLE;
+    } else {
+        VMSA_S = INNER_SHAREABLE;
+    }
+}
+/*********************************************************************************************************
+** 函数名称: arm64MmuShareableGet
+** 功能描述: MMU 系统 share 模式获取
+** 输　入  : NONE
+** 输　出  : 0: INNER_SHAREABLE  1: OUTER_SHAREABLE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  arm64MmuShareableGet (VOID)
+{
+    if (VMSA_S == OUTER_SHAREABLE) {
+        return  (1)
+    } else {
+        return  (0);
+    }
+}
+
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 /*********************************************************************************************************
   END

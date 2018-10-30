@@ -1109,6 +1109,11 @@ static INT dynPhdrParse (LW_LD_EXEC_MODULE *pmodule,
             pdyn = (Elf_Dyn *)LW_LD_V2PADDR(addrMin,
                                             pmodule->EMOD_pvBaseAddr,
                                             pphdr->p_vaddr);
+
+#if defined(LW_CFG_CPU_ARCH_CSKY)
+            pmodule->EMOD_pvCSkyDynamicAddr = (PVOID)pdyn;
+#endif                                                                  /*  LW_CFG_CPU_ARCH_CSKY        */
+
             ulItemCount = pphdr->p_filesz / sizeof(Elf_Dyn);            /*  动态结构项数                */
 
             for (j = 0; j < ulItemCount; j++, pdyn++) {
@@ -1314,6 +1319,14 @@ static INT elfPhdrRead (LW_LD_EXEC_MODULE *pmodule,
     BOOL            bCanExec;
     struct stat64   stat64Buf;
 
+#ifdef  LW_CFG_CPU_ARCH_CSKY
+    PCHAR           pcShdrBuf = LW_NULL;
+    PCHAR           pcShName  = LW_NULL;
+    Elf_Shdr       *pshdr;
+    INT             iReadLen;
+    BOOL            bHasExceptTbl;
+#endif
+
     /*
      *  读取段头部表
      */
@@ -1391,6 +1404,51 @@ static INT elfPhdrRead (LW_LD_EXEC_MODULE *pmodule,
               sizeof(LW_LD_EXEC_SEGMENT) * pmodule->EMOD_ulSegCount);
 #endif                                                                  /*  LW_CFG_TRUSTED_COMPUTING_EN */
      
+#ifdef  LW_CFG_CPU_ARCH_CSKY
+    /*
+     *  读取节区头部表
+     */
+    stShdrSize = pehdr->e_shentsize * pehdr->e_shnum;
+
+    pcShdrBuf  = (PCHAR)LW_LD_SAFEMALLOC(stShdrSize);
+    if (LW_NULL == pcShdrBuf) {
+        _ErrorHandle(ENOMEM);
+        goto    __out2;
+    }
+
+    if (lseek(iFd, pehdr->e_shoff, SEEK_SET) < 0) {
+        goto    __out2;
+    }
+
+    if (read(iFd, pcShdrBuf, stShdrSize) < stShdrSize) {
+        goto    __out2;
+    }
+
+    pshdr = (Elf_Shdr *)pcShdrBuf;
+
+    pcShName = (PCHAR)LW_LD_SAFEMALLOC(pshdr[pehdr->e_shstrndx].sh_size);
+    if (pcShName == LW_NULL) {
+        goto    __out2;
+    }
+
+    if (lseek(iFd, pshdr[pehdr->e_shstrndx].sh_offset, SEEK_SET) < 0) {
+        goto    __out2;
+    }
+
+    iReadLen = read(iFd, pcShName, pshdr[pehdr->e_shstrndx].sh_size);
+    if (iReadLen < pshdr[pehdr->e_shstrndx].sh_size) {
+        goto    __out2;
+    }
+
+    bHasExceptTbl = LW_FALSE;
+
+    for (i = 0; i < pehdr->e_shnum; i++, pshdr++) {
+        if (lib_strcmp(pcShName + pshdr->sh_name, ".gcc_except_table") == 0) {
+            bHasExceptTbl = LW_TRUE;
+        }
+    }
+#endif
+
     pphdr = (Elf_Phdr *)pcBuf;
     for (i = 0; i < pehdr->e_phnum; i++, pphdr++) {
         
@@ -1406,7 +1464,12 @@ static INT elfPhdrRead (LW_LD_EXEC_MODULE *pmodule,
         }
 
         dwMapOff  = pphdr->p_vaddr - addrMin;
+#ifdef  LW_CFG_CPU_ARCH_CSKY
+        bCanShare = (bHasExceptTbl || (PF_W & pphdr->p_flags))
+                    ? LW_FALSE : LW_TRUE;                               /*  是否可共享                  */
+#else
         bCanShare = PF_W & pphdr->p_flags ? LW_FALSE : LW_TRUE;         /*  是否可共享                  */
+#endif
         bCanExec  = PF_X & pphdr->p_flags ? LW_TRUE  : LW_FALSE;        /*  是否可执行                  */
 
         if (LW_LD_VMSAFEMAP_AREA(pmodule->EMOD_pvBaseAddr, dwMapOff, iFd, &stat64Buf,
@@ -1448,6 +1511,34 @@ static INT elfPhdrRead (LW_LD_EXEC_MODULE *pmodule,
         _ErrorHandle(ERROR_LOADER_FORMAT);
         goto    __out1;
     }
+
+#ifdef  LW_CFG_CPU_ARCH_CSKY
+    /*
+     *  计算 RELA 重定位表项数和重定位表
+     */
+    pshdr = (Elf_Shdr *)pcShdrBuf;
+
+    for (i = 0; i < pehdr->e_shnum; i++, pshdr++) {
+        if ((pshdr->sh_type == SHT_RELA)   ||
+            (pshdr->sh_type == SHT_REL)) {
+
+            if (pshdr->sh_size <= 0) {
+                continue;
+            }
+
+            pdyndir->ulRelaSize   = pshdr->sh_size;
+            pdyndir->ulRelaCount += pshdr->sh_size / sizeof(Elf_Rela);   /*  RELA重定位表项数            */
+            pdyndir->prelaTable   = (Elf_Rela *)LW_LD_V2PADDR(addrMin,
+                                                    pmodule->EMOD_pvBaseAddr,
+                                                    pshdr->sh_offset);
+            break;
+        }
+    }
+
+__out2:
+    LW_LD_SAFEFREE(pcShName);
+    LW_LD_SAFEFREE(pcShdrBuf);
+#endif
 
     iError = ERROR_NONE;
     goto    __out0;

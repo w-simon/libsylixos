@@ -2027,7 +2027,62 @@ ssize_t  vprocGetModsInfo (pid_t  pid, PCHAR  pcBuff, size_t stMaxLen)
 
     return  ((ssize_t)stXmlLen);
 }
+/*********************************************************************************************************
+** 函数名称: vprocGetModsSvr4Info
+** 功能描述: 获取进程模块重定位信息，封装成 gdb 可识别的 svr4 xml 格式
+** 输　入  : pid         进程 id
+**           stMaxLen    pcModPath 缓冲区长度
+** 输　出  : pcBuff      输出缓冲区
+**           返回值      xml 长度
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+#if defined(LW_CFG_CPU_ARCH_CSKY)
 
+ssize_t  vprocGetModsSvr4Info (pid_t  pid, PCHAR  pcBuff, size_t stMaxLen)
+{
+    LW_LIST_RING       *pringTemp;
+    LW_LD_VPROC        *pvproc;
+    LW_LD_EXEC_MODULE  *pmodTemp;
+    size_t              stXmlLen;
+
+    if (!pcBuff || !stMaxLen) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    LW_LD_LOCK();
+    pvproc = vprocGet(pid);
+    if (pvproc == LW_NULL) {
+        LW_LD_UNLOCK();
+        return  (PX_ERROR);
+    }
+
+    stXmlLen = bnprintf(pcBuff, stMaxLen, 0, "<library-list-svr4 version=\"1.0\" main-lm=\"0x%x\">", 0);
+
+    LW_VP_LOCK(pvproc);
+    for (pringTemp  = _list_ring_get_next(pvproc->VP_ringModules);
+         pringTemp && (pringTemp != pvproc->VP_ringModules);
+         pringTemp  = _list_ring_get_next(pringTemp)) {                 /*  返回除自身之外的所有库      */
+
+        pmodTemp = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);
+
+        stXmlLen = bnprintf(pcBuff, stMaxLen, stXmlLen,
+                            "<library name=\"%s\" lm=\"0x%x\" l_addr=\"0x%x\" l_ld=\"0x%x\"/>",
+                            pmodTemp->EMOD_pcModulePath,
+                            0,
+                            pmodTemp->EMOD_pvBaseAddr,
+                            pmodTemp->EMOD_pvCSkyDynamicAddr);
+    }
+    LW_VP_UNLOCK(pvproc);
+    LW_LD_UNLOCK();
+
+    stXmlLen = bnprintf(pcBuff, stMaxLen, stXmlLen, "</library-list-svr4>");
+
+    return  ((ssize_t)stXmlLen);
+}
+
+#endif                                                                  /*  LW_CFG_CPU_ARCH_CSKY        */
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */

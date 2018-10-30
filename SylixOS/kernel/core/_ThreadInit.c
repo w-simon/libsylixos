@@ -148,7 +148,18 @@ VOID  _TCBBuild (UINT8                    ucPriority,
     ptcb->TCB_iSchedRet     = ERROR_NONE;                               /*  初始化调度器返回值          */
     ptcb->TCB_ucWaitTimeout = LW_WAIT_TIME_CLEAR;                       /*  没有超时                    */
     
-    ptcb->TCB_ulOption      = ulOption;                                 /*  选项                        */
+    ptcb->TCB_ulOption = ulOption;                                      /*  选项                        */
+
+#if defined(LW_CFG_CPU_ARCH_CSKY) && (LW_CFG_CPU_FPU_EN > 0)
+    /*
+     * C-SKY CPU 的 FPU 一直打开, 并且没有 FPU 数据脏位可供判断, 如果当前线程使用硬件浮点,
+     * 则它创建的线程都认为使用硬件浮点
+     */
+    if (ptcbCur->TCB_ulOption & LW_OPTION_THREAD_USED_FP) {
+        ptcb->TCB_ulOption |= LW_OPTION_THREAD_USED_FP;
+    }
+#endif                                                                  /*  LW_CFG_CPU_ARCH_CSKY        */
+
     ptcb->TCB_ulId          = ulId;                                     /*  Id                          */
     ptcb->TCB_ulLastError   = ERROR_NONE;                               /*  最后一个错误                */
     ptcb->TCB_pvArg         = pvArg;                                    /*  参数                        */

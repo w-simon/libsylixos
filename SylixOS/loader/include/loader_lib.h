@@ -175,6 +175,10 @@ typedef struct {
     addr_t                  EMOD_ulRiscvGotBase;                        /*  内核模块 GOT 地址           */ 
     ULONG                   EMOD_ulRiscvGotNr;                          /*  内核模块 GOT 数目           */ 
 #endif                                                                  /*  LW_CFG_CPU_ARCH_RISCV       */
+
+#ifdef LW_CFG_CPU_ARCH_CSKY
+    PVOID                   EMOD_pvCSkyDynamicAddr;                     /*  .dynamic 段的内存地址       */
+#endif                                                                  /*  LW_CFG_CPU_ARCH_CSKY        */
 } LW_LD_EXEC_MODULE;
 
 /*********************************************************************************************************

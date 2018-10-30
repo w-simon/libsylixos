@@ -284,40 +284,68 @@ VOID  archSyncExcHandle (ARCH_REG_CTX  *pregctx, UINT32  uiExcType)
 *********************************************************************************************************/
 VOID  archInvalidExcHandle (ARCH_REG_CTX  *pregctx, UINT32  uiExcType, UINT32  uiType)
 {
-     CPCHAR  pcException;
+    CPCHAR  pcException;
      
-     _DebugFormat(__ERRORMESSAGE_LEVEL, "FATAL ERROR: exception.");     /*  关键性错误                  */
+    _DebugFormat(__ERRORMESSAGE_LEVEL, "FATAL ERROR: exception.");     /*  关键性错误                  */
      
-     switch (uiType) {
+    switch (uiType) {
 
-     case EL1_SYN_INVALID:
-         pcException = "el1SyncInvalid";
-         break;
+    case EL1_SYN_INVALID:
+        pcException = "el1SyncInvalid";
+        break;
             
-     case EL1_IRQ_INVALID:
-         pcException = "el1IrqInvalid";
-         break;
+    case EL1_IRQ_INVALID:
+        pcException = "el1IrqInvalid";
+        break;
          
-     case EL1_FIQ_INVALID:
-         pcException = "el1FiqInvalid";
-         break;
+    case EL1_FIQ_INVALID:
+        pcException = "el1FiqInvalid";
+        break;
          
-     case EL1_ERR_INVALID:
-         pcException = "el1ErrorInvalid";
-         break;
+    case EL1_ERR_INVALID:
+        pcException = "el1ErrorInvalid";
+        break;
 
-     default:
-         pcException = "unknown";
-         break;
-     }
+    case EL2_IRQ_AARCH64_INVALID:
+        pcException = "el2IrqAArch64Invalid";
+        break;
+
+    case EL2_FIQ_AARCH64_INVALID:
+        pcException = "el2FiqAArch64Invalid";
+        break;
+
+    case EL2_ERR_AARCH64_INVALID:
+        pcException = "el2ErrAArch64Invalid";
+        break;
+
+    case EL2_SYN_AARCH32_INVALID:
+        pcException = "el2SynAArch32Invalid";
+        break;
+
+    case EL2_IRQ_AARCH32_INVALID:
+        pcException = "el2IrqAArch32Invalid";
+        break;
+
+    case EL2_FIQ_AARCH32_INVALID:
+        pcException = "el2FiqAArch32Invalid";
+        break;
+
+    case EL2_ERR_AARCH32_INVALID:
+        pcException = "el2ErrAArch32Invalid";
+        break;
+
+    default:
+        pcException = "unknown";
+        break;
+    }
                          
-     _DebugFormat(__ERRORMESSAGE_LEVEL, 
-                  "Invalid exception in %s handler detected on CPU%d, code 0x%08x\r\n",
-                  pcException, LW_CPU_GET_CUR_ID(), uiExcType);
-                 
-     archTaskCtxPrint(LW_NULL, 0, pregctx);
+    _DebugFormat(__ERRORMESSAGE_LEVEL,
+                 "Invalid exception in %s handler detected on CPU%d, code 0x%08x\r\n",
+                 pcException, LW_CPU_GET_CUR_ID(), uiExcType);
+
+    archTaskCtxPrint(LW_NULL, 0, pregctx);
      
-     API_KernelReboot(LW_REBOOT_FORCE);                                 /*  直接重新启动操作系统        */
+    API_KernelReboot(LW_REBOOT_FORCE);                                  /*  直接重新启动操作系统        */
 }
 /*********************************************************************************************************
   END

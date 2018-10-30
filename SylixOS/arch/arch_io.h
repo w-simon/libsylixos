@@ -47,6 +47,9 @@
 
 #elif defined(LW_CFG_CPU_ARCH_RISCV)
 #include "./riscv/riscv_io.h"
+
+#elif defined(LW_CFG_CPU_ARCH_CSKY)
+#include "./csky/csky_io.h"
 #endif                                                                  /*  LW_CFG_CPU_ARCH_ARM         */
 
 #endif                                                                  /*  __ARCH_IO_H                 */

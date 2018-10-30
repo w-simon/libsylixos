@@ -48,6 +48,7 @@
     EXPORT_LABEL(archEL1IrqInvalidEntry)
     EXPORT_LABEL(archEL1FiqInvalidEntry)
     EXPORT_LABEL(archEL1ErrInvalidEntry)
+    EXPORT_LABEL(vector)
 
 ;/*********************************************************************************************************
 ;  中断入口
@@ -302,6 +303,94 @@ FUNC_DEF(archEL1FiqInvalidEntry)
 
 FUNC_DEF(archEL1ErrInvalidEntry)
     ARCH_INVALID_EXC_ENTRY      EL1_ERR_INVALID
+    FUNC_END()
+
+FUNC_DEF(archEL2AArch64IrqEntry)
+    ARCH_INVALID_EXC_ENTRY      EL2_IRQ_AARCH64_INVALID
+    FUNC_END()
+
+FUNC_DEF(archEL2AArch64FiqInvalidEntry)
+    ARCH_INVALID_EXC_ENTRY      EL2_FIQ_AARCH64_INVALID
+    FUNC_END()
+
+FUNC_DEF(archEL2AArch64ErrInvalidEntry)
+    ARCH_INVALID_EXC_ENTRY      EL2_ERR_AARCH64_INVALID
+    FUNC_END()
+
+FUNC_DEF(archEL2AArch32SyncExcEntry)
+    ARCH_INVALID_EXC_ENTRY      EL2_SYN_AARCH32_INVALID
+    FUNC_END()
+
+FUNC_DEF(archEL2AArch32IrqEntry)
+    ARCH_INVALID_EXC_ENTRY      EL2_IRQ_AARCH32_INVALID
+    FUNC_END()
+
+FUNC_DEF(archEL2AArch32FiqInvalidEntry)
+    ARCH_INVALID_EXC_ENTRY      EL2_FIQ_AARCH32_INVALID
+    FUNC_END()
+
+FUNC_DEF(archEL2AArch32ErrInvalidEntry)
+    ARCH_INVALID_EXC_ENTRY      EL2_ERR_AARCH32_INVALID
+    FUNC_END()
+
+;/*********************************************************************************************************
+;  EL2 Sync 异常处理入口
+;*********************************************************************************************************/
+
+FUNC_DEF(archEL2AArch64SyncExcEntry)
+    MOV     X2 , X0                                                     ;/*  保存参数到 X2              */
+    MRS     X3 , ELR_EL2                                                ;/*  记录异常返回地址           */
+
+    MRS     X0 , ESR_EL2
+    LSR     X1 , X0, #26                                                ;/*  获取 ESR 中的 EC           */
+
+    CMP     X1 , #0x16                                                  ;/*  判断 HVC 的特征码          */
+    B.NE    switchEL1                                                   ;/*  目前只处理 HVC 调用        */
+
+    AND     X0 , X0, #0xff
+    CMP     X0 , #HVC_CMD_FPU                                           ;/*  判断是否是处理 FPU 寄存器  */
+    B.NE    switchEL1                                                   ;/*  如果不是，跳转回 EL1       */
+
+    BL      arm64VfpV4El2FpuHandle                                      ;/*  进行 FPU 操作              */
+
+LINE_LABEL(switchEL1)                                                   ;/*  返回 EL1                   */
+    ;/*
+    ; * 从 EL2 跳转至 EL1 AARCH64
+    ; */
+    MSR     ELR_EL2  , X3                                               ;/*  置回返回地址               */
+    ERET
+    FUNC_END()
+
+;/*********************************************************************************************************
+;  向量表定义
+;*********************************************************************************************************/
+
+MACRO_DEF(VENTRY label)
+    .balign  128
+    B      \label
+MACRO_END()
+
+    .balign  2048
+FUNC_DEF(vector)
+    VENTRY(archEL1SyncInvalidEntry)                                     ;/*  Sync  EL1t                 */
+    VENTRY(archEL1IrqInvalidEntry)                                      ;/*  IRQ   EL1t                 */
+    VENTRY(archEL1FiqInvalidEntry)                                      ;/*  FIQ   EL1t                 */
+    VENTRY(archEL1ErrInvalidEntry)                                      ;/*  Error EL1t                 */
+
+    VENTRY(archEL1SyncExcEntry)                                         ;/*  Sync  EL1h                 */
+    VENTRY(archEL1IrqEntry)                                             ;/*  IRQ   EL1h                 */
+    VENTRY(archEL1FiqInvalidEntry)                                      ;/*  FIQ   EL1h                 */
+    VENTRY(archEL1ErrInvalidEntry)                                      ;/*  Error EL1h                 */
+
+    VENTRY(archEL2AArch64SyncExcEntry)                                  ;/*  Sync  EL2 AArch64          */
+    VENTRY(archEL2AArch64IrqEntry)                                      ;/*  IRQ   EL2 AArch64          */
+    VENTRY(archEL2AArch64FiqInvalidEntry)                               ;/*  FIQ   EL2 AArch64          */
+    VENTRY(archEL2AArch64ErrInvalidEntry)                               ;/*  Error EL2 AArch64          */
+
+    VENTRY(archEL2AArch32SyncExcEntry)                                  ;/*  Sync  EL2 AArch32          */
+    VENTRY(archEL2AArch32IrqEntry)                                      ;/*  IRQ   EL2 AArch32          */
+    VENTRY(archEL2AArch32FiqInvalidEntry)                               ;/*  FIQ   EL2 AArch32          */
+    VENTRY(archEL2AArch32ErrInvalidEntry)                               ;/*  Error EL2 AArch32          */
     FUNC_END()
 
     FILE_END()

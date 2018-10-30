@@ -348,5 +348,31 @@ ARCH_CPUFLAGS_NOFPU            = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) $(ARCH_CPU_TY
 endif
 
 #*********************************************************************************************************
+# C-SKY 
+#*********************************************************************************************************
+ifneq (,$(findstring csky,$(TOOLCHAIN_PREFIX)))
+ARCH             = csky
+ARCH_COMMONFLAGS = -fno-omit-frame-pointer
+
+ARCH_PIC_ASFLAGS = 
+ARCH_PIC_CFLAGS  = -fPIC 
+ARCH_PIC_LDFLAGS = -Wl,-shared -fPIC
+
+ARCH_KO_CFLAGS   = -Wa,-mno-force2bsr
+ARCH_KO_LDFLAGS  = -nostdlib -r
+
+ARCH_KLIB_CFLAGS =  -Wa,-mno-force2bsr
+
+ARCH_KERNEL_CFLAGS  =
+ARCH_KERNEL_LDFLAGS =
+
+ARCH_FPUFLAGS = -m$(FPU_TYPE)
+
+ARCH_CPUFLAGS_WITHOUT_FPUFLAGS = -march=$(CPU_TYPE)
+ARCH_CPUFLAGS       = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) $(ARCH_FPUFLAGS)
+ARCH_CPUFLAGS_NOFPU = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) -msoft-float
+endif
+
+#*********************************************************************************************************
 # End
 #*********************************************************************************************************

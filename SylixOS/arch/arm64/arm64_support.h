@@ -175,6 +175,9 @@ VOID    archCacheInit(CACHE_MODE  uiInstruction, CACHE_MODE  uiData, CPCHAR  pcM
 VOID    archMmuInit(CPCHAR  pcMachineName);
 
 #define __ARCH_MMU_INIT     archMmuInit
+                                                                        /*  如果 CACHE 为 SNOOP 则必为 1*/
+VOID    arm64MmuShareableSet(INT  iInnerOrOuter);                       /*  0: INNER (def) 1: OUTER     */
+INT     arm64MmuShareableGet(VOID);
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 
 /*********************************************************************************************************
@@ -280,6 +283,7 @@ VOID    archMpInt(ULONG  ulCPUId);
 
 #define ARM_FPU_NONE        "none"
 #define ARM_FPU_VFPv4       "vfpv4"
+#define ARM_FPU_VFPv4EL2    "vfpv4el2"                                  /*  必须在 EL2 阶段开关 FPU     */
 #define ARM_FPU_NEONv4      ARM_FPU_VFPv4                               /*  Context same as vfpv4       */
 
 #if LW_CFG_CPU_FPU_EN > 0

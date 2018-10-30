@@ -27,6 +27,7 @@
 #include "arm64Fpu.h"
 #include "vfpnone/arm64VfpNone.h"
 #include "vfpv4/arm64VfpV4.h"
+#include "vfpv4el2/arm64VfpV4El2.h"
 /*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
@@ -52,6 +53,9 @@ VOID  archFpuPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
     } else if (lib_strcmp(pcFpuName, ARM_FPU_VFPv4) == 0) {
         _G_pfpuop = arm64VfpV4PrimaryInit(pcMachineName, pcFpuName);
     
+    } else if (lib_strcmp(pcFpuName, ARM_FPU_VFPv4EL2) == 0) {
+        _G_pfpuop = arm64VfpV4El2PrimaryInit(pcMachineName, pcFpuName);
+
     } else {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown fpu name.\r\n");
         return;
@@ -89,8 +93,11 @@ VOID  archFpuSecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
         arm64VfpNoneSecondaryInit(pcMachineName, pcFpuName);
     
     } else if (lib_strcmp(pcFpuName, ARM_FPU_VFPv4) == 0) {
-        arm64VfpV4SecondaryInit(pcMachineName, pcFpuName);    
-    
+        arm64VfpV4SecondaryInit(pcMachineName, pcFpuName);
+
+    } else if (lib_strcmp(pcFpuName, ARM_FPU_VFPv4EL2) == 0) {
+        arm64VfpV4El2SecondaryInit(pcMachineName, pcFpuName);
+
     } else {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown fpu name.\r\n");
         return;

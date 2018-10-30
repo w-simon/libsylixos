@@ -39,13 +39,15 @@
     EXPORT_LABEL(arm64VfpV4Save)
     EXPORT_LABEL(arm64VfpV4Restore)
     
-    WEAK(arm64Vfp4HwInit)
+    WEAK(arm64VfpV4HwInit)
 
 ;/*********************************************************************************************************
 ;  浮点运算器基本操作函数
 ;*********************************************************************************************************/
 
 FUNC_DEF(arm64VfpV4HwInit)
+    MOV     X0 , #2 << 20
+    MSR     CPACR_EL1 , X0
     RET
     FUNC_END()
     
@@ -55,8 +57,10 @@ FUNC_DEF(arm64VfpV4Mvfr0EL1)
     FUNC_END()
 
 FUNC_DEF(arm64VfpV4Enable)
-    MOV     X0 , #CPACR_EL1_FPEN_EN
+    MRS     X0 , CPACR_EL1
+    ORR     X0 , X0 , #CPACR_EL1_FPEN_EN
     MSR     CPACR_EL1 , X0
+    ISB
     RET
     FUNC_END()
     

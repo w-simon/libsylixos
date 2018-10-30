@@ -120,6 +120,8 @@ SylixOS/arch/arm64/elf/arm64Elf.c \
 SylixOS/arch/arm64/fpu/vfpnone/arm64VfpNone.c \
 SylixOS/arch/arm64/fpu/vfpv4/arm64VfpV4.c \
 SylixOS/arch/arm64/fpu/vfpv4/arm64VfpV4Asm.S \
+SylixOS/arch/arm64/fpu/vfpv4el2/arm64VfpV4El2.c \
+SylixOS/arch/arm64/fpu/vfpv4el2/arm64VfpV4AsmEl2.S \
 SylixOS/arch/arm64/fpu/arm64Fpu.c \
 SylixOS/arch/arm64/mm/cache/arm64Cache.c \
 SylixOS/arch/arm64/mm/cache/arm64CacheAsm.S \
@@ -614,6 +616,37 @@ SylixOS/arch/riscv/mm/riscvMmu.c \
 SylixOS/arch/riscv/mpcore/riscvMpCoreAsm.S \
 SylixOS/arch/riscv/mpcore/riscvSpinlock.c \
 SylixOS/arch/riscv/param/riscvParam.c
+
+#*********************************************************************************************************
+# C-SKY source
+#*********************************************************************************************************
+LOCAL_CSKY_SRCS = \
+SylixOS/arch/csky/backtrace/cskyBacktrace.c \
+SylixOS/arch/csky/common/cskyAssert.c \
+SylixOS/arch/csky/common/cskyContext.c \
+SylixOS/arch/csky/common/cskyContextAsm.S \
+SylixOS/arch/csky/common/cskyExc.c \
+SylixOS/arch/csky/common/cskyExcAsm.S \
+SylixOS/arch/csky/common/cskyIo.c \
+SylixOS/arch/csky/common/cskyLib.c \
+SylixOS/arch/csky/common/cskyLibAsm.S \
+SylixOS/arch/csky/common/unaligned/cskyUnaligned.c \
+SylixOS/arch/csky/dbg/cskyDbg.c \
+SylixOS/arch/csky/dbg/cskyGdb.c \
+SylixOS/arch/csky/elf/cskyElf.c \
+SylixOS/arch/csky/fpu/cskyFpu.c \
+SylixOS/arch/csky/fpu/fpu/cskyVfp.c \
+SylixOS/arch/csky/fpu/fpu/cskyVfpAsm.S \
+SylixOS/arch/csky/fpu/vfpnone/cskyVfpNone.c \
+SylixOS/arch/csky/mm/cskyCache.c \
+SylixOS/arch/csky/mm/cache/cskyCache.c \
+SylixOS/arch/csky/mm/cache/cskyCacheAsm.S \
+SylixOS/arch/csky/mm/cskyMmu.c \
+SylixOS/arch/csky/mm/mmu/cskyMmu.c \
+SylixOS/arch/csky/mm/mmu/cskyMmuAsm.S \
+SylixOS/arch/csky/mpcore/cskyMpCoreAsm.S \
+SylixOS/arch/csky/mpcore/cskySpinlock.c \
+SylixOS/arch/csky/param/cskyParam.c
 
 #*********************************************************************************************************
 # Buildin internal application source
@@ -2050,6 +2083,21 @@ $(OBJPATH)/libsylixos.a/SylixOS/arch/sparc/fpu/vfp/sparcVfpAsm.o: ./SylixOS/arch
 			mkdir -p "$(dir $(__DEP))"; fi
 		$(AS) $(SPARC_FPU_ASFLAGS) $($(__TARGET)_ASFLAGS_WITHOUT_FPUFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
 endif
+
+#*********************************************************************************************************
+# compile C-SKY FPU source files
+#*********************************************************************************************************
+ifeq ($(ARCH), csky)
+CSKY_FPU_ASFLAGS = -mhard-float
+
+$(OBJPATH)/libsylixos.a/SylixOS/arch/csky/fpu/fpu/cskyVfpAsm.o: ./SylixOS/arch/csky/fpu/fpu/cskyVfpAsm.S
+		@if [ ! -d "$(dir $@)" ]; then \
+			mkdir -p "$(dir $@)"; fi
+		@if [ ! -d "$(dir $(__DEP))" ]; then \
+			mkdir -p "$(dir $(__DEP))"; fi
+		$(AS) $(CSKY_FPU_ASFLAGS) $($(__TARGET)_ASFLAGS_WITHOUT_FPUFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
+
+endif	
 
 include $(LIBSYLIXOS_MK)
 

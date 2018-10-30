@@ -390,6 +390,28 @@ SylixOS/vpmpdm/arch/sparc/strlen.S \
 SylixOS/vpmpdm/arch/sparc/strrchr.S
 
 #*********************************************************************************************************
+# RISC-V source
+#*********************************************************************************************************
+LOCAL_RISCV_SRCS = \
+SylixOS/vpmpdm/arch/riscv/memcpy.c \
+SylixOS/vpmpdm/arch/riscv/memset.S \
+SylixOS/vpmpdm/arch/riscv/strcmp.S \
+SylixOS/vpmpdm/arch/riscv/strcpy.c \
+SylixOS/vpmpdm/arch/riscv/strlen.c
+
+#*********************************************************************************************************
+# C-SKY source
+#*********************************************************************************************************
+LOCAL_CSKY_SRCS = \
+SylixOS/vpmpdm/arch/csky/memcmp.S \
+SylixOS/vpmpdm/arch/csky/memcpy.S \
+SylixOS/vpmpdm/arch/csky/memmove.S \
+SylixOS/vpmpdm/arch/csky/memset.S \
+SylixOS/vpmpdm/arch/csky/strcmp.S \
+SylixOS/vpmpdm/arch/csky/strcpy.S \
+SylixOS/vpmpdm/arch/csky/strlen.S
+
+#*********************************************************************************************************
 # Header file search path (eg. LOCAL_INC_PATH := -I"Your hearder files search path")
 #*********************************************************************************************************
 LOCAL_INC_PATH := -I"SylixOS/vpmpdm/arch" 

@@ -1425,9 +1425,14 @@ static INT gdbCmdQuery (LW_GDB_PARAM *pparam, PCHAR pcInBuff, PCHAR pcOutBuff)
         }
     
     } else if (lib_strstr(pcInBuff, "Supported") == pcInBuff) {         /* 获取能力项                   */
-#ifdef LW_CFG_CPU_ARCH_MIPS
+#if defined(LW_CFG_CPU_ARCH_MIPS)
         sprintf(pcOutBuff, "PacketSize=2000;"
                            "qXfer:libraries:read+;"
+                           "QNonStop+");
+#elif defined(LW_CFG_CPU_ARCH_CSKY)
+        sprintf(pcOutBuff, "PacketSize=2000;"
+                           "qXfer:features:read+;"
+                           "qXfer:libraries-svr4:read+;"
                            "QNonStop+");
 #else
         sprintf(pcOutBuff, "PacketSize=2000;"
@@ -1449,7 +1454,17 @@ static INT gdbCmdQuery (LW_GDB_PARAM *pparam, PCHAR pcInBuff, PCHAR pcOutBuff)
             gdbReplyError(pcOutBuff, 1);
             return  (PX_ERROR);
         }
-    
+
+#if defined(LW_CFG_CPU_ARCH_CSKY)
+    } else if (lib_strstr(pcInBuff, "Xfer:libraries-svr4:read") == pcInBuff) {
+        pcOutBuff[0] = 'l';
+        if (vprocGetModsSvr4Info(pparam->GDB_iPid, pcOutBuff + 1,
+                                 GDB_RSP_MAX_LEN - 4) <= 0) {
+            gdbReplyError(pcOutBuff, 1);
+            return  (PX_ERROR);
+        }
+#endif                                                                  /*  LW_CFG_CPU_ARCH_CSKY        */
+
     } else if (lib_strstr(pcInBuff, "fThreadInfo") == pcInBuff) {
         API_DtraceProcessThread(pparam->GDB_pvDtrace,
                                 pparam->GDB_ulThreads,

@@ -48,16 +48,25 @@
 
     FILE_BEGIN()
 
+#ifdef CONFIG_PPC_FPU
     EXPORT_LABEL(get_fpr)
     EXPORT_LABEL(put_fpr)
+
+#ifdef CONFIG_ALTIVEC
     EXPORT_LABEL(get_vr)
     EXPORT_LABEL(put_vr)
+#endif /* CONFIG_ALTIVEC */
+
+#ifdef CONFIG_VSX
     EXPORT_LABEL(get_vsr)
     EXPORT_LABEL(put_vsr)
     EXPORT_LABEL(load_vsrn)
     EXPORT_LABEL(store_vsrn)
+#endif /* CONFIG_VSX */
+
     EXPORT_LABEL(conv_sp_to_dp)
     EXPORT_LABEL(conv_dp_to_sp)
+#endif  /* CONFIG_PPC_FPU */
 
 /*
  * General Purpose Registers (GPRs)

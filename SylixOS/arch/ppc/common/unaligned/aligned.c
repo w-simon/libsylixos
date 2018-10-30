@@ -137,7 +137,7 @@ static struct aligninfo spe_aligninfo[32] = {
  * so we don't need the address swizzling.
  */
 static int emulate_spe(ARCH_REG_CTX *regs, unsigned int reg,
-               unsigned int instr)
+               unsigned int instr, enum instruction_type *inst_type)
 {
     int ret;
     union {
@@ -161,6 +161,12 @@ static int emulate_spe(ARCH_REG_CTX *regs, unsigned int reg,
 
     nb = spe_aligninfo[instr].len;
     flags = spe_aligninfo[instr].flags;
+
+    if (flags & ST) {
+        *inst_type = STORE;
+    } else {
+        *inst_type = LOAD;
+    }
 
     /* Verify the address of the operand */
     if (unlikely(user_mode(regs) &&
@@ -352,7 +358,7 @@ int fix_alignment(ARCH_REG_CTX *regs, enum instruction_type  *inst_type)
     if ((instr >> 26) == 0x4) {
         int reg = (instr >> 21) & 0x1f;
         PPC_WARN_ALIGNMENT(spe, regs);
-        return emulate_spe(regs, reg, instr);
+        return emulate_spe(regs, reg, instr, inst_type);
     }
 #endif
 

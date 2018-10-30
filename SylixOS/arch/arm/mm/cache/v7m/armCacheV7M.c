@@ -22,6 +22,7 @@
 2018.01.02 Hou.JinYu (侯进宇)    实现 Cortex-M7 体系架构 CACHE 驱动.
 2018.01.08 Jiao.JinXing (焦进星) 加入 SCB CACHE 操作.
 2018.07.11 Han.Hui (韩辉) 加入 Cache line size 探测.
+2018.10.30 Jiao.JinXing (焦进星) 修正 TextUpdate 问题.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -33,15 +34,28 @@
   裁剪支持
 *********************************************************************************************************/
 #if LW_CFG_CACHE_EN > 0
+#include "../armCacheCommon.h"
 #include "../../mpu/v7m/armMpuV7M.h"
 /*********************************************************************************************************
-  CACHE 宏
+  L2 CACHE 支持
 *********************************************************************************************************/
-static UINT32                               uiArmV7MCacheLineSize;
-#define CACHE_LINE_MASK                     ((addr_t)uiArmV7MCacheLineSize - 1)
-#define CACHE_LOOP_OP_MAX_SIZE              (8 * LW_CFG_KB_SIZE)
-#define CACHE_ALIGN_ADDR(pvAdrs)            ((PVOID)((addr_t)pvAdrs & (~CACHE_LINE_MASK)))
-#define CACHE_ALIGN_SIZE(pvAdrs, stBytes)   (((addr_t)pvAdrs + stBytes) - (addr_t)CACHE_ALIGN_ADDR(pvAdrs))
+#if LW_CFG_ARM_CACHE_L2 > 0
+#include "../l2/armL2.h"
+/*********************************************************************************************************
+  L1 CACHE 状态
+*********************************************************************************************************/
+static INT      iCacheStatus = 0;
+#define L1_CACHE_I_EN   0x01
+#define L1_CACHE_D_EN   0x02
+#define L1_CACHE_EN     (L1_CACHE_I_EN | L1_CACHE_D_EN)
+#define L1_CACHE_DIS    0x00
+#endif                                                                  /*  LW_CFG_ARM_CACHE_L2 > 0     */
+/*********************************************************************************************************
+  CACHE 参数
+*********************************************************************************************************/
+static UINT32                           uiArmV7MICacheLineSize;
+static UINT32                           uiArmV7MDCacheLineSize;
+#define ARMv7M_CACHE_LOOP_OP_MAX_SIZE   (16 * LW_CFG_KB_SIZE)
 /*********************************************************************************************************
   Structure type to access the System Control Block (SCB).
 *********************************************************************************************************/
@@ -223,14 +237,14 @@ typedef struct {
 #define CCSIDR_LINESIZE(x)                  \
     (((x) & SCB_CCSIDR_LINESIZE_Msk) >> SCB_CCSIDR_LINESIZE_Pos)
 /*********************************************************************************************************
-** 函数名称: SCB_EnableICache
-** 功能描述: Enable I-Cache
+** 函数名称: armICacheV7MEnable
+** 功能描述: 使能 ICACHE
 ** 输　入  : NONE
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static LW_INLINE VOID  SCB_EnableICache (VOID)
+static VOID  armICacheV7MEnable (VOID)
 {
     armDsb();
     armIsb();
@@ -242,47 +256,14 @@ static LW_INLINE VOID  SCB_EnableICache (VOID)
     armIsb();
 }
 /*********************************************************************************************************
-** 函数名称: SCB_DisableICache
-** 功能描述: Disable I-Cache
+** 函数名称: armDCacheV7MEnable
+** 功能描述: 使能 DCACHE
 ** 输　入  : NONE
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static LW_INLINE VOID  SCB_DisableICache (VOID)
-{
-    armDsb();
-    armIsb();
-    SCB->CCR &= ~(UINT32)SCB_CCR_IC_Msk;                                /*  Disable I-Cache             */
-    SCB->ICIALLU = 0UL;                                                 /*  Invalidate I-Cache          */
-    armDsb();
-    armIsb();
-}
-/*********************************************************************************************************
-** 函数名称: SCB_InvalidateICache
-** 功能描述: Invalidate I-Cache
-** 输　入  : NONE
-** 输　出  : NONE
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-static LW_INLINE VOID  SCB_InvalidateICache (VOID)
-{
-    armDsb();
-    armIsb();
-    SCB->ICIALLU = 0UL;
-    armDsb();
-    armIsb();
-}
-/*********************************************************************************************************
-** 函数名称: SCB_EnableDCache
-** 功能描述: Enable D-Cache
-** 输　入  : NONE
-** 输　出  : NONE
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-static LW_INLINE VOID  SCB_EnableDCache (VOID)
+static VOID  armDCacheV7MEnable (VOID)
 {
     REGISTER UINT32  ccsidr;
     REGISTER UINT32  sets;
@@ -308,7 +289,7 @@ static LW_INLINE VOID  SCB_EnableDCache (VOID)
             KN_BARRIER();
 #endif
         } while (ways-- != 0U);
-    } while(sets-- != 0U);
+    } while (sets-- != 0U);
     armDsb();
 
     SCB->CCR |= (UINT32)SCB_CCR_DC_Msk;                                 /*  Enable D-Cache              */
@@ -317,14 +298,33 @@ static LW_INLINE VOID  SCB_EnableDCache (VOID)
     armIsb();
 }
 /*********************************************************************************************************
-** 函数名称: SCB_DisableDCache
-** 功能描述: Disable D-Cache
+** 函数名称: armICacheV7MDisable
+** 功能描述: 禁能 ICACHE
 ** 输　入  : NONE
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static LW_INLINE VOID  SCB_DisableDCache (VOID)
+static VOID  armICacheV7MDisable (VOID)
+{
+    armDsb();
+    armIsb();
+    SCB->CCR &= ~(UINT32)SCB_CCR_IC_Msk;                                /*  Disable I-Cache             */
+    armDsb();
+    armIsb();
+    SCB->ICIALLU = 0UL;                                                 /*  Invalidate I-Cache          */
+    armDsb();
+    armIsb();
+}
+/*********************************************************************************************************
+** 函数名称: armDCacheV7MDisable
+** 功能描述: 禁能 DCACHE
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  armDCacheV7MDisable (VOID)
 {
     REGISTER UINT32  ccsidr;
     REGISTER UINT32  sets;
@@ -333,10 +333,9 @@ static LW_INLINE VOID  SCB_DisableDCache (VOID)
     SCB->CSSELR = (0U << 1U) | 0U;                                      /*  Level 1 data cache          */
     armDsb();
 
-    SCB->CCR &= ~(UINT32)SCB_CCR_DC_Msk;                                /*  Disable D-Cache             */
-    armDsb();
-
     ccsidr = SCB->CCSIDR;
+
+    SCB->CCR &= ~(UINT32)SCB_CCR_DC_Msk;                                /*  Disable D-Cache             */
 
     /*
      * Clean & invalidate D-Cache
@@ -353,20 +352,36 @@ static LW_INLINE VOID  SCB_DisableDCache (VOID)
             KN_BARRIER();
 #endif
         } while (ways-- != 0U);
-    } while(sets-- != 0U);
+    } while (sets-- != 0U);
 
     armDsb();
     armIsb();
 }
 /*********************************************************************************************************
-** 函数名称: SCB_InvalidateDCache
-** 功能描述: Invalidate D-Cache
+** 函数名称: armICacheV7MInvalidateAll
+** 功能描述: 无效所有 ICACHE
 ** 输　入  : NONE
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static LW_INLINE VOID  SCB_InvalidateDCache (VOID)
+static VOID  armICacheV7MInvalidateAll (VOID)
+{
+    armDsb();
+    armIsb();
+    SCB->ICIALLU = 0UL;                                                 /*  I-Cache Invalid All to PoU  */
+    armDsb();
+    armIsb();
+}
+/*********************************************************************************************************
+** 函数名称: armDCacheV7MFlushAll
+** 功能描述: 回写所有 DCACHE
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  armDCacheV7MFlushAll (VOID)
 {
     REGISTER UINT32  ccsidr;
     REGISTER UINT32  sets;
@@ -378,46 +393,7 @@ static LW_INLINE VOID  SCB_InvalidateDCache (VOID)
     ccsidr = SCB->CCSIDR;
 
     /*
-     * Invalidate D-Cache
-     */
-    sets = (UINT32)(CCSIDR_SETS(ccsidr));
-    do {
-        ways = (UINT32)(CCSIDR_WAYS(ccsidr));
-        do {
-            SCB->DCISW = (((sets << SCB_DCISW_SET_Pos) & SCB_DCISW_SET_Msk) |
-                          ((ways << SCB_DCISW_WAY_Pos) & SCB_DCISW_WAY_Msk));
-#if defined(__CC_ARM)
-            __schedule_barrier();
-#elif defined(__GNUC__)
-            KN_BARRIER();
-#endif
-        } while (ways-- != 0U);
-    } while(sets-- != 0U);
-
-    armDsb();
-    armIsb();
-}
-/*********************************************************************************************************
-** 函数名称: SCB_CleanDCache
-** 功能描述: Clean D-Cache
-** 输　入  : NONE
-** 输　出  : NONE
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-static LW_INLINE VOID  SCB_CleanDCache (VOID)
-{
-    REGISTER UINT32  ccsidr;
-    REGISTER UINT32  sets;
-    REGISTER UINT32  ways;
-
-    SCB->CSSELR = (0U << 1U) | 0U;                                      /*  Level 1 data cache          */
-    armDsb();
-
-    ccsidr = SCB->CCSIDR;
-
-    /*
-     * Clean D-Cache
+     * D-Cache Clean by Set-way
      */
     sets = (UINT32)(CCSIDR_SETS(ccsidr));
     do {
@@ -431,20 +407,32 @@ static LW_INLINE VOID  SCB_CleanDCache (VOID)
             KN_BARRIER();
 #endif
         } while (ways-- != 0U);
-    } while(sets-- != 0U);
+    } while (sets-- != 0U);
 
     armDsb();
     armIsb();
 }
 /*********************************************************************************************************
-** 函数名称: SCB_CleanInvalidateDCache
-** 功能描述: Clean & Invalidate D-Cache
+** 函数名称: armDCacheV7MFlushAllPoU
+** 功能描述: 回写所有 DCACHE 到 PoU
 ** 输　入  : NONE
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static LW_INLINE VOID  SCB_CleanInvalidateDCache (VOID)
+static VOID  armDCacheV7MFlushAllPoU (VOID)
+{
+    armDCacheV7MFlushAll();
+}
+/*********************************************************************************************************
+** 函数名称: armDCacheV7MClearAll
+** 功能描述: 回写并无效所有 DCACHE
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  armDCacheV7MClearAll (VOID)
 {
     REGISTER UINT32  ccsidr;
     REGISTER UINT32  sets;
@@ -456,102 +444,183 @@ static LW_INLINE VOID  SCB_CleanInvalidateDCache (VOID)
     ccsidr = SCB->CCSIDR;
 
     /*
-     * Clean & invalidate D-Cache
+     * D-Cache Clean and Invalidate by Set-way
      */
     sets = (UINT32)(CCSIDR_SETS(ccsidr));
     do {
         ways = (UINT32)(CCSIDR_WAYS(ccsidr));
         do {
-            SCB->DCCISW = (((sets << SCB_DCCISW_SET_Pos) & SCB_DCCISW_SET_Msk) |
-                           ((ways << SCB_DCCISW_WAY_Pos) & SCB_DCCISW_WAY_Msk));
+            SCB->DCCISW = (((sets << SCB_DCCSW_SET_Pos) & SCB_DCCSW_SET_Msk) |
+                           ((ways << SCB_DCCSW_WAY_Pos) & SCB_DCCSW_WAY_Msk));
 #if defined(__CC_ARM)
             __schedule_barrier();
 #elif defined(__GNUC__)
             KN_BARRIER();
 #endif
         } while (ways-- != 0U);
-    } while(sets-- != 0U);
+    } while (sets-- != 0U);
 
     armDsb();
     armIsb();
 }
 /*********************************************************************************************************
-** 函数名称: SCB_InvalidateDCache_by_Addr
-** 功能描述: D-Cache Invalidate by address
-** 输　入  : addr    address (aligned to 32-byte boundary)
-**           dsize   size of memory block (in number of bytes)
+** 函数名称: armICacheV7MInvalidate
+** 功能描述: 无效指定区间的 ICACHE
+** 输　入  : pvStart       起始地址
+**           pvEnd         结束地址
+**           uiStep        步进
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static LW_INLINE VOID  SCB_InvalidateDCache_by_Addr (UINT32  *addr, INT32  dsize)
+static VOID  armICacheV7MInvalidate (PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep)
 {
-    INT32   op_size  = dsize;
-    UINT32  op_addr  = (UINT32)addr;
-    INT32   linesize = uiArmV7MCacheLineSize;
+    /*
+     * I-Cache Invalidate by MVA to PoU
+     */
+    while (pvStart < pvEnd) {
+        armDsb();
 
+        SCB->ICIMVAU = (UINT32)pvStart;
+
+        armDsb();
+        armIsb();
+
+        pvStart = (PVOID)((addr_t)pvStart + uiStep);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: armDCacheV7MInvalidate
+** 功能描述: 无效指定区间的 DCACHE
+** 输　入  : pvStart       起始地址
+**           pvEnd         结束地址
+**           uiStep        步进
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  armDCacheV7MInvalidate (PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep)
+{
     armDsb();
 
-    while (op_size > 0) {
-        SCB->DCIMVAC = op_addr;
-        op_addr += (UINT32)linesize;
-        op_size -=         linesize;
+    /*
+     * D-Cache Invalidate by MVA to PoC
+     */
+    while (pvStart < pvEnd) {
+        SCB->DCIMVAC = (UINT32)pvStart;
+        pvStart = (PVOID)((addr_t)pvStart + uiStep);
+    }
+
+    armDsb();
+    armIsb();
+}
+
+/*********************************************************************************************************
+** 函数名称: armDCacheV7MFlush
+** 功能描述: 回写指定区间的 DCACHE
+** 输　入  : pvStart       起始地址
+**           pvEnd         结束地址
+**           uiStep        步进
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  armDCacheV7MFlush (PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep)
+{
+    armDsb();
+
+    /*
+     * D-Cache Clean by MVA to PoC
+     */
+    while (pvStart < pvEnd) {
+        SCB->DCCMVAC = (UINT32)pvStart;
+        pvStart = (PVOID)((addr_t)pvStart + uiStep);
     }
 
     armDsb();
     armIsb();
 }
 /*********************************************************************************************************
-** 函数名称: SCB_CleanDCache_by_Addr
-** 功能描述: D-Cache Clean by address
-** 输　入  : addr    address (aligned to 32-byte boundary)
-**           dsize   size of memory block (in number of bytes)
+** 函数名称: armDCacheV7MClear
+** 功能描述: 回写并无效指定区间的 DCACHE
+** 输　入  : pvStart       起始地址
+**           pvEnd         结束地址
+**           uiStep        步进
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static LW_INLINE VOID SCB_CleanDCache_by_Addr (UINT32  *addr, INT32  dsize)
+static VOID  armDCacheV7MClear (PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep)
 {
-    INT32  op_size  = dsize;
-    UINT32 op_addr  = (UINT32)addr;
-    INT32  linesize = uiArmV7MCacheLineSize;
-
     armDsb();
 
-    while (op_size > 0) {
-        SCB->DCCMVAC = op_addr;
-        op_addr += (UINT32)linesize;
-        op_size -=         linesize;
+    /*
+     * D-Cache Clean and Invalidate by MVA to PoC
+     */
+    while (pvStart < pvEnd) {
+        SCB->DCCIMVAC = (UINT32)pvStart;
+        pvStart = (PVOID)((addr_t)pvStart + uiStep);
     }
 
     armDsb();
     armIsb();
 }
 /*********************************************************************************************************
-** 函数名称: SCB_CleanInvalidateDCache_by_Addr
-** 功能描述: D-Cache Clean and Invalidate by address
-** 输　入  : addr    address (aligned to 32-byte boundary)
-**           dsize   size of memory block (in number of bytes)
+** 函数名称: armTextUpdateV7MPoU
+** 功能描述: 指定区间进行 TextUpdate
+** 输　入  : pvStart       起始地址
+**           pvEnd         结束地址
+**           uiStep        步进
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static LW_INLINE VOID  SCB_CleanInvalidateDCache_by_Addr (UINT32  *addr, INT32  dsize)
+static VOID  armTextUpdateV7MPoU (PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep)
 {
-    INT32  op_size  = dsize;
-    UINT32 op_addr  = (UINT32)addr;
-    INT32  linesize = uiArmV7MCacheLineSize;
+    while (pvStart < pvEnd) {
+        armDsb();
 
-    armDsb();
+        SCB->DCCMVAU = (UINT32)pvStart;
+        SCB->ICIMVAU = (UINT32)pvStart;
 
-    while (op_size > 0) {
-        SCB->DCCIMVAC = op_addr;
-        op_addr += (UINT32)linesize;
-        op_size -=         linesize;
+        armDsb();
+        armIsb();
+
+        pvStart = (PVOID)((addr_t)pvStart + uiStep);
     }
-
-    armDsb();
-    armIsb();
+}
+/*********************************************************************************************************
+** 函数名称: armBranchPredictorV7MInvalidate
+** 功能描述: 无效分支预测
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+LW_WEAK VOID  armBranchPredictorV7MInvalidate (VOID)
+{
+}
+/*********************************************************************************************************
+** 函数名称: armBranchPredictionV7MDisable
+** 功能描述: 禁能分支预测
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+LW_WEAK VOID  armBranchPredictionV7MDisable (VOID)
+{
+}
+/*********************************************************************************************************
+** 函数名称: armBranchPredictionV7MEnable
+** 功能描述: 使能分支预测
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+LW_WEAK VOID  armBranchPredictionV7MEnable (VOID)
+{
 }
 /*********************************************************************************************************
 ** 函数名称: armCacheV7MEnable
@@ -564,11 +633,29 @@ static LW_INLINE VOID  SCB_CleanInvalidateDCache_by_Addr (UINT32  *addr, INT32  
 static INT  armCacheV7MEnable (LW_CACHE_TYPE  cachetype)
 {
     if (cachetype == INSTRUCTION_CACHE) {
-        SCB_EnableICache();                                             /*  使能指令缓存                */
+        armICacheV7MEnable();
+#if LW_CFG_ARM_CACHE_L2 > 0
+        if (LW_CPU_GET_CUR_ID() == 0) {
+            iCacheStatus |= L1_CACHE_I_EN;
+        }
+#endif                                                                  /*  LW_CFG_ARM_CACHE_L2 > 0     */
+        armBranchPredictionV7MEnable();
 
     } else {
-        SCB_EnableDCache();                                             /*  使能数据缓存                */
+        armDCacheV7MEnable();
+#if LW_CFG_ARM_CACHE_L2 > 0
+        if (LW_CPU_GET_CUR_ID() == 0) {
+            iCacheStatus |= L1_CACHE_D_EN;
+        }
+#endif                                                                  /*  LW_CFG_ARM_CACHE_L2 > 0     */
     }
+
+#if LW_CFG_ARM_CACHE_L2 > 0
+    if ((LW_CPU_GET_CUR_ID() == 0) &&
+        (iCacheStatus == L1_CACHE_EN)) {
+        armL2Enable();
+    }
+#endif                                                                  /*  LW_CFG_ARM_CACHE_L2 > 0     */
 
     return  (ERROR_NONE);
 }
@@ -583,11 +670,29 @@ static INT  armCacheV7MEnable (LW_CACHE_TYPE  cachetype)
 static INT  armCacheV7MDisable (LW_CACHE_TYPE  cachetype)
 {
     if (cachetype == INSTRUCTION_CACHE) {
-        SCB_DisableICache();                                            /*  禁能指令缓存                */
+        armICacheV7MDisable();
+#if LW_CFG_ARM_CACHE_L2 > 0
+        if (LW_CPU_GET_CUR_ID() == 0) {
+            iCacheStatus &= ~L1_CACHE_I_EN;
+        }
+#endif                                                                  /*  LW_CFG_ARM_CACHE_L2 > 0     */
+        armBranchPredictionV7MDisable();
 
     } else {
-        SCB_DisableDCache();                                            /*  禁能数据缓存                */
+        armDCacheV7MDisable();
+#if LW_CFG_ARM_CACHE_L2 > 0
+        if (LW_CPU_GET_CUR_ID() == 0) {
+            iCacheStatus &= ~L1_CACHE_D_EN;
+        }
+#endif                                                                  /*  LW_CFG_ARM_CACHE_L2 > 0     */
     }
+
+#if LW_CFG_ARM_CACHE_L2 > 0
+    if ((LW_CPU_GET_CUR_ID() == 0) &&
+        (iCacheStatus == L1_CACHE_DIS)) {
+        armL2Disable();
+    }
+#endif                                                                  /*  LW_CFG_ARM_CACHE_L2 > 0     */
 
     return  (ERROR_NONE);
 }
@@ -603,14 +708,21 @@ static INT  armCacheV7MDisable (LW_CACHE_TYPE  cachetype)
 *********************************************************************************************************/
 static INT  armCacheV7MFlush (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes)
 {
-    if (cachetype == DATA_CACHE) {
-        if (stBytes >= CACHE_LOOP_OP_MAX_SIZE) {
-            SCB_CleanDCache();                                          /*  全部回写数据缓存            */
+    addr_t  ulEnd;
 
-        } else {                                                        /*  部分回写数据缓存            */
-            SCB_CleanDCache_by_Addr(CACHE_ALIGN_ADDR(pvAdrs),
-                                    CACHE_ALIGN_SIZE(pvAdrs, stBytes));
+    if (cachetype == DATA_CACHE) {
+        if (stBytes >= ARMv7M_CACHE_LOOP_OP_MAX_SIZE) {
+            armDCacheV7MFlushAll();                                     /*  全部回写                    */
+
+        } else {
+            ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, uiArmV7MDCacheLineSize);
+            armDCacheV7MFlush(pvAdrs, (PVOID)ulEnd,
+                              uiArmV7MDCacheLineSize);                  /*  部分回写                    */
         }
+
+#if LW_CFG_ARM_CACHE_L2 > 0
+        armL2FlushAll();
+#endif                                                                  /*  LW_CFG_ARM_CACHE_L2 > 0     */
     }
 
     return  (ERROR_NONE);
@@ -627,32 +739,41 @@ static INT  armCacheV7MFlush (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  s
 *********************************************************************************************************/
 static INT  armCacheV7MInvalidate (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes)
 {
-    if (cachetype == DATA_CACHE) {
-        if (stBytes >= CACHE_LOOP_OP_MAX_SIZE) {
-            SCB_InvalidateDCache();                                     /*  全部无效数据缓存            */
+    addr_t  ulEnd;
 
-        } else {                                                        /*  部分无效数据缓存            */
-            addr_t  ulStart = (addr_t)pvAdrs;
-            addr_t  ulEnd   = (addr_t)pvAdrs + stBytes;
+    if (cachetype == INSTRUCTION_CACHE) {
+        if (stBytes >= ARMv7M_CACHE_LOOP_OP_MAX_SIZE) {
+            armICacheV7MInvalidateAll();                                /*  ICACHE 全部无效             */
 
-            if (ulStart & CACHE_LINE_MASK) {                            /*  起始地址非 cache line 对齐  */
-                ulStart &= ~CACHE_LINE_MASK;
-                SCB_CleanInvalidateDCache_by_Addr((VOID *)ulStart, uiArmV7MCacheLineSize);
-                ulStart += uiArmV7MCacheLineSize;
-            }
-
-            if (ulEnd & CACHE_LINE_MASK) {                              /*  结束地址非 cache line 对齐  */
-                ulEnd &= ~CACHE_LINE_MASK;
-                SCB_CleanInvalidateDCache_by_Addr((VOID *)ulEnd, uiArmV7MCacheLineSize);
-            }
-
-            if (ulEnd > ulStart) {                                      /*  仅无效对齐部分              */
-                SCB_InvalidateDCache_by_Addr((VOID *)ulStart, ulEnd - ulStart);
-            }
+        } else {
+            ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, uiArmV7MICacheLineSize);
+            armICacheV7MInvalidate(pvAdrs, (PVOID)ulEnd, uiArmV7MICacheLineSize);
         }
 
     } else {
-        SCB_InvalidateICache();                                         /*  全部无效指令缓存            */
+        if (stBytes > 0) {                                              /*  必须 > 0                    */
+            addr_t  ulStart = (addr_t)pvAdrs;
+                    ulEnd   = ulStart + stBytes;
+
+            if (ulStart & ((addr_t)uiArmV7MDCacheLineSize - 1)) {       /*  起始地址非 cache line 对齐  */
+                ulStart &= ~((addr_t)uiArmV7MDCacheLineSize - 1);
+                armDCacheV7MClear((PVOID)ulStart, (PVOID)ulStart, uiArmV7MDCacheLineSize);
+                ulStart += uiArmV7MDCacheLineSize;
+            }
+
+            if (ulEnd & ((addr_t)uiArmV7MDCacheLineSize - 1)) {         /*  结束地址非 cache line 对齐  */
+                ulEnd &= ~((addr_t)uiArmV7MDCacheLineSize - 1);
+                armDCacheV7MClear((PVOID)ulEnd, (PVOID)ulEnd, uiArmV7MDCacheLineSize);
+            }
+                                                                        /*  仅无效对齐部分              */
+            armDCacheV7MInvalidate((PVOID)ulStart, (PVOID)ulEnd, uiArmV7MDCacheLineSize);
+
+#if LW_CFG_ARM_CACHE_L2 > 0
+            armL2Invalidate(pvAdrs, stBytes);                           /*  虚拟与物理地址必须相同      */
+#endif                                                                  /*  LW_CFG_ARM_CACHE_L2 > 0     */
+        } else {
+            _DebugHandle(__ERRORMESSAGE_LEVEL, "stBytes == 0.\r\n");
+        }
     }
 
     return  (ERROR_NONE);
@@ -669,17 +790,30 @@ static INT  armCacheV7MInvalidate (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size
 *********************************************************************************************************/
 static INT  armCacheV7MClear (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes)
 {
-    if (cachetype == DATA_CACHE) {
-        if (stBytes >= CACHE_LOOP_OP_MAX_SIZE) {
-            SCB_CleanInvalidateDCache();                                /*  全部回写并无效无效数据缓存  */
+    addr_t  ulEnd;
 
-        } else {                                                        /*  部分回写并无效无效数据缓存  */
-            SCB_CleanInvalidateDCache_by_Addr(CACHE_ALIGN_ADDR(pvAdrs),
-                                              CACHE_ALIGN_SIZE(pvAdrs, stBytes));
+    if (cachetype == INSTRUCTION_CACHE) {
+        if (stBytes >= ARMv7M_CACHE_LOOP_OP_MAX_SIZE) {
+            armICacheV7MInvalidateAll();                                /*  ICACHE 全部无效             */
+
+        } else {
+            ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, uiArmV7MICacheLineSize);
+            armICacheV7MInvalidate(pvAdrs, (PVOID)ulEnd, uiArmV7MICacheLineSize);
         }
 
     } else {
-        SCB_InvalidateICache();                                         /*  全部无效指令缓存            */
+        if (stBytes >= ARMv7M_CACHE_LOOP_OP_MAX_SIZE) {
+            armDCacheV7MClearAll();                                     /*  全部回写并无效              */
+
+        } else {
+            ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, uiArmV7MDCacheLineSize);
+            armDCacheV7MClear(pvAdrs, (PVOID)ulEnd,
+                              uiArmV7MDCacheLineSize);                  /*  部分回写并无效              */
+        }
+
+#if LW_CFG_ARM_CACHE_L2 > 0
+        armL2ClearAll();
+#endif                                                                  /*  LW_CFG_ARM_CACHE_L2 > 0     */
     }
 
     return  (ERROR_NONE);
@@ -726,15 +860,16 @@ static INT  armCacheV7MUnlock (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  
 *********************************************************************************************************/
 static INT  armCacheV7MTextUpdate (PVOID  pvAdrs, size_t  stBytes)
 {
-    if (stBytes >= CACHE_LOOP_OP_MAX_SIZE) {
-        SCB_CleanDCache();                                              /*  DCACHE 全部回写             */
+    addr_t  ulEnd;
+
+    if (stBytes >= ARMv7M_CACHE_LOOP_OP_MAX_SIZE) {
+        armDCacheV7MFlushAllPoU();                                      /*  DCACHE 全部回写             */
+        armICacheV7MInvalidateAll();                                    /*  ICACHE 全部无效             */
 
     } else {
-        SCB_CleanDCache_by_Addr(CACHE_ALIGN_ADDR(pvAdrs),
-                                CACHE_ALIGN_SIZE(pvAdrs, stBytes));
+        ARM_CACHE_GET_END(pvAdrs, stBytes, ulEnd, uiArmV7MDCacheLineSize);
+        armTextUpdateV7MPoU(pvAdrs, (PVOID)ulEnd, uiArmV7MDCacheLineSize);
     }
-
-    SCB_InvalidateICache();                                             /*  ICACHE 全部无效             */
 
     return  (ERROR_NONE);
 }
@@ -771,13 +906,14 @@ LW_WEAK VOID  armCacheV7MInit (LW_CACHE_OP *pcacheop,
     sets     = (UINT32)(CCSIDR_SETS(ccsidr));
     linesize = (UINT32)(CCSIDR_LINESIZE(ccsidr));
 
-    uiArmV7MCacheLineSize = 1 << (linesize + 4);                        /*  Log2(X) = (linesize + 4)    */
+    uiArmV7MICacheLineSize = 1 << (linesize + 4);                       /*  Log2(X) = (linesize + 4)    */
+    uiArmV7MDCacheLineSize = 1 << (linesize + 4);                       /*  Log2(X) = (linesize + 4)    */
 
-    pcacheop->CACHEOP_iICacheLine = uiArmV7MCacheLineSize;
-    pcacheop->CACHEOP_iDCacheLine = uiArmV7MCacheLineSize;
+    pcacheop->CACHEOP_iICacheLine = uiArmV7MICacheLineSize;
+    pcacheop->CACHEOP_iDCacheLine = uiArmV7MDCacheLineSize;
 
-    pcacheop->CACHEOP_iICacheWaySize = sets * uiArmV7MCacheLineSize;
-    pcacheop->CACHEOP_iDCacheWaySize = pcacheop->CACHEOP_iICacheWaySize;
+    pcacheop->CACHEOP_iICacheWaySize = sets * uiArmV7MICacheLineSize;
+    pcacheop->CACHEOP_iDCacheWaySize = sets * uiArmV7MDCacheLineSize;
 
     _DebugFormat(__LOGMESSAGE_LEVEL, "ARMv7-M I-Cache line size = %u bytes, Way size = %u bytes.\r\n",
                  pcacheop->CACHEOP_iICacheLine, pcacheop->CACHEOP_iICacheWaySize);
@@ -819,8 +955,10 @@ LW_WEAK VOID  armCacheV7MReset (CPCHAR  pcMachineName)
         return;
     }
 
-    SCB_DisableICache();
-    SCB_DisableDCache();
+    armICacheV7MInvalidateAll();
+    armDCacheV7MDisable();
+    armICacheV7MDisable();
+    armBranchPredictorV7MInvalidate();
 }
 
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */

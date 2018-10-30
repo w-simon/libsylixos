@@ -108,6 +108,7 @@
   CPACR_EL1
 *********************************************************************************************************/
 #define CPACR_EL1_FPEN_EN       (3 << 20)                               /* SIMD and FP enabled          */
+#define CPACR_EL1_FPEN_DIS      (2 << 20)                               /* SIMD and FP disabled         */
 
 /*********************************************************************************************************
   HCR_EL2
@@ -165,6 +166,18 @@
 #define EL1_IRQ_INVALID         0x2
 #define EL1_FIQ_INVALID         0x3
 #define EL1_ERR_INVALID         0x4
+#define EL2_IRQ_AARCH64_INVALID 0x5
+#define EL2_FIQ_AARCH64_INVALID 0x6
+#define EL2_ERR_AARCH64_INVALID 0x7
+#define EL2_SYN_AARCH32_INVALID 0x8
+#define EL2_IRQ_AARCH32_INVALID 0x9
+#define EL2_FIQ_AARCH32_INVALID 0xa
+#define EL2_ERR_AARCH32_INVALID 0xb
+
+/*********************************************************************************************************
+  EL2 HVC µ÷ÓÃÃüÁîºÅ
+*********************************************************************************************************/
+#define HVC_CMD_FPU             17
 
 #endif                                                                  /*  __ARM64_ARCH_DEF_H          */
 /*********************************************************************************************************

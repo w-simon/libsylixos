@@ -182,6 +182,9 @@ INT                 vprocGetPath(pid_t  pid, PCHAR  pcPath, size_t stMaxLen);
 
 #if LW_CFG_GDB_EN > 0
 ssize_t             vprocGetModsInfo(pid_t  pid, PCHAR  pcBuff, size_t stMaxLen);
+#if defined(LW_CFG_CPU_ARCH_CSKY)
+ssize_t             vprocGetModsSvr4Info(pid_t  pid, PCHAR  pcBuff, size_t stMaxLen);
+#endif                                                                  /*  LW_CFG_CPU_ARCH_CSKY        */
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
 
 /*********************************************************************************************************

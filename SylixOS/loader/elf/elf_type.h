@@ -51,6 +51,9 @@
 
 #elif defined(LW_CFG_CPU_ARCH_RISCV)
 #include "arch/riscv/elf/riscvElf.h"
+
+#elif defined(LW_CFG_CPU_ARCH_CSKY)
+#include "arch/csky/elf/cskyElf.h"
 #endif                                                                  /*  LW_CFG_CPU_ARCH_ARM         */
 
 /*********************************************************************************************************

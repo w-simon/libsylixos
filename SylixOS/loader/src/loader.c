@@ -533,6 +533,29 @@ static INT __moduleArchCheck (LW_LD_EXEC_MODULE *pmodule)
         return  (ERROR_NONE);
     }
 
+#if defined(LW_CFG_CPU_ARCH_CSKY) && (LW_CFG_CPU_FPU_EN > 0)
+    /*
+     * C-SKY CPU 的 FPU 一直打开, 并且没有 FPU 数据脏位可供判断, 如果程序链接了硬件浮点的库(说明编译时
+     * 加了硬件浮点的参数), 则为当前线程使能硬件浮点
+     */
+    if (lib_strcmp(*ppcBaseFpuType, "hard-float") == 0) {
+        PLW_CLASS_TCB  ptcbCur;
+
+        LW_NONSCHED_MODE_PROC(
+            LW_TCB_GET_CUR(ptcbCur);
+            ptcbCur->TCB_ulOption |= LW_OPTION_THREAD_USED_FP;
+        );
+
+    } else {
+        PLW_CLASS_TCB  ptcbCur;
+
+        LW_NONSCHED_MODE_PROC(
+            LW_TCB_GET_CUR(ptcbCur);
+            ptcbCur->TCB_ulOption &= ~LW_OPTION_THREAD_USED_FP;
+        );
+    }
+#endif                                                                  /*  LW_CFG_CPU_ARCH_CSKY        */
+
     pringTemp = &pmodule->EMOD_ringModules;
     do {
         pmodTemp = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);

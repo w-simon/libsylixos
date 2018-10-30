@@ -42,7 +42,7 @@ cat << EOF >$symbolc
 #ifdef __GNUC__
 #if __GNUC__ <= 4
 #pragma GCC diagnostic warning "-w"
-#else
+#elif __GNUC__ >= 7
 #pragma GCC diagnostic ignored "-Wbuiltin-declaration-mismatch"
 #endif
 #endif

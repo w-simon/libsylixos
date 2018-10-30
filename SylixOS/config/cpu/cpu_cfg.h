@@ -46,6 +46,9 @@
 
 #elif defined(__riscv)
 #include "cpu_cfg_riscv.h"
+
+#elif defined(__csky__)
+#include "cpu_cfg_csky.h"
 #endif
 
 #else

@@ -47,6 +47,9 @@
 
 #elif defined(LW_CFG_CPU_ARCH_RISCV)
 #include "riscv/asm/assembler.h"
+
+#elif defined(LW_CFG_CPU_ARCH_CSKY)
+#include "csky/asm/assembler.h"
 #endif                                                                  /*  LW_CFG_CPU_ARCH_ARM         */
 
 #endif                                                                  /*  __ARCH_ASSEMBLER_H          */
