@@ -394,18 +394,20 @@ static err_t  netdev_netif_linkoutput (struct netif *netif, struct pbuf *p)
   netdev_t *netdev = (netdev_t *)(netif->state);
   int ret;
 
-  LWIP_ASSERT("netdev linkoutput must ethernet type.", 
-              (netdev->net_type == NETDEV_TYPE_ETHERNET)); /* must a ethernet */
-
+  if (netdev->net_type == NETDEV_TYPE_ETHERNET) { /* ethernet */
 #if ETH_PAD_SIZE
-  pbuf_header(p, -ETH_PAD_SIZE);
+    pbuf_header(p, -ETH_PAD_SIZE);
 #endif
 
-  ret = NETDEV_TRANSMIT(netdev, p);
+    ret = NETDEV_TRANSMIT(netdev, p);
   
 #if ETH_PAD_SIZE
-  pbuf_header(p, ETH_PAD_SIZE);
+    pbuf_header(p, ETH_PAD_SIZE);
 #endif
+  
+  } else {
+    ret = NETDEV_TRANSMIT(netdev, p);
+  }
 
   if (ret < 0) {
     return (ERR_IF);

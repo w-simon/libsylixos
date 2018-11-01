@@ -899,7 +899,7 @@ static ULONG  x64MmuFlagGet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr)
 
             if (x64MmuPtsIsOk(*p_ptsentry)) {                           /*  三级描述符有效              */
                 LW_PTE_TRANSENTRY  *p_pteentry = x64MmuPteOffset(p_ptsentry,
-                                                                ulAddr);/*  获得四级描述符地址         */
+                                                                ulAddr);/*  获得四级描述符地址          */
                 LW_PTE_TRANSENTRY   pteentry = *p_pteentry;             /*  获得四级描述符              */
 
                 if (x64MmuPteIsOk(pteentry)) {                          /*  四级描述符有效              */

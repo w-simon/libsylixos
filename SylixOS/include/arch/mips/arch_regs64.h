@@ -58,7 +58,7 @@
   ¼Ä´æÆ÷±í
 *********************************************************************************************************/
 
-#if (!defined(__ASSEMBLY__)) && (!defined(ASSEMBLY))
+#if !defined(__ASSEMBLY__) && !defined(ASSEMBLY)
 
 typedef UINT64      ARCH_REG_T;
 

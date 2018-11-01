@@ -10,13 +10,13 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: arm64Mmu.c
+** 文   件   名: arm64Mmu4K.c
 **
 ** 创   建   人: Wang.Xuan (王翾)
 **
 ** 文件创建日期: 2018 年 07 月 04 日
 **
-** 描        述: ARM64 体系构架 MMU 驱动.
+** 描        述: ARM64 体系构架 MMU 驱动 (4K 页大小).
 **
 ** BUG：
 2018.10.26 修复在飞腾平台下因为符号位扩展导致的错误
@@ -27,6 +27,7 @@
   裁剪支持
 *********************************************************************************************************/
 #if LW_CFG_VMM_EN > 0
+#if LW_CFG_ARM64_PAGE_SHIFT == 12
 #include "../../param/arm64Param.h"
 #include "../cache/arm64Cache.h"
 #include "arm64Mmu.h"
@@ -115,7 +116,7 @@ extern VOID    arm64DCacheFlush(PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep);
 #define ARM64_MMU_XN_NO_EFFECT  (0)
 #define ARM64_MMU_PXN_NO_EFFECT (0)
 /*********************************************************************************************************
-  PML4E PDPTE PDE PTE 中的掩码
+  PGD PMD PTS PTE 中的掩码
 *********************************************************************************************************/
 #define ARM64_MMU_ADDR_MASK     (0xfffffffff000ul)                      /*  [47:12]                     */
 /*********************************************************************************************************
@@ -603,7 +604,7 @@ static  LW_PTE_TRANSENTRY *arm64MmuPteOffset (LW_PTS_TRANSENTRY  *p_ptsentry, ad
     
     p_pteentry = (LW_PTE_TRANSENTRY *)(ulTemp & ARM64_MMU_ADDR_MASK);   /*  获得四级页表基地址          */
 
-    ulAddr    &= 0x1fful << LW_CFG_VMM_PAGE_SHIFT;                      /*  不要使用LW_CFG_VMM_PAGE_MASK*/
+    ulAddr    &= LW_CFG_VMM_PTE_MASK;                                   /*  不要使用LW_CFG_VMM_PAGE_MASK*/
     ulPageNum  = ulAddr >> LW_CFG_VMM_PAGE_SHIFT;                       /*  计算段内页号                */
 
     p_pteentry = (LW_PTE_TRANSENTRY *)((addr_t)p_pteentry |
@@ -816,7 +817,7 @@ static VOID  arm64MmuPtsFree (LW_PTS_TRANSENTRY  *p_ptsentry)
 ** 函数名称: arm64MmuPteAlloc
 ** 功能描述: 分配 PTE 项
 ** 输　入  : pmmuctx        mmu 上下文
-**           p_pmdentry     pmd 入口地址
+**           p_ptsentry     pts 入口地址
 **           ulAddr         虚拟地址
 ** 输　出  : 分配 PTE 地址
 ** 全局变量: 
@@ -1028,6 +1029,7 @@ static INT  arm64MmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  ul
             }
         }
     }
+
     return  (PX_ERROR);
 }
 /*********************************************************************************************************
@@ -1150,6 +1152,7 @@ VOID  arm64MmuInit (LW_MMU_OP *pmmuop, CPCHAR  pcMachineName)
     pmmuop->MMUOP_pfuncPGDFree  = arm64MmuPgdFree;
     pmmuop->MMUOP_pfuncPMDAlloc = arm64MmuPmdAlloc;
     pmmuop->MMUOP_pfuncPMDFree  = arm64MmuPmdFree;
+
     pmmuop->MMUOP_pfuncPTSAlloc = arm64MmuPtsAlloc;
     pmmuop->MMUOP_pfuncPTSFree  = arm64MmuPtsFree;
     pmmuop->MMUOP_pfuncPTEAlloc = arm64MmuPteAlloc;
@@ -1210,6 +1213,7 @@ INT  arm64MmuShareableGet (VOID)
     }
 }
 
+#endif                                                                  /*  LW_CFG_ARM64_PAGE_SHIFT==12 */
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 /*********************************************************************************************************
   END

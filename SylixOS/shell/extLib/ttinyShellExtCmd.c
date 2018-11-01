@@ -81,7 +81,7 @@ static INT  __tshellExtCmdTc (INT  iArgC, PCHAR  ppcArgV[])
         return  (-ERROR_TSHELL_EPARAM);
     }
 
-    if (iArgC > 2 && *ppcArgV[2] != '-') {                              /*  如果指定了 Extension 文件   */
+    if ((iArgC > 2) && (*ppcArgV[2] != '-')) {                          /*  如果指定了 Extension 文件   */
 #if LW_CFG_DEVICE_EN > 0
 #define BUFFER_LEN  512
         INT         iFd;

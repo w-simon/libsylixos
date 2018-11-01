@@ -28,6 +28,7 @@
   GCC keywords & attribute
 *********************************************************************************************************/
 
+#undef __pure
 #undef __noinline
 #undef __noreturn
 #undef __malloc
@@ -43,6 +44,7 @@
 #undef unlikely
 
 #if defined(__lint__) || defined(lint)
+# define __pure
 # define __noinline
 # define __noreturn
 # define __malloc
@@ -56,10 +58,7 @@
 # define __section(S)
 
 #else /* !__lint__ */
-# ifndef __pure
-#  define __pure         __attribute__ ((pure))
-# endif
-
+# define __pure          __attribute__ ((pure))
 # define __noinline      __attribute__ ((noinline))
 # define __noreturn      __attribute__ ((noreturn))
 # define __malloc        __attribute__ ((malloc))
@@ -71,15 +70,15 @@
 # define __align(x)      __attribute__ ((aligned (x)))
 # define __align_max     __attribute__ ((aligned))
 
-# ifdef BSD /* bsd system use __attribute__ ((__section__(S))) not #S, 
-              so compiler bsd source MUST defined BSD */
+/* bsd system use __attribute__ ((__section__(S))) not #S, so compiler bsd source MUST defined BSD */
+# ifdef BSD
 #  define __section(S)   __attribute__ ((__section__(S)))
 # else
 #  define __section(S)   __attribute__ ((__section__(#S)))
 # endif
 #endif /* !__lint__ */
 
-#if defined(__SYLIXOS_KERNEL) || defined(__NEED_LIKELY__)
+#if !defined(likely) && (defined(__SYLIXOS_KERNEL) || defined(__NEED_LIKELY__))
 # ifdef __GNUC__
 #  define likely(x)      __builtin_expect(!!(x), 1)
 #  define unlikely(x)    __builtin_expect(!!(x), 0)

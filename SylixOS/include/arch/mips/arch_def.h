@@ -29,12 +29,14 @@
 #if defined(__ASSEMBLY__) || defined(ASSEMBLY)
 #define __CONST64(x)                x
 #else
+#ifdef __SYLIXOS_KERNEL
 #if LW_CFG_CPU_WORD_LENGHT == 32
-#define __CONST64(x)                x ## UL
+#define __CONST64(x)                x##ull
 #else
-#define __CONST64(x)                x ## ULL
-#endif
-#endif
+#define __CONST64(x)                x##ul
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT      */
+#endif                                                                  /*  __SYLIXOS_KERNEL            */
+#endif                                                                  /*  __ASSEMBLY__                */
 
 /*********************************************************************************************************
   包含其它头文件
@@ -59,7 +61,7 @@
   MIPS 指令
 *********************************************************************************************************/
 
-#if (!defined(__ASSEMBLY__)) && (!defined(ASSEMBLY))
+#if !defined(__ASSEMBLY__) && !defined(ASSEMBLY)
 typedef UINT32                      MIPS_INSTRUCTION;
 #define MIPS_EXEC_INST(inst)        __asm__ __volatile__ (inst)
 #endif                                                                  /*  !defined(__ASSEMBLY__)      */

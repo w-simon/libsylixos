@@ -22,6 +22,8 @@
 #ifndef __X86_ARCH_PC_H
 #define __X86_ARCH_PC_H
 
+#if defined(__SYLIXOS_KERNEL) || defined(__ASSEMBLY__) || defined(ASSEMBLY)
+
 /*********************************************************************************************************
   Programmable interrupt controller (PIC)
 *********************************************************************************************************/
@@ -220,6 +222,8 @@
 #define IMCR_IOAPIC_ON              0x01                            /*  IMCR IOAPIC route enable        */
 #define IMCR_IOAPIC_OFF             0x00                            /*  IMCR IOAPIC route disable       */
 
+#endif                                                              /*  __SYLIXOS_KERNEL                */
+                                                                    /*  __ASSEMBLY__                    */
 #endif                                                              /*  __X86_ARCH_PC_H                 */
 /*********************************************************************************************************
   END

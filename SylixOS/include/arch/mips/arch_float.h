@@ -46,7 +46,7 @@
   汇编代码不包含以下内容
 *********************************************************************************************************/
 
-#if (!defined(__ASSEMBLY__)) && (!defined(ASSEMBLY))
+#if !defined(__ASSEMBLY__) && !defined(ASSEMBLY)
 
 typedef union fpureg {                                                  /*  FPU 寄存器类型              */
     UINT32              val32[FPU_REG_WIDTH / 32];

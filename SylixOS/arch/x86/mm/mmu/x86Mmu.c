@@ -647,7 +647,7 @@ static INT  x86MmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  ulFl
     UINT8               ucRW, ucUS, ucPWT, ucPCD, ucA, ucPAT;
 
     if (x86MmuFlags2Attr(ulFlag, &ucRW,  &ucUS,
-                         &ucPWT, &ucPCD, &ucA, &ucPAT) != ERROR_NONE) {  /*  无效的映射关系              */
+                         &ucPWT, &ucPCD, &ucA, &ucPAT) != ERROR_NONE) { /*  无效的映射关系              */
         return  (PX_ERROR);
     }
 

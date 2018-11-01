@@ -116,7 +116,7 @@ extern void udelay(unsigned long us);
 #define kmalloc(size, flags)	sys_malloc(size)
 #define kzalloc(size, flags)	sys_zalloc(size)
 #define vmalloc(size)		    sys_malloc(size)
-#define kfree(ptr)		        sys_free(ptr)
+#define kfree(ptr)		        sys_free((void *)ptr)
 #define vfree(ptr)		        sys_free(ptr)
 #define GFP_KERNEL			    0
 #define GFP_NOFS			    1
@@ -131,11 +131,13 @@ extern void udelay(unsigned long us);
 #define ENOTSUPP                ENOTSUP
 
 #ifndef likely
+#ifdef __GNUC__
+#define likely(x)               __builtin_expect(!!(x), 1)
+#define unlikely(x)             __builtin_expect(!!(x), 0)
+#else
 #define likely(x)               (x)
-#endif
-
-#ifndef unlikely
 #define unlikely(x)             (x)
+#endif
 #endif
 
 #define cpu_to_le16(x)          htole16(x)
@@ -178,7 +180,36 @@ extern void udelay(unsigned long us);
 #define BUG_ON(condition) do { if (condition) BUG(); } while(0)
 #endif /* BUG */
 
-#define WARN_ON(x) if (x) {printf("WARNING in %s line %d\n" \
-				  , __FILE__, __LINE__); }
+#ifndef WARN
+#define WARN(condition, format...) ({ \
+    int __ret_warn_on = !!(condition); \
+    if (unlikely(__ret_warn_on)) \
+        printf(format); \
+    unlikely(__ret_warn_on); \
+})
+#endif
+
+#ifndef WARN_ON
+#define WARN_ON(x) \
+({ \
+    int __ret_warn_on = !!(x); \
+    if (unlikely(__ret_warn_on)) \
+    printf("WARNING in %s line %d\n" \
+                      , __FILE__, __LINE__); \
+    unlikely(__ret_warn_on); \
+})
+#endif
+
+#ifndef WARN_ON_ONCE
+#define WARN_ON_ONCE(condition) ({ \
+    static bool __warned; \
+    int __ret_warn_once = !!(condition); \
+    if (unlikely(__ret_warn_once && !__warned)) { \
+        __warned = true; \
+        WARN_ON(1); \
+    } \
+    unlikely(__ret_warn_once); \
+})
+#endif
 
 #endif /* __LINUX_COMPAT_H */

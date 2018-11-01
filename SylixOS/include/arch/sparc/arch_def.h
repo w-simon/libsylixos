@@ -90,7 +90,7 @@
 #define TT_INTERRUPT_LEVEL_0    (0x10)                                  /*  Not used                    */
 #define TRAP_TO_IRQ(trap)       ((trap) - TT_INTERRUPT_LEVEL_0)         /*  Trap number to IRQ number   */
 
-#endif
+#endif                                                                  /*  __SYLIXOS_KERNEL            */
 #endif                                                                  /*  __SPARC_ARCH_DEF_H          */
 /*********************************************************************************************************
   END

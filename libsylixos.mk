@@ -125,7 +125,8 @@ SylixOS/arch/arm64/fpu/vfpv4el2/arm64VfpV4AsmEl2.S \
 SylixOS/arch/arm64/fpu/arm64Fpu.c \
 SylixOS/arch/arm64/mm/cache/arm64Cache.c \
 SylixOS/arch/arm64/mm/cache/arm64CacheAsm.S \
-SylixOS/arch/arm64/mm/mmu/arm64Mmu.c \
+SylixOS/arch/arm64/mm/mmu/arm64Mmu4K.c \
+SylixOS/arch/arm64/mm/mmu/arm64Mmu64K.c \
 SylixOS/arch/arm64/mm/mmu/arm64MmuAsm.S \
 SylixOS/arch/arm64/mm/arm64Cache.c \
 SylixOS/arch/arm64/mm/arm64Mmu.c \

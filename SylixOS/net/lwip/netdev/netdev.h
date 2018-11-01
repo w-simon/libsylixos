@@ -190,6 +190,8 @@ typedef struct netdev {
 
 #define NETDEV_TYPE_RAW         0
 #define NETDEV_TYPE_ETHERNET    1
+#define NETDEV_TYPE_6LOWPAN     2
+#define NETDEV_TYPE_6LOWPAN_BLE 3
   UINT32 net_type;
   
   UINT64 speed; /* link layer speed bps */

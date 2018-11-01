@@ -25,6 +25,7 @@
 /*********************************************************************************************************
   SSEG0 SSEG1 地址转物理地址
 *********************************************************************************************************/
+#if defined(__SYLIXOS_KERNEL) || defined(__ASSEMBLY__) || defined(ASSEMBLY)
 
 #define CSKY_SSEG0_PA(va)           ((va) & 0x7fffffff)
 #define CSKY_SSEG1_PA(va)           ((va) & 0x5fffffff)
@@ -33,7 +34,7 @@
   C-SKY 指令
 *********************************************************************************************************/
 
-#if (!defined(__ASSEMBLY__)) && (!defined(ASSEMBLY))
+#if !defined(__ASSEMBLY__) && !defined(ASSEMBLY)
 typedef UINT16                      CSKY_INSTRUCTION;
 #define IS_T32(hi16)                (((hi16) & 0xc000) == 0xc000)
 #endif                                                                  /*  !defined(__ASSEMBLY__)      */
@@ -151,6 +152,8 @@ typedef UINT16                      CSKY_INSTRUCTION;
 #define M_MSA1_V        (0x1 << S_MSA1_V)                               /*  指示 SSEG1 区映射是否有效   */
 #define S_MSA1_V        1                                                                          
 
+#endif                                                                  /*  __SYLIXOS_KERNEL            */
+                                                                        /*  __ASSEMBLY__                */
 #endif                                                                  /*  __CSKY_ARCH_DEF_H           */
 /*********************************************************************************************************
   END

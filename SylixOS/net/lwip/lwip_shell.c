@@ -333,6 +333,8 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
     netdev = (netdev_t *)(netif->state);
     if (netdev && (netdev->magic_no == NETDEV_MAGIC)) {
         pcDevName = netdev->dev_name;
+    } else {
+        netdev = LW_NULL;
     }
 
     printf("%-5s%4s ", netif_get_name(netif, cIfName), "");             /*  网卡名称                    */
@@ -344,15 +346,40 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
         }
         printf("%02x\n", netif->hwaddr[netif->hwaddr_len - 1]);
         
-    } else if ((netif->flags & NETIF_FLAG_BROADCAST) == 0) {            /*  点对点网络接口              */
-        if (netif->link_type == snmp_ifType_softwareLoopback) {
-            printf("Link encap: Local Loopback\n");
-        } else {
-            printf("Link encap: WAN(PPP/SLIP)\n");
-        }
+    } else if (netdev && (netdev->net_type != NETDEV_TYPE_RAW)) {       /*  netdev 设备                 */
+        switch (netdev->net_type) {
         
-    } else {                                                            /*  通用网络接口                */
-        printf("Link encap: General\n");
+        case NETDEV_TYPE_6LOWPAN:
+            printf("Link encap: 6LowPAN HWaddr: ");
+            for (i = 0; i < netif->hwaddr_len - 1; i++) {
+                printf("%02x:", netif->hwaddr[i]);
+            }
+            printf("%02x\n", netif->hwaddr[netif->hwaddr_len - 1]);
+            break;
+            
+        case NETDEV_TYPE_6LOWPAN_BLE:
+            printf("Link encap: 6LowPAN-BLE HWaddr: ");
+            for (i = 0; i < netif->hwaddr_len - 1; i++) {
+                printf("%02x:", netif->hwaddr[i]);
+            }
+            printf("%02x\n", netif->hwaddr[netif->hwaddr_len - 1]);
+            break;
+            
+        default:                                                        /*  不会运行到这里              */
+            break;
+        }
+    
+    } else {
+        if ((netif->flags & NETIF_FLAG_BROADCAST) == 0) {               /*  点对点网络接口              */
+            if (netif->link_type == snmp_ifType_softwareLoopback) {
+                printf("Link encap: Local Loopback\n");
+            } else {
+                printf("Link encap: WAN(PPP/SLIP)\n");
+            }
+            
+        } else {                                                        /*  通用网络接口                */
+            printf("Link encap: General\n");
+        }
     }
     
     __netIfSpeed(netif, cSpeed, sizeof(cSpeed));

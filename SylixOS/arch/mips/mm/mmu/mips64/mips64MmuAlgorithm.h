@@ -54,7 +54,7 @@
 #define MIPS64_TLB_CTX_T2        (3 * ARCH_REG_SIZE)
 #define MIPS64_TLB_CTX_PGD       (4 * ARCH_REG_SIZE)
 
-#if (!defined(__ASSEMBLY__)) && (!defined(ASSEMBLY))
+#if !defined(__ASSEMBLY__) && !defined(ASSEMBLY)
 typedef struct {
     ULONG       CTX_ulSpinLock;
     ULONG       CTX_ulT0;
