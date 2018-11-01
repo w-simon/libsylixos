@@ -104,7 +104,7 @@ MACRO_DEF(IRQ_ENTRY  irq  handle)
     SUB     R2 , R2 , #(ARCH_SW_SAVE_CTX_SIZE)
     MSR     MSP, R2
 
-    PUSH    {LR}
+    PUSH    {R0 , LR}
 
     ;/*
     ; * API_InterEnter(异常自动压栈前使用的 SP, BASEPRI, EXC_RETURN) 进入中断,
@@ -125,7 +125,7 @@ MACRO_DEF(IRQ_ENTRY  irq  handle)
     ; * 这里可以使用 R12，因为硬件自动保存了
     ; * 判断是否在关中断前或者任务切换时发生抢占
     ; */
-    POP     {R12}
+    POP     {R0 , R12}
     TST     R12 , #CORTEX_M_EXC_RETURN_MODE_MASK
     BEQ     1f
 
@@ -192,7 +192,7 @@ MACRO_DEF(IRQ_ENTRY  irq  handle)
     BX      LR
 
 2:
-    POP     {R12}
+    POP     {R0 , R12}
     ;/*
     ; * 中断嵌套
     ; */

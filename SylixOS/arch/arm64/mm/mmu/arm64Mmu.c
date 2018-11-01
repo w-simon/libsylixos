@@ -1204,7 +1204,7 @@ VOID  arm64MmuShareableSet (INT  iInnerOrOuter)
 INT  arm64MmuShareableGet (VOID)
 {
     if (VMSA_S == OUTER_SHAREABLE) {
-        return  (1)
+        return  (1);
     } else {
         return  (0);
     }

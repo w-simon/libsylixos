@@ -148,13 +148,6 @@ FUNC_DEF(archPendSVEntry)
     STM     R2 , {R4-R11}
 
     ;/*
-    ; * 获得当前 CPU 中断堆栈栈顶, 并设置 MSP
-    ; */
-    LDR     R3 , =API_InterStackBaseGet
-    BLX     R3
-    MSR     MSP , R0
-
-    ;/*
     ; * 获得当前 CPU 结构指针, 并暂存到 R4
     ; */
     LDR     R3 , =_CpuGetCur
@@ -189,6 +182,13 @@ archPendSvcCtxLoad:
     BX      LR
 
 archPendSvNoSave:
+    ;/*
+    ; * 获得当前 CPU 中断堆栈栈顶, 并设置 MSP
+    ; */
+    LDR     R3 , =API_InterStackBaseGet
+    BLX     R3
+    MSR     MSP , R0
+
     LDR     R3 , =_CpuGetCur
     BLX     R3
     MOV     R4 , R0

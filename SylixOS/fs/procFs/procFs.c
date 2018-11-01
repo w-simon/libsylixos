@@ -759,6 +759,20 @@ static INT  __procFsIoctl (PLW_PROCFS_NODE  p_pfsn,
         *(PCHAR *)lArg = "PROC FileSystem";
         return  (ERROR_NONE);
         
+#if LW_CFG_FS_SELECT_EN > 0
+    case FIOSELECT:
+        if (((PLW_SEL_WAKEUPNODE)lArg)->SELWUN_seltypType != SELEXCEPT) {
+            SEL_WAKE_UP((PLW_SEL_WAKEUPNODE)lArg);                      /*  »½ÐÑ½Úµã                    */
+        }
+        return  (ERROR_NONE);
+         
+    case FIOUNSELECT:
+        if (((PLW_SEL_WAKEUPNODE)lArg)->SELWUN_seltypType != SELEXCEPT) {
+            LW_SELWUN_SET_READY((PLW_SEL_WAKEUPNODE)lArg);              
+        }
+        return  (ERROR_NONE);
+#endif                                                                  /*  LW_CFG_FS_SELECT_EN > 0     */
+        
     default:
         _ErrorHandle(ENOSYS);
         return  (PX_ERROR);

@@ -95,7 +95,7 @@ LINE_LABEL(_RestoreSmallCtx)
 
 #if LW_CFG_COROUTINE_EN > 0
 FUNC_DEF(archCrtCtxSwitch)
-    REG_L   T0 , 0(A0)                                                  ;/*  获取当前 CCB 的 REG_CTX 地址*/
+    REG_L   T0 , (2 * ARCH_REG_SIZE)(A0)                                ;/*  获取当前 CCB 的 REG_CTX 地址*/
 
     SAVE_SMALL_REG_CTX                                                  ;/*  保存小寄存器上下文          */
 
@@ -103,7 +103,7 @@ FUNC_DEF(archCrtCtxSwitch)
 
     CALL    _SchedCrSwp                                                 ;/*  _SchedCrSwp();              */
 
-    REG_L   T0 , 0(S0)                                                  ;/*  获取当前 CCB 的 REG_CTX 地址*/
+    REG_L   T0 , (2 * ARCH_REG_SIZE)(S0)                                ;/*  获取当前 CCB 的 REG_CTX 地址*/
     RESTORE_SMALL_REG_CTX                                               ;/*  恢复小寄存器上下文          */
     FUNC_END(archCrtCtxSwitch)
 #endif

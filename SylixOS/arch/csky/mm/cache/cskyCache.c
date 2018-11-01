@@ -55,6 +55,7 @@ extern VOID  cskyDCacheFlushAll(VOID);
 extern VOID  cskyDCacheDisableHw(VOID);
 extern VOID  cskyDCacheEnableHw(VOID);
 
+extern VOID  cskyBranchPredictorInvalidate(VOID);
 extern VOID  cskyBranchPredictionEnable(VOID);
 extern VOID  cskyBranchPredictionDisable(VOID);
 /*********************************************************************************************************
@@ -707,6 +708,10 @@ VOID  cskyCacheInit (LW_CACHE_OP *pcacheop,
 *********************************************************************************************************/
 VOID  cskyCacheReset (CPCHAR  pcMachineName)
 {
+    cskyICacheInvalidateAll();
+    cskyDCacheDisableHw();
+    cskyICacheDisableHw();
+    cskyBranchPredictorInvalidate();
 }
 
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */

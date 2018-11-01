@@ -824,9 +824,15 @@ static INT  __rootFsReadDir (LW_DEV_HDR *pdevhdr, DIR  *dir)
              PLW_ROOTFS_NODE    prfsn = (PLW_ROOTFS_NODE)pdevhdr;
              PLW_ROOTFS_NODE    prfsnTemp;
     
+    if (dir == LW_NULL) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
     __LW_ROOTFS_LOCK();                                                 /*  锁定 rootfs                 */
     if (prfsn == LW_NULL) {
         plineHeader = _G_rfsrRoot.RFSR_plineSon;
+    
     } else {
         if (prfsn->RFSN_iNodeType != LW_ROOTFS_NODE_TYPE_DIR) {
             __LW_ROOTFS_UNLOCK();                                       /*  解锁 rootfs                 */
@@ -987,6 +993,20 @@ static INT  __rootFsIoctl (LW_DEV_HDR *pdevhdr,
     case FIOFSTYPE:                                                     /*  获得文件系统类型            */
         *(PCHAR *)lArg = "ROOT FileSystem";
         return  (ERROR_NONE);
+        
+#if LW_CFG_FS_SELECT_EN > 0
+    case FIOSELECT:
+        if (((PLW_SEL_WAKEUPNODE)lArg)->SELWUN_seltypType != SELEXCEPT) {
+            SEL_WAKE_UP((PLW_SEL_WAKEUPNODE)lArg);                      /*  唤醒节点                    */
+        }
+        return  (ERROR_NONE);
+         
+    case FIOUNSELECT:
+        if (((PLW_SEL_WAKEUPNODE)lArg)->SELWUN_seltypType != SELEXCEPT) {
+            LW_SELWUN_SET_READY((PLW_SEL_WAKEUPNODE)lArg);
+        }
+        return  (ERROR_NONE);
+#endif                                                                  /*  LW_CFG_FS_SELECT_EN > 0     */
         
     default:
         _ErrorHandle(ENOSYS);

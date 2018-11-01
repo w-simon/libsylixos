@@ -434,6 +434,20 @@ static INT  __blkIoFsIoctl (PLW_BLKIO_DEV  pdevblk, INT  iRequest, LONG  lArg)
         pdevblk->BLKIO_pblkDev->BLKD_pfuncBlkIoctl(pdevblk->BLKIO_pblkDev, FIOTRIM, lArg);
         return  (ERROR_NONE);
 
+#if LW_CFG_FS_SELECT_EN > 0
+    case FIOSELECT:
+        if (((PLW_SEL_WAKEUPNODE)lArg)->SELWUN_seltypType != SELEXCEPT) {
+            SEL_WAKE_UP((PLW_SEL_WAKEUPNODE)lArg);                      /*  »½ÐÑ½Úµã                    */
+        }
+        return  (ERROR_NONE);
+         
+    case FIOUNSELECT:
+        if (((PLW_SEL_WAKEUPNODE)lArg)->SELWUN_seltypType != SELEXCEPT) {
+            LW_SELWUN_SET_READY((PLW_SEL_WAKEUPNODE)lArg);
+        }
+        return  (ERROR_NONE);
+#endif                                                                  /*  LW_CFG_FS_SELECT_EN > 0     */
+
     case LW_BLKD_GET_SECNUM:
         *(ULONG *)lArg = pdevblk->BLKIO_ulNSec;
         return  (ERROR_NONE);

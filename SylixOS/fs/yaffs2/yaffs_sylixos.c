@@ -1523,6 +1523,11 @@ static INT  __yaffsReadDir (PLW_FD_ENTRY  pfdentry, DIR  *dir)
     PLW_FD_NODE              pfdnode  = (PLW_FD_NODE)pfdentry->FDENTRY_pfdnode;
     PYAFFS_FILE              pyaffile = (PYAFFS_FILE)pfdnode->FDNODE_pvFile;
     
+    if (!dir) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
     if (__STR_IS_ROOT(pyaffile->YAFFIL_cName)) {
         /*
          *  浏览 yaffs 根目录, 与 fat 不同, 所有的 yaffs 卷都是挂载到 yaffs 根设备上
@@ -1581,6 +1586,11 @@ static INT  __yaffsTimeset (PLW_FD_ENTRY  pfdentry, struct utimbuf  *utim)
     REGISTER INT            iError;
              PLW_FD_NODE    pfdnode  = (PLW_FD_NODE)pfdentry->FDENTRY_pfdnode;
              PYAFFS_FILE    pyaffile = (PYAFFS_FILE)pfdnode->FDNODE_pvFile;
+    
+    if (!utim) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
     
     __YAFFS_OPLOCK();
     if (pyaffile->YAFFIL_iFileType == __YAFFS_FILE_TYPE_DEV) {
@@ -1788,6 +1798,20 @@ static INT  __yaffsIoctl (PLW_FD_ENTRY  pfdentry,
     case FIOGETFORCEDEL:                                                /*  强制卸载设备是否被允许      */
         *(BOOL *)lArg = pyaffile->YAFFIL_pyaffs->YAFFS_bForceDelete;
         return  (ERROR_NONE);
+        
+#if LW_CFG_FS_SELECT_EN > 0
+    case FIOSELECT:
+        if (((PLW_SEL_WAKEUPNODE)lArg)->SELWUN_seltypType != SELEXCEPT) {
+            SEL_WAKE_UP((PLW_SEL_WAKEUPNODE)lArg);                      /*  唤醒节点                    */
+        }
+        return  (ERROR_NONE);
+         
+    case FIOUNSELECT:
+        if (((PLW_SEL_WAKEUPNODE)lArg)->SELWUN_seltypType != SELEXCEPT) {
+            LW_SELWUN_SET_READY((PLW_SEL_WAKEUPNODE)lArg);
+        }
+        return  (ERROR_NONE);
+#endif                                                                  /*  LW_CFG_FS_SELECT_EN > 0     */
         
     default:
         _ErrorHandle(ENOSYS);

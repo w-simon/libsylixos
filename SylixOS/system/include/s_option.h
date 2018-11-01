@@ -151,6 +151,9 @@
 #define FIOSETLK            LW_OSIOW('f', 53, struct flock)     /* set a lockf                          */
 #define FIOSETLKW           LW_OSIOW('f', 54, struct flock)     /* set a lockf (with blocking)          */
 #endif
+                                                                /* the following need 'root' permissions*/
+#define FIOFSGETFL          LW_OSIOR('f', 55, INT)              /* get FS flags O_RDONLY or O_RDWR      */
+#define FIOFSSETFL          LW_OSIOD('f', 56, INT)              /* set FS flags O_RDONLY or O_RDWR      */
 
 /*********************************************************************************************************
   SylixOS extern

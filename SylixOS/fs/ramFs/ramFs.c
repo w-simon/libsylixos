@@ -810,11 +810,6 @@ static INT  __ramFsNRead64 (PLW_FD_ENTRY  pfdentry, off_t  *poftNRead)
     PLW_FD_NODE   pfdnode = (PLW_FD_NODE)pfdentry->FDENTRY_pfdnode;
     PRAM_NODE     pramn   = (PRAM_NODE)pfdnode->FDNODE_pvFile;
     
-    if (poftNRead == LW_NULL) {
-        _ErrorHandle(EINVAL);
-        return  (PX_ERROR);
-    }
-    
     if (pramn == LW_NULL) {
         _ErrorHandle(EISDIR);
         return  (PX_ERROR);
@@ -1497,6 +1492,20 @@ static INT  __ramFsIoctl (PLW_FD_ENTRY  pfdentry,
     case FIOGETFORCEDEL:                                                /*  强制卸载设备是否被允许      */
         *(BOOL *)lArg = pramfs->RAMFS_bForceDelete;
         return  (ERROR_NONE);
+        
+#if LW_CFG_FS_SELECT_EN > 0
+    case FIOSELECT:
+        if (((PLW_SEL_WAKEUPNODE)lArg)->SELWUN_seltypType != SELEXCEPT) {
+            SEL_WAKE_UP((PLW_SEL_WAKEUPNODE)lArg);                      /*  唤醒节点                    */
+        }
+        return  (ERROR_NONE);
+         
+    case FIOUNSELECT:
+        if (((PLW_SEL_WAKEUPNODE)lArg)->SELWUN_seltypType != SELEXCEPT) {
+            LW_SELWUN_SET_READY((PLW_SEL_WAKEUPNODE)lArg);
+        }
+        return  (ERROR_NONE);
+#endif                                                                  /*  LW_CFG_FS_SELECT_EN > 0     */
         
     default:
         _ErrorHandle(ENOSYS);

@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2018-10-31: han.hui
+    加入 C-SKY 处理器架构支持.
+
     2018-10-08: han.hui
     加入 ARM AArch64 支持.
 

@@ -1994,6 +1994,11 @@ static INT  __fatFsReadDir (PLW_FD_ENTRY  pfdentry, DIR  *dir)
     mode_t         mode;
     FILINFO        fileinfo;
 
+    if (dir == LW_NULL) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
     if (__FAT_FILE_LOCK(pfatfile) != ERROR_NONE) {
         _ErrorHandle(ENXIO);                                            /*  设备出错                    */
         return  (PX_ERROR);
@@ -2072,7 +2077,7 @@ static INT  __fatFsTimeset (PLW_FD_ENTRY  pfdentry, struct utimbuf  *utim)
     FRESULT        fresError;
     INT            iError   = ERROR_NONE;
     ULONG          ulError  = ERROR_NONE;
-    UINT32         dwTime   = __timeToFatTime(&utim->modtime);
+    UINT32         dwTime;
     FILINFO        fileinfo;
 
     if (__STR_IS_ROOT(pfatfile->FATFIL_cName)) {                        /*  检查是否为设备文件          */
@@ -2080,6 +2085,12 @@ static INT  __fatFsTimeset (PLW_FD_ENTRY  pfdentry, struct utimbuf  *utim)
         return  (PX_ERROR);
     }
     
+    if (utim == LW_NULL) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    dwTime = __timeToFatTime(&utim->modtime);
     fileinfo.fdate = (UINT16)(dwTime >> 16);
     fileinfo.ftime = (UINT16)(dwTime & 0xFFFF);
     
@@ -2426,6 +2437,27 @@ static INT  __fatFsIoctl (PLW_FD_ENTRY  pfdentry,
         }
         return  (ERROR_NONE);
         
+    case FIOFSGETFL:                                                    /*  获取文件系统权限            */
+        if ((INT *)lArg == LW_NULL) {
+            _ErrorHandle(EINVAL);
+            return  (PX_ERROR);
+        }
+        *(INT *)lArg = pfatfile->FATFIL_pfatvol->FATVOL_iFlag;
+        return  (ERROR_NONE);
+        
+    case FIOFSSETFL:                                                    /*  设置文件系统权限            */
+        if (geteuid()) {
+            _ErrorHandle(EACCES);
+            return  (PX_ERROR);
+        }
+        if (((INT)lArg != O_RDONLY) && ((INT)lArg != O_RDWR)) {
+            _ErrorHandle(EINVAL);
+            return  (PX_ERROR);
+        }
+        pfatfile->FATFIL_pfatvol->FATVOL_iFlag = (INT)lArg;
+        KN_SMP_WMB();
+        return  (ERROR_NONE);
+        
     case FIOGETFORCEDEL:                                                /*  强制卸载设备是否被允许      */
         *(BOOL *)lArg = pfatfile->FATFIL_pfatvol->FATVOL_bForceDelete;
         return  (ERROR_NONE);
@@ -2434,6 +2466,20 @@ static INT  __fatFsIoctl (PLW_FD_ENTRY  pfdentry,
         pfatfile->FATFIL_pfatvol->FATVOL_bForceDelete = (BOOL)lArg;
         return  (ERROR_NONE);
         
+#if LW_CFG_FS_SELECT_EN > 0
+    case FIOSELECT:
+        if (((PLW_SEL_WAKEUPNODE)lArg)->SELWUN_seltypType != SELEXCEPT) {
+            SEL_WAKE_UP((PLW_SEL_WAKEUPNODE)lArg);                      /*  唤醒节点                    */
+        }
+        return  (ERROR_NONE);
+         
+    case FIOUNSELECT:
+        if (((PLW_SEL_WAKEUPNODE)lArg)->SELWUN_seltypType != SELEXCEPT) {
+            LW_SELWUN_SET_READY((PLW_SEL_WAKEUPNODE)lArg);              /*  设置为允许                  */
+        }
+        return  (ERROR_NONE);
+#endif                                                                  /*  LW_CFG_FS_SELECT_EN > 0     */
+
     default:                                                            /*  无法识别的命令              */
         _ErrorHandle(ENOSYS);
         return  (PX_ERROR);

@@ -34,6 +34,7 @@ CPP     = $(TOOLCHAIN_PREFIX)cpp
 LZOCOM  = $(TOOLCHAIN_PREFIX)lzocom
 OBJCOPY = $(TOOLCHAIN_PREFIX)objcopy
 STRIP   = $(TOOLCHAIN_PREFIX)strip
+CERT    = $(TOOLCHAIN_PREFIX)cert
 
 #*********************************************************************************************************
 # Commercial toolchain check

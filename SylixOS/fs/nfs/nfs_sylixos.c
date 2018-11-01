@@ -3409,10 +3409,45 @@ static INT  __nfsIoctl (PLW_FD_ENTRY  pfdentry,
         *(PCHAR *)lArg = "NFSv3 FileSystem";
         return  (ERROR_NONE);
         
+    case FIOFSGETFL:                                                    /*  获取文件系统权限            */
+        if ((INT *)lArg == LW_NULL) {
+            _ErrorHandle(EINVAL);
+            return  (PX_ERROR);
+        }
+        *(INT *)lArg = pnfsfile->NFSFIL_nfsfs->NFSFS_iFlag;
+        return  (ERROR_NONE);
+
+    case FIOFSSETFL:                                                    /*  设置文件系统权限            */
+        if (geteuid()) {
+            _ErrorHandle(EACCES);
+            return  (PX_ERROR);
+        }
+        if (((INT)lArg != O_RDONLY) && ((INT)lArg != O_RDWR)) {
+            _ErrorHandle(EINVAL);
+            return  (PX_ERROR);
+        }
+        pnfsfile->NFSFIL_nfsfs->NFSFS_iFlag = (INT)lArg;
+        KN_SMP_WMB();
+        return  (ERROR_NONE);
+
     case FIOGETFORCEDEL:                                                /*  强制卸载设备是否被允许      */
         *(BOOL *)lArg = pnfsfile->NFSFIL_nfsfs->NFSFS_bForceDelete;
         return  (ERROR_NONE);
     
+#if LW_CFG_FS_SELECT_EN > 0
+    case FIOSELECT:
+        if (((PLW_SEL_WAKEUPNODE)lArg)->SELWUN_seltypType != SELEXCEPT) {
+            SEL_WAKE_UP((PLW_SEL_WAKEUPNODE)lArg);                      /*  唤醒节点                    */
+        }
+        return  (ERROR_NONE);
+
+    case FIOUNSELECT:
+        if (((PLW_SEL_WAKEUPNODE)lArg)->SELWUN_seltypType != SELEXCEPT) {
+            LW_SELWUN_SET_READY((PLW_SEL_WAKEUPNODE)lArg);
+        }
+        return  (ERROR_NONE);
+#endif                                                                  /*  LW_CFG_FS_SELECT_EN > 0     */
+
     default:
         _ErrorHandle(ENOSYS);
         return  (PX_ERROR);

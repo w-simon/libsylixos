@@ -96,7 +96,8 @@ endif
 ifeq ($($(target)_USE_OMP), yes)
 endif
 
-$(target)_DEPEND_LIB += $(TOOLCHAIN_LINK_M) $(TOOLCHAIN_LINK_GCC)
+$(target)_DEPEND_LIB    += $(TOOLCHAIN_LINK_M) $(TOOLCHAIN_LINK_GCC)
+$(target)_DEPEND_TARGET += $(SYLIXOS_BASE_PATH)/libsylixos/$(OUTDIR)/libsylixos.a
 
 #*********************************************************************************************************
 # Targets

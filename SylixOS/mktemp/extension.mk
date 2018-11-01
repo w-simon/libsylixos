@@ -50,11 +50,21 @@ else
 $(target)_OMP_FLAGS   := $(TOOLCHAIN_NO_OMP_CFLAGS)
 endif
 
+$(target)_DSYMBOL     += $(TOOLCHAIN_DEF_SYMBOL)SYLIXOS_EXTENSION
 $(target)_CPUFLAGS    := $(ARCH_CPUFLAGS) $(ARCH_KERNEL_CFLAGS)
 $(target)_COMMONFLAGS := $($(target)_CPUFLAGS) $(ARCH_COMMONFLAGS) $(TOOLCHAIN_OPTIMIZE) $(TOOLCHAIN_COMMONFLAGS) $($(target)_GCOV_FLAGS) $($(target)_OMP_FLAGS)
 $(target)_ASFLAGS     := $($(target)_COMMONFLAGS) $(TOOLCHAIN_ASFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH)
 $(target)_CFLAGS      := $($(target)_COMMONFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CFLAGS)
 $(target)_CXXFLAGS    := $($(target)_COMMONFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CXX_EXCEPT) $($(target)_CXXFLAGS)
+
+#*********************************************************************************************************
+# Add extension certificate file to source file list
+#*********************************************************************************************************
+EXT_CERT_SRC    = SylixOS/bsp/bspCert.c
+ifeq (,$(findstring $(EXT_CERT_SRC),$(LOCAL_SRCS)))
+LOCAL_SRCS     += $(EXT_CERT_SRC)
+$(target)_OBJS += $(addprefix $(OBJPATH)/$(target)/, $(addsuffix .o, $(basename $(EXT_CERT_SRC))))
+endif
 
 #*********************************************************************************************************
 # Depend library search paths
@@ -137,15 +147,21 @@ $($(target)_STRIP_IMG): $($(target)_IMG)
 # Copy SylixOSBSPSymbol.ld
 #*********************************************************************************************************
 SylixOSBSPSymbol.ld: $(subst $(SPACE),\ ,$(SYLIXOS_LITE_BSP_PATH))/$(OUTDIR)/SylixOSBSPSymbol.ld
-		cp $(subst $(SPACE),\ ,$(SYLIXOS_LITE_BSP_PATH))/$(OUTDIR)/SylixOSBSPSymbol.ld ./SylixOSBSPSymbol.ld
+		cp $< $@
+
+#*********************************************************************************************************
+# Copy extension certificate file
+#*********************************************************************************************************
+$(EXT_CERT_SRC): $(subst $(SPACE),\ ,$(SYLIXOS_LITE_BSP_PATH))/$(OUTDIR)/bspCert.c
+		cp $< $@
 
 #*********************************************************************************************************
 # Add targets
 #*********************************************************************************************************
 ifeq ($(TOOLCHAIN_COMMERCIAL), 1)
-TARGETS := $(TARGETS) $($(target)_IMG) $($(target)_BIN) $($(target)_SIZ) $($(target)_STRIP_IMG) $($(target)_LZO) SylixOSBSPSymbol.ld
+TARGETS := $(TARGETS) $($(target)_IMG) $($(target)_BIN) $($(target)_SIZ) $($(target)_STRIP_IMG) $($(target)_LZO) SylixOSBSPSymbol.ld $(EXT_CERT_SRC)
 else
-TARGETS := $(TARGETS) $($(target)_IMG) $($(target)_BIN) $($(target)_SIZ) $($(target)_STRIP_IMG) SylixOSBSPSymbol.ld
+TARGETS := $(TARGETS) $($(target)_IMG) $($(target)_BIN) $($(target)_SIZ) $($(target)_STRIP_IMG) SylixOSBSPSymbol.ld $(EXT_CERT_SRC)
 endif
 
 #*********************************************************************************************************

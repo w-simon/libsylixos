@@ -40,6 +40,7 @@
     EXPORT_LABEL(cskyDCacheDisableHw)
     EXPORT_LABEL(cskyDCacheEnableHw)
 
+    EXPORT_LABEL(cskyBranchPredictorInvalidate)
     EXPORT_LABEL(cskyBranchPredictionEnable)
     EXPORT_LABEL(cskyBranchPredictionDisable)
 
@@ -140,6 +141,18 @@ FUNC_DEF(cskyDCacheEnableHw)
     MTCR        A0 , CR18
     RTS
     FUNC_END(cskyDCacheEnableHw)
+
+;/*********************************************************************************************************
+;  无效分支预测缓冲
+;*********************************************************************************************************/
+
+FUNC_DEF(cskyBranchPredictorInvalidate)
+    MFCR        A0 , CR17
+    BSETI       A0 , 16
+    BSETI       A0 , 17
+    MTCR        A0 , CR17
+    RTS
+    FUNC_END(cskyBranchPredictorInvalidate)
 
 ;/*********************************************************************************************************
 ;  使能分支预测

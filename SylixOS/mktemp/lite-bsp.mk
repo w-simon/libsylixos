@@ -25,6 +25,13 @@
 include $(MKTEMP)/common.mk
 
 #*********************************************************************************************************
+# Opensource toolchain CAN NOT support extension!
+#*********************************************************************************************************
+ifeq ($(TOOLCHAIN_COMMERCIAL), 0)
+$(target)_USE_EXTENSION) = no
+endif
+
+#*********************************************************************************************************
 # Depend and compiler parameter (cplusplus in kernel MUST NOT use exceptions and rtti)
 #*********************************************************************************************************
 ifeq ($($(target)_USE_CXX_EXCEPT), yes)
@@ -57,6 +64,18 @@ $(target)_CXXFLAGS_WITHOUT_FPUFLAGS    := $($(target)_COMMONFLAGS_WITHOUT_FPUFLA
 $(target)_CXXFLAGS                     := $($(target)_COMMONFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CXX_EXCEPT) $($(target)_CXXFLAGS)
 
 #*********************************************************************************************************
+# Bsp certificate file and object
+#*********************************************************************************************************
+BSP_SYMBOL_LD = $(OUTDIR)/SylixOSBSPSymbol.ld
+BSP_CERT_SRC  = $(OUTDIR)/bspCert.c
+BSP_CERT_OBJ  = $(addprefix $(OBJPATH)/$(target)/, $(addsuffix .o, $(basename $(BSP_CERT_SRC))))
+BSP_CERT_DEP  = $(addprefix $(DEPPATH)/$(target)/, $(addsuffix .d, $(basename $(BSP_CERT_SRC))))
+
+ifneq (,$(findstring $(BSP_CERT_SRC),$(LOCAL_SRCS)))
+$(target)_OBJS := $(filter-out $(BSP_CERT_OBJ),$($(target)_OBJS))
+endif
+
+#*********************************************************************************************************
 # Depend library search paths
 #*********************************************************************************************************
 $(target)_DEPEND_LIB_PATH := $(TOOLCHAIN_LIB_INC)"$(SYLIXOS_BASE_PATH)/libsylixos/$(OUTDIR)"
@@ -83,7 +102,8 @@ endif
 ifeq ($($(target)_USE_OMP), yes)
 endif
 
-$(target)_DEPEND_LIB += $(TOOLCHAIN_LINK_M) $(TOOLCHAIN_LINK_GCC)
+$(target)_DEPEND_LIB    += $(TOOLCHAIN_LINK_M) $(TOOLCHAIN_LINK_GCC)
+$(target)_DEPEND_TARGET += $(SYLIXOS_BASE_PATH)/libsylixos/$(OUTDIR)/libsylixos.a
 
 #*********************************************************************************************************
 # Targets
@@ -119,12 +139,41 @@ $($(target)_IMG): $($(target)_OBJS) $($(target)_DEPEND_TARGET)
 		@rm -f $@_nm.txt $@_dis.txt
 		$(__POST_LINK_CMD)
 else
+ifeq ($($(target)_USE_EXTENSION), yes)
+$($(target)_IMG): $(LOCAL_LD_SCRIPT_NT) $($(target)_OBJS) $($(target)_DEPEND_TARGET)
+		@echo Link $@ first time
+			@rm -f $@
+			$(__PRE_LINK_CMD)
+			$(CPP) $(__CPUFLAGS) -E -P $(__DSYMBOL) config.ld -o config.lds
+			$(__LD) $(__CPUFLAGS) $(ARCH_KERNEL_LDFLAGS) $(__LINKFLAGS) -nostdlib $(addprefix -T, $<) -o $@ $(__OBJS) $(__LIBRARIES)
+		@echo Create $(BSP_SYMBOL_LD)
+			@rm -f $(BSP_SYMBOL_LD)
+			cp $(subst $(SPACE),\ ,$(SYLIXOS_BASE_PATH))/libsylixos/SylixOS/hosttools/makelitesymbol/Makefile $(OUTDIR)
+			cp $(subst $(SPACE),\ ,$(SYLIXOS_BASE_PATH))/libsylixos/SylixOS/hosttools/makelitesymbol/makelitesymbol.bat $(OUTDIR)
+			cp $(subst $(SPACE),\ ,$(SYLIXOS_BASE_PATH))/libsylixos/SylixOS/hosttools/makelitesymbol/makelitesymbol.sh $(OUTDIR)
+			cp $(subst $(SPACE),\ ,$(SYLIXOS_BASE_PATH))/libsylixos/SylixOS/hosttools/makesymbol/nm.exe $(OUTDIR)
+			make -C $(OUTDIR) SRCFILE=$(@F) DESTFILE=$(notdir $(BSP_SYMBOL_LD))
+		@echo Create $(BSP_CERT_SRC)
+			@rm -f $(BSP_CERT_SRC)
+			$(CERT) $(BSP_SYMBOL_LD) $(BSP_CERT_SRC)
+		@echo Compile $(BSP_CERT_SRC)
+			@if [ ! -d "$(dir $(BSP_CERT_OBJ))" ]; then \
+				mkdir -p "$(dir $(BSP_CERT_OBJ))"; fi
+			@if [ ! -d "$(dir $(BSP_CERT_DEP))" ]; then \
+				mkdir -p "$(dir $(BSP_CERT_DEP))"; fi
+			$(CC) $($(notdir $@)_CFLAGS) -MMD -MP -MF $(BSP_CERT_DEP) -c $(BSP_CERT_SRC) -o $(BSP_CERT_OBJ)
+		@echo Link $@
+			@rm -f $@
+			$(__LD) $(__CPUFLAGS) $(ARCH_KERNEL_LDFLAGS) $(__LINKFLAGS) -nostdlib $(addprefix -T, $<) -o $@ $(__OBJS) $(BSP_CERT_OBJ) $(__LIBRARIES)
+			$(__POST_LINK_CMD)
+else
 $($(target)_IMG): $(LOCAL_LD_SCRIPT_NT) $($(target)_OBJS) $($(target)_DEPEND_TARGET)
 		@rm -f $@
 		$(__PRE_LINK_CMD)
 		$(CPP) $(__CPUFLAGS) -E -P $(__DSYMBOL) config.ld -o config.lds
 		$(__LD) $(__CPUFLAGS) $(ARCH_KERNEL_LDFLAGS) $(__LINKFLAGS) -nostdlib $(addprefix -T, $<) -o $@ $(__OBJS) $(__LIBRARIES)
 		$(__POST_LINK_CMD)
+endif
 endif
 
 #*********************************************************************************************************
@@ -165,31 +214,16 @@ $($(target)_STRIP_IMG): $($(target)_IMG)
 		$(__POST_STRIP_CMD)
 
 #*********************************************************************************************************
-# Create symbol link script files
-#*********************************************************************************************************
-$(OUTPATH)/SylixOSBSPSymbol.ld: $($(target)_IMG)
-		@rm -f $@
-		cp $(subst $(SPACE),\ ,$(SYLIXOS_BASE_PATH))/libsylixos/SylixOS/hosttools/makelitesymbol/Makefile $(OUTDIR)
-		cp $(subst $(SPACE),\ ,$(SYLIXOS_BASE_PATH))/libsylixos/SylixOS/hosttools/makelitesymbol/makelitesymbol.bat $(OUTDIR)
-		cp $(subst $(SPACE),\ ,$(SYLIXOS_BASE_PATH))/libsylixos/SylixOS/hosttools/makelitesymbol/makelitesymbol.sh $(OUTDIR)
-		cp $(subst $(SPACE),\ ,$(SYLIXOS_BASE_PATH))/libsylixos/SylixOS/hosttools/makesymbol/nm.exe $(OUTDIR)
-		make -C $(OUTDIR) SRCFILE=$(<F) DESTFILE=$(@F)
-
-#*********************************************************************************************************
 # Add targets
 #*********************************************************************************************************
 ifeq ($(TOOLCHAIN_COMMERCIAL), 1)
 ifeq ($($(target)_USE_EXTENSION), yes)
-TARGETS := $(TARGETS) $($(target)_IMG) $($(target)_BIN) $($(target)_SIZ) $($(target)_STRIP_IMG) $($(target)_LZO) $(OUTPATH)/SylixOSBSPSymbol.ld
+TARGETS := $(TARGETS) $($(target)_IMG) $($(target)_BIN) $($(target)_SIZ) $($(target)_STRIP_IMG) $($(target)_LZO) $(BSP_SYMBOL_LD) $(BSP_CERT_SRC) $(BSP_CERT_OBJ)
 else
 TARGETS := $(TARGETS) $($(target)_IMG) $($(target)_BIN) $($(target)_SIZ) $($(target)_STRIP_IMG) $($(target)_LZO)
 endif
 else
-ifeq ($($(target)_USE_EXTENSION), yes)
-TARGETS := $(TARGETS) $($(target)_IMG) $($(target)_BIN) $($(target)_SIZ) $($(target)_STRIP_IMG) $(OUTPATH)/SylixOSBSPSymbol.ld
-else
 TARGETS := $(TARGETS) $($(target)_IMG) $($(target)_BIN) $($(target)_SIZ) $($(target)_STRIP_IMG)
-endif
 endif
 
 #*********************************************************************************************************

@@ -1447,6 +1447,11 @@ static INT  __tpsFsStatGet (PLW_FD_ENTRY  pfdentry, struct stat *pstat)
     PTPS_INODE          ptpsinode = ptpsfile->TPSFIL_pinode;
     PTPS_SUPER_BLOCK    psb       = ptpsfile->TPSFIL_ptpsvol->TPSVOL_tpsFsVol;
 
+    if (!pstat) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
     if (__TPS_FILE_LOCK(ptpsfile) != ERROR_NONE) {
         _ErrorHandle(ENXIO);                                            /*  设备出错                    */
         return  (PX_ERROR);
@@ -1908,6 +1913,11 @@ static INT  __tpsFsTimeset (PLW_FD_ENTRY  pfdentry, struct utimbuf  *utim)
     PTPS_FILE           ptpsfile = (PTPS_FILE)pfdnode->FDNODE_pvFile;
     errno_t             iErr     = ERROR_NONE;
 
+    if (!utim) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
     if (__STR_IS_ROOT(ptpsfile->TPSFIL_cName)) {                        /*  检查是否为设备文件          */
         _ErrorHandle(ERROR_IOS_DRIVER_NOT_SUP);                         /*  不支持设备重命名            */
         return  (PX_ERROR);
@@ -2153,7 +2163,8 @@ static INT  __tpsFsIoctl (PLW_FD_ENTRY  pfdentry,
     case FIORENAME:
     case FIOTIMESET:
     case FIOCHMOD:
-        if (tpsFsGetmod(ptpsinode) == O_RDONLY) {
+        if ((ptpsvol->TPSVOL_iFlag == O_RDONLY) ||
+            (tpsFsGetmod(ptpsinode) == O_RDONLY)) {
             _ErrorHandle(EROFS);
             return  (PX_ERROR);
         }
@@ -2242,6 +2253,27 @@ static INT  __tpsFsIoctl (PLW_FD_ENTRY  pfdentry,
         *(PCHAR *)lArg = "True Power Safe FileSystem";
         return  (ERROR_NONE);
 
+    case FIOFSGETFL:                                                    /*  获取文件系统权限            */
+        if ((INT *)lArg == LW_NULL) {
+            _ErrorHandle(EINVAL);
+            return  (PX_ERROR);
+        }
+        *(INT *)lArg = ptpsvol->TPSVOL_iFlag;
+        return  (ERROR_NONE);
+        
+    case FIOFSSETFL:                                                    /*  设置文件系统权限            */
+        if (geteuid()) {
+            _ErrorHandle(EACCES);
+            return  (PX_ERROR);
+        }
+        if (((INT)lArg != O_RDONLY) && ((INT)lArg != O_RDWR)) {
+            _ErrorHandle(EINVAL);
+            return  (PX_ERROR);
+        }
+        ptpsvol->TPSVOL_iFlag = (INT)lArg;
+        KN_SMP_WMB();
+        return  (ERROR_NONE);
+
     case FIOGETFORCEDEL:                                                /*  强制卸载设备是否被允许      */
         *(BOOL *)lArg = ptpsvol->TPSVOL_bForceDelete;
         return  (ERROR_NONE);
@@ -2249,6 +2281,20 @@ static INT  __tpsFsIoctl (PLW_FD_ENTRY  pfdentry,
     case FIOSETFORCEDEL:                                                /*  设置强制卸载使能            */
         ptpsvol->TPSVOL_bForceDelete = (BOOL)lArg;
         return  (ERROR_NONE);
+
+#if LW_CFG_FS_SELECT_EN > 0
+    case FIOSELECT:
+        if (((PLW_SEL_WAKEUPNODE)lArg)->SELWUN_seltypType != SELEXCEPT) {
+            SEL_WAKE_UP((PLW_SEL_WAKEUPNODE)lArg);                      /*  唤醒节点                    */
+        }
+        return  (ERROR_NONE);
+         
+    case FIOUNSELECT:
+        if (((PLW_SEL_WAKEUPNODE)lArg)->SELWUN_seltypType != SELEXCEPT) {
+            LW_SELWUN_SET_READY((PLW_SEL_WAKEUPNODE)lArg);
+        }
+        return  (ERROR_NONE);
+#endif                                                                  /*  LW_CFG_FS_SELECT_EN > 0     */
 
 #ifdef __SYLIXOS_DEBUG
     case TPSFS_IOCTRL_INODE_PRINT:                                      /*  打印inode信息，用于调试     */
