@@ -87,7 +87,7 @@ VOID  archFpuSecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
     _DebugFormat(__LOGMESSAGE_LEVEL, "%s %s %s FPU sec-core initialization.\r\n",
                  LW_CFG_CPU_ARCH_FAMILY, pcMachineName, pcFpuName);
 
-    if (lib_strcmp(pcFpuName, CSKY_FPU_NONE) == 0) {                /*  选择 VFP 架构               */
+    if (lib_strcmp(pcFpuName, CSKY_FPU_NONE) == 0) {                    /*  选择 VFP 架构               */
         cskyVfpNoneSecondaryInit(pcMachineName, pcFpuName);
 
     } else if ((lib_strcmp(pcFpuName, CSKY_FPU_FPUV1) == 0) ||

@@ -177,7 +177,7 @@ struct netif *aodv_netif_add (struct netif *netif, ip4_addr_t *ipaddr, ip4_addr_
   
   netif_set_link_down(netif); /* wait on reboot */
   
-  return ERR_OK;
+  return netif;
 }
 
 /**

@@ -553,6 +553,19 @@ static INT  __socketIoctl (SOCKET_T *psock, INT  iCmd, PVOID  pvArg)
             case SIOCSIFHWADDR:
                 iRet = __ifIoctlPacket(iCmd, pvArg);
                 break;
+            
+            case SIOCG802154PANID:
+            case SIOCS802154PANID:
+            case SIOCG802154SHRTADDR:
+            case SIOCS802154SHRTADDR:
+            case SIOCG802154CTX:
+            case SIOCS802154CTX:
+            case SIOCG7668DSTADDR:
+            case SIOCS7668DSTADDR:
+            case SIOCG7668CTX:
+            case SIOCS7668CTX:
+                iRet = __ifIoctlLp(iCmd, pvArg);
+                break;
                 
             case SIOCSARP:
             case SIOCGARP:
@@ -648,6 +661,19 @@ static INT  __socketIoctl (SOCKET_T *psock, INT  iCmd, PVOID  pvArg)
             case SIOCGIFDSTADDR6:
             case SIOCDIFADDR6:
                 iRet = __ifIoctlInet(iCmd, pvArg);
+                break;
+                
+            case SIOCG802154PANID:
+            case SIOCS802154PANID:
+            case SIOCG802154SHRTADDR:
+            case SIOCS802154SHRTADDR:
+            case SIOCG802154CTX:
+            case SIOCS802154CTX:
+            case SIOCG7668DSTADDR:
+            case SIOCS7668DSTADDR:
+            case SIOCG7668CTX:
+            case SIOCS7668CTX:
+                iRet = __ifIoctlLp(iCmd, pvArg);
                 break;
                 
             case SIOCSARP:

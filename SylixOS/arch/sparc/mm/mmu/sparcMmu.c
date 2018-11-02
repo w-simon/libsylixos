@@ -827,7 +827,7 @@ static INT  sparcMmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  ul
 
         if (sparcMmuPmdIsOk(*p_pmdentry)) {                             /*  二级描述符有效              */
             LW_PTE_TRANSENTRY  *p_pteentry = sparcMmuPteOffset(p_pmdentry,
-                                                               ulAddr); /*  获得三级描述符地址         */
+                                                               ulAddr); /*  获得三级描述符地址          */
             LW_PTE_TRANSENTRY   pteentry   = *p_pteentry;               /*  获得三级描述符              */
 
             if (sparcMmuPteIsOk(pteentry)) {                            /*  三级描述符有效              */

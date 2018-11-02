@@ -199,7 +199,7 @@ MACRO_DEF(EXC_COPY_VOLATILE)
 
 MACRO_DEF(EXC_SAVE_NON_VOLATILE)
     MOV     X1  , #0
-    STR     X1  , [X0, #CTX_TYPE_OFFSET]                               ;/*  设置为大上下文               */
+    STR     X1  , [X0, #CTX_TYPE_OFFSET]                                ;/*  设置为大上下文              */
     STP     X19 , X20 , [X0 , #XGREG_OFFSET(19)]
     STP     X21 , X22 , [X0 , #XGREG_OFFSET(21)]
     STP     X23 , X24 , [X0 , #XGREG_OFFSET(23)]

@@ -63,7 +63,7 @@ static int csky_get_insn (unsigned long  addr, unsigned int  *insn)
         return  (2);
     }
 }
- /*********************************************************************************************************
+ /********************************************************************************************************
  ** 函数名称: csky_analyze_prologue
  ** 功能描述: 分析堆栈
  ** 输　入  : start_pc        起始地址
@@ -75,7 +75,7 @@ static int csky_get_insn (unsigned long  addr, unsigned int  *insn)
  ** 输　出  : NONE
  ** 全局变量:
  ** 调用模块:
- *********************************************************************************************************/
+ ********************************************************************************************************/
 static void  csky_analyze_prologue (unsigned long   start_pc,    unsigned long   limit_pc,
                                     unsigned long  *r15_offset,  unsigned long  *r8_offset,
                                     unsigned long  *subi_len,    unsigned long  *subi2_len)

@@ -50,6 +50,8 @@
 #include "lwip/tcpip.h"
 #include "lwip/sockets.h"
 #include "netif/ethernet.h"
+#include "netif/lowpan6.h"
+#include "netif/lowpan6_ble.h"
 #include "net/if_lock.h"
 #include "net/if_flags.h"
 #include "net/if_param.h"
@@ -78,6 +80,20 @@
 /* functions declaration */
 static struct netdev_mac *netdev_macfilter_find(netdev_t *netdev, const UINT8 hwaddr[], struct netdev_mac **prev_save);
 static void netdev_macfilter_clean(netdev_t *netdev);
+
+/* lowpan6 timer */
+#if LWIP_IPV6
+static u8_t lowpan6_timer = 0;
+
+/* Helper function that calls the 6LoWPAN timer and reschedules itself */
+static void netdev_lowpan6_timer (void *arg)
+{
+  lowpan6_tmr();
+  if (lowpan6_timer) {
+    sys_timeout(LOWPAN6_TMR_INTERVAL, netdev_lowpan6_timer, arg);
+  }
+}
+#endif /* LWIP_IPV6 */
 
 /* lwip netif up hook function */
 static void  netdev_netif_up (struct netif *netif)
@@ -350,7 +366,7 @@ static int  netdev_netif_ioctl (struct netif *netif, int cmd, void *arg)
       ret = 0;
     }
     break;
-      
+
   default:
     if (netdev->drv->ioctl) {
       ret = netdev->drv->ioctl(netdev, cmd, arg);
@@ -359,6 +375,12 @@ static int  netdev_netif_ioctl (struct netif *netif, int cmd, void *arg)
   }
   
   return (ret);
+}
+
+/* lwip netif null output4 hook function */
+static err_t  netdev_netif_nulloutput4 (struct netif *netif, struct pbuf *p, const ip4_addr_t *ipaddr)
+{
+  return (ERR_IF);
 }
 
 /* lwip netif rawoutput hook function */
@@ -419,6 +441,7 @@ static err_t  netdev_netif_linkoutput (struct netif *netif, struct pbuf *p)
 /* lwip netif linkinput hook function */
 static int  netdev_netif_linkinput (netdev_t *netdev, struct pbuf *p)
 {
+  err_t err;
   struct netif *netif = (struct netif *)netdev->sys;
   struct eth_hdr *eh;
   
@@ -462,12 +485,26 @@ static int  netdev_netif_linkinput (netdev_t *netdev, struct pbuf *p)
   }
 #endif /* LW_CFG_NET_NETDEV_MIP_EN */
 
-  if (netif->input(p, netif)) {
-    return (-1);
+  switch (netdev->net_type) {
+  
+  case NETDEV_TYPE_RAW:
+  case NETDEV_TYPE_ETHERNET:
+    err = netif->input(p, netif);
+    break;
     
-  } else {
-    return (0);
+  case NETDEV_TYPE_6LOWPAN:
+    err = tcpip_6lowpan_input(p, netif);
+    break;
+    
+  case NETDEV_TYPE_6LOWPAN_BLE:
+    err = tcpip_rfc7668_input(p, netif);
+    break;
+    
+  default:
+    return (-1);
   }
+  
+  return ((err) ? (-1) : (0));
 }
 
 /* lwip netif linkup changed */
@@ -535,6 +572,33 @@ static err_t  netdev_netif_init (struct netif *netif)
     netif->output_ip6 = ethip6_output;
 #endif /* LWIP_IPV6 */
     break;
+    
+  case NETDEV_TYPE_6LOWPAN:
+    MIB2_INIT_NETIF(netif, snmp_ifType_other, 0);
+    netif->flags = NETIF_FLAG_BROADCAST;
+    netif->output = netdev_netif_nulloutput4;
+#if LWIP_IPV6
+    netif->output_ip6 = lowpan6_output;
+    if (!lowpan6_timer) {
+      sys_timeout(LOWPAN6_TMR_INTERVAL, netdev_lowpan6_timer, NULL);
+      lowpan6_timer = 1;
+    }
+#endif /* LWIP_IPV6 */
+    break;
+    
+  case NETDEV_TYPE_6LOWPAN_BLE:
+    MIB2_INIT_NETIF(netif, snmp_ifType_other, 0);
+    netif->flags = 0;
+    netif->output = netdev_netif_nulloutput4;
+#if LWIP_IPV6
+    netif->output_ip6 = rfc7668_output;
+    if (netdev->hwaddr_len >= 8) {
+      rfc7668_set_local_addr_eui64(netif, netdev->hwaddr, netif->hwaddr_len);
+    } else {
+      rfc7668_set_local_addr_mac48(netif, netdev->hwaddr, netif->hwaddr_len, 0); /* not public ? */
+    }
+#endif /* LWIP_IPV6 */
+    break;
   
   default:
     MIB2_INIT_NETIF(netif, snmp_ifType_other, (u32_t)netdev->speed);
@@ -554,7 +618,7 @@ static err_t  netdev_netif_init (struct netif *netif)
   
 #if LWIP_IPV6
   if (netdev->init_flags & NETDEV_INIT_IPV6_AUTOCFG) {
-    netif->ip6_autoconfig_enabled = 1;
+    netif_set_ip6_autoconfig_enabled(netif, 1);
   }
 #endif /* LWIP_IPV6 */
   
@@ -576,12 +640,14 @@ static err_t  netdev_netif_init (struct netif *netif)
   
   if (netdev->if_flags & IFF_MULTICAST) {
     netif->flags |= NETIF_FLAG_IGMP | NETIF_FLAG_MLD6;
+    if (netdev->net_type == NETDEV_TYPE_ETHERNET) {
 #if LWIP_IPV4 && LWIP_IGMP
-    netif->igmp_mac_filter = netdev_netif_igmp_mac_filter;
+      netif->igmp_mac_filter = netdev_netif_igmp_mac_filter;
 #endif /* LWIP_IPV4 && LWIP_IGMP */
 #if LWIP_IPV6 && LWIP_IPV6_MLD
-    netif->mld_mac_filter = netdev_netif_mld_mac_filter;
+      netif->mld_mac_filter = netdev_netif_mld_mac_filter;
 #endif /* LWIP_IPV6 && LWIP_IPV6_MLD */
+    }
   }
   
   if (netdev->if_flags & IFF_NOARP) {
@@ -843,7 +909,20 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
   }
 
 #if LWIP_IPV6
-  netif_create_ip6_linklocal_address(netif, 1);
+  switch (netdev->net_type) {
+  
+  case NETDEV_TYPE_ETHERNET:
+    netif_create_ip6_linklocal_address(netif, 1);
+    break;
+    
+  case NETDEV_TYPE_6LOWPAN:
+  case NETDEV_TYPE_6LOWPAN_BLE:
+    netif_create_ip6_linklocal_address(netif, 0);
+    break;
+
+  default:
+    break;
+  }
 #endif /* LWIP_IPV6 */
   
   if (netdev->init_flags & NETDEV_INIT_AS_DEFAULT) {

@@ -3171,7 +3171,7 @@ static ssize_t  __procFsNetAodvRead (PLW_PROCFS_NODE  p_pfsn,
                               TTL_INCREMENT,
                               TTL_THRESHOLD,
                               AODV_MCAST,
-#if LWIP_IGMP > 0
+#if AODV_MCAST > 0
                               GROUP_HELLO_INTERVAL,
                               RREP_WAIT_TIME,
                               PRUNE_TIMEOUT,

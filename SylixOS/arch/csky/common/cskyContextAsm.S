@@ -235,19 +235,19 @@ FUNC_DEF(archTaskCtxCopy)
     LD.W        A2 , (A1 , (31 * ARCH_REG_SIZE))
     ST.W        A2 , (A0 , (31 * ARCH_REG_SIZE))
     
-    LD.W        A2 , (A1 , (32 * ARCH_REG_SIZE))                        /*   PC                         */
+    LD.W        A2 , (A1 , (32 * ARCH_REG_SIZE))                        ;/*   PC                         */
     ST.W        A2 , (A0 , (32 * ARCH_REG_SIZE))
     
-    LD.W        A2 , (A1 , (33 * ARCH_REG_SIZE))                        /*   PSR                        */
+    LD.W        A2 , (A1 , (33 * ARCH_REG_SIZE))                        ;/*   PSR                        */
     ST.W        A2 , (A0 , (33 * ARCH_REG_SIZE))
     
-    LD.W        A2 , (A1 , (34 * ARCH_REG_SIZE))                        /*   LO                         */
+    LD.W        A2 , (A1 , (34 * ARCH_REG_SIZE))                        ;/*   LO                         */
     ST.W        A2 , (A0 , (34 * ARCH_REG_SIZE))
     
-    LD.W        A2 , (A1 , (35 * ARCH_REG_SIZE))                        /*   HI                         */
+    LD.W        A2 , (A1 , (35 * ARCH_REG_SIZE))                        ;/*   HI                         */
     ST.W        A2 , (A0 , (35 * ARCH_REG_SIZE))
 
-    LD.W        A2 , (A1 , (36 * ARCH_REG_SIZE))                        /*   MEH                        */
+    LD.W        A2 , (A1 , (36 * ARCH_REG_SIZE))                        ;/*   MEH                        */
     ST.W        A2 , (A0 , (36 * ARCH_REG_SIZE))
 
     RTS

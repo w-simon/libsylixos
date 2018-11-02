@@ -236,6 +236,67 @@ struct in6_ifreq {
 #define SIOCDIFADDR6        _IOW('i', 35, struct in6_ifreq)
 
 /*********************************************************************************************************
+  6lowpan IEEE802.15.4
+*********************************************************************************************************/
+
+struct ieee802154_ifreq {
+    union {
+        char                ifrn_name[IFNAMSIZ];                /* if name, e.g. "LP1"                  */
+    } ifr802154_ifrn;
+    union {
+        uint16_t            ifru_panid;
+        uint16_t            ifru_shortaddr;
+        struct {
+            uint8_t         ifrc_index;                         /* 0 ~ 15                               */
+            struct in6_addr ifrc_ctxaddr;
+        } ifru_ctx;
+    } ifr802154_ifru;
+};
+
+#define ifr802154_name      ifr802154_ifrn.ifrn_name
+#define ifr802154_pandid    ifr802154_ifru.ifru_panid
+#define ifr802154_shortaddr ifr802154_ifru.ifru_shortaddr
+#define ifr802154_ctxindex  ifr802154_ifru.ifru_ctx.ifrc_index
+#define ifr802154_ctxaddr   ifr802154_ifru.ifru_ctx.ifrc_ctxaddr
+
+#define SIOCG802154PANID    _IOR('i', 200, struct ieee802154_ifreq)
+#define SIOCS802154PANID    _IOW('i', 200, struct ieee802154_ifreq)
+
+#define SIOCG802154SHRTADDR _IOR('i', 201, struct ieee802154_ifreq)
+#define SIOCS802154SHRTADDR _IOW('i', 201, struct ieee802154_ifreq)
+
+#define SIOCG802154CTX      _IOR('i', 202, struct ieee802154_ifreq)
+#define SIOCS802154CTX      _IOW('i', 202, struct ieee802154_ifreq)
+
+/*********************************************************************************************************
+  6lowpan RFC7668
+*********************************************************************************************************/
+
+struct rfc7668_ifreq {
+    union {
+        char                ifrn_name[IFNAMSIZ];                /* if name, e.g. "LP1"                  */
+    } ifr7668_ifrn;
+    union {
+        struct in6_addr     ifru_dstaddr;
+        struct {
+            uint8_t         ifrc_index;                         /* 0 ~ 15                               */
+            struct in6_addr ifrc_ctxaddr;
+        } ifru_ctx;
+    } ifr7668_ifru;
+};
+
+#define ifr7668_name        ifr7668_ifrn.ifrn_name
+#define ifr7668_dstaddr     ifr7668_ifru.ifru_dstaddr
+#define ifr7668_ctxindex    ifr7668_ifru.ifru_ctx.ifrc_index
+#define ifr7668_ctxaddr     ifr7668_ifru.ifru_ctx.ifrc_ctxaddr
+
+#define SIOCG7668DSTADDR    _IOR('i', 210, struct rfc7668_ifreq)
+#define SIOCS7668DSTADDR    _IOW('i', 210, struct rfc7668_ifreq)
+
+#define SIOCG7668CTX        _IOR('i', 211, struct rfc7668_ifreq)
+#define SIOCS7668CTX        _IOW('i', 211, struct rfc7668_ifreq)
+
+/*********************************************************************************************************
   proto private 0x89e0 ~ 0x89ef
 *********************************************************************************************************/
 
@@ -245,7 +306,7 @@ struct in6_ifreq {
   device private 0x89f0 ~ 0x89ff
 *********************************************************************************************************/
 
-#define SIOCDEVPRIVATE      0x89f0                              /* to 89ff                              */
+#define SIOCDEVPRIVATE      0x89f0                              /* to 0x89ff                            */
 
 /*********************************************************************************************************
   Structure describing information about an interface

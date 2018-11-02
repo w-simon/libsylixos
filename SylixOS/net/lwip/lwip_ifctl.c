@@ -32,6 +32,8 @@
 #include "sys/socket.h"
 #include "lwip/netif.h"
 #include "lwip/tcpip.h"
+#include "netif/lowpan6.h"
+#include "netif/lowpan6_ble.h"
 #if LW_CFG_NET_WIRELESS_EN > 0
 #include "net/if_wireless.h"
 #include "./wireless/lwip_wl.h"
@@ -461,7 +463,7 @@ static INT  __ifSubIoctlAlias4 (INT  iCmd, PVOID  pvArg)
     }
     
     pnetdev = netdev_find_by_ifname(pifreq->ifr_name);
-    if (pnetif == LW_NULL) {
+    if (pnetdev == LW_NULL) {
         _ErrorHandle(EADDRNOTAVAIL);                                    /*  未找到指定的网络设备        */
         return  (iRet);
     }
@@ -876,6 +878,206 @@ INT  __ifIoctlPacket (INT  iCmd, PVOID  pvArg)
         LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
         break;
     
+    default:
+        _ErrorHandle(ENOSYS);
+        break;
+    }
+    
+    return  (iRet);
+}
+/*********************************************************************************************************
+** 函数名称: __ifIoctlLp802154
+** 功能描述: 6LowPAN 网络接口 ioctl 操作
+** 输　入  : iCmd      命令
+**           pifreq    参数
+** 输　出  : 处理结果
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static INT  __ifIoctlLp802154 (INT  iCmd, struct ieee802154_ifreq *pifreq)
+{
+    INT              iRet = PX_ERROR;
+    UINT8            ucHigh, ucLow;
+    struct netif    *pnetif;
+    struct netdev   *pnetdev;
+    ip6_addr_t       ip6addr;
+    
+    pnetif = netif_find(pifreq->ifr802154_name);
+    if (pnetif == LW_NULL) {
+        _ErrorHandle(EADDRNOTAVAIL);                                    /*  未找到指定的网络接口        */
+        return  (iRet);
+    }
+    
+    pnetdev = netdev_find_by_ifname(pifreq->ifr802154_name);
+    if ((pnetdev == LW_NULL) || 
+        (pnetdev->net_type != NETDEV_TYPE_6LOWPAN)) {
+        _ErrorHandle(EADDRNOTAVAIL);                                    /*  未找到指定的网络设备        */
+        return  (iRet);
+    }
+    
+    switch (iCmd) {                                                     /*  命令预处理                  */
+    
+    case SIOCG802154PANID:
+        lowpan6_get_pan_id(&pifreq->ifr802154_pandid);
+        iRet = ERROR_NONE;
+        break;
+    
+    case SIOCS802154PANID:
+        lowpan6_set_pan_id(pifreq->ifr802154_pandid);
+        iRet = ERROR_NONE;
+        break;
+        
+    case SIOCG802154SHRTADDR:
+        lowpan6_get_short_addr(&ucHigh, &ucLow);
+        pifreq->ifr802154_shortaddr = (uint16_t)((ucHigh << 16) + ucLow);
+        iRet = ERROR_NONE;
+        break;
+    
+    case SIOCS802154SHRTADDR:
+        ucHigh = (UINT8)((pifreq->ifr802154_shortaddr >> 8) & 0xff);
+        ucLow = (UINT8)(pifreq->ifr802154_shortaddr & 0xff);
+        lowpan6_set_short_addr(ucHigh, ucLow);
+        iRet = ERROR_NONE;
+        break;
+        
+    case SIOCG802154CTX:
+        if (lowpan6_get_context(pifreq->ifr802154_ctxindex, &ip6addr)) {
+            _ErrorHandle(EINVAL);
+        } else {
+            inet6_addr_from_ip6addr(&pifreq->ifr802154_ctxaddr, &ip6addr);
+            iRet = ERROR_NONE;
+        }
+        break;
+    
+    case SIOCS802154CTX:
+        inet6_addr_to_ip6addr(&ip6addr, &pifreq->ifr802154_ctxaddr);
+        if (lowpan6_set_context(pifreq->ifr802154_ctxindex, &ip6addr)) {
+            _ErrorHandle(EINVAL);
+        } else {
+            iRet = ERROR_NONE;
+        }
+        break;
+
+    default:
+        _ErrorHandle(ENOSYS);
+        break;
+    }
+    
+    return  (iRet);
+}
+/*********************************************************************************************************
+** 函数名称: __ifIoctlLp7668
+** 功能描述: 6LowPAN 网络接口 ioctl 操作
+** 输　入  : iCmd      命令
+**           pifreq    参数
+** 输　出  : 处理结果
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static INT  __ifIoctlLp7668 (INT  iCmd, struct rfc7668_ifreq *pifreq)
+{
+    INT              iRet = PX_ERROR;
+    struct netif    *pnetif;
+    struct netdev   *pnetdev;
+    ip6_addr_t       ip6addr;
+    UINT8            ucAddr[8];
+    
+    pnetif = netif_find(pifreq->ifr7668_name);
+    if (pnetif == LW_NULL) {
+        _ErrorHandle(EADDRNOTAVAIL);                                    /*  未找到指定的网络接口        */
+        return  (iRet);
+    }
+    
+    pnetdev = netdev_find_by_ifname(pifreq->ifr7668_name);
+    if ((pnetdev == LW_NULL) || 
+        (pnetdev->net_type != NETDEV_TYPE_6LOWPAN_BLE)) {
+        _ErrorHandle(EADDRNOTAVAIL);                                    /*  未找到指定的网络设备        */
+        return  (iRet);
+    }
+    
+    switch (iCmd) {                                                     /*  命令预处理                  */
+    
+    case SIOCG7668DSTADDR:
+        break;
+        
+    case SIOCS7668DSTADDR:
+        ucAddr[0] = (UINT8)((pifreq->ifr7668_dstaddr.s6_addr32[2] >> 24) & 0xff);
+        ucAddr[1] = (UINT8)((pifreq->ifr7668_dstaddr.s6_addr32[2] >> 16) & 0xff);
+        ucAddr[2] = (UINT8)((pifreq->ifr7668_dstaddr.s6_addr32[2] >> 8)  & 0xff);
+        ucAddr[3] = (UINT8)((pifreq->ifr7668_dstaddr.s6_addr32[2])       & 0xff);
+        ucAddr[4] = (UINT8)((pifreq->ifr7668_dstaddr.s6_addr32[3] >> 24) & 0xff);
+        ucAddr[5] = (UINT8)((pifreq->ifr7668_dstaddr.s6_addr32[3] >> 16) & 0xff);
+        ucAddr[6] = (UINT8)((pifreq->ifr7668_dstaddr.s6_addr32[3] >>  8) & 0xff);
+        ucAddr[7] = (UINT8)((pifreq->ifr7668_dstaddr.s6_addr32[3])       & 0xff);
+        rfc7668_set_local_addr_eui64(pnetif, ucAddr, 8);
+        iRet = ERROR_NONE;
+        break;
+            
+    case SIOCG7668CTX:
+        if (rfc7668_get_context(pifreq->ifr7668_ctxindex, &ip6addr)) {
+            _ErrorHandle(EINVAL);
+        } else {
+            inet6_addr_from_ip6addr(&pifreq->ifr7668_ctxaddr, &ip6addr);
+            iRet = ERROR_NONE;
+        }
+        break;
+        
+    case SIOCS7668CTX:
+        inet6_addr_to_ip6addr(&ip6addr, &pifreq->ifr7668_ctxaddr);
+        if (rfc7668_set_context(pifreq->ifr7668_ctxindex, &ip6addr)) {
+            _ErrorHandle(EINVAL);
+        } else {
+            iRet = ERROR_NONE;
+        }
+        break;
+        
+    default:
+        _ErrorHandle(ENOSYS);
+        break;
+    }
+    
+    return  (iRet);
+}
+/*********************************************************************************************************
+** 函数名称: __ifIoctlLp
+** 功能描述: 6LowPAN 网络接口 ioctl 操作
+** 输　入  : iCmd      命令
+**           pvArg     参数
+** 输　出  : 处理结果
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+INT  __ifIoctlLp (INT  iCmd, PVOID  pvArg)
+{
+    INT  iRet = PX_ERROR;
+
+    if (pvArg == LW_NULL) {
+        _ErrorHandle(EINVAL);
+        return  (iRet);
+    }
+    
+    switch (iCmd) {                                                     /*  命令预处理                  */
+    
+    case SIOCG802154PANID:
+    case SIOCS802154PANID:
+    case SIOCG802154SHRTADDR:
+    case SIOCS802154SHRTADDR:
+    case SIOCG802154CTX:
+    case SIOCS802154CTX:
+        LWIP_IF_LIST_LOCK(LW_FALSE);                                    /*  进入临界区                  */
+        iRet = __ifIoctlLp802154(iCmd, (struct ieee802154_ifreq *)pvArg);
+        LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
+        break;
+    
+    case SIOCG7668DSTADDR:
+    case SIOCS7668DSTADDR:
+    case SIOCG7668CTX:
+    case SIOCS7668CTX:
+        LWIP_IF_LIST_LOCK(LW_FALSE);                                    /*  进入临界区                  */
+        iRet = __ifIoctlLp7668(iCmd, (struct rfc7668_ifreq *)pvArg);
+        LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
+        break;
+
     default:
         _ErrorHandle(ENOSYS);
         break;

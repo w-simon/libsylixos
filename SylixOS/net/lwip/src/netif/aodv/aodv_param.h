@@ -69,7 +69,7 @@
 
 /* multicast support */
 #if LWIP_IGMP
-#define AODV_MCAST                      1
+#define AODV_MCAST                      0  /* for test only */
 #else
 #define AODV_MCAST                      0
 #endif /* LWIP_IGMP */

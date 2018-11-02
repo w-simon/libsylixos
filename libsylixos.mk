@@ -1520,7 +1520,11 @@ SylixOS/net/lwip/src/core/ipv6/nd6.c \
 SylixOS/net/lwip/src/netif/ethernet.c \
 SylixOS/net/lwip/src/netif/ethernetif.c \
 SylixOS/net/lwip/src/netif/ifqueue.c \
+SylixOS/net/lwip/src/netif/lowpan6_ble.c \
+SylixOS/net/lwip/src/netif/lowpan6_common.c \
+SylixOS/net/lwip/src/netif/lowpan6.c \
 SylixOS/net/lwip/src/netif/slipif.c \
+SylixOS/net/lwip/src/netif/zepif.c \
 SylixOS/net/lwip/src/netif/aodv/aodv_hello.c \
 SylixOS/net/lwip/src/netif/aodv/aodv_if.c \
 SylixOS/net/lwip/src/netif/aodv/aodv_mcast.c \

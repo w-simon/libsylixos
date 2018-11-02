@@ -188,14 +188,14 @@ typedef struct netdev {
 #define NETDEV_CHKSUM_DISABLE_ALL  0x0000   /* tcp/ip stack will not gen/check all chksum */
   UINT32 chksum_flags;
 
-#define NETDEV_TYPE_RAW         0
-#define NETDEV_TYPE_ETHERNET    1
-#define NETDEV_TYPE_6LOWPAN     2
-#define NETDEV_TYPE_6LOWPAN_BLE 3
+#define NETDEV_TYPE_RAW             0
+#define NETDEV_TYPE_ETHERNET        1
+#define NETDEV_TYPE_6LOWPAN         2
+#define NETDEV_TYPE_6LOWPAN_BLE     3
   UINT32 net_type;
   
   UINT64 speed; /* link layer speed bps */
-  UINT32 mtu;   /* link layer max packet length */
+  UINT32 mtu;   /* link layer max packet length (6LowPAN must be 1280) */
   
   UINT8 hwaddr_len;                     /* link layer address length MUST 6 or 8 */
   UINT8 hwaddr[NETIF_MAX_HWADDR_LEN];   /* link layer address */
