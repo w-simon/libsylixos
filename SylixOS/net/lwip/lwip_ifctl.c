@@ -38,6 +38,7 @@
 #include "net/if_wireless.h"
 #include "./wireless/lwip_wl.h"
 #endif                                                                  /*  LW_CFG_NET_WIRELESS_EN > 0  */
+#include "netdev/netdev.h"
 #if LW_CFG_NET_NETDEV_MIP_EN > 0
 #include "netdev/netdev_mip.h"
 #endif

@@ -204,6 +204,12 @@ static LW_INLINE VOID  _SchedCpuDown (PLW_CLASS_CPU  pcpuCur, BOOL  bIsIntSwitch
     
     __LW_SMP_NOTIFY(ulCPUId);                                           /*  请求其他 CPU 调度           */
     
+    pcpuCur->CPU_ulStatus &= ~LW_CPU_STATUS_RUNNING;
+    
+    LW_CPU_CLR_IPI_PEND2(pcpuCur, LW_IPI_DOWN_MSK);                     /*  清除 CPU 关闭标志           */
+    
+    LW_SPIN_KERN_UNLOCK_SCHED(ptcbCur);                                 /*  解锁内核 spinlock           */
+
 #if LW_CFG_CACHE_EN > 0
     API_CacheDisable(DATA_CACHE);                                       /*  禁能 CACHE                  */
     API_CacheDisable(INSTRUCTION_CACHE);
@@ -212,12 +218,6 @@ static LW_INLINE VOID  _SchedCpuDown (PLW_CLASS_CPU  pcpuCur, BOOL  bIsIntSwitch
 #if LW_CFG_VMM_EN > 0
     API_VmmMmuDisable();                                                /*  关闭 MMU                    */
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
-    
-    pcpuCur->CPU_ulStatus &= ~LW_CPU_STATUS_RUNNING;
-    
-    LW_CPU_CLR_IPI_PEND2(pcpuCur, LW_IPI_DOWN_MSK);                     /*  清除 CPU 关闭标志           */
-    
-    LW_SPIN_KERN_UNLOCK_SCHED(ptcbCur);                                 /*  解锁内核 spinlock           */
 
     LW_SPINLOCK_NOTIFY();
     bspCpuDown(ulCPUId);                                                /*  BSP 停止 CPU                */

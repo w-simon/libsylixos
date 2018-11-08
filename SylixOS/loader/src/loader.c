@@ -455,7 +455,7 @@ LW_LD_EXEC_MODULE *moduleLoadSub (LW_LD_EXEC_MODULE *pmodule, CPCHAR pcLibName, 
 *********************************************************************************************************/
 static INT initArrayCall (LW_LD_EXEC_MODULE *pmodule)
 {
-    INT                i;
+    INT                i, iRet;
     VOIDFUNCPTR        pfuncInit = LW_NULL;
     LW_LD_EXEC_MODULE *pmodTemp  = LW_NULL;
     LW_LIST_RING      *pringTemp = _list_ring_get_prev(&pmodule->EMOD_ringModules);
@@ -481,9 +481,15 @@ static INT initArrayCall (LW_LD_EXEC_MODULE *pmodule)
 
             if (pmodTemp->EMOD_pfuncInit) {
                 LW_SOFUNC_PREPARE(pmodTemp->EMOD_pfuncInit);
-                if (pmodTemp->EMOD_pfuncInit() < 0) {
-                    LW_VP_UNLOCK(pmodule->EMOD_pvproc);
-                    return  (PX_ERROR);
+                iRet = pmodTemp->EMOD_pfuncInit();
+                if (pmodTemp->EMOD_ulModType == LW_LD_MOD_TYPE_KO) {    /*  内核模块需要判断返回值      */
+                    if (iRet < 0) {
+                        LW_VP_UNLOCK(pmodule->EMOD_pvproc);
+                        return  (PX_ERROR);
+                    
+                    } else if (iRet == LW_INIT_RET_UNLOAD_DISALLOW) {
+                        pmodTemp->EMOD_bKoUnloadDisallow = LW_TRUE;     /*  不允许卸载                  */
+                    }
                 }
             }
             
@@ -996,6 +1002,10 @@ INT  API_ModuleUnload (PVOID  pvModule)
         uid_t   euid = geteuid();
         if (euid != 0) {
             _ErrorHandle(EACCES);                                       /*  没有权限                    */
+            return  (PX_ERROR);
+        }
+        if (pmodule->EMOD_bKoUnloadDisallow) {
+            _ErrorHandle(EBUSY);                                        /*  不允许卸载                  */
             return  (PX_ERROR);
         }
     }

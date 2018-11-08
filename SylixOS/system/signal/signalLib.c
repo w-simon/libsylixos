@@ -249,7 +249,9 @@ static VOID  __signalStkShowHandle (PLW_CLASS_SIGCTLMSG   psigctlmsg)
 #endif                                                                  /*  LW_CFG_ABORT_CALLSTACK_IN...*/
 
 #if LW_CFG_DEVICE_EN > 0
-    archTaskCtxShow(STD_OUT, &psigctlmsg->SIGCTLMSG_archRegCtx);
+    if (psigctlmsg) {
+        archTaskCtxShow(STD_OUT, &psigctlmsg->SIGCTLMSG_archRegCtx);
+    }
 #endif                                                                  /*  LW_CFG_DEVICE_EN > 0        */
 }
 /*********************************************************************************************************

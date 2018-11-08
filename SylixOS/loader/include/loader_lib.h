@@ -152,6 +152,7 @@ typedef struct {
     LW_LIST_RING            EMOD_ringModules;                           /*  进程中所有的库链表          */
     PVOID                   EMOD_pvFormatInfo;                          /*  重定位相关信息              */
 
+    BOOL                    EMOD_bKoUnloadDisallow;                     /*  不允许卸载内核模块          */
     LW_LIST_MONO_HEADER     EMOD_pmonoAtexit;                           /*  内核模块 atexit             */
 
 #ifdef LW_CFG_CPU_ARCH_ARM

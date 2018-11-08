@@ -254,7 +254,7 @@ int module_init (void)
     ipc_shm_init();
     ipc_proc_init(); /* init procfs file node */
 	
-	return  (ERROR_NONE);
+	return  (LW_INIT_RET_UNLOAD_DISALLOW); /* 1.8.8 kernel has this macro */
 }
 
 /*

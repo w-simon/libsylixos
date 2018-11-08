@@ -88,7 +88,7 @@ static VOID  __makeOtherDown (VOID)
     PLW_CLASS_TCB   ptcbIdle;
     BOOL            bRunning;
     
-    LW_CPU_FOREACH_EXCEPT (i, 0) {                                      /*  除 0 以外的其他 CPU         */
+    LW_CPU_FOREACH_ACTIVE_EXCEPT (i, 0) {                               /*  除 0 以外的其他 CPU         */
         ptcbIdle = _K_ptcbIdle[i];
         if (!LW_PRIO_IS_EQU(ptcbIdle->TCB_ucPriority, LW_PRIO_HIGHEST)) {
             __KERNEL_ENTER();                                           /*  进入内核                    */
