@@ -308,8 +308,8 @@ ULONG  API_ThreadRestartEx (LW_OBJECT_HANDLE  ulId, PTHREAD_START_ROUTINE  pfunc
     if (ptcb->TCB_usStatus & LW_THREAD_STATUS_INIT) {
         __KERNEL_EXIT();                                                /*  退出内核                    */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "thread is Initializing.\r\n");
-        _ErrorHandle(ERROR_THREAD_JOIN);
-        return  (ERROR_THREAD_JOIN);
+        _ErrorHandle(ERROR_THREAD_INIT);
+        return  (ERROR_THREAD_INIT);
     }
     
     ptcb->TCB_iDeleteProcStatus = LW_TCB_DELETE_PROC_RESTART;           /*  进入重启过程                */

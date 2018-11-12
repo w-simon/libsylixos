@@ -380,7 +380,11 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrT
 #define LWIP_TCP_SACK_OUT               1
 
 #ifndef TCP_MSS
-#define TCP_MSS                         1460                            /*  usually                     */
+#ifdef __SYLIXOS_LITE
+#define TCP_MSS                         1460
+#else
+#define TCP_MSS                         4096                            /*  WND Min is 8K               */
+#endif
 #endif                                                                  /*  TCP_MSS                     */
 
 #define TCP_CALCULATE_EFF_SEND_MSS      1                               /*  use effective send MSS      */

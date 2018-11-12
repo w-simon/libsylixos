@@ -87,6 +87,7 @@
                                                                         /*  删除自己                    */
 #define ERROR_THREAD_NEED_SIGNAL_SPT     525                            /*  需要信号系统支持            */
 #define ERROR_THREAD_DISCANCEL           526                            /*  线程设置了 DISCANCEL 标志   */
+#define ERROR_THREAD_INIT                527                            /*  线程在初始化状态            */
 
 /*********************************************************************************************************
   时间错误 1000 - 1500

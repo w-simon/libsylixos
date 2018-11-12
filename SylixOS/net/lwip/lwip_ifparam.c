@@ -80,6 +80,7 @@
 #define LW_IFPARAM_DEFAULT      "default"
 #define LW_IFPARAM_DHCP         "dhcp"
 #define LW_IFPARAM_DHCP6        "dhcp6"
+#define LW_IFPARAM_AODV         "aodv"
 #define LW_IFPARAM_IPV6_ACFG    "ipv6_auto_cfg"
 #define LW_IFPARAM_TCP_ACK_FREQ "tcp_ack_freq"
 #define LW_IFPARAM_TCP_WND      "tcp_wnd"
@@ -513,6 +514,30 @@ int  if_param_getdhcp6 (void *pifparam, int *dhcp)
     }
 
     *dhcp = __iniGetInt(pinisec, LW_IFPARAM_DHCP6, 0);
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: if_param_getaodv
+** 功能描述: 读取网卡是否使用 aodv (如果未找到配置默认为非 AODV)
+** 输　入  : pifparam      配置句柄
+**           aodv          是否为 AODV 获取地址
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+int  if_param_getaodv (void *pifparam, int *aodv)
+{
+    PLW_INI_SEC  pinisec = (PLW_INI_SEC)pifparam;
+
+    if (!pinisec || !aodv) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    *aodv = __iniGetInt(pinisec, LW_IFPARAM_AODV, 0);
 
     return  (ERROR_NONE);
 }

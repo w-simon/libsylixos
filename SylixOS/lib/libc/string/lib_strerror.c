@@ -255,6 +255,7 @@ PCHAR  lib_strerror (INT  iNum)
     case ERROR_THREAD_DELETE_SELF:      return  ("Thread delete self");
     case ERROR_THREAD_NEED_SIGNAL_SPT:  return  ("Thread need signal support");
     case ERROR_THREAD_DISCANCEL:        return  ("Thread discancel");
+    case ERROR_THREAD_INIT:             return  ("Thread in initialized states");
 
     /*
      *  time

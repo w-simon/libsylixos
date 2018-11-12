@@ -246,6 +246,7 @@ struct ieee802154_ifreq {
     union {
         uint16_t            ifru_panid;
         uint16_t            ifru_shortaddr;
+        uint8_t             ifru_aeskey[16];
         struct {
             uint8_t         ifrc_index;                         /* 0 ~ 15                               */
             struct in6_addr ifrc_ctxaddr;
@@ -256,6 +257,7 @@ struct ieee802154_ifreq {
 #define ifr802154_name      ifr802154_ifrn.ifrn_name
 #define ifr802154_pandid    ifr802154_ifru.ifru_panid
 #define ifr802154_shortaddr ifr802154_ifru.ifru_shortaddr
+#define ifr802154_aeskey    ifr802154_ifru.ifru_aeskey
 #define ifr802154_ctxindex  ifr802154_ifru.ifru_ctx.ifrc_index
 #define ifr802154_ctxaddr   ifr802154_ifru.ifru_ctx.ifrc_ctxaddr
 
@@ -268,6 +270,9 @@ struct ieee802154_ifreq {
 #define SIOCG802154CTX      _IOR('i', 202, struct ieee802154_ifreq)
 #define SIOCS802154CTX      _IOW('i', 202, struct ieee802154_ifreq)
 
+#define SIOCG802154AESKEY   _IOR('i', 203, struct ieee802154_ifreq)
+#define SIOCS802154AESKEY   _IOW('i', 203, struct ieee802154_ifreq)
+
 /*********************************************************************************************************
   6lowpan RFC7668
 *********************************************************************************************************/
@@ -278,6 +283,7 @@ struct rfc7668_ifreq {
     } ifr7668_ifrn;
     union {
         struct in6_addr     ifru_dstaddr;
+        uint8_t             ifru_aeskey[16];
         struct {
             uint8_t         ifrc_index;                         /* 0 ~ 15                               */
             struct in6_addr ifrc_ctxaddr;
@@ -287,14 +293,18 @@ struct rfc7668_ifreq {
 
 #define ifr7668_name        ifr7668_ifrn.ifrn_name
 #define ifr7668_dstaddr     ifr7668_ifru.ifru_dstaddr
+#define ifr7668_aeskey      ifr7668_ifru.ifru_aeskey
 #define ifr7668_ctxindex    ifr7668_ifru.ifru_ctx.ifrc_index
 #define ifr7668_ctxaddr     ifr7668_ifru.ifru_ctx.ifrc_ctxaddr
 
-#define SIOCG7668DSTADDR    _IOR('i', 210, struct rfc7668_ifreq)
-#define SIOCS7668DSTADDR    _IOW('i', 210, struct rfc7668_ifreq)
+#define SIOCG7668DSTADDR    _IOR('i', 211, struct rfc7668_ifreq)
+#define SIOCS7668DSTADDR    _IOW('i', 211, struct rfc7668_ifreq)
 
-#define SIOCG7668CTX        _IOR('i', 211, struct rfc7668_ifreq)
-#define SIOCS7668CTX        _IOW('i', 211, struct rfc7668_ifreq)
+#define SIOCG7668CTX        _IOR('i', 212, struct rfc7668_ifreq)
+#define SIOCS7668CTX        _IOW('i', 212, struct rfc7668_ifreq)
+
+#define SIOCG7668AESKEY     _IOR('i', 213, struct rfc7668_ifreq)
+#define SIOCS7668AESKEY     _IOW('i', 213, struct rfc7668_ifreq)
 
 /*********************************************************************************************************
   proto private 0x89e0 ~ 0x89ef

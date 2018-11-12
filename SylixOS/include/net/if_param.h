@@ -77,6 +77,7 @@ LW_API int    if_param_getenable(void *pifparam, int *enable);
 LW_API int    if_param_getdefault(void *pifparam, int *def);
 LW_API int    if_param_getdhcp(void *pifparam, int *dhcp);
 LW_API int    if_param_getdhcp6(void *pifparam, int *dhcp);
+LW_API int    if_param_getaodv(void *pifparam, int *aodv);
 LW_API int    if_param_ipv6autocfg(void *pifparam, int *autocfg);
 LW_API int    if_param_tcpackfreq(void *pifparam, int *tcpaf);
 LW_API int    if_param_tcpwnd(void *pifparam, int *tcpwnd);
