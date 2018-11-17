@@ -36,7 +36,9 @@
 *********************************************************************************************************/
 static spinlock_t       _G_slRandLock;                                  /*  中断信息自旋锁              */
 static struct timespec  _G_tvLastInt;                                   /*  最后一次中断时间戳          */
+#if LW_CFG_CPU_INT_HOOK_EN > 0
 static INT64            _G_i64IntCounter;                               /*  中断计数器                  */
+#endif                                                                  /*  LW_CFG_CPU_INT_HOOK_EN > 0  */
 static LW_OBJECT_HANDLE _G_hRandSelMutex;                               /*  select list mutex           */
 /*********************************************************************************************************
 ** 函数名称: __randInterHook
@@ -47,6 +49,8 @@ static LW_OBJECT_HANDLE _G_hRandSelMutex;                               /*  sele
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
+#if LW_CFG_CPU_INT_HOOK_EN > 0
+
 static VOID __randInterHook (ULONG  ulVector, ULONG  ulNesting)
 {
     INTREG  iregInterLevel;
@@ -60,6 +64,8 @@ static VOID __randInterHook (ULONG  ulVector, ULONG  ulNesting)
         LW_SPIN_UNLOCK_QUICK(&_G_slRandLock, iregInterLevel);
     }
 }
+
+#endif                                                                  /*  LW_CFG_CPU_INT_HOOK_EN > 0  */
 /*********************************************************************************************************
 ** 函数名称: __randInit
 ** 功能描述: 随机数发生器驱动初始化
@@ -107,9 +113,13 @@ LONG  __randOpen (PLW_RAND_DEV  pranddev, PCHAR  pcName, INT  iFlags, INT  iMode
     prandfil->RANDFIL_selwulList.SELWUL_ulWakeCounter = 0;
     prandfil->RANDFIL_selwulList.SELWUL_plineHeader   = LW_NULL;
 
+#if LW_CFG_CPU_INT_HOOK_EN > 0
     if (LW_DEV_INC_USE_COUNT(&pranddev->RANDDEV_devhdr) == 1) {
         API_SystemHookAdd(__randInterHook, LW_OPTION_CPU_INT_EXIT);     /*  创建中断hook                */
     }
+#else
+    (VOID)pranddev;
+#endif                                                                  /*  LW_CFG_CPU_INT_HOOK_EN > 0  */
     
     return  ((LONG)prandfil);
 }
@@ -129,9 +139,13 @@ INT  __randClose (PLW_RAND_FIL  prandfil)
     SEL_WAKE_UP_ALL(&prandfil->RANDFIL_selwulList, SELWRITE);
     SEL_WAKE_UP_ALL(&prandfil->RANDFIL_selwulList, SELEXCEPT);
 
+#if LW_CFG_CPU_INT_HOOK_EN > 0
     if (LW_DEV_DEC_USE_COUNT(&pranddev->RANDDEV_devhdr) == 0) {
         API_SystemHookDelete(__randInterHook, LW_OPTION_CPU_INT_EXIT);  /*  删除中断hook                */
     }
+#else
+    (VOID)pranddev;
+#endif                                                                  /*  LW_CFG_CPU_INT_HOOK_EN > 0  */
     
     __SHEAP_FREE(prandfil);
     

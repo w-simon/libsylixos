@@ -22,7 +22,7 @@
 #ifndef __ARCH_PPC_UNALIGNED_H
 #define __ARCH_PPC_UNALIGNED_H
 
-LW_VMM_ABORT  ppcUnalignedHandle(ARCH_REG_CTX  *pregctx);
+VOID  ppcUnalignedHandle(ARCH_REG_CTX  *pregctx, PLW_VMM_ABORT  pabtInfo);
 
 #endif                                                                  /*  __ARCH_PPC_UNALIGNED_H      */
 /*********************************************************************************************************

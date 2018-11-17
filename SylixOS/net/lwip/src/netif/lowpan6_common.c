@@ -60,37 +60,6 @@
 
 #include <string.h>
 
-#ifdef SYLIXOS
-#undef lwip_htons
-#undef lwip_htonl
-#undef lwip_ntohs
-#undef lwip_ntohl
-
-u16_t
-lwip_htons(u16_t n)
-{
-  return PP_HTONS(n);
-}
-
-u32_t
-lwip_htonl(u32_t n)
-{
-  return PP_HTONL(n);
-}
-
-u16_t
-lwip_ntohs(u16_t n)
-{
-  return PP_NTOHS(n);
-}
-
-u32_t
-lwip_ntohl(u32_t n)
-{
-  return PP_NTOHL(n);
-}
-#endif /* SYLIXOS */
-
 /* Determine compression mode for unicast address. */
 s8_t
 lowpan6_get_address_mode(const ip6_addr_t *ip6addr, const struct lowpan6_link_addr *mac_addr)

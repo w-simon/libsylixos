@@ -149,8 +149,9 @@ VOID  archTaskCtxSetFp (PLW_STACK               pstkDest,
      *  add  fp, sp, #4
      */
     pfpctx->FP_uiFp = pregctxSrc->REG_uiFp;
-    pfpctx->FP_uiLr = pregctxSrc->REG_uiLr;
+    pfpctx->FP_uiLr = pregctxSrc->REG_uiPc;
 
+    pregctxDest->REG_uiLr = pregctxSrc->REG_uiPc;
     pregctxDest->REG_uiFp = (ARCH_REG_T)&pfpctx->FP_uiLr;
 }
 /*********************************************************************************************************

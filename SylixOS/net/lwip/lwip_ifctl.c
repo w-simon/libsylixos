@@ -1010,7 +1010,7 @@ static INT  __ifIoctlLp7668 (INT  iCmd, struct rfc7668_ifreq *pifreq)
         ucAddr[5] = (UINT8)((pifreq->ifr7668_dstaddr.s6_addr32[3] >> 16) & 0xff);
         ucAddr[6] = (UINT8)((pifreq->ifr7668_dstaddr.s6_addr32[3] >>  8) & 0xff);
         ucAddr[7] = (UINT8)((pifreq->ifr7668_dstaddr.s6_addr32[3])       & 0xff);
-        rfc7668_set_local_addr_eui64(pnetif, ucAddr, 8);
+        rfc7668_set_peer_addr_eui64(pnetif, ucAddr, 8);
         iRet = ERROR_NONE;
         break;
             

@@ -161,6 +161,7 @@ static INT elfRelaRelocate (LW_LD_EXEC_MODULE *pmodule,
     size_t     stJmpTableItem;
     Elf_Addr   addrSymVal;
     ULONG      i;
+    BOOL       bNoSymbol = LW_FALSE;
 
     LD_DEBUG_MSG(("relocateSectionRela()\r\n"));
 
@@ -186,8 +187,9 @@ static INT elfRelaRelocate (LW_LD_EXEC_MODULE *pmodule,
                                         pcSymName,
                                         &addrSymVal,
                                         LW_LD_SYM_ANY) < 0) {           /*  查询对应符号的地址          */
-                    _ErrorHandle(ERROR_LOADER_NO_SYMBOL);
-                    return  (PX_ERROR);
+                    bNoSymbol = LW_TRUE;
+                    prela++;
+                    continue;
                 }
             }
             
@@ -212,7 +214,13 @@ static INT elfRelaRelocate (LW_LD_EXEC_MODULE *pmodule,
         prela++;
     }
     
-    return  (ERROR_NONE);
+    if (bNoSymbol) {
+        _ErrorHandle(ERROR_LOADER_NO_SYMBOL);
+        return  (PX_ERROR);
+
+    } else {
+        return  (ERROR_NONE);
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: elfRelRelocate
@@ -241,6 +249,7 @@ static INT elfRelRelocate (LW_LD_EXEC_MODULE *pmodule,
     size_t     stJmpTableItem;
     Elf_Addr   symVal;
     ULONG      i;
+    BOOL       bNoSymbol = LW_FALSE;
 
     LD_DEBUG_MSG(("relocateSectionRel()\r\n"));
 
@@ -266,8 +275,9 @@ static INT elfRelRelocate (LW_LD_EXEC_MODULE *pmodule,
                                         pcSymName,
                                         &symVal,
                                         LW_LD_SYM_ANY) < 0) {           /*  查询对应符号的地址          */
-                    _ErrorHandle(ERROR_LOADER_NO_SYMBOL);
-                    return  (PX_ERROR);
+                    bNoSymbol = LW_TRUE;
+                    prel++;
+                    continue;
                 }
             }
             
@@ -292,7 +302,13 @@ static INT elfRelRelocate (LW_LD_EXEC_MODULE *pmodule,
         prel++;
     }
 
-    return  (ERROR_NONE);
+    if (bNoSymbol) {
+        _ErrorHandle(ERROR_LOADER_NO_SYMBOL);
+        return  (PX_ERROR);
+
+    } else {
+        return  (ERROR_NONE);
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: elfSectionsRelocate
@@ -1571,6 +1587,7 @@ static INT elfPhdrRelocate (LW_LD_EXEC_MODULE *pmodule, ELF_DYN_DIR  *pdyndir)
 
     PCHAR        pcBase    = LW_NULL;
     INT          i;
+    BOOL         bNoSymbol = LW_FALSE;
 
     pcBase = (PCHAR)LW_LD_V2PADDR(addrMin,
                                   pmodule->EMOD_pvBaseAddr,
@@ -1604,8 +1621,8 @@ static INT elfPhdrRelocate (LW_LD_EXEC_MODULE *pmodule, ELF_DYN_DIR  *pdyndir)
                                             pcSymName,
                                             &addrSymVal,
                                             LW_LD_SYM_ANY) < 0) {       /*  查询对应符号的地址          */
-                        _ErrorHandle(ERROR_LOADER_NO_SYMBOL);
-                        return  (PX_ERROR);
+                        bNoSymbol = LW_TRUE;
+                        continue;
                     }
                 }
                 
@@ -1647,8 +1664,8 @@ static INT elfPhdrRelocate (LW_LD_EXEC_MODULE *pmodule, ELF_DYN_DIR  *pdyndir)
                                             pcSymName,
                                             &addrSymVal,
                                             LW_LD_SYM_ANY) < 0) {       /*  查询对应符号的地址          */
-                        _ErrorHandle(ERROR_LOADER_NO_SYMBOL);
-                        return  (PX_ERROR);
+                        bNoSymbol = LW_TRUE;
+                        continue;
                     }
                 }
                 
@@ -1670,7 +1687,13 @@ static INT elfPhdrRelocate (LW_LD_EXEC_MODULE *pmodule, ELF_DYN_DIR  *pdyndir)
         }
     }
 
-    return  (ERROR_NONE);
+    if (bNoSymbol) {
+        _ErrorHandle(ERROR_LOADER_NO_SYMBOL);
+        return  (PX_ERROR);
+
+    } else {
+        return  (ERROR_NONE);
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: elfPhdrSymExport

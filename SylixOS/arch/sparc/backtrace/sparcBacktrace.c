@@ -57,11 +57,15 @@ int  backtrace (void **array, int size)
     }
 
     SPARC_FLUSH_REG_WINDOWS();
-    for (count = 1; count < size; count++) {
-        array[count] = current->return_address;
+    for (count = 1; count < size;) {
+        if (current->return_address) {
+            array[count++] = current->return_address;
+        }
+
         if (!current->next) {
             break;
         }
+
         current = (struct layout *)(current->next + BACKTRACE_STACK_BIAS);
     }
 

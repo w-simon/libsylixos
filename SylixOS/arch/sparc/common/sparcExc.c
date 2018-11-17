@@ -24,15 +24,12 @@
 #if LW_CFG_VMM_EN > 0
 #include "arch/sparc/mm/mmu/sparcMmu.h"
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
+#include "arch/sparc/common/unaligned/sparcUnaligned.h"
 /*********************************************************************************************************
   外部引用变量声明
 *********************************************************************************************************/
 extern LW_CLASS_CPU _K_cpuTable[];                                      /*  CPU 表                      */
 extern LW_STACK     _K_stkInterruptStack[LW_CFG_MAX_PROCESSORS][LW_CFG_INT_STK_SIZE / sizeof(LW_STACK)];
-/*********************************************************************************************************
-  外部函数声明
-*********************************************************************************************************/
-extern UINT sparcUnalignedHandle(ARCH_REG_CTX  *regs, addr_t  *pulAbortAddr, UINT  *puiMethod);
 /*********************************************************************************************************
   中断相关
 *********************************************************************************************************/
@@ -491,6 +488,22 @@ LW_WEAK VOID  archWatchPointDectectHandle (addr_t  ulRetAddr)
     CALL_BSP_EXC_HOOK(ptcbCur, ulRetAddr, SPARC_TRAP_WDOG);
 }
 /*********************************************************************************************************
+** 函数名称: archUnalignedHandle
+** 功能描述: 非对齐内存访问异常处理
+** 输　入  : pabtctx    abort 上下文
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  archUnalignedHandle (PLW_VMM_ABORT_CTX  pabtctx)
+{
+    sparcUnalignedHandle(&pabtctx->ABTCTX_archRegCtx,
+                         &pabtctx->ABTCTX_ulAbortAddr,
+                         &pabtctx->ABTCTX_abtInfo);
+
+    API_VmmAbortReturn(pabtctx);
+}
+/*********************************************************************************************************
 ** 函数名称: archMemAddrNoAlignHandle
 ** 功能描述: A load/store instruction would have generated a memory address that was not
 **           properly aligned according to the instruction, or a JMPL or RETT instruction
@@ -504,17 +517,15 @@ VOID  archMemAddrNoAlignHandle (addr_t  ulRetAddr, ARCH_REG_CTX  *pregctx)
 {
     PLW_CLASS_TCB  ptcbCur;
     LW_VMM_ABORT   abtInfo;
-    addr_t         ulAbortAddr;
+    addr_t         ulAbortAddr = ulRetAddr;                             /*  终止地址在分析指令才能得到  */
 
     LW_TCB_GET_CUR(ptcbCur);
 
     CALL_BSP_EXC_HOOK(ptcbCur, ulRetAddr, SPARC_TRAP_MNA);
 
-    abtInfo.VMABT_uiType = sparcUnalignedHandle(pregctx,
-                                                &ulAbortAddr, &abtInfo.VMABT_uiMethod);
-    if (abtInfo.VMABT_uiType) {
-        API_VmmAbortIsr(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur);
-    }
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
+    abtInfo.VMABT_uiMethod = BUS_ADRALN;
+    API_VmmAbortIsrEx(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur, archUnalignedHandle);
 }
 /*********************************************************************************************************
 ** 函数名称: archFpExcHandle

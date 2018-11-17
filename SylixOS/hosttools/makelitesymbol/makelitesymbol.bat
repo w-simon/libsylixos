@@ -28,7 +28,6 @@ for /f "tokens=1,3 delims= " %%i in (func.txt) do @(
     set /a num+=1
 )
 
-
 for /f "tokens=1,3 delims= " %%i in (obj.txt) do @(
     echo %%j = 0x%%i; >> %destfile%
     set /a num+=1

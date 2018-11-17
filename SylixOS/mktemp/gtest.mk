@@ -51,6 +51,11 @@ $(target)_ASFLAGS     := $($(target)_COMMONFLAGS) $(ARCH_PIC_ASFLAGS) $(TOOLCHAI
 $(target)_CFLAGS      := $($(target)_COMMONFLAGS) $(ARCH_PIC_CFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CFLAGS)
 $(target)_CXXFLAGS    := $($(target)_COMMONFLAGS) $(ARCH_PIC_CFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CXX_EXCEPT) $($(target)_CXXFLAGS)
 
+ifeq ($($(target)_NO_UNDEF_SYM), yes)
+ifeq (,$(findstring mips,$(ARCH)))
+$(target)_LINKFLAGS   := $(TOOLCHAIN_NO_UNDEF_SYM_FLAGS) $($(target)_LINKFLAGS)
+endif
+endif
 #*********************************************************************************************************
 # Targets
 #*********************************************************************************************************
@@ -128,6 +133,14 @@ $($(target)_EXE): $($(target)_OBJS) $($(target)_DEPEND_TARGET)
 		@$(LINK) $@_nm.txt $@_dis.txt $@.c6x
 		@mv $@.c6x $@
 		@rm -f $@_nm.txt $@_dis.txt
+		$(__POST_LINK_CMD)
+else ifeq ($(findstring mips,$(ARCH))_$($(target)_NO_UNDEF_SYM), mips_yes)
+$($(target)_EXE): $($(target)_OBJS) $($(target)_DEPEND_TARGET)
+		@rm -f $@
+		$(__PRE_LINK_CMD)
+		@$(__LD) $(__CPUFLAGS) $(ARCH_PIC_LDFLAGS) $(TOOLCHAIN_NO_UNDEF_SYM_FLAGS) $(__LINKFLAGS) $(__OBJS) $(__LIBRARIES) -o $@.tmp
+		@rm -f $@.tmp
+		$(__LD) $(__CPUFLAGS) $(ARCH_PIC_LDFLAGS) $(__LINKFLAGS) $(__OBJS) $(__LIBRARIES) -o $@
 		$(__POST_LINK_CMD)
 else
 $($(target)_EXE): $($(target)_OBJS) $($(target)_DEPEND_TARGET)

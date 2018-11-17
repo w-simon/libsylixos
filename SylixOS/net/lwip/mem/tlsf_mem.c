@@ -56,11 +56,15 @@ void tlsf_mem_create (void)
   void *mem;
 
   LW_SPIN_INIT(&tlsf_lock);
+
   mem = __SHEAP_ALLOC(MEM_SIZE);
   _BugHandle(!mem, TRUE, "tlsf_mem_create() fail!\r\n");
+
   tlsf_mem = tlsf_create_with_pool(mem, MEM_SIZE);
   _BugHandle(!tlsf_mem, TRUE, "tlsf_mem_create() fail!\r\n");
 }
+
+#if LW_CFG_CPU_WORD_LENGHT == 64
 
 /* tlsf malloc */
 void *tlsf_mem_malloc (size_t size)
@@ -97,6 +101,57 @@ __retry:
   return (ret);
 }
 
+#else /* LW_CFG_CPU_WORD_LENGHT == 64 */
+
+#define TLSF_ALIGN_PADDING_MARK 0xffaa5500
+#define TLSF_ALIGN_PADDING_SIZE sizeof(size_t)
+
+/* tlsf malloc */
+void *tlsf_mem_malloc (size_t size)
+{
+  void *ret;
+
+#if LW_CFG_LWIP_MEM_TLSF_BRK > 0
+  void *mem;
+
+__retry:
+  LW_SPIN_LOCK_TASK(&tlsf_lock);
+  ret = tlsf_malloc(tlsf_mem, size + TLSF_ALIGN_PADDING_SIZE);
+  if (ret || (brk_times >= LW_CFG_LWIP_MEM_TLSF_BRK_TIMES)) {
+    LW_SPIN_UNLOCK_TASK(&tlsf_lock);
+    if (ret && ((addr_t)ret & 0x7)) { /* Not 64bits align */
+      *(size_t *)ret = TLSF_ALIGN_PADDING_MARK;
+      ret = (void *)((addr_t)ret + TLSF_ALIGN_PADDING_SIZE);
+    }
+    return (ret);
+  }
+  brk_times++;
+  LW_SPIN_UNLOCK_TASK(&tlsf_lock); /* TODO: here unlock maybe preemptive! */
+
+  mem = __SHEAP_ALLOC(MEM_SIZE);
+  if (mem) {
+    LW_SPIN_LOCK_TASK(&tlsf_lock);
+    tlsf_add_pool(tlsf_mem, mem, MEM_SIZE);
+    LW_SPIN_UNLOCK_TASK(&tlsf_lock);
+    goto __retry;
+  }
+
+#else
+  LW_SPIN_LOCK_TASK(&tlsf_lock);
+  ret = tlsf_malloc(tlsf_mem, size + TLSF_ALIGN_PADDING_SIZE);
+  LW_SPIN_UNLOCK_TASK(&tlsf_lock);
+
+  if (ret && ((addr_t)ret & 0x7)) { /* Not 64bits align */
+    *(size_t *)ret = TLSF_ALIGN_PADDING_MARK;
+    ret = (void *)((addr_t)ret + TLSF_ALIGN_PADDING_SIZE);
+  }
+#endif
+
+  return (ret);
+}
+
+#endif /* LW_CFG_CPU_WORD_LENGHT == 32 */
+
 /* tlsf calloc */
 void *tlsf_mem_calloc (size_t count, size_t size)
 {
@@ -113,6 +168,14 @@ void *tlsf_mem_calloc (size_t count, size_t size)
 /* tlsf free */
 void tlsf_mem_free (void *f)
 {
+#if LW_CFG_CPU_WORD_LENGHT != 64
+  if (f) {
+    if ((*(size_t *)((addr_t)f - TLSF_ALIGN_PADDING_SIZE) == TLSF_ALIGN_PADDING_MARK)) {
+      f = (void *)((addr_t)f - TLSF_ALIGN_PADDING_SIZE);
+    }
+  }
+#endif /* LW_CFG_CPU_WORD_LENGHT == 32 */
+
   LW_SPIN_LOCK_TASK(&tlsf_lock);
   tlsf_free(tlsf_mem, f);
   LW_SPIN_UNLOCK_TASK(&tlsf_lock);

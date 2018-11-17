@@ -172,9 +172,20 @@ extern void udelay(unsigned long us);
 #define max_t(type, x, y) \
 	({ type __x = (x); type __y = (y); __x > __y ? __x: __y; })
 
+/*
+ * BUG, BUG_ON, WARN, WARN_ON, ...
+ */
+#ifdef printk
+#define __WARN_printf(arg...)   do { printk(arg); } while (0)
+#elif LW_CFG_FIO_LIB_EN > 0
+#define __WARN_printf(arg...)   do { fprintf(stderr, arg); } while (0)
+#else
+#define __WARN_printf(arg...)   do { _PrintFormat(arg); } while (0)
+#endif
+
 #ifndef BUG
 #define BUG() do { \
-	printf("BUG at %s:%d!\n", __FILE__, __LINE__); \
+    __WARN_printf("BUG at %s:%d!\n", __FILE__, __LINE__); \
 } while (0)
 
 #define BUG_ON(condition) do { if (condition) BUG(); } while(0)
@@ -184,7 +195,7 @@ extern void udelay(unsigned long us);
 #define WARN(condition, format...) ({ \
     int __ret_warn_on = !!(condition); \
     if (unlikely(__ret_warn_on)) \
-        printf(format); \
+        __WARN_printf(format); \
     unlikely(__ret_warn_on); \
 })
 #endif
@@ -194,18 +205,17 @@ extern void udelay(unsigned long us);
 ({ \
     int __ret_warn_on = !!(x); \
     if (unlikely(__ret_warn_on)) \
-    printf("WARNING in %s line %d\n" \
-                      , __FILE__, __LINE__); \
+        __WARN_printf("WARNING in %s line %d\n", __FILE__, __LINE__); \
     unlikely(__ret_warn_on); \
 })
 #endif
 
 #ifndef WARN_ON_ONCE
 #define WARN_ON_ONCE(condition) ({ \
-    static bool __warned; \
+    static BOOL  __warned; \
     int __ret_warn_once = !!(condition); \
     if (unlikely(__ret_warn_once && !__warned)) { \
-        __warned = true; \
+        __warned = LW_TRUE; \
         WARN_ON(1); \
     } \
     unlikely(__ret_warn_once); \

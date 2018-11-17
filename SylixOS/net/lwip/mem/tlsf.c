@@ -18,6 +18,18 @@
 #define tlsf_decl static
 #endif
 
+#ifdef SYLIXOS
+#if LW_CFG_LWIP_MEM_TLSF_ASSERT > 0
+#define tlsf_assert(cond) \
+    do { \
+        if (LW_UNLIKELY(!(cond))) { \
+            _PrintFormat("[NET TLSF] Assert: %s func: %s() file: %s line: %d\r\n", \
+                         #cond, __func__, __FILE__, __LINE__); \
+        } \
+    } while (0)
+#endif /* LW_CFG_LWIP_MEM_TLSF_ASSERT */
+#endif /* SYLIXOS */
+
 /*
 ** Architecture-specific bit manipulation routines.
 **

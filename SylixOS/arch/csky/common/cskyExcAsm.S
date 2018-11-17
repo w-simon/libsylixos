@@ -223,7 +223,6 @@ MACRO_DEF(IRQ_ENTRY  irq  handle)
     SUBI        SP , ARCH_REG_CTX_SIZE
     MOV         A1 , SP
     BR          2b
-    RESTORE_REGS 
     MACRO_END()
 
 ;/*********************************************************************************************************

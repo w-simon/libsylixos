@@ -43,6 +43,9 @@
 
 #define INST_OP_MASK            0xffff0000
 #define INST_OFFSET_MASK        0x0000ffff
+
+#define IS_UNALIGN_RA(p)        ((addr_t)(p) & 0x3)
+#define IS_UNALIGN_SP(p)        ((addr_t)(p) & (ARCH_REG_SIZE - 1))
 /*********************************************************************************************************
 ** 函数名称: getEndStack
 ** 功能描述: 获得堆栈结束地址
@@ -105,12 +108,16 @@ int  backtrace (void **array, int size)
             if (stack_size != 0) {
                 break;
             }
+
         } else if (inst == JR_RA_INST) {                                /*  遇上了 JR RA 指令           */
             return  (cnt);                                              /*  直接返回                    */
         }
     }
 
     sp = (unsigned long *)((unsigned long)low_stack + stack_size);      /*  调用者的 SP                 */
+    if (IS_UNALIGN_SP(sp)) {
+        return  (cnt);
+    }
 
     if (sp[-1] != ((unsigned long)ra)) {                                /*  backtrace 保存的 RA 不对    */
         return  (cnt);
@@ -131,8 +138,8 @@ int  backtrace (void **array, int size)
         stack_size = 0;
 
         for (addr = (MIPS_INSTRUCTION *)ra;                             /*  在返回的位置向上找          */
-             (ra_offset == 0) || (stack_size == 0);
-             addr--) {
+             stack_size == 0;                                           /*  堆栈开辟指令是函数的第一条  */
+             addr--) {                                                  /*  指令, 找到 stack_size 便跳出*/
 
             inst = *addr;
             switch (inst & INST_OP_MASK) {
@@ -151,8 +158,12 @@ int  backtrace (void **array, int size)
             }
         }
 
+        if (!ra_offset) {                                               /*  叶子函数, 没有保存 RA       */
+            break;                                                      /*  无法继续分析                */
+        }
+
         ra = (unsigned long *)sp[ra_offset >> LONGLOG];                 /*  取出保存的 RA               */
-        if (ra == 0) {                                                  /*  最后一层无返回函数          */
+        if (ra == 0 || IS_UNALIGN_RA(ra)) {                             /*  最后一层无返回函数          */
             break;
         }
 
@@ -164,6 +175,10 @@ int  backtrace (void **array, int size)
 
         if (fp != sp) {                                                 /*  计算的 SP 与保存的 FP 不相同*/
             sp = fp;                                                    /*  以 FP 为准                  */
+        }
+
+        if (IS_UNALIGN_SP(sp)) {
+            break;
         }
 
         if ((sp >= end_stack) || (sp <= low_stack)) {                   /*  SP 不合法                   */

@@ -55,6 +55,7 @@ extern LW_API INT   API_RootFsMapInit(CPCHAR  pcMap);
                                             建议运动控制等高实时性应用, 可置为 yes 提高 tick 速度
                            tmcvtsimple=no   通过 timespec 转换 tick 超时, 是否使用简单转换法.
                                             建议 Lite 类型处理器可采用 simple 转换法.
+                           netlockfifo=no   网络互斥锁使用 FIFO 顺序等待.
                                             
                            rfsmap=/boot:[*],/:[*],...   这是根文件系统映射关系选项, 用逗号隔开, 
                                                         /boot /etc /tmp /apps ... 为可选映射, 
@@ -228,6 +229,16 @@ ULONG  API_KernelStartParam (CPCHAR  pcParam)
                 LW_KERN_TMCVT_SIMPLE_EN_SET(LW_TRUE);
             }
         } 
+        
+#if LW_CFG_NET_EN > 0
+          else if (lib_strncmp(pcTok, "netlockfifo=", 12) == 0) {       /*  网络锁 FIFO 等待            */
+            if (pcTok[12] == 'n') {
+                LW_KERN_NET_LOCK_FIFO_SET(LW_FALSE);
+            } else {
+                LW_KERN_NET_LOCK_FIFO_SET(LW_TRUE);
+            }
+        }
+#endif                                                                  /*  LW_CFG_NET_EN > 0           */
         
 #if LW_CFG_DEVICE_EN > 0
           else if (lib_strncmp(pcTok, "rfsmap=", 7) == 0) {             /*  根文件系统映射              */

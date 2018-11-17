@@ -97,6 +97,8 @@ include libdsohandle.mk
 include libvpmpdm.mk
 include environ.mk
 include dd.mk
+include demangle.mk
+include ls.mk
 ifneq ($(ARCH), c6x)
 include libstdc++.mk
 endif

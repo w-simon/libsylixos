@@ -63,12 +63,6 @@ typedef __vector128     vector128;
 
 #define flush_spe_to_thread(tcb)
 
-#define WARN_ON_ONCE(cond)              \
-do {                                    \
-    if (cond)                           \
-        _PrintFormat("%s(): %d warning!\r\n", __func__, __LINE__); \
-} while (0)
-
 #define PPC_WARN_ALIGNMENT(a, b)
 
 #define STACK_INT_FRAME_SIZE            0

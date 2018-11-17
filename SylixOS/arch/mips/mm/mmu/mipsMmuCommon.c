@@ -144,6 +144,7 @@ VOID  mipsMmuInvalidateTLBMVA (addr_t  ulAddr)
             mipsCp0EntryLo1Write(0);
             mipsCp0EntryHiWrite(MIPS_UNIQUE_ENTRYHI(iIndex));
             MIPS_MMU_TLB_WRITE_INDEX();
+
         } else {
             break;
         }
@@ -254,6 +255,7 @@ ULONG  mipsMmuTlbLoadStoreExcHandle (addr_t  ulAbortAddr, BOOL  bStore)
         bIsEntryLo1 = !!(ulAbortAddr & (1 << LW_CFG_VMM_PAGE_SHIFT));
         if (bIsEntryLo1) {
             ulEntryLo = mipsCp0EntryLo1Read();
+
         } else {
             ulEntryLo = mipsCp0EntryLo0Read();
         }
@@ -265,6 +267,7 @@ ULONG  mipsMmuTlbLoadStoreExcHandle (addr_t  ulAbortAddr, BOOL  bStore)
              * 可能这是 Loongson-1B 处理器的 BUG, 但不响应程序继续运行
              */
             ulAbortType = 0;
+
         } else {
             /*
              * TLB 无效异常(正确情况)
@@ -282,6 +285,7 @@ ULONG  mipsMmuTlbLoadStoreExcHandle (addr_t  ulAbortAddr, BOOL  bStore)
              */
             _DebugHandle(__ERRORMESSAGE_LEVEL, "TLB refill error.\r\n");
             ulAbortType = LW_VMM_ABORT_TYPE_FATAL_ERROR;
+
         } else {
             /*
              * 如果 TLB 重填异常不是发生异常里, 忽略之, 也不进行 TLB 重填

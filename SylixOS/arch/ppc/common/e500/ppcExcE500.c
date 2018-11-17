@@ -29,6 +29,7 @@
 #define  __SYLIXOS_PPC_E500__
 #define  __SYLIXOS_PPC_E500MC__
 #include "arch/ppc/arch_e500.h"
+#include "arch/ppc/param/ppcParam.h"
 #if LW_CFG_VMM_EN > 0
 #include "arch/ppc/mm/mmu/e500/ppcMmuE500.h"
 #endif
@@ -192,6 +193,21 @@ VOID  archE500InstructionStorageExceptionHandle (addr_t  ulRetAddr)
     }
 }
 /*********************************************************************************************************
+** 函数名称: archE500UnalignedHandle
+** 功能描述: 非对齐内存访问异常处理
+** 输　入  : pabtctx    abort 上下文
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  archE500UnalignedHandle (PLW_VMM_ABORT_CTX  pabtctx)
+{
+    ppcUnalignedHandle(&pabtctx->ABTCTX_archRegCtx,
+                       &pabtctx->ABTCTX_abtInfo);
+
+    API_VmmAbortReturn(pabtctx);
+}
+/*********************************************************************************************************
 ** 函数名称: archE500AlignmentExceptionHandle
 ** 功能描述: 非对齐异常处理
 ** 输　入  : NONE
@@ -204,14 +220,22 @@ VOID  archE500AlignmentExceptionHandle (addr_t  ulRetAddr)
 {
     PLW_CLASS_TCB  ptcbCur;
     LW_VMM_ABORT   abtInfo;
+    addr_t         ulAbortAddr;
+    PPC_PARAM     *param = archKernelParamGet();
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    ptcbCur->TCB_archRegCtx.REG_uiDar = ppcE500GetDEAR();
+    ulAbortAddr = ppcE500GetDEAR();
+    ptcbCur->TCB_archRegCtx.REG_uiDar = ulAbortAddr;
 
-    abtInfo = ppcUnalignedHandle(&ptcbCur->TCB_archRegCtx);
-    if (abtInfo.VMABT_uiType) {
-        API_VmmAbortIsr(ulRetAddr, ptcbCur->TCB_archRegCtx.REG_uiDar, &abtInfo, ptcbCur);
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
+    abtInfo.VMABT_uiMethod = BUS_ADRALN;
+
+    if (param->PP_bUnalign) {
+        API_VmmAbortIsrEx(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur, archE500UnalignedHandle);
+
+    } else {
+        API_VmmAbortIsr(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur);
     }
 }
 /*********************************************************************************************************

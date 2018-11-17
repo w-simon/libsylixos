@@ -25,10 +25,10 @@
 ifeq ($(BSP_SYMBOL_PATH),)
 BSP_SYMBOL_PATH = SylixOS/bsp
 
-$(BSP_SYMBOL_PATH)/symbol.c: $(subst $(SPACE),\ ,$(SYLIXOS_BASE_PATH))/libsylixos/$(OUTDIR)/symbol.c $(BSP_SYMBOL_PATH)/symbol.h
+$(BSP_SYMBOL_PATH)/symbol.c: $(SYLIXOS_BASE_PATH)/libsylixos/$(OUTDIR)/symbol.c $(BSP_SYMBOL_PATH)/symbol.h
 		cp "$(SYLIXOS_BASE_PATH)/libsylixos/$(OUTDIR)/symbol.c" $(BSP_SYMBOL_PATH)/symbol.c
 
-$(BSP_SYMBOL_PATH)/symbol.h: $(subst $(SPACE),\ ,$(SYLIXOS_BASE_PATH))/libsylixos/$(OUTDIR)/symbol.h
+$(BSP_SYMBOL_PATH)/symbol.h: $(SYLIXOS_BASE_PATH)/libsylixos/$(OUTDIR)/symbol.h
 		cp "$(SYLIXOS_BASE_PATH)/libsylixos/$(OUTDIR)/symbol.h" $(BSP_SYMBOL_PATH)/symbol.h
 endif
 

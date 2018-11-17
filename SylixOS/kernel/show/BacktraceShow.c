@@ -30,6 +30,7 @@
 *********************************************************************************************************/
 #if LW_CFG_MODULELOADER_EN > 0
 #include "dlfcn.h"
+#include "../SylixOS/loader/include/loader_lib.h"
 #include "../SylixOS/loader/include/loader_vppatch.h"
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 /*********************************************************************************************************
@@ -73,15 +74,31 @@ VOID  API_BacktraceShow (INT  iFd, INT  iMaxDepth)
         for (i = 0; i < iCnt; i++) {
             if ((API_ModuleAddr(pvFrame[i], &dlinfo, pvproc) == ERROR_NONE) &&
                 (dlinfo.dli_sname)) {
+                PVOID   pvBaseAddr;
+
+                pvBaseAddr = dlinfo.dli_fbase ? \
+                             ((LW_LD_EXEC_MODULE *)dlinfo.dli_fbase)->EMOD_pvBaseAddr : LW_NULL;
                 if (iFd >= 0) {
-                    fdprintf(iFd, "[%02d] %p (%s+%zu)\n", iCnt - i, pvFrame[i], dlinfo.dli_sname,
-                                                        ((size_t)pvFrame[i] - (size_t)dlinfo.dli_saddr));
+                    fdprintf(iFd, "[%02d] %p (%s@%p+0x%x %s+%zu)\n",
+                             iCnt - i,
+                             pvFrame[i],
+                             dlinfo.dli_fname,
+                             pvBaseAddr,
+                             pvFrame[i] - pvBaseAddr,
+                             dlinfo.dli_sname,
+                             ((size_t)pvFrame[i] - (size_t)dlinfo.dli_saddr));
+
                 } else {
-                    _DebugFormat(__PRINTMESSAGE_LEVEL, "[%02d] %p (%s+%zu)\r\n",
-                                 iCnt - i, pvFrame[i], dlinfo.dli_sname,
-                                 ((size_t)pvFrame[i] - (size_t)dlinfo.dli_saddr));
+                    _DebugFormat(__PRINTMESSAGE_LEVEL, "[%02d] %p (%s@%p+0x%x %s+%zu)\r\n",
+                             iCnt - i,
+                             pvFrame[i],
+                             dlinfo.dli_fname,
+                             pvBaseAddr,
+                             pvFrame[i] - pvBaseAddr,
+                             dlinfo.dli_sname,
+                             ((size_t)pvFrame[i] - (size_t)dlinfo.dli_saddr));
                 }
-            
+
             } else {
                 if (iFd >= 0) {
                     fdprintf(iFd, "[%02d] %p (<unknown>)\n", iCnt - i, pvFrame[i]);
@@ -143,10 +160,20 @@ VOID  API_BacktracePrint (PVOID  pvBuffer, size_t  stSize, INT  iMaxDepth)
         for (i = 0; i < iCnt; i++) {
             if ((API_ModuleAddr(pvFrame[i], &dlinfo, pvproc) == ERROR_NONE) &&
                 (dlinfo.dli_sname)) {
-                stOft = bnprintf(pvBuffer, stSize, stOft, "[%02d] %p (%s+%zu)\n", 
-                                 iCnt - i, pvFrame[i], dlinfo.dli_sname,
-                                 ((size_t)pvFrame[i] - (size_t)dlinfo.dli_saddr));
-            
+                PVOID   pvBaseAddr;
+
+                pvBaseAddr = dlinfo.dli_fbase ? \
+                             ((LW_LD_EXEC_MODULE *)dlinfo.dli_fbase)->EMOD_pvBaseAddr : LW_NULL;
+
+                stOft = bnprintf(pvBuffer, stSize, stOft, "[%02d] %p (%s@%p+0x%x %s+%zu)\n",
+                        iCnt - i,
+                        pvFrame[i],
+                        dlinfo.dli_fname,
+                        pvBaseAddr,
+                        pvFrame[i] - pvBaseAddr,
+                        dlinfo.dli_sname,
+                        ((size_t)pvFrame[i] - (size_t)dlinfo.dli_saddr));
+
             } else {
                 stOft = bnprintf(pvBuffer, stSize, stOft, "[%02d] %p (<unknown>)\n", iCnt - i, pvFrame[i]);
             }

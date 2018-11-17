@@ -153,6 +153,8 @@ static INT  mipsElfLO16RelocateRel (LW_LD_EXEC_MODULE  *pmodule,
 ** 输  出  : ERROR_NONE 表示没有错误, PX_ERROR 表示错误
 ** 全局变量:
 ** 调用模块:
+** 注  意  : R_MIPS_HI16 与 R_MIPS_LO16 为成对出现, 确保内存无泄漏.
+**           TODO: 如果 ELF 文件损坏, 可能发生内存泄漏.
 *********************************************************************************************************/
 INT  archElfRelocateRel (PVOID        pmodule,
                          Elf_Rel     *prel,

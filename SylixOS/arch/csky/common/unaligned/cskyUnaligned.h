@@ -22,7 +22,7 @@
 #ifndef __ARCH_CSKYUNALIGNED_H
 #define __ARCH_CSKYUNALIGNED_H
 
-ULONG  cskyUnalignedHandle(ARCH_REG_CTX  *pregctx, addr_t  ulAbortAddr);
+VOID  cskyUnalignedHandle(ARCH_REG_CTX  *pregctx, PLW_VMM_ABORT  pabtInfo);
 
 #endif                                                                  /*  __ARCH_CSKYUNALIGNED_H      */
 /*********************************************************************************************************

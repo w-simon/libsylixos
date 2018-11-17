@@ -20,7 +20,6 @@
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
-#include "arch/ppc/param/ppcParam.h"
 #include <linux/compat.h>
 #include "porting.h"
 #include "sstep.h"
@@ -33,30 +32,25 @@ int fix_alignment(ARCH_REG_CTX *regs, enum instruction_type  *inst_type);
 ** 函数名称: ppcUnalignedHandle
 ** 功能描述: PowerPC 非对齐处理
 ** 输　入  : pregctx           寄存器上下文
-** 输　出  : 终止信息
+**           pabtInfo          终止信息
+** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-LW_VMM_ABORT  ppcUnalignedHandle (ARCH_REG_CTX  *pregctx)
+VOID  ppcUnalignedHandle (ARCH_REG_CTX  *pregctx, PLW_VMM_ABORT  pabtInfo)
 {
-    PPC_PARAM             *param = archKernelParamGet();
     INT                    iFixed;
     enum instruction_type  type;
-    LW_VMM_ABORT           abtInfo;
 
     if (pregctx->REG_uiDar == pregctx->REG_uiPc) {
-        goto sigbus;
-    }
-
-    if (param->PP_bUnalign == LW_FALSE) {                               /*  Unsupport unalign access    */
-        goto sigbus;
+        goto  sigbus;
     }
 
     iFixed = fix_alignment(pregctx, &type);
     if (iFixed == 1) {
         pregctx->REG_uiPc += 4;                                         /*  Skip over emulated inst     */
-        abtInfo.VMABT_uiType = 0;
-        return  (abtInfo);
+        pabtInfo->VMABT_uiType = LW_VMM_ABORT_TYPE_NOINFO;
+        return;
 
     } else if (iFixed == -EFAULT) {                                     /*  Operand address was bad     */
         switch (type) {
@@ -67,7 +61,8 @@ LW_VMM_ABORT  ppcUnalignedHandle (ARCH_REG_CTX  *pregctx)
         case STORE_VMX:
         case STORE_VSX:
         case STCX:
-            abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_WRITE;
+            pabtInfo->VMABT_uiType   = LW_VMM_ABORT_TYPE_MAP;
+            pabtInfo->VMABT_uiMethod = LW_VMM_ABORT_METHOD_WRITE;
             break;
 
         case LOAD:
@@ -77,18 +72,16 @@ LW_VMM_ABORT  ppcUnalignedHandle (ARCH_REG_CTX  *pregctx)
         case LOAD_VSX:
         case LARX:
         default:
-            abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_READ;
+            pabtInfo->VMABT_uiType   = LW_VMM_ABORT_TYPE_MAP;
+            pabtInfo->VMABT_uiMethod = LW_VMM_ABORT_METHOD_READ;
             break;
         }
-
-        abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_MAP;
-        return  (abtInfo);
+        return;
     }
 
 sigbus:
-    abtInfo.VMABT_uiMethod = BUS_ADRALN;
-    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
-    return  (abtInfo);
+    pabtInfo->VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
+    pabtInfo->VMABT_uiMethod = BUS_ADRALN;
 }
 /*********************************************************************************************************
   END

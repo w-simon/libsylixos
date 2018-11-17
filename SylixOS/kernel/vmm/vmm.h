@@ -347,7 +347,31 @@ typedef LW_VMM_ABORT    *PLW_VMM_ABORT;
 LW_API VOID         API_VmmAbortIsr(addr_t          ulRetAddr,
                                     addr_t          ulAbortAddr, 
                                     PLW_VMM_ABORT   pabtInfo,
-                                    PLW_CLASS_TCB   ptcb);              /*  异常中断服务函数            */
+                                    PLW_CLASS_TCB   ptcb);              /*  异常服务函数                */
+
+LW_API VOID         API_VmmAbortIsrEx(addr_t          ulRetAddr,
+                                      addr_t          ulAbortAddr,
+                                      PLW_VMM_ABORT   pabtInfo,
+                                      PLW_CLASS_TCB   ptcb,
+                                      VOIDFUNCPTR     pfuncHandler);    /*  自定义异常服务函数          */
+
+/*********************************************************************************************************
+  异常返回
+*********************************************************************************************************/
+
+typedef struct {
+    ARCH_REG_CTX        ABTCTX_archRegCtx;                              /*  寄存器上下文                */
+    addr_t              ABTCTX_ulRetAddr;                               /*  异常返回地址                */
+    addr_t              ABTCTX_ulAbortAddr;                             /*  异常地址                    */
+    LW_VMM_ABORT        ABTCTX_abtInfo;                                 /*  异常类型                    */
+    PLW_CLASS_TCB       ABTCTX_ptcb;                                    /*  产生异常的线程              */
+
+    errno_t             ABTCTX_iLastErrno;                              /*  返回时需要恢复的信息        */
+    INT                 ABTCTX_iKernelSpace;
+} LW_VMM_ABORT_CTX;
+typedef LW_VMM_ABORT_CTX    *PLW_VMM_ABORT_CTX;
+
+LW_API VOID         API_VmmAbortReturn(PLW_VMM_ABORT_CTX  pabtctx);
 
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 /*********************************************************************************************************

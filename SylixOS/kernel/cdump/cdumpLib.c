@@ -119,9 +119,9 @@ VOID  _CrashDumpAbortKernel (LW_OBJECT_HANDLE   ulOwner,
                              CPCHAR             pcInfo, 
                              CPCHAR             pcTail)
 {
-    PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx = (PLW_VMM_PAGE_FAIL_CTX)pvCtx;
-    PCHAR                  pcCdump        = (PCHAR)_K_pvCrashDumpBuffer;
-    size_t                 stOft;
+    PLW_VMM_ABORT_CTX  pabtctx = (PLW_VMM_ABORT_CTX)pvCtx;
+    PCHAR              pcCdump = (PCHAR)_K_pvCrashDumpBuffer;
+    size_t             stOft;
     
     if (!pcCdump || (pcCdump == (PCHAR)PX_ERROR)) {
         return;
@@ -135,7 +135,7 @@ VOID  _CrashDumpAbortKernel (LW_OBJECT_HANDLE   ulOwner,
     pcCdump[3] = LW_CDUMP_MAGIC_3;
     
     archTaskCtxPrint(&pcCdump[4], (LW_CDUMP_MAX_LEN - LW_CDUMP_MAGIC_LEN), 
-                     &pvmpagefailctx->PAGEFCTX_archRegCtx);
+                     &pabtctx->ABTCTX_archRegCtx);
                      
     stOft = lib_strlen(pcCdump);
     
@@ -144,8 +144,8 @@ VOID  _CrashDumpAbortKernel (LW_OBJECT_HANDLE   ulOwner,
                      "kowner: 0x%08lx, kfunc: %s, "
                      "ret_addr: 0x%08lx abt_addr: 0x%08lx, abt_type: %s, %s.\n",
                      ulOwner, pcKernelFunc, 
-                     pvmpagefailctx->PAGEFCTX_ulRetAddr,
-                     pvmpagefailctx->PAGEFCTX_ulAbortAddr, pcInfo, pcTail);
+                     pabtctx->ABTCTX_ulRetAddr,
+                     pabtctx->ABTCTX_ulAbortAddr, pcInfo, pcTail);
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: _CrashDumpAbortAccess
@@ -158,9 +158,9 @@ VOID  _CrashDumpAbortKernel (LW_OBJECT_HANDLE   ulOwner,
 *********************************************************************************************************/
 VOID  _CrashDumpAbortAccess (PVOID  pvCtx, CPCHAR  pcInfo)
 {
-    PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx = (PLW_VMM_PAGE_FAIL_CTX)pvCtx;
-    PCHAR                  pcCdump        = (PCHAR)_K_pvCrashDumpBuffer;
-    size_t                 stOft;
+    PLW_VMM_ABORT_CTX  pabtctx = (PLW_VMM_ABORT_CTX)pvCtx;
+    PCHAR              pcCdump = (PCHAR)_K_pvCrashDumpBuffer;
+    size_t             stOft;
     
     if (!pcCdump || (pcCdump == (PCHAR)PX_ERROR)) {
         return;
@@ -174,40 +174,40 @@ VOID  _CrashDumpAbortAccess (PVOID  pvCtx, CPCHAR  pcInfo)
     pcCdump[3] = LW_CDUMP_MAGIC_3;
     
     archTaskCtxPrint(&pcCdump[4], (LW_CDUMP_MAX_LEN - LW_CDUMP_MAGIC_LEN), 
-                     &pvmpagefailctx->PAGEFCTX_archRegCtx);
+                     &pabtctx->ABTCTX_archRegCtx);
     
     stOft = lib_strlen(pcCdump);
     
-    switch (__PAGEFAILCTX_ABORT_TYPE(pvmpagefailctx)) {
+    switch (__ABTCTX_ABORT_TYPE(pabtctx)) {
     
     case LW_VMM_ABORT_TYPE_UNDEF:
         stOft = bnprintf(pcCdump, LW_CDUMP_MAX_LEN, stOft, 
                          "UNDEF ERROR: abort in thread %lx[%s]. "
                          "ret_addr: 0x%08lx abt_addr: 0x%08lx, abt_type: %s.\n",
-                         pvmpagefailctx->PAGEFCTX_ptcb->TCB_ulId,
-                         pvmpagefailctx->PAGEFCTX_ptcb->TCB_cThreadName,
-                         pvmpagefailctx->PAGEFCTX_ulRetAddr,
-                         pvmpagefailctx->PAGEFCTX_ulAbortAddr, pcInfo);
+                         pabtctx->ABTCTX_ptcb->TCB_ulId,
+                         pabtctx->ABTCTX_ptcb->TCB_cThreadName,
+                         pabtctx->ABTCTX_ulRetAddr,
+                         pabtctx->ABTCTX_ulAbortAddr, pcInfo);
         break;
     
     case LW_VMM_ABORT_TYPE_FPE:
         stOft = bnprintf(pcCdump, LW_CDUMP_MAX_LEN, stOft, 
                          "FPU ERROR: abort in thread %lx[%s]. "
                          "ret_addr: 0x%08lx abt_addr: 0x%08lx, abt_type: %s.\n",
-                         pvmpagefailctx->PAGEFCTX_ptcb->TCB_ulId,
-                         pvmpagefailctx->PAGEFCTX_ptcb->TCB_cThreadName,
-                         pvmpagefailctx->PAGEFCTX_ulRetAddr,
-                         pvmpagefailctx->PAGEFCTX_ulAbortAddr, pcInfo);
+                         pabtctx->ABTCTX_ptcb->TCB_ulId,
+                         pabtctx->ABTCTX_ptcb->TCB_cThreadName,
+                         pabtctx->ABTCTX_ulRetAddr,
+                         pabtctx->ABTCTX_ulAbortAddr, pcInfo);
         break;
         
     default:
         stOft = bnprintf(pcCdump, LW_CDUMP_MAX_LEN, stOft, 
                          "ACCESS ERROR: abort in thread %lx[%s]. "
                          "ret_addr: 0x%08lx abt_addr: 0x%08lx, abt_type: %s.\n",
-                         pvmpagefailctx->PAGEFCTX_ptcb->TCB_ulId,
-                         pvmpagefailctx->PAGEFCTX_ptcb->TCB_cThreadName,
-                         pvmpagefailctx->PAGEFCTX_ulRetAddr,
-                         pvmpagefailctx->PAGEFCTX_ulAbortAddr, pcInfo);
+                         pabtctx->ABTCTX_ptcb->TCB_ulId,
+                         pabtctx->ABTCTX_ptcb->TCB_cThreadName,
+                         pabtctx->ABTCTX_ulRetAddr,
+                         pabtctx->ABTCTX_ulAbortAddr, pcInfo);
         break;
     }
     

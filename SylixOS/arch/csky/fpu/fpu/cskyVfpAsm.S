@@ -32,17 +32,59 @@
     FILE_BEGIN()
 
     EXPORT_LABEL(cskyVfpInit)
-    EXPORT_LABEL(cskyVfpEnable)
-    EXPORT_LABEL(cskyVfpDisable)
-    EXPORT_LABEL(cskyVfpIsEnable)
     EXPORT_LABEL(cskyVfpSave)
     EXPORT_LABEL(cskyVfpRestore)
+    EXPORT_LABEL(cskyVfpGetFESR)
+    EXPORT_LABEL(cskyVfpSetFESR)
+
+;/*********************************************************************************************************
+;  FCR 配置
+;*********************************************************************************************************/
+
+#define FCR_FM              (0 << 27)                                   /*  将非规格化数刷成有符号零     */
+#define FCR_RM              (0 << 24)                                   /*  舍入到最接近值               */
+
+#if LW_CFG_CPU_FPU_IDE > 0
+#define FCR_IDE             (1 << 5)
+#else
+#define FCR_IDE             0
+#endif
+
+#if LW_CFG_CPU_FPU_IXE > 0
+#define FCR_IXE             (1 << 4)
+#else
+#define FCR_IXE             0
+#endif
+
+#if LW_CFG_CPU_FPU_UFE > 0
+#define FCR_UFE             (1 << 3)
+#else
+#define FCR_UFE             0
+#endif
+
+#if LW_CFG_CPU_FPU_OFE > 0
+#define FCR_OFE             (1 << 2)
+#else
+#define FCR_OFE             0
+#endif
+
+#if LW_CFG_CPU_FPU_DZE > 0
+#define FCR_DZE             (1 << 1)
+#else
+#define FCR_DZE             0
+#endif
+
+#if LW_CFG_CPU_FPU_IOE > 0
+#define FCR_IOE             (1 << 0)
+#else
+#define FCR_IOE             0
+#endif
+
+#define FCR_CONFIG          (FCR_FM | FCR_RM |FCR_IDE | FCR_IXE | FCR_UFE | FCR_OFE | FCR_DZE | FCR_IOE)
 
 ;/*********************************************************************************************************
 ;  宏定义
 ;*********************************************************************************************************/
-
-#define FCR_ENABLE      (IDE_STAT | UFE_STAT | OFE_STAT | DZE_STAT | IOE_STAT)
 
 MACRO_DEF(FPU_REG_RESTORE fr, tmp, base, offsetl, offseth)
     LD.W        \tmp , (\base , \offsetl)
@@ -59,24 +101,13 @@ MACRO_DEF(FPU_REG_SAVE fr, tmp, base, offsetl, offseth)
     MACRO_END()
 
 ;/*********************************************************************************************************
-;  使能 FPU 
-;*********************************************************************************************************/
-
-MACRO_DEF(ENABLE_FPU)
-    MFCR        A1 , CR<1, 2>
-    ORI         A1 , A1 , FCR_ENABLE
-    MTCR        A1 , CR<1, 2>
-    MACRO_END()
-
-;/*********************************************************************************************************
 ;  初始化 FPU
 ;*********************************************************************************************************/
 
 FUNC_DEF(cskyVfpInit)
-    MFCR        A1 , CR<1, 2>                                           ;/*  记录原 FPU 状态             */
+    MOVI        A0 , FCR_CONFIG                                         ;/*  设置 FPU 寄存器             */
+    MTCR        A0 , CR<1, 2>
 
-    ENABLE_FPU                                                          ;/*  使能 FPU                    */
-        
     MOVI        A0 , 0
 
     FMTVRL      FR0 , A0                                                ;/*  清零 FPU 寄存器             */
@@ -111,53 +142,15 @@ FUNC_DEF(cskyVfpInit)
     FMTVRH      FR14, A0
     FMTVRL      FR15, A0
     FMTVRH      FR15, A0
-     
-    MTCR        A1 , CR<1, 2>                                           ;/*  恢复原 FPU 开关状态         */
+
     RTS
     FUNC_END(cskyVfpInit)
-
-;/*********************************************************************************************************
-;  使能 FPU
-;*********************************************************************************************************/
-
-FUNC_DEF(cskyVfpEnable)
-    ENABLE_FPU                                                          ;/*  使能 FPU                    */
-    RTS
-    FUNC_END(cskyVfpEnable)
-
-;/*********************************************************************************************************
-;  禁能 FPU
-;*********************************************************************************************************/
-
-FUNC_DEF(cskyVfpDisable)
-    MFCR        A0 , CR<1, 2>
-    MOVI        A1 , FCR_ENABLE
-    ANDN        A0 , A1
-    MTCR        A0 , CR<1, 2>
-    RTS
-    FUNC_END(cskyVfpDisable)
-
-;/*********************************************************************************************************
-;  判断 FPU 是否使能
-;*********************************************************************************************************/
-
-FUNC_DEF(cskyVfpIsEnable)
-    MFCR        A1 , CR<1, 2>
-    ANDI        A1 , A1 , FCR_ENABLE
-    BEZ         A1 , 1f
-    MOVI        A0 , 1
-1:
-    MOVI        A0 , 0
-    RTS
-    FUNC_END(cskyVfpIsEnable)
 
 ;/*********************************************************************************************************
 ;  保存 FPU 寄存器
 ;*********************************************************************************************************/
 
 FUNC_DEF(cskyVfpSave)
-    ENABLE_FPU                                                          ;/*  使能 FPU                    */
-
     FPU_REG_SAVE    FR0 ,  A1,  A0,  FPU_OFFSET_REG_LO(0),  FPU_OFFSET_REG_HI(0)
     FPU_REG_SAVE    FR1 ,  A1,  A0,  FPU_OFFSET_REG_LO(1),  FPU_OFFSET_REG_HI(1)
     FPU_REG_SAVE    FR2 ,  A1,  A0,  FPU_OFFSET_REG_LO(2),  FPU_OFFSET_REG_HI(2)
@@ -177,7 +170,7 @@ FUNC_DEF(cskyVfpSave)
 
     MFCR        A1  , CR<1, 2>
     ST.W        A1  , (A0 , FPU_OFFSET_FCR)                             ;/*  保存 FCR 状态寄存器         */
-    
+
     MFCR        A1  , CR<2, 2>
     ST.W        A1  , (A0 , FPU_OFFSET_FESR)                            ;/*  保存 FECR 状态寄存器        */
 
@@ -189,11 +182,9 @@ FUNC_DEF(cskyVfpSave)
 ;*********************************************************************************************************/
 
 FUNC_DEF(cskyVfpRestore)
-    ENABLE_FPU                                                          ;/*  使能 FPU                    */
-   
     LD.W        A1  , (A0 , FPU_OFFSET_FESR)                            ;/*  恢复 FECR 状态寄存器        */
     MTCR        A1  , CR<2, 2>
-        
+
     FPU_REG_RESTORE FR0 ,  A1,  A0,  FPU_OFFSET_REG_LO(0),  FPU_OFFSET_REG_HI(0)
     FPU_REG_RESTORE FR1 ,  A1,  A0,  FPU_OFFSET_REG_LO(1),  FPU_OFFSET_REG_HI(1)
     FPU_REG_RESTORE FR2 ,  A1,  A0,  FPU_OFFSET_REG_LO(2),  FPU_OFFSET_REG_HI(2)
@@ -210,12 +201,30 @@ FUNC_DEF(cskyVfpRestore)
     FPU_REG_RESTORE FR13,  A1,  A0,  FPU_OFFSET_REG_LO(13), FPU_OFFSET_REG_HI(13)
     FPU_REG_RESTORE FR14,  A1,  A0,  FPU_OFFSET_REG_LO(14), FPU_OFFSET_REG_HI(14)
     FPU_REG_RESTORE FR15,  A1,  A0,  FPU_OFFSET_REG_LO(15), FPU_OFFSET_REG_HI(15)
-    
+
     LD.W        A1  , (A0 , FPU_OFFSET_FCR)                             ;/*  恢复 FCR 状态寄存器         */
     MTCR        A1  , CR<1, 2>
 
     RTS
     FUNC_END(cskyVfpRestore)
+
+;/*********************************************************************************************************
+;  获得 FESR 寄存器
+;*********************************************************************************************************/
+
+FUNC_DEF(cskyVfpGetFESR)
+    MFCR        A0 , CR<2, 2>
+    RTS
+    FUNC_END(cskyVfpGetFESR)
+
+;/*********************************************************************************************************
+;  设置 FESR 寄存器
+;*********************************************************************************************************/
+
+FUNC_DEF(cskyVfpSetFESR)
+    MTCR        A0 , CR<2, 2>
+    RTS
+    FUNC_END(cskyVfpSetFESR)
 
     FILE_END()
 

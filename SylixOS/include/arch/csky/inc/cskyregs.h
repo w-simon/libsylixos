@@ -203,12 +203,14 @@ static inline void cskyTlbInvalidIndexed(void)
 
 #define TLBWI_TLB                          0x20000000
 
-#define IDE_STAT                           (1 << 5)
-#define IXE_STAT                           (1 << 4)
-#define UFE_STAT                           (1 << 3)
-#define OFE_STAT                           (1 << 2)
-#define DZE_STAT                           (1 << 1)
-#define IOE_STAT                           (1 << 0)
+#define FESR_ILLE                          (1 << 16)
+#define FESR_FEC                           (1 << 7)
+#define FESR_IDC                           (1 << 5)
+#define FESR_IXC                           (1 << 4)
+#define FESR_UFC                           (1 << 3)
+#define FESR_OFC                           (1 << 2)
+#define FESR_DZC                           (1 << 1)
+#define FESR_IOC                           (1 << 0)
 
 #endif                                                                  /*  __CSKY_REGS_H               */
 /*********************************************************************************************************

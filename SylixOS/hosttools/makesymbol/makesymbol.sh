@@ -3,6 +3,7 @@
 srcfile=libsylixos.a
 symbolc=symbol.c
 symbolh=symbol.h
+symbolld=symbol.ld
 NM=nm
 funcfile=func.lst
 objsfile=objs.lst
@@ -17,6 +18,63 @@ for i in $srcfile; do
     # obj, remove __sylixos_version
     $NM $i | sed -n 's/.*\ [BDRSCVG]\ \(.*\)/\1/gp' | sed '/__sylixos_version/d' >>$objsfile;
 done
+
+cat << EOF >$symbolld
+-Wl,--no-undefined
+-Wl,--no-allow-shlib-undefined
+-Wl,--error-unresolved-symbols
+-Wl,--unresolved-symbols=report-all
+-Wl,--ignore-unresolved-symbol,bspDebugMsg
+-Wl,--ignore-unresolved-symbol,udelay
+-Wl,--ignore-unresolved-symbol,ndelay
+-Wl,--ignore-unresolved-symbol,bspDelayUs
+-Wl,--ignore-unresolved-symbol,bspDelayNs
+-Wl,--ignore-unresolved-symbol,bspInfoCpu
+-Wl,--ignore-unresolved-symbol,bspInfoCache
+-Wl,--ignore-unresolved-symbol,bspInfoPacket
+-Wl,--ignore-unresolved-symbol,bspInfoVersion
+-Wl,--ignore-unresolved-symbol,bspInfoHwcap
+-Wl,--ignore-unresolved-symbol,bspInfoRomBase
+-Wl,--ignore-unresolved-symbol,bspInfoRomSize
+-Wl,--ignore-unresolved-symbol,bspInfoRamBase
+-Wl,--ignore-unresolved-symbol,bspInfoRamSize
+-Wl,--ignore-unresolved-symbol,bspTickHighResolution
+-Wl,--ignore-unresolved-symbol,null
+-Wl,--ignore-unresolved-symbol,__lib_strerror
+-Wl,--ignore-unresolved-symbol,_execl
+-Wl,--ignore-unresolved-symbol,_execle
+-Wl,--ignore-unresolved-symbol,_execlp
+-Wl,--ignore-unresolved-symbol,_execv
+-Wl,--ignore-unresolved-symbol,_execve
+-Wl,--ignore-unresolved-symbol,_execvp
+-Wl,--ignore-unresolved-symbol,_execvpe
+-Wl,--ignore-unresolved-symbol,_spawnl
+-Wl,--ignore-unresolved-symbol,_spawnle
+-Wl,--ignore-unresolved-symbol,_spawnlp
+-Wl,--ignore-unresolved-symbol,_spawnv
+-Wl,--ignore-unresolved-symbol,_spawnve
+-Wl,--ignore-unresolved-symbol,_spawnvp
+-Wl,--ignore-unresolved-symbol,_spawnvpe
+-Wl,--ignore-unresolved-symbol,_longjmp
+-Wl,--ignore-unresolved-symbol,_setjmp
+-Wl,--ignore-unresolved-symbol,__aeabi_read_tp
+-Wl,--ignore-unresolved-symbol,msgget
+-Wl,--ignore-unresolved-symbol,msgctl
+-Wl,--ignore-unresolved-symbol,msgrcv
+-Wl,--ignore-unresolved-symbol,msgsnd
+-Wl,--ignore-unresolved-symbol,semget
+-Wl,--ignore-unresolved-symbol,semctl
+-Wl,--ignore-unresolved-symbol,semop
+-Wl,--ignore-unresolved-symbol,semtimedop
+-Wl,--ignore-unresolved-symbol,shmget
+-Wl,--ignore-unresolved-symbol,shmctl
+-Wl,--ignore-unresolved-symbol,shmat
+-Wl,--ignore-unresolved-symbol,shmdt
+-Wl,--ignore-unresolved-symbol,ftok
+EOF
+
+sed 's/\(.*\)/-Wl,--ignore-unresolved-symbol,\1\ /g' $funcfile >>$symbolld
+sed 's/\(.*\)/-Wl,--ignore-unresolved-symbol,\1\ /g' $objsfile >>$symbolld
 
 cat << EOF >$symbolc
 /*********************************************************************************************************

@@ -27,6 +27,9 @@
 PCSKY_FPU_OP  cskyVfpPrimaryInit(CPCHAR    pcMachineName, CPCHAR  pcFpuName);
 VOID          cskyVfpSecondaryInit(CPCHAR  pcMachineName, CPCHAR  pcFpuName);
 
+UINT32        cskyVfpGetFESR(VOID);
+VOID          cskyVfpSetFESR(UINT32  uiFESR);
+
 #endif                                                                  /*  __ARCH_CSKYVFP_H            */
 /*********************************************************************************************************
   END

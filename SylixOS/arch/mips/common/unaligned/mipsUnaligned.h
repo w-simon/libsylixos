@@ -22,7 +22,7 @@
 #ifndef __ARCH_MIPSUNALIGNED_H
 #define __ARCH_MIPSUNALIGNED_H
 
-ULONG  mipsUnalignedHandle(ARCH_REG_CTX  *pregctx, addr_t  ulAbortAddr);
+VOID  mipsUnalignedHandle(ARCH_REG_CTX  *pregctx, PLW_VMM_ABORT  pabtInfo);
 
 #endif                                                                  /*  __ARCH_MIPSUNALIGNED_H      */
 /*********************************************************************************************************

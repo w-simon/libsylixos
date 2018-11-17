@@ -102,7 +102,6 @@
 #include "arch/mips/inc/asm-eva.h"
 #include "arch/mips/inc/inst.h"
 #include "arch/mips/inc/branch.h"
-#include "arch/mips/param/mipsParam.h"
 #if LW_CFG_CPU_FPU_EN > 0
 #include "arch/mips/fpu/emu/mipsFpuEmu.h"
 #if LW_CFG_MIPS_HAS_MSA_INSTR > 0
@@ -891,8 +890,8 @@ do {                                                        \
 #define StoreWE(addr, value, res)	_StoreW(addr, value, res, user)
 #define StoreDW(addr, value, res)	_StoreDW(addr, value, res)
 
-static int emulate_load_store_insn(ARCH_REG_CTX *regs,
-	void __user *addr, unsigned int __user *pc)
+static void emulate_load_store_insn(ARCH_REG_CTX *regs,
+	void __user *addr, unsigned int __user *pc, PLW_VMM_ABORT pabtInfo)
 {
 	union mips_instruction insn;
 	unsigned long value;
@@ -909,8 +908,7 @@ static int emulate_load_store_insn(ARCH_REG_CTX *regs,
 	enum msa_2b_fmt df;
 	unsigned int wd;
 #endif                                                                  /*  MIPS_HAS_MSA_INSTR > 0      */
-    ARCH_FPU_CTX   *pFpuCtx;
-    LW_VMM_ABORT    abtInfo;
+    ARCH_FPU_CTX  *pFpuCtx;
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 
 	origpc = (unsigned long)pc;
@@ -1241,46 +1239,11 @@ static int emulate_load_store_insn(ARCH_REG_CTX *regs,
         __ARCH_FPU_SAVE(pFpuCtx);                                       /*  保存当前 FPU CTX            */
 
 		res = fpu_emulator_cop1Handler(regs, pFpuCtx, 1, &fault_addr);
-        switch (res) {
+		if (res) {
+	        goto sigill;
+		}
 
-        case 0:                                                         /*  成功模拟                    */
-            abtInfo.VMABT_uiType = 0;
-            __ARCH_FPU_RESTORE(pFpuCtx);                                /*  恢复当前 FPU CTX            */
-            break;
-
-        case SIGILL:                                                    /*  未定义指令                  */
-            abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
-            abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_UNDEF;
-            break;
-
-        case SIGBUS:                                                    /*  总线错误                    */
-            abtInfo.VMABT_uiMethod = BUS_ADRERR;
-            abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
-            break;
-
-        case SIGSEGV:                                                   /*  地址不合法                  */
-            abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_WRITE;
-            abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_TERMINAL;
-            addr = fault_addr;
-            break;
-
-        case SIGFPE:                                                    /*  FPU 错误                    */
-        default:
-            abtInfo.VMABT_uiMethod = 0;
-            abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FPE;
-            break;
-        }
-
-        if (abtInfo.VMABT_uiType) {
-            PLW_CLASS_TCB   ptcbCur;
-            LW_TCB_GET_CUR(ptcbCur);
-            API_VmmAbortIsr((addr_t)pc, (ULONG)addr, &abtInfo, ptcbCur);
-        }
-
-        /*
-         * 上面已经调用 API_VmmAbortIsr, 返回 0
-         */
-        return  (0);
+        __ARCH_FPU_RESTORE(pFpuCtx);                                    /*  恢复当前 FPU CTX            */
 #else
         goto sigill;
         break;
@@ -1358,47 +1321,44 @@ static int emulate_load_store_insn(ARCH_REG_CTX *regs,
 	unaligned_instructions++;
 #endif
 
-    return  (0);
+    pabtInfo->VMABT_uiType = LW_VMM_ABORT_TYPE_NOINFO;
+    return;
 
 fault:
 	/* roll back jump/branch */
 	regs->cp0_epc  = origpc;
 	regs->regs[31] = orig31;
-    return  (LW_VMM_ABORT_TYPE_TERMINAL);
+    pabtInfo->VMABT_uiType = LW_VMM_ABORT_TYPE_TERMINAL;
+    return;
 
 sigbus:
-    return  (LW_VMM_ABORT_TYPE_BUS);
+    pabtInfo->VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
+    pabtInfo->VMABT_uiMethod = BUS_ADRALN;
+    return;
 
 sigill:
-    return  (LW_VMM_ABORT_TYPE_UNDEF);
+    pabtInfo->VMABT_uiType   = LW_VMM_ABORT_TYPE_UNDEF;
+    pabtInfo->VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
 }
 /*********************************************************************************************************
 ** 函数名称: mipsUnalignedHandle
 ** 功能描述: MIPS 非对齐处理
 ** 输　入  : pregctx           寄存器上下文
-**           ulAbortAddr       终止地址
-** 输　出  : 终止类型
+**           pabtInfo          终止信息
+** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-ULONG  mipsUnalignedHandle (ARCH_REG_CTX  *pregctx, addr_t  ulAbortAddr)
+VOID  mipsUnalignedHandle (ARCH_REG_CTX  *pregctx, PLW_VMM_ABORT  pabtInfo)
 {
-    MIPS_PARAM        *param = archKernelParamGet();
     MIPS_INSTRUCTION  *pc;
 
     /*
      * Did we catch a fault trying to load an instruction?
      * Or are we running in MIPS16 mode?
      */
-    if ((ulAbortAddr == pregctx->REG_ulCP0EPC) || (pregctx->REG_ulCP0EPC & 0x1)) {
-        goto    sigbus;
-    }
-
-    /*
-     * unsupport unalign access
-     */
-    if (param->MP_bUnalign == LW_FALSE) {
-        goto    sigbus;
+    if ((pregctx->REG_ulCP0BadVAddr == pregctx->REG_ulCP0EPC) || (pregctx->REG_ulCP0EPC & 0x1)) {
+        goto  sigbus;
     }
 
     pc = (MIPS_INSTRUCTION *)exception_epc(pregctx);
@@ -1407,10 +1367,12 @@ ULONG  mipsUnalignedHandle (ARCH_REG_CTX  *pregctx, addr_t  ulAbortAddr)
      * Do branch emulation only if we didn't forward the exception.
      * This is all so but ugly ...
      */
-    return  (emulate_load_store_insn(pregctx, (VOID *)ulAbortAddr, pc));
+    emulate_load_store_insn(pregctx, (VOID *)pregctx->REG_ulCP0BadVAddr, pc, pabtInfo);
+    return;
 
 sigbus:
-    return  (LW_VMM_ABORT_TYPE_BUS);
+    pabtInfo->VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
+    pabtInfo->VMABT_uiMethod = BUS_ADRALN;
 }
 /*********************************************************************************************************
   END

@@ -22,6 +22,7 @@
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
 #include "dtrace.h"
+#include "arch/mips/param/mipsParam.h"
 #include "arch/mips/common/cp0/mipsCp0.h"
 #include "arch/mips/common/unaligned/mipsUnaligned.h"
 #if LW_CFG_VMM_EN > 0
@@ -244,6 +245,21 @@ static VOID  archTlbStoreExceptHandle (addr_t  ulRetAddr, addr_t  ulAbortAddr)
     }
 }
 /*********************************************************************************************************
+** 函数名称: archUnalignedHandle
+** 功能描述: 非对齐内存访问异常处理
+** 输　入  : pabtctx    abort 上下文
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  archUnalignedHandle (PLW_VMM_ABORT_CTX  pabtctx)
+{
+    mipsUnalignedHandle(&pabtctx->ABTCTX_archRegCtx,
+                        &pabtctx->ABTCTX_abtInfo);
+
+    API_VmmAbortReturn(pabtctx);
+}
+/*********************************************************************************************************
 ** 函数名称: archAddrLoadExceptHandle
 ** 功能描述: Address load or ifetch 异常处理
 ** 输　入  : ulRetAddr     返回地址
@@ -257,6 +273,7 @@ static VOID  archAddrLoadExceptHandle (addr_t  ulRetAddr, addr_t  ulAbortAddr, A
 {
     PLW_CLASS_TCB  ptcbCur;
     LW_VMM_ABORT   abtInfo;
+    MIPS_PARAM    *param = archKernelParamGet();
 
     LW_TCB_GET_CUR(ptcbCur);
 
@@ -270,9 +287,13 @@ static VOID  archAddrLoadExceptHandle (addr_t  ulRetAddr, addr_t  ulAbortAddr, A
      *  TODO: 由于现在未使用用户模式, 所以第三种情况暂不用处理
      */
 
-    abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_READ;
-    abtInfo.VMABT_uiType   = mipsUnalignedHandle(pregctx, ulAbortAddr);
-    if (abtInfo.VMABT_uiType) {
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
+    abtInfo.VMABT_uiMethod = BUS_ADRALN;
+
+    if (param->MP_bUnalign) {
+        API_VmmAbortIsrEx(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur, archUnalignedHandle);
+
+    } else {
         API_VmmAbortIsr(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur);
     }
 }
@@ -290,12 +311,17 @@ static VOID  archAddrStoreExceptHandle (addr_t  ulRetAddr, addr_t  ulAbortAddr, 
 {
     PLW_CLASS_TCB  ptcbCur;
     LW_VMM_ABORT   abtInfo;
+    MIPS_PARAM    *param = archKernelParamGet();
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_WRITE;
-    abtInfo.VMABT_uiType   = mipsUnalignedHandle(pregctx, ulAbortAddr);
-    if (abtInfo.VMABT_uiType) {
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
+    abtInfo.VMABT_uiMethod = BUS_ADRALN;
+
+    if (param->MP_bUnalign) {
+        API_VmmAbortIsrEx(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur, archUnalignedHandle);
+
+    } else {
         API_VmmAbortIsr(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur);
     }
 }
@@ -749,6 +775,7 @@ VOID  archExceptionHandle (ARCH_REG_CTX  *pregctx)
     pfuncExceptHandle = _G_mipsExceptHandle[ulExcCode];
     if (pfuncExceptHandle == LW_NULL) {
         _BugFormat(LW_TRUE, LW_TRUE, "Unknow exception: %d\r\n", ulExcCode);
+
     } else {
         pfuncExceptHandle(pregctx->REG_ulCP0EPC, pregctx->REG_ulCP0BadVAddr, pregctx);
     }

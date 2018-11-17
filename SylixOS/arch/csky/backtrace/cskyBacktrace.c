@@ -122,7 +122,7 @@ static void  csky_analyze_prologue (unsigned long   start_pc,    unsigned long  
     insn_len   = 2;                                                     /*  instruction is 16bit        */
     for (addr = start_pc; addr < limit_pc; addr += insn_len) {
 
-        insn_len = csky_get_insn (addr, &insn);                         /*  Get next insn               */
+        insn_len = csky_get_insn(addr, &insn);                          /*  Get next insn               */
 
         if(insn_len == 4) {                                             /*  if 32bit                    */
             if (V2_32_IS_SUBI0(insn)) {                                 /*  subi32 sp,sp oimm12         */
@@ -184,7 +184,7 @@ static void  csky_analyze_prologue (unsigned long   start_pc,    unsigned long  
 
                 addr       += 4;
                 mfcr_regnum = insn & 0x1f;
-                insn_len    = csky_get_insn (addr, &insn2);
+                insn_len    = csky_get_insn(addr, &insn2);
                 if (insn_len == 2) {
                     stw_regnum = (insn2 >> 5) & 0x7;
                     if (V2_16_IS_STWx0(insn2) && (mfcr_regnum == stw_regnum)) {
@@ -215,7 +215,7 @@ static void  csky_analyze_prologue (unsigned long   start_pc,    unsigned long  
 
                 addr       += 4;
                 mfcr_regnum = insn & 0x1f;
-                insn_len    = csky_get_insn (addr, &insn2);
+                insn_len    = csky_get_insn(addr, &insn2);
                 if (insn_len == 2) {
                     stw_regnum = (insn2 >> 5) & 0x7;
                     if (V2_16_IS_STWx0(insn2) && (mfcr_regnum == stw_regnum)) {
@@ -247,7 +247,7 @@ static void  csky_analyze_prologue (unsigned long   start_pc,    unsigned long  
 
                 addr       += 4;
                 mfcr_regnum = insn & 0x1f;
-                insn_len    = csky_get_insn (addr, &insn2);
+                insn_len    = csky_get_insn(addr, &insn2);
                 if (insn_len == 2) {
                     stw_regnum = (insn2 >> 5) & 0x7;
                     if ( V2_16_IS_STWx0(insn2) && (mfcr_regnum == stw_regnum)) {
@@ -278,7 +278,7 @@ static void  csky_analyze_prologue (unsigned long   start_pc,    unsigned long  
 
                 addr       += 4;
                 mfcr_regnum = insn & 0x1f;
-                insn_len    = csky_get_insn (addr, &insn2);
+                insn_len    = csky_get_insn(addr, &insn2);
                 if (insn_len == 2) {
                     stw_regnum = (insn2 >> 5) & 0x7;
                     if ( V2_16_IS_STWx0(insn2) && (mfcr_regnum == stw_regnum)) {
@@ -376,7 +376,7 @@ static void  csky_analyze_prologue (unsigned long   start_pc,    unsigned long  
                 } else if (V2_32_IS_MOVIH4(insn)) {
                     adjust = (insn & 0xffff) << 16;
 
-                } else {                                                /*  V2_32_IS_BMASKI4 (insn)     */
+                } else {                                                /*  V2_32_IS_BMASKI4(insn)      */
                     adjust = (1 << (((insn & 0x3e00000) >> 21) + 1)) - 1;
                 }
 
@@ -456,7 +456,7 @@ static void  csky_analyze_prologue (unsigned long   start_pc,    unsigned long  
 
                     offset  += insn_len;
                     insn_len = csky_get_insn(addr + offset, &insn2);
-                };
+                }
 
                 /*
                  * If the next insn adjusts the stack pointer, we keep everything;
@@ -556,7 +556,7 @@ static void  csky_analyze_prologue (unsigned long   start_pc,    unsigned long  
                  * May have zero or more insns which modify r4
                  */
                 offset   = 2;
-                insn_len = csky_get_insn (addr + offset, &insn2);
+                insn_len = csky_get_insn(addr + offset, &insn2);
 
                 while (V2_IS_R4_ADJUSTER(insn2)) {
                     if (V2_32_IS_ADDI4(insn2)) {
@@ -630,7 +630,7 @@ static void  csky_analyze_prologue (unsigned long   start_pc,    unsigned long  
                     }
 
                     offset  += insn_len;
-                    insn_len = csky_get_insn (addr + offset, &insn2);
+                    insn_len = csky_get_insn(addr + offset, &insn2);
                 }
 
                 /*
@@ -719,7 +719,7 @@ __find_start:
                 (V2_32_IS_POP((*(addr - 1) << 16 | inst)) && V2_16_IS_MOV_SP_FP(*(addr - 2)))) {
                 temp_pc = (unsigned long)(addr - 2);
                 addr++;
-                addr = (CSKY_INSTRUCTION  *)ROUND_UP(addr, 4);
+                addr = (CSKY_INSTRUCTION *)ROUND_UP(addr, 4);
 
                 for ( ; ; addr++) {
                     inst = *addr;
@@ -747,7 +747,7 @@ __find_start:
             goto  __find_start;
         }
 
-        for (addr = (CSKY_INSTRUCTION  *)start_pc; ; addr++) {          /*  查找函数结束结束地址        */
+        for (addr = (CSKY_INSTRUCTION *)start_pc; ; addr++) {           /*  查找函数结束结束地址        */
             inst = *addr;
 
             if (IS_T32(inst)) {

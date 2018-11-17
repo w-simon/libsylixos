@@ -22,11 +22,15 @@
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
 #include "dtrace.h"
+#include "arch/csky/inc/cskyregs.h"
+#include "arch/csky/param/cskyParam.h"
 #include "arch/csky/common/unaligned/cskyUnaligned.h"
 #if LW_CFG_VMM_EN > 0
 #include "arch/csky/mm/mmu/cskyMmu.h"
 #endif
-#include "arch/csky/param/cskyParam.h"
+#if LW_CFG_CPU_FPU_EN > 0
+#include "arch/csky/fpu/fpu/cskyVfp.h"
+#endif
 /*********************************************************************************************************
   向量使能与禁能锁
 *********************************************************************************************************/
@@ -326,12 +330,48 @@ VOID  archReservedExceptHandle (ULONG  ulVector, ARCH_REG_CTX  *pregctx)
 {
     LW_VMM_ABORT    abtInfo;
     PLW_CLASS_TCB   ptcbCur;
+#if LW_CFG_CPU_FPU_EN > 0
+    UINT32          uiFESR;
+#endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    abtInfo.VMABT_uiMethod = 0;
-    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FATAL_ERROR;
-    API_VmmAbortIsr(pregctx->REG_ulPC, pregctx->REG_ulPC, &abtInfo, ptcbCur);
+    abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_FATAL_ERROR;               /*  终止类型默认为 FATAL 异常   */
+
+#if LW_CFG_CPU_FPU_EN > 0
+    uiFESR = cskyVfpGetFESR();
+    if (uiFESR & FESR_FEC) {                                            /*  产生了 FPU 异常             */
+        abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_FPE;
+
+        if (uiFESR & FESR_IDC) {                                        /*  非规格数输入                */
+            abtInfo.VMABT_uiMethod = FPE_FLTSUB;
+
+        } else if(uiFESR & FESR_IXC) {
+            abtInfo.VMABT_uiMethod = FPE_FLTRES;                        /*  不精确异常                  */
+
+        }  else if(uiFESR & FESR_UFC) {
+            abtInfo.VMABT_uiMethod = FPE_FLTUND;                        /*  下溢异常                    */
+
+        } else if(uiFESR & FESR_OFC) {
+            abtInfo.VMABT_uiMethod = FPE_FLTOVF;                        /*  上溢异常                    */
+
+        } else if(uiFESR & FESR_DZC) {
+            abtInfo.VMABT_uiMethod = FPE_FLTDIV;                        /*  除零异常                    */
+
+        } else if(uiFESR & FESR_IOC) {
+            abtInfo.VMABT_uiMethod = FPE_FLTINV;                        /*  非法操作异常                */
+
+        } else {
+            abtInfo.VMABT_uiMethod = 0;
+        }
+
+        cskyVfpSetFESR(0);                                              /*  清除 FPU 异常               */
+    }
+#endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
+
+    if (abtInfo.VMABT_uiType) {
+        API_VmmAbortIsr(pregctx->REG_ulPC, pregctx->REG_ulPC, &abtInfo, ptcbCur);
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: archIdlyExceptHandle
@@ -486,6 +526,21 @@ VOID  archAccessExceptHandle (ULONG  ulVector, ARCH_REG_CTX  *pregctx)
     API_VmmAbortIsr(pregctx->REG_ulPC, pregctx->REG_ulMEH, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
+** 函数名称: archUnalignedHandle
+** 功能描述: 非对齐内存访问异常处理
+** 输　入  : pabtctx    abort 上下文
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  archUnalignedHandle (PLW_VMM_ABORT_CTX  pabtctx)
+{
+    cskyUnalignedHandle(&pabtctx->ABTCTX_archRegCtx,
+                        &pabtctx->ABTCTX_abtInfo);
+
+    API_VmmAbortReturn(pabtctx);
+}
+/*********************************************************************************************************
 ** 函数名称: archUnalignedExceptHandle
 ** 功能描述: 未对齐访问异常处理
 ** 输　入  : ulVector  中断向量
@@ -498,21 +553,17 @@ VOID  archUnalignedExceptHandle (ULONG  ulVector, ARCH_REG_CTX  *pregctx)
 {
     PLW_CLASS_TCB  ptcbCur;
     LW_VMM_ABORT   abtInfo;
-    CSKY_PARAM    *param;
+    CSKY_PARAM    *param = archKernelParamGet();
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_READ;
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
+    abtInfo.VMABT_uiMethod = BUS_ADRALN;
 
-    param = archKernelParamGet();
     if (param->CP_bUnalign) {
-        abtInfo.VMABT_uiType = cskyUnalignedHandle(pregctx, pregctx->REG_ulPC);
+        API_VmmAbortIsrEx(pregctx->REG_ulPC, pregctx->REG_ulPC, &abtInfo, ptcbCur, archUnalignedHandle);
 
     } else {
-        abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_BUS;
-    }
-
-    if (abtInfo.VMABT_uiType) {
         API_VmmAbortIsr(pregctx->REG_ulPC, pregctx->REG_ulPC, &abtInfo, ptcbCur);
     }
 }

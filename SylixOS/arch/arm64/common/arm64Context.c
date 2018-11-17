@@ -88,7 +88,7 @@ VOID  archTaskCtxSetFp (PLW_STACK               pstkDest,
     ARCH_FP_CTX  *pfpctx = (ARCH_FP_CTX *)pstkDest;
 
     pfpctx->FP_ulFp = pregctxSrc->REG_ulFP;
-    pfpctx->FP_ulLr = pregctxSrc->REG_ulLR;
+    pfpctx->FP_ulLr = pregctxSrc->REG_ulPC;
 
     pregctxDest->REG_ulFP = (ARCH_REG_T)&pfpctx->FP_ulFp;
 }

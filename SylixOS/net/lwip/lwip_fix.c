@@ -149,7 +149,7 @@ void  sys_assert_print (const char *msg, const char *func, const char *file, int
     
     _PathLastName(file, &fname);                                        /*  只显示文件名                */
     
-    fprintf(stderr, "[NET] Assert: %s func: %s() file: %s line: %d\n", msg, func, fname, line);
+    _PrintFormat("[NET] Assert: %s func: %s() file: %s line: %d\r\n", msg, func, fname, line);
 }
 /*********************************************************************************************************
 ** 函数名称: sys_error_print
@@ -168,7 +168,7 @@ void  sys_error_print (const char *msg, const char *func, const char *file, int 
     
     _PathLastName(file, &fname);                                        /*  只显示文件名                */
     
-    fprintf(stderr, "[NET] Error: %s func: %s() file: %s line: %d\n", msg, func, fname, line);
+    _PrintFormat("[NET] Error: %s func: %s() file: %s line: %d\r\n", msg, func, fname, line);
 }
 /*********************************************************************************************************
 ** 函数名称: lwip_platform_memcpy
@@ -209,12 +209,17 @@ LW_WEAK PVOID  lwip_platform_smemcpy (PVOID  pvDest, CPVOID  pvSrc, size_t  stCo
 err_t  sys_mutex_new (sys_mutex_t *pmutex)
 {
     SYS_ARCH_DECL_PROTECT(lev);
-    LW_OBJECT_HANDLE    hMutex = API_SemaphoreMCreate("net_mutex", LW_PRIO_DEF_CEILING, 
-                                                      LW_OPTION_WAIT_PRIORITY |
-                                                      LW_OPTION_INHERIT_PRIORITY |
-                                                      LW_OPTION_DELETE_SAFE |
-                                                      LW_OPTION_OBJECT_DEBUG_UNPEND |
-                                                      LW_OPTION_OBJECT_GLOBAL, LW_NULL);
+    LW_OBJECT_HANDLE    hMutex;
+    ULONG               ulOpt = LW_OPTION_INHERIT_PRIORITY
+                              | LW_OPTION_DELETE_SAFE
+                              | LW_OPTION_OBJECT_DEBUG_UNPEND
+                              | LW_OPTION_OBJECT_GLOBAL;
+                   
+    if (!LW_KERN_NET_LOCK_FIFO_GET()) {
+        ulOpt |= LW_OPTION_WAIT_PRIORITY;
+    }
+    
+    hMutex = API_SemaphoreMCreate("net_mutex", LW_PRIO_DEF_CEILING, ulOpt, LW_NULL);
     if (hMutex == LW_OBJECT_HANDLE_INVALID) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "can not create net mutex.\r\n");
         SYS_STATS_INC(mutex.err);
@@ -1304,7 +1309,7 @@ LW_API
 uint32_t htonl (uint32_t x)
 {
 #if BYTE_ORDER == LITTLE_ENDIAN
-    return  LWIP_PLATFORM_HTONL(x);
+    return  PP_HTONL(x);
 #else
     return  x;
 #endif
@@ -1322,7 +1327,7 @@ LW_API
 uint32_t ntohl (uint32_t x)
 {
 #if BYTE_ORDER == LITTLE_ENDIAN
-    return  LWIP_PLATFORM_HTONL(x);
+    return  PP_HTONL(x);
 #else
     return  x;
 #endif
@@ -1340,7 +1345,7 @@ LW_API
 uint16_t htons (uint16_t x)
 {
 #if BYTE_ORDER == LITTLE_ENDIAN
-    return  LWIP_PLATFORM_HTONS(x);
+    return  PP_HTONS(x);
 #else
     return  x;
 #endif
@@ -1358,7 +1363,7 @@ LW_API
 uint16_t ntohs (uint16_t x)
 {
 #if BYTE_ORDER == LITTLE_ENDIAN
-    return  LWIP_PLATFORM_HTONS(x);
+    return  PP_HTONS(x);
 #else
     return  x;
 #endif

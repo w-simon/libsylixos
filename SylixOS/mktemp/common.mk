@@ -122,6 +122,8 @@ $(target)_USE_GCOV        := $(LOCAL_USE_GCOV)
 $(target)_USE_OMP         := $(LOCAL_USE_OMP)
 $(target)_USE_EXTENSION   := $(LOCAL_USE_EXTENSION)
 
+$(target)_NO_UNDEF_SYM    := $(LOCAL_NO_UNDEF_SYM)
+
 $(target)_PRE_LINK_CMD    := $(LOCAL_PRE_LINK_CMD)
 $(target)_POST_LINK_CMD   := $(LOCAL_POST_LINK_CMD)
 

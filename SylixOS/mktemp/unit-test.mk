@@ -57,6 +57,11 @@ $(target)_ASFLAGS     := $($(target)_COMMONFLAGS) $(ARCH_PIC_ASFLAGS) $(TOOLCHAI
 $(target)_CFLAGS      := $($(target)_COMMONFLAGS) $(ARCH_PIC_CFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CFLAGS)
 $(target)_CXXFLAGS    := $($(target)_COMMONFLAGS) $(ARCH_PIC_CFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CXX_EXCEPT) $($(target)_CXXFLAGS)
 
+ifeq ($($(target)_NO_UNDEF_SYM), yes)
+ifeq (,$(findstring mips,$(ARCH)))
+$(target)_LINKFLAGS   := $(TOOLCHAIN_NO_UNDEF_SYM_FLAGS) $($(target)_LINKFLAGS)
+endif
+endif
 #*********************************************************************************************************
 # Targets
 #*********************************************************************************************************
@@ -145,6 +150,19 @@ $1: $2 $3
 		@$(LINK) $1_nm.txt $1_dis.txt $1.c6x
 		@mv $1.c6x $1
 		@rm -f $1_nm.txt $1_dis.txt
+		$(__UNIT_TEST_POST_LINK_CMD)
+endef
+
+else ifeq ($(findstring mips,$(ARCH))_$($(target)_NO_UNDEF_SYM), mips_yes)
+
+define CREATE_TARGET_EXE
+$1: $2 $3
+		@if [ ! -d "$(dir $1)" ]; then mkdir -p "$(dir $1)"; fi
+		@rm -f $1
+		$(__UNIT_TEST_PRE_LINK_CMD)
+		@$(__UNIT_TEST_LD) $(__UNIT_TEST_CPUFLAGS) $(ARCH_PIC_LDFLAGS) $(TOOLCHAIN_NO_UNDEF_SYM_FLAGS) $(__UNIT_TEST_LINKFLAGS) $2 $(__UNIT_TEST_LIBRARIES) -o $1.tmp
+		@rm -f $1.tmp
+		$(__UNIT_TEST_LD) $(__UNIT_TEST_CPUFLAGS) $(ARCH_PIC_LDFLAGS) $(__UNIT_TEST_LINKFLAGS) $2 $(__UNIT_TEST_LIBRARIES) -o $1 
 		$(__UNIT_TEST_POST_LINK_CMD)
 endef
 

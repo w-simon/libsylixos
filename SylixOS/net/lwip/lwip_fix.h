@@ -89,7 +89,6 @@ typedef ULONG                       mem_ptr_t;
 
 #define LWIP_PLATFORM_BYTESWAP      0                                   /*  use lwip htonl() ...        */
 
-#if BYTE_ORDER == LITTLE_ENDIAN
 #ifndef __GNUC__
 #ifdef  __CC_ARM
 #define inline  __inline
@@ -97,30 +96,6 @@ typedef ULONG                       mem_ptr_t;
 #define inline
 #endif                                                                  /*  __CC_ARM (armcc compiler)   */
 #endif                                                                  /*  __GNUC__                    */
-
-static inline u16_t  __LW_HTONS (u16_t  x)
-{
-    return  (u16_t)((((x) & 0x00ff) << 8) | 
-                    (((x) & 0xff00) >> 8));
-}
-static inline u32_t  __LW_HTONL (u32_t  x)
-{
-    return  (u32_t)((((x) & 0x000000ff) << 24) | 
-                    (((x) & 0x0000ff00) <<  8) | 
-                    (((x) & 0x00ff0000) >>  8) | 
-                    (((x) & 0xff000000) >> 24));
-}
-
-#define LWIP_PLATFORM_HTONS(x)      __LW_HTONS(x)
-#define LWIP_PLATFORM_HTONL(x)      __LW_HTONL(x)
-
-#define lwip_htons(x)               PP_HTONS(x)
-#define lwip_htonl(x)               PP_HTONL(x)
-
-#else                                                                   /*  BYTE_ORDER == BIG_ENDIAN    */
-#define LWIP_PLATFORM_HTONS(x)      x
-#define LWIP_PLATFORM_HTONL(x)      x
-#endif                                                                  /*  BYTE_ORDER == LITTLE_ENDIAN */
 
 /*********************************************************************************************************
   µ÷ÊÔÊä³ö

@@ -555,6 +555,7 @@ VOID  cskyMmuInvalidateTLBMVA (addr_t  ulAddr)
             cskyEntryLo1Write(0);
             cskyEntryHiWrite(CSKY_UNIQUE_ENTRYHI(iIndex));
             cskyTlbWriteIndexed();
+
         } else {
             break;
         }

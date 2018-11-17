@@ -74,6 +74,7 @@ TOOLCHAIN_GCOV_CFLAGS          = -fprofile-arcs -ftest-coverage
 TOOLCHAIN_OMP_CFLAGS           = -fopenmp
 TOOLCHAIN_COMMONFLAGS          = -Wall -fmessage-length=0 -fsigned-char -fno-short-enums -fno-strict-aliasing
 TOOLCHAIN_ASFLAGS              = -x assembler-with-cpp
+TOOLCHAIN_NO_UNDEF_SYM_FLAGS   = @$(SYLIXOS_BASE_PATH)/libsylixos/$(OUTDIR)/symbol.ld
 
 TOOLCHAIN_AR_FLAGS             = -r
 TOOLCHAIN_STRIP_FLAGS          = 

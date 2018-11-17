@@ -26,22 +26,9 @@
   异常消息
 *********************************************************************************************************/
 
-typedef struct {
-    ARCH_REG_CTX        PAGEFCTX_archRegCtx;                            /*  寄存器上下文                */
-    addr_t              PAGEFCTX_ulRetAddr;                             /*  异常返回地址                */
-    addr_t              PAGEFCTX_ulAbortAddr;                           /*  内存访问失效地址            */
-    LW_VMM_ABORT        PAGEFCTX_abtInfo;                               /*  异常类型                    */
-    PLW_CLASS_TCB       PAGEFCTX_ptcb;                                  /*  产生缺页中断的线程          */
-    
-    errno_t             PAGEFCTX_iLastErrno;                            /*  返回时需要恢复的信息        */
-    INT                 PAGEFCTX_iKernelSpace;
-} LW_VMM_PAGE_FAIL_CTX;
-typedef LW_VMM_PAGE_FAIL_CTX    *PLW_VMM_PAGE_FAIL_CTX;
-
-#define __PAGEFAILCTX_SIZE_ALIGN    ROUND_UP(sizeof(LW_VMM_PAGE_FAIL_CTX), sizeof(LW_STACK))
-
-#define __PAGEFAILCTX_ABORT_TYPE(pctx)      (pctx->PAGEFCTX_abtInfo.VMABT_uiType)
-#define __PAGEFAILCTX_ABORT_METHOD(pctx)    (pctx->PAGEFCTX_abtInfo.VMABT_uiMethod)
+#define __ABTCTX_SIZE_ALIGN         ROUND_UP(sizeof(LW_VMM_ABORT_CTX), sizeof(LW_STACK))
+#define __ABTCTX_ABORT_TYPE(pctx)   (pctx->ABTCTX_abtInfo.VMABT_uiType)
+#define __ABTCTX_ABORT_METHOD(pctx) (pctx->ABTCTX_abtInfo.VMABT_uiMethod)
 
 /*********************************************************************************************************
   加入裁剪支持
@@ -51,7 +38,6 @@ typedef LW_VMM_PAGE_FAIL_CTX    *PLW_VMM_PAGE_FAIL_CTX;
 /*********************************************************************************************************
   缺页中断系统支持结构
 *********************************************************************************************************/
-
 typedef struct {
     LW_LIST_LINE        PAGEP_lineManage;                               /*  area 链表                   */
     PLW_VMM_PAGE        PAGEP_pvmpageVirtual;                           /*  回指虚拟页面控制块          */

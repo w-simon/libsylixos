@@ -164,12 +164,12 @@ static inline int floating_point_load_or_store_p(unsigned int insn)
 ** 功能描述: SPARC 非对齐处理
 ** 输　入  : pregctx           寄存器上下文
 **           pulAbortAddr      终止地址
-**           puiMethod         终止方法
-** 输　出  : 终止类型
+**           pabtInfo          终止信息
+** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-UINT  sparcUnalignedHandle (ARCH_REG_CTX  *regs, addr_t  *pulAbortAddr, UINT  *puiMethod)
+VOID  sparcUnalignedHandle (ARCH_REG_CTX  *pregctx, addr_t  *pulAbortAddr, PLW_VMM_ABORT  pabtInfo)
 {
     SPARC_PARAM    *param = archKernelParamGet();
     UINT            insn;
@@ -178,17 +178,16 @@ UINT  sparcUnalignedHandle (ARCH_REG_CTX  *regs, addr_t  *pulAbortAddr, UINT  *p
     addr_t          addr;
 
     *pulAbortAddr = (addr_t)-1;
-    *puiMethod    = BUS_ADRALN;
 
-    if ((regs->REG_uiPc | regs->REG_uiNPc) & 3) {
-        *pulAbortAddr = regs->REG_uiPc;
-        return  (LW_VMM_ABORT_TYPE_BUS);
+    if ((pregctx->REG_uiPc | pregctx->REG_uiNPc) & 3) {
+        *pulAbortAddr = pregctx->REG_uiPc;
+        goto  sigbus;
     }
 
-    insn = *(UINT *)regs->REG_uiPc;
+    insn = *(UINT *)pregctx->REG_uiPc;
 
     if (((insn >> 30) & 3) != 3) {
-        return  (LW_VMM_ABORT_TYPE_BUS);
+        goto  sigbus;
     }
 
     dir  = decode_direction(insn);
@@ -196,37 +195,43 @@ UINT  sparcUnalignedHandle (ARCH_REG_CTX  *regs, addr_t  *pulAbortAddr, UINT  *p
     if (size < 0) {
         printk("Impossible unaligned trap. insn=%08x\n", insn);
         printk("Byte sized unaligned access?!?!\n");
-        return  (LW_VMM_ABORT_TYPE_BUS);
+        goto  sigbus;
     }
 
     if (floating_point_load_or_store_p(insn)) {
         printk("User FPU load/store unaligned unsupported.\n");
-        return  (LW_VMM_ABORT_TYPE_BUS);
+        goto  sigill;
     }
 
-    addr          = compute_effective_address(regs, insn);
+    addr          = compute_effective_address(pregctx, insn);
     *pulAbortAddr = addr;
 
     /*
      * unsupport unalign access
      */
     if (param->SPARC_bUnalign == LW_FALSE) {
-        return  (LW_VMM_ABORT_TYPE_BUS);
+        goto  sigbus;
     }
 
     switch (dir) {
     case load:
-        err = do_int_load(fetch_reg_addr(((insn >> 25) & 0x1f), regs),
+        err = do_int_load(fetch_reg_addr(((insn >> 25) & 0x1f), pregctx),
                           size,
                           (unsigned long *)addr,
                           decode_signedness(insn));
+        if (err) {
+            goto  sigbus;
+        }
         break;
 
     case store:
         err = do_int_store(((insn >> 25) & 0x1f),
                            size,
                            (unsigned long *)addr,
-                           regs);
+                           pregctx);
+        if (err) {
+            goto  sigbus;
+        }
         break;
 
     case both:
@@ -234,22 +239,27 @@ UINT  sparcUnalignedHandle (ARCH_REG_CTX  *regs, addr_t  *pulAbortAddr, UINT  *p
          * the value of SWAP instruction across word boundaries.
          */
         printk("Unaligned SWAP unsupported.\n");
-        err = -EFAULT;
+        goto  sigill;
         break;
 
     default:
         printk("Impossible user unaligned trap.\n");
-        err = -EFAULT;
+        goto  sigill;
         break;
     }
 
-    if (err) {
-        return  (LW_VMM_ABORT_TYPE_BUS);
+    advance(pregctx);
+    pabtInfo->VMABT_uiType = LW_VMM_ABORT_TYPE_NOINFO;
+    return;
 
-    } else {
-        advance(regs);
-        return  (0);
-    }
+sigbus:
+    pabtInfo->VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
+    pabtInfo->VMABT_uiMethod = BUS_ADRALN;
+    return;
+
+sigill:
+    pabtInfo->VMABT_uiType   = LW_VMM_ABORT_TYPE_UNDEF;
+    pabtInfo->VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
 }
 /*********************************************************************************************************
   END

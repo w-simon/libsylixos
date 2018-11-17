@@ -72,6 +72,7 @@
                                                                         /*  提高 tick 中断执行速度      */
 #define LW_KERN_FLAG_TMCVT_SIMPLE   0x20                                /*  timespec 转换为 tick 方法   */
 #define LW_KERN_FLAG_INT_DSP        0x40                                /*  中断中是否可以使用 DSP      */
+#define LW_KERN_FLAG_NET_LOCK_FIFO  0x80                                /*  网络锁 FIFO 等待            */
 
 /*********************************************************************************************************
   内核是否支持浮点状态
@@ -172,6 +173,20 @@
             }                                                   \
         } while (0)
 #define LW_KERN_TMCVT_SIMPLE_EN_GET()  (_K_ulKernFlags & LW_KERN_FLAG_TMCVT_SIMPLE)
+
+/*********************************************************************************************************
+  网络锁 FIFO 等待 (默认为 PRIO 等待)
+*********************************************************************************************************/
+
+#define LW_KERN_NET_LOCK_FIFO_SET(en)                           \
+        do {                                                    \
+            if (en) {                                           \
+                _K_ulKernFlags |= LW_KERN_FLAG_NET_LOCK_FIFO;   \
+            } else {                                            \
+                _K_ulKernFlags &= ~LW_KERN_FLAG_NET_LOCK_FIFO;  \
+            }                                                   \
+        } while (0)
+#define LW_KERN_NET_LOCK_FIFO_GET()  (_K_ulKernFlags & LW_KERN_FLAG_NET_LOCK_FIFO)
 
 /*********************************************************************************************************
   系统状态

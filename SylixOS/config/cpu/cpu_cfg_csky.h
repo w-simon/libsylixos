@@ -89,6 +89,12 @@
 *********************************************************************************************************/
 
 #define LW_CFG_CPU_FPU_EN               1                               /*  CPU 是否拥有 FPU            */
+#define LW_CFG_CPU_FPU_IDE              0                               /*  FPU 是否使能非规格化数异常  */
+#define LW_CFG_CPU_FPU_IXE              0                               /*  FPU 是否使能非精确异常      */
+#define LW_CFG_CPU_FPU_UFE              0                               /*  FPU 是否使能下溢异常        */
+#define LW_CFG_CPU_FPU_OFE              0                               /*  FPU 是否使能上溢异常        */
+#define LW_CFG_CPU_FPU_DZE              0                               /*  FPU 是否使能除 0 异常       */
+#define LW_CFG_CPU_FPU_IOE              0                               /*  FPU 是否使能非法操作异常    */
 
 /*********************************************************************************************************
   DSP 数字信号处理器

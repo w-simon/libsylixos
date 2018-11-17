@@ -806,22 +806,22 @@ fault:
 /*********************************************************************************************************
 ** 函数名称: cskyUnalignedHandle
 ** 功能描述: C-SKY 非对齐处理
-** 输　入  : regs              寄存器上下文
-**           ulAbortAddr       终止地址
-** 输　出  : 终止类型
+** 输　入  : pregctx           寄存器上下文
+**           pabtInfo          终止信息
+** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-ULONG  cskyUnalignedHandle (ARCH_REG_CTX  *regs, addr_t  ulAbortAddr)
+VOID  cskyUnalignedHandle (ARCH_REG_CTX  *pregctx, PLW_VMM_ABORT  pabtInfo)
 {
     int           err;
     unsigned long instr = 0, instrptr;
     unsigned int  fault;
     u16           tinstr = 0;
-    int (*handler)(unsigned long inst, ARCH_REG_CTX *regs) = LW_NULL;
+    int (*handler)(unsigned long inst, ARCH_REG_CTX *pregctx) = LW_NULL;
     int           isize = 2;
 
-    instrptr = instruction_pointer(regs);
+    instrptr = instruction_pointer(pregctx);
 
     fault = __get_user(tinstr, (u16 *)(instrptr & ~1));
     instr = (unsigned long)tinstr;
@@ -837,10 +837,10 @@ ULONG  cskyUnalignedHandle (ARCH_REG_CTX  *regs, addr_t  ulAbortAddr)
 #endif
 
     if (fault) {
-        goto  bad_or_fault;
+        goto  fault;
     }
 
-    regs->REG_ulPC += isize;
+    pregctx->REG_ulPC += isize;
 
 #ifndef __CSKYABIV2__                                                   /*  abiv1                       */
     if ((instr & 0x9000) == 0x9000) {                                   /*  sth, stw                    */
@@ -862,11 +862,11 @@ ULONG  cskyUnalignedHandle (ARCH_REG_CTX  *regs, addr_t  ulAbortAddr)
         handler = handle_ldq_v1;
 
     } else {
-        goto  bad_or_fault;
+        goto  sigill;
     }
 #else                                                                   /*  abiv2                       */
     if (2 == isize) {
-        switch(instr & 0xf800) {
+        switch (instr & 0xf800) {
 
         case 0x8800:                                                    /*  ldh                         */
             handler = handle_ldh_16;
@@ -898,7 +898,7 @@ ULONG  cskyUnalignedHandle (ARCH_REG_CTX  *regs, addr_t  ulAbortAddr)
             break;
 
         default:
-            goto bad_or_fault;
+            goto  sigill;
         }
 
     } else {
@@ -929,25 +929,36 @@ ULONG  cskyUnalignedHandle (ARCH_REG_CTX  *regs, addr_t  ulAbortAddr)
             /*
              *  FIXME: stq/stq is pseudo instruction of stm/stm and now ignore.
              */
-            goto  bad_or_fault;
+            goto  sigill;
         }
     }
 #endif
 
     if (!handler) {
-        goto  bad_or_fault;
+        goto  sigill;
     }
 
-    err = handler(instr, regs);
+    err = handler(instr, pregctx);
     if (err != HANDLER_SUCCESS) {
-        regs->REG_ulPC -=2;
-        goto  bad_or_fault;
+        pregctx->REG_ulPC -=2;
+        goto  sigbus;
     }
 
-    return  (0);
+    pabtInfo->VMABT_uiType = LW_VMM_ABORT_TYPE_NOINFO;
+    return;
 
-bad_or_fault:
-    return  (LW_VMM_ABORT_TYPE_BUS);
+fault:
+    pabtInfo->VMABT_uiType = LW_VMM_ABORT_TYPE_TERMINAL;
+    return;
+
+sigbus:
+    pabtInfo->VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
+    pabtInfo->VMABT_uiMethod = BUS_ADRALN;
+    return;
+
+sigill:
+    pabtInfo->VMABT_uiType   = LW_VMM_ABORT_TYPE_UNDEF;
+    pabtInfo->VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
 }
 /*********************************************************************************************************
   END

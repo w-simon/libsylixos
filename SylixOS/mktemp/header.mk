@@ -72,6 +72,8 @@ BIAS  = /
 EMPTY =
 SPACE = $(EMPTY) $(EMPTY)
 
+SYLIXOS_BASE_PATH := $(subst \,/,$(subst $(SPACE),\ ,$(SYLIXOS_BASE_PATH)))
+
 __TARGET    = $(word 3,$(subst $(BIAS),$(SPACE),$(@)))
 __DEP       = $(addprefix $(DEPPATH)/$(__TARGET)/, $(addsuffix .d, $(basename $(<))))
 ifneq (,$(findstring cl6x,$(TOOLCHAIN_PREFIX)))

@@ -29,16 +29,47 @@
 /*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
-static CSKY_FPU_OP    _G_fpuopVfp;
+static CSKY_FPU_OP  _G_fpuopVfp;
 /*********************************************************************************************************
   实现函数
 *********************************************************************************************************/
-extern VOID    cskyVfpInit(VOID);
-extern VOID    cskyVfpEnable(VOID);
-extern VOID    cskyVfpDisable(VOID);
-extern BOOL    cskyVfpIsEnable(VOID);
-extern VOID    cskyVfpSave(PVOID  pvFpuCtx);
-extern VOID    cskyVfpRestore(PVOID  pvFpuCtx);
+extern VOID  cskyVfpInit(VOID);
+extern VOID  cskyVfpSave(PVOID  pvFpuCtx);
+extern VOID  cskyVfpRestore(PVOID  pvFpuCtx);
+/*********************************************************************************************************
+** 函数名称: cskyVfpEnable
+** 功能描述: 使能 VFP
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  cskyVfpEnable (VOID)
+{
+}
+/*********************************************************************************************************
+** 函数名称: cskyVfpDisable
+** 功能描述: 禁能 VFP
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  cskyVfpDisable (VOID)
+{
+}
+/*********************************************************************************************************
+** 函数名称: cskyVfpIsEnable
+** 功能描述: 判断 VFP 是否使能
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static BOOL  cskyVfpIsEnable (VOID)
+{
+    return  (LW_TRUE);
+}
 /*********************************************************************************************************
 ** 函数名称: cskyVfpCtxShow
 ** 功能描述: 显示 VFP 上下文
@@ -81,12 +112,12 @@ PCSKY_FPU_OP  cskyVfpPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 
     cskyVfpInit();
 
-    _G_fpuopVfp.CFPU_pfuncEnable     = cskyVfpEnable;
-    _G_fpuopVfp.CFPU_pfuncDisable    = cskyVfpDisable;
-    _G_fpuopVfp.CFPU_pfuncIsEnable   = cskyVfpIsEnable;
-    _G_fpuopVfp.CFPU_pfuncCtxShow    = cskyVfpCtxShow;
-    _G_fpuopVfp.CFPU_pfuncSave       = cskyVfpSave;
-    _G_fpuopVfp.CFPU_pfuncRestore    = cskyVfpRestore;    
+    _G_fpuopVfp.CFPU_pfuncEnable   = cskyVfpEnable;
+    _G_fpuopVfp.CFPU_pfuncDisable  = cskyVfpDisable;
+    _G_fpuopVfp.CFPU_pfuncIsEnable = cskyVfpIsEnable;
+    _G_fpuopVfp.CFPU_pfuncCtxShow  = cskyVfpCtxShow;
+    _G_fpuopVfp.CFPU_pfuncSave     = cskyVfpSave;
+    _G_fpuopVfp.CFPU_pfuncRestore  = cskyVfpRestore;
 
     return  (&_G_fpuopVfp);
 }

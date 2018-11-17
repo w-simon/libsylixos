@@ -440,7 +440,7 @@ VOID  API_SymbolTraverse (BOOL (*pfuncCb)(PVOID, PLW_SYMBOL), PVOID  pvArg)
     }
     
     __LW_SYMBOL_LOCK();                                                 /*  Ëø¶¨·ûºÅ±í                  */
-    for (i = 0; i < LW_CFG_SYMBOL_HASH_SIZE; i++) {
+    for (i = 0; (i < LW_CFG_SYMBOL_HASH_SIZE) && !bStop; i++) {
         for (plineTemp  = _G_plineSymbolHeaderHashTbl[i];
              plineTemp != LW_NULL;
              plineTemp  = _list_line_get_next(plineTemp)) {

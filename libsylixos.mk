@@ -568,10 +568,10 @@ SylixOS/arch/sparc/common/sparcExcAsm.S \
 SylixOS/arch/sparc/common/sparcIo.c \
 SylixOS/arch/sparc/common/sparcLib.c \
 SylixOS/arch/sparc/common/sparcLibAsm.S \
-SylixOS/arch/sparc/common/sparcUnaligned.c \
-SylixOS/arch/sparc/common/sparcUnalignedAsm.S \
 SylixOS/arch/sparc/common/sparcVectorAsm.S \
 SylixOS/arch/sparc/common/sparcWindowAsm.S \
+SylixOS/arch/sparc/common/unaligned/sparcUnaligned.c \
+SylixOS/arch/sparc/common/unaligned/sparcUnalignedAsm.S \
 SylixOS/arch/sparc/dbg/sparcDbg.c \
 SylixOS/arch/sparc/dbg/sparcGdb.c \
 SylixOS/arch/sparc/elf/sparcElf.c \
@@ -601,6 +601,9 @@ SylixOS/arch/riscv/common/riscvExcAsm.S \
 SylixOS/arch/riscv/common/riscvIo.c \
 SylixOS/arch/riscv/common/riscvLib.c \
 SylixOS/arch/riscv/common/riscvLibAsm.S \
+SylixOS/arch/riscv/common/unaligned/fp_asm.S \
+SylixOS/arch/riscv/common/unaligned/misaligned_ldst.c \
+SylixOS/arch/riscv/common/unaligned/riscvUnaligned.c \
 SylixOS/arch/riscv/dbg/riscvDbg.c \
 SylixOS/arch/riscv/dbg/riscvGdb.c \
 SylixOS/arch/riscv/elf/riscvElf.c \

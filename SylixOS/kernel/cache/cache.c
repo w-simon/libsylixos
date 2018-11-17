@@ -747,14 +747,11 @@ INT    API_CacheTextUpdate (PVOID  pvAdrs, size_t  stBytes)
     INTREG          iregInterLevel;
     INT             iError;
 #if (LW_CFG_SMP_EN > 0) && (LW_CFG_VMM_L4_HYPERVISOR_EN == 0)
+    ULONG           ulNesting;
     LW_CACHE_TU_ARG tuarg;
     BOOL            bLock;
 #endif                                                                  /*  LW_CFG_SMP_EN               */
                                                                         /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
-    if (LW_CPU_GET_CUR_NESTING()) {                                     /*  不能在中断中调用            */
-        _ErrorHandle(ERROR_KERNEL_IN_ISR);
-        return  (PX_ERROR);
-    }
     
     __CACHE_OP_ENTER(iregInterLevel);                                   /*  开始操作 cache              */
     iError = ((_G_cacheopLib.CACHEOP_pfuncTextUpdate == LW_NULL) ? ERROR_NONE :
@@ -762,15 +759,21 @@ INT    API_CacheTextUpdate (PVOID  pvAdrs, size_t  stBytes)
     __CACHE_OP_EXIT(iregInterLevel);                                    /*  结束操作 cache              */
 
 #if (LW_CFG_SMP_EN > 0) && (LW_CFG_VMM_L4_HYPERVISOR_EN == 0)
+    ulNesting = LW_CPU_GET_CUR_NESTING();
+    
     if ((_G_cacheopLib.CACHEOP_ulOption & CACHE_TEXT_UPDATE_MP) && 
         (LW_NCPUS > 1)) {                                               /*  需要通知其他 CPU            */
         tuarg.TUA_pvAddr = pvAdrs;
         tuarg.TUA_stSize = stBytes;
         
-        bLock = __SMP_CPU_LOCK();                                       /*  锁定当前 CPU 执行           */
+        if (!ulNesting) {
+            bLock = __SMP_CPU_LOCK();                                   /*  锁定当前 CPU 执行           */
+        }
         _SmpCallFuncAllOther(__cacheTextUpdate, &tuarg,
                              LW_NULL, LW_NULL, IPIM_OPT_NORMAL);        /*  通知其他的 CPU              */
-        __SMP_CPU_UNLOCK(bLock);                                        /*  解锁当前 CPU 执行           */
+        if (!ulNesting) {
+            __SMP_CPU_UNLOCK(bLock);                                    /*  解锁当前 CPU 执行           */
+        }
     }
 #endif                                                                  /*  LW_CFG_SMP_EN               */
                                                                         /* !LW_CFG_VMM_L4_HYPERVISOR_EN */

@@ -84,8 +84,8 @@ static LW_VMM_STATUS      _K_vmmStatus;
 /*********************************************************************************************************
   内部函数声明
 *********************************************************************************************************/
-static VOID   __vmmAbortKill(PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx);
-static VOID   __vmmAbortAccess(PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx);
+static VOID   __vmmAbortKill(PLW_VMM_ABORT_CTX  pabtctx);
+static VOID   __vmmAbortAccess(PLW_VMM_ABORT_CTX  pabtctx);
 static PCHAR  __vmmAbortTypeStr(PLW_VMM_ABORT  pabtInfo);
 /*********************************************************************************************************
   基本参数
@@ -501,14 +501,14 @@ static INT  __vmmAbortShare (PLW_VMM_PAGE         pvmpageVirtual,
 /*********************************************************************************************************
 ** 函数名称: __vmmAbortDump
 ** 功能描述: 当 __vmmAbortShell() 无法执行时, 打印调试信息
-** 输　入  : pvmpagefailctx    page fail 上下文
+** 输　入  : pabtctx    page fail 上下文
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID  __vmmAbortDump (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
+static VOID  __vmmAbortDump (PLW_VMM_ABORT_CTX  pabtctx)
 {
-             addr_t                 ulAbortAddr = pvmpagefailctx->PAGEFCTX_ulAbortAddr;
+             addr_t                 ulAbortAddr = pabtctx->ABTCTX_ulAbortAddr;
              LW_OBJECT_HANDLE       ulOwner;
              PCHAR                  pcTail;
              CPCHAR                 pcKernelFunc;
@@ -539,8 +539,8 @@ static VOID  __vmmAbortDump (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
     }
     
 #if (LW_CFG_CDUMP_EN > 0) && (LW_CFG_DEVICE_EN > 0)
-    _CrashDumpAbortKernel(ulOwner, pcKernelFunc, pvmpagefailctx,
-                          __vmmAbortTypeStr(&pvmpagefailctx->PAGEFCTX_abtInfo), 
+    _CrashDumpAbortKernel(ulOwner, pcKernelFunc, pabtctx,
+                          __vmmAbortTypeStr(&pabtctx->ABTCTX_abtInfo),
                           pcTail);
 #endif
     
@@ -549,23 +549,23 @@ static VOID  __vmmAbortDump (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
                  "kowner: 0x%08lx, kfunc: %s, "
                  "ret_addr: 0x%08lx abt_addr: 0x%08lx, abt_type: %s, %s.\r\n",
                  ulOwner, pcKernelFunc, 
-                 pvmpagefailctx->PAGEFCTX_ulRetAddr,
-                 pvmpagefailctx->PAGEFCTX_ulAbortAddr, 
-                 __vmmAbortTypeStr(&pvmpagefailctx->PAGEFCTX_abtInfo), 
+                 pabtctx->ABTCTX_ulRetAddr,
+                 pabtctx->ABTCTX_ulAbortAddr,
+                 __vmmAbortTypeStr(&pabtctx->ABTCTX_abtInfo),
                  pcTail);
 }
 /*********************************************************************************************************
 ** 函数名称: __vmmAbortShell
 ** 功能描述: 当 MMU 产生访问失效时, 线程执行陷阱函数.
-** 输　入  : pvmpagefailctx    page fail 上下文
+** 输　入  : pabtctx    page fail 上下文
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID  __vmmAbortShell (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
+static VOID  __vmmAbortShell (PLW_VMM_ABORT_CTX  pabtctx)
 {
              INTREG                 iregInterLevel;
-             addr_t                 ulAbortAddr = pvmpagefailctx->PAGEFCTX_ulAbortAddr;
+             addr_t                 ulAbortAddr = pabtctx->ABTCTX_ulAbortAddr;
              ULONG                  ulFlag;
              
     REGISTER PLW_VMM_PAGE           pvmpageVirtual;
@@ -581,8 +581,8 @@ static VOID  __vmmAbortShell (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
              PLW_CLASS_TCB          ptcbCur;                            /*  当前任务控制块              */
 
     if (__KERNEL_ISENTER()) {
-        __vmmAbortDump(pvmpagefailctx);                                 /*  打印关键信息                */
-        __vmmAbortKill(pvmpagefailctx);
+        __vmmAbortDump(pabtctx);                                        /*  打印关键信息                */
+        __vmmAbortKill(pabtctx);
         goto    __abort_return;
     }
     
@@ -591,10 +591,10 @@ static VOID  __vmmAbortShell (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
     __VMM_LOCK();
     _K_vmmStatus.VMMS_i64AbortCounter++;
     
-    if ((__PAGEFAILCTX_ABORT_TYPE(pvmpagefailctx) != LW_VMM_ABORT_TYPE_MAP) &&
-        (__PAGEFAILCTX_ABORT_TYPE(pvmpagefailctx) != LW_VMM_ABORT_TYPE_PERM)) {
+    if ((__ABTCTX_ABORT_TYPE(pabtctx) != LW_VMM_ABORT_TYPE_MAP) &&
+        (__ABTCTX_ABORT_TYPE(pabtctx) != LW_VMM_ABORT_TYPE_PERM)) {
         __VMM_UNLOCK();
-        __vmmAbortAccess(pvmpagefailctx);                               /*  访问异常情况                */
+        __vmmAbortAccess(pabtctx);                                      /*  访问异常情况                */
         goto    __abort_return;                                         /*  不会运行到这里              */
     }
     
@@ -603,7 +603,7 @@ static VOID  __vmmAbortShell (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
         pvmpagep = (PLW_VMM_PAGE_PRIVATE)pvmpageVirtual->PAGE_pvAreaCb;
     } else {
         __VMM_UNLOCK();
-        __vmmAbortAccess(pvmpagefailctx);                               /*  访问异常                    */
+        __vmmAbortAccess(pabtctx);                                      /*  访问异常                    */
         goto    __abort_return;                                         /*  不会运行到这里              */
     }
     
@@ -614,14 +614,12 @@ static VOID  __vmmAbortShell (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
     
     ulError = __vmmLibGetFlag(ulVirtualPageAlign, &ulFlag);             /*  获得异常地址的物理页面属性  */
     if (ulError == ERROR_NONE) {                                        /*  存在物理页面正常            */
-        if (__PAGEFAILCTX_ABORT_TYPE(pvmpagefailctx) == 
-            LW_VMM_ABORT_TYPE_MAP) {                                    /*  MAP 类型错误                */
+        if (__ABTCTX_ABORT_TYPE(pabtctx) == LW_VMM_ABORT_TYPE_MAP) {    /*  MAP 类型错误                */
             __VMM_UNLOCK();
             goto    __abort_return;                                     /*  页表已经正常, 可以访问      */
         }
-        
-        if (__PAGEFAILCTX_ABORT_METHOD(pvmpagefailctx) ==
-            LW_VMM_ABORT_METHOD_WRITE) {                                /*  写入异常                    */
+                                                                        /*  写入异常                    */
+        if (__ABTCTX_ABORT_METHOD(pabtctx) == LW_VMM_ABORT_METHOD_WRITE) {
             if (__vmmAbortWriteProtect(pvmpageVirtual,                  /*  尝试 copy-on-write 处理     */
                                        ulVirtualPageAlign,
                                        ulError) == ERROR_NONE) {        /*  进入写保护处理              */
@@ -631,7 +629,7 @@ static VOID  __vmmAbortShell (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
         }
         
         __VMM_UNLOCK();
-        __vmmAbortAccess(pvmpagefailctx);                               /*  非法内存访问                */
+        __vmmAbortAccess(pabtctx);                                      /*  非法内存访问                */
         goto    __abort_return;                                         /*  不会运行到这里              */
     
     } else {                                                            /*  映射错误, 没有物理页面存在  */
@@ -650,10 +648,9 @@ static VOID  __vmmAbortShell (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
         if (pvmpagePhysical == LW_NULL) {
             __VMM_UNLOCK();
             
-            __PAGEFAILCTX_ABORT_TYPE(pvmpagefailctx) = 
-                LW_VMM_ABORT_TYPE_NOINFO;                               /*  缺少物理页面                */
+            __ABTCTX_ABORT_TYPE(pabtctx) = LW_VMM_ABORT_TYPE_NOINFO;    /*  缺少物理页面                */
             printk(KERN_CRIT "kernel no more physical page.\n");        /*  系统无法分配物理页面        */
-            __vmmAbortKill(pvmpagefailctx);
+            __vmmAbortKill(pabtctx);
             goto    __abort_return;
         }
         
@@ -674,7 +671,7 @@ static VOID  __vmmAbortShell (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
         if (iRet != ERROR_NONE) {
             __vmmPhysicalPageFree(pvmpagePhysical);
             __VMM_UNLOCK();
-            __vmmAbortKill(pvmpagefailctx);
+            __vmmAbortKill(pabtctx);
             goto    __abort_return;
         }
     }
@@ -689,7 +686,7 @@ static VOID  __vmmAbortShell (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
         __VMM_UNLOCK();
 
         printk(KERN_CRIT "kernel physical page map error.\n");          /*  系统无法映射物理页面        */
-        __vmmAbortKill(pvmpagefailctx);
+        __vmmAbortKill(pabtctx);
         goto    __abort_return;
     }
     
@@ -700,12 +697,12 @@ static VOID  __vmmAbortShell (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
     __VMM_UNLOCK();
     
 __abort_return:
-    __KERNEL_SPACE_SET(pvmpagefailctx->PAGEFCTX_iKernelSpace);          /*  恢复成进入之前的状态        */
-    errno = pvmpagefailctx->PAGEFCTX_iLastErrno;                        /*  恢复之前的 errno            */
+    __KERNEL_SPACE_SET(pabtctx->ABTCTX_iKernelSpace);                   /*  恢复成进入之前的状态        */
+    errno = pabtctx->ABTCTX_iLastErrno;                                 /*  恢复之前的 errno            */
     
     iregInterLevel = KN_INT_DISABLE();                                  /*  关闭当前 CPU 中断           */
     KN_SMP_MB();
-    archSigCtxLoad(&pvmpagefailctx->PAGEFCTX_archRegCtx);               /*  从 page fail 上下文中返回   */
+    archSigCtxLoad(&pabtctx->ABTCTX_archRegCtx);                        /*  从 page fail 上下文中返回   */
     KN_INT_ENABLE(iregInterLevel);                                      /*  运行不到这里                */
 }
 
@@ -775,12 +772,12 @@ static PCHAR  __vmmAbortTypeStr (PLW_VMM_ABORT  pabtInfo)
 /*********************************************************************************************************
 ** 函数名称: __vmmAbortKill
 ** 功能描述: 向当前线程产生一个信号
-** 输　入  : pvmpagefailctx    page fail 上下文
+** 输　入  : pabtctx    page fail 上下文
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID  __vmmAbortKill (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
+static VOID  __vmmAbortKill (PLW_VMM_ABORT_CTX  pabtctx)
 {
 #if LW_CFG_SIGNAL_EN > 0
     struct sigevent  sigeventAbort;
@@ -790,14 +787,14 @@ static VOID  __vmmAbortKill (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
 
 #if LW_CFG_GDB_EN > 0
     if (!__KERNEL_ISENTER()) {
-        if (API_DtraceAbortTrap(pvmpagefailctx->PAGEFCTX_ulRetAddr) == 
+        if (API_DtraceAbortTrap(pabtctx->ABTCTX_ulRetAddr) ==
             ERROR_NONE) {                                               /*  可以通知调试器              */
             return;                                                     /*  返回后将会产生断点          */
         }
     }
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
     
-    _BugHandle((_ObjectGetIndex(pvmpagefailctx->PAGEFCTX_ptcb->TCB_ulId) < LW_NCPUS),
+    _BugHandle((_ObjectGetIndex(pabtctx->ABTCTX_ptcb->TCB_ulId) < LW_NCPUS),
                LW_TRUE, "idle thread serious error!\r\n");
     
 #if LW_CFG_SIGNAL_EN > 0
@@ -805,7 +802,7 @@ static VOID  __vmmAbortKill (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
         API_KernelReboot(LW_REBOOT_FORCE);                              /*  直接重新启动操作系统        */
     }
 
-    switch (__PAGEFAILCTX_ABORT_TYPE(pvmpagefailctx)) {                 /*  分析异常类型                */
+    switch (__ABTCTX_ABORT_TYPE(pabtctx)) {                             /*  分析异常类型                */
     
     case 0:
         sigeventAbort.sigev_signo = SIGKILL;                            /*  通过 SIGKILL 信号杀死任务   */
@@ -815,13 +812,13 @@ static VOID  __vmmAbortKill (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
     
     case LW_VMM_ABORT_TYPE_FPE:
         sigeventAbort.sigev_signo = SIGFPE;
-        iSigCode = __PAGEFAILCTX_ABORT_METHOD(pvmpagefailctx);
+        iSigCode = __ABTCTX_ABORT_METHOD(pabtctx);
         bSerious = LW_TRUE;
         break;
         
     case LW_VMM_ABORT_TYPE_BUS:
         sigeventAbort.sigev_signo = SIGBUS;
-        iSigCode = __PAGEFAILCTX_ABORT_METHOD(pvmpagefailctx);
+        iSigCode = __ABTCTX_ABORT_METHOD(pabtctx);
         bSerious = LW_TRUE;
         break;
         
@@ -851,13 +848,13 @@ static VOID  __vmmAbortKill (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
         break;
     }
 
-    sigeventAbort.sigev_value.sival_ptr = (PVOID)pvmpagefailctx->PAGEFCTX_ulAbortAddr;
+    sigeventAbort.sigev_value.sival_ptr = (PVOID)pabtctx->ABTCTX_ulAbortAddr;
     sigeventAbort.sigev_notify          = SIGEV_SIGNAL;
     
-    _doSigEvent(pvmpagefailctx->PAGEFCTX_ptcb->TCB_ulId, &sigeventAbort, iSigCode);
+    _doSigEvent(pabtctx->ABTCTX_ptcb->TCB_ulId, &sigeventAbort, iSigCode);
 
     if (LW_KERN_BUG_REBOOT_EN_GET()) {
-        if (bSerious && !vprocGetPidByTcbNoLock(pvmpagefailctx->PAGEFCTX_ptcb)) {
+        if (bSerious && !vprocGetPidByTcbNoLock(pabtctx->ABTCTX_ptcb)) {
             API_KernelReboot(LW_REBOOT_FORCE);                          /*  内核线程严重错误            */
         }
     }
@@ -873,18 +870,17 @@ static VOID  __vmmAbortKill (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
 /*********************************************************************************************************
 ** 函数名称: __vmmAbortAccess
 ** 功能描述: 访问型错误处理 (此函数不会返回)
-** 输　入  : pvmpagefailctx    page fail 上下文
+** 输　入  : pabtctx    page fail 上下文
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID  __vmmAbortAccess (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
+static VOID  __vmmAbortAccess (PLW_VMM_ABORT_CTX  pabtctx)
 {
     INTREG  iregInterLevel;
-    ULONG   ulErrorOrig = API_GetLastError();
     
 #if (LW_CFG_CDUMP_EN > 0) && (LW_CFG_DEVICE_EN > 0)
-    _CrashDumpAbortAccess(pvmpagefailctx, __vmmAbortTypeStr(&pvmpagefailctx->PAGEFCTX_abtInfo));
+    _CrashDumpAbortAccess(pabtctx, __vmmAbortTypeStr(&pabtctx->ABTCTX_abtInfo));
 #endif
 
 #if LW_CFG_ABORT_CALLSTACK_INFO_EN > 0
@@ -892,20 +888,20 @@ static VOID  __vmmAbortAccess (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
 #endif                                                                  /*  LW_CFG_ABORT_CALLSTACK_IN...*/
 
 #if LW_CFG_DEVICE_EN > 0
-    archTaskCtxShow(ioGlobalStdGet(STD_ERR), &pvmpagefailctx->PAGEFCTX_archRegCtx);
+    archTaskCtxShow(ioGlobalStdGet(STD_ERR), &pabtctx->ABTCTX_archRegCtx);
 #endif
 
 #if LW_CFG_ABORT_BASIC_INFO_EN > 0
-    switch (__PAGEFAILCTX_ABORT_TYPE(pvmpagefailctx)) {
+    switch (__ABTCTX_ABORT_TYPE(pabtctx)) {
     
     case LW_VMM_ABORT_TYPE_UNDEF:
         printk(KERN_EMERG "UNDEF ERROR: abort in thread %lx[%s]. \n"
                "ret_addr: 0x%08lx abt_addr: 0x%08lx, abt_type: %s.\n",
-               pvmpagefailctx->PAGEFCTX_ptcb->TCB_ulId,
-               pvmpagefailctx->PAGEFCTX_ptcb->TCB_cThreadName,
-               pvmpagefailctx->PAGEFCTX_ulRetAddr,
-               pvmpagefailctx->PAGEFCTX_ulAbortAddr, 
-               __vmmAbortTypeStr(&pvmpagefailctx->PAGEFCTX_abtInfo));   /*  操作异常                    */
+               pabtctx->ABTCTX_ptcb->TCB_ulId,
+               pabtctx->ABTCTX_ptcb->TCB_cThreadName,
+               pabtctx->ABTCTX_ulRetAddr,
+               pabtctx->ABTCTX_ulAbortAddr,
+               __vmmAbortTypeStr(&pabtctx->ABTCTX_abtInfo));            /*  操作异常                    */
         break;
         
     case LW_VMM_ABORT_TYPE_FPE:
@@ -920,11 +916,11 @@ static VOID  __vmmAbortAccess (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
         printk(KERN_EMERG "FPU ERROR: abort in thread %lx[%s]. "
                "ret_addr: 0x%08lx abt_addr: 0x%08lx, abt_type: %s.\n",
-               pvmpagefailctx->PAGEFCTX_ptcb->TCB_ulId,
-               pvmpagefailctx->PAGEFCTX_ptcb->TCB_cThreadName,
-               pvmpagefailctx->PAGEFCTX_ulRetAddr,
-               pvmpagefailctx->PAGEFCTX_ulAbortAddr, 
-               __vmmAbortTypeStr(&pvmpagefailctx->PAGEFCTX_abtInfo));   /*  操作异常                    */
+               pabtctx->ABTCTX_ptcb->TCB_ulId,
+               pabtctx->ABTCTX_ptcb->TCB_cThreadName,
+               pabtctx->ABTCTX_ulRetAddr,
+               pabtctx->ABTCTX_ulAbortAddr,
+               __vmmAbortTypeStr(&pabtctx->ABTCTX_abtInfo));            /*  操作异常                    */
         break;
         
     case LW_VMM_ABORT_TYPE_DSPE:
@@ -939,35 +935,36 @@ static VOID  __vmmAbortAccess (PLW_VMM_PAGE_FAIL_CTX  pvmpagefailctx)
 #endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
         printk(KERN_EMERG "DSP ERROR: abort in thread %lx[%s]. "
                "ret_addr: 0x%08lx abt_addr: 0x%08lx, abt_type: %s.\n",
-               pvmpagefailctx->PAGEFCTX_ptcb->TCB_ulId,
-               pvmpagefailctx->PAGEFCTX_ptcb->TCB_cThreadName,
-               pvmpagefailctx->PAGEFCTX_ulRetAddr,
-               pvmpagefailctx->PAGEFCTX_ulAbortAddr,
-               __vmmAbortTypeStr(&pvmpagefailctx->PAGEFCTX_abtInfo));   /*  操作异常                    */
+               pabtctx->ABTCTX_ptcb->TCB_ulId,
+               pabtctx->ABTCTX_ptcb->TCB_cThreadName,
+               pabtctx->ABTCTX_ulRetAddr,
+               pabtctx->ABTCTX_ulAbortAddr,
+               __vmmAbortTypeStr(&pabtctx->ABTCTX_abtInfo));            /*  操作异常                    */
         break;
 
     default:
         printk(KERN_EMERG "ACCESS ERROR: abort in thread %lx[%s]. "
                "ret_addr: 0x%08lx abt_addr: 0x%08lx, abt_type: %s.\n",
-               pvmpagefailctx->PAGEFCTX_ptcb->TCB_ulId,
-               pvmpagefailctx->PAGEFCTX_ptcb->TCB_cThreadName,
-               pvmpagefailctx->PAGEFCTX_ulRetAddr,
-               pvmpagefailctx->PAGEFCTX_ulAbortAddr, 
-               __vmmAbortTypeStr(&pvmpagefailctx->PAGEFCTX_abtInfo));   /*  操作异常                    */
+               pabtctx->ABTCTX_ptcb->TCB_ulId,
+               pabtctx->ABTCTX_ptcb->TCB_cThreadName,
+               pabtctx->ABTCTX_ulRetAddr,
+               pabtctx->ABTCTX_ulAbortAddr,
+               __vmmAbortTypeStr(&pabtctx->ABTCTX_abtInfo));            /*  操作异常                    */
         break;
     }
 #endif                                                                  /*  LW_CFG_ABORT_BASIC_INFO_EN  */
     
-    __vmmAbortKill(pvmpagefailctx);                                     /*  发送异常信号                */
+    __vmmAbortKill(pabtctx);                                            /*  发送异常信号                */
     
-    _ErrorHandle(ulErrorOrig);                                          /*  恢复之前的 errno            */
+    __KERNEL_SPACE_SET(pabtctx->ABTCTX_iKernelSpace);                   /*  恢复成进入之前的状态        */
+    errno = pabtctx->ABTCTX_iLastErrno;                                 /*  恢复之前的 errno            */
     
     /*
      * iRet == 0 or iRet > 0 都需要返回重新执行指令.
      */
     iregInterLevel = KN_INT_DISABLE();                                  /*  关闭当前 CPU 中断           */
     KN_SMP_MB();
-    archSigCtxLoad(&pvmpagefailctx->PAGEFCTX_archRegCtx);               /*  从 page fail 上下文中返回   */
+    archSigCtxLoad(&pabtctx->ABTCTX_archRegCtx);                        /*  从 page fail 上下文中返回   */
     KN_INT_ENABLE(iregInterLevel);                                      /*  运行不到这里                */
 }
 /*********************************************************************************************************
@@ -1090,32 +1087,52 @@ static VOID  __vmmAbortStkOfDetected (addr_t          ulRetAddr,
 
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 /*********************************************************************************************************
-** 函数名称: API_VmmAbortIsr
+** 函数名称: API_VmmAbortReturn
+** 功能描述: API_VmmAbortIsrEx 参数 pfuncHandler 返回时调用
+** 输　入  : pabtctx    page fail 上下文
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+LW_API
+VOID  API_VmmAbortReturn (PLW_VMM_ABORT_CTX  pabtctx)
+{
+    INTREG  iregInterLevel;
+
+    if (pabtctx->ABTCTX_abtInfo.VMABT_uiType) {                         /*  存在无法处理的异常          */
+        __vmmAbortAccess(pabtctx);
+    }
+
+    __KERNEL_SPACE_SET(pabtctx->ABTCTX_iKernelSpace);                   /*  恢复成进入之前的状态        */
+    errno = pabtctx->ABTCTX_iLastErrno;                                 /*  恢复之前的 errno            */
+
+    iregInterLevel = KN_INT_DISABLE();                                  /*  关闭当前 CPU 中断           */
+    KN_SMP_MB();
+    archSigCtxLoad(&pabtctx->ABTCTX_archRegCtx);                        /*  从 page fail 上下文中返回   */
+    KN_INT_ENABLE(iregInterLevel);                                      /*  运行不到这里                */
+}
+/*********************************************************************************************************
+** 函数名称: API_VmmAbortIsrEx
 ** 功能描述: 当 MMU 产生访问失效时, 调用此函数(类似于中断服务函数)
 ** 输　入  : ulRetAddr     异常返回地址
 **           ulAbortAddr   异常地址 (异常类型相关)
 **           pabtInfo      异常类型
 **           ptcb          出现异常的线程控制块 (不能为 NULL)
+**           pfuncHandler  异常处理函数
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
-** 注  意  : 从 1.0.0.rc20 版本后, 此函数可以脱离 VMM 运行.
-**
-**           1. 构造缺页中断线程执行陷阱, 在陷阱中完成所有的页面操作, 如果失败, 线程自我销毁.
-**           2. 注意, 陷阱执行完毕后, 系统必须能够回到刚刚访问内存并产生异常的那条指令.
-**           3. 由于产生缺页中断时, 相关线程一定是就绪的, 所以这里不用加入调度器处理.
-
-                                           API 函数
 *********************************************************************************************************/
 LW_API 
-VOID  API_VmmAbortIsr (addr_t          ulRetAddr, 
-                       addr_t          ulAbortAddr, 
-                       PLW_VMM_ABORT   pabtInfo, 
-                       PLW_CLASS_TCB   ptcb)
+VOID  API_VmmAbortIsrEx (addr_t          ulRetAddr, 
+                         addr_t          ulAbortAddr, 
+                         PLW_VMM_ABORT   pabtInfo, 
+                         PLW_CLASS_TCB   ptcb,
+                         VOIDFUNCPTR     pfuncHandler)
 {
-    PLW_VMM_PAGE_FAIL_CTX    pvmpagefailctx;
-    PLW_STACK                pstkFailShell;                             /*  启动 fail shell 的堆栈点    */
-    BYTE                    *pucStkNow;                                 /*  记录还原堆栈点              */
+    PLW_VMM_ABORT_CTX    pabtctx;
+    PLW_STACK            pstkFailShell;                                 /*  启动 fail shell 的堆栈点    */
+    BYTE                *pucStkNow;                                     /*  记录还原堆栈点              */
     
     __vmmAbortFatalDetected(ulRetAddr, ulAbortAddr, pabtInfo, ptcb);    /*  致命错误探测                */
     
@@ -1127,49 +1144,41 @@ VOID  API_VmmAbortIsr (addr_t          ulRetAddr,
                                                                         /*  产生异常                    */
     pucStkNow = (BYTE *)archCtxStackEnd(&ptcb->TCB_archRegCtx);         /*  记录还原堆栈点              */
 #if	CPU_STK_GROWTH == 0
-    pucStkNow      += sizeof(LW_STACK);                                 /*  向空栈方向移动一个堆栈空间  */
-    pucStkNow       = (BYTE *)ROUND_UP(pucStkNow, ARCH_STK_ALIGN_SIZE);
-    pvmpagefailctx  = (PLW_VMM_PAGE_FAIL_CTX)pucStkNow;                 /*  记录 PAGE_FAIL_CTX 位置     */
-    pucStkNow      += __PAGEFAILCTX_SIZE_ALIGN;                         /*  让出 PAGE_FAIL_CTX 空间     */
+    pucStkNow += sizeof(LW_STACK);                                      /*  向空栈方向移动一个堆栈空间  */
+    pucStkNow  = (BYTE *)ROUND_UP(pucStkNow, ARCH_STK_ALIGN_SIZE);
+    pabtctx    = (PLW_VMM_ABORT_CTX)pucStkNow;                          /*  记录 PAGE_FAIL_CTX 位置     */
+    pucStkNow += __ABTCTX_SIZE_ALIGN;                                   /*  让出 PAGE_FAIL_CTX 空间     */
 #else
-    pucStkNow      -= __PAGEFAILCTX_SIZE_ALIGN;                         /*  让出 PAGE_FAIL_CTX 空间     */
-    pucStkNow       = (BYTE *)ROUND_DOWN(pucStkNow, ARCH_STK_ALIGN_SIZE);
-    pvmpagefailctx  = (PLW_VMM_PAGE_FAIL_CTX)pucStkNow;                 /*  记录 PAGE_FAIL_CTX 位置     */
-    pucStkNow      -= sizeof(LW_STACK);                                 /*  向空栈方向移动一个堆栈空间  */
+    pucStkNow -= __ABTCTX_SIZE_ALIGN;                                   /*  让出 PAGE_FAIL_CTX 空间     */
+    pucStkNow  = (BYTE *)ROUND_DOWN(pucStkNow, ARCH_STK_ALIGN_SIZE);
+    pabtctx    = (PLW_VMM_ABORT_CTX)pucStkNow;                          /*  记录 PAGE_FAIL_CTX 位置     */
+    pucStkNow -= sizeof(LW_STACK);                                      /*  向空栈方向移动一个堆栈空间  */
 #endif
     
-    pvmpagefailctx->PAGEFCTX_ptcb          = ptcb;
-    pvmpagefailctx->PAGEFCTX_ulRetAddr     = ulRetAddr;                 /*  异常返回地址                */
-    pvmpagefailctx->PAGEFCTX_ulAbortAddr   = ulAbortAddr;               /*  异常地址 (异常类型相关)     */
-    pvmpagefailctx->PAGEFCTX_abtInfo       = *pabtInfo;                 /*  异常类型                    */
-    pvmpagefailctx->PAGEFCTX_archRegCtx    = ptcb->TCB_archRegCtx;
-    pvmpagefailctx->PAGEFCTX_iLastErrno    = (errno_t)ptcb->TCB_ulLastError;
-    pvmpagefailctx->PAGEFCTX_iKernelSpace  = __KERNEL_SPACE_GET2(ptcb);
-    
-#if LW_CFG_VMM_EN > 0
+    pabtctx->ABTCTX_ptcb          = ptcb;
+    pabtctx->ABTCTX_ulRetAddr     = ulRetAddr;                          /*  异常返回地址                */
+    pabtctx->ABTCTX_ulAbortAddr   = ulAbortAddr;                        /*  异常地址 (异常类型相关)     */
+    pabtctx->ABTCTX_abtInfo       = *pabtInfo;                          /*  异常类型                    */
+    pabtctx->ABTCTX_archRegCtx    = ptcb->TCB_archRegCtx;
+    pabtctx->ABTCTX_iLastErrno    = (errno_t)ptcb->TCB_ulLastError;
+    pabtctx->ABTCTX_iKernelSpace  = __KERNEL_SPACE_GET2(ptcb);
+
     pstkFailShell = archTaskCtxCreate(&ptcb->TCB_archRegCtx,
-                                      (PTHREAD_START_ROUTINE)__vmmAbortShell,
-                                      (PVOID)pvmpagefailctx,
-                                      (PLW_STACK)pucStkNow,
-                                      0);                               /*  建立缺页处理陷阱外壳环境    */
-#else
-    pstkFailShell = archTaskCtxCreate(&ptcb->TCB_archRegCtx,
-                                      (PTHREAD_START_ROUTINE)__vmmAbortAccess,
-                                      (PVOID)pvmpagefailctx,
+                                      (PTHREAD_START_ROUTINE)pfuncHandler,
+                                      (PVOID)pabtctx,
                                       (PLW_STACK)pucStkNow,
                                       0);                               /*  建立访问异常陷阱外壳环境    */
-#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 
     archTaskCtxSetFp(pstkFailShell,
                      &ptcb->TCB_archRegCtx,
-                     &pvmpagefailctx->PAGEFCTX_archRegCtx);             /*  保存 fp, 使 callstack 正常  */
+                     &pabtctx->ABTCTX_archRegCtx);                      /*  保存 fp, 使 callstack 正常  */
 
     _StackCheckGuard(ptcb);                                             /*  堆栈警戒检查                */
     
     __KERNEL_EXIT();                                                    /*  退出内核                    */
 
 #if LW_CFG_CPU_FPU_EN > 0
-    if (__PAGEFAILCTX_ABORT_TYPE(pvmpagefailctx) == LW_VMM_ABORT_TYPE_FPE) {
+    if (__ABTCTX_ABORT_TYPE(pabtctx) == LW_VMM_ABORT_TYPE_FPE) {
         if (ptcb->TCB_ulOption & LW_OPTION_THREAD_USED_FP) {            /*  如果为 FPU 异常             */
             __ARCH_FPU_SAVE(ptcb->TCB_pvStackFP);                       /*  需要保存当前 FPU CTX        */
         }
@@ -1177,12 +1186,42 @@ VOID  API_VmmAbortIsr (addr_t          ulRetAddr,
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 
 #if LW_CFG_CPU_DSP_EN > 0
-    if (__PAGEFAILCTX_ABORT_TYPE(pvmpagefailctx) == LW_VMM_ABORT_TYPE_DSPE) {
+    if (__ABTCTX_ABORT_TYPE(pabtctx) == LW_VMM_ABORT_TYPE_DSPE) {
         if (ptcb->TCB_ulOption & LW_OPTION_THREAD_USED_DSP) {           /*  如果为 DSP 异常             */
             __ARCH_DSP_SAVE(ptcb->TCB_pvStackDSP);                      /*  需要保存当前 DSP CTX        */
         }
     }
 #endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
+}
+/*********************************************************************************************************
+** 函数名称: API_VmmAbortIsr
+** 功能描述: 当 MMU 产生访问失效时, 调用此函数(类似于中断服务函数)
+** 输　入  : ulRetAddr     异常返回地址
+**           ulAbortAddr   异常地址 (异常类型相关)
+**           pabtInfo      异常类型
+**           ptcb          出现异常的线程控制块 (不能为 NULL)
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+** 注  意  : 从 1.0.0.rc20 版本后, 此函数可以脱离 VMM 运行.
+**
+**           1. 构造缺页中断线程执行陷阱, 在陷阱中完成所有的页面操作, 如果失败, 线程自我销毁.
+**           2. 注意, 陷阱执行完毕后, 系统必须能够回到刚刚访问内存并产生异常的那条指令.
+**           3. 由于产生缺页中断时, 相关线程一定是就绪的, 所以这里不用加入调度器处理.
+
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+VOID  API_VmmAbortIsr (addr_t          ulRetAddr, 
+                       addr_t          ulAbortAddr, 
+                       PLW_VMM_ABORT   pabtInfo, 
+                       PLW_CLASS_TCB   ptcb)
+{
+#if LW_CFG_VMM_EN > 0
+    API_VmmAbortIsrEx(ulRetAddr, ulAbortAddr, pabtInfo, ptcb, __vmmAbortShell);
+#else
+    API_VmmAbortIsrEx(ulRetAddr, ulAbortAddr, pabtInfo, ptcb, __vmmAbortAccess);
+#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 }
 /*********************************************************************************************************
 ** 函数名称: API_VmmAbortStatus

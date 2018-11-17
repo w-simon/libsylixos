@@ -52,6 +52,21 @@ $(target)_CFLAGS      := $($(target)_COMMONFLAGS) $(ARCH_PIC_CFLAGS) $($(target)
 $(target)_CXXFLAGS    := $($(target)_COMMONFLAGS) $(ARCH_PIC_CFLAGS) $($(target)_DSYMBOL) $($(target)_INC_PATH) $($(target)_CXX_EXCEPT) $($(target)_CXXFLAGS)
 
 #*********************************************************************************************************
+# NOTE:
+#  On the mips platform, if the application adds "--no-undefined --ignore-unresolved-symbol,SYMBOL" 
+#  link parameters, The linker does not fill in the correct offset of GOT table for the jump code 
+#  of the SYMBOL function that the application calls. So we will link the application twice, 
+#  the first time will be adding the "--no-undefined --ignore-unresolved-symbol,SYMBOL" link parameter.
+#  The first time link is only used to check the integrity of the symbol.
+#  The second time link does not add the "--no-undefined --ignore-unresolved-symbol,SYMBOL" 
+#  link parameter to ensure the normal application is generated.
+#*********************************************************************************************************
+ifeq ($($(target)_NO_UNDEF_SYM), yes)
+ifeq (,$(findstring mips,$(ARCH)))
+$(target)_LINKFLAGS   := $(TOOLCHAIN_NO_UNDEF_SYM_FLAGS) $($(target)_LINKFLAGS)
+endif
+endif
+#*********************************************************************************************************
 # Targets
 #*********************************************************************************************************
 $(target)_EXE       := $(OUTPATH)/$(LOCAL_TARGET_NAME)
@@ -117,6 +132,14 @@ $($(target)_EXE): $($(target)_OBJS) $($(target)_DEPEND_TARGET)
 		@$(LINK) $@_nm.txt $@_dis.txt $@.c6x
 		@mv $@.c6x $@
 		@rm -f $@_nm.txt $@_dis.txt
+		$(__POST_LINK_CMD)
+else ifeq ($(findstring mips,$(ARCH))_$($(target)_NO_UNDEF_SYM), mips_yes)
+$($(target)_EXE): $($(target)_OBJS) $($(target)_DEPEND_TARGET)
+		@rm -f $@
+		$(__PRE_LINK_CMD)
+		@$(__LD) $(__CPUFLAGS) $(ARCH_PIC_LDFLAGS) $(TOOLCHAIN_NO_UNDEF_SYM_FLAGS) $(__LINKFLAGS) $(__OBJS) $(__LIBRARIES) -o $@.tmp
+		@rm -f $@.tmp
+		$(__LD) $(__CPUFLAGS) $(ARCH_PIC_LDFLAGS) $(__LINKFLAGS) $(__OBJS) $(__LIBRARIES) -o $@
 		$(__POST_LINK_CMD)
 else
 $($(target)_EXE): $($(target)_OBJS) $($(target)_DEPEND_TARGET)

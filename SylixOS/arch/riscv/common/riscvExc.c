@@ -21,6 +21,10 @@
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
 #include "dtrace.h"
+#if LW_CFG_RISCV_M_LEVEL > 0
+#include "arch/riscv/param/riscvParam.h"
+#include "arch/riscv/common/unaligned/riscvUnaligned.h"
+#endif                                                                  /*  LW_CFG_RISCV_M_LEVEL > 0    */
 #if LW_CFG_VMM_EN > 0
 #include "arch/riscv/mm/mmu/riscvMmu.h"
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
@@ -232,6 +236,40 @@ static VOID  archLoadAccessTrapHandle (ARCH_REG_CTX  *pregctx)
     API_VmmAbortIsr(pregctx->REG_ulEpc, pregctx->REG_ulTrapVal, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
+** 函数名称: archLoadUnalignedHandle
+** 功能描述: 非对齐内存加载异常处理
+** 输　入  : pabtctx    abort 上下文
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+#if LW_CFG_RISCV_M_LEVEL > 0
+
+static VOID  archLoadUnalignedHandle (PLW_VMM_ABORT_CTX  pabtctx)
+{
+    riscvLoadUnalignedHandle(&pabtctx->ABTCTX_archRegCtx,
+                             &pabtctx->ABTCTX_abtInfo);
+
+    API_VmmAbortReturn(pabtctx);
+}
+/*********************************************************************************************************
+** 函数名称: archStoreUnalignedHandle
+** 功能描述: 非对齐内存储存异常处理
+** 输　入  : pabtctx    abort 上下文
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  archStoreUnalignedHandle (PLW_VMM_ABORT_CTX  pabtctx)
+{
+    riscvStoreUnalignedHandle(&pabtctx->ABTCTX_archRegCtx,
+                              &pabtctx->ABTCTX_abtInfo);
+
+    API_VmmAbortReturn(pabtctx);
+}
+
+#endif                                                                  /*  LW_CFG_RISCV_M_LEVEL > 0    */
+/*********************************************************************************************************
 ** 函数名称: archLoadAddrMisalignTrapHandle
 ** 功能描述: Load address misaligned
 ** 输　入  : pregctx       寄存器上下文
@@ -245,12 +283,18 @@ static VOID  archLoadAddrMisalignTrapHandle (ARCH_REG_CTX  *pregctx)
 {
     PLW_CLASS_TCB  ptcbCur;
     LW_VMM_ABORT   abtInfo;
+    RISCV_PARAM   *param = archKernelParamGet();
 
     LW_TCB_GET_CUR(ptcbCur);
 
     abtInfo.VMABT_uiMethod = BUS_ADRERR;
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
-    if (abtInfo.VMABT_uiType) {
+
+    if (param->RISCV_bUnalign) {
+        API_VmmAbortIsrEx(pregctx->REG_ulEpc, pregctx->REG_ulTrapVal, &abtInfo, ptcbCur,
+                          archLoadUnalignedHandle);
+
+    } else {
         API_VmmAbortIsr(pregctx->REG_ulEpc, pregctx->REG_ulTrapVal, &abtInfo, ptcbCur);
     }
 }
@@ -268,12 +312,23 @@ static VOID  archStoreAmoAddrMisalignTrapHandle (ARCH_REG_CTX  *pregctx)
 {
     PLW_CLASS_TCB  ptcbCur;
     LW_VMM_ABORT   abtInfo;
+#if LW_CFG_RISCV_M_LEVEL > 0
+    RISCV_PARAM   *param = archKernelParamGet();
+#endif                                                                  /*  LW_CFG_RISCV_M_LEVEL > 0    */
 
     LW_TCB_GET_CUR(ptcbCur);
 
     abtInfo.VMABT_uiMethod = BUS_ADRERR;
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
-    if (abtInfo.VMABT_uiType) {
+
+#if LW_CFG_RISCV_M_LEVEL > 0
+    if (param->RISCV_bUnalign) {
+        API_VmmAbortIsrEx(pregctx->REG_ulEpc, pregctx->REG_ulTrapVal, &abtInfo, ptcbCur,
+                          archStoreUnalignedHandle);
+
+    } else
+#endif                                                                  /*  LW_CFG_RISCV_M_LEVEL > 0    */
+    {
         API_VmmAbortIsr(pregctx->REG_ulEpc, pregctx->REG_ulTrapVal, &abtInfo, ptcbCur);
     }
 }
@@ -483,6 +538,7 @@ VOID  archTrapHandle (ARCH_REG_CTX  *pregctx)
 
         if (pfuncHandle) {
             pfuncHandle(pregctx);
+
         } else {
             archDefaultTrapHandle(pregctx);
         }

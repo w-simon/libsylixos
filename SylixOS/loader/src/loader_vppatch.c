@@ -1816,7 +1816,6 @@ static BOOL vprocTraverseSymCb (PVOID pvArg, PLW_SYMBOL psymbol, LW_LD_EXEC_MODU
     if (ptsba->TSBA_pcAddr == psymbol->SYM_pcAddr) {
         ptsba->TSBA_psymbol = psymbol;
         ptsba->TSBA_bFound  = LW_TRUE;
-        ptsba->TSBA_pmod    = pmod;
         return  (LW_TRUE);
     }
     
@@ -1825,7 +1824,6 @@ static BOOL vprocTraverseSymCb (PVOID pvArg, PLW_SYMBOL psymbol, LW_LD_EXEC_MODU
         if (ptsba->TSBA_stDistance > stDistance) {
             ptsba->TSBA_stDistance = stDistance;
             ptsba->TSBA_psymbol    = psymbol;
-            ptsba->TSBA_pmod       = pmod;
         }
     }
     
@@ -1848,7 +1846,6 @@ static BOOL vprocTraverseKernelSymCb (PVOID pvArg, PLW_SYMBOL psymbol)
     if (ptsba->TSBA_pcAddr == psymbol->SYM_pcAddr) {
         ptsba->TSBA_psymbol = psymbol;
         ptsba->TSBA_bFound  = LW_TRUE;
-        ptsba->TSBA_pmod    = LW_NULL;
         return  (LW_TRUE);
     }
     
@@ -1857,7 +1854,6 @@ static BOOL vprocTraverseKernelSymCb (PVOID pvArg, PLW_SYMBOL psymbol)
         if (ptsba->TSBA_stDistance > stDistance) {
             ptsba->TSBA_stDistance = stDistance;
             ptsba->TSBA_psymbol    = psymbol;
-            ptsba->TSBA_pmod       = LW_NULL;
         }
     }
     
@@ -1884,9 +1880,6 @@ INT  API_ModuleAddr (PVOID   pvAddr,
     Dl_info     *pdlinfo = (Dl_info *)pvDlinfo;
     LW_LD_VPROC *pvproc  = (LW_LD_VPROC *)pvVProc;
     
-    LW_LD_EXEC_MODULE  *pmodTemp;
-    PLW_LIST_RING       pringTemp;
-    
     LW_LD_TSB_ARG       tsba;
     
     if (!pvAddr || !pdlinfo) {
@@ -1900,46 +1893,77 @@ INT  API_ModuleAddr (PVOID   pvAddr,
     tsba.TSBA_pmod       = LW_NULL;
     tsba.TSBA_stDistance = __LW_MODULE_MAX_DISTANCE;
     
-    if (pvproc) {
+    if (pvproc) {                                                       /*  有进程控制块                */
+        PLW_LIST_RING   pringTemp;
+
         LW_VP_LOCK(pvproc);
+
         pringTemp = pvproc->VP_ringModules;
+
         if (pringTemp) {
-            pmodTemp = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);
-            __moduleTraverseSym(pmodTemp, vprocTraverseSymCb, (PVOID)&tsba);
+            INT                 i;
+            PLW_SYMBOL          psymbol;
+            PLW_LIST_LINE       plineTemp;
+            LW_LD_EXEC_MODULE  *pmodHead;
+            LW_LD_EXEC_MODULE  *pmodTemp;
+
+            pmodHead = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);
+
+            do {
+                pmodTemp = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);
+
+                if ((pvAddr >= pmodTemp->EMOD_pvBaseAddr) &&
+                    (pvAddr < (PVOID)((addr_t)pmodTemp->EMOD_pvBaseAddr + pmodTemp->EMOD_stLen))) {
+
+                    tsba.TSBA_pmod = pmodTemp;
+
+                    for (i = 0; i < pmodTemp->EMOD_ulSymHashSize; i++) {
+                        for (plineTemp  = pmodTemp->EMOD_psymbolHash[i];
+                             plineTemp != LW_NULL;
+                             plineTemp  = _list_line_get_next(plineTemp)) {
+
+                            psymbol = _LIST_ENTRY(plineTemp, LW_SYMBOL, SYM_lineManage);
+                            if (vprocTraverseSymCb((PVOID)&tsba, psymbol, pmodTemp)) {
+                                goto  __most_suitable;
+                            }
+                        }
+                    }
+
+                    break;
+                }
+
+                pringTemp = _list_ring_get_next(pringTemp);
+            } while (pringTemp != &pmodHead->EMOD_ringModules);
         }
+
+__most_suitable:
         LW_VP_UNLOCK(pvproc);
     }
     
-    if (tsba.TSBA_bFound) {
+    if (tsba.TSBA_pmod) {                                               /*  找到了模块                  */
         pdlinfo->dli_fname = tsba.TSBA_pmod->EMOD_pcModulePath;
         pdlinfo->dli_fbase = (void *)tsba.TSBA_pmod;
-        pdlinfo->dli_sname = tsba.TSBA_psymbol->SYM_pcName;
-        pdlinfo->dli_saddr = (void *)tsba.TSBA_psymbol->SYM_pcAddr;
-        return  (ERROR_NONE);
-    }
-    
-    API_SymbolTraverse(vprocTraverseKernelSymCb, (PVOID)&tsba);         /*  查找内核符号表               */
-    
-    if (tsba.TSBA_stDistance == __LW_MODULE_MAX_DISTANCE) {
-        return  (PX_ERROR);
-    }
-    
-    if (tsba.TSBA_pmod) {
-        pdlinfo->dli_fname = tsba.TSBA_pmod->EMOD_pcModulePath;
-        pdlinfo->dli_fbase = (void *)tsba.TSBA_pmod;
+
     } else {
+        API_SymbolTraverse(vprocTraverseKernelSymCb, (PVOID)&tsba);     /*  查找内核符号表              */
+
+        if (tsba.TSBA_stDistance == __LW_MODULE_MAX_DISTANCE) {
+            return  (PX_ERROR);
+        }
+
         pdlinfo->dli_fname = "kernel";
         pdlinfo->dli_fbase = LW_NULL;
     }
-    
+
     if (tsba.TSBA_psymbol) {
         pdlinfo->dli_sname = tsba.TSBA_psymbol->SYM_pcName;
         pdlinfo->dli_saddr = (void *)tsba.TSBA_psymbol->SYM_pcAddr;
+
     } else {
         pdlinfo->dli_sname = LW_NULL;
         pdlinfo->dli_saddr = LW_NULL;
     }
-    
+
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
