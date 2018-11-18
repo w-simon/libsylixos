@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define DIR_FISRT   0
+#define DIR_FIRST   0
 #define DIR_DIVIDER '/'
 
 struct file_info {
@@ -25,18 +25,17 @@ struct file_info {
     char name[1];
 };
 
-struct file_info *file_list = NULL;
-struct file_info **file_arry = NULL;
-unsigned int file_cnt = 0;
+static struct file_info *file_list = NULL;
+static struct file_info **file_arry = NULL;
+static unsigned int file_cnt = 0;
 
-/* Information about filling a column.  */
 struct column_info {
     int valid_len;
     int line_len;
     int *col_arr;
 };
-struct column_info *column_info;
 
+static struct column_info *column_info;
 static int line_length;
 static int max_idx;
 
@@ -125,7 +124,7 @@ static void sort_list (void)
                 found = tmp;
 
             } else {
-#if DIR_FISRT
+#if DIR_FIRST
                 if ((!S_ISDIR(found->mode) && S_ISDIR(tmp->mode)) ||
                     (strcoll(found->name, tmp->name) > 0))
 #else
@@ -210,6 +209,7 @@ static void print_list (void)
             if (column_info[i].valid_len) {
                 int idx = filesno / ((file_cnt + i) / (i + 1));
                 int real_length = name_length + (idx == i ? 0 : 2);
+
                 if (real_length > column_info[i].col_arr[idx]) {
                     column_info[i].line_len += (real_length - column_info[i].col_arr[idx]);
                     column_info[i].col_arr[idx] = real_length;

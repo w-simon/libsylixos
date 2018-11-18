@@ -78,6 +78,7 @@
 2012.12.31  如果驱动程序中 pread 和 pwrite 不存在则证明驱动不关心文件指针, 则使用 read write 替代.
 2013.01.02  加入 API_IosDrvInstallEx2() 用于安装 SylixOS 系统新版本的驱动程序.
 2013.01.03  所有对驱动 close 操作必须通过 _IosFileClose 接口.
+2018.11.18  API_IosDevAdd() 默认为 DT_CHR 类型.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -567,7 +568,7 @@ ULONG  API_IosDevAdd (PLW_DEV_HDR    pdevhdrHdr,
                       CPCHAR         pcName,
                       INT            iDrvNum)
 {
-    return  (API_IosDevAddEx(pdevhdrHdr, pcName, iDrvNum, DT_UNKNOWN));
+    return  (API_IosDevAddEx(pdevhdrHdr, pcName, iDrvNum, DT_CHR));
 }
 /*********************************************************************************************************
 ** 函数名称: API_IosDevDelete

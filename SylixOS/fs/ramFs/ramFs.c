@@ -1115,7 +1115,6 @@ static INT  __ramFsReadDir (PLW_FD_ENTRY  pfdentry, DIR  *dir)
                     sizeof(dir->dir_dirent.d_name));
                     
         dir->dir_dirent.d_type = IFTODT(pramnTemp->RAMN_mode);
-        
         dir->dir_dirent.d_shortname[0] = PX_EOS;
     }
     __RAMFS_VOL_UNLOCK(pramfs);

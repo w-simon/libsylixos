@@ -471,7 +471,7 @@ PCHAR  lib_strerror (INT  iNum)
     case ERROR_TSHELL_ELEVEL:           return  ("Insufficient permissions");
     case ERROR_TSHELL_CMDNOTFUND:       return  ("Can not find command");
 
-    default:    return  ("Unkown error");
+    default:    return  ("Unknown error");
     }
 }
 /*********************************************************************************************************
