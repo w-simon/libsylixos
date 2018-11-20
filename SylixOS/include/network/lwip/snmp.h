@@ -116,6 +116,9 @@ enum snmp_ifType {
  * @param type one of enum @ref snmp_ifType
  * @param speed your link speed here (units: bits per second)
  */
+/**
+ * SylixOS Add ifcollisions stat.
+ */
 #define MIB2_INIT_NETIF(netif, type, speed) do { \
   (netif)->link_type = (type);  \
   (netif)->link_speed = (speed);\
@@ -130,7 +133,8 @@ enum snmp_ifType {
   (netif)->mib2_counters.ifoutucastpkts = 0;  \
   (netif)->mib2_counters.ifoutnucastpkts = 0; \
   (netif)->mib2_counters.ifoutdiscards = 0; \
-  (netif)->mib2_counters.ifouterrors = 0; } while(0)
+  (netif)->mib2_counters.ifouterrors = 0; \
+  (netif)->mib2_counters.ifcollisions = 0; } while(0)
 #else /* MIB2_STATS */
 #ifndef MIB2_COPY_SYSUPTIME_TO
 #define MIB2_COPY_SYSUPTIME_TO(ptrToVal)
@@ -205,6 +209,10 @@ void mib2_udp_unbind(struct udp_pcb *pcb);
 #define snmp_inc_ifoutnucastpkts(ni)   MIB2_STATS_NETIF_INC(ni, ifoutnucastpkts)
 #define snmp_inc_ifoutdiscards(ni)     MIB2_STATS_NETIF_INC(ni, ifoutdiscards)
 #define snmp_inc_ifouterrors(ni)       MIB2_STATS_NETIF_INC(ni, ifouterrors)
+
+#ifdef SYLIXOS /** SylixOS Support collisions counter */
+#define snmp_inc_ifcollisions(ni)      MIB2_STATS_NETIF_INC(ni, ifcollisions)
+#endif /* SYLIXOS */
 
 #ifdef __cplusplus
 }

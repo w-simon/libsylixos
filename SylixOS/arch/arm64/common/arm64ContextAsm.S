@@ -58,11 +58,6 @@
 ;*********************************************************************************************************/
 
 FUNC_DEF(archTaskCtxStart)
-    MOV     X1 , SP
-    BIC     X1 , X1 , #0xf                                              ;/*  SP 向下 16 字节对齐         */
-    MOV     SP , X1
-    MSR     TPIDR_EL1, X1                                               ;/*  设置异常临时栈(使用启动栈)  */
-
     LDR     X18, [X0]                                                   ;/*  获取当前 TCB 的 REG_CTX 地址*/
 
 LINE_LABEL(archTaskCtxLoad)

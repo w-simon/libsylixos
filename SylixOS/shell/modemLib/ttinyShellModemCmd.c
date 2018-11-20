@@ -117,7 +117,7 @@ static INT  __tshellFsCmdXmodems (INT  iArgC, PCHAR  ppcArgV[])
     ssize_t         sstReadNum;
     
     fd_set          fdsetRead;
-    struct timeval  timevalTO = {__LW_XMODEM_TX_TIMEOUT, 0};
+    struct timeval  timevalTO;
     
     
     if (iArgC != 2) {
@@ -168,6 +168,8 @@ static INT  __tshellFsCmdXmodems (INT  iArgC, PCHAR  ppcArgV[])
      */
     for (i = 0; i < 20; i++) {
         FD_SET(STD_IN, &fdsetRead);
+        timevalTO.tv_sec  = __LW_XMODEM_TX_TIMEOUT;
+        timevalTO.tv_usec = 0;
         iRetVal = select(1, &fdsetRead, LW_NULL, LW_NULL, &timevalTO);  /*  等待可读                    */
         if (iRetVal != 1) {
             if (bIsEot) {
@@ -260,7 +262,7 @@ static INT  __tshellFsCmdXmodemr (INT  iArgC, PCHAR  ppcArgV[])
     size_t          stTotalNum = 0;
     
     fd_set          fdsetRead;
-    struct timeval  timevalTO = {__LW_XMODEM_RX_TIMEOUT, 0};
+    struct timeval  timevalTO;
     
     
     if (iArgC != 2) {
@@ -307,6 +309,8 @@ __re_select:
      */
     for (i = 0; i < 20; i++) {
         FD_SET(STD_IN, &fdsetRead);
+        timevalTO.tv_sec  = __LW_XMODEM_RX_TIMEOUT;
+        timevalTO.tv_usec = 0;
         iRetVal = select(1, &fdsetRead, LW_NULL, LW_NULL, &timevalTO);  /*  等待可读                    */
         if (iRetVal != 1) {
             stTotalNum = 0;                                             /*  清除已接收的数据            */

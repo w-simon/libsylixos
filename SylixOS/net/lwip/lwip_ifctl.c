@@ -911,7 +911,7 @@ static INT  __ifIoctlLp802154 (INT  iCmd, struct ieee802154_ifreq *pifreq)
     
     pnetdev = netdev_find_by_ifname(pifreq->ifr802154_name);
     if ((pnetdev == LW_NULL) || 
-        (pnetdev->net_type != NETDEV_TYPE_6LOWPAN)) {
+        (pnetdev->net_type != NETDEV_TYPE_LOWPAN)) {
         _ErrorHandle(EADDRNOTAVAIL);                                    /*  未找到指定的网络设备        */
         return  (iRet);
     }
@@ -991,7 +991,7 @@ static INT  __ifIoctlLp7668 (INT  iCmd, struct rfc7668_ifreq *pifreq)
     
     pnetdev = netdev_find_by_ifname(pifreq->ifr7668_name);
     if ((pnetdev == LW_NULL) || 
-        (pnetdev->net_type != NETDEV_TYPE_6LOWPAN_BLE)) {
+        (pnetdev->net_type != NETDEV_TYPE_LOWPAN_BLE)) {
         _ErrorHandle(EADDRNOTAVAIL);                                    /*  未找到指定的网络设备        */
         return  (iRet);
     }

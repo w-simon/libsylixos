@@ -47,6 +47,7 @@
 #define XPC_OFFSET              (ARCH_REG_SIZE * (ARCH_GREG_NR + 1))
 #define XSP_OFFSET              (ARCH_REG_SIZE * (ARCH_GREG_NR + 2))
 #define XPSTATE_OFFSET          (ARCH_REG_SIZE * (ARCH_GREG_NR + 3))
+#define CPUID_OFFSET            (ARCH_REG_SIZE * 0)
 
 /*********************************************************************************************************
   ¼Ä´æÆ÷±í

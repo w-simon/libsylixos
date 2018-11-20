@@ -26,7 +26,7 @@
   缓存配置
 *********************************************************************************************************/
 
-#define LW_CFG_LWIP_MEM_SIZE            (1 * LW_CFG_MB_SIZE)            /*  网络内存大小                */
+#define LW_CFG_LWIP_MEM_SIZE            (2 * LW_CFG_MB_SIZE)            /*  网络内存大小                */
 #define LW_CFG_LWIP_MSG_SIZE            512                             /*  内部消息队列缓冲长度        */
 #define LW_CFG_LWIP_POOL_SIZE           1560                            /*  POOL 内存块大小             */
                                                                         /*  注意: 必须是字对齐的        */

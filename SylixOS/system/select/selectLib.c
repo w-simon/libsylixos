@@ -37,6 +37,9 @@
   裁减控制
 *********************************************************************************************************/
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_SELECT_EN > 0)
+#if LW_CFG_POSIX_EN > 0
+#include "../SylixOS/posix/include/posixLib.h"
+#endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
 #include "select.h"
 /*********************************************************************************************************
 ** 函数名称: __selIsAllFdsetEmpty
@@ -60,7 +63,7 @@ static BOOL  __selIsAllFdsetEmpty (INT               iWidthInBytes,
     return  (LW_FALSE);
 }
 /*********************************************************************************************************
-** 函数名称: __selContextOrigFdsetInit
+** 函数名称: __selFdsetInit
 ** 功能描述: 初始化 select context 中的原始文件集
 ** 输　入  : iWidthInBytes     文件集中的最大文件号的偏移量占了多少字节, 例如: fd = 10, 就占了 2 个 Byte
 **           pfdsetRead        用户关心的可读文件集.
@@ -135,7 +138,7 @@ static VOID  __selFdsetClear (INT               iWidthInBytes,
     }
 }
 /*********************************************************************************************************
-** 函数名称: __selFdsetGetFileConter
+** 函数名称: __selFdsetGetFileCounter
 ** 功能描述: 获得指定文件集中文件的数量
 ** 输　入  : iWidth            文件集中,最大的文件号.
 **           pfdsetRead        用户关心的可读文件集.
@@ -145,10 +148,10 @@ static VOID  __selFdsetClear (INT               iWidthInBytes,
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT   __selFdsetGetFileConter (INT               iWidth, 
-                                      fd_set           *pfdsetRead,
-                                      fd_set           *pfdsetWrite,
-                                      fd_set           *pfdsetExcept)
+static INT   __selFdsetGetFileCounter (INT               iWidth, 
+                                       fd_set           *pfdsetRead,
+                                       fd_set           *pfdsetWrite,
+                                       fd_set           *pfdsetExcept)
 {
     REGISTER INT    iFd;                                                /*  临时文件描述符              */
     REGISTER ULONG  ulPartMask;                                         /*  区域掩码                    */
@@ -198,7 +201,7 @@ static INT   __selFdsetGetFileConter (INT               iWidth,
 }
 /*********************************************************************************************************
 ** 函数名称: pselect
-** 功能描述: BSD pselect() 多路 I/O 复用.
+** 功能描述: pselect() 多路 I/O 复用.
 ** 输　入  : iWidth            设置的文件集中,最大的文件号 + 1.
 **           pfdsetRead        用户关心的可读文件集.
 **           pfdsetWrite       用户关心的可写文件集.
@@ -410,7 +413,7 @@ INT     pselect (INT                     iWidth,
         return  (PX_ERROR);
     }
     
-    iCnt = __selFdsetGetFileConter(iWidth, pfdsetRead, pfdsetWrite, pfdsetExcept);
+    iCnt = __selFdsetGetFileCounter(iWidth, pfdsetRead, pfdsetWrite, pfdsetExcept);
     if ((iCnt == 0) && (ulError != ERROR_THREAD_WAIT_TIMEOUT)) {        /*  没有文件有效                */
         _ErrorHandle(ulError);
         return  (PX_ERROR);                                             /*  出现错误                    */
@@ -420,12 +423,12 @@ INT     pselect (INT                     iWidth,
 }
 /*********************************************************************************************************
 ** 函数名称: select
-** 功能描述: BSD select() 多路 I/O 复用.
+** 功能描述: select() 多路 I/O 复用.
 ** 输　入  : iWidth            设置的文件集中,最大的文件号 + 1.
 **           pfdsetRead        用户关心的可读文件集.
 **           pfdsetWrite       用户关心的可写文件集.
 **           pfdsetExcept      用户关心的异常文件集.
-**           ptmvalTO          等待超时时间, LW_NULL 表示永远等待.
+**           ptmvalTO          等待超时时间, LW_NULL 表示永远等待. (可能被改变)
 ** 输　出  : 正常返回等待到的文件数量 ,错误返回 PX_ERROR.
 **           errno == ERROR_IO_SELECT_UNSUPPORT_IN_DRIVER       驱动程序不支持
 **           errno == ERROR_IO_SELECT_CONTEXT                   线程不存在 context
@@ -446,6 +449,11 @@ INT     select (INT               iWidth,
     struct timespec   tmspec;
     struct timespec  *ptmspec;
            INT        iRet;
+           
+#if LW_CFG_POSIX_EN > 0
+    __PX_VPROC_CONTEXT  *pvpCtx = _posixVprocCtxGet();
+    struct timespec      tmspec1, tmspec2;
+#endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
 
     if (LW_CPU_GET_CUR_NESTING()) {
         _ErrorHandle(ERROR_KERNEL_IN_ISR);                              /*  不能在中断中调用            */
@@ -456,16 +464,69 @@ INT     select (INT               iWidth,
         LW_TIMEVAL_TO_TIMESPEC(ptmvalTO, &tmspec);
         ptmspec = &tmspec;
 
+#if LW_CFG_POSIX_EN > 0
+        if (pvpCtx->PVPCTX_iSelectMethod == SELECT_METHOD_LINUX) {
+            lib_clock_gettime(CLOCK_MONOTONIC, &tmspec1);
+        }
+#endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
+
     } else {
         ptmspec = LW_NULL;
     }
     
     iRet = pselect(iWidth, pfdsetRead, pfdsetWrite, pfdsetExcept, ptmspec, LW_NULL);
     
-    /*
-     *  当前暂时没有修改 ptmvalTO 的值.
-     */
+#if LW_CFG_POSIX_EN > 0
+    if ((pvpCtx->PVPCTX_iSelectMethod == SELECT_METHOD_LINUX) && ptmspec) {
+        lib_clock_gettime(CLOCK_MONOTONIC, &tmspec2);
+        if (__timespecLeftTime(&tmspec1, &tmspec2)) {
+            __timespecSub(&tmspec2, &tmspec1);
+            
+            if (__timespecLeftTime(&tmspec2, ptmspec)) {
+                __timespecSub(ptmspec, &tmspec2);
+                LW_TIMESPEC_TO_TIMEVAL(ptmvalTO, ptmspec);
+            
+            } else {
+                ptmvalTO->tv_sec  = 0;
+                ptmvalTO->tv_usec = 0;
+            }
+        }
+    }
+#endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
+    
     return  (iRet);
+}
+/*********************************************************************************************************
+** 函数名称: select_method
+** 功能描述: select() 方法选择.
+** 输　入  : iMethod           设置新的方法.
+**           piOldMethod       之前设置的方法.
+** 输　出  : ERROR_NONE
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+INT  select_method (INT  iMethod, INT  *piOldMethod)
+{
+#if LW_CFG_POSIX_EN > 0
+    __PX_VPROC_CONTEXT  *pvpCtx = _posixVprocCtxGet();
+    
+    if (piOldMethod) {
+        *piOldMethod = pvpCtx->PVPCTX_iSelectMethod;
+    }
+    
+    if ((iMethod == SELECT_METHOD_BSD) ||
+        (iMethod == SELECT_METHOD_LINUX)) {
+        pvpCtx->PVPCTX_iSelectMethod = iMethod;
+    }
+    
+    return  (ERROR_NONE);
+    
+#else
+    _ErrorHandle(ENOSYS);
+    return  (PX_ERROR);
+#endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
 }
 
 #endif                                                                  /*  LW_CFG_DEVICE_EN > 0        */

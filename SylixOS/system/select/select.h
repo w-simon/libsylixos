@@ -76,6 +76,12 @@ typedef struct fd_set {
 *********************************************************************************************************/
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_SELECT_EN > 0)
 
+#define SELECT_METHOD_BSD       0                                       /*  select() 不修改等待时间     */
+#define SELECT_METHOD_LINUX     1                                       /*  select() 修改等待时间       */
+#define SELECT_METHOD_DEFAULT   SELECT_METHOD_BSD
+
+LW_API INT     select_method(INT  iMethod, INT  *piOldMethod);
+
 LW_API INT     select(INT               iWidth, 
                       fd_set           *pfdsetRead,
                       fd_set           *pfdsetWrite,

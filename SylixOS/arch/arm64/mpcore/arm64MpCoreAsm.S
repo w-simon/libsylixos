@@ -24,6 +24,7 @@
 #endif
 
 #include <arch/assembler.h>
+#include <arch/arm64/arch_regs.h>
 
 #if LW_CFG_SMP_EN > 0
 
@@ -31,19 +32,40 @@
     
     IMPORT_LABEL(bspMpInt)
     
+    EXPORT_LABEL(arm64MpidrGet)
     EXPORT_LABEL(archMpCur)
     EXPORT_LABEL(archMpInt)
     
+    WEAK(arm64MpidrGet)
     WEAK(archMpCur)
     WEAK(archMpInt)
+
+;/*********************************************************************************************************
+;  获取当前核硬件 ID
+;  对于 ARMv8 处理器，MPIDR 采用点分十进制的方式进行定义：
+;  如 <Aff3>.<Aff2>.<Aff1>.<Aff0>
+;*********************************************************************************************************/
+
+FUNC_DEF(arm64MpidrGet)
+    MRS     X1 , MPIDR_EL1
+    AND     X0 , X1 , #0x3                                              ;/*  获取 Aff0 cpu id            */
+    MOV     X3 , #0xff
+    AND     X2 , X3 , X1, LSR #8
+    ADD     X0 , X0 , X2, LSL #2                                        ;/*  获取 Aff1 cluster id        */
+    AND     X2 , X3 , X1, LSR #16
+    ADD     X0 , X0 , X2, LSL #4                                        ;/*  获取 Aff2 cluster id        */
+    AND     X2 , X3 , X1, LSR #32
+    ADD     X0 , X0 , X2, LSL #6                                        ;/*  获取 Aff3 cluster id        */
+    RET
+    FUNC_END()
 
 ;/*********************************************************************************************************
 ;  获取当前核 ID
 ;*********************************************************************************************************/
 
 FUNC_DEF(archMpCur)
-    MRS     X1 , MPIDR_EL1                                              ;/*  read mpidr reg              */
-    AND     X0 , X1 , #0xf
+    MRS     X0 , TPIDR_EL1
+    LDR     X0 , [X0 , #CPUID_OFFSET]
     RET
     FUNC_END()
     

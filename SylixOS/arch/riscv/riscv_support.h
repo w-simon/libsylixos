@@ -114,14 +114,13 @@ VOID    archDbgBpAdjust(PVOID  pvDtrace, PVOID   pvtm);
 
 VOID    archIntHandle(ULONG  ulVector, BOOL  bPreemptive);              /*  bspIntHandle 需要调用此函数 */
 
-VOID    archWaitForInterrupt(VOID);
-
 /*********************************************************************************************************
   RISC-V 通用库
 *********************************************************************************************************/
 
 INT     archFindLsb(UINT32 ui32);
 INT     archFindMsb(UINT32 ui32);
+VOID    archWaitForInterrupt(VOID);
 
 /*********************************************************************************************************
   RISC-V 处理器标准底层库

@@ -119,12 +119,13 @@ struct netdev_funcs {
   int  (*down)(struct netdev *netdev);
   int  (*remove)(struct netdev *netdev);
   
-  /* netdev ioctl (Only 2 commands should do)
+  /* netdev ioctl (If 'net_type' is ethernet, only 2 commands should do)
    * cmd: SIOCSIFMTU:    arg is struct ifreq *pifreq, set MTU    (pifreq->ifr_mtu)
    *      SIOCSIFHWADDR: arg is struct ifreq *pifreq, set hwaddr (pifreq->ifr_hwaddr[]) */
   int  (*ioctl)(struct netdev *netdev, int cmd, void *arg);
 
-  /* netdev rx mode updated: (Must be in strict accordance with the following order of judgment)
+  /* netdev rx mode updated: 
+   * if 'net_type' is ethernet, driver must be in strict accordance with the following order of judgment)
    * if flags & IFF_PROMISC, driver must allow all packet input.
    * if flags & IFF_ALLMULTI, driver must allow all multicast packet input.
    * other, driver must allow all multicast address in mac list (can use NETDEV_MACFILTER_FOREACH() traverse) */
@@ -171,6 +172,7 @@ typedef struct netdev {
 #define NETDEV_INIT_AS_DEFAULT     0x08
 #define NETDEV_INIT_USE_DHCP       0x10     /* force use DHCP get address */
 #define NETDEV_INIT_USE_DHCP6      0x40     /* force use IPv6 DHCP get address */
+#define NETDEV_INIT_USE_AODV       0x80     /* use AODV(Ad-hoc) Only for LOWPAN (ipv4 only) */
 #define NETDEV_INIT_DO_NOT         0x20     /* do not call init() function (Only used for net bridge) */
   UINT32 init_flags;
   
@@ -190,8 +192,8 @@ typedef struct netdev {
 
 #define NETDEV_TYPE_RAW             0
 #define NETDEV_TYPE_ETHERNET        1
-#define NETDEV_TYPE_6LOWPAN         2
-#define NETDEV_TYPE_6LOWPAN_BLE     3
+#define NETDEV_TYPE_LOWPAN          2
+#define NETDEV_TYPE_LOWPAN_BLE      3
   UINT32 net_type;
   
   UINT64 speed; /* link layer speed bps */
@@ -318,6 +320,7 @@ void netdev_statinfo_ucasts_inc(netdev_t *netdev, netdev_inout inout);
 void netdev_statinfo_mcasts_inc(netdev_t *netdev, netdev_inout inout);
 void netdev_statinfo_discards_inc(netdev_t *netdev, netdev_inout inout);
 void netdev_statinfo_errors_inc(netdev_t *netdev, netdev_inout inout);
+void netdev_statinfo_collisions_inc(netdev_t *netdev);
 
 /* netdev link statistical information update functions */
 void netdev_linkinfo_err_inc(netdev_t *netdev);

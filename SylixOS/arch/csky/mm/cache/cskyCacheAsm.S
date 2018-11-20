@@ -159,6 +159,9 @@ FUNC_DEF(cskyBranchPredictorInvalidate)
 ;*********************************************************************************************************/
 
 FUNC_DEF(cskyBranchPredictionEnable)
+    MOVIH       A0 , 0x3                                                ;/*  无效分支预测缓冲            */
+    MTCR        A0 , CR17
+
     MFCR        A0 , CR18
     BSETI       A0 , 11
     BSETI       A0 , 6
@@ -173,6 +176,9 @@ FUNC_DEF(cskyBranchPredictionEnable)
 ;*********************************************************************************************************/
 
 FUNC_DEF(cskyBranchPredictionDisable)
+    MOVIH       A0 , 0x3                                                ;/*  无效分支预测缓冲            */
+    MTCR        A0 , CR17
+
     MFCR        A0 , CR18
     BCLRI       A0 , 11
     BCLRI       A0 , 6

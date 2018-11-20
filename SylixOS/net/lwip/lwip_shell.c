@@ -349,16 +349,16 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
     } else if (netdev && (netdev->net_type != NETDEV_TYPE_RAW)) {       /*  netdev Éè±¸                 */
         switch (netdev->net_type) {
         
-        case NETDEV_TYPE_6LOWPAN:
-            printf("Link encap: 6LowPAN HWaddr: ");
+        case NETDEV_TYPE_LOWPAN:
+            printf("Link encap: LowPAN HWaddr: ");
             for (i = 0; i < netif->hwaddr_len - 1; i++) {
                 printf("%02x:", netif->hwaddr[i]);
             }
             printf("%02x\n", netif->hwaddr[netif->hwaddr_len - 1]);
             break;
             
-        case NETDEV_TYPE_6LOWPAN_BLE:
-            printf("Link encap: 6LowPAN-BLE HWaddr: ");
+        case NETDEV_TYPE_LOWPAN_BLE:
+            printf("Link encap: LowPAN-BLE HWaddr: ");
             for (i = 0; i < netif->hwaddr_len - 1; i++) {
                 printf("%02x:", netif->hwaddr[i]);
             }
@@ -421,7 +421,7 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
         printf("%9s P-to-P: %d.%d.%d.%d ", "",
                ip4_addr1(netif_ip4_gw(netif)), ip4_addr2(netif_ip4_gw(netif)),
                ip4_addr3(netif_ip4_gw(netif)), ip4_addr4(netif_ip4_gw(netif)));
-        printf("broadcast: Non\n");
+        printf("broadcast: N/A\n");
     
     } else {
         printf("%9s gateway: %d.%d.%d.%d ", "",
@@ -443,17 +443,17 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
         }
         
         if (ip6_addr_isglobal(ip_2_ip6(&netif->ip6_addr[i]))) {
-            pcAddrType = "global";
+            pcAddrType = "Global";
         } else if (ip6_addr_islinklocal(ip_2_ip6(&netif->ip6_addr[i]))) {
-            pcAddrType = "link";
+            pcAddrType = "Link";
         } else if (ip6_addr_issitelocal(ip_2_ip6(&netif->ip6_addr[i]))) {
-            pcAddrType = "site";
+            pcAddrType = "Site";
         } else if (ip6_addr_isuniquelocal(ip_2_ip6(&netif->ip6_addr[i]))) {
-            pcAddrType = "uniquelocal";
+            pcAddrType = "Uniquelocal";
         } else if (ip6_addr_isloopback(ip_2_ip6(&netif->ip6_addr[i]))) {
-            pcAddrType = "loopback";
+            pcAddrType = "Loopback";
         } else {
-            pcAddrType = "unknown";
+            pcAddrType = "Unknown";
         }
         
         printf("%9s inet6 addr: %s Scope:%s\n", "",
@@ -484,21 +484,23 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
             printf("NOARP ");
         }
     }
-    printf("MTU:%d METRIC:%d\n", netif->mtu, netif->metric);
-    
-    printf("%9s tcp_ack_freq:%u tcp_wnd_size:%u\n", "", 
-           netif_get_tcp_ack_freq(netif), netif_get_tcp_wnd(netif));
+    printf(" MTU:%d  Metric:%d\n", netif->mtu, netif->metric);
     
     if (netif_is_mipif(netif)) {
         printf("\n");
         return;
     }
     
+    printf("%9s collisions:%u noproto:%u tcpaf:%u tcpwnd:%u\n", "", 
+           MIB2_NETIF(netif)->ifcollisions,
+           MIB2_NETIF(netif)->ifinunknownprotos,
+           netif_get_tcp_ack_freq(netif), netif_get_tcp_wnd(netif));
+    
     printf("%9s RX ucast packets:%u nucast packets:%u dropped:%u\n", "",
            MIB2_NETIF(netif)->ifinucastpkts, MIB2_NETIF(netif)->ifinnucastpkts, MIB2_NETIF(netif)->ifindiscards);
     printf("%9s TX ucast packets:%u nucast packets:%u dropped:%u\n", "",
            MIB2_NETIF(netif)->ifoutucastpkts, MIB2_NETIF(netif)->ifoutnucastpkts, MIB2_NETIF(netif)->ifoutdiscards);
-    printf("%9s RX bytes:%u TX bytes:%u\n", "",
+    printf("%9s RX bytes:%u  TX bytes:%u\n", "",
            MIB2_NETIF(netif)->ifinoctets, MIB2_NETIF(netif)->ifoutoctets);
     printf("\n");
 }

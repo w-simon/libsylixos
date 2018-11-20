@@ -57,6 +57,7 @@ typedef struct {
     INT                     PVPCTX_iPMqOpenMethod;
 #endif                                                                  /*  LW_CFG_GJB7714_EN > 0       */
     INT                     PVPCTX_iThreadDefMethod;
+    INT                     PVPCTX_iSelectMethod;
     PVOID                   PVPCTX_pvReserve;
 } __PX_VPROC_CONTEXT;
 

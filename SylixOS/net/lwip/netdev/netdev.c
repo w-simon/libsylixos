@@ -492,11 +492,11 @@ static int  netdev_netif_linkinput (netdev_t *netdev, struct pbuf *p)
     err = netif->input(p, netif);
     break;
     
-  case NETDEV_TYPE_6LOWPAN:
+  case NETDEV_TYPE_LOWPAN:
     err = tcpip_6lowpan_input(p, netif);
     break;
     
-  case NETDEV_TYPE_6LOWPAN_BLE:
+  case NETDEV_TYPE_LOWPAN_BLE:
     err = tcpip_rfc7668_input(p, netif);
     break;
     
@@ -573,7 +573,7 @@ static err_t  netdev_netif_init (struct netif *netif)
 #endif /* LWIP_IPV6 */
     break;
     
-  case NETDEV_TYPE_6LOWPAN:
+  case NETDEV_TYPE_LOWPAN:
     MIB2_INIT_NETIF(netif, snmp_ifType_other, 0);
     netif->flags = NETIF_FLAG_BROADCAST;
     netif->output = netdev_netif_nulloutput4;
@@ -586,7 +586,7 @@ static err_t  netdev_netif_init (struct netif *netif)
 #endif /* LWIP_IPV6 */
     break;
     
-  case NETDEV_TYPE_6LOWPAN_BLE:
+  case NETDEV_TYPE_LOWPAN_BLE:
     MIB2_INIT_NETIF(netif, snmp_ifType_other, 0);
     netif->flags = 0;
     netif->output = netdev_netif_nulloutput4;
@@ -915,8 +915,8 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
     netif_create_ip6_linklocal_address(netif, 1);
     break;
     
-  case NETDEV_TYPE_6LOWPAN:
-  case NETDEV_TYPE_6LOWPAN_BLE:
+  case NETDEV_TYPE_LOWPAN:
+  case NETDEV_TYPE_LOWPAN_BLE:
     netif_create_ip6_linklocal_address(netif, 0);
     break;
 
@@ -1637,6 +1637,13 @@ void netdev_statinfo_errors_inc (netdev_t *netdev, netdev_inout inout)
   } else {
     snmp_inc_ifouterrors(netif);
   }
+}
+
+void netdev_statinfo_collisions_inc (netdev_t *netdev)
+{
+  struct netif *netif = (struct netif *)netdev->sys;
+  
+  snmp_inc_ifcollisions(netif);
 }
 
 /* netdev link statistical information update functions */

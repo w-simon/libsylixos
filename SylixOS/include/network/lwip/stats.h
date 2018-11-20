@@ -226,6 +226,11 @@ struct stats_mib2_netif_ctrs {
    * because of errors. For character-oriented or fixed-length interfaces, the number of outbound
    * transmission units that could not be transmitted because of errors. */
   u32_t ifouterrors;
+  
+#ifdef SYLIXOS
+  /** For CSMA interface collisions counter */
+  u32_t ifcollisions;
+#endif /* SYLIXOS */
 };
 
 /** lwIP stats container */

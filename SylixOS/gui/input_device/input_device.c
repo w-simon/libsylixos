@@ -476,7 +476,7 @@ static PVOID  __guiInputDevProc (PVOID  pvArg)
              INT                    iWidth;
              INT                    iRet;
              fd_set                 fdsetInput;
-             struct timeval         timevalTO = {LW_CFG_GUI_INPUT_DEV_TIMEOUT, 0};
+             struct timeval         timevalTO;
 
              INT                    iNum;
     REGISTER __PGUI_INPUT_DEV       pgidArray;
@@ -522,6 +522,8 @@ static PVOID  __guiInputDevProc (PVOID  pvArg)
         }
         
         iWidth += 1;                                                    /*  最大文件号 + 1              */
+        timevalTO.tv_sec  = LW_CFG_GUI_INPUT_DEV_TIMEOUT;
+        timevalTO.tv_usec = 0;
 
         iRet = select(iWidth, &fdsetInput, LW_NULL, LW_NULL, &timevalTO);
         if (iRet < 0) {
