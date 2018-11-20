@@ -620,7 +620,7 @@ static AF_PACKET_T  *__packetCreate (INT  iType, INT  iProtocol)
     pafpacket->PACKET_iProtocol     = iProtocol;
     pafpacket->PACKET_iShutDFlag    = 0;
     pafpacket->PACKET_bRecvOut      = LW_TRUE;
-    pafpacket->PACKET_iIfIndex      = PX_ERROR;
+    pafpacket->PACKET_iIfIndex      = 0;                                /*  未绑定任何网络接口          */
     pafpacket->PACKET_stMaxBufSize  = __AF_PACKET_BUF_DEF;
     pafpacket->PACKET_ulRecvTimeout = LW_OPTION_WAIT_INFINITE;
     pafpacket->PACKET_tpver         = TPACKET_V1;
@@ -1000,8 +1000,7 @@ INT  packet_link_input (struct pbuf *p, struct netif *inp, BOOL bOutgo)
          plineTemp  = _list_line_get_next(plineTemp)) {
     
         pafpacket = (AF_PACKET_T *)plineTemp;
-        if ((pafpacket->PACKET_iIfIndex > 0) &&
-            (pafpacket->PACKET_iIfIndex != netif_get_index(inp))) {     /*  不是绑定的网卡              */
+        if (pafpacket->PACKET_iIfIndex != netif_get_index(inp)) {       /*  不是绑定的网卡              */
             continue;
         }
         
@@ -1139,11 +1138,28 @@ AF_PACKET_T  *packet_socket (INT  iDomain, INT  iType, INT  iProtocol)
 *********************************************************************************************************/
 INT  packet_bind (AF_PACKET_T *pafpacket, const struct sockaddr *name, socklen_t namelen)
 {
+    struct netif       *pnetif;
     struct sockaddr_ll *paddrll = (struct sockaddr_ll *)name;
     
     if (!name || (namelen < sizeof(struct sockaddr_ll))) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
+    }
+    
+    if (paddrll->sll_ifindex) {
+        if (paddrll->sll_hatype != ARPHRD_ETHER) {
+            _ErrorHandle(ENXIO);
+            return  (PX_ERROR);
+        }
+        
+        LWIP_IF_LIST_LOCK(LW_FALSE);
+        pnetif = netif_get_by_index(paddrll->sll_ifindex);
+        if (!pnetif) {
+            LWIP_IF_LIST_UNLOCK();
+            _ErrorHandle(ENODEV);
+            return  (PX_ERROR);
+        }
+        LWIP_IF_LIST_UNLOCK();
     }
     
     pafpacket->PACKET_iIfIndex = paddrll->sll_ifindex;
@@ -1389,8 +1405,13 @@ ssize_t  packet_sendto (AF_PACKET_T *pafpacket, const void *data, size_t size, i
         psockaddrll = (struct sockaddr_ll *)to;
     
     } else {
-        _ErrorHandle(EINVAL);
-        return  (PX_ERROR);
+        if ((pafpacket->PACKET_iType != SOCK_RAW) ||
+            (pafpacket->PACKET_iIfIndex <= 0)) {
+            _ErrorHandle(EINVAL);
+            return  (PX_ERROR);
+        }
+        
+        psockaddrll = LW_NULL;
     }
     
     if (pafpacket->PACKET_iShutDFlag & __AF_PACKET_SHUTD_W) {
@@ -1398,20 +1419,21 @@ ssize_t  packet_sendto (AF_PACKET_T *pafpacket, const void *data, size_t size, i
         return  (PX_ERROR);
     }
     
-    switch (psockaddrll->sll_hatype) {
-    
-    case ARPHRD_ETHER:
-        if (pafpacket->PACKET_iType == SOCK_RAW) {
-            err = __packetEthRawSendto(data, size, psockaddrll);
-        
-        } else {
-            err = __packetEthDgramSendto(data, size, psockaddrll);
+    if (pafpacket->PACKET_iType == SOCK_RAW) {                          /*  SOCK_RAW                    */
+        if (psockaddrll && (psockaddrll->sll_hatype != ARPHRD_ETHER)) {
+            _ErrorHandle(ENOTSUP);
+            return  (PX_ERROR);
         }
-        break;
         
-    default:
-        _ErrorHandle(ENOTSUP);
-        return  (PX_ERROR);
+        err = __packetEthRawSendto(pafpacket, data, size, psockaddrll);
+    
+    } else {                                                            /*  SOCK_DGRAM                  */
+        if (psockaddrll->sll_hatype != ARPHRD_ETHER) {
+            _ErrorHandle(ENOTSUP);
+            return  (PX_ERROR);
+        }
+        
+        err = __packetEthDgramSendto(pafpacket, data, size, psockaddrll);
     }
     
     if (err) {

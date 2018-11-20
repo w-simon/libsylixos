@@ -268,7 +268,7 @@ static INT  __ftpdSendDirLine (INT      iSock,
                 SIX_MONTHS = 365 * 24 * 60 * 60 / 2
             };
             
-            char        cTimeBuf[SIZE];
+            char  cTimeBuf[SIZE];
             
             lib_localtime_r(&timeFile, &tmFile);                        /*  生成 tm 时间结构            */
             
@@ -322,7 +322,7 @@ static INT  __ftpdSendDirLine (INT      iSock,
              *  构建发送格式数据包
              */
             stLen = bnprintf(pcBuffer, stSize, 0, 
-                             "%c%c%c%c%c%c%c%c%c%c  1 %5d %5d %11u %s %s\r\n",
+                             "%c%c%c%c%c%c%c%c%c%c  1 %5d %5d %11zu %s %s\r\n",
                              cMode0,
                              (statFile.st_mode & S_IRUSR) ? ('r') : ('-'),
                              (statFile.st_mode & S_IWUSR) ? ('w') : ('-'),
@@ -335,7 +335,7 @@ static INT  __ftpdSendDirLine (INT      iSock,
                              (statFile.st_mode & S_IXOTH) ? ('x') : ('-'),
                              (int)statFile.st_uid,
                              (int)statFile.st_gid,
-                             (int)statFile.st_size,
+                             statFile.st_size,
                              cTimeBuf,
                              pcFileName);
             if (send(iSock, pcBuffer, stLen, 0) != (ssize_t)stLen) {    /*  发送详细信息                */
@@ -399,6 +399,7 @@ static INT  __ftpdDatasocket (__PFTPD_SESSION  pftpds)
                                 "Can't bind data socket.");
                 close(iSock);
                 iSock = -1;
+            
             } else {
                 /*
                  *  如果客户机已经通过 PORT 命令通知了自己的数据链路地址, 那么服务器将连接指定的地址

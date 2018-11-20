@@ -38,13 +38,16 @@
 /*********************************************************************************************************
 ** 函数名称: __packetEthRawSendto
 ** 功能描述: 发送一个原始 ETH PACKET
-** 输　入  : pvPacket       数据包
+** 输　入  : pafpacket      afpacket file
+**           pvPacket       数据包
+**           stBytes        数据包长度
 **           psockaddrll    链路地址信息
 ** 输　出  : 错误编号
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-errno_t  __packetEthRawSendto (CPVOID                pvPacket, 
+errno_t  __packetEthRawSendto (AF_PACKET_T          *pafpacket,
+                               CPVOID                pvPacket, 
                                size_t                stBytes, 
                                struct sockaddr_ll   *psockaddrll)
 {
@@ -58,7 +61,11 @@ errno_t  __packetEthRawSendto (CPVOID                pvPacket,
     }
     
     LOCK_TCPIP_CORE();
-    pnetif = netif_get_by_index(psockaddrll->sll_ifindex);
+    if (psockaddrll) {
+        pnetif = netif_get_by_index(psockaddrll->sll_ifindex);
+    } else {
+        pnetif = netif_get_by_index(pafpacket->PACKET_iIfIndex);
+    }
     if (pnetif == LW_NULL) {
         UNLOCK_TCPIP_CORE();
         return  (ENODEV);
@@ -116,13 +123,16 @@ errno_t  __packetEthRawSendto (CPVOID                pvPacket,
 /*********************************************************************************************************
 ** 函数名称: __packetEthDgramSendto
 ** 功能描述: 发送一个不带有报头的 ETH PACKET
-** 输　入  : pvPacket       数据包
+** 输　入  : pafpacket      afpacket file
+**           pvPacket       数据包
+**           stBytes        数据包长度
 **           psockaddrll    链路地址信息
 ** 输　出  : 错误编号
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-errno_t  __packetEthDgramSendto (CPVOID                pvPacket, 
+errno_t  __packetEthDgramSendto (AF_PACKET_T          *pafpacket,
+                                 CPVOID                pvPacket, 
                                  size_t                stBytes, 
                                  struct sockaddr_ll   *psockaddrll)
 {

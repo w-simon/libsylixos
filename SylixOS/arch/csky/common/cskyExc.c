@@ -88,20 +88,6 @@ LW_WEAK VOID  archIntHandle (ULONG  ulVector, BOOL  bPreemptive)
     }
 }
 /*********************************************************************************************************
-** 函数名称: archAutoIntVectorGet
-** 功能描述: 获取自动中断号
-** 输　入  : NONE
-** 输　出  : 中断号
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-LW_WEAK ULONG  archAutoIntVectorGet (VOID)
-{
-#define CSKY_AUTO_IRQ_REG      0xbfcb0000
-#define CSKY_AUTO_IRQ_MASK     0xff
-    return  (read32(CSKY_AUTO_IRQ_REG) & CSKY_AUTO_IRQ_MASK);
-}
-/*********************************************************************************************************
 ** 函数名称: archFastAutoIntHandle
 ** 功能描述: 快速中断
 ** 输　入  : ulVector  中断向量
@@ -112,7 +98,7 @@ LW_WEAK ULONG  archAutoIntVectorGet (VOID)
 *********************************************************************************************************/
 LW_WEAK VOID  archFastAutoIntHandle (ULONG  ulVector, ARCH_REG_CTX  *pregctx)
 {
-    bspIntHandle(archAutoIntVectorGet());
+    bspIntHandle(ulVector);
 }
 /*********************************************************************************************************
 ** 函数名称: archAutoIntHandle
@@ -125,7 +111,7 @@ LW_WEAK VOID  archFastAutoIntHandle (ULONG  ulVector, ARCH_REG_CTX  *pregctx)
 *********************************************************************************************************/
 VOID  archAutoIntHandle (ULONG  ulVector, ARCH_REG_CTX  *pregctx)
 {
-    bspIntHandle(archAutoIntVectorGet());
+    bspIntHandle(ulVector);
 }
 /*********************************************************************************************************
 ** 函数名称: archTlbLoadExceptHandle

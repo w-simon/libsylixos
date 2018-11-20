@@ -26,10 +26,12 @@
   ÄÚ²¿º¯Êý
 *********************************************************************************************************/
 
-errno_t  __packetEthRawSendto(CPVOID                pvPacket, 
+errno_t  __packetEthRawSendto(AF_PACKET_T          *pafpacket,
+                              CPVOID                pvPacket, 
                               size_t                stBytes, 
                               struct sockaddr_ll   *psockaddrll);
-errno_t  __packetEthDgramSendto(CPVOID                pvPacket, 
+errno_t  __packetEthDgramSendto(AF_PACKET_T          *pafpacket,
+                                CPVOID                pvPacket, 
                                 size_t                stBytes, 
                                 struct sockaddr_ll   *psockaddrll);
 size_t   __packetEthHeaderInfo(AF_PACKET_N  *pktm, struct sockaddr_ll *paddrll);
