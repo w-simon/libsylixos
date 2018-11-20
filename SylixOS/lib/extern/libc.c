@@ -262,6 +262,7 @@ __LW_RETU_FUNC_DEFINE(hrtime_t, gethrvtime, (void), ())
 *********************************************************************************************************/
 
 __LW_RETU_FUNC_DEFINE(int, ffs, (int valu), (valu))
+__LW_RETU_FUNC_DEFINE(int, ffsll, (long long int valu), (valu))
 
 __LW_RETU_FUNC_DEFINE(char *, rindex, (const char *pcString, int iC), (pcString, iC))
 __LW_RETU_FUNC_DEFINE(char *, index, (const char *pcString, int iC), (pcString, iC))

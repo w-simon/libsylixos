@@ -32,7 +32,7 @@ static struct spwd spwdent;
 /*
  * Initialize useable but dummy databases
  */
-void init_etc_shadow (void)
+void __attribute__((weak)) init_etc_shadow (void)
 {
   FILE *fp;
   static char etc_shadow_initted = 0;

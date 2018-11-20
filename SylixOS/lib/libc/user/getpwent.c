@@ -34,7 +34,7 @@ static struct group grent;
 /*
  * Initialize useable but dummy databases
  */
-void init_etc_passwd_group(void)
+void __attribute__((weak)) init_etc_passwd_group(void)
 {
   FILE *fp;
   static char etc_passwd_initted = 0;

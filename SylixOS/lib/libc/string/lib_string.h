@@ -83,6 +83,7 @@ PCHAR  lib_strcasestr(CPCHAR  cpcS1, CPCHAR  cpcS2);
 *********************************************************************************************************/
 
 int    lib_ffs(int valu);
+int    lib_ffsll(long long int  valu);
 size_t lib_strftime(char *s, size_t maxsize, const char *format, const struct tm *t);
 char  *lib_strptime(const char *buf, const char *fmt, struct tm *tm);
 int    lib_stricmp(const char *s1, const char *s2);

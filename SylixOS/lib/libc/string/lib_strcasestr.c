@@ -20,7 +20,7 @@
 *********************************************************************************************************/
 #include "../SylixOS/kernel/include/k_kernel.h"
 /*********************************************************************************************************
-** 函数名称: lib_strstr
+** 函数名称: lib_strcasestr
 ** 功能描述: 
 ** 输　入  : 
 ** 输　出  : 
@@ -29,30 +29,23 @@
 *********************************************************************************************************/
 PCHAR  lib_strcasestr (CPCHAR  cpcS1, CPCHAR  cpcS2)
 {
-    REGISTER size_t     stLen;
-    REGISTER PCHAR      pcS1 = (PCHAR)cpcS1;
-    REGISTER PCHAR      pcS2 = (PCHAR)cpcS2;
+    CHAR   c, sc;
+    size_t len;
 
-    if (!pcS1 || !pcS2) {
-        return  (LW_NULL);
+    if ((c = *cpcS2++) != 0) {
+        c = lib_tolower((unsigned char)c);
+        len = lib_strlen(cpcS2);
+        do {
+            do {
+                if ((sc = *cpcS1++) == 0) {
+                    return  (LW_NULL);
+                }
+            } while ((char)lib_tolower((unsigned char)sc) != c);
+        } while (lib_strncasecmp(cpcS1, cpcS2, len) != 0);
+        cpcS1--;
     }
     
-    stLen = lib_strlen(pcS2);
-    if (stLen == 0) {
-        return  (pcS1);
-    
-    } else {
-        for (pcS1 = lib_strchr(pcS1, *pcS2); 
-             pcS1; 
-             pcS1 = lib_strchr(pcS1 + 1, *pcS2)) {
-            
-            if (lib_strncasecmp(pcS1, pcS2, stLen) == 0) {
-                return  (pcS1);
-            }
-        }
-        
-        return  (LW_NULL);
-    }
+    return  ((char *)cpcS1);
 }
 /*********************************************************************************************************
   END

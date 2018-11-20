@@ -33,6 +33,7 @@ extern "C" {
 __BEGIN_NAMESPACE_STD
 
 __LW_RETU_FUNC_DECLARE(int, ffs, (int valu))
+__LW_RETU_FUNC_DECLARE(int, ffsll, (long long int valu))
 
 __LW_RETU_FUNC_DECLARE(char *, rindex, (const char *pcString, int iC))
 __LW_RETU_FUNC_DECLARE(char *, index, (const char *pcString, int iC))
