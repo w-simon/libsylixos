@@ -72,9 +72,11 @@ INT    lib_toupper(INT  iC);
 INT    lib_strerror_r(INT  iNum, PCHAR  pcBuffer, size_t stLen);
 PCHAR  lib_strerror(INT  iNum);
 PCHAR  lib_strsignal(INT  iSigNo);
-PCHAR  lib_strstr(CPCHAR  cpcS1, CPCHAR  cpcS2);
 size_t lib_strcspn(CPCHAR  cpcS1, CPCHAR  cpcS2);
 PCHAR  lib_strpbrk(CPCHAR  cpcS1, CPCHAR  cpcS2);
+
+PCHAR  lib_strstr(CPCHAR  cpcS1, CPCHAR  cpcS2);
+PCHAR  lib_strcasestr(CPCHAR  cpcS1, CPCHAR  cpcS2);
 
 /*********************************************************************************************************
   下面的函数来自于其他开源系统

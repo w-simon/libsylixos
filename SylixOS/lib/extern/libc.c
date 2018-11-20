@@ -323,9 +323,11 @@ __LW_RETU_FUNC_DEFINE(int, strerror_r, (int  iNum, char *pcBuffer, size_t stLen)
                       (iNum, pcBuffer, stLen))
 __LW_RETU_FUNC_DEFINE(char *, strerror, (int  iNum), (iNum))
 __LW_RETU_FUNC_DEFINE(char *, strsignal, (int  iSigNo), (iSigNo))
-__LW_RETU_FUNC_DEFINE(char *, strstr, (const char *cpcS1, const char *cpcS2), (cpcS1, cpcS2))
 __LW_RETU_FUNC_DEFINE(size_t, strcspn, (const char *cpcS1, const char *cpcS2), (cpcS1, cpcS2))
 __LW_RETU_FUNC_DEFINE(char *, strpbrk, (const char *cpcS1, const char *cpcS2), (cpcS1, cpcS2))
+
+__LW_RETU_FUNC_DEFINE(char *, strstr, (const char *cpcS1, const char *cpcS2), (cpcS1, cpcS2))
+__LW_RETU_FUNC_DEFINE(char *, strcasestr, (const char *cpcS1, const char *cpcS2), (cpcS1, cpcS2))
 
 __LW_RETU_FUNC_DEFINE(size_t, strftime, (char *s, size_t maxsize, const char *format, const struct tm *t),
                       (s, maxsize, format, t))

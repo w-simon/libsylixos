@@ -58,10 +58,8 @@ __LW_RETU_FUNC_DECLARE(char *, strncpy, (char *pcDest, const char *pcSrc, size_t
 __LW_RETU_FUNC_DECLARE(size_t, strlcpy, (char *pcDest, const char *pcSrc, size_t stN))
 __LW_RETU_FUNC_DECLARE(void, bcopy, (const void *pvSrc, void *pvDest, size_t stN))
 
-
 __LW_RETU_FUNC_DECLARE(size_t, strlen, (const char *pcStr))
 __LW_RETU_FUNC_DECLARE(size_t, strnlen, (const char *pcStr, size_t stN))
-
 
 __LW_RETU_FUNC_DECLARE(char *, strdup, (const char *pcStr))
 __LW_RETU_FUNC_DECLARE(char *, xstrdup, (const char *pcStr))
@@ -85,9 +83,11 @@ __LW_RETU_FUNC_DECLARE(int, toupper, (int  iC))
 __LW_RETU_FUNC_DECLARE(int, strerror_r, (int  iNum, char *pcBuffer, size_t stLen))
 __LW_RETU_FUNC_DECLARE(char *, strerror, (int  iNum))
 __LW_RETU_FUNC_DECLARE(char *, strsignal, (int  iSigNo))
-__LW_RETU_FUNC_DECLARE(char *, strstr, (const char *cpcS1, const char *cpcS2))
 __LW_RETU_FUNC_DECLARE(size_t, strcspn, (const char *cpcS1, const char *cpcS2))
 __LW_RETU_FUNC_DECLARE(char *, strpbrk, (const char *cpcS1, const char *cpcS2))
+
+__LW_RETU_FUNC_DECLARE(char *, strstr, (const char *cpcS1, const char *cpcS2))
+__LW_RETU_FUNC_DECLARE(char *, strcasestr, (const char *cpcS1, const char *cpcS2))
 
 __LW_RETU_FUNC_DECLARE(size_t, strftime, (char *s, size_t maxsize, const char *format, const struct tm *t))
 __LW_RETU_FUNC_DECLARE(char *, strptime, (const char *buf, const char *fmt, struct tm *tm))

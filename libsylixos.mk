@@ -1290,6 +1290,7 @@ SylixOS/lib/libc/string/lib_memset.c \
 SylixOS/lib/libc/string/lib_rindex.c \
 SylixOS/lib/libc/string/lib_stpcpy.c \
 SylixOS/lib/libc/string/lib_strcasecmp.c \
+SylixOS/lib/libc/string/lib_strcasestr.c \
 SylixOS/lib/libc/string/lib_strcat.c \
 SylixOS/lib/libc/string/lib_strchrnul.c \
 SylixOS/lib/libc/string/lib_strcmp.c \
