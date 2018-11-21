@@ -322,7 +322,7 @@ static INT  __ftpdSendDirLine (INT      iSock,
              *  构建发送格式数据包
              */
             stLen = bnprintf(pcBuffer, stSize, 0, 
-                             "%c%c%c%c%c%c%c%c%c%c  1 %5d %5d %11zu %s %s\r\n",
+                             "%c%c%c%c%c%c%c%c%c%c  1 %5d %5d %11qu %s %s\r\n",
                              cMode0,
                              (statFile.st_mode & S_IRUSR) ? ('r') : ('-'),
                              (statFile.st_mode & S_IWUSR) ? ('w') : ('-'),
