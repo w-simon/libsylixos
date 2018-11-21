@@ -78,7 +78,9 @@ extern VOIDFUNCPTR  _K_pfuncInterVectorMeasureExit;
         if (piaction->IACT_pfuncClear) {                                                            \
             piaction->IACT_pfuncClear(piaction->IACT_pvArg, ulVector);                              \
         }                                                                                           \
-        BREAK                                                                                       \
+        if (LW_IRQ_RETBREAK(irqret)) {                                                              \
+            BREAK                                                                                   \
+        }                                                                                           \
     }                                                                                               \
 }
 /*********************************************************************************************************

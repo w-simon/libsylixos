@@ -49,14 +49,87 @@
 #include "../SylixOS/system/include/s_system.h"
 #include "limits.h"
 /*********************************************************************************************************
-  锁操作
+  共享锁操作
 *********************************************************************************************************/
-#define LW_SPIPE_LOCK(pspipedev, code)  \
+#define LW_SPIPE_LOCK(pspipedev, code) \
         if (API_SemaphoreMPend(pspipedev->SPIPEDEV_hOpLock, LW_OPTION_WAIT_INFINITE)) { \
-            code;   \
+            code; \
         }
-#define LW_SPIPE_UNLOCK(pspipedev)  \
+#define LW_SPIPE_UNLOCK(pspipedev) \
         API_SemaphoreMPost(pspipedev->SPIPEDEV_hOpLock)
+/*********************************************************************************************************
+  打开同步锁操作
+*********************************************************************************************************/
+#define LW_SPIPE_WAIT_ROPEN(pspipedev, code) \
+        if (API_SemaphorePostBPend(pspipedev->SPIPEDEV_hOpLock, \
+                                   _G_ulSpipeReadOpenLock, LW_OPTION_WAIT_INFINITE)) { \
+            code; \
+        }
+#define LW_SPIPE_WAKEUP_ROPEN() \
+        API_SemaphoreBFlush(_G_ulSpipeReadOpenLock, LW_NULL)
+        
+#define LW_SPIPE_WAIT_WOPEN(pspipedev, code) \
+        if (API_SemaphorePostBPend(pspipedev->SPIPEDEV_hOpLock, \
+                                   _G_ulSpipeWriteOpenLock, LW_OPTION_WAIT_INFINITE)) { \
+            code; \
+        }
+#define LW_SPIPE_WAKEUP_WOPEN() \
+        API_SemaphoreBFlush(_G_ulSpipeWriteOpenLock, LW_NULL)
+        
+#define LW_SPIPE_WAKEUP_OPEN(pspipedev, flag) \
+        {   \
+            if ((flag & O_ACCMODE) == O_RDONLY) { \
+                LW_SPIPE_WAKEUP_WOPEN(); \
+            } else if ((flag & O_ACCMODE) == O_WRONLY) { \
+                LW_SPIPE_WAKEUP_ROPEN(); \
+            } else { \
+                LW_SPIPE_WAKEUP_WOPEN(); \
+                LW_SPIPE_WAKEUP_ROPEN(); \
+            } \
+        }
+/*********************************************************************************************************
+  计数操作
+*********************************************************************************************************/
+#define LW_SPIPE_INC_CNT(pspipedev, flag) \
+        {   \
+            if ((flag & O_ACCMODE) == O_RDONLY) { \
+                pspipedev->SPIPEDEV_uiReadCnt++; \
+            } else if ((flag & O_ACCMODE) == O_WRONLY) { \
+                pspipedev->SPIPEDEV_uiWriteCnt++; \
+            } else { \
+                pspipedev->SPIPEDEV_uiReadCnt++; \
+                pspipedev->SPIPEDEV_uiWriteCnt++; \
+            } \
+        }
+        
+#define LW_SPIPE_DEC_CNT(pspipedev, flag) \
+        {   \
+            if ((flag & O_ACCMODE) == O_RDONLY) { \
+                pspipedev->SPIPEDEV_uiReadCnt--; \
+            } else if ((flag & O_ACCMODE) == O_WRONLY) { \
+                pspipedev->SPIPEDEV_uiWriteCnt--; \
+            } else { \
+                pspipedev->SPIPEDEV_uiReadCnt--; \
+                pspipedev->SPIPEDEV_uiWriteCnt--; \
+            } \
+        }
+/*********************************************************************************************************
+  阻塞操作
+*********************************************************************************************************/
+#define LW_SPIPE_BLOCK(pspipedev, flag) \
+        {   \
+            if ((flag & O_ACCMODE) == O_RDONLY) { \
+                while (!pspipedev->SPIPEDEV_uiWriteCnt) { \
+                    LW_SPIPE_WAIT_ROPEN(pspipedev, return (PX_ERROR)); \
+                    LW_SPIPE_LOCK(pspipedev, return (PX_ERROR)); \
+                } \
+            } else if ((flag & O_ACCMODE) == O_WRONLY) { \
+                while (!pspipedev->SPIPEDEV_uiReadCnt) { \
+                    LW_SPIPE_WAIT_WOPEN(pspipedev, return (PX_ERROR)); \
+                    LW_SPIPE_LOCK(pspipedev, return (PX_ERROR)); \
+                } \
+            } \
+        }
 /*********************************************************************************************************
   check can read/write
 *********************************************************************************************************/
@@ -72,6 +145,11 @@ static LW_INLINE BOOL  __spipe_can_write (size_t stMsgLen, size_t stTotal)
         return  (LW_FALSE);
     }
 }
+/*********************************************************************************************************
+  全局信号量
+*********************************************************************************************************/
+extern LW_OBJECT_HANDLE     _G_ulSpipeReadOpenLock;
+extern LW_OBJECT_HANDLE     _G_ulSpipeWriteOpenLock;
 /*********************************************************************************************************
 ** 函数名称: _SpipeOpen
 ** 功能描述: 打开字符流管道设备
@@ -103,31 +181,33 @@ LONG  _SpipeOpen (PLW_SPIPE_DEV  pspipedev,
             _ErrorHandle(ERROR_IO_FILE_EXIST);                          /*  不能重复创建                */
             return  (PX_ERROR);
         }
-    
+        
+        LW_SPIPE_LOCK(pspipedev, return (PX_ERROR));                    /*  锁定管道设备                */
+        
+        if (iFlags & O_NONBLOCK) {                                      /*  非阻塞                      */
+            if ((iFlags & O_ACCMODE) == O_WRONLY) {                     /*  只写方式                    */
+                if (!pspipedev->SPIPEDEV_uiReadCnt) {                   /*  没有读端                    */
+                    LW_SPIPE_UNLOCK(pspipedev);                         /*  释放设备使用权              */
+                    _ErrorHandle(ENXIO);
+                    return  (PX_ERROR);
+                }
+            }
+        }
+        
         pspipefil = (PLW_SPIPE_FILE)__SHEAP_ALLOC(sizeof(LW_SPIPE_FILE));
         if (!pspipefil) {
+            LW_SPIPE_UNLOCK(pspipedev);                                 /*  释放设备使用权              */
             _DebugHandle(__ERRORMESSAGE_LEVEL, "system low memory.\r\n");
             _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
             return  (PX_ERROR);
         }
-    
-        pspipefil->SPIPEFIL_iFlags = iFlags;
-        pspipefil->SPIPEFIL_iMode  = iMode;
-        pspipefil->SPIPEFIL_pspipedev = pspipedev;
-                                                                        /*  获取设备使用权              */
-        LW_SPIPE_LOCK(pspipedev, __SHEAP_FREE(pspipefil); return (PX_ERROR));
-                           
-        if ((iFlags & O_ACCMODE) == O_RDONLY) {
-            pspipedev->SPIPEDEV_uiReadCnt++;
-            
-        } else if ((iFlags & O_ACCMODE) == O_WRONLY) {
-            pspipedev->SPIPEDEV_uiWriteCnt++;
         
-        } else {
-            pspipedev->SPIPEDEV_uiReadCnt++;
-            pspipedev->SPIPEDEV_uiWriteCnt++;
-        }
-                           
+        pspipefil->SPIPEFIL_iFlags    = iFlags;
+        pspipefil->SPIPEFIL_iMode     = iMode;
+        pspipefil->SPIPEFIL_pspipedev = pspipedev;
+        
+        LW_SPIPE_INC_CNT(pspipedev, iFlags);                            /*  增加计数                    */
+        
         LW_SPIPE_UNLOCK(pspipedev);                                     /*  释放设备使用权              */
         
         LW_DEV_INC_USE_COUNT(&pspipedev->SPIPEDEV_devhdrHdr);
@@ -161,6 +241,9 @@ INT  _SpipeRemove (PLW_SPIPE_DEV  pspipedev, PCHAR  pcName)
 
     LW_SPIPE_LOCK(pspipedev, return (PX_ERROR));                        /*  获得设备操作权利            */
     
+    LW_SPIPE_WAKEUP_WOPEN();                                            /*  唤醒阻塞 open 阻塞进程      */
+    LW_SPIPE_WAKEUP_ROPEN();
+    
     iosDevDelete(&pspipedev->SPIPEDEV_devhdrHdr);                       /*  device no longer in system  */
     
     SEL_WAKE_UP_LIST_TERM(&pspipedev->SPIPEDEV_selwulList);
@@ -170,6 +253,35 @@ INT  _SpipeRemove (PLW_SPIPE_DEV  pspipedev, PCHAR  pcName)
     API_SemaphoreMDelete(&pspipedev->SPIPEDEV_hOpLock);
     
     __SHEAP_FREE(pspipedev);                                            /*  free pipe memory            */
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: _SpipeBlock
+** 功能描述: 等待事件发生
+** 输　入  : 
+**           pspipefil        字符流管道文件
+** 输　出  : ERROR
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static INT  _SpipeBlock (PLW_SPIPE_FILE  pspipefil)
+{
+    PLW_SPIPE_DEV  pspipedev;
+    
+    if (pspipefil) {
+        pspipedev = pspipefil->SPIPEFIL_pspipedev;
+        
+        LW_SPIPE_LOCK(pspipedev, return (PX_ERROR));                    /*  获取设备使用权              */
+        
+        if (!(pspipefil->SPIPEFIL_iFlags & O_NONBLOCK)) {
+            LW_SPIPE_BLOCK(pspipedev, pspipefil->SPIPEFIL_iFlags);
+        }
+        
+        LW_SPIPE_WAKEUP_OPEN(pspipedev, pspipefil->SPIPEFIL_iFlags);    /*  唤醒 Open 阻塞              */
+        
+        LW_SPIPE_UNLOCK(pspipedev);                                     /*  释放设备使用权              */
+    }
     
     return  (ERROR_NONE);
 }
@@ -190,17 +302,8 @@ INT  _SpipeClose (PLW_SPIPE_FILE  pspipefil)
         pspipedev = pspipefil->SPIPEFIL_pspipedev;
         
         LW_SPIPE_LOCK(pspipedev, return (PX_ERROR));                    /*  获取设备使用权              */
-                           
-        if ((pspipefil->SPIPEFIL_iFlags & O_ACCMODE) == O_RDONLY) {
-            pspipedev->SPIPEDEV_uiReadCnt--;
-            
-        } else if ((pspipefil->SPIPEFIL_iFlags & O_ACCMODE) == O_WRONLY) {
-            pspipedev->SPIPEDEV_uiWriteCnt--;
-        
-        } else {
-            pspipedev->SPIPEDEV_uiReadCnt--;
-            pspipedev->SPIPEDEV_uiWriteCnt--;
-        }
+              
+        LW_SPIPE_DEC_CNT(pspipedev, pspipefil->SPIPEFIL_iFlags);
         
         if (pspipedev->SPIPEDEV_uiWriteCnt == 0) {                      /*  没有写端                    */
             API_SemaphoreBPost(pspipedev->SPIPEDEV_hReadLock);
@@ -551,6 +654,7 @@ __continue_write:
 ** 输　出  : ERROR
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : FIONMSGS 与 VxWorks 不兼容.
 *********************************************************************************************************/
 INT  _SpipeIoctl (PLW_SPIPE_FILE pspipefil, 
                   INT            iRequest, 
@@ -567,7 +671,7 @@ INT  _SpipeIoctl (PLW_SPIPE_FILE pspipefil,
     
     case FIOSEEK:
     case FIOWHERE:
-        iErrCode = (PX_ERROR);
+        iErrCode = PX_ERROR;
         _ErrorHandle(ESPIPE);
         break;
     
@@ -576,7 +680,6 @@ INT  _SpipeIoctl (PLW_SPIPE_FILE pspipefil,
         break;
         
     case FIONMSGS:                                                      /*  获得管道中数据的个数        */
-                                                                        /*  这里与 VxWorks 不兼容       */
         if (pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stMsgBytes) {
             *piArgPtr = 1;
         } else {
@@ -590,6 +693,22 @@ INT  _SpipeIoctl (PLW_SPIPE_FILE pspipefil,
             pspipefil->SPIPEFIL_iFlags |= O_NONBLOCK;
         } else {
             pspipefil->SPIPEFIL_iFlags &= ~O_NONBLOCK;
+        }
+        LW_SPIPE_UNLOCK(pspipedev);
+        break;
+        
+    case FIOPIPEBLOCK:                                                  /*  尝试阻塞                    */
+        iErrCode = _SpipeBlock(pspipefil);
+        break;
+        
+    case FIOPIPERDONLY:                                                 /*  仅 pipe 函数使用            */
+        LW_SPIPE_LOCK(pspipedev, return (PX_ERROR));
+        if ((pspipefil->SPIPEFIL_iFlags & O_ACCMODE) == O_RDWR) {
+            pspipefil->SPIPEFIL_iFlags &= ~O_ACCMODE;                   /*  RDONLY == 0                 */
+            pspipedev->SPIPEDEV_uiWriteCnt--;
+        } else {
+            iErrCode = PX_ERROR;
+            _ErrorHandle(ENOTSUP);
         }
         LW_SPIPE_UNLOCK(pspipedev);
         break;
@@ -714,7 +833,7 @@ INT  _SpipeIoctl (PLW_SPIPE_FILE pspipefil,
         break;
         
     default:
-        iErrCode = (PX_ERROR);
+        iErrCode = PX_ERROR;
         _ErrorHandle(ERROR_IO_UNKNOWN_REQUEST);
         break;
     }

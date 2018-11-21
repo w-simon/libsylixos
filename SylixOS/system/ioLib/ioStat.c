@@ -187,7 +187,7 @@ INT  stat (CPCHAR  pcName, struct stat *pstat)
     REGISTER INT    iFd;
     REGISTER INT    iError;
     
-    iFd = open(pcName, O_RDONLY, 0);
+    iFd = open(pcName, O_RDONLY | O_NONBLOCK, 0);
     if (iFd < 0) {
         return  (PX_ERROR);
     }
@@ -222,7 +222,7 @@ INT  stat64 (CPCHAR  pcName, struct stat64 *pstat64)
     REGISTER INT    iFd;
     REGISTER INT    iError;
     
-    iFd = open(pcName, O_RDONLY, 0);
+    iFd = open(pcName, O_RDONLY | O_NONBLOCK, 0);
     if (iFd < 0) {
         return  (PX_ERROR);
     }
@@ -430,7 +430,7 @@ INT  statfs (CPCHAR  pcName, struct statfs *pstatfs)
     REGISTER INT    iFd;
     REGISTER INT    iError;
     
-    iFd = open(pcName, O_RDONLY, 0);
+    iFd = open(pcName, O_RDONLY | O_NONBLOCK, 0);
     if (iFd < 0) {
         return  (PX_ERROR);
     }
@@ -500,7 +500,7 @@ INT  truncate (CPCHAR  pcName, off_t  oftLength)
     REGISTER INT    iFd;
     REGISTER INT    iError;
     
-    iFd = open(pcName, O_WRONLY, 0);
+    iFd = open(pcName, O_RDWR, 0);
     if (iFd < 0) {
         return  (PX_ERROR);
     }
@@ -536,7 +536,7 @@ INT  truncate64 (CPCHAR  pcName, off64_t  oftLength)
     REGISTER INT    iFd;
     REGISTER INT    iError;
     
-    iFd = open(pcName, O_WRONLY, 0);
+    iFd = open(pcName, O_RDWR, 0);
     if (iFd < 0) {
         return  (PX_ERROR);
     }
@@ -602,7 +602,7 @@ INT  chmod (CPCHAR  pcName, INT  iMode)
     REGISTER INT    iFd;
     REGISTER INT    iError;
     
-    iFd = open(pcName, O_RDONLY, 0);
+    iFd = open(pcName, O_RDWR, 0);
     if (iFd < 0) {
         return  (PX_ERROR);
     }
@@ -669,7 +669,7 @@ INT  chown (CPCHAR  pcName, uid_t uid, gid_t gid)
     REGISTER INT    iFd;
     REGISTER INT    iError;
     
-    iFd = open(pcName, O_RDONLY, 0);
+    iFd = open(pcName, O_RDWR, 0);
     if (iFd < 0) {
         return  (PX_ERROR);
     }
@@ -811,7 +811,7 @@ LW_API
 INT  access (CPCHAR pcPath, INT  iMode)
 {
     REGISTER INT          iError;
-    REGISTER INT          iFd = open(pcPath, O_RDONLY, 0);
+    REGISTER INT          iFd = open(pcPath, O_RDONLY | O_NONBLOCK, 0);
              struct stat  statFile;
     
     if (iFd < 0) {

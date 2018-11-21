@@ -221,6 +221,14 @@ static INT _IoOpen (PCHAR            pcName,
             goto    __error_handle;
         }
     }
+    
+    if (pdevhdrHdr->DEVHDR_ucType == DT_FIFO) {                         /*  管道设备                    */
+        if (iosIoctl(iFd, FIOPIPEBLOCK, 0)) {                           /*  探测是否需要 open 阻塞      */
+            ulError   = API_GetLastError();
+            iErrLevel = 3;
+            goto    __error_handle;
+        }
+    }
 
     if ((iFlag & O_SHLOCK) || (iFlag & O_EXLOCK)) {                     /*  需要直接加锁                */
         REGISTER PLW_FD_ENTRY  pfdentry;
@@ -488,7 +496,7 @@ INT  rename (CPCHAR       pcOldName, CPCHAR       pcNewName)
     }
     
     for (;;) {
-        lValue = iosOpen(pdevhdrHdr, cFullFileName, O_RDONLY, 0);
+        lValue = iosOpen(pdevhdrHdr, cFullFileName, O_RDWR, 0);
         if ((lValue != FOLLOW_LINK_FILE) && 
             (lValue != FOLLOW_LINK_TAIL)) {                             /*  非链接文件直接退出          */
             break;

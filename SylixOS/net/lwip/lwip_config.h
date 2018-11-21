@@ -347,10 +347,15 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrT
 #endif                                                                  /*  LW_CFG_NET_ROUTER           */
                                                                         /*  LW_CFG_NET_NAT_EN           */
 /*********************************************************************************************************
-  TCP basic
+  mbox size
 *********************************************************************************************************/
 
-#define TCPIP_MBOX_SIZE                 -1                              /*  特殊标记                    */
+#define TCPIP_MBOX_SIZE                 LW_CFG_LWIP_NUM_INPKT           /*  特殊标记                    */
+#define DEFAULT_ACCEPTMBOX_SIZE         256
+
+/*********************************************************************************************************
+  TCP basic
+*********************************************************************************************************/
 
 #if LW_CFG_LWIP_TCP_SIG_EN > 0
 #define LWIP_TCP_PCB_NUM_EXT_ARGS       1
@@ -492,6 +497,10 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrT
 #define DEFAULT_THREAD_NAME             "t_netdef"
 #define DEFAULT_THREAD_STACKSIZE        LW_CFG_LWIP_DEF_STK_SIZE
 #define DEFAULT_THREAD_PRIO             LW_PRIO_T_NETPROTO
+
+#define NEDDEVTXQ_THREAD_NAME           "t_nettxq"
+#define NEDDEVTXQ_THREAD_STACKSIZE      LW_CFG_LWIP_DEF_STK_SIZE
+#define NEDDEVTXQ_THREAD_PRIO           LW_PRIO_T_NETPROTO
 
 /*********************************************************************************************************
   Socket options 

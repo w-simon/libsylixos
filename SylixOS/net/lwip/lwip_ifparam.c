@@ -46,6 +46,9 @@
                             既接收两个总和大于 MSS 长度数据包立即发送 ACK
   tcp_wnd=8192            # TCP window (tcp_wnd > 2 * MSS) && (tcp_wnd < (0xffffu << TCP_RCV_SCALE))
   
+  txqueue=0               # >0 表示使用异步队列发送功能 (16 ~ 4096)
+  txqblock=1              # 1: 发送队列遇到阻塞时进行等待 (通常为 1, 窄带无线网络可为 0)
+  
   mipaddr=10.0.0.2        # 添加一个辅助 IP 地址
   mnetmask=255.0.0.0
   mgateway=10.0.0.1
@@ -81,6 +84,8 @@
 #define LW_IFPARAM_DHCP         "dhcp"
 #define LW_IFPARAM_DHCP6        "dhcp6"
 #define LW_IFPARAM_AODV         "aodv"
+#define LW_IFPARAM_TXQUEUE      "txqueue"
+#define LW_IFPARAM_TXQBLOCK     "txqblock"
 #define LW_IFPARAM_IPV6_ACFG    "ipv6_auto_cfg"
 #define LW_IFPARAM_TCP_ACK_FREQ "tcp_ack_freq"
 #define LW_IFPARAM_TCP_WND      "tcp_wnd"
@@ -538,6 +543,54 @@ int  if_param_getaodv (void *pifparam, int *aodv)
     }
 
     *aodv = __iniGetInt(pinisec, LW_IFPARAM_AODV, 0);
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: if_param_gettxqueue
+** 功能描述: 读取网卡 txqueue 设置 (如果未找到配置默认为非队列模式)
+** 输　入  : pifparam      配置句柄
+**           txqueue       txqueue 设置
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+int  if_param_gettxqueue (void *pifparam, int *txqueue)
+{
+    PLW_INI_SEC  pinisec = (PLW_INI_SEC)pifparam;
+
+    if (!pinisec || !txqueue) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    *txqueue = __iniGetInt(pinisec, LW_IFPARAM_TXQUEUE, 0);
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: if_param_gettxqblock
+** 功能描述: 读取网卡 txqblock 设置 (如果未找到配置默认为阻塞模式)
+** 输　入  : pifparam      配置句柄
+**           txqblock      txqblock 设置
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+int  if_param_gettxqblock (void *pifparam, int *txqblock)
+{
+    PLW_INI_SEC  pinisec = (PLW_INI_SEC)pifparam;
+
+    if (!pinisec || !txqblock) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    *txqblock = __iniGetInt(pinisec, LW_IFPARAM_TXQBLOCK, 1);
 
     return  (ERROR_NONE);
 }

@@ -1101,7 +1101,6 @@ static INT  __romFsIoctl (PLW_FD_ENTRY  pfdentry,
     case FIOTRUNC:
     case FIOLABELSET:
     case FIOATTRIBSET:
-    case FIOSQUEEZE:
         _ErrorHandle(EROFS);
         return (PX_ERROR);
     }

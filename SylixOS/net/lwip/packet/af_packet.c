@@ -1147,16 +1147,16 @@ INT  packet_bind (AF_PACKET_T *pafpacket, const struct sockaddr *name, socklen_t
     }
     
     if (paddrll->sll_ifindex) {
-        if (paddrll->sll_hatype != ARPHRD_ETHER) {
-            _ErrorHandle(ENXIO);
-            return  (PX_ERROR);
-        }
-        
         LWIP_IF_LIST_LOCK(LW_FALSE);
         pnetif = netif_get_by_index(paddrll->sll_ifindex);
         if (!pnetif) {
             LWIP_IF_LIST_UNLOCK();
             _ErrorHandle(ENODEV);
+            return  (PX_ERROR);
+        }
+        if (!(pnetif->flags & (NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET))) {
+            LWIP_IF_LIST_UNLOCK();
+            _ErrorHandle(ENXIO);
             return  (PX_ERROR);
         }
         LWIP_IF_LIST_UNLOCK();

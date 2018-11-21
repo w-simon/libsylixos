@@ -62,10 +62,13 @@ typedef size_t     *PLW_STACK;
 
 typedef ULONG       irqvect_t;                                          /*  中断向量, ULONG 前向兼容    */
 
-#define LW_IRQ_NONE         0
-#define LW_IRQ_HANDLED      1
+#define LW_IRQ_NONE         0                                           /*  不是本设备中断              */
+#define LW_IRQ_HANDLED      1                                           /*  中断已被正确处理            */
 #define LW_IRQ_HANDLED_DISV 2                                           /*  中断处理结束并且屏蔽本中断  */
+#define LW_IRQ_HANDLED_CONT 3                                           /*  中断已被处理, 但需要继续循环*/
+
 #define LW_IRQ_RETVAL(x)    ((x) != 0)
+#define LW_IRQ_RETBREAK(x)  ((x) != LW_IRQ_HANDLED_CONT)
 
 typedef INT         irqreturn_t;
 

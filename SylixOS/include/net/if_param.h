@@ -45,6 +45,9 @@
                             既接收两个总和大于 MSS 长度数据包立即发送 ACK
   tcp_wnd=8192            # TCP window (tcp_wnd > 2 * MSS) && (tcp_wnd < (0xffffu << TCP_RCV_SCALE))
   
+  txqueue=0               # >0 表示使用异步队列发送功能 (16 ~ 4096)
+  txqblock=1              # 1: 发送队列遇到阻塞时进行等待 (通常为 1, 窄带无线网络可为 0)
+  
   mipaddr=10.0.0.2        # 添加一个辅助 IP 地址
   mnetmask=255.0.0.0
   mgateway=10.0.0.1
@@ -78,6 +81,8 @@ LW_API int    if_param_getdefault(void *pifparam, int *def);
 LW_API int    if_param_getdhcp(void *pifparam, int *dhcp);
 LW_API int    if_param_getdhcp6(void *pifparam, int *dhcp);
 LW_API int    if_param_getaodv(void *pifparam, int *aodv);
+LW_API int    if_param_gettxqueue(void *pifparam, int *txqueue);
+LW_API int    if_param_gettxqblock(void *pifparam, int *txqblock);
 LW_API int    if_param_ipv6autocfg(void *pifparam, int *autocfg);
 LW_API int    if_param_tcpackfreq(void *pifparam, int *tcpaf);
 LW_API int    if_param_tcpwnd(void *pifparam, int *tcpwnd);

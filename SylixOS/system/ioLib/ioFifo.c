@@ -102,7 +102,7 @@ INT  pipe2 (INT  iFd[2], INT  iFlag)
     
         snprintf(cName, sizeof(cName), "%s/%d", __LW_PIPE_PATH, uiPipe);
         
-        iFifo = open(cName, O_RDWR | O_CREAT | O_EXCL, S_IFIFO | DEFAULT_DIR_PERM);
+        iFifo = open(cName, iFlag | O_RDWR | O_CREAT | O_EXCL, S_IFIFO | DEFAULT_DIR_PERM);
         if (iFifo < 0) {
             if (errno != ERROR_IO_FILE_EXIST) {                         /*  不是重复设备的其他错误      */
                 return  (PX_ERROR);
@@ -114,19 +114,24 @@ INT  pipe2 (INT  iFd[2], INT  iFlag)
         }
     } while (1);
     
-    iFdR = open(cName, iFlag | O_RDONLY);
-    if (iFdR >= 0) {
-        ioctl(iFdR, FIOUNMOUNT);                                        /*  最后一次关闭时删除设备      */
-        iFdW = open(cName, iFlag | O_WRONLY);
-        if (iFdW >= 0) {
-            iFd[0] = iFdR;
-            iFd[1] = iFdW;
-            return  (ERROR_NONE);
-        }
-        close(iFdR);                                                    /*  无法创建写端, 关闭读端      */
+    iFdR = open(cName, iFlag | O_RDWR);
+    if (iFdR < 0) {
+        return  (PX_ERROR);
     }
 
-    return  (PX_ERROR);
+    ioctl(iFdR, FIOUNMOUNT);                                            /*  最后一次关闭时删除设备      */
+    ioctl(iFdR, FIOPIPERDONLY);                                         /*  改为只读模式                */
+    
+    iFdW = open(cName, iFlag | O_WRONLY);
+    if (iFdW < 0) {
+        close(iFdR);                                                    /*  无法创建写端, 关闭读端      */
+        return  (PX_ERROR);
+    }
+
+    iFd[0] = iFdR;
+    iFd[1] = iFdW;
+    
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: pipe

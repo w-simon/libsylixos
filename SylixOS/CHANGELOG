@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2018-11-22: han.hui
+    网络设备加入 txqueue 异步发送队列的支持.
+
     2018-10-31: han.hui
     加入 C-SKY 处理器架构支持.
 
@@ -65,6 +68,9 @@ HISTORY
     NAT 支持 IP 分片.
 
 ++ Bugfixes:
+
+    2018-11-21: han.hui
+    修正对 mkfifo 后 open 时的阻塞功能支持.
 
     2018-07-10: han.hui
     为支持安全沙盒, 修正 select() 实现机制.

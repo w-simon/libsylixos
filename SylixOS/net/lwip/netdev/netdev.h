@@ -107,6 +107,22 @@ struct netdev_poll {
  */
 #define NETDEV_POLL_ARG(netdev) ((netdev)->poll.poll_arg)
 
+#if LW_CFG_NET_DEV_TXQ_EN > 0
+/*
+ * netdev_txq
+ */
+struct netdev_txq {
+  /* txqueue length */
+  int txq_len;
+  
+  /* net protocol thread block when queue is full */
+  int txq_block; /* usually is 1 */
+  
+  /* reserve for futrue */
+  void *reserved[8];
+};
+#endif /* LW_CFG_NET_DEV_TXQ_EN > 0 */
+
 /*
  * network driver functions.
  */
@@ -219,9 +235,12 @@ typedef struct netdev {
   /* SylixOS Real-Time externd(poll mode) */
   struct netdev_poll poll;
   
+  /* SylixOS Tx-Queue */
+  void *kern_txq;
+  
   /* SylixOS Reserve */
   void *kern_priv; /* kernel priv */
-  void *kern_res[16];
+  void *kern_res[15];
   
   ULONG sys[254];  /* reserve for netif */
 } netdev_t;
@@ -388,5 +407,14 @@ void netdev_zc_pbuf_free(struct pbuf *p);
 /* get zero copy pbuf stat */
 void netdev_zc_pbuf_stat(u32_t *zcused, u32_t *zcmax, u32_t *zcerror);
 #endif /* LW_CFG_NET_DEV_ZCBUF_EN */
+
+#if LW_CFG_NET_DEV_TXQ_EN > 0
+/* enable netdev txqueue */
+int  netdev_txq_enable(netdev_t *netdev, struct netdev_txq *txq);
+/* disable netdev txqueue */
+int  netdev_txq_disable(netdev_t *netdev);
+/* netdev txqueue length */
+int  netdev_txq_length(netdev_t *netdev);
+#endif /* LW_CFG_NET_DEV_TXQ_EN */
 
 #endif /* __NETDEV_H */

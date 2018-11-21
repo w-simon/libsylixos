@@ -463,7 +463,12 @@ err_t  sys_mbox_new (sys_mbox_t *pmbox, INT  size)
 
     SYS_ARCH_DECL_PROTECT(lev);
     
-    ulMsgCnt  = (TCPIP_MBOX_SIZE == size) ? LW_CFG_LWIP_NUM_INPKT : LWIP_MSGQUEUE_SIZE;
+    if (size > 0) {
+        ulMsgCnt = size;
+    
+    } else {
+        ulMsgCnt = LWIP_MSGQUEUE_SIZE;
+    }
     
     hMsgQueue = API_MsgQueueCreate("net_msg", 
                                    ulMsgCnt, 

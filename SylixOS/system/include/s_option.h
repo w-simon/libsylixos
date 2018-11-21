@@ -87,7 +87,6 @@
 #define FIONWRITE           LW_OSIOR('f', 12, INT)              /* get num chars still to be written    */
 #define FIODISKCHANGE       LW_OSIO( 'f', 13)                   /* set a media change on the device     */
 #define FIOCANCEL           LW_OSIO( 'f', 14)                   /* cancel read or write on the device   */
-#define FIOSQUEEZE          LW_OSIO( 'f', 15)                   /* squeeze out empty holes in rt-11     */
 
 /*********************************************************************************************************
   file system
@@ -95,7 +94,12 @@
 
 #define FIONBIO             LW_OSIOW('f', 16, INT)              /* set non-blocking I/O;                */
 #define FIONMSGS            LW_OSIOR('f', 17, INT)              /* return num msgs in pipe              */
-#define FIOGETNAME          LW_OSIOR('f', 18, LW_PATHB)         /* return file name in arg              */
+
+#ifdef __SYLIXOS_KERNEL                                         /* ONLY pipe() can use this!            */
+#define FIOPIPEBLOCK        LW_OSIO( 'f', 15)                   /* block until events happen            */
+#define FIOPIPERDONLY       LW_OSIO( 'f', 18)                   /* make pipe rdwr fd to rdonly          */
+#endif
+
 #define FIOGETOPTIONS       LW_OSIOR('f', 19, INT)              /* get options                          */
 #define FIOSETOPTIONS       FIOOPTIONS                          /* set options                          */
 #define FIOISATTY           LW_OSIOR('f', 20, BOOL)             /* is a tty                             */

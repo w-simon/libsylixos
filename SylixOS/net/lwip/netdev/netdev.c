@@ -63,6 +63,10 @@
 #include "netdev.h"
 #include "netdev_mip.h"
 
+#if LW_CFG_NET_DEV_TXQ_EN > 0
+#include "netdev_txq.h"
+#endif /* LW_CFG_NET_DEV_TXQ_EN > 0 */
+
 #ifdef LWIP_HOOK_FILENAME
 #include LWIP_HOOK_FILENAME
 #endif
@@ -129,6 +133,10 @@ static void  netdev_netif_remove (struct netif *netif)
 #if LW_CFG_NET_NETDEV_MIP_EN > 0
   netdev_mipif_clean(netdev);
 #endif /* LW_CFG_NET_NETDEV_MIP_EN */
+
+#if LW_CFG_NET_DEV_TXQ_EN > 0
+  netdev_txq_disable(netdev);
+#endif /* LW_CFG_NET_DEV_TXQ_EN */
 
   NETDEV_REMOVE(netdev);
 }
@@ -415,6 +423,12 @@ static err_t  netdev_netif_linkoutput (struct netif *netif, struct pbuf *p)
 {
   netdev_t *netdev = (netdev_t *)(netif->state);
   int ret;
+  
+#if LW_CFG_NET_DEV_TXQ_EN > 0
+  if (netdev->kern_txq) {
+    return (netdev_txq_transmit(netdev, p));
+  }
+#endif
 
   if (netdev->net_type == NETDEV_TYPE_ETHERNET) { /* ethernet */
 #if ETH_PAD_SIZE
@@ -426,7 +440,7 @@ static err_t  netdev_netif_linkoutput (struct netif *netif, struct pbuf *p)
 #if ETH_PAD_SIZE
     pbuf_header(p, ETH_PAD_SIZE);
 #endif
-  
+
   } else {
     ret = NETDEV_TRANSMIT(netdev, p);
   }
@@ -745,6 +759,10 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
   int  mac[NETIF_MAX_HWADDR_LEN];
   int tcp_ack_freq = LWIP_NETIF_TCP_ACK_FREQ_MIN;
   int tcp_wnd = TCP_WND;
+  
+#if LW_CFG_NET_DEV_TXQ_EN > 0
+  struct netdev_txq txq;
+#endif
 
   if (!netdev || (netdev->magic_no != NETDEV_MAGIC) || !netdev->drv) {
     _DebugHandle(__ERRORMESSAGE_LEVEL, 
@@ -864,6 +882,11 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
       }
 #endif /* LWIP_IPV6_DHCP6 */
 
+#if LW_CFG_NET_DEV_TXQ_EN > 0
+      if_param_gettxqueue(ifparam, &txq.txq_len);
+      if_param_gettxqblock(ifparam, &txq.txq_block);
+#endif /* LW_CFG_NET_DEV_TXQ_EN */
+
       if_param_tcpackfreq(ifparam, &tcp_ack_freq);
       if (tcp_ack_freq < LWIP_NETIF_TCP_ACK_FREQ_MIN) {
         tcp_ack_freq = LWIP_NETIF_TCP_ACK_FREQ_MIN; /* Min 2 */
@@ -897,6 +920,12 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
   netif_set_tcp_wnd(netif, (u32_t)tcp_wnd);
 
   netif_get_name(netif, netdev->if_name); /* update netdev if_name */
+  
+#if LW_CFG_NET_DEV_TXQ_EN > 0
+  if (txq.txq_len > 0) {
+    netdev_txq_enable(netdev, &txq);
+  }
+#endif /* LW_CFG_NET_DEV_TXQ_EN */
   
 #if LW_CFG_NET_NETDEV_MIP_EN > 0
   if (ifparam) {

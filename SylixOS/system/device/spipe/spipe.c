@@ -46,6 +46,11 @@
 #include "../SylixOS/system/include/s_system.h"
 #include "limits.h"
 /*********************************************************************************************************
+  全局信号量
+*********************************************************************************************************/
+LW_OBJECT_HANDLE     _G_ulSpipeReadOpenLock;
+LW_OBJECT_HANDLE     _G_ulSpipeWriteOpenLock;
+/*********************************************************************************************************
 ** 函数名称: API_SpipeDrvInstall
 ** 功能描述: 安装字符流管道设备驱动程序
 ** 输　入  : VOID
@@ -71,6 +76,22 @@ INT  API_SpipeDrvInstall (VOID)
         DRIVER_LICENSE(_G_iSpipeDrvNum,     "GPL->Ver 2.0");
         DRIVER_AUTHOR(_G_iSpipeDrvNum,      "Han.hui");
         DRIVER_DESCRIPTION(_G_iSpipeDrvNum, "stream pipe driver.");
+    }
+    
+    if (!_G_ulSpipeReadOpenLock) {
+        _G_ulSpipeReadOpenLock = API_SemaphoreBCreate("pipe_ropen",
+                                                      LW_FALSE, 
+                                                      LW_OPTION_OBJECT_GLOBAL, 
+                                                      LW_NULL);
+        _BugHandle(!_G_ulSpipeReadOpenLock, LW_TRUE, "can not create pipe open lock!\r\n");
+    }
+    
+    if (!_G_ulSpipeWriteOpenLock) {
+        _G_ulSpipeWriteOpenLock = API_SemaphoreBCreate("pipe_wopen",
+                                                       LW_FALSE, 
+                                                       LW_OPTION_OBJECT_GLOBAL, 
+                                                       LW_NULL);
+        _BugHandle(!_G_ulSpipeWriteOpenLock, LW_TRUE, "can not create pipe open lock!\r\n");
     }
     
     return  ((_G_iSpipeDrvNum == (PX_ERROR)) ? (PX_ERROR) : (ERROR_NONE));

@@ -216,7 +216,7 @@ INT  _PipeIoctl (PLW_PIPE_DEV  p_pipedev,
     
     case FIOSEEK:
     case FIOWHERE:
-        iErrCode = (PX_ERROR);
+        iErrCode = PX_ERROR;
         _ErrorHandle(ESPIPE);
         break;
         
@@ -354,7 +354,7 @@ INT  _PipeIoctl (PLW_PIPE_DEV  p_pipedev,
         break;
         
     default:
-        iErrCode = (PX_ERROR);
+        iErrCode = PX_ERROR;
         _ErrorHandle(ERROR_IO_UNKNOWN_REQUEST);
         break;
     }

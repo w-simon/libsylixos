@@ -2146,7 +2146,6 @@ static INT  __tpsFsIoctl (PLW_FD_ENTRY  pfdentry,
     case FIOTRUNC:
     case FIOLABELSET:
     case FIOATTRIBSET:
-    case FIOSQUEEZE:
     case FIODISKFORMAT:
         if ((pfdentry->FDENTRY_iFlag & O_ACCMODE) == O_RDONLY) {
             _ErrorHandle(ERROR_IO_WRITE_PROTECTED);

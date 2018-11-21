@@ -1404,7 +1404,6 @@ static INT  __ramFsIoctl (PLW_FD_ENTRY  pfdentry,
     case FIOTRUNC:
     case FIOLABELSET:
     case FIOATTRIBSET:
-    case FIOSQUEEZE:
         if ((pfdentry->FDENTRY_iFlag & O_ACCMODE) == O_RDONLY) {
             _ErrorHandle(ERROR_IO_WRITE_PROTECTED);
             return  (PX_ERROR);

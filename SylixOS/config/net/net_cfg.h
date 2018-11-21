@@ -144,6 +144,7 @@
 
 #define LW_CFG_NET_DEV_MAX              32                              /*  最大网卡数量 (> 2, < 255)   */
 #define LW_CFG_NET_DEV_PROTO_ANALYSIS   1                               /*  是否使能网络设备协议分析    */
+#define LW_CFG_NET_DEV_TXQ_EN           1                               /*  网卡发送队列支持            */
 #define LW_CFG_NET_DEV_ZCBUF_EN         1                               /*  网卡接收 0 拷贝缓冲支持     */
 #define LW_CFG_NET_DEV_BRIDGE_EN        1                               /*  网卡桥接管理                */
 

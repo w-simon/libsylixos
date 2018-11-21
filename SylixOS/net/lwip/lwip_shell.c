@@ -491,10 +491,17 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
         return;
     }
     
+#if LW_CFG_NET_DEV_TXQ_EN > 0
+    printf("%9s collisions:%u txqueue:%u tcpaf:%u tcpwnd:%u\n", "", 
+           MIB2_NETIF(netif)->ifcollisions,
+           (netdev) ? netdev_txq_length(netdev) : 0,
+           netif_get_tcp_ack_freq(netif), netif_get_tcp_wnd(netif));
+#else
     printf("%9s collisions:%u noproto:%u tcpaf:%u tcpwnd:%u\n", "", 
            MIB2_NETIF(netif)->ifcollisions,
            MIB2_NETIF(netif)->ifinunknownprotos,
            netif_get_tcp_ack_freq(netif), netif_get_tcp_wnd(netif));
+#endif
     
     printf("%9s RX ucast packets:%u nucast packets:%u dropped:%u\n", "",
            MIB2_NETIF(netif)->ifinucastpkts, MIB2_NETIF(netif)->ifinnucastpkts, MIB2_NETIF(netif)->ifindiscards);
