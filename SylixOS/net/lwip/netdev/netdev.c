@@ -1675,40 +1675,98 @@ void netdev_statinfo_collisions_inc (netdev_t *netdev)
   snmp_inc_ifcollisions(netif);
 }
 
+/* atomic inc/dec */
+#if LW_CFG_NET_DEV_TXQ_EN > 0 /* lwip_stats.link is 32bits */
+#define LINK_STATS_INC_ATOMIC(x) \
+  { \
+    atomic_t *atomic = (atomic_t *)&lwip_stats.x; \
+    __LW_ATOMIC_INC(atomic); \
+  }
+#endif /* LW_CFG_NET_DEV_TXQ_EN */
+
 /* netdev link statistical information update functions */
 void netdev_linkinfo_err_inc (netdev_t *netdev)
 {
-  LINK_STATS_INC(link.err);
+#if LW_CFG_NET_DEV_TXQ_EN > 0
+  if (netdev->kern_txq) {
+    LINK_STATS_INC_ATOMIC(link.err);
+  } else
+#endif /* LW_CFG_NET_DEV_TXQ_EN */
+  {
+    LINK_STATS_INC(link.err);
+  }
 }
 
 void netdev_linkinfo_lenerr_inc(netdev_t *netdev)
 {
-  LINK_STATS_INC(link.lenerr);
+#if LW_CFG_NET_DEV_TXQ_EN > 0
+  if (netdev->kern_txq) {
+    LINK_STATS_INC_ATOMIC(link.lenerr);
+  } else
+#endif /* LW_CFG_NET_DEV_TXQ_EN */
+  {
+    LINK_STATS_INC(link.lenerr);
+  }
 }
 
 void netdev_linkinfo_chkerr_inc(netdev_t *netdev)
 {
-  LINK_STATS_INC(link.chkerr);
+#if LW_CFG_NET_DEV_TXQ_EN > 0
+  if (netdev->kern_txq) {
+    LINK_STATS_INC_ATOMIC(link.chkerr);
+  } else
+#endif /* LW_CFG_NET_DEV_TXQ_EN */
+  {
+    LINK_STATS_INC(link.chkerr);
+  }
 }
 
 void netdev_linkinfo_memerr_inc(netdev_t *netdev)
 {
-  LINK_STATS_INC(link.memerr);
+#if LW_CFG_NET_DEV_TXQ_EN > 0
+  if (netdev->kern_txq) {
+    LINK_STATS_INC_ATOMIC(link.memerr);
+  } else
+#endif /* LW_CFG_NET_DEV_TXQ_EN */
+  {
+    LINK_STATS_INC(link.memerr);
+  }
 }
 
 void netdev_linkinfo_drop_inc(netdev_t *netdev)
 {
-  LINK_STATS_INC(link.drop);
+#if LW_CFG_NET_DEV_TXQ_EN > 0
+  if (netdev->kern_txq) {
+    LINK_STATS_INC_ATOMIC(link.drop);
+  } else
+#endif /* LW_CFG_NET_DEV_TXQ_EN */
+  {
+    LINK_STATS_INC(link.drop);
+  }
 }
 
 void netdev_linkinfo_recv_inc(netdev_t *netdev)
 {
-  LINK_STATS_INC(link.recv);
+#if LW_CFG_NET_DEV_TXQ_EN > 0
+  if (netdev->kern_txq) {
+    LINK_STATS_INC_ATOMIC(link.recv);
+  } else
+#endif /* LW_CFG_NET_DEV_TXQ_EN */
+  {
+    LINK_STATS_INC(link.recv);
+  }
 }
 
 void netdev_linkinfo_xmit_inc(netdev_t *netdev)
 {
-  LINK_STATS_INC(link.xmit);
+#if LW_CFG_NET_DEV_TXQ_EN > 0
+  if (netdev->kern_txq) {
+    LINK_STATS_INC_ATOMIC(link.xmit);
+  } else
+#endif /* LW_CFG_NET_DEV_TXQ_EN */
+  {
+    LINK_STATS_INC(link.xmit);
+  }
 }
 
 /* netdev input buffer get 

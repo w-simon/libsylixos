@@ -178,7 +178,8 @@ int vnetdev_add (struct vnetdev *vnetdev, vndnotify notify, size_t bsize, int id
   
   netdev->init_flags = NETDEV_INIT_LOAD_PARAM
                      | NETDEV_INIT_LOAD_DNS
-                     | NETDEV_INIT_IPV6_AUTOCFG;
+                     | NETDEV_INIT_IPV6_AUTOCFG
+                     | NETDEV_INIT_NO_TXQ; /* do not use txqueue */
   netdev->chksum_flags = NETDEV_CHKSUM_ENABLE_ALL; /* we need soft chksum */
   
   if (type == IF_VND_TYPE_RAW) {

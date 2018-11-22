@@ -190,6 +190,7 @@ typedef struct netdev {
 #define NETDEV_INIT_USE_DHCP6      0x40     /* force use IPv6 DHCP get address */
 #define NETDEV_INIT_USE_AODV       0x80     /* use AODV(Ad-hoc) Only for LOWPAN (ipv4 only) */
 #define NETDEV_INIT_DO_NOT         0x20     /* do not call init() function (Only used for net bridge) */
+#define NETDEV_INIT_NO_TXQ         0x100    /* do not support txqueue */
   UINT32 init_flags;
   
 #define NETDEV_CHKSUM_GEN_IP       0x0001   /* tcp/ip stack will generate checksum IP, UDP, TCP, ICMP, ICMP6 */
@@ -413,6 +414,8 @@ void netdev_zc_pbuf_stat(u32_t *zcused, u32_t *zcmax, u32_t *zcerror);
 int  netdev_txq_enable(netdev_t *netdev, struct netdev_txq *txq);
 /* disable netdev txqueue */
 int  netdev_txq_disable(netdev_t *netdev);
+/* netdev txqueue is enable */
+int  netdev_txq_isenable(netdev_t *netdev);
 /* netdev txqueue length */
 int  netdev_txq_length(netdev_t *netdev);
 #endif /* LW_CFG_NET_DEV_TXQ_EN */

@@ -296,6 +296,35 @@ static VOID  __netIfSpeed (struct netif  *netif, PCHAR  pcSpeedStr, size_t  stSi
     }
 }
 /*********************************************************************************************************
+** 函数名称: __netIfOctets
+** 功能描述: 显示指定的网络接口数据统计
+** 输　入  : ullValue      数据
+**           pcBuffer      缓存
+**           stSize        缓存大小
+** 输　出  : 显示内容
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static PCHAR  __netIfOctets (UINT64  ullValue, PCHAR  pcBuffer, size_t  stSize)
+{
+    if (ullValue > LW_CFG_GB_SIZE) {
+        ullValue = (ullValue >> 20);
+        snprintf(pcBuffer, stSize, "%qu.%qu GB", (ullValue >> 10), (ullValue & 0x3ff) / 102);
+        
+    } else if (ullValue > LW_CFG_MB_SIZE) {
+        ullValue = (ullValue >> 10);
+        snprintf(pcBuffer, stSize, "%qu.%qu MB", (ullValue >> 10), (ullValue & 0x3ff) / 102);
+    
+    } else if (ullValue > LW_CFG_KB_SIZE) {
+        snprintf(pcBuffer, stSize, "%qu.%qu KB", (ullValue >> 10), (ullValue & 0x3ff) / 102);
+    
+    } else {
+        snprintf(pcBuffer, stSize, "%qu.0 B", ullValue);
+    }
+    
+    return  (pcBuffer);
+}
+/*********************************************************************************************************
 ** 函数名称: __netIfShow
 ** 功能描述: 显示指定的网络接口信息 (ip v4)
 ** 输　入  : pcIfName      网络接口名
@@ -311,7 +340,8 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
     struct netif    *netif;
     struct netdev   *netdev;
     CHAR             cIfName[NETIF_NAMESIZE];
-    CHAR             cSpeed[32];
+    CHAR             cBuffer1[32];
+    CHAR             cBuffer2[32];
     PCHAR            pcDevName = "N/A";
     ip4_addr_t       ipaddrBroadcast;
     INT              i, iFlags;
@@ -382,7 +412,7 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
         }
     }
     
-    __netIfSpeed(netif, cSpeed, sizeof(cSpeed));
+    __netIfSpeed(netif, cBuffer1, sizeof(cBuffer1));
     
 #if LW_CFG_NET_NETDEV_MIP_EN > 0
     if (netif_is_mipif(netif)) {
@@ -405,9 +435,9 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
 #else
            "", "", 
 #endif                                                                  /*  LWIP_IPV6_DHCP6             */
-           cSpeed);
+           cBuffer1);
 #else
-    printf("Spd: %s\n", cSpeed);
+    printf("Spd: %s\n", cBuffer1);
 #endif                                                                  /*  LWIP_DHCP                   */
     
     printf("%9s inet addr: %d.%d.%d.%d ", "",
@@ -507,8 +537,11 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
            MIB2_NETIF(netif)->ifinucastpkts, MIB2_NETIF(netif)->ifinnucastpkts, MIB2_NETIF(netif)->ifindiscards);
     printf("%9s TX ucast packets:%u nucast packets:%u dropped:%u\n", "",
            MIB2_NETIF(netif)->ifoutucastpkts, MIB2_NETIF(netif)->ifoutnucastpkts, MIB2_NETIF(netif)->ifoutdiscards);
-    printf("%9s RX bytes:%u  TX bytes:%u\n", "",
-           MIB2_NETIF(netif)->ifinoctets, MIB2_NETIF(netif)->ifoutoctets);
+    printf("%9s RX bytes:%qu (%s)  TX bytes:%qu (%s)\n", "",
+           MIB2_NETIF(netif)->ifinoctets, 
+           __netIfOctets(MIB2_NETIF(netif)->ifinoctets, cBuffer1, sizeof(cBuffer1)),
+           MIB2_NETIF(netif)->ifoutoctets,
+           __netIfOctets(MIB2_NETIF(netif)->ifoutoctets, cBuffer2, sizeof(cBuffer2)));
     printf("\n");
 }
 /*********************************************************************************************************

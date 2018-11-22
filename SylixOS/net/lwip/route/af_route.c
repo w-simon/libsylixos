@@ -1370,8 +1370,8 @@ VOID  route_hook_netif_updown (struct netif *pnetif)
             pifdata->ifi_ierrors  = MIB2_NETIF(pnetif)->ifinerrors;
             pifdata->ifi_opackets = MIB2_NETIF(pnetif)->ifoutucastpkts + MIB2_NETIF(pnetif)->ifoutnucastpkts;
             pifdata->ifi_oerrors  = MIB2_NETIF(pnetif)->ifouterrors;
-            pifdata->ifi_ibytes   = MIB2_NETIF(pnetif)->ifinoctets;
-            pifdata->ifi_obytes   = MIB2_NETIF(pnetif)->ifoutoctets;
+            pifdata->ifi_ibytes   = (u_long)MIB2_NETIF(pnetif)->ifinoctets;
+            pifdata->ifi_obytes   = (u_long)MIB2_NETIF(pnetif)->ifoutoctets;
             pifdata->ifi_imcasts  = MIB2_NETIF(pnetif)->ifinnucastpkts;
             pifdata->ifi_omcasts  = MIB2_NETIF(pnetif)->ifoutnucastpkts;
             pifdata->ifi_iqdrops  = MIB2_NETIF(pnetif)->ifindiscards;

@@ -535,7 +535,7 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrT
 
 #define LWIP_STATS                      1
 #define LWIP_STATS_DISPLAY              1
-#define LWIP_STATS_LARGE                1
+#define LWIP_STATS_LARGE                1                               /*  must 32bits                 */
 
 /*********************************************************************************************************
   PPP options

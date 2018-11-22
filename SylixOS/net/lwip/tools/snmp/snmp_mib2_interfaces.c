@@ -211,8 +211,13 @@ interfaces_Table_get_value(struct snmp_node_instance *instance, void *value)
       value_len = sizeof(*value_u32);
       break;
     case 10: /* ifInOctets */
+#ifdef SYLIXOS /* In SylixOS ifInOctets, ifOutOctets is 64bits */
+      MEMCPY(value, &netif->mib2_counters.ifinoctets, sizeof(u64_t));
+      value_len = sizeof(u64_t);
+#else /* SYLIXOS */
       *value_u32 = netif->mib2_counters.ifinoctets;
       value_len = sizeof(*value_u32);
+#endif /* !SYLIXOS */
       break;
     case 11: /* ifInUcastPkts */
       *value_u32 = netif->mib2_counters.ifinucastpkts;
@@ -235,8 +240,13 @@ interfaces_Table_get_value(struct snmp_node_instance *instance, void *value)
       value_len = sizeof(*value_u32);
       break;
     case 16: /* ifOutOctets */
+#ifdef SYLIXOS /* In SylixOS ifInOctets, ifOutOctets is 64bits */
+      MEMCPY(value, &netif->mib2_counters.ifoutoctets, sizeof(u64_t));
+      value_len = sizeof(u64_t);
+#else /* SYLIXOS */
       *value_u32 = netif->mib2_counters.ifoutoctets;
       value_len = sizeof(*value_u32);
+#endif /* !SYLIXOS */
       break;
     case 17: /* ifOutUcastPkts */
       *value_u32 = netif->mib2_counters.ifoutucastpkts;
@@ -327,13 +337,21 @@ static const struct snmp_table_col_def interfaces_Table_columns[] = {
 #endif
   {  8, SNMP_ASN1_TYPE_INTEGER,      SNMP_NODE_INSTANCE_READ_ONLY }, /* ifOperStatus */
   {  9, SNMP_ASN1_TYPE_TIMETICKS,    SNMP_NODE_INSTANCE_READ_ONLY }, /* ifLastChange */
+#ifdef SYLIXOS /* In SylixOS ifInOctets is 64bits */
+  { 10, SNMP_ASN1_TYPE_COUNTER64,    SNMP_NODE_INSTANCE_READ_ONLY }, /* ifInOctets */
+#else /* SYLIXOS */
   { 10, SNMP_ASN1_TYPE_COUNTER,      SNMP_NODE_INSTANCE_READ_ONLY }, /* ifInOctets */
+#endif /* !SYLIXOS */
   { 11, SNMP_ASN1_TYPE_COUNTER,      SNMP_NODE_INSTANCE_READ_ONLY }, /* ifInUcastPkts */
   { 12, SNMP_ASN1_TYPE_COUNTER,      SNMP_NODE_INSTANCE_READ_ONLY }, /* ifInNUcastPkts */
   { 13, SNMP_ASN1_TYPE_COUNTER,      SNMP_NODE_INSTANCE_READ_ONLY }, /* ifInDiscarts */
   { 14, SNMP_ASN1_TYPE_COUNTER,      SNMP_NODE_INSTANCE_READ_ONLY }, /* ifInErrors */
   { 15, SNMP_ASN1_TYPE_COUNTER,      SNMP_NODE_INSTANCE_READ_ONLY }, /* ifInUnkownProtos */
+#ifdef SYLIXOS /* In SylixOS ifOutOctets is 64bits */
+  { 16, SNMP_ASN1_TYPE_COUNTER64,    SNMP_NODE_INSTANCE_READ_ONLY }, /* ifOutOctets */
+#else /* SYLIXOS */
   { 16, SNMP_ASN1_TYPE_COUNTER,      SNMP_NODE_INSTANCE_READ_ONLY }, /* ifOutOctets */
+#endif /* !SYLIXOS */
   { 17, SNMP_ASN1_TYPE_COUNTER,      SNMP_NODE_INSTANCE_READ_ONLY }, /* ifOutUcastPkts */
   { 18, SNMP_ASN1_TYPE_COUNTER,      SNMP_NODE_INSTANCE_READ_ONLY }, /* ifOutNUcastPkts */
   { 19, SNMP_ASN1_TYPE_COUNTER,      SNMP_NODE_INSTANCE_READ_ONLY }, /* ifOutDiscarts */

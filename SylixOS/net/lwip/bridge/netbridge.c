@@ -46,7 +46,6 @@
 #if LW_CFG_NET_DEV_BRIDGE_EN > 0
 
 #include "lwip/mem.h"
-#include "lwip/tcpip.h"
 #include "lwip/netif.h"
 #include "lwip/netifapi.h"
 #include "net/if_lock.h"
@@ -80,8 +79,13 @@ typedef struct netbr {
 #define NETBRIDGE_MAGIC   0xf7e34a82
   UINT32 magic_no;  /* MUST be NETBRIDGE_MAGIC */
   netdev_t netdev_br;  /* net bridge net device */
+  sys_mutex_t lock; /* net bridge lock */
   LW_LIST_LINE_HEADER eth_list; /* sub ethernet device list */
 } netbr_t;
+
+/* net bridge device lock */
+#define NETBR_LOCK(netbr)   sys_mutex_lock(&((netbr)->lock))
+#define NETBR_UNLOCK(netbr) sys_mutex_unlock(&((netbr)->lock))
 
 /* net bridge transmit (call from tcpip core lock) 
    'netdev' is net bridge device */
@@ -170,7 +174,7 @@ static err_t  netbr_input (struct pbuf *p, struct netif *netif)
     pbuf_header(p, -ETH_PAD_SIZE);
 #endif
 
-    LOCK_TCPIP_CORE();
+    NETBR_LOCK(netbr);
     for (pline = netbr->eth_list; pline != NULL; pline = _list_line_get_next(pline)) {
       netbr_eth = (netbr_eth_t *)pline;
       if (netbr_eth->netdev != netdev) {
@@ -179,7 +183,7 @@ static err_t  netbr_input (struct pbuf *p, struct netif *netif)
         }
       }
     }
-    UNLOCK_TCPIP_CORE();
+    NETBR_UNLOCK(netbr);
     
 #if ETH_PAD_SIZE
     pbuf_header(p, ETH_PAD_SIZE);
@@ -196,7 +200,7 @@ static err_t  netbr_input (struct pbuf *p, struct netif *netif)
 #endif
       found = 0;
       
-      LOCK_TCPIP_CORE();
+      NETBR_LOCK(netbr);
       for (pline = netbr->eth_list; pline != NULL; pline = _list_line_get_next(pline)) {
         netbr_eth = (netbr_eth_t *)pline;
         if (netbr_eth->netdev != netdev) {
@@ -221,7 +225,7 @@ static err_t  netbr_input (struct pbuf *p, struct netif *netif)
           }
         }
       }
-      UNLOCK_TCPIP_CORE();
+      NETBR_UNLOCK(netbr);
       
 #if ETH_PAD_SIZE
       pbuf_header(p, ETH_PAD_SIZE);
@@ -263,7 +267,7 @@ static void  netbr_wd (netdev_t *netdev_br)
   
   SYS_ARCH_DECL_PROTECT(lev);
   
-  LOCK_TCPIP_CORE();
+  NETBR_LOCK(netbr);
   for (pline = netbr->eth_list; pline != NULL; pline = _list_line_get_next(pline)) {
     netbr_eth = (netbr_eth_t *)pline;
     for (i = 0; i < NETBRIDGE_MAC_CACHE_SIZE; i++) {
@@ -274,7 +278,7 @@ static void  netbr_wd (netdev_t *netdev_br)
       }
     }
   }
-  UNLOCK_TCPIP_CORE();
+  NETBR_UNLOCK(netbr);
 }
 
 /* add a net device to net bridge 
@@ -352,11 +356,11 @@ int  netbr_add_dev (const char *brdev, const char *sub, int sub_is_ifname)
     MEMCPY(netif_br->hwaddr, netdev->hwaddr, ETH_ALEN);
   }
   
-  LOCK_TCPIP_CORE();
+  NETBR_LOCK(netbr);
   netdev_br->chksum_flags |= netdev->chksum_flags; /* we must use the most efficient checksum flags */
   netif_br->chksum_flags |= netdev->chksum_flags;
   _List_Line_Add_Ahead(&netbr_eth->list, &netbr->eth_list);
-  UNLOCK_TCPIP_CORE();
+  NETBR_UNLOCK(netbr);
   
   netbr_eth->input = netif->input; /* save the old input function */
   netif->input  = netbr_input; /* set new input function */
@@ -470,9 +474,9 @@ int  netbr_delete_dev (const char *brdev, const char *sub, int sub_is_ifname)
     }
   }
   
-  LOCK_TCPIP_CORE();
+  NETBR_LOCK(netbr);
   _List_Line_Del(&netbr_eth->list, &netbr->eth_list);
-  UNLOCK_TCPIP_CORE();
+  NETBR_UNLOCK(netbr);
   
   netif->input = netbr_eth->input; /* restore old input function */
   netif->br_eth = NULL;
@@ -532,8 +536,14 @@ int  netbr_add (const char *brdev, const char *ip,
   netdev_br->drv = &netbr_drv;
   netdev_br->priv = (void *)netbr;
 
+  if (sys_mutex_new(&netbr->lock) != ERR_OK) {
+    mem_free(netbr);
+    return (-1);
+  }
+
   if (netdev_add(netdev_br, ip, netmask, gw, /* add to system */
                  IFF_RUNNING | IFF_BROADCAST | IFF_MULTICAST) < 0) {
+    sys_mutex_free(&netbr->lock);
     mem_free(netbr);
     return (-1);
   }
@@ -582,13 +592,13 @@ int  netbr_delete (const char *brdev)
   
   netdev_linkup_wd_delete(netdev_br, netbr_wd); /* delete watchdog function */
   
-  LOCK_TCPIP_CORE();
+  NETBR_LOCK(netbr);
   while (netbr->eth_list) {
     netbr_eth = (netbr_eth_t *)netbr->eth_list;
     netdev = netbr_eth->netdev;
     netif = (struct netif *)netdev->sys;
     _List_Line_Del(&netbr_eth->list, &netbr->eth_list);
-    UNLOCK_TCPIP_CORE();
+    NETBR_UNLOCK(netbr);
     
     flags = netif_get_flags(netif);
     if (flags & IFF_PROMISC) {
@@ -622,10 +632,11 @@ int  netbr_delete (const char *brdev)
     }
     netdev->init_flags &= ~NETDEV_INIT_DO_NOT;
                
-    LOCK_TCPIP_CORE();
+    NETBR_LOCK(netbr);
   }
-  UNLOCK_TCPIP_CORE();
+  NETBR_UNLOCK(netbr);
   
+  sys_mutex_free(&netbr->lock);
   mem_free(netbr);
   
   return (0);
@@ -661,14 +672,14 @@ int  netbr_flush_cache (const char *brdev)
   }
   LWIP_IF_LIST_UNLOCK();
   
-  LOCK_TCPIP_CORE();
+  NETBR_LOCK(netbr);
   for (pline = netbr->eth_list; pline != NULL; pline = _list_line_get_next(pline)) {
     netbr_eth = (netbr_eth_t *)pline;
     for (i = 0; i < NETBRIDGE_MAC_CACHE_SIZE; i++) {
       netbr_eth->mcache[i].ttl = 0;
     }
   }
-  UNLOCK_TCPIP_CORE();
+  NETBR_UNLOCK(netbr);
   
   return (0);
 }

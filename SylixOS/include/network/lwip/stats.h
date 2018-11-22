@@ -185,7 +185,11 @@ struct stats_mib2 {
  */
 struct stats_mib2_netif_ctrs {
   /** The total number of octets received on the interface, including framing characters */
+#ifdef SYLIXOS
+  u64_t ifinoctets; /* SylixOS need 64bits in octets */
+#else /* SYLIXOS */
   u32_t ifinoctets;
+#endif /* !SYLIXOS */
   /** The number of packets, delivered by this sub-layer to a higher (sub-)layer, which were
    * not addressed to a multicast or broadcast address at this sub-layer */
   u32_t ifinucastpkts;
@@ -209,7 +213,11 @@ struct stats_mib2_netif_ctrs {
    * always be 0 */
   u32_t ifinunknownprotos;
   /** The total number of octets transmitted out of the interface, including framing characters. */
+#ifdef SYLIXOS
+  u64_t ifoutoctets; /* SylixOS need 64bits out octets */
+#else /* SYLIXOS */
   u32_t ifoutoctets;
+#endif /* !SYLIXOS */
   /** The total number of packets that higher-level protocols requested be transmitted, and
    * which were not addressed to a multicast or broadcast address at this sub-layer, including
    * those that were discarded or not sent. */

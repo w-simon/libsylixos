@@ -2783,7 +2783,7 @@ static VOID  __procFsNetDevPrint (struct netif *netif, PCHAR  pcBuffer,
     __procFsNetGetIfFlag(netif, cFlag);
     
     *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
-                       "%-4s: %-6u %-10u %-5u %-6u %-6u %-6u    %-10u %-5u %-6u %-6u %-6u %s\n",
+                       "%-4s: %-6u %-10qu %-5u %-6u %-6u %-6u    %-10qu %-5u %-6u %-6u %-6u %s\n",
                        netif_get_name(netif, cIfName),
                        netif->mtu,
                        MIB2_NETIF(netif)->ifinoctets,
@@ -3496,7 +3496,7 @@ static VOID  __procFsNetPppPrint (struct netif *netif, PCHAR  pcBuffer,
     }
     
     *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
-                       "%-4s %-8s %-6u %-12s %-12u %-12u\n",
+                       "%-4s %-8s %-6u %-12s %-12qu %-12qu\n",
                        netif_get_name(netif, cIfName),
                        pcType,
                        netif->mtu,

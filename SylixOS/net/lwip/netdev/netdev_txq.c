@@ -142,7 +142,8 @@ err_t  netdev_txq_transmit (netdev_t *netdev, struct pbuf *p)
   union netdev_txq_desc *desc;
   
   desc = netdev_txq_desc_alloc(txq_ctl);
-  if (!desc) {
+  if (LW_UNLIKELY(!desc)) {
+    netdev_linkinfo_memerr_inc(netdev);
     return (ERR_IF);
   }
   
@@ -156,6 +157,7 @@ err_t  netdev_txq_transmit (netdev_t *netdev, struct pbuf *p)
       desc->p = pbuf_clone(PBUF_RAW, PBUF_RAM, p);
       if (!desc->p) {
         netdev_txq_desc_free(txq_ctl, desc);
+        netdev_linkinfo_memerr_inc(netdev);
         return (ERR_MEM);
       }
     }
@@ -168,6 +170,7 @@ err_t  netdev_txq_transmit (netdev_t *netdev, struct pbuf *p)
     if (sys_mbox_trypost(&txq_ctl->txq_mbox, desc)) {
       pbuf_free(desc->p);
       netdev_txq_desc_free(txq_ctl, desc);
+      netdev_linkinfo_err_inc(netdev);
       return (ERR_BUF);
     }
   }
@@ -185,6 +188,11 @@ int  netdev_txq_enable (netdev_t *netdev, struct netdev_txq *txq)
 
   if (netdev->kern_txq) {
     errno = EALREADY;
+    return (-1);
+  }
+  
+  if (netdev->init_flags & NETDEV_INIT_NO_TXQ) {
+    errno = ENOTSUP;
     return (-1);
   }
   
@@ -295,6 +303,16 @@ int  netdev_txq_disable (netdev_t *netdev)
   mem_free(txq_ctl->txq_mem);
   mem_free(txq_ctl);
 
+  return (0);
+}
+
+/* netdev txqueue is enable */
+int  netdev_txq_isenable (netdev_t *netdev)
+{
+  if (netdev->kern_txq) {
+    return (1);
+  }
+  
   return (0);
 }
 
