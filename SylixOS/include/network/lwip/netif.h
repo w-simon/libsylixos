@@ -406,7 +406,7 @@ struct netif {
 #define NETIF_FLAG2_DHCP6       8
 #define NETIF_FLAG2_PROMISC     2
 #define NETIF_FLAG2_ALLMULTI    4
-  void *br_eth; /* net bridge ctl */
+  void *ext_eth; /* net bridge or bonding ctl */
   void *flowctl; /* net flow ctl */
   u16_t vlanid; /* include tag & pri */
   int metric; /* netif metric (NOT support now) */

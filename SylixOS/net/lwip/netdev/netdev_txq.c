@@ -120,6 +120,7 @@ static void netdev_txq_proc (void *arg)
       txq_ctl->txq_txquit = 1;
       KN_SMP_WMB();
       sys_sem_signal(&txq_ctl->txq_semquit);
+      LW_THREAD_UNSAFE(); /* quit from safe mode */
       return;
     }
     
@@ -245,8 +246,8 @@ int  netdev_txq_enable (netdev_t *netdev, struct netdev_txq *txq)
   
   netdev->kern_txq = (void *)txq_ctl;
   
-  if (!sys_thread_new(NEDDEVTXQ_THREAD_NAME, netdev_txq_proc, 
-                      (void *)netdev, NEDDEVTXQ_THREAD_STACKSIZE, NEDDEVTXQ_THREAD_PRIO)) {
+  if (!sys_thread_new(NETDEVTXQ_THREAD_NAME, netdev_txq_proc, 
+                      (void *)netdev, NETDEVTXQ_THREAD_STACKSIZE, NETDEVTXQ_THREAD_PRIO)) {
     errlevel = 4;
     goto error;
   }
@@ -255,7 +256,7 @@ int  netdev_txq_enable (netdev_t *netdev, struct netdev_txq *txq)
   
 error:
   if (errlevel > 3) {
-    sys_sem_free(&txq_ctl->txq_mbox);
+    sys_sem_free(&txq_ctl->txq_semquit);
   }
   if (errlevel > 2) {
     sys_mbox_free(&txq_ctl->txq_mbox);
@@ -298,7 +299,7 @@ int  netdev_txq_disable (netdev_t *netdev)
     }
   }
   
-  sys_sem_free(&txq_ctl->txq_mbox);
+  sys_sem_free(&txq_ctl->txq_semquit);
   sys_mbox_free(&txq_ctl->txq_mbox);
   mem_free(txq_ctl->txq_mem);
   mem_free(txq_ctl);

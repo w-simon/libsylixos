@@ -37,12 +37,12 @@ extern "C" {
 #endif                                                      /*  __cplusplus                             */
 
 /*********************************************************************************************************
- 网桥控制参数.
+  网桥控制参数.
 *********************************************************************************************************/
 struct net_bridge_ctl {
-    int     br_index;                                       /*  only for NETBR_CTL_ADD return           */
-    char    br_dev[IFNAMSIZ];                               /*  bridge device name                      */
-    char    eth_dev[IFNAMSIZ];                              /*  sub ethernet device name                */
+    int     br_index;                                       /*  Only for NETBR_CTL_ADD return           */
+    char    br_dev[IFNAMSIZ];                               /*  Bridge device name                      */
+    char    eth_dev[IFNAMSIZ];                              /*  Sub ethernet device name                */
 };
 
 #define NETBR_CTL_ADD           _IOWR('b', 0, struct net_bridge_ctl)

@@ -213,7 +213,7 @@ int ipc_perms (struct ipc_perm *perm, int flag)
  * (key_t in sylixos is 64bits)
  */
 LW_SYMBOL_EXPORT
-key_t  ftok (const char*  path, int  id)
+key_t  ftok (const char  *path, int  id)
 {
     struct stat   st;
     key_t   key;
@@ -222,8 +222,8 @@ key_t  ftok (const char*  path, int  id)
         return  ((key_t)-1);
     }
 
-    key  = (((key_t)(id & 255)) << 48);
-    key |= (((key_t)(st.st_dev & 0xffffff)) << 32);
+    key  = (((key_t)(id & 255)) << 56);
+    key |= (((key_t)(st.st_dev & 0x7fffff8)) << 29);
     key |= (key_t)st.st_ino & 0xffffffff;
 
     return  (key);

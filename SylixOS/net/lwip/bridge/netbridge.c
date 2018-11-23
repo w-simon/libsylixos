@@ -87,7 +87,7 @@ typedef struct netbr {
 #define NETBR_LOCK(netbr)   sys_mutex_lock(&((netbr)->lock))
 #define NETBR_UNLOCK(netbr) sys_mutex_unlock(&((netbr)->lock))
 
-/* net bridge transmit (call from tcpip core lock) 
+/* net bridge transmit
    'netdev' is net bridge device */
 static int  netbr_transmit (struct netdev *netdev, struct pbuf *p)
 {
@@ -99,6 +99,8 @@ static int  netbr_transmit (struct netdev *netdev, struct pbuf *p)
   struct ethhdr *eh = (struct ethhdr *)p->payload;
   
   found = 0;
+  
+  NETBR_LOCK(netbr);
   if (!(eh->h_dest[0] & 1)) { /* not broadcast */
     for (pline = netbr->eth_list; pline != NULL; pline = _list_line_get_next(pline)) {
       netbr_eth = (netbr_eth_t *)pline;
@@ -121,6 +123,7 @@ static int  netbr_transmit (struct netdev *netdev, struct pbuf *p)
       }
     }
   }
+  NETBR_UNLOCK(netbr);
   
   netdev_linkinfo_xmit_inc(netdev);
   netdev_statinfo_total_add(netdev, LINK_OUTPUT, p->tot_len);
@@ -140,13 +143,20 @@ static void  netbr_receive (struct netdev *netdev, int (*input)(struct netdev *,
   _DebugHandle(__ERRORMESSAGE_LEVEL, "netbr_receive() called!\r\n");
 }
 
+/* net bridge rxmode */
+static int netbr_rxmode (struct netdev *netdev, int flags)
+{
+  /* We work in a promisc mode, here do nothing */
+  return (0);
+}
+
 /* net bridge input 
    'netif' is sub erhernet device */
 static err_t  netbr_input (struct pbuf *p, struct netif *netif)
 {
   int found, key;
   netdev_t *netdev = (netdev_t *)(netif->state); /* sub ethernet device */
-  netbr_eth_t *netbr_eth = (netbr_eth_t *)netif->br_eth;
+  netbr_eth_t *netbr_eth = (netbr_eth_t *)netif->ext_eth;
   netdev_t *netdev_br = netbr_eth->netdev_br; /* bridge device */
   netbr_t *netbr = (netbr_t *)netdev_br->priv;
   struct netif *netif_br = (struct netif *)netdev_br->sys;
@@ -239,7 +249,7 @@ static err_t  netbr_input (struct pbuf *p, struct netif *netif)
     }
   }
   
-input_p:
+input_p: /* TODO: this function may be parallelization, and statistical variables should be locked */
   if (netif_br->input(p, netif_br)) { /* send to our tcpip stack */
     netdev_linkinfo_drop_inc(netdev_br);
     netdev_statinfo_discards_inc(netdev_br, LINK_INPUT);
@@ -298,6 +308,7 @@ int  netbr_add_dev (const char *brdev, const char *sub, int sub_is_ifname)
   struct ifreq ifreq;
   
   if (!brdev || !sub) {
+    errno = EINVAL;
     return (-1);
   }
   
@@ -313,6 +324,7 @@ int  netbr_add_dev (const char *brdev, const char *sub, int sub_is_ifname)
   }
   if (!found) {
     LWIP_IF_LIST_UNLOCK();
+    errno = ENXIO;
     return (-1);
   }
   
@@ -328,14 +340,16 @@ int  netbr_add_dev (const char *brdev, const char *sub, int sub_is_ifname)
       found = 1;
     }
   }
-  if (!found || (netdev->net_type != NETDEV_TYPE_ETHERNET)) {
+  if (!found || netif->ext_eth || (netdev->net_type != NETDEV_TYPE_ETHERNET)) {
     LWIP_IF_LIST_UNLOCK();
+    errno = ENXIO;
     return (-1);
   }
   LWIP_IF_LIST_UNLOCK();
   
   netbr_eth = (netbr_eth_t *)mem_malloc(sizeof(netbr_eth_t));
   if (!netbr_eth) {
+    errno = ENOMEM;
     return (-1);
   }
   lib_bzero(netbr_eth, sizeof(netbr_eth_t));
@@ -346,6 +360,13 @@ int  netbr_add_dev (const char *brdev, const char *sub, int sub_is_ifname)
   if (netdev_delete(netdev) < 0) { /* remove net device from protocol stack */
     mem_free(netbr_eth);
     return (-1);
+  }
+  
+  if (netif->flags & NETIF_FLAG_UP) {
+    netif->flags &= ~NETIF_FLAG_UP;
+    if (netif->down) {
+      netif->down(netif); /* make down */
+    }
   }
   
   if (!netbr->eth_list) {
@@ -364,7 +385,7 @@ int  netbr_add_dev (const char *brdev, const char *sub, int sub_is_ifname)
   
   netbr_eth->input = netif->input; /* save the old input function */
   netif->input  = netbr_input; /* set new input function */
-  netif->br_eth = (void *)netbr_eth;
+  netif->ext_eth = (void *)netbr_eth;
   
   if (need_up) {
     netifapi_netif_set_up(netif_br); /* make bridge up */
@@ -411,6 +432,7 @@ int  netbr_delete_dev (const char *brdev, const char *sub, int sub_is_ifname)
   struct ifreq ifreq;
   
   if (!brdev || !sub) {
+    errno = EINVAL;
     return (-1);
   }
   
@@ -425,6 +447,7 @@ int  netbr_delete_dev (const char *brdev, const char *sub, int sub_is_ifname)
   }
   if (!found) {
     LWIP_IF_LIST_UNLOCK();
+    errno = ENXIO;
     return (-1);
   }
   
@@ -450,9 +473,17 @@ int  netbr_delete_dev (const char *brdev, const char *sub, int sub_is_ifname)
   }
   if (!found) {
     LWIP_IF_LIST_UNLOCK();
+    errno = ENXIO;
     return (-1);
   }
   LWIP_IF_LIST_UNLOCK();
+  
+  if (netif->flags & NETIF_FLAG_UP) {
+    netif->flags &= ~NETIF_FLAG_UP;
+    if (netif->down) {
+      netif->down(netif); /* make down */
+    }
+  }
   
   flags = netif_get_flags(netif);
   if (flags & IFF_PROMISC) {
@@ -467,19 +498,12 @@ int  netbr_delete_dev (const char *brdev, const char *sub, int sub_is_ifname)
     }
   }
   
-  if (netif->flags & NETIF_FLAG_UP) {
-    netif->flags &= ~NETIF_FLAG_UP;
-    if (netif->down) {
-      netif->down(netif); /* make down */
-    }
-  }
-  
   NETBR_LOCK(netbr);
   _List_Line_Del(&netbr_eth->list, &netbr->eth_list);
   NETBR_UNLOCK(netbr);
   
   netif->input = netbr_eth->input; /* restore old input function */
-  netif->br_eth = NULL;
+  netif->ext_eth = NULL;
   
   mem_free(netbr_eth);
   
@@ -504,11 +528,13 @@ int  netbr_add (const char *brdev, const char *ip,
   netdev_t *netdev_br;
   
   if (!brdev || (lib_strnlen(brdev, IF_NAMESIZE) >= IF_NAMESIZE)) {
+    errno = EINVAL;
     return (-1);
   }
   
   netbr = (netbr_t *)mem_malloc(sizeof(netbr_t));
   if (!netbr) {
+    errno = ENOMEM;
     return (-1);
   }
   lib_bzero(netbr, sizeof(netbr_t));
@@ -530,6 +556,7 @@ int  netbr_add (const char *brdev, const char *ip,
   netdev_br->mtu = ETH_DATA_LEN;
   netdev_br->hwaddr_len = ETH_ALEN;
   
+  netbr_drv.rxmode = netbr_rxmode;
   netbr_drv.transmit = netbr_transmit;
   netbr_drv.receive = netbr_receive;
   
@@ -570,6 +597,7 @@ int  netbr_delete (const char *brdev)
   struct ifreq ifreq;
   
   if (!brdev) {
+    errno = EINVAL;
     return (-1);
   }
   
@@ -584,6 +612,7 @@ int  netbr_delete (const char *brdev)
   }
   if (!found) {
     LWIP_IF_LIST_UNLOCK();
+    errno = ENXIO;
     return (-1);
   }
   LWIP_IF_LIST_UNLOCK();
@@ -600,6 +629,13 @@ int  netbr_delete (const char *brdev)
     _List_Line_Del(&netbr_eth->list, &netbr->eth_list);
     NETBR_UNLOCK(netbr);
     
+    if (netif->flags & NETIF_FLAG_UP) {
+      netif->flags &= ~NETIF_FLAG_UP;
+      if (netif->down) {
+        netif->down(netif);
+      }
+    }
+    
     flags = netif_get_flags(netif);
     if (flags & IFF_PROMISC) {
       ifreq.ifr_name[0] = 0;
@@ -612,16 +648,9 @@ int  netbr_delete (const char *brdev)
         }
       }
     }
-  
-    if (netif->flags & NETIF_FLAG_UP) {
-      netif->flags &= ~NETIF_FLAG_UP;
-      if (netif->down) {
-        netif->down(netif);
-      }
-    }
     
     netif->input = netbr_eth->input; /* restore input function */
-    netif->br_eth = NULL;
+    netif->ext_eth = NULL;
   
     mem_free(netbr_eth);
   
@@ -654,6 +683,7 @@ int  netbr_flush_cache (const char *brdev)
   int i;
   
   if (!brdev) {
+    errno = EINVAL;
     return (-1);
   }
   
@@ -668,6 +698,7 @@ int  netbr_flush_cache (const char *brdev)
   }
   if (!found) {
     LWIP_IF_LIST_UNLOCK();
+    errno = ENXIO;
     return (-1);
   }
   LWIP_IF_LIST_UNLOCK();
@@ -682,6 +713,65 @@ int  netbr_flush_cache (const char *brdev)
   NETBR_UNLOCK(netbr);
   
   return (0);
+}
+
+/* net bridge sub device delete hook */
+void  netbr_sub_delete_hook (netdev_t *netdev)
+{
+  int flags;
+  struct netif *netif;
+  netbr_t *netbr;
+  netbr_eth_t *netbr_eth;
+  struct ifreq ifreq;
+  LW_LIST_LINE *pline;
+
+  LWIP_IF_LIST_LOCK(FALSE);
+  netif = (struct netif *)netdev->sys;
+  netbr = (netbr_t *)netif->ext_eth;
+  if (!netbr || netbr->magic_no != NETBRIDGE_MAGIC) {
+    LWIP_IF_LIST_UNLOCK();
+    return;
+  }
+  for (pline = netbr->eth_list; pline != NULL; pline = _list_line_get_next(pline)) {
+    netbr_eth = (netbr_eth_t *)pline;
+    if (netbr_eth->netdev == netdev) {
+      break;
+    }
+  }
+  if (!pline) {
+    LWIP_IF_LIST_UNLOCK();
+    return;
+  }
+  LWIP_IF_LIST_UNLOCK();
+  
+  if (netif->flags & NETIF_FLAG_UP) {
+    netif->flags &= ~NETIF_FLAG_UP;
+    if (netif->down) {
+      netif->down(netif); /* make down */
+    }
+  }
+  
+  flags = netif_get_flags(netif);
+  if (flags & IFF_PROMISC) {
+    ifreq.ifr_name[0] = 0;
+    ifreq.ifr_flags   = flags & ~IFF_PROMISC;
+    if (netif->ioctl) {
+      if (netif->ioctl(netif, SIOCSIFFLAGS, &ifreq)) { /* make Non IFF_PROMISC */
+        _PrintHandle("sub ethernet device can not support IFF_PROMISC!\r\n");
+      } else {
+        netif->flags2 &= ~NETIF_FLAG2_PROMISC;
+      }
+    }
+  }
+  
+  NETBR_LOCK(netbr);
+  _List_Line_Del(&netbr_eth->list, &netbr->eth_list);
+  NETBR_UNLOCK(netbr);
+  
+  netif->input = netbr_eth->input; /* restore old input function */
+  netif->ext_eth = NULL;
+  
+  mem_free(netbr_eth);
 }
 
 /* net bridge show all device in bridge */
@@ -699,6 +789,7 @@ int  netbr_show_dev (const char *brdev, int fd)
   LW_LIST_LINE *pline;
   
   if (!brdev || (fd < 0)) {
+    errno = EINVAL;
     return (-1);
   }
   
@@ -713,6 +804,7 @@ int  netbr_show_dev (const char *brdev, int fd)
   }
   if (!found) {
     LWIP_IF_LIST_UNLOCK();
+    errno = ENXIO;
     return (-1);
   }
   
@@ -731,7 +823,7 @@ int  netbr_show_dev (const char *brdev, int fd)
     } else {
       snprintf(speed, sizeof(speed), "%qu Gbps", netdev->speed / 1000000000);
     }
-    fdprintf(fd, "<%d> Dev: %s Prev-Ifname: %s Spd: %s Linkup: %s HWaddr: ", i,
+    fdprintf(fd, "<%d> Dev: %s Prev-Ifname: %s Spd: %s Linkup: %s Prev-HWaddr: ", i,
              netdev->dev_name, netif_get_name(netif, ifname),
              speed, netdev->if_flags & IFF_RUNNING ? "Enable" : "Disable");
     for (j = 0; j < netif->hwaddr_len - 1; j++) {

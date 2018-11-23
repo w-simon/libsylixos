@@ -71,6 +71,14 @@
 #include LWIP_HOOK_FILENAME
 #endif
 
+#if LW_CFG_NET_DEV_BRIDGE_EN > 0
+extern void  netbr_sub_delete_hook(netdev_t *netdev);
+#endif /* LW_CFG_NET_DEV_BONDING_EN > 0 */
+
+#if LW_CFG_NET_DEV_BONDING_EN > 0
+extern void  netbd_sub_delete_hook(netdev_t *netdev);
+#endif /* LW_CFG_NET_DEV_BONDING_EN > 0 */
+
 #define NETDEV_INIT(netdev)                 if ((netdev)->drv->init) { (netdev)->drv->init((netdev)); }
 #define NETDEV_UP(netdev)                   if ((netdev)->drv->up) { (netdev)->drv->up((netdev)); }
 #define NETDEV_DOWN(netdev)                 if ((netdev)->drv->down) { (netdev)->drv->down((netdev)); }
@@ -537,7 +545,7 @@ static void  netdev_netif_linkup (netdev_t *netdev, int linkup, UINT32 speed_hig
     netif->ts = sys_jiffies();
     netdev->speed = speed;
     
-    if (!netif->br_eth) { /* not in net bridge */
+    if (!netif->ext_eth) { /* not in net bridge or bonding */
       netifapi_netif_set_link_up(netif);
     } else {
       netif_set_flags(netif, NETIF_FLAG_LINK_UP);
@@ -551,7 +559,7 @@ static void  netdev_netif_linkup (netdev_t *netdev, int linkup, UINT32 speed_hig
     }
   
   } else {
-    if (!netif->br_eth) { /* not in net bridge */
+    if (!netif->ext_eth) { /* not in net bridge or bonding */
       netifapi_netif_set_link_down(netif);
     } else {
       netif_clear_flags(netif, NETIF_FLAG_LINK_UP);
@@ -761,7 +769,7 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
   int tcp_wnd = TCP_WND;
   
 #if LW_CFG_NET_DEV_TXQ_EN > 0
-  struct netdev_txq txq;
+  struct netdev_txq txq = {0, 1};
 #endif
 
   if (!netdev || (netdev->magic_no != NETDEV_MAGIC) || !netdev->drv) {
@@ -979,7 +987,7 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
  * WARNING: You MUST DO NOT lock device then call this function, it will cause a deadlock with TCP LOCK */
 int  netdev_delete (netdev_t *netdev)
 {
-  struct netif *netif;
+  struct netif *netif, *tmp_netif;
   
   if (!netdev || (netdev->magic_no != NETDEV_MAGIC)) {
     return (-1);
@@ -987,8 +995,23 @@ int  netdev_delete (netdev_t *netdev)
   
   netif = (struct netif *)netdev->sys;
   
+#if LW_CFG_NET_DEV_BRIDGE_EN > 0
+  netbr_sub_delete_hook(netdev);
+#endif /* LW_CFG_NET_DEV_BONDING_EN > 0 */
+
+#if LW_CFG_NET_DEV_BONDING_EN > 0
+  netbd_sub_delete_hook(netdev);
+#endif /* LW_CFG_NET_DEV_BONDING_EN > 0 */
+  
   LWIP_IF_LIST_LOCK(LW_TRUE);
-  netifapi_netif_remove(netif);
+  NETIF_FOREACH(tmp_netif) {
+    if (tmp_netif == netif) {
+      break;
+    }
+  }
+  if (tmp_netif) {
+    netifapi_netif_remove(netif);
+  }
   LWIP_IF_LIST_UNLOCK();
   
   netdev_macfilter_clean(netdev);

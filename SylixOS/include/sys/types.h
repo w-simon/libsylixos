@@ -82,7 +82,7 @@ typedef long        id_t;
 *********************************************************************************************************/
 
 #ifndef __key_t_defined
-typedef uint64_t    key_t;
+typedef int64_t     key_t;
 #define __key_t_defined 1
 #endif
 

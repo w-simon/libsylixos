@@ -107,6 +107,12 @@ extern VOID __netVlanInit(VOID);
 extern INT  _netBridgeInit(VOID);
 #endif                                                                  /*  LW_CFG_NET_DEV_BRIDGE_EN    */
 /*********************************************************************************************************
+  Bonding 支持
+*********************************************************************************************************/
+#if LW_CFG_NET_DEV_BONDING_EN > 0
+extern INT  _netBondingInit(VOID);
+#endif                                                                  /*  LW_CFG_NET_DEV_BONDING_EN   */
+/*********************************************************************************************************
   拨号网络函数声明
 *********************************************************************************************************/
 #if LW_CFG_LWIP_PPP > 0 || LW_CFG_LWIP_PPPOE > 0
@@ -287,6 +293,9 @@ VOID  API_NetInit (VOID)
 #if LW_CFG_NET_DEV_BRIDGE_EN > 0
     _netBridgeInit();
 #endif                                                                  /*  LW_CFG_NET_DEV_BRIDGE_EN    */
+#if LW_CFG_NET_DEV_BONDING_EN > 0
+    _netBondingInit();
+#endif                                                                  /*  LW_CFG_NET_DEV_BONDING_EN   */
 
     /*
      *  密切相关工具初始化.

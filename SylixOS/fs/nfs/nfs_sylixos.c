@@ -333,6 +333,7 @@ static VOID  __nfsAttr2Stat (PNFS_FS  pnfsfs, fattr3  *pattr, struct stat *pstat
     
     if (sizeof(fileid3) == sizeof(ino_t)) {
         pstat->st_ino = (ino_t)pattr->fileid;
+    
     } else {
         if (pattr->fileid & (fileid3)(~(ino_t)0)) {
             pstat->st_ino = (ino_t)pattr->fileid;

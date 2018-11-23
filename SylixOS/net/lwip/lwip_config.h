@@ -498,9 +498,13 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrT
 #define DEFAULT_THREAD_STACKSIZE        LW_CFG_LWIP_DEF_STK_SIZE
 #define DEFAULT_THREAD_PRIO             LW_PRIO_T_NETPROTO
 
-#define NEDDEVTXQ_THREAD_NAME           "t_nettxq"
-#define NEDDEVTXQ_THREAD_STACKSIZE      LW_CFG_LWIP_DEF_STK_SIZE
-#define NEDDEVTXQ_THREAD_PRIO           LW_PRIO_T_NETPROTO
+#define NETDEVTXQ_THREAD_NAME           "t_nettxq"
+#define NETDEVTXQ_THREAD_STACKSIZE      LW_CFG_LWIP_DEF_STK_SIZE
+#define NETDEVTXQ_THREAD_PRIO           LW_PRIO_T_NETPROTO
+
+#define NETBONDING_THREAD_NAME          "t_bonding"
+#define NETBONDING_THREAD_STACKSIZE     LW_CFG_LWIP_DEF_STK_SIZE
+#define NETBONDING_THREAD_PRIO          LW_PRIO_T_NETPROTO
 
 /*********************************************************************************************************
   Socket options 

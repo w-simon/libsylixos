@@ -49,8 +49,9 @@
  * 0.0.6    2016.04.20 fixed cache alias prob.
  * 0.0.7    2016.08.19 fixed module remove procfs node delete prob.
  * 0.0.8    2018.03.13 fixed ipc_get_instance() bug.
+ * 1.0.0    2018.11.23 fixed ftok() key duplicates.
  */
-#define IPC_VER         "0.0.8"
+#define IPC_VER         "1.0.0"
 
 /*
  * ipc config

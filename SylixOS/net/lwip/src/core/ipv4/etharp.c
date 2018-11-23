@@ -131,11 +131,19 @@ static netif_addr_idx_t etharp_cached_entry;
 
 
 static err_t etharp_request_dst(struct netif *netif, const ip4_addr_t *ipaddr, const struct eth_addr *hw_dst_addr);
+#if defined(SYLIXOS) && (LW_CFG_NET_DEV_BONDING_EN > 0) /* SylixOS Bonding need this send ARP detect */
+err_t etharp_raw(struct netif *netif,
+                 const struct eth_addr *ethsrc_addr, const struct eth_addr *ethdst_addr,
+                 const struct eth_addr *hwsrc_addr, const ip4_addr_t *ipsrc_addr,
+                 const struct eth_addr *hwdst_addr, const ip4_addr_t *ipdst_addr,
+                 const u16_t opcode);
+#else /* SYLIXOS */
 static err_t etharp_raw(struct netif *netif,
                         const struct eth_addr *ethsrc_addr, const struct eth_addr *ethdst_addr,
                         const struct eth_addr *hwsrc_addr, const ip4_addr_t *ipsrc_addr,
                         const struct eth_addr *hwdst_addr, const ip4_addr_t *ipdst_addr,
                         const u16_t opcode);
+#endif /* !SYLIXOS */
 
 #if ARP_QUEUEING
 /**
@@ -1121,7 +1129,11 @@ etharp_query(struct netif *netif, const ip4_addr_t *ipaddr, struct pbuf *q)
  *         ERR_MEM if the ARP packet couldn't be allocated
  *         any other err_t on failure
  */
+#if defined(SYLIXOS) && (LW_CFG_NET_DEV_BONDING_EN > 0) /* SylixOS Bonding need this send ARP detect */
+err_t
+#else /* SYLIXOS */
 static err_t
+#endif /* !SYLIXOS */
 etharp_raw(struct netif *netif, const struct eth_addr *ethsrc_addr,
            const struct eth_addr *ethdst_addr,
            const struct eth_addr *hwsrc_addr, const ip4_addr_t *ipsrc_addr,

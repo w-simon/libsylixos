@@ -1419,6 +1419,7 @@ SylixOS/net/libc/getservent.c \
 SylixOS/net/libc/inet_ntop.c \
 SylixOS/net/libc/inet_pton.c \
 SylixOS/net/lwip/lwip_arpctl.c \
+SylixOS/net/lwip/lwip_bonding.c \
 SylixOS/net/lwip/lwip_bridge.c \
 SylixOS/net/lwip/lwip_fix.c \
 SylixOS/net/lwip/lwip_flowctl.c \
@@ -1446,6 +1447,7 @@ SylixOS/net/lwip/balancing/ip4_sroute_x.c \
 SylixOS/net/lwip/balancing/ip4_sroute.c \
 SylixOS/net/lwip/balancing/ip6_sroute_x.c \
 SylixOS/net/lwip/balancing/ip6_sroute.c \
+SylixOS/net/lwip/bonding/netbonding.c \
 SylixOS/net/lwip/bridge/netbridge.c \
 SylixOS/net/lwip/event/lwip_netevent.c \
 SylixOS/net/lwip/flowctl/cor_flowctl.c \

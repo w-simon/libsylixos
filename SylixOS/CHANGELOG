@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2018-11-23: han.hui
+    网络设备加入 bonding 支持, 可选择 Balance RR, Active Backup 与 Broadcast 模式.
+
     2018-11-22: han.hui
     网络设备加入 txqueue 异步发送队列的支持.
 

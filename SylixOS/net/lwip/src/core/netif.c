@@ -378,7 +378,7 @@ netif_add(struct netif *netif,
   netif->inner_qos = NULL;
   netif->outer_qos = NULL;
   netif->flags2 = 0l;
-  netif->br_eth = NULL;
+  netif->ext_eth = NULL;
   netif->flowctl = NULL;
   netif->vlanid = (u16_t)-1;
   netif->metric = 1;

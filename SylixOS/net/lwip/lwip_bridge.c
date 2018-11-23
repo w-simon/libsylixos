@@ -238,7 +238,7 @@ static INT  __tshellNetbr (INT  iArgC, PCHAR  *ppcArgV)
         if (lib_strcmp(ppcArgV[1], "addbr") == 0) {
             iRet = netbr_add(ppcArgV[2], LW_NULL, LW_NULL, LW_NULL, &iIndex);
             if (iRet) {
-                fprintf(stderr, "can not add net bridge device!\n");
+                fprintf(stderr, "can not add net bridge device: %s!\n", lib_strerror(errno));
             } else {
                 printf("net bridge device add ok, if index: %d.\n", iIndex);
             }
@@ -246,7 +246,7 @@ static INT  __tshellNetbr (INT  iArgC, PCHAR  *ppcArgV)
         } else if (lib_strcmp(ppcArgV[1], "delbr") == 0) {
             iRet = netbr_delete(ppcArgV[2]);
             if (iRet) {
-                fprintf(stderr, "can not delete net bridge device!\n");
+                fprintf(stderr, "can not delete net bridge device: %s!\n", lib_strerror(errno));
             } else {
                 printf("net bridge device delete.\n");
             }
@@ -254,13 +254,13 @@ static INT  __tshellNetbr (INT  iArgC, PCHAR  *ppcArgV)
         } else if (lib_strcmp(ppcArgV[1], "flush") == 0) {
             iRet = netbr_flush_cache(ppcArgV[2]);
             if (iRet) {
-                fprintf(stderr, "can not flush net bridge device!\n");
+                fprintf(stderr, "can not flush net bridge device: %s!\n", lib_strerror(errno));
             }
         
         } else if (lib_strcmp(ppcArgV[1], "show") == 0) {
             iRet = netbr_show_dev(ppcArgV[2], STD_OUT);
             if (iRet) {
-                fprintf(stderr, "can not show net bridge device!\n");
+                fprintf(stderr, "can not show net bridge device: %s!\n", lib_strerror(errno));
             }
         
         } else {
