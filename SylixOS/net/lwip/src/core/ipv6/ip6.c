@@ -1372,7 +1372,7 @@ ip6_output_if_src(struct pbuf *p, const ip6_addr_t *src, const ip6_addr_t *dest,
   if ((p->flags & PBUF_FLAG_MCASTLOOP) != 0) {
     netif_loop_output(netif, p);
   }
-#if LW_CFG_NET_MROUTER > 0 /* SylixOS Add mroute */
+#if LW_CFG_NET_MROUTER > 0 /* SylixOS Add mroute (MCASTLOOP mforward in ip6_input()) */
     else if (ip6_addr_ismulticast(dest) && !mforward) {
     if (ip6_mrt_is_on()) {
       if (ip6_mrt_forward(p, ip6hdr, netif)) { /* try mforward */

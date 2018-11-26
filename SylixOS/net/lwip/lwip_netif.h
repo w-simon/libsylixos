@@ -31,6 +31,7 @@
 #include "lwip/netif.h"
 
 INT   netif_get_flags(struct netif *pnetif);
+INT   netif_get_priv_flags(struct netif *pnetif);
 VOID  netif_callback_init(VOID);
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 

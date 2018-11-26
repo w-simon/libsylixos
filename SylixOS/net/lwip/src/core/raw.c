@@ -684,7 +684,10 @@ raw_new(u8_t proto)
 #if LWIP_MULTICAST_TX_OPTIONS
     raw_set_multicast_ttl(pcb, RAW_TTL);
 #endif /* LWIP_MULTICAST_TX_OPTIONS */
-#if (LWIP_IPV4 && LWIP_IGMP) || (LWIP_IPV6 && LWIP_IPV6_MLD)
+#if (LWIP_IPV4 && LWIP_IGMP) || (LWIP_IPV6 && LWIP_IPV6_MLD) /* SylixOS Add */
+#if LW_CFG_LWIP_DEF_MCAST_LOOP
+    raw_set_flags(pcb, RAW_FLAGS_MULTICAST_LOOP);
+#endif /* LW_CFG_LWIP_DEF_MCAST_LOOP */
     pcb->ipmc.proto = IPPROTO_RAW;
 #endif /* (LWIP_IPV4 && LWIP_IGMP) || (LWIP_IPV6 && LWIP_IPV6_MLD) */
     pcb->next = raw_pcbs;

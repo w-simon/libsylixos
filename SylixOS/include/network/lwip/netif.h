@@ -401,11 +401,12 @@ struct netif {
   u8_t (*inner_qos)(struct netif *, struct pbuf *p, u8_t ipver, u8_t prio, u16_t iphdr_offset, u8_t *dont_drop);
   u8_t (*outer_qos)(void *, struct pbuf *p, u8_t ipver, u8_t prio, u16_t iphdr_offset, u8_t *dont_drop);
   /* SylixOS externed flags */
-  long flags2;
+  int flags2;
 #define NETIF_FLAG2_DHCP        1
 #define NETIF_FLAG2_DHCP6       8
 #define NETIF_FLAG2_PROMISC     2
 #define NETIF_FLAG2_ALLMULTI    4
+  int priv_flags;
   void *ext_eth; /* net bridge or bonding ctl */
   void *flowctl; /* net flow ctl */
   u16_t vlanid; /* include tag & pri */

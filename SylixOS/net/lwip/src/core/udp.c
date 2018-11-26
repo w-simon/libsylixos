@@ -1272,6 +1272,9 @@ udp_new(void)
     udp_set_multicast_ttl(pcb, UDP_TTL);
 #endif /* LWIP_MULTICAST_TX_OPTIONS */
 #if (LWIP_IPV4 && LWIP_IGMP) || (LWIP_IPV6 && LWIP_IPV6_MLD) /* SylixOS Add */
+#if LW_CFG_LWIP_DEF_MCAST_LOOP
+    udp_set_flags(pcb, UDP_FLAGS_MULTICAST_LOOP);
+#endif /* LW_CFG_LWIP_DEF_MCAST_LOOP */
     pcb->ipmc.proto = IPPROTO_UDP;
 #endif /* (LWIP_IPV4 && LWIP_IGMP) || (LWIP_IPV6 && LWIP_IPV6_MLD) */
   }

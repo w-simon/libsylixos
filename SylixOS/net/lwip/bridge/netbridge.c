@@ -524,6 +524,7 @@ int  netbr_add (const char *brdev, const char *ip,
                 const char *netmask, const char *gw, int *index)
 {
   static struct netdev_funcs  netbr_drv;
+  struct netif *netif_br;
   netbr_t *netbr;
   netdev_t *netdev_br;
   
@@ -541,6 +542,7 @@ int  netbr_add (const char *brdev, const char *ip,
   
   netbr->magic_no = NETBRIDGE_MAGIC;
   netdev_br = &netbr->netdev_br;
+  netif_br = (struct netif *)netdev_br->sys;
   
   netdev_br->magic_no = NETDEV_MAGIC;
   lib_strlcpy(netdev_br->dev_name, brdev, IF_NAMESIZE);
@@ -574,6 +576,8 @@ int  netbr_add (const char *brdev, const char *ip,
     mem_free(netbr);
     return (-1);
   }
+  
+  netif_br->priv_flags = IFF_EBRIDGE; /* bridge device */
   
   netdev_linkup_wd_add(netdev_br, netbr_wd); /* add watchdog function */
 

@@ -313,6 +313,15 @@ static INT  __ifSubIoctlIf (INT  iCmd, PVOID  pvArg)
             _ErrorHandle(EINVAL);
         }
         break;
+        
+    case SIOCGIFPFLAGS:                                                 /*  获取私有 flags              */
+        pifreq->ifr_flags = netif_get_priv_flags(pnetif);
+        iRet = ERROR_NONE;
+        break;
+        
+    case SIOCSIFPFLAGS:                                                 /*  设置私有 flags              */
+        _ErrorHandle(ENOSYS);
+        break;
     }
     
     return  (iRet);
@@ -749,6 +758,8 @@ INT  __ifIoctlInet (INT  iCmd, PVOID  pvArg)
     case SIOCSIFTCPAF:
     case SIOCGIFTCPWND:
     case SIOCSIFTCPWND:
+    case SIOCGIFPFLAGS:
+    case SIOCSIFPFLAGS:
         LWIP_IF_LIST_LOCK(LW_FALSE);                                    /*  进入临界区                  */
         iRet = __ifSubIoctlIf(iCmd, pvArg);
         LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
@@ -874,6 +885,8 @@ INT  __ifIoctlPacket (INT  iCmd, PVOID  pvArg)
     case SIOCSIFMTU:
     case SIOCGIFHWADDR:
     case SIOCSIFHWADDR:
+    case SIOCGIFPFLAGS:
+    case SIOCSIFPFLAGS:
         LWIP_IF_LIST_LOCK(LW_FALSE);                                    /*  进入临界区                  */
         iRet = __ifSubIoctlIf(iCmd, pvArg);
         LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */

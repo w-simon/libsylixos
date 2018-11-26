@@ -1137,7 +1137,7 @@ ip4_output_if_opt_src(struct pbuf *p, const ip4_addr_t *src, const ip4_addr_t *d
   if ((p->flags & PBUF_FLAG_MCASTLOOP) != 0) {
     netif_loop_output(netif, p);
   }
-#if LW_CFG_NET_MROUTER > 0 /* SylixOS Add mroute */
+#if LW_CFG_NET_MROUTER > 0 /* SylixOS Add mroute (MCASTLOOP mforward in ip_input()) */
     else if (ip4_addr_ismulticast(dest) && !mforward) {
     if (ip4_mrt_is_on()) {
       if (ip4_mrt_forward(p, iphdr, netif)) { /* try mforward */
@@ -1147,6 +1147,12 @@ ip4_output_if_opt_src(struct pbuf *p, const ip4_addr_t *src, const ip4_addr_t *d
   }
 #endif /* LW_CFG_NET_MROUTER > 0 */
 #endif /* LWIP_MULTICAST_TX_OPTIONS */
+#ifdef SYLIXOS /* SylixOS Add this broadcast loop */
+  /* Using Protocol Filtering to Accelerate the Judgment Process */
+  if ((proto != IP_PROTO_TCP) && ip4_addr_isbroadcast(dest, netif)) {
+    netif_loop_output(netif, p); /* broadcast loop */
+  }
+#endif /* SYLIXOS */
 #endif /* ENABLE_LOOPBACK */
 #if IP_FRAG
   /* don't fragment if interface has mtu set to 0 [loopif] */

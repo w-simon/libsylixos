@@ -488,9 +488,9 @@ VOID netif_callback_init (VOID)
 }
 /*********************************************************************************************************
 ** 函数名称: netif_get_flags
-** 功能描述: 通过 index 获得网络接口结构. (没有加锁)
-** 输　入  : uiIndex       index
-** 输　出  : 网络接口
+** 功能描述: 获得网络接口 flags
+** 输　入  : 网络接口
+** 输　出  : flags
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
@@ -523,6 +523,29 @@ INT  netif_get_flags (struct netif *pnetif)
     }
     if ((pnetif->flags2 & NETIF_FLAG2_ALLMULTI)) {
         iFlags |= IFF_ALLMULTI;
+    }
+    
+    return  (iFlags);
+}
+/*********************************************************************************************************
+** 函数名称: netif_get_priv_flags
+** 功能描述: 获得网络接口私有 flags
+** 输　入  : 网络接口
+** 输　出  : priv flags
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  netif_get_priv_flags (struct netif *pnetif)
+{
+#define VLAN_TAG_MASK       0xfff
+#define VLAN_TAG_OFFSET     0
+#define VLAN_TAG_GET(id)    (u16_t)((id) & VLAN_TAG_MASK)
+#define VLAN_ID_VALID(id)   (VLAN_TAG_GET(id) != VLAN_TAG_MASK)
+
+    INT  iFlags = pnetif->priv_flags;
+    
+    if (VLAN_ID_VALID(pnetif->vlanid)) {
+        iFlags |= IFF_802_1Q_VLAN;
     }
     
     return  (iFlags);

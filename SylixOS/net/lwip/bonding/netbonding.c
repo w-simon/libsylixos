@@ -850,6 +850,7 @@ int  netbd_add (const char *bddev, const char *ip,
 {
   static u8_t init = 0;
   static struct netdev_funcs  netbd_drv;
+  struct netif *netif_bd;
   netbd_t *netbd;
   netdev_t *netdev_bd;
   
@@ -913,6 +914,7 @@ int  netbd_add (const char *bddev, const char *ip,
   
   netbd->magic_no = NETBONDING_MAGIC;
   netdev_bd = &netbd->netdev_bd;
+  netif_bd = (struct netif *)netdev_bd->sys;
   
   netdev_bd->magic_no = NETDEV_MAGIC;
   lib_strlcpy(netdev_bd->dev_name, bddev, IF_NAMESIZE);
@@ -946,6 +948,8 @@ int  netbd_add (const char *bddev, const char *ip,
     mem_free(netbd);
     return (-1);
   }
+  
+  netif_bd->priv_flags = IFF_BONDING; /* bonding device */
   
   if (index) {
     netdev_index(netdev_bd, (unsigned int *)index);

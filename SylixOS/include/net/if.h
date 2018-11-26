@@ -76,18 +76,26 @@ LW_API struct if_nameindex  *if_nameindex_rnp(void *buffer, size_t bufsize);
 #endif                                                          /* __SYLIXOS_KERNEL                     */
 
 /*********************************************************************************************************
-  posix if flag (same as lwip)
+  posix if flags
 *********************************************************************************************************/
 
-#define IFF_UP               0x0001                             /* NETIF_FLAG_UP                        */
-#define IFF_BROADCAST        0x0002                             /* NETIF_FLAG_BROADCAST                 */
-#define IFF_POINTOPOINT      0x0004                             /* NETIF_FLAG_POINTTOPOINT              */
-#define IFF_RUNNING          0x0010                             /* NETIF_FLAG_LINK_UP                   */
-#define IFF_MULTICAST        0x0080                             /* NETIF_FLAG_IGMP                      */
-#define IFF_LOOPBACK         0x0100
-#define IFF_NOARP            0x0200
-#define IFF_PROMISC          0x0400
-#define IFF_ALLMULTI         0x0800                             /* receive all multicast packets        */
+#define IFF_UP               0x0001                             /* Interface is enable                  */
+#define IFF_BROADCAST        0x0002                             /* Interface support broadcast          */
+#define IFF_POINTOPOINT      0x0004                             /* Interface is point to point          */
+#define IFF_RUNNING          0x0010                             /* Interface is linked                  */
+#define IFF_MULTICAST        0x0080                             /* Interface support multicast          */
+#define IFF_LOOPBACK         0x0100                             /* Loop back interface                  */
+#define IFF_NOARP            0x0200                             /* Do not use ARP protocol              */
+#define IFF_PROMISC          0x0400                             /* Receive all packets                  */
+#define IFF_ALLMULTI         0x0800                             /* Receive all multicast packets        */
+
+/*********************************************************************************************************
+  if priv flags
+*********************************************************************************************************/
+
+#define IFF_802_1Q_VLAN      0x0001                             /* Vlan device                          */
+#define IFF_EBRIDGE          0x0002                             /* Ethernet bridge device               */
+#define IFF_BONDING          0x0004                             /* Bonding device                       */
 
 /*********************************************************************************************************
   posix if structures
@@ -196,6 +204,9 @@ struct ifconf {
 
 #define SIOCGIFTCPWND       _IOWR('i', 64, struct ifreq)
 #define SIOCSIFTCPWND       _IOW('i',  65, struct ifreq)
+
+#define SIOCGIFPFLAGS       _IOWR('i', 66, struct ifreq)
+#define SIOCSIFPFLAGS       _IOW('i',  67, struct ifreq)
 
 /*********************************************************************************************************
   sylixos if6 structures

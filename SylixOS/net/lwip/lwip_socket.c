@@ -551,6 +551,8 @@ static INT  __socketIoctl (SOCKET_T *psock, INT  iCmd, PVOID  pvArg)
             case SIOCSIFMTU:
             case SIOCGIFHWADDR:
             case SIOCSIFHWADDR:
+            case SIOCGIFPFLAGS:
+            case SIOCSIFPFLAGS:
                 iRet = __ifIoctlPacket(iCmd, pvArg);
                 break;
             
@@ -652,6 +654,8 @@ static INT  __socketIoctl (SOCKET_T *psock, INT  iCmd, PVOID  pvArg)
             case SIOCSIFTCPAF:
             case SIOCGIFTCPWND:
             case SIOCSIFTCPWND:
+            case SIOCGIFPFLAGS:
+            case SIOCSIFPFLAGS:
             case SIOCGSIZIFREQ6:
             case SIOCSIFADDR6:
             case SIOCSIFNETMASK6:
