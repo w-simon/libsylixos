@@ -91,7 +91,7 @@ INT  archElfGotInit (PVOID  pmodule)
     ulTemp        = pprivdyndir->ulMIPSSymNumIdx - pprivdyndir->ulMIPSGotSymIdx;
 
     while (ulTemp--) {
-        if (pMipsSym->st_shndx == SHN_UNDEF || pMipsSym->st_shndx == SHN_COMMON) {
+        if ((pMipsSym->st_shndx == SHN_UNDEF) || (pMipsSym->st_shndx == SHN_COMMON)) {
             BOOL  bWeak = (STB_WEAK == ELF_ST_BIND(pMipsSym->st_info));
 
             if (__moduleSymGetValue(pprivmodule,

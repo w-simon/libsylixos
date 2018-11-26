@@ -82,7 +82,10 @@ static LW_PTE_TRANSENTRY  mips32MmuBuildPteEntry (addr_t  ulBaseAddr, ULONG  ulF
         pteentry |= ENTRYLO_G;                                          /*  填充 G 位                   */
 
         if (ulFlag & LW_VMM_FLAG_CACHEABLE) {                           /*  填充 C 位                   */
-            pteentry |= MIPS_MMU_ENTRYLO_CACHE   << ENTRYLO_C_SHIFT;
+            pteentry |= MIPS_MMU_ENTRYLO_CACHE << ENTRYLO_C_SHIFT;
+
+        } else if (ulFlag & LW_VMM_FLAG_BUFFERABLE) {
+            pteentry |= MIPS_MMU_ENTRYLO_UNCACHE_WB << ENTRYLO_C_SHIFT;
 
         } else {
             pteentry |= MIPS_MMU_ENTRYLO_UNCACHE << ENTRYLO_C_SHIFT;
@@ -201,7 +204,7 @@ static  LW_PTE_TRANSENTRY  *mips32MmuPteOffset (LW_PMD_TRANSENTRY  *p_pmdentry, 
     ulAddr    &= ~LW_CFG_VMM_PGD_MASK;
     ulPageNum  = ulAddr >> LW_CFG_VMM_PAGE_SHIFT;
     p_pteentry = (LW_PTE_TRANSENTRY *)((addr_t)p_pteentry |
-                  (ulPageNum * sizeof(LW_PTE_TRANSENTRY)));             /*  获得虚拟地址页表描述符地址  */
+                 (ulPageNum * sizeof(LW_PTE_TRANSENTRY)));              /*  获得虚拟地址页表描述符地址  */
 
     return  (p_pteentry);
 }
@@ -402,6 +405,10 @@ static ULONG  mips32MmuFlagGet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr)
                           >> ENTRYLO_C_SHIFT;                           /*  获得 CACHE 属性             */
             if (ulCacheAttr == MIPS_MMU_ENTRYLO_CACHE) {                /*  可以 CACHE                  */
                 ulFlag |= LW_VMM_FLAG_CACHEABLE;
+
+            } else if ((ulCacheAttr == MIPS_MMU_ENTRYLO_UNCACHE_WB) &&
+                       (MIPS_MMU_ENTRYLO_UNCACHE_WB != MIPS_MMU_ENTRYLO_UNCACHE)) {
+                ulFlag |= LW_VMM_FLAG_BUFFERABLE;
             }
 
             return  (ulFlag);

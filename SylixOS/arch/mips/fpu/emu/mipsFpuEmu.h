@@ -162,18 +162,16 @@ struct mips_fpu_emulator_stats {
     unsigned long trunc_l_d;
 };
 
-extern struct mips_fpu_emulator_stats   _G_mipsFpuEmuStats[LW_CFG_MAX_PROCESSORS];
+extern struct mips_fpu_emulator_stats   _G_mipsFpuEmuStats;
 
-#define MIPS_FPU_EMU_INC_STATS(M)                   \
-do {                                                \
-    _G_mipsFpuEmuStats[LW_CPU_GET_CUR_ID()].M++;    \
+#define MIPS_FPU_EMU_INC_STATS(M)       \
+do {                                    \
+    _G_mipsFpuEmuStats.M++;             \
 } while (0)
 
 #else
 #define MIPS_FPU_EMU_INC_STATS(M)           do { } while (0)
 #endif                                                                  /*  CONFIG_DEBUG_FPU_EMU        */
-
-extern ARCH_FPU_CTX   _G_mipsFpuCtx[LW_CFG_MAX_PROCESSORS];
 
 extern int     fpu_emulator_cop1Handler(ARCH_REG_CTX *xcp, ARCH_FPU_CTX *ctx,
                                         int has_fpu, void **fault_addr);

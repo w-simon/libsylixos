@@ -903,12 +903,13 @@ static void emulate_load_store_insn(ARCH_REG_CTX *regs,
 	mm_segment_t seg;
 #endif
 #if LW_CFG_CPU_FPU_EN > 0
+    PLW_CLASS_TCB  ptcbCur;
+    ARCH_FPU_CTX  *pFpuCtx;
 #if LW_CFG_MIPS_HAS_MSA_INSTR > 0
 	union fpureg *fpr;
 	enum msa_2b_fmt df;
 	unsigned int wd;
 #endif                                                                  /*  MIPS_HAS_MSA_INSTR > 0      */
-    ARCH_FPU_CTX  *pFpuCtx;
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 
 	origpc = (unsigned long)pc;
@@ -1235,15 +1236,25 @@ static void emulate_load_store_insn(ARCH_REG_CTX *regs,
 	case sdc1_op:
 	case cop1x_op:
 #if LW_CFG_CPU_FPU_EN > 0
-        pFpuCtx = &_G_mipsFpuCtx[LW_CPU_GET_CUR_ID()];
-        __ARCH_FPU_SAVE(pFpuCtx);                                       /*  保存当前 FPU CTX            */
+	    LW_NONSCHED_MODE_PROC(
+	        LW_TCB_GET_CUR(ptcbCur);
+	        pFpuCtx = ptcbCur->TCB_pvStackFP;
+	        __ARCH_FPU_ENABLE();
+	        __ARCH_FPU_SAVE(pFpuCtx);                                   /*  保存当前 FPU CTX            */
+	    );
 
 		res = fpu_emulator_cop1Handler(regs, pFpuCtx, 1, &fault_addr);
 		if (res) {
+	        LW_NONSCHED_MODE_PROC(
+	            __ARCH_FPU_DISABLE();
+	        );
 	        goto sigill;
 		}
 
-        __ARCH_FPU_RESTORE(pFpuCtx);                                    /*  恢复当前 FPU CTX            */
+        LW_NONSCHED_MODE_PROC(
+            __ARCH_FPU_RESTORE(pFpuCtx);                                /*  恢复当前 FPU CTX            */
+            __ARCH_FPU_DISABLE();
+        );
 #else
         goto sigill;
         break;
@@ -1254,30 +1265,56 @@ static void emulate_load_store_insn(ARCH_REG_CTX *regs,
         if (!cpu_has_msa)
             goto sigill;
 
-        pFpuCtx = &_G_mipsFpuCtx[LW_CPU_GET_CUR_ID()];
+        /*
+         * TODO 由于目前并不支持多协处理器同时使用, msa 暂不支持
+         */
 
         df = insn.msa_mi10_format.df;
         wd = insn.msa_mi10_format.wd;
-        fpr = &pFpuCtx->FPUCTX_reg[wd];
 
         switch (insn.msa_mi10_format.func) {
         case msa_ld_op:
             if (!access_ok(VERIFY_READ, addr, sizeof(*fpr)))
                 goto sigbus;
 
-            /*
-             * TODO 由于目前并不支持多协处理器同时使用, msa 暂不支持
-             */
+            LW_NONSCHED_MODE_PROC(
+                LW_TCB_GET_CUR(ptcbCur);
+                pFpuCtx = ptcbCur->TCB_pvStackFP;
+                __ARCH_FPU_ENABLE();
+                __ARCH_FPU_SAVE(pFpuCtx);                               /*  保存当前 FPU CTX            */
+            );
+
+            fpr = &pFpuCtx->FPUCTX_reg[wd];
+
             lib_memcpy(fpr, addr, sizeof(*fpr));
             write_msa_wr(wd, fpr, df);
+
+            LW_NONSCHED_MODE_PROC(
+                __ARCH_FPU_RESTORE(pFpuCtx);                            /*  恢复当前 FPU CTX            */
+                __ARCH_FPU_DISABLE();
+            );
             break;
 
         case msa_st_op:
             if (!access_ok(VERIFY_WRITE, addr, sizeof(*fpr)))
                 goto sigbus;
 
+            LW_NONSCHED_MODE_PROC(
+                LW_TCB_GET_CUR(ptcbCur);
+                pFpuCtx = ptcbCur->TCB_pvStackFP;
+                __ARCH_FPU_ENABLE();
+                __ARCH_FPU_SAVE(pFpuCtx);                               /*  保存当前 FPU CTX            */
+            );
+
+            fpr = &pFpuCtx->FPUCTX_reg[wd];
+
             read_msa_wr(wd, fpr, df);
             lib_memcpy(addr, fpr, sizeof(*fpr));
+
+            LW_NONSCHED_MODE_PROC(
+                __ARCH_FPU_RESTORE(pFpuCtx);                            /*  恢复当前 FPU CTX            */
+                __ARCH_FPU_DISABLE();
+            );
             break;
 
         default:

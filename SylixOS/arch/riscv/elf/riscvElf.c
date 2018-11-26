@@ -411,7 +411,9 @@ static INT  riscvElfGotHi20Rela (LW_LD_EXEC_MODULE  *pmodule, UINT32  *puiLocati
     SINT64 offset = (VOID *)symVal - (VOID *)puiLocation;
     SINT32 hi20;
 
-    /* Always emit the got entry */
+    /*
+     * Always emit the got entry
+     */
     offset = riscvElfModuleEmitGotEntry(pmodule, symVal);
     if (offset == 0) {
         return  (PX_ERROR);

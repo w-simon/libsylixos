@@ -22,7 +22,6 @@
 #ifndef __ARCH_MIPSL2R4K_H
 #define __ARCH_MIPSL2R4K_H
 
-INT  mipsL2R4kProbe(VOID);
 INT  mipsL2R4kInitHw(VOID);
 INT  mipsL2R4kClear(PVOID  pvAdrs, size_t  stBytes);
 INT  mipsL2R4kFlush(PVOID  pvAdrs, size_t  stBytes);

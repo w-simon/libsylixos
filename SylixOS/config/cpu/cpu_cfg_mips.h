@@ -109,6 +109,30 @@
 #endif
 
 /*********************************************************************************************************
+  On the Loongson-2G/2H/3A/3B there is a bug that ll / sc and lld / scd is very weak ordering.
+  NOTICE: LW_CFG_MIPS_CPU_LOONGSON1 / LW_CFG_MIPS_CPU_LOONGSON2K / LW_CFG_MIPS_CPU_LOONGSON3 Only one can
+          set to 1.
+*********************************************************************************************************/
+
+#define LW_CFG_MIPS_CPU_LOONGSON1       0                               /*  Loongson-1x                 */
+#define LW_CFG_MIPS_CPU_LOONGSON2K      0                               /*  Loongson-2K                 */
+#define LW_CFG_MIPS_CPU_LOONGSON3       1                               /*  Loongson-2G/2H/3A/3B        */
+
+#if (LW_CFG_MIPS_CPU_LOONGSON3 > 0) || defined(_MIPS_ARCH_HR2)
+#define LW_CFG_MIPS_LOONGSON_LLSC_WAR   1                               /*  龙芯3号，华睿2号 LLSC 竞争  */
+#else
+#define LW_CFG_MIPS_LOONGSON_LLSC_WAR   0
+#endif
+
+#if (LW_CFG_MIPS_CPU_LOONGSON3 > 0) || (LW_CFG_MIPS_CPU_LOONGSON2K > 0) || defined(_MIPS_ARCH_HR2)
+#define LW_CFG_MIPS_WEAK_REORDERING             1
+#define LW_CFG_MIPS_WEAK_REORDERING_BEYOND_LLSC 1
+#else
+#define LW_CFG_MIPS_WEAK_REORDERING             0
+#define LW_CFG_MIPS_WEAK_REORDERING_BEYOND_LLSC 0
+#endif
+
+/*********************************************************************************************************
   浮点运算单元
 *********************************************************************************************************/
 

@@ -31,16 +31,17 @@
 #include "mips32/mips32Mmu.h"
 #include "mips64/mips64Mmu.h"
 /*********************************************************************************************************
-  UNIQUE ENTRYHI(按 512KB 步进, 提升兼容性, TLB 数目最多 64 个, 不会上溢到 CKSEG1)
+  UNIQUE ENTRYHI(按 512KB 步进, 提升兼容性, TLB 数目最多 256 个, 不会上溢到 CKSEG1, CKSEG0 空间有 512MB)
 *********************************************************************************************************/
 #define MIPS_UNIQUE_ENTRYHI(idx)        (CKSEG0 + ((idx) << (18 + 1)))
 /*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
-BOOL         _G_bMmuHasXI           = LW_FALSE;                         /*  是否有 XI 位                */
-UINT32       _G_uiMmuTlbSize        = 0;                                /*  TLB 数组大小                */
-UINT32       _G_uiMmuEntryLoUnCache = CONF_CM_UNCACHED;                 /*  非高速缓存                  */
-UINT32       _G_uiMmuEntryLoCache   = CONF_CM_CACHABLE_NONCOHERENT;     /*  一致性高速缓存              */
+BOOL         _G_bMmuHasXI             = LW_FALSE;                       /*  是否有 XI 位                */
+UINT32       _G_uiMmuTlbSize          = 0;                              /*  TLB 数组大小                */
+UINT32       _G_uiMmuEntryLoUnCache   = CONF_CM_UNCACHED;               /*  非高速缓存                  */
+UINT32       _G_uiMmuEntryLoUnCacheWb = CONF_CM_UNCACHED;               /*  非高速缓存加速(写缓冲)      */
+UINT32       _G_uiMmuEntryLoCache     = CONF_CM_CACHABLE_NONCOHERENT;   /*  一致性高速缓存              */
 /*********************************************************************************************************
 ** 函数名称: mipsMmuEnable
 ** 功能描述: 使能 MMU
@@ -76,12 +77,12 @@ VOID  mipsMmuInvalidateMicroTLB (VOID)
     switch (_G_uiMipsCpuType) {
 
     case CPU_LOONGSON2:
+    case CPU_LOONGSON2K:
         mipsCp0DiagWrite(LOONGSON_DIAG_ITLB);                           /*  无效 ITLB                   */
         break;
 
     case CPU_LOONGSON3:
-    case CPU_LOONGSON2K:
-        mipsCp0DiagWrite((LOONGSON_DIAG_DTLB) |
+        mipsCp0DiagWrite((LOONGSON_DIAG_DTLB) |                         /*  GS464E 才有 DTLB, GS464 没有*/
                          (LOONGSON_DIAG_ITLB));                         /*  无效 ITLB DTLB              */
         break;
 
@@ -208,12 +209,19 @@ static INT  mipsMmuGlobalInit (CPCHAR  pcMachineName)
     mipsMmuInvalidateTLB();                                             /*  无效 TLB                    */
 
     if (_G_bMmuHasXI) {                                                 /*  有执行阻止位                */
+        /*
+         * 写 PageGrain 前需要无效 TLB
+         */
         mipsCp0PageGrainWrite(
 #if LW_CFG_CPU_WORD_LENGHT == 64
                               PG_ELPA |                                 /*  支持 48 位物理地址          */
 #endif
                               PG_XIE);                                  /*  使能 EntryLo 执行阻止位     */
                                                                         /*  执行阻止例外复用 TLBL 例外  */
+        /*
+         * 目前为了通用性, 并没有使能个别处理器(GS264, GS464E, 华睿, 君正)才有的读阻止 RI 位,
+         * 而是使用 ENTRYLO_V 位来判断映射是否有效
+         */
     }
 
     if ((_G_uiMipsCpuType == CPU_LOONGSON3) ||                          /*  Loongson-3x/2G/2H           */
@@ -225,7 +233,7 @@ static INT  mipsMmuGlobalInit (CPCHAR  pcMachineName)
                        (1 <<  1) |                                      /*  取指操作进行硬件自动预取    */
                        (1 <<  0) |                                      /*  数据访存操作进行硬件自动预取*/
                        MIPS_CONF6_FTLBDIS;                              /*  只用 VTLB, 不用 FTLB        */
-        __asm__ __volatile__("sync" : : : "memory");
+        KN_SYNC();
         mipsCp0GSConfigWrite(uiGSConfig);
     }
 
@@ -358,26 +366,36 @@ VOID  mipsMmuInit (LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName)
 
     switch (_G_uiMipsCpuType) {
 
-    case CPU_LOONGSON1:                                                 /*  Loongson-1x/2x/3x 和        */
+    case CPU_LOONGSON1:
     case CPU_LOONGSON2:
     case CPU_LOONGSON3:
     case CPU_LOONGSON2K:
-    case CPU_JZRISC:                                                    /*  君正 CPU 都有执行阻止位     */
-        _G_bMmuHasXI           = LW_TRUE;
-        _G_uiMmuEntryLoUnCache = CONF_CM_UNCACHED;                      /*  非高速缓存                  */
-        _G_uiMmuEntryLoCache   = CONF_CM_CACHABLE_NONCOHERENT;          /*  一致性高速缓存              */
+        _G_bMmuHasXI             = LW_TRUE;                             /*  有执行阻止位                */
+        _G_uiMmuEntryLoUnCache   = 0x2;                                 /*  非高速缓存                  */
+        _G_uiMmuEntryLoUnCacheWb = 0x7;                                 /*  非高速缓存加速              */
+        _G_uiMmuEntryLoCache     = 0x3;                                 /*  一致性高速缓存              */
+        break;
+
+    case CPU_JZRISC:
+        _G_bMmuHasXI             = LW_TRUE;                             /*  有执行阻止位                */
+        _G_uiMmuEntryLoUnCache   = 0x2;                                 /*  非高速缓存                  */
+        _G_uiMmuEntryLoUnCacheWb = 0x7;                                 /*  非高速缓存加速              */
+        /*
+         * 4: Cacheable, coherent, write-back, write-allocate, read misses request Exclusive
+         * 5: Cacheable, coherent, write-back, write-allocate, read misses request Shared
+         */
+        _G_uiMmuEntryLoCache     = 0x5;                                 /*  一致性高速缓存              */
         break;
 
     case CPU_CETC_HR2:                                                  /*  CETC-HR2                    */
-        _G_bMmuHasXI           = LW_TRUE;
-        _G_uiMmuEntryLoUnCache = CONF_CM_UNCACHED;                      /*  非高速缓存                  */
-        _G_uiMmuEntryLoCache   = 6;                                     /*  一致性高速缓存              */
-        _G_uiMmuTlbSize        = 256;                                   /*  256 个 TLB 条目             */
+        _G_bMmuHasXI             = LW_TRUE;                             /*  有执行阻止位                */
+        _G_uiMmuEntryLoUnCache   = 0x2;                                 /*  非高速缓存                  */
+        _G_uiMmuEntryLoUnCacheWb = 0x2;                                 /*  非高速缓存                  */
+        _G_uiMmuEntryLoCache     = 0x6;                                 /*  一致性高速缓存              */
+        _G_uiMmuTlbSize          = 256;                                 /*  256 个 TLB 条目             */
         break;
 
     default:
-        _G_uiMmuEntryLoUnCache = CONF_CM_UNCACHED;                      /*  非高速缓存                  */
-        _G_uiMmuEntryLoCache   = CONF_CM_CACHABLE_NONCOHERENT;          /*  一致性高速缓存              */
         break;
     }
 

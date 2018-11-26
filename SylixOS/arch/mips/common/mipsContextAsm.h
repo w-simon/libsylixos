@@ -163,12 +163,6 @@ MACRO_DEF(RESTORE_REGS)
     REG_L       T8 , XHI(T9)                                            ;/*  恢复 HI 寄存器              */
     MTHI        T8
 
-    REG_L       T8 , XCAUSE(T9)                                         ;/*  恢复 CAUSE 寄存器           */
-    MTC0_EHB(T8, CP0_CAUSE)
-
-    REG_L       T8 , XBADVADDR(T9)                                      ;/*  恢复 BADVADDR 寄存器        */
-    MTC0_LONG_EHB(T8, CP0_BADVADDR)
-
     ;/*
     ; * O32 与 N64 ABI, T8 T9 都是 $24 $25
     ; */
@@ -179,11 +173,11 @@ MACRO_DEF(RESTORE_REGS)
     REG_L       T8 , XGREG(24)(T9)                                      ;/*  恢复 T8 寄存器              */
     REG_L       T9 , XGREG(25)(T9)                                      ;/*  恢复 T9 寄存器              */
 
-    ORI         K0 , K0 , ST0_EXL                                       ;/*  通过设置 EXL 位             */
+    MTC0_LONG_EHB(K1, CP0_EPC)                                          ;/*  恢复 EPC 寄存器             */
 
-    MTC0_LONG(K1, CP0_EPC)                                              ;/*  恢复 EPC 寄存器             */
-    MTC0        K0 , CP0_STATUS                                         ;/*  进入内核模式，并关中断      */
-    EHB
+    ORI         K0 , K0 , ST0_EXL                                       ;/*  通过设置 EXL 位             */
+    MTC0_EHB(K0 , CP0_STATUS)                                           ;/*  进入内核模式，并关中断      */
+
     ERET                                                                ;/*  清除 EXL 位并返回           */
     NOP
 

@@ -64,8 +64,8 @@ typedef UINT64      ARCH_REG_T;
 
 typedef struct {
     ARCH_REG_T  REG_ulReg[ARCH_GREG_NR];                                /*  32 个通用目的寄存器         */
-    ARCH_REG_T  REG_ulCP0DataLO;                                        /*  除数低位寄存器              */
-    ARCH_REG_T  REG_ulCP0DataHI;                                        /*  除数高位寄存器              */
+    ARCH_REG_T  REG_ulCP0DataLO;                                        /*  乘法结果低位寄存器          */
+    ARCH_REG_T  REG_ulCP0DataHI;                                        /*  乘法结果高位寄存器          */
     ARCH_REG_T  REG_ulCP0Cause;                                         /*  产生中断或者异常查看的寄存器*/
     ARCH_REG_T  REG_ulCP0Status;                                        /*  CP0 协处理器状态寄存器      */
     ARCH_REG_T  REG_ulCP0EPC;                                           /*  程序计数器寄存器            */

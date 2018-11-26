@@ -52,7 +52,9 @@ static LW_INLINE VOID  mipsSpinLock (SPINLOCKTYPE *psld, VOIDFUNCPTR  pfuncPoll,
     __asm__ __volatile__(
         "   .set push                                   \n"
         "   .set noreorder                              \n"
-        "1: ll      %[oldvalue], %[slock]               \n"
+        "1:                                             \n"
+        KN_WEAK_LLSC_MB
+        "   ll      %[oldvalue], %[slock]               \n"
         "   addu    %[newvalue], %[oldvalue], %[inc]    \n"
         "   sc      %[newvalue], %[slock]               \n"
         "   beqz    %[newvalue], 1b                     \n"
@@ -87,8 +89,9 @@ static LW_INLINE UINT32  mipsSpinTryLock (SPINLOCKTYPE *psld)
     __asm__ __volatile__ (
         "   .set push                                       \n"
         "   .set noreorder                                  \n"
-        "                                                   \n"
-        "1: ll      %[ticket],     %[slock]                 \n"
+        "1:                                                 \n"
+        KN_WEAK_LLSC_MB
+        "   ll      %[ticket],     %[slock]                 \n"
         "   srl     %[myticket],   %[ticket],     16        \n"
         "   andi    %[nowserving], %[ticket],     0xffff    \n"
         "   bne     %[myticket],   %[nowserving], 3f        \n"
@@ -120,8 +123,38 @@ static LW_INLINE UINT32  mipsSpinTryLock (SPINLOCKTYPE *psld)
 *********************************************************************************************************/
 static LW_INLINE VOID  mipsSpinUnlock (SPINLOCKTYPE *psld)
 {
-    psld->SLD_usSvcNow++;
+#if (LW_CFG_MIPS_CPU_LOONGSON3 > 0) || defined(_MIPS_ARCH_HR2)
+    INT  iTemp1, iTemp2;
+
+    __asm__ __volatile__(
+        "   .set push                   \n"
+        "   .set noreorder              \n"
+#if LW_CFG_CPU_WORD_LENGHT == 32
+        "   .set mips32r2               \n"
+#else
+        "   .set mips64r2               \n"
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
+        "1:                             \n"
+        "   sync                        \n"
+        "   ll      %1 , %3             \n"
+        "   addiu   %2 , %1 , 1         \n"
+        "   ins     %1 , %2 , 0 , 16    \n"
+        "   sc      %1 , %0             \n"
+        "   beqz    %1 , 1b             \n"
+        "   nop                         \n"
+        "   .set pop                    \n"
+        : "=m" (psld->SLD_uiLock), "=&r" (iTemp1), "=&r" (iTemp2)
+        : "m" (psld->SLD_uiLock)
+        : "memory");
+
+#else
+    UINT  uiSvcNow = psld->SLD_usSvcNow + 1;
+
     KN_SMP_WMB();
+    psld->SLD_usSvcNow = (UINT16)uiSvcNow;
+#endif
+
+    KN_SMP_MB();                                                        /*  All over                    */
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: archSpinInit

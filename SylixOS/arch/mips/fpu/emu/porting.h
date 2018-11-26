@@ -48,10 +48,10 @@
 *********************************************************************************************************/
 
 #define GET_CUR_THREAD_FPU_FPR          \
-        _G_mipsFpuCtx[LW_CPU_GET_CUR_ID()].FPUCTX_reg
+        ((ARCH_FPU_CTX *)(API_ThreadTcbSelf()->TCB_pvStackFP))->FPUCTX_reg
 
 #define GET_CUR_THREAD_FPU_FCR31        \
-        _G_mipsFpuCtx[LW_CPU_GET_CUR_ID()].FPUCTX_uiFcsr
+        ((ARCH_FPU_CTX *)(API_ThreadTcbSelf()->TCB_pvStackFP))->FPUCTX_uiFcsr
 
 /*********************************************************************************************************
   FPU REG ทรฮส

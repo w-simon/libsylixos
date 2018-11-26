@@ -28,6 +28,7 @@
 extern BOOL                 _G_bMmuHasXI;                               /*  是否有 XI 位                */
 extern UINT32               _G_uiMmuTlbSize;                            /*  TLB 数组大小                */
 extern UINT32               _G_uiMmuEntryLoUnCache;                     /*  非高速缓存                  */
+extern UINT32               _G_uiMmuEntryLoUnCacheWb;                   /*  非高速缓存加速(写缓冲)      */
 extern UINT32               _G_uiMmuEntryLoCache;                       /*  一致性高速缓存              */
 /*********************************************************************************************************
   MMU 特性
@@ -35,6 +36,7 @@ extern UINT32               _G_uiMmuEntryLoCache;                       /*  一致
 #define MIPS_MMU_HAS_XI                 _G_bMmuHasXI                    /*  是否有 XI 位                */
 #define MIPS_MMU_TLB_SIZE               _G_uiMmuTlbSize                 /*  TLB 数组大小                */
 #define MIPS_MMU_ENTRYLO_UNCACHE        _G_uiMmuEntryLoUnCache          /*  非高速缓存                  */
+#define MIPS_MMU_ENTRYLO_UNCACHE_WB     _G_uiMmuEntryLoUnCacheWb        /*  非高速缓存加速(写缓冲)      */
 #define MIPS_MMU_ENTRYLO_CACHE          _G_uiMmuEntryLoCache            /*  一致性高速缓存              */
 /*********************************************************************************************************
   PAGE 掩码

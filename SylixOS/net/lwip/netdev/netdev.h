@@ -223,7 +223,7 @@ typedef struct netdev {
   
   void *priv;   /* user network device private data */
   
-  /* the following member is used by system, driver not used! */
+  /* the following member is used by system, driver MUST set zero and do not used! */
   int if_flags;
   
   /* wireless externed */

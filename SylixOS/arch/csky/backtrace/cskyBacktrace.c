@@ -250,7 +250,7 @@ static void  csky_analyze_prologue (unsigned long   start_pc,    unsigned long  
                 insn_len    = csky_get_insn(addr, &insn2);
                 if (insn_len == 2) {
                     stw_regnum = (insn2 >> 5) & 0x7;
-                    if ( V2_16_IS_STWx0(insn2) && (mfcr_regnum == stw_regnum)) {
+                    if (V2_16_IS_STWx0(insn2) && (mfcr_regnum == stw_regnum)) {
                         int offset;
 
                         rn     = CSKY_NUM_GREGS_v2 + 2;                 /*  CSKY_EPC_REGNUM             */
@@ -281,7 +281,7 @@ static void  csky_analyze_prologue (unsigned long   start_pc,    unsigned long  
                 insn_len    = csky_get_insn(addr, &insn2);
                 if (insn_len == 2) {
                     stw_regnum = (insn2 >> 5) & 0x7;
-                    if ( V2_16_IS_STWx0(insn2) && (mfcr_regnum == stw_regnum)) {
+                    if (V2_16_IS_STWx0(insn2) && (mfcr_regnum == stw_regnum)) {
                         int offset;
 
                         rn     = CSKY_NUM_GREGS_v2 + 3;                 /*  CSKY_FPC_REGNUM             */

@@ -143,6 +143,16 @@ endif
 # Compile source files
 #*********************************************************************************************************
 ifeq ($(ARCH), c6x)
+$(OBJPATH)/$(target)/%.o: %.sa
+		@if [ ! -d "$(dir $@)" ]; then \
+			mkdir -p "$(dir $@)"; fi
+		@if [ ! -d "$(dir $(__PP))" ]; then \
+			mkdir -p "$(dir $(__PP))"; fi
+		@-rm -rf $(__DEP)
+		$(AS) $($(__TARGET)_ASFLAGS) --preproc_with_compile --preproc_dependency=$(__PP) $< -fe=$@
+		@-$(DEPFIX) $(__PP) $(__DEP)
+		@-rm -rf $(__PP)
+
 $(OBJPATH)/$(target)/%.o: %.asm
 		@if [ ! -d "$(dir $@)" ]; then \
 			mkdir -p "$(dir $@)"; fi

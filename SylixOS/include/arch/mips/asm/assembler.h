@@ -25,15 +25,15 @@
 #include "archprob.h"
 #include "arch/mips/arch_def.h"
 
+#ifndef __MP_CFG_H
+#include "../SylixOS/config/mp/mp_cfg.h"
+#endif
+
 /*********************************************************************************************************
   mips architecture assembly special code
 *********************************************************************************************************/
 
 #if defined(__ASSEMBLY__) || defined(ASSEMBLY)
-
-#ifndef __MP_CFG_H
-#include "../SylixOS/config/mp/mp_cfg.h"
-#endif
 
 /*********************************************************************************************************
   assembler define
@@ -411,6 +411,56 @@ name:
 #endif
 
 #define ARCH_STK_OFF_VAR(n)     (ARCH_STK_VAR_SIZE - ((n) + 1) * SZREG)
+
+/*********************************************************************************************************
+  MIPS LLSC ÄÚ´æÆÁÕÏ
+*********************************************************************************************************/
+
+#if LW_CFG_MIPS_HAS_SYNC_INSTR > 0
+#define KN_SYNC_INST                SYNC
+#else
+#define KN_SYNC_INST
+#endif                                                                  /*  LW_CFG_MIPS_HAS_SYNC_INSTR  */
+
+#if LW_CFG_SMP_EN > 0
+#define KN_SMP_MB_INST              KN_SYNC_INST
+#else
+#define KN_SMP_MB_INST
+#endif
+
+#if (LW_CFG_MIPS_WEAK_REORDERING_BEYOND_LLSC) > 0 && (LW_CFG_SMP_EN > 0)
+#if (LW_CFG_MIPS_CPU_LOONGSON3 > 0) || defined(_MIPS_ARCH_HR2)
+#define KN_WEAK_LLSC_MB_INST        .set push; .set mips32r2; SYNCI 0; .set pop
+#else
+#define KN_WEAK_LLSC_MB_INST        KN_SYNC_INST
+#endif
+#else
+#define KN_WEAK_LLSC_MB_INST
+#endif
+
+#define KN_SMP_LLSC_MB_INST         KN_WEAK_LLSC_MB_INST
+
+#else
+/*********************************************************************************************************
+  MIPS LLSC ÄÚ´æÆÁÕÏ
+*********************************************************************************************************/
+
+#if (LW_CFG_MIPS_WEAK_REORDERING_BEYOND_LLSC) > 0 && (LW_CFG_SMP_EN > 0)
+#if (LW_CFG_MIPS_CPU_LOONGSON3 > 0) || defined(_MIPS_ARCH_HR2)
+#define KN_WEAK_LLSC_MB             "   .set push\n .set mips32r2\n synci 0\n .set pop  \n"
+#else
+#define KN_WEAK_LLSC_MB             "   sync    \n"
+#endif
+#else
+#define KN_WEAK_LLSC_MB             "           \n"
+#endif
+
+#define KN_SMP_LLSC_MB()            __asm__ __volatile__(KN_WEAK_LLSC_MB : : : "memory")
+
+#define KN_SMP_MB_BEFORE_LLSC()     KN_SMP_LLSC_MB()
+
+#define KN_SMP_MB_BEFORE_ATOMIC()   KN_SMP_MB_BEFORE_LLSC()
+#define KN_SMP_MB_AFTER_ATOMIC()    KN_SMP_LLSC_MB()
 
 #endif                                                                  /*  __ASSEMBLY__                */
 #endif                                                                  /*  __ASMMIPS_ASSEMBLER_H       */

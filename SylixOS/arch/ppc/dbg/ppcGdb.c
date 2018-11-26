@@ -367,7 +367,9 @@ ULONG  archGdbGetNextPc (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, GDB_REG_SE
                                                                         /*  bit bi of CR                */
         uiCRBI = _REG32_BIT((UINT32)uiCR, (CR_NB_BIT - 1 - ((UINT32)uiBI)));
 
-        /* Switch on the type of branch (Bx, BCx, BCCTRx, BCLRx) */
+        /*
+         * Switch on the type of branch (Bx, BCx, BCCTRx, BCLRx)
+         */
         switch (uiBranchType) {
 
         case (16):                                                      /*  BC - Branch Conditional     */
@@ -376,7 +378,9 @@ ULONG  archGdbGetNextPc (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, GDB_REG_SE
                 uiCTR--;                                                /*  decrement CTR register      */
             }
 
-            /* test branch condition */
+            /*
+             * test branch condition
+             */
             bCond = LW_FALSE;
             if ((uiBO2 == 1) || ((uiCTR != 0) ^ (uiBO3 != 0))) {
                 if ((uiBO0 == 1) || (uiBO1 == uiCRBI)) {
@@ -412,7 +416,9 @@ ULONG  archGdbGetNextPc (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, GDB_REG_SE
                     uiCTR--;                                            /*  decrement CTR register      */
                 }
 
-                /* test branch condition */
+                /*
+                 * test branch condition
+                 */
                 bCond = LW_FALSE;
                 if ((uiBO2 == 1) || ((uiCTR == 0) && (uiBO3 == 0))) {
                     if ((uiBO0 == 1) || (uiBO1 == uiCRBI)) {
@@ -429,7 +435,9 @@ ULONG  archGdbGetNextPc (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, GDB_REG_SE
                     uiCTR--;                                            /*  decrement CTR register      */
                 }
 
-                /* test branch condition */
+                /*
+                 * test branch condition
+                 */
                 bCond = LW_FALSE;
                 if ((uiBO2 == 1) || ((uiCTR == 0) && (uiBO3 == 0))) {
                     if ((uiBO0 == 1) || (uiBO1 == uiCRBI)) {

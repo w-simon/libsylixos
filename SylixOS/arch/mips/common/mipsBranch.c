@@ -350,11 +350,19 @@ int __compute_return_epc_for_insn(ARCH_REG_CTX *regs,
                 fcr31 = current->thread.fpu.fcr31;
             preempt_enable();
 #else
-            if (regs->REG_ulCP0Status & ST0_CU1) {
+            LW_NONSCHED_MODE_PROC(
+                BOOL  bEnabled = read_c0_status() & ST0_CU1;
+
+                if (!bEnabled) {
+                    __ARCH_FPU_ENABLE();
+                }
+
                 fcr31 = read_32bit_cp1_register(CP1_STATUS);
-            } else {
-                fcr31 = 0;
-            }
+
+                if (!bEnabled) {
+                    __ARCH_FPU_DISABLE();
+                }
+            );
 #endif
             bit = (insn.i_format.rt >> 2);
             bit += (bit != 0);

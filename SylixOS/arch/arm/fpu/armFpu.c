@@ -160,7 +160,7 @@ VOID  archFpuSecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 
 #endif                                                                  /*  LW_CFG_SMP_EN               */
 /*********************************************************************************************************
-** 函数名称: OSFpuInitCtx
+** 函数名称: archFpuCtxInit
 ** 功能描述: 初始化一个 Fpu 上下文控制块 (这里并没有使能 FPU)
 ** 输　入  : pvFpuCtx   FPU 上下文
 ** 输　出  : NONE

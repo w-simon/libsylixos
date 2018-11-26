@@ -171,6 +171,9 @@ MACRO_DEF(SAVE_NON_VOLATILE_REG)
     .set    push
     .set    noat
 
+    ;/*
+    ; * ±£´æ S0-S7($16-$23)
+    ; */
     REG_S       $16 , XGREG(16)(A0)
     REG_S       $17 , XGREG(17)(A0)
     REG_S       $18 , XGREG(18)(A0)
@@ -180,16 +183,12 @@ MACRO_DEF(SAVE_NON_VOLATILE_REG)
     REG_S       $22 , XGREG(22)(A0)
     REG_S       $23 , XGREG(23)(A0)
     ;/*
-    ; * $24 $25 ÊÇ T8 T9
-    ; * $26 $27 ÊÇ K0 K1
+    ; * ±£´æ GP SP FP RA($28-$31)
     ; */
     REG_S       $28 , XGREG(28)(A0)
     REG_S       $29 , XGREG(29)(A0)
     REG_S       $30 , XGREG(30)(A0)
     REG_S       $31 , XGREG(31)(A0)
-
-    MFC0_EHB(T0, CP0_STATUS)                                            ;/*  ±£´æ STATUS ¼Ä´æÆ÷          */
-    REG_S       T0 , XSR(A0)
 
     .set    pop
     MACRO_END()
@@ -202,6 +201,9 @@ MACRO_DEF(RESTORE_NON_VOLATILE_REG)
     .set    push
     .set    noat
 
+    ;/*
+    ; * »Ö¸´ S0-S7($16-$23)
+    ; */
     REG_L       $16 , XGREG(16)(A0)
     REG_L       $17 , XGREG(17)(A0)
     REG_L       $18 , XGREG(18)(A0)
@@ -211,16 +213,12 @@ MACRO_DEF(RESTORE_NON_VOLATILE_REG)
     REG_L       $22 , XGREG(22)(A0)
     REG_L       $23 , XGREG(23)(A0)
     ;/*
-    ; * $24 $25 ÊÇ T8 T9
-    ; * $26 $27 ÊÇ K0 K1
+    ; * »Ö¸´ GP SP FP RA($28-$31)
     ; */
     REG_L       $28 , XGREG(28)(A0)
     REG_L       $29 , XGREG(29)(A0)
     REG_L       $30 , XGREG(30)(A0)
     REG_L       $31 , XGREG(31)(A0)
-
-    REG_L       T0 , XSR(A0)                                            ;/*  »Ö¸´ STATUS ¼Ä´æÆ÷          */
-    MTC0_EHB(T0, CP0_STATUS)
 
     .set    pop
     MACRO_END()

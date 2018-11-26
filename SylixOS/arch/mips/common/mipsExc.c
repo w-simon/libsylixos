@@ -287,8 +287,8 @@ static VOID  archAddrLoadExceptHandle (addr_t  ulRetAddr, addr_t  ulAbortAddr, A
      *  TODO: 由于现在未使用用户模式, 所以第三种情况暂不用处理
      */
 
-    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
     abtInfo.VMABT_uiMethod = BUS_ADRALN;
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
 
     if (param->MP_bUnalign) {
         API_VmmAbortIsrEx(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur, archUnalignedHandle);
@@ -315,8 +315,8 @@ static VOID  archAddrStoreExceptHandle (addr_t  ulRetAddr, addr_t  ulAbortAddr, 
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
     abtInfo.VMABT_uiMethod = BUS_ADRALN;
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
 
     if (param->MP_bUnalign) {
         API_VmmAbortIsrEx(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur, archUnalignedHandle);
@@ -484,6 +484,67 @@ static VOID  archResvInstHandle (addr_t  ulRetAddr, addr_t  ulAbortAddr)
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
+** 函数名称: archFloatPointUnImplHandle
+** 功能描述: FPU 未实现异常处理
+** 输　入  : pabtctx    abort 上下文
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  archFloatPointUnImplHandle (PLW_VMM_ABORT_CTX  pabtctx)
+{
+    PLW_CLASS_TCB  ptcbCur;
+    ARCH_FPU_CTX  *pFpuCtx;
+    INT            iSignal;
+
+    LW_NONSCHED_MODE_PROC(
+        LW_TCB_GET_CUR(ptcbCur);
+        pFpuCtx = ptcbCur->TCB_pvStackFP;
+        __ARCH_FPU_ENABLE();
+        __ARCH_FPU_SAVE(pFpuCtx);                                       /*  保存当前 FPU CTX            */
+    );
+
+    iSignal = fpu_emulator_cop1Handler(&pabtctx->ABTCTX_archRegCtx,     /*  FPU 模拟                    */
+                                       pFpuCtx,
+                                       LW_TRUE,
+                                       (PVOID *)&pabtctx->ABTCTX_ulAbortAddr);
+    switch (iSignal) {
+
+    case 0:                                                             /*  成功模拟                    */
+        pabtctx->ABTCTX_abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_NOINFO;
+        LW_NONSCHED_MODE_PROC(
+            __ARCH_FPU_RESTORE(pFpuCtx);                                /*  恢复当前 FPU CTX            */
+        );
+        break;
+
+    case SIGILL:                                                        /*  未定义指令                  */
+        pabtctx->ABTCTX_abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
+        pabtctx->ABTCTX_abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_UNDEF;
+        pabtctx->ABTCTX_ulAbortAddr = pabtctx->ABTCTX_ulRetAddr;
+        break;
+
+    case SIGBUS:                                                        /*  总线错误                    */
+        pabtctx->ABTCTX_abtInfo.VMABT_uiMethod = BUS_ADRERR;
+        pabtctx->ABTCTX_abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
+        break;
+
+    case SIGSEGV:                                                       /*  地址不合法                  */
+        pabtctx->ABTCTX_abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_WRITE;
+        pabtctx->ABTCTX_abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_TERMINAL;
+        break;
+
+    case SIGFPE:                                                        /*  FPU 错误                    */
+    default:
+        break;
+    }
+
+    LW_NONSCHED_MODE_PROC(
+       __ARCH_FPU_DISABLE();
+    );
+
+    API_VmmAbortReturn(pabtctx);
+}
+/*********************************************************************************************************
 ** 函数名称: archFloatPointExceptHandle
 ** 功能描述: 浮点异常处理
 ** 输　入  : ulRetAddr     返回地址
@@ -498,86 +559,52 @@ static VOID  archFloatPointExceptHandle (addr_t  ulRetAddr, addr_t  ulAbortAddr,
     PLW_CLASS_TCB  ptcbCur;
     LW_VMM_ABORT   abtInfo;
 #if LW_CFG_CPU_FPU_EN > 0
+    UINT32         uiConfig1;
     UINT32         uiFCSR;
     UINT32         uiFEXR;
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_FPE;                       /*  终止类型默认为 FPU 异常     */
+    abtInfo.VMABT_uiMethod = FPE_FLTINV;
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FPE;                     /*  终止类型默认为 FPU 异常     */
 
 #if LW_CFG_CPU_FPU_EN > 0
 #define FEXR_MASK       ((0x3f << 12) | (0x1f << 2))
 #define FENR_MASK       ((0x1f <<  7) | (0x07 << 0))
 #define FCCR_MASK       ((0xff <<  0))
 
-    uiFCSR = mipsVfp32GetFCSR();
-    uiFEXR = uiFCSR & FEXR_MASK;                                        /*  获得浮点异常类型            */
-    if (uiFEXR & (1 << 17)) {                                           /*  未实现异常                  */
-        PVOID           pvFaultAddr;
-        INT             iSignal;
-        ARCH_FPU_CTX   *pfpuctx;
+    uiConfig1 = mipsCp0Config1Read();
+    if (uiConfig1 & MIPS_CONF1_FP) {                                    /*  有 FPU                      */
 
-        pfpuctx = &_G_mipsFpuCtx[LW_CPU_GET_CUR_ID()];
-        __ARCH_FPU_SAVE(pfpuctx);                                       /*  保存当前 FPU CTX            */
+        uiFCSR = mipsVfp32GetFCSR();
+        mipsVfp32SetFCSR(uiFCSR & (~FEXR_MASK));                        /*  清除浮点异常                */
 
-        iSignal = fpu_emulator_cop1Handler(pregctx, pfpuctx,
-                                           LW_TRUE, &pvFaultAddr);      /*  FPU 模拟                    */
-        switch (iSignal) {
+        uiFEXR = uiFCSR & FEXR_MASK;                                    /*  获得浮点异常类型            */
+        if (uiFEXR & (1 << 17)) {                                       /*  未实现异常                  */
+            abtInfo.VMABT_uiMethod = FPE_FLTINV;
+            API_VmmAbortIsrEx(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur, archFloatPointUnImplHandle);
+            return;
 
-        case 0:                                                         /*  成功模拟                    */
-            abtInfo.VMABT_uiType = 0;
-            __ARCH_FPU_RESTORE(pfpuctx);                                /*  恢复当前 FPU CTX            */
-            break;
+        } else if (uiFEXR & (1 << 16)) {                                /*  非法操作异常                */
+            abtInfo.VMABT_uiMethod = FPE_FLTINV;
 
-        case SIGILL:                                                    /*  未定义指令                  */
-            abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
-            abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_UNDEF;
-            ulAbortAddr            = ulRetAddr;
-            break;
+        } else if (uiFEXR & (1 << 15)) {                                /*  除零异常                    */
+            abtInfo.VMABT_uiMethod = FPE_FLTDIV;
 
-        case SIGBUS:                                                    /*  总线错误                    */
-            abtInfo.VMABT_uiMethod = BUS_ADRERR;
-            abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
-            break;
+        } else if (uiFEXR & (1 << 14)) {                                /*  上溢异常                    */
+            abtInfo.VMABT_uiMethod = FPE_FLTOVF;
 
-        case SIGSEGV:                                                   /*  地址不合法                  */
-            abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_WRITE;
-            abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_TERMINAL;
-            ulAbortAddr = (addr_t)pvFaultAddr;
-            break;
+        } else if (uiFEXR & (1 << 13)) {
+            abtInfo.VMABT_uiMethod = FPE_FLTUND;                        /*  下溢异常                    */
 
-        case SIGFPE:                                                    /*  FPU 错误                    */
-        default:
-            abtInfo.VMABT_uiMethod = 0;
-            break;
+        } else if (uiFEXR & (1 << 12)) {                                /*  不精确异常                  */
+            abtInfo.VMABT_uiMethod = FPE_FLTRES;
         }
-
-    } else if (uiFEXR & (1 << 16)) {                                    /*  非法操作异常                */
-        abtInfo.VMABT_uiMethod = FPE_FLTINV;
-
-    } else if (uiFEXR & (1 << 15)) {                                    /*  除零异常                    */
-        abtInfo.VMABT_uiMethod = FPE_FLTDIV;
-
-    } else if (uiFEXR & (1 << 14)) {                                    /*  上溢异常                    */
-        abtInfo.VMABT_uiMethod = FPE_FLTOVF;
-
-    } else if (uiFEXR & (1 << 13)) {
-        abtInfo.VMABT_uiMethod = FPE_FLTUND;                            /*  下溢异常                    */
-
-    } else if (uiFEXR & (1 << 12)) {                                    /*  不精确异常                  */
-        abtInfo.VMABT_uiMethod = FPE_FLTRES;
-
-    } else {
-        abtInfo.VMABT_uiMethod = 0;
     }
-
-    mipsVfp32SetFCSR(uiFCSR & (~FEXR_MASK));                            /*  清除浮点异常                */
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 
-    if (abtInfo.VMABT_uiType) {
-        API_VmmAbortIsr(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur);
-    }
+    API_VmmAbortIsr(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
 ** 函数名称: archCoProc2ExceptHandle
@@ -620,7 +647,7 @@ static VOID  archCoProcUnusableExceptHandle (addr_t  ulRetAddr, addr_t  ulAbortA
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    switch (((pregctx->REG_ulCP0Cause & CAUSEF_CE) >> CAUSEB_CE)) {
+    switch (((pregctx->REG_ulCP0Cause & CAUSEF_CE) >> CAUSEB_CE)) {     /*  获得不可用协处理器编号      */
 
 #if LW_CFG_CPU_FPU_EN > 0
     case 1:
@@ -774,7 +801,7 @@ VOID  archExceptionHandle (ARCH_REG_CTX  *pregctx)
 
     pfuncExceptHandle = _G_mipsExceptHandle[ulExcCode];
     if (pfuncExceptHandle == LW_NULL) {
-        _BugFormat(LW_TRUE, LW_TRUE, "Unknow exception: %d\r\n", ulExcCode);
+        _BugFormat(LW_TRUE, LW_TRUE, "Unknown exception: %d\r\n", ulExcCode);
 
     } else {
         pfuncExceptHandle(pregctx->REG_ulCP0EPC, pregctx->REG_ulCP0BadVAddr, pregctx);

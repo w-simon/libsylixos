@@ -46,7 +46,11 @@
 FUNC_DEF(archMpCur)
 #if LW_CFG_MIPS_HAS_RDHWR_INSTR > 0
     .set    push
+#if LW_CFG_CPU_WORD_LENGHT == 32
+    .set    mips32r2
+#else
     .set    mips64r2
+#endif
     RDHWR   V0 , HWR_CPUNUM
     .set    pop
     JR      RA

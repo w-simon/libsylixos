@@ -83,10 +83,14 @@ int  backtrace (void  **array, int  size)
     void *__unbounded end_stack;
     int               count;
 
-    /* Force gcc to spill LR.  */
+    /*
+     * Force gcc to spill LR.
+     */
     asm volatile ("" : "=l"(current));
 
-    /* Get the address on top-of-stack.  */
+    /*
+     * Get the address on top-of-stack.
+     */
     asm volatile ("lwz %0 , 0(1)" : "=r"(current));
     current = BOUNDED_1(current);
 

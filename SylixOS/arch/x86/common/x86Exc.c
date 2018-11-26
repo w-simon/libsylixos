@@ -303,7 +303,7 @@ static VOID  x86BreakPointExceptHandle (ULONG  ulX86Vector, ARCH_REG_CTX  *pregc
     LW_VMM_ABORT    abtInfo;
     addr_t          ulRetAddr;
 
-    pregctx->REG_XIP -= 1;                                               /*  回退到前一个字节的 INT3 指令*/
+    pregctx->REG_XIP -= 1;                                              /*  回退到前一个字节的 INT3 指令*/
 
     ulRetAddr = pregctx->REG_XIP;
 

@@ -188,8 +188,7 @@ int  netdev_txq_enable (netdev_t *netdev, struct netdev_txq *txq)
   union netdev_txq_desc *desc;
 
   if (netdev->kern_txq) {
-    errno = EALREADY;
-    return (-1);
+    return (0); /* already enabled */
   }
   
   if (netdev->init_flags & NETDEV_INIT_NO_TXQ) {

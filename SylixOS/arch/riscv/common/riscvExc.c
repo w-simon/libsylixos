@@ -135,7 +135,7 @@ static VOID  archInstAddrMisalignTrapHandle (ARCH_REG_CTX  *pregctx)
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    abtInfo.VMABT_uiMethod = BUS_ADRERR;
+    abtInfo.VMABT_uiMethod = BUS_ADRALN;
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
     if (abtInfo.VMABT_uiType) {
         API_VmmAbortIsr(pregctx->REG_ulEpc, pregctx->REG_ulTrapVal, &abtInfo, ptcbCur);
@@ -287,7 +287,7 @@ static VOID  archLoadAddrMisalignTrapHandle (ARCH_REG_CTX  *pregctx)
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    abtInfo.VMABT_uiMethod = BUS_ADRERR;
+    abtInfo.VMABT_uiMethod = BUS_ADRALN;
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
 
     if (param->RISCV_bUnalign) {
@@ -318,7 +318,7 @@ static VOID  archStoreAmoAddrMisalignTrapHandle (ARCH_REG_CTX  *pregctx)
 
     LW_TCB_GET_CUR(ptcbCur);
 
-    abtInfo.VMABT_uiMethod = BUS_ADRERR;
+    abtInfo.VMABT_uiMethod = BUS_ADRALN;
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
 
 #if LW_CFG_RISCV_M_LEVEL > 0

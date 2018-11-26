@@ -105,7 +105,11 @@ static LW_PTE_TRANSENTRY  mips64MmuBuildPteEntry (addr_t  ulBaseAddr, ULONG  ulF
         pteentry |= ENTRYLO_G;                                          /*  填充 G 位                   */
 
         if (ulFlag & LW_VMM_FLAG_CACHEABLE) {                           /*  填充 C 位                   */
-            pteentry |= MIPS_MMU_ENTRYLO_CACHE   << ENTRYLO_C_SHIFT;
+            pteentry |= MIPS_MMU_ENTRYLO_CACHE << ENTRYLO_C_SHIFT;
+
+        } else if (ulFlag & LW_VMM_FLAG_BUFFERABLE) {
+            pteentry |= MIPS_MMU_ENTRYLO_UNCACHE_WB << ENTRYLO_C_SHIFT;
+
         } else {
             pteentry |= MIPS_MMU_ENTRYLO_UNCACHE << ENTRYLO_C_SHIFT;
         }
@@ -554,6 +558,10 @@ static ULONG  mips64MmuFlagGet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr)
                                   >> ENTRYLO_C_SHIFT;                   /*  获得 CACHE 属性             */
                     if (ulCacheAttr == MIPS_MMU_ENTRYLO_CACHE) {        /*  可以 CACHE                  */
                         ulFlag |= LW_VMM_FLAG_CACHEABLE;
+
+                    } else if ((ulCacheAttr == MIPS_MMU_ENTRYLO_UNCACHE_WB) &&
+                               (MIPS_MMU_ENTRYLO_UNCACHE_WB != MIPS_MMU_ENTRYLO_UNCACHE)) {
+                        ulFlag |= LW_VMM_FLAG_BUFFERABLE;
                     }
 
                     return  (ulFlag);
@@ -650,7 +658,7 @@ static VOID  mips64MmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
 *********************************************************************************************************/
 static VOID  mips64MmuMakeCurCtx (PLW_MMU_CONTEXT  pmmuctx)
 {
-#if LW_CFG_MIPS_HAS_RDHWR_INSTR > 0
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_MIPS_HAS_RDHWR_INSTR > 0)
     extern CHAR    *_G_mips64MmuTlbRefillCtxMp;
     MIPS64_TLB_REFILL_CTX  *pCtx = (MIPS64_TLB_REFILL_CTX *)((addr_t)&_G_mips64MmuTlbRefillCtxMp +
                                     MIPS64_TLB_CTX_SIZE * LW_CPU_GET_CUR_ID());

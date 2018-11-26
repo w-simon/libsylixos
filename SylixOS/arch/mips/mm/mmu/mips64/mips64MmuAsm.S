@@ -39,7 +39,7 @@
     FILE_BEGIN()
 
     EXPORT_LABEL(mipsMmuTlbRefillEntry)
-#if LW_CFG_MIPS_HAS_RDHWR_INSTR > 0
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_MIPS_HAS_RDHWR_INSTR > 0)
     EXPORT_LABEL(_G_mips64MmuTlbRefillCtxMp)
 #else
     EXPORT_LABEL(_G_mips64MmuTlbRefillCtx)
@@ -51,18 +51,18 @@
 ;  所以每个处理器逻辑核的临时异常上下文是相互独立的, 故不用加锁访问, 以提高实时性
 ;*********************************************************************************************************/
 
-#if LW_CFG_MIPS_HAS_RDHWR_INSTR > 0
-MACRO_DEF(QUAD_VALUE from, to)
-    .quad       ((\from) * MIPS64_TLB_CTX_SIZE + _G_mips64MmuTlbRefillCtxMp)
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_MIPS_HAS_RDHWR_INSTR > 0)
+MACRO_DEF(PTR_VALUE from, to)
+    PTR         ((\from) * MIPS64_TLB_CTX_SIZE + _G_mips64MmuTlbRefillCtxMp)
     .if         \to-\from
-    QUAD_VALUE  "(\from+1)",\to
+    PTR_VALUE   "(\from+1)",\to
     .endif
     MACRO_END()
 
     SECTION(.data)
     .balign     ARCH_STK_ALIGN_SIZE
 LINE_LABEL(_G_mips64MmuTlbRefillCtx)
-    QUAD_VALUE  0 , (LW_CFG_MAX_PROCESSORS - 1)
+    PTR_VALUE   0 , (LW_CFG_MAX_PROCESSORS - 1)
 
     SECTION(.bss)
     .balign     ARCH_STK_ALIGN_SIZE
@@ -95,15 +95,21 @@ FUNC_DEF(mipsMmuTlbRefillEntry)
     ; */
 1:
     PTR_LA      K0 , _G_mips64MmuTlbRefillCtx
+#if LW_CFG_SMP_EN > 0
 #if LW_CFG_MIPS_HAS_RDHWR_INSTR > 0
     .set        push
+#if LW_CFG_CPU_WORD_LENGHT == 32
+    .set        mips32r2
+#else
     .set        mips64r2
+#endif
     RDHWR       K1 , HWR_CPUNUM
     .set        pop
-    LONG_SLL    K1 , K1 , LONGLOG
-    REG_ADDU    K1 , K1 , K0
-    REG_L       K0 , 0(K1)
+    PTR_SLL     K1 , K1 , PTRLOG
+    PTR_ADDU    K1 , K1 , K0
+    PTR_L       K0 , 0(K1)
 #else
+    KN_WEAK_LLSC_MB_INST
     LL          K1 , MIPS64_TLB_CTX_LOCK(K0)
     BNEZ        K1 , 1b
     NOP
@@ -111,7 +117,9 @@ FUNC_DEF(mipsMmuTlbRefillEntry)
     LI          K1 , 1
     SC          K1 , MIPS64_TLB_CTX_LOCK(K0)
     BEQZ        K1 , 1b
-    SYNC
+    NOP
+    KN_SMP_LLSC_MB_INST
+#endif
 #endif
 
 ;/*********************************************************************************************************
@@ -213,9 +221,10 @@ FUNC_DEF(mipsMmuTlbRefillEntry)
 ;  10. 解锁上下文
 ;*********************************************************************************************************/
 
-#if LW_CFG_MIPS_HAS_RDHWR_INSTR == 0
-    SYNC
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_MIPS_HAS_RDHWR_INSTR == 0)
+    KN_SMP_MB_INST
     REG_S       ZERO , MIPS64_TLB_CTX_LOCK(K0)                          ;/*  解锁 MmuTlbRefillCtx        */
+    KN_SMP_MB_INST
 #endif
 
 ;/*********************************************************************************************************
@@ -252,9 +261,10 @@ LINE_LABEL(__error_handle)
 ;  3. 解锁上下文
 ;*********************************************************************************************************/
 
-#if LW_CFG_MIPS_HAS_RDHWR_INSTR == 0
-    SYNC
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_MIPS_HAS_RDHWR_INSTR == 0)
+    KN_SMP_MB_INST
     REG_S       ZERO , MIPS64_TLB_CTX_LOCK(K0)                          ;/*  解锁 MmuTlbRefillCtx        */
+    KN_SMP_MB_INST
 #endif
 
 ;/*********************************************************************************************************

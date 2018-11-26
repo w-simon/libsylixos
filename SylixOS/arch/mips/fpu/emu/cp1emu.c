@@ -805,13 +805,10 @@ static inline int cop1_64bit(ARCH_REG_CTX *xcp)
 		 !IS_ENABLED(CONFIG_MIPS_O32_FP64_SUPPORT))
 		return 0;
 
-    /*
-     * TODO
-     */
 #ifndef SYLIXOS
 	return !test_thread_flag(TIF_32BIT_FPREGS);
 #else
-    return 0;
+	return xcp->REG_ulCP0Status & ST0_FR;
 #endif
 }
 

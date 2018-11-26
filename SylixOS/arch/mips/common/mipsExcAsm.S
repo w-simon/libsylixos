@@ -24,6 +24,7 @@
 #endif
 
 #include <arch/assembler.h>
+#include <config/kernel/kernel_cfg.h>
 #include "mipsContextAsm.h"
 
     FILE_BEGIN()
@@ -47,21 +48,21 @@
 ;  所以每个处理器逻辑核的临时异常上下文是相互独立的, 故不用加锁访问, 以提高实时性
 ;*********************************************************************************************************/
 
-#define ARCH_TEMP_CTX_SIZE      4096
-#define XLOCK                   4000
+#define ARCH_TEMP_CTX_SIZE      8192
+#define XLOCK                   ARCH_REG_CTX_SIZE
 
-#if LW_CFG_MIPS_HAS_RDHWR_INSTR > 0
-MACRO_DEF(QUAD_VALUE from, to)
-    .quad       ((\from) * ARCH_TEMP_CTX_SIZE + archExcTempCtxMp)
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_MIPS_HAS_RDHWR_INSTR > 0)
+MACRO_DEF(PTR_VALUE from, to)
+    PTR         ((\from) * ARCH_TEMP_CTX_SIZE + archExcTempCtxMp)
     .if         \to-\from
-    QUAD_VALUE  "(\from+1)",\to
+    PTR_VALUE   "(\from+1)",\to
     .endif
     MACRO_END()
 
     SECTION(.data)
     .balign     ARCH_STK_ALIGN_SIZE
 LINE_LABEL(archExcTempCtx)
-    QUAD_VALUE  0 , (LW_CFG_MAX_PROCESSORS - 1)
+    PTR_VALUE   0 , (LW_CFG_MAX_PROCESSORS - 1)
 
     SECTION(.bss)
     .balign     ARCH_STK_ALIGN_SIZE
@@ -91,21 +92,27 @@ MACRO_DEF(EXCEPTION_ENTRY handle)
     ; */
 1:
     PTR_LA      K0 , archExcTempCtx
+#if LW_CFG_SMP_EN > 0
 #if LW_CFG_MIPS_HAS_RDHWR_INSTR > 0
     ;/*
     ; * 使用该核的 archExcTempCtx
     ; */
     .set        push
+#if LW_CFG_CPU_WORD_LENGHT == 32
+    .set        mips32r2
+#else
     .set        mips64r2
+#endif
     RDHWR       K1 , HWR_CPUNUM
     .set        pop
-    LONG_SLL    K1 , K1 , LONGLOG
-    REG_ADDU    K1 , K1 , K0
-    REG_L       K0 , 0(K1)
+    PTR_SLL     K1 , K1 , PTRLOG
+    PTR_ADDU    K1 , K1 , K0
+    PTR_L       K0 , 0(K1)
 #else
     ;/*
     ; * 对 archExcTempCtx 进行加锁
     ; */
+    KN_WEAK_LLSC_MB_INST
     LL          K1 , XLOCK(K0)
     BNEZ        K1 , 1b
     NOP
@@ -113,7 +120,9 @@ MACRO_DEF(EXCEPTION_ENTRY handle)
     LI          K1 , 1
     SC          K1 , XLOCK(K0)
     BEQZ        K1 , 1b
-    SYNC
+    NOP
+    KN_SMP_LLSC_MB_INST
+#endif
 #endif
 
     ;/*
@@ -187,7 +196,6 @@ MACRO_DEF(EXCEPTION_ENTRY handle)
     ;/*
     ; * 重新设置 GP 寄存器
     ; */
-
     PTR_LA      GP , _gp
 
     ;/*
@@ -230,9 +238,10 @@ MACRO_DEF(EXCEPTION_ENTRY handle)
     ;/*
     ; * 解锁 archExcTempCtx
     ; */
-#if LW_CFG_MIPS_HAS_RDHWR_INSTR == 0
-    SYNC
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_MIPS_HAS_RDHWR_INSTR == 0)
+    KN_SMP_MB_INST
     REG_S       ZERO , XLOCK(S0)
+    KN_SMP_MB_INST
 #endif
 
     ;/*
@@ -262,7 +271,7 @@ MACRO_DEF(EXCEPTION_ENTRY handle)
     ;/*
     ; * 不是第一次进入中断
     ; */
-    REG_L       SP , XGREG(29)(S0)
+    REG_L       SP , XGREG(29)(S0)                                      ;/*  SP 是 $29, S0 是临时上下文  */
     REG_SUBU    SP , ARCH_REG_CTX_SIZE
     B           2b
     MOV         A0 , SP
