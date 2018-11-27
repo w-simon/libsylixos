@@ -188,7 +188,7 @@ extern void  tlsf_mem_free(void *f);
   IPv6
 *********************************************************************************************************/
 
-#define LWIP_IPV6                       1
+#define LWIP_IPV6                       LW_CFG_NET_IPV6
 #define LWIP_IPV6_MLD                   1
 #define LWIP_IPV6_MLD_V2                1
 #define LWIP_IPV6_FORWARD               LW_CFG_NET_ROUTER

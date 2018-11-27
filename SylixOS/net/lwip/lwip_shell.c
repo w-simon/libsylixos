@@ -1196,7 +1196,9 @@ static INT  __tshellIpQos (INT  iArgC, PCHAR  *ppcArgV)
 {
     INT                 iSock, iRet;
     struct ipqosreq     ipqos;
+#if LWIP_IPV6
     struct ip6qosreq    ip6qos;
+#endif
     
     if (iArgC == 1) {
         iSock = socket(AF_INET, SOCK_DGRAM, 0);
@@ -1214,6 +1216,7 @@ static INT  __tshellIpQos (INT  iArgC, PCHAR  *ppcArgV)
         
         close(iSock);
         
+#if LWIP_IPV6
         iSock = socket(AF_INET6, SOCK_DGRAM, 0);
         if (iSock < 0) {
             fprintf(stderr, "can not create socket, error: %s!\n", lib_strerror(errno));
@@ -1228,10 +1231,15 @@ static INT  __tshellIpQos (INT  iArgC, PCHAR  *ppcArgV)
         }
         
         close(iSock);
+#endif
         
+#if LWIP_IPV6
         printf("IPv4 QoS: %s IPv6 QoS: %s\n", 
                ipqos.ip_qos_en ? "On" : "Off",
                ip6qos.ip6_qos_en ? "On" : "Off");
+#else
+        printf("IPv4 QoS: %s\n", ipqos.ip_qos_en ? "On" : "Off");
+#endif
     
     } else if (iArgC == 2) {
         iSock = socket(AF_INET, SOCK_DGRAM, 0);
@@ -1275,6 +1283,7 @@ static INT  __tshellIpQos (INT  iArgC, PCHAR  *ppcArgV)
                 return  (PX_ERROR);
             }
         
+#if LWIP_IPV6
         } else if (!lib_strcasecmp(ppcArgV[1], "ipv6")) {
             if (sscanf(ppcArgV[2], "%d", &ip6qos.ip6_qos_en) != 1) {
                 fprintf(stderr, "arguments error!\n");
@@ -1293,6 +1302,7 @@ static INT  __tshellIpQos (INT  iArgC, PCHAR  *ppcArgV)
                 close(iSock);
                 return  (PX_ERROR);
             }
+#endif
             
         } else {
             fprintf(stderr, "arguments error!\n");

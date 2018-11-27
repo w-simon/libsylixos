@@ -1434,6 +1434,8 @@ char  *inet_ntoa_r (struct in_addr addr, char *buf, int buflen)
 ** 调用模块:
                                            API 函数
 *********************************************************************************************************/
+#if LWIP_IPV6
+
 int  inet6_aton (const char *cp, struct in6_addr *addr)
 {
     return  (ip6addr_aton(cp, (ip6_addr_t*)addr));
@@ -1465,6 +1467,7 @@ char  *inet6_ntoa_r (struct in6_addr addr, char *buf, int buflen)
     return  (ip6addr_ntoa_r((const ip6_addr_t*)&(addr), buf, buflen));
 }
 
+#endif                                                                  /*  LWIP_IPV6                   */
 #endif                                                                  /*  LW_CFG_NET_EN               */
 /*********************************************************************************************************
   END

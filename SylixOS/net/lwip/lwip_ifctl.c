@@ -112,6 +112,8 @@ static INT __ifConf (struct ifconf  *pifconf)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if LWIP_IPV6
+
 static INT __ifReq6Size (struct in6_ifreq  *pifreq6)
 {
     INT              i;
@@ -133,6 +135,8 @@ static INT __ifReq6Size (struct in6_ifreq  *pifreq6)
     
     return  (ERROR_NONE);
 }
+
+#endif                                                                  /*  LWIP_IPV6                   */
 /*********************************************************************************************************
 ** 函数名称: __ifSubIoctlIf
 ** 功能描述: 网络接口 ioctl 操作 (针对网卡接口)
@@ -522,6 +526,8 @@ static INT  __ifSubIoctlAlias4 (INT  iCmd, PVOID  pvArg)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if LWIP_IPV6
+
 static INT  __ifSubIoctl6 (INT  iCmd, PVOID  pvArg)
 {
 #define __LWIP_GET_IPV6_FROM_NETIF() \
@@ -658,6 +664,8 @@ static INT  __ifSubIoctl6 (INT  iCmd, PVOID  pvArg)
     
     return  (iRet);
 }
+
+#endif                                                                  /*  LWIP_IPV6                   */
 /*********************************************************************************************************
 ** 函数名称: __ifSubIoctlCommon
 ** 功能描述: 通用网络接口 ioctl 操作
@@ -696,11 +704,13 @@ static INT  __ifSubIoctlCommon (INT  iCmd, PVOID  pvArg)
             break;
         }
     
+#if LWIP_IPV6
     case SIOCGSIZIFREQ6: {                                              /*  获得指定网口 ipv6 地址数量  */
             struct in6_ifreq *pifreq6 = (struct in6_ifreq *)pvArg;
             iRet = __ifReq6Size(pifreq6);
             break;
         }
+#endif                                                                  /*  LWIP_IPV6                   */
     }
     
     return  (iRet);
@@ -736,7 +746,9 @@ INT  __ifIoctlInet (INT  iCmd, PVOID  pvArg)
     case SIOCGIFCONF:                                                   /*  通用网络接口操作            */
     case SIOCGIFNUM:
     case SIOCGSIZIFCONF:
+#if LWIP_IPV6
     case SIOCGSIZIFREQ6:
+#endif
         LWIP_IF_LIST_LOCK(LW_FALSE);                                    /*  进入临界区                  */
         iRet = __ifSubIoctlCommon(iCmd, pvArg);
         LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
@@ -790,6 +802,7 @@ INT  __ifIoctlInet (INT  iCmd, PVOID  pvArg)
         LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
         break;
         
+#if LWIP_IPV6
     case SIOCGIFADDR6:                                                  /*  ipv6 操作                   */
     case SIOCGIFNETMASK6:
     case SIOCGIFDSTADDR6:
@@ -801,6 +814,7 @@ INT  __ifIoctlInet (INT  iCmd, PVOID  pvArg)
         iRet = __ifSubIoctl6(iCmd, pvArg);
         LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
         break;
+#endif                                                                  /*  LWIP_IPV6                   */
     
     default:
         _ErrorHandle(ENOSYS);
@@ -871,7 +885,9 @@ INT  __ifIoctlPacket (INT  iCmd, PVOID  pvArg)
     case SIOCGIFCONF:                                                   /*  通用网络接口操作            */
     case SIOCGIFNUM:
     case SIOCGSIZIFCONF:
+#if LWIP_IPV6
     case SIOCGSIZIFREQ6:
+#endif
         LWIP_IF_LIST_LOCK(LW_FALSE);                                    /*  进入临界区                  */
         iRet = __ifSubIoctlCommon(iCmd, pvArg);
         LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
@@ -908,6 +924,8 @@ INT  __ifIoctlPacket (INT  iCmd, PVOID  pvArg)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if LWIP_IPV6
+
 static INT  __ifIoctlLp802154 (INT  iCmd, struct ieee802154_ifreq *pifreq)
 {
     INT              iRet = PX_ERROR;
@@ -1052,6 +1070,8 @@ static INT  __ifIoctlLp7668 (INT  iCmd, struct rfc7668_ifreq *pifreq)
     
     return  (iRet);
 }
+
+#endif                                                                  /*  LWIP_IPV6                   */
 /*********************************************************************************************************
 ** 函数名称: __ifIoctlLp
 ** 功能描述: 6LowPAN 网络接口 ioctl 操作
@@ -1072,6 +1092,7 @@ INT  __ifIoctlLp (INT  iCmd, PVOID  pvArg)
     
     switch (iCmd) {                                                     /*  命令预处理                  */
     
+#if LWIP_IPV6
     case SIOCG802154PANID:
     case SIOCS802154PANID:
     case SIOCG802154SHRTADDR:
@@ -1091,6 +1112,7 @@ INT  __ifIoctlLp (INT  iCmd, PVOID  pvArg)
         iRet = __ifIoctlLp7668(iCmd, (struct rfc7668_ifreq *)pvArg);
         LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
         break;
+#endif                                                                  /*  LWIP_IPV6                   */
 
     default:
         _ErrorHandle(ENOSYS);

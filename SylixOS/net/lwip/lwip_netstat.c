@@ -128,6 +128,8 @@ static VOID  __GroupPrint (struct igmp_group *group, struct netif *netif,
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if LWIP_IPV6
+
 static VOID  __Group6Print (struct mld_group *mld_group, struct netif *netif,
                             PCHAR  pcBuffer, size_t  stTotalSize, size_t *pstOft)
 {
@@ -140,6 +142,8 @@ static VOID  __Group6Print (struct mld_group *mld_group, struct netif *netif,
                        ip6addr_ntoa_r(&mld_group->group_address, cBuffer, sizeof(cBuffer)),
                        (u32_t)mld_group->use);
 }
+
+#endif                                                                  /*  LWIP_IPV6                   */
 /*********************************************************************************************************
 ** 函数名称: __tshellNetstatGroup
 ** 功能描述: 系统命令 "netstat -g"
@@ -171,6 +175,7 @@ VOID  __tshellNetstatGroup (INT  iNetType)
             }
         }
     }
+#if LWIP_IPV6
     if (__NETSTAT_INC_IPV6(iNetType)) {
         NETIF_FOREACH(netif) {
             for (mld_group = netif_mld6_data(netif); mld_group != NULL; mld_group = mld_group->next) {
@@ -178,6 +183,7 @@ VOID  __tshellNetstatGroup (INT  iNetType)
             }
         }
     }
+#endif                                                                  /*  LWIP_IPV6                   */
     UNLOCK_TCPIP_CORE();
     
     stNeedBufferSize += sizeof(cIgmpInfoHdr) + sizeof(cIgmp6InfoHdr);
@@ -198,6 +204,7 @@ VOID  __tshellNetstatGroup (INT  iNetType)
             }
         }
     }
+#if LWIP_IPV6
     if (__NETSTAT_INC_IPV6(iNetType)) {
         stRealSize = bnprintf(pcPrintBuf, stNeedBufferSize, stRealSize, cIgmp6InfoHdr);
         NETIF_FOREACH(netif) {
@@ -206,6 +213,7 @@ VOID  __tshellNetstatGroup (INT  iNetType)
             }
         }
     }
+#endif                                                                  /*  LWIP_IPV6                   */
     UNLOCK_TCPIP_CORE();
     
     printf("%s\n", pcPrintBuf);
@@ -303,6 +311,7 @@ static VOID  __RawPrint (struct raw_pcb  *pcb, PCHAR  pcBuffer,
                            (ip_2_ip4(&pcb->remote_ip)->addr == IPADDR_ANY) ?
                            "*" : ip4addr_ntoa_r(ip_2_ip4(&pcb->remote_ip), cBuffer2, sizeof(cBuffer2)),
                            __RawGetProto(pcb->protocol));
+#if LWIP_IPV6
     } else {
         *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
                            "%-39s %-39s %s\n",
@@ -311,6 +320,7 @@ static VOID  __RawPrint (struct raw_pcb  *pcb, PCHAR  pcBuffer,
                            ip6_addr_isany(ip_2_ip6(&pcb->remote_ip)) ? 
                            "*" : ip6addr_ntoa_r(ip_2_ip6(&pcb->remote_ip), cBuffer2, sizeof(cBuffer2)),
                            __RawGetProto(pcb->protocol));
+#endif                                                                  /*  LWIP_IPV6                   */
     }
 }
 /*********************************************************************************************************
@@ -412,11 +422,13 @@ static PCHAR  __ProtoAddrBuild (ip_addr_t  *addr, u16_t usPort, PCHAR  pcBuffer,
                  (ip_2_ip4(addr)->addr == IPADDR_ANY) ?
                  "*" : ip4addr_ntoa_r(ip_2_ip4(addr), cBuffer, sizeof(cBuffer)),
                  usPort);
+#if LWIP_IPV6
     } else {
         bnprintf(pcBuffer, stSize, 0, "%s:%d", 
                  ip6_addr_isany(ip_2_ip6(addr)) ? 
                  "*" : ip6addr_ntoa_r(ip_2_ip6(addr), cBuffer, sizeof(cBuffer)),
                  usPort);
+#endif                                                                  /*  LWIP_IPV6                   */
     }
     
     return  (pcBuffer);
@@ -488,6 +500,8 @@ static VOID  __TcpPrint (struct tcp_pcb *pcb, PCHAR  pcBuffer,
                                __TcpGetStat((u8_t)pcb->state),
                                (u32_t)pcb->nrtx, (u32_t)pcb->rcv_wnd, (u32_t)pcb->snd_wnd);
         }
+    
+#if LWIP_IPV6
     } else {
         if (pcb->state == LISTEN) {
             *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
@@ -508,6 +522,7 @@ static VOID  __TcpPrint (struct tcp_pcb *pcb, PCHAR  pcBuffer,
                                __TcpGetStat((u8_t)pcb->state),
                                (u32_t)pcb->nrtx, (u32_t)pcb->rcv_wnd, (u32_t)pcb->snd_wnd);
         }
+#endif                                                                  /*  LWIP_IPV6                   */
     }
 }
 /*********************************************************************************************************
@@ -721,6 +736,7 @@ static VOID  __UdpPrint (struct udp_pcb *pcb, PCHAR  pcBuffer,
                            __ProtoAddrBuild(&pcb->remote_ip, pcb->remote_port, 
                                             cBuffer2, sizeof(cBuffer2)),
                            (pcb->flags & UDP_FLAGS_UDPLITE) ? "yes" : "no");
+#if LWIP_IPV6
     } else {
         *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
                            "%-44s %-44s %s\n",
@@ -729,6 +745,7 @@ static VOID  __UdpPrint (struct udp_pcb *pcb, PCHAR  pcBuffer,
                            __ProtoAddrBuild(&pcb->remote_ip, pcb->remote_port, 
                                             cBuffer2, sizeof(cBuffer2)),
                            (pcb->flags & UDP_FLAGS_UDPLITE) ? "yes" : "no");
+#endif                                                                  /*  LWIP_IPV6                   */
     }
 }
 /*********************************************************************************************************

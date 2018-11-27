@@ -3349,9 +3349,11 @@ lwip_getsockopt_impl(int s, int level, int optname, void *optval, socklen_t *opt
           if ((NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_RAW) &&
               (sock->conn->pcb.raw->protocol == IPPROTO_IGMP)) {
             err = ip4_mrt_getsockopt(sock->conn->pcb.raw, optname, optval, optlen);
+#if LWIP_IPV6
           } else if ((NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_RAW_IPV6) &&
                   (sock->conn->pcb.raw->protocol == IPPROTO_ICMPV6)) {
             err = ip6_mrt_getsockopt(sock->conn->pcb.raw, optname, optval, optlen);
+#endif /* LWIP_IPV6 */
           } else {
             done_socket(sock);
             return ENOPROTOOPT;
@@ -4209,9 +4211,11 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
           if ((NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_RAW) &&
               (sock->conn->pcb.raw->protocol == IPPROTO_IGMP)) {
             err = ip4_mrt_setsockopt(sock->conn->pcb.raw, optname, optval, optlen);
+#if LWIP_IPV6
           } else if ((NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_RAW_IPV6) &&
                   (sock->conn->pcb.raw->protocol == IPPROTO_ICMPV6)) {
             err = ip6_mrt_setsockopt(sock->conn->pcb.raw, optname, optval, optlen);
+#endif /* LWIP_IPV6 */
           } else {
             done_socket(sock);
             return ENOPROTOOPT;

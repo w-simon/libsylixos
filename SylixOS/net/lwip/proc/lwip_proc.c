@@ -597,6 +597,8 @@ static VOID  __procFsNetTcpPrint (struct tcp_pcb *pcb, PCHAR  pcBuffer,
                                __procFsNetTcpGetStat((u8_t)pcb->state),
                                (u32_t)pcb->nrtx, (u32_t)pcb->rcv_wnd, (u32_t)pcb->snd_wnd);
         }
+        
+#if LWIP_IPV6
     } else {
         if (pcb->state == LISTEN) {
             *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
@@ -627,6 +629,7 @@ static VOID  __procFsNetTcpPrint (struct tcp_pcb *pcb, PCHAR  pcBuffer,
                                "",
                                (u32_t)pcb->nrtx, (u32_t)pcb->rcv_wnd, (u32_t)pcb->snd_wnd);
         }
+#endif                                                                  /*  LWIP_IPV6                   */
     }
 }
 /*********************************************************************************************************
@@ -827,6 +830,7 @@ static VOID  __procFsNetUdpPrint (struct udp_pcb *pcb, PCHAR  pcBuffer,
                            "%08X:%04X %08X:%04X\n",
                            ip_2_ip4(&pcb->local_ip)->addr, htons(pcb->local_port),
                            ip_2_ip4(&pcb->remote_ip)->addr, htons(pcb->remote_port));
+#if LWIP_IPV6
     } else {
         *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
                            "%08X%08X%08X%08X:%04X %08X%08X%08X%08X:%04X\n",
@@ -840,6 +844,7 @@ static VOID  __procFsNetUdpPrint (struct udp_pcb *pcb, PCHAR  pcBuffer,
                            ip_2_ip6(&pcb->remote_ip)->addr[2],
                            ip_2_ip6(&pcb->remote_ip)->addr[3],
                            htons(pcb->remote_port));
+#endif                                                                  /*  LWIP_IPV6                   */
     }
 }
 /*********************************************************************************************************
@@ -1048,6 +1053,7 @@ static VOID  __procFsNetRawPrint (struct raw_pcb *pcb, PCHAR  pcBuffer,
                            ip_2_ip4(&pcb->local_ip)->addr,
                            ip_2_ip4(&pcb->remote_ip)->addr,
                            __procFsNetRawGetProto(pcb->protocol));
+#if LWIP_IPV6
     } else {
         *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
                            "%08X%08X%08X%08X %08X%08X%08X%08X %s\n",
@@ -1060,6 +1066,7 @@ static VOID  __procFsNetRawPrint (struct raw_pcb *pcb, PCHAR  pcBuffer,
                            ip_2_ip6(&pcb->remote_ip)->addr[2],
                            ip_2_ip6(&pcb->remote_ip)->addr[3],
                            __procFsNetRawGetProto(pcb->protocol));
+#endif                                                                  /*  LWIP_IPV6                   */
     }
 }
 /*********************************************************************************************************
@@ -1313,7 +1320,7 @@ static ssize_t  __procFsNetIgmpRead (PLW_PROCFS_NODE  p_pfsn,
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-#if LWIP_IGMP > 0
+#if LWIP_IPV6 > 0 && LWIP_IGMP > 0
 
 static VOID  __procFsNetIgmp6Print (struct mld_group *group, struct netif *netif,
                                     PCHAR  pcBuffer, size_t  stTotalSize, size_t *pstOft)
@@ -1330,7 +1337,8 @@ static VOID  __procFsNetIgmp6Print (struct mld_group *group, struct netif *netif
                        (u32_t)group->use);
 }
 
-#endif                                                                  /*  LWIP_IGMP > 0               */
+#endif                                                                  /*  LWIP_IPV6 > 0               */
+                                                                        /*  LWIP_IGMP > 0               */
 /*********************************************************************************************************
 ** 函数名称: __procFsNetIgmp6Read
 ** 功能描述: procfs 读一个读取网络 igmp6 文件
@@ -1359,6 +1367,7 @@ static ssize_t  __procFsNetIgmp6Read (PLW_PROCFS_NODE  p_pfsn,
      */
     pcFileBuffer = (PCHAR)API_ProcFsNodeBuffer(p_pfsn);
     if (pcFileBuffer == LW_NULL) {                                      /*  还没有分配内存              */
+#if LWIP_IPV6
         size_t  stNeedBufferSize = 0;
         struct mld_group *group;
         struct netif     *netif;
@@ -1388,6 +1397,9 @@ static ssize_t  __procFsNetIgmp6Read (PLW_PROCFS_NODE  p_pfsn,
             }
         }
         UNLOCK_TCPIP_CORE();
+#else
+        stRealSize = 0;
+#endif
         API_ProcFsNodeSetRealFileSize(p_pfsn, stRealSize);
     } else {
         stRealSize = API_ProcFsNodeGetRealFileSize(p_pfsn);
@@ -1694,12 +1706,16 @@ static VOID  __procFsNetTcpipStatPrint (PCHAR  pcBuffer, size_t  stTotalSize, si
     
 #if LW_CFG_LWIP_IPFRAG > 0
     __procFsNetTcpipStatPrintProto(&lwip_stats.ip_frag,  "IP_FRAG",   pcBuffer, stTotalSize, pstOft);
+#if LWIP_IPV6
     __procFsNetTcpipStatPrintProto(&lwip_stats.ip6_frag, "IPv6_FRAG", pcBuffer, stTotalSize, pstOft);
+#endif                                                                  /*  LWIP_IPV6                   */
 #endif                                                                  /*  LW_CFG_LWIP_IPFRAG > 0      */
 
     __procFsNetTcpipStatPrintProto(&lwip_stats.ip,       "IP",        pcBuffer, stTotalSize, pstOft);
+#if LWIP_IPV6
     __procFsNetTcpipStatPrintProto(&lwip_stats.nd6,      "ND",        pcBuffer, stTotalSize, pstOft);
     __procFsNetTcpipStatPrintProto(&lwip_stats.ip6,      "IPv6",      pcBuffer, stTotalSize, pstOft);
+#endif                                                                  /*  LWIP_IPV6                   */
     
     *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
                        "\n%-9s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-10s %-9s %-8s %-8s %-9s\n",
@@ -1709,7 +1725,9 @@ static VOID  __procFsNetTcpipStatPrint (PCHAR  pcBuffer, size_t  stTotalSize, si
 
 #if LWIP_IGMP > 0
     __procFsNetTcpipStatPrintIgmp(&lwip_stats.igmp,      "IGMP",      pcBuffer, stTotalSize, pstOft);
+#if LWIP_IPV6
     __procFsNetTcpipStatPrintIgmp(&lwip_stats.mld6,      "MLD",       pcBuffer, stTotalSize, pstOft);
+#endif                                                                  /*  LWIP_IPV6                   */
 #endif
     
     *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
@@ -1718,7 +1736,9 @@ static VOID  __procFsNetTcpipStatPrint (PCHAR  pcBuffer, size_t  stTotalSize, si
                        "proterr", "opterr", "err", "cachehit");
                         
     __procFsNetTcpipStatPrintProto(&lwip_stats.icmp,     "ICMP",      pcBuffer, stTotalSize, pstOft);
+#if LWIP_IPV6
     __procFsNetTcpipStatPrintProto(&lwip_stats.icmp6,    "ICMPv6",    pcBuffer, stTotalSize, pstOft);
+#endif                                                                  /*  LWIP_IPV6                   */
     
     __procFsNetTcpipStatPrintProto(&lwip_stats.udp,      "UDP",       pcBuffer, stTotalSize, pstOft);
     __procFsNetTcpipStatPrintProto(&lwip_stats.tcp,      "TCP",       pcBuffer, stTotalSize, pstOft);
@@ -2872,6 +2892,8 @@ static ssize_t  __procFsNetDevRead (PLW_PROCFS_NODE  p_pfsn,
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if LWIP_IPV6
+
 static VOID  __procFsNetIfInet6Print (struct netif *netif, PCHAR  pcBuffer, 
                                       size_t  stTotalSize, size_t *pstOft)
 {
@@ -2916,6 +2938,8 @@ static VOID  __procFsNetIfInet6Print (struct netif *netif, PCHAR  pcBuffer,
         }
     }
 }
+
+#endif                                                                  /*  LWIP_IPV6                   */
 /*********************************************************************************************************
 ** 函数名称: __procFsNetIfInet6Read
 ** 功能描述: procfs 读一个读取网络 if_inet6 文件
@@ -2943,6 +2967,7 @@ static ssize_t  __procFsNetIfInet6Read (PLW_PROCFS_NODE  p_pfsn,
      */
     pcFileBuffer = (PCHAR)API_ProcFsNodeBuffer(p_pfsn);
     if (pcFileBuffer == LW_NULL) {                                      /*  还没有分配内存              */
+#if LWIP_IPV6
         size_t        stNeedBufferSize = 0;
         struct netif *netif;
         INT           i;
@@ -2973,7 +2998,9 @@ static ssize_t  __procFsNetIfInet6Read (PLW_PROCFS_NODE  p_pfsn,
             __procFsNetIfInet6Print(netif, pcFileBuffer, stNeedBufferSize, &stRealSize);
         }
         UNLOCK_TCPIP_CORE();
-        
+#else
+        stRealSize = 0;
+#endif                                                                  /*  LWIP_IPV6                   */
         API_ProcFsNodeSetRealFileSize(p_pfsn, stRealSize);
     } else {
         stRealSize = API_ProcFsNodeGetRealFileSize(p_pfsn);

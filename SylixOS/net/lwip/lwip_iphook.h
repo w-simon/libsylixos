@@ -113,7 +113,9 @@ netdev_t          *net_ip_hook_netif_get_netdev(struct netif *pnetif);
 const ip4_addr_t  *net_ip_hook_netif_get_ipaddr(struct netif *pnetif);
 const ip4_addr_t  *net_ip_hook_netif_get_netmask(struct netif *pnetif);
 const ip4_addr_t  *net_ip_hook_netif_get_gw(struct netif *pnetif);
+#if LWIP_IPV6
 const ip6_addr_t  *net_ip_hook_netif_get_ip6addr(struct netif *pnetif, int  addr_index, int *addr_state);
+#endif
 UINT8             *net_ip_hook_netif_get_hwaddr(struct netif *pnetif, int *hwaddr_len);
 int                net_ip_hook_netif_get_index(struct netif *pnetif);
 int                net_ip_hook_netif_get_name(struct netif *pnetif, char *name, size_t size);

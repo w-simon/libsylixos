@@ -51,6 +51,8 @@
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if LWIP_IPV6
+
 static INT  __inetPing6Prepare (struct icmp6_echo_hdr   *icmp6hdrEcho, 
                                 struct ip6_addr         *pip6addrDest,
                                 INT                      iDataSize, 
@@ -490,6 +492,7 @@ static INT  __tshellPing6 (INT  iArgC, PCHAR  *ppcArgV)
 }
 
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
+#endif                                                                  /*  LWIP_IPV6                   */
 /*********************************************************************************************************
 ** 函数名称: API_INetPing6Init
 ** 功能描述: 初始化 IPv6 ping 工具
@@ -502,11 +505,13 @@ static INT  __tshellPing6 (INT  iArgC, PCHAR  *ppcArgV)
 LW_API  
 VOID  API_INetPing6Init (VOID)
 {
+#if LWIP_IPV6
 #if LW_CFG_SHELL_EN > 0
     API_TShellKeywordAdd("ping6", __tshellPing6);
     API_TShellFormatAdd("ping6", " ip(v6)/hostname [-l datalen] [-n times] [-w timeout] [-I interface]");
     API_TShellHelpAdd("ping6",   "ipv6 ping tool\n");
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
+#endif                                                                  /*  LWIP_IPV6                   */
 }
 
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */

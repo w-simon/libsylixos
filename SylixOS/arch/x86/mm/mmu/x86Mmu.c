@@ -363,7 +363,7 @@ static INT  x86MmuGlobalInit (CPCHAR  pcMachineName)
         ulPat &= ~(0x7ULL << 40);                                       /*  清除 PA5                    */
         ulPat |= (0x1ULL << 40);                                        /*  PA5 = 1 Write Combining (WC)*/
 
-        x86PentiumMsrSet(X86_MSR_IA32_PAT, &ulPat);                     /*  获得 IA32_PAT MSR           */
+        x86PentiumMsrSet(X86_MSR_IA32_PAT, &ulPat);                     /*  设置 IA32_PAT MSR           */
     }
 
     return  (ERROR_NONE);

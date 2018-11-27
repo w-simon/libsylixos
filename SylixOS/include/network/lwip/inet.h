@@ -148,6 +148,10 @@ extern const struct in6_addr in6addr_any;
 #ifndef INET6_ADDRSTRLEN
 #define INET6_ADDRSTRLEN    IP6ADDR_STRLEN_MAX
 #endif
+#else /* This else is Add By SylixOS */
+#ifndef INET6_ADDRSTRLEN
+#define INET6_ADDRSTRLEN    46
+#endif
 #endif
 
 #if LWIP_IPV4

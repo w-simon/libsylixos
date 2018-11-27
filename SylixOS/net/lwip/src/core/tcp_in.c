@@ -265,11 +265,14 @@ tcp_input(struct pbuf *p, struct netif *inp)
         ip_addr_cmp(&pcb->local_ip, ip_current_dest_addr())) {
 #ifdef SYLIXOS /* SylixOS Add min TTL Check */
       if (pcb->min_ttl) {
+#if LWIP_IPV6
         if (ip_current_is_v6()) {
           if (pcb->min_ttl > IP6H_HOPLIM(ip6_current_header())) {
             goto dropped;
           }
-        } else {
+        } else 
+#endif /* LWIP_IPV6 */
+        {
           if (pcb->min_ttl > IPH_TTL(ip4_current_header())) {
             goto dropped;
           }

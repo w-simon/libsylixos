@@ -413,6 +413,7 @@ static err_t  netdev_netif_rawoutput4 (struct netif *netif, struct pbuf *p, cons
   return (ERR_OK);
 }
 
+#if LWIP_IPV6
 static err_t  netdev_netif_rawoutput6 (struct netif *netif, struct pbuf *p, const ip6_addr_t *ip6addr)
 {
   netdev_t *netdev = (netdev_t *)(netif->state);
@@ -425,6 +426,7 @@ static err_t  netdev_netif_rawoutput6 (struct netif *netif, struct pbuf *p, cons
   
   return (ERR_OK);
 }
+#endif /* LWIP_IPV6 */
 
 /* lwip netif linkoutput hook function */
 static err_t  netdev_netif_linkoutput (struct netif *netif, struct pbuf *p)

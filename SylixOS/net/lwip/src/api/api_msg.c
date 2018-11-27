@@ -197,12 +197,12 @@ recv_raw(void *arg, struct raw_pcb *pcb, struct pbuf *p,
           struct ip_hdr *iphdr = (struct ip_hdr *)p->payload;
           ip_addr_copy_from_ip4(buf->toaddr, iphdr->dest);
         } else 
-#if LWIP_IPV6
         {
+#if LWIP_IPV6
           struct ip6_hdr *ip6hdr = (struct ip6_hdr *)p->payload;
           ip_addr_copy_from_ip6_packed(buf->toaddr, ip6hdr->dest);
-        }
 #endif /* LWIP_IPV6 */
+        }
       }
 #if LWIP_IPV6
       if (conn->flags & NETCONN_FLAG_HOPLIM) { /* SylixOS Add RAW support IPV6_HOPLIMIT */

@@ -66,7 +66,7 @@ typedef u8_t sa_family_t;
 typedef u16_t in_port_t;
 #endif
 
-#if LWIP_IPV4
+/* SylixOS Remove #if LWIP_IPV4 */
 /* members are in network byte order */
 struct sockaddr_in {
   u8_t            sin_len;
@@ -76,9 +76,8 @@ struct sockaddr_in {
 #define SIN_ZERO_LEN 8
   char            sin_zero[SIN_ZERO_LEN];
 };
-#endif /* LWIP_IPV4 */
 
-#if LWIP_IPV6
+/* SylixOS Remove #if LWIP_IPV6 */
 struct sockaddr_in6 {
   u8_t            sin6_len;      /* length of this structure    */
   sa_family_t     sin6_family;   /* AF_INET6                    */
@@ -87,7 +86,6 @@ struct sockaddr_in6 {
   struct in6_addr sin6_addr;     /* IPv6 address                */
   u32_t           sin6_scope_id; /* Set of interfaces for scope */
 };
-#endif /* LWIP_IPV6 */
 
 struct sockaddr {
   u8_t        sa_len;
@@ -256,11 +254,7 @@ struct linger {
 #define AF_UNIX         1
 #define AF_LOCAL        AF_UNIX /* SylixOS Add */
 #define AF_INET         2
-#if LWIP_IPV6
-#define AF_INET6        10
-#else /* LWIP_IPV6 */
-#define AF_INET6        AF_UNSPEC
-#endif /* LWIP_IPV6 */
+#define AF_INET6        10 /* SylixOS Removed #if LWIP_IPV6 */
 #define AF_ROUTE        16 /* SylixOS Add */
 #define AF_PACKET       17
 
@@ -276,10 +270,8 @@ struct linger {
 #define IPPROTO_ICMP    1
 #define IPPROTO_TCP     6
 #define IPPROTO_UDP     17
-#if LWIP_IPV6
-#define IPPROTO_IPV6    41
+#define IPPROTO_IPV6    41     /* SylixOS Remove #if LWIP_IPV6 */
 #define IPPROTO_ICMPV6  58
-#endif /* LWIP_IPV6 */
 #define IPPROTO_UDPLITE 136
 #define IPPROTO_RAW     255
 

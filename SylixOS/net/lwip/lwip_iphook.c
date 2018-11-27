@@ -395,6 +395,8 @@ const ip4_addr_t  *net_ip_hook_netif_get_gw (struct netif *pnetif)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if LWIP_IPV6
+
 const ip6_addr_t  *net_ip_hook_netif_get_ip6addr (struct netif *pnetif, int  addr_index, int *addr_state)
 {
     if (pnetif && (addr_index >= 0 && (addr_index < LWIP_IPV6_NUM_ADDRESSES))) {
@@ -407,6 +409,8 @@ const ip6_addr_t  *net_ip_hook_netif_get_ip6addr (struct netif *pnetif, int  add
     
     return  (LW_NULL);
 }
+
+#endif                                                                  /*  LWIP_IPV6                   */
 /*********************************************************************************************************
 ** 函数名称: net_ip_hook_netif_get_hwaddr
 ** 功能描述: 获取网卡物理地址

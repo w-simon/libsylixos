@@ -112,9 +112,11 @@ INT  __inetHostTableGetItem (CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrType)
             ip_2_ip4(addr)->addr = htonl(INADDR_LOOPBACK);
             IP_SET_TYPE(addr, IPADDR_TYPE_V4);
         
+#if LWIP_IPV6
         } else {
             lib_memcpy(ip_2_ip6(addr)->addr, &in6addr_loopback, 16);
             IP_SET_TYPE(addr, IPADDR_TYPE_V6);
+#endif                                                                  /*  LWIP_IPV6                   */
         }
         return  (ERR_OK);
     }
@@ -147,11 +149,13 @@ __fund_check:
                 IP_SET_TYPE(addr, IPADDR_TYPE_V4);
                 return  (ERR_OK);
             
+#if LWIP_IPV6
             } else if ((phostent->h_length == 16) &&
                        (ucAddrType == LWIP_DNS_ADDRTYPE_IPV6)) {        /*  ipv6                        */
                 lib_memcpy(&ip_2_ip6(addr)->addr, phostent->h_addr, phostent->h_length);
                 IP_SET_TYPE(addr, IPADDR_TYPE_V6);
                 return  (ERR_OK);
+#endif                                                                  /*  LWIP_IPV6                   */
             }
         }
     }

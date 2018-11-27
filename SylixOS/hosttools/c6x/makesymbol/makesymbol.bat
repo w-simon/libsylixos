@@ -49,17 +49,17 @@ echo #define SYMBOL_TABLE_BEGIN LW_STATIC_SYMBOL   _G_symLibSylixOS[] = {	>> sym
 echo.  														>> symbol.c
 echo #define SYMBOL_TABLE_END };							>> symbol.c
 echo.														>> symbol.c
-echo #define SYMBOL_ITEM_FUNC(pcName)                \		>> symbol.c
-echo     {   {(void *)0, (void *)0},                 \		>> symbol.c
-echo         #pcName, (char *)pcName,                \		>> symbol.c
-echo         LW_SYMBOL_TEXT                          \		>> symbol.c
-echo     },													>> symbol.c
-echo.														>> symbol.c
-echo #define SYMBOL_ITEM_OBJ(pcName)                 \		>> symbol.c
-echo     {   {(void *)0, (void *)0},                 \		>> symbol.c
-echo         #pcName, (char *)^&pcName,               \		>> symbol.c
-echo         LW_SYMBOL_DATA                          \		>> symbol.c
-echo     },													>> symbol.c
+echo #define SYMBOL_ITEM_FUNC(pcName)                       \>> symbol.c
+echo     {   {(void *)0, (void *)0},                        \>> symbol.c
+echo         #pcName, (char *)pcName,                       \>> symbol.c
+echo         LW_SYMBOL_TEXT                                 \>> symbol.c
+echo     },                                                 >> symbol.c
+echo.                                                       >> symbol.c
+echo #define SYMBOL_ITEM_OBJ(pcName)                       \>> symbol.c
+echo     {   {(void *)0, (void *)0},                       \>> symbol.c
+echo         #pcName, (char *)^&pcName,                     \>> symbol.c
+echo         LW_SYMBOL_DATA                                \>> symbol.c
+echo     },                                                 >> symbol.c
 echo.														>> symbol.c
 echo /*********************************************************************************************************	>> symbol.c
 echo   全局对象声明											>> symbol.c

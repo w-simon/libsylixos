@@ -67,12 +67,23 @@ typedef ULONG                       mem_ptr_t;
 *********************************************************************************************************/
 
 #ifdef __GNUC__
+#if LW_CFG_CPU_WORD_LENGHT == 32
 #define LWIP_DECLARE_MEMORY_ALIGNED(variable_name, size) \
         u8_t variable_name[size] __attribute__((aligned(4)))
 #else
 #define LWIP_DECLARE_MEMORY_ALIGNED(variable_name, size) \
+        u8_t variable_name[size] __attribute__((aligned(8)))
+#endif
+
+#else                                                                   /*  __GNUC__                    */
+#if LW_CFG_CPU_WORD_LENGHT == 32
+#define LWIP_DECLARE_MEMORY_ALIGNED(variable_name, size) \
         u32_t variable_name[(size + sizeof(u32_t) - 1) / sizeof(u32_t)]
-#endif                                                                  /*  __GNUC__                    */
+#else
+#define LWIP_DECLARE_MEMORY_ALIGNED(variable_name, size) \
+        u64_t variable_name[(size + sizeof(u64_t) - 1) / sizeof(u64_t)]
+#endif
+#endif                                                                  /*  !__GNUC__                   */
 
 /*********************************************************************************************************
   编译器结构缩排相关
