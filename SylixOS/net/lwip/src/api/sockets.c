@@ -1391,7 +1391,7 @@ lwip_recvmsg(int s, struct msghdr *message, int flags)
     if ((message->msg_iov[i].iov_base == NULL) || ((ssize_t)message->msg_iov[i].iov_len <= 0) ||
         ((size_t)(ssize_t)message->msg_iov[i].iov_len != message->msg_iov[i].iov_len) ||
         ((ssize_t)(buflen + (ssize_t)message->msg_iov[i].iov_len) <= 0)) {
-      sock_set_errno(sock, ERR_VAL);
+      sock_set_errno(sock, err_to_errno(ERR_VAL));
       done_socket(sock);
       return -1;
     }
@@ -2391,7 +2391,6 @@ lwip_poll_dec_sockets_used(struct pollfd *fds, nfds_t nfds)
     /* Go through each struct pollfd in the array. */
     for (fdi = 0; fdi < nfds; fdi++) {
       struct lwip_sock *sock = tryget_socket_unconn_nouse(fds[fdi].fd);
-      LWIP_ASSERT("socket gone at the end of select", sock != NULL);
       if (sock != NULL) {
         done_socket(sock);
       }

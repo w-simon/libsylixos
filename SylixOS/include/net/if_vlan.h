@@ -38,6 +38,9 @@ extern "C" {
 
 /*********************************************************************************************************
   Configuration structure for SIOCSETVLAN and SIOCGETVLAN ioctls.
+  vlr_tag = 0       : All packet we want received, we send standard ethernet packet.
+  vlr_tag = 4095    : Close this interface VLAN setting, Only standard ethernet packet can received.
+  vlr_tag = 1..4094 : Set VLAN tag, we only received same VLAN tag packet.
 *********************************************************************************************************/
 
 struct vlanreq {

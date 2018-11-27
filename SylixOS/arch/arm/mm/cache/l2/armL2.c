@@ -80,14 +80,22 @@ VOID armL2Enable (VOID)
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : 有些 ARM 处理器关闭 L1 Cache 后不可再使用 spinlock.
 *********************************************************************************************************/
 VOID armL2Disable (VOID)
 {
+#if LW_CFG_SMP_EN > 0
+    if (l2cdrv.L2CD_pfuncDisable) {
+        l2cdrv.L2CD_pfuncDisable(&l2cdrv);
+    }
+
+#else
     if (l2cdrv.L2CD_pfuncDisable) {
         L2_OP_ENTER();
         l2cdrv.L2CD_pfuncDisable(&l2cdrv);
         L2_OP_EXIT();
     }
+#endif
 }
 /*********************************************************************************************************
 ** 函数名称: armL2IsEnable

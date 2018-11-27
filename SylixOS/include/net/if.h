@@ -55,6 +55,7 @@ struct if_nameindex {
   posix if api
 *********************************************************************************************************/
 
+#if defined(__SYLIXOS_EXTEND) || defined(__SYLIXOS_KERNEL)
 LW_API INT                   if_down(const char *ifname);       /* net interface down                   */
 LW_API INT                   if_up(const char *ifname);         /* net interface up                     */
 LW_API INT                   if_isup(const char *ifname);       /* net interface is up                  */
@@ -64,7 +65,8 @@ LW_API INT                   if_set_dhcp(const char *ifname, int en);
                                                                 /* set net if dhcp flag                 */
 LW_API INT                   if_set_dhcp6(const char *ifname, int en, int stateless);
 LW_API INT                   if_get_dhcp6(const char *ifname);
-                                                                
+#endif                                                          /* __SYLIXOS_EXTEND                     */
+
 LW_API unsigned              if_nametoindex(const char *ifname);
 LW_API char                 *if_indextoname(unsigned  ifindex, char *ifname);
 LW_API struct if_nameindex  *if_nameindex(void);

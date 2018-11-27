@@ -540,7 +540,7 @@ INT  netif_get_priv_flags (struct netif *pnetif)
 #define VLAN_TAG_MASK       0xfff
 #define VLAN_TAG_OFFSET     0
 #define VLAN_TAG_GET(id)    (u16_t)((id) & VLAN_TAG_MASK)
-#define VLAN_ID_VALID(id)   (VLAN_TAG_GET(id) != VLAN_TAG_MASK)
+#define VLAN_ID_VALID(id)   ((VLAN_TAG_GET(id) != VLAN_TAG_MASK) && (VLAN_TAG_GET(id) != 0))
 
     INT  iFlags = pnetif->priv_flags;
     

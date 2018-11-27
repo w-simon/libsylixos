@@ -95,11 +95,13 @@ LW_API INT     pselect(INT                     iWidth,
                        const struct timespec  *ptmspecTO,
                        const sigset_t         *sigsetMask);             /*  BSD 标准 pselect()          */
 
+#if defined(__SYLIXOS_EXTEND) || defined(__SYLIXOS_KERNEL)
 LW_API INT     waitread(INT  iFd, struct timeval   *ptmvalTO);          /*  等待单个文件可读            */
 
 LW_API INT     waitwrite(INT  iFd, struct timeval   *ptmvalTO);         /*  等待单个文件可写            */
 
 LW_API INT     waitexcept(INT  iFd, struct timeval   *ptmvalTO);        /*  等待单个文件可异常          */
+#endif                                                          /* __SYLIXOS_EXTEND                     */
 
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */
                                                                         /*  (LW_CFG_SELECT_EN > 0)      */
