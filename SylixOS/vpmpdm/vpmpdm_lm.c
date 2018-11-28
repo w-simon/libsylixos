@@ -32,6 +32,7 @@ char *inet_ntoa (struct in_addr addr)
     return  (ip4addr_ntoa((const ip4_addr_t*)&(addr)));
 }
 
+#if LWIP_IPV6
 /*
  * ip6addr_ntoa
  */
@@ -48,6 +49,7 @@ char *inet6_ntoa (struct in6_addr addr)
 {
     return  (ip6addr_ntoa((const ip6_addr_t*)&(addr)));
 }
+#endif /* LWIP_IPV6 */
 
 /*
  * strtok

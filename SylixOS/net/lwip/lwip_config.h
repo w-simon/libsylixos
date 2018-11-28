@@ -605,7 +605,7 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrT
 #define MD5_SUPPORT                     1
 
 #define PPP_MD5_RANDM                   1
-#define PPP_IPV6_SUPPORT                1
+#define PPP_IPV6_SUPPORT                LWIP_IPV6
 
 /*********************************************************************************************************
   ppp timeouts
